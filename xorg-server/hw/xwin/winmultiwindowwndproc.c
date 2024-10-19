@@ -490,6 +490,8 @@ winAdjustXWindowState(winPrivScreenPtr s_pScreenPriv, winWMMessageRec *wmMsg)
 /*
  * winTopLevelWindowProc - Window procedure for all top-level Windows windows.
  */
+int sizeChanged;
+unsigned lastTime;
 
 LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -1099,8 +1101,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_SIZING:
-        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
-            DispatchQueuedEvents(0);
         /* Need to legalize the size according to WM_NORMAL_HINTS */
         /* for applications like xterm */
         return ValidateSizing(hwnd, pWin, wParam, lParam);
@@ -1127,44 +1127,53 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_WINDOWPOSCHANGED:
     {
-        LPWINDOWPOS pWinPos = (LPWINDOWPOS) lParam;
+        if (0 == GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+        {
+            LPWINDOWPOS pWinPos = (LPWINDOWPOS)lParam;
 
-        if (!(pWinPos->flags & SWP_NOZORDER)) {
+            if (!(pWinPos->flags & SWP_NOZORDER)) {
 #if ENABLE_DEBUG
-            winDebug("\twindow z order was changed\n");
+                winDebug("\twindow z order was changed\n");
 #endif
-            if (pWinPos->hwndInsertAfter == HWND_TOP
-                || pWinPos->hwndInsertAfter == HWND_TOPMOST
-                || pWinPos->hwndInsertAfter == HWND_NOTOPMOST) {
+                if (pWinPos->hwndInsertAfter == HWND_TOP
+                    || pWinPos->hwndInsertAfter == HWND_TOPMOST
+                    || pWinPos->hwndInsertAfter == HWND_NOTOPMOST) {
 #if ENABLE_DEBUG
-                winDebug("\traise to top\n");
+                    winDebug("\traise to top\n");
 #endif
-                /* Raise the window to the top in Z order */
-                winRaiseWindow(pWin);
+                    /* Raise the window to the top in Z order */
+                    winRaiseWindow(pWin);
+                }
+                else if (pWinPos->hwndInsertAfter == HWND_BOTTOM) {
+                }
+                else {
+                    raiseWinIfNeeded(pWin, pWinPos->hwndInsertAfter);
+                }
             }
-            else if (pWinPos->hwndInsertAfter == HWND_BOTTOM) {
-            }
-            else {
-                raiseWinIfNeeded(pWin, pWinPos->hwndInsertAfter);
-            }
+            //if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+            //    DispatchQueuedEvents(0);
+            /*
+             * Pass the message to DefWindowProc to let the function
+             * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
+             */
         }
-        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
-            DispatchQueuedEvents(0);
-        /*
-         * Pass the message to DefWindowProc to let the function
-         * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
-         */
     }
     break;
 
     case WM_ENTERSIZEMOVE:
         SetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE, TRUE);
         SetTimer(hwnd, UPDATETIMER, 10, NULL);
-        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
-            DispatchQueuedEvents(0);
+        DispatchQueuedEvents(0);
         return 0;
 
     case WM_TIMER:
+        if (sizeChanged && (GetTimeInMillis()-lastTime > 200))
+        {
+          sizeChanged=0;
+          winAdjustXWindow(pWin, hwnd);
+          winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+          InvalidateRect(hwnd, NULL, FALSE);
+        }
         if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
             DispatchQueuedEvents(0);
         return 0;
@@ -1177,6 +1186,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         {
             winAdjustXWindow(pWin, hwnd);
             winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+            InvalidateRect(hwnd, NULL, FALSE);
         }
         return 0;
 
@@ -1204,14 +1214,18 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     }
 #endif
         /* Adjust the X Window to the moved Windows window */
-        winAdjustXWindow (pWin, hwnd);
         if (pWin)
+        {
+          sizeChanged++;
+          lastTime=GetTimeInMillis();
+            winAdjustXWindow(pWin, hwnd);
             winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+            InvalidateRect(hwnd, NULL, FALSE);
+//            if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+//                DispatchQueuedEvents(0);
+        }
         if (wParam == SIZE_MINIMIZED)
             winReorderWindowsMultiWindow();
-        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
-            DispatchQueuedEvents(0);
-    /* else: wait for WM_EXITSIZEMOVE */
     return 0; /* end of WM_SIZE handler */
 
     case WM_STYLECHANGED:

@@ -481,11 +481,12 @@ DisableLimitedSchedulingLatency(void)
         SmartScheduleLatencyLimited = 0;
 }
 
-Bool isThereSomething(Bool are_ready);
+Bool isThereSomething(Bool are_ready, int maxwaittime);
 
 void DispatchQueuedEvents(Bool wait)
 {
     static int reentrantcheck;
+    int startTime;
     if (!wait)
     {
         if (reentrantcheck)
@@ -493,6 +494,7 @@ void DispatchQueuedEvents(Bool wait)
             return;
         }
         reentrantcheck=1;
+        startTime=GetTimeInMillis();
     }
     while (1)
     {
@@ -509,7 +511,8 @@ void DispatchQueuedEvents(Bool wait)
         }
         else
         {
-            if (!isThereSomething(clients_are_ready()))
+            int maxwaittime=5-(GetTimeInMillis()-startTime);
+            if (!isThereSomething(clients_are_ready(), maxwaittime))
             {
                 reentrantcheck=0;
                 return;

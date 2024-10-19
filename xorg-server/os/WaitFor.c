@@ -242,7 +242,7 @@ WaitForSomething(Bool are_ready)
     }
 }
 
-Bool isThereSomething(Bool are_ready)
+Bool isThereSomething(Bool are_ready, int maxwaittime)
 {
     if (timer_is_running && !are_ready)
     {
@@ -250,16 +250,14 @@ Bool isThereSomething(Bool are_ready)
         SmartScheduleStopTimer();
     }
 
-#ifdef BUSFAULT
     busfault_check();
-#endif
 
     /* We need a while loop here to handle
        crashed connections and the screen saver timeout */
     while (1) {
         int i;
         int pollerr;
-        int timeout=0;
+        int timeout;
         /* deal with any blocked jobs */
         ProcessWorkQueue();
 
@@ -269,7 +267,6 @@ Bool isThereSomething(Bool are_ready)
         if (are_ready)
             timeout = 0;
 
-        BlockHandler(&timeout);
         if (NewOutputPending)
             FlushAllOutput();
         /* keep this check close to select() call to minimize race */
@@ -277,7 +274,9 @@ Bool isThereSomething(Bool are_ready)
             i = -1;
         else
         {
-            i = ospoll_wait(server_poll, 1);
+            if (timeout>maxwaittime) // Only wait for timers that expire soon
+              timeout=maxwaittime;
+            i = ospoll_wait(server_poll, timeout);
         }
         pollerr = GetErrno();
         if (i <= 0) {           /* An error or timeout occurred */
@@ -307,6 +306,10 @@ Bool isThereSomething(Bool are_ready)
                 SmartScheduleStartTimer();
             }
             return TRUE;
+        }
+        else if (i)
+        {
+          return TRUE;
         }
         else
           return FALSE;
