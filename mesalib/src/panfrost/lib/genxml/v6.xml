@@ -617,11 +617,7 @@
     <field name="Thread Storage" size="64" start="28:0" type="address"/>
   </struct>
 
-  <struct name="Surface" align="8">
-    <field name="Pointer" size="64" start="0:0" type="address"/>
-  </struct>
-
-  <struct name="Surface With Stride" align="8">
+  <struct name="Surface With Stride" align="16">
     <field name="Pointer" size="64" start="0:0" type="address"/>
     <field name="Row stride" size="32" start="2:0" type="int"/>
     <field name="Surface stride" size="32" start="3:0" type="int"/>
@@ -632,7 +628,7 @@
     <field name="Wrap Mode R" size="4" start="0:8" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Wrap Mode T" size="4" start="0:12" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Wrap Mode S" size="4" start="0:16" type="Wrap Mode" default="Clamp to Edge"/>
-    <field name="Round to nearest even" size="1" start="0:21" type="bool" default="false"/>
+    <field name="Round to nearest even" size="1" start="0:21" type="bool" default="true"/>
     <!--- Disable sRGB-to-linear conversion (assume linear) -->
     <field name="sRGB override" size="1" start="0:22" type="bool" default="false"/>
     <field name="Seamless Cube Map" size="1" start="0:23" type="bool" default="true"/>
@@ -664,7 +660,7 @@
     <field name="Format" size="22" start="0:10" type="Pixel Format"/>
     <field name="Width" size="16" start="1:0" type="uint" modifier="minus(1)"/>
     <field name="Height" size="16" start="1:16" type="uint" modifier="minus(1)"/>
-    <field name="Swizzle" size="12" start="2:0" type="uint"/>
+    <field name="Swizzle" size="12" start="2:0" type="Component Swizzle"/>
     <field name="Texel ordering" size="4" start="2:12" type="Texture Layout"/>
     <field name="Levels" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
     <field name="Minimum level" size="5" start="2:24" type="uint"/>
@@ -1080,7 +1076,7 @@
     <field name="Writeback MSAA" size="2" start="1:12" type="MSAA"/>
     <field name="sRGB" size="1" start="1:14" type="bool"/>
     <field name="Dithering Enable" size="1" start="1:15" type="bool"/>
-    <field name="Swizzle" size="12" start="1:16" type="uint"/>
+    <field name="Swizzle" size="12" start="1:16" type="Component Swizzle"/>
     <field name="Clean Pixel Write Enable" size="1" start="1:31" type="bool"/>
     <field name="RGB" size="128" start="8:0" type="RT Buffer"/>
     <field name="Clear" size="128" start="12:0" type="RT Clear"/>

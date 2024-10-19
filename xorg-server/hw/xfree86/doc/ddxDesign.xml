@@ -7818,7 +7818,7 @@ zzzSetup(pointer module, pointer opts, int *errmaj, int *errmin)
     The <structname>ScrnInfoRec</structname>'s <structfield>driverPrivate</structfield> is
     initialised to <constant>NULL</constant>, so it is easy to check if the
     initialisation has already been done.  After allocating it, initialise
-    the fields.  By using <function>xnfcalloc()</function> to do the allocation
+    the fields.  By using <function>XNFcallocarray()</function> to do the allocation
     it is zeroed, and if the allocation fails the server exits.
 	</para>
 
@@ -7837,7 +7837,7 @@ ZZZGetRec(ScrnInfoPtr pScrn)
 {
     if (pScrn-&gt;driverPrivate != NULL)
         return TRUE;
-    pScrn-&gt;driverPrivate = xnfcalloc(sizeof(ZZZRec), 1);
+    pScrn-&gt;driverPrivate = XNFcallocarray(1, sizeof(ZZZRec));
     /* Initialise as required */
     ...
     return TRUE;

@@ -241,23 +241,14 @@ lower_alu_instr_width(nir_builder *b, nir_instr *instr, void *_data)
        */
       return NULL;
 
-   case nir_op_unpack_half_2x16_flush_to_zero:
    case nir_op_unpack_half_2x16: {
       if (!b->shader->options->lower_unpack_half_2x16)
          return NULL;
 
       nir_def *packed = nir_ssa_for_alu_src(b, alu, 0);
-      if (alu->op == nir_op_unpack_half_2x16_flush_to_zero) {
-         return nir_vec2(b,
-                         nir_unpack_half_2x16_split_x_flush_to_zero(b,
-                                                                    packed),
-                         nir_unpack_half_2x16_split_y_flush_to_zero(b,
-                                                                    packed));
-      } else {
-         return nir_vec2(b,
-                         nir_unpack_half_2x16_split_x(b, packed),
-                         nir_unpack_half_2x16_split_y(b, packed));
-      }
+      return nir_vec2(b,
+                      nir_unpack_half_2x16_split_x(b, packed),
+                      nir_unpack_half_2x16_split_y(b, packed));
    }
 
    case nir_op_pack_uvec2_to_uint: {
@@ -273,6 +264,9 @@ lower_alu_instr_width(nir_builder *b, nir_instr *instr, void *_data)
    case nir_op_pack_uvec4_to_uint: {
       assert(b->shader->options->lower_pack_snorm_4x8 ||
              b->shader->options->lower_pack_unorm_4x8);
+
+      if (b->shader->options->has_pack_32_4x8)
+         return nir_pack_32_4x8(b, nir_u2u8(b, nir_ssa_for_alu_src(b, alu, 0)));
 
       nir_def *byte = nir_extract_u8(b, nir_ssa_for_alu_src(b, alu, 0),
                                      nir_imm_int(b, 0));
@@ -461,16 +455,12 @@ nir_lower_alu_to_scalar(nir_shader *shader, nir_instr_filter_cb cb, const void *
 }
 
 static bool
-lower_alu_vec8_16_src(nir_builder *b, nir_instr *instr, void *_data)
+lower_alu_vec8_16_src(nir_builder *b, nir_alu_instr *alu, void *_data)
 {
-   if (instr->type != nir_instr_type_alu)
-      return false;
-
-   nir_alu_instr *alu = nir_instr_as_alu(instr);
    const nir_op_info *info = &nir_op_infos[alu->op];
 
    bool changed = false;
-   b->cursor = nir_before_instr(instr);
+   b->cursor = nir_before_instr(&alu->instr);
    for (int i = 0; i < info->num_inputs; i++) {
       if (alu->src[i].src.ssa->num_components < 8 || info->input_sizes[i])
          continue;
@@ -498,7 +488,7 @@ lower_alu_vec8_16_src(nir_builder *b, nir_instr *instr, void *_data)
 bool
 nir_lower_alu_vec8_16_srcs(nir_shader *shader)
 {
-   return nir_shader_instructions_pass(shader, lower_alu_vec8_16_src,
-      nir_metadata_block_index | nir_metadata_dominance,
-      NULL);
+   return nir_shader_alu_pass(shader, lower_alu_vec8_16_src,
+                              nir_metadata_control_flow,
+                              NULL);
 }

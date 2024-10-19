@@ -4,8 +4,8 @@
  */
 
 #include <stdbool.h>
-#include "r300_nir.h"
 #include "nir_builder.h"
+#include "r300_nir.h"
 
 static int
 follow_modifiers(nir_instr *instr)
@@ -22,14 +22,13 @@ follow_modifiers(nir_instr *instr)
       if (intrin->intrinsic == nir_intrinsic_load_ubo_vec4 ||
           intrin->intrinsic == nir_intrinsic_load_constant ||
           intrin->intrinsic == nir_intrinsic_load_input) {
-          nir_foreach_use(use, &intrin->def) {
-              if (nir_src_parent_instr(use)->type == nir_instr_type_phi)
-                 return intrin->def.index;
-          }
+         nir_foreach_use (use, &intrin->def) {
+            if (nir_src_parent_instr(use)->type == nir_instr_type_phi)
+               return intrin->def.index;
+         }
       }
-      if (intrin->intrinsic == nir_intrinsic_load_ubo_vec4 &&
-          !nir_src_is_const(intrin->src[1]))
-      return intrin->def.index;
+      if (intrin->intrinsic == nir_intrinsic_load_ubo_vec4 && !nir_src_is_const(intrin->src[1]))
+         return intrin->def.index;
    }
    /* Assume the worst when we see a phi. */
    if (instr->type == nir_instr_type_phi)
@@ -55,10 +54,9 @@ has_three_different_tmp_sources(nir_alu_instr *fcsel)
       if (index == -1)
          return false;
       else
-	 src_def_index[i] = index;
+         src_def_index[i] = index;
    }
-   return src_def_index[0] != src_def_index[1] &&
-          src_def_index[0] != src_def_index[2] &&
+   return src_def_index[0] != src_def_index[1] && src_def_index[0] != src_def_index[2] &&
           src_def_index[1] != src_def_index[2];
 }
 
@@ -82,13 +80,8 @@ is_comparison(nir_instr *instr)
 }
 
 static bool
-r300_nir_lower_fcsel_instr(nir_builder *b, nir_instr *instr, void *data)
+r300_nir_lower_fcsel_instr(nir_builder *b, nir_alu_instr *alu, void *data)
 {
-   if (instr->type != nir_instr_type_alu)
-      return false;
-
-   nir_alu_instr *alu = nir_instr_as_alu(instr);
-
    if (alu->op != nir_op_fcsel && alu->op != nir_op_fcsel_ge && alu->op != nir_op_fcsel_gt)
       return false;
 
@@ -101,24 +94,19 @@ r300_nir_lower_fcsel_instr(nir_builder *b, nir_instr *instr, void *data)
        * even for nir_op_fcsel_gt if the source is 0 or 1 anyway.
        */
       nir_instr *src0_instr = alu->src[0].src.ssa->parent_instr;
-      if (alu->op == nir_op_fcsel ||
-          (alu->op == nir_op_fcsel_gt && is_comparison(src0_instr))) {
-         lrp = nir_flrp(b, nir_ssa_for_alu_src(b, alu, 2),
-                        nir_ssa_for_alu_src(b, alu, 1),
+      if (alu->op == nir_op_fcsel || (alu->op == nir_op_fcsel_gt && is_comparison(src0_instr))) {
+         lrp = nir_flrp(b, nir_ssa_for_alu_src(b, alu, 2), nir_ssa_for_alu_src(b, alu, 1),
                         nir_ssa_for_alu_src(b, alu, 0));
       } else if (alu->op == nir_op_fcsel_ge) {
          nir_def *sge = nir_sge(b, nir_ssa_for_alu_src(b, alu, 0), nir_imm_float(b, 0.0));
-         lrp = nir_flrp(b, nir_ssa_for_alu_src(b, alu, 2),
-                        nir_ssa_for_alu_src(b, alu, 1), sge);
+         lrp = nir_flrp(b, nir_ssa_for_alu_src(b, alu, 2), nir_ssa_for_alu_src(b, alu, 1), sge);
       } else {
-         nir_def *slt = nir_slt(b, nir_fneg(b, nir_ssa_for_alu_src(b, alu, 0)),
-                                nir_imm_float(b, 0.0));
-         lrp = nir_flrp(b, nir_ssa_for_alu_src(b, alu, 2),
-                        nir_ssa_for_alu_src(b, alu, 1), slt);
+         nir_def *slt =
+            nir_slt(b, nir_fneg(b, nir_ssa_for_alu_src(b, alu, 0)), nir_imm_float(b, 0.0));
+         lrp = nir_flrp(b, nir_ssa_for_alu_src(b, alu, 2), nir_ssa_for_alu_src(b, alu, 1), slt);
       }
 
-      nir_def_rewrite_uses(&alu->def, lrp);
-      nir_instr_remove(&alu->instr);
+      nir_def_replace(&alu->def, lrp);
       return true;
    }
    return false;
@@ -127,10 +115,5 @@ r300_nir_lower_fcsel_instr(nir_builder *b, nir_instr *instr, void *data)
 bool
 r300_nir_lower_fcsel_r500(nir_shader *shader)
 {
-   bool progress = nir_shader_instructions_pass(shader,
-                                                r300_nir_lower_fcsel_instr,
-                                                nir_metadata_block_index |
-                                                   nir_metadata_dominance,
-                                                NULL);
-   return progress;
+   return nir_shader_alu_pass(shader, r300_nir_lower_fcsel_instr, nir_metadata_control_flow, NULL);
 }

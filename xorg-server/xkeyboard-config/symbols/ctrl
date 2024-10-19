@@ -27,7 +27,15 @@ xkb_symbols "hyper_capscontrol" {
     replace key <CAPS> { [ Control_L ], type[group1] = "ONE_LEVEL" };
     replace key <LCTL> { [ Hyper_L ] };
     modifier_map Control { <CAPS> };
-    modifier_map Mod4    { <LCTL> };
+    modifier_map Mod3    { <LCTL> };
+};
+
+// Swap the functions of the CapsLock key and the left Ctrl key.
+// Pressing the left Ctrl key switches to the next group.
+partial modifier_keys
+xkb_symbols "grouptoggle_capscontrol" {
+    include "ctrl(swapcaps)"
+    include "group(lctrl_toggle)"
 };
 
 // Move Ctrl to the leftmost key on the middle row and CapsLock to the

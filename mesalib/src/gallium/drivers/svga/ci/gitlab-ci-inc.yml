@@ -13,7 +13,7 @@
       when: on_success
 
 .vmware-manual-rules:
-  retry: !reference [.scheduled_pipeline-rules, retry]
+  extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
     - !reference [.vmware-farm-manual-rules, rules]

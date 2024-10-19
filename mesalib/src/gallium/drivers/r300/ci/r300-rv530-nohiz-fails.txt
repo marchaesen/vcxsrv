@@ -363,12 +363,12 @@ KHR-GLES2.texture_3d.filtering.sizes.63x63x63_nearest_mipmap_nearest,Fail
 # Piglit gpu tests
 
 shaders@glsl-arb-fragment-coord-conventions,Fail
-shaders@glsl-bug-110796,Fail
 shaders@glsl-fwidth,Fail
 shaders@glsl-uniform-interstage-limits@subdivide 5,Fail
 shaders@glsl-uniform-interstage-limits@subdivide 5- statechanges,Fail
 
 spec@!opengl 1.0@depth-clear-precision-check,Fail
+spec@!opengl 1.0@depth-clear-precision-check@depth16,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth24,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth24_stencil8,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
@@ -438,7 +438,6 @@ spec@!opengl 2.1@pbo@test_draw_pixels,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 
-spec@arb_clear_texture@arb_clear_texture-float,Fail
 spec@arb_clear_texture@arb_clear_texture-supported-formats,Fail
 
 spec@arb_color_buffer_float@gl_rgba32f-render,Fail
@@ -526,17 +525,6 @@ spec@arb_texture_float@fbo-alphatest-formats@GL_LUMINANCE_ALPHA16F_ARB,Fail
 spec@arb_texture_float@fbo-alphatest-formats@GL_LUMINANCE_ALPHA32F_ARB,Fail
 spec@arb_texture_float@fbo-alphatest-formats@GL_RGB32F,Fail
 spec@arb_texture_float@fbo-alphatest-formats@GL_RGBA32F,Fail
-spec@arb_texture_float@fbo-blending-formats,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE_ALPHA16F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_RGB32F,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_RGBA32F,Fail
 spec@arb_texture_float@texwrap formats bordercolor,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_ALPHA16F_ARB- swizzled- border color only,Fail
@@ -581,14 +569,6 @@ spec@arb_texture_rg@fbo-alphatest-formats-float@GL_R16F,Fail
 spec@arb_texture_rg@fbo-alphatest-formats-float@GL_R32F,Fail
 spec@arb_texture_rg@fbo-alphatest-formats-float@GL_RG16F,Fail
 spec@arb_texture_rg@fbo-alphatest-formats-float@GL_RG32F,Fail
-spec@arb_texture_rg@fbo-blending-formats,Fail
-spec@arb_texture_rg@fbo-blending-formats-float,Fail
-spec@arb_texture_rg@fbo-blending-formats-float@GL_R16F,Fail
-spec@arb_texture_rg@fbo-blending-formats-float@GL_R32F,Fail
-spec@arb_texture_rg@fbo-blending-formats-float@GL_RG16F,Fail
-spec@arb_texture_rg@fbo-blending-formats-float@GL_RG32F,Fail
-spec@arb_texture_rg@fbo-blending-formats@GL_R16,Fail
-spec@arb_texture_rg@fbo-blending-formats@GL_RG16,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled,Fail
 spec@arb_texture_rg@texwrap formats-float bordercolor-swizzled@GL_R16F- swizzled- border color only,Fail
@@ -632,22 +612,6 @@ spec@ext_framebuffer_object@fbo-alphatest-formats@GL_RGB16,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats@GL_RGBA12,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats@GL_RGBA16,Fail
 spec@ext_framebuffer_object@fbo-blending-format-quirks,Fail
-spec@ext_framebuffer_object@fbo-blending-formats,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_ALPHA12,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_ALPHA16,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_INTENSITY12,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_INTENSITY16,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE12,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE12_ALPHA12,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE16,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE16_ALPHA16,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE8_ALPHA8,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_LUMINANCE_ALPHA,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB10_A2,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB12,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB16,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGBA12,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGBA16,Fail
 spec@ext_framebuffer_object@fbo-depth-sample-compare,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
@@ -688,31 +652,6 @@ spec@ext_texture_snorm@fbo-alphatest-formats@GL_RGBA8_SNORM,Fail
 spec@ext_texture_snorm@fbo-alphatest-formats@GL_RGBA_SNORM,Fail
 spec@ext_texture_snorm@fbo-alphatest-formats@GL_RGB_SNORM,Fail
 spec@ext_texture_snorm@fbo-alphatest-formats@GL_RG_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_ALPHA16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_ALPHA8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_ALPHA_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_INTENSITY_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE16_ALPHA16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE8_ALPHA8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE_ALPHA_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_LUMINANCE_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_R16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_R8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RED_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RG16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RG8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RGB16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RGB8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RGBA16_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RGBA8_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RGBA_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RGB_SNORM,Fail
-spec@ext_texture_snorm@fbo-blending-formats@GL_RG_SNORM,Fail
 
 spec@ext_texture_srgb@texwrap formats,Fail
 spec@ext_texture_srgb@texwrap formats bordercolor,Fail
@@ -802,13 +741,12 @@ spec@glsl-1.10@execution@loops@glsl-vs-loop-300,Fail
 
 spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unroll,Fail
 
+# HW limitation (no support for gl_ClipVertex)
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-const-accept,Fail
+spec@glsl-1.20@execution@clipping@vs-clip-vertex-const-reject,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-different-from-position,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-homogeneity,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-primitives,Fail
-
-# We write -nan to output, end don't end with zero
-spec@glsl-1.20@execution@const-builtin@glsl-const-builtin-normalize,Fail
 
 # https://gitlab.freedesktop.org/mesa/mesa/-/issues/8618
 spec@glsl-1.20@execution@fs-nan-builtin-max,Fail
@@ -880,3 +818,9 @@ Xnine.fog,Crash
 Xnine.lighting,Crash
 Xnine.specular_lighting,Crash
 Xnine.stencil_cull,Crash
+dEQP-GLES2.functional.texture.mipmap.2d.projected.nearest_nearest_mirror,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.nearest_nearest_repeat,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.nearest_nearest_clamp,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.linear_nearest_repeat,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.linear_nearest_mirror,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.linear_nearest_clamp,Fail

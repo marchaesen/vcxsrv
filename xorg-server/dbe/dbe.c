@@ -32,9 +32,7 @@
 
 /* INCLUDES */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <string.h>
 #include <stdint.h>
@@ -614,7 +612,7 @@ ProcDbeGetVisualInfo(ClientPtr client)
             pDrawables[i]->pScreen;
         pDbeScreenPriv = DBE_SCREEN_PRIV(pScreen);
 
-        rc = XaceHook(XACE_SCREEN_ACCESS, client, pScreen, DixGetAttrAccess);
+        rc = XaceHookScreenAccess(client, pScreen, DixGetAttrAccess);
         if (rc != Success)
             goto freeScrVisInfo;
 

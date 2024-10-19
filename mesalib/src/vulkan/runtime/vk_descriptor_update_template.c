@@ -24,6 +24,7 @@
 
 #include "vk_descriptor_update_template.h"
 
+#include "vk_alloc.h"
 #include "vk_common_entrypoints.h"
 #include "vk_device.h"
 #include "vk_log.h"
@@ -44,13 +45,22 @@ vk_common_CreateDescriptorUpdateTemplate(VkDevice _device,
    }
 
    size_t size = sizeof(*template) + entry_count * sizeof(template->entries[0]);
-   template = vk_object_alloc(device, pAllocator, size,
-                              VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE);
+
+   /* Because we're reference counting and lifetimes may not be what the
+    * client expects, these have to be allocated off the device and not as
+    * their own object.
+    */
+   template = vk_zalloc(&device->alloc, size, 8,
+                        VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
    if (template == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+   vk_object_base_init(device, &template->base,
+                       VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE);
+
    template->type = pCreateInfo->templateType;
    template->bind_point = pCreateInfo->pipelineBindPoint;
+   template->ref_cnt = 1;
 
    if (template->type == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET)
       template->set = pCreateInfo->set;
@@ -93,5 +103,5 @@ vk_common_DestroyDescriptorUpdateTemplate(VkDevice _device,
    if (!template)
       return;
 
-   vk_object_free(device, pAllocator, template);
+   vk_descriptor_update_template_unref(device, template);
 }

@@ -44,9 +44,7 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <errno.h>
 #include <stdio.h>
@@ -60,8 +58,10 @@ SOFTWARE.
 #include <execinfo.h>
 #endif
 
+#include "dix/dix_priv.h"
 #include "os/busfault.h"
 #include "os/osdep.h"
+#include "os/serverlock.h"
 
 #include "misc.h"
 #include "os.h"
@@ -69,7 +69,7 @@ SOFTWARE.
 #include "dixstruct.h"
 #include "dixstruct_priv.h"
 
-#if !defined(SYSV) && !defined(WIN32)
+#if !defined(WIN32)
 #include <sys/resource.h>
 #endif
 
@@ -252,7 +252,7 @@ OsInit(void)
                 dup2(fileno(err), 2);
                 fclose(err);
             }
-#if defined(SYSV) || defined(SVR4) || defined(WIN32) || defined(__CYGWIN__)
+#if defined(SVR4) || defined(WIN32) || defined(__CYGWIN__)
             {
                 static char buf[BUFSIZ];
 

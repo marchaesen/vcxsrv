@@ -111,7 +111,7 @@ void
 st_update_framebuffer_state( struct st_context *st )
 {
    struct gl_context *ctx = st->ctx;
-   struct pipe_framebuffer_state framebuffer;
+   struct pipe_framebuffer_state framebuffer = {0};
    struct gl_framebuffer *fb = st->ctx->DrawBuffer;
    struct gl_renderbuffer *rb;
    GLuint i;
@@ -146,6 +146,8 @@ st_update_framebuffer_state( struct st_context *st )
     */
    framebuffer.nr_cbufs = fb->_NumColorDrawBuffers;
 
+   unsigned num_multiview_layer = 0;
+   unsigned first_multiview_layer = 0;
    for (i = 0; i < fb->_NumColorDrawBuffers; i++) {
       framebuffer.cbufs[i] = NULL;
       rb = fb->_ColorDrawBuffers[i];
@@ -156,6 +158,11 @@ st_update_framebuffer_state( struct st_context *st )
             /* rendering to a GL texture, may have to update surface */
 
             _mesa_update_renderbuffer_surface(ctx, rb);
+
+            if (rb->rtt_numviews) {
+               first_multiview_layer = rb->rtt_slice;
+               num_multiview_layer = MAX2(num_multiview_layer, rb->rtt_numviews);
+            }
          }
 
          if (rb->surface) {
@@ -168,6 +175,8 @@ st_update_framebuffer_state( struct st_context *st )
          rb->defined = GL_TRUE; /* we'll be drawing something */
       }
    }
+   if (num_multiview_layer)
+      framebuffer.viewmask = BITFIELD_RANGE(first_multiview_layer, num_multiview_layer);
 
    for (i = framebuffer.nr_cbufs; i < PIPE_MAX_COLOR_BUFS; i++) {
       framebuffer.cbufs[i] = NULL;

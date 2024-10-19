@@ -1,24 +1,6 @@
 /*
  * Copyright © 2022 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "util/libsync.h"
@@ -166,12 +148,12 @@ out:
 }
 
 static int
-open_submitqueue(struct fd_pipe *pipe, uint32_t prio)
+__open_submitqueue(struct fd_pipe *pipe, uint32_t prio, uint32_t flags)
 {
    struct virtio_pipe *virtio_pipe = to_virtio_pipe(pipe);
 
    struct drm_msm_submitqueue req = {
-      .flags = 0,
+      .flags = flags,
       .prio = prio,
    };
    uint64_t nr_prio = 1;
@@ -189,6 +171,27 @@ open_submitqueue(struct fd_pipe *pipe, uint32_t prio)
 
    virtio_pipe->queue_id = req.id;
    virtio_pipe->ring_idx = req.prio + 1;
+
+   return 0;
+}
+
+static int
+open_submitqueue(struct fd_pipe *pipe, uint32_t prio)
+{
+   const struct fd_dev_info *info = fd_dev_info_raw(&pipe->dev_id);
+   int ret = -1;
+
+   if (info && info->chip >= A7XX)
+      ret = __open_submitqueue(pipe, prio, MSM_SUBMITQUEUE_ALLOW_PREEMPT);
+
+   /* If kernel doesn't support preemption, try again without: */
+   if (ret)
+      ret = __open_submitqueue(pipe, prio, 0);
+
+   if (ret) {
+      ERROR_MSG("could not create submitqueue! %d (%s)", ret, strerror(errno));
+      return ret;
+   }
 
    return 0;
 }

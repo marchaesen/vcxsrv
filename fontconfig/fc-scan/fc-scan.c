@@ -207,6 +207,8 @@ main (int argc, char **argv)
     }
 
     FcFontSetDestroy (fs);
+    if (format)
+	free (format);
 
     FcFini ();
     return i > 0 ? 0 : 1;

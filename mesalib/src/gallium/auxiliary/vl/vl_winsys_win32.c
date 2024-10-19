@@ -88,15 +88,11 @@ release_pipe:
 }
 
 struct vl_screen *
-vl_win32_screen_create_from_d3d12_device(IUnknown* d3d12_device)
+vl_win32_screen_create_from_d3d12_device(IUnknown* d3d12_device, struct sw_winsys* winsys)
 {
    struct vl_win32_screen *vscreen = CALLOC_STRUCT(vl_win32_screen);
    if (!vscreen)
       return NULL;
-
-   struct sw_winsys* winsys = gdi_create_sw_winsys(gdi_sw_acquire_hdc_by_value, gdi_sw_release_hdc_by_value);
-   if (!winsys)
-      goto release_pipe;
 
    vscreen->base.pscreen = d3d12_create_dxcore_screen_from_d3d12_device(winsys, d3d12_device, &vscreen->adapter_luid);
 
@@ -111,8 +107,6 @@ vl_win32_screen_create_from_d3d12_device(IUnknown* d3d12_device)
    return &vscreen->base;
 
 release_pipe:
-   if(winsys)
-      winsys->destroy(winsys);
    vl_win32_screen_destroy(&vscreen->base);
    return NULL;
 }

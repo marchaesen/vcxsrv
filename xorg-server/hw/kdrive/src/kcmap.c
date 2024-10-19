@@ -20,10 +20,10 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 #include "kdrive.h"
+
+#include "dix/colormap_priv.h"
 
 /*
  * Put the entire colormap into the DAC

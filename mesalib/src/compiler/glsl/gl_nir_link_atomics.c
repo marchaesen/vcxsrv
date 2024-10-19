@@ -24,7 +24,6 @@
 #include "nir.h"
 #include "linker_util.h"
 #include "gl_nir_linker.h"
-#include "compiler/glsl/ir_uniform.h" /* for gl_uniform_storage */
 #include "main/consts_exts.h"
 #include "main/shader_types.h"
 #include "util/glheader.h"

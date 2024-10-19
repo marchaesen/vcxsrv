@@ -1,0 +1,155 @@
+Mesa 24.0.8 Release Notes / 2024-05-22
+======================================
+
+Mesa 24.0.8 is a bug fix release which fixes bugs found since the 24.0.7 release.
+
+Mesa 24.0.8 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.0.8 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA256 checksum
+---------------
+
+::
+
+    d1ed86a266d5b7b8c136ae587ef5618ed1a9837a43440f3713622bf0123bf5c1  mesa-24.0.8.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- [24.1-rc4] fatal error: intel/dev/intel_wa.h: No such file or directory
+- vcn: rewinding attached video in Totem cause [mmhub] page fault
+- When using amd gpu deinterlace, tv bt709 properties mapping to 2 chroma
+- VCN decoding freezes the whole system
+- [RDNA2 [AV1] [VAAPI] hw decoding glitches in Thorium 123.0.6312.133 after https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/28960
+- WSI: Support VK_IMAGE_ASPECT_MEMORY_PLANE_i_BIT_EXT for DRM Modifiers in Vulkan
+- radv: Enshrouded GPU hang on RX 6800
+- NVK Zink: Wrong color in Unigine Valley benchmark
+- [anv] FINISHME: support YUV colorspace with DRM format modifiers
+- 24.0.6: build fails
+
+
+Changes
+-------
+
+Antoine Coutant (1):
+
+- drisw: fix build without dri3
+
+Bas Nieuwenhuizen (1):
+
+- radv: Use zerovram for Enshrouded.
+
+David Heidelberg (2):
+
+- freedreno/ci: move the disabled jobs from include to the main file
+- winsys/i915: depends on intel_wa.h
+
+David Rosca (6):
+
+- frontends/va: Only increment slice offset after first slice parameters
+- radeonsi: Update buffer for other planes in si_alloc_resource
+- frontends/va: Store slice types for H264 decode
+- radeonsi/vcn: Ensure DPB has as many buffers as references
+- radeonsi/vcn: Allow duplicate buffers in DPB
+- radeonsi/vcn: Ensure at least one reference for H264 P/B frames
+
+Eric Engestrom (5):
+
+- docs: add sha256sum for 24.0.7
+- .pick_status.json: Update to 18c53157318d6c8e572062f6bb768dfb621a55fd
+- .pick_status.json: Update to e154f90aa9e71cc98375866c3ab24c4e08e66cb7
+- .pick_status.json: Mark ae8fbe220ae67ffdce662c26bc4a634d475c0389 as denominated
+- .pick_status.json: Update to a31996ce5a6b7eb3b324b71eb9e9c45173953c50
+
+Faith Ekstrand (6):
+
+- nvk: Re-emit sample locations when rasterization samples changes
+- nvk/meta: Restore set_sizes[0]
+- nouveau/winsys: Take a reference to BOs found in the cache
+- drm-uapi: Sync nouveau_drm.h
+- nouveau/winsys: Add back nouveau_ws_bo_new_tiled()
+- vulkan/wsi: Bind memory planes, not YCbCr planes.
+
+Friedrich Vock (2):
+
+- aco/tests: Insert p_logical_start/end in reduce_temp tests
+- aco/spill: Insert p_start_linear_vgpr right after p_logical_end
+
+Georg Lehmann (1):
+
+- zink: use bitcasts instead of pack/unpack double opcodes
+
+José Expósito (1):
+
+- meson: Update proc_macro2 meson.build patch
+
+Karol Herbst (5):
+
+- rusticl/event: use Weak refs for dependencies
+- Revert "rusticl/event: use Weak refs for dependencies"
+- event: break long dependency chains on drop
+- rusticl/mesa/context: flush context before destruction
+- nir/lower_cl_images: set binding also for samplers
+
+Konstantin Seurer (3):
+
+- radv: Fix radv_shader_arena_block list corruption
+- radv: Remove arenas from capture_replay_arena_vas
+- radv: Zero initialize capture replay group handles
+
+Lionel Landwerlin (3):
+
+- anv: fix ycbcr plane indexing with indirect descriptors
+- anv: fix push constant subgroup_id location
+- nir/divergence: add missing load_printf_buffer_address
+
+Marek Olšák (1):
+
+- util: shift the mask in BITSET_TEST_RANGE_INSIDE_WORD to be relative to b
+
+Mike Blumenkrantz (8):
+
+- egl/x11: disable dri3 with LIBGL_KOPPER_DRI2=1 as expected
+- zink: add a batch ref for committed sparse resources
+- u_blitter: stop leaking saved blitter states on no-op blits
+- frontends/dri: only release pipe when screen init fails
+- frontends/dri: always init opencl_func_mutex in InitScreen hooks
+- zink: clean up semaphore arrays on batch state destroy
+- nir/lower_aaline: fix for scalarized outputs
+- nir/linking: fix nir_assign_io_var_locations for scalarized dual blend
+
+Patrick Lerda (2):
+
+- clover: fix memory leak related to optimize
+- r600: fix vertex state update clover regression
+
+Rhys Perry (1):
+
+- aco/waitcnt: fix DS/VMEM ordered writes when mixed
+
+Romain Naour (1):
+
+- glxext: don't try zink if not enabled in mesa
+
+Yiwei Zhang (5):
+
+- turnip: msm: clean up iova on error path
+- turnip: msm: fix racy gem close for re-imported dma-buf
+- turnip: virtio: fix error path in virtio_bo_init
+- turnip: virtio: fix iova leak upon found already imported dmabuf
+- turnip: virtio: fix racy gem close for re-imported dma-buf

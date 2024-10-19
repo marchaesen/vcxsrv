@@ -1,0 +1,9 @@
+# General target templates.
+
+.target:all:
+  image:
+    name: $DOCKER_IMAGE_NAME-$TARGET
+  rules:
+    - if: "$TARGET =~ $ACTIVE_TARGET_PATTERN"
+  before_script:
+    - ${LOAD_TARGET_ENV}

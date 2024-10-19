@@ -26,6 +26,7 @@
  */
 
 #include "v3d_context.h"
+#include "v3d_screen.h"
 
 #include "util/blob.h"
 #include "util/u_upload_mgr.h"
@@ -51,14 +52,6 @@ v3d_key_size(gl_shader_stage stage)
 
 void v3d_disk_cache_init(struct v3d_screen *screen)
 {
-        char *renderer;
-
-        ASSERTED int len =
-                asprintf(&renderer, "V3D %d.%d",
-                         screen->devinfo.ver / 10,
-                         screen->devinfo.ver % 10);
-        assert(len > 0);
-
         const struct build_id_note *note =
                 build_id_find_nhdr_for_addr(v3d_disk_cache_init);
         assert(note && build_id_length(note) == 20);
@@ -69,9 +62,9 @@ void v3d_disk_cache_init(struct v3d_screen *screen)
         char timestamp[41];
         _mesa_sha1_format(timestamp, id_sha1);
 
-        screen->disk_cache = disk_cache_create(renderer, timestamp, v3d_mesa_debug);
-
-        free(renderer);
+        screen->disk_cache =
+                disk_cache_create(v3d_screen_get_name((struct pipe_screen *) screen),
+                                  timestamp, v3d_mesa_debug);
 }
 
 static void

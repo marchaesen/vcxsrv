@@ -100,6 +100,8 @@ xf86readConfigFile(void)
         switch (token) {
         case COMMENT:
             ptr->conf_comment = xf86addComment(ptr->conf_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case SECTION:
             if (xf86getSubToken(&(ptr->conf_comment)) != STRING) {

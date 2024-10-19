@@ -169,7 +169,6 @@ agx_nir_lower_bindings(nir_shader *shader, bool *uses_bindless_samplers)
    progress |= nir_opt_constant_folding(shader);
 
    progress |= nir_shader_instructions_pass(
-      shader, lower, nir_metadata_block_index | nir_metadata_dominance,
-      uses_bindless_samplers);
+      shader, lower, nir_metadata_control_flow, uses_bindless_samplers);
    return progress;
 }

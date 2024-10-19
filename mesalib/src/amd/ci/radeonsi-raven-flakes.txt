@@ -16,7 +16,11 @@ glx@glx-visuals-stencil
 glx@glx-multithread-texture
 
 # uprev Piglit in Mesa
+glx@glx-buffer-age vblank_mode=0
 glx@glx-swap-singlebuffer
+glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 1
+spec@!opengl 1.0@gl-1.0-ortho-pos
 spec@!opengl 1.1@ppgtt_memory_alignment
+spec@egl 1.4@eglcreatepbuffersurface with egl_samples set
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
 

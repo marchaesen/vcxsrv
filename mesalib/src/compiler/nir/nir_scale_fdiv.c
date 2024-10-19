@@ -27,12 +27,8 @@
 #include "util/u_math.h"
 
 static bool
-nir_scale_fdiv_instr(nir_builder *b, nir_instr *instr, UNUSED void *_data)
+nir_scale_fdiv_instr(nir_builder *b, nir_alu_instr *alu, UNUSED void *_data)
 {
-   if (instr->type != nir_instr_type_alu)
-      return false;
-
-   nir_alu_instr *alu = nir_instr_as_alu(instr);
    if (alu->op != nir_op_fdiv || alu->src[0].src.ssa->bit_size != 32)
       return false;
 
@@ -72,8 +68,7 @@ nir_scale_fdiv_instr(nir_builder *b, nir_instr *instr, UNUSED void *_data)
 bool
 nir_scale_fdiv(nir_shader *shader)
 {
-   return nir_shader_instructions_pass(shader, nir_scale_fdiv_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
-                                       NULL);
+   return nir_shader_alu_pass(shader, nir_scale_fdiv_instr,
+                              nir_metadata_control_flow,
+                              NULL);
 }

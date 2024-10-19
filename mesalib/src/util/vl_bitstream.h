@@ -181,7 +181,7 @@ vl_bitstream_exp_golomb_ue(struct vl_bitstream_encoder *enc, uint32_t val)
 }
 
 static inline void
-vl_bitstream_exp_golomb_se(struct vl_bitstream_encoder *enc, uint32_t val)
+vl_bitstream_exp_golomb_se(struct vl_bitstream_encoder *enc, int32_t val)
 {
    if (val > 0)
       vl_bitstream_exp_golomb_ue(enc, (val << 1) - 1);

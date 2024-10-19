@@ -95,6 +95,7 @@ get_convert_format(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    GLint bpp = _mesa_bytes_per_pixel(format, type);
    if (_mesa_is_depth_format(format) ||
+       format == GL_STENCIL_INDEX ||
        format == GL_GREEN_INTEGER ||
        format == GL_BLUE_INTEGER) {
       switch (bpp) {
@@ -931,6 +932,7 @@ download_texture_compute(struct st_context *st,
                .ir.nir = spec->nir,
             };
             cs = spec->cs = st_create_nir_shader(st, &state);
+            spec->nir = NULL;
          }
          cb.buffer_size = 2 * sizeof(uint32_t);
       } else if (!st->force_compute_based_texture_transfer && screen->driver_thread_add_job) {
@@ -986,6 +988,7 @@ download_texture_compute(struct st_context *st,
             .ir.nir = spec->nir,
          };
          cs = spec->cs = st_create_nir_shader(st, &state);
+         spec->nir = NULL;
          cb.buffer_size = 2 * sizeof(uint32_t);
       } else {
          nir_shader *nir = create_conversion_shader(st, view_target, num_components);
@@ -1262,6 +1265,10 @@ st_GetTexSubImage_shader(struct gl_context * ctx,
    if (src_format == PIPE_FORMAT_NONE)
       return false;
 
+   /* special case for stencil extraction */
+   if (format == GL_STENCIL_INDEX && util_format_is_depth_and_stencil(src_format))
+      src_format = PIPE_FORMAT_X24S8_UINT;
+
    if (texImage->_BaseFormat != _mesa_get_format_base_format(texImage->TexFormat)) {
       /* special handling for drivers that don't support these formats natively */
       if (texImage->_BaseFormat == GL_LUMINANCE)
@@ -1341,6 +1348,7 @@ st_pbo_compute_deinit(struct st_context *st)
          if (async->cs)
             st->pipe->delete_compute_state(st->pipe, async->cs);
          util_queue_fence_destroy(&async->fence);
+         ralloc_free(async->nir);
          ralloc_free(async->copy);
          set_foreach_remove(&async->specialized, se) {
             struct pbo_spec_async_data *spec = (void*)se->key;

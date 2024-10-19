@@ -44,7 +44,7 @@ struct fd_rd_output {
 };
 
 void
-fd_rd_output_init(struct fd_rd_output *output, char* output_name);
+fd_rd_output_init(struct fd_rd_output *output, const char* output_name);
 
 void
 fd_rd_output_fini(struct fd_rd_output *output);

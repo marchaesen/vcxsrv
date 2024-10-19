@@ -143,5 +143,5 @@ bool
 ac_nir_lower_global_access(nir_shader *shader)
 {
    return nir_shader_intrinsics_pass(shader, process_instr,
-                                       nir_metadata_block_index | nir_metadata_dominance, NULL);
+                                       nir_metadata_control_flow, NULL);
 }

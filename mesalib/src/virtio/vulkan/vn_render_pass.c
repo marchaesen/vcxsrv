@@ -334,6 +334,18 @@ vn_GetRenderAreaGranularity(VkDevice device,
    *pGranularity = pass->granularity;
 }
 
+void
+vn_GetRenderingAreaGranularityKHR(VkDevice device,
+                                  const VkRenderingAreaInfoKHR *pRenderingAreaInfo,
+                                  VkExtent2D *pGranularity)
+{
+   struct vn_device *dev = vn_device_from_handle(device);
+
+   /* TODO per-device cache */
+   vn_call_vkGetRenderingAreaGranularityKHR(dev->primary_ring, device,
+                                            pRenderingAreaInfo, pGranularity);
+}
+
 /* framebuffer commands */
 
 VkResult

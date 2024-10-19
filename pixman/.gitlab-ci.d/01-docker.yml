@@ -1,0 +1,80 @@
+# Docker build stage
+#
+# It builds a multi-arch image for all required architectures. Each image can be
+# later easily used with properly configured Docker (which uses binfmt and QEMU
+# underneath).
+
+docker:
+  stage: docker
+  image: quay.io/buildah/stable
+  rules:
+    - if: "$CI_PIPELINE_SOURCE == 'merge_request_event' && $TARGET =~ $ACTIVE_TARGET_PATTERN"
+      changes:
+        paths:
+          - .gitlab-ci.d/01-docker.yml
+          - .gitlab-ci.d/01-docker/**/*
+      variables:
+        DOCKER_TAG: $CI_COMMIT_REF_SLUG
+        DOCKER_IMAGE_NAME: ${CI_REGISTRY_IMAGE}/pixman:${DOCKER_TAG}
+    - if: "$CI_PIPELINE_SOURCE == 'schedule' && $TARGET =~ $ACTIVE_TARGET_PATTERN"
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $TARGET =~ $ACTIVE_TARGET_PATTERN"
+    - if: "$CI_COMMIT_TAG && $TARGET =~ $ACTIVE_TARGET_PATTERN"
+
+  variables:
+    # Use vfs with buildah. Docker offers overlayfs as a default, but Buildah
+    # cannot stack overlayfs on top of another overlayfs filesystem.
+    STORAGE_DRIVER: vfs
+
+    # Write all image metadata in the docker format, not the standard OCI
+    # format. Newer versions of docker can handle the OCI format, but older
+    # versions, like the one shipped with Fedora 30, cannot handle the format.
+    BUILDAH_FORMAT: docker
+
+    BUILDAH_ISOLATION: chroot
+    CACHE_IMAGE: ${CI_REGISTRY_IMAGE}/cache
+    CACHE_ARGS: --cache-from ${CACHE_IMAGE} --cache-to ${CACHE_IMAGE}
+  before_script:
+    # Login to the target registry.
+    - echo "${CI_REGISTRY_PASSWORD}" |
+        buildah login -u "${CI_REGISTRY_USER}" --password-stdin ${CI_REGISTRY}
+
+    # Docker Hub login is optional, and can be used to circumvent image pull
+    # quota for anonymous pulls for base images.
+    - echo "${DOCKERHUB_PASSWORD}" |
+        buildah login -u "${DOCKERHUB_USER}" --password-stdin docker.io ||
+          echo "Failed to login to Docker Hub."
+  parallel:
+    matrix:
+      - TARGET:
+        - linux-386
+        - linux-amd64
+        - linux-arm-v5
+        - linux-arm-v7
+        - linux-arm64-v8
+        - linux-mips
+        - linux-mips64el
+        - linux-mipsel
+        - linux-ppc
+        - linux-ppc64
+        - linux-ppc64le
+        - linux-riscv64
+        - windows-686
+        - windows-amd64
+        - windows-arm64-v8
+  script:
+    # Prepare environment.
+    - ${LOAD_TARGET_ENV}
+    - FULL_IMAGE_NAME=${DOCKER_IMAGE_NAME}-${TARGET}
+
+    # Build and push the image.
+    - buildah bud
+        --tag ${FULL_IMAGE_NAME}
+        --layers ${CACHE_ARGS}
+        --target ${TARGET}
+        --platform=${DOCKER_PLATFORM}
+        --build-arg BASE_IMAGE=${BASE_IMAGE}
+        --build-arg BASE_IMAGE_TAG=${BASE_IMAGE_TAG}
+        --build-arg LLVM_VERSION=${LLVM_VERSION}
+      -f Dockerfile .gitlab-ci.d/01-docker/
+    - buildah images
+    - buildah push ${FULL_IMAGE_NAME}

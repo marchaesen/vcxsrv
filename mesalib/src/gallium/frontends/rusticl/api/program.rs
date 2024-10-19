@@ -22,12 +22,12 @@ use std::ptr;
 use std::slice;
 use std::sync::Arc;
 
-#[cl_info_entrypoint(cl_get_program_info)]
+#[cl_info_entrypoint(clGetProgramInfo)]
 impl CLInfo<cl_program_info> for cl_program {
     fn query(&self, q: cl_program_info, vals: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
         let prog = Program::ref_from_raw(*self)?;
         Ok(match q {
-            CL_PROGRAM_BINARIES => cl_prop::<Vec<*mut u8>>(prog.binaries(vals)),
+            CL_PROGRAM_BINARIES => cl_prop::<Vec<*mut u8>>(prog.binaries(vals)?),
             CL_PROGRAM_BINARY_SIZES => cl_prop::<Vec<usize>>(prog.bin_sizes()),
             CL_PROGRAM_CONTEXT => {
                 // Note we use as_ptr here which doesn't increase the reference count.
@@ -60,7 +60,7 @@ impl CLInfo<cl_program_info> for cl_program {
     }
 }
 
-#[cl_info_entrypoint(cl_get_program_build_info)]
+#[cl_info_entrypoint(clGetProgramBuildInfo)]
 impl CLInfoObj<cl_program_build_info, cl_device_id> for cl_program {
     fn query(&self, d: cl_device_id, q: cl_program_build_info) -> CLResult<Vec<MaybeUninit<u8>>> {
         let prog = Program::ref_from_raw(*self)?;
@@ -93,7 +93,7 @@ fn validate_devices<'a>(
     Ok(devs)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCreateProgramWithSource)]
 fn create_program_with_source(
     context: cl_context,
     count: cl_uint,
@@ -172,7 +172,7 @@ fn create_program_with_source(
     .into_cl())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCreateProgramWithBinary)]
 fn create_program_with_binary(
     context: cl_context,
     num_devices: cl_uint,
@@ -189,6 +189,10 @@ fn create_program_with_binary(
         return Err(CL_INVALID_VALUE);
     }
 
+    // needs to happen after `devs.is_empty` check to protect against num_devices being 0
+    let mut binary_status =
+        unsafe { cl_slice::from_raw_parts_mut(binary_status, num_devices as usize) }.ok();
+
     // CL_INVALID_VALUE if lengths or binaries is NULL
     if lengths.is_null() || binaries.is_null() {
         return Err(CL_INVALID_VALUE);
@@ -204,36 +208,42 @@ fn create_program_with_binary(
     let binaries = unsafe { slice::from_raw_parts(binaries, num_devices as usize) };
 
     // now device specific stuff
-    let mut err = 0;
     let mut bins: Vec<&[u8]> = vec![&[]; num_devices as usize];
     for i in 0..num_devices as usize {
-        let mut dev_err = 0;
-
-        // CL_INVALID_VALUE if lengths[i] is zero or if binaries[i] is a NULL value
+        // CL_INVALID_VALUE if lengths[i] is zero or if binaries[i] is a NULL value (handled inside
+        // [Program::from_bins])
         if lengths[i] == 0 || binaries[i].is_null() {
-            dev_err = CL_INVALID_VALUE;
+            bins[i] = &[];
+        } else {
+            bins[i] = unsafe { slice::from_raw_parts(binaries[i], lengths[i]) };
         }
-
-        if !binary_status.is_null() {
-            unsafe { binary_status.add(i).write(dev_err) };
-        }
-
-        // just return the last one
-        err = dev_err;
-        bins[i] = unsafe { slice::from_raw_parts(binaries[i], lengths[i]) };
     }
 
-    if err != 0 {
-        return Err(err);
-    }
+    let prog = match Program::from_bins(c, devs, &bins) {
+        Ok(prog) => {
+            if let Some(binary_status) = &mut binary_status {
+                binary_status.fill(CL_SUCCESS as cl_int);
+            }
+            prog
+        }
+        Err(errors) => {
+            // CL_INVALID_BINARY if an invalid program binary was encountered for any device.
+            // binary_status will return specific status for each device.
+            if let Some(binary_status) = &mut binary_status {
+                binary_status.copy_from_slice(&errors);
+            }
 
-    let prog = Program::from_bins(c, devs, &bins);
+            // this should return either CL_INVALID_VALUE or CL_INVALID_BINARY
+            let err = errors.into_iter().find(|&err| err != 0).unwrap_or_default();
+            debug_assert!(err != 0);
+            return Err(err);
+        }
+    };
 
     Ok(prog.into_cl())
-    //• CL_INVALID_BINARY if an invalid program binary was encountered for any device. binary_status will return specific status for each device.
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCreateProgramWithIL)]
 fn create_program_with_il(
     context: cl_context,
     il: *const ::std::os::raw::c_void,
@@ -251,12 +261,12 @@ fn create_program_with_il(
     Ok(Program::from_spirv(c, spirv).into_cl())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clRetainProgram)]
 fn retain_program(program: cl_program) -> CLResult<()> {
     Program::retain(program)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clReleaseProgram)]
 fn release_program(program: cl_program) -> CLResult<()> {
     Program::release(program)
 }
@@ -272,7 +282,7 @@ fn debug_logging(p: &Program, devs: &[&Device]) {
     }
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clBuildProgram)]
 fn build_program(
     program: cl_program,
     num_devices: cl_uint,
@@ -317,7 +327,7 @@ fn build_program(
     }
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCompileProgram)]
 fn compile_program(
     program: cl_program,
     num_devices: cl_uint,
@@ -462,7 +472,7 @@ pub fn link_program(
     //• CL_INVALID_OPERATION if the rules for devices containing compiled binaries or libraries as described in input_programs argument above are not followed.
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clSetProgramSpecializationConstant)]
 fn set_program_specialization_constant(
     program: cl_program,
     spec_id: cl_uint,
@@ -497,7 +507,7 @@ fn set_program_specialization_constant(
     Ok(())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clSetProgramReleaseCallback)]
 fn set_program_release_callback(
     _program: cl_program,
     _pfn_notify: ::std::option::Option<FuncProgramCB>,

@@ -55,4 +55,5 @@ spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic@glView
 
 # uprev Piglit in Mesa
 spec@ext_texture_array@fbo-depth-array stencil-clear
+spec@nv_primitive_restart@primitive-restart-draw-mode-quad_strip
 

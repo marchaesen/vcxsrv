@@ -4,12 +4,13 @@ set -ex
 
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
+# ALPINE_X86_64_BUILD_TAG
 # DEBIAN_BASE_TAG
 # DEBIAN_BUILD_TAG
 # FEDORA_X86_64_BUILD_TAG
 # KERNEL_ROOTFS_TAG
 
-MOLD_VERSION="2.31.0"
+MOLD_VERSION="2.32.0"
 
 git clone -b v"$MOLD_VERSION" --single-branch --depth 1 https://github.com/rui314/mold.git
 pushd mold

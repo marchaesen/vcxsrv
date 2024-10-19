@@ -1,0 +1,190 @@
+Mesa 24.1.7 Release Notes / 2024-08-29
+======================================
+
+Mesa 24.1.7 is a bug fix release which fixes bugs found since the 24.1.6 release.
+
+Mesa 24.1.7 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.1.7 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA256 checksum
+---------------
+
+::
+
+    SHA256: ecd2e7b1c73998f4103542f39c6b8c968d251637ccc8caa42641aecb86cd2566  mesa-24.1.7.tar.xz
+    SHA512: 890f6387963bbb86a85305ea963cca326a3b3f8f8758ae2082fd62c52df77c2883a359341e91f36614fea59219394ef78f799a334080699a0bb71d984a68cb01  mesa-24.1.7.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- [ANV] Breaking Limit benchmark does not run
+- Possible race condition when generating enums.h
+- [anv] possible regression found on 982106e6768e6f69d71710e314325c813591452d
+- [radeonsi] regression with bindless textures (bisected)
+- Artifacts on Black Myth Wukong
+- DCS world radeon rx 7900 flicker
+- radv/aco: Scheduler bug in ACO somewhere in parallel-gs
+- Once human black artifacts consume the screen
+- xe2: Non-compiler assertion failure replaying cp2077 fossil
+- Mesa doesn't build with the following config options
+
+
+Changes
+-------
+
+Connor Abbott (4):
+
+- tu: Fix off-by-one in UBO CP_LOAD_STATE size
+- ir3, tu: Use a UBO for VS primitive params on a750+
+- tu: Fix passthrough D24S8 attachments
+- tu: Treat partially-bound depth/stencil attachments as passthrough
+
+Dave Airlie (2):
+
+- radv/video: fix reporting video format props for encode.
+- llvmpipe: make sure to duplicate the fd handle before giving out
+
+David Heidelberg (2):
+
+- etnaviv: rename enums_h appropriately
+- etnaviv: build dependency for the etnaviv tests
+
+David Rosca (1):
+
+- frontends/va: Fix leaks with multiple coded buffer segments
+
+Eric Engestrom (8):
+
+- docs: add sha256sum for 24.1.6
+- .pick_status.json: Update to 7b92e11e16ad1e947035c2af40d54076457e81e0
+- .pick_status.json: Update to d7f7aede15d5e169e7f2a3b279adf4b192e6bfe2
+- .pick_status.json: Mark 77f783462a9758b22e211c72a57ec7c36d6c09fd as denominated
+- .pick_status.json: Mark a33ef21106a3b34cb359f0272a103c8b8066fbe6 as denominated
+- .pick_status.json: Update to 25ba90fd888cef431c2098c8afdb0a2bbd34b303
+- .pick_status.json: Mark 8aa52ac6666c835169f490703e557f892648e89a as denominated
+- vc4: Add missing libvc4_neon build dependencies
+
+Faith Ekstrand (3):
+
+- vulkan: Add null descriptor bits to vk_pipeline_robustness_state
+- nouveau/mme: Fix add64 of immediates on Fermi
+- nvk: Disable conditional rendering around CopyQueryPoolResults
+
+Friedrich Vock (1):
+
+- aco: Fix 1D->2D dispatch conversion on <gfx9
+
+GKraats (2):
+
+- i915g: Screen corruption  with ENOBUFS caused by fence register shortage
+- i915g: fix count of buffers at i915_drm_batchbuffer_validate_buffers
+
+Ian Romanick (2):
+
+- anv: Protect against OOB access to anv_state_pool::buckets
+- anv: Larger memory pools for huge shaders
+
+Job Noorman (2):
+
+- ir3: update merge set affinity in shared RA
+- ir3: fix clearing merge sets after shared RA
+
+Karol Herbst (3):
+
+- rusticl/mem: do not check against image base alignment for 1Dbuffer images
+- vtn: ignore volatile on functions for now
+- rusticl/device: limit CL_DEVICE_IMAGE_MAX_BUFFER_SIZE more aggressively
+
+Konstantin (2):
+
+- radv: Handle instruction encodings > 8 bytes when splitting disassembly
+- radv: Handle repeated instructions when splitting disassembly
+
+Lepton Wu (1):
+
+- egl/android: Fix wrong pipe format for RGB_565
+
+Lionel Landwerlin (6):
+
+- vulkan/runtime: fix GetBufferMemoryRequirements2 for maintenance4
+- anv: fix extended buffer flags usages
+- anv: only set 3DSTATE_CLIP::MaximumVPIndex once
+- anv: optimize CLIP::MaximumVPIndex setting
+- anv: always use workaround_address, not workaround_bo
+- nir/divergence: add missing load_constant_base_ptr
+
+Mary Guillemard (1):
+
+- panvk: Fix NULL deref on model name when device isn't supported
+
+Matt Turner (1):
+
+- nir: Skip opt_if_merge when next_if has block ending in a jump
+
+Mike Blumenkrantz (5):
+
+- glx/dri2: strdup driver name
+- zink: bail on choose_pdev immediately if no devices are available
+- st/pbo: reject vs/fs pbo ops if rowstride < width
+- zink: don't skip cbuf store ops if resolve is set
+- tc: set resolve on renderpass info if blit terminates the renderpass
+
+Nanley Chery (2):
+
+- iris: Invalidate state cache for some depth fast clears
+- intel/isl: Fix packing of SINT formats
+
+Pavel Ondračka (1):
+
+- r300: fix RGB10_A2 CONSTANT_COLOR blending
+
+Rhys Perry (8):
+
+- aco: form hard clauses in VS prologs
+- aco: split selection_control_remove into rarely_taken and never_taken
+- aco: only remove branch jumping over SMEM/barrier if it's never taken
+- aco: ignore exec and literals when mitigating VALUMaskWriteHazard
+- aco: also consider VALU reads for VALUMaskWriteHazard
+- aco: don't consider sa_sdst=0 before SALU write to fix VALUMaskWriteHazard
+- aco: check SALU writing lanemask later for VALUMaskWriteHazard
+- aco: preserve bitsets after a lane mask is written
+
+Samuel Pitoiset (1):
+
+- aco: fix bogus assert in RT prolog on GFX11+
+
+Sviatoslav Peleshko (3):
+
+- brw,elk: Fix opening flags on dumping shader binaries
+- anv: Release correct BO in anv_cmd_buffer_set_ray_query_buffer
+- anv: Add full subgroups WA for the shaders with barriers in Breaking Limit
+
+Tapani Pälli (1):
+
+- gbm: depend on libdrm indepedent of dri2 setting
+
+Timothy Arceri (4):
+
+- nir: create validate_tex_src_texture_deref() helper
+- nir: add nir_tex_src_{sampler,texture}_deref_intrinsic
+- glsl: make use of new tex src deref intrinsic
+- nir/glsl: set deref cast mode during function inlining
+
+Valentine Burley (1):
+
+- llvmpipe: Only use udmabuf with libdrm

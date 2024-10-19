@@ -54,7 +54,6 @@ struct zink_vertex_elements_state;
    util_debug_message(&ctx->dbg, PERF_INFO, __VA_ARGS__); \
 } while(0)
 
-
 static inline struct zink_resource *
 zink_descriptor_surface_resource(struct zink_descriptor_surface *ds)
 {
@@ -204,19 +203,6 @@ zink_cmd_debug_marker_end(struct zink_context *ctx, VkCommandBuffer cmdbuf,bool 
 void
 zink_copy_buffer(struct zink_context *ctx, struct zink_resource *dst, struct zink_resource *src,
                  unsigned dst_offset, unsigned src_offset, unsigned size);
-
-VkIndirectCommandsLayoutTokenNV *
-zink_dgc_add_token(struct zink_context *ctx, VkIndirectCommandsTokenTypeNV type, void **mem);
-void
-zink_flush_dgc(struct zink_context *ctx);
-
-static ALWAYS_INLINE void
-zink_flush_dgc_if_enabled(struct zink_context *ctx)
-{
-   if (unlikely(zink_debug & ZINK_DEBUG_DGC))
-      zink_flush_dgc(ctx);
-}
-
 #ifdef __cplusplus
 }
 #endif
@@ -245,6 +231,12 @@ zink_blit_region_fills(struct u_rect region, unsigned width, unsigned height);
 
 bool
 zink_blit_region_covers(struct u_rect region, struct u_rect covers);
+
+void
+zink_draw_rectangle(struct blitter_context *blitter, void *vertex_elements_cso,
+                    blitter_get_vs_func get_vs, int x1, int y1, int x2, int y2,
+                    float depth, unsigned num_instances, enum blitter_attrib_type type,
+                    const union blitter_attrib *attrib);
 
 static inline struct u_rect
 zink_rect_from_box(const struct pipe_box *box)

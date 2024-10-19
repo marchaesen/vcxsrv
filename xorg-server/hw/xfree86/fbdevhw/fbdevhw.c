@@ -94,7 +94,7 @@ fbdevHWGetRec(ScrnInfoPtr pScrn)
     if (FBDEVHWPTR(pScrn) != NULL)
         return TRUE;
 
-    FBDEVHWPTRLVAL(pScrn) = xnfcalloc(sizeof(fbdevHWRec), 1);
+    FBDEVHWPTRLVAL(pScrn) = XNFcallocarray(1, sizeof(fbdevHWRec));
     return TRUE;
 }
 
@@ -287,7 +287,7 @@ fbdev_open_pci(struct pci_device *pPci, char **namep)
             if (fd != -1) {
                 if (ioctl(fd, FBIOGET_FSCREENINFO, (void *) &fix) != -1) {
                     if (namep) {
-                        *namep = xnfalloc(16);
+                        *namep = XNFalloc(16);
                         strncpy(*namep, fix.id, 16);
                     }
 
@@ -378,9 +378,9 @@ fbdev_open(int scrnIndex, const char *dev, char **namep)
             node++;
         }
 
-        if (asprintf(&sysfs_path, "/sys/class/graphics/%s", node) < 0 ||
+        if (asprintf(&sysfs_path, "/sys/class/graphics/%s/device/subsystem", node) < 0 ||
             readlink(sysfs_path, buf, sizeof(buf) - 1) < 0 ||
-            strstr(buf, "devices/pci")) {
+            strstr(buf, "bus/pci")) {
             free(sysfs_path);
             close(fd);
             return -1;
@@ -396,7 +396,7 @@ fbdev_open(int scrnIndex, const char *dev, char **namep)
             return -1;
         }
         else {
-            *namep = xnfalloc(16);
+            *namep = XNFalloc(16);
             strncpy(*namep, fix.id, 16);
         }
     }

@@ -27,11 +27,12 @@
  * XFree86Server being defined.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
+
+#include "dix/colormap_priv.h"
+
 #include "fb.h"
 #include "micmap.h"
 

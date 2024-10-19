@@ -233,22 +233,6 @@ traces:
     zink-a630:
       checksum: d25edb433abfcde517b626b3071906ff
 
-  filament/filament-default.trace:
-    freedreno-a306:
-      label: [unsupported]
-    freedreno-a530:
-      label: [unsupported]
-    freedreno-a618:
-      label: [skip, flakes]
-    freedreno-a630:
-      label: [skip, flakes]
-      checksum: c45e17d98a5d598bef50494f1150f5b9
-      text: helmet texture sometimes missing
-    zink-a618:
-      checksum: 59e18960d8b73a93401b793b28e99f42
-    zink-a630:
-      checksum: 59e18960d8b73a93401b793b28e99f42
-
   glxgears/glxgears-2-v2.trace:
     freedreno-a306:
       checksum: 3df913932335f17918c55aa70cfba817
@@ -272,31 +256,32 @@ traces:
       checksum: 751e0e784ba2f003cfc456fe8699f1fa
       label: [hang]
     freedreno-a530:
-      checksum: ba53d1ffbe911171546a93259fb2e57c
+      checksum: 88188447495b819e5814368486deb0a0
     freedreno-a618:
-      checksum: 313ef615f0f5a11eeaf95a2a87769a32
+      checksum: eb810bd258c06f873a2d9718c5209c6d
     freedreno-a630:
-      checksum: 313ef615f0f5a11eeaf95a2a87769a32
+      checksum: eb810bd258c06f873a2d9718c5209c6d
     zink-a618:
-      checksum: fe317b1f69f9a2f3e20bf51f63753d2a
+      checksum: eefcef0b1167c1140c298f3908c31195
     zink-a630:
       checksum: fe317b1f69f9a2f3e20bf51f63753d2a
 
-  gputest/gimark-v2.trace:
-    freedreno-a306:
-      label: [unsupported]
-      text: requires GL 3.3
-    freedreno-a530:
-      label: [unsupported]
-      text: requires GL 3.3
-    freedreno-a618:
-      checksum: e58167bd8eeb8952facbc00ff0449135
-    freedreno-a630:
-      checksum: e58167bd8eeb8952facbc00ff0449135
-    zink-a618:
-      checksum: e58167bd8eeb8952facbc00ff0449135
-    zink-a630:
-      checksum: e58167bd8eeb8952facbc00ff0449135
+# gimark requires an environment var to work around a bug, disable for now
+#  gputest/gimark-v2.trace:
+#    freedreno-a306:
+#      label: [unsupported]
+#      text: requires GL 3.3
+#    freedreno-a530:
+#      label: [unsupported]
+#      text: requires GL 3.3
+#    freedreno-a618:
+#      checksum: e58167bd8eeb8952facbc00ff0449135
+#    freedreno-a630:
+#      checksum: e58167bd8eeb8952facbc00ff0449135
+#    zink-a618:
+#      checksum: e58167bd8eeb8952facbc00ff0449135
+#    zink-a630:
+#      checksum: e58167bd8eeb8952facbc00ff0449135
 
   gputest/pixmark-julia-fp32-v2.trace:
     freedreno-a306:
@@ -374,11 +359,11 @@ traces:
       label: [unsupported]
       text: Requires GL4 for tess.
     freedreno-a618:
-      checksum: af356a98c4d55fb10613a11fbe687adb
+      checksum: 92312303aa8279214f0a300a625efa87
     freedreno-a630:
-      checksum: af356a98c4d55fb10613a11fbe687adb
+      checksum: 92312303aa8279214f0a300a625efa87
     zink-a618:
-      checksum: af356a98c4d55fb10613a11fbe687adb
+      checksum: 92312303aa8279214f0a300a625efa87
     zink-a630:
       checksum: af356a98c4d55fb10613a11fbe687adb
 
@@ -691,6 +676,8 @@ traces:
     freedreno-a530:
       label: [skip]
     freedreno-a618:
+      label: [skip, flakes]
+      text: text is prone to occasional misrendering, particularly in the lower left
       checksum: ae37867b1a9a94d2be9ff6c7e2009813
     freedreno-a630:
       label: [skip, flakes]

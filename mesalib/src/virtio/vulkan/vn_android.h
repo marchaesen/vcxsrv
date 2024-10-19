@@ -17,9 +17,6 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_android.h>
 
-/* venus implements VK_ANDROID_native_buffer up to spec version 7 */
-#define VN_ANDROID_NATIVE_BUFFER_SPEC_VERSION 7
-
 #if DETECT_OS_ANDROID
 
 VkResult
@@ -28,6 +25,10 @@ vn_android_image_from_anb(struct vn_device *dev,
                           const VkNativeBufferANDROID *anb_info,
                           const VkAllocationCallbacks *alloc,
                           struct vn_image **out_img);
+
+struct vn_device_memory *
+vn_android_get_wsi_memory_from_bind_info(
+   struct vn_device *dev, const VkBindImageMemoryInfo *bind_info);
 
 bool
 vn_android_get_drm_format_modifier_info(
@@ -66,6 +67,14 @@ vn_android_image_from_anb(UNUSED struct vn_device *dev,
                           UNUSED struct vn_image **out_img)
 {
    return VK_ERROR_OUT_OF_HOST_MEMORY;
+}
+
+static inline struct vn_device_memory *
+vn_android_get_wsi_memory_from_bind_info(
+   UNUSED struct vn_device *dev,
+   UNUSED const VkBindImageMemoryInfo *bind_info)
+{
+   return NULL;
 }
 
 static inline bool

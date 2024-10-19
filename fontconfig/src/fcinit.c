@@ -65,6 +65,26 @@ bail0:
     return 0;
 }
 
+static FcConfig *
+FcInitFallbackConfigWithFilter (FcConfig *config, const FcChar8 *sysroot)
+{
+    FcConfig *fallback = FcInitFallbackConfig (sysroot);
+
+    /* Copy filter data */
+    fallback->filter_func = config->filter_func;
+    fallback->filter_data = config->filter_data;
+    fallback->destroy_data_func = config->destroy_data_func;
+    config->filter_func = NULL;
+    config->filter_data = NULL;
+    config->destroy_data_func = NULL;
+    /* Rebuild fontset */
+    FcConfigBuildFonts (fallback);
+
+    FcConfigDestroy (config);
+
+    return fallback;
+}
+
 int
 FcGetVersion (void)
 {
@@ -89,9 +109,7 @@ FcInitLoadOwnConfig (FcConfig *config)
     if (!FcConfigParseAndLoad (config, 0, FcTrue))
     {
 	const FcChar8 *sysroot = FcConfigGetSysRoot (config);
-	FcConfig *fallback = FcInitFallbackConfig (sysroot);
-
-	FcConfigDestroy (config);
+	FcConfig *fallback = FcInitFallbackConfigWithFilter (config, sysroot);
 
 	return fallback;
     }
@@ -144,8 +162,7 @@ FcInitLoadOwnConfig (FcConfig *config)
 		     "Fontconfig error: out of memory");
 	    if (prefix)
 		FcStrFree (prefix);
-	    fallback = FcInitFallbackConfig (sysroot);
-	    FcConfigDestroy (config);
+	    fallback = FcInitFallbackConfigWithFilter (config, sysroot);
 
 	    return fallback;
 	}

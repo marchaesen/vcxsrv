@@ -47,7 +47,6 @@ static const struct debug_control radv_debug_options[] = {{"nofastclears", RADV_
                                                           {"nobinning", RADV_DEBUG_NOBINNING},
                                                           {"nongg", RADV_DEBUG_NO_NGG},
                                                           {"metashaders", RADV_DEBUG_DUMP_META_SHADERS},
-                                                          {"discardtodemote", RADV_DEBUG_DISCARD_TO_DEMOTE},
                                                           {"llvm", RADV_DEBUG_LLVM},
                                                           {"forcecompress", RADV_DEBUG_FORCE_COMPRESS},
                                                           {"hang", RADV_DEBUG_HANG},
@@ -71,7 +70,6 @@ static const struct debug_control radv_debug_options[] = {{"nofastclears", RADV_
                                                           {"nort", RADV_DEBUG_NO_RT},
                                                           {"nomeshshader", RADV_DEBUG_NO_MESH_SHADER},
                                                           {"nongg_gs", RADV_DEBUG_NO_NGG_GS},
-                                                          {"nogsfastlaunch2", RADV_DEBUG_NO_GS_FAST_LAUNCH_2},
                                                           {"noeso", RADV_DEBUG_NO_ESO},
                                                           {"psocachestats", RADV_DEBUG_PSO_CACHE_STATS},
                                                           {NULL, 0}};
@@ -142,7 +140,6 @@ static const driOptionDescription radv_dri_options[] = {
       DRI_CONF_VK_REQUIRE_ETC2(false)
       DRI_CONF_VK_REQUIRE_ASTC(false)
       DRI_CONF_RADV_ZERO_VRAM(false)
-      DRI_CONF_RADV_LOWER_DISCARD_TO_DEMOTE(false)
       DRI_CONF_RADV_INVARIANT_GEOM(false)
       DRI_CONF_RADV_SPLIT_FMA(false)
       DRI_CONF_RADV_DISABLE_TC_COMPAT_HTILE_GENERAL(false)
@@ -150,6 +147,7 @@ static const driOptionDescription radv_dri_options[] = {
       DRI_CONF_RADV_DISABLE_ANISO_SINGLE_LEVEL(false)
       DRI_CONF_RADV_DISABLE_TRUNC_COORD(false)
       DRI_CONF_RADV_DISABLE_SINKING_LOAD_INPUT_FS(false)
+      DRI_CONF_RADV_DISABLE_DEPTH_STORAGE(false)
       DRI_CONF_RADV_DGC(false)
       DRI_CONF_RADV_FLUSH_BEFORE_QUERY_COPY(false)
       DRI_CONF_RADV_ENABLE_UNIFIED_HEAP_ON_APU(false)
@@ -188,9 +186,6 @@ radv_init_dri_options(struct radv_instance *instance)
    if (driQueryOptionb(&instance->drirc.options, "radv_no_dynamic_bounds"))
       instance->debug_flags |= RADV_DEBUG_NO_DYNAMIC_BOUNDS;
 
-   if (driQueryOptionb(&instance->drirc.options, "radv_lower_discard_to_demote"))
-      instance->debug_flags |= RADV_DEBUG_DISCARD_TO_DEMOTE;
-
    if (driQueryOptionb(&instance->drirc.options, "radv_invariant_geom"))
       instance->debug_flags |= RADV_DEBUG_INVARIANT_GEOM;
 
@@ -214,6 +209,8 @@ radv_init_dri_options(struct radv_instance *instance)
 
    instance->drirc.disable_sinking_load_input_fs =
       driQueryOptionb(&instance->drirc.options, "radv_disable_sinking_load_input_fs");
+
+   instance->drirc.disable_depth_storage = driQueryOptionb(&instance->drirc.options, "radv_disable_depth_storage");
 
    instance->drirc.flush_before_query_copy = driQueryOptionb(&instance->drirc.options, "radv_flush_before_query_copy");
 
@@ -302,14 +299,19 @@ static const struct vk_instance_extension_table radv_instance_extensions_support
 #endif
 };
 
-static void
-radv_handle_legacy_sqtt_trigger(struct vk_instance *instance)
+static enum radeon_ctx_pstate
+radv_parse_pstate(const char* str)
 {
-   char *trigger_file = secure_getenv("RADV_THREAD_TRACE_TRIGGER");
-   if (trigger_file) {
-      instance->trace_trigger_file = trigger_file;
-      instance->trace_mode |= RADV_TRACE_MODE_RGP;
-      fprintf(stderr, "WARNING: RADV_THREAD_TRACE_TRIGGER is deprecated, please use MESA_VK_TRACE_TRIGGER instead.\n");
+   if (!strcmp(str, "peak")) {
+      return RADEON_CTX_PSTATE_PEAK;
+   } else if (!strcmp(str, "standard")) {
+      return RADEON_CTX_PSTATE_STANDARD;
+   } else if (!strcmp(str, "min_sclk")) {
+      return RADEON_CTX_PSTATE_MIN_SCLK;
+   } else if (!strcmp(str, "min_mclk")) {
+      return RADEON_CTX_PSTATE_MIN_MCLK;
+   } else {
+      return RADEON_CTX_PSTATE_NONE;
    }
 }
 
@@ -339,10 +341,12 @@ radv_CreateInstance(const VkInstanceCreateInfo *pCreateInfo, const VkAllocationC
    }
 
    vk_instance_add_driver_trace_modes(&instance->vk, trace_options);
-   radv_handle_legacy_sqtt_trigger(&instance->vk);
+
+   simple_mtx_init(&instance->shader_dump_mtx, mtx_plain);
 
    instance->debug_flags = parse_debug_string(getenv("RADV_DEBUG"), radv_debug_options);
    instance->perftest_flags = parse_debug_string(getenv("RADV_PERFTEST"), radv_perftest_options);
+   instance->profile_pstate = radv_parse_pstate(debug_get_option("RADV_PROFILE_PSTATE", "peak"));
 
    /* When RADV_FORCE_FAMILY is set, the driver creates a null
     * device that allows to test the compiler without having an
@@ -376,6 +380,8 @@ radv_DestroyInstance(VkInstance _instance, const VkAllocationCallbacks *pAllocat
       return;
 
    VG(VALGRIND_DESTROY_MEMPOOL(instance));
+
+   simple_mtx_destroy(&instance->shader_dump_mtx);
 
    driDestroyOptionCache(&instance->drirc.options);
    driDestroyOptionInfo(&instance->drirc.available_options);

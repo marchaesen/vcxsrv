@@ -589,6 +589,7 @@ static void r300_set_blend_color(struct pipe_context* pipe,
 
         case PIPE_FORMAT_R8G8B8A8_UNORM:
         case PIPE_FORMAT_R8G8B8X8_UNORM:
+        case PIPE_FORMAT_R10G10B10A2_UNORM:
             tmp = c.color[0];
             c.color[0] = c.color[2];
             c.color[2] = tmp;

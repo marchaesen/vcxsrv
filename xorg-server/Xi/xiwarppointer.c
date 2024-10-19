@@ -29,15 +29,14 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>              /* for inputstr.h    */
 #include <X11/Xproto.h>         /* Request macro     */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2proto.h>
 
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
 
 #include "inputstr.h"           /* DeviceIntPtr      */

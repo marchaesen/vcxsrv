@@ -82,7 +82,6 @@
 #include "util/u_math.h"
 #include "util/box.h"
 #include "util/u_memory.h"
-#include "util/u_simple_shaders.h"
 #include "cso_cache/cso_context.h"
 
 #define DBG if (0) printf
@@ -132,6 +131,56 @@ gl_target_to_pipe(GLenum target)
    default:
       assert(0);
       return 0;
+   }
+}
+
+GLint
+st_from_pipe_compression_rate(uint32_t rate)
+{
+   switch (rate) {
+   case PIPE_COMPRESSION_FIXED_RATE_NONE:
+      return GL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT;
+   case PIPE_COMPRESSION_FIXED_RATE_DEFAULT:
+      return GL_SURFACE_COMPRESSION_FIXED_RATE_DEFAULT_EXT;
+   case 1: return GL_SURFACE_COMPRESSION_FIXED_RATE_1BPC_EXT;
+   case 2: return GL_SURFACE_COMPRESSION_FIXED_RATE_2BPC_EXT;
+   case 3: return GL_SURFACE_COMPRESSION_FIXED_RATE_3BPC_EXT;
+   case 4: return GL_SURFACE_COMPRESSION_FIXED_RATE_4BPC_EXT;
+   case 5: return GL_SURFACE_COMPRESSION_FIXED_RATE_5BPC_EXT;
+   case 6: return GL_SURFACE_COMPRESSION_FIXED_RATE_6BPC_EXT;
+   case 7: return GL_SURFACE_COMPRESSION_FIXED_RATE_7BPC_EXT;
+   case 8: return GL_SURFACE_COMPRESSION_FIXED_RATE_8BPC_EXT;
+   case 9: return GL_SURFACE_COMPRESSION_FIXED_RATE_9BPC_EXT;
+   case 10: return GL_SURFACE_COMPRESSION_FIXED_RATE_10BPC_EXT;
+   case 11: return GL_SURFACE_COMPRESSION_FIXED_RATE_11BPC_EXT;
+   case 12: return GL_SURFACE_COMPRESSION_FIXED_RATE_12BPC_EXT;
+   default:
+      unreachable("Unexpected value in st_from_pipe_compression_rate");
+   }
+}
+
+static uint32_t
+st_gl_compression_rate_to_pipe(GLint rate)
+{
+   switch (rate) {
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT:
+      return PIPE_COMPRESSION_FIXED_RATE_NONE;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_DEFAULT_EXT:
+      return PIPE_COMPRESSION_FIXED_RATE_DEFAULT;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_1BPC_EXT: return 1;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_2BPC_EXT: return 2;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_3BPC_EXT: return 3;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_4BPC_EXT: return 4;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_5BPC_EXT: return 5;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_6BPC_EXT: return 6;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_7BPC_EXT: return 7;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_8BPC_EXT: return 8;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_9BPC_EXT: return 9;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_10BPC_EXT: return 10;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_11BPC_EXT: return 11;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_12BPC_EXT: return 12;
+   default:
+      unreachable("Unexpected value in st_gl_compression_rate_to_pipe()");
    }
 }
 
@@ -1092,7 +1141,8 @@ guess_and_alloc_texture(struct st_context *st,
                                  ptDepth,
                                  ptLayers, nr_samples,
                                  bindings,
-                                 false);
+                                 false,
+                                 PIPE_COMPRESSION_FIXED_RATE_NONE);
 
    stObj->lastLevel = lastLevel;
 
@@ -1189,7 +1239,8 @@ st_AllocTextureImageBuffer(struct gl_context *ctx,
                                       ptDepth,
                                       ptLayers, 0,
                                       bindings,
-                                      false);
+                                      false,
+                                      PIPE_COMPRESSION_FIXED_RATE_NONE);
       return stImage->pt != NULL;
    }
 }
@@ -3243,7 +3294,8 @@ st_finalize_texture(struct gl_context *ctx,
                                     ptDepth,
                                     ptLayers, ptNumSamples,
                                     bindings,
-                                    false);
+                                    false,
+                                    PIPE_COMPRESSION_FIXED_RATE_NONE);
 
       if (!tObj->pt) {
          _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage");
@@ -3448,6 +3500,7 @@ st_texture_storage(struct gl_context *ctx,
                                                 bindings);
    }
    else {
+      uint32_t rate = st_gl_compression_rate_to_pipe(texObj->CompressionRate);
       texObj->pt = st_texture_create(st,
                                     gl_target_to_pipe(texObj->Target),
                                     fmt,
@@ -3457,7 +3510,8 @@ st_texture_storage(struct gl_context *ctx,
                                     ptDepth,
                                     ptLayers, num_samples,
                                     bindings,
-                                    texObj->IsSparse);
+                                    texObj->IsSparse,
+                                    rate);
    }
 
    if (!texObj->pt) {
@@ -3479,6 +3533,8 @@ st_texture_storage(struct gl_context *ctx,
 
    /* Update gl_texture_object for texture parameter query. */
    texObj->NumSparseLevels = texObj->pt->nr_sparse_levels;
+   texObj->CompressionRate =
+      st_from_pipe_compression_rate(texObj->pt->compression_rate);
 
    /* The texture is in a validated state, so no need to check later. */
    texObj->needs_validation = false;

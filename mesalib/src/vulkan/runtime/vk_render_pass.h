@@ -32,6 +32,11 @@ extern "C" {
 struct vk_command_buffer;
 struct vk_image;
 
+/* Mesa-specific dynamic rendering flag to indicate that legacy RPs don't use
+ * input attachments with concurrent writes (aka. feedback loops).
+ */
+#define VK_RENDERING_INPUT_ATTACHMENT_NO_CONCURRENT_WRITES_BIT_MESA 0x80000000
+
 /**
  * Pseudo-extension struct that may be chained into VkRenderingAttachmentInfo
  * to indicate an initial layout for the attachment.  This is only allowed if
@@ -39,7 +44,7 @@ struct vk_image;
  *
  *    1. VkRenderingAttachmentInfo::loadOp == LOAD_OP_CLEAR
  *
- *    2. VkRenderingInfo::renderArea is tne entire image view LOD
+ *    2. VkRenderingInfo::renderArea is the entire image view LOD
  *
  *    3. For 3D image attachments, VkRenderingInfo::viewMask == 0 AND
  *       VkRenderingInfo::layerCount references the entire bound image view
@@ -340,7 +345,7 @@ vk_get_pipeline_rendering_flags(const VkGraphicsPipelineCreateInfo *info);
 
 /** Returns the VkAttachmentSampleCountInfoAMD for a graphics pipeline
  *
- * For render-pass-free drivers, this can be used in the implementaiton of
+ * For render-pass-free drivers, this can be used in the implementation of
  * vkCreateGraphicsPipelines to get the VkAttachmentSampleCountInfoAMD.  If
  * VkGraphicsPipelineCreateInfo::renderPass is not VK_NULL_HANDLE, it will
  * return the sample counts from the specified subpass as a
@@ -388,7 +393,7 @@ struct vk_gcbiarr_data {
 /**
  * Constructs a VkRenderingInfo for the inheritance rendering info
  *
- * For render-pass-free drivers, this can be used in the implementaiton of
+ * For render-pass-free drivers, this can be used in the implementation of
  * vkCmdExecuteCommands to get a VkRenderingInfo representing the subpass and
  * framebuffer provided via the inheritance info for a command buffer created
  * with VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT.  The mental model
@@ -410,6 +415,10 @@ vk_get_command_buffer_inheritance_as_rendering_resume(
    const VkCommandBufferBeginInfo *pBeginInfo,
    void *stack_data);
 
+const VkRenderingAttachmentLocationInfoKHR *
+vk_get_command_buffer_rendering_attachment_location_info(
+   VkCommandBufferLevel level,
+   const VkCommandBufferBeginInfo *pBeginInfo);
 /**
  * Return true if the subpass dependency is framebuffer-local.
  */

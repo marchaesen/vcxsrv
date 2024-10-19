@@ -2259,9 +2259,6 @@ ADDR_E_RETURNCODE Gfx10Lib::HwlComputeSlicePipeBankXor(
                 // Should have no bit set under pipe interleave
                 ADDR_ASSERT((pipeBankXor << m_pipeInterleaveLog2) == pipeBankXorOffset);
 
-                // This assertion firing means old approach doesn't calculate a correct sliceXor value...
-                ADDR_ASSERT(pipeBankXor == pipeXor);
-
                 pOut->pipeBankXor = pIn->basePipeBankXor ^ pipeBankXor;
             }
         }

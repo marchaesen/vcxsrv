@@ -184,7 +184,7 @@ setup_viewport_scissor(struct vk_command_buffer *cmd,
    assert(ymax_log2 >= 0 && ymax_log2 <= 31);
 
    /* We don't care about precise bounds on Z, only that it's inside [0, 1] if
-    * the implementaiton only supports [0, 1].
+    * the implementation only supports [0, 1].
     */
    if (zmin >= 0.0f && zmax <= 1.0f) {
       zmin = 0.0f;

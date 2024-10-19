@@ -237,11 +237,25 @@ struct vk_queue_submit {
    uint32_t perf_pass_index;
 
    /* Used internally; should be ignored by drivers */
+   uint32_t _bind_entry_count;
+   uint32_t _image_bind_entry_count;
+   VkSparseMemoryBind *_bind_entries;
+   VkSparseImageMemoryBind *_image_bind_entries;
+
+   bool _has_binary_permanent_semaphore_wait;
    struct vk_sync **_wait_temps;
    struct vk_sync *_mem_signal_temp;
    struct vk_sync_timeline_point **_wait_points;
    struct vk_sync_timeline_point **_signal_points;
 };
+
+static inline bool
+vk_queue_submit_has_bind(const struct vk_queue_submit *submit)
+{
+   return submit->buffer_bind_count > 0 ||
+          submit->image_opaque_bind_count > 0 ||
+          submit->image_bind_count > 0;
+}
 
 #ifdef __cplusplus
 }

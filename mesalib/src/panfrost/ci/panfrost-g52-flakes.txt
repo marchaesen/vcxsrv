@@ -22,8 +22,13 @@ namespace pollution@renderbuffer with glgetteximage-compressed
 # first seen 2023-05-13
 spec@egl 1.4@largest possible eglcreatepbuffersurface and then glclear
 
-dEQP-VK.api.command_buffers.render_pass_continue
+# uprev Piglit in Mesa
+glx@glx-multithread-clearbuffer
 
-dEQP-VK.api.copy_and_blit.core.image_to_image.simple_tests.partial_image_.*
+# Cause a "gpu sched timeout" (fixed by sched increase to 10s)
+dEQP-VK.memory.pipeline_barrier.host_write_vertex_buffer.1048576_vertex_buffer_stride_2
+dEQP-VK.memory.pipeline_barrier.host_write_uniform_buffer.1048576
+dEQP-VK.memory.pipeline_barrier.host_write_uniform_texel_buffer.1048576
 
-dEQP-VK.api.buffer_view.access.suballocation.buffer_view_memory_test_partial_offset1
+# Sometime timeout
+dEQP-VK.memory.pipeline_barrier.host_write_storage_buffer.1048576

@@ -30,26 +30,7 @@ from The Open Group.
 #ifndef _SECURITY_SRV_H
 #define _SECURITY_SRV_H
 
-/* Allow client side portions of <X11/extensions/security.h> to compile */
-#ifndef Status
-#define Status int
-#define NEED_UNDEF_Status
-#endif
-#ifndef Display
-#define Display void
-#define NEED_UNDEF_Display
-#endif
-
 #include <X11/extensions/secur.h>
-
-#ifdef NEED_UNDEF_Status
-#undef Status
-#undef NEED_UNDEF_Status
-#endif
-#ifdef NEED_UNDEF_Display
-#undef Display
-#undef NEED_UNDEF_Display
-#endif
 
 #include "input.h"              /* for DeviceIntPtr */
 #include "property.h"           /* for PropertyPtr */

@@ -4,5 +4,3 @@ profile = "gpu"
 process_isolation = true
   [piglit.env]
   PIGLIT_PLATFORM = "mixed_glx_egl"
-version_check = "GL ES 2.0.*git"
-renderer_check = "VC4 V3D 2.1"

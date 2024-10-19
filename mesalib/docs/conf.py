@@ -40,6 +40,7 @@ sys.path.append(os.path.abspath('_exts'))
 # ones.
 extensions = [
     'bootstrap',
+    'depfile',
     'formatting',
     'hawkmoth',
     'nir',
@@ -111,16 +112,16 @@ html_copy_source = False
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = [
-  '_static/',
+html_static_path = []
+
+html_extra_path = [
+  '_extra/',
   'release-maintainers-keys.asc',
   'features.txt',
   'libGL.txt',
   'README.UVD',
   'README.VCE',
 ]
-
-html_extra_path = []
 
 html_redirects = [
   ('webmaster', 'https://www.mesa3d.org/website/'),
@@ -138,6 +139,8 @@ linkcheck_ignore = [
   r'https://gitlab.com/.*#.*', # needs JS eval
   r'https://gitlab.freedesktop.org/.*#.*', # needs JS eval
   r'https://github.com/.*#.*', # needs JS eval
+  r'https://www.intel.com/.*', # intel.com is blocking the linkcheck user-agent; maybe it can be customized to look like a browser?
+  r'https://cgit.freedesktop.org/.*', # cgit is no more
 ]
 linkcheck_exclude_documents = [r'relnotes/.*']
 
@@ -218,14 +221,15 @@ graphviz_output_format = 'svg'
 
 # -- Options for hawkmoth -------------------------------------------------
 
-hawkmoth_root = os.path.abspath('..')
+hawkmoth_root = os.path.abspath(os.pardir)
+mesa_root = os.path.join(os.path.dirname(__file__), os.pardir)
 hawkmoth_clang = [
-  '-Idocs/header-stubs/',
-  '-Iinclude/',
-  '-Isrc/',
-  '-Isrc/gallium/include/',
-  '-Isrc/intel/',
-  '-Isrc/mesa/',
+  '-I{}/docs/header-stubs/'.format(mesa_root),
+  '-I{}/include/'.format(mesa_root),
+  '-I{}/src/'.format(mesa_root),
+  '-I{}/src/gallium/include/'.format(mesa_root),
+  '-I{}/src/intel/'.format(mesa_root),
+  '-I{}/src/mesa/'.format(mesa_root),
   '-DHAVE_STRUCT_TIMESPEC',
   '-DHAVE_PTHREAD',
   '-DHAVE_ENDIAN_H',

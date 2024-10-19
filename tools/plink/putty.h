@@ -1797,16 +1797,62 @@ enum config_primary_key {
     N_CONFIG_OPTIONS
 };
 
-/* Types that appear in Conf keys and values. CONF_TYPE_NONE is used
- * as the subkey type for options that don't have subkeys, and is also
- * available as a placeholder value for other kinds of 'no type found'
- * error. */
+/* Types that appear in Conf keys and values. */
 enum {
+    /*
+     * CONF_TYPE_NONE is included in this enum because sometimes you
+     * need a placeholder for 'no type found'. (In Rust you'd leave it
+     * out, and use Option<ConfType> for those situations.)
+     *
+     * In particular, it's used as the subkey type for options that
+     * don't have subkeys.
+     */
     CONF_TYPE_NONE,
+
+    /* Booleans, accessed via conf_get_bool and conf_set_bool */
     CONF_TYPE_BOOL,
+
+    /* Integers, accessed via conf_get_int and conf_set_int */
     CONF_TYPE_INT,
+
+    /*
+     * NUL-terminated char strings, accessed via conf_get_str and
+     * conf_set_str.
+     *
+     * Where character encoding is relevant, these are generally
+     * expected to be in the host system's default character encoding.
+     *
+     * (Character encoding might not be relevant at all: for example,
+     * if the string is going to be used as a shell command on Unix,
+     * then the exec system call will want a char string anyway.)
+     */
     CONF_TYPE_STR,
+
+    /* NUL-terminated char strings encoded in UTF-8, accessed via
+     * conf_get_utf8 and conf_set_utf8. */
+    CONF_TYPE_UTF8,
+
+    /*
+     * A type that can be _either_ a char string in system encoding
+     * (aka CONF_TYPE_STR), _or_ a char string in UTF-8 (aka
+     * CONF_TYPE_UTF8). You can set it to be one or the other via
+     * conf_set_str or conf_set_utf8. To read it, you must use
+     * conf_get_str_ambi(), which returns a char string and a boolean
+     * telling you whether it's UTF-8.
+     *
+     * These can't be used as _keys_ in Conf, only as values. (If you
+     * used them as keys, you'd have to answer the difficult question
+     * of whether a UTF-8 and a non-UTF-8 string should be considered
+     * equal.)
+     */
+    CONF_TYPE_STR_AMBI,
+
+    /* PuTTY's OS-specific 'Filename' data type, accessed via
+     * conf_get_filename and conf_set_filename */
     CONF_TYPE_FILENAME,
+
+    /* PuTTY's GUI-specific 'FontSpec' data type, accessed via
+     * conf_get_fontspec and conf_set_fontspec */
     CONF_TYPE_FONT,
 };
 
@@ -1853,6 +1899,9 @@ bool conf_get_bool(Conf *conf, int key);
 int conf_get_int(Conf *conf, int key);
 int conf_get_int_int(Conf *conf, int key, int subkey);
 char *conf_get_str(Conf *conf, int key);   /* result still owned by conf */
+char *conf_get_utf8(Conf *conf, int key);   /* result still owned by conf */
+char *conf_get_str_ambi( /* result still owned by conf; 'utf8' may be NULL */
+    Conf *conf, int key, bool *utf8);
 char *conf_get_str_str(Conf *conf, int key, const char *subkey);
 Filename *conf_get_filename(Conf *conf, int key);
 FontSpec *conf_get_fontspec(Conf *conf, int key); /* still owned by conf */
@@ -1870,6 +1919,9 @@ void conf_set_bool(Conf *conf, int key, bool value);
 void conf_set_int(Conf *conf, int key, int value);
 void conf_set_int_int(Conf *conf, int key, int subkey, int value);
 void conf_set_str(Conf *conf, int key, const char *value);
+void conf_set_utf8(Conf *conf, int key, const char *value);
+bool conf_try_set_str(Conf *conf, int key, const char *value);
+bool conf_try_set_utf8(Conf *conf, int key, const char *value);
 void conf_set_str_str(Conf *conf, int key,
                       const char *subkey, const char *val);
 void conf_del_str_str(Conf *conf, int key, const char *subkey);
@@ -1994,7 +2046,7 @@ void term_lost_clipboard_ownership(Terminal *, int clipboard);
 void term_update(Terminal *);
 void term_invalidate(Terminal *);
 void term_blink(Terminal *, bool set_cursor);
-void term_do_paste(Terminal *, const wchar_t *, int);
+void term_do_paste(Terminal *, const wchar_t *, size_t);
 void term_nopaste(Terminal *);
 void term_copyall(Terminal *, const int *, int);
 void term_pre_reconfig(Terminal *, Conf *);
@@ -2246,10 +2298,7 @@ extern const char commitid[];
  */
 /* void init_ucs(void); -- this is now in platform-specific headers */
 bool is_dbcs_leadbyte(int codepage, char byte);
-int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
-             wchar_t *wcstr, int wclen);
-int wc_to_mb(int codepage, int flags, const wchar_t *wcstr, int wclen,
-             char *mbstr, int mblen, const char *defchr);
+/* For put_mb_to_wc / put_wc_to_mb, see marshal.h */
 wchar_t xlat_uskbd2cyrllic(int ch);
 int check_compose(int first, int second);
 int decode_codepage(const char *cp_name);
@@ -2353,17 +2402,11 @@ void printer_finish_job(printer_job *);
  * Exports from cmdline.c (and also cmdline_error(), which is
  * defined differently in various places and required _by_
  * cmdline.c).
- *
- * Note that cmdline_process_param takes a const option string, but a
- * writable argument string. That's not a mistake - that's so it can
- * zero out password arguments in the hope of not having them show up
- * avoidably in Unix 'ps'.
  */
 struct cmdline_get_passwd_input_state { bool tried; };
 #define CMDLINE_GET_PASSWD_INPUT_STATE_INIT { .tried = false }
 extern const cmdline_get_passwd_input_state cmdline_get_passwd_input_state_new;
-
-int cmdline_process_param(const char *, char *, int, Conf *);
+int cmdline_process_param(CmdlineArg *, CmdlineArg *, int, Conf *);
 void cmdline_run_saved(Conf *);
 void cmdline_cleanup(void);
 SeatPromptResult cmdline_get_passwd_input(
@@ -2371,6 +2414,33 @@ SeatPromptResult cmdline_get_passwd_input(
 bool cmdline_host_ok(Conf *);
 bool cmdline_verbose(void);
 bool cmdline_loaded_session(void);
+
+/*
+ * Abstraction provided by each platform to represent a command-line
+ * argument. May not be as simple as a default-encoded string: on
+ * Windows, command lines can be Unicode representing characters not
+ * in the system codepage, so you might need to retrieve the argument
+ * in a richer form.
+ */
+struct CmdlineArgList {
+    /* args[0], args[1], ... represent the original arguments in the
+     * command line. Then there's a null pointer. Further arguments
+     * can be invented to add to the array after that, in which case
+     * they'll be freed with the rest of the CmdlineArgList, but
+     * aren't logically part of the original command line. */
+    CmdlineArg **args;
+    size_t nargs, argssize;
+};
+struct CmdlineArg {
+    CmdlineArgList *list;
+};
+const char *cmdline_arg_to_utf8(CmdlineArg *arg); /* may fail */
+const char *cmdline_arg_to_str(CmdlineArg *arg);  /* must not fail */
+Filename *cmdline_arg_to_filename(CmdlineArg *arg);  /* caller must free */
+void cmdline_arg_wipe(CmdlineArg *arg);
+CmdlineArg *cmdline_arg_from_str(CmdlineArgList *list, const char *string);
+/* Platforms provide their own constructors for CmdlineArgList */
+void cmdline_arg_list_free(CmdlineArgList *list);
 
 /*
  * Here we have a flags word provided by each tool, which describes

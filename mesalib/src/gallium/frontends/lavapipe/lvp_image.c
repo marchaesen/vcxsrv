@@ -27,6 +27,7 @@
 #include "util/u_surface.h"
 #include "pipe/p_state.h"
 #include "frontend/winsys_handle.h"
+#include "vk_android.h"
 
 static VkResult
 lvp_image_create(VkDevice _device,
@@ -36,12 +37,14 @@ lvp_image_create(VkDevice _device,
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
    struct lvp_image *image;
-
+   VkResult result = VK_SUCCESS;
+   bool android_surface = false;
+   const VkSubresourceLayout *layouts = NULL;
+   uint64_t modifier;
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
 
 #ifdef HAVE_LIBDRM
    unsigned num_layouts = 1;
-   const VkSubresourceLayout *layouts = NULL;
    enum pipe_format pipe_format = lvp_vk_format_to_pipe_format(pCreateInfo->format);
    const VkImageDrmFormatModifierExplicitCreateInfoEXT *modinfo = (void*)vk_find_struct_const(pCreateInfo->pNext,
                                                                   IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
@@ -59,6 +62,8 @@ lvp_image_create(VkDevice _device,
       mesa_loge("lavapipe: planar drm formats are not supported");
       return VK_ERROR_OUT_OF_DEVICE_MEMORY;
    }
+
+   modifier = DRM_FORMAT_MOD_LINEAR;
 #endif
 
    image = vk_image_create(&device->vk, pCreateInfo, alloc, sizeof(*image));
@@ -66,9 +71,26 @@ lvp_image_create(VkDevice _device,
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    image->alignment = 64;
+   if (image->vk.create_flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)
+      image->alignment = 64 * 1024;
+
    image->plane_count = vk_format_get_plane_count(pCreateInfo->format);
    image->disjoint = image->plane_count > 1 &&
                      (pCreateInfo->flags & VK_IMAGE_CREATE_DISJOINT_BIT);
+
+   /* This section is removed by the optimizer for non-ANDROID builds */
+   VkImageDrmFormatModifierExplicitCreateInfoEXT eci;
+   VkSubresourceLayout a_plane_layouts[LVP_MAX_PLANE_COUNT];
+   if (vk_image_is_android_native_buffer(&image->vk)) {
+      result = vk_android_get_anb_layout(
+         pCreateInfo, &eci, a_plane_layouts, LVP_MAX_PLANE_COUNT);
+      if (result != VK_SUCCESS)
+         goto fail;
+
+      modifier = eci.drmFormatModifier;
+      layouts = a_plane_layouts;
+      android_surface = true;
+   }
 
    const struct vk_format_ycbcr_info *ycbcr_info =
       vk_format_get_ycbcr_info(pCreateInfo->format);
@@ -126,6 +148,9 @@ lvp_image_create(VkDevice _device,
                                 VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT))
          template.bind |= PIPE_BIND_SHADER_IMAGE;
 
+      if (pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)
+         template.flags |= PIPE_RESOURCE_FLAG_SPARSE;
+
       template.width0 = pCreateInfo->extent.width / width_scale;
       template.height0 = pCreateInfo->extent.height / height_scale;
       template.depth0 = pCreateInfo->extent.depth;
@@ -135,7 +160,7 @@ lvp_image_create(VkDevice _device,
       template.nr_storage_samples = pCreateInfo->samples;
 
 #ifdef HAVE_LIBDRM
-      if (modinfo && pCreateInfo->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
+      if (android_surface || (modinfo && pCreateInfo->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT)) {
          struct winsys_handle whandle;
          whandle.type = WINSYS_HANDLE_TYPE_UNBACKED;
          whandle.layer = 0;
@@ -146,7 +171,7 @@ lvp_image_create(VkDevice _device,
          whandle.image_stride = layouts[p].depthPitch;
          image->offset = layouts[p].offset;
          whandle.format = pCreateInfo->format;
-         whandle.modifier = DRM_FORMAT_MOD_LINEAR;
+         whandle.modifier = modifier;
          image->planes[p].bo = device->pscreen->resource_from_handle(device->pscreen,
                                                            &template,
                                                            &whandle,
@@ -162,11 +187,27 @@ lvp_image_create(VkDevice _device,
       if (!image->planes[p].bo)
          return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
+      image->planes[p].size = align64(image->planes[p].size, image->alignment);
+
       image->size += image->planes[p].size;
    }
+
+   /* This section is removed by the optimizer for non-ANDROID builds */
+   if (vk_image_is_android_native_buffer(&image->vk)) {
+      result = vk_android_import_anb(&device->vk, pCreateInfo, alloc,
+                                     &image->vk);
+      if (result != VK_SUCCESS) {
+         mesa_logw("Failed to import memory");
+         goto fail;
+      }
+   }
+
    *pImage = lvp_image_to_handle(image);
 
    return VK_SUCCESS;
+fail:
+   vk_image_destroy(&device->vk, alloc, &image->vk);
+   return result;
 }
 
 struct lvp_image *
@@ -208,11 +249,13 @@ lvp_CreateImage(VkDevice device,
                 const VkAllocationCallbacks *pAllocator,
                 VkImage *pImage)
 {
+#if !DETECT_OS_ANDROID
    const VkImageSwapchainCreateInfoKHR *swapchain_info =
       vk_find_struct_const(pCreateInfo->pNext, IMAGE_SWAPCHAIN_CREATE_INFO_KHR);
    if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE)
       return lvp_image_from_swapchain(device, pCreateInfo, swapchain_info,
                                       pAllocator, pImage);
+#endif
    return lvp_image_create(device, pCreateInfo, pAllocator,
                            pImage);
 }
@@ -319,6 +362,9 @@ lvp_create_imageview(const struct lvp_image_view *iv, VkFormat plane_format, uns
    } else {
       view.u.tex.first_layer = iv->vk.base_array_layer,
       view.u.tex.last_layer = iv->vk.base_array_layer + iv->vk.layer_count - 1;
+
+      if (view.resource->target == PIPE_TEXTURE_3D)
+         view.u.tex.is_2d_view_of_3d = true;
    }
    view.u.tex.level = iv->vk.base_mip_level;
    return view;
@@ -536,12 +582,20 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateBuffer(
       if (buffer->vk.usage & VK_BUFFER_USAGE_2_STORAGE_TEXEL_BUFFER_BIT_KHR)
          template.bind |= PIPE_BIND_SHADER_IMAGE;
       template.flags = PIPE_RESOURCE_FLAG_DONT_OVER_ALLOCATE;
+      if (pCreateInfo->flags & VK_BUFFER_CREATE_SPARSE_BINDING_BIT)
+         template.flags |= PIPE_RESOURCE_FLAG_SPARSE;
       buffer->bo = device->pscreen->resource_create_unbacked(device->pscreen,
                                                              &template,
                                                              &buffer->total_size);
       if (!buffer->bo) {
          vk_free2(&device->vk.alloc, pAllocator, buffer);
          return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+      }
+
+      if (pCreateInfo->flags & VK_BUFFER_CREATE_SPARSE_BINDING_BIT) {
+         buffer->map = device->queue.ctx->buffer_map(device->queue.ctx, buffer->bo, 0,
+                                                     PIPE_MAP_READ | PIPE_MAP_WRITE | PIPE_MAP_PERSISTENT,
+                                                     &(struct pipe_box){ 0 }, &buffer->transfer);
       }
    }
    *pBuffer = lvp_buffer_to_handle(buffer);
@@ -560,13 +614,15 @@ VKAPI_ATTR void VKAPI_CALL lvp_DestroyBuffer(
    if (!_buffer)
      return;
 
-   char *ptr = (char*)buffer->pmem + buffer->offset;
-   if (ptr) {
+   if (buffer->map) {
       simple_mtx_lock(&device->bda_lock);
-      struct hash_entry *he = _mesa_hash_table_search(&device->bda, ptr);
+      struct hash_entry *he = _mesa_hash_table_search(&device->bda, buffer->map);
       if (he)
          _mesa_hash_table_remove(&device->bda, he);
       simple_mtx_unlock(&device->bda_lock);
+
+      if (buffer->bo->flags & PIPE_RESOURCE_FLAG_SPARSE)
+         device->queue.ctx->buffer_unmap(device->queue.ctx, buffer->transfer);
    }
    pipe_resource_reference(&buffer->bo, NULL);
    vk_buffer_destroy(&device->vk, pAllocator, &buffer->vk);
@@ -578,12 +634,11 @@ VKAPI_ATTR VkDeviceAddress VKAPI_CALL lvp_GetBufferDeviceAddress(
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
    LVP_FROM_HANDLE(lvp_buffer, buffer, pInfo->buffer);
-   char *ptr = (char*)buffer->pmem + buffer->offset;
    simple_mtx_lock(&device->bda_lock);
-   _mesa_hash_table_insert(&device->bda, ptr, buffer);
+   _mesa_hash_table_insert(&device->bda, buffer->map, buffer);
    simple_mtx_unlock(&device->bda_lock);
 
-   return (VkDeviceAddress)(uintptr_t)ptr;
+   return (VkDeviceAddress)(uintptr_t)buffer->map;
 }
 
 VKAPI_ATTR uint64_t VKAPI_CALL lvp_GetBufferOpaqueCaptureAddress(
@@ -836,5 +891,136 @@ VKAPI_ATTR VkResult VKAPI_CALL
 lvp_TransitionImageLayoutEXT(VkDevice device, uint32_t transitionCount, const VkHostImageLayoutTransitionInfoEXT *pTransitions)
 {
    /* no-op */
+   return VK_SUCCESS;
+}
+
+VkResult
+lvp_buffer_bind_sparse(struct lvp_device *device,
+                       struct lvp_queue *queue,
+                       VkSparseBufferMemoryBindInfo *bind)
+{
+   LVP_FROM_HANDLE(lvp_buffer, buffer, bind->buffer);
+
+   for (uint32_t i = 0; i < bind->bindCount; i++) {
+      LVP_FROM_HANDLE(lvp_device_memory, mem, bind->pBinds[i].memory);
+      device->pscreen->resource_bind_backing(device->pscreen,
+                                             buffer->bo,
+                                             mem ? mem->pmem : NULL,
+                                             bind->pBinds[i].memoryOffset,
+                                             bind->pBinds[i].size,
+                                             bind->pBinds[i].resourceOffset);
+   }
+
+   return VK_SUCCESS;
+}
+
+VkResult
+lvp_image_bind_opaque_sparse(struct lvp_device *device,
+                             struct lvp_queue *queue,
+                             VkSparseImageOpaqueMemoryBindInfo *bind_info)
+{
+   LVP_FROM_HANDLE(lvp_image, image, bind_info->image);
+
+   for (uint32_t i = 0; i < bind_info->bindCount; i++) {
+      const VkSparseMemoryBind *bind = &bind_info->pBinds[i];
+      LVP_FROM_HANDLE(lvp_device_memory, mem, bind->memory);
+
+      uint32_t plane_index;
+      uint32_t offset;
+      if (bind->resourceOffset < image->planes[0].size) {
+         plane_index = 0;
+         offset = bind->resourceOffset;
+      } else if (bind->resourceOffset < image->planes[0].size + image->planes[1].size) {
+         plane_index = 1;
+         offset = bind->resourceOffset - image->planes[0].size;
+      } else {
+         plane_index = 2;
+         offset = bind->resourceOffset - image->planes[0].size - image->planes[1].size;
+      }
+
+      device->pscreen->resource_bind_backing(device->pscreen,
+                                             image->planes[plane_index].bo,
+                                             mem ? mem->pmem : NULL,
+                                             bind->memoryOffset,
+                                             bind->size,
+                                             offset);
+   }
+
+   return VK_SUCCESS;
+}
+
+VkResult
+lvp_image_bind_sparse(struct lvp_device *device,
+                      struct lvp_queue *queue,
+                      VkSparseImageMemoryBindInfo *bind_info)
+{
+   LVP_FROM_HANDLE(lvp_image, image, bind_info->image);
+
+   enum pipe_format format = vk_format_to_pipe_format(image->vk.format);
+
+   for (uint32_t i = 0; i < bind_info->bindCount; i++) {
+      const VkSparseImageMemoryBind *bind = &bind_info->pBinds[i];
+      LVP_FROM_HANDLE(lvp_device_memory, mem, bind->memory);
+
+      uint8_t plane = lvp_image_aspects_to_plane(image, bind->subresource.aspectMask);
+
+      uint32_t depth = 1;
+      uint32_t z = 0;
+      uint32_t dimensions = 2;
+      switch (image->planes[plane].bo->target) {
+      case PIPE_TEXTURE_CUBE:
+      case PIPE_TEXTURE_CUBE_ARRAY:
+      case PIPE_TEXTURE_2D_ARRAY:
+      case PIPE_TEXTURE_1D_ARRAY:
+         /* these use layer */
+         z = bind->subresource.arrayLayer;
+         break;
+      case PIPE_TEXTURE_3D:
+         /* this uses depth */
+         z = bind->offset.z;
+         depth = bind->extent.depth;
+         dimensions = 3;
+         break;
+      default:
+         break;
+      }
+
+      uint32_t sparse_tile_size[3] = {
+         util_format_get_tilesize(format, dimensions, image->vk.samples, 0),
+         util_format_get_tilesize(format, dimensions, image->vk.samples, 1),
+         util_format_get_tilesize(format, dimensions, image->vk.samples, 2),
+      };
+
+      uint32_t sparse_block_base[3] = {
+         bind->offset.x / (sparse_tile_size[0] * util_format_get_blockwidth(format)),
+         bind->offset.y / (sparse_tile_size[1] * util_format_get_blockheight(format)),
+         z / (sparse_tile_size[2] * util_format_get_blockdepth(format)),
+      };
+
+      uint32_t sparse_block_counts[3] = {
+         DIV_ROUND_UP(bind->extent.width, sparse_tile_size[0] * util_format_get_blockwidth(format)),
+         DIV_ROUND_UP(bind->extent.height, sparse_tile_size[1] * util_format_get_blockheight(format)),
+         DIV_ROUND_UP(depth, sparse_tile_size[2] * util_format_get_blockdepth(format)),
+      };
+
+      uint32_t sparse_block_count = sparse_block_counts[0] * sparse_block_counts[1] * sparse_block_counts[2];
+
+      for (uint32_t block = 0; block < sparse_block_count; block++) {
+         uint32_t start_x = (sparse_block_base[0] + block % sparse_block_counts[0]) * sparse_tile_size[0];
+         uint32_t start_y = (sparse_block_base[1] + (block / sparse_block_counts[0]) % sparse_block_counts[1]) *
+                            sparse_tile_size[1];
+         uint32_t start_z = (sparse_block_base[2] + (block / sparse_block_counts[0] / sparse_block_counts[1]) % sparse_block_counts[2]) *
+                            sparse_tile_size[2];
+
+         uint64_t offset = llvmpipe_get_texel_offset(image->planes[plane].bo, bind->subresource.mipLevel, start_x, start_y, start_z);
+         device->pscreen->resource_bind_backing(device->pscreen,
+                                                image->planes[plane].bo,
+                                                mem ? mem->pmem : NULL,
+                                                bind->memoryOffset + block * 64 * 1024,
+                                                64 * 1024,
+                                                offset);
+      }
+   }
+
    return VK_SUCCESS;
 }

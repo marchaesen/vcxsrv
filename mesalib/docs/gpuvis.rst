@@ -24,10 +24,10 @@ configuring the markers needed for GPU events. To start tracing:
 
 The resulting trace file can be opened with Gpuvis.
 
-Run on Steamos
+Run on SteamOS
 --------------
 
-Steamos includes a script (`gpu-trace <https://github.com/lostgoat/gpu-trace>`__)
+SteamOS includes a script (`gpu-trace <https://github.com/lostgoat/gpu-trace>`__)
 to capture traces.
 
 .. code-block:: sh
@@ -35,7 +35,7 @@ to capture traces.
    sudo gpu-trace
    # Press Ctrl+C to stop capture and open report in gpuvis
 
-Note that on Steamos gpuvis is actually not installed by default, but the
+Note that on SteamOS gpuvis is actually not installed by default, but the
 script does write a gpu-trace.zip file in the current working directory. To
 open it you'll want to do the following on your development machine:
 

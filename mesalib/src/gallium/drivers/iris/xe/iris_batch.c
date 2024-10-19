@@ -30,6 +30,7 @@
 #include "common/intel_engine.h"
 #include "common/xe/intel_device_query.h"
 #include "common/xe/intel_engine.h"
+#include "common/xe/intel_queue.h"
 
 #include "drm-uapi/xe_drm.h"
 #include "drm-uapi/gpu_scheduler.h"
@@ -159,33 +160,28 @@ static void
 iris_xe_wait_exec_queue_idle(struct iris_batch *batch)
 {
    struct iris_bufmgr *bufmgr = batch->screen->bufmgr;
-   struct iris_syncobj *syncobj = iris_create_syncobj(bufmgr);
-   struct drm_xe_sync xe_sync = {
-      .type = DRM_XE_SYNC_TYPE_SYNCOBJ,
-      .flags = DRM_XE_SYNC_FLAG_SIGNAL,
-   };
-   struct drm_xe_exec exec = {
-      .exec_queue_id = batch->xe.exec_queue_id,
-      .num_syncs = 1,
-      .syncs = (uintptr_t)&xe_sync,
-   };
-   int ret;
+   int fd = iris_bufmgr_get_fd(bufmgr);
+   uint32_t syncobj;
+   int ret = xe_queue_get_syncobj_for_idle(fd, batch->xe.exec_queue_id,
+                                           &syncobj);
 
-   if (!syncobj)
+   if (ret) {
+      assert(iris_batch_is_banned(bufmgr, ret) == true);
       return;
-
-   xe_sync.handle = syncobj->handle;
-   /* Using the special exec.num_batch_buffer == 0 handling to get syncobj
-    * signaled when the last DRM_IOCTL_XE_EXEC is completed.
-    */
-   ret = intel_ioctl(iris_bufmgr_get_fd(bufmgr), DRM_IOCTL_XE_EXEC, &exec);
-   if (ret == 0) {
-      assert(iris_wait_syncobj(bufmgr, syncobj, INT64_MAX));
-   } else {
-      assert(iris_batch_is_banned(bufmgr, -errno) == true);
    }
 
-   iris_syncobj_destroy(bufmgr, syncobj);
+   struct drm_syncobj_wait wait = {
+      .handles = (uintptr_t)&syncobj,
+      .count_handles = 1,
+      .timeout_nsec = INT64_MAX,
+   };
+   ret = intel_ioctl(fd, DRM_IOCTL_SYNCOBJ_WAIT, &wait);
+   assert(ret == 0);
+
+   struct drm_syncobj_destroy syncobj_destroy = {
+      .handle = syncobj,
+   };
+   intel_ioctl(fd, DRM_IOCTL_SYNCOBJ_DESTROY, &syncobj_destroy);
 }
 
 static void

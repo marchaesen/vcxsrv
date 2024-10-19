@@ -229,9 +229,6 @@ static int fill_h264_enc_picture_desc(const struct pipe_picture_desc *desc,
         ITEM_SET(vh264, h264, rate_ctrl[i].frame_rate_den);
         ITEM_SET(vh264, h264, rate_ctrl[i].vbv_buffer_size);
         ITEM_SET(vh264, h264, rate_ctrl[i].vbv_buf_lv);
-        ITEM_SET(vh264, h264, rate_ctrl[i].target_bits_picture);
-        ITEM_SET(vh264, h264, rate_ctrl[i].peak_bits_picture_integer);
-        ITEM_SET(vh264, h264, rate_ctrl[i].peak_bits_picture_fraction);
         ITEM_SET(vh264, h264, rate_ctrl[i].fill_data_enable);
         ITEM_SET(vh264, h264, rate_ctrl[i].skip_frame_enable);
         ITEM_SET(vh264, h264, rate_ctrl[i].enforce_hrd);
@@ -469,25 +466,22 @@ static int fill_h265_enc_picture_desc(const struct pipe_picture_desc *desc,
     ITEM_SET(vh265, h265, slice.slice_deblocking_filter_disabled_flag);
     ITEM_SET(vh265, h265, slice.slice_loop_filter_across_slices_enabled_flag);
 
-    ITEM_SET(vh265, h265, rc.rate_ctrl_method);
-    ITEM_SET(vh265, h265, rc.target_bitrate);
-    ITEM_SET(vh265, h265, rc.peak_bitrate);
-    ITEM_SET(vh265, h265, rc.frame_rate_num);
-    ITEM_SET(vh265, h265, rc.frame_rate_den);
-    ITEM_SET(vh265, h265, rc.quant_i_frames);
-    ITEM_SET(vh265, h265, rc.quant_p_frames);
-    ITEM_SET(vh265, h265, rc.quant_b_frames);
-    ITEM_SET(vh265, h265, rc.vbv_buffer_size);
-    ITEM_SET(vh265, h265, rc.vbv_buf_lv);
-    ITEM_SET(vh265, h265, rc.target_bits_picture);
-    ITEM_SET(vh265, h265, rc.peak_bits_picture_integer);
-    ITEM_SET(vh265, h265, rc.peak_bits_picture_fraction);
-    ITEM_SET(vh265, h265, rc.fill_data_enable);
-    ITEM_SET(vh265, h265, rc.skip_frame_enable);
-    ITEM_SET(vh265, h265, rc.enforce_hrd);
-    ITEM_SET(vh265, h265, rc.max_au_size);
-    ITEM_SET(vh265, h265, rc.max_qp);
-    ITEM_SET(vh265, h265, rc.min_qp);
+    vh265->rc.rate_ctrl_method = h265->rc[0].rate_ctrl_method;
+    vh265->rc.target_bitrate = h265->rc[0].target_bitrate;
+    vh265->rc.peak_bitrate = h265->rc[0].peak_bitrate;
+    vh265->rc.frame_rate_num = h265->rc[0].frame_rate_num;
+    vh265->rc.frame_rate_den = h265->rc[0].frame_rate_den;
+    vh265->rc.quant_i_frames = h265->rc[0].quant_i_frames;
+    vh265->rc.quant_p_frames = h265->rc[0].quant_p_frames;
+    vh265->rc.quant_b_frames = h265->rc[0].quant_b_frames;
+    vh265->rc.vbv_buffer_size = h265->rc[0].vbv_buffer_size;
+    vh265->rc.vbv_buf_lv = h265->rc[0].vbv_buf_lv;
+    vh265->rc.fill_data_enable = h265->rc[0].fill_data_enable;
+    vh265->rc.skip_frame_enable = h265->rc[0].skip_frame_enable;
+    vh265->rc.enforce_hrd = h265->rc[0].enforce_hrd;
+    vh265->rc.max_au_size = h265->rc[0].max_au_size;
+    vh265->rc.max_qp = h265->rc[0].max_qp;
+    vh265->rc.min_qp = h265->rc[0].min_qp;
 
     ITEM_SET(vh265, h265, picture_type);
     ITEM_SET(vh265, h265, decoded_curr_pic);
@@ -1106,9 +1100,9 @@ static void virgl_video_encode_bitstream(struct pipe_video_codec *codec,
                                   virgl_resource(target));
 }
 
-static void virgl_video_end_frame(struct pipe_video_codec *codec,
-                                  struct pipe_video_buffer *target,
-                                  struct pipe_picture_desc *picture)
+static int virgl_video_end_frame(struct pipe_video_codec *codec,
+                                 struct pipe_video_buffer *target,
+                                 struct pipe_picture_desc *picture)
 {
     struct virgl_video_codec *vcdc = virgl_video_codec(codec);
     struct virgl_context *vctx = virgl_context(vcdc->base.context);
@@ -1118,6 +1112,7 @@ static void virgl_video_end_frame(struct pipe_video_codec *codec,
     virgl_flush_eq(vctx, vctx, NULL);
 
     switch_buffer(vcdc);
+    return 0;
 }
 
 static int virgl_video_get_decoder_fence(struct pipe_video_codec *decoder,

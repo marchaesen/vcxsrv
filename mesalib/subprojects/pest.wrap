@@ -1,0 +1,6 @@
+[wrap-file]
+directory = pest-2.7.11
+source_url = https://crates.io/api/v1/crates/pest/2.7.11/download
+source_filename = pest-2.7.11.tar.gz
+source_hash = cd53dff83f26735fdc1ca837098ccf133605d794cdae66acfc2bfac3ec809d95
+patch_directory = pest

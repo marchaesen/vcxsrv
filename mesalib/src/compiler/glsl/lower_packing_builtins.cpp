@@ -73,6 +73,9 @@ public:
       assert(factory_instructions.is_empty());
    }
 
+   lower_packing_builtins_visitor(const lower_packing_builtins_visitor &) = delete;
+   lower_packing_builtins_visitor & operator=(const lower_packing_builtins_visitor &) = delete;
+
    bool get_progress() { return progress; }
 
    void handle_rvalue(ir_rvalue **rvalue)

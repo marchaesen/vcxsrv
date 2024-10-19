@@ -152,6 +152,9 @@ struct panfrost_batch {
    /* Thread local storage descriptor. */
    struct panfrost_ptr tls;
 
+   /* Vertex count */
+   uint32_t vertex_count;
+
    /* Tiler context */
    struct pan_tiler_context tiler_ctx;
 
@@ -198,6 +201,9 @@ struct panfrost_batch {
     */
    mali_ptr images[PIPE_SHADER_TYPES];
 
+   /* SSBOs. */
+   mali_ptr ssbos[PIPE_SHADER_TYPES];
+
    /* On Valhall, these are properties of the batch. On Bifrost, they are
     * per draw.
     */
@@ -215,6 +221,12 @@ struct panfrost_batch {
 
    /* Number of compute jobs in the batch. */
    uint32_t compute_count;
+
+   /* Set when cycle count is required for this batch. */
+   bool need_job_req_cycle_count;
+
+   /* The batch contains a time query. */
+   bool has_time_query;
 
    /* Job frontend specific fields. */
    union {

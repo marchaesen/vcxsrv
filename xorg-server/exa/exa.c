@@ -28,9 +28,7 @@
  * memory management.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <stdlib.h>
 
@@ -883,7 +881,7 @@ exaDriverInit(ScreenPtr pScreen, ExaDriverPtr pScreenInfo)
         return FALSE;
     }
 
-    pExaScr = calloc(sizeof(ExaScreenPrivRec), 1);
+    pExaScr = calloc(1, sizeof(ExaScreenPrivRec));
     if (!pExaScr) {
         LogMessage(X_WARNING, "EXA(%d): Failed to allocate screen private\n",
                    pScreen->myNum);

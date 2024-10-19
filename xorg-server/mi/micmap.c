@@ -27,17 +27,23 @@
  * are may be debatable.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
+
+#include "dix/colormap_priv.h"
+
 #include "scrnintstr.h"
 #include "colormapst.h"
 #include "resource.h"
 #include "globals.h"
 #include "micmap.h"
+
+#define ALL_VISUALS     (StaticGrayMask|GrayScaleMask|StaticColorMask|\
+                         PseudoColorMask|TrueColorMask|DirectColorMask)
+#define LARGE_VISUALS   (TrueColorMask|DirectColorMask)
+#define SMALL_VISUALS   (StaticGrayMask|GrayScaleMask|StaticColorMask|PseudoColorMask)
 
 DevPrivateKeyRec micmapScrPrivateKeyRec;
 

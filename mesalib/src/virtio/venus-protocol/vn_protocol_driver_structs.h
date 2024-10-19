@@ -329,6 +329,59 @@ vn_encode_VkSemaphoreTypeCreateInfo(struct vn_cs_encoder *enc, const VkSemaphore
     vn_encode_VkSemaphoreTypeCreateInfo_self(enc, val);
 }
 
+/* struct VkBufferUsageFlags2CreateInfoKHR chain */
+
+static inline size_t
+vn_sizeof_VkBufferUsageFlags2CreateInfoKHR_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkBufferUsageFlags2CreateInfoKHR_self(const VkBufferUsageFlags2CreateInfoKHR *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkFlags64(&val->usage);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkBufferUsageFlags2CreateInfoKHR(const VkBufferUsageFlags2CreateInfoKHR *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkBufferUsageFlags2CreateInfoKHR_pnext(val->pNext);
+    size += vn_sizeof_VkBufferUsageFlags2CreateInfoKHR_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkBufferUsageFlags2CreateInfoKHR_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkBufferUsageFlags2CreateInfoKHR_self(struct vn_cs_encoder *enc, const VkBufferUsageFlags2CreateInfoKHR *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkFlags64(enc, &val->usage);
+}
+
+static inline void
+vn_encode_VkBufferUsageFlags2CreateInfoKHR(struct vn_cs_encoder *enc, const VkBufferUsageFlags2CreateInfoKHR *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR });
+    vn_encode_VkBufferUsageFlags2CreateInfoKHR_pnext(enc, val->pNext);
+    vn_encode_VkBufferUsageFlags2CreateInfoKHR_self(enc, val);
+}
+
 /* struct VkImageFormatListCreateInfo chain */
 
 static inline size_t

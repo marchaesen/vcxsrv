@@ -147,7 +147,15 @@ void
 tu_cs_set_writeable(struct tu_cs *cs, bool writeable);
 
 VkResult
-tu_cs_begin_sub_stream(struct tu_cs *cs, uint32_t size, struct tu_cs *sub_cs);
+tu_cs_begin_sub_stream_aligned(struct tu_cs *cs, uint32_t count,
+                               uint32_t size, struct tu_cs *sub_cs);
+
+static inline VkResult
+tu_cs_begin_sub_stream(struct tu_cs *cs, uint32_t size, struct tu_cs *sub_cs)
+{
+   return tu_cs_begin_sub_stream_aligned(cs, size, 1, sub_cs);
+}
+
 
 VkResult
 tu_cs_alloc(struct tu_cs *cs,

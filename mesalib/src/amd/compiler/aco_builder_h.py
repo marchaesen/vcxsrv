@@ -213,6 +213,9 @@ public:
    std::vector<aco_ptr<Instruction>> *instructions;
    std::vector<aco_ptr<Instruction>>::iterator it;
    bool is_precise = false;
+   bool is_sz_preserve = false;
+   bool is_inf_preserve = false;
+   bool is_nan_preserve = false;
    bool is_nuw = false;
 
    Builder(Program *pgm) : program(pgm), use_iterator(false), start(false), lm(pgm ? pgm->lane_mask : s2), instructions(NULL) {}
@@ -306,7 +309,7 @@ public:
    }
 
    Definition def(RegClass rc, PhysReg reg) {
-      return Definition(program->allocateId(rc), reg, rc);
+      return Definition(tmp(rc), reg);
    }
 
    inline aco_opcode w64or32(WaveSpecificOpcode opcode) const {
@@ -555,7 +558,7 @@ formats = [("pseudo", [Format.PSEUDO], list(itertools.product(range(5), range(6)
            ("sopp", [Format.SOPP], itertools.product([0, 1], [0, 1])),
            ("sopc", [Format.SOPC], [(1, 2)]),
            ("smem", [Format.SMEM], [(0, 4), (0, 3), (1, 0), (1, 3), (1, 2), (1, 1), (0, 0)]),
-           ("ds", [Format.DS], [(1, 1), (1, 2), (1, 3), (0, 3), (0, 4)]),
+           ("ds", [Format.DS], [(1, 0), (1, 1), (1, 2), (1, 3), (0, 3), (0, 4)]),
            ("ldsdir", [Format.LDSDIR], [(1, 1)]),
            ("mubuf", [Format.MUBUF], [(0, 4), (1, 3), (1, 4)]),
            ("mtbuf", [Format.MTBUF], [(0, 4), (1, 3)]),
@@ -617,6 +620,9 @@ formats = [(f if len(f) == 5 else f + ('',)) for f in formats]
         % for i in range(num_definitions):
             instr->definitions[${i}] = def${i};
             instr->definitions[${i}].setPrecise(is_precise);
+            instr->definitions[${i}].setSZPreserve(is_sz_preserve);
+            instr->definitions[${i}].setInfPreserve(is_inf_preserve);
+            instr->definitions[${i}].setNaNPreserve(is_nan_preserve);
             instr->definitions[${i}].setNUW(is_nuw);
         % endfor
         % for i in range(num_operands):

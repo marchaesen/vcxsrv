@@ -54,6 +54,11 @@ struct clc_optional_features {
    bool fp64;
    bool int64;
    bool images;
+   bool images_depth;
+   bool images_gl_depth;
+   bool images_gl_msaa;
+   bool images_mipmap;
+   bool images_mipmap_writes;
    bool images_read_write;
    bool images_write_3d;
    bool integer_dot_product;

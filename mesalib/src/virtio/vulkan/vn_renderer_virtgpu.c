@@ -1111,10 +1111,15 @@ virtgpu_bo_destroy(struct vn_renderer *renderer, struct vn_renderer_bo *_bo)
 
    if (bo->base.mmap_ptr)
       munmap(bo->base.mmap_ptr, bo->base.mmap_size);
-   virtgpu_ioctl_gem_close(gpu, bo->gem_handle);
 
-   /* set gem_handle to 0 to indicate that the bo is invalid */
+   /* Set gem_handle to 0 to indicate that the bo is invalid. Must be set
+    * before closing gem handle. Otherwise the same gem handle can be reused
+    * by another newly created bo and unexpectedly gotten zero'ed out the
+    * tracked gem handle.
+    */
+   const uint32_t gem_handle = bo->gem_handle;
    bo->gem_handle = 0;
+   virtgpu_ioctl_gem_close(gpu, gem_handle);
 
    mtx_unlock(&gpu->dma_buf_import_mutex);
 
@@ -1349,6 +1354,7 @@ virtgpu_init_renderer_info(struct virtgpu *gpu)
    struct vn_renderer_info *info = &gpu->base.info;
 
    info->drm.props = (VkPhysicalDeviceDrmPropertiesEXT){
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT,
       .hasPrimary = gpu->has_primary,
       .hasRender = true,
       .primaryMajor = gpu->primary_major,
@@ -1363,6 +1369,8 @@ virtgpu_init_renderer_info(struct virtgpu *gpu)
    if (gpu->bustype == DRM_BUS_PCI) {
       info->pci.has_bus_info = true;
       info->pci.props = (VkPhysicalDevicePCIBusInfoPropertiesEXT){
+         .sType =
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT,
          .pciDomain = gpu->pci_bus_info.domain,
          .pciBus = gpu->pci_bus_info.bus,
          .pciDevice = gpu->pci_bus_info.dev,

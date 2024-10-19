@@ -191,7 +191,7 @@ lp_blit(struct pipe_context *pipe,
    util_blitter_save_render_condition(lp->blitter, lp->render_cond_query,
                                       lp->render_cond_cond,
                                       lp->render_cond_mode);
-   util_blitter_blit(lp->blitter, &info);
+   util_blitter_blit(lp->blitter, &info, NULL);
 }
 
 

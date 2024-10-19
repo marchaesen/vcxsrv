@@ -178,6 +178,16 @@ panfrost_query_afbc(const struct pan_kmod_dev_props *props)
    return (pan_arch(props->gpu_prod_id) >= 5) && (reg == 0);
 }
 
+/* Check for AFRC hardware support. AFRC is introduced in v10. Implementations
+ * may omit it, signaled in bit 25 of TEXTURE_FEATURES_0 property. */
+
+bool
+panfrost_query_afrc(const struct pan_kmod_dev_props *props)
+{
+   return (pan_arch(props->gpu_prod_id) >= 10) &&
+          (props->texture_features[0] & (1 << 25));
+}
+
 /*
  * To pipeline multiple tiles, a given tile may use at most half of the tile
  * buffer. This function returns the optimal size (assuming pipelining).

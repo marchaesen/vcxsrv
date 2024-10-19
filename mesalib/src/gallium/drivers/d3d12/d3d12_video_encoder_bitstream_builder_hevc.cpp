@@ -27,8 +27,25 @@
 static uint8_t
 convert_profile12_to_stdprofile(D3D12_VIDEO_ENCODER_PROFILE_HEVC profile)
 {
-    // Main is 1, Main10 is 2, one more than the D3D12 enum definition
-    return static_cast<uint8_t>(profile) + 1u;
+   switch (profile)
+   {
+      case D3D12_VIDEO_ENCODER_PROFILE_HEVC_MAIN:
+      {
+         return 1;
+      } break;
+      case D3D12_VIDEO_ENCODER_PROFILE_HEVC_MAIN10:
+      {
+         return 2;
+      } break;
+      case D3D12_VIDEO_ENCODER_PROFILE_HEVC_MAIN_444:
+      {
+         return 4;
+      } break;
+      default:
+      {
+         unreachable("Unsupported D3D12_VIDEO_ENCODER_PROFILE_HEVC value");
+      } break;
+   }
 }
 
 void
@@ -51,6 +68,14 @@ d3d12_video_bitstream_builder_hevc::init_profile_tier_level(HEVCProfileTierLevel
    ptl->general_non_packed_constraint_flag = 1; // no frame packing arrangement SEI messages
    ptl->general_frame_only_constraint_flag = 1;
    ptl->general_level_idc = HEVCLevelIdc;
+
+   if (ptl->general_profile_idc == 4 /*MAIN444*/)
+   {
+      ptl->general_intra_constraint_flag = 1;
+      ptl->general_max_12bit_constraint_flag = 1;
+      ptl->general_max_10bit_constraint_flag = 1;
+      ptl->general_max_8bit_constraint_flag = 1;
+   }
 }
 
 void
@@ -298,10 +323,10 @@ d3d12_video_encoder_convert_pixel_size_hevc_to_12tusize(const uint32_t& TUSize)
 }
 
 HevcVideoParameterSet
-d3d12_video_bitstream_builder_hevc::build_vps(const D3D12_VIDEO_ENCODER_PROFILE_HEVC& profile,
+d3d12_video_bitstream_builder_hevc::build_vps(const struct pipe_h265_enc_vid_param & vidData,
+         const D3D12_VIDEO_ENCODER_PROFILE_HEVC& profile,
          const D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC& level,
          const DXGI_FORMAT inputFmt,
-         uint8_t maxRefFrames,
          bool gopHasBFrames,
          uint8_t vps_video_parameter_set_id,
          std::vector<BYTE> &headerBitstream,
@@ -334,7 +359,7 @@ d3d12_video_bitstream_builder_hevc::build_vps(const D3D12_VIDEO_ENCODER_PROFILE_
    init_profile_tier_level(&m_latest_vps.ptl, HEVCProfileIdc, HEVCLevelIdc, isHighTier);
    m_latest_vps.vps_sub_layer_ordering_info_present_flag = 0u;
    for (int i = (m_latest_vps.vps_sub_layer_ordering_info_present_flag ? 0 : m_latest_vps.vps_max_sub_layers_minus1); i <= m_latest_vps.vps_max_sub_layers_minus1; i++) {
-      m_latest_vps.vps_max_dec_pic_buffering_minus1[i] = (maxRefFrames/*previous reference frames*/ + 1 /*additional current frame recon pic*/) - 1/**minus1 for header*/;        
+      m_latest_vps.vps_max_dec_pic_buffering_minus1[i] = vidData.vps_max_dec_pic_buffering_minus1[i];
       m_latest_vps.vps_max_num_reorder_pics[i] = gopHasBFrames ? m_latest_vps.vps_max_dec_pic_buffering_minus1[i] : 0;
       m_latest_vps.vps_max_latency_increase_plus1[i] = 0; // When vps_max_latency_increase_plus1[ i ] is equal to 0, no corresponding limit is expressed.
    }
@@ -364,11 +389,29 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
 {
    HevcSeqParameterSet m_latest_sps = {};
 
-   // In case is 420 10 bits
-   if(inputFmt == DXGI_FORMAT_P010)
-   {
-      m_latest_sps.bit_depth_luma_minus8 = 2;
-      m_latest_sps.bit_depth_chroma_minus8 = 2;
+   UINT SubWidthC = 1u;
+   UINT SubHeightC = 1u;
+   if (inputFmt == DXGI_FORMAT_NV12) {
+      // 420 8 bits
+      m_latest_sps.bit_depth_luma_minus8 = 0u;
+      m_latest_sps.bit_depth_chroma_minus8 = 0u;
+      SubWidthC = 2u;
+      SubHeightC = 2u;
+      m_latest_sps.chroma_format_idc = 1u;
+   } else if (inputFmt == DXGI_FORMAT_P010) {
+      // 420 10 bits
+      m_latest_sps.bit_depth_luma_minus8 = 2u;
+      m_latest_sps.bit_depth_chroma_minus8 = 2u;
+      SubWidthC = 2u;
+      SubHeightC = 2u;
+      m_latest_sps.chroma_format_idc = 1u;
+   } else if (inputFmt == DXGI_FORMAT_AYUV) {
+      // 444 8 bits
+      m_latest_sps.bit_depth_luma_minus8 = 0u;
+      m_latest_sps.bit_depth_chroma_minus8 = 0u;
+      SubWidthC = 1u;
+      SubHeightC = 1u;
+      m_latest_sps.chroma_format_idc = 3u;
    }
 
    uint8_t minCuSize = d3d12_video_encoder_convert_12cusize_to_pixel_size_hevc(codecConfig.MinLumaCodingUnitSize);
@@ -386,20 +429,19 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
    // inherit PTL from parentVPS fully
    m_latest_sps.ptl = parentVPS.ptl;
 
-   m_latest_sps.chroma_format_idc = 1; // 420
-
    // Codec spec dictates pic_width/height_in_luma_samples must be divisible by minCuSize but HW might have higher req pow 2 multiples
    assert((picDimensionMultipleRequirement % minCuSize) == 0u);
 
    // upper layer passes the viewport, can calculate the difference between it and pic_width_in_luma_samples
    D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC viewport = { };
-   viewport.Width = crop_window_upper_layer.front /* passes height */ - ((crop_window_upper_layer.left + crop_window_upper_layer.right) << 1);
-   viewport.Height = crop_window_upper_layer.back /* passes width */- ((crop_window_upper_layer.top + crop_window_upper_layer.bottom) << 1);
+   viewport.Width = crop_window_upper_layer.front /* passes width */ - ((crop_window_upper_layer.left + crop_window_upper_layer.right) * SubWidthC);
+   viewport.Height = crop_window_upper_layer.back /* passes height */- ((crop_window_upper_layer.top + crop_window_upper_layer.bottom) * SubHeightC);
 
    m_latest_sps.pic_width_in_luma_samples = ALIGN(encodeResolution.Width, picDimensionMultipleRequirement);
    m_latest_sps.pic_height_in_luma_samples = ALIGN(encodeResolution.Height, picDimensionMultipleRequirement);
-   m_latest_sps.conf_win_right_offset = (m_latest_sps.pic_width_in_luma_samples - viewport.Width) >> 1;
-   m_latest_sps.conf_win_bottom_offset = (m_latest_sps.pic_height_in_luma_samples - viewport.Height) >> 1;
+   m_latest_sps.conf_win_right_offset = (m_latest_sps.pic_width_in_luma_samples - viewport.Width) / SubWidthC;
+   m_latest_sps.conf_win_bottom_offset = (m_latest_sps.pic_height_in_luma_samples - viewport.Height) / SubHeightC;
+
    m_latest_sps.conformance_window_flag = m_latest_sps.conf_win_left_offset || m_latest_sps.conf_win_right_offset || m_latest_sps.conf_win_top_offset || m_latest_sps.conf_win_bottom_offset;
 
    m_latest_sps.log2_max_pic_order_cnt_lsb_minus4 = hevcGOP.log2_max_pic_order_cnt_lsb_minus4;
@@ -474,7 +516,20 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
    m_latest_sps.vui.motion_vectors_over_pic_boundaries_flag = seqData.vui_flags.motion_vectors_over_pic_boundaries_flag;
    m_latest_sps.vui.restricted_ref_pic_lists_flag = seqData.vui_flags.restricted_ref_pic_lists_flag;
 
-   m_latest_sps.sps_extension_flag = 0;
+   m_latest_sps.sps_extension_present_flag = seqData.sps_range_extension.sps_range_extension_flag; // Set sps_extension_present_flag if sps_range_extension_flag present
+   if (m_latest_sps.sps_extension_present_flag)
+   {
+      m_latest_sps.sps_range_extension.sps_range_extension_flag = seqData.sps_range_extension.sps_range_extension_flag;
+      m_latest_sps.sps_range_extension.transform_skip_rotation_enabled_flag = seqData.sps_range_extension.transform_skip_rotation_enabled_flag;
+      m_latest_sps.sps_range_extension.transform_skip_context_enabled_flag = seqData.sps_range_extension.transform_skip_context_enabled_flag;
+      m_latest_sps.sps_range_extension.implicit_rdpcm_enabled_flag = seqData.sps_range_extension.implicit_rdpcm_enabled_flag;
+      m_latest_sps.sps_range_extension.explicit_rdpcm_enabled_flag = seqData.sps_range_extension.explicit_rdpcm_enabled_flag;
+      m_latest_sps.sps_range_extension.extended_precision_processing_flag = seqData.sps_range_extension.extended_precision_processing_flag;
+      m_latest_sps.sps_range_extension.intra_smoothing_disabled_flag = seqData.sps_range_extension.intra_smoothing_disabled_flag;
+      m_latest_sps.sps_range_extension.high_precision_offsets_enabled_flag = seqData.sps_range_extension.high_precision_offsets_enabled_flag;
+      m_latest_sps.sps_range_extension.persistent_rice_adaptation_enabled_flag = seqData.sps_range_extension.persistent_rice_adaptation_enabled_flag;
+      m_latest_sps.sps_range_extension.cabac_bypass_alignment_enabled_flag = seqData.sps_range_extension.cabac_bypass_alignment_enabled_flag;
+   }
 
    // Print built SPS structure
    debug_printf("[HEVCBitstreamBuilder] HevcSeqParameterSet Structure generated before writing to bitstream:\n");
@@ -486,10 +541,11 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
 }
 
 HevcPicParameterSet
-d3d12_video_bitstream_builder_hevc::build_pps(const HevcSeqParameterSet& parentSPS,
+d3d12_video_bitstream_builder_hevc::build_pps(const struct pipe_h265_enc_pic_param & picData,
+         const HevcSeqParameterSet& parentSPS,
          uint8_t pic_parameter_set_id,
          const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC& codecConfig,
-         const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC& pictureControl,
+         const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC1& pictureControl,
          std::vector<BYTE> &headerBitstream,
          std::vector<BYTE>::iterator placingPositionStart,
          size_t &writtenBytes)
@@ -528,6 +584,24 @@ d3d12_video_bitstream_builder_hevc::build_pps(const HevcSeqParameterSet& parentS
    m_latest_pps.pps_slice_chroma_qp_offsets_present_flag = 1;
    m_latest_pps.cu_qp_delta_enabled_flag = 1;
 
+   m_latest_pps.pps_extension_present_flag = picData.pps_range_extension.pps_range_extension_flag; // Set pps_extension_present_flag if pps_range_extension_flag present
+   if (m_latest_pps.pps_extension_present_flag)
+   {
+      m_latest_pps.pps_range_extension.pps_range_extension_flag = picData.pps_range_extension.pps_range_extension_flag;
+
+      m_latest_pps.pps_range_extension.log2_max_transform_skip_block_size_minus2 = picData.pps_range_extension.log2_max_transform_skip_block_size_minus2;
+      m_latest_pps.pps_range_extension.cross_component_prediction_enabled_flag = picData.pps_range_extension.cross_component_prediction_enabled_flag;
+      m_latest_pps.pps_range_extension.chroma_qp_offset_list_enabled_flag = picData.pps_range_extension.chroma_qp_offset_list_enabled_flag;
+      m_latest_pps.pps_range_extension.diff_cu_chroma_qp_offset_depth = picData.pps_range_extension.diff_cu_chroma_qp_offset_depth;
+      m_latest_pps.pps_range_extension.chroma_qp_offset_list_len_minus1 = picData.pps_range_extension.chroma_qp_offset_list_len_minus1;
+      m_latest_pps.pps_range_extension.log2_sao_offset_scale_luma = picData.pps_range_extension.log2_sao_offset_scale_luma;
+      m_latest_pps.pps_range_extension.log2_sao_offset_scale_chroma = picData.pps_range_extension.log2_sao_offset_scale_chroma;
+      for (unsigned i = 0; i < ARRAY_SIZE(picData.pps_range_extension.cb_qp_offset_list); i++)
+         m_latest_pps.pps_range_extension.cb_qp_offset_list[i] = picData.pps_range_extension.cb_qp_offset_list[i];
+      for (unsigned i = 0; i < ARRAY_SIZE(picData.pps_range_extension.cr_qp_offset_list); i++)
+         m_latest_pps.pps_range_extension.cr_qp_offset_list[i] = picData.pps_range_extension.cr_qp_offset_list[i];
+   }
+
    // Print built PPS structure
    debug_printf("[HEVCBitstreamBuilder] HevcPicParameterSet Structure generated before writing to bitstream:\n");
    print_pps(m_latest_pps);
@@ -550,6 +624,15 @@ d3d12_video_bitstream_builder_hevc::write_end_of_sequence_nalu(std::vector<uint8
                            size_t &                       writtenBytes)
 {
    m_hevcEncoder.write_end_of_sequence_nalu(headerBitstream, placingPositionStart, writtenBytes);
+}
+
+void
+d3d12_video_bitstream_builder_hevc::write_aud(std::vector<uint8_t> &         headerBitstream,
+                                              std::vector<uint8_t>::iterator placingPositionStart,
+                                              D3D12_VIDEO_ENCODER_FRAME_TYPE_HEVC frameType,
+                                              size_t &                       writtenBytes)
+{
+   m_hevcEncoder.write_aud(headerBitstream, placingPositionStart, frameType, writtenBytes);
 }
 
 void
@@ -701,7 +784,7 @@ d3d12_video_bitstream_builder_hevc::print_sps(const HevcSeqParameterSet& SPS)
    debug_printf("max_bits_per_min_cu_denom: %d\n", SPS.vui.max_bits_per_min_cu_denom);
    debug_printf("log2_max_mv_length_horizontal: %d\n", SPS.vui.log2_max_mv_length_horizontal);
    debug_printf("log2_max_mv_length_vertical: %d\n", SPS.vui.log2_max_mv_length_vertical);
-   debug_printf("sps_extension_flag: %d\n", SPS.sps_extension_flag);
+   debug_printf("sps_extension_present_flag: %d\n", SPS.sps_extension_present_flag);
    debug_printf("sps_extension_data_flag: %d\n", SPS.sps_extension_data_flag);
 
    debug_printf("HevcSeqParameterSet values end\n--------------------------------------\n");
@@ -748,7 +831,7 @@ d3d12_video_bitstream_builder_hevc::print_pps(const HevcPicParameterSet& PPS)
    debug_printf("lists_modification_present_flag: %d\n", PPS.lists_modification_present_flag);
    debug_printf("log2_parallel_merge_level_minus2: %d\n", PPS.log2_parallel_merge_level_minus2);
    debug_printf("slice_segment_header_extension_present_flag: %d\n", PPS.slice_segment_header_extension_present_flag);
-   debug_printf("pps_extension_flag: %d\n", PPS.pps_extension_flag);
+   debug_printf("pps_extension_present_flag: %d\n", PPS.pps_extension_present_flag);
    debug_printf("pps_extension_data_flag: %d\n", PPS.pps_extension_data_flag);
    debug_printf("HevcPicParameterSet values end\n--------------------------------------\n");   
 }

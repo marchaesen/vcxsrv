@@ -71,7 +71,7 @@ struct panfrost_vtable {
    void (*context_populate_vtbl)(struct pipe_context *pipe);
 
    /* Initialize/cleanup a Gallium context */
-   void (*context_init)(struct panfrost_context *ctx);
+   int (*context_init)(struct panfrost_context *ctx);
    void (*context_cleanup)(struct panfrost_context *ctx);
 
    /* Device-dependent initialization/cleanup of a panfrost_batch */
@@ -104,20 +104,24 @@ struct panfrost_vtable {
                      struct pan_image_slice_layout *slice,
                      struct panfrost_bo *metadata, unsigned metadata_offset,
                      unsigned level);
+
+   void (*emit_write_timestamp)(struct panfrost_batch *batch,
+                                struct panfrost_resource *dst, unsigned offset);
 };
 
 struct panfrost_screen {
    struct pipe_screen base;
    struct panfrost_device dev;
    struct {
-      struct panfrost_pool bin_pool;
-      struct panfrost_pool desc_pool;
-   } blitter;
+      struct panfrost_pool bin;
+      struct panfrost_pool desc;
+   } mempools;
 
    struct panfrost_vtable vtbl;
    struct disk_cache *disk_cache;
    unsigned max_afbc_packing_ratio;
    bool force_afbc_packing;
+   int force_afrc_rate;
 
    struct {
       unsigned chunk_size;

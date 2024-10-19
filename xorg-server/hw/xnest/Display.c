@@ -12,9 +12,7 @@ is" without express or implied warranty.
 
 */
 
-#ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
-#endif
 
 #include <string.h>
 #include <errno.h>
@@ -86,7 +84,7 @@ xnestOpenDisplay(int argc, char *argv[])
                    XDisplayName(xnestDisplayName));
 
     if (xnestSynchronize)
-        XSynchronize(xnestDisplay, True);
+        XSynchronize(xnestDisplay, TRUE);
 
     mask = VisualScreenMask;
     vi.screen = DefaultScreen(xnestDisplay);

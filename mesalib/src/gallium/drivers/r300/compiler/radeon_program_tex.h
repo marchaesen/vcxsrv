@@ -9,9 +9,6 @@
 #include "radeon_compiler.h"
 #include "radeon_program.h"
 
-int radeonTransformTEX(
-	struct radeon_compiler * c,
-	struct rc_instruction * inst,
-	void* data);
+int radeonTransformTEX(struct radeon_compiler *c, struct rc_instruction *inst, void *data);
 
 #endif /* __RADEON_PROGRAM_TEX_H_ */

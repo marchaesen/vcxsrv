@@ -88,17 +88,91 @@ vtn_ssa_value_add_to_call_params(struct vtn_builder *b,
    }
 }
 
+struct vtn_func_arg_info {
+   bool by_value;
+};
+
+static void
+function_parameter_decoration_cb(struct vtn_builder *b, struct vtn_value *val,
+                                 int member, const struct vtn_decoration *dec,
+                                 void *arg_info)
+{
+   struct vtn_func_arg_info *info = arg_info;
+
+   switch (dec->decoration) {
+   case SpvDecorationFuncParamAttr:
+      for (uint32_t i = 0; i < dec->num_operands; i++) {
+         uint32_t attr = dec->operands[i];
+         switch (attr) {
+         /* ignore for now */
+         case SpvFunctionParameterAttributeNoAlias:
+         case SpvFunctionParameterAttributeSext:
+         case SpvFunctionParameterAttributeZext:
+            break;
+
+         case SpvFunctionParameterAttributeByVal:
+            info->by_value = true;
+            break;
+
+         default:
+            vtn_warn("Function parameter Decoration not handled: %s",
+                     spirv_functionparameterattribute_to_string(attr));
+            break;
+         }
+      }
+      break;
+
+   /* ignore for now */
+   case SpvDecorationAliased:
+   case SpvDecorationAliasedPointer:
+   case SpvDecorationAlignment:
+   case SpvDecorationRelaxedPrecision:
+   case SpvDecorationRestrict:
+   case SpvDecorationRestrictPointer:
+   case SpvDecorationVolatile:
+      break;
+
+   default:
+      vtn_warn("Function parameter Decoration not handled: %s",
+               spirv_decoration_to_string(dec->decoration));
+      break;
+   }
+}
+
 static void
 vtn_ssa_value_load_function_param(struct vtn_builder *b,
                                   struct vtn_ssa_value *value,
+                                  struct vtn_type *type,
+                                  struct vtn_func_arg_info *info,
                                   unsigned *param_idx)
 {
    if (glsl_type_is_vector_or_scalar(value->type)) {
-      value->def = nir_load_param(&b->nb, (*param_idx)++);
+      /* if the parameter is passed by value, we need to create a local copy if it's a pointer */
+      if (info->by_value && type && type->base_type == vtn_base_type_pointer) {
+         struct vtn_type *pointee_type = type->pointed;
+
+         nir_variable *copy =
+            nir_local_variable_create(b->nb.impl, pointee_type->type, NULL);
+
+         nir_variable_mode mode;
+         vtn_storage_class_to_mode(b, type->storage_class, NULL, &mode);
+
+         nir_def *param = nir_load_param(&b->nb, (*param_idx)++);
+         nir_deref_instr *src = nir_build_deref_cast(&b->nb, param, mode, copy->type, 0);
+         nir_deref_instr *dst = nir_build_deref_var(&b->nb, copy);
+
+         nir_copy_deref(&b->nb, dst, src);
+
+         nir_deref_instr *load =
+            nir_build_deref_cast(&b->nb, &dst->def, nir_var_function_temp, type->type, 0);
+         value->def = &load->def;
+      } else {
+         value->def = nir_load_param(&b->nb, (*param_idx)++);
+      }
    } else {
       unsigned elems = glsl_get_length(value->type);
       for (unsigned i = 0; i < elems; i++)
-         vtn_ssa_value_load_function_param(b, value->elems[i], param_idx);
+         vtn_ssa_value_load_function_param(b, value->elems[i], NULL, info, param_idx);
    }
 }
 
@@ -262,10 +336,15 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpFunctionParameter: {
       vtn_assert(b->func_param_idx < b->func->nir_func->num_params);
+
+      struct vtn_func_arg_info arg_info = {0};
       struct vtn_type *type = vtn_get_type(b, w[1]);
-      struct vtn_ssa_value *value = vtn_create_ssa_value(b, type->type);
-      vtn_ssa_value_load_function_param(b, value, &b->func_param_idx);
-      vtn_push_ssa_value(b, w[2], value);
+      struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, type->type);
+      struct vtn_value *val = vtn_untyped_value(b, w[2]);
+
+      vtn_foreach_decoration(b, val, function_parameter_decoration_cb, &arg_info);
+      vtn_ssa_value_load_function_param(b, ssa, type, &arg_info, &b->func_param_idx);
+      vtn_push_ssa_value(b, w[2], ssa);
       break;
    }
 

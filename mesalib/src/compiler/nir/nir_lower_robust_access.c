@@ -149,8 +149,22 @@ lower_image(nir_builder *b,
       size = nir_vec3(b, nir_channel(b, size, 0), nir_channel(b, size, 1), z);
    }
 
+   nir_def *in_bounds = nir_ball(b, nir_ult(b, coord, size));
+
+   if (dim == GLSL_SAMPLER_DIM_MS) {
+      nir_def *sample = instr->src[2].ssa;
+      nir_def *samples = nir_image_samples(b, 32, instr->src[0].ssa,
+                                           .image_array = is_array, .image_dim = dim);
+      if (deref) {
+         nir_instr_as_intrinsic(samples->parent_instr)->intrinsic =
+            nir_intrinsic_image_deref_samples;
+      }
+
+      in_bounds = nir_iand(b, in_bounds, nir_ult(b, sample, samples));
+   }
+
    /* Only execute if coordinates are in-bounds. Otherwise, return zero. */
-   wrap_in_if(b, instr, nir_ball(b, nir_ult(b, coord, size)));
+   wrap_in_if(b, instr, in_bounds);
    return true;
 }
 
@@ -222,6 +236,6 @@ bool
 nir_lower_robust_access(nir_shader *s,
                         const nir_lower_robust_access_options *opts)
 {
-   return nir_shader_instructions_pass(s, lower, nir_metadata_block_index | nir_metadata_dominance,
+   return nir_shader_instructions_pass(s, lower, nir_metadata_control_flow,
                                        (void *)opts);
 }

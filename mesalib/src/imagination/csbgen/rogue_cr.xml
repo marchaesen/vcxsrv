@@ -663,6 +663,14 @@ SOFTWARE.
     <field name="border_colour_table_address" start="0" end="37" shift="2" type="address"/>
   </struct>
 
+  <!-- FIXME: This register depends on TPU_DM_GLOBAL_REGISTERS. -->
+  <struct name="TPU_TAG_CDM_CTRL" length="1">
+    <field name="af_ratio_truncate_to_integer" start="3" end="3" type="bool"/>
+    <field name="af_ratio_truncate_to_half" start="2" end="2" type="bool"/>
+    <field name="af_filtering_mode" start="1" end="1" type="bool"/>
+    <field name="yuv_cam_invalidate" start="0" end="0" type="bool"/>
+  </struct>
+
   <struct name="USC_PIXEL_OUTPUT_CTRL" length="1">
     <field name="partition_mask" start="3" end="20" type="uint"/>
     <field name="enable_4th_partition" start="2" end="2" type="bool"/>

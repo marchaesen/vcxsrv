@@ -210,14 +210,14 @@ vk_instance_init(struct vk_instance *instance,
 void
 vk_instance_finish(struct vk_instance *instance);
 
-/** Implementaiton of vkEnumerateInstanceExtensionProperties() */
+/** Implementation of vkEnumerateInstanceExtensionProperties() */
 VkResult
 vk_enumerate_instance_extension_properties(
     const struct vk_instance_extension_table *supported_extensions,
     uint32_t *pPropertyCount,
     VkExtensionProperties *pProperties);
 
-/** Implementaiton of vkGetInstanceProcAddr() */
+/** Implementation of vkGetInstanceProcAddr() */
 PFN_vkVoidFunction
 vk_instance_get_proc_addr(const struct vk_instance *instance,
                           const struct vk_instance_entrypoint_table *entrypoints,
@@ -234,7 +234,7 @@ PFN_vkVoidFunction
 vk_instance_get_proc_addr_unchecked(const struct vk_instance *instance,
                                     const char *name);
 
-/** Implementaiton of vk_icdGetPhysicalDeviceProcAddr() */
+/** Implementation of vk_icdGetPhysicalDeviceProcAddr() */
 PFN_vkVoidFunction
 vk_instance_get_physical_device_proc_addr(const struct vk_instance *instance,
                                           const char *name);

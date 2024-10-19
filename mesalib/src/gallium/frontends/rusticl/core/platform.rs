@@ -7,9 +7,13 @@ use mesa_rust_gen::*;
 use rusticl_opencl_gen::*;
 
 use std::env;
+use std::ptr;
 use std::ptr::addr_of;
 use std::ptr::addr_of_mut;
 use std::sync::Once;
+
+/// Maximum size a pixel can be across all supported image formats.
+pub const MAX_PIXEL_SIZE_BYTES: u64 = 4 * 4;
 
 #[repr(C)]
 pub struct Platform {
@@ -17,11 +21,21 @@ pub struct Platform {
     pub devs: Vec<Device>,
 }
 
+pub enum PerfDebugLevel {
+    None,
+    Once,
+    Spam,
+}
+
 pub struct PlatformDebug {
     pub allow_invalid_spirv: bool,
     pub clc: bool,
-    pub program: bool,
     pub max_grid_size: u64,
+    pub nir: bool,
+    pub no_variants: bool,
+    pub perf: PerfDebugLevel,
+    pub program: bool,
+    pub reuse_context: bool,
     pub sync_every_event: bool,
     pub validate_spirv: bool,
 }
@@ -66,8 +80,12 @@ static mut PLATFORM: Platform = Platform {
 static mut PLATFORM_DBG: PlatformDebug = PlatformDebug {
     allow_invalid_spirv: false,
     clc: false,
-    program: false,
     max_grid_size: 0,
+    nir: false,
+    no_variants: false,
+    perf: PerfDebugLevel::None,
+    program: false,
+    reuse_context: true,
     sync_every_event: false,
     validate_spirv: false,
 };
@@ -84,6 +102,11 @@ fn load_env() {
             match flag {
                 "allow_invalid_spirv" => debug.allow_invalid_spirv = true,
                 "clc" => debug.clc = true,
+                "nir" => debug.nir = true,
+                "no_reuse_context" => debug.reuse_context = false,
+                "no_variants" => debug.no_variants = true,
+                "perf" => debug.perf = PerfDebugLevel::Once,
+                "perfspam" => debug.perf = PerfDebugLevel::Spam,
                 "program" => debug.program = true,
                 "sync" => debug.sync_every_event = true,
                 "validate" => debug.validate_spirv = true,
@@ -114,7 +137,7 @@ fn load_env() {
 
 impl Platform {
     pub fn as_ptr(&self) -> cl_platform_id {
-        (self as *const Self) as cl_platform_id
+        ptr::from_ref(self) as cl_platform_id
     }
 
     pub fn get() -> &'static Self {
@@ -168,4 +191,24 @@ impl GetPlatformRef for cl_platform_id {
             Err(CL_INVALID_PLATFORM)
         }
     }
+}
+
+#[macro_export]
+macro_rules! perf_warning {
+    (@PRINT $format:tt, $($arg:tt)*) => {
+        eprintln!(std::concat!("=== Rusticl perf warning: ", $format, " ==="), $($arg)*)
+    };
+
+    ($format:tt $(, $arg:tt)*) => {
+        match $crate::core::platform::Platform::dbg().perf {
+            $crate::core::platform::PerfDebugLevel::Once => {
+                static PERF_WARN_ONCE: std::sync::Once = std::sync::Once::new();
+                PERF_WARN_ONCE.call_once(|| {
+                    perf_warning!(@PRINT $format, $($arg)*);
+                })
+            },
+            $crate::core::platform::PerfDebugLevel::Spam => perf_warning!(@PRINT $format, $($arg)*),
+            _ => (),
+        }
+    };
 }

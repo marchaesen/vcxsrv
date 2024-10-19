@@ -58,3 +58,7 @@ spec@arb_separate_shader_objects@xfb-explicit-location-array_gs
 spec@arb_separate_shader_objects@xfb-explicit-location-array_gs_max
 # exit status: signal: 11 (core dumped) -->> The last one
 spec@arb_separate_shader_objects@xfb-explicit-location-array_vs
+
+# uprev Piglit in Mesa
+shaders@glsl-bug-110796
+

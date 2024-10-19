@@ -36,13 +36,13 @@ lavapipe-full:
     - debian/x86_64_test-vk
     - debian-testing-asan
 
-lavapipe-traces:
+# Disabled due to only running a single trace which was using old Wine.
+.lavapipe-traces:
   variables:
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
     PIGLIT_TRACES_FILE: traces-lavapipe.yml
     PIGLIT_REPLAY_DEVICE_NAME: "vk-lvp"
     PIGLIT_RESULTS: "${GPU_VERSION}-replay"
-  stage: software-renderer
   extends:
     - .piglit-traces-test
     - .lavapipe-test

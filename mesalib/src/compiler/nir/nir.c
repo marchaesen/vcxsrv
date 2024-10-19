@@ -503,6 +503,7 @@ nir_function_create(nir_shader *shader, const char *name)
    func->dont_inline = false;
    func->should_inline = false;
    func->is_subroutine = false;
+   func->is_tmp_globals_wrapper = false;
    func->subroutine_index = 0;
    func->num_subroutine_types = 0;
    func->subroutine_types = NULL;
@@ -876,6 +877,26 @@ nir_parallel_copy_instr_create(nir_shader *shader)
    instr_init(&instr->instr, nir_instr_type_parallel_copy);
 
    exec_list_make_empty(&instr->entries);
+
+   return instr;
+}
+
+nir_debug_info_instr *
+nir_debug_info_instr_create(nir_shader *shader, nir_debug_info_type type,
+                            uint32_t string_length)
+{
+   uint32_t additional_size = 0;
+   if (type == nir_debug_info_string)
+      additional_size = string_length + 1;
+
+   nir_debug_info_instr *instr = gc_zalloc_size(
+      shader->gctx, sizeof(nir_debug_info_instr) + additional_size, 1);
+   instr_init(&instr->instr, nir_instr_type_debug_info);
+
+   instr->type = type;
+
+   if (type == nir_debug_info_string)
+      instr->string_length = string_length;
 
    return instr;
 }
@@ -1331,6 +1352,7 @@ nir_instr_def(nir_instr *instr)
 
    case nir_instr_type_call:
    case nir_instr_type_jump:
+   case nir_instr_type_debug_info:
       return NULL;
    }
 
@@ -1401,6 +1423,16 @@ nir_src_as_const_value(nir_src src)
    return load->value;
 }
 
+const char *
+nir_src_as_string(nir_src src)
+{
+   nir_debug_info_instr *di = nir_src_as_debug_info(src);
+   if (di && di->type == nir_debug_info_string)
+      return di->string;
+
+   return NULL;
+}
+
 /**
  * Returns true if the source is known to be always uniform. Otherwise it
  * returns false which means it may or may not be uniform but it can't be
@@ -1447,6 +1479,17 @@ nir_src_is_always_uniform(nir_src src)
     * called with uniform arguments.
     */
    return false;
+}
+
+nir_block *
+nir_src_get_block(nir_src *src)
+{
+   if (nir_src_is_if(src))
+      return nir_cf_node_cf_tree_prev(&nir_src_parent_if(src)->cf_node);
+   else if (nir_src_parent_instr(src)->type == nir_instr_type_phi)
+      return list_entry(src, nir_phi_src, src)->pred;
+   else
+      return nir_src_parent_instr(src)->block;
 }
 
 static void
@@ -2058,8 +2101,7 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
 {
    nir_builder b = nir_builder_create(impl);
 
-   nir_metadata preserved = nir_metadata_block_index |
-                            nir_metadata_dominance;
+   nir_metadata preserved = nir_metadata_control_flow;
 
    bool progress = false;
    nir_cursor iter = nir_before_impl(impl);
@@ -2157,8 +2199,8 @@ bool
 nir_shader_supports_implicit_lod(nir_shader *shader)
 {
    return (shader->info.stage == MESA_SHADER_FRAGMENT ||
-           (shader->info.stage == MESA_SHADER_COMPUTE &&
-            shader->info.cs.derivative_group != DERIVATIVE_GROUP_NONE));
+           (gl_shader_stage_uses_workgroup(shader->info.stage) &&
+            shader->info.derivative_group != DERIVATIVE_GROUP_NONE));
 }
 
 nir_intrinsic_op
@@ -2261,6 +2303,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_base_global_invocation_id;
    case SYSTEM_VALUE_GLOBAL_INVOCATION_INDEX:
       return nir_intrinsic_load_global_invocation_index;
+   case SYSTEM_VALUE_GLOBAL_GROUP_SIZE:
+      return nir_intrinsic_load_global_size;
    case SYSTEM_VALUE_WORK_DIM:
       return nir_intrinsic_load_work_dim;
    case SYSTEM_VALUE_USER_DATA_AMD:
@@ -2425,6 +2469,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_BASE_GLOBAL_INVOCATION_ID;
    case nir_intrinsic_load_global_invocation_index:
       return SYSTEM_VALUE_GLOBAL_INVOCATION_INDEX;
+   case nir_intrinsic_load_global_size:
+      return SYSTEM_VALUE_GLOBAL_GROUP_SIZE;
    case nir_intrinsic_load_work_dim:
       return SYSTEM_VALUE_WORK_DIM;
    case nir_intrinsic_load_user_data_amd:
@@ -2574,6 +2620,7 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_def *src,
       CASE(load_raw_intel)
       CASE(store_raw_intel)
       CASE(fragment_mask_load_amd)
+      CASE(store_block_agx)
 #undef CASE
    default:
       unreachable("Unhanded image intrinsic");
@@ -2906,8 +2953,14 @@ nir_alu_instr_is_comparison(const nir_alu_instr *instr)
    switch (instr->op) {
       CASE_ALL_SIZES(nir_op_flt)
       CASE_ALL_SIZES(nir_op_fge)
+      CASE_ALL_SIZES(nir_op_fltu)
+      CASE_ALL_SIZES(nir_op_fgeu)
       CASE_ALL_SIZES(nir_op_feq)
       CASE_ALL_SIZES(nir_op_fneu)
+      CASE_ALL_SIZES(nir_op_fequ)
+      CASE_ALL_SIZES(nir_op_fneo)
+      CASE_ALL_SIZES(nir_op_funord)
+      CASE_ALL_SIZES(nir_op_ford)
       CASE_ALL_SIZES(nir_op_ilt)
       CASE_ALL_SIZES(nir_op_ult)
       CASE_ALL_SIZES(nir_op_ige)
@@ -3003,6 +3056,7 @@ nir_intrinsic_instr_dest_type(const nir_intrinsic_instr *intrin)
    }
 
    case nir_intrinsic_load_input:
+   case nir_intrinsic_load_per_primitive_input:
    case nir_intrinsic_load_uniform:
       return nir_intrinsic_dest_type(intrin);
 
@@ -3133,6 +3187,8 @@ nir_tex_instr_is_query(const nir_tex_instr *instr)
    case nir_texop_lod_bias_agx:
    case nir_texop_custom_border_color_agx:
    case nir_texop_has_custom_border_color_agx:
+   case nir_texop_hdr_dim_nv:
+   case nir_texop_tex_type_nv:
       return true;
    case nir_texop_tex:
    case nir_texop_txb:
@@ -3214,6 +3270,8 @@ nir_tex_instr_src_type(const nir_tex_instr *instr, unsigned src)
    case nir_tex_src_plane:
       return nir_type_int;
 
+   case nir_tex_src_sampler_deref_intrinsic:
+   case nir_tex_src_texture_deref_intrinsic:
    case nir_tex_src_ms_mcs_intel:
    case nir_tex_src_texture_deref:
    case nir_tex_src_sampler_deref:
@@ -3441,4 +3499,21 @@ nir_static_workgroup_size(const nir_shader *s)
 {
    return s->info.workgroup_size[0] * s->info.workgroup_size[1] *
           s->info.workgroup_size[2];
+}
+
+bool
+nir_block_contains_work(nir_block *block)
+{
+   if (!nir_cf_node_is_last(&block->cf_node))
+      return true;
+
+   nir_foreach_instr(instr, block) {
+      if (instr->type == nir_instr_type_phi)
+         continue;
+      if (instr->type != nir_instr_type_alu ||
+          !nir_op_is_vec_or_mov(nir_instr_as_alu(instr)->op))
+         return true;
+   }
+
+   return false;
 }

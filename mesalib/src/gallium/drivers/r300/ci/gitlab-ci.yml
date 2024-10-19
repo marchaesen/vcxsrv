@@ -1,29 +1,27 @@
 include:
   - local: 'src/gallium/drivers/r300/ci/gitlab-ci-inc.yml'
 
-.ondracka-rv530:
+.ondracka-generic:
   extends:
     - .b2c-x86_64-test-gl
     - .r300-manual-rules
-  tags:
-    - radeon:codename:RV530
   variables:
     FDO_CI_CONCURRENT: 2
     # 6.6.8 kernel with radeon driver.
     B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/ondracka/boot2container/-/wikis/uploads/1733cfc7cc114d08ec785044b24314f3/linux-x86_64'
     B2C_INITRAMFS_URL: 'https://gitlab.freedesktop.org/gfx-ci/boot2container/-/releases/v0.9.11/downloads/initramfs.linux_amd64.cpio.xz'
 
+.ondracka-rv530:
+  extends:
+    - .ondracka-generic
+  tags:
+    - radeon:codename:RV530
+
 .ondracka-rv380:
   extends:
-    - .b2c-x86_64-test-gl
-    - .r300-manual-rules
+    - .ondracka-generic
   tags:
     - radeon:codename:RV380
-  variables:
-    FDO_CI_CONCURRENT: 2
-    # 6.6.8 kernel with radeon driver.
-    B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/ondracka/boot2container/-/wikis/uploads/1733cfc7cc114d08ec785044b24314f3/linux-x86_64'
-    B2C_INITRAMFS_URL: 'https://gitlab.freedesktop.org/gfx-ci/boot2container/-/releases/v0.9.11/downloads/initramfs.linux_amd64.cpio.xz'
 
 r300-rv530-deqp-gles2:
   extends:
@@ -44,7 +42,6 @@ r300-rv530-nine:
   variables:
     GTEST: "/NineTests/NineTests"
     HWCI_TEST_SCRIPT: "/install/gtest-runner.sh"
-    B2C_JOB_SUCCESS_REGEX: '^\+ GTEST_EXITCODE=0\r$'
     HWCI_START_WESTON: 1
     GPU_VERSION: r300-rv530-nohiz
     FDO_CI_CONCURRENT: 1
@@ -56,6 +53,17 @@ r300-rv380-deqp-gles2:
   variables:
     DEQP_SUITE: r300-rv380
     GPU_VERSION: r300-rv380
+
+r300-rv410-deqp-piglit:
+  extends:
+    - .ondracka-generic
+    - .b2c-deqp-test
+  tags:
+    - radeon:codename:RV410
+  variables:
+    DEQP_SUITE: r300-rv410
+    GPU_VERSION: r300-rv410
+    PIGLIT_PLATFORM: gbm
 
 r300-rv530-piglit:
   extends:

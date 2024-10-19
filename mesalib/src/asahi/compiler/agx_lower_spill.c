@@ -14,12 +14,13 @@
 
 static void
 spill_fill(agx_builder *b, agx_instr *I, enum agx_size size, unsigned channels,
-           unsigned component_offset)
+           unsigned component_offset_el)
 {
-   enum agx_format format =
-      size == AGX_SIZE_16 ? AGX_FORMAT_I16 : AGX_FORMAT_I32;
+   unsigned size_B = agx_size_align_16(size) * 2;
+   enum agx_format format = size_B == 2 ? AGX_FORMAT_I16 : AGX_FORMAT_I32;
+   unsigned format_size_B = size_B == 2 ? 2 : 4;
 
-   unsigned offset_B = component_offset * agx_size_align_16(size) * 2;
+   unsigned offset_B = component_offset_el * size_B;
    unsigned effective_chans = size == AGX_SIZE_64 ? (channels * 2) : channels;
    unsigned mask = BITFIELD_MASK(effective_chans);
 
@@ -33,13 +34,17 @@ spill_fill(agx_builder *b, agx_instr *I, enum agx_size size, unsigned channels,
    assert(reg.type == AGX_INDEX_REGISTER && !reg.memory);
 
    /* Slice the register according to the part of the spill we're handling */
-   if (component_offset > 0 || channels != agx_channels(reg)) {
-      reg.value += component_offset * agx_size_align_16(reg.size);
+   if (component_offset_el > 0 || channels != agx_channels(reg)) {
+      reg.value += component_offset_el * agx_size_align_16(reg.size);
       reg.channels_m1 = channels - 1;
    }
 
    /* Calculate stack offset in bytes. IR registers are 2-bytes each. */
-   unsigned stack_offs_B = b->shader->spill_base + (mem.value * 2) + offset_B;
+   unsigned stack_offs_B = b->shader->spill_base_B + (mem.value * 2) + offset_B;
+   unsigned stack_offs_end_B = stack_offs_B + (effective_chans * format_size_B);
+
+   assert(stack_offs_end_B <= b->shader->scratch_size_B &&
+          "RA allocates enough scratch");
 
    /* Emit the spill/fill */
    if (I->dest[0].memory) {

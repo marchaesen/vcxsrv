@@ -275,11 +275,7 @@ vtn_nir_alu_op_for_spirv_glsl_opcode(struct vtn_builder *b,
    case GLSLstd450UnpackUnorm4x8:   return nir_op_unpack_unorm_4x8;
    case GLSLstd450UnpackSnorm2x16:  return nir_op_unpack_snorm_2x16;
    case GLSLstd450UnpackUnorm2x16:  return nir_op_unpack_unorm_2x16;
-   case GLSLstd450UnpackHalf2x16:
-      if (execution_mode & FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16)
-         return nir_op_unpack_half_2x16_flush_to_zero;
-      else
-         return nir_op_unpack_half_2x16;
+   case GLSLstd450UnpackHalf2x16:   return nir_op_unpack_half_2x16;
    case GLSLstd450UnpackDouble2x32: return nir_op_unpack_64_2x32;
 
    default:
@@ -379,7 +375,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
                             nir_ior(nb, signed_zero, nir_ffract(nb, abs)));
 
       struct vtn_pointer *i_ptr = vtn_value(b, w[6], vtn_value_type_pointer)->pointer;
-      struct vtn_ssa_value *whole = vtn_create_ssa_value(b, i_ptr->type->type);
+      struct vtn_ssa_value *whole = vtn_create_ssa_value(b, i_ptr->type->pointed->type);
       whole->def = nir_ior(nb, signed_zero, nir_ffloor(nb, abs));
       vtn_variable_store(b, whole, i_ptr, 0);
       break;
@@ -618,7 +614,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       dest->def = nir_frexp_sig(nb, src[0]);
 
       struct vtn_pointer *i_ptr = vtn_value(b, w[6], vtn_value_type_pointer)->pointer;
-      struct vtn_ssa_value *exp = vtn_create_ssa_value(b, i_ptr->type->type);
+      struct vtn_ssa_value *exp = vtn_create_ssa_value(b, i_ptr->type->pointed->type);
       exp->def = nir_frexp_exp(nb, src[0]);
       vtn_variable_store(b, exp, i_ptr, 0);
       break;

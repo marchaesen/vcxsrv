@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include "util/mesa-sha1.h"
+#include "ac_descriptors.h"
 #include "radv_buffer.h"
 #include "radv_buffer_view.h"
 #include "radv_cmd_buffer.h"
@@ -197,7 +197,6 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
    }
 
    set_layout->binding_count = num_bindings;
-   set_layout->shader_stages = 0;
    set_layout->dynamic_shader_stages = 0;
    set_layout->has_immutable_samplers = false;
    set_layout->size = 0;
@@ -357,7 +356,6 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
          set_layout->size += descriptor_count * set_layout->binding[b].size;
          buffer_count += descriptor_count * binding_buffer_count;
          dynamic_offset_count += descriptor_count * set_layout->binding[b].dynamic_offset_count;
-         set_layout->shader_stages |= binding->stageFlags;
       }
    }
 
@@ -371,7 +369,7 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
     * should be ok.
     */
    uint32_t hash_offset = offsetof(struct radv_descriptor_set_layout, hash) + sizeof(set_layout->hash);
-   _mesa_sha1_compute((const char *)set_layout + hash_offset, size - hash_offset, set_layout->hash);
+   _mesa_blake3_compute((const char *)set_layout + hash_offset, size - hash_offset, set_layout->hash);
 
    *pSetLayout = radv_descriptor_set_layout_to_handle(set_layout);
 
@@ -533,19 +531,19 @@ radv_pipeline_layout_add_set(struct radv_pipeline_layout *layout, uint32_t set_i
 void
 radv_pipeline_layout_hash(struct radv_pipeline_layout *layout)
 {
-   struct mesa_sha1 ctx;
+   struct mesa_blake3 ctx;
 
-   _mesa_sha1_init(&ctx);
+   _mesa_blake3_init(&ctx);
    for (uint32_t i = 0; i < layout->num_sets; i++) {
       struct radv_descriptor_set_layout *set_layout = layout->set[i].layout;
 
       if (!set_layout)
          continue;
 
-      _mesa_sha1_update(&ctx, set_layout->hash, sizeof(set_layout->hash));
+      _mesa_blake3_update(&ctx, set_layout->hash, sizeof(set_layout->hash));
    }
-   _mesa_sha1_update(&ctx, &layout->push_constant_size, sizeof(layout->push_constant_size));
-   _mesa_sha1_final(&ctx, layout->sha1);
+   _mesa_blake3_update(&ctx, &layout->push_constant_size, sizeof(layout->push_constant_size));
+   _mesa_blake3_final(&ctx, layout->hash);
 }
 
 void
@@ -1077,28 +1075,11 @@ write_buffer_descriptor(struct radv_device *device, unsigned *dst, uint64_t va, 
       return;
    }
 
-   uint32_t rsrc_word3 = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                         S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-   if (pdev->info.gfx_level >= GFX11) {
-      rsrc_word3 |=
-         S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
-   } else if (pdev->info.gfx_level >= GFX10) {
-      rsrc_word3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
-   } else {
-      rsrc_word3 |=
-         S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
-   }
-
-   dst[0] = va;
-   dst[1] = S_008F04_BASE_ADDRESS_HI(va >> 32);
    /* robustBufferAccess is relaxed enough to allow this (in combination with the alignment/size
     * we return from vkGetBufferMemoryRequirements) and this allows the shader compiler to create
     * more efficient 8/16-bit buffer accesses.
     */
-   dst[2] = align(range, 4);
-   dst[3] = rsrc_word3;
+   ac_build_raw_buffer_descriptor(pdev->info.gfx_level, va, align(range, 4), dst);
 }
 
 static ALWAYS_INLINE void
@@ -1196,7 +1177,23 @@ write_image_descriptor(unsigned *dst, unsigned size, VkDescriptorType descriptor
    }
    assert(size > 0);
 
-   memcpy(dst, descriptor, size);
+   /* Encourage compilers to inline memcpy for combined image/sampler descriptors. */
+   switch (size) {
+   case 32:
+      memcpy(dst, descriptor, 32);
+      break;
+   case 64:
+      memcpy(dst, descriptor, 64);
+      break;
+   case 80:
+      memcpy(dst, descriptor, 80);
+      break;
+   case 96:
+      memcpy(dst, descriptor, 96);
+      break;
+   default:
+      unreachable("Invalid size");
+   }
 }
 
 static ALWAYS_INLINE void
@@ -1295,7 +1292,7 @@ radv_update_descriptor_sets_impl(struct radv_device *device, struct radv_cmd_buf
 
       ptr += binding_layout->size * writeset->dstArrayElement / 4;
       buffer_list += binding_layout->buffer_offset;
-      buffer_list += writeset->dstArrayElement;
+      buffer_list += writeset->dstArrayElement * radv_descriptor_type_buffer_count(writeset->descriptorType);
       for (j = 0; j < writeset->descriptorCount; ++j) {
          switch (writeset->descriptorType) {
          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -1354,7 +1351,7 @@ radv_update_descriptor_sets_impl(struct radv_device *device, struct radv_cmd_buf
             break;
          }
          ptr += binding_layout->size / 4;
-         ++buffer_list;
+         buffer_list += radv_descriptor_type_buffer_count(writeset->descriptorType);
       }
    }
 
@@ -1632,7 +1629,8 @@ radv_update_descriptor_set_with_template_impl(struct radv_device *device, struct
          }
          pSrc += templ->entry[i].src_stride;
          pDst += templ->entry[i].dst_stride;
-         ++buffer_list;
+
+         buffer_list += radv_descriptor_type_buffer_count(templ->entry[i].descriptor_type);
       }
    }
 }

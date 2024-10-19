@@ -31,6 +31,8 @@
 #include <libei.h>
 
 #include "dix/dix_priv.h"
+#include "dix/input_priv.h"
+#include "os/client_priv.h"
 
 #include <inputstr.h>
 #include <inpututils.h>
@@ -360,11 +362,12 @@ setup_ei(ClientPtr client)
     }
 
     xwl_ei_client = calloc(1, sizeof *xwl_ei_client);
-    xwl_ei_client->cmdline = xstrdup(cmdname);
     if (!xwl_ei_client) {
         error_ei("OOM, cannot setup EI\n");
         goto out;
     }
+
+    xwl_ei_client->cmdline = Xstrdup(cmdname);
     xorg_list_init(&xwl_ei_client->link);
 
     ei = ei_new(NULL);
@@ -726,6 +729,38 @@ xwl_dequeue_emulated_events(struct xwl_ei_client *xwl_ei_client)
 }
 
 static void
+xwl_ei_update_caps(struct xwl_ei_client *xwl_ei_client,
+                   struct ei_device *ei_device)
+{
+    struct xwl_abs_device *abs;
+
+    if (ei_device == xwl_ei_client->ei_pointer)
+        xwl_ei_client->accept_pointer = true;
+
+    if (ei_device == xwl_ei_client->ei_keyboard)
+        xwl_ei_client->accept_keyboard = true;
+
+    xorg_list_for_each_entry(abs, &xwl_ei_client->abs_devices, link) {
+        if (ei_device == abs->device)
+            xwl_ei_client->accept_abs = true;
+    }
+}
+
+static bool
+xwl_ei_devices_are_ready(struct xwl_ei_client *xwl_ei_client)
+{
+    if ((xwl_ei_client->accept_keyboard ||
+         !ei_seat_has_capability(xwl_ei_client->ei_seat, EI_DEVICE_CAP_KEYBOARD)) &&
+        (xwl_ei_client->accept_pointer ||
+         !ei_seat_has_capability(xwl_ei_client->ei_seat, EI_DEVICE_CAP_POINTER)) &&
+        (xwl_ei_client->accept_abs ||
+         !ei_seat_has_capability(xwl_ei_client->ei_seat, EI_DEVICE_CAP_POINTER_ABSOLUTE)))
+        return true;
+
+    return false;
+}
+
+static void
 xwl_handle_ei_event(int fd, int ready, void *data)
 {
     struct xwl_ei_client *xwl_ei_client = data;
@@ -830,32 +865,25 @@ xwl_handle_ei_event(int fd, int ready, void *data)
                 break;
             case EI_EVENT_DEVICE_RESUMED:
                 debug_ei("Device resumed\n");
-                if (ei_device == xwl_ei_client->ei_pointer)
-                    xwl_ei_client->accept_pointer = true;
-                if (ei_device == xwl_ei_client->ei_keyboard)
-                    xwl_ei_client->accept_keyboard = true;
-                {
-                    struct xwl_abs_device *abs;
-
-                    xorg_list_for_each_entry(abs, &xwl_ei_client->abs_devices,
-                        link) {
-                        if (ei_device == abs->device)
-                            xwl_ei_client->accept_abs = true;
-                    }
-                }
-
+                xwl_ei_update_caps(xwl_ei_client, ei_device);
                 /* Server has accepted our device (or resumed them),
                  * we can now start sending events */
                 /* FIXME: Maybe add a timestamp and discard old events? */
-                xwl_ei_start_emulating(xwl_ei_client);
-                xwl_dequeue_emulated_events(xwl_ei_client);
+                if (xwl_ei_devices_are_ready(xwl_ei_client)) {
+                    xwl_ei_start_emulating(xwl_ei_client);
+                    xwl_dequeue_emulated_events(xwl_ei_client);
+                }
                 if (!xwl_ei_client->client &&
                     xorg_list_is_empty(&xwl_ei_client->pending_emulated_events))
                     /* All events dequeued and client has disconnected in the meantime */
                     xwl_ei_stop_emulating(xwl_ei_client);
                 break;
+            case EI_EVENT_KEYBOARD_MODIFIERS:
+                debug_ei("Ignored event %s (%d)\n", ei_event_type_to_string(type), type);
+                /* Don't care */
+                break;
             default:
-                error_ei("Unhandled event %d\n", type);
+                error_ei("Unhandled event %s (%d)\n", ei_event_type_to_string(type), type);
                 break;
         }
         ei_event_unref(e);

@@ -1,0 +1,43 @@
+/*
+ * Copyright © 2024 Igalia S.L.
+ * SPDX-License-Identifier: MIT
+ */
+
+WHITESPACE = _{ " " | "\t" }
+COMMENT = _{ ";" ~ (!NEWLINE ~ ANY)* ~ NEWLINE? }
+
+Dst_full = { ".hp" }
+Sat = { ".sat" }
+Skphp = { ".skpHp" }
+Pmode = { ".pack" }
+Denorm = { ".denorm" }
+Local = { ".local" }
+
+Amount = { ASCII_DIGIT* }
+Left_shift = { ".ls" ~ Amount }
+
+SrcVoid = { "void" }
+DestVoid = { "void" }
+Negate = { "-" }
+Absolute = { "|" }
+
+Immediate_Minus_Nan = @{ Negate ~ "nan" }
+Immediate_float = @{ Negate? ~ ASCII_DIGIT* ~ "." ~ ASCII_DIGIT* }
+Immediate_int = @{ Negate ~ ASCII_DIGIT* }
+Immediate_uint = @{ ASCII_DIGIT* }
+Immediate = _{ Immediate_Minus_Nan | Immediate_float | Immediate_int | Immediate_uint }
+
+Register = { ASCII_DIGIT* }
+DstRegister = ${ "t" ~ Register ~ RegAddressingMode? ~ Wrmask? }
+DstMemAddr = ${ "mem" ~ Wrmask? }
+SrcSwizzle = ${ "." ~ Swiz ~ Swiz ~ Swiz ~ Swiz }
+SrcRegister = ${
+    ( Negate? ~ Absolute ~ RegGroup ~ Register ~ RegAddressingMode? ~ SrcSwizzle? ~ Absolute |
+      Negate? ~ RegGroup ~ Register ~ RegAddressingMode? ~ SrcSwizzle? |
+      Immediate )
+    }
+
+Dest = _{ DstRegister }
+Src = _{ SrcRegister }
+TexSrc = ${ "tex" ~ Register ~ SrcSwizzle }
+Target = { ASCII_DIGIT* }

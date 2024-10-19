@@ -174,7 +174,6 @@ nir_lower_clip_disable(nir_shader *shader, unsigned clip_plane_enable)
 
    return nir_shader_intrinsics_pass(shader,
                                      shader->info.io_lowered ? lower_clip_plane_store_io : lower_clip_plane_store,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &clip_plane_enable);
 }

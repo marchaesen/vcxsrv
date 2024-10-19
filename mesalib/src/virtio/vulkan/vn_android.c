@@ -491,12 +491,12 @@ vn_android_get_image_builder(struct vn_device *dev,
    return VK_SUCCESS;
 }
 
-VkResult
-vn_android_image_from_anb(struct vn_device *dev,
-                          const VkImageCreateInfo *create_info,
-                          const VkNativeBufferANDROID *anb_info,
-                          const VkAllocationCallbacks *alloc,
-                          struct vn_image **out_img)
+static VkResult
+vn_android_image_from_anb_internal(struct vn_device *dev,
+                                   const VkImageCreateInfo *create_info,
+                                   const VkNativeBufferANDROID *anb_info,
+                                   const VkAllocationCallbacks *alloc,
+                                   struct vn_image **out_img)
 {
    /* If anb_info->handle points to a classic resouce created from
     * virtio_gpu_cmd_resource_create_3d, anb_info->stride is the stride of the
@@ -507,23 +507,8 @@ vn_android_image_from_anb(struct vn_device *dev,
     * VK_EXT_image_drm_format_modifier support in the host driver. The struct
     * needs host storage info which can be queried from cros gralloc.
     */
-   VkResult result = VK_SUCCESS;
-   VkDevice device = vn_device_to_handle(dev);
-   VkDeviceMemory memory = VK_NULL_HANDLE;
-   VkImage image = VK_NULL_HANDLE;
    struct vn_image *img = NULL;
-   uint64_t alloc_size = 0;
-   uint32_t mem_type_bits = 0;
-   int dma_buf_fd = -1;
-   int dup_fd = -1;
-   VkImageCreateInfo local_create_info;
-   struct vn_android_image_builder builder;
-
-   dma_buf_fd = vn_android_gralloc_get_dma_buf_fd(anb_info->handle);
-   if (dma_buf_fd < 0) {
-      result = VK_ERROR_INVALID_EXTERNAL_HANDLE;
-      goto fail;
-   }
+   VkResult result;
 
    assert(!(create_info->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT));
    assert(!vk_find_struct_const(create_info->pNext,
@@ -531,64 +516,66 @@ vn_android_image_from_anb(struct vn_device *dev,
    assert(!vk_find_struct_const(create_info->pNext,
                                 IMAGE_STENCIL_USAGE_CREATE_INFO));
 
-   /* strip VkNativeBufferANDROID and VkSwapchainImageCreateInfoANDROID */
-   local_create_info = *create_info;
-   local_create_info.pNext = NULL;
-   result = vn_android_get_image_builder(dev, &local_create_info,
-                                         anb_info->handle, &builder);
+   struct vn_android_image_builder builder;
+   result = vn_android_get_image_builder(dev, create_info, anb_info->handle,
+                                         &builder);
    if (result != VK_SUCCESS)
-      goto fail;
+      return result;
 
    /* encoder will strip the Android specific pNext structs */
-   result = vn_image_create(dev, &builder.create, alloc, &img);
-   if (result != VK_SUCCESS) {
-      if (VN_DEBUG(WSI))
-         vn_log(dev->instance, "vn_image_create failed");
-      goto fail;
+   if (*out_img) {
+      /* driver side img obj has been created for deferred init like ahb */
+      img = *out_img;
+      result = vn_image_init_deferred(dev, &builder.create, img);
+      if (result != VK_SUCCESS) {
+         vn_log(dev->instance, "anb: vn_image_init_deferred failed");
+         return result;
+      }
+   } else {
+      result = vn_image_create(dev, &builder.create, alloc, &img);
+      if (result != VK_SUCCESS) {
+         vn_log(dev->instance, "anb: vn_image_create failed");
+         return result;
+      }
    }
 
-   image = vn_image_to_handle(img);
+   img->wsi.is_wsi = true;
+   img->wsi.tiling_override = builder.create.tiling;
+   img->wsi.drm_format_modifier = builder.modifier.drmFormatModifier;
 
-   const VkMemoryRequirements *mem_req =
-      &img->requirements[0].memory.memoryRequirements;
-   if (!mem_req->memoryTypeBits) {
-      if (VN_DEBUG(WSI))
-         vn_log(dev->instance, "mem_req->memoryTypeBits cannot be zero");
+   int dma_buf_fd = vn_android_gralloc_get_dma_buf_fd(anb_info->handle);
+   if (dma_buf_fd < 0) {
       result = VK_ERROR_INVALID_EXTERNAL_HANDLE;
       goto fail;
    }
 
+   uint64_t alloc_size = 0;
+   uint32_t mem_type_bits = 0;
    result = vn_get_memory_dma_buf_properties(dev, dma_buf_fd, &alloc_size,
                                              &mem_type_bits);
    if (result != VK_SUCCESS)
       goto fail;
 
-   if (VN_DEBUG(WSI)) {
-      vn_log(dev->instance,
-             "size = img(%" PRIu64 ") fd(%" PRIu64 "), "
-             "memoryTypeBits = img(0x%X) & fd(0x%X)",
-             mem_req->size, alloc_size, mem_req->memoryTypeBits,
-             mem_type_bits);
-   }
-
+   const VkMemoryRequirements *mem_req =
+      &img->requirements[0].memory.memoryRequirements;
    if (alloc_size < mem_req->size) {
-      if (VN_DEBUG(WSI)) {
-         vn_log(dev->instance,
-                "alloc_size(%" PRIu64 ") mem_req->size(%" PRIu64 ")",
-                alloc_size, mem_req->size);
-      }
+      vn_log(dev->instance,
+             "anb: alloc_size(%" PRIu64 ") mem_req->size(%" PRIu64 ")",
+             alloc_size, mem_req->size);
       result = VK_ERROR_INVALID_EXTERNAL_HANDLE;
       goto fail;
    }
 
    mem_type_bits &= mem_req->memoryTypeBits;
    if (!mem_type_bits) {
+      vn_log(dev->instance, "anb: no compatible mem type");
       result = VK_ERROR_INVALID_EXTERNAL_HANDLE;
       goto fail;
    }
 
-   dup_fd = os_dupfd_cloexec(dma_buf_fd);
+   int dup_fd = os_dupfd_cloexec(dma_buf_fd);
    if (dup_fd < 0) {
+      vn_log(dev->instance, "anb: os_dupfd_cloexec failed(%d)", errno);
       result = (errno == EMFILE) ? VK_ERROR_TOO_MANY_OBJECTS
                                  : VK_ERROR_OUT_OF_HOST_MEMORY;
       goto fail;
@@ -596,7 +583,6 @@ vn_android_image_from_anb(struct vn_device *dev,
 
    const VkImportMemoryFdInfoKHR import_fd_info = {
       .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
-      .pNext = NULL,
       .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
       .fd = dup_fd,
    };
@@ -606,40 +592,75 @@ vn_android_image_from_anb(struct vn_device *dev,
       .allocationSize = mem_req->size,
       .memoryTypeIndex = ffs(mem_type_bits) - 1,
    };
-   result = vn_AllocateMemory(device, &memory_info, alloc, &memory);
+   VkDeviceMemory mem_handle;
+   result = vn_AllocateMemory(vn_device_to_handle(dev), &memory_info, alloc,
+                              &mem_handle);
    if (result != VK_SUCCESS) {
+      vn_log(dev->instance, "anb: mem import failed");
       /* only need to close the dup_fd on import failure */
       close(dup_fd);
       goto fail;
    }
 
-   const VkBindImageMemoryInfo bind_info = {
-      .sType = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO,
-      .pNext = NULL,
-      .image = image,
-      .memory = memory,
-      .memoryOffset = 0,
-   };
-   result = vn_BindImageMemory2(device, 1, &bind_info);
-   if (result != VK_SUCCESS)
-      goto fail;
-
-   img->wsi.is_wsi = true;
-   img->wsi.tiling_override = builder.create.tiling;
-   img->wsi.drm_format_modifier = builder.modifier.drmFormatModifier;
    /* Android WSI image owns the memory */
-   img->wsi.memory = vn_device_memory_from_handle(memory);
+   img->wsi.memory = vn_device_memory_from_handle(mem_handle);
    img->wsi.memory_owned = true;
    *out_img = img;
 
    return VK_SUCCESS;
 
 fail:
-   if (image != VK_NULL_HANDLE)
-      vn_DestroyImage(device, image, alloc);
-   if (memory != VK_NULL_HANDLE)
-      vn_FreeMemory(device, memory, alloc);
-   return vn_error(dev->instance, result);
+   /* this handles mem free for owned import */
+   vn_DestroyImage(vn_device_to_handle(dev), vn_image_to_handle(img), alloc);
+   return result;
+}
+
+VkResult
+vn_android_image_from_anb(struct vn_device *dev,
+                          const VkImageCreateInfo *create_info,
+                          const VkNativeBufferANDROID *anb_info,
+                          const VkAllocationCallbacks *alloc,
+                          struct vn_image **out_img)
+{
+   struct vn_image *img = NULL;
+   VkResult result = vn_android_image_from_anb_internal(
+      dev, create_info, anb_info, alloc, &img);
+   if (result != VK_SUCCESS)
+      return result;
+
+   const VkBindImageMemoryInfo bind_info = {
+      .sType = VK_STRUCTURE_TYPE_BIND_IMAGE_MEMORY_INFO,
+      .image = vn_image_to_handle(img),
+      .memory = vn_device_memory_to_handle(img->wsi.memory),
+   };
+   result = vn_BindImageMemory2(vn_device_to_handle(dev), 1, &bind_info);
+   if (result != VK_SUCCESS) {
+      vn_DestroyImage(vn_device_to_handle(dev), vn_image_to_handle(img),
+                      alloc);
+      return result;
+   }
+
+   *out_img = img;
+   return VK_SUCCESS;
+}
+
+struct vn_device_memory *
+vn_android_get_wsi_memory_from_bind_info(
+   struct vn_device *dev, const VkBindImageMemoryInfo *bind_info)
+{
+   const VkNativeBufferANDROID *anb_info =
+      vk_find_struct_const(bind_info->pNext, NATIVE_BUFFER_ANDROID);
+   assert(anb_info && anb_info->handle);
+
+   struct vn_image *img = vn_image_from_handle(bind_info->image);
+   VkResult result = vn_android_image_from_anb_internal(
+      dev, &img->deferred_info->create, anb_info, &dev->base.base.alloc,
+      &img);
+   if (result != VK_SUCCESS)
+      return NULL;
+
+   assert(img->wsi.memory_owned);
+   return img->wsi.memory;
 }
 
 static VkResult

@@ -151,6 +151,7 @@ dzn_physical_device_get_extensions(struct dzn_physical_device *pdev)
 #endif
       .EXT_scalar_block_layout               = true,
       .EXT_separate_stencil_usage            = true,
+      .EXT_shader_replicated_composites      = true,
       .EXT_shader_subgroup_ballot            = true,
       .EXT_shader_subgroup_vote              = true,
       .EXT_subgroup_size_control             = true,
@@ -793,6 +794,7 @@ dzn_physical_device_get_features(const struct dzn_physical_device *pdev,
 
       .vertexAttributeInstanceRateDivisor = true,
       .vertexAttributeInstanceRateZeroDivisor = true,
+      .shaderReplicatedComposites         = true,
    };
 }
 

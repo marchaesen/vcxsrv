@@ -343,8 +343,7 @@ crocus_fix_edge_flags(nir_shader *nir)
    nir_fixup_deref_modes(nir);
 
    nir_foreach_function_impl(impl, nir) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                            nir_metadata_dominance |
+      nir_metadata_preserve(impl, nir_metadata_control_flow |
                             nir_metadata_live_defs |
                             nir_metadata_loop_analysis);
    }
@@ -498,9 +497,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
                          intrin->def.bit_size);
             nir_builder_instr_insert(&b, &load_ubo->instr);
 
-            nir_def_rewrite_uses(&intrin->def,
-                                     &load_ubo->def);
-            nir_instr_remove(&intrin->instr);
+            nir_def_replace(&intrin->def, &load_ubo->def);
             continue;
          }
          case nir_intrinsic_load_user_clip_plane: {

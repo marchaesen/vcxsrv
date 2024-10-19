@@ -215,6 +215,9 @@ etna_ra_assign(struct etna_compile *c, nir_shader *shader)
          case nir_intrinsic_load_instance_id:
             reg = c->variant->infile.num_reg * NUM_REG_TYPES + REG_TYPE_VIRT_SCALAR_Y;
             break;
+         case nir_intrinsic_load_vertex_id:
+            reg = c->variant->infile.num_reg * NUM_REG_TYPES + REG_TYPE_VIRT_SCALAR_X;
+            break;
          default:
             continue;
          }

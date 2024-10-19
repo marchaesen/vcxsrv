@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2014 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2014 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -187,43 +169,20 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr, unsigned n,
       new_flags &= ~IR3_REG_FNEG;
    }
 
-   /* Reallocate for 4 more elements whenever it's necessary.  Note that ir3
-    * printing relies on having groups of 4 dwords, so we fill the unused
-    * slots with a dummy value.
-    */
-   struct ir3_const_state *const_state = ir3_const_state(ctx->so);
-   if (const_state->immediates_count == const_state->immediates_size) {
-      const_state->immediates = rerzalloc(
-         const_state, const_state->immediates,
-         __typeof__(const_state->immediates[0]), const_state->immediates_size,
-         const_state->immediates_size + 4);
-      const_state->immediates_size += 4;
+   reg->num = ir3_const_find_imm(ctx->so, reg->uim_val);
 
-      for (int i = const_state->immediates_count;
-           i < const_state->immediates_size; i++)
-         const_state->immediates[i] = 0xd0d0d0d0;
-   }
-
-   int i;
-   for (i = 0; i < const_state->immediates_count; i++) {
-      if (const_state->immediates[i] == reg->uim_val)
-         break;
-   }
-
-   if (i == const_state->immediates_count) {
-      /* Add on a new immediate to be pushed, if we have space left in the
-       * constbuf.
-       */
-      if (const_state->offsets.immediate + const_state->immediates_count / 4 >=
-          ir3_max_const(ctx->so))
+   if (reg->num == INVALID_CONST_REG) {
+      /* Don't modify the const state for the binning variant. */
+      if (ctx->so->binning_pass)
          return false;
 
-      const_state->immediates[i] = reg->uim_val;
-      const_state->immediates_count++;
+      reg->num = ir3_const_add_imm(ctx->so, reg->uim_val);
+
+      if (reg->num == INVALID_CONST_REG)
+         return false;
    }
 
    reg->flags = new_flags;
-   reg->num = i + (4 * const_state->offsets.immediate);
 
    instr->srcs[n] = reg;
 
@@ -416,7 +375,7 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
                return false;
             if (!is_cat2_float(instr->opc) && !is_cat3_float(instr->opc))
                return false;
-         } else if (src->cat1.dst_type == TYPE_U16) {
+         } else if (src->cat1.dst_type == TYPE_U16 || src->cat1.dst_type == TYPE_S16) {
             /* Since we set CONSTANT_DEMOTION_ENABLE, a float reference of
              * what was a U16 value read from the constbuf would incorrectly
              * do 32f->16f conversion, when we want to read a 16f value.
@@ -444,6 +403,7 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
                       (opc_cat(instr->opc) == 2) ||
                       (opc_cat(instr->opc) == 6) ||
                       is_meta(instr) ||
+                      (instr->opc == OPC_ISAM && (n == 1 || n == 2)) ||
                       (is_mad(instr->opc) && (n == 0)));
 
          if ((opc_cat(instr->opc) == 2) &&
@@ -589,8 +549,8 @@ instr_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr)
 
       assert(samp_tex->opc == OPC_META_COLLECT);
 
-      struct ir3_register *samp = samp_tex->srcs[0];
-      struct ir3_register *tex = samp_tex->srcs[1];
+      struct ir3_register *tex = samp_tex->srcs[0];
+      struct ir3_register *samp = samp_tex->srcs[1];
 
       if ((samp->flags & IR3_REG_IMMED) && (tex->flags & IR3_REG_IMMED) &&
           (samp->iim_val < 16) && (tex->iim_val < 16)) {

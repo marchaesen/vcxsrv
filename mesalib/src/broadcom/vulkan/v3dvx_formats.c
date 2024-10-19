@@ -242,6 +242,14 @@ static const struct v3dv_format format_table_4444[] = {
    FORMAT(A4R4G4B4_UNORM_PACK16, ABGR4444, RGBA4, SWIZ_YZWX, 16, true), /* Reverse + RB swap */
 };
 
+/* VK_KHR_maintenance5 introduces A1B5G5R5 and A8 but we only support the
+ * former. It might be possible to support A8 as R8 with special casing
+ * in a number of places but it would probably take some effort.
+ */
+static const struct v3dv_format format_table_maintenance5[] = {
+   FORMAT(A1B5G5R5_UNORM_PACK16_KHR, RGBA5551, A1_RGB5, SWIZ_XYZW, 16, true),
+};
+
 static const struct v3dv_format format_table_ycbcr[] = {
    YCBCR_FORMAT(G8_B8R8_2PLANE_420_UNORM, false, 2,
        PLANE(R8, R8, SWIZ(X, 0, 0, 1), 16),
@@ -266,10 +274,18 @@ v3dX(get_format)(VkFormat format)
 
    switch (ext_number) {
    case _VK_EXT_4444_formats_number:
-      return &format_table_4444[enum_offset];
+      if (enum_offset < ARRAY_SIZE(format_table_4444))
+         return &format_table_4444[enum_offset];
+      else
+         return NULL;
    case _VK_KHR_sampler_ycbcr_conversion_number:
       if (enum_offset < ARRAY_SIZE(format_table_ycbcr))
          return &format_table_ycbcr[enum_offset];
+      else
+         return NULL;
+   case _VK_KHR_maintenance5_number:
+      if (enum_offset < ARRAY_SIZE(format_table_maintenance5))
+         return &format_table_maintenance5[enum_offset];
       else
          return NULL;
    default:

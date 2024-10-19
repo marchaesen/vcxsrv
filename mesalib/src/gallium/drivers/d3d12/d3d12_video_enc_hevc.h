@@ -54,8 +54,6 @@ d3d12_video_encoder_update_current_frame_pic_params_info_hevc(struct d3d12_video
                                                               struct pipe_picture_desc *  picture,
                                                               D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA &picParams,
                                                              bool &bUsedAsReference);
-D3D12_VIDEO_ENCODER_FRAME_TYPE_HEVC
-d3d12_video_encoder_convert_frame_type_hevc(enum pipe_h2645_enc_picture_type picType);
 uint32_t
 d3d12_video_encoder_build_codec_headers_hevc(struct d3d12_video_encoder *pD3D12Enc,
                                              std::vector<uint64_t> &pWrittenCodecUnitsSizes);

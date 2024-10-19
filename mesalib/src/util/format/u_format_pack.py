@@ -397,6 +397,10 @@ def conversion_expr(src_channel,
                 # bigger than single precision mantissa, use double
                 value = '(%s * (1.0/0x%x))' % (value, one)
                 src_size = 64
+
+            if src_norm and src_type == SIGNED:
+                value = 'MAX2(-1.0f, %s)' % (value)
+
             src_norm = False
         else:
             if src_size <= 23 or dst_channel.size <= 32:
@@ -410,13 +414,24 @@ def conversion_expr(src_channel,
 
     # Convert double or float to non-float
     if dst_channel.type != FLOAT:
-        if dst_channel.norm or dst_channel.type == FIXED:
-            dst_one = get_one(dst_channel)
+        if not dst_channel.pure:
+            if dst_channel.norm or dst_channel.type == FIXED:
+                dst_one = get_one(dst_channel)
+                if dst_channel.size <= 23:
+                    value = '(%s * 0x%x)' % (value, dst_one)
+                else:
+                    # bigger than single precision mantissa, use double
+                    value = '(%s * (double)0x%x)' % (value, dst_one)
+
             if dst_channel.size <= 23:
-                value = 'util_iround(%s * 0x%x)' % (value, dst_one)
-            else:
-                # bigger than single precision mantissa, use double
-                value = '(%s * (double)0x%x)' % (value, dst_one)
+                value = 'util_iround(%s)' % (value)
+
+            # Cast to an integer with the correct signedness first
+            if dst_channel.type == UNSIGNED:
+                value = '(uint%u_t)(%s) ' % (max(dst_channel.size, 32), value)
+            elif dst_channel.type == SIGNED:
+                value = '(int%u_t)(%s) ' % (max(dst_channel.size, 32), value)
+
         value = '(%s)%s' % (dst_native_type, value)
     else:
         # Cast double to float when converting to either half or float

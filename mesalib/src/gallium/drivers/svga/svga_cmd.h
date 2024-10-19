@@ -16,7 +16,6 @@
 #define __SVGA3D_H__
 
 
-#include "svga_types.h"
 #include "svga_winsys.h"
 #include "svga_reg.h"
 #include "svga3d_reg.h"

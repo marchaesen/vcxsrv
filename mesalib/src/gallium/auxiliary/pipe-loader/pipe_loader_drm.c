@@ -42,11 +42,16 @@
 #include "frontend/drm_driver.h"
 #include "pipe_loader_priv.h"
 
+#include "util/log.h"
 #include "util/os_file.h"
 #include "util/u_memory.h"
 #include "util/u_dl.h"
 #include "util/u_debug.h"
 #include "util/xmlconfig.h"
+
+#include "virtio/virtio-gpu/drm_hw.h"
+#include "virtio/virtio-gpu/virglrenderer_hw.h"
+#include "drm-uapi/virtgpu_drm.h"
 
 #define DRM_RENDER_NODE_DEV_NAME_FORMAT "%s/renderD%d"
 #define DRM_RENDER_NODE_MAX_NODES 63
@@ -83,7 +88,6 @@ static const struct drm_driver_descriptor *driver_descriptors[] = {
    &vc4_driver_descriptor,
    &panfrost_driver_descriptor,
    &panthor_driver_descriptor,
-   &asahi_driver_descriptor,
    &etnaviv_driver_descriptor,
    &tegra_driver_descriptor,
    &lima_driver_descriptor,
@@ -101,7 +105,7 @@ get_driver_descriptor(const char *driver_name, struct util_dl_library **plib)
    }
    return &kmsro_driver_descriptor;
 #else
-   const char *search_dir = getenv("GALLIUM_PIPE_SEARCH_DIR");
+   const char *search_dir = os_get_option("GALLIUM_PIPE_SEARCH_DIR");
    if (search_dir == NULL)
       search_dir = PIPE_SEARCH_DIR;
 
@@ -119,6 +123,19 @@ get_driver_descriptor(const char *driver_name, struct util_dl_library **plib)
 #endif
 
    return NULL;
+}
+
+static int
+get_nctx_caps(int fd, struct virgl_renderer_capset_drm *caps)
+{
+   struct drm_virtgpu_get_caps args = {
+         .cap_set_id = VIRGL_RENDERER_CAPSET_DRM,
+         .cap_set_ver = 0,
+         .addr = (uintptr_t)caps,
+         .size = sizeof(*caps),
+   };
+
+   return drmIoctl(fd, DRM_IOCTL_VIRTGPU_GET_CAPS, &args);
 }
 
 static bool
@@ -154,6 +171,26 @@ pipe_loader_drm_probe_fd_nodup(struct pipe_loader_device **dev, int fd, bool zin
    if (strcmp(ddev->base.driver_name, "amdgpu") == 0) {
       FREE(ddev->base.driver_name);
       ddev->base.driver_name = strdup("radeonsi");
+   }
+
+   if (strcmp(ddev->base.driver_name, "virtio_gpu") == 0) {
+      struct virgl_renderer_capset_drm caps;
+      if (get_nctx_caps(fd, &caps) == 0) {
+#ifdef GALLIUM_STATIC_TARGETS
+         for (int i = 0; i < ARRAY_SIZE(driver_descriptors); i++) {
+            if (!driver_descriptors[i]->probe_nctx)
+               continue;
+            if (!driver_descriptors[i]->probe_nctx(fd, &caps))
+               continue;
+
+            FREE(ddev->base.driver_name);
+            ddev->base.driver_name = strdup(driver_descriptors[i]->driver_name);
+            break;
+         }
+#else
+	 mesa_logw("Dynamic pipe loader does not support virtgpu native context");
+#endif
+      }
    }
 
    struct util_dl_library **plib = NULL;
@@ -276,9 +313,6 @@ pipe_loader_get_compatible_render_capable_device_fd(int kms_only_fd)
    bool is_platform_device;
    struct pipe_loader_device *dev;
    const char * const drivers[] = {
-#if defined GALLIUM_ASAHI
-      "asahi",
-#endif
 #if defined GALLIUM_ETNAVIV
       "etnaviv",
 #endif
@@ -350,8 +384,42 @@ pipe_loader_drm_get_driconf_by_name(const char *driver_name, unsigned *count)
    } else {
       *count = dd->driconf_count;
       size_t size = sizeof(*driconf) * *count;
+      size_t base_size = size;
+      /* factor in all the statically allocated string lengths */
+      for (unsigned i = 0; i < dd->driconf_count; i++) {
+         if (dd->driconf[i].desc)
+            size += strlen(dd->driconf[i].desc) + 1;
+         if (dd->driconf[i].info.name)
+            size += strlen(dd->driconf[i].info.name) + 1;
+         if (dd->driconf[i].info.type == DRI_STRING)
+            size += strlen(dd->driconf[i].value._string) + 1;
+      }
       driconf = malloc(size);
       memcpy(driconf, dd->driconf, size);
+
+      uint8_t *ptr = (void*)driconf;
+      ptr += base_size;
+      /* manually set up pointers and copy in all the statically allocated strings */
+      for (unsigned i = 0; i < dd->driconf_count; i++) {
+         if (dd->driconf[i].desc) {
+            driconf[i].desc = (void*)ptr;
+            size_t str_size = strlen(dd->driconf[i].desc) + 1;
+            memcpy((void*)driconf[i].desc, dd->driconf[i].desc, str_size);
+            ptr += str_size;
+         }
+         if (dd->driconf[i].info.name) {
+            driconf[i].info.name = (void*)ptr;
+            size_t str_size = strlen(dd->driconf[i].info.name) + 1;
+            memcpy((void*)driconf[i].info.name, dd->driconf[i].info.name, str_size);
+            ptr += str_size;
+         }
+         if (dd->driconf[i].info.type == DRI_STRING) {
+            driconf[i].value._string = (void*)ptr;
+            size_t str_size = strlen(dd->driconf[i].value._string) + 1;
+            memcpy((void*)driconf[i].value._string, dd->driconf[i].value._string, str_size);
+            ptr += str_size;
+         }
+      }
    }
    if (lib)
       util_dl_close(lib);

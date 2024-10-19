@@ -46,5 +46,5 @@ bool
 panfrost_nir_remove_fragcolor_stores(nir_shader *s, unsigned nr_cbufs)
 {
    return nir_shader_intrinsics_pass(
-      s, pass, nir_metadata_block_index | nir_metadata_dominance, &nr_cbufs);
+      s, pass, nir_metadata_control_flow, &nr_cbufs);
 }

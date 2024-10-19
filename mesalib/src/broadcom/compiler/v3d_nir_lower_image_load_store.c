@@ -274,7 +274,7 @@ pack_xbit(nir_builder *b, nir_def *color,
 }
 
 static bool
-v3d_nir_lower_image_store_v42(nir_builder *b, nir_intrinsic_instr *instr)
+v3d42_nir_lower_image_store(nir_builder *b, nir_intrinsic_instr *instr)
 {
         enum pipe_format format = nir_intrinsic_format(instr);
         assert(format != PIPE_FORMAT_NONE);
@@ -351,7 +351,7 @@ v3d_nir_lower_image_store_v42(nir_builder *b, nir_intrinsic_instr *instr)
 
 
 static bool
-v3d_nir_lower_image_store_v71(nir_builder *b, nir_intrinsic_instr *instr)
+v3d71_nir_lower_image_store(nir_builder *b, nir_intrinsic_instr *instr)
 {
         enum pipe_format format = nir_intrinsic_format(instr);
         assert(format != PIPE_FORMAT_NONE);
@@ -437,9 +437,9 @@ v3d_nir_lower_image_load_store_cb(nir_builder *b,
                 return v3d_nir_lower_image_load(b, intr);
         case nir_intrinsic_image_store:
                 if (c->devinfo->ver >= 71)
-                        return v3d_nir_lower_image_store_v71(b, intr);
+                        return v3d71_nir_lower_image_store(b, intr);
                 else
-                        return v3d_nir_lower_image_store_v42(b, intr);
+                        return v3d42_nir_lower_image_store(b, intr);
                 break;
         default:
                 return false;
@@ -453,6 +453,5 @@ v3d_nir_lower_image_load_store(nir_shader *s, struct v3d_compile *c)
 {
         return nir_shader_intrinsics_pass(s,
                                             v3d_nir_lower_image_load_store_cb,
-                                            nir_metadata_block_index |
-                                            nir_metadata_dominance, c);
+                                            nir_metadata_control_flow, c);
 }

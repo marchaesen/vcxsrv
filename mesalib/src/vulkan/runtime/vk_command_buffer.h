@@ -27,7 +27,7 @@
 #include "vk_cmd_queue.h"
 #include "vk_graphics_state.h"
 #include "vk_log.h"
-#include "vk_meta.h"
+#include "vk_meta_object_list.h"
 #include "vk_object.h"
 #include "util/list.h"
 #include "util/u_dynarray.h"

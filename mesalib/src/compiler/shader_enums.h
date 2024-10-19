@@ -1145,6 +1145,19 @@ enum gl_access_qualifier
     * on AGX, used for some internal shaders.
     */
    ACCESS_IN_BOUNDS_AGX = (1 << 14),
+
+   /**
+    * Disallow vectorization.
+    *
+    * On some hw (AMD), sparse buffer loads return 0 for all components if
+    * a sparse load starts on a non-resident page, crosses the page boundary,
+    * and ends on a resident page. Sometimes we want it to return 0 only for
+    * the portion of the load that's non-resident, and load values for
+    * the portion that's resident. The workaround is to scalarize such loads
+    * and disallow vectorization. This is used by an internal copy_buffer
+    * shader where the API wants to copy all bytes that are resident.
+    */
+   ACCESS_KEEP_SCALAR = (1 << 15),
 };
 
 /**
@@ -1471,6 +1484,21 @@ enum float_controls
       FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP64 |
       FLOAT_CONTROLS_INF_PRESERVE_FP64 |
       FLOAT_CONTROLS_NAN_PRESERVE_FP64,
+   
+   FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE =
+      FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP16 |
+      FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP32 |
+      FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP64,
+
+   FLOAT_CONTROLS_INF_PRESERVE =
+      FLOAT_CONTROLS_INF_PRESERVE_FP16 |
+      FLOAT_CONTROLS_INF_PRESERVE_FP32 |
+      FLOAT_CONTROLS_INF_PRESERVE_FP64,
+
+   FLOAT_CONTROLS_NAN_PRESERVE =
+      FLOAT_CONTROLS_NAN_PRESERVE_FP16 |
+      FLOAT_CONTROLS_NAN_PRESERVE_FP32 |
+      FLOAT_CONTROLS_NAN_PRESERVE_FP64,
 };
 
 /**
@@ -1558,6 +1586,7 @@ enum ENUM_PACKED gl_subgroup_size
     * also the subgroup size.  If any new values are added, they must respect
     * this invariant.
     */
+   SUBGROUP_SIZE_REQUIRE_4   = 4,   /**< VK_EXT_subgroup_size_control */
    SUBGROUP_SIZE_REQUIRE_8   = 8,   /**< VK_EXT_subgroup_size_control */
    SUBGROUP_SIZE_REQUIRE_16  = 16,  /**< VK_EXT_subgroup_size_control */
    SUBGROUP_SIZE_REQUIRE_32  = 32,  /**< VK_EXT_subgroup_size_control */

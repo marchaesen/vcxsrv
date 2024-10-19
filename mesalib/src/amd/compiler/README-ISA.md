@@ -372,7 +372,8 @@ A va_vdst=0 wait: `s_waitcnt_deptr 0x0fff`
 ### VALUMaskWriteHazard
 
 Triggered by:
-SALU writing then reading a SGPR that was previously used as a lane mask for a VALU.
+SALU writing then SALU or VALU reading a SGPR that was previously used as a lane mask for a VALU.
 
 Mitigated by:
-A VALU instruction reading a SGPR or with literal, or a sa_sdst=0 wait: `s_waitcnt_depctr 0xfffe`
+A VALU instruction reading a non-exec SGPR before the SALU write, or a sa_sdst=0 wait after the
+SALU write: `s_waitcnt_depctr 0xfffe`

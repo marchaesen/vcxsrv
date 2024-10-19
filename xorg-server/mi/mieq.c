@@ -32,13 +32,15 @@ in this Software without prior written authorization from The Open Group.
  *
  */
 
-#if HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include   <X11/X.h>
 #include   <X11/Xmd.h>
 #include   <X11/Xproto.h>
+
+#include   "dix/cursor_priv.h"
+#include   "os/screensaver.h"
+
 #include   "misc.h"
 #include   "windowstr.h"
 #include   "pixmapstr.h"

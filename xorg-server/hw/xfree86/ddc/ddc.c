@@ -271,7 +271,7 @@ xf86DoEDID_DDC1(ScrnInfoPtr pScrn, DDC1SetSpeedProc DDC1SetSpeed,
     Bool noddc = FALSE, noddc1 = FALSE;
     OptionInfoPtr options;
 
-    options = xnfalloc(sizeof(DDCOptions));
+    options = XNFalloc(sizeof(DDCOptions));
     (void) memcpy(options, DDCOptions, sizeof(DDCOptions));
     xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, options);
 

@@ -171,6 +171,8 @@ extern "C" {
  * may override the MTYPE selected in AMDGPU_VA_OP_MAP.
  */
 #define AMDGPU_GEM_CREATE_EXT_COHERENT		(1 << 15)
+/* Set PTE.D and recompress during GTT->VRAM moves according to TILING flags. */
+#define AMDGPU_GEM_CREATE_GFX12_DCC		(1 << 16)
 
 struct drm_amdgpu_gem_create_in  {
 	/** the requested memory size */
@@ -409,6 +411,13 @@ struct drm_amdgpu_gem_userptr {
 /* GFX12 and later: */
 #define AMDGPU_TILING_GFX12_SWIZZLE_MODE_SHIFT			0
 #define AMDGPU_TILING_GFX12_SWIZZLE_MODE_MASK			0x7
+/* These are DCC recompression setting for memory management: */
+#define AMDGPU_TILING_GFX12_DCC_MAX_COMPRESSED_BLOCK_SHIFT	3
+#define AMDGPU_TILING_GFX12_DCC_MAX_COMPRESSED_BLOCK_MASK	0x3 /* 0:64B, 1:128B, 2:256B */
+#define AMDGPU_TILING_GFX12_DCC_NUMBER_TYPE_SHIFT		5
+#define AMDGPU_TILING_GFX12_DCC_NUMBER_TYPE_MASK		0x7 /* CB_COLOR0_INFO.NUMBER_TYPE */
+#define AMDGPU_TILING_GFX12_DCC_DATA_FORMAT_SHIFT		8
+#define AMDGPU_TILING_GFX12_DCC_DATA_FORMAT_MASK		0x3f /* [0:4]:CB_COLOR0_INFO.FORMAT, [5]:MM */
 /* bit gap */
 #define AMDGPU_TILING_GFX12_SCANOUT_SHIFT			63
 #define AMDGPU_TILING_GFX12_SCANOUT_MASK			0x1

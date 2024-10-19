@@ -40,7 +40,6 @@ enum tu_draw_state_group_id
    TU_DRAW_STATE_INPUT_ATTACHMENTS_SYSMEM,
    TU_DRAW_STATE_LRZ_AND_DEPTH_PLANE,
    TU_DRAW_STATE_PRIM_MODE_GMEM,
-   TU_DRAW_STATE_PRIM_MODE_SYSMEM,
 
    /* dynamic state related draw states */
    TU_DRAW_STATE_DYNAMIC,
@@ -71,8 +70,11 @@ enum tu_cmd_dirty_bits
    TU_CMD_DIRTY_PER_VIEW_VIEWPORT = BIT(9),
    TU_CMD_DIRTY_TES = BIT(10),
    TU_CMD_DIRTY_PROGRAM = BIT(11),
+   TU_CMD_DIRTY_RAST_ORDER = BIT(12),
+   TU_CMD_DIRTY_FEEDBACK_LOOPS = BIT(13),
+   TU_CMD_DIRTY_FS = BIT(14),
    /* all draw states were disabled and need to be re-enabled: */
-   TU_CMD_DIRTY_DRAW_STATE = BIT(12)
+   TU_CMD_DIRTY_DRAW_STATE = BIT(15)
 };
 
 /* There are only three cache domains we have to care about: the CCU, or
@@ -194,11 +196,11 @@ enum tu_stage {
 };
 
 enum tu_cmd_flush_bits {
-   TU_CMD_FLAG_CCU_FLUSH_DEPTH = 1 << 0,
-   TU_CMD_FLAG_CCU_FLUSH_COLOR = 1 << 1,
+   TU_CMD_FLAG_CCU_CLEAN_DEPTH = 1 << 0,
+   TU_CMD_FLAG_CCU_CLEAN_COLOR = 1 << 1,
    TU_CMD_FLAG_CCU_INVALIDATE_DEPTH = 1 << 2,
    TU_CMD_FLAG_CCU_INVALIDATE_COLOR = 1 << 3,
-   TU_CMD_FLAG_CACHE_FLUSH = 1 << 4,
+   TU_CMD_FLAG_CACHE_CLEAN = 1 << 4,
    TU_CMD_FLAG_CACHE_INVALIDATE = 1 << 5,
    TU_CMD_FLAG_CCHE_INVALIDATE = 1 << 6,
    TU_CMD_FLAG_WAIT_MEM_WRITES = 1 << 7,
@@ -208,12 +210,12 @@ enum tu_cmd_flush_bits {
    /* This is an unusual flush that isn't automatically executed if pending,
     * as it isn't necessary. Therefore, it's not included in ALL_FLUSH.
     */
-   TU_CMD_FLAG_BLIT_CACHE_FLUSH = 1 << 11,
+   TU_CMD_FLAG_BLIT_CACHE_CLEAN = 1 << 11,
 
-   TU_CMD_FLAG_ALL_FLUSH =
-      TU_CMD_FLAG_CCU_FLUSH_DEPTH |
-      TU_CMD_FLAG_CCU_FLUSH_COLOR |
-      TU_CMD_FLAG_CACHE_FLUSH |
+   TU_CMD_FLAG_ALL_CLEAN =
+      TU_CMD_FLAG_CCU_CLEAN_DEPTH |
+      TU_CMD_FLAG_CCU_CLEAN_COLOR |
+      TU_CMD_FLAG_CACHE_CLEAN |
       /* Treat the CP as a sort of "cache" which may need to be "flushed" via
        * waiting for writes to land with WAIT_FOR_MEM_WRITES.
        */
@@ -276,8 +278,8 @@ struct tu_render_pass_state
 {
    bool xfb_used;
    bool has_tess;
-   bool has_gs;
    bool has_prim_generated_query_in_rp;
+   bool has_zpass_done_sample_count_write_in_rp;
    bool disable_gmem;
    bool sysmem_single_prim_mode;
    bool shared_viewport;
@@ -310,6 +312,8 @@ struct tu_render_pass_state
     * just intended to be a rough estimate that is easy to calculate.
     */
    uint32_t drawcall_bandwidth_per_sample_sum;
+
+   const char *lrz_disable_reason;
 };
 
 /* These are the states of the suspend/resume state machine. In addition to
@@ -438,7 +442,7 @@ struct tu_cmd_state
    struct tu_draw_state desc_sets;
    struct tu_draw_state load_state;
    struct tu_draw_state compute_load_state;
-   struct tu_draw_state prim_order_sysmem, prim_order_gmem;
+   struct tu_draw_state prim_order_gmem;
 
    struct tu_draw_state vs_params;
    struct tu_draw_state fs_params;
@@ -492,6 +496,7 @@ struct tu_cmd_state
       enum tu_gmem_layout gmem_layout;
 
       const struct tu_image_view **attachments;
+      VkClearValue *clear_values;
 
       struct tu_lrz_state lrz;
    } suspended_pass;
@@ -502,11 +507,13 @@ struct tu_cmd_state
    bool blend_reads_dest;
    bool stencil_front_write;
    bool stencil_back_write;
-   bool pipeline_feedback_loop_ds;
    bool pipeline_sysmem_single_prim_mode;
    bool pipeline_has_tess;
-   bool pipeline_has_gs;
    bool pipeline_disable_gmem;
+   bool raster_order_attachment_access;
+   bool raster_order_attachment_access_valid;
+   bool blit_cache_cleaned;
+   VkImageAspectFlags pipeline_feedback_loops;
 
    bool pipeline_blend_lrz, pipeline_bandwidth;
    uint32_t pipeline_draw_states;
@@ -566,6 +573,7 @@ struct tu_cmd_buffer
 
    struct tu_render_pass_attachment dynamic_rp_attachments[2 * (MAX_RTS + 1) + 1];
    struct tu_subpass_attachment dynamic_color_attachments[MAX_RTS];
+   struct tu_subpass_attachment dynamic_input_attachments[MAX_RTS + 1];
    struct tu_subpass_attachment dynamic_resolve_attachments[MAX_RTS + 1];
    const struct tu_image_view *dynamic_attachments[2 * (MAX_RTS + 1) + 1];
    VkClearValue dynamic_clear_values[2 * (MAX_RTS + 1)];
@@ -700,9 +708,6 @@ void tu_disable_draw_states(struct tu_cmd_buffer *cmd, struct tu_cs *cs);
 void tu6_apply_depth_bounds_workaround(struct tu_device *device,
                                        uint32_t *rb_depth_cntl);
 
-void
-update_stencil_mask(uint32_t *value, VkStencilFaceFlags face, uint32_t mask);
-
 typedef void (*tu_fdm_bin_apply_t)(struct tu_cmd_buffer *cmd,
                                    struct tu_cs *cs,
                                    void *data,
@@ -716,6 +721,17 @@ struct tu_fdm_bin_patchpoint {
    void *data;
    tu_fdm_bin_apply_t apply;
 };
+
+
+void
+tu_barrier(struct tu_cmd_buffer *cmd,
+           uint32_t dep_count,
+           const VkDependencyInfo *dep_info);
+
+template <chip CHIP>
+void
+tu_write_event(struct tu_cmd_buffer *cmd, struct tu_event *event,
+               VkPipelineStageFlags2 stageMask, unsigned value);
 
 static inline void
 _tu_create_fdm_bin_patchpoint(struct tu_cmd_buffer *cmd,
@@ -757,5 +773,7 @@ _tu_create_fdm_bin_patchpoint(struct tu_cmd_buffer *cmd,
 
 #define tu_create_fdm_bin_patchpoint(cmd, cs, size, apply, state) \
    _tu_create_fdm_bin_patchpoint(cmd, cs, size, apply, &state, sizeof(state))
+
+VkResult tu_init_bin_preamble(struct tu_device *device);
 
 #endif /* TU_CMD_BUFFER_H */

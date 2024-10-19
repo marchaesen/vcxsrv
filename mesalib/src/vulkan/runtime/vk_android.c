@@ -32,7 +32,7 @@
 #include "vk_queue.h"
 #include "vk_util.h"
 
-#include "vulkan/util/vk_enum_defines.h"
+#include "vk_enum_defines.h"
 
 #include "drm-uapi/drm_fourcc.h"
 #include "util/libsync.h"
@@ -283,7 +283,7 @@ vk_android_import_anb(struct vk_device *device,
    const VkImportMemoryFdInfoKHR import_info = {
       .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
       .pNext = &ded_alloc,
-      .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
+      .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
       .fd = os_dupfd_cloexec(native_buffer->handle->data[0]),
    };
 
@@ -403,6 +403,10 @@ vk_ahb_format_to_image_format(uint32_t ahb_format)
       return VK_FORMAT_D32_SFLOAT_S8_UINT;
    case AHARDWAREBUFFER_FORMAT_S8_UINT:
       return VK_FORMAT_S8_UINT;
+#if ANDROID_API_LEVEL >= 33
+   case AHARDWAREBUFFER_FORMAT_R8_UNORM:
+      return VK_FORMAT_R8_UNORM;
+#endif
    default:
       return VK_FORMAT_UNDEFINED;
    }
@@ -440,6 +444,10 @@ vk_image_format_to_ahb_format(VkFormat vk_format)
       return AHARDWAREBUFFER_FORMAT_D32_FLOAT_S8_UINT;
    case VK_FORMAT_S8_UINT:
       return AHARDWAREBUFFER_FORMAT_S8_UINT;
+#if ANDROID_API_LEVEL >= 33
+   case VK_FORMAT_R8_UNORM:
+      return AHARDWAREBUFFER_FORMAT_R8_UNORM;
+#endif
    default:
       return 0;
    }
@@ -662,6 +670,9 @@ get_ahb_buffer_format_properties2(
          VK_CHROMA_LOCATION_MIDPOINT : VK_CHROMA_LOCATION_COSITED_EVEN;
       p->suggestedYChromaOffset = (color_info.vertical_siting == __DRI_YUV_CHROMA_SITING_0_5) ?
          VK_CHROMA_LOCATION_MIDPOINT : VK_CHROMA_LOCATION_COSITED_EVEN;
+   } else {
+      p->suggestedYcbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601;
+      p->suggestedYcbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_NARROW;
    }
 
 finish:

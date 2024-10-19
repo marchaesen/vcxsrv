@@ -24,6 +24,8 @@
 #include "util/u_upload_mgr.h"
 #include "util/u_printf.h"
 #include "util/u_sampler.h"
+#include "util/u_screen.h"
 #include "util/u_surface.h"
+#include "util/u_transfer.h"
 
 #include "rusticl_nir.h"

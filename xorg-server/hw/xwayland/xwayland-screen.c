@@ -35,8 +35,12 @@
 #endif
 
 #include <X11/Xatom.h>
+#include <X11/Xfuncproto.h>
 
+#include "dix/input_priv.h"
+#include "dix/property_priv.h"
 #include "os/osdep.h"
+#include "os/xserver_poll.h"
 
 #include <micmap.h>
 #include <misyncshm.h>
@@ -46,7 +50,6 @@
 #include <propertyst.h>
 #include <inputstr.h>
 #include <xacestr.h>
-#include <xserver_poll.h>
 
 #include "xwayland-cursor.h"
 #include "xwayland-screen.h"
@@ -981,6 +984,12 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
+    xwl_screen->display = wl_display_connect(NULL);
+    if (xwl_screen->display == NULL) {
+        ErrorF("could not connect to wayland server\n");
+        return FALSE;
+    }
+
 #ifdef XWL_HAS_GLAMOR
     if (xwl_screen->glamor && !xwl_glamor_init_gbm(xwl_screen)) {
         ErrorF("xwayland glamor: failed to setup GBM backend, falling back to sw accel\n");
@@ -1008,12 +1017,6 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     if (!monitorResolution)
         monitorResolution = DEFAULT_DPI;
-
-    xwl_screen->display = wl_display_connect(NULL);
-    if (xwl_screen->display == NULL) {
-        ErrorF("could not connect to wayland server\n");
-        return FALSE;
-    }
 
     if (use_fixed_size) {
         if (!xwl_screen_init_randr_fixed(xwl_screen))

@@ -746,7 +746,6 @@ static void si_emit_window_rectangles(struct si_context *sctx, unsigned index)
       gfx12_opt_set_context_reg(R_02820C_PA_SC_CLIPRECT_RULE, SI_TRACKED_PA_SC_CLIPRECT_RULE, rule);
 
       if (num_rectangles) {
-         radeon_set_context_reg_seq(R_028210_PA_SC_CLIPRECT_0_TL, num_rectangles * 2);
          for (unsigned i = 0; i < num_rectangles; i++) {
             gfx12_set_context_reg(R_028210_PA_SC_CLIPRECT_0_TL + i * 8,
                                   S_028210_TL_X(rects[i].minx) | S_028210_TL_Y(rects[i].miny));

@@ -128,14 +128,13 @@ lvp_lower_ray_tracing_derefs(nir_shader *shader)
             nir_def *offset = is_shader_call_data ? arg_offset : nir_imm_int(b, 0);
             nir_deref_instr *replacement =
                nir_build_deref_cast(b, offset, nir_var_function_temp, deref->var->type, 0);
-            nir_def_rewrite_uses(&deref->def, &replacement->def);
-            nir_instr_remove(&deref->instr);
+            nir_def_replace(&deref->def, &replacement->def);
          }
       }
    }
 
    if (progress)
-      nir_metadata_preserve(impl, nir_metadata_block_index | nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    else
       nir_metadata_preserve(impl, nir_metadata_all);
 
@@ -189,7 +188,7 @@ lvp_compile_ray_tracing_stages(struct lvp_pipeline *pipeline,
       NIR_PASS(_, nir, nir_lower_explicit_io, nir_var_function_temp, nir_address_format_32bit_offset);
 
       NIR_PASS(_, nir, nir_shader_intrinsics_pass, lvp_move_ray_tracing_intrinsic,
-               nir_metadata_block_index | nir_metadata_dominance, NULL);
+               nir_metadata_control_flow, NULL);
 
       pipeline->rt.stages[i] = lvp_create_pipeline_nir(nir);
       if (!pipeline->rt.stages[i]) {
@@ -503,7 +502,9 @@ lvp_lower_isec_intrinsic(nir_builder *b, nir_intrinsic_instr *instr, void *data)
    nir_variable *commit = nir_local_variable_create(b->impl, glsl_bool_type(), "commit");
    nir_store_var(b, commit, nir_imm_false(b), 0x1);
 
-   nir_push_if(b, nir_iand(b, nir_fge(b, t, nir_load_var(b, state->tmin)), nir_fge(b, nir_load_var(b, state->tmax), t)));
+   nir_def *in_range = nir_iand(b, nir_fge(b, t, nir_load_var(b, state->tmin)), nir_fge(b, nir_load_var(b, state->tmax), t));
+   nir_def *terminated = nir_iand(b, nir_load_var(b, state->terminate), nir_load_var(b, state->accept));
+   nir_push_if(b, nir_iand(b, in_range, nir_inot(b, terminated)));
    {
       nir_store_var(b, state->accept, nir_imm_true(b), 0x1);
 
@@ -542,8 +543,7 @@ lvp_lower_isec_intrinsic(nir_builder *b, nir_intrinsic_instr *instr, void *data)
    }
    nir_pop_if(b, NULL);
 
-   nir_def_rewrite_uses(&instr->def, nir_load_var(b, commit));
-   nir_instr_remove(&instr->instr);
+   nir_def_replace(&instr->def, nir_load_var(b, commit));
 
    return true;
 }
@@ -610,9 +610,7 @@ lvp_handle_aabb_intersection(nir_builder *b, struct lvp_leaf_intersection *inter
       nir_store_var(b, state->sbt_index, sbt_index, 0x1);
       nir_store_var(b, state->traversal.hit, nir_imm_true(b), 0x1);
 
-      nir_push_if(b, nir_load_var(b, state->terminate));
-      nir_jump(b, nir_jump_break);
-      nir_pop_if(b, NULL);
+      nir_break_if(b, nir_load_var(b, state->terminate));
    }
    nir_push_else(b, NULL);
    {
@@ -688,9 +686,7 @@ lvp_handle_triangle_intersection(nir_builder *b,
       nir_store_var(b, state->sbt_index, sbt_index, 0x1);
       nir_store_var(b, state->traversal.hit, nir_imm_true(b), 0x1);
 
-      nir_push_if(b, nir_load_var(b, state->terminate));
-      nir_jump(b, nir_jump_break);
-      nir_pop_if(b, NULL);
+      nir_break_if(b, nir_load_var(b, state->terminate));
    }
    nir_push_else(b, NULL);
    {
@@ -1026,8 +1022,7 @@ lvp_lower_ray_tracing_stack_base(nir_builder *b, nir_intrinsic_instr *instr, voi
 
    b->cursor = nir_after_instr(&instr->instr);
 
-   nir_def_rewrite_uses(&instr->def, nir_imm_int(b, b->shader->scratch_size));
-   nir_instr_remove(&instr->instr);
+   nir_def_replace(&instr->def, nir_imm_int(b, b->shader->scratch_size));
 
    return true;
 }
@@ -1102,7 +1097,7 @@ lvp_compile_ray_tracing_pipeline(struct lvp_pipeline *pipeline,
             nir_address_format_32bit_offset);
 
    NIR_PASS(_, b->shader, nir_shader_intrinsics_pass, lvp_lower_ray_tracing_stack_base,
-            nir_metadata_block_index | nir_metadata_dominance, NULL);
+            nir_metadata_control_flow, NULL);
 
    /* We can not support dynamic stack sizes, assume the worst. */
    b->shader->scratch_size +=
@@ -1140,6 +1135,7 @@ lvp_create_ray_tracing_pipeline(VkDevice _device, const VkAllocationCallbacks *a
    pipeline->device = device;
    pipeline->layout = layout;
    pipeline->type = LVP_PIPELINE_RAY_TRACING;
+   pipeline->flags = vk_rt_pipeline_create_flags(create_info);
 
    pipeline->rt.stage_count = create_info->stageCount;
    pipeline->rt.group_count = create_info->groupCount;
@@ -1164,8 +1160,7 @@ lvp_create_ray_tracing_pipeline(VkDevice _device, const VkAllocationCallbacks *a
 
    lvp_init_ray_tracing_groups(pipeline, create_info);
 
-   VkPipelineCreateFlags2KHR create_flags = vk_rt_pipeline_create_flags(create_info);
-   if (!(create_flags & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR)) {
+   if (!(pipeline->flags & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR)) {
       lvp_compile_ray_tracing_pipeline(pipeline, create_info);
    }
 

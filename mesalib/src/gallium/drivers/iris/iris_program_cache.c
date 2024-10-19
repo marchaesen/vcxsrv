@@ -370,8 +370,7 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
 
    nir_shader *nir = b.shader;
 
-   void *mem_ctx = ralloc_context(NULL);
-   link_libintel_shaders(nir, screen->vtbl.load_shader_lib(screen, mem_ctx));
+   link_libintel_shaders(nir, screen->vtbl.load_shader_lib(screen, nir));
 
    NIR_PASS_V(nir, nir_lower_vars_to_ssa);
    NIR_PASS_V(nir, nir_opt_cse);
@@ -446,7 +445,7 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
             .log_data = &ice->dbg,
             .debug_flag = DEBUG_WM,
             .stats = stats,
-            .mem_ctx = mem_ctx,
+            .mem_ctx = nir,
          },
          .key = &prog_key.wm,
          .prog_data = prog_data,
@@ -471,7 +470,7 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
             .log_data = &ice->dbg,
             .debug_flag = DEBUG_WM,
             .stats = stats,
-            .mem_ctx = mem_ctx,
+            .mem_ctx = nir,
          },
          .key = &prog_key.wm,
          .prog_data = prog_data,
@@ -490,7 +489,7 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
                       ice->shaders.uploader_driver,
                       IRIS_CACHE_BLORP, sizeof(key), &key, program);
 
-   ralloc_free(mem_ctx);
+   ralloc_free(nir);
 
    struct iris_bo *bo = iris_resource_bo(shader->assembly.res);
    iris_use_pinned_bo(batch, bo, false, IRIS_DOMAIN_NONE);

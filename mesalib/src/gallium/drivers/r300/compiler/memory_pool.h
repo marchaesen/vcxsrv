@@ -18,17 +18,15 @@ struct memory_block;
  * reference counting headaches.
  */
 struct memory_pool {
-	unsigned char * head;
-	unsigned char * end;
-	unsigned int total_allocated;
-	struct memory_block * blocks;
+   unsigned char *head;
+   unsigned char *end;
+   unsigned int total_allocated;
+   struct memory_block *blocks;
 };
 
-
-void memory_pool_init(struct memory_pool * pool);
-void memory_pool_destroy(struct memory_pool * pool);
-void * memory_pool_malloc(struct memory_pool * pool, unsigned int bytes);
-
+void memory_pool_init(struct memory_pool *pool);
+void memory_pool_destroy(struct memory_pool *pool);
+void *memory_pool_malloc(struct memory_pool *pool, unsigned int bytes);
 
 /**
  * Generic helper for growing an array that has separate size/count
@@ -46,18 +44,19 @@ void * memory_pool_malloc(struct memory_pool * pool, unsigned int bytes);
  * \warning Array, Size, Reserved have to be lvalues and may be evaluated
  * several times.
  */
-#define memory_pool_array_reserve(pool, type, array, size, reserved, num) do { \
-	unsigned int _num = (num); \
-	if ((size) + _num > (reserved)) { \
-		unsigned int newreserve = (reserved) * 2; \
-		type * newarray; \
-		if (newreserve < _num) \
-			newreserve = 4 * _num; /* arbitrary heuristic */ \
-		newarray = memory_pool_malloc((pool), newreserve * sizeof(type)); \
-		memcpy(newarray, (array), (size) * sizeof(type)); \
-		(array) = newarray; \
-		(reserved) = newreserve; \
-	} \
-} while(0)
+#define memory_pool_array_reserve(pool, type, array, size, reserved, num)  \
+   do {                                                                    \
+      unsigned int _num = (num);                                           \
+      if ((size) + _num > (reserved)) {                                    \
+         unsigned int newreserve = (reserved) * 2;                         \
+         type *newarray;                                                   \
+         if (newreserve < _num)                                            \
+            newreserve = 4 * _num; /* arbitrary heuristic */               \
+         newarray = memory_pool_malloc((pool), newreserve * sizeof(type)); \
+         memcpy(newarray, (array), (size) * sizeof(type));                 \
+         (array) = newarray;                                               \
+         (reserved) = newreserve;                                          \
+      }                                                                    \
+   } while (0)
 
 #endif /* MEMORY_POOL_H */

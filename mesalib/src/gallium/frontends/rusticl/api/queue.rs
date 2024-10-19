@@ -15,7 +15,7 @@ use std::mem::MaybeUninit;
 use std::ptr;
 use std::sync::Arc;
 
-#[cl_info_entrypoint(cl_get_command_queue_info)]
+#[cl_info_entrypoint(clGetCommandQueueInfo)]
 impl CLInfo<cl_command_queue_info> for cl_command_queue {
     fn query(&self, q: cl_command_queue_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
         let queue = Queue::ref_from_raw(*self)?;
@@ -39,6 +39,22 @@ impl CLInfo<cl_command_queue_info> for cl_command_queue {
             _ => return Err(CL_INVALID_VALUE),
         })
     }
+}
+
+#[cl_entrypoint(clSetCommandQueueProperty)]
+fn set_command_queue_property(
+    _command_queue: cl_command_queue,
+    _properties: cl_command_queue_properties,
+    _enable: cl_bool,
+    _old_properties: *mut cl_command_queue_properties,
+) -> CLResult<()> {
+    // clSetCommandQueueProperty may unconditionally return an error if no devices in the context
+    // associated with command_queue support modifying the properties of a command-queue. Support
+    // for modifying the properties of a command-queue is required only for OpenCL 1.0 devices.
+    //
+    // CL_INVALID_OPERATION if no devices in the context associated with command_queue support
+    // modifying the properties of a command-queue.
+    Err(CL_INVALID_OPERATION)
 }
 
 fn valid_command_queue_properties(properties: cl_command_queue_properties) -> bool {
@@ -97,7 +113,7 @@ pub fn create_command_queue_impl(
     Ok(Queue::new(c, d, properties, properties_v2)?.into_cl())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCreateCommandQueue)]
 fn create_command_queue(
     context: cl_context,
     device: cl_device_id,
@@ -106,7 +122,7 @@ fn create_command_queue(
     create_command_queue_impl(context, device, properties, None)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCreateCommandQueueWithProperties)]
 fn create_command_queue_with_properties(
     context: cl_context,
     device: cl_device_id,
@@ -134,7 +150,7 @@ fn create_command_queue_with_properties(
     create_command_queue_impl(context, device, queue_properties, properties)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clEnqueueMarker)]
 fn enqueue_marker(command_queue: cl_command_queue, event: *mut cl_event) -> CLResult<()> {
     let q = Queue::arc_from_raw(command_queue)?;
 
@@ -149,7 +165,7 @@ fn enqueue_marker(command_queue: cl_command_queue, event: *mut cl_event) -> CLRe
     )
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clEnqueueMarkerWithWaitList)]
 fn enqueue_marker_with_wait_list(
     command_queue: cl_command_queue,
     num_events_in_wait_list: cl_uint,
@@ -170,7 +186,7 @@ fn enqueue_marker_with_wait_list(
     )
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clEnqueueBarrier)]
 fn enqueue_barrier(command_queue: cl_command_queue) -> CLResult<()> {
     let q = Queue::arc_from_raw(command_queue)?;
 
@@ -180,7 +196,7 @@ fn enqueue_barrier(command_queue: cl_command_queue) -> CLResult<()> {
     Ok(())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clEnqueueBarrierWithWaitList)]
 fn enqueue_barrier_with_wait_list(
     command_queue: cl_command_queue,
     num_events_in_wait_list: cl_uint,
@@ -201,24 +217,24 @@ fn enqueue_barrier_with_wait_list(
     )
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clFlush)]
 fn flush(command_queue: cl_command_queue) -> CLResult<()> {
     // CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command-queue.
     Queue::ref_from_raw(command_queue)?.flush(false)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clFinish)]
 fn finish(command_queue: cl_command_queue) -> CLResult<()> {
     // CL_INVALID_COMMAND_QUEUE if command_queue is not a valid host command-queue.
     Queue::ref_from_raw(command_queue)?.flush(true)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clRetainCommandQueue)]
 fn retain_command_queue(command_queue: cl_command_queue) -> CLResult<()> {
     Queue::retain(command_queue)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clReleaseCommandQueue)]
 fn release_command_queue(command_queue: cl_command_queue) -> CLResult<()> {
     // clReleaseCommandQueue performs an implicit flush to issue any previously queued OpenCL
     // commands in command_queue.

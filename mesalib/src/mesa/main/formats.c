@@ -145,25 +145,25 @@ _mesa_get_format_bits(mesa_format format, GLenum pname)
    switch (pname) {
    case GL_RED_BITS:
    case GL_TEXTURE_RED_SIZE:
-   case GL_RENDERBUFFER_RED_SIZE_EXT:
+   case GL_RENDERBUFFER_RED_SIZE:
    case GL_FRAMEBUFFER_ATTACHMENT_RED_SIZE:
    case GL_INTERNALFORMAT_RED_SIZE:
       return info->RedBits;
    case GL_GREEN_BITS:
    case GL_TEXTURE_GREEN_SIZE:
-   case GL_RENDERBUFFER_GREEN_SIZE_EXT:
+   case GL_RENDERBUFFER_GREEN_SIZE:
    case GL_FRAMEBUFFER_ATTACHMENT_GREEN_SIZE:
    case GL_INTERNALFORMAT_GREEN_SIZE:
       return info->GreenBits;
    case GL_BLUE_BITS:
    case GL_TEXTURE_BLUE_SIZE:
-   case GL_RENDERBUFFER_BLUE_SIZE_EXT:
+   case GL_RENDERBUFFER_BLUE_SIZE:
    case GL_FRAMEBUFFER_ATTACHMENT_BLUE_SIZE:
    case GL_INTERNALFORMAT_BLUE_SIZE:
       return info->BlueBits;
    case GL_ALPHA_BITS:
    case GL_TEXTURE_ALPHA_SIZE:
-   case GL_RENDERBUFFER_ALPHA_SIZE_EXT:
+   case GL_RENDERBUFFER_ALPHA_SIZE:
    case GL_FRAMEBUFFER_ATTACHMENT_ALPHA_SIZE:
    case GL_INTERNALFORMAT_ALPHA_SIZE:
       return info->AlphaBits;
@@ -174,14 +174,14 @@ _mesa_get_format_bits(mesa_format format, GLenum pname)
    case GL_INDEX_BITS:
       return 0;
    case GL_DEPTH_BITS:
-   case GL_TEXTURE_DEPTH_SIZE_ARB:
-   case GL_RENDERBUFFER_DEPTH_SIZE_EXT:
+   case GL_TEXTURE_DEPTH_SIZE:
+   case GL_RENDERBUFFER_DEPTH_SIZE:
    case GL_FRAMEBUFFER_ATTACHMENT_DEPTH_SIZE:
    case GL_INTERNALFORMAT_DEPTH_SIZE:
       return info->DepthBits;
    case GL_STENCIL_BITS:
-   case GL_TEXTURE_STENCIL_SIZE_EXT:
-   case GL_RENDERBUFFER_STENCIL_SIZE_EXT:
+   case GL_TEXTURE_STENCIL_SIZE:
+   case GL_RENDERBUFFER_STENCIL_SIZE:
    case GL_FRAMEBUFFER_ATTACHMENT_STENCIL_SIZE:
    case GL_INTERNALFORMAT_STENCIL_SIZE:
       return info->StencilBits;
@@ -882,9 +882,8 @@ _mesa_format_row_stride(mesa_format format, int width)
  * Return datatype and number of components per texel for the given
  * uncompressed mesa_format. Only used for mipmap generation code.
  */
-void
-_mesa_uncompressed_format_to_type_and_comps(mesa_format format,
-                               GLenum *datatype, GLuint *comps)
+GLenum
+_mesa_uncompressed_format_to_type(mesa_format format)
 {
    switch (format) {
    case MESA_FORMAT_A8B8G8R8_UNORM:
@@ -899,524 +898,228 @@ _mesa_uncompressed_format_to_type_and_comps(mesa_format format,
    case MESA_FORMAT_R8G8B8A8_UINT:
    case MESA_FORMAT_B8G8R8A8_UINT:
    case MESA_FORMAT_A8R8G8B8_UINT:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 4;
-      return;
    case MESA_FORMAT_BGR_UNORM8:
    case MESA_FORMAT_RGB_UNORM8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 3;
-      return;
+   case MESA_FORMAT_LA_UNORM8:
+   case MESA_FORMAT_RG_UNORM8:
+   case MESA_FORMAT_A_UNORM8:
+   case MESA_FORMAT_L_UNORM8:
+   case MESA_FORMAT_I_UNORM8:
+   case MESA_FORMAT_R_UNORM8:
+   case MESA_FORMAT_S_UINT8:
+   case MESA_FORMAT_BGR_SRGB8:
+   case MESA_FORMAT_A8B8G8R8_SRGB:
+   case MESA_FORMAT_B8G8R8A8_SRGB:
+   case MESA_FORMAT_A8R8G8B8_SRGB:
+   case MESA_FORMAT_R8G8B8A8_SRGB:
+   case MESA_FORMAT_L_SRGB8:
+   case MESA_FORMAT_R_SRGB8:
+   case MESA_FORMAT_LA_SRGB8:
+   case MESA_FORMAT_RG_SRGB8:
+   case MESA_FORMAT_A_UINT8:
+   case MESA_FORMAT_L_UINT8:
+   case MESA_FORMAT_I_UINT8:
+   case MESA_FORMAT_LA_UINT8:
+   case MESA_FORMAT_R_UINT8:
+   case MESA_FORMAT_RG_UINT8:
+   case MESA_FORMAT_RGB_UINT8:
+   case MESA_FORMAT_R8G8B8X8_SRGB:
+   case MESA_FORMAT_X8B8G8R8_SRGB:
+   case MESA_FORMAT_RGBX_UINT8:
+   case MESA_FORMAT_B8G8R8X8_SRGB:
+   case MESA_FORMAT_X8R8G8B8_SRGB:
+      return GL_UNSIGNED_BYTE;
+
    case MESA_FORMAT_B5G6R5_UNORM:
    case MESA_FORMAT_R5G6B5_UNORM:
    case MESA_FORMAT_B5G6R5_UINT:
    case MESA_FORMAT_R5G6B5_UINT:
-      *datatype = GL_UNSIGNED_SHORT_5_6_5;
-      *comps = 3;
-      return;
+      return GL_UNSIGNED_SHORT_5_6_5;
 
    case MESA_FORMAT_B4G4R4A4_UNORM:
    case MESA_FORMAT_A4R4G4B4_UNORM:
    case MESA_FORMAT_B4G4R4X4_UNORM:
    case MESA_FORMAT_B4G4R4A4_UINT:
    case MESA_FORMAT_A4R4G4B4_UINT:
-      *datatype = GL_UNSIGNED_SHORT_4_4_4_4;
-      *comps = 4;
-      return;
+   case MESA_FORMAT_A4B4G4R4_UNORM:
+   case MESA_FORMAT_A4B4G4R4_UINT:
+   case MESA_FORMAT_R4G4B4A4_UNORM:
+   case MESA_FORMAT_R4G4B4A4_UINT:
+      return GL_UNSIGNED_SHORT_4_4_4_4;
 
    case MESA_FORMAT_B5G5R5A1_UNORM:
    case MESA_FORMAT_A1R5G5B5_UNORM:
    case MESA_FORMAT_B5G5R5X1_UNORM:
    case MESA_FORMAT_B5G5R5A1_UINT:
    case MESA_FORMAT_A1R5G5B5_UINT:
-      *datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-      *comps = 4;
-      return;
+   case MESA_FORMAT_R5G5B5A1_UNORM:
+   case MESA_FORMAT_R5G5B5A1_UINT:
+      return GL_UNSIGNED_SHORT_5_5_5_1;
 
    case MESA_FORMAT_B10G10R10A2_UNORM:
-      *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
-      *comps = 4;
-      return;
+   case MESA_FORMAT_B10G10R10A2_UINT:
+   case MESA_FORMAT_R10G10B10A2_UINT:
+   case MESA_FORMAT_B10G10R10X2_UNORM:
+   case MESA_FORMAT_R10G10B10X2_UNORM:
+   case MESA_FORMAT_R10G10B10A2_UNORM:
+      return GL_UNSIGNED_INT_2_10_10_10_REV;
 
    case MESA_FORMAT_A1B5G5R5_UNORM:
    case MESA_FORMAT_A1B5G5R5_UINT:
    case MESA_FORMAT_X1B5G5R5_UNORM:
-      *datatype = GL_UNSIGNED_SHORT_5_5_5_1;
-      *comps = 4;
-      return;
+      return GL_UNSIGNED_SHORT_5_5_5_1;
 
    case MESA_FORMAT_L4A4_UNORM:
-      *datatype = MESA_UNSIGNED_BYTE_4_4;
-      *comps = 2;
-      return;
-
-   case MESA_FORMAT_LA_UNORM8:
-   case MESA_FORMAT_RG_UNORM8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 2;
-      return;
+      return MESA_UNSIGNED_BYTE_4_4;
 
    case MESA_FORMAT_LA_UNORM16:
    case MESA_FORMAT_RG_UNORM16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 2;
-      return;
-
    case MESA_FORMAT_R_UNORM16:
    case MESA_FORMAT_A_UNORM16:
    case MESA_FORMAT_L_UNORM16:
    case MESA_FORMAT_I_UNORM16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 1;
-      return;
-
-   case MESA_FORMAT_R3G3B2_UNORM:
-   case MESA_FORMAT_R3G3B2_UINT:
-      *datatype = GL_UNSIGNED_BYTE_2_3_3_REV;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_A4B4G4R4_UNORM:
-   case MESA_FORMAT_A4B4G4R4_UINT:
-      *datatype = GL_UNSIGNED_SHORT_4_4_4_4;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_R4G4B4A4_UNORM:
-   case MESA_FORMAT_R4G4B4A4_UINT:
-      *datatype = GL_UNSIGNED_SHORT_4_4_4_4;
-      *comps = 4;
-      return;
-   case MESA_FORMAT_R5G5B5A1_UNORM:
-   case MESA_FORMAT_R5G5B5A1_UINT:
-      *datatype = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-      *comps = 4;
-      return;
-   case MESA_FORMAT_A2B10G10R10_UNORM:
-   case MESA_FORMAT_A2B10G10R10_UINT:
-      *datatype = GL_UNSIGNED_INT_10_10_10_2;
-      *comps = 4;
-      return;
-   case MESA_FORMAT_A2R10G10B10_UNORM:
-   case MESA_FORMAT_A2R10G10B10_UINT:
-      *datatype = GL_UNSIGNED_INT_10_10_10_2;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_B2G3R3_UNORM:
-   case MESA_FORMAT_B2G3R3_UINT:
-      *datatype = GL_UNSIGNED_BYTE_3_3_2;
-      *comps = 3;
-      return;
-
-   case MESA_FORMAT_A_UNORM8:
-   case MESA_FORMAT_L_UNORM8:
-   case MESA_FORMAT_I_UNORM8:
-   case MESA_FORMAT_R_UNORM8:
-   case MESA_FORMAT_S_UINT8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 1;
-      return;
-
    case MESA_FORMAT_YCBCR:
    case MESA_FORMAT_YCBCR_REV:
    case MESA_FORMAT_RG_RB_UNORM8:
    case MESA_FORMAT_RB_RG_UNORM8:
    case MESA_FORMAT_GR_BR_UNORM8:
    case MESA_FORMAT_BR_GR_UNORM8:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 2;
-      return;
+   case MESA_FORMAT_Z_UNORM16:
+   case MESA_FORMAT_RGBA_UNORM16:
+   case MESA_FORMAT_A_UINT16:
+   case MESA_FORMAT_L_UINT16:
+   case MESA_FORMAT_I_UINT16:
+   case MESA_FORMAT_LA_UINT16:
+   case MESA_FORMAT_R_UINT16:
+   case MESA_FORMAT_RG_UINT16:
+   case MESA_FORMAT_RGB_UINT16:
+   case MESA_FORMAT_RGBA_UINT16:
+   case MESA_FORMAT_RGBX_UNORM16:
+   case MESA_FORMAT_RGBX_UINT16:
+      return GL_UNSIGNED_SHORT;
+
+   case MESA_FORMAT_R3G3B2_UNORM:
+   case MESA_FORMAT_R3G3B2_UINT:
+      return GL_UNSIGNED_BYTE_2_3_3_REV;
+
+   case MESA_FORMAT_A2B10G10R10_UNORM:
+   case MESA_FORMAT_A2B10G10R10_UINT:
+   case MESA_FORMAT_A2R10G10B10_UNORM:
+   case MESA_FORMAT_A2R10G10B10_UINT:
+      return GL_UNSIGNED_INT_10_10_10_2;
+
+   case MESA_FORMAT_B2G3R3_UNORM:
+   case MESA_FORMAT_B2G3R3_UINT:
+      return GL_UNSIGNED_BYTE_3_3_2;
 
    case MESA_FORMAT_S8_UINT_Z24_UNORM:
-      *datatype = GL_UNSIGNED_INT_24_8_MESA;
-      *comps = 2;
-      return;
+      return GL_UNSIGNED_INT_24_8_MESA;
 
    case MESA_FORMAT_Z24_UNORM_S8_UINT:
-      *datatype = GL_UNSIGNED_INT_8_24_REV_MESA;
-      *comps = 2;
-      return;
-
-   case MESA_FORMAT_Z_UNORM16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 1;
-      return;
+      return GL_UNSIGNED_INT_8_24_REV_MESA;
 
    case MESA_FORMAT_Z24_UNORM_X8_UINT:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 1;
-      return;
-
    case MESA_FORMAT_X8_UINT_Z24_UNORM:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 1;
-      return;
-
    case MESA_FORMAT_Z_UNORM32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 1;
-      return;
+   case MESA_FORMAT_A_UINT32:
+   case MESA_FORMAT_L_UINT32:
+   case MESA_FORMAT_I_UINT32:
+   case MESA_FORMAT_LA_UINT32:
+   case MESA_FORMAT_R_UINT32:
+   case MESA_FORMAT_RG_UINT32:
+   case MESA_FORMAT_RGB_UINT32:
+   case MESA_FORMAT_RGBA_UINT32:
+   case MESA_FORMAT_RGBX_UINT32:
+      return GL_UNSIGNED_INT;
 
    case MESA_FORMAT_Z_FLOAT32:
-      *datatype = GL_FLOAT;
-      *comps = 1;
-      return;
+   case MESA_FORMAT_RGBA_FLOAT32:
+   case MESA_FORMAT_RGB_FLOAT32:
+   case MESA_FORMAT_LA_FLOAT32:
+   case MESA_FORMAT_RG_FLOAT32:
+   case MESA_FORMAT_A_FLOAT32:
+   case MESA_FORMAT_L_FLOAT32:
+   case MESA_FORMAT_I_FLOAT32:
+   case MESA_FORMAT_R_FLOAT32:
+   case MESA_FORMAT_RGBX_FLOAT32:
+      return GL_FLOAT;
 
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
-      *datatype = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
-      *comps = 1;
-      return;
+      return GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 
    case MESA_FORMAT_R_SNORM8:
    case MESA_FORMAT_A_SNORM8:
    case MESA_FORMAT_L_SNORM8:
    case MESA_FORMAT_I_SNORM8:
-      *datatype = GL_BYTE;
-      *comps = 1;
-      return;
    case MESA_FORMAT_RG_SNORM8:
    case MESA_FORMAT_LA_SNORM8:
-      *datatype = GL_BYTE;
-      *comps = 2;
-      return;
    case MESA_FORMAT_A8B8G8R8_SNORM:
    case MESA_FORMAT_R8G8B8A8_SNORM:
    case MESA_FORMAT_X8B8G8R8_SNORM:
-      *datatype = GL_BYTE;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_RGBA_UNORM16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 4;
-      return;
+   case MESA_FORMAT_A_SINT8:
+   case MESA_FORMAT_L_SINT8:
+   case MESA_FORMAT_I_SINT8:
+   case MESA_FORMAT_LA_SINT8:
+   case MESA_FORMAT_R_SINT8:
+   case MESA_FORMAT_RG_SINT8:
+   case MESA_FORMAT_RGB_SINT8:
+   case MESA_FORMAT_RGBA_SINT8:
+   case MESA_FORMAT_R8G8B8X8_SNORM:
+   case MESA_FORMAT_RGBX_SINT8:
+      return GL_BYTE;
 
    case MESA_FORMAT_R_SNORM16:
    case MESA_FORMAT_A_SNORM16:
    case MESA_FORMAT_L_SNORM16:
    case MESA_FORMAT_I_SNORM16:
-      *datatype = GL_SHORT;
-      *comps = 1;
-      return;
    case MESA_FORMAT_RG_SNORM16:
    case MESA_FORMAT_LA_SNORM16:
-      *datatype = GL_SHORT;
-      *comps = 2;
-      return;
    case MESA_FORMAT_RGB_SNORM16:
-      *datatype = GL_SHORT;
-      *comps = 3;
-      return;
    case MESA_FORMAT_RGBA_SNORM16:
-      *datatype = GL_SHORT;
-      *comps = 4;
-      return;
+   case MESA_FORMAT_A_SINT16:
+   case MESA_FORMAT_L_SINT16:
+   case MESA_FORMAT_I_SINT16:
+   case MESA_FORMAT_LA_SINT16:
+   case MESA_FORMAT_R_SINT16:
+   case MESA_FORMAT_RG_SINT16:
+   case MESA_FORMAT_RGB_SINT16:
+   case MESA_FORMAT_RGBA_SINT16:
+   case MESA_FORMAT_RGBX_SNORM16:
+   case MESA_FORMAT_RGBX_SINT16:
+      return GL_SHORT;
 
-   case MESA_FORMAT_BGR_SRGB8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_A8B8G8R8_SRGB:
-   case MESA_FORMAT_B8G8R8A8_SRGB:
-   case MESA_FORMAT_A8R8G8B8_SRGB:
-   case MESA_FORMAT_R8G8B8A8_SRGB:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 4;
-      return;
-   case MESA_FORMAT_L_SRGB8:
-   case MESA_FORMAT_R_SRGB8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_LA_SRGB8:
-   case MESA_FORMAT_RG_SRGB8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 2;
-      return;
 
-   case MESA_FORMAT_RGBA_FLOAT32:
-      *datatype = GL_FLOAT;
-      *comps = 4;
-      return;
    case MESA_FORMAT_RGBA_FLOAT16:
-      *datatype = GL_HALF_FLOAT_ARB;
-      *comps = 4;
-      return;
-   case MESA_FORMAT_RGB_FLOAT32:
-      *datatype = GL_FLOAT;
-      *comps = 3;
-      return;
    case MESA_FORMAT_RGB_FLOAT16:
-      *datatype = GL_HALF_FLOAT_ARB;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_LA_FLOAT32:
-   case MESA_FORMAT_RG_FLOAT32:
-      *datatype = GL_FLOAT;
-      *comps = 2;
-      return;
    case MESA_FORMAT_LA_FLOAT16:
    case MESA_FORMAT_RG_FLOAT16:
-      *datatype = GL_HALF_FLOAT_ARB;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_A_FLOAT32:
-   case MESA_FORMAT_L_FLOAT32:
-   case MESA_FORMAT_I_FLOAT32:
-   case MESA_FORMAT_R_FLOAT32:
-      *datatype = GL_FLOAT;
-      *comps = 1;
-      return;
    case MESA_FORMAT_A_FLOAT16:
    case MESA_FORMAT_L_FLOAT16:
    case MESA_FORMAT_I_FLOAT16:
    case MESA_FORMAT_R_FLOAT16:
-      *datatype = GL_HALF_FLOAT_ARB;
-      *comps = 1;
-      return;
-
-   case MESA_FORMAT_A_UINT8:
-   case MESA_FORMAT_L_UINT8:
-   case MESA_FORMAT_I_UINT8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_LA_UINT8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 2;
-      return;
-
-   case MESA_FORMAT_A_UINT16:
-   case MESA_FORMAT_L_UINT16:
-   case MESA_FORMAT_I_UINT16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_LA_UINT16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_A_UINT32:
-   case MESA_FORMAT_L_UINT32:
-   case MESA_FORMAT_I_UINT32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_LA_UINT32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_A_SINT8:
-   case MESA_FORMAT_L_SINT8:
-   case MESA_FORMAT_I_SINT8:
-      *datatype = GL_BYTE;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_LA_SINT8:
-      *datatype = GL_BYTE;
-      *comps = 2;
-      return;
-
-   case MESA_FORMAT_A_SINT16:
-   case MESA_FORMAT_L_SINT16:
-   case MESA_FORMAT_I_SINT16:
-      *datatype = GL_SHORT;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_LA_SINT16:
-      *datatype = GL_SHORT;
-      *comps = 2;
-      return;
+   case MESA_FORMAT_RGBX_FLOAT16:
+      return GL_HALF_FLOAT;
 
    case MESA_FORMAT_A_SINT32:
    case MESA_FORMAT_L_SINT32:
    case MESA_FORMAT_I_SINT32:
-      *datatype = GL_INT;
-      *comps = 1;
-      return;
    case MESA_FORMAT_LA_SINT32:
-      *datatype = GL_INT;
-      *comps = 2;
-      return;
-
-   case MESA_FORMAT_R_SINT8:
-      *datatype = GL_BYTE;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_RG_SINT8:
-      *datatype = GL_BYTE;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_RGB_SINT8:
-      *datatype = GL_BYTE;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_RGBA_SINT8:
-      *datatype = GL_BYTE;
-      *comps = 4;
-      return;
-   case MESA_FORMAT_R_SINT16:
-      *datatype = GL_SHORT;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_RG_SINT16:
-      *datatype = GL_SHORT;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_RGB_SINT16:
-      *datatype = GL_SHORT;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_RGBA_SINT16:
-      *datatype = GL_SHORT;
-      *comps = 4;
-      return;
    case MESA_FORMAT_R_SINT32:
-      *datatype = GL_INT;
-      *comps = 1;
-      return;
    case MESA_FORMAT_RG_SINT32:
-      *datatype = GL_INT;
-      *comps = 2;
-      return;
    case MESA_FORMAT_RGB_SINT32:
-      *datatype = GL_INT;
-      *comps = 3;
-      return;
    case MESA_FORMAT_RGBA_SINT32:
-      *datatype = GL_INT;
-      *comps = 4;
-      return;
-
-   /**
-    * \name Non-normalized unsigned integer formats.
-    */
-   case MESA_FORMAT_R_UINT8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_RG_UINT8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_RGB_UINT8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_R_UINT16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_RG_UINT16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_RGB_UINT16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_RGBA_UINT16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 4;
-      return;
-   case MESA_FORMAT_R_UINT32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 1;
-      return;
-   case MESA_FORMAT_RG_UINT32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 2;
-      return;
-   case MESA_FORMAT_RGB_UINT32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 3;
-      return;
-   case MESA_FORMAT_RGBA_UINT32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 4;
-      return;
+   case MESA_FORMAT_RGBX_SINT32:
+      return GL_INT;
 
    case MESA_FORMAT_R9G9B9E5_FLOAT:
-      *datatype = GL_UNSIGNED_INT_5_9_9_9_REV;
-      *comps = 3;
-      return;
+      return GL_UNSIGNED_INT_5_9_9_9_REV;
 
    case MESA_FORMAT_R11G11B10_FLOAT:
-      *datatype = GL_UNSIGNED_INT_10F_11F_11F_REV;
-      *comps = 3;
-      return;
-
-   case MESA_FORMAT_B10G10R10A2_UINT:
-   case MESA_FORMAT_R10G10B10A2_UINT:
-      *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_R8G8B8X8_SRGB:
-   case MESA_FORMAT_X8B8G8R8_SRGB:
-   case MESA_FORMAT_RGBX_UINT8:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_R8G8B8X8_SNORM:
-   case MESA_FORMAT_RGBX_SINT8:
-      *datatype = GL_BYTE;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_B10G10R10X2_UNORM:
-   case MESA_FORMAT_R10G10B10X2_UNORM:
-      *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_RGBX_UNORM16:
-   case MESA_FORMAT_RGBX_UINT16:
-      *datatype = GL_UNSIGNED_SHORT;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_RGBX_SNORM16:
-   case MESA_FORMAT_RGBX_SINT16:
-      *datatype = GL_SHORT;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_RGBX_FLOAT16:
-      *datatype = GL_HALF_FLOAT;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_RGBX_FLOAT32:
-      *datatype = GL_FLOAT;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_RGBX_UINT32:
-      *datatype = GL_UNSIGNED_INT;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_RGBX_SINT32:
-      *datatype = GL_INT;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_R10G10B10A2_UNORM:
-      *datatype = GL_UNSIGNED_INT_2_10_10_10_REV;
-      *comps = 4;
-      return;
-
-   case MESA_FORMAT_B8G8R8X8_SRGB:
-   case MESA_FORMAT_X8R8G8B8_SRGB:
-      *datatype = GL_UNSIGNED_BYTE;
-      *comps = 4;
-      return;
+      return GL_UNSIGNED_INT_10F_11F_11F_REV;
 
    case MESA_FORMAT_COUNT:
       assert(0);
-      return;
+      return GL_NONE;
    default: {
       const char *name = _mesa_get_format_name(format);
       /* Warn if any formats are not handled */
@@ -1424,8 +1127,7 @@ _mesa_uncompressed_format_to_type_and_comps(mesa_format format,
                     name ? name : "???");
       assert(format == MESA_FORMAT_NONE ||
              _mesa_is_format_compressed(format));
-      *datatype = 0;
-      *comps = 1;
+      return GL_NONE;
    }
    }
 }

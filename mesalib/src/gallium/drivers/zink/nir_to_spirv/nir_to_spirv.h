@@ -47,7 +47,7 @@ struct pipe_stream_output_info;
 
 struct spirv_shader *
 nir_to_spirv(struct nir_shader *s, const struct zink_shader_info *so_info,
-             uint32_t spirv_version);
+             const struct zink_screen *screen);
 
 void
 spirv_shader_delete(struct spirv_shader *s);

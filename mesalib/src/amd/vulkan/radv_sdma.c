@@ -14,6 +14,8 @@
 #include "radv_cs.h"
 #include "radv_formats.h"
 
+#include "ac_formats.h"
+
 struct radv_sdma_chunked_copy_info {
    unsigned extent_horizontal_blocks;
    unsigned extent_vertical_blocks;
@@ -192,8 +194,8 @@ radv_sdma_get_metadata_config(const struct radv_device *const device, const stru
    const VkFormat format = vk_format_get_aspect_format(image->vk.format, aspect_mask);
    const struct util_format_description *desc = vk_format_description(format);
 
-   const uint32_t data_format = ac_get_cb_format(pdev->info.gfx_level, vk_format_to_pipe_format(format));
-   const uint32_t alpha_is_on_msb = vi_alpha_is_on_msb(device, format);
+   const uint32_t data_format = ac_get_cb_format(pdev->info.gfx_level, radv_format_to_pipe_format(format));
+   const uint32_t alpha_is_on_msb = ac_alpha_is_on_msb(&pdev->info, radv_format_to_pipe_format(format));
    const uint32_t number_type = radv_translate_buffer_numformat(desc, vk_format_get_first_non_void_channel(format));
    const uint32_t surface_type = radv_sdma_surface_type_from_aspect_mask(aspect_mask);
    const uint32_t max_comp_block_size = surf->u.gfx9.color.dcc.max_compressed_block_size;
@@ -211,9 +213,13 @@ radv_sdma_get_tiled_info_dword(const struct radv_device *const device, const str
    const struct radv_physical_device *pdev = radv_device_physical(device);
    const uint32_t element_size = util_logbase2(surf->bpe);
    const uint32_t swizzle_mode = surf->has_stencil ? surf->u.gfx9.zs.stencil_swizzle_mode : surf->u.gfx9.swizzle_mode;
-   const enum gfx9_resource_type dimension = radv_sdma_surface_resource_type(device, surf);
-   const uint32_t info = element_size | swizzle_mode << 3 | dimension << 9;
+   uint32_t info = element_size | swizzle_mode << 3;
    const enum sdma_version ver = pdev->info.sdma_ip_version;
+
+   if (ver < SDMA_7_0) {
+      const enum gfx9_resource_type dimension = radv_sdma_surface_resource_type(device, surf);
+      info |= dimension << 9;
+   }
 
    if (ver >= SDMA_5_0) {
       const uint32_t mip_max = MAX2(image->vk.mip_levels, 1);
@@ -255,8 +261,8 @@ radv_sdma_get_surf(const struct radv_device *const device, const struct radv_ima
    const struct radv_physical_device *pdev = radv_device_physical(device);
    const unsigned plane_idx = radv_plane_from_aspect(aspect_mask);
    const unsigned binding_idx = image->disjoint ? plane_idx : 0;
-   const struct radv_image_binding *binding = &image->bindings[binding_idx];
    const struct radeon_surf *const surf = &image->planes[plane_idx].surface;
+   const uint64_t va = radv_image_get_va(image, binding_idx);
    struct radv_sdma_surf info = {
       .extent =
          {
@@ -280,21 +286,20 @@ radv_sdma_get_surf(const struct radv_device *const device, const struct radv_ima
    };
 
    if (surf->is_linear) {
-      info.va =
-         binding->bo->va + binding->offset + surf->u.gfx9.surf_offset + surf->u.gfx9.offset[subresource.mipLevel];
+      info.va = va + surf->u.gfx9.surf_offset + surf->u.gfx9.offset[subresource.mipLevel];
       info.pitch = surf->u.gfx9.pitch[subresource.mipLevel];
       info.slice_pitch = surf->blk_w * surf->blk_h * surf->u.gfx9.surf_slice_size / surf->bpe;
    } else {
       /* 1D resources should be linear. */
       assert(surf->u.gfx9.resource_type != RADEON_RESOURCE_1D);
 
-      info.va = (binding->bo->va + binding->offset + surf->u.gfx9.surf_offset) | surf->tile_swizzle << 8;
+      info.va = (va + surf->u.gfx9.surf_offset) | surf->tile_swizzle << 8;
       info.info_dword = radv_sdma_get_tiled_info_dword(device, image, surf, subresource);
       info.header_dword = radv_sdma_get_tiled_header_dword(device, image, subresource);
 
       if (pdev->info.sdma_supports_compression &&
           (radv_dcc_enabled(image, subresource.mipLevel) || radv_image_has_htile(image))) {
-         info.meta_va = binding->bo->va + binding->offset + surf->meta_offset;
+         info.meta_va = va + surf->meta_offset;
          info.meta_config = radv_sdma_get_metadata_config(device, image, surf, subresource, aspect_mask);
       }
    }

@@ -36,6 +36,13 @@
 #include "util/u_math.h"
 #include <stdlib.h>
 
+ASSERTED static bool
+util_idalloc_exists(struct util_idalloc *buf, unsigned id)
+{
+   return id / 32 < buf->num_set_elements &&
+          buf->data[id / 32] & BITFIELD_BIT(id % 32);
+}
+
 static void
 util_idalloc_resize(struct util_idalloc *buf, unsigned new_num_elements)
 {
@@ -154,7 +161,7 @@ util_idalloc_free(struct util_idalloc *buf, unsigned id)
        return;
 
    buf->lowest_free_idx = MIN2(idx, buf->lowest_free_idx);
-   buf->data[idx] &= ~(1 << (id % 32));
+   buf->data[idx] &= ~(1u << (id % 32));
 
    /* Decrease num_used to the last used element + 1. */
    if (buf->num_set_elements == idx + 1) {
@@ -173,6 +180,10 @@ util_idalloc_reserve(struct util_idalloc *buf, unsigned id)
    buf->data[idx] |= 1u << (id % 32);
    buf->num_set_elements = MAX2(buf->num_set_elements, idx + 1);
 }
+
+/*********************************************
+ * util_idalloc_mt
+ *********************************************/
 
 void
 util_idalloc_mt_init(struct util_idalloc_mt *buf,
@@ -220,4 +231,82 @@ util_idalloc_mt_free(struct util_idalloc_mt *buf, unsigned id)
    simple_mtx_lock(&buf->mutex);
    util_idalloc_free(&buf->buf, id);
    simple_mtx_unlock(&buf->mutex);
+}
+
+/*********************************************
+ * util_idalloc_sparse
+ *********************************************/
+
+void
+util_idalloc_sparse_init(struct util_idalloc_sparse *buf)
+{
+   static_assert(IS_POT_NONZERO(ARRAY_SIZE(buf->segment)),
+         "buf->segment[] must have a power of two number of elements");
+
+   for (unsigned i = 0; i < ARRAY_SIZE(buf->segment); i++)
+      util_idalloc_init(&buf->segment[i], 1);
+}
+
+void
+util_idalloc_sparse_fini(struct util_idalloc_sparse *buf)
+{
+   for (unsigned i = 0; i < ARRAY_SIZE(buf->segment); i++)
+      util_idalloc_fini(&buf->segment[i]);
+}
+
+unsigned
+util_idalloc_sparse_alloc(struct util_idalloc_sparse *buf)
+{
+   unsigned max_ids = UTIL_IDALLOC_MAX_IDS_PER_SEGMENT(buf);
+
+   for (unsigned i = 0; i < ARRAY_SIZE(buf->segment); i++) {
+      if (buf->segment[i].lowest_free_idx <
+          UTIL_IDALLOC_MAX_ELEMS_PER_SEGMENT(buf))
+         return max_ids * i + util_idalloc_alloc(&buf->segment[i]);
+   }
+
+   fprintf(stderr, "mesa: util_idalloc_sparse_alloc: "
+                   "all 2^32 IDs are used, this shouldn't happen\n");
+   assert(0);
+   return 0;
+}
+
+unsigned
+util_idalloc_sparse_alloc_range(struct util_idalloc_sparse *buf, unsigned num)
+{
+   unsigned max_ids = UTIL_IDALLOC_MAX_IDS_PER_SEGMENT(buf);
+   unsigned num_elems = DIV_ROUND_UP(num, 32);
+
+   /* TODO: This doesn't try to find a range that spans 2 different segments */
+   for (unsigned i = 0; i < ARRAY_SIZE(buf->segment); i++) {
+      if (buf->segment[i].lowest_free_idx + num_elems <=
+          UTIL_IDALLOC_MAX_ELEMS_PER_SEGMENT(buf)) {
+         unsigned base = util_idalloc_alloc_range(&buf->segment[i], num);
+
+         if (base + num <= max_ids)
+            return max_ids * i + base;
+
+         /* Back off the allocation and try again with the next segment. */
+         for (unsigned i = 0; i < num; i++)
+            util_idalloc_free(&buf->segment[i], base + i);
+      }
+   }
+
+   fprintf(stderr, "mesa: util_idalloc_sparse_alloc_range: can't find a free consecutive range of IDs\n");
+   assert(0);
+   return 0;
+}
+
+void
+util_idalloc_sparse_free(struct util_idalloc_sparse *buf, unsigned id)
+{
+   unsigned max_ids = UTIL_IDALLOC_MAX_IDS_PER_SEGMENT(buf);
+   util_idalloc_free(&buf->segment[id / max_ids], id % max_ids);
+}
+
+void
+util_idalloc_sparse_reserve(struct util_idalloc_sparse *buf, unsigned id)
+{
+   unsigned max_ids = UTIL_IDALLOC_MAX_IDS_PER_SEGMENT(buf);
+   util_idalloc_reserve(&buf->segment[id / max_ids], id % max_ids);
 }

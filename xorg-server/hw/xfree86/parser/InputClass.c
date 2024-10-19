@@ -191,6 +191,8 @@ xf86parseInputClassSection(void)
         switch (token) {
         case COMMENT:
             ptr->comment = xf86addComment(ptr->comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->comment)) != STRING)

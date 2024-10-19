@@ -2,6 +2,9 @@
 # non-zero-length and not starting with '#', will regex match to
 # delete lines from the test list.  Be careful.
 
+# no Vulkan support
+spec@ext_external_objects@vk.*
+
 # Intermittent timeouts in CI (~1/month)
 dEQP-GLES3.functional.shaders.builtin_functions.precision.cosh.mediump_fragment.vec3
 dEQP-GLES3.functional.shaders.builtin_functions.precision.faceforward.lowp_fragment.vec4
@@ -40,6 +43,7 @@ spec@!opengl 1.1@draw-sync
 spec@arb_uniform_buffer_object@execution@shared-struct-array-array-array-struct
 spec@arb_uniform_buffer_object@execution@std140-struct-array-array-array-struct
 spec@arb_uniform_buffer_object@execution@std140-array-struct-array-struct
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
 
 # This one seems to be triggering faults and causing random other fails
 # depending on what else was running at the time:

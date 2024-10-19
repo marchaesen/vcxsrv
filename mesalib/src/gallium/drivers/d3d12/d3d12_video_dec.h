@@ -65,7 +65,7 @@ d3d12_video_decoder_decode_bitstream(struct pipe_video_codec * codec,
 /**
  * end decoding of the current frame
  */
-void
+int
 d3d12_video_decoder_end_frame(struct pipe_video_codec * codec,
                               struct pipe_video_buffer *target,
                               struct pipe_picture_desc *picture);
@@ -80,9 +80,9 @@ d3d12_video_decoder_flush(struct pipe_video_codec *codec);
 /**
  * Get decoder fence.
  */
-int d3d12_video_decoder_get_decoder_fence(struct pipe_video_codec *codec,
-                                          struct pipe_fence_handle *fence,
-                                          uint64_t timeout);
+int d3d12_video_decoder_fence_wait(struct pipe_video_codec *codec,
+                                   struct pipe_fence_handle *fence,
+                                   uint64_t timeout);
 
 ///
 /// Pipe video interface ends

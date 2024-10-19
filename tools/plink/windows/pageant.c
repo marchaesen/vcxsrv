@@ -1537,9 +1537,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     const char *command = NULL;
     const char *unixsocket = NULL;
     bool show_keylist_on_startup = false;
-    int argc;
-    char **argv, **argstart;
-    const char *openssh_config_file = NULL;
+    Filename *openssh_config_file = NULL;
 
     typedef struct CommandLineKey {
         Filename *fn;
@@ -1598,28 +1596,27 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      * started up the main agent. Details of keys to be added are
      * stored in the 'clkeys' array.
      */
-    split_into_argv(cmdline, false, &argc, &argv, &argstart);
     bool add_keys_encrypted = false;
-    AuxMatchOpt amo = aux_match_opt_init(argc, argv, 0, opt_error);
+    AuxMatchOpt amo = aux_match_opt_init(opt_error);
     while (!aux_match_done(&amo)) {
-        char *val;
+        CmdlineArg *valarg;
         #define match_opt(...) aux_match_opt( \
             &amo, NULL, __VA_ARGS__, (const char *)NULL)
         #define match_optval(...) aux_match_opt( \
-            &amo, &val, __VA_ARGS__, (const char *)NULL)
+            &amo, &valarg, __VA_ARGS__, (const char *)NULL)
 
-        if (aux_match_arg(&amo, &val)) {
+        if (aux_match_arg(&amo, &valarg)) {
             /*
              * Non-option arguments are expected to be key files, and
              * added to clkeys.
              */
             sgrowarray(clkeys, clkeysize, nclkeys);
             CommandLineKey *clkey = &clkeys[nclkeys++];
-            clkey->fn = filename_from_str(val);
+            clkey->fn = cmdline_arg_to_filename(valarg);
             clkey->add_encrypted = add_keys_encrypted;
         } else if (match_opt("-pgpfp")) {
             pgp_fingerprints_msgbox(NULL);
-            return 1;
+            return 0;
         } else if (match_opt("-restrict-acl", "-restrict_acl",
                              "-restrictacl")) {
             restrict_process_acl();
@@ -1631,21 +1628,29 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
         } else if (match_opt("-keylist")) {
             show_keylist_on_startup = true;
         } else if (match_optval("-openssh-config", "-openssh_config")) {
-            openssh_config_file = val;
+            openssh_config_file = cmdline_arg_to_filename(valarg);
         } else if (match_optval("-unix")) {
-            unixsocket = val;
+            /* UNICODE: should this be a Unicode filename? Is there a
+             * Unicode version of connect() that lets you give a
+             * Unicode pathname when making an AF_UNIX socket? */
+            unixsocket = cmdline_arg_to_str(valarg);
         } else if (match_opt("-c")) {
             /*
              * If we see `-c', then the rest of the command line
              * should be treated as a command to be spawned.
              */
-            if (amo.index < amo.argc)
-                command = argstart[amo.index];
-            else
+            if (amo.arglist->args[amo.index]) {
+                /* UNICODE: should use the UTF-8 or wide version, and
+                 * CreateProcessW, to pass through arbitrary command lines */
+                command = cmdline_arg_remainder_acp(
+                    amo.arglist->args[amo.index]);
+            } else {
                 command = "";
+            }
             break;
         } else {
-            opt_error("unrecognised option '%s'\n", amo.argv[amo.index]);
+            opt_error("unrecognised option '%s'\n",
+                      cmdline_arg_to_str(amo.arglist->args[amo.index]));
         }
     }
 
@@ -1733,10 +1738,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
              * pointing at the named pipe, do so.
              */
             if (openssh_config_file) {
-                FILE *fp = fopen(openssh_config_file, "w");
+                FILE *fp = f_open(openssh_config_file, "w", true);
                 if (!fp) {
-                    char *err = dupprintf("Unable to write OpenSSH config "
-                                          "file to %s", openssh_config_file);
+                    char *err = dupprintf(
+                        "Unable to write OpenSSH config file to %s",
+                        filename_to_str(openssh_config_file));
                     MessageBox(NULL, err, "Pageant Error",
                                MB_ICONERROR | MB_OK);
                     return 1;
@@ -1958,7 +1964,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
          * Leave this file around, but empty it, so that it doesn't
          * refer to a pipe we aren't listening on any more.
          */
-        FILE *fp = fopen(openssh_config_file, "w");
+        FILE *fp = f_open(openssh_config_file, "w", true);
         if (fp)
             fclose(fp);
     }

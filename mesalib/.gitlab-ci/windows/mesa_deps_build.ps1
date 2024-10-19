@@ -12,7 +12,7 @@ $depsInstallPath="C:\mesa-deps"
 
 Get-Date
 Write-Host "Cloning DirectX-Headers"
-git clone -b v1.613.1 --depth=1 https://github.com/microsoft/DirectX-Headers deps/DirectX-Headers
+git clone -b v1.614.1 --depth=1 https://github.com/microsoft/DirectX-Headers deps/DirectX-Headers
 if (!$?) {
   Write-Host "Failed to clone DirectX-Headers repository"
   Exit 1
@@ -96,6 +96,7 @@ cmake ../llvm `
 -DLLVM_ENABLE_DIA_SDK=OFF `
 -DCLANG_BUILD_TOOLS=ON `
 -DLLVM_SPIRV_INCLUDE_TESTS=OFF `
+-DLLVM_ENABLE_ZLIB=OFF `
 -Wno-dev && `
 ninja -j32 install
 $buildstatus = $?

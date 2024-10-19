@@ -958,8 +958,9 @@ XRebindKeysym (
     memcpy ((char *) p->modifiers, (char *) mlist, (size_t) nb);
     p->key = keysym;
     p->mlen = nm;
-    ComputeMaskFromKeytrans(dpy, p);
     UnlockDisplay(dpy);
+    ComputeMaskFromKeytrans(dpy, p);
+
     return 0;
 }
 

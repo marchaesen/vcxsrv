@@ -24,16 +24,16 @@
 /* Test relies on assert() */
 #undef NDEBUG
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <stdint.h>
+
+#include "dix/input_priv.h"
+
 #include "misc.h"
 #include "scrnintstr.h"
 #include "dix.h"
 #include "dixstruct.h"
-
 #include "tests-common.h"
 
 static void

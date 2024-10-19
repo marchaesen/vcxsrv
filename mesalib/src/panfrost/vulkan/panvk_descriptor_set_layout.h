@@ -1,5 +1,5 @@
 /*
- * Copyright © 2021 Collabora Ltd.
+ * Copyright © 2024 Collabora Ltd.
  * SPDX-License-Identifier: MIT
  */
 
@@ -14,63 +14,38 @@
 
 #include "vk_descriptor_set_layout.h"
 
+#include "util/mesa-blake3.h"
+
+#include "genxml/gen_macros.h"
+
+#define PANVK_DESCRIPTOR_SIZE       32
+#define MAX_SETS                    (PAN_ARCH <= 7 ? 4 : 15)
+#define MAX_DYNAMIC_UNIFORM_BUFFERS 16
+#define MAX_DYNAMIC_STORAGE_BUFFERS 8
+#define MAX_PUSH_DESCS              32
+#define MAX_DYNAMIC_BUFFERS                                                    \
+   (MAX_DYNAMIC_UNIFORM_BUFFERS + MAX_DYNAMIC_STORAGE_BUFFERS)
+
 struct panvk_descriptor_set_binding_layout {
    VkDescriptorType type;
-
-   /* Number of array elements in this binding */
-   unsigned array_size;
-
-   /* Indices in the desc arrays */
-   union {
-      struct {
-         union {
-            unsigned sampler_idx;
-            unsigned img_idx;
-         };
-         unsigned tex_idx;
-      };
-      unsigned dyn_ssbo_idx;
-      unsigned ubo_idx;
-      unsigned dyn_ubo_idx;
-   };
-
-   /* Offset into the descriptor UBO where this binding starts */
-   uint32_t desc_ubo_offset;
-
-   /* Stride between descriptors in this binding in the UBO */
-   uint16_t desc_ubo_stride;
-
-   /* Shader stages affected by this set+binding */
-   uint16_t shader_stages;
-
-   struct panvk_sampler **immutable_samplers;
+   VkDescriptorBindingFlags flags;
+   unsigned desc_count;
+   unsigned desc_idx;
+   struct mali_sampler_packed *immutable_samplers;
 };
 
 struct panvk_descriptor_set_layout {
    struct vk_descriptor_set_layout vk;
-   VkDescriptorSetLayoutCreateFlags flags;
-
-   /* Shader stages affected by this descriptor set */
-   uint16_t shader_stages;
-
-   unsigned num_samplers;
-   unsigned num_textures;
-   unsigned num_ubos;
-   unsigned num_dyn_ubos;
-   unsigned num_dyn_ssbos;
-   unsigned num_imgs;
-
-   /* Size of the descriptor UBO */
-   uint32_t desc_ubo_size;
-
-   /* Index of the descriptor UBO */
-   unsigned desc_ubo_index;
+   VkDescriptorSetLayoutCreateFlagBits flags;
+   blake3_hash hash;
+   unsigned desc_count;
+   unsigned dyn_buf_count;
 
    /* Number of bindings in this descriptor set */
    uint32_t binding_count;
 
    /* Bindings in this descriptor set */
-   struct panvk_descriptor_set_binding_layout bindings[0];
+   struct panvk_descriptor_set_binding_layout *bindings;
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_descriptor_set_layout, vk.base,
@@ -78,9 +53,39 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_descriptor_set_layout, vk.base,
                                VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT)
 
 static inline const struct panvk_descriptor_set_layout *
-vk_to_panvk_descriptor_set_layout(const struct vk_descriptor_set_layout *layout)
+to_panvk_descriptor_set_layout(const struct vk_descriptor_set_layout *layout)
 {
    return container_of(layout, const struct panvk_descriptor_set_layout, vk);
 }
 
-#endif
+static inline const uint32_t
+panvk_get_desc_stride(VkDescriptorType type)
+{
+   /* One descriptor for the sampler, and one for the texture. */
+   return type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ? 2 : 1;
+}
+
+static inline uint32_t
+panvk_get_desc_index(const struct panvk_descriptor_set_binding_layout *layout,
+                     uint32_t elem, VkDescriptorType type)
+{
+   assert(layout->type == type ||
+          (layout->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER &&
+           (type == VK_DESCRIPTOR_TYPE_SAMPLER ||
+            type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)));
+
+   assert(layout->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
+          layout->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
+
+   uint32_t desc_idx =
+      layout->desc_idx + elem * panvk_get_desc_stride(layout->type);
+
+   /* In case of combined image-sampler, we put the texture first. */
+   if (layout->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER &&
+       type == VK_DESCRIPTOR_TYPE_SAMPLER)
+      desc_idx++;
+
+   return desc_idx;
+}
+
+#endif /* PANVK_VX_DESCRIPTOR_SET_LAYOUT_H */

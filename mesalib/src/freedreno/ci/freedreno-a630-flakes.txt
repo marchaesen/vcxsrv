@@ -210,6 +210,7 @@ gmem-unaligned-dEQP-VK.renderpass.suballocation.load_store_op_none.depthstencil_
 KHR-GL46.buffer_storage.map_persistent_dispatch
 KHR-GL46.buffer_storage.map_persistent_flush
 KHR-GL46.compute_shader.atomic-case1
+KHR-GL46.compute_shader.pipeline-gen-draw-commands
 KHR-GL46.compute_shader.resource-uniform
 KHR-GL46.direct_state_access.framebuffers_texture_layer_attachment
 KHR-GL46.sepshaderobjs.StateInteraction
@@ -226,9 +227,11 @@ spec@ext_external_objects@vk-depth-display@D24S8
 
 # uprev Piglit in Mesa
 glx@glx-destroycontext-1
+glx@glx-swap-singlebuffer
 glx@glx-visuals-depth -pixmap
 glx@glx-visuals-stencil -pixmap
 spec@arb_timer_query@timestamp-get
+spec@glsl-4.00@execution@built-in-functions@fs-op-mult-dmat4x3-dmat4
 stale-regs-dEQP-VK.clipping.clip_volume.clipped.large_points
 stale-regs-dEQP-VK.draw.dynamic_rendering.complete_secondary_cmd_buff.simple_draw.simple_draw_instanced_triangle_list
 stale-regs-dEQP-VK.draw.dynamic_rendering.primary_cmd_buff.multi_draw.mosaic.indexed_mixed.max_draws.standard_stride.2_instances_base_3.tess_geom.single_view.offset_6
@@ -279,3 +282,67 @@ stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset
 stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.triangle_list.pgq_default_xfb_1.single_draw.xfbq_first.none
 stale-regs-dEQP-VK.transform_feedback.simple.query_omit_write_line_strip_with_adjacency_1_61_32bits
 
+# Updated by ci-collate
+KHR-GL46.compute_shader.atomic-case2
+KHR-GL46.shading_language_420pack.qualifier_order
+KHR-GL46.copy_image.integer_tex
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat4-dmat4
+spec@glsl-4.00@execution@built-in-functions@fs-inverse-dmat4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat3x4-dmat3x4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-mult-dmat3x4-dmat4x3
+spec@glsl-4.00@execution@built-in-functions@fs-op-mult-dmat3x4-dmat4x3
+spec@arb_gpu_shader_fp64@execution@vs-isnan-dvec
+spec@glsl-3.30@execution@built-in-functions@fs-floatbitstoint-neg_abs
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-double-dmat3x4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-double-dmat4
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat3x4-dmat3x4
+dEQP-VK.spirv_assembly.instruction.graphics.opspecconstantop.shiftrightarithmetic_frag
+dEQP-VK.synchronization2.op.single_queue.fence.write_image_compute_read_image_vertex.image_128x128_r8_unorm
+dEQP-VK.synchronization.timeline_semaphore.wait_before_signal.write_blit_image_read_image_vertex.image_128x128_r8g8b8a8_unorm
+dEQP-VK.synchronization.op.single_queue.binary_semaphore.write_clear_attachments_read_image_compute.image_128x128_r16_uint
+dEQP-VK.tessellation.invariance.tess_coord_component_range.quads_fractional_odd_spacing_ccw_point_mode
+dEQP-VK.api.copy_and_blit.core.image_to_image.all_formats.color.2d_to_1d.r32g32b32a32_uint.bc3_srgb_block.optimal_optimal
+dEQP-VK.synchronization2.signal_order.shared_binary_semaphore.write_ssbo_fragment_read_ssbo_fragment.buffer_16384_opaque_fd
+dEQP-VK.transform_feedback.simple.query_copy_triangle_list_0_249_64bits
+dEQP-VK.pipeline.fast_linked_library.interface_matching.decoration_mismatch.out_flat_in_none_member_of_array_of_structures_vert_out_geom_in_frag
+dEQP-VK.pipeline.monolithic.stencil.format.d24_unorm_s8_uint.states.fail_zero.pass_decw.dfail_decw.comp_not_equal
+dEQP-VK.api.copy_and_blit.core.image_to_image.all_formats.color.2d_to_1d.b8g8r8a8_srgb.r8g8b8a8_snorm.general_optimal
+dEQP-VK.api.copy_and_blit.core.image_to_image.all_formats.color.1d_to_2d.b8g8r8a8_srgb.b8g8r8a8_srgb.general_general
+dEQP-VK.synchronization2.signal_order.shared_binary_semaphore.write_image_tess_control_read_blit_image.image_128x128_r16g16b16a16_uint_opaque_fd
+dEQP-VK.binding_model.shader_access.primary_cmd_buf.bind.sampler_immutable.geometry.multiple_descriptor_sets.multiple_discontiguous_descriptors.1d_array
+dEQP-VK.pipeline.monolithic.vertex_input.multiple_attributes.binding_one_to_many.attributes_sequential.uvec4.float.vec4
+dEQP-VK.pipeline.pipeline_library.stencil.format.s8_uint.states.fail_repl.pass_repl.dfail_decc.comp_less_or_equal
+dEQP-VK.api.copy_and_blit.core.image_to_image.dimensions.src4x4096_dst4x4096.r8g8b8a8_unorm.r32_sfloat.general_general
+dEQP-VK.api.copy_and_blit.core.image_to_image.all_formats.color.1d_to_2d.astc_6x6_unorm_block.astc_6x6_unorm_block.general_general
+dEQP-VK.synchronization.op.single_queue.event.write_image_tess_control_read_image_tess_control.image_128x128_r8g8b8a8_unorm
+dEQP-VK.pipeline.monolithic.image_view.view_type.1d_array.format.e5b9g9r9_ufloat_pack32.subresource_range.lod_mip_levels
+dEQP-VK.pipeline.monolithic.stencil.format.d32_sfloat_s8_uint.states.fail_wrap.pass_incc.dfail_inv.comp_always
+dEQP-VK.synchronization.cross_instance.dedicated.write_copy_buffer_to_image_read_image_vertex.image_128x128_r8_unorm_binary_semaphore_dma_buf
+dEQP-VK.pipeline.monolithic.vertex_input.multiple_attributes.layout_skip.binding_one_to_many.attributes_sequential.uint.vec4.mat4
+dEQP-VK.synchronization2.cross_instance.dedicated.write_draw_indexed_read_image_fragment.image_128x128_r32g32b32a32_sfloat_binary_semaphore_dma_buf
+dEQP-VK.pipeline.monolithic.interface_matching.vector_length.out_ivec4_in_ivec2_member_of_block_vert_tesc_tese_geom_out_frag_in
+dEQP-VK.robustness.robustness2.bind.notemplate.r32ui.unroll.nonvolatile.sampled_image.no_fmt_qual.null_descriptor.samples_1.cube.vert
+dEQP-VK.synchronization.op.single_queue.timeline_semaphore.write_image_geometry_read_image_vertex.image_128x128_r8_unorm
+dEQP-VK.pipeline.fast_linked_library.timestamp.basic_graphics_tests.all_commands_stage_in_render_pass_host_query_reset
+dEQP-VK.draw.renderpass.shader_layer.tessellation_shader_6
+dEQP-VK.synchronization.timeline_semaphore.one_to_n.write_copy_image_read_image_geometry.image_128_r32_uint
+dEQP-VK.spirv_assembly.instruction.graphics.image_sampler.imagesample.combined_image_sampler_separate_variables.optypeimage_mismatch.rgba16i.depth_property.depth.shader_geom
+dEQP-VK.api.copy_and_blit.core.image_to_image.all_formats.color.2d_to_1d.a8b8g8r8_snorm_pack32.r32_uint.general_optimal
+
+# uprev Piglit in Mesa
+spec@glsl-4.20@execution@conversion@frag-conversion-implicit-mat4-dmat4-zero-sign
+
+# Random flakes, unkown when they started appearing
+dEQP-EGL.functional.color_clears.multi_thread.gles2.rgb888_pbuffer
+wayland-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer
+
+# glcts update
+wayland-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer
+KHR-GL46.draw_indirect.basic-drawElements-xfbPaused
+KHR-GL46.draw_indirect.basic-drawArrays-xfbPaused
+KHR-GL46.texture_cube_map_array.sampling
+KHR-GL46.gpu_shader_fp64.builtin.outerproduct_dmat3
+KHR-GL46.gpu_shader_fp64.builtin.smoothstep_against_scalar_dvec2
+KHR-GL46.packed_pixels.varied_rectangle.rgba8i
+KHR-GL46.texture_view.view_classes
+KHR-GL46.draw_indirect.basic-mode-drawArrays-lines_adjacency

@@ -28,28 +28,25 @@ struct lower_resource_state {
 static nir_def *load_ubo_desc_fast_path(nir_builder *b, nir_def *addr_lo,
                                             struct si_shader_selector *sel)
 {
-   nir_def *addr_hi =
-      nir_imm_int(b, S_008F04_BASE_ADDRESS_HI(sel->screen->info.address32_hi));
+   const struct ac_buffer_state buffer_state = {
+      .va = (uint64_t)sel->screen->info.address32_hi << 32,
+      .size = sel->info.constbuf0_num_slots * 16,
+      .format = PIPE_FORMAT_R32_FLOAT,
+      .swizzle =
+         {
+            PIPE_SWIZZLE_X,
+            PIPE_SWIZZLE_Y,
+            PIPE_SWIZZLE_Z,
+            PIPE_SWIZZLE_W,
+         },
+      .gfx10_oob_select = V_008F0C_OOB_SELECT_RAW,
+   };
+   uint32_t desc[4];
 
-   uint32_t rsrc3 =
-      S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-      S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
+   ac_build_buffer_descriptor(sel->screen->info.gfx_level, &buffer_state, desc);
 
-   if (sel->screen->info.gfx_level >= GFX12)
-      rsrc3 |= S_008F0C_FORMAT_GFX12(V_008F0C_GFX11_FORMAT_32_FLOAT) |
-               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
-   else if (sel->screen->info.gfx_level >= GFX11)
-      rsrc3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) |
-               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
-   else if (sel->screen->info.gfx_level >= GFX10)
-      rsrc3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
-   else
-      rsrc3 |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-               S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
-
-   return nir_vec4(b, addr_lo, addr_hi, nir_imm_int(b, sel->info.constbuf0_num_slots * 16),
-                   nir_imm_int(b, rsrc3));
+   return nir_vec4(b, addr_lo, nir_imm_int(b, desc[1]), nir_imm_int(b, desc[2]),
+                   nir_imm_int(b, desc[3]));
 }
 
 static nir_def *clamp_index(nir_builder *b, nir_def *index, unsigned max)
@@ -269,6 +266,10 @@ static bool lower_resource_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
    case nir_intrinsic_load_ubo: {
       assert(!(nir_intrinsic_access(intrin) & ACCESS_NON_UNIFORM));
 
+      /* Check if the instruction already sources a descriptor and doesn't need to be lowered. */
+      if (intrin->src[0].ssa->num_components == 4 && intrin->src[0].ssa->bit_size == 32)
+         return false;
+
       nir_def *desc = load_ubo_desc(b, intrin->src[0].ssa, s);
       nir_src_rewrite(&intrin->src[0], desc);
       break;
@@ -278,6 +279,10 @@ static bool lower_resource_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
    case nir_intrinsic_ssbo_atomic_swap: {
       assert(!(nir_intrinsic_access(intrin) & ACCESS_NON_UNIFORM));
 
+      /* Check if the instruction already sources a descriptor and doesn't need to be lowered. */
+      if (intrin->src[0].ssa->num_components == 4 && intrin->src[0].ssa->bit_size == 32)
+         return false;
+
       nir_def *desc = load_ssbo_desc(b, &intrin->src[0], s);
       nir_src_rewrite(&intrin->src[0], desc);
       break;
@@ -285,8 +290,21 @@ static bool lower_resource_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
    case nir_intrinsic_store_ssbo: {
       assert(!(nir_intrinsic_access(intrin) & ACCESS_NON_UNIFORM));
 
+      /* Check if the instruction already sources a descriptor and doesn't need to be lowered. */
+      if (intrin->src[1].ssa->num_components == 4 && intrin->src[1].ssa->bit_size == 32)
+         return false;
+
       nir_def *desc = load_ssbo_desc(b, &intrin->src[1], s);
       nir_src_rewrite(&intrin->src[1], desc);
+      break;
+   }
+   case nir_intrinsic_load_ssbo_address: {
+      assert(nir_src_as_uint(intrin->src[1]) == 0);
+      nir_def *desc = load_ssbo_desc(b, &intrin->src[0], s);
+      nir_def *lo = nir_channel(b, desc, 0);
+      nir_def *hi = nir_i2i32(b, nir_u2u16(b, nir_channel(b, desc, 1)));
+      nir_def_rewrite_uses(&intrin->def, nir_pack_64_2x32_split(b, lo, hi));
+      nir_instr_remove(&intrin->instr);
       break;
    }
    case nir_intrinsic_get_ssbo_size: {
@@ -294,8 +312,7 @@ static bool lower_resource_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
 
       nir_def *desc = load_ssbo_desc(b, &intrin->src[0], s);
       nir_def *size = nir_channel(b, desc, 2);
-      nir_def_rewrite_uses(&intrin->def, size);
-      nir_instr_remove(&intrin->instr);
+      nir_def_replace(&intrin->def, size);
       break;
    }
    case nir_intrinsic_image_deref_load:
@@ -326,8 +343,7 @@ static bool lower_resource_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
       nir_def *desc = load_deref_image_desc(b, deref, desc_type, is_load, s);
 
       if (intrin->intrinsic == nir_intrinsic_image_deref_descriptor_amd) {
-         nir_def_rewrite_uses(&intrin->def, desc);
-         nir_instr_remove(&intrin->instr);
+         nir_def_replace(&intrin->def, desc);
       } else {
          nir_intrinsic_set_image_dim(intrin, glsl_get_sampler_dim(deref->type));
          nir_intrinsic_set_image_array(intrin, glsl_sampler_type_is_array(deref->type));
@@ -340,7 +356,8 @@ static bool lower_resource_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
    case nir_intrinsic_bindless_image_fragment_mask_load_amd:
    case nir_intrinsic_bindless_image_store:
    case nir_intrinsic_bindless_image_atomic:
-   case nir_intrinsic_bindless_image_atomic_swap: {
+   case nir_intrinsic_bindless_image_atomic_swap:
+   case nir_intrinsic_bindless_image_descriptor_amd: {
       assert(!(nir_intrinsic_access(intrin) & ACCESS_NON_UNIFORM));
 
       enum ac_descriptor_type desc_type;
@@ -367,8 +384,7 @@ static bool lower_resource_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
       nir_def *desc = load_bindless_image_desc(b, index, desc_type, is_load, s);
 
       if (intrin->intrinsic == nir_intrinsic_bindless_image_descriptor_amd) {
-         nir_def_rewrite_uses(&intrin->def, desc);
-         nir_instr_remove(&intrin->instr);
+         nir_def_replace(&intrin->def, desc);
       } else {
          nir_src_rewrite(&intrin->src[0], desc);
       }
@@ -506,8 +522,7 @@ static bool lower_resource_tex(nir_builder *b, nir_tex_instr *tex,
          image = load_deref_sampler_desc(b, texture_deref, desc_type, s, true);
       else
          image = load_bindless_sampler_desc(b, texture_handle, desc_type, s);
-      nir_def_rewrite_uses(&tex->def, image);
-      nir_instr_remove(&tex->instr);
+      nir_def_replace(&tex->def, image);
       return true;
    }
 
@@ -517,8 +532,7 @@ static bool lower_resource_tex(nir_builder *b, nir_tex_instr *tex,
          sampler = load_deref_sampler_desc(b, sampler_deref, AC_DESC_SAMPLER, s, true);
       else
          sampler = load_bindless_sampler_desc(b, sampler_handle, AC_DESC_SAMPLER, s);
-      nir_def_rewrite_uses(&tex->def, sampler);
-      nir_instr_remove(&tex->instr);
+      nir_def_replace(&tex->def, sampler);
       return true;
    }
 
@@ -586,6 +600,6 @@ bool si_nir_lower_resource(nir_shader *nir, struct si_shader *shader,
    };
 
    return nir_shader_instructions_pass(nir, lower_resource_instr,
-                                       nir_metadata_dominance | nir_metadata_block_index,
+                                       nir_metadata_control_flow,
                                        &state);
 }

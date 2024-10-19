@@ -28,9 +28,7 @@ in this Software without prior written authorization from The Open Group.
 
 #define SHM
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -482,8 +480,8 @@ doShmPutImage(DrawablePtr dst, GCPtr pGC,
                                          PixmapBytePad(w, depth), data);
         if (!pPixmap)
             return;
-        pGC->ops->CopyArea((DrawablePtr) pPixmap, dst, pGC, sx, sy, sw, sh, dx,
-                           dy);
+        (void) pGC->ops->CopyArea((DrawablePtr) pPixmap, dst, pGC,
+                                  sx, sy, sw, sh, dx, dy);
         FreeScratchPixmapHeader(pPixmap);
     }
     else {
@@ -997,7 +995,7 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
                                                        stuff->offset);
 
         if (pMap) {
-            result = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid,
+            result = XaceHookResourceAccess(client, stuff->pid,
                               X11_RESTYPE_PIXMAP, pMap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
             if (result != Success) {
                 pDraw->pScreen->DestroyPixmap(pMap);
@@ -1112,7 +1110,7 @@ ProcShmCreatePixmap(ClientPtr client)
                                                    shmdesc->addr +
                                                    stuff->offset);
     if (pMap) {
-        rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, X11_RESTYPE_PIXMAP,
+        rc = XaceHookResourceAccess(client, stuff->pid, X11_RESTYPE_PIXMAP,
                       pMap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
         if (rc != Success) {
             pDraw->pScreen->DestroyPixmap(pMap);

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 CHECKPATH=".gitlab-ci"
+export SCRIPTS_DIR="${CHECKPATH}"
 
 is_bash() {
     [[ $1 == *.sh ]] && return 0

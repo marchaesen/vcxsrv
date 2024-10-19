@@ -1,25 +1,7 @@
 /*
- * Copyright (C) 2021 Valve Corporation
- * Copyright (C) 2014 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2021 Valve Corporation
+ * Copyright © 2014 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  */
 
 #include "ir3_ra.h"
@@ -870,8 +852,9 @@ try_evict_regs(struct ra_ctx *ctx, struct ra_file *file,
          unsigned conflicting_size =
             conflicting->physreg_end - conflicting->physreg_start;
          if (size >= conflicting_size &&
-             !check_dst_overlap(ctx, file, reg, avail_start, avail_start +
-                                conflicting_size)) {
+             (is_source ||
+              !check_dst_overlap(ctx, file, reg, avail_start,
+                                 avail_start + conflicting_size))) {
             for (unsigned i = 0;
                  i < conflicting->physreg_end - conflicting->physreg_start; i++)
                BITSET_CLEAR(available_to_evict, avail_start + i);
@@ -1307,9 +1290,9 @@ compress_regs_left(struct ra_ctx *ctx, struct ra_file *file,
    return ret_reg;
 }
 
-static void
-update_affinity(struct ra_file *file, struct ir3_register *reg,
-                physreg_t physreg)
+void
+ra_update_affinity(unsigned file_size, struct ir3_register *reg,
+                   physreg_t physreg)
 {
    if (!reg->merge_set || reg->merge_set->preferred_reg != (physreg_t)~0)
       return;
@@ -1317,7 +1300,7 @@ update_affinity(struct ra_file *file, struct ir3_register *reg,
    if (physreg < reg->merge_set_offset)
       return;
 
-   if ((physreg - reg->merge_set_offset + reg->merge_set->size) > file->size)
+   if ((physreg - reg->merge_set_offset + reg->merge_set->size) > file_size)
       return;
 
    reg->merge_set->preferred_reg = physreg - reg->merge_set_offset;
@@ -1369,6 +1352,55 @@ find_best_gap(struct ra_ctx *ctx, struct ra_file *file,
    return (physreg_t)~0;
 }
 
+static physreg_t
+try_allocate_src(struct ra_ctx *ctx, struct ra_file *file,
+                 struct ir3_register *reg)
+{
+   unsigned file_size = reg_file_size(file, reg);
+   unsigned size = reg_size(reg);
+   for (unsigned i = 0; i < reg->instr->srcs_count; i++) {
+      struct ir3_register *src = reg->instr->srcs[i];
+      if (!ra_reg_is_src(src))
+         continue;
+      if (ra_get_file(ctx, src) == file && reg_size(src) >= size) {
+         struct ra_interval *src_interval = &ctx->intervals[src->def->name];
+         physreg_t src_physreg = ra_interval_get_physreg(src_interval);
+         if (src_physreg % reg_elem_size(reg) == 0 &&
+             src_physreg + size <= file_size &&
+             get_reg_specified(ctx, file, reg, src_physreg, false))
+            return src_physreg;
+      }
+   }
+
+   return ~0;
+}
+
+static bool
+rpt_has_unique_merge_set(struct ir3_instruction *instr)
+{
+   assert(ir3_instr_is_rpt(instr));
+
+   if (!instr->dsts[0]->merge_set)
+      return false;
+
+   struct ir3_instruction *first = ir3_instr_first_rpt(instr);
+   struct ir3_register *def = first->dsts[0];
+
+   if (def->merge_set != instr->dsts[0]->merge_set ||
+       def->merge_set->regs_count != ir3_instr_rpt_length(first)) {
+      return false;
+   }
+
+   unsigned i = 0;
+
+   foreach_instr_rpt (rpt, first) {
+      if (rpt->dsts[0] != def->merge_set->regs[i++])
+         return false;
+   }
+
+   return true;
+}
+
 /* This is the main entrypoint for picking a register. Pick a free register
  * for "reg", shuffling around sources if necessary. In the normal case where
  * "is_source" is false, this register can overlap with killed sources
@@ -1389,6 +1421,18 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg)
           preferred_reg % reg_elem_size(reg) == 0 &&
           get_reg_specified(ctx, file, reg, preferred_reg, false))
          return preferred_reg;
+   }
+
+   /* For repeated instructions whose merge set is unique (i.e., only used for
+    * these repeated instructions), try to first allocate one of their sources
+    * (for the same reason as for ALU/SFU instructions explained below). This
+    * also prevents us from allocating a new register range for this merge set
+    * when the one from a source could be reused.
+    */
+   if (ir3_instr_is_rpt(reg->instr) && rpt_has_unique_merge_set(reg->instr)) {
+      physreg_t src_reg = try_allocate_src(ctx, file, reg);
+      if (src_reg != (physreg_t)~0)
+         return src_reg;
    }
 
    /* If this register is a subset of a merge set which we have not picked a
@@ -1413,19 +1457,9 @@ get_reg(struct ra_ctx *ctx, struct ra_file *file, struct ir3_register *reg)
     * SFU instructions:
     */
    if (is_sfu(reg->instr) || is_alu(reg->instr)) {
-      for (unsigned i = 0; i < reg->instr->srcs_count; i++) {
-         struct ir3_register *src = reg->instr->srcs[i];
-         if (!ra_reg_is_src(src))
-            continue;
-         if (ra_get_file(ctx, src) == file && reg_size(src) >= size) {
-            struct ra_interval *src_interval = &ctx->intervals[src->def->name];
-            physreg_t src_physreg = ra_interval_get_physreg(src_interval);
-            if (src_physreg % reg_elem_size(reg) == 0 &&
-                src_physreg + size <= file_size &&
-                get_reg_specified(ctx, file, reg, src_physreg, false))
-               return src_physreg;
-         }
-      }
+      physreg_t src_reg = try_allocate_src(ctx, file, reg);
+      if (src_reg != (physreg_t)~0)
+         return src_reg;
    }
 
    physreg_t best_reg =
@@ -1508,7 +1542,7 @@ allocate_dst_fixed(struct ra_ctx *ctx, struct ir3_register *dst,
 {
    struct ra_file *file = ra_get_file(ctx, dst);
    struct ra_interval *interval = &ctx->intervals[dst->name];
-   update_affinity(file, dst, physreg);
+   ra_update_affinity(file->size, dst, physreg);
 
    ra_interval_init(interval, dst);
    interval->physreg_start = physreg;
@@ -2451,7 +2485,8 @@ calc_min_limit_pressure(struct ir3_shader_variant *v,
          cur_pressure = (struct ir3_pressure) {0};
 
          ra_foreach_dst (dst, instr) {
-            if (dst->tied && !(dst->tied->flags & IR3_REG_KILL))
+            if ((dst->tied && !(dst->tied->flags & IR3_REG_KILL)) ||
+                (dst->flags & IR3_REG_EARLY_CLOBBER))
                add_pressure(&cur_pressure, dst, v->mergedregs);
          }
 
@@ -2562,6 +2597,7 @@ ir3_ra(struct ir3_shader_variant *v)
 
    ir3_debug_print(v->ir, "AFTER: create_parallel_copies");
 
+   ir3_index_instrs_for_merge_sets(v->ir);
    ir3_merge_regs(live, v->ir);
 
    bool has_shared_vectors = false;
@@ -2606,6 +2642,11 @@ ir3_ra(struct ir3_shader_variant *v)
    if (ir3_shader_debug & IR3_DBG_SPILLALL)
       calc_min_limit_pressure(v, live, &limit_pressure);
 
+   d("limit pressure:");
+   d("\tfull: %u", limit_pressure.full);
+   d("\thalf: %u", limit_pressure.half);
+   d("\tshared: %u", limit_pressure.shared);
+
    /* In the worst case, each half register could block one full register, so
     * add shared_half in case of fragmentation. In addition, full registers can
     * block half registers so we have to consider the total pressure against the
@@ -2615,13 +2656,7 @@ ir3_ra(struct ir3_shader_variant *v)
    if (max_pressure.shared + max_pressure.shared_half > limit_pressure.shared ||
        (max_pressure.shared_half > 0 && max_pressure.shared > limit_pressure.shared_half) ||
        has_shared_vectors) {
-      ir3_ra_shared(v, live);
-
-      /* Recalculate liveness and register pressure now that additional values
-       * have been added.
-       */
-      ralloc_free(live);
-      live = ir3_calc_liveness(ctx, v->ir);
+      ir3_ra_shared(v, &live);
       ir3_calc_pressure(v, live, &max_pressure);
 
       ir3_debug_print(v->ir, "AFTER: shared register allocation");
@@ -2637,6 +2672,12 @@ ir3_ra(struct ir3_shader_variant *v)
       d("max pressure exceeded, spilling!");
       IR3_PASS(v->ir, ir3_spill, v, &live, &limit_pressure);
       ir3_calc_pressure(v, live, &max_pressure);
+
+      d("max pressure after spilling:");
+      d("\tfull: %u", max_pressure.full);
+      d("\thalf: %u", max_pressure.half);
+      d("\tshared: %u", max_pressure.shared);
+
       assert(max_pressure.full <= limit_pressure.full &&
              max_pressure.half <= limit_pressure.half);
       spilled = true;

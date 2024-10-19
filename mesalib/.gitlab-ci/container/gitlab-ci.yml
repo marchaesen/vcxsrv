@@ -72,10 +72,6 @@ debian/x86_64_build-base:
     - .debian-container
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
-  rules:
-    # python-test requires debian/x86_64_build, which requires this job
-    - !reference [python-test, rules]
-    - !reference [.container, rules]
 
 .use-debian/x86_64_build-base:
   extends:
@@ -95,10 +91,6 @@ debian/x86_64_build:
     - .use-debian/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build ${DEBIAN_BUILD_TAG}
-  rules:
-    # python-test requires this job
-    - !reference [python-test, rules]
-    - !reference [.use-debian/x86_64_build-base, rules]
 
 .use-debian/x86_64_build:
   extends:
@@ -198,11 +190,33 @@ debian/x86_64_test-base:
   needs:
     - debian/x86_64_test-base
 
+# Debian based aarch64 test image base
+debian/arm64_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .debian-container
+  variables:
+    MESA_IMAGE_TAG: &debian-arm64_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
+
+.use-debian/arm64_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .fdo.container-build@debian
+    - .debian-container-version
+    - .use-base-image
+  variables:
+    MESA_BASE_IMAGE: ${DEBIAN_ARM64_TEST_BASE_IMAGE}
+    MESA_BASE_TAG: *debian-arm64_test-base
+  needs:
+    - debian/arm64_test-base
+
 # Debian based x86_64 test image for GL
 debian/x86_64_test-gl:
   extends: .use-debian/x86_64_test-base
   variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-gl ${DEBIAN_X86_64_TEST_GL_TAG}
+    MESA_IMAGE_TAG: &debian-x86_64_test-gl ${DEBIAN_TEST_GL_TAG}
 
 .use-debian/x86_64_test-gl:
   extends:
@@ -218,7 +232,7 @@ debian/x86_64_test-gl:
 debian/x86_64_test-vk:
   extends: .use-debian/x86_64_test-base
   variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-vk ${DEBIAN_X86_64_TEST_VK_TAG}
+    MESA_IMAGE_TAG: &debian-x86_64_test-vk ${DEBIAN_TEST_VK_TAG}
 
 .use-debian/x86_64_test-vk:
   extends:
@@ -234,7 +248,7 @@ debian/x86_64_test-vk:
 .debian/x86_64_test-android:
   extends: .use-debian/x86_64_test-base
   variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-android ${DEBIAN_X86_64_TEST_ANDROID_TAG}
+    MESA_IMAGE_TAG: &debian-x86_64_test-android ${DEBIAN_TEST_ANDROID_TAG}
     ANDROID_NDK: android-ndk-r25b
 
 .use-debian/x86_64_test-android:
@@ -246,6 +260,68 @@ debian/x86_64_test-vk:
     MESA_IMAGE_TAG: *debian-x86_64_test-android
   needs:
     - debian/x86_64_test-android
+
+# Debian-based x86_64 image to run Python utilities
+debian/x86_64_pyutils:
+  extends:
+    - .debian-container
+  variables:
+    MESA_IMAGE_TAG: &debian-x86_64_pyutils "${DEBIAN_PYUTILS_TAG}"
+  rules:
+    # python-test requires this job
+    - !reference [python-test, rules]
+    - !reference [.container, rules]
+
+.use-debian/x86_64_pyutils:
+  extends:
+    - .fdo.container-build@debian
+    - .debian-container-version
+    - .set-image
+  variables:
+    MESA_IMAGE_PATH: ${DEBIAN_PYUTILS_IMAGE}
+    MESA_IMAGE_TAG: *debian-x86_64_pyutils
+  needs:
+    - debian/x86_64_pyutils
+
+# Debian based aarch64 test image for GL
+debian/arm64_test-gl:
+  tags:
+    - aarch64
+  extends: .use-debian/arm64_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm64_test-gl ${DEBIAN_TEST_GL_TAG}
+
+.use-debian/arm64_test-gl:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm64_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM64_TEST_IMAGE_GL_PATH}
+    MESA_IMAGE_TAG: *debian-arm64_test-gl
+  needs:
+    - debian/arm64_test-gl
+
+# Debian based aarch64 test image for VK
+debian/arm64_test-vk:
+  tags:
+    - aarch64
+  extends: .use-debian/arm64_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm64_test-vk ${DEBIAN_TEST_VK_TAG}
+
+.use-debian/arm64_test-vk:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm64_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM64_TEST_IMAGE_VK_PATH}
+    MESA_IMAGE_TAG: *debian-arm64_test-vk
+  needs:
+    - debian/arm64_test-vk
 
 # Debian based ARM build image
 debian/arm64_build:
@@ -284,6 +360,15 @@ alpine/x86_64_build:
     - .alpine/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &alpine-x86_64_build ${ALPINE_X86_64_BUILD_TAG}
+    LLVM_VERSION: &alpine-llvm_version 18
+  rules:
+    # Note: the next three lines must remain in that order, so that the rules
+    # in `linkcheck-docs` catch nightly pipelines before the rules in `pages`
+    # exclude them.
+    - !reference [linkcheck-docs, rules]
+    - !reference [pages, rules]
+    - !reference [test-docs, rules]
+    - !reference [.container, rules]
 
 .use-alpine/x86_64_build:
   extends:
@@ -291,6 +376,7 @@ alpine/x86_64_build:
   variables:
     MESA_IMAGE_PATH: "alpine/x86_64_build"
     MESA_IMAGE_TAG: *alpine-x86_64_build
+    LLVM_VERSION: *alpine-llvm_version
   needs:
     - alpine/x86_64_build
 
@@ -319,12 +405,29 @@ fedora/x86_64_build:
   needs:
     - fedora/x86_64_build
 
+# Get firmware directly rather than using package versions.
+# Change KERNEL_ROOTFS_TAG to add firmware changes.
+# FIRMWARE_FILES is a list of json files arranged by vendor in .gitlab-ci/firmware/*
+.firmware_x86_64:
+  variables:
+    FIRMWARE_FILES: |
+      .gitlab-ci/firmware/i915/mtl-fw.json
+
+.firmware_arm64:
+  variables:
+    FIRMWARE_FILES: |
+      .gitlab-ci/firmware/arm/mali/arch10.8/mali-fw.json
+
+.firmware_arm32:
+  variables:
+    FIRMWARE_FILES: |
 
 .kernel+rootfs:
   extends:
     - .container+build-rules
     - .debian-container-version
   stage: container
+  timeout: 90m
   variables:
     GIT_STRATEGY: fetch
     MESA_ROOTFS_TAG: &kernel-rootfs ${KERNEL_ROOTFS_TAG}
@@ -336,6 +439,7 @@ kernel+rootfs_x86_64:
   extends:
     - .use-debian/x86_64_build-base
     - .kernel+rootfs
+    - .firmware_x86_64
   image: "$FDO_BASE_IMAGE"
   variables:
     DEBIAN_ARCH: "amd64"
@@ -345,6 +449,7 @@ kernel+rootfs_arm64:
   extends:
     - .use-debian/arm64_build
     - .kernel+rootfs
+    - .firmware_arm64
   tags:
     - aarch64
   variables:
@@ -353,6 +458,7 @@ kernel+rootfs_arm64:
 kernel+rootfs_arm32:
   extends:
     - kernel+rootfs_arm64
+    - .firmware_arm32
   variables:
     DEBIAN_ARCH: "armhf"
 
@@ -368,7 +474,7 @@ kernel+rootfs_arm32:
     MESA_ROOTFS_TAG: *kernel-rootfs
 
 # x86_64 image with ARM64 & ARM32 kernel & rootfs for baremetal testing
-.debian/arm_test:
+.debian/baremetal_arm_test:
   extends:
     - .fdo.container-build@debian
     - .container
@@ -382,45 +488,45 @@ kernel+rootfs_arm32:
     MESA_ARTIFACTS_TAG: *debian-arm64_build
     MESA_ROOTFS_TAG: *kernel-rootfs
 
-debian/arm32_test:
+debian/baremetal_arm32_test:
   extends:
-    - .debian/arm_test
+    - .debian/baremetal_arm_test
   needs:
     - kernel+rootfs_arm32
   variables:
     MESA_IMAGE_TAG: &debian-arm32_test "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
 
-debian/arm64_test:
+debian/baremetal_arm64_test:
   extends:
-    - .debian/arm_test
+    - .debian/baremetal_arm_test
   needs:
     - kernel+rootfs_arm64
   variables:
     MESA_IMAGE_TAG: &debian-arm64_test "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
 
-.use-debian/arm_test:
+.use-debian/baremetal_arm_test:
   variables:
     MESA_ROOTFS_TAG: *kernel-rootfs
 
-.use-debian/arm32_test:
+.use-debian/baremetal_arm32_test:
   image: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_ROOTFS_TAG}--${KERNEL_TAG}--${MESA_TEMPLATES_COMMIT}"
   extends:
-    - .use-debian/arm_test
+    - .use-debian/baremetal_arm_test
   variables:
-    MESA_IMAGE_PATH: "debian/arm32_test"
+    MESA_IMAGE_PATH: "debian/baremetal_arm32_test"
     MESA_IMAGE_TAG: *debian-arm32_test
   needs:
-    - debian/arm_test
+    - debian/baremetal_arm_test
 
-.use-debian/arm64_test:
+.use-debian/baremetal_arm64_test:
   image: "$CI_REGISTRY_IMAGE/${MESA_IMAGE_PATH}:${MESA_IMAGE_TAG}--${MESA_ROOTFS_TAG}--${KERNEL_TAG}--${MESA_TEMPLATES_COMMIT}"
   extends:
-    - .use-debian/arm_test
+    - .use-debian/baremetal_arm_test
   variables:
-    MESA_IMAGE_PATH: "debian/arm64_test"
+    MESA_IMAGE_PATH: "debian/baremetal_arm64_test"
     MESA_IMAGE_TAG: *debian-arm64_test
   needs:
-    - debian/arm_test
+    - debian/baremetal_arm_test
 
 # Native Windows docker builds
 #
@@ -449,6 +555,7 @@ debian/arm64_test:
     - .windows-docker-msvc
     - .windows-shell-tags
   rules:
+    - !reference [.common-rules, rules]
     - !reference [.microsoft-farm-container-rules, rules]
     - !reference [.container+build-rules, rules]
   variables:
@@ -474,6 +581,7 @@ windows_build_msvc:
   extends:
     - .windows_container_build
   rules:
+    - !reference [.common-rules, rules]
     - !reference [.microsoft-farm-rules, rules]
     - !reference [.container+build-rules, rules]
   variables:
@@ -492,6 +600,7 @@ windows_test_msvc:
   extends:
     - .windows_container_build
   rules:
+    - !reference [.common-rules, rules]
     - !reference [.microsoft-farm-rules, rules]
     - !reference [.container+build-rules, rules]
   variables:

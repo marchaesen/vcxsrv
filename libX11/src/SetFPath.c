@@ -38,43 +38,49 @@ XSetFontPath (
     char **directories,
     int ndirs)
 {
-	register size_t n = 0;
-	register int i;
-	register int nbytes;
-	char *p;
 	register xSetFontPathReq *req;
 	int retCode;
 
         LockDisplay(dpy);
 	GetReq (SetFontPath, req);
 	req->nFonts = ndirs;
-	for (i = 0; i < ndirs; i++) {
-		n = n + (safestrlen (directories[i]) + 1);
-		if (n >= USHRT_MAX) {
-			UnlockDisplay(dpy);
-			SyncHandle();
-			return 0;
-		}
-	}
-	nbytes = (n + 3) & ~3;
-	req->length += nbytes >> 2;
-	if ((p = Xmalloc (nbytes))) {
-		/*
-	 	 * pack into counted strings.
-	 	 */
-		char	*tmp = p;
+	if (ndirs > 0) {
+		size_t n = 0;
+		int nbytes;
+		char *p;
 
-		for (i = 0; i < ndirs; i++) {
-			size_t length = safestrlen (directories[i]);
-			*p = length;
-			memcpy (p + 1, directories[i], length);
-			p += length + 1;
+		for (int i = 0; i < ndirs; i++) {
+			n = n + (safestrlen (directories[i]) + 1);
+			if (n >= USHRT_MAX) {
+				UnlockDisplay(dpy);
+				SyncHandle();
+				return 0;
+			}
 		}
-		Data (dpy, tmp, nbytes);
-		Xfree (tmp);
-		retCode = 1;
+		nbytes = (n + 3) & ~3;
+		req->length += nbytes >> 2;
+		if ((p = Xmalloc (nbytes))) {
+			/*
+			 * pack into counted strings.
+			 */
+			char	*tmp = p;
+
+			for (int i = 0; i < ndirs; i++) {
+				size_t length = safestrlen (directories[i]);
+				*p = length;
+				memcpy (p + 1, directories[i], length);
+				p += length + 1;
+			}
+			Data (dpy, tmp, nbytes);
+			Xfree (tmp);
+			retCode = 1;
+		}
+		else
+			retCode = 0;
 	}
-	else
+	else if (ndirs == 0)
+		retCode = 1;
+	else /* ndirs < 0 */
 		retCode = 0;
 
         UnlockDisplay(dpy);

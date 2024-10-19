@@ -287,14 +287,18 @@ build_pipeline_statistics_query_shader(struct radv_device *device)
    nir_def *flags = nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 0), .range = 4);
    nir_def *stats_mask = nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 8), .range = 12);
    nir_def *avail_offset = nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 12), .range = 16);
+   nir_def *uses_gds = nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 16), .range = 20);
 
    nir_def *dst_buf = radv_meta_load_descriptor(&b, 0, 0);
    nir_def *src_buf = radv_meta_load_descriptor(&b, 0, 1);
 
    nir_def *global_id = get_global_ids(&b, 1);
 
-   nir_def *input_stride = nir_imm_int(&b, pipelinestat_block_size * 2);
+   nir_def *input_stride =
+      nir_bcsel(&b, nir_ine_imm(&b, uses_gds, 0), nir_imm_int(&b, pipelinestat_block_size * 2 + 8 * 2),
+                nir_imm_int(&b, pipelinestat_block_size * 2));
    nir_def *input_base = nir_imul(&b, input_stride, global_id);
+
    nir_def *output_stride = nir_load_push_constant(&b, 1, 32, nir_imm_int(&b, 4), .range = 8);
    nir_def *output_base = nir_imul(&b, output_stride, global_id);
 
@@ -343,6 +347,23 @@ build_pipeline_statistics_query_shader(struct radv_device *device)
       nir_def *end = nir_load_ssbo(&b, 1, 64, src_buf, end_offset);
 
       nir_store_var(&b, result, nir_isub(&b, end, start), 0x1);
+
+      nir_push_if(&b,
+                  nir_iand(&b, nir_i2b(&b, uses_gds),
+                           nir_imm_bool(&b, 1u << i == VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT)));
+      {
+         /* Compute the GDS result if needed. */
+         nir_def *gds_start_offset = nir_iadd_imm(&b, input_base, pipelinestat_block_size * 2);
+         nir_def *gds_start = nir_load_ssbo(&b, 1, 64, src_buf, gds_start_offset);
+
+         nir_def *gds_end_offset = nir_iadd_imm(&b, input_base, pipelinestat_block_size * 2 + 8);
+         nir_def *gds_end = nir_load_ssbo(&b, 1, 64, src_buf, gds_end_offset);
+
+         nir_def *ngg_gds_result = nir_isub(&b, gds_end, gds_start);
+
+         nir_store_var(&b, result, nir_iadd(&b, nir_load_var(&b, result), ngg_gds_result), 0x1);
+      }
+      nir_pop_if(&b, NULL);
 
       /* Store result */
       nir_push_if(&b, result_is_64bit);
@@ -892,161 +913,59 @@ radv_device_init_meta_query_state_internal(struct radv_device *device)
    if (pdev->emulate_mesh_shader_queries)
       ms_prim_gen_cs = build_ms_prim_gen_query_shader(device);
 
-   VkDescriptorSetLayoutCreateInfo occlusion_ds_create_info = {
-      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-      .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
-      .bindingCount = 2,
-      .pBindings = (VkDescriptorSetLayoutBinding[]){
-         {.binding = 0,
-          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .descriptorCount = 1,
-          .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-          .pImmutableSamplers = NULL},
-         {.binding = 1,
-          .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-          .descriptorCount = 1,
-          .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-          .pImmutableSamplers = NULL},
-      }};
+   const VkDescriptorSetLayoutBinding bindings[] = {
+      {.binding = 0,
+       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+       .descriptorCount = 1,
+       .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT},
+      {
+         .binding = 1,
+         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+         .descriptorCount = 1,
+         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+      },
+   };
 
-   result = radv_CreateDescriptorSetLayout(radv_device_to_handle(device), &occlusion_ds_create_info,
-                                           &device->meta_state.alloc, &device->meta_state.query.ds_layout);
+   result = radv_meta_create_descriptor_set_layout(device, 2, bindings, &device->meta_state.query.ds_layout);
    if (result != VK_SUCCESS)
       goto fail;
 
-   VkPipelineLayoutCreateInfo occlusion_pl_create_info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 1,
-      .pSetLayouts = &device->meta_state.query.ds_layout,
-      .pushConstantRangeCount = 1,
-      .pPushConstantRanges = &(VkPushConstantRange){VK_SHADER_STAGE_COMPUTE_BIT, 0, 20},
+   const VkPushConstantRange pc_range = {
+      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+      .size = 20,
    };
 
-   result = radv_CreatePipelineLayout(radv_device_to_handle(device), &occlusion_pl_create_info,
-                                      &device->meta_state.alloc, &device->meta_state.query.p_layout);
+   result = radv_meta_create_pipeline_layout(device, &device->meta_state.query.ds_layout, 1, &pc_range,
+                                             &device->meta_state.query.p_layout);
    if (result != VK_SUCCESS)
       goto fail;
 
-   VkPipelineShaderStageCreateInfo occlusion_pipeline_shader_stage = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(occlusion_cs),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
-
-   VkComputePipelineCreateInfo occlusion_vk_pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = occlusion_pipeline_shader_stage,
-      .flags = 0,
-      .layout = device->meta_state.query.p_layout,
-   };
-
-   result =
-      radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache, &occlusion_vk_pipeline_info,
-                                   NULL, &device->meta_state.query.occlusion_query_pipeline);
+   result = radv_meta_create_compute_pipeline(device, occlusion_cs, device->meta_state.query.p_layout,
+                                              &device->meta_state.query.occlusion_query_pipeline);
    if (result != VK_SUCCESS)
       goto fail;
 
-   VkPipelineShaderStageCreateInfo pipeline_statistics_pipeline_shader_stage = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(pipeline_statistics_cs),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
-
-   VkComputePipelineCreateInfo pipeline_statistics_vk_pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = pipeline_statistics_pipeline_shader_stage,
-      .flags = 0,
-      .layout = device->meta_state.query.p_layout,
-   };
-
-   result = radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache,
-                                         &pipeline_statistics_vk_pipeline_info, NULL,
-                                         &device->meta_state.query.pipeline_statistics_query_pipeline);
+   result = radv_meta_create_compute_pipeline(device, pipeline_statistics_cs, device->meta_state.query.p_layout,
+                                              &device->meta_state.query.pipeline_statistics_query_pipeline);
    if (result != VK_SUCCESS)
       goto fail;
 
-   VkPipelineShaderStageCreateInfo tfb_pipeline_shader_stage = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(tfb_cs),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
-
-   VkComputePipelineCreateInfo tfb_pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = tfb_pipeline_shader_stage,
-      .flags = 0,
-      .layout = device->meta_state.query.p_layout,
-   };
-
-   result = radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache, &tfb_pipeline_info,
-                                         NULL, &device->meta_state.query.tfb_query_pipeline);
+   result = radv_meta_create_compute_pipeline(device, tfb_cs, device->meta_state.query.p_layout,
+                                              &device->meta_state.query.tfb_query_pipeline);
    if (result != VK_SUCCESS)
       goto fail;
 
-   VkPipelineShaderStageCreateInfo timestamp_pipeline_shader_stage = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(timestamp_cs),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
-
-   VkComputePipelineCreateInfo timestamp_pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = timestamp_pipeline_shader_stage,
-      .flags = 0,
-      .layout = device->meta_state.query.p_layout,
-   };
-
-   result =
-      radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache, &timestamp_pipeline_info,
-                                   NULL, &device->meta_state.query.timestamp_query_pipeline);
+   result = radv_meta_create_compute_pipeline(device, timestamp_cs, device->meta_state.query.p_layout,
+                                              &device->meta_state.query.timestamp_query_pipeline);
    if (result != VK_SUCCESS)
       goto fail;
 
-   VkPipelineShaderStageCreateInfo pg_pipeline_shader_stage = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(pg_cs),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
-
-   VkComputePipelineCreateInfo pg_pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = pg_pipeline_shader_stage,
-      .flags = 0,
-      .layout = device->meta_state.query.p_layout,
-   };
-
-   result = radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache, &pg_pipeline_info,
-                                         NULL, &device->meta_state.query.pg_query_pipeline);
+   result = radv_meta_create_compute_pipeline(device, pg_cs, device->meta_state.query.p_layout,
+                                              &device->meta_state.query.pg_query_pipeline);
 
    if (pdev->emulate_mesh_shader_queries) {
-      VkPipelineShaderStageCreateInfo ms_prim_gen_pipeline_shader_stage = {
-         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-         .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-         .module = vk_shader_module_handle_from_nir(ms_prim_gen_cs),
-         .pName = "main",
-         .pSpecializationInfo = NULL,
-      };
-
-      VkComputePipelineCreateInfo ms_prim_gen_pipeline_info = {
-         .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-         .stage = ms_prim_gen_pipeline_shader_stage,
-         .flags = 0,
-         .layout = device->meta_state.query.p_layout,
-      };
-
-      result = radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache,
-                                            &ms_prim_gen_pipeline_info, NULL,
-                                            &device->meta_state.query.ms_prim_gen_query_pipeline);
+      result = radv_meta_create_compute_pipeline(device, ms_prim_gen_cs, device->meta_state.query.p_layout,
+                                                 &device->meta_state.query.ms_prim_gen_query_pipeline);
    }
 
 fail:
@@ -1072,37 +991,22 @@ radv_device_init_meta_query_state(struct radv_device *device, bool on_demand)
 void
 radv_device_finish_meta_query_state(struct radv_device *device)
 {
-   if (device->meta_state.query.tfb_query_pipeline)
-      radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.tfb_query_pipeline,
-                           &device->meta_state.alloc);
-
-   if (device->meta_state.query.pipeline_statistics_query_pipeline)
-      radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.pipeline_statistics_query_pipeline,
-                           &device->meta_state.alloc);
-
-   if (device->meta_state.query.occlusion_query_pipeline)
-      radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.occlusion_query_pipeline,
-                           &device->meta_state.alloc);
-
-   if (device->meta_state.query.timestamp_query_pipeline)
-      radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.timestamp_query_pipeline,
-                           &device->meta_state.alloc);
-
-   if (device->meta_state.query.pg_query_pipeline)
-      radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.pg_query_pipeline,
-                           &device->meta_state.alloc);
-
-   if (device->meta_state.query.ms_prim_gen_query_pipeline)
-      radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.ms_prim_gen_query_pipeline,
-                           &device->meta_state.alloc);
-
-   if (device->meta_state.query.p_layout)
-      radv_DestroyPipelineLayout(radv_device_to_handle(device), device->meta_state.query.p_layout,
-                                 &device->meta_state.alloc);
-
-   if (device->meta_state.query.ds_layout)
-      device->vk.dispatch_table.DestroyDescriptorSetLayout(
-         radv_device_to_handle(device), device->meta_state.query.ds_layout, &device->meta_state.alloc);
+   radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.tfb_query_pipeline,
+                        &device->meta_state.alloc);
+   radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.pipeline_statistics_query_pipeline,
+                        &device->meta_state.alloc);
+   radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.occlusion_query_pipeline,
+                        &device->meta_state.alloc);
+   radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.timestamp_query_pipeline,
+                        &device->meta_state.alloc);
+   radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.pg_query_pipeline,
+                        &device->meta_state.alloc);
+   radv_DestroyPipeline(radv_device_to_handle(device), device->meta_state.query.ms_prim_gen_query_pipeline,
+                        &device->meta_state.alloc);
+   radv_DestroyPipelineLayout(radv_device_to_handle(device), device->meta_state.query.p_layout,
+                              &device->meta_state.alloc);
+   device->vk.dispatch_table.DestroyDescriptorSetLayout(radv_device_to_handle(device),
+                                                        device->meta_state.query.ds_layout, &device->meta_state.alloc);
 }
 
 static void
@@ -1139,8 +1043,7 @@ radv_query_shader(struct radv_cmd_buffer *cmd_buffer, VkPipeline *pipeline, stru
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE, *pipeline);
 
    radv_meta_push_descriptor_set(
-      cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, device->meta_state.query.p_layout, 0, /* set */
-      2,                                                                                /* descriptorWriteCount */
+      cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, device->meta_state.query.p_layout, 0, 2,
       (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                 .dstBinding = 0,
                                 .dstArrayElement = 0,
@@ -1231,14 +1134,9 @@ radv_create_query_pool(struct radv_device *device, const VkQueryPoolCreateInfo *
    /* The number of primitives generated by geometry shader invocations is only counted by the
     * hardware if GS uses the legacy path. When NGG GS is used, the hardware can't know the number
     * of generated primitives and we have to increment it from the shader using a plain GDS atomic.
-    *
-    * The number of geometry shader invocations is correctly counted by the hardware for both NGG
-    * and the legacy GS path but it increments for NGG VS/TES because they are merged with GS. To
-    * avoid this counter to increment, it's also emulated.
     */
    pool->uses_gds = (pdev->emulate_ngg_gs_query_pipeline_stat &&
-                     (pool->vk.pipeline_statistics & (VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT |
-                                                      VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT))) ||
+                     (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT)) ||
                     (pdev->use_ngg && pCreateInfo->queryType == VK_QUERY_TYPE_PRIMITIVES_GENERATED_EXT) ||
                     (pdev->emulate_mesh_shader_queries &&
                      (pCreateInfo->queryType == VK_QUERY_TYPE_MESH_PRIMITIVES_GENERATED_EXT ||
@@ -1253,6 +1151,12 @@ radv_create_query_pool(struct radv_device *device, const VkQueryPoolCreateInfo *
       break;
    case VK_QUERY_TYPE_PIPELINE_STATISTICS:
       pool->stride = radv_get_pipelinestat_query_size(device) * 2;
+      if (pool->uses_gds) {
+         /* When the query pool needs GDS (for counting the number of primitives generated by a
+          * geometry shader with NGG), allocate 2x64-bit values for begin/end.
+          */
+         pool->stride += 8 * 2;
+      }
       break;
    case VK_QUERY_TYPE_TIMESTAMP:
    case VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR:
@@ -1462,6 +1366,7 @@ radv_GetQueryPoolResults(VkDevice _device, VkQueryPool queryPool, uint32_t first
       case VK_QUERY_TYPE_PIPELINE_STATISTICS: {
          unsigned pipelinestat_block_size = radv_get_pipelinestat_query_size(device);
          const uint32_t *avail_ptr = (const uint32_t *)(pool->ptr + pool->availability_offset + 4 * query);
+         uint64_t ngg_gds_result = 0;
 
          do {
             available = p_atomic_read(avail_ptr);
@@ -1483,6 +1388,14 @@ radv_GetQueryPoolResults(VkDevice _device, VkQueryPool queryPool, uint32_t first
          else if (!available && !(flags & VK_QUERY_RESULT_PARTIAL_BIT))
             result = VK_NOT_READY;
 
+         if (pool->uses_gds) {
+            /* Compute the result that was copied from GDS. */
+            const uint64_t *gds_start = (uint64_t *)(src + pipelinestat_block_size * 2);
+            const uint64_t *gds_stop = (uint64_t *)(src + pipelinestat_block_size * 2 + 8);
+
+            ngg_gds_result = gds_stop[0] - gds_start[0];
+         }
+
          const uint64_t *start = (uint64_t *)src;
          const uint64_t *stop = (uint64_t *)(src + pipelinestat_block_size);
          if (flags & VK_QUERY_RESULT_64_BIT) {
@@ -1492,6 +1405,9 @@ radv_GetQueryPoolResults(VkDevice _device, VkQueryPool queryPool, uint32_t first
                if (pool->vk.pipeline_statistics & (1u << i)) {
                   if (available || (flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
                      *dst = stop[pipeline_statistics_indices[i]] - start[pipeline_statistics_indices[i]];
+
+                     if (pool->uses_gds && (1u << i) == VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT)
+                        *dst += ngg_gds_result;
                   }
                   dst++;
                }
@@ -1504,6 +1420,9 @@ radv_GetQueryPoolResults(VkDevice _device, VkQueryPool queryPool, uint32_t first
                if (pool->vk.pipeline_statistics & (1u << i)) {
                   if (available || (flags & VK_QUERY_RESULT_PARTIAL_BIT)) {
                      *dst = stop[pipeline_statistics_indices[i]] - start[pipeline_statistics_indices[i]];
+
+                     if (pool->uses_gds && (1u << i) == VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT)
+                        *dst += ngg_gds_result;
                   }
                   dst++;
                }
@@ -1860,7 +1779,7 @@ radv_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQueryPool queryPoo
       radv_query_shader(cmd_buffer, &device->meta_state.query.pipeline_statistics_query_pipeline, pool->bo,
                         dst_buffer->bo, firstQuery * pool->stride, dst_buffer->offset + dstOffset, pool->stride, stride,
                         dst_size, queryCount, flags, pool->vk.pipeline_statistics,
-                        pool->availability_offset + 4 * firstQuery, false);
+                        pool->availability_offset + 4 * firstQuery, pool->uses_gds);
       break;
    case VK_QUERY_TYPE_TIMESTAMP:
    case VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR:
@@ -2187,17 +2106,10 @@ emit_begin_query(struct radv_cmd_buffer *cmd_buffer, struct radv_query_pool *poo
 
       if (pool->uses_gds) {
          if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT) {
-            uint32_t gs_prim_offset =
-               radv_get_pipelinestat_query_offset(VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT);
+            const unsigned pipelinestat_block_size = radv_get_pipelinestat_query_size(device);
+            const uint64_t prim_va = va + pipelinestat_block_size * 2;
 
-            gfx10_copy_gds_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, va + gs_prim_offset);
-         }
-
-         if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT) {
-            uint32_t gs_invoc_offset =
-               radv_get_pipelinestat_query_offset(VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT);
-
-            gfx10_copy_gds_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_INVOCATION_OFFSET, va + gs_invoc_offset);
+            gfx10_copy_gds_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, prim_va);
          }
 
          if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT) {
@@ -2414,17 +2326,9 @@ emit_end_query(struct radv_cmd_buffer *cmd_buffer, struct radv_query_pool *pool,
 
       if (pool->uses_gds) {
          if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT) {
-            uint32_t gs_prim_offset =
-               radv_get_pipelinestat_query_offset(VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT);
+            const uint64_t prim_va = va + pipelinestat_block_size + 8;
 
-            gfx10_copy_gds_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, va + gs_prim_offset);
-         }
-
-         if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT) {
-            uint32_t gs_invoc_offset =
-               radv_get_pipelinestat_query_offset(VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT);
-
-            gfx10_copy_gds_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_INVOCATION_OFFSET, va + gs_invoc_offset);
+            gfx10_copy_gds_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, prim_va);
          }
 
          if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT) {

@@ -24,9 +24,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ********************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <ctype.h>
 #include <stdio.h>
@@ -35,6 +33,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
 
+#include "dix/input_priv.h"
 #include "xkb/xkbsrv_priv.h"
 
 #include "misc.h"

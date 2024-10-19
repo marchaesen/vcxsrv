@@ -137,11 +137,14 @@ static void color_adjustments_to_fixed_point(const struct vpe_color_adjustments 
     const int         hw_hue_min      = -30;
     const int         hw_hue_max      = 30;
     const int         hw_sat_min      = 0;
-    const int         hw_sat_max      = 200;
+    const int         hw_sat_max      = 300;
     const int         hw_contrast_min = 0;
     const int         hw_contrast_max = 200;
-    const int         hw_bright_min   = -460;
-    const int         hw_bright_max   = 460;
+    const int         hw_bright_min   = -1000;
+    const int         hw_bright_max   = 1000;
+    const int         hw_bright_cap   = 460;
+    int               hw_val          = 0;
+
     if (icsc) {
         hue = vpe_fixpt_mul(
             vpe_fixpt_from_fraction(
@@ -150,12 +153,17 @@ static void color_adjustments_to_fixed_point(const struct vpe_color_adjustments 
                 180),
             vpe_fixpt_pi);
 
-        // In MMD is -100 to +100 in 16-235 range; which when scaled to full
-        // range is ~-116 to +116. When normalized this is about 0.4566.
-        *grph_bright = vpe_fixpt_from_fraction(
-            get_hw_value_from_sw_value(vpe_adjust->brightness.current, vpe_adjust->brightness.min,
-                vpe_adjust->brightness.max, hw_bright_min, hw_bright_max),
-            1000);
+        hw_val = get_hw_value_from_sw_value(vpe_adjust->brightness.current, vpe_adjust->brightness.min,
+            vpe_adjust->brightness.max, hw_bright_min, hw_bright_max);
+        if (hw_val > hw_bright_cap) { // to avoid image saturation, cap the brigthness to 0.5
+            hw_val = hw_bright_cap;
+        }
+
+        if (hw_val < -hw_bright_cap) {
+            hw_val = -hw_bright_cap;
+        }
+
+        *grph_bright = vpe_fixpt_from_fraction(hw_val, 1000);
 
         *grph_cont = vpe_fixpt_from_fraction(
             get_hw_value_from_sw_value(vpe_adjust->contrast.current, vpe_adjust->contrast.min,
@@ -617,6 +625,7 @@ static void calculate_yuv_matrix(struct vpe_color_adjustments *vpe_adjust,
     color_adjustments_to_fixed_point(
         vpe_adjust, ovl, &grph_cont, &grph_sat, &grph_bright, &sin_grph_hue, &cos_grph_hue);
     grph_bright = vpe_fixpt_sub(grph_bright, lumaOffset);
+
     multiplier  = vpe_fixpt_mul(grph_cont, grph_sat); // contSat
 
     yuv_matrix[0] =

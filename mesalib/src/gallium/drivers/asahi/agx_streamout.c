@@ -115,7 +115,7 @@ agx_batch_get_so_address(struct agx_batch *batch, unsigned buffer,
                           target->buffer_size);
 
    *size = target->buffer_size;
-   return rsrc->bo->ptr.gpu + target->buffer_offset;
+   return rsrc->bo->va->addr + target->buffer_offset;
 }
 
 void
@@ -132,8 +132,6 @@ agx_draw_vbo_from_xfb(struct pipe_context *pctx,
    pipe_buffer_read(pctx, so->offset, 0, 4, &offset_B);
 
    unsigned count = offset_B / so->stride;
-
-   /* XXX: Probably need to divide here */
 
    struct pipe_draw_start_count_bias draw = {
       .start = 0,

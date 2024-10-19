@@ -36,7 +36,8 @@ static bool
 pan_lower_sample_pos_impl(struct nir_builder *b, nir_intrinsic_instr *intr,
                           UNUSED void *data)
 {
-   if (intr->intrinsic != nir_intrinsic_load_sample_pos)
+   if (intr->intrinsic != nir_intrinsic_load_sample_pos &&
+       intr->intrinsic != nir_intrinsic_load_sample_pos_or_center)
       return false;
 
    b->cursor = nir_before_instr(&intr->instr);
@@ -66,5 +67,5 @@ pan_lower_sample_pos(nir_shader *shader)
 
    return nir_shader_intrinsics_pass(
       shader, pan_lower_sample_pos_impl,
-      nir_metadata_block_index | nir_metadata_dominance, NULL);
+      nir_metadata_control_flow, NULL);
 }

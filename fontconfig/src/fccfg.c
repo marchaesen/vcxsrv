@@ -25,6 +25,7 @@
 /* Objects MT-safe for readonly access. */
 
 #include "fcint.h"
+#include "fontconfig/fontconfig.h"
 #ifdef HAVE_DIRENT_H
 #include <dirent.h>
 #endif
@@ -201,6 +202,10 @@ FcConfigCreate (void)
     config->availConfigFiles = FcStrSetCreate ();
     if (!config->availConfigFiles)
 	goto bail10;
+
+    config->filter_func = NULL;
+    config->filter_data = NULL;
+    config->destroy_data_func = NULL;
 
     FcRefInit (&config->ref, 1);
 
@@ -390,6 +395,9 @@ FcConfigDestroy (FcConfig *config)
 	if (config->sysRoot)
 	FcStrFree (config->sysRoot);
 
+	if (config->filter_data && config->destroy_data_func)
+	    config->destroy_data_func (config->filter_data);
+
 	free (config);
     }
 }
@@ -453,10 +461,18 @@ FcConfigAddCache (FcConfig *config, FcCache *cache,
 		continue;
 	    }
 
+	    /*
+	     * Check to see if font is banned by client
+	     */
+	    if (!FcConfigAcceptFilter (config, font))
+	    {
+		free (relocated_font_file);
+		continue;
+	    }
 	    if (relocated_font_file)
 	    {
-	      font = FcPatternCacheRewriteFile (font, cache, relocated_font_file);
-	      free (relocated_font_file);
+		font = FcPatternCacheRewriteFile (font, cache, relocated_font_file);
+		free (relocated_font_file);
 	    }
 
 	    if (FcFontSetAdd (config->fonts[set], font))
@@ -811,6 +827,63 @@ FcConfigSetFonts (FcConfig	*config,
     config->fonts[set] = fonts;
 }
 
+FcConfig *
+FcConfigSetFontSetFilter (FcConfig            *config,
+			  FcFilterFontSetFunc filter_func,
+			  FcDestroyFunc       destroy_data_func,
+			  void                *user_data)
+{
+    FcBool rebuild = FcFalse;
+
+    if (!config)
+    {
+	/* Do not use FcConfigEnsure() here for optimization */
+    retry:
+	config = fc_atomic_ptr_get (&_fcConfig);
+	if (!config)
+	    config = FcConfigCreate ();
+	else
+	    rebuild = FcTrue;
+    }
+    else
+	rebuild = FcTrue;
+    if (config->filter_data == user_data &&
+	config->filter_func == filter_func)
+    {
+	/* No need to update */
+	rebuild = FcFalse;
+    }
+    else
+    {
+	if (config->filter_data && config->destroy_data_func)
+	{
+	    config->destroy_data_func (config->filter_data);
+	}
+	config->filter_func = filter_func;
+	config->destroy_data_func = destroy_data_func;
+	config->filter_data = user_data;
+    }
+
+    if (rebuild)
+    {
+	/* Rebuild FontSet */
+	FcConfigBuildFonts (config);
+    }
+    else
+    {
+	/* Initialize FcConfig with regular procedure */
+	config = FcInitLoadOwnConfigAndFonts (config);
+
+	if (!config || !fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config))
+	{
+	    if (config)
+		FcConfigDestroy (config);
+	    goto retry;
+	}
+    }
+
+    return config;
+}
 
 FcBlanks *
 FcBlanksCreate (void)
@@ -2985,6 +3058,16 @@ FcConfigAcceptFont (FcConfig	    *config,
     return FcTrue;
 }
 
+FcBool
+FcConfigAcceptFilter (FcConfig        *config,
+		      const FcPattern *font)
+{
+    if (config && config->filter_func)
+    {
+	return config->filter_func (font, config->filter_data);
+    }
+    return FcTrue;
+}
 const FcChar8 *
 FcConfigGetSysRoot (const FcConfig *config)
 {

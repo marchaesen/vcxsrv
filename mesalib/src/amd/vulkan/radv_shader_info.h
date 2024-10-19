@@ -28,6 +28,7 @@ enum radv_shader_type {
    RADV_SHADER_TYPE_DEFAULT = 0,
    RADV_SHADER_TYPE_GS_COPY,
    RADV_SHADER_TYPE_TRAP_HANDLER,
+   RADV_SHADER_TYPE_RT_PROLOG,
 };
 
 struct radv_vs_output_info {
@@ -105,8 +106,9 @@ struct radv_shader_info {
    uint32_t user_data_0;
    bool inputs_linked;
    bool outputs_linked;
-   bool has_epilog;                        /* Only for TCS or PS */
    bool merged_shader_compiled_separately; /* GFX9+ */
+   bool force_indirect_desc_sets;
+   uint64_t gs_inputs_read; /* Mask of GS inputs read (only used by linked ES) */
 
    struct {
       uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
@@ -125,6 +127,7 @@ struct radv_shader_info {
       bool dynamic_inputs;
       bool dynamic_num_verts_per_prim;
       uint32_t num_outputs; /* For NGG streamout only */
+      uint64_t hs_inputs_read; /* Mask of HS inputs read (only used by linked LS) */
    } vs;
    struct {
       uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
@@ -151,7 +154,8 @@ struct radv_shader_info {
       bool point_mode;
       bool reads_tess_factors;
       unsigned tcs_vertices_out;
-      uint8_t num_linked_inputs; /* Number of reserved per-vertex input slots in VRAM. */
+      uint8_t num_linked_inputs;       /* Number of reserved per-vertex input slots in VRAM. */
+      uint8_t num_linked_patch_inputs; /* Number of reserved per-patch input slots in VRAM. */
       uint8_t num_linked_outputs;
       uint32_t num_outputs; /* For NGG streamout only */
    } tes;
@@ -172,7 +176,7 @@ struct radv_shader_info {
       uint8_t input_clips_culls_mask;
       uint32_t input_mask;
       uint32_t input_per_primitive_mask;
-      uint32_t flat_shaded_mask;
+      uint32_t float32_shaded_mask;
       uint32_t explicit_shaded_mask;
       uint32_t explicit_strict_shaded_mask;
       uint32_t float16_shaded_mask;
@@ -201,7 +205,8 @@ struct radv_shader_info {
       bool pops; /* Uses Primitive Ordered Pixel Shading (fragment shader interlock) */
       bool pops_is_per_sample;
       bool mrt0_is_dual_src;
-      unsigned spi_ps_input;
+      unsigned spi_ps_input_ena;
+      unsigned spi_ps_input_addr;
       unsigned colors_written;
       unsigned spi_shader_col_format;
       unsigned cb_shader_mask;
@@ -209,6 +214,8 @@ struct radv_shader_info {
       bool load_provoking_vtx;
       bool load_rasterization_prim;
       bool force_sample_iter_shading_rate;
+      bool uses_fbfetch_output;
+      bool has_epilog;
    } ps;
    struct {
       bool uses_grid_size;
@@ -217,8 +224,6 @@ struct radv_shader_info {
       bool uses_local_invocation_idx;
       unsigned block_size[3];
 
-      bool is_rt_shader;
-      bool uses_dynamic_rt_callable_stack;
       bool uses_rt;
       bool uses_full_subgroups;
       bool linear_taskmesh_dispatch;
@@ -252,6 +257,11 @@ struct radv_shader_info {
 
    /* Precomputed register values. */
    struct {
+      uint32_t pgm_lo;
+      uint32_t pgm_rsrc1;
+      uint32_t pgm_rsrc2;
+      uint32_t pgm_rsrc3;
+
       struct {
          uint32_t spi_shader_late_alloc_vs;
          uint32_t spi_shader_pgm_rsrc3_vs;
@@ -285,6 +295,8 @@ struct radv_shader_info {
          uint32_t pa_sc_shader_control;
          uint32_t spi_ps_in_control;
          uint32_t spi_shader_z_format;
+         uint32_t spi_gs_out_config_ps;
+         uint32_t pa_sc_hisz_control;
       } ps;
 
       struct {

@@ -98,7 +98,7 @@ nir_lower_texcoord_replace_late(nir_shader *s, unsigned coord_replace,
       s->info.inputs_read |= BITFIELD64_BIT(VARYING_SLOT_PNTC);
 
    nir_shader_instructions_pass(s, pass,
-                                nir_metadata_block_index | nir_metadata_dominance,
+                                nir_metadata_control_flow,
                                 &(struct opts){
                                    .coord_replace = coord_replace,
                                    .point_coord_is_sysval = point_coord_is_sysval,

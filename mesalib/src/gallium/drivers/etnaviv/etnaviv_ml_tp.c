@@ -394,7 +394,7 @@ create_reshuffle_config(struct etna_ml_subgraph *subgraph, const struct etna_ope
                         unsigned tp_core, unsigned tp_cores_used)
 {
    struct etna_context *ctx = etna_context(subgraph->base.context);
-   unsigned tp_core_count = ctx->screen->specs.tp_core_count;
+   unsigned tp_core_count = ctx->screen->info->npu.tp_core_count;
    struct etna_bo *bo = etna_bo_new(ctx->screen->dev,
                                     sizeof(struct etna_tp_params),
                                     DRM_ETNA_GEM_CACHE_WC);
@@ -730,7 +730,7 @@ etna_ml_compile_operation_tp(struct etna_ml_subgraph *subgraph,
       instruction->configs[0] = create_detranspose_config(subgraph, operation);
       break;
    case ETNA_ML_TP_RESHUFFLE: {
-      unsigned tp_core_count = ctx->screen->specs.tp_core_count;
+      unsigned tp_core_count = ctx->screen->info->npu.tp_core_count;
       unsigned tp_cores_used;
 
       tp_cores_used = (operation->input_width > 8 || operation->input_channels > 1) ? tp_core_count : 1;
@@ -756,7 +756,7 @@ etna_ml_emit_operation_tp(struct etna_ml_subgraph *subgraph,
                           unsigned idx)
 {
    struct etna_context *ctx = etna_context(subgraph->base.context);
-   unsigned tp_core_count = ctx->screen->specs.tp_core_count;
+   unsigned tp_core_count = ctx->screen->info->npu.tp_core_count;
    struct etna_cmd_stream *stream = ctx->stream;
    bool more_than_one_tp_job = operation->configs[1] != NULL;
    bool parallel = DBG_ENABLED(ETNA_DBG_NPU_PARALLEL);

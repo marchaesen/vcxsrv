@@ -1,25 +1,7 @@
 /*
- * Copyright (C) 2018 Rob Clark <robclark@freedesktop.org>
+ * Copyright © 2018 Rob Clark <robclark@freedesktop.org>
  * Copyright © 2018 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -32,6 +14,8 @@
 #include "a6xx/fd6_blitter.h"
 #include "fd6_resource.h"
 #include "fdl/fd6_format_table.h"
+#include "common/freedreno_lrz.h"
+#include "common/freedreno_ubwc.h"
 
 #include "a6xx.xml.h"
 
@@ -67,6 +51,14 @@ ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt)
    default:
       break;
    }
+
+   /* In copy_format, we treat snorm as unorm to avoid clamping.  But snorm
+    * and unorm are UBWC incompatible for special values such as all 0's or
+    * all 1's prior to a740.  Disable UBWC for snorm.
+    */
+   if (util_format_is_snorm(pfmt) &&
+       !info->a7xx.ubwc_unorm_snorm_int_compatible)
+      return false;
 
    /* A690 seem to have broken UBWC for depth/stencil, it requires
     * depth flushing where we cannot realistically place it, like between
@@ -128,14 +120,6 @@ can_do_ubwc(struct pipe_resource *prsc)
 }
 
 static bool
-is_norm(enum pipe_format format)
-{
-   const struct util_format_description *desc = util_format_description(format);
-
-   return desc->is_snorm || desc->is_unorm;
-}
-
-static bool
 is_z24s8(enum pipe_format format)
 {
    switch (format) {
@@ -150,8 +134,13 @@ is_z24s8(enum pipe_format format)
 }
 
 static bool
-valid_format_cast(struct fd_resource *rsc, enum pipe_format format)
+valid_ubwc_format_cast(struct fd_resource *rsc, enum pipe_format format)
 {
+   const struct fd_dev_info *info = fd_screen(rsc->b.b.screen)->info;
+   enum pipe_format orig_format = rsc->b.b.format;
+
+   assert(rsc->layout.ubwc);
+
    /* Special case "casting" format in hw: */
    if (format == PIPE_FORMAT_Z24_UNORM_S8_UINT_AS_R8G8B8A8)
       return true;
@@ -159,31 +148,14 @@ valid_format_cast(struct fd_resource *rsc, enum pipe_format format)
    /* If we support z24s8 ubwc then allow casts between the various
     * permutations of z24s8:
     */
-   if (fd_screen(rsc->b.b.screen)->info->a6xx.has_z24uint_s8uint &&
-         is_z24s8(format) && is_z24s8(rsc->b.b.format))
+   if (info->a6xx.has_z24uint_s8uint && is_z24s8(format) && is_z24s8(orig_format))
       return true;
 
-   /* For some color values (just "solid white") compression metadata maps to
-    * different pixel values for uint/sint vs unorm/snorm, so we can't reliably
-    * "cast" u/snorm to u/sint and visa versa:
-    */
-   if (is_norm(format) != is_norm(rsc->b.b.format))
+   enum fd6_ubwc_compat_type type = fd6_ubwc_compat_mode(info, orig_format);
+   if (type == FD6_UBWC_UNKNOWN_COMPAT)
       return false;
 
-   /* The UBWC formats can be re-interpreted so long as the components
-    * have the same # of bits
-    */
-   for (unsigned i = 0; i < 4; i++) {
-      unsigned sb, db;
-
-      sb = util_format_get_component_bits(rsc->b.b.format, UTIL_FORMAT_COLORSPACE_RGB, i);
-      db = util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_RGB, i);
-
-      if (sb != db)
-         return false;
-   }
-
-   return true;
+   return fd6_ubwc_compat_mode(info, format) == type;
 }
 
 /**
@@ -217,7 +189,8 @@ fd6_check_valid_format(struct fd_resource *rsc, enum pipe_format format)
    if (!rsc->layout.ubwc)
       return FORMAT_OK;
 
-   if (ok_ubwc_format(rsc->b.b.screen, format) && valid_format_cast(rsc, format))
+   if (ok_ubwc_format(rsc->b.b.screen, format) &&
+       valid_ubwc_format_cast(rsc, format))
       return FORMAT_OK;
 
    return DEMOTE_TO_TILED;
@@ -254,6 +227,7 @@ fd6_validate_format(struct fd_context *ctx, struct fd_resource *rsc,
    }
 }
 
+template <chip CHIP>
 static void
 setup_lrz(struct fd_resource *rsc)
 {
@@ -273,21 +247,43 @@ setup_lrz(struct fd_resource *rsc)
    unsigned lrz_pitch = align(DIV_ROUND_UP(width0, 8), 32);
    unsigned lrz_height = align(DIV_ROUND_UP(height0, 8), 16);
 
-   unsigned size = lrz_pitch * lrz_height * 2;
-
    rsc->lrz_height = lrz_height;
    rsc->lrz_width = lrz_pitch;
    rsc->lrz_pitch = lrz_pitch;
-   rsc->lrz = fd_bo_new(screen->dev, size, FD_BO_NOMAP, "lrz");
+
+   unsigned lrz_size = lrz_pitch * lrz_height * 2;
+
+   unsigned nblocksx = DIV_ROUND_UP(DIV_ROUND_UP(width0, 8), 16);
+   unsigned nblocksy = DIV_ROUND_UP(DIV_ROUND_UP(height0, 8), 4);
+
+   /* Fast-clear buffer is 1bit/block */
+   unsigned lrz_fc_size = DIV_ROUND_UP(nblocksx * nblocksy, 8);
+
+   /* Fast-clear buffer cannot be larger than 512 bytes on A6XX and 1024 bytes
+    * on A7XX (HW limitation)
+    */
+   bool has_lrz_fc = screen->info->a6xx.enable_lrz_fast_clear &&
+                     lrz_fc_size <= fd_lrzfc_layout<CHIP>::FC_SIZE;
+
+   /* Allocate a LRZ fast-clear buffer even if we aren't using FC, if the
+    * hw is re-using this buffer for direction tracking
+    */
+   if (has_lrz_fc || screen->info->a6xx.has_lrz_dir_tracking) {
+      rsc->lrz_fc_offset = lrz_size;
+      lrz_size += sizeof(fd_lrzfc_layout<CHIP>);
+   }
+
+   rsc->lrz = fd_bo_new(screen->dev, lrz_size, FD_BO_NOMAP, "lrz");
 }
 
+template <chip CHIP>
 static uint32_t
 fd6_setup_slices(struct fd_resource *rsc)
 {
    struct pipe_resource *prsc = &rsc->b.b;
 
    if (!FD_DBG(NOLRZ) && has_depth(prsc->format) && !is_z32(prsc->format))
-      setup_lrz(rsc);
+      setup_lrz<CHIP>(rsc);
 
    if (rsc->layout.ubwc && !ok_ubwc_format(prsc->screen, prsc->format))
       rsc->layout.ubwc = false;
@@ -373,12 +369,14 @@ fd6_is_format_supported(struct pipe_screen *pscreen,
    }
 }
 
+template <chip CHIP>
 void
 fd6_resource_screen_init(struct pipe_screen *pscreen)
 {
    struct fd_screen *screen = fd_screen(pscreen);
 
-   screen->setup_slices = fd6_setup_slices;
+   screen->setup_slices = fd6_setup_slices<CHIP>;
    screen->layout_resource_for_modifier = fd6_layout_resource_for_modifier;
    screen->is_format_supported = fd6_is_format_supported;
 }
+FD_GENX(fd6_resource_screen_init);

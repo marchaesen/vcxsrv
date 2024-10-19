@@ -940,7 +940,7 @@ get_type_name(InputInfoPtr pInfo, xf86ITDevicePtr driver_data)
 static xf86ITDevicePtr
 device_alloc(void)
 {
-    xf86ITDevicePtr driver_data = calloc(sizeof(xf86ITDevice), 1);
+    xf86ITDevicePtr driver_data = calloc(1, sizeof(xf86ITDevice));
 
     if (!driver_data)
         return NULL;

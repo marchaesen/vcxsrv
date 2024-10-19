@@ -26,27 +26,52 @@
 #include "common/v3d_performance_counters.h"
 
 VkResult
-v3dX(enumerate_performance_query_counters)(uint32_t *pCounterCount,
+v3dX(enumerate_performance_query_counters)(struct v3dv_physical_device *pDevice,
+                                           uint32_t *pCounterCount,
                                            VkPerformanceCounterKHR *pCounters,
                                            VkPerformanceCounterDescriptionKHR *pCounterDescriptions)
 {
+   struct v3d_device_info *devinfo = &pDevice->devinfo;
    uint32_t desc_count = *pCounterCount;
+   uint8_t ncounters = devinfo->max_perfcnt ? devinfo->max_perfcnt
+                                            : ARRAY_SIZE(v3d_performance_counters);
 
    VK_OUTARRAY_MAKE_TYPED(VkPerformanceCounterKHR,
                           out, pCounters, pCounterCount);
    VK_OUTARRAY_MAKE_TYPED(VkPerformanceCounterDescriptionKHR,
                           out_desc, pCounterDescriptions, &desc_count);
 
-   for (int i = 0; i < ARRAY_SIZE(v3d_performance_counters); i++) {
+   for (int i = 0; i < ncounters; i++) {
+      struct drm_v3d_perfmon_get_counter counter = {
+         .counter = i,
+      };
+      const char *name, *category, *description;
+
+      if (devinfo->max_perfcnt) {
+         int ret = v3dv_ioctl(pDevice->render_fd, DRM_IOCTL_V3D_PERFMON_GET_COUNTER,
+                              &counter);
+         if (ret) {
+            fprintf(stderr, "Failed to get counter description for counter %d: %s\n",
+                    i, strerror(errno));
+         }
+
+         name = (char *) counter.name;
+         category = (char *) counter.category;
+         description = (char *) counter.description;
+      } else {
+         /* Legacy path for kernels without support for DRM_IOCTL_V3D_PERFMON_GET_COUNTER */
+         name = v3d_performance_counters[i][V3D_PERFCNT_NAME];
+         category = v3d_performance_counters[i][V3D_PERFCNT_CATEGORY];
+         description = v3d_performance_counters[i][V3D_PERFCNT_DESCRIPTION];
+      }
+
       vk_outarray_append_typed(VkPerformanceCounterKHR, &out, counter) {
          counter->unit = VK_PERFORMANCE_COUNTER_UNIT_GENERIC_KHR;
          counter->scope = VK_PERFORMANCE_COUNTER_SCOPE_COMMAND_KHR;
          counter->storage = VK_PERFORMANCE_COUNTER_STORAGE_UINT64_KHR;
 
          unsigned char sha1_result[20];
-         _mesa_sha1_compute(v3d_performance_counters[i][V3D_PERFCNT_NAME],
-                            strlen(v3d_performance_counters[i][V3D_PERFCNT_NAME]),
-                            sha1_result);
+         _mesa_sha1_compute(name, strlen(name), sha1_result);
 
          memcpy(counter->uuid, sha1_result, sizeof(counter->uuid));
       }
@@ -54,12 +79,9 @@ v3dX(enumerate_performance_query_counters)(uint32_t *pCounterCount,
       vk_outarray_append_typed(VkPerformanceCounterDescriptionKHR,
                                &out_desc, desc) {
          desc->flags = 0;
-         snprintf(desc->name, sizeof(desc->name), "%s",
-            v3d_performance_counters[i][V3D_PERFCNT_NAME]);
-         snprintf(desc->category, sizeof(desc->category), "%s",
-            v3d_performance_counters[i][V3D_PERFCNT_CATEGORY]);
-         snprintf(desc->description, sizeof(desc->description), "%s",
-            v3d_performance_counters[i][V3D_PERFCNT_DESCRIPTION]);
+         snprintf(desc->name, sizeof(desc->name), "%s", name);
+         snprintf(desc->category, sizeof(desc->category), "%s", category);
+         snprintf(desc->description, sizeof(desc->description), "%s", description);
       }
    }
 

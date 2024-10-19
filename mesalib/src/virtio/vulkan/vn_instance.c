@@ -139,7 +139,8 @@ vn_instance_init_ring(struct vn_instance *instance)
    struct vn_ring_layout layout;
    vn_ring_get_layout(buf_size, extra_size, &layout);
 
-   instance->ring.ring = vn_ring_create(instance, &layout, direct_order);
+   instance->ring.ring = vn_ring_create(instance, &layout, direct_order,
+                                        false /* is_tls_ring */);
    if (!instance->ring.ring)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 

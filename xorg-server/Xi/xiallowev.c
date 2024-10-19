@@ -29,15 +29,14 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XI2proto.h>
 
 #include "dix/dix_priv.h"
 #include "dix/exevents_priv.h"
+#include "dix/input_priv.h"
 
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window structure  */

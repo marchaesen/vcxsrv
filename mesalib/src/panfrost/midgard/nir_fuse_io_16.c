@@ -89,7 +89,7 @@ nir_fuse_io_16(nir_shader *shader)
       }
 
       nir_metadata_preserve(impl,
-                            nir_metadata_block_index | nir_metadata_dominance);
+                            nir_metadata_control_flow);
    }
 
    return progress;

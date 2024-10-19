@@ -68,6 +68,8 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 #include "extinit_priv.h"
 #include "pseudoramiX/pseudoramiX.h"
 
+#include "dix/dix_priv.h"
+
 #include "glx_extinit.h"
 #ifdef XWIN_GLX_WINDOWS
 #include "glx/glwindows.h"

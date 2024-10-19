@@ -22,6 +22,7 @@
  */
 
 #include "d3d12_video_buffer.h"
+#include "d3d12_video_enc.h"
 #include "d3d12_resource.h"
 #include "d3d12_video_dec.h"
 #include "d3d12_residency.h"
@@ -40,6 +41,8 @@
 static struct pipe_video_buffer *
 d3d12_video_buffer_create_impl(struct pipe_context *pipe,
                               const struct pipe_video_buffer *tmpl,
+                              struct pipe_resource* resource_creation_info,
+                              d3d12_video_buffer_creation_mode resource_creation_mode,
                               struct winsys_handle *handle,
                               unsigned usage)
 {
@@ -62,11 +65,16 @@ d3d12_video_buffer_create_impl(struct pipe_context *pipe,
    pD3D12VideoBuffer->base.interlaced    = tmpl->interlaced;
    pD3D12VideoBuffer->base.contiguous_planes = true;
    pD3D12VideoBuffer->base.associated_data = nullptr;
+   pD3D12VideoBuffer->idx_texarray_slots = 0;
+   pD3D12VideoBuffer->m_spVideoTexArrayDPBPoolInUse.reset();
 
-   pD3D12VideoBuffer->base.bind =  PIPE_BIND_CUSTOM;
+   // Used to signal the rest of the d3d12 driver this is a video (dpb or not) texture
+   pD3D12VideoBuffer->base.bind |=  PIPE_BIND_CUSTOM;
 #ifdef HAVE_GALLIUM_D3D12_GRAPHICS
    struct d3d12_screen *dscreen = (struct d3d12_screen*) pipe->screen;
-   if (dscreen->max_feature_level >= D3D_FEATURE_LEVEL_11_0)
+   if ((dscreen->max_feature_level >= D3D_FEATURE_LEVEL_11_0) &&
+      ((pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_DECODE_DPB) == 0) &&
+      ((pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_ENCODE_DPB) == 0))
       pD3D12VideoBuffer->base.bind |= (PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW);
 #endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
@@ -78,43 +86,56 @@ d3d12_video_buffer_create_impl(struct pipe_context *pipe,
    pD3D12VideoBuffer->base.get_surfaces                = d3d12_video_buffer_get_surfaces;
    pD3D12VideoBuffer->base.destroy_associated_data     = d3d12_video_buffer_destroy_associated_data;
 
-   struct pipe_resource templ;
-   memset(&templ, 0, sizeof(templ));
-   templ.target     = PIPE_TEXTURE_2D;
-   templ.bind       = pD3D12VideoBuffer->base.bind;
-   templ.format     = pD3D12VideoBuffer->base.buffer_format;
-   if (handle)
-   {
-      // YUV 4:2:0 formats in D3D12 always require multiple of 2 dimensions
-      // We must respect the input dimensions of the imported resource handle (e.g no extra aligning)
-      templ.width0     = align(pD3D12VideoBuffer->base.width, 2);
-      templ.height0    = align(pD3D12VideoBuffer->base.height, 2);
-   }
-   else
-   {
-      // When creating (e.g not importing) resources we allocate
-      // with a higher alignment to maximize HW compatibility
-      templ.width0     = align(pD3D12VideoBuffer->base.width, 2);
-      templ.height0    = align(pD3D12VideoBuffer->base.height, 16);
-   }
-   templ.depth0     = 1;
-   templ.array_size = 1;
-   templ.flags      = 0;
+   ///
+   /// Create, open or place underlying pipe_resource allocation
+   ///
 
    // This calls d3d12_create_resource as the function ptr is set in d3d12_screen.resource_create
-   if(handle)
+   if (resource_creation_mode == d3d12_video_buffer_creation_mode::open_shared_resource)
    {
+      assert(handle);
+      resource_creation_info->target     = PIPE_TEXTURE_2D;
+      resource_creation_info->bind       = pD3D12VideoBuffer->base.bind;
+      resource_creation_info->format     = pD3D12VideoBuffer->base.buffer_format;
+      resource_creation_info->flags      = 0;
+      resource_creation_info->depth0     = 1;
+      if (resource_creation_info->array_size == 0) // If caller did not pass it, set as 1 default
+         resource_creation_info->array_size = 1;
+
+      // YUV 4:2:0 formats in D3D12 always require multiple of 2 dimensions
+      // We must respect the input dimensions of the imported resource handle (e.g no extra aligning)
+      resource_creation_info->width0     = align(pD3D12VideoBuffer->base.width, 2);
+      resource_creation_info->height0    = align(pD3D12VideoBuffer->base.height, 2);
+
       // WINSYS_HANDLE_TYPE_D3D12_RES implies taking ownership of the reference
       if(handle->type == WINSYS_HANDLE_TYPE_D3D12_RES)
          ((IUnknown *)handle->com_obj)->AddRef();
-      pD3D12VideoBuffer->texture = (struct d3d12_resource *) pipe->screen->resource_from_handle(pipe->screen, &templ, handle, usage);
+      pD3D12VideoBuffer->texture = (struct d3d12_resource *) pipe->screen->resource_from_handle(pipe->screen, resource_creation_info, handle, usage);
    }
-   else
-      pD3D12VideoBuffer->texture = (struct d3d12_resource *) pipe->screen->resource_create(pipe->screen, &templ);
+   else if(resource_creation_mode == d3d12_video_buffer_creation_mode::create_resource)
+   {
+      resource_creation_info->target     = PIPE_TEXTURE_2D;
+      resource_creation_info->bind       = pD3D12VideoBuffer->base.bind;
+      resource_creation_info->format     = pD3D12VideoBuffer->base.buffer_format;
+      resource_creation_info->flags      = 0;
+      resource_creation_info->depth0     = 1;
+      if (resource_creation_info->array_size == 0) // If caller did not pass it, set as 1 default
+         resource_creation_info->array_size = 1;
+
+      // When creating (e.g not importing) resources we allocate
+      // with a higher alignment to maximize HW compatibility
+      resource_creation_info->width0     = align(pD3D12VideoBuffer->base.width, 2);
+      resource_creation_info->height0    = align(pD3D12VideoBuffer->base.height, 16);
+
+      pD3D12VideoBuffer->texture = (struct d3d12_resource *) pipe->screen->resource_create(pipe->screen, resource_creation_info);
+   }
+   else if(resource_creation_mode == d3d12_video_buffer_creation_mode::place_on_resource)
+   {
+      pD3D12VideoBuffer->texture = (struct d3d12_resource*) resource_creation_info; // Set directly the resource as underlying texture
+   }
 
    if (pD3D12VideoBuffer->texture == nullptr) {
-      debug_printf("[d3d12_video_buffer] d3d12_video_buffer_create - Call to resource_create() to create "
-                      "d3d12_resource failed\n");
+      debug_printf("[d3d12_video_buffer] d3d12_video_buffer_create_impl - failed to set a valid pD3D12VideoBuffer->texture.");
       goto failed;
    }
 
@@ -167,7 +188,8 @@ d3d12_video_buffer_from_handle(struct pipe_context *pipe,
       updated_template = *tmpl;
    }
 
-   return d3d12_video_buffer_create_impl(pipe, &updated_template, handle, usage);
+   pipe_resource resource_creation_info = {};
+   return d3d12_video_buffer_create_impl(pipe, &updated_template, &resource_creation_info, d3d12_video_buffer_creation_mode::open_shared_resource, handle, usage);
 }
 
 /**
@@ -176,7 +198,8 @@ d3d12_video_buffer_from_handle(struct pipe_context *pipe,
 struct pipe_video_buffer *
 d3d12_video_buffer_create(struct pipe_context *pipe, const struct pipe_video_buffer *tmpl)
 {
-   return d3d12_video_buffer_create_impl(pipe, tmpl, NULL, 0);
+   pipe_resource resource_creation_info = {};
+   return d3d12_video_buffer_create_impl(pipe, tmpl, &resource_creation_info, d3d12_video_buffer_creation_mode::create_resource, NULL, 0);
 }
 
 /**
@@ -187,8 +210,19 @@ d3d12_video_buffer_destroy(struct pipe_video_buffer *buffer)
 {
    struct d3d12_video_buffer *pD3D12VideoBuffer = (struct d3d12_video_buffer *) buffer;
 
-   // Destroy pD3D12VideoBuffer->texture (if any)
-   if (pD3D12VideoBuffer->texture) {
+   // For texture arrays, only delete the underlying resource allocation when
+   // there are no more in use slots into it
+   bool bKeepUnderlyingAlloc = false;
+   if (pD3D12VideoBuffer->texture->base.b.array_size > 1)
+   {
+      // Mark slot used by the video buffer being destroyed as unused
+      (*pD3D12VideoBuffer->m_spVideoTexArrayDPBPoolInUse) &= ~(1 << pD3D12VideoBuffer->idx_texarray_slots); // mark bit idx_texarray_slots as zero
+      // Keep underlying pD3D12VideoBuffer->texture alloc if any other slots are in use.
+      bKeepUnderlyingAlloc = (*pD3D12VideoBuffer->m_spVideoTexArrayDPBPoolInUse != 0); // check for any non-zero bit
+   }
+
+   // Destroy pD3D12VideoBuffer->texture underlying aloc
+   if (pD3D12VideoBuffer->texture && !bKeepUnderlyingAlloc) {
       pipe_resource *pBaseResource = &pD3D12VideoBuffer->texture->base.b;
       pipe_resource_reference(&pBaseResource, NULL);
    }
@@ -238,6 +272,11 @@ d3d12_video_buffer_get_surfaces(struct pipe_video_buffer *buffer)
    struct d3d12_video_buffer *pD3D12VideoBuffer = (struct d3d12_video_buffer *) buffer;
    struct pipe_context *      pipe              = pD3D12VideoBuffer->base.context;
    struct pipe_surface        surface_template  = {};
+
+   // DPB buffers don't support views
+   if ((pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_DECODE_DPB) ||
+       (pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_ENCODE_DPB))
+      return nullptr;
 
    if (!pipe->create_surface)
       return nullptr;
@@ -316,6 +355,11 @@ d3d12_video_buffer_get_sampler_view_planes(struct pipe_video_buffer *buffer)
    struct pipe_context *      pipe              = pD3D12VideoBuffer->base.context;
    struct pipe_sampler_view   samplerViewTemplate;
 
+   // DPB buffers don't support views
+   if ((pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_DECODE_DPB) ||
+       (pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_ENCODE_DPB))
+      return nullptr;
+
    // Some video frameworks iterate over [0..VL_MAX_SURFACES) and ignore the nullptr entries
    // So we have to null initialize the other surfaces not used from [num_planes..VL_MAX_SURFACES)
    // Like in src/gallium/frontends/vdpau/surface.c
@@ -367,6 +411,11 @@ d3d12_video_buffer_get_sampler_view_components(struct pipe_video_buffer *buffer)
    struct pipe_context *      pipe              = pD3D12VideoBuffer->base.context;
    struct pipe_sampler_view   samplerViewTemplate;
 
+   // DPB buffers don't support views
+   if ((pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_DECODE_DPB) ||
+       (pD3D12VideoBuffer->base.bind & PIPE_BIND_VIDEO_ENCODE_DPB))
+      return nullptr;
+
    // pCurPlaneResource refers to the planar resource, not the overall resource.
    // in d3d12_resource this is handled by having a linked list of planes with
    // d3dRes->base.next ptr to next plane resource
@@ -415,4 +464,95 @@ error:
    }
 
    return nullptr;
+}
+
+struct pipe_video_buffer*
+d3d12_video_create_dpb_buffer(struct pipe_video_codec *codec,
+                              struct pipe_picture_desc *picture,
+                              const struct pipe_video_buffer *templat)
+{
+   pipe_video_buffer tmpl = *templat;
+
+   //
+   // Check if the IHV requires texture array or opaque reference only allocations
+   //
+   bool bTextureArray = false;
+   if (codec->entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
+      struct d3d12_video_decoder *pD3D12Dec = (struct d3d12_video_decoder *) codec;
+
+      if (pD3D12Dec->m_ConfigDecoderSpecificFlags &
+         d3d12_video_decode_config_specific_flag_reference_only_textures_required)
+         tmpl.bind |= PIPE_BIND_VIDEO_DECODE_DPB;
+
+      bTextureArray = ((pD3D12Dec->m_ConfigDecoderSpecificFlags &
+         d3d12_video_decode_config_specific_flag_array_of_textures) == 0);
+
+   } else if (codec->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
+      struct d3d12_video_encoder *pD3D12Enc = (struct d3d12_video_encoder *) codec;
+
+      if ((pD3D12Enc->m_currentEncodeCapabilities.m_SupportFlags &
+           D3D12_VIDEO_ENCODER_SUPPORT_FLAG_READABLE_RECONSTRUCTED_PICTURE_LAYOUT_AVAILABLE) == 0)
+         tmpl.bind |= PIPE_BIND_VIDEO_ENCODE_DPB;
+
+      bTextureArray = (pD3D12Enc->m_currentEncodeCapabilities.m_SupportFlags &
+         D3D12_VIDEO_ENCODER_SUPPORT_FLAG_RECONSTRUCTED_FRAMES_REQUIRE_TEXTURE_ARRAYS);
+   }
+
+   if (bTextureArray)
+      return d3d12_video_create_dpb_buffer_texarray(codec, picture, &tmpl);
+   else
+      return d3d12_video_create_dpb_buffer_aot(codec, picture, &tmpl);
+}
+
+struct pipe_video_buffer*
+d3d12_video_create_dpb_buffer_aot(struct pipe_video_codec *codec,
+                                  struct pipe_picture_desc *picture,
+                                  const struct pipe_video_buffer *templat)
+{
+   // For AOT, just return a new buffer with a new underlying pipe_resource
+   pipe_resource resource_creation_info = {};
+   return d3d12_video_buffer_create_impl(codec->context, templat, &resource_creation_info, d3d12_video_buffer_creation_mode::create_resource, NULL, 0);
+}
+
+struct pipe_video_buffer*
+d3d12_video_create_dpb_buffer_texarray(struct pipe_video_codec *codec,
+                                       struct pipe_picture_desc *picture,
+                                       const struct pipe_video_buffer *templat)
+{
+   d3d12_video_buffer* buf = NULL;
+   struct d3d12_video_encoder *pD3D12Enc = (struct d3d12_video_encoder *) codec;
+
+   // For texture array, keep a texture array pool of d3d12_video_encoder_get_current_max_dpb_capacity
+   // and keep track of used/unused subresource indices to return from the pool
+   if (!pD3D12Enc->m_pVideoTexArrayDPBPool)
+   {
+      pipe_resource resource_creation_info = {};
+      resource_creation_info.array_size = d3d12_video_encoder_get_current_max_dpb_capacity(pD3D12Enc);
+      assert(resource_creation_info.array_size <= 32); // uint32_t used as a usage bitmap into m_pVideoTexArrayDPBPool
+      buf = (d3d12_video_buffer*) d3d12_video_buffer_create_impl(codec->context, templat, &resource_creation_info, d3d12_video_buffer_creation_mode::create_resource, NULL, 0);
+      pD3D12Enc->m_pVideoTexArrayDPBPool = &buf->texture->base.b;
+      pD3D12Enc->m_spVideoTexArrayDPBPoolInUse = std::make_shared<uint32_t>();
+   }
+   else
+   {
+      buf = (d3d12_video_buffer*) d3d12_video_buffer_create_impl(codec->context, templat, pD3D12Enc->m_pVideoTexArrayDPBPool, d3d12_video_buffer_creation_mode::place_on_resource, NULL, 0);
+   }
+
+   // Set and increase refcount in buf object for usage in d3d12_video_buffer_destroy()
+   buf->m_spVideoTexArrayDPBPoolInUse = pD3D12Enc->m_spVideoTexArrayDPBPoolInUse;
+
+   ASSERTED bool bFoundEmptySlot = false;
+   for (unsigned i = 0; i < pD3D12Enc->m_pVideoTexArrayDPBPool->array_size; i++)
+   {
+      if (((*pD3D12Enc->m_spVideoTexArrayDPBPoolInUse) & (1 << i)) == 0)
+      {
+         buf->idx_texarray_slots = i;
+         (*pD3D12Enc->m_spVideoTexArrayDPBPoolInUse) |= (1 << buf->idx_texarray_slots); // Mark i-th bit as used
+         bFoundEmptySlot = true;
+         break;
+      }
+   }
+
+   assert(bFoundEmptySlot); // Possibly ran out of slots because the frontend is using more slots than we allocated in array_size when initializing m_pVideoTexArrayDPBPool
+   return &buf->base;
 }

@@ -80,3 +80,8 @@ wayland-dEQP-EGL.functional.render.multi_context.gles2_gles3.other
 wayland-dEQP-EGL.functional.render.multi_thread.gles2.other
 wayland-dEQP-EGL.functional.render.multi_thread.gles3.other
 wayland-dEQP-EGL.functional.render.multi_thread.gles2_gles3.other
+
+# These test the loader more than the implementation and are broken because the
+# Vulkan loader in Debian is too old
+dEQP-VK.api.get_device_proc_addr.non_enabled
+dEQP-VK.api.version_check.unavailable_entry_points

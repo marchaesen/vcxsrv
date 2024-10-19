@@ -16,7 +16,6 @@
 
 #include "util/simple_mtx.h"
 
-#define VIRGL_RENDERER_UNSTABLE_APIS 1
 #include "virglrenderer_hw.h"
 
 #ifdef __cplusplus

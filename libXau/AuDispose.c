@@ -39,13 +39,13 @@ XauDisposeAuth (Xauth *auth)
 	free (auth->name);
 	if (auth->data) {
 #ifdef HAVE_EXPLICIT_BZERO
-	    (void) explicit_bzero (auth->data, auth->data_length);
+	    explicit_bzero (auth->data, auth->data_length);
 #elif HAVE_EXPLICIT_MEMSET
-	    (void) explicit_memset (auth->data, 0, auth->data_length);
+	    explicit_memset (auth->data, 0, auth->data_length);
 #else
-	    (void) bzero (auth->data, auth->data_length);
+	    bzero (auth->data, auth->data_length);
 #endif
-	    (void) free (auth->data);
+	    free (auth->data);
 	}
 	free (auth);
     }

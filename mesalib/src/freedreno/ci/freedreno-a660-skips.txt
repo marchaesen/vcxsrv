@@ -6,5 +6,5 @@ KHR-GL46.texture_swizzle.smoke
 # 60s timeout (flake)
 KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4
 
-# These tests seem to hang
-dEQP-VK.transform_feedback.primitives_generated_query.*reset.*
+# 300s timeout
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_frag

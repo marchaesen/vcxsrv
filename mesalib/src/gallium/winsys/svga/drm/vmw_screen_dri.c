@@ -15,7 +15,7 @@
 #include "vmw_surface.h"
 #include "vmw_buffer.h"
 #include "svga_drm_public.h"
-#include "svga3d_surfacedefs.h"
+#include "vmw_surf_defs.h"
 
 #include "frontend/drm_driver.h"
 
@@ -290,9 +290,9 @@ vmw_drm_surface_from_handle(struct svga_winsys_screen *sws,
     base_size.width = size.width;
     base_size.height = size.height;
     base_size.depth = size.depth;
-    vsrf->size = svga3dsurface_get_serialized_size(rep->format, base_size,
-                                                   rep->mip_levels[0],
-                                                   false);
+    vsrf->size = vmw_surf_get_serialized_size(rep->format, base_size,
+                                              rep->mip_levels[0],
+                                              false);
 
     return ssrf;
 

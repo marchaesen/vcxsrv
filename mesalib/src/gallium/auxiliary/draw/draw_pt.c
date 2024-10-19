@@ -619,8 +619,8 @@ draw_vbo(struct draw_context *draw,
     * the min_index/max_index hints given by gallium frontends.
     */
 
-   if (use_info->view_mask) {
-      u_foreach_bit(i, use_info->view_mask) {
+   if (draw->viewmask) {
+      u_foreach_bit(i, draw->viewmask) {
          draw->pt.user.viewid = i;
          draw_instances(draw, drawid_offset, use_info, use_draws, num_draws);
       }

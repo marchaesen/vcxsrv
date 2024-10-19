@@ -923,7 +923,7 @@ _XftGlyphDefault (Display *dpy, XftFont   *public)
 {
     XftFontInt	    *font = (XftFontInt *) public;
     FT_UInt	    missing[XFT_NMISSING];
-    int		    nmissing;
+    int		    nmissing = 0;
     FcBool	    glyphs_loaded = FcFalse;
 
     if (XftFontCheckGlyph (dpy, public, FcTrue, 0, missing, &nmissing))

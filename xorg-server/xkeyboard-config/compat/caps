@@ -9,3 +9,7 @@ partial xkb_compatibility "caps_lock" {
         action = LockMods(modifiers = Lock);
     };
 };
+
+partial xkb_compatibility "shiftlock" {
+    include "ledcaps(shift_lock)"
+};

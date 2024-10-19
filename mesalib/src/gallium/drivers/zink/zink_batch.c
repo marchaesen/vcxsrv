@@ -121,13 +121,6 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
       VKSCR(DestroyQueryPool)(screen->dev, *pool, NULL);
    util_dynarray_clear(&bs->dead_querypools);
 
-   util_dynarray_foreach(&bs->dgc.pipelines, VkPipeline, pipeline)
-      VKSCR(DestroyPipeline)(screen->dev, *pipeline, NULL);
-   util_dynarray_clear(&bs->dgc.pipelines);
-   util_dynarray_foreach(&bs->dgc.layouts, VkIndirectCommandsLayoutNV, iclayout)
-      VKSCR(DestroyIndirectCommandsLayoutNV)(screen->dev, *iclayout, NULL);
-   util_dynarray_clear(&bs->dgc.layouts);
-
    /* samplers are appended to the batch state in which they are destroyed
     * to ensure deferred deletion without destroying in-use objects
     */
@@ -138,10 +131,10 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
 
    zink_batch_descriptor_reset(screen, bs);
 
-   util_dynarray_foreach(&bs->freed_sparse_backing_bos, struct zink_bo, bo) {
+   while (util_dynarray_contains(&bs->freed_sparse_backing_bos, struct zink_bo*)) {
+      struct zink_bo *bo = util_dynarray_pop(&bs->freed_sparse_backing_bos, struct zink_bo*);
       zink_bo_unref(screen, bo);
    }
-   util_dynarray_clear(&bs->freed_sparse_backing_bos);
 
    /* programs are refcounted and batch-tracked */
    set_foreach_remove(&bs->programs, entry) {
@@ -306,8 +299,6 @@ zink_batch_state_destroy(struct zink_screen *screen, struct zink_batch_state *bs
    free(bs->sparse_objs.objs);
    util_dynarray_fini(&bs->freed_sparse_backing_bos);
    util_dynarray_fini(&bs->dead_querypools);
-   util_dynarray_fini(&bs->dgc.pipelines);
-   util_dynarray_fini(&bs->dgc.layouts);
    util_dynarray_fini(&bs->swapchain_obj);
    util_dynarray_fini(&bs->zombie_samplers);
    util_dynarray_fini(&bs->unref_resources);
@@ -403,8 +394,6 @@ create_batch_state(struct zink_context *ctx)
    util_dynarray_init(&bs->fd_wait_semaphores, NULL);
    util_dynarray_init(&bs->fences, NULL);
    util_dynarray_init(&bs->dead_querypools, NULL);
-   util_dynarray_init(&bs->dgc.pipelines, NULL);
-   util_dynarray_init(&bs->dgc.layouts, NULL);
    util_dynarray_init(&bs->wait_semaphore_stages, NULL);
    util_dynarray_init(&bs->fd_wait_semaphore_stages, NULL);
    util_dynarray_init(&bs->zombie_samplers, NULL);
@@ -567,7 +556,6 @@ zink_start_batch(struct zink_context *ctx)
 
    bs->fence.completed = false;
 
-#ifdef HAVE_RENDERDOC_APP_H
    if (VKCTX(CmdInsertDebugUtilsLabelEXT) && screen->renderdoc_api) {
       VkDebugUtilsLabelEXT capture_label;
       /* Magic fallback which lets us bridge the Wine barrier over to Linux RenderDoc. */
@@ -586,7 +574,6 @@ zink_start_batch(struct zink_context *ctx)
       screen->renderdoc_api->StartFrameCapture(RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(screen->instance), NULL);
       screen->renderdoc_capturing = true;
    }
-#endif
 
    /* descriptor buffers must always be bound at the start of a batch */
    if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB && !(ctx->flags & ZINK_CONTEXT_COPY_ONLY))
@@ -909,12 +896,11 @@ zink_end_batch(struct zink_context *ctx)
       submit_queue(bs, NULL, 0);
       post_submit(bs, NULL, 0);
    }
-#ifdef HAVE_RENDERDOC_APP_H
+
    if (!(ctx->flags & ZINK_CONTEXT_COPY_ONLY) && screen->renderdoc_capturing && p_atomic_read(&screen->renderdoc_frame) > screen->renderdoc_capture_end) {
       screen->renderdoc_api->EndFrameCapture(RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(screen->instance), NULL);
       screen->renderdoc_capturing = false;
    }
-#endif
 }
 
 ALWAYS_INLINE static void

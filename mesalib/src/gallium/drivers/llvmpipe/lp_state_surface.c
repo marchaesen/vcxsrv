@@ -97,6 +97,7 @@ llvmpipe_set_framebuffer_state(struct pipe_context *pipe,
       draw_set_zs_format(lp->draw, depth_format);
 
       lp_setup_bind_framebuffer(lp->setup, &lp->framebuffer);
+      draw_set_viewmask(lp->draw, fb->viewmask);
 
       lp->dirty |= LP_NEW_FRAMEBUFFER;
    }

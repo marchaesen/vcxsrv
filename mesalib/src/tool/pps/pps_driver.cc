@@ -40,6 +40,7 @@ std::unordered_map<std::string, std::unique_ptr<Driver>> create_supported_driver
 
 #ifdef PPS_INTEL
    map.emplace("i915", std::make_unique<IntelDriver>());
+   map.emplace("xe", std::make_unique<IntelDriver>());
 #endif // PPS_INTEL
 
 #ifdef PPS_PANFROST

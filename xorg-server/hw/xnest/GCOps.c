@@ -12,9 +12,7 @@ is" without express or implied warranty.
 
 */
 
-#ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xdefs.h>
@@ -100,7 +98,7 @@ static int
 xnestIgnoreErrorHandler (Display     *dpy,
                          XErrorEvent *event)
 {
-    return False; /* return value is ignored */
+    return FALSE; /* return value is ignored */
 }
 
 void
@@ -112,7 +110,7 @@ xnestGetImage(DrawablePtr pDrawable, int x, int y, int w, int h,
     int (*old_handler)(Display*, XErrorEvent*);
 
     /* we may get BadMatch error when xnest window is minimized */
-    XSync(xnestDisplay, False);
+    XSync(xnestDisplay, FALSE);
     old_handler = XSetErrorHandler (xnestIgnoreErrorHandler);
 
     ximage = XGetImage(xnestDisplay, xnestDrawable(pDrawable),
@@ -150,13 +148,13 @@ xnestBitBlitHelper(GCPtr pGC)
         if (!pReg || !pTmpReg)
             return NullRegion;
 
-        pending = True;
+        pending = TRUE;
         while (pending) {
             XIfEvent(xnestDisplay, &event, xnestBitBlitPredicate, NULL);
 
             switch (event.type) {
             case NoExpose:
-                pending = False;
+                pending = FALSE;
                 break;
 
             case GraphicsExpose:

@@ -151,10 +151,7 @@ xf86CloseLog(enum ExitCode error);
 /* xf86Init.c */
 extern _X_EXPORT Bool
 xf86LoadModules(const char **list, void **optlist);
-extern _X_EXPORT int
-xf86SetVerbosity(int verb);
-extern _X_EXPORT int
-xf86SetLogVerbosity(int verb);
+
 extern _X_EXPORT Bool
 xf86CallDriverProbe(struct _DriverRec *drv, Bool detect_only);
 extern _X_EXPORT Bool

@@ -58,7 +58,7 @@ winAllocatePrivates(ScreenPtr pScreen)
     }
 
     /* Allocate memory for the screen private structure */
-    pScreenPriv = calloc(sizeof(winPrivScreenRec), 1);
+    pScreenPriv = calloc(1, sizeof(winPrivScreenRec));
     if (!pScreenPriv) {
         ErrorF("winAllocateScreenPrivates - malloc () failed\n");
         return FALSE;
@@ -140,7 +140,7 @@ winAllocateCmapPrivates(ColormapPtr pCmap)
     }
 
     /* Allocate memory for our private structure */
-    pCmapPriv = calloc(sizeof(winPrivCmapRec), 1);
+    pCmapPriv = calloc(1, sizeof(winPrivCmapRec));
     if (!pCmapPriv) {
         ErrorF("winAllocateCmapPrivates - malloc () failed\n");
         return FALSE;

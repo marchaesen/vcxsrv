@@ -135,7 +135,7 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
         }
     }
 
-    pInt = (xf86Int10InfoPtr) xnfcalloc(1, sizeof(xf86Int10InfoRec));
+    pInt = (xf86Int10InfoPtr) XNFcallocarray(1, sizeof(xf86Int10InfoRec));
     pInt->pScrn = pScrn;
     pInt->entityIndex = entityIndex;
     pInt->dev = xf86GetPciInfoForEntity(entityIndex);
@@ -144,9 +144,9 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
         goto error0;
     pInt->mem = &linuxMem;
     pagesize = getpagesize();
-    pInt->private = (void *) xnfcalloc(1, sizeof(linuxInt10Priv));
+    pInt->private = (void *) XNFcallocarray(1, sizeof(linuxInt10Priv));
     ((linuxInt10Priv *) pInt->private)->alloc =
-        (void *) xnfcalloc(1, ALLOC_ENTRIES(pagesize));
+        (void *) XNFcallocarray(1, ALLOC_ENTRIES(pagesize));
 
     if (!xf86IsEntityPrimary(entityIndex)) {
         DebugF("Mapping high memory area\n");

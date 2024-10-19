@@ -232,7 +232,7 @@ void lvp_lower_pipeline_layout(const struct lvp_device *device,
                                nir_shader *shader)
 {
    nir_shader_intrinsics_pass(shader, lower_load_ubo,
-                              nir_metadata_block_index | nir_metadata_dominance,
+                              nir_metadata_control_flow,
                               layout);
    nir_shader_lower_instructions(shader, lower_vulkan_resource_index, lower_vri_instr, layout);
 }

@@ -43,6 +43,9 @@ st_interop_query_device_info(struct st_context *st,
    if (out->version == 0)
       return MESA_GLINTEROP_INVALID_VERSION;
 
+   if (!screen->resource_get_handle && !screen->interop_export_object)
+      return MESA_GLINTEROP_UNSUPPORTED;
+
    /* PCI values are obsolete on version >= 4 of the interface */
    if (out->version < 4) {
       out->pci_segment_group = screen->get_param(screen, PIPE_CAP_PCI_GROUP);
@@ -276,6 +279,9 @@ st_interop_export_object(struct st_context *st,
    if (in->version == 0 || out->version == 0)
       return MESA_GLINTEROP_INVALID_VERSION;
 
+   if (!screen->resource_get_handle && !screen->interop_export_object)
+      return MESA_GLINTEROP_UNSUPPORTED;
+
    /* Wait for glthread to finish to get up-to-date GL object lookups. */
    _mesa_glthread_finish(st->ctx);
 
@@ -379,6 +385,9 @@ st_interop_flush_objects(struct st_context *st,
 {
    struct gl_context *ctx = st->ctx;
    bool flush_out_struct = false;
+
+   if (!ctx->screen->resource_get_handle && !ctx->screen->interop_export_object)
+      return MESA_GLINTEROP_UNSUPPORTED;
 
    /* Wait for glthread to finish to get up-to-date GL object lookups. */
    _mesa_glthread_finish(st->ctx);

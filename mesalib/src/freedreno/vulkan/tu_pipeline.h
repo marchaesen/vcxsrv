@@ -31,6 +31,7 @@ enum tu_dynamic_state
    TU_DYNAMIC_STATE_BLEND,
    TU_DYNAMIC_STATE_VERTEX_INPUT,
    TU_DYNAMIC_STATE_PATCH_CONTROL_POINTS,
+   TU_DYNAMIC_STATE_PRIM_MODE_SYSMEM,
    TU_DYNAMIC_STATE_COUNT,
 };
 
@@ -153,7 +154,7 @@ struct tu_pipeline
    struct {
       /* If the pipeline sets SINGLE_PRIM_MODE for sysmem. */
       bool sysmem_single_prim_mode;
-      struct tu_draw_state state_sysmem, state_gmem;
+      struct tu_draw_state state_gmem;
    } prim_order;
 
    /* draw states for the pipeline */
@@ -204,7 +205,7 @@ struct tu_graphics_pipeline {
     */
    struct vk_sample_locations_state sample_locations;
 
-   bool feedback_loop_color, feedback_loop_ds;
+   VkImageAspectFlags feedback_loops;
    bool feedback_loop_may_involve_textures;
 };
 

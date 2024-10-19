@@ -28,6 +28,7 @@
 #define H_ETNA_EMIT
 
 #include "etnaviv_screen.h"
+#include "etnaviv_resource.h"
 #include "etnaviv_util.h"
 #include "hw/cmdstream.xml.h"
 
@@ -138,6 +139,25 @@ etna_draw_instanced(struct etna_cmd_stream *stream,
    etna_cmd_stream_emit(stream,
       VIV_FE_DRAW_INSTANCED_START_INDEX(offset));
    etna_cmd_stream_emit(stream, 0);
+}
+
+static inline void
+etna_draw_indirect(struct etna_cmd_stream *stream,
+                   uint32_t primitive_type,
+                   struct pipe_resource *buffer,
+                   unsigned offset,
+                   bool indexed)
+{
+   etna_cmd_stream_reserve(stream, 2);
+   etna_cmd_stream_emit(stream,
+      VIV_FE_DRAW_INDIRECT_HEADER_OP_DRAW_INDIRECT |
+      VIV_FE_DRAW_INDIRECT_HEADER_TYPE(primitive_type) |
+      COND(indexed, VIV_FE_DRAW_INDIRECT_HEADER_INDEXED));
+   etna_cmd_stream_reloc(stream, &(struct etna_reloc) {
+      .bo = etna_resource(buffer)->bo,
+      .flags = ETNA_RELOC_READ,
+      .offset = offset,
+   });
 }
 
 static inline void

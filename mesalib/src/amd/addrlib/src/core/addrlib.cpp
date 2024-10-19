@@ -173,6 +173,10 @@ ADDR_E_RETURNCODE Lib::Create(
         }
     }
 
+#if DEBUG
+    ApplyDebugPrinters(pCreateIn->callbacks.debugPrint, pCreateIn->hClient);
+#endif
+
     if ((returnCode == ADDR_OK)                    &&
         (pCreateIn->callbacks.allocSysMem != NULL) &&
         (pCreateIn->callbacks.freeSysMem != NULL))
@@ -370,7 +374,14 @@ VOID Lib::SetMaxAlignments()
 Lib* Lib::GetLib(
     ADDR_HANDLE hLib)   ///< [in] handle of ADDR_HANDLE
 {
-    return static_cast<Addr::Lib*>(hLib);
+    Lib* pLib = static_cast<Addr::Lib*>(hLib);
+#if DEBUG
+    if (pLib != NULL)
+    {
+        pLib->SetDebugPrinters();
+    }
+#endif
+    return pLib;
 }
 
 /**

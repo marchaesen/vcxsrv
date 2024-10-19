@@ -1,0 +1,50 @@
+[tool.towncrier]
+name = "xkeyboard-config"
+directory = "changes"
+filename = "ChangeLog.md"
+start_string = "<!-- towncrier release notes start -->\n"
+all_bullets = true
+single_file = true
+orphan_prefix = "+"
+underlines = ["=", "-", ""]
+title_format = "{name} [{version}](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-{version}) - {project_date}"
+issue_format = "[#{issue}](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/issues/{issue})"
+
+# Sections configuration
+
+[[tool.towncrier.section]]
+name = "Models"
+path = "models"
+
+[[tool.towncrier.section]]
+name = "Layouts"
+path = "layouts"
+
+[[tool.towncrier.section]]
+name = "Options"
+path = "options"
+
+[[tool.towncrier.section]]
+name = "Miscellaneous"
+path = "misc"
+
+[[tool.towncrier.section]]
+name = "Build system"
+path = "build"
+
+# Fragments configuration
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "feature"
+name = "New"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "bugfix"
+name = "Fixes"
+showcontent = true

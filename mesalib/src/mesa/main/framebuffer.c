@@ -970,16 +970,9 @@ _mesa_get_color_read_type(struct gl_context *ctx,
    }
    else {
       const mesa_format format = fb->_ColorReadBuffer->Format;
-      GLenum data_type;
-      GLuint comps;
-
-      _mesa_uncompressed_format_to_type_and_comps(format, &data_type, &comps);
-
-      return data_type;
+      return _mesa_uncompressed_format_to_type(format);
    }
 }
-
-
 /**
  * Returns the read renderbuffer for the specified format.
  */

@@ -226,7 +226,6 @@ nir_lower_wrmasks(nir_shader *shader, nir_instr_filter_cb cb, const void *data)
 
    return nir_shader_instructions_pass(shader,
                                        nir_lower_wrmasks_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &state);
 }

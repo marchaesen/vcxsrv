@@ -29,6 +29,18 @@
 #include "background.h"
 #include "resource.h"
 
+static bool should_generate_visual_confirm(enum vpe_stream_type stream_type)
+{
+    switch (stream_type) {
+    case VPE_STREAM_TYPE_INPUT:
+    case VPE_STREAM_TYPE_BG_GEN:
+        return true;
+    default:
+        return false;
+        break;
+    }
+}
+
 static uint16_t get_visual_confirm_segs_count(uint32_t max_seg_width, uint32_t target_rect_width)
 {
     // Unlike max_gaps logic in vpe10_calculate_segments, we are pure BG seg, no need to worry
@@ -42,16 +54,17 @@ static uint16_t get_visual_confirm_segs_count(uint32_t max_seg_width, uint32_t t
 static uint16_t vpe_get_visual_confirm_total_seg_count(
     struct vpe_priv *vpe_priv, uint32_t max_seg_width, const struct vpe_build_param *params)
 {
-    uint16_t           segs_num                  = 0;
-    uint16_t           total_visual_confirm_segs = 0;
-    uint16_t           stream_idx;
-    struct stream_ctx *stream_ctx;
+    uint16_t             segs_num                  = 0;
+    uint16_t             total_visual_confirm_segs = 0;
+    uint16_t             stream_idx;
+    struct stream_ctx   *stream_ctx;
 
     if (vpe_priv->init.debug.visual_confirm_params.input_format) {
-        for (stream_idx = 0; stream_idx < params->num_streams; stream_idx++) {
+        for (stream_idx = 0; stream_idx < vpe_priv->num_streams; stream_idx++) {
             stream_ctx = &vpe_priv->stream_ctx[stream_idx];
-            total_visual_confirm_segs += get_visual_confirm_segs_count(
-                max_seg_width, stream_ctx->stream.scaling_info.dst_rect.width);
+            if (should_generate_visual_confirm(stream_ctx->stream_type))
+                total_visual_confirm_segs += get_visual_confirm_segs_count(
+                    max_seg_width, stream_ctx->stream.scaling_info.dst_rect.width);
         }
     }
 
@@ -205,6 +218,7 @@ enum vpe_status vpe_create_visual_confirm_segs(
         vpe_full_bg_gaps(current_gap, &visual_confirm_rect, seg_cnt);
         vpe_priv->resource.create_bg_segments(
             vpe_priv, current_gap, seg_cnt, VPE_CMD_OPS_BG_VSCF_OUTPUT);
+        current_gap += seg_cnt;
     }
 
     if (visual_confirm_gaps != NULL) {

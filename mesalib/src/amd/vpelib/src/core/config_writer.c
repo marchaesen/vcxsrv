@@ -23,7 +23,6 @@
  */
 
 #include "vpe_assert.h"
-#include "vpe_command.h"
 #include "config_writer.h"
 #include "reg_helper.h"
 #include "common.h"
@@ -41,6 +40,7 @@ void config_writer_init(struct config_writer *writer, struct vpe_buf *buf)
     writer->callback_ctx = NULL;
     writer->callback     = NULL;
     writer->completed    = false;
+    writer->pipe_idx     = 0;
     writer->status       = VPE_STATUS_OK;
 }
 
@@ -51,10 +51,34 @@ void config_writer_set_callback(
     writer->callback     = callback;
 }
 
+static void config_writer_reset(struct config_writer *writer)
+{
+    uint64_t size = writer->buf->cpu_va - writer->base_cpu_va;
+
+    writer->buf->cpu_va -= size;
+    writer->buf->gpu_va -= size;
+    writer->buf->size += size;
+
+    VPE_ASSERT(writer->buf->cpu_va == writer->base_cpu_va);
+    VPE_ASSERT(writer->buf->gpu_va == writer->base_gpu_va);
+}
+
 static inline void config_writer_new(struct config_writer *writer)
 {
     if (writer->status != VPE_STATUS_OK)
         return;
+
+    uint16_t alignment           = writer->gpu_addr_alignment;
+    uint64_t aligned_gpu_address = (writer->buf->gpu_va + alignment) & ~alignment;
+    uint64_t alignment_offset    = aligned_gpu_address - writer->buf->gpu_va;
+    writer->buf->gpu_va          = aligned_gpu_address;
+    writer->buf->cpu_va          = writer->buf->cpu_va + alignment_offset;
+    if (writer->buf->size < alignment_offset) {
+        writer->status = VPE_STATUS_BUFFER_OVERFLOW;
+        return;
+    }
+
+    writer->buf->size -= alignment_offset;
 
     /* Buffer does not have enough space to write */
     if (writer->buf->size < sizeof(uint32_t)) {
@@ -72,25 +96,47 @@ static inline void config_writer_new(struct config_writer *writer)
     writer->completed = false;
 }
 
-void config_writer_set_type(struct config_writer *writer, enum config_type type)
+void config_writer_set_type(struct config_writer *writer, enum config_type type, uint32_t pipe_idx)
 {
     VPE_ASSERT(type != CONFIG_TYPE_UNKNOWN);
 
     if (writer->status != VPE_STATUS_OK)
         return;
 
-    if (writer->type != type) {
+    if ((writer->type != type) || (writer->pipe_idx != pipe_idx)) {
         if (writer->type == CONFIG_TYPE_UNKNOWN) {
-            // new header. don't need to fill it yet until completion
+            // new header or only pipe change. don't need to fill it yet until completion
+            writer->pipe_idx = pipe_idx;
             config_writer_new(writer);
         } else {
             // a new config type, close the previous one
             config_writer_complete(writer);
 
+            writer->pipe_idx = pipe_idx;
             config_writer_new(writer);
         }
         writer->type = type;
     }
+}
+
+void config_writer_force_new_with_type(struct config_writer *writer, enum config_type type)
+{
+    VPE_ASSERT(type != CONFIG_TYPE_UNKNOWN);
+
+    if (writer->status != VPE_STATUS_OK)
+        return;
+
+    uint64_t size = writer->buf->cpu_va - writer->base_cpu_va;
+
+    if (writer->type == CONFIG_TYPE_UNKNOWN) {
+        // new header. don't need to fill it yet until completion
+        config_writer_new(writer);
+    } else if (size > 0) {
+        // command not empty, close the previous one
+        config_writer_complete(writer);
+        config_writer_new(writer);
+    }
+    writer->type = type;
 }
 
 void config_writer_fill(struct config_writer *writer, uint32_t value)
@@ -232,6 +278,14 @@ void config_writer_complete(struct config_writer *writer)
     uint32_t *cmd_space = (uint32_t *)(uintptr_t)writer->base_cpu_va;
     uint64_t  size      = writer->buf->cpu_va - writer->base_cpu_va;
 
+    if (size <= sizeof(uint32_t)) {
+        config_writer_reset(writer);
+        return;
+    } else if (writer->completed == true) {
+        // completed has already been called for this packet
+        return;
+    }
+
     if (writer->status != VPE_STATUS_OK)
         return;
 
@@ -253,6 +307,7 @@ void config_writer_complete(struct config_writer *writer)
     writer->completed = true;
 
     if (writer->callback) {
-        writer->callback(writer->callback_ctx, writer->base_gpu_va, writer->base_cpu_va, size);
+        writer->callback(
+            writer->callback_ctx, writer->base_gpu_va, writer->base_cpu_va, size, writer->pipe_idx);
     }
 }

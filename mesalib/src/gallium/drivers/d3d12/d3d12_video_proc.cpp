@@ -86,7 +86,7 @@ d3d12_video_processor_begin_frame(struct pipe_video_codec * codec,
     debug_printf("d3d12_video_processor_begin_frame: Beginning new scene with Output ID3D12Resource: %p (%d %d)\n", pDstD3D12Res, (int) dstDesc.Width, (int) dstDesc.Height);
 }
 
-void
+int
 d3d12_video_processor_end_frame(struct pipe_video_codec * codec,
                               struct pipe_video_buffer *target,
                               struct pipe_picture_desc *picture)
@@ -182,6 +182,7 @@ d3d12_video_processor_end_frame(struct pipe_video_codec * codec,
     pD3D12Proc->m_PendingFences[d3d12_video_processor_pool_current_index(pD3D12Proc)].value = pD3D12Proc->m_fenceValue;
     pD3D12Proc->m_PendingFences[d3d12_video_processor_pool_current_index(pD3D12Proc)].cmdqueue_fence = pD3D12Proc->m_spFence.Get();
     *picture->fence = (pipe_fence_handle*) &pD3D12Proc->m_PendingFences[d3d12_video_processor_pool_current_index(pD3D12Proc)];
+    return 0;
 }
 
 void
@@ -422,7 +423,7 @@ d3d12_video_processor_create(struct pipe_context *context, const struct pipe_vid
    pD3D12Proc->base.process_frame = d3d12_video_processor_process_frame;
    pD3D12Proc->base.end_frame = d3d12_video_processor_end_frame;
    pD3D12Proc->base.flush = d3d12_video_processor_flush;
-   pD3D12Proc->base.get_processor_fence = d3d12_video_processor_get_processor_fence;
+   pD3D12Proc->base.fence_wait = d3d12_video_processor_fence_wait;
 
    ///
 
@@ -845,9 +846,9 @@ sync_with_token_fail:
    return false;
 }
 
-int d3d12_video_processor_get_processor_fence(struct pipe_video_codec *codec,
-                                              struct pipe_fence_handle *fence,
-                                              uint64_t timeout)
+int d3d12_video_processor_fence_wait(struct pipe_video_codec *codec,
+                                     struct pipe_fence_handle *fence,
+                                     uint64_t timeout)
 {
    struct d3d12_fence *fenceValueToWaitOn = (struct d3d12_fence *) fence;
    assert(fenceValueToWaitOn);

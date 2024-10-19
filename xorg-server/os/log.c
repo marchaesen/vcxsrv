@@ -75,9 +75,9 @@ OR PERFORMANCE OF THIS SOFTWARE.
  * authorization from the copyright holder(s) and author(s).
  */
 
-#ifdef HAVE_DIX_CONFIG_H
+#define _POSIX_THREAD_SAFE_FUNCTIONS // for localtime_r on mingw32
+
 #include <dix-config.h>
-#endif
 
 #include <errno.h>
 #include <stdio.h>
@@ -85,20 +85,17 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdlib.h>             /* for malloc() */
 #include <sys/stat.h>
 #include <time.h>
+#include <X11/Xfuncproto.h>
 #include <X11/Xos.h>
 
+#include "dix/dix_priv.h"
+#include "dix/input_priv.h"
 #include "os/audit.h"
 #include "os/ddx_priv.h"
 #include "os/fmt.h"
 #include "os/osdep.h"
 
-#include "input.h"
 #include "opaque.h"
-
-#ifdef WIN32
-#include <process.h>
-#define getpid(x) _getpid(x)
-#endif
 
 #ifdef XF86BIGFONT
 #include "xf86bigfontsrv.h"
@@ -111,12 +108,8 @@ OR PERFORMANCE OF THIS SOFTWARE.
 void (*OsVendorVErrorFProc) (const char *, va_list args) = NULL;
 
 /* Default logging parameters. */
-#ifndef DEFAULT_LOG_VERBOSITY
 #define DEFAULT_LOG_VERBOSITY		0
-#endif
-#ifndef DEFAULT_LOG_FILE_VERBOSITY
 #define DEFAULT_LOG_FILE_VERBOSITY	3
-#endif
 
 static FILE *logFile = NULL;
 static int logFileFd = -1;
@@ -139,42 +132,18 @@ asm(".desc ___crashreporter_info__, 0x10");
 #endif
 
 /* Prefix strings for log messages. */
-#ifndef X_UNKNOWN_STRING
 #define X_UNKNOWN_STRING		"(\?\?)"
-#endif
-#ifndef X_PROBE_STRING
 #define X_PROBE_STRING			"(--)"
-#endif
-#ifndef X_CONFIG_STRING
 #define X_CONFIG_STRING			"(**)"
-#endif
-#ifndef X_DEFAULT_STRING
 #define X_DEFAULT_STRING		"(==)"
-#endif
-#ifndef X_CMDLINE_STRING
 #define X_CMDLINE_STRING		"(++)"
-#endif
-#ifndef X_NOTICE_STRING
 #define X_NOTICE_STRING			"(!!)"
-#endif
-#ifndef X_ERROR_STRING
 #define X_ERROR_STRING			"(EE)"
-#endif
-#ifndef X_WARNING_STRING
 #define X_WARNING_STRING		"(WW)"
-#endif
-#ifndef X_INFO_STRING
 #define X_INFO_STRING			"(II)"
-#endif
-#ifndef X_NOT_IMPLEMENTED_STRING
 #define X_NOT_IMPLEMENTED_STRING	"(NI)"
-#endif
-#ifndef X_DEBUG_STRING
 #define X_DEBUG_STRING			"(DB)"
-#endif
-#ifndef X_NONE_STRING
 #define X_NONE_STRING			""
-#endif
 
 static size_t
 strlen_sigsafe(const char *s)
@@ -620,11 +589,7 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
                 struct tm tm;
                 char fmt_tm[32];
 
-#ifdef WIN32
-                localtime_s(&tm, &t);
-#else
                 localtime_r(&t, &tm);
-#endif
                 strftime(fmt_tm, sizeof(fmt_tm) - 1, "%Y-%m-%d %H:%M:%S", &tm);
 
                 fprintf(logFile, "[%s] ", fmt_tm);
@@ -657,22 +622,6 @@ LogSWrite(int verb, const char *buf, size_t len, Bool end_line)
      * fails...
      */
     (void) ret;
-}
-
-void
-LogVWrite(int verb, const char *f, va_list args)
-{
-    return LogVMessageVerb(X_NONE, verb, f, args);
-}
-
-void
-LogWrite(int verb, const char *f, ...)
-{
-    va_list args;
-
-    va_start(args, f);
-    LogVWrite(verb, f, args);
-    va_end(args);
 }
 
 /* Returns the Message Type string to prepend to a logging message, or NULL
@@ -1043,7 +992,7 @@ VErrorF(const char *f, va_list args)
     if (OsVendorVErrorFProc)
         OsVendorVErrorFProc(f, args);
     else
-        LogVWrite(-1, f, args);
+        LogVMessageVerb(X_NONE, -1, f, args);
 }
 
 void
@@ -1076,7 +1025,7 @@ void
 LogPrintMarkers(void)
 {
     /* Show what the message marker symbols mean. */
-    LogWrite(0, "Markers: ");
+    LogMessageVerb(X_NONE, 0, "Markers: ");
     LogMessageVerb(X_PROBED, 0, "probed, ");
     LogMessageVerb(X_CONFIG, 0, "from config file, ");
     LogMessageVerb(X_DEFAULT, 0, "default setting,\n\t");

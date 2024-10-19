@@ -389,13 +389,13 @@ midgard_unpack_varying_params(midgard_load_store_word word);
  * displacement bitsize. */
 
 #define UNPACK_LDST_ATTRIB_OFS(a)   ((a) >> 9)
-#define UNPACK_LDST_VERTEX_OFS(a)   util_sign_extend((a)&0x1FF, 9)
+#define UNPACK_LDST_VERTEX_OFS(a)   util_sign_extend((a) & 0x1FF, 9)
 #define UNPACK_LDST_SELECTOR_OFS(a) ((a) >> 9)
 #define UNPACK_LDST_UBO_OFS(a)      ((a) >> 2)
 #define UNPACK_LDST_MEM_OFS(a)      ((a))
 
 #define PACK_LDST_ATTRIB_OFS(a)   ((a) << 9)
-#define PACK_LDST_VERTEX_OFS(a)   ((a)&0x1FF)
+#define PACK_LDST_VERTEX_OFS(a)   ((a) & 0x1FF)
 #define PACK_LDST_SELECTOR_OFS(a) ((a) << 9)
 #define PACK_LDST_UBO_OFS(a)      ((a) << 2)
 #define PACK_LDST_MEM_OFS(a)      ((a))

@@ -41,9 +41,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include "compint.h"
 #include "xace.h"
@@ -252,7 +250,7 @@ ProcCompositeNameWindowPixmap(ClientPtr client)
         return BadMatch;
 
     /* security creation/labeling check */
-    rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pixmap, X11_RESTYPE_PIXMAP,
+    rc = XaceHookResourceAccess(client, stuff->pixmap, X11_RESTYPE_PIXMAP,
                   pPixmap, X11_RESTYPE_WINDOW, pWin, DixCreateAccess);
     if (rc != Success)
         return rc;
@@ -306,7 +304,7 @@ ProcCompositeGetOverlayWindow(ClientPtr client)
             return BadAlloc;
         }
 
-    rc = XaceHook(XACE_RESOURCE_ACCESS, client, cs->pOverlayWin->drawable.id,
+    rc = XaceHookResourceAccess(client, cs->pOverlayWin->drawable.id,
                   X11_RESTYPE_WINDOW, cs->pOverlayWin, X11_RESTYPE_NONE,
                   NULL, DixGetAttrAccess);
     if (rc != Success) {
@@ -828,7 +826,7 @@ PanoramiXCompositeGetOverlayWindow(ClientPtr client)
                 return BadAlloc;
             }
 
-        rc = XaceHook(XACE_RESOURCE_ACCESS, client,
+        rc = XaceHookResourceAccess(client,
                       cs->pOverlayWin->drawable.id,
                       X11_RESTYPE_WINDOW, cs->pOverlayWin, X11_RESTYPE_NONE, NULL,
                       DixGetAttrAccess);

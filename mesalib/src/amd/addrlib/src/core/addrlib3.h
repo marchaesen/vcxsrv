@@ -24,6 +24,11 @@ namespace Addr
 namespace V3
 {
 
+constexpr UINT_32 Size256  = 256u;
+constexpr UINT_32 Size4K   = 4 * 1024;
+constexpr UINT_32 Size64K  = 64 * 1024;
+constexpr UINT_32 Size256K = 256 * 1024;
+
 struct ADDR3_COORD
 {
     INT_32  x;
@@ -40,22 +45,6 @@ struct ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT
     const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pSurfInfo;
     void*                                   pvAddrParams;
 };
-
-/**
-************************************************************************************************************************
-* @brief Bitmasks for swizzle mode determination on GFX12
-************************************************************************************************************************
-*/
-const UINT_32 Gfx12Blk256KBSwModeMask = (1u << ADDR3_256KB_2D)  |
-                                        (1u << ADDR3_256KB_3D);
-
-const UINT_32 Gfx12Blk64KBSwModeMask  = (1u << ADDR3_64KB_2D)   |
-                                        (1u << ADDR3_64KB_3D);
-
-const UINT_32 Gfx12Blk4KBSwModeMask   = (1u << ADDR3_4KB_2D)    |
-                                        (1u << ADDR3_4KB_3D);
-
-const UINT_32 Gfx12Blk256BSwModeMask  = (1u << ADDR3_256B_2D);
 
 /**
 ************************************************************************************************************************
@@ -217,8 +206,6 @@ protected:
     Lib();  // Constructor is protected
     Lib(const Client* pClient);
 
-    static const UINT_32 MaxImageDim  = 65536; // Max image size is 64k
-    static const UINT_32 MaxMipLevels = 17;
     UINT_32 m_pipesLog2;                ///< Number of pipe per shader engine Log2
     UINT_32 m_pipeInterleaveLog2;       ///< Log2 of pipe interleave bytes
 
@@ -228,8 +215,6 @@ protected:
     static const UINT_32 MaxMsaaRateLog2     = 4;
     // Max number of bpp (8bpp/16bpp/32bpp/64bpp/128bpp)
     static const UINT_32 MaxElementBytesLog2 = 5;
-    // Number of unique swizzle patterns (one entry per swizzle mode + MSAA + bpp configuration)
-    static const UINT_32 NumSwizzlePatterns  = 19 * MaxElementBytesLog2;
 
     // Number of equation entries in the table
     UINT_32              m_numEquations;
@@ -237,11 +222,13 @@ protected:
     // Swizzle equation lookup table according to swizzle mode, MSAA sample rate and bpp. This does not include linear.
     UINT_32              m_equationLookupTable[ADDR3_MAX_TYPE - 1][MaxMsaaRateLog2][MaxElementBytesLog2];
 
-    // Equation table
-    ADDR_EQUATION        m_equationTable[NumSwizzlePatterns];
-
     // Block dimension lookup table according to swizzle mode, MSAA sample rate and bpp. This includes linear.
     ADDR_EXTENT3D        m_blockDimensionTable[ADDR3_MAX_TYPE][MaxMsaaRateLog2][MaxElementBytesLog2];
+
+    virtual ADDR_E_RETURNCODE HwlComputeStereoInfo(
+        const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn,
+        UINT_32*                                pAlignY,
+        UINT_32*                                pRightXor) const = 0;
 
     void SetEquationTableEntry(
         Addr3SwizzleMode swMode,
@@ -249,6 +236,8 @@ protected:
         UINT_32          elementBytesLog2,
         UINT_32          value)
     {
+        // m_equationLookupTable doesn't include linear, so we must exclude linear when calling this function.
+        ADDR_ASSERT(swMode != ADDR3_LINEAR);
         m_equationLookupTable[swMode - 1][msaaLog2][elementBytesLog2] = value;
     }
 
@@ -257,7 +246,14 @@ protected:
         UINT_32          msaaLog2,
         UINT_32          elementBytesLog2) const
     {
-        return m_equationLookupTable[swMode - 1][msaaLog2][elementBytesLog2];
+        UINT_32 res = ADDR_INVALID_EQUATION_INDEX;
+        // m_equationLookupTable doesn't include linear
+        if (swMode != ADDR3_LINEAR)
+        {
+            res = m_equationLookupTable[swMode - 1][msaaLog2][elementBytesLog2];
+        }
+
+        return res;
     }
 
     const ADDR_EXTENT3D GetBlockDimensionTableEntry(
@@ -335,7 +331,13 @@ protected:
         return GetBlockSize(swizzleMode) > 256u;
     }
 
-    virtual UINT_32 HwlComputeMaxBaseAlignments() const  { return 256 * 1024; }
+    // The max alignment is tied to the swizzle mode and since the largest swizzle mode is 256kb, so the maximal
+    // alignment is also 256kb.
+    virtual UINT_32 HwlComputeMaxBaseAlignments() const  { return Size256K; }
+
+    virtual ADDR_E_RETURNCODE HwlGetPossibleSwizzleModes(
+        const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT*   pIn,
+        ADDR3_GET_POSSIBLE_SWIZZLE_MODE_OUTPUT*        pOut) const = 0;
 
     virtual BOOL_32 HwlInitGlobalParams(const ADDR_CREATE_INPUT* pCreateIn)
     {
@@ -375,6 +377,11 @@ protected:
         const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
 
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceAddrFromCoordLinear(
+        const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
+        const ADDR3_COMPUTE_SURFACE_INFO_INPUT*          pSurfInfoIn,
+        ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const = 0;
+
     ADDR_E_RETURNCODE ComputeSurfaceAddrFromCoordTiled(
         const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
@@ -410,6 +417,28 @@ protected:
         return ADDR_NOTSUPPORTED;
     }
 
+    virtual UINT_32 HwlGetEquationIndex(
+        const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_INVALID_EQUATION_INDEX;
+    }
+
+    void SetEquationIndex(
+        const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn,
+        ADDR3_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const
+    {
+        UINT_32 equationIdx = HwlGetEquationIndex(pIn);
+
+        if (pOut->pMipInfo != NULL)
+        {
+            for (UINT_32 i = 0; i < pIn->numMipLevels; i++)
+            {
+                pOut->pMipInfo[i].equationIndex = equationIdx;
+            }
+        }
+    }
+
     ADDR_E_RETURNCODE ApplyCustomizedPitchHeight(
         const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn,
         ADDR3_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const;
@@ -426,6 +455,8 @@ protected:
         const ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT* pIn,
         const ADDR_EXTENT3D&                           blockDims) const = 0;
 
+    virtual BOOL_32 HwlValidateNonSwModeParams(const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT* pIn) const = 0;
+
 private:
     // Disallow the copy constructor
     Lib(const Lib& a);
@@ -434,6 +465,8 @@ private:
     Lib& operator=(const Lib& a);
 
     void Init();
+
+    VOID ComputeQbStereoInfo(ADDR3_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
 };
 
 } // V3

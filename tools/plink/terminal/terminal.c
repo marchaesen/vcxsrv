@@ -1639,6 +1639,7 @@ static void term_copy_stuff_from_conf(Terminal *term)
     term->bellovl_s = conf_get_int(term->conf, CONF_bellovl_s);
     term->bellovl_t = conf_get_int(term->conf, CONF_bellovl_t);
     term->no_bidi = conf_get_bool(term->conf, CONF_no_bidi);
+    term->no_bracketed_paste = conf_get_bool(term->conf, CONF_no_bracketed_paste);
     term->bksp_is_delete = conf_get_bool(term->conf, CONF_bksp_is_delete);
     term->blink_cur = conf_get_bool(term->conf, CONF_blink_cur);
     term->blinktext = conf_get_bool(term->conf, CONF_blinktext);
@@ -1796,8 +1797,13 @@ void term_reconfig(Terminal *term, Conf *conf)
     conf_free(term->conf);
     term->conf = conf_copy(conf);
 
-    if (reset_wrap)
+    if (reset_wrap) {
         term->alt_wrap = term->wrap = conf_get_bool(term->conf, CONF_wrap_mode);
+        if (!term->wrap)
+            term->wrapnext = false;
+        if (!term->alt_wrap)
+            term->alt_wnext = false;
+    }
     if (reset_decom)
         term->alt_om = term->dec_om = conf_get_bool(term->conf, CONF_dec_om);
     if (reset_bce) {
@@ -3093,6 +3099,8 @@ static void toggle_mode(Terminal *term, int mode, int query, bool state)
             break;
           case 7:                      /* DECAWM: auto wrap */
             term->wrap = state;
+            if (!term->wrap)
+                term->wrapnext = false;
             break;
           case 8:                      /* DECARM: auto key repeat */
             term->repeat_off = !state;
@@ -3425,22 +3433,30 @@ static void term_display_graphic_char(Terminal *term, unsigned long c)
     term->curs.x++;
     if (term->curs.x >= linecols) {
         term->curs.x = linecols - 1;
-        term->wrapnext = true;
-        if (term->wrap && term->vt52_mode) {
-            cline->lattr |= LATTR_WRAPPED;
-            if (term->curs.y == term->marg_b)
-                scroll(term, term->marg_t, term->marg_b, 1, true);
-            else if (term->curs.y < term->rows - 1)
-                term->curs.y++;
-            term->curs.x = 0;
-            term->wrapnext = false;
+
+        if (term->wrap) {
+            if (!term->vt52_mode) {
+                /* Set the wrapnext flag, so that the next character
+                 * wraps, but this one doesn't. */
+                term->wrapnext = true;
+            } else {
+                /* VT52 mode expects simpler handling, and we just
+                 * wrap straight away. */
+                cline->lattr |= LATTR_WRAPPED;
+                if (term->curs.y == term->marg_b)
+                    scroll(term, term->marg_t, term->marg_b, 1, true);
+                else if (term->curs.y < term->rows - 1)
+                    term->curs.y++;
+                term->curs.x = 0;
+                term->wrapnext = false;
+            }
         }
     }
     seen_disp_event(term);
 }
 
 static strbuf *term_input_data_from_unicode(
-    Terminal *term, const wchar_t *widebuf, int len)
+    Terminal *term, const wchar_t *widebuf, size_t len)
 {
     strbuf *buf = strbuf_new();
 
@@ -3449,7 +3465,7 @@ static strbuf *term_input_data_from_unicode(
          * Translate input wide characters into UTF-8 to go in the
          * terminal's input data queue.
          */
-        for (int i = 0; i < len; i++) {
+        for (size_t i = 0; i < len; i++) {
             unsigned long ch = widebuf[i];
 
             if (IS_SURROGATE(ch)) {
@@ -3481,31 +3497,21 @@ static strbuf *term_input_data_from_unicode(
          * (But also we must allow space for the trailing NUL that
          * wc_to_mb will write.)
          */
-        char *bufptr = strbuf_append(buf, len + 1);
-        int rv;
-        rv = wc_to_mb(term->ucsdata->line_codepage, 0, widebuf, len,
-                      bufptr, len + 1, NULL);
-        strbuf_shrink_to(buf, rv < 0 ? 0 : rv);
+        put_wc_to_mb(buf, term->ucsdata->line_codepage, widebuf, len, "");
     }
 
     return buf;
 }
 
 static strbuf *term_input_data_from_charset(
-    Terminal *term, int codepage, const char *str, int len)
+    Terminal *term, int codepage, const char *str, size_t len)
 {
-    strbuf *buf;
+    strbuf *buf = strbuf_new();
 
-    if (codepage < 0) {
-        buf = strbuf_new();
+    if (codepage < 0)
         put_data(buf, str, len);
-    } else {
-        int widesize = len * 2;        /* allow for UTF-16 surrogates */
-        wchar_t *widebuf = snewn(widesize, wchar_t);
-        int widelen = mb_to_wc(codepage, 0, str, len, widebuf, widesize);
-        buf = term_input_data_from_unicode(term, widebuf, widelen);
-        sfree(widebuf);
-    }
+    else
+        put_mb_to_wc(buf, codepage, str, len);
 
     return buf;
 }
@@ -3636,10 +3642,6 @@ unsigned long term_translate(
             /* ISO 10646 characters now limited to UTF-16 range. */
             if (t > 0x10FFFF)
                 return UCSINVALID;
-
-            /* This is currently a TagPhobic application.. */
-            if (t >= 0xE0000 && t <= 0xE007F)
-                return UCSINCOMPLETE;
 
             /* U+FEFF is best seen as a null. */
             if (t == 0xFEFF)
@@ -5659,6 +5661,7 @@ static void term_out(Terminal *term, bool called_from_term_data)
                   case 'w':            /* Autowrap off */
                     /* compatibility(ATARI) */
                     term->wrap = false;
+                    term->wrapnext = false;
                     break;
 
                   case 'R':
@@ -6670,10 +6673,6 @@ static void clipme(Terminal *term, pos top, pos bottom, bool rect, bool desel,
         }
 
         while (poslt(top, bottom) && poslt(top, nlpos)) {
-#if 0
-            char cbuf[16], *p;
-            sprintf(cbuf, "<U+%04x>", (ldata[top.x] & 0xFFFF));
-#else
             wchar_t cbuf[16], *p;
             int c;
             int x = top.x;
@@ -6725,26 +6724,26 @@ static void clipme(Terminal *term, pos top, pos bottom, bool rect, bool desel,
 
                 if (DIRECT_FONT(uc)) {
                     if (c >= ' ' && c != 0x7F) {
-                        char buf[4];
-                        WCHAR wbuf[4];
-                        int rv;
+                        char buf[2];
+                        buffer_sink bs[1];
+                        buffer_sink_init(bs, cbuf,
+                                         sizeof(cbuf) - sizeof(wchar_t));
                         if (is_dbcs_leadbyte(term->ucsdata->font_codepage, (BYTE) c)) {
                             buf[0] = c;
                             buf[1] = (char) (0xFF & ldata->chars[top.x + 1].chr);
-                            rv = mb_to_wc(term->ucsdata->font_codepage, 0, buf, 2, wbuf, 4);
+                            put_mb_to_wc(bs, term->ucsdata->font_codepage,
+                                         buf, 2);
                             top.x++;
                         } else {
                             buf[0] = c;
-                            rv = mb_to_wc(term->ucsdata->font_codepage, 0, buf, 1, wbuf, 4);
+                            put_mb_to_wc(bs, term->ucsdata->font_codepage,
+                                         buf, 1);
                         }
 
-                        if (rv > 0) {
-                            memcpy(cbuf, wbuf, rv * sizeof(wchar_t));
-                            cbuf[rv] = 0;
-                        }
+                        assert(!bs->overflowed);
+                        *(wchar_t *)bs->out = L'\0';
                     }
                 }
-#endif
 
                 for (p = cbuf; *p; p++)
                     clip_addchar(&buf, *p, attr, tc);
@@ -7064,7 +7063,7 @@ static void term_paste_callback(void *vterm)
         return;
 
     while (term->paste_pos < term->paste_len) {
-        int n = 0;
+        size_t n = 0;
         while (n + term->paste_pos < term->paste_len) {
             if (term->paste_buffer[term->paste_pos + n++] == '\015')
                 break;
@@ -7099,7 +7098,7 @@ static bool wstartswith(const wchar_t *a, size_t alen,
     return alen >= blen && !wcsncmp(a, b, blen);
 }
 
-void term_do_paste(Terminal *term, const wchar_t *data, int len)
+void term_do_paste(Terminal *term, const wchar_t *data, size_t len)
 {
     const wchar_t *p;
     bool paste_controls = conf_get_bool(term->conf, CONF_paste_controls);
@@ -7118,7 +7117,7 @@ void term_do_paste(Terminal *term, const wchar_t *data, int len)
     term->paste_pos = term->paste_len = 0;
     term->paste_buffer = snewn(len + 12, wchar_t);
 
-    if (term->bracketed_paste)
+    if (term->bracketed_paste && !term->no_bracketed_paste)
         term_bracketed_paste_start(term);
 
     p = data;
@@ -7173,6 +7172,7 @@ void term_do_paste(Terminal *term, const wchar_t *data, int len)
         if (term->ldisc) {
             strbuf *buf = term_input_data_from_unicode(
                 term, term->paste_buffer, term->paste_len);
+            assert(buf->len <= INT_MAX); /* because paste_len was also small */
             term_keyinput_internal(term, buf->s, buf->len, false);
             strbuf_free(buf);
         }
@@ -7263,8 +7263,7 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
         (term->selstate != ABOUT_TO) && (term->selstate != DRAGGING)) {
         int encstate = 0, r, c;
         bool wheel;
-        char abuf[32];
-        int len = 0;
+        char *response = NULL;
 
         if (term->ldisc) {
 
@@ -7355,14 +7354,18 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 
             /* Check the extensions in decreasing order of preference. Encoding the release event above assumes that 1006 comes first. */
             if (term->xterm_extended_mouse) {
-                len = sprintf(abuf, "\033[<%d;%d;%d%c", encstate, c, r, a == MA_RELEASE ? 'm' : 'M');
+                response = dupprintf("\033[<%d;%d;%d%c", encstate, c, r,
+                                     a == MA_RELEASE ? 'm' : 'M');
             } else if (term->urxvt_extended_mouse) {
-                len = sprintf(abuf, "\033[%d;%d;%dM", encstate + 32, c, r);
+                response = dupprintf("\033[%d;%d;%dM", encstate + 32, c, r);
             } else if (c <= 223 && r <= 223) {
-                len = sprintf(abuf, "\033[M%c%c%c", encstate + 32, c + 32, r + 32);
+                response = dupprintf("\033[M%c%c%c", encstate + 32,
+                                     c + 32, r + 32);
             }
-            if (len > 0)
-                ldisc_send(term->ldisc, abuf, len, false);
+            if (response) {
+                ldisc_send(term->ldisc, response, strlen(response), false);
+                sfree(response);
+            }
         }
         return;
     }

@@ -36,6 +36,7 @@
 #include "xf86Priv.h"
 #include "xf86_os_support.h"
 #include "xf86_OSlib.h"
+#include "xf86_OSproc.h"
 
 #include <sys/utsname.h>
 #include <sys/ioctl.h>
@@ -43,6 +44,14 @@
 #include <errno.h>
 
 #include "os/osdep.h"
+
+#ifndef CONSOLE_X_MODE_ON
+#define CONSOLE_X_MODE_ON _IO('t',121)
+#endif
+
+#ifndef CONSOLE_X_MODE_OFF
+#define CONSOLE_X_MODE_OFF _IO('t',122)
+#endif
 
 static Bool KeepTty = FALSE;
 

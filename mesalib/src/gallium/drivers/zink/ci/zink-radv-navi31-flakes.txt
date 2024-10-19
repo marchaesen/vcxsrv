@@ -1,3 +1,4 @@
+dEQP-GLES31.functional.copy_image.mixed.viewclass_64_bits_mixed.rg32ui_signed_r11_eac.cubemap_to_cubemap
 dEQP-GLES31.functional.tessellation.invariance.primitive_set.triangles_equal_spacing_ccw_point_mode
 dEQP-GLES31.functional.tessellation.invariance.primitive_set.triangles_equal_spacing_cw_point_mode
 dEQP-GLES31.functional.tessellation.invariance.primitive_set.triangles_fractional_even_spacing_ccw_point_mode
@@ -9,6 +10,7 @@ KHR-GL46.geometry_shader.primitive_counter.lines_to_line_strip_rp
 KHR-GL46.geometry_shader.primitive_counter.points_to_line_strip
 KHR-GL46.geometry_shader.primitive_counter.points_to_line_strip_rp
 KHR-GL46.geometry_shader.primitive_counter.triangles_to_line_strip_rp
+KHR-GL46.geometry_shader.primitive_counter.triangles_to_line_strip
 KHR-GL46.layout_location.usampler_buffer
 spec@arb_depth_texture@fbo-depth-gl_depth_component16-blit
 spec@arb_fragment_shader_interlock@arb_fragment_shader_interlock-image-load-store
@@ -43,4 +45,10 @@ spec@glsl-1.50@execution@geometry@point-size-out
 spec@glsl-1.50@execution@redeclare-pervertex-out-subset-gs
 spec@!opengl 1.0@rasterpos
 spec@!opengl 1.1@depthstencil-default_fb-blit samples=4
+spec@!opengl 1.1@depthstencil-default_fb-blit samples=6
 spec@!opengl 1.1@depthstencil-default_fb-copypixels samples=6
+
+# First seen on navi10 in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/58636780
+KHR-GL46.sparse_buffer_tests.BufferStorageTest
+
+spec@arb_compute_shader@local-id-explosion

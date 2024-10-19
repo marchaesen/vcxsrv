@@ -137,7 +137,7 @@ FragmentShader::process_stage_intrinsic(nir_intrinsic_instr *intr)
       return load_input(intr);
    case nir_intrinsic_load_interpolated_input:
       return load_interpolated_input(intr);
-   case nir_intrinsic_discard_if:
+   case nir_intrinsic_terminate_if:
       m_uses_discard = true;
       emit_instruction(new AluInstr(op2_killne_int,
                                     nullptr,
@@ -146,7 +146,7 @@ FragmentShader::process_stage_intrinsic(nir_intrinsic_instr *intr)
                                     {AluInstr::last}));
 
       return true;
-   case nir_intrinsic_discard:
+   case nir_intrinsic_terminate:
       m_uses_discard = true;
       emit_instruction(new AluInstr(op2_kille_int,
                                     nullptr,

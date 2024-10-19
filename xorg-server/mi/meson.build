@@ -1,6 +1,5 @@
 srcs_mi = [
     'miarc.c',
-    'mibitblt.c',
     'micmap.c',
     'micopy.c',
     'midash.c',
@@ -8,7 +7,6 @@ srcs_mi = [
     'mieq.c',
     'miexpose.c',
     'mifillarc.c',
-    'mifillrct.c',
     'migc.c',
     'miglblt.c',
     'mioverlay.c',

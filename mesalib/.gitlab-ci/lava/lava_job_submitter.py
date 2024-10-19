@@ -51,7 +51,7 @@ from lava.utils import DEFAULT_GITLAB_SECTION_TIMEOUTS as GL_SECTION_TIMEOUTS
 STRUCTURAL_LOG = defaultdict(list)
 
 try:
-    from ci.structured_logger import StructuredLogger
+    from structured_logger import StructuredLogger
 except ImportError as e:
     print_log(
         f"Could not import StructuredLogger library: {e}. "
@@ -388,6 +388,7 @@ class LAVAJobSubmitter(PathResolver):
     boot_method: str
     ci_project_dir: str
     device_type: str
+    farm: str
     job_timeout_min: int  # The job timeout in minutes
     build_url: str = None
     dtb_filename: str = None
@@ -504,9 +505,10 @@ class LAVAJobSubmitter(PathResolver):
             raise SystemExit(1)
 
         STRUCTURAL_LOG["job_combined_status"] = last_attempt_job.status
+        STRUCTURAL_LOG["job_exit_code"] = last_attempt_job.exit_code
 
         if last_attempt_job.status != "pass":
-            raise SystemExit(1)
+            raise SystemExit(last_attempt_job.exit_code)
 
 
 class StructuredLoggerWrapper:
@@ -516,8 +518,10 @@ class StructuredLoggerWrapper:
     def _init_logger(self):
         STRUCTURAL_LOG["fixed_tags"] = self.__submitter.lava_tags
         STRUCTURAL_LOG["dut_job_type"] = self.__submitter.device_type
+        STRUCTURAL_LOG["farm"] = self.__submitter.farm
         STRUCTURAL_LOG["job_combined_fail_reason"] = None
         STRUCTURAL_LOG["job_combined_status"] = "not_submitted"
+        STRUCTURAL_LOG["job_exit_code"] = None
         STRUCTURAL_LOG["dut_attempt_counter"] = 0
 
         # Initialize dut_jobs list to enable appends

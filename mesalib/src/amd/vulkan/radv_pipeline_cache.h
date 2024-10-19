@@ -29,10 +29,7 @@ struct radv_ray_tracing_stage;
 struct radv_shader_binary;
 struct radv_shader_stage;
 struct radv_spirv_to_nir_options;
-
-void radv_hash_shaders(const struct radv_device *device, unsigned char *hash, const struct radv_shader_stage *stages,
-                       uint32_t stage_count, const struct radv_pipeline_layout *layout,
-                       const struct radv_graphics_state_key *gfx_state);
+struct util_dynarray;
 
 void radv_hash_graphics_spirv_to_nir(blake3_hash hash, const struct radv_shader_stage *stage,
                                      const struct radv_spirv_to_nir_options *options);
@@ -73,5 +70,14 @@ struct vk_pipeline_cache_object *radv_pipeline_cache_nir_to_handle(struct radv_d
                                                                    struct vk_pipeline_cache *cache,
                                                                    struct nir_shader *nir, const unsigned char *sha1,
                                                                    bool cached);
+
+void radv_shader_serialize(struct radv_shader *shader, struct blob *blob);
+
+struct radv_shader *radv_shader_deserialize(struct radv_device *device, const void *key_data, size_t key_size,
+                                            struct blob_reader *blob);
+
+VkResult radv_pipeline_cache_get_binaries(struct radv_device *device, const VkAllocationCallbacks *pAllocator,
+                                          const unsigned char *sha1, struct util_dynarray *pipeline_binaries,
+                                          uint32_t *num_binaries, bool *found_in_internal_cache);
 
 #endif /* RADV_PIPELINE_CACHE_H */

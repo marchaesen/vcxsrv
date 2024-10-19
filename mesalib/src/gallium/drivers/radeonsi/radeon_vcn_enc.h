@@ -57,104 +57,87 @@ struct pipe_video_codec *radeon_create_encoder(struct pipe_context *context,
                                                struct radeon_winsys *ws,
                                                radeon_enc_get_buffer get_buffer);
 
+struct radeon_enc_dpb_buffer {
+   struct si_texture *luma;      /* recon luma */
+   struct si_texture *chroma;    /* recon chroma */
+   struct rvid_buffer *fcb;      /* frame context buffer*/
+   struct rvid_buffer *pre;      /* preenc recon */
+   struct rvid_buffer *pre_fcb;  /* preenc frame context buffer */
+};
+
 struct radeon_enc_pic {
    union {
       enum pipe_h2645_enc_picture_type picture_type;
       enum pipe_av1_enc_frame_type frame_type;
    };
 
-   unsigned frame_num;
-   unsigned pic_order_cnt;
-   unsigned pic_order_cnt_type;
-   unsigned ref_idx_l0;
-   bool ref_idx_l0_is_ltr;
-   unsigned ref_idx_l1;
-   bool ref_idx_l1_is_ltr;
+   union {
+      struct {
+         struct pipe_h264_enc_picture_desc *desc;
+      } h264;
+      struct {
+         struct pipe_h265_enc_picture_desc *desc;
+      } hevc;
+      struct {
+         struct pipe_av1_enc_picture_desc *desc;
+         uint32_t coded_width;
+         uint32_t coded_height;
+         bool compound;
+         bool skip_mode_allowed;
+      } av1;
+   };
+
    unsigned crop_left;
    unsigned crop_right;
    unsigned crop_top;
    unsigned crop_bottom;
-   unsigned general_tier_flag;
-   unsigned general_profile_idc;
-   unsigned general_level_idc;
-   unsigned max_poc;
-   unsigned log2_max_poc;
-   unsigned chroma_format_idc;
    unsigned pic_width_in_luma_samples;
    unsigned pic_height_in_luma_samples;
-   unsigned log2_diff_max_min_luma_coding_block_size;
-   unsigned log2_min_transform_block_size_minus2;
-   unsigned log2_diff_max_min_transform_block_size;
-   unsigned max_transform_hierarchy_depth_inter;
-   unsigned max_transform_hierarchy_depth_intra;
-   unsigned log2_parallel_merge_level_minus2;
    unsigned bit_depth_luma_minus8;
    unsigned bit_depth_chroma_minus8;
    unsigned nal_unit_type;
-   unsigned max_num_merge_cand;
    unsigned temporal_id;
    unsigned num_temporal_layers;
-   unsigned temporal_layer_pattern_index;
+   unsigned dpb_luma_size;
+   unsigned dpb_chroma_size;
+   unsigned total_coloc_bytes;
    rvcn_enc_quality_modes_t quality_modes;
-   rvcn_enc_vui_info vui_info;
 
    bool not_referenced;
-   bool is_ltr;
-   unsigned ltr_idx;
-   bool is_idr;
-   bool need_sequence_header;
-   bool is_even_frame;
-   bool sample_adaptive_offset_enabled_flag;
-   bool pcm_enabled_flag;
-   bool sps_temporal_mvp_enabled_flag;
    bool use_rc_per_pic_ex;
+   bool av1_tile_splitting_legacy_flag;
+
+   struct {
+      union {
+         struct
+         {
+            uint32_t av1_cdf_frame_context_offset;
+            uint32_t av1_cdef_algorithm_context_offset;
+         } av1;
+         struct
+         {
+            uint32_t colloc_buffer_offset;
+         } h264;
+      };
+   } fcb_offset;
+
+   struct radeon_enc_dpb_buffer *dpb_bufs[RENCODE_MAX_NUM_RECONSTRUCTED_PICTURES];
 
    struct {
       struct {
          struct {
-            uint32_t enable_tile_obu:1;
             uint32_t enable_render_size:1;
             uint32_t enable_error_resilient_mode:1;
-            uint32_t enable_order_hint:1;
-            uint32_t enable_color_description:1;
-            uint32_t timing_info_present:1;
-            uint32_t timing_info_equal_picture_interval:1;
-            uint32_t frame_id_numbers_present:1;
             uint32_t force_integer_mv:1;
             uint32_t disable_screen_content_tools:1;
             uint32_t is_obu_frame:1;
-            uint32_t stream_obu_frame:1;  /* all frames have the same number of tiles */
-            uint32_t need_av1_seq:1;
-            uint32_t av1_mark_long_term_reference:1;
          };
          uint32_t render_width;
          uint32_t render_height;
-         uint32_t frame_to_show_map_index;
-         enum pipe_av1_enc_frame_type last_frame_type;
-         uint32_t display_frame_id;
-         uint32_t frame_id;
-         uint32_t temporal_seq_num;
-         uint32_t order_hint;
-         uint32_t order_hint_bits;
-         uint32_t refresh_frame_flags;
-         uint32_t reference_delta_frame_id;
-         uint32_t reference_frame_index;
-         uint32_t reference_order_hint[RENCDOE_AV1_NUM_REF_FRAMES];
          uint32_t *copy_start;
       };
       rvcn_enc_av1_spec_misc_t av1_spec_misc;
       rvcn_enc_av1_cdf_default_table_t av1_cdf_default_table;
-      rvcn_enc_av1_timing_info_t av1_timing_info;
-      rvcn_enc_av1_color_description_t av1_color_description;
-      uint32_t count_last_layer;
-      rvcn_enc_av1_ref_frame_t frames[RENCDOE_AV1_NUM_REF_FRAMES];
-      rvcn_enc_av1_recon_slot_t recon_slots[RENCDOE_AV1_NUM_REF_FRAMES + 1];
-      uint8_t av1_ref_frame_idx[RENCDOE_AV1_REFS_PER_FRAME];
-      void *av1_ref_list[RENCDOE_AV1_NUM_REF_FRAMES];
-      void *av1_recon_frame;
-      uint32_t av1_ref_frame_ctrl_l0;
-      uint32_t av1_ref_frame_ctrl_l1;
-      uint32_t av1_ltr_seq;
    };
 
    rvcn_enc_session_info_t session_info;
@@ -186,6 +169,7 @@ struct radeon_enc_pic {
    rvcn_enc_output_format_t enc_output_format;
    rvcn_enc_qp_map_t enc_qp_map;
    rvcn_enc_metadata_buffer_t metadata;
+   rvcn_enc_latency_t enc_latency;
 };
 
 struct radeon_encoder {
@@ -206,12 +190,6 @@ struct radeon_encoder {
    void (*rc_layer_init)(struct radeon_encoder *enc);
    void (*deblocking_filter)(struct radeon_encoder *enc);
    void (*quality_params)(struct radeon_encoder *enc);
-   void (*nalu_sps)(struct radeon_encoder *enc);
-   void (*nalu_pps)(struct radeon_encoder *enc);
-   void (*nalu_vps)(struct radeon_encoder *enc);
-   void (*nalu_aud)(struct radeon_encoder *enc);
-   void (*nalu_sei)(struct radeon_encoder *enc);
-   void (*nalu_prefix)(struct radeon_encoder *enc);
    void (*slice_header)(struct radeon_encoder *enc);
    void (*ctx)(struct radeon_encoder *enc);
    void (*bitstream)(struct radeon_encoder *enc);
@@ -236,6 +214,7 @@ struct radeon_encoder {
    void (*ctx_override)(struct radeon_encoder *enc);
    void (*metadata)(struct radeon_encoder *enc);
    void (*tile_config)(struct radeon_encoder *enc);
+   void (*encode_latency)(struct radeon_encoder *enc);
    /* mq is used for preversing multiple queue ibs */
    void (*mq_begin)(struct radeon_encoder *enc);
    void (*mq_encode)(struct radeon_encoder *enc);
@@ -255,6 +234,7 @@ struct radeon_encoder {
 
    struct pb_buffer_lean *bs_handle;
    unsigned bs_size;
+   unsigned bs_offset;
 
    struct rvid_buffer *si;
    struct rvid_buffer *fb;
@@ -273,6 +253,8 @@ struct radeon_encoder {
    unsigned byte_index;
    unsigned bits_output;
    unsigned bits_size;
+   uint8_t *bits_buf;
+   uint32_t bits_buf_pos;
    uint32_t total_task_size;
    uint32_t *p_task_size;
    struct rvcn_sq_var sq;
@@ -281,13 +263,45 @@ struct radeon_encoder {
    bool need_feedback;
    bool need_rate_control;
    bool need_rc_per_pic;
+   bool need_spec_misc;
    unsigned dpb_size;
+   unsigned dpb_slots;
    unsigned roi_size;
    unsigned metadata_size;
-   rvcn_enc_picture_info_t dpb_info[RENCODE_MAX_NUM_RECONSTRUCTED_PICTURES];
-   unsigned max_ltr_idx;
+
+   enum {
+      DPB_LEGACY = 0,
+      DPB_TIER_2
+   } dpb_type;
 
    struct pipe_context *ectx;
+};
+
+struct rvcn_enc_output_unit_segment {
+   bool is_slice;
+   unsigned size;
+   unsigned offset;
+};
+
+struct rvcn_enc_feedback_data {
+   unsigned num_segments;
+   struct rvcn_enc_output_unit_segment segments[];
+};
+
+/* structure for determining av1 tile division scheme.
+ * In one direction, it is trying to split width/height into two parts,
+ * main and  border, each of which has a length (number of sbs),
+ * Therefore, it has two possible tile sizes, even with multiple
+ * tiles, and in non-uniformed case, it is trying to make tile sizes
+ * as similar as possible.
+ */
+
+struct tile_1d_layout {
+   bool     uniform_tile_flag;
+   uint32_t nb_main_sb;     /* if non-uniform, it means the first part */
+   uint32_t nb_border_sb;   /* if non-uniform, it means the second part */
+   uint32_t nb_main_tile;
+   uint32_t nb_border_tile;
 };
 
 void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer_lean *buf,
@@ -296,6 +310,8 @@ void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer_lean *bu
 void radeon_enc_dummy(struct radeon_encoder *enc);
 
 void radeon_enc_set_emulation_prevention(struct radeon_encoder *enc, bool set);
+
+void radeon_enc_set_output_buffer(struct radeon_encoder *enc, uint8_t *buffer);
 
 void radeon_enc_output_one_byte(struct radeon_encoder *enc, unsigned char byte);
 
@@ -319,6 +335,9 @@ void radeon_enc_code_uvlc(struct radeon_encoder *enc, unsigned int value);
 void radeon_enc_code_leb128(unsigned char *buf, unsigned int value,
                             unsigned int num_bytes);
 
+void radeon_enc_code_ns(struct radeon_encoder *enc, unsigned int value,
+                        unsigned int max);
+
 void radeon_enc_1_2_init(struct radeon_encoder *enc);
 
 void radeon_enc_2_0_init(struct radeon_encoder *enc);
@@ -329,11 +348,59 @@ void radeon_enc_4_0_init(struct radeon_encoder *enc);
 
 void radeon_enc_5_0_init(struct radeon_encoder *enc);
 
+unsigned int radeon_enc_write_sps(struct radeon_encoder *enc, uint8_t nal_byte, uint8_t *out);
+
+unsigned int radeon_enc_write_pps(struct radeon_encoder *enc, uint8_t nal_byte, uint8_t *out);
+
+unsigned int radeon_enc_write_vps(struct radeon_encoder *enc, uint8_t *out);
+
+unsigned int radeon_enc_write_sps_hevc(struct radeon_encoder *enc, uint8_t *out);
+
+unsigned int radeon_enc_write_pps_hevc(struct radeon_encoder *enc, uint8_t *out);
+
+unsigned int radeon_enc_write_sequence_header(struct radeon_encoder *enc, uint8_t *obu_bytes, uint8_t *out);
+
+void radeon_enc_hrd_parameters(struct radeon_encoder *enc,
+                               struct pipe_h264_enc_hrd_params *hrd);
+
+void radeon_enc_hevc_profile_tier_level(struct radeon_encoder *enc,
+                                        unsigned int max_num_sub_layers_minus1,
+                                        struct pipe_h265_profile_tier_level *ptl);
+
+void radeon_enc_hevc_hrd_parameters(struct radeon_encoder *enc,
+                                    unsigned int common_inf_present_flag,
+                                    unsigned int max_sub_layers_minus1,
+                                    struct pipe_h265_enc_hrd_params *hrd);
+
+unsigned int radeon_enc_hevc_st_ref_pic_set(struct radeon_encoder *enc,
+                                            unsigned int index,
+                                            unsigned int num_short_term_ref_pic_sets,
+                                            struct pipe_h265_st_ref_pic_set *st_rps);
+
 void radeon_enc_av1_bs_instruction_type(struct radeon_encoder *enc,
                                         unsigned int inst, unsigned int obu_type);
+
+void radeon_enc_av1_obu_header(struct radeon_encoder *enc, uint32_t obu_type);
+
+void radeon_enc_av1_frame_header_common(struct radeon_encoder *enc, bool frame_header);
+
+void radeon_enc_av1_tile_group(struct radeon_encoder *enc);
 
 unsigned char *radeon_enc_av1_header_size_offset(struct radeon_encoder *enc);
 
 unsigned int radeon_enc_value_bits(unsigned int value);
+
+unsigned int radeon_enc_av1_tile_log2(unsigned int blk_size, unsigned int max);
+
+bool radeon_enc_is_av1_uniform_tile (uint32_t nb_sb, uint32_t nb_tiles,
+                                     uint32_t min_nb_sb, struct tile_1d_layout *p);
+
+void radeon_enc_av1_tile_layout (uint32_t nb_sb, uint32_t nb_tiles, uint32_t min_nb_sb,
+                                 struct tile_1d_layout *p);
+
+bool radeon_enc_av1_skip_mode_allowed(struct radeon_encoder *enc);
+
+void radeon_enc_create_dpb_aux_buffers(struct radeon_encoder *enc,
+                                       struct radeon_enc_dpb_buffer *buf);
 
 #endif // _RADEON_VCN_ENC_H

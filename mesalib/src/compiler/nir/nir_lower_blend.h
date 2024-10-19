@@ -1,5 +1,5 @@
 /*
- * Copyright Â 2019 Alyssa Rosenzweig
+ * Copyright © 2019 Alyssa Rosenzweig
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),

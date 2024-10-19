@@ -233,9 +233,7 @@ opt_intrinsics_alu(nir_builder *b, nir_alu_instr *alu,
    }
 
    if (replacement) {
-      nir_def_rewrite_uses(&alu->def,
-                           replacement);
-      nir_instr_remove(&alu->instr);
+      nir_def_replace(&alu->def, replacement);
       return true;
    } else {
       return false;
@@ -297,8 +295,7 @@ try_opt_exclusive_scan_to_inclusive(nir_intrinsic_instr *intrin)
    nir_foreach_use_including_if_safe(src, &intrin->def) {
       /* Remove alu. */
       nir_alu_instr *alu = nir_instr_as_alu(nir_src_parent_instr(src));
-      nir_def_rewrite_uses(&alu->def, &intrin->def);
-      nir_instr_remove(&alu->instr);
+      nir_def_replace(&alu->def, &intrin->def);
    }
 
    return true;
@@ -337,9 +334,7 @@ opt_intrinsics_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
                if (alu->op == nir_op_ine)
                   new_expr = nir_inot(b, new_expr);
 
-               nir_def_rewrite_uses(&alu->def,
-                                    new_expr);
-               nir_instr_remove(&alu->instr);
+               nir_def_replace(&alu->def, new_expr);
                progress = true;
             }
          }
@@ -375,9 +370,7 @@ opt_intrinsics_impl(nir_function_impl *impl,
 
          case nir_instr_type_intrinsic: {
             nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-            if (intrin->intrinsic == nir_intrinsic_discard ||
-                intrin->intrinsic == nir_intrinsic_discard_if ||
-                intrin->intrinsic == nir_intrinsic_demote ||
+            if (intrin->intrinsic == nir_intrinsic_demote ||
                 intrin->intrinsic == nir_intrinsic_demote_if ||
                 intrin->intrinsic == nir_intrinsic_terminate ||
                 intrin->intrinsic == nir_intrinsic_terminate_if)
@@ -405,8 +398,7 @@ nir_opt_intrinsics(nir_shader *shader)
    nir_foreach_function_impl(impl, shader) {
       if (opt_intrinsics_impl(impl, shader->options)) {
          progress = true;
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                        nir_metadata_dominance);
+         nir_metadata_preserve(impl, nir_metadata_control_flow);
       } else {
          nir_metadata_preserve(impl, nir_metadata_all);
       }

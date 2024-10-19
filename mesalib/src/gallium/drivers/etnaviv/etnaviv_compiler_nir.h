@@ -28,6 +28,7 @@
 #define H_ETNAVIV_COMPILER_NIR
 
 #include "compiler/nir/nir.h"
+#include "etna_core_info.h"
 #include "etnaviv_asm.h"
 #include "etnaviv_compiler.h"
 #include "util/compiler.h"
@@ -38,6 +39,7 @@ struct etna_compile {
    nir_shader *nir;
    nir_function_impl *impl;
 #define is_fs(c) ((c)->nir->info.stage == MESA_SHADER_FRAGMENT)
+   const struct etna_core_info *info;
    const struct etna_specs *specs;
    struct etna_shader_variant *variant;
 
@@ -292,8 +294,11 @@ def_for_instr(nir_instr *instr)
           intr->intrinsic == nir_intrinsic_load_ubo ||
           intr->intrinsic == nir_intrinsic_load_input ||
           intr->intrinsic == nir_intrinsic_load_instance_id ||
+          intr->intrinsic == nir_intrinsic_load_vertex_id ||
           intr->intrinsic == nir_intrinsic_load_texture_scale ||
-          intr->intrinsic == nir_intrinsic_load_texture_size_etna)
+          intr->intrinsic == nir_intrinsic_load_texture_size_etna ||
+          intr->intrinsic == nir_intrinsic_ddx ||
+          intr->intrinsic == nir_intrinsic_ddy)
          def = &intr->def;
    } break;
    case nir_instr_type_deref:

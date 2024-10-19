@@ -170,7 +170,7 @@ wgl_present(struct pipe_screen *screen,
     * other structs such as this stw_winsys as well...
     */
 
-#if defined(GALLIUM_LLVMPIPE) || defined(GALLIUM_SOFTPIPE)
+#if defined(HAVE_SWRAST)
    struct sw_winsys *winsys = NULL;
    struct sw_displaytarget *dt = NULL;
 #endif
@@ -221,17 +221,6 @@ wgl_get_adapter_luid(struct pipe_screen* screen,
 #endif
 
 
-static unsigned
-wgl_get_pfd_flags(struct pipe_screen *screen)
-{
-#ifdef GALLIUM_D3D12
-   if (use_d3d12)
-      return d3d12_wgl_get_pfd_flags(screen);
-#endif
-   return stw_pfd_gdi_support;
-}
-
-
 static struct stw_winsys_framebuffer *
 wgl_create_framebuffer(struct pipe_screen *screen,
                        HWND hWnd,
@@ -262,7 +251,6 @@ static const struct stw_winsys stw_winsys = {
    NULL, /* shared_surface_open */
    NULL, /* shared_surface_close */
    NULL, /* compose */
-   &wgl_get_pfd_flags,
    &wgl_create_framebuffer,
    &wgl_get_name,
 };

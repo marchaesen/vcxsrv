@@ -93,13 +93,20 @@ xwl_glamor_check_flip(WindowPtr present_window, PixmapPtr pixmap)
 {
     ScreenPtr screen = pixmap->drawable.pScreen;
     PixmapPtr backing_pixmap = screen->GetWindowPixmap(present_window);
+    struct xwl_window *xwl_window = xwl_window_from_window(present_window);
+    WindowPtr surface_window = xwl_window->surface_window;
 
     if (pixmap->drawable.depth != backing_pixmap->drawable.depth) {
         if (pixmap->drawable.depth == 32)
             return FALSE;
 
-        return xwl_present_maybe_redirect_window(present_window, pixmap);
+        return xwl_present_maybe_redirect_window(present_window);
     }
+
+    if (surface_window->redirectDraw == RedirectDrawAutomatic &&
+        surface_window->drawable.depth != 32 &&
+        surface_window->parent->drawable.depth == 32)
+        xwl_present_maybe_redirect_window(surface_window);
 
     return TRUE;
 }

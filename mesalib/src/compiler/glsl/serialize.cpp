@@ -29,9 +29,9 @@
  * Supports serializing and deserializing glsl programs using a blob.
  */
 
+#include "compiler/glsl/linker_util.h"
 #include "compiler/glsl_types.h"
 #include "compiler/shader_info.h"
-#include "ir_uniform.h"
 #include "main/mtypes.h"
 #include "main/shaderobj.h"
 #include "program/program.h"
@@ -512,8 +512,6 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
       rzalloc_array(uniforms, union gl_constant_value,
                     prog->data->NumUniformDataSlots);
 
-   prog->UniformHash = new string_to_uint_map;
-
    for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
       uniforms[i].type = decode_type_from_blob(metadata);
       uniforms[i].array_elements = blob_read_uint32(metadata);
@@ -534,7 +532,6 @@ read_uniforms(struct blob_reader *metadata, struct gl_shader_program *prog)
       uniforms[i].num_compatible_subroutines = blob_read_uint32(metadata);
       uniforms[i].top_level_array_size = blob_read_uint32(metadata);
       uniforms[i].top_level_array_stride = blob_read_uint32(metadata);
-      prog->UniformHash->put(i, uniforms[i].name.string);
 
       if (has_uniform_storage(prog, i)) {
          uniforms[i].storage = data + blob_read_uint32(metadata);

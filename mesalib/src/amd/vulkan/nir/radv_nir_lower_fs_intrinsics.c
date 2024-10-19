@@ -62,8 +62,8 @@ radv_nir_lower_fs_intrinsics(nir_shader *nir, const struct radv_shader_stage *fs
 
             nir_def *frag_z = nir_channel(&b, &intrin->def, 2);
 
-            /* adjusted_frag_z = fddx_fine(frag_z) * 0.0625 + frag_z */
-            nir_def *adjusted_frag_z = nir_fddx_fine(&b, frag_z);
+            /* adjusted_frag_z = dFdxFine(frag_z) * 0.0625 + frag_z */
+            nir_def *adjusted_frag_z = nir_ddx_fine(&b, frag_z);
             adjusted_frag_z = nir_ffma_imm1(&b, adjusted_frag_z, 0.0625f, frag_z);
 
             /* VRS Rate X = Ancillary[2:3] */

@@ -26,8 +26,7 @@
 #include <cmath>
 #include "util/u_video.h"
 
-d3d12_video_bitstream_builder_h264::d3d12_video_bitstream_builder_h264(bool insert_aud_nalu)
-   : m_insert_aud_nalu(insert_aud_nalu)
+d3d12_video_bitstream_builder_h264::d3d12_video_bitstream_builder_h264()
 { }
 
 inline H264_SPEC_PROFILES
@@ -61,7 +60,6 @@ d3d12_video_bitstream_builder_h264::build_sps(const struct pipe_h264_enc_seq_par
                                               const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &   codecConfig,
                                               const D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_H264 &gopConfig,
                                               uint32_t                                    seq_parameter_set_id,
-                                              uint32_t                                    max_num_ref_frames,
                                               D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC sequenceTargetResolution,
                                               D3D12_BOX                                   frame_cropping_codec_config,
                                               std::vector<uint8_t> &                      headerBitstream,
@@ -101,6 +99,7 @@ d3d12_video_bitstream_builder_h264::build_sps(const struct pipe_h264_enc_seq_par
       frame_cropping_flag               = 1;
    }
 
+   uint32_t gaps_in_frame_num_value_allowed_flag = (seqData.num_temporal_layers > 1) ? 1 : 0;
    H264_SPS spsStructure = { static_cast<uint32_t>(profile_idc),
                              seqData.enc_constraint_set_flags,
                              level_idc,
@@ -110,14 +109,11 @@ d3d12_video_bitstream_builder_h264::build_sps(const struct pipe_h264_enc_seq_par
                              gopConfig.log2_max_frame_num_minus4,
                              gopConfig.pic_order_cnt_type,
                              gopConfig.log2_max_pic_order_cnt_lsb_minus4,
-                             max_num_ref_frames,
-                             0,   // gaps_in_frame_num_value_allowed_flag
+                             seqData.max_num_ref_frames,
+                             gaps_in_frame_num_value_allowed_flag,
                              pic_width_in_mbs_minus1,
                              pic_height_in_map_units_minus1,
-                             ((codecConfig.ConfigurationFlags &
-                               D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264_FLAG_USE_ADAPTIVE_8x8_TRANSFORM) != 0) ?
-                                1u :
-                                0u,   // direct_8x8_inference_flag
+                             1u, // direct_8x8_inference_flag as per DX12 spec
                              frame_cropping_flag,
                              frame_cropping_codec_config.left,
                              frame_cropping_codec_config.right,
@@ -194,6 +190,33 @@ d3d12_video_bitstream_builder_h264::write_aud(std::vector<uint8_t> &         hea
                                               size_t &                       writtenBytes)
 {
    m_h264Encoder.write_access_unit_delimiter_nalu(headerBitstream, placingPositionStart, writtenBytes);
+}
+
+void
+d3d12_video_bitstream_builder_h264::write_sei_messages(const std::vector<H264_SEI_MESSAGE>&  sei_messages,
+                                                       std::vector<uint8_t> &                headerBitstream,
+                                                       std::vector<uint8_t>::iterator        placingPositionStart,
+                                                       size_t &                              writtenBytes)
+{
+   uint64_t byte_offset_placing_start = std::distance(headerBitstream.begin(), placingPositionStart);
+   writtenBytes = 0;
+
+   for (auto& message : sei_messages)
+   {
+      size_t WrittenBytesCurrentSei = 0;
+      m_h264Encoder.write_sei_nalu(message, headerBitstream, headerBitstream.begin() + byte_offset_placing_start, WrittenBytesCurrentSei);
+      byte_offset_placing_start += WrittenBytesCurrentSei;
+      writtenBytes += WrittenBytesCurrentSei;
+   }
+}
+
+void
+d3d12_video_bitstream_builder_h264::write_slice_svc_prefix(const H264_SLICE_PREFIX_SVC &         nal_svc_prefix,
+                                                           std::vector<uint8_t> &                headerBitstream,
+                                                           std::vector<uint8_t>::iterator        placingPositionStart,
+                                                           size_t &                              writtenBytes)
+{
+   m_h264Encoder.write_slice_svc_prefix(nal_svc_prefix, headerBitstream, placingPositionStart, writtenBytes);
 }
 
 H264_PPS

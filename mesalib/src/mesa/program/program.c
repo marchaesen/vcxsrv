@@ -414,6 +414,9 @@ _mesa_add_separate_state_parameters(struct gl_program *prog,
 {
    unsigned num_state_params = state_params->NumParameters;
 
+   if (num_state_params == 0)
+      return;
+
    /* All state parameters should be vec4s. */
    for (unsigned i = 0; i < num_state_params; i++) {
       assert(state_params->Parameters[i].Type == PROGRAM_STATE_VAR);

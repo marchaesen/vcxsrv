@@ -44,13 +44,12 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xmd.h>
 
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
 
 #include "servermd.h"
@@ -145,7 +144,7 @@ UnrefCursor(CursorPtr cursor)
 }
 
 int
-CursorRefCount(const CursorPtr cursor)
+CursorRefCount(ConstCursorPtr cursor)
 {
     return cursor ? cursor->refcnt : 0;
 }
@@ -279,7 +278,7 @@ AllocARGBCursor(unsigned char *psrcbits, unsigned char *pmaskbits,
     pCurs->id = cid;
 
     /* security creation/labeling check */
-    rc = XaceHook(XACE_RESOURCE_ACCESS, client, cid, X11_RESTYPE_CURSOR,
+    rc = XaceHookResourceAccess(client, cid, X11_RESTYPE_CURSOR,
                   pCurs, X11_RESTYPE_NONE, NULL, DixCreateAccess);
     if (rc != Success)
         goto error;
@@ -459,7 +458,7 @@ AllocGlyphCursor(Font source, unsigned sourceChar, Font mask, unsigned maskChar,
     pCurs->id = cid;
 
     /* security creation/labeling check */
-    rc = XaceHook(XACE_RESOURCE_ACCESS, client, cid, X11_RESTYPE_CURSOR,
+    rc = XaceHookResourceAccess(client, cid, X11_RESTYPE_CURSOR,
                   pCurs, X11_RESTYPE_NONE, NULL, DixCreateAccess);
     if (rc != Success)
         goto error;
@@ -489,7 +488,7 @@ AllocGlyphCursor(Font source, unsigned sourceChar, Font mask, unsigned maskChar,
  *************************************************************/
 
 CursorPtr
-CreateRootCursor(char *unused1, unsigned int unused2)
+CreateRootCursor(void)
 {
     CursorPtr curs;
     FontPtr cursorfont;

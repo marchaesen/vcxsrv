@@ -744,7 +744,7 @@ xf86Int10SaveRestoreBIOSVars(xf86Int10InfoPtr pInt, Bool save)
 
     base += BIOS_SCRATCH_OFF;
     if (save) {
-        if ((pInt->BIOSScratch = xnfalloc(BIOS_SCRATCH_LEN)))
+        if ((pInt->BIOSScratch = XNFalloc(BIOS_SCRATCH_LEN)))
             for (i = 0; i < BIOS_SCRATCH_LEN; i++)
                 *(((char *) pInt->BIOSScratch + i)) = *(base + i);
     }

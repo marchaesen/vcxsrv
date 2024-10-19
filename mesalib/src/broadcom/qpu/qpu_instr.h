@@ -293,6 +293,13 @@ enum v3d_qpu_input_unpack {
         /** Convert high 16 bits from 16-bit float to 32-bit float. */
         V3D_QPU_UNPACK_H,
 
+        /* Saturate 32-bit floating point to [0.0, 1.0] */
+        V3D71_QPU_UNPACK_SAT,
+        /* Saturate 32-bit floating point to [-1.0, 1.0] */
+        V3D71_QPU_UNPACK_NSAT,
+        /* Saturate 32-bit floating point to [0.0, +inf] */
+        V3D71_QPU_UNPACK_MAX0,
+
         /** Convert to 16f and replicate it to the high bits. */
         V3D_QPU_UNPACK_REPLICATE_32F_16,
 

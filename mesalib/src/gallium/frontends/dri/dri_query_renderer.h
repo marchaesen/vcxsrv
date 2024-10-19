@@ -3,7 +3,4 @@
 
 #include "dri_util.h"
 
-extern const
-__DRI2rendererQueryExtension dri2RendererQueryExtension;
-
 #endif

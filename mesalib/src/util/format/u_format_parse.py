@@ -30,6 +30,13 @@
 
 
 import copy
+import yaml
+import sys
+
+try:
+    from yaml import CSafeLoader as YAMLSafeLoader
+except:
+    from yaml import SafeLoader as YAMLSafeLoader
 
 VOID, UNSIGNED, SIGNED, FIXED, FLOAT = range(5)
 
@@ -37,10 +44,30 @@ SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_W, SWIZZLE_0, SWIZZLE_1, SWIZZLE_NONE, 
 
 PLAIN = 'plain'
 
-RGB = 'rgb'
-SRGB = 'srgb'
-YUV = 'yuv'
-ZS = 'zs'
+RGB = 'RGB'
+SRGB = 'SRGB'
+YUV = 'YUV'
+ZS = 'ZS'
+
+
+_type_parse_map = {
+    '':  VOID,
+    'X': VOID,
+    'U': UNSIGNED,
+    'S': SIGNED,
+    'H': FIXED,
+    'F': FLOAT,
+}
+
+_swizzle_parse_map = {
+    'X': SWIZZLE_X,
+    'Y': SWIZZLE_Y,
+    'Z': SWIZZLE_Z,
+    'W': SWIZZLE_W,
+    '0': SWIZZLE_0,
+    '1': SWIZZLE_1,
+    '_': SWIZZLE_NONE,
+}
 
 
 def is_pot(x):
@@ -48,6 +75,86 @@ def is_pot(x):
 
 
 VERY_LARGE = 99999999999999999999999
+
+def validate_str(x):
+    if not isinstance(x, str):
+        raise ValueError(type(x))
+
+def validate_int(x):
+    if not isinstance(x, int):
+        raise ValueError(f"invalid type {type(x)}")
+
+def validate_list_str_4(x):
+    if not isinstance(x, list):
+        raise ValueError(f"invalid type {type(x)}")
+    if len(x) != 4:
+        raise ValueError(f"invalid length {len(x)}")
+    for i in range(len(x)):
+        if isinstance(x[i], int):
+            x[i] = str(x[i])
+        if not isinstance(x[i], str):
+            raise ValueError(f"invalid member type {type(x[i])}")
+
+def validate_list_str_le4(x):
+    if not isinstance(x, list):
+        raise ValueError(f"invalid type {type(x)}")
+    if len(x) > 4:
+        raise ValueError(f"invalid length {len(x)}")
+    for i in range(len(x)):
+        if isinstance(x[i], int):
+            x[i] = str(x[i])
+        if not isinstance(x[i], str):
+            raise ValueError(f"invalid member type {type(x[i])}")
+
+
+def get_and_delete(d, k):
+    ret = d[k]
+    del(d[k])
+    return ret
+
+def do_consume(d, *args):
+    if len(args) == 1:
+        return get_and_delete(d, args[0])
+    else:
+        return do_consume(d[args[0]], *args[1:])
+
+def consume(f, validate, d, *args):
+    if len(args) > 1:
+        sub = " under " + ".".join([f"'{a}'" for a in args[:-1]])
+    else:
+        sub = ""
+
+    try:
+        ret = do_consume(d, *args)
+        validate(ret)
+        return ret
+    except KeyError:
+        raise RuntimeError(f"Key '{args[-1]}' not present{sub} in format {f.name}")
+    except ValueError as e:
+        raise RuntimeError(f"Key '{args[-1]}' invalid{sub} in format {f.name}: {e.args[0]}")
+
+def consume_str(f, d, *args):
+    return consume(f, validate_str, d, *args)
+
+def consume_int(f, d, *args):
+    return consume(f, validate_int, d, *args)
+
+def consume_list_str_4(f, d, *args):
+    return consume(f, validate_list_str_4, d, *args)
+
+def consume_list_str_le4(f, d, *args):
+    return consume(f, validate_list_str_le4, d, *args)
+
+def consumed(f, d, *args):
+    if args:
+        d = do_consume(d, *args)
+    if len(d) > 0:
+        keys = ", ".join([f"'{k}'" for k in d.keys()])
+        if args:
+            sub = " under " + ".".join([f"'{a}'" for a in args])
+        else:
+            sub = ""
+        raise RuntimeError(f"Unknown keys ({keys}) present in format {f.name}{sub}")
 
 
 class Channel:
@@ -114,34 +221,66 @@ class Channel:
 class Format:
     '''Describe a pixel format.'''
 
-    def __init__(self, name, layout, block_width, block_height, block_depth, le_channels, le_swizzles, be_channels, be_swizzles, colorspace):
-        self.name = name
-        self.layout = layout
-        self.block_width = block_width
-        self.block_height = block_height
-        self.block_depth = block_depth
-        self.colorspace = colorspace
+    def __init__(self, source):
+        self.name = "unknown"
+        self.name = f"PIPE_FORMAT_{consume_str(self, source, 'name')}"
+        self.layout = consume_str(self, source, 'layout')
+        if 'sublayout' in source:
+            self.sublayout = consume_str(self, source, 'sublayout')
+        else:
+            self.sublayout = None
+        self.block_width = consume_int(self, source, 'block', 'width')
+        self.block_height = consume_int(self, source, 'block', 'height')
+        self.block_depth = consume_int(self, source, 'block', 'depth')
+        consumed(self, source, 'block')
+        self.colorspace = consume_str(self, source, 'colorspace')
+        self.srgb_equivalent = None
+        self.linear_equivalent = None
 
-        self.le_channels = le_channels
-        self.le_swizzles = le_swizzles
-
-        le_shift = 0
-        for channel in self.le_channels:
-            channel.shift = le_shift
-            le_shift += channel.size
-
-        if be_channels:
+        # Formats with no endian-dependent swizzling declare their channel and
+        # swizzle layout at the top level. Else they can declare an
+        # endian-dependent swizzle. This only applies to packed formats,
+        # however we can't use is_array() or is_bitmask() to test because they
+        # depend on the channels having already been parsed.
+        if 'swizzles' in source:
+            self.le_swizzles = list(map(lambda x: _swizzle_parse_map[x],
+                                        consume_list_str_4(self, source, 'swizzles')))
+            self.le_channels = _parse_channels(consume_list_str_le4(self, source, 'channels'),
+                                               self.layout, self.colorspace, self.le_swizzles)
+            self.be_swizzles = None
+            self.be_channels = None
+            if source.get('little_endian', {}).get('swizzles') or \
+               source.get('big_endian', {}).get('swizzles'):
+                raise RuntimeError(f"Format {self.name} must not declare endian-dependent and endian-independent swizzles")
+        else:
+            self.le_swizzles = list(map(lambda x: _swizzle_parse_map[x],
+                                        consume_list_str_4(self, source, 'little_endian', 'swizzles')))
+            self.le_channels = _parse_channels(consume_list_str_le4(self, source, 'little_endian', 'channels'),
+                                               self.layout, self.colorspace, self.le_swizzles)
+            self.be_swizzles = list(map(lambda x: _swizzle_parse_map[x],
+                                        consume_list_str_4(self, source, 'big_endian', 'swizzles')))
+            self.be_channels = _parse_channels(consume_list_str_le4(self, source, 'big_endian', 'channels'),
+                                               self.layout, self.colorspace, self.be_swizzles)
             if self.is_array():
-                print(
-                    "{} is an array format and should not include BE swizzles in the CSV".format(self.name))
-                exit(1)
+                raise RuntimeError("Array format {self.name} must not define endian-specific swizzles")
             if self.is_bitmask():
-                print(
-                    "{} is a bitmask format and should not include BE swizzles in the CSV".format(self.name))
-                exit(1)
-            self.be_channels = be_channels
-            self.be_swizzles = be_swizzles
-        elif self.is_bitmask() and not self.is_array():
+                raise RuntimeError("Bitmask format {self.name} must not define endian-specific swizzles")
+
+        self.le_alias = None
+        self.be_alias = None
+        if 'little_endian' in source:
+            if 'alias' in source['little_endian']:
+                self.le_alias = f"PIPE_FORMAT_{consume_str(self, source, 'little_endian', 'alias')}"
+            consumed(self, source, 'little_endian')
+        if 'big_endian' in source:
+            if 'alias' in source['big_endian']:
+                self.be_alias = f"PIPE_FORMAT_{consume_str(self, source, 'big_endian', 'alias')}"
+            consumed(self, source, 'big_endian')
+
+        consumed(self, source)
+        del(source)
+
+        if self.is_bitmask() and not self.is_array():
             # Bitmask formats are "load a word the size of the block and
             # bitshift channels out of it." However, the channel shifts
             # defined in u_format_table.c are numbered right-to-left on BE
@@ -167,9 +306,14 @@ class Format:
                         SWIZZLE_0: SWIZZLE_0,
                         SWIZZLE_NONE: SWIZZLE_NONE}
             self.be_swizzles = [chan_map[s] for s in self.le_swizzles]
-        else:
-            self.be_channels = copy.deepcopy(le_channels)
-            self.be_swizzles = le_swizzles
+        elif not self.be_channels:
+            self.be_channels = copy.deepcopy(self.le_channels)
+            self.be_swizzles = self.le_swizzles
+
+        le_shift = 0
+        for channel in self.le_channels:
+            channel.shift = le_shift
+            le_shift += channel.size
 
         be_shift = 0
         for channel in reversed(self.be_channels):
@@ -183,6 +327,14 @@ class Format:
 
     def __str__(self):
         return self.name
+
+    def __eq__(self, other):
+        if not other:
+            return False
+        return self.name == other.name
+
+    def __hash__(self):
+        return hash(self.name)
 
     def short_name(self):
         '''Make up a short norm for a format, suitable to be used as suffix in
@@ -330,25 +482,6 @@ class Format:
         return self.block_size()/8
 
 
-_type_parse_map = {
-    '':  VOID,
-    'x': VOID,
-    'u': UNSIGNED,
-    's': SIGNED,
-    'h': FIXED,
-    'f': FLOAT,
-}
-
-_swizzle_parse_map = {
-    'x': SWIZZLE_X,
-    'y': SWIZZLE_Y,
-    'z': SWIZZLE_Z,
-    'w': SWIZZLE_W,
-    '0': SWIZZLE_0,
-    '1': SWIZZLE_1,
-    '_': SWIZZLE_NONE,
-}
-
 
 def _parse_channels(fields, layout, colorspace, swizzles):
     if layout == PLAIN:
@@ -373,14 +506,14 @@ def _parse_channels(fields, layout, colorspace, swizzles):
 
     channels = []
     for i in range(0, 4):
-        field = fields[i]
-        if field:
+        if i < len(fields):
+            field = fields[i]
             type = _type_parse_map[field[0]]
-            if field[1] == 'n':
+            if field[1] == 'N':
                 norm = True
                 pure = False
                 size = int(field[2:])
-            elif field[1] == 'p':
+            elif field[1] == 'P':
                 pure = True
                 norm = False
                 size = int(field[2:])
@@ -398,45 +531,65 @@ def _parse_channels(fields, layout, colorspace, swizzles):
 
     return channels
 
+def mostly_equivalent(one, two):
+    if one.layout != two.layout or \
+       one.sublayout != two.sublayout or \
+       one.block_width != two.block_width or \
+       one.block_height != two.block_height or \
+       one.block_depth != two.block_depth or \
+       one.le_swizzles != two.le_swizzles or \
+       one.le_channels != two.le_channels or \
+       one.be_swizzles != two.be_swizzles or \
+       one.be_channels != two.be_channels:
+        return False
+    return True
+
+def should_ignore_for_mapping(fmt):
+    # This format is a really special reinterpretation of depth/stencil as
+    # RGB. Until we figure out something better, just special-case it so
+    # we won't consider it as equivalent to anything.
+    if fmt.name == "PIPE_FORMAT_Z24_UNORM_S8_UINT_AS_R8G8B8A8":
+        return True
+    return False
+    
 
 def parse(filename):
-    '''Parse the format description in CSV format in terms of the
+    '''Parse the format description in YAML format in terms of the
     Channel and Format classes above.'''
 
     stream = open(filename)
-    formats = []
-    for line in stream:
+    doc = yaml.load(stream, Loader=YAMLSafeLoader)
+    assert(isinstance(doc, list))
+
+    ret = []
+    for entry in doc:
+        assert(isinstance(entry, dict))
         try:
-            comment = line.index('#')
-        except ValueError:
-            pass
-        else:
-            line = line[:comment]
-        line = line.strip()
-        if not line:
+            f = Format(copy.deepcopy(entry))
+        except Exception as e:
+            raise RuntimeError(f"Failed to parse entry {entry}: {e}")
+        if f in ret:
+            raise RuntimeError(f"Duplicate format entry {f.name}")
+        ret.append(f)
+
+    for fmt in ret:
+        if should_ignore_for_mapping(fmt):
             continue
+        if fmt.colorspace != RGB and fmt.colorspace != SRGB:
+            continue
+        if fmt.colorspace == RGB:
+            for equiv in ret:
+                if equiv.colorspace != SRGB or not mostly_equivalent(fmt, equiv) or \
+                   should_ignore_for_mapping(equiv):
+                    continue
+                assert(fmt.srgb_equivalent == None)
+                fmt.srgb_equivalent = equiv
+        elif fmt.colorspace == SRGB:
+            for equiv in ret:
+                if equiv.colorspace != RGB or not mostly_equivalent(fmt, equiv) or \
+                   should_ignore_for_mapping(equiv):
+                    continue
+                assert(fmt.linear_equivalent == None)
+                fmt.linear_equivalent = equiv
 
-        fields = [field.strip() for field in line.split(',')]
-        assert(len(fields) == 11 or len(fields) == 16)
-
-        name = fields[0]
-        layout = fields[1]
-        block_width, block_height, block_depth = map(int, fields[2:5])
-        colorspace = fields[10]
-
-        le_swizzles = [_swizzle_parse_map[swizzle] for swizzle in fields[9]]
-        le_channels = _parse_channels(fields[5:9], layout, colorspace, le_swizzles)
-
-        be_swizzles = None
-        be_channels = None
-        if len(fields) == 16:
-            be_swizzles = [_swizzle_parse_map[swizzle]
-
-                           for swizzle in fields[15]]
-            be_channels = _parse_channels(
-
-                fields[11:15], layout, colorspace, be_swizzles)
-
-        format = Format(name, layout, block_width, block_height, block_depth, le_channels, le_swizzles, be_channels, be_swizzles, colorspace)
-        formats.append(format)
-    return formats
+    return ret

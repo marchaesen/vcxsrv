@@ -134,6 +134,13 @@ zink_kopper_acquired(const struct kopper_displaytarget *cdt, uint32_t idx)
    return idx != UINT32_MAX && cdt->swapchain->images[idx].acquired;
 }
 
+static inline struct pipe_screen * kopper_get_zink_screen(struct pipe_screen *screen)
+{
+   struct pipe_screen *pscreen = screen->get_driver_pipe_screen ?
+      screen->get_driver_pipe_screen(screen) : screen;
+   return pscreen;
+}
+
 void
 zink_kopper_update_last_written(struct zink_resource *res);
 

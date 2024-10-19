@@ -155,9 +155,8 @@ job_uses_tiling(enum mali_job_type type)
  * not wallpapering and set this, dragons will eat you. */
 
 static inline unsigned
-pan_jc_add_job(struct pan_pool *pool, struct pan_jc *jc,
-               enum mali_job_type type, bool barrier, bool suppress_prefetch,
-               unsigned local_dep, unsigned global_dep,
+pan_jc_add_job(struct pan_jc *jc, enum mali_job_type type, bool barrier,
+               bool suppress_prefetch, unsigned local_dep, unsigned global_dep,
                const struct panfrost_ptr *job, bool inject)
 {
    if (job_uses_tiling(type)) {

@@ -52,11 +52,11 @@ agx_${name}_as_str(enum agx_${name} x)
 
 /* Runtime accessible info on each defined opcode */
 
-<% assert(len(immediates) < 32); %>
+<% assert(len(immediates) < 64); %>
 
 enum agx_immediate {
 % for i, imm in enumerate(immediates):
-   AGX_IMMEDIATE_${imm.upper()} = (1 << ${i}),
+   AGX_IMMEDIATE_${imm.upper()} = (1ull << ${i}),
 % endfor
 };
 
@@ -70,7 +70,7 @@ struct agx_opcode_info {
    const char *name;
    unsigned nr_srcs;
    unsigned nr_dests;
-   enum agx_immediate immediates;
+   uint64_t immediates;
    struct agx_encoding encoding;
    struct agx_encoding encoding_16;
    enum agx_schedule_class schedule_class;

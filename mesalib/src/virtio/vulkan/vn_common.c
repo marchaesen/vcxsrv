@@ -43,7 +43,6 @@ static const struct debug_control vn_perf_options[] = {
    { "no_async_queue_submit", VN_PERF_NO_ASYNC_QUEUE_SUBMIT },
    { "no_event_feedback", VN_PERF_NO_EVENT_FEEDBACK },
    { "no_fence_feedback", VN_PERF_NO_FENCE_FEEDBACK },
-   { "no_memory_suballoc", VN_PERF_NO_MEMORY_SUBALLOC },
    { "no_cmd_batching", VN_PERF_NO_CMD_BATCHING },
    { "no_semaphore_feedback", VN_PERF_NO_SEMAPHORE_FEEDBACK },
    { "no_query_feedback", VN_PERF_NO_QUERY_FEEDBACK },
@@ -334,7 +333,8 @@ vn_tls_get_ring(struct vn_instance *instance)
    struct vn_ring_layout layout;
    vn_ring_get_layout(buf_size, extra_size, &layout);
 
-   tls_ring->ring = vn_ring_create(instance, &layout, direct_order);
+   tls_ring->ring =
+      vn_ring_create(instance, &layout, direct_order, true /* is_tls_ring */);
    if (!tls_ring->ring) {
       free(tls_ring);
       return NULL;

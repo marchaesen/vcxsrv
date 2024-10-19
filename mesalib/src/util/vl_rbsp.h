@@ -151,8 +151,11 @@ static inline unsigned vl_rbsp_ue(struct vl_rbsp *rbsp)
    unsigned bits = 0;
 
    vl_rbsp_fillbits(rbsp);
-   while (!vl_vlc_get_uimsbf(&rbsp->nal, 1))
+   while (!vl_vlc_get_uimsbf(&rbsp->nal, 1)) {
       ++bits;
+      if (bits == 16)
+         vl_rbsp_fillbits(rbsp);
+   }
 
    return (1 << bits) - 1 + vl_rbsp_u(rbsp, bits);
 }

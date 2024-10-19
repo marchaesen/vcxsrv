@@ -1,6 +1,5 @@
 dEQP-GLES31.functional.debug.error_filters.case_29,Fail
 dEQP-GLES31.functional.debug.negative_coverage.get_error.buffer.read_pixels_fbo_format_mismatch,Fail
-dEQP-GLES31.functional.debug.negative_coverage.log.buffer.read_pixels_fbo_format_mismatch,Fail
 dEQP-GLES31.functional.fbo.no_attachments.interaction.256x256ms0_default_512x512ms2,Fail
 dEQP-GLES31.functional.fbo.no_attachments.interaction.256x256ms2_default_128x512ms0,Fail
 dEQP-GLES31.functional.fbo.no_attachments.multisample.samples2,Fail

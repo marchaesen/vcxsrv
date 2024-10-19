@@ -220,14 +220,6 @@ bool glsl_symbol_table::add_default_precision_qualifier(const char *type_name,
    return _mesa_symbol_table_replace_symbol(table, name, entry) == 0;
 }
 
-void glsl_symbol_table::add_global_function(ir_function *f)
-{
-   symbol_table_entry *entry = new(linalloc) symbol_table_entry(f);
-   int added = _mesa_symbol_table_add_global_symbol(table, f->name, entry);
-   assert(added == 0);
-   (void)added;
-}
-
 ir_variable *glsl_symbol_table::get_variable(const char *name)
 {
    symbol_table_entry *entry = get_entry(name);

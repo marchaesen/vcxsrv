@@ -46,6 +46,11 @@ tu_clear_gmem_attachment(struct tu_cmd_buffer *cmd,
                          struct tu_cs *cs,
                          uint32_t a);
 
+void
+tu7_generic_clear_attachment(struct tu_cmd_buffer *cmd,
+                             struct tu_cs *cs,
+                             uint32_t a);
+
 template <chip CHIP>
 void
 tu_load_gmem_attachment(struct tu_cmd_buffer *cmd,

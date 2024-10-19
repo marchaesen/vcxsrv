@@ -1,24 +1,6 @@
 /*
  * Copyright © 2019 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "compiler/nir/nir_builder.h"
@@ -312,7 +294,7 @@ ir3_nir_lower_to_explicit_output(nir_shader *shader,
       lower_block_to_explicit_output(block, &b, &state);
 
    nir_metadata_preserve(impl,
-                         nir_metadata_block_index | nir_metadata_dominance);
+                         nir_metadata_control_flow);
 
    v->output_size = state.map.stride;
 }
@@ -348,8 +330,7 @@ lower_block_to_explicit_input(nir_block *block, nir_builder *b,
          b->cursor = nir_before_instr(&intr->instr);
 
          nir_def *iid = build_invocation_id(b, state);
-         nir_def_rewrite_uses(&intr->def, iid);
-         nir_instr_remove(&intr->instr);
+         nir_def_replace(&intr->def, iid);
          break;
       }
 

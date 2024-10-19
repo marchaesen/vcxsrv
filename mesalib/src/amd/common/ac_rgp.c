@@ -353,6 +353,7 @@ static enum sqtt_gfxip_level ac_gfx_level_to_sqtt_gfxip_level(enum amd_gfx_level
    case GFX10_3:
       return SQTT_GFXIP_LEVEL_GFXIP_10_3;
    case GFX11:
+   case GFX11_5:
       return SQTT_GFXIP_LEVEL_GFXIP_11_0;
    default:
       unreachable("Invalid gfx level");
@@ -700,6 +701,7 @@ static enum sqtt_version ac_gfx_level_to_sqtt_version(enum amd_gfx_level gfx_lev
    case GFX10_3:
       return SQTT_VERSION_2_4;
    case GFX11:
+   case GFX11_5:
       return SQTT_VERSION_3_2;
    default:
       unreachable("Invalid gfx level");
@@ -858,6 +860,7 @@ static enum elf_gfxip_level ac_gfx_level_to_elf_gfxip_level(enum amd_gfx_level g
    case GFX10_3:
       return EF_AMDGPU_MACH_AMDGCN_GFX1030;
    case GFX11:
+   case GFX11_5:
       return EF_AMDGPU_MACH_AMDGCN_GFX1100;
    default:
       unreachable("Invalid gfx level");

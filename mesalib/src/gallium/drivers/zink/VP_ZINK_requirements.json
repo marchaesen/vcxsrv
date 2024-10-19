@@ -399,7 +399,9 @@
                 "VK_EXT_non_seamless_cube_map": 1,
                 "VK_KHR_pipeline_library": 1,
                 "VK_EXT_attachment_feedback_loop_layout": 1,
-                "VK_EXT_attachment_feedback_loop_dynamic_state": 1
+                "VK_EXT_attachment_feedback_loop_dynamic_state": 1,
+                "VK_KHR_maintenance6": 1,
+                "VK_KHR_maintenance7": 1
             },
             "features": {
                 "VkPhysicalDeviceExtendedDynamicStateFeaturesEXT": {
@@ -435,6 +437,12 @@
                 },
                 "VkPhysicalDeviceAttachmentFeedbackLoopDynamicStateFeaturesEXT": {
                     "attachmentFeedbackLoopDynamicState": true
+                },
+                "VkPhysicalDeviceMaintenance6FeaturesKHR": {
+                    "maintenance6": true
+                },
+                "VkPhysicalDeviceMaintenance7FeaturesKHR": {
+                    "maintenance7": true
                 }
             },
             "properties": {
@@ -447,12 +455,16 @@
             "extensions": {
                 "VK_EXT_provoking_vertex": 1,
                 "VK_KHR_dynamic_rendering": 1,
+                "VK_KHR_dynamic_rendering_local_read": 1,
                 "VK_EXT_dynamic_rendering_unused_attachments": 1,
                 "VK_EXT_legacy_vertex_attributes": 1
             },
             "features": {
                 "VkPhysicalDeviceDynamicRenderingFeatures": {
                     "dynamicRendering": true
+                },
+                "VkPhysicalDeviceDynamicRenderingLocalReadFeaturesKHR": {
+                    "dynamicRenderingLocalRead": true
                 },
                 "VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT": {
                     "dynamicRenderingUnusedAttachments": true

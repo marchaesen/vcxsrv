@@ -122,7 +122,7 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
                           struct gl_renderbuffer_attachment *att,
                           struct gl_texture_object *texObj, GLenum textarget,
                           GLint level, GLsizei samples,
-                          GLuint layer, GLboolean layered);
+                          GLuint layer, GLboolean layered, GLsizei numviews);
 
 extern GLenum
 _mesa_check_framebuffer_status(struct gl_context *ctx,

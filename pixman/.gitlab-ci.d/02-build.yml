@@ -1,0 +1,101 @@
+# Build stage
+#
+# This stage builds pixman with enabled coverage for all supported
+# architectures.
+#
+# Some targets don't support atomic profile update, so to decrease the number of
+# gcov errors, they need to be built without OpenMP (single threaded) by adding
+# `-Dopenmp=disabled` Meson argument.
+
+variables:
+  # Used in test stage as well.
+  BUILD_DIR: build-${TOOLCHAIN}
+
+# Applicable to all build targets.
+
+include:
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-386
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-amd64
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-arm-v5
+      qemu_cpu: arm1136
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-arm-v7
+      qemu_cpu: max
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-arm64-v8
+      qemu_cpu: max
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-mips
+      toolchain: [gnu]
+      qemu_cpu: 74Kf
+      enable_gnu_coverage: false
+  # TODO: Merge with the one above once the following issue is resolved:
+  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/105).
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-mips
+      toolchain: [llvm]
+      qemu_cpu: 74Kf
+      job_name_suffix: ":failing"
+      allow_failure: true
+      retry: 0
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-mips64el
+      qemu_cpu: Loongson-3A4000
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-mipsel
+      toolchain: [gnu]
+      qemu_cpu: 74Kf
+  # TODO: Merge with the one above once the following issue is resolved:
+  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/105).
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-mipsel
+      toolchain: [llvm]
+      qemu_cpu: 74Kf
+      job_name_suffix: ":failing"
+      allow_failure: true
+      retry: 0
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-ppc
+      qemu_cpu: g4
+      enable_gnu_coverage: false
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-ppc64
+      qemu_cpu: ppc64
+      enable_gnu_coverage: false
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-ppc64le
+      qemu_cpu: power10
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: linux-riscv64
+      qemu_cpu: rv64
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: windows-686
+      enable_gnu_coverage: false
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: windows-amd64
+      enable_gnu_coverage: false
+  - local: .gitlab-ci.d/templates/build.yml
+    inputs:
+      target: windows-arm64-v8
+      toolchain: [llvm]  # GNU toolchain doesn't seem to support Windows on ARM.
+      qemu_cpu: max
+      enable_gnu_coverage: false

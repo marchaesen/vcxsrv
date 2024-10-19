@@ -21,6 +21,7 @@ struct rvcn_dec_dynamic_dpb_t2 {
    struct list_head list;
    uint8_t index;
    struct rvid_buffer dpb;
+   struct pipe_video_buffer *vbuf;
 };
 
 struct jpeg_registers {
@@ -97,10 +98,6 @@ struct radeon_decoder {
    unsigned h264_valid_ref_num[17];
    unsigned h264_valid_poc_num[34];
    unsigned av1_version;
-   enum {
-      DPB_VERSION_LEGACY = 0,
-      DPB_VERSION_VCN5
-   } dpb_version;
    bool show_frame;
    unsigned ref_idx;
    bool tmz_ctx;
@@ -141,6 +138,10 @@ struct radeon_decoder {
    unsigned njctx;
    struct pipe_fence_handle *prev_fence;
    struct pipe_fence_handle *destroy_fence;
+   bool dpb_use_surf;
+   uint64_t dpb_modifier;
+
+   struct pipe_context *ectx;
 };
 
 void send_cmd_dec(struct radeon_decoder *dec, struct pipe_video_buffer *target,

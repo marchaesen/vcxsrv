@@ -31,16 +31,17 @@ void vpe_create_bg_segments(
     struct vpe_priv *vpe_priv, struct vpe_rect *gaps, uint16_t gaps_cnt, enum vpe_cmd_ops ops)
 {
     uint16_t            gap_index;
-    struct scaler_data *scaler_data;
+    struct vpe_cmd_info cmd_info    = {0};
+    struct scaler_data *scaler_data = &(cmd_info.inputs[0].scaler_data);
     struct stream_ctx  *stream_ctx = &(vpe_priv->stream_ctx[0]);
     int32_t             vp_x       = stream_ctx->stream.scaling_info.src_rect.x;
     int32_t             vp_y       = stream_ctx->stream.scaling_info.src_rect.y;
-    uint16_t            src_div    = vpe_is_yuv420(stream_ctx->stream.surface_info.format) ? 2 : 1;
-    uint16_t            dst_div    = vpe_is_yuv420(vpe_priv->output_ctx.surface.format) ? 2 : 1;
+    uint16_t            src_h_div  = vpe_is_yuv420(stream_ctx->stream.surface_info.format) ? 2 : 1;
+    uint16_t            src_v_div  = vpe_is_yuv420(stream_ctx->stream.surface_info.format) ? 2 : 1;
+    uint16_t            dst_h_div  = vpe_is_yuv420(vpe_priv->output_ctx.surface.format) ? 2 : 1;
+    uint16_t            dst_v_div  = vpe_is_yuv420(vpe_priv->output_ctx.surface.format) ? 2 : 1;
 
     for (gap_index = 0; gap_index < gaps_cnt; gap_index++) {
-
-        scaler_data = &(vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].inputs[0].scaler_data);
 
         /* format */
         scaler_data->format             = stream_ctx->stream.surface_info.format;
@@ -60,7 +61,8 @@ void vpe_create_bg_segments(
         if (vpe_is_yuv420(scaler_data->format)) {
             scaler_data->ratios.horz_c = vpe_fixpt_from_fraction(1, 2);
             scaler_data->ratios.vert_c = vpe_fixpt_from_fraction(1, 2);
-        } else {
+        }
+        else {
             scaler_data->ratios.horz_c = vpe_fixpt_one;
             scaler_data->ratios.vert_c = vpe_fixpt_one;
         }
@@ -76,18 +78,18 @@ void vpe_create_bg_segments(
         scaler_data->viewport.width  = VPE_MIN_VIEWPORT_SIZE;
         scaler_data->viewport.height = VPE_MIN_VIEWPORT_SIZE;
 
-        scaler_data->viewport_c.x      = scaler_data->viewport.x / src_div;
-        scaler_data->viewport_c.y      = scaler_data->viewport.y / src_div;
-        scaler_data->viewport_c.width  = scaler_data->viewport.width / src_div;
-        scaler_data->viewport_c.height = scaler_data->viewport.height / src_div;
+        scaler_data->viewport_c.x      = scaler_data->viewport.x / src_h_div;
+        scaler_data->viewport_c.y      = scaler_data->viewport.y / src_v_div;
+        scaler_data->viewport_c.width  = scaler_data->viewport.width / src_h_div;
+        scaler_data->viewport_c.height = scaler_data->viewport.height / src_v_div;
 
         /* destination viewport */
         scaler_data->dst_viewport = gaps[gap_index];
 
-        scaler_data->dst_viewport_c.x      = scaler_data->dst_viewport.x / dst_div;
-        scaler_data->dst_viewport_c.y      = scaler_data->dst_viewport.y / dst_div;
-        scaler_data->dst_viewport_c.width  = scaler_data->dst_viewport.width / dst_div;
-        scaler_data->dst_viewport_c.height = scaler_data->dst_viewport.height / dst_div;
+        scaler_data->dst_viewport_c.x      = scaler_data->dst_viewport.x / dst_h_div;
+        scaler_data->dst_viewport_c.y      = scaler_data->dst_viewport.y / dst_v_div;
+        scaler_data->dst_viewport_c.width  = scaler_data->dst_viewport.width / dst_h_div;
+        scaler_data->dst_viewport_c.height = scaler_data->dst_viewport.height / dst_v_div;
 
         /* taps and inits */
         scaler_data->taps.h_taps = scaler_data->taps.v_taps = 4;
@@ -107,24 +109,16 @@ void vpe_create_bg_segments(
         VPE_ASSERT(gaps_cnt - gap_index - 1 <= (uint16_t)0xF);
 
         // background takes stream_idx 0 as its input
-        vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].inputs[0].stream_idx = 0;
-        vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].dst_viewport   = scaler_data->dst_viewport;
-        vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].dst_viewport_c = scaler_data->dst_viewport_c;
-        vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].num_inputs     = 1;
-        vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].ops            = ops;
-        vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].cd = (uint8_t)(gaps_cnt - gap_index - 1);
-        vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].tm_enabled =
-            false; // currently only support frontend tm
+        cmd_info.inputs[0].stream_idx      = 0;
+        cmd_info.num_outputs               = 1;
+        cmd_info.outputs[0].dst_viewport   = scaler_data->dst_viewport;
+        cmd_info.outputs[0].dst_viewport_c = scaler_data->dst_viewport_c;
 
-        if (vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].cd == (gaps_cnt - 1)) {
-            vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].is_begin = true;
-        }
-
-        if (vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].cd == 0) {
-            vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds].is_end = true;
-        }
-
-        vpe_priv->num_vpe_cmds++;
+        cmd_info.num_inputs = 1;
+        cmd_info.ops        = ops;
+        cmd_info.cd         = (uint8_t)(gaps_cnt - gap_index - 1);
+        cmd_info.tm_enabled = false; // currently only support frontend tm
+        vpe_vector_push(vpe_priv->vpe_cmd_vector, &cmd_info);
     }
 }
 

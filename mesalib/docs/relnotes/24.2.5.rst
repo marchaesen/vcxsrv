@@ -1,0 +1,174 @@
+Mesa 24.2.5 Release Notes / 2024-10-16
+======================================
+
+Mesa 24.2.5 is a bug fix release which fixes bugs found since the 24.2.4 release.
+
+Mesa 24.2.5 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.5 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: 733d0bea242ed6a5bb5c806fe836792ce7f092d45a2f115b7b7e15897c9dd96f  mesa-24.2.5.tar.xz
+    SHA512: 9f202907dc4e7f1063c32882b2c9a3ab34c4d83de1c9ef4dd171043b87b110bfd7e7a3d6e3632ed768e024ef18b97181c4f6bc377cc7d3eb609dd96ebf6a783e  mesa-24.2.5.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- [radeonsi] glLinkProgram terminates the application when Shader is passing Bindless Texture into function
+- gallium: crash when using images obtained from a texture with a bindless handle
+- gallium: Crash when writing to writeonly image3D passed in via parameter
+- Using DXT1 textures fails in GL ES 1, even with EXT_texture_compression_dxt1 supported
+- r300 regression : Upside down and broken redering for Source games
+- intel A770 dg2 silent hill 2 doesn't run
+- Mesa's \`intel_hang_replay` tool fails to work
+- Mesa's \`intel_hang_replay` tool fails to work
+
+
+Changes
+-------
+
+Alessandro Astone (1):
+
+- panvk: Add missing headers to android platform
+
+Bas Nieuwenhuizen (1):
+
+- radv: Disable EXT BDA capture and replay.
+
+Carlos Santa (2):
+
+- intel/hang_replay: fix the typo in the ioctl call
+- intel/hang_replay: remove EXEC_OBJECT_WRITE
+
+Christian Gmeiner (1):
+
+- etnaviv: Improve split sampler check
+
+Danylo Piliaiev (1):
+
+- nir/opt_16b_tex_image: Sign extension should matter for texel buffer txf
+
+David Heidelberg (2):
+
+- amd: Pass addrlib cpp args to the tests
+- osmesa: Fix OSMesaGetDepthBuffer() test without depth
+
+David Rosca (2):
+
+- radeonsi/vcn: Fix out of bounds write when invalidating QP map regions
+- radeonsi/vcn: Fix out of bounds read in H264 decode
+
+Eric Engestrom (10):
+
+- docs: add sha sum for 24.2.4
+- .pick_status.json: Update to 1cbc316999af23b2dbe5f2fc0c057a9a26ae68b7
+- Revert "mesa: fix sample count handling for MSRTT"
+- .pick_status.json: Mark 894b37e06099c60f371e9b181e3f84cfc29c49bb as denominated
+- .pick_status.json: Update to 78b614b333b01ce0dfb9e4d9353a02a03fdcc154
+- .pick_status.json: Update to 336f80137d26230bd124f475bd4382a0c727004f
+- .pick_status.json: Update to e8e8c17a0c893a74bff58c2abbc0ee8c451db933
+- .pick_status.json: Update to 6d6d5b869c5a4afd7fb30c7a5b1def8fcc14d255
+- .pick_status.json: Update to 7b09fc98fb60becde7435b2303f7dd329937f6cb
+- .pick_status.json: Mark c747c1e1f4f48b543a8ed8f7f7db32e5393d41a0 as denominated
+
+Faith Ekstrand (1):
+
+- nvk: Advertise 64-bit atomics on buffer views
+
+Jordan Justen (1):
+
+- intel/dev: Add 0xb640 ARL PCI id
+
+Jose Maria Casanova Crespo (1):
+
+- v3d: initialize job local key with the 8 color buffer available in v7.1+
+
+Kenneth Graunke (5):
+
+- intel/brw: Delete Gfx7-8 code from emit_barrier()
+- intel/brw: Make a ubld temporary in emit_barrier()
+- intel/brw: Fix register and builder size in emit_barrier() for Xe2
+- intel/brw: Delete more Gfx8 code from brw_fs_combine_constants
+- intel/brw: Use whole 512-bit registers in constant combining on Xe2
+
+Lionel Landwerlin (2):
+
+- .pick_status.json: Update to c8c354d9c3a2e79230723f1c8b0571b20d034fee
+- isl: remove duplicated copy for tileX/TileY
+
+Lucas Stach (1):
+
+- etnaviv: re-emit uniforms on sampler view changes when txs is used
+
+Marek Olšák (3):
+
+- nir/opt_vectorize_io: fix stack buffer overflow with 16-bit output stores
+- gallium/u_threaded: fix crash in tc_create_image_handle due to resource == NULL
+- radeonsi: set the valid buffer range for bindless image buffers
+
+Maíra Canal (1):
+
+- v3d: Don't use performance counters names array with an older kernel
+
+Mike Blumenkrantz (2):
+
+- zink: fix external_only reporting for dmabuf formats
+- zink: block srgb with winsys imports
+
+Paulo Zanoni (2):
+
+- anv/trtt: set every entry to NULL when we create an L2 table
+- anv/trtt: fix error handling when adding binds
+
+Pavel Ondračka (1):
+
+- r300: remove gl_ClipVertex early
+
+Rob Clark (1):
+
+- freedreno: Balance out u_blitter cb0 save/restore
+
+Samuel Pitoiset (4):
+
+- radv: do not expose NV DGC extensions on GFX6-7
+- radv: fix conditional rendering with DGC preprocessing on compute
+- radv: fix returning non-zero captured address without binding
+- radv: use app names instead of exec name for shader based drirc workarounds
+
+Satadru Pramanik (1):
+
+- Update lp_bld_misc.cpp to support llvm-19+.
+
+Tapani Pälli (8):
+
+- intel/genxml: introduce L3 Fabric Flush for gfx12
+- intel/ds: add L3 fabric flush support
+- anv: add plumbing/support for L3 fabric flush
+- iris: add plumbing/support for L3 fabric flush
+- iris: add depth, DC and L3 fabric flush for aux map invalidation
+- anv: add depth, DC and L3 fabric flush for aux map invalidation
+- drirc/anv: force_vk_vendor=-1 for Silent Hill 2
+- mesa: fix DXT1 support with EXT_texture_compression_dxt1
+
+Timothy Arceri (2):
+
+- nir/glsl: set cast mode for image during function inlining
+- nir/glsl: set deref cast mode for blocks during function inlining

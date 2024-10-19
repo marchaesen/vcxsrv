@@ -6,13 +6,18 @@
 #ifndef DRM_HW_H_
 #define DRM_HW_H_
 
+#ifdef ENABLE_DRM_AMDGPU
+#include <amdgpu.h>
+#endif
+
 struct virgl_renderer_capset_drm {
    uint32_t wire_format_version;
    /* Underlying drm device version: */
    uint32_t version_major;
    uint32_t version_minor;
    uint32_t version_patchlevel;
-#define VIRTGPU_DRM_CONTEXT_MSM   1
+#define VIRTGPU_DRM_CONTEXT_MSM      1
+#define VIRTGPU_DRM_CONTEXT_AMDGPU   2
    uint32_t context_type;
    uint32_t pad;
    union {
@@ -26,7 +31,17 @@ struct virgl_renderer_capset_drm {
          uint64_t gmem_base;
          uint64_t chip_id;
          uint32_t max_freq;
+         uint32_t highest_bank_bit;
       } msm;  /* context_type == VIRTGPU_DRM_CONTEXT_MSM */
+      struct {
+         uint32_t address32_hi;
+         uint32_t __pad;
+#ifdef ENABLE_DRM_AMDGPU
+         struct amdgpu_buffer_size_alignments alignments;
+         struct amdgpu_gpu_info gpu_info;
+#endif
+         char marketing_name[128];
+      } amdgpu;   /* context_type == VIRTGPU_DRM_CONTEXT_AMDGPU */
    } u;
 };
 

@@ -92,6 +92,8 @@ struct tu_shader
          bool per_samp;
          bool has_fdm;
 
+         uint16_t dynamic_input_attachments_used;
+
          struct {
             uint32_t status;
             bool force_late_z;
@@ -102,9 +104,13 @@ struct tu_shader
 
 struct tu_shader_key {
    unsigned multiview_mask;
+   uint16_t read_only_input_attachments;
    bool force_sample_interp;
    bool fragment_density_map;
+   bool dynamic_renderpass;
    uint8_t unscaled_input_fragcoord;
+   bool robust_storage_access2;
+   bool robust_uniform_access2;
    enum ir3_wavesize_option api_wavesize, real_wavesize;
 };
 
@@ -115,7 +121,9 @@ tu_nir_lower_multiview(nir_shader *nir, uint32_t mask, struct tu_device *dev);
 nir_shader *
 tu_spirv_to_nir(struct tu_device *dev,
                 void *mem_ctx,
+                VkPipelineCreateFlags2KHR pipeline_flags,
                 const VkPipelineShaderStageCreateInfo *stage_info,
+                const struct tu_shader_key *key,
                 gl_shader_stage stage);
 
 void
@@ -164,8 +172,13 @@ tu_shader_key_subgroup_size(struct tu_shader_key *key,
                             const VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *subgroup_info,
                             struct tu_device *dev);
 
+void
+tu_shader_key_robustness(struct tu_shader_key *key,
+                         const struct vk_pipeline_robustness_state *rs);
+
 VkResult
 tu_compile_shaders(struct tu_device *device,
+                   VkPipelineCreateFlags2KHR pipeline_flags,
                    const VkPipelineShaderStageCreateInfo **stage_infos,
                    nir_shader **nir,
                    const struct tu_shader_key *keys,

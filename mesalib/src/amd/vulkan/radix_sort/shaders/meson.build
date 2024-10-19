@@ -1,5 +1,4 @@
 # Copyright © 2022 Konstantin Seurer
-#
 # SPDX-License-Identifier: MIT
 
 radix_sort_shaders = [
@@ -26,10 +25,16 @@ shader_include_files = files(
 
 radix_sort_spv = []
 foreach s : radix_sort_shaders
+  _name = f'@s@.spv.h'
   radix_sort_spv += custom_target(
-    s + '.spv.h',
+    _name,
     input : s,
-    output : s + '.spv.h',
-    command : [prog_glslang, '-V', '-I' + shader_include_dir, '--target-env', 'spirv1.3', '-x', '-o', '@OUTPUT@', '@INPUT@'] + glslang_quiet,
-    depend_files: shader_include_files)
+    output : _name,
+    command : [
+      prog_glslang, '-V', '-I' + shader_include_dir, '--target-env', 'spirv1.3',
+      '-x', '-o', '@OUTPUT@', '@INPUT@', glslang_quiet, glslang_depfile,
+    ],
+    depfile : f'@_name@.d',
+    depend_files : shader_include_files,
+  )
 endforeach

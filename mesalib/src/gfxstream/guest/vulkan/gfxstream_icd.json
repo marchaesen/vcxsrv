@@ -1,0 +1,7 @@
+{
+    "file_format_version": "1.0.0",
+    "ICD": {
+      "library_path": "libgfxstream_guest_vulkan_with_host.so",
+      "api_version": "1.0.5"
+    }
+}

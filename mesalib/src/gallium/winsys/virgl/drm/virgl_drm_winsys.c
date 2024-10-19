@@ -93,13 +93,17 @@ static void virgl_hw_res_destroy(struct virgl_drm_winsys *qdws,
       if (res->flink_name)
          _mesa_hash_table_remove_key(qdws->bo_names,
                                 (void *)(uintptr_t)res->flink_name);
-      mtx_unlock(&qdws->bo_handles_mutex);
       if (res->ptr)
          os_munmap(res->ptr, res->size);
 
       memset(&args, 0, sizeof(args));
       args.handle = res->bo_handle;
       drmIoctl(qdws->fd, DRM_IOCTL_GEM_CLOSE, &args);
+      /* We need to unlock the access to bo_handles after closing the GEM to
+       * avoid a race condition where another thread would not find the
+       * bo_handle leading to a call of DRM_IOCTL_GEM_OPEN which will return
+       * the same bo_handle as the one we are closing here. */
+      mtx_unlock(&qdws->bo_handles_mutex);
       FREE(res);
 }
 

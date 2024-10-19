@@ -49,10 +49,3 @@ d3d12_wgl_present(struct pipe_screen *screen,
 {
    screen->flush_frontbuffer(screen, ctx, res, 0, 0, hDC, 0, NULL);
 }
-
-unsigned
-d3d12_wgl_get_pfd_flags(struct pipe_screen *screen)
-{
-   (void)screen;
-   return stw_pfd_gdi_support | stw_pfd_double_buffer;
-}

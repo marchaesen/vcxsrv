@@ -45,27 +45,26 @@ SOFTWARE.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/extensions/XI2.h>
 
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
+#include "dix/dixgrabs_priv.h"
 #include "dix/exevents_priv.h"
 #include "os/auth.h"
+#include "os/client_priv.h"
 
 #include "misc.h"
 #include "windowstr.h"
 #include "inputstr.h"
 #include "cursorstr.h"
-#include "dixgrabs.h"
 #include "xace.h"
 #include "exglobals.h"
 #include "inpututils.h"
-#include "client.h"
 
 #define BITMASK(i) (((Mask)1) << ((i) & 31))
 #define MASKIDX(i) ((i) >> 5)
@@ -192,6 +191,8 @@ UngrabAllDevices(Bool kill_client)
     ErrorF("End list of ungrabbed devices\n");
 }
 
+static Bool CopyGrab(GrabPtr dst, const GrabPtr src);
+
 GrabPtr
 AllocGrab(const GrabPtr src)
 {
@@ -216,7 +217,7 @@ AllocGrab(const GrabPtr src)
 GrabPtr
 CreateGrab(int client, DeviceIntPtr device, DeviceIntPtr modDevice,
            WindowPtr window, enum InputLevel grabtype, GrabMask *mask,
-           GrabParameters *param, int type,
+           GrabParameters *param, int eventType,
            KeyCode keybut,        /* key or button */
            WindowPtr confineTo, CursorPtr cursor)
 {
@@ -239,7 +240,7 @@ CreateGrab(int client, DeviceIntPtr device, DeviceIntPtr modDevice,
     grab->modifiersDetail.exact = param->modifiers;
     grab->modifiersDetail.pMask = NULL;
     grab->modifierDevice = modDevice;
-    grab->type = type;
+    grab->type = eventType;
     grab->grabtype = grabtype;
     grab->detail.exact = keybut;
     grab->detail.pMask = NULL;
@@ -250,13 +251,13 @@ CreateGrab(int client, DeviceIntPtr device, DeviceIntPtr modDevice,
     if (grabtype == XI2)
         xi2mask_merge(grab->xi2mask, mask->xi2mask);
     return grab;
-
 }
 
 void
 FreeGrab(GrabPtr pGrab)
 {
-    BUG_RETURN(!pGrab);
+    if (!pGrab)
+        return;
 
     free(pGrab->modifiersDetail.pMask);
     free(pGrab->detail.pMask);
@@ -268,7 +269,7 @@ FreeGrab(GrabPtr pGrab)
     free(pGrab);
 }
 
-Bool
+static Bool
 CopyGrab(GrabPtr dst, const GrabPtr src)
 {
     Mask *mdetails_mask = NULL;
@@ -548,7 +549,7 @@ AddPassiveGrabToList(ClientPtr client, GrabPtr pGrab)
     if (pGrab->keyboardMode == GrabModeSync ||
         pGrab->pointerMode == GrabModeSync)
         access_mode |= DixFreezeAccess;
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, pGrab->device, access_mode);
+    rc = XaceHookDeviceAccess(client, pGrab->device, access_mode);
     if (rc != Success)
         return rc;
 

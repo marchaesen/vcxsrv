@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2012 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -47,21 +29,13 @@ fd_context_flush(struct pipe_context *pctx, struct pipe_fence_handle **fencep,
 {
    struct fd_context *ctx = fd_context(pctx);
    struct pipe_fence_handle *fence = NULL;
-   struct fd_batch *batch = NULL;
-
-   /* We want to lookup current batch if it exists, but not create a new
-    * one if not (unless we need a fence)
-    */
-   fd_batch_reference(&batch, ctx->batch);
+   struct fd_batch *batch = fd_bc_last_batch(ctx);
 
    DBG("%p: %p: flush: flags=%x, fencep=%p", ctx, batch, flags, fencep);
 
    if (fencep && !batch) {
       batch = fd_context_batch(ctx);
    } else if (!batch) {
-      if (ctx->screen->reorder)
-         fd_bc_flush(ctx, flags & PIPE_FLUSH_DEFERRED);
-      fd_bc_dump(ctx, "%p: NULL batch, remaining:\n", ctx);
       return;
    }
 
@@ -134,7 +108,9 @@ fd_context_flush(struct pipe_context *pctx, struct pipe_fence_handle **fencep,
    if (!ctx->screen->reorder) {
       fd_batch_flush(batch);
    } else {
-      fd_bc_flush(ctx, flags & PIPE_FLUSH_DEFERRED);
+      fd_bc_add_flush_deps(ctx, batch);
+      if (!(flags & PIPE_FLUSH_DEFERRED))
+         fd_batch_flush(batch);
    }
 
    fd_bc_dump(ctx, "%p: remaining:\n", ctx);
@@ -406,7 +382,12 @@ fd_context_destroy(struct pipe_context *pctx)
    fd_batch_reference(&ctx->batch, NULL); /* unref current batch */
 
    /* Make sure nothing in the batch cache references our context any more. */
-   fd_bc_flush(ctx, false);
+   struct fd_batch *batch = fd_bc_last_batch(ctx);
+   if (batch) {
+      fd_bc_add_flush_deps(ctx, batch);
+      fd_batch_flush(batch);
+      fd_batch_reference(&batch, NULL);
+   }
 
    fd_prog_fini(pctx);
 
@@ -500,26 +481,25 @@ fd_get_device_reset_status(struct pipe_context *pctx)
 
 static void
 fd_trace_record_ts(struct u_trace *ut, void *cs, void *timestamps,
-                   unsigned idx, bool end_of_pipe)
+                   uint64_t offset_B, uint32_t flags)
 {
    struct fd_batch *batch = container_of(ut, struct fd_batch, trace);
    struct fd_ringbuffer *ring = cs;
    struct pipe_resource *buffer = timestamps;
 
    if (ring->cur == batch->last_timestamp_cmd) {
-      uint64_t *ts = fd_bo_map(fd_resource(buffer)->bo);
-      ts[idx] = U_TRACE_NO_TIMESTAMP;
+      uint64_t *ts = fd_bo_map(fd_resource(buffer)->bo) + offset_B;
+      *ts = U_TRACE_NO_TIMESTAMP;
       return;
    }
 
-   unsigned ts_offset = idx * sizeof(uint64_t);
-   batch->ctx->record_timestamp(ring, fd_resource(buffer)->bo, ts_offset);
+   batch->ctx->record_timestamp(ring, fd_resource(buffer)->bo, offset_B);
    batch->last_timestamp_cmd = ring->cur;
 }
 
 static uint64_t
 fd_trace_read_ts(struct u_trace_context *utctx,
-                 void *timestamps, unsigned idx, void *flush_data)
+                 void *timestamps, uint64_t offset_B, void *flush_data)
 {
    struct fd_context *ctx =
       container_of(utctx, struct fd_context, trace_context);
@@ -527,7 +507,7 @@ fd_trace_read_ts(struct u_trace_context *utctx,
    struct fd_bo *ts_bo = fd_resource(buffer)->bo;
 
    /* Only need to stall on results for the first entry: */
-   if (idx == 0) {
+   if (offset_B == 0) {
       /* Avoid triggering deferred submits from flushing, since that
        * changes the behavior of what we are trying to measure:
        */
@@ -538,13 +518,13 @@ fd_trace_read_ts(struct u_trace_context *utctx,
          return U_TRACE_NO_TIMESTAMP;
    }
 
-   uint64_t *ts = fd_bo_map(ts_bo);
+   uint64_t *ts = fd_bo_map(ts_bo) + offset_B;
 
    /* Don't translate the no-timestamp marker: */
-   if (ts[idx] == U_TRACE_NO_TIMESTAMP)
+   if (*ts == U_TRACE_NO_TIMESTAMP)
       return U_TRACE_NO_TIMESTAMP;
 
-   return ctx->ts_to_ns(ts[idx]);
+   return ctx->ts_to_ns(*ts);
 }
 
 static void
@@ -719,8 +699,12 @@ fd_context_init(struct fd_context *ctx, struct pipe_screen *pscreen,
 
    fd_gpu_tracepoint_config_variable();
    u_trace_pipe_context_init(&ctx->trace_context, pctx,
+                             sizeof(uint64_t),
+                             0,
                              fd_trace_record_ts,
                              fd_trace_read_ts,
+                             NULL,
+                             NULL,
                              fd_trace_delete_flush_data);
 
    fd_autotune_init(&ctx->autotune, screen->dev);
@@ -755,8 +739,11 @@ fd_context_init_tc(struct pipe_context *pctx, unsigned flags)
       },
       &ctx->tc);
 
-   if (tc && tc != pctx)
+   if (tc && tc != pctx) {
       threaded_context_init_bytes_mapped_limit((struct threaded_context *)tc, 16);
+      ((struct threaded_context *)tc)->bytes_replaced_limit =
+         ((struct threaded_context *)tc)->bytes_mapped_limit / 4;
+   }
 
    return tc;
 }

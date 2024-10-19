@@ -80,9 +80,10 @@ static int flush(struct ruvd_decoder *dec, unsigned flags, struct pipe_fence_han
    return dec->ws->cs_flush(&dec->cs, flags, fence);
 }
 
-static int ruvd_dec_get_decoder_fence(struct pipe_video_codec *decoder,
-                                      struct pipe_fence_handle *fence,
-                                      uint64_t timeout) {
+static int ruvd_dec_fence_wait(struct pipe_video_codec *decoder,
+                               struct pipe_fence_handle *fence,
+                               uint64_t timeout)
+{
    struct ruvd_decoder *dec = (struct ruvd_decoder *)decoder;
    return dec->ws->fence_wait(dec->ws, fence, timeout);
 }
@@ -1051,7 +1052,7 @@ static void ruvd_decode_bitstream(struct pipe_video_codec *decoder,
 
       if (new_size > buf->res->buf->size) {
          dec->ws->buffer_unmap(dec->ws, buf->res->buf);
-         if (!si_vid_resize_buffer(dec->screen, &dec->cs, buf, new_size, NULL)) {
+         if (!si_vid_resize_buffer(dec->base.context, &dec->cs, buf, new_size, NULL)) {
             RVID_ERR("Can't resize bitstream buffer!");
             return;
          }
@@ -1073,7 +1074,7 @@ static void ruvd_decode_bitstream(struct pipe_video_codec *decoder,
 /**
  * end decoding of the current frame
  */
-static void ruvd_end_frame(struct pipe_video_codec *decoder, struct pipe_video_buffer *target,
+static int ruvd_end_frame(struct pipe_video_codec *decoder, struct pipe_video_buffer *target,
                            struct pipe_picture_desc *picture)
 {
    struct ruvd_decoder *dec = (struct ruvd_decoder *)decoder;
@@ -1084,7 +1085,7 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder, struct pipe_video_b
    assert(decoder);
 
    if (!dec->bs_ptr)
-      return;
+      return 1;
 
    msg_fb_it_buf = &dec->msg_fb_it_buffers[dec->cur_buffer];
    bs_buf = &dec->bs_buffers[dec->cur_buffer];
@@ -1169,7 +1170,7 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder, struct pipe_video_b
 
    default:
       assert(0);
-      return;
+      return 1;
    }
 
    dec->msg->body.decode.db_surf_tile_config = dec->msg->body.decode.dt_surf_tile_config;
@@ -1199,6 +1200,7 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder, struct pipe_video_b
 
    flush(dec, picture->flush_flags, picture->fence);
    next_buffer(dec);
+   return 0;
 }
 
 /**
@@ -1261,7 +1263,7 @@ struct pipe_video_codec *si_common_uvd_create_decoder(struct pipe_context *conte
    dec->base.decode_bitstream = ruvd_decode_bitstream;
    dec->base.end_frame = ruvd_end_frame;
    dec->base.flush = ruvd_flush;
-   dec->base.get_decoder_fence = ruvd_dec_get_decoder_fence;
+   dec->base.fence_wait = ruvd_dec_fence_wait;
    dec->base.destroy_fence = ruvd_dec_destroy_fence;
 
    dec->stream_type = profile2stream_type(dec, sctx->family);

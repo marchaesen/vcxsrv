@@ -55,14 +55,43 @@ v3dv_cl_destroy(struct v3dv_cl *cl)
    v3dv_cl_init(NULL, cl);
 }
 
+enum v3dv_cl_chain_type {
+   V3D_CL_BO_CHAIN_NONE = 0,
+   V3D_CL_BO_CHAIN_WITH_BRANCH,
+   V3D_CL_BO_CHAIN_WITH_RETURN_FROM_SUB_LIST,
+};
+
 static bool
-cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, bool use_branch)
+cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, enum
+            v3dv_cl_chain_type chain_type)
 {
+   /* The last bytes of a CLE buffer are unusable because of readahead
+    * prefetch, so we need to take it into account when allocating a new BO
+    * for the CL. We also reserve space for the BRANCH/RETURN_FROM_SUB_LIST
+    * packet so we can always emit these last packets to the BO when
+    * needed. We will need to increase cl->size by the packet length before
+    * calling cl_submit to use this reserved space.
+    */
+   uint32_t unusable_space = 0;
+   struct v3d_device_info *devinfo = &cl->job->device->devinfo;
+   uint32_t cle_readahead = devinfo->cle_readahead;
+   uint32_t cle_buffer_min_size = devinfo->cle_buffer_min_size;
+   switch (chain_type) {
+   case V3D_CL_BO_CHAIN_WITH_BRANCH:
+      unusable_space = cle_readahead + cl_packet_length(BRANCH);
+      break;
+   case V3D_CL_BO_CHAIN_WITH_RETURN_FROM_SUB_LIST:
+      unusable_space = cle_readahead + cl_packet_length(RETURN_FROM_SUB_LIST);
+      break;
+   case V3D_CL_BO_CHAIN_NONE:
+      break;
+   }
+
    /* If we are growing, double the BO allocation size to reduce the number
     * of allocations with large command buffers. This has a very significant
     * impact on the number of draw calls per second reported by vkoverhead.
     */
-   space = align(space, 4096);
+   space = align(space + unusable_space, cle_buffer_min_size);
    if (cl->bo)
       space = MAX2(cl->bo->size * 2, space);
 
@@ -83,10 +112,29 @@ cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, bool use_branch)
    }
 
    /* Chain to the new BO from the old one if requested */
-   if (use_branch && cl->bo) {
-      cl->bo->cl_branch_offset = v3dv_cl_offset(cl);
-      cl_emit(cl, BRANCH, branch) {
-         branch.address = v3dv_cl_address(bo, 0);
+   if (cl->bo) {
+      switch (chain_type) {
+      case V3D_CL_BO_CHAIN_WITH_BRANCH:
+         cl->bo->cl_branch_offset = v3dv_cl_offset(cl);
+         cl->size += cl_packet_length(BRANCH);
+         assert(cl->size + cle_readahead <= cl->bo->size);
+         cl_emit(cl, BRANCH, branch) {
+            branch.address = v3dv_cl_address(bo, 0);
+         }
+         break;
+      case V3D_CL_BO_CHAIN_WITH_RETURN_FROM_SUB_LIST:
+         /* We do not want to emit branches from secondary command lists, instead,
+          * we will branch to them when we execute them in a primary using
+          * 'branch to sub list' commands, expecting each linked secondary to
+          * end with a 'return from sub list' command.
+          */
+         cl->size += cl_packet_length(RETURN_FROM_SUB_LIST);
+         assert(cl->size + cle_readahead <= cl->bo->size);
+         cl_emit(cl, RETURN_FROM_SUB_LIST, ret);
+         FALLTHROUGH;
+      case V3D_CL_BO_CHAIN_NONE:
+         v3dv_job_add_bo_unchecked(cl->job, bo);
+         break;
       }
    } else {
       v3dv_job_add_bo_unchecked(cl->job, bo);
@@ -94,7 +142,11 @@ cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, bool use_branch)
 
    cl->bo = bo;
    cl->base = cl->bo->map;
-   cl->size = cl->bo->size;
+   /* Take only into account the usable size of the BO to guarantee that
+    * we never write in the last bytes of the CL buffer because of the
+    * readahead of the CLE
+    */
+   cl->size = cl->bo->size - unusable_space;
    cl->next = cl->base;
 
    return true;
@@ -110,37 +162,20 @@ v3dv_cl_ensure_space(struct v3dv_cl *cl, uint32_t space, uint32_t alignment)
       return offset;
    }
 
-   cl_alloc_bo(cl, space, false);
+   cl_alloc_bo(cl, space, V3D_CL_BO_CHAIN_NONE);
+
    return 0;
 }
 
 void
 v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space)
 {
-   /* We do not want to emit branches from secondary command lists, instead,
-    * we will branch to them when we execute them in a primary using
-    * 'branch to sub list' commands, expecting each linked secondary to
-    * end with a 'return from sub list' command.
-    */
-   bool needs_return_from_sub_list = false;
-   if (cl->job->type == V3DV_JOB_TYPE_GPU_CL_INCOMPLETE && cl->size > 0)
-         needs_return_from_sub_list = true;
-
-   /*
-    * The CLE processor in the simulator tries to read V3D_CL_MAX_INSTR_SIZE
-    * bytes form the CL for each new instruction. If the last instruction in our
-    * CL is smaller than that, and there are not at least V3D_CL_MAX_INSTR_SIZE
-    * bytes until the end of the BO, it will read out of bounds and possibly
-    * cause a GMP violation interrupt to trigger. Ensure we always have at
-    * least that many bytes available to read with the last instruction.
-    */
-   space += V3D_CL_MAX_INSTR_SIZE;
-
    if (v3dv_cl_offset(cl) + space <= cl->size)
       return;
 
-   if (needs_return_from_sub_list)
-      cl_emit(cl, RETURN_FROM_SUB_LIST, ret);
+   enum v3dv_cl_chain_type  chain_type = V3D_CL_BO_CHAIN_WITH_BRANCH;
+   if (cl->job->type == V3DV_JOB_TYPE_GPU_CL_INCOMPLETE)
+      chain_type = V3D_CL_BO_CHAIN_WITH_RETURN_FROM_SUB_LIST;
 
-   cl_alloc_bo(cl, space, !needs_return_from_sub_list);
+   cl_alloc_bo(cl, space, chain_type);
 }

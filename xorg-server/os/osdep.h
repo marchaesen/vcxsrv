@@ -60,6 +60,8 @@ SOFTWARE.
 #include <limits.h>
 #include <stddef.h>
 #include <X11/Xos.h>
+#include <X11/Xmd.h>
+#include <X11/Xdefs.h>
 
 /* If EAGAIN and EWOULDBLOCK are distinct errno values, then we check errno
  * for both EAGAIN and EWOULDBLOCK, because some supposedly POSIX
@@ -197,5 +199,20 @@ void ListenToAllClients(void);
 
 /* allow DDX to force using another clock */
 void ForceClockId(clockid_t forced_clockid);
+
+Bool WaitForSomething(Bool clients_are_ready);
+void CloseDownConnection(ClientPtr client);
+
+extern int LimitClients;
+extern Bool PartialNetwork;
+extern Bool RunFromSigStopParent;
+
+extern int limitDataSpace;
+extern int limitStackSpace;
+extern int limitNoFile;
+
+extern Bool CoreDump;
+extern Bool NoListenAll;
+extern Bool AllowByteSwappedClients;
 
 #endif                          /* _OSDEP_H_ */

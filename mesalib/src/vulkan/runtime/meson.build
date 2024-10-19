@@ -1,22 +1,5 @@
 # Copyright © 2017 Intel Corporation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 # Mesa-local imports in the Python files must be declared here for correct
 # dependency tracking.
@@ -39,12 +22,14 @@ vulkan_lite_runtime_files = files(
   'vk_descriptors.c',
   'vk_descriptor_update_template.c',
   'vk_device.c',
+  'vk_device_generated_commands.c',
   'vk_device_memory.c',
   'vk_fence.c',
   'vk_framebuffer.c',
   'vk_graphics_state.c',
   'vk_image.c',
   'vk_log.c',
+  'vk_meta_object_list.c',
   'vk_object.c',
   'vk_physical_device.c',
   'vk_pipeline_layout.c',
@@ -201,6 +186,7 @@ vulkan_lite_runtime_files += [
 # as a runtime library dep to ensure header gen order
 vulkan_lite_runtime_header_gen_deps = declare_dependency(
   sources : [
+    spirv_info_h,
     vk_cmd_enqueue_entrypoints[0],
     vk_cmd_queue[1],
     vk_common_entrypoints[0],
@@ -273,6 +259,7 @@ vulkan_runtime_files = files(
   'vk_meta.c',
   'vk_meta_blit_resolve.c',
   'vk_meta_clear.c',
+  'vk_meta_copy_fill_update.c',
   'vk_meta_draw_rects.c',
   'vk_nir.c',
   'vk_nir_convert_ycbcr.c',
@@ -295,7 +282,11 @@ if prog_glslang.found()
     'astc_spv.h',
     input : astc_decoder_glsl_file,
     output : 'astc_spv.h',
-    command : [prog_glslang, '-V', '-S', 'comp', '-x', '-o', '@OUTPUT@', '@INPUT@'] + glslang_quiet,
+    command : [
+      prog_glslang, '-V', '-S', 'comp', '-x', '-o', '@OUTPUT@', '@INPUT@',
+      glslang_quiet, glslang_depfile,
+    ],
+    depfile : 'astc_spv.h.d',
   )
 endif
 

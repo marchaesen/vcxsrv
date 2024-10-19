@@ -6,7 +6,7 @@
 #include "util/format/format_utils.h"
 #include "util/format/u_format.h"
 #include "util/half_float.h"
-#include "agx_formats.h"
+#include "agx_helpers.h"
 #include "agx_pack.h"
 
 /*

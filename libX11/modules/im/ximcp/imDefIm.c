@@ -1728,7 +1728,7 @@ _XimEncodingNegotiation(
 	+ sizeof(CARD16)
 	+ detail_len;
 
-    if (!(buf = Xcalloc(XIM_HEADER_SIZE + len, 1)))
+    if (!(buf = Xcalloc(1, XIM_HEADER_SIZE + len)))
 	goto free_detail_ptr;
 
     buf_s = (CARD16 *)&buf[XIM_HEADER_SIZE];

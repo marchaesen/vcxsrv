@@ -166,8 +166,9 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
       bld.insert(std::move(startpgm));
 
       unsigned count = 1;
-      if (block->instructions[1]->opcode == aco_opcode::p_init_scratch) {
-         bld.insert(std::move(block->instructions[1]));
+      while (block->instructions[count]->opcode == aco_opcode::p_init_scratch ||
+             block->instructions[count]->opcode == aco_opcode::s_setprio) {
+         bld.insert(std::move(block->instructions[count]));
          count++;
       }
 
@@ -270,6 +271,7 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
          for (unsigned i = 1; i < phi->operands.size(); i++)
             phi->operands[i] =
                get_exec_op(ctx.info[header_preds[i]].exec[info.num_exec_masks - 1].first);
+         restore_exec = true;
       }
 
       if (info.has_divergent_break) {
@@ -670,7 +672,7 @@ add_branch_code(exec_ctx& ctx, Block* block)
       assert(block->linear_succs.size() == 2);
       assert(block->instructions.back()->opcode == aco_opcode::p_cbranch_z);
       Temp cond = block->instructions.back()->operands[0].getTemp();
-      const bool sel_ctrl = block->instructions.back()->branch().selection_control_remove;
+      aco_ptr<Instruction> branch = std::move(block->instructions.back());
       block->instructions.pop_back();
 
       uint8_t mask_type = ctx.info[idx].exec.back().second & (mask_type_wqm | mask_type_exact);
@@ -688,14 +690,15 @@ add_branch_code(exec_ctx& ctx, Block* block)
 
       Builder::Result r = bld.branch(aco_opcode::p_cbranch_z, bld.def(s2), Operand(exec, bld.lm),
                                      block->linear_succs[1], block->linear_succs[0]);
-      r->branch().selection_control_remove = sel_ctrl;
+      r->branch().rarely_taken = branch->branch().rarely_taken;
+      r->branch().never_taken = branch->branch().never_taken;
       return;
    }
 
    if (block->kind & block_kind_invert) {
       // exec = s_andn2_b64 (original_exec, exec)
       assert(block->instructions.back()->opcode == aco_opcode::p_branch);
-      const bool sel_ctrl = block->instructions.back()->branch().selection_control_remove;
+      aco_ptr<Instruction> branch = std::move(block->instructions.back());
       block->instructions.pop_back();
       assert(ctx.info[idx].exec.size() >= 2);
       Operand orig_exec = ctx.info[idx].exec[ctx.info[idx].exec.size() - 2].first;
@@ -704,7 +707,8 @@ add_branch_code(exec_ctx& ctx, Block* block)
 
       Builder::Result r = bld.branch(aco_opcode::p_cbranch_z, bld.def(s2), Operand(exec, bld.lm),
                                      block->linear_succs[1], block->linear_succs[0]);
-      r->branch().selection_control_remove = sel_ctrl;
+      r->branch().rarely_taken = branch->branch().rarely_taken;
+      r->branch().never_taken = branch->branch().never_taken;
       return;
    }
 

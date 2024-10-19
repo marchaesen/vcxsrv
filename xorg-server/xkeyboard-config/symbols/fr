@@ -601,6 +601,136 @@ xkb_symbols "bepo_afnor" {
 	include "level3(ralt_switch)"
 };
 
+// Ergo‑L
+//
+// Project page: https://ergol.org
+// Author: NuclearSquid (huge thanks to Fabien Cazenave and the “Ergonauts”)
+// Version: 1.0.0
+//
+// In the following figures, a `*` preceding another character denotes a dead key.
+//
+// Base layer + Typography (dead key ★, implemented via ISO_Level5_Latch)
+// ╭╌╌╌╌╌┰─────┬─────┬─────┬─────┬─────┰─────┬─────┬─────┬─────┬─────┰╌╌╌╌╌┬╌╌╌╌╌╮
+// ┆ ~   ┃ € ‚ │ « ‘ │ » ’ │ $   │ %   ┃ ^   │ &   │ *   │ #   │ @   ┃ _ – ┆ + ± ┆
+// ┆ `   ┃ 1 „ │ 2 “ │ 3 ” │ 4 ¢ │ 5 ‰ ┃ 6   │ 7   │ 8 § │ 9 ¶ │ 0 ° ┃ / ÷ ┆ = ≠ ┆
+// ╰╌╌╌╌╌╂─────┼─────┼─────┼─────┼─────╂─────┼─────┼─────┼─────┼─────╂╌╌╌╌╌┼╌╌╌╌╌┤
+//       ┃ Q   │ C   │ O   │ P   │ W   ┃ J   │ M   │ D _ │ ! ¡ │ Y   ┃ {   ┆ }   ┆
+//       ┃   â │   ç │   œ │   ô │     ┃     │   µ │   _ │*★*¨ │   û ┃ [   ┆ ]   ┆
+//       ┠─────┼─────┼─────┼─────┼─────╂─────┼─────┼─────┼─────┼─────╂╌╌╌╌╌┼╌╌╌╌╌┤
+//       ┃ A   │ S   │ E   │ N   │ F   ┃ L   │ R   │ T   │ I   │ U   ┃ "   ┆ |   ┆
+//       ┃   à │   é │   è │   ê │   ñ ┃   ( │   ) │   î │   ï │   ù ┃ '   ┆ \   ┆
+// ╭╌╌╌╌╌╂─────┼─────┼─────┼─────┼─────╂─────┼─────┼─────┼─────┼─────╂╌╌╌╌╌┴╌╌╌╌╌╯
+// ┆ >   ┃ Z   │ X   │ ? ¿ │ V   │ B   ┃ :   │ H   │ G   │ ; • │ K   ┃
+// ┆ <   ┃   æ │   ß │ - ‑ │   – │   — ┃ . … │     │  *µ │ , · │     ┃
+// ╰╌╌╌╌╌┸─────┴─────┴─────┴─────┴─────┸─────┴─────┴─────┴─────┴─────┚
+//
+// Symbols layer (AltGr)
+// ╭╌╌╌╌╌┰─────┬─────┬─────┬─────┬─────┰─────┬─────┬─────┬─────┬─────┰╌╌╌╌╌┬╌╌╌╌╌╮
+// ┆     ┃   ¹ │   ² │   ³ │   ⁴ │   ⁵ ┃   ⁶ │   ⁷ │   ⁸ │   ⁹ │   ⁰ ┃     ┆     ┆
+// ┆     ┃   ₁ │   ₂ │   ₃ │   ₄ │   ₅ ┃   ₆ │   ₇ │   ₈ │   ₉ │   ₀ ┃     ┆     ┆
+// ╰╌╌╌╌╌╂─────┼─────┼─────┼─────┼─────╂─────┼─────┼─────┼─────┼─────╂╌╌╌╌╌┼╌╌╌╌╌┤
+//       ┃  *^ │     │     │  *¤ │   ‰ ┃  *˚ │     │   × │  *´ │  *` ┃     ┆     ┆
+//       ┃   ^ │   < │   > │   $ │   % ┃   @ │   & │   * │   ' │   ` ┃     ┆     ┆
+//       ┠─────┼─────┼─────┼─────┼─────╂─────┼─────┼─────┼─────┼─────╂╌╌╌╌╌┼╌╌╌╌╌┤
+//       ┃  *ˇ │     │     │  *˙ │   ≠ ┃  */ │   ± │  *¯ │   ÷ │  *” ┃     ┆     ┆
+//       ┃   { │   ( │   ) │   } │   = ┃   \ │   + │   - │   / │   " ┃     ┆     ┆
+// ╭╌╌╌╌╌╂─────┼─────┼─────┼─────┼─────╂─────┼─────┼─────┼─────┼─────╂╌╌╌╌╌┴╌╌╌╌╌╯
+// ┆     ┃  *~ │  *, │  *˛ │   – │     ┃     │   ¬ │  *¸ │   : │  *˘ ┃
+// ┆     ┃   ~ │   [ │   ] │   _ │   # ┃   | │   ! │   ; │   : │   ? ┃
+// ╰╌╌╌╌╌┸─────┴─────┴─────┴─────┴─────┸─────┴─────┴─────┴─────┴─────┚
+
+partial alphanumeric_keys modifier_keys
+xkb_symbols "ergol" {
+
+    name[group1]= "French (Ergo‑L)";
+
+    key.type[group1] = "EIGHT_LEVEL";
+
+    // Digits
+    key <AE01> {[ 1               , EuroSign        , U2081           , onesuperior     , U201E           , U201A           ]}; // 1 € ₁ ¹ „ ‚
+    key <AE02> {[ 2               , guillemotleft   , U2082           , twosuperior     , U201C           , U2018           ]}; // 2 « ₂ ² “ ‘
+    key <AE03> {[ 3               , guillemotright  , U2083           , threesuperior   , U201D           , U2019           ]}; // 3 » ₃ ³ ” ’
+    key <AE04> {[ 4               , dollar          , U2084           , U2074           , cent            , VoidSymbol      ]}; // 4 $ ₄ ⁴ ¢
+    key <AE05> {[ 5               , percent         , U2085           , U2075           , U2030           , VoidSymbol      ]}; // 5 % ₅ ⁵ ‰
+    key <AE06> {[ 6               , asciicircum     , U2086           , U2076           , VoidSymbol      , VoidSymbol      ]}; // 6 ^ ₆ ⁶
+    key <AE07> {[ 7               , ampersand       , U2087           , U2077           , VoidSymbol      , VoidSymbol      ]}; // 7 & ₇ ⁷
+    key <AE08> {[ 8               , asterisk        , U2088           , U2078           , section         , VoidSymbol      ]}; // 8 * ₈ ⁸ §
+    key <AE09> {[ 9               , numbersign      , U2089           , U2079           , paragraph       , VoidSymbol      ]}; // 9 # ₉ ⁹ ¶
+    key <AE10> {[ 0               , at              , U2080           , U2070           , degree          , VoidSymbol      ]}; // 0 @ ₀ ⁰ °
+
+    // Letters, first row
+    key <AD01> {[ q               , Q               , asciicircum     , dead_circumflex , acircumflex     , Acircumflex     ]}; // q Q ^ ^ â Â
+    key <AD02> {[ c               , C               , less            , lessthanequal   , ccedilla        , Ccedilla        ]}; // c C < ≤ ç Ç
+    key <AD03> {[ o               , O               , greater         , greaterthanequal, oe              , OE              ]}; // o O > ≥ œ Œ
+    key <AD04> {[ p               , P               , dollar          , dead_currency   , ocircumflex     , Ocircumflex     ]}; // p P $ ¤ ô Ô
+    key <AD05> {[ w               , W               , percent         , U2030           , VoidSymbol      , VoidSymbol      ]}; // w W % ‰
+    key <AD06> {[ j               , J               , at              , dead_abovering  , VoidSymbol      , VoidSymbol      ]}; // j J @ ˚
+    key <AD07> {[ m               , M               , ampersand       , VoidSymbol      , mu              , VoidSymbol      ]}; // m M &   µ
+    key <AD08> {[ d               , D               , asterisk        , multiply        , underscore      , underscore      ]}; // d D * × _ _
+    key <AD09> {[ ISO_Level5_Latch, exclam          , apostrophe      , dead_acute      , dead_diaeresis  , exclamdown      ]}; // *¨ ! ' ´ ¨ ¡
+    key <AD10> {[ y               , Y               , grave           , dead_grave      , ucircumflex     , Ucircumflex     ]}; // y Y ` ` û Û
+
+    // Letters, second row
+    key <AC01> {[ a               , A               , braceleft       , dead_caron      , agrave          , Agrave          ]}; // a A { ˇ à À
+    key <AC02> {[ s               , S               , parenleft       , VoidSymbol      , eacute          , Eacute          ]}; // s S (   é É
+    key <AC03> {[ e               , E               , parenright      , VoidSymbol      , egrave          , Egrave          ]}; // e E )   è È
+    key <AC04> {[ n               , N               , braceright      , dead_abovedot   , ecircumflex     , Ecircumflex     ]}; // n N } ˙ ê Ê
+    key <AC05> {[ f               , F               , equal           , notequal        , ntilde          , Ntilde          ]}; // f F = ≠ ñ Ñ
+    key <AC06> {[ l               , L               , backslash       , dead_stroke     , parenleft       , VoidSymbol      ]}; // l L \ / (
+    key <AC07> {[ r               , R               , plus            , plusminus       , parenright      , VoidSymbol      ]}; // r R + ± )
+    key <AC08> {[ t               , T               , minus           , dead_macron     , icircumflex     , Icircumflex     ]}; // t T - ˉ î Î
+    key <AC09> {[ i               , I               , slash           , division        , idiaeresis      , Idiaeresis      ]}; // i I / ÷ ï Ï
+    key <AC10> {[ u               , U               , quotedbl        , dead_doubleacute, ugrave          , Ugrave          ]}; // u U " ˝ ù Ù
+
+    // Letters, third row
+    key <AB01> {[ z               , Z               , asciitilde      , dead_tilde      , ae              , AE              ]}; // z Z ~ ~ æ Æ
+    key <AB02> {[ x               , X               , bracketleft     , dead_belowcomma , ssharp          , U1E9E           ]}; // x X [ , ß ẞ
+    key <AB03> {[ minus           , question        , bracketright    , dead_ogonek     , U2011           , questiondown    ]}; // - ? ] ˛ ‑ ¿
+    key <AB04> {[ v               , V               , underscore      , endash          , endash          , VoidSymbol      ]}; // v V _ – –
+    key <AB05> {[ b               , B               , numbersign      , VoidSymbol      , emdash          , VoidSymbol      ]}; // b B #   —
+    key <AB06> {[ period          , colon           , bar             , brokenbar       , ellipsis        , VoidSymbol      ]}; // . : | ¦ …
+    key <AB07> {[ h               , H               , exclam          , notsign         , VoidSymbol      , VoidSymbol      ]}; // h H ! ¬
+    key <AB08> {[ g               , G               , semicolon       , dead_cedilla    , dead_greek      , VoidSymbol      ]}; // g G ; ¸ µ
+    key <AB09> {[ comma           , semicolon       , colon           , colon           , periodcentered  , U2022           ]}; // , ; : : · •
+    key <AB10> {[ k               , K               , question        , dead_breve      , VoidSymbol      , VoidSymbol      ]}; // k K ? ˘
+
+    // Pinky keys
+    key <AE11> {[ slash           , underscore      , VoidSymbol      , VoidSymbol      , division        , endash          ]}; // / _     ÷ –
+    key <AE12> {[ equal           , plus            , VoidSymbol      , VoidSymbol      , notequal        , plusminus       ]}; // = +     ≠ ±
+    key <AE13> {[ VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; //
+    key <AD11> {[ bracketleft     , braceleft       , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; // [ {
+    key <AD12> {[ bracketright    , braceright      , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; // ] }
+    key <AC11> {[ apostrophe      , quotedbl        , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; // ' "
+    key <AB11> {[ VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; //
+    key <TLDE> {[ grave           , asciitilde      , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; // ` ~
+    key <BKSL> {[ backslash       , bar             , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; // \ |
+    key <LSGT> {[ less            , greater         , VoidSymbol      , VoidSymbol      , VoidSymbol      , VoidSymbol      ]}; // < >
+
+    // Space bar
+    key <SPCE> {[ space           , U202F           , space           , nobreakspace    , U2019           , U2019           ]}; //         ’ ’
+
+    include "level3(ralt_switch)"
+};
+
+// Ergo‑L (angle-mod / ISO variant)
+// Same as regular Ergo‑L, but with a permutation on the lower left keys.
+// before: LSGT | z | x | - | v
+// after:     z | x | - | v | Backspace
+
+partial alphanumeric_keys modifier_keys
+xkb_symbols "ergol_iso" {
+
+    include "fr(ergol)"
+    name[group1]= "French (Ergo‑L, ISO variant)";
+
+    key <AB01> {[ x               , X               , bracketleft     , dead_belowcomma , ssharp          , U1E9E           ]}; // x X [ , ß ẞ
+    key <AB02> {[ minus           , question        , bracketright    , dead_ogonek     , U2011           , questiondown    ]}; // - ? ] ˛ ‑ ¿
+    key <AB03> {[ v               , V               , underscore      , endash          , endash          , VoidSymbol      ]}; // v V _ – –
+    key <AB04> {[ b               , B               , numbersign      , VoidSymbol      , emdash          , VoidSymbol      ]}; // b B #   —
+    key <AB05> {[ BackSpace       , BackSpace       , Delete          , Delete          , VoidSymbol      , VoidSymbol      ]}; // bsp bsp del del
+    key <LSGT> {[ z               , Z               , asciitilde      , dead_tilde      , ae              , AE              ]}; // z Z ~ ~ æ Æ
+};
+
 // Author   : Francis Leboutte, http://www.algo.be/ergo/dvorak-fr.html
 //            thanks to Fabien Cazenave for his help
 // Licence  : X11
@@ -705,7 +835,7 @@ xkb_symbols "dvorak" {
   key <SPCE> { [            space,            space,    nobreakspace,     nobreakspace ] };
 };
 
-// C'WHERTY: Breton keyboard. Ar c'hlavier brezhoneg.
+// C'HWERTY: Breton keyboard. Ar c'hlavier brezhoneg.
 // Copyright © 2009 Dominique Pellé <dominique.pelle@gmail.com>
 // Version: 0.1
 //

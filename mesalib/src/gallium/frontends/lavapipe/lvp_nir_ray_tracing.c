@@ -131,7 +131,7 @@ lvp_build_intersect_ray_box(nir_builder *b, nir_def *node_addr, nir_def *ray_tma
    nir_push_if(b, nir_flt(b, nir_channel(b, ssa_distances, 1), nir_channel(b, ssa_distances, 0)));
    {
       nir_store_var(b, child_indices,
-                    nir_vec2(b, nir_channel(b, ssa_indices, 0), nir_channel(b, ssa_indices, 1)),
+                    nir_vec2(b, nir_channel(b, ssa_indices, 1), nir_channel(b, ssa_indices, 0)),
                     0b11);
    }
    nir_pop_if(b, NULL);

@@ -73,17 +73,18 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          case nir_instr_type_phi:
          case nir_instr_type_undef:
          case nir_instr_type_tex:
+         case nir_instr_type_debug_info:
             break;
 
          case nir_instr_type_intrinsic: {
             nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
             switch (intr->intrinsic) {
-            case nir_intrinsic_discard:
-            case nir_intrinsic_discard_if:
-              /* For non-CF hardware, we need to be able to move discards up
-               * and flatten, so let them pass.
-               */
-              continue;
+            case nir_intrinsic_terminate:
+            case nir_intrinsic_terminate_if:
+               /* For non-CF hardware, we need to be able to move discards up
+                * and flatten, so let them pass.
+                */
+               continue;
             default:
                if (!nir_intrinsic_can_reorder(intr))
                   return false;
@@ -136,6 +137,19 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
                return false;
             break;
 
+         case nir_intrinsic_load_global_constant:
+         case nir_intrinsic_load_constant_agx:
+            if (!indirect_load_ok && !nir_src_is_const(intrin->src[0]))
+               return false;
+            if (!(nir_intrinsic_access(intrin) & ACCESS_CAN_SPECULATE))
+               return false;
+            break;
+
+         case nir_intrinsic_masked_swizzle_amd:
+         case nir_intrinsic_quad_swizzle_amd:
+            if (!nir_intrinsic_fetch_inactive(intrin))
+               return false;
+            FALLTHROUGH;
          case nir_intrinsic_load_uniform:
          case nir_intrinsic_load_preamble:
          case nir_intrinsic_load_helper_invocation:
@@ -168,9 +182,14 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          case nir_intrinsic_quad_swap_horizontal:
          case nir_intrinsic_quad_swap_vertical:
          case nir_intrinsic_quad_swap_diagonal:
-         case nir_intrinsic_quad_swizzle_amd:
-         case nir_intrinsic_masked_swizzle_amd:
          case nir_intrinsic_lane_permute_16_amd:
+         case nir_intrinsic_ddx:
+         case nir_intrinsic_ddx_fine:
+         case nir_intrinsic_ddx_coarse:
+         case nir_intrinsic_ddy:
+         case nir_intrinsic_ddy_fine:
+         case nir_intrinsic_ddy_coarse:
+         case nir_intrinsic_load_const_ir3:
             if (!alu_ok)
                return false;
             break;
@@ -251,6 +270,9 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          }
          break;
       }
+
+      case nir_instr_type_debug_info:
+         break;
 
       default:
          return false;
@@ -392,7 +414,7 @@ rewrite_discard_conds(nir_instr *instr, nir_def *if_cond, bool is_else)
       return;
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
-   if (intr->intrinsic != nir_intrinsic_discard_if && intr->intrinsic != nir_intrinsic_discard)
+   if (intr->intrinsic != nir_intrinsic_terminate_if && intr->intrinsic != nir_intrinsic_terminate)
       return;
 
    nir_builder b = nir_builder_at(nir_before_instr(instr));
@@ -400,7 +422,7 @@ rewrite_discard_conds(nir_instr *instr, nir_def *if_cond, bool is_else)
    if (is_else)
       if_cond = nir_inot(&b, if_cond);
 
-   if (intr->intrinsic == nir_intrinsic_discard_if) {
+   if (intr->intrinsic == nir_intrinsic_terminate_if) {
       nir_src_rewrite(&intr->src[0], nir_iand(&b, intr->src[0].ssa, if_cond));
    } else {
       nir_discard_if(&b, if_cond);

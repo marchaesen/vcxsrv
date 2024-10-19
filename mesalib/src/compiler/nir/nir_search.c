@@ -370,13 +370,13 @@ match_expression(const nir_algebraic_table *table, const nir_search_expression *
    if (expr->cond_index != -1 && !table->expression_cond[expr->cond_index](instr))
       return false;
 
-   if (expr->nsz && nir_is_float_control_signed_zero_preserve(instr->fp_fast_math, instr->def.bit_size))
+   if (expr->nsz && nir_alu_instr_is_signed_zero_preserve(instr))
       return false;
 
-   if (expr->nnan && nir_is_float_control_nan_preserve(instr->fp_fast_math, instr->def.bit_size))
+   if (expr->nnan && nir_alu_instr_is_nan_preserve(instr))
       return false;
 
-   if (expr->ninf && nir_is_float_control_inf_preserve(instr->fp_fast_math, instr->def.bit_size))
+   if (expr->ninf && nir_alu_instr_is_inf_preserve(instr))
       return false;
 
    if (!nir_op_matches_search_op(instr->op, expr->opcode))
@@ -855,7 +855,7 @@ nir_algebraic_instr(nir_builder *build, nir_instr *instr,
    const unsigned execution_mode =
       build->shader->info.float_controls_execution_mode;
    const bool ignore_inexact =
-      nir_is_float_control_signed_zero_inf_nan_preserve(alu->fp_fast_math, bit_size) ||
+      nir_alu_instr_is_signed_zero_inf_nan_preserve(alu) ||
       nir_is_denorm_flush_to_zero(execution_mode, bit_size);
 
    int xform_idx = *util_dynarray_element(states, uint16_t,
@@ -943,8 +943,7 @@ nir_algebraic_impl(nir_function_impl *impl,
    util_dynarray_fini(&states);
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

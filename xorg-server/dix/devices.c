@@ -44,9 +44,7 @@ SOFTWARE.
 
 ********************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <math.h>
 #include <pixman.h>
@@ -58,7 +56,9 @@ SOFTWARE.
 #include <X11/extensions/XIproto.h>
 
 #include "dix/dix_priv.h"
+#include "dix/dixgrabs_priv.h"
 #include "dix/exevents_priv.h"
+#include "dix/input_priv.h"
 #include "dix/ptrveloc_priv.h"
 #include "xkb/xkbsrv_priv.h"
 
@@ -78,7 +78,6 @@ SOFTWARE.
 #include "dixevents.h"
 #include "mipointer.h"
 #include "eventstr.h"
-#include "dixgrabs.h"
 #include "exglobals.h"
 #include "xiquerydevice.h"      /* for SizeDeviceClasses */
 #include "xiproperty.h"
@@ -296,7 +295,7 @@ AddInputDevice(ClientPtr client, DeviceProc deviceProc, Bool autoStart)
 
     /*  security creation/labeling check
      */
-    if (XaceHook(XACE_DEVICE_ACCESS, client, dev, DixCreateAccess)) {
+    if (XaceHookDeviceAccess(client, dev, DixCreateAccess)) {
         dixFreePrivates(dev->devPrivates, PRIVATE_DEVICE);
         free(dev);
         return NULL;
@@ -1035,8 +1034,7 @@ CloseDevice(DeviceIntPtr dev)
         }
     }
 
-    if (dev->deviceGrab.grab)
-        FreeGrab(dev->deviceGrab.grab);
+    FreeGrab(dev->deviceGrab.grab);
     free(dev->deviceGrab.sync.event);
     free(dev->config_info);     /* Allocated in xf86ActivateDevice. */
     free(dev->last.scroll);
@@ -1264,7 +1262,7 @@ dixLookupDevice(DeviceIntPtr *pDev, int id, ClientPtr client, Mask access_mode)
     return BadDevice;
 
  found:
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, access_mode);
+    rc = XaceHookDeviceAccess(client, dev, access_mode);
     if (rc == Success)
         *pDev = dev;
     return rc;
@@ -1844,7 +1842,7 @@ ProcChangeKeyboardMapping(ClientPtr client)
     keysyms.mapWidth = stuff->keySymsPerKeyCode;
     keysyms.map = (KeySym *) &stuff[1];
 
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, pDev, DixManageAccess);
+    rc = XaceHookDeviceAccess(client, pDev, DixManageAccess);
     if (rc != Success)
         return rc;
 
@@ -1857,7 +1855,7 @@ ProcChangeKeyboardMapping(ClientPtr client)
         if (!tmp->key)
             continue;
 
-        rc = XaceHook(XACE_DEVICE_ACCESS, client, pDev, DixManageAccess);
+        rc = XaceHookDeviceAccess(client, pDev, DixManageAccess);
         if (rc != Success)
             continue;
 
@@ -1938,7 +1936,7 @@ ProcGetKeyboardMapping(ClientPtr client)
     REQUEST(xGetKeyboardMappingReq);
     REQUEST_SIZE_MATCH(xGetKeyboardMappingReq);
 
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, kbd, DixGetAttrAccess);
+    rc = XaceHookDeviceAccess(client, kbd, DixGetAttrAccess);
     if (rc != Success)
         return rc;
 
@@ -1991,7 +1989,7 @@ ProcGetPointerMapping(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xReq);
 
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, ptr, DixGetAttrAccess);
+    rc = XaceHookDeviceAccess(client, ptr, DixGetAttrAccess);
     if (rc != Success)
         return rc;
 
@@ -2217,7 +2215,7 @@ ProcChangeKeyboardControl(ClientPtr client)
         if ((pDev == keyboard ||
              (!IsMaster(pDev) && GetMaster(pDev, MASTER_KEYBOARD) == keyboard))
             && pDev->kbdfeed && pDev->kbdfeed->CtrlProc) {
-            ret = XaceHook(XACE_DEVICE_ACCESS, client, pDev, DixManageAccess);
+            ret = XaceHookDeviceAccess(client, pDev, DixManageAccess);
             if (ret != Success)
                 return ret;
         }
@@ -2246,7 +2244,7 @@ ProcGetKeyboardControl(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xReq);
 
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, kbd, DixGetAttrAccess);
+    rc = XaceHookDeviceAccess(client, kbd, DixGetAttrAccess);
     if (rc != Success)
         return rc;
 
@@ -2294,7 +2292,7 @@ ProcBell(ClientPtr client)
              (!IsMaster(dev) && GetMaster(dev, MASTER_KEYBOARD) == keybd)) &&
             ((dev->kbdfeed && dev->kbdfeed->BellProc) || dev->xkb_interest)) {
 
-            rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixBellAccess);
+            rc = XaceHookDeviceAccess(client, dev, DixBellAccess);
             if (rc != Success)
                 return rc;
             XkbHandleBell(FALSE, FALSE, dev, newpercent,
@@ -2367,7 +2365,7 @@ ProcChangePointerControl(ClientPtr client)
         if ((dev == mouse ||
              (!IsMaster(dev) && GetMaster(dev, MASTER_POINTER) == mouse)) &&
             dev->ptrfeed) {
-            rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixManageAccess);
+            rc = XaceHookDeviceAccess(client, dev, DixManageAccess);
             if (rc != Success)
                 return rc;
         }
@@ -2399,7 +2397,7 @@ ProcGetPointerControl(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xReq);
 
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, ptr, DixGetAttrAccess);
+    rc = XaceHookDeviceAccess(client, ptr, DixGetAttrAccess);
     if (rc != Success)
         return rc;
 
@@ -2448,7 +2446,7 @@ ProcGetMotionEvents(ClientPtr client)
     rc = dixLookupWindow(&pWin, stuff->window, client, DixGetAttrAccess);
     if (rc != Success)
         return rc;
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, mouse, DixReadAccess);
+    rc = XaceHookDeviceAccess(client, mouse, DixReadAccess);
     if (rc != Success)
         return rc;
 
@@ -2512,7 +2510,7 @@ ProcQueryKeymap(ClientPtr client)
         .length = 2
     };
 
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, keybd, DixReadAccess);
+    rc = XaceHookDeviceAccess(client, keybd, DixReadAccess);
     /* If rc is Success, we're allowed to copy out the keymap.
      * If it's BadAccess, we leave it empty & lie to the client.
      */
@@ -2569,7 +2567,7 @@ RecalculateMasterButtons(DeviceIntPtr slave)
 
         master->button->numButtons = maxbuttons;
         if (last_num_buttons < maxbuttons) {
-            master->button->xkb_acts = xnfreallocarray(master->button->xkb_acts,
+            master->button->xkb_acts = XNFreallocarray(master->button->xkb_acts,
                                                        maxbuttons,
                                                        sizeof(XkbAction));
             memset(&master->button->xkb_acts[last_num_buttons],
@@ -2698,11 +2696,14 @@ AttachDevice(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr master)
         dev->spriteInfo->paired = dev;
     }
     else {
+        DeviceIntPtr keyboard = GetMaster(dev, MASTER_KEYBOARD);
+
         dev->spriteInfo->sprite = master->spriteInfo->sprite;
         dev->spriteInfo->paired = master;
         dev->spriteInfo->spriteOwner = FALSE;
 
-        XkbPushLockedStateToSlaves(GetMaster(dev, MASTER_KEYBOARD), 0, 0);
+        if (keyboard)
+            XkbPushLockedStateToSlaves(keyboard, 0, 0);
         RecalculateMasterButtons(master);
     }
 
@@ -2727,7 +2728,7 @@ GetPairedDevice(DeviceIntPtr dev)
     if (!IsMaster(dev) && !IsFloating(dev))
         dev = GetMaster(dev, MASTER_ATTACHED);
 
-    return dev->spriteInfo? dev->spriteInfo->paired: NULL;
+    return (dev && dev->spriteInfo) ? dev->spriteInfo->paired: NULL;
 }
 
 /**

@@ -240,7 +240,7 @@ CheckMode(ScrnInfoPtr pScrn, vbeInfoPtr pVbe, VbeInfoBlock * vbe, int id,
         VBEFreeModeInfo(mode);
         return NULL;
     }
-    pMode = xnfcalloc(sizeof(DisplayModeRec), 1);
+    pMode = XNFcallocarray(1, sizeof(DisplayModeRec));
 
     pMode->status = MODE_OK;
     pMode->type = M_T_BUILTIN;
@@ -249,7 +249,7 @@ CheckMode(ScrnInfoPtr pScrn, vbeInfoPtr pVbe, VbeInfoBlock * vbe, int id,
     pMode->HDisplay = mode->XResolution;
     pMode->VDisplay = mode->YResolution;
 
-    data = xnfcalloc(sizeof(VbeModeInfoData), 1);
+    data = XNFcallocarray(1, sizeof(VbeModeInfoData));
     data->mode = id;
     data->data = mode;
     pMode->PrivSize = sizeof(VbeModeInfoData);
@@ -404,7 +404,7 @@ VBESetModeParameters(ScrnInfoPtr pScrn, vbeInfoPtr pVbe)
             xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                        "Attempting to use %dHz refresh for mode \"%s\" (%x)\n",
                        (int) pMode->VRefresh, pMode->name, data->mode);
-            data->block = calloc(sizeof(VbeCRTCInfoBlock), 1);
+            data->block = calloc(1, sizeof(VbeCRTCInfoBlock));
             data->block->HorizontalTotal = best->HTotal;
             data->block->HorizontalSyncStart = best->HSyncStart;
             data->block->HorizontalSyncEnd = best->HSyncEnd;

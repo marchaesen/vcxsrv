@@ -46,7 +46,6 @@
 
 #include "pipe/p_context.h"
 #include "pipe/p_shader_tokens.h"
-#include "util/u_simple_shaders.h"
 #include "cso_cache/cso_context.h"
 #include "util/u_debug.h"
 

@@ -93,6 +93,9 @@ struct iris_batch {
    /** Last binder address set in this hardware context. */
    uint64_t last_binder_address;
 
+   /** Write fencing status for mi_builder. */
+   bool write_fence_status;
+
    union {
       struct {
          uint32_t ctx_id;

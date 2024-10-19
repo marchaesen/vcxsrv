@@ -910,6 +910,7 @@ static_assert(sizeof(D3D12_RASTERIZER_DESC) >= sizeof(D3D12_RASTERIZER_DESC1) &&
 struct dzn_pipeline {
    struct vk_object_base base;
    VkPipelineBindPoint type;
+   VkPipelineCreateFlags2KHR flags;
    struct dzn_device *device;
    struct {
       uint32_t sets_param_count;

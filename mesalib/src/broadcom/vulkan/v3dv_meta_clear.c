@@ -278,15 +278,16 @@ create_depth_clear_pipeline_layout(struct v3dv_device *device,
 void
 v3dv_meta_clear_init(struct v3dv_device *device)
 {
-   device->meta.color_clear.cache =
-      _mesa_hash_table_create(NULL, u64_hash, u64_compare);
+   if (device->instance->meta_cache_enabled) {
+      device->meta.color_clear.cache =
+         _mesa_hash_table_create(NULL, u64_hash, u64_compare);
+
+      device->meta.depth_clear.cache =
+         _mesa_hash_table_create(NULL, u64_hash, u64_compare);
+   }
 
    create_color_clear_pipeline_layout(device,
                                       &device->meta.color_clear.p_layout);
-
-   device->meta.depth_clear.cache =
-      _mesa_hash_table_create(NULL, u64_hash, u64_compare);
-
    create_depth_clear_pipeline_layout(device,
                                       &device->meta.depth_clear.p_layout);
 }
@@ -296,22 +297,24 @@ v3dv_meta_clear_finish(struct v3dv_device *device)
 {
    VkDevice _device = v3dv_device_to_handle(device);
 
-   hash_table_foreach(device->meta.color_clear.cache, entry) {
-      struct v3dv_meta_color_clear_pipeline *item = entry->data;
-      destroy_color_clear_pipeline(_device, (uintptr_t)item, &device->vk.alloc);
+   if (device->instance->meta_cache_enabled) {
+      hash_table_foreach(device->meta.color_clear.cache, entry) {
+         struct v3dv_meta_color_clear_pipeline *item = entry->data;
+         destroy_color_clear_pipeline(_device, (uintptr_t)item, &device->vk.alloc);
+      }
+      _mesa_hash_table_destroy(device->meta.color_clear.cache, NULL);
+
+      hash_table_foreach(device->meta.depth_clear.cache, entry) {
+         struct v3dv_meta_depth_clear_pipeline *item = entry->data;
+         destroy_depth_clear_pipeline(_device, item, &device->vk.alloc);
+      }
+      _mesa_hash_table_destroy(device->meta.depth_clear.cache, NULL);
    }
-   _mesa_hash_table_destroy(device->meta.color_clear.cache, NULL);
 
    if (device->meta.color_clear.p_layout) {
       v3dv_DestroyPipelineLayout(_device, device->meta.color_clear.p_layout,
                                  &device->vk.alloc);
    }
-
-   hash_table_foreach(device->meta.depth_clear.cache, entry) {
-      struct v3dv_meta_depth_clear_pipeline *item = entry->data;
-      destroy_depth_clear_pipeline(_device, item, &device->vk.alloc);
-   }
-   _mesa_hash_table_destroy(device->meta.depth_clear.cache, NULL);
 
    if (device->meta.depth_clear.p_layout) {
       v3dv_DestroyPipelineLayout(_device, device->meta.depth_clear.p_layout,
@@ -320,9 +323,8 @@ v3dv_meta_clear_finish(struct v3dv_device *device)
 }
 
 static nir_shader *
-get_clear_rect_vs()
+get_clear_rect_vs(const nir_shader_compiler_options *options)
 {
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, options,
                                                   "meta clear vs");
 
@@ -338,7 +340,8 @@ get_clear_rect_vs()
 }
 
 static nir_shader *
-get_clear_rect_gs(uint32_t push_constant_layer_base)
+get_clear_rect_gs(const nir_shader_compiler_options *options,
+                  uint32_t push_constant_layer_base)
 {
    /* FIXME: this creates a geometry shader that takes the index of a single
     * layer to clear from push constants, so we need to emit a draw call for
@@ -347,7 +350,6 @@ get_clear_rect_gs(uint32_t push_constant_layer_base)
     * however, if we were to do this we would need to be careful not to exceed
     * the maximum number of output vertices allowed in a geometry shader.
     */
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_GEOMETRY, options,
                                                   "meta clear gs");
    nir_shader *nir = b.shader;
@@ -402,9 +404,9 @@ get_clear_rect_gs(uint32_t push_constant_layer_base)
 }
 
 static nir_shader *
-get_color_clear_rect_fs(uint32_t rt_idx, VkFormat format)
+get_color_clear_rect_fs(const nir_shader_compiler_options *options,
+                        uint32_t rt_idx, VkFormat format)
 {
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, options,
                                                   "meta clear fs");
 
@@ -423,9 +425,8 @@ get_color_clear_rect_fs(uint32_t rt_idx, VkFormat format)
 }
 
 static nir_shader *
-get_depth_clear_rect_fs()
+get_depth_clear_rect_fs(const nir_shader_compiler_options *options)
 {
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, options,
                                                   "meta depth clear fs");
 
@@ -580,9 +581,12 @@ create_color_clear_pipeline(struct v3dv_device *device,
                             VkPipelineLayout pipeline_layout,
                             VkPipeline *pipeline)
 {
-   nir_shader *vs_nir = get_clear_rect_vs();
-   nir_shader *fs_nir = get_color_clear_rect_fs(rt_idx, format);
-   nir_shader *gs_nir = is_layered ? get_clear_rect_gs(16) : NULL;
+   const nir_shader_compiler_options *options =
+      v3dv_pipeline_get_nir_options(&device->devinfo);
+
+   nir_shader *vs_nir = get_clear_rect_vs(options);
+   nir_shader *fs_nir = get_color_clear_rect_fs(options, rt_idx, format);
+   nir_shader *gs_nir = is_layered ? get_clear_rect_gs(options, 16) : NULL;
 
    const VkPipelineVertexInputStateCreateInfo vi_state = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -642,9 +646,12 @@ create_depth_clear_pipeline(struct v3dv_device *device,
    const bool has_stencil = aspects & VK_IMAGE_ASPECT_STENCIL_BIT;
    assert(has_depth || has_stencil);
 
-   nir_shader *vs_nir = get_clear_rect_vs();
-   nir_shader *fs_nir = has_depth ? get_depth_clear_rect_fs() : NULL;
-   nir_shader *gs_nir = is_layered ? get_clear_rect_gs(4) : NULL;
+   const nir_shader_compiler_options *options =
+      v3dv_pipeline_get_nir_options(&device->devinfo);
+
+   nir_shader *vs_nir = get_clear_rect_vs(options);
+   nir_shader *fs_nir = has_depth ? get_depth_clear_rect_fs(options) : NULL;
+   nir_shader *gs_nir = is_layered ? get_clear_rect_gs(options, 4) : NULL;
 
    const VkPipelineVertexInputStateCreateInfo vi_state = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -741,7 +748,8 @@ get_color_clear_pipeline_cache_key(uint32_t rt_idx,
                                    VkFormat format,
                                    VkSampleCountFlagBits samples,
                                    uint32_t components,
-                                   bool is_layered)
+                                   bool is_layered,
+                                   bool has_multiview)
 {
    assert(rt_idx < V3D_MAX_DRAW_BUFFERS);
 
@@ -763,6 +771,9 @@ get_color_clear_pipeline_cache_key(uint32_t rt_idx,
    key |= (is_layered ? 1ull : 0ull) << bit_offset;
    bit_offset += 1;
 
+   key |= (has_multiview ? 1ull : 0ull) << bit_offset;
+   bit_offset += 1;
+
    assert(bit_offset <= 64);
    return key;
 }
@@ -771,7 +782,8 @@ static inline uint64_t
 get_depth_clear_pipeline_cache_key(VkImageAspectFlags aspects,
                                    VkFormat format,
                                    uint32_t samples,
-                                   bool is_layered)
+                                   bool is_layered,
+                                   bool has_multiview)
 {
    uint64_t key = 0;
    uint32_t bit_offset = 0;
@@ -793,12 +805,15 @@ get_depth_clear_pipeline_cache_key(VkImageAspectFlags aspects,
    key |= (is_layered ? 1ull : 0ull) << bit_offset;
    bit_offset += 1;
 
+   key |= (has_multiview ? 1ull : 0ull) << bit_offset;
+   bit_offset += 1;
+
    assert(bit_offset <= 64);
    return key;
 }
 
 static VkResult
-get_color_clear_pipeline(struct v3dv_device *device,
+get_color_clear_pipeline(struct v3dv_cmd_buffer *cmd_buffer,
                          struct v3dv_render_pass *pass,
                          uint32_t subpass_idx,
                          uint32_t rt_idx,
@@ -807,9 +822,11 @@ get_color_clear_pipeline(struct v3dv_device *device,
                          VkSampleCountFlagBits samples,
                          uint32_t components,
                          bool is_layered,
+                         bool has_multiview,
                          struct v3dv_meta_color_clear_pipeline **pipeline)
 {
    assert(vk_format_is_color(format));
+   struct v3dv_device *device = cmd_buffer->device;
 
    VkResult result = VK_SUCCESS;
 
@@ -826,12 +843,14 @@ get_color_clear_pipeline(struct v3dv_device *device,
     * vkQuake3, the fact that we are not caching here doesn't seem to have
     * any significant impact in performance, so it might not be worth it.
     */
-   const bool can_cache_pipeline = (pass == NULL);
+   const bool can_cache_pipeline =
+      (pass == NULL) && (device->instance->meta_cache_enabled);
 
    uint64_t key;
    if (can_cache_pipeline) {
       key = get_color_clear_pipeline_cache_key(rt_idx, format, samples,
-                                               components, is_layered);
+                                               components, is_layered,
+                                               has_multiview);
       mtx_lock(&device->meta.mtx);
       struct hash_entry *entry =
          _mesa_hash_table_search(device->meta.color_clear.cache, &key);
@@ -884,6 +903,10 @@ get_color_clear_pipeline(struct v3dv_device *device,
                               &(*pipeline)->key, *pipeline);
 
       mtx_unlock(&device->meta.mtx);
+   } else {
+      v3dv_cmd_buffer_add_private_obj(
+         cmd_buffer, (uintptr_t)*pipeline,
+         (v3dv_cmd_buffer_private_obj_destroy_cb)destroy_color_clear_pipeline);
    }
 
    return VK_SUCCESS;
@@ -906,12 +929,13 @@ fail:
 }
 
 static VkResult
-get_depth_clear_pipeline(struct v3dv_device *device,
+get_depth_clear_pipeline(struct v3dv_cmd_buffer *cmd_buffer,
                          VkImageAspectFlags aspects,
                          struct v3dv_render_pass *pass,
                          uint32_t subpass_idx,
                          uint32_t attachment_idx,
                          bool is_layered,
+                         bool has_multiview,
                          struct v3dv_meta_depth_clear_pipeline **pipeline)
 {
    assert(subpass_idx < pass->subpass_count);
@@ -919,20 +943,24 @@ get_depth_clear_pipeline(struct v3dv_device *device,
    assert(attachment_idx < pass->attachment_count);
 
    VkResult result = VK_SUCCESS;
+   struct v3dv_device *device = cmd_buffer->device;
 
    const uint32_t samples = pass->attachments[attachment_idx].desc.samples;
    const VkFormat format = pass->attachments[attachment_idx].desc.format;
    assert(vk_format_is_depth_or_stencil(format));
 
-   const uint64_t key =
-      get_depth_clear_pipeline_cache_key(aspects, format, samples, is_layered);
-   mtx_lock(&device->meta.mtx);
-   struct hash_entry *entry =
-      _mesa_hash_table_search(device->meta.depth_clear.cache, &key);
-   if (entry) {
-      mtx_unlock(&device->meta.mtx);
-      *pipeline = entry->data;
-      return VK_SUCCESS;
+   uint64_t key;
+   if (device->instance->meta_cache_enabled) {
+      key = get_depth_clear_pipeline_cache_key(aspects, format, samples,
+                                               is_layered, has_multiview);
+      mtx_lock(&device->meta.mtx);
+      struct hash_entry *entry =
+         _mesa_hash_table_search(device->meta.depth_clear.cache, &key);
+      if (entry) {
+         mtx_unlock(&device->meta.mtx);
+         *pipeline = entry->data;
+         return VK_SUCCESS;
+      }
    }
 
    *pipeline = vk_zalloc2(&device->vk.alloc, NULL, sizeof(**pipeline), 8,
@@ -954,15 +982,22 @@ get_depth_clear_pipeline(struct v3dv_device *device,
    if (result != VK_SUCCESS)
       goto fail;
 
-   (*pipeline)->key = key;
-   _mesa_hash_table_insert(device->meta.depth_clear.cache,
-                           &(*pipeline)->key, *pipeline);
+   if (device->instance->meta_cache_enabled) {
+      (*pipeline)->key = key;
+      _mesa_hash_table_insert(device->meta.depth_clear.cache,
+                              &(*pipeline)->key, *pipeline);
+      mtx_unlock(&device->meta.mtx);
+   } else {
+      v3dv_cmd_buffer_add_private_obj(
+         cmd_buffer, (uintptr_t)*pipeline,
+         (v3dv_cmd_buffer_private_obj_destroy_cb)destroy_depth_clear_pipeline);
+   }
 
-   mtx_unlock(&device->meta.mtx);
    return VK_SUCCESS;
 
 fail:
-   mtx_unlock(&device->meta.mtx);
+   if (device->instance->meta_cache_enabled)
+      mtx_unlock(&device->meta.mtx);
 
    VkDevice _device = v3dv_device_to_handle(device);
    if (*pipeline) {
@@ -994,17 +1029,17 @@ emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
       return;
 
    /* Obtain a pipeline for this clear */
-   assert(attachment_idx < cmd_buffer->state.pass->attachment_count);
-   const VkFormat format =
-      cmd_buffer->state.pass->attachments[attachment_idx].desc.format;
+   assert(attachment_idx < pass->attachment_count);
+   const VkFormat format = pass->attachments[attachment_idx].desc.format;
    const VkSampleCountFlagBits samples =
-      cmd_buffer->state.pass->attachments[attachment_idx].desc.samples;
+      pass->attachments[attachment_idx].desc.samples;
    const uint32_t components = VK_COLOR_COMPONENT_R_BIT |
                                VK_COLOR_COMPONENT_G_BIT |
                                VK_COLOR_COMPONENT_B_BIT |
                                VK_COLOR_COMPONENT_A_BIT;
+
    struct v3dv_meta_color_clear_pipeline *pipeline = NULL;
-   VkResult result = get_color_clear_pipeline(cmd_buffer->device,
+   VkResult result = get_color_clear_pipeline(cmd_buffer,
                                               pass,
                                               cmd_buffer->state.subpass_idx,
                                               rt_idx,
@@ -1013,6 +1048,7 @@ emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
                                               samples,
                                               components,
                                               is_layered,
+                                              pass->multiview_enabled,
                                               &pipeline);
    if (result != VK_SUCCESS) {
       if (result == VK_ERROR_OUT_OF_HOST_MEMORY)
@@ -1061,15 +1097,6 @@ emit_subpass_color_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
       }
    }
 
-   /* Subpass pipelines can't be cached because they include a reference to the
-    * render pass currently bound by the application, which means that we need
-    * to destroy them manually here.
-    */
-   assert(!pipeline->cached);
-   v3dv_cmd_buffer_add_private_obj(
-      cmd_buffer, (uintptr_t)pipeline,
-      (v3dv_cmd_buffer_private_obj_destroy_cb) destroy_color_clear_pipeline);
-
    v3dv_cmd_buffer_meta_state_pop(cmd_buffer, false);
 }
 
@@ -1093,14 +1120,16 @@ emit_subpass_ds_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
       return;
 
    /* Obtain a pipeline for this clear */
-   assert(attachment_idx < cmd_buffer->state.pass->attachment_count);
+   assert(attachment_idx < pass->attachment_count);
    struct v3dv_meta_depth_clear_pipeline *pipeline = NULL;
-   VkResult result = get_depth_clear_pipeline(cmd_buffer->device,
+
+   VkResult result = get_depth_clear_pipeline(cmd_buffer,
                                               aspects,
                                               pass,
                                               cmd_buffer->state.subpass_idx,
                                               attachment_idx,
                                               is_layered,
+                                              pass->multiview_enabled,
                                               &pipeline);
    if (result != VK_SUCCESS) {
       if (result == VK_ERROR_OUT_OF_HOST_MEMORY)

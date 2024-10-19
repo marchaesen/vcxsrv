@@ -13,7 +13,7 @@ traces:
       checksum: c2264076c2f0ca6b48c3bab152a65a36
   angle/libangle_restricted_traces_candy_crush_soda_saga.so:
     vk-radv-raven:
-      checksum: c25f969b511f84948bfed315e66b88f8
+      checksum: 3370be7bbc95e6d2ec5b1b3ed36c56a0
   angle/libangle_restricted_traces_free_fire.so:
     vk-radv-raven:
       checksum: 62307dd7a10d656733bca7e0f065ac99
@@ -30,7 +30,7 @@ traces:
       checksum: 47c004fed88bed8d3d387295399f0810
   angle/libangle_restricted_traces_pubg_mobile_battle_royale.so:
     vk-radv-raven:
-      checksum: fdedebd3817aae7d7f07891361cd5424
+      checksum: 5c2a0f8ab6d98a7cf9461d755f051c16
   angle/libangle_restricted_traces_temple_run_300.so:
     vk-radv-raven:
       checksum: 4fa6a73dad7d9dd747ba7cbf82aae42e

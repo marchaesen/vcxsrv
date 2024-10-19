@@ -195,7 +195,11 @@ namespace {
                     const clang::CompilerInstance &c) {
       std::vector<binary::argument> args;
       const Function &f = *mod.getFunction(kernel_name);
+#if LLVM_VERSION_MAJOR >= 20
+      const ::llvm::DataLayout &dl = mod.getDataLayout();
+#else
       ::llvm::DataLayout dl(&mod);
+#endif
       const auto size_type =
          dl.getSmallestLegalIntType(mod.getContext(), sizeof(cl_uint) * 8);
       const unsigned size_align = compat::get_abi_type_alignment(dl, size_type);

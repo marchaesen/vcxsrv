@@ -149,9 +149,9 @@ void
 bi_opt_cse(bi_context *ctx)
 {
    struct set *instr_set = _mesa_set_create(NULL, hash_instr, instrs_equal);
+   bi_index *replacement = calloc(sizeof(bi_index), ctx->ssa_alloc);
 
    bi_foreach_block(ctx, block) {
-      bi_index *replacement = calloc(sizeof(bi_index), ctx->ssa_alloc);
       _mesa_set_clear(instr_set, NULL);
 
       bi_foreach_instr_in_block(block, instr) {
@@ -180,9 +180,8 @@ bi_opt_cse(bi_context *ctx)
             }
          }
       }
-
-      free(replacement);
    }
 
+   free(replacement);
    _mesa_set_destroy(instr_set, NULL);
 }

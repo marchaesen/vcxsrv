@@ -2736,7 +2736,7 @@ If the colormap is static, which you can tell by looking at the class field,
 you will want to fill in each color cell to match the hardwares notion of the
 color for that pixel.
 If the colormap is the default for the screen, which you can tell by looking
-at the IsDefault bit in the flags field, you should allocate BlackPixel
+at the CM_IsDefault bit in the flags field, you should allocate BlackPixel
 and WhitePixel to match the values you set in the pScreen structure.
 (Of course, you picked those values to begin with.)</para>
 <para>
@@ -4257,7 +4257,6 @@ bit in that plane equal to 0.  If format is XYPixmap, planemask is
 guaranteed to have a single bit set; the bits should be written in
 Bitmap format, which is the format for a single plane of an XYPixmap.</para>
 <para>
-An example implementation is miGetImage() in Xserver/mi/mibitblt.c.
 <blockquote><programlisting>
 
 	void pGC->ops->ImageText8(pDraw, pGC, x, y, count, chars)
@@ -4924,10 +4923,8 @@ mi and fb implementations.</para>
 <row><entry><function>ClipNotify</function></entry><entry><literal>ddx</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>CloseScreen</function></entry><entry><literal>hd</literal></entry><entry><para></para></entry></row>
 <row><entry><function>ConstrainCursor</function></entry><entry><literal>hd</literal></entry><entry><para>Screen</para></entry></row>
-<row><entry><function>CopyArea</function></entry><entry><literal>mi</literal></entry><entry><para>GC op</para></entry></row>
 <row><entry><function>CopyGCDest</function></entry><entry><literal>ddx</literal></entry><entry><para>GC func</para></entry></row>
 <row><entry><function>CopyGCSource</function></entry><entry><literal>none</literal></entry><entry><para>GC func</para></entry></row>
-<row><entry><function>CopyPlane</function></entry><entry><literal>mi</literal></entry><entry><para>GC op</para></entry></row>
 <row><entry><function>CopyWindow</function></entry><entry><literal>ddx</literal></entry><entry><para>Window</para></entry></row>
 <row><entry><function>CreateGC</function></entry><entry><literal>ddx</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>CreateCallbackList</function></entry><entry><literal>dix</literal></entry><entry><para></para></entry></row>
@@ -4952,7 +4949,6 @@ mi and fb implementations.</para>
 <row><entry><function>FlushAllOutput</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
 <row><entry><function>FlushIfCriticalOutputPending</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
 <row><entry><function>FreeScratchPixmapHeader</function></entry><entry><literal>dix</literal></entry><entry><para></para></entry></row>
-<row><entry><function>GetImage</function></entry><entry><literal>mi</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>GetMotionEvents</function></entry><entry><literal>hd</literal></entry><entry><para>Device</para></entry></row>
 <row><entry><function>GetScratchPixmapHeader</function></entry><entry><literal>dix</literal></entry><entry><para></para></entry></row>
 <row><entry><function>GetSpans</function></entry><entry><literal>ddx</literal></entry><entry><para>Screen</para></entry></row>
@@ -5007,7 +5003,6 @@ mi and fb implementations.</para>
 <row><entry><function>PositionWindow</function></entry><entry><literal>ddx</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>ProcessInputEvents</function></entry><entry><literal>hd</literal></entry><entry><para></para></entry></row>
 <row><entry><function>PushPixels</function></entry><entry><literal>mi</literal></entry><entry><para>GC op</para></entry></row>
-<row><entry><function>PutImage</function></entry><entry><literal>mi</literal></entry><entry><para>GC op</para></entry></row>
 <row><entry><function>QueryBestSize</function></entry><entry><literal>hd</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>ReadRequestFromClient</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
 <row><entry><function>RealizeCursor</function></entry><entry><literal>hd</literal></entry><entry><para>Screen</para></entry></row>

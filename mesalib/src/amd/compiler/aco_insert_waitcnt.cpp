@@ -39,7 +39,7 @@ namespace {
 
 /* Instructions of the same event will finish in-order except for smem
  * and maybe flat. Instructions of different events may not finish in-order. */
-enum wait_event : uint16_t {
+enum wait_event : uint32_t {
    event_smem = 1 << 0,
    event_lds = 1 << 1,
    event_gds = 1 << 2,
@@ -53,10 +53,9 @@ enum wait_event : uint16_t {
    event_vmem_gpr_lock = 1 << 10,
    event_sendmsg = 1 << 11,
    event_ldsdir = 1 << 12,
-   event_valu = 1 << 13,
-   event_trans = 1 << 14,
-   event_salu = 1 << 15,
-   num_events = 16,
+   event_vmem_sample = 1 << 13, /* GFX12+ */
+   event_vmem_bvh = 1 << 14,    /* GFX12+ */
+   num_events = 15,
 };
 
 enum counter_type : uint8_t {
@@ -64,113 +63,23 @@ enum counter_type : uint8_t {
    counter_lgkm = 1 << wait_type_lgkm,
    counter_vm = 1 << wait_type_vm,
    counter_vs = 1 << wait_type_vs,
-   counter_alu = 1 << wait_type_num,
-   num_counters = wait_type_num + 1,
-   wait_counters = BITFIELD_MASK(wait_type_num),
-};
-
-enum vmem_type : uint8_t {
-   vmem_nosampler = 1 << 0,
-   vmem_sampler = 1 << 1,
-   vmem_bvh = 1 << 2,
-};
-
-/* On GFX11+ the SIMD frontend doesn't switch to issuing instructions from a different
- * wave if there is an ALU stall. Hence we have an instruction (s_delay_alu) to signal
- * that we should switch to a different wave and contains info on dependencies as to
- * when we can switch back.
- *
- * This seems to apply only for ALU->ALU dependencies as other instructions have better
- * integration with the frontend.
- *
- * Note that if we do not emit s_delay_alu things will still be correct, but the wave
- * will stall in the ALU (and the ALU will be doing nothing else). We'll use this as
- * I'm pretty sure our cycle info is wrong at times (necessarily so, e.g. wave64 VALU
- * instructions can take a different number of cycles based on the exec mask)
- */
-struct alu_delay_info {
-   /* These are the values directly above the max representable value, i.e. the wait
-    * would turn into a no-op when we try to wait for something further back than
-    * this.
-    */
-   static constexpr int8_t valu_nop = 5;
-   static constexpr int8_t trans_nop = 4;
-
-   /* How many VALU instructions ago this value was written */
-   int8_t valu_instrs = valu_nop;
-   /* Cycles until the writing VALU instruction is finished */
-   int8_t valu_cycles = 0;
-
-   /* How many Transcedent instructions ago this value was written */
-   int8_t trans_instrs = trans_nop;
-   /* Cycles until the writing Transcendent instruction is finished */
-   int8_t trans_cycles = 0;
-
-   /* Cycles until the writing SALU instruction is finished*/
-   int8_t salu_cycles = 0;
-
-   bool combine(const alu_delay_info& other)
-   {
-      bool changed = other.valu_instrs < valu_instrs || other.trans_instrs < trans_instrs ||
-                     other.salu_cycles > salu_cycles || other.valu_cycles > valu_cycles ||
-                     other.trans_cycles > trans_cycles;
-      valu_instrs = std::min(valu_instrs, other.valu_instrs);
-      trans_instrs = std::min(trans_instrs, other.trans_instrs);
-      salu_cycles = std::max(salu_cycles, other.salu_cycles);
-      valu_cycles = std::max(valu_cycles, other.valu_cycles);
-      trans_cycles = std::max(trans_cycles, other.trans_cycles);
-      return changed;
-   }
-
-   /* Needs to be called after any change to keep the data consistent. */
-   void fixup()
-   {
-      if (valu_instrs >= valu_nop || valu_cycles <= 0) {
-         valu_instrs = valu_nop;
-         valu_cycles = 0;
-      }
-
-      if (trans_instrs >= trans_nop || trans_cycles <= 0) {
-         trans_instrs = trans_nop;
-         trans_cycles = 0;
-      }
-
-      salu_cycles = std::max<int8_t>(salu_cycles, 0);
-   }
-
-   /* Returns true if a wait would be a no-op */
-   bool empty() const
-   {
-      return valu_instrs == valu_nop && trans_instrs == trans_nop && salu_cycles == 0;
-   }
-
-   UNUSED void print(FILE* output) const
-   {
-      if (valu_instrs != valu_nop)
-         fprintf(output, "valu_instrs: %u\n", valu_instrs);
-      if (valu_cycles)
-         fprintf(output, "valu_cycles: %u\n", valu_cycles);
-      if (trans_instrs != trans_nop)
-         fprintf(output, "trans_instrs: %u\n", trans_instrs);
-      if (trans_cycles)
-         fprintf(output, "trans_cycles: %u\n", trans_cycles);
-      if (salu_cycles)
-         fprintf(output, "salu_cycles: %u\n", salu_cycles);
-   }
+   counter_sample = 1 << wait_type_sample,
+   counter_bvh = 1 << wait_type_bvh,
+   counter_km = 1 << wait_type_km,
+   num_counters = wait_type_num,
 };
 
 struct wait_entry {
    wait_imm imm;
-   alu_delay_info delay;
-   uint16_t events;  /* use wait_event notion */
+   uint32_t events;  /* use wait_event notion */
    uint8_t counters; /* use counter_type notion */
    bool wait_on_read : 1;
    bool logical : 1;
-   uint8_t vmem_types : 4;
+   uint8_t vmem_types : 4; /* use vmem_type notion. for counter_vm. */
 
-   wait_entry(wait_event event_, wait_imm imm_, alu_delay_info delay_, uint8_t counters_,
-              bool logical_, bool wait_on_read_)
-       : imm(imm_), delay(delay_), events(event_), counters(counters_), wait_on_read(wait_on_read_),
+   wait_entry(wait_event event_, wait_imm imm_, uint8_t counters_, bool logical_,
+              bool wait_on_read_)
+       : imm(imm_), events(event_), counters(counters_), wait_on_read(wait_on_read_),
          logical(logical_), vmem_types(0)
    {}
 
@@ -182,18 +91,10 @@ struct wait_entry {
       events |= other.events;
       counters |= other.counters;
       changed |= imm.combine(other.imm);
-      changed |= delay.combine(other.delay);
       wait_on_read |= other.wait_on_read;
       vmem_types |= other.vmem_types;
       logical &= other.logical;
       return changed;
-   }
-
-   void remove_alu_counter()
-   {
-      counters &= ~counter_alu;
-      delay = alu_delay_info();
-      events &= ~(event_valu | event_trans | event_salu);
    }
 
    void remove_wait(wait_type type, uint32_t type_events)
@@ -213,7 +114,6 @@ struct wait_entry {
    {
       fprintf(output, "logical: %u\n", logical);
       imm.print(output);
-      delay.print(output);
       if (events)
          fprintf(output, "events: %u\n", events);
       if (counters)
@@ -243,19 +143,22 @@ struct target_info {
       events[wait_type_lgkm] = event_smem | event_lds | event_gds | event_flat | event_sendmsg;
       events[wait_type_vm] = event_vmem | event_flat;
       events[wait_type_vs] = event_vmem_store;
+      if (gfx_level >= GFX12) {
+         events[wait_type_sample] = event_vmem_sample;
+         events[wait_type_bvh] = event_vmem_bvh;
+         events[wait_type_km] = event_smem | event_sendmsg;
+         events[wait_type_lgkm] &= ~events[wait_type_km];
+      }
 
       for (unsigned i = 0; i < wait_type_num; i++) {
          u_foreach_bit (j, events[i])
             counters[j] |= (1 << i);
       }
-      counters[ffs(event_valu) - 1] |= counter_alu;
-      counters[ffs(event_trans) - 1] |= counter_alu;
-      counters[ffs(event_salu) - 1] |= counter_alu;
 
       unordered_events = event_smem | (gfx_level < GFX10 ? event_flat : 0);
    }
 
-   uint8_t get_counters_for_event(uint16_t event) const { return counters[ffs(event) - 1]; }
+   uint8_t get_counters_for_event(wait_event event) const { return counters[ffs(event) - 1]; }
 
 private:
    /* Bitfields of counters affected by each event */
@@ -338,21 +241,19 @@ struct wait_ctx {
    }
 };
 
-uint8_t
-get_vmem_type(Instruction* instr)
+wait_event
+get_vmem_event(wait_ctx& ctx, Instruction* instr, uint8_t type)
 {
-   if (instr->opcode == aco_opcode::image_bvh64_intersect_ray)
-      return vmem_bvh;
-   else if (instr->isMIMG() && !instr->operands[1].isUndefined() &&
-            instr->operands[1].regClass() == s4)
-      return vmem_sampler;
-   else if (instr->isVMEM() || instr->isScratch() || instr->isGlobal())
-      return vmem_nosampler;
-   return 0;
+   if (instr->definitions.empty() && ctx.gfx_level >= GFX10)
+      return event_vmem_store;
+   wait_event ev = event_vmem;
+   if (ctx.gfx_level >= GFX12 && type != vmem_nosampler)
+      ev = type == vmem_bvh ? event_vmem_bvh : event_vmem_sample;
+   return ev;
 }
 
 void
-check_instr(wait_ctx& ctx, wait_imm& wait, alu_delay_info& delay, Instruction* instr)
+check_instr(wait_ctx& ctx, wait_imm& wait, Instruction* instr)
 {
    for (const Operand op : instr->operands) {
       if (op.isConstant() || op.isUndefined())
@@ -360,14 +261,9 @@ check_instr(wait_ctx& ctx, wait_imm& wait, alu_delay_info& delay, Instruction* i
 
       /* check consecutively read gprs */
       for (unsigned j = 0; j < op.size(); j++) {
-         PhysReg reg{op.physReg() + j};
-         std::map<PhysReg, wait_entry>::iterator it = ctx.gpr_map.find(reg);
-         if (it == ctx.gpr_map.end() || !it->second.wait_on_read)
-            continue;
-
-         wait.combine(it->second.imm);
-         if (instr->isVALU() || instr->isSALU())
-            delay.combine(it->second.delay);
+         std::map<PhysReg, wait_entry>::iterator it = ctx.gpr_map.find(PhysReg{op.physReg() + j});
+         if (it != ctx.gpr_map.end() && it->second.wait_on_read)
+            wait.combine(it->second.imm);
       }
    }
 
@@ -383,10 +279,11 @@ check_instr(wait_ctx& ctx, wait_imm& wait, alu_delay_info& delay, Instruction* i
          wait_imm reg_imm = it->second.imm;
 
          /* Vector Memory reads and writes return in the order they were issued */
-         uint8_t vmem_type = get_vmem_type(instr);
+         uint8_t vmem_type = get_vmem_type(ctx.gfx_level, instr);
          if (vmem_type) {
-            wait_type type = (wait_type)(ffs(ctx.info->get_counters_for_event(event_vmem)) - 1);
-            if ((it->second.events & ctx.info->events[type]) == event_vmem &&
+            wait_event event = get_vmem_event(ctx, instr, vmem_type);
+            wait_type type = (wait_type)(ffs(ctx.info->get_counters_for_event(event)) - 1);
+            if ((it->second.events & ctx.info->events[type]) == event &&
                 (type != wait_type_vm || it->second.vmem_types == vmem_type))
                reg_imm[type] = wait_imm::unset_counter;
          }
@@ -399,29 +296,6 @@ check_instr(wait_ctx& ctx, wait_imm& wait, alu_delay_info& delay, Instruction* i
          wait.combine(reg_imm);
       }
    }
-}
-
-bool
-parse_delay_alu(wait_ctx& ctx, alu_delay_info& delay, Instruction* instr)
-{
-   if (instr->opcode != aco_opcode::s_delay_alu)
-      return false;
-
-   unsigned imm[2] = {instr->salu().imm & 0xf, (instr->salu().imm >> 7) & 0xf};
-   for (unsigned i = 0; i < 2; ++i) {
-      alu_delay_wait wait = (alu_delay_wait)imm[i];
-      if (wait >= alu_delay_wait::VALU_DEP_1 && wait <= alu_delay_wait::VALU_DEP_4)
-         delay.valu_instrs = imm[i] - (uint32_t)alu_delay_wait::VALU_DEP_1 + 1;
-      else if (wait >= alu_delay_wait::TRANS32_DEP_1 && wait <= alu_delay_wait::TRANS32_DEP_3)
-         delay.trans_instrs = imm[i] - (uint32_t)alu_delay_wait::TRANS32_DEP_1 + 1;
-      else if (wait >= alu_delay_wait::SALU_CYCLE_1)
-         delay.salu_cycles = imm[i] - (uint32_t)alu_delay_wait::SALU_CYCLE_1 + 1;
-   }
-
-   delay.valu_cycles = instr->pass_flags & 0xffff;
-   delay.trans_cycles = instr->pass_flags >> 16;
-
-   return true;
 }
 
 void
@@ -460,36 +334,7 @@ force_waitcnt(wait_ctx& ctx, wait_imm& imm)
 }
 
 void
-update_alu(wait_ctx& ctx, bool is_valu, bool is_trans, bool clear, int cycles)
-{
-   std::map<PhysReg, wait_entry>::iterator it = ctx.gpr_map.begin();
-   while (it != ctx.gpr_map.end()) {
-      wait_entry& entry = it->second;
-
-      if (clear) {
-         entry.remove_alu_counter();
-      } else {
-         entry.delay.valu_instrs += is_valu ? 1 : 0;
-         entry.delay.trans_instrs += is_trans ? 1 : 0;
-         entry.delay.salu_cycles -= cycles;
-         entry.delay.valu_cycles -= cycles;
-         entry.delay.trans_cycles -= cycles;
-
-         entry.delay.fixup();
-         if (it->second.delay.empty())
-            entry.remove_alu_counter();
-      }
-
-      if (!entry.counters)
-         it = ctx.gpr_map.erase(it);
-      else
-         it++;
-   }
-}
-
-void
-kill(wait_imm& imm, alu_delay_info& delay, Instruction* instr, wait_ctx& ctx,
-     memory_sync_info sync_info)
+kill(wait_imm& imm, Instruction* instr, wait_ctx& ctx, memory_sync_info sync_info)
 {
    if (instr->opcode == aco_opcode::s_setpc_b64 || (debug_flags & DEBUG_FORCE_WAITCNT)) {
       /* Force emitting waitcnt states right after the instruction if there is
@@ -518,7 +363,7 @@ kill(wait_imm& imm, alu_delay_info& delay, Instruction* instr, wait_ctx& ctx,
          imm[i] = 0;
    }
 
-   check_instr(ctx, imm, delay, instr);
+   check_instr(ctx, imm, instr);
 
    /* It's required to wait for scalar stores before "writing back" data.
     * It shouldn't cost anything anyways since we're about to do s_endpgm.
@@ -551,7 +396,7 @@ kill(wait_imm& imm, alu_delay_info& delay, Instruction* instr, wait_ctx& ctx,
    else
       perform_barrier(ctx, imm, sync_info, semantic_release);
 
-   if (!imm.empty() || !delay.empty()) {
+   if (!imm.empty()) {
       if (ctx.pending_flat_vm && imm.vm != wait_imm::unset_counter)
          imm.vm = 0;
       if (ctx.pending_flat_lgkm && imm.lgkm != wait_imm::unset_counter)
@@ -575,11 +420,6 @@ kill(wait_imm& imm, alu_delay_info& delay, Instruction* instr, wait_ctx& ctx,
             bar_ev &= ~event_flat;
       }
 
-      if (ctx.program->gfx_level >= GFX11) {
-         update_alu(ctx, false, false, false,
-                    MAX3(delay.salu_cycles, delay.valu_cycles, delay.trans_cycles));
-      }
-
       /* remove all gprs with higher counter from map */
       std::map<PhysReg, wait_entry>::iterator it = ctx.gpr_map.begin();
       while (it != ctx.gpr_map.end()) {
@@ -587,13 +427,6 @@ kill(wait_imm& imm, alu_delay_info& delay, Instruction* instr, wait_ctx& ctx,
             if (imm[i] != wait_imm::unset_counter && imm[i] <= it->second.imm[i])
                it->second.remove_wait((wait_type)i, ctx.info->events[i]);
          }
-         if (delay.valu_instrs <= it->second.delay.valu_instrs)
-            it->second.delay.valu_instrs = alu_delay_info::valu_nop;
-         if (delay.trans_instrs <= it->second.delay.trans_instrs)
-            it->second.delay.trans_instrs = alu_delay_info::trans_nop;
-         it->second.delay.fixup();
-         if (it->second.delay.empty())
-            it->second.remove_alu_counter();
          if (!it->second.counters)
             it = ctx.gpr_map.erase(it);
          else
@@ -681,27 +514,16 @@ update_counters_for_flat_load(wait_ctx& ctx, memory_sync_info sync = memory_sync
 
 void
 insert_wait_entry(wait_ctx& ctx, PhysReg reg, RegClass rc, wait_event event, bool wait_on_read,
-                  uint8_t vmem_types = 0, unsigned cycles = 0, bool force_linear = false)
+                  uint8_t vmem_types = 0, bool force_linear = false)
 {
    uint16_t counters = ctx.info->get_counters_for_event(event);
    wait_imm imm;
-   u_foreach_bit (i, counters & wait_counters)
+   u_foreach_bit (i, counters)
       imm[i] = 0;
 
-   alu_delay_info delay;
-   if (event == event_valu) {
-      delay.valu_instrs = 0;
-      delay.valu_cycles = cycles;
-   } else if (event == event_trans) {
-      delay.trans_instrs = 0;
-      delay.trans_cycles = cycles;
-   } else if (event == event_salu) {
-      delay.salu_cycles = cycles;
-   }
-
-   wait_entry new_entry(event, imm, delay, counters, !rc.is_linear() && !force_linear,
-                        wait_on_read);
-   new_entry.vmem_types |= vmem_types;
+   wait_entry new_entry(event, imm, counters, !rc.is_linear() && !force_linear, wait_on_read);
+   if (counters & counter_vm)
+      new_entry.vmem_types |= vmem_types;
 
    for (unsigned i = 0; i < rc.size(); i++) {
       auto it = ctx.gpr_map.emplace(PhysReg{reg.reg() + i}, new_entry);
@@ -714,49 +536,19 @@ void
 insert_wait_entry(wait_ctx& ctx, Operand op, wait_event event, uint8_t vmem_types = 0)
 {
    if (!op.isConstant() && !op.isUndefined())
-      insert_wait_entry(ctx, op.physReg(), op.regClass(), event, false, vmem_types, 0);
+      insert_wait_entry(ctx, op.physReg(), op.regClass(), event, false, vmem_types);
 }
 
 void
-insert_wait_entry(wait_ctx& ctx, Definition def, wait_event event, uint8_t vmem_types = 0,
-                  unsigned cycles = 0)
+insert_wait_entry(wait_ctx& ctx, Definition def, wait_event event, uint8_t vmem_types = 0)
 {
    /* We can't safely write to unwritten destination VGPR lanes with DS/VMEM on GFX11 without
     * waiting for the load to finish.
-    * Also, follow linear control flow for ALU because it's unlikely that the hardware does per-lane
-    * dependency checks.
     */
    uint32_t ds_vmem_events = event_lds | event_gds | event_vmem | event_flat;
-   uint32_t alu_events = event_trans | event_valu | event_salu;
-   bool force_linear = ctx.gfx_level >= GFX11 && (event & (ds_vmem_events | alu_events));
+   bool force_linear = ctx.gfx_level >= GFX11 && (event & ds_vmem_events);
 
-   insert_wait_entry(ctx, def.physReg(), def.regClass(), event, true, vmem_types, cycles,
-                     force_linear);
-}
-
-void
-gen_alu(Instruction* instr, wait_ctx& ctx)
-{
-   Instruction_cycle_info cycle_info = get_cycle_info(*ctx.program, *instr);
-   bool is_valu = instr->isVALU();
-   bool is_trans = instr->isTrans();
-   bool clear = instr->isEXP() || instr->isDS() || instr->isMIMG() || instr->isFlatLike() ||
-                instr->isMUBUF() || instr->isMTBUF();
-
-   wait_event event = (wait_event)0;
-   if (is_trans)
-      event = event_trans;
-   else if (is_valu)
-      event = event_valu;
-   else if (instr->isSALU())
-      event = event_salu;
-
-   if (event != (wait_event)0) {
-      for (const Definition& def : instr->definitions)
-         insert_wait_entry(ctx, def, event, 0, cycle_info.latency);
-   }
-   update_alu(ctx, is_valu && instr_info.classes[(int)instr->opcode] != instr_class::wmma, is_trans,
-              clear, cycle_info.issue_cycles);
+   insert_wait_entry(ctx, def.physReg(), def.regClass(), event, true, vmem_types, force_linear);
 }
 
 void
@@ -835,12 +627,13 @@ gen(Instruction* instr, wait_ctx& ctx)
    case Format::MIMG:
    case Format::GLOBAL:
    case Format::SCRATCH: {
-      wait_event ev =
-         !instr->definitions.empty() || ctx.gfx_level < GFX10 ? event_vmem : event_vmem_store;
+      uint8_t type = get_vmem_type(ctx.gfx_level, instr);
+      wait_event ev = get_vmem_event(ctx, instr, type);
+
       update_counters(ctx, ev, get_sync_info(instr));
 
       if (!instr->definitions.empty())
-         insert_wait_entry(ctx, instr->definitions[0], ev, get_vmem_type(instr));
+         insert_wait_entry(ctx, instr->definitions[0], ev, type);
 
       if (ctx.gfx_level == GFX6 && instr->format != Format::MIMG && instr->operands.size() == 4) {
          update_counters(ctx, event_vmem_gpr_lock);
@@ -872,48 +665,44 @@ gen(Instruction* instr, wait_ctx& ctx)
 void
 emit_waitcnt(wait_ctx& ctx, std::vector<aco_ptr<Instruction>>& instructions, wait_imm& imm)
 {
-   if (imm.vs != wait_imm::unset_counter) {
-      assert(ctx.gfx_level >= GFX10);
-      Instruction* waitcnt_vs = create_instruction(aco_opcode::s_waitcnt_vscnt, Format::SOPK, 1, 0);
-      waitcnt_vs->operands[0] = Operand(sgpr_null, s1);
-      waitcnt_vs->salu().imm = imm.vs;
-      instructions.emplace_back(waitcnt_vs);
-      imm.vs = wait_imm::unset_counter;
-   }
-   if (!imm.empty()) {
-      Instruction* waitcnt = create_instruction(aco_opcode::s_waitcnt, Format::SOPP, 0, 0);
-      waitcnt->salu().imm = imm.pack(ctx.gfx_level);
-      instructions.emplace_back(waitcnt);
+   Builder bld(ctx.program, &instructions);
+
+   if (ctx.gfx_level >= GFX12) {
+      if (imm.vm != wait_imm::unset_counter && imm.lgkm != wait_imm::unset_counter) {
+         bld.sopp(aco_opcode::s_wait_loadcnt_dscnt, (imm.vm << 8) | imm.lgkm);
+         imm.vm = wait_imm::unset_counter;
+         imm.lgkm = wait_imm::unset_counter;
+      }
+
+      if (imm.vs != wait_imm::unset_counter && imm.lgkm != wait_imm::unset_counter) {
+         bld.sopp(aco_opcode::s_wait_storecnt_dscnt, (imm.vs << 8) | imm.lgkm);
+         imm.vs = wait_imm::unset_counter;
+         imm.lgkm = wait_imm::unset_counter;
+      }
+
+      aco_opcode op[wait_type_num];
+      op[wait_type_exp] = aco_opcode::s_wait_expcnt;
+      op[wait_type_lgkm] = aco_opcode::s_wait_dscnt;
+      op[wait_type_vm] = aco_opcode::s_wait_loadcnt;
+      op[wait_type_vs] = aco_opcode::s_wait_storecnt;
+      op[wait_type_sample] = aco_opcode::s_wait_samplecnt;
+      op[wait_type_bvh] = aco_opcode::s_wait_bvhcnt;
+      op[wait_type_km] = aco_opcode::s_wait_kmcnt;
+
+      for (unsigned i = 0; i < wait_type_num; i++) {
+         if (imm[i] != wait_imm::unset_counter)
+            bld.sopp(op[i], imm[i]);
+      }
+   } else {
+      if (imm.vs != wait_imm::unset_counter) {
+         assert(ctx.gfx_level >= GFX10);
+         bld.sopk(aco_opcode::s_waitcnt_vscnt, Operand(sgpr_null, s1), imm.vs);
+         imm.vs = wait_imm::unset_counter;
+      }
+      if (!imm.empty())
+         bld.sopp(aco_opcode::s_waitcnt, imm.pack(ctx.gfx_level));
    }
    imm = wait_imm();
-}
-
-void
-emit_delay_alu(wait_ctx& ctx, std::vector<aco_ptr<Instruction>>& instructions,
-               alu_delay_info& delay)
-{
-   uint32_t imm = 0;
-   if (delay.trans_instrs != delay.trans_nop) {
-      imm |= (uint32_t)alu_delay_wait::TRANS32_DEP_1 + delay.trans_instrs - 1;
-   }
-
-   if (delay.valu_instrs != delay.valu_nop) {
-      imm |= ((uint32_t)alu_delay_wait::VALU_DEP_1 + delay.valu_instrs - 1) << (imm ? 7 : 0);
-   }
-
-   /* Note that we can only put 2 wait conditions in the instruction, so if we have all 3 we just
-    * drop the SALU one. Here we use that this doesn't really affect correctness so occasionally
-    * getting this wrong isn't an issue. */
-   if (delay.salu_cycles && imm <= 0xf) {
-      unsigned cycles = std::min<uint8_t>(3, delay.salu_cycles);
-      imm |= ((uint32_t)alu_delay_wait::SALU_CYCLE_1 + cycles - 1) << (imm ? 7 : 0);
-   }
-
-   Instruction* inst = create_instruction(aco_opcode::s_delay_alu, Format::SOPP, 0, 0);
-   inst->salu().imm = imm;
-   inst->pass_flags = (delay.valu_cycles | (delay.trans_cycles << 16));
-   instructions.emplace_back(inst);
-   delay = alu_delay_info();
 }
 
 bool
@@ -942,17 +731,15 @@ handle_block(Program* program, Block& block, wait_ctx& ctx)
    std::vector<aco_ptr<Instruction>> new_instructions;
 
    wait_imm queued_imm;
-   alu_delay_info queued_delay;
 
    size_t clause_end = 0;
    for (size_t i = 0; i < block.instructions.size(); i++) {
       aco_ptr<Instruction>& instr = block.instructions[i];
 
       bool is_wait = queued_imm.unpack(ctx.gfx_level, instr.get());
-      bool is_delay_alu = parse_delay_alu(ctx, queued_delay, instr.get());
 
       memory_sync_info sync_info = get_sync_info(instr.get());
-      kill(queued_imm, queued_delay, instr.get(), ctx, sync_info);
+      kill(queued_imm, instr.get(), ctx, sync_info);
 
       /* At the start of a possible clause, also emit waitcnts for each instruction to avoid
        * splitting the clause.
@@ -972,15 +759,13 @@ handle_block(Program* program, Block& block, wait_ctx& ctx)
             if (!check_clause_raw(*regs_written, next))
                break;
 
-            kill(queued_imm, queued_delay, next, ctx, get_sync_info(next));
+            kill(queued_imm, next, ctx, get_sync_info(next));
          }
       }
 
-      if (program->gfx_level >= GFX11)
-         gen_alu(instr.get(), ctx);
       gen(instr.get(), ctx);
 
-      if (instr->format != Format::PSEUDO_BARRIER && !is_wait && !is_delay_alu) {
+      if (instr->format != Format::PSEUDO_BARRIER && !is_wait) {
          if (instr->isVINTERP_INREG() && queued_imm.exp != wait_imm::unset_counter) {
             instr->vinterp_inreg().wait_exp = MIN2(instr->vinterp_inreg().wait_exp, queued_imm.exp);
             queued_imm.exp = wait_imm::unset_counter;
@@ -988,8 +773,6 @@ handle_block(Program* program, Block& block, wait_ctx& ctx)
 
          if (!queued_imm.empty())
             emit_waitcnt(ctx, new_instructions, queued_imm);
-         if (!queued_delay.empty())
-            emit_delay_alu(ctx, new_instructions, queued_delay);
 
          bool is_ordered_count_acquire =
             instr->opcode == aco_opcode::ds_ordered_count &&
@@ -1011,8 +794,6 @@ handle_block(Program* program, Block& block, wait_ctx& ctx)
 
    if (!queued_imm.empty())
       emit_waitcnt(ctx, new_instructions, queued_imm);
-   if (!queued_delay.empty())
-      emit_delay_alu(ctx, new_instructions, queued_delay);
 
    block.instructions.swap(new_instructions);
 }
@@ -1020,7 +801,7 @@ handle_block(Program* program, Block& block, wait_ctx& ctx)
 } /* end namespace */
 
 void
-insert_wait_states(Program* program)
+insert_waitcnt(Program* program)
 {
    target_info info(program->gfx_level);
 
@@ -1088,33 +869,6 @@ insert_wait_states(Program* program)
       handle_block(program, current, ctx);
 
       out_ctx[current.index] = std::move(ctx);
-   }
-
-   /* Combine s_delay_alu using the skip field. */
-   if (program->gfx_level >= GFX11) {
-      for (Block& block : program->blocks) {
-         int i = 0;
-         int prev_delay_alu = -1;
-         for (aco_ptr<Instruction>& instr : block.instructions) {
-            if (instr->opcode != aco_opcode::s_delay_alu) {
-               block.instructions[i++] = std::move(instr);
-               continue;
-            }
-
-            uint16_t imm = instr->salu().imm;
-            int skip = i - prev_delay_alu - 1;
-            if (imm >> 7 || prev_delay_alu < 0 || skip >= 6) {
-               if (imm >> 7 == 0)
-                  prev_delay_alu = i;
-               block.instructions[i++] = std::move(instr);
-               continue;
-            }
-
-            block.instructions[prev_delay_alu]->salu().imm |= (skip << 4) | (imm << 7);
-            prev_delay_alu = -1;
-         }
-         block.instructions.resize(i);
-      }
    }
 }
 

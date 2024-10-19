@@ -32,7 +32,7 @@ import xml.etree.ElementTree as et
 
 import mako
 from mako.template import Template
-from vk_extensions import get_all_required, filter_api
+from vk_extensions import Requirements, get_all_required, filter_api
 
 def str_removeprefix(s, prefix):
     if s.startswith(prefix):
@@ -48,6 +48,8 @@ RENAMED_FEATURES = {
 
     ('CooperativeMatrixFeaturesNV', 'cooperativeMatrix'): 'cooperativeMatrixNV',
     ('CooperativeMatrixFeaturesNV', 'cooperativeMatrixRobustBufferAccess'): 'cooperativeMatrixRobustBufferAccessNV',
+
+    ('DeviceGeneratedCommandsFeaturesNV', 'deviceGeneratedCommands'): 'deviceGeneratedCommandsNV',
 }
 
 KNOWN_ALIASES = [
@@ -124,9 +126,22 @@ def get_renamed_feature(c_type, feature):
 
 @dataclass
 class FeatureStruct:
+    reqs: Requirements
     c_type: str
     s_type: str
     features: typing.List[str]
+
+    def condition(self, physical_dev):
+        conds = []
+        if self.reqs.core_version:
+            conds.append(physical_dev + '->properties.apiVersion >= ' +
+                         self.reqs.core_version.c_vk_version())
+        for ext in self.reqs.extensions:
+            conds.append(physical_dev + '->supported_extensions.' +
+                         ext.name[3:])
+        if not conds:
+            return None
+        return '(' + ' || '.join(conds) + ')'
 
 TEMPLATE_H = Template(COPYRIGHT + """
 /* This file generated from ${filename}, don't edit directly. */
@@ -203,6 +218,10 @@ vk_physical_device_check_device_features(struct vk_physical_device *physical_dev
       switch (features->sType) {
 % for f in feature_structs:
       case ${f.s_type}:
+% if f.condition("physical_device") is not None:
+         if (!${f.condition("physical_device")})
+            break;
+% endif
          supported = (VkBaseOutStructure *) &supported_${f.c_type};
          break;
 % endfor
@@ -252,6 +271,10 @@ vk_physical_device_check_device_features(struct vk_physical_device *physical_dev
       }
 % for f in feature_structs:
       case ${f.s_type}: {
+% if f.condition("physical_device") is not None:
+         if (!${f.condition("physical_device")})
+            break;
+% endif
          const ${f.c_type} *a = &supported_${f.c_type};
          const ${f.c_type} *b = (const void *) features;
 % for flag in f.features:
@@ -365,8 +388,9 @@ def get_feature_structs(doc, api, beta):
         if _type.attrib['name'] not in required:
             continue
 
+        reqs = required[_type.attrib['name']]
         # Skip extensions with a define for now
-        guard = required[_type.attrib['name']].guard
+        guard = reqs.guard
         if guard is not None and (guard != "VK_ENABLE_BETA_EXTENSIONS" or beta != "true"):
             continue
 
@@ -391,7 +415,7 @@ def get_feature_structs(doc, api, beta):
                 assert p.find('./type').text == 'VkBool32'
                 flags.append(m_name)
 
-        feature_struct = FeatureStruct(c_type=_type.attrib.get('name'), s_type=s_type, features=flags)
+        feature_struct = FeatureStruct(reqs=reqs, c_type=_type.attrib.get('name'), s_type=s_type, features=flags)
         feature_structs[feature_struct.c_type] = feature_struct
 
     return feature_structs.values()

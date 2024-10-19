@@ -211,6 +211,7 @@ is_src_scalarizable(nir_src *src)
       case nir_intrinsic_load_global:
       case nir_intrinsic_load_global_constant:
       case nir_intrinsic_load_input:
+      case nir_intrinsic_load_per_primitive_input:
          return true;
       default:
          break;
@@ -314,11 +315,7 @@ gcm_pin_instructions(nir_function_impl *impl, struct gcm_state *state)
          case nir_instr_type_alu: {
             nir_alu_instr *alu = nir_instr_as_alu(instr);
 
-            if (nir_op_is_derivative(alu->op)) {
-               /* These can only go in uniform control flow */
-               instr->pass_flags = GCM_INSTR_SCHEDULE_EARLIER_ONLY;
-            } else if (alu->op == nir_op_mov &&
-                       !is_src_scalarizable(&alu->src[0].src)) {
+            if (alu->op == nir_op_mov && !is_src_scalarizable(&alu->src[0].src)) {
                instr->pass_flags = GCM_INSTR_PINNED;
             } else {
                instr->pass_flags = 0;
@@ -797,8 +794,7 @@ weak_gvn(const nir_instr *a, const nir_instr *b)
 static bool
 opt_gcm_impl(nir_shader *shader, nir_function_impl *impl, bool value_number)
 {
-   nir_metadata_require(impl, nir_metadata_block_index |
-                                 nir_metadata_dominance);
+   nir_metadata_require(impl, nir_metadata_control_flow);
    nir_metadata_require(impl, nir_metadata_loop_analysis,
                         shader->options->force_indirect_unrolling,
                         shader->options->force_indirect_unrolling_sampler);
@@ -839,8 +835,10 @@ opt_gcm_impl(nir_shader *shader, nir_function_impl *impl, bool value_number)
          continue;
 
       if (nir_instr_set_add_or_rewrite(gvn_set, instr,
-                                       value_number ? NULL : weak_gvn))
+                                       value_number ? NULL : weak_gvn)) {
          state.progress = true;
+         nir_instr_remove(instr);
+      }
    }
    nir_instr_set_destroy(gvn_set);
 
@@ -859,8 +857,7 @@ opt_gcm_impl(nir_shader *shader, nir_function_impl *impl, bool value_number)
    ralloc_free(state.blocks);
    ralloc_free(state.instr_infos);
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance |
+   nir_metadata_preserve(impl, nir_metadata_control_flow |
                                   nir_metadata_loop_analysis);
 
    return state.progress;

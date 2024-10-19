@@ -2508,7 +2508,7 @@ after lookup.
    width, height and depth values are for the mipmap level selected by the
    src_mip_level and are in the number of texels.  For 1d texture array width
    is in dst.x, array size is in dst.y and dst.z is 0. The number of mipmaps is
-   still in dst.w.  In contrast to d3d10 resinfo, there's no way in the tgsi
+   still in dst.w.  In contrast to d3d10 resinfo, there's no way in the TGSI
    instruction encoding to specify the return type (float/rcpfloat/uint), hence
    always using uint. Also, unlike the SAMPLE instructions, the swizzle on src1
    resinfo allowing swizzling dst values is ignored (due to the interaction
@@ -3253,7 +3253,7 @@ TGSI_SEMANTIC_EDGEFLAG
 For vertex shaders, this semantic label indicates that an input or
 output is a boolean edge flag.  The register layout is [F, x, x, x]
 where F is 0.0 or 1.0 and x = don't care.  Normally, the vertex shader
-simply copies the edge flag input to the edgeflag output.
+simply copies the edge flag input to the edge flag output.
 
 Edge flags are used to control which lines or points are actually
 drawn when the polygon mode converts triangles/quads/polygons into
@@ -3265,7 +3265,8 @@ TGSI_SEMANTIC_STENCIL
 
 For fragment shaders, this semantic label indicates that an output
 is a writable stencil reference value. Only the Y component is writable.
-This allows the fragment shader to change the fragments stencilref value.
+This allows the fragment shader to change the fragments stencil reference
+value.
 
 
 TGSI_SEMANTIC_VIEWPORT_INDEX

@@ -162,9 +162,8 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
    if (pscreen->is_format_supported(pscreen, pformat, PIPE_TEXTURE_2D, 0, 0,
                                     PIPE_BIND_RENDER_TARGET)) {
       features |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT;
-      /* SNORM blending on llvmpipe fails CTS - disable for now */
-      if (!util_format_is_snorm(pformat) &&
-          !util_format_is_pure_integer(pformat))
+      if (!util_format_is_pure_integer(pformat) &&
+          !(util_format_is_snorm(pformat) && !physical_device->snorm_blend))
          features |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT;
    }
 
@@ -197,6 +196,8 @@ lvp_physical_device_get_format_properties(struct lvp_physical_device *physical_d
        util_format_get_nr_components(pformat) != 3 &&
        !util_format_is_subsampled_422(pformat) &&
        !util_format_is_yuv(pformat) &&
+       pformat != PIPE_FORMAT_G8_B8R8_420_UNORM &&
+       pformat != PIPE_FORMAT_G8_B8_R8_420_UNORM &&
        pformat != PIPE_FORMAT_R10G10B10A2_SNORM &&
        pformat != PIPE_FORMAT_B10G10R10A2_SNORM &&
        pformat != PIPE_FORMAT_B10G10R10A2_UNORM) {
@@ -466,7 +467,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_GetPhysicalDeviceImageFormatProperties2(
       }
    }
 
-   if (external_info && external_info->handleType != 0) {
+   if (external_info && external_info->handleType != 0 && external_props) {
       VkExternalMemoryFeatureFlagBits flags = 0;
       VkExternalMemoryHandleTypeFlags export_flags = 0;
       VkExternalMemoryHandleTypeFlags compat_flags = 0;
@@ -509,18 +510,20 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_GetPhysicalDeviceImageFormatProperties2(
    return VK_SUCCESS;
 }
 
-VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceSparseImageFormatProperties(
-    VkPhysicalDevice                            physicalDevice,
-    VkFormat                                    format,
-    VkImageType                                 type,
-    VkSampleCountFlagBits                       samples,
-    VkImageUsageFlags                           usage,
-    VkImageTiling                               tiling,
-    uint32_t*                                   pNumProperties,
-    VkSparseImageFormatProperties*              pProperties)
+static void
+fill_sparse_image_format_properties(struct lvp_physical_device *pdev, VkImageType type,
+                                    VkFormat format, VkSampleCountFlagBits samples,
+                                    VkSparseImageFormatProperties *prop)
 {
-   /* Sparse images are not yet supported. */
-   *pNumProperties = 0;
+   enum pipe_format pformat = vk_format_to_pipe_format(format);
+
+   prop->aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+   prop->flags = 0;
+   prop->imageGranularity = (VkExtent3D){
+      .width = util_format_get_tilesize(pformat, type + 1, samples, 0),
+      .height = util_format_get_tilesize(pformat, type + 1, samples, 1),
+      .depth = util_format_get_tilesize(pformat, type + 1, samples, 2),
+   };
 }
 
 VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceSparseImageFormatProperties2(
@@ -529,9 +532,97 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceSparseImageFormatProperties2(
         uint32_t                                   *pPropertyCount,
         VkSparseImageFormatProperties2             *pProperties)
 {
-        /* Sparse images are not yet supported. */
-        *pPropertyCount = 0;
+   LVP_FROM_HANDLE(lvp_physical_device, physical_device, physicalDevice);
+   VkResult result;
+
+   if (pFormatInfo->samples > VK_SAMPLE_COUNT_1_BIT) {
+      *pPropertyCount = 0;
+      return;
+   }
+   const VkPhysicalDeviceImageFormatInfo2 fmt_info = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
+      .format = pFormatInfo->format,
+      .type = pFormatInfo->type,
+      .tiling = pFormatInfo->tiling,
+      .usage = pFormatInfo->usage,
+      .flags = VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT};
+
+   VkImageFormatProperties fmt_props;
+   result = lvp_get_image_format_properties(physical_device, &fmt_info,
+                                            &fmt_props);
+   if (result != VK_SUCCESS) {
+      *pPropertyCount = 0;
+      return;
+   }
+
+   VK_OUTARRAY_MAKE_TYPED(VkSparseImageFormatProperties2, out, pProperties, pPropertyCount);
+
+   vk_outarray_append_typed(VkSparseImageFormatProperties2, &out, prop)
+   {
+      fill_sparse_image_format_properties(physical_device, pFormatInfo->type, pFormatInfo->format,
+                                          pFormatInfo->samples, &prop->properties);
+   };
 }
+
+VKAPI_ATTR void VKAPI_CALL lvp_GetDeviceImageSparseMemoryRequirements(
+    VkDevice                                    _device,
+    const VkDeviceImageMemoryRequirements*      pInfo,
+    uint32_t*                                   pSparseMemoryRequirementCount,
+    VkSparseImageMemoryRequirements2*           pSparseMemoryRequirements)
+{
+   LVP_FROM_HANDLE(lvp_device, device, _device);
+
+   if (!(pInfo->pCreateInfo->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)) {
+      *pSparseMemoryRequirementCount = 0;
+      return;
+   }
+
+   VK_OUTARRAY_MAKE_TYPED(VkSparseImageMemoryRequirements2, out, pSparseMemoryRequirements,
+                          pSparseMemoryRequirementCount);
+
+   vk_outarray_append_typed(VkSparseImageMemoryRequirements2, &out, req)
+   {
+      fill_sparse_image_format_properties(device->physical_device, pInfo->pCreateInfo->imageType,
+                                          pInfo->pCreateInfo->format, pInfo->pCreateInfo->samples,
+                                          &req->memoryRequirements.formatProperties);
+
+      req->memoryRequirements.imageMipTailFirstLod = pInfo->pCreateInfo->mipLevels;
+      req->memoryRequirements.imageMipTailSize = 0;
+      req->memoryRequirements.imageMipTailOffset = 0;
+      req->memoryRequirements.imageMipTailStride = 0;
+   };
+}
+
+VKAPI_ATTR void VKAPI_CALL lvp_GetImageSparseMemoryRequirements2(
+   VkDevice                                    _device,
+   const VkImageSparseMemoryRequirementsInfo2* pInfo,
+   uint32_t* pSparseMemoryRequirementCount,
+   VkSparseImageMemoryRequirements2* pSparseMemoryRequirements)
+{
+   LVP_FROM_HANDLE(lvp_device, device, _device);
+   LVP_FROM_HANDLE(lvp_image, image, pInfo->image);
+
+   if (!(image->vk.create_flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)) {
+      *pSparseMemoryRequirementCount = 0;
+      return;
+   }
+
+   VK_OUTARRAY_MAKE_TYPED(VkSparseImageMemoryRequirements2, out, pSparseMemoryRequirements,
+                          pSparseMemoryRequirementCount);
+
+   vk_outarray_append_typed(VkSparseImageMemoryRequirements2, &out, req)
+   {
+      fill_sparse_image_format_properties(device->physical_device, image->vk.image_type,
+                                          image->vk.format, image->vk.samples,
+                                          &req->memoryRequirements.formatProperties);
+
+      req->memoryRequirements.imageMipTailFirstLod = image->vk.mip_levels;
+      req->memoryRequirements.imageMipTailSize = 0;
+      req->memoryRequirements.imageMipTailOffset = 0;
+      req->memoryRequirements.imageMipTailStride = 0;
+   };
+}
+
 
 VKAPI_ATTR void VKAPI_CALL lvp_GetPhysicalDeviceExternalBufferProperties(
    VkPhysicalDevice                            physicalDevice,

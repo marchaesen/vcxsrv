@@ -1,0 +1,75 @@
+spec:
+  inputs:
+    target:
+      description:
+        Build target in form of "OS-ARCH" pair (e.g., linux-amd64). Mostly the
+        same as platform string for Docker but with a hyphen instead of slash.
+    toolchain:
+      description:
+        An array of toolchains to test with. Each toolchain should have an
+        appropriate Meson cross file.
+      type: array
+      default: [gnu, llvm]
+    qemu_cpu:
+      description:
+        QEMU_CPU environmental variable used by Docker (which uses QEMU
+        underneath). It is not used by x86 targets, as they are executed
+        natively on the host.
+      default: ""
+    enable_gnu_coverage:
+      description:
+        Enable coverage build flags. It can be later used to compile a coverage
+        report for all the jobs. Should be enabled only for native build
+        environments as they have all the optional dependencies, and are the
+        most reliable and uniform (so disable for cross environments).
+      type: boolean
+      default: true
+    job_name_suffix:
+      description:
+        Additional suffix for the job name. Can be used to prevent job
+        duplication for jobs for the same target.
+      default: ""
+    allow_failure:
+      description:
+        Set the `allow_failure` flag for jobs that are expected to fail.
+        Remember to set `retry` argument to 0 to prevent unnecessary retries.
+      type: boolean
+      default: false
+    retry:
+      description:
+        Set the `retry` flag for a job. Usually used together with
+        `allow_failure`.
+      type: number
+      default: 1
+---
+
+"build:$[[ inputs.target ]]$[[ inputs.job_name_suffix ]]":
+  extends: .target:all
+  stage: build
+  allow_failure: $[[ inputs.allow_failure ]]
+  retry: $[[ inputs.retry ]]
+  needs:
+    - job: docker
+      optional: true
+      parallel:
+        matrix:
+          - TARGET: $[[ inputs.target ]]
+  variables:
+    TARGET: $[[ inputs.target ]]
+    QEMU_CPU: $[[ inputs.qemu_cpu ]]
+  parallel:
+    matrix:
+      - TOOLCHAIN: $[[ inputs.toolchain ]]
+  script:
+    - |
+      if [ "$[[ inputs.enable_gnu_coverage ]]" == "true" ] && [ "${TOOLCHAIN}" == "gnu" ]; then
+        COV_C_ARGS=-fprofile-update=atomic
+        COV_MESON_BUILD_ARGS=-Db_coverage=true
+      fi
+    - meson setup ${BUILD_DIR}
+        --cross-file .gitlab-ci.d/meson-cross/${TARGET}-${TOOLCHAIN}.meson
+        -Dc_args="${COV_C_ARGS}" ${COV_MESON_BUILD_ARGS}
+    - meson compile -C ${BUILD_DIR}
+  artifacts:
+    paths:
+      - ${BUILD_DIR}/

@@ -127,6 +127,14 @@ vn_sizeof_VkBufferCreateInfo_pnext(const void *val)
 
     while (pnext) {
         switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR:
+            if (!vn_cs_renderer_protocol_has_extension(471 /* VK_KHR_maintenance5 */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkBufferCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkBufferUsageFlags2CreateInfoKHR_self((const VkBufferUsageFlags2CreateInfoKHR *)pnext);
+            return size;
         case VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO:
             size += vn_sizeof_simple_pointer(pnext);
             size += vn_sizeof_VkStructureType(&pnext->sType);
@@ -159,7 +167,7 @@ vn_sizeof_VkBufferCreateInfo_self(const VkBufferCreateInfo *val)
     size += vn_sizeof_VkFlags(&val->usage);
     size += vn_sizeof_VkSharingMode(&val->sharingMode);
     size += vn_sizeof_uint32_t(&val->queueFamilyIndexCount);
-    if (val->pQueueFamilyIndices) {
+    if (val->sharingMode == VK_SHARING_MODE_CONCURRENT) {
         size += vn_sizeof_array_size(val->queueFamilyIndexCount);
         size += vn_sizeof_uint32_t_array(val->pQueueFamilyIndices, val->queueFamilyIndexCount);
     } else {
@@ -187,6 +195,14 @@ vn_encode_VkBufferCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val)
 
     while (pnext) {
         switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR:
+            if (!vn_cs_renderer_protocol_has_extension(471 /* VK_KHR_maintenance5 */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkBufferCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkBufferUsageFlags2CreateInfoKHR_self(enc, (const VkBufferUsageFlags2CreateInfoKHR *)pnext);
+            return;
         case VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO:
             vn_encode_simple_pointer(enc, pnext);
             vn_encode_VkStructureType(enc, &pnext->sType);
@@ -218,7 +234,7 @@ vn_encode_VkBufferCreateInfo_self(struct vn_cs_encoder *enc, const VkBufferCreat
     vn_encode_VkFlags(enc, &val->usage);
     vn_encode_VkSharingMode(enc, &val->sharingMode);
     vn_encode_uint32_t(enc, &val->queueFamilyIndexCount);
-    if (val->pQueueFamilyIndices) {
+    if (val->sharingMode == VK_SHARING_MODE_CONCURRENT) {
         vn_encode_array_size(enc, val->queueFamilyIndexCount);
         vn_encode_uint32_t_array(enc, val->pQueueFamilyIndices, val->queueFamilyIndexCount);
     } else {

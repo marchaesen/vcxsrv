@@ -164,6 +164,8 @@ etna_transfer_unmap(struct pipe_context *pctx, struct pipe_transfer *ptrans)
 
       if (rsc->base.bind & PIPE_BIND_SAMPLER_VIEW)
          ctx->dirty |= ETNA_DIRTY_TEXTURE_CACHES;
+      if (rsc->base.bind & PIPE_BIND_CONSTANT_BUFFER)
+         ctx->dirty |= ETNA_DIRTY_SHADER_CACHES;
    }
 
    /* We need to have the patched data ready for the GPU. */

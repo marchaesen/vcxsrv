@@ -121,7 +121,7 @@ SOFTWARE.
 typedef struct _TimeStamp *TimeStampPtr;
 
 #ifndef _XTYPEDEF_CLIENTPTR
-typedef struct _Client *ClientPtr;      /* also in misc.h */
+typedef struct _Client *ClientPtr;
 
 #define _XTYPEDEF_CLIENTPTR
 #endif

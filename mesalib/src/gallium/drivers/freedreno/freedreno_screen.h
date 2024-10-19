@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2012 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -57,6 +39,20 @@ enum fd_gmem_reason {
    FD_GMEM_BLEND_ENABLED = BIT(3),
    FD_GMEM_LOGICOP_ENABLED = BIT(4),
    FD_GMEM_FB_READ = BIT(5),
+};
+
+/* Offset within GMEM of various "non-GMEM" things that GMEM is used to
+ * cache.  These offsets differ for gmem vs sysmem rendering (in sysmem
+ * mode, the entire GMEM can be used)
+ */
+struct fd6_gmem_config {
+   /* Color/depth CCU cache: */
+   uint32_t color_ccu_offset;
+   uint32_t depth_ccu_offset;
+
+   /* Vertex attrib cache (a750+): */
+   uint32_t vpc_attr_buf_size;
+   uint32_t vpc_attr_buf_offset;
 };
 
 struct fd_screen {
@@ -104,8 +100,7 @@ struct fd_screen {
 
    struct fd_dev_info dev_info;
    const struct fd_dev_info *info;
-   uint32_t ccu_offset_gmem;
-   uint32_t ccu_offset_bypass;
+   struct fd6_gmem_config config_gmem, config_sysmem;
 
    /* Bitmask of gmem_reasons that do not force GMEM path over bypass
     * for current generation.
@@ -261,7 +256,7 @@ is_a5xx(struct fd_screen *screen)
 static inline bool
 is_a6xx(struct fd_screen *screen)
 {
-   return screen->gen == 6;
+   return screen->gen >= 6;
 }
 
 /* is it using the ir3 compiler (shader isa introduced with a3xx)? */

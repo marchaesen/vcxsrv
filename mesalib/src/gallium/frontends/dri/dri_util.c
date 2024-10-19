@@ -52,8 +52,10 @@
 #include "main/debug_output.h"
 #include "main/errors.h"
 #include "loader/loader.h"
-#include "GL/internal/mesa_interface.h"
+#include "mesa_interface.h"
 #include "loader_dri_helper.h"
+#include "pipe-loader/pipe_loader.h"
+#include "pipe/p_screen.h"
 
 driOptionDescription __dri2ConfigOptions[] = {
       DRI_CONF_SECTION_DEBUG
@@ -99,23 +101,15 @@ setupLoaderExtensions(struct dri_screen *screen,
 __DRIscreen *
 driCreateNewScreen3(int scrn, int fd,
                     const __DRIextension **loader_extensions,
-                    const __DRIextension **driver_extensions,
-                    const __DRIconfig ***driver_configs, bool driver_name_is_inferred, void *data)
+                    enum dri_screen_type type,
+                    const __DRIconfig ***driver_configs, bool driver_name_is_inferred,
+                    bool has_multibuffer, void *data)
 {
-    static const __DRIextension *emptyExtensionList[] = { NULL };
     struct dri_screen *screen;
-    const __DRImesaCoreExtension *mesa = NULL;
 
     screen = CALLOC_STRUCT(dri_screen);
     if (!screen)
        return NULL;
-
-    assert(driver_extensions);
-    for (int i = 0; driver_extensions[i]; i++) {
-       if (strcmp(driver_extensions[i]->name, __DRI_MESA) == 0) {
-          mesa = (__DRImesaCoreExtension *)driver_extensions[i];
-       }
-    }
 
     setupLoaderExtensions(screen, loader_extensions);
     // dri2 drivers require working invalidate
@@ -126,10 +120,9 @@ driCreateNewScreen3(int scrn, int fd,
 
     screen->loaderPrivate = data;
 
-    /* This will be filled in by mesa->initScreen(). */
-    screen->extensions = emptyExtensionList;
     screen->fd = fd;
     screen->myNum = scrn;
+    screen->type = type;
 
     /* Option parsing before ->InitScreen(), as some options apply there. */
     driParseOptionInfo(&screen->optionInfo,
@@ -137,11 +130,34 @@ driCreateNewScreen3(int scrn, int fd,
     driParseConfigFiles(&screen->optionCache, &screen->optionInfo, screen->myNum,
                         "dri2", NULL, NULL, NULL, 0, NULL, 0);
 
-    *driver_configs = mesa->initScreen(screen, driver_name_is_inferred);
-    if (*driver_configs == NULL) {
-        dri_destroy_screen(screen);
-        return NULL;
-    }
+   (void) mtx_init(&screen->opencl_func_mutex, mtx_plain);
+
+   struct pipe_screen *pscreen = NULL;
+   switch (type) {
+   case DRI_SCREEN_DRI3:
+      pscreen = dri2_init_screen(screen, driver_name_is_inferred);
+      break;
+   case DRI_SCREEN_KOPPER:
+      pscreen = kopper_init_screen(screen, driver_name_is_inferred);
+      break;
+   case DRI_SCREEN_SWRAST:
+      pscreen = drisw_init_screen(screen, driver_name_is_inferred);
+      break;
+   case DRI_SCREEN_KMS_SWRAST:
+      pscreen = dri_swrast_kms_init_screen(screen, driver_name_is_inferred);
+      break;
+   default:
+      unreachable("unknown dri screen type");
+   }
+   if (pscreen == NULL) {
+      dri_destroy_screen(screen);
+      return NULL;
+   }
+   *driver_configs = dri_init_screen(screen, pscreen, has_multibuffer);
+   if (*driver_configs == NULL) {
+      dri_destroy_screen(screen);
+      return NULL;
+   }
 
     struct gl_constants consts = { 0 };
     gl_api api;
@@ -173,65 +189,6 @@ driCreateNewScreen3(int scrn, int fd,
     return opaque_dri_screen(screen);
 }
 
-__DRIscreen *
-driCreateNewScreen2(int scrn, int fd,
-                    const __DRIextension **loader_extensions,
-                    const __DRIextension **driver_extensions,
-                    const __DRIconfig ***driver_configs, void *data)
-{
-   return driCreateNewScreen3(scrn, fd, loader_extensions,
-                              driver_extensions,
-                              driver_configs, false, data);
-}
-
-static __DRIscreen *
-dri2CreateNewScreen(int scrn, int fd,
-                    const __DRIextension **extensions,
-                    const __DRIconfig ***driver_configs, void *data)
-{
-   return driCreateNewScreen3(scrn, fd, extensions,
-                              galliumdrm_driver_extensions,
-                              driver_configs, false, data);
-}
-
-static __DRIscreen *
-swkmsCreateNewScreen(int scrn, int fd,
-                     const __DRIextension **extensions,
-                     const __DRIconfig ***driver_configs, void *data)
-{
-   return driCreateNewScreen3(scrn, fd, extensions,
-                              dri_swrast_kms_driver_extensions,
-                              driver_configs, false, data);
-}
-
-/** swrast driver createNewScreen entrypoint. */
-static __DRIscreen *
-driSWRastCreateNewScreen(int scrn, const __DRIextension **extensions,
-                         const __DRIconfig ***driver_configs, void *data)
-{
-   return driCreateNewScreen3(scrn, -1, extensions,
-                              galliumsw_driver_extensions,
-                              driver_configs, false, data);
-}
-
-static __DRIscreen *
-driSWRastCreateNewScreen2(int scrn, const __DRIextension **extensions,
-                          const __DRIextension **driver_extensions,
-                          const __DRIconfig ***driver_configs, void *data)
-{
-   return driCreateNewScreen3(scrn, -1, extensions, driver_extensions,
-                               driver_configs, false, data);
-}
-
-static __DRIscreen *
-driSWRastCreateNewScreen3(int scrn, const __DRIextension **extensions,
-                          const __DRIextension **driver_extensions,
-                          const __DRIconfig ***driver_configs, bool driver_name_is_inferred, void *data)
-{
-   return driCreateNewScreen3(scrn, -1, extensions, driver_extensions,
-                               driver_configs, driver_name_is_inferred, data);
-}
-
 /**
  * Destroy the per-screen private information.
  *
@@ -239,7 +196,7 @@ driSWRastCreateNewScreen3(int scrn, const __DRIextension **extensions,
  * This function calls __DriverAPIRec::DestroyScreen on \p screenPrivate, calls
  * drmClose(), and finally frees \p screenPrivate.
  */
-static void driDestroyScreen(__DRIscreen *psp)
+void driDestroyScreen(__DRIscreen *psp)
 {
     if (psp) {
         /* No interaction with the X-server is possible at this point.  This
@@ -249,11 +206,6 @@ static void driDestroyScreen(__DRIscreen *psp)
 
         dri_destroy_screen(dri_screen(psp));
     }
-}
-
-static const __DRIextension **driGetExtensions(__DRIscreen *psp)
-{
-    return dri_screen(psp)->extensions;
 }
 
 /*@}*/
@@ -390,7 +342,7 @@ driGetConfigAttribIndex(const __DRIconfig *config,
  * \param value  returns the attribute's value
  * \return 1 for success, 0 for failure
  */
-static int
+int
 driGetConfigAttrib(const __DRIconfig *config,
                    unsigned int attrib, unsigned int *value)
 {
@@ -404,7 +356,7 @@ driGetConfigAttrib(const __DRIconfig *config,
  * \param value  returns the attribute's value
  * \return 1 for success, 0 for failure
  */
-static int
+int
 driIndexConfigAttrib(const __DRIconfig *config, int index,
                      unsigned int *attrib, unsigned int *value)
 {
@@ -667,7 +619,7 @@ driCreateNewContextForAPI(__DRIscreen *screen, int api,
                                    &error, data);
 }
 
-static __DRIcontext *
+__DRIcontext *
 driCreateNewContext(__DRIscreen *screen, const __DRIconfig *config,
                     __DRIcontext *shared, void *data)
 {
@@ -682,14 +634,14 @@ driCreateNewContext(__DRIscreen *screen, const __DRIconfig *config,
  * This function calls __DriverAPIRec::DestroyContext on \p contextPrivate, calls
  * drmDestroyContext(), and finally frees \p contextPrivate.
  */
-static void
+void
 driDestroyContext(__DRIcontext *pcp)
 {
     if (pcp)
         dri_destroy_context(dri_context(pcp));
 }
 
-static int
+int
 driCopyContext(__DRIcontext *dest, __DRIcontext *src, unsigned long mask)
 {
     (void) dest;
@@ -711,9 +663,9 @@ driCopyContext(__DRIcontext *dest, __DRIcontext *src, unsigned long mask)
  * for \c glXMakeCurrentReadSGI or GLX 1.3's \c glXMakeContextCurrent
  * function.
  */
-static int driBindContext(__DRIcontext *pcp,
-                          __DRIdrawable *pdp,
-                          __DRIdrawable *prp)
+int driBindContext(__DRIcontext *pcp,
+                   __DRIdrawable *pdp,
+                   __DRIdrawable *prp)
 {
    /*
     ** Assume error checking is done properly in glXMakeCurrent before
@@ -743,7 +695,7 @@ static int driBindContext(__DRIcontext *pcp,
  * While casting the opaque private pointers associated with the parameters
  * into their respective real types it also assures they are not \c NULL.
  */
-static int driUnbindContext(__DRIcontext *pcp)
+int driUnbindContext(__DRIcontext *pcp)
 {
     /*
     ** Assume error checking is done properly in glXMakeCurrent before
@@ -762,45 +714,11 @@ static int driUnbindContext(__DRIcontext *pcp)
 
 /*@}*/
 
-static __DRIdrawable *
-driCreateNewDrawable(__DRIscreen *psp,
-                     const __DRIconfig *config,
-                     void *data)
-{
-    assert(data != NULL);
-
-    struct dri_screen *screen = dri_screen(psp);
-    struct dri_drawable *drawable =
-       screen->create_drawable(screen, &config->modes, GL_FALSE, data);
-   drawable->buffer_age = 0;
-
-    return opaque_dri_drawable(drawable);
-}
-
-static void
+void
 driDestroyDrawable(__DRIdrawable *pdp)
 {
     dri_put_drawable(dri_drawable(pdp));
 }
-
-static __DRIbuffer *
-dri2AllocateBuffer(__DRIscreen *psp,
-                   unsigned int attachment, unsigned int format,
-                   int width, int height)
-{
-   struct dri_screen *screen = dri_screen(psp);
-
-   return screen->allocate_buffer(screen, attachment, format, width, height);
-}
-
-static void
-dri2ReleaseBuffer(__DRIscreen *psp, __DRIbuffer *buffer)
-{
-   struct dri_screen *screen = dri_screen(psp);
-
-   screen->release_buffer(buffer);
-}
-
 
 static int
 dri2ConfigQueryb(__DRIscreen *psp, const char *var, unsigned char *val)
@@ -855,7 +773,89 @@ dri2ConfigQuerys(__DRIscreen *psp, const char *var, char **val)
     return 0;
 }
 
-static unsigned int
+
+/**
+ * \brief the DRI2ConfigQueryExtension configQueryb method
+ */
+int
+dri2GalliumConfigQueryb(__DRIscreen *sPriv, const char *var,
+                        unsigned char *val)
+{
+   struct dri_screen *screen = dri_screen(sPriv);
+
+   if (!driCheckOption(&screen->dev->option_cache, var, DRI_BOOL))
+      return dri2ConfigQueryb(sPriv, var, val);
+
+   *val = driQueryOptionb(&screen->dev->option_cache, var);
+
+   return 0;
+}
+
+/**
+ * \brief the DRI2ConfigQueryExtension configQueryi method
+ */
+int
+dri2GalliumConfigQueryi(__DRIscreen *sPriv, const char *var, int *val)
+{
+   struct dri_screen *screen = dri_screen(sPriv);
+
+   if (!driCheckOption(&screen->dev->option_cache, var, DRI_INT) &&
+       !driCheckOption(&screen->dev->option_cache, var, DRI_ENUM))
+      return dri2ConfigQueryi(sPriv, var, val);
+
+    *val = driQueryOptioni(&screen->dev->option_cache, var);
+
+    return 0;
+}
+
+/**
+ * \brief the DRI2ConfigQueryExtension configQueryf method
+ */
+int
+dri2GalliumConfigQueryf(__DRIscreen *sPriv, const char *var, float *val)
+{
+   struct dri_screen *screen = dri_screen(sPriv);
+
+   if (!driCheckOption(&screen->dev->option_cache, var, DRI_FLOAT))
+      return dri2ConfigQueryf(sPriv, var, val);
+
+    *val = driQueryOptionf(&screen->dev->option_cache, var);
+
+    return 0;
+}
+
+/**
+ * \brief the DRI2ConfigQueryExtension configQuerys method
+ */
+int
+dri2GalliumConfigQuerys(__DRIscreen *sPriv, const char *var, char **val)
+{
+   struct dri_screen *screen = dri_screen(sPriv);
+
+   if (!driCheckOption(&screen->dev->option_cache, var, DRI_STRING))
+      return dri2ConfigQuerys(sPriv, var, val);
+
+    *val = driQueryOptionstr(&screen->dev->option_cache, var);
+
+    return 0;
+}
+
+/**
+ * \brief the DRI2ConfigQueryExtension struct.
+ *
+ * We first query the driver option cache. Then the dri2 option cache.
+ */
+const __DRI2configQueryExtension dri2GalliumConfigQueryExtension = {
+   .base = { __DRI2_CONFIG_QUERY, 2 },
+
+   .configQueryb        = dri2GalliumConfigQueryb,
+   .configQueryi        = dri2GalliumConfigQueryi,
+   .configQueryf        = dri2GalliumConfigQueryf,
+   .configQuerys        = dri2GalliumConfigQuerys,
+};
+
+
+unsigned int
 driGetAPIMask(__DRIscreen *screen)
 {
     return dri_screen(screen)->api_mask;
@@ -867,7 +867,7 @@ driGetAPIMask(__DRIscreen *screen)
  * DRI2 implements this inside the loader with only flushes handled by the
  * driver.
  */
-static void
+void
 driSwapBuffersWithDamage(__DRIdrawable *pdp, int nrects, const int *rects)
 {
    struct dri_drawable *drawable = dri_drawable(pdp);
@@ -877,7 +877,7 @@ driSwapBuffersWithDamage(__DRIdrawable *pdp, int nrects, const int *rects)
    drawable->swap_buffers_with_damage(drawable, nrects, rects);
 }
 
-static void
+void
 driSwapBuffers(__DRIdrawable *pdp)
 {
    struct dri_drawable *drawable = dri_drawable(pdp);
@@ -887,92 +887,12 @@ driSwapBuffers(__DRIdrawable *pdp)
    drawable->swap_buffers(drawable);
 }
 
-static int
+int
 driSWRastQueryBufferAge(__DRIdrawable *pdp)
 {
    struct dri_drawable *drawable = dri_drawable(pdp);
    return drawable->buffer_age;
 }
-
-/** Core interface */
-const __DRIcoreExtension driCoreExtension = {
-    .base = { __DRI_CORE, 2 },
-
-    .createNewScreen            = NULL,
-    .destroyScreen              = driDestroyScreen,
-    .getExtensions              = driGetExtensions,
-    .getConfigAttrib            = driGetConfigAttrib,
-    .indexConfigAttrib          = driIndexConfigAttrib,
-    .createNewDrawable          = NULL,
-    .destroyDrawable            = driDestroyDrawable,
-    .swapBuffers                = driSwapBuffers, /* swrast */
-    .swapBuffersWithDamage      = driSwapBuffersWithDamage, /* swrast */
-    .createNewContext           = driCreateNewContext, /* swrast */
-    .copyContext                = driCopyContext,
-    .destroyContext             = driDestroyContext,
-    .bindContext                = driBindContext,
-    .unbindContext              = driUnbindContext
-};
-
-#if HAVE_DRI2
-
-/** DRI2 interface */
-const __DRIdri2Extension driDRI2Extension = {
-    .base = { __DRI_DRI2, 5 },
-
-    .createNewScreen            = dri2CreateNewScreen,
-    .createNewDrawable          = driCreateNewDrawable,
-    .createNewContext           = driCreateNewContext,
-    .getAPIMask                 = driGetAPIMask,
-    .createNewContextForAPI     = driCreateNewContextForAPI,
-    .allocateBuffer             = dri2AllocateBuffer,
-    .releaseBuffer              = dri2ReleaseBuffer,
-    .createContextAttribs       = driCreateContextAttribs,
-    .createNewScreen2           = driCreateNewScreen2,
-    .createNewScreen3           = driCreateNewScreen3,
-};
-
-const __DRIdri2Extension swkmsDRI2Extension = {
-    .base = { __DRI_DRI2, 5 },
-
-    .createNewScreen            = swkmsCreateNewScreen,
-    .createNewDrawable          = driCreateNewDrawable,
-    .createNewContext           = driCreateNewContext,
-    .getAPIMask                 = driGetAPIMask,
-    .createNewContextForAPI     = driCreateNewContextForAPI,
-    .allocateBuffer             = dri2AllocateBuffer,
-    .releaseBuffer              = dri2ReleaseBuffer,
-    .createContextAttribs       = driCreateContextAttribs,
-    .createNewScreen2           = driCreateNewScreen2,
-    .createNewScreen3           = driCreateNewScreen3,
-};
-
-#endif
-
-const __DRIswrastExtension driSWRastExtension = {
-    .base = { __DRI_SWRAST, 5 },
-
-    .createNewScreen            = driSWRastCreateNewScreen,
-    .createNewDrawable          = driCreateNewDrawable,
-    .createNewContextForAPI     = driCreateNewContextForAPI,
-    .createContextAttribs       = driCreateContextAttribs,
-    .createNewScreen2           = driSWRastCreateNewScreen2,
-    .queryBufferAge             = driSWRastQueryBufferAge,
-    .createNewScreen3           = driSWRastCreateNewScreen3,
-};
-
-const __DRI2configQueryExtension dri2ConfigQueryExtension = {
-   .base = { __DRI2_CONFIG_QUERY, 2 },
-
-   .configQueryb        = dri2ConfigQueryb,
-   .configQueryi        = dri2ConfigQueryi,
-   .configQueryf        = dri2ConfigQueryf,
-   .configQuerys        = dri2ConfigQuerys,
-};
-
-const __DRI2flushControlExtension dri2FlushControlExtension = {
-   .base = { __DRI2_FLUSH_CONTROL, 1 }
-};
 
 /*
  * Note: the first match is returned, which is important for formats like
@@ -980,192 +900,190 @@ const __DRI2flushControlExtension dri2FlushControlExtension = {
  */
 static const struct {
    uint32_t    image_format;
-   mesa_format mesa_format;
    GLenum internal_format;
 } format_mapping[] = {
    {
       .image_format    = __DRI_IMAGE_FORMAT_RGB565,
-      .mesa_format     =        MESA_FORMAT_B5G6R5_UNORM,
       .internal_format =        GL_RGB565,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ARGB1555,
-      .mesa_format     =        MESA_FORMAT_B5G5R5A1_UNORM,
       .internal_format =        GL_RGB5_A1,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ABGR1555,
-      .mesa_format     =        MESA_FORMAT_R5G5B5A1_UNORM,
       .internal_format =        GL_RGB5_A1,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_XRGB8888,
-      .mesa_format     =        MESA_FORMAT_B8G8R8X8_UNORM,
       .internal_format =        GL_RGB8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ABGR16161616F,
-      .mesa_format     =        MESA_FORMAT_RGBA_FLOAT16,
       .internal_format =        GL_RGBA16F,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_XBGR16161616F,
-      .mesa_format     =        MESA_FORMAT_RGBX_FLOAT16,
       .internal_format =        GL_RGB16F,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ABGR16161616,
-      .mesa_format     =        MESA_FORMAT_RGBA_UNORM16,
       .internal_format =        GL_RGBA16,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_XBGR16161616,
-      .mesa_format     =        MESA_FORMAT_RGBX_UNORM16,
       .internal_format =        GL_RGB16,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ARGB2101010,
-      .mesa_format     =        MESA_FORMAT_B10G10R10A2_UNORM,
       .internal_format =        GL_RGB10_A2,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_XRGB2101010,
-      .mesa_format     =        MESA_FORMAT_B10G10R10X2_UNORM,
       .internal_format =        GL_RGB10,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ABGR2101010,
-      .mesa_format     =        MESA_FORMAT_R10G10B10A2_UNORM,
       .internal_format =        GL_RGB10_A2,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_XBGR2101010,
-      .mesa_format     =        MESA_FORMAT_R10G10B10X2_UNORM,
       .internal_format =        GL_RGB10,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ARGB8888,
-      .mesa_format     =        MESA_FORMAT_B8G8R8A8_UNORM,
       .internal_format =        GL_RGBA8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ABGR8888,
-      .mesa_format     =        MESA_FORMAT_R8G8B8A8_UNORM,
       .internal_format =        GL_RGBA8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_XBGR8888,
-      .mesa_format     =        MESA_FORMAT_R8G8B8X8_UNORM,
       .internal_format =        GL_RGB8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_R8,
-      .mesa_format     =        MESA_FORMAT_R_UNORM8,
       .internal_format =        GL_R8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_R8,
-      .mesa_format     =        MESA_FORMAT_L_UNORM8,
       .internal_format =        GL_R8,
    },
 #if UTIL_ARCH_LITTLE_ENDIAN
    {
       .image_format    = __DRI_IMAGE_FORMAT_GR88,
-      .mesa_format     =        MESA_FORMAT_RG_UNORM8,
       .internal_format =        GL_RG8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_GR88,
-      .mesa_format     =        MESA_FORMAT_LA_UNORM8,
       .internal_format =        GL_RG8,
    },
 #endif
    {
       .image_format    = __DRI_IMAGE_FORMAT_SABGR8,
-      .mesa_format     =        MESA_FORMAT_R8G8B8A8_SRGB,
       .internal_format =        GL_SRGB8_ALPHA8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_SARGB8,
-      .mesa_format     =        MESA_FORMAT_B8G8R8A8_SRGB,
       .internal_format =        GL_SRGB8_ALPHA8,
    },
    {
       .image_format = __DRI_IMAGE_FORMAT_SXRGB8,
-      .mesa_format  =           MESA_FORMAT_B8G8R8X8_SRGB,
       .internal_format =        GL_SRGB8,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_R16,
-      .mesa_format     =        MESA_FORMAT_R_UNORM16,
       .internal_format =        GL_R16,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_R16,
-      .mesa_format     =        MESA_FORMAT_L_UNORM16,
       .internal_format =        GL_R16,
    },
 #if UTIL_ARCH_LITTLE_ENDIAN
    {
       .image_format    = __DRI_IMAGE_FORMAT_GR1616,
-      .mesa_format     =        MESA_FORMAT_RG_UNORM16,
       .internal_format =        GL_RG16,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_GR1616,
-      .mesa_format     =        MESA_FORMAT_LA_UNORM16,
       .internal_format =        GL_RG16,
    },
 #endif
    {
       .image_format    = __DRI_IMAGE_FORMAT_ARGB4444,
-      .mesa_format     =        MESA_FORMAT_B4G4R4A4_UNORM,
       .internal_format =        GL_RGBA4,
    },
    {
       .image_format    = __DRI_IMAGE_FORMAT_ABGR4444,
-      .mesa_format     =        MESA_FORMAT_R4G4B4A4_UNORM,
       .internal_format =        GL_RGBA4,
    },
 };
 
 uint32_t
-driGLFormatToImageFormat(mesa_format format)
+driImageFormatToSizedInternalGLFormat(uint32_t image_format)
 {
    for (size_t i = 0; i < ARRAY_SIZE(format_mapping); i++)
-      if (format_mapping[i].mesa_format == format)
-         return format_mapping[i].image_format;
-
-   return __DRI_IMAGE_FORMAT_NONE;
-}
-
-uint32_t
-driGLFormatToSizedInternalGLFormat(mesa_format format)
-{
-   for (size_t i = 0; i < ARRAY_SIZE(format_mapping); i++)
-      if (format_mapping[i].mesa_format == format)
+      if (format_mapping[i].image_format == image_format)
          return format_mapping[i].internal_format;
 
    return GL_NONE;
 }
 
-mesa_format
-driImageFormatToGLFormat(uint32_t image_format)
+static int dri_vblank_mode(__DRIscreen *driScreen)
 {
-   for (size_t i = 0; i < ARRAY_SIZE(format_mapping); i++)
-      if (format_mapping[i].image_format == image_format)
-         return format_mapping[i].mesa_format;
-
-   return MESA_FORMAT_NONE;
+   GLint vblank_mode = DRI_CONF_VBLANK_DEF_INTERVAL_1;
+ 
+   dri2GalliumConfigQueryi(driScreen, "vblank_mode", &vblank_mode);
+ 
+   return vblank_mode;
+}
+ 
+int dri_get_initial_swap_interval(__DRIscreen *driScreen)
+{
+   int vblank_mode = dri_vblank_mode(driScreen);
+ 
+   switch (vblank_mode) {
+   case DRI_CONF_VBLANK_NEVER:
+   case DRI_CONF_VBLANK_DEF_INTERVAL_0:
+      return 0;
+   case DRI_CONF_VBLANK_DEF_INTERVAL_1:
+   case DRI_CONF_VBLANK_ALWAYS_SYNC:
+   default:
+      return 1;
+   }
+}
+ 
+bool dri_valid_swap_interval(__DRIscreen *driScreen, int interval)
+{
+   int vblank_mode = dri_vblank_mode(driScreen);
+ 
+   switch (vblank_mode) {
+   case DRI_CONF_VBLANK_NEVER:
+      if (interval != 0)
+         return false;
+      break;
+   case DRI_CONF_VBLANK_ALWAYS_SYNC:
+      if (interval <= 0)
+         return false;
+      break;
+   default:
+      break;
+   }
+ 
+   return true;
 }
 
-/** Image driver interface */
-const __DRIimageDriverExtension driImageDriverExtension = {
-    .base = { __DRI_IMAGE_DRIVER, 2 },
+struct pipe_screen *
+dri_get_pipe_screen(__DRIscreen *driScreen)
+{
+   struct dri_screen *screen = dri_screen(driScreen);
+   return screen->base.screen;
+}
 
-    .createNewScreen2           = driCreateNewScreen2,
-    .createNewDrawable          = driCreateNewDrawable,
-    .getAPIMask                 = driGetAPIMask,
-    .createContextAttribs       = driCreateContextAttribs,
-    .createNewScreen3           = driCreateNewScreen3,
-};
+int
+dri_get_screen_param(__DRIscreen *driScreen, enum pipe_cap param)
+{
+   struct pipe_screen *screen = dri_get_pipe_screen(driScreen);
+   return screen->get_param(screen, param);
+}

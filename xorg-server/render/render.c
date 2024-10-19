@@ -22,16 +22,16 @@
  * Author:  Keith Packard, SuSE, Inc.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
+#include <stdint.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/extensions/render.h>
 #include <X11/extensions/renderproto.h>
 #include <X11/Xfuncproto.h>
 
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
 
 #include "misc.h"
@@ -55,8 +55,6 @@
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
 #endif
-
-#include <stdint.h>
 
 static int ProcRenderQueryVersion(ClientPtr pClient);
 static int ProcRenderQueryPictFormats(ClientPtr pClient);
@@ -929,7 +927,7 @@ ProcRenderCreateGlyphSet(ClientPtr client)
     if (!glyphSet)
         return BadAlloc;
     /* security creation/labeling check */
-    rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->gsid, GlyphSetType,
+    rc = XaceHookResourceAccess(client, stuff->gsid, GlyphSetType,
                   glyphSet, X11_RESTYPE_NONE, NULL, DixCreateAccess);
     if (rc != Success)
         return rc;
@@ -1862,7 +1860,7 @@ ProcRenderCreateSolidFill(ClientPtr client)
     if (!pPicture)
         return error;
     /* security creation/labeling check */
-    error = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, PictureType,
+    error = XaceHookResourceAccess(client, stuff->pid, PictureType,
                      pPicture, X11_RESTYPE_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;
@@ -1901,7 +1899,7 @@ ProcRenderCreateLinearGradient(ClientPtr client)
     if (!pPicture)
         return error;
     /* security creation/labeling check */
-    error = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, PictureType,
+    error = XaceHookResourceAccess(client, stuff->pid, PictureType,
                      pPicture, X11_RESTYPE_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;
@@ -1941,7 +1939,7 @@ ProcRenderCreateRadialGradient(ClientPtr client)
     if (!pPicture)
         return error;
     /* security creation/labeling check */
-    error = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, PictureType,
+    error = XaceHookResourceAccess(client, stuff->pid, PictureType,
                      pPicture, X11_RESTYPE_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;
@@ -1980,7 +1978,7 @@ ProcRenderCreateConicalGradient(ClientPtr client)
     if (!pPicture)
         return error;
     /* security creation/labeling check */
-    error = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, PictureType,
+    error = XaceHookResourceAccess(client, stuff->pid, PictureType,
                      pPicture, X11_RESTYPE_NONE, NULL, DixCreateAccess);
     if (error != Success)
         return error;

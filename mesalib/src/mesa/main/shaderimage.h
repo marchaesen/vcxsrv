@@ -43,6 +43,12 @@ mesa_format
 _mesa_get_shader_image_format(GLenum format);
 
 /**
+ * Get the pixel type GL enum from the shader image format GL enum.
+ */
+GLenum
+_mesa_get_shader_image_pixel_type(GLenum image_format);
+
+/**
  * Get the GL image format class for a shader image format GL enum
  */
 GLenum

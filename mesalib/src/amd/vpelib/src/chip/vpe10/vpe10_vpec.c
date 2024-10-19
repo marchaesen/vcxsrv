@@ -26,7 +26,6 @@
 
 static struct vpec_funcs vpec_funcs = {
     .check_swmode_support    = vpe10_vpec_check_swmode_support,
-    .get_dcc_compression_cap = vpe10_vpec_get_dcc_compression_cap,
 };
 
 void vpe10_construct_vpec(struct vpe_priv *vpe_priv, struct vpec *vpec)
@@ -53,11 +52,4 @@ bool vpe10_vpec_check_swmode_support(struct vpec *vpec, enum vpe_swizzle_mode_va
     default:
         return false;
     }
-}
-
-bool vpe10_vpec_get_dcc_compression_cap(struct vpec *vpec,
-    const struct vpe_dcc_surface_param *input, struct vpe_surface_dcc_cap *output)
-{
-    output->capable = false;
-    return output->capable;
 }

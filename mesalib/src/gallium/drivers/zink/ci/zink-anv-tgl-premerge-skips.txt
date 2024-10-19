@@ -19,3 +19,9 @@ spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-gs-getuniformdv
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-vs-getuniformdv
 spec@ext_texture_array@fbo-depth-array
 spec@ext_texture_lod_bias@lodbias
+
+# tests taking more than 1 minute consistently
+# https://gitlab.freedesktop.org/mesa/mesa/-/jobs/65068886
+# https://gitlab.freedesktop.org/mesa/mesa/-/jobs/65070343
+KHR-GL46.texture_lod_bias.texture_lod_bias_all
+KHR-Single-GL46.arrays_of_arrays_gl.InteractionFunctionCalls1

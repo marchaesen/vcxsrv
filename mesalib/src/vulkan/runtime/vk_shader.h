@@ -253,6 +253,8 @@ struct vk_device_shader_ops {
                                           const struct vk_dynamic_graphics_state *state);
 };
 
+extern const struct vk_pipeline_robustness_state vk_robustness_disabled;
+
 #ifdef __cplusplus
 }
 #endif

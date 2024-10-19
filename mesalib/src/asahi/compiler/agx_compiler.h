@@ -26,7 +26,8 @@ extern "C" {
 #define AGX_NUM_UNIFORMS (512)
 
 /* Semi-arbitrary limit for spill slot allocation */
-#define AGX_NUM_MODELED_REGS (2048)
+#define AGX_NUM_MODELED_REGS_LOG2 (11)
+#define AGX_NUM_MODELED_REGS      (1 << AGX_NUM_MODELED_REGS_LOG2)
 
 /* Limit on number of sources for non-phi instructions */
 #define AGX_MAX_NORMAL_SOURCES (16)
@@ -82,8 +83,18 @@ typedef struct {
    unsigned channels_m1     : 3;
    enum agx_size size       : 2;
    enum agx_index_type type : 3;
-   unsigned padding         : 18;
+
+   /* If has_reg is set (during register allocation), the register assigned to
+    * this SSA value This is used with NORMAL. Contrast REGISTER which uses
+    * value instead.
+    *
+    * TODO: Unify.
+    */
+   unsigned reg : AGX_NUM_MODELED_REGS_LOG2;
+   bool has_reg     : 1;
+   unsigned padding : 6;
 } agx_index;
+static_assert(sizeof(agx_index) == 8, "packed");
 
 static inline unsigned
 agx_channels(agx_index idx)
@@ -170,6 +181,13 @@ agx_register_like(uint32_t imm, agx_index like)
 }
 
 static inline agx_index
+agx_as_register(agx_index x)
+{
+   assert(x.has_reg);
+   return agx_register_like(x.reg, x);
+}
+
+static inline agx_index
 agx_undef(enum agx_size size)
 {
    return (agx_index){
@@ -251,6 +269,23 @@ agx_is_equiv(agx_index left, agx_index right)
    return (left.type == right.type) && (left.value == right.value);
 }
 
+enum ra_class {
+   /* General purpose register */
+   RA_GPR,
+
+   /* Memory, used to assign stack slots */
+   RA_MEM,
+
+   /* Keep last */
+   RA_CLASSES,
+};
+
+static inline enum ra_class
+ra_class_for_index(agx_index idx)
+{
+   return idx.memory ? RA_MEM : RA_GPR;
+}
+
 enum agx_icond {
    AGX_ICOND_UEQ = 0,
    AGX_ICOND_ULT = 1,
@@ -296,9 +331,11 @@ enum agx_lod_mode {
    AGX_LOD_MODE_AUTO_LOD_BIAS_UNIFORM = 1,
    AGX_LOD_MODE_LOD_MIN_UNIFORM = 2,
    AGX_LOD_MODE_AUTO_LOD_BIAS = 5,
-   AGX_LOD_MODE_LOD_MIN = 6,
    AGX_LOD_MODE_LOD_GRAD = 4,
-   AGX_LOD_MODE_LOD_GRAD_MIN = 12
+   AGX_LOD_MODE_LOD_MIN = 6,
+   AGX_LOD_MODE_AUTO_LOD_BIAS_MIN_UNIFORM = 9,
+   AGX_LOD_MODE_LOD_GRAD_MIN = 12,
+   AGX_LOD_MODE_AUTO_LOD_BIAS_MIN = 13,
 };
 
 /* Forward declare for branch target */
@@ -365,8 +402,14 @@ typedef struct {
    bool query_lod         : 1;
    enum agx_gather gather : 3;
 
+   /* TODO: Handle tilebuffer ops more efficient */
+   bool explicit_coords : 1;
+
    /* TODO: Handle iter ops more efficient */
    enum agx_interpolation interpolation : 2;
+
+   /* TODO: Handle loads more efficiently */
+   bool coherent : 1;
 
    /* Final st_vary op */
    bool last : 1;
@@ -434,7 +477,7 @@ typedef struct {
    nir_shader *nir;
    gl_shader_stage stage;
    bool is_preamble;
-   unsigned scratch_size;
+   unsigned scratch_size_B;
 
    struct list_head blocks; /* list of agx_block */
    struct agx_shader_info *out;
@@ -490,7 +533,7 @@ typedef struct {
    /* Beginning of our stack allocation used for spilling, below that is
     * NIR-level scratch.
     */
-   unsigned spill_base;
+   unsigned spill_base_B;
 
    /* Beginning of stack allocation used for parallel copy lowering */
    bool has_spill_pcopy_reserved;
@@ -962,7 +1005,8 @@ void agx_print_index(agx_index index, bool is_float, FILE *fp);
 void agx_print_instr(const agx_instr *I, FILE *fp);
 void agx_print_block(const agx_block *block, FILE *fp);
 void agx_print_shader(const agx_context *ctx, FILE *fp);
-void agx_optimizer(agx_context *ctx);
+void agx_optimizer_forward(agx_context *ctx);
+void agx_optimizer_backward(agx_context *ctx);
 void agx_lower_divergent_shuffle(agx_context *ctx);
 void agx_lower_pseudo(agx_context *ctx);
 void agx_lower_spill(agx_context *ctx);
@@ -985,11 +1029,16 @@ void agx_pack_binary(agx_context *ctx, struct util_dynarray *emission);
 
 #ifndef NDEBUG
 void agx_validate(agx_context *ctx, const char *after_str);
+void agx_validate_ra(agx_context *ctx);
 #else
 static inline void
 agx_validate(UNUSED agx_context *ctx, UNUSED const char *after_str)
 {
-   return;
+}
+
+static inline void
+agx_validate_ra(UNUSED agx_context *ctx)
+{
 }
 #endif
 

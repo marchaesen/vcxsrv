@@ -208,6 +208,14 @@ try_copy_prop(struct v3d_compile *c, struct qinst *inst, struct qinst **movs)
                                         break;
                                 }
                         }
+
+                        /* These are only available with FMOV */
+                        if (mov->qpu.alu.mul.a.unpack >= V3D71_QPU_UNPACK_SAT &&
+                            mov->qpu.alu.mul.a.unpack <= V3D71_QPU_UNPACK_MAX0 &&
+                            inst->qpu.alu.mul.op != V3D_QPU_M_FMOV) {
+                            assert(c->devinfo->ver >= 71);
+                            return false;
+                        }
                 }
 
                 if (debug) {

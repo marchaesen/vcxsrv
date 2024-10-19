@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import time
+from functools import cache
 from pathlib import Path
 
 GITLAB_URL = "https://gitlab.freedesktop.org"
@@ -28,8 +29,14 @@ TOKEN_PREFIXES: dict[str, str] = {
     "Feed token": "glft-",
     "Incoming mail token": "glimt-",
     "GitLab Agent for Kubernetes token": "glagent-",
-    "SCIM Tokens": "glsoat-"
+    "SCIM Tokens": "glsoat-",
 }
+
+
+@cache
+def print_once(*args, **kwargs):
+    """Print without spamming the output"""
+    print(*args, **kwargs)
 
 
 def pretty_duration(seconds):
@@ -37,21 +44,25 @@ def pretty_duration(seconds):
     hours, rem = divmod(seconds, 3600)
     minutes, seconds = divmod(rem, 60)
     if hours:
-        return f"{hours:0.0f}h{minutes:0.0f}m{seconds:0.0f}s"
+        return f"{hours:0.0f}h{minutes:02.0f}m{seconds:02.0f}s"
     if minutes:
-        return f"{minutes:0.0f}m{seconds:0.0f}s"
+        return f"{minutes:0.0f}m{seconds:02.0f}s"
     return f"{seconds:0.0f}s"
 
 
-def get_gitlab_pipeline_from_url(gl, pipeline_url):
-    assert pipeline_url.startswith(GITLAB_URL)
-    url_path = pipeline_url[len(GITLAB_URL) :]
-    url_path_components = url_path.split("/")
-    project_name = "/".join(url_path_components[1:3])
-    assert url_path_components[3] == "-"
-    assert url_path_components[4] == "pipelines"
-    pipeline_id = int(url_path_components[5])
-    cur_project = gl.projects.get(project_name)
+def get_gitlab_pipeline_from_url(gl, pipeline_url) -> tuple:
+    """
+    Extract the project and pipeline object from the url string
+    :param gl: Gitlab object
+    :param pipeline_url: string with a url to a pipeline
+    :return: ProjectPipeline, Project objects
+    """
+    pattern = rf"^{re.escape(GITLAB_URL)}/(.*)/-/pipelines/([0-9]+)$"
+    match = re.match(pattern, pipeline_url)
+    if not match:
+        raise AssertionError(f"url {pipeline_url} doesn't follow the pattern {pattern}")
+    namespace_with_project, pipeline_id = match.groups()
+    cur_project = gl.projects.get(namespace_with_project)
     pipe = cur_project.pipelines.get(pipeline_id)
     return pipe, cur_project
 
@@ -88,19 +99,23 @@ def get_token_from_default_dir() -> str:
 
 
 def validate_gitlab_token(token: str) -> bool:
-    token_suffix = token.split("-")[-1]
+    # Match against recognised token prefixes
+    token_suffix = None
+    for token_type, token_prefix in TOKEN_PREFIXES.items():
+        if token.startswith(token_prefix):
+            logging.info(f"Found probable token type: {token_type}")
+            token_suffix = token[len(token_prefix):]
+            break
+
+    if not token_suffix:
+        return False
+
     # Basic validation of the token suffix based on:
     # https://gitlab.com/gitlab-org/gitlab/-/blob/master/gems/gitlab-secret_detection/lib/gitleaks.toml
     if not re.match(r"(\w+-)?[0-9a-zA-Z_\-]{20,64}", token_suffix):
         return False
 
-    for token_type, token_prefix in TOKEN_PREFIXES.items():
-        if token.startswith(token_prefix):
-            logging.info(f"Found probable token type: {token_type}")
-            return True
-
-    # If the token type is not recognized, return False
-    return False
+    return True
 
 
 def get_token_from_arg(token_arg: str | Path | None) -> str | None:

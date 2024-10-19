@@ -60,7 +60,6 @@ nir_lower_clip_halfz(nir_shader *shader)
       return;
 
    nir_shader_intrinsics_pass(shader, lower_pos_write,
-                                nir_metadata_block_index |
-                                   nir_metadata_dominance,
+                                nir_metadata_control_flow,
                                 NULL);
 }

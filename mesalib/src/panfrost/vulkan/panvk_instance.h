@@ -21,7 +21,15 @@ enum panvk_debug_flags {
    PANVK_DEBUG_LINEAR = 1 << 5,
    PANVK_DEBUG_DUMP = 1 << 6,
    PANVK_DEBUG_NO_KNOWN_WARN = 1 << 7,
+   PANVK_DEBUG_CS = 1 << 8,
+   PANVK_DEBUG_COPY_GFX = 1 << 9,
 };
+
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR) || \
+    defined(VK_USE_PLATFORM_XCB_KHR) || \
+    defined(VK_USE_PLATFORM_XLIB_KHR)
+#define PANVK_USE_WSI_PLATFORM
+#endif
 
 struct panvk_instance {
    struct vk_instance vk;
@@ -29,6 +37,8 @@ struct panvk_instance {
    uint32_t api_version;
 
    enum panvk_debug_flags debug_flags;
+
+   uint8_t driver_build_sha[20];
 
    struct {
       struct pan_kmod_allocator allocator;

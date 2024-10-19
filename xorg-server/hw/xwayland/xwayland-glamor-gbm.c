@@ -32,6 +32,10 @@
 
 #include <fcntl.h>
 #include <errno.h>
+#include <poll.h>
+#ifdef DRI3
+#include <sys/eventfd.h>
+#endif /* DRI3 */
 #include <sys/stat.h>
 #include <xf86drm.h>
 #include <drm_fourcc.h>
@@ -55,6 +59,7 @@
 #include "xwayland-glamor-gbm.h"
 #include "xwayland-pixmap.h"
 #include "xwayland-screen.h"
+#include "xwayland-window-buffers.h"
 
 #include "linux-dmabuf-unstable-v1-client-protocol.h"
 #include "linux-drm-syncobj-v1-client-protocol.h"
@@ -82,6 +87,12 @@ struct xwl_pixmap {
     unsigned int texture;
     struct gbm_bo *bo;
     Bool implicit_modifier;
+#ifdef DRI3
+    struct dri3_syncobj *syncobj;
+    uint64_t timeline_point;
+    int efd;
+    struct xwl_window_buffer *xwl_window_buffer;
+#endif /* DRI3 */
 };
 
 static DevPrivateKeyRec xwl_gbm_private_key;
@@ -225,6 +236,9 @@ xwl_glamor_gbm_create_pixmap_for_bo(ScreenPtr screen, struct gbm_bo *bo,
     xwl_pixmap->bo = bo;
     xwl_pixmap->buffer = NULL;
     xwl_pixmap->implicit_modifier = implicit_modifier;
+#if defined(XWL_HAS_GLAMOR) && defined(DRI3)
+    xwl_pixmap->efd = -1;
+#endif /* defined(XWL_HAS_GLAMOR) && defined(DRI3) */
 
 #ifdef GBM_BO_FD_FOR_PLANE
     if (xwl_gbm->dmabuf_capable) {
@@ -445,6 +459,7 @@ xwl_glamor_gbm_destroy_pixmap(PixmapPtr pixmap)
         eglDestroyImageKHR(xwl_screen->egl_display, xwl_pixmap->image);
         if (xwl_pixmap->bo)
            gbm_bo_destroy(xwl_pixmap->bo);
+        xwl_glamor_gbm_dispose_syncpts(pixmap);
         free(xwl_pixmap);
     }
 
@@ -666,6 +681,7 @@ xwl_auth_state_client_callback(CallbackListPtr *pcbl, void *unused, void *data)
     }
 }
 
+#ifdef DRI3
 static void
 sync_callback(void *data, struct wl_callback *callback, uint32_t serial)
 {
@@ -728,6 +744,7 @@ xwl_dri3_open_client(ClientPtr client,
 
     return Success;
 }
+#endif /* DRI3 */
 
 PixmapPtr
 glamor_pixmap_from_fds(ScreenPtr screen, CARD8 num_fds, const int *fds,
@@ -968,6 +985,7 @@ xwl_glamor_dmabuf_import_sync_file(PixmapPtr pixmap, int sync_file)
     close(sync_file);
 }
 
+#ifdef DRI3
 struct xwl_dri3_syncobj
 {
     struct dri3_syncobj base;
@@ -1226,6 +1244,7 @@ static dri3_screen_info_rec xwl_dri3_info = {
     .get_drawable_modifiers = xwl_glamor_get_drawable_modifiers,
     .import_syncobj = NULL, /* need to check for kernel support */
 };
+#endif /* DRI3 */
 
 static const char *
 get_render_node_path_for_device(const drmDevicePtr drm_device,
@@ -1388,6 +1407,21 @@ xwl_glamor_gbm_has_egl_extension(void)
             epoxy_has_egl_extension(NULL, "EGL_KHR_platform_gbm"));
 }
 
+#ifdef DRI3
+static void
+xwl_glamor_gbm_release_fence_avail(int fd, int xevents, void *data)
+{
+    struct xwl_pixmap *xwl_pixmap = data;
+    struct xwl_window_buffer *xwl_window_buffer = xwl_pixmap->xwl_window_buffer;
+
+    SetNotifyFd(fd, NULL, 0, NULL);
+    close(fd);
+    xwl_pixmap->efd = -1;
+
+    xwl_window_buffer_release(xwl_window_buffer);
+}
+#endif /* DRI3 */
+
 Bool
 xwl_glamor_supports_implicit_sync(struct xwl_screen *xwl_screen)
 {
@@ -1401,6 +1435,122 @@ xwl_glamor_supports_syncobjs(struct xwl_screen *xwl_screen)
 {
     return xwl_screen->glamor &&
         xwl_gbm_get(xwl_screen)->supports_syncobjs;
+}
+
+Bool
+xwl_glamor_gbm_set_syncpts(struct xwl_window *xwl_window, PixmapPtr pixmap)
+{
+#ifdef DRI3
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
+    uint64_t acquire_point;
+    uint64_t release_point;
+    int fence_fd;
+
+    if (!xwl_screen->glamor)
+        return FALSE;
+
+    if (!xwl_pixmap) {
+        ErrorF("XWAYLAND: Failed to set synchronization point, no backing xwl_pixmap!\n");
+        return FALSE;
+    }
+
+    acquire_point = ++xwl_pixmap->timeline_point;
+    release_point = ++xwl_pixmap->timeline_point;
+
+    if (!xwl_pixmap->syncobj) {
+        struct dri3_syncobj *syncobj = xwl_glamor_dri3_syncobj_create(xwl_screen);
+        if (!syncobj)
+            goto fail;
+        xwl_pixmap->syncobj = syncobj;
+    }
+
+    fence_fd = xwl_glamor_get_fence(xwl_screen);
+    if (fence_fd >= 0)
+        xwl_pixmap->syncobj->import_fence(xwl_pixmap->syncobj, acquire_point, fence_fd);
+    else
+        goto fail;
+
+    xwl_glamor_dri3_syncobj_passthrough(xwl_window,
+                                        xwl_pixmap->syncobj,
+                                        xwl_pixmap->syncobj,
+                                        acquire_point,
+                                        release_point);
+    return TRUE;
+
+fail:
+    /* can't use explicit sync, we will do a glFinish() before presenting */
+    if (xwl_pixmap->syncobj) {
+        xwl_pixmap->syncobj->free(xwl_pixmap->syncobj);
+        xwl_pixmap->syncobj = NULL;
+    }
+#endif /* DRI3 */
+    return FALSE;
+}
+
+void
+xwl_glamor_gbm_dispose_syncpts(PixmapPtr pixmap)
+{
+#ifdef DRI3
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
+    struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
+
+    if (!xwl_screen->glamor || !xwl_pixmap)
+        return;
+
+    if (xwl_pixmap->syncobj) {
+        xwl_pixmap->syncobj->free(xwl_pixmap->syncobj);
+        xwl_pixmap->syncobj = NULL;
+    }
+
+    if (xwl_pixmap->efd >= 0) {
+        SetNotifyFd(xwl_pixmap->efd, NULL, 0, NULL);
+        close(xwl_pixmap->efd);
+    }
+#endif /* DRI3 */
+}
+
+void
+xwl_glamor_gbm_wait_syncpts(PixmapPtr pixmap)
+{
+#ifdef DRI3
+    struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
+    int fence_fd;
+
+    if (!xwl_screen->glamor || !xwl_pixmap)
+        return;
+
+    if (xwl_pixmap->syncobj) {
+        fence_fd = xwl_pixmap->syncobj->export_fence(xwl_pixmap->syncobj,
+                                                     xwl_pixmap->timeline_point);
+        xwl_glamor_wait_fence(xwl_screen, fence_fd);
+        close(fence_fd);
+    }
+#endif /* DRI3 */
+}
+
+void
+xwl_glamor_gbm_wait_release_fence(struct xwl_window *xwl_window,
+                                  PixmapPtr pixmap,
+                                  struct xwl_window_buffer *xwl_window_buffer)
+{
+#ifdef DRI3
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
+    struct xwl_screen *xwl_screen = xwl_screen_get(pixmap->drawable.pScreen);
+
+    if (!xwl_screen->glamor || !xwl_pixmap || !xwl_window_buffer)
+        return;
+
+    xwl_pixmap->xwl_window_buffer = xwl_window_buffer;
+    /* wait until the release fence is available before re-using this buffer */
+    xwl_pixmap->efd = eventfd(0, EFD_CLOEXEC);
+    SetNotifyFd(xwl_pixmap->efd, xwl_glamor_gbm_release_fence_avail, X_NOTIFY_READ,
+                xwl_pixmap);
+    xwl_pixmap->syncobj->submitted_eventfd(xwl_pixmap->syncobj,
+                                           xwl_pixmap->timeline_point,
+                                           xwl_pixmap->efd);
+#endif /* DRI3 */
 }
 
 static Bool
@@ -1514,6 +1664,11 @@ xwl_glamor_gbm_init_main_dev(struct xwl_screen *xwl_screen)
     }
 
     main_dev = xwl_screen->default_feedback.main_dev;
+    if (!main_dev) {
+        ErrorF("No main linux-dmabuf device advertised by compositor\n");
+        return FALSE;
+    }
+
     if (!(main_dev->available_nodes & (1 << DRM_NODE_RENDER))) {
         ErrorF("Main linux-dmabuf device has no render node\n");
         return FALSE;
@@ -1619,7 +1774,7 @@ xwl_glamor_gbm_init_egl(struct xwl_screen *xwl_screen)
     }
     /* NVIDIA driver does not support implicit sync */
     xwl_gbm->implicit_sync = !strstr(egl_vendor, "NVIDIA");
-
+#ifdef DRI3
     if (xwl_gbm_supports_syncobjs(xwl_screen) &&
         epoxy_has_egl_extension(xwl_screen->egl_display,
                                 "ANDROID_native_fence_sync"))
@@ -1630,7 +1785,7 @@ xwl_glamor_gbm_init_egl(struct xwl_screen *xwl_screen)
         wp_linux_drm_syncobj_manager_v1_destroy(xwl_screen->explicit_sync);
         xwl_screen->explicit_sync = NULL;
     }
-
+#endif /* DRI3 */
     return TRUE;
 error:
     if (xwl_screen->egl_display != EGL_NO_DISPLAY) {
@@ -1647,7 +1802,7 @@ Bool
 xwl_glamor_gbm_init_screen(struct xwl_screen *xwl_screen)
 {
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
-
+#ifdef DRI3
     if (xwl_gbm->supports_syncobjs) {
         xwl_dri3_info.version = 4;
         xwl_dri3_info.import_syncobj = xwl_dri3_import_syncobj;
@@ -1657,7 +1812,7 @@ xwl_glamor_gbm_init_screen(struct xwl_screen *xwl_screen)
         ErrorF("Failed to initialize dri3\n");
         goto error;
     }
-
+#endif /* DRI3 */
     if (xwl_gbm->fd_render_node)
         goto skip_drm_auth;
 
@@ -1701,7 +1856,7 @@ xwl_glamor_init_gbm(struct xwl_screen *xwl_screen)
     if (!dixRegisterPrivateKey(&xwl_gbm_private_key, PRIVATE_SCREEN, 0))
         return FALSE;
 
-    xwl_gbm = calloc(sizeof(*xwl_gbm), 1);
+    xwl_gbm = calloc(1, sizeof(*xwl_gbm));
     if (!xwl_gbm) {
         ErrorF("glamor: Not enough memory to setup GBM, disabling\n");
         return FALSE;

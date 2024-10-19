@@ -14,3 +14,7 @@ option('nls',
        type: 'boolean',
        value: true,
        description: 'build with native language support (NLS) [default=true]')
+option('non-latin-layouts-list',
+       type: 'boolean',
+       value: false,
+       description: 'create the list of non-Latin layouts [default=false]')

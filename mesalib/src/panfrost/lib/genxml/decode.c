@@ -213,6 +213,12 @@ GENX(pandecode_blend)(struct pandecode_context *ctx, void *descs, int rt_no,
 #if PAN_ARCH >= 6
    if (b.internal.mode != MALI_BLEND_MODE_SHADER)
       return 0;
+   /* If we don't have a frag shader, we can't extract the LSB of the blend
+    * shader so return NULL in that case. It doesn't matter, because the
+    * blend shader won't be executed anyway, so disassembling is not
+    * super useful. */
+   if (!frag_shader)
+      return 0;
 
    return (frag_shader & 0xFFFFFFFF00000000ULL) | b.internal.shader.pc;
 #else
@@ -241,6 +247,9 @@ pandecode_texture_payload(struct pandecode_context *ctx, mali_ptr payload,
 {
    unsigned nr_samples =
       tex->dimension == MALI_TEXTURE_DIMENSION_3D ? 1 : tex->sample_count;
+
+   if (!payload)
+      return;
 
    /* A bunch of bitmap pointers follow.
     * We work out the correct number,

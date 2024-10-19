@@ -27,6 +27,23 @@ agx_print_sized(char prefix, unsigned value, enum agx_size size, FILE *fp)
    unreachable("Invalid size");
 }
 
+static void
+agx_print_reg(agx_index index, unsigned value, FILE *fp)
+{
+   agx_print_sized('r', value, index.size, fp);
+
+   if (agx_channels(index) > 1) {
+      unsigned last =
+         value + agx_size_align_16(index.size) * (agx_channels(index) - 1);
+
+      fprintf(fp, "...");
+
+      if (index.memory)
+         fprintf(fp, "m");
+      agx_print_sized('r', last, index.size, fp);
+   }
+}
+
 void
 agx_print_index(agx_index index, bool is_float, FILE *fp)
 {
@@ -70,30 +87,29 @@ agx_print_index(agx_index index, bool is_float, FILE *fp)
       break;
 
    case AGX_INDEX_REGISTER:
-      agx_print_sized('r', index.value, index.size, fp);
-
-      if (agx_channels(index) > 1) {
-         unsigned last = index.value + agx_size_align_16(index.size) *
-                                          (agx_channels(index) - 1);
-
-         fprintf(fp, "...");
-
-         if (index.memory)
-            fprintf(fp, "m");
-         agx_print_sized('r', last, index.size, fp);
-      }
+      agx_print_reg(index, index.value, fp);
       break;
 
    default:
       unreachable("Invalid index type");
    }
 
-   /* Print length suffixes if not implied */
    if (index.type == AGX_INDEX_NORMAL) {
+      /* Print length suffixes if not implied */
       if (index.size == AGX_SIZE_16)
          fprintf(fp, "h");
       else if (index.size == AGX_SIZE_64)
          fprintf(fp, "d");
+
+      /* Print assigned register if we have one */
+      if (index.has_reg) {
+         fprintf(fp, "(");
+         if (index.memory)
+            fprintf(fp, "m");
+
+         agx_print_reg(index, index.reg, fp);
+         fprintf(fp, ")");
+      }
    }
 
    if (index.abs)

@@ -22,11 +22,11 @@ lower_interp_center_smooth(nir_builder *b, nir_def *offset)
    nir_def *pull_model = nir_load_barycentric_model(b, 32);
 
    nir_def *deriv_x =
-      nir_vec3(b, nir_fddx_fine(b, nir_channel(b, pull_model, 0)), nir_fddx_fine(b, nir_channel(b, pull_model, 1)),
-               nir_fddx_fine(b, nir_channel(b, pull_model, 2)));
+      nir_vec3(b, nir_ddx_fine(b, nir_channel(b, pull_model, 0)), nir_ddx_fine(b, nir_channel(b, pull_model, 1)),
+               nir_ddx_fine(b, nir_channel(b, pull_model, 2)));
    nir_def *deriv_y =
-      nir_vec3(b, nir_fddy_fine(b, nir_channel(b, pull_model, 0)), nir_fddy_fine(b, nir_channel(b, pull_model, 1)),
-               nir_fddy_fine(b, nir_channel(b, pull_model, 2)));
+      nir_vec3(b, nir_ddy_fine(b, nir_channel(b, pull_model, 0)), nir_ddy_fine(b, nir_channel(b, pull_model, 1)),
+               nir_ddy_fine(b, nir_channel(b, pull_model, 2)));
 
    nir_def *offset_x = nir_channel(b, offset, 0);
    nir_def *offset_y = nir_channel(b, offset, 1);
@@ -234,8 +234,7 @@ lower_load_barycentric_coord(nir_builder *b, lower_fs_barycentric_state *state, 
       }
    }
 
-   nir_def_rewrite_uses(&intrin->def, new_dest);
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, new_dest);
 
    return true;
 }

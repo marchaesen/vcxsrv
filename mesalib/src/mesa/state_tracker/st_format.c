@@ -1569,6 +1569,42 @@ st_QueryTextureFormatSupport(struct gl_context *ctx, GLenum target, GLenum inter
 
 
 /**
+ * Called via ctx->Driver.QueryInternalFormat().
+ */
+static size_t
+st_QueryCompressionRatesForFormat(struct gl_context *ctx, GLenum target,
+                                  GLenum internalFormat, GLint rates[16])
+{
+   struct st_context *st = st_context(ctx);
+   struct pipe_screen *screen = st->screen;
+   enum pipe_format format;
+   int num_rates = 0;
+   uint32_t pipe_rates[16];
+   unsigned bind;
+
+   (void) target;
+
+   if (!screen->query_compression_rates)
+      return 0;
+
+   if (_mesa_is_depth_or_stencil_format(internalFormat))
+      bind = PIPE_BIND_DEPTH_STENCIL;
+   else
+      bind = PIPE_BIND_RENDER_TARGET;
+
+   format = st_choose_format(st, internalFormat, GL_NONE, GL_NONE,
+                             PIPE_TEXTURE_2D, 1, 1, bind,
+                             false, false);
+   screen->query_compression_rates(screen, format, 16, pipe_rates, &num_rates);
+   for (int i = 0; i < num_rates; ++i) {
+      rates[i] = st_from_pipe_compression_rate(pipe_rates[i]);
+   }
+
+   return num_rates;
+}
+
+
+/**
  * ARB_internalformat_query2 driver hook.
  */
 void
@@ -1656,6 +1692,31 @@ st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
                args[0], args[1], args[2]);
          }
       }
+      break;
+   }
+   case GL_SURFACE_COMPRESSION_EXT:
+      st_QueryCompressionRatesForFormat(ctx, target, internalFormat, params);
+      break;
+
+   case GL_NUM_SURFACE_COMPRESSION_FIXED_RATES_EXT: {
+      GLint rates[16];
+      size_t num_rates;
+      num_rates = st_QueryCompressionRatesForFormat(ctx, target, internalFormat,
+                                                    rates);
+      params[0] = (GLint) num_rates;
+      break;
+   }
+   case GL_FRAMEBUFFER_BLEND: {
+      if (target == GL_RENDERBUFFER)
+         target = GL_TEXTURE_2D;
+      enum pipe_texture_target ptarget = gl_target_to_pipe(target);
+      mesa_format format = st_ChooseTextureFormat(ctx, target, internalFormat, GL_NONE, GL_NONE);
+      enum pipe_format pformat = st_mesa_format_to_pipe_format(st, format);
+      struct pipe_screen *screen = st->screen;
+      bool supported = pformat != PIPE_FORMAT_NONE &&
+                       screen->is_format_supported(screen, pformat, ptarget, 0, 0,
+                                                   PIPE_BIND_BLENDABLE | PIPE_BIND_RENDER_TARGET);
+      params[0] = supported ? GL_FULL_SUPPORT : GL_NONE;
       break;
    }
    default:

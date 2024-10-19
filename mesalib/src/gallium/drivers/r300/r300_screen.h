@@ -35,6 +35,11 @@ struct r300_screen {
     /* The MSAA texture with CMASK access; */
     struct pipe_resource *cmask_resource;
     mtx_t cmask_mutex;
+
+    struct {
+#define OPT_BOOL(name, dflt, description) bool name : 1;
+#include "r300_debug_options.h"
+    } options;
 };
 
 

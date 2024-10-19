@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE OpenGLAPI SYSTEM "gl_API.dtd">
+
+<OpenGLAPI>
+
+<category name="GL_OVR_multiview_multisampled_render_to_texture">
+    <function name="FramebufferTextureMultisampleMultiviewOVR" es2="3.0" desktop="true" no_error="true">
+        <param name="target" type="GLenum"/>
+        <param name="attachment" type="GLenum"/>
+        <param name="texture" type="GLuint"/>
+        <param name="level" type="GLint"/>
+        <param name="samples" type="GLsizei"/>
+        <param name="baseviewindex" type="GLint"/>
+        <param name="numviews" type="GLsizei"/>
+    </function>
+</category>
+
+</OpenGLAPI>

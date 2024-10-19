@@ -78,53 +78,6 @@ extern _X_EXPORT void miPolyArc(DrawablePtr /*pDraw */ ,
                                 xArc *  /*parcs */
     );
 
-/* mibitblt.c */
-
-extern _X_EXPORT RegionPtr miCopyArea(DrawablePtr /*pSrcDrawable */ ,
-                                      DrawablePtr /*pDstDrawable */ ,
-                                      GCPtr /*pGC */ ,
-                                      int /*xIn */ ,
-                                      int /*yIn */ ,
-                                      int /*widthSrc */ ,
-                                      int /*heightSrc */ ,
-                                      int /*xOut */ ,
-                                      int       /*yOut */
-    );
-
-extern _X_EXPORT RegionPtr miCopyPlane(DrawablePtr /*pSrcDrawable */ ,
-                                       DrawablePtr /*pDstDrawable */ ,
-                                       GCPtr /*pGC */ ,
-                                       int /*srcx */ ,
-                                       int /*srcy */ ,
-                                       int /*width */ ,
-                                       int /*height */ ,
-                                       int /*dstx */ ,
-                                       int /*dsty */ ,
-                                       unsigned long    /*bitPlane */
-    );
-
-extern _X_EXPORT void miGetImage(DrawablePtr /*pDraw */ ,
-                                 int /*sx */ ,
-                                 int /*sy */ ,
-                                 int /*w */ ,
-                                 int /*h */ ,
-                                 unsigned int /*format */ ,
-                                 unsigned long /*planeMask */ ,
-                                 char * /*pdstLine */
-    );
-
-extern _X_EXPORT void miPutImage(DrawablePtr /*pDraw */ ,
-                                 GCPtr /*pGC */ ,
-                                 int /*depth */ ,
-                                 int /*x */ ,
-                                 int /*y */ ,
-                                 int /*w */ ,
-                                 int /*h */ ,
-                                 int /*leftPad */ ,
-                                 int /*format */ ,
-                                 char * /*pImage */
-    );
-
 /* micopy.c  */
 
 #define miGetCompositeClip(pGC) ((pGC)->pCompositeClip)
@@ -254,14 +207,6 @@ extern _X_EXPORT void miPaintWindow(WindowPtr /*pWin */ ,
 
 extern _X_EXPORT void miClearDrawable(DrawablePtr /*pDraw */ ,
                                       GCPtr     /*pGC */
-    );
-
-/* mifillrct.c */
-
-extern _X_EXPORT void miPolyFillRect(DrawablePtr /*pDrawable */ ,
-                                     GCPtr /*pGC */ ,
-                                     int /*nrectFill */ ,
-                                     xRectangle *       /*prectInit */
     );
 
 /* miglblt.c */

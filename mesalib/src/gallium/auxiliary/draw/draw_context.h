@@ -327,6 +327,9 @@ void draw_set_vertex_elements(struct draw_context *draw,
                               unsigned count,
                               const struct pipe_vertex_element *elements);
 
+void
+draw_set_viewmask(struct draw_context *draw, uint8_t viewmask);
+
 void draw_set_indexes(struct draw_context *draw,
                       const void *elements, unsigned elem_size,
                       unsigned available_space);

@@ -31,16 +31,13 @@
 
 #include "util/vl_rbsp.h"
 
-enum H264NALUnitType {
-    H264_NAL_SPS        = 7,
-    H264_NAL_PPS        = 8,
-};
-
 VAStatus
 vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf)
 {
    VAEncPictureParameterBufferH264 *h264;
    vlVaBuffer *coded_buf;
+   vlVaSurface *surf;
+   unsigned i;
 
    h264 = buf->data;
    if (h264->pic_fields.bits.idr_pic_flag == 1)
@@ -54,6 +51,38 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
       context->desc.h264enc.i_remain = context->gop_coeff;
    else if (context->desc.h264enc.frame_num == 1)
       context->desc.h264enc.i_remain--;
+
+   surf = handle_table_get(drv->htab, h264->CurrPic.picture_id);
+   if (!surf)
+      return VA_STATUS_ERROR_INVALID_PARAMETER;
+
+   for (i = 0; i < ARRAY_SIZE(context->desc.h264enc.dpb); i++) {
+      if (context->desc.h264enc.dpb[i].id == h264->CurrPic.picture_id) {
+         assert(surf->is_dpb);
+         break;
+      }
+      if (!context->desc.h264enc.dpb[i].id) {
+         assert(!surf->is_dpb);
+         surf->is_dpb = true;
+         if (surf->buffer) {
+            surf->buffer->destroy(surf->buffer);
+            surf->buffer = NULL;
+         }
+         if (context->decoder && context->decoder->create_dpb_buffer)
+            surf->buffer = context->decoder->create_dpb_buffer(context->decoder, &context->desc.base, &surf->templat);
+         vlVaSetSurfaceContext(drv, surf, context);
+         context->desc.h264enc.dpb_size++;
+         break;
+      }
+   }
+   if (i == ARRAY_SIZE(context->desc.h264enc.dpb))
+      return VA_STATUS_ERROR_INVALID_PARAMETER;
+   context->desc.h264enc.dpb_curr_pic = i;
+   context->desc.h264enc.dpb[i].id = h264->CurrPic.picture_id;
+   context->desc.h264enc.dpb[i].frame_idx = h264->CurrPic.frame_idx;
+   context->desc.h264enc.dpb[i].pic_order_cnt = h264->CurrPic.TopFieldOrderCnt;
+   context->desc.h264enc.dpb[i].is_ltr = h264->CurrPic.flags & VA_PICTURE_H264_LONG_TERM_REFERENCE;
+   context->desc.h264enc.dpb[i].buffer = surf->buffer;
 
    context->desc.h264enc.p_remain = context->desc.h264enc.gop_size - context->desc.h264enc.gop_cnt - context->desc.h264enc.i_remain;
 
@@ -99,8 +128,22 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    context->desc.h264enc.pic_ctrl.chroma_qp_index_offset = h264->chroma_qp_index_offset;
    context->desc.h264enc.pic_ctrl.second_chroma_qp_index_offset
       = h264->second_chroma_qp_index_offset;
+   context->desc.h264enc.pic_ctrl.constrained_intra_pred_flag =
+      h264->pic_fields.bits.constrained_intra_pred_flag;
+   context->desc.h264enc.pic_ctrl.transform_8x8_mode_flag =
+      h264->pic_fields.bits.transform_8x8_mode_flag;
 
    return VA_STATUS_SUCCESS;
+}
+
+static uint8_t
+vlVaDpbIndex(vlVaContext *context, VASurfaceID id)
+{
+   for (uint8_t i = 0; i < context->desc.h264enc.dpb_size; i++) {
+      if (context->desc.h264enc.dpb[i].id == id)
+         return i;
+   }
+   return PIPE_H2645_LIST_REF_INVALID_ENTRY;
 }
 
 VAStatus
@@ -110,8 +153,28 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
    unsigned slice_qp;
 
    h264 = buf->data;
+
+   /* Handle the slice control parameters */
+   struct h264_slice_descriptor slice_descriptor;
+   memset(&slice_descriptor, 0, sizeof(slice_descriptor));
+   slice_descriptor.macroblock_address = h264->macroblock_address;
+   slice_descriptor.num_macroblocks = h264->num_macroblocks;
+   slice_descriptor.slice_type = h264->slice_type;
+   assert(slice_descriptor.slice_type <= PIPE_H264_SLICE_TYPE_I);
+
+   if (context->desc.h264enc.num_slice_descriptors < ARRAY_SIZE(context->desc.h264enc.slices_descriptors))
+      context->desc.h264enc.slices_descriptors[context->desc.h264enc.num_slice_descriptors++] = slice_descriptor;
+   else
+      return VA_STATUS_ERROR_NOT_ENOUGH_BUFFER;
+
+   /* Only use parameters for first slice */
+   if (h264->macroblock_address)
+      return VA_STATUS_SUCCESS;
+
    memset(&context->desc.h264enc.ref_idx_l0_list, VA_INVALID_ID, sizeof(context->desc.h264enc.ref_idx_l0_list));
    memset(&context->desc.h264enc.ref_idx_l1_list, VA_INVALID_ID, sizeof(context->desc.h264enc.ref_idx_l1_list));
+   memset(&context->desc.h264enc.ref_list0, PIPE_H2645_LIST_REF_INVALID_ENTRY, sizeof(context->desc.h264enc.ref_list0));
+   memset(&context->desc.h264enc.ref_list1, PIPE_H2645_LIST_REF_INVALID_ENTRY, sizeof(context->desc.h264enc.ref_list1));
 
    if(h264->num_ref_idx_active_override_flag) {
       context->desc.h264enc.num_ref_idx_l0_active_minus1 = h264->num_ref_idx_l0_active_minus1;
@@ -120,12 +183,14 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
 
    for (int i = 0; i < 32; i++) {
       if (h264->RefPicList0[i].picture_id != VA_INVALID_ID) {
+         context->desc.h264enc.ref_list0[i] = vlVaDpbIndex(context, h264->RefPicList0[i].picture_id);
                context->desc.h264enc.ref_idx_l0_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
                                  UINT_TO_PTR(h264->RefPicList0[i].picture_id + 1)));
                context->desc.h264enc.l0_is_long_term[i] = h264->RefPicList0[i].flags &
 		       					  VA_PICTURE_H264_LONG_TERM_REFERENCE;
       }
       if (h264->RefPicList1[i].picture_id != VA_INVALID_ID && h264->slice_type == 1) {
+         context->desc.h264enc.ref_list1[i] = vlVaDpbIndex(context, h264->RefPicList1[i].picture_id);
             context->desc.h264enc.ref_idx_l1_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
                			 UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
             context->desc.h264enc.l1_is_long_term[i] = h264->RefPicList1[i].flags &
@@ -133,37 +198,19 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
       }
    }
 
-   /**
-    *  VAEncSliceParameterBufferH264.slice_type
-    *  Slice type.
-    *  Range: 0..2, 5..7, i.e. no switching slices.
-   */
-   struct h264_slice_descriptor slice_descriptor;
-   memset(&slice_descriptor, 0, sizeof(slice_descriptor));
-   slice_descriptor.macroblock_address = h264->macroblock_address;
-   slice_descriptor.num_macroblocks = h264->num_macroblocks;
-
    slice_qp = context->desc.h264enc.init_qp + h264->slice_qp_delta;
 
    if ((h264->slice_type == 1) || (h264->slice_type == 6)) {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_B;
-      slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_B;
       context->desc.h264enc.quant_b_frames = slice_qp;
    } else if ((h264->slice_type == 0) || (h264->slice_type == 5)) {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_P;
-      slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_P;
       context->desc.h264enc.quant_p_frames = slice_qp;
    } else if ((h264->slice_type == 2) || (h264->slice_type == 7)) {
-      if (context->desc.h264enc.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR) {
-         if (slice_descriptor.macroblock_address == 0) {
-            /* Increment it only for the first slice of the IDR frame */
-            context->desc.h264enc.idr_pic_id++;
-         }
-         slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_I;
-      } else {
+      if (context->desc.h264enc.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
+         context->desc.h264enc.idr_pic_id++;
+      else
          context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_I;
-         slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_I;
-      }
       context->desc.h264enc.quant_i_frames = slice_qp;
    } else {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_SKIP;
@@ -174,42 +221,14 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
    context->desc.h264enc.dbk.alpha_c0_offset_div2 = h264->slice_alpha_c0_offset_div2;
    context->desc.h264enc.dbk.beta_offset_div2 = h264->slice_beta_offset_div2;
 
-   /* Handle the slice control parameters */
-   if (context->desc.h264enc.num_slice_descriptors < ARRAY_SIZE(context->desc.h264enc.slices_descriptors)) {
-      context->desc.h264enc.slices_descriptors[context->desc.h264enc.num_slice_descriptors++] = slice_descriptor;
-   } else {
-      return VA_STATUS_ERROR_NOT_ENOUGH_BUFFER;
-   }
-
    return VA_STATUS_SUCCESS;
 }
 
 VAStatus
 vlVaHandleVAEncSequenceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf)
 {
+   VAEncSequenceParameterBufferH264 *h264 = buf->data;
    uint32_t num_units_in_tick = 0, time_scale  = 0;
-
-   VAEncSequenceParameterBufferH264 *h264 = (VAEncSequenceParameterBufferH264 *)buf->data;
-   if (!context->decoder) {
-      context->templat.max_references = h264->max_num_ref_frames;
-      context->templat.level = h264->level_idc;
-      context->decoder = drv->pipe->create_video_codec(drv->pipe, &context->templat);
-      if (!context->decoder)
-         return VA_STATUS_ERROR_ALLOCATION_FAILED;
-
-      getEncParamPresetH264(context);
-      context->desc.h264enc.rate_ctrl[0].vbv_buffer_size = 20000000;
-      context->desc.h264enc.rate_ctrl[0].vbv_buf_lv = 48;
-      context->desc.h264enc.rate_ctrl[0].fill_data_enable = 1;
-      context->desc.h264enc.rate_ctrl[0].enforce_hrd = 1;
-      context->desc.h264enc.rate_ctrl[0].max_qp = 51;
-      context->desc.h264enc.rate_ctrl[0].min_qp = 0;
-      context->desc.h264enc.enable_vui = false;
-      context->desc.h264enc.intra_refresh.mode = INTRA_REFRESH_MODE_NONE;
-      context->desc.h264enc.intra_refresh.offset = 0;
-      context->desc.h264enc.intra_refresh.region_size = 0;
-      context->desc.h264enc.intra_refresh.need_sequence_header = 0;
-   }
 
    context->desc.h264enc.ip_period = h264->ip_period;
    context->desc.h264enc.intra_idr_period =
@@ -273,6 +292,7 @@ vlVaHandleVAEncSequenceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *con
       context->desc.h264enc.seq.enc_frame_crop_top_offset = h264->frame_crop_top_offset;
       context->desc.h264enc.seq.enc_frame_crop_bottom_offset = h264->frame_crop_bottom_offset;
    }
+
    return VA_STATUS_SUCCESS;
 }
 
@@ -355,6 +375,144 @@ vlVaHandleVAEncMiscParameterTypeFrameRateH264(vlVaContext *context, VAEncMiscPar
    return VA_STATUS_SUCCESS;
 }
 
+static void parseEncSliceParamsH264(vlVaContext *context,
+                                    struct vl_rbsp *rbsp,
+                                    unsigned nal_ref_idc,
+                                    unsigned nal_unit_type)
+{
+   struct pipe_h264_enc_seq_param *seq = &context->desc.h264enc.seq;
+   struct pipe_h264_enc_pic_control *pic = &context->desc.h264enc.pic_ctrl;
+   struct pipe_h264_enc_slice_param *slice = &context->desc.h264enc.slice;
+   unsigned modification_of_pic_nums_idc, memory_management_control_operation;
+
+   /* Only parse first slice */
+   if (vl_rbsp_ue(rbsp) != 0) /* first_mb_in_slice */
+      return;
+
+   pic->nal_ref_idc = nal_ref_idc;
+   pic->nal_unit_type = nal_unit_type;
+
+   slice->slice_type = vl_rbsp_ue(rbsp) % 5;
+   vl_rbsp_ue(rbsp); /* pic_parameter_set_id */
+   slice->frame_num = vl_rbsp_u(rbsp, seq->log2_max_frame_num_minus4 + 4);
+
+   if (context->desc.h264enc.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
+      slice->idr_pic_id = vl_rbsp_ue(rbsp);
+
+   if (seq->pic_order_cnt_type == 0)
+      slice->pic_order_cnt_lsb = vl_rbsp_u(rbsp, seq->log2_max_pic_order_cnt_lsb_minus4 + 4);
+
+   if (pic->redundant_pic_cnt_present_flag)
+      slice->redundant_pic_cnt = vl_rbsp_ue(rbsp);
+
+   if (slice->slice_type == PIPE_H264_SLICE_TYPE_B)
+      slice->direct_spatial_mv_pred_flag = vl_rbsp_u(rbsp, 1);
+
+   if (slice->slice_type == PIPE_H264_SLICE_TYPE_P ||
+       slice->slice_type == PIPE_H264_SLICE_TYPE_SP ||
+       slice->slice_type == PIPE_H264_SLICE_TYPE_B) {
+      slice->num_ref_idx_active_override_flag = vl_rbsp_u(rbsp, 1);
+      if (slice->num_ref_idx_active_override_flag) {
+         slice->num_ref_idx_l0_active_minus1 = vl_rbsp_ue(rbsp);
+         if (slice->slice_type == PIPE_H264_SLICE_TYPE_B)
+            slice->num_ref_idx_l1_active_minus1 = vl_rbsp_ue(rbsp);
+      }
+   }
+
+   if (slice->slice_type != PIPE_H264_SLICE_TYPE_I &&
+       slice->slice_type != PIPE_H264_SLICE_TYPE_SI) {
+      slice->ref_pic_list_modification_flag_l0 = vl_rbsp_u(rbsp, 1);
+      if (slice->ref_pic_list_modification_flag_l0) {
+         slice->num_ref_list0_mod_operations = 0;
+         while (true) {
+            modification_of_pic_nums_idc = vl_rbsp_ue(rbsp);
+            if (modification_of_pic_nums_idc == 3)
+               break;
+            struct pipe_h264_ref_list_mod_entry *op =
+               &slice->ref_list0_mod_operations[slice->num_ref_list0_mod_operations++];
+            op->modification_of_pic_nums_idc = modification_of_pic_nums_idc;
+            if (op->modification_of_pic_nums_idc == 0 ||
+                op->modification_of_pic_nums_idc == 1)
+               op->abs_diff_pic_num_minus1 = vl_rbsp_ue(rbsp);
+            else if (op->modification_of_pic_nums_idc == 2)
+               op->long_term_pic_num = vl_rbsp_ue(rbsp);
+         }
+      }
+   }
+
+   if (slice->slice_type == PIPE_H264_SLICE_TYPE_B) {
+      slice->ref_pic_list_modification_flag_l1 = vl_rbsp_u(rbsp, 1);
+      if (slice->ref_pic_list_modification_flag_l1) {
+         slice->num_ref_list1_mod_operations = 0;
+         while (true) {
+            modification_of_pic_nums_idc = vl_rbsp_ue(rbsp);
+            if (modification_of_pic_nums_idc == 3)
+               break;
+            struct pipe_h264_ref_list_mod_entry *op =
+               &slice->ref_list1_mod_operations[slice->num_ref_list1_mod_operations++];
+            op->modification_of_pic_nums_idc = modification_of_pic_nums_idc;
+            if (op->modification_of_pic_nums_idc == 0 ||
+                op->modification_of_pic_nums_idc == 1)
+               op->abs_diff_pic_num_minus1 = vl_rbsp_ue(rbsp);
+            else if (op->modification_of_pic_nums_idc == 2)
+               op->long_term_pic_num = vl_rbsp_ue(rbsp);
+         }
+      }
+   }
+
+   if (nal_ref_idc != 0) {
+      if (nal_unit_type == PIPE_H264_NAL_IDR_SLICE) {
+         slice->no_output_of_prior_pics_flag = vl_rbsp_u(rbsp, 1);
+         slice->long_term_reference_flag = vl_rbsp_u(rbsp, 1);
+      } else {
+         slice->adaptive_ref_pic_marking_mode_flag = vl_rbsp_u(rbsp, 1);
+         if (slice->adaptive_ref_pic_marking_mode_flag) {
+            slice->num_ref_pic_marking_operations = 0;
+            while (true) {
+               memory_management_control_operation = vl_rbsp_ue(rbsp);
+               if (memory_management_control_operation == 0)
+                  break;
+               struct pipe_h264_ref_pic_marking_entry *op =
+                  &slice->ref_pic_marking_operations[slice->num_ref_pic_marking_operations++];
+               op->memory_management_control_operation = memory_management_control_operation;
+               if (memory_management_control_operation == 1 ||
+                   memory_management_control_operation == 3)
+                  op->difference_of_pic_nums_minus1 = vl_rbsp_ue(rbsp);
+               if (memory_management_control_operation == 2)
+                  op->long_term_pic_num = vl_rbsp_ue(rbsp);
+               if (memory_management_control_operation == 3 ||
+                   memory_management_control_operation == 6)
+                  op->long_term_frame_idx = vl_rbsp_ue(rbsp);
+               if (memory_management_control_operation == 4)
+                  op->max_long_term_frame_idx_plus1 = vl_rbsp_ue(rbsp);
+            }
+         }
+      }
+   }
+
+   if (pic->entropy_coding_mode_flag &&
+       slice->slice_type != PIPE_H264_SLICE_TYPE_I &&
+       slice->slice_type != PIPE_H264_SLICE_TYPE_SI)
+      slice->cabac_init_idc = vl_rbsp_ue(rbsp);
+
+   slice->slice_qp_delta = vl_rbsp_se(rbsp);
+
+   if (slice->slice_type == PIPE_H264_SLICE_TYPE_SP ||
+       slice->slice_type == PIPE_H264_SLICE_TYPE_SI) {
+      if (slice->slice_type == PIPE_H264_SLICE_TYPE_SP)
+         vl_rbsp_u(rbsp, 1); /* sp_for_switch_flag */
+      vl_rbsp_se(rbsp); /* slice_qs_delta */
+   }
+
+   if (pic->deblocking_filter_control_present_flag) {
+      slice->disable_deblocking_filter_idc = vl_rbsp_ue(rbsp);
+      if (slice->disable_deblocking_filter_idc != 1) {
+         slice->slice_alpha_c0_offset_div2 = vl_rbsp_se(rbsp);
+         slice->slice_beta_offset_div2 = vl_rbsp_se(rbsp);
+      }
+   }
+}
+
 static void parseEncHrdParamsH264(struct vl_rbsp *rbsp, pipe_h264_enc_hrd_params* hrd_params)
 {
    unsigned i;
@@ -377,15 +535,14 @@ static void parseEncSpsParamsH264(vlVaContext *context, struct vl_rbsp *rbsp)
 {
    unsigned i, profile_idc, num_ref_frames_in_pic_order_cnt_cycle;
 
-   profile_idc = vl_rbsp_u(rbsp, 8);
-
-   context->desc.h264enc.seq.enc_constraint_set_flags =
-      vl_rbsp_u(rbsp, 6); /* constraint_set_flags */
+   context->desc.h264enc.seq.profile_idc = vl_rbsp_u(rbsp, 8);
+   context->desc.h264enc.seq.enc_constraint_set_flags = vl_rbsp_u(rbsp, 6);
    vl_rbsp_u(rbsp, 2); /* reserved_zero_2bits */
-   vl_rbsp_u(rbsp, 8); /* level_idc */
+   context->desc.h264enc.seq.level_idc = vl_rbsp_u(rbsp, 8);
 
    vl_rbsp_ue(rbsp); /* seq_parameter_set_id */
 
+   profile_idc = context->desc.h264enc.seq.profile_idc;
    if (profile_idc == 100 || profile_idc == 110 ||
        profile_idc == 122 || profile_idc == 244 || profile_idc == 44 ||
        profile_idc == 83 || profile_idc == 86 || profile_idc == 118 ||
@@ -395,19 +552,21 @@ static void parseEncSpsParamsH264(vlVaContext *context, struct vl_rbsp *rbsp)
       if (vl_rbsp_ue(rbsp) == 3) /* chroma_format_idc */
          vl_rbsp_u(rbsp, 1); /* separate_colour_plane_flag */
 
-      vl_rbsp_ue(rbsp); /* bit_depth_luma_minus8 */
-      vl_rbsp_ue(rbsp); /* bit_depth_chroma_minus8 */
+      context->desc.h264enc.seq.bit_depth_luma_minus8 = vl_rbsp_ue(rbsp);
+      context->desc.h264enc.seq.bit_depth_chroma_minus8 = vl_rbsp_ue(rbsp);
       vl_rbsp_u(rbsp, 1); /* qpprime_y_zero_transform_bypass_flag */
 
-      if (vl_rbsp_u(rbsp, 1)) /* seq_scaling_matrix_present_flag */
-         return; /* TODO */
+      if (vl_rbsp_u(rbsp, 1)) { /* seq_scaling_matrix_present_flag */
+         debug_error("SPS scaling matrix not supported");
+         return;
+      }
    }
 
-   context->desc.h264enc.seq.log2_max_frame_num_minus4 = vl_rbsp_ue(rbsp); /* log2_max_frame_num_minus4 */
-   context->desc.h264enc.seq.pic_order_cnt_type = vl_rbsp_ue(rbsp); /* pic_order_cnt_type */
+   context->desc.h264enc.seq.log2_max_frame_num_minus4 = vl_rbsp_ue(rbsp);
+   context->desc.h264enc.seq.pic_order_cnt_type = vl_rbsp_ue(rbsp);
 
    if (context->desc.h264enc.seq.pic_order_cnt_type == 0)
-      context->desc.h264enc.seq.log2_max_pic_order_cnt_lsb_minus4 = vl_rbsp_ue(rbsp); /* log2_max_pic_order_cnt_lsb_minus4 */
+      context->desc.h264enc.seq.log2_max_pic_order_cnt_lsb_minus4 = vl_rbsp_ue(rbsp);
    else if (context->desc.h264enc.seq.pic_order_cnt_type == 1) {
       vl_rbsp_u(rbsp, 1); /* delta_pic_order_always_zero_flag */
       vl_rbsp_se(rbsp); /* offset_for_non_ref_pic */
@@ -417,19 +576,20 @@ static void parseEncSpsParamsH264(vlVaContext *context, struct vl_rbsp *rbsp)
          vl_rbsp_se(rbsp); /* offset_for_ref_frame[i] */
    }
 
-   vl_rbsp_ue(rbsp); /* max_num_ref_frames */
-   vl_rbsp_u(rbsp, 1); /* gaps_in_frame_num_value_allowed_flag */
-   vl_rbsp_ue(rbsp); /* pic_width_in_mbs_minus1 */
-   vl_rbsp_ue(rbsp); /* pic_height_in_map_units_minus1 */
+   context->desc.h264enc.seq.max_num_ref_frames = vl_rbsp_ue(rbsp);
+   context->desc.h264enc.seq.gaps_in_frame_num_value_allowed_flag = vl_rbsp_u(rbsp, 1);
+   context->desc.h264enc.seq.pic_width_in_mbs_minus1 = vl_rbsp_ue(rbsp);
+   context->desc.h264enc.seq.pic_height_in_map_units_minus1 = vl_rbsp_ue(rbsp);
    if (!vl_rbsp_u(rbsp, 1)) /* frame_mbs_only_flag */
       vl_rbsp_u(rbsp, 1); /* mb_adaptive_frame_field_flag */
 
-   vl_rbsp_u(rbsp, 1); /* direct_8x8_inference_flag */
-   if (vl_rbsp_u(rbsp, 1)) { /* frame_cropping_flag */
-      vl_rbsp_ue(rbsp); /* frame_crop_left_offset */
-      vl_rbsp_ue(rbsp); /* frame_crop_right_offset */
-      vl_rbsp_ue(rbsp); /* frame_crop_top_offset */
-      vl_rbsp_ue(rbsp); /* frame_crop_bottom_offset */
+   context->desc.h264enc.seq.direct_8x8_inference_flag = vl_rbsp_u(rbsp, 1);
+   context->desc.h264enc.seq.enc_frame_cropping_flag = vl_rbsp_u(rbsp, 1);
+   if (context->desc.h264enc.seq.enc_frame_cropping_flag) {
+      context->desc.h264enc.seq.enc_frame_crop_left_offset = vl_rbsp_ue(rbsp);
+      context->desc.h264enc.seq.enc_frame_crop_right_offset = vl_rbsp_ue(rbsp);
+      context->desc.h264enc.seq.enc_frame_crop_top_offset = vl_rbsp_ue(rbsp);
+      context->desc.h264enc.seq.enc_frame_crop_bottom_offset = vl_rbsp_ue(rbsp);
    }
 
    context->desc.h264enc.seq.vui_parameters_present_flag = vl_rbsp_u(rbsp, 1);
@@ -437,7 +597,7 @@ static void parseEncSpsParamsH264(vlVaContext *context, struct vl_rbsp *rbsp)
       context->desc.h264enc.seq.vui_flags.aspect_ratio_info_present_flag = vl_rbsp_u(rbsp, 1);
       if (context->desc.h264enc.seq.vui_flags.aspect_ratio_info_present_flag) {
          context->desc.h264enc.seq.aspect_ratio_idc = vl_rbsp_u(rbsp, 8);
-         if (context->desc.h264enc.seq.aspect_ratio_idc == 255 /* Extended_SAR */) {
+         if (context->desc.h264enc.seq.aspect_ratio_idc == PIPE_H2645_EXTENDED_SAR) {
             context->desc.h264enc.seq.sar_width = vl_rbsp_u(rbsp, 16);
             context->desc.h264enc.seq.sar_height = vl_rbsp_u(rbsp, 16);
          }
@@ -499,11 +659,86 @@ static void parseEncSpsParamsH264(vlVaContext *context, struct vl_rbsp *rbsp)
    }
 }
 
+static void slice_group_map(struct vl_rbsp *rbsp, unsigned num_slice_groups_minus1)
+{
+   unsigned slice_group_map_type = vl_rbsp_ue(rbsp);
+   if (slice_group_map_type == 0) {
+      for (unsigned i = 0; i <= num_slice_groups_minus1; i++)
+         vl_rbsp_ue(rbsp); /* run_length_minus1[i] */
+   } else if (slice_group_map_type == 2) {
+      for (unsigned i = 0; i <= num_slice_groups_minus1; i++) {
+         vl_rbsp_ue(rbsp); /* top_left[i] */
+         vl_rbsp_ue(rbsp); /* bottom_right[i] */
+      }
+   } else if (slice_group_map_type == 3 ||
+              slice_group_map_type == 4 ||
+              slice_group_map_type == 5) {
+      vl_rbsp_u(rbsp, 1); /* slice_group_change_direction_flag */
+      vl_rbsp_ue(rbsp); /* slice_group_change_rate_minus1 */
+   } else if (slice_group_map_type == 6) {
+      unsigned pic_size_in_map_units_minus1 = vl_rbsp_ue(rbsp);
+      for (unsigned i = 0; i <= pic_size_in_map_units_minus1; i++)
+         vl_rbsp_u(rbsp, util_logbase2_ceil(num_slice_groups_minus1 + 1)); /* slice_group_id[i] */
+   }
+}
+
+static void parseEncPpsParamsH264(vlVaContext *context, struct vl_rbsp *rbsp)
+{
+   struct pipe_h264_enc_pic_control *pic = &context->desc.h264enc.pic_ctrl;
+
+   vl_rbsp_ue(rbsp); /* pic_parameter_set_id */
+   vl_rbsp_ue(rbsp); /* seq_parameter_set_id */
+   pic->entropy_coding_mode_flag = vl_rbsp_u(rbsp, 1);
+   vl_rbsp_u(rbsp, 1); /* bottom_field_pic_order_in_frame_present_flag */
+   unsigned num_slice_groups_minus1 = vl_rbsp_ue(rbsp);
+   if (num_slice_groups_minus1 > 0)
+      slice_group_map(rbsp, num_slice_groups_minus1);
+   pic->num_ref_idx_l0_default_active_minus1 = vl_rbsp_ue(rbsp);
+   pic->num_ref_idx_l1_default_active_minus1 = vl_rbsp_ue(rbsp);
+   pic->weighted_pred_flag = vl_rbsp_u(rbsp, 1);
+   pic->weighted_bipred_idc = vl_rbsp_u(rbsp, 2);
+   pic->pic_init_qp_minus26 = vl_rbsp_se(rbsp);
+   pic->pic_init_qs_minus26 = vl_rbsp_se(rbsp);
+   pic->chroma_qp_index_offset = vl_rbsp_se(rbsp);
+   pic->deblocking_filter_control_present_flag = vl_rbsp_u(rbsp, 1);
+   pic->constrained_intra_pred_flag = vl_rbsp_u(rbsp, 1);
+   pic->redundant_pic_cnt_present_flag = vl_rbsp_u(rbsp, 1);
+   if (vl_rbsp_more_data(rbsp)) {
+      pic->transform_8x8_mode_flag = vl_rbsp_u(rbsp, 1);
+      if (vl_rbsp_u(rbsp, 1)) { /* pic_scaling_matrix_present_flag */
+         debug_error("PPS scaling matrix not supported");
+         return;
+      }
+      pic->second_chroma_qp_index_offset = vl_rbsp_se(rbsp);
+   } else {
+      pic->transform_8x8_mode_flag = 0;
+      pic->second_chroma_qp_index_offset = pic->chroma_qp_index_offset;
+   }
+}
+
+static void parseEncPrefixH264(vlVaContext *context, struct vl_rbsp *rbsp)
+{
+   if (!vl_rbsp_u(rbsp, 1)) /* svc_extension_flag */
+      return;
+
+   vl_rbsp_u(rbsp, 1); /* idr_flag */
+   vl_rbsp_u(rbsp, 6); /* priority_id */
+   vl_rbsp_u(rbsp, 1); /* no_inter_layer_pred_flag */
+   vl_rbsp_u(rbsp, 3); /* dependency_id */
+   vl_rbsp_u(rbsp, 4); /* quality_id */
+   context->desc.h264enc.pic_ctrl.temporal_id = vl_rbsp_u(rbsp, 3);
+}
+
 VAStatus
 vlVaHandleVAEncPackedHeaderDataBufferTypeH264(vlVaContext *context, vlVaBuffer *buf)
 {
    struct vl_vlc vlc = {0};
-   vl_vlc_init(&vlc, 1, (const void * const*)&buf->data, &buf->size);
+   uint8_t *data = buf->data;
+   int nal_start = -1;
+   unsigned nal_unit_type = 0, emulation_bytes_start = 0;
+   bool is_slice = false;
+
+   vl_vlc_init(&vlc, 1, (const void * const*)&data, &buf->size);
 
    while (vl_vlc_bits_left(&vlc) > 0) {
       /* search the first 64 bytes for a startcode */
@@ -513,28 +748,60 @@ vlVaHandleVAEncPackedHeaderDataBufferTypeH264(vlVaContext *context, vlVaBuffer *
          vl_vlc_eatbits(&vlc, 8);
          vl_vlc_fillbits(&vlc);
       }
+
+      unsigned start = vlc.data - data - vl_vlc_valid_bits(&vlc) / 8;
+      emulation_bytes_start = 4; /* 3 bytes startcode + 1 byte header */
+      /* handle 4 bytes startcode */
+      if (start > 0 && data[start - 1] == 0x00) {
+         start--;
+         emulation_bytes_start++;
+      }
+      if (nal_start >= 0) {
+         vlVaAddRawHeader(&context->desc.h264enc.raw_headers, nal_unit_type,
+                          start - nal_start, data + nal_start, is_slice, 0);
+      }
+      nal_start = start;
+      is_slice = false;
+
       vl_vlc_eatbits(&vlc, 24); /* eat the startcode */
 
       if (vl_vlc_valid_bits(&vlc) < 15)
          vl_vlc_fillbits(&vlc);
 
-      vl_vlc_eatbits(&vlc, 3);
-      unsigned nal_unit_type = vl_vlc_get_uimsbf(&vlc, 5);
+      vl_vlc_eatbits(&vlc, 1);
+      unsigned nal_ref_idc = vl_vlc_get_uimsbf(&vlc, 2);
+      nal_unit_type = vl_vlc_get_uimsbf(&vlc, 5);
 
       struct vl_rbsp rbsp;
       vl_rbsp_init(&rbsp, &vlc, ~0, context->packed_header_emulation_bytes);
 
-      switch(nal_unit_type) {
-      case H264_NAL_SPS:
+      switch (nal_unit_type) {
+      case PIPE_H264_NAL_SLICE:
+      case PIPE_H264_NAL_IDR_SLICE:
+         is_slice = true;
+         parseEncSliceParamsH264(context, &rbsp, nal_ref_idc, nal_unit_type);
+         break;
+      case PIPE_H264_NAL_SPS:
          parseEncSpsParamsH264(context, &rbsp);
          break;
-      case H264_NAL_PPS:
+      case PIPE_H264_NAL_PPS:
+         parseEncPpsParamsH264(context, &rbsp);
+         break;
+      case PIPE_H264_NAL_PREFIX:
+         parseEncPrefixH264(context, &rbsp);
+         break;
       default:
          break;
       }
 
       if (!context->packed_header_emulation_bytes)
          break;
+   }
+
+   if (nal_start >= 0) {
+      vlVaAddRawHeader(&context->desc.h264enc.raw_headers, nal_unit_type,
+                       buf->size - nal_start, data + nal_start, is_slice,
+                       context->packed_header_emulation_bytes ? 0 : emulation_bytes_start);
    }
 
    return VA_STATUS_SUCCESS;
@@ -573,34 +840,24 @@ vlVaHandleVAEncMiscParameterTypeHRDH264(vlVaContext *context, VAEncMiscParameter
 {
    VAEncMiscParameterHRD *ms = (VAEncMiscParameterHRD *)misc->data;
 
-   if (ms->buffer_size) {
-      context->desc.h264enc.rate_ctrl[0].vbv_buffer_size = ms->buffer_size;
-      context->desc.h264enc.rate_ctrl[0].vbv_buf_lv = (ms->initial_buffer_fullness << 6 ) / ms->buffer_size;
-      context->desc.h264enc.rate_ctrl[0].vbv_buf_initial_size = ms->initial_buffer_fullness;
-      /* Distinguishes from the default params set for these values in other
+   if (ms->buffer_size == 0)
+      return VA_STATUS_ERROR_INVALID_PARAMETER;
+
+   /* Distinguishes from the default params set for these values in other
       functions and app specific params passed down via HRD buffer */
-      context->desc.h264enc.rate_ctrl[0].app_requested_hrd_buffer = true;
+   context->desc.h264enc.rate_ctrl[0].app_requested_hrd_buffer = true;
+   context->desc.h264enc.rate_ctrl[0].vbv_buffer_size = ms->buffer_size;
+   context->desc.h264enc.rate_ctrl[0].vbv_buf_lv = (ms->initial_buffer_fullness << 6) / ms->buffer_size;
+   context->desc.h264enc.rate_ctrl[0].vbv_buf_initial_size = ms->initial_buffer_fullness;
+
+   for (unsigned i = 1; i < context->desc.h264enc.seq.num_temporal_layers; i++) {
+      context->desc.h264enc.rate_ctrl[i].vbv_buffer_size =
+         (float)ms->buffer_size / context->desc.h264enc.rate_ctrl[0].peak_bitrate *
+         context->desc.h264enc.rate_ctrl[i].peak_bitrate;
+      context->desc.h264enc.rate_ctrl[i].vbv_buf_lv = context->desc.h264enc.rate_ctrl[0].vbv_buf_lv;
+      context->desc.h264enc.rate_ctrl[i].vbv_buf_initial_size =
+         (context->desc.h264enc.rate_ctrl[i].vbv_buffer_size * context->desc.h264enc.rate_ctrl[i].vbv_buf_lv) >> 6;
    }
 
    return VA_STATUS_SUCCESS;
-}
-
-void getEncParamPresetH264(vlVaContext *context)
-{
-   //rate control
-   if (context->desc.h264enc.rate_ctrl[0].frame_rate_num == 0 ||
-       context->desc.h264enc.rate_ctrl[0].frame_rate_den == 0) {
-         context->desc.h264enc.rate_ctrl[0].frame_rate_num = 30;
-         context->desc.h264enc.rate_ctrl[0].frame_rate_den = 1;
-   }
-   context->desc.h264enc.rate_ctrl[0].target_bits_picture =
-      context->desc.h264enc.rate_ctrl[0].target_bitrate *
-      ((float)context->desc.h264enc.rate_ctrl[0].frame_rate_den /
-      context->desc.h264enc.rate_ctrl[0].frame_rate_num);
-   context->desc.h264enc.rate_ctrl[0].peak_bits_picture_integer =
-      context->desc.h264enc.rate_ctrl[0].peak_bitrate *
-      ((float)context->desc.h264enc.rate_ctrl[0].frame_rate_den /
-      context->desc.h264enc.rate_ctrl[0].frame_rate_num);
-
-   context->desc.h264enc.rate_ctrl[0].peak_bits_picture_fraction = 0;
 }

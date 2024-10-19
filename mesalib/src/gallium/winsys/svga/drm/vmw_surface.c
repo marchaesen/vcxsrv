@@ -108,7 +108,7 @@ vmw_svga_winsys_surface_map(struct svga_winsys_context *swc,
     * If we intend to read, there's no point discarding the
     * data if busy.
     */
-   if (flags & PIPE_MAP_READ || vsrf->shared)
+   if (flags & PIPE_MAP_READ || vsrf->nodiscard)
       flags &= ~PIPE_MAP_DISCARD_WHOLE_RESOURCE;
 
    /*

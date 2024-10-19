@@ -1,5 +1,3 @@
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_center,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner,Fail
@@ -8,9 +6,7 @@ dEQP-GLES2.functional.polygon_offset.fixed16_displacement_with_units,Fail
 dEQP-GLES2.functional.rasterization.interpolation.basic.line_loop_wide,Fail
 dEQP-GLES2.functional.rasterization.interpolation.basic.line_strip_wide,Fail
 dEQP-GLES2.functional.rasterization.interpolation.basic.lines_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.line_loop_wide,Fail
 dEQP-GLES2.functional.rasterization.interpolation.projected.line_strip_wide,Fail
-dEQP-GLES2.functional.rasterization.interpolation.projected.lines_wide,Fail
 dEQP-GLES2.functional.rasterization.limits.points,Fail
 dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_center,Fail
 dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_corner,Fail
@@ -102,19 +98,15 @@ dEQP-GLES3.functional.multisample.fbo_max_samples.proportionality_alpha_to_cover
 dEQP-GLES3.functional.multisample.fbo_max_samples.proportionality_sample_coverage,Fail
 dEQP-GLES3.functional.multisample.fbo_max_samples.proportionality_sample_coverage_inverted,Fail
 dEQP-GLES3.functional.multisample.fbo_max_samples.sample_coverage_invert,Fail
-dEQP-GLES3.functional.negative_api.buffer.blit_framebuffer_multisample,Fail
 dEQP-GLES3.functional.negative_api.buffer.read_pixels_fbo_format_mismatch,Fail
 dEQP-GLES3.functional.polygon_offset.default_displacement_with_units,Fail
 dEQP-GLES3.functional.polygon_offset.fixed16_displacement_with_units,Fail
 dEQP-GLES3.functional.polygon_offset.fixed24_displacement_with_units,Fail
 dEQP-GLES3.functional.polygon_offset.float32_displacement_with_units,Fail
-dEQP-GLES3.functional.rasterization.fbo.rbo_multisample_max.interpolation.lines_wide,Fail
 dEQP-GLES3.functional.rasterization.fbo.rbo_multisample_max.primitives.lines_wide,Fail
 dEQP-GLES3.functional.rasterization.fbo.rbo_singlesample.interpolation.lines_wide,Fail
-dEQP-GLES3.functional.rasterization.fbo.texture_2d.interpolation.lines_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.basic.line_loop_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.basic.line_strip_wide,Fail
-dEQP-GLES3.functional.rasterization.interpolation.basic.lines_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.projected.line_loop_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.projected.line_strip_wide,Fail
 dEQP-GLES3.functional.rasterization.interpolation.projected.lines_wide,Fail
@@ -461,8 +453,6 @@ dEQP-GLES3.functional.texture.wrap.astc_8x8.repeat_repeat_linear_divisible,Fail
 dEQP-GLES3.functional.texture.wrap.astc_8x8.repeat_repeat_linear_not_divisible,Fail
 dEQP-GLES3.functional.texture.wrap.astc_8x8_srgb.repeat_repeat_linear_divisible,Fail
 dEQP-GLES3.functional.texture.wrap.astc_8x8_srgb.repeat_repeat_linear_not_divisible,Fail
-dEQP-GLES3.functional.vertex_arrays.single_attribute.normalize.int2_10_10_10.components4_quads1,Fail
-dEQP-GLES3.functional.vertex_arrays.single_attribute.normalize.int2_10_10_10.components4_quads256,Fail
 dEQP-GLES31.functional.debug.error_filters.case_29,Fail
 dEQP-GLES31.functional.debug.negative_coverage.callbacks.buffer.read_pixels_fbo_format_mismatch,Fail
 dEQP-GLES31.functional.debug.negative_coverage.get_error.buffer.blit_framebuffer_multisample,Fail
@@ -484,11 +474,6 @@ dEQP-GLES31.functional.fbo.no_attachments.random.14,Fail
 dEQP-GLES31.functional.fbo.no_attachments.random.15,Fail
 dEQP-GLES31.functional.fbo.no_attachments.random.4,Fail
 dEQP-GLES31.functional.fbo.no_attachments.random.9,Fail
-dEQP-GLES31.functional.geometry_shading.query.primitives_generated_amplification,Fail
-dEQP-GLES31.functional.geometry_shading.query.primitives_generated_instanced,Fail
-dEQP-GLES31.functional.geometry_shading.query.primitives_generated_no_amplification,Fail
-dEQP-GLES31.functional.geometry_shading.query.primitives_generated_no_geometry,Fail
-dEQP-GLES31.functional.geometry_shading.query.primitives_generated_partial_primitives,Fail
 dEQP-GLES31.functional.image_load_store.early_fragment_tests.early_fragment_tests_stencil,Fail
 dEQP-GLES31.functional.image_load_store.early_fragment_tests.early_fragment_tests_stencil_fbo,Fail
 dEQP-GLES31.functional.image_load_store.early_fragment_tests.no_early_fragment_tests_depth,Fail
@@ -516,7 +501,6 @@ dEQP-GLES31.functional.texture.border_clamp.depth_compare_mode.depth32f_stencil8
 dEQP-GLES31.functional.texture.border_clamp.depth_compare_mode.depth32f_stencil8.linear_size_pot,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb10_a2_linear_mipmap_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb10_a2_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba4_nearest_mipmap_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_linear_mipmap_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_linear_mipmap_nearest,Fail
@@ -901,7 +885,6 @@ hiz@hiz-stencil-read-window-depth0,Fail
 hiz@hiz-stencil-read-window-depth1,Fail
 hiz@hiz-stencil-test-window-depth0,Fail
 hiz@hiz-stencil-test-window-depth1,Fail
-shaders@glsl-bug-110796,Fail
 spec@!opengl 1.0@gl-1.0-drawbuffer-modes,Fail
 spec@!opengl 1.0@gl-1.0-swapbuffers-behavior,Fail
 spec@!opengl 1.0@rasterpos,Fail
@@ -972,18 +955,9 @@ spec@!opengl 2.0@vertex-program-two-side enabled back front2 back2,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled back front2 back2@gs-out and fs,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled front back back2,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled front back back2@gs-out and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back front2 back2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back front2 back2@gs-out and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back front2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back front2@gs-out and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back@gs-out and fs,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled front front2 back2,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled front front2 back2@gs-out and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front2 back2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front2 back2@gs-out and fs,Fail
 
-spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
 spec@!opengl 3.0@gl30basic,Fail
 spec@!opengl 3.0@minmax,Fail
 spec@!opengl 3.1@minmax,Fail
@@ -1031,7 +1005,6 @@ spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic@MS4,Fa
 
 spec@arb_get_program_binary@restore-sso-program,Fail
 spec@arb_occlusion_query@occlusion_query_meta_no_fragments,Fail
-spec@arb_occlusion_query@occlusion_query_meta_save,Fail
 
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
@@ -1093,8 +1066,6 @@ spec@arb_texture_multisample@texturesize@vs-texturesize-usampler2dmsarray,Fail
 
 spec@arb_texture_rectangle@texwrap rect bordercolor,Fail
 spec@arb_texture_rectangle@texwrap rect bordercolor@GL_RGBA8- border color only,Fail
-spec@arb_texture_rectangle@texwrap rect proj bordercolor,Fail
-spec@arb_texture_rectangle@texwrap rect proj bordercolor@GL_RGBA8- projected- border color only,Fail
 
 spec@arb_texture_rg@texwrap formats,Fail
 spec@arb_texture_rg@texwrap formats offset,Fail
@@ -1116,9 +1087,6 @@ spec@arb_texture_rg@texwrap formats@GL_R16- NPOT,Fail
 spec@arb_texture_rg@texwrap formats@GL_R8- NPOT,Fail
 spec@arb_texture_rg@texwrap formats@GL_RG16- NPOT,Fail
 spec@arb_texture_rg@texwrap formats@GL_RG8- NPOT,Fail
-
-spec@arb_texture_view@rendering-formats,Fail
-spec@arb_texture_view@rendering-formats@clear GL_RGBA8_SNORM as GL_R32F,Fail
 
 spec@arb_transform_feedback2@change objects while paused,Crash
 spec@arb_transform_feedback3@arb_transform_feedback3-ext_interleaved_two_bufs_gs,Crash
@@ -1289,3 +1257,15 @@ spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_HEIGHT
 spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_LAYERS,Fail
 spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_WIDTH,Fail
 
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_x,Fail
+KHR-GLES3.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
+dEQP-GLES31.functional.geometry_shading.query.primitives_generated_amplification,Fail
+dEQP-GLES31.functional.geometry_shading.query.primitives_generated_no_geometry,Fail
+dEQP-GLES2.functional.rasterization.interpolation.projected.line_loop_wide,Fail
+dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba4_nearest_mipmap_linear,Fail
+dEQP-GLES3.functional.rasterization.interpolation.basic.lines_wide,Fail

@@ -105,7 +105,6 @@ fallback_gralloc_get_buffer_info(struct u_gralloc *gralloc,
    int num_planes = 0;
    int drm_fourcc = 0;
    int stride = 0;
-   int fds[3];
 
    if (hnd->handle->numFds == 0)
       return -EINVAL;
@@ -145,7 +144,7 @@ fallback_gralloc_get_buffer_info(struct u_gralloc *gralloc,
    out->drm_fourcc = drm_fourcc;
    out->modifier = DRM_FORMAT_MOD_INVALID;
    out->num_planes = num_planes;
-   out->fds[0] = fds[0];
+   out->fds[0] = hnd->handle->data[0];
    out->strides[0] = stride;
 
 #ifdef HAS_FREEDRENO

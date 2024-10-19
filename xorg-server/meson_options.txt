@@ -33,8 +33,6 @@ option('serverconfigdir', type: 'string',
 option('glx', type: 'boolean', value: true)
 option('xdmcp', type: 'boolean', value: true)
 option('xdm-auth-1', type: 'boolean', value: true)
-option('secure-rpc', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
-       description: 'Enable Secure-RPC (DES) authentication')
 option('ipv6', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')
 option('input_thread', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')
 

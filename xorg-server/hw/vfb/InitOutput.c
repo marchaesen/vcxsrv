@@ -26,9 +26,7 @@ from The Open Group.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #if defined(WIN32)
 #include <X11/Xwinsock.h>
@@ -38,6 +36,8 @@ from The Open Group.
 #include <X11/Xproto.h>
 #include <X11/Xos.h>
 
+#include "dix/colormap_priv.h"
+#include "dix/dix_priv.h"
 #include "dix/screenint_priv.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"

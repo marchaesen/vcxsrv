@@ -24,11 +24,11 @@
 #include "nir.h"
 #include "nir_builder.h"
 
-/* Lower gl_FragCoord (and fddy) to account for driver's requested coordinate-
+/* Lower gl_FragCoord (and ddy) to account for driver's requested coordinate-
  * origin and pixel-center vs. shader.  If transformation is required, a
  * gl_FbWposYTransform uniform is inserted (with the specified state-slots)
  * and additional instructions are inserted to transform gl_FragCoord (and
- * fddy src arg).
+ * ddy src arg).
  *
  * This is based on the logic in emit_wpos()/emit_wpos_adjustment() in TGSI
  * compiler.
@@ -232,27 +232,20 @@ lower_fragcoord(lower_wpos_ytransform_state *state, nir_intrinsic_instr *intr)
    emit_wpos_adjustment(state, intr, invert, adjX, adjY);
 }
 
-/* turns 'fddy(p)' into 'fddy(fmul(p, transform.x))' */
+/* turns 'ddy(p)' into 'ddy(fmul(p, transform.x))' */
 static void
-lower_fddy(lower_wpos_ytransform_state *state, nir_alu_instr *fddy)
+lower_ddy(lower_wpos_ytransform_state *state, nir_intrinsic_instr *ddy)
 {
    nir_builder *b = &state->b;
-   nir_def *p, *pt, *trans;
    nir_def *wpostrans = get_transform(state);
 
-   b->cursor = nir_before_instr(&fddy->instr);
+   b->cursor = nir_before_instr(&ddy->instr);
 
-   p = nir_ssa_for_alu_src(b, fddy, 0);
-   trans = nir_channel(b, wpostrans, 0);
-   if (p->bit_size == 16)
-      trans = nir_f2f16(b, trans);
+   nir_def *p = ddy->src[0].ssa;
+   nir_def *trans = nir_f2fN(b, nir_channel(b, wpostrans, 0), p->bit_size);
+   nir_def *pt = nir_fmul(b, p, trans);
 
-   pt = nir_fmul(b, p, trans);
-
-   nir_src_rewrite(&fddy->src[0].src, pt);
-
-   for (unsigned i = 0; i < 4; i++)
-      fddy->src[0].swizzle[i] = MIN2(i, pt->num_components - 1);
+   nir_src_rewrite(&ddy->src[0], pt);
 }
 
 /* Multiply interp_deref_at_offset's or load_barycentric_at_offset's offset
@@ -332,13 +325,11 @@ lower_wpos_ytransform_instr(nir_builder *b, nir_instr *instr,
          lower_interp_deref_or_load_baryc_at_offset(state, intr, 1);
       } else if (intr->intrinsic == nir_intrinsic_load_barycentric_at_offset) {
          lower_interp_deref_or_load_baryc_at_offset(state, intr, 0);
+      } else if (intr->intrinsic == nir_intrinsic_ddy ||
+                 intr->intrinsic == nir_intrinsic_ddy_fine ||
+                 intr->intrinsic == nir_intrinsic_ddy_coarse) {
+         lower_ddy(state, intr);
       }
-   } else if (instr->type == nir_instr_type_alu) {
-      nir_alu_instr *alu = nir_instr_as_alu(instr);
-      if (alu->op == nir_op_fddy ||
-          alu->op == nir_op_fddy_fine ||
-          alu->op == nir_op_fddy_coarse)
-         lower_fddy(state, alu);
    }
 
    return state->transform != NULL;
@@ -357,7 +348,6 @@ nir_lower_wpos_ytransform(nir_shader *shader,
 
    return nir_shader_instructions_pass(shader,
                                        lower_wpos_ytransform_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &state);
 }

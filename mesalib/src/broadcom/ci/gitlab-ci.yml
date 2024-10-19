@@ -1,19 +1,19 @@
 include:
   - local: 'src/broadcom/ci/gitlab-ci-inc.yml'
 
-vc4-rpi3-gl:arm32:
+vc4-rpi3-gl:arm64:
   extends:
-    - .igalia-bcm2837-rpi-3-b:arm64
-    - .broadcom-test:arm32
+    - .igalia-bcm2837-rpi-3-b
+    - .broadcom-test:arm64
     - .vc4-rules
   parallel: 4
   variables:
     DEQP_SUITE: broadcom-rpi3
     HWCI_START_WESTON: 1
 
-vc4-rpi3-gl-piglit-full:arm32:
+vc4-rpi3-gl-piglit-full:arm64:
   extends:
-    - vc4-rpi3-gl:arm32
+    - vc4-rpi3-gl:arm64
     - .vc4-manual-rules
   tags:
     - igalia-rpi3
@@ -21,10 +21,31 @@ vc4-rpi3-gl-piglit-full:arm32:
   variables:
     DEQP_SUITE: broadcom-rpi3-piglit-full
 
+vc4-rpi3-gl:arm32:
+  extends:
+    - .igalia-bcm2837-rpi-3-b
+    - .broadcom-test:arm32
+    - .vc4-manual-rules
+  tags:
+    - igalia-rpi3
+    - igalia-fullrun
+  variables:
+    DEQP_SUITE: broadcom-rpi3-arm32
+
+vc4-rpi3-gl-asan:arm64:
+  extends:
+    - .igalia-bcm2837-rpi-3-b
+    - .broadcom-asan-test:arm64
+    - .vc4-manual-rules
+  variables:
+    FDO_CI_CONCURRENT: 1
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SUITE: broadcom-rpi3-asan
+    DEQP_FRACTION: 10
 
 v3d-rpi4-gl:arm64:
   extends:
-    - .igalia-bcm2711-rpi-4:arm64
+    - .igalia-bcm2711-rpi-4
     - .broadcom-test:arm64
     - .v3d-rules
   parallel: 8
@@ -36,6 +57,7 @@ v3d-rpi4-gl:arm64:
 v3d-rpi4-gl-full:arm64:
   extends:
     - v3d-rpi4-gl:arm64
+    - .broadcom-test-full:arm64
     - .v3d-manual-rules
   tags:
     - igalia-rpi4
@@ -43,13 +65,20 @@ v3d-rpi4-gl-full:arm64:
   parallel: 6
   timeout: 45m
   variables:
-    TEST_PHASE_TIMEOUT: 40
     DEQP_FRACTION: 1
 
+v3d-rpi4-rusticl:arm64:
+  extends:
+    - .igalia-bcm2711-rpi-4
+    - .broadcom-test:arm64
+    - .v3d-rusticl-manual-rules
+  timeout: 30m  # base run time = 17min test, 19min total
+  variables:
+    DEQP_SUITE: v3d-rusticl
 
 v3d-rpi4-traces:arm64:
   extends:
-    - .igalia-bcm2711-rpi-4:arm64
+    - .igalia-bcm2711-rpi-4
     - .piglit-traces-test
     - .broadcom-test:arm64
     - .v3d-rules
@@ -59,10 +88,32 @@ v3d-rpi4-traces:arm64:
     PIGLIT_REPLAY_DEVICE_NAME: "broadcom-rpi4"
     PIGLIT_RESULTS: "broadcom-rpi4-replay"
 
+v3d-rpi4-gl:arm32:
+  extends:
+    - .igalia-bcm2711-rpi-4
+    - .broadcom-test:arm32
+    - .v3d-manual-rules
+  tags:
+    - igalia-rpi4
+    - igalia-fullrun
+  timeout: 35m
+  variables:
+    DEQP_SUITE: broadcom-rpi4-arm32
+
+v3d-rpi4-gl-asan:arm64:
+  extends:
+    - .igalia-bcm2711-rpi-4
+    - .broadcom-asan-test:arm64
+    - .v3d-manual-rules
+  variables:
+    FDO_CI_CONCURRENT: 1
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SUITE: broadcom-rpi4-asan
+    DEQP_FRACTION: 30
 
 v3dv-rpi4-vk:arm64:
   extends:
-    - .igalia-bcm2711-rpi-4:arm64
+    - .igalia-bcm2711-rpi-4
     - .broadcom-test:arm64
     - .v3dv-rules
   parallel: 10
@@ -76,6 +127,7 @@ v3dv-rpi4-vk:arm64:
 v3dv-rpi4-vk-full:arm64:
   extends:
     - v3dv-rpi4-vk:arm64
+    - .broadcom-test-full:arm64
     - .v3dv-manual-rules
   tags:
     - igalia-rpi4
@@ -84,28 +136,92 @@ v3dv-rpi4-vk-full:arm64:
   timeout: 2h
   variables:
     # Keep 10 minutes for boot + setup + uploading the artifacts at the end
-    TEST_PHASE_TIMEOUT: 110
+    TEST_SETUP_AND_UPLOAD_MARGIN_MINUTES: 10
     DEQP_FRACTION: 1
 
-
-.v3dv-rpi5-vk:arm64:
+v3dv-rpi4-vk-asan:arm64:
   extends:
-    - .igalia-bcm2712-rpi-5:arm64
+    - .igalia-bcm2711-rpi-4
+    - .broadcom-asan-test:arm64
+    - .v3dv-manual-rules
+  variables:
+    FDO_CI_CONCURRENT: 1
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SUITE: broadcom-rpi4-vk-asan
+    DEQP_FRACTION: 200
+
+v3d-rpi5-gl:arm64:
+  extends:
+    - .igalia-bcm2712-rpi-5
+    - .broadcom-test:arm64
+    - .v3d-rules
+  variables:
+    HWCI_START_WESTON: 1
+    DEQP_SUITE: broadcom-rpi5
+    DEQP_FRACTION: 3
+
+v3d-rpi5-gl-full:arm64:
+  extends:
+    - v3d-rpi5-gl:arm64
+    - .broadcom-test-full:arm64
+    - .v3d-manual-rules
+  tags:
+    - igalia-rpi5
+    - igalia-fullrun
+  timeout: 1h  # usually takes around 48min
+  variables:
+    TEST_SETUP_AND_UPLOAD_MARGIN_MINUTES: 10
+    DEQP_FRACTION: 1
+
+v3d-rpi5-rusticl:arm64:
+  extends:
+    - .igalia-bcm2712-rpi-5
+    - .broadcom-test:arm64
+    - .v3d-rusticl-manual-rules
+  tags:
+    - igalia-rpi5
+    - igalia-fullrun
+  timeout: 20m  # base run time = 7min test, 9min total
+  variables:
+    DEQP_SUITE: v3d-rusticl
+
+v3d-rpi5-traces:arm64:
+  extends:
+    - .igalia-bcm2712-rpi-5
+    - .piglit-traces-test
+    - .broadcom-test:arm64
+    - .v3d-rules
+  variables:
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-traces.sh"
+    PIGLIT_TRACES_FILE: traces-broadcom.yml
+    PIGLIT_REPLAY_DEVICE_NAME: "broadcom-rpi5"
+    PIGLIT_RESULTS: "broadcom-rpi5-replay"
+
+
+v3dv-rpi5-vk:arm64:
+  extends:
+    - .igalia-bcm2712-rpi-5
     - .broadcom-test:arm64
     - .v3dv-rules
+  parallel: 2
   variables:
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     HWCI_START_WESTON: 1
     DEQP_SUITE: broadcom-rpi5-vk
-    DEQP_FRACTION: 15
+    DEQP_FRACTION: 5
     FLAKES_CHANNEL: "#videocore-ci"
 
 v3dv-rpi5-vk-full:arm64:
   extends:
-    - .v3dv-rpi5-vk:arm64
+    - v3dv-rpi5-vk:arm64
+    - .broadcom-test-full:arm64
     - .v3dv-manual-rules
-  timeout: 3h
+  tags:
+    - igalia-rpi5
+    - igalia-fullrun
+  parallel: null
+  timeout: 2h
   variables:
     # Keep 10 minutes for boot + setup + uploading the artifacts at the end
-    TEST_PHASE_TIMEOUT: 170
+    TEST_SETUP_AND_UPLOAD_MARGIN_MINUTES: 10
     DEQP_FRACTION: 1

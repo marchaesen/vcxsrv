@@ -34,6 +34,10 @@ class LAVAJobDefinition:
 
     def __init__(self, job_submitter: "LAVAJobSubmitter") -> None:
         self.job_submitter: "LAVAJobSubmitter" = job_submitter
+        # NFS args provided by LAVA
+        self.lava_nfs_args: str = "root=/dev/nfs rw nfsroot=$NFS_SERVER_IP:$NFS_ROOTFS,tcp,hard,v3 ip=dhcp"
+        # extra_nfsroot_args appends to cmdline
+        self.extra_nfsroot_args: str = " init=/init rootwait usbcore.quirks=0bda:8153:k"
 
     def has_ssh_support(self) -> bool:
         if FORCE_UART:
@@ -57,11 +61,11 @@ class LAVAJobDefinition:
             actions for the LAVA job submission.
         """
         args = self.job_submitter
-        values = self.generate_metadata()
         nfsrootfs = {
             "url": f"{args.rootfs_url_prefix}/lava-rootfs.tar.zst",
             "compression": "zstd",
         }
+        values = self.generate_metadata()
 
         init_stage1_steps = self.init_stage1_steps()
         artifact_download_steps = self.artifact_download_steps()
@@ -122,7 +126,7 @@ class LAVAJobDefinition:
             "device_type": self.job_submitter.device_type,
             "visibility": {"group": [self.job_submitter.visibility_group]},
             "priority": JOB_PRIORITY,
-            "context": {"extra_nfsroot_args": " init=/init rootwait usbcore.quirks=0bda:8153:k"},
+            "context": {"extra_nfsroot_args": self.extra_nfsroot_args},
             "timeouts": {
                 "job": {"minutes": self.job_submitter.job_timeout_min},
                 "actions": {
@@ -215,7 +219,7 @@ class LAVAJobDefinition:
             # For vmware farm, patch nameserver as 8.8.8.8 is off limit.
             # This is temporary and will be reverted once the farm is moved.
             if self.job_submitter.mesa_job_name.startswith("vmware-"):
-                run_steps += [x.rstrip().replace("nameserver 8.8.8.8", "nameserver 10.25.198.110") for x in init_sh if not x.startswith("#") and x.rstrip()]
+                run_steps += [x.rstrip().replace("nameserver 8.8.8.8", "nameserver 192.19.189.10") for x in init_sh if not x.startswith("#") and x.rstrip()]
             else:
                 run_steps += [x.rstrip() for x in init_sh if not x.startswith("#") and x.rstrip()]
 

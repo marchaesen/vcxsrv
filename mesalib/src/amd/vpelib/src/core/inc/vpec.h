@@ -36,9 +36,6 @@ struct vpe_priv;
 struct vpec_funcs {
     /** functions for capability check */
     bool (*check_swmode_support)(struct vpec *vpec, enum vpe_swizzle_mode_values sw_mode);
-
-    bool (*get_dcc_compression_cap)(struct vpec *vpec, const struct vpe_dcc_surface_param *input,
-        struct vpe_surface_dcc_cap *output);
 };
 
 struct vpec {

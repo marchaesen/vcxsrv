@@ -92,7 +92,6 @@ struct dri_drawable
    __DRIimage   *image; //texture_from_pixmap
    bool is_window;
    bool window_valid;
-   bool has_modifiers;
 
    /* hooks filled in by dri2 & drisw */
    void (*allocate_textures)(struct dri_context *ctx,
@@ -139,10 +138,6 @@ dri_get_drawable(struct dri_drawable *drawable)
 /***********************************************************************
  * dri_drawable.c
  */
-struct dri_drawable *
-dri_create_drawable(struct dri_screen *screen, const struct gl_config *visual,
-                    bool isPixmap, void *loaderPrivate);
-
 void
 dri_put_drawable(struct dri_drawable *drawable);
 
@@ -167,7 +162,18 @@ void
 dri_flush_drawable(__DRIdrawable *dPriv);
 
 extern const __DRItexBufferExtension driTexBufferExtension;
-extern const __DRI2throttleExtension dri2ThrottleExtension;
+
+void
+drisw_update_tex_buffer(struct dri_drawable *drawable,
+                        struct dri_context *ctx,
+                        struct pipe_resource *res);
+
+void
+kopper_init_drawable(struct dri_drawable *drawable, bool isPixmap, int alphaBits);
+void
+drisw_init_drawable(struct dri_drawable *drawable, bool isPixmap, int alphaBits);
+void
+dri2_init_drawable(struct dri_drawable *drawable, bool isPixmap, int alphaBits);
 #endif
 
 /* vim: set sw=3 ts=8 sts=3 expandtab: */

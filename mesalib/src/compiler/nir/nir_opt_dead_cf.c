@@ -97,8 +97,7 @@ opt_constant_if(nir_if *if_stmt, bool condition)
          }
 
          assert(def);
-         nir_def_rewrite_uses(&phi->def, def);
-         nir_instr_remove(&phi->instr);
+         nir_def_replace(&phi->def, def);
       }
    }
 

@@ -80,9 +80,7 @@ lima_nir_split_load_input_instr(nir_builder *b,
    new_intrin->src[0] = nir_src_for_ssa(intrin->src[0].ssa);
 
    nir_builder_instr_insert(b, &new_intrin->instr);
-   nir_def_rewrite_uses(&alu->def,
-                            &new_intrin->def);
-   nir_instr_remove(&alu->instr);
+   nir_def_replace(&alu->def, &new_intrin->def);
    return true;
 }
 
@@ -93,7 +91,6 @@ bool
 lima_nir_split_load_input(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader, lima_nir_split_load_input_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        NULL);
 }

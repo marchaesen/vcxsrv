@@ -29,7 +29,8 @@
 #include <sys/uio.h>
 #include <limits.h>
 #include <math.h>
-#include <xserver_poll.h>
+
+#include "os/xserver_poll.h"
 
 #include "xf86.h"
 #include "xf86Priv.h"

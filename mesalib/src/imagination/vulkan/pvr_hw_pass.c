@@ -1691,8 +1691,15 @@ pvr_is_z_replicate_space_available(const struct pvr_device_info *dev_info,
       return VK_SUCCESS;
    }
 
-   /* Find the subpass where the depth is first written. */
+   /* Get the registers used in any subpass after the depth is first written.
+    * Start with registers used in the incoming subpass.
+    */
+   result = pvr_copy_alloc(ctx, &combined_alloc, alloc);
+   if (result != VK_SUCCESS)
+      return result;
+
    if (hw_render) {
+      /* Find the subpass where the depth is first written. */
       first_use = hw_render->subpass_count;
       for (uint32_t i = 0U; i < hw_render->subpass_count; i++) {
          struct pvr_renderpass_subpass *subpass = &ctx->subpasses[i];
@@ -1703,16 +1710,7 @@ pvr_is_z_replicate_space_available(const struct pvr_device_info *dev_info,
             break;
          }
       }
-   }
 
-   /* Get the registers used in any subpass after the depth is first written.
-    * Start with registers used in the incoming subpass.
-    */
-   result = pvr_copy_alloc(ctx, &combined_alloc, alloc);
-   if (result != VK_SUCCESS)
-      return result;
-
-   if (hw_render) {
       /* Merge in registers used in previous subpasses. */
       for (uint32_t i = first_use; i < hw_render->subpass_count; i++) {
          struct pvr_renderpass_subpass *subpass = &ctx->subpasses[i];

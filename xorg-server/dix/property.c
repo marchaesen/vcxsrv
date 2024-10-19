@@ -44,14 +44,13 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
 
 #include "dix/dix_priv.h"
+#include "dix/property_priv.h"
 
 #include "windowstr.h"
 #include "propertyst.h"
@@ -279,11 +278,13 @@ dixChangeWindowProperty(ClientPtr pClient, WindowPtr pWin, Atom property,
         if (!pProp)
             return BadAlloc;
         data = malloc(totalSize);
-        if (!data && len) {
-            dixFreeObjectWithPrivates(pProp, PRIVATE_PROPERTY);
-            return BadAlloc;
+        if (totalSize) {
+            if (!data) {
+                dixFreeObjectWithPrivates(pProp, PRIVATE_PROPERTY);
+                return BadAlloc;
+            }
+            memcpy(data, value, totalSize);
         }
-        memcpy(data, value, totalSize);
         pProp->propertyName = property;
         pProp->type = type;
         pProp->format = format;
@@ -316,9 +317,11 @@ dixChangeWindowProperty(ClientPtr pClient, WindowPtr pWin, Atom property,
 
         if (mode == PropModeReplace) {
             data = malloc(totalSize);
-            if (!data && len)
-                return BadAlloc;
-            memcpy(data, value, totalSize);
+            if (totalSize) {
+                if (!data)
+                    return BadAlloc;
+                memcpy(data, value, totalSize);
+            }
             pProp->data = data;
             pProp->size = len;
             pProp->type = type;
@@ -588,17 +591,20 @@ ProcListProperties(ClientPtr client)
     for (pProp = wUserProps(pWin); pProp; pProp = pProp->next)
         numProps++;
 
-    if (numProps && !(pAtoms = xallocarray(numProps, sizeof(Atom))))
-        return BadAlloc;
+    if (numProps) {
+        pAtoms = xallocarray(numProps, sizeof(Atom));
+        if (!pAtoms)
+            return BadAlloc;
 
-    numProps = 0;
-    temppAtoms = pAtoms;
-    for (pProp = wUserProps(pWin); pProp; pProp = pProp->next) {
-        realProp = pProp;
-        rc = XaceHookPropertyAccess(client, pWin, &realProp, DixGetAttrAccess);
-        if (rc == Success && realProp == pProp) {
-            *temppAtoms++ = pProp->propertyName;
-            numProps++;
+        numProps = 0;
+        temppAtoms = pAtoms;
+        for (pProp = wUserProps(pWin); pProp; pProp = pProp->next) {
+            realProp = pProp;
+            rc = XaceHookPropertyAccess(client, pWin, &realProp, DixGetAttrAccess);
+            if (rc == Success && realProp == pProp) {
+                *temppAtoms++ = pProp->propertyName;
+                numProps++;
+            }
         }
     }
 
@@ -612,8 +618,8 @@ ProcListProperties(ClientPtr client)
     if (numProps) {
         client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;
         WriteSwappedDataToClient(client, numProps * sizeof(Atom), pAtoms);
+        free(pAtoms);
     }
-    free(pAtoms);
     return Success;
 }
 

@@ -87,12 +87,17 @@ CmapRecForColormap(
     _XAsyncHandler async;
     _XAsyncErrorState async_state;
 
+    LockDisplay(dpy);
     for (pRec = (XcmsCmapRec *)dpy->cms.clientCmaps; pRec != NULL;
 	    pRec = pRec->pNext) {
 	if (pRec->cmapID == cmap) {
+            UnlockDisplay(dpy);
+            SyncHandle();
 	    return(pRec);
 	}
     }
+    UnlockDisplay(dpy);
+    SyncHandle();
 
     /*
      * Can't find an XcmsCmapRec associated with cmap in our records.
@@ -258,9 +263,12 @@ _XcmsAddCmapRec(
     pNew->dpy = dpy;
     pNew->windowID = windowID;
     pNew->visual = visual;
+    LockDisplay(dpy);
     pNew->pNext = (XcmsCmapRec *)dpy->cms.clientCmaps;
     dpy->cms.clientCmaps = (XPointer)pNew;
     dpy->free_funcs->clientCmaps = _XcmsFreeClientCmaps;
+    UnlockDisplay(dpy);
+    SyncHandle();
 
     /*
      * Note, we don't create the XcmsCCC for pNew->ccc here because
@@ -342,6 +350,7 @@ _XcmsDeleteCmapRec(
     }
 
     /* search for it in the list */
+    LockDisplay(dpy);
     pPrevPtr = (XcmsCmapRec **)&dpy->cms.clientCmaps;
     while ((pRec = *pPrevPtr) && (pRec->cmapID != cmap)) {
 	pPrevPtr = &pRec->pNext;
@@ -354,6 +363,8 @@ _XcmsDeleteCmapRec(
 	*pPrevPtr = pRec->pNext;
 	Xfree(pRec);
     }
+    UnlockDisplay(dpy);
+    SyncHandle();
 }
 
 
@@ -378,6 +389,7 @@ _XcmsFreeClientCmaps(
 {
     XcmsCmapRec *pRecNext, *pRecFree;
 
+    LockDisplay(dpy);
     pRecNext = (XcmsCmapRec *)dpy->cms.clientCmaps;
     while (pRecNext != NULL) {
 	pRecFree = pRecNext;
@@ -390,6 +402,8 @@ _XcmsFreeClientCmaps(
 	Xfree(pRecFree);
     }
     dpy->cms.clientCmaps = (XPointer)NULL;
+    UnlockDisplay(dpy);
+    SyncHandle();
 }
 
 

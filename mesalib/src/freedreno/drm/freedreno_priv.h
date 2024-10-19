@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2012-2018 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2012-2018 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -52,10 +34,12 @@
 #include "freedreno_common.h"
 #include "freedreno_dev_info.h"
 #include "freedreno_drmif.h"
+#include "freedreno_rd_output.h"
 #include "freedreno_ringbuffer.h"
 
 extern simple_mtx_t table_lock;
 extern simple_mtx_t fence_lock;
+extern uint64_t os_page_size;
 
 #define SUBALLOC_SIZE (32 * 1024)
 /* Maximum known alignment requirement is a6xx's TEX_CONST at 16 dwords */
@@ -272,6 +256,8 @@ struct fd_device {
    simple_mtx_t suballoc_lock;
 
    struct util_queue submit_queue;
+
+   struct fd_rd_output rd;
 };
 
 static inline bool
@@ -464,6 +450,7 @@ struct fd_bo_funcs {
 
 void fd_bo_add_fence(struct fd_bo *bo, struct fd_fence *fence);
 void *fd_bo_map_os_mmap(struct fd_bo *bo);
+void *__fd_bo_map(struct fd_bo *bo);
 
 enum fd_bo_state {
    FD_BO_STATE_IDLE,

@@ -50,12 +50,14 @@
  *
  * Author: Rami Ylimäki <rami.ylimaki@vincit.fi>
  */
+#include <dix-config.h>
 
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "client.h"
+#include "os/client_priv.h"
+
 #include "os.h"
 #include "dixstruct.h"
 
@@ -325,18 +327,25 @@ DetermineClientCmd(pid_t pid, const char **cmdname, const char **cmdargs)
         if (n != 1)
             return;
         argv = kvm_getargv(kd, kp, 0);
-        *cmdname = strdup(argv[0]);
-        i = 1;
-        while (argv[i] != NULL) {
-            len += strlen(argv[i]) + 1;
-            i++;
+        if (cmdname) {
+            if (argv == NULL || argv[0] == NULL)
+                return;
+            else
+                *cmdname = strdup(argv[0]);
         }
-        *cmdargs = calloc(1, len);
-        i = 1;
-        while (argv[i] != NULL) {
-            strlcat(*cmdargs, argv[i], len);
-            strlcat(*cmdargs, " ", len);
-            i++;
+        if (cmdargs) {
+            i = 1;
+            while (argv[i] != NULL) {
+                len += strlen(argv[i]) + 1;
+                i++;
+            }
+            *cmdargs = calloc(1, len);
+            i = 1;
+            while (argv[i] != NULL) {
+                strlcat(*(char **)cmdargs, argv[i], len);
+                strlcat(*(char **)cmdargs, " ", len);
+                i++;
+            }
         }
         kvm_close(kd);
     }
@@ -445,7 +454,7 @@ ReserveClientIds(struct _Client *client)
         return;
 
     assert(!client->clientIds);
-    client->clientIds = calloc(1, sizeof(ClientIdRec));
+    client->clientIds = calloc(1, sizeof(struct _ClientId));
     if (!client->clientIds)
         return;
 

@@ -1,0 +1,184 @@
+Mesa 24.1.6 Release Notes / 2024-08-14
+======================================
+
+Mesa 24.1.6 is a bug fix release which fixes bugs found since the 24.1.5 release.
+
+Mesa 24.1.6 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.1.6 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA256 checksum
+---------------
+
+::
+
+    da94c0908d5662467369b69ed8236da1e1577141a6e7d25171a9bf56383b34e8  mesa-24.1.6.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- u_debug_stack_test.capture_not_overwritten fails on i386
+- turnip: vulkaninfo crashed
+- turnip-freereno Build error (/usr/local/include/xf86drm.h:40:10: fatal error: drm.h: No such file or directory)
+- tu: compilation failing when compiling turnip with only kgsl and X11 enabled
+- samplerCube constructor in fragment shader no longer converting uvec2 bindless texture handles ( segmentation fault , core dumped )
+- anv: gen9.5 flakiness in dEQP-VK.multiview.dynamic_rendering.depth.*
+- interpolateAt precision lowering unhandled by glsl_to_nir()
+- [radeonsi][bisected][regression] glClientWaitSync() quickly times out with INT64_MAX timeout
+- zink/tu: glcts flake on a750
+- [Regression][Vulkan][TGL][Bisected]vkCmdCopyQueryPoolResults failed to write buffer with compute pipeline on Mesa 24.1
+- Worms Revolution: not rendering explosion effects
+- crash on pushbuf_validate nvc0_blit do_blit_framebuffer
+- [radeonsi] Asterix & Obelix XXLRomastered: river misrendered (completely black)
+
+
+Changes
+-------
+
+David Heidelberg (1):
+
+- llvmpipe: Silence "possibly uninitialized value" warning for ssbo_limit (cont)
+
+David Rosca (1):
+
+- radeonsi/vcn: Add decode DPB buffers as CS dependency
+
+Echo J (1):
+
+- util: Fix the integer addition in os_time_get_absolute_timeout()
+
+Eric Engestrom (7):
+
+- docs: add sha256sum for 24.1.5
+- .pick_status.json: Update to c90e2bccf756004e48f9e7e71e555db0d03c1b98
+- .pick_status.json: Update to cc2dbb8ea5329b509d79eedb6c0cbb9a1903b5ad
+- .pick_status.json: Mark 89863a050bea429d9574a307bc28953bb60accaf as denominated
+- .pick_status.json: Mark 93f9afa1e039cbf681adcc6d170aec987d9f0f65 as denominated
+- ci: pass MESA_SPIRV_LOG_LEVEL from job to the test
+- .pick_status.json: Mark 34753cefd828f5db8e9e14cee9c4e45cee5baaaa as denominated
+
+Eric R. Smith (1):
+
+- panfrost: use RGB1 component ordering for R5G6B5 pixel formats
+
+Faith Ekstrand (3):
+
+- nvk: Require color or depth/stencil attachment support for input attachments
+- nvk: Support STORAGE_READ_WITHOUT_FORMAT on buffers
+- zink: Align descriptor buffers to descriptorBufferOffsetAlignment
+
+Georg Lehmann (2):
+
+- nir/lower_int64: replace uadd_sat with ior for find_lsb64 and ufind_msb64
+- aco/gfx10+: set lateKill for sgprs used by wave64 VALU writing a mask
+
+Hans-Kristian Arntzen (2):
+
+- wsi/common: Do not update present mode with MESA_VK_WSI_PRESENT_MODE.
+- wsi/x11: Bump maximum number of outstanding COMPLETE events.
+
+Iván Briano (1):
+
+- intel/rt: fix terminateOnFirstHit handling
+
+Karmjit Mahil (1):
+
+- tu: Set \`TU_ACCESS_CCHE_READ` for transfer ops with read access
+
+Karol Herbst (12):
+
+- Revert "rusticl/queue: gracefully stop the worker thread"
+- nouveau: handle realloc failure inside cli_kref_set
+- mesa: check for enabled extensions for \*UID enums
+- zink: lower 64 bit find_lsb, ufind_msb and bit_count
+- zink: lower 8/16 bit alu ops vk spirv doesn't allow
+- rusticl/kernel: properly respect device thread limits per dimension
+- rusticl/memory: Fix memory unmaps after rework
+- rusticl/image: take pitches into account when allocating memory for maps
+- rusticl/image: properly sync mappings content for 1Dbuffer images
+- rusticl/queue: add clSetCommandQueueProperty
+- util/u_printf: do not double print format string with unused arugments
+- rusticl/memory: fix sampler argument size check
+
+Konstantin Seurer (1):
+
+- aco: print s_delay_alu INSTSKIP>3 correctly
+
+Lionel Landwerlin (6):
+
+- anv: fix check on pipeline mode to track buffer writes
+- vulkan/runtime: allow null/empty debug names
+- anv: reuse object string for RMV token
+- anv: add missing MEDIA_STATE_FLUSH for internal shaders
+- anv/blorp: force CC_VIEWPORT reallocation when programming 3DSTATE_VIEWPORT_STATE_POINTERS_CC
+- brw/rt: fix ray_object_(direction|origin) for closest-hit shaders
+
+Marek Olšák (2):
+
+- nir/opt_algebraic: use fmulz for fpow lowering to fix incorrect rendering
+- radeonsi: fix buffer coherency issues on gfx6-8,12 due to missing PFP->ME sync
+
+Matt Turner (2):
+
+- util: Add ATTRIBUTE_OPTIMIZE(flags)
+- util: Force emission of stack frame in stack unit test
+
+Mike Blumenkrantz (7):
+
+- dri: link with libloader
+- kopper: check swapchain size after possible loader image resize
+- pipe-loader: fix driconf memory management
+- egl: fix zink init
+- dri: fix kms_swrast screen fail
+- egl/wayland: bail on zink init in non-sw mode if extension check fails
+- zink: fix partial update handling
+
+Pavel Ondračka (1):
+
+- r300: bias presubtract fix
+
+Rhys Perry (1):
+
+- docs: update ACO_DEBUG documentation for scheduler options
+
+Rob Clark (2):
+
+- tu: Fix issues with 16k (or larger) page sizes
+- freedreno/drm/virtio: Fix issues with 16k (or larger) page sizes
+
+Sil Vilerino (1):
+
+- Revert "d3d12: Video Encode - Remove PIPE_VIDEO_PROFILE_MPEG4_AVC_BASELINE as not supported" This reverts commit d6bb4ddc638f3ee37fbbe066c631dad80aaeb2d3. Fixes: d6bb4ddc638 ("d3d12: Video Encode - Remove PIPE_VIDEO_PROFILE_MPEG4_AVC_BASELINE as not supported")
+
+Tapani Pälli (1):
+
+- anv: fix a cmd_buffer reference in simple shader
+
+Timothy Arceri (3):
+
+- nir: set disallow_undef_to_nan for legacy ARB asm programs
+- glsl: fix glsl to nir support for lower precision builtins
+- glsl: always copy bindless sampler packing constructors to a temp
+
+Valentine Burley (2):
+
+- vulkan/wsi: Refactor can_present_on_device
+- tu: Always report that we can present on kgsl
+
+WANG Xuerui (1):
+
+- meson: Additionally probe -mtls-dialect=desc for TLSDESC support

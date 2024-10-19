@@ -15,7 +15,7 @@ Blit:
 Batch:
 -------
   # of draws: 1
-  mode: RM6_GMEM
+  mode: RM6_BIN_RENDER_START
   bin size: 768x320 (35 bins)
   DEPTHTEST DEPTHWRITE
   MRT[0x4715000:0x0]:	3840x2160		FMT6_Z24_UNORM_S8_UINT (MSAA_ONE)	CLEARED	RESOLVED
@@ -35,7 +35,7 @@ Blit:
 Batch:
 -------
   # of draws: 2
-  mode: RM6_GMEM
+  mode: RM6_BIN_RENDER_START
   bin size: 640x192 (18 bins)
   DEPTHTEST DEPTHWRITE
   MRT[0x28fc000:0x0]:	1920x1080		FMT6_Z24_UNORM_S8_UINT (MSAA_ONE)	CLEARED	RESOLVED

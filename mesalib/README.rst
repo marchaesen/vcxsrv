@@ -18,11 +18,9 @@ Meson (`docs/meson.rst <https://docs.mesa3d.org/meson.html>`_):
 
 .. code-block:: sh
 
-  $ mkdir build
-  $ cd build
-  $ meson ..
-  $ sudo ninja install
-
+  $ meson setup build
+  $ ninja -C build/
+  $ sudo ninja -C build/ install
 
 Support
 -------

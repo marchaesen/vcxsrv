@@ -310,15 +310,14 @@ SOFTWARE.
 	<value val="4" display="s16"/>
 	<value val="5" display="s32"/>
 	<value val="6" display="u8"/>
-	<value val="7" display="s8"/>
+	<value val="7" display="u8_32"/>
 </enum>
 
 <expr name="#type-half">
 	({TYPE} == 0) /* f16 */ ||
 	({TYPE} == 2) /* u16 */ ||
 	({TYPE} == 4) /* s16 */ ||
-	({TYPE} == 6) /* u8 */  ||
-	({TYPE} == 7) /* s8 */
+	({TYPE} == 6) /* u8 */
 </expr>
 
 <enum name="#absneg">

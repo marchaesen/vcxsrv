@@ -238,7 +238,7 @@ util_get_process_exec_path(char* process_path, size_t len)
    process_path[len - 1] = '\0';
 
    return len;
-#elif DETECT_OS_UNIX
+#elif DETECT_OS_POSIX
    ssize_t r;
 
    if ((r = readlink("/proc/self/exe", process_path, len)) > 0)

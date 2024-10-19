@@ -47,17 +47,6 @@
 #include "nir.h"
 #include "nir_builder.h"
 
-/*
- * Round up a vector size to a vector size that's valid in NIR. At present, NIR
- * supports only vec2-5, vec8, and vec16. Attempting to generate other sizes
- * will fail validation.
- */
-static unsigned
-round_up_components(unsigned n)
-{
-   return (n > 5) ? util_next_power_of_two(n) : n;
-}
-
 static void
 reswizzle_alu_uses(nir_def *def, uint8_t *reswizzle)
 {
@@ -103,17 +92,21 @@ shrink_dest_to_read_mask(nir_def *def, bool shrink_start)
       return false;
 
    nir_intrinsic_instr *intr = NULL;
-   if (def->parent_instr->type == nir_instr_type_intrinsic)
-      intr = nir_instr_as_intrinsic(def->parent_instr);
+   nir_src *offset_src = NULL;
 
-   shrink_start &= (intr != NULL) && nir_intrinsic_has_component(intr) &&
+   if (def->parent_instr->type == nir_instr_type_intrinsic) {
+      intr = nir_instr_as_intrinsic(def->parent_instr);
+      offset_src = nir_get_io_offset_src(intr);
+   }
+
+   shrink_start &= intr && (nir_intrinsic_has_component(intr) || offset_src) &&
                    is_only_used_by_alu(def);
 
    int last_bit = util_last_bit(mask);
    int first_bit = shrink_start ? (ffs(mask) - 1) : 0;
 
    const unsigned comps = last_bit - first_bit;
-   const unsigned rounded = round_up_components(comps);
+   const unsigned rounded = nir_round_up_components(comps);
    assert(rounded <= def->num_components);
 
    if ((def->num_components > rounded) || first_bit > 0) {
@@ -122,9 +115,25 @@ shrink_dest_to_read_mask(nir_def *def, bool shrink_start)
       if (first_bit) {
          assert(shrink_start);
 
-         nir_intrinsic_set_component(intr, nir_intrinsic_component(intr) + first_bit);
+         if (nir_intrinsic_has_component(intr)) {
+            unsigned new_component = nir_intrinsic_component(intr) + first_bit;
+            nir_intrinsic_set_component(intr, new_component);
+         } else {
+            /* Add the component offset into the src offset. */
+            unsigned offset = (def->bit_size / 8) * first_bit;
+
+            if (nir_intrinsic_has_align_offset(intr)) {
+               unsigned align_offset = (nir_intrinsic_align_offset(intr) + offset) %
+                                       nir_intrinsic_align_mul(intr);
+               nir_intrinsic_set_align_offset(intr, align_offset);
+            }
+
+            nir_builder b = nir_builder_at(nir_before_instr(&intr->instr));
+            nir_src_rewrite(offset_src, nir_iadd_imm(&b, offset_src->ssa, offset));
+         }
 
          /* Reswizzle sources, which must be ALU since they have swizzle */
+         assert(first_bit + comps <= NIR_MAX_VEC_COMPONENTS);
          uint8_t swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
          for (unsigned i = 0; i < comps; ++i) {
             swizzle[first_bit + i] = i;
@@ -293,7 +302,7 @@ opt_shrink_vectors_alu(nir_builder *b, nir_alu_instr *instr)
    if (progress)
       reswizzle_alu_uses(def, reswizzle);
 
-   unsigned rounded = round_up_components(num_components);
+   unsigned rounded = nir_round_up_components(num_components);
    assert(rounded <= def->num_components);
    if (rounded < def->num_components)
       progress = true;
@@ -312,6 +321,7 @@ opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
    case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_ubo:
    case nir_intrinsic_load_input:
+   case nir_intrinsic_load_per_primitive_input:
    case nir_intrinsic_load_input_vertex:
    case nir_intrinsic_load_per_vertex_input:
    case nir_intrinsic_load_interpolated_input:
@@ -409,7 +419,7 @@ opt_shrink_vectors_load_const(nir_load_const_instr *instr)
    if (progress)
       reswizzle_alu_uses(def, reswizzle);
 
-   unsigned rounded = round_up_components(num_components);
+   unsigned rounded = nir_round_up_components(num_components);
    assert(rounded <= def->num_components);
    if (rounded < def->num_components)
       progress = true;
@@ -569,8 +579,7 @@ nir_opt_shrink_vectors(nir_shader *shader, bool shrink_start)
 
       if (progress) {
          nir_metadata_preserve(impl,
-                               nir_metadata_block_index |
-                                  nir_metadata_dominance);
+                               nir_metadata_control_flow);
       } else {
          nir_metadata_preserve(impl, nir_metadata_all);
       }

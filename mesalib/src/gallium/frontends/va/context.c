@@ -124,6 +124,10 @@ VA_PUBLIC_API VAStatus
 VA_DRIVER_INIT_FUNC(VADriverContextP ctx)
 {
    vlVaDriver *drv;
+#if defined(GALLIUM_ZINK)
+   const char *drivername = os_get_option_cached("LIBVA_DRIVER_NAME");
+   bool zink = drivername && !strcmp(drivername, "zink");
+#endif
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -135,7 +139,12 @@ VA_DRIVER_INIT_FUNC(VADriverContextP ctx)
    switch (ctx->display_type) {
 #ifdef _WIN32
    case VA_DISPLAY_WIN32: {
-      drv->vscreen = vl_win32_screen_create(ctx->native_dpy);
+#ifdef GALLIUM_ZINK
+      if (zink)
+         drv->vscreen = vl_kopper_screen_create_win32(ctx->native_dpy);
+#endif
+      if (!drv->vscreen)
+         drv->vscreen = vl_win32_screen_create(ctx->native_dpy);
       break;
    }
 #else
@@ -144,9 +153,16 @@ VA_DRIVER_INIT_FUNC(VADriverContextP ctx)
       return VA_STATUS_ERROR_UNIMPLEMENTED;
    case VA_DISPLAY_GLX:
    case VA_DISPLAY_X11:
-      drv->vscreen = vl_dri3_screen_create(ctx->native_dpy, ctx->x11_screen);
+#ifdef GALLIUM_ZINK
+      if (zink)
+         drv->vscreen = vl_kopper_screen_create_x11(ctx->native_dpy, ctx->x11_screen);
+#endif
+      if (!drv->vscreen)
+         drv->vscreen = vl_dri3_screen_create(ctx->native_dpy, ctx->x11_screen);
+#ifdef HAVE_X11_DRI2
       if (!drv->vscreen)
          drv->vscreen = vl_dri2_screen_create(ctx->native_dpy, ctx->x11_screen);
+#endif
       if (!drv->vscreen)
          drv->vscreen = vl_xlib_swrast_screen_create(ctx->native_dpy, ctx->x11_screen);
       break;
@@ -167,8 +183,16 @@ VA_DRIVER_INIT_FUNC(VADriverContextP ctx)
          FREE(drm_driver_name);
       }
 #endif
-      if(!drv->vscreen)
-         drv->vscreen = vl_drm_screen_create(drm_info->fd);
+      if(!drv->vscreen) {
+         /* VA_DISPLAY_WAYLAND uses the compositor's fd, like VA_DISPLAY_X11 does.
+          * In this case, tell vl_drm_screen_create to consider the DRI_PRIME env
+          * variable to let the user select a different device.
+          * The other display types receive a fd explicitely picked by the application,
+          * so don't try to override them.
+          */
+         bool honor_dri_prime = ctx->display_type == VA_DISPLAY_WAYLAND;
+         drv->vscreen = vl_drm_screen_create(drm_info->fd, honor_dri_prime);
+      }
       break;
    }
 #endif
@@ -179,6 +203,10 @@ VA_DRIVER_INIT_FUNC(VADriverContextP ctx)
 
    if (!drv->vscreen)
       goto error_screen;
+
+   /* video cannot work if these are not supported */
+   if (!drv->vscreen->pscreen->get_video_param || !drv->vscreen->pscreen->is_video_format_supported)
+      goto error_pipe;
 
    drv->pipe = pipe_create_multimedia_context(drv->vscreen->pscreen);
    if (!drv->pipe)
@@ -368,19 +396,58 @@ vlVaCreateContext(VADriverContextP ctx, VAConfigID config_id, int picture_width,
    if (config->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
       switch (u_reduce_video_profile(context->templat.profile)) {
       case PIPE_VIDEO_FORMAT_MPEG4_AVC:
-         context->desc.h264enc.rate_ctrl[0].rate_ctrl_method = config->rc;
+         context->templat.max_references = PIPE_H264_MAX_REFERENCES;
+         for (unsigned i = 0; i < ARRAY_SIZE(context->desc.h264enc.rate_ctrl); i++) {
+            context->desc.h264enc.rate_ctrl[i].rate_ctrl_method = config->rc;
+            context->desc.h264enc.rate_ctrl[i].vbv_buffer_size = 20000000;
+            context->desc.h264enc.rate_ctrl[i].vbv_buf_lv = 64;
+            context->desc.h264enc.rate_ctrl[i].fill_data_enable = 1;
+            context->desc.h264enc.rate_ctrl[i].enforce_hrd = 1;
+            context->desc.h264enc.rate_ctrl[i].max_qp = 51;
+            context->desc.h264enc.rate_ctrl[i].frame_rate_num = 30;
+            context->desc.h264enc.rate_ctrl[i].frame_rate_den = 1;
+         }
          context->desc.h264enc.frame_idx = util_hash_table_create_ptr_keys();
+         util_dynarray_init(&context->desc.h264enc.raw_headers, NULL);
          break;
       case PIPE_VIDEO_FORMAT_HEVC:
-         context->desc.h265enc.rc.rate_ctrl_method = config->rc;
+         context->templat.max_references = PIPE_H265_MAX_REFERENCES;
+         for (unsigned i = 0; i < ARRAY_SIZE(context->desc.h265enc.rc); i++) {
+            context->desc.h265enc.rc[i].rate_ctrl_method = config->rc;
+            context->desc.h265enc.rc[i].vbv_buffer_size = 20000000;
+            context->desc.h265enc.rc[i].vbv_buf_lv = 64;
+            context->desc.h265enc.rc[i].fill_data_enable = 1;
+            context->desc.h265enc.rc[i].enforce_hrd = 1;
+            context->desc.h265enc.rc[i].max_qp = 51;
+            context->desc.h265enc.rc[i].frame_rate_num = 30;
+            context->desc.h265enc.rc[i].frame_rate_den = 1;
+         }
          context->desc.h265enc.frame_idx = util_hash_table_create_ptr_keys();
+         util_dynarray_init(&context->desc.h265enc.raw_headers, NULL);
          break;
       case PIPE_VIDEO_FORMAT_AV1:
-         context->desc.av1enc.rc[0].rate_ctrl_method = config->rc;
+         context->templat.max_references = PIPE_AV1_MAX_REFERENCES;
+         for (unsigned i = 0; i < ARRAY_SIZE(context->desc.av1enc.rc); i++) {
+            context->desc.av1enc.rc[i].rate_ctrl_method = config->rc;
+            context->desc.av1enc.rc[i].vbv_buffer_size = 20000000;
+            context->desc.av1enc.rc[i].vbv_buf_lv = 64;
+            context->desc.av1enc.rc[i].fill_data_enable = 1;
+            context->desc.av1enc.rc[i].enforce_hrd = 1;
+            context->desc.av1enc.rc[i].max_qp = 255;
+            context->desc.av1enc.rc[i].min_qp = 1;
+            context->desc.av1enc.rc[i].frame_rate_num = 30;
+            context->desc.av1enc.rc[i].frame_rate_den = 1;
+         }
          break;
       default:
          break;
       }
+
+      mtx_lock(&drv->mutex);
+      context->decoder = drv->pipe->create_video_codec(drv->pipe, &context->templat);
+      mtx_unlock(&drv->mutex);
+      if (!context->decoder)
+         return VA_STATUS_ERROR_ALLOCATION_FAILED;
    }
 
    context->surfaces = _mesa_set_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
@@ -429,11 +496,22 @@ vlVaDestroyContext(VADriverContextP ctx, VAContextID context_id)
              PIPE_VIDEO_FORMAT_MPEG4_AVC) {
             if (context->desc.h264enc.frame_idx)
                _mesa_hash_table_destroy(context->desc.h264enc.frame_idx, NULL);
+            util_dynarray_fini(&context->desc.h264enc.raw_headers);
          }
          if (u_reduce_video_profile(context->decoder->profile) ==
              PIPE_VIDEO_FORMAT_HEVC) {
             if (context->desc.h265enc.frame_idx)
                _mesa_hash_table_destroy(context->desc.h265enc.frame_idx, NULL);
+            util_dynarray_fini(&context->desc.h265enc.raw_headers);
+         }
+         if (u_reduce_video_profile(context->decoder->profile) ==
+             PIPE_VIDEO_FORMAT_AV1) {
+            for (uint32_t i = 0; i < ARRAY_SIZE(context->desc.av1enc.dpb); i++) {
+               struct pipe_video_buffer *buf = context->desc.av1enc.dpb[i].buffer;
+               if (buf && !context->desc.av1enc.dpb[i].id)
+                  buf->destroy(buf);
+            }
+            util_dynarray_fini(&context->desc.av1enc.raw_headers);
          }
       } else {
          if (u_reduce_video_profile(context->decoder->profile) ==
@@ -456,6 +534,8 @@ vlVaDestroyContext(VADriverContextP ctx, VAContextID context_id)
       FREE(context->deint);
    }
    FREE(context->desc.base.decrypt_key);
+   FREE(context->bs.buffers);
+   FREE(context->bs.sizes);
    FREE(context);
    handle_table_remove(drv->htab, context_id);
    mtx_unlock(&drv->mutex);

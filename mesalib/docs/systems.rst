@@ -7,7 +7,7 @@ Haiku. We're actively developing and maintaining several hardware and
 software drivers.
 
 The primary API is OpenGL but there's also support for OpenGL ES, Vulkan,
-EGL, OpenMAX, OpenCL, VDPAU and VA-API.
+EGL, OpenCL, VDPAU and VA-API.
 
 Hardware drivers include:
 

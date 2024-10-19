@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
 
-set -ex
+set -uex
 
 git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
@@ -17,7 +17,7 @@ rm -rf third_party/virglrenderer
 git clone --single-branch -b main --no-checkout https://gitlab.freedesktop.org/virgl/virglrenderer.git third_party/virglrenderer
 pushd third_party/virglrenderer
 git checkout "$VIRGLRENDERER_VERSION"
-meson setup build/ -D libdir=lib -D render-server-worker=process -D venus=true $EXTRA_MESON_ARGS
+meson setup build/ -D libdir=lib -D render-server-worker=process -D venus=true ${EXTRA_MESON_ARGS:-}
 meson install -C build
 popd
 
@@ -29,7 +29,7 @@ RUSTFLAGS='-L native=/usr/local/lib' cargo install \
   -j ${FDO_CI_CONCURRENT:-4} \
   --root /usr/local \
   --version 0.65.1 \
-  $EXTRA_CARGO_ARGS
+  ${EXTRA_CARGO_ARGS:-}
 
 CROSVM_USE_SYSTEM_MINIGBM=1 CROSVM_USE_SYSTEM_VIRGLRENDERER=1 RUSTFLAGS='-L native=/usr/local/lib' cargo install \
   -j ${FDO_CI_CONCURRENT:-4} \
@@ -37,7 +37,7 @@ CROSVM_USE_SYSTEM_MINIGBM=1 CROSVM_USE_SYSTEM_VIRGLRENDERER=1 RUSTFLAGS='-L nati
   --features 'default-no-sandbox gpu x virgl_renderer' \
   --path . \
   --root /usr/local \
-  $EXTRA_CARGO_ARGS
+  ${EXTRA_CARGO_ARGS:-}
 
 popd
 

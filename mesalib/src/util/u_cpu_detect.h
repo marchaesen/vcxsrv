@@ -109,6 +109,8 @@ struct util_cpu_caps_t {
    unsigned has_daz:1;
    unsigned has_neon:1;
    unsigned has_msa:1;
+   unsigned has_lsx:1;
+   unsigned has_lasx:1;
 
    unsigned has_avx512f:1;
    unsigned has_avx512dq:1;

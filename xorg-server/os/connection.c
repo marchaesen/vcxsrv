@@ -60,9 +60,7 @@ SOFTWARE.
  *
  *****************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #ifdef WIN32
 #include <X11/Xwinsock.h>
@@ -102,7 +100,6 @@ SOFTWARE.
 #include "os/osdep.h"
 
 #include "misc.h"               /* for typedef of pointer */
-#include "opaque.h"
 #include "dixstruct_priv.h"
 #include "xace.h"
 
@@ -397,7 +394,7 @@ AuthAudit(ClientPtr client, Bool letin,
             snprintf(addr, sizeof(addr), "IP %s",
                      inet_ntoa(((struct sockaddr_in *) saddr)->sin_addr));
             break;
-#if defined(IPv6) && defined(AF_INET6)
+#if defined(IPv6)
         case AF_INET6:{
             char ipaddr[INET6_ADDRSTRLEN];
 
@@ -579,7 +576,7 @@ ClientAuthorized(ClientPtr client,
     XdmcpOpenDisplay(priv->fd);
 #endif                          /* XDMCP */
 
-    XaceHook(XACE_AUTH_AVAIL, client, auth_id);
+    XaceHookAuthAvail(client, auth_id);
 
     /* At this point, if the client is authorized to change the access control
      * list, we should getpeername() information, and add the client to
@@ -866,7 +863,7 @@ OnlyListenToOneClient(ClientPtr client)
 {
     int rc;
 
-    rc = XaceHook(XACE_SERVER_ACCESS, client, DixGrabAccess);
+    rc = XaceHookServerAccess(client, DixGrabAccess);
     if (rc != Success)
         return rc;
 
@@ -1035,9 +1032,9 @@ ListenOnOpenFD(int fd, int noxauth)
 
     /* Allocate space to store it */
     ListenTransFds =
-        xnfreallocarray(ListenTransFds, ListenTransCount + 1, sizeof(int));
+        XNFreallocarray(ListenTransFds, ListenTransCount + 1, sizeof(int));
     ListenTransConns =
-        xnfreallocarray(ListenTransConns, ListenTransCount + 1,
+        XNFreallocarray(ListenTransConns, ListenTransCount + 1,
                         sizeof(XtransConnInfo));
 
     /* Store it */

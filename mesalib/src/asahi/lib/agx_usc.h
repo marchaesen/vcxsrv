@@ -6,6 +6,7 @@
 #pragma once
 
 #include "asahi/genxml/agx_pack.h"
+#include "agx_compile.h"
 
 /* Opaque structure representing a USC program being constructed */
 struct agx_usc_builder {
@@ -101,5 +102,38 @@ agx_usc_shared_none(struct agx_usc_builder *b)
    agx_usc_pack(b, SHARED, cfg) {
       cfg.layout = AGX_SHARED_LAYOUT_VERTEX_COMPUTE;
       cfg.bytes_per_threadgroup = 65536;
+   }
+}
+
+static void
+agx_usc_shared_non_fragment(struct agx_usc_builder *b,
+                            struct agx_shader_info *info,
+                            unsigned variable_shared_mem)
+{
+   if (info->stage == PIPE_SHADER_FRAGMENT) {
+      return;
+   } else if (info->stage == PIPE_SHADER_COMPUTE && info->imageblock_stride) {
+      assert(info->local_size == 0 && "we don't handle this interaction");
+      assert(variable_shared_mem == 0 && "we don't handle this interaction");
+
+      agx_usc_pack(b, SHARED, cfg) {
+         cfg.layout = AGX_SHARED_LAYOUT_32X32;
+         cfg.uses_shared_memory = true;
+         cfg.sample_count = 1;
+         cfg.sample_stride_in_8_bytes =
+            DIV_ROUND_UP(info->imageblock_stride, 8);
+         cfg.bytes_per_threadgroup = cfg.sample_stride_in_8_bytes * 8 * 32 * 32;
+      }
+   } else if (info->stage == PIPE_SHADER_COMPUTE ||
+              info->stage == PIPE_SHADER_TESS_CTRL) {
+      unsigned size = info->local_size + variable_shared_mem;
+
+      agx_usc_pack(b, SHARED, cfg) {
+         cfg.layout = AGX_SHARED_LAYOUT_VERTEX_COMPUTE;
+         cfg.bytes_per_threadgroup = size > 0 ? size : 65536;
+         cfg.uses_shared_memory = size > 0;
+      }
+   } else {
+      agx_usc_shared_none(b);
    }
 }

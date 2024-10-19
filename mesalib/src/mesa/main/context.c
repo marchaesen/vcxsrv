@@ -288,6 +288,7 @@ init_program_limits(struct gl_constants *consts, gl_shader_stage stage,
    prog->MaxEnvParams = MAX_PROGRAM_ENV_PARAMS;
    prog->MaxLocalParams = MAX_PROGRAM_LOCAL_PARAMS;
    prog->MaxAddressOffset = MAX_PROGRAM_LOCAL_PARAMS;
+   prog->MaxAddressRegs = 0; /* only meaningful for vertex/fragment shaders */
 
    switch (stage) {
    case MESA_SHADER_VERTEX:
@@ -311,7 +312,6 @@ init_program_limits(struct gl_constants *consts, gl_shader_stage stage,
    case MESA_SHADER_GEOMETRY:
       prog->MaxParameters = MAX_VERTEX_PROGRAM_PARAMS;
       prog->MaxAttribs = MAX_VERTEX_GENERIC_ATTRIBS;
-      prog->MaxAddressRegs = MAX_VERTEX_PROGRAM_ADDRESS_REGS;
       prog->MaxUniformComponents = 4 * MAX_UNIFORMS;
       prog->MaxInputComponents = 16 * 4; /* old limit not to break tnl and swrast */
       prog->MaxOutputComponents = 16 * 4; /* old limit not to break tnl and swrast */
@@ -319,7 +319,6 @@ init_program_limits(struct gl_constants *consts, gl_shader_stage stage,
    case MESA_SHADER_COMPUTE:
       prog->MaxParameters = 0; /* not meaningful for compute shaders */
       prog->MaxAttribs = 0; /* not meaningful for compute shaders */
-      prog->MaxAddressRegs = 0; /* not meaningful for compute shaders */
       prog->MaxUniformComponents = 4 * MAX_UNIFORMS;
       prog->MaxInputComponents = 0; /* not meaningful for compute shaders */
       prog->MaxOutputComponents = 0; /* not meaningful for compute shaders */
@@ -327,18 +326,6 @@ init_program_limits(struct gl_constants *consts, gl_shader_stage stage,
    default:
       assert(0 && "Bad shader stage in init_program_limits()");
    }
-
-   /* Set the native limits to zero.  This implies that there is no native
-    * support for shaders.  Let the drivers fill in the actual values.
-    */
-   prog->MaxNativeInstructions = 0;
-   prog->MaxNativeAluInstructions = 0;
-   prog->MaxNativeTexInstructions = 0;
-   prog->MaxNativeTexIndirections = 0;
-   prog->MaxNativeAttribs = 0;
-   prog->MaxNativeTemps = 0;
-   prog->MaxNativeAddressRegs = 0;
-   prog->MaxNativeParameters = 0;
 
    /* Set GLSL datatype range/precision info assuming IEEE float values.
     * Drivers should override these defaults as needed.

@@ -24,9 +24,7 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #ifndef ENTERLEAVE_H
 #define ENTERLEAVE_H

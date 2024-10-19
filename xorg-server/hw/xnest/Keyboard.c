@@ -12,9 +12,7 @@ is" without express or implied warranty.
 
 */
 
-#ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
-#endif
 
 #ifdef WIN32
 #include <X11/Xwindows.h>
@@ -41,7 +39,6 @@ is" without express or implied warranty.
 
 #include <X11/extensions/XKB.h>
 #include "xkbsrv.h"
-#include <X11/extensions/XKBconfig.h>
 
 extern Bool
  XkbQueryExtension(Display * /* dpy */ ,
@@ -191,7 +188,7 @@ xnestKeyboardProc(DeviceIntPtr pDev, int onoff)
                               modmap, serverClient);
 
         XkbDDXChangeControls(pDev, xkb->ctrls, xkb->ctrls);
-        XkbFreeKeyboard(xkb, 0, False);
+        XkbFreeKeyboard(xkb, 0, FALSE);
         free(keymap);
         break;
     case DEVICE_ON:

@@ -32,6 +32,7 @@
  * List of supported modifiers, in descending order of preference. AFBC is
  * faster than u-interleaved tiling which is faster than linear. Within AFBC,
  * enabling the YUV-like transform is typically a win where possible.
+ * AFRC is only used if explicitely asked for (only for RGB formats).
  */
 uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT] = {
    DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
@@ -49,7 +50,24 @@ uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT] = {
                            AFBC_FORMAT_MOD_SPARSE),
 
    DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED,
-   DRM_FORMAT_MOD_LINEAR};
+   DRM_FORMAT_MOD_LINEAR,
+
+   DRM_FORMAT_MOD_ARM_AFRC(
+      AFRC_FORMAT_MOD_CU_SIZE_P0(AFRC_FORMAT_MOD_CU_SIZE_16)),
+   DRM_FORMAT_MOD_ARM_AFRC(
+      AFRC_FORMAT_MOD_CU_SIZE_P0(AFRC_FORMAT_MOD_CU_SIZE_24)),
+   DRM_FORMAT_MOD_ARM_AFRC(
+      AFRC_FORMAT_MOD_CU_SIZE_P0(AFRC_FORMAT_MOD_CU_SIZE_32)),
+   DRM_FORMAT_MOD_ARM_AFRC(
+      AFRC_FORMAT_MOD_CU_SIZE_P0(AFRC_FORMAT_MOD_CU_SIZE_16) |
+      AFRC_FORMAT_MOD_LAYOUT_SCAN),
+   DRM_FORMAT_MOD_ARM_AFRC(
+      AFRC_FORMAT_MOD_CU_SIZE_P0(AFRC_FORMAT_MOD_CU_SIZE_24) |
+      AFRC_FORMAT_MOD_LAYOUT_SCAN),
+   DRM_FORMAT_MOD_ARM_AFRC(
+      AFRC_FORMAT_MOD_CU_SIZE_P0(AFRC_FORMAT_MOD_CU_SIZE_32) |
+      AFRC_FORMAT_MOD_LAYOUT_SCAN),
+};
 
 /* Table of AFBC superblock sizes */
 static const struct pan_block_size afbc_superblock_sizes[] = {
@@ -117,6 +135,98 @@ panfrost_afbc_subblock_size(uint64_t modifier)
 }
 
 /*
+ * Given an AFRC modifier, return whether the layout is optimized for scan
+ * order (vs rotation order).
+ */
+bool
+panfrost_afrc_is_scan(uint64_t modifier)
+{
+   return modifier & AFRC_FORMAT_MOD_LAYOUT_SCAN;
+}
+
+struct pan_block_size
+panfrost_afrc_clump_size(enum pipe_format format, bool scan)
+{
+   struct pan_afrc_format_info finfo = panfrost_afrc_get_format_info(format);
+
+   switch (finfo.num_comps) {
+   case 1:
+      return scan ? (struct pan_block_size){16, 4}
+                  : (struct pan_block_size){8, 8};
+   case 2:
+      return (struct pan_block_size){8, 4};
+   case 3:
+   case 4:
+      return (struct pan_block_size){4, 4};
+   default:
+      assert(0);
+      return (struct pan_block_size){0, 0};
+   }
+}
+
+static struct pan_block_size
+panfrost_afrc_layout_size(uint64_t modifier)
+{
+   if (panfrost_afrc_is_scan(modifier))
+      return (struct pan_block_size){16, 4};
+   else
+      return (struct pan_block_size){8, 8};
+}
+
+struct pan_block_size
+panfrost_afrc_tile_size(enum pipe_format format, uint64_t modifier)
+{
+   bool scan = panfrost_afrc_is_scan(modifier);
+   struct pan_block_size clump_sz = panfrost_afrc_clump_size(format, scan);
+   struct pan_block_size layout_sz = panfrost_afrc_layout_size(modifier);
+
+   return (struct pan_block_size){clump_sz.width * layout_sz.width,
+                                  clump_sz.height * layout_sz.height};
+}
+
+unsigned
+panfrost_afrc_block_size_from_modifier(uint64_t modifier)
+{
+   switch (modifier & AFRC_FORMAT_MOD_CU_SIZE_MASK) {
+   case AFRC_FORMAT_MOD_CU_SIZE_16:
+      return 16;
+   case AFRC_FORMAT_MOD_CU_SIZE_24:
+      return 24;
+   case AFRC_FORMAT_MOD_CU_SIZE_32:
+      return 32;
+   default:
+      unreachable("invalid coding unit size flag in modifier");
+   };
+}
+
+static unsigned
+panfrost_afrc_buffer_alignment_from_modifier(uint64_t modifier)
+{
+   switch (modifier & AFRC_FORMAT_MOD_CU_SIZE_MASK) {
+   case AFRC_FORMAT_MOD_CU_SIZE_16:
+      return 1024;
+   case AFRC_FORMAT_MOD_CU_SIZE_24:
+      return 512;
+   case AFRC_FORMAT_MOD_CU_SIZE_32:
+      return 2048;
+   default:
+      unreachable("invalid coding unit size flag in modifier");
+   };
+}
+
+/*
+ * Determine the number of bytes between rows of paging tiles in an AFRC image
+ */
+uint32_t
+pan_afrc_row_stride(enum pipe_format format, uint64_t modifier, uint32_t width)
+{
+   struct pan_block_size tile_size = panfrost_afrc_tile_size(format, modifier);
+   unsigned block_size = panfrost_afrc_block_size_from_modifier(modifier);
+
+   return (width / tile_size.width) * block_size * AFRC_CLUMPS_PER_TILE;
+}
+
+/*
  * Given a format, determine the tile size used for u-interleaving. For formats
  * that are already block compressed, this is 4x4. For all other formats, this
  * is 16x16, hence the modifier name.
@@ -132,8 +242,8 @@ panfrost_u_interleaved_tile_size(enum pipe_format format)
 
 /*
  * Determine the block size used for interleaving. For u-interleaving, this is
- * the tile size. For AFBC, this is the superblock size. For linear textures,
- * this is trivially 1x1.
+ * the tile size. For AFBC, this is the superblock size. For AFRC, this is the
+ * paging tile size. For linear textures, this is trivially 1x1.
  */
 struct pan_block_size
 panfrost_block_size(uint64_t modifier, enum pipe_format format)
@@ -142,6 +252,8 @@ panfrost_block_size(uint64_t modifier, enum pipe_format format)
       return panfrost_u_interleaved_tile_size(format);
    else if (drm_is_afbc(modifier))
       return panfrost_afbc_superblock_size(modifier);
+   else if (drm_is_afrc(modifier))
+      return panfrost_afrc_tile_size(format, modifier);
    else
       return (struct pan_block_size){1, 1};
 }
@@ -206,10 +318,13 @@ pan_afbc_body_align(uint64_t modifier)
 }
 
 static inline unsigned
-format_minimum_alignment(unsigned arch, enum pipe_format format, bool afbc)
+format_minimum_alignment(unsigned arch, enum pipe_format format, uint64_t mod)
 {
-   if (afbc)
+   if (drm_is_afbc(mod))
       return 16;
+
+   if (drm_is_afrc(mod))
+      return panfrost_afrc_buffer_alignment_from_modifier(mod);
 
    if (arch < 7)
       return 64;
@@ -272,6 +387,11 @@ panfrost_get_legacy_stride(const struct pan_image_layout *layout,
 
       width = ALIGN_POT(width, alignment);
       return width * util_format_get_blocksize(layout->format);
+   } else if (drm_is_afrc(layout->modifier)) {
+      struct pan_block_size tile_size =
+         panfrost_afrc_tile_size(layout->format, layout->modifier);
+
+      return row_stride / tile_size.height;
    } else {
       return row_stride / block_size.height;
    }
@@ -287,6 +407,11 @@ panfrost_from_legacy_stride(unsigned legacy_stride, enum pipe_format format,
       unsigned width = legacy_stride / util_format_get_blocksize(format);
 
       return pan_afbc_row_stride(modifier, width);
+   } else if (drm_is_afrc(modifier)) {
+      struct pan_block_size tile_size =
+         panfrost_afrc_tile_size(format, modifier);
+
+      return legacy_stride * tile_size.height;
    } else {
       return legacy_stride * block_size.height;
    }
@@ -317,7 +442,9 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
       return false;
 
    bool afbc = drm_is_afbc(layout->modifier);
-   int align_req = format_minimum_alignment(arch, layout->format, afbc);
+   bool afrc = drm_is_afrc(layout->modifier);
+   int align_req =
+      format_minimum_alignment(arch, layout->format, layout->modifier);
 
    /* Mandate alignment */
    if (explicit_layout) {
@@ -374,6 +501,7 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
          ALIGN_POT(util_format_get_nblocksx(layout->format, width), align_w);
       unsigned effective_height =
          ALIGN_POT(util_format_get_nblocksy(layout->format, height), align_h);
+      unsigned row_stride;
 
       /* Align levels to cache-line as a performance improvement for
        * linear/tiled and as a requirement for AFBC */
@@ -382,14 +510,19 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
 
       slice->offset = offset;
 
-      unsigned row_stride = fmt_blocksize * effective_width * block_size.height;
+      if (afrc) {
+         row_stride = pan_afrc_row_stride(layout->format, layout->modifier,
+                                          effective_width);
+      } else {
+         row_stride = fmt_blocksize * effective_width * block_size.height;
+      }
 
       /* On v7+ row_stride and offset alignment requirement are equal */
       if (arch >= 7) {
          row_stride = ALIGN_POT(row_stride, align_req);
       }
 
-      if (explicit_layout && !afbc) {
+      if (explicit_layout && !afbc && !afrc) {
          /* Make sure the explicit stride is valid */
          if (explicit_layout->row_stride < row_stride) {
             mesa_loge("panfrost: rejecting image due to invalid row stride.\n");
@@ -470,8 +603,8 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
    if (explicit_layout)
       layout->data_size = offset;
    else
-      layout->data_size =
-         ALIGN_POT(layout->array_stride * layout->array_size, 4096);
+      layout->data_size = ALIGN_POT(
+         (uint64_t)layout->array_stride * (uint64_t)layout->array_size, 4096);
 
    return true;
 }

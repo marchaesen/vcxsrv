@@ -16,6 +16,14 @@ dEQP-GLES2.functional.fragment_ops.scissor.outside_render_line
 # list for tracking.
 dEQP-GLES2.functional.shaders.loops.*dynamic.*vertex
 
+# VK tests have been disabled in 32-bit piglit builds, but it doesn't
+# matter because we never could run them anyway.
+# Piglit still complains that the tests are `Missing` though, so
+# let's explicitly skip them.
+# Can be removed once the piglit version in CI contains the fix for
+# https://gitlab.freedesktop.org/mesa/piglit/-/issues/104
+spec@ext_external_objects@vk-.*
+
 # Slow tests (> 1 minute to run)
 spec@!opengl 1.0@depth-clear-precision-check
 spec@!opengl 1.1@streaming-texture-leak

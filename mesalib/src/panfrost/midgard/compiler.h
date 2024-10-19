@@ -671,7 +671,8 @@ bool mir_is_live_after(compiler_context *ctx, midgard_block *block,
 void mir_create_pipeline_registers(compiler_context *ctx);
 void midgard_promote_uniforms(compiler_context *ctx);
 
-void midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr);
+void midgard_emit_derivatives(compiler_context *ctx,
+                              nir_intrinsic_instr *instr);
 
 void midgard_lower_derivatives(compiler_context *ctx, midgard_block *block);
 

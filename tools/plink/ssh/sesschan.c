@@ -371,19 +371,13 @@ bool sesschan_run_subsystem(Channel *chan, ptrlen subsys)
     return false;
 }
 
-static void fwd_log(Plug *plug, PlugLogType type, SockAddr *addr, int port,
-                    const char *error_msg, int error_code)
-{ /* don't expect any weirdnesses from a listening socket */ }
-static void fwd_closing(Plug *plug, PlugCloseType type, const char *error_msg)
-{ /* not here, either */ }
-
 static int xfwd_accepting(Plug *p, accept_fn_t constructor, accept_ctx_t ctx)
 {
     sesschan *sess = container_of(p, sesschan, xfwd_plug);
     Plug *plug;
     Channel *chan;
     Socket *s;
-    SocketPeerInfo *pi;
+    SocketEndpointInfo *pi;
     const char *err;
 
     chan = portfwd_raw_new(sess->c->cl, &plug, false);
@@ -394,14 +388,14 @@ static int xfwd_accepting(Plug *p, accept_fn_t constructor, accept_ctx_t ctx)
     }
     pi = sk_peer_info(s);
     portfwd_raw_setup(chan, s, ssh_serverside_x11_open(sess->c->cl, chan, pi));
-    sk_free_peer_info(pi);
+    sk_free_endpoint_info(pi);
 
     return 0;
 }
 
 static const PlugVtable xfwd_plugvt = {
-    .log = fwd_log,
-    .closing = fwd_closing,
+    .log = nullplug_log,
+    .closing = nullplug_closing,
     .accepting = xfwd_accepting,
 };
 
@@ -473,8 +467,8 @@ static int agentfwd_accepting(
 }
 
 static const PlugVtable agentfwd_plugvt = {
-    .log = fwd_log,
-    .closing = fwd_closing,
+    .log = nullplug_log,
+    .closing = nullplug_closing,
     .accepting = agentfwd_accepting,
 };
 

@@ -106,6 +106,8 @@ xf86parseDeviceSection(void)
         switch (token) {
         case COMMENT:
             ptr->dev_comment = xf86addComment(ptr->dev_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->dev_comment)) != STRING)

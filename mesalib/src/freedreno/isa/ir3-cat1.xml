@@ -118,7 +118,7 @@ SOFTWARE.
 			({DST} == 0xf4 /* a0.x */) &amp;&amp; ({SRC_TYPE} == 4 /* s16 */) &amp;&amp; ({DST_TYPE} == 4)
 		</expr>
 		<display>
-			{SY}{SS}{JP}{REPEAT}{UL}mova {ROUND}a0.x, {SRC}
+			{SY}{SS}{JP}{REPEAT}{UL}mova {ROUND}a0.x, {SRC_R}{SRC}
 		</display>
 		<assert low="32" high="39">11110100</assert>  <!-- DST==a0.x -->
 		<assert low="46" high="48">100</assert>       <!-- DST_TYPE==s16 -->
@@ -129,7 +129,7 @@ SOFTWARE.
 			({DST} == 0xf5 /* a0.y */) &amp;&amp; ({SRC_TYPE} == 2 /* u16 */) &amp;&amp; ({DST_TYPE} == 2)
 		</expr>
 		<display>
-			{SY}{SS}{JP}{REPEAT}{UL}mova1 {ROUND}a1.x, {SRC}
+			{SY}{SS}{JP}{REPEAT}{UL}mova1 {ROUND}a1.x, {SRC_R}{SRC}
 		</display>
 		<assert low="32" high="39">11110101</assert>  <!-- DST==a0.y -->
 		<assert low="46" high="48">010</assert>       <!-- DST_TYPE==u16 -->
@@ -259,7 +259,11 @@ SOFTWARE.
 	<field name="SRC" low="0" high="31" type="#cat1-immed-src">
 		<param name="SRC_TYPE"/>
 	</field>
-	<pattern pos="43">0</pattern>   <!-- SRC_R -->
+	<doc>
+		(r) on immed is a special case used by mova to resolve certain hazards.
+	    It does not mean "repeat".
+	</doc>
+	<field name="SRC_R" pos="43" type="bool" display="(r)"/>
 	<pattern low="53" high="54">10</pattern>
 </bitset>
 

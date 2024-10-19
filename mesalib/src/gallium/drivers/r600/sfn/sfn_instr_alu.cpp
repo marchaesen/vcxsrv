@@ -1433,9 +1433,6 @@ static bool
 emit_alu_f2i32_or_u32_eg(const nir_alu_instr& alu, EAluOp opcode, Shader& shader);
 
 static bool
-emit_tex_fdd(const nir_alu_instr& alu, TexInstr::Opcode opcode, bool fine, Shader& shader);
-
-static bool
 emit_alu_cube(const nir_alu_instr& alu, Shader& shader);
 
 static bool
@@ -1860,17 +1857,7 @@ AluInstr::from_nir(nir_alu_instr *alu, Shader& shader)
    case nir_op_vec4:
       return emit_create_vec(*alu, 4, shader);
 
-   case nir_op_fddx:
-   case nir_op_fddx_coarse:
-      return emit_tex_fdd(*alu, TexInstr::get_gradient_h, false, shader);
-   case nir_op_fddx_fine:
-      return emit_tex_fdd(*alu, TexInstr::get_gradient_h, true, shader);
-   case nir_op_fddy:
-   case nir_op_fddy_coarse:
-      return emit_tex_fdd(*alu, TexInstr::get_gradient_v, false, shader);
-   case nir_op_fddy_fine:
-      return emit_tex_fdd(*alu, TexInstr::get_gradient_v, true, shader);
-   case nir_op_cube_amd:
+  case nir_op_cube_amd:
       return emit_alu_cube(*alu, shader);
    default:
       fprintf(stderr, "Unknown instruction '");
@@ -2982,46 +2969,6 @@ emit_alu_trans_op2_cayman(const nir_alu_instr& alu, EAluOp opcode, Shader& shade
       ir->set_alu_flag(alu_is_cayman_trans);
       shader.emit_instruction(ir);
    }
-   return true;
-}
-
-static bool
-emit_tex_fdd(const nir_alu_instr& alu, TexInstr::Opcode opcode, bool fine, Shader& shader)
-{
-   auto& value_factory = shader.value_factory();
-
-   int ncomp = alu.def.num_components;
-   RegisterVec4::Swizzle src_swz = {7, 7, 7, 7};
-   RegisterVec4::Swizzle tmp_swz = {7, 7, 7, 7};
-   for (auto i = 0; i < ncomp; ++i) {
-      src_swz[i] = alu.src[0].swizzle[i];
-      tmp_swz[i] = i;
-   }
-
-   auto src = value_factory.src_vec4(alu.src[0].src, pin_none, src_swz);
-
-   auto tmp = value_factory.temp_vec4(pin_group, tmp_swz);
-   AluInstr *mv = nullptr;
-   for (int i = 0; i < ncomp; ++i) {
-      mv = new AluInstr(op1_mov, tmp[i], src[i], AluInstr::write);
-      shader.emit_instruction(mv);
-   }
-   if (mv)
-      mv->set_alu_flag(alu_last_instr);
-
-   auto dst = value_factory.dest_vec4(alu.def, pin_group);
-   RegisterVec4::Swizzle dst_swz = {7, 7, 7, 7};
-   for (auto i = 0; i < ncomp; ++i) {
-      dst_swz[i] = i;
-   }
-
-   auto tex = new TexInstr(opcode, dst, dst_swz, tmp, R600_MAX_CONST_BUFFERS, nullptr);
-
-   if (fine)
-      tex->set_tex_flag(TexInstr::grad_fine);
-
-   shader.emit_instruction(tex);
-
    return true;
 }
 

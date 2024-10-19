@@ -84,7 +84,7 @@ present_copy_region(DrawablePtr drawable,
         (*gc->funcs->ChangeClip)(gc, CT_REGION, update, 0);
     }
     ValidateGC(drawable, gc);
-    (*gc->ops->CopyArea)(&pixmap->drawable,
+    (void) (*gc->ops->CopyArea)(&pixmap->drawable,
                          drawable,
                          gc,
                          0, 0,

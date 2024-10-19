@@ -32,6 +32,13 @@ _nir_foreach_def(nir_instr *instr, nir_foreach_def_cb cb, void *state)
    case nir_instr_type_undef:
       return cb(&nir_instr_as_undef(instr)->def, state);
 
+   case nir_instr_type_debug_info: {
+      nir_debug_info_instr *di = nir_instr_as_debug_info(instr);
+      if (di->type == nir_debug_info_string)
+         return cb(&di->def, state);
+      return true;
+   }
+
    case nir_instr_type_call:
    case nir_instr_type_jump:
       return true;
@@ -129,6 +136,15 @@ nir_foreach_src(nir_instr *instr, nir_foreach_src_cb cb, void *state)
 
       if (jump->type == nir_jump_goto_if && !_nir_visit_src(&jump->condition, cb, state))
          return false;
+      return true;
+   }
+
+   case nir_instr_type_debug_info: {
+      nir_debug_info_instr *di = nir_instr_as_debug_info(instr);
+      if (di->type == nir_debug_info_src_loc && di->src_loc.line) {
+         if (!_nir_visit_src(&di->src_loc.filename, cb, state))
+            return false;
+      }
       return true;
    }
 

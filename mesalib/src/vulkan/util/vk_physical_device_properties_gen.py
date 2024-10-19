@@ -65,8 +65,14 @@ RENAMED_PROPERTIES = {
     ("SubgroupProperties", "quadOperationsInAllStages"): "subgroupQuadOperationsInAllStages",
 }
 
+OUT_ARRAYS = {
+    'pCopySrcLayouts': 'copySrcLayoutCount',
+    'pCopyDstLayouts': 'copyDstLayoutCount',
+    'pLayeredApis': 'layeredApiCount',
+}
+OUT_ARRAY_COUNTS = OUT_ARRAYS.values()
+
 SPECIALIZED_PROPERTY_STRUCTS = [
-    "HostImageCopyPropertiesEXT",
 ]
 
 # Properties not extending VkPhysicalDeviceProperties2 in the XML,
@@ -109,8 +115,35 @@ class PropertyStruct:
     is_android: bool
     properties: typing.List[Property]
 
-def copy_property(dst, src, decl, length="1"):
+ARRAY_COPY_TEMPLATE = Template("""
+    if (${dst_ptr} != NULL) {
+        uint32_t count = MIN2(${dst_count}, ${src_count});
+        for (uint32_t i = 0; i < count; i++)
+            ${dst_ptr}[i] = ${src_ptr}[i];
+        ${dst_count} = count;
+    } else {
+        ${dst_count} = ${src_count};
+    }
+""")
+
+def copy_property(dst_prefix, dst_name, src_prefix, src_name, decl, length="1"):
+    if src_name in OUT_ARRAY_COUNTS:
+        assert dst_name in OUT_ARRAY_COUNTS
+        # Skip these as we'll fill them out along with the data
+        return ""
+    elif src_name in OUT_ARRAYS:
+        assert dst_name in OUT_ARRAYS
+
+        return ARRAY_COPY_TEMPLATE.render(
+            dst_ptr=dst_prefix + dst_name,
+            dst_count=dst_prefix + OUT_ARRAYS[dst_name],
+            src_ptr=src_prefix + src_name,
+            src_count=src_prefix + OUT_ARRAYS[src_name]
+        )
+
     assert "*" not in decl
+    dst = dst_prefix + dst_name
+    src = src_prefix + src_name
 
     if "[" in decl:
         return "memcpy(%s, %s, sizeof(%s));" % (dst, src, dst)
@@ -169,7 +202,7 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
    VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
 
 % for prop in pdev_properties:
-   ${copy_property("pProperties->properties." + prop.name, "pdevice->properties." + prop.actual_name, prop.decl)}
+   ${copy_property("pProperties->properties.", prop.name, "pdevice->properties.", prop.actual_name, prop.decl)}
 % endfor
 
    vk_foreach_struct(ext, pProperties->pNext) {
@@ -182,7 +215,7 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
       case ${property_struct.s_type}: {
          ${property_struct.c_type} *properties = (void *)ext;
 % for prop in property_struct.properties:
-         ${copy_property("properties->" + prop.name, "pdevice->properties." + prop.actual_name, prop.decl, "pdevice->properties." + prop.length)}
+         ${copy_property("properties->", prop.name, "pdevice->properties.", prop.actual_name, prop.decl, "pdevice->properties." + prop.length)}
 % endfor
          break;
       }
@@ -193,34 +226,6 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
 % endfor
 
       /* Specialized propery handling defined in vk_physical_device_properties_gen.py */
-
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES_EXT: {
-         VkPhysicalDeviceHostImageCopyPropertiesEXT *properties = (void *)ext;
-
-         if (properties->pCopySrcLayouts) {
-            uint32_t written_layout_count = MIN2(properties->copySrcLayoutCount,
-                                                 pdevice->properties.copySrcLayoutCount);
-            memcpy(properties->pCopySrcLayouts, pdevice->properties.pCopySrcLayouts,
-                   sizeof(VkImageLayout) * written_layout_count);
-            properties->copySrcLayoutCount = written_layout_count;
-         } else {
-            properties->copySrcLayoutCount = pdevice->properties.copySrcLayoutCount;
-         }
-
-         if (properties->pCopyDstLayouts) {
-            uint32_t written_layout_count = MIN2(properties->copyDstLayoutCount,
-                                                 pdevice->properties.copyDstLayoutCount);
-            memcpy(properties->pCopyDstLayouts, pdevice->properties.pCopyDstLayouts,
-                   sizeof(VkImageLayout) * written_layout_count);
-            properties->copyDstLayoutCount = written_layout_count;
-         } else {
-            properties->copyDstLayoutCount = pdevice->properties.copyDstLayoutCount;
-         }
-
-         memcpy(properties->optimalTilingLayoutUUID, pdevice->properties.optimalTilingLayoutUUID, VK_UUID_SIZE);
-         properties->identicalMemoryTypeRequirements = pdevice->properties.identicalMemoryTypeRequirements;
-         break;
-      }
 
       default:
          break;
@@ -236,7 +241,7 @@ vk_set_physical_device_properties_struct(struct vk_properties *all_properties,
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2: {
          const VkPhysicalDeviceProperties *properties = &((const VkPhysicalDeviceProperties2 *)pProperties)->properties;
 % for prop in pdev_properties:
-         ${copy_property("all_properties->" + prop.actual_name, "properties->" + prop.name, prop.decl)}
+         ${copy_property("all_properties->", prop.actual_name, "properties->", prop.name, prop.decl)}
 % endfor
          break;
       }
@@ -249,7 +254,7 @@ vk_set_physical_device_properties_struct(struct vk_properties *all_properties,
       case ${property_struct.s_type}: {
          const ${property_struct.c_type} *properties = (const ${property_struct.c_type} *)pProperties;
 % for prop in property_struct.properties:
-         ${copy_property("all_properties->" + prop.actual_name, "properties->" + prop.name, prop.decl, "properties." + prop.length)}
+         ${copy_property("all_properties->", prop.actual_name, "properties->", prop.name, prop.decl, "properties." + prop.length)}
 % endfor
          break;
       }
@@ -260,21 +265,6 @@ vk_set_physical_device_properties_struct(struct vk_properties *all_properties,
 % endfor
 
       /* Don't assume anything with this struct type, and just copy things over */
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES_EXT: {
-         VkPhysicalDeviceHostImageCopyPropertiesEXT *properties = (void *)pProperties;
-
-         memcpy(all_properties->pCopySrcLayouts, properties->pCopySrcLayouts,
-                sizeof(VkImageLayout) * properties->copySrcLayoutCount);
-         all_properties->copySrcLayoutCount = properties->copySrcLayoutCount;
-
-         memcpy(all_properties->pCopyDstLayouts, properties->pCopyDstLayouts,
-                sizeof(VkImageLayout) * properties->copySrcLayoutCount);
-         all_properties->copyDstLayoutCount = properties->copyDstLayoutCount;
-
-         memcpy(all_properties->optimalTilingLayoutUUID, properties->optimalTilingLayoutUUID, VK_UUID_SIZE);
-         all_properties->identicalMemoryTypeRequirements = properties->identicalMemoryTypeRequirements;
-         break;
-      }
 
       default:
          break;

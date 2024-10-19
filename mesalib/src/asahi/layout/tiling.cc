@@ -68,7 +68,7 @@ ail_space_mask(unsigned x)
 
 template <typename T, bool is_store>
 void
-memcpy_small(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
+memcpy_small(void *_tiled, void *_linear, const struct ail_layout *tiled_layout,
              unsigned level, unsigned linear_pitch_B, unsigned sx_px,
              unsigned sy_px, unsigned swidth_px, unsigned sheight_px)
 {
@@ -150,7 +150,7 @@ memcpy_small(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
    }
 
 void
-ail_detile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
+ail_detile(void *_tiled, void *_linear, const struct ail_layout *tiled_layout,
            unsigned level, unsigned linear_pitch_B, unsigned sx_px,
            unsigned sy_px, unsigned swidth_px, unsigned sheight_px)
 {
@@ -168,7 +168,7 @@ ail_detile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
 }
 
 void
-ail_tile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
+ail_tile(void *_tiled, void *_linear, const struct ail_layout *tiled_layout,
          unsigned level, unsigned linear_pitch_B, unsigned sx_px,
          unsigned sy_px, unsigned swidth_px, unsigned sheight_px)
 {

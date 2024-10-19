@@ -12,3 +12,25 @@ dEQP-VK.tessellation.invariance.primitive_set.quads_equal_spacing_cw_point_mode
 
 # Updated by ci-collate, found in this job run: https://gitlab.freedesktop.org/mesa/mesa/-/jobs/56260513
 dEQP-VK.tessellation.invariance.outer_edge_index_independence.triangles_equal_spacing_cw_point_mode
+
+# Updated by ci-collate
+dEQP-VK.spirv_assembly.instruction.graphics.float16.logical.opfordlessthanequal_vector_geom
+bypass-dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_2_2_multiviewport
+dEQP-VK.clipping.user_defined.clip_cull_distance_dynamic_index.vert_geom.8
+dEQP-VK.clipping.user_defined.clip_cull_distance.vert_tess.4_4_fragmentshader_read
+gmem-dEQP-VK.pipeline.pipeline_library.extended_dynamic_state.after_pipelines.rasterization_stream_none_to_one
+dEQP-VK.tessellation.invariance.outer_edge_index_independence.quads_fractional_odd_spacing_cw_point_mode
+dEQP-VK.tessellation.invariance.outer_edge_index_independence.quads_fractional_even_spacing_cw_point_mode
+dEQP-VK.spirv_assembly.type.scalar.i32.bit_field_u_extract_offset8_count8_geom
+dEQP-VK.synchronization.cross_instance.dedicated.write_draw_indirect_read_image_tess_eval.image_128x128_r8g8b8a8_unorm_binary_semaphore_dma_buf
+dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
+dEQP-VK.binding_model.shader_access.primary_cmd_buf.bind.with_push.combined_image_sampler_mutable.tess_eval.descriptor_array.1d_array
+dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_1_2_multiviewport
+dEQP-VK.reconvergence.workgroup_uniform_control_flow_ballot.compute.nesting4.7.38
+dEQP-VK.query_pool.statistics_query.host_query_reset.geometry_shader_primitives.secondary.64bits_cmdcopyquerypoolresults_triangle_list_clear_depth
+
+KHR-GL46.shader_image_load_store.basic-allTargets-loadStoreVS
+dEQP-GLES31.functional.image_load_store.3d.load_store.rgba8_snorm_single_layer
+
+# glcts update
+KHR-GL46.texture_view.view_classes

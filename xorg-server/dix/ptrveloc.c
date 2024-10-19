@@ -22,9 +22,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <math.h>
 
@@ -146,6 +144,7 @@ InitPredictableAccelerationScheme(DeviceIntPtr dev,
     schemeData->vel = vel;
     scheme.accelData = schemeData;
     if (!InitializePredictableAccelerationProperties(dev, vel, schemeData)) {
+        FreeVelocityData(vel);
         free(vel);
         free(schemeData);
         return FALSE;

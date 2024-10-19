@@ -173,6 +173,5 @@ st_nir_lower_tex_src_plane(struct nir_shader *shader, unsigned free_slots,
    assign_extra_samplers(&state, free_slots);
 
    return nir_shader_instructions_pass(shader, lower_tex_src_plane,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance, &state);
+                                       nir_metadata_control_flow, &state);
 }

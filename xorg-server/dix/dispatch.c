@@ -96,22 +96,26 @@ Equipment Corporation.
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #include <version-config.h>
-#endif
 
 #include <stddef.h>
 #include <X11/fonts/fontstruct.h>
 #include <X11/fonts/libxfont2.h>
 
+#include "dix/colormap_priv.h"
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
+#include "dix/input_priv.h"
 #include "dix/gc_priv.h"
 #include "dix/registry_priv.h"
 #include "dix/screenint_priv.h"
+#include "include/resource.h"
 #include "os/auth.h"
+#include "os/client_priv.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
+#include "os/screensaver.h"
 
 #include "windowstr.h"
 #include "dixfontstr.h"
@@ -120,7 +124,6 @@ Equipment Corporation.
 #include "colormapst.h"
 #include "cursorstr.h"
 #include "scrnintstr.h"
-#include "input.h"
 #include "servermd.h"
 #include "extnsionst.h"
 #include "dixfont.h"
@@ -131,7 +134,6 @@ Equipment Corporation.
 #include "xace.h"
 #include "inputstr.h"
 #include "xkbsrv.h"
-#include "client.h"
 #include "xfixesint.h"
 #include "dixstruct_priv.h"
 
@@ -1518,7 +1520,7 @@ ProcCreatePixmap(ClientPtr client)
         pMap->drawable.serialNumber = NEXT_SERIAL_NUMBER;
         pMap->drawable.id = stuff->pid;
         /* security creation/labeling check */
-        rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, X11_RESTYPE_PIXMAP,
+        rc = XaceHookResourceAccess(client, stuff->pid, X11_RESTYPE_PIXMAP,
                       pMap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
         if (rc != Success) {
             (*pDraw->pScreen->DestroyPixmap) (pMap);
@@ -2478,7 +2480,7 @@ ProcFreeColormap(ClientPtr client)
                                  client, DixDestroyAccess);
     if (rc == Success) {
         /* Freeing a default colormap is a no-op */
-        if (!(pmap->flags & IsDefault))
+        if (!(pmap->flags & CM_IsDefault))
             FreeResource(stuff->id, X11_RESTYPE_NONE);
         return Success;
     }
@@ -2523,7 +2525,7 @@ ProcInstallColormap(ClientPtr client)
     if (rc != Success)
         goto out;
 
-    rc = XaceHook(XACE_SCREEN_ACCESS, client, pcmp->pScreen, DixSetAttrAccess);
+    rc = XaceHookScreenAccess(client, pcmp->pScreen, DixSetAttrAccess);
     if (rc != Success) {
         if (rc == BadValue)
             rc = BadColor;
@@ -2552,7 +2554,7 @@ ProcUninstallColormap(ClientPtr client)
     if (rc != Success)
         goto out;
 
-    rc = XaceHook(XACE_SCREEN_ACCESS, client, pcmp->pScreen, DixSetAttrAccess);
+    rc = XaceHookScreenAccess(client, pcmp->pScreen, DixSetAttrAccess);
     if (rc != Success) {
         if (rc == BadValue)
             rc = BadColor;
@@ -2582,8 +2584,7 @@ ProcListInstalledColormaps(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rc = XaceHook(XACE_SCREEN_ACCESS, client, pWin->drawable.pScreen,
-                  DixGetAttrAccess);
+    rc = XaceHookScreenAccess(client, pWin->drawable.pScreen, DixGetAttrAccess);
     if (rc != Success)
         return rc;
 
@@ -2825,7 +2826,7 @@ ProcFreeColors(ClientPtr client)
     if (rc == Success) {
         int count;
 
-        if (pcmp->flags & AllAllocated)
+        if (pcmp->flags & CM_AllAllocated)
             return BadAccess;
         count = bytes_to_int32((client->req_len << 2) - sizeof(xFreeColorsReq));
         return FreeColors(pcmp, client->index, count,
@@ -3154,7 +3155,7 @@ ProcQueryBestSize(ClientPtr client)
     if (stuff->class != CursorShape && pDraw->type == UNDRAWABLE_WINDOW)
         return BadMatch;
     pScreen = pDraw->pScreen;
-    rc = XaceHook(XACE_SCREEN_ACCESS, client, pScreen, DixGetAttrAccess);
+    rc = XaceHookScreenAccess(client, pScreen, DixGetAttrAccess);
     if (rc != Success)
         return rc;
     (*pScreen->QueryBestSize) (stuff->class, &stuff->width,
@@ -3179,7 +3180,7 @@ ProcSetScreenSaver(ClientPtr client)
     REQUEST_SIZE_MATCH(xSetScreenSaverReq);
 
     for (i = 0; i < screenInfo.numScreens; i++) {
-        rc = XaceHook(XACE_SCREENSAVER_ACCESS, client, screenInfo.screens[i],
+        rc = XaceHookScreensaverAccess(client, screenInfo.screens[i],
                       DixSetAttrAccess);
         if (rc != Success)
             return rc;
@@ -3239,7 +3240,7 @@ ProcGetScreenSaver(ClientPtr client)
     REQUEST_SIZE_MATCH(xReq);
 
     for (i = 0; i < screenInfo.numScreens; i++) {
-        rc = XaceHook(XACE_SCREENSAVER_ACCESS, client, screenInfo.screens[i],
+        rc = XaceHookScreensaverAccess(client, screenInfo.screens[i],
                       DixGetAttrAccess);
         if (rc != Success)
             return rc;
@@ -3288,7 +3289,7 @@ ProcListHosts(ClientPtr client)
     REQUEST_SIZE_MATCH(xListHostsReq);
 
     /* untrusted clients can't list hosts */
-    result = XaceHook(XACE_SERVER_ACCESS, client, DixReadAccess);
+    result = XaceHookServerAccess(client, DixReadAccess);
     if (result != Success)
         return result;
 
@@ -3436,7 +3437,7 @@ ProcChangeCloseDownMode(ClientPtr client)
     REQUEST(xSetCloseDownModeReq);
     REQUEST_SIZE_MATCH(xSetCloseDownModeReq);
 
-    rc = XaceHook(XACE_CLIENT_ACCESS, client, client, DixManageAccess);
+    rc = XaceHookClientAccess(client, client, DixManageAccess);
     if (rc != Success)
         return rc;
 

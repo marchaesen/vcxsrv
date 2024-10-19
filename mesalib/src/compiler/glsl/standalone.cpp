@@ -36,73 +36,29 @@
 #include "standalone_scaffolding.h"
 #include "standalone.h"
 #include "util/set.h"
-#include "linker.h"
+#include "gl_nir_linker.h"
 #include "glsl_parser_extras.h"
-#include "ir_builder_print_visitor.h"
 #include "builtin_functions.h"
-#include "opt_add_neg_to_sub.h"
+#include "linker_util.h"
 #include "main/mtypes.h"
 #include "program/program.h"
 
-class dead_variable_visitor : public ir_hierarchical_visitor {
-public:
-   dead_variable_visitor()
-   {
-      variables = _mesa_pointer_set_create(NULL);
-   }
-
-   virtual ~dead_variable_visitor()
-   {
-      _mesa_set_destroy(variables, NULL);
-   }
-
-   virtual ir_visitor_status visit(ir_variable *ir)
-   {
-      /* If the variable is auto or temp, add it to the set of variables that
-       * are candidates for removal.
-       */
-      if (ir->data.mode != ir_var_auto && ir->data.mode != ir_var_temporary)
-         return visit_continue;
-
-      _mesa_set_add(variables, ir);
-
-      return visit_continue;
-   }
-
-   virtual ir_visitor_status visit(ir_dereference_variable *ir)
-   {
-      struct set_entry *entry = _mesa_set_search(variables, ir->var);
-
-      /* If a variable is dereferenced at all, remove it from the set of
-       * variables that are candidates for removal.
-       */
-      if (entry != NULL)
-         _mesa_set_remove(variables, entry);
-
-      return visit_continue;
-   }
-
-   void remove_dead_variables()
-   {
-      set_foreach(variables, entry) {
-         ir_variable *ir = (ir_variable *) entry->key;
-
-         assert(ir->ir_type == ir_type_variable);
-         ir->remove();
-      }
-   }
-
-private:
-   set *variables;
-};
-
 static const struct standalone_options *options;
+
+static const struct nir_shader_compiler_options nir_vs_options = { 0 };
+static const struct nir_shader_compiler_options nir_fs_options = { 0 };
 
 static void
 initialize_context(struct gl_context *ctx, gl_api api)
 {
    initialize_context_to_defaults(ctx, api);
    _mesa_glsl_builtin_functions_init_or_ref();
+
+   ctx->Version = 450;
+   ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].NirOptions =
+      &nir_fs_options;
+   ctx->Const.ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions =
+      &nir_vs_options;
 
    /* The standalone compiler needs to claim support for almost
     * everything in order to compile the built-in functions.
@@ -357,15 +313,11 @@ load_text_file(void *ctx, const char *file_name)
 static void
 compile_shader(struct gl_context *ctx, struct gl_shader *shader)
 {
-   _mesa_glsl_compile_shader(ctx, shader, options->dump_ast,
+   /* Print out the resulting IR if requested */
+   FILE *print_file = options->dump_lir ? stdout : NULL;
+
+   _mesa_glsl_compile_shader(ctx, shader, print_file, options->dump_ast,
                              options->dump_hir, true);
-
-   /* Print out the resulting IR */
-   if (shader->CompileStatus == COMPILE_SUCCESS && options->dump_lir) {
-      _mesa_print_ir(stdout, shader->ir, NULL);
-   }
-
-   return;
 }
 
 extern "C" struct gl_shader_program *
@@ -380,6 +332,8 @@ standalone_compile_shader(const struct standalone_options *_options,
    switch (options->glsl_version) {
    case 100:
    case 300:
+   case 310:
+   case 320:
       glsl_es = true;
       break;
    case 110:
@@ -470,47 +424,12 @@ standalone_compile_shader(const struct standalone_options *_options,
       }
    }
 
-   if (status == EXIT_SUCCESS) {
+   if (status == EXIT_SUCCESS && options->do_link) {
       _mesa_clear_shader_program_data(ctx, whole_program);
 
-      if (options->do_link)  {
-         link_shaders(ctx, whole_program);
-      } else {
-         const gl_shader_stage stage = whole_program->Shaders[0]->Stage;
-
-         whole_program->data->LinkStatus = LINKING_SUCCESS;
-         whole_program->_LinkedShaders[stage] =
-            link_intrastage_shaders(whole_program /* mem_ctx */,
-                                    ctx,
-                                    whole_program,
-                                    whole_program->Shaders,
-                                    1,
-                                    true);
-
-         /* Par-linking can fail, for example, if there are undefined external
-          * references.
-          */
-         if (whole_program->_LinkedShaders[stage] != NULL) {
-            assert(whole_program->data->LinkStatus);
-
-            struct gl_shader_compiler_options *const compiler_options =
-               &ctx->Const.ShaderCompilerOptions[stage];
-
-            exec_list *const ir =
-               whole_program->_LinkedShaders[stage]->ir;
-
-            bool progress;
-            do {
-               progress = do_function_inlining(ir);
-
-               progress = do_common_optimization(ir,
-                                                 false,
-                                                 compiler_options,
-                                                 true)
-                  && progress;
-            } while(progress);
-         }
-      }
+      whole_program->data->LinkStatus = LINKING_SUCCESS;
+      link_shaders_init(ctx, whole_program);
+      gl_nir_link_glsl(ctx, whole_program);
 
       status = (whole_program->data->LinkStatus) ? EXIT_SUCCESS : EXIT_FAILURE;
 
@@ -521,31 +440,6 @@ standalone_compile_shader(const struct standalone_options *_options,
          printf("%s", whole_program->data->InfoLog);
          if (!options->just_log)
             printf("\n");
-      }
-
-      for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-         struct gl_linked_shader *shader = whole_program->_LinkedShaders[i];
-
-         if (!shader)
-            continue;
-
-         add_neg_to_sub_visitor v;
-         visit_list_elements(&v, shader->ir);
-
-         dead_variable_visitor dv;
-         visit_list_elements(&dv, shader->ir);
-         dv.remove_dead_variables();
-      }
-
-      if (options->dump_builder) {
-         for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-            struct gl_linked_shader *shader = whole_program->_LinkedShaders[i];
-
-            if (!shader)
-               continue;
-
-            _mesa_print_builder_for_ir(stdout, shader->ir);
-         }
       }
    }
 

@@ -8,6 +8,7 @@ dEQP-GLES31.functional.texture.specification.texstorage3d.format.depth24_stencil
 dEQP-GLES31.functional.texture.specification.texstorage3d.format.depth32f_stencil8_cube_array
 dEQP-GLES31.functional.texture.specification.texsubimage3d_depth.depth24_stencil8_cube_array
 dEQP-GLES31.functional.texture.specification.texsubimage3d_depth.depth32f_stencil8_cube_array
+dEQP-GLES3.functional.fbo.multiview.samples_4
 dEQP-GLES3.functional.texture.shadow.2d_array.linear_mipmap_nearest.equal_depth24_stencil8
 dEQP-GLES3.functional.texture.shadow.2d_array.linear_mipmap_nearest.greater_depth24_stencil8
 dEQP-GLES3.functional.texture.shadow.2d_array.linear_mipmap_nearest.greater_or_equal_depth24_stencil8
@@ -31,3 +32,17 @@ dEQP-GLES31.functional.fbo.no_attachments.npot_size.17x17
 # Fail: https://gitlab.freedesktop.org/mesa/mesa/-/jobs/56268639
 # Success: https://gitlab.freedesktop.org/mesa/mesa/-/jobs/56260518
 dEQP-GLES31.functional.fbo.no_attachments.npot_size.31x31
+
+# First seen on navi10 in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/58636780
+KHR-GL46.sparse_buffer_tests.BufferStorageTest
+
+spec@arb_query_buffer_object@coherency
+spec@arb_query_buffer_object@coherency@index-buffer-GL_GEOMETRY_SHADER_INVOCATIONS
+spec@arb_query_buffer_object@coherency@index-buffer-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED
+spec@arb_query_buffer_object@coherency@indirect-dispatch-GL_GEOMETRY_SHADER_INVOCATIONS
+spec@arb_query_buffer_object@coherency@indirect-dispatch-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED
+spec@arb_query_buffer_object@coherency@indirect-draw-GL_GEOMETRY_SHADER_INVOCATIONS
+spec@arb_query_buffer_object@coherency@indirect-draw-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_GEOMETRY_SHADER_INVOCATIONS
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED
+spec@ext_timer_query@time-elapsed

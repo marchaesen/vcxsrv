@@ -50,6 +50,7 @@
 #include "compiler/nir/nir_serialize.h"
 #include "util/pan_lower_framebuffer.h"
 #include "decode.h"
+#include "pan_device.h"
 #include "pan_fence.h"
 #include "pan_screen.h"
 #include "pan_util.h"
@@ -173,6 +174,7 @@ panfrost_get_blend(struct panfrost_batch *batch, unsigned rti,
    /* Use fixed-function if the equation permits, the format is blendable,
     * and no more than one unique constant is accessed */
    if (info.fixed_function && dev->blendable_formats[fmt].internal &&
+       !blend->base.alpha_to_one &&
        pan_blend_is_homogenous_constant(info.constant_mask,
                                         ctx->blend_color.color)) {
       return 0;
@@ -189,7 +191,7 @@ panfrost_get_blend(struct panfrost_batch *batch, unsigned rti,
     * conversion descriptor in the internal blend descriptor. (Midgard
     * requires a blend shader even for this case.)
     */
-   if (dev->arch >= 6 && info.opaque)
+   if (dev->arch >= 6 && info.opaque && !blend->base.alpha_to_one)
       return 0;
 
    /* Otherwise, we need to grab a shader */
@@ -280,9 +282,10 @@ panfrost_set_shader_images(struct pipe_context *pctx,
 
       struct panfrost_resource *rsrc = pan_resource(image->resource);
 
-      /* Images don't work with AFBC, since they require pixel-level granularity
-       */
-      if (drm_is_afbc(rsrc->image.layout.modifier)) {
+      /* Images don't work with AFBC/AFRC, since they require pixel-level
+       * granularity */
+      if (drm_is_afbc(rsrc->image.layout.modifier) ||
+          drm_is_afrc(rsrc->image.layout.modifier)) {
          pan_resource_modifier_convert(
             ctx, rsrc, DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED, true,
             "Shader image");
@@ -550,21 +553,31 @@ panfrost_destroy(struct pipe_context *pipe)
 
    pan_screen(pipe->screen)->vtbl.context_cleanup(panfrost);
 
-   _mesa_hash_table_destroy(panfrost->writers, NULL);
+   if (panfrost->writers)
+      _mesa_hash_table_destroy(panfrost->writers, NULL);
 
    if (panfrost->blitter)
       util_blitter_destroy(panfrost->blitter);
 
    util_unreference_framebuffer_state(&panfrost->pipe_framebuffer);
-   u_upload_destroy(pipe->stream_uploader);
+   if (pipe->stream_uploader)
+      u_upload_destroy(pipe->stream_uploader);
 
    panfrost_pool_cleanup(&panfrost->descs);
    panfrost_pool_cleanup(&panfrost->shaders);
    panfrost_afbc_context_destroy(panfrost);
 
+   util_dynarray_foreach(&panfrost->global_buffers, struct pipe_resource *, res) {
+      pipe_resource_reference(res, NULL);
+   }
+
+   util_dynarray_fini(&panfrost->global_buffers);
+
    drmSyncobjDestroy(panfrost_device_fd(dev), panfrost->in_sync_obj);
-   if (panfrost->in_sync_fd != -1)
+   if (panfrost->in_sync_fd != -1) {
       close(panfrost->in_sync_fd);
+      panfrost->in_sync_fd = -1;
+   }
 
    drmSyncobjDestroy(panfrost_device_fd(dev), panfrost->syncobj);
    ralloc_free(pipe);
@@ -573,10 +586,46 @@ panfrost_destroy(struct pipe_context *pipe)
 static struct pipe_query *
 panfrost_create_query(struct pipe_context *pipe, unsigned type, unsigned index)
 {
+   struct panfrost_context *ctx = pan_context(pipe);
+   struct panfrost_device *dev = pan_device(ctx->base.screen);
    struct panfrost_query *q = rzalloc(pipe, struct panfrost_query);
 
    q->type = type;
    q->index = index;
+
+   unsigned size = 0;
+
+   switch (q->type) {
+   case PIPE_QUERY_OCCLUSION_COUNTER:
+   case PIPE_QUERY_OCCLUSION_PREDICATE:
+   case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
+      size = sizeof(uint64_t) * dev->core_id_range;
+      break;
+   case PIPE_QUERY_TIMESTAMP:
+      size = sizeof(uint64_t);
+      break;
+   case PIPE_QUERY_TIME_ELAPSED:
+      size = sizeof(uint64_t) * 2;
+      break;
+   default:
+      break;
+   }
+
+   /* Allocate a resource for the query results to be stored */
+   if (size > 0) {
+      q->rsrc =
+         pipe_buffer_create(ctx->base.screen, PIPE_BIND_QUERY_BUFFER, 0, size);
+
+      if (!q->rsrc) {
+         ralloc_free(q);
+         return NULL;
+      }
+
+      /* Default to 0 if nothing at all drawn. */
+      uint8_t *zeroes = alloca(size);
+      memset(zeroes, 0, size);
+      pipe_buffer_write(pipe, q->rsrc, 0, size, zeroes);
+   }
 
    return (struct pipe_query *)q;
 }
@@ -592,6 +641,17 @@ panfrost_destroy_query(struct pipe_context *pipe, struct pipe_query *q)
    ralloc_free(q);
 }
 
+static void
+panfrost_emit_write_timestamp(struct panfrost_context *ctx,
+                              struct panfrost_resource *rsrc, unsigned offset,
+                              const char *reason)
+{
+   struct panfrost_screen *screen = pan_screen(ctx->base.screen);
+   struct panfrost_batch *batch = panfrost_get_fresh_batch_for_fbo(ctx, reason);
+
+   screen->vtbl.emit_write_timestamp(batch, rsrc, offset);
+}
+
 static bool
 panfrost_begin_query(struct pipe_context *pipe, struct pipe_query *q)
 {
@@ -605,12 +665,6 @@ panfrost_begin_query(struct pipe_context *pipe, struct pipe_query *q)
    case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE: {
       unsigned size = sizeof(uint64_t) * dev->core_id_range;
 
-      /* Allocate a resource for the query results to be stored */
-      if (!query->rsrc) {
-         query->rsrc = pipe_buffer_create(ctx->base.screen,
-                                          PIPE_BIND_QUERY_BUFFER, 0, size);
-      }
-
       /* Default to 0 if nothing at all drawn. */
       uint8_t *zeroes = alloca(size);
       memset(zeroes, 0, size);
@@ -619,6 +673,17 @@ panfrost_begin_query(struct pipe_context *pipe, struct pipe_query *q)
       query->msaa = (ctx->pipe_framebuffer.samples > 1);
       ctx->occlusion_query = query;
       ctx->dirty |= PAN_DIRTY_OQ;
+      break;
+   }
+
+   case PIPE_QUERY_TIMESTAMP:
+   case PIPE_QUERY_TIMESTAMP_DISJOINT:
+      /* This is a no op on query start */
+      break;
+
+   case PIPE_QUERY_TIME_ELAPSED: {
+      struct panfrost_resource *rsrc = pan_resource(query->rsrc);
+      panfrost_emit_write_timestamp(ctx, rsrc, 0, "TIME_ELAPSED begin_query");
       break;
    }
 
@@ -637,7 +702,6 @@ panfrost_begin_query(struct pipe_context *pipe, struct pipe_query *q)
       break;
 
    default:
-      /* TODO: timestamp queries, etc? */
       break;
    }
 
@@ -657,6 +721,20 @@ panfrost_end_query(struct pipe_context *pipe, struct pipe_query *q)
       ctx->occlusion_query = NULL;
       ctx->dirty |= PAN_DIRTY_OQ;
       break;
+   case PIPE_QUERY_TIMESTAMP: {
+      struct panfrost_resource *rsrc = pan_resource(query->rsrc);
+      panfrost_emit_write_timestamp(ctx, rsrc, 0, "TIMESTAMP end_query");
+      break;
+   }
+   case PIPE_QUERY_TIMESTAMP_DISJOINT:
+      /* This is a no op */
+      break;
+   case PIPE_QUERY_TIME_ELAPSED: {
+      struct panfrost_resource *rsrc = pan_resource(query->rsrc);
+      panfrost_emit_write_timestamp(ctx, rsrc, sizeof(uint64_t),
+                                    "TIME_ELAPSED end_query");
+      break;
+   }
    case PIPE_QUERY_PRIMITIVES_GENERATED:
       query->end = ctx->prims_generated;
       break;
@@ -704,6 +782,31 @@ panfrost_get_query_result(struct pipe_context *pipe, struct pipe_query *q,
       }
 
       break;
+
+   case PIPE_QUERY_TIMESTAMP: {
+      panfrost_flush_writer(ctx, rsrc, "Timestamp query");
+      panfrost_bo_wait(rsrc->bo, INT64_MAX, false);
+      uint64_t *timestamp = (uint64_t *)rsrc->bo->ptr.cpu;
+
+      vresult->u64 = pan_gpu_time_to_ns(dev, *timestamp);
+      break;
+   }
+
+   case PIPE_QUERY_TIMESTAMP_DISJOINT: {
+      vresult->timestamp_disjoint.frequency =
+         dev->kmod.props.timestamp_frequency;
+      vresult->timestamp_disjoint.disjoint = false;
+      break;
+   }
+
+   case PIPE_QUERY_TIME_ELAPSED: {
+      panfrost_flush_writer(ctx, rsrc, "Time elapsed query");
+      panfrost_bo_wait(rsrc->bo, INT64_MAX, false);
+      uint64_t *timestamp = (uint64_t *)rsrc->bo->ptr.cpu;
+
+      vresult->u64 = pan_gpu_time_to_ns(dev, timestamp[1] - timestamp[0]);
+      break;
+   }
 
    case PIPE_QUERY_PRIMITIVES_GENERATED:
    case PIPE_QUERY_PRIMITIVES_EMITTED:
@@ -809,30 +912,41 @@ panfrost_set_global_binding(struct pipe_context *pctx, unsigned first,
                             unsigned count, struct pipe_resource **resources,
                             uint32_t **handles)
 {
-   if (!resources)
-      return;
-
    struct panfrost_context *ctx = pan_context(pctx);
-   struct panfrost_batch *batch = panfrost_get_batch_for_fbo(ctx);
 
-   for (unsigned i = first; i < first + count; ++i) {
-      struct panfrost_resource *rsrc = pan_resource(resources[i]);
-      panfrost_batch_write_rsrc(batch, rsrc, PIPE_SHADER_COMPUTE);
+   unsigned old_size =
+      util_dynarray_num_elements(&ctx->global_buffers, *resources);
 
-      util_range_add(&rsrc->base, &rsrc->valid_buffer_range, 0,
-                     rsrc->base.width0);
+   if (old_size < first + count) {
+      /* we are screwed no matter what */
+      if (!util_dynarray_grow(&ctx->global_buffers, *resources,
+                              (first + count) - old_size))
+         unreachable("out of memory");
 
-      /* The handle points to uint32_t, but space is allocated for 64
-       * bits. We need to respect the offset passed in. This interface
-       * is so bad.
-       */
-      mali_ptr addr = 0;
-      static_assert(sizeof(addr) == 8, "size out of sync");
+      for (unsigned i = old_size; i < first + count; i++)
+         *util_dynarray_element(&ctx->global_buffers, struct pipe_resource *,
+                                i) = NULL;
+   }
 
-      memcpy(&addr, handles[i], sizeof(addr));
-      addr += rsrc->image.data.base;
+   for (unsigned i = 0; i < count; ++i) {
+      struct pipe_resource **res = util_dynarray_element(
+         &ctx->global_buffers, struct pipe_resource *, first + i);
+      if (resources && resources[i]) {
+         pipe_resource_reference(res, resources[i]);
 
-      memcpy(handles[i], &addr, sizeof(addr));
+         /* The handle points to uint32_t, but space is allocated for 64
+          * bits. We need to respect the offset passed in. This interface
+          * is so bad.
+          */
+         uint64_t addr = 0;
+         struct panfrost_resource *rsrc = pan_resource(resources[i]);
+
+         memcpy(&addr, handles[i], sizeof(addr));
+         addr += rsrc->bo->ptr.gpu;
+         memcpy(handles[i], &addr, sizeof(addr));
+      } else {
+         pipe_resource_reference(res, NULL);
+      }
    }
 }
 
@@ -871,8 +985,26 @@ struct pipe_context *
 panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
 {
    struct panfrost_context *ctx = rzalloc(NULL, struct panfrost_context);
+
+   if (!ctx)
+      return NULL;
+
+   ctx->flags = flags;
+
    struct pipe_context *gallium = (struct pipe_context *)ctx;
    struct panfrost_device *dev = pan_device(screen);
+
+   int ret;
+
+   /* Create a syncobj in a signaled state. Will be updated to point to the
+    * last queued job out_sync every time we submit a new job.
+    */
+   ret = drmSyncobjCreate(panfrost_device_fd(dev), DRM_SYNCOBJ_CREATE_SIGNALED,
+                          &ctx->syncobj);
+   if (ret) {
+      ralloc_free(ctx);
+      return NULL;
+   }
 
    gallium->screen = screen;
 
@@ -968,21 +1100,19 @@ panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
    ctx->sample_mask = ~0;
    ctx->active_queries = true;
 
-   int ASSERTED ret;
-
-   /* Create a syncobj in a signaled state. Will be updated to point to the
-    * last queued job out_sync every time we submit a new job.
-    */
-   ret = drmSyncobjCreate(panfrost_device_fd(dev), DRM_SYNCOBJ_CREATE_SIGNALED,
-                          &ctx->syncobj);
-   assert(!ret && ctx->syncobj);
+   util_dynarray_init(&ctx->global_buffers, ctx);
 
    /* Sync object/FD used for NATIVE_FENCE_FD. */
    ctx->in_sync_fd = -1;
    ret = drmSyncobjCreate(panfrost_device_fd(dev), 0, &ctx->in_sync_obj);
    assert(!ret);
 
-   pan_screen(screen)->vtbl.context_init(ctx);
+   ret = pan_screen(screen)->vtbl.context_init(ctx);
+
+   if (ret) {
+      gallium->destroy(gallium);
+      return NULL;
+   }
 
    return gallium;
 }
@@ -991,5 +1121,6 @@ void
 panfrost_context_reinit(struct panfrost_context *ctx)
 {
    pan_screen(ctx->base.screen)->vtbl.context_cleanup(ctx);
-   pan_screen(ctx->base.screen)->vtbl.context_init(ctx);
+   ASSERTED int ret = pan_screen(ctx->base.screen)->vtbl.context_init(ctx);
+   assert(!ret);
 }

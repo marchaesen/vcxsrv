@@ -181,6 +181,9 @@ disk_cache_db_write_item_to_disk(struct disk_cache_put_job *dc_job);
 bool
 disk_cache_db_load_cache_index(void *mem_ctx, struct disk_cache *cache);
 
+void
+disk_cache_delete_old_cache(void);
+
 #ifdef __cplusplus
 }
 #endif

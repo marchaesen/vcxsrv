@@ -33,7 +33,7 @@ traces:
       checksum: 35fbb0c520595e948d3a0f3aaa499d77
   gputest/furmark-v2.trace:
     gl-panfrost-t860:
-      checksum: 6540f71b1c051ba82af2a25b93065f34
+      checksum: b85fa8d057aa4c16f71740e8a4fcf523
   gputest/triangle-v2.trace:
     gl-panfrost-t860:
       checksum: 75c5a2e261d576d115a659f6cd52a90d
@@ -47,12 +47,13 @@ traces:
   0ad/0ad-v2.trace:
     gl-panfrost-t860:
       label: [skip, timeout]
-  # Flaky since the introduction of parallel trace replay
-  gputest/gimark-v2.trace:
-    gl-panfrost-t860:
-      label: [skip, flakes, broken]
-      checksum: 0020a77e25003e4e8db1ce929eed8914
-      text: Some blue rings are missing on the top-left corner, also the penguin watermark.
+# gimark requires an environment var to work around a bug, disable for now
+#  # Flaky since the introduction of parallel trace replay
+#  gputest/gimark-v2.trace:
+#    gl-panfrost-t860:
+#      label: [skip, flakes, broken]
+#      checksum: 0020a77e25003e4e8db1ce929eed8914
+#      text: Some blue rings are missing on the top-left corner, also the penguin watermark.
   gputest/pixmark-julia-fp32-v2.trace:
     gl-panfrost-t860:
       checksum: d85b6967b7c768f28395c5c5dfbcfe3e

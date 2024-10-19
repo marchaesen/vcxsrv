@@ -21,3 +21,7 @@ spec@arb_vertex_buffer_object@vbo-subdata-many drawarrays
 spec@arb_vertex_buffer_object@vbo-subdata-many drawelements
 spec@arb_vertex_buffer_object@vbo-subdata-many drawrangeelements
 spec@ext_texture_array@fbo-depth-array stencil-layered-clear
+
+# low-freq intermittent tessellation failures
+spec@arb_tessellation_shader@execution@tcs-input@tcs-input-mat2
+spec@arb_tessellation_shader@execution@tcs-input@tcs-input-uvec2_2

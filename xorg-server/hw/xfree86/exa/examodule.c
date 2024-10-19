@@ -121,7 +121,7 @@ exaDDXDriverInit(ScreenPtr pScreen)
     if (pScreenPriv == NULL)
         return;
 
-    pScreenPriv->options = xnfalloc(sizeof(EXAOptions));
+    pScreenPriv->options = XNFalloc(sizeof(EXAOptions));
     memcpy(pScreenPriv->options, EXAOptions, sizeof(EXAOptions));
     xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, pScreenPriv->options);
 

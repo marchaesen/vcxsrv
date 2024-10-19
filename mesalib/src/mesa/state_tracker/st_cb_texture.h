@@ -46,6 +46,9 @@ struct gl_sampler_object;
 enum pipe_texture_target
 gl_target_to_pipe(GLenum target);
 
+extern GLint
+st_from_pipe_compression_rate(uint32_t rate);
+
 unsigned
 st_get_blit_mask(GLenum srcFormat, GLenum dstFormat);
 

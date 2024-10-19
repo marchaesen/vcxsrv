@@ -164,7 +164,7 @@ drm_shim_driver_init(void)
 
         drm_shim_override_file("OF_FULLNAME=/rdb/v3d\n"
                                "OF_COMPATIBLE_N=1\n"
-                               "OF_COMPATIBLE_0=brcm,7278-v3d\n",
+                               "OF_COMPATIBLE_0=brcm,2711-v3d\n",
                                "/sys/dev/char/%d:%d/device/uevent",
                                DRM_MAJOR, render_node_minor);
 }

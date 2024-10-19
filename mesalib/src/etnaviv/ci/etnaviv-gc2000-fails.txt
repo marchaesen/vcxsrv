@@ -131,7 +131,6 @@ fast_color_clear@fcc-read-after-clear blit tex,Fail
 fast_color_clear@fcc-read-after-clear copy rb,Fail
 fast_color_clear@fcc-read-after-clear copy tex,Fail
 
-shaders@glsl-bug-110796,Fail
 shaders@glsl-fs-flat-color,Fail
 shaders@glsl-fs-pointcoord,Fail
 

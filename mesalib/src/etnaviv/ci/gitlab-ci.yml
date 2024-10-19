@@ -21,8 +21,8 @@
       when: on_success
 
 .etnaviv-manual-rules:
-  stage: etnaviv
-  retry: !reference [.scheduled_pipeline-rules, retry]
+  stage: etnaviv-postmerge
+  extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
     - !reference [.austriancoder-farm-manual-rules, rules]
@@ -58,7 +58,7 @@
     - austriancoder-etnaviv-imx8mq-nitrogen
 
 
-gc2000_gles2:
+gc2000-gles2:
   extends:
     - .baremetal-test-arm32
     - .austriancoder-imx6q-cubox-i:arm32
@@ -69,15 +69,15 @@ gc2000_gles2:
     DEQP_VER: gles2
   timeout: 20m
 
-gc2000_gles2_asan:
+gc2000-gles2-asan:
   extends:
-    - gc2000_gles2
+    - gc2000-gles2
     - .baremetal-arm32-asan-test
   variables:
     DEQP_FRACTION: 100
     FDO_CI_CONCURRENT: 1
 
-gc2000_piglit:
+gc2000-piglit:
   extends:
     - .baremetal-deqp-test
     - .baremetal-test-arm32
@@ -86,10 +86,9 @@ gc2000_piglit:
   variables:
     DEQP_SUITE: etnaviv-gc2000-piglit
     FLAKES_CHANNEL: "#etnaviv-ci"
-    TEST_PHASE_TIMEOUT: 40
   timeout: 40m
 
-gc7000_gles2:
+gc7000-gles2:
   extends:
     - .baremetal-test-arm64
     - .austriancoder-imx8mq-nitrogen:arm64

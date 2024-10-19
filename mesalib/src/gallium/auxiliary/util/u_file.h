@@ -29,7 +29,7 @@
 #ifndef U_FILE_H_
 #define U_FILE_H_
 
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
 #include <unistd.h>
 #endif
 #if DETECT_OS_WINDOWS
@@ -42,7 +42,7 @@ extern "C" {
 
 static inline int
 u_file_access(const char *path, int mode) {
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
 	return access(path, mode);
 #elif DETECT_OS_WINDOWS
 	return _access(path, mode);

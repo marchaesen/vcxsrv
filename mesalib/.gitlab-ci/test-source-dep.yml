@@ -6,6 +6,11 @@
   rules:
     - if: &is-scheduled-pipeline '$CI_PIPELINE_SOURCE == "schedule"'
       when: on_success
+
+# Override of the `default: retry:` settings, which automatically retries jobs
+# if one of the tests result didn't match its expectation; this override
+# disables that, but keeps the auto-retry for infrastructure failures.
+.no-auto-retry:
   retry:
     max: 1
     # Don't retry on script_failure, job_execution_timeout, runner_unsupported,
@@ -43,6 +48,7 @@
 # ---------------------------------------------------------------
 .core-rules:
   rules:
+    - !reference [.common-rules, rules]
     - !reference [.no_scheduled_pipelines-rules, rules]
     - changes: &core_file_list
         - .gitlab-ci.yml
@@ -56,7 +62,6 @@
         - src/*
         - src/compiler/**/*
         - src/drm-shim/**/*
-        - src/gbm/**/*
         - src/gtest/**/*
         # Some src/util and src/compiler files use headers from mesa/ (e.g.
         # mtypes.h).  We should clean that up.
@@ -67,8 +72,9 @@
 
 # Same core dependencies for doing manual runs.
 .core-manual-rules:
-  retry: !reference [.scheduled_pipeline-rules, retry]
+  extends: .no-auto-retry
   rules:
+    - !reference [.common-rules, rules]
     # We only want manual jobs to show up when it's not marge's pre-merge CI
     # run, otherwise she'll wait until her timeout.  The exception is
     # performance jobs, see below.
@@ -87,6 +93,7 @@
 # Collabora triggers the manual job after merge to main.  These "never" filters
 # need to come before any paths with "manual".
 .performance-rules:
+  stage: performance
   rules:
     - !reference [.no_scheduled_pipelines-rules, rules]
     # Run only on pre-merge pipelines from Marge
@@ -114,7 +121,8 @@
     # Always use the same device
     LAVA_TAGS: "cbg-0"
     # Ensure that we are using the release build artifact
-    S3_ARTIFACT_NAME: mesa-${ARCH}-default-release
+    LAVA_S3_ARTIFACT_NAME: mesa-${ARCH}-default-release
+    S3_ARTIFACT_NAME: mesa-python-test
   # Reset dependencies in performance jobs to enforce the release build artifact
   dependencies: null
   # Don't run in parallel. It is okay to performance jobs to take a little
@@ -125,7 +133,7 @@
   extends:
     - .piglit-performance-base
   needs:
-    - debian/arm64_test
+    - debian/baremetal_arm64_test
     - debian-arm64-release
 
 .piglit-performance:x86_64:
@@ -156,6 +164,7 @@
     - !reference [.core-rules, rules]
     - changes: &mesa_core_file_list
         - src/egl/**/*
+        - src/gbm/**/*
         - src/glx/**/*
         - src/loader/**/*
         - src/mapi/**/*
@@ -174,7 +183,7 @@
     - !reference [.gallium-core-rules, rules]
 
 .gl-manual-rules:
-  retry: !reference [.scheduled_pipeline-rules, retry]
+  extends: .no-auto-retry
   rules:
     - !reference [.core-manual-rules, rules]
     - changes:
@@ -193,35 +202,12 @@
       when: on_success
 
 .vulkan-manual-rules:
-  retry: !reference [.scheduled_pipeline-rules, retry]
+  extends: .no-auto-retry
   rules:
     - !reference [.core-manual-rules, rules]
     - changes:
         *vulkan_file_list
       when: manual
-
-# Rules for unusual architectures that only build a subset of drivers
-.ppc64el-rules:
-  rules:
-    - !reference [.never-post-merge-rules, rules]
-    - !reference [.no_scheduled_pipelines-rules, rules]
-    - !reference [.zink-common-rules, rules]
-    - !reference [.softpipe-rules, rules]
-    - !reference [.llvmpipe-rules, rules]
-    - !reference [.lavapipe-rules, rules]
-    - !reference [.radv-rules, rules]
-    - !reference [.radeonsi-rules, rules]
-    - !reference [.virgl-rules, rules]
-    - !reference [.nouveau-rules, rules]
-
-.s390x-rules:
-  rules:
-    - !reference [.never-post-merge-rules, rules]
-    - !reference [.no_scheduled_pipelines-rules, rules]
-    - !reference [.zink-common-rules, rules]
-    - !reference [.softpipe-rules, rules]
-    - !reference [.llvmpipe-rules, rules]
-    - !reference [.lavapipe-rules, rules]
 
 # Rules for linters
 .lint-rustfmt-rules:

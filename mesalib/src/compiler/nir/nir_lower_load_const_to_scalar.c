@@ -57,8 +57,7 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
    nir_def *vec = nir_vec(&b, loads, lower->def.num_components);
 
    /* Replace the old load with a reference to our reconstructed vector. */
-   nir_def_rewrite_uses(&lower->def, vec);
-   nir_instr_remove(&lower->instr);
+   nir_def_replace(&lower->def, vec);
    return true;
 }
 
@@ -76,8 +75,7 @@ nir_lower_load_const_to_scalar_impl(nir_function_impl *impl)
    }
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

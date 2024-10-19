@@ -1,0 +1,11 @@
+[binaries]
+c = ['mips-linux-gnu-gcc', '-DCI_HAS_ALL_MIPS_CPU_FEATURES']
+ar = 'mips-linux-gnu-ar'
+strip = 'mips-linux-gnu-strip'
+exe_wrapper = ['qemu-mips', '-L', '/usr/mips-linux-gnu/']
+
+[host_machine]
+system = 'linux'
+cpu_family = 'mips32'
+cpu = 'mips32'
+endian = 'big'

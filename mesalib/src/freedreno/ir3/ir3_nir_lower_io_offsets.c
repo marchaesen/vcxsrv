@@ -1,24 +1,6 @@
 /*
  * Copyright © 2018-2019 Igalia S.L.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "compiler/nir/nir_builder.h"
@@ -144,6 +126,34 @@ ir3_nir_try_propagate_bit_shift(nir_builder *b, nir_def *offset,
    return new_offset;
 }
 
+static nir_def *
+create_shift(nir_builder *b, nir_def *offset, int shift)
+{
+   /* If the offset to be shifted has the form "iadd constant, foo" don't shift
+    * the result but transform it to "iadd constant>>shift, (ushr foo, shift)".
+    * This ensures nir_opt_offsets (which only looks for iadds) can fold the
+    * constant into the immediate offset.
+    */
+   if (offset->parent_instr->type == nir_instr_type_alu) {
+      nir_alu_instr *offset_instr = nir_instr_as_alu(offset->parent_instr);
+
+      if (offset_instr->op == nir_op_iadd &&
+          nir_src_is_const(offset_instr->src[0].src)) {
+         nir_def *new_shift = ir3_nir_try_propagate_bit_shift(
+            b, offset_instr->src[1].src.ssa, -shift);
+
+         if (!new_shift)
+            new_shift = nir_ushr_imm(b, offset_instr->src[1].src.ssa, shift);
+
+         return nir_iadd_imm(
+            b, new_shift,
+            nir_src_as_const_value(offset_instr->src[0].src)->u32 >> shift);
+      }
+   }
+
+   return nir_ushr_imm(b, offset, shift);
+}
+
 static bool
 lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
                       unsigned ir3_ssbo_opcode, uint8_t offset_src_idx)
@@ -158,6 +168,11 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
    if ((has_dest && intrinsic->def.bit_size == 16) ||
        (!has_dest && intrinsic->src[0].ssa->bit_size == 16))
       shift = 1;
+
+   /* for 8-bit ssbo access, offset is in 8-bit words instead of dwords */
+   if ((has_dest && intrinsic->def.bit_size == 8) ||
+       (!has_dest && intrinsic->src[0].ssa->bit_size == 8))
+      shift = 0;
 
    /* Here we create a new intrinsic and copy over all contents from the old
     * one. */
@@ -208,7 +223,7 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
    if (new_offset)
       offset = new_offset;
    else
-      offset = nir_ushr_imm(b, offset, shift);
+      offset = create_shift(b, offset, shift);
 
    /* Insert the new intrinsic right before the old one. */
    nir_builder_instr_insert(b, &new_intrinsic->instr);
@@ -269,7 +284,7 @@ lower_io_offsets_func(nir_function_impl *impl)
 
    if (progress) {
       nir_metadata_preserve(impl,
-                            nir_metadata_block_index | nir_metadata_dominance);
+                            nir_metadata_control_flow);
    }
 
    return progress;
@@ -286,4 +301,25 @@ ir3_nir_lower_io_offsets(nir_shader *shader)
    }
 
    return progress;
+}
+
+uint32_t
+ir3_nir_max_imm_offset(nir_intrinsic_instr *intrin, const void *data)
+{
+   const struct ir3_compiler *compiler = data;
+
+   if (!compiler->has_ssbo_imm_offsets)
+      return 0;
+
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_load_ssbo_ir3:
+      if ((nir_intrinsic_access(intrin) & ACCESS_CAN_REORDER) &&
+          !(compiler->options.storage_8bit && intrin->def.bit_size == 8))
+         return 255; /* isam.v */
+      return 127;    /* ldib.b */
+   case nir_intrinsic_store_ssbo_ir3:
+      return 127; /* stib.b */
+   default:
+      return 0;
+   }
 }

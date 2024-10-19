@@ -91,6 +91,10 @@ struct u_trace_chunk {
     */
    void *timestamps;
 
+   /* table of indirect data captured by u_trace
+    */
+   void *indirects;
+
    /* Array of u_trace_payload_buf referenced by traces[] elements.
     */
    struct u_vector payloads;
@@ -100,6 +104,7 @@ struct u_trace_chunk {
 
    struct util_queue_fence fence;
 
+   bool has_indirect;
    bool last; /* this chunk is last in batch */
    bool eof;  /* this chunk is last in frame, unless frame_nr is set */
    uint32_t frame_nr; /* frame idx from the driver */
@@ -124,7 +129,8 @@ struct u_trace_printer {
                  struct u_trace_chunk *chunk,
                  const struct u_trace_event *evt,
                  uint64_t ns,
-                 int32_t delta);
+                 int32_t delta,
+                 const void *indirect);
 };
 
 static void
@@ -156,12 +162,13 @@ print_txt_event(struct u_trace_context *utctx,
                 struct u_trace_chunk *chunk,
                 const struct u_trace_event *evt,
                 uint64_t ns,
-                int32_t delta)
+                int32_t delta,
+                const void *indirect)
 {
    if (evt->tp->print) {
       fprintf(utctx->out, "%016" PRIu64 " %+9d: %s: ", ns, delta,
               evt->tp->name);
-      evt->tp->print(utctx->out, evt->payload);
+      evt->tp->print(utctx->out, evt->payload, indirect);
    } else {
       fprintf(utctx->out, "%016" PRIu64 " %+9d: %s\n", ns, delta,
               evt->tp->name);
@@ -176,6 +183,60 @@ static struct u_trace_printer txt_printer = {
    .start_of_batch = &print_txt_start_of_batch,
    .end_of_batch = &print_txt_end_of_batch,
    .event = &print_txt_event,
+};
+
+static void
+print_csv_start(struct u_trace_context *utctx)
+{
+   fprintf(utctx->out, "frame,batch,time_ns,event,\n");
+}
+
+static void
+print_csv_end(struct u_trace_context *utctx)
+{
+   fprintf(utctx->out, "\n");
+}
+
+static void
+print_csv_start_of_frame(struct u_trace_context *utctx)
+{
+}
+
+static void
+print_csv_end_of_frame(struct u_trace_context *utctx)
+{
+}
+
+static void
+print_csv_start_of_batch(struct u_trace_context *utctx)
+{
+}
+
+static void
+print_csv_end_of_batch(struct u_trace_context *utctx)
+{
+}
+
+static void
+print_csv_event(struct u_trace_context *utctx,
+                struct u_trace_chunk *chunk,
+                const struct u_trace_event *evt,
+                uint64_t ns,
+                int32_t delta,
+                const void *indirect)
+{
+   fprintf(utctx->out, "%u,%u,%"PRIu64",%s,\n",
+           utctx->frame_nr, utctx->batch_nr, ns, evt->tp->name);
+}
+
+static struct u_trace_printer csv_printer = {
+   .start = print_csv_start,
+   .end = print_csv_end,
+   .start_of_frame = &print_csv_start_of_frame,
+   .end_of_frame = &print_csv_end_of_frame,
+   .start_of_batch = &print_csv_start_of_batch,
+   .end_of_batch = &print_csv_end_of_batch,
+   .event = &print_csv_event,
 };
 
 static void
@@ -228,7 +289,8 @@ print_json_event(struct u_trace_context *utctx,
                  struct u_trace_chunk *chunk,
                  const struct u_trace_event *evt,
                  uint64_t ns,
-                 int32_t delta)
+                 int32_t delta,
+                 const void *indirect)
 {
    if (utctx->event_nr != 0)
       fprintf(utctx->out, ",\n");
@@ -236,7 +298,7 @@ print_json_event(struct u_trace_context *utctx,
    fprintf(utctx->out, "\"time_ns\": \"%016" PRIu64 "\",\n", ns);
    fprintf(utctx->out, "\"params\": {");
    if (evt->tp->print)
-      evt->tp->print_json(utctx->out, evt->payload);
+      evt->tp->print_json(utctx->out, evt->payload, indirect);
    fprintf(utctx->out, "}\n}\n");
 }
 
@@ -284,7 +346,9 @@ free_chunk(void *ptr)
 {
    struct u_trace_chunk *chunk = ptr;
 
-   chunk->utctx->delete_timestamp_buffer(chunk->utctx, chunk->timestamps);
+   chunk->utctx->delete_buffer(chunk->utctx, chunk->timestamps);
+   if (chunk->indirects)
+      chunk->utctx->delete_buffer(chunk->utctx, chunk->indirects);
 
    /* Unref payloads attached to this chunk. */
    struct u_trace_payload_buf **payload;
@@ -347,7 +411,14 @@ get_chunk(struct u_trace *ut, size_t payload_size)
 
    chunk->utctx = ut->utctx;
    chunk->timestamps =
-      ut->utctx->create_timestamp_buffer(ut->utctx, TIMESTAMP_BUF_SIZE);
+      ut->utctx->create_buffer(ut->utctx,
+                               chunk->utctx->timestamp_size_bytes * TIMESTAMP_BUF_SIZE);
+   if (chunk->utctx->max_indirect_size_bytes &&
+       (chunk->utctx->enabled_traces & U_TRACE_TYPE_INDIRECTS)) {
+      chunk->indirects =
+         ut->utctx->create_buffer(ut->utctx,
+                                  chunk->utctx->max_indirect_size_bytes * TIMESTAMP_BUF_SIZE);
+   }
    chunk->last = true;
    u_vector_init(&chunk->payloads, 4, sizeof(struct u_trace_payload_buf *));
    if (payload_size > 0) {
@@ -363,11 +434,13 @@ get_chunk(struct u_trace *ut, size_t payload_size)
 
 static const struct debug_named_value config_control[] = {
    { "print", U_TRACE_TYPE_PRINT, "Enable print" },
+   { "print_csv", U_TRACE_TYPE_PRINT_CSV, "Enable print in CSV" },
    { "print_json", U_TRACE_TYPE_PRINT_JSON, "Enable print in JSON" },
 #ifdef HAVE_PERFETTO
    { "perfetto", U_TRACE_TYPE_PERFETTO_ENV, "Enable perfetto" },
 #endif
    { "markers", U_TRACE_TYPE_MARKERS, "Enable marker trace" },
+   { "indirects", U_TRACE_TYPE_INDIRECTS, "Enable indirect data capture" },
    DEBUG_NAMED_VALUE_END
 };
 
@@ -434,21 +507,29 @@ queue_init(struct u_trace_context *utctx)
 void
 u_trace_context_init(struct u_trace_context *utctx,
                      void *pctx,
-                     u_trace_create_ts_buffer create_timestamp_buffer,
-                     u_trace_delete_ts_buffer delete_timestamp_buffer,
+                     uint32_t timestamp_size_bytes,
+                     uint32_t max_indirect_size_bytes,
+                     u_trace_create_buffer create_buffer,
+                     u_trace_delete_buffer delete_buffer,
                      u_trace_record_ts record_timestamp,
                      u_trace_read_ts read_timestamp,
+                     u_trace_capture_data capture_data,
+                     u_trace_get_data get_data,
                      u_trace_delete_flush_data delete_flush_data)
 {
    u_trace_state_init();
 
    utctx->enabled_traces = u_trace_state.enabled_traces;
    utctx->pctx = pctx;
-   utctx->create_timestamp_buffer = create_timestamp_buffer;
-   utctx->delete_timestamp_buffer = delete_timestamp_buffer;
+   utctx->create_buffer = create_buffer;
+   utctx->delete_buffer = delete_buffer;
    utctx->record_timestamp = record_timestamp;
+   utctx->capture_data = capture_data;
+   utctx->get_data = get_data;
    utctx->read_timestamp = read_timestamp;
    utctx->delete_flush_data = delete_flush_data;
+   utctx->timestamp_size_bytes = timestamp_size_bytes;
+   utctx->max_indirect_size_bytes = max_indirect_size_bytes;
 
    utctx->last_time_ns = 0;
    utctx->first_time_ns = 0;
@@ -457,6 +538,8 @@ u_trace_context_init(struct u_trace_context *utctx,
    utctx->event_nr = 0;
    utctx->start_of_frame = true;
 
+   utctx->dummy_indirect_data = calloc(1, max_indirect_size_bytes);
+
    list_inithead(&utctx->flushed_trace_chunks);
 
    if (utctx->enabled_traces & U_TRACE_TYPE_PRINT) {
@@ -464,6 +547,8 @@ u_trace_context_init(struct u_trace_context *utctx,
 
       if (utctx->enabled_traces & U_TRACE_TYPE_JSON) {
          utctx->out_printer = &json_printer;
+      } else if (utctx->enabled_traces & U_TRACE_TYPE_CSV) {
+         utctx->out_printer = &csv_printer;
       } else {
          utctx->out_printer = &txt_printer;
       }
@@ -511,6 +596,8 @@ u_trace_context_fini(struct u_trace_context *utctx)
       utctx->out_printer->end(utctx);
       fflush(utctx->out);
    }
+
+   free (utctx->dummy_indirect_data);
 
    if (!utctx->queue.jobs)
       return;
@@ -591,7 +678,9 @@ process_chunk(void *job, void *gdata, int thread_index)
       if (!evt->tp)
          continue;
 
-      uint64_t ns = utctx->read_timestamp(utctx, chunk->timestamps, idx,
+      uint64_t ns = utctx->read_timestamp(utctx,
+                                          chunk->timestamps,
+                                          utctx->timestamp_size_bytes * idx,
                                           chunk->flush_data);
       int32_t delta;
 
@@ -609,14 +698,26 @@ process_chunk(void *job, void *gdata, int thread_index)
          delta = 0;
       }
 
+      const void *indirect_data = NULL;
+      if (evt->tp->indirect_sz > 0) {
+         if (utctx->enabled_traces & U_TRACE_TYPE_INDIRECTS) {
+            indirect_data = utctx->get_data(utctx, chunk->indirects,
+                                            utctx->max_indirect_size_bytes * idx,
+                                            evt->tp->indirect_sz);
+         } else {
+            indirect_data = utctx->dummy_indirect_data;
+         }
+      }
+
       if (utctx->out) {
-         utctx->out_printer->event(utctx, chunk, evt, ns, delta);
+         utctx->out_printer->event(utctx, chunk, evt, ns, delta, indirect_data);
       }
 #ifdef HAVE_PERFETTO
       if (evt->tp->perfetto &&
           (p_atomic_read_relaxed(&utctx->enabled_traces) &
            U_TRACE_TYPE_PERFETTO_ACTIVE)) {
-         evt->tp->perfetto(utctx->pctx, ns, evt->tp->tp_idx, chunk->flush_data, evt->payload);
+         evt->tp->perfetto(utctx->pctx, ns, evt->tp->tp_idx, chunk->flush_data,
+                           evt->payload, indirect_data);
       }
 #endif
 
@@ -754,7 +855,7 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
                      struct u_trace_iterator end_it,
                      struct u_trace *into,
                      void *cmdstream,
-                     u_trace_copy_ts_buffer copy_ts_buffer)
+                     u_trace_copy_buffer copy_buffer)
 {
    begin_it = sanitize_iterator(begin_it);
    end_it = sanitize_iterator(end_it);
@@ -770,9 +871,21 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
       if (from_chunk == end_it.chunk)
          to_copy = MIN2(to_copy, end_it.event_idx - from_idx);
 
-      copy_ts_buffer(begin_it.ut->utctx, cmdstream, from_chunk->timestamps,
-                     from_idx, to_chunk->timestamps, to_chunk->num_traces,
-                     to_copy);
+      copy_buffer(begin_it.ut->utctx, cmdstream,
+                  from_chunk->timestamps,
+                  begin_it.ut->utctx->timestamp_size_bytes * from_idx,
+                  to_chunk->timestamps,
+                  begin_it.ut->utctx->timestamp_size_bytes * to_chunk->num_traces,
+                  begin_it.ut->utctx->timestamp_size_bytes * to_copy);
+
+      if (from_chunk->has_indirect) {
+         copy_buffer(begin_it.ut->utctx, cmdstream,
+                     from_chunk->indirects,
+                     begin_it.ut->utctx->max_indirect_size_bytes * from_idx,
+                     to_chunk->indirects,
+                     begin_it.ut->utctx->max_indirect_size_bytes * to_chunk->num_traces,
+                     begin_it.ut->utctx->max_indirect_size_bytes * to_copy);
+      }
 
       memcpy(&to_chunk->traces[to_chunk->num_traces],
              &from_chunk->traces[from_idx],
@@ -837,7 +950,10 @@ void *
 u_trace_appendv(struct u_trace *ut,
                 void *cs,
                 const struct u_tracepoint *tp,
-                unsigned variable_sz)
+                unsigned variable_sz,
+                unsigned n_indirects,
+                const struct u_trace_address *addresses,
+                const uint8_t *indirect_sizes_B)
 {
    assert(tp->payload_sz == ALIGN_NPOT(tp->payload_sz, 8));
 
@@ -853,8 +969,19 @@ u_trace_appendv(struct u_trace *ut,
    }
 
    /* record a timestamp for the trace: */
-   ut->utctx->record_timestamp(ut, cs, chunk->timestamps, tp_idx,
-                               tp->end_of_pipe);
+   ut->utctx->record_timestamp(ut, cs, chunk->timestamps,
+                               ut->utctx->timestamp_size_bytes * tp_idx,
+                               tp->flags);
+
+   if (ut->utctx->enabled_traces & U_TRACE_TYPE_INDIRECTS) {
+      for (unsigned i = 0; i < n_indirects; i++) {
+         ut->utctx->capture_data(ut, cs, chunk->indirects,
+                                 ut->utctx->max_indirect_size_bytes * tp_idx,
+                                 addresses[i].bo, addresses[i].offset,
+                                 indirect_sizes_B[i]);
+      }
+      chunk->has_indirect |= n_indirects > 0;
+   }
 
    chunk->traces[tp_idx] = (struct u_trace_event) {
       .tp = tp,

@@ -159,10 +159,10 @@ pipe_loader_get_driinfo_xml(const char *driver_name)
    unsigned merged_count;
    const driOptionDescription *merged_driconf =
       merge_driconf(driver_driconf, driver_count, &merged_count);
-   free((void *)driver_driconf);
 
    char *xml = driGetOptionsXml(merged_driconf, merged_count);
 
+   free((void *)driver_driconf);
    free((void *)merged_driconf);
 
    return xml;

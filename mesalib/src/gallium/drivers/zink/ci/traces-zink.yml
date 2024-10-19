@@ -27,7 +27,7 @@ traces:
       checksum: f53ac20e17da91c0359c31f2fa3f401e
   gputest/furmark-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 7f513bceca18b6f44049bc5a690df235
+      checksum: 30649dc37efcf5dadc7b761769de51d7
   gputest/triangle-v2.trace:
     gl-zink-anv-tgl:
       checksum: 5f694874b15bcd7a3689b387c143590b
@@ -51,7 +51,7 @@ traces:
       checksum: 56f11d133f72712a6df13855ec00cdb0
   gputest/tessmark-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 46e05521eca33c2720ba14c0ea6c9066
+      checksum: 45b323eeb8d9af7dfa7cf98f4bb319ba
   humus/AmbientAperture-v2.trace:
     gl-zink-anv-tgl:
       checksum: 0f3b7351a84e1e6f15430f8766af4b4c

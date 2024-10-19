@@ -60,5 +60,5 @@ midgard_nir_lower_image_bitsize(nir_shader *shader)
 {
    return nir_shader_intrinsics_pass(
       shader, nir_lower_image_bitsize,
-      nir_metadata_block_index | nir_metadata_dominance, NULL);
+      nir_metadata_control_flow, NULL);
 }

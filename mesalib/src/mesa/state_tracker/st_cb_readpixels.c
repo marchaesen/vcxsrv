@@ -435,6 +435,9 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
    st_validate_state(st, ST_PIPELINE_UPDATE_FB_STATE_MASK);
    st_flush_bitmap_cache(st);
 
+   if (rb->TexImage && st->force_compute_based_texture_transfer)
+      goto fallback;
+
    if (!st->prefer_blit_based_texture_transfer) {
       goto fallback;
    }
@@ -565,5 +568,9 @@ st_ReadPixels(struct gl_context *ctx, GLint x, GLint y,
    return;
 
 fallback:
+   if (rb->TexImage && (st->allow_compute_based_texture_transfer || st->force_compute_based_texture_transfer)) {
+      if (st_GetTexSubImage_shader(ctx, x, y, 0, width, height, 1, format, type, pixels, rb->TexImage))
+         return;
+   }
    _mesa_readpixels(ctx, x, y, width, height, format, type, pack, pixels);
 }

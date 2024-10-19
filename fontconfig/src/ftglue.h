@@ -104,7 +104,8 @@ ftglue_stream_frame_exit( FT_Stream  stream );
 FTGLUE_API( FT_Error )
 ftglue_face_goto_table( FT_Face    face,
                         FT_ULong   tag,
-                        FT_Stream  stream );
+                        FT_Stream  stream,
+                        FT_ULong  *table_size );
 
 FT_END_HEADER
 

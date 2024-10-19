@@ -1765,6 +1765,11 @@ layout_qualifier_id:
          $$.location = $3;
       }
 
+      if (match_layout_qualifier("num_views", $1, state) == 0) {
+         $$.flags.q.explicit_numviews = 1;
+         $$.num_views = $3;
+      }
+
       if (match_layout_qualifier("component", $1, state) == 0) {
          if (!state->has_enhanced_layouts()) {
             _mesa_glsl_error(& @1, state,

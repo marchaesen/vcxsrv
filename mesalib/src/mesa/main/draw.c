@@ -1167,7 +1167,6 @@ _mesa_draw_arrays(struct gl_context *ctx, GLenum mode, GLint start,
    /* Packed section end. */
    info.start_instance = baseInstance;
    info.instance_count = numInstances;
-   info.view_mask = 0;
    info.min_index = start;
    info.max_index = start + count - 1;
 
@@ -1474,7 +1473,6 @@ _mesa_MultiDrawArrays(GLenum mode, const GLint *first,
    /* Packed section end. */
    info.start_instance = 0;
    info.instance_count = 1;
-   info.view_mask = 0;
 
    for (int i = 0; i < primcount; i++) {
       draw[i].start = first[i];
@@ -1640,7 +1638,6 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx,
        */
       draw->info.mode = mode;
       draw->info.index_size = 1 << index_size_shift;
-      draw->info.view_mask = 0;
       /* Packed section begin. */
       draw->info.primitive_restart = primitive_restart;
       draw->info.has_user_indices = false;
@@ -1680,7 +1677,6 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx,
    /* Packed section end. */
    info.start_instance = baseInstance;
    info.instance_count = numInstances;
-   info.view_mask = 0;
    info.restart_index = ctx->Array._RestartIndex[index_size_shift];
 
    if (info.has_user_indices) {
@@ -2071,7 +2067,6 @@ _mesa_validated_multidrawelements(struct gl_context *ctx,
    /* Packed section end. */
    info.start_instance = 0;
    info.instance_count = 1;
-   info.view_mask = 0;
    info.restart_index = ctx->Array._RestartIndex[index_size_shift];
 
    if (info.has_user_indices) {
@@ -2450,7 +2445,6 @@ _mesa_MultiDrawArraysIndirect(GLenum mode, const GLvoid *indirect,
       struct pipe_draw_info info;
       info.mode = mode;
       info.index_size = 0;
-      info.view_mask = 0;
       /* Packed section begin. */
       info.primitive_restart = false;
       info.has_user_indices = false;
@@ -2545,7 +2539,6 @@ _mesa_MultiDrawElementsIndirect(GLenum mode, GLenum type,
       struct pipe_draw_info info;
       info.mode = mode;
       info.index_size = 1 << index_size_shift;
-      info.view_mask = 0;
       /* Packed section begin. */
       info.primitive_restart = ctx->Array._PrimitiveRestart[index_size_shift];
       info.has_user_indices = false;

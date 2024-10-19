@@ -19,6 +19,7 @@
 #include "sfn_instr_fetch.h"
 #include "sfn_instr_lds.h"
 #include "sfn_instr_mem.h"
+#include "sfn_instr_tex.h"
 #include "sfn_liverangeevaluator.h"
 #include "sfn_shader_cs.h"
 #include "sfn_shader_fs.h"
@@ -829,6 +830,46 @@ Shader::process_instr(nir_instr *instr)
 }
 
 bool
+Shader::emit_tex_fdd(const nir_intrinsic_instr* intr, int opcode, bool fine)
+{
+   auto& value_factory_ = value_factory();
+
+   int ncomp = intr->def.num_components;
+   RegisterVec4::Swizzle src_swz = {7, 7, 7, 7};
+   RegisterVec4::Swizzle tmp_swz = {7, 7, 7, 7};
+   for (auto i = 0; i < ncomp; ++i) {
+      src_swz[i] = i;
+      tmp_swz[i] = i;
+   }
+
+   auto src = value_factory_.src_vec4(intr->src[0], pin_none, src_swz);
+
+   auto tmp = value_factory_.temp_vec4(pin_group, tmp_swz);
+   AluInstr *mv = nullptr;
+   for (int i = 0; i < ncomp; ++i) {
+      mv = new AluInstr(op1_mov, tmp[i], src[i], AluInstr::write);
+      emit_instruction(mv);
+   }
+   if (mv)
+      mv->set_alu_flag(alu_last_instr);
+
+   auto dst = value_factory_.dest_vec4(intr->def, pin_group);
+   RegisterVec4::Swizzle dst_swz = {7, 7, 7, 7};
+   for (auto i = 0; i < ncomp; ++i) {
+      dst_swz[i] = i;
+   }
+
+   auto tex = new TexInstr((TexInstr::Opcode)opcode, dst, dst_swz, tmp, R600_MAX_CONST_BUFFERS, nullptr);
+
+   if (fine)
+      tex->set_tex_flag(TexInstr::grad_fine);
+
+   emit_instruction(tex);
+
+   return true;
+}
+
+bool
 Shader::process_intrinsic(nir_intrinsic_instr *intr)
 {
    if (process_stage_intrinsic(intr))
@@ -871,6 +912,16 @@ Shader::process_intrinsic(nir_intrinsic_instr *intr)
       return emit_atomic_local_shared(intr);
    case nir_intrinsic_shader_clock:
       return emit_shader_clock(intr);
+   case nir_intrinsic_ddx:
+   case nir_intrinsic_ddx_coarse:
+      return emit_tex_fdd(intr, TexInstr::get_gradient_h, false);
+   case nir_intrinsic_ddx_fine:
+      return emit_tex_fdd(intr, TexInstr::get_gradient_h, true);
+   case nir_intrinsic_ddy:
+   case nir_intrinsic_ddy_coarse:
+      return emit_tex_fdd(intr, TexInstr::get_gradient_v, false);
+   case nir_intrinsic_ddy_fine:
+      return emit_tex_fdd(intr, TexInstr::get_gradient_v, true);
    case nir_intrinsic_load_reg:
       return emit_load_reg(intr);
    case nir_intrinsic_load_reg_indirect:

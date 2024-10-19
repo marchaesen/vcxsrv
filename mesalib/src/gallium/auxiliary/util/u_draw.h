@@ -166,6 +166,7 @@ util_draw_indirect_read(struct pipe_context *pipe,
 void
 util_draw_indirect(struct pipe_context *pipe,
                    const struct pipe_draw_info *info,
+                   unsigned drawid_offset,
                    const struct pipe_draw_indirect_info *indirect);
 
 /* Helper to handle multi-draw by splitting into individual draws.  You

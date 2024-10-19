@@ -606,7 +606,10 @@ _mesa_update_renderbuffer_surface(struct gl_context *ctx,
 
    /* determine the layer bounds */
    unsigned first_layer, last_layer;
-   if (rb->rtt_layered) {
+   if (rb->rtt_numviews) {
+      first_layer = rb->rtt_slice;
+      last_layer = first_layer + rb->rtt_numviews - 1;
+   } else if (rb->rtt_layered) {
       first_layer = 0;
       last_layer = util_max_layer(rb->texture, level);
    }
@@ -627,6 +630,27 @@ _mesa_update_renderbuffer_surface(struct gl_context *ctx,
                            last_layer);
    }
 
+   int nr_samples = rb->rtt_nr_samples;
+   if (rb->rtt_nr_samples && rb->rtt_nr_samples != resource->nr_samples) {
+      assert(!resource->nr_samples);
+      /* EXT_multisampled_render_to_texture:
+
+         Otherwise samples represents a request for a desired minimum number 
+         of samples. Since different implementations may support different 
+         sample counts for multisampled rendering, the actual number of samples 
+         allocated for the image is implementation-dependent. However, the 
+         resulting value for TEXTURE_SAMPLES_EXT is guaranteed to be greater 
+         than or equal to samples and no more than the next larger sample count 
+         supported by the implementation.
+       */
+      for (unsigned i = rb->rtt_nr_samples + 1; i <= ctx->Const.MaxFramebufferSamples; i++) {
+         if (!ctx->st->screen->is_format_supported(ctx->st->screen, format, resource->target, i, i, resource->bind))
+            continue;
+         nr_samples = i;
+         break;
+      }
+   }
+
    struct pipe_surface **psurf =
       enable_srgb ? &rb->surface_srgb : &rb->surface_linear;
    struct pipe_surface *surf = *psurf;
@@ -638,7 +662,7 @@ _mesa_update_renderbuffer_surface(struct gl_context *ctx,
        surf->texture != resource ||
        surf->width != rtt_width ||
        surf->height != rtt_height ||
-       surf->nr_samples != rb->rtt_nr_samples ||
+       surf->nr_samples != nr_samples ||
        surf->u.tex.level != level ||
        surf->u.tex.first_layer != first_layer ||
        surf->u.tex.last_layer != last_layer) {
@@ -646,7 +670,7 @@ _mesa_update_renderbuffer_surface(struct gl_context *ctx,
       struct pipe_surface surf_tmpl;
       memset(&surf_tmpl, 0, sizeof(surf_tmpl));
       surf_tmpl.format = format;
-      surf_tmpl.nr_samples = rb->rtt_nr_samples;
+      surf_tmpl.nr_samples = nr_samples;
       surf_tmpl.u.tex.level = level;
       surf_tmpl.u.tex.first_layer = first_layer;
       surf_tmpl.u.tex.last_layer = last_layer;

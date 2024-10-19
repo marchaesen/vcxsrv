@@ -194,8 +194,7 @@ FcDirCacheBasenameMD5 (FcConfig *config, const FcChar8 *dir, FcChar8 cache_base[
     if (key)
 	FcStrFree (key);
 
-    cache_base[0] = '/';
-    hex_hash = cache_base + 1;
+    hex_hash = cache_base;
     for (cnt = 0; cnt < 16; ++cnt)
     {
 	hex_hash[2*cnt  ] = bin2hex[hash[cnt] >> 4];

@@ -8,6 +8,7 @@
 #include <llvm/Analysis/TargetLibraryInfo.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/MC/MCSubtargetInfo.h>
@@ -16,9 +17,14 @@
 #include <llvm/Transforms/Scalar.h>
 #include <llvm/Transforms/Utils.h>
 #include <llvm/CodeGen/Passes.h>
-#include <llvm/Transforms/IPO/AlwaysInliner.h>
+#include <llvm/Passes/PassBuilder.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/IPO/AlwaysInliner.h>
 #include <llvm/Transforms/IPO/SCCP.h>
+#include <llvm/Transforms/Scalar/EarlyCSE.h>
+#include <llvm/Transforms/Scalar/LICM.h>
+#include <llvm/Transforms/Scalar/SROA.h>
+#include <llvm/Transforms/Scalar/SimplifyCFG.h>
 #include "llvm/CodeGen/SelectionDAGNodes.h"
 
 #include <cstring>
@@ -158,17 +164,6 @@ void ac_disable_signed_zeros(struct ac_llvm_context *ctx)
    }
 }
 
-LLVMTargetLibraryInfoRef ac_create_target_library_info(const char *triple)
-{
-   return reinterpret_cast<LLVMTargetLibraryInfoRef>(
-      new TargetLibraryInfoImpl(Triple(triple)));
-}
-
-void ac_dispose_target_library_info(LLVMTargetLibraryInfoRef library_info)
-{
-   delete reinterpret_cast<TargetLibraryInfoImpl *>(library_info);
-}
-
 /* Implementation of raw_pwrite_stream that works on malloc()ed memory for
  * better compatibility with C code. */
 struct raw_memory_ostream : public raw_pwrite_stream {
@@ -233,84 +228,167 @@ struct raw_memory_ostream : public raw_pwrite_stream {
    }
 };
 
-/* The LLVM compiler is represented as a pass manager containing passes for
- * optimizations, instruction selection, and code generation.
+/* The middle-end optimization passes are run using
+ * the LLVM's new pass manager infrastructure.
  */
-struct ac_compiler_passes {
-   raw_memory_ostream ostream;        /* ELF shader binary stream */
-   legacy::PassManager passmgr; /* list of passes */
+struct ac_midend_optimizer
+{
+   TargetMachine *target_machine;
+   PassBuilder pass_builder;
+   TargetLibraryInfoImpl target_library_info;
+
+   /* Should be declared in this order only,
+    * so that they are destroyed in the correct order
+    * due to inter-analysis-manager references.
+    */
+   LoopAnalysisManager loop_am;
+   FunctionAnalysisManager function_am;
+   CGSCCAnalysisManager cgscc_am;
+   ModuleAnalysisManager module_am;
+
+   /* Pass Managers */
+   LoopPassManager loop_pm;
+   FunctionPassManager function_pm;
+   ModulePassManager module_pm;
+
+   ac_midend_optimizer(TargetMachine *arg_target_machine, bool arg_check_ir)
+      : target_machine(arg_target_machine),
+        pass_builder(target_machine, PipelineTuningOptions(), {}),
+        target_library_info(Triple(target_machine->getTargetTriple()))
+   {
+      /* Build the pipeline and optimize.
+       * Any custom analyses should be registered
+       * before LLVM's default analysis sets.
+       */
+      function_am.registerPass(
+         [&] { return TargetLibraryAnalysis(target_library_info); }
+      );
+
+      pass_builder.registerModuleAnalyses(module_am);
+      pass_builder.registerCGSCCAnalyses(cgscc_am);
+      pass_builder.registerFunctionAnalyses(function_am);
+      pass_builder.registerLoopAnalyses(loop_am);
+      pass_builder.crossRegisterProxies(loop_am, function_am, cgscc_am, module_am);
+
+      if (arg_check_ir)
+         module_pm.addPass(VerifierPass());
+
+      /* Adding inliner pass to the module pass manager directly
+       * ensures that the pass is run on all functions first, which makes sure
+       * that the following passes are only run on the remaining non-inline
+       * function, so it removes useless work done on dead inline functions.
+       */
+      module_pm.addPass(AlwaysInlinerPass());
+
+      /* The following set of passes run on an individual function/loop first
+       * before proceeding to the next.
+       */
+#if LLVM_VERSION_MAJOR >= 16
+      function_pm.addPass(SROAPass(SROAOptions::ModifyCFG));
+#else
+      // Old version of the code
+      function_pm.addPass(SROAPass());
+#endif
+
+      loop_pm.addPass(LICMPass(LICMOptions()));
+      function_pm.addPass(createFunctionToLoopPassAdaptor(std::move(loop_pm), true));
+      function_pm.addPass(SimplifyCFGPass());
+      function_pm.addPass(EarlyCSEPass(true));
+
+      module_pm.addPass(createModuleToFunctionPassAdaptor(std::move(function_pm)));
+   }
+
+   void run(Module &module)
+   {
+      module_pm.run(module, module_am);
+
+      /* After a run(), the results in the analyses managers
+       * aren't useful to optimize a subsequent LLVM module.
+       * If used, it can lead to unexpected crashes.
+       * Hence, the results in the analyses managers
+       * need to be invalidated and cleared before
+       * running optimizations on a new LLVM module.
+       */
+      module_am.invalidate(module, PreservedAnalyses::none());
+      module_am.clear();
+      cgscc_am.clear();
+      function_am.clear();
+      loop_am.clear();
+   }
 };
 
-struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm)
+/* The backend passes for optimizations, instruction selection,
+ * and code generation in the LLVM compiler still requires the
+ * legacy::PassManager. The use of the legacy PM will be
+ * deprecated when the new PM can handle backend passes.
+ */
+struct ac_backend_optimizer
 {
-   struct ac_compiler_passes *p = new ac_compiler_passes();
-   if (!p)
-      return NULL;
+   raw_memory_ostream ostream; /* ELF shader binary stream */
+   legacy::PassManager backend_pass_manager; /* for codegen only */
 
-   TargetMachine *TM = reinterpret_cast<TargetMachine *>(tm);
-
-   if (TM->addPassesToEmitFile(p->passmgr, p->ostream, nullptr,
+   ac_backend_optimizer(TargetMachine *arg_target_machine)
+   {
+      /* add backend passes */
+      if (arg_target_machine->addPassesToEmitFile(backend_pass_manager, ostream, nullptr,
 #if LLVM_VERSION_MAJOR >= 18
-                               CodeGenFileType::ObjectFile)) {
+                                             CodeGenFileType::ObjectFile)) {
 #else
-                               CGFT_ObjectFile)) {
+                                             CGFT_ObjectFile)) {
 #endif
-      fprintf(stderr, "amd: TargetMachine can't emit a file of this type!\n");
-      delete p;
-      return NULL;
+         fprintf(stderr, "amd: TargetMachine can't emit a file of this type!\n");
+      }
    }
-   return p;
+
+   void run(Module &module, char *&out_buffer, size_t &out_size)
+   {
+      backend_pass_manager.run(module);
+      ostream.take(out_buffer, out_size);
+   }
+};
+
+ac_midend_optimizer *ac_create_midend_optimizer(LLVMTargetMachineRef tm,
+                                                bool check_ir)
+{
+   TargetMachine *TM = reinterpret_cast<TargetMachine *>(tm);
+   return new ac_midend_optimizer(TM, check_ir);
 }
 
-void ac_destroy_llvm_passes(struct ac_compiler_passes *p)
+void ac_destroy_midend_optimiser(ac_midend_optimizer *meo)
 {
-   delete p;
+   delete meo;
 }
 
-/* This returns false on failure. */
-bool ac_compile_module_to_elf(struct ac_compiler_passes *p, LLVMModuleRef module,
-                              char **pelf_buffer, size_t *pelf_size)
+bool ac_llvm_optimize_module(ac_midend_optimizer *meo, LLVMModuleRef module)
 {
-   p->passmgr.run(*unwrap(module));
-   p->ostream.take(*pelf_buffer, *pelf_size);
+   if (!meo)
+      return false;
+
+   /* Runs all the middle-end optimizations, no code generation */
+   meo->run(*unwrap(module));
    return true;
 }
 
-LLVMPassManagerRef ac_create_passmgr(LLVMTargetLibraryInfoRef target_library_info,
-                                     bool check_ir)
+ac_backend_optimizer *ac_create_backend_optimizer(LLVMTargetMachineRef tm)
 {
-   LLVMPassManagerRef passmgr = LLVMCreatePassManager();
-   if (!passmgr)
-      return NULL;
+   TargetMachine *TM = reinterpret_cast<TargetMachine *>(tm);
+   return new ac_backend_optimizer(TM);
+}
 
-   if (target_library_info)
-      LLVMAddTargetLibraryInfo(target_library_info, passmgr);
+void ac_destroy_backend_optimizer(ac_backend_optimizer *beo)
+{
+   delete beo;
+}
 
-   if (check_ir)
-      unwrap(passmgr)->add(createVerifierPass());
+bool ac_compile_module_to_elf(ac_backend_optimizer *beo, LLVMModuleRef module,
+                              char **pelf_buffer, size_t *pelf_size)
+{
+   if (!beo)
+      return false;
 
-   unwrap(passmgr)->add(createAlwaysInlinerLegacyPass());
-
-   /* Normally, the pass manager runs all passes on one function before
-    * moving onto another. Adding a barrier no-op pass forces the pass
-    * manager to run the inliner on all functions first, which makes sure
-    * that the following passes are only run on the remaining non-inline
-    * function, so it removes useless work done on dead inline functions.
-    */
-   unwrap(passmgr)->add(createBarrierNoopPass());
-
-   #if LLVM_VERSION_MAJOR >= 16
-   unwrap(passmgr)->add(createSROAPass(true));
-   #else
-   unwrap(passmgr)->add(createSROAPass());
-   #endif
-   /* TODO: restore IPSCCP */
-   unwrap(passmgr)->add(createLICMPass());
-   unwrap(passmgr)->add(createCFGSimplificationPass());
-   /* This is recommended by the instruction combining pass. */
-   unwrap(passmgr)->add(createEarlyCSEPass(true));
-   unwrap(passmgr)->add(createInstructionCombiningPass());
-   return passmgr;
+   /* Runs all backend optimizations and code generation */
+   beo->run(*unwrap(module), *pelf_buffer, *pelf_size);
+   return true;
 }
 
 LLVMValueRef ac_build_atomic_rmw(struct ac_llvm_context *ctx, LLVMAtomicRMWBinOp op,

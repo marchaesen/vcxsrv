@@ -100,11 +100,11 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
    assert(thread_index < ARRAY_SIZE(sscreen->compiler));
    compiler = &sscreen->compiler[thread_index];
 
-   if (!sscreen->use_aco && !*compiler)
-      *compiler = si_create_llvm_compiler(sscreen);
-
    assert(program->ir_type == PIPE_SHADER_IR_NIR);
    si_nir_scan_shader(sscreen, sel->nir, &sel->info);
+
+   if (!sel->info.base.use_aco_amd && !*compiler)
+      *compiler = si_create_llvm_compiler(sscreen);
 
    si_get_active_slot_masks(sscreen, &sel->info, &sel->active_const_and_shader_buffers,
                             &sel->active_samplers_and_images);
@@ -162,6 +162,8 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
    if (si_shader_cache_load_shader(sscreen, ir_sha1_cache_key, shader)) {
       simple_mtx_unlock(&sscreen->shader_cache_mutex);
 
+      shader->complete_shader_binary_size = si_get_shader_binary_size(sscreen, shader);
+
       if (!si_shader_binary_upload(sscreen, shader, 0))
          program->shader.compilation_failed = true;
 
@@ -180,7 +182,9 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
                                               sscreen->info.wave64_vgpr_alloc_granularity == 8) ? 8 : 4)) |
                              S_00B848_DX10_CLAMP(sscreen->info.gfx_level < GFX12) |
                              S_00B848_MEM_ORDERED(si_shader_mem_ordered(shader)) |
-                             S_00B848_FLOAT_MODE(shader->config.float_mode);
+                             S_00B848_FLOAT_MODE(shader->config.float_mode) |
+                             /* This is needed for CWSR, but it causes halts to work differently. */
+                             S_00B848_PRIV(sscreen->info.gfx_level == GFX11);
 
       if (sscreen->info.gfx_level < GFX10) {
          shader->config.rsrc1 |= S_00B848_SGPRS((shader->config.num_sgprs - 1) / 8);
@@ -216,6 +220,7 @@ static void *si_create_compute_state(struct pipe_context *ctx, const struct pipe
    pipe_reference_init(&sel->base.reference, 1);
    sel->stage = MESA_SHADER_COMPUTE;
    sel->screen = sscreen;
+   simple_mtx_init(&sel->mutex, mtx_plain);
    sel->const_and_shader_buf_descriptors_index =
       si_const_and_shader_buffer_descriptors_idx(PIPE_SHADER_COMPUTE);
    sel->sampler_and_images_descriptors_index =
@@ -334,7 +339,7 @@ static void si_bind_compute_state(struct pipe_context *ctx, void *state)
          pipeline.code_hash = pipeline_code_hash;
          pipeline.bo = program->shader.bo;
 
-         si_sqtt_register_pipeline(sctx, &pipeline, true);
+         si_sqtt_register_pipeline(sctx, &pipeline, NULL);
       }
 
       si_sqtt_describe_pipeline_bind(sctx, pipeline_code_hash, 1);
@@ -383,11 +388,11 @@ static void si_set_global_binding(struct pipe_context *ctx, unsigned first, unsi
 
 static bool si_setup_compute_scratch_buffer(struct si_context *sctx, struct si_shader *shader)
 {
-   uint64_t scratch_bo_size, scratch_needed;
-   scratch_bo_size = 0;
-   scratch_needed = sctx->max_seen_compute_scratch_bytes_per_wave * sctx->screen->info.max_scratch_waves;
-   if (sctx->compute_scratch_buffer)
-      scratch_bo_size = sctx->compute_scratch_buffer->b.b.width0;
+   uint64_t scratch_bo_size =
+      sctx->compute_scratch_buffer ? sctx->compute_scratch_buffer->b.b.width0 : 0;
+   uint64_t scratch_needed = sctx->max_seen_compute_scratch_bytes_per_wave *
+                             sctx->screen->info.max_scratch_waves;
+   assert(scratch_needed);
 
    if (scratch_bo_size < scratch_needed) {
       si_resource_reference(&sctx->compute_scratch_buffer, NULL);
@@ -403,15 +408,16 @@ static bool si_setup_compute_scratch_buffer(struct si_context *sctx, struct si_s
          return false;
    }
 
-   if (sctx->compute_scratch_buffer != shader->scratch_bo && scratch_needed) {
-      if (sctx->gfx_level < GFX11 &&
-          (sctx->family < CHIP_GFX940 || sctx->screen->info.has_graphics)) {
-         uint64_t scratch_va = sctx->compute_scratch_buffer->gpu_address;
+   /* Set the scratch address in the shader binary. */
+   if (!sctx->screen->info.has_scratch_base_registers) {
+      uint64_t scratch_va = sctx->compute_scratch_buffer->gpu_address;
 
+      if (shader->scratch_va != scratch_va) {
          if (!si_shader_binary_upload(sctx->screen, shader, scratch_va))
             return false;
+
+         shader->scratch_va = scratch_va;
       }
-      si_resource_reference(&shader->scratch_bo, sctx->compute_scratch_buffer);
    }
 
    return true;
@@ -476,16 +482,27 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
       rsrc2 |= S_00B84C_LDS_SIZE(lds_blocks);
    }
 
-   unsigned tmpring_size;
-   ac_get_scratch_tmpring_size(&sctx->screen->info,
-                               config->scratch_bytes_per_wave,
-                               &sctx->max_seen_compute_scratch_bytes_per_wave, &tmpring_size);
+   if (config->scratch_bytes_per_wave) {
+      /* Prevent race conditions for accesses to shader->scratch_va and shader->bo, which
+       * can change when scratch_va is updated. Any accesses to shader->bo must also be inside
+       * the lock.
+       *
+       * TODO: This lock could be removed if the scratch address was passed via user SGPRs instead
+       *       of the shader binary.
+       */
+      if (!sctx->screen->info.has_scratch_base_registers)
+         simple_mtx_lock(&shader->selector->mutex);
 
-   if (!si_setup_compute_scratch_buffer(sctx, shader))
-      return false;
+      /* Update max_seen_compute_scratch_bytes_per_wave and compute_tmpring_size. */
+      ac_get_scratch_tmpring_size(&sctx->screen->info,
+                                  config->scratch_bytes_per_wave,
+                                  &sctx->max_seen_compute_scratch_bytes_per_wave,
+                                  &sctx->compute_tmpring_size);
 
-   if (shader->scratch_bo) {
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, shader->scratch_bo,
+      if (!si_setup_compute_scratch_buffer(sctx, shader))
+         return false;
+
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->compute_scratch_buffer,
                                 RADEON_USAGE_READWRITE | RADEON_PRIO_SCRATCH_BUFFER);
    }
 
@@ -499,6 +516,12 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, shader->bo,
                              RADEON_USAGE_READ | RADEON_PRIO_SHADER_BINARY);
 
+   /* shader->bo can't be used after this if the scratch address is inserted into the shader
+    * binary.
+    */
+   if (config->scratch_bytes_per_wave && !sctx->screen->info.has_scratch_base_registers)
+      simple_mtx_unlock(&shader->selector->mutex);
+
    if (sctx->gfx_level >= GFX12) {
       unsigned rsrc3 = S_00B8A0_INST_PREF_SIZE_GFX12(si_get_shader_prefetch_size(shader));
 
@@ -510,8 +533,8 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
       gfx12_opt_push_compute_sh_reg(R_00B8A0_COMPUTE_PGM_RSRC3,
                                     SI_TRACKED_COMPUTE_PGM_RSRC3, rsrc3);
       gfx12_opt_push_compute_sh_reg(R_00B860_COMPUTE_TMPRING_SIZE,
-                                    SI_TRACKED_COMPUTE_TMPRING_SIZE, tmpring_size);
-      if (shader->scratch_bo) {
+                                    SI_TRACKED_COMPUTE_TMPRING_SIZE, sctx->compute_tmpring_size);
+      if (config->scratch_bytes_per_wave) {
          gfx12_opt_push_compute_sh_reg(R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
                                        SI_TRACKED_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
                                        sctx->compute_scratch_buffer->gpu_address >> 8);
@@ -530,8 +553,8 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
       gfx11_opt_push_compute_sh_reg(R_00B8A0_COMPUTE_PGM_RSRC3,
                                     SI_TRACKED_COMPUTE_PGM_RSRC3, rsrc3);
       gfx11_opt_push_compute_sh_reg(R_00B860_COMPUTE_TMPRING_SIZE,
-                                    SI_TRACKED_COMPUTE_TMPRING_SIZE, tmpring_size);
-      if (shader->scratch_bo) {
+                                    SI_TRACKED_COMPUTE_TMPRING_SIZE, sctx->compute_tmpring_size);
+      if (config->scratch_bytes_per_wave) {
          gfx11_opt_push_compute_sh_reg(R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
                                        SI_TRACKED_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
                                        sctx->compute_scratch_buffer->gpu_address >> 8);
@@ -546,11 +569,9 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
                              SI_TRACKED_COMPUTE_PGM_RSRC1,
                              config->rsrc1, rsrc2);
       radeon_opt_set_sh_reg(R_00B860_COMPUTE_TMPRING_SIZE,
-                            SI_TRACKED_COMPUTE_TMPRING_SIZE, tmpring_size);
+                            SI_TRACKED_COMPUTE_TMPRING_SIZE, sctx->compute_tmpring_size);
 
-      if (shader->scratch_bo &&
-          (sctx->gfx_level >= GFX11 ||
-           (sctx->family >= CHIP_GFX940 && !sctx->screen->info.has_graphics))) {
+      if (config->scratch_bytes_per_wave && sctx->screen->info.has_scratch_base_registers) {
          radeon_opt_set_sh_reg2(R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
                                 SI_TRACKED_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
                                 sctx->compute_scratch_buffer->gpu_address >> 8,
@@ -934,7 +955,8 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
                                   * allow launching waves out-of-order. (same as Vulkan)
                                   * Not available in gfx940.
                                   */
-                                 S_00B800_ORDER_MODE(sctx->gfx_level >= GFX7 &&
+                                 S_00B800_ORDER_MODE(!sctx->cs_shader_state.program->sel.info.uses_atomic_ordered_add &&
+                                                     sctx->gfx_level >= GFX7 &&
                                                      (sctx->family < CHIP_GFX940 || sctx->screen->info.has_graphics)) |
                                  S_00B800_CS_W32_EN(sctx->cs_shader_state.program->shader.wave_size == 32);
 
@@ -970,13 +992,14 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
       /* Set PING_PONG_EN for every other dispatch.
        * Only allowed on a gfx queue, and PARTIAL_TG_EN and USE_THREAD_DIMENSIONS must be 0.
        */
-      if (sctx->has_graphics && !partial_block_en) {
+      if (sctx->has_graphics && !partial_block_en &&
+          !sctx->cs_shader_state.program->sel.info.uses_atomic_ordered_add) {
          dispatch_initiator |= S_00B800_PING_PONG_EN(sctx->compute_ping_pong_launch);
          sctx->compute_ping_pong_launch ^= 1;
       }
 
       /* Thread tiling within a workgroup. */
-      switch (sctx->cs_shader_state.program->shader.selector->info.base.cs.derivative_group) {
+      switch (sctx->cs_shader_state.program->shader.selector->info.base.derivative_group) {
       case DERIVATIVE_GROUP_LINEAR:
          break;
       case DERIVATIVE_GROUP_QUADS:
@@ -1015,6 +1038,8 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
        * - Only supported by the gfx queue.
        * - Max 16 workgroups per SE can be launched, max 4 in each dimension.
        * - PARTIAL_TG_EN, USE_THREAD_DIMENSIONS, and ORDERED_APPEND_ENBL must be 0.
+       * - COMPUTE_START_X/Y are in units of 2D subgrids, not workgroups
+       *   (program COMPUTE_START_X to start_x >> log_x, COMPUTE_START_Y to start_y >> log_y).
        */
       if (sctx->has_graphics && !partial_block_en &&
           (info->indirect || info->grid[1] >= 4) && MIN2(info->block[0], info->block[1]) >= 4 &&
@@ -1092,10 +1117,9 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
       radeon_emit(dispatch_initiator);
    }
 
-   if (unlikely(sctx->sqtt_enabled && sctx->gfx_level >= GFX9)) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_THREAD_TRACE_MARKER) | EVENT_INDEX(0));
-   }
+   if (unlikely(sctx->sqtt_enabled && sctx->gfx_level >= GFX9))
+      radeon_event_write(V_028A90_THREAD_TRACE_MARKER);
+
    radeon_end();
 }
 
@@ -1151,8 +1175,8 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
                            info->block[0] * info->block[1] * info->block[2] > 256;
 
    if (cs_regalloc_hang) {
-      sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH | SI_CONTEXT_CS_PARTIAL_FLUSH;
-      si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+      sctx->barrier_flags |= SI_BARRIER_SYNC_PS | SI_BARRIER_SYNC_CS;
+      si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
    }
 
    if (program->ir_type != PIPE_SHADER_IR_NATIVE && program->shader.compilation_failed)
@@ -1161,20 +1185,23 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
    si_check_dirty_buffers_textures(sctx);
 
    if (sctx->has_graphics) {
-      if (sctx->last_num_draw_calls != sctx->num_draw_calls) {
-         si_update_fb_dirtiness_after_rendering(sctx);
-         sctx->last_num_draw_calls = sctx->num_draw_calls;
+      if (sctx->num_draw_calls_sh_coherent.with_cb != sctx->num_draw_calls ||
+          sctx->num_draw_calls_sh_coherent.with_db != sctx->num_draw_calls) {
+         bool sync_cb = sctx->force_shader_coherency.with_cb ||
+                        si_check_needs_implicit_sync(sctx, RADEON_USAGE_CB_NEEDS_IMPLICIT_SYNC);
+         bool sync_db = sctx->gfx_level >= GFX12 &&
+                        (sctx->force_shader_coherency.with_db ||
+                         si_check_needs_implicit_sync(sctx, RADEON_USAGE_DB_NEEDS_IMPLICIT_SYNC));
 
-         if (sctx->force_shader_coherency.with_cb ||
-             si_check_needs_implicit_sync(sctx, RADEON_USAGE_CB_NEEDS_IMPLICIT_SYNC))
-            si_make_CB_shader_coherent(sctx, 0,
-                                       sctx->framebuffer.CB_has_shader_readable_metadata,
-                                       sctx->framebuffer.all_DCC_pipe_aligned);
+         si_fb_barrier_after_rendering(sctx,
+                                       (sync_cb ? SI_FB_BARRIER_SYNC_CB : 0) |
+                                       (sync_db ? SI_FB_BARRIER_SYNC_DB : 0));
 
-          if (sctx->gfx_level == GFX12 &&
-              (sctx->force_shader_coherency.with_db ||
-               si_check_needs_implicit_sync(sctx, RADEON_USAGE_DB_NEEDS_IMPLICIT_SYNC)))
-             si_make_DB_shader_coherent(sctx, 0, false, false);
+         if (sync_cb)
+            sctx->num_draw_calls_sh_coherent.with_cb = sctx->num_draw_calls;
+
+         if (sync_db)
+            sctx->num_draw_calls_sh_coherent.with_db = sctx->num_draw_calls;
       }
 
       if (sctx->gfx_level < GFX11)
@@ -1184,12 +1211,12 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
    }
 
    if (info->indirect) {
-      /* Indirect buffers use TC L2 on GFX9-GFX11, but not other hw. */
-      if ((sctx->gfx_level <= GFX8 || sctx->gfx_level == GFX12) &&
-          si_resource(info->indirect)->TC_L2_dirty) {
-         sctx->flags |= SI_CONTEXT_WB_L2;
-         si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
-         si_resource(info->indirect)->TC_L2_dirty = false;
+      /* Indirect buffers are read through L2 on GFX9-GFX11, but not other hw. */
+      if ((sctx->gfx_level <= GFX8 || sscreen->info.cp_sdma_ge_use_system_memory_scope) &&
+          si_resource(info->indirect)->L2_cache_dirty) {
+         sctx->barrier_flags |= SI_BARRIER_WB_L2 | SI_BARRIER_PFP_SYNC_ME;
+         si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
+         si_resource(info->indirect)->L2_cache_dirty = false;
       }
    }
 
@@ -1204,10 +1231,10 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
                          NULL);
       }
    }
-   
+
    if (u_trace_perfetto_active(&sctx->ds.trace_context))
       trace_si_begin_compute(&sctx->trace);
-   
+
    if (sctx->bo_list_add_all_compute_resources)
       si_compute_resources_add_all_to_bo_list(sctx);
 
@@ -1240,8 +1267,7 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
    }
 
    /* Registers that are not read from memory should be set before this: */
-   if (sctx->flags)
-      si_emit_cache_flush_direct(sctx);
+   si_emit_barrier_direct(sctx);
 
    if (sctx->has_graphics && si_is_atom_dirty(sctx, &sctx->atoms.s.render_cond)) {
       sctx->atoms.s.render_cond.emit(sctx, -1);
@@ -1249,7 +1275,7 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
    }
 
    /* Prefetch the compute shader to L2. */
-   if (sctx->gfx_level >= GFX7 && prefetch)
+   if (sctx->gfx_level >= GFX7 && sctx->screen->info.has_cp_dma && prefetch)
       si_cp_dma_prefetch(sctx, &program->shader.bo->b.b, 0, program->shader.bo->b.b.width0);
 
    if (program->ir_type != PIPE_SHADER_IR_NATIVE)
@@ -1281,10 +1307,10 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
 
    if (u_trace_perfetto_active(&sctx->ds.trace_context))
       trace_si_end_compute(&sctx->trace, info->grid[0], info->grid[1], info->grid[2]);
-   
+
    if (cs_regalloc_hang) {
-      sctx->flags |= SI_CONTEXT_CS_PARTIAL_FLUSH;
-      si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+      sctx->barrier_flags |= SI_BARRIER_SYNC_CS;
+      si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
    }
 }
 
@@ -1303,6 +1329,7 @@ void si_destroy_compute(struct si_compute *program)
 
    si_shader_destroy(&program->shader);
    ralloc_free(program->sel.nir);
+   simple_mtx_destroy(&sel->mutex);
    FREE(program);
 }
 

@@ -175,8 +175,8 @@ analyze_constant(const struct nir_alu_instr *instr, unsigned src,
 
    switch (nir_alu_type_get_base_type(use_type)) {
    case nir_type_float: {
-      double min_value = DBL_MAX;
-      double max_value = -DBL_MAX;
+      double min_value = NAN;
+      double max_value = NAN;
       bool any_zero = false;
       bool all_zero = true;
 
@@ -199,8 +199,8 @@ analyze_constant(const struct nir_alu_instr *instr, unsigned src,
 
          any_zero = any_zero || (v == 0.0);
          all_zero = all_zero && (v == 0.0);
-         min_value = MIN2(min_value, v);
-         max_value = MAX2(max_value, v);
+         min_value = fmin(min_value, v);
+         max_value = fmax(max_value, v);
       }
 
       assert(any_zero >= all_zero);
@@ -899,13 +899,13 @@ process_fp_query(struct analysis_state *state, struct analysis_query *aq, uint32
        */
       static const enum ssa_ranges table[last_range + 1][last_range + 1] = {
          /* left\right   unknown  lt_zero  le_zero  gt_zero  ge_zero  ne_zero  eq_zero */
-         /* unknown */ { _______, _______, _______, gt_zero, ge_zero, _______, _______ },
+         /* unknown */ { _______, _______, _______, gt_zero, ge_zero, _______, ge_zero },
          /* lt_zero */ { _______, lt_zero, le_zero, gt_zero, ge_zero, ne_zero, eq_zero },
          /* le_zero */ { _______, le_zero, le_zero, gt_zero, ge_zero, _______, eq_zero },
          /* gt_zero */ { gt_zero, gt_zero, gt_zero, gt_zero, gt_zero, gt_zero, gt_zero },
          /* ge_zero */ { ge_zero, ge_zero, ge_zero, gt_zero, ge_zero, ge_zero, ge_zero },
-         /* ne_zero */ { _______, ne_zero, _______, gt_zero, ge_zero, ne_zero, _______ },
-         /* eq_zero */ { _______, eq_zero, eq_zero, gt_zero, ge_zero, _______, eq_zero }
+         /* ne_zero */ { _______, ne_zero, _______, gt_zero, ge_zero, ne_zero, ge_zero },
+         /* eq_zero */ { ge_zero, eq_zero, eq_zero, gt_zero, ge_zero, ge_zero, eq_zero }
       };
 
       /* Treat fmax as commutative. */
@@ -983,13 +983,13 @@ process_fp_query(struct analysis_state *state, struct analysis_query *aq, uint32
        */
       static const enum ssa_ranges table[last_range + 1][last_range + 1] = {
          /* left\right   unknown  lt_zero  le_zero  gt_zero  ge_zero  ne_zero  eq_zero */
-         /* unknown */ { _______, lt_zero, le_zero, _______, _______, _______, _______ },
+         /* unknown */ { _______, lt_zero, le_zero, _______, _______, _______, le_zero },
          /* lt_zero */ { lt_zero, lt_zero, lt_zero, lt_zero, lt_zero, lt_zero, lt_zero },
          /* le_zero */ { le_zero, lt_zero, le_zero, le_zero, le_zero, le_zero, le_zero },
          /* gt_zero */ { _______, lt_zero, le_zero, gt_zero, ge_zero, ne_zero, eq_zero },
          /* ge_zero */ { _______, lt_zero, le_zero, ge_zero, ge_zero, _______, eq_zero },
-         /* ne_zero */ { _______, lt_zero, le_zero, ne_zero, _______, ne_zero, _______ },
-         /* eq_zero */ { _______, lt_zero, le_zero, eq_zero, eq_zero, _______, eq_zero }
+         /* ne_zero */ { _______, lt_zero, le_zero, ne_zero, _______, ne_zero, le_zero },
+         /* eq_zero */ { le_zero, lt_zero, le_zero, eq_zero, eq_zero, le_zero, eq_zero }
       };
 
       /* Treat fmin as commutative. */

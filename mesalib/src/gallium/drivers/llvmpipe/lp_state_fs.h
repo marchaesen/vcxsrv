@@ -168,6 +168,7 @@ struct lp_fragment_shader_variant
    LLVMTypeRef jit_linear_textures_type;
 
    LLVMValueRef function[2]; // [RAST_WHOLE], [RAST_EDGE_TEST]
+   char *function_name[2];
 
    lp_jit_frag_func jit_function[2]; // [RAST_WHOLE], [RAST_EDGE_TEST]
 
@@ -177,6 +178,7 @@ struct lp_fragment_shader_variant
    /* Functions within the linear path:
     */
    LLVMValueRef linear_function;
+   char *linear_function_name;
    lp_jit_linear_llvm_func jit_linear_llvm;
 
    /* Bitmask to say what cbufs are unswizzled */

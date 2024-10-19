@@ -664,7 +664,7 @@ check_register_index(struct svga_shader_emitter_v10 *emit,
           (emit->unit == PIPE_SHADER_GEOMETRY &&
            index >= emit->max_gs_inputs) ||
           (emit->unit == PIPE_SHADER_FRAGMENT &&
-           index >= VGPU10_MAX_FS_INPUTS) ||
+           index >= VGPU10_MAX_PS_INPUTS) ||
           (emit->unit == PIPE_SHADER_TESS_CTRL &&
            index >= VGPU11_MAX_HS_INPUT_CONTROL_POINTS) ||
           (emit->unit == PIPE_SHADER_TESS_EVAL &&
@@ -687,7 +687,7 @@ check_register_index(struct svga_shader_emitter_v10 *emit,
           (emit->unit == PIPE_SHADER_GEOMETRY &&
            index >= VGPU10_MAX_GS_OUTPUTS) ||
           (emit->unit == PIPE_SHADER_FRAGMENT &&
-           index >= VGPU10_MAX_FS_OUTPUTS) ||
+           index >= VGPU10_MAX_PS_OUTPUTS) ||
           (emit->unit == PIPE_SHADER_TESS_CTRL &&
            index >= VGPU11_MAX_HS_OUTPUTS + 2) ||
           (emit->unit == PIPE_SHADER_TESS_EVAL &&

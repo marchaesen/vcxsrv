@@ -1759,6 +1759,48 @@ vn_decode_VkRenderingFlagBits(struct vn_cs_decoder *dec, VkRenderingFlagBits *va
     vn_decode_int32_t(dec, (int32_t *)val);
 }
 
+/* typedef VkFlags64 VkPipelineCreateFlagBits2KHR */
+
+static inline size_t
+vn_sizeof_VkPipelineCreateFlagBits2KHR(const VkPipelineCreateFlagBits2KHR *val)
+{
+    assert(sizeof(*val) == sizeof(uint64_t));
+    return vn_sizeof_uint64_t((const uint64_t *)val);
+}
+
+static inline void
+vn_encode_VkPipelineCreateFlagBits2KHR(struct vn_cs_encoder *enc, const VkPipelineCreateFlagBits2KHR *val)
+{
+    vn_encode_uint64_t(enc, (const uint64_t *)val);
+}
+
+static inline void
+vn_decode_VkPipelineCreateFlagBits2KHR(struct vn_cs_decoder *dec, VkPipelineCreateFlagBits2KHR *val)
+{
+    vn_decode_uint64_t(dec, (uint64_t *)val);
+}
+
+/* typedef VkFlags64 VkBufferUsageFlagBits2KHR */
+
+static inline size_t
+vn_sizeof_VkBufferUsageFlagBits2KHR(const VkBufferUsageFlagBits2KHR *val)
+{
+    assert(sizeof(*val) == sizeof(uint64_t));
+    return vn_sizeof_uint64_t((const uint64_t *)val);
+}
+
+static inline void
+vn_encode_VkBufferUsageFlagBits2KHR(struct vn_cs_encoder *enc, const VkBufferUsageFlagBits2KHR *val)
+{
+    vn_encode_uint64_t(enc, (const uint64_t *)val);
+}
+
+static inline void
+vn_decode_VkBufferUsageFlagBits2KHR(struct vn_cs_decoder *dec, VkBufferUsageFlagBits2KHR *val)
+{
+    vn_decode_uint64_t(dec, (uint64_t *)val);
+}
+
 /* enum VkPeerMemoryFeatureFlagBits */
 
 static inline size_t

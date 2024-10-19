@@ -1,24 +1,6 @@
 /*
  * Copyright © 2022 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef VIRTIO_PRIV_H_
@@ -38,7 +20,6 @@
 /* We also use some types/defines from the host drm/msm uabi: */
 #include "drm-uapi/msm_drm.h"
 
-#define VIRGL_RENDERER_UNSTABLE_APIS 1
 #include "virglrenderer_hw.h"
 #include "msm_proto.h"
 
@@ -94,7 +75,7 @@ virtio_dev_alloc_iova(struct fd_device *dev, uint32_t size)
    uint64_t iova;
 
    simple_mtx_lock(&virtio_dev->address_space_lock);
-   iova = util_vma_heap_alloc(&virtio_dev->address_space, size, 0x1000);
+   iova = util_vma_heap_alloc(&virtio_dev->address_space, size, os_page_size);
    simple_mtx_unlock(&virtio_dev->address_space_lock);
 
    return iova;

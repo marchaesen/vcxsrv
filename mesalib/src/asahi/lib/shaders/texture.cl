@@ -24,7 +24,7 @@ libagx_txs(constant struct agx_texture_packed *ptr, uint16_t lod,
     * Instead, we stash it in the software-defined section.
     */
    if (is_buffer)
-      return d.software_defined;
+      return d.buffer_size_sw;
 
    /* Load standard dimensions */
    uint3 size = (uint3)(d.width, d.height, d.depth);
@@ -108,7 +108,10 @@ libagx_lower_txf_robustness(constant struct agx_texture_packed *ptr,
       valid &= layer < (linear ? d.depth_linear : d.depth);
    }
 
-   return valid ? x : 0xFFFF;
+   /* The maximum tail offset is 0xF so by returning 0xFFF0 for out-of-bounds we
+    * stay under 0xFFFF and keep robustness after offsetting.
+    */
+   return valid ? x : 0xFFF0;
 }
 
 static uint32_t
@@ -196,7 +199,9 @@ libagx_buffer_texel_address(constant const struct agx_pbe_packed *ptr,
                             uint4 coord, uint bytes_per_pixel_B)
 {
    agx_unpack(NULL, ptr, PBE, d);
-   return d.buffer + (uint64_t)(coord.x * bytes_per_pixel_B);
+
+   uint32_t x_el = d.buffer_offset_sw + coord.x;
+   return d.buffer + (uint64_t)(x_el * bytes_per_pixel_B);
 }
 
 /* Buffer texture lowerings */
@@ -212,7 +217,23 @@ libagx_texture_load_rgb32(constant struct agx_texture_packed *ptr, uint coord,
                           bool is_float)
 {
    agx_unpack(NULL, ptr, TEXTURE, d);
-   global uint3 *data = (global uint3 *)(d.address + 12 * coord);
+   constant uint3 *data = (constant uint3 *)(d.address + 12 * coord);
 
    return (uint4)(*data, is_float ? as_uint(1.0f) : 1);
+}
+
+uint
+libagx_buffer_texture_offset(constant struct agx_texture_packed *ptr, uint x)
+{
+   agx_unpack(NULL, ptr, TEXTURE, d);
+
+   return x + d.buffer_offset_sw;
+}
+
+uint
+libagx_buffer_image_offset(constant struct agx_pbe_packed *ptr, uint x)
+{
+   agx_unpack(NULL, ptr, PBE, d);
+
+   return x + d.buffer_offset_sw;
 }

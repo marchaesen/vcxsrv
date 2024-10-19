@@ -1,0 +1,8 @@
+[binaries]
+c = ['clang', '-DCI_HAS_ALL_MIPS_CPU_FEATURES']
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+pkg-config = 'pkg-config'
+
+[project options]
+mips-dspr2 = 'disabled'

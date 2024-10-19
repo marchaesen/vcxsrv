@@ -24,7 +24,6 @@
 #include "nir.h"
 #include "nir_deref.h"
 #include "gl_nir_linker.h"
-#include "compiler/glsl/ir_uniform.h" /* for gl_uniform_storage */
 #include "linker_util.h"
 #include "util/u_dynarray.h"
 #include "util/u_math.h"

@@ -1,7 +1,7 @@
 include:
   - local: 'src/gallium/drivers/svga/ci/gitlab-ci-inc.yml'
 
-vmware-qemu-traces:x86_64:
+.vmware-qemu-traces:x86_64:
   stage: software-renderer
   extends:
     - .lava-piglit-traces:x86_64
@@ -31,10 +31,11 @@ vmware-vmx-piglit:x86_64:
     GPU_VERSION: svga
     PIGLIT_PLATFORM: mixed_glx_egl
     PIGLIT_PROFILES: gpu
+    PIGLIT_FRACTION: 2
     HWCI_START_WESTON: 1
     RUNNER_TAG: mesa-ci-x86-64-lava-vmware
     DEVICE_TYPE: x86
     BOOT_METHOD: ipxe
     KERNEL_REPO: "blu/linux"
-    FORCE_KERNEL_TAG: "v6.8-rc3-mesa-5e4b-3-g965b79462"
+    FORCE_KERNEL_TAG: "a49175f6c"
     KERNEL_IMAGE_BASE: "https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${FORCE_KERNEL_TAG}"

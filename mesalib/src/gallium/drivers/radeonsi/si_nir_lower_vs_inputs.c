@@ -578,8 +578,7 @@ lower_vs_input_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
 
    nir_def *replacement = nir_vec(b, &comp[component], num_components);
 
-   nir_def_rewrite_uses(&intrin->def, replacement);
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, replacement);
    nir_instr_free(&intrin->instr);
 
    return true;
@@ -603,6 +602,6 @@ si_nir_lower_vs_inputs(nir_shader *nir, struct si_shader *shader, struct si_shad
       get_vertex_index_for_all_inputs(nir, &state);
 
    return nir_shader_intrinsics_pass(nir, lower_vs_input_instr,
-                                       nir_metadata_dominance | nir_metadata_block_index,
+                                       nir_metadata_control_flow,
                                        &state);
 }

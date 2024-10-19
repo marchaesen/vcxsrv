@@ -117,18 +117,18 @@ static union pipe_color_union encode_border_color(
       border.f[0] = CLAMP(border.f[0], 0, 1);
       border.ui[1] = CLAMP(border.ui[1], 0, 0xff);
    } else if (vk_format_is_unorm(bc_info->format)) {
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < desc->nr_channels; i++)
          border.f[i] = CLAMP(border.f[i], 0, 1);
    } else if (vk_format_is_snorm(bc_info->format)) {
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < desc->nr_channels; i++)
          border.f[i] = CLAMP(border.f[i], -1, 1);
    } else if (vk_format_is_uint(bc_info->format) &&
               desc->channel[0].size < 32) {
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < desc->nr_channels; i++)
          border.ui[i] = CLAMP(border.ui[i], 0, (1 << desc->channel[i].size));
    } else if (vk_format_is_sint(bc_info->format) &&
               desc->channel[0].size < 32) {
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < desc->nr_channels; i++)
          border.i[i] = CLAMP(border.i[i],
                              -(1 << (desc->channel[i].size - 1)),
                              (1 << (desc->channel[i].size - 1)) - 1);

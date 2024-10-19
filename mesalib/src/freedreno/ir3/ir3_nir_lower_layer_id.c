@@ -46,6 +46,6 @@ bool ir3_nir_lower_layer_id(nir_shader *shader)
 {
   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
   return nir_shader_instructions_pass(shader, nir_lower_layer_id,
-                nir_metadata_block_index | nir_metadata_dominance,
+                nir_metadata_control_flow,
                 NULL);
 }

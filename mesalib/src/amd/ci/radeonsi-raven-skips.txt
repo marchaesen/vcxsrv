@@ -51,3 +51,6 @@ CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/2990
 CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/2991
 CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/3160
 CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/3161
+
+# times out, maybe for the same reason as above
+CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesNoConfigAttrib/152

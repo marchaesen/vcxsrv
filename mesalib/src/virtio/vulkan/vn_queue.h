@@ -112,6 +112,7 @@ struct vn_semaphore {
        */
       struct list_head pending_cmds;
       struct list_head free_cmds;
+      uint32_t free_cmd_count;
 
       /* Lock for accessing free/pending sfb cmds */
       simple_mtx_t cmd_mtx;

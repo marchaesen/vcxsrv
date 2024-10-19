@@ -8,13 +8,12 @@
 
 #include <math.h>
 
-#include "pipe/p_screen.h"
 #include "compiler/nir/nir.h"
+#include "pipe/p_screen.h"
 
 static inline bool
-is_ubo_or_input(UNUSED struct hash_table *ht, const nir_alu_instr *instr,
-                unsigned src, unsigned num_components,
-                const uint8_t *swizzle)
+is_ubo_or_input(UNUSED struct hash_table *ht, const nir_alu_instr *instr, unsigned src,
+                unsigned num_components, const uint8_t *swizzle)
 {
    nir_instr *parent = instr->src[src].src.ssa->parent_instr;
    if (parent->type != nir_instr_type_intrinsic)
@@ -36,7 +35,7 @@ static inline bool
 is_not_used_in_single_if(const nir_alu_instr *instr)
 {
    unsigned if_uses = 0;
-   nir_foreach_use(src, &instr->def) {
+   nir_foreach_use (src, &instr->def) {
       if (nir_src_is_if(src))
          if_uses++;
       else
@@ -46,21 +45,34 @@ is_not_used_in_single_if(const nir_alu_instr *instr)
 }
 
 static inline bool
-is_only_used_by_load_ubo_vec4(const nir_alu_instr *instr)
+is_only_used_by_intrinsic(const nir_alu_instr *instr, nir_intrinsic_op op)
 {
+   bool is_used = false;
    nir_foreach_use(src, &instr->def) {
-      if (nir_src_is_if(src))
-         return false;
+      is_used = true;
+
       nir_instr *user_instr = nir_src_parent_instr(src);
       if (user_instr->type != nir_instr_type_intrinsic)
          return false;
 
       const nir_intrinsic_instr *const user_intrinsic = nir_instr_as_intrinsic(user_instr);
 
-      if (user_intrinsic->intrinsic != nir_intrinsic_load_ubo_vec4)
+      if (user_intrinsic->intrinsic != op)
             return false;
    }
-   return true;
+   return is_used;
+}
+
+static inline bool
+is_only_used_by_load_ubo_vec4(const nir_alu_instr *instr)
+{
+   return is_only_used_by_intrinsic(instr, nir_intrinsic_load_ubo_vec4);
+}
+
+static inline bool
+is_only_used_by_terminate_if(const nir_alu_instr *instr)
+{
+   return is_only_used_by_intrinsic(instr, nir_intrinsic_terminate_if);
 }
 
 static inline bool
@@ -74,19 +86,19 @@ check_instr_and_src_value(nir_op op, nir_instr **instr, double value)
    unsigned i;
    for (i = 0; i <= 2; i++) {
       if (i == 2) {
-            return false;
+         return false;
       }
       nir_alu_src src = alu->src[i];
       if (nir_src_is_const(src.src)) {
-            /* All components must be reading the same value. */
-            for (unsigned j = 0; j < alu->def.num_components - 1; j++) {
-               if (src.swizzle[j] != src.swizzle[j + 1]) {
-                  return false;
-               }
+         /* All components must be reading the same value. */
+         for (unsigned j = 0; j < alu->def.num_components - 1; j++) {
+            if (src.swizzle[j] != src.swizzle[j + 1]) {
+               return false;
             }
-            if (fabs(nir_src_comp_as_float(src.src, src.swizzle[0]) - value) < 1e-5) {
-               break;
-            }
+         }
+         if (fabs(nir_src_comp_as_float(src.src, src.swizzle[0]) - value) < 1e-5) {
+            break;
+         }
       }
    }
    *instr = alu->src[1 - i].src.ssa->parent_instr;

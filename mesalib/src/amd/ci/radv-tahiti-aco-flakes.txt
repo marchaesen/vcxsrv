@@ -1,6 +1,7 @@
-dEQP-VK.pipeline.fast_linked_library.sampler.*.view_type.*
-dEQP-VK.pipeline.monolithic.sampler.*.view_type.*
-dEQP-VK.pipeline.pipeline_library.sampler.*.view_type.*
-dEQP-VK.pipeline.shader_object_.*.sampler.*.view_type.*
-
 dEQP-VK.pipeline.shader_object_unlinked_binary.interface_matching.decoration_mismatch.out_noperspective_in_none_loose_variable_vert_tesc_tese_geom_out_frag_in
+
+dEQP-VK.pipeline.shader_object_unlinked_spirv.sampler.view_type.cube_array.format.r8_unorm.mag_reduce.comp_r_g_b_a.min
+dEQP-VK.pipeline.shader_object_unlinked_spirv.sampler.view_type.2d_array.format.d32_sfloat.min_reduce.comp_identity_zero_zero_zero.min
+
+dEQP-VK.pipeline.monolithic.sampler.view_type.cube.format.r8_snorm.min_reduce.comp_r_zero_zero_zero.max
+dEQP-VK.pipeline.monolithic.sampler.view_type.1d_array.format.r8_srgb.min_reduce.comp_r_zero_zero_zero.max

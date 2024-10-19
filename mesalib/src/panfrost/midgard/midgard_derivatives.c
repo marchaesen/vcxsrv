@@ -51,17 +51,17 @@
  */
 
 static unsigned
-mir_derivative_mode(nir_op op)
+mir_derivative_mode(nir_intrinsic_op op)
 {
    switch (op) {
-   case nir_op_fddx:
-   case nir_op_fddx_fine:
-   case nir_op_fddx_coarse:
+   case nir_intrinsic_ddx:
+   case nir_intrinsic_ddx_fine:
+   case nir_intrinsic_ddx_coarse:
       return TEXTURE_DFDX;
 
-   case nir_op_fddy:
-   case nir_op_fddy_fine:
-   case nir_op_fddy_coarse:
+   case nir_intrinsic_ddy:
+   case nir_intrinsic_ddy_fine:
+   case nir_intrinsic_ddy_coarse:
       return TEXTURE_DFDY;
 
    default:
@@ -92,7 +92,7 @@ mir_op_computes_derivatives(gl_shader_stage stage, unsigned op)
 }
 
 void
-midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
+midgard_emit_derivatives(compiler_context *ctx, nir_intrinsic_instr *instr)
 {
    /* Create texture instructions */
    midgard_instruction ins = {
@@ -101,7 +101,7 @@ midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
       .src =
          {
             ~0,
-            nir_src_index(ctx, &instr->src[0].src),
+            nir_src_index(ctx, &instr->src[0]),
             ~0,
             ~0,
          },
@@ -114,7 +114,7 @@ midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
       .op = midgard_tex_op_derivative,
       .texture =
          {
-            .mode = mir_derivative_mode(instr->op),
+            .mode = mir_derivative_mode(instr->intrinsic),
             .format = 2,
             .in_reg_full = 1,
             .out_full = 1,

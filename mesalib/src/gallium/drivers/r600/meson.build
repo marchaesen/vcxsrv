@@ -144,7 +144,7 @@ egd_tables_h = custom_target(
 )
 
 r600_c_args = []
-if with_gallium_opencl
+if with_gallium_clover
   if dep_elf.found()
     r600_c_args += '-DHAVE_OPENCL'
   else
@@ -168,8 +168,7 @@ libr600 = static_library(
     inc_src, inc_mapi, inc_mesa, inc_include, inc_gallium, inc_gallium_aux, inc_amd_common,
     inc_gallium_drivers,
   ],
-  link_with : [ libgalliumvl ],
-  dependencies: [dep_libdrm_radeon, dep_elf, dep_llvm, idep_nir, idep_nir_headers],
+  dependencies: [dep_libdrm_radeon, dep_elf, dep_llvm, idep_nir, idep_nir_headers, idep_mesautil],
 )
 
 driver_r600 = declare_dependency(

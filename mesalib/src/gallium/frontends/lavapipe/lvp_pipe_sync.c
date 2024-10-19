@@ -23,6 +23,7 @@
 
 #include "lvp_private.h"
 #include "util/timespec.h"
+#include "vk_common_entrypoints.h"
 
 static void
 lvp_pipe_sync_validate(ASSERTED struct lvp_pipe_sync *sync)
@@ -239,6 +240,48 @@ lvp_pipe_sync_wait(struct vk_device *vk_device,
    return result;
 }
 
+#ifdef HAVE_LIBDRM
+static VkResult
+lvp_pipe_import_sync_file(struct vk_device *vk_device,
+                           struct vk_sync *vk_sync,
+                           int sync_file)
+{
+   struct lvp_device *device = container_of(vk_device, struct lvp_device, vk);
+   struct lvp_pipe_sync *sync = vk_sync_as_lvp_pipe_sync(vk_sync);
+
+   struct pipe_fence_handle *fence;
+   device->queue.ctx->create_fence_fd(
+         device->queue.ctx, &fence, sync_file, PIPE_FD_TYPE_NATIVE_SYNC);
+
+   if (fence == NULL)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   lvp_pipe_sync_signal_with_fence(device, sync, fence);
+   device->pscreen->fence_reference(device->pscreen, &fence, NULL);
+
+   return VK_SUCCESS;
+}
+
+static VkResult
+lvp_pipe_export_sync_file(struct vk_device *vk_device,
+                          struct vk_sync *vk_sync,
+                          int *sync_file)
+{
+   struct lvp_pipe_sync *sync = vk_sync_as_lvp_pipe_sync(vk_sync);
+
+   /* It's not ideal, but since we cannot properly support sync files
+    * from userspace, what we will do instead is wait for lavapipe to
+    * finish rendering, so that we can safely export a sync file that
+    * has already been signalled.
+    */
+   vk_common_DeviceWaitIdle(vk_device_to_handle(vk_device));
+   struct lvp_device *device = container_of(vk_device, struct lvp_device, vk);
+   *sync_file = device->pscreen->fence_get_fd(device->pscreen, sync->fence);
+
+   return *sync_file != -1 ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
+}
+#endif
+
 const struct vk_sync_type lvp_pipe_sync_type = {
    .size = sizeof(struct lvp_pipe_sync),
    .features = VK_SYNC_FEATURE_BINARY |
@@ -254,4 +297,8 @@ const struct vk_sync_type lvp_pipe_sync_type = {
    .reset = lvp_pipe_sync_reset,
    .move = lvp_pipe_sync_move,
    .wait = lvp_pipe_sync_wait,
+#ifdef HAVE_LIBDRM
+   .import_sync_file = lvp_pipe_import_sync_file,
+   .export_sync_file = lvp_pipe_export_sync_file,
+#endif
 };

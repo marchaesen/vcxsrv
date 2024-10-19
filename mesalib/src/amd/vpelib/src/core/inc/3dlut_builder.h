@@ -30,5 +30,5 @@
 #define LUT3D_SIZE_17x17x17 4913
 #define LUT3D_SIZE_9x9x9    729
 
-bool vpe_convert_to_tetrahedral(struct vpe_priv *vpe_priv, uint16_t rgb[17 * 17 * 17 * 3],
-    struct vpe_3dlut *params, bool enable_3dlut);
+bool vpe_convert_to_tetrahedral(
+    struct vpe_priv *vpe_priv, uint16_t* rgb, uint16_t lut_dim, struct vpe_3dlut *params);

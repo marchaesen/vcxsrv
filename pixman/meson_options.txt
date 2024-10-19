@@ -59,17 +59,6 @@ option(
   description : 'Use ARM A64 NEON intrinsic optimized paths',
 )
 option(
-  'iwmmxt',
-  type : 'feature',
-  description : 'Use ARM IWMMXT intrinsic optimized paths',
-)
-option(
-  'iwmmxt2',
-  type : 'boolean',
-  value : true,
-  description : 'Use ARM IWMMXT2 intrinsic instead of IWMMXT',
-)
-option(
   'mips-dspr2',
   type : 'feature',
   description : 'Use MIPS32 DSPr2 intrinsic optimized paths',

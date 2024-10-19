@@ -35,6 +35,7 @@
 
 #include <string.h>
 
+#include "cnd_monotonic.h"
 #include "simple_mtx.h"
 #include "util/futex.h"
 #include "util/list.h"
@@ -124,7 +125,7 @@ util_queue_fence_is_signalled(struct util_queue_fence *fence)
  */
 struct util_queue_fence {
    mtx_t mutex;
-   cnd_t cond;
+   struct u_cnd_monotonic cond;
    int signalled;
 };
 

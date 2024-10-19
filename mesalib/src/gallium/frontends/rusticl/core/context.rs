@@ -11,10 +11,10 @@ use mesa_rust::pipe::resource::*;
 use mesa_rust::pipe::screen::ResourceType;
 use mesa_rust_gen::*;
 use mesa_rust_util::properties::Properties;
+use mesa_rust_util::ptr::TrackedPointers;
 use rusticl_opencl_gen::*;
 
 use std::alloc::Layout;
-use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::convert::TryInto;
 use std::mem;
@@ -27,7 +27,7 @@ pub struct Context {
     pub devs: Vec<&'static Device>,
     pub properties: Properties<cl_context_properties>,
     pub dtors: Mutex<Vec<DeleteContextCB>>,
-    pub svm_ptrs: Mutex<BTreeMap<usize, Layout>>,
+    svm_ptrs: Mutex<TrackedPointers<usize, Layout>>,
     pub gl_ctx_manager: Option<GLCtxManager>,
 }
 
@@ -44,7 +44,7 @@ impl Context {
             devs: devs,
             properties: properties,
             dtors: Mutex::new(Vec::new()),
-            svm_ptrs: Mutex::new(BTreeMap::new()),
+            svm_ptrs: Mutex::new(TrackedPointers::new()),
             gl_ctx_manager: gl_ctx_manager,
         })
     }
@@ -81,7 +81,7 @@ impl Context {
 
         if !user_ptr.is_null() {
             res.iter()
-                .filter(|(_, r)| copy || !r.is_user)
+                .filter(|(_, r)| copy || !r.is_user())
                 .map(|(d, r)| {
                     d.helper_ctx()
                         .exec(|ctx| ctx.buffer_subdata(r, 0, user_ptr, size.try_into().unwrap()))
@@ -163,7 +163,7 @@ impl Context {
             let layer_stride = desc.slice_pitch();
 
             res.iter()
-                .filter(|(_, r)| copy || !r.is_user)
+                .filter(|(_, r)| copy || !r.is_user())
                 .map(|(d, r)| {
                     d.helper_ctx()
                         .exec(|ctx| ctx.texture_subdata(r, &bx, user_ptr, stride, layer_stride))
@@ -191,24 +191,16 @@ impl Context {
         self.svm_ptrs.lock().unwrap().insert(ptr, layout);
     }
 
-    pub fn find_svm_alloc(&self, ptr: usize) -> Option<(*const c_void, Layout)> {
-        let lock = self.svm_ptrs.lock().unwrap();
-        if let Some((&base, layout)) = lock.range(..=ptr).next_back() {
-            // SAFETY: we really just do some pointer math here...
-            unsafe {
-                let base = base as *const c_void;
-                // we check if ptr is within [base..base+size)
-                // means we can check if ptr - (base + size) < 0
-                if ptr < (base.add(layout.size()) as usize) {
-                    return Some((base, *layout));
-                }
-            }
-        }
-        None
+    pub fn find_svm_alloc(&self, ptr: usize) -> Option<(*const c_void, usize)> {
+        self.svm_ptrs
+            .lock()
+            .unwrap()
+            .find_alloc(ptr)
+            .map(|(ptr, layout)| (ptr as *const c_void, layout.size()))
     }
 
     pub fn remove_svm_ptr(&self, ptr: usize) -> Option<Layout> {
-        self.svm_ptrs.lock().unwrap().remove(&ptr)
+        self.svm_ptrs.lock().unwrap().remove(ptr)
     }
 
     pub fn import_gl_buffer(

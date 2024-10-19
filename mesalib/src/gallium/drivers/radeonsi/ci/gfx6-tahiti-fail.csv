@@ -14,9 +14,6 @@ glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
-spec@!opengl 1.0@rasterpos,Fail
-spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
-spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
 spec@!opengl 1.1@draw-pixels,Fail
 spec@!opengl 1.1@teximage-colors gl_luminance12_alpha12,Fail
 spec@!opengl 1.1@teximage-colors gl_luminance12_alpha12@GL_LUMINANCE12_ALPHA12 texture with GL_ABGR_EXT and GL_FLOAT,Fail

@@ -284,27 +284,27 @@ free_zombie_shaders(struct st_context *st)
 
       switch (entry->type) {
       case PIPE_SHADER_VERTEX:
-         st->pipe->bind_vs_state(st->pipe, NULL);
+         st->ctx->NewDriverState |= ST_NEW_VS_STATE;
          st->pipe->delete_vs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_FRAGMENT:
-         st->pipe->bind_fs_state(st->pipe, NULL);
+         st->ctx->NewDriverState |= ST_NEW_FS_STATE;
          st->pipe->delete_fs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_GEOMETRY:
-         st->pipe->bind_gs_state(st->pipe, NULL);
+         st->ctx->NewDriverState |= ST_NEW_GS_STATE;
          st->pipe->delete_gs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_TESS_CTRL:
-         st->pipe->bind_tcs_state(st->pipe, NULL);
+         st->ctx->NewDriverState |= ST_NEW_TCS_STATE;
          st->pipe->delete_tcs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_TESS_EVAL:
-         st->pipe->bind_tes_state(st->pipe, NULL);
+         st->ctx->NewDriverState |= ST_NEW_TES_STATE;
          st->pipe->delete_tes_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_COMPUTE:
-         st->pipe->bind_compute_state(st->pipe, NULL);
+         st->ctx->NewDriverState |= ST_NEW_CS_STATE;
          st->pipe->delete_compute_state(st->pipe, entry->shader);
          break;
       default:
@@ -805,8 +805,6 @@ st_init_driver_functions(struct pipe_screen *screen,
                          bool has_egl_image_validate)
 {
    st_init_draw_functions(screen, functions);
-
-   st_init_eglimage_functions(functions, has_egl_image_validate);
 
    functions->NewProgram = _mesa_new_program;
    st_init_flush_functions(screen, functions);

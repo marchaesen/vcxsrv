@@ -25,7 +25,7 @@ traces:
       checksum: 2df47f6dffc78e01ba94ff6600e54bfa
   ICEDarkness/ICEDarkness-f230-v2.trace:
     freedreno-a630:
-      checksum: 64ac14b2a04d510e470fb2e06b039b42
+      checksum: 06687fb890f32bcd44e922558f47e553
   LifelessPlanet/LifelessPlanet-f420-v2.trace:
     freedreno-a630:
       checksum: 67694d4c5ddd2e353786b7400f26eae9

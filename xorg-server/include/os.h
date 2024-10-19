@@ -50,13 +50,13 @@ SOFTWARE.
 #include "misc.h"
 #include <stdarg.h>
 #include <stdint.h>
-#if defined(HAVE_REALLOCARRAY)
-#include <stdlib.h>       /* for reallocarray */
-#endif
+#include <stdlib.h>
 #include <string.h>
 #ifdef MONOTONIC_CLOCK
 #include <time.h>
 #endif
+
+#include <X11/Xfuncproto.h>
 
 #define SCREEN_SAVER_ON   0
 #define SCREEN_SAVER_OFF  1
@@ -79,14 +79,10 @@ typedef struct _NewClientRec *NewClientPtr;
 #define xnfstrdup(s) XNFstrdup(s)
 
 #define xallocarray(num, size) reallocarray(NULL, (num), (size))
-#define xnfallocarray(num, size) XNFreallocarray(NULL, (num), (size))
-#define xnfreallocarray(ptr, num, size) XNFreallocarray((ptr), (num), (size))
 #endif
 
 #include <stdio.h>
 #include <stdarg.h>
-
-extern _X_EXPORT Bool WaitForSomething(Bool clients_are_ready);
 
 extern _X_EXPORT int ReadRequestFromClient(ClientPtr /*client */ );
 
@@ -126,8 +122,6 @@ extern _X_EXPORT const char *ClientAuthorized(ClientPtr /*client */ ,
                                               char * /*auth_proto */ ,
                                               unsigned int /*string_n */ ,
                                               char * /*auth_string */ );
-
-extern _X_EXPORT void CloseDownConnection(ClientPtr /*client */ );
 
 typedef void (*NotifyFdProcPtr)(int fd, int ready, void *data);
 
@@ -174,9 +168,6 @@ extern _X_EXPORT OsTimerPtr TimerSet(OsTimerPtr timer,
 extern _X_EXPORT void TimerCheck(void);
 extern _X_EXPORT void TimerCancel(OsTimerPtr /* pTimer */ );
 extern _X_EXPORT void TimerFree(OsTimerPtr /* pTimer */ );
-
-extern _X_EXPORT void SetScreenSaverTimer(void);
-extern _X_EXPORT void FreeScreenSaverTimer(void);
 
 extern _X_EXPORT void GiveUp(int /*sig */ );
 
@@ -254,11 +245,6 @@ typedef int (*OsSigWrapperPtr) (int /* sig */ );
 
 extern _X_EXPORT OsSigWrapperPtr
 OsRegisterSigWrapper(OsSigWrapperPtr newWrap);
-
-extern _X_EXPORT void
-LockServer(void);
-extern _X_EXPORT void
-UnlockServer(void);
 
 extern _X_EXPORT Bool
 PrivsElevated(void);
@@ -368,12 +354,6 @@ extern _X_EXPORT void
 LogClose(enum ExitCode error);
 extern _X_EXPORT Bool
 LogSetParameter(LogParameter param, int value);
-extern _X_EXPORT void
-LogVWrite(int verb, const char *f, va_list args)
-_X_ATTRIBUTE_PRINTF(2, 0);
-extern _X_EXPORT void
-LogWrite(int verb, const char *f, ...)
-_X_ATTRIBUTE_PRINTF(2, 3);
 extern _X_EXPORT void
 LogVMessageVerb(MessageType type, int verb, const char *format, va_list args)
 _X_ATTRIBUTE_PRINTF(3, 0);

@@ -31,6 +31,7 @@
 #include "xwayland-window.h"
 #include "xwayland-pixmap.h"
 #include "xwayland-screen.h"
+#include "xwayland-glamor-gbm.h"
 #include "xwayland-window-buffers.h"
 #ifdef XWL_HAS_GLAMOR
 #include "glamor.h"
@@ -38,7 +39,9 @@
 #include "dri3.h"
 
 #include <poll.h>
+#ifdef DRI3
 #include <sys/eventfd.h>
+#endif
 #include "linux-drm-syncobj-v1-client-protocol.h"
 
 #define BUFFER_TIMEOUT 1 * 1000 /* ms */
@@ -47,11 +50,6 @@ struct xwl_window_buffer {
     struct xwl_window *xwl_window;
     PixmapPtr pixmap;
     RegionPtr damage_region;
-#ifdef XWL_HAS_GLAMOR
-    struct dri3_syncobj *syncobj;
-    uint64_t timeline_point;
-    int efd;
-#endif /* XWL_HAS_GLAMOR */
     int refcnt;
     uint32_t time;
     struct xorg_list link_buffer;
@@ -90,9 +88,6 @@ xwl_window_buffer_new(struct xwl_window *xwl_window)
     xwl_window_buffer->damage_region = RegionCreate(NullBox, 1);
     xwl_window_buffer->pixmap = NullPixmap;
     xwl_window_buffer->refcnt = 1;
-#ifdef XWL_HAS_GLAMOR
-    xwl_window_buffer->efd = -1;
-#endif /* XWL_HAS_GLAMOR */
 
     xorg_list_init(&xwl_window_buffer->link_buffer);
 
@@ -109,6 +104,22 @@ xwl_window_buffer_destroy_pixmap(struct xwl_window_buffer *xwl_window_buffer)
     xwl_window_buffer->pixmap = NullPixmap;
 }
 
+static void
+xwl_window_buffer_dispose(struct xwl_window_buffer *xwl_window_buffer)
+{
+    RegionDestroy(xwl_window_buffer->damage_region);
+
+    if (xwl_window_buffer->pixmap) {
+#ifdef XWL_HAS_GLAMOR
+        xwl_glamor_gbm_dispose_syncpts(xwl_window_buffer->pixmap);
+#endif /* XWL_HAS_GLAMOR */
+        xwl_window_buffer_destroy_pixmap (xwl_window_buffer);
+    }
+
+    xorg_list_del(&xwl_window_buffer->link_buffer);
+    free(xwl_window_buffer);
+}
+
 static Bool
 xwl_window_buffer_maybe_dispose(struct xwl_window_buffer *xwl_window_buffer)
 {
@@ -117,23 +128,7 @@ xwl_window_buffer_maybe_dispose(struct xwl_window_buffer *xwl_window_buffer)
     if (--xwl_window_buffer->refcnt)
         return FALSE;
 
-    RegionDestroy(xwl_window_buffer->damage_region);
-
-    if (xwl_window_buffer->pixmap)
-        xwl_window_buffer_destroy_pixmap (xwl_window_buffer);
-
-#ifdef XWL_HAS_GLAMOR
-    if (xwl_window_buffer->syncobj)
-        xwl_window_buffer->syncobj->free(xwl_window_buffer->syncobj);
-
-    if (xwl_window_buffer->efd >= 0) {
-        SetNotifyFd(xwl_window_buffer->efd, NULL, 0, NULL);
-        close(xwl_window_buffer->efd);
-    }
-#endif /* XWL_HAS_GLAMOR */
-
-    xorg_list_del(&xwl_window_buffer->link_buffer);
-    free(xwl_window_buffer);
+    xwl_window_buffer_dispose(xwl_window_buffer);
 
     return TRUE;
 }
@@ -238,19 +233,11 @@ xwl_window_buffer_release_callback(void *data)
                  xwl_window);
 }
 
-#ifdef XWL_HAS_GLAMOR
-static void
-xwl_window_buffers_release_fence_avail(int fd, int xevents, void *data)
+void
+xwl_window_buffer_release(struct xwl_window_buffer *xwl_window_buffer)
 {
-    struct xwl_window_buffer *xwl_window_buffer = data;
-
-    SetNotifyFd(fd, NULL, 0, NULL);
-    close(fd);
-    xwl_window_buffer->efd = -1;
-
-    xwl_window_buffer_release_callback(data);
+    xwl_window_buffer_release_callback(xwl_window_buffer);
 }
-#endif /* XWL_HAS_GLAMOR */
 
 void
 xwl_window_buffers_init(struct xwl_window *xwl_window)
@@ -259,8 +246,17 @@ xwl_window_buffers_init(struct xwl_window *xwl_window)
     xorg_list_init(&xwl_window->window_buffers_unavailable);
 }
 
+static void
+xwl_window_buffer_disposal(struct xwl_window_buffer *xwl_window_buffer, Bool force)
+{
+    if (force)
+        xwl_window_buffer_dispose(xwl_window_buffer);
+    else
+        xwl_window_buffer_maybe_dispose(xwl_window_buffer);
+}
+
 void
-xwl_window_buffers_dispose(struct xwl_window *xwl_window)
+xwl_window_buffers_dispose(struct xwl_window *xwl_window, Bool force)
 {
     struct xwl_window_buffer *xwl_window_buffer, *tmp;
 
@@ -272,14 +268,14 @@ xwl_window_buffers_dispose(struct xwl_window *xwl_window)
                                   &xwl_window->window_buffers_available,
                                   link_buffer) {
         xorg_list_del(&xwl_window_buffer->link_buffer);
-        xwl_window_buffer_maybe_dispose(xwl_window_buffer);
+        xwl_window_buffer_disposal(xwl_window_buffer, force);
     }
 
     xorg_list_for_each_entry_safe(xwl_window_buffer, tmp,
                                   &xwl_window->window_buffers_unavailable,
                                   link_buffer) {
         xorg_list_del(&xwl_window_buffer->link_buffer);
-        xwl_window_buffer_maybe_dispose(xwl_window_buffer);
+        xwl_window_buffer_disposal(xwl_window_buffer, force);
     }
 
     if (xwl_window->window_buffers_timer)
@@ -370,54 +366,39 @@ xwl_window_realloc_pixmap(struct xwl_window *xwl_window)
     screen->DestroyPixmap(window_pixmap);
 }
 
-#ifdef XWL_HAS_GLAMOR
 static Bool
-xwl_window_buffers_set_syncpts(struct xwl_window_buffer *xwl_window_buffer)
+xwl_window_handle_pixmap_sync(struct xwl_window *xwl_window,
+                              PixmapPtr pixmap,
+                              struct xwl_window_buffer *xwl_window_buffer)
 {
-    struct xwl_window *xwl_window = xwl_window_buffer->xwl_window;
+    Bool implicit_sync = TRUE;
+#ifdef XWL_HAS_GLAMOR
     struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
-    uint64_t acquire_point = ++xwl_window_buffer->timeline_point;
-    uint64_t release_point = ++xwl_window_buffer->timeline_point;
 
-    if (!xwl_window_buffer->syncobj) {
-        struct dri3_syncobj *syncobj = xwl_glamor_dri3_syncobj_create(xwl_screen);
-        if (!syncobj)
-            goto fail;
-        xwl_window_buffer->syncobj = syncobj;
+    if (!xwl_glamor_supports_implicit_sync(xwl_screen)) {
+        if (xwl_screen->explicit_sync && xwl_glamor_gbm_set_syncpts(xwl_window, pixmap)) {
+            implicit_sync = FALSE;
+            /* wait until the release fence is available before re-using this buffer */
+            xwl_glamor_gbm_wait_release_fence(xwl_window, pixmap, xwl_window_buffer);
+        } else {
+            /* If glamor does not support implicit sync and we can't use
+             * explicit sync, wait for the GPU to be idle before presenting.
+             * Note that buffer re-use will still be unsynchronized :(
+             */
+            glamor_finish(xwl_screen->screen);
+        }
     }
-
-    int fence_fd = xwl_glamor_get_fence(xwl_screen);
-    if (fence_fd >= 0)
-        xwl_window_buffer->syncobj->import_fence(xwl_window_buffer->syncobj,
-                                                 acquire_point, fence_fd);
-    else
-        goto fail;
-
-    xwl_glamor_dri3_syncobj_passthrough(xwl_window,
-                                        xwl_window_buffer->syncobj,
-                                        xwl_window_buffer->syncobj,
-                                        acquire_point,
-                                        release_point);
-    return TRUE;
-
-fail:
-    /* can't use explicit sync, we will do a glFinish() before presenting */
-    if (xwl_window_buffer->syncobj) {
-        xwl_window_buffer->syncobj->free(xwl_window_buffer->syncobj);
-        xwl_window_buffer->syncobj = NULL;
-    }
-    return FALSE;
-}
 #endif /* XWL_HAS_GLAMOR */
+    return implicit_sync;
+}
 
 PixmapPtr
-xwl_window_swap_pixmap(struct xwl_window *xwl_window)
+xwl_window_swap_pixmap(struct xwl_window *xwl_window, Bool handle_sync)
 {
     struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
     WindowPtr surface_window = xwl_window->surface_window;
     struct xwl_window_buffer *xwl_window_buffer;
     PixmapPtr window_pixmap;
-    Bool implicit_sync = TRUE;
 
     window_pixmap = (*xwl_screen->screen->GetWindowPixmap) (surface_window);
 
@@ -428,17 +409,9 @@ xwl_window_swap_pixmap(struct xwl_window *xwl_window)
         RegionPtr full_damage = xwl_window_buffer->damage_region;
         BoxPtr pBox = RegionRects(full_damage);
         int nBox = RegionNumRects(full_damage);
-
 #ifdef XWL_HAS_GLAMOR
-        if (xwl_window_buffer->syncobj) {
-            int fence_fd =
-                xwl_window_buffer->syncobj->export_fence(xwl_window_buffer->syncobj,
-                                                         xwl_window_buffer->timeline_point);
-            xwl_glamor_wait_fence(xwl_screen, fence_fd);
-            close(fence_fd);
-        }
+        xwl_glamor_gbm_wait_syncpts(xwl_window_buffer->pixmap);
 #endif /* XWL_HAS_GLAMOR */
-
         while (nBox--) {
             copy_pixmap_area(window_pixmap,
                              xwl_window_buffer->pixmap,
@@ -458,6 +431,8 @@ xwl_window_swap_pixmap(struct xwl_window *xwl_window)
         if (xwl_is_client_pixmap(window_pixmap)) {
             xwl_window_buffer->pixmap = NULL;
             xwl_window_buffer_maybe_dispose(xwl_window_buffer);
+            if (handle_sync)
+                xwl_window_handle_pixmap_sync(xwl_window, window_pixmap, NULL);
             return window_pixmap;
         }
     } else {
@@ -468,8 +443,11 @@ xwl_window_swap_pixmap(struct xwl_window *xwl_window)
         window_pixmap->refcnt++;
         xwl_window_realloc_pixmap(xwl_window);
 
-        if (!xwl_window_buffer)
+        if (!xwl_window_buffer) {
+            if (handle_sync)
+                xwl_window_handle_pixmap_sync(xwl_window, window_pixmap, NULL);
             return window_pixmap;
+        }
     }
 
     xwl_window_buffer->pixmap = window_pixmap;
@@ -477,27 +455,8 @@ xwl_window_swap_pixmap(struct xwl_window *xwl_window)
     /* Hold a reference on the buffer until it's released by the compositor */
     xwl_window_buffer->refcnt++;
 
-#ifdef XWL_HAS_GLAMOR
-    if (!xwl_glamor_supports_implicit_sync(xwl_screen)) {
-        if (xwl_screen->explicit_sync && xwl_window_buffers_set_syncpts(xwl_window_buffer)) {
-            implicit_sync = FALSE;
-            /* wait until the release fence is available before re-using this buffer */
-            xwl_window_buffer->efd = eventfd(0, EFD_CLOEXEC);
-            SetNotifyFd(xwl_window_buffer->efd, xwl_window_buffers_release_fence_avail,
-                        X_NOTIFY_READ, xwl_window_buffer);
-            xwl_window_buffer->syncobj->submitted_eventfd(xwl_window_buffer->syncobj,
-                                                          xwl_window_buffer->timeline_point,
-                                                          xwl_window_buffer->efd);
-        } else
-            /* If glamor does not support implicit sync and we can't use
-             * explicit sync, wait for the GPU to be idle before presenting.
-             * Note that buffer re-use will still be unsynchronized :(
-             */
-            glamor_finish(xwl_screen->screen);
-    }
-#endif /* XWL_HAS_GLAMOR */
-
-    if (implicit_sync) {
+    if (handle_sync &&
+        xwl_window_handle_pixmap_sync(xwl_window, window_pixmap, xwl_window_buffer)) {
         xwl_pixmap_set_buffer_release_cb(xwl_window_buffer->pixmap,
                                          xwl_window_buffer_release_callback,
                                          xwl_window_buffer);

@@ -49,7 +49,6 @@ struct etna_acc_query {
 
    struct pipe_resource *prsc;
    unsigned samples;        /* number of samples stored in resource */
-   unsigned no_wait_cnt;    /* see etna_hw_get_query_result() */
    struct list_head node;   /* list-node in ctx->active_hw_queries */
 
    const struct etna_acc_sample_provider *provider;

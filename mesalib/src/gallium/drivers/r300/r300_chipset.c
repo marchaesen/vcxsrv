@@ -17,34 +17,6 @@
 /* r300_chipset: A file all to itself for deducing the various properties of
  * Radeons. */
 
-static void r300_apply_hyperz_blacklist(struct r300_capabilities* caps)
-{
-    static const char *list[] = {
-        "X",    /* the DDX or indirect rendering */
-        "Xorg", /* (alternative name) */
-        "check_gl_texture_size", /* compiz */
-        "Compiz",
-        "gnome-session-check-accelerated-helper",
-        "gnome-shell",
-        "kwin_opengl_test",
-        "kwin",
-        "firefox",
-    };
-    int i;
-    const char *proc_name = util_get_process_name();
-
-    if (!proc_name)
-        return;
-
-    for (i = 0; i < ARRAY_SIZE(list); i++) {
-        if (strcmp(list[i], proc_name) == 0) {
-            caps->zmask_ram = 0;
-            caps->hiz_ram = 0;
-            break;
-        }
-    }
-}
-
 /* Parse a PCI ID and fill an r300_capabilities struct with information. */
 void r300_parse_chipset(uint32_t pci_id, struct r300_capabilities* caps)
 {
@@ -157,6 +129,4 @@ void r300_parse_chipset(uint32_t pci_id, struct r300_capabilities* caps)
     caps->dxtc_swizzle = caps->is_r400 || caps->is_r500;
     caps->has_us_format = caps->family == CHIP_R520;
     caps->has_tcl = caps->num_vert_fpus > 0;
-
-    r300_apply_hyperz_blacklist(caps);
 }

@@ -126,7 +126,7 @@ static void
 define_blend_state_object(struct svga_context *svga,
                           struct svga_blend_state *bs)
 {
-   SVGA3dDXBlendStatePerRT perRT[SVGA3D_MAX_RENDER_TARGETS];
+   SVGA3dDXBlendStatePerRT perRT[SVGA3D_DX_MAX_RENDER_TARGETS];
    int i;
 
    assert(svga_have_vgpu10(svga));

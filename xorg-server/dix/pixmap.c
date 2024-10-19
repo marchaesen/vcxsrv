@@ -26,9 +26,7 @@ from The Open Group.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include "scrnintstr.h"
@@ -278,9 +276,15 @@ PixmapDirtyCopyArea(PixmapPtr dst, DrawablePtr src,
         w = dst_box.x2 - dst_box.x1;
         h = dst_box.y2 - dst_box.y1;
 
-        pGC->ops->CopyArea(src, &dst->drawable, pGC,
-                           x + dst_box.x1, y + dst_box.y1, w, h,
-                           dst_x + dst_box.x1, dst_y + dst_box.y1);
+        (void) pGC->ops->CopyArea(src,
+                                  &dst->drawable,
+                                  pGC,
+                                  x + dst_box.x1,
+                                  y + dst_box.y1,
+                                  w,
+                                  h,
+                                  dst_x + dst_box.x1,
+                                  dst_y + dst_box.y1);
         b++;
     }
     FreeScratchGC(pGC);

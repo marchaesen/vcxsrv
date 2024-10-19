@@ -21,10 +21,8 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #include <xkb-config.h>
-#endif
 #include "kdrive.h"
 #include "inputstr.h"
 
@@ -34,14 +32,14 @@
 #include <X11/XF86keysym.h>
 #endif
 #include <stdio.h>
-#ifdef __sun
 #include <sys/file.h>           /* needed for FNONBLOCK & FASYNC */
-#endif
-
-#include "xkbsrv.h"
 
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
+
+#include "dix/input_priv.h"
+
+#include "xkbsrv.h"
 #include "XIstubs.h"            /* even though we don't use stubs.  cute, no? */
 #include "exevents.h"
 #include "extinit.h"
@@ -679,7 +677,7 @@ KdRemoveKeyboardDriver(KdKeyboardDriver * driver)
 KdKeyboardInfo *
 KdNewKeyboard(void)
 {
-    KdKeyboardInfo *ki = calloc(sizeof(KdKeyboardInfo), 1);
+    KdKeyboardInfo *ki = calloc(1, sizeof(KdKeyboardInfo));
 
     if (!ki)
         return NULL;
@@ -710,7 +708,7 @@ KdAddConfigKeyboard(char *keyboard)
     if (!keyboard)
         return Success;
 
-    new = (struct KdConfigDevice *) calloc(sizeof(struct KdConfigDevice), 1);
+    new = (struct KdConfigDevice *) calloc(1, sizeof(struct KdConfigDevice));
     if (!new)
         return BadAlloc;
 
@@ -774,7 +772,7 @@ KdAddConfigPointer(char *pointer)
     if (!pointer)
         return Success;
 
-    new = (struct KdConfigDevice *) calloc(sizeof(struct KdConfigDevice), 1);
+    new = (struct KdConfigDevice *) calloc(1, sizeof(struct KdConfigDevice));
     if (!new)
         return BadAlloc;
 

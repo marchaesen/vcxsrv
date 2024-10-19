@@ -126,7 +126,7 @@ enum vc4_packet {
 /* Size of a full resolution color or Z tile buffer load/store. */
 #define VC4_TILE_BUFFER_SIZE			(64 * 64 * 4)
 
-#define VC4_MASK(high, low) (((1 << ((high) - (low) + 1)) - 1) << (low))
+#define VC4_MASK(high, low) (((1u << ((high) - (low) + 1)) - 1) << (low))
 /* Using the GNU statement expression extension */
 #define VC4_SET_FIELD(value, field)                                       \
         ({                                                                \

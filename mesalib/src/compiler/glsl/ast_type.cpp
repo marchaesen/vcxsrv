@@ -84,7 +84,8 @@ ast_type_qualifier::has_layout() const
           || this->flags.q.explicit_stream
           || this->flags.q.explicit_xfb_buffer
           || this->flags.q.explicit_xfb_offset
-          || this->flags.q.explicit_xfb_stride;
+          || this->flags.q.explicit_xfb_stride
+          || this->flags.q.explicit_numviews;
 }
 
 bool
@@ -186,6 +187,26 @@ validate_point_mode(ASSERTED const ast_type_qualifier &qualifier,
    return true;
 }
 
+static bool
+validate_view_qualifier(YYLTYPE *loc, struct _mesa_glsl_parse_state *state,
+                          unsigned view)
+{
+   if (view > MAX_VIEWS_OVR) {
+      _mesa_glsl_error(loc, state,
+                       "invalid view specified %d is larger than "
+                       "MAX_VIEWS_OVR (%d).",
+                       view, MAX_VIEWS_OVR);
+      return false;
+   }
+   else if (view <= 0) {
+      _mesa_glsl_error(loc, state,
+                       "invalid view specified %d is less than 0", view);
+      return false;
+   }
+
+   return true;
+}
+
 static void
 merge_bindless_qualifier(_mesa_glsl_parse_state *state)
 {
@@ -272,6 +293,7 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
    input_layout_mask.flags.q.sample = 1;
    input_layout_mask.flags.q.smooth = 1;
    input_layout_mask.flags.q.non_coherent = 1;
+   input_layout_mask.flags.q.explicit_numviews = 1;
 
    if (state->has_bindless()) {
       /* Allow to use image qualifiers with shader inputs/outputs. */
@@ -497,6 +519,18 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
       this->flags.q.out = 1;
    }
 
+   if (q.flags.q.explicit_numviews) {
+      this->num_views = q.num_views;
+      unsigned num_views;
+      if (process_qualifier_constant(state, loc, "num_views",
+                                     this->num_views, &num_views)){
+        if (!validate_view_qualifier(loc, state, num_views)){
+            _mesa_glsl_error(loc, state,
+                  "Invalid num_views specified");
+        }
+      }
+   }
+
    return r;
 }
 
@@ -603,6 +637,12 @@ ast_type_qualifier::validate_in_qualifier(YYLTYPE *loc,
    valid_in_mask.flags.i = 0;
 
    switch (state->stage) {
+   case MESA_SHADER_VERTEX:
+      if (this->flags.q.explicit_numviews){
+          valid_in_mask.flags.q.explicit_numviews = 1;
+          break;
+      }
+
    case MESA_SHADER_TESS_EVAL:
       if (this->flags.q.prim_type) {
          /* Make sure this is a valid input primitive type. */
@@ -708,6 +748,8 @@ ast_type_qualifier::merge_into_in_qualifier(YYLTYPE *loc,
       state->fs_early_fragment_tests = true;
       state->in_qualifier->flags.q.early_fragment_tests = false;
    }
+
+   state->in_qualifier->flags.q.explicit_numviews = false;
 
    if (state->in_qualifier->flags.q.inner_coverage) {
       state->fs_inner_coverage = true;
@@ -890,6 +932,7 @@ ast_type_qualifier::validate_flags(YYLTYPE *loc,
    Q2(explicit_xfb_buffer, xfb_buffer);
    Q2(xfb_stride, xfb_stride);
    Q2(explicit_xfb_stride, xfb_stride);
+   Q2(explicit_numviews, num_views);
    Q(vertex_spacing);
    Q(ordering);
    Q(point_mode);

@@ -76,7 +76,7 @@ static void r300_shader_read_vs_outputs(
                 assert(index == 0);
                 /* Draw does clip vertex for us. */
                 if (r300->screen->caps.has_tcl) {
-                    fprintf(stderr, "r300 VP: cannot handle clip vertex output.\n");
+                    unreachable();
                 }
                 break;
 

@@ -303,7 +303,7 @@ static void rvce_encode_bitstream(struct pipe_video_codec *encoder,
 	enc->feedback(enc);
 }
 
-static void rvce_end_frame(struct pipe_video_codec *encoder,
+static int rvce_end_frame(struct pipe_video_codec *encoder,
 			   struct pipe_video_buffer *source,
 			   struct pipe_picture_desc *picture)
 {
@@ -323,6 +323,7 @@ static void rvce_end_frame(struct pipe_video_codec *encoder,
 		list_del(&slot->list);
 		list_add(&slot->list, &enc->cpb_slots);
 	}
+	return 0;
 }
 
 static void rvce_get_feedback(struct pipe_video_codec *encoder,

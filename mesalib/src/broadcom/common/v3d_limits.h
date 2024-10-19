@@ -24,8 +24,6 @@
 #ifndef V3D_LIMITS_H
 #define V3D_LIMITS_H
 
-#define V3D_CL_MAX_INSTR_SIZE 25
-
 /* Number of channels a QPU thread executes in parallel.  Also known as
  * gl_SubGroupSizeARB.
  */

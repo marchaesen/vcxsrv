@@ -389,9 +389,7 @@ loop_routing_end(struct routes *routing, nir_builder *b)
                                routing_backup->brk.reachable) {
       assert(!(routing->brk.fork->is_var &&
                strcmp(routing->brk.fork->path_var->name, "path_break")));
-      nir_push_if(b, fork_condition(b, routing->brk.fork));
-      nir_jump(b, nir_jump_break);
-      nir_pop_if(b, NULL);
+      nir_break_if(b, fork_condition(b, routing->brk.fork));
       routing->brk = routing->brk.fork->paths[0];
    }
    assert(routing->brk.fork == routing_backup->regular.fork);

@@ -13,7 +13,6 @@ use mesa_rust::pipe::device::load_screens;
 use mesa_rust::pipe::fence::*;
 use mesa_rust::pipe::resource::*;
 use mesa_rust::pipe::screen::*;
-use mesa_rust::pipe::transfer::*;
 use mesa_rust_gen::*;
 use mesa_rust_util::math::SetBitIndices;
 use mesa_rust_util::static_assert;
@@ -47,10 +46,14 @@ pub struct Device {
     pub lib_clc: NirShader,
     pub caps: DeviceCaps,
     helper_ctx: Mutex<PipeContext>,
+    reusable_ctx: Mutex<Vec<PipeContext>>,
 }
 
+#[derive(Default)]
 pub struct DeviceCaps {
+    pub has_3d_image_writes: bool,
     pub has_images: bool,
+    pub has_rw_images: bool,
     pub has_timestamp: bool,
     pub image_2d_size: u32,
     pub max_read_images: u32,
@@ -69,7 +72,8 @@ impl DeviceCaps {
             Self::shader_param(screen, pipe_shader_cap::PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS) as u32;
         let image_2d_size = screen.param(pipe_cap::PIPE_CAP_MAX_TEXTURE_2D_SIZE) as u32;
 
-        let has_images =
+        let has_images = screen.param(pipe_cap::PIPE_CAP_TEXTURE_SAMPLER_INDEPENDENT) != 0 &&
+            screen.param(pipe_cap::PIPE_CAP_IMAGE_STORE_FORMATTED) != 0 &&
             // The minimum value is 8 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
             max_read_images >= 8 &&
             // The minimum value is 8 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
@@ -84,6 +88,7 @@ impl DeviceCaps {
             max_read_images: has_images.then_some(max_read_images).unwrap_or_default(),
             max_write_images: has_images.then_some(max_write_images).unwrap_or_default(),
             timer_resolution: timer_resolution,
+            ..Default::default()
         }
     }
 
@@ -98,42 +103,10 @@ pub trait HelperContextWrapper {
     where
         F: Fn(&HelperContext);
 
-    fn buffer_map_directly(
-        &self,
-        res: &PipeResource,
-        offset: i32,
-        size: i32,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer>;
-
-    fn buffer_map_coherent(
-        &self,
-        res: &PipeResource,
-        offset: i32,
-        size: i32,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer>;
-
-    fn texture_map_directly(
-        &self,
-        res: &PipeResource,
-        bx: &pipe_box,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer>;
-
-    fn texture_map_coherent(
-        &self,
-        res: &PipeResource,
-        bx: &pipe_box,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer>;
-
     fn create_compute_state(&self, nir: &NirShader, static_local_mem: u32) -> *mut c_void;
     fn delete_compute_state(&self, cso: *mut c_void);
     fn compute_state_info(&self, state: *mut c_void) -> pipe_compute_state_object_info;
     fn compute_state_subgroup_size(&self, state: *mut c_void, block: &[u32; 3]) -> u32;
-
-    fn unmap(&self, tx: PipeTransfer);
 
     fn is_create_fence_fd_supported(&self) -> bool;
     fn import_fence(&self, fence_fd: &FenceFd) -> PipeFence;
@@ -186,46 +159,6 @@ impl<'a> HelperContextWrapper for HelperContext<'a> {
         self.lock.flush()
     }
 
-    fn buffer_map_directly(
-        &self,
-        res: &PipeResource,
-        offset: i32,
-        size: i32,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer> {
-        self.lock.buffer_map_directly(res, offset, size, rw)
-    }
-
-    fn buffer_map_coherent(
-        &self,
-        res: &PipeResource,
-        offset: i32,
-        size: i32,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer> {
-        self.lock
-            .buffer_map(res, offset, size, rw, ResourceMapType::Coherent)
-    }
-
-    fn texture_map_directly(
-        &self,
-        res: &PipeResource,
-        bx: &pipe_box,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer> {
-        self.lock.texture_map_directly(res, bx, rw)
-    }
-
-    fn texture_map_coherent(
-        &self,
-        res: &PipeResource,
-        bx: &pipe_box,
-        rw: RWFlags,
-    ) -> Option<PipeTransfer> {
-        self.lock
-            .texture_map(res, bx, rw, ResourceMapType::Coherent)
-    }
-
     fn create_compute_state(&self, nir: &NirShader, static_local_mem: u32) -> *mut c_void {
         self.lock.create_compute_state(nir, static_local_mem)
     }
@@ -240,10 +173,6 @@ impl<'a> HelperContextWrapper for HelperContext<'a> {
 
     fn compute_state_subgroup_size(&self, state: *mut c_void, block: &[u32; 3]) -> u32 {
         self.lock.compute_state_subgroup_size(state, block)
-    }
-
-    fn unmap(&self, tx: PipeTransfer) {
-        tx.with_ctx(&self.lock);
     }
 
     fn is_create_fence_fd_supported(&self) -> bool {
@@ -288,15 +217,16 @@ impl Device {
             clc_features: Vec::new(),
             formats: HashMap::new(),
             lib_clc: lib_clc?,
+            reusable_ctx: Mutex::new(Vec::new()),
         };
-
-        d.fill_format_tables();
 
         // check if we are embedded or full profile first
         d.embedded = d.check_embedded_profile();
 
         // check if we have to report it as a custom device
         d.custom = d.check_custom();
+
+        d.fill_format_tables();
 
         // query supported extensions
         d.fill_extensions();
@@ -349,9 +279,7 @@ impl Device {
                         PIPE_BIND_SHADER_IMAGE,
                     )
                 {
-                    flags |= CL_MEM_WRITE_ONLY;
-                    // TODO: enable once we support it
-                    // flags |= CL_MEM_KERNEL_READ_AND_WRITE;
+                    flags |= CL_MEM_WRITE_ONLY | CL_MEM_KERNEL_READ_AND_WRITE;
                 }
 
                 // TODO: cl_khr_srgb_image_writes
@@ -367,7 +295,66 @@ impl Device {
 
                 fs.insert(t, flags as cl_mem_flags);
             }
+
+            // Restrict supported formats with 1DBuffer images. This is an OpenCL CTS workaround.
+            // See https://github.com/KhronosGroup/OpenCL-CTS/issues/1889
+            let image1d_mask = fs[&CL_MEM_OBJECT_IMAGE1D];
+            if let Some(entry) = fs.get_mut(&CL_MEM_OBJECT_IMAGE1D_BUFFER) {
+                *entry &= image1d_mask;
+            }
+
             self.formats.insert(f.cl_image_format, fs);
+        }
+
+        // now enable some caps based on advertized formats
+        self.caps.has_3d_image_writes = !FORMATS
+            .iter()
+            .filter(|f| {
+                if self.embedded {
+                    f.req_for_embeded_read_or_write
+                } else {
+                    f.req_for_full_read_or_write
+                }
+            })
+            .map(|f| self.formats[&f.cl_image_format][&CL_MEM_OBJECT_IMAGE3D])
+            .any(|f| f & cl_mem_flags::from(CL_MEM_WRITE_ONLY) == 0);
+
+        // if we can't advertize 3d image write ext, we have to disable them all
+        if !self.caps.has_3d_image_writes {
+            for f in &mut self.formats.values_mut() {
+                *f.get_mut(&CL_MEM_OBJECT_IMAGE3D).unwrap() &= !cl_mem_flags::from(
+                    CL_MEM_WRITE_ONLY | CL_MEM_READ_WRITE | CL_MEM_KERNEL_READ_AND_WRITE,
+                );
+            }
+        }
+
+        // we require formatted loads
+        if self.screen.param(pipe_cap::PIPE_CAP_IMAGE_LOAD_FORMATTED) != 0 {
+            // "For embedded profiles devices that support reading from and writing to the same
+            // image object from the same kernel instance (see CL_DEVICE_MAX_READ_WRITE_IMAGE_ARGS)
+            // there is no required minimum list of supported image formats."
+            self.caps.has_rw_images = if self.embedded {
+                FORMATS
+                    .iter()
+                    .flat_map(|f| self.formats[&f.cl_image_format].values())
+                    .any(|f| f & cl_mem_flags::from(CL_MEM_KERNEL_READ_AND_WRITE) != 0)
+            } else {
+                !FORMATS
+                    .iter()
+                    .filter(|f| f.req_for_full_read_and_write)
+                    .flat_map(|f| &self.formats[&f.cl_image_format])
+                    // maybe? things being all optional is kinda a mess
+                    .filter(|(target, _)| **target != CL_MEM_OBJECT_IMAGE3D)
+                    .any(|(_, mask)| mask & cl_mem_flags::from(CL_MEM_KERNEL_READ_AND_WRITE) == 0)
+            }
+        }
+
+        // if we can't advertize read_write images, disable them all
+        if !self.caps.has_rw_images {
+            self.formats
+                .values_mut()
+                .flat_map(|f| f.values_mut())
+                .for_each(|f| *f &= !cl_mem_flags::from(CL_MEM_KERNEL_READ_AND_WRITE));
         }
     }
 
@@ -475,7 +462,7 @@ impl Device {
             // The minimum value is 2048 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
             self.image_array_size() < 2048 ||
             // The minimum value is 65536 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-            self.image_buffer_size() < 65536
+            self.image_buffer_max_size_pixels() < 65536
             {
                 return true;
             }
@@ -532,7 +519,7 @@ impl Device {
             // The minimum value is 256 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
             if self.image_array_size() < 256 ||
             // The minimum value is 2048 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-            self.image_buffer_size() < 2048
+            self.image_buffer_max_size_pixels() < 2048
             {
                 res = CLVersion::Cl1_1;
             }
@@ -655,11 +642,11 @@ impl Device {
                 add_ext(1, 0, 0, "cl_khr_image2d_from_buffer");
             }
 
-            if self.image_read_write_supported() {
+            if self.caps.has_rw_images {
                 add_feat(1, 0, 0, "__opencl_c_read_write_images");
             }
 
-            if self.image_3d_write_supported() {
+            if self.caps.has_3d_image_writes {
                 add_ext(1, 0, 0, "cl_khr_3d_image_writes");
                 add_feat(1, 0, 0, "__opencl_c_3d_image_writes");
             }
@@ -881,11 +868,18 @@ impl Device {
         }
     }
 
-    pub fn image_buffer_size(&self) -> usize {
+    pub fn image_buffer_max_size_pixels(&self) -> usize {
         if self.caps.has_images {
             min(
-                // the CTS requires it to not exceed `CL_MAX_MEM_ALLOC_SIZE`
-                self.max_mem_alloc(),
+                // The CTS requires it to not exceed `CL_MAX_MEM_ALLOC_SIZE`, also we need to divide
+                // by the max pixel size, because this cap is in pixels, not bytes.
+                //
+                // The CTS also casts this to int in a couple of places,
+                // see: https://github.com/KhronosGroup/OpenCL-CTS/issues/2056
+                min(
+                    self.max_mem_alloc() / MAX_PIXEL_SIZE_BYTES,
+                    c_int::MAX as cl_ulong,
+                ),
                 self.screen
                     .param(pipe_cap::PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT)
                     as cl_ulong,
@@ -897,26 +891,6 @@ impl Device {
 
     pub fn image2d_from_buffer_supported(&self) -> bool {
         self.image_pitch_alignment() != 0 && self.image_base_address_alignment() != 0
-    }
-
-    pub fn image_read_write_supported(&self) -> bool {
-        self.caps.has_images
-            && !FORMATS
-                .iter()
-                .filter(|f| f.req_for_full_read_and_write)
-                .map(|f| self.formats.get(&f.cl_image_format).unwrap())
-                .map(|f| f.get(&CL_MEM_OBJECT_IMAGE3D).unwrap())
-                .any(|f| *f & cl_mem_flags::from(CL_MEM_KERNEL_READ_AND_WRITE) == 0)
-    }
-
-    pub fn image_3d_write_supported(&self) -> bool {
-        self.caps.has_images
-            && !FORMATS
-                .iter()
-                .filter(|f| f.req_for_full_read_or_write)
-                .map(|f| self.formats.get(&f.cl_image_format).unwrap())
-                .map(|f| f.get(&CL_MEM_OBJECT_IMAGE3D).unwrap())
-                .any(|f| *f & cl_mem_flags::from(CL_MEM_WRITE_ONLY) == 0)
     }
 
     pub fn little_endian(&self) -> bool {
@@ -1012,8 +986,24 @@ impl Device {
         })
     }
 
+    fn reusable_ctx(&self) -> MutexGuard<Vec<PipeContext>> {
+        self.reusable_ctx.lock().unwrap()
+    }
+
     pub fn screen(&self) -> &Arc<PipeScreen> {
         &self.screen
+    }
+
+    pub fn create_context(&self) -> Option<PipeContext> {
+        self.reusable_ctx()
+            .pop()
+            .or_else(|| self.screen.create_context())
+    }
+
+    pub fn recycle_context(&self, ctx: PipeContext) {
+        if Platform::dbg().reuse_context {
+            self.reusable_ctx().push(ctx);
+        }
     }
 
     pub fn subgroup_sizes(&self) -> Vec<usize> {
@@ -1090,8 +1080,8 @@ impl Device {
             fp64: self.fp64_supported(),
             int64: self.int64_supported(),
             images: self.caps.has_images,
-            images_read_write: self.image_read_write_supported(),
-            images_write_3d: self.image_3d_write_supported(),
+            images_read_write: self.caps.has_rw_images,
+            images_write_3d: self.caps.has_3d_image_writes,
             integer_dot_product: true,
             subgroups: subgroups_supported,
             subgroups_shuffle: subgroups_supported,

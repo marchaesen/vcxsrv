@@ -270,7 +270,8 @@ vn_ring_get_layout(size_t buf_size,
 struct vn_ring *
 vn_ring_create(struct vn_instance *instance,
                const struct vn_ring_layout *layout,
-               uint8_t direct_order)
+               uint8_t direct_order,
+               bool is_tls_ring)
 {
    VN_TRACE_FUNC();
 
@@ -327,7 +328,7 @@ vn_ring_create(struct vn_instance *instance,
    if (instance->renderer->info.vk_mesa_venus_protocol_spec_version >= 2) {
       errno = 0;
       prio = getpriority(PRIO_PROCESS, 0);
-      ring_priority = !(prio == -1 && errno);
+      ring_priority = is_tls_ring && !(prio == -1 && errno);
    }
    const struct VkRingPriorityInfoMESA priority_info = {
       .sType = VK_STRUCTURE_TYPE_RING_PRIORITY_INFO_MESA,

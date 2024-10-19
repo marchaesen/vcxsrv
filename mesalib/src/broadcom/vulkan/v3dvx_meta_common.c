@@ -582,7 +582,7 @@ emit_copy_layer_to_buffer_per_tile_list(struct v3dv_job *job,
 
    /* Load image to TLB */
    assert((image->vk.image_type != VK_IMAGE_TYPE_3D &&
-           layer_offset < region->imageSubresource.layerCount) ||
+           layer_offset < image->vk.array_layers) ||
           layer_offset < image->vk.extent.depth);
 
    const uint32_t image_layer = image->vk.image_type != VK_IMAGE_TYPE_3D ?
@@ -691,7 +691,7 @@ emit_resolve_image_layer_per_tile_list(struct v3dv_job *job,
    cl_emit(cl, TILE_COORDINATES_IMPLICIT, coords);
 
    assert((src->vk.image_type != VK_IMAGE_TYPE_3D &&
-           layer_offset < region->srcSubresource.layerCount) ||
+           layer_offset < src->vk.array_layers) ||
           layer_offset < src->vk.extent.depth);
 
    const uint32_t src_layer = src->vk.image_type != VK_IMAGE_TYPE_3D ?
@@ -709,7 +709,7 @@ emit_resolve_image_layer_per_tile_list(struct v3dv_job *job,
    cl_emit(cl, BRANCH_TO_IMPLICIT_TILE_LIST, branch);
 
    assert((dst->vk.image_type != VK_IMAGE_TYPE_3D &&
-           layer_offset < region->dstSubresource.layerCount) ||
+           layer_offset < dst->vk.array_layers) ||
           layer_offset < dst->vk.extent.depth);
 
    const uint32_t dst_layer = dst->vk.image_type != VK_IMAGE_TYPE_3D ?
@@ -855,7 +855,7 @@ emit_copy_image_layer_per_tile_list(struct v3dv_job *job,
    cl_emit(cl, TILE_COORDINATES_IMPLICIT, coords);
 
    assert((src->vk.image_type != VK_IMAGE_TYPE_3D &&
-           layer_offset < region->srcSubresource.layerCount) ||
+           layer_offset < src->vk.array_layers) ||
           layer_offset < src->vk.extent.depth);
 
    const uint32_t src_layer = src->vk.image_type != VK_IMAGE_TYPE_3D ?
@@ -873,7 +873,7 @@ emit_copy_image_layer_per_tile_list(struct v3dv_job *job,
    cl_emit(cl, BRANCH_TO_IMPLICIT_TILE_LIST, branch);
 
    assert((dst->vk.image_type != VK_IMAGE_TYPE_3D &&
-           layer_offset < region->dstSubresource.layerCount) ||
+           layer_offset < dst->vk.array_layers) ||
           layer_offset < dst->vk.extent.depth);
 
    const uint32_t dst_layer = dst->vk.image_type != VK_IMAGE_TYPE_3D ?
@@ -1192,8 +1192,7 @@ emit_copy_buffer_to_layer_per_tile_list(struct v3dv_job *job,
 
    cl_emit(cl, TILE_COORDINATES_IMPLICIT, coords);
 
-   const VkImageSubresourceLayers *imgrsc = &region->imageSubresource;
-   assert((image->vk.image_type != VK_IMAGE_TYPE_3D && layer < imgrsc->layerCount) ||
+   assert((image->vk.image_type != VK_IMAGE_TYPE_3D && layer < image->vk.array_layers) ||
           layer < image->vk.extent.depth);
 
    /* Load TLB from buffer */
@@ -1212,6 +1211,7 @@ emit_copy_buffer_to_layer_per_tile_list(struct v3dv_job *job,
    width = DIV_ROUND_UP(width, vk_format_get_blockwidth(image->vk.format));
    height = DIV_ROUND_UP(height, vk_format_get_blockheight(image->vk.format));
 
+   const VkImageSubresourceLayers *imgrsc = &region->imageSubresource;
    uint8_t plane = v3dv_plane_from_aspect(imgrsc->aspectMask);
    uint32_t cpp = imgrsc->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT ?
                   1 : image->planes[plane].cpp;

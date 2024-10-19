@@ -8,9 +8,6 @@ INSTALL=$PWD/install
 # Set up the driver environment.
 export LD_LIBRARY_PATH=$INSTALL/lib/
 
-RESULTS="$PWD/${GTEST_RESULTS_DIR:-results}"
-mkdir -p "$RESULTS"
-
 export LIBVA_DRIVERS_PATH=$INSTALL/lib/dri/
 # libva spams driver open info by default, and that happens per testcase.
 export LIBVA_MESSAGING_LEVEL=1
@@ -39,7 +36,7 @@ set +e
 gtest-runner \
     run \
     --gtest $GTEST \
-    --output ${RESULTS} \
+    --output ${RESULTS_DIR} \
     --jobs ${FDO_CI_CONCURRENT:-4} \
     $GTEST_SKIPS \
     --flakes $INSTALL/$GPU_VERSION-flakes.txt \
@@ -52,8 +49,8 @@ GTEST_EXITCODE=$?
 
 deqp-runner junit \
    --testsuite gtest \
-   --results $RESULTS/failures.csv \
-   --output $RESULTS/junit.xml \
+   --results $RESULTS_DIR/failures.csv \
+   --output $RESULTS_DIR/junit.xml \
    --limit 50 \
    --template "See $ARTIFACTS_BASE_URL/results/{{testcase}}.xml"
 
@@ -62,7 +59,7 @@ if [ -n "$FLAKES_CHANNEL" ]; then
   python3 $INSTALL/report-flakes.py \
          --host irc.oftc.net \
          --port 6667 \
-         --results $RESULTS/results.csv \
+         --results $RESULTS_DIR/results.csv \
          --known-flakes $INSTALL/$GPU_VERSION-flakes.txt \
          --channel "$FLAKES_CHANNEL" \
          --runner "$CI_RUNNER_DESCRIPTION" \

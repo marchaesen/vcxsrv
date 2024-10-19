@@ -36,6 +36,7 @@ struct output_ctx;
 
 enum mpc_mpccid {
     MPC_MPCCID_0 = 0,
+    MPC_MPCCID_1 = 1,
     MPC_MPCCID_COUNT,
 };
 
@@ -79,8 +80,8 @@ struct mpcc_blnd_cfg {
     struct vpe_color           bg_color;             /* background color */
     enum mpcc_alpha_blend_mode alpha_mode;           /* alpha blend mode */
     bool                       pre_multiplied_alpha; /* alpha pre-multiplied mode flag */
-    uint8_t                    global_gain;
-    uint8_t                    global_alpha;
+    uint16_t                   global_gain;
+    uint16_t                   global_alpha;
     bool                       overlap_only;
 
     /* MPCC top/bottom gain settings */
@@ -156,13 +157,13 @@ struct mpc_funcs {
 
     void (*set_output_transfer_func)(struct mpc *mpc, struct output_ctx *output_ctx);
 
-    void (*set_mpc_shaper_3dlut)(struct mpc *mpc, const struct transfer_func *func_shaper,
-        const struct vpe_3dlut *lut3d_func);
+    void (*set_mpc_shaper_3dlut)(
+        struct mpc *mpc, struct transfer_func *func_shaper, struct vpe_3dlut *lut3d_func);
 
-    void (*set_blend_lut)(struct mpc *mpc, const struct transfer_func *blend_tf);
+    void (*set_blend_lut)(struct mpc *mpc, struct transfer_func *blend_tf);
 
-    bool (*program_movable_cm)(struct mpc *mpc, const struct transfer_func *func_shaper,
-        const struct vpe_3dlut *lut3d_func, const struct transfer_func *blend_tf, bool afterblend);
+    bool (*program_movable_cm)(struct mpc *mpc, struct transfer_func *func_shaper,
+        struct vpe_3dlut *lut3d_func, struct transfer_func *blend_tf, bool afterblend);
     void (*program_crc)(struct mpc *mpc, bool enable);
 
 };
@@ -170,6 +171,7 @@ struct mpc_funcs {
 struct mpc {
     struct vpe_priv  *vpe_priv;
     struct mpc_funcs *funcs;
+    unsigned int      inst;
     struct pwl_params regamma_params;
     struct pwl_params blender_params;
     struct pwl_params shaper_params;

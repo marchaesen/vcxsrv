@@ -87,3 +87,6 @@ spec@nv_copy_image@nv_copy_image.*
 shaders@point-vertex-id.*
 # uses stipple:
 spec@!opengl 1.0@gl-1.0-no-op-paths
+
+# Some reconvergence tests are very slow:
+(gmem-|stale-regs-)?dEQP-VK.reconvergence.(sub|work)group_uniform_control_flow_(ballot|elect).compute.nesting4.(0.40|7.10)

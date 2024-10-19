@@ -1,3 +1,4 @@
+// Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
 // Headers from LSDp CL1744173
 #ifndef _vpe_6_1_0_OFFSET_HEADER
 #define _vpe_6_1_0_OFFSET_HEADER

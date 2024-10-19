@@ -175,8 +175,23 @@ def filter_api(elem, api):
 
     return api in elem.attrib['api'].split(',')
 
+def get_alias(aliases, name):
+    if name in aliases:
+        # in case the spec registry adds an alias chain later
+        return get_alias(aliases, aliases[name])
+    return name
+
 def get_all_required(xml, thing, api, beta):
     things = {}
+    aliases = {}
+    for struct in xml.findall('./types/type[@category="struct"][@alias]'):
+        if not filter_api(struct, api):
+            continue
+
+        name = struct.attrib['name']
+        alias = struct.attrib['alias']
+        aliases[name] = alias
+
     for feature in xml.findall('./feature'):
         if not filter_api(feature, api):
             continue
@@ -200,7 +215,7 @@ def get_all_required(xml, thing, api, beta):
                 continue
 
             for t in require.findall('./' + thing):
-                name = t.attrib['name']
+                name = get_alias(aliases, t.attrib['name'])
                 r = things.setdefault(name, Requirements())
                 r.add_extension(ext)
 

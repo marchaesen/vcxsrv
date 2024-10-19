@@ -69,7 +69,7 @@ vk_sync_timeline_init(struct vk_device *device,
    if (ret != thrd_success)
       return vk_errorf(device, VK_ERROR_UNKNOWN, "mtx_init failed");
 
-   ret = cnd_init(&timeline->cond);
+   ret = u_cnd_monotonic_init(&timeline->cond);
    if (ret != thrd_success) {
       mtx_destroy(&timeline->mutex);
       return vk_errorf(device, VK_ERROR_UNKNOWN, "cnd_init failed");
@@ -102,7 +102,7 @@ vk_sync_timeline_finish(struct vk_device *device,
       vk_free(&device->alloc, point);
    }
 
-   cnd_destroy(&timeline->cond);
+   u_cnd_monotonic_destroy(&timeline->cond);
    mtx_destroy(&timeline->mutex);
 }
 
@@ -304,7 +304,7 @@ vk_sync_timeline_point_install(struct vk_device *device,
    point->pending = true;
    list_addtail(&point->link, &timeline->pending_points);
 
-   int ret = cnd_broadcast(&timeline->cond);
+   int ret = u_cnd_monotonic_broadcast(&timeline->cond);
 
    mtx_unlock(&timeline->mutex);
 
@@ -381,7 +381,7 @@ vk_sync_timeline_signal_locked(struct vk_device *device,
    assert(timeline->highest_pending == timeline->highest_past);
    timeline->highest_pending = timeline->highest_past = value;
 
-   int ret = cnd_broadcast(&timeline->cond);
+   int ret = u_cnd_monotonic_broadcast(&timeline->cond);
    if (ret == thrd_error)
       return vk_errorf(device, VK_ERROR_UNKNOWN, "cnd_broadcast failed");
 
@@ -428,44 +428,20 @@ vk_sync_timeline_wait_locked(struct vk_device *device,
                              enum vk_sync_wait_flags wait_flags,
                              uint64_t abs_timeout_ns)
 {
+   struct timespec abs_timeout_ts;
+   timespec_from_nsec(&abs_timeout_ts, abs_timeout_ns);
+
    /* Wait on the queue_submit condition variable until the timeline has a
     * time point pending that's at least as high as wait_value.
     */
-   uint64_t now_ns = os_time_get_nano();
    while (timeline->highest_pending < wait_value) {
-      if (now_ns >= abs_timeout_ns)
+      int ret = u_cnd_monotonic_timedwait(&timeline->cond, &timeline->mutex,
+                                          &abs_timeout_ts);
+      if (ret == thrd_timedout)
          return VK_TIMEOUT;
 
-      int ret;
-      if (abs_timeout_ns >= INT64_MAX) {
-         /* Common infinite wait case */
-         ret = cnd_wait(&timeline->cond, &timeline->mutex);
-      } else {
-         /* This is really annoying.  The C11 threads API uses CLOCK_REALTIME
-          * while all our absolute timeouts are in CLOCK_MONOTONIC.  Best
-          * thing we can do is to convert and hope the system admin doesn't
-          * change the time out from under us.
-          */
-         uint64_t rel_timeout_ns = abs_timeout_ns - now_ns;
-
-         struct timespec now_ts, abs_timeout_ts;
-         timespec_get(&now_ts, TIME_UTC);
-         if (timespec_add_nsec(&abs_timeout_ts, &now_ts, rel_timeout_ns)) {
-            /* Overflowed; may as well be infinite */
-            ret = cnd_wait(&timeline->cond, &timeline->mutex);
-         } else {
-            ret = cnd_timedwait(&timeline->cond, &timeline->mutex,
-                                &abs_timeout_ts);
-         }
-      }
-      if (ret == thrd_error)
+      if (ret != thrd_success)
          return vk_errorf(device, VK_ERROR_UNKNOWN, "cnd_timedwait failed");
-
-      /* We don't trust the timeout condition on cnd_timedwait() because of
-       * the potential clock issues caused by using CLOCK_REALTIME.  Instead,
-       * update now_ns, go back to the top of the loop, and re-check.
-       */
-      now_ns = os_time_get_nano();
    }
 
    if (wait_flags & VK_SYNC_WAIT_PENDING)

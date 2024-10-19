@@ -21,9 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include "os.h"
 #include "misc.h"
@@ -190,10 +188,10 @@ xorg_backtrace(void)
 #include <dlfcn.h>
 #include <execinfo.h>
 
+#define BT_SIZE 64
 void
 xorg_backtrace(void)
 {
-    const int BT_SIZE = 64;
     void *array[BT_SIZE];
     const char *mod;
     int size, i;

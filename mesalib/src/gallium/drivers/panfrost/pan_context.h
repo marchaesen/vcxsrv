@@ -124,6 +124,9 @@ struct panfrost_context {
    /* Gallium context */
    struct pipe_context base;
 
+   /* Context flags */
+   unsigned flags;
+
    /* Dirty global state */
    enum pan_dirty_3d dirty;
 
@@ -186,6 +189,9 @@ struct panfrost_context {
 
    struct pipe_vertex_buffer vertex_buffers[PIPE_MAX_ATTRIBS];
    uint32_t vb_mask;
+
+   /* Bound CL global buffers */
+   struct util_dynarray global_buffers;
 
    struct pipe_shader_buffer ssbo[PIPE_SHADER_TYPES][PIPE_MAX_SHADER_BUFFERS];
    uint32_t ssbo_mask[PIPE_SHADER_TYPES];
@@ -319,6 +325,7 @@ enum panfrost_resource_table {
    PAN_TABLE_SAMPLER,
    PAN_TABLE_TEXTURE,
    PAN_TABLE_IMAGE,
+   PAN_TABLE_SSBO,
 
    PAN_NUM_RESOURCE_TABLES
 };
@@ -451,7 +458,7 @@ void panfrost_disk_cache_init(struct panfrost_screen *screen);
 
 bool panfrost_nir_remove_fragcolor_stores(nir_shader *s, unsigned nr_cbufs);
 
-bool panfrost_nir_lower_sysvals(nir_shader *s,
+bool panfrost_nir_lower_sysvals(nir_shader *s, unsigned arch,
                                 struct panfrost_sysvals *sysvals);
 
 bool panfrost_nir_lower_res_indices(nir_shader *shader,

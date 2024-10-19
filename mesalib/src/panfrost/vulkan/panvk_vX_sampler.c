@@ -90,7 +90,7 @@ panvk_per_arch(CreateSampler)(VkDevice _device,
    sampler =
       vk_sampler_create(&device->vk, pCreateInfo, pAllocator, sizeof(*sampler));
    if (!sampler)
-      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    STATIC_ASSERT(sizeof(sampler->desc) >= pan_size(SAMPLER));
 
@@ -127,14 +127,19 @@ panvk_per_arch(CreateSampler)(VkDevice _device,
        * that works for normalized_coordinates=false.
        */
       cfg.wrap_mode_r =
-         pCreateInfo->unnormalizedCoordinates ?
-         MALI_WRAP_MODE_CLAMP_TO_EDGE :
-         panvk_translate_sampler_address_mode(pCreateInfo->addressModeW);
+         pCreateInfo->unnormalizedCoordinates
+            ? MALI_WRAP_MODE_CLAMP_TO_EDGE
+            : panvk_translate_sampler_address_mode(pCreateInfo->addressModeW);
       cfg.compare_function = panvk_translate_sampler_compare_func(pCreateInfo);
       cfg.border_color_r = border_color.uint32[0];
       cfg.border_color_g = border_color.uint32[1];
       cfg.border_color_b = border_color.uint32[2];
       cfg.border_color_a = border_color.uint32[3];
+
+      if (pCreateInfo->anisotropyEnable && pCreateInfo->maxAnisotropy > 1) {
+         cfg.maximum_anisotropy = pCreateInfo->maxAnisotropy;
+         cfg.lod_algorithm = MALI_LOD_ALGORITHM_ANISOTROPIC;
+      }
    }
 
    *pSampler = panvk_sampler_to_handle(sampler);

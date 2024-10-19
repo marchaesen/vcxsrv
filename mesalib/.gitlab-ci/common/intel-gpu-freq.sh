@@ -560,7 +560,8 @@ set_cpu_freq_max() {
         read_cpu_freq_info ${cpu_index} n ${CAP_CPU_FREQ_INFO} || { res=$?; continue; }
 
         target_freq=$(compute_cpu_freq_set "${CPU_SET_MAX_FREQ}")
-        [ -z "${target_freq}" ] && { res=$?; continue; }
+        tf_res=$?
+        [ -z "${target_freq}" ] && { res=$tf_res; continue; }
 
         log INFO "Setting CPU%s max scaling freq to %s Hz" ${cpu_index} "${target_freq}"
         [ -n "${DRY_RUN}" ] && continue

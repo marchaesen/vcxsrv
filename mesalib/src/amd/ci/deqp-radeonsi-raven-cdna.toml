@@ -1,0 +1,9 @@
+[[piglit]]
+piglit_folder = "/piglit"
+profile = "gpu"
+process_isolation = true
+  [piglit.env]
+  PIGLIT_NO_WINDOW = "1"
+  PIGLIT_PLATFORM = "gbm"
+  WAFFLE_PLATFORM = "gbm"
+  AMD_IMAGE_OPCODES = "0"

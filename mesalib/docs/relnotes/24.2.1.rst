@@ -1,0 +1,274 @@
+Mesa 24.2.1 Release Notes / 2024-08-28
+======================================
+
+Mesa 24.2.1 is a bug fix release which fixes bugs found since the 24.2.0 release.
+
+Mesa 24.2.1 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.1 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: fc9a495f3a9af906838be89367564e10ef335e058f88965ad49ccc3e9a3b420b  mesa-24.2.1.tar.xz
+    SHA512: 3b77e5faec51b67583131123b0cc010b52325ea308e4075323102aa999d9c9fbb65b873eb537ed4f577b5a0811e7f096e7e101510cb50326ea5c439b4b468380  mesa-24.2.1.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- Artifacts on Black Myth Wukong
+- DCS world radeon rx 7900 flicker
+- radv/aco: Scheduler bug in ACO somewhere in parallel-gs
+- Once human black artifacts consume the screen
+- [ANV] Breaking Limit benchmark does not run
+- Possible race condition when generating enums.h
+- [radeonsi] regression with bindless textures (bisected)
+- [anv] possible regression found on 982106e6768e6f69d71710e314325c813591452d
+- xe2: Non-compiler assertion failure replaying cp2077 fossil
+- Mesa doesn't build with the following config options
+- Intel: Enable Compression on depth buffers (Xe2)
+- Confidential issue #11711
+- Spectacle crashes recording h264 video with 24.2-rc3
+
+
+Changes
+-------
+
+Boris Brezillon (1):
+
+- panvk: Adjust RGB component order for fixed-function blending
+
+Connor Abbott (5):
+
+- tu: Fix off-by-one in UBO CP_LOAD_STATE size
+- ir3, tu: Use a UBO for VS primitive params on a750+
+- Revert "tu/a750: Disable HW binning when there is GS"
+- tu: Fix passthrough D24S8 attachments
+- tu: Treat partially-bound depth/stencil attachments as passthrough
+
+Dave Airlie (3):
+
+- radv/video: fix reporting video format props for encode.
+- llvmpipe: handle stride properly on lvp udmabuf imports
+- llvmpipe: make sure to duplicate the fd handle before giving out
+
+David Heidelberg (3):
+
+- etnaviv: rename enums_h appropriately
+- etnaviv: build dependency for the etnaviv tests
+- bin/gen_release_notes: adjust checksums section
+
+David Rosca (3):
+
+- frontends/va: Fix use after free with EFC
+- radeonsi: Don't allow DCC for encode in is_video_target_buffer_supported
+- frontends/va: Fix leaks with multiple coded buffer segments
+
+Eric Engestrom (13):
+
+- docs: add release notes for 24.2.0
+- docs: add sha256sum for 24.2.0
+- .pick_status.json: Update to 2c47ad7774a7d0fe47cf870676c3e2390bca5b50
+- .pick_status.json: Mark 77f783462a9758b22e211c72a57ec7c36d6c09fd as denominated
+- .pick_status.json: Update to 2b2b66f497bf8c5f91067752995a5c1003255a6f
+- .pick_status.json: Update to 47a2ab6f3fb41bef9062182588f69c217d7e6541
+- .pick_status.json: Mark a33ef21106a3b34cb359f0272a103c8b8066fbe6 as denominated
+- .pick_status.json: Update to c5156257d93ae2a9e54ba5adc73b7342c9bef96e
+- .pick_status.json: Update to 81e3930ec0a4d586752e59c5172e08e2edf5e4d5
+- .pick_status.json: Update to 4a8f3181baa1eca48d44e5270962835040d0f743
+- .pick_status.json: Update to 7392e3306ef376121097cf03b388dc75bff127c0
+- vc4: Add missing libvc4_neon build dependencies
+- .pick_status.json: Update to 64ca0fd2f2896faa2ec85e454e2ecba2f68390c8
+
+Faith Ekstrand (6):
+
+- vulkan: Add null descriptor bits to vk_pipeline_robustness_state
+- nvk: Plumb the whole vk_pipeline_robustness_state through to nvk_ubo/ssbo_addr_format
+- nvk: Enable shader bounds checking when nullDescriptor is enabled
+- nouveau/mme: Fix add64 of immediates on Fermi
+- nvk: Disable conditional rendering around CopyQueryPoolResults
+- nil,nvk: Disable modifiers for B10G11R11_UFLOAT and E5B9G9R9_UFLOAT
+
+Francisco Jerez (1):
+
+- intel/brw/gfx12.5+: Fix IR of sub-dword atomic LSC operations.
+
+Friedrich Vock (1):
+
+- aco: Fix 1D->2D dispatch conversion on <gfx9
+
+GKraats (2):
+
+- i915g: Screen corruption  with ENOBUFS caused by fence register shortage
+- i915g: fix count of buffers at i915_drm_batchbuffer_validate_buffers
+
+Guilherme Gallo (1):
+
+- ci/a618: Fix zink-tu-a618-full rules
+
+Ian Romanick (2):
+
+- anv: Protect against OOB access to anv_state_pool::buckets
+- anv: Larger memory pools for huge shaders
+
+Jianxun Zhang (2):
+
+- Revert "anv: Disable PAT-based compression on depth images (xe2)"
+- Revert "iris: Disable PAT-based compression on depth surfaces (xe2)"
+
+Job Noorman (4):
+
+- ir3: update merge set affinity in shared RA
+- ir3: fix clearing merge sets after shared RA
+- ir3: fix wrong dstn used in postsched
+- ir3/legalize: handle scalar ALU WAR hazards for a0.x
+
+José Roberto de Souza (3):
+
+- intel/isl/gfx20: Alow hierarchial depth buffer write through for multi sampled surfaces
+- anv/gfx20: Enable depth buffer write through for multi sampled images
+- iris/gfx20: Enable depth buffer write through for multi sampled images
+
+Karol Herbst (3):
+
+- rusticl/mem: do not check against image base alignment for 1Dbuffer images
+- rusticl/device: limit CL_DEVICE_IMAGE_MAX_BUFFER_SIZE more aggressively
+- vtn: ignore volatile on functions for now
+
+Kenneth Graunke (2):
+
+- intel/brw: Pass opcode to brw_swsb_encode/decode
+- intel/brw: Fix Xe2+ SWSB encoding/decoding for DPAS instructions
+
+Konstantin (2):
+
+- radv: Handle instruction encodings > 8 bytes when splitting disassembly
+- radv: Handle repeated instructions when splitting disassembly
+
+Lepton Wu (1):
+
+- egl/android: Fix wrong pipe format for RGB_565
+
+Lionel Landwerlin (10):
+
+- vulkan/runtime: fix GetBufferMemoryRequirements2 for maintenance4
+- anv: fix extended buffer flags usages
+- anv: only set 3DSTATE_CLIP::MaximumVPIndex once
+- anv: optimize CLIP::MaximumVPIndex setting
+- anv: move conditional render predicate after gfx_flush_state
+- anv: don't miss workaround for indirect draws
+- anv: explicitly disable BT pool allocations at device init
+- anv: always use workaround_address, not workaround_bo
+- nir/divergence: add missing load_constant_base_ptr
+- brw: switch mesh/task URB fence prior to EOT to GPU
+
+Mary Guillemard (2):
+
+- panvk: Fix NULL deref on model name when device isn't supported
+- panvk: Fix viewport calculation
+
+Matt Turner (1):
+
+- nir: Skip opt_if_merge when next_if has block ending in a jump
+
+Mauro Rossi (1):
+
+- nvk: Fix regression observed on Kepler
+
+Mike Blumenkrantz (6):
+
+- glx/dri2: strdup driver name
+- zink: bail on choose_pdev immediately if no devices are available
+- st/pbo: reject vs/fs pbo ops if rowstride < width
+- zink: don't skip cbuf store ops if resolve is set
+- tc: set resolve on renderpass info if blit terminates the renderpass
+- dril: add zink stub
+
+Nanley Chery (4):
+
+- anv: Add want_hiz_wt_for_image()
+- iris: Add and use want_hiz_wt_for_res
+- iris: Invalidate state cache for some depth fast clears
+- intel/isl: Fix packing of SINT formats
+
+Pavel Ondračka (1):
+
+- r300: fix RGB10_A2 CONSTANT_COLOR blending
+
+Rhys Perry (7):
+
+- aco: split selection_control_remove into rarely_taken and never_taken
+- aco: only remove branch jumping over SMEM/barrier if it's never taken
+- aco: ignore exec and literals when mitigating VALUMaskWriteHazard
+- aco: also consider VALU reads for VALUMaskWriteHazard
+- aco: don't consider sa_sdst=0 before SALU write to fix VALUMaskWriteHazard
+- aco: check SALU writing lanemask later for VALUMaskWriteHazard
+- aco: preserve bitsets after a lane mask is written
+
+Rob Clark (1):
+
+- nir/opt_loop: Don't peel initial break if loop ends in break
+
+Rohan Garg (5):
+
+- anv: program a custom byte stride on Xe2 for indirect draws
+- anv,iris: prefix the argument format with XI for a upcoming refactor
+- anv: refactor indirect draw support into it's own function
+- anv: dispatch indirect draws with a count buffer through the XI hardware on ARL+
+- anv: migrate indirect mesh draws to indirect draws on ARL+
+
+Sagar Ghuge (3):
+
+- intel/compiler: Ray query requires write-back register
+- intel/compiler: Adjust trace ray control field on Xe2
+- intel/compiler: Fix indirect offset in GS input read for Xe2+
+
+Samuel Pitoiset (1):
+
+- aco: fix bogus assert in RT prolog on GFX11+
+
+Sviatoslav Peleshko (3):
+
+- brw,elk: Fix opening flags on dumping shader binaries
+- anv: Release correct BO in anv_cmd_buffer_set_ray_query_buffer
+- anv: Add full subgroups WA for the shaders with barriers in Breaking Limit
+
+Tapani Pälli (1):
+
+- gbm: depend on libdrm indepedent of dri2 setting
+
+Timothy Arceri (4):
+
+- nir: create validate_tex_src_texture_deref() helper
+- nir: add nir_tex_src_{sampler,texture}_deref_intrinsic
+- glsl: make use of new tex src deref intrinsic
+- nir/glsl: set deref cast mode during function inlining
+
+Valentine Burley (2):
+
+- android: Extract version from llvm-project instead of hardcoding it
+- llvmpipe: Only use udmabuf with libdrm
+
+Yiwei Zhang (1):
+
+- venus: workaround cacheline overflush issue on Intel JSL
+
+bbhtt (1):
+
+- pipe_loader_drm: Fix virtgpu_drm header path

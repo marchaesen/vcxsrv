@@ -23,6 +23,7 @@
 #include <inttypes.h>
 
 #include "amd/addrlib/inc/addrinterface.h"
+#include "ac_formats.h"
 
 static enum radeon_surf_mode si_choose_tiling(struct si_screen *sscreen,
                                               const struct pipe_resource *templ,
@@ -224,6 +225,25 @@ static int si_init_surface(struct si_screen *sscreen, struct radeon_surf *surfac
              ptex->flags & PIPE_RESOURCE_FLAG_SPARSE)
             flags |= RADEON_SURF_NO_HTILE;
       }
+
+      /* The kernel code translating tiling flags into a modifier was wrong
+       * until .58, so don't set these attributes for older versions.
+       */
+      bool supports_display_dcc = sscreen->info.drm_minor >= 58;
+      if (!is_imported && (!(ptex->bind & PIPE_BIND_SCANOUT) || supports_display_dcc)) {
+         enum pipe_format format = util_format_get_depth_only(ptex->format);
+
+         /* These should be set for both color and Z/S. */
+         surface->u.gfx9.color.dcc_number_type = ac_get_cb_number_type(format);
+         surface->u.gfx9.color.dcc_data_format = ac_get_cb_format(sscreen->info.gfx_level, format);
+      }
+
+      if (surface->modifier == DRM_FORMAT_MOD_INVALID &&
+          (ptex->bind & PIPE_BIND_CONST_BW ||
+           ptex->bind & PIPE_BIND_PROTECTED ||
+           sscreen->debug_flags & DBG(NO_DCC) ||
+           (ptex->bind & PIPE_BIND_SCANOUT && sscreen->debug_flags & DBG(NO_DISPLAY_DCC))))
+         flags |= RADEON_SURF_DISABLE_DCC;
    } else {
       /* Gfx6-11 */
       if (!is_flushed_depth && is_depth) {
@@ -598,9 +618,10 @@ static void si_set_tex_bo_metadata(struct si_screen *sscreen, struct si_texture 
    bool is_array = util_texture_is_array(res->target);
    uint32_t desc[8];
 
-   sscreen->make_texture_descriptor(sscreen, tex, true, res->target, res->format, swizzle, 0,
-                                    res->last_level, 0, is_array ? res->array_size - 1 : 0,
-                                    res->width0, res->height0, res->depth0, true, desc, NULL);
+   si_make_texture_descriptor(sscreen, tex, true, res->target,
+                              tex->is_depth ? tex->db_render_format : res->format, swizzle, 0,
+                              res->last_level, 0, is_array ? res->array_size - 1 : 0, res->width0,
+                              res->height0, res->depth0, true, desc, NULL);
    si_set_mutable_tex_desc_fields(sscreen, tex, &tex->surface.u.legacy.level[0], 0, 0,
                                   tex->surface.blk_w, false, 0, desc);
 
@@ -958,6 +979,19 @@ void si_print_texture_info(struct si_screen *sscreen, struct si_texture *tex,
    }
 }
 
+static void print_debug_tex(struct si_screen *sscreen, struct si_texture *tex)
+{
+   if (sscreen->debug_flags & DBG(TEX)) {
+      puts("Texture:");
+      struct u_log_context log;
+      u_log_context_init(&log);
+      si_print_texture_info(sscreen, tex, &log);
+      u_log_new_page_print(&log, stdout);
+      fflush(stdout);
+      u_log_context_destroy(&log);
+   }
+}
+
 /**
  * Common function for si_texture_create and si_texture_from_handle.
  *
@@ -1027,6 +1061,14 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
       /* Create the backing buffer. */
       si_init_resource_fields(sscreen, resource, alloc_size, alignment);
 
+      /* GFX12: Image descriptors always set COMPRESSION_EN=1, so this is the only thing that
+       * disables DCC in the driver.
+       */
+      if (sscreen->info.gfx_level >= GFX12 &&
+          resource->domains & RADEON_DOMAIN_VRAM &&
+          surface->u.gfx9.gfx12_enable_dcc)
+         resource->flags |= RADEON_FLAG_GFX12_ALLOW_DCC;
+
       if (!si_alloc_resource(sscreen, resource))
          goto error;
    } else {
@@ -1050,17 +1092,8 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
       fprintf(stderr, "\n");
    }
 
-   if (sscreen->debug_flags & DBG(TEX)) {
-      puts("Texture:");
-      struct u_log_context log;
-      u_log_context_init(&log);
-      si_print_texture_info(sscreen, tex, &log);
-      u_log_new_page_print(&log, stdout);
-      fflush(stdout);
-      u_log_context_destroy(&log);
-   }
-
    if (sscreen->info.gfx_level >= GFX12) {
+      print_debug_tex(sscreen, tex);
       if (tex->is_depth) {
          /* Z24 is no longer supported. We should use Z32_FLOAT instead. */
          if (base->format == PIPE_FORMAT_Z16_UNORM) {
@@ -1075,6 +1108,12 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
          tex->can_sample_z = true;
          tex->can_sample_s = true;
       }
+
+      /* Always set BO metadata - required for programming DCC fields for GFX12 SDMA in the kernel.
+       * If the texture is suballocated, this will overwrite the metadata for all suballocations,
+       * but there is nothing we can do about that.
+       */
+      si_set_tex_bo_metadata(sscreen, tex);
       return tex;
    }
 
@@ -1098,6 +1137,8 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
                               (sscreen->info.gfx_level >= GFX8 &&
                                tex->surface.flags & RADEON_SURF_TC_COMPATIBLE_HTILE &&
                                tex->buffer.b.b.last_level > 0);
+
+   print_debug_tex(sscreen, tex);
 
    /* TC-compatible HTILE:
     * - GFX8 only supports Z32_FLOAT.
@@ -1239,9 +1280,10 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
 
    /* Execute the clears. */
    if (num_clears) {
-      si_execute_clears(si_get_aux_context(&sscreen->aux_context.general), clears, num_clears, 0,
-                        false);
-      si_put_aux_context_flush(&sscreen->aux_context.general);
+      struct si_context *sctx = si_get_aux_context(&sscreen->aux_context.compute_resource_init);
+
+      si_execute_clears(sctx, clears, num_clears, false);
+      si_put_aux_context_flush(&sscreen->aux_context.compute_resource_init);
    }
 
    /* Initialize the CMASK base register value. */
@@ -1341,7 +1383,7 @@ si_texture_create_with_modifier(struct pipe_screen *screen,
    bool is_flushed_depth = templ->flags & SI_RESOURCE_FLAG_FLUSHED_DEPTH ||
                            templ->flags & SI_RESOURCE_FLAG_FORCE_LINEAR;
    bool tc_compatible_htile =
-      sscreen->info.gfx_level >= GFX8 && sscreen->info.gfx_level < GFX12 &&
+      sscreen->info.has_tc_compatible_htile &&
       /* There are issues with TC-compatible HTILE on Tonga (and
        * Iceland is the same design), and documented bug workarounds
        * don't help. For example, this fails:
@@ -1489,7 +1531,7 @@ static void si_query_dmabuf_modifiers(struct pipe_screen *screen,
 
    unsigned ac_mod_count = max;
    ac_get_supported_modifiers(&sscreen->info, &(struct ac_modifier_options) {
-         .dcc = !(sscreen->debug_flags & DBG(NO_DCC)),
+         .dcc = !(sscreen->debug_flags & (DBG(NO_DCC) | DBG(NO_EXPORTED_DCC))),
          /* Do not support DCC with retiling yet. This needs explicit
           * resource flushes, but the app has no way to promise doing
           * flushes with modifiers. */
@@ -1548,13 +1590,15 @@ si_get_dmabuf_modifier_planes(struct pipe_screen *pscreen, uint64_t modifier,
 {
    unsigned planes = util_format_get_num_planes(format);
 
-   if (IS_AMD_FMT_MOD(modifier) && planes == 1) {
-      if (AMD_FMT_MOD_GET(DCC_RETILE, modifier))
-         return 3;
-      else if (AMD_FMT_MOD_GET(DCC, modifier))
-         return 2;
-      else
-         return 1;
+   if (AMD_FMT_MOD_GET(TILE_VERSION, modifier) < AMD_FMT_MOD_TILE_VER_GFX12) {
+      if (IS_AMD_FMT_MOD(modifier) && planes == 1) {
+         if (AMD_FMT_MOD_GET(DCC_RETILE, modifier))
+            return 3;
+         else if (AMD_FMT_MOD_GET(DCC, modifier))
+            return 2;
+         else
+            return 1;
+      }
    }
 
    return planes;
@@ -1567,6 +1611,17 @@ si_modifier_supports_resource(struct pipe_screen *screen,
 {
    struct si_screen *sscreen = (struct si_screen *)screen;
    uint32_t max_width, max_height;
+
+   if (((templ->bind & PIPE_BIND_LINEAR) || sscreen->debug_flags & DBG(NO_TILING)) &&
+       modifier != DRM_FORMAT_MOD_LINEAR)
+      return false;
+
+   /* Protected content doesn't support DCC on GFX12. */
+   if (sscreen->info.gfx_level >= GFX12 && templ->bind & PIPE_BIND_PROTECTED &&
+       IS_AMD_FMT_MOD(modifier) &&
+       AMD_FMT_MOD_GET(TILE_VERSION, modifier) >= AMD_FMT_MOD_TILE_VER_GFX12 &&
+       AMD_FMT_MOD_GET(DCC, modifier))
+      return false;
 
    ac_modifier_max_extent(&sscreen->info, modifier, &max_width, &max_height);
    return templ->width0 <= max_width && templ->height0 <= max_height;
@@ -2111,8 +2166,8 @@ bool vi_dcc_formats_compatible(struct si_screen *sscreen, enum pipe_format forma
    if (format1 == format2)
       return true;
 
-   format1 = si_simplify_cb_format(format1);
-   format2 = si_simplify_cb_format(format2);
+   format1 = ac_simplify_cb_format(format1);
+   format2 = ac_simplify_cb_format(format2);
 
    /* Check again after format adjustments. */
    if (format1 == format2)
@@ -2142,7 +2197,7 @@ bool vi_dcc_formats_compatible(struct si_screen *sscreen, enum pipe_format forma
 
    /* If the clear values are all 1 or all 0, this constraint can be
     * ignored. */
-   if (vi_alpha_is_on_msb(sscreen, format1) != vi_alpha_is_on_msb(sscreen, format2))
+   if (ac_alpha_is_on_msb(&sscreen->info, format1) != ac_alpha_is_on_msb(&sscreen->info, format2))
       return false;
 
    /* Channel types must match if the clear value of 1 is used.
@@ -2162,7 +2217,7 @@ bool vi_dcc_formats_are_incompatible(struct pipe_resource *tex, unsigned level,
    struct si_texture *stex = (struct si_texture *)tex;
 
    return vi_dcc_enabled(stex, level) &&
-          !vi_dcc_formats_compatible((struct si_screen *)tex->screen, tex->format, view_format);
+          !vi_dcc_formats_compatible(si_screen(tex->screen), tex->format, view_format);
 }
 
 /* This can't be merged with the above function, because
@@ -2236,70 +2291,6 @@ static void si_surface_destroy(struct pipe_context *pipe, struct pipe_surface *s
 {
    pipe_resource_reference(&surface->texture, NULL);
    FREE(surface);
-}
-
-unsigned si_translate_colorswap(enum amd_gfx_level gfx_level, enum pipe_format format,
-                                bool do_endian_swap)
-{
-   const struct util_format_description *desc = util_format_description(format);
-
-#define HAS_SWIZZLE(chan, swz) (desc->swizzle[chan] == PIPE_SWIZZLE_##swz)
-
-   if (format == PIPE_FORMAT_R11G11B10_FLOAT) /* isn't plain */
-      return V_028C70_SWAP_STD;
-
-   if (gfx_level >= GFX10_3 &&
-       format == PIPE_FORMAT_R9G9B9E5_FLOAT) /* isn't plain */
-      return V_028C70_SWAP_STD;
-
-   if (desc->layout != UTIL_FORMAT_LAYOUT_PLAIN)
-      return ~0U;
-
-   switch (desc->nr_channels) {
-   case 1:
-      if (HAS_SWIZZLE(0, X))
-         return V_028C70_SWAP_STD; /* X___ */
-      else if (HAS_SWIZZLE(3, X))
-         return V_028C70_SWAP_ALT_REV; /* ___X */
-      break;
-   case 2:
-      if ((HAS_SWIZZLE(0, X) && HAS_SWIZZLE(1, Y)) || (HAS_SWIZZLE(0, X) && HAS_SWIZZLE(1, NONE)) ||
-          (HAS_SWIZZLE(0, NONE) && HAS_SWIZZLE(1, Y)))
-         return V_028C70_SWAP_STD; /* XY__ */
-      else if ((HAS_SWIZZLE(0, Y) && HAS_SWIZZLE(1, X)) ||
-               (HAS_SWIZZLE(0, Y) && HAS_SWIZZLE(1, NONE)) ||
-               (HAS_SWIZZLE(0, NONE) && HAS_SWIZZLE(1, X)))
-         /* YX__ */
-         return (do_endian_swap ? V_028C70_SWAP_STD : V_028C70_SWAP_STD_REV);
-      else if (HAS_SWIZZLE(0, X) && HAS_SWIZZLE(3, Y))
-         return V_028C70_SWAP_ALT; /* X__Y */
-      else if (HAS_SWIZZLE(0, Y) && HAS_SWIZZLE(3, X))
-         return V_028C70_SWAP_ALT_REV; /* Y__X */
-      break;
-   case 3:
-      if (HAS_SWIZZLE(0, X))
-         return (do_endian_swap ? V_028C70_SWAP_STD_REV : V_028C70_SWAP_STD);
-      else if (HAS_SWIZZLE(0, Z))
-         return V_028C70_SWAP_STD_REV; /* ZYX */
-      break;
-   case 4:
-      /* check the middle channels, the 1st and 4th channel can be NONE */
-      if (HAS_SWIZZLE(1, Y) && HAS_SWIZZLE(2, Z)) {
-         return V_028C70_SWAP_STD; /* XYZW */
-      } else if (HAS_SWIZZLE(1, Z) && HAS_SWIZZLE(2, Y)) {
-         return V_028C70_SWAP_STD_REV; /* WZYX */
-      } else if (HAS_SWIZZLE(1, Y) && HAS_SWIZZLE(2, X)) {
-         return V_028C70_SWAP_ALT; /* ZYXW */
-      } else if (HAS_SWIZZLE(1, Z) && HAS_SWIZZLE(2, W)) {
-         /* YZWX */
-         if (desc->is_array)
-            return V_028C70_SWAP_ALT_REV;
-         else
-            return (do_endian_swap ? V_028C70_SWAP_ALT : V_028C70_SWAP_ALT_REV);
-      }
-      break;
-   }
-   return ~0U;
 }
 
 static struct pipe_memory_object *

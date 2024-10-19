@@ -1,6 +1,7 @@
 # vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
 
-.templates_sha: &template_sha 007f3e2fe2235328e77d3cd4ce007ab41cd9ce6c # see https://docs.gitlab.com/ee/ci/yaml/#includefile
+# see https://docs.gitlab.com/ee/ci/yaml/#includefile
+.templates_sha: &template_sha b61a03cabbf308e81289f7aaaf0b5a80a34ffb99
 
 
 include:
@@ -8,6 +9,11 @@ include:
   - project: 'freedesktop/ci-templates'
     ref: *template_sha
     file: '/templates/arch.yml'
+  # Debian container builder template
+  - project: 'freedesktop/ci-templates'
+    ref: *template_sha
+    file: '/templates/debian.yml'
+  # CI Fairy
   - project: 'freedesktop/ci-templates'
     ref: *template_sha
     file: '/templates/ci-fairy.yml'
@@ -15,13 +21,33 @@ include:
 
 workflow:
   rules:
-    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
-    - if: $CI_PIPELINE_SOURCE == 'push'
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+
+.all_but_schedule:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - when: always
+
+
+.only_on_schedule:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: always
+    - when: never
 
 
 # global variables to be used by most/all jobs.
 variables:
   FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
+  # Changing the tag will rebuild the container images. The value is just a
+  # string, but we use the date for human benefits.
+  FDO_DISTRIBUTION_TAG: '2024-08-30.1'
 
   BUILDDIR: '_build'
   # installation directory must be inside $CI_PROJECT_DIR to allow for artifact caching
@@ -29,10 +55,6 @@ variables:
   # Override these in the jobs to pass commands to configure/make
   CONFIGURE_ARGS: ''
   MAKE_EXTRA_ARG: ''
-
-  # Changing the tag will rebuild the container images. The value is just a
-  # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2024-01-10.0'
 
   # xkbcommon: needed to share artifacts between jobs
   XKBCOMMON_DIR: 'libxkbcommon'
@@ -48,8 +70,13 @@ stages:
   - gitlab
 
 
+################################################################################
+## Default setup: push and merge requests
+################################################################################
+
 container-prep:
   extends:
+    - .all_but_schedule
     - .fdo.container-build@arch
   stage: prep
   variables:
@@ -63,8 +90,8 @@ container-prep:
 
 .default_setup:
   extends:
+    - .all_but_schedule
     - .fdo.distribution-image@arch
-
 
 
 .meson_build:
@@ -75,7 +102,7 @@ container-prep:
         tar xf "$BUILDDIR/$TARBALL" -C tarball/ --strip-components=1;
         pushd tarball > /dev/null;
       fi
-    - meson "$BUILDDIR" -Dprefix="$INSTDIR"
+    - meson setup "$BUILDDIR" -Dprefix="$INSTDIR" -Dnon-latin-layouts-list=true
     - meson configure "$BUILDDIR"
     - ninja -C "$BUILDDIR"
     - if test x"$NINJA_EXTRA_COMMAND" != "x"; then ninja -C "$BUILDDIR" $NINJA_EXTRA_COMMAND; fi
@@ -86,6 +113,7 @@ container-prep:
 
 check-merge-request:
   extends:
+    - .all_but_schedule
     - .fdo.ci-fairy
   stage: gitlab
   script:
@@ -105,10 +133,14 @@ check-commit:
   extends:
     - .fdo.ci-fairy
   stage: sanity
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: never
+    - if: $CI_PROJECT_PATH == $FDO_UPSTREAM_REPO && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: never
+    - when: always
   script:
     - ci-fairy -vv check-commits --junit-xml=results.xml
-  except:
-    - master@$FDO_UPSTREAM_REPO
   variables:
     GIT_DEPTH: 100
   artifacts:
@@ -349,6 +381,46 @@ keymap_tests:
     - export PYTHONPATH="$PWD/tests:$PYTHONPATH"
     # Run the tests
     - pytest --junitxml=results.xml
+             tests
+             --layout-compat-config rules/compat/layoutsMapping.lst
+             --layout-compat-config rules/compat/variantsMapping.lst
   artifacts:
     reports:
       junit: results.xml
+
+################################################################################
+# Triage
+################################################################################
+
+# NOTE: We use Debian instead of Arch because Ruby gems installation
+# (gitlab-triage here) is much easier on Debian.
+
+.triage_config:
+  extends:
+    - .only_on_schedule
+  variables:
+    FDO_DISTRIBUTION_VERSION: 'bookworm'
+
+
+triage-container-prep:
+  extends:
+    - .triage_config
+    - .fdo.container-build@debian
+  stage: prep
+  variables:
+    GIT_STRATEGY: none
+    FDO_DISTRIBUTION_PACKAGES: 'ruby ruby-dev build-essential'
+    FDO_DISTRIBUTION_EXEC: 'gem install --no-document --version 1.44.1 gitlab-triage'
+
+
+triage:
+  extends:
+    - .triage_config
+    - .fdo.distribution-image@debian
+  stage: test
+  script:
+    - >
+      gitlab-triage --host-url https://gitlab.freedesktop.org \
+        --token "$(cat "$GITLAB_API_TOKEN")" \
+        --policies-file .gitlab-ci/triage-policies-stale.yml \
+        --source-id "$FDO_UPSTREAM_REPO"

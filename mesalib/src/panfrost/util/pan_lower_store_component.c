@@ -92,7 +92,7 @@ pan_nir_lower_store_component(nir_shader *s)
    struct hash_table_u64 *stores = _mesa_hash_table_u64_create(NULL);
    bool progress = nir_shader_intrinsics_pass(
       s, lower_store_component,
-      nir_metadata_block_index | nir_metadata_dominance, stores);
+      nir_metadata_control_flow, stores);
    _mesa_hash_table_u64_destroy(stores);
    return progress;
 }

@@ -53,6 +53,39 @@ function_ends_in_jump(nir_function_impl *impl)
    return nir_block_ends_in_jump(last_block);
 }
 
+/* A cast is used to deref function in/out params. However the bindless
+ * textures spec allows both uniforms and functions temps to be passed to a
+ * function param defined the same way. To deal with this we need to update
+ * this when we inline and know what variable mode we are dealing with.
+ */
+static void
+fixup_cast_deref_mode(nir_deref_instr *deref)
+{
+   nir_deref_instr *parent = nir_src_as_deref(deref->parent);
+   if (parent && deref->modes & nir_var_function_temp) {
+      if (parent->modes & nir_var_uniform) {
+         deref->modes |= nir_var_uniform;
+      } else if (parent->modes & nir_var_image) {
+         deref->modes |= nir_var_image;
+      } else if (parent->modes & nir_var_mem_ubo) {
+         deref->modes |= nir_var_mem_ubo;
+      } else if (parent->modes & nir_var_mem_ssbo) {
+         deref->modes |= nir_var_mem_ssbo;
+      } else
+         return;
+
+      deref->modes ^= nir_var_function_temp;
+
+      nir_foreach_use(use, &deref->def) {
+         if (nir_src_parent_instr(use)->type != nir_instr_type_deref)
+            continue;
+
+         /* Recurse into children */
+         fixup_cast_deref_mode(nir_instr_as_deref(nir_src_parent_instr(use)));
+      }
+   }
+}
+
 void
 nir_inline_function_impl(struct nir_builder *b,
                          const nir_function_impl *impl,
@@ -68,6 +101,17 @@ nir_inline_function_impl(struct nir_builder *b,
          switch (instr->type) {
          case nir_instr_type_deref: {
             nir_deref_instr *deref = nir_instr_as_deref(instr);
+
+            /* Note: This shouldn't change the mode of anything but the
+             * replaced nir_intrinsic_load_param intrinsics handled later in
+             * this switch table. Any incorrect modes should have already been
+             * detected by previous nir_vaidate calls.
+             */
+            if (deref->deref_type == nir_deref_type_cast) {
+               fixup_cast_deref_mode(deref);
+               break;
+            }
+
             if (deref->deref_type != nir_deref_type_var)
                break;
 
@@ -104,13 +148,7 @@ nir_inline_function_impl(struct nir_builder *b,
 
             unsigned param_idx = nir_intrinsic_param_idx(load);
             assert(param_idx < impl->function->num_params);
-            nir_def_rewrite_uses(&load->def,
-                                 params[param_idx]);
-
-            /* Remove any left-over load_param intrinsics because they're soon
-             * to be in another function and therefore no longer valid.
-             */
-            nir_instr_remove(&load->instr);
+            nir_def_replace(&load->def, params[param_idx]);
             break;
          }
 

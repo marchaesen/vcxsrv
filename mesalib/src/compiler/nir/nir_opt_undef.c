@@ -319,9 +319,11 @@ nir_opt_undef(nir_shader *shader)
       }
    }
 
+   if (shader->info.use_legacy_math_rules)
+      options.disallow_undef_to_nan = true;
+
    return nir_shader_instructions_pass(shader,
                                        nir_opt_undef_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &options);
 }

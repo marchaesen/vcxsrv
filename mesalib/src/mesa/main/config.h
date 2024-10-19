@@ -145,6 +145,9 @@
 /** For GL_EXT_texture_lod_bias (typically MAX_TEXTURE_LEVELS - 1) */
 #define MAX_TEXTURE_LOD_BIAS 14.0
 
+/** For GL_OVR_multiview, value is recommended in extension spec. */
+#define MAX_VIEWS_OVR 6
+
 /** For any program target/extension */
 /*@{*/
 #define MAX_PROGRAM_INSTRUCTIONS       (16 * 1024)

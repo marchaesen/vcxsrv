@@ -19,7 +19,7 @@ static struct agx_bo *
 agx_pool_alloc_backing(struct agx_pool *pool, size_t bo_sz)
 {
    struct agx_bo *bo =
-      agx_bo_create(pool->dev, bo_sz, pool->create_flags, "Pool");
+      agx_bo_create(pool->dev, bo_sz, 0, pool->create_flags, "Pool");
 
    util_dynarray_append(&pool->bos, struct agx_bo *, bo);
    pool->transient_bo = bo;
@@ -45,7 +45,7 @@ void
 agx_pool_cleanup(struct agx_pool *pool)
 {
    util_dynarray_foreach(&pool->bos, struct agx_bo *, bo) {
-      agx_bo_unreference(*bo);
+      agx_bo_unreference(pool->dev, *bo);
    }
 
    util_dynarray_fini(&pool->bos);
@@ -80,8 +80,8 @@ agx_pool_alloc_aligned_with_bo(struct agx_pool *pool, size_t sz,
    pool->transient_offset = offset + sz;
 
    struct agx_ptr ret = {
-      .cpu = bo->ptr.cpu + offset,
-      .gpu = bo->ptr.gpu + offset,
+      .cpu = bo->map + offset,
+      .gpu = bo->va->addr + offset,
    };
 
    if (out_bo)

@@ -37,7 +37,7 @@ extern "C" {
 struct pipe_screen;
 struct pipe_context;
 
-struct pipe_screen *
+PUBLIC struct pipe_screen *
 trace_screen_create(struct pipe_screen *screen);
 
 bool

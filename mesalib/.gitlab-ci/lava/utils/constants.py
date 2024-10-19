@@ -23,3 +23,10 @@ KNOWN_ISSUE_R8152_PATTERNS: tuple[str, ...] = (
 # This is considered noise, since LAVA produces this log after receiving a package of feedback
 # messages.
 LOG_DEBUG_FEEDBACK_NOISE = "Listened to connection for namespace 'dut' done"
+
+A6XX_GPU_RECOVERY_WATCH_PERIOD_MIN = 3
+A6XX_GPU_RECOVERY_FAILURE_MAX_COUNT = 30
+A6XX_GPU_RECOVERY_FAILURE_MESSAGE = (
+    "cx gdsc didn't collapse",
+    "Timeout waiting for GMU OOB",
+)

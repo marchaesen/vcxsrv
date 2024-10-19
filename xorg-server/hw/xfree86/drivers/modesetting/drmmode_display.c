@@ -27,9 +27,7 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include "dix-config.h"
-#endif
 
 #include <errno.h>
 #include <sys/ioctl.h>
@@ -536,7 +534,7 @@ drm_mode_ensure_blob(xf86CrtcPtr crtc, const drmModeModeInfo* mode_info)
         drmmode_CompareKModes(&drmmode_crtc->current_mode->mode_info, mode_info) == 0)
         return 0;
 
-    mode = calloc(sizeof(drmmode_mode_rec), 1);
+    mode = calloc(1, sizeof(drmmode_mode_rec));
     if (!mode)
         return -1;
 
@@ -904,7 +902,7 @@ drmmode_crtc_set_mode(xf86CrtcPtr crtc, Bool test_only)
         return ret;
     }
 
-    output_ids = calloc(sizeof(uint32_t), xf86_config->num_output);
+    output_ids = calloc(xf86_config->num_output, sizeof(uint32_t));
     if (!output_ids)
         return -1;
 
@@ -1565,7 +1563,7 @@ drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
     gc = GetScratchGC(pScrn->depth, pScreen);
     ValidateGC(&dst->drawable, gc);
 
-    (*gc->ops->CopyArea)(&src->drawable, &dst->drawable, gc, 0, 0,
+    (void) (*gc->ops->CopyArea)(&src->drawable, &dst->drawable, gc, 0, 0,
                          pScrn->virtualX, pScrn->virtualY, 0, 0);
 
     FreeScratchGC(gc);
@@ -2495,8 +2493,8 @@ drmmode_crtc_create_planes(xf86CrtcPtr crtc, int num)
     drmmode_crtc->plane_id = best_plane;
     if (best_kplane) {
         drmmode_crtc->num_formats = best_kplane->count_formats;
-        drmmode_crtc->formats = calloc(sizeof(drmmode_format_rec),
-                                       best_kplane->count_formats);
+        drmmode_crtc->formats = calloc(best_kplane->count_formats,
+                                       sizeof(drmmode_format_rec));
         if (!populate_format_modifiers(crtc, best_kplane, blob_id)) {
             for (i = 0; i < best_kplane->count_formats; i++)
                 drmmode_crtc->formats[i].format = best_kplane->formats[i];
@@ -2573,7 +2571,7 @@ drmmode_crtc_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_res
     crtc = xf86CrtcCreate(pScrn, &drmmode_crtc_funcs);
     if (crtc == NULL)
         return 0;
-    drmmode_crtc = xnfcalloc(sizeof(drmmode_crtc_private_rec), 1);
+    drmmode_crtc = XNFcallocarray(1, sizeof(drmmode_crtc_private_rec));
     crtc->driver_private = drmmode_crtc;
     drmmode_crtc->mode_crtc =
         drmModeGetCrtc(drmmode->fd, mode_res->crtcs[num]);
@@ -2924,7 +2922,7 @@ drmmode_output_get_modes(xf86OutputPtr output)
 
     /* modes should already be available */
     for (i = 0; i < koutput->count_modes; i++) {
-        Mode = xnfalloc(sizeof(DisplayModeRec));
+        Mode = XNFalloc(sizeof(DisplayModeRec));
 
         drmmode_ConvertFromKMode(output->scrn, &koutput->modes[i], Mode);
         Modes = xf86ModesAdd(Modes, Mode);
@@ -3442,7 +3440,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
         }
     }
 
-    kencoders = calloc(sizeof(drmModeEncoderPtr), koutput->count_encoders);
+    kencoders = calloc(koutput->count_encoders, sizeof(drmModeEncoderPtr));
     if (!kencoders) {
         goto out_free_encoders;
     }
@@ -3471,7 +3469,7 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
         goto out_free_encoders;
     }
 
-    drmmode_output = calloc(sizeof(drmmode_output_private_rec), 1);
+    drmmode_output = calloc(1, sizeof(drmmode_output_private_rec));
     if (!drmmode_output) {
         xf86OutputDestroy(output);
         goto out_free_encoders;
@@ -4376,6 +4374,9 @@ static void drmmode_probe_cursor_size(xf86CrtcPtr crtc)
     uint32_t handle = drmmode_crtc->cursor_bo->handle;
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
     int width, height, size;
+
+    ms->min_cursor_width = ms->max_cursor_width;
+    ms->min_cursor_height = ms->max_cursor_height;
 
     /* probe square min first */
     for (size = 1; size <= ms->max_cursor_width &&

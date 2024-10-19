@@ -47,3 +47,18 @@ dEQP-VK.binding_model.descriptor_buffer.multiple.graphics_vert_buffers8_sets1
 
 # New timeout since CTS 1.3.8.0
 dEQP-VK.mesh_shader.ext.misc.many_task_work_groups_z
+
+# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/5117
+dEQP-VK.image.host_image_copy.*
+
+# Times out since a commit in the range 6006588a...edcad250
+dEQP-VK.api.descriptor_pool.repeated_free_reset_long
+
+# New timeouts ince CTS 1.3.9.0
+dEQP-VK.ray_query.builtin.flow.tese.triangles
+dEQP-VK.ray_query.builtin.instancecustomindex.tese.triangles
+dEQP-VK.mesh_shader.ext.misc.many_task_work_groups_y
+dEQP-VK.ray_query.builtin.flow.tese.aabbs
+
+# Trying to allocate all the memory we can is not a great idea on shared runners.
+dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail.basic

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Usage: generate-evdev-keysyms.py .gitlab-ci/inet.in > symbols/inet
+# Usage: generate-evdev-keysyms.py --template .gitlab-ci/inet.in > symbols/inet
 #
 # Generate the symbols/inet file from the names defined in
 # linux/input-event-codes.h

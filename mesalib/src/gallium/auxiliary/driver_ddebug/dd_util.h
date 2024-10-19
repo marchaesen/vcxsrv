@@ -37,7 +37,7 @@
 #include "util/u_string.h"
 
 #include "util/detect.h"
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
 #include <unistd.h>
 #include <sys/stat.h>
 #elif DETECT_OS_WINDOWS

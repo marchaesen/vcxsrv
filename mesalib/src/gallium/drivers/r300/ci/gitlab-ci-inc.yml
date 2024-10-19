@@ -17,8 +17,8 @@
       when: on_success
 
 .r300-manual-rules:
-  stage: amd
-  retry: !reference [.scheduled_pipeline-rules, retry]
+  stage: amd-postmerge
+  extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
     - !reference [.ondracka-farm-manual-rules, rules]
@@ -37,8 +37,8 @@
       when: on_success
 
 .r300-nine-manual-rules:
-  stage: amd
-  retry: !reference [.scheduled_pipeline-rules, retry]
+  stage: amd-postmerge
+  extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
     - !reference [.r300-manual-rules, rules]

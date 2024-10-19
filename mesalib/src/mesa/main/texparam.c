@@ -702,6 +702,19 @@ set_tex_parameteri(struct gl_context *ctx,
 
       return GL_TRUE;
 
+   case GL_TEXTURE_ASTC_DECODE_PRECISION_EXT:
+      if (!_mesa_has_EXT_texture_compression_astc_decode_mode(ctx))
+         goto invalid_pname;
+
+      if (texObj->AstcDecodePrecision == params[0])
+         return GL_FALSE;
+
+      if (params[0] != GL_RGBA16F && params[0] != GL_RGBA8)
+         goto invalid_param;
+
+      texObj->AstcDecodePrecision = params[0];
+      return GL_TRUE;
+
    default:
       goto invalid_pname;
    }
@@ -911,6 +924,7 @@ texparam_invalidates_sampler_views(GLenum pname)
    case GL_TEXTURE_SWIZZLE_RGBA:
    case GL_TEXTURE_BUFFER_SIZE:
    case GL_TEXTURE_BUFFER_OFFSET:
+   case GL_TEXTURE_ASTC_DECODE_PRECISION_EXT:
       return true;
    default:
       return false;
@@ -2795,6 +2809,18 @@ get_tex_parameteriv(struct gl_context *ctx,
          if (!_mesa_has_ARB_sparse_texture(ctx))
             goto invalid_pname;
          *params = obj->NumSparseLevels;
+         break;
+
+      case GL_SURFACE_COMPRESSION_EXT:
+         if (!_mesa_has_EXT_texture_storage_compression(ctx))
+            goto invalid_pname;
+         *params = obj->CompressionRate;
+         break;
+
+      case GL_TEXTURE_ASTC_DECODE_PRECISION_EXT:
+         if (!_mesa_has_EXT_texture_compression_astc_decode_mode(ctx))
+            goto invalid_pname;
+         *params = obj->AstcDecodePrecision;
          break;
 
       default:

@@ -204,7 +204,14 @@ XCOMM "₪" U20aa NEW SHEQEL SIGN
 XCOMM "₱" U20b1 PESO SIGN
 <Multi_key> <G> <bar>			: "₲"	U20b2 # GUARANI SIGN
 <Multi_key> <bar> <G>			: "₲"	U20b2 # GUARANI SIGN
-XCOMM "₴" U20b4 HRYVNIA SIGN
+<Multi_key> <H> <equal>			: "₴"	U20b4 # HRYVNIA SIGN
+<Multi_key> <equal> <H>			: "₴"	U20b4 # HRYVNIA SIGN
+<Multi_key> <h> <equal>			: "₴"	U20b4 # HRYVNIA SIGN
+<Multi_key> <equal> <h>			: "₴"	U20b4 # HRYVNIA SIGN
+<Multi_key> <Cyrillic_GHE> <equal>	: "₴"	U20b4 # HRYVNIA SIGN
+<Multi_key> <equal> <Cyrillic_GHE>	: "₴"	U20b4 # HRYVNIA SIGN
+<Multi_key> <Cyrillic_ghe> <equal>	: "₴"	U20b4 # HRYVNIA SIGN
+<Multi_key> <equal> <Cyrillic_ghe>	: "₴"	U20b4 # HRYVNIA SIGN
 <Multi_key> <C> <bar>			: "₵"	U20b5 # CEDI SIGN
 <Multi_key> <bar> <C>			: "₵"	U20b5 # CEDI SIGN
 <Multi_key> <R> <equal>			: "₹"	U20b9 # INDIAN RUPEE SIGN
@@ -912,7 +919,6 @@ XCOMM Latin Extended-A
 <Multi_key> <comma> <s>			: "ş"	U015F # LATIN SMALL LETTER S WITH CEDILLA
 <Multi_key> <s> <comma>			: "ş"	U015F # LATIN SMALL LETTER S WITH CEDILLA
 <Multi_key> <cedilla> <s>		: "ş"	U015F # LATIN SMALL LETTER S WITH CEDILLA
-<Multi_key> <s> <cedilla>		: "ş"	U015F # LATIN SMALL LETTER S WITH CEDILLA
 <dead_caron> <S>			: "Š"	U0160 # LATIN CAPITAL LETTER S WITH CARON
 <Multi_key> <c> <S>			: "Š"	U0160 # LATIN CAPITAL LETTER S WITH CARON
 <Multi_key> <v> <S>			: "Š"	U0160 # LATIN CAPITAL LETTER S WITH CARON
@@ -1065,6 +1071,7 @@ XCOMM Latin Extended-B
 <dead_stroke> <z>				: "ƶ"	U01B6 # LATIN SMALL LETTER Z WITH STROKE
 <Multi_key> <slash> <z>				: "ƶ"	U01B6 # LATIN SMALL LETTER Z WITH STROKE
 <Multi_key> <KP_Divide> <z>			: "ƶ"	U01B6 # LATIN SMALL LETTER Z WITH STROKE
+<Multi_key> <Z> <H>				: "Ʒ"	U01B7 # LATIN CAPITAL LETTER EZH
 <dead_caron> <A>				: "Ǎ"	U01CD # LATIN CAPITAL LETTER A WITH CARON
 <Multi_key> <c> <A>				: "Ǎ"	U01CD # LATIN CAPITAL LETTER A WITH CARON
 <Multi_key> <v> <A>				: "Ǎ"	U01CD # LATIN CAPITAL LETTER A WITH CARON
@@ -1234,9 +1241,15 @@ XCOMM Latin Extended-B
 <dead_caron> <EZH>				: "Ǯ"	U01EE # LATIN CAPITAL LETTER EZH WITH CARON
 <Multi_key> <c> <EZH>				: "Ǯ"	U01EE # LATIN CAPITAL LETTER EZH WITH CARON
 <Multi_key> <v> <EZH>				: "Ǯ"	U01EE # LATIN CAPITAL LETTER EZH WITH CARON
+<dead_caron> <Multi_key> <Z> <H>		: "Ǯ"	U01EE # LATIN CAPITAL LETTER EZH WITH CARON
+<Multi_key> <c> <space> <Z> <H>			: "Ǯ"	U01EE # LATIN CAPITAL LETTER EZH WITH CARON
+<Multi_key> <v> <space> <Z> <H>			: "Ǯ"	U01EE # LATIN CAPITAL LETTER EZH WITH CARON
 <dead_caron> <ezh>				: "ǯ"	U01EF # LATIN SMALL LETTER EZH WITH CARON
 <Multi_key> <c> <ezh>				: "ǯ"	U01EF # LATIN SMALL LETTER EZH WITH CARON
 <Multi_key> <v> <ezh>				: "ǯ"	U01EF # LATIN SMALL LETTER EZH WITH CARON
+<dead_caron> <Multi_key> <z> <h>		: "ǯ"	U01EF # LATIN SMALL LETTER EZH WITH CARON
+<Multi_key> <c> <space> <z> <h>			: "ǯ"	U01EF # LATIN SMALL LETTER EZH WITH CARON
+<Multi_key> <v> <space> <z> <h>			: "ǯ"	U01EF # LATIN SMALL LETTER EZH WITH CARON
 <dead_caron> <j>				: "ǰ"	U01F0 # LATIN SMALL LETTER J WITH CARON
 <Multi_key> <c> <j>				: "ǰ"	U01F0 # LATIN SMALL LETTER J WITH CARON
 <Multi_key> <v> <j>				: "ǰ"	U01F0 # LATIN SMALL LETTER J WITH CARON
@@ -1416,6 +1429,7 @@ XCOMM IPA Extensions
 <dead_stroke> <i>				: "ɨ"	U0268 # LATIN SMALL LETTER I WITH STROKE
 <Multi_key> <slash> <i>				: "ɨ"	U0268 # LATIN SMALL LETTER I WITH STROKE
 <Multi_key> <KP_Divide> <i>			: "ɨ"	U0268 # LATIN SMALL LETTER I WITH STROKE
+<Multi_key> <z> <h>				: "ʒ"	U0292 # LATIN SMALL LETTER EZH
 
 XCOMM Spacing Modifier Letters
 <Multi_key> <slash> <U0294>				: "ʡ"	U02A1 # LATIN LETTER GLOTTAL STOP WITH STROKE
@@ -1678,7 +1692,12 @@ XCOMM Cyrillic
 <dead_diaeresis> <Cyrillic_yeru>	: "ӹ"	U04F9 # CYRILLIC SMALL LETTER YERU WITH DIAERESIS
 <Multi_key> <quotedbl> <Cyrillic_yeru>	: "ӹ"	U04F9 # CYRILLIC SMALL LETTER YERU WITH DIAERESIS
 
-XCOMM Several other scripts
+XCOMM Arabic
+<dead_hamza> <space>			: "ء"	Arabic_hamza # ARABIC LETTER HAMZA
+<dead_hamza> <dead_hamza>		: "ء"	Arabic_hamza # ARABIC LETTER HAMZA
+<dead_hamza> <Arabic_alef>		: "أ"	Arabic_hamzaonalef # ARABIC LETTER ALEF WITH HAMZA ABOVE
+<dead_hamza> <Arabic_waw>		: "ؤ"	Arabic_hamzaonwaw # ARABIC LETTER WAW WITH HAMZA ABOVE
+<dead_hamza> <Arabic_yeh>		: "ئ"	Arabic_hamzaonyeh # ARABIC LETTER YEH WITH HAMZA ABOVE
 <Multi_key> <U0653> <Arabic_alef>	: "آ"	U0622 # ARABIC LETTER ALEF WITH MADDA ABOVE
 <Multi_key> <U0654> <Arabic_alef>	: "أ"	U0623 # ARABIC LETTER ALEF WITH HAMZA ABOVE
 <Multi_key> <U0654> <Arabic_waw>	: "ؤ"	U0624 # ARABIC LETTER WAW WITH HAMZA ABOVE
@@ -1687,6 +1706,8 @@ XCOMM Several other scripts
 <Multi_key> <U0654> <U06D5>		: "ۀ"	U06C0 # ARABIC LETTER HEH WITH YEH ABOVE
 <Multi_key> <U0654> <U06C1>		: "ۂ"	U06C2 # ARABIC LETTER HEH GOAL WITH HAMZA ABOVE
 <Multi_key> <U0654> <U06D2>		: "ۓ"	U06D3 # ARABIC LETTER YEH BARREE WITH HAMZA ABOVE
+
+XCOMM Several other scripts
 <Multi_key> <U093C> <U0928>		: "ऩ"	U0929 # DEVANAGARI LETTER NNNA
 <Multi_key> <U093C> <U0930>		: "ऱ"	U0931 # DEVANAGARI LETTER RRA
 <Multi_key> <U093C> <U0933>		: "ऴ"	U0934 # DEVANAGARI LETTER LLLA

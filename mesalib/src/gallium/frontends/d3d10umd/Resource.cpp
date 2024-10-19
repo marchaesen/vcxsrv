@@ -65,10 +65,10 @@ CalcPrivateResourceSize(D3D10DDI_HDEVICE hDevice,                               
 }
 
 
-static unsigned
-translate_resource_usage( unsigned usage )
+static pipe_resource_usage
+translate_resource_usage(UINT usage)
 {
-   unsigned resource_usage = 0;
+   pipe_resource_usage resource_usage = PIPE_USAGE_DEFAULT;
 
    switch (usage) {
    case D3D10_DDI_USAGE_DEFAULT:

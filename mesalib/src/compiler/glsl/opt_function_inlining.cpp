@@ -30,7 +30,6 @@
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_rvalue_visitor.h"
-#include "ir_function_inlining.h"
 #include "ir_expression_flattening.h"
 #include "compiler/glsl_types.h"
 #include "util/hash_table.h"
@@ -42,43 +41,12 @@ do_variable_replacement(exec_list *instructions,
 
 namespace {
 
-class ir_function_inlining_visitor : public ir_hierarchical_visitor {
-public:
-   ir_function_inlining_visitor()
-   {
-      progress = false;
-   }
-
-   virtual ~ir_function_inlining_visitor()
-   {
-      /* empty */
-   }
-
-   virtual ir_visitor_status visit_enter(ir_expression *);
-   virtual ir_visitor_status visit_enter(ir_call *);
-   virtual ir_visitor_status visit_enter(ir_return *);
-   virtual ir_visitor_status visit_enter(ir_texture *);
-   virtual ir_visitor_status visit_enter(ir_swizzle *);
-
-   bool progress;
-};
-
 class ir_save_lvalue_visitor : public ir_hierarchical_visitor {
 public:
    virtual ir_visitor_status visit_enter(ir_dereference_array *);
 };
 
 } /* unnamed namespace */
-
-bool
-do_function_inlining(exec_list *instructions)
-{
-   ir_function_inlining_visitor v;
-
-   v.run(instructions);
-
-   return v.progress;
-}
 
 static void
 replace_return_with_assignment(ir_instruction *ir, void *data)
@@ -309,52 +277,6 @@ ir_call::generate_inline(ir_instruction *next_ir)
 
    _mesa_hash_table_destroy(ht, NULL);
 }
-
-
-ir_visitor_status
-ir_function_inlining_visitor::visit_enter(ir_expression *ir)
-{
-   (void) ir;
-   return visit_continue_with_parent;
-}
-
-
-ir_visitor_status
-ir_function_inlining_visitor::visit_enter(ir_return *ir)
-{
-   (void) ir;
-   return visit_continue_with_parent;
-}
-
-
-ir_visitor_status
-ir_function_inlining_visitor::visit_enter(ir_texture *ir)
-{
-   (void) ir;
-   return visit_continue_with_parent;
-}
-
-
-ir_visitor_status
-ir_function_inlining_visitor::visit_enter(ir_swizzle *ir)
-{
-   (void) ir;
-   return visit_continue_with_parent;
-}
-
-
-ir_visitor_status
-ir_function_inlining_visitor::visit_enter(ir_call *ir)
-{
-   if (can_inline(ir)) {
-      ir->generate_inline(ir);
-      ir->remove();
-      this->progress = true;
-   }
-
-   return visit_continue;
-}
-
 
 /**
  * Replaces references to the "orig" variable with a clone of "repl."

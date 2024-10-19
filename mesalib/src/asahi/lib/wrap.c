@@ -171,12 +171,14 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
 
       uint64_t *ptr = (uint64_t *)outputStruct;
       uint32_t *words = (uint32_t *)(ptr + 1);
+      bool mmap = inp[1];
 
+      /* Construct a synthetic GEM handle for the shmem */
       agxdecode_track_alloc(&(struct agx_bo){
-         .handle = words[1],
+         .handle = words[1] ^ (mmap ? (1u << 30) : (1u << 29)),
          .ptr.cpu = (void *)*ptr,
          .size = words[0],
-         .type = inp[1] ? AGX_ALLOC_CMDBUF : AGX_ALLOC_MEMMAP});
+      });
 
       break;
    }
@@ -209,7 +211,6 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
          assert(resp->sub_size == resp->root_size);
 
       agxdecode_track_alloc(&(struct agx_bo){
-         .type = AGX_ALLOC_REGULAR,
          .size = resp->sub_size,
          .handle = resp->handle,
          .ptr.gpu = resp->gpu_va,
@@ -225,8 +226,7 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
       assert(output == NULL);
       assert(outputStruct == NULL);
 
-      agxdecode_track_free(
-         &(struct agx_bo){.type = AGX_ALLOC_REGULAR, .handle = input[0]});
+      agxdecode_track_free(&(struct agx_bo){.handle = input[0]});
 
       break;
    }
@@ -237,8 +237,7 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
       assert(output == NULL);
       assert(outputStruct == NULL);
 
-      agxdecode_track_free(
-         &(struct agx_bo){.type = AGX_ALLOC_CMDBUF, .handle = input[0]});
+      agxdecode_track_free(&(struct agx_bo){.handle = input[0] ^ (1u << 29)});
 
       break;
    }

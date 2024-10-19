@@ -10,15 +10,8 @@ dEQP-GLES31.functional.draw_indirect.compute_interop.large.*
 # https://gitlab.freedesktop.org/mesa/mesa/-/jobs/19776551
 dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36
 
-# InternalError (Variable pointers requested but feature not returned at
-# vktAmberTestCase.cpp:364)
-dEQP-VK.spirv_assembly.instruction.compute.vector_shuffle.vector_shuffle
-
 # Seems to timeout occasionally
 dEQP-VK.api.object_management.max_concurrent.query_pool
-
-# not implemented
-dEQP-VK.api.copy_and_blit.core.resolve_image.*
 
 # Causes a GPU timeout
 spec@!opengl 1.1@longprim
@@ -47,8 +40,6 @@ spec@arb_texture_rectangle@tex-miplevel-selection gl2:texture() 2drectshadow
 spec@arb_texture_rectangle@tex-miplevel-selection gl2:textureproj 2drect
 spec@arb_texture_rectangle@tex-miplevel-selection gl2:textureproj 2drect_projvec4
 spec@arb_texture_rectangle@tex-miplevel-selection gl2:textureproj 2drectshadow
-spec@arb_texture_view@sampling-2d-array-as-cubemap-array
-spec@arb_texture_view@sampling-2d-array-as-cubemap
 spec@ext_transform_feedback@immediate-reuse-index-buffer
 spec@ext_transform_feedback@immediate-reuse-uniform-buffer
 spec@glsl-1.30@execution@tex-miplevel-selection texture() 2drect
@@ -71,6 +62,154 @@ spec@glsl-1.30@execution@tex-miplevel-selection textureprojgradoffset 2drectshad
 spec@glsl-1.30@execution@tex-miplevel-selection textureprojoffset 2drect
 spec@glsl-1.30@execution@tex-miplevel-selection textureprojoffset 2drect_projvec4
 spec@glsl-1.30@execution@tex-miplevel-selection textureprojoffset 2drectshadow
-spec@oes_texture_view@sampling-2d-array-as-cubemap
 spec@!opengl 1.0@rasterpos
 spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object
+
+# uprev Piglit in Mesa
+spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch
+shaders@glsl-bug-110796
+
+# query pool not supported yet
+dEQP-VK.query_pool.*
+dEQP-VK.fragment_operations.occlusion_query.*
+dEQP-VK.dynamic_rendering.primary_cmd_buff.random.seed*
+
+# indirect dispatch and draw not supported yet
+dEQP-VK.synchronization.*indirect*
+dEQP-VK.synchronization2.*indirect*
+dEQP-VK.draw.renderpass.indirect_draw.*
+dEQP-VK.draw.renderpass.*.draw_indirect*
+dEQP-VK.draw.renderpass.*.draw_indexed_indirect*
+dEQP-VK.draw.dynamic_rendering.*.draw_indirect*
+dEQP-VK.draw.dynamic_rendering.*.draw_indexed_indirect*
+dEQP-VK.draw.dynamic_rendering.*.indirect_draw*
+
+# textureQueryLod not supported yet
+dEQP-VK.glsl.texture_functions.query.texturequerylod.*
+
+# VKCTS bug?
+# Jump to 0x0 (XXX: need more research)
+dEQP-VK.glsl.shader_expect_assume.*
+
+# Slow tests (>= 30s)
+dEQP-VK.api.object_management.multithreaded_shared_resources.device_group
+dEQP-VK.ssbo.phys.layout.2_level_array.std140.row_major_mat4
+dEQP-VK.ssbo.phys.layout.2_level_array.std140.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.2_level_array.std140.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.2_level_array.std430.row_major_mat4
+dEQP-VK.ssbo.phys.layout.2_level_array.std430.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.2_level_array.std430.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.2_level_array.std430.row_major_mat4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat2x4
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat4
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat4x3
+dEQP-VK.ssbo.phys.layout.3_level_array.std140.row_major_mat4x3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4x3
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4x3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4x3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_array.std430.row_major_mat4x3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat2x4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat4
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat4x3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat4x3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std140.row_major_mat4x3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.column_major_mat4x2_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat2x4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat2x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat2x4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4x3
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4x3_comp_access
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4x3_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.3_level_unsized_array.std430.row_major_mat4x3_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat4
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std140.row_major_mat4_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4_comp_access
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat3x4_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat4
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat4_comp_access
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat4_comp_access_store_cols
+dEQP-VK.ssbo.phys.layout.basic_unsized_array.std430.row_major_mat4_store_cols
+dEQP-VK.ssbo.phys.layout.random.all_per_block_buffers.22
+dEQP-VK.ssbo.phys.layout.random.all_per_block_buffers.22
+dEQP-VK.ssbo.phys.layout.random.all_shared_buffer.3
+
+# Cause a big memory pressure (causing other tests to fail) but still fail most of the time, this needs investigation.
+dEQP-VK.memory.mapping.suballocation.full.variable.implicit_unmap

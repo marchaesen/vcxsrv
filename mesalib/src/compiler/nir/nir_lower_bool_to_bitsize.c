@@ -413,7 +413,6 @@ bool
 nir_lower_bool_to_bitsize(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader, nir_lower_bool_to_bitsize_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        NULL);
 }

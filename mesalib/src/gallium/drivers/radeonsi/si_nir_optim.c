@@ -162,8 +162,7 @@ si_nir_is_output_const_if_tex_is_const(nir_shader *shader, float *in, float *out
 
       /* Replace nir_tex_instr using texunit by vec4(v) */
       nir_shader_instructions_pass(shader, replace_tex_by_imm,
-                                   nir_metadata_block_index |
-                                   nir_metadata_dominance, &p);
+                                   nir_metadata_control_flow, &p);
 
       /* Optimize the cloned shader */
       bool progress;

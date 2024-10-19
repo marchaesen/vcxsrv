@@ -1,0 +1,6 @@
+[wrap-file]
+directory = hashbrown-0.14.1
+source_url = https://crates.io/api/v1/crates/hashbrown/0.14.1/download
+source_filename = hashbrown-0.14.1.tar.gz
+source_hash = 7dfda62a12f55daeae5015f81b0baea145391cb4520f86c248fc615d72640d12
+patch_directory = hashbrown

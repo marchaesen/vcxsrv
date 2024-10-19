@@ -204,7 +204,7 @@ xwl_dmabuf_get_formats_for_device(struct xwl_dmabuf_feedback *xwl_feedback, drmD
             struct xwl_device_formats *dev_formats = &xwl_feedback->dev_formats[i];
 
             /* Append the formats from this tranche to the list */
-            ret = xnfreallocarray(ret, count + dev_formats->num_formats, sizeof(CARD32));
+            ret = XNFreallocarray(ret, count + dev_formats->num_formats, sizeof(CARD32));
 
             for (int j = 0; j < dev_formats->num_formats; j++) {
                 Bool found = FALSE;
@@ -410,7 +410,7 @@ xwl_add_format_and_mod_to_list(struct xwl_format **formats,
 
     if (xwl_format == NULL) {
         (*num_formats)++;
-        *formats = xnfrealloc(*formats, *num_formats * sizeof(*xwl_format));
+        *formats = XNFrealloc(*formats, *num_formats * sizeof(*xwl_format));
         xwl_format = &(*formats)[*num_formats - 1];
         xwl_format->format = format;
         xwl_format->num_modifiers = 0;
@@ -424,7 +424,7 @@ xwl_add_format_and_mod_to_list(struct xwl_format **formats,
     }
 
     xwl_format->num_modifiers++;
-    xwl_format->modifiers = xnfrealloc(xwl_format->modifiers,
+    xwl_format->modifiers = XNFrealloc(xwl_format->modifiers,
                                        xwl_format->num_modifiers * sizeof(uint64_t));
     xwl_format->modifiers[xwl_format->num_modifiers - 1]  = modifier;
 }
@@ -596,7 +596,7 @@ xwl_dmabuf_feedback_tranche_done(void *data,
 
     if (!appended) {
         xwl_feedback->dev_formats_len++;
-        xwl_feedback->dev_formats = xnfrealloc(xwl_feedback->dev_formats,
+        xwl_feedback->dev_formats = XNFrealloc(xwl_feedback->dev_formats,
                                                sizeof(struct xwl_device_formats) *
                                                xwl_feedback->dev_formats_len);
 
@@ -752,7 +752,7 @@ xwl_window_dmabuf_feedback_done(void *data,
     /* If the linux-dmabuf v4 per-surface feedback changed, make sure the
      * window buffers get re-created with appropriate parameters.
      */
-    xwl_window_buffers_dispose(xwl_window);
+    xwl_window_buffers_dispose(xwl_window, FALSE);
     xwl_window_realloc_pixmap(xwl_window);
 }
 

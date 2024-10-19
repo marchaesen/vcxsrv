@@ -21,7 +21,7 @@
 #include <ctype.h>
 
 #define AMDGPU_MI100_RANGE       0x32, 0x3C
-#define AMDGPU_MI200_RANGE       0x3C, 0xFF
+#define AMDGPU_MI200_RANGE       0x3C, 0x46
 #define AMDGPU_GFX940_RANGE      0x46, 0xFF
 
 #define ASICREV_IS_MI100(r)      ASICREV_IS(r, MI100)
@@ -345,6 +345,11 @@ static const char *amdgpu_get_marketing_name(amdgpu_device_handle dev)
 static intptr_t readlink(const char *path, char *buf, size_t bufsiz)
 {
    return -1;
+}
+extern char *
+drmGetFormatModifierName(uint64_t modifier)
+{
+   return NULL;
 }
 #else
 #include "drm-uapi/amdgpu_drm.h"
@@ -895,10 +900,13 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       case FAMILY_GFX1103:
          identify_chip(GFX1103_R1);
          identify_chip(GFX1103_R2);
+         identify_chip2(GFX1103_R1X, GFX1103_R1);
+         identify_chip2(GFX1103_R2X, GFX1103_R2);
          break;
       case FAMILY_GFX1150:
          identify_chip(GFX1150);
          identify_chip(GFX1151);
+         identify_chip(GFX1152);
          break;
       case FAMILY_GFX12:
          identify_chip(GFX1200);
@@ -1066,7 +1074,9 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->memory_freq_mhz_effective *= ac_memory_ops_per_clock(info->vram_type);
 
    info->has_userptr = true;
+   info->has_syncobj = true;
    info->has_timeline_syncobj = has_timeline_syncobj(fd);
+   info->has_fence_to_handle = true;
    info->has_local_buffers = true;
    info->has_bo_metadata = true;
    info->has_eqaa_surface_allocator = info->gfx_level < GFX11;
@@ -1183,6 +1193,9 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->mc_arb_ramcfg = amdinfo.mc_arb_ramcfg;
    info->gb_addr_config = amdinfo.gb_addr_cfg;
    if (info->gfx_level >= GFX9) {
+      if (!info->has_graphics && info->family >= CHIP_GFX940)
+         info->gb_addr_config = 0;
+
       info->num_tile_pipes = 1 << G_0098F8_NUM_PIPES(info->gb_addr_config);
       info->pipe_interleave_bytes = 256 << G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config);
    } else {
@@ -1220,6 +1233,12 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
 
    info->has_dcc_constant_encode =
       info->family == CHIP_RAVEN2 || info->family == CHIP_RENOIR || info->gfx_level >= GFX10;
+
+   /* TC-compat HTILE is only available for GFX8-GFX11.5. */
+   info->has_tc_compatible_htile = info->gfx_level >= GFX8 && info->gfx_level < GFX12;
+
+   info->has_etc_support = info->family == CHIP_STONEY || info->family == CHIP_VEGA10 ||
+                           info->family == CHIP_RAVEN || info->family == CHIP_RAVEN2;
 
    info->has_rbplus = info->family == CHIP_STONEY || info->gfx_level >= GFX9;
 
@@ -1336,6 +1355,12 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
 
    info->has_export_conflict_bug = info->gfx_level == GFX11;
 
+   /* When LLVM is fixed to handle multiparts shaders, this value will depend
+    * on the known good versions of LLVM. Until then, enable the equivalent WA
+    * in the nir -> llvm backend.
+    */
+   info->needs_llvm_wait_wa = info->gfx_level == GFX11;
+
    /* Convert the SDMA version in the current GPU to an enum. */
    info->sdma_ip_version =
       (enum sdma_version)SDMA_VERSION_VALUE(info->ip[AMD_IP_SDMA].ver_major,
@@ -1424,8 +1449,9 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->pte_fragment_size = alignment_info.size_local;
    info->gart_page_size = alignment_info.size_remote;
 
-   if (info->gfx_level == GFX6)
-      info->gfx_ib_pad_with_type2 = true;
+   info->gfx_ib_pad_with_type2 = info->gfx_level == GFX6;
+   /* CDNA starting with GFX940 shouldn't use CP DMA. */
+   info->has_cp_dma = info->has_graphics || info->family < CHIP_GFX940;
 
    if (info->gfx_level >= GFX11 && info->gfx_level < GFX12) {
       /* With num_cu = 4 in gfx11 measured power for idle, video playback and observed
@@ -1579,6 +1605,8 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    const unsigned max_waves_per_tg = 32; /* 1024 threads in Wave32 */
    info->max_scratch_waves = MAX2(32 * info->min_good_cu_per_sa * info->max_sa_per_se * info->num_se,
                                   max_waves_per_tg);
+   info->has_scratch_base_registers = info->gfx_level >= GFX11 ||
+                                      (!info->has_graphics && info->family >= CHIP_GFX940);
    info->max_gflops = (info->gfx_level >= GFX11 ? 256 : 128) * info->num_cu * info->max_gpu_freq_mhz / 1000;
    info->memory_bandwidth_gbps = DIV_ROUND_UP(info->memory_freq_mhz_effective * info->memory_bus_width / 8, 1000);
    info->has_pcie_bandwidth_info = info->drm_minor >= 51;
@@ -1896,6 +1924,7 @@ void ac_print_gpu_info(const struct radeon_info *info, FILE *f)
 
    fprintf(f, "CP info:\n");
    fprintf(f, "    gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);
+   fprintf(f, "    has_cp_dma = %i\n", info->has_cp_dma);
    fprintf(f, "    me_fw_version = %i\n", info->me_fw_version);
    fprintf(f, "    me_fw_feature = %i\n", info->me_fw_feature);
    fprintf(f, "    mec_fw_version = %i\n", info->mec_fw_version);
@@ -2016,6 +2045,7 @@ void ac_print_gpu_info(const struct radeon_info *info, FILE *f)
    fprintf(f, "    max_vgpr_alloc = %i\n", info->max_vgpr_alloc);
    fprintf(f, "    wave64_vgpr_alloc_granularity = %i\n", info->wave64_vgpr_alloc_granularity);
    fprintf(f, "    max_scratch_waves = %i\n", info->max_scratch_waves);
+   fprintf(f, "    has_scratch_base_registers = %i\n", info->has_scratch_base_registers);
    fprintf(f, "Ring info:\n");
    fprintf(f, "    attribute_ring_size_per_se = %u KB\n",
            DIV_ROUND_UP(info->attribute_ring_size_per_se, 1024));
@@ -2084,6 +2114,27 @@ void ac_print_gpu_info(const struct radeon_info *info, FILE *f)
               G_0098F8_MULTI_GPU_TILE_SIZE(info->gb_addr_config));
       fprintf(f, "    row_size = %u\n", 1024 << G_0098F8_ROW_SIZE(info->gb_addr_config));
       fprintf(f, "    num_lower_pipes = %u (raw)\n", G_0098F8_NUM_LOWER_PIPES(info->gb_addr_config));
+   }
+
+   struct ac_modifier_options modifier_options = {
+      .dcc = true,
+      .dcc_retile = true,
+   };
+   uint64_t modifiers[256];
+   unsigned modifier_count = ARRAY_SIZE(modifiers);
+
+   /* Get the number of modifiers. */
+   if (ac_get_supported_modifiers(info, &modifier_options, PIPE_FORMAT_R8G8B8A8_UNORM,
+                                  &modifier_count, modifiers)) {
+      if (modifier_count)
+         fprintf(f, "Modifiers (32bpp):\n");
+
+      for (unsigned i = 0; i < modifier_count; i++) {
+         char *name = drmGetFormatModifierName(modifiers[i]);
+
+         fprintf(f, "    %s\n", name);
+         free(name);
+      }
    }
 }
 
@@ -2320,6 +2371,10 @@ ac_get_compute_resource_limits(const struct radeon_info *info, unsigned waves_pe
                             info->max_waves_per_simd;
       }
 
+      /* On GFX12+, WAVES_PER_SH means waves per SE. */
+      if (info->gfx_level >= GFX12)
+         max_waves_per_sh *= info->max_sa_per_se;
+
       /* Force even distribution on all SIMDs in CU if the workgroup
        * size is 64. This has shown some good improvements if # of CUs
        * per SE is not a multiple of 4.
@@ -2492,4 +2547,16 @@ uint32_t ac_memory_ops_per_clock(uint32_t vram_type)
    case AMDGPU_VRAM_TYPE_GDDR6:
       return 16;
    }
+}
+
+uint32_t ac_gfx103_get_cu_mask_ps(const struct radeon_info *info)
+{
+   /* It's wasteful to enable all CUs for PS if shader arrays have a different
+    * number of CUs. The reason is that the hardware sends the same number of PS
+    * waves to each shader array, so the slowest shader array limits the performance.
+    * Disable the extra CUs for PS in other shader arrays to save power and thus
+    * increase clocks for busy CUs. In the future, we might disable or enable this
+    * tweak only for certain apps.
+    */
+   return u_bit_consecutive(0, info->min_good_cu_per_sa);
 }

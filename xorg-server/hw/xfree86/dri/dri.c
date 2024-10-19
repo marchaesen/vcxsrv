@@ -44,6 +44,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <sys/time.h>
 #include <unistd.h>
 #include <X11/X.h>
+#include <X11/Xfuncproto.h>
 #include <X11/Xproto.h>
 
 #include "dix/dix_priv.h"
@@ -258,7 +259,7 @@ DRIOpenDRMMaster(ScrnInfoPtr pScrn,
     tmp.resOwner = NULL;
 
     if (!pDRIEntPriv)
-        pDRIEntPriv = xnfcalloc(sizeof(*pDRIEntPriv), 1);
+        pDRIEntPriv = XNFcallocarray(1, sizeof(*pDRIEntPriv));
 
     if (!pDRIEntPriv) {
         DRIDrvMsg(-1, X_INFO, "[drm] Failed to allocate memory for "
@@ -632,6 +633,8 @@ DRIScreenInit(ScreenPtr pScreen, DRIInfoPtr pDRIInfo, int *pDRMFD)
 
     return TRUE;
 }
+
+static Bool DRIDestroyWindow(WindowPtr pWin);
 
 Bool
 DRIFinishScreenInit(ScreenPtr pScreen)
@@ -1209,7 +1212,7 @@ DRIDriverClipNotify(ScreenPtr pScreen)
     DRIScreenPrivPtr pDRIPriv = DRI_SCREEN_PRIV(pScreen);
 
     if (pDRIPriv->pDriverInfo->ClipNotify) {
-        WindowPtr *pDRIWindows = calloc(sizeof(WindowPtr), pDRIPriv->nrWindows);
+        WindowPtr *pDRIWindows = calloc(pDRIPriv->nrWindows, sizeof(WindowPtr));
         DRIInfoPtr pDRIInfo = pDRIPriv->pDriverInfo;
 
         if (pDRIPriv->nrWindows > 0) {
@@ -1919,7 +1922,7 @@ DRITreeTraversal(WindowPtr pWin, void *data)
     return WT_WALKCHILDREN;
 }
 
-Bool
+static Bool
 DRIDestroyWindow(WindowPtr pWin)
 {
     ScreenPtr pScreen = pWin->drawable.pScreen;

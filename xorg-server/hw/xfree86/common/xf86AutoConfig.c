@@ -104,11 +104,11 @@ AppendToList(const char *s, const char ***list, int *lines)
 {
     char *str, *newstr, *p;
 
-    str = xnfstrdup(s);
+    str = XNFstrdup(s);
     for (p = strtok(str, "\n"); p; p = strtok(NULL, "\n")) {
         (*lines)++;
-        *list = xnfreallocarray(*list, *lines + 1, sizeof(**list));
-        newstr = xnfalloc(strlen(p) + 2);
+        *list = XNFreallocarray(*list, *lines + 1, sizeof(**list));
+        newstr = XNFalloc(strlen(p) + 2);
         strcpy(newstr, p);
         strcat(newstr, "\n");
         (*list)[*lines - 1] = newstr;
@@ -156,7 +156,7 @@ xf86AddMatchedDriver(XF86MatchedDrivers *md, const char *driver)
     }
 
     if (nmatches < MATCH_DRIVERS_LIMIT) {
-        md->matches[nmatches] = xnfstrdup(driver);
+        md->matches[nmatches] = XNFstrdup(driver);
         md->nmatches++;
     }
     else {
@@ -272,7 +272,7 @@ listPossibleVideoDrivers(XF86MatchedDrivers *md)
                     /* find end of all uppercase vendor section */
                 }
                 if ((cp != visid.name) && (*cp != '\0')) {
-                    char *vendorName = xnfstrdup(visid.name);
+                    char *vendorName = XNFstrdup(visid.name);
 
                     vendorName[cp - visid.name] = '\0';
 
@@ -403,7 +403,7 @@ autoConfigDevice(GDevPtr preconf_device)
              * minus one for the already existing first one
              * plus one for the terminating NULL */
             for (; slp[num_screens].screen; num_screens++);
-            xf86ConfigLayout.screens = xnfcalloc(num_screens + md.nmatches,
+            xf86ConfigLayout.screens = XNFcallocarray(num_screens + md.nmatches,
                                                  sizeof(screenLayoutRec));
             xf86ConfigLayout.screens[0] = slp[0];
 

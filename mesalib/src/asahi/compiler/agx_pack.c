@@ -22,9 +22,9 @@ static void
 pack_assert_internal(const agx_instr *I, bool condition, const char *msg)
 {
    if (!condition) {
-      printf("Packing assertion failed for instruction:\n\n");
-      agx_print_instr(I, stdout);
-      printf("\n%s\n", msg);
+      fprintf(stderr, "Packing assertion failed for instruction:\n\n");
+      agx_print_instr(I, stderr);
+      fprintf(stderr, "\n%s\n", msg);
       abort();
    }
 }
@@ -523,9 +523,18 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
    if (length <= sizeof(uint64_t)) {
       unsigned extend_offset = ((length - sizeof(extend)) * 8);
 
-      /* XXX: This is a weird special case */
-      if (I->op == AGX_OPCODE_IADD)
+      /* XXX: Encode these special cases better */
+      switch (I->op) {
+      case AGX_OPCODE_IADD:
+      case AGX_OPCODE_ICMP_BALLOT:
+      case AGX_OPCODE_ICMP_QUAD_BALLOT:
+      case AGX_OPCODE_FCMP_BALLOT:
+      case AGX_OPCODE_FCMP_QUAD_BALLOT:
          extend_offset -= 16;
+         break;
+      default:
+         break;
+      }
 
       raw |= (uint64_t)extend << extend_offset;
       memcpy(util_dynarray_grow_bytes(emission, 1, length), &raw, length);
@@ -553,6 +562,7 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       pack_assert(I, I->pixel_offset < 0x200);
 
       agx_index sample_index = load ? I->src[0] : I->src[1];
+      agx_index coords = load ? I->src[1] : I->src[2];
       pack_assert(I, sample_index.type == AGX_INDEX_REGISTER ||
                         sample_index.type == AGX_INDEX_IMMEDIATE);
       pack_assert(I, sample_index.size == AGX_SIZE_16);
@@ -560,14 +570,21 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       unsigned S = sample_index.value;
       pack_assert(I, S < 0x100);
 
+      pack_assert(I, I->explicit_coords == (coords.type == AGX_INDEX_REGISTER));
+      unsigned C = I->explicit_coords ? coords.value : 0;
+
       uint64_t raw = agx_opcodes_info[I->op].encoding.exact |
                      ((uint64_t)(D & BITFIELD_MASK(8)) << 7) | (St << 22) |
                      ((uint64_t)(I->format) << 24) |
+                     ((uint64_t)(C & BITFIELD_MASK(6)) << 16) |
                      ((uint64_t)(I->pixel_offset & BITFIELD_MASK(7)) << 28) |
-                     (load ? (1ull << 35) : 0) | ((uint64_t)(I->mask) << 36) |
+                     (load || I->explicit_coords ? (1ull << 35) : 0) |
+                     ((uint64_t)(I->mask) << 36) |
                      ((uint64_t)(I->pixel_offset >> 7) << 40) |
                      ((uint64_t)(S & BITFIELD_MASK(6)) << 42) |
-                     ((uint64_t)(S >> 6) << 56) | (((uint64_t)(D >> 8)) << 60);
+                     (I->explicit_coords ? (1ull << 55) : 0) |
+                     ((uint64_t)(S >> 6) << 56) | ((uint64_t)(C >> 6) << 58) |
+                     (((uint64_t)(D >> 8)) << 60);
 
       unsigned size = 8;
       memcpy(util_dynarray_grow_bytes(emission, 1, size), &raw, size);
@@ -714,7 +731,7 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       unsigned O = agx_pack_memory_index(I, I->src[offset_src], &Ot);
       unsigned u1 = is_uniform_store ? 0 : 1; // XXX
       unsigned u3 = 0;
-      unsigned u4 = is_uniform_store ? 0 : 4; // XXX
+      unsigned u4 = is_uniform_store ? 0 : I->coherent ? 7 : 4;
       unsigned u5 = 0;
       bool L = true; /* TODO: when would you want short? */
 
@@ -839,7 +856,7 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
 
       unsigned q1 = I->shadow;
       unsigned q2 = I->query_lod ? 2 : 0;
-      unsigned q3 = 12;  // XXX
+      unsigned q3 = 0xc; // XXX
       unsigned kill = 0; // helper invocation kill bit
 
       /* Set bit 43 for image loads. This seems to makes sure that image loads
@@ -851,8 +868,14 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
        * Apple seems to set this bit unconditionally for read/write image loads
        * and never for readonly image loads. Some sort of cache control.
        */
-      if (I->op == AGX_OPCODE_IMAGE_LOAD)
+      if (I->op == AGX_OPCODE_IMAGE_LOAD) {
          q3 |= 1;
+
+         /* Cache bypass for multidie coherency */
+         if (I->coherent) {
+            q3 |= 2;
+         }
+      }
 
       uint32_t extend = ((U & BITFIELD_MASK(5)) << 0) | (kill << 5) |
                         ((I->dim >> 3) << 7) | ((R >> 6) << 8) |
@@ -900,6 +923,8 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       pack_assert(I, T < (1 << 8));
       pack_assert(I, Tt < (1 << 2));
 
+      unsigned coherency = I->coherent ? 0xf : 0x9;
+
       uint64_t raw = agx_opcodes_info[I->op].encoding.exact |
                      (Rt ? (1 << 8) : 0) | ((R & BITFIELD_MASK(6)) << 9) |
                      ((C & BITFIELD_MASK(6)) << 16) | (Ct ? (1 << 22) : 0) |
@@ -907,8 +932,8 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
                      (((uint64_t)(T & BITFIELD_MASK(6))) << 32) |
                      (((uint64_t)Tt) << 38) |
                      (((uint64_t)I->dim & BITFIELD_MASK(3)) << 40) |
-                     (Cs ? (1ull << 47) : 0) | (((uint64_t)U) << 48) |
-                     (rtz ? (1ull << 53) : 0) |
+                     (((uint64_t)coherency) << 43) | (Cs ? (1ull << 47) : 0) |
+                     (((uint64_t)U) << 48) | (rtz ? (1ull << 53) : 0) |
                      ((I->dim & BITFIELD_BIT(4)) ? (1ull << 55) : 0) |
                      (((uint64_t)R >> 6) << 56) | (((uint64_t)C >> 6) << 58) |
                      (((uint64_t)D >> 6) << 60) | (((uint64_t)T >> 6) << 62);
@@ -930,31 +955,37 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       unsigned Tt = 0;
       pack_assert(I, Tt < 0x4);
 
-      UNUSED unsigned U;
-      unsigned T = agx_pack_texture(I, agx_zero(), I->src[0], &U, &Tt);
+      unsigned U;
+      unsigned T = agx_pack_texture(I, I->src[0], I->src[1], &U, &Tt);
       pack_assert(I, T < 0x100);
+      pack_assert(I, U < (1 << 5));
 
       bool Cs = false;
-      bool Ct = I->src[2].discard;
-      unsigned C = I->src[2].value;
+      bool Ct = I->src[3].discard;
+      unsigned C = I->src[3].value;
 
-      agx_index offset = I->src[1];
+      agx_index offset = I->src[2];
       pack_assert(I, offset.size == AGX_SIZE_32);
       assert_register_is_aligned(I, offset);
       unsigned R = offset.value;
 
       bool unk1 = true;
+
+      /* This bit has weird behaviour with the interaction of the texture state
+       * index and the tilebuffer offset. Probably best not to use it for now.
+       */
       unsigned unk3 = 1;
 
       uint32_t word0 = agx_opcodes_info[I->op].encoding.exact |
                        (1 << 15) /* we always set length bit for now */ |
                        ((F & 1) << 8) | ((R & BITFIELD_MASK(6)) << 9) |
                        ((C & BITFIELD_MASK(6)) << 16) | (Ct ? (1 << 22) : 0) |
+                       (I->explicit_coords ? (1 << 23) : 0) |
                        (unk1 ? (1u << 31) : 0);
 
-      uint32_t word1 = (T & BITFIELD_MASK(6)) | (Tt << 2) |
+      uint32_t word1 = (T & BITFIELD_MASK(6)) | (Tt << 6) |
                        ((I->dim & BITFIELD_MASK(3)) << 8) | (9 << 11) |
-                       (Cs ? (1 << 15) : 0) |
+                       (Cs ? (1 << 15) : 0) | (((uint64_t)U) << 16) |
                        ((I->dim & BITFIELD_BIT(3)) ? (1u << 23) : 0) |
                        ((R >> 6) << 24) | ((C >> 6) << 26);
 
@@ -1036,11 +1067,11 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       struct agx_opcode_info info = agx_opcodes_info[I->op];
       uint64_t raw =
          info.encoding.exact | (q1 << 8) | ((value.value & 0x3F) << 10) |
-         ((I->imm & 0xF) << 20) | (1UL << 24) | // XXX
-         (1UL << 26) |                          // XXX
+         ((I->imm & 0xF) << 20) | (1ull << 24) | // XXX
+         (1ull << 26) |                          // XXX
          (q2 << 30) | ((uint64_t)((I->imm >> 4) & 0xF) << 32) |
          ((uint64_t)q3 << 37) | ((uint64_t)(value.value >> 6) << 40) |
-         ((uint64_t)q4 << 42) | (1UL << 47) | // XXX
+         ((uint64_t)q4 << 42) | (1ull << 47) | // XXX
          ((uint64_t)q5 << 48) | ((uint64_t)(I->imm >> 8) << 56);
 
       memcpy(util_dynarray_grow_bytes(emission, 1, 8), &raw, 8);
@@ -1076,7 +1107,7 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
          (((uint64_t)((O >> 4) & BITFIELD_MASK(4))) << 32) |
          ((uint64_t)i2 << 36) |
          (((uint64_t)((R >> 6) & BITFIELD_MASK(2))) << 40) |
-         ((uint64_t)i5 << 44) | (L ? (1UL << 47) : 0) |
+         ((uint64_t)i5 << 44) | (L ? (1ull << 47) : 0) |
          (((uint64_t)(format >> 2)) << 50) | (((uint64_t)Rt) << 49) |
          (((uint64_t)mask) << 52) | (((uint64_t)(O >> 8)) << 56);
 
@@ -1097,7 +1128,7 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
          info.encoding.exact | ((uint64_t)i0 << 8) | ((uint64_t)i1 << 26) |
          ((uint64_t)i2 << 36) | ((uint64_t)i3 << 44) | ((uint64_t)i4 << 50) |
          ((I->stack_size & 0xF) << 20) |
-         ((uint64_t)((I->stack_size >> 4) & 0xF) << 32) | (1UL << 47) | // XXX
+         ((uint64_t)((I->stack_size >> 4) & 0xF) << 32) | (1ull << 47) | // XXX
          ((uint64_t)(I->stack_size >> 8) << 56);
 
       memcpy(util_dynarray_grow_bytes(emission, 1, 8), &raw, 8);
@@ -1141,7 +1172,8 @@ agx_pack_binary(agx_context *ctx, struct util_dynarray *emission)
 
       agx_foreach_instr_in_block(block, ins) {
          block->last_offset = emission->size;
-         agx_pack_instr(emission, &fixups, ins, ctx->key->needs_g13x_coherency);
+         agx_pack_instr(emission, &fixups, ins,
+                        ctx->key->dev.needs_g13x_coherency);
       }
    }
 

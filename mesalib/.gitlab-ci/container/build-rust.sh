@@ -15,7 +15,7 @@ ln -s /usr/local/bin "$HOME"/.cargo/bin
 #
 # Also, pick a specific snapshot from rustup so the compiler doesn't drift on
 # us.
-RUST_VERSION=1.73.0-2023-10-05
+RUST_VERSION=1.76.0-2024-02-08
 
 # For rust in Mesa, we use rustup to install.  This lets us pick an arbitrary
 # version of the compiler, rather than whatever the container's Debian comes

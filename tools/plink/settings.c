@@ -112,7 +112,9 @@ const struct BackendVtable *backend_vt_from_proto(int proto)
 
 char *get_remote_username(Conf *conf)
 {
-    char *username = conf_get_str(conf, CONF_username);
+    /* We don't worry about whether the username is stored as UTF-8,
+     * because SSH wants it as UTF-8 */
+    char *username = conf_get_str_ambi(conf, CONF_username, NULL);
     if (*username) {
         return dupstr(username);
     } else if (conf_get_bool(conf, CONF_username_from_env)) {
@@ -168,7 +170,7 @@ static void gppfile(settings_r *sesskey, const char *name,
 static bool gppb_raw(settings_r *sesskey, const char *name, bool def)
 {
     def = platform_default_b(name, def);
-    return sesskey ? read_setting_i(sesskey, name, def) != 0 : def;
+    return read_setting_i(sesskey, name, def) != 0;
 }
 
 static void gppb(settings_r *sesskey, const char *name, bool def,
@@ -546,6 +548,42 @@ void save_open_settings(settings_w *sesskey, Conf *conf)
                 write_setting_s(sesskey, info->save_keyword,
                                 conf_get_str(conf, key));
                 break;
+              case CONF_TYPE_STR_AMBI: {
+                bool orig_is_utf8;
+                const char *orig = conf_get_str_ambi(conf, key, &orig_is_utf8);
+
+                int cp_from, cp_to;
+                if (orig_is_utf8) {
+                    cp_from = CP_UTF8;
+                    cp_to = DEFAULT_CODEPAGE;
+                } else {
+                    cp_from = DEFAULT_CODEPAGE;
+                    cp_to = CP_UTF8;
+                }
+
+                size_t wlen;
+                wchar_t *wide = dup_mb_to_wc_c(
+                    cp_from, orig, strlen(orig), &wlen);
+
+                size_t clen;
+                char *converted = dup_wc_to_mb_c(
+                    cp_to, wide, wlen, "", &clen);
+
+                const char *native, *utf8;
+                if (orig_is_utf8) {
+                    utf8 = orig;
+                    native = converted;
+                } else {
+                    native = orig;
+                    utf8 = converted;
+                }
+                write_setting_s(sesskey, info->save_keyword, native);
+                (void)utf8; /* FIXME: also save the UTF-8 version */
+
+                burnwcs(wide);
+                burnstr(converted);
+                break;
+              }
               case CONF_TYPE_INT: {
                 int ival = conf_get_int(conf, key);
                 if (info->storage_enum) {
@@ -678,6 +716,7 @@ void load_open_settings(settings_r *sesskey, Conf *conf)
             if (info->subkey_type == CONF_TYPE_NONE) {
                 switch (info->value_type) {
                   case CONF_TYPE_STR:
+                  case CONF_TYPE_STR_AMBI:
                     conf_set_str(conf, key, info->default_value.sval);
                     break;
                   case CONF_TYPE_INT:
@@ -695,6 +734,7 @@ void load_open_settings(settings_r *sesskey, Conf *conf)
             assert(info->subkey_type == CONF_TYPE_NONE);
             switch (info->value_type) {
               case CONF_TYPE_STR:
+              case CONF_TYPE_STR_AMBI:
                 gpps(sesskey, info->save_keyword, info->default_value.sval,
                      conf, key);
                 break;

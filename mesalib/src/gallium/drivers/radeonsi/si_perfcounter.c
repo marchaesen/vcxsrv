@@ -114,8 +114,7 @@ static void si_pc_emit_start(struct si_context *sctx, struct si_resource *buffer
    radeon_begin(cs);
    radeon_set_uconfig_reg(R_036020_CP_PERFMON_CNTL,
                           S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_DISABLE_AND_RESET));
-   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_START) | EVENT_INDEX(0));
+   radeon_event_write(V_028A90_PERFCOUNTER_STOP);
    radeon_set_uconfig_reg(R_036020_CP_PERFMON_CNTL,
                           S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_START_COUNTING));
    radeon_end();
@@ -132,13 +131,10 @@ static void si_pc_emit_stop(struct si_context *sctx, struct si_resource *buffer,
    si_cp_wait_mem(sctx, cs, va, 0, 0xffffffff, WAIT_REG_MEM_EQUAL);
 
    radeon_begin(cs);
-   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_SAMPLE) | EVENT_INDEX(0));
+   radeon_event_write(V_028A90_PERFCOUNTER_SAMPLE);
 
-   if (!sctx->screen->info.never_send_perfcounter_stop) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_STOP) | EVENT_INDEX(0));
-   }
+   if (!sctx->screen->info.never_send_perfcounter_stop)
+      radeon_event_write(V_028A90_PERFCOUNTER_STOP);
 
    radeon_set_uconfig_reg(
       R_036020_CP_PERFMON_CNTL,
@@ -158,8 +154,7 @@ void si_pc_emit_spm_start(struct radeon_cmdbuf *cs)
                           S_036020_PERFMON_STATE(V_036020_CP_PERFMON_STATE_DISABLE_AND_RESET) |
                              S_036020_SPM_PERFMON_STATE(V_036020_STRM_PERFMON_STATE_START_COUNTING));
    /* Start windowed performance counters. */
-   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-   radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_START) | EVENT_INDEX(0));
+   radeon_event_write(V_028A90_PERFCOUNTER_START);
    radeon_set_sh_reg(R_00B82C_COMPUTE_PERFCOUNT_ENABLE, S_00B82C_PERFCOUNT_ENABLE(1));
 
    radeon_end();
@@ -171,10 +166,8 @@ void si_pc_emit_spm_stop(struct radeon_cmdbuf *cs, bool never_stop_sq_perf_count
    radeon_begin(cs);
 
    /* Stop windowed performance counters. */
-   if (!never_send_perfcounter_stop) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_PERFCOUNTER_STOP) | EVENT_INDEX(0));
-   }
+   if (!never_send_perfcounter_stop)
+      radeon_event_write(V_028A90_PERFCOUNTER_STOP);
 
    radeon_set_sh_reg(R_00B82C_COMPUTE_PERFCOUNT_ENABLE, S_00B82C_PERFCOUNT_ENABLE(0));
 

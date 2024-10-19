@@ -1,8 +1,4 @@
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip,Fail
-dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES3.functional.clipping.point.wide_point_clip,Fail
 dEQP-GLES3.functional.clipping.point.wide_point_clip_viewport_center,Fail
 dEQP-GLES3.functional.clipping.point.wide_point_clip_viewport_corner,Fail
@@ -20,10 +16,12 @@ dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_two
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_two_samples.multisample_texture_1,Fail
 dEQP-GLES31.functional.shaders.sample_variables.sample_mask_in.bit_count_per_two_samples.multisample_texture_2,Fail
 
-# Times out waiting for >15s compile on the host side.
-dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36,Fail
-dEQP-GLES31.functional.ssbo.layout.random.nested_structs_arrays_instance_arrays.22,Fail
 
 dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 
 KHR-GL30.transform_feedback.api_errors_test,Fail
+KHR-GL32.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
+dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_center,Fail
+dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
+dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
+dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_corner,Fail

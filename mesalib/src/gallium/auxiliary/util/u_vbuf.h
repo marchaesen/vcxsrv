@@ -47,10 +47,10 @@ struct u_vbuf_caps {
 
    /* Whether vertex fetches don't have to be 4-byte-aligned. */
    /* TRUE if hardware supports it. */
-   unsigned buffer_offset_unaligned:1;
-   unsigned buffer_stride_unaligned:1;
-   unsigned velem_src_offset_unaligned:1;
-   unsigned attrib_component_unaligned:1;
+   unsigned attrib_4byte_unaligned:1;
+   /* Whether vertex fetches don't have to be element-aligned. */
+   /* TRUE if hardware supports it. */
+   unsigned attrib_element_unaligned:1;
 
    /* Whether the driver supports user vertex buffers. */
    unsigned user_vertex_buffers:1;

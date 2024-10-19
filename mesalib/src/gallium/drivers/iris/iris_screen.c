@@ -126,7 +126,7 @@ static void
 iris_warn_cl()
 {
    static bool warned = false;
-   if (warned)
+   if (warned || INTEL_DEBUG(DEBUG_CL_QUIET))
       return;
 
    warned = true;
@@ -850,6 +850,10 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    screen->precompile = debug_get_bool_option("shader_precompile", true);
 
    isl_device_init(&screen->isl_dev, screen->devinfo);
+   screen->isl_dev.dummy_aux_address = iris_bufmgr_get_dummy_aux_address(screen->bufmgr);
+
+   screen->isl_dev.sampler_route_to_lsc =
+      driQueryOptionb(config->options, "intel_sampler_route_to_lsc");
 
    iris_compiler_init(screen);
 

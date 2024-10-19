@@ -12,3 +12,5 @@ dEQP-VK.rasterization.provoking_vertex.transform_feedback.first.line_strip_with_
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.per_pipeline.triangle_strip_with_adjacency
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.last.triangle_list_with_adjacency
 
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_12
+dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_13

@@ -25,9 +25,7 @@
 
 /* This code is a modified version of randr/rrproperty.c */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/Xatom.h>
 #include <X11/extensions/XI.h>
@@ -35,6 +33,7 @@
 #include <X11/extensions/XI2proto.h>
 
 #include "dix/exevents_priv.h"
+#include "dix/input_priv.h"
 
 #include "dix.h"
 #include "inputstr.h"

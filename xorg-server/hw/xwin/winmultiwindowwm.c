@@ -1395,9 +1395,9 @@ winInitWM(void **ppWMInfo,
           pthread_mutex_t * ppmServerStarted,
           int dwScreen, HWND hwndScreen, Bool compositeWM)
 {
-    WMProcArgPtr pArg = calloc(sizeof(WMProcArgRec), 1);
-    WMInfoPtr pWMInfo = calloc(sizeof(WMInfoRec), 1);
-    XMsgProcArgPtr pXMsgArg = calloc(sizeof(XMsgProcArgRec), 1);
+    WMProcArgPtr pArg = calloc(1, sizeof(WMProcArgRec));
+    WMInfoPtr pWMInfo = calloc(1, sizeof(WMInfoRec));
+    XMsgProcArgPtr pXMsgArg = calloc(1, sizeof(XMsgProcArgRec));
 
     /* Bail if the input parameters are bad */
     if (pArg == NULL || pWMInfo == NULL || pXMsgArg == NULL) {

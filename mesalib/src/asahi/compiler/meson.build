@@ -39,6 +39,7 @@ libasahi_agx_files = files(
   'agx_spill.c',
   'agx_register_allocate.c',
   'agx_validate.c',
+  'agx_validate_ra.c',
 )
 
 agx_nir_algebraic_c = custom_target(
@@ -92,8 +93,8 @@ idep_agx_builder_h = declare_dependency(
 libasahi_compiler = static_library(
   'asahi_compiler',
   [libasahi_agx_files, agx_opcodes_c, agx_nir_algebraic_c],
-  dependencies: [idep_nir, idep_agx_opcodes_h, idep_agx_builder_h],
-  c_args : [no_override_init_args],
+  dependencies: [idep_nir, idep_agx_opcodes_h, idep_agx_builder_h, idep_mesautil],
+  c_args : [no_override_init_args, '-Wno-c2x-extensions'],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,
 )
@@ -114,7 +115,7 @@ if with_tests
       ),
       c_args : [c_msvc_compat_args, no_override_init_args],
       gnu_symbol_visibility : 'hidden',
-      dependencies: [idep_gtest, idep_nir, idep_agx_opcodes_h, idep_agx_builder_h],
+      dependencies: [idep_gtest, idep_nir, idep_agx_opcodes_h, idep_agx_builder_h, idep_mesautil],
       link_with : [libasahi_compiler],
     ),
     suite : ['asahi'],

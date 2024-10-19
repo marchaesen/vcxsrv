@@ -184,8 +184,7 @@ lower_alu_instr(nir_builder *b, nir_alu_instr *alu, bool has_fcsel_ne,
 
    if (rep) {
       /* We've emitted a replacement instruction */
-      nir_def_rewrite_uses(&alu->def, rep);
-      nir_instr_remove(&alu->instr);
+      nir_def_replace(&alu->def, rep);
    } else {
       if (alu->def.bit_size == 1)
          alu->def.bit_size = 32;
@@ -261,7 +260,6 @@ nir_lower_bool_to_float(nir_shader *shader, bool has_fcsel_ne)
    };
 
    return nir_shader_instructions_pass(shader, nir_lower_bool_to_float_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &data);
 }

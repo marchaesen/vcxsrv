@@ -26,11 +26,12 @@
 #include "drm-uapi/panthor_drm.h"
 
 #include "genxml/cs_builder.h"
+#include "panfrost/lib/genxml/cs_builder.h"
 
-#include "pan_blitter.h"
 #include "pan_cmdstream.h"
 #include "pan_context.h"
 #include "pan_csf.h"
+#include "pan_fb_preload.h"
 #include "pan_job.h"
 
 #if PAN_ARCH < 10
@@ -166,7 +167,7 @@ csf_emit_batch_end(struct panfrost_batch *batch)
    struct cs_index flush_id = cs_reg32(b, 74);
    cs_move32_to(b, flush_id, 0);
    cs_flush_caches(b, MALI_CS_FLUSH_MODE_CLEAN, MALI_CS_FLUSH_MODE_CLEAN, true,
-                   flush_id, cs_now());
+                   flush_id, cs_defer(0, 0));
    cs_wait_slot(b, 0, false);
 
    /* Finish the command stream */
@@ -405,9 +406,8 @@ GENX(csf_submit_batch)(struct panfrost_batch *batch)
    /* Close the batch before submitting. */
    csf_emit_batch_end(batch);
 
-   uint32_t cs_instr_count = batch->csf.cs.builder->root_chunk.size;
-   uint64_t cs_start = batch->csf.cs.builder->root_chunk.buffer.gpu;
-   uint32_t cs_size = cs_instr_count * 8;
+   uint64_t cs_start = cs_root_chunk_gpu_addr(batch->csf.cs.builder);
+   uint32_t cs_size = cs_root_chunk_size(batch->csf.cs.builder);
    struct panfrost_context *ctx = batch->ctx;
    struct panfrost_device *dev = pan_device(ctx->base.screen);
    uint32_t vm_sync_handle = panthor_kmod_vm_sync_handle(dev->kmod.vm);
@@ -462,8 +462,7 @@ GENX(csf_preload_fb)(struct panfrost_batch *batch, struct pan_fb_info *fb)
    struct panfrost_device *dev = pan_device(batch->ctx->base.screen);
 
    GENX(pan_preload_fb)
-   (&dev->blitter, &batch->pool.base, NULL, fb, batch->tls.gpu,
-    batch->tiler_ctx.bifrost, NULL);
+   (&dev->fb_preload_cache, &batch->pool.base, fb, batch->tls.gpu, NULL);
 }
 
 void
@@ -495,8 +494,8 @@ GENX(csf_emit_fragment_job)(struct panfrost_batch *batch,
     * chunks is in the tiler context descriptor
     * (completed_{top,bottom fields}). */
    if (batch->draw_count > 0) {
-      assert(batch->tiler_ctx.bifrost);
-      cs_move64_to(b, cs_reg64(b, 90), batch->tiler_ctx.bifrost);
+      assert(batch->tiler_ctx.valhall.desc);
+      cs_move64_to(b, cs_reg64(b, 90), batch->tiler_ctx.valhall.desc);
       cs_load_to(b, cs_reg_tuple(b, 86, 4), cs_reg64(b, 90), BITFIELD_MASK(4),
                  40);
       cs_wait_slot(b, 0, false);
@@ -671,6 +670,9 @@ GENX(csf_launch_xfb)(struct panfrost_batch *batch,
 
    csf_emit_shader_regs(batch, PIPE_SHADER_VERTEX,
                         batch->rsd[PIPE_SHADER_VERTEX]);
+   /* force a barrier to avoid read/write sync issues with buffers */
+   cs_wait_slot(b, 2, false);
+
    /* XXX: Choose correctly */
    cs_run_compute(b, 1, MALI_TASK_AXIS_Z, false, cs_shader_res_sel(0, 0, 0, 0));
 }
@@ -681,8 +683,8 @@ csf_get_tiler_desc(struct panfrost_batch *batch)
    struct panfrost_context *ctx = batch->ctx;
    struct panfrost_device *dev = pan_device(ctx->base.screen);
 
-   if (batch->tiler_ctx.bifrost)
-      return batch->tiler_ctx.bifrost;
+   if (batch->tiler_ctx.valhall.desc)
+      return batch->tiler_ctx.valhall.desc;
 
    struct panfrost_ptr t =
       pan_pool_alloc_desc(&batch->pool.base, TILER_CONTEXT);
@@ -712,19 +714,18 @@ csf_get_tiler_desc(struct panfrost_batch *batch)
       tiler.geometry_buffer_size = ctx->csf.tmp_geom_bo->kmod_bo->size;
    }
 
-   batch->tiler_ctx.bifrost = t.gpu;
-   return batch->tiler_ctx.bifrost;
+   batch->tiler_ctx.valhall.desc = t.gpu;
+   return batch->tiler_ctx.valhall.desc;
 }
 
-void
-GENX(csf_launch_draw)(struct panfrost_batch *batch,
-                      const struct pipe_draw_info *info, unsigned drawid_offset,
-                      const struct pipe_draw_start_count_bias *draw,
-                      unsigned vertex_count)
+static uint32_t
+csf_emit_draw_state(struct panfrost_batch *batch,
+                    const struct pipe_draw_info *info, unsigned drawid_offset)
 {
    struct panfrost_context *ctx = batch->ctx;
    struct panfrost_compiled_shader *vs = ctx->prog[PIPE_SHADER_VERTEX];
    struct panfrost_compiled_shader *fs = ctx->prog[PIPE_SHADER_FRAGMENT];
+
    bool idvs = vs->info.vs.idvs;
    bool fs_required = panfrost_fs_required(
       fs, ctx->blend, &ctx->pipe_framebuffer, ctx->depth_stencil);
@@ -756,20 +757,6 @@ GENX(csf_launch_draw)(struct panfrost_batch *batch,
    cs_move64_to(b, cs_reg64(b, 24), batch->tls.gpu);
    cs_move64_to(b, cs_reg64(b, 30), batch->tls.gpu);
    cs_move32_to(b, cs_reg32(b, 32), 0);
-   cs_move32_to(b, cs_reg32(b, 33), draw->count);
-   cs_move32_to(b, cs_reg32(b, 34), info->instance_count);
-   cs_move32_to(b, cs_reg32(b, 35), 0);
-
-   /* Base vertex offset on Valhall is used for both indexed and
-    * non-indexed draws, in a simple way for either. Handle both cases.
-    */
-   if (info->index_size) {
-      cs_move32_to(b, cs_reg32(b, 36), draw->index_bias);
-      cs_move32_to(b, cs_reg32(b, 39), info->index_size * draw->count);
-   } else {
-      cs_move32_to(b, cs_reg32(b, 36), draw->start);
-      cs_move32_to(b, cs_reg32(b, 39), 0);
-   }
    cs_move32_to(b, cs_reg32(b, 37), 0);
    cs_move32_to(b, cs_reg32(b, 38), 0);
 
@@ -797,12 +784,17 @@ GENX(csf_launch_draw)(struct panfrost_batch *batch,
    if (info->index_size)
       cs_move64_to(b, cs_reg64(b, 54), batch->indices);
 
+   struct pipe_rasterizer_state *rast = &ctx->rasterizer->base;
+
    uint32_t primitive_flags = 0;
    pan_pack(&primitive_flags, PRIMITIVE_FLAGS, cfg) {
       if (panfrost_writes_point_size(ctx))
          cfg.point_size_array_format = MALI_POINT_SIZE_ARRAY_FORMAT_FP16;
 
       cfg.allow_rotating_primitives = allow_rotating_primitives(fs, info);
+
+      cfg.low_depth_cull = rast->depth_clip_near;
+      cfg.high_depth_cull = rast->depth_clip_far;
 
       /* Non-fixed restart indices should have been lowered */
       assert(!cfg.primitive_restart || panfrost_is_implicit_prim_restart(info));
@@ -814,8 +806,6 @@ GENX(csf_launch_draw)(struct panfrost_batch *batch,
    }
 
    cs_move32_to(b, cs_reg32(b, 56), primitive_flags);
-
-   struct pipe_rasterizer_state *rast = &ctx->rasterizer->base;
 
    uint32_t dcd_flags0 = 0, dcd_flags1 = 0;
    pan_pack(&dcd_flags0, DCD_FLAGS_0, cfg) {
@@ -931,19 +921,123 @@ GENX(csf_launch_draw)(struct panfrost_batch *batch,
    cs_move64_to(b, cs_reg64(b, 60), primsize);
 
    uint32_t flags_override;
-   pan_pack(&flags_override, PRIMITIVE_FLAGS, cfg) {
+   /* Pack with nodefaults so only explicitly set override fields affect the
+    * previously set register values */
+   pan_pack_nodefaults(&flags_override, PRIMITIVE_FLAGS, cfg) {
       cfg.draw_mode = pan_draw_mode(info->mode);
       cfg.index_type = panfrost_translate_index_size(info->index_size);
       cfg.secondary_shader = secondary_shader;
+   };
+
+   return flags_override;
+}
+
+static struct cs_index
+csf_emit_draw_id_register(struct panfrost_batch *batch, unsigned offset)
+{
+   struct cs_builder *b = batch->csf.cs.builder;
+   struct panfrost_context *ctx = batch->ctx;
+   struct panfrost_uncompiled_shader *vs = ctx->uncompiled[PIPE_SHADER_VERTEX];
+
+   if (!BITSET_TEST(vs->nir->info.system_values_read, SYSTEM_VALUE_DRAW_ID))
+      return cs_undef();
+
+   struct cs_index drawid = cs_reg32(b, 67);
+   cs_move32_to(b, drawid, offset);
+
+   return drawid;
+}
+
+void
+GENX(csf_launch_draw)(struct panfrost_batch *batch,
+                      const struct pipe_draw_info *info, unsigned drawid_offset,
+                      const struct pipe_draw_start_count_bias *draw,
+                      unsigned vertex_count)
+{
+   struct cs_builder *b = batch->csf.cs.builder;
+
+   uint32_t flags_override = csf_emit_draw_state(batch, info, drawid_offset);
+   struct cs_index drawid = csf_emit_draw_id_register(batch, drawid_offset);
+
+   cs_move32_to(b, cs_reg32(b, 33), draw->count);
+   cs_move32_to(b, cs_reg32(b, 34), info->instance_count);
+   cs_move32_to(b, cs_reg32(b, 35), 0);
+
+   /* Base vertex offset on Valhall is used for both indexed and
+    * non-indexed draws, in a simple way for either. Handle both cases.
+    */
+   if (info->index_size) {
+      cs_move32_to(b, cs_reg32(b, 36), draw->index_bias);
+      cs_move32_to(b, cs_reg32(b, 39), info->index_size * draw->count);
+   } else {
+      cs_move32_to(b, cs_reg32(b, 36), draw->start);
+      cs_move32_to(b, cs_reg32(b, 39), 0);
    }
 
    cs_run_idvs(b, flags_override, false, true, cs_shader_res_sel(0, 0, 1, 0),
-               cs_shader_res_sel(2, 2, 2, 0), cs_undef());
+               cs_shader_res_sel(2, 2, 2, 0), drawid);
+}
+
+void
+GENX(csf_launch_draw_indirect)(struct panfrost_batch *batch,
+                               const struct pipe_draw_info *info,
+                               unsigned drawid_offset,
+                               const struct pipe_draw_indirect_info *indirect)
+{
+   struct cs_builder *b = batch->csf.cs.builder;
+
+   uint32_t flags_override = csf_emit_draw_state(batch, info, drawid_offset);
+   struct cs_index drawid = csf_emit_draw_id_register(batch, drawid_offset);
+
+   struct cs_index address = cs_reg64(b, 64);
+   struct cs_index counter = cs_reg32(b, 66);
+   cs_move64_to(
+      b, address,
+      pan_resource(indirect->buffer)->image.data.base + indirect->offset);
+   cs_move32_to(b, counter, indirect->draw_count);
+
+   cs_while(b, MALI_CS_CONDITION_GREATER, counter) {
+      if (info->index_size) {
+         /* loads vertex count, instance count, index offset, vertex offset */
+         cs_load_to(b, cs_reg_tuple(b, 33, 4), address, BITFIELD_MASK(4), 0);
+         cs_move32_to(b, cs_reg32(b, 39), info->index.resource->width0);
+      } else {
+         /* vertex count, instance count */
+         cs_load_to(b, cs_reg_tuple(b, 33, 2), address, BITFIELD_MASK(2), 0);
+         cs_move32_to(b, cs_reg32(b, 35), 0);
+         cs_load_to(b, cs_reg_tuple(b, 36, 1), address, BITFIELD_MASK(1),
+                    2 * sizeof(uint32_t)); // instance offset
+         cs_move32_to(b, cs_reg32(b, 37), 0);
+         cs_move32_to(b, cs_reg32(b, 39), 0);
+      }
+
+      cs_wait_slot(b, 0, false);
+      cs_run_idvs(b, flags_override, false, true, cs_shader_res_sel(0, 0, 1, 0),
+                  cs_shader_res_sel(2, 2, 2, 0), drawid);
+
+      cs_add64(b, address, address, indirect->stride);
+      cs_add32(b, counter, counter, (unsigned int)-1);
+      if (drawid.type != CS_INDEX_UNDEF)
+         cs_add32(b, drawid, drawid, 1);
+   }
 }
 
 #define POSITION_FIFO_SIZE (64 * 1024)
 
-void
+static enum drm_panthor_group_priority
+get_panthor_group_priority(struct panfrost_context *ctx)
+{
+   if (ctx->flags & PIPE_CONTEXT_REALTIME_PRIORITY)
+      return PANTHOR_GROUP_PRIORITY_REALTIME;
+   else if (ctx->flags & PIPE_CONTEXT_HIGH_PRIORITY)
+      return PANTHOR_GROUP_PRIORITY_HIGH;
+   else if (ctx->flags & PIPE_CONTEXT_LOW_PRIORITY)
+      return PANTHOR_GROUP_PRIORITY_LOW;
+
+   return PANTHOR_GROUP_PRIORITY_MEDIUM;
+}
+
+int
 GENX(csf_init_context)(struct panfrost_context *ctx)
 {
    struct panfrost_device *dev = pan_device(ctx->base.screen);
@@ -959,7 +1053,7 @@ GENX(csf_init_context)(struct panfrost_context *ctx)
       .max_compute_cores = util_bitcount64(dev->kmod.props.shader_present),
       .max_fragment_cores = util_bitcount64(dev->kmod.props.shader_present),
       .max_tiler_cores = 1,
-      .priority = PANTHOR_GROUP_PRIORITY_MEDIUM,
+      .priority = get_panthor_group_priority(ctx),
       .queues = DRM_PANTHOR_OBJ_ARRAY(ARRAY_SIZE(qc), qc),
       .vm_id = pan_kmod_vm_handle(dev->kmod.vm),
    };
@@ -967,27 +1061,42 @@ GENX(csf_init_context)(struct panfrost_context *ctx)
    int ret =
       drmIoctl(panfrost_device_fd(dev), DRM_IOCTL_PANTHOR_GROUP_CREATE, &gc);
 
-   assert(!ret);
+   if (ret)
+      goto err_group_create;
 
    ctx->csf.group_handle = gc.group_handle;
+
+   struct drm_panthor_group_destroy gd = {
+      .group_handle = ctx->csf.group_handle,
+   };
 
    /* Get tiler heap */
    struct drm_panthor_tiler_heap_create thc = {
       .vm_id = pan_kmod_vm_handle(dev->kmod.vm),
       .chunk_size = pan_screen(ctx->base.screen)->csf_tiler_heap.chunk_size,
-      .initial_chunk_count = pan_screen(ctx->base.screen)->csf_tiler_heap.initial_chunks,
+      .initial_chunk_count =
+         pan_screen(ctx->base.screen)->csf_tiler_heap.initial_chunks,
       .max_chunks = pan_screen(ctx->base.screen)->csf_tiler_heap.max_chunks,
       .target_in_flight = 65535,
    };
    ret = drmIoctl(panfrost_device_fd(dev), DRM_IOCTL_PANTHOR_TILER_HEAP_CREATE,
                   &thc);
 
-   assert(!ret);
+   if (ret)
+      goto err_tiler_heap;
 
    ctx->csf.heap.handle = thc.handle;
 
+   struct drm_panthor_tiler_heap_destroy thd = {
+      .handle = ctx->csf.heap.handle,
+   };
+
    ctx->csf.heap.desc_bo =
       panfrost_bo_create(dev, pan_size(TILER_HEAP), 0, "Tiler Heap");
+
+   if (ctx->csf.heap.desc_bo == NULL)
+      goto err_tiler_heap_desc_bo;
+
    pan_pack(ctx->csf.heap.desc_bo->ptr.cpu, TILER_HEAP, heap) {
       heap.size = pan_screen(ctx->base.screen)->csf_tiler_heap.chunk_size;
       heap.base = thc.first_heap_chunk_gpu_va;
@@ -997,12 +1106,16 @@ GENX(csf_init_context)(struct panfrost_context *ctx)
 
    ctx->csf.tmp_geom_bo = panfrost_bo_create(
       dev, POSITION_FIFO_SIZE, PAN_BO_INVISIBLE, "Temporary Geometry buffer");
-   assert(ctx->csf.tmp_geom_bo);
+
+   if (ctx->csf.tmp_geom_bo == NULL)
+      goto err_tiler_heap_tmp_geom_bo;
 
    /* Setup the tiler heap */
    struct panfrost_bo *cs_bo =
       panfrost_bo_create(dev, 4096, 0, "Temporary CS buffer");
-   assert(cs_bo);
+
+   if (cs_bo == NULL)
+      goto err_tiler_heap_cs_bo;
 
    struct cs_buffer init_buffer = {
       .cpu = cs_bo->ptr.cpu,
@@ -1030,26 +1143,46 @@ GENX(csf_init_context)(struct panfrost_context *ctx)
    assert(cs_is_valid(&b));
    cs_finish(&b);
 
-   uint32_t cs_instr_count = b.root_chunk.size;
-   uint64_t cs_start = b.root_chunk.buffer.gpu;
-   uint32_t cs_size = cs_instr_count * 8;
+   uint64_t cs_start = cs_root_chunk_gpu_addr(&b);
+   uint32_t cs_size = cs_root_chunk_size(&b);
 
    csf_prepare_qsubmit(ctx, &qsubmit, 0, cs_start, cs_size, &sync, 1);
    csf_prepare_gsubmit(ctx, &gsubmit, &qsubmit, 1);
    ret = csf_submit_gsubmit(ctx, &gsubmit);
-   assert(!ret);
+
+   if (ret)
+      goto err_g_submit;
 
    /* Wait before freeing the buffer. */
-   ret = drmSyncobjWait(panfrost_device_fd(dev), &ctx->syncobj, 1, INT64_MAX,
-                        0, NULL);
+   ret = drmSyncobjWait(panfrost_device_fd(dev), &ctx->syncobj, 1, INT64_MAX, 0,
+                        NULL);
    assert(!ret);
 
    panfrost_bo_unreference(cs_bo);
+
+   ctx->csf.is_init = true;
+   return 0;
+err_g_submit:
+   panfrost_bo_unreference(cs_bo);
+err_tiler_heap_cs_bo:
+   panfrost_bo_unreference(ctx->csf.tmp_geom_bo);
+err_tiler_heap_tmp_geom_bo:
+   panfrost_bo_unreference(ctx->csf.heap.desc_bo);
+err_tiler_heap_desc_bo:
+   drmIoctl(panfrost_device_fd(dev), DRM_IOCTL_PANTHOR_TILER_HEAP_DESTROY,
+            &thd);
+err_tiler_heap:
+   drmIoctl(panfrost_device_fd(dev), DRM_IOCTL_PANTHOR_GROUP_DESTROY, &gd);
+err_group_create:
+   return -1;
 }
 
 void
 GENX(csf_cleanup_context)(struct panfrost_context *ctx)
 {
+   if (!ctx->csf.is_init)
+      return;
+
    struct panfrost_device *dev = pan_device(ctx->base.screen);
    struct drm_panthor_tiler_heap_destroy thd = {
       .handle = ctx->csf.heap.handle,
@@ -1073,5 +1206,21 @@ GENX(csf_cleanup_context)(struct panfrost_context *ctx)
       drmIoctl(panfrost_device_fd(dev), DRM_IOCTL_PANTHOR_GROUP_DESTROY, &gd);
    assert(!ret);
 
+   panfrost_bo_unreference(ctx->csf.tmp_geom_bo);
    panfrost_bo_unreference(ctx->csf.heap.desc_bo);
+   ctx->csf.is_init = false;
+}
+
+void
+GENX(csf_emit_write_timestamp)(struct panfrost_batch *batch,
+                               struct panfrost_resource *dst, unsigned offset)
+{
+   struct cs_builder *b = batch->csf.cs.builder;
+
+   struct cs_index address = cs_reg64(b, 40);
+   cs_move64_to(b, address,
+                dst->image.data.base + dst->image.data.offset + offset);
+   cs_store_state(b, address, 0, MALI_CS_STATE_TIMESTAMP, cs_now());
+
+   panfrost_batch_write_rsrc(batch, dst, PIPE_SHADER_VERTEX);
 }

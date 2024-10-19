@@ -44,7 +44,7 @@ rra_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
    VkDevice _device = radv_device_to_handle(device);
    radv_rra_trace_clear_ray_history(_device, &device->rra_trace);
 
-   if (device->rra_trace.triggered) {
+   if (device->rra_trace.triggered && device->rra_trace.ray_history_buffer) {
       result = device->layer_dispatch.rra.DeviceWaitIdle(_device);
       if (result != VK_SUCCESS)
          return result;
@@ -71,20 +71,23 @@ rra_QueuePresentKHR(VkQueue _queue, const VkPresentInfoKHR *pPresentInfo)
 }
 
 static VkResult
-rra_init_accel_struct_data_buffer(VkDevice vk_device, struct radv_rra_accel_struct_data *data)
+rra_init_accel_struct_data_buffer(VkDevice vk_device, struct radv_rra_accel_struct_buffer *buffer, uint32_t size)
 {
    VK_FROM_HANDLE(radv_device, device, vk_device);
+
+   buffer->ref_cnt = 1;
+
    VkBufferCreateInfo buffer_create_info = {
       .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .size = data->size,
+      .size = size,
    };
 
-   VkResult result = radv_create_buffer(device, &buffer_create_info, NULL, &data->buffer, true);
+   VkResult result = radv_create_buffer(device, &buffer_create_info, NULL, &buffer->buffer, true);
    if (result != VK_SUCCESS)
       return result;
 
    VkMemoryRequirements requirements;
-   vk_common_GetBufferMemoryRequirements(vk_device, data->buffer, &requirements);
+   vk_common_GetBufferMemoryRequirements(vk_device, buffer->buffer, &requirements);
 
    VkMemoryAllocateFlagsInfo flags_info = {
       .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
@@ -97,19 +100,21 @@ rra_init_accel_struct_data_buffer(VkDevice vk_device, struct radv_rra_accel_stru
       .allocationSize = requirements.size,
       .memoryTypeIndex = device->rra_trace.copy_memory_index,
    };
-   result = radv_alloc_memory(device, &alloc_info, NULL, &data->memory, true);
+   result = radv_alloc_memory(device, &alloc_info, NULL, &buffer->memory, true);
    if (result != VK_SUCCESS)
       goto fail_buffer;
 
-   result = vk_common_BindBufferMemory(vk_device, data->buffer, data->memory, 0);
+   result = vk_common_BindBufferMemory(vk_device, buffer->buffer, buffer->memory, 0);
    if (result != VK_SUCCESS)
       goto fail_memory;
 
    return result;
 fail_memory:
-   radv_FreeMemory(vk_device, data->memory, NULL);
+   radv_FreeMemory(vk_device, buffer->memory, NULL);
+   buffer->memory = VK_NULL_HANDLE;
 fail_buffer:
-   radv_DestroyBuffer(vk_device, data->buffer, NULL);
+   radv_DestroyBuffer(vk_device, buffer->buffer, NULL);
+   buffer->buffer = VK_NULL_HANDLE;
    return result;
 }
 
@@ -137,7 +142,6 @@ rra_CreateAccelerationStructureKHR(VkDevice _device, const VkAccelerationStructu
    }
 
    data->va = buffer->bo ? vk_acceleration_structure_get_va(structure) : 0;
-   data->size = structure->size;
    data->type = pCreateInfo->type;
    data->is_dead = false;
 
@@ -149,20 +153,12 @@ rra_CreateAccelerationStructureKHR(VkDevice _device, const VkAccelerationStructu
    if (result != VK_SUCCESS)
       goto fail_data;
 
-   if (device->rra_trace.copy_after_build) {
-      result = rra_init_accel_struct_data_buffer(_device, data);
-      if (result != VK_SUCCESS)
-         goto fail_event;
-   }
-
    _mesa_hash_table_insert(device->rra_trace.accel_structs, structure, data);
 
    if (data->va)
       _mesa_hash_table_u64_insert(device->rra_trace.accel_struct_vas, data->va, structure);
 
    goto exit;
-fail_event:
-   radv_DestroyEvent(_device, data->build_event, NULL);
 fail_data:
    free(data);
 fail_as:
@@ -174,11 +170,19 @@ exit:
 }
 
 static void
-handle_accel_struct_write(VkCommandBuffer commandBuffer, struct vk_acceleration_structure *accel_struct,
-                          struct radv_rra_accel_struct_data *data)
+handle_accel_struct_write(VkCommandBuffer commandBuffer, VkAccelerationStructureKHR accelerationStructure,
+                          uint64_t size)
 {
    VK_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+   VK_FROM_HANDLE(vk_acceleration_structure, accel_struct, accelerationStructure);
+
+   size = MIN2(size, accel_struct->size);
+
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   VkDevice _device = radv_device_to_handle(device);
+
+   struct hash_entry *entry = _mesa_hash_table_search(device->rra_trace.accel_structs, accel_struct);
+   struct radv_rra_accel_struct_data *data = entry->data;
 
    VkMemoryBarrier2 barrier = {
       .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2,
@@ -203,19 +207,37 @@ handle_accel_struct_write(VkCommandBuffer commandBuffer, struct vk_acceleration_
       _mesa_hash_table_u64_insert(device->rra_trace.accel_struct_vas, data->va, accel_struct);
    }
 
+   if (data->size < size) {
+      data->size = size;
+
+      if (device->rra_trace.copy_after_build) {
+         if (data->buffer)
+            radv_rra_accel_struct_buffer_unref(device, data->buffer);
+
+         data->buffer = calloc(1, sizeof(struct radv_rra_accel_struct_buffer));
+         if (rra_init_accel_struct_data_buffer(_device, data->buffer, size) != VK_SUCCESS)
+            return;
+      }
+   }
+
    if (!data->buffer)
       return;
+
+   if (!_mesa_set_search(cmd_buffer->accel_struct_buffers, data->buffer)) {
+      radv_radv_rra_accel_struct_buffer_ref(data->buffer);
+      _mesa_set_add(cmd_buffer->accel_struct_buffers, data->buffer);
+   }
 
    VkBufferCopy2 region = {
       .sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2,
       .srcOffset = accel_struct->offset,
-      .size = accel_struct->size,
+      .size = size,
    };
 
    VkCopyBufferInfo2 copyInfo = {
       .sType = VK_STRUCTURE_TYPE_COPY_BUFFER_INFO_2,
       .srcBuffer = accel_struct->buffer,
-      .dstBuffer = data->buffer,
+      .dstBuffer = data->buffer->buffer,
       .regionCount = 1,
       .pRegions = &region,
    };
@@ -234,15 +256,23 @@ rra_CmdBuildAccelerationStructuresKHR(VkCommandBuffer commandBuffer, uint32_t in
    device->layer_dispatch.rra.CmdBuildAccelerationStructuresKHR(commandBuffer, infoCount, pInfos, ppBuildRangeInfos);
 
    simple_mtx_lock(&device->rra_trace.data_mtx);
+
    for (uint32_t i = 0; i < infoCount; ++i) {
-      VK_FROM_HANDLE(vk_acceleration_structure, structure, pInfos[i].dstAccelerationStructure);
-      struct hash_entry *entry = _mesa_hash_table_search(device->rra_trace.accel_structs, structure);
+      uint32_t *primitive_counts = alloca(pInfos[i].geometryCount * sizeof(uint32_t));
+      for (uint32_t geometry_index = 0; geometry_index < pInfos[i].geometryCount; geometry_index++)
+         primitive_counts[geometry_index] = ppBuildRangeInfos[i][geometry_index].primitiveCount;
 
-      assert(entry);
-      struct radv_rra_accel_struct_data *data = entry->data;
+      /* vkd3d-proton specifies the size of the backing buffer. This can cause false positives when removing aliasing
+       * acceleration structures, because a buffer can be used by multiple acceleration structures. Therefore we need to
+       * compute the actual size. */
+      VkAccelerationStructureBuildSizesInfoKHR size_info;
+      device->layer_dispatch.rra.GetAccelerationStructureBuildSizesKHR(radv_device_to_handle(device),
+                                                                       VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+                                                                       pInfos + i, primitive_counts, &size_info);
 
-      handle_accel_struct_write(commandBuffer, structure, data);
+      handle_accel_struct_write(commandBuffer, pInfos[i].dstAccelerationStructure, size_info.accelerationStructureSize);
    }
+
    simple_mtx_unlock(&device->rra_trace.data_mtx);
 }
 
@@ -256,13 +286,12 @@ rra_CmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuffer, const VkCopyA
 
    simple_mtx_lock(&device->rra_trace.data_mtx);
 
-   VK_FROM_HANDLE(vk_acceleration_structure, structure, pInfo->dst);
-   struct hash_entry *entry = _mesa_hash_table_search(device->rra_trace.accel_structs, structure);
+   VK_FROM_HANDLE(vk_acceleration_structure, src, pInfo->src);
 
-   assert(entry);
+   struct hash_entry *entry = _mesa_hash_table_search(device->rra_trace.accel_structs, src);
    struct radv_rra_accel_struct_data *data = entry->data;
 
-   handle_accel_struct_write(commandBuffer, structure, data);
+   handle_accel_struct_write(commandBuffer, pInfo->dst, data->size);
 
    simple_mtx_unlock(&device->rra_trace.data_mtx);
 }
@@ -278,13 +307,8 @@ rra_CmdCopyMemoryToAccelerationStructureKHR(VkCommandBuffer commandBuffer,
 
    simple_mtx_lock(&device->rra_trace.data_mtx);
 
-   VK_FROM_HANDLE(vk_acceleration_structure, structure, pInfo->dst);
-   struct hash_entry *entry = _mesa_hash_table_search(device->rra_trace.accel_structs, structure);
-
-   assert(entry);
-   struct radv_rra_accel_struct_data *data = entry->data;
-
-   handle_accel_struct_write(commandBuffer, structure, data);
+   VK_FROM_HANDLE(vk_acceleration_structure, dst, pInfo->dst);
+   handle_accel_struct_write(commandBuffer, pInfo->dst, dst->size);
 
    simple_mtx_unlock(&device->rra_trace.data_mtx);
 }

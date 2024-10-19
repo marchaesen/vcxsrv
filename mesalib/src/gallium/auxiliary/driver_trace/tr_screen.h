@@ -65,9 +65,6 @@ struct trace_screen
 struct trace_screen *
 trace_screen(struct pipe_screen *screen);
 
-struct pipe_screen *
-trace_screen_unwrap(struct pipe_screen *_screen);
-
 #ifdef __cplusplus
 }
 #endif

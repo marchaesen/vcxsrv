@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 if TYPE_CHECKING:
     from lava.utils import LogFollower
@@ -13,6 +14,9 @@ from lava.utils.constants import (
     KNOWN_ISSUE_R8152_MAX_CONSECUTIVE_COUNTER,
     LOG_DEBUG_FEEDBACK_NOISE,
     KNOWN_ISSUE_R8152_PATTERNS,
+    A6XX_GPU_RECOVERY_WATCH_PERIOD_MIN,
+    A6XX_GPU_RECOVERY_FAILURE_MESSAGE,
+    A6XX_GPU_RECOVERY_FAILURE_MAX_COUNT,
 )
 from lava.utils.log_section import LogSectionType
 
@@ -29,6 +33,8 @@ class LAVALogHints:
     log_follower: LogFollower
     r8152_issue_consecutive_counter: int = field(default=0, init=False)
     reboot_counter: int = field(default=0, init=False)
+    a6xx_gpu_recovery_fail_counter: int = field(default=0, init=False)
+    a6xx_gpu_first_fail_time: Optional[datetime] = field(default=None, init=False)
 
     def raise_known_issue(self, message) -> None:
         raise MesaCIKnownIssueException(
@@ -44,6 +50,7 @@ class LAVALogHints:
                 continue
             self.detect_r8152_issue(line)
             self.detect_forced_reboot(line)
+            self.detect_a6xx_gpu_recovery_failure(line)
 
     def detect_r8152_issue(self, line):
         if self.log_follower.phase in (
@@ -77,3 +84,23 @@ class LAVALogHints:
                     self.raise_known_issue(
                         "Forced reboot detected during test phase, failing the job..."
                     )
+
+    # If the a6xx gpu repeatedly fails to recover over a short period of time,
+    # then successful recovery is unlikely so cancel the job preemptively.
+    def detect_a6xx_gpu_recovery_failure(self, line: dict[str, Any]) -> None:
+        if search_known_issue_patterns(A6XX_GPU_RECOVERY_FAILURE_MESSAGE, line["msg"]):
+            time_of_failure = datetime.fromisoformat(line["dt"])
+            self.a6xx_gpu_recovery_fail_counter += 1
+
+            if self.a6xx_gpu_first_fail_time is None:
+                self.a6xx_gpu_first_fail_time = time_of_failure
+
+            if self.a6xx_gpu_recovery_fail_counter == A6XX_GPU_RECOVERY_FAILURE_MAX_COUNT:
+                time_since_first_fail = time_of_failure - self.a6xx_gpu_first_fail_time
+                if time_since_first_fail <=  timedelta(minutes=A6XX_GPU_RECOVERY_WATCH_PERIOD_MIN):
+                    self.raise_known_issue(
+                        "Repeated GPU recovery failure detected: cancelling the job"
+                    )
+                else:
+                    self.a6xx_gpu_first_fail_time = None
+                    self.a6xx_gpu_recovery_fail_counter = 0

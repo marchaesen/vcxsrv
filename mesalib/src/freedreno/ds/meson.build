@@ -1,6 +1,5 @@
 # Copyright © 2021 Collabora, Ltd.
 # Copyright © 2021 Google, Inc
-#
 # SPDX-License-Identifier: MIT
 
 pps_freedreno_lib = static_library(

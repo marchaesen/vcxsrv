@@ -328,7 +328,7 @@ midgard_alu_special_arg_mod(midgard_alu_op op, unsigned arg)
 }
 
 static void
-print_quad_word(FILE *fp, uint32_t *words, unsigned tabs)
+print_quad_word(FILE *fp, const uint32_t *words, unsigned tabs)
 {
    unsigned i;
 
@@ -1143,7 +1143,7 @@ num_alu_fields_enabled(uint32_t control_word)
 }
 
 static bool
-print_alu_word(disassemble_context *ctx, FILE *fp, uint32_t *words,
+print_alu_word(disassemble_context *ctx, FILE *fp, const uint32_t *words,
                unsigned num_quad_words, unsigned tabs, unsigned next,
                bool verbose)
 {
@@ -1479,7 +1479,7 @@ print_load_store_instr(disassemble_context *ctx, FILE *fp, uint64_t data,
 }
 
 static void
-print_load_store_word(disassemble_context *ctx, FILE *fp, uint32_t *word,
+print_load_store_word(disassemble_context *ctx, FILE *fp, const uint32_t *word,
                       bool verbose)
 {
    midgard_load_store *load_store = (midgard_load_store *)word;
@@ -1562,7 +1562,7 @@ sampler_type_name(enum mali_sampler_type t)
 }
 
 static void
-print_texture_barrier(FILE *fp, uint32_t *word)
+print_texture_barrier(FILE *fp, const uint32_t *word)
 {
    midgard_texture_barrier_word *barrier = (midgard_texture_barrier_word *)word;
 
@@ -1650,7 +1650,7 @@ partial_exection_mode(enum midgard_partial_execution mode)
 }
 
 static void
-print_texture_word(disassemble_context *ctx, FILE *fp, uint32_t *word,
+print_texture_word(disassemble_context *ctx, FILE *fp, const uint32_t *word,
                    unsigned tabs, unsigned in_reg_base, unsigned out_reg_base)
 {
    midgard_texture_word *texture = (midgard_texture_word *)word;
@@ -1820,10 +1820,10 @@ print_texture_word(disassemble_context *ctx, FILE *fp, uint32_t *word,
 }
 
 void
-disassemble_midgard(FILE *fp, uint8_t *code, size_t size, unsigned gpu_id,
+disassemble_midgard(FILE *fp, const void *code, size_t size, unsigned gpu_id,
                     bool verbose)
 {
-   uint32_t *words = (uint32_t *)code;
+   const uint32_t *words = (const uint32_t *)code;
    unsigned num_words = size / 4;
    int tabs = 0;
 

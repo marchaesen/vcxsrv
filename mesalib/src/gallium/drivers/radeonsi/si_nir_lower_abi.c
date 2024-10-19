@@ -43,21 +43,18 @@ static nir_def *build_attr_ring_desc(nir_builder *b, struct si_shader *shader,
                                 sel->info.base.vs.blit_sgprs_amd - 1) :
       ac_nir_load_arg(b, &args->ac, args->gs_attr_address);
 
-   unsigned stride = 16 * shader->info.nr_param_exports;
+   unsigned stride = 16 * si_shader_num_alloc_param_exports(shader);
+   uint32_t desc[4];
+
+   ac_build_attr_ring_descriptor(sel->screen->info.gfx_level,
+                                 (uint64_t)sel->screen->info.address32_hi << 32,
+                                 0xffffffff, stride, desc);
+
    nir_def *comp[] = {
       attr_address,
-      nir_imm_int(b, S_008F04_BASE_ADDRESS_HI(sel->screen->info.address32_hi) |
-                  S_008F04_STRIDE(stride) |
-                  S_008F04_SWIZZLE_ENABLE_GFX11(3) /* 16B */),
-      nir_imm_int(b, 0xffffffff),
-      nir_imm_int(b, S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-                  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-                  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-                  (sel->screen->info.gfx_level >= GFX12 ?
-                     S_008F0C_FORMAT_GFX12(V_008F0C_GFX11_FORMAT_32_32_32_32_FLOAT) :
-                     S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_32_32_32_FLOAT)) |
-                  S_008F0C_INDEX_STRIDE(2) /* 32 elements */),
+      nir_imm_int(b, desc[1]),
+      nir_imm_int(b, desc[2]),
+      nir_imm_int(b, desc[3]),
    };
 
    return nir_vec(b, comp, 4);
@@ -133,33 +130,17 @@ static nir_def *build_tess_ring_desc(nir_builder *b, struct si_screen *screen,
                                          struct si_shader_args *args)
 {
    nir_def *addr = ac_nir_load_arg(b, &args->ac, args->tes_offchip_addr);
+   uint32_t desc[4];
 
-   uint32_t rsrc3 =
-      S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-      S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-      S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-      S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-   if (screen->info.gfx_level >= GFX12) {
-      rsrc3 |= S_008F0C_FORMAT_GFX12(V_008F0C_GFX11_FORMAT_32_FLOAT) |
-               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
-   } else if (screen->info.gfx_level >= GFX11) {
-      rsrc3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) |
-               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
-   } else if (screen->info.gfx_level >= GFX10) {
-      rsrc3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
-               S_008F0C_RESOURCE_LEVEL(1);
-   } else {
-      rsrc3 |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-               S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
-   }
+   ac_build_raw_buffer_descriptor(screen->info.gfx_level,
+                             (uint64_t)screen->info.address32_hi << 32,
+                             0xffffffff, desc);
 
    nir_def *comp[4] = {
       addr,
-      nir_imm_int(b, S_008F04_BASE_ADDRESS_HI(screen->info.address32_hi)),
-      nir_imm_int(b, 0xffffffff),
-      nir_imm_int(b, rsrc3),
+      nir_imm_int(b, desc[1]),
+      nir_imm_int(b, desc[2]),
+      nir_imm_int(b, desc[3]),
    };
 
    return nir_vec(b, comp, 4);
@@ -215,46 +196,34 @@ static void build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
          if (!num_components)
             continue;
 
-         nir_def *desc[4];
-         desc[0] = nir_unpack_64_2x32_split_x(b, base_addr);
-         desc[1] = nir_unpack_64_2x32_split_y(b, base_addr);
-
          unsigned stride = 4 * num_components * sel->info.base.gs.vertices_out;
          /* Limit on the stride field for <= GFX7. */
          assert(stride < (1 << 14));
 
-         desc[1] = nir_ior_imm(
-            b, desc[1], S_008F04_STRIDE(stride) | S_008F04_SWIZZLE_ENABLE_GFX6(1));
-
          unsigned num_records = s->shader->wave_size;
-         desc[2] = nir_imm_int(b, num_records);
 
-         uint32_t rsrc3 =
-            S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-            S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-            S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-            S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-            S_008F0C_INDEX_STRIDE(1) | /* index_stride = 16 (elements) */
-            S_008F0C_ADD_TID_ENABLE(1);
+         const struct ac_buffer_state buffer_state = {
+            .size = num_records,
+            .format = PIPE_FORMAT_R32_FLOAT,
+            .swizzle = {
+               PIPE_SWIZZLE_X, PIPE_SWIZZLE_Y, PIPE_SWIZZLE_Z, PIPE_SWIZZLE_W,
+            },
+            .stride = stride,
+            .swizzle_enable = true,
+            .element_size = 1,
+            .index_stride = 1,
+            .add_tid = true,
+            .gfx10_oob_select = V_008F0C_OOB_SELECT_DISABLED,
+         };
+         uint32_t tmp_desc[4];
 
-         if (sel->screen->info.gfx_level >= GFX10) {
-            rsrc3 |=
-               S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) |
-               S_008F0C_RESOURCE_LEVEL(1);
-         } else {
-            /* If MUBUF && ADD_TID_ENABLE, DATA_FORMAT means STRIDE[14:17] on gfx8-9, so set 0. */
-            unsigned data_format =
-               sel->screen->info.gfx_level == GFX8 || sel->screen->info.gfx_level == GFX9 ?
-               0 : V_008F0C_BUF_DATA_FORMAT_32;
+         ac_build_buffer_descriptor(sel->screen->info.gfx_level, &buffer_state, tmp_desc);
 
-            rsrc3 |=
-               S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-               S_008F0C_DATA_FORMAT(data_format) |
-               S_008F0C_ELEMENT_SIZE(1); /* element_size = 4 (bytes) */
-         }
-
-         desc[3] = nir_imm_int(b, rsrc3);
+         nir_def *desc[4];
+         desc[0] = nir_unpack_64_2x32_split_x(b, base_addr);
+         desc[1] = nir_ior_imm(b, nir_unpack_64_2x32_split_y(b, base_addr), tmp_desc[1]);
+         desc[2] = nir_imm_int(b, tmp_desc[2]);
+         desc[3] = nir_imm_int(b, tmp_desc[3]);
 
          s->gsvs_ring[stream] = nir_vec(b, desc, 4);
 
@@ -355,13 +324,14 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
       break;
    case nir_intrinsic_load_lshs_vertex_stride_amd:
       if (stage == MESA_SHADER_VERTEX) {
-         replacement = nir_imm_int(b, sel->info.lshs_vertex_stride);
+         replacement = nir_imm_int(b, si_shader_lshs_vertex_stride(shader));
       } else if (stage == MESA_SHADER_TESS_CTRL) {
          if (sel->screen->info.gfx_level >= GFX9 && shader->is_monolithic) {
-            replacement = nir_imm_int(b, key->ge.part.tcs.ls->info.lshs_vertex_stride);
+            replacement = nir_imm_int(b, si_shader_lshs_vertex_stride(shader));
          } else {
             nir_def *num_ls_out = ac_nir_unpack_arg(b, &args->ac, args->tcs_offchip_layout, 17, 6);
-            replacement = nir_iadd_imm_nuw(b, nir_ishl_imm(b, num_ls_out, 4), 4);
+            nir_def *extra_dw = nir_bcsel(b, nir_ieq_imm(b, num_ls_out, 0), nir_imm_int(b, 0), nir_imm_int(b, 4));
+            replacement = nir_iadd_nuw(b, nir_ishl_imm(b, num_ls_out, 4), extra_dw);
          }
       } else {
          unreachable("no nir_load_lshs_vertex_stride_amd");
@@ -726,7 +696,7 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
       break;
    case nir_intrinsic_load_tess_rel_patch_id_amd:
       /* LLVM need to replace patch id arg, so have to be done in LLVM backend. */
-      if (!sel->screen->use_aco)
+      if (!sel->info.base.use_aco_amd)
          return false;
 
       if (stage == MESA_SHADER_TESS_CTRL) {
@@ -807,7 +777,7 @@ static bool lower_tex(nir_builder *b, nir_instr *instr, struct lower_abi_state *
     */
 
    /* LLVM keep non-uniform sampler as index, so can't do this in NIR. */
-   if (tex->is_shadow && gfx_level >= GFX8 && gfx_level <= GFX9 && sel->screen->use_aco) {
+   if (tex->is_shadow && gfx_level >= GFX8 && gfx_level <= GFX9 && sel->info.base.use_aco_amd) {
       int samp_index = nir_tex_instr_src_index(tex, nir_tex_src_sampler_handle);
       int comp_index = nir_tex_instr_src_index(tex, nir_tex_src_comparator);
       assert(samp_index >= 0 && comp_index >= 0);
@@ -854,7 +824,7 @@ bool si_nir_lower_abi(nir_shader *nir, struct si_shader *shader, struct si_shade
    }
 
    nir_metadata preserved = progress ?
-      nir_metadata_dominance | nir_metadata_block_index :
+      nir_metadata_control_flow :
       nir_metadata_all;
    nir_metadata_preserve(impl, preserved);
 

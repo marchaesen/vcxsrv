@@ -65,7 +65,7 @@ struct xf86_platform_device *xf86_platform_devices;
 int
 xf86_add_platform_device(struct OdevAttributes *attribs, Bool unowned)
 {
-    xf86_platform_devices = xnfreallocarray(xf86_platform_devices,
+    xf86_platform_devices = XNFreallocarray(xf86_platform_devices,
                                             xf86_num_platform_devices + 1,
                                             sizeof(struct xf86_platform_device));
 

@@ -77,12 +77,14 @@ void
 ac_nir_lower_ls_outputs_to_mem(nir_shader *ls,
                                ac_nir_map_io_driver_location map,
                                bool tcs_in_out_eq,
+                               uint64_t tcs_inputs_read,
                                uint64_t tcs_temp_only_inputs);
 
 void
 ac_nir_lower_hs_inputs_to_mem(nir_shader *shader,
                               ac_nir_map_io_driver_location map,
-                              bool tcs_in_out_eq);
+                              bool tcs_in_out_eq,
+                              uint64_t tcs_temp_only_inputs);
 
 void
 ac_nir_lower_hs_outputs_to_mem(nir_shader *shader,
@@ -91,7 +93,6 @@ ac_nir_lower_hs_outputs_to_mem(nir_shader *shader,
                                uint64_t tes_inputs_read,
                                uint32_t tes_patch_inputs_read,
                                unsigned wave_size,
-                               bool no_inputs_in_lds,
                                bool pass_tessfactors_by_reg);
 
 void
@@ -102,7 +103,8 @@ void
 ac_nir_lower_es_outputs_to_mem(nir_shader *shader,
                                ac_nir_map_io_driver_location map,
                                enum amd_gfx_level gfx_level,
-                               unsigned esgs_itemsize);
+                               unsigned esgs_itemsize,
+                               uint64_t gs_inputs_read);
 
 void
 ac_nir_lower_gs_inputs_to_mem(nir_shader *shader,
@@ -311,6 +313,15 @@ ac_nir_store_debug_log_amd(nir_builder *b, nir_def *uvec4);
 
 bool
 ac_nir_opt_pack_half(nir_shader *shader, enum amd_gfx_level gfx_level);
+
+unsigned
+ac_nir_varying_expression_max_cost(nir_shader *producer, nir_shader *consumer);
+
+unsigned
+ac_nir_varying_estimate_instr_cost(nir_instr *instr);
+
+bool
+ac_nir_opt_shared_append(nir_shader *shader);
 
 #ifdef __cplusplus
 }

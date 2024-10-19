@@ -54,6 +54,10 @@ main .container {
   padding: 0;
 }
 
+main.body {
+  overflow-wrap: break-word;
+}
+
 li > p:last-of-type,
 th > p:last-of-type,
 td > p:last-of-type,

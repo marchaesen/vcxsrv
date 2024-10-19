@@ -69,12 +69,6 @@ alu_cost(nir_alu_instr *alu)
    case nir_op_fadd:
    case nir_op_fmul:
    case nir_op_ffma:
-   case nir_op_fddx:
-   case nir_op_fddx_fine:
-   case nir_op_fddx_coarse:
-   case nir_op_fddy:
-   case nir_op_fddy_fine:
-   case nir_op_fddy_coarse:
    case nir_op_iadd:
    case nir_op_inot:
    case nir_op_iand:
@@ -221,6 +215,13 @@ instr_cost(nir_instr *instr, const void *data)
       case nir_intrinsic_load_constant_agx:
       case nir_intrinsic_load_ubo:
          return 10.0;
+      case nir_intrinsic_ddx:
+      case nir_intrinsic_ddx_fine:
+      case nir_intrinsic_ddx_coarse:
+      case nir_intrinsic_ddy:
+      case nir_intrinsic_ddy_fine:
+      case nir_intrinsic_ddy_coarse:
+         return 1.0;
       default:
          /* Assume it's a sysval or something */
          return 0.0;
@@ -300,6 +301,7 @@ avoid_instr(const nir_instr *instr, const void *data)
             switch (intr->intrinsic) {
             case nir_intrinsic_bindless_image_load:
             case nir_intrinsic_bindless_image_store:
+            case nir_intrinsic_bindless_image_store_block_agx:
                if (intr->src[0].ssa == def)
                   return true;
                break;

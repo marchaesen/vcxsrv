@@ -631,9 +631,6 @@ xkb_symbols "dyalog" {
 
 partial
 xkb_symbols "level3" {
- // #UNREGISTERED
- name[Group1] = "APL on Level3";
-
  //from apl(dyalog_base) -- any way to just include it shifted to level3?
 
  key <AB01> { [ NoSymbol,	NoSymbol,	U2282,		U2286	] };	// subset of, enclose if simple

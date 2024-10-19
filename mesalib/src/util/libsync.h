@@ -36,6 +36,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include "util/detect_os.h"
@@ -83,6 +84,14 @@ struct sync_merge_data {
 	int32_t	fence;
 	uint32_t	flags;
 	uint32_t	pad;
+};
+
+struct sync_fence_info {
+	char obj_name[32];
+	char driver_name[32];
+	int32_t status;
+	uint32_t flags;
+	uint64_t timestamp_ns;
 };
 
 struct sync_file_info {
@@ -157,6 +166,34 @@ sync_valid_fd(int fd)
 {
 	struct sync_file_info info = {{0}};
 	return ioctl(fd, SYNC_IOC_FILE_INFO, &info) >= 0;
+}
+
+static inline struct sync_file_info* sync_file_info(int32_t fd)
+{
+    struct sync_file_info local_info;
+    struct sync_file_info *info;
+    int err;
+
+    memset(&local_info, 0, sizeof(local_info));
+    err = ioctl(fd, SYNC_IOC_FILE_INFO, &local_info);
+    if (err < 0)
+        return NULL;
+
+    info = (struct sync_file_info *)calloc(1, sizeof(struct sync_file_info) +
+                  local_info.num_fences * sizeof(struct sync_fence_info));
+    if (!info)
+        return NULL;
+
+    info->num_fences = local_info.num_fences;
+    info->sync_fence_info = (uint64_t)(uintptr_t)(info + 1);
+
+    err = ioctl(fd, SYNC_IOC_FILE_INFO, info);
+    if (err < 0) {
+        free(info);
+        return NULL;
+    }
+
+    return info;
 }
 
 #endif /* DETECT_OS_ANDROID */

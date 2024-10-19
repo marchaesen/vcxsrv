@@ -1,0 +1,65 @@
+{
+  "fonts": [
+    {
+      "family": [
+        "Foo"
+      ],
+      "style": [
+        "Regular"
+      ],
+      "file": "/path/to/Foo.ttf",
+      "fontwrapper": "SFNT"
+    },
+    {
+      "family": [
+        "Bar"
+      ],
+      "style": [
+        "Regular"
+      ],
+      "file": "/path/to/Bar.otf",
+      "fontwrapper": "CFF"
+    },
+    {
+      "family": [
+        "Baz"
+      ],
+      "style": [
+        "Regular"
+      ],
+      "file": "/path/to/Baz.woff",
+      "fontwrapper": "WOFF"
+    },
+    {
+      "family": [
+        "Blah"
+      ],
+      "style": [
+        "Regular"
+      ],
+      "file": "/path/to/Baz.bdf"
+    }
+  ],
+  "filter": {
+    "fontwrapper": "SFNT"
+  },
+  "tests": [
+    {
+      "method": "list",
+      "query": {
+      },
+      "result_fs": [
+        {
+          "family": [
+            "Foo"
+          ],
+          "style": [
+            "Regular"
+          ],
+          "file": "/path/to/Foo.ttf",
+          "fontwrapper": "SFNT"
+        }
+      ]
+    }
+  ]
+}

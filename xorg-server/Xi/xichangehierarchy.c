@@ -30,9 +30,7 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>              /* for inputstr.h    */
 #include <X11/Xproto.h>         /* Request macro     */
@@ -42,6 +40,7 @@
 
 #include "dix/dix_priv.h"
 #include "dix/exevents_priv.h"
+#include "dix/input_priv.h"
 
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window structure  */
@@ -49,6 +48,7 @@
 #include "extnsionst.h"
 #include "exglobals.h"
 #include "geext.h"
+#include "misc.h"
 #include "xace.h"
 #include "xiquerydevice.h"      /* for GetDeviceUse */
 #include "xkbsrv.h"
@@ -216,36 +216,56 @@ disable_clientpointer(DeviceIntPtr dev)
     }
 }
 
+static DeviceIntPtr
+find_disabled_master(int type)
+{
+    DeviceIntPtr dev;
+
+    /* Once a master device is disabled it loses the pairing, so returning the first
+     * match is good enough */
+    for (dev = inputInfo.off_devices; dev; dev = dev->next) {
+        if (dev->type == type)
+            return dev;
+    }
+
+    return NULL;
+}
+
 static int
 remove_master(ClientPtr client, xXIRemoveMasterInfo * r, int flags[MAXDEVICES])
 {
-    DeviceIntPtr ptr, keybd, XTestptr, XTestkeybd;
+    DeviceIntPtr dev, ptr, keybd, XTestptr, XTestkeybd;
     int rc = Success;
 
     if (r->return_mode != XIAttachToMaster && r->return_mode != XIFloating)
         return BadValue;
 
-    rc = dixLookupDevice(&ptr, r->deviceid, client, DixDestroyAccess);
+    rc = dixLookupDevice(&dev, r->deviceid, client, DixDestroyAccess);
     if (rc != Success)
         goto unwind;
 
-    if (!IsMaster(ptr)) {
+    if (!IsMaster(dev)) {
         client->errorValue = r->deviceid;
         rc = BadDevice;
         goto unwind;
     }
 
     /* XXX: For now, don't allow removal of VCP, VCK */
-    if (ptr == inputInfo.pointer ||ptr == inputInfo.keyboard) {
+    if (dev == inputInfo.pointer || dev == inputInfo.keyboard) {
         rc = BadDevice;
         goto unwind;
     }
 
-    ptr = GetMaster(ptr, MASTER_POINTER);
+    if ((ptr = GetMaster(dev, MASTER_POINTER)) == NULL)
+        ptr = find_disabled_master(MASTER_POINTER);
+    BUG_RETURN_VAL(ptr == NULL, BadDevice);
     rc = dixLookupDevice(&ptr, ptr->id, client, DixDestroyAccess);
     if (rc != Success)
         goto unwind;
-    keybd = GetMaster(ptr, MASTER_KEYBOARD);
+
+    if ((keybd = GetMaster(dev, MASTER_KEYBOARD)) == NULL)
+        keybd = find_disabled_master(MASTER_KEYBOARD);
+    BUG_RETURN_VAL(keybd == NULL, BadDevice);
     rc = dixLookupDevice(&keybd, keybd->id, client, DixDestroyAccess);
     if (rc != Success)
         goto unwind;

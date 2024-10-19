@@ -20,8 +20,7 @@ lower_to_per_sample(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    case nir_intrinsic_load_sample_id: {
       nir_def *mask = nir_u2u32(b, nir_load_active_samples_agx(b));
       nir_def *bit = nir_ufind_msb(b, mask);
-      nir_def_rewrite_uses(&intr->def, nir_u2uN(b, bit, intr->def.bit_size));
-      nir_instr_remove(&intr->instr);
+      nir_def_replace(&intr->def, nir_u2uN(b, bit, intr->def.bit_size));
       return true;
    }
 
@@ -50,9 +49,8 @@ lower_to_per_sample(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 bool
 agx_nir_lower_to_per_sample(nir_shader *shader)
 {
-   return nir_shader_intrinsics_pass(
-      shader, lower_to_per_sample,
-      nir_metadata_block_index | nir_metadata_dominance, NULL);
+   return nir_shader_intrinsics_pass(shader, lower_to_per_sample,
+                                     nir_metadata_control_flow, NULL);
 }
 
 static bool
@@ -112,8 +110,7 @@ agx_nir_wrap_per_sample_loop(nir_shader *shader, uint8_t nr_samples)
 
    /* Use the loop variable for the active sampple mask each iteration */
    nir_shader_intrinsics_pass(shader, lower_active_samples,
-                              nir_metadata_block_index | nir_metadata_dominance,
-                              bit);
+                              nir_metadata_control_flow, bit);
    return true;
 }
 

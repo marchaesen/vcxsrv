@@ -8,7 +8,7 @@
 
 #include <X11/Xdefs.h>
 
-typedef struct _Screen *ScreenPtr;
+#include "screenint.h"
 
 typedef Bool (*ScreenInitProcPtr)(ScreenPtr pScreen, int argc, char **argv);
 
@@ -19,9 +19,6 @@ void RemoveGPUScreen(ScreenPtr pScreen);
 
 void AttachUnboundGPU(ScreenPtr pScreen, ScreenPtr newScreen);
 void DetachUnboundGPU(ScreenPtr unbound);
-
-void AttachOutputGPU(ScreenPtr pScreen, ScreenPtr newScreen);
-void DetachOutputGPU(ScreenPtr output);
 
 void AttachOffloadGPU(ScreenPtr pScreen, ScreenPtr newScreen);
 void DetachOffloadGPU(ScreenPtr slave);

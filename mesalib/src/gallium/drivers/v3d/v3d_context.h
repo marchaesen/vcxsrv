@@ -35,6 +35,7 @@
 #include "pipe/p_state.h"
 #include "util/bitset.h"
 #include "util/slab.h"
+#include "util/u_dynarray.h"
 #include "xf86drm.h"
 #include "drm-uapi/v3d_drm.h"
 #include "v3d_screen.h"
@@ -50,12 +51,6 @@ void v3d_job_add_bo(struct v3d_job *job, struct v3d_bo *bo);
 #include "v3d_bufmgr.h"
 #include "v3d_resource.h"
 #include "v3d_cl.h"
-
-#ifdef USE_V3D_SIMULATOR
-#define using_v3d_simulator true
-#else
-#define using_v3d_simulator false
-#endif
 
 #define V3D_DIRTY_BLEND               (1ull <<  0)
 #define V3D_DIRTY_RASTERIZER          (1ull <<  1)
@@ -148,6 +143,20 @@ enum v3d_flush_cond {
          * glMemoryBarrier(), such as SSBOs and shader images.
          */
         V3D_FLUSH_NOT_CURRENT_JOB,
+};
+
+/* bitmask */
+enum v3d_blitter_op {
+        V3D_SAVE_TEXTURES         = (1u << 1),
+        V3D_SAVE_FRAMEBUFFER      = (1u << 2),
+        V3D_DISABLE_RENDER_COND   = (1u << 3),
+
+        V3D_BLIT          = V3D_SAVE_FRAMEBUFFER | V3D_SAVE_TEXTURES,
+        V3D_BLIT_COND     = V3D_BLIT | V3D_DISABLE_RENDER_COND,
+        V3D_CLEAR         = 0,
+        V3D_CLEAR_COND    = V3D_CLEAR | V3D_DISABLE_RENDER_COND,
+        V3D_CLEAR_SURFACE = V3D_SAVE_FRAMEBUFFER,
+        V3D_CLEAR_SURFACE_COND = V3D_CLEAR_SURFACE | V3D_DISABLE_RENDER_COND
 };
 
 struct v3d_sampler_view {
@@ -252,15 +261,15 @@ struct v3d_program_stateobj {
 
 struct v3d_constbuf_stateobj {
         struct pipe_constant_buffer cb[PIPE_MAX_CONSTANT_BUFFERS];
-        uint32_t enabled_mask;
-        uint32_t dirty_mask;
+        BITSET_DECLARE(enabled_mask, PIPE_MAX_CONSTANT_BUFFERS);
+        BITSET_DECLARE(dirty_mask, PIPE_MAX_CONSTANT_BUFFERS);
 };
 
 struct v3d_vertexbuf_stateobj {
         struct pipe_vertex_buffer vb[PIPE_MAX_ATTRIBS];
         unsigned count;
-        uint32_t enabled_mask;
-        uint32_t dirty_mask;
+        BITSET_DECLARE(enabled_mask, PIPE_MAX_ATTRIBS);
+        BITSET_DECLARE(dirty_mask, PIPE_MAX_ATTRIBS);
 };
 
 struct v3d_vertex_stateobj {
@@ -288,7 +297,7 @@ struct v3d_streamout_stateobj {
 
 struct v3d_ssbo_stateobj {
         struct pipe_shader_buffer sb[PIPE_MAX_SHADER_BUFFERS];
-        uint32_t enabled_mask;
+        BITSET_DECLARE(enabled_mask, PIPE_MAX_SHADER_BUFFERS);
 };
 
 /* Hash table key for v3d->jobs */
@@ -314,7 +323,7 @@ struct v3d_image_view {
 
 struct v3d_shaderimg_stateobj {
         struct v3d_image_view si[PIPE_MAX_SHADER_IMAGES];
-        uint32_t enabled_mask;
+        BITSET_DECLARE(enabled_mask, PIPE_MAX_SHADER_IMAGES);
 };
 
 struct v3d_perfmon_state {
@@ -369,11 +378,14 @@ struct v3d_job {
          * Surfaces to submit rendering for.
          * For blit operations, bbuf is the source surface, and cbufs[0] is
          * the destination surface.
+         * For blit operations straight from the job's tile buffer, dbuf is the
+         * blit destination surface.
          */
         uint32_t nr_cbufs;
         struct pipe_surface *cbufs[V3D_MAX_DRAW_BUFFERS];
         struct pipe_surface *zsbuf;
         struct pipe_surface *bbuf;
+        struct pipe_surface *dbuf;
         /** @} */
         /** @{
          * Bounding box of the scissor across all queued drawing.
@@ -430,7 +442,16 @@ struct v3d_job {
         /* Bitmask of PIPE_CLEAR_* of buffers that were cleared before the
          * first rendering.
          */
-        uint32_t clear;
+        uint32_t clear_tlb;
+        /* Bitmask of PIPE_CLEAR_* of buffers that were cleared using a draw
+         * call (not necessarily before the first rendering) instead of a TLB
+         * clear.
+         */
+        uint32_t clear_draw;
+        /* Bitmask of PIPE_CLEAR_* of attached buffers that were invalidated
+         * by glInvalidateFramebuffer so we can avoid loading them.
+         */
+        uint32_t invalidated_load;
         /* Bitmask of PIPE_CLEAR_* of buffers that have been read by a draw
          * call without having been cleared first.
          */
@@ -439,6 +460,13 @@ struct v3d_job {
          * (either clears or draws) and should be stored.
          */
         uint32_t store;
+        /* Bitmask of PIPE_CLEAR_* of buffers that need to be blitted into
+         * a destination buffer other than the jobs RT. Used to implement
+         * blits from jobs that have not yet been flushed, including MSAA
+         * resolve.
+         */
+        uint32_t blit_tlb;
+
         uint32_t clear_color[V3D_MAX_DRAW_BUFFERS][4];
         float clear_z;
         uint8_t clear_s;
@@ -574,7 +602,9 @@ struct v3d_context {
 
         struct v3d_program_stateobj prog;
         uint32_t compute_num_workgroups[3];
+        uint32_t compute_workgroup_size[3];
         struct v3d_bo *compute_shared_memory;
+        uint32_t shared_memory;
 
         struct v3d_vertex_stateobj *vtx;
 
@@ -637,6 +667,8 @@ struct v3d_context {
         int in_fence_fd;
         /** Handle of the syncobj that holds in_fence_fd for submission. */
         uint32_t in_syncobj;
+
+        struct util_dynarray global_buffers;
         /** @} */
 };
 
@@ -717,10 +749,11 @@ void v3d_query_init(struct pipe_context *pctx);
 static inline int
 v3d_ioctl(int fd, unsigned long request, void *arg)
 {
-        if (using_v3d_simulator)
-                return v3d_simulator_ioctl(fd, request, arg);
-        else
-                return drmIoctl(fd, request, arg);
+#if USE_V3D_SIMULATOR
+        return v3d_simulator_ioctl(fd, request, arg);
+#else
+        return drmIoctl(fd, request, arg);
+#endif
 }
 
 static inline bool
@@ -780,7 +813,7 @@ bool v3d_format_supports_tlb_msaa_resolve(const struct v3d_device_info *devinfo,
 
 void v3d_init_query_functions(struct v3d_context *v3d);
 void v3d_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info);
-void v3d_blitter_save(struct v3d_context *v3d, bool op_blit,  bool render_cond);
+void v3d_blitter_save(struct v3d_context *v3d, enum v3d_blitter_op op);
 bool v3d_generate_mipmap(struct pipe_context *pctx,
                          struct pipe_resource *prsc,
                          enum pipe_format format,
@@ -851,28 +884,6 @@ void v3d_disk_cache_store(struct v3d_context *v3d,
                 unreachable("Unsupported hardware generation"); \
         }                                                       \
         v3d_X_thing;                                            \
-})
-
-/* FIXME: The same for vulkan/opengl. Common place? define it at the
- * v3d_packet files?
- */
-#define V3D42_CLIPPER_XY_GRANULARITY 256.0f
-#define V3D71_CLIPPER_XY_GRANULARITY 64.0f
-
-/* Helper to get hw-specific macro values */
-#define V3DV_X(devinfo, thing) ({                               \
-   __typeof(V3D42_##thing) V3D_X_THING;                         \
-   switch (devinfo->ver) {                                      \
-   case 42:                                                     \
-      V3D_X_THING = V3D42_##thing;                              \
-      break;                                                    \
-   case 71:                                                     \
-      V3D_X_THING = V3D71_##thing;                              \
-      break;                                                    \
-   default:                                                     \
-      unreachable("Unsupported hardware generation");           \
-   }                                                            \
-   V3D_X_THING;                                                 \
 })
 
 #ifdef v3dX

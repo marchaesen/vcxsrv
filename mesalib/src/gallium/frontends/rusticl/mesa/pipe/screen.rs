@@ -7,7 +7,6 @@ use crate::util::disk_cache::*;
 use mesa_rust_gen::*;
 use mesa_rust_util::has_required_feature;
 use mesa_rust_util::ptr::ThreadSafeCPtr;
-use mesa_rust_util::string::*;
 
 use std::convert::TryInto;
 use std::ffi::CStr;
@@ -74,20 +73,15 @@ impl ComputeParam<Vec<u64>> for PipeScreen {
 pub enum ResourceType {
     Normal,
     Staging,
-    Cb0,
 }
 
 impl ResourceType {
-    fn apply(&self, tmpl: &mut pipe_resource, screen: &PipeScreen) {
+    fn apply(&self, tmpl: &mut pipe_resource) {
         match self {
             Self::Staging => {
-                tmpl.set_usage(pipe_resource_usage::PIPE_USAGE_STAGING.0);
+                tmpl.set_usage(pipe_resource_usage::PIPE_USAGE_STAGING);
                 tmpl.flags |= PIPE_RESOURCE_FLAG_MAP_PERSISTENT | PIPE_RESOURCE_FLAG_MAP_COHERENT;
                 tmpl.bind |= PIPE_BIND_LINEAR;
-            }
-            Self::Cb0 => {
-                tmpl.flags |= screen.param(pipe_cap::PIPE_CAP_CONSTBUF0_FLAGS) as u32;
-                tmpl.bind |= PIPE_BIND_CONSTANT_BUFFER;
             }
             Self::Normal => {}
         }
@@ -159,7 +153,7 @@ impl PipeScreen {
         tmpl.array_size = 1;
         tmpl.bind = pipe_bind;
 
-        res_type.apply(&mut tmpl, self);
+        res_type.apply(&mut tmpl);
 
         self.resource_create(&tmpl)
     }
@@ -207,7 +201,7 @@ impl PipeScreen {
             tmpl.bind |= PIPE_BIND_SHADER_IMAGE;
         }
 
-        res_type.apply(&mut tmpl, self);
+        res_type.apply(&mut tmpl);
 
         self.resource_create(&tmpl)
     }
@@ -305,8 +299,8 @@ impl PipeScreen {
         self.ldev.driver_name()
     }
 
-    pub fn name(&self) -> String {
-        unsafe { c_string_to_string(self.screen().get_name.unwrap()(self.screen.as_ptr())) }
+    pub fn name(&self) -> &CStr {
+        unsafe { CStr::from_ptr(self.screen().get_name.unwrap()(self.screen.as_ptr())) }
     }
 
     pub fn device_node_mask(&self) -> Option<u32> {
@@ -331,9 +325,9 @@ impl PipeScreen {
         Some(luid)
     }
 
-    pub fn device_vendor(&self) -> String {
+    pub fn device_vendor(&self) -> &CStr {
         unsafe {
-            c_string_to_string(self.screen().get_device_vendor.unwrap()(
+            CStr::from_ptr(self.screen().get_device_vendor.unwrap()(
                 self.screen.as_ptr(),
             ))
         }
@@ -389,11 +383,10 @@ impl PipeScreen {
     }
 
     pub fn get_timestamp(&self) -> u64 {
-        // We have get_timestamp in has_required_cbs, so it will exist
         unsafe {
             self.screen()
                 .get_timestamp
-                .expect("get_timestamp should be required")(self.screen.as_ptr())
+                .unwrap_or(u_default_get_timestamp)(self.screen.as_ptr())
         }
     }
 
@@ -421,11 +414,15 @@ impl PipeScreen {
         DiskCacheBorrowed::from_ptr(ptr)
     }
 
-    pub fn finalize_nir(&self, nir: &NirShader) {
+    /// returns true if finalize_nir was called
+    pub fn finalize_nir(&self, nir: &NirShader) -> bool {
         if let Some(func) = self.screen().finalize_nir {
             unsafe {
                 func(self.screen.as_ptr(), nir.get_nir().cast());
             }
+            true
+        } else {
+            false
         }
     }
 
@@ -478,7 +475,6 @@ fn has_required_cbs(screen: *mut pipe_screen) -> bool {
         & has_required_feature!(screen, get_name)
         & has_required_feature!(screen, get_param)
         & has_required_feature!(screen, get_shader_param)
-        & has_required_feature!(screen, get_timestamp)
         & has_required_feature!(screen, is_format_supported)
         & has_required_feature!(screen, resource_create)
 }

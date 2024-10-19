@@ -75,9 +75,35 @@ struct vk_descriptor_update_template {
    /** VkDescriptorUpdateTemplateCreateInfo::descriptorUpdateEntryCount */
    uint32_t entry_count;
 
+   /** Reference count.
+    *
+    * It is legal to enqueue a push template update to a secondary command
+    * buffer and destroy the template before executing the secondary. As
+    * capture-replay based secondaries reference the template, we need to
+    * reference count to extend the lifetime appropriately.
+    */
+   uint32_t ref_cnt;
+
    /** Entries of the template */
    struct vk_descriptor_template_entry entries[0];
 };
+
+static inline struct vk_descriptor_update_template *
+vk_descriptor_update_template_ref(struct vk_descriptor_update_template *templ)
+{
+   assert(templ && templ->ref_cnt >= 1);
+   p_atomic_inc(&templ->ref_cnt);
+   return templ;
+}
+
+static inline void
+vk_descriptor_update_template_unref(struct vk_device *device,
+                                    struct vk_descriptor_update_template *templ)
+{
+   assert(templ && templ->ref_cnt >= 1);
+   if (p_atomic_dec_zero(&templ->ref_cnt))
+      vk_object_free(device, NULL, templ);
+}
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(vk_descriptor_update_template, base,
                                VkDescriptorUpdateTemplate,

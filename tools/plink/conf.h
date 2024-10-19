@@ -154,7 +154,7 @@ CONF_OPTION(proxy_log_to_term,
 
 /* SSH options */
 CONF_OPTION(remote_cmd,
-    VALUE_TYPE(STR),
+    VALUE_TYPE(STR_AMBI),
     DEFAULT_STR(""),
     SAVE_KEYWORD("RemoteCommand"),
 )
@@ -165,7 +165,7 @@ CONF_OPTION(remote_cmd2,
      * methods of running an SFTP server at the remote end); never set
      * by user configuration, or loaded or saved.
      */
-    VALUE_TYPE(STR),
+    VALUE_TYPE(STR_AMBI),
     DEFAULT_STR(""),
     NOT_SAVED,
 )
@@ -444,7 +444,7 @@ CONF_OPTION(environmt,
     LOAD_CUSTOM, SAVE_CUSTOM, /* necessary for mappings */
 )
 CONF_OPTION(username,
-    VALUE_TYPE(STR),
+    VALUE_TYPE(STR_AMBI),
     DEFAULT_STR(""),
     SAVE_KEYWORD("UserName"),
 )
@@ -902,6 +902,11 @@ CONF_OPTION(no_bidi,
     VALUE_TYPE(BOOL),
     DEFAULT_BOOL(false),
     SAVE_KEYWORD("DisableBidi"),
+)
+CONF_OPTION(no_bracketed_paste,
+    VALUE_TYPE(BOOL),
+    DEFAULT_BOOL(false),
+    SAVE_KEYWORD("DisableBracketedPaste"),
 )
 
 /* Colour options */

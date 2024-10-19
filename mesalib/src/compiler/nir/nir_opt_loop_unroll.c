@@ -637,6 +637,19 @@ is_access_out_of_bounds(nir_loop_terminator *term, nir_deref_instr *deref,
    return false;
 }
 
+static bool
+comparison_contains_instr(nir_scalar cond_scalar, nir_instr *instr)
+{
+   if (nir_is_terminator_condition_with_two_inputs(cond_scalar)) {
+      nir_alu_instr *comparison =
+         nir_instr_as_alu(cond_scalar.def->parent_instr);
+      return comparison->src[0].src.ssa->parent_instr == instr ||
+             comparison->src[1].src.ssa->parent_instr == instr;
+   }
+
+   return false;
+}
+
 /* If we know an array access is going to be out of bounds remove or replace
  * the access with an undef. This can later result in the entire loop being
  * removed by nir_opt_dead_cf().
@@ -677,6 +690,36 @@ remove_out_of_bounds_induction_use(nir_shader *shader, nir_loop *loop,
             if (is_access_out_of_bounds(term, nir_src_as_deref(intrin->src[0]),
                                         trip_count)) {
                if (intrin->intrinsic == nir_intrinsic_load_deref) {
+                  nir_alu_instr *term_alu =
+                     nir_instr_as_alu(term->nif->condition.ssa->parent_instr);
+                  b.cursor = nir_before_instr(term->nif->condition.ssa->parent_instr);
+
+                  /* If the out of bounds load is used in the comparison of the
+                   * loop terminator replace the condition with true so that the
+                   * loop can be removed.
+                   */
+                  bool exit_on_true = !term->continue_from_then;
+                  if (term_alu->op == nir_op_ior && exit_on_true) {
+                     nir_scalar src0_cond_scalar = { term_alu->src[0].src.ssa, 0 };
+                     nir_scalar src1_cond_scalar = { term_alu->src[1].src.ssa, 0 };
+
+                     bool replaced_comparison = false;
+                     if (comparison_contains_instr(src0_cond_scalar, instr)) {
+                        nir_def *t = nir_imm_true(&b);
+                        nir_def_rewrite_uses(term_alu->src[0].src.ssa, t);
+                        replaced_comparison = true;
+                     }
+
+                     if (comparison_contains_instr(src1_cond_scalar, instr)) {
+                        nir_def *t = nir_imm_true(&b);
+                        nir_def_rewrite_uses(term_alu->src[1].src.ssa, t);
+                        replaced_comparison = true;
+                     }
+
+                     if (replaced_comparison)
+                        continue;
+                  }
+
                   nir_def *undef =
                      nir_undef(&b, intrin->def.num_components,
                                intrin->def.bit_size);

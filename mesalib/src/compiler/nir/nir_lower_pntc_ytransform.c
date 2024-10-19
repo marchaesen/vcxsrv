@@ -120,8 +120,7 @@ nir_lower_pntc_ytransform(nir_shader *shader,
       nir_foreach_block(block, impl) {
          lower_pntc_ytransform_block(&state, block);
       }
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    }
 
    return state.pntc_transform != NULL;

@@ -127,9 +127,6 @@ _mesa_spirv_shader_binary(struct gl_context *ctx,
 }
 
 /**
- * This is the equivalent to compiler/glsl/linker.cpp::link_shaders()
- * but for SPIR-V programs.
- *
  * This method just creates the gl_linked_shader structs with a reference to
  * the SPIR-V data collected during previous steps.
  *

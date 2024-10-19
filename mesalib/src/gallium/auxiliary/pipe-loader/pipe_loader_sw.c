@@ -136,7 +136,7 @@ pipe_loader_sw_probe_init_common(struct pipe_loader_sw_device *sdev)
    if (!sdev->dd)
       return false;
 #else
-   const char *search_dir = getenv("GALLIUM_PIPE_SEARCH_DIR");
+   const char *search_dir = os_get_option("GALLIUM_PIPE_SEARCH_DIR");
    if (search_dir == NULL)
       search_dir = PIPE_SEARCH_DIR;
 
@@ -171,7 +171,7 @@ pipe_loader_vk_probe_init_common(struct pipe_loader_sw_device *sdev)
    if (!sdev->dd)
       return false;
 #else
-   const char *search_dir = getenv("GALLIUM_PIPE_SEARCH_DIR");
+   const char *search_dir = os_get_option("GALLIUM_PIPE_SEARCH_DIR");
    if (search_dir == NULL)
       search_dir = PIPE_SEARCH_DIR;
 

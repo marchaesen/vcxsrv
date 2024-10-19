@@ -1,0 +1,8 @@
+{
+  "src": "https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/plain/arm/mali/arch10.8/",
+  "git_hash": "ad8d5f76c429e5485764a9ecb7a2ce3fbc1386ae",
+  "files": [
+      "mali_csffw.bin"
+  ],
+  "dst": "/lib/firmware/arm/mali/arch10.8/"
+}

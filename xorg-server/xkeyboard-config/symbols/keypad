@@ -521,6 +521,8 @@ partial keypad_keys
 xkb_symbols "hex" {
     key.type[Group1]="FOUR_LEVEL_MIXED_KEYPAD" ;
 
+    include "keypad(ops)"
+
     //             None       NumLock    AltGr
     // symbol row
     key <KPDV> { [ NoSymbol,  NoSymbol,  parenleft  ] };
@@ -556,6 +558,9 @@ xkb_symbols "hex" {
 // layout, e.g. "legacy".
 partial keypad_keys
 xkb_symbols "atm" {
+    include "keypad(ops)"
+    include "keypad(hex)"
+
     // upper row
     key <KP7>  { [ NoSymbol,  KP_1 ] };
     key <KP8>  { [ NoSymbol,  KP_2 ] };

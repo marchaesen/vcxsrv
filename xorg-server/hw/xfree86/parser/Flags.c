@@ -98,6 +98,8 @@ xf86parseFlagsSection(void)
         switch (token) {
         case COMMENT:
             ptr->flg_comment = xf86addComment(ptr->flg_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
             /*
              * these old keywords are turned into standard generic options.
@@ -436,18 +438,24 @@ xf86parseOption(XF86OptionPtr head)
     if ((token = xf86getSubToken(&comment)) == STRING) {
         option = xf86newOption(name, xf86_lex_val.str);
         option->opt_comment = comment;
-        if ((token = xf86getToken(NULL)) == COMMENT)
+        if ((token = xf86getToken(NULL)) == COMMENT) {
             option->opt_comment = xf86addComment(option->opt_comment, xf86_lex_val.str);
-        else
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
+        } else {
             xf86unGetToken(token);
+        }
     }
     else {
         option = xf86newOption(name, NULL);
         option->opt_comment = comment;
-        if (token == COMMENT)
+        if (token == COMMENT) {
             option->opt_comment = xf86addComment(option->opt_comment, xf86_lex_val.str);
-        else
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
+        } else {
             xf86unGetToken(token);
+        }
     }
 
     old = NULL;

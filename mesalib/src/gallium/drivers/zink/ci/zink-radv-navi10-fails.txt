@@ -84,10 +84,6 @@ spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
 
-
-# Introduced with the uprev of piglit (70ce1dcacc92 - "ci: Update piglit with s3 support")
-spec@egl 1.4@egl-ext_egl_image_storage,Fail
-
 # Introduced by a8d2b288eee3 ("ci/piglit: 2023-01-19 uprev")
 spec@!opengl 1.1@line-smooth-stipple,Fail
 
@@ -170,9 +166,6 @@ spec@ext_framebuffer_multisample@interpolation 8 centroid-deriv-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 centroid-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 non-centroid-deriv-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 non-centroid-disabled,Fail
-
-# Polygon smoothing isn't supported in Vulkan.
-spec@!opengl 1.0@gl-1.0-polygon-line-aa,Fail
 
 # Regression noticed in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/891104
 spec@arb_viewport_array@display-list,Fail

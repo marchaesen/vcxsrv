@@ -44,13 +44,12 @@ SOFTWARE.
 
 ********************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xmd.h>
 
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
 
 #include "misc.h"

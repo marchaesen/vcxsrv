@@ -220,6 +220,9 @@ void
 resize_tes_inputs(const struct gl_constants *consts,
                   struct gl_shader_program *prog);
 
+void
+set_geom_shader_input_array_size(struct gl_shader_program *prog);
+
 bool
 gl_assign_attribute_or_color_locations(const struct gl_constants *consts,
                                        struct gl_shader_program *prog);

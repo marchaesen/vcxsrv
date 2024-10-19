@@ -21,9 +21,9 @@ xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
 	<value name="HLSQ_FLUSH" value="7" variants="A3XX-A4XX"/>
 	<value name="VIZQUERY_END" value="8" variants="A2XX"/>
 	<value name="SC_WAIT_WC" value="9" variants="A2XX"/>
-	<value name="WRITE_PRIMITIVE_COUNTS" value="9" variants="A6XX"/>
-	<value name="START_PRIMITIVE_CTRS" value="11" variants="A6XX"/>
-	<value name="STOP_PRIMITIVE_CTRS" value="12" variants="A6XX"/>
+	<value name="WRITE_PRIMITIVE_COUNTS" value="9" variants="A6XX-"/>
+	<value name="START_PRIMITIVE_CTRS" value="11" variants="A6XX-"/>
+	<value name="STOP_PRIMITIVE_CTRS" value="12" variants="A6XX-"/>
 	<!-- Not sure that these 4 events don't have the same meaning as on A5XX+ -->
 	<value name="RST_PIX_CNT" value="13" variants="A2XX-A4XX"/>
 	<value name="RST_VTX_CNT" value="14" variants="A2XX-A4XX"/>
@@ -96,6 +96,13 @@ xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
 		more general blitting.
 	</doc>
 	<value name="BLIT" value="30" variants="A5XX-"/>
+
+	<doc>
+	Flip between the primary and secondary LRZ buffers. This is used
+	for concurrent binning, so that BV can write to one buffer while
+	BR reads from the other.
+	</doc>
+	<value name="LRZ_FLIP_BUFFER" value="36" variants="A7XX"/>
 
 	<doc>
 		Clears based on GRAS_LRZ_CNTL configuration, could clear
@@ -581,8 +588,7 @@ xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
                 and forcibly switch to the indicated context.
 	</doc>
 	<value name="CP_CONTEXT_SWITCH" value="0x54" variants="A6XX"/>
-	<!-- Note, kgsl calls this CP_SET_AMBLE: -->
-	<value name="CP_SET_CTXSWITCH_IB" value="0x55" variants="A6XX-"/>
+	<value name="CP_SET_AMBLE" value="0x55" variants="A6XX-"/>
 
 	<!--
 	Seems to always have the payload:
@@ -1674,15 +1680,11 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<bitfield name="WRITE_DST" pos="24" type="event_write_dst" addvariant="yes"/>
 		<!-- Writes into WRITE_DST from WRITE_SRC. RB_DONE_TS requires WRITE_ENABLED. -->
 		<bitfield name="WRITE_ENABLED" pos="27" type="boolean"/>
+		<bitfield name="IRQ" pos="31" type="boolean"/>
 	</reg32>
 
 	<stripe varset="event_write_dst" variants="EV_DST_RAM">
-		<reg32 offset="1" name="1">
-			<bitfield name="ADDR_0_LO" low="0" high="31"/>
-		</reg32>
-		<reg32 offset="2" name="2">
-			<bitfield name="ADDR_0_HI" low="0" high="31"/>
-		</reg32>
+		<reg64 offset="1" name="1" type="waddress"/>
 		<reg32 offset="3" name="3">
 			<bitfield name="PAYLOAD_0" low="0" high="31"/>
 		</reg32>
@@ -1777,13 +1779,23 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 
 <domain name="CP_SET_MARKER" width="32" varset="chip" prefix="chip" variants="A6XX-">
 	<doc>Tell CP the current operation mode, indicates save and restore procedure</doc>
+	<enum name="set_marker_mode">
+		<value value="0" name="SET_RENDER_MODE"/>
+		<!-- IFPC - inter-frame power collapse -->
+		<value value="1" name="SET_IFPC_MODE"/>
+	</enum>
+	<enum name="a6xx_ifpc_mode">
+		<value value="0" name="IFPC_ENABLE"/>
+		<value value="1" name="IFPC_DISABLE"/>
+	</enum>
 	<enum name="a6xx_marker">
-		<value value="1" name="RM6_BYPASS"/>
-		<value value="2" name="RM6_BINNING"/>
-		<value value="4" name="RM6_GMEM"/>
-		<value value="5" name="RM6_ENDVIS"/>
-		<value value="6" name="RM6_RESOLVE"/>
-		<value value="7" name="RM6_YIELD"/>
+		<value value="1" name="RM6_DIRECT_RENDER"/>
+		<value value="2" name="RM6_BIN_VISIBILITY"/>
+		<value value="3" name="RM6_BIN_DIRECT"/>
+		<value value="4" name="RM6_BIN_RENDER_START"/>
+		<value value="5" name="RM6_BIN_END_OF_DRAWS"/>
+		<value value="6" name="RM6_BIN_RESOLVE"/>
+		<value value="7" name="RM6_BIN_RENDER_END"/>
 		<value value="8" name="RM6_COMPUTE"/>
 		<value value="0xc" name="RM6_BLIT2DSCALE"/>  <!-- no-op (at least on current sqe fw) -->
 
@@ -1793,23 +1805,16 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		-->
 		<value value="0xd" name="RM6_IB1LIST_START"/>
 		<value value="0xe" name="RM6_IB1LIST_END"/>
-		<!-- IFPC - inter-frame power collapse -->
-		<value value="0x100" name="RM6_IFPC_ENABLE"/>
-		<value value="0x101" name="RM6_IFPC_DISABLE"/>
 	</enum>
 	<reg32 offset="0" name="0">
-		<!--
-			NOTE: blob driver and some versions of freedreno/turnip set
-			b4, which is unused (at least by current sqe fw), but interferes
-			with parsing if we extend the size of the bitfield to include
-			b8 (only sent by kernel mode driver).  Really, the way the
-			parsing works in the firmware, only b0-b3 are considered, but
-			if b8 is set, the low bits are interpreted differently.  To
-			model this, without getting confused by spurious b4, this is
-			described as two overlapping bitfields:
-		 -->
-		<bitfield name="MODE" low="0" high="8" type="a6xx_marker"/>
-		<bitfield name="MARKER" low="0" high="3" type="a6xx_marker"/>
+		<!-- if b8 is set, the low bits are interpreted differently (and b4 ignored) -->
+		<bitfield name="MARKER_MODE" pos="8" type="set_marker_mode" addvariant="yes"/>
+
+		<bitfield name="MODE" low="0" high="3" type="a6xx_marker" varset="set_marker_mode" variants="SET_RENDER_MODE"/>
+		<!-- used by preemption to determine if GMEM needs to be saved or not -->
+		<bitfield name="USES_GMEM" pos="4" type="boolean" varset="set_marker_mode" variants="SET_RENDER_MODE"/>
+
+		<bitfield name="IFPC_MODE" pos="0" type="a6xx_ifpc_mode" varset="set_marker_mode" variants="SET_IFPC_MODE"/>
 	</reg32>
 </domain>
 
@@ -1939,11 +1944,11 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 			a bitmask of which modes pass the test.
 		-->
 
-		<!-- RM6_BINNING -->
+		<!-- RM6_BIN_VISIBILITY -->
 		<bitfield name="BINNING" pos="25" variants="RENDER_MODE" type="boolean"/>
 		<!-- all others -->
 		<bitfield name="GMEM" pos="26" variants="RENDER_MODE" type="boolean"/>
-		<!-- RM6_BYPASS -->
+		<!-- RM6_DIRECT_RENDER -->
 		<bitfield name="SYSMEM" pos="27" variants="RENDER_MODE" type="boolean"/>
 
 		<bitfield name="BV" pos="25" variants="THREAD_MODE" type="boolean"/>
@@ -2016,42 +2021,38 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</reg32>
 </domain>
 
-<domain name="CP_SET_CTXSWITCH_IB" width="32">
+<domain name="CP_SET_AMBLE" width="32">
 	<doc>
-                Used by the userspace driver to set various IB's which are
-                executed during context save/restore for handling
-                state that isn't restored by the
-                context switch routine itself.
+		Used by the userspace and kernel drivers to set various IB's
+		which are executed during context save/restore for handling
+		state that isn't restored by the context switch routine itself.
 	</doc>
-	<enum name="ctxswitch_ib">
-		<value name="RESTORE_IB" value="0">
+	<enum name="amble_type">
+		<value name="PREAMBLE_AMBLE_TYPE" value="0">
 			<doc>Executed unconditionally when switching back to the context.</doc>
 		</value>
-		<value name="YIELD_RESTORE_IB" value="1">
+		<value name="BIN_PREAMBLE_AMBLE_TYPE" value="1">
                         <doc>
 				Executed when switching back after switching
 				away during execution of
-				a CP_SET_MARKER packet with RM6_YIELD as the
-				payload *and* the normal save routine was
-				bypassed for a shorter one. I think this is
-				connected to the "skipsaverestore" bit set by
-				the kernel when preempting.
+				a CP_SET_MARKER packet with RM6_BIN_RENDER_END as the
+				payload *and* skipsaverestore is set. This is
+				expected to restore static register values not
+				saved when skipsaverestore is set.
 			</doc>
 		</value>
-		<value name="SAVE_IB" value="2">
+		<value name="POSTAMBLE_AMBLE_TYPE" value="2">
                         <doc>
 				Executed when switching away from the context,
 				except for context switches initiated via
 				CP_YIELD.
                         </doc>
 		</value>
-		<value name="RB_SAVE_IB" value="3">
+		<value name="KMD_AMBLE_TYPE" value="3">
 			<doc>
 				This can only be set by the RB (i.e. the kernel)
 				and executes with protected mode off, but
-				is otherwise similar to SAVE_IB.
-
-				Note, kgsl calls this CP_KMD_AMBLE_TYPE
+				is otherwise similar to POSTAMBLE_AMBLE_TYPE.
 			</doc>
 		</value>
 	</enum>
@@ -2063,7 +2064,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</reg32>
 	<reg32 offset="2" name="2">
 		<bitfield name="DWORDS" low="0" high="19" type="uint"/>
-		<bitfield name="TYPE" low="20" high="21" type="ctxswitch_ib"/>
+		<bitfield name="TYPE" low="20" high="21" type="amble_type"/>
 	</reg32>
 </domain>
 
@@ -2264,6 +2265,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<bitfield name="CLEAR_ON_CHIP_TS" pos="0" type="boolean"/>
 		<bitfield name="CLEAR_RESOURCE_TABLE" pos="1" type="boolean"/>
 		<bitfield name="CLEAR_GLOBAL_LOCAL_TS" pos="2" type="boolean"/>
+		<bitfield name="RESET_CONTEXT_STATE" pos="3" type="boolean"/>
 	</reg32>
 </domain>
 

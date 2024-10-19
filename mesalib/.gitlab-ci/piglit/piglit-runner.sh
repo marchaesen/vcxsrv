@@ -16,9 +16,6 @@ export EGL_PLATFORM=surfaceless
 ARCH=$(uname -m)
 export VK_DRIVER_FILES="$INSTALL/share/vulkan/icd.d/${VK_DRIVER}_icd.$ARCH.json"
 
-RESULTS=$PWD/${PIGLIT_RESULTS_DIR:-results}
-mkdir -p $RESULTS
-
 # Ensure Mesa Shader Cache resides on tmpfs.
 SHADER_CACHE_HOME=${XDG_CACHE_HOME:-${HOME}/.cache}
 SHADER_CACHE_DIR=${MESA_SHADER_CACHE_DIR:-${SHADER_CACHE_HOME}/mesa_shader_cache}
@@ -39,7 +36,7 @@ if [ "$GALLIUM_DRIVER" = "virpipe" ]; then
 
     GALLIUM_DRIVER=llvmpipe \
     GALLIVM_PERF="nopt" \
-    virgl_test_server $VTEST_ARGS >$RESULTS/vtest-log.txt 2>&1 &
+    virgl_test_server $VTEST_ARGS >$RESULTS_DIR/vtest-log.txt 2>&1 &
 
     sleep 1
 fi
@@ -78,6 +75,10 @@ if [ -e "$INSTALL/$GPU_VERSION-skips.txt" ]; then
     PIGLIT_SKIPS="$PIGLIT_SKIPS $INSTALL/$GPU_VERSION-skips.txt"
 fi
 
+if [ -e "$INSTALL/$GPU_VERSION-merge-skips.txt" ] && [ -n "${IS_MERGE_PIPELINE:-}" ]; then
+    PIGLIT_SKIPS="$PIGLIT_SKIPS $INSTALL/$GPU_VERSION-merge-skips.txt"
+fi
+
 if [ "$PIGLIT_PLATFORM" != "gbm" ] ; then
     PIGLIT_SKIPS="$PIGLIT_SKIPS $INSTALL/x11-skips.txt"
 fi
@@ -91,7 +92,7 @@ set +e
 piglit-runner \
     run \
     --piglit-folder /piglit \
-    --output $RESULTS \
+    --output $RESULTS_DIR \
     --jobs ${FDO_CI_CONCURRENT:-4} \
     --skips $INSTALL/all-skips.txt $PIGLIT_SKIPS \
     --flakes $INSTALL/$GPU_VERSION-flakes.txt \
@@ -104,8 +105,8 @@ PIGLIT_EXITCODE=$?
 
 deqp-runner junit \
    --testsuite $PIGLIT_PROFILES \
-   --results $RESULTS/failures.csv \
-   --output $RESULTS/junit.xml \
+   --results $RESULTS_DIR/failures.csv \
+   --output $RESULTS_DIR/junit.xml \
    --limit 50 \
    --template "See $ARTIFACTS_BASE_URL/results/{{testcase}}.xml"
 
@@ -114,7 +115,7 @@ if [ -n "$FLAKES_CHANNEL" ]; then
   python3 $INSTALL/report-flakes.py \
          --host irc.oftc.net \
          --port 6667 \
-         --results $RESULTS/results.csv \
+         --results $RESULTS_DIR/results.csv \
          --known-flakes $INSTALL/$GPU_VERSION-flakes.txt \
          --channel "$FLAKES_CHANNEL" \
          --runner "$CI_RUNNER_DESCRIPTION" \
@@ -127,6 +128,6 @@ fi
 # Compress results.csv to save on bandwidth during the upload of artifacts to
 # GitLab. This reduces a full piglit run to 550 KB, down from 6 MB, and takes
 # 55ms on my Ryzen 5950X (with or without parallelism).
-zstd --rm -T0 -8qc $RESULTS/results.csv -o $RESULTS/results.csv.zst
+zstd --rm -T0 -8qc $RESULTS_DIR/results.csv -o $RESULTS_DIR/results.csv.zst
 
 exit $PIGLIT_EXITCODE

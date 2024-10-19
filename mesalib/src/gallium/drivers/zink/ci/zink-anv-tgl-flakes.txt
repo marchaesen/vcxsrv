@@ -137,3 +137,5 @@ spec@arb_shader_image_load_store@coherency@Tessellation evaluation-Geometry shad
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-modifiers
 spec@ext_timer_query@time-elapsed
 
+spec@arb_timer_query@query gl_timestamp
+spec@egl_chromium_sync_control@conformance

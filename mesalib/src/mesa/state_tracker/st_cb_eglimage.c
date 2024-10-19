@@ -25,7 +25,7 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
-#include <GL/internal/dri_interface.h>
+#include "mesa_interface.h"
 #include "main/errors.h"
 #include "main/texobj.h"
 #include "main/teximage.h"
@@ -229,8 +229,8 @@ is_i420_as_r8_g8_b8_420_supported(struct pipe_screen *screen,
  */
 bool
 st_get_egl_image(struct gl_context *ctx, GLeglImageOES image_handle,
-                 unsigned usage, const char *error, struct st_egl_image *out,
-                 bool *native_supported)
+                 unsigned usage, bool tex_compression, const char *error,
+                 struct st_egl_image *out, bool *native_supported)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_screen *screen = st->screen;
@@ -254,6 +254,14 @@ st_get_egl_image(struct gl_context *ctx, GLeglImageOES image_handle,
       /* unable to specify a texture object using the specified EGL image */
       pipe_resource_reference(&out->texture, NULL);
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(format not supported)", error);
+      return false;
+   }
+
+   if (out->texture->compression_rate != PIPE_COMPRESSION_FIXED_RATE_NONE &&
+       !tex_compression) {
+      /* texture is fixed-rate compressed but a uncompressed one is expected */
+      pipe_resource_reference(&out->texture, NULL);
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(fixed-rate compression not enabled)", error);
       return false;
    }
 
@@ -299,7 +307,7 @@ st_egl_image_target_renderbuffer_storage(struct gl_context *ctx,
    struct st_egl_image stimg;
    bool native_supported;
 
-   if (st_get_egl_image(ctx, image_handle, PIPE_BIND_RENDER_TARGET,
+   if (st_get_egl_image(ctx, image_handle, PIPE_BIND_RENDER_TARGET, false,
                         "glEGLImageTargetRenderbufferStorage",
                         &stimg, &native_supported)) {
       struct pipe_context *pipe = st_context(ctx)->pipe;
@@ -490,6 +498,8 @@ st_bind_egl_image(struct gl_context *ctx,
    if (stimg->yuv_range == __DRI_YUV_FULL_RANGE)
       texObj->yuv_full_range = true;
 
+   texObj->CompressionRate = stimg->texture->compression_rate;
+
    texObj->level_override = stimg->level;
    texObj->layer_override = stimg->layer;
    _mesa_update_texture_object_swizzle(ctx, texObj);
@@ -497,19 +507,11 @@ st_bind_egl_image(struct gl_context *ctx,
    _mesa_dirty_texobj(ctx, texObj);
 }
 
-static GLboolean
+bool
 st_validate_egl_image(struct gl_context *ctx, GLeglImageOES image_handle)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_frontend_screen *fscreen = st->frontend_screen;
 
    return fscreen->validate_egl_image(fscreen, (void *)image_handle);
-}
-
-void
-st_init_eglimage_functions(struct dd_function_table *functions,
-                           bool has_egl_image_validate)
-{
-   if (has_egl_image_validate)
-      functions->ValidateEGLImage = st_validate_egl_image;
 }

@@ -3,7 +3,27 @@ dEQP-VK.api.object_management.max_concurrent.graphics_pipeline
 dEQP-VK.api.object_management.max_concurrent.compute_pipeline
 
 # Can timeout
+dEQP-VK.api.descriptor_pool.repeated_free_reset_long
+dEQP-VK.api.info.image_format_properties2.2d.linear.g12x4_b12x4r12x4_2plane_422_unorm_3pack16
+dEQP-VK.api.info.vulkan1p2.feature_bits_influence
+dEQP-VK.binding_model.mutable_descriptor.multiple_arrays.constant_size.aliasing.update_copy.mutable_source.normal_source.pool_same_types.update_after_bind.index_constant.comp
+dEQP-VK.binding_model.mutable_descriptor.multiple_arrays.unbounded.aliasing.update_copy.mutable_source.host_only_source.pool_same_types.update_after_bind.index_constant.comp
+dEQP-VK.binding_model.mutable_descriptor.multiple_arrays.unbounded.noaliasing.update_copy.mutable_source.normal_source.pool_same_types.pre_update.index_push_constant.comp
+dEQP-VK.binding_model.mutable_descriptor.multiple_arrays.unbounded.noaliasing.update_copy.nonmutable_source.host_only_source.pool_expand_types.pre_update.index_push_constant.comp
+dEQP-VK.memory.requirements.core.image.regular_tiling_linear
+dEQP-VK.synchronization.internally_synchronized_objects.pipeline_cache_graphics
+dEQP-VK.synchronization.timeline_semaphore.device_host.write_image_compute_indirect_read_image_vertex.image_128x128_r8_unorm
+dEQP-VK.glsl.texture_functions.query.texturesize.isampler3d_fragment
+dEQP-VK.synchronization.timeline_semaphore.device_host.write_copy_buffer_read_ubo_compute.buffer_16384
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_linear_clamp
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_clamp
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_linear_mipmap_nearest_repeat
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_linear_clamp
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_linear_nearest_mipmap_linear_repeat
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_linear_repeat
+
+# Can crash since host lvp can return VK_ERROR_OUT_OF_DEVICE_MEMORY during those tests
+dEQP-VK.binding_model.mutable_descriptor.multiple_arrays_mixed.*
+
+# Trying to allocate all the memory we can is not a great idea on shared runners.
+dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail.*

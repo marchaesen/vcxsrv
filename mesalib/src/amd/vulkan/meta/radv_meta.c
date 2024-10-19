@@ -125,13 +125,6 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
 
       state->old_graphics_pipeline = cmd_buffer->state.graphics_pipeline;
 
-      for (unsigned i = 0; i <= MESA_SHADER_MESH; i++) {
-         if (i == MESA_SHADER_COMPUTE)
-            continue;
-
-         state->old_shader_objs[i] = cmd_buffer->state.shader_objs[i];
-      }
-
       /* Save all dynamic states. */
       state->dynamic = cmd_buffer->state.dynamic;
    }
@@ -140,8 +133,10 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
       assert(!(state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE));
 
       state->old_compute_pipeline = cmd_buffer->state.compute_pipeline;
+   }
 
-      state->old_shader_objs[MESA_SHADER_COMPUTE] = cmd_buffer->state.shader_objs[MESA_SHADER_COMPUTE];
+   for (unsigned i = 0; i <= MESA_SHADER_MESH; i++) {
+      state->old_shader_objs[i] = cmd_buffer->state.shader_objs[i];
    }
 
    if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
@@ -177,21 +172,6 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
       if (state->old_graphics_pipeline) {
          radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_GRAPHICS,
                               radv_pipeline_to_handle(&state->old_graphics_pipeline->base));
-      } else {
-         cmd_buffer->state.graphics_pipeline = NULL;
-
-         for (unsigned i = 0; i <= MESA_SHADER_MESH; i++) {
-            if (i == MESA_SHADER_COMPUTE)
-               continue;
-
-            if (!state->old_shader_objs[i])
-               continue;
-
-            VkShaderEXT old_shader_obj = radv_shader_object_to_handle(state->old_shader_objs[i]);
-            VkShaderStageFlagBits s = mesa_to_vk_shader_stage(i);
-
-            radv_CmdBindShadersEXT(radv_cmd_buffer_to_handle(cmd_buffer), 1, &s, &old_shader_obj);
-         }
       }
 
       /* Restore all dynamic states. */
@@ -206,16 +186,23 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
       if (state->old_compute_pipeline) {
          radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
                               radv_pipeline_to_handle(&state->old_compute_pipeline->base));
-      } else {
-         cmd_buffer->state.compute_pipeline = NULL;
-
-         if (state->old_shader_objs[MESA_SHADER_COMPUTE]) {
-            VkShaderEXT old_shader_obj = radv_shader_object_to_handle(state->old_shader_objs[MESA_SHADER_COMPUTE]);
-            VkShaderStageFlagBits s = VK_SHADER_STAGE_COMPUTE_BIT;
-
-            radv_CmdBindShadersEXT(radv_cmd_buffer_to_handle(cmd_buffer), 1, &s, &old_shader_obj);
-         }
       }
+   }
+
+   VkShaderEXT shaders[MESA_SHADER_MESH + 1];
+   VkShaderStageFlagBits stages[MESA_SHADER_MESH + 1];
+   uint32_t stage_count = 0;
+
+   for (unsigned i = 0; i <= MESA_SHADER_MESH; i++) {
+      if (state->old_shader_objs[i]) {
+         stages[stage_count] = mesa_to_vk_shader_stage(i);
+         shaders[stage_count] = radv_shader_object_to_handle(state->old_shader_objs[i]);
+         stage_count++;
+      }
+   }
+
+   if (stage_count > 0) {
+      radv_CmdBindShadersEXT(radv_cmd_buffer_to_handle(cmd_buffer), stage_count, stages, shaders);
    }
 
    if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
@@ -223,12 +210,12 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
    }
 
    if (state->flags & RADV_META_SAVE_CONSTANTS) {
-      VkShaderStageFlags stages = VK_SHADER_STAGE_COMPUTE_BIT;
+      VkShaderStageFlags stage_flags = VK_SHADER_STAGE_COMPUTE_BIT;
 
       if (state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE)
-         stages |= VK_SHADER_STAGE_ALL_GRAPHICS;
+         stage_flags |= VK_SHADER_STAGE_ALL_GRAPHICS;
 
-      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), VK_NULL_HANDLE, stages, 0,
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), VK_NULL_HANDLE, stage_flags, 0,
                                  MAX_PUSH_CONSTANTS_SIZE, state->push_constants);
    }
 
@@ -478,7 +465,7 @@ radv_device_init_meta(struct radv_device *device)
    if (result != VK_SUCCESS)
       goto fail_blit2d;
 
-   result = radv_device_init_meta_bufimage_state(device);
+   result = radv_device_init_meta_bufimage_state(device, on_demand);
    if (result != VK_SUCCESS)
       goto fail_bufimage;
 
@@ -486,7 +473,7 @@ radv_device_init_meta(struct radv_device *device)
    if (result != VK_SUCCESS)
       goto fail_depth_decomp;
 
-   result = radv_device_init_meta_buffer_state(device);
+   result = radv_device_init_meta_buffer_state(device, on_demand);
    if (result != VK_SUCCESS)
       goto fail_buffer;
 
@@ -525,7 +512,7 @@ radv_device_init_meta(struct radv_device *device)
       goto fail_astc_decode;
 
    if (radv_uses_device_generated_commands(device)) {
-      result = radv_device_init_dgc_prepare_state(device);
+      result = radv_device_init_dgc_prepare_state(device, on_demand);
       if (result != VK_SUCCESS)
          goto fail_dgc;
    }
@@ -728,10 +715,62 @@ radv_break_on_count(nir_builder *b, nir_variable *var, nir_def *count)
 {
    nir_def *counter = nir_load_var(b, var);
 
-   nir_push_if(b, nir_uge(b, counter, count));
-   nir_jump(b, nir_jump_break);
-   nir_pop_if(b, NULL);
+   nir_break_if(b, nir_uge(b, counter, count));
 
    counter = nir_iadd_imm(b, counter, 1);
    nir_store_var(b, var, counter, 0x1);
+}
+
+VkResult
+radv_meta_create_compute_pipeline(struct radv_device *device, nir_shader *nir, VkPipelineLayout pipeline_layout,
+                                  VkPipeline *pipeline)
+{
+   const VkPipelineShaderStageCreateInfo stage_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = vk_shader_module_handle_from_nir(nir),
+      .pName = "main",
+      .pSpecializationInfo = NULL,
+   };
+
+   const VkComputePipelineCreateInfo pipeline_info = {
+      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      .stage = stage_info,
+      .flags = 0,
+      .layout = pipeline_layout,
+   };
+
+   return radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache, &pipeline_info, NULL,
+                                       pipeline);
+}
+
+VkResult
+radv_meta_create_pipeline_layout(struct radv_device *device, VkDescriptorSetLayout *set_layout, uint32_t num_pc_ranges,
+                                 const VkPushConstantRange *pc_ranges, VkPipelineLayout *pipeline_layout)
+{
+   const VkPipelineLayoutCreateInfo pipeline_layout_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .setLayoutCount = !!set_layout,
+      .pSetLayouts = set_layout,
+      .pushConstantRangeCount = num_pc_ranges,
+      .pPushConstantRanges = pc_ranges,
+   };
+
+   return radv_CreatePipelineLayout(radv_device_to_handle(device), &pipeline_layout_info, &device->meta_state.alloc,
+                                    pipeline_layout);
+}
+
+VkResult
+radv_meta_create_descriptor_set_layout(struct radv_device *device, uint32_t num_bindings,
+                                       const VkDescriptorSetLayoutBinding *bindings, VkDescriptorSetLayout *desc_layout)
+{
+   const VkDescriptorSetLayoutCreateInfo desc_layout_info = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
+      .bindingCount = num_bindings,
+      .pBindings = bindings,
+   };
+
+   return radv_CreateDescriptorSetLayout(radv_device_to_handle(device), &desc_layout_info, &device->meta_state.alloc,
+                                         desc_layout);
 }

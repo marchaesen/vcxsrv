@@ -13,17 +13,9 @@
 
 #include "vn_common.h"
 
-struct vn_device_memory_pool {
-   mtx_t mutex;
-   struct vn_device_memory *memory;
-   VkDeviceSize used;
-};
-
 struct vn_device_memory {
    struct vn_device_memory_base base;
 
-   /* non-NULL when suballocated */
-   struct vn_device_memory *base_memory;
    /* non-NULL when mappable or external */
    struct vn_renderer_bo *base_bo;
 
@@ -55,17 +47,12 @@ struct vn_device_memory {
    bool bo_roundtrip_seqno_valid;
    uint64_t bo_roundtrip_seqno;
 
-   VkDeviceSize base_offset;
-
    VkDeviceSize map_end;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_device_memory,
                                base.base.base,
                                VkDeviceMemory,
                                VK_OBJECT_TYPE_DEVICE_MEMORY)
-
-void
-vn_device_memory_pool_fini(struct vn_device *dev, uint32_t mem_type_index);
 
 VkResult
 vn_device_memory_import_dma_buf(struct vn_device *dev,

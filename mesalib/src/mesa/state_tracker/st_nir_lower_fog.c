@@ -117,8 +117,7 @@ st_nir_lower_fog(nir_shader *s, enum gl_fog_mode fog_mode, struct gl_program_par
          .paramList = paramList,
       };
       nir_shader_instructions_pass(s, st_nir_lower_fog_instr,
-                                   nir_metadata_block_index |
-                                   nir_metadata_dominance,
+                                   nir_metadata_control_flow,
                                    &state);
    } else {
       nir_variable *color_var = nir_find_variable_with_location(s, nir_var_shader_out, FRAG_RESULT_COLOR);
@@ -142,8 +141,7 @@ st_nir_lower_fog(nir_shader *s, enum gl_fog_mode fog_mode, struct gl_program_par
       color = fog_result(&b, color, fog_mode, paramList);
       nir_store_var(&b, color_var, color, 0x7);
 
-      nir_metadata_preserve(b.impl, nir_metadata_block_index |
-                                    nir_metadata_dominance);   }
+      nir_metadata_preserve(b.impl, nir_metadata_control_flow);   }
 
    return true;
 }

@@ -54,6 +54,7 @@ panfrost_pool_alloc_backing(struct panfrost_pool *pool, size_t bo_sz)
     */
    struct panfrost_bo *bo =
       panfrost_bo_create(pool->dev, bo_sz, pool->create_flags, pool->label);
+   assert(bo);
 
    if (pool->owned)
       util_dynarray_append(&pool->bos, struct panfrost_bo *, bo);

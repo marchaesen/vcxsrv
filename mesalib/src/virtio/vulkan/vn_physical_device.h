@@ -73,6 +73,11 @@ struct vn_physical_device {
    struct vk_device_extension_table renderer_extensions;
    uint32_t *extension_spec_versions;
 
+   /* Venus feedback encounters cacheline overflush issue on Intel JSL, and
+    * has to workaround by further aligning up the feedback buffer alignment.
+    */
+   uint32_t wa_min_fb_align;
+
    enum VkDriverId renderer_driver_id;
 
    VkQueueFamilyProperties2 *queue_family_properties;
@@ -80,8 +85,6 @@ struct vn_physical_device {
    bool sparse_binding_disabled;
 
    VkPhysicalDeviceMemoryProperties memory_properties;
-   uint32_t coherent_uncached;
-   uint32_t incoherent_cached;
 
    struct {
       VkExternalMemoryHandleTypeFlagBits renderer_handle_type;

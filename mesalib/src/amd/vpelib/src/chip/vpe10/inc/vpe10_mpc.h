@@ -30,27 +30,20 @@
 extern "C" {
 #endif
 
-#define MPC_REG_LIST_VPE10(id)                                                                     \
-    SRIDFVL(VPMPC_CLOCK_CONTROL, VPMPC_CFG, id), SRIDFVL(VPMPC_SOFT_RESET, VPMPC_CFG, id),         \
-        SRIDFVL(VPMPC_CRC_CTRL, VPMPC_CFG, id), SRIDFVL(VPMPC_CRC_SEL_CONTROL, VPMPC_CFG, id),     \
-        SRIDFVL(VPMPC_CRC_RESULT_AR, VPMPC_CFG, id), SRIDFVL(VPMPC_CRC_RESULT_GB, VPMPC_CFG, id),  \
-        SRIDFVL(VPMPC_CRC_RESULT_C, VPMPC_CFG, id), SRIDFVL(VPMPC_BYPASS_BG_AR, VPMPC_CFG, id),    \
-        SRIDFVL(VPMPC_BYPASS_BG_GB, VPMPC_CFG, id),                                                \
-        SRIDFVL(VPMPC_HOST_READ_CONTROL, VPMPC_CFG, id),                                           \
-        SRIDFVL(VPMPC_PENDING_STATUS_MISC, VPMPC_CFG, id),                                         \
-        SRIDFVL(VPMPC_OUT0_MUX, VPMPC_OCSC, id),                                                   \
-        SRIDFVL(VPMPC_OUT0_FLOAT_CONTROL, VPMPC_OCSC, id),                                         \
-        SRIDFVL(VPMPC_OUT0_DENORM_CONTROL, VPMPC_OCSC, id),                                        \
-        SRIDFVL(VPMPC_OUT0_DENORM_CLAMP_G_Y, VPMPC_OCSC, id),                                      \
-        SRIDFVL(VPMPC_OUT0_DENORM_CLAMP_B_CB, VPMPC_OCSC, id),                                     \
-        SRIDFVL(VPMPC_OUT_CSC_COEF_FORMAT, VPMPC_OCSC, id),                                        \
-        SRIDFVL(VPMPC_OUT0_CSC_MODE, VPMPC_OCSC, id),                                              \
-        SRIDFVL(VPMPC_OUT0_CSC_C11_C12_A, VPMPC_OCSC, id),                                         \
-        SRIDFVL(VPMPC_OUT0_CSC_C13_C14_A, VPMPC_OCSC, id),                                         \
-        SRIDFVL(VPMPC_OUT0_CSC_C21_C22_A, VPMPC_OCSC, id),                                         \
-        SRIDFVL(VPMPC_OUT0_CSC_C23_C24_A, VPMPC_OCSC, id),                                         \
-        SRIDFVL(VPMPC_OUT0_CSC_C31_C32_A, VPMPC_OCSC, id),                                         \
-        SRIDFVL(VPMPC_OUT0_CSC_C33_C34_A, VPMPC_OCSC, id), SRIDFVL(VPMPCC_TOP_SEL, VPMPCC, id),    \
+#define MPC_REG_LIST_VPE10_COMMON(id)                                                              \
+    SRIDFVL1(VPMPC_CLOCK_CONTROL), SRIDFVL1(VPMPC_SOFT_RESET), SRIDFVL1(VPMPC_CRC_CTRL),           \
+        SRIDFVL1(VPMPC_CRC_SEL_CONTROL), SRIDFVL1(VPMPC_CRC_RESULT_AR),                            \
+        SRIDFVL1(VPMPC_CRC_RESULT_GB), SRIDFVL1(VPMPC_CRC_RESULT_C), SRIDFVL1(VPMPC_BYPASS_BG_AR), \
+        SRIDFVL1(VPMPC_BYPASS_BG_GB), SRIDFVL1(VPMPC_HOST_READ_CONTROL),                           \
+        SRIDFVL1(VPMPC_PENDING_STATUS_MISC),                                                       \
+        SRIDFVL2(MUX, VPMPC_OUT, id),                                                              \
+        SRIDFVL2(FLOAT_CONTROL, VPMPC_OUT, id), SRIDFVL2(DENORM_CONTROL, VPMPC_OUT, id),           \
+        SRIDFVL2(DENORM_CLAMP_G_Y, VPMPC_OUT, id), SRIDFVL2(DENORM_CLAMP_B_CB, VPMPC_OUT, id),     \
+        SRIDFVL3(CSC_COEF_FORMAT, VPMPC_OUT, id), SRIDFVL2(CSC_MODE, VPMPC_OUT, id),               \
+        SRIDFVL2(CSC_C11_C12_A, VPMPC_OUT, id), SRIDFVL2(CSC_C13_C14_A, VPMPC_OUT, id),            \
+        SRIDFVL2(CSC_C21_C22_A, VPMPC_OUT, id), SRIDFVL2(CSC_C23_C24_A, VPMPC_OUT, id),            \
+        SRIDFVL2(CSC_C31_C32_A, VPMPC_OUT, id), SRIDFVL2(CSC_C33_C34_A, VPMPC_OUT, id),            \
+        SRIDFVL(VPMPCC_TOP_SEL, VPMPCC, id),                                                       \
         SRIDFVL(VPMPCC_BOT_SEL, VPMPCC, id), SRIDFVL(VPMPCC_VPOPP_ID, VPMPCC, id),                 \
         SRIDFVL(VPMPCC_CONTROL, VPMPCC, id), SRIDFVL(VPMPCC_TOP_GAIN, VPMPCC, id),                 \
         SRIDFVL(VPMPCC_BOT_GAIN_INSIDE, VPMPCC, id), SRIDFVL(VPMPCC_BOT_GAIN_OUTSIDE, VPMPCC, id), \
@@ -104,6 +97,49 @@ extern "C" {
         SRIDFVL(VPMPC_GAMUT_REMAP_C23_C24_A, VPMPCC_OGAM, id),                                     \
         SRIDFVL(VPMPC_GAMUT_REMAP_C31_C32_A, VPMPCC_OGAM, id),                                     \
         SRIDFVL(VPMPC_GAMUT_REMAP_C33_C34_A, VPMPCC_OGAM, id),                                     \
+        SRIDFVL(VPMPCC_MCM_1DLUT_CONTROL, VPMPCC_MCM, id),                                         \
+        SRIDFVL(VPMPCC_MCM_1DLUT_LUT_INDEX, VPMPCC_MCM, id),                                       \
+        SRIDFVL(VPMPCC_MCM_1DLUT_LUT_DATA, VPMPCC_MCM, id),                                        \
+        SRIDFVL(VPMPCC_MCM_1DLUT_LUT_CONTROL, VPMPCC_MCM, id),                                     \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_CNTL_B, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_CNTL_G, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_CNTL_R, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_B, VPMPCC_MCM, id),                         \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_G, VPMPCC_MCM, id),                         \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_R, VPMPCC_MCM, id),                         \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_B, VPMPCC_MCM, id),                          \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_G, VPMPCC_MCM, id),                          \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_R, VPMPCC_MCM, id),                          \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_B, VPMPCC_MCM, id),                                \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_B, VPMPCC_MCM, id),                                \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_G, VPMPCC_MCM, id),                                \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_G, VPMPCC_MCM, id),                                \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_R, VPMPCC_MCM, id),                                \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_R, VPMPCC_MCM, id),                                \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_OFFSET_B, VPMPCC_MCM, id),                                   \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_OFFSET_G, VPMPCC_MCM, id),                                   \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_OFFSET_R, VPMPCC_MCM, id),                                   \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_0_1, VPMPCC_MCM, id),                                 \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_2_3, VPMPCC_MCM, id),                                 \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_4_5, VPMPCC_MCM, id),                                 \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_6_7, VPMPCC_MCM, id),                                 \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_8_9, VPMPCC_MCM, id),                                 \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_10_11, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_12_13, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_14_15, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_16_17, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_18_19, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_20_21, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_22_23, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_24_25, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_26_27, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_28_29, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_30_31, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_32_33, VPMPCC_MCM, id),                               \
+        SRIDFVL(VPMPCC_MCM_MEM_PWR_CTRL, VPMPCC_MCM, id)     
+
+#define MPC_REG_LIST_VPE10(id)                                                                     \
+    MPC_REG_LIST_VPE10_COMMON(id),                                                                 \
         SRIDFVL(VPMPCC_MCM_SHAPER_CONTROL, VPMPCC_MCM, id),                                        \
         SRIDFVL(VPMPCC_MCM_SHAPER_OFFSET_R, VPMPCC_MCM, id),                                       \
         SRIDFVL(VPMPCC_MCM_SHAPER_OFFSET_G, VPMPCC_MCM, id),                                       \
@@ -144,51 +180,10 @@ extern "C" {
         SRIDFVL(VPMPCC_MCM_3DLUT_OUT_NORM_FACTOR, VPMPCC_MCM, id),                                 \
         SRIDFVL(VPMPCC_MCM_3DLUT_OUT_OFFSET_R, VPMPCC_MCM, id),                                    \
         SRIDFVL(VPMPCC_MCM_3DLUT_OUT_OFFSET_G, VPMPCC_MCM, id),                                    \
-        SRIDFVL(VPMPCC_MCM_3DLUT_OUT_OFFSET_B, VPMPCC_MCM, id),                                    \
-        SRIDFVL(VPMPCC_MCM_1DLUT_CONTROL, VPMPCC_MCM, id),                                         \
-        SRIDFVL(VPMPCC_MCM_1DLUT_LUT_INDEX, VPMPCC_MCM, id),                                       \
-        SRIDFVL(VPMPCC_MCM_1DLUT_LUT_DATA, VPMPCC_MCM, id),                                        \
-        SRIDFVL(VPMPCC_MCM_1DLUT_LUT_CONTROL, VPMPCC_MCM, id),                                     \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_CNTL_B, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_CNTL_G, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_CNTL_R, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_B, VPMPCC_MCM, id),                         \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_G, VPMPCC_MCM, id),                         \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_R, VPMPCC_MCM, id),                         \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_B, VPMPCC_MCM, id),                          \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_G, VPMPCC_MCM, id),                          \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_R, VPMPCC_MCM, id),                          \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_B, VPMPCC_MCM, id),                                \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_B, VPMPCC_MCM, id),                                \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_G, VPMPCC_MCM, id),                                \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_G, VPMPCC_MCM, id),                                \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_R, VPMPCC_MCM, id),                                \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_R, VPMPCC_MCM, id),                                \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_OFFSET_B, VPMPCC_MCM, id),                                   \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_OFFSET_G, VPMPCC_MCM, id),                                   \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_OFFSET_R, VPMPCC_MCM, id),                                   \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_0_1, VPMPCC_MCM, id),                                 \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_2_3, VPMPCC_MCM, id),                                 \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_4_5, VPMPCC_MCM, id),                                 \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_6_7, VPMPCC_MCM, id),                                 \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_8_9, VPMPCC_MCM, id),                                 \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_10_11, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_12_13, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_14_15, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_16_17, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_18_19, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_20_21, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_22_23, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_24_25, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_26_27, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_28_29, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_30_31, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_1DLUT_RAMA_REGION_32_33, VPMPCC_MCM, id),                               \
-        SRIDFVL(VPMPCC_MCM_MEM_PWR_CTRL, VPMPCC_MCM, id),
+        SRIDFVL(VPMPCC_MCM_3DLUT_OUT_OFFSET_B, VPMPCC_MCM, id)
 
-#define MPC_FIELD_LIST_VPE10(post_fix)                                                             \
+#define MPC_FIELD_LIST_VPE10_COMMON(post_fix)                                                      \
     SFRB(VPECLK_R_GATE_DISABLE, VPMPC_CLOCK_CONTROL, post_fix),                                    \
-        SFRB(VPMPC_TEST_CLK_SEL, VPMPC_CLOCK_CONTROL, post_fix),                                   \
         SFRB(VPMPCC0_SOFT_RESET, VPMPC_SOFT_RESET, post_fix),                                      \
         SFRB(VPMPC_SFR0_SOFT_RESET, VPMPC_SOFT_RESET, post_fix),                                   \
         SFRB(VPMPC_SFT0_SOFT_RESET, VPMPC_SOFT_RESET, post_fix),                                   \
@@ -244,10 +239,7 @@ extern "C" {
         SFRB(VPMPCC_ALPHA_BLND_MODE, VPMPCC_CONTROL, post_fix),                                    \
         SFRB(VPMPCC_ALPHA_MULTIPLIED_MODE, VPMPCC_CONTROL, post_fix),                              \
         SFRB(VPMPCC_BLND_ACTIVE_OVERLAP_ONLY, VPMPCC_CONTROL, post_fix),                           \
-        SFRB(VPMPCC_BG_BPC, VPMPCC_CONTROL, post_fix),                                             \
         SFRB(VPMPCC_BOT_GAIN_MODE, VPMPCC_CONTROL, post_fix),                                      \
-        SFRB(VPMPCC_GLOBAL_ALPHA, VPMPCC_CONTROL, post_fix),                                       \
-        SFRB(VPMPCC_GLOBAL_GAIN, VPMPCC_CONTROL, post_fix),                                        \
         SFRB(VPMPCC_TOP_GAIN, VPMPCC_TOP_GAIN, post_fix),                                          \
         SFRB(VPMPCC_BOT_GAIN_INSIDE, VPMPCC_BOT_GAIN_INSIDE, post_fix),                            \
         SFRB(VPMPCC_BOT_GAIN_OUTSIDE, VPMPCC_BOT_GAIN_OUTSIDE, post_fix),                          \
@@ -390,6 +382,206 @@ extern "C" {
         SFRB(VPMPCC_GAMUT_REMAP_C32_A, VPMPC_GAMUT_REMAP_C31_C32_A, post_fix),                     \
         SFRB(VPMPCC_GAMUT_REMAP_C33_A, VPMPC_GAMUT_REMAP_C33_C34_A, post_fix),                     \
         SFRB(VPMPCC_GAMUT_REMAP_C34_A, VPMPC_GAMUT_REMAP_C33_C34_A, post_fix),                     \
+        SFRB(VPMPCC_MCM_1DLUT_MODE, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                           \
+        SFRB(VPMPCC_MCM_1DLUT_PWL_DISABLE, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                    \
+        SFRB(VPMPCC_MCM_1DLUT_MODE_CURRENT, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                   \
+        SFRB(VPMPCC_MCM_1DLUT_SELECT_CURRENT, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                 \
+        SFRB(VPMPCC_MCM_1DLUT_LUT_INDEX, VPMPCC_MCM_1DLUT_LUT_INDEX, post_fix),                    \
+        SFRB(VPMPCC_MCM_1DLUT_LUT_DATA, VPMPCC_MCM_1DLUT_LUT_DATA, post_fix),                      \
+        SFRB(VPMPCC_MCM_1DLUT_LUT_WRITE_COLOR_MASK, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),       \
+        SFRB(VPMPCC_MCM_1DLUT_LUT_READ_COLOR_SEL, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),         \
+        SFRB(VPMPCC_MCM_1DLUT_LUT_READ_DBG, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),               \
+        SFRB(VPMPCC_MCM_1DLUT_LUT_HOST_SEL, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),               \
+        SFRB(VPMPCC_MCM_1DLUT_LUT_CONFIG_MODE, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),            \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_B, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_B,         \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_B, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_B, \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_G, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_G,         \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_G, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_G, \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_R, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_R,         \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_R, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_R, \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_B,                                       \
+            VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_B, post_fix),                                   \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_G,                                       \
+            VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_G, post_fix),                                   \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_R,                                       \
+            VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_R, post_fix),                                   \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_B,                                        \
+            VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_B, post_fix),                                    \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_G,                                        \
+            VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_G, post_fix),                                    \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_R,                                        \
+            VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_R, post_fix),                                    \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_B, VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_B,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_B, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_B, post_fix), \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_B, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_B,      \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_G, VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_G,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_G, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_G, post_fix), \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_G, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_G,      \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_R, VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_R,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_R, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_R, post_fix), \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_R, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_R,      \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_OFFSET_B, VPMPCC_MCM_1DLUT_RAMA_OFFSET_B, post_fix),            \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_OFFSET_G, VPMPCC_MCM_1DLUT_RAMA_OFFSET_G, post_fix),            \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_OFFSET_R, VPMPCC_MCM_1DLUT_RAMA_OFFSET_R, post_fix),            \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,       \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,     \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,    \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,  \
+            post_fix),                                                                             \
+        SFRB(VPMPCC_MCM_1DLUT_MEM_PWR_FORCE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                   \
+        SFRB(VPMPCC_MCM_1DLUT_MEM_PWR_DIS, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                     \
+        SFRB(VPMPCC_MCM_1DLUT_MEM_LOW_PWR_MODE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                \
+        SFRB(VPMPCC_MCM_1DLUT_MEM_PWR_STATE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix)
+
+#define MPC_FIELD_LIST_VPE10(post_fix)                                                             \
+    MPC_FIELD_LIST_VPE10_COMMON(post_fix),                                                         \
+        SFRB(VPMPC_TEST_CLK_SEL, VPMPC_CLOCK_CONTROL, post_fix),                                   \
+        SFRB(VPMPCC_BG_BPC, VPMPCC_CONTROL, post_fix),                                             \
+        SFRB(VPMPCC_GLOBAL_ALPHA, VPMPCC_CONTROL, post_fix),                                       \
+        SFRB(VPMPCC_GLOBAL_GAIN, VPMPCC_CONTROL, post_fix),                                        \
         SFRB(VPMPCC_MCM_SHAPER_LUT_MODE, VPMPCC_MCM_SHAPER_CONTROL, post_fix),                     \
         SFRB(VPMPCC_MCM_SHAPER_MODE_CURRENT, VPMPCC_MCM_SHAPER_CONTROL, post_fix),                 \
         SFRB(VPMPCC_MCM_SHAPER_SELECT_CURRENT, VPMPCC_MCM_SHAPER_CONTROL, post_fix),               \
@@ -582,209 +774,16 @@ extern "C" {
         SFRB(VPMPCC_MCM_3DLUT_OUT_SCALE_G, VPMPCC_MCM_3DLUT_OUT_OFFSET_G, post_fix),               \
         SFRB(VPMPCC_MCM_3DLUT_OUT_OFFSET_B, VPMPCC_MCM_3DLUT_OUT_OFFSET_B, post_fix),              \
         SFRB(VPMPCC_MCM_3DLUT_OUT_SCALE_B, VPMPCC_MCM_3DLUT_OUT_OFFSET_B, post_fix),               \
-        SFRB(VPMPCC_MCM_1DLUT_MODE, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                           \
-        SFRB(VPMPCC_MCM_1DLUT_PWL_DISABLE, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                    \
-        SFRB(VPMPCC_MCM_1DLUT_MODE_CURRENT, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                   \
-        SFRB(VPMPCC_MCM_1DLUT_SELECT_CURRENT, VPMPCC_MCM_1DLUT_CONTROL, post_fix),                 \
-        SFRB(VPMPCC_MCM_1DLUT_LUT_INDEX, VPMPCC_MCM_1DLUT_LUT_INDEX, post_fix),                    \
-        SFRB(VPMPCC_MCM_1DLUT_LUT_DATA, VPMPCC_MCM_1DLUT_LUT_DATA, post_fix),                      \
-        SFRB(VPMPCC_MCM_1DLUT_LUT_WRITE_COLOR_MASK, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),       \
-        SFRB(VPMPCC_MCM_1DLUT_LUT_READ_COLOR_SEL, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),         \
-        SFRB(VPMPCC_MCM_1DLUT_LUT_READ_DBG, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),               \
-        SFRB(VPMPCC_MCM_1DLUT_LUT_HOST_SEL, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),               \
-        SFRB(VPMPCC_MCM_1DLUT_LUT_CONFIG_MODE, VPMPCC_MCM_1DLUT_LUT_CONTROL, post_fix),            \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_B, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_B,         \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_B, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_B, \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_G, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_G,         \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_G, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_G, \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_R, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_R,         \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_R, VPMPCC_MCM_1DLUT_RAMA_START_CNTL_R, \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_B,                                       \
-            VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_B, post_fix),                                   \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_G,                                       \
-            VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_G, post_fix),                                   \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_R,                                       \
-            VPMPCC_MCM_1DLUT_RAMA_START_SLOPE_CNTL_R, post_fix),                                   \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_B,                                        \
-            VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_B, post_fix),                                    \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_G,                                        \
-            VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_G, post_fix),                                    \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_R,                                        \
-            VPMPCC_MCM_1DLUT_RAMA_START_BASE_CNTL_R, post_fix),                                    \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_B, VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_B,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_B, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_B, post_fix), \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_B, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_B,      \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_G, VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_G,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_G, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_G, post_fix), \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_G, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_G,      \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_R, VPMPCC_MCM_1DLUT_RAMA_END_CNTL1_R,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_R, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_R, post_fix), \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_R, VPMPCC_MCM_1DLUT_RAMA_END_CNTL2_R,      \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_OFFSET_B, VPMPCC_MCM_1DLUT_RAMA_OFFSET_B, post_fix),            \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_OFFSET_G, VPMPCC_MCM_1DLUT_RAMA_OFFSET_G, post_fix),            \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_OFFSET_R, VPMPCC_MCM_1DLUT_RAMA_OFFSET_R, post_fix),            \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_0_1,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_2_3,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_4_5,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_6_7,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,       \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_8_9,     \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_10_11,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_12_13,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_14_15,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_16_17,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_18_19,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_20_21,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_22_23,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_24_25,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_26_27,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_28_29,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_30_31,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,  \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_LUT_OFFSET, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,    \
-            post_fix),                                                                             \
-        SFRB(VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_NUM_SEGMENTS, VPMPCC_MCM_1DLUT_RAMA_REGION_32_33,  \
-            post_fix),                                                                             \
         SFRB(VPMPCC_MCM_SHAPER_MEM_PWR_FORCE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                  \
         SFRB(VPMPCC_MCM_SHAPER_MEM_PWR_DIS, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                    \
         SFRB(VPMPCC_MCM_SHAPER_MEM_LOW_PWR_MODE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),               \
         SFRB(VPMPCC_MCM_3DLUT_MEM_PWR_FORCE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                   \
         SFRB(VPMPCC_MCM_3DLUT_MEM_PWR_DIS, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                     \
         SFRB(VPMPCC_MCM_3DLUT_MEM_LOW_PWR_MODE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                \
-        SFRB(VPMPCC_MCM_1DLUT_MEM_PWR_FORCE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                   \
-        SFRB(VPMPCC_MCM_1DLUT_MEM_PWR_DIS, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                     \
-        SFRB(VPMPCC_MCM_1DLUT_MEM_LOW_PWR_MODE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                \
         SFRB(VPMPCC_MCM_SHAPER_MEM_PWR_STATE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                  \
-        SFRB(VPMPCC_MCM_3DLUT_MEM_PWR_STATE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix),                   \
-        SFRB(VPMPCC_MCM_1DLUT_MEM_PWR_STATE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix)
+        SFRB(VPMPCC_MCM_3DLUT_MEM_PWR_STATE, VPMPCC_MCM_MEM_PWR_CTRL, post_fix)
 
-#define MPC_REG_VARIABLE_LIST_VPE10                                                                \
+#define MPC_REG_VARIABLE_LIST_VPE10_COMMON                                                         \
     reg_id_val VPMPC_CLOCK_CONTROL;                                                                \
     reg_id_val VPMPC_SOFT_RESET;                                                                   \
     reg_id_val VPMPC_CRC_CTRL;                                                                     \
@@ -796,19 +795,19 @@ extern "C" {
     reg_id_val VPMPC_BYPASS_BG_GB;                                                                 \
     reg_id_val VPMPC_HOST_READ_CONTROL;                                                            \
     reg_id_val VPMPC_PENDING_STATUS_MISC;                                                          \
-    reg_id_val VPMPC_OUT0_MUX;                                                                     \
-    reg_id_val VPMPC_OUT0_FLOAT_CONTROL;                                                           \
-    reg_id_val VPMPC_OUT0_DENORM_CONTROL;                                                          \
-    reg_id_val VPMPC_OUT0_DENORM_CLAMP_G_Y;                                                        \
-    reg_id_val VPMPC_OUT0_DENORM_CLAMP_B_CB;                                                       \
+    reg_id_val VPMPC_OUT_MUX;                                                                      \
+    reg_id_val VPMPC_OUT_FLOAT_CONTROL;                                                            \
+    reg_id_val VPMPC_OUT_DENORM_CONTROL;                                                           \
+    reg_id_val VPMPC_OUT_DENORM_CLAMP_G_Y;                                                         \
+    reg_id_val VPMPC_OUT_DENORM_CLAMP_B_CB;                                                        \
     reg_id_val VPMPC_OUT_CSC_COEF_FORMAT;                                                          \
-    reg_id_val VPMPC_OUT0_CSC_MODE;                                                                \
-    reg_id_val VPMPC_OUT0_CSC_C11_C12_A;                                                           \
-    reg_id_val VPMPC_OUT0_CSC_C13_C14_A;                                                           \
-    reg_id_val VPMPC_OUT0_CSC_C21_C22_A;                                                           \
-    reg_id_val VPMPC_OUT0_CSC_C23_C24_A;                                                           \
-    reg_id_val VPMPC_OUT0_CSC_C31_C32_A;                                                           \
-    reg_id_val VPMPC_OUT0_CSC_C33_C34_A;                                                           \
+    reg_id_val VPMPC_OUT_CSC_MODE;                                                                 \
+    reg_id_val VPMPC_OUT_CSC_C11_C12_A;                                                            \
+    reg_id_val VPMPC_OUT_CSC_C13_C14_A;                                                            \
+    reg_id_val VPMPC_OUT_CSC_C21_C22_A;                                                            \
+    reg_id_val VPMPC_OUT_CSC_C23_C24_A;                                                            \
+    reg_id_val VPMPC_OUT_CSC_C31_C32_A;                                                            \
+    reg_id_val VPMPC_OUT_CSC_C33_C34_A;                                                            \
     reg_id_val VPMPCC_TOP_SEL;                                                                     \
     reg_id_val VPMPCC_BOT_SEL;                                                                     \
     reg_id_val VPMPCC_VPOPP_ID;                                                                    \
@@ -869,47 +868,6 @@ extern "C" {
     reg_id_val VPMPC_GAMUT_REMAP_C23_C24_A;                                                        \
     reg_id_val VPMPC_GAMUT_REMAP_C31_C32_A;                                                        \
     reg_id_val VPMPC_GAMUT_REMAP_C33_C34_A;                                                        \
-    reg_id_val VPMPCC_MCM_SHAPER_CONTROL;                                                          \
-    reg_id_val VPMPCC_MCM_SHAPER_OFFSET_R;                                                         \
-    reg_id_val VPMPCC_MCM_SHAPER_OFFSET_G;                                                         \
-    reg_id_val VPMPCC_MCM_SHAPER_OFFSET_B;                                                         \
-    reg_id_val VPMPCC_MCM_SHAPER_SCALE_R;                                                          \
-    reg_id_val VPMPCC_MCM_SHAPER_SCALE_G_B;                                                        \
-    reg_id_val VPMPCC_MCM_SHAPER_LUT_INDEX;                                                        \
-    reg_id_val VPMPCC_MCM_SHAPER_LUT_DATA;                                                         \
-    reg_id_val VPMPCC_MCM_SHAPER_LUT_WRITE_EN_MASK;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_START_CNTL_B;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_START_CNTL_G;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_START_CNTL_R;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_END_CNTL_B;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_END_CNTL_G;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_END_CNTL_R;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_0_1;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_2_3;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_4_5;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_6_7;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_8_9;                                                  \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_10_11;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_12_13;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_14_15;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_16_17;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_18_19;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_20_21;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_22_23;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_24_25;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_26_27;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_28_29;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_30_31;                                                \
-    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_32_33;                                                \
-    reg_id_val VPMPCC_MCM_3DLUT_MODE;                                                              \
-    reg_id_val VPMPCC_MCM_3DLUT_INDEX;                                                             \
-    reg_id_val VPMPCC_MCM_3DLUT_DATA;                                                              \
-    reg_id_val VPMPCC_MCM_3DLUT_DATA_30BIT;                                                        \
-    reg_id_val VPMPCC_MCM_3DLUT_READ_WRITE_CONTROL;                                                \
-    reg_id_val VPMPCC_MCM_3DLUT_OUT_NORM_FACTOR;                                                   \
-    reg_id_val VPMPCC_MCM_3DLUT_OUT_OFFSET_R;                                                      \
-    reg_id_val VPMPCC_MCM_3DLUT_OUT_OFFSET_G;                                                      \
-    reg_id_val VPMPCC_MCM_3DLUT_OUT_OFFSET_B;                                                      \
     reg_id_val VPMPCC_MCM_1DLUT_CONTROL;                                                           \
     reg_id_val VPMPCC_MCM_1DLUT_LUT_INDEX;                                                         \
     reg_id_val VPMPCC_MCM_1DLUT_LUT_DATA;                                                          \
@@ -951,7 +909,52 @@ extern "C" {
     reg_id_val VPMPCC_MCM_1DLUT_RAMA_REGION_32_33;                                                 \
     reg_id_val VPMPCC_MCM_MEM_PWR_CTRL;
 
-#define MPC_FIELD_VARIABLE_LIST_VPE10(type)                                                        \
+#define MPC_REG_VARIABLE_LIST_VPE10                                                                \
+    MPC_REG_VARIABLE_LIST_VPE10_COMMON                                                             \
+    reg_id_val VPMPCC_MCM_SHAPER_CONTROL;                                                          \
+    reg_id_val VPMPCC_MCM_SHAPER_OFFSET_R;                                                         \
+    reg_id_val VPMPCC_MCM_SHAPER_OFFSET_G;                                                         \
+    reg_id_val VPMPCC_MCM_SHAPER_OFFSET_B;                                                         \
+    reg_id_val VPMPCC_MCM_SHAPER_SCALE_R;                                                          \
+    reg_id_val VPMPCC_MCM_SHAPER_SCALE_G_B;                                                        \
+    reg_id_val VPMPCC_MCM_SHAPER_LUT_INDEX;                                                        \
+    reg_id_val VPMPCC_MCM_SHAPER_LUT_DATA;                                                         \
+    reg_id_val VPMPCC_MCM_SHAPER_LUT_WRITE_EN_MASK;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_START_CNTL_B;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_START_CNTL_G;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_START_CNTL_R;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_END_CNTL_B;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_END_CNTL_G;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_END_CNTL_R;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_0_1;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_2_3;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_4_5;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_6_7;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_8_9;                                                  \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_10_11;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_12_13;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_14_15;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_16_17;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_18_19;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_20_21;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_22_23;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_24_25;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_26_27;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_28_29;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_30_31;                                                \
+    reg_id_val VPMPCC_MCM_SHAPER_RAMA_REGION_32_33;                                                \
+    reg_id_val VPMPCC_MCM_3DLUT_MODE;                                                              \
+    reg_id_val VPMPCC_MCM_3DLUT_INDEX;                                                             \
+    reg_id_val VPMPCC_MCM_3DLUT_DATA;                                                              \
+    reg_id_val VPMPCC_MCM_3DLUT_DATA_30BIT;                                                        \
+    reg_id_val VPMPCC_MCM_3DLUT_READ_WRITE_CONTROL;                                                \
+    reg_id_val VPMPCC_MCM_3DLUT_OUT_NORM_FACTOR;                                                   \
+    reg_id_val VPMPCC_MCM_3DLUT_OUT_OFFSET_R;                                                      \
+    reg_id_val VPMPCC_MCM_3DLUT_OUT_OFFSET_G;                                                      \
+    reg_id_val VPMPCC_MCM_3DLUT_OUT_OFFSET_B;                                                      \
+
+
+#define MPC_FIELD_VARIABLE_LIST_VPE10_COMMON(type)                                                 \
     type VPECLK_R_GATE_DISABLE;                                                                    \
     type VPMPC_TEST_CLK_SEL;                                                                       \
     type VPMPCC0_SOFT_RESET;                                                                       \
@@ -1146,6 +1149,116 @@ extern "C" {
     type VPMPCC_GAMUT_REMAP_C32_A;                                                                 \
     type VPMPCC_GAMUT_REMAP_C33_A;                                                                 \
     type VPMPCC_GAMUT_REMAP_C34_A;                                                                 \
+    type VPMPCC_MCM_1DLUT_MODE;                                                                    \
+    type VPMPCC_MCM_1DLUT_PWL_DISABLE;                                                             \
+    type VPMPCC_MCM_1DLUT_MODE_CURRENT;                                                            \
+    type VPMPCC_MCM_1DLUT_SELECT_CURRENT;                                                          \
+    type VPMPCC_MCM_1DLUT_LUT_INDEX;                                                               \
+    type VPMPCC_MCM_1DLUT_LUT_DATA;                                                                \
+    type VPMPCC_MCM_1DLUT_LUT_WRITE_COLOR_MASK;                                                    \
+    type VPMPCC_MCM_1DLUT_LUT_READ_COLOR_SEL;                                                      \
+    type VPMPCC_MCM_1DLUT_LUT_READ_DBG;                                                            \
+    type VPMPCC_MCM_1DLUT_LUT_HOST_SEL;                                                            \
+    type VPMPCC_MCM_1DLUT_LUT_CONFIG_MODE;                                                         \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_B;                                                 \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_B;                                         \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_G;                                                 \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_G;                                         \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_R;                                                 \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_R;                                         \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_B;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_G;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_R;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_B;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_G;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_R;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_B;                                              \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_B;                                                   \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_B;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_G;                                              \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_G;                                                   \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_G;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_R;                                              \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_R;                                                   \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_R;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_OFFSET_B;                                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_OFFSET_G;                                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_OFFSET_R;                                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_LUT_OFFSET;                                             \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_NUM_SEGMENTS;                                           \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_LUT_OFFSET;                                            \
+    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_1DLUT_MEM_PWR_FORCE;                                                           \
+    type VPMPCC_MCM_1DLUT_MEM_PWR_DIS;                                                             \
+    type VPMPCC_MCM_1DLUT_MEM_LOW_PWR_MODE;                                                        \
+    type VPMPCC_MCM_1DLUT_MEM_PWR_STATE;
+
+#define MPC_FIELD_VARIABLE_LIST_VPE10(type)                                                        \
+    MPC_FIELD_VARIABLE_LIST_VPE10_COMMON(type)                                                     \
     type VPMPCC_MCM_SHAPER_LUT_MODE;                                                               \
     type VPMPCC_MCM_SHAPER_MODE_CURRENT;                                                           \
     type VPMPCC_MCM_SHAPER_SELECT_CURRENT;                                                         \
@@ -1258,121 +1371,15 @@ extern "C" {
     type VPMPCC_MCM_3DLUT_OUT_SCALE_G;                                                             \
     type VPMPCC_MCM_3DLUT_OUT_OFFSET_B;                                                            \
     type VPMPCC_MCM_3DLUT_OUT_SCALE_B;                                                             \
-    type VPMPCC_MCM_1DLUT_MODE;                                                                    \
-    type VPMPCC_MCM_1DLUT_PWL_DISABLE;                                                             \
-    type VPMPCC_MCM_1DLUT_MODE_CURRENT;                                                            \
-    type VPMPCC_MCM_1DLUT_SELECT_CURRENT;                                                          \
-    type VPMPCC_MCM_1DLUT_LUT_INDEX;                                                               \
-    type VPMPCC_MCM_1DLUT_LUT_DATA;                                                                \
-    type VPMPCC_MCM_1DLUT_LUT_WRITE_COLOR_MASK;                                                    \
-    type VPMPCC_MCM_1DLUT_LUT_READ_COLOR_SEL;                                                      \
-    type VPMPCC_MCM_1DLUT_LUT_READ_DBG;                                                            \
-    type VPMPCC_MCM_1DLUT_LUT_HOST_SEL;                                                            \
-    type VPMPCC_MCM_1DLUT_LUT_CONFIG_MODE;                                                         \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_B;                                                 \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_B;                                         \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_G;                                                 \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_G;                                         \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_R;                                                 \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SEGMENT_R;                                         \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_B;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_G;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_SLOPE_R;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_B;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_G;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_START_BASE_R;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_B;                                              \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_B;                                                   \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_B;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_G;                                              \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_G;                                                   \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_G;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_BASE_R;                                              \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_R;                                                   \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION_END_SLOPE_R;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_OFFSET_B;                                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_OFFSET_G;                                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_OFFSET_R;                                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION0_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION1_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION2_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION3_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION4_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION5_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION6_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION7_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION8_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_LUT_OFFSET;                                             \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION9_NUM_SEGMENTS;                                           \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION10_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION11_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION12_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION13_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION14_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION15_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION16_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION17_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION18_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION19_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION20_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION21_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION22_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION23_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION24_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION25_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION26_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION27_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION28_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION29_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION30_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION31_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION32_NUM_SEGMENTS;                                          \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_LUT_OFFSET;                                            \
-    type VPMPCC_MCM_1DLUT_RAMA_EXP_REGION33_NUM_SEGMENTS;                                          \
+    type VPMPCC_MCM_SHAPER_MEM_PWR_STATE;                                                          \
+    type VPMPCC_MCM_3DLUT_MEM_PWR_STATE;                                                           \
     type VPMPCC_MCM_SHAPER_MEM_PWR_FORCE;                                                          \
     type VPMPCC_MCM_SHAPER_MEM_PWR_DIS;                                                            \
     type VPMPCC_MCM_SHAPER_MEM_LOW_PWR_MODE;                                                       \
     type VPMPCC_MCM_3DLUT_MEM_PWR_FORCE;                                                           \
     type VPMPCC_MCM_3DLUT_MEM_PWR_DIS;                                                             \
-    type VPMPCC_MCM_3DLUT_MEM_LOW_PWR_MODE;                                                        \
-    type VPMPCC_MCM_1DLUT_MEM_PWR_FORCE;                                                           \
-    type VPMPCC_MCM_1DLUT_MEM_PWR_DIS;                                                             \
-    type VPMPCC_MCM_1DLUT_MEM_LOW_PWR_MODE;                                                        \
-    type VPMPCC_MCM_SHAPER_MEM_PWR_STATE;                                                          \
-    type VPMPCC_MCM_3DLUT_MEM_PWR_STATE;                                                           \
-    type VPMPCC_MCM_1DLUT_MEM_PWR_STATE;
+    type VPMPCC_MCM_3DLUT_MEM_LOW_PWR_MODE;
+
 
 struct vpe10_mpc_registers {
     MPC_REG_VARIABLE_LIST_VPE10
@@ -1447,12 +1454,12 @@ void vpe10_mpc_program_mpc_out(struct mpc *mpc, enum vpe_surface_pixel_format fo
 void vpe10_mpc_set_output_transfer_func(struct mpc *mpc, struct output_ctx *output_ctx);
 
 void vpe10_mpc_set_mpc_shaper_3dlut(
-    struct mpc *mpc, const struct transfer_func *func_shaper, const struct vpe_3dlut *lut3d_func);
+    struct mpc *mpc, struct transfer_func *func_shaper, struct vpe_3dlut *lut3d_func);
 
-void vpe10_mpc_set_blend_lut(struct mpc *mpc, const struct transfer_func *blend_tf);
+void vpe10_mpc_set_blend_lut(struct mpc *mpc, struct transfer_func *blend_tf);
 
-bool vpe10_mpc_program_movable_cm(struct mpc *mpc, const struct transfer_func *func_shaper,
-    const struct vpe_3dlut *lut3d_func, const struct transfer_func *blend_tf, bool afterblend);
+bool vpe10_mpc_program_movable_cm(struct mpc *mpc, struct transfer_func *func_shaper,
+    struct vpe_3dlut *lut3d_func, struct transfer_func *blend_tf, bool afterblend);
 
 void vpe10_mpc_program_crc(struct mpc *mpc, bool enable);
 #ifdef __cplusplus

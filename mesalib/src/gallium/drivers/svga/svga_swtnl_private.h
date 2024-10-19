@@ -11,7 +11,6 @@
 #include "svga_swtnl.h"
 #include "draw/draw_vertex.h"
 
-#include "svga_types.h"
 #include "svga3d_reg.h"
 
 /**

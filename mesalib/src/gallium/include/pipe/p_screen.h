@@ -66,6 +66,7 @@ struct driOptionCache;
 struct u_transfer_helper;
 struct pipe_screen;
 struct util_queue_fence;
+struct pipe_video_buffer;
 
 typedef struct pipe_vertex_state *
    (*pipe_create_vertex_state_func)(struct pipe_screen *screen,
@@ -691,6 +692,8 @@ struct pipe_screen {
    bool (*resource_bind_backing)(struct pipe_screen *screen,
                                  struct pipe_resource *pt,
                                  struct pipe_memory_allocation *pmem,
+                                 uint64_t fd_offset,
+                                 uint64_t size,
                                  uint64_t offset);
 
    /**
@@ -803,6 +806,55 @@ struct pipe_screen {
                                      uint32_t in_data_size,
                                      void *data,
                                      bool *need_export_dmabuf);
+
+   /**
+    * Get supported compression fixed rates (bits per component) for a format.
+    * If \p max is 0, the total number of supported rates for the supplied
+    * format is returned in \p count, with no modification to \p rates.
+    * Otherwise, \p rates is filled with upto \p max supported compression
+    * rates, and \p count with the number of values copied.
+    */
+   void (*query_compression_rates)(struct pipe_screen *screen,
+                                   enum pipe_format format, int max,
+                                   uint32_t *rates, int *count);
+
+   /**
+    * Get modifiers associated with a given compression fixed rate.
+    * If \p rate is PIPE_COMPRESSION_FIXED_RATE_DEFAULT, supported compression
+    * modifiers are returned in order of priority.
+    * If \p max is 0, the total number of supported modifiers for the supplied
+    * compression rate is returned in \p count, with no modification to \p
+    * modifiers. Otherwise, \p modifiers is filled with upto \p max supported
+    * modifiers, and \p count with the number of values copied.
+    */
+   void (*query_compression_modifiers)(struct pipe_screen *screen,
+                                       enum pipe_format format, uint32_t rate,
+                                       int max, uint64_t *modifiers, int *count);
+
+   /**
+    * Check if the given \p target buffer is supported as output (or input for
+    * encode) for this \p profile and \p entrypoint.
+    *
+    * If \p format is different from target->buffer_format this function
+    * checks if the \p target buffer can be converted to \p format as part
+    * of the given operation (eg. encoder accepts RGB input and converts
+    * it to YUV).
+    *
+    * \return true if the buffer is supported for given operation, false
+    *         otherwise.
+    */
+   bool (*is_video_target_buffer_supported)(struct pipe_screen *screen,
+                                            enum pipe_format format,
+                                            struct pipe_video_buffer *target,
+                                            enum pipe_video_profile profile,
+                                            enum pipe_video_entrypoint entrypoint);
+
+   /**
+    * pipe_screen is inherited by driver's screen but a simple cast to convert
+    * from the generic interface to the driver version won't work if dd_pipe
+    * is used.
+    */
+   struct pipe_screen* (*get_driver_pipe_screen)(struct pipe_screen *screen);
 };
 
 

@@ -18,9 +18,7 @@ To build Mesa with Panfrost drm-shim, configure Meson with
 building section for a full invocation. The drm-shim binary will be built to
 ``build/src/panfrost/drm-shim/libpanfrost_noop_drm_shim.so``.
 
-To use, set the ``LD_PRELOAD`` environment variable to the drm-shim binary.  It
-may also be necessary to set ``LIBGL_DRIVERS_PATH`` to the location where Mesa
-was installed.
+To use, set the ``LD_PRELOAD`` environment variable to the drm-shim binary.
 
 By default, drm-shim mocks a Mali-G52 system. To select a specific Mali GPU,
 set the ``PAN_GPU_ID`` environment variable to the desired GPU ID:
@@ -45,7 +43,6 @@ build directory is ``~/mesa/build``, a shader can be compiled for Mali-G52 as:
 .. code-block:: sh
 
    ~/shader-db$ BIFROST_MESA_DEBUG=shaders \
-   LIBGL_DRIVERS_PATH=~/lib/dri/ \
    LD_PRELOAD=~/mesa/build/src/panfrost/drm-shim/libpanfrost_noop_drm_shim.so \
    PAN_GPU_ID=7212 \
    ./run shaders/glmark/1-1.shader_test
@@ -55,7 +52,6 @@ The same shader can be compiled for Mali-T720 as:
 .. code-block:: sh
 
    ~/shader-db$ MIDGARD_MESA_DEBUG=shaders \
-   LIBGL_DRIVERS_PATH=~/lib/dri/ \
    LD_PRELOAD=~/mesa/build/src/panfrost/drm-shim/libpanfrost_noop_drm_shim.so \
    PAN_GPU_ID=720 \
    ./run shaders/glmark/1-1.shader_test
@@ -75,7 +71,6 @@ although it requires a specially built CTS:
 .. code-block:: sh
 
    ~/VK-GL-CTS/build/external/openglcts/modules$ PAN_MESA_DEBUG=trace,dump \
-   LIBGL_DRIVERS_PATH=~/lib/dri/ \
    LD_PRELOAD=~/mesa/build/src/panfrost/drm-shim/libpanfrost_noop_drm_shim.so \
    PAN_GPU_ID=7212 EGL_PLATFORM=surfaceless \
    ./glcts --deqp-surface-type=pbuffer \

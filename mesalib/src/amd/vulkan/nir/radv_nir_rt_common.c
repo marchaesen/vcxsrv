@@ -8,7 +8,7 @@
 #include "bvh/bvh.h"
 #include "radv_debug.h"
 
-#if LLVM_AVAILABLE
+#if AMD_LLVM_AVAILABLE
 #include <llvm/Config/llvm-config.h>
 #endif
 
@@ -418,20 +418,22 @@ insert_traversal_aabb_case(struct radv_device *device, nir_builder *b, const str
    if (!args->aabb_cb)
       return;
 
-   struct radv_leaf_intersection intersection;
-   intersection.node_addr = build_node_to_addr(device, b, bvh_node, false);
-   nir_def *triangle_info = nir_build_load_global(
-      b, 2, 32, nir_iadd_imm(b, intersection.node_addr, offsetof(struct radv_bvh_aabb_node, primitive_id)));
-   intersection.primitive_id = nir_channel(b, triangle_info, 0);
-   intersection.geometry_id_and_flags = nir_channel(b, triangle_info, 1);
-   intersection.opaque = hit_is_opaque(b, nir_load_deref(b, args->vars.sbt_offset_and_flags), ray_flags,
-                                       intersection.geometry_id_and_flags);
-
-   nir_def *not_cull = nir_bcsel(b, intersection.opaque, ray_flags->no_cull_opaque, ray_flags->no_cull_no_opaque);
-   not_cull = nir_iand(b, not_cull, ray_flags->no_skip_aabbs);
-   nir_push_if(b, not_cull);
+   nir_push_if(b, ray_flags->no_skip_aabbs);
    {
-      args->aabb_cb(b, &intersection, args);
+      struct radv_leaf_intersection intersection;
+      intersection.node_addr = build_node_to_addr(device, b, bvh_node, false);
+      nir_def *triangle_info = nir_build_load_global(
+         b, 2, 32, nir_iadd_imm(b, intersection.node_addr, offsetof(struct radv_bvh_aabb_node, primitive_id)));
+      intersection.primitive_id = nir_channel(b, triangle_info, 0);
+      intersection.geometry_id_and_flags = nir_channel(b, triangle_info, 1);
+      intersection.opaque = hit_is_opaque(b, nir_load_deref(b, args->vars.sbt_offset_and_flags), ray_flags,
+                                          intersection.geometry_id_and_flags);
+
+      nir_push_if(b, nir_bcsel(b, intersection.opaque, ray_flags->no_cull_opaque, ray_flags->no_cull_no_opaque));
+      {
+         args->aabb_cb(b, &intersection, args);
+      }
+      nir_pop_if(b, NULL);
    }
    nir_pop_if(b, NULL);
 }
@@ -553,19 +555,18 @@ radv_build_ray_traversal(struct radv_device *device, nir_builder *b, const struc
       nir_def *global_bvh_node = nir_iadd(b, nir_load_deref(b, args->vars.bvh_base), nir_u2u64(b, bvh_node));
 
       nir_def *intrinsic_result = NULL;
-      if (!radv_emulate_rt(pdev)) {
+      if (pdev->info.gfx_level >= GFX10_3 && !radv_emulate_rt(pdev)) {
          intrinsic_result =
             nir_bvh64_intersect_ray_amd(b, 32, desc, nir_unpack_64_2x32(b, global_bvh_node),
                                         nir_load_deref(b, args->vars.tmax), nir_load_deref(b, args->vars.origin),
                                         nir_load_deref(b, args->vars.dir), nir_load_deref(b, args->vars.inv_dir));
       }
 
-      nir_def *node_type = nir_iand_imm(b, bvh_node, 7);
-      nir_push_if(b, nir_uge_imm(b, node_type, radv_bvh_node_box16));
+      nir_push_if(b, nir_test_mask(b, bvh_node, BITFIELD64_BIT(ffs(radv_bvh_node_box16) - 1)));
       {
-         nir_push_if(b, nir_uge_imm(b, node_type, radv_bvh_node_instance));
+         nir_push_if(b, nir_test_mask(b, bvh_node, BITFIELD64_BIT(ffs(radv_bvh_node_instance) - 1)));
          {
-            nir_push_if(b, nir_ieq_imm(b, node_type, radv_bvh_node_aabb));
+            nir_push_if(b, nir_test_mask(b, bvh_node, BITFIELD64_BIT(ffs(radv_bvh_node_aabb) - 1)));
             {
                insert_traversal_aabb_case(device, b, args, &ray_flags, global_bvh_node);
             }

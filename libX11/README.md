@@ -31,6 +31,17 @@ For patch submission instructions, see:
 
   https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 
+## Release 1.8.10
+
+ * Re-fix XIM input sometimes jumbled (#205, #206, #207, #208, !246)
+ * Fix various static analysis errors (!250)
+ * Add compose sequences for Arabic hamza (!218), Ezh (!221), and
+   hryvnia currency (!259)
+ * Make colormap private interfaces thread safe (#215, !254)
+ * Fix deadlock in XRebindKeysym() (!256)
+ * Assorted memory handling cleanups (!251, !258)
+ * Restore VAX support still in use by NetBSD (!257)
+
 ## Release 1.8.9
 
  * Fix regressions introduced in 1.8.8 (!245, !248) - this includes reverting

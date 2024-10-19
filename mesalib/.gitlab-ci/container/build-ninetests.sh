@@ -2,7 +2,7 @@
 
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
-# DEBIAN_X86_64_TEST_GL_TAG
+# DEBIAN_TEST_GL_TAG
 
 set -ex -o pipefail
 

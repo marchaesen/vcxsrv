@@ -381,8 +381,7 @@ crocus_hiz_exec(struct crocus_context *ice,
                 struct crocus_batch *batch,
                 struct crocus_resource *res,
                 unsigned int level, unsigned int start_layer,
-                unsigned int num_layers, enum isl_aux_op op,
-                bool update_clear_depth);
+                unsigned int num_layers, enum isl_aux_op op);
 
 /**
  * Prepare a miptree for access

@@ -12,13 +12,13 @@ is" without express or implied warranty.
 
 */
 
-#ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xdefs.h>
 #include <X11/Xproto.h>
+
+#include "dix/cursor_priv.h"
 
 #include "screenint.h"
 #include "input.h"
@@ -28,7 +28,6 @@ is" without express or implied warranty.
 #include "servermd.h"
 #include "inputstr.h"
 #include "inpututils.h"
-
 #include "mi.h"
 
 #include "Xnest.h"
@@ -96,7 +95,7 @@ xnestCollectExposures(void)
 
             RegionInit(&Rgn, &Box, 1);
 
-            miSendExposures(pWin, &Rgn, Box.x2, Box.y2);
+            miSendExposures(pWin, &Rgn, Box.x1, Box.y1);
         }
     }
 }
@@ -108,43 +107,50 @@ xnestQueueKeyEvent(int type, unsigned int keycode)
     QueueKeyboardEvents(xnestKeyboardDevice, type, keycode);
 }
 
-void
-xnestCollectEvents(void)
+static void
+xnest_handle_event(XEvent X)
 {
-    XEvent X;
-    int valuators[2];
-    ValuatorMask mask;
-    ScreenPtr pScreen;
-
-    while (XCheckIfEvent(xnestDisplay, &X, xnestNotExposurePredicate, NULL)) {
-        switch (X.type) {
+    switch (X.type) {
         case KeyPress:
+        {
             xnestUpdateModifierState(X.xkey.state);
             xnestQueueKeyEvent(KeyPress, X.xkey.keycode);
             break;
+        }
 
         case KeyRelease:
+        {
             xnestUpdateModifierState(X.xkey.state);
             xnestQueueKeyEvent(KeyRelease, X.xkey.keycode);
             break;
+        }
 
         case ButtonPress:
+        {
+            ValuatorMask mask;
             valuator_mask_set_range(&mask, 0, 0, NULL);
             xnestUpdateModifierState(X.xkey.state);
             lastEventTime = GetTimeInMillis();
             QueuePointerEvents(xnestPointerDevice, ButtonPress,
                                X.xbutton.button, POINTER_RELATIVE, &mask);
             break;
+        }
 
         case ButtonRelease:
+        {
+            ValuatorMask mask;
             valuator_mask_set_range(&mask, 0, 0, NULL);
             xnestUpdateModifierState(X.xkey.state);
             lastEventTime = GetTimeInMillis();
             QueuePointerEvents(xnestPointerDevice, ButtonRelease,
                                X.xbutton.button, POINTER_RELATIVE, &mask);
             break;
+        }
 
         case MotionNotify:
+        {
+            ValuatorMask mask;
+            int valuators[2];
             valuators[0] = X.xmotion.x;
             valuators[1] = X.xmotion.y;
             valuator_mask_set_range(&mask, 0, 2, valuators);
@@ -152,30 +158,38 @@ xnestCollectEvents(void)
             QueuePointerEvents(xnestPointerDevice, MotionNotify,
                                0, POINTER_ABSOLUTE, &mask);
             break;
+        }
 
         case FocusIn:
+        {
             if (X.xfocus.detail != NotifyInferior) {
-                pScreen = xnestScreen(X.xfocus.window);
+                ScreenPtr pScreen = xnestScreen(X.xfocus.window);
                 if (pScreen)
                     xnestDirectInstallColormaps(pScreen);
             }
             break;
+        }
 
         case FocusOut:
+        {
             if (X.xfocus.detail != NotifyInferior) {
-                pScreen = xnestScreen(X.xfocus.window);
+                ScreenPtr pScreen = xnestScreen(X.xfocus.window);
                 if (pScreen)
                     xnestDirectUninstallColormaps(pScreen);
             }
             break;
+        }
 
         case KeymapNotify:
             break;
 
         case EnterNotify:
+        {
             if (X.xcrossing.detail != NotifyInferior) {
-                pScreen = xnestScreen(X.xcrossing.window);
+                ScreenPtr pScreen = xnestScreen(X.xcrossing.window);
                 if (pScreen) {
+                    ValuatorMask mask;
+                    int valuators[2];
                     NewCurrentScreen(inputInfo.pointer, pScreen, X.xcrossing.x,
                                      X.xcrossing.y);
                     valuators[0] = X.xcrossing.x;
@@ -188,21 +202,26 @@ xnestCollectEvents(void)
                 }
             }
             break;
+        }
 
         case LeaveNotify:
+        {
             if (X.xcrossing.detail != NotifyInferior) {
-                pScreen = xnestScreen(X.xcrossing.window);
+                ScreenPtr pScreen = xnestScreen(X.xcrossing.window);
                 if (pScreen) {
                     xnestDirectUninstallColormaps(pScreen);
                 }
             }
             break;
+        }
 
         case DestroyNotify:
+        {
             if (xnestParentWindow != (Window) 0 &&
                 X.xdestroywindow.window == xnestParentWindow)
                 exit(0);
             break;
+        }
 
         case CirculateNotify:
         case ConfigureNotify:
@@ -216,6 +235,15 @@ xnestCollectEvents(void)
         default:
             ErrorF("xnest warning: unhandled event: %d\n", X.type);
             break;
-        }
+    }
+}
+
+void
+xnestCollectEvents(void)
+{
+    XEvent X;
+
+    while (XCheckIfEvent(xnestDisplay, &X, xnestNotExposurePredicate, NULL)) {
+        xnest_handle_event(X);
     }
 }

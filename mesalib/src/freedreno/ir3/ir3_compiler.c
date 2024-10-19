@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2015 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2015 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -49,6 +31,9 @@ static const struct debug_named_value shader_debug_options[] = {
    {"nopreamble", IR3_DBG_NOPREAMBLE, "Disable the preamble pass"},
    {"fullsync",   IR3_DBG_FULLSYNC,   "Add (sy) + (ss) after each cat5/cat6"},
    {"fullnop",    IR3_DBG_FULLNOP,    "Add nops before each instruction"},
+   {"noearlypreamble", IR3_DBG_NOEARLYPREAMBLE, "Disable early preambles"},
+   {"nodescprefetch", IR3_DBG_NODESCPREFETCH, "Disable descriptor prefetch optimization"},
+   {"expandrpt",  IR3_DBG_EXPANDRPT,  "Expand rptN instructions"},
 #if MESA_DEBUG
    /* MESA_DEBUG-only options: */
    {"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
@@ -127,6 +112,7 @@ static const nir_shader_compiler_options ir3_base_options = {
    .lower_doubles_options = (nir_lower_doubles_options)~0,
 
    .divergence_analysis_options = nir_divergence_uniform_load_tears,
+   .scalarize_ddx = true,
 };
 
 struct ir3_compiler *
@@ -153,7 +139,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    /* TODO see if older GPU's were different here */
    compiler->branchstack_size = 64;
    compiler->wave_granularity = dev_info->wave_granularity;
-   compiler->max_waves = 16;
+   compiler->max_waves = dev_info->max_waves;
 
    compiler->max_variable_workgroup_size = 1024;
 
@@ -162,6 +148,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    compiler->num_predicates = 1;
    compiler->bitops_can_write_predicates = false;
    compiler->has_branch_and_or = false;
+   compiler->has_rpt_bary_f = false;
 
    if (compiler->gen >= 6) {
       compiler->samgq_workaround = true;
@@ -187,11 +174,12 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->max_const_safe = 100;
 
       /* Compute shaders don't share a const file with the FS. Instead they
-       * have their own file, which is smaller than the FS one.
+       * have their own file, which is smaller than the FS one. On a7xx the size
+       * was doubled.
        *
        * TODO: is this true on earlier gen's?
        */
-      compiler->max_const_compute = 256;
+      compiler->max_const_compute = compiler->gen >= 7 ? 512 : 256;
 
       /* TODO: implement clip+cull distances on earlier gen's */
       compiler->has_clip_cull = true;
@@ -204,6 +192,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
       compiler->has_dp2acc = dev_info->a6xx.has_dp2acc;
       compiler->has_dp4acc = dev_info->a6xx.has_dp4acc;
+      compiler->has_compliant_dp4acc = dev_info->a7xx.has_compliant_dp4acc;
 
       if (compiler->gen == 6 && options->shared_push_consts) {
          compiler->shared_consts_base_offset = 504;
@@ -224,6 +213,12 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->has_branch_and_or = true;
       compiler->has_predication = true;
       compiler->has_scalar_alu = dev_info->a6xx.has_scalar_alu;
+      compiler->has_isam_v = dev_info->a6xx.has_isam_v;
+      compiler->has_ssbo_imm_offsets = dev_info->a6xx.has_ssbo_imm_offsets;
+      compiler->fs_must_have_non_zero_constlen_quirk = dev_info->a7xx.fs_must_have_non_zero_constlen_quirk;
+      compiler->has_early_preamble = dev_info->a6xx.has_early_preamble;
+      compiler->has_rpt_bary_f = true;
+      compiler->has_shfl = true;
    } else {
       compiler->max_const_pipeline = 512;
       compiler->max_const_geom = 512;
@@ -236,6 +231,9 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->max_const_safe = 256;
 
       compiler->has_scalar_alu = false;
+      compiler->has_isam_v = false;
+      compiler->has_ssbo_imm_offsets = false;
+      compiler->has_early_preamble = false;
    }
 
    /* This is just a guess for a4xx. */
@@ -257,16 +255,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->reg_size_vec4 = 96;
    }
 
-   if (compiler->gen >= 6) {
-      compiler->threadsize_base = 64;
-   } else if (compiler->gen >= 4) {
-      /* TODO: Confirm this for a4xx. For a5xx this is based on the Vulkan
-       * 1.1 subgroupSize which is 32.
-       */
-      compiler->threadsize_base = 32;
-   } else {
-      compiler->threadsize_base = 8;
-   }
+   compiler->threadsize_base = dev_info->threadsize_base;
 
    if (compiler->gen >= 4) {
       /* need special handling for "flat" */
@@ -301,14 +290,19 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    if (compiler->gen >= 6) {
       compiler->nir_options.vectorize_io = true,
       compiler->nir_options.force_indirect_unrolling = nir_var_all,
+      compiler->nir_options.lower_device_index_to_zero = true;
 
-      compiler->nir_options.lower_device_index_to_zero = true,
-      compiler->nir_options.has_udot_4x8 = true,
-      compiler->nir_options.has_sudot_4x8 = true,
-      compiler->nir_options.has_udot_4x8 = dev_info->a6xx.has_dp2acc;
-      compiler->nir_options.has_sudot_4x8 = dev_info->a6xx.has_dp2acc;
-      compiler->nir_options.has_udot_4x8_sat = dev_info->a6xx.has_dp2acc;
-      compiler->nir_options.has_sudot_4x8_sat = dev_info->a6xx.has_dp2acc;
+      if (dev_info->a6xx.has_dp2acc || dev_info->a6xx.has_dp4acc) {
+         compiler->nir_options.has_udot_4x8 =
+            compiler->nir_options.has_udot_4x8_sat = true;
+         compiler->nir_options.has_sudot_4x8 =
+            compiler->nir_options.has_sudot_4x8_sat = true;
+      }
+
+      if (dev_info->a6xx.has_dp4acc && dev_info->a7xx.has_compliant_dp4acc) {
+         compiler->nir_options.has_sdot_4x8 =
+            compiler->nir_options.has_sdot_4x8_sat = true;
+      }
    } else if (compiler->gen >= 3 && compiler->gen <= 5) {
       compiler->nir_options.vertex_id_zero_based = true;
    } else if (compiler->gen <= 2) {

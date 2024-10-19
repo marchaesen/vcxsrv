@@ -1,5 +1,0 @@
-#!/bin/sh -ex
-
-dir="$1"
-mkdir -p "$MESON_BUILD_ROOT/$MESON_SUBDIR"
-cp -r "$MESON_SOURCE_ROOT/$MESON_SUBDIR/$dir/" "$MESON_BUILD_ROOT/$MESON_SUBDIR/"

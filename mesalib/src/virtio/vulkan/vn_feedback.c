@@ -134,10 +134,12 @@ vn_feedback_buffer_destroy(struct vn_device *dev,
 }
 
 static inline uint32_t
-vn_get_feedback_buffer_alignment(struct vn_feedback_buffer *fb_buf)
+vn_get_feedback_buffer_alignment(struct vn_device *dev,
+                                 struct vn_feedback_buffer *fb_buf)
 {
    struct vn_buffer *buf = vn_buffer_from_handle(fb_buf->buf_handle);
-   return buf->requirements.memory.memoryRequirements.alignment;
+   return align(buf->requirements.memory.memoryRequirements.alignment,
+                dev->physical_device->wa_min_fb_align);
 }
 
 static VkResult
@@ -153,7 +155,7 @@ vn_feedback_pool_grow_locked(struct vn_feedback_pool *pool)
       return result;
 
    pool->used = 0;
-   pool->alignment = vn_get_feedback_buffer_alignment(fb_buf);
+   pool->alignment = vn_get_feedback_buffer_alignment(pool->dev, fb_buf);
 
    list_add(&fb_buf->head, &pool->fb_bufs);
 
@@ -574,8 +576,7 @@ vn_query_feedback_cmd_record_internal(VkCommandBuffer cmd_handle,
                                       bool copy)
 {
    struct vn_query_pool *pool = vn_query_pool_from_handle(pool_handle);
-   if (!pool->fb_buf)
-      return;
+   assert(pool->fb_buf);
 
    /* Results are always 64 bit and include availability bit (also 64 bit) */
    const VkDeviceSize slot_size = (pool->result_array_size * 8) + 8;

@@ -53,6 +53,7 @@ lower_cubemap_to_array_filter(const nir_instr *instr, const void *mask)
    const uint32_t *nonseamless_cube_mask = mask;
    if (instr->type == nir_instr_type_tex) {
       nir_tex_instr *tex = nir_instr_as_tex(instr);
+      nir_variable *var = nir_deref_instr_get_variable(nir_instr_as_deref(tex->src[nir_tex_instr_src_index(tex, nir_tex_src_texture_deref)].src.ssa->parent_instr));
 
       if (tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE)
          return false;
@@ -69,7 +70,7 @@ lower_cubemap_to_array_filter(const nir_instr *instr, const void *mask)
       default:
          return false;
       }
-      return (BITFIELD_BIT(tex->sampler_index) & (*nonseamless_cube_mask)) != 0;
+      return (BITFIELD_BIT(var->data.driver_location) & (*nonseamless_cube_mask)) != 0;
    }
 
    return false;
@@ -387,24 +388,7 @@ lower_cube_coords(nir_builder *b, nir_def *coord, bool is_array)
 static void
 rewrite_cube_var_type(nir_builder *b, nir_tex_instr *tex)
 {
-   unsigned index = tex->texture_index;
-   nir_variable *sampler = NULL;
-   int highest = -1;
-   nir_foreach_variable_with_modes(var, b->shader, nir_var_uniform) {
-      if (!glsl_type_is_sampler(glsl_without_array(var->type)))
-         continue;
-      unsigned size = glsl_type_is_array(var->type) ? glsl_get_length(var->type) : 1;
-      if (var->data.driver_location == index ||
-          (var->data.driver_location < index && var->data.driver_location + size > index)) {
-         sampler = var;
-         break;
-      }
-      /* handle array sampler access: use the next-closest sampler */
-      if (var->data.driver_location > highest && var->data.driver_location < index) {
-         highest = var->data.driver_location;
-         sampler = var;
-      }
-   }
+   nir_variable *sampler = nir_deref_instr_get_variable(nir_instr_as_deref(tex->src[nir_tex_instr_src_index(tex, nir_tex_src_texture_deref)].src.ssa->parent_instr));
    assert(sampler);
    sampler->type = make_2darray_from_cubemap_with_array(sampler->type);
 }

@@ -45,6 +45,6 @@ fi
 popd
 
 # build
-meson _build/ -Dprefix=/opt/X11 -Dsecure-rpc=false
+meson _build/ -Dprefix=/opt/X11
 DESTDIR=$(pwd)/staging ninja -C _build/ install
 ninja -C _build/ test

@@ -8062,6 +8062,10 @@
 
 <xi:include href="ARB_framebuffer_object.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="OVR_multiview.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<xi:include href="OVR_multiview_multisampled_render_to_texture.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <!-- 46. GL_ARB_framebuffer_sRGB -->
 
 <!-- 47. GL_ARB_geometry_shader4. There are no intentions to implement this extension -->
@@ -8490,6 +8494,10 @@
 <!-- ARB extensions 191 - 193 -->
 
 <xi:include href="ARB_spirv_extensions.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
+<!-- ARB extensions 195 -->
+
+<xi:include href="KHR_shader_subgroup.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <!-- Non-ARB extensions sorted by extension number. -->
 
@@ -12922,7 +12930,7 @@
     </function>
 
     <!-- Internal function for glthread to implement BufferSubData as a GPU copy. -->
-    <function name="InternalBufferSubDataCopyMESA" es2="2.0">
+    <function name="InternalBufferSubDataCopyMESA" es1="1.1" es2="2.0">
         <param name="srcBuffer" type="GLintptr"/> <!-- "struct gl_buffer_object *" really -->
         <param name="srcOffset" type="GLuint"/>
         <param name="dstTargetOrName" type="GLuint"/>

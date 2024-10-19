@@ -186,8 +186,7 @@ nir_move_vec_src_uses_to_dest_impl(nir_shader *shader, nir_function_impl *impl,
       progress |= move_vec_src_uses_to_dest_block(block, skip_const_srcs);
    }
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
 
    return progress;
 }

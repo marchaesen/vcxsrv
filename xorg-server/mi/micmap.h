@@ -49,19 +49,4 @@ extern _X_EXPORT Bool miInitVisuals(VisualPtr *, DepthPtr *, int *, int *,
 #define TrueColorMask	(1 << TrueColor)
 #define DirectColorMask	(1 << DirectColor)
 
-#define ALL_VISUALS	(StaticGrayMask|\
-			 GrayScaleMask|\
-			 StaticColorMask|\
-			 PseudoColorMask|\
-			 TrueColorMask|\
-			 DirectColorMask)
-
-#define LARGE_VISUALS	(TrueColorMask|\
-			 DirectColorMask)
-
-#define SMALL_VISUALS	(StaticGrayMask|\
-			 GrayScaleMask|\
-			 StaticColorMask|\
-			 PseudoColorMask)
-
 #endif                          /* _MICMAP_H_ */

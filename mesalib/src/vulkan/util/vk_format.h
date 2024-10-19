@@ -93,6 +93,18 @@ vk_format_depth_only(VkFormat format)
    }
 }
 
+static inline bool
+vk_format_has_float_depth(VkFormat format)
+{
+   switch (format) {
+   case VK_FORMAT_D32_SFLOAT:
+   case VK_FORMAT_D32_SFLOAT_S8_UINT:
+      return true;
+   default:
+      return false;
+   }
+}
+
 static inline VkFormat
 vk_format_stencil_only(VkFormat format)
 {
@@ -222,6 +234,22 @@ vk_format_get_blocksizebits(VkFormat format)
    return util_format_get_blocksizebits(vk_format_to_pipe_format(format));
 }
 
+static inline unsigned
+vk_format_get_bpc(VkFormat format)
+{
+   const struct util_format_description *desc =
+      vk_format_description(format);
+   unsigned bpc = 0;
+   for (unsigned i = 0; i < desc->nr_channels; i++) {
+      if (desc->channel[i].type == UTIL_FORMAT_TYPE_VOID)
+         continue;
+
+      assert(bpc == 0 || bpc == desc->channel[i].size);
+      bpc = desc->channel[i].size;
+   }
+   return bpc;
+}
+
 VkFormat
 vk_format_get_plane_format(VkFormat format, unsigned plane_id);
 
@@ -258,6 +286,26 @@ vk_format_get_plane_count(VkFormat format)
    const struct vk_format_ycbcr_info *ycbcr_info =
       vk_format_get_ycbcr_info(format);
    return ycbcr_info ? ycbcr_info->n_planes : 1;
+}
+
+static inline unsigned
+vk_format_get_plane_width(VkFormat format, unsigned plane, unsigned width)
+{
+   const struct vk_format_ycbcr_info *ycbcr_info =
+      vk_format_get_ycbcr_info(format);
+   const uint8_t width_scale = ycbcr_info ?
+      ycbcr_info->planes[plane].denominator_scales[0] : 1;
+   return width / width_scale;
+}
+
+static inline unsigned
+vk_format_get_plane_height(VkFormat format, unsigned plane, unsigned height)
+{
+   const struct vk_format_ycbcr_info *ycbcr_info =
+      vk_format_get_ycbcr_info(format);
+   const uint8_t height_scale = ycbcr_info ?
+      ycbcr_info->planes[plane].denominator_scales[1] : 1;
+   return height / height_scale;
 }
 
 VkClearColorValue

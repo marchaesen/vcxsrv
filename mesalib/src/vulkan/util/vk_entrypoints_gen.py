@@ -49,11 +49,31 @@ extern "C" {
 #endif
 % endif
 
-/* clang wants function declarations in the header to have weak attribute */
-#if !defined(_MSC_VER) && !defined(__MINGW32__)
-#define ATTR_WEAK __attribute__ ((weak))
+/* Entrypoint symbols are optional, and resolves to NULL if undefined.
+ * On Unix, this semantics is achieved through weak symbols.
+ * Note that we only declare the symbols as weak when it needs to be optional;
+ * otherwise, the symbol is declared as a regular symbol.
+ * This is to workaround a MinGW limitation: on MinGW, the definition for a
+ * weak symbol must be regular, or the linker will end up resolving to one of
+ * the fallback symbols with the absolute value of 0.
+ * On MSVC, weak symbols are not well supported, so we use the functionally
+ * equivalent /alternatename.
+ */
+#if !defined(_MSC_VER) && defined(VK_ENTRY_USE_WEAK)
+#define VK_ENTRY_WEAK __attribute__ ((weak))
 #else
-#define ATTR_WEAK
+#define VK_ENTRY_WEAK
+#endif
+
+/* On Unix, we explicitly declare the symbols as hidden, as -fvisibility=hidden
+ * only applies to definitions, not declarations.
+ * Windows uses hidden visibility by default (requiring dllexport for public
+ * symbols), so we don't need to deal with visibility there.
+ */
+#ifndef _WIN32
+#define VK_ENTRY_HIDDEN __attribute__ ((visibility("hidden")))
+#else
+#define VK_ENTRY_HIDDEN
 #endif
 
 % for p in instance_prefixes:
@@ -78,7 +98,7 @@ extern const struct vk_device_entrypoint_table ${tmpl_prefix}_device_entrypoints
 #ifdef ${e.guard}
   % endif
   % for p in physical_device_prefixes:
-  VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()});
+  VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()}) VK_ENTRY_WEAK VK_ENTRY_HIDDEN;
   % endfor
   % if e.guard is not None:
 #endif // ${e.guard}
@@ -90,7 +110,7 @@ extern const struct vk_device_entrypoint_table ${tmpl_prefix}_device_entrypoints
 #ifdef ${e.guard}
   % endif
   % for p in physical_device_prefixes:
-  VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()});
+  VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()}) VK_ENTRY_WEAK VK_ENTRY_HIDDEN;
   % endfor
   % if e.guard is not None:
 #endif // ${e.guard}
@@ -102,7 +122,7 @@ extern const struct vk_device_entrypoint_table ${tmpl_prefix}_device_entrypoints
 #ifdef ${e.guard}
   % endif
   % for p in device_prefixes:
-  VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()}) ATTR_WEAK;
+  VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()}) VK_ENTRY_WEAK VK_ENTRY_HIDDEN;
   % endfor
 
   % if tmpl_prefix:
@@ -131,6 +151,11 @@ extern const struct vk_device_entrypoint_table ${tmpl_prefix}_device_entrypoints
 TEMPLATE_C = Template(COPYRIGHT + """
 /* This file generated from ${filename}, don't edit directly. */
 
+/* This file is the only place we rely on undefined symbols to fall back to
+ * NULL. Other files use regular symbol declarations.
+ * See also comments on VK_ENTRY_WEAK.
+ */
+#define VK_ENTRY_USE_WEAK 1
 #include "${header}"
 
 /* Weak aliases for all potential implementations. These will resolve to
@@ -161,8 +186,6 @@ TEMPLATE_C = Template(COPYRIGHT + """
 #endif
 #endif
 #else
-    VKAPI_ATTR ${e.return_type} VKAPI_CALL ${p}_${e.name}(${e.decl_params()}) __attribute__ ((weak));
-
     % if entrypoints == device_entrypoints:
       % for v in tmpl_variants:
     extern template

@@ -102,7 +102,7 @@ xf86PciProbe(void)
     while ((info = pci_device_next(iter)) != NULL) {
         if (PCIINFOCLASSES(info->device_class)) {
             num++;
-            xf86PciVideoInfo = xnfreallocarray(xf86PciVideoInfo,
+            xf86PciVideoInfo = XNFreallocarray(xf86PciVideoInfo,
                                                num + 1,
                                                sizeof(struct pci_device *));
             xf86PciVideoInfo[num] = NULL;
@@ -272,7 +272,7 @@ xf86ParsePciBusString(const char *busID, int *bus, int *device, int *func)
     if (StringToBusType(busID, &id) != BUS_PCI)
         return FALSE;
 
-    s = xstrdup(id);
+    s = Xstrdup(id);
     p = strtok(s, ":");
     if (p == NULL || *p == 0) {
         free(s);
@@ -282,14 +282,14 @@ xf86ParsePciBusString(const char *busID, int *bus, int *device, int *func)
     if (d != NULL) {
         *(d++) = 0;
         for (i = 0; d[i] != 0; i++) {
-            if (!isdigit(d[i])) {
+            if (!isdigit((unsigned char)d[i])) {
                 free(s);
                 return FALSE;
             }
         }
     }
     for (i = 0; p[i] != 0; i++) {
-        if (!isdigit(p[i])) {
+        if (!isdigit((unsigned char)p[i])) {
             free(s);
             return FALSE;
         }
@@ -303,7 +303,7 @@ xf86ParsePciBusString(const char *busID, int *bus, int *device, int *func)
         return FALSE;
     }
     for (i = 0; p[i] != 0; i++) {
-        if (!isdigit(p[i])) {
+        if (!isdigit((unsigned char)p[i])) {
             free(s);
             return FALSE;
         }
@@ -316,7 +316,7 @@ xf86ParsePciBusString(const char *busID, int *bus, int *device, int *func)
         return TRUE;
     }
     for (i = 0; p[i] != 0; i++) {
-        if (!isdigit(p[i])) {
+        if (!isdigit((unsigned char)p[i])) {
             free(s);
             return FALSE;
         }
@@ -682,7 +682,7 @@ xf86MatchPciInstances(const char *driverName, int vendorID,
         }
 
         pci_iterator_destroy(iter);
-        instances = xnfallocarray(max_entries, sizeof(struct Inst));
+        instances = XNFreallocarray(NULL, max_entries, sizeof(struct Inst));
     }
 
     iter = pci_slot_match_iterator_create(NULL);
@@ -979,7 +979,7 @@ xf86MatchPciInstances(const char *driverName, int vendorID,
 
         /* Allocate an entry in the lists to be returned */
         numFound++;
-        retEntities = xnfreallocarray(retEntities, numFound, sizeof(int));
+        retEntities = XNFreallocarray(retEntities, numFound, sizeof(int));
         retEntities[numFound - 1] = xf86ClaimPciSlot(pPci, drvp,
                                                      instances[i].chip,
                                                      instances[i].dev,

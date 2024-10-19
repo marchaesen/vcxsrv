@@ -125,7 +125,7 @@ retry_draw_indirect(struct svga_context *svga,
 
    if (info->mode == MESA_PRIM_LINE_LOOP) {
       /* need to do a fallback */
-      util_draw_indirect(&svga->pipe, info, indirect);
+      util_draw_indirect(&svga->pipe, info, 0, indirect);
       return PIPE_OK;
    }
    else {

@@ -20,7 +20,8 @@
 #include <sys/mman.h>
 
 #include "svga_cmd.h"
-#include "svga3d_caps.h"
+#include "svga3d_devcaps.h"
+#include "vmw_surf_defs.h"
 
 #include "c11/threads.h"
 #include "util/os_file.h"
@@ -39,7 +40,6 @@
 #include "vmw_shader.h"
 #include "vmw_query.h"
 #include "vmwgfx_drm.h"
-#include "svga3d_surfacedefs.h"
 #include "xf86drm.h"
 
 /**
@@ -486,8 +486,8 @@ vmw_svga_winsys_surface_create(struct svga_winsys_screen *sws,
    p_atomic_set(&surface->validated, 0);
    surface->screen = vws;
    (void) mtx_init(&surface->mutex, mtx_plain);
-   surface->shared = !!(usage & SVGA_SURFACE_USAGE_SHARED);
-   provider = (surface->shared) ? vws->pools.dma_base : vws->pools.dma_fenced;
+   surface->nodiscard = !!(usage & SVGA_SURFACE_USAGE_SHARED);
+   provider = (surface->nodiscard) ? vws->pools.dma_base : vws->pools.dma_fenced;
 
    /*
     * When multisampling is not supported sample count received is 0,
@@ -505,10 +505,10 @@ vmw_svga_winsys_surface_create(struct svga_winsys_screen *sws,
     * Used for the backing buffer GB surfaces, and to approximate
     * when to flush on non-GB hosts.
     */
-   buffer_size = svga3dsurface_get_serialized_size_extended(format, size,
-                                                            numMipLevels,
-                                                            numLayers,
-                                                            num_samples);
+   buffer_size = vmw_surf_get_serialized_size_extended(format, size,
+                                                       numMipLevels,
+                                                       numLayers,
+                                                       num_samples);
    if (flags & SVGA3D_SURFACE_BIND_STREAM_OUTPUT)
       buffer_size += sizeof(SVGA3dDXSOState);
 
@@ -517,75 +517,31 @@ vmw_svga_winsys_surface_create(struct svga_winsys_screen *sws,
    }
 
    if (sws->have_gb_objects) {
-      SVGAGuestPtr ptr = {0,0};
-
-      /*
-       * If the backing buffer size is small enough, try to allocate a
-       * buffer out of the buffer cache. Otherwise, let the kernel allocate
-       * a suitable buffer for us.
-       */
-      if (buffer_size < VMW_TRY_CACHED_SIZE && !surface->shared) {
-         struct pb_buffer *pb_buf;
-
-         surface->size = buffer_size;
-         desc.pb_desc.alignment = 4096;
-         desc.pb_desc.usage = 0;
-         pb_buf = provider->create_buffer(provider, buffer_size, &desc.pb_desc);
-         surface->buf = vmw_svga_winsys_buffer_wrap(pb_buf);
-         if (surface->buf && !vmw_dma_bufmgr_region_ptr(pb_buf, &ptr))
-            assert(0);
-      }
+      struct pb_buffer *pb_buf;
 
       surface->sid = vmw_ioctl_gb_surface_create(vws, flags, format, usage,
                                                  size, numLayers,
-                                                 numMipLevels, sampleCount,
-                                                 ptr.gmrId,
+                                                 numMipLevels, sampleCount, 0,
                                                  multisample_pattern,
                                                  quality_level,
-                                                 surface->buf ? NULL :
                                                  &desc.region);
-
-      if (surface->sid == SVGA3D_INVALID_ID) {
-         if (surface->buf == NULL) {
-            goto no_sid;
-         } else {
-            /*
-             * Kernel refused to allocate a surface for us.
-             * Perhaps something was wrong with our buffer?
-             * This is really a guard against future new size requirements
-             * on the backing buffers.
-             */
-            vmw_svga_winsys_buffer_destroy(sws, surface->buf);
-            surface->buf = NULL;
-            surface->sid = vmw_ioctl_gb_surface_create(vws, flags, format, usage,
-                                                       size, numLayers,
-                                                       numMipLevels, sampleCount,
-                                                       0, multisample_pattern,
-                                                       quality_level,
-                                                       &desc.region);
-            if (surface->sid == SVGA3D_INVALID_ID)
-               goto no_sid;
-         }
-      }
+      if (surface->sid == SVGA3D_INVALID_ID)
+         goto no_sid;
 
       /*
-       * If the kernel created the buffer for us, wrap it into a
+       * The kernel created the buffer for us, wrap it into a
        * vmw_svga_winsys_buffer.
        */
+      surface->size = vmw_region_size(desc.region);
+      desc.pb_desc.alignment = 4096;
+      desc.pb_desc.usage = VMW_BUFFER_USAGE_SHARED;
+      pb_buf = provider->create_buffer(provider, surface->size,
+                                       &desc.pb_desc);
+      surface->buf = vmw_svga_winsys_buffer_wrap(pb_buf);
       if (surface->buf == NULL) {
-         struct pb_buffer *pb_buf;
-
-         surface->size = vmw_region_size(desc.region);
-         desc.pb_desc.alignment = 4096;
-         desc.pb_desc.usage = VMW_BUFFER_USAGE_SHARED;
-         pb_buf = provider->create_buffer(provider, surface->size,
-                                          &desc.pb_desc);
-         surface->buf = vmw_svga_winsys_buffer_wrap(pb_buf);
-         if (surface->buf == NULL) {
-            vmw_ioctl_region_destroy(desc.region);
-            vmw_ioctl_surface_destroy(vws, surface->sid);
-            goto no_sid;
-         }
+         vmw_ioctl_region_destroy(desc.region);
+         vmw_ioctl_surface_destroy(vws, surface->sid);
+         goto no_sid;
       }
    } else {
       /* Legacy surface only support 32-bit svga3d flags */
@@ -622,9 +578,9 @@ vmw_svga_winsys_surface_can_create(struct svga_winsys_screen *sws,
    struct vmw_winsys_screen *vws = vmw_winsys_screen(sws);
    uint32_t buffer_size;
 
-   buffer_size = svga3dsurface_get_serialized_size(format, size,
-                                                   numMipLevels,
-                                                   numLayers);
+   buffer_size = vmw_surf_get_serialized_size(format, size,
+                                              numMipLevels,
+                                              numLayers);
    if (numSamples > 1)
       buffer_size *= numSamples;
 

@@ -53,6 +53,9 @@ static nir_def *lower_image_coords(nir_builder *b, nir_def *desc, nir_def *coord
    unsigned num_coord_components = get_coord_components(dim, is_array);
    nir_def *zero = nir_imm_int(b, 0);
 
+   if (coord->bit_size == 16)
+      coord = nir_u2u32(b, coord);
+
    /* Get coordinates. */
    nir_def *x = nir_channel(b, coord, 0);
    nir_def *y = num_coord_components >= 2 ? nir_channel(b, coord, 1) : NULL;
@@ -156,6 +159,9 @@ static nir_def *emulated_tex_level_zero(nir_builder *b, unsigned num_components,
    nir_def *zero = nir_imm_int(b, 0);
    nir_def *fp_one = nir_imm_floatN_t(b, 1, bit_size);
    nir_def *coord[3] = {0};
+
+   if (coord_vec->bit_size == 16)
+      coord_vec = nir_f2f32(b, coord_vec);
 
    assert(num_coord_components <= 3);
    for (unsigned i = 0; i < num_coord_components; i++)
@@ -296,6 +302,7 @@ static bool lower_image_opcodes(nir_builder *b, nir_instr *instr, void *data)
       enum gl_access_qualifier access;
       enum glsl_sampler_dim dim;
       bool is_array;
+      unsigned num_desc_components;
       nir_def *desc = NULL, *result = NULL;
       ASSERTED const char *intr_name;
 
@@ -310,8 +317,14 @@ static bool lower_image_opcodes(nir_builder *b, nir_instr *instr, void *data)
          if (dim == GLSL_SAMPLER_DIM_BUF)
             return false;
          is_array = nir_intrinsic_image_array(intr);
-         desc = nir_image_descriptor_amd(b, dim == GLSL_SAMPLER_DIM_BUF ? 4 : 8,
-                                         32, intr->src[0].ssa);
+         num_desc_components = dim == GLSL_SAMPLER_DIM_BUF ? 4 : 8;
+
+         if (intr->src[0].ssa->bit_size == 32 &&
+             intr->src[0].ssa->num_components == num_desc_components)
+            desc = intr->src[0].ssa;
+         else
+            desc = nir_image_descriptor_amd(b, num_desc_components,
+                                            32, intr->src[0].ssa);
          break;
 
       case nir_intrinsic_image_deref_load:
@@ -322,8 +335,14 @@ static bool lower_image_opcodes(nir_builder *b, nir_instr *instr, void *data)
          if (dim == GLSL_SAMPLER_DIM_BUF)
             return false;
          is_array = glsl_sampler_type_is_array(deref->type);
-         desc = nir_image_deref_descriptor_amd(b, dim == GLSL_SAMPLER_DIM_BUF ? 4 : 8,
-                                               32, intr->src[0].ssa);
+         num_desc_components = dim == GLSL_SAMPLER_DIM_BUF ? 4 : 8;
+
+         if (intr->src[0].ssa->bit_size == 32 &&
+             intr->src[0].ssa->num_components == num_desc_components)
+            desc = intr->src[0].ssa;
+         else
+            desc = nir_image_deref_descriptor_amd(b, num_desc_components,
+                                                  32, intr->src[0].ssa);
          break;
 
       case nir_intrinsic_bindless_image_load:
@@ -333,9 +352,21 @@ static bool lower_image_opcodes(nir_builder *b, nir_instr *instr, void *data)
          if (dim == GLSL_SAMPLER_DIM_BUF)
             return false;
          is_array = nir_intrinsic_image_array(intr);
-         desc = nir_bindless_image_descriptor_amd(b, dim == GLSL_SAMPLER_DIM_BUF ? 4 : 8,
-                                                  32, intr->src[0].ssa);
+         num_desc_components = dim == GLSL_SAMPLER_DIM_BUF ? 4 : 8;
+
+         if (intr->src[0].ssa->bit_size == 32 &&
+             intr->src[0].ssa->num_components == num_desc_components)
+            desc = intr->src[0].ssa;
+         else
+            desc = nir_bindless_image_descriptor_amd(b, num_desc_components,
+                                                     32, intr->src[0].ssa);
          break;
+
+      /* These don't need any lowering. */
+      case nir_intrinsic_image_descriptor_amd:
+      case nir_intrinsic_image_deref_descriptor_amd:
+      case nir_intrinsic_bindless_image_descriptor_amd:
+         return false;
 
       default:
          intr_name = nir_intrinsic_infos[intr->intrinsic].name;
@@ -482,7 +513,6 @@ static bool lower_image_opcodes(nir_builder *b, nir_instr *instr, void *data)
 bool ac_nir_lower_image_opcodes(nir_shader *nir)
 {
    return nir_shader_instructions_pass(nir, lower_image_opcodes,
-                                       nir_metadata_dominance |
-                                       nir_metadata_block_index,
+                                       nir_metadata_control_flow,
                                        NULL);
 }

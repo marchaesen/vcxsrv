@@ -109,7 +109,6 @@ bool
 gl_nir_lower_images(nir_shader *shader, bool bindless_only)
 {
    return nir_shader_instructions_pass(shader, lower_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &bindless_only);
 }

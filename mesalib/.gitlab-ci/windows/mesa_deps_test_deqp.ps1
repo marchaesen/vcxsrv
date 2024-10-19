@@ -14,7 +14,7 @@ New-Item -ItemType Directory -Path "$deqp_source" | Out-Null
 Push-Location -Path $deqp_source
 git init
 git remote add origin https://github.com/KhronosGroup/VK-GL-CTS.git
-git fetch --depth 1 origin 56114106d860c121cd6ff0c3b926ddc50c4c11fd # of branch vulkan-cts-1.3.4
+git fetch --depth 1 origin d48899f85b486a70d090af59a1453763458611d9 # of branch vulkan-cts-1.3.8
 if (!$?) {
   Write-Host "Failed to fetch deqp repository"
   Pop-Location

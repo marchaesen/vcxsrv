@@ -34,9 +34,6 @@ void vpe10_construct_vpec(struct vpe_priv *vpe_priv, struct vpec *vpec);
 /** functions for capability check */
 bool vpe10_vpec_check_swmode_support(struct vpec *vpec, enum vpe_swizzle_mode_values sw_mode);
 
-bool vpe10_vpec_get_dcc_compression_cap(struct vpec *vpec,
-    const struct vpe_dcc_surface_param *input, struct vpe_surface_dcc_cap *output);
-
 /** functions for generating command buffer */
 
 #ifdef __cplusplus

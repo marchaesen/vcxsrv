@@ -31,16 +31,14 @@ from mako.template import Template
 def find_result_types(spirv):
     seen = set()
     for inst in spirv['instructions']:
-        # Handle aliases by choosing the first one in the grammar.
-        if inst['opcode'] in seen:
-            continue
-        seen.add(inst['opcode'])
-
-        name = inst['opname']
+        opcode = inst['opcode']
+        assert(opcode not in seen)
+        seen.add(opcode)
 
         if 'operands' not in inst:
             continue
 
+        name = inst['opname']
         res_arg_idx = -1
         res_type_arg_idx = -1
         for idx, arg in enumerate(inst['operands']):

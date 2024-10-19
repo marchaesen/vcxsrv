@@ -31,7 +31,9 @@
 #endif
 #include <windowstr.h>
 #include <present.h>
+#ifdef DRI3
 #include <sys/eventfd.h>
+#endif /* DRI3 */
 
 #include "xwayland-present.h"
 #include "xwayland-screen.h"
@@ -328,7 +330,7 @@ xwl_present_free_event(struct xwl_present_event *event)
 static void
 xwl_present_free_idle_vblank(present_vblank_ptr vblank)
 {
-#ifdef XWL_HAS_GLAMOR
+#if defined(XWL_HAS_GLAMOR) && defined(DRI3)
     if (vblank->release_syncobj) {
         /* transfer implicit fence to release syncobj */
         int fence_fd = xwl_glamor_dmabuf_export_sync_file(vblank->pixmap);
@@ -336,7 +338,7 @@ xwl_present_free_idle_vblank(present_vblank_ptr vblank)
                                               vblank->release_point,
                                               fence_fd);
     } else
-#endif /* XWL_HAS_GLAMOR */
+#endif /* defined(XWL_HAS_GLAMOR) && defined(DRI3) */
         present_pixmap_idle(vblank->pixmap, vblank->window,
                             vblank->serial, vblank->idle_fence);
     xwl_present_free_event(xwl_present_event_from_vblank(vblank));
@@ -393,7 +395,9 @@ static void
 xwl_present_flip_notify_vblank(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 {
     WindowPtr                   window = vblank->window;
+#ifdef DRI3
     struct xwl_screen *xwl_screen = xwl_screen_get(window->drawable.pScreen);
+#endif /* DRI3 */
     struct xwl_present_window *xwl_present_window = xwl_present_window_priv(window);
     uint8_t mode = PresentCompleteModeFlip;
 
@@ -507,7 +511,7 @@ xwl_present_buffer_release(void *data)
 
     vblank = &event->vblank;
 
-#ifdef XWL_HAS_GLAMOR
+#if defined(XWL_HAS_GLAMOR) && defined(DRI3)
     if (vblank->release_syncobj) {
         /* transfer implicit fence to release syncobj */
         int fence_fd = xwl_glamor_dmabuf_export_sync_file(vblank->pixmap);
@@ -515,7 +519,7 @@ xwl_present_buffer_release(void *data)
                                               vblank->release_point,
                                               fence_fd);
     } else
-#endif /* XWL_HAS_GLAMOR */
+#endif /* defined(XWL_HAS_GLAMOR) && defined(DRI3) */
         present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
 
     xwl_present_window = xwl_present_window_priv(vblank->window);
@@ -881,7 +885,7 @@ xwl_present_flip(present_vblank_ptr vblank, RegionPtr damage)
 
     event->pixmap = pixmap;
 
-#ifdef XWL_HAS_GLAMOR
+#if defined(XWL_HAS_GLAMOR) && defined(DRI3)
     if (vblank->acquire_syncobj && vblank->release_syncobj) {
         if (xwl_window->xwl_screen->explicit_sync) {
             xwl_glamor_dri3_syncobj_passthrough(xwl_window,
@@ -898,7 +902,7 @@ xwl_present_flip(present_vblank_ptr vblank, RegionPtr damage)
             xwl_glamor_dmabuf_import_sync_file(vblank->pixmap, fence_fd);
         }
     }
-#endif /* XWL_HAS_GLAMOR */
+#endif /* defined(XWL_HAS_GLAMOR) && defined(DRI3) */
 
     if (implicit_sync) {
         xwl_pixmap_set_buffer_release_cb(pixmap, xwl_present_buffer_release, event);
@@ -950,7 +954,7 @@ xwl_present_flip(present_vblank_ptr vblank, RegionPtr damage)
     return TRUE;
 }
 
-#ifdef XWL_HAS_GLAMOR
+#if defined(XWL_HAS_GLAMOR) && defined(DRI3)
 static void
 xwl_present_acquire_fence_avail(int fd, int xevents, void *data)
 {
@@ -962,13 +966,13 @@ xwl_present_acquire_fence_avail(int fd, int xevents, void *data)
 
     xwl_present_re_execute(vblank);
 }
-#endif /* XWL_HAS_GLAMOR */
+#endif /* defined(XWL_HAS_GLAMOR) && defined(DRI3) */
 
 static Bool
 xwl_present_wait_acquire_fence_avail(struct xwl_screen *xwl_screen,
                                      present_vblank_ptr vblank)
 {
-#ifdef XWL_HAS_GLAMOR
+#if defined(XWL_HAS_GLAMOR) && defined(DRI3)
     /* If the compositor does not support explicit sync we need to wait for the
      * acquire fence to be submitted before flipping. */
     if (vblank->flip && !xwl_screen->explicit_sync &&
@@ -982,7 +986,7 @@ xwl_present_wait_acquire_fence_avail(struct xwl_screen *xwl_screen,
                                                    vblank->efd);
         return TRUE;
     }
-#endif /* XWL_HAS_GLAMOR */
+#endif /* defined(XWL_HAS_GLAMOR) && defined(DRI3) */
     return FALSE;
 }
 
@@ -1284,7 +1288,7 @@ xwl_present_unrealize_window(struct xwl_present_window *xwl_present_window)
 }
 
 Bool
-xwl_present_maybe_redirect_window(WindowPtr window, PixmapPtr pixmap)
+xwl_present_maybe_redirect_window(WindowPtr window)
 {
     struct xwl_present_window *xwl_present_window = xwl_present_window_get_priv(window);
     struct xwl_window *xwl_window = xwl_window_from_window(window);
@@ -1297,17 +1301,20 @@ xwl_present_maybe_redirect_window(WindowPtr window, PixmapPtr pixmap)
         return FALSE;
     }
 
+    xwl_present_window->redirected = TRUE;
+
     xwl_window_update_surface_window(xwl_window);
     if (xwl_window->surface_window != window) {
         compUnredirectWindow(serverClient, window, CompositeRedirectManual);
+        xwl_present_window->redirected = FALSE;
         xwl_present_window->redirect_failed = TRUE;
+        xwl_window_update_surface_window(xwl_window);
         return FALSE;
     }
 
     if (!xwl_window->surface_window_damage)
         xwl_window->surface_window_damage = RegionCreate(NullBox, 1);
 
-    xwl_present_window->redirected = TRUE;
     return TRUE;
 }
 
@@ -1342,6 +1349,14 @@ xwl_present_maybe_unredirect_window(WindowPtr window)
     }
 
     return TRUE;
+}
+
+Bool
+xwl_present_window_redirected(WindowPtr window)
+{
+    struct xwl_present_window *xwl_present_window = xwl_present_window_get_priv(window);
+
+    return xwl_present_window->redirected;
 }
 
 Bool

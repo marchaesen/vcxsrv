@@ -37,10 +37,17 @@
 
 struct pipe_screen;
 
+enum lp_fence_type
+{
+   LP_FENCE_TYPE_SW,
+   LP_FENCE_TYPE_SYNC_FD,
+};
+
 
 struct lp_fence
 {
    struct pipe_reference reference;
+   enum lp_fence_type type;
    unsigned id;
 
    mtx_t mutex;
@@ -49,6 +56,8 @@ struct lp_fence
    bool issued;
    unsigned rank;
    unsigned count;
+
+   int sync_fd;
 };
 
 
@@ -94,5 +103,12 @@ lp_fence_issued(const struct lp_fence *fence)
    return fence->issued;
 }
 
+#ifdef HAVE_LIBDRM
+void
+llvmpipe_init_screen_fence_funcs(struct pipe_screen *pscreen);
+
+void
+llvmpipe_init_fence_funcs(struct pipe_context *pipe);
+#endif
 
 #endif /* LP_FENCE_H */

@@ -23,6 +23,7 @@
 
 #include "v3d_context.h"
 #include "broadcom/common/v3d_tfu.h"
+#include "util/perf/cpu_trace.h"
 
 bool
 v3dX(tfu)(struct pipe_context *pctx,
@@ -82,6 +83,8 @@ v3dX(tfu)(struct pipe_context *pctx,
                 assert(for_mipmap);
                 return false;
         }
+
+        MESA_TRACE_FUNC();
 
         v3d_flush_jobs_writing_resource(v3d, psrc, V3D_FLUSH_DEFAULT, false);
         v3d_flush_jobs_reading_resource(v3d, pdst, V3D_FLUSH_DEFAULT, false);

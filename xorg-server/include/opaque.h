@@ -33,47 +33,8 @@ from The Open Group.
 
 #include "globals.h"
 
-extern _X_EXPORT int LimitClients;
-extern _X_EXPORT volatile char isItTimeToYield;
-extern _X_EXPORT volatile char dispatchException;
-
-/* bit values for dispatchException */
-#define DE_RESET     1
-#define DE_TERMINATE 2
-#define DE_PRIORITYCHANGE 4     /* set when a client's priority changes */
-
-extern _X_EXPORT int ScreenSaverBlanking;
-extern _X_EXPORT int ScreenSaverAllowExposures;
-extern _X_EXPORT int defaultScreenSaverBlanking;
-extern _X_EXPORT int defaultScreenSaverAllowExposures;
-extern _X_EXPORT const char *display;
-extern _X_EXPORT int displayfd;
-extern _X_EXPORT Bool explicit_display;
-
-extern _X_EXPORT Bool disableBackingStore;
-extern _X_EXPORT Bool enableBackingStore;
+// needed by libglx and libglamor (server modules)
 extern _X_EXPORT Bool enableIndirectGLX;
-extern _X_EXPORT Bool PartialNetwork;
-extern _X_EXPORT Bool RunFromSigStopParent;
-
-#ifdef RLIMIT_DATA
-extern _X_EXPORT int limitDataSpace;
-#endif
-#ifdef RLIMIT_STACK
-extern _X_EXPORT int limitStackSpace;
-#endif
-#ifdef RLIMIT_NOFILE
-extern _X_EXPORT int limitNoFile;
-#endif
-extern _X_EXPORT Bool defeatAccessControl;
-extern _X_EXPORT Bool whiteRoot;
 extern _X_EXPORT Bool bgNoneRoot;
-
-extern _X_EXPORT Bool CoreDump;
-extern _X_EXPORT Bool NoListenAll;
-
-extern _X_EXPORT Bool AllowByteSwappedClients;
-
-extern Bool party_like_its_1989; /* -retro mode */
 
 #endif                          /* OPAQUE_H */

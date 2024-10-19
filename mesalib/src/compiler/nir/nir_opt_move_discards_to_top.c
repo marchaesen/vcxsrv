@@ -133,17 +133,12 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
          instr->pass_flags = 0;
 
          switch (instr->type) {
-         case nir_instr_type_alu: {
-            nir_alu_instr *alu = nir_instr_as_alu(instr);
-            if (nir_op_is_derivative(alu->op))
-               consider_discards = false;
-            continue;
-         }
-
+         case nir_instr_type_alu:
          case nir_instr_type_deref:
          case nir_instr_type_load_const:
          case nir_instr_type_undef:
          case nir_instr_type_phi:
+         case nir_instr_type_debug_info:
             /* These are all safe */
             continue;
 
@@ -173,6 +168,12 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
             case nir_intrinsic_quad_vote_all:
             case nir_intrinsic_quad_vote_any:
             case nir_intrinsic_quad_swizzle_amd:
+            case nir_intrinsic_ddx:
+            case nir_intrinsic_ddx_fine:
+            case nir_intrinsic_ddx_coarse:
+            case nir_intrinsic_ddy:
+            case nir_intrinsic_ddy_fine:
+            case nir_intrinsic_ddy_coarse:
                consider_discards = false;
                break;
             case nir_intrinsic_vote_any:
@@ -195,9 +196,9 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
             case nir_intrinsic_masked_swizzle_amd:
                instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
                goto break_all;
-            case nir_intrinsic_discard_if:
+            case nir_intrinsic_terminate_if:
                if (!consider_discards) {
-                  /* assume that a shader either uses discard or demote, but not both */
+                  /* assume that a shader either uses terminate or demote, but not both */
                   instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
                   goto break_all;
                }
@@ -267,8 +268,7 @@ nir_opt_move_discards_to_top(nir_shader *shader)
 
    nir_foreach_function_impl(impl, shader) {
       if (opt_move_discards_to_top_impl(impl)) {
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                        nir_metadata_dominance);
+         nir_metadata_preserve(impl, nir_metadata_control_flow);
          progress = true;
       }
    }

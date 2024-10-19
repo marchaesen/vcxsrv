@@ -44,9 +44,7 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
@@ -89,7 +87,7 @@ AddExtension(const char *name, int NumEvents, int NumErrors,
         return ((ExtensionEntry *) NULL);
     }
 
-    ext = calloc(sizeof(ExtensionEntry), 1);
+    ext = calloc(1, sizeof(ExtensionEntry));
     if (!ext)
         return NULL;
     if (!dixAllocatePrivates(&ext->devPrivates, PRIVATE_EXTENSION)) {
@@ -215,7 +213,7 @@ CloseDownExtensions(void)
 static Bool
 ExtensionAvailable(ClientPtr client, ExtensionEntry *ext)
 {
-    if (XaceHook(XACE_EXT_ACCESS, client, ext) != Success)
+    if (XaceHookExtAccess(client, ext) != Success)
         return FALSE;
     if (!ext->base)
         return FALSE;

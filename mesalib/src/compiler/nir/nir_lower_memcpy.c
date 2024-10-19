@@ -178,8 +178,7 @@ lower_memcpy_impl(nir_function_impl *impl)
    if (found_non_const_memcpy) {
       nir_metadata_preserve(impl, nir_metadata_none);
    } else if (found_const_memcpy) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

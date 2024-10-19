@@ -22,6 +22,34 @@
  *
  */
 
+/** @mainpage     VPELIB
+ *  @section intro_sec Introduction
+ *
+ *  VPE is a hardware pipeline that does baseline video processing from DRAM to DRAM.
+ *  The objective of VPE is to offload the graphic workload to VPE to save power.
+ *  The main functionality of VPE is to read video stream from memory, process the video stream and
+ *  write it back to memory. VPE is meant to augment the abilities of both the graphics (GFX) and
+ *  multi plane overlay (MPO) and deliver more power efficient use cases.
+ *
+ *
+ *  @section main_api Main API Functions
+ *  @subsection create VPE Create
+ *  @link vpe_create @endlink
+ *  @subsection destroy VPE Destroy
+ *  @link vpe_destroy @endlink
+ *  @subsection check_support VPE Check Support
+ *  @link vpe_check_support @endlink
+ *  @subsection vpe_build_noops VPE Build No-Operation Commands
+ *  @link vpe_build_noops @endlink
+ *  @subsection build_commands VPE Build Commands
+ *  @link vpe_build_commands @endlink
+ *  @subsection get_optimal_num_of_taps VPE Get the Optimal Number of Taps
+ *  @link vpe_get_optimal_num_of_taps @endlink
+ *  @file         vpelib.h
+ *  @brief        This is the file containing the main API for the VPE library.
+ *
+ */
+
 #pragma once
 
 #include "vpe_types.h"
@@ -31,7 +59,7 @@
 extern "C" {
 #endif
 
-/* @brief Create the VPE lib instance.
+/** @brief Create the VPE lib instance.
  *
  * Caler provides the current asic info,
  * logging and system memory APIs.
@@ -47,7 +75,7 @@ extern "C" {
  */
 struct vpe *vpe_create(const struct vpe_init_data *params);
 
-/* @brief Destroy the VPE lib instance and resources
+/** @brief Destroy the VPE lib instance and resources
  *
  * @param[in] vpe   the vpe instance created by vpe_create
  */
@@ -100,6 +128,13 @@ enum vpe_status vpe_build_noops(struct vpe *vpe, uint32_t num_dwords, uint32_t *
  */
 enum vpe_status vpe_build_commands(
     struct vpe *vpe, const struct vpe_build_param *param, struct vpe_build_bufs *bufs);
+
+/**
+ * get the optimal number of taps based on the scaling ratio.
+ * @param[in]  vpe      vpe instance created by vpe_create()
+ * @param[in,out]  scaling_info  [in] source and destination rectangles [out] calculated taps.
+ */
+void vpe_get_optimal_num_of_taps(struct vpe *vpe, struct vpe_scaling_info *scaling_info);
 
 #ifdef __cplusplus
 }

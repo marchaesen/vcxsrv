@@ -20,6 +20,7 @@
 #include "util/u_atomic.h"
 #include "radv_cs.h"
 #include "radv_debug.h"
+#include "radv_pipeline_binary.h"
 #include "radv_pipeline_cache.h"
 #include "radv_rmv.h"
 #include "radv_shader.h"
@@ -56,42 +57,24 @@ radv_get_compute_resource_limits(const struct radv_physical_device *pdev, const 
 }
 
 void
-radv_get_compute_pipeline_metadata(const struct radv_device *device, const struct radv_compute_pipeline *pipeline,
-                                   struct radv_compute_pipeline_metadata *metadata)
+radv_get_compute_shader_metadata(const struct radv_device *device, const struct radv_shader *cs,
+                                 struct radv_compute_pipeline_metadata *metadata)
 {
-   const struct radv_physical_device *pdev = radv_device_physical(device);
-   const struct radv_shader *cs = pipeline->base.shaders[MESA_SHADER_COMPUTE];
    uint32_t upload_sgpr = 0, inline_sgpr = 0;
 
    memset(metadata, 0, sizeof(*metadata));
 
-   metadata->shader_va = radv_shader_get_va(cs) >> 8;
-   metadata->rsrc1 = cs->config.rsrc1;
-   metadata->rsrc2 = cs->config.rsrc2;
-   metadata->rsrc3 = cs->config.rsrc3;
-   metadata->compute_resource_limits = radv_get_compute_resource_limits(pdev, &cs->info);
-   metadata->block_size_x = cs->info.cs.block_size[0];
-   metadata->block_size_y = cs->info.cs.block_size[1];
-   metadata->block_size_z = cs->info.cs.block_size[2];
    metadata->wave32 = cs->info.wave_size == 32;
 
-   const struct radv_userdata_info *grid_size_loc = radv_get_user_sgpr(cs, AC_UD_CS_GRID_SIZE);
-   if (grid_size_loc->sgpr_idx != -1) {
-      metadata->grid_base_sgpr = (cs->info.user_data_0 + 4 * grid_size_loc->sgpr_idx - SI_SH_REG_OFFSET) >> 2;
-   }
+   metadata->grid_base_sgpr = radv_get_user_sgpr(cs, AC_UD_CS_GRID_SIZE);
 
-   const struct radv_userdata_info *push_constant_loc = radv_get_user_sgpr(cs, AC_UD_PUSH_CONSTANTS);
-   if (push_constant_loc->sgpr_idx != -1) {
-      upload_sgpr = (cs->info.user_data_0 + 4 * push_constant_loc->sgpr_idx - SI_SH_REG_OFFSET) >> 2;
-   }
-
-   const struct radv_userdata_info *inline_push_constant_loc = radv_get_user_sgpr(cs, AC_UD_INLINE_PUSH_CONSTANTS);
-   if (inline_push_constant_loc->sgpr_idx != -1) {
-      inline_sgpr = (cs->info.user_data_0 + 4 * inline_push_constant_loc->sgpr_idx - SI_SH_REG_OFFSET) >> 2;
-   }
+   upload_sgpr = radv_get_user_sgpr(cs, AC_UD_PUSH_CONSTANTS);
+   inline_sgpr = radv_get_user_sgpr(cs, AC_UD_INLINE_PUSH_CONSTANTS);
 
    metadata->push_const_sgpr = upload_sgpr | (inline_sgpr << 16);
    metadata->inline_push_const_mask = cs->info.inline_push_constant_mask;
+
+   metadata->indirect_desc_sets_sgpr = radv_get_user_sgpr(cs, AC_UD_INDIRECT_DESCRIPTOR_SETS);
 }
 
 void
@@ -109,6 +92,9 @@ radv_compile_cs(struct radv_device *device, struct vk_pipeline_cache *cache, str
                 bool keep_executable_info, bool keep_statistic_info, bool is_internal,
                 struct radv_shader_binary **cs_binary)
 {
+   struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_instance *instance = radv_physical_device_instance(pdev);
+
    struct radv_shader *cs_shader;
 
    /* Compile SPIR-V shader to NIR. */
@@ -132,12 +118,14 @@ radv_compile_cs(struct radv_device *device, struct vk_pipeline_cache *cache, str
    /* Postprocess NIR. */
    radv_postprocess_nir(device, NULL, cs_stage);
 
-   if (radv_can_dump_shader(device, cs_stage->nir, false))
-      nir_print_shader(cs_stage->nir, stderr);
-
-   /* Compile NIR shader to AMD assembly. */
    bool dump_shader = radv_can_dump_shader(device, cs_stage->nir, false);
 
+   if (dump_shader) {
+      simple_mtx_lock(&instance->shader_dump_mtx);
+      nir_print_shader(cs_stage->nir, stderr);
+   }
+
+   /* Compile NIR shader to AMD assembly. */
    *cs_binary =
       radv_shader_nir_to_asm(device, cs_stage, &cs_stage->nir, 1, NULL, keep_executable_info, keep_statistic_info);
 
@@ -145,6 +133,9 @@ radv_compile_cs(struct radv_device *device, struct vk_pipeline_cache *cache, str
 
    radv_shader_generate_debug_info(device, dump_shader, keep_executable_info, *cs_binary, cs_shader, &cs_stage->nir, 1,
                                    &cs_stage->info);
+
+   if (dump_shader)
+      simple_mtx_unlock(&instance->shader_dump_mtx);
 
    if (keep_executable_info && cs_stage->spirv.size) {
       cs_shader->spirv = malloc(cs_stage->spirv.size);
@@ -155,7 +146,7 @@ radv_compile_cs(struct radv_device *device, struct vk_pipeline_cache *cache, str
    return cs_shader;
 }
 
-static void
+void
 radv_compute_pipeline_hash(const struct radv_device *device, const VkComputePipelineCreateInfo *pCreateInfo,
                            unsigned char *hash)
 {
@@ -169,7 +160,7 @@ radv_compute_pipeline_hash(const struct radv_device *device, const VkComputePipe
 
    _mesa_sha1_init(&ctx);
    radv_pipeline_hash(device, pipeline_layout, &ctx);
-   radv_pipeline_hash_shader_stage(sinfo, &stage_key, &ctx);
+   radv_pipeline_hash_shader_stage(create_flags, sinfo, &stage_key, &ctx);
    _mesa_sha1_final(&ctx, hash);
 }
 
@@ -197,8 +188,9 @@ radv_compute_pipeline_compile(const VkComputePipelineCreateInfo *pCreateInfo, st
 
    /* Skip the shaders cache when any of the below are true:
     * - shaders are captured because it's for debugging purposes
+    * - binaries are captured for later uses
     */
-   if (keep_executable_info) {
+   if (keep_executable_info || (pipeline->base.create_flags & VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR)) {
       skip_shaders_cache = true;
    }
 
@@ -219,7 +211,7 @@ radv_compute_pipeline_compile(const VkComputePipelineCreateInfo *pCreateInfo, st
    const struct radv_shader_stage_key stage_key =
       radv_pipeline_get_shader_key(device, &pCreateInfo->stage, pipeline->base.create_flags, pCreateInfo->pNext);
 
-   radv_pipeline_stage_init(pStage, pipeline_layout, &stage_key, &cs_stage);
+   radv_pipeline_stage_init(pipeline->base.create_flags, pStage, pipeline_layout, &stage_key, &cs_stage);
 
    pipeline->base.shaders[MESA_SHADER_COMPUTE] = radv_compile_cs(
       device, cache, &cs_stage, keep_executable_info, keep_statistic_info, pipeline->base.is_internal, &cs_binary);
@@ -252,6 +244,29 @@ done:
    return result;
 }
 
+static VkResult
+radv_compute_pipeline_import_binary(struct radv_device *device, struct radv_compute_pipeline *pipeline,
+                                    const VkPipelineBinaryInfoKHR *binary_info)
+{
+   VK_FROM_HANDLE(radv_pipeline_binary, pipeline_binary, binary_info->pPipelineBinaries[0]);
+   struct radv_shader *shader;
+   struct blob_reader blob;
+
+   assert(binary_info->binaryCount == 1);
+
+   blob_reader_init(&blob, pipeline_binary->data, pipeline_binary->size);
+
+   shader = radv_shader_deserialize(device, pipeline_binary->key, sizeof(pipeline_binary->key), &blob);
+   if (!shader)
+      return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+
+   pipeline->base.shaders[MESA_SHADER_COMPUTE] = shader;
+
+   pipeline->base.pipeline_hash = *(uint64_t *)pipeline_binary->key;
+
+   return VK_SUCCESS;
+}
+
 VkResult
 radv_compute_pipeline_create(VkDevice _device, VkPipelineCache _cache, const VkComputePipelineCreateInfo *pCreateInfo,
                              const VkAllocationCallbacks *pAllocator, VkPipeline *pPipeline)
@@ -274,8 +289,15 @@ radv_compute_pipeline_create(VkDevice _device, VkPipelineCache _cache, const VkC
    const VkPipelineCreationFeedbackCreateInfo *creation_feedback =
       vk_find_struct_const(pCreateInfo->pNext, PIPELINE_CREATION_FEEDBACK_CREATE_INFO);
 
-   result = radv_compute_pipeline_compile(pCreateInfo, pipeline, pipeline_layout, device, cache, &pCreateInfo->stage,
-                                          creation_feedback);
+   const VkPipelineBinaryInfoKHR *binary_info = vk_find_struct_const(pCreateInfo->pNext, PIPELINE_BINARY_INFO_KHR);
+
+   if (binary_info && binary_info->binaryCount > 0) {
+      result = radv_compute_pipeline_import_binary(device, pipeline, binary_info);
+   } else {
+      result = radv_compute_pipeline_compile(pCreateInfo, pipeline, pipeline_layout, device, cache, &pCreateInfo->stage,
+                                             creation_feedback);
+   }
+
    if (result != VK_SUCCESS) {
       radv_pipeline_destroy(device, &pipeline->base, pAllocator);
       return result;
@@ -286,7 +308,18 @@ radv_compute_pipeline_create(VkDevice _device, VkPipelineCache _cache, const VkC
    if (pipeline->base.create_flags & VK_PIPELINE_CREATE_INDIRECT_BINDABLE_BIT_NV) {
       const VkComputePipelineIndirectBufferInfoNV *indirect_buffer =
          vk_find_struct_const(pCreateInfo->pNext, COMPUTE_PIPELINE_INDIRECT_BUFFER_INFO_NV);
-      struct radv_shader *cs = pipeline->base.shaders[MESA_SHADER_COMPUTE];
+      struct radv_shader *shader = pipeline->base.shaders[MESA_SHADER_COMPUTE];
+      const struct radv_physical_device *pdev = radv_device_physical(device);
+      struct radeon_cmdbuf *cs = &pipeline->indirect.cs;
+
+      cs->reserved_dw = cs->max_dw = 32;
+      cs->buf = malloc(cs->max_dw * 4);
+      if (!cs->buf) {
+         radv_pipeline_destroy(device, &pipeline->base, pAllocator);
+         return result;
+      }
+
+      radv_emit_compute_shader(pdev, cs, shader);
 
       pipeline->indirect.va = indirect_buffer->deviceAddress;
       pipeline->indirect.size = indirect_buffer->size;
@@ -298,8 +331,8 @@ radv_compute_pipeline_create(VkDevice _device, VkPipelineCache _cache, const VkC
        */
       simple_mtx_lock(&device->compute_scratch_mtx);
       device->compute_scratch_size_per_wave =
-         MAX2(device->compute_scratch_size_per_wave, cs->config.scratch_bytes_per_wave);
-      device->compute_scratch_waves = MAX2(device->compute_scratch_waves, radv_get_max_scratch_waves(device, cs));
+         MAX2(device->compute_scratch_size_per_wave, shader->config.scratch_bytes_per_wave);
+      device->compute_scratch_waves = MAX2(device->compute_scratch_waves, radv_get_max_scratch_waves(device, shader));
       simple_mtx_unlock(&device->compute_scratch_mtx);
    }
 
@@ -338,8 +371,12 @@ radv_create_compute_pipelines(VkDevice _device, VkPipelineCache pipelineCache, u
 void
 radv_destroy_compute_pipeline(struct radv_device *device, struct radv_compute_pipeline *pipeline)
 {
+   struct radeon_cmdbuf *cs = &pipeline->indirect.cs;
+
    if (pipeline->base.shaders[MESA_SHADER_COMPUTE])
       radv_shader_unref(device, pipeline->base.shaders[MESA_SHADER_COMPUTE]);
+
+   free(cs->buf);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

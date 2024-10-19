@@ -30,6 +30,55 @@ build_buffer_fill_shader(struct radv_device *dev)
    return b.shader;
 }
 
+struct fill_constants {
+   uint64_t addr;
+   uint32_t max_offset;
+   uint32_t data;
+};
+
+static VkResult
+create_fill_pipeline(struct radv_device *device)
+{
+   VkResult result;
+
+   const VkPushConstantRange pc_range = {
+      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+      .size = sizeof(struct fill_constants),
+   };
+
+   result = radv_meta_create_pipeline_layout(device, NULL, 1, &pc_range, &device->meta_state.buffer.fill_p_layout);
+   if (result != VK_SUCCESS)
+      return result;
+
+   nir_shader *cs = build_buffer_fill_shader(device);
+
+   result = radv_meta_create_compute_pipeline(device, cs, device->meta_state.buffer.fill_p_layout,
+                                              &device->meta_state.buffer.fill_pipeline);
+
+   ralloc_free(cs);
+   return result;
+}
+
+static VkResult
+get_fill_pipeline(struct radv_device *device, VkPipeline *pipeline_out)
+{
+   struct radv_meta_state *state = &device->meta_state;
+   VkResult result = VK_SUCCESS;
+
+   mtx_lock(&state->mtx);
+   if (!state->buffer.fill_pipeline) {
+      result = create_fill_pipeline(device);
+      if (result != VK_SUCCESS)
+         goto fail;
+   }
+
+   *pipeline_out = state->buffer.fill_pipeline;
+
+fail:
+   mtx_unlock(&state->mtx);
+   return result;
+}
+
 static nir_shader *
 build_buffer_copy_shader(struct radv_device *dev)
 {
@@ -53,95 +102,71 @@ build_buffer_copy_shader(struct radv_device *dev)
    return b.shader;
 }
 
-struct fill_constants {
-   uint64_t addr;
-   uint32_t max_offset;
-   uint32_t data;
-};
-
 struct copy_constants {
    uint64_t src_addr;
    uint64_t dst_addr;
    uint32_t max_offset;
 };
 
-VkResult
-radv_device_init_meta_buffer_state(struct radv_device *device)
+static VkResult
+create_copy_pipeline(struct radv_device *device)
 {
    VkResult result;
-   nir_shader *fill_cs = build_buffer_fill_shader(device);
-   nir_shader *copy_cs = build_buffer_copy_shader(device);
 
-   VkPipelineLayoutCreateInfo fill_pl_create_info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 0,
-      .pushConstantRangeCount = 1,
-      .pPushConstantRanges = &(VkPushConstantRange){VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(struct fill_constants)},
+   const VkPushConstantRange pc_range = {
+      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+      .size = sizeof(struct copy_constants),
    };
 
-   result = radv_CreatePipelineLayout(radv_device_to_handle(device), &fill_pl_create_info, &device->meta_state.alloc,
-                                      &device->meta_state.buffer.fill_p_layout);
+   result = radv_meta_create_pipeline_layout(device, NULL, 1, &pc_range, &device->meta_state.buffer.copy_p_layout);
    if (result != VK_SUCCESS)
-      goto fail;
+      return result;
 
-   VkPipelineLayoutCreateInfo copy_pl_create_info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 0,
-      .pushConstantRangeCount = 1,
-      .pPushConstantRanges = &(VkPushConstantRange){VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(struct copy_constants)},
-   };
+   nir_shader *cs = build_buffer_copy_shader(device);
 
-   result = radv_CreatePipelineLayout(radv_device_to_handle(device), &copy_pl_create_info, &device->meta_state.alloc,
-                                      &device->meta_state.buffer.copy_p_layout);
-   if (result != VK_SUCCESS)
-      goto fail;
+   result = radv_meta_create_compute_pipeline(device, cs, device->meta_state.buffer.copy_p_layout,
+                                              &device->meta_state.buffer.copy_pipeline);
 
-   VkPipelineShaderStageCreateInfo fill_pipeline_shader_stage = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(fill_cs),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
+   ralloc_free(cs);
+   return result;
+}
 
-   VkComputePipelineCreateInfo fill_vk_pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = fill_pipeline_shader_stage,
-      .flags = 0,
-      .layout = device->meta_state.buffer.fill_p_layout,
-   };
+static VkResult
+get_copy_pipeline(struct radv_device *device, VkPipeline *pipeline_out)
+{
+   struct radv_meta_state *state = &device->meta_state;
+   VkResult result = VK_SUCCESS;
 
-   result = radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache,
-                                         &fill_vk_pipeline_info, NULL, &device->meta_state.buffer.fill_pipeline);
-   if (result != VK_SUCCESS)
-      goto fail;
+   mtx_lock(&state->mtx);
+   if (!state->buffer.copy_pipeline) {
+      result = create_copy_pipeline(device);
+      if (result != VK_SUCCESS)
+         goto fail;
+   }
 
-   VkPipelineShaderStageCreateInfo copy_pipeline_shader_stage = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(copy_cs),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
+   *pipeline_out = state->buffer.copy_pipeline;
 
-   VkComputePipelineCreateInfo copy_vk_pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = copy_pipeline_shader_stage,
-      .flags = 0,
-      .layout = device->meta_state.buffer.copy_p_layout,
-   };
-
-   result = radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache,
-                                         &copy_vk_pipeline_info, NULL, &device->meta_state.buffer.copy_pipeline);
-   if (result != VK_SUCCESS)
-      goto fail;
-
-   ralloc_free(fill_cs);
-   ralloc_free(copy_cs);
-   return VK_SUCCESS;
 fail:
-   ralloc_free(fill_cs);
-   ralloc_free(copy_cs);
+   mtx_unlock(&state->mtx);
+   return result;
+}
+
+VkResult
+radv_device_init_meta_buffer_state(struct radv_device *device, bool on_demand)
+{
+   VkResult result;
+
+   if (on_demand)
+      return VK_SUCCESS;
+
+   result = create_fill_pipeline(device);
+   if (result != VK_SUCCESS)
+      return result;
+
+   result = create_copy_pipeline(device);
+   if (result != VK_SUCCESS)
+      return result;
+
    return result;
 }
 
@@ -161,11 +186,18 @@ fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t siz
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_meta_saved_state saved_state;
+   VkPipeline pipeline;
+   VkResult result;
+
+   result = get_fill_pipeline(device, &pipeline);
+   if (result != VK_SUCCESS) {
+      vk_command_buffer_set_error(&cmd_buffer->vk, result);
+      return;
+   }
 
    radv_meta_save(&saved_state, cmd_buffer, RADV_META_SAVE_COMPUTE_PIPELINE | RADV_META_SAVE_CONSTANTS);
 
-   radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
-                        device->meta_state.buffer.fill_pipeline);
+   radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
    assert(size >= 16 && size <= UINT32_MAX);
 
@@ -188,11 +220,18 @@ copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_meta_saved_state saved_state;
+   VkPipeline pipeline;
+   VkResult result;
+
+   result = get_copy_pipeline(device, &pipeline);
+   if (result != VK_SUCCESS) {
+      vk_command_buffer_set_error(&cmd_buffer->vk, result);
+      return;
+   }
 
    radv_meta_save(&saved_state, cmd_buffer, RADV_META_SAVE_COMPUTE_PIPELINE | RADV_META_SAVE_CONSTANTS);
 
-   radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
-                        device->meta_state.buffer.copy_pipeline);
+   radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
    assert(size >= 16 && size <= UINT32_MAX);
 
@@ -245,12 +284,11 @@ radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *im
    if (cmd_buffer->qf == RADV_QUEUE_TRANSFER) {
       radv_sdma_fill_buffer(device, cmd_buffer->cs, va, size, value);
    } else if (use_compute) {
-      cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT, image);
-
       fill_buffer_shader(cmd_buffer, va, size, value);
 
-      flush_bits = RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
-                   radv_src_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_WRITE_BIT, image);
+      flush_bits =
+         RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
+         radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, image);
    } else if (size)
       radv_cp_dma_clear_buffer(cmd_buffer, va, size, value);
 

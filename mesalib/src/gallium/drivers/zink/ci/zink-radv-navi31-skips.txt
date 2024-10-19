@@ -1,6 +1,5 @@
 ext_texture_env.*
-spec@arb_shader_image_load_store.invalid
-spec@arb_shader_image_load_store.max-size
+spec@arb_shader_image_load_store.*
 spec@arb_gpu_shader_fp64@execution@glsl-fs-loop-unroll-mul-fp64
 .*@execution@vs_in.*
 

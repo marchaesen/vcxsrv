@@ -1,0 +1,8 @@
+# initial skips
+KHR-GL46.copy_image.functional
+KHR-GL46.sparse_buffer_tests.BufferStorageTest
+KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor
+KHR-GL46.texture_swizzle.functional
+KHR-GL46.texture_swizzle.smoke
+KHR-Single-GL46.arrays_of_arrays_gl.AtomicUsage
+KHR-Single-GL46.arrays_of_arrays_gl.SubroutineFunctionCalls2

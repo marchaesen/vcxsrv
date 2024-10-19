@@ -1,0 +1,188 @@
+Mesa 24.2.3 Release Notes / 2024-09-18
+======================================
+
+Mesa 24.2.3 is a bug fix release which fixes bugs found since the 24.2.2 release.
+
+Mesa 24.2.3 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.3 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: 4ea18b1155a4544a09f7361848974768f6f73c19d88f63de2ec650be313b2d0c  mesa-24.2.3.tar.xz
+    SHA512: 7a1ace23568d1907b778a2859f97c8988a414ba74e02e1fb5af6f95f768e1b1a2dfdaf412b0d655678ed915d28273953fd1236ebcd87553a1880f1a7f3ea4d44  mesa-24.2.3.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- ANV: scalar FS validation failure is always hit when playing the steam game "Black Myth: Wukong Benchmark Tool"
+- [REG 24.1.7->24.2.1, bisected] RADV: uVkCompute's mad_throughput benchmark hangs
+- Color attribute not restored properly when using glPushAttrib/glPopAttrib calls
+- 69c772e4ea8f (egl: link with libgallium directly) breaks VAAPI - OpenGL interop on radeonsi
+- [v3d] performance regression in GTK's NGL renderer from 24.1 to 24.2
+- Failed to cross-compile Mesa-24.2 & Rusticl with bindgen 0.65.1 and rustc 1.80.0
+- v3d gbm_bo_unmap() crashes when used by TigerVNC
+
+
+Changes
+-------
+
+Boris Brezillon (1):
+
+- pan/kmod: Don't cap VM bind operations to one
+
+Daniel Stone (1):
+
+- ci/alpine: Fix shellcheck errors
+
+Dave Airlie (5):
+
+- vl/bitstream: use an int32_t for se encoding.
+- radv/video: handling encoding both sps and pps in same buffer
+- radv: Fix radeon_enc_code_ue with values over 2^16
+- radv/video: fix encode reference slot counting
+- radv/video/enc: report pps overrides in feedback for h265
+
+David Heidelberg (3):
+
+- nir_lower_mem_access_bit_sizes: Assert when 0 components or bits are requested
+- freedreno/ir3: Use nir_lower_mem_access_bit_sizes instead custom lowering
+- ci/freedreno: move disabled a530 entries back to main gitlab-ci.yml
+
+David Rosca (4):
+
+- meson/megadriver: Add megadriver_libdir argument
+- targets/va: Build va driver into libgallium when building with dri
+- targets/vdpau: Build vdpau driver into libgallium when building with dri
+- radeonsi: Disable EFC on VCN 2.2
+
+Dylan Baker (3):
+
+- docs: update sha sums for 24.2.2
+- iris: Run checks that do not require resources before creating them
+- anv: if queue is NULL in vm_bind return early
+
+Eric Engestrom (4):
+
+- .pick_status.json: Update to 8b272c8d8c419ecb7aee0257563c9489b675f4ef
+- .pick_status.json: Mark 5632a6e24f9053385e01a6464599ef4ba00e0c98 as denominated
+- .pick_status.json: Update to 45377dc5c46c4f449307c7efc28a1b66a57cf6aa
+- .pick_status.json: Update to ad3e6bb06a8e598be2381dfe2f5947f872b76bcd
+
+Georg Lehmann (3):
+
+- nir/opt_sink: do not sink load_ubo_vec4 out of loops
+- nir/opt_sink: do not sink inverse_ballot out of loops
+- nir/instr_set: fix fp_fast_math
+
+Iván Briano (1):
+
+- anv: be consistent about aux usage with modifiers
+
+Jesse Natalie (1):
+
+- d3d12: Fix shader selector hash to hash array instead of pointer-to-array
+
+Jordan Justen (1):
+
+- intel/dev: Fix warning for max_threads_per_psd when devinfo->verx10 == 120
+
+Jose Maria Casanova Crespo (1):
+
+- v3d: v3d_resource Use LINEAR layout for importing with INVALID modifier
+
+Juan A. Suarez Romero (2):
+
+- Revert "v3d: never replace a mapped bo"
+- v3d: do not rebind a sampler view already rebound
+
+Karol Herbst (1):
+
+- rusticl: do not use CL vector types in bindings and code
+
+Kenneth Graunke (1):
+
+- intel/brw: Use NUM_BRW_OPCODES in can_omit_write() check
+
+Konstantin Seurer (4):
+
+- gallium,st/mesa: Add and set pipe_image_view::is_2d_view_of_3d
+- lavapipe: Implement VK_EXT_image_2d_view_of_3d with sparse textures
+- lavapipe: Do not adjust imageGranularity for different block sizes
+- radv: Work around broken terrain in Warhammer III
+
+Lionel Landwerlin (3):
+
+- anv: selectively disable binding table usage on Gfx20
+- brw: use a builder of the size of the physical register for uniforms
+- brw: fix vecN rebuilds
+
+Lucas Stach (1):
+
+- etnaviv: emit all PA shader attributes
+
+Mary Guillemard (1):
+
+- panvk: Ensure to clear dirty dynamic state in panvk_cmd_draw
+
+Mike Blumenkrantz (2):
+
+- zink: delete erroneous kopper assert
+- zink: fix sparse bo deallocation
+
+Mohamed Ahmed (1):
+
+- nvk: Use stride in the explicit modifier case for linear images
+
+Rhys Perry (3):
+
+- nir/opt_if: fix fighting between split_alu_of_phi and peel_initial_break
+- nir/opt_loop: skip peeling if the break is non-trivial
+- nir/opt_loop: skip peeling if the loop ends with any kind of jump
+
+Rob Clark (1):
+
+- freedreno/drm: Fix ring_heap flags
+
+Rohan Garg (1):
+
+- intel/compiler: use the correct cache enum for loads and stores
+
+Samuel Pitoiset (6):
+
+- radv: fix allocating sparse descriptor buffers in the 32-bit addr space
+- radv: disable shaders linking with ESO when nextStage of VS/TES isn't present
+- radv/rt: skip shaders cache for pipelines created with the capture/replay flag
+- radv: fix lowering the view index to an input varying for FS
+- radv,aco: fix legacy vertex attributes when offset >= stride on GFX6-7
+- radv: fix lowering VS inputs when offset >= stride on GFX6-7
+
+Sviatoslav Peleshko (2):
+
+- brw: Fix mov cmod propagation when there's int signedness mismatch
+- mesa: Reset vbo attributes after flushing them to Current in glPopAttrib
+
+Tapani Pälli (1):
+
+- iris: fix issues with memory object updates via glBufferSubData
+
+llyyr (1):
+
+- vulkan/wsi/wayland: fix suboptimal flag being ignored with explicit sync

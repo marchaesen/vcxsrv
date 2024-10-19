@@ -12,9 +12,7 @@ is" without express or implied warranty.
 
 */
 
-#ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xdefs.h>
@@ -99,7 +97,7 @@ xnestRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
     bg_color.green = pCursor->backGreen;
     bg_color.blue = pCursor->backBlue;
 
-    xnestSetCursorPriv(pCursor, pScreen, malloc(sizeof(xnestPrivCursor)));
+    xnestSetCursorPriv(pCursor, pScreen, calloc(1, sizeof(xnestPrivCursor)));
     xnestCursor(pCursor, pScreen) =
         XCreatePixmapCursor(xnestDisplay, source, mask, &fg_color, &bg_color,
                             pCursor->bits->xhot, pCursor->bits->yhot);
@@ -107,7 +105,7 @@ xnestRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
     XFreePixmap(xnestDisplay, source);
     XFreePixmap(xnestDisplay, mask);
 
-    return True;
+    return TRUE;
 }
 
 Bool
@@ -115,7 +113,7 @@ xnestUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCursor)
 {
     XFreeCursor(xnestDisplay, xnestCursor(pCursor, pScreen));
     free(xnestGetCursorPriv(pCursor, pScreen));
-    return True;
+    return TRUE;
 }
 
 void

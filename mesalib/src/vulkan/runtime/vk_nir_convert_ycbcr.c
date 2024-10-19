@@ -358,9 +358,7 @@ lower_ycbcr_tex_instr(nir_builder *b, nir_instr *instr, void *_state)
          y_format = format_ycbcr_info->planes[p].format;
    }
    assert(y_format != VK_FORMAT_UNDEFINED);
-   const struct util_format_description *y_format_desc =
-      util_format_description(vk_format_to_pipe_format(y_format));
-   uint8_t y_bpc = y_format_desc->channel[0].size;
+   uint8_t y_bpc = vk_format_get_bpc(y_format);
 
    /* |ycbcr_comp| holds components in the order : Cr-Y-Cb */
    nir_def *zero = nir_imm_float(b, 0.0f);
@@ -399,7 +397,9 @@ lower_ycbcr_tex_instr(nir_builder *b, nir_instr *instr, void *_state)
 
          /* Also compute the number of bits for each component. */
          const struct util_format_description *plane_format_desc =
-            util_format_description(vk_format_to_pipe_format(format_plane->format));
+            vk_format_description(format_plane->format);
+         if (plane_format_desc->channel[pc].type == UTIL_FORMAT_TYPE_VOID)
+            continue;
          ycbcr_bpcs[ycbcr_component] = plane_format_desc->channel[pc].size;
       }
    }
@@ -437,8 +437,7 @@ lower_ycbcr_tex_instr(nir_builder *b, nir_instr *instr, void *_state)
                                            swizzled_bpcs);
    }
 
-   nir_def_rewrite_uses(&tex->def, result);
-   nir_instr_remove(&tex->instr);
+   nir_def_replace(&tex->def, result);
 
    return true;
 }
@@ -453,7 +452,6 @@ bool nir_vk_lower_ycbcr_tex(nir_shader *nir,
    };
 
    return nir_shader_instructions_pass(nir, lower_ycbcr_tex_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &state);
 }

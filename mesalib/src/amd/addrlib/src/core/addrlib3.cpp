@@ -77,7 +77,6 @@ Lib::Lib(
 */
 void Lib::Init()
 {
-    memset(m_equationTable, 0, sizeof(m_equationTable));
     memset(m_blockDimensionTable, 0, sizeof(m_blockDimensionTable));
 
     // There is no equation table entry for linear, so start at the "next" swizzle mode entry.
@@ -125,7 +124,7 @@ Lib* Lib::GetLib(
 {
     Addr::Lib* pAddrLib = Addr::Lib::GetLib(hLib);
 
-    return static_cast<Lib*>(hLib);
+    return static_cast<Lib*>(pAddrLib);
 }
 
 /**
@@ -320,7 +319,14 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceInfo(
                                                          &pOut->pMipInfo[i].pixelHeight);
                     }
                 }
+
+                if (localIn.flags.qbStereo && (pOut->pStereoInfo != NULL))
+                {
+                    ComputeQbStereoInfo(pOut);
+                }
             }
+
+            SetEquationIndex(&localIn, pOut);
         }
     }
 
@@ -332,16 +338,16 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceInfo(
 *   Lib::GetPossibleSwizzleModes
 *
 *   @brief
-*       Interface function stub of AddrComputeSurfaceInfo.
+*       Populates pOut with a list of the possible swizzle modes for the described surface.
 *
 *   @return
 *       ADDR_E_RETURNCODE
 ************************************************************************************************************************
 */
 ADDR_E_RETURNCODE Lib::GetPossibleSwizzleModes(
-     const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT* pIn,    ///< [in] input structure
-     ADDR3_GET_POSSIBLE_SWIZZLE_MODE_OUTPUT*      pOut    ///< [out] output structure
-     ) const
+    const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT*  pIn,
+    ADDR3_GET_POSSIBLE_SWIZZLE_MODE_OUTPUT*       pOut
+    ) const
 {
     ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
@@ -354,131 +360,14 @@ ADDR_E_RETURNCODE Lib::GetPossibleSwizzleModes(
         }
     }
 
-    if (returnCode == ADDR_OK)
+    if ((returnCode == ADDR_OK) && (HwlValidateNonSwModeParams(pIn) == FALSE))
     {
-        const ADDR3_SURFACE_FLAGS flags = pIn->flags;
-
-        // VRS images can only be 2D from the client API rules.
-        ADDR_ASSERT((flags.isVrsImage == 0) || IsTex2d(pIn->resourceType));
-
-        if (pIn->bpp == 96)
-        {
-            pOut->validModes.swLinear = 1;
-        }
-        // Depth/Stencil images can't be linear and must be 2D swizzle modes.
-        // These three are related to DB block that supports only SW_64KB_2D and SW_256KB_2D for DSV.
-        else if (flags.depth || flags.stencil)
-        {
-            pOut->validModes.sw2d64kB  = 1;
-            pOut->validModes.sw2d256kB = 1;
-        }
-        // The organization of elements in the hierarchical surface is the same as any other surface, and it can support
-        // any 2D swizzle mode (SW_256_2D, SW_4KB_2D, SW_64KB_2D, or SW_256KB_2D).  The swizzle mode can be selected
-        // orthogonally to the underlying z or stencil surface.
-        else if (pIn->flags.hiZHiS)
-        {
-            pOut->validModes.sw2d256B  = 1;
-            pOut->validModes.sw2d4kB   = 1;
-            pOut->validModes.sw2d64kB  = 1;
-            pOut->validModes.sw2d256kB = 1;
-        }
-        // MSAA can't be linear and must be 2D swizzle modes.
-        else if (pIn->numSamples > 1)
-        {
-            // NOTE: SW_256B_2D still supports MSAA. The removal of 256B for MSAA is reverted in HW Doc.
-            pOut->validModes.sw2d256B  = 1;
-            pOut->validModes.sw2d4kB   = 1;
-            pOut->validModes.sw2d64kB  = 1;
-            pOut->validModes.sw2d256kB = 1;
-        }
-        // Block-compressed images need to be either using 2D or linear swizzle modes.
-        else if (flags.blockCompressed)
-        {
-            pOut->validModes.swLinear = 1;
-
-            // We find cases where Tex3d BlockCompressed image adopts 2D_256B should be prohibited.
-            if (IsTex3d(pIn->resourceType) == FALSE)
-            {
-                pOut->validModes.sw2d256B = 1;
-            }
-            pOut->validModes.sw2d4kB   = 1;
-            pOut->validModes.sw2d64kB  = 1;
-            pOut->validModes.sw2d256kB = 1;
-        }
-        else if (IsTex1d(pIn->resourceType))
-        {
-            pOut->validModes.swLinear  = 1;
-            pOut->validModes.sw2d256B  = 1;
-            pOut->validModes.sw2d4kB   = 1;
-            pOut->validModes.sw2d64kB  = 1;
-            pOut->validModes.sw2d256kB = 1;
-        }
-        else if (flags.nv12 || flags.p010 || IsTex2d(pIn->resourceType) || flags.view3dAs2dArray)
-        {
-            //      NV12 and P010 support
-            //      SW_LINEAR, SW_256B_2D, SW_4KB_2D, SW_64KB_2D, SW_256KB_2D
-            // There could be more multimedia formats that require more hw specific tiling modes...
-
-            // The exception is VRS images.
-            // Linear is not allowed and the VRS surface needs to be 8BPP format.
-            if (flags.isVrsImage)
-            {
-                ADDR_ASSERT(pIn->bpp == 8);
-            }
-            else
-            {
-                pOut->validModes.swLinear = 1;
-            }
-            if (flags.view3dAs2dArray == 0)
-            {
-                // ADDR3_256B_2D can't support 3D images.
-                pOut->validModes.sw2d256B = 1;
-            }
-            pOut->validModes.sw2d4kB   = 1;
-            pOut->validModes.sw2d64kB  = 1;
-            pOut->validModes.sw2d256kB = 1;
-        }
-        else if (IsTex3d(pIn->resourceType))
-        {
-            // An eventual determination would be based on pal setting of height_watermark and depth_watermark.
-            // However, we just adopt the simpler logic currently.
-            // For 3D images w/ view3dAs2dArray = 0, SW_3D is preferred.
-            // For 3D images w/ view3dAs2dArray = 1, it should go to 2D path above.
-            // Enable linear since client may force linear tiling for 3D texture that does not set view3dAs2dArray.
-            pOut->validModes.swLinear  = 1;
-            pOut->validModes.sw3d4kB   = 1;
-            pOut->validModes.sw3d64kB  = 1;
-            pOut->validModes.sw3d256kB = 1;
-        }
+        returnCode = ADDR_INVALIDPARAMS;
     }
 
-    constexpr UINT_32 Size256  = 256u;
-    constexpr UINT_32 Size4K   = 4 * 1024;
-    constexpr UINT_32 Size64K  = 64 * 1024;
-    constexpr UINT_32 Size256K = 256 * 1024;
-
-    // If client specifies a max alignment, remove swizzles that require alignment beyond it.
-    if (pIn->maxAlign != 0)
+    if (returnCode == ADDR_OK)
     {
-        if (pIn->maxAlign < Size256K)
-        {
-            pOut->validModes.value &= ~Gfx12Blk256KBSwModeMask;
-        }
-
-        if (pIn->maxAlign < Size64K)
-        {
-            pOut->validModes.value &= ~Gfx12Blk64KBSwModeMask;
-        }
-
-        if (pIn->maxAlign < Size4K)
-        {
-            pOut->validModes.value &= ~Gfx12Blk4KBSwModeMask;
-        }
-
-        if (pIn->maxAlign < Size256)
-        {
-            pOut->validModes.value &= ~Gfx12Blk256BSwModeMask;
-        }
+        returnCode = HwlGetPossibleSwizzleModes(pIn, pOut);
     }
 
     return returnCode;
@@ -651,44 +540,26 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceAddrFromCoordLinear(
 
     if (valid)
     {
-        ADDR3_COMPUTE_SURFACE_INFO_INPUT  localIn  = {0};
-        ADDR3_COMPUTE_SURFACE_INFO_OUTPUT localOut = {0};
-        ADDR3_MIP_INFO                    mipInfo[MaxMipLevels];
-        ADDR_ASSERT(pIn->numMipLevels <= MaxMipLevels);
+        ADDR3_COMPUTE_SURFACE_INFO_INPUT  surfInfoIn = {0};
 
-        localIn.size         = sizeof(localIn);
-        localIn.flags        = pIn->flags;
-        localIn.swizzleMode  = ADDR3_LINEAR;
-        localIn.resourceType = pIn->resourceType;
-        localIn.format       = ADDR_FMT_INVALID;
-        localIn.bpp          = pIn->bpp;
-        localIn.width        = Max(pIn->unAlignedDims.width,  1u);
-        localIn.height       = Max(pIn->unAlignedDims.height, 1u);
-        localIn.numSlices    = Max(pIn->unAlignedDims.depth,  1u);
-        localIn.numMipLevels = Max(pIn->numMipLevels,         1u);
-        localIn.numSamples   = Max(pIn->numSamples,           1u);
+        surfInfoIn.size         = sizeof(surfInfoIn);
+        surfInfoIn.flags        = pIn->flags;
+        surfInfoIn.swizzleMode  = ADDR3_LINEAR;
+        surfInfoIn.resourceType = pIn->resourceType;
+        surfInfoIn.format       = ADDR_FMT_INVALID;
+        surfInfoIn.bpp          = pIn->bpp;
+        surfInfoIn.width        = Max(pIn->unAlignedDims.width,  1u);
+        surfInfoIn.height       = Max(pIn->unAlignedDims.height, 1u);
+        surfInfoIn.numSlices    = Max(pIn->unAlignedDims.depth,  1u);
+        surfInfoIn.numMipLevels = Max(pIn->numMipLevels,         1u);
+        surfInfoIn.numSamples   = Max(pIn->numSamples,           1u);
 
-        if (localIn.numMipLevels <= 1)
+        if (surfInfoIn.numMipLevels <= 1)
         {
-            localIn.pitchInElement = pIn->pitchInElement;
+            surfInfoIn.pitchInElement = pIn->pitchInElement;
         }
 
-        localOut.size     = sizeof(localOut);
-        localOut.pMipInfo = mipInfo;
-
-        returnCode = ComputeSurfaceInfo(&localIn, &localOut);
-
-        if (returnCode == ADDR_OK)
-        {
-            pOut->addr        = (localOut.sliceSize * pIn->slice) +
-                                mipInfo[pIn->mipId].offset +
-                                (pIn->y * mipInfo[pIn->mipId].pitch + pIn->x) * (pIn->bpp >> 3);
-            pOut->bitPosition = 0;
-        }
-        else
-        {
-            valid = FALSE;
-        }
+        returnCode = HwlComputeSurfaceAddrFromCoordLinear(pIn, &surfInfoIn, pOut);
     }
 
     if (valid == FALSE)
@@ -772,8 +643,8 @@ ADDR_E_RETURNCODE Lib::ComputeSubResourceOffsetForSwizzlePattern(
     ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
     if ((GetFillSizeFieldsFlags() == TRUE) &&
-        ((pIn->size  != sizeof(ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT)) ||
-         (pOut->size != sizeof(ADDR2_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT))))
+        ((pIn->size  != sizeof(ADDR3_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT)) ||
+         (pOut->size != sizeof(ADDR3_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT))))
     {
         returnCode = ADDR_INVALIDPARAMS;
     }
@@ -905,25 +776,36 @@ ADDR_E_RETURNCODE Lib::ApplyCustomizedPitchHeight(
 
     const UINT_32  elementBytes = pIn->bpp >> 3;
 
-    // We may use 128B pitch alignment for linear addressing mip0 image under some restriction.
-    if ((pIn->numMipLevels == 1) && CanTrimLinearPadding(pIn))
+    // Normal pitch of image data
+    const UINT_32  pitchAlignmentBytes    = 1 << GetBlockSizeLog2(pIn->swizzleMode, TRUE);
+    const UINT_32  pitchAlignmentElements = pitchAlignmentBytes / elementBytes;
+    pOut->pitch = PowTwoAlign(pIn->width, pitchAlignmentElements);
+
+    // Pitch of image data used for slice sizing (same except for linear images)
+    const UINT_32  pitchSliceAlignmentBytes    = 1 << GetBlockSizeLog2(pIn->swizzleMode, CanTrimLinearPadding(pIn));
+    const UINT_32  pitchSliceAlignmentElements = pitchSliceAlignmentBytes / elementBytes;
+    pOut->pitchForSlice = PowTwoAlign(pIn->width, pitchSliceAlignmentElements);
+
+    UINT_32 heightAlign = pOut->blockExtent.height;
+
+    if (pIn->flags.qbStereo)
     {
-        pOut->pitch = PowTwoAlign(pIn->width, 128u / elementBytes);
+        UINT_32 rightXor = 0;
+
+        returnCode = HwlComputeStereoInfo(pIn, &heightAlign, &rightXor);
+
+        if (returnCode == ADDR_OK)
+        {
+            pOut->pStereoInfo->rightSwizzle = rightXor;
+        }
     }
-    else
-    {
-        // Calculate the default pitch/height without any user inputs
-        pOut->pitch = PowTwoAlign(pIn->width, pOut->blockExtent.width);
-    }
-    pOut->height = PowTwoAlign(pIn->height, pOut->blockExtent.height);
+
+    pOut->height = PowTwoAlign(pIn->height, heightAlign);
 
     // Custom pitches / alignments are only possible with single mip level / linear images; otherwise,
     // ignore those parameters.
-    if (UseCustomPitch(pIn))
+    if ((returnCode == ADDR_OK) && UseCustomPitch(pIn))
     {
-        const UINT_32  pitchAlignmentBytes    = 1 << GetBlockSizeLog2(pIn->swizzleMode, TRUE);
-        const UINT_32  pitchAlignmentElements = pitchAlignmentBytes / elementBytes;
-
         // Their requested pitch has to meet the pitch alignment constraints applied by the HW.
         if ((pIn->pitchInElement % pitchAlignmentElements) != 0)
         {
@@ -937,14 +819,17 @@ ADDR_E_RETURNCODE Lib::ApplyCustomizedPitchHeight(
         else
         {
             pOut->pitch = pIn->pitchInElement;
+            pOut->pitchForSlice = PowTwoAlign(pIn->pitchInElement, pitchSliceAlignmentElements);
         }
     }
 
     if ((returnCode == ADDR_OK) && UseCustomHeight(pIn))
     {
-        UINT_32 customizedHeight = pIn->sliceAlign / elementBytes / pOut->pitch;
+        // Note: if a custom slice align is present, it must be an even multiple
+        // of pitchForSlice, not just pitch.
+        UINT_32 customizedHeight = pIn->sliceAlign / elementBytes / pOut->pitchForSlice;
 
-        if (customizedHeight * elementBytes * pOut->pitch != pIn->sliceAlign)
+        if ((pIn->numSlices > 1) && (customizedHeight * elementBytes * pOut->pitchForSlice != pIn->sliceAlign))
         {
             returnCode = ADDR_INVALIDPARAMS;
         }
@@ -952,13 +837,56 @@ ADDR_E_RETURNCODE Lib::ApplyCustomizedPitchHeight(
         {
             returnCode = ADDR_INVALIDPARAMS;
         }
+        else if ((pIn->height * elementBytes * pOut->pitch) > pIn->sliceAlign)
+        {
+            // If we only have one slice/depth, then we don't need an even multiple, but the slice size must still
+            // fit all the pixel data. The one provided is too small!
+            returnCode = ADDR_INVALIDPARAMS;
+        }
         else
         {
-            pOut->height = customizedHeight;
+            // For the single-slice case, the customized height could have been rounded down below the height since
+            // we allow non-multiples of pitch here, so take the max.
+            pOut->height = Max(pOut->height, customizedHeight);
         }
     }
 
     return returnCode;
+}
+
+/**
+************************************************************************************************************************
+*   Lib::ComputeQbStereoInfo
+*
+*   @brief
+*       Get quad buffer stereo information
+*   @return
+*       N/A
+************************************************************************************************************************
+*/
+VOID Lib::ComputeQbStereoInfo(
+    ADDR3_COMPUTE_SURFACE_INFO_OUTPUT* pOut   ///< [in,out] updated pOut+pStereoInfo
+    ) const
+{
+    ADDR_ASSERT(pOut->bpp >= 8);
+    ADDR_ASSERT((pOut->surfSize % pOut->baseAlign) == 0);
+
+    // Save original height
+    pOut->pStereoInfo->eyeHeight = pOut->height;
+
+    // Right offset
+    pOut->pStereoInfo->rightOffset = static_cast<UINT_32>(pOut->surfSize);
+
+    // Double height
+    pOut->height <<= 1;
+
+    ADDR_ASSERT(pOut->height <= MaxSurfaceHeight);
+
+    pOut->pixelHeight <<= 1;
+
+    // Double size
+    pOut->surfSize  <<= 1;
+    pOut->sliceSize <<= 1;
 }
 
 } // V3

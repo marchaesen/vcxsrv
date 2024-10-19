@@ -15,6 +15,8 @@ zink-lvp:
     ZINK_DEBUG: validation
     XVFB_SCRIPT: "VK_DRIVER=lvp install/deqp-runner.sh"
   script: |
+    export LD_LIBRARY_PATH="$CI_PROJECT_DIR/install/lib"
+    export LIBGL_DRIVERS_PATH="$CI_PROJECT_DIR/install/lib/dri"
     xvfb-run --server-args='-noreset' bash -c ". $SCRIPTS_DIR/setup-test-env.sh && ${XVFB_SCRIPT}"
 
 zink-venus-lvp:
@@ -22,9 +24,9 @@ zink-venus-lvp:
     - .test-gl
     - .deqp-test
     - .zink-venus-lvp-test
+  timeout: 15min  # base run time = 5min, but it's on the shared runners so it can go up
   variables:
     DEQP_SUITE: zink-venus-lvp
-    DEQP_FRACTION: 8
     PIGLIT_NO_WINDOW: 1
     # Enable validation (except for on piglit, see deqp-zink-venus-lvp.toml), logging
     # to stdout and aborting on unknown failures.
@@ -32,12 +34,37 @@ zink-venus-lvp:
     LP_NUM_THREADS: 2
     CROSVM_MEMORY: 12288
     CROSVM_CPU: $FDO_CI_CONCURRENT
-  script:
-    - xvfb-run --server-args='-noreset' bash -c "./install/crosvm-runner.sh ./install/deqp-runner.sh"
+  script: |
+    export LD_LIBRARY_PATH="$CI_PROJECT_DIR/install/lib"
+    export LIBGL_DRIVERS_PATH="$CI_PROJECT_DIR/install/lib/dri"
+    xvfb-run --server-args='-noreset' bash -c "./install/crosvm-runner.sh ./install/deqp-runner.sh"
+
+zink-anv-adl:
+  extends:
+    - .zink-anv-adl-test
+  variables:
+    DEQP_SUITE: zink-anv-adl
+    PIGLIT_NO_WINDOW: 1
+    HWCI_START_WESTON: 1
+    # We use gbm because its a copy of tgl job
+    PIGLIT_PLATFORM: gbm
+  timeout: 30m
+
+# Manual full run when you want to double-check the full status.
+zink-anv-adl-full:
+  extends:
+    - zink-anv-adl
+    - .zink-anv-manual-rules
+  variables:
+    DEQP_SUITE: zink-anv-adl-full
+    JOB_TIMEOUT: 105
+    HWCI_START_WESTON: 1
+  timeout: 2h
+  parallel: 2
 
 zink-anv-tgl:
   extends:
-    - .zink-anv-test
+    - .zink-anv-tgl-test
   timeout: 1h
   variables:
     DEQP_SUITE: zink-anv-tgl
@@ -63,9 +90,9 @@ zink-anv-tgl-full:
 zink-anv-tgl-traces:
   extends:
     - .lava-piglit-traces:x86_64
-    - .zink-anv-test
+    - .zink-anv-tgl-test
     - .zink-trace-test
-    # Add .lava-traces-base again to override .zink-anv-test setting the
+    # Add .lava-traces-base again to override .zink-anv-tgl-test setting the
     # HWCI_TEST_SCRIPT, but .lava-piglit-traces having to come first to get
     # dependencies right.
     - .lava-traces-base
@@ -84,11 +111,11 @@ zink-anv-tgl-traces-restricted:
 zink-tu-a618:
   extends:
     - .lava-test-deqp:arm64
-    - .zink-turnip-rules
+    - .zink-turnip-collabora-rules
     - .zink-test
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
   variables:
-    DEQP_FRACTION: 2
+    DEQP_FRACTION: 3
     DEQP_SUITE: zink-freedreno-a618
     FLAKES_CHANNEL: "#freedreno-ci"
     HWCI_START_WESTON: 1
@@ -97,14 +124,14 @@ zink-tu-a618:
 zink-tu-a618-full:
   extends:
     - zink-tu-a618
-    - .collabora-turnip-manual-rules
+    - .zink-turnip-collabora-manual-rules
   variables:
     DEQP_FRACTION: 1
 
 zink-tu-a618-traces:
   extends:
     - a618-traces
-    - .zink-turnip-rules
+    - .zink-turnip-collabora-rules
     - .zink-trace-test
   parallel: null
   variables:
@@ -113,11 +140,11 @@ zink-tu-a618-traces:
 zink-tu-a618-traces-performance:
   extends:
     - zink-tu-a618-traces
-    - .zink-turnip-manual-rules
+    - .zink-turnip-collabora-manual-rules
     - .piglit-performance:arm64
   rules:
     - !reference [.piglit-performance:arm64, rules]
-    - !reference [.zink-turnip-manual-rules, rules]
+    - !reference [.zink-turnip-collabora-manual-rules, rules]
   variables:
     # Always use the same device
     # a618 tag starts with cbg-1 (not cbg-0) for some reason
@@ -126,15 +153,41 @@ zink-tu-a618-traces-performance:
     - !reference [zink-tu-a618-traces, needs]
     - !reference [.piglit-performance:arm64, needs]
 
-############### Combined testing (GL, GLES, Piglit) on RADV
+zink-tu-a750:
+  extends:
+    - .tu-zink-test-valve
+    - .a750-mupuf
+    - .zink-turnip-valve-manual-rules
+  timeout: 25m  # base runtime 11min total, 9min of testing
+  variables:
+    B2C_TIMEOUT_BOOT_MINUTES: 15
+    B2C_TIMEOUT_OVERALL_MINUTES: 20
+    DEQP_SUITE: zink-tu-a750
+    GPU_VERSION: zink-tu-a750
+    HWCI_START_WESTON: 1
+
+############### Combined testing (GL, GLES, Piglit) on NVK / RADV
+zink-nvk-ga106-valve:
+  timeout: 60m
+  extends:
+    - .zink-nvk-test-valve
+    - .zink-nvk-manual-rules
+    - .nvk-ga106-valve
+  variables:
+    GPU_VERSION: zink-nvk-ga106
+    B2C_TIMEOUT_BOOT_MINUTES: 50
+    B2C_TIMEOUT_OVERALL_MINUTES: 55  # usual run time: 35min
+
 zink-radv-polaris10-valve:
   extends:
     - .radv-zink-test-valve
     - .polaris10-test-valve-kws
     - .zink-radv-manual-rules
+  timeout: 40m
   variables:
     GPU_VERSION: zink-radv-polaris10
     ZINK_DEBUG: quiet
+    B2C_TIMEOUT_OVERALL_MINUTES: 30
 
 zink-radv-navi10-valve:
   extends:

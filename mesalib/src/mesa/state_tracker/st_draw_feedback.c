@@ -181,7 +181,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
     * in gl_program_parameter_list because allow_constbuf0_as_real_buffer
     * is set.
     */
-   if (st->prefer_real_buffer_in_constbuf0 && params->StateFlags)
+   if ((st->prefer_real_buffer_in_constbuf0 || st->allow_st_finalize_nir_twice) && params->StateFlags)
       _mesa_load_state_parameters(st->ctx, params);
 
    draw_set_constant_buffer_stride(draw, sizeof(float));

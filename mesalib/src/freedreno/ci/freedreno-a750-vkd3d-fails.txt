@@ -1,0 +1,19 @@
+test_clear_depth_stencil_view,Fail
+test_copy_texture,Fail
+test_early_depth_stencil_tests,Fail
+test_index_buffer_edge_case_stream_output,Fail
+test_multisample_resolve,Fail
+test_multisample_resolve_strongly_typed,Fail
+test_primitive_restart,Fail
+test_primitive_restart_list_topology_stream_output,Fail
+test_query_pipeline_statistics,Fail
+test_sampler_rounding,Fail
+test_shader_instructions,Fail
+test_shader_sm66_quad_op_semantics,Fail
+test_suballocate_small_textures,Fail
+test_suballocate_small_textures_size,Fail
+test_vertex_id_dxbc,Fail
+test_vertex_id_dxil,Fail
+
+# msm_dpu ae01000.display-controller: [drm:hangcheck_handler] *ERROR* 67.5.20.1: hangcheck detected gpu lockup rb 0!
+test_fence_wait_robustness,Crash

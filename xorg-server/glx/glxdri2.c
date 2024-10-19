@@ -21,9 +21,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <stdint.h>
 #include <stdio.h>
@@ -977,12 +975,12 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     screen->base.fbconfigs = glxConvertConfigs(screen->core,
                                                screen->driConfigs);
 
-    options = xnfalloc(sizeof(GLXOptions));
+    options = XNFalloc(sizeof(GLXOptions));
     memcpy(options, GLXOptions, sizeof(GLXOptions));
     xf86ProcessOptions(pScrn->scrnIndex, pScrn->options, options);
     glvnd = xf86GetOptValString(options, GLXOPT_VENDOR_LIBRARY);
     if (glvnd)
-        screen->base.glvnd = xnfstrdup(glvnd);
+        screen->base.glvnd = XNFstrdup(glvnd);
     free(options);
 
     if (!screen->base.glvnd)

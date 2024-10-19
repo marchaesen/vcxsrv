@@ -727,12 +727,8 @@ _mesa_format_image_size64(mesa_format format, int width,
 extern int32_t
 _mesa_format_row_stride(mesa_format format, int width);
 
-extern void
-_mesa_uncompressed_format_to_type_and_comps(mesa_format format,
-                               GLenum *datatype, GLuint *comps);
-
-extern void
-_mesa_test_formats(void);
+extern GLenum
+_mesa_uncompressed_format_to_type(mesa_format format);
 
 extern mesa_format
 _mesa_get_srgb_format_linear(mesa_format format);

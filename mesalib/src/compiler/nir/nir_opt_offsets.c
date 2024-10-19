@@ -56,7 +56,7 @@ try_extract_const_addition(nir_builder *b, nir_scalar val, opt_offsets_state *st
     * Ignored for ints-as-floats (lower_bitops is a proxy for that), where
     * unsigned wrapping doesn't make sense.
     */
-   if (!alu->no_unsigned_wrap && !b->shader->options->lower_bitops) {
+   if (!state->options->allow_offset_wrap && !alu->no_unsigned_wrap && !b->shader->options->lower_bitops) {
       if (!state->range_ht) {
          /* Cache for nir_unsigned_upper_bound */
          state->range_ht = _mesa_pointer_hash_table_create(NULL);
@@ -173,6 +173,16 @@ try_fold_shared2(nir_builder *b,
    return true;
 }
 
+static uint32_t
+get_max(opt_offsets_state *state, nir_intrinsic_instr *intrin, uint32_t default_val)
+{
+   if (default_val)
+      return default_val;
+   if (state->options->max_offset_cb)
+      return state->options->max_offset_cb(intrin, state->options->max_offset_data);
+   return 0;
+}
+
 static bool
 process_instr(nir_builder *b, nir_instr *instr, void *s)
 {
@@ -184,15 +194,16 @@ process_instr(nir_builder *b, nir_instr *instr, void *s)
 
    switch (intrin->intrinsic) {
    case nir_intrinsic_load_uniform:
-      return try_fold_load_store(b, intrin, state, 0, state->options->uniform_max);
+   case nir_intrinsic_load_const_ir3:
+      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->uniform_max));
    case nir_intrinsic_load_ubo_vec4:
-      return try_fold_load_store(b, intrin, state, 1, state->options->ubo_vec4_max);
+      return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->ubo_vec4_max));
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_shared_ir3:
-      return try_fold_load_store(b, intrin, state, 0, state->options->shared_max);
+      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->shared_max));
    case nir_intrinsic_store_shared:
    case nir_intrinsic_store_shared_ir3:
-      return try_fold_load_store(b, intrin, state, 1, state->options->shared_max);
+      return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->shared_max));
    case nir_intrinsic_load_shared2_amd:
       return try_fold_shared2(b, intrin, state, 0);
    case nir_intrinsic_store_shared2_amd:
@@ -200,7 +211,10 @@ process_instr(nir_builder *b, nir_instr *instr, void *s)
    case nir_intrinsic_load_buffer_amd:
       return try_fold_load_store(b, intrin, state, 1, state->options->buffer_max);
    case nir_intrinsic_store_buffer_amd:
-      return try_fold_load_store(b, intrin, state, 2, state->options->buffer_max);
+   case nir_intrinsic_load_ssbo_ir3:
+      return try_fold_load_store(b, intrin, state, 2, get_max(state, intrin, state->options->buffer_max));
+   case nir_intrinsic_store_ssbo_ir3:
+      return try_fold_load_store(b, intrin, state, 3, get_max(state, intrin, state->options->buffer_max));
    default:
       return false;
    }
@@ -216,8 +230,7 @@ nir_opt_offsets(nir_shader *shader, const nir_opt_offsets_options *options)
    state.options = options;
 
    bool p = nir_shader_instructions_pass(shader, process_instr,
-                                         nir_metadata_block_index |
-                                            nir_metadata_dominance,
+                                         nir_metadata_control_flow,
                                          &state);
 
    if (state.range_ht)

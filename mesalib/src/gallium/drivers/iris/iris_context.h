@@ -349,6 +349,11 @@ struct iris_fs_data {
    bool has_side_effects;
    bool pulls_bary;
 
+   bool uses_sample_offsets;
+   bool uses_npc_bary_coefficients;
+   bool uses_pc_bary_coefficients;
+   bool uses_depth_w_coefficients;
+
    bool uses_nonperspective_interp_modes;
 
    bool is_per_sample;
@@ -494,6 +499,7 @@ enum pipe_control_flags
    PIPE_CONTROL_L3_READ_ONLY_CACHE_INVALIDATE   = (1 << 28),
    PIPE_CONTROL_UNTYPED_DATAPORT_CACHE_FLUSH    = (1 << 29),
    PIPE_CONTROL_CCS_CACHE_FLUSH                 = (1 << 30),
+   PIPE_CONTROL_L3_FABRIC_FLUSH                 = (1 << 31),
 };
 
 #define PIPE_CONTROL_CACHE_FLUSH_BITS \
@@ -630,6 +636,9 @@ struct iris_binding_table {
    uint64_t used_mask[IRIS_SURFACE_GROUP_COUNT];
 
    uint64_t samplers_used_mask;
+
+   /** Whether the first render target is a null fb surface */
+   uint8_t use_null_rt;
 };
 
 /**
@@ -1483,7 +1492,6 @@ iris_execute_indirect_draw_supported(const struct iris_context *ice,
    const struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
    const struct iris_vs_data *vs_data =
       iris_vs_data(ice->shaders.prog[MESA_SHADER_VERTEX]);
-   const bool is_multiview = draw->view_mask != 0;
    const size_t struct_size = draw->index_size ?
       sizeof(uint32_t) * 5 :
       sizeof(uint32_t) * 4;
@@ -1494,7 +1502,6 @@ iris_execute_indirect_draw_supported(const struct iris_context *ice,
            aligned_stride &&
            (indirect &&
            !indirect->count_from_stream_output) &&
-           !is_multiview &&
            !(vs_data->uses_firstvertex ||
              vs_data->uses_baseinstance ||
              vs_data->uses_drawid));

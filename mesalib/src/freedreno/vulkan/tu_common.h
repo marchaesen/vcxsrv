@@ -96,6 +96,12 @@
    (MAX_DYNAMIC_UNIFORM_BUFFERS + 2 * MAX_DYNAMIC_STORAGE_BUFFERS) *         \
    A6XX_TEX_CONST_DWORDS
 
+/* With dynamic rendering, input attachment indices are shifted by 1 and
+ * attachment 0 is used for input attachments without an InputAttachmentIndex
+ * (which can only be depth/stencil).
+ */
+#define TU_DYN_INPUT_ATT_OFFSET 1
+
 #define SAMPLE_LOCATION_MIN 0.f
 #define SAMPLE_LOCATION_MAX 0.9375f
 
@@ -131,30 +137,9 @@
 #define MAX_FDM_TEXEL_SIZE_LOG2 10
 #define MAX_FDM_TEXEL_SIZE (1u << MAX_FDM_TEXEL_SIZE_LOG2)
 
-#define TU_GPU_GENS A6XX, A7XX
-#define TU_GENX(FUNC_NAME)                                                   \
-   template <chip... CHIPs> constexpr auto FUNC_NAME##instantiate()          \
-   {                                                                         \
-      return std::tuple_cat(std::make_tuple(FUNC_NAME<CHIPs>)...);           \
-   }                                                                         \
-   static constexpr auto FUNC_NAME##tmpl __attribute__((used)) =             \
-      FUNC_NAME##instantiate<TU_GPU_GENS>();
+#define TU_GENX(FUNC_NAME) FD_GENX(FUNC_NAME)
 
-#define TU_CALLX(device, thing)                                              \
-   ({                                                                        \
-      decltype(&thing<A6XX>) genX_thing;                                     \
-      switch ((device)->physical_device->info->chip) {                       \
-      case 6:                                                                \
-         genX_thing = &thing<A6XX>;                                          \
-         break;                                                              \
-      case 7:                                                                \
-         genX_thing = &thing<A7XX>;                                          \
-         break;                                                              \
-      default:                                                               \
-         unreachable("Unknown hardware generation");                         \
-      }                                                                      \
-      genX_thing;                                                            \
-   })
+#define TU_CALLX(device, thing) FD_CALLX((device)->physical_device->info, thing)
 
 /* vk object types */
 struct tu_buffer;
@@ -178,7 +163,6 @@ struct tu_query_pool;
 struct tu_queue;
 struct tu_render_pass;
 struct tu_sampler;
-struct tu_sampler_ycbcr_conversion;
 
 struct breadcrumbs_context;
 struct tu_bo;

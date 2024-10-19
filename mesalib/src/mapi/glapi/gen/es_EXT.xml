@@ -656,21 +656,21 @@
 
 <!-- 71. GL_OES_vertex_array_object -->
 <category name="GL_OES_vertex_array_object" number="71">
-    <function name="BindVertexArrayOES" alias="BindVertexArray" es2="2.0">
+    <function name="BindVertexArrayOES" alias="BindVertexArray" es1="1.0" es2="2.0">
         <param name="array" type="GLuint"/>
     </function>
 
-    <function name="DeleteVertexArraysOES" alias="DeleteVertexArrays" es2="2.0">
+    <function name="DeleteVertexArraysOES" alias="DeleteVertexArrays" es1="1.0" es2="2.0">
         <param name="n" type="GLsizei"/>
         <param name="arrays" type="const GLuint *" count="n"/>
     </function>
 
-    <function name="GenVertexArraysOES" alias="GenVertexArrays" es2="2.0">
+    <function name="GenVertexArraysOES" alias="GenVertexArrays" es1="1.0" es2="2.0">
         <param name="n" type="GLsizei"/>
         <param name="arrays" type="GLuint *" output="true" count="n"/>
     </function>
 
-    <function name="IsVertexArrayOES" alias="IsVertexArray" es2="2.0">
+    <function name="IsVertexArrayOES" alias="IsVertexArray" es1="1.0" es2="2.0">
         <param name="array" type="GLuint"/>
         <return type="GLboolean"/>
     </function>
@@ -1635,5 +1635,7 @@
        <param name="params" type="GLint *" output="true" />
    </function>
 </category>
+
+<xi:include href="EXT_texture_storage_compression.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 </OpenGLAPI>

@@ -289,6 +289,7 @@ struct pvr_device_features {
    bool has_tile_size_y : 1;
    bool has_tpu_array_textures : 1;
    bool has_tpu_border_colour_enhanced : 1;
+   bool has_tpu_dm_global_registers : 1;
    bool has_tpu_extended_integer_lookup : 1;
    bool has_tpu_image_state_v2 : 1;
    bool has_usc_f16sop_u8 : 1;

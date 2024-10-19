@@ -95,7 +95,8 @@ bool
 nir_lower_vars_to_scratch(nir_shader *shader,
                           nir_variable_mode modes,
                           int size_threshold,
-                          glsl_type_size_align_func size_align)
+                          glsl_type_size_align_func variable_size_align,
+                          glsl_type_size_align_func scratch_layout_size_align)
 {
    struct set *set = _mesa_pointer_set_create(NULL);
 
@@ -131,7 +132,7 @@ nir_lower_vars_to_scratch(nir_shader *shader,
                continue;
 
             unsigned var_size, var_align;
-            size_align(var->type, &var_size, &var_align);
+            variable_size_align(var->type, &var_size, &var_align);
             if (var_size <= size_threshold)
                continue;
 
@@ -207,21 +208,20 @@ nir_lower_vars_to_scratch(nir_shader *shader,
 
             if (var->data.location == INT_MAX) {
                unsigned var_size, var_align;
-               size_align(var->type, &var_size, &var_align);
+               scratch_layout_size_align(var->type, &var_size, &var_align);
 
                var->data.location = ALIGN_POT(shader->scratch_size, var_align);
                shader->scratch_size = var->data.location + var_size;
             }
 
-            lower_load_store(&build, intrin, size_align);
+            lower_load_store(&build, intrin, scratch_layout_size_align);
             impl_progress = true;
          }
       }
 
       if (impl_progress) {
          progress = true;
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                        nir_metadata_dominance);
+         nir_metadata_preserve(impl, nir_metadata_control_flow);
       } else {
          nir_metadata_preserve(impl, nir_metadata_all);
       }

@@ -104,7 +104,7 @@ def lookupMap(filename, matchSymbol):
 
 def lookupAsm(filename, desiredFunction):
     stream = open(filename + '.asm', 'rt')
-    while stream.readline() != desiredFunction + ':\n':
+    while not stream.readline().startswith(desiredFunction + ' '):
         pass
 
     asm = []

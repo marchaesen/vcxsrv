@@ -314,8 +314,9 @@ static void test_modifier(const struct radeon_info *info,
          unsigned block_size_bits;
 
          if (info->gfx_level >= GFX12) {
-            assert(surf.u.gfx9.swizzle_mode == ADDR3_64KB_2D);
-            block_size_bits = 16;
+            assert(surf.u.gfx9.swizzle_mode == ADDR3_64KB_2D ||
+                   surf.u.gfx9.swizzle_mode == ADDR3_256B_2D);
+            block_size_bits = (surf.u.gfx9.swizzle_mode == ADDR3_256B_2D) ? 8 : 16;
          } else {
             block_size_bits = surf.u.gfx9.swizzle_mode >= ADDR_SW_256KB_Z_X ? 18 : 16;
          }

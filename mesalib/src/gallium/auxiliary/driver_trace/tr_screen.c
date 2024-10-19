@@ -678,7 +678,7 @@ trace_screen_free_memory(struct pipe_screen *_screen,
 
 static void
 trace_screen_free_memory_fd(struct pipe_screen *_screen,
-                         struct pipe_memory_allocation *pmem)
+                            struct pipe_memory_allocation *pmem)
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
    struct pipe_screen *screen = tr_scr->screen;
@@ -698,6 +698,8 @@ static bool
 trace_screen_resource_bind_backing(struct pipe_screen *_screen,
                                    struct pipe_resource *resource,
                                    struct pipe_memory_allocation *pmem,
+                                   uint64_t fd_offset,
+                                   uint64_t size,
                                    uint64_t offset)
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
@@ -709,9 +711,11 @@ trace_screen_resource_bind_backing(struct pipe_screen *_screen,
    trace_dump_arg(ptr, screen);
    trace_dump_arg(ptr, resource);
    trace_dump_arg(ptr, pmem);
+   trace_dump_arg(uint, fd_offset);
+   trace_dump_arg(uint, size);
    trace_dump_arg(uint, offset);
 
-   result = screen->resource_bind_backing(screen, resource, pmem, offset);
+   result = screen->resource_bind_backing(screen, resource, pmem, fd_offset, size, offset);
 
    trace_dump_ret(bool, result);
 
@@ -1423,6 +1427,60 @@ static void trace_screen_set_fence_timeline_value(struct pipe_screen *_screen,
    screen->set_fence_timeline_value(screen, fence, value);
 }
 
+static void trace_screen_query_compression_rates(struct pipe_screen *_screen,
+                                                 enum pipe_format format,
+                                                 int max, uint32_t *rates,
+                                                 int *count)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "query_compression_rates");
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(format, format);
+   trace_dump_arg(int, max);
+
+   screen->query_compression_rates(screen, format, max, rates, count);
+
+   if (max)
+      trace_dump_arg_array(uint, rates, *count);
+   else
+      trace_dump_arg_array(uint, rates, max);
+   trace_dump_ret_begin();
+   trace_dump_uint(*count);
+   trace_dump_ret_end();
+
+   trace_dump_call_end();
+}
+
+static void trace_screen_query_compression_modifiers(struct pipe_screen *_screen,
+                                                     enum pipe_format format,
+                                                     uint32_t rate, int max,
+                                                     uint64_t *modifiers,
+                                                     int *count)
+{
+   struct trace_screen *tr_scr = trace_screen(_screen);
+   struct pipe_screen *screen = tr_scr->screen;
+
+   trace_dump_call_begin("pipe_screen", "query_compression_rates");
+   trace_dump_arg(ptr, screen);
+   trace_dump_arg(format, format);
+   trace_dump_arg(uint, rate);
+   trace_dump_arg(int, max);
+
+   screen->query_compression_modifiers(screen, format, rate, max, modifiers, count);
+
+   if (max)
+      trace_dump_arg_array(uint, modifiers, *count);
+   else
+      trace_dump_arg_array(uint, modifiers, max);
+   trace_dump_ret_begin();
+   trace_dump_uint(*count);
+   trace_dump_ret_end();
+
+   trace_dump_call_end();
+}
+
 bool
 trace_enabled(void)
 {
@@ -1438,6 +1496,15 @@ trace_enabled(void)
    }
 
    return trace;
+}
+
+static struct pipe_screen * tr_get_driver_pipe_screen(struct pipe_screen *_screen)
+{
+   struct pipe_screen *screen = trace_screen(_screen)->screen;
+
+   if (screen->get_driver_pipe_screen)
+      return screen->get_driver_pipe_screen(screen);
+   return screen;
 }
 
 struct pipe_screen *
@@ -1531,6 +1598,9 @@ trace_screen_create(struct pipe_screen *screen)
    SCR_INIT(get_sparse_texture_virtual_page_size);
    SCR_INIT(set_fence_timeline_value);
    SCR_INIT(driver_thread_add_job);
+   SCR_INIT(query_compression_rates);
+   SCR_INIT(query_compression_modifiers);
+   tr_scr->base.get_driver_pipe_screen = tr_get_driver_pipe_screen;
 
    tr_scr->screen = screen;
 
@@ -1559,13 +1629,4 @@ trace_screen(struct pipe_screen *screen)
    assert(screen);
    assert(screen->destroy == trace_screen_destroy);
    return (struct trace_screen *)screen;
-}
-
-struct pipe_screen *
-trace_screen_unwrap(struct pipe_screen *_screen)
-{
-   if (_screen->destroy != trace_screen_destroy)
-      return _screen;
-   struct trace_screen *tr_scr = trace_screen(_screen);
-   return tr_scr->screen;
 }

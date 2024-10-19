@@ -33,7 +33,30 @@ struct agx_attribute {
    bool instanced : 1;
 };
 
-bool agx_nir_lower_vbo(nir_shader *shader, struct agx_attribute *attribs);
+enum agx_robustness_level {
+   /* No robustness */
+   AGX_ROBUSTNESS_DISABLED,
+
+   /* Invalid load/store must not fault, but undefined value/effect */
+   AGX_ROBUSTNESS_GLES,
+
+   /* Invalid load/store access something from the array (or 0) */
+   AGX_ROBUSTNESS_GL,
+
+   /* Invalid loads return 0 and invalid stores are dropped */
+   AGX_ROBUSTNESS_D3D,
+};
+
+struct agx_robustness {
+   enum agx_robustness_level level;
+
+   /* Whether hardware "soft fault" is enabled. */
+   bool soft_fault;
+};
+
+bool agx_nir_lower_vbo(nir_shader *shader, struct agx_attribute *attribs,
+                       struct agx_robustness rs);
+
 bool agx_vbo_supports_format(enum pipe_format format);
 
 #ifdef __cplusplus

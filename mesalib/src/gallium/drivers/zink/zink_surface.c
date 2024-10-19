@@ -145,6 +145,18 @@ init_pipe_surface_info(struct pipe_context *pctx, struct pipe_surface *psurf, co
    assert(psurf->width);
    psurf->height = u_minify(pres->height0, level);
    assert(psurf->height);
+
+   if (util_format_is_compressed(pres->format) &&
+       !util_format_is_compressed(psurf->format)) {
+      assert(util_format_get_blockwidth(psurf->format) == 1);
+      assert(util_format_get_blockheight(psurf->format) == 1);
+
+      psurf->width = DIV_ROUND_UP(psurf->width,
+                                  util_format_get_blockwidth(pres->format));
+      psurf->height = DIV_ROUND_UP(psurf->height,
+                                   util_format_get_blockheight(pres->format));
+   }
+
    psurf->nr_samples = templ->nr_samples;
    psurf->u.tex.level = level;
    psurf->u.tex.first_layer = templ->u.tex.first_layer;
@@ -155,8 +167,8 @@ static void
 apply_view_usage_for_format(struct zink_screen *screen, struct zink_resource *res, struct zink_surface *surface, enum pipe_format format, VkImageViewCreateInfo *ivci)
 {
    VkFormatFeatureFlags feats = res->linear ?
-                                screen->format_props[format].linearTilingFeatures :
-                                screen->format_props[format].optimalTilingFeatures;
+                                zink_get_format_props(screen, format)->linearTilingFeatures :
+                                zink_get_format_props(screen, format)->optimalTilingFeatures;
    VkImageUsageFlags attachment = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT);
    surface->usage_info.usage = res->obj->vkusage & ~attachment;
    if (res->obj->modifier_aspect) {

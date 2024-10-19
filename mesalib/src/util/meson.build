@@ -1,22 +1,5 @@
 # Copyright © 2017 Intel Corporation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 # inc_util only depends inc_include, this folder and nothing else under src
 # so we use include_directories('..') instead of inc_src to tell the fact
@@ -42,6 +25,7 @@ files_mesa_util = files(
   'box.h',
   'build_id.c',
   'build_id.h',
+  'cnd_monotonic.c',
   'cnd_monotonic.h',
   'compiler.h',
   'compress.c',
@@ -72,6 +56,8 @@ files_mesa_util = files(
   'half_float.h',
   'hash_table.c',
   'hash_table.h',
+  'helpers.c',
+  'helpers.h',
   'hex.h',
   'u_idalloc.c',
   'u_idalloc.h',
@@ -222,6 +208,10 @@ format_srgb = custom_target(
   capture : true,
 )
 
+# subdir format provide files_mesa_format
+subdir('format')
+files_mesa_util += files_mesa_format
+
 deps_for_libmesa_util = [
   dep_zlib,
   dep_clock,
@@ -234,7 +224,8 @@ deps_for_libmesa_util = [
   dep_unwind,
   dep_futex,
   idep_blake3,
-  idep_mesautilc11
+  idep_mesautilc11,
+  idep_mesautilformat,
 ]
 
 if with_platform_android
@@ -278,10 +269,6 @@ libmesa_util_sse41 = static_library(
   include_directories : [inc_util],
   gnu_symbol_visibility : 'hidden',
 )
-
-# subdir format provide files_mesa_format
-subdir('format')
-files_mesa_util += files_mesa_format
 
 _libmesa_util = static_library(
   'mesa_util',
@@ -395,6 +382,7 @@ if with_tests
     'tests/u_call_once_test.cpp',
     'tests/u_debug_stack_test.cpp',
     'tests/u_debug_test.cpp',
+    'tests/u_memstream_test.cpp',
     'tests/u_printf_test.cpp',
     'tests/u_qsort_test.cpp',
     'tests/vector_test.cpp',
@@ -422,6 +410,7 @@ if with_tests
     ),
     suite : ['util'],
     protocol : 'gtest',
+    is_parallel : false,
     timeout : 180,
   )
 

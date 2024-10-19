@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "drm-uapi/drm_fourcc.h"
 #include "util/format/u_format.h"
 #include "util/macros.h"
 #include "util/u_math.h"
@@ -186,6 +187,19 @@ ail_get_layer_level_B(const struct ail_layout *layout, unsigned z_px,
 }
 
 static inline uint32_t
+ail_get_level_size_B(const struct ail_layout *layout, unsigned level)
+{
+   if (layout->tiling == AIL_TILING_LINEAR) {
+      assert(level == 0);
+      return layout->layer_stride_B;
+   } else {
+      assert(level + 1 < ARRAY_SIZE(layout->level_offsets_B));
+      return layout->level_offsets_B[level + 1] -
+             layout->level_offsets_B[level];
+   }
+}
+
+static inline uint32_t
 ail_get_linear_pixel_B(const struct ail_layout *layout, ASSERTED unsigned level,
                        uint32_t x_px, uint32_t y_px, uint32_t z_px)
 {
@@ -214,14 +228,20 @@ ail_effective_height_sa(unsigned height_px, unsigned sample_count_sa)
    return height_px * (sample_count_sa >= 2 ? 2 : 1);
 }
 
-static inline bool
-ail_can_compress(unsigned w_px, unsigned h_px, unsigned sample_count_sa)
+static inline unsigned
+ail_metadata_width_tl(struct ail_layout *layout, unsigned level)
 {
-   assert(sample_count_sa == 1 || sample_count_sa == 2 || sample_count_sa == 4);
+   unsigned px = u_minify(layout->width_px, level);
+   uint32_t sa = ail_effective_width_sa(px, layout->sample_count_sa);
+   return DIV_ROUND_UP(sa, 16);
+}
 
-   /* Small textures cannot be compressed */
-   return ail_effective_width_sa(w_px, sample_count_sa) >= 16 &&
-          ail_effective_height_sa(h_px, sample_count_sa) >= 16;
+static inline unsigned
+ail_metadata_height_tl(struct ail_layout *layout, unsigned level)
+{
+   unsigned px = u_minify(layout->height_px, level);
+   uint32_t sa = ail_effective_height_sa(px, layout->sample_count_sa);
+   return DIV_ROUND_UP(sa, 16);
 }
 
 static inline bool
@@ -264,13 +284,183 @@ ail_is_level_twiddled_uncompressed(const struct ail_layout *layout,
 
 void ail_make_miptree(struct ail_layout *layout);
 
-void ail_detile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
-                unsigned level, unsigned linear_pitch_B, unsigned sx_px,
-                unsigned sy_px, unsigned width_px, unsigned height_px);
+void ail_detile(void *_tiled, void *_linear,
+                const struct ail_layout *tiled_layout, unsigned level,
+                unsigned linear_pitch_B, unsigned sx_px, unsigned sy_px,
+                unsigned width_px, unsigned height_px);
 
-void ail_tile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
-              unsigned level, unsigned linear_pitch_B, unsigned sx_px,
-              unsigned sy_px, unsigned width_px, unsigned height_px);
+void ail_tile(void *_tiled, void *_linear,
+              const struct ail_layout *tiled_layout, unsigned level,
+              unsigned linear_pitch_B, unsigned sx_px, unsigned sy_px,
+              unsigned width_px, unsigned height_px);
+
+/* Define aliases for the subset formats that are accessible in the ISA. These
+ * subsets disregard component mapping and number of components. This
+ * constitutes ABI with the compiler.
+ */
+enum ail_isa_format {
+   AIL_ISA_FORMAT_I8 = PIPE_FORMAT_R8_UINT,
+   AIL_ISA_FORMAT_I16 = PIPE_FORMAT_R16_UINT,
+   AIL_ISA_FORMAT_I32 = PIPE_FORMAT_R32_UINT,
+   AIL_ISA_FORMAT_F16 = PIPE_FORMAT_R16_FLOAT,
+   AIL_ISA_FORMAT_U8NORM = PIPE_FORMAT_R8_UNORM,
+   AIL_ISA_FORMAT_S8NORM = PIPE_FORMAT_R8_SNORM,
+   AIL_ISA_FORMAT_U16NORM = PIPE_FORMAT_R16_UNORM,
+   AIL_ISA_FORMAT_S16NORM = PIPE_FORMAT_R16_SNORM,
+   AIL_ISA_FORMAT_RGB10A2 = PIPE_FORMAT_R10G10B10A2_UNORM,
+   AIL_ISA_FORMAT_SRGBA8 = PIPE_FORMAT_R8G8B8A8_SRGB,
+   AIL_ISA_FORMAT_RG11B10F = PIPE_FORMAT_R11G11B10_FLOAT,
+   AIL_ISA_FORMAT_RGB9E5 = PIPE_FORMAT_R9G9B9E5_FLOAT
+};
+
+/*
+ * The architecture load/store instructions support masking, but packed formats
+ * are not compatible with masking. Check if a format is packed.
+ */
+static inline bool
+ail_isa_format_supports_mask(enum ail_isa_format format)
+{
+   switch (format) {
+   case AIL_ISA_FORMAT_RGB10A2:
+   case AIL_ISA_FORMAT_RG11B10F:
+   case AIL_ISA_FORMAT_RGB9E5:
+      return false;
+   default:
+      return true;
+   }
+}
+
+struct ail_pixel_format_entry {
+   uint8_t channels;
+   uint8_t type;
+   bool texturable : 1;
+   enum pipe_format renderable;
+};
+
+extern const struct ail_pixel_format_entry ail_pixel_format[PIPE_FORMAT_COUNT];
+
+static inline bool
+ail_is_valid_pixel_format(enum pipe_format format)
+{
+   return ail_pixel_format[format].texturable;
+}
+
+/* Query whether an image with the specified layout is compressible */
+static inline bool
+ail_can_compress(enum pipe_format format, unsigned w_px, unsigned h_px,
+                 unsigned sample_count_sa)
+{
+   assert(sample_count_sa == 1 || sample_count_sa == 2 || sample_count_sa == 4);
+
+   /* We compress via the PBE, so we can only compress PBE-writeable formats. */
+   if (ail_pixel_format[format].renderable == PIPE_FORMAT_NONE &&
+       !util_format_is_depth_or_stencil(format))
+      return false;
+
+   /* Lossy-compressed texture formats cannot be compressed */
+   assert(!util_format_is_compressed(format) &&
+          "block-compressed formats are not renderable");
+
+   /* Small textures cannot be compressed */
+   return ail_effective_width_sa(w_px, sample_count_sa) >= 16 &&
+          ail_effective_height_sa(h_px, sample_count_sa) >= 16;
+}
+
+/* AGX compression mode for a solid colour for the subtile */
+#define AIL_COMP_SOLID 0x3
+
+/* AGX compression mode for an uncompessed subtile. Frustratingly, this seems to
+ * depend on the format. It is possible that modes are actual 8-bit structures
+ * with multiple fields rather than plain enumerations.
+ */
+#define AIL_COMP_UNCOMPRESSED_1    0x1f
+#define AIL_COMP_UNCOMPRESSED_2    0x3f
+#define AIL_COMP_UNCOMPRESSED_4    0x7f
+#define AIL_COMP_UNCOMPRESSED_8_16 0xff
+
+static inline uint8_t
+ail_subtile_uncompressed_mode(enum pipe_format format)
+{
+   /* clang-format off */
+   switch (util_format_get_blocksize(format)) {
+   case  1: return AIL_COMP_UNCOMPRESSED_1;
+   case  2: return AIL_COMP_UNCOMPRESSED_2;
+   case  4: return AIL_COMP_UNCOMPRESSED_4;
+   case  8:
+   case 16: return AIL_COMP_UNCOMPRESSED_8_16;
+   default: unreachable("invalid block size");
+   }
+   /* clang-format on */
+}
+
+/*
+ * Compression modes are 8-bit per 8x4 subtile, but grouped into 64-bit for all
+ * modes in a 16x16 tile. This helper replicates a subtile mode to a tile mode
+ * using a SWAR idiom.
+ */
+static inline uint64_t
+ail_tile_mode_replicated(uint8_t subtile_mode)
+{
+   return (uint64_t)subtile_mode * 0x0101010101010101ULL;
+}
+
+/*
+ * Composed convenience function.
+ */
+static inline uint64_t
+ail_tile_mode_uncompressed(enum pipe_format format)
+{
+   return ail_tile_mode_replicated(ail_subtile_uncompressed_mode(format));
+}
+
+/*
+ * For compression, compatible formats must have the same number/size/order of
+ * channels, but may differ in data type. For example, R32_SINT is compatible
+ * with Z32_FLOAT, but not with R16G16_SINT. This is the relation given by the
+ * "channels" part of the decomposed format.
+ *
+ * This has not been exhaustively tested and might be missing some corner cases
+ * around XR formats, but is well-motivated and seems to work.
+ */
+static inline bool
+ail_formats_compatible(enum pipe_format a, enum pipe_format b)
+{
+   return ail_pixel_format[a].channels == ail_pixel_format[b].channels;
+}
+
+static inline bool
+ail_is_view_compatible(struct ail_layout *layout, enum pipe_format view)
+{
+   return !ail_is_compressed(layout) ||
+          ail_formats_compatible(layout->format, view);
+}
+
+/* Fake values, pending UAPI upstreaming */
+#ifndef DRM_FORMAT_MOD_APPLE_TWIDDLED
+#define DRM_FORMAT_MOD_APPLE_TWIDDLED (2)
+#endif
+#ifndef DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED
+#define DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED (3)
+#endif
+
+/*
+ * We generally use ail enums instead of DRM format modifiers. This helper
+ * bridges the gap.
+ */
+static inline enum ail_tiling
+ail_drm_modifier_to_tiling(uint64_t modifier)
+{
+   switch (modifier) {
+   case DRM_FORMAT_MOD_LINEAR:
+      return AIL_TILING_LINEAR;
+   case DRM_FORMAT_MOD_APPLE_TWIDDLED:
+      return AIL_TILING_TWIDDLED;
+   case DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED:
+      return AIL_TILING_TWIDDLED_COMPRESSED;
+   default:
+      unreachable("Unsupported modifier");
+   }
+}
 
 #ifdef __cplusplus
 } /* extern C */

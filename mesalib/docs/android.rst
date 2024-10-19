@@ -11,6 +11,10 @@ needs a built Android tree to build against, and it has never been
 tested in CI.  The Meson build system flow is frequently used by
 Chrome OS developers for building and testing Android drivers.
 
+When building llvmpipe or lavapipe for Android the ndk-build workflow
+is also used, but there are additional steps required to add the driver
+to the Android OS image.
+
 Building using the Android NDK
 ------------------------------
 
@@ -30,7 +34,7 @@ Then, create your Meson cross file to use it, something like this
     # Android doesn't come with a pkg-config, but we need one for Meson to be happy not
     # finding all the optional deps it looks for.  Use system pkg-config pointing at a
     # directory we get to populate with any .pc files we want to add for Android
-    pkgconfig = ['env', 'PKG_CONFIG_LIBDIR=NDKDIR/pkgconfig', '/usr/bin/pkg-config']
+    pkg-config = ['env', 'PKG_CONFIG_LIBDIR=NDKDIR/pkgconfig', '/usr/bin/pkg-config']
 
     [host_machine]
     system = 'android'
@@ -175,3 +179,248 @@ container and let it restart:
 .. code-block:: sh
 
     kill $(cat /run/containers/android-run_oci/container.pid )
+
+Adding drivers to Android OS image
+----------------------------------
+
+When building your own Android OS images it's possible to add
+drivers built out of tree directly into the OS image. For
+running llvmpipe and lavapipe on Android this step is required
+to ensure Android is able to load the drivers correctly.
+
+The following steps provide and example for building
+the android cuttlefish image following the official Android
+documentation from https://source.android.com/docs/setup
+
+When building llvmpipe or lavapipe for Android, it is required
+to do this so that the permissions for accessing the library
+are set correctly.
+
+Following the Android documentation, we can run the following
+commands
+
+.. code-block:: sh
+
+   repo init -b main -u https://android.googlesource.com/platform/manifest
+   repo sync -c -j8
+
+   source build/envsetup.sh
+   lunch aosp_cf_x86_64_phone-trunk_staging-userdebug
+
+Be aware that the sync command can take a long time to run as
+it will download all of the source code. This will set up
+the ``aosp_cf_x86_64_phone-trunk_staging-userdebug`` build target
+for Android. Please note that the x86_64 cuttlefish target will require
+you to build mesa for 32bit and 64bit. Next we need to copy the build
+driver libraries into the source tree of Android and patch the binary names.
+Note that as of ``9b7bb6cc9fa``, libgallium will include the build tag in the
+name, so the name of that library will need to match the tag used in the build.
+
+.. code-block:: sh
+
+   mkdir prebuilts/mesa
+   mkdir prebuilts/mesa/x86_64
+   mkdir prebuilts/mesa/x86
+   cp ${INSTALL_PREFIX_64}/lib/libEGL.so prebuilts/mesa/x86_64/
+   cp ${INSTALL_PREFIX_64}/lib/libglapi.so prebuilts/mesa/x86_64/
+   cp ${INSTALL_PREFIX_64}/lib/libgallium-24.3.0-devel.so prebuilts/mesa/x86_64/
+   cp ${INSTALL_PREFIX_64}/lib/libGLESv1_CM.so  prebuilts/mesa/x86_64/
+   cp ${INSTALL_PREFIX_64}/lib/libGLESv2.so  prebuilts/mesa/x86_64/
+   cp ${INSTALL_PREFIX_64}/lib/libvulkan_lvp.so prebuilts/mesa/x86_64/
+   cp ${INSTALL_PREFIX_32}/lib/libEGL.so prebuilts/mesa/x86
+   cp ${INSTALL_PREFIX_32}/lib/libglapi.so prebuilts/mesa/x86
+   cp ${INSTALL_PREFIX_32}/lib/libgallium-24.3.0-devel.so prebuilts/mesa/x86/
+   cp ${INSTALL_PREFIX_32}/lib/libGLESv1_CM.so  prebuilts/mesa/x86
+   cp ${INSTALL_PREFIX_32}/lib/libGLESv2.so  prebuilts/mesa/x86
+   cp ${INSTALL_PREFIX_32}/lib/libvulkan_lvp.so prebuilts/mesa/x86
+
+   patchelf --set-soname libEGL_lp.so prebuilts/mesa/x86_64/libEGL.so
+   patchelf --set-soname libGLESv1_CM_lp.so prebuilts/mesa/x86_64/libGLESv1_CM.so
+   patchelf --set-soname libGLESv2_lp.so prebuilts/mesa/x86_64/libGLESv2.so
+   patchelf --set-soname vulkan.lvp.so prebuilts/mesa/x86_64/libvulkan_lvp.so
+   patchelf --set-soname libEGL_lp.so prebuilts/mesa/x86/libEGL.so
+   patchelf --set-soname libGLESv1_CM_lp.so prebuilts/mesa/x86/libGLESv1_CM.so
+   patchelf --set-soname libGLESv2_lp.so prebuilts/mesa/x86/libGLESv2.so
+   patchelf --set-soname vulkan.lvp.so prebuilts/mesa/x86/libvulkan_lvp.so
+
+We then need to create an ``prebuilts/mesa/Android.bp`` build file to include
+the libraries in the build.
+
+.. code-block::
+
+   cc_prebuilt_library_shared {
+       name: "libglapi",
+       arch: {
+           x86_64: {
+               srcs: ["x86_64/libglapi.so"],
+           },
+           x86: {
+               srcs: ["x86/libglapi.so"],
+           },
+       },
+       strip: {
+           none: true,
+       },
+       relative_install_path: "egl",
+       shared_libs: ["libc", "libdl", "liblog", "libm"],
+       vendor: true
+   }
+
+   cc_prebuilt_library_shared {
+       name: "libgallium-24.3.0-devel",
+       arch: {
+           x86_64: {
+               srcs: ["x86_64/libgallium-24.3.0-devel.so"],
+           },
+           x86: {
+               srcs: ["x86/libgallium-24.3.0-devel.so"],
+           },
+       },
+       strip: {
+           none: true,
+       },
+       relative_install_path: "egl",
+       shared_libs: ["libc", "libdl", "liblog", "libm"],
+       check_elf_files: false,
+       vendor: true
+   }
+
+   cc_prebuilt_library_shared {
+       name: "libEGL_lp",
+       arch: {
+           x86_64: {
+               srcs: ["x86_64/libEGL.so"],
+           },
+           x86: {
+               srcs: ["x86/libEGL.so"],
+           },
+       },
+       strip: {
+           none: true,
+       },
+       relative_install_path: "egl",
+       shared_libs: ["libc", "libdl", "liblog", "libm", "libcutils", "libdrm", "libhardware", "liblog", "libnativewindow", "libsync"],
+       check_elf_files: false,
+       vendor: true
+   }
+
+   cc_prebuilt_library_shared {
+       name: "libGLESv1_CM_lp",
+       arch: {
+           x86_64: {
+               srcs: ["x86_64/libGLESv1_CM.so"],
+           },
+           x86: {
+               srcs: ["x86/libGLESv1_CM.so"],
+           },
+       },
+       strip: {
+           none: true,
+       },
+       relative_install_path: "egl",
+       shared_libs: ["libc", "libdl", "liblog", "libm"],
+       check_elf_files: false,
+       vendor: true
+   }
+
+   cc_prebuilt_library_shared {
+       name: "libGLESv2_lp",
+       arch: {
+           x86_64: {
+               srcs: ["x86_64/libGLESv2.so"],
+           },
+           x86: {
+               srcs: ["x86_64/libGLESv2.so"],
+           },
+       },
+       strip: {
+           none: true,
+       },
+       relative_install_path: "egl",
+       shared_libs: ["libc", "libdl", "liblog", "libm"],
+       check_elf_files: false,
+       vendor: true
+   }
+
+   cc_prebuilt_library_shared {
+       name: "vulkan.lvp",
+       arch: {
+           x86_64: {
+               srcs: ["x86_64/libvulkan_lvp.so"],
+           },
+           x86: {
+               srcs: ["x86/libvulkan_lvp.so"],
+           },
+       },
+       strip: {
+           none: true,
+       },
+       relative_install_path: "hw",
+       shared_libs: ["libc", "libdl", "liblog", "libm", "libcutils", "libdrm", "liblog", "libnativewindow", "libsync", "libz"],
+       vendor: true
+   }
+
+
+Next we need to update the device configuration to include the libraries
+in the build, as well as set the appropriate system properties. We can
+create the file
+``device/google/cuttlefish/shared/mesa/device_vendor.mk``
+
+
+.. code-block:: makefile
+
+   PRODUCT_SOONG_NAMESPACES += prebuilts/mesa
+   PRODUCT_PACKAGES += libglapi \
+                       libGLESv1_CM_lp \
+                       libGLESv2_lp \
+                       libEGL_lp \
+                       libgallium-24.3.0-devel.so \
+                       vulkan.lvp
+   PRODUCT_VENDOR_PROPERTIES += \
+           ro.hardware.egl=lp \
+           ro.hardware.vulkan=lvp \
+           mesa.libgl.always.software=true \
+           mesa.android.no.kms.swrast=true \
+           debug.hwui.renderer=opengl \
+           ro.gfx.angle.supported=false \
+           debug.sf.disable_hwc_vds=1 \
+           ro.vendor.hwcomposer.mode=client
+
+Also the file ``device/google/cuttlefish/shared/mesa/BoardConfig.mk``
+
+.. code-block:: makefile
+
+   BOARD_VENDOR_SEPOLICY_DIRS += \
+           device/google/cuttlefish/shared/mesa/sepolicy
+
+Next the file ``device/google/cuttlefish/shared/mesa/sepolicy/file_contexts``
+
+.. code-block:: sh
+
+   /vendor/lib(64)?/egl/libEGL_lp\.so u:object_r:same_process_hal_file:s0
+   /vendor/lib(64)?/egl/libGLESv1_CM_lp\.so u:object_r:same_process_hal_file:s0
+   /vendor/lib(64)?/egl/libGLESv2_lp\.so u:object_r:same_process_hal_file:s0
+   /vendor/lib(64)?/egl/libglapi\.so u:object_r:same_process_hal_file:s0
+   /vendor/lib(64)?/egl/libgallium\-24.3.0\-devel\.so u:object_r:same_process_hal_file:s0
+   /vendor/lib(64)?/hw/vulkan\.lvp\.so u:object_r:same_process_hal_file:s0
+
+After creating these files we need to modify the existing config files
+to include these build files. First we modify
+``device/google/cuttlefish/shared/phone/device_vendor.mk``
+to add the below code in the spot where other device_vendor
+files are included.
+
+.. code-block:: sh
+
+   $(call inherit-product, device/google/cuttlefish/shared/mesa/device_vendor.mk)
+
+Lastly we modify
+``device/google/cuttlefish/vsoc_x86_64/BoardConfig.mk`` to include
+the following line where the other BoardConfig files are included
+
+.. code-block:: sh
+
+   -include device/google/cuttlefish/shared/mesa/BoardConfig.mk
+
+Then we are set to continue following the official instructions to
+build the cuttlefish target and run it in the cuttlefish emulator.

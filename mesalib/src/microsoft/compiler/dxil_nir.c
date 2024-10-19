@@ -115,8 +115,7 @@ lower_32b_offset_load(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *v
    }
 
    nir_def *result = nir_vec(b, comps, num_components);
-   nir_def_rewrite_uses(&intr->def, result);
-   nir_instr_remove(&intr->instr);
+   nir_def_replace(&intr->def, result);
 
    return true;
 }
@@ -417,9 +416,8 @@ dxil_nir_flatten_var_arrays(nir_shader *shader, nir_variable_mode modes)
       return false;
 
    nir_shader_intrinsics_pass(shader, flatten_var_arrays,
-                                nir_metadata_block_index |
-                                   nir_metadata_dominance |
-                                   nir_metadata_loop_analysis,
+                                nir_metadata_control_flow |
+                                nir_metadata_loop_analysis,
                                 NULL);
    nir_remove_dead_derefs(shader);
    return true;
@@ -600,9 +598,8 @@ dxil_nir_lower_var_bit_size(nir_shader *shader, nir_variable_mode modes,
       return false;
 
    nir_shader_intrinsics_pass(shader, lower_deref_bit_size,
-                                nir_metadata_block_index |
-                                   nir_metadata_dominance |
-                                   nir_metadata_loop_analysis,
+                                nir_metadata_control_flow |
+                                nir_metadata_loop_analysis,
                                 NULL);
    nir_remove_dead_derefs(shader);
    return true;
@@ -651,9 +648,8 @@ bool
 dxil_nir_remove_oob_array_accesses(nir_shader *shader)
 {
    return nir_shader_intrinsics_pass(shader, remove_oob_array_access,
-                                     nir_metadata_block_index |
-                                        nir_metadata_dominance |
-                                        nir_metadata_loop_analysis,
+                                     nir_metadata_control_flow |
+                                     nir_metadata_loop_analysis,
                                      NULL);
 }
 
@@ -675,8 +671,7 @@ lower_shared_atomic(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var
       result = nir_deref_atomic(b, 32, &deref->def, intr->src[1].ssa,
                                 .atomic_op = nir_intrinsic_atomic_op(intr));
 
-   nir_def_rewrite_uses(&intr->def, result);
-   nir_instr_remove(&intr->instr);
+   nir_def_replace(&intr->def, result);
    return true;
 }
 
@@ -760,9 +755,7 @@ lower_deref_ssbo(nir_builder *b, nir_deref_instr *deref)
       nir_deref_instr *deref_cast =
          nir_build_deref_cast(b, ptr, nir_var_mem_ssbo, deref->type,
                               glsl_get_explicit_stride(var->type));
-      nir_def_rewrite_uses(&deref->def,
-                               &deref_cast->def);
-      nir_instr_remove(&deref->instr);
+      nir_def_replace(&deref->def, &deref_cast->def);
 
       deref = deref_cast;
       return true;
@@ -887,8 +880,7 @@ cast_phi(nir_builder *b, nir_phi_instr *phi, unsigned new_bit_size)
    b->cursor = nir_after_phis(nir_cursor_current_block(b->cursor));
    nir_def *result = nir_u2uN(b, &lowered->def, old_bit_size);
 
-   nir_def_rewrite_uses(&phi->def, result);
-   nir_instr_remove(&phi->instr);
+   nir_def_replace(&phi->def, result);
 }
 
 static bool
@@ -909,8 +901,7 @@ upcast_phi_impl(nir_function_impl *impl, unsigned min_bit_size)
    }
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }
@@ -1058,8 +1049,7 @@ dxil_nir_split_clip_cull_distance(nir_shader *shader)
    };
    nir_shader_instructions_pass(shader,
                                 dxil_nir_split_clip_cull_distance_instr,
-                                nir_metadata_block_index |
-                                nir_metadata_dominance |
+                                nir_metadata_control_flow |
                                 nir_metadata_loop_analysis,
                                 &params);
    return params.new_var[0] != NULL || params.new_var[1] != NULL;
@@ -1156,8 +1146,7 @@ dxil_nir_lower_double_math(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader,
                                        dxil_nir_lower_double_math_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance |
+                                       nir_metadata_control_flow |
                                        nir_metadata_loop_analysis,
                                        NULL);
 }
@@ -1231,8 +1220,7 @@ lower_load_local_group_size(nir_builder *b, nir_intrinsic_instr *intr)
       nir_const_value_for_int(b->shader->info.workgroup_size[2], 32)
    };
    nir_def *size = nir_build_imm(b, 3, 32, v);
-   nir_def_rewrite_uses(&intr->def, size);
-   nir_instr_remove(&intr->instr);
+   nir_def_replace(&intr->def, size);
 }
 
 static bool
@@ -1252,7 +1240,7 @@ bool
 dxil_nir_lower_system_values(nir_shader *shader)
 {
    return nir_shader_intrinsics_pass(shader, lower_system_values_impl,
-                                     nir_metadata_block_index | nir_metadata_dominance | nir_metadata_loop_analysis,
+                                     nir_metadata_control_flow | nir_metadata_loop_analysis,
                                      NULL);
 }
 
@@ -1452,12 +1440,12 @@ dxil_nir_split_typed_samplers(nir_shader *nir)
    struct hash_table_u64 *hash_table = _mesa_hash_table_u64_create(NULL);
 
    bool progress = nir_shader_instructions_pass(nir, redirect_sampler_derefs,
-      nir_metadata_block_index | nir_metadata_dominance | nir_metadata_loop_analysis, hash_table);
+      nir_metadata_control_flow | nir_metadata_loop_analysis, hash_table);
 
    _mesa_hash_table_u64_clear(hash_table);
 
    progress |= nir_shader_instructions_pass(nir, redirect_texture_derefs,
-      nir_metadata_block_index | nir_metadata_dominance | nir_metadata_loop_analysis, hash_table);
+      nir_metadata_control_flow | nir_metadata_loop_analysis, hash_table);
 
    _mesa_hash_table_u64_destroy(hash_table);
    return progress;
@@ -1499,7 +1487,7 @@ bool
 dxil_nir_lower_sysval_to_load_input(nir_shader *s, nir_variable **sysval_vars)
 {
    return nir_shader_intrinsics_pass(s, lower_sysval_to_load_input_impl,
-                                     nir_metadata_block_index | nir_metadata_dominance,
+                                     nir_metadata_control_flow,
                                      sysval_vars);
 }
 
@@ -1826,17 +1814,14 @@ static bool
 lower_kill(struct nir_builder *builder, nir_intrinsic_instr *intr,
            void *_cb_data)
 {
-   if (intr->intrinsic != nir_intrinsic_discard &&
-       intr->intrinsic != nir_intrinsic_terminate &&
-       intr->intrinsic != nir_intrinsic_discard_if &&
+   if (intr->intrinsic != nir_intrinsic_terminate &&
        intr->intrinsic != nir_intrinsic_terminate_if)
       return false;
 
    builder->cursor = nir_instr_remove(&intr->instr);
    nir_def *condition;
 
-   if (intr->intrinsic == nir_intrinsic_discard ||
-       intr->intrinsic == nir_intrinsic_terminate) {
+   if (intr->intrinsic == nir_intrinsic_terminate) {
       nir_demote(builder);
       condition = nir_imm_true(builder);
    } else {
@@ -1908,7 +1893,7 @@ dxil_nir_ensure_position_writes(nir_shader *s)
       return false;
 
    return nir_shader_intrinsics_pass(s, update_writes,
-                                       nir_metadata_block_index | nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        NULL);
 }
 
@@ -2011,8 +1996,7 @@ bool
 dxil_nir_lower_num_subgroups(nir_shader *s)
 {
    return nir_shader_intrinsics_pass(s, lower_num_subgroups,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance |
+                                       nir_metadata_control_flow |
                                        nir_metadata_loop_analysis, NULL);
 }
 
@@ -2055,8 +2039,7 @@ split_unaligned_load(nir_builder *b, nir_intrinsic_instr *intrin, unsigned align
    }
 
    nir_def *new_dest = nir_extract_bits(b, srcs, num_loads, 0, num_comps, intrin->def.bit_size);
-   nir_def_rewrite_uses(&intrin->def, new_dest);
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, new_dest);
 }
 
 static void
@@ -2299,7 +2282,7 @@ bool
 dxil_nir_move_consts(nir_shader *s)
 {
    return nir_shader_instructions_pass(s, move_consts,
-                                       nir_metadata_block_index | nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        NULL);
 }
 
@@ -2803,7 +2786,7 @@ bool
 dxil_nir_lower_coherent_loads_and_stores(nir_shader *s)
 {
    return nir_shader_intrinsics_pass(s, lower_coherent_load_store,
-                                     nir_metadata_block_index | nir_metadata_dominance | nir_metadata_loop_analysis,
+                                     nir_metadata_control_flow | nir_metadata_loop_analysis,
                                      NULL);
 }
 
@@ -2875,8 +2858,7 @@ kill_undefined_varyings(struct nir_builder *b,
     */
    nir_def *zero = nir_imm_zero(b, intr->def.num_components,
                                        intr->def.bit_size);
-   nir_def_rewrite_uses(&intr->def, zero);
-   nir_instr_remove(instr);
+   nir_def_replace(&intr->def, zero);
    return true;
 }
 
@@ -2891,8 +2873,7 @@ dxil_nir_kill_undefined_varyings(nir_shader *shader, uint64_t prev_stage_written
    };
    bool progress = nir_shader_instructions_pass(shader,
                                                 kill_undefined_varyings,
-                                                nir_metadata_dominance |
-                                                nir_metadata_block_index |
+                                                nir_metadata_control_flow |
                                                 nir_metadata_loop_analysis,
                                                 (void *)&masks);
    if (progress) {
@@ -2975,8 +2956,7 @@ dxil_nir_kill_unused_outputs(nir_shader *shader, uint64_t next_stage_read_mask, 
 
    bool progress = nir_shader_instructions_pass(shader,
                                                 kill_unused_outputs,
-                                                nir_metadata_dominance |
-                                                nir_metadata_block_index |
+                                                nir_metadata_control_flow |
                                                 nir_metadata_loop_analysis,
                                                 (void *)&masks);
 

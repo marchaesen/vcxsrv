@@ -136,6 +136,9 @@ dri_create_context(struct dri_screen *screen,
       case __DRI_CTX_PRIORITY_HIGH:
          attribs.context_flags |= PIPE_CONTEXT_HIGH_PRIORITY;
          break;
+      case __DRI_CTX_PRIORITY_REALTIME:
+         attribs.context_flags |= PIPE_CONTEXT_REALTIME_PRIORITY;
+         break;
       default:
          break;
       }

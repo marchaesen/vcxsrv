@@ -240,6 +240,12 @@ do {                       \
 #  endif
 #endif
 
+#ifdef HAVE_FUNC_ATTRIBUTE_OPTIMIZE
+#define ATTRIBUTE_OPTIMIZE(flags) __attribute__((__optimize__((flags))))
+#else
+#define ATTRIBUTE_OPTIMIZE(flags)
+#endif
+
 #ifdef __cplusplus
 /**
  * Macro function that evaluates to true if T is a trivially

@@ -91,6 +91,7 @@ struct lp_compute_shader_variant
    LLVMTypeRef jit_vertex_header_ptr_type;
    LLVMTypeRef jit_prim_type;
    LLVMValueRef function;
+   char *function_name;
    lp_jit_cs_func jit_function;
 
    /* Total number of LLVM instructions generated */

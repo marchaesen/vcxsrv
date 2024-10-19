@@ -1039,7 +1039,7 @@ emit_if(struct svga_shader_emitter *emit,
    struct src_register zero = get_zero_immediate(emit);
    SVGA3dShaderInstToken if_token = inst_token( SVGA3DOP_IFC );
 
-   if_token.control = SVGA3DOPCOMPC_NE;
+   if_token.control = SVGA3DOPCOMP_NE;
 
    if (SVGA3dShaderGetRegType(src0.base.value) == SVGA3DREG_CONST) {
       /*
@@ -1444,7 +1444,7 @@ emit_conditional(struct svga_shader_emitter *emit,
       setp_token = inst_token_setp(SVGA3DOPCOMP_GT);
       break;
    case PIPE_FUNC_NOTEQUAL:
-      setp_token = inst_token_setp(SVGA3DOPCOMPC_NE);
+      setp_token = inst_token_setp(SVGA3DOPCOMP_NE);
       break;
    case PIPE_FUNC_GEQUAL:
       setp_token = inst_token_setp(SVGA3DOPCOMP_GE);

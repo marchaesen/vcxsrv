@@ -127,14 +127,18 @@ class CrosServoRun:
                 self.print_error("Detected cheza MMU fail, abandoning run.")
                 return 1
 
-            result = re.search("hwci: mesa: (\S*)", line)
+            result = re.search(r"hwci: mesa: (\S*), exit_code: (\d+)", line)
             if result:
-                if result.group(1) == "pass":
+                status = result.group(1)
+                exit_code = int(result.group(2))
+
+                if status == "pass":
                     self.logger.update_dut_job("status", "pass")
-                    return 0
                 else:
                     self.logger.update_status_fail("test fail")
-                    return 1
+
+                self.logger.update_dut_job("exit_code", exit_code)
+                return exit_code
 
         self.print_error(
             "Reached the end of the CPU serial log without finding a result")
@@ -151,7 +155,7 @@ def main():
         '--test-timeout', type=int, help='Test phase timeout (minutes)', required=True)
     args = parser.parse_args()
 
-    logger = CustomLogger("job_detail.json")
+    logger = CustomLogger("results/job_detail.json")
     logger.update_dut_time("start", None)
     servo = CrosServoRun(args.cpu, args.ec, args.test_timeout * 60, logger)
     retval = servo.run()

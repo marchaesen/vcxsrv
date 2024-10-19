@@ -328,8 +328,6 @@ typedef struct _FcEdit {
     FcValueBinding  binding;
 } FcEdit;
 
-typedef void (* FcDestroyFunc) (void *data);
-
 typedef struct _FcPtrList	FcPtrList;
 /* need to sync with FcConfigFileInfoIter at fontconfig.h */
 typedef struct _FcPtrListIter {
@@ -580,6 +578,10 @@ struct _FcConfig {
     FcChar8     *sysRoot;	    /* override the system root directory */
     FcStrSet	*availConfigFiles;  /* config files available */
     FcPtrList	*rulesetList;	    /* List of rulesets being installed */
+
+    FcFilterFontSetFunc filter_func;       /* A predicate function to filter out config->fonts */
+    FcDestroyFunc       destroy_data_func; /* A callback function to destroy config->filter_data */
+    void                *filter_data;      /* An user data to be used for filter_func */
 };
 
 typedef struct _FcFileTime {

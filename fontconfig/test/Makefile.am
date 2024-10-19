@@ -49,6 +49,7 @@ TESTDATA =			\
 	test-70-no-bitmaps-and-emoji.json	\
 	test-70-no-bitmaps-except-emoji.json	\
 	test-90-synthetic.json	\
+	test-filter.json	\
 	test-issue-286.json	\
 	test-style-match.json	\
 	$(NULL)
@@ -175,6 +176,9 @@ TESTS += test-issue180
 check_PROGRAMS += test-family-matching
 test_family_matching_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-family-matching
+
+check_PROGRAMS += test-filter
+test_filter_LDADD = $(top_builddir)/src/libfontconfig.la
 
 EXTRA_DIST=run-test.sh run-test-conf.sh wrapper-script.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 

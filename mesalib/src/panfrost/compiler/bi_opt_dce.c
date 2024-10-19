@@ -25,64 +25,57 @@
 #include "util/u_memory.h"
 #include "compiler.h"
 
-/* A simple SSA-based mark-and-sweep dead code elimination pass. */
+/**
+ * A simple SSA-based dead code elimination pass.
+ * This pass assumes that no loop header phis are dead.
+ */
 
 void
-bi_opt_dead_code_eliminate(bi_context *ctx)
+bi_opt_dce(bi_context *ctx, bool partial)
 {
-   /* Mark live values */
-   BITSET_WORD *mark =
-      calloc(sizeof(BITSET_WORD), BITSET_WORDS(ctx->ssa_alloc));
-
-   u_worklist worklist;
-   u_worklist_init(&worklist, ctx->num_blocks, NULL);
+   BITSET_WORD *seen =
+      calloc(BITSET_WORDS(ctx->ssa_alloc), sizeof(BITSET_WORD));
 
    bi_foreach_block(ctx, block) {
-      bi_worklist_push_head(&worklist, block);
-   }
+      if (block->loop_header) {
+         bi_foreach_instr_in_block(block, I) {
+            if (I->op != BI_OPCODE_PHI) {
+               break;
+            }
 
-   while (!u_worklist_is_empty(&worklist)) {
-      /* Pop in reverse order for backwards pass */
-      bi_block *blk = bi_worklist_pop_head(&worklist);
-
-      bool progress = false;
-
-      bi_foreach_instr_in_block_rev(blk, I) {
-         bool needed = bi_side_effects(I);
-
-         bi_foreach_dest(I, d)
-            needed |= BITSET_TEST(mark, I->dest[d].value);
-
-         if (!needed)
-            continue;
-
-         bi_foreach_ssa_src(I, s) {
-            progress |= !BITSET_TEST(mark, I->src[s].value);
-            BITSET_SET(mark, I->src[s].value);
+            bi_foreach_ssa_src(I, s) {
+               BITSET_SET(seen, I->src[s].value);
+            }
          }
       }
+   }
 
-      /* XXX: slow */
-      if (progress) {
-         bi_foreach_block(ctx, block)
-            bi_worklist_push_head(&worklist, block);
+   bi_foreach_block_rev(ctx, block) {
+      bi_foreach_instr_in_block_safe_rev(block, I) {
+         if (block->loop_header && I->op == BI_OPCODE_PHI)
+            break;
+
+         bool needed = false;
+
+         bi_foreach_ssa_dest(I, d) {
+            if (BITSET_TEST(seen, I->dest[d].value)) {
+               needed = true;
+            } else if (partial) {
+               I->dest[d] = bi_null();
+            }
+         }
+
+         if (!needed && !bi_side_effects(I)) {
+            bi_remove_instruction(I);
+         } else {
+            bi_foreach_ssa_src(I, s) {
+               BITSET_SET(seen, I->src[s].value);
+            }
+         }
       }
    }
 
-   u_worklist_fini(&worklist);
-
-   /* Sweep */
-   bi_foreach_instr_global_safe(ctx, I) {
-      bool needed = bi_side_effects(I);
-
-      bi_foreach_dest(I, d)
-         needed |= BITSET_TEST(mark, I->dest[d].value);
-
-      if (!needed)
-         bi_remove_instruction(I);
-   }
-
-   free(mark);
+   free(seen);
 }
 
 /* Post-RA liveness-based dead code analysis to clean up results of bundling */

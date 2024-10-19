@@ -57,9 +57,8 @@ enum {
    RADV_DEBUG_NO_RT = 1ull << 41,
    RADV_DEBUG_NO_MESH_SHADER = 1ull << 42,
    RADV_DEBUG_NO_NGG_GS = 1ull << 43,
-   RADV_DEBUG_NO_GS_FAST_LAUNCH_2 = 1ull << 44,
-   RADV_DEBUG_NO_ESO = 1ull << 45,
-   RADV_DEBUG_PSO_CACHE_STATS = 1ull << 46,
+   RADV_DEBUG_NO_ESO = 1ull << 44,
+   RADV_DEBUG_PSO_CACHE_STATS = 1ull << 45,
 };
 
 enum {
@@ -85,9 +84,7 @@ enum {
 bool radv_init_trace(struct radv_device *device);
 void radv_finish_trace(struct radv_device *device);
 
-void radv_check_gpu_hangs(struct radv_queue *queue, const struct radv_winsys_submit_info *submit_info);
-
-void radv_print_spirv(const char *data, uint32_t size, FILE *fp);
+VkResult radv_check_gpu_hangs(struct radv_queue *queue, const struct radv_winsys_submit_info *submit_info);
 
 void radv_dump_enabled_options(const struct radv_device *device, FILE *f);
 

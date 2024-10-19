@@ -1156,25 +1156,25 @@ get_induction_and_limit_vars(nir_scalar cond,
 }
 
 static bool
-try_find_trip_count_vars_in_iand(nir_scalar *cond,
-                                 nir_scalar *ind,
-                                 nir_scalar *limit,
-                                 bool *limit_rhs,
-                                 loop_info_state *state)
+try_find_trip_count_vars_in_logical_op(nir_scalar *cond,
+                                       nir_scalar *ind,
+                                       nir_scalar *limit,
+                                       bool *limit_rhs,
+                                       loop_info_state *state)
 {
    const nir_op alu_op = nir_scalar_alu_op(*cond);
-   assert(alu_op == nir_op_ieq || alu_op == nir_op_inot);
-
-   nir_scalar iand = nir_scalar_chase_alu_src(*cond, 0);
+   bool exit_loop_on_false = alu_op == nir_op_ieq || alu_op == nir_op_inot;
+   nir_scalar logical_op = exit_loop_on_false ?
+      nir_scalar_chase_alu_src(*cond, 0) : *cond;
 
    if (alu_op == nir_op_ieq) {
       nir_scalar zero = nir_scalar_chase_alu_src(*cond, 1);
 
-      if (!nir_scalar_is_alu(iand) || !nir_scalar_is_const(zero)) {
+      if (!nir_scalar_is_alu(logical_op) || !nir_scalar_is_const(zero)) {
          /* Maybe we had it the wrong way, flip things around */
          nir_scalar tmp = zero;
-         zero = iand;
-         iand = tmp;
+         zero = logical_op;
+         logical_op = tmp;
 
          /* If we still didn't find what we need then return */
          if (!nir_scalar_is_const(zero))
@@ -1186,10 +1186,11 @@ try_find_trip_count_vars_in_iand(nir_scalar *cond,
          return false;
    }
 
-   if (!nir_scalar_is_alu(iand))
+   if (!nir_scalar_is_alu(logical_op))
       return false;
 
-   if (nir_scalar_alu_op(iand) != nir_op_iand)
+   if ((exit_loop_on_false && (nir_scalar_alu_op(logical_op) != nir_op_iand)) ||
+       (!exit_loop_on_false && (nir_scalar_alu_op(logical_op) != nir_op_ior)))
       return false;
 
    /* Check if iand src is a terminator condition and try get induction var
@@ -1197,7 +1198,7 @@ try_find_trip_count_vars_in_iand(nir_scalar *cond,
     */
    bool found_induction_var = false;
    for (unsigned i = 0; i < 2; i++) {
-      nir_scalar src = nir_scalar_chase_alu_src(iand, i);
+      nir_scalar src = nir_scalar_chase_alu_src(logical_op, i);
       if (nir_is_terminator_condition_with_two_inputs(src) &&
           get_induction_and_limit_vars(src, ind, limit, limit_rhs, state)) {
          *cond = src;
@@ -1248,17 +1249,21 @@ find_trip_count(loop_info_state *state, unsigned execution_mode,
       bool limit_rhs;
       nir_scalar basic_ind = { NULL, 0 };
       nir_scalar limit;
-      if ((alu_op == nir_op_inot || alu_op == nir_op_ieq) &&
-          try_find_trip_count_vars_in_iand(&cond, &basic_ind, &limit,
-                                           &limit_rhs, state)) {
+
+      if ((alu_op == nir_op_inot || alu_op == nir_op_ieq || alu_op == nir_op_ior) &&
+          try_find_trip_count_vars_in_logical_op(&cond, &basic_ind, &limit,
+                                                 &limit_rhs, state)) {
 
          /* The loop is exiting on (x && y) == 0 so we need to get the
           * inverse of x or y (i.e. which ever contained the induction var) in
           * order to compute the trip count.
           */
+         if (alu_op == nir_op_inot || alu_op == nir_op_ieq)
+            invert_cond = !invert_cond;
+
          alu_op = nir_scalar_alu_op(cond);
-         invert_cond = !invert_cond;
          trip_count_known = false;
+         terminator->conditional_instr = cond.def->parent_instr;
          terminator->exact_trip_count_unknown = true;
       }
 

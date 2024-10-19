@@ -324,6 +324,42 @@ v3dv_DestroyRenderPass(VkDevice _device,
 }
 
 static void
+get_granularity(struct v3dv_device *device,
+                uint32_t count,
+                const VkFormat *formats,
+                bool msaa,
+                VkExtent2D *granularity)
+{
+   uint32_t max_internal_bpp = 0;
+   uint32_t total_color_bpp = 0;
+   for (int i = 0; i < count; i++) {
+      const struct v3dv_format *format = v3dv_X(device, get_format)(formats[i]);
+      assert(format);
+      /* We don't support rendering to YCbCr images */
+      assert(format->plane_count == 1);
+
+      uint32_t internal_type, internal_bpp;
+      v3dv_X(device, get_internal_type_bpp_for_output_format)
+         (format->planes[0].rt_type, &internal_type, &internal_bpp);
+
+      max_internal_bpp = MAX2(max_internal_bpp, internal_bpp);
+      total_color_bpp += 4 * v3d_internal_bpp_words(internal_bpp);
+   }
+
+   /* If requested, double-buffer may or may not be enabled depending on
+    * heuristics so we choose a conservative granularity here, with it disabled.
+    */
+   uint32_t width, height;
+   v3d_choose_tile_size(&device->devinfo, count,
+                        max_internal_bpp, total_color_bpp, msaa,
+                        false /* double-buffer */, &width, &height);
+   *granularity = (VkExtent2D) {
+      .width = width,
+      .height = height
+   };
+}
+
+static void
 subpass_get_granularity(struct v3dv_device *device,
                         struct v3dv_render_pass *pass,
                         uint32_t subpass_idx,
@@ -332,42 +368,24 @@ subpass_get_granularity(struct v3dv_device *device,
    /* Granularity is defined by the tile size */
    assert(subpass_idx < pass->subpass_count);
    struct v3dv_subpass *subpass = &pass->subpasses[subpass_idx];
-   const uint32_t color_count = subpass->color_count;
+   const uint32_t subpass_color_count = subpass->color_count;
+   assert(subpass_color_count <= V3D_MAX_DRAW_BUFFERS);
 
+   VkFormat formats[V3D_MAX_DRAW_BUFFERS];
    bool msaa = false;
-   uint32_t max_internal_bpp = 0;
-   uint32_t total_color_bpp = 0;
-   for (uint32_t i = 0; i < color_count; i++) {
+   uint32_t color_count = 0;
+   for (uint32_t i = 0; i < subpass_color_count; i++) {
       uint32_t attachment_idx = subpass->color_attachments[i].attachment;
       if (attachment_idx == VK_ATTACHMENT_UNUSED)
          continue;
       const VkAttachmentDescription2 *desc =
          &pass->attachments[attachment_idx].desc;
-      const struct v3dv_format *format = v3dv_X(device, get_format)(desc->format);
-      uint32_t internal_type, internal_bpp;
-      /* We don't support rendering to YCbCr images */
-      assert(format->plane_count == 1);
-      v3dv_X(device, get_internal_type_bpp_for_output_format)
-         (format->planes[0].rt_type, &internal_type, &internal_bpp);
-
-      max_internal_bpp = MAX2(max_internal_bpp, internal_bpp);
-      total_color_bpp += 4 * v3d_internal_bpp_words(internal_bpp);
-
+      formats[color_count++] = desc->format;
       if (desc->samples > VK_SAMPLE_COUNT_1_BIT)
          msaa = true;
    }
 
-   /* If requested, double-buffer may or may not be enabled depending on
-    * heuristics so we choose a conservative granularity here, with it disabled.
-    */
-   uint32_t width, height;
-   v3d_choose_tile_size(&device->devinfo, color_count,
-                        max_internal_bpp, total_color_bpp, msaa,
-                        false /* double-buffer */, &width, &height);
-   *granularity = (VkExtent2D) {
-      .width = width,
-      .height = height
-   };
+   get_granularity(device, color_count, formats, msaa, granularity);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -389,6 +407,25 @@ v3dv_GetRenderAreaGranularity(VkDevice _device,
       pGranularity->width = MIN2(pGranularity->width, sg.width);
       pGranularity->height = MIN2(pGranularity->height, sg.height);
    }
+}
+
+/* This is for dynamic rendering, introduced with VK_KHR_maintenance5 */
+VKAPI_ATTR void VKAPI_CALL
+v3dv_GetRenderingAreaGranularityKHR(VkDevice _device,
+                                    const VkRenderingAreaInfoKHR *pRenderingAreaInfo,
+                                    VkExtent2D *pGranularity)
+{
+   V3DV_FROM_HANDLE(v3dv_device, device, _device);
+
+   /* Since VkRenderingAreaInfoKHR doesn't include information about MSAA we
+    * choose to compute granularity as if it was disabled which would give us
+    * the largest granularity (worst case).
+    */
+   get_granularity(device,
+                   pRenderingAreaInfo->colorAttachmentCount,
+                   pRenderingAreaInfo->pColorAttachmentFormats,
+                   false /* msaa */,
+                   pGranularity);
 }
 
 /* Checks whether the render area rectangle covers a region that is aligned to

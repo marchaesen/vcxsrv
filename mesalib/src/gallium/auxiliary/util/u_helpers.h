@@ -118,9 +118,6 @@ void util_throttle_memory_usage(struct pipe_context *pipe,
 void util_sw_query_memory_info(struct pipe_screen *pscreen,
                           struct pipe_memory_info *info);
 
-bool
-util_lower_clearsize_to_dword(const void *clearValue, int *clearValueSize, uint32_t *clamped);
-
 void
 util_init_pipe_vertex_state(struct pipe_screen *screen,
                             struct pipe_vertex_buffer *buffer,

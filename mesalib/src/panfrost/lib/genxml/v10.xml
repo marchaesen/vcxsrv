@@ -108,8 +108,10 @@
     <value name="ASTC 3D HDR" value="21"/>
     <value name="ASTC 2D LDR" value="22"/>
     <value name="ASTC 2D HDR" value="23"/>
-    <value name="ASTC 2D NARROW" value="62"/>
-    <value name="ASTC 3D NARROW" value="63"/>
+    <value name="AFBC" value="24"/>
+    <value name="AFRC" value="25"/>
+    <value name="ASTC 2D NARROW" value="30"/>
+    <value name="ASTC 3D NARROW" value="31"/>
 
     <!-- Actual enum values follow -->
     <value name="YUV8" value="32"/>
@@ -366,6 +368,12 @@
     <value name="Linear" value="2"/>
     <value name="AFBC" value="12"/>
     <value name="AFBC Tiled" value="13"/>
+  </enum>
+
+  <enum name="Writeback Mode">
+    <value name="Compat" value="0"/>
+    <value name="AFRC RGB" value="6"/>
+    <value name="AFRC YUV" value="7"/>
   </enum>
 
   <enum name="Mipmap Mode">
@@ -1018,7 +1026,7 @@
     <field name="Wrap Mode R" size="4" start="0:8" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Wrap Mode T" size="4" start="0:12" type="Wrap Mode" default="Clamp to Edge"/>
     <field name="Wrap Mode S" size="4" start="0:16" type="Wrap Mode" default="Clamp to Edge"/>
-    <field name="Round to nearest even" size="1" start="0:21" type="bool" default="false"/>
+    <field name="Round to nearest even" size="1" start="0:21" type="bool" default="true"/>
     <!--- Disable sRGB-to-linear conversion (assume linear) -->
     <field name="sRGB override" size="1" start="0:22" type="bool" default="false"/>
     <field name="Seamless Cube Map" size="1" start="0:23" type="bool" default="true"/>
@@ -1049,6 +1057,8 @@
     <value name="ASTC 3D" value="5"/>
     <value name="AFBC" value="6"/>
     <value name="Chroma 2p" value="8"/>
+    <value name="AFRC" value="10"/>
+    <value name="AFRC Chroma 2p" value="11"/>
   </enum>
 
   <enum name="Clump Ordering">
@@ -1150,6 +1160,52 @@
     <value name="YUV422 1c10" value="47"/>
   </enum>
 
+  <enum name="AFRC Block Size">
+    <value name="16" value="4"/>
+    <value name="24" value="5"/>
+    <value name="32" value="6"/>
+  </enum>
+
+  <enum name="AFRC Format">
+    <value name="R8 SCAN" value="0"/>
+    <value name="R8G8 SCAN" value="1"/>
+    <value name="R8G8B8 SCAN" value="2"/>
+    <value name="R8G8B8A8 SCAN" value="3"/>
+    <value name="R8 ROT" value="4"/>
+    <value name="R8G8 ROT" value="5"/>
+    <value name="R8G8B8 ROT" value="6"/>
+    <value name="R8G8B8A8 ROT" value="7"/>
+
+    <value name="R10G10B10A10 SCAN" value="11"/>
+    <value name="R10G10B10A10 ROT" value="15"/>
+
+    <value name="R8_444 SCAN" value="64"/>
+    <value name="R8_422 SCAN" value="65"/>
+    <value name="R8_420 SCAN" value="66"/>
+    <value name="R8_444 ROT" value="68"/>
+    <value name="R8_422 ROT" value="69"/>
+    <value name="R8_420 ROT" value="70"/>
+    <value name="R8G8_444 SCAN" value="72"/>
+    <value name="R8G8_422 SCAN" value="73"/>
+    <value name="R8G8_420 SCAN" value="74"/>
+    <value name="R8G8_444 ROT" value="76"/>
+    <value name="R8G8_422 ROT" value="77"/>
+    <value name="R8G8_420 ROT" value="78"/>
+
+    <value name="R10_444 SCAN" value="80"/>
+    <value name="R10_422 SCAN" value="81"/>
+    <value name="R10_420 SCAN" value="82"/>
+    <value name="R10_444 ROT" value="84"/>
+    <value name="R10_422 ROT" value="85"/>
+    <value name="R10_420 ROT" value="86"/>
+    <value name="R10G10_422 SCAN" value="89"/>
+    <value name="R10G10_420 SCAN" value="90"/>
+    <value name="R10G10_422 ROT" value="93"/>
+    <value name="R10G10_420 ROT" value="94"/>
+
+    <value name="INVALID" value="256"/>
+  </enum>
+
   <struct name="Plane AFBC Overlay" size="8">
     <field name="Superblock size" size="3" start="0:8" type="AFBC Superblock Size"/>
 
@@ -1188,15 +1244,23 @@
     <field name="Secondary Pointer" size="64" start="6:0" type="address"/>
   </struct>
 
+  <struct name="Plane AFRC Overlay" size="8">
+    <field name="Codec arguments" size="8" start="0:8" type="uint"/>
+
+    <field name="Block size" size="4" start="0:20" type="AFRC Block Size"/>
+    <field name="Format" size="8" start="0:24" type="AFRC Format"/>
+  </struct>
+
   <struct name="Plane" size="8" align="32">
     <field name="Type" size="4" start="0:0" type="Descriptor Type" default="Plane"/>
     <field name="Plane type" size="4" start="0:4" type="Plane Type"/>
 
     <field name="AFBC" size="32" start="0:0" type="Plane AFBC Overlay"/>
     <field name="ASTC" size="32" start="0:0" type="Plane ASTC Overlay"/>
+    <field name="AFRC" size="32" start="0:0" type="Plane AFRC Overlay"/>
     <field name="Two-Plane YUV Chroma" size="256" start="0:0" type="Two-Plane YUV Chroma Overlay"/>
 
-    <!-- Not AFBC -->
+    <!-- Not AFBC nor AFRC -->
     <field name="Clump ordering" size="4" start="0:8" type="Clump Ordering"/>
 
     <!-- Generic, Chroma 2p -->
@@ -1218,7 +1282,7 @@
     <field name="Format" size="22" start="0:10" type="Pixel Format"/>
     <field name="Width" size="16" start="1:0" type="uint" modifier="minus(1)"/>
     <field name="Height" size="16" start="1:16" type="uint" modifier="minus(1)"/>
-    <field name="Swizzle" size="12" start="2:0" type="uint"/>
+    <field name="Swizzle" size="12" start="2:0" type="Component Swizzle"/>
     <field name="Texel interleave" size="1" start="2:12" type="bool"/>
     <field name="Levels" size="5" start="2:16" type="uint" default="1" modifier="minus(1)"/>
     <field name="Minimum level" size="5" start="2:24" type="uint"/>
@@ -1536,6 +1600,12 @@
     <field name="Body offset" size="32" start="11:0" type="uint"/>
   </struct>
 
+  <struct name="Render Target AFRC Overlay" size="16">
+    <field name="Writeback Format" size="8" start="1:0" type="Color Format"/>
+    <field name="Block Size" size="4" start="2:4" type="AFRC Block Size"/>
+    <field name="Format" size="8" start="2:8" type="AFRC Format"/>
+  </struct>
+
   <struct name="RT Clear">
     <field name="Color 0" size="32" start="0:0" type="uint"/>
     <field name="Color 1" size="32" start="1:0" type="uint"/>
@@ -1546,6 +1616,8 @@
   <struct name="Render Target" align="64">
     <field name="YUV" size="512" start="0:0" type="Render Target YUV Overlay"/>
     <field name="AFBC" size="512" start="0:0" type="Render Target AFBC Overlay"/>
+    <field name="AFRC" size="512" start="0:0" type="Render Target AFRC Overlay"/>
+    <field name="Writeback Mode" size="4" start="0:0" type="Writeback Mode" default="Compat"/>
     <field name="Internal Buffer Offset" size="12" start="0:4" type="uint" modifier="shr(4)"/>
     <field name="YUV Enable" size="1" start="0:24" type="bool"/>
     <field name="Dithered Clear" size="1" start="0:25" type="bool"/>
@@ -1556,7 +1628,7 @@
     <field name="Writeback MSAA" size="2" start="1:12" type="MSAA"/>
     <field name="sRGB" size="1" start="1:14" type="bool"/>
     <field name="Dithering Enable" size="1" start="1:15" type="bool"/>
-    <field name="Swizzle" size="12" start="1:16" type="uint"/>
+    <field name="Swizzle" size="12" start="1:16" type="Component Swizzle"/>
     <field name="Clean Pixel Write Enable" size="1" start="1:31" type="bool"/>
     <field name="RGB" size="128" start="8:0" type="RT Buffer"/>
     <field name="Clear" size="128" start="12:0" type="RT Clear"/>
@@ -1619,7 +1691,7 @@
     <field name="FB Width" size="16" start="3:0" type="uint" modifier="minus(1)"/>
     <field name="FB Height" size="16" start="3:16" type="uint" modifier="minus(1)"/>
     <field name="Layer count" size="8" start="4:0" type="uint" default="1" modifier="minus(1)"/>
-    <field name="Layer offset" size="8" start="4:8" type="uint"/>
+    <field name="Layer offset" size="9" start="4:8" type="int"/>
     <field name="Heap" size="64" start="6:0" type="address"/>
     <field name="Geometry buffer size" size="12" start="8:0" type="uint" default="65536" modifier="shr(12)"/>
     <field name="Geometry buffer" size="52" start="8:12" type="address" modifier="shr(12)"/>
@@ -1671,7 +1743,7 @@
     <field name="Allow merging workgroups" start="31" size="1" type="bool"/>
   </struct>
 
-  <struct name="Resource" size="4" align="16">
+  <struct name="Resource" size="4" align="64">
     <field name="Address" start="0:0" size="56" type="address"/>
     <field name="Contains descriptors" start="1:24" size="1" type="bool" default="true"/>
     <field name="Size" start="2:0" size="64" type="uint"/> <!-- bytes -->

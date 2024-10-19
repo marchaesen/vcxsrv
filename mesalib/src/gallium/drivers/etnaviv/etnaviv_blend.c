@@ -38,9 +38,8 @@ etna_blend_state_create(struct pipe_context *pctx,
                         const struct pipe_blend_state *so)
 {
    struct etna_context *ctx = etna_context(pctx);
-   const struct pipe_rt_blend_state *rt0 = &so->rt[0];
    struct etna_blend_state *co = CALLOC_STRUCT(etna_blend_state);
-   bool alpha_enable, logicop_enable;
+   bool logicop_enable;
 
    /* pipe_blend_func happens to match the hardware. */
    STATIC_ASSERT(PIPE_BLEND_ADD == BLEND_EQ_ADD);
@@ -54,61 +53,55 @@ etna_blend_state_create(struct pipe_context *pctx,
 
    co->base = *so;
 
-   /* Enable blending if
-    * - blend enabled in blend state
-    * - NOT source factor is ONE and destination factor ZERO and eq is ADD for
-    *   both rgb and alpha (which mean that blending is effectively disabled)
-    */
-   alpha_enable = rt0->blend_enable &&
-                 !(rt0->rgb_src_factor == PIPE_BLENDFACTOR_ONE &&
-                   rt0->rgb_dst_factor == PIPE_BLENDFACTOR_ZERO &&
-                   rt0->rgb_func == PIPE_BLEND_ADD &&
-                   rt0->alpha_src_factor == PIPE_BLENDFACTOR_ONE &&
-                   rt0->alpha_dst_factor == PIPE_BLENDFACTOR_ZERO &&
-                   rt0->alpha_func == PIPE_BLEND_ADD);
-
-   /* Enable separate alpha if
-    * - Blending enabled (see above)
-    * - NOT source/destination factor and eq is same for both rgb and alpha
-    *   (which would effectively that mean alpha is not separate), and
-    */
-   bool separate_alpha = alpha_enable &&
-                         !(rt0->rgb_src_factor == rt0->alpha_src_factor &&
-                           rt0->rgb_dst_factor == rt0->alpha_dst_factor &&
-                           rt0->rgb_func == rt0->alpha_func);
-
-   if (alpha_enable) {
-      co->PE_ALPHA_CONFIG =
-         VIVS_PE_ALPHA_CONFIG_BLEND_ENABLE_COLOR |
-         COND(separate_alpha, VIVS_PE_ALPHA_CONFIG_BLEND_SEPARATE_ALPHA) |
-         VIVS_PE_ALPHA_CONFIG_SRC_FUNC_COLOR(translate_blend_factor(rt0->rgb_src_factor)) |
-         VIVS_PE_ALPHA_CONFIG_SRC_FUNC_ALPHA(translate_blend_factor(rt0->alpha_src_factor)) |
-         VIVS_PE_ALPHA_CONFIG_DST_FUNC_COLOR(translate_blend_factor(rt0->rgb_dst_factor)) |
-         VIVS_PE_ALPHA_CONFIG_DST_FUNC_ALPHA(translate_blend_factor(rt0->alpha_dst_factor)) |
-         VIVS_PE_ALPHA_CONFIG_EQ_COLOR(rt0->rgb_func) |
-         VIVS_PE_ALPHA_CONFIG_EQ_ALPHA(rt0->alpha_func);
-   } else {
-      co->PE_ALPHA_CONFIG = 0;
-   }
-
    logicop_enable = so->logicop_enable &&
                     VIV_FEATURE(ctx->screen, ETNA_FEATURE_LOGIC_OP);
+
+   for (unsigned int i = 0; i < so->max_rt + 1; i++) {
+      const struct pipe_rt_blend_state *rt;
+
+      if (so->independent_blend_enable)
+         rt = &so->rt[i];
+      else
+         rt = &so->rt[0];
+
+      /* Enable blending if
+      * - blend enabled in blend state
+      * - NOT source factor is ONE and destination factor ZERO and eq is ADD for
+      *   both rgb and alpha (which mean that blending is effectively disabled)
+      */
+      co->rt[i].alpha_enable = rt->blend_enable &&
+                    !(rt->rgb_src_factor == PIPE_BLENDFACTOR_ONE &&
+                     rt->rgb_dst_factor == PIPE_BLENDFACTOR_ZERO &&
+                     rt->rgb_func == PIPE_BLEND_ADD &&
+                     rt->alpha_src_factor == PIPE_BLENDFACTOR_ONE &&
+                     rt->alpha_dst_factor == PIPE_BLENDFACTOR_ZERO &&
+                     rt->alpha_func == PIPE_BLEND_ADD);
+
+      /* Enable separate alpha if
+      * - Blending enabled (see above)
+      * - NOT source/destination factor and eq is same for both rgb and alpha
+      *   (which would effectively that mean alpha is not separate), and
+      */
+      co->rt[i].separate_alpha = co->rt[i].alpha_enable &&
+                           !(rt->rgb_src_factor == rt->alpha_src_factor &&
+                             rt->rgb_dst_factor == rt->alpha_dst_factor &&
+                             rt->rgb_func == rt->alpha_func);
+
+      co->rt[i].fo_allowed = !co->rt[i].alpha_enable && !logicop_enable;
+   }
 
    co->PE_LOGIC_OP =
          VIVS_PE_LOGIC_OP_OP(logicop_enable ? so->logicop_func : LOGIC_OP_COPY) |
          VIVS_PE_LOGIC_OP_DITHER_MODE(3) | /* TODO: related to dithering, sometimes 2 */
          0x000E4000 /* ??? */;
 
-   co->fo_allowed = !alpha_enable && !logicop_enable;
-
-   /* independent_blend_enable not needed: only one rt supported */
    /* XXX alpha_to_coverage / alpha_to_one? */
    /* Set dither registers based on dither status. These registers set the
     * dither pattern,
     * for now, set the same values as the blob.
     */
    if (so->dither &&
-       (!alpha_enable ||
+       (!co->rt[0].alpha_enable ||
         VIV_FEATURE(ctx->screen, ETNA_FEATURE_PE_DITHER_FIX))) {
       co->PE_DITHER[0] = 0x6e4ca280;
       co->PE_DITHER[1] = 0x5d7f91b3;
@@ -126,32 +119,64 @@ etna_update_blend(struct etna_context *ctx)
    struct pipe_framebuffer_state *pfb = &ctx->framebuffer_s;
    struct pipe_blend_state *pblend = ctx->blend;
    struct etna_blend_state *blend = etna_blend_state(pblend);
-   const struct pipe_rt_blend_state *rt0 = &pblend->rt[0];
-   const struct util_format_description *desc;
-   uint32_t colormask;
+   unsigned current_rt = 0;
 
-   if (pfb->cbufs[0] &&
-       translate_pe_format_rb_swap(pfb->cbufs[0]->format)) {
-      colormask = rt0->colormask & (PIPE_MASK_A | PIPE_MASK_G);
-      if (rt0->colormask & PIPE_MASK_R)
-         colormask |= PIPE_MASK_B;
-      if (rt0->colormask & PIPE_MASK_B)
-         colormask |= PIPE_MASK_R;
-   } else {
-      colormask = rt0->colormask;
+   for (unsigned i = 0; i < pfb->nr_cbufs; i++) {
+      if (!pfb->cbufs[i])
+         continue;
+
+      const struct pipe_rt_blend_state *rt;
+      uint32_t colormask;
+
+      if (pblend->independent_blend_enable)
+         rt = &pblend->rt[i];
+      else
+         rt = &pblend->rt[0];
+
+      if (translate_pe_format_rb_swap(pfb->cbufs[i]->format)) {
+         colormask = rt->colormask & (PIPE_MASK_A | PIPE_MASK_G);
+         if (rt->colormask & PIPE_MASK_R)
+            colormask |= PIPE_MASK_B;
+         if (rt->colormask & PIPE_MASK_B)
+            colormask |= PIPE_MASK_R;
+      } else {
+         colormask = rt->colormask;
+      }
+
+      /* If the complete render target is written, set full_overwrite:
+      * - The color mask covers all channels of the render target
+      * - No blending or logicop is used
+      */
+      const struct util_format_description *desc = util_format_description(pfb->cbufs[i]->format);
+      bool full_overwrite = (blend->rt[i].fo_allowed &&
+                            util_format_colormask_full(desc, colormask));
+
+      if (current_rt == 0) {
+         blend->rt[0].PE_COLOR_FORMAT =
+                  VIVS_PE_COLOR_FORMAT_COMPONENTS(colormask) |
+                  COND(full_overwrite, VIVS_PE_COLOR_FORMAT_OVERWRITE);
+      } else {
+         blend->rt[current_rt].PE_HALTI5_COLORMASK =
+                  VIVS_PE_HALTI5_RT_COLORMASK_COMPONENTS(colormask) |
+                  COND(full_overwrite, VIVS_PE_HALTI5_RT_COLORMASK_OVERWRITE);
+      }
+
+      if (blend->rt[i].alpha_enable) {
+         blend->rt[current_rt].PE_ALPHA_CONFIG =
+            VIVS_PE_ALPHA_CONFIG_BLEND_ENABLE_COLOR |
+            COND(blend->rt[i].separate_alpha, VIVS_PE_ALPHA_CONFIG_BLEND_SEPARATE_ALPHA) |
+            VIVS_PE_ALPHA_CONFIG_SRC_FUNC_COLOR(translate_blend_factor(rt->rgb_src_factor)) |
+            VIVS_PE_ALPHA_CONFIG_SRC_FUNC_ALPHA(translate_blend_factor(rt->alpha_src_factor)) |
+            VIVS_PE_ALPHA_CONFIG_DST_FUNC_COLOR(translate_blend_factor(rt->rgb_dst_factor)) |
+            VIVS_PE_ALPHA_CONFIG_DST_FUNC_ALPHA(translate_blend_factor(rt->alpha_dst_factor)) |
+            VIVS_PE_ALPHA_CONFIG_EQ_COLOR(rt->rgb_func) |
+            VIVS_PE_ALPHA_CONFIG_EQ_ALPHA(rt->alpha_func);
+      } else {
+         blend->rt[current_rt].PE_ALPHA_CONFIG = 0;
+      }
+
+      current_rt++;
    }
-
-   /* If the complete render target is written, set full_overwrite:
-    * - The color mask covers all channels of the render target
-    * - No blending or logicop is used
-    */
-   if (pfb->cbufs[0])
-      desc = util_format_description(pfb->cbufs[0]->format);
-   bool full_overwrite = !pfb->cbufs[0] || ((blend->fo_allowed &&
-                         util_format_colormask_full(desc, colormask)));
-   blend->PE_COLOR_FORMAT =
-            VIVS_PE_COLOR_FORMAT_COMPONENTS(colormask) |
-            COND(full_overwrite, VIVS_PE_COLOR_FORMAT_OVERWRITE);
 
    return true;
 }
@@ -170,22 +195,33 @@ etna_set_blend_color(struct pipe_context *pctx, const struct pipe_blend_color *b
 bool
 etna_update_blend_color(struct etna_context *ctx)
 {
-   struct pipe_framebuffer_state *pfb = &ctx->framebuffer_s;
+   struct pipe_framebuffer_state *fb = &ctx->framebuffer_s;
    struct compiled_blend_color *cs = &ctx->blend_color;
-   bool rb_swap = (pfb->cbufs[0] && translate_pe_format_rb_swap(pfb->cbufs[0]->format));
+   unsigned rt = 0;
 
-   cs->PE_ALPHA_BLEND_COLOR =
-      VIVS_PE_ALPHA_BLEND_COLOR_R(float_to_ubyte(cs->color[rb_swap ? 2 : 0])) |
-      VIVS_PE_ALPHA_BLEND_COLOR_G(float_to_ubyte(cs->color[1])) |
-      VIVS_PE_ALPHA_BLEND_COLOR_B(float_to_ubyte(cs->color[rb_swap ? 0 : 2])) |
-      VIVS_PE_ALPHA_BLEND_COLOR_A(float_to_ubyte(cs->color[3]));
+   for (unsigned i = 0; i < fb->nr_cbufs; i++) {
+      if (!fb->cbufs[i])
+         continue;
 
-   cs->PE_ALPHA_COLOR_EXT0 =
-      VIVS_PE_ALPHA_COLOR_EXT0_B(_mesa_float_to_half(cs->color[rb_swap ? 2 : 0])) |
-      VIVS_PE_ALPHA_COLOR_EXT0_G(_mesa_float_to_half(cs->color[1]));
-   cs->PE_ALPHA_COLOR_EXT1 =
-      VIVS_PE_ALPHA_COLOR_EXT1_R(_mesa_float_to_half(cs->color[rb_swap ? 0 : 2])) |
-      VIVS_PE_ALPHA_COLOR_EXT1_A(_mesa_float_to_half(cs->color[3]));
+      bool rb_swap = translate_pe_format_rb_swap(fb->cbufs[i]->format);
+
+      if (rt == 0) {
+         cs->PE_ALPHA_BLEND_COLOR =
+            VIVS_PE_ALPHA_BLEND_COLOR_R(float_to_ubyte(cs->color[rb_swap ? 2 : 0])) |
+            VIVS_PE_ALPHA_BLEND_COLOR_G(float_to_ubyte(cs->color[1])) |
+            VIVS_PE_ALPHA_BLEND_COLOR_B(float_to_ubyte(cs->color[rb_swap ? 0 : 2])) |
+            VIVS_PE_ALPHA_BLEND_COLOR_A(float_to_ubyte(cs->color[3]));
+      }
+
+      cs->rt[rt].PE_ALPHA_COLOR_EXT0 =
+         VIVS_PE_ALPHA_COLOR_EXT0_B(_mesa_float_to_half(cs->color[rb_swap ? 2 : 0])) |
+         VIVS_PE_ALPHA_COLOR_EXT0_G(_mesa_float_to_half(cs->color[1]));
+      cs->rt[rt].PE_ALPHA_COLOR_EXT1 =
+         VIVS_PE_ALPHA_COLOR_EXT1_R(_mesa_float_to_half(cs->color[rb_swap ? 0 : 2])) |
+         VIVS_PE_ALPHA_COLOR_EXT1_A(_mesa_float_to_half(cs->color[3]));
+
+      rt++;
+   }
 
    return true;
 }

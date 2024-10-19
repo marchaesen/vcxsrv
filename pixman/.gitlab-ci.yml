@@ -1,10 +1,16 @@
-image: fedora:39
+#
+# This is the GitLab CI configuration file for the mainstream pixman project:
+# https://gitlab.freedesktop.org/pixman/pixman/-/pipelines
+#
+# !!! DO NOT ADD ANY NEW CONFIGURATION TO THIS FILE !!!
+#
+# Only documentation or comments is accepted.
+#
+# To use a different set of jobs than the mainstream project, you need to set
+# the location of your custom yml file at "custom CI/CD configuration path", on
+# your GitLab CI namespace:
+# https://docs.gitlab.com/ee/ci/pipelines/settings.html#custom-cicd-configuration-path
+#
 
-meson-build:
-    script:
-    - dnf -y install dnf-plugins-core
-    - dnf -y groupinstall buildsys-build
-    - dnf -y builddep pixman
-    - dnf -y install meson
-    - meson setup build
-    - ninja -C build test
+include:
+  - local: '/.gitlab-ci.d/pixman-project.yml'

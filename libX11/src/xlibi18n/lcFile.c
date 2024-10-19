@@ -626,9 +626,9 @@ _XlcLocaleDirName(char *dir_name, size_t dir_len, const char *lc_name)
     Xfree (last_dir_name);
     Xfree (last_lc_name);
 
-    last_dir_len = strlen (dir_name) + 1;
-    last_dir_name = Xmalloc (last_dir_len);
-    strcpy (last_dir_name, dir_name);
+    last_dir_name = strdup (dir_name);
+    last_dir_len = (last_dir_name != NULL) ? strlen (last_dir_name) + 1 : 0;
+
     last_lc_name = strdup (lc_name);
 
     return dir_name;
@@ -703,9 +703,9 @@ _XlcLocaleLibDirName(char *dir_name, size_t dir_len, const char *lc_name)
     Xfree (last_dir_name);
     Xfree (last_lc_name);
 
-    last_dir_len = strlen (dir_name) + 1;
-    last_dir_name = Xmalloc (last_dir_len);
-    strcpy (last_dir_name, dir_name);
+    last_dir_name = strdup (dir_name);
+    last_dir_len = (last_dir_name != NULL) ? strlen (last_dir_name) + 1 : 0;
+
     last_lc_name = strdup (lc_name);
 
     return dir_name;

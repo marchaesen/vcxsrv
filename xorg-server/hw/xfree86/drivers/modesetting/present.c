@@ -20,9 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include "dix-config.h"
-#endif
 
 #include <assert.h>
 #include <errno.h>
@@ -127,7 +125,7 @@ ms_present_queue_vblank(RRCrtcPtr crtc,
     struct ms_present_vblank_event *event;
     uint32_t seq;
 
-    event = calloc(sizeof(struct ms_present_vblank_event), 1);
+    event = calloc(1, sizeof(struct ms_present_vblank_event));
     if (!event)
         return BadAlloc;
     event->event_id = event_id;

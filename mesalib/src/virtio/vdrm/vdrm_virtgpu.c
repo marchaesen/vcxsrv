@@ -366,10 +366,12 @@ vdrm_virtgpu_connect(int fd, uint32_t context_type)
       return NULL;
    }
 
-   if (caps.context_type != context_type) {
-      mesa_logi("wrong context_type: %u", caps.context_type);
+   /* If the context type does not match, return silently. This does not
+    * indicate anything is wrong, just that we're trying to probe the wrong
+    * driver. If we logged here, we would spam for every vdrm driver.
+    */
+   if (caps.context_type != context_type)
       return NULL;
-   }
 
    ret = set_context(fd);
    if (ret) {

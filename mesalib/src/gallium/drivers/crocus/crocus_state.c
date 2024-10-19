@@ -82,6 +82,7 @@
 #endif
 
 #include "drm-uapi/i915_drm.h"
+#include "intel/common/intel_compute_slm.h"
 #include "intel/common/intel_l3_config.h"
 #include "intel/common/intel_sample_positions.h"
 #include "intel/compiler/elk/elk_compiler.h"
@@ -2250,7 +2251,7 @@ struct crocus_sampler_state {
  * We fill out SAMPLER_STATE (except for the border color pointer), and
  * store that on the CPU.  It doesn't make sense to upload it to a GPU
  * buffer object yet, because 3DSTATE_SAMPLER_STATE_POINTERS requires
- * all bound sampler states to be in contiguous memor.
+ * all bound sampler states to be in contiguous memory.
  */
 static void *
 crocus_create_sampler_state(struct pipe_context *ctx,
@@ -8165,8 +8166,8 @@ crocus_upload_compute_state(struct crocus_context *ice,
          idd.NumberofThreadsinGPGPUThreadGroup = dispatch.threads;
          idd.ConstantURBEntryReadLength = cs_prog_data->push.per_thread.regs;
          idd.BarrierEnable = cs_prog_data->uses_barrier;
-         idd.SharedLocalMemorySize = elk_encode_slm_size(GFX_VER,
-                                                         prog_data->total_shared);
+         idd.SharedLocalMemorySize = intel_compute_slm_encode_size(GFX_VER,
+                                                                   prog_data->total_shared);
 #if GFX_VERx10 >= 75
          idd.CrossThreadConstantDataReadLength = cs_prog_data->push.cross_thread.regs;
 #endif

@@ -29,7 +29,6 @@
 #include "util/bitscan.h"
 #include "compiler/nir/nir.h"
 #include "pipe/p_state.h"
-#include "nir_legacy.h"
 
 
 #include "ppir.h"
@@ -79,40 +78,40 @@ static void *ppir_node_create_reg(ppir_block *block, ppir_op op,
 }
 
 static void *ppir_node_create_dest(ppir_block *block, ppir_op op,
-                                   nir_legacy_dest *dest, unsigned mask)
+                                   nir_def *def, unsigned mask)
 {
-   unsigned index = -1;
+   if (!def)
+      return ppir_node_create(block, op, -1, 0);
 
-   if (dest) {
-      if (dest->is_ssa)
-         return ppir_node_create_ssa(block, op, dest->ssa);
-      else
-         return ppir_node_create_reg(block, op, dest->reg.handle, mask);
-   }
+   nir_intrinsic_instr *store = nir_store_reg_for_def(def);
 
-   return ppir_node_create(block, op, index, 0);
+   if (!store) /* is ssa */
+      return ppir_node_create_ssa(block, op, def);
+   else
+      return ppir_node_create_reg(block, op, store->src[1].ssa, nir_intrinsic_write_mask(store));
 }
 
 static void ppir_node_add_src(ppir_compiler *comp, ppir_node *node,
-                              ppir_src *ps, nir_legacy_src *ns, unsigned mask)
+                              ppir_src *ps, nir_src *ns, unsigned mask)
 {
    ppir_node *child = NULL;
+   nir_intrinsic_instr *load = nir_load_reg_for_def(ns->ssa);
 
-   if (ns->is_ssa) {
+   if (!load) { /* is ssa */
       child = comp->var_nodes[ns->ssa->index];
       if (child->op != ppir_op_undef)
          ppir_node_add_dep(node, child, ppir_dep_src);
    }
    else {
-      nir_reg_src *rs = &ns->reg;
+      nir_def *rs = load->src[0].ssa;
       while (mask) {
          int swizzle = ps->swizzle[u_bit_scan(&mask)];
-         child = comp->var_nodes[(rs->handle->index << 2) + swizzle];
+         child = comp->var_nodes[(rs->index << 2) + swizzle];
          /* Reg is read before it was written, create a dummy node for it */
          if (!child) {
-            child = ppir_node_create_reg(node->block, ppir_op_dummy, rs->handle,
+            child = ppir_node_create_reg(node->block, ppir_op_dummy, rs,
                u_bit_consecutive(0, 4));
-            comp->var_nodes[(rs->handle->index << 2) + swizzle] = child;
+            comp->var_nodes[(rs->index << 2) + swizzle] = child;
          }
          /* Don't add dummies or recursive deps for ops like r1 = r1 + ssa1 */
          if (child && node != child && child->op != ppir_op_dummy)
@@ -152,8 +151,7 @@ static int nir_to_ppir_opcodes[nir_num_opcodes] = {
    [nir_op_inot] = ppir_op_not,
    [nir_op_ftrunc] = ppir_op_trunc,
    [nir_op_fsat] = ppir_op_sat,
-   [nir_op_fddx] = ppir_op_ddx,
-   [nir_op_fddy] = ppir_op_ddy,
+   [nir_op_fclamp_pos] = ppir_op_clamp_pos,
 };
 
 static bool ppir_emit_alu(ppir_block *block, nir_instr *ni)
@@ -166,32 +164,12 @@ static bool ppir_emit_alu(ppir_block *block, nir_instr *ni)
       ppir_error("unsupported nir_op: %s\n", nir_op_infos[instr->op].name);
       return false;
    }
-   nir_legacy_alu_dest legacy_dest = nir_legacy_chase_alu_dest(def);
-
-   /* Don't try to translate folded fsat since their source won't be valid */
-   if (instr->op == nir_op_fsat && nir_legacy_fsat_folds(instr))
-      return true;
-
-   /* Skip folded fabs/fneg since we do not have dead code elimination */
-   if ((instr->op == nir_op_fabs || instr->op == nir_op_fneg) &&
-       nir_legacy_float_mod_folds(instr)) {
-      /* Add parent node as a the folded def node to keep
-       * the dependency chain */
-      nir_alu_src *ns = &instr->src[0];
-      ppir_node *parent = block->comp->var_nodes[ns->src.ssa->index];
-      assert(parent);
-      block->comp->var_nodes[def->index] = parent;
-      return true;
-   }
-
-   ppir_alu_node *node = ppir_node_create_dest(block, op, &legacy_dest.dest,
-                                               legacy_dest.write_mask);
+   unsigned mask = nir_component_mask(def->num_components);
+   ppir_alu_node *node = ppir_node_create_dest(block, op, def, mask);
    if (!node)
       return false;
 
    ppir_dest *pd = &node->dest;
-   if (legacy_dest.fsat)
-      pd->modifier = ppir_outmod_clamp_fraction;
 
    unsigned src_mask;
    switch (op) {
@@ -210,14 +188,38 @@ static bool ppir_emit_alu(ppir_block *block, nir_instr *ni)
    node->num_src = num_child;
 
    for (int i = 0; i < num_child; i++) {
-      nir_legacy_alu_src ns = nir_legacy_chase_alu_src(instr->src + i, true);
+      nir_alu_src *alu_src = instr->src + i;
       ppir_src *ps = node->src + i;
-      memcpy(ps->swizzle, ns.swizzle, sizeof(ps->swizzle));
-      ppir_node_add_src(block->comp, &node->node, ps, &ns.src, src_mask);
-
-      ps->absolute = ns.fabs;
-      ps->negate = ns.fneg;
+      memcpy(ps->swizzle, alu_src->swizzle, sizeof(ps->swizzle));
+      ppir_node_add_src(block->comp, &node->node, ps, &alu_src->src, src_mask);
    }
+
+   list_addtail(&node->node.list, &block->node_list);
+   return true;
+}
+
+static bool ppir_emit_derivative(ppir_block *block, nir_instr *ni, int op)
+{
+   assert(op == ppir_op_ddx || op == ppir_op_ddy);
+
+   nir_intrinsic_instr *instr = nir_instr_as_intrinsic(ni);
+   nir_def *def = &instr->def;
+
+   unsigned mask = nir_component_mask(def->num_components);
+   ppir_alu_node *node = ppir_node_create_dest(block, op, def, mask);
+   if (!node)
+      return false;
+
+   ppir_dest *pd = &node->dest;
+   unsigned src_mask = pd->write_mask;
+   uint8_t identity[4] = { PIPE_SWIZZLE_X, PIPE_SWIZZLE_Y,
+                           PIPE_SWIZZLE_Z, PIPE_SWIZZLE_W };
+
+   node->num_src = 1;
+   nir_src *intr_src = instr->src;
+   ppir_src *ps = node->src;
+   memcpy(ps->swizzle, identity, sizeof(identity));
+   ppir_node_add_src(block->comp, &node->node, ps, intr_src, src_mask);
 
    list_addtail(&node->node.list, &block->node_list);
    return true;
@@ -260,9 +262,8 @@ static ppir_node *ppir_emit_discard_if(ppir_block *block, nir_instr *ni)
    branch = ppir_node_to_branch(node);
 
    /* second src and condition will be updated during lowering */
-   nir_legacy_src legacy_src = nir_legacy_chase_src(&instr->src[0]);
    ppir_node_add_src(block->comp, node, &branch->src[0],
-                     &legacy_src, u_bit_consecutive(0, instr->num_components));
+                     &instr->src[0], u_bit_consecutive(0, instr->num_components));
    branch->num_src = 1;
    branch->target = comp->discard_block;
 
@@ -291,16 +292,14 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
       return true;
 
    case nir_intrinsic_load_reg: {
-      nir_legacy_dest legacy_dest = nir_legacy_chase_dest(&instr->def);
-      lnode = ppir_node_create_dest(block, ppir_op_dummy, &legacy_dest, mask);
+      lnode = ppir_node_create_dest(block, ppir_op_dummy, &instr->def, mask);
       return true;
    }
 
    case nir_intrinsic_load_input: {
       mask = u_bit_consecutive(0, instr->num_components);
 
-      nir_legacy_dest legacy_dest = nir_legacy_chase_dest(&instr->def);
-      lnode = ppir_node_create_dest(block, ppir_op_load_varying, &legacy_dest, mask);
+      lnode = ppir_node_create_dest(block, ppir_op_load_varying, &instr->def, mask);
       if (!lnode)
          return false;
 
@@ -310,8 +309,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
          lnode->index += (uint32_t)(nir_src_as_float(instr->src[0]) * 4);
       else {
          lnode->num_src = 1;
-         nir_legacy_src legacy_src = nir_legacy_chase_src(instr->src);
-         ppir_node_add_src(block->comp, &lnode->node, &lnode->src, &legacy_src, 1);
+         ppir_node_add_src(block->comp, &lnode->node, &lnode->src, instr->src, 1);
       }
       list_addtail(&lnode->node.list, &block->node_list);
       return true;
@@ -338,8 +336,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
          break;
       }
 
-      nir_legacy_dest legacy_dest = nir_legacy_chase_dest(&instr->def);
-      lnode = ppir_node_create_dest(block, op, &legacy_dest, mask);
+      lnode = ppir_node_create_dest(block, op, &instr->def, mask);
       if (!lnode)
          return false;
 
@@ -351,8 +348,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
    case nir_intrinsic_load_uniform: {
       mask = u_bit_consecutive(0, instr->num_components);
 
-      nir_legacy_dest legacy_dest = nir_legacy_chase_dest(&instr->def);
-      lnode = ppir_node_create_dest(block, ppir_op_load_uniform, &legacy_dest, mask);
+      lnode = ppir_node_create_dest(block, ppir_op_load_uniform, &instr->def, mask);
       if (!lnode)
          return false;
 
@@ -362,8 +358,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
          lnode->index += (uint32_t)nir_src_as_float(instr->src[0]);
       else {
          lnode->num_src = 1;
-         nir_legacy_src legacy_src = nir_legacy_chase_src(instr->src);
-         ppir_node_add_src(block->comp, &lnode->node, &lnode->src, &legacy_src, 1);
+         ppir_node_add_src(block->comp, &lnode->node, &lnode->src, instr->src, 1);
       }
 
       list_addtail(&lnode->node.list, &block->node_list);
@@ -427,8 +422,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
       for (int i = 0; i < instr->num_components; i++)
          alu_node->src[0].swizzle[i] = i;
 
-      nir_legacy_src legacy_src = nir_legacy_chase_src(instr->src);
-      ppir_node_add_src(block->comp, &alu_node->node, alu_node->src, &legacy_src,
+      ppir_node_add_src(block->comp, &alu_node->node, alu_node->src, instr->src,
                         u_bit_consecutive(0, 4));
 
       alu_node->node.is_out = 1;
@@ -437,15 +431,20 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
       return true;
    }
 
-   case nir_intrinsic_discard:
+   case nir_intrinsic_terminate:
       node = ppir_emit_discard(block, ni);
       list_addtail(&node->list, &block->node_list);
       return true;
 
-   case nir_intrinsic_discard_if:
+   case nir_intrinsic_terminate_if:
       node = ppir_emit_discard_if(block, ni);
       list_addtail(&node->list, &block->node_list);
       return true;
+
+   case nir_intrinsic_ddx:
+      return ppir_emit_derivative(block, ni, ppir_op_ddx);
+   case nir_intrinsic_ddy:
+      return ppir_emit_derivative(block, ni, ppir_op_ddy);
 
    default:
       ppir_error("unsupported nir_intrinsic_instr %s\n",
@@ -519,8 +518,7 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
    unsigned mask = 0;
    mask = u_bit_consecutive(0, nir_tex_instr_dest_size(instr));
 
-   nir_legacy_dest legacy_dest = nir_legacy_chase_dest(&instr->def);
-   node = ppir_node_create_dest(block, ppir_op_load_texture, &legacy_dest, mask);
+   node = ppir_node_create_dest(block, ppir_op_load_texture, &instr->def, mask);
    if (!node)
       return false;
 
@@ -550,8 +548,7 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
 
          /* src[0] is not used by the ld_tex instruction but ensures
           * correct scheduling due to the pipeline dependency */
-         nir_legacy_src legacy_src = nir_legacy_chase_src(&instr->src[i].src);
-         ppir_node_add_src(block->comp, &node->node, &node->src[0], &legacy_src,
+         ppir_node_add_src(block->comp, &node->node, &node->src[0], &instr->src[i].src,
                            u_bit_consecutive(0, instr->coord_components));
          node->num_src++;
          break;
@@ -560,8 +557,7 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
       case nir_tex_src_lod:
          node->lod_bias_en = true;
          node->explicit_lod = (instr->src[i].src_type == nir_tex_src_lod);
-         nir_legacy_src legacy_src = nir_legacy_chase_src(&instr->src[i].src);
-         ppir_node_add_src(block->comp, &node->node, &node->src[1], &legacy_src, 1);
+         ppir_node_add_src(block->comp, &node->node, &node->src[1], &instr->src[i].src, 1);
          node->num_src++;
          break;
       default:
@@ -719,9 +715,8 @@ static bool ppir_emit_if(ppir_compiler *comp, nir_if *if_stmt)
    if (!node)
       return false;
    else_branch = ppir_node_to_branch(node);
-   nir_legacy_src legacy_src = nir_legacy_chase_src(&if_stmt->condition);
    ppir_node_add_src(block->comp, node, &else_branch->src[0],
-                     &legacy_src, 1);
+                     &if_stmt->condition, 1);
    else_branch->num_src = 1;
    /* Negate condition to minimize branching. We're generating following:
     * current_block: { ...; if (!statement) branch else_block; }

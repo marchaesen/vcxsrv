@@ -40,7 +40,7 @@
 #include "util/detect.h"
 
 
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
 #  include <signal.h> /* for kill() */
 #  include <unistd.h> /* getpid() */
 #endif
@@ -58,7 +58,7 @@ extern "C" {
 #  define os_break() __asm("int3")
 #elif DETECT_CC_MSVC
 #  define os_break()  __debugbreak()
-#elif DETECT_OS_UNIX
+#elif DETECT_OS_POSIX
 #  define os_break() kill(getpid(), SIGTRAP)
 #else
 #  define os_break() abort()

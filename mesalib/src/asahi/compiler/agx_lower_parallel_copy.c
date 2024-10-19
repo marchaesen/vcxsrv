@@ -73,30 +73,13 @@ do_swap(agx_builder *b, const struct agx_copy *copy)
    if (copy->dest == copy->src.value)
       return;
 
-   /* We can swap lo/hi halves of a 32-bit register with a 32-bit extr */
-   if (copy->src.size == AGX_SIZE_16 &&
-       (copy->dest >> 1) == (copy->src.value >> 1) && !copy->dest_mem) {
-
-      assert(((copy->dest & 1) == (1 - (copy->src.value & 1))) &&
-             "no trivial swaps, and only 2 halves of a register");
-
-      /* r0 = extr r0, r0, #16
-       *    = (((r0 << 32) | r0) >> 16) & 0xFFFFFFFF
-       *    = (((r0 << 32) >> 16) & 0xFFFFFFFF) | (r0 >> 16)
-       *    = (r0l << 16) | r0h
-       */
-      agx_index reg32 = agx_register(copy->dest & ~1, AGX_SIZE_32);
-      agx_extr_to(b, reg32, reg32, reg32, agx_immediate(16), 0);
-      return;
-   }
-
    agx_index x = copy->dest_mem
                     ? agx_memory_register(copy->dest, copy->src.size)
                     : agx_register(copy->dest, copy->src.size);
    agx_index y = copy->src;
-
-   /* Memory-memory swaps need to be lowered */
    assert(x.memory == y.memory);
+
+   /* Memory-memory swaps lowered here, GPR swaps lowered later */
    if (x.memory) {
       agx_index temp1 = agx_register(4, copy->src.size);
       agx_index temp2 = agx_register(6, copy->src.size);
@@ -105,13 +88,9 @@ do_swap(agx_builder *b, const struct agx_copy *copy)
       agx_mov_to(b, temp2, y);
       agx_mov_to(b, y, temp1);
       agx_mov_to(b, x, temp2);
-      return;
+   } else {
+      agx_swap(b, x, y);
    }
-
-   /* Otherwise, we're swapping GPRs and fallback on a XOR swap. */
-   agx_xor_to(b, x, x, y);
-   agx_xor_to(b, y, x, y);
-   agx_xor_to(b, x, x, y);
 }
 
 struct copy_ctx {

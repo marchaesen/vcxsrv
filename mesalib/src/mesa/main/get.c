@@ -591,6 +591,7 @@ EXTRA_EXT(AMD_framebuffer_multisample_advanced);
 EXTRA_EXT(ARB_spirv_extensions);
 EXTRA_EXT(NV_viewport_swizzle);
 EXTRA_EXT(ARB_sparse_texture);
+EXTRA_EXT(KHR_shader_subgroup);
 
 static const int extra_ARB_gl_spirv_or_es2_compat[] = {
    EXT(ARB_gl_spirv),
@@ -2908,20 +2909,28 @@ find_value_indexed(const char *func, GLenum pname, GLuint index, union value *v)
 
    /* GL_EXT_external_objects */
    case GL_NUM_DEVICE_UUIDS_EXT:
+      if (!ctx->Extensions.EXT_memory_object && !ctx->Extensions.EXT_semaphore)
+         goto invalid_enum;
       v->value_int = 1;
       return TYPE_INT;
    case GL_DRIVER_UUID_EXT:
+      if (!ctx->Extensions.EXT_memory_object && !ctx->Extensions.EXT_semaphore)
+         goto invalid_enum;
       if (index >= 1)
          goto invalid_value;
       _mesa_get_driver_uuid(ctx, v->value_int_4);
       return TYPE_INT_4;
    case GL_DEVICE_UUID_EXT:
+      if (!ctx->Extensions.EXT_memory_object && !ctx->Extensions.EXT_semaphore)
+         goto invalid_enum;
       if (index >= 1)
          goto invalid_value;
       _mesa_get_device_uuid(ctx, v->value_int_4);
       return TYPE_INT_4;
    /* GL_EXT_memory_object_win32 */
    case GL_DEVICE_LUID_EXT:
+      if (!ctx->Extensions.EXT_memory_object_win32 && !ctx->Extensions.EXT_semaphore_win32)
+         goto invalid_enum;
       if (index >= 1)
          goto invalid_value;
       _mesa_get_device_luid(ctx, v->value_int_2);

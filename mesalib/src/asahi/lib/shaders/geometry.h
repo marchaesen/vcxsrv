@@ -9,11 +9,13 @@
 
 #ifndef __OPENCL_VERSION__
 #include "util/bitscan.h"
-#define CONST(type_)       uint64_t
-#define libagx_popcount(x) util_bitcount64(x)
+#define CONST(type_)         uint64_t
+#define libagx_popcount(x)   util_bitcount64(x)
+#define libagx_sub_sat(x, y) ((x >= y) ? (x - y) : 0)
 #else
-#define CONST(type_)       constant type_ *
-#define libagx_popcount(x) popcount(x)
+#define CONST(type_)         constant type_ *
+#define libagx_popcount(x)   popcount(x)
+#define libagx_sub_sat(x, y) sub_sat(x, y)
 #endif
 
 #ifndef LIBAGX_GEOMETRY_H
@@ -24,21 +26,18 @@
 
 /* Packed geometry state buffer */
 struct agx_geometry_state {
-   /* Heap to allocate from, in either direction. By convention, the top is used
-    * for intra-draw allocations and the bottom is used for full-batch
-    * allocations. In the future we could use kernel support to improve this.
-    */
+   /* Heap to allocate from. */
    GLOBAL(uchar) heap;
-   uint32_t heap_bottom, heap_top, heap_size, padding;
+   uint32_t heap_bottom, heap_size;
 } PACKED;
-AGX_STATIC_ASSERT(sizeof(struct agx_geometry_state) == 6 * 4);
+AGX_STATIC_ASSERT(sizeof(struct agx_geometry_state) == 4 * 4);
 
-struct agx_ia_state {
+struct agx_restart_unroll_params {
    /* Heap to allocate from across draws */
    GLOBAL(struct agx_geometry_state) heap;
 
    /* Input: index buffer if present. */
-   CONST(uchar) index_buffer;
+   uint64_t index_buffer;
 
    /* Input: draw count */
    CONST(uint) count;
@@ -46,42 +45,91 @@ struct agx_ia_state {
    /* Input: indirect draw descriptor. Raw pointer since it's strided. */
    uint64_t draws;
 
-   /* For the geom/tess path, this is the temporary prefix sum buffer.
-    * Caller-allocated. For regular MDI, this is ok since the CPU knows the
-    * worst-case draw count.
-    */
-   GLOBAL(uint) prefix_sums;
-
-   /* When unrolling primitive restart, output draw descriptors */
+   /* Output draw descriptors */
    GLOBAL(uint) out_draws;
+
+   /* Pointer to zero */
+   uint64_t zero_sink;
+
+   /* Input: maximum draw count, count is clamped to this */
+   uint32_t max_draws;
+
+   /* Primitive restart index */
+   uint32_t restart_index;
+
+   /* Input index buffer size in elements */
+   uint32_t index_buffer_size_el;
+
+   /* Stride for the draw descriptor array */
+   uint32_t draw_stride;
+
+   /* Use first vertex as the provoking vertex for flat shading. We could stick
+    * this in the key, but meh, you're already hosed for perf on the unroll
+    * path.
+    */
+   uint32_t flatshade_first;
+} PACKED;
+AGX_STATIC_ASSERT(sizeof(struct agx_restart_unroll_params) == 17 * 4);
+
+struct agx_gs_setup_indirect_params {
+   /* Index buffer if present. */
+   uint64_t index_buffer;
+
+   /* Indirect draw descriptor. */
+   CONST(uint) draw;
+
+   /* Pointer to be written with allocated vertex buffer */
+   GLOBAL(uintptr_t) vertex_buffer;
+
+   /* Output input assembly state */
+   GLOBAL(struct agx_ia_state) ia;
+
+   /* Output geometry parameters */
+   GLOBAL(struct agx_geometry_params) geom;
+
+   /* Pointer to zero */
+   uint64_t zero_sink;
+
+   /* Vertex (TES) output mask for sizing the allocated buffer */
+   uint64_t vs_outputs;
+
+   /* The index size (1, 2, 4) or 0 if drawing without an index buffer. */
+   uint32_t index_size_B;
+
+   /* Size of the index buffer */
+   uint32_t index_buffer_range_el;
+} PACKED;
+AGX_STATIC_ASSERT(sizeof(struct agx_gs_setup_indirect_params) == 16 * 4);
+
+struct agx_ia_state {
+   /* Index buffer if present. */
+   uint64_t index_buffer;
+
+   /* Size of the bound index buffer for bounds checking */
+   uint32_t index_buffer_range_el;
 
    /* Number of vertices per instance. Written by CPU for direct draw, indirect
     * setup kernel for indirect. This is used for VS->GS and VS->TCS indexing.
     */
    uint32_t verts_per_instance;
-
-   /* Input: maximum draw count, count is clamped to this */
-   uint32_t max_draws;
-
-   /* Primitive restart index, if unrolling */
-   uint32_t restart_index;
-
-   /* Input index buffer size in bytes, if unrolling */
-   uint32_t index_buffer_size_B;
-
-   /* Stride for the draw descrptor array */
-   uint32_t draw_stride;
-
-   /* When unrolling primitive restart, use first vertex as the provoking vertex
-    * for flat shading. We could stick this in the key, but meh, you're already
-    * hosed for perf on the unroll path.
-    */
-   uint32_t flatshade_first;
-
-   /* The index size (1, 2, 4) or 0 if drawing without an index buffer. */
-   uint32_t index_size_B;
 } PACKED;
-AGX_STATIC_ASSERT(sizeof(struct agx_ia_state) == 19 * 4);
+AGX_STATIC_ASSERT(sizeof(struct agx_ia_state) == 4 * 4);
+
+static inline uint64_t
+libagx_index_buffer(uint64_t index_buffer, uint size_el, uint offset_el,
+                    uint elsize_B, uint64_t zero_sink)
+{
+   if (offset_el < size_el)
+      return index_buffer + (offset_el * elsize_B);
+   else
+      return zero_sink;
+}
+
+static inline uint
+libagx_index_buffer_range_el(uint size_el, uint offset_el)
+{
+   return libagx_sub_sat(size_el, offset_el);
+}
 
 struct agx_geometry_params {
    /* Persistent (cross-draw) geometry state */
@@ -114,6 +162,13 @@ struct agx_geometry_params {
     * program.
     */
    GLOBAL(uchar) xfb_base[MAX_SO_BUFFERS];
+
+   /* Address and present mask for the input to the geometry shader. These will
+    * reflect the vertex shader for VS->GS or instead the tessellation
+    * evaluation shader for TES->GS.
+    */
+   uint64_t input_buffer;
+   uint64_t input_mask;
 
    /* Location-indexed mask of flat outputs, used for lowering GL edge flags. */
    uint64_t flat_outputs;
@@ -153,48 +208,7 @@ struct agx_geometry_params {
     */
    uint32_t input_topology;
 } PACKED;
-AGX_STATIC_ASSERT(sizeof(struct agx_geometry_params) == 78 * 4);
-
-struct agx_tess_params {
-   /* Persistent (cross-draw) geometry state */
-   GLOBAL(struct agx_geometry_state) state;
-
-   /* Patch coordinate offsets in patch_coord_buffer, indexed by patch ID. */
-   GLOBAL(uint) patch_coord_offs;
-
-   /* Patch coordinate buffer, indexed as:
-    *
-    *    patch_coord_offs[patch_ID] + vertex_in_patch
-    *
-    * Currently float2s, but we might be able to compact later?
-    */
-   GLOBAL(float2) patch_coord_buffer;
-
-   /* Tessellation control shader output buffer, indexed by patch ID. */
-   GLOBAL(uchar) tcs_buffer;
-
-   /* Bitfield of TCS per-vertex outputs */
-   uint64_t tcs_per_vertex_outputs;
-
-   /* Default tess levels used in OpenGL when there is no TCS in the pipeline.
-    * Unused in Vulkan and OpenGL ES.
-    */
-   float tess_level_outer_default[4];
-   float tess_level_inner_default[4];
-
-   /* Number of vertices in the input patch */
-   uint input_patch_size;
-
-   /* Number of vertices in the TCS output patch */
-   uint output_patch_size;
-
-   /* Number of patch constants written by TCS */
-   uint tcs_patch_constants;
-
-   /* Number of input patches per instance of the VS/TCS */
-   uint patches_per_instance;
-} PACKED;
-AGX_STATIC_ASSERT(sizeof(struct agx_tess_params) == 22 * 4);
+AGX_STATIC_ASSERT(sizeof(struct agx_geometry_params) == 82 * 4);
 
 /* TCS shared memory layout:
  *
@@ -234,7 +248,7 @@ libagx_tcs_in_size(uint32_t vertices_in_patch, uint64_t crosslane_vs_out_mask)
  */
 static inline uint
 libagx_tcs_out_offs(uint vtx_id, gl_varying_slot location, uint nr_patch_out,
-                    uint out_patch_size, uint64_t vtx_out_mask)
+                    uint64_t vtx_out_mask)
 {
    uint off = 0;
    if (location == VARYING_SLOT_TESS_LEVEL_OUTER)
@@ -260,8 +274,7 @@ static inline uint
 libagx_tcs_out_stride(uint nr_patch_out, uint out_patch_size,
                       uint64_t vtx_out_mask)
 {
-   return libagx_tcs_out_offs(out_patch_size, VARYING_SLOT_VAR0, nr_patch_out,
-                              out_patch_size, vtx_out_mask);
+   return libagx_tcs_out_offs(out_patch_size, 0, nr_patch_out, vtx_out_mask);
 }
 
 /* In a tess eval shader, stride for hw vertex ID */

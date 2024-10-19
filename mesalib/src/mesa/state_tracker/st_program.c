@@ -587,7 +587,6 @@ static const struct nir_shader_compiler_options draw_nir_options = {
    .lower_fsat = true,
    .lower_bitfield_insert = true,
    .lower_bitfield_extract = true,
-   .lower_fdot = true,
    .lower_fdph = true,
    .lower_ffma16 = true,
    .lower_ffma32 = true,

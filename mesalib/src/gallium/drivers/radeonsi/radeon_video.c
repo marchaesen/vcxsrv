@@ -67,44 +67,63 @@ void si_vid_destroy_buffer(struct rvid_buffer *buffer)
 }
 
 /* reallocate a buffer, preserving its content */
-bool si_vid_resize_buffer(struct pipe_screen *screen, struct radeon_cmdbuf *cs,
+bool si_vid_resize_buffer(struct pipe_context *context, struct radeon_cmdbuf *cs,
                           struct rvid_buffer *new_buf, unsigned new_size,
                           struct rvid_buf_offset_info *buf_ofst_info)
 {
-   struct si_screen *sscreen = (struct si_screen *)screen;
+   struct si_context *sctx = (struct si_context *)context;
+   struct si_screen *sscreen = (struct si_screen *)context->screen;
    struct radeon_winsys *ws = sscreen->ws;
    unsigned bytes = MIN2(new_buf->res->buf->size, new_size);
    struct rvid_buffer old_buf = *new_buf;
    void *src = NULL, *dst = NULL;
 
-   if (!si_vid_create_buffer(screen, new_buf, new_size, new_buf->usage))
+   if (!si_vid_create_buffer(context->screen, new_buf, new_size, new_buf->usage))
       goto error;
 
-   src = ws->buffer_map(ws, old_buf.res->buf, cs, PIPE_MAP_READ | RADEON_MAP_TEMPORARY);
-   if (!src)
-      goto error;
+   if (old_buf.usage == PIPE_USAGE_STAGING) {
+      src = ws->buffer_map(ws, old_buf.res->buf, cs, PIPE_MAP_READ | RADEON_MAP_TEMPORARY);
+      if (!src)
+         goto error;
 
-   dst = ws->buffer_map(ws, new_buf->res->buf, cs, PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
-   if (!dst)
-      goto error;
+      dst = ws->buffer_map(ws, new_buf->res->buf, cs, PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
+      if (!dst)
+         goto error;
 
-   if (buf_ofst_info) {
-      memset(dst, 0, new_size);
-      for(int i =0; i < buf_ofst_info->num_units; i++) {
-          memcpy(dst, src, buf_ofst_info->old_offset);
-          dst += buf_ofst_info->new_offset;
-          src += buf_ofst_info->old_offset;
-      }
-   } else {
-      memcpy(dst, src, bytes);
-      if (new_size > bytes) {
-         new_size -= bytes;
-         dst += bytes;
+      if (buf_ofst_info) {
          memset(dst, 0, new_size);
+         for(int i =0; i < buf_ofst_info->num_units; i++) {
+             memcpy(dst, src, buf_ofst_info->old_offset);
+             dst += buf_ofst_info->new_offset;
+             src += buf_ofst_info->old_offset;
+         }
+      } else {
+         memcpy(dst, src, bytes);
+         if (new_size > bytes) {
+            new_size -= bytes;
+            dst += bytes;
+            memset(dst, 0, new_size);
+         }
       }
+      ws->buffer_unmap(ws, new_buf->res->buf);
+      ws->buffer_unmap(ws, old_buf.res->buf);
+   } else {
+      si_barrier_before_simple_buffer_op(sctx, 0, &new_buf->res->b.b, &old_buf.res->b.b);
+      if (buf_ofst_info) {
+         uint64_t dst_offset = 0, src_offset = 0;
+         for (int i = 0; i < buf_ofst_info->num_units; i++) {
+            si_copy_buffer(sctx, &new_buf->res->b.b, &old_buf.res->b.b,
+                           dst_offset, src_offset, buf_ofst_info->old_offset);
+            dst_offset += buf_ofst_info->new_offset;
+            src_offset += buf_ofst_info->old_offset;
+         }
+      } else {
+         bytes = MIN2(new_buf->res->b.b.width0, old_buf.res->b.b.width0);
+         si_copy_buffer(sctx, &new_buf->res->b.b, &old_buf.res->b.b, 0, 0, bytes);
+      }
+      context->flush(context, NULL, 0);
    }
-   ws->buffer_unmap(ws, new_buf->res->buf);
-   ws->buffer_unmap(ws, old_buf.res->buf);
+
    si_vid_destroy_buffer(&old_buf);
    return true;
 

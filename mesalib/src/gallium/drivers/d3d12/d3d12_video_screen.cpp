@@ -44,7 +44,9 @@ struct d3d12_encode_codec_support {
          enum pipe_h265_enc_pred_direction prediction_direction;
          union pipe_h265_enc_cap_features hevc_features;
          union pipe_h265_enc_cap_block_sizes hevc_block_sizes;
-         D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC d3d12_caps;
+         union pipe_h265_enc_cap_range_extension hevc_range_ext;
+         union pipe_h265_enc_cap_range_extension_flags hevc_range_ext_flags;
+         D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC1 d3d12_caps;
       } hevc_support;
       struct {
          union pipe_av1_enc_cap_features features;
@@ -766,10 +768,10 @@ bool
 static d3d12_video_encode_get_hevc_codec_support ( const D3D12_VIDEO_ENCODER_CODEC &argCodec,
                                                    const D3D12_VIDEO_ENCODER_PROFILE_DESC &argTargetProfile,
                                                    ID3D12VideoDevice3 *pD3D12VideoDevice,
-                                                   D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC &supportedCaps)
+                                                   D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC1 &supportedCaps)
 {
    constexpr unsigned c_hevcConfigurationSets = 5u;
-   const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC hevcConfigurationSets[c_hevcConfigurationSets] = 
+   const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC1 hevcConfigurationSets[c_hevcConfigurationSets] =
    {
       {
          D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_NONE,
@@ -822,11 +824,10 @@ static d3d12_video_encode_get_hevc_codec_support ( const D3D12_VIDEO_ENCODER_COD
    capCodecConfigData.NodeIndex = 0;
    capCodecConfigData.Codec = D3D12_VIDEO_ENCODER_CODEC_HEVC;
    capCodecConfigData.Profile = argTargetProfile;
-   capCodecConfigData.CodecSupportLimits.DataSize = sizeof(D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC);
 
    for (uint32_t i = 0 ; i < c_hevcConfigurationSets ; i++) {
       supportedCaps = hevcConfigurationSets[i];
-      capCodecConfigData.CodecSupportLimits.pHEVCSupport = &supportedCaps;
+      capCodecConfigData.CodecSupportLimits = ConvertHEVCSupportFromProfile((*capCodecConfigData.Profile.pHEVCProfile), &supportedCaps);
       if(SUCCEEDED(pD3D12VideoDevice->CheckFeatureSupport(D3D12_FEATURE_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT, &capCodecConfigData, sizeof(capCodecConfigData)))
          && capCodecConfigData.IsSupported) {
             return true;
@@ -873,6 +874,7 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
    switch (profile) {
 #if VIDEO_CODEC_H264ENC
       case PIPE_VIDEO_PROFILE_MPEG4_AVC_CONSTRAINED_BASELINE:
+      case PIPE_VIDEO_PROFILE_MPEG4_AVC_BASELINE:
       case PIPE_VIDEO_PROFILE_MPEG4_AVC_MAIN:
       case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH:
       case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH10:
@@ -955,6 +957,7 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
 #if VIDEO_CODEC_H265ENC
       case PIPE_VIDEO_PROFILE_HEVC_MAIN:
       case PIPE_VIDEO_PROFILE_HEVC_MAIN_10:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
       {
          D3D12_VIDEO_ENCODER_PROFILE_DESC profDesc = {};
          D3D12_VIDEO_ENCODER_PROFILE_HEVC profHEVC =
@@ -970,6 +973,7 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
          minLvl.DataSize = sizeof(minLvlSettingHEVC);
          maxLvl.pHEVCLevelSetting = &maxLvlSettingHEVC;
          maxLvl.DataSize = sizeof(maxLvlSettingHEVC);
+
          if (d3d12_video_encode_max_supported_level_for_profile(codecDesc,
                                                                 profDesc,
                                                                 minLvl,
@@ -1000,7 +1004,7 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                                                                         codecSupport.hevc_support.d3d12_caps);
             if (supportsProfile) {
                d3d12_codec_support.DataSize = sizeof(codecSupport.hevc_support.d3d12_caps);
-               d3d12_codec_support.pHEVCSupport = &codecSupport.hevc_support.d3d12_caps;
+               d3d12_codec_support.pHEVCSupport1 = &codecSupport.hevc_support.d3d12_caps;
 
                /* get_video_param sets pipe_features.bits.config_supported = 1
                   to distinguish between supported cap with all bits off and unsupported by driver
@@ -1047,6 +1051,95 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                codecSupport.hevc_support.hevc_block_sizes.bits.log2_max_pcm_coding_block_size_minus3 = 0; // No PCM Supported
                codecSupport.hevc_support.hevc_block_sizes.bits.log2_min_pcm_coding_block_size_minus3 = 0; // No PCM Supported
 
+               // HEVC range ext caps
+               codecSupport.hevc_support.hevc_range_ext.value = 0;
+               codecSupport.hevc_support.hevc_range_ext.bits.supported_diff_cu_chroma_qp_offset_depth_values = codecSupport.hevc_support.d3d12_caps.allowed_diff_cu_chroma_qp_offset_depth_values;
+               codecSupport.hevc_support.hevc_range_ext.bits.supported_log2_sao_offset_scale_luma_values = codecSupport.hevc_support.d3d12_caps.allowed_log2_sao_offset_scale_luma_values;
+               codecSupport.hevc_support.hevc_range_ext.bits.supported_log2_sao_offset_scale_chroma_values = codecSupport.hevc_support.d3d12_caps.allowed_log2_sao_offset_scale_chroma_values;
+               codecSupport.hevc_support.hevc_range_ext.bits.supported_log2_max_transform_skip_block_size_minus2_values = codecSupport.hevc_support.d3d12_caps.allowed_log2_max_transform_skip_block_size_minus2_values;
+               codecSupport.hevc_support.hevc_range_ext.bits.min_chroma_qp_offset_list_len_minus1_values = 0;
+               codecSupport.hevc_support.hevc_range_ext.bits.max_chroma_qp_offset_list_len_minus1_values = 0;
+               if (codecSupport.hevc_support.d3d12_caps.allowed_chroma_qp_offset_list_len_minus1_values)
+               {
+                  codecSupport.hevc_support.hevc_range_ext.bits.min_chroma_qp_offset_list_len_minus1_values = 5;
+                  codecSupport.hevc_support.hevc_range_ext.bits.max_chroma_qp_offset_list_len_minus1_values = 0;
+                  for (uint32_t i = 0; i < 6 /*Codec valid range for support for chroma_qp_offset_list_len_minus1 is [0, 5]*/; i++)
+                  {
+                     if ((codecSupport.hevc_support.d3d12_caps.allowed_chroma_qp_offset_list_len_minus1_values & (1 << i)) != 0)
+                     {
+                        codecSupport.hevc_support.hevc_range_ext.bits.min_chroma_qp_offset_list_len_minus1_values = std::min(codecSupport.hevc_support.hevc_range_ext.bits.min_chroma_qp_offset_list_len_minus1_values, i);
+                        codecSupport.hevc_support.hevc_range_ext.bits.max_chroma_qp_offset_list_len_minus1_values = std::max(codecSupport.hevc_support.hevc_range_ext.bits.max_chroma_qp_offset_list_len_minus1_values, i);
+                     }
+                  }
+               }
+
+               codecSupport.hevc_support.hevc_range_ext_flags.value = 0;
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_TRANSFORM_SKIP_ROTATION_ENABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_transform_skip_rotation_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_TRANSFORM_SKIP_ROTATION_ENABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_transform_skip_rotation_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_TRANSFORM_SKIP_CONTEXT_ENABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_transform_skip_context_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_TRANSFORM_SKIP_CONTEXT_ENABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_transform_skip_context_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_IMPLICIT_RDPCM_ENABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_implicit_rdpcm_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_IMPLICIT_RDPCM_ENABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_implicit_rdpcm_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_EXPLICIT_RDPCM_ENABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_explicit_rdpcm_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_EXPLICIT_RDPCM_ENABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_explicit_rdpcm_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_EXTENDED_PRECISION_PROCESSING_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_extended_precision_processing_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_EXTENDED_PRECISION_PROCESSING_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_extended_precision_processing_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_INTRA_SMOOTHING_DISABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_intra_smoothing_disabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_INTRA_SMOOTHING_DISABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_intra_smoothing_disabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_HIGH_PRECISION_OFFSETS_ENABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_high_precision_offsets_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_HIGH_PRECISION_OFFSETS_ENABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_high_precision_offsets_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_PERSISTENT_RICE_ADAPTATION_ENABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_persistent_rice_adaptation_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_PERSISTENT_RICE_ADAPTATION_ENABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_persistent_rice_adaptation_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_CABAC_BYPASS_ALIGNMENT_ENABLED_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_cabac_bypass_alignment_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_CABAC_BYPASS_ALIGNMENT_ENABLED_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_cabac_bypass_alignment_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_CROSS_COMPONENT_PREDICTION_ENABLED_FLAG_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_cross_component_prediction_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_CROSS_COMPONENT_PREDICTION_ENABLED_FLAG_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_cross_component_prediction_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_CHROMA_QP_OFFSET_LIST_ENABLED_FLAG_SUPPORT)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_chroma_qp_offset_list_enabled_flag |= PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG_CHROMA_QP_OFFSET_LIST_ENABLED_FLAG_REQUIRED)
+                  codecSupport.hevc_support.hevc_range_ext_flags.bits.supports_chroma_qp_offset_list_enabled_flag |= PIPE_ENC_FEATURE_REQUIRED;
+
                // Feature flags
 
                uint32_t ref_l0 = maxReferencesPerFrame       & 0xffff;
@@ -1059,6 +1152,11 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
                   codecSupport.hevc_support.prediction_direction |= PIPE_H265_PRED_DIRECTION_FUTURE;
 
                codecSupport.hevc_support.hevc_features.bits.separate_colour_planes = PIPE_ENC_FEATURE_NOT_SUPPORTED;
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags1 & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG1_SEPARATE_COLOUR_PLANE_SUPPORT)
+                  codecSupport.hevc_support.hevc_features.bits.separate_colour_planes = PIPE_ENC_FEATURE_SUPPORTED;
+
+               if (codecSupport.hevc_support.d3d12_caps.SupportFlags1 & D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_HEVC_FLAG1_SEPARATE_COLOUR_PLANE_REQUIRED)
+                  codecSupport.hevc_support.hevc_features.bits.separate_colour_planes = PIPE_ENC_FEATURE_REQUIRED;
                codecSupport.hevc_support.hevc_features.bits.scaling_lists = PIPE_ENC_FEATURE_NOT_SUPPORTED;
                codecSupport.hevc_support.hevc_features.bits.pcm = PIPE_ENC_FEATURE_NOT_SUPPORTED;
                codecSupport.hevc_support.hevc_features.bits.temporal_mvp = PIPE_ENC_FEATURE_NOT_SUPPORTED;
@@ -1695,6 +1793,25 @@ d3d12_screen_get_video_param_encode(struct pipe_screen *pscreen,
          return 1;
       case PIPE_VIDEO_CAP_NPOT_TEXTURES:
          return 1;
+      case PIPE_VIDEO_CAP_MAX_TEMPORAL_LAYERS:
+      {
+            switch (u_reduce_video_profile(profile)) {
+#if VIDEO_CODEC_H264ENC
+               case PIPE_VIDEO_FORMAT_MPEG4_AVC:
+                  return D3D12_VIDEO_ENC_H264_MAX_TEMPORAL_LAYERS;
+#endif
+#if VIDEO_CODEC_H265ENC
+               case PIPE_VIDEO_FORMAT_HEVC:
+                  return D3D12_VIDEO_ENC_HEVC_MAX_TEMPORAL_LAYERS;
+#endif
+#if VIDEO_CODEC_AV1ENC
+               case PIPE_VIDEO_FORMAT_AV1:
+                  return D3D12_VIDEO_ENC_AV1_MAX_TEMPORAL_LAYERS;
+#endif
+               default:
+                  unreachable("Unsupported pipe_video_format");
+            }
+      } break;
       case PIPE_VIDEO_CAP_ENC_SUPPORTS_FEEDBACK_METADATA:
          return (PIPE_VIDEO_FEEDBACK_METADATA_TYPE_BITSTREAM_SIZE |
                  PIPE_VIDEO_FEEDBACK_METADATA_TYPE_ENCODE_RESULT |
@@ -1728,6 +1845,8 @@ d3d12_screen_get_video_param_encode(struct pipe_screen *pscreen,
       case PIPE_VIDEO_CAP_ENC_H264_SUPPORTS_CABAC_ENCODE:
       case PIPE_VIDEO_CAP_ENC_ROI:
       case PIPE_VIDEO_CAP_ENC_SURFACE_ALIGNMENT:
+      case PIPE_VIDEO_CAP_ENC_HEVC_RANGE_EXTENSION_SUPPORT:
+      case PIPE_VIDEO_CAP_ENC_HEVC_RANGE_EXTENSION_FLAGS_SUPPORT:
       {
          if (d3d12_has_video_encode_support(pscreen,
                                             profile,
@@ -1798,6 +1917,10 @@ d3d12_screen_get_video_param_encode(struct pipe_screen *pscreen,
                      with value = 0
                   */
                   return codec_specific_support.hevc_support.hevc_block_sizes.value;
+               } else if (param == PIPE_VIDEO_CAP_ENC_HEVC_RANGE_EXTENSION_SUPPORT) {
+                  return codec_specific_support.hevc_support.hevc_range_ext.value;
+               } else if (param == PIPE_VIDEO_CAP_ENC_HEVC_RANGE_EXTENSION_FLAGS_SUPPORT) {
+                  return codec_specific_support.hevc_support.hevc_range_ext_flags.value;
                } else if (param == PIPE_VIDEO_CAP_ENC_H264_SUPPORTS_CABAC_ENCODE) {
                   return (codec_specific_support.h264_support.d3d12_caps.SupportFlags &
                      D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_SUPPORT_H264_FLAG_CABAC_ENCODING_SUPPORT);
@@ -2012,7 +2135,7 @@ is_d3d12_video_allowed_format(enum pipe_format format, enum pipe_video_entrypoin
    if (entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
       return ((format == PIPE_FORMAT_NV12) || (format == PIPE_FORMAT_P010));
    } else if (entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
-      return ((format == PIPE_FORMAT_NV12) || (format == PIPE_FORMAT_P010));
+      return ((format == PIPE_FORMAT_NV12) || (format == PIPE_FORMAT_P010) || (format == PIPE_FORMAT_AYUV));
    } else if (entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING) {
       return (format == PIPE_FORMAT_NV12) || (format == PIPE_FORMAT_P010)
          || (format == PIPE_FORMAT_R8G8B8A8_UNORM) || (format == PIPE_FORMAT_R8G8B8A8_UINT)

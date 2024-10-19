@@ -78,6 +78,9 @@ public:
       _mesa_hash_table_destroy(this->ht, NULL);
    }
 
+   string_to_uint_map(const string_to_uint_map &) = delete;
+   string_to_uint_map & operator=(const string_to_uint_map &) = delete;
+
    /**
     * Remove all mappings from this map.
     */

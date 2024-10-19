@@ -59,11 +59,13 @@
 
 #include "dix/dix_priv.h"
 #include "dix/ptrveloc_priv.h"
+#include "dix/input_priv.h"
 
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86Config.h"
 #include "xf86Xinput.h"
+#include "XIstubs.h"
 #include "xf86Optrec.h"
 #include "mipointer.h"
 #include "extinit.h"
@@ -720,7 +722,7 @@ MergeInputClasses(const InputInfoPtr idev, const InputAttributes * attrs)
         classopts = xf86optionListDup(cl->option_lst);
         if (cl->driver) {
             free((void *) idev->driver);
-            idev->driver = xstrdup(cl->driver);
+            idev->driver = Xstrdup(cl->driver);
             if (!idev->driver) {
                 xf86Msg(X_ERROR, "Failed to allocate memory while merging "
                         "InputClass configuration");
@@ -769,7 +771,7 @@ xf86AllocateInput(void)
 {
     InputInfoPtr pInfo;
 
-    pInfo = calloc(sizeof(*pInfo), 1);
+    pInfo = calloc(1, sizeof(*pInfo));
     if (!pInfo)
         return NULL;
 
@@ -950,7 +952,7 @@ xf86NewInputDevice(InputInfoPtr pInfo, DeviceIntPtr *pdev, BOOL enable)
         if (fd != -1) {
             if (paused) {
                 /* Put on new_input_devices list for delayed probe */
-                PausedInputDevicePtr new_device = xnfalloc(sizeof *new_device);
+                PausedInputDevicePtr new_device = XNFalloc(sizeof *new_device);
                 new_device->pInfo = pInfo;
 
                 xorg_list_append(&new_device->node, &new_input_devices_list);
@@ -1047,7 +1049,7 @@ NewInputDeviceRequest(InputOption *options, InputAttributes * attrs,
                 rval = BadRequest;
                 goto unwind;
             }
-            pInfo->driver = xstrdup(value);
+            pInfo->driver = Xstrdup(value);
             if (!pInfo->driver) {
                 rval = BadAlloc;
                 goto unwind;
@@ -1059,7 +1061,7 @@ NewInputDeviceRequest(InputOption *options, InputAttributes * attrs,
                 rval = BadRequest;
                 goto unwind;
             }
-            pInfo->name = xstrdup(value);
+            pInfo->name = Xstrdup(value);
             if (!pInfo->name) {
                 rval = BadAlloc;
                 goto unwind;

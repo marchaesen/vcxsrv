@@ -1,0 +1,25 @@
+# Unfortunately it looks like all tex-miplevel selection
+# tests are very flaky.
+spec@arb_texture_rectangle@tex-miplevel-selection*
+spec@glsl-1.20@execution@tex-miplevel-selection*
+spec@!opengl 1.4@tex-miplevel-selection
+spec@!opengl 1.4@tex-miplevel-selection-lod
+spec@!opengl 1.4@tex-miplevel-selection-lod-bias
+
+spec@!opengl 2.1@pbo@test_draw_pixels
+spec@arb_draw_buffers@fbo-mrt-alphatest
+spec@arb_sampler_objects@sampler-incomplete
+spec@glsl-1.10@execution@built-in-functions@fs-op-selection-bool-bvec3-bvec3
+spec@oes_draw_elements_base_vertex@oes_draw_elements_base_vertex-drawelements
+shaders@glsl-fs-bug25902
+shaders@glsl-lod-bias
+spec@glsl-1.20@execution@glsl-fs-frontfacing-not
+spec@glsl-1.10@execution@fs-frontfacing-ternary-neg-1.0-1.0
+spec@oes_texture_float@oes_texture_float
+spec@ext_direct_state_access@textures*
+
+spec@!opengl 1.1@texgen
+spec@ati_fragment_shader@ati_fragment_shader-render-textargets
+
+spec@ati_fragment_shader@ati_fragment_shader-render-notexture
+spec@ext_texture_compression_s3tc@s3tc-errors_gles2

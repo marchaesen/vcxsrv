@@ -21,15 +21,15 @@ enum radv_ud_index {
    AC_UD_INDIRECT_DESCRIPTOR_SETS = 3,
    AC_UD_VIEW_INDEX = 4,
    AC_UD_STREAMOUT_BUFFERS = 5,
-   AC_UD_SHADER_QUERY_STATE = 6,
-   AC_UD_NGG_PROVOKING_VTX = 7,
+   AC_UD_STREAMOUT_STATE = 6,
+   AC_UD_TASK_STATE = 7,
    AC_UD_NGG_CULLING_SETTINGS = 8,
    AC_UD_NGG_VIEWPORT = 9,
    AC_UD_NGG_LDS_LAYOUT = 10,
-   AC_UD_VGT_ESGS_RING_ITEMSIZE = 11,
-   AC_UD_FORCE_VRS_RATES = 12,
-   AC_UD_TASK_RING_ENTRY = 13,
-   AC_UD_NUM_VERTS_PER_PRIM = 14,
+   AC_UD_NGG_STATE = 11,
+   AC_UD_VGT_ESGS_RING_ITEMSIZE = 12,
+   AC_UD_FORCE_VRS_RATES = 13,
+   AC_UD_TASK_RING_ENTRY = 14,
    AC_UD_NEXT_STAGE_PC = 15,
    AC_UD_EPILOG_PC = 16,
    AC_UD_SHADER_START = 17,
@@ -73,17 +73,18 @@ struct radv_shader_args {
    struct ac_shader_args ac;
 
    struct ac_arg descriptor_sets[MAX_SETS];
-   /* User data 2/3. same as ring_offsets but for task shaders. */
-   struct ac_arg task_ring_offsets;
 
    /* Streamout */
    struct ac_arg streamout_buffers;
+   struct ac_arg streamout_state; /* GFX12+ */
 
-   /* Emulated query */
-   struct ac_arg shader_query_state;
+   /* Task */
+   struct ac_arg task_state;
+   /* User data 2/3. same as ring_offsets but for task shaders. */
+   struct ac_arg task_ring_offsets;
 
    /* NGG */
-   struct ac_arg ngg_provoking_vtx;
+   struct ac_arg ngg_state;
    struct ac_arg ngg_lds_layout;
 
    /* NGG GS */
@@ -116,9 +117,6 @@ struct radv_shader_args {
 
    /* GS */
    struct ac_arg vgt_esgs_ring_itemsize;
-
-   /* NGG VS streamout */
-   struct ac_arg num_verts_per_prim;
 
    /* For non-monolithic VS or TES on GFX9+. */
    struct ac_arg next_stage_pc;

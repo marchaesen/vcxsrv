@@ -1,7 +1,5 @@
-#
 # Copyright © 2024 Igalia S.L.
 # SPDX-License-Identifier: MIT
-#
 
 has_pycparser = run_command(
   prog_python, '-c',

@@ -28,7 +28,7 @@ panvk_CreateCommandPool(VkDevice _device,
    pool = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*pool), 8,
                     VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (pool == NULL)
-      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    VkResult result =
       vk_command_pool_init(&device->vk, &pool->vk, pCreateInfo, pAllocator);
@@ -37,9 +37,11 @@ panvk_CreateCommandPool(VkDevice _device,
       return result;
    }
 
+   panvk_bo_pool_init(&pool->cs_bo_pool);
    panvk_bo_pool_init(&pool->desc_bo_pool);
    panvk_bo_pool_init(&pool->varying_bo_pool);
    panvk_bo_pool_init(&pool->tls_bo_pool);
+   list_inithead(&pool->push_sets);
    *pCmdPool = panvk_cmd_pool_to_handle(pool);
    return VK_SUCCESS;
 }
@@ -51,11 +53,21 @@ panvk_DestroyCommandPool(VkDevice _device, VkCommandPool commandPool,
    VK_FROM_HANDLE(panvk_device, device, _device);
    VK_FROM_HANDLE(panvk_cmd_pool, pool, commandPool);
 
+   if (!pool)
+      return;
+
    vk_command_pool_finish(&pool->vk);
 
+   panvk_bo_pool_cleanup(&pool->cs_bo_pool);
    panvk_bo_pool_cleanup(&pool->desc_bo_pool);
    panvk_bo_pool_cleanup(&pool->varying_bo_pool);
    panvk_bo_pool_cleanup(&pool->tls_bo_pool);
+
+   list_for_each_entry_safe(struct panvk_cmd_pool_obj, obj, &pool->push_sets,
+                            node) {
+      list_del(&obj->node);
+      vk_free(&pool->vk.alloc, obj);
+   }
 
    vk_free2(&device->vk.alloc, pAllocator, pool);
 }

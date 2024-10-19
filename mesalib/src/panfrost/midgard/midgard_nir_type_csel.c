@@ -9,12 +9,8 @@
 #include "nir_opcodes.h"
 
 static bool
-pass(nir_builder *b, nir_instr *instr, void *data)
+pass(nir_builder *b, nir_alu_instr *alu, void *data)
 {
-   if (instr->type != nir_instr_type_alu)
-      return false;
-
-   nir_alu_instr *alu = nir_instr_as_alu(instr);
    if (alu->op != nir_op_b32csel)
       return false;
 
@@ -37,9 +33,8 @@ midgard_nir_type_csel(nir_shader *shader)
       calloc(BITSET_WORDS(impl->ssa_alloc), sizeof(BITSET_WORD));
    nir_gather_types(impl, float_types, NULL);
 
-   nir_shader_instructions_pass(
-      shader, pass, nir_metadata_block_index | nir_metadata_dominance,
-      float_types);
+   nir_shader_alu_pass(shader, pass, nir_metadata_control_flow,
+                       float_types);
 
    free(float_types);
 }

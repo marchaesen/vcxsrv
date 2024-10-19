@@ -1,0 +1,14 @@
+.rusticl-rules:
+  rules:
+    - !reference [.test, rules]
+    - changes: &rusticl_file_list
+        - src/gallium/frontends/rusticl/**/*
+      when: on_success
+
+.rusticl-manual-rules:
+  extends: .no-auto-retry
+  rules:
+    - !reference [.test, rules]
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - changes: *rusticl_file_list
+      when: manual

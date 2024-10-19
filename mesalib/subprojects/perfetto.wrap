@@ -2,4 +2,5 @@
 directory = perfetto
 
 url = https://android.googlesource.com/platform/external/perfetto
-revision = v29.0
+revision = v47.0
+depth = 1

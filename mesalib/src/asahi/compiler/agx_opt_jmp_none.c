@@ -32,9 +32,10 @@ cost_instr(agx_instr *I)
    /* TODO: Better heuristic */
    switch (I->op) {
    case AGX_OPCODE_DEVICE_LOAD:
+      return 10;
    case AGX_OPCODE_TEXTURE_LOAD:
    case AGX_OPCODE_TEXTURE_SAMPLE:
-      return 10;
+      return 50;
    default:
       return 1;
    }

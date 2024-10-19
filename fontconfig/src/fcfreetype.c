@@ -32,6 +32,7 @@
 #include FT_FREETYPE_H
 #include FT_ADVANCES_H
 #include FT_TRUETYPE_TABLES_H
+#include FT_TRUETYPE_TAGS_H
 #include FT_SFNT_NAMES_H
 #include FT_TRUETYPE_IDS_H
 #include FT_TYPE1_TABLES_H
@@ -2708,10 +2709,8 @@ FcFreeTypeCharSetAndSpacing (FT_Face face, FcBlanks *blanks FC_UNUSED, int *spac
 }
 
 
-#define TTAG_GPOS  FT_MAKE_TAG( 'G', 'P', 'O', 'S' )
-#define TTAG_GSUB  FT_MAKE_TAG( 'G', 'S', 'U', 'B' )
+/* Graphite Rules Table */
 #define TTAG_SILF  FT_MAKE_TAG( 'S', 'i', 'l', 'f')
-#define TTAG_prep  FT_MAKE_TAG( 'p', 'r', 'e', 'p' )
 
 #define OTLAYOUT_HEAD	    "otlayout:"
 #define OTLAYOUT_HEAD_LEN   9
@@ -2762,7 +2761,7 @@ compareulong (const void *a, const void *b)
 }
 
 static FcBool
-FindTable (FT_Face face, FT_ULong tabletag)
+FindTable (FT_Face face, FT_ULong tabletag, FT_ULong *tablesize)
 {
     FT_Stream  stream = face->stream;
     FT_Error   error;
@@ -2770,7 +2769,7 @@ FindTable (FT_Face face, FT_ULong tabletag)
     if (!stream)
         return FcFalse;
 
-    if (( error = ftglue_face_goto_table( face, tabletag, stream ) ))
+    if (( error = ftglue_face_goto_table( face, tabletag, stream, tablesize ) ))
 	return FcFalse;
 
     return FcTrue;
@@ -2788,7 +2787,7 @@ GetScriptTags(FT_Face face, FT_ULong tabletag, FT_ULong **stags)
     if (!stream)
         return 0;
 
-    if (( error = ftglue_face_goto_table( face, tabletag, stream ) ))
+    if (( error = ftglue_face_goto_table( face, tabletag, stream, NULL ) ))
 	return 0;
 
     base_offset = ftglue_stream_pos ( stream );
@@ -2911,9 +2910,29 @@ bail:
 }
 
 static FcBool
-FcFontHasHint (FT_Face face)
+FcFontHasHint(FT_Face face)
 {
-    return FindTable (face, TTAG_prep);
+    FT_ULong size;
+
+    /* For a workaround of gttools fix-nonhinting.
+     * See https://gitlab.freedesktop.org/fontconfig/fontconfig/-/issues/426
+     */
+    if (FcDebug() & FC_DBG_SCANV)
+    {
+	FT_ULong ret;
+
+	fprintf(stderr, "*** Has hint:\n");
+	fprintf(stderr, "    fpgm table: %s\n",
+		FindTable(face, TTAG_fpgm, NULL) ? "True" : "False");
+	fprintf(stderr, "    cvt table: %s\n",
+		FindTable(face, TTAG_cvt, NULL) ? "True" : "False");
+	fprintf(stderr, "    prep table: %s\n",
+		FindTable(face, TTAG_prep, &ret) ? "True" : "False");
+        fprintf(stderr, "    prep size: %lu\n", ret);
+    }
+    return FindTable(face, TTAG_fpgm, NULL) ||
+	FindTable(face, TTAG_cvt, NULL) ||
+	(FindTable (face, TTAG_prep, &size) && size > 7);
 }
 
 

@@ -232,9 +232,6 @@ typedef struct _XkbSrvLedInfo {
 #define _XkbClientInitialized           (1<<7)
 #define _XkbClientIsAncient             (1<<6)
 
-#define	_XkbWantsDetectableAutoRepeat(c)\
-	((c)->xkbClientFlags&XkbPCF_DetectableAutoRepeatMask)
-
 /*
  * Settings for flags field
  */

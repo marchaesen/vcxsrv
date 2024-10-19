@@ -11,7 +11,7 @@
 bool
 r300_is_only_used_as_float(const nir_alu_instr *instr)
 {
-   nir_foreach_use(src, &instr->def) {
+   nir_foreach_use (src, &instr->def) {
       if (nir_src_is_if(src))
          return false;
 
@@ -29,7 +29,7 @@ r300_is_only_used_as_float(const nir_alu_instr *instr)
                return false;
             break;
          default:
-	    break;
+            break;
          }
 
          const nir_op_info *info = &nir_op_infos[alu->op];
@@ -46,34 +46,67 @@ r300_is_only_used_as_float(const nir_alu_instr *instr)
 static unsigned char
 r300_should_vectorize_instr(const nir_instr *instr, const void *data)
 {
+   bool *too_many_ubos = (bool *)data;
+
    if (instr->type != nir_instr_type_alu)
       return 0;
+
+   /* Vectorization can make the constant layout worse and increase
+    * the constant register usage. The worst scenario is vectorization
+    * of lowered indirect register access, where we access i-th element
+    * and later we access i-1 or i+1 (most notably glamor and gsk shaders).
+    * In this case we already added constants 1..n where n is the array
+    * size, however we can reuse them unless the lowered ladder gets
+    * vectorized later.
+    *
+    * Thus prevent vectorization of the specific patterns from lowered
+    * indirect access.
+    *
+    * This is quite a heavy hammer, we could in theory estimate how many
+    * slots will the current ubos and constants need and only disable
+    * vectorization when we are close to the limit. However, this would
+    * likely need a global shader analysis each time r300_should_vectorize_inst
+    * is called, which we want to avoid.
+    *
+    * So for now just don't vectorize anything that loads constants.
+    */
+   if (*too_many_ubos) {
+      nir_alu_instr *alu = nir_instr_as_alu(instr);
+      unsigned num_srcs = nir_op_infos[alu->op].num_inputs;
+      for (unsigned i = 0; i < num_srcs; i++) {
+         if (nir_src_is_const(alu->src[i].src)) {
+            return 0;
+         }
+      }
+   }
 
    return 4;
 }
 
+/* R300 and R400 have just 32 vec4 constant register slots in fs.
+ * Therefore, while its possible we will be able to compact some of
+ * the constants later, we need to be extra careful with adding
+ * new constants anyway.
+ */
 static bool
-r300_should_vectorize_io(unsigned align, unsigned bit_size,
-                        unsigned num_components, unsigned high_offset,
-                        nir_intrinsic_instr *low, nir_intrinsic_instr *high,
-                        void *data)
+have_too_many_ubos(nir_shader *s, bool is_r500)
 {
-   if (bit_size != 32)
+   if (s->info.stage != MESA_SHADER_FRAGMENT)
       return false;
 
-   /* Our offset alignment should always be at least 4 bytes */
-   if (align < 4)
+   if (is_r500)
       return false;
 
-   /* No wrapping off the end of a TGSI reg.  We could do a bit better by
-    * looking at low's actual offset.  XXX: With LOAD_CONSTBUF maybe we don't
-    * need this restriction.
-    */
-   unsigned worst_start_component = align == 4 ? 3 : align / 4;
-   if (worst_start_component + num_components > 4)
-      return false;
+   nir_foreach_variable_with_modes (var, s, nir_var_mem_ubo) {
+      int ubo = var->data.driver_location;
+      assert(ubo == 0);
 
-   return true;
+      unsigned size = glsl_get_explicit_size(var->interface_type, false);
+      if (DIV_ROUND_UP(size, 16) > 32)
+         return true;
+   }
+
+   return false;
 }
 
 static bool
@@ -82,6 +115,24 @@ set_speculate(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *_)
    if (intr->intrinsic == nir_intrinsic_load_ubo_vec4) {
       nir_intrinsic_set_access(intr, nir_intrinsic_access(intr) | ACCESS_CAN_SPECULATE);
       return true;
+   }
+   return false;
+}
+
+static bool
+remove_clip_vertex(nir_builder *b, nir_instr *instr, UNUSED void *_)
+{
+   if (instr->type != nir_instr_type_deref)
+      return false;
+   nir_deref_instr *deref = nir_instr_as_deref(instr);
+   if (deref->deref_type == nir_deref_type_var &&
+       deref->var->data.mode == nir_var_shader_out &&
+       deref->var->data.location == VARYING_SLOT_CLIP_VERTEX) {
+       nir_foreach_use_safe(src, &deref->def) {
+          nir_instr_remove(nir_src_parent_instr(src));
+       }
+       nir_instr_remove(instr);
+       return true;
    }
    return false;
 }
@@ -111,6 +162,25 @@ r300_optimize_nir(struct nir_shader *s, struct pipe_screen *screen)
                NIR_PASS_V(s, r300_transform_vs_trig_input);
             }
          }
+
+         /* There is no HW support for gl_ClipVertex, so we just remove it early. */
+         if (nir_shader_instructions_pass(s, remove_clip_vertex,
+                                          nir_metadata_control_flow, NULL)) {
+            unsigned clip_vertex_location = 0;
+            nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
+               if (var->data.location == VARYING_SLOT_CLIP_VERTEX) {
+                  clip_vertex_location = var->data.driver_location;
+               }
+            }
+            nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
+               if (var->data.driver_location > clip_vertex_location) {
+                  var->data.driver_location--;
+               }
+            }
+            NIR_PASS_V(s, nir_remove_dead_variables, nir_var_shader_out, NULL);
+            fprintf(stderr, "r300: no HW support for clip vertex, expect misrendering.\n");
+            fprintf(stderr, "r300: software emulation can be enabled with RADEON_DEBUG=notcl.\n");
+         }
       }
    }
 
@@ -139,27 +209,21 @@ r300_optimize_nir(struct nir_shader *s, struct pipe_screen *screen)
 
       NIR_PASS(progress, s, nir_opt_if, nir_opt_if_optimize_phi_true_false);
       if (is_r500)
-         nir_shader_intrinsics_pass(s, set_speculate,
-                                    nir_metadata_block_index |
-                                    nir_metadata_dominance, NULL);
+         nir_shader_intrinsics_pass(s, set_speculate, nir_metadata_control_flow, NULL);
       NIR_PASS(progress, s, nir_opt_peephole_select, is_r500 ? 8 : ~0, true, true);
       if (s->info.stage == MESA_SHADER_FRAGMENT) {
          NIR_PASS(progress, s, r300_nir_lower_bool_to_float_fs);
       }
       NIR_PASS(progress, s, nir_opt_algebraic);
       NIR_PASS(progress, s, nir_opt_constant_folding);
-      nir_load_store_vectorize_options vectorize_opts = {
-         .modes = nir_var_mem_ubo,
-         .callback = r300_should_vectorize_io,
-         .robust_modes = 0,
-      };
-      NIR_PASS(progress, s, nir_opt_load_store_vectorize, &vectorize_opts);
       NIR_PASS(progress, s, nir_opt_shrink_stores, true);
       NIR_PASS(progress, s, nir_opt_shrink_vectors, false);
       NIR_PASS(progress, s, nir_opt_loop);
-      NIR_PASS(progress, s, nir_opt_vectorize, r300_should_vectorize_instr, NULL);
+
+      bool too_many_ubos = have_too_many_ubos(s, is_r500);
+      NIR_PASS(progress, s, nir_opt_vectorize, r300_should_vectorize_instr, &too_many_ubos);
       NIR_PASS(progress, s, nir_opt_undef);
-      if(!progress)
+      if (!progress)
          NIR_PASS(progress, s, nir_lower_undef_to_zero);
       NIR_PASS(progress, s, nir_opt_loop_unroll);
 
@@ -181,11 +245,11 @@ r300_optimize_nir(struct nir_shader *s, struct pipe_screen *screen)
    } while (progress);
 
    NIR_PASS_V(s, nir_lower_var_copies);
-   NIR_PASS(progress, s, nir_remove_dead_variables, nir_var_function_temp,
-			NULL);
+   NIR_PASS(progress, s, nir_remove_dead_variables, nir_var_function_temp, NULL);
 }
 
-static char *r300_check_control_flow(nir_shader *s)
+static char *
+r300_check_control_flow(nir_shader *s)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(s);
    nir_block *first = nir_start_block(impl);
@@ -193,12 +257,14 @@ static char *r300_check_control_flow(nir_shader *s)
 
    if (next) {
       switch (next->type) {
-         case nir_cf_node_if:
-            return "If/then statements not supported by R300/R400 shaders, should have been flattened by peephole_select.";
-         case nir_cf_node_loop:
-            return "Looping not supported R300/R400 shaders, all loops must be statically unrollable.";
-         default:
-            return "Unknown control flow type";
+      case nir_cf_node_if:
+         return "If/then statements not supported by R300/R400 shaders, should have been "
+                "flattened by peephole_select.";
+      case nir_cf_node_loop:
+         return "Looping not supported R300/R400 shaders, all loops must be statically "
+                "unrollable.";
+      default:
+         return "Unknown control flow type";
       }
    }
 
@@ -218,10 +284,9 @@ r300_finalize_nir(struct pipe_screen *pscreen, void *nir)
     * because they're needed for YUV variant lowering.
     */
    nir_remove_dead_derefs(s);
-   nir_foreach_uniform_variable_safe(var, s) {
+   nir_foreach_uniform_variable_safe (var, s) {
       if (var->data.mode == nir_var_uniform &&
-          (glsl_type_get_image_count(var->type) ||
-           glsl_type_get_sampler_count(var->type)))
+          (glsl_type_get_image_count(var->type) || glsl_type_get_sampler_count(var->type)))
          continue;
 
       exec_node_remove(&var->node);

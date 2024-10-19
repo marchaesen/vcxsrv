@@ -2040,7 +2040,8 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.explicit_invariant = false;
    this->data.invariant = false;
    this->data.precise = false;
-   this->data.how_declared = ir_var_declared_normally;
+   this->data.how_declared =
+      mode == ir_var_temporary ? ir_var_hidden : ir_var_declared_normally;
    this->data.mode = mode;
    this->data.interpolation = INTERP_MODE_NONE;
    this->data.max_array_access = -1;

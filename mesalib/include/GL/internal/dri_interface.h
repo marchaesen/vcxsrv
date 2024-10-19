@@ -1266,7 +1266,7 @@ struct __DRIdri2ExtensionRec {
  * extensions.
  */
 #define __DRI_IMAGE "DRI_IMAGE"
-#define __DRI_IMAGE_VERSION 20
+#define __DRI_IMAGE_VERSION 22
 
 /* __DRI_IMAGE_FORMAT_* tokens are no longer exported */
 
@@ -1346,6 +1346,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_ATTRIB_OFFSET 0x200A /* available in versions 13 */
 #define __DRI_IMAGE_ATTRIB_MODIFIER_LOWER 0x200B /* available in versions 14 */
 #define __DRI_IMAGE_ATTRIB_MODIFIER_UPPER 0x200C /* available in versions 14 */
+#define __DRI_IMAGE_ATTRIB_COMPRESSION_RATE 0x200D /* available in versions 22 */
 
 enum __DRIYUVColorSpace {
    __DRI_YUV_COLOR_SPACE_UNDEFINED = 0,
@@ -1364,6 +1365,24 @@ enum __DRIChromaSiting {
    __DRI_YUV_CHROMA_SITING_UNDEFINED = 0,
    __DRI_YUV_CHROMA_SITING_0 = 0x3284,
    __DRI_YUV_CHROMA_SITING_0_5 = 0x3285
+};
+
+enum __DRIFixedRateCompression {
+  __DRI_FIXED_RATE_COMPRESSION_NONE = 0x34B1,
+  __DRI_FIXED_RATE_COMPRESSION_DEFAULT = 0x34B2,
+
+  __DRI_FIXED_RATE_COMPRESSION_1BPC = 0x34B4,
+  __DRI_FIXED_RATE_COMPRESSION_2BPC = 0x34B5,
+  __DRI_FIXED_RATE_COMPRESSION_3BPC = 0x34B6,
+  __DRI_FIXED_RATE_COMPRESSION_4BPC = 0x34B7,
+  __DRI_FIXED_RATE_COMPRESSION_5BPC = 0x34B8,
+  __DRI_FIXED_RATE_COMPRESSION_6BPC = 0x34B9,
+  __DRI_FIXED_RATE_COMPRESSION_7BPC = 0x34BA,
+  __DRI_FIXED_RATE_COMPRESSION_8BPC = 0x34BB,
+  __DRI_FIXED_RATE_COMPRESSION_9BPC = 0x34BC,
+  __DRI_FIXED_RATE_COMPRESSION_10BPC = 0x34BD,
+  __DRI_FIXED_RATE_COMPRESSION_11BPC = 0x34BE,
+  __DRI_FIXED_RATE_COMPRESSION_12BPC = 0x34BF,
 };
 
 /**
@@ -1755,6 +1774,51 @@ struct __DRIimageExtensionRec {
     * \since 21
     */
    void (*setInFenceFd)(__DRIimage *image, int fd);
+
+   /*
+    * Query supported compression rates for a given format for
+    * EGL_EXT_surface_compression.
+    *
+    * \param config   Config for which to query the supported compression
+    *                 rates.
+    * \param max      Maximum number of rates that can be accomodated into
+    *                 \param rates. If zero, no rates are returned -
+    *                 instead, the driver returns the total number of
+    *                 supported compression rates in \param count.
+    * \param rates    Buffer to fill rates into.
+    * \param count    Count of rates returned, or, total number of
+    *                 supported rates in case \param max is zero.
+    *
+    * Returns true on success.
+    *
+    * \since 22
+    */
+   bool (*queryCompressionRates)(__DRIscreen *screen, const __DRIconfig *config,
+                                 int max, enum __DRIFixedRateCompression *rates,
+                                 int *count);
+
+   /*
+    * Query list of modifiers that are associated with given fixed-rate
+    * compression bitrate.
+    *
+    * \param format    The format to query
+    * \param rate      Compression rate to query for
+    * \param max       Maximum number of modifiers that can be accomodated in
+    *                  \param modifiers. If zero, no modifiers are returned -
+    *                  instead, the driver returns the total number of
+    *                  modifiers for \param format in \param count.
+    * \param modifiers Buffer to fill modifiers into.
+    * \param count     Count of the modifiers returned, or, total number of
+    *                  supported modifiers for \param fourcc in case
+    *                  \param max is zero.
+    *
+    * Returns true on success.
+    *
+    * \since 22
+    */
+   bool (*queryCompressionModifiers)(__DRIscreen *screen, uint32_t format,
+                                     enum __DRIFixedRateCompression rate,
+                                     int max, uint64_t *modifiers, int *count);
 };
 
 

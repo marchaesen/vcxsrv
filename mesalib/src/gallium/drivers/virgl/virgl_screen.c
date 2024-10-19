@@ -196,9 +196,6 @@ virgl_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_START_INSTANCE:
       return vscreen->caps.caps.v1.bset.start_instance;
    case PIPE_CAP_TGSI_CAN_COMPACT_CONSTANTS:
-   case PIPE_CAP_VERTEX_BUFFER_OFFSET_4BYTE_ALIGNED_ONLY:
-   case PIPE_CAP_VERTEX_BUFFER_STRIDE_4BYTE_ALIGNED_ONLY:
-   case PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY:
    case PIPE_CAP_TEXTURE_TRANSFER_MODES:
    case PIPE_CAP_NIR_IMAGES_AS_DEREF:
       return 0;
@@ -1227,6 +1224,7 @@ virgl_create_screen(struct virgl_winsys *vws, const struct pipe_screen_config *c
       screen->compiler_options.lower_ffloor = true;
       screen->compiler_options.lower_fneg = true;
    }
+   screen->compiler_options.no_integers = screen->caps.caps.v1.glsl_level < 130;
    screen->compiler_options.lower_ffma32 = true;
    screen->compiler_options.fuse_ffma32 = false;
    screen->compiler_options.lower_ldexp = true;

@@ -37,7 +37,6 @@ endif
 
 if build_xace
     srcs_xext += 'xace.c'
-    hdrs_xext += ['xace.h', 'xacestr.h']
 endif
 
 if build_xf86bigfont

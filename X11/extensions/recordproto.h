@@ -21,6 +21,7 @@
 #ifndef _RECORDPROTO_H_
 #define _RECORDPROTO_H_
 
+#include <X11/Xmd.h>
 #include <X11/extensions/recordconst.h>
 
 /* only difference between 1.12 and 1.13 is byte order of device events,

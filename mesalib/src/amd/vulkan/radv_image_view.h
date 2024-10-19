@@ -58,7 +58,7 @@ struct radv_image_view_extra_create_info {
 };
 
 void radv_image_view_init(struct radv_image_view *view, struct radv_device *device,
-                          const VkImageViewCreateInfo *pCreateInfo, VkImageCreateFlags img_create_flags,
+                          const VkImageViewCreateInfo *pCreateInfo,
                           const struct radv_image_view_extra_create_info *extra_create_info);
 void radv_image_view_finish(struct radv_image_view *iview);
 
@@ -72,8 +72,7 @@ void radv_make_texture_descriptor(struct radv_device *device, struct radv_image 
                                   VkImageViewType view_type, VkFormat vk_format, const VkComponentMapping *mapping,
                                   unsigned first_level, unsigned last_level, unsigned first_layer, unsigned last_layer,
                                   unsigned width, unsigned height, unsigned depth, float min_lod, uint32_t *state,
-                                  uint32_t *fmask_state, VkImageCreateFlags img_create_flags,
-                                  const struct ac_surf_nbc_view *nbc_view,
+                                  uint32_t *fmask_state, const struct ac_surf_nbc_view *nbc_view,
                                   const VkImageViewSlicedCreateInfoEXT *sliced_3d);
 
 #endif /* RADV_IMAGE_VIEW_H */

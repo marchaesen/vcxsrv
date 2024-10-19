@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2019 Google.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2019 Google.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "util/ralloc.h"
@@ -45,6 +27,10 @@ is_safe_conv(struct ir3_instruction *instr, type_t src_type, opc_t *src_opc)
        type_size(instr->cat1.src_type) == 16)
       return false;
 
+   /* mad.x24 doesn't work with 16-bit in/out */
+   if (*src_opc == OPC_MAD_S24 || *src_opc == OPC_MAD_U24)
+      return false;
+
    struct ir3_register *dst = instr->dsts[0];
    struct ir3_register *src = instr->srcs[0];
 
@@ -66,9 +52,11 @@ is_safe_conv(struct ir3_instruction *instr, type_t src_type, opc_t *src_opc)
       return true;
 
    /* We can handle mismatches with integer types by converting the opcode
-    * but not when an integer is reinterpreted as a float or vice-versa.
+    * but not when an integer is reinterpreted as a float or vice-versa. We
+    * can't handle types with different sizes.
     */
-   if (type_float(src_type) != type_float(instr->cat1.src_type))
+   if (type_float(src_type) != type_float(instr->cat1.src_type) ||
+       type_size(src_type) != type_size(instr->cat1.src_type))
       return false;
 
    /* We have types with mismatched signedness. Mismatches on the signedness

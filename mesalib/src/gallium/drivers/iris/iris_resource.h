@@ -106,12 +106,8 @@ struct iris_resource {
       /** Offset into 'bo' where the auxiliary surface starts. */
       uint32_t offset;
 
-      struct {
-         struct isl_surf surf;
-
-         /** Offset into 'bo' where the auxiliary surface starts. */
-         uint32_t offset;
-      } extra_aux;
+      /** Offset into 'bo' where the compression control surface starts. */
+      uint32_t comp_ctrl_surf_offset;
 
       /**
        * When importing resources with a clear color, we may not know the
@@ -354,8 +350,7 @@ iris_hiz_exec(struct iris_context *ice,
               struct iris_batch *batch,
               struct iris_resource *res,
               unsigned int level, unsigned int start_layer,
-              unsigned int num_layers, enum isl_aux_op op,
-              bool update_clear_depth);
+              unsigned int num_layers, enum isl_aux_op op);
 
 /**
  * Prepare a miptree for access
@@ -499,6 +494,8 @@ bool iris_render_formats_color_compatible(enum isl_format a,
                                           enum isl_format b,
                                           union isl_color_value color,
                                           bool clear_color_unknown);
+void iris_resource_update_indirect_color(struct iris_batch *batch,
+                                         struct iris_resource *res);
 enum isl_aux_usage iris_resource_render_aux_usage(struct iris_context *ice,
                                                   struct iris_resource *res,
                                                   enum isl_format render_fmt,

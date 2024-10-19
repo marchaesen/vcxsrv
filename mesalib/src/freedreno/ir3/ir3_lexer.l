@@ -180,7 +180,7 @@ static int parse_reg(const char *str)
 "gat"                             return TOKEN(T_OP_GAT);
 "sct"                             return TOKEN(T_OP_SCT);
 
-("f16"|"f32"|"u16"|"u32"|"s16"|"s32"|"u8"|"s8"){2} ir3_yylval.str = yytext; return T_CAT1_TYPE_TYPE;
+("f16"|"f32"|"u16"|"u32"|"s16"|"s32"|"u8"|"u8_32"){2} ir3_yylval.str = yytext; return T_CAT1_TYPE_TYPE;
 
                                   /* category 2: */
 "add.f"                           return TOKEN(T_OP_ADD_F);
@@ -382,6 +382,7 @@ static int parse_reg(const char *str)
 "getfiberid"                      return TOKEN(T_OP_GETFIBERID);
 "stc"                             return TOKEN(T_OP_STC);
 "stsc"                            return TOKEN(T_OP_STSC);
+"shfl"                            return TOKEN(T_OP_SHFL);
 
 ("b16"|"b32"){1} ir3_yylval.str = yytext; return T_INSTR_TYPE;
 
@@ -407,7 +408,7 @@ static int parse_reg(const char *str)
 "s16"                             return TOKEN(T_TYPE_S16);
 "s32"                             return TOKEN(T_TYPE_S32);
 "u8"                              return TOKEN(T_TYPE_U8);
-"s8"                              return TOKEN(T_TYPE_S8);
+"u8_32"                           return TOKEN(T_TYPE_U8_32);
 
 "untyped"                         return TOKEN(T_UNTYPED);
 "typed"                           return TOKEN(T_TYPED);
@@ -436,6 +437,7 @@ static int parse_reg(const char *str)
 "s"                               return 's';
 "k"                               return 'k';
 "u"                               return 'u';
+"v"                               return 'v';
 "base"[0-9]+                      ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_BASE;
 "offset"[0-9]+                    ir3_yylval.num = strtol(yytext+6, NULL, 10); return T_OFFSET;
 "uniform"                         return T_UNIFORM;
@@ -445,6 +447,12 @@ static int parse_reg(const char *str)
 "tex"                             return T_MOD_TEX;
 "mem"                             return T_MOD_MEM;
 "rt"                              return T_MOD_RT;
+
+"xor"                             return T_MOD_XOR;
+"up"                              return T_MOD_UP;
+"down"                            return T_MOD_DOWN;
+"rup"                             return T_MOD_RUP;
+"rdown"                           return T_MOD_RDOWN;
 
 "h"                               return 'h';
 "="                               return '=';

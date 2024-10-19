@@ -957,6 +957,9 @@ AddSymbolsToKey(KeyInfo *key, XkbDescPtr xkb, const char *field,
     for (int i = key->numLevels[ndx] - 1;
          (i >= 0) && (key->syms[ndx][i] == NoSymbol); i--)
     {
+        key->syms[ndx] = recallocarray(key->syms[ndx], key->numLevels[ndx],
+                                       key->numLevels[ndx]-1, sizeof(KeySym));
+        /* XXX resize keys->acts too ? */
         key->numLevels[ndx]--;
     }
     return True;

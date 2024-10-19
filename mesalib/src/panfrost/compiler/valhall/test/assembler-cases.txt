@@ -242,3 +242,4 @@ c4 c0 40 10 71 c0 b6 00    LSHIFT_AND.v4i8 r0, 0x1000000.b3333, 0x0.b00, ^r0
 41 40 0b 40 00 c0 aa 00    HADD.v4s8.rhadd r0, ^r1, ^r0
 01 00 c0 80 01 c2 fa 00    ICMP_OR.v4s8.gt.m1 r2, r1, r0, 0x0
 40 41 42 00 01 c0 ba 00    MUX.v4i8 r0, ^r0, ^r1, ^r2
+c0 c0 00 00 04 82 6b 00    LEA_BUFFER.slot0 @r2:r3, 0x0, 0x0

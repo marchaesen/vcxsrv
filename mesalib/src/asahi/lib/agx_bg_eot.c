@@ -31,17 +31,17 @@ agx_compile_bg_eot_shader(struct agx_bg_eot_cache *cache, nir_shader *shader,
                           struct agx_shader_key *key,
                           struct agx_tilebuffer_layout *tib)
 {
-   agx_nir_lower_texture(shader);
+   agx_nir_lower_texture(shader, false);
    agx_preprocess_nir(shader, cache->dev->libagx);
    if (tib) {
       unsigned bindless_base = 0;
-      agx_nir_lower_tilebuffer(shader, tib, NULL, &bindless_base, NULL);
+      agx_nir_lower_tilebuffer(shader, tib, NULL, &bindless_base, NULL, NULL);
       agx_nir_lower_monolithic_msaa(shader, tib->nr_samples);
       agx_nir_lower_multisampled_image_store(shader);
+      agx_nir_lower_texture(shader, false);
 
-      nir_shader_intrinsics_pass(
-         shader, lower_tex_handle_to_u0,
-         nir_metadata_dominance | nir_metadata_block_index, NULL);
+      nir_shader_intrinsics_pass(shader, lower_tex_handle_to_u0,
+                                 nir_metadata_control_flow, NULL);
    }
 
    key->libagx = cache->dev->libagx;
@@ -168,9 +168,9 @@ agx_build_end_of_tile_shader(struct agx_bg_eot_cache *cache,
       if (key->tib.layered)
          layer = nir_u2u16(&b, nir_load_layer_id(&b));
 
-      nir_block_image_store_agx(
-         &b, nir_imm_int(&b, rt), nir_imm_intN_t(&b, offset_B, 16), layer,
-         .format = agx_tilebuffer_physical_format(&key->tib, rt),
+      nir_image_store_block_agx(
+         &b, nir_imm_intN_t(&b, rt, 16), nir_imm_intN_t(&b, offset_B, 16),
+         layer, .format = agx_tilebuffer_physical_format(&key->tib, rt),
          .image_dim = dim, .image_array = key->tib.layered);
    }
 

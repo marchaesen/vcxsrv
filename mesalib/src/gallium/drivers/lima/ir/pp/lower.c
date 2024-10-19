@@ -272,20 +272,87 @@ static bool ppir_lower_select(ppir_block *block, ppir_node *node)
    return true;
 }
 
-static bool ppir_lower_trunc(ppir_block *block, ppir_node *node)
+static bool ppir_lower_fold_src_mod(ppir_block *block, ppir_node *node)
 {
-   /* Turn it into a mov with a round to integer output modifier */
-   ppir_alu_node *alu = ppir_node_to_alu(node);
-   ppir_dest *move_dest = &alu->dest;
-   move_dest->modifier = ppir_outmod_round;
-   node->op = ppir_op_mov;
+   assert(node->op == ppir_op_neg || node->op == ppir_op_abs);
 
+   if (ppir_node_is_root(node))
+      return false;
+
+   if (node->succ_different_block)
+      return false;
+
+   ppir_dest *dest = ppir_node_get_dest(node);
+   if (dest->type != ppir_target_ssa)
+      return false;
+
+   ppir_src *mod_src = ppir_node_get_src(node, 0);
+
+   if (mod_src->type == ppir_target_pipeline &&
+       !ppir_node_has_single_succ(node))
+      return false;
+
+   ppir_node_foreach_succ_safe(node, dep) {
+      ppir_node *succ = dep->succ;
+      assert(succ);
+
+      if (succ->type != ppir_node_type_alu)
+         return false;
+   }
+
+   ppir_node_foreach_succ_safe(node, dep) {
+      ppir_node *succ = dep->succ;
+      assert(succ && succ->type == ppir_node_type_alu);
+
+      for (int i = 0; i < ppir_node_get_src_num(succ); i++) {
+         ppir_src *src = ppir_node_get_src(succ, i);
+         assert(src);
+
+         if (src->node != node)
+            continue;
+
+         uint8_t swizzle[4];
+         for (int j = 0; j < 4; j++)
+            swizzle[j] = mod_src->swizzle[src->swizzle[j]];
+
+         /* Both src or mod_src may already carry folded modifiers.
+          * Account for those by saving src modifiers and applying
+          * them again afterwards. */
+         bool neg = src->negate;
+         bool abs = src->absolute;
+
+         *src = *mod_src;
+         if (node->op == ppir_op_neg)
+            src->negate = !src->negate;
+         else /* ppir_op_abs */
+            src->absolute = true;
+
+         if (neg)
+            src->negate = !src->negate;
+         if (abs)
+            src->absolute = true;
+
+         memcpy(src->swizzle, swizzle, sizeof(swizzle));
+      }
+
+      /* insert the succ alu node as successor of the mod src node */
+      ppir_node_foreach_pred_safe(node, dep) {
+         ppir_node *pred = dep->pred;
+         ppir_node_add_dep(succ, pred, ppir_dep_src);
+      }
+   }
+
+   ppir_node_delete(node);
    return true;
 }
 
 static bool ppir_lower_abs(ppir_block *block, ppir_node *node)
 {
-   /* Turn it into a mov and set the absolute modifier */
+   /* Check if we can fold it as a src modifier */
+   if (ppir_lower_fold_src_mod(block, node))
+      return true;
+
+   /* Fall back to a mov and set the absolute modifier */
    ppir_alu_node *alu = ppir_node_to_alu(node);
 
    assert(alu->num_src == 1);
@@ -299,7 +366,11 @@ static bool ppir_lower_abs(ppir_block *block, ppir_node *node)
 
 static bool ppir_lower_neg(ppir_block *block, ppir_node *node)
 {
-   /* Turn it into a mov and set the negate modifier */
+   /* Check if we can fold it as a src modifier */
+   if (ppir_lower_fold_src_mod(block, node))
+      return true;
+
+   /* Fall back to a mov and set the negate modifier */
    ppir_alu_node *alu = ppir_node_to_alu(node);
 
    assert(alu->num_src == 1);
@@ -310,18 +381,94 @@ static bool ppir_lower_neg(ppir_block *block, ppir_node *node)
    return true;
 }
 
-static bool ppir_lower_sat(ppir_block *block, ppir_node *node)
+static bool ppir_lower_fold_dest_mod(ppir_block *block, ppir_node *node, ppir_outmod mod)
 {
-   /* Turn it into a mov with the saturate output modifier */
+   ppir_dest *dest = ppir_node_get_dest(node);
+   if (dest->type != ppir_target_ssa)
+      return false;
+
+   ppir_src *src = ppir_node_get_src(node, 0);
+   assert(src);
+   for (int i = 0; i < dest->ssa.num_components; i++) {
+      if (src->swizzle[i] != i)
+         return false;
+   }
+
+   if (!ppir_node_has_single_pred(node))
+      return false;
+
+   /* Can't track these successors with deps here so skip */
+   if (node->succ_different_block)
+      return false;
+
+   ppir_node *pred = ppir_node_first_pred(node);
+   assert(pred);
+
+   if (pred->type != ppir_node_type_alu)
+      return false;
+
+   ppir_dest *pred_dest = ppir_node_get_dest(pred);
+   if (!ppir_node_has_single_succ(pred) || pred_dest->type != ppir_target_ssa)
+      return false;
+
+   /* may happen for sum3 */
+   if (pred_dest->ssa.num_components != dest->ssa.num_components)
+      return false;
+
+   if (pred_dest->modifier != ppir_outmod_none)
+      return false;
+
+   pred_dest->modifier = mod;
+
+   if (node->is_out)
+      pred->is_out = true;
+   pred_dest->ssa.out_type = pred_dest->ssa.out_type;
+
+   ppir_node_replace_all_succ(pred, node);
+
+   /* for all nodes after the mod node */
+   ppir_node_foreach_succ_safe(node, dep) {
+      /* replace the mod node with the pred alu */
+      ppir_node *p = dep->succ;
+      ppir_node_remove_dep(dep);
+      ppir_node_add_dep(p, pred, ppir_dep_src);
+   }
+
+   ppir_node_delete(node);
+   return true;
+}
+
+static bool ppir_lower_with_dest_mod(ppir_block *block, ppir_node *node, ppir_outmod mod)
+{
+   /* Check if we can fold it as a dest modifier */
+   if (ppir_lower_fold_dest_mod(block, node, mod))
+      return true;
+
+   /* Fall back to a mov with the dest modifier */
    ppir_alu_node *alu = ppir_node_to_alu(node);
 
    assert(alu->num_src == 1);
 
    ppir_dest *move_dest = &alu->dest;
-   move_dest->modifier = ppir_outmod_clamp_fraction;
+   move_dest->modifier = mod;
    node->op = ppir_op_mov;
 
    return true;
+}
+
+static bool ppir_lower_trunc(ppir_block *block, ppir_node *node)
+{
+   return ppir_lower_with_dest_mod(block, node, ppir_outmod_round);
+}
+
+static bool ppir_lower_clamp_pos(ppir_block *block, ppir_node *node)
+{
+   return ppir_lower_with_dest_mod(block, node, ppir_outmod_clamp_positive);
+}
+
+static bool ppir_lower_sat(ppir_block *block, ppir_node *node)
+{
+   return ppir_lower_with_dest_mod(block, node, ppir_outmod_clamp_fraction);
 }
 
 static bool ppir_lower_branch_merge_condition(ppir_block *block, ppir_node *node)
@@ -527,6 +674,7 @@ static bool (*ppir_lower_funcs[ppir_op_num])(ppir_block *, ppir_node *) = {
    [ppir_op_select] = ppir_lower_select,
    [ppir_op_trunc] = ppir_lower_trunc,
    [ppir_op_sat] = ppir_lower_sat,
+   [ppir_op_clamp_pos] = ppir_lower_clamp_pos,
    [ppir_op_branch] = ppir_lower_branch,
    [ppir_op_load_uniform] = ppir_lower_load,
    [ppir_op_load_temp] = ppir_lower_load,

@@ -101,6 +101,8 @@ xf86parseLayoutSection(void)
         switch (token) {
         case COMMENT:
             ptr->lay_comment = xf86addComment(ptr->lay_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->lay_comment)) != STRING)

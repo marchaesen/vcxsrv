@@ -58,6 +58,10 @@ static const struct debug_control debug_control[] = {
    { NULL, },
 };
 
+static bool present_false(VkPhysicalDevice pdevice, int fd) {
+   return false;
+}
+
 VkResult
 wsi_device_init(struct wsi_device *wsi,
                 VkPhysicalDevice pdevice,
@@ -206,7 +210,7 @@ wsi_device_init(struct wsi_device *wsi,
       WSI_GET_CB(WaitSemaphores);
 #undef WSI_GET_CB
 
-#ifdef VK_USE_PLATFORM_XCB_KHR
+#if defined(VK_USE_PLATFORM_XCB_KHR)
    result = wsi_x11_init_wsi(wsi, alloc, dri_options);
    if (result != VK_SUCCESS)
       goto fail;
@@ -226,6 +230,12 @@ wsi_device_init(struct wsi_device *wsi,
 
 #ifdef VK_USE_PLATFORM_DISPLAY_KHR
    result = wsi_display_init_wsi(wsi, alloc, display_fd);
+   if (result != VK_SUCCESS)
+      goto fail;
+#endif
+
+#ifdef VK_USE_PLATFORM_METAL_EXT
+   result = wsi_metal_init_wsi(wsi, alloc, pdevice);
    if (result != VK_SUCCESS)
       goto fail;
 #endif
@@ -270,6 +280,21 @@ wsi_device_init(struct wsi_device *wsi,
       }
    }
 
+   /* can_present_on_device is a function pointer used to determine if images
+    * can be presented directly on a given device file descriptor (fd).
+    * If HAVE_LIBDRM is defined, it will be initialized to a platform-specific
+    * function (wsi_device_matches_drm_fd). Otherwise, it is initialized to
+    * present_false to ensure that it always returns false, preventing potential
+    * segmentation faults from unchecked calls.
+    * Drivers for non-PCI based GPUs are expected to override this after calling
+    * wsi_device_init().
+    */
+#ifdef HAVE_LIBDRM
+   wsi->can_present_on_device = wsi_device_matches_drm_fd;
+#else
+   wsi->can_present_on_device = present_false;
+#endif
+
    return VK_SUCCESS;
 fail:
    wsi_device_finish(wsi, alloc);
@@ -292,8 +317,11 @@ wsi_device_finish(struct wsi_device *wsi,
 #ifdef VK_USE_PLATFORM_WIN32_KHR
    wsi_win32_finish_wsi(wsi, alloc);
 #endif
-#ifdef VK_USE_PLATFORM_XCB_KHR
+#if defined(VK_USE_PLATFORM_XCB_KHR)
    wsi_x11_finish_wsi(wsi, alloc);
+#endif
+#if defined(VK_USE_PLATFORM_METAL_EXT)
+   wsi_metal_finish_wsi(wsi, alloc);
 #endif
 }
 
@@ -396,32 +424,6 @@ configure_image(const struct wsi_swapchain *chain,
       unreachable("Invalid image type");
    }
 }
-
-#if defined(HAVE_PTHREAD) && !defined(_WIN32)
-bool
-wsi_init_pthread_cond_monotonic(pthread_cond_t *cond)
-{
-   pthread_condattr_t condattr;
-   bool ret = false;
-
-   if (pthread_condattr_init(&condattr) != 0)
-      goto fail_attr_init;
-
-   if (pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC) != 0)
-      goto fail_attr_set;
-
-   if (pthread_cond_init(cond, &condattr) != 0)
-      goto fail_cond_init;
-
-   ret = true;
-
-fail_cond_init:
-fail_attr_set:
-   pthread_condattr_destroy(&condattr);
-fail_attr_init:
-   return ret;
-}
-#endif
 
 VkResult
 wsi_swapchain_init(const struct wsi_device *wsi,
@@ -1380,9 +1382,14 @@ wsi_common_queue_present(const struct wsi_device *wsi,
       uint32_t image_index = pPresentInfo->pImageIndices[i];
       VkResult result;
 
-      /* Update the present mode for this present and any subsequent present. */
-      if (present_mode_info && present_mode_info->pPresentModes && swapchain->set_present_mode)
+      /* Update the present mode for this present and any subsequent present.
+       * Only update the present mode when MESA_VK_WSI_PRESENT_MODE is not used.
+       * We should also turn any VkSwapchainPresentModesCreateInfoEXT into a nop,
+       * but none of the WSI backends use that currently. */
+      if (present_mode_info && present_mode_info->pPresentModes &&
+          swapchain->set_present_mode && wsi->override_present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR) {
          swapchain->set_present_mode(swapchain, present_mode_info->pPresentModes[i]);
+      }
 
       if (swapchain->fences[image_index] == VK_NULL_HANDLE) {
          const VkFenceCreateInfo fence_info = {

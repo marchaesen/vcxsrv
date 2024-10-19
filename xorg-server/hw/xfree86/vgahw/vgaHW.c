@@ -1627,7 +1627,7 @@ vgaHWGetHWRec(ScrnInfoPtr scrp)
      */
     if (VGAHWPTR(scrp))
         return TRUE;
-    hwp = VGAHWPTRLVAL(scrp) = xnfcalloc(sizeof(vgaHWRec), 1);
+    hwp = VGAHWPTRLVAL(scrp) = XNFcallocarray(1, sizeof(vgaHWRec));
     regp = &VGAHWPTR(scrp)->ModeReg;
 
     if ((!vgaHWAllocDefaultRegs(&VGAHWPTR(scrp)->SavedReg)) ||
@@ -1921,7 +1921,7 @@ vgaHWddc1SetSpeed(ScrnInfoPtr pScrn, xf86ddcSpeed speed)
 
         if (hwp->ddc != NULL)
             break;
-        hwp->ddc = xnfcalloc(sizeof(struct _vgaDdcSave), 1);
+        hwp->ddc = XNFcallocarray(1, sizeof(struct _vgaDdcSave));
         save = (struct _vgaDdcSave *) hwp->ddc;
         /* Lightpen register disable - allow access to cr10 & 11; just in case */
         save->cr03 = hwp->readCrtc(hwp, 0x03);

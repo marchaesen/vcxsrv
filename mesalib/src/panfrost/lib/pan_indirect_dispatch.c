@@ -175,6 +175,6 @@ GENX(pan_indirect_dispatch_emit)(struct pan_indirect_dispatch_meta *meta,
          pan_pool_upload_aligned(pool, inputs, sizeof(*inputs), 16);
    }
 
-   return pan_jc_add_job(pool, jc, MALI_JOB_TYPE_COMPUTE, false, true, 0, 0,
-                         &job, false);
+   return pan_jc_add_job(jc, MALI_JOB_TYPE_COMPUTE, false, true, 0, 0, &job,
+                         false);
 }

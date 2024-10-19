@@ -39,29 +39,38 @@ console_patterns:
     job_success:
         regex: >-
           {{ job_success_regex }}
+{% if job_warn_regex %}
     job_warn:
         regex: >-
           {{ job_warn_regex }}
+{% endif %}
 
 # Environment to deploy
 deployment:
   # Initial boot
   start:
+    storage:
+        http:
+          - path: "/b2c-extra-args"
+            data: >
+              b2c.pipefail b2c.poweroff_delay={{ poweroff_delay }}
+              b2c.minio="gateway,{{ '{{' }} minio_url }},{{ '{{' }} job_bucket_access_key }},{{ '{{' }} job_bucket_secret_key }}"
+              b2c.volume="{{ '{{' }} job_bucket }}-results,mirror=gateway/{{ '{{' }} job_bucket }},pull_on=pipeline_start,push_on=changes,overwrite{% for excl in job_volume_exclusions %},exclude={{ excl }}{% endfor %},remove,expiration=pipeline_end,preserve"
+              {% for volume in volumes %}
+              b2c.volume={{ volume }}
+              {% endfor %}
+              b2c.service="--privileged --tls-verify=false --pid=host docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/telegraf:latest" b2c.hostname=dut-{{ '{{' }} machine.full_name }}
+              b2c.container="-v {{ '{{' }} job_bucket }}-results:{{ working_dir }} -w {{ working_dir }} {% for mount_volume in mount_volumes %} -v {{ mount_volume }}{% endfor %} --tls-verify=false docker://{{ local_container }} {{ container_cmd }}"
     kernel:
       url: '{{ kernel_url }}'
+
+      # NOTE: b2c.cache_device should not be here, but this works around
+      # a limitation of b2c which will be removed in the next release
       cmdline: >
         SALAD.machine_id={{ '{{' }} machine_id }}
-        console={{ '{{' }} local_tty_device }},115200 earlyprintk=vga,keep
-        loglevel={{ log_level }} no_hash_pointers
-        b2c.service="--privileged --tls-verify=false --pid=host docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/telegraf:latest" b2c.hostname=dut-{{ '{{' }} machine.full_name }}
-        b2c.container="-ti --tls-verify=false docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/machine-registration:latest check"
-        b2c.ntp_peer=10.42.0.1 b2c.pipefail b2c.cache_device=auto b2c.poweroff_delay={{ poweroff_delay }}
-        b2c.minio="gateway,{{ '{{' }} minio_url }},{{ '{{' }} job_bucket_access_key }},{{ '{{' }} job_bucket_secret_key }}"
-        b2c.volume="{{ '{{' }} job_bucket }}-results,mirror=gateway/{{ '{{' }} job_bucket }},pull_on=pipeline_start,push_on=changes,overwrite{% for excl in job_volume_exclusions %},exclude={{ excl }}{% endfor %},remove,expiration=pipeline_end,preserve"
-{% for volume in volumes %}
-        b2c.volume={{ volume }}
-{% endfor %}
-        b2c.container="-v {{ '{{' }} job_bucket }}-results:{{ working_dir }} -w {{ working_dir }} {% for mount_volume in mount_volumes %} -v {{ mount_volume }}{% endfor %} --tls-verify=false docker://{{ local_container }} {{ container_cmd }}"
+        console={{ '{{' }} local_tty_device }},115200
+        b2c.cache_device=auto b2c.ntp_peer=10.42.0.1
+        b2c.extra_args_url={{ '{{' }} job.http.url }}/b2c-extra-args
         {% if kernel_cmdline_extras is defined %}
         {{ kernel_cmdline_extras }}
         {% endif %}

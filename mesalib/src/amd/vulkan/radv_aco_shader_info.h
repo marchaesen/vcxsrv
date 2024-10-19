@@ -24,14 +24,13 @@ static inline void radv_aco_convert_ps_epilog_key(struct aco_ps_epilog_info *aco
 
 static inline void
 radv_aco_convert_shader_info(struct aco_shader_info *aco_info, const struct radv_shader_info *radv,
-                             const struct radv_shader_args *radv_args, const struct radv_device_cache_key *radv_key,
-                             const enum amd_gfx_level gfx_level)
+                             const struct radv_shader_args *radv_args, const enum amd_gfx_level gfx_level)
 {
    ASSIGN_FIELD(wave_size);
    ASSIGN_FIELD(has_ngg_culling);
    ASSIGN_FIELD(has_ngg_early_prim_export);
    ASSIGN_FIELD(workgroup_size);
-   ASSIGN_FIELD(has_epilog);
+   ASSIGN_FIELD(ps.has_epilog);
    ASSIGN_FIELD(merged_shader_compiled_separately);
    ASSIGN_FIELD(vs.tcs_in_out_eq);
    ASSIGN_FIELD(vs.tcs_temp_only_input_mask);
@@ -39,11 +38,11 @@ radv_aco_convert_shader_info(struct aco_shader_info *aco_info, const struct radv
    ASSIGN_FIELD(tcs.num_lds_blocks);
    ASSIGN_FIELD(ps.num_interp);
    ASSIGN_FIELD(cs.uses_full_subgroups);
-   aco_info->ps.spi_ps_input_ena = radv->ps.spi_ps_input;
-   aco_info->ps.spi_ps_input_addr = radv->ps.spi_ps_input;
+   aco_info->ps.spi_ps_input_ena = radv->ps.spi_ps_input_ena;
+   aco_info->ps.spi_ps_input_addr = radv->ps.spi_ps_input_addr;
    aco_info->gfx9_gs_ring_lds_size = radv->gs_ring_info.lds_size;
    aco_info->is_trap_handler_shader = radv->type == RADV_SHADER_TYPE_TRAP_HANDLER;
-   aco_info->image_2d_view_of_3d = radv_key->image_2d_view_of_3d;
+   aco_info->image_2d_view_of_3d = false;
    aco_info->epilog_pc = radv_args->epilog_pc;
    aco_info->hw_stage = radv_select_hw_stage(radv, gfx_level);
    aco_info->tcs.tcs_offchip_layout = radv_args->tcs_offchip_layout;

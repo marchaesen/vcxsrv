@@ -36,20 +36,20 @@
 #endif
 
 static const struct vpe_debug_options debug_defaults = {
-    .flags                                   = {0},
-    .cm_in_bypass                            = 0,
-    .vpcnvc_bypass                           = 0,
-    .mpc_bypass                              = 0,
-    .identity_3dlut                          = 0,
-    .sce_3dlut                               = 0,
-    .disable_reuse_bit                       = 0,
-    .bg_bit_depth                            = 0,
-    .bypass_gamcor                           = 0,
-    .bypass_ogam                             = 0,
-    .bypass_dpp_gamut_remap                  = 0,
-    .bypass_post_csc                         = 0,
-    .bg_color_fill_only                      = 0,
-    .assert_when_not_support                 = 0,
+    .flags                   = {0},
+    .cm_in_bypass            = 0,
+    .vpcnvc_bypass           = 0,
+    .mpc_bypass              = 0,
+    .identity_3dlut          = 0,
+    .sce_3dlut               = 0,
+    .disable_reuse_bit       = 0,
+    .bg_bit_depth            = 0,
+    .bypass_gamcor           = 0,
+    .bypass_ogam             = 0,
+    .bypass_dpp_gamut_remap  = 0,
+    .bypass_post_csc         = 0,
+    .bg_color_fill_only      = 0,
+    .assert_when_not_support = 0,
     .enable_mem_low_power =
         {
             .bits =
@@ -59,25 +59,26 @@ static const struct vpe_debug_options debug_defaults = {
                     .mpc  = false,
                 },
         },
-    .expansion_mode                          = 1,
-    .clamping_setting                        = 1,
+    .expansion_mode   = 1,
+    .clamping_setting = 1,
     .clamping_params =
-    	{
-            .r_clamp_component_lower         = 0x1000,
-            .g_clamp_component_lower         = 0x1000,
-            .b_clamp_component_lower         = 0x1000,
-            .r_clamp_component_upper         = 0xEB00,
-            .g_clamp_component_upper         = 0xEB00,
-            .b_clamp_component_upper         = 0xEB00,
-            .clamping_range                  = 4,
-	},
-    .bypass_per_pixel_alpha                  = 0,
-    .opp_pipe_crc_ctrl                       = 0,
-    .dpp_crc_ctrl                            = 0,
-    .mpc_crc_ctrl                            = 0,
-    .visual_confirm_params                   = {{{0}}},
-    .skip_optimal_tap_check                  = 0,
-    .bypass_blndgam                          = 0
+        {
+            .r_clamp_component_lower = 0x1000,
+            .g_clamp_component_lower = 0x1000,
+            .b_clamp_component_lower = 0x1000,
+            .r_clamp_component_upper = 0xEB00,
+            .g_clamp_component_upper = 0xEB00,
+            .b_clamp_component_upper = 0xEB00,
+            .clamping_range          = 4,
+        },
+    .bypass_per_pixel_alpha = 0,
+    .opp_pipe_crc_ctrl      = 0,
+    .dpp_crc_ctrl           = 0,
+    .mpc_crc_ctrl           = 0,
+    .visual_confirm_params  = {{{0}}},
+    .skip_optimal_tap_check = 0,
+    .disable_lut_caching    = 0,
+    .bypass_blndgam         = 0,
 };
 
 enum vpe_ip_level vpe_resource_parse_ip_version(
@@ -85,18 +86,17 @@ enum vpe_ip_level vpe_resource_parse_ip_version(
 {
     enum vpe_ip_level ip_level = VPE_IP_LEVEL_UNKNOWN;
     switch (VPE_VERSION(major, minor, rev_id)) {
-#if VPE_BUILD_1_X
-#if VPE_BUILD_1_0
+#ifdef VPE_BUILD_1_0
     case VPE_VERSION(6, 1, 0):
+    case VPE_VERSION(6, 1, 3):
         ip_level = VPE_IP_LEVEL_1_0;
         break;
 #endif
-#if VPE_BUILD_1_1
+#ifdef VPE_BUILD_1_1
     case VPE_VERSION(6, 1, 1):
     case VPE_VERSION(6, 1, 2):
         ip_level = VPE_IP_LEVEL_1_1;
         break;
-#endif
 #endif
     default:
         ip_level = VPE_IP_LEVEL_UNKNOWN;
@@ -164,41 +164,76 @@ struct segment_ctx *vpe_alloc_segment_ctx(struct vpe_priv *vpe_priv, uint16_t nu
     return segment_ctx_base;
 }
 
-struct stream_ctx *vpe_alloc_stream_ctx(struct vpe_priv *vpe_priv, uint32_t num_streams)
+static enum vpe_status create_input_config_vector(struct stream_ctx *stream_ctx)
 {
-    struct stream_ctx *ctx_base, *ctx;
-    uint32_t           i;
+    enum vpe_status  res = VPE_STATUS_OK;
+    uint32_t         pipe_idx, type_idx;
+    struct vpe_priv *vpe_priv;
 
-    ctx_base = (struct stream_ctx *)vpe_zalloc(sizeof(struct stream_ctx) * num_streams);
-    if (!ctx_base)
-        return NULL;
+    vpe_priv = stream_ctx->vpe_priv;
 
-    for (i = 0; i < num_streams; i++) {
-        ctx           = &ctx_base[i];
-        ctx->cs       = COLOR_SPACE_UNKNOWN;
-        ctx->tf       = TRANSFER_FUNC_UNKNOWN;
-        ctx->vpe_priv = vpe_priv;
-        vpe_color_set_adjustments_to_default(&ctx->color_adjustments);
-        ctx->tf_scaling_factor = vpe_fixpt_one;
-        ctx->stream.flags.geometric_scaling = 0;
-        ctx->stream.tm_params.UID = 0;
-        ctx->UID_3DLUT = 0;
+    for (pipe_idx = 0; pipe_idx < vpe_priv->pub.caps->resource_caps.num_dpp; pipe_idx++) {
+        stream_ctx->configs[pipe_idx] =
+            vpe_vector_create(vpe_priv, sizeof(struct config_record), MIN_NUM_CONFIG);
+        if (!stream_ctx->configs[pipe_idx]) {
+            res = VPE_STATUS_NO_MEMORY;
+            break;
+        }
+
+        for (type_idx = 0; type_idx < VPE_CMD_TYPE_COUNT; type_idx++) {
+            stream_ctx->stream_op_configs[pipe_idx][type_idx] =
+                vpe_vector_create(vpe_priv, sizeof(struct config_record), MIN_NUM_CONFIG);
+            if (!stream_ctx->stream_op_configs[pipe_idx][type_idx]) {
+                res = VPE_STATUS_NO_MEMORY;
+                break;
+            }
+        }
+
+        if (res != VPE_STATUS_OK)
+            break;
     }
 
-    return ctx_base;
+    return res;
 }
 
-void vpe_free_stream_ctx(struct vpe_priv *vpe_priv)
+static void destroy_input_config_vector(struct stream_ctx *stream_ctx)
 {
-    uint16_t           i;
-    struct stream_ctx *ctx;
+    uint32_t         pipe_idx, type_idx;
+    struct vpe_priv *vpe_priv;
 
-    if (!vpe_priv->stream_ctx || !vpe_priv->num_streams)
+    vpe_priv = stream_ctx->vpe_priv;
+
+    for (pipe_idx = 0; pipe_idx < vpe_priv->pub.caps->resource_caps.num_dpp; pipe_idx++) {
+        if (stream_ctx->configs[pipe_idx]) {
+            vpe_vector_free(stream_ctx->configs[pipe_idx]);
+            stream_ctx->configs[pipe_idx] = NULL;
+        }
+
+        for (type_idx = 0; type_idx < VPE_CMD_TYPE_COUNT; type_idx++) {
+            if (stream_ctx->stream_op_configs[pipe_idx][type_idx]) {
+                vpe_vector_free(stream_ctx->stream_op_configs[pipe_idx][type_idx]);
+                stream_ctx->stream_op_configs[pipe_idx][type_idx] = NULL;
+            }
+        }
+    }
+}
+
+static void free_stream_ctx(uint32_t num_streams, struct stream_ctx *stream_ctx)
+{
+    struct vpe_priv *vpe_priv;
+    uint32_t         stream_idx;
+
+    if (!stream_ctx || !num_streams)
         return;
 
-    for (i = 0; i < vpe_priv->num_streams; i++) {
-        ctx = &vpe_priv->stream_ctx[i];
+    vpe_priv = stream_ctx[0].vpe_priv;
+
+    for (stream_idx = 0; stream_idx < num_streams; stream_idx++) {
+        struct stream_ctx *ctx = &stream_ctx[stream_idx];
+
         if (ctx->input_tf) {
+            for (uint32_t j = 0; j < MAX_INPUT_PIPE; j++)
+                CONFIG_CACHE_FREE(ctx->input_tf->config_cache[j]);
             vpe_free(ctx->input_tf);
             ctx->input_tf = NULL;
         }
@@ -219,16 +254,22 @@ void vpe_free_stream_ctx(struct vpe_priv *vpe_priv)
         }
 
         if (ctx->in_shaper_func) {
+            for (uint32_t j = 0; j < MAX_INPUT_PIPE; j++)
+                CONFIG_CACHE_FREE(ctx->in_shaper_func->config_cache[j]);
             vpe_free(ctx->in_shaper_func);
             ctx->in_shaper_func = NULL;
         }
 
         if (ctx->blend_tf) {
+            for (uint32_t j = 0; j < MAX_INPUT_PIPE; j++)
+                CONFIG_CACHE_FREE(ctx->blend_tf->config_cache[j]);
             vpe_free(ctx->blend_tf);
             ctx->blend_tf = NULL;
         }
 
         if (ctx->lut3d_func) {
+            for (uint32_t j = 0; j < MAX_3DLUT; j++)
+                CONFIG_CACHE_FREE(ctx->lut3d_func->config_cache[j]);
             vpe_free(ctx->lut3d_func);
             ctx->lut3d_func = NULL;
         }
@@ -237,19 +278,53 @@ void vpe_free_stream_ctx(struct vpe_priv *vpe_priv)
             vpe_free(ctx->segment_ctx);
             ctx->segment_ctx = NULL;
         }
+
+        destroy_input_config_vector(ctx);
     }
-    vpe_free(vpe_priv->stream_ctx);
-    vpe_priv->stream_ctx  = NULL;
-    vpe_priv->num_streams = 0;
 }
 
-void vpe_free_output_ctx(struct vpe_priv *vpe_priv)
+struct stream_ctx *vpe_alloc_stream_ctx(struct vpe_priv *vpe_priv, uint32_t num_streams)
 {
-    if (vpe_priv->output_ctx.gamut_remap)
-        vpe_free(vpe_priv->output_ctx.gamut_remap);
+    struct stream_ctx *ctx_base, *ctx;
+    uint32_t           stream_idx;
+    enum vpe_status    res = VPE_STATUS_OK;
 
-    if (vpe_priv->output_ctx.output_tf)
-        vpe_free(vpe_priv->output_ctx.output_tf);
+    ctx_base = (struct stream_ctx *)vpe_zalloc(sizeof(struct stream_ctx) * num_streams);
+    if (!ctx_base)
+        return NULL;
+
+    for (stream_idx = 0; stream_idx < num_streams; stream_idx++) {
+        ctx           = &ctx_base[stream_idx];
+        ctx->cs       = COLOR_SPACE_UNKNOWN;
+        ctx->tf       = TRANSFER_FUNC_UNKNOWN;
+        ctx->vpe_priv = vpe_priv;
+        vpe_color_set_adjustments_to_default(&ctx->color_adjustments);
+        ctx->tf_scaling_factor              = vpe_fixpt_one;
+        ctx->stream.flags.geometric_scaling = 0;
+        ctx->stream.tm_params.UID           = 0;
+        ctx->uid_3dlut                      = 0;
+
+        if ((res = create_input_config_vector(ctx)) != VPE_STATUS_OK)
+            break;
+    }
+
+    if (res != VPE_STATUS_OK) {
+        free_stream_ctx(num_streams, ctx_base);
+        ctx_base = NULL;
+    }
+    return ctx_base;
+}
+
+void vpe_free_stream_ctx(struct vpe_priv *vpe_priv)
+{
+    if (vpe_priv->num_streams && vpe_priv->stream_ctx) {
+        free_stream_ctx(vpe_priv->num_streams, vpe_priv->stream_ctx);
+        vpe_free(vpe_priv->stream_ctx);
+    }
+
+    vpe_priv->stream_ctx          = NULL;
+    vpe_priv->num_streams         = 0;
+    vpe_priv->num_virtual_streams = 0;
 }
 
 void vpe_pipe_reset(struct vpe_priv *vpe_priv)
@@ -259,6 +334,7 @@ void vpe_pipe_reset(struct vpe_priv *vpe_priv)
 
     for (i = 0; i < vpe_priv->num_pipe; i++) {
         pipe_ctx               = &vpe_priv->pipe_ctx[i];
+        pipe_ctx->pipe_idx     = i;
         pipe_ctx->is_top_pipe  = true;
         pipe_ctx->owner        = PIPE_CTX_NO_OWNER;
         pipe_ctx->top_pipe_idx = 0xff;
@@ -469,7 +545,8 @@ static enum vpe_status calculate_inits_and_viewports(struct segment_ctx *segment
     struct vpe_rect          src_rect     = stream_ctx->stream.scaling_info.src_rect;
     struct vpe_rect         *dst_rect     = &stream_ctx->stream.scaling_info.dst_rect;
     struct scaler_data      *data         = &segment_ctx->scaler_data;
-    uint32_t                 vpc_div      = vpe_is_yuv420(data->format) ? 2 : 1;
+    uint32_t                 vpc_h_div    = vpe_is_yuv420(data->format) ? 2 : 1;
+    uint32_t                 vpc_v_div    = vpe_is_yuv420(data->format) ? 2 : 1;
     bool                     orthogonal_rotation, flip_vert_scan_dir, flip_horz_scan_dir;
     struct fixed31_32        init_adj_h = vpe_fixpt_zero;
     struct fixed31_32        init_adj_v = vpe_fixpt_zero;
@@ -513,20 +590,20 @@ static enum vpe_status calculate_inits_and_viewports(struct segment_ctx *segment
         data->taps.h_taps, data->ratios.horz, vpe_fixpt_zero, &data->inits.h, &data->viewport.x,
         &data->viewport.width);
     calculate_init_and_vp(flip_horz_scan_dir, data->recout.x, data->recout.width,
-        src_rect.width / vpc_div, data->taps.h_taps_c, data->ratios.horz_c, init_adj_h,
+        src_rect.width / vpc_h_div, data->taps.h_taps_c, data->ratios.horz_c, init_adj_h,
         &data->inits.h_c, &data->viewport_c.x, &data->viewport_c.width);
     calculate_init_and_vp(flip_vert_scan_dir, data->recout.y, data->recout.height, src_rect.height,
         data->taps.v_taps, data->ratios.vert, vpe_fixpt_zero, &data->inits.v, &data->viewport.y,
         &data->viewport.height);
     calculate_init_and_vp(flip_vert_scan_dir, data->recout.y, data->recout.height,
-        src_rect.height / vpc_div, data->taps.v_taps_c, data->ratios.vert_c, init_adj_v,
+        src_rect.height / vpc_v_div, data->taps.v_taps_c, data->ratios.vert_c, init_adj_v,
         &data->inits.v_c, &data->viewport_c.y, &data->viewport_c.height);
 
     // convert to absolute address
     data->viewport.x += src_rect.x;
     data->viewport.y += src_rect.y;
-    data->viewport_c.x += src_rect.x / (int32_t)vpc_div;
-    data->viewport_c.y += src_rect.y / (int32_t)vpc_div;
+    data->viewport_c.x += src_rect.x / (int32_t)vpc_h_div;
+    data->viewport_c.y += src_rect.y / (int32_t)vpc_v_div;
 
     return VPE_STATUS_OK;
 }
@@ -681,4 +758,50 @@ void vpe_resource_build_bit_depth_reduction_params(
     default:
         break;
     }
+}
+
+void vpe_frontend_config_callback(
+    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size, uint32_t pipe_idx)
+{
+    struct config_frontend_cb_ctx *cb_ctx     = (struct config_frontend_cb_ctx *)ctx;
+    struct vpe_priv               *vpe_priv   = cb_ctx->vpe_priv;
+    struct stream_ctx             *stream_ctx = &vpe_priv->stream_ctx[cb_ctx->stream_idx];
+    enum vpe_cmd_type              cmd_type;
+    struct config_record           record;
+
+    if (cb_ctx->stream_sharing) {
+        record.config_base_addr = cfg_base_gpu;
+        record.config_size      = size;
+
+        vpe_vector_push(stream_ctx->configs[pipe_idx], &record);
+    } else if (cb_ctx->stream_op_sharing) {
+        cmd_type = cb_ctx->cmd_type;
+
+        record.config_base_addr = cfg_base_gpu;
+        record.config_size      = size;
+
+        vpe_vector_push(stream_ctx->stream_op_configs[pipe_idx][cmd_type], &record);
+    }
+
+    vpe_priv->vpe_desc_writer.add_config_desc(
+        &vpe_priv->vpe_desc_writer, cfg_base_gpu, false, (uint8_t)vpe_priv->config_writer.buf->tmz);
+}
+
+void vpe_backend_config_callback(
+    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size, uint32_t pipe_idx)
+{
+    struct config_backend_cb_ctx *cb_ctx     = (struct config_backend_cb_ctx *)ctx;
+    struct vpe_priv              *vpe_priv   = cb_ctx->vpe_priv;
+    struct output_ctx            *output_ctx = &vpe_priv->output_ctx;
+    struct config_record          record;
+
+    if (cb_ctx->share) {
+        record.config_base_addr = cfg_base_gpu;
+        record.config_size      = size;
+
+        vpe_vector_push(output_ctx->configs[pipe_idx], &record);
+    }
+
+    vpe_priv->vpe_desc_writer.add_config_desc(
+        &vpe_priv->vpe_desc_writer, cfg_base_gpu, false, (uint8_t)vpe_priv->config_writer.buf->tmz);
 }

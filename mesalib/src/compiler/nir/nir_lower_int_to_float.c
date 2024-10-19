@@ -247,8 +247,7 @@ lower_alu_instr(nir_builder *b, nir_alu_instr *alu)
 
    if (rep) {
       /* We've emitted a replacement instruction */
-      nir_def_rewrite_uses(&alu->def, rep);
-      nir_instr_remove(&alu->instr);
+      nir_def_replace(&alu->def, rep);
    }
 
    return true;
@@ -299,8 +298,7 @@ nir_lower_int_to_float_impl(nir_function_impl *impl)
    }
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

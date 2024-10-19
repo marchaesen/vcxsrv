@@ -45,7 +45,10 @@ panfrost_translate_swizzle_4(const unsigned char swizzle[4])
 void
 panfrost_invert_swizzle(const unsigned char *in, unsigned char *out)
 {
-   /* First, default to all zeroes to prevent uninitialized junk */
+   /* First, default to all zeroes, both to prevent uninitialized junk
+      and to provide a known baseline so we can tell when components
+      have been modified
+    */
 
    for (unsigned c = 0; c < 4; ++c)
       out[c] = PIPE_SWIZZLE_0;
@@ -60,8 +63,9 @@ panfrost_invert_swizzle(const unsigned char *in, unsigned char *out)
       if (i > PIPE_SWIZZLE_W)
          continue;
 
-      /* Invert */
+      /* Invert (only if we haven't already applied) */
       unsigned idx = i - PIPE_SWIZZLE_X;
-      out[idx] = PIPE_SWIZZLE_X + c;
+      if (out[idx] == PIPE_SWIZZLE_0)
+         out[idx] = PIPE_SWIZZLE_X + c;
    }
 }

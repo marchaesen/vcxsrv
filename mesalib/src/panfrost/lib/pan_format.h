@@ -43,7 +43,8 @@ typedef uint32_t mali_pixel_format;
 #define PAN_BIND_VERTEX_BUFFER (1 << 4)
 
 struct panfrost_format {
-   mali_pixel_format hw;
+   uint32_t hw : 22;
+   uint32_t texfeat_bit : 5;
    unsigned bind;
 };
 
@@ -64,7 +65,8 @@ extern const struct pan_blendable_format
    panfrost_blendable_formats_v7[PIPE_FORMAT_COUNT];
 extern const struct pan_blendable_format
    panfrost_blendable_formats_v9[PIPE_FORMAT_COUNT];
-#define panfrost_blendable_formats_v10 panfrost_blendable_formats_v9
+extern const struct pan_blendable_format
+   panfrost_blendable_formats_v10[PIPE_FORMAT_COUNT];
 
 static inline const struct pan_blendable_format *
 panfrost_blendable_format_table(unsigned arch)
@@ -89,7 +91,7 @@ extern const struct panfrost_format panfrost_pipe_format_v5[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v6[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v7[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v9[PIPE_FORMAT_COUNT];
-#define panfrost_pipe_format_v10 panfrost_pipe_format_v9
+extern const struct panfrost_format panfrost_pipe_format_v10[PIPE_FORMAT_COUNT];
 
 static inline const struct panfrost_format *
 panfrost_format_table(unsigned arch)
@@ -132,7 +134,7 @@ panfrost_get_default_swizzle(unsigned components)
    }
 }
 
-#if PAN_ARCH == 7
+#if PAN_ARCH == 7 || PAN_ARCH >= 10
 struct pan_decomposed_swizzle {
    /* Component ordering to apply first */
    enum mali_rgb_component_order pre;

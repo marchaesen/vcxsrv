@@ -8,6 +8,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "ac_descriptors.h"
 #include "gfx10_format_table.h"
 
 #include "radv_buffer.h"
@@ -25,13 +26,9 @@ radv_make_texel_buffer_descriptor(struct radv_device *device, uint64_t va, VkFor
    const struct radv_physical_device *pdev = radv_device_physical(device);
    const struct util_format_description *desc;
    unsigned stride;
-   unsigned num_format, data_format;
-   int first_non_void;
    enum pipe_swizzle swizzle[4];
-   unsigned rsrc_word3;
 
    desc = vk_format_description(vk_format);
-   first_non_void = vk_format_get_first_non_void_channel(vk_format);
    stride = desc->block.bits / 8;
 
    radv_compose_swizzle(desc, NULL, swizzle);
@@ -42,48 +39,22 @@ radv_make_texel_buffer_descriptor(struct radv_device *device, uint64_t va, VkFor
       range /= stride;
    }
 
-   rsrc_word3 = S_008F0C_DST_SEL_X(radv_map_swizzle(swizzle[0])) | S_008F0C_DST_SEL_Y(radv_map_swizzle(swizzle[1])) |
-                S_008F0C_DST_SEL_Z(radv_map_swizzle(swizzle[2])) | S_008F0C_DST_SEL_W(radv_map_swizzle(swizzle[3]));
+   const struct ac_buffer_state ac_state = {
+      .va = va,
+      .size = range,
+      .format = radv_format_to_pipe_format(vk_format),
+      .swizzle =
+         {
+            swizzle[0],
+            swizzle[1],
+            swizzle[2],
+            swizzle[3],
+         },
+      .stride = stride,
+      .gfx10_oob_select = V_008F0C_OOB_SELECT_STRUCTURED_WITH_OFFSET,
+   };
 
-   if (pdev->info.gfx_level >= GFX10) {
-      const struct gfx10_format *fmt = &ac_get_gfx10_format_table(&pdev->info)[vk_format_to_pipe_format(vk_format)];
-
-      /* OOB_SELECT chooses the out-of-bounds check.
-       *
-       * GFX10:
-       *  - 0: (index >= NUM_RECORDS) || (offset >= STRIDE)
-       *  - 1: index >= NUM_RECORDS
-       *  - 2: NUM_RECORDS == 0
-       *  - 3: if SWIZZLE_ENABLE:
-       *          swizzle_address >= NUM_RECORDS
-       *       else:
-       *          offset >= NUM_RECORDS
-       *
-       * GFX11:
-       *  - 0: (index >= NUM_RECORDS) || (offset+payload > STRIDE)
-       *  - 1: index >= NUM_RECORDS
-       *  - 2: NUM_RECORDS == 0
-       *  - 3: if SWIZZLE_ENABLE && STRIDE:
-       *          (index >= NUM_RECORDS) || ( offset+payload > STRIDE)
-       *       else:
-       *          offset+payload > NUM_RECORDS
-       */
-      rsrc_word3 |= S_008F0C_FORMAT_GFX10(fmt->img_format) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_STRUCTURED_WITH_OFFSET) |
-                    S_008F0C_RESOURCE_LEVEL(pdev->info.gfx_level < GFX11);
-   } else {
-      num_format = radv_translate_buffer_numformat(desc, first_non_void);
-      data_format = radv_translate_buffer_dataformat(desc, first_non_void);
-
-      assert(data_format != V_008F0C_BUF_DATA_FORMAT_INVALID);
-
-      rsrc_word3 |= S_008F0C_NUM_FORMAT(num_format) | S_008F0C_DATA_FORMAT(data_format);
-   }
-
-   state[0] = va;
-   state[1] = S_008F04_BASE_ADDRESS_HI(va >> 32) | S_008F04_STRIDE(stride);
-   state[2] = range;
-   state[3] = rsrc_word3;
+   ac_build_buffer_descriptor(pdev->info.gfx_level, &ac_state, state);
 }
 
 void

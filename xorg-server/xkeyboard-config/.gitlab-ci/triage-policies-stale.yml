@@ -1,0 +1,121 @@
+# Note that for adding labels via gitlab-triage, the label must first be created in the project.
+
+
+################################################################################
+# Issues
+################################################################################
+
+# Workflow:
+# 1. Issues with no activity are closed and tagged as “stale”
+# 2. Issues tagged as “stale” that are re-opened are then no longer
+#    stale, thus we untagged them.
+
+.close-stale-issue-actions: &close-stale-issue-actions
+  comment: |
+    Hi {{author}}! This issue looks like it has gotten stale or maybe it got
+    fixed in one of the recent releases.
+
+    I’m going to close this bug, if it is still an issue please do reopen.
+  labels:
+    - "stale"
+    - "closed by triage"
+  status: "close"
+
+.close-stale-issue: &close-stale-issue
+  name: "Close stale issues"
+  conditions:
+    state: opened
+    date:
+      attribute: updated_at
+      condition: older_than
+      interval_type: months
+      interval: 12
+    forbidden_labels:
+      - "skip: stale triage"
+  actions: *close-stale-issue-actions
+
+# Manually tagged
+.close-pending-stale-issue: &close-pending-stale-issue
+  name: "Close pending stale issues"
+  conditions:
+    state: opened
+    labels:
+      - "stale"
+    forbidden_labels:
+      - "closed by triage"
+      - "skip: stale triage"
+  actions: *close-stale-issue-actions
+
+
+################################################################################
+# Merge requests
+################################################################################
+
+.close-stale-mr-actions: &close-stale-mr-actions
+  comment: |
+    Hi {{author}}! This MR looks like it has gotten stale.
+
+    If this merge request is still relevant, please reopen.
+  labels:
+    - "stale"
+    - "closed by triage"
+  status: "close"
+
+.close-stale-mr: &close-stale-mr
+  name: "Close stale MRs"
+  conditions:
+    state: opened
+    date:
+      attribute: updated_at
+      condition: older_than
+      interval_type: months
+      interval: 6
+    forbidden_labels:
+      - "skip: stale triage"
+  actions: *close-stale-mr-actions
+
+# Manually tagged
+.close-pending-stale-mr: &close-pending-stale-mr
+  name: "Close pending stale MRs"
+  conditions:
+    state: opened
+    labels:
+      - "stale"
+    forbidden_labels:
+      - "closed by triage"
+      - "skip: stale triage"
+  actions: *close-stale-mr-actions
+
+
+################################################################################
+# Common
+################################################################################
+
+.untag-reopened-stale: &untag-reopened-stale
+  name: "Untag reopened stale issues or MRs"
+  conditions:
+    state: opened
+    labels:
+      - "stale"
+      - "closed by triage"
+  actions:
+    remove_labels:
+      - "stale"
+      - "closed by triage"
+
+
+################################################################################
+# Rules
+################################################################################
+
+resource_rules:
+  issues:
+    rules:
+      - *untag-reopened-stale # Must come before closing stale issue
+      - *close-stale-issue
+      - *close-pending-stale-issue
+  merge_requests:
+    rules:
+      - *untag-reopened-stale # Must come before closing stale issue
+      - *close-stale-mr
+      - *close-pending-stale-mr

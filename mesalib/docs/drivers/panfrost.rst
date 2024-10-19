@@ -3,8 +3,9 @@ Panfrost
 
 The Panfrost driver stack includes an OpenGL ES implementation for Arm Mali
 GPUs based on the Midgard and Bifrost microarchitectures. It is **conformant**
-on `Mali-G52 <https://www.khronos.org/conformance/adopters/conformant-products/opengles#submission_949>`_
-and `Mali-G57 <https://www.khronos.org/conformance/adopters/conformant-products/opengles#submission_980>`_
+on `Mali-G52 <https://www.khronos.org/conformance/adopters/conformant-products/opengles#submission_949>`_,
+`Mali-G57 <https://www.khronos.org/conformance/adopters/conformant-products/opengles#submission_980>`_
+and `Mali-G610 <https://www.khronos.org/conformance/adopters/conformant-products/opengles#submission_1053>`_,
 but **non-conformant** on other GPUs. The following hardware is currently
 supported:
 

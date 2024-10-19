@@ -31,6 +31,7 @@
 #define __gen_address_type struct iris_address
 #define __gen_user_data struct iris_batch
 #define __gen_combine_address iris_combine_address
+#define __gen_get_write_fencing_status(b) (&(b)->write_fence_status)
 
 static inline void *
 __gen_get_batch_dwords(struct iris_batch *batch, unsigned dwords)

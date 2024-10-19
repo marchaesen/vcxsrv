@@ -776,6 +776,22 @@ struct _mesa_glsl_parse_state {
     */
    bool KHR_blend_equation_advanced_enable;
    bool KHR_blend_equation_advanced_warn;
+   bool KHR_shader_subgroup_arithmetic_enable;
+   bool KHR_shader_subgroup_arithmetic_warn;
+   bool KHR_shader_subgroup_ballot_enable;
+   bool KHR_shader_subgroup_ballot_warn;
+   bool KHR_shader_subgroup_basic_enable;
+   bool KHR_shader_subgroup_basic_warn;
+   bool KHR_shader_subgroup_clustered_enable;
+   bool KHR_shader_subgroup_clustered_warn;
+   bool KHR_shader_subgroup_quad_enable;
+   bool KHR_shader_subgroup_quad_warn;
+   bool KHR_shader_subgroup_shuffle_enable;
+   bool KHR_shader_subgroup_shuffle_warn;
+   bool KHR_shader_subgroup_shuffle_relative_enable;
+   bool KHR_shader_subgroup_shuffle_relative_warn;
+   bool KHR_shader_subgroup_vote_enable;
+   bool KHR_shader_subgroup_vote_warn;
 
    /* OES extensions go here, sorted alphabetically.
     */
@@ -880,6 +896,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_shader_io_blocks_warn;
    bool EXT_shader_samples_identical_enable;
    bool EXT_shader_samples_identical_warn;
+   bool EXT_shadow_samplers_enable;
+   bool EXT_shadow_samplers_warn;
    bool EXT_tessellation_point_size_enable;
    bool EXT_tessellation_point_size_warn;
    bool EXT_tessellation_shader_enable;
@@ -916,6 +934,10 @@ struct _mesa_glsl_parse_state {
    bool NV_shader_noperspective_interpolation_warn;
    bool NV_viewport_array2_enable;
    bool NV_viewport_array2_warn;
+   bool OVR_multiview_enable;
+   bool OVR_multiview_warn;
+   bool OVR_multiview2_enable;
+   bool OVR_multiview2_warn;
    /*@}*/
 
    /** Extensions supported by the OpenGL implementation. */
@@ -1048,44 +1070,6 @@ extern bool _mesa_glsl_process_extension(const char *name, YYLTYPE *name_locp,
                                          const char *behavior,
                                          YYLTYPE *behavior_locp,
                                          _mesa_glsl_parse_state *state);
-
-
-/**
- * \brief Can \c from be implicitly converted to \c desired
- *
- * \return True if the types are identical or if \c from type can be converted
- *         to \c desired according to Section 4.1.10 of the GLSL spec.
- *
- * \verbatim
- * From page 25 (31 of the pdf) of the GLSL 1.50 spec, Section 4.1.10
- * Implicit Conversions:
- *
- *     In some situations, an expression and its type will be implicitly
- *     converted to a different type. The following table shows all allowed
- *     implicit conversions:
- *
- *     Type of expression | Can be implicitly converted to
- *     --------------------------------------------------
- *     int                  float
- *     uint
- *
- *     ivec2                vec2
- *     uvec2
- *
- *     ivec3                vec3
- *     uvec3
- *
- *     ivec4                vec4
- *     uvec4
- *
- *     There are no implicit array or structure conversions. For example,
- *     an array of int cannot be implicitly converted to an array of float.
- *     There are no implicit conversions between signed and unsigned
- *     integers.
- * \endverbatim
- */
-extern bool _mesa_glsl_can_implicitly_convert(const glsl_type *from, const glsl_type *desired,
-                                              _mesa_glsl_parse_state *state);
 
 #endif /* __cplusplus */
 

@@ -255,7 +255,7 @@ dri3_get_supported_modifiers(ScreenPtr screen, DrawablePtr drawable,
     }
 
     /* copy the screen mods so we can return an owned allocation */
-    screen_mods = xnfalloc(screen_format->num_modifiers * sizeof(CARD64));
+    screen_mods = XNFalloc(screen_format->num_modifiers * sizeof(CARD64));
     memcpy(screen_mods, screen_format->modifiers,
            screen_format->num_modifiers * sizeof(CARD64));
 

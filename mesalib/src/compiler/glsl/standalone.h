@@ -33,7 +33,6 @@ struct standalone_options {
    int dump_ast;
    int dump_hir;
    int dump_lir;
-   int dump_builder;
    int do_link;
    int just_log;
    int lower_precision;

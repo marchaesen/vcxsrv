@@ -7,6 +7,7 @@
 #include "tu_formats.h"
 
 #include "fdl/fd6_format_table.h"
+#include "common/freedreno_ubwc.h"
 
 #include "vk_android.h"
 #include "vk_enum_defines.h"
@@ -18,34 +19,6 @@
 #include "tu_image.h"
 
 #include <vulkan/vulkan_android.h>
-
-/* Map non-colorspace-converted YUV formats to RGB pipe formats where we can,
- * since our hardware doesn't support colorspace conversion.
- *
- * Really, we should probably be returning the RGB formats in
- * vk_format_to_pipe_format, but we don't have all the equivalent pipe formats
- * for VK RGB formats yet, and we'd have to switch all consumers of that
- * function at once.
- */
-enum pipe_format
-tu_vk_format_to_pipe_format(VkFormat vk_format)
-{
-   switch (vk_format) {
-   case VK_FORMAT_R10X6_UNORM_PACK16:
-   case VK_FORMAT_R10X6G10X6_UNORM_2PACK16:
-      return PIPE_FORMAT_NONE; /* These fail some CTS tests */
-   case VK_FORMAT_G8B8G8R8_422_UNORM: /* YUYV */
-      return PIPE_FORMAT_R8G8_R8B8_UNORM;
-   case VK_FORMAT_B8G8R8G8_422_UNORM: /* UYVY */
-      return PIPE_FORMAT_G8R8_B8R8_UNORM;
-   case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-      return PIPE_FORMAT_G8_B8R8_420_UNORM;
-   case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
-      return PIPE_FORMAT_G8_B8_R8_420_UNORM;
-   default:
-      return vk_format_to_pipe_format(vk_format);
-   }
-}
 
 static bool
 tu6_format_vtx_supported(enum pipe_format format)
@@ -98,109 +71,10 @@ tu6_format_texture(enum pipe_format format, enum a6xx_tile_mode tile_mode)
    return fmt;
 }
 
-enum tu6_ubwc_compat_type {
-   TU6_UBWC_UNKNOWN_COMPAT,
-   TU6_UBWC_R8G8_UNORM,
-   TU6_UBWC_R8G8_INT,
-   TU6_UBWC_R8G8B8A8_UNORM,
-   TU6_UBWC_R8G8B8A8_INT,
-   TU6_UBWC_B8G8R8A8_UNORM,
-   TU6_UBWC_R16G16_UNORM,
-   TU6_UBWC_R16G16_INT,
-   TU6_UBWC_R16G16B16A16_UNORM,
-   TU6_UBWC_R16G16B16A16_INT,
-   TU6_UBWC_R32_INT,
-   TU6_UBWC_R32G32_INT,
-   TU6_UBWC_R32G32B32A32_INT,
-   TU6_UBWC_R32_FLOAT,
-};
-
-static enum tu6_ubwc_compat_type
+static enum fd6_ubwc_compat_type
 tu6_ubwc_compat_mode(const struct fd_dev_info *info, VkFormat format)
 {
-   switch (format) {
-   case VK_FORMAT_R8G8_UNORM:
-   case VK_FORMAT_R8G8_SRGB:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R8G8_INT : TU6_UBWC_R8G8_UNORM;
-
-   case VK_FORMAT_R8G8_SNORM:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R8G8_INT : TU6_UBWC_UNKNOWN_COMPAT;
-
-   case VK_FORMAT_R8G8_UINT:
-   case VK_FORMAT_R8G8_SINT:
-      return TU6_UBWC_R8G8_INT;
-
-   case VK_FORMAT_R8G8B8A8_UNORM:
-   case VK_FORMAT_R8G8B8A8_SRGB:
-   case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
-   case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R8G8B8A8_INT : TU6_UBWC_R8G8B8A8_UNORM;
-
-   case VK_FORMAT_R8G8B8A8_SNORM:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R8G8B8A8_INT : TU6_UBWC_UNKNOWN_COMPAT;
-
-   case VK_FORMAT_R8G8B8A8_UINT:
-   case VK_FORMAT_R8G8B8A8_SINT:
-   case VK_FORMAT_A8B8G8R8_UINT_PACK32:
-   case VK_FORMAT_A8B8G8R8_SINT_PACK32:
-      return TU6_UBWC_R8G8B8A8_INT;
-
-   case VK_FORMAT_R16G16_UNORM:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R16G16_INT : TU6_UBWC_R16G16_UNORM;
-
-   case VK_FORMAT_R16G16_SNORM:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R16G16_INT : TU6_UBWC_UNKNOWN_COMPAT;
-
-   case VK_FORMAT_R16G16_UINT:
-   case VK_FORMAT_R16G16_SINT:
-      return TU6_UBWC_R16G16_INT;
-
-   case VK_FORMAT_R16G16B16A16_UNORM:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R16G16B16A16_INT : TU6_UBWC_R16G16B16A16_UNORM;
-
-   case VK_FORMAT_R16G16B16A16_SNORM:
-      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
-         TU6_UBWC_R16G16B16A16_INT : TU6_UBWC_UNKNOWN_COMPAT;
-
-   case VK_FORMAT_R16G16B16A16_UINT:
-   case VK_FORMAT_R16G16B16A16_SINT:
-      return TU6_UBWC_R16G16B16A16_INT;
-
-   case VK_FORMAT_R32_UINT:
-   case VK_FORMAT_R32_SINT:
-      return TU6_UBWC_R32_INT;
-
-   case VK_FORMAT_R32G32_UINT:
-   case VK_FORMAT_R32G32_SINT:
-      return TU6_UBWC_R32G32_INT;
-
-   case VK_FORMAT_R32G32B32A32_UINT:
-   case VK_FORMAT_R32G32B32A32_SINT:
-      return TU6_UBWC_R32G32B32A32_INT;
-
-   case VK_FORMAT_D32_SFLOAT:
-   case VK_FORMAT_R32_SFLOAT:
-      /* TODO: a630 blob allows these, but not a660.  When is it legal? */
-      return TU6_UBWC_UNKNOWN_COMPAT;
-
-   case VK_FORMAT_B8G8R8A8_UNORM:
-   case VK_FORMAT_B8G8R8A8_SRGB:
-      /* The blob doesn't list these as compatible, but they surely are.
-       * freedreno's happy to cast between them, and zink would really like
-       * to.
-       */
-      return TU6_UBWC_B8G8R8A8_UNORM;
-
-   default:
-      return TU6_UBWC_UNKNOWN_COMPAT;
-   }
+   return fd6_ubwc_compat_mode(info, vk_format_to_pipe_format(format));
 }
 
 bool
@@ -216,9 +90,9 @@ tu6_mutable_format_list_ubwc_compatible(const struct fd_dev_info *info,
    if (fmt_list->viewFormatCount == 1)
       return true;
 
-   enum tu6_ubwc_compat_type type =
+   enum fd6_ubwc_compat_type type =
       tu6_ubwc_compat_mode(info, fmt_list->pViewFormats[0]);
-   if (type == TU6_UBWC_UNKNOWN_COMPAT)
+   if (type == FD6_UBWC_UNKNOWN_COMPAT)
       return false;
 
    for (uint32_t i = 1; i < fmt_list->viewFormatCount; i++) {
@@ -236,8 +110,9 @@ tu_physical_device_get_format_properties(
    VkFormatProperties3 *out_properties)
 {
    VkFormatFeatureFlags2 linear = 0, optimal = 0, buffer = 0;
-   enum pipe_format format = tu_vk_format_to_pipe_format(vk_format);
+   enum pipe_format format = vk_format_to_pipe_format(vk_format);
    const struct util_format_description *desc = util_format_description(format);
+   const struct vk_format_ycbcr_info *ycbcr_info = vk_format_get_ycbcr_info(vk_format);
 
    bool supported_vtx = tu6_format_vtx_supported(format);
    bool supported_color = tu6_format_color_supported(format);
@@ -251,45 +126,51 @@ tu_physical_device_get_format_properties(
 
    /* We don't support BufferToImage/ImageToBuffer for npot formats */
    if (!is_npot)
-      buffer |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+      buffer |= VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT;
 
    if (supported_vtx)
-      buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+      buffer |= VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT;
 
    if (supported_tex)
-      buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+      buffer |= VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT;
+
+   /* We don't support D24S8 because copying just one aspect would require a
+    * special codepath and that doesn't seem worth it.
+    */
+   if (!is_npot && vk_format != VK_FORMAT_D24_UNORM_S8_UINT) {
+      optimal |= VK_FORMAT_FEATURE_2_HOST_IMAGE_TRANSFER_BIT_EXT;
+   }
 
    /* Don't support anything but texel buffers for non-power-of-two formats
     * with 3 components. We'd need several workarounds for copying and
     * clearing them because they're not renderable.
     */
    if (supported_tex && !is_npot) {
-      optimal |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
-                 VK_FORMAT_FEATURE_TRANSFER_DST_BIT |
-                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
-                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
+      optimal |= VK_FORMAT_FEATURE_2_TRANSFER_SRC_BIT |
+                 VK_FORMAT_FEATURE_2_TRANSFER_DST_BIT |
+                 VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT |
+                 VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
 
-      /* no blit src bit for YUYV/NV12/I420 formats */
-      if (desc->layout != UTIL_FORMAT_LAYOUT_SUBSAMPLED &&
-          desc->layout != UTIL_FORMAT_LAYOUT_PLANAR2 &&
-          desc->layout != UTIL_FORMAT_LAYOUT_PLANAR3) {
-         optimal |= VK_FORMAT_FEATURE_BLIT_SRC_BIT;
-      } else {
-         optimal |= VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT;
+      if (ycbcr_info) {
+         /* This is supported on all YCbCr formats */
+         optimal |= VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT;
 
-         if (desc->layout != UTIL_FORMAT_LAYOUT_SUBSAMPLED) {
-            optimal |= VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT |
-                       VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT;
+         if (ycbcr_info->n_planes > 1) {
+            optimal |= VK_FORMAT_FEATURE_2_COSITED_CHROMA_SAMPLES_BIT |
+                       VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT;
             if (physical_device->info->a6xx.has_separate_chroma_filter)
-               optimal |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT;
+               optimal |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT;
          }
+      } else {
+         /* BLIT_SRC_BIT isn't allowed for YCbCr formats */
+         optimal |= VK_FORMAT_FEATURE_2_BLIT_SRC_BIT;
       }
 
       if (!vk_format_is_int(vk_format)) {
-         optimal |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+         optimal |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
 
          if (physical_device->vk.supported_extensions.EXT_filter_cubic)
-            optimal |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT;
+            optimal |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT;
       }
 
       /* We sample on the CPU so we can technically support anything as long
@@ -297,35 +178,49 @@ tu_physical_device_get_format_properties(
        * to use, which means two channels and not something weird like
        * luminance-alpha.
        */
-      if (util_format_is_float(format) &&
-          desc->nr_channels == 2 && desc->swizzle[0] == PIPE_SWIZZLE_X &&
+      if (vk_format_is_float(vk_format) && desc->nr_channels == 2 &&
+          desc->swizzle[0] == PIPE_SWIZZLE_X &&
           desc->swizzle[1] == PIPE_SWIZZLE_Y) {
-         optimal |= VK_FORMAT_FEATURE_FRAGMENT_DENSITY_MAP_BIT_EXT;
+         optimal |= VK_FORMAT_FEATURE_2_FRAGMENT_DENSITY_MAP_BIT_EXT;
       }
    }
 
    if (supported_color) {
       assert(supported_tex);
-      optimal |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-                 VK_FORMAT_FEATURE_BLIT_DST_BIT |
-                 VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT |
+      optimal |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
+                 VK_FORMAT_FEATURE_2_BLIT_DST_BIT |
+                 VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT |
                  VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT |
                  VK_FORMAT_FEATURE_2_STORAGE_WRITE_WITHOUT_FORMAT_BIT;
 
-      buffer |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT |
+      buffer |= VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT |
                 VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT |
                 VK_FORMAT_FEATURE_2_STORAGE_WRITE_WITHOUT_FORMAT_BIT;
 
-      /* TODO: The blob also exposes these for R16G16_UINT/R16G16_SINT, but we
-       * don't have any tests for those.
+      /* TODO: The blob also exposes these for R16G16_UINT/R16G16_SINT/
+       * R32G32_SFLOAT/R32G32B32A32_SFLOAT, but we don't have any tests for those.
+       * R32_SFLOAT is also included here by the blob, but that requires
+       * implementing VK_EXT_shader_atomic_float.
        */
       if (vk_format == VK_FORMAT_R32_UINT || vk_format == VK_FORMAT_R32_SINT) {
-         optimal |= VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
-         buffer |= VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
+         optimal |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT;
+         buffer |= VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
       }
 
-      if (!util_format_is_pure_integer(format))
-         optimal |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+      if (!vk_format_is_int(vk_format))
+         optimal |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT;
+   }
+
+   /* All our depth formats support shadow comparisons. */
+   if (vk_format_has_depth(vk_format) && (optimal & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT)) {
+      optimal |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT;
+   }
+
+   /* We don't support writing into VK_FORMAT_*_PACK16 images/buffers  */
+   if (desc->nr_channels > 2 && desc->block.bits == 16) {
+      buffer &= VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT;
+      optimal &= ~(VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT |
+                   VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT);
    }
 
    /* For the most part, we can do anything with a linear image that we could
@@ -339,7 +234,7 @@ tu_physical_device_get_format_properties(
     */
    linear = optimal;
    if (tu6_pipe2depth(vk_format) != DEPTH6_NONE)
-      optimal |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      optimal |= VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT;
 
    if (!tiling_possible(vk_format) &&
        /* We don't actually support tiling for this format, but we need to
@@ -349,48 +244,24 @@ tu_physical_device_get_format_properties(
       optimal = 0;
    }
 
-   if (vk_format == VK_FORMAT_G8B8G8R8_422_UNORM ||
-       vk_format == VK_FORMAT_B8G8R8G8_422_UNORM ||
-       vk_format == VK_FORMAT_G8_B8R8_2PLANE_420_UNORM ||
-       vk_format == VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM) {
-      /* Disable buffer texturing of subsampled (422) and planar YUV textures.
-       * The subsampling requirement comes from "If format is a block-compressed
-       * format, then bufferFeatures must not support any features for the
-       * format" plus the specification of subsampled as 2x1 compressed block
-       * format.  I couldn't find the citation for planar, but 1D access of
-       * planar YUV would be really silly.
-       */
-      buffer = 0;
-   }
-
-   /* We don't support writing into VK_FORMAT_*_PACK16 images/buffers  */
-   if (desc->nr_channels > 2 && desc->block.bits == 16) {
-      buffer &= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
-      linear &= ~(VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT |
-                  VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT);
-      optimal &= ~(VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT |
-                   VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT);
-   }
-
-   /* All our depth formats support shadow comparisons. */
-   if (vk_format_has_depth(vk_format) && (optimal & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
-      optimal |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT;
-      linear |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_DEPTH_COMPARISON_BIT;
-   }
-
-   /* From the Vulkan 1.3.205 spec, section 19.3 "43.3. Required Format Support":
+   /* Disable buffer texturing of subsampled (422) and planar YUV textures,
+    * as well as for depth/stencil formats. The subsampling requirement comes
+    * from "If format is a block-compressed format, then bufferFeatures must
+    * not support any features for the format" plus the specification of
+    * subsampled as 2x1 compressed block format.  I couldn't find the citation
+    * for planar, but 1D access of planar YUV would be really silly.
+    *
+    * From the Vulkan 1.3.205 spec, section 19.3 "43.3. Required Format Support":
     *
     *    Mandatory format support: depth/stencil with VkImageType
     *    VK_IMAGE_TYPE_2D
     *    [...]
     *    bufferFeatures must not support any features for these formats
     */
-   if (vk_format_is_depth_or_stencil(vk_format))
+   if (ycbcr_info || vk_format_is_depth_or_stencil(vk_format))
       buffer = 0;
 
-   /* D32_SFLOAT_S8_UINT is tiled as two images, so no linear format
-    * blob enables some linear features, but its not useful, so don't bother.
-    */
+   /* D32_SFLOAT_S8_UINT is tiled as two images, so no linear format */
    if (vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT)
       linear = 0;
 
@@ -580,8 +451,8 @@ tu_get_image_format_properties(
    if (info->tiling == VK_IMAGE_TILING_OPTIMAL &&
        info->type == VK_IMAGE_TYPE_2D &&
        (format_feature_flags &
-        (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
-         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) &&
+        (VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
+         VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT)) &&
        !(info->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) &&
        !(info->usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
       sampleCounts |= VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT;
@@ -610,26 +481,34 @@ tu_get_image_format_properties(
       image_usage = 0;
 
    if (image_usage & VK_IMAGE_USAGE_SAMPLED_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT)) {
          return tu_image_unsupported_format(pImageFormatProperties);
       }
    }
 
    if (image_usage & VK_IMAGE_USAGE_STORAGE_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT)) {
          return tu_image_unsupported_format(pImageFormatProperties);
       }
    }
 
    if (image_usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT)) {
          return tu_image_unsupported_format(pImageFormatProperties);
       }
    }
 
    if (image_usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
       if (!(format_feature_flags &
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) {
+            VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT)) {
+         return tu_image_unsupported_format(pImageFormatProperties);
+      }
+   }
+
+   if (image_usage & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT) {
+      if (!(format_feature_flags &
+            (VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
+             VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT))) {
          return tu_image_unsupported_format(pImageFormatProperties);
       }
    }
@@ -689,12 +568,14 @@ tu_get_external_image_format_properties(
                           handleType, pImageFormatInfo->type);
       }
       break;
+#if DETECT_OS_ANDROID
    case VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID:
       flags = VK_EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_BIT |
               VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT |
               VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
       compat_flags = export_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
       break;
+#endif
    case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
       flags = VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
       compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
@@ -731,6 +612,7 @@ tu_GetPhysicalDeviceImageFormatProperties2(
    VkFilterCubicImageViewImageFormatPropertiesEXT *cubic_props = NULL;
    VkFormatFeatureFlags format_feature_flags;
    VkSamplerYcbcrConversionImageFormatProperties *ycbcr_props = NULL;
+   VkHostImageCopyDevicePerformanceQueryEXT *hic_props = NULL;
    VkResult result;
 
    result = tu_get_image_format_properties(physical_device,
@@ -769,6 +651,9 @@ tu_GetPhysicalDeviceImageFormatProperties2(
       case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES:
          ycbcr_props = (VkSamplerYcbcrConversionImageFormatProperties *) s;
          break;
+      case VK_STRUCTURE_TYPE_HOST_IMAGE_COPY_DEVICE_PERFORMANCE_QUERY_EXT:
+         hic_props = (VkHostImageCopyDevicePerformanceQueryEXT *) s;
+         break;
       default:
          break;
       }
@@ -794,7 +679,7 @@ tu_GetPhysicalDeviceImageFormatProperties2(
        */
       if ((image_view_info->imageViewType == VK_IMAGE_VIEW_TYPE_2D ||
            image_view_info->imageViewType == VK_IMAGE_VIEW_TYPE_2D_ARRAY) &&
-          (format_feature_flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT)) {
+          (format_feature_flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT)) {
          cubic_props->filterCubic = true;
          cubic_props->filterCubicMinmax = true;
       } else {
@@ -843,6 +728,39 @@ tu_GetPhysicalDeviceImageFormatProperties2(
    if (ycbcr_props)
       ycbcr_props->combinedImageSamplerDescriptorCount = 1;
 
+   if (hic_props) {
+      /* This should match tu_image_init() as much as possible given the
+       * information we have here. We are conservative and only return true if
+       * we know that UBWC would never be enabled and copying the tiled image
+       * is possible so we wouldn't have to fall back to linear. There are no
+       * cases where we modify the layout for HIC but still have optimal
+       * access, so we return the same value for both.
+       *
+       * ubwc_possible() returns false for block-compressed formats, which
+       * satisfies the spec requirement that:
+       *
+       *    If VkPhysicalDeviceImageFormatInfo2::format is a block-compressed
+       *    format and vkGetPhysicalDeviceImageFormatProperties2 returns
+       *    VK_SUCCESS, the implementation must return VK_TRUE in
+       *    optimalDeviceAccess.
+       */
+      hic_props->optimalDeviceAccess = hic_props->identicalMemoryLayout =
+         base_info->tiling == VK_IMAGE_TILING_LINEAR ||
+         base_info->type == VK_IMAGE_TYPE_1D ||
+         !tiling_possible(base_info->format) ||
+         (base_info->usage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT) ||
+         /* If UBWC is impossible, tiling is possible, but it's a swapped
+          * format, we'd hit the force_linear_tile fallback.
+          */
+         (fd6_color_swap(vk_format_to_pipe_format(base_info->format),
+                                                  TILE6_LINEAR) == WZYX &&
+         !ubwc_possible(NULL, base_info->format, base_info->type,
+                        (base_info->usage & ~VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT),
+                        (base_info->usage & ~VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT),
+                        physical_device->info, VK_SAMPLE_COUNT_1_BIT,
+                        physical_device->info->a6xx.has_z24uint_s8uint));
+   }
+
    return VK_SUCCESS;
 
 fail:
@@ -869,37 +787,4 @@ tu_GetPhysicalDeviceSparseImageFormatProperties2(
 {
    /* Sparse images are not yet supported. */
    *pPropertyCount = 0;
-}
-
-VKAPI_ATTR void VKAPI_CALL
-tu_GetPhysicalDeviceExternalBufferProperties(
-   VkPhysicalDevice physicalDevice,
-   const VkPhysicalDeviceExternalBufferInfo *pExternalBufferInfo,
-   VkExternalBufferProperties *pExternalBufferProperties)
-{
-   BITMASK_ENUM(VkExternalMemoryFeatureFlagBits) flags = 0;
-   VkExternalMemoryHandleTypeFlags export_flags = 0;
-   VkExternalMemoryHandleTypeFlags compat_flags = 0;
-   switch (pExternalBufferInfo->handleType) {
-   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT:
-   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT:
-      flags = VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT |
-              VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
-      compat_flags = export_flags =
-         VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT |
-         VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
-      break;
-   case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
-      flags = VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
-      compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT;
-      break;
-   default:
-      break;
-   }
-   pExternalBufferProperties->externalMemoryProperties =
-      (VkExternalMemoryProperties) {
-         .externalMemoryFeatures = flags,
-         .exportFromImportedHandleTypes = export_flags,
-         .compatibleHandleTypes = compat_flags,
-      };
 }

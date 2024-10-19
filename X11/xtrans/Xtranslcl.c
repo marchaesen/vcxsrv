@@ -747,7 +747,7 @@ TRANS(LocalInitTransports)(const char *protocol)
 	workingXLOCAL = freeXLOCAL = strdup (protocol);
     }
     else {
-	XLOCAL=(char *)getenv("XLOCAL");
+	XLOCAL = getenv("XLOCAL");
 	if(XLOCAL==NULL)
 	    XLOCAL=DEF_XLOCAL;
 	workingXLOCAL = freeXLOCAL = strdup (XLOCAL);
@@ -771,7 +771,6 @@ static LOCALtrans2dev *
 TRANS(LocalGetNextTransport)(void)
 
 {
-    int		i;
     char	*typetocheck;
     prmsg(3,"LocalGetNextTransport()\n");
 
@@ -785,7 +784,7 @@ TRANS(LocalGetNextTransport)(void)
 	if(workingXLOCAL && *workingXLOCAL)
 	    *workingXLOCAL++='\0';
 
-	for(i=0;i<NUMTRANSPORTS;i++)
+	for (unsigned int i = 0; i < NUMTRANSPORTS; i++)
 	{
 #ifndef HAVE_STRCASECMP
 	    int		j;
@@ -948,7 +947,6 @@ TRANS(LocalOpenServer)(int type, const char *protocol,
                        const char *host _X_UNUSED, const char *port)
 
 {
-    int	i;
     XtransConnInfo ciptr;
 
     prmsg(2,"LocalOpenServer(%d,%s,%s)\n", type, protocol, port);
@@ -969,7 +967,7 @@ TRANS(LocalOpenServer)(int type, const char *protocol,
 	return NULL;
     }
 
-    for(i=1;i<NUMTRANSPORTS;i++)
+    for (unsigned int i = 1; i < NUMTRANSPORTS; i++)
     {
 	if( strcmp(protocol,LOCALtrans2devtab[i].transname) != 0 )
 	    continue;
@@ -1120,7 +1118,7 @@ static XtransConnInfo
 TRANS(LocalReopenCOTSServer)(Xtransport *thistrans, int fd, const char *port)
 
 {
-    int index;
+    unsigned int index;
 
     prmsg(2,"LocalReopenCOTSServer(%d,%s)\n", fd, port);
 

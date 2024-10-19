@@ -121,6 +121,24 @@ tu_drm_get_va_prop(const struct tu_physical_device *dev,
    return 0;
 }
 
+static bool
+tu_drm_has_preemption(const struct tu_physical_device *dev)
+{
+   struct drm_msm_submitqueue req = {
+      .flags = MSM_SUBMITQUEUE_ALLOW_PREEMPT,
+      .prio = dev->submitqueue_priority_count / 2,
+   };
+
+   int ret = drmCommandWriteRead(dev->local_fd,
+                                 DRM_MSM_SUBMITQUEUE_NEW, &req, sizeof(req));
+   if (ret)
+      return false;
+
+   drmCommandWrite(dev->local_fd, DRM_MSM_SUBMITQUEUE_CLOSE, &req.id,
+                   sizeof(req.id));
+   return true;
+}
+
 static uint32_t
 tu_drm_get_priorities(const struct tu_physical_device *dev)
 {
@@ -129,6 +147,39 @@ tu_drm_get_priorities(const struct tu_physical_device *dev)
    assert(val >= 1);
 
    return val;
+}
+
+static uint32_t
+tu_drm_get_highest_bank_bit(const struct tu_physical_device *dev)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(dev->local_fd, MSM_PARAM_HIGHEST_BANK_BIT, &value);
+   if (ret)
+      return 0;
+
+   return value;
+}
+
+static enum fdl_macrotile_mode
+tu_drm_get_macrotile_mode(const struct tu_physical_device *dev)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(dev->local_fd, MSM_PARAM_MACROTILE_MODE, &value);
+   if (ret)
+      return FDL_MACROTILE_INVALID;
+
+   return (enum fdl_macrotile_mode) value;
+}
+
+static uint32_t
+tu_drm_get_ubwc_swizzle(const struct tu_physical_device *dev)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(dev->local_fd, MSM_PARAM_UBWC_SWIZZLE, &value);
+   if (ret)
+      return ~0;
+
+   return value;
 }
 
 static bool
@@ -214,7 +265,9 @@ msm_submitqueue_new(struct tu_device *dev,
    assert(priority >= 0 &&
           priority < dev->physical_device->submitqueue_priority_count);
    struct drm_msm_submitqueue req = {
-      .flags = 0,
+      .flags = dev->physical_device->info->chip >= 7 &&
+         dev->physical_device->has_preemption ?
+         MSM_SUBMITQUEUE_ALLOW_PREEMPT : 0,
       .prio = priority,
    };
 
@@ -431,6 +484,7 @@ tu_allocate_kernel_iova(struct tu_device *dev,
 
 static VkResult
 tu_bo_init(struct tu_device *dev,
+           struct vk_object_base *base,
            struct tu_bo *bo,
            uint32_t gem_handle,
            uint64_t size,
@@ -494,6 +548,7 @@ tu_bo_init(struct tu_device *dev,
       .name = name,
       .refcnt = 1,
       .bo_list_idx = idx,
+      .base = base,
    };
 
    mtx_unlock(&dev->bo_mutex);
@@ -550,6 +605,7 @@ msm_vma_unlock(struct tu_device *dev)
 
 static VkResult
 msm_bo_init(struct tu_device *dev,
+            struct vk_object_base *base,
             struct tu_bo **out_bo,
             uint64_t size,
             uint64_t client_iova,
@@ -588,7 +644,7 @@ msm_bo_init(struct tu_device *dev,
    msm_vma_lock(dev);
 
    VkResult result =
-      tu_bo_init(dev, bo, req.handle, size, client_iova, flags, name);
+      tu_bo_init(dev, base, bo, req.handle, size, client_iova, flags, name);
 
    msm_vma_unlock(dev);
 
@@ -615,7 +671,7 @@ msm_bo_init(struct tu_device *dev,
        *
        * MSM already does this automatically for uncached (MSM_BO_WC) memory.
        */
-      tu_sync_cache_bo(dev, bo, 0, VK_WHOLE_SIZE, TU_MEM_SYNC_CACHE_TO_GPU);
+      tu_bo_sync_cache(dev, bo, 0, VK_WHOLE_SIZE, TU_MEM_SYNC_CACHE_TO_GPU);
    }
 
    return result;
@@ -666,7 +722,7 @@ msm_bo_init_dmabuf(struct tu_device *dev,
    }
 
    VkResult result =
-      tu_bo_init(dev, bo, gem_handle, size, 0, TU_BO_ALLOC_DMABUF, "dmabuf");
+      tu_bo_init(dev, NULL, bo, gem_handle, size, 0, TU_BO_ALLOC_DMABUF, "dmabuf");
 
    if (result != VK_SUCCESS)
       memset(bo, 0, sizeof(*bo));
@@ -966,7 +1022,8 @@ tu_queue_submit_locked(struct tu_queue *queue, struct tu_msm_queue_submit *submi
       .syncobj_stride = sizeof(struct drm_msm_gem_submit_syncobj),
    };
 
-   if (FD_RD_DUMP(ENABLE) && fd_rd_output_begin(&queue->device->rd_output, submit_idx)) {
+   if (req.nr_cmds && FD_RD_DUMP(ENABLE) &&
+       fd_rd_output_begin(&queue->device->rd_output, submit_idx)) {
       struct tu_device *device = queue->device;
       struct fd_rd_output *rd_output = &device->rd_output;
 
@@ -1097,7 +1154,7 @@ static VkResult
 msm_queue_submit(struct tu_queue *queue, struct vk_queue_submit *submit)
 {
    MESA_TRACE_FUNC();
-   uint32_t perf_pass_index = queue->device->perfcntrs_pass_cs ?
+   uint32_t perf_pass_index = queue->device->perfcntrs_pass_cs_entries ?
                               submit->perf_pass_index : ~0;
    struct tu_msm_queue_submit submit_req;
 
@@ -1241,12 +1298,18 @@ tu_knl_drm_msm_load(struct tu_instance *instance,
    device->has_set_iova = !tu_drm_get_va_prop(device, &device->va_start,
                                               &device->va_size);
 
+   device->has_preemption = tu_drm_has_preemption(device);
+
    /* Even if kernel is new enough, the GPU itself may not support it. */
    device->has_cached_coherent_memory =
       (device->msm_minor_version >= 8) &&
       tu_drm_is_memory_type_supported(fd, MSM_BO_CACHED_COHERENT);
 
    device->submitqueue_priority_count = tu_drm_get_priorities(device);
+
+   device->ubwc_config.highest_bank_bit = tu_drm_get_highest_bank_bit(device);
+   device->ubwc_config.bank_swizzle_levels = tu_drm_get_ubwc_swizzle(device);
+   device->ubwc_config.macrotile_mode = tu_drm_get_macrotile_mode(device);
 
    device->syncobj_type = vk_drm_syncobj_get_type(fd);
    /* we don't support DRM_CAP_SYNCOBJ_TIMELINE, but drm-shim does */

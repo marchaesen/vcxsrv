@@ -30,36 +30,54 @@
 extern "C" {
 #endif
 
-struct cdc;
+struct cdc_fe;
+struct cdc_be;
 struct vpe_priv;
 
 /** note: all program_* functions shall return number of config packet created */
-
-struct cdc_funcs {
-    bool (*check_input_format)(struct cdc *cdc, enum vpe_surface_pixel_format format);
-
-    bool (*check_output_format)(struct cdc *cdc, enum vpe_surface_pixel_format format);
+struct cdc_fe_funcs {
+    bool (*check_input_format)(struct cdc_fe *cdc_fe, enum vpe_surface_pixel_format format);
 
     /** non segment specific */
-    void (*program_surface_config)(struct cdc *cdc, enum vpe_surface_pixel_format format,
+    void (*program_surface_config)(struct cdc_fe *cdc_fe, enum vpe_surface_pixel_format format,
         enum vpe_rotation_angle rotation, bool horizontal_mirror,
         enum vpe_swizzle_mode_values swizzle);
 
-    void (*program_crossbar_config)(struct cdc *cdc, enum vpe_surface_pixel_format format);
+    void (*program_crossbar_config)(struct cdc_fe *cdc_fe, enum vpe_surface_pixel_format format);
 
-    void (*program_global_sync)(
-        struct cdc *cdc, uint32_t vupdate_offset, uint32_t vupdate_width, uint32_t vready_offset);
+    void (*program_global_sync)(struct cdc_fe *cdc_fe, uint32_t vupdate_offset,
+        uint32_t vupdate_width, uint32_t vready_offset);
 
-    void (*program_p2b_config)(struct cdc *cdc, enum vpe_surface_pixel_format format);
+    void (*program_p2b_config)(struct cdc_fe *cdc_fe, enum vpe_surface_pixel_format format,
+        enum vpe_swizzle_mode_values swizzle, const struct vpe_rect *viewport,
+        const struct vpe_rect *viewport_c);
 
     /** segment specific */
     void (*program_viewport)(
-        struct cdc *cdc, const struct vpe_rect *viewport, const struct vpe_rect *viewport_c);
+        struct cdc_fe *cdc_fe, const struct vpe_rect *viewport, const struct vpe_rect *viewport_c);
 };
 
-struct cdc {
+struct cdc_be_funcs {
+    bool (*check_output_format)(struct cdc_be *cdc_be, enum vpe_surface_pixel_format format);
+
+    void (*program_global_sync)(struct cdc_be *cdc_be, uint32_t vupdate_offset,
+        uint32_t vupdate_width, uint32_t vready_offset);
+
+    void (*program_p2b_config)(struct cdc_be *cdc_be, enum vpe_surface_pixel_format format,
+        enum vpe_swizzle_mode_values swizzle, const struct vpe_rect *viewport,
+        const struct vpe_rect *viewport_c);
+};
+
+struct cdc_fe {
+    struct vpe_priv     *vpe_priv;
+    struct cdc_fe_funcs *funcs;
+    unsigned int         inst;
+};
+
+struct cdc_be {
     struct vpe_priv  *vpe_priv;
-    struct cdc_funcs *funcs;
+    struct cdc_be_funcs *funcs;
+    unsigned int      inst;
 };
 
 #ifdef __cplusplus

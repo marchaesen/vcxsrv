@@ -98,13 +98,44 @@ case $CI_JOB_NAME in
         ;;
 esac
 
+# LTO handling
+case $CI_PIPELINE_SOURCE in
+    schedule)
+      # run builds with LTO only for nightly
+      if [ "$CI_JOB_NAME" == "debian-ppc64el" ]; then
+	      # /tmp/ccWlDCPV.s: Assembler messages:
+	      # /tmp/ccWlDCPV.s:15250880: Error: operand out of range (0xfffffffffdd4e688 is not between 0xfffffffffe000000 and 0x1fffffc)
+	      LTO=false
+      # enable one by one for now
+      elif [ "$CI_JOB_NAME" == "fedora-release" ] || [ "$CI_JOB_NAME" == "debian-build-testing" ]; then
+	      LTO=true
+      else
+	      LTO=false
+      fi
+      ;;
+    *)
+      # run Fedora with LTO in pre-merge for now
+      if [ "$CI_JOB_NAME" == "fedora-release" ]; then
+	      LTO=true
+      else
+	      LTO=false
+      fi
+      ;;
+esac
+
+if [ "$LTO" == "true" ]; then
+    MAX_LD=2
+else
+    MAX_LD=${FDO_CI_CONCURRENT:-4}
+fi
+
 section_switch meson-configure "meson: configure"
 
 rm -rf _build
 meson setup _build \
       --native-file=native.file \
       --wrap-mode=nofallback \
-      --force-fallback-for perfetto,syn,paste \
+      --force-fallback-for perfetto,syn,paste,pest,pest_derive,pest_generator,pest_meta,roxmltree,indexmap \
       ${CROSS+--cross "$CROSS_FILE"} \
       -D prefix=$PWD/install \
       -D libdir=lib \
@@ -123,6 +154,8 @@ meson setup _build \
       -D vulkan-drivers=${VULKAN_DRIVERS:-[]} \
       -D video-codecs=all \
       -D werror=true \
+      -D b_lto=${LTO} \
+      -D backend_max_links=${MAX_LD} \
       ${EXTRA_OPTION}
 cd _build
 meson configure

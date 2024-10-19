@@ -36,6 +36,8 @@
 
 static const struct spirv_capabilities
 spirv_caps = {
+   .Shader = true,
+   .Geometry = true,
    .DrawParameters = true,
    .MultiView = true,
    .GroupNonUniform = true,
@@ -72,6 +74,7 @@ spirv_caps = {
    .StorageTexelBufferArrayNonUniformIndexingEXT = true,
    .StorageImageReadWithoutFormat = true,
    .StorageImageWriteWithoutFormat = true,
+   .ImageQuery = true,
    .Int64 = true,
    .Float64 = true,
    .Tessellation = true,
@@ -296,9 +299,8 @@ dxil_spirv_nir_lower_shader_system_values(nir_shader *shader,
                                           const struct dxil_spirv_runtime_conf *conf)
 {
    return nir_shader_instructions_pass(shader, lower_shader_system_values,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance |
-                                          nir_metadata_loop_analysis,
+                                       nir_metadata_control_flow |
+                                       nir_metadata_loop_analysis,
                                        (void *)conf);
 }
 
@@ -375,8 +377,7 @@ lower_load_push_constant(struct nir_builder *builder, nir_instr *instr,
       .range_base = base,
       .range = range);
 
-   nir_def_rewrite_uses(&intrin->def, load_data);
-   nir_instr_remove(instr);
+   nir_def_replace(&intrin->def, load_data);
    return true;
 }
 
@@ -393,9 +394,8 @@ dxil_spirv_nir_lower_load_push_constant(nir_shader *shader,
       .binding = binding,
    };
    ret = nir_shader_instructions_pass(shader, lower_load_push_constant,
-                                      nir_metadata_block_index |
-                                         nir_metadata_dominance |
-                                         nir_metadata_loop_analysis,
+                                      nir_metadata_control_flow |
+                                      nir_metadata_loop_analysis,
                                       &data);
 
    *size = data.size;
@@ -518,8 +518,7 @@ dxil_spirv_nir_lower_yz_flip(nir_shader *shader,
    };
 
    return nir_shader_instructions_pass(shader, lower_yz_flip,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance |
+                                       nir_metadata_control_flow |
                                        nir_metadata_loop_analysis,
                                        &data);
 }
@@ -566,8 +565,7 @@ dxil_spirv_nir_discard_point_size_var(nir_shader *shader)
       return false;
 
    if (!nir_shader_intrinsics_pass(shader, discard_psiz_access,
-                                     nir_metadata_block_index |
-                                     nir_metadata_dominance |
+                                     nir_metadata_control_flow |
                                      nir_metadata_loop_analysis,
                                      NULL))
       return false;
@@ -642,8 +640,7 @@ dxil_spirv_write_pntc(nir_shader *nir, const struct dxil_spirv_runtime_conf *con
    data.pntc = nir_variable_create(nir, nir_var_shader_out, glsl_vec4_type(), "gl_PointCoord");
    data.pntc->data.location = VARYING_SLOT_PNTC;
    nir_shader_instructions_pass(nir, write_pntc_with_pos,
-                                nir_metadata_block_index |
-                                nir_metadata_dominance |
+                                nir_metadata_control_flow |
                                 nir_metadata_loop_analysis,
                                 &data);
    nir->info.outputs_written |= VARYING_BIT_PNTC;
@@ -702,8 +699,7 @@ dxil_spirv_compute_pntc(nir_shader *nir)
       pos->data.sample = nir_find_variable_with_location(nir, nir_var_shader_in, VARYING_SLOT_PNTC)->data.sample;
    }
    nir_shader_intrinsics_pass(nir, lower_pntc_read,
-                                nir_metadata_block_index |
-                                nir_metadata_dominance |
+                                nir_metadata_control_flow |
                                 nir_metadata_loop_analysis,
                                 pos);
 }
@@ -751,8 +747,7 @@ lower_view_index_to_rt_layer(nir_shader *nir)
 {
    bool existing_write =
       nir_shader_intrinsics_pass(nir, lower_view_index_to_rt_layer_instr,
-                                   nir_metadata_block_index |
-                                   nir_metadata_dominance |
+                                   nir_metadata_control_flow |
                                    nir_metadata_loop_analysis, NULL);
 
    if (existing_write)
@@ -765,8 +760,7 @@ lower_view_index_to_rt_layer(nir_shader *nir)
    if (nir->info.stage == MESA_SHADER_GEOMETRY) {
       nir_shader_instructions_pass(nir,
                                    add_layer_write,
-                                   nir_metadata_block_index |
-                                   nir_metadata_dominance |
+                                   nir_metadata_control_flow |
                                    nir_metadata_loop_analysis, var);
    } else {
       nir_function_impl *func = nir_shader_get_entrypoint(nir);
@@ -971,12 +965,6 @@ dxil_spirv_nir_passes(nir_shader *nir,
                      .use_layer_id_sysval = !conf->lower_view_index,
                      .use_view_id_for_layer = !conf->lower_view_index,
                  });
-
-      /* This will lower load_helper to a memoized is_helper if needed; otherwise, load_helper
-       * will stay, but trivially translatable to IsHelperLane(), which will be known to be
-       * constant across the invocation since no demotion would have been used.
-       */
-      NIR_PASS_V(nir, nir_lower_discard_or_demote, nir->info.use_legacy_math_rules);
 
       NIR_PASS_V(nir, dxil_nir_lower_discard_and_terminate);
       NIR_PASS_V(nir, nir_lower_returns);

@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2018 Jonathan Marek <jonathan@marek.ca>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2018 Jonathan Marek <jonathan@marek.ca>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Jonathan Marek <jonathan@marek.ca>
@@ -48,6 +30,7 @@ static const nir_shader_compiler_options options = {
    .lower_fdph = true,
    .has_fsub = true,
    .has_isub = true,
+   .no_integers = true,
    .lower_insert_byte = true,
    .lower_insert_word = true,
    .force_indirect_unrolling = nir_var_all,
@@ -644,11 +627,11 @@ emit_intrinsic(struct ir2_context *ctx, nir_intrinsic_instr *intr)
       instr = instr_create_alu_dest(ctx, nir_op_mov, &intr->def);
       instr->src[0] = ir2_src(idx, 0, IR2_SRC_CONST);
       break;
-   case nir_intrinsic_discard:
-   case nir_intrinsic_discard_if:
+   case nir_intrinsic_terminate:
+   case nir_intrinsic_terminate_if:
       instr = ir2_instr_create(ctx, IR2_ALU);
       instr->alu.vector_opc = VECTOR_NONE;
-      if (intr->intrinsic == nir_intrinsic_discard_if) {
+      if (intr->intrinsic == nir_intrinsic_terminate_if) {
          instr->alu.scalar_opc = KILLNEs;
          instr->src[0] = make_src(ctx, intr->src[0]);
       } else {

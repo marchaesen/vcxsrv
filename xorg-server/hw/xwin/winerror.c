@@ -37,6 +37,8 @@
 #include <../xfree86/common/xorgVersion.h>
 #include "win.h"
 
+#include "dix/input_priv.h"
+
 void
 OsVendorVErrorF(const char *pszFormat, va_list va_args)
 {
@@ -48,7 +50,7 @@ OsVendorVErrorF(const char *pszFormat, va_list va_args)
     pthread_mutex_lock(&s_pmPrinting);
 
     /* Print the error message to a log file, could be stderr */
-    LogVWrite(0, pszFormat, va_args);
+    LogVMessageVerb(X_NONE, 0, pszFormat, va_args);
 
     /* Unlock the printing mutex */
     pthread_mutex_unlock(&s_pmPrinting);

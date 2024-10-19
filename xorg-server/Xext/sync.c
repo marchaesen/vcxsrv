@@ -49,9 +49,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <string.h>
 #include <stdio.h>
@@ -68,7 +66,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #include "dixstruct.h"
 #include "pixmapstr.h"
 #include "resource.h"
-#include "opaque.h"
 #include "syncsrv.h"
 #include "syncsdk.h"
 #include "protocol-versions.h"

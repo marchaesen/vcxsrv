@@ -77,6 +77,8 @@ xf86parseDRISection(void)
             break;
         case COMMENT:
             ptr->dri_comment = xf86addComment(ptr->dri_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         default:
             Error(INVALID_KEYWORD_MSG, xf86tokenString());

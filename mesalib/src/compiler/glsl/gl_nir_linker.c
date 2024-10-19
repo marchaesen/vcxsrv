@@ -33,13 +33,11 @@
 #include "main/consts_exts.h"
 #include "main/context.h"
 #include "main/shaderobj.h"
-#include "ir_uniform.h" /* for gl_uniform_storage */
 #include "util/glheader.h"
 #include "util/perf/cpu_trace.h"
 
 /**
- * This file included general link methods, using NIR, instead of IR as
- * the counter-part glsl/linker.cpp
+ * This file included general link methods, using NIR.
  */
 
 void
@@ -133,6 +131,15 @@ gl_nir_opts(nir_shader *nir)
    NIR_PASS(_, nir, nir_lower_var_copies);
 }
 
+static void
+replace_tex_src(nir_tex_src *dst, nir_tex_src_type src_type, nir_def *src_def,
+                nir_instr *src_parent)
+{
+   *dst = nir_tex_src_for_ssa(src_type, src_def);
+   nir_src_set_parent_instr(&dst->src, src_parent);
+   list_addtail(&dst->src.use_link, &dst->src.ssa->uses);
+}
+
 void
 gl_nir_inline_functions(nir_shader *shader)
 {
@@ -145,14 +152,79 @@ gl_nir_inline_functions(nir_shader *shader)
    NIR_PASS(_, shader, nir_inline_functions);
    NIR_PASS(_, shader, nir_opt_deref);
 
-   nir_validate_shader(shader, "after function inlining and return lowering");
-
    /* We set func->is_entrypoint after nir_function_create if the function
     * is named "main", so we can use nir_remove_non_entrypoints() for this.
     * Now that we have inlined everything remove all of the functions except
     * func->is_entrypoint.
     */
    nir_remove_non_entrypoints(shader);
+
+   /* Now that functions have been inlined remove deref_texture_src intrinisic
+    * as we can now see if the texture source is bindless or not.
+    */
+   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+   nir_builder b = nir_builder_create(impl);
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type == nir_instr_type_tex) {
+            nir_tex_instr *intr = nir_instr_as_tex(instr);
+
+            b.cursor = nir_before_instr(instr);
+
+            if (intr->src[0].src_type == nir_tex_src_sampler_deref_intrinsic) {
+               assert(intr->src[1].src_type == nir_tex_src_texture_deref_intrinsic);
+               nir_intrinsic_instr *intrin =
+                  nir_instr_as_intrinsic(intr->src[0].src.ssa->parent_instr);
+               nir_deref_instr *deref =
+                  nir_instr_as_deref(intrin->src[0].ssa->parent_instr);
+
+               /* check for bindless handles */
+               if (!nir_deref_mode_is(deref, nir_var_uniform) ||
+                   nir_deref_instr_get_variable(deref)->data.bindless) {
+                  nir_def *load = nir_load_deref(&b, deref);
+                  replace_tex_src(&intr->src[0], nir_tex_src_texture_handle,
+                                  load, instr);
+                  replace_tex_src(&intr->src[1], nir_tex_src_sampler_handle,
+                                  load, instr);
+               } else {
+                  replace_tex_src(&intr->src[0], nir_tex_src_texture_deref,
+                                  &deref->def, instr);
+                  replace_tex_src(&intr->src[1], nir_tex_src_sampler_deref,
+                                  &deref->def, instr);
+               }
+               nir_instr_remove(&intrin->instr);
+            }
+         }
+      }
+   }
+
+   nir_validate_shader(shader, "after function inlining and return lowering");
+}
+
+static void
+array_length_to_const(nir_shader *shader)
+{
+   nir_foreach_function_impl(impl, shader) {
+      nir_builder b = nir_builder_create(impl);
+      nir_foreach_block(block, impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type == nir_instr_type_intrinsic) {
+               nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+               if (intrin->intrinsic == nir_intrinsic_deref_implicit_array_length) {
+                  b.cursor = nir_before_instr(instr);
+                  nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+                  assert(deref->deref_type == nir_deref_type_var);
+
+                  unsigned size = glsl_get_length(deref->var->type);
+                  nir_def *arr_size = nir_imm_intN_t(&b, size, 32);
+                  nir_def_rewrite_uses(&intrin->def, arr_size);
+                  nir_instr_remove(&intrin->instr);
+               }
+            }
+         }
+      }
+   }
 }
 
 struct emit_vertex_state {
@@ -258,9 +330,46 @@ validate_geometry_shader_emissions(const struct gl_constants *consts,
        * stream.
        */
       if (sh->Program->nir->info.gs.active_stream_mask & ~(1 << 0) &&
-          sh->Program->info.gs.output_primitive != MESA_PRIM_POINTS) {
+          sh->Program->nir->info.gs.output_primitive != MESA_PRIM_POINTS) {
          linker_error(prog, "EmitStreamVertex(n) and EndStreamPrimitive(n) "
                       "with n>0 requires point output\n");
+      }
+   }
+}
+
+/* For derivatives in compute shaders, GLSL_NV_compute_shader_derivatives
+ * states:
+ *
+ *    If neither layout qualifier is specified, derivatives in compute
+ *    shaders return zero, which is consistent with the handling of built-in
+ *    texture functions like texture() in GLSL 4.50 compute shaders.
+ */
+static void
+lower_derivatives_without_layout(nir_builder *b)
+{
+   if (b->shader->info.stage != MESA_SHADER_COMPUTE ||
+       b->shader->info.derivative_group != DERIVATIVE_GROUP_NONE)
+      return;
+
+   nir_foreach_function_impl(impl, b->shader) {
+      nir_foreach_block(block, impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type == nir_instr_type_intrinsic) {
+               nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+               nir_intrinsic_op op = intrin->intrinsic;
+               if (op != nir_intrinsic_ddx && op != nir_intrinsic_ddx_fine && op != nir_intrinsic_ddx_coarse &&
+                   op != nir_intrinsic_ddy && op != nir_intrinsic_ddy_fine && op != nir_intrinsic_ddy_coarse)
+                  continue;
+
+               nir_def *def = &intrin->def;
+               b->cursor = nir_before_instr(instr);
+               nir_def *zero = nir_imm_zero(b, def->num_components,
+                                            def->bit_size);
+               nir_def_replace(def, zero);
+            } else {
+               continue;
+            }
+         }
       }
    }
 }
@@ -892,10 +1001,6 @@ init_program_resource_list(struct gl_shader_program *prog)
    }
 }
 
-/* TODO: as we keep adding features, this method is becoming more and more
- * similar to its GLSL counterpart at linker.cpp. Eventually it would be good
- * to check if they could be refactored, and reduce code duplication somehow
- */
 void
 nir_build_program_resource_list(const struct gl_constants *consts,
                                 struct gl_shader_program *prog,
@@ -1138,7 +1243,7 @@ gl_nir_add_point_size(nir_shader *nir)
    nir->info.outputs_written |= VARYING_BIT_PSIZ;
 
    /* We always modify the entrypoint */
-   nir_metadata_preserve(impl, nir_metadata_block_index | nir_metadata_dominance);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
    return true;
 }
 
@@ -1174,8 +1279,7 @@ gl_nir_zero_initialize_clip_distance(nir_shader *nir)
    if (clip_dist1)
       zero_array_members(&b, clip_dist1);
 
-   nir_metadata_preserve(impl, nir_metadata_dominance |
-                               nir_metadata_block_index);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
    return true;
 }
 
@@ -1213,9 +1317,10 @@ preprocess_shader(const struct gl_constants *consts,
    assert(options);
 
    nir_shader *nir = prog->nir;
+   nir_shader_gather_info(prog->nir, nir_shader_get_entrypoint(prog->nir));
 
    if (prog->info.stage == MESA_SHADER_FRAGMENT && consts->HasFBFetch) {
-      nir_shader_gather_info(prog->nir, nir_shader_get_entrypoint(prog->nir));
+
       NIR_PASS(_, prog->nir, gl_nir_lower_blend_equation_advanced,
                  exts->KHR_blend_equation_advanced_coherent);
       nir_lower_global_vars_to_local(prog->nir);
@@ -1254,8 +1359,8 @@ preprocess_shader(const struct gl_constants *consts,
       NIR_PASS(_, nir, nir_lower_io_to_temporaries,
                  nir_shader_get_entrypoint(nir),
                  true, true);
-   } else if (nir->info.stage == MESA_SHADER_FRAGMENT ||
-              !consts->SupportsReadingOutputs) {
+   } else if (nir->info.stage == MESA_SHADER_TESS_EVAL ||
+              nir->info.stage == MESA_SHADER_FRAGMENT) {
       NIR_PASS(_, nir, nir_lower_io_to_temporaries,
                  nir_shader_get_entrypoint(nir),
                  true, false);
@@ -1356,6 +1461,7 @@ prelink_lowering(const struct gl_constants *consts,
 
       if (!nir->options->compact_arrays) {
          NIR_PASS(_, nir, nir_lower_clip_cull_distance_to_vec4s);
+         NIR_PASS(_, nir, nir_vectorize_tess_levels);
       }
 
       /* Combine clip and cull outputs into one array and set:
@@ -1367,6 +1473,13 @@ prelink_lowering(const struct gl_constants *consts,
    }
 
    return true;
+}
+
+static unsigned
+get_varying_nir_var_mask(nir_shader *nir)
+{
+   return (nir->info.stage != MESA_SHADER_VERTEX ? nir_var_shader_in : 0) |
+          (nir->info.stage != MESA_SHADER_FRAGMENT ? nir_var_shader_out : 0);
 }
 
 /**
@@ -1413,16 +1526,27 @@ gl_nir_lower_optimize_varyings(const struct gl_constants *consts,
    }
 
    /* There is nothing to optimize for only 1 shader. */
-   if (num_shaders == 1)
+   if (num_shaders == 1) {
+      nir_shader *nir = shaders[0];
+
+      /* Even with a separate shader, it's still worth to re-vectorize IO from
+       * scratch because the original shader might not be vectorized optimally.
+       */
+      NIR_PASS(_, nir, nir_lower_io_to_scalar, get_varying_nir_var_mask(nir),
+               NULL, NULL);
+      NIR_PASS(_, nir, nir_opt_vectorize_io, get_varying_nir_var_mask(nir));
       return;
+   }
 
    for (unsigned i = 0; i < num_shaders; i++) {
       nir_shader *nir = shaders[i];
 
-      /* nir_opt_varyings requires scalar IO. */
-      NIR_PASS_V(nir, nir_lower_io_to_scalar,
-                 (i != 0 ? nir_var_shader_in : 0) |
-                 (i != num_shaders - 1 ? nir_var_shader_out : 0), NULL, NULL);
+      /* nir_opt_varyings requires scalar IO. Scalarize all varyings (not just
+       * the ones we optimize) because we want to re-vectorize everything to
+       * get better vectorization and other goodies from nir_opt_vectorize_io.
+       */
+      NIR_PASS(_, nir, nir_lower_io_to_scalar, get_varying_nir_var_mask(nir),
+               NULL, NULL);
 
       /* nir_opt_varyings requires shaders to be optimized. */
       gl_nir_opts(nir);
@@ -1478,6 +1602,9 @@ gl_nir_lower_optimize_varyings(const struct gl_constants *consts,
    /* Final cleanups. */
    for (unsigned i = 0; i < num_shaders; i++) {
       nir_shader *nir = shaders[i];
+
+      /* Re-vectorize IO. */
+      NIR_PASS(_, nir, nir_opt_vectorize_io, get_varying_nir_var_mask(nir));
 
       /* Recompute intrinsic bases, which are totally random after
        * optimizations and compaction. Do that for all inputs and outputs,
@@ -1557,7 +1684,7 @@ gl_nir_link_spirv(const struct gl_constants *consts,
 bool
 gl_nir_validate_intrastage_arrays(struct gl_shader_program *prog,
                                   nir_variable *var, nir_variable *existing,
-                                  unsigned existing_stage,
+                                  nir_shader *existing_shader,
                                   bool match_precision)
 {
    /* Consider the types to be "the same" if both types are arrays
@@ -1589,9 +1716,7 @@ gl_nir_validate_intrastage_arrays(struct gl_shader_program *prog,
                            existing->data.max_array_access);
             }
             existing->type = var->type;
-
-            nir_shader *s = prog->_LinkedShaders[existing_stage]->Program->nir;
-            nir_fixup_deref_types(s);
+            nir_fixup_deref_types(existing_shader);
             return true;
          } else if (glsl_array_size(existing->type) != 0) {
             if((int)glsl_array_size(existing->type) <= var->data.max_array_access &&
@@ -1629,7 +1754,7 @@ nir_constant_compare(const nir_constant *c1, const nir_constant *c2)
 }
 
 struct ifc_var {
-   unsigned stage;
+   nir_shader *shader;
    nir_variable *var;
 };
 
@@ -1661,11 +1786,11 @@ cross_validate_globals(void *mem_ctx, const struct gl_constants *consts,
       if (glsl_without_array(var->type) == var->interface_type)
          continue;
 
-      /* Don't cross validate temporaries that are at global scope.  These
-       * will eventually get pulled into the shaders 'main'.
+      /* Don't cross validate compiler temporaries that are at global scope.
+       *  These will eventually get pulled into the shaders 'main'.
        */
-      if (var->data.mode == nir_var_function_temp ||
-          var->data.mode == nir_var_shader_temp)
+      if (var->data.mode == nir_var_shader_temp &&
+          var->data.how_declared == nir_var_hidden)
          continue;
 
       /* If a global with this name has already been seen, verify that the
@@ -1681,7 +1806,7 @@ cross_validate_globals(void *mem_ctx, const struct gl_constants *consts,
          /* Check if types match. */
          if (var->type != existing->type) {
             if (!gl_nir_validate_intrastage_arrays(prog, var, existing,
-                                                   existing_ifc->stage, true)) {
+                                                   existing_ifc->shader, true)) {
                /* If it is an unsized array in a Shader Storage Block,
                 * two different shaders can access to different elements.
                 * Because of that, they might be converted to different
@@ -1919,7 +2044,7 @@ cross_validate_globals(void *mem_ctx, const struct gl_constants *consts,
       } else {
          struct ifc_var *ifc_var = ralloc(mem_ctx, struct ifc_var);
          ifc_var->var = var;
-         ifc_var->stage = shader->info.stage;
+         ifc_var->shader = shader;
          _mesa_hash_table_insert(variables, var->name, ifc_var);
       }
    }
@@ -1945,6 +2070,837 @@ cross_validate_uniforms(const struct gl_constants *consts,
    }
 
    ralloc_free(mem_ctx);
+}
+
+static bool
+parameter_lists_match_exact(nir_parameter *params_a, nir_parameter *params_b,
+                            unsigned num_params_a, unsigned num_params_b)
+{
+   if (num_params_a != num_params_b)
+      return false;
+
+   for (unsigned i = 0; i < num_params_a; i++) {
+      if (params_a[i].type != params_b[i].type)
+         return false;
+   }
+
+   return true;
+}
+
+static bool
+exact_matching_signature(nir_function *other, nir_function *func)
+{
+   return parameter_lists_match_exact(other->params, func->params,
+                                      other->num_params, func->num_params);
+}
+
+static bool
+validate_xfb_buffer_stride(const struct gl_constants *consts, unsigned idx,
+                           struct gl_shader_program *prog)
+{
+   /* We will validate doubles at a later stage */
+   if (prog->TransformFeedback.BufferStride[idx] % 4) {
+      linker_error(prog, "invalid qualifier xfb_stride=%d must be a "
+                   "multiple of 4 or if its applied to a type that is "
+                   "or contains a double a multiple of 8.",
+                   prog->TransformFeedback.BufferStride[idx]);
+      return false;
+   }
+
+   if (prog->TransformFeedback.BufferStride[idx] / 4 >
+       consts->MaxTransformFeedbackInterleavedComponents) {
+      linker_error(prog, "The MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS "
+                   "limit has been exceeded.");
+      return false;
+   }
+
+   return true;
+}
+
+/**
+ * Check for conflicting xfb_stride default qualifiers and store buffer stride
+ * for later use.
+ */
+static void
+link_xfb_stride_layout_qualifiers(const struct gl_constants *consts,
+                                  struct gl_shader_program *prog,
+                                  struct gl_shader **shader_list,
+                                  unsigned num_shaders)
+{
+   for (unsigned i = 0; i < MAX_FEEDBACK_BUFFERS; i++) {
+      prog->TransformFeedback.BufferStride[i] = 0;
+   }
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      for (unsigned j = 0; j < MAX_FEEDBACK_BUFFERS; j++) {
+         if (shader->TransformFeedbackBufferStride[j]) {
+            if (prog->TransformFeedback.BufferStride[j] == 0) {
+               prog->TransformFeedback.BufferStride[j] =
+                  shader->TransformFeedbackBufferStride[j];
+               if (!validate_xfb_buffer_stride(consts, j, prog))
+                  return;
+            } else if (prog->TransformFeedback.BufferStride[j] !=
+                       shader->TransformFeedbackBufferStride[j]){
+               linker_error(prog,
+                            "intrastage shaders defined with conflicting "
+                            "xfb_stride for buffer %d (%d and %d)\n", j,
+                            prog->TransformFeedback.BufferStride[j],
+                            shader->TransformFeedbackBufferStride[j]);
+               return;
+            }
+         }
+      }
+   }
+}
+
+/**
+ * Check for conflicting bindless/bound sampler/image layout qualifiers at
+ * global scope.
+ */
+static void
+link_bindless_layout_qualifiers(struct gl_shader_program *prog,
+                                struct gl_shader **shader_list,
+                                unsigned num_shaders)
+{
+   bool bindless_sampler, bindless_image;
+   bool bound_sampler, bound_image;
+
+   bindless_sampler = bindless_image = false;
+   bound_sampler = bound_image = false;
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      if (shader->bindless_sampler)
+         bindless_sampler = true;
+      if (shader->bindless_image)
+         bindless_image = true;
+      if (shader->bound_sampler)
+         bound_sampler = true;
+      if (shader->bound_image)
+         bound_image = true;
+
+      if ((bindless_sampler && bound_sampler) ||
+          (bindless_image && bound_image)) {
+         /* From section 4.4.6 of the ARB_bindless_texture spec:
+          *
+          *     "If both bindless_sampler and bound_sampler, or bindless_image
+          *      and bound_image, are declared at global scope in any
+          *      compilation unit, a link- time error will be generated."
+          */
+         linker_error(prog, "both bindless_sampler and bound_sampler, or "
+                      "bindless_image and bound_image, can't be declared at "
+                      "global scope");
+      }
+   }
+}
+
+/**
+ * Check for conflicting viewport_relative settings across shaders, and sets
+ * the value for the linked shader.
+ */
+static void
+link_layer_viewport_relative_qualifier(struct gl_shader_program *prog,
+                                       struct gl_program *gl_prog,
+                                       struct gl_shader **shader_list,
+                                       unsigned num_shaders)
+{
+   unsigned i;
+
+   /* Find first shader with explicit layer declaration */
+   for (i = 0; i < num_shaders; i++) {
+      if (shader_list[i]->redeclares_gl_layer) {
+         gl_prog->nir->info.layer_viewport_relative =
+            shader_list[i]->layer_viewport_relative;
+         break;
+      }
+   }
+
+   /* Now make sure that each subsequent shader's explicit layer declaration
+    * matches the first one's.
+    */
+   for (; i < num_shaders; i++) {
+      if (shader_list[i]->redeclares_gl_layer &&
+          shader_list[i]->layer_viewport_relative !=
+          gl_prog->nir->info.layer_viewport_relative) {
+         linker_error(prog, "all gl_Layer redeclarations must have identical "
+                      "viewport_relative settings");
+      }
+   }
+}
+
+/**
+ * Performs the cross-validation of tessellation control shader vertices and
+ * layout qualifiers for the attached tessellation control shaders,
+ * and propagates them to the linked TCS and linked shader program.
+ */
+static void
+link_tcs_out_layout_qualifiers(struct gl_shader_program *prog,
+                               struct gl_program *gl_prog,
+                               struct gl_shader **shader_list,
+                               unsigned num_shaders)
+{
+   if (gl_prog->info.stage != MESA_SHADER_TESS_CTRL)
+      return;
+
+   gl_prog->nir->info.tess.tcs_vertices_out = 0;
+
+   /* From the GLSL 4.0 spec (chapter 4.3.8.2):
+    *
+    *     "All tessellation control shader layout declarations in a program
+    *      must specify the same output patch vertex count.  There must be at
+    *      least one layout qualifier specifying an output patch vertex count
+    *      in any program containing tessellation control shaders; however,
+    *      such a declaration is not required in all tessellation control
+    *      shaders."
+    */
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      if (shader->info.TessCtrl.VerticesOut != 0) {
+         if (gl_prog->nir->info.tess.tcs_vertices_out != 0 &&
+             gl_prog->nir->info.tess.tcs_vertices_out !=
+             (unsigned) shader->info.TessCtrl.VerticesOut) {
+            linker_error(prog, "tessellation control shader defined with "
+                         "conflicting output vertex count (%d and %d)\n",
+                         gl_prog->nir->info.tess.tcs_vertices_out,
+                         shader->info.TessCtrl.VerticesOut);
+            return;
+         }
+         gl_prog->nir->info.tess.tcs_vertices_out =
+            shader->info.TessCtrl.VerticesOut;
+      }
+   }
+
+   /* Just do the intrastage -> interstage propagation right now,
+    * since we already know we're in the right type of shader program
+    * for doing it.
+    */
+   if (gl_prog->nir->info.tess.tcs_vertices_out == 0) {
+      linker_error(prog, "tessellation control shader didn't declare "
+                   "vertices out layout qualifier\n");
+      return;
+   }
+}
+
+
+/**
+ * Performs the cross-validation of tessellation evaluation shader
+ * primitive type, vertex spacing, ordering and point_mode layout qualifiers
+ * for the attached tessellation evaluation shaders, and propagates them
+ * to the linked TES and linked shader program.
+ */
+static void
+link_tes_in_layout_qualifiers(struct gl_shader_program *prog,
+                              struct gl_program *gl_prog,
+                              struct gl_shader **shader_list,
+                              unsigned num_shaders)
+{
+   if (gl_prog->info.stage != MESA_SHADER_TESS_EVAL)
+      return;
+
+   int point_mode = -1;
+   unsigned vertex_order = 0;
+
+   gl_prog->nir->info.tess._primitive_mode = TESS_PRIMITIVE_UNSPECIFIED;
+   gl_prog->nir->info.tess.spacing = TESS_SPACING_UNSPECIFIED;
+
+   /* From the GLSL 4.0 spec (chapter 4.3.8.1):
+    *
+    *     "At least one tessellation evaluation shader (compilation unit) in
+    *      a program must declare a primitive mode in its input layout.
+    *      Declaration vertex spacing, ordering, and point mode identifiers is
+    *      optional.  It is not required that all tessellation evaluation
+    *      shaders in a program declare a primitive mode.  If spacing or
+    *      vertex ordering declarations are omitted, the tessellation
+    *      primitive generator will use equal spacing or counter-clockwise
+    *      vertex ordering, respectively.  If a point mode declaration is
+    *      omitted, the tessellation primitive generator will produce lines or
+    *      triangles according to the primitive mode."
+    */
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      if (shader->info.TessEval._PrimitiveMode != TESS_PRIMITIVE_UNSPECIFIED) {
+         if (gl_prog->nir->info.tess._primitive_mode != TESS_PRIMITIVE_UNSPECIFIED &&
+             gl_prog->nir->info.tess._primitive_mode !=
+             shader->info.TessEval._PrimitiveMode) {
+            linker_error(prog, "tessellation evaluation shader defined with "
+                         "conflicting input primitive modes.\n");
+            return;
+         }
+         gl_prog->nir->info.tess._primitive_mode =
+            shader->info.TessEval._PrimitiveMode;
+      }
+
+      if (shader->info.TessEval.Spacing != 0) {
+         if (gl_prog->nir->info.tess.spacing != 0 &&
+             gl_prog->nir->info.tess.spacing != shader->info.TessEval.Spacing) {
+            linker_error(prog, "tessellation evaluation shader defined with "
+                         "conflicting vertex spacing.\n");
+            return;
+         }
+         gl_prog->nir->info.tess.spacing = shader->info.TessEval.Spacing;
+      }
+
+      if (shader->info.TessEval.VertexOrder != 0) {
+         if (vertex_order != 0 &&
+             vertex_order != shader->info.TessEval.VertexOrder) {
+            linker_error(prog, "tessellation evaluation shader defined with "
+                         "conflicting ordering.\n");
+            return;
+         }
+         vertex_order = shader->info.TessEval.VertexOrder;
+      }
+
+      if (shader->info.TessEval.PointMode != -1) {
+         if (point_mode != -1 &&
+             point_mode != shader->info.TessEval.PointMode) {
+            linker_error(prog, "tessellation evaluation shader defined with "
+                         "conflicting point modes.\n");
+            return;
+         }
+         point_mode = shader->info.TessEval.PointMode;
+      }
+
+   }
+
+   /* Just do the intrastage -> interstage propagation right now,
+    * since we already know we're in the right type of shader program
+    * for doing it.
+    */
+   if (gl_prog->nir->info.tess._primitive_mode == TESS_PRIMITIVE_UNSPECIFIED) {
+      linker_error(prog,
+                   "tessellation evaluation shader didn't declare input "
+                   "primitive modes.\n");
+      return;
+   }
+
+   if (gl_prog->nir->info.tess.spacing == TESS_SPACING_UNSPECIFIED)
+      gl_prog->nir->info.tess.spacing = TESS_SPACING_EQUAL;
+
+   if (vertex_order == 0 || vertex_order == GL_CCW)
+      gl_prog->nir->info.tess.ccw = true;
+   else
+      gl_prog->nir->info.tess.ccw = false;
+
+
+   if (point_mode == -1 || point_mode == GL_FALSE)
+      gl_prog->nir->info.tess.point_mode = false;
+   else
+      gl_prog->nir->info.tess.point_mode = true;
+}
+
+
+/**
+ * Performs the cross-validation of layout qualifiers specified in
+ * redeclaration of gl_FragCoord for the attached fragment shaders,
+ * and propagates them to the linked FS and linked shader program.
+ */
+static void
+link_fs_inout_layout_qualifiers(struct gl_shader_program *prog,
+                                struct gl_linked_shader *linked_shader,
+                                struct gl_shader **shader_list,
+                                unsigned num_shaders,
+                                bool arb_fragment_coord_conventions_enable)
+{
+   bool redeclares_gl_fragcoord = false;
+   bool uses_gl_fragcoord = false;
+   bool origin_upper_left = false;
+   bool pixel_center_integer = false;
+
+   if (linked_shader->Stage != MESA_SHADER_FRAGMENT ||
+       (prog->GLSL_Version < 150 && !arb_fragment_coord_conventions_enable))
+      return;
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+      /* From the GLSL 1.50 spec, page 39:
+       *
+       *   "If gl_FragCoord is redeclared in any fragment shader in a program,
+       *    it must be redeclared in all the fragment shaders in that program
+       *    that have a static use gl_FragCoord."
+       */
+      if ((redeclares_gl_fragcoord && !shader->redeclares_gl_fragcoord &&
+           shader->uses_gl_fragcoord)
+          || (shader->redeclares_gl_fragcoord && !redeclares_gl_fragcoord &&
+              uses_gl_fragcoord)) {
+             linker_error(prog, "fragment shader defined with conflicting "
+                         "layout qualifiers for gl_FragCoord\n");
+      }
+
+      /* From the GLSL 1.50 spec, page 39:
+       *
+       *   "All redeclarations of gl_FragCoord in all fragment shaders in a
+       *    single program must have the same set of qualifiers."
+       */
+      if (redeclares_gl_fragcoord && shader->redeclares_gl_fragcoord &&
+          (shader->origin_upper_left != origin_upper_left ||
+           shader->pixel_center_integer != pixel_center_integer)) {
+         linker_error(prog, "fragment shader defined with conflicting "
+                      "layout qualifiers for gl_FragCoord\n");
+      }
+
+      /* Update the linked shader state.  Note that uses_gl_fragcoord should
+       * accumulate the results.  The other values should replace.  If there
+       * are multiple redeclarations, all the fields except uses_gl_fragcoord
+       * are already known to be the same.
+       */
+      if (shader->redeclares_gl_fragcoord || shader->uses_gl_fragcoord) {
+         redeclares_gl_fragcoord = shader->redeclares_gl_fragcoord;
+         uses_gl_fragcoord |= shader->uses_gl_fragcoord;
+         origin_upper_left = shader->origin_upper_left;
+         pixel_center_integer = shader->pixel_center_integer;
+      }
+
+      linked_shader->Program->nir->info.fs.early_fragment_tests |=
+         shader->EarlyFragmentTests || shader->PostDepthCoverage;
+      linked_shader->Program->nir->info.fs.inner_coverage |= shader->InnerCoverage;
+      linked_shader->Program->nir->info.fs.post_depth_coverage |=
+         shader->PostDepthCoverage;
+      linked_shader->Program->nir->info.fs.pixel_interlock_ordered |=
+         shader->PixelInterlockOrdered;
+      linked_shader->Program->nir->info.fs.pixel_interlock_unordered |=
+         shader->PixelInterlockUnordered;
+      linked_shader->Program->nir->info.fs.sample_interlock_ordered |=
+         shader->SampleInterlockOrdered;
+      linked_shader->Program->nir->info.fs.sample_interlock_unordered |=
+         shader->SampleInterlockUnordered;
+      linked_shader->Program->nir->info.fs.advanced_blend_modes |= shader->BlendSupport;
+   }
+
+   linked_shader->Program->nir->info.fs.pixel_center_integer = pixel_center_integer;
+   linked_shader->Program->nir->info.fs.origin_upper_left = origin_upper_left;
+}
+
+/**
+ * Performs the cross-validation of geometry shader max_vertices and
+ * primitive type layout qualifiers for the attached geometry shaders,
+ * and propagates them to the linked GS and linked shader program.
+ */
+static void
+link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
+                                struct gl_program *gl_prog,
+                                struct gl_shader **shader_list,
+                                unsigned num_shaders)
+{
+   /* No in/out qualifiers defined for anything but GLSL 1.50+
+    * geometry shaders so far.
+    */
+   if (gl_prog->info.stage != MESA_SHADER_GEOMETRY || prog->GLSL_Version < 150)
+      return;
+
+   int vertices_out = -1;
+
+   gl_prog->nir->info.gs.invocations = 0;
+   gl_prog->nir->info.gs.input_primitive = MESA_PRIM_UNKNOWN;
+   gl_prog->nir->info.gs.output_primitive = MESA_PRIM_UNKNOWN;
+
+   /* From the GLSL 1.50 spec, page 46:
+    *
+    *     "All geometry shader output layout declarations in a program
+    *      must declare the same layout and same value for
+    *      max_vertices. There must be at least one geometry output
+    *      layout declaration somewhere in a program, but not all
+    *      geometry shaders (compilation units) are required to
+    *      declare it."
+    */
+
+   for (unsigned i = 0; i < num_shaders; i++) {
+      struct gl_shader *shader = shader_list[i];
+
+      if (shader->info.Geom.InputType != MESA_PRIM_UNKNOWN) {
+         if (gl_prog->nir->info.gs.input_primitive != MESA_PRIM_UNKNOWN &&
+             gl_prog->nir->info.gs.input_primitive !=
+             shader->info.Geom.InputType) {
+            linker_error(prog, "geometry shader defined with conflicting "
+                         "input types\n");
+            return;
+         }
+         gl_prog->nir->info.gs.input_primitive =
+            (enum mesa_prim)shader->info.Geom.InputType;
+      }
+
+      if (shader->info.Geom.OutputType != MESA_PRIM_UNKNOWN) {
+         if (gl_prog->nir->info.gs.output_primitive != MESA_PRIM_UNKNOWN &&
+             gl_prog->nir->info.gs.output_primitive !=
+             shader->info.Geom.OutputType) {
+            linker_error(prog, "geometry shader defined with conflicting "
+                         "output types\n");
+            return;
+         }
+         gl_prog->nir->info.gs.output_primitive =
+            (enum mesa_prim)shader->info.Geom.OutputType;
+      }
+
+      if (shader->info.Geom.VerticesOut != -1) {
+         if (vertices_out != -1 &&
+             vertices_out != shader->info.Geom.VerticesOut) {
+            linker_error(prog, "geometry shader defined with conflicting "
+                         "output vertex count (%d and %d)\n",
+                         vertices_out, shader->info.Geom.VerticesOut);
+            return;
+         }
+         vertices_out = shader->info.Geom.VerticesOut;
+      }
+
+      if (shader->info.Geom.Invocations != 0) {
+         if (gl_prog->nir->info.gs.invocations != 0 &&
+             gl_prog->nir->info.gs.invocations !=
+             (unsigned) shader->info.Geom.Invocations) {
+            linker_error(prog, "geometry shader defined with conflicting "
+                         "invocation count (%d and %d)\n",
+                         gl_prog->nir->info.gs.invocations,
+                         shader->info.Geom.Invocations);
+            return;
+         }
+         gl_prog->nir->info.gs.invocations = shader->info.Geom.Invocations;
+      }
+   }
+
+   /* Just do the intrastage -> interstage propagation right now,
+    * since we already know we're in the right type of shader program
+    * for doing it.
+    */
+   if (gl_prog->nir->info.gs.input_primitive == MESA_PRIM_UNKNOWN) {
+      linker_error(prog,
+                   "geometry shader didn't declare primitive input type\n");
+      return;
+   }
+
+   if (gl_prog->nir->info.gs.output_primitive == MESA_PRIM_UNKNOWN) {
+      linker_error(prog,
+                   "geometry shader didn't declare primitive output type\n");
+      return;
+   }
+
+   if (vertices_out == -1) {
+      linker_error(prog,
+                   "geometry shader didn't declare max_vertices\n");
+      return;
+   } else {
+      gl_prog->nir->info.gs.vertices_out = vertices_out;
+   }
+
+   if (gl_prog->nir->info.gs.invocations == 0)
+      gl_prog->nir->info.gs.invocations = 1;
+}
+
+
+/**
+ * Perform cross-validation of compute shader local_size_{x,y,z} layout and
+ * derivative arrangement qualifiers for the attached compute shaders, and
+ * propagate them to the linked CS and linked shader program.
+ */
+static void
+link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
+                                struct gl_program *gl_prog,
+                                struct gl_shader **shader_list,
+                                unsigned num_shaders)
+{
+   /* This function is called for all shader stages, but it only has an effect
+    * for compute shaders.
+    */
+   if (gl_prog->info.stage != MESA_SHADER_COMPUTE)
+      return;
+
+   for (int i = 0; i < 3; i++)
+      gl_prog->nir->info.workgroup_size[i] = 0;
+
+   gl_prog->nir->info.workgroup_size_variable = false;
+
+   gl_prog->nir->info.derivative_group = DERIVATIVE_GROUP_NONE;
+
+   /* From the ARB_compute_shader spec, in the section describing local size
+    * declarations:
+    *
+    *     If multiple compute shaders attached to a single program object
+    *     declare local work-group size, the declarations must be identical;
+    *     otherwise a link-time error results. Furthermore, if a program
+    *     object contains any compute shaders, at least one must contain an
+    *     input layout qualifier specifying the local work sizes of the
+    *     program, or a link-time error will occur.
+    */
+   for (unsigned sh = 0; sh < num_shaders; sh++) {
+      struct gl_shader *shader = shader_list[sh];
+
+      if (shader->info.Comp.LocalSize[0] != 0) {
+         if (gl_prog->nir->info.workgroup_size[0] != 0) {
+            for (int i = 0; i < 3; i++) {
+               if (gl_prog->nir->info.workgroup_size[i] !=
+                   shader->info.Comp.LocalSize[i]) {
+                  linker_error(prog, "compute shader defined with conflicting "
+                               "local sizes\n");
+                  return;
+               }
+            }
+         }
+         for (int i = 0; i < 3; i++) {
+            gl_prog->nir->info.workgroup_size[i] =
+               shader->info.Comp.LocalSize[i];
+         }
+      } else if (shader->info.Comp.LocalSizeVariable) {
+         if (gl_prog->nir->info.workgroup_size[0] != 0) {
+            /* The ARB_compute_variable_group_size spec says:
+             *
+             *     If one compute shader attached to a program declares a
+             *     variable local group size and a second compute shader
+             *     attached to the same program declares a fixed local group
+             *     size, a link-time error results.
+             */
+            linker_error(prog, "compute shader defined with both fixed and "
+                         "variable local group size\n");
+            return;
+         }
+         gl_prog->nir->info.workgroup_size_variable = true;
+      }
+
+      enum gl_derivative_group group = shader->info.Comp.DerivativeGroup;
+      if (group != DERIVATIVE_GROUP_NONE) {
+         if (gl_prog->nir->info.derivative_group != DERIVATIVE_GROUP_NONE &&
+             gl_prog->nir->info.derivative_group != group) {
+            linker_error(prog, "compute shader defined with conflicting "
+                         "derivative groups\n");
+            return;
+         }
+         gl_prog->nir->info.derivative_group = group;
+      }
+   }
+
+   /* Just do the intrastage -> interstage propagation right now,
+    * since we already know we're in the right type of shader program
+    * for doing it.
+    */
+   if (gl_prog->nir->info.workgroup_size[0] == 0 &&
+       !gl_prog->nir->info.workgroup_size_variable) {
+      linker_error(prog, "compute shader must contain a fixed or a variable "
+                         "local group size\n");
+      return;
+   }
+
+   if (gl_prog->nir->info.derivative_group == DERIVATIVE_GROUP_QUADS) {
+      if (gl_prog->nir->info.workgroup_size[0] % 2 != 0) {
+         linker_error(prog, "derivative_group_quadsNV must be used with a "
+                      "local group size whose first dimension "
+                      "is a multiple of 2\n");
+         return;
+      }
+      if (gl_prog->nir->info.workgroup_size[1] % 2 != 0) {
+         linker_error(prog, "derivative_group_quadsNV must be used with a local"
+                      "group size whose second dimension "
+                      "is a multiple of 2\n");
+         return;
+      }
+   } else if (gl_prog->nir->info.derivative_group == DERIVATIVE_GROUP_LINEAR) {
+      if ((gl_prog->nir->info.workgroup_size[0] *
+           gl_prog->nir->info.workgroup_size[1] *
+           gl_prog->nir->info.workgroup_size[2]) % 4 != 0) {
+         linker_error(prog, "derivative_group_linearNV must be used with a "
+                      "local group size whose total number of invocations "
+                      "is a multiple of 4\n");
+         return;
+      }
+   }
+}
+
+
+/**
+ * Combine a group of shaders for a single stage to generate a linked shader
+ *
+ * \note
+ * If this function is supplied a single shader, it is cloned, and the new
+ * shader is returned.
+ */
+static struct gl_linked_shader *
+link_intrastage_shaders(void *mem_ctx,
+                        struct gl_context *ctx,
+                        struct gl_shader_program *prog,
+                        struct gl_shader **shader_list,
+                        unsigned num_shaders)
+{
+   bool arb_fragment_coord_conventions_enable = false;
+   bool KHR_shader_subgroup_basic_enable = false;
+
+   /* Check that global variables defined in multiple shaders are consistent.
+    */
+   struct hash_table *variables =
+      _mesa_hash_table_create(mem_ctx, _mesa_hash_string, _mesa_key_string_equal);
+   for (unsigned i = 0; i < num_shaders; i++) {
+      if (shader_list[i] == NULL)
+         continue;
+      cross_validate_globals(mem_ctx, &ctx->Const, prog, shader_list[i]->nir,
+                             variables, false);
+      if (shader_list[i]->ARB_fragment_coord_conventions_enable)
+         arb_fragment_coord_conventions_enable = true;
+      if (shader_list[i]->KHR_shader_subgroup_basic_enable)
+         KHR_shader_subgroup_basic_enable = true;
+   }
+
+   if (!prog->data->LinkStatus)
+      return NULL;
+
+   /* Check that interface blocks defined in multiple shaders are consistent.
+    */
+   gl_nir_validate_intrastage_interface_blocks(prog,
+                                               (const struct gl_shader **)shader_list,
+                                               num_shaders);
+   if (!prog->data->LinkStatus)
+      return NULL;
+
+   /* Check that there is only a single definition of each function signature
+    * across all shaders.
+    */
+   for (unsigned i = 0; i < (num_shaders - 1); i++) {
+      nir_foreach_function_impl(func, shader_list[i]->nir) {
+         for (unsigned j = i + 1; j < num_shaders; j++) {
+            nir_function *other =
+               nir_shader_get_function_for_name(shader_list[j]->nir,
+                                                func->function->name);
+
+            /* If the other shader has no function (and therefore no function
+             * signatures) with the same name, skip to the next shader.
+             */
+            if (other == NULL || other->impl == NULL)
+               continue;
+
+            bool exact_match =
+               exact_matching_signature(other, func->function);
+
+               if (exact_match) {
+                  linker_error(prog, "function `%s' is multiply defined\n",
+                               func->function->name);
+                  return NULL;
+               }
+         }
+      }
+   }
+
+   /* Find the shader that defines main, and make a clone of it.
+    *
+    * Starting with the clone, search for undefined references.  If one is
+    * found, find the shader that defines it.  Clone the reference and add
+    * it to the shader.  Repeat until there are no undefined references or
+    * until a reference cannot be resolved.
+    */
+   struct gl_shader *main = NULL;
+   nir_function_impl *main_func = NULL;
+   for (unsigned i = 0; i < num_shaders; i++) {
+      main_func = nir_shader_get_entrypoint(shader_list[i]->nir);
+      if (main_func) {
+         main = shader_list[i];
+         break;
+      }
+   }
+
+   if (main == NULL) {
+      linker_error(prog, "%s shader lacks `main'\n",
+                   _mesa_shader_stage_to_string(shader_list[0]->Stage));
+      return NULL;
+   }
+
+   struct gl_linked_shader *linked = rzalloc(NULL, struct gl_linked_shader);
+   linked->Stage = shader_list[0]->Stage;
+
+   /* Create program and attach it to the linked shader */
+   struct gl_program *gl_prog =
+      ctx->Driver.NewProgram(ctx, shader_list[0]->Stage, prog->Name, false);
+   if (!gl_prog) {
+      prog->data->LinkStatus = LINKING_FAILURE;
+      _mesa_delete_linked_shader(ctx, linked);
+      return NULL;
+   }
+
+   _mesa_reference_shader_program_data(&gl_prog->sh.data, prog->data);
+
+   /* Don't use _mesa_reference_program() just take ownership */
+   linked->Program = gl_prog;
+
+   linked->Program->nir = nir_shader_clone(NULL, main->nir);
+
+   link_fs_inout_layout_qualifiers(prog, linked, shader_list, num_shaders,
+                                   arb_fragment_coord_conventions_enable);
+   link_tcs_out_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
+   link_tes_in_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
+   link_gs_inout_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
+   link_cs_input_layout_qualifiers(prog, gl_prog, shader_list, num_shaders);
+
+   if (linked->Stage != MESA_SHADER_FRAGMENT)
+      link_xfb_stride_layout_qualifiers(&ctx->Const, prog, shader_list, num_shaders);
+
+   link_bindless_layout_qualifiers(prog, shader_list, num_shaders);
+
+   link_layer_viewport_relative_qualifier(prog, gl_prog, shader_list, num_shaders);
+
+   gl_prog->nir->info.subgroup_size = KHR_shader_subgroup_basic_enable ?
+      SUBGROUP_SIZE_API_CONSTANT : SUBGROUP_SIZE_UNIFORM;
+
+   /* Move any instructions other than variable declarations or function
+    * declarations into main.
+    */
+   if (!gl_nir_link_function_calls(prog, main, linked, shader_list, num_shaders)) {
+      _mesa_delete_linked_shader(ctx, linked);
+      return NULL;
+   }
+
+   /* Add calls to temp global instruction wrapper functions */
+   main_func = nir_shader_get_entrypoint(linked->Program->nir);
+   nir_builder b = nir_builder_create(main_func);
+   nir_foreach_function_impl(impl, linked->Program->nir) {
+      if (strncmp(impl->function->name, "gl_mesa_tmp", 11) == 0) {
+         nir_call_instr *call = nir_call_instr_create(linked->Program->nir,
+                                                      impl->function);
+         b.cursor = nir_before_block(nir_start_block(main_func));
+         nir_builder_instr_insert(&b, &call->instr);
+      }
+   }
+
+   /* Make a pass over all variable declarations to ensure that arrays with
+    * unspecified sizes have a size specified.  The size is inferred from the
+    * max_array_access field.
+    */
+   gl_nir_linker_size_arrays(linked->Program->nir);
+   nir_fixup_deref_types(linked->Program->nir);
+
+   /* Now that we know the sizes of all the arrays, we can replace .length()
+    * calls with a constant expression.
+    */
+   array_length_to_const(linked->Program->nir);
+
+   if (!prog->data->LinkStatus) {
+      _mesa_delete_linked_shader(ctx, linked);
+      return NULL;
+   }
+
+   /* At this point linked should contain all of the linked IR, so
+    * validate it to make sure nothing went wrong.
+    */
+   nir_validate_shader(linked->Program->nir, "post shader stage combine");
+
+   lower_derivatives_without_layout(&b);
+
+   /* Set the linked source BLAKE3. */
+   if (num_shaders == 1) {
+      memcpy(linked->linked_source_blake3, shader_list[0]->compiled_source_blake3,
+             BLAKE3_OUT_LEN);
+   } else {
+      struct mesa_blake3 blake3_ctx;
+      _mesa_blake3_init(&blake3_ctx);
+
+      for (unsigned i = 0; i < num_shaders; i++) {
+         if (shader_list[i] == NULL)
+            continue;
+
+         _mesa_blake3_update(&blake3_ctx, shader_list[i]->compiled_source_blake3,
+                             BLAKE3_OUT_LEN);
+      }
+      _mesa_blake3_final(&blake3_ctx, linked->linked_source_blake3);
+   }
+
+   return linked;
 }
 
 /**
@@ -2556,23 +3512,6 @@ analyze_clip_cull_usage(struct gl_shader_program *prog, nir_shader *shader,
 
       if (cull_dist_written)
          info->cull_distance_array_size = glsl_get_length(cull_dist->type);
-
-      /* From the ARB_cull_distance spec:
-       *
-       * It is a compile-time or link-time error for the set of shaders forming
-       * a program to have the sum of the sizes of the gl_ClipDistance and
-       * gl_CullDistance arrays to be larger than
-       * gl_MaxCombinedClipAndCullDistances.
-       */
-      if ((uint32_t)(info->clip_distance_array_size + info->cull_distance_array_size) >
-          consts->MaxClipPlanes) {
-          linker_error(prog, "%s shader: the combined size of "
-                       "'gl_ClipDistance' and 'gl_CullDistance' size cannot "
-                       "be larger than "
-                       "gl_MaxCombinedClipAndCullDistances (%u)",
-                       _mesa_shader_stage_to_string(info->stage),
-                       consts->MaxClipPlanes);
-      }
    }
 }
 
@@ -2721,12 +3660,151 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
 
    MESA_TRACE_FUNC();
 
+   void *mem_ctx = ralloc_context(NULL); /* temporary linker context */
+
+   /* Separate the shaders into groups based on their type.
+    */
+   struct gl_shader **shader_list[MESA_SHADER_STAGES];
+   unsigned num_shaders[MESA_SHADER_STAGES];
+
+   for (int i = 0; i < MESA_SHADER_STAGES; i++) {
+      shader_list[i] = (struct gl_shader **)
+         calloc(prog->NumShaders, sizeof(struct gl_shader *));
+      num_shaders[i] = 0;
+   }
+
+   unsigned min_version = UINT_MAX;
+   unsigned max_version = 0;
+   for (unsigned i = 0; i < prog->NumShaders; i++) {
+      min_version = MIN2(min_version, prog->Shaders[i]->Version);
+      max_version = MAX2(max_version, prog->Shaders[i]->Version);
+
+      if (!consts->AllowGLSLRelaxedES &&
+          prog->Shaders[i]->IsES != prog->Shaders[0]->IsES) {
+         linker_error(prog, "all shaders must use same shading "
+                      "language version\n");
+         goto done;
+      }
+
+      gl_shader_stage shader_type = prog->Shaders[i]->Stage;
+      shader_list[shader_type][num_shaders[shader_type]] = prog->Shaders[i];
+      num_shaders[shader_type]++;
+   }
+
+   /* In desktop GLSL, different shader versions may be linked together.  In
+    * GLSL ES, all shader versions must be the same.
+    */
+   if (!consts->AllowGLSLRelaxedES && prog->Shaders[0]->IsES &&
+       min_version != max_version) {
+      linker_error(prog, "all shaders must use same shading "
+                   "language version\n");
+      goto done;
+   }
+
+   prog->GLSL_Version = max_version;
+   prog->IsES = prog->Shaders[0]->IsES;
+
+   /* Some shaders have to be linked with some other shaders present.
+    */
+   if (!prog->SeparateShader) {
+      if (num_shaders[MESA_SHADER_GEOMETRY] > 0 &&
+          num_shaders[MESA_SHADER_VERTEX] == 0) {
+         linker_error(prog, "Geometry shader must be linked with "
+                      "vertex shader\n");
+         goto done;
+      }
+      if (num_shaders[MESA_SHADER_TESS_EVAL] > 0 &&
+          num_shaders[MESA_SHADER_VERTEX] == 0) {
+         linker_error(prog, "Tessellation evaluation shader must be linked "
+                      "with vertex shader\n");
+         goto done;
+      }
+      if (num_shaders[MESA_SHADER_TESS_CTRL] > 0 &&
+          num_shaders[MESA_SHADER_VERTEX] == 0) {
+         linker_error(prog, "Tessellation control shader must be linked with "
+                      "vertex shader\n");
+         goto done;
+      }
+
+      /* Section 7.3 of the OpenGL ES 3.2 specification says:
+       *
+       *    "Linking can fail for [...] any of the following reasons:
+       *
+       *     * program contains an object to form a tessellation control
+       *       shader [...] and [...] the program is not separable and
+       *       contains no object to form a tessellation evaluation shader"
+       *
+       * The OpenGL spec is contradictory. It allows linking without a tess
+       * eval shader, but that can only be used with transform feedback and
+       * rasterization disabled. However, transform feedback isn't allowed
+       * with GL_PATCHES, so it can't be used.
+       *
+       * More investigation showed that the idea of transform feedback after
+       * a tess control shader was dropped, because some hw vendors couldn't
+       * support tessellation without a tess eval shader, but the linker
+       * section wasn't updated to reflect that.
+       *
+       * All specifications (ARB_tessellation_shader, GL 4.0-4.5) have this
+       * spec bug.
+       *
+       * Do what's reasonable and always require a tess eval shader if a tess
+       * control shader is present.
+       */
+      if (num_shaders[MESA_SHADER_TESS_CTRL] > 0 &&
+          num_shaders[MESA_SHADER_TESS_EVAL] == 0) {
+         linker_error(prog, "Tessellation control shader must be linked with "
+                      "tessellation evaluation shader\n");
+         goto done;
+      }
+
+      if (prog->IsES) {
+         if (num_shaders[MESA_SHADER_TESS_EVAL] > 0 &&
+             num_shaders[MESA_SHADER_TESS_CTRL] == 0) {
+            linker_error(prog, "GLSL ES requires non-separable programs "
+                         "containing a tessellation evaluation shader to also "
+                         "be linked with a tessellation control shader\n");
+            goto done;
+         }
+      }
+   }
+
+   /* Compute shaders have additional restrictions. */
+   if (num_shaders[MESA_SHADER_COMPUTE] > 0 &&
+       num_shaders[MESA_SHADER_COMPUTE] != prog->NumShaders) {
+      linker_error(prog, "Compute shaders may not be linked with any other "
+                   "type of shader\n");
+   }
+
+   /* Link all shaders for a particular stage and validate the result.
+    */
+   for (int stage = 0; stage < MESA_SHADER_STAGES; stage++) {
+      if (num_shaders[stage] > 0) {
+         struct gl_linked_shader *const sh =
+            link_intrastage_shaders(mem_ctx, ctx, prog, shader_list[stage],
+                                    num_shaders[stage]);
+
+         if (!prog->data->LinkStatus) {
+            if (sh)
+               _mesa_delete_linked_shader(ctx, sh);
+            goto done;
+         }
+
+         prog->_LinkedShaders[stage] = sh;
+         prog->data->linked_stages |= 1 << stage;
+      }
+   }
+
    /* Link all shaders for a particular stage and validate the result.
     */
    for (int stage = 0; stage < MESA_SHADER_STAGES; stage++) {
       struct gl_linked_shader *sh = prog->_LinkedShaders[stage];
       if (sh) {
          nir_shader *shader = sh->Program->nir;
+
+         /* Parameters will be filled during NIR linking. */
+         sh->Program->Parameters = _mesa_new_parameter_list();
+         sh->Program->shader_program = prog;
+         shader->info.separate_shader = prog->SeparateShader;
 
          switch (stage) {
          case MESA_SHADER_VERTEX:
@@ -2751,7 +3829,7 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
             prog->_LinkedShaders[stage] = NULL;
             prog->data->linked_stages ^= 1 << stage;
 
-            return false;
+            goto done;
          }
       }
    }
@@ -2762,14 +3840,14 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
     */
    cross_validate_uniforms(consts, prog);
    if (!prog->data->LinkStatus)
-      return false;
+      goto done;
 
    check_explicit_uniform_locations(exts, prog);
 
    link_assign_subroutine_types(prog);
    verify_subroutine_associated_funcs(prog);
    if (!prog->data->LinkStatus)
-      return false;
+      goto done;
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
@@ -2778,12 +3856,13 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
       gl_nir_detect_recursion_linked(prog,
                                      prog->_LinkedShaders[i]->Program->nir);
       if (!prog->data->LinkStatus)
-         return false;
+         goto done;
 
       gl_nir_inline_functions(prog->_LinkedShaders[i]->Program->nir);
    }
 
    resize_tes_inputs(consts, prog);
+   set_geom_shader_input_array_size(prog);
 
    /* Validate the inputs of each stage with the output of the preceding
     * stage.
@@ -2801,7 +3880,7 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
       gl_nir_validate_interstage_inout_blocks(prog, prog->_LinkedShaders[prev],
                                               prog->_LinkedShaders[i]);
       if (!prog->data->LinkStatus)
-         return false;
+         goto done;
 
       prev = i;
    }
@@ -2809,13 +3888,13 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
    /* Cross-validate uniform blocks between shader stages */
    gl_nir_validate_interstage_uniform_blocks(prog, prog->_LinkedShaders);
    if (!prog->data->LinkStatus)
-      return false;
+      goto done;
 
    if (prog->IsES && prog->GLSL_Version == 100)
       if (!validate_invariant_builtins(consts, prog,
             prog->_LinkedShaders[MESA_SHADER_VERTEX],
             prog->_LinkedShaders[MESA_SHADER_FRAGMENT]))
-         return false;
+         goto done;
 
    /* Check and validate stream emissions in geometry shaders */
    validate_geometry_shader_emissions(consts, prog);
@@ -2864,7 +3943,7 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
                                               prog->_LinkedShaders[prev],
                                               prog->_LinkedShaders[i]);
       if (!prog->data->LinkStatus)
-         return false;
+         goto done;
 
       prev = i;
    }
@@ -2882,11 +3961,11 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
       disable_varying_optimizations_for_sso(prog);
 
    struct gl_linked_shader *linked_shader[MESA_SHADER_STAGES];
-   unsigned num_shaders = 0;
+   unsigned num_linked_shaders = 0;
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i]) {
-         linked_shader[num_shaders++] = prog->_LinkedShaders[i];
+         linked_shader[num_linked_shaders++] = prog->_LinkedShaders[i];
 
          /* Section 13.46 (Vertex Attribute Aliasing) of the OpenGL ES 3.2
           * specification says:
@@ -2908,13 +3987,13 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
    }
 
    if (!gl_assign_attribute_or_color_locations(consts, prog))
-      return false;
+      goto done;
 
-   if (!prelink_lowering(consts, exts, prog, linked_shader, num_shaders))
-      return false;
+   if (!prelink_lowering(consts, exts, prog, linked_shader, num_linked_shaders))
+      goto done;
 
    if (!gl_nir_link_varyings(consts, exts, api, prog))
-      return false;
+      goto done;
 
    /* Validation for special cases where we allow sampler array indexing
     * with loop induction variable. This check emits a warning or error
@@ -2923,11 +4002,11 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
    if ((!prog->IsES && prog->GLSL_Version < 130) ||
        (prog->IsES && prog->GLSL_Version < 300)) {
       if (!validate_sampler_array_indexing(consts, prog))
-         return false;
+         goto done;
    }
 
    if (prog->data->LinkStatus == LINKING_FAILURE)
-      return false;
+      goto done;
 
    if (!linked_shader[0]->Program->nir->info.io_lowered) {
       /* Linking the stages in the opposite order (from fragment to vertex)
@@ -2935,7 +4014,7 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
        * are eliminated if they are (transitively) not used in a later
        * stage.
        */
-      for (int i = num_shaders - 2; i >= 0; i--) {
+      for (int i = num_linked_shaders - 2; i >= 0; i--) {
          gl_nir_link_opts(linked_shader[i]->Program->nir,
                           linked_shader[i + 1]->Program->nir);
       }
@@ -2945,7 +4024,7 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
     * For example varying arrays that get packed may have dead elements that
     * can be now be eliminated now that array access has been lowered.
     */
-   if (num_shaders == 1)
+   if (num_linked_shaders == 1)
       gl_nir_opts(linked_shader[0]->Program->nir);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -2985,10 +4064,10 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
    }
 
    if (!gl_nir_link_uniform_blocks(consts, prog))
-      return false;
+      goto done;
 
    if (!gl_nir_link_uniforms(consts, prog, true))
-      return false;
+      goto done;
 
    link_util_calculate_subroutine_compat(prog);
    link_util_check_uniform_resources(consts, prog);
@@ -3031,6 +4110,13 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
          linker_error(prog, "program lacks a fragment shader\n");
       }
    }
+
+done:
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      free(shader_list[i]);
+   }
+
+   ralloc_free(mem_ctx);
 
    if (prog->data->LinkStatus == LINKING_FAILURE)
       return false;

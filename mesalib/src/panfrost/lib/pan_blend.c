@@ -611,15 +611,14 @@ pan_inline_blend_constants(nir_builder *b, nir_intrinsic_instr *intr,
 
    b->cursor = nir_after_instr(&intr->instr);
    nir_def *constant = nir_build_imm(b, 4, 32, constants);
-   nir_def_rewrite_uses(&intr->def, constant);
-   nir_instr_remove(&intr->instr);
+   nir_def_replace(&intr->def, constant);
    return true;
 }
 
-static nir_shader *
-pan_blend_create_shader(const struct pan_blend_state *state,
-                        nir_alu_type src0_type, nir_alu_type src1_type,
-                        unsigned rt)
+nir_shader *
+GENX(pan_blend_create_shader)(const struct pan_blend_state *state,
+                              nir_alu_type src0_type, nir_alu_type src1_type,
+                              unsigned rt)
 {
    const struct pan_blend_rt_state *rt_state = &state->rts[rt];
    char equation_str[128] = {0};
@@ -688,6 +687,13 @@ pan_blend_create_shader(const struct pan_blend_state *state,
          .io_semantics.location = i ? VARYING_SLOT_VAR0 : VARYING_SLOT_COL0,
          .io_semantics.num_slots = 1, .base = i, .dest_type = src_type);
 
+      if (state->alpha_to_one && src_type == nir_type_float32) {
+         /* force alpha to 1 */
+         src = nir_vector_insert_imm(&b, src,
+                                     nir_imm_floatN_t(&b, 1.0, src->bit_size),
+                                     3);
+      }
+
       /* On Midgard, the blend shader is responsible for format conversion.
        * As the OpenGL spec requires integer conversions to saturate, we must
        * saturate ourselves here. On Bifrost and later, the conversion
@@ -708,9 +714,6 @@ pan_blend_create_shader(const struct pan_blend_state *state,
    b.shader->info.io_lowered = true;
 
    NIR_PASS_V(b.shader, nir_lower_blend, &options);
-   nir_shader_intrinsics_pass(b.shader, pan_inline_blend_constants,
-                              nir_metadata_block_index | nir_metadata_dominance,
-                              (void *)state->constants);
 
    return b.shader;
 }
@@ -791,9 +794,8 @@ inline_rt_conversion(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 bool
 GENX(pan_inline_rt_conversion)(nir_shader *s, enum pipe_format *formats)
 {
-   return nir_shader_intrinsics_pass(
-      s, inline_rt_conversion,
-      nir_metadata_block_index | nir_metadata_dominance, formats);
+   return nir_shader_intrinsics_pass(s, inline_rt_conversion,
+                                     nir_metadata_control_flow, formats);
 }
 #endif
 
@@ -813,10 +815,10 @@ GENX(pan_blend_get_shader_locked)(struct pan_blend_shader_cache *cache,
       .logicop_func = state->logicop_func,
       .nr_samples = state->rts[rt].nr_samples,
       .equation = state->rts[rt].equation,
+      .alpha_to_one = state->alpha_to_one,
    };
-
    /* Blend shaders should only be used for blending on Bifrost onwards */
-   assert(PAN_ARCH <= 5 || state->logicop_enable ||
+   assert(PAN_ARCH <= 5 || state->logicop_enable || state->alpha_to_one ||
           !pan_blend_is_opaque(state->rts[rt].equation));
    assert(state->rts[rt].equation.color_mask != 0);
 
@@ -856,7 +858,12 @@ GENX(pan_blend_get_shader_locked)(struct pan_blend_shader_cache *cache,
 
    memcpy(variant->constants, state->constants, sizeof(variant->constants));
 
-   nir_shader *nir = pan_blend_create_shader(state, src0_type, src1_type, rt);
+   nir_shader *nir =
+      GENX(pan_blend_create_shader)(state, src0_type, src1_type, rt);
+
+   nir_shader_intrinsics_pass(nir, pan_inline_blend_constants,
+                              nir_metadata_control_flow,
+                              (void *)state->constants);
 
    /* Compile the NIR shader */
    struct panfrost_compile_inputs inputs = {

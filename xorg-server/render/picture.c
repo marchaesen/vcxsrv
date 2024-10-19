@@ -22,9 +22,9 @@
  * Author:  Keith Packard, SuSE, Inc.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
+
+#include "dix/colormap_priv.h"
 
 #include "misc.h"
 #include "scrnintstr.h"
@@ -760,7 +760,7 @@ CreatePicture(Picture pid,
     pPicture->format = pFormat->format | (pDrawable->bitsPerPixel << 24);
 
     /* security creation/labeling check */
-    *error = XaceHook(XACE_RESOURCE_ACCESS, client, pid, PictureType, pPicture,
+    *error = XaceHookResourceAccess(client, pid, PictureType, pPicture,
                       X11_RESTYPE_PIXMAP, pDrawable, DixCreateAccess | DixSetAttrAccess);
     if (*error != Success)
         goto out;

@@ -88,18 +88,18 @@ $ADB shell rm /vendor/lib64/egl/libGLESv2_angle.so
 $ADB shell rm /vendor/lib64/egl/libGLESv2_emulation.so
 
 
-RESULTS=/data/results
+AOSP_RESULTS=/data/results
 uncollapsed_section_switch cuttlefish_test "cuttlefish: testing"
 
 set +e
-$ADB shell "mkdir /data/results; cd /data; ./deqp-runner \
+$ADB shell "mkdir ${AOSP_RESULTS}; cd ${AOSP_RESULTS}/..; ./deqp-runner \
     suite \
     --suite /data/deqp-$DEQP_SUITE.toml \
     --output $RESULTS \
     --skips /data/all-skips.txt $DEQP_SKIPS \
     --flakes /data/$GPU_VERSION-flakes.txt \
     --testlog-to-xml /deqp/executor/testlog-to-xml \
-    --fraction-start $CI_NODE_INDEX \
+    --fraction-start ${CI_NODE_INDEX:-1} \
     --fraction $(( CI_NODE_TOTAL * ${DEQP_FRACTION:-1})) \
     --jobs ${FDO_CI_CONCURRENT:-4} \
     $DEQP_RUNNER_OPTIONS"
@@ -108,11 +108,11 @@ EXIT_CODE=$?
 set -e
 section_switch cuttlefish_results "cuttlefish: gathering the results"
 
-$ADB pull $RESULTS results
+$ADB pull $RESULTS $RESULTS_DIR
 
-cp /cuttlefish/cuttlefish/instances/cvd-1/logs/logcat results
-cp /cuttlefish/cuttlefish/instances/cvd-1/kernel.log results
-cp /cuttlefish/cuttlefish/instances/cvd-1/logs/launcher.log results
+cp /cuttlefish/cuttlefish/instances/cvd-1/logs/logcat $RESULTS_DIR
+cp /cuttlefish/cuttlefish/instances/cvd-1/kernel.log $RESULTS_DIR
+cp /cuttlefish/cuttlefish/instances/cvd-1/logs/launcher.log $RESULTS_DIR
 
 section_end cuttlefish_results
 exit $EXIT_CODE

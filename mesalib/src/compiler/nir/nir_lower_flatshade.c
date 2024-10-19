@@ -59,8 +59,7 @@ lower_input_io(nir_builder *b, nir_intrinsic_instr *intr, void *data)
                                   intr->def.bit_size, intr->src[1].ssa);
    nir_intrinsic_instr *new_intr = nir_instr_as_intrinsic(load->parent_instr);
    nir_intrinsic_copy_const_indices(new_intr, intr);
-   nir_def_rewrite_uses(&intr->def, load);
-   nir_instr_remove(&intr->instr);
+   nir_def_replace(&intr->def, load);
    return true;
 }
 bool

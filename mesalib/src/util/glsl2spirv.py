@@ -38,6 +38,9 @@ if T.TYPE_CHECKING:
         extra: T.Optional[str]
         vn: str
         stage: str
+        includes: T.List[str]
+        defines: T.List[str]
+        depfile: T.Optional[str]
 
 
 def get_args() -> 'Arguments':
@@ -84,6 +87,12 @@ def get_args() -> 'Arguments':
                         default=[],
                         action='append',
                         help="Defines")
+    
+    parser.add_argument('--depfile',
+                        dest="depfile",
+                        default=None,
+                        action='store',
+                        help='Where glslangValidator should write its depfile, if unset no depfile will be written.')
 
     args = parser.parse_args()
     return args
@@ -136,7 +145,10 @@ def postprocess_file(args: 'Arguments') -> None:
         w.writelines(lines)
 
 
-def preprocess_file(args: 'Arguments', origin_file: T.TextIO, directory: os.PathLike) -> str:
+def preprocess_file(args: 'Arguments', origin_file: T.TextIO, directory: os.PathLike, filemap: T.Dict[str, str]) -> str:
+    if args.create_entry is None and args.glsl_ver is None:
+        return origin_file.name
+
     with open(os.path.join(directory, os.path.basename(origin_file.name)), "w") as copy_file:
         lines = origin_file.readlines()
 
@@ -148,13 +160,36 @@ def preprocess_file(args: 'Arguments', origin_file: T.TextIO, directory: os.Path
 
         copy_file.writelines(lines)
 
+    filemap[copy_file.name] = origin_file.name
     return copy_file.name
 
 
+def fixup_depfile(depfile: str, filemap: T.Mapping[str, str]) -> None:
+    """Replace generated file references in the depfile with their source.
+    """
+    depends: T.List[str] = []
+    out: T.Optional[str] = None
+    with open(depfile, 'r') as f:
+        for line in f.readlines():
+            if ':' in line:
+                out, line = line.split(':', 1)
+            depends.extend(l.strip() for l in line.split())
+
+    with open(depfile, 'w') as f:
+        f.write(out)
+        f.write(': ')
+        for dep in depends:
+            f.write(filemap.get(dep, dep))
+            f.write(' ')
+        f.write('\n')
+
+
 def process_file(args: 'Arguments') -> None:
+    filemap: T.Dict[str, str] = {}
+
     with open(args.input, "r") as infile:
-        copy_file = preprocess_file(args, infile,
-                                    os.path.dirname(args.output))
+        copy_file = preprocess_file(
+            args, infile, os.path.dirname(args.output), filemap)
 
     cmd_list = [args.glslang]
 
@@ -170,9 +205,11 @@ def process_file(args: 'Arguments') -> None:
     if args.create_entry is not None:
         cmd_list.extend(["--entry-point", args.create_entry])
 
+    if args.depfile is not None:
+        cmd_list.extend(['--depfile', args.depfile])
+
     for f in args.includes:
         cmd_list.append('-I' + f)
-
     for d in args.defines:
         cmd_list.append('-D' + d)
 
@@ -194,6 +231,9 @@ def process_file(args: 'Arguments') -> None:
 
     if args.create_entry is not None:
         os.remove(copy_file)
+
+    if args.depfile is not None:
+        fixup_depfile(args.depfile, filemap)
 
 
 def main() -> None:

@@ -5,28 +5,6 @@
 # Note normal pre-merge CI also includes -premerge-skips.txt, and that's where
 # "it's slow but would pass/fail/crash within a couple of minutes" skips should go.
 
-# Timeouts in CI even after 5 minutes
-dEQP-VK.tessellation.invariance.inner_triangle_set.quads_equal_spacing
-dEQP-VK.tessellation.invariance.inner_triangle_set.triangles_fractional_even_spacing
-dEQP-VK.tessellation.invariance.outer_edge_division.quads_equal_spacing
-dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_even_spacing
-dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
-dEQP-VK.tessellation.invariance.outer_triangle_set.quads_equal_spacing
-dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_even_spacing
-dEQP-VK.tessellation.invariance.outer_triangle_set.quads_fractional_odd_spacing
-dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_equal_spacing
-dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_even_spacing
-dEQP-VK.tessellation.invariance.outer_triangle_set.triangles_fractional_odd_spacing
-
-# Can cause a hangcheck.
-#
-# even if they sometimes pass and could be categorized as flakes, we skip them
-# because device loss will end up failing the rest of the caselist.
-dEQP-VK.api.command_buffers.record_many_draws_primary_2
-dEQP-VK.api.command_buffers.record_many_draws_secondary_2
-spill-dEQP-VK.graphicsfuzz.cov-function-two-loops-limit-using-arguments-array-element-copies
-spill-dEQP-VK.graphicsfuzz.cov-nested-loop-large-array-index-using-vector-components
-
 # Still running after 3 hours, time is spent in batch_draw_tracking().
 KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
 
@@ -36,6 +14,3 @@ spec@egl 1.4@egl-copy-buffers
 # uprev Piglit in Mesa
 spec@egl_khr_gl_colorspace@srgb
 spec@egl_khr_gl_colorspace@linear
-
-# Timeout
-dEQP-VK.memory.mapping.suballocation.full.variable.implicit_unmap

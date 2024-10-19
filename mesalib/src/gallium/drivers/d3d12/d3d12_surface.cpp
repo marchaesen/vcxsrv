@@ -333,7 +333,7 @@ d3d12_surface_update_pre_draw(struct pipe_context *pctx,
          templ.array_size = src->array_size;
          templ.nr_samples = src->nr_samples;
          templ.nr_storage_samples = src->nr_storage_samples;
-         templ.usage = PIPE_USAGE_DEFAULT | PIPE_USAGE_STAGING;
+         templ.usage = PIPE_USAGE_STAGING;
          templ.bind = src->bind;
          templ.target = src->target;
 

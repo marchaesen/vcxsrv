@@ -64,8 +64,7 @@ decode_etc(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_iview
    VkPipeline pipeline = radv_get_etc_decode_pipeline(cmd_buffer);
 
    radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                 device->meta_state.etc_decode.pipeline_layout, 0, /* set */
-                                 2,                                                /* descriptorWriteCount */
+                                 device->meta_state.etc_decode.pipeline_layout, 0, 2,
                                  (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                            .dstBinding = 0,
                                                            .dstArrayElement = 0,
@@ -137,7 +136,7 @@ radv_meta_decode_etc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *imag
                .layerCount = subresource->baseArrayLayer + vk_image_subresource_layer_count(&image->vk, subresource),
             },
       },
-      0, NULL);
+      NULL);
 
    VkFormat store_format = vk_texcompress_etc2_store_format(image->vk.format);
    struct radv_image_view dst_iview;
@@ -157,7 +156,7 @@ radv_meta_decode_etc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *imag
                .layerCount = subresource->baseArrayLayer + vk_image_subresource_layer_count(&image->vk, subresource),
             },
       },
-      0, NULL);
+      NULL);
 
    decode_etc(cmd_buffer, &src_iview, &dst_iview, &(VkOffset3D){offset.x, offset.y, base_slice},
               &(VkExtent3D){extent.width, extent.height, slice_count});

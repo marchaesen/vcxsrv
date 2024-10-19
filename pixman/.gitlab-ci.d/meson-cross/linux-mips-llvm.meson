@@ -1,0 +1,14 @@
+[binaries]
+c = ['clang', '-target', 'mips-linux-gnu', '-fPIC', '-DCI_HAS_ALL_MIPS_CPU_FEATURES']
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+exe_wrapper = ['qemu-mips', '-L', '/usr/mips-linux-gnu/']
+
+[built-in options]
+c_link_args = ['-target', 'mips-linux-gnu', '-fuse-ld=lld']
+
+[host_machine]
+system = 'linux'
+cpu_family = 'mips32'
+cpu = 'mips32'
+endian = 'big'

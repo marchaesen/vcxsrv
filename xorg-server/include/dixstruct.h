@@ -73,6 +73,8 @@ typedef struct _saveSet {
 #define SaveSetAssignToRoot(ss,tr)  ((ss).toRoot = (tr))
 #define SaveSetAssignMap(ss,m)      ((ss).map = (m))
 
+struct _ClientId;
+
 typedef struct _Client {
     void *requestBuffer;
     void *osPrivate;             /* for OS layer, including scheduler */
@@ -109,7 +111,7 @@ typedef struct _Client {
     int smart_stop_tick;
 
     DeviceIntPtr clientPtr;
-    ClientIdPtr clientIds;
+    struct _ClientId *clientIds;
     int req_fds;
 } ClientRec;
 

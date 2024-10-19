@@ -1350,6 +1350,9 @@ glsl_get_explicit_interface_type(const glsl_type *t, bool supports_std430)
    }
 }
 
+void glsl_size_align_handle_array_and_structs(const glsl_type *type,
+                                              glsl_type_size_align_func size_align,
+                                              unsigned *size, unsigned *align);
 void glsl_get_natural_size_align_bytes(const glsl_type *t, unsigned *size, unsigned *align);
 void glsl_get_vec4_size_align_bytes(const glsl_type *type, unsigned *size, unsigned *align);
 

@@ -69,6 +69,8 @@ void ac_set_nir_options(struct radeon_info *info, bool use_llvm,
    options->has_bfe = true;
    options->has_bfm = true;
    options->has_bitfield_select = true;
+   options->has_fneo_fcmpu = true;
+   options->has_ford_funord = true;
    options->has_fsub = true;
    options->has_isub = true;
    options->has_sdot_4x8 = info->has_accelerated_dot_product;
@@ -79,6 +81,7 @@ void ac_set_nir_options(struct radeon_info *info, bool use_llvm,
    options->has_udot_4x8_sat = info->has_accelerated_dot_product;
    options->has_dot_2x16 = info->has_accelerated_dot_product && info->gfx_level < GFX11;
    options->has_find_msb_rev = true;
+   options->has_pack_32_4x8 = true;
    options->has_pack_half_2x16_rtz = true;
    options->has_bit_test = !use_llvm;
    options->has_fmulz = true;
@@ -88,10 +91,104 @@ void ac_set_nir_options(struct radeon_info *info, bool use_llvm,
    options->lower_int64_options = nir_lower_imul64 | nir_lower_imul_high64 | nir_lower_imul_2x32_64 | nir_lower_divmod64 |
                                   nir_lower_minmax64 | nir_lower_iabs64 | nir_lower_iadd_sat64 | nir_lower_conv64;
    options->divergence_analysis_options = nir_divergence_view_index_uniform;
-   options->optimize_quad_vote_to_reduce = true;
+   options->optimize_quad_vote_to_reduce = !use_llvm;
    options->lower_fisnormal = true;
    options->support_16bit_alu = info->gfx_level >= GFX8;
    options->vectorize_vec2_16bit = info->has_packed_math_16bit;
+   options->discard_is_demote = true;
+   options->io_options = nir_io_has_flexible_input_interpolation_except_flat |
+                         (info->gfx_level >= GFX8 ? nir_io_16bit_input_output_support : 0) |
+                         nir_io_prefer_scalar_fs_inputs |
+                         nir_io_mix_convergent_flat_with_interpolated |
+                         nir_io_vectorizer_ignores_types;
+   options->scalarize_ddx = true;
+   options->skip_lower_packing_ops =
+      BITFIELD_BIT(nir_lower_packing_op_unpack_64_2x32) |
+      BITFIELD_BIT(nir_lower_packing_op_unpack_64_4x16) |
+      BITFIELD_BIT(nir_lower_packing_op_unpack_32_2x16) |
+      BITFIELD_BIT(nir_lower_packing_op_pack_32_4x8) |
+      BITFIELD_BIT(nir_lower_packing_op_unpack_32_4x8);
+}
+
+bool
+ac_nir_mem_vectorize_callback(unsigned align_mul, unsigned align_offset, unsigned bit_size,
+                              unsigned num_components, unsigned hole_size, nir_intrinsic_instr *low,
+                              nir_intrinsic_instr *high, void *data)
+{
+   if (num_components > 4 || hole_size)
+      return false;
+
+   bool is_scratch = false;
+   switch (low->intrinsic) {
+   case nir_intrinsic_load_stack:
+   case nir_intrinsic_load_scratch:
+   case nir_intrinsic_store_stack:
+   case nir_intrinsic_store_scratch:
+      is_scratch = true;
+      break;
+   default:
+      break;
+   }
+
+   /* >128 bit loads are split except with SMEM. On GFX6-8, >32 bit scratch loads are split. */
+   enum amd_gfx_level gfx_level = *(enum amd_gfx_level *)data;
+   if (bit_size * num_components > (is_scratch && gfx_level <= GFX8 ? 32 : 128))
+      return false;
+
+   uint32_t align;
+   if (align_offset)
+      align = 1 << (ffs(align_offset) - 1);
+   else
+      align = align_mul;
+
+   switch (low->intrinsic) {
+   case nir_intrinsic_load_global:
+   case nir_intrinsic_load_global_constant:
+   case nir_intrinsic_store_global:
+   case nir_intrinsic_store_ssbo:
+   case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_ubo:
+   case nir_intrinsic_load_push_constant:
+   case nir_intrinsic_load_stack:
+   case nir_intrinsic_load_scratch:
+   case nir_intrinsic_store_stack:
+   case nir_intrinsic_store_scratch: {
+      unsigned max_components;
+      if (align % 4 == 0)
+         max_components = NIR_MAX_VEC_COMPONENTS;
+      else if (align % 2 == 0)
+         max_components = 16u / bit_size;
+      else
+         max_components = 8u / bit_size;
+      return (align % (bit_size / 8u)) == 0 && num_components <= max_components;
+   }
+   case nir_intrinsic_load_deref:
+   case nir_intrinsic_store_deref:
+      assert(nir_deref_mode_is(nir_src_as_deref(low->src[0]), nir_var_mem_shared));
+      FALLTHROUGH;
+   case nir_intrinsic_load_shared:
+   case nir_intrinsic_store_shared:
+      if (bit_size * num_components == 96) { /* 96 bit loads require 128 bit alignment and are split otherwise */
+         return align % 16 == 0;
+      } else if (bit_size == 16 && (align % 4)) {
+         /* AMD hardware can't do 2-byte aligned f16vec2 loads, but they are useful for ALU
+          * vectorization, because our vectorizer requires the scalar IR to already contain vectors.
+          */
+         return (align % 2 == 0) && num_components <= 2;
+      } else {
+         if (num_components == 3) {
+            /* AMD hardware can't do 3-component loads except for 96-bit loads, handled above. */
+            return false;
+         }
+         unsigned req = bit_size * num_components;
+         if (req == 64 || req == 128) /* 64-bit and 128-bit loads can use ds_read2_b{32,64} */
+            req /= 2u;
+         return align % (req / 8u) == 0;
+      }
+   default:
+      return false;
+   }
+   return false;
 }
 
 unsigned ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil, bool writes_samplemask,
@@ -1181,7 +1278,7 @@ void ac_get_scratch_tmpring_size(const struct radeon_info *info,
 
    unsigned max_scratch_waves = info->max_scratch_waves;
    if (info->gfx_level >= GFX11)
-      max_scratch_waves /= info->num_se; /* WAVES is per SE */
+      max_scratch_waves /= info->max_se; /* WAVES is per SE */
 
    /* TODO: We could decrease WAVES to make the whole buffer fit into the infinity cache. */
    *tmpring_size = S_0286E8_WAVES(max_scratch_waves) |
@@ -1226,7 +1323,7 @@ enum gl_access_qualifier ac_get_mem_access_flags(const nir_intrinsic_instr *inst
  * "access" must be a result of ac_get_mem_access_flags() with the appropriate ACCESS_TYPE_*
  * flags set.
  */
-union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
+union ac_hw_cache_flags ac_get_hw_cache_flags(enum amd_gfx_level gfx_level,
                                               enum gl_access_qualifier access)
 {
    union ac_hw_cache_flags result;
@@ -1240,9 +1337,10 @@ union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
 
    bool scope_is_device = access & (ACCESS_COHERENT | ACCESS_VOLATILE);
 
-   if (info->gfx_level >= GFX12) {
+   if (gfx_level >= GFX12) {
       if (access & ACCESS_CP_GE_COHERENT_AMD) {
-         result.gfx12.scope = info->cp_sdma_ge_use_system_memory_scope ?
+         bool cp_sdma_ge_use_system_memory_scope = gfx_level == GFX12;
+         result.gfx12.scope = cp_sdma_ge_use_system_memory_scope ?
                                  gfx12_scope_memory : gfx12_scope_device;
       } else if (scope_is_device) {
          result.gfx12.scope = gfx12_scope_device;
@@ -1261,7 +1359,7 @@ union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
             result.gfx12.temporal_hint = gfx12_atomic_non_temporal;
          }
       }
-   } else if (info->gfx_level >= GFX11) {
+   } else if (gfx_level >= GFX11) {
       /* GFX11 simplified it and exposes what is actually useful.
        *
        * GLC means device scope for loads only. (stores and atomics are always device scope)
@@ -1275,7 +1373,7 @@ union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
 
       if (access & ACCESS_NON_TEMPORAL && !(access & ACCESS_TYPE_SMEM))
          result.value |= ac_slc;
-   } else if (info->gfx_level >= GFX10) {
+   } else if (gfx_level >= GFX10) {
       /* GFX10-10.3:
        *
        * VMEM and SMEM loads (SMEM only supports the first four):
@@ -1329,7 +1427,7 @@ union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
        */
       if (scope_is_device && !(access & ACCESS_TYPE_ATOMIC)) {
          /* SMEM doesn't support the device scope on GFX6-7. */
-         assert(info->gfx_level >= GFX8 || !(access & ACCESS_TYPE_SMEM));
+         assert(gfx_level >= GFX8 || !(access & ACCESS_TYPE_SMEM));
          result.value |= ac_glc;
       }
 
@@ -1339,12 +1437,12 @@ union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
       /* GFX6 has a TC L1 bug causing corruption of 8bit/16bit stores. All store opcodes not
        * aligned to a dword are affected.
        */
-      if (info->gfx_level == GFX6 && access & ACCESS_MAY_STORE_SUBDWORD)
+      if (gfx_level == GFX6 && access & ACCESS_MAY_STORE_SUBDWORD)
          result.value |= ac_glc;
    }
 
    if (access & ACCESS_IS_SWIZZLED_AMD) {
-      if (info->gfx_level >= GFX12)
+      if (gfx_level >= GFX12)
          result.gfx12.swizzled = true;
       else
          result.value |= ac_swizzled;

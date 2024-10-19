@@ -56,7 +56,7 @@ SOFTWARE.
 		The "normal" case, ie. not s2en (indirect) and/or bindless
 	</doc>
 	<display>
-		{SY}{JP}{NAME}{3D}{A}{O}{P}{S} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SAMP}{TEX}
+		{SY}{JP}{NAME}{3D}{A}{O}{P}{SV}{1D} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SAMP}{TEX}
 	</display>
 	<derived name="DST_HALF" expr="#type-half" type="bool" display="h"/>
 	<field name="FULL" pos="0" type="bool"/>
@@ -69,6 +69,7 @@ SOFTWARE.
 		<param name="NUM_SRC"/>
 		<param name="HALF"/>
 		<param name="O"/>
+		<param name="SRC2_IMM_OFFSET"/>
 	</field>
 	<!--
 		TODO remainder of first 32b differ depending on s2en/bindless..
@@ -77,7 +78,7 @@ SOFTWARE.
 		Note b17 seems to show up in some blob traces (samgpN), need
 		to figure out what this bit does
 	 -->
-	<pattern low="17" high="18">0x</pattern>
+	<pattern pos="17">x</pattern>
 
 	<field name="SAMP" low="21" high="24" type="#cat5-samp">
 		<param name="HAS_SAMP"/>
@@ -94,7 +95,6 @@ SOFTWARE.
 	<assert pos="47">0</assert>    <!-- BASE_LO -->
 	<field name="3D" pos="48" type="bool" display=".3d"/>
 	<field name="A" pos="49" type="bool" display=".a"/>
-	<field name="S" pos="50" type="bool" display=".s"/>
 	<field name="S2EN_BINDLESS" pos="51" type="bool"/>
 	<field name="O" pos="52" type="bool" display=".o"/>
 	<!-- OPC -->
@@ -111,7 +111,6 @@ SOFTWARE.
 		<map name="BASE_HI">src->cat5.tex_base >> 1</map>
 		<map name="3D">!!(src->flags &amp; IR3_INSTR_3D)</map>
 		<map name="A">!!(src->flags &amp; IR3_INSTR_A)</map>
-		<map name="S">!!(src->flags &amp; IR3_INSTR_S)</map>
 		<map name="S2EN_BINDLESS">!!(src->flags &amp; (IR3_INSTR_S2EN | IR3_INSTR_B))</map>
 		<map name="O">!!(src->flags &amp; IR3_INSTR_O)</map>
 		<map name="DESC_MODE">extract_cat5_DESC_MODE(src)</map>
@@ -123,16 +122,20 @@ SOFTWARE.
 		<map name="SRC2">extract_cat5_SRC(src, 1)</map>
 		<map name="SRC3">(src->srcs_count > 0) ? src->srcs[0] : NULL</map>
 	</encode>
+
+	<derived name="SRC2_IMM_OFFSET" expr="#false" type="bool"/>
+	<derived name="P" expr="#false" type="bool" display=""/>
+	<derived name="1D" expr="#false" type="bool" display=""/>
 </bitset>
 
-<bitset name="#instruction-cat5-tex" extends="#instruction-cat5">
+<bitset name="#instruction-cat5-tex-base" extends="#instruction-cat5">
 	<override>
 		<expr>{S2EN_BINDLESS}</expr>
 		<doc>
 			The s2en (indirect) or bindless case
 		</doc>
 		<display>
-			{SY}{JP}{NAME}{3D}{A}{O}{P}{S}{S2EN}{UNIFORM}{NONUNIFORM}{BASE} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SRC3}{A1}
+			{SY}{JP}{NAME}{3D}{A}{O}{P}{SV}{S2EN}{UNIFORM}{NONUNIFORM}{BASE}{1D} {TYPE}({WRMASK}){DST_HALF}{DST}{SRC1}{SRC2}{SRC3}{A1}
 		</display>
 		<field name="BASE_HI" low="19" high="20" type="uint"/>
 		<field name="SRC3" low="21" high="28" type="#cat5-src3">
@@ -154,19 +157,37 @@ SOFTWARE.
 	</override>
 
 	<assert low="19" high="20">00</assert>   <!-- BASE_HI -->
+</bitset>
+
+<bitset name="#instruction-cat5-tex" extends="#instruction-cat5-tex-base">
+	<pattern pos="18">0</pattern>
+	<field name="SV" pos="50" type="bool" display=".s"/>
 	<field name="P" pos="53" type="bool" display=".p"/>
 
 	<encode>
+		<map name="SV">!!(src->flags &amp; IR3_INSTR_S)</map>
 		<map name="P">!!(src->flags &amp; IR3_INSTR_P)</map>
 	</encode>
 </bitset>
 
-<bitset name="isam" extends="#instruction-cat5-tex">
+<bitset name="isam" extends="#instruction-cat5-tex-base">
 	<pattern low="54" high="58">00000</pattern>
 	<derived name="NUM_SRC" expr="#one" type="uint"/>
 	<derived name="HAS_SAMP" expr="#true" type="bool"/>
 	<derived name="HAS_TEX" expr="#true" type="bool"/>
 	<derived name="HAS_TYPE" expr="#true" type="bool"/>
+
+	<!-- Not sure what this field does exactly but isam.v does not work
+	     without it set. The blob disassembles it as .1d when not set. -->
+	<field name="1D" pos="18" type="bool_inv" display=".1d"/>
+	<field name="SV" pos="50" type="bool" display=".v"/>
+	<field name="SRC2_IMM_OFFSET" pos="53" type="bool"/>
+
+	<encode>
+		<map name="SV">!!(src->flags &amp; IR3_INSTR_V)</map>
+		<map name="1D">!!(src->flags &amp; IR3_INSTR_INV_1D)</map>
+		<map name="SRC2_IMM_OFFSET">!!(src->flags &amp; IR3_INSTR_IMM_OFFSET)</map>
+	</encode>
 </bitset>
 
 <bitset name="isaml" extends="#instruction-cat5-tex">
@@ -485,7 +506,12 @@ SOFTWARE.
 	<pattern low="61" high="63">101</pattern>  <!-- cat5 -->
 </bitset>
 
-<bitset name="brcst.active" extends="#instruction-cat5">
+<bitset name="#instruction-cat5-brcst" extends="#instruction-cat5">
+	<pattern pos="18">0</pattern>
+	<pattern pos="50">0</pattern>
+</bitset>
+
+<bitset name="brcst.active" extends="#instruction-cat5-brcst">
 	<doc>
 		The subgroup is divided into (subgroup_size / CLUSTER_SIZE)
 		clusters. For each cluster brcst.active.w does:
@@ -539,7 +565,7 @@ SOFTWARE.
 	</encode>
 </bitset>
 
-<bitset name="#instruction-cat5-quad-shuffle" extends="#instruction-cat5">
+<bitset name="#instruction-cat5-quad-shuffle" extends="#instruction-cat5-brcst">
 	<gen min="600"/>
 
 	<display>
@@ -614,10 +640,18 @@ SOFTWARE.
 		</display>
 		<field name="SRC" low="0" high="7" type="#reg-gpr"/>
 	</override>
+	<override>
+		<expr>{SRC2_IMM_OFFSET}</expr>
+		<display>
+			{OFF}
+		</display>
+		<field name="OFF" low="0" high="7" type="uoffset"/>
+	</override>
 	<display/>
 	<assert low="0" high="7">00000000</assert>
 	<encode type="struct ir3_register *">
 		<map name="SRC">src</map>
+		<map name="OFF">extract_reg_uim(src)</map>
 	</encode>
 </bitset>
 

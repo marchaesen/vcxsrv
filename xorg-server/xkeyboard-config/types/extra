@@ -3,7 +3,7 @@ default partial xkb_types "default" {
     // Defines types with a four-level shift, similar to the three-level
     // type from iso9995, but they let the Shift key behave "normally".
 
-    virtual_modifiers  LevelThree;
+    virtual_modifiers  LevelThree, LevelFive;
 
     type "FOUR_LEVEL" {
 	modifiers = Shift + LevelThree;
@@ -82,6 +82,26 @@ default partial xkb_types "default" {
 	map[Shift+NumLock+LevelThree] = Level4;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Number";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
+    };
+
+    // A variant of FOUR_LEVEL_MIXED_KEYPAD that uses the LevelFive
+    // modifier instead of NumLock, to avoid interaction with the keypad.
+    // Originally created to lock the digits on layouts with digits on
+    // the second level of the digits row (e.g. Azerty layouts).
+    type "FOUR_LEVEL_LOCKABLE_LEVEL2" {
+	modifiers = Shift + LevelThree + LevelFive;
+	map[None] = Level1;
+	map[Shift] = Level2;
+	map[LevelFive] = Level2;
+	map[Shift+LevelFive] = Level1;
+	map[LevelThree] = Level3;
+	map[Shift+LevelThree] = Level4;
+	map[LevelFive+LevelThree] = Level3;
+	map[Shift+LevelFive+LevelThree] = Level4;
+	level_name[Level1] = "Base";
+	level_name[Level2] = "Digit";
 	level_name[Level3] = "AltGr";
 	level_name[Level4] = "Shift AltGr";
     };

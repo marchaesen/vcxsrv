@@ -682,6 +682,7 @@ vk_common_CreatePipelineCache(VkDevice _device,
 
    struct vk_pipeline_cache_create_info info = {
       .pCreateInfo = pCreateInfo,
+      .skip_disk_cache = device->disable_internal_cache,
    };
    cache = vk_pipeline_cache_create(device, &info, pAllocator);
    if (cache == NULL)

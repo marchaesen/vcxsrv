@@ -138,16 +138,29 @@ bool vpe_is_yuv420_10(enum vpe_surface_pixel_format format)
         return false;
     }
 }
+bool vpe_is_yuv420_16(enum vpe_surface_pixel_format format)
+{
+    switch (format) {
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_16bpc_YCrCb:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_16bpc_YCbCr:
+        return true;
+    default:
+        return false;
+    }
+}
 
 bool vpe_is_yuv420(enum vpe_surface_pixel_format format)
 {
-    return (vpe_is_yuv420_8(format) || vpe_is_yuv420_10(format));
+    return (vpe_is_yuv420_8(format) || vpe_is_yuv420_10(format) || vpe_is_yuv420_16(format));
 }
 
 bool vpe_is_yuv444_8(enum vpe_surface_pixel_format format)
 {
     switch (format) {
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_AYCrCb8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_YCrCbA8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_ACrYCb8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_CrYCbA8888:
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_AYCbCr8888:
         return true;
     default:
@@ -166,7 +179,18 @@ bool vpe_is_yuv444_10(enum vpe_surface_pixel_format format)
     }
 }
 
-static uint8_t vpe_get_element_size_in_bytes(enum vpe_surface_pixel_format format, int plane_idx)
+bool vpe_is_yuv444(enum vpe_surface_pixel_format format)
+{
+    return (vpe_is_yuv444_8(format) || vpe_is_yuv444_10(format));
+}
+
+bool vpe_is_yuv(enum vpe_surface_pixel_format format)
+{
+    return (vpe_is_yuv420(format) ||
+            vpe_is_yuv444(format));
+}
+
+uint8_t vpe_get_element_size_in_bytes(enum vpe_surface_pixel_format format, int plane_idx)
 {
     switch (format) {
         // nv12/21
@@ -215,6 +239,9 @@ enum color_depth vpe_get_color_depth(enum vpe_surface_pixel_format format)
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_YCbCr:
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_YCrCb:
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_AYCrCb8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_YCrCbA8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_ACrYCb8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_CrYCbA8888:
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_AYCbCr8888:
         c_depth = COLOR_DEPTH_888;
         break;
@@ -233,6 +260,7 @@ enum color_depth vpe_get_color_depth(enum vpe_surface_pixel_format format)
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_ABGR16161616F:
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_RGBA16161616F:
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_BGRA16161616F:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_16bpc_YCrCb:
         c_depth = COLOR_DEPTH_161616;
         break;
     default:
@@ -265,6 +293,9 @@ bool vpe_has_per_pixel_alpha(enum vpe_surface_pixel_format format)
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_ACrYCb2101010:
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_CrYCbA1010102:
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_AYCrCb8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_YCrCbA8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_ACrYCb8888:
+    case VPE_SURFACE_PIXEL_FORMAT_VIDEO_CrYCbA8888:
     case VPE_SURFACE_PIXEL_FORMAT_VIDEO_AYCbCr8888:
         alpha = true;
         break;
@@ -303,15 +334,15 @@ enum vpe_status vpe_check_output_support(struct vpe *vpe, const struct vpe_build
     struct vpe_priv               *vpe_priv = container_of(vpe, struct vpe_priv, pub);
     struct vpec                   *vpec;
     struct dpp                    *dpp;
-    struct cdc                    *cdc;
+    struct cdc_be                 *cdc_be;
     const struct vpe_surface_info *surface_info = &param->dst_surface;
-    struct vpe_dcc_surface_param   input;
-    struct vpe_surface_dcc_cap     output;
+    struct vpe_dcc_surface_param   params;
+    struct vpe_surface_dcc_cap     cap;
     bool                           support;
 
-    vpec = &vpe_priv->resource.vpec;
-    dpp  = vpe_priv->resource.dpp[0];
-    cdc  = vpe_priv->resource.cdc[0];
+    vpec   = &vpe_priv->resource.vpec;
+    dpp    = vpe_priv->resource.dpp[0];
+    cdc_be = vpe_priv->resource.cdc_be[0];
 
     // swizzle mode
     support = vpec->funcs->check_swmode_support(vpec, surface_info->swizzle);
@@ -362,23 +393,23 @@ enum vpe_status vpe_check_output_support(struct vpe *vpe, const struct vpe_build
         }
     }
 
-    // dcc
+    // output dcc
     if (surface_info->dcc.enable) {
-        input.surface_size.width  = surface_info->plane_size.surface_size.width;
-        input.surface_size.height = surface_info->plane_size.surface_size.height;
-        input.format              = surface_info->format;
-        input.swizzle_mode        = surface_info->swizzle;
-        input.scan                = VPE_SCAN_DIRECTION_HORIZONTAL;
 
-        support = vpec->funcs->get_dcc_compression_cap(vpec, &input, &output);
+        params.surface_size.width  = surface_info->plane_size.surface_size.width;
+        params.surface_size.height = surface_info->plane_size.surface_size.height;
+        params.format              = surface_info->format;
+        params.swizzle_mode        = surface_info->swizzle;
+        params.scan                = VPE_SCAN_PATTERN_0_DEGREE;
+        support = vpe->cap_funcs->get_dcc_compression_output_cap(vpe, &params, &cap);
         if (!support) {
             vpe_log("output dcc not supported\n");
-            return VPE_STATUS_DCC_NOT_SUPPORTED;
+            return VPE_STATUS_OUTPUT_DCC_NOT_SUPPORTED;
         }
     }
 
     // pixel format
-    support = cdc->funcs->check_output_format(cdc, surface_info->format);
+    support = cdc_be->funcs->check_output_format(cdc_be, surface_info->format);
     if (!support) {
         vpe_log("output pixel format not supported %d\n", (int)surface_info->format);
         return VPE_STATUS_PIXEL_FORMAT_NOT_SUPPORTED;
@@ -404,17 +435,18 @@ enum vpe_status vpe_check_input_support(struct vpe *vpe, const struct vpe_stream
     struct vpe_priv               *vpe_priv = container_of(vpe, struct vpe_priv, pub);
     struct vpec                   *vpec;
     struct dpp                    *dpp;
-    struct cdc                    *cdc;
+    struct cdc_fe                 *cdc_fe;
     const struct vpe_surface_info *surface_info = &stream->surface_info;
-    struct vpe_dcc_surface_param   input;
-    struct vpe_surface_dcc_cap     output;
+    struct vpe_dcc_surface_param   params;
+    struct vpe_surface_dcc_cap     cap;
     bool                           support;
     const PHYSICAL_ADDRESS_LOC    *addrloc;
     bool                           use_adj = vpe_use_csc_adjust(&stream->color_adj);
+    enum vpe_status                status  = VPE_STATUS_OK;
 
-    vpec = &vpe_priv->resource.vpec;
-    dpp  = vpe_priv->resource.dpp[0];
-    cdc  = vpe_priv->resource.cdc[0];
+    vpec   = &vpe_priv->resource.vpec;
+    dpp    = vpe_priv->resource.dpp[0];
+    cdc_fe = vpe_priv->resource.cdc_fe[0];
 
     // swizzle mode
     support = vpec->funcs->check_swmode_support(vpec, surface_info->swizzle);
@@ -464,31 +496,24 @@ enum vpe_status vpe_check_input_support(struct vpe *vpe, const struct vpe_stream
         }
     }
 
-    // dcc
+    // input dcc
     if (surface_info->dcc.enable) {
 
-        input.surface_size.width  = surface_info->plane_size.surface_size.width;
-        input.surface_size.height = surface_info->plane_size.surface_size.height;
-        input.format              = surface_info->format;
-        input.swizzle_mode        = surface_info->swizzle;
+        params.surface_size.width  = surface_info->plane_size.surface_size.width;
+        params.surface_size.height = surface_info->plane_size.surface_size.height;
+        params.format              = surface_info->format;
+        params.swizzle_mode        = surface_info->swizzle;
 
-        if (stream->rotation == VPE_ROTATION_ANGLE_0 || stream->rotation == VPE_ROTATION_ANGLE_180)
-            input.scan = VPE_SCAN_DIRECTION_HORIZONTAL;
-        else if (stream->rotation == VPE_ROTATION_ANGLE_90 ||
-                 stream->rotation == VPE_ROTATION_ANGLE_270)
-            input.scan = VPE_SCAN_DIRECTION_VERTICAL;
-        else
-            input.scan = VPE_SCAN_DIRECTION_UNKNOWN;
-
-        support = vpec->funcs->get_dcc_compression_cap(vpec, &input, &output);
+        support = vpe->cap_funcs->get_dcc_compression_input_cap(vpe, &params, &cap);
+        //only support non dual plane formats
         if (!support) {
-            vpe_log("input dcc not supported\n");
-            return VPE_STATUS_DCC_NOT_SUPPORTED;
+            vpe_log("input internal dcc not supported\n");
+            return VPE_STATUS_INPUT_DCC_NOT_SUPPORTED;
         }
     }
 
     // pixel format
-    support = cdc->funcs->check_input_format(cdc, surface_info->format);
+    support = cdc_fe->funcs->check_input_format(cdc_fe, surface_info->format);
     if (!support) {
         vpe_log("input pixel format not supported %d\n", (int)surface_info->format);
         return VPE_STATUS_PIXEL_FORMAT_NOT_SUPPORTED;
@@ -515,36 +540,38 @@ enum vpe_status vpe_check_input_support(struct vpe *vpe, const struct vpe_stream
         return VPE_STATUS_ADJUSTMENT_NOT_SUPPORTED;
     }
 
-    // rotation
-    if ((stream->rotation != VPE_ROTATION_ANGLE_0) && !vpe->caps->rotation_support) {
-        vpe_log("output rotation not supported\n");
-        return VPE_STATUS_ROTATION_NOT_SUPPORTED;
+    // rotation and mirror
+    status = vpe_priv->resource.check_mirror_rotation_support(stream);
+    if (status != VPE_STATUS_OK) {
+        vpe_log("Rotation %d and mirroring is not supported. horizontal "
+                "mirror: %d  vertical mirror: %d  error code: %d \n",
+            (int)stream->rotation, (int)stream->horizontal_mirror, (int)stream->vertical_mirror,
+            (int)status);
+
+        return status;
     }
 
-    // luma keying
-    if (stream->enable_luma_key && !vpe->caps->color_caps.dpp.luma_key) {
-        vpe_log("luma keying not supported\n");
-        return VPE_STATUS_LUMA_KEYING_NOT_SUPPORTED;
+    // keying
+    if (stream->enable_luma_key && stream->color_keyer.enable_color_key) {
+        vpe_log("Invalid Keying configuration. Both Luma and Color Keying Enabled\n");
+        return VPE_STATUS_INVALID_KEYER_CONFIG;
+    } else if (stream->enable_luma_key) {
+        if (!vpe->caps->color_caps.dpp.luma_key) {
+            vpe_log("Luma keying not supported\n");
+            return VPE_STATUS_LUMA_KEYING_NOT_SUPPORTED;
+        } else if (!vpe_is_yuv(surface_info->format)) {
+            vpe_log("Invalid Keying configuration. Luma Key Enabled with RGB Input\n");
+            return VPE_STATUS_INVALID_KEYER_CONFIG;
+        }
+    } else if (stream->color_keyer.enable_color_key) {
+        if (!vpe->caps->color_caps.dpp.color_key) {
+            vpe_log("color keying not supported\n");
+            return VPE_STATUS_COLOR_KEYING_NOT_SUPPORTED;
+        } else if (vpe_is_yuv(surface_info->format)) {
+            vpe_log("Invalid Keying configuration. Color Keying Enabled with YUV Input\n");
+            return VPE_STATUS_INVALID_KEYER_CONFIG;
+        }
     }
-
-    if (stream->horizontal_mirror && !vpe->caps->h_mirror_support) {
-        vpe_log("output horizontal mirroring not supported h:%d\n", (int)stream->horizontal_mirror);
-        return VPE_STATUS_MIRROR_NOT_SUPPORTED;
-    }
-
-    if (stream->vertical_mirror && !vpe->caps->v_mirror_support) {
-        vpe_log("output vertical mirroring not supported v:%d\n", (int)stream->vertical_mirror);
-        return VPE_STATUS_MIRROR_NOT_SUPPORTED;
-    }
-
-    return VPE_STATUS_OK;
-}
-
-enum vpe_status vpe_cache_tone_map_params(
-    struct stream_ctx *stream_ctx, const struct vpe_stream *stream)
-{
-    stream_ctx->update_3dlut = stream_ctx->update_3dlut || stream->tm_params.update_3dlut ||
-            stream->tm_params.UID || (stream_ctx->stream.flags.geometric_scaling != stream->flags.geometric_scaling);
 
     return VPE_STATUS_OK;
 }
@@ -574,3 +601,4 @@ enum vpe_status vpe_check_tone_map_support(
 
     return status;
 }
+
