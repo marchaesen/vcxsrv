@@ -11,10 +11,19 @@ static nir_def *
 fog_result(nir_builder *b, nir_def *color, enum gl_fog_mode fog_mode, struct gl_program_parameter_list *paramList)
 {
    nir_shader *s = b->shader;
-   nir_variable *fogc_var =
-      nir_create_variable_with_location(s, nir_var_shader_in, VARYING_SLOT_FOGC, glsl_float_type());
-   nir_def *fogc = nir_load_var(b, fogc_var);
-   s->info.inputs_read |= VARYING_BIT_FOGC;
+   nir_def *fogc;
+
+   if (b->shader->info.io_lowered) {
+      nir_def *baryc = nir_load_barycentric_pixel(b, 32,
+                                                  .interp_mode = INTERP_MODE_SMOOTH);
+      fogc = nir_load_interpolated_input(b, 1, 32, baryc, nir_imm_int(b, 0),
+                                         .io_semantics.location = VARYING_SLOT_FOGC);
+   } else {
+      nir_variable *fogc_var =
+         nir_create_variable_with_location(s, nir_var_shader_in, VARYING_SLOT_FOGC, glsl_float_type());
+      s->info.inputs_read |= VARYING_BIT_FOGC;
+      fogc = nir_load_var(b, fogc_var);
+   }
 
    static const gl_state_index16 fog_params_tokens[STATE_LENGTH] = {STATE_FOG_PARAMS_OPTIMIZED};
    static const gl_state_index16 fog_color_tokens[STATE_LENGTH] = {STATE_FOG_COLOR};

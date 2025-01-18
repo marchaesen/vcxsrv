@@ -1314,7 +1314,7 @@ ntr_emit_load_ubo(struct ntr_compile *c, nir_intrinsic_instr *instr)
       src = ureg_src_dimension_indirect(src, ntr_reladdr(c, ureg_src(addr_temp), 1), c->first_ubo);
    }
 
-   /* !PIPE_CAP_LOAD_CONSTBUF: Just emit it as a vec4 reference to the const
+   /* !pipe_caps.load_constbuf: Just emit it as a vec4 reference to the const
     * file.
     */
    src.Index = nir_intrinsic_base(instr);
@@ -1703,7 +1703,7 @@ ntr_emit_texture(struct ntr_compile *c, nir_tex_instr *instr)
    }
 
    if (instr->op == nir_texop_tg4 && target != TGSI_TEXTURE_SHADOWCUBE_ARRAY) {
-      if (c->screen->get_param(c->screen, PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE)) {
+      if (c->screen->caps.tgsi_tg4_component_in_swizzle) {
          sampler = ureg_scalar(sampler, instr->component);
          s.srcs[s.i++] = ureg_src_undef();
       } else {
@@ -2099,15 +2099,7 @@ static nir_variable_mode
 ntr_no_indirects_mask(nir_shader *s, struct pipe_screen *screen)
 {
    unsigned pipe_stage = pipe_shader_type_from_mesa(s->info.stage);
-   unsigned indirect_mask = 0;
-
-   if (!screen->get_shader_param(screen, pipe_stage, PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR)) {
-      indirect_mask |= nir_var_shader_in;
-   }
-
-   if (!screen->get_shader_param(screen, pipe_stage, PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR)) {
-      indirect_mask |= nir_var_shader_out;
-   }
+   unsigned indirect_mask = nir_var_shader_in | nir_var_shader_out;
 
    if (!screen->get_shader_param(screen, pipe_stage, PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR)) {
       indirect_mask |= nir_var_function_temp;
@@ -2257,6 +2249,26 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
    c->screen = screen;
    c->lower_fabs = !is_r500 && s->info.stage == MESA_SHADER_VERTEX;
 
+   if (s->info.stage == MESA_SHADER_FRAGMENT) {
+      if (is_r500) {
+         NIR_PASS_V(s, r300_transform_fs_trig_input);
+      }
+   } else if (r300_screen(screen)->caps.has_tcl) {
+      if (is_r500) {
+         /* Only nine should set both NTT shader name and
+          * use_legacy_math_rules and D3D9 already mandates
+          * the proper range for the trigonometric inputs.
+          */
+         if (!s->info.use_legacy_math_rules || !(s->info.name && !strcmp("TTN", s->info.name))) {
+            NIR_PASS_V(s, r300_transform_vs_trig_input);
+         }
+      } else {
+         if (r300_screen(screen)->caps.is_r400) {
+            NIR_PASS_V(s, r300_transform_vs_trig_input);
+         }
+      }
+   }
+
    /* Lower array indexing on FS inputs.  Since we don't set
     * ureg->supports_any_inout_decl_range, the TGSI input decls will be split to
     * elements by ureg, and so dynamically indexing them would be invalid.
@@ -2272,14 +2284,17 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
    }
 
    NIR_PASS_V(s, nir_lower_io, nir_var_shader_in | nir_var_shader_out, type_size,
-              (nir_lower_io_options)0);
+              nir_lower_io_use_interpolated_input_intrinsics);
 
    nir_to_rc_lower_txp(s);
    NIR_PASS_V(s, nir_to_rc_lower_tex);
 
    bool progress;
-
-   NIR_PASS_V(s, nir_opt_constant_folding);
+   do {
+      progress = false;
+      NIR_PASS(progress, s, nir_opt_algebraic);
+      NIR_PASS(progress, s, nir_opt_constant_folding);
+   } while (progress);
 
    do {
       progress = false;
@@ -2349,7 +2364,7 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
    c->s = s;
    c->ureg = ureg_create(pipe_shader_type_from_mesa(s->info.stage));
    ureg_setup_shader_info(c->ureg, &s->info);
-   if (s->info.use_legacy_math_rules && screen->get_param(screen, PIPE_CAP_LEGACY_MATH_RULES))
+   if (s->info.use_legacy_math_rules && screen->caps.legacy_math_rules)
       ureg_property(c->ureg, TGSI_PROPERTY_LEGACY_MATH_RULES, 1);
 
    if (s->info.stage == MESA_SHADER_FRAGMENT) {

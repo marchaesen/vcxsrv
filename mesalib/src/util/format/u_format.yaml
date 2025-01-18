@@ -1900,7 +1900,18 @@
   block: {width: 1, height: 1, depth: 1}
   channels: [UN8]
   swizzles: [X, 0, 0, 1]
-
+- name: NV15
+  layout: planar2
+  colorspace: YUV
+  block: {width: 1, height: 1, depth: 1}
+  channels: []
+  swizzles: [X, Y, Z, W]
+- name: NV20
+  layout: planar2
+  colorspace: YUV
+  block: {width: 1, height: 1, depth: 1}
+  channels: []
+  swizzles: [X, Y, Z, W]
 
 # RGB versions of NV12, YV12, P010, and P012 for hardware that supports sampling
 # from multiplane textures but needs color-space conversion in the shader.
@@ -1921,6 +1932,24 @@
   colorspace: RGB
   block: {width: 1, height: 1, depth: 1}
   channels: [UN8]
+  swizzles: [X, Y, Z, W]
+- name: R8_G8B8_422_UNORM
+  layout: planar2
+  colorspace: RGB
+  block: {width: 1, height: 1, depth: 1}
+  channels: [UN8]
+  swizzles: [X, Y, Z, W]
+- name: R10_G10B10_420_UNORM
+  layout: planar2
+  colorspace: RGB
+  block: {width: 4, height: 1, depth: 1}
+  channels: [UN40]
+  swizzles: [X, Y, Z, W]
+- name: R10_G10B10_422_UNORM
+  layout: planar2
+  colorspace: RGB
+  block: {width: 4, height: 1, depth: 1}
+  channels: [UN40]
   swizzles: [X, Y, Z, W]
 - name: R8_G8_B8_420_UNORM
   layout: planar3
@@ -2003,7 +2032,7 @@
   block: {width: 1, height: 1, depth: 1}
   channels: []
   swizzles: [X, Y, Z, W]
-- name: Y8_U8V8_422_UNORM
+- name: NV16
   layout: planar2
   colorspace: YUV
   block: {width: 1, height: 1, depth: 1}

@@ -41,6 +41,18 @@ struct v3d_query
         const struct v3d_query_funcs *funcs;
 };
 
+struct v3d_submit_sync_info
+{
+        uint32_t wait_count;
+        uint32_t *waits;
+        uint32_t signal_count;
+        uint32_t *signals;
+};
+
 struct pipe_query *v3d_create_query_pipe(struct v3d_context *v3d, unsigned query_type, unsigned index);
+struct pipe_query *v3d_create_batch_query_pipe(struct v3d_context *v3d, unsigned num_queries,
+                                               unsigned *query_types);
+uint64_t v3d_get_timestamp(struct pipe_context *pctx);
+void v3d_submit_timestamp_query(struct pipe_context *pctx, struct v3d_bo *bo, uint32_t sync, uint32_t offset);
 
 #endif /* V3D_QUERY_H */

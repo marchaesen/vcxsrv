@@ -23,174 +23,13 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import argparse
 import xml.parsers.expat
 import sys
 import operator
 from functools import reduce
 
 global_prefix = "mali"
-
-pack_header = """
-/* Generated code, see midgard.xml and gen_pack_header.py
- *
- * Packets, enums and structures for Panfrost.
- *
- * This file has been generated, do not hand edit.
- */
-
-#ifndef PAN_PACK_H
-#define PAN_PACK_H
-
-#include <stdio.h>
-#include <inttypes.h>
-
-#include "util/bitpack_helpers.h"
-
-#define __gen_unpack_float(x, y, z) uif(__gen_unpack_uint(x, y, z))
-
-static inline uint32_t
-__gen_padded(uint32_t v, uint32_t start, uint32_t end)
-{
-    unsigned shift = __builtin_ctz(v);
-    unsigned odd = v >> (shift + 1);
-
-#ifndef NDEBUG
-    assert((v >> shift) & 1);
-    assert(shift <= 31);
-    assert(odd <= 7);
-    assert((end - start + 1) == 8);
-#endif
-
-    return util_bitpack_uint(shift | (odd << 5), start, end);
-}
-
-
-static inline uint64_t
-__gen_unpack_uint(const uint8_t *restrict cl, uint32_t start, uint32_t end)
-{
-   uint64_t val = 0;
-   const int width = end - start + 1;
-   const uint64_t mask = (width == 64 ? ~0 : (1ull << width) - 1 );
-
-   for (uint32_t byte = start / 8; byte <= end / 8; byte++) {
-      val |= ((uint64_t) cl[byte]) << ((byte - start / 8) * 8);
-   }
-
-   return (val >> (start % 8)) & mask;
-}
-
-static inline uint64_t
-__gen_unpack_sint(const uint8_t *restrict cl, uint32_t start, uint32_t end)
-{
-   int size = end - start + 1;
-   int64_t val = __gen_unpack_uint(cl, start, end);
-
-   return util_sign_extend(val, size);
-}
-
-static inline float
-__gen_unpack_ulod(const uint8_t *restrict cl, uint32_t start, uint32_t end)
-{
-   uint32_t u = __gen_unpack_uint(cl, start, end);
-
-   return ((float)u) / 256.0;
-}
-
-static inline float
-__gen_unpack_slod(const uint8_t *restrict cl, uint32_t start, uint32_t end)
-{
-   int32_t u = __gen_unpack_sint(cl, start, end);
-
-   return ((float)u) / 256.0;
-}
-
-static inline uint64_t
-__gen_unpack_padded(const uint8_t *restrict cl, uint32_t start, uint32_t end)
-{
-   unsigned val = __gen_unpack_uint(cl, start, end);
-   unsigned shift = val & 0b11111;
-   unsigned odd = val >> 5;
-
-   return (2*odd + 1) << shift;
-}
-
-#define PREFIX1(A) MALI_ ## A
-#define PREFIX2(A, B) MALI_ ## A ## _ ## B
-#define PREFIX4(A, B, C, D) MALI_ ## A ## _ ## B ## _ ## C ## _ ## D
-
-#define pan_pack(dst, T, name)                              \\
-   for (struct PREFIX1(T) name = { PREFIX2(T, header) }, \\
-        *_loop_terminate = &name;                           \\
-        __builtin_expect(_loop_terminate != NULL, 1);       \\
-        ({ PREFIX2(T, pack)((uint32_t *) (dst), &name);  \\
-           _loop_terminate = NULL; }))
-
-#define pan_pack_nodefaults(dst, T, name)                   \\
-   for (struct PREFIX1(T) name = { 0 }, \\
-        *_loop_terminate = &name;                           \\
-        __builtin_expect(_loop_terminate != NULL, 1);       \\
-        ({ PREFIX2(T, pack)((uint32_t *) (dst), &name);  \\
-           _loop_terminate = NULL; }))
-
-#define pan_unpack(src, T, name)                        \\
-        struct PREFIX1(T) name;                         \\
-        PREFIX2(T, unpack)((uint8_t *)(src), &name)
-
-#define pan_print(fp, T, var, indent)                   \\
-        PREFIX2(T, print)(fp, &(var), indent)
-
-#define pan_size(T) PREFIX2(T, LENGTH)
-#define pan_alignment(T) PREFIX2(T, ALIGN)
-
-#define pan_section_offset(A, S) \\
-        PREFIX4(A, SECTION, S, OFFSET)
-
-#define pan_section_ptr(base, A, S) \\
-        ((void *)((uint8_t *)(base) + pan_section_offset(A, S)))
-
-#define pan_section_pack(dst, A, S, name)                                                         \\
-   for (PREFIX4(A, SECTION, S, TYPE) name = { PREFIX4(A, SECTION, S, header) }, \\
-        *_loop_terminate = (void *) (dst);                                                        \\
-        __builtin_expect(_loop_terminate != NULL, 1);                                             \\
-        ({ PREFIX4(A, SECTION, S, pack) (pan_section_ptr(dst, A, S), &name);              \\
-           _loop_terminate = NULL; }))
-
-#define pan_section_unpack(src, A, S, name)                               \\
-        PREFIX4(A, SECTION, S, TYPE) name;                             \\
-        PREFIX4(A, SECTION, S, unpack)(pan_section_ptr(src, A, S), &name)
-
-#define pan_section_print(fp, A, S, var, indent)                          \\
-        PREFIX4(A, SECTION, S, print)(fp, &(var), indent)
-
-static inline void pan_merge_helper(uint32_t *dst, const uint32_t *src, size_t bytes)
-{
-        assert((bytes & 3) == 0);
-
-        for (unsigned i = 0; i < (bytes / 4); ++i)
-                dst[i] |= src[i];
-}
-
-#define pan_merge(packed1, packed2, type) \
-        pan_merge_helper((packed1).opaque, (packed2).opaque, pan_size(type))
-
-static inline const char *mali_component_swizzle(unsigned val) {
-        static const char swiz_name[] = "RGBA01??";
-        static char out_str[5], *outp;
-        outp = out_str;
-        for (int i = 0; i < 12; i += 3) {
-                *outp++ = swiz_name[(val >> i) & 7];
-        }
-        *outp = 0;
-        return out_str;
-}
-
-/* From presentations, 16x16 tiles externally. Use shift for fast computation
- * of tile numbers. */
-
-#define MALI_TILE_SHIFT 4
-#define MALI_TILE_LENGTH (1 << MALI_TILE_SHIFT)
-
-"""
 
 v6_format_printer = """
 
@@ -477,16 +316,16 @@ class Group(object):
             if field.modifier[0] == "shr":
                 shift = field.modifier[1]
                 mask = hex((1 << shift) - 1)
-                print("   assert((values->{} & {}) == 0);".format(field.name, mask))
+                print("   assert(((__unpacked)->{} & {}) == 0); \\".format(field.name, mask))
             elif field.modifier[0] == "minus":
-                print("   assert(values->{} >= {});".format(field.name, field.modifier[1]))
+                print("   assert((__unpacked)->{} >= {}); \\".format(field.name, field.modifier[1]))
             elif field.modifier[0] == "log2":
-                print("   assert(IS_POT_NONZERO(values->{}));".format(field.name))
+                print("   assert(IS_POT_NONZERO((__unpacked)->{})); \\".format(field.name))
 
         for index in range(self.length // 4):
             # Handle MBZ words
             if not index in words:
-                print("   cl[%2d] = 0;" % index)
+                print("   __tmp_packed.opaque[%2d] = 0; \\" % index)
                 continue
 
             word = words[index]
@@ -494,7 +333,7 @@ class Group(object):
             word_start = index * 32
 
             v = None
-            prefix = "   cl[%2d] =" % index
+            prefix = "   __tmp_packed.opaque[%2d] =" % index
 
             for contributor in word.contributors:
                 field = contributor.field
@@ -505,7 +344,7 @@ class Group(object):
                 start -= contrib_word_start
                 end -= contrib_word_start
 
-                value = "values->{}".format(contributor.path)
+                value = "(__unpacked)->{}".format(contributor.path)
                 if field.modifier is not None:
                     if field.modifier[0] == "shr":
                         value = "{} >> {}".format(value, field.modifier[1])
@@ -551,9 +390,9 @@ class Group(object):
                         s = "%s >> %d" % (s, shift)
 
                     if contributor == word.contributors[-1]:
-                        print("%s %s;" % (prefix, s))
+                        print("%s %s; \\" % (prefix, s))
                     else:
-                        print("%s %s |" % (prefix, s))
+                        print("%s %s | \\" % (prefix, s))
                     prefix = "           "
 
             continue
@@ -584,7 +423,7 @@ class Group(object):
             ALL_ONES = 0xffffffff
 
             if mask != ALL_ONES:
-                TMPL = '   if (((const uint32_t *) cl)[{}] & {}) fprintf(stderr, "XXX: Invalid field of {} unpacked at word {}\\n");'
+                TMPL = '   if (__tmp_packed.opaque[{}] & {}) fprintf(stderr, "XXX: Invalid field of {} unpacked at word {}\\n"); \\'
                 print(TMPL.format(index, hex(mask ^ ALL_ONES), self.label, index))
 
         fieldrefs = []
@@ -594,14 +433,15 @@ class Group(object):
             convert = None
 
             args = []
-            args.append('cl')
+            args.append('(__unpacked)->{}'.format(fieldref.path))
+            args.append('&__tmp_packed.opaque[0]')
             args.append(str(fieldref.start))
             args.append(str(fieldref.end))
 
             if field.type in set(["uint", "hex", "uint/float", "address", "Pixel Format", "Component Swizzle"]):
                 convert = "__gen_unpack_uint"
             elif field.type in self.parser.enums:
-                convert = "(enum %s)__gen_unpack_uint" % enum_name(field.type)
+                convert = "__gen_unpack_uint"
             elif field.type == "int":
                 convert = "__gen_unpack_sint"
             elif field.type == "padded":
@@ -627,12 +467,15 @@ class Group(object):
                 if field.modifier[0] == "log2":
                     prefix = "1U << "
 
-            decoded = '{}{}({}){}'.format(prefix, convert, ', '.join(args), suffix)
+            print('   {}({}); \\'.format(convert, ', '.join(args)))
 
-            print('   values->{} = {};'.format(fieldref.path, decoded))
+            if len(prefix) != 0 or len(suffix) != 0:
+                print('   (__unpacked)->{} = {}(__unpacked)->{}{}; \\'.format(fieldref.path, prefix, fieldref.path, suffix))
+
+
             if field.modifier and field.modifier[0] == "align":
                 mask = hex(field.modifier[1] - 1)
-                print('   assert(!(values->{} & {}));'.format(fieldref.path, mask))
+                print('   assert(!((__unpacked)->{} & {})); \\'.format(fieldref.path, mask))
 
     def emit_print_function(self):
         for field in self.fields:
@@ -671,6 +514,18 @@ class Value(object):
     def __init__(self, attrs):
         self.name = attrs["name"]
         self.value = int(attrs["value"], 0)
+
+pack_header = """/* Autogenerated file, do not edit */
+/*
+ * Copyright 2024 Collabora Ltd.
+ * SPDX-License-Identifier: MIT
+ */
+
+#ifndef PAN_PACK_H
+#define PAN_PACK_H
+
+#include "genxml/pan_pack_helpers.h"
+"""
 
 class Parser(object):
     def __init__(self):
@@ -744,7 +599,6 @@ class Parser(object):
             self.aggregate = None
         elif name == "panxml":
             # Include at the end so it can depend on us but not the converse
-            print('#include "panfrost-job.h"')
             print('#endif')
 
     def emit_header(self, name):
@@ -774,11 +628,13 @@ class Parser(object):
         print("struct %s_packed {" % aggregate.name.lower())
         print("   uint32_t opaque[{}];".format(aggregate.get_size() // 4))
         print("};\n")
+        print('#define {}_PACKED_T struct {}_packed'.format(aggregate.name.upper(), aggregate.name.lower()))
         print('#define {}_LENGTH {}'.format(aggregate.name.upper(), aggregate.size))
         if aggregate.align != None:
             print('#define {}_ALIGN {}'.format(aggregate.name.upper(), aggregate.align))
         for section in aggregate.sections:
             print('#define {}_SECTION_{}_TYPE struct {}'.format(aggregate.name.upper(), section.name.upper(), section.type_name))
+            print('#define {}_SECTION_{}_PACKED_TYPE {}_PACKED_T'.format(aggregate.name.upper(), section.name.upper(), section.type_name.upper()))
             print('#define {}_SECTION_{}_header {}_header'.format(aggregate.name.upper(), section.name.upper(), section.type_name))
             print('#define {}_SECTION_{}_pack {}_pack'.format(aggregate.name.upper(), section.name.upper(), section.type_name))
             print('#define {}_SECTION_{}_unpack {}_unpack'.format(aggregate.name.upper(), section.name.upper(), section.type_name))
@@ -786,13 +642,8 @@ class Parser(object):
             print('#define {}_SECTION_{}_OFFSET {}'.format(aggregate.name.upper(), section.name.upper(), section.offset))
         print("")
 
-    def emit_pack_function(self, name, group):
-        print("static ALWAYS_INLINE void\n%s_pack(uint32_t * restrict cl,\n%sconst struct %s * restrict values)\n{" %
-              (name, ' ' * (len(name) + 6), name))
-
-        group.emit_pack_function()
-
-        print("}\n\n")
+    def emit_struct_detail(self, name, group):
+        group.get_length()
 
         # Should be a whole number of words
         assert((self.group.length % 4) == 0)
@@ -801,15 +652,22 @@ class Parser(object):
         if self.group.align != None:
             print('#define {} {}'.format (name + "_ALIGN", self.group.align))
         print('struct {}_packed {{ uint32_t opaque[{}]; }};'.format(name.lower(), self.group.length // 4))
+        print('#define {}_PACKED_T struct {}_packed'.format(name.upper(), name.lower()))
+
+    def emit_pack_function(self, name, group):
+        print("#define {}_pack(__packed, __unpacked) \\".format(name))
+        print("do { \\")
+        print("   {}_PACKED_T __tmp_packed; \\".format(name.upper()))
+        group.emit_pack_function()
+        print('   *(__packed) = __tmp_packed; \\')
+        print("} while (0);\n")
 
     def emit_unpack_function(self, name, group):
-        print("static inline void")
-        print("%s_unpack(const uint8_t * restrict cl,\n%sstruct %s * restrict values)\n{" %
-              (name.upper(), ' ' * (len(name) + 8), name))
-
+        print("#define {}_unpack(__packed, __unpacked) \\".format(name))
+        print("do { \\")
+        print("   {}_PACKED_T __tmp_packed = *(__packed); \\".format(name))
         group.emit_unpack_function()
-
-        print("}\n")
+        print("} while (0);\n")
 
     def emit_print_function(self, name, group):
         print("static inline void")
@@ -825,6 +683,7 @@ class Parser(object):
         self.emit_template_struct(self.struct, self.group)
         self.emit_header(name)
         if self.no_direct_packing == False:
+            self.emit_struct_detail(self.struct, self.group)
             self.emit_pack_function(self.struct, self.group)
             self.emit_unpack_function(self.struct, self.group)
         self.emit_print_function(self.struct, self.group)
@@ -859,11 +718,10 @@ class Parser(object):
         self.parser.ParseFile(file)
         file.close()
 
-if len(sys.argv) < 2:
-    print("No input xml file specified")
-    sys.exit(1)
 
-input_file = sys.argv[1]
+parser = argparse.ArgumentParser()
+parser.add_argument('input_file')
+args = parser.parse_args()
 
 p = Parser()
-p.parse(input_file)
+p.parse(args.input_file)

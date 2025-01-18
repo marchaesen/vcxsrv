@@ -316,8 +316,9 @@ virtio_bo_new(struct fd_device *dev, uint32_t size, uint32_t flags)
 
    uint32_t blob_flags = 0;
    if (flags & (FD_BO_SHARED | FD_BO_SCANOUT)) {
-      blob_flags = VIRTGPU_BLOB_FLAG_USE_CROSS_DEVICE |
-            VIRTGPU_BLOB_FLAG_USE_SHAREABLE;
+      blob_flags = VIRTGPU_BLOB_FLAG_USE_SHAREABLE;
+      if (virtio_dev->vdrm->supports_cross_device)
+         blob_flags |= VIRTGPU_BLOB_FLAG_USE_CROSS_DEVICE;
    }
 
    if (!(flags & FD_BO_NOMAP)) {

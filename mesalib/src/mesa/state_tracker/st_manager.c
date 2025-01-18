@@ -1037,7 +1037,7 @@ st_api_create_context(struct pipe_frontend_screen *fscreen,
       }
    }
 
-   st->can_scissor_clear = !!st->screen->get_param(st->screen, PIPE_CAP_CLEAR_SCISSORED);
+   st->can_scissor_clear = !!st->screen->caps.clear_scissored;
 
    st->ctx->invalidate_on_gl_viewport =
       fscreen->get_param(fscreen, ST_MANAGER_BROKEN_INVALIDATE);
@@ -1045,7 +1045,7 @@ st_api_create_context(struct pipe_frontend_screen *fscreen,
    st->frontend_screen = fscreen;
 
    if (st->ctx->IntelBlackholeRender &&
-       st->screen->get_param(st->screen, PIPE_CAP_FRONTEND_NOOP))
+       st->screen->caps.frontend_noop)
       st->pipe->set_frontend_noop(st->pipe, st->ctx->IntelBlackholeRender);
 
    *error = ST_CONTEXT_SUCCESS;

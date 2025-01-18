@@ -4,3 +4,6 @@ dEQP-VK.pipeline.monolithic.vertex_input.max_attributes.query_max_attributes.bin
 dEQP-VK.api.external.memory.dma_buf.dedicated.buffer.info,Fail
 dEQP-VK.api.external.memory.opaque_fd.dedicated.buffer.info,Fail
 dEQP-VK.api.external.memory.opaque_fd.suballocated.buffer.info,Fail
+
+dEQP-VK.draw.renderpass.basic_draw.misc.maintenance5,Crash
+dEQP-VK.pipeline.monolithic.timestamp.misc_tests.consistent_results,Fail

@@ -259,6 +259,7 @@ typedef struct rvcn_enc_session_init_s {
    uint32_t pre_encode_chroma_enabled;
    uint32_t slice_output_enabled;
    uint32_t display_remote;
+   uint32_t WA_flags;
 } rvcn_enc_session_init_t;
 
 typedef struct rvcn_enc_layer_control_s {

@@ -31,7 +31,8 @@ void si_blitter_begin(struct si_context *sctx, enum si_blitter_op op)
    util_blitter_save_tesseval_shader(sctx->blitter, sctx->shader.tes.cso);
    util_blitter_save_geometry_shader(sctx->blitter, sctx->shader.gs.cso);
    util_blitter_save_so_targets(sctx->blitter, sctx->streamout.num_targets,
-                                (struct pipe_stream_output_target **)sctx->streamout.targets);
+                                (struct pipe_stream_output_target **)sctx->streamout.targets,
+                                sctx->streamout.output_prim);
    util_blitter_save_rasterizer(sctx->blitter, sctx->queued.named.rasterizer);
 
    if (op & SI_SAVE_FRAGMENT_STATE) {
@@ -1171,6 +1172,7 @@ bool si_msaa_resolve_blit_via_CB(struct pipe_context *ctx, const struct pipe_bli
 
    /* Check the remaining requirements for hw resolve. */
    if (util_max_layer(info->dst.resource, info->dst.level) == 0 && !info->scissor_enable &&
+       !info->swizzle_enable &&
        (info->mask & PIPE_MASK_RGBA) == PIPE_MASK_RGBA &&
        resolve_formats_compatible(info->src.format, info->dst.format,
                                   src->swap_rgb_to_bgr, &need_rgb_to_bgr) &&

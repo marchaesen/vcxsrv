@@ -94,7 +94,6 @@ static void si_emit_cull_state(struct si_context *sctx, unsigned index)
       sctx->last_small_prim_cull_info = info;
    }
 
-   /* This will end up in SGPR6 as (value << 8), shifted by the hw. */
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->small_prim_cull_info_buf,
                              RADEON_USAGE_READ | RADEON_PRIO_CONST_BUFFER);
 
@@ -117,35 +116,12 @@ static void si_emit_cull_state(struct si_context *sctx, unsigned index)
     * primitive culling. (more precision means a tighter bounding box
     * around primitives and more accurate elimination)
     */
-   unsigned quant_mode = sctx->viewports.as_scissor[0].quant_mode;
-   float small_prim_precision_no_aa = 0;
-   unsigned num_samples = si_get_num_coverage_samples(sctx);
+   unsigned log_samples = util_logbase2(si_get_num_coverage_samples(sctx));
+   unsigned precision = 7 - sctx->viewports.as_scissor[0].quant_mode * 2 - log_samples;
+   assert((precision & ~0x7) == 0);
 
-   if (quant_mode == SI_QUANT_MODE_12_12_FIXED_POINT_1_4096TH)
-      small_prim_precision_no_aa = 1.0 / 4096.0;
-   else if (quant_mode == SI_QUANT_MODE_14_10_FIXED_POINT_1_1024TH)
-      small_prim_precision_no_aa = 1.0 / 1024.0;
-   else
-      small_prim_precision_no_aa = 1.0 / 256.0;
-
-   float small_prim_precision = num_samples * small_prim_precision_no_aa;
-
-   /* Set VS_STATE.SMALL_PRIM_PRECISION for NGG culling.
-    *
-    * small_prim_precision is 1 / 2^n. We only need n between 5 (1/32) and 12 (1/4096).
-    * Such a floating point value can be packed into 4 bits as follows:
-    * If we pass the first 4 bits of the exponent to the shader and set the next 3 bits
-    * to 1, we'll get the number exactly because all other bits are always 0. See:
-    *                                                               1
-    * value  =  (0x70 | value.exponent[0:3]) << 23  =  ------------------------------
-    *                                                  2 ^ (15 - value.exponent[0:3])
-    *
-    * So pass only the first 4 bits of the float exponent to the shader.
-    */
-   SET_FIELD(sctx->current_gs_state, GS_STATE_SMALL_PRIM_PRECISION_NO_AA,
-             (fui(small_prim_precision_no_aa) >> 23) & 0xf);
-   SET_FIELD(sctx->current_gs_state, GS_STATE_SMALL_PRIM_PRECISION,
-             (fui(small_prim_precision) >> 23) & 0xf);
+   SET_FIELD(sctx->current_gs_state, GS_STATE_SMALL_PRIM_PRECISION, precision);
+   SET_FIELD(sctx->current_gs_state, GS_STATE_SMALL_PRIM_PRECISION_LOG_SAMPLES, log_samples);
 }
 
 static void si_set_scissor_states(struct pipe_context *pctx, unsigned start_slot,
@@ -510,6 +486,7 @@ static void si_set_viewport_states(struct pipe_context *pctx, unsigned start_slo
 
    if (start_slot == 0) {
       ctx->viewport0_y_inverted = state->scale[1] < 0;
+      si_update_ngg_cull_face_state(ctx);
 
       /* NGG cull state uses the viewport and quant mode. */
       if (ctx->screen->use_ngg_culling)

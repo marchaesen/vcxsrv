@@ -65,9 +65,13 @@ struct alu_timing {
 
 /* clang-format off */
 struct alu_timing op_timings[] = {
-   [AGX_OPCODE_FMA]           = { F32, 2, 1 },
+   [AGX_OPCODE_FFMA]          = { F32, 2, 1 },
    [AGX_OPCODE_FADD]          = { F32, 2, 1 },
    [AGX_OPCODE_FMUL]          = { F32, 2, 1 },
+
+   [AGX_OPCODE_HFMA]          = { F16, 2, 1 },
+   [AGX_OPCODE_HADD]          = { F16, 2, 1 },
+   [AGX_OPCODE_HMUL]          = { F16, 2, 1 },
 
    [AGX_OPCODE_MOV_IMM]       = { SCIB, 1, 1 },
    [AGX_OPCODE_BITOP]         = { SCIB, 2, 1 }, /* tp might be 2 for 32-bit / no $? */
@@ -81,6 +85,7 @@ struct alu_timing op_timings[] = {
 
    [AGX_OPCODE_IMAD]          = { IC, 3, 2 },
    [AGX_OPCODE_BFI]           = { IC, 3, 2 },
+   [AGX_OPCODE_BFEIL]         = { IC, 3, 2 },
    [AGX_OPCODE_EXTR]          = { IC, 3, 2 },
    [AGX_OPCODE_ASR]           = { IC, 3, 2 },
    [AGX_OPCODE_FLOOR]         = { IC, 3, 2 },
@@ -122,6 +127,11 @@ agx_estimate_cycles(agx_context *ctx)
 
       if (alu.unit == IC) {
          est.ic += alu.tp * 2;
+
+         /* In addition to the IC work, IC ops appear to be dispatched along
+          * with SCIB.
+          */
+         est.f_scib += 1;
       } else if (alu.unit) {
          est.f_scib += alu.tp;
       } else {

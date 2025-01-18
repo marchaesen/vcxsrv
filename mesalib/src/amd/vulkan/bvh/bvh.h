@@ -7,16 +7,13 @@
 #ifndef BVH_BVH_H
 #define BVH_BVH_H
 
+#include "vk_bvh.h"
+
 #define radv_bvh_node_triangle 0
 #define radv_bvh_node_box16    4
 #define radv_bvh_node_box32    5
 #define radv_bvh_node_instance 6
 #define radv_bvh_node_aabb     7
-
-#define radv_ir_node_triangle 0
-#define radv_ir_node_internal 1
-#define radv_ir_node_instance 2
-#define radv_ir_node_aabb     3
 
 #define RADV_GEOMETRY_OPAQUE (1u << 31)
 
@@ -29,30 +26,8 @@
 #define VK_UUID_SIZE 16
 #else
 #include <vulkan/vulkan.h>
-typedef struct radv_ir_node radv_ir_node;
-typedef struct radv_global_sync_data radv_global_sync_data;
-typedef struct radv_bvh_geometry_data radv_bvh_geometry_data;
-
 typedef uint16_t float16_t;
-
-typedef struct {
-   float values[3][4];
-} mat3x4;
-
-typedef struct {
-   float x;
-   float y;
-   float z;
-} vec3;
-
-typedef struct radv_aabb radv_aabb;
-
 #endif
-
-struct radv_aabb {
-   vec3 min;
-   vec3 max;
-};
 
 struct radv_accel_struct_serialization_header {
    uint8_t driver_uuid[VK_UUID_SIZE];
@@ -74,7 +49,7 @@ struct radv_accel_struct_geometry_info {
 struct radv_accel_struct_header {
    uint32_t bvh_offset;
    uint32_t reserved;
-   radv_aabb aabb;
+   vk_aabb aabb;
 
    /* Everything after this gets either updated/copied from the CPU or written by header.comp. */
    uint64_t compacted_size;
@@ -87,45 +62,6 @@ struct radv_accel_struct_header {
    uint64_t instance_offset;
    uint64_t instance_count;
    uint32_t build_flags;
-};
-
-struct radv_ir_node {
-   radv_aabb aabb;
-};
-
-#define RADV_UNKNOWN_BVH_OFFSET 0xFFFFFFFF
-#define RADV_NULL_BVH_OFFSET    0xFFFFFFFE
-
-struct radv_ir_box_node {
-   radv_ir_node base;
-   uint32_t children[2];
-   uint32_t bvh_offset;
-};
-
-struct radv_global_sync_data {
-   uint32_t task_counts[2];
-   uint32_t task_started_counter;
-   uint32_t task_done_counter;
-   uint32_t current_phase_start_counter;
-   uint32_t current_phase_end_counter;
-   uint32_t phase_index;
-   /* If this flag is set, the shader should exit
-    * instead of executing another phase */
-   uint32_t next_phase_exit_flag;
-};
-
-struct radv_ir_header {
-   int32_t min_bounds[3];
-   int32_t max_bounds[3];
-   uint32_t active_leaf_count;
-   /* Indirect dispatch dimensions for the encoder.
-    * ir_internal_node_count is the thread count in the X dimension,
-    * while Y and Z are always set to 1. */
-   uint32_t ir_internal_node_count;
-   uint32_t dispatch_size_y;
-   uint32_t dispatch_size_z;
-   radv_global_sync_data sync_data;
-   uint32_t dst_node_offset;
 };
 
 struct radv_bvh_triangle_node {
@@ -170,28 +106,11 @@ struct radv_bvh_box16_node {
 
 struct radv_bvh_box32_node {
    uint32_t children[4];
-   radv_aabb coords[4];
+   vk_aabb coords[4];
    uint32_t reserved[4];
 };
 
 #define RADV_BVH_ROOT_NODE    radv_bvh_node_box32
 #define RADV_BVH_INVALID_NODE 0xffffffffu
-
-/* If the task index is set to this value, there is no
- * more work to do. */
-#define TASK_INDEX_INVALID 0xFFFFFFFF
-
-struct radv_bvh_geometry_data {
-   uint64_t data;
-   uint64_t indices;
-   uint64_t transform;
-
-   uint32_t geometry_id;
-   uint32_t geometry_type;
-   uint32_t first_id;
-   uint32_t stride;
-   uint32_t vertex_format;
-   uint32_t index_format;
-};
 
 #endif /* BVH_H */

@@ -88,17 +88,18 @@ static unsigned av1_uvlc(struct vl_vlc *vlc)
 
 static unsigned av1_uleb128(struct vl_vlc *vlc)
 {
-   unsigned value = 0;
+   uint64_t value = 0;
    unsigned leb128Bytes = 0;
    unsigned i;
 
    for (i = 0; i < 8; ++i) {
       leb128Bytes = av1_f(vlc, 8);
-      value |= ((leb128Bytes & 0x7f) << (i * 7));
+      value |= ((uint64_t)(leb128Bytes & 0x7f) << (i * 7));
       if (!(leb128Bytes & 0x80))
          break;
    }
 
+   assert(value <= UINT32_MAX);
    return value;
 }
 
@@ -499,57 +500,59 @@ static void av1_color_config(vlVaContext *context, struct vl_vlc *vlc)
 
 static void av1_sequence_header(vlVaContext *context, struct vl_vlc *vlc)
 {
-   unsigned still_pic = 0;
    struct pipe_av1_enc_seq_param *seq = &context->desc.av1enc.seq;
 
    seq->profile = av1_f(vlc, 3);
-   still_pic = av1_f(vlc, 1);
-   av1_f(vlc, 1);
-   assert(!still_pic);
-
-   seq->seq_bits.timing_info_present_flag = av1_f(vlc, 1);
-   if (seq->seq_bits.timing_info_present_flag) {
-      seq->num_units_in_display_tick = av1_f(vlc, 32);
-      seq->time_scale = av1_f(vlc, 32);
-      seq->seq_bits.equal_picture_interval = av1_f(vlc, 1);
-      if (seq->seq_bits.equal_picture_interval)
-         seq->num_tick_per_picture_minus1 = av1_uvlc(vlc);
-      seq->seq_bits.decoder_model_info_present_flag = av1_f(vlc, 1);
-      if (seq->seq_bits.decoder_model_info_present_flag) {
-         struct pipe_av1_enc_decoder_model_info *info = &seq->decoder_model_info;
-         info->buffer_delay_length_minus1 = av1_f(vlc, 5);
-         info->num_units_in_decoding_tick = av1_f(vlc, 32);
-         info->buffer_removal_time_length_minus1 = av1_f(vlc, 5);
-         info->frame_presentation_time_length_minus1 = av1_f(vlc, 5);
+   seq->seq_bits.still_picture = av1_f(vlc, 1);
+   seq->seq_bits.reduced_still_picture_header = av1_f(vlc, 1);
+   if (seq->seq_bits.reduced_still_picture_header) {
+      seq->seq_level_idx[0] = av1_f(vlc, 5);
+   } else {
+      seq->seq_bits.timing_info_present_flag = av1_f(vlc, 1);
+      if (seq->seq_bits.timing_info_present_flag) {
+         seq->num_units_in_display_tick = av1_f(vlc, 32);
+         seq->time_scale = av1_f(vlc, 32);
+         seq->seq_bits.equal_picture_interval = av1_f(vlc, 1);
+         if (seq->seq_bits.equal_picture_interval)
+            seq->num_tick_per_picture_minus1 = av1_uvlc(vlc);
+         seq->seq_bits.decoder_model_info_present_flag = av1_f(vlc, 1);
+         if (seq->seq_bits.decoder_model_info_present_flag) {
+            struct pipe_av1_enc_decoder_model_info *info = &seq->decoder_model_info;
+            info->buffer_delay_length_minus1 = av1_f(vlc, 5);
+            info->num_units_in_decoding_tick = av1_f(vlc, 32);
+            info->buffer_removal_time_length_minus1 = av1_f(vlc, 5);
+            info->frame_presentation_time_length_minus1 = av1_f(vlc, 5);
+         }
       }
-   }
-   seq->seq_bits.initial_display_delay_present_flag = av1_f(vlc, 1);
-   seq->num_temporal_layers = av1_f(vlc, 5) + 1;
-   for (unsigned i = 0; i < seq->num_temporal_layers; i++) {
-      seq->operating_point_idc[i] = av1_f(vlc, 12);
-      seq->seq_level_idx[i] = av1_f(vlc, 5);
-      if (seq->seq_level_idx[i] > 7)
-         seq->seq_tier[i] = av1_f(vlc, 1);
-      if (seq->seq_bits.decoder_model_info_present_flag) {
-         seq->decoder_model_present_for_this_op[i] = av1_f(vlc, 1);
-         if (seq->decoder_model_present_for_this_op[i]) {
-            seq->decoder_buffer_delay[i] = av1_f(vlc, seq->decoder_model_info.buffer_delay_length_minus1 + 1);
-            seq->encoder_buffer_delay[i] = av1_f(vlc, seq->decoder_model_info.buffer_delay_length_minus1 + 1);
-            seq->low_delay_mode_flag[i] = av1_f(vlc, 1);
-         } else
-            seq->decoder_model_present_for_this_op[i] = 0;
-      }
-      if (seq->seq_bits.initial_display_delay_present_flag) {
-         seq->initial_display_delay_present_for_this_op[i] = av1_f(vlc, 1);
-         if (seq->initial_display_delay_present_for_this_op[i])
-            seq->initial_display_delay_minus_1[i] = av1_f(vlc, 4);
+      seq->seq_bits.initial_display_delay_present_flag = av1_f(vlc, 1);
+      seq->num_temporal_layers = av1_f(vlc, 5) + 1;
+      for (unsigned i = 0; i < seq->num_temporal_layers; i++) {
+         seq->operating_point_idc[i] = av1_f(vlc, 12);
+         seq->seq_level_idx[i] = av1_f(vlc, 5);
+         if (seq->seq_level_idx[i] > 7)
+            seq->seq_tier[i] = av1_f(vlc, 1);
+         if (seq->seq_bits.decoder_model_info_present_flag) {
+            seq->decoder_model_present_for_this_op[i] = av1_f(vlc, 1);
+            if (seq->decoder_model_present_for_this_op[i]) {
+               seq->decoder_buffer_delay[i] = av1_f(vlc, seq->decoder_model_info.buffer_delay_length_minus1 + 1);
+               seq->encoder_buffer_delay[i] = av1_f(vlc, seq->decoder_model_info.buffer_delay_length_minus1 + 1);
+               seq->low_delay_mode_flag[i] = av1_f(vlc, 1);
+            } else
+               seq->decoder_model_present_for_this_op[i] = 0;
+         }
+         if (seq->seq_bits.initial_display_delay_present_flag) {
+            seq->initial_display_delay_present_for_this_op[i] = av1_f(vlc, 1);
+            if (seq->initial_display_delay_present_for_this_op[i])
+               seq->initial_display_delay_minus_1[i] = av1_f(vlc, 4);
+         }
       }
    }
    seq->frame_width_bits_minus1 = av1_f(vlc, 4);
    seq->frame_height_bits_minus1 = av1_f(vlc, 4);
    seq->pic_width_in_luma_samples = av1_f(vlc, seq->frame_width_bits_minus1 + 1) + 1;
    seq->pic_height_in_luma_samples = av1_f(vlc, seq->frame_height_bits_minus1 + 1) + 1;
-   seq->seq_bits.frame_id_number_present_flag = av1_f(vlc, 1);
+   if (!seq->seq_bits.reduced_still_picture_header)
+      seq->seq_bits.frame_id_number_present_flag = av1_f(vlc, 1);
    if (seq->seq_bits.frame_id_number_present_flag) {
       seq->delta_frame_id_length = av1_f(vlc, 4) + 2;
       seq->additional_frame_id_length = av1_f(vlc, 3) + 1;
@@ -557,35 +560,35 @@ static void av1_sequence_header(vlVaContext *context, struct vl_vlc *vlc)
    seq->seq_bits.use_128x128_superblock = av1_f(vlc, 1);
    seq->seq_bits.enable_filter_intra = av1_f(vlc, 1);
    seq->seq_bits.enable_intra_edge_filter = av1_f(vlc, 1);
-   /* reduced_still_pictuer_header should be zero */
-   seq->seq_bits.enable_interintra_compound = av1_f(vlc, 1);
-   seq->seq_bits.enable_masked_compound = av1_f(vlc, 1);
-   seq->seq_bits.enable_warped_motion = av1_f(vlc, 1);
-   seq->seq_bits.enable_dual_filter = av1_f(vlc, 1);
-   seq->seq_bits.enable_order_hint = av1_f(vlc, 1);
-   if (seq->seq_bits.enable_order_hint) {
-      seq->seq_bits.enable_jnt_comp = av1_f(vlc, 1);
-      seq->seq_bits.enable_ref_frame_mvs = av1_f(vlc, 1);
-   } else
-      seq->seq_bits.enable_ref_frame_mvs = 0;
+   if (!seq->seq_bits.reduced_still_picture_header) {
+      seq->seq_bits.enable_interintra_compound = av1_f(vlc, 1);
+      seq->seq_bits.enable_masked_compound = av1_f(vlc, 1);
+      seq->seq_bits.enable_warped_motion = av1_f(vlc, 1);
+      seq->seq_bits.enable_dual_filter = av1_f(vlc, 1);
+      seq->seq_bits.enable_order_hint = av1_f(vlc, 1);
+      if (seq->seq_bits.enable_order_hint) {
+         seq->seq_bits.enable_jnt_comp = av1_f(vlc, 1);
+         seq->seq_bits.enable_ref_frame_mvs = av1_f(vlc, 1);
+      } else
+         seq->seq_bits.enable_ref_frame_mvs = 0;
 
-   seq->seq_bits.disable_screen_content_tools = av1_f(vlc, 1);
-   if (seq->seq_bits.disable_screen_content_tools)
-      seq->seq_bits.force_screen_content_tools = AV1_SELECT_SCREEN_CONTENT_TOOLS;
-   else
-      seq->seq_bits.force_screen_content_tools = av1_f(vlc, 1);
+      seq->seq_bits.disable_screen_content_tools = av1_f(vlc, 1);
+      if (seq->seq_bits.disable_screen_content_tools)
+         seq->seq_bits.force_screen_content_tools = AV1_SELECT_SCREEN_CONTENT_TOOLS;
+      else
+         seq->seq_bits.force_screen_content_tools = av1_f(vlc, 1);
 
-   seq->seq_bits.force_integer_mv = AV1_SELECT_INTEGER_MV;
-   if (seq->seq_bits.force_screen_content_tools) {
-      seq->seq_bits.choose_integer_mv = av1_f(vlc, 1);
-      if (!seq->seq_bits.choose_integer_mv)
-         seq->seq_bits.force_integer_mv = av1_f(vlc, 1);
+      seq->seq_bits.force_integer_mv = AV1_SELECT_INTEGER_MV;
+      if (seq->seq_bits.force_screen_content_tools) {
+         seq->seq_bits.choose_integer_mv = av1_f(vlc, 1);
+         if (!seq->seq_bits.choose_integer_mv)
+            seq->seq_bits.force_integer_mv = av1_f(vlc, 1);
+      }
+      if (seq->seq_bits.enable_order_hint)
+         seq->order_hint_bits = av1_f(vlc, 3) + 1;
+      else
+         seq->order_hint_bits = 0;
    }
-   if (seq->seq_bits.enable_order_hint)
-      seq->order_hint_bits = av1_f(vlc, 3) + 1;
-   else
-      seq->order_hint_bits = 0;
-
    seq->seq_bits.enable_superres = av1_f(vlc, 1);
    seq->seq_bits.enable_cdef = av1_f(vlc, 1);
    seq->seq_bits.enable_restoration = av1_f(vlc, 1);
@@ -636,8 +639,8 @@ static void av1_render_size(vlVaContext *context, struct vl_vlc *vlc)
 
    av1->enable_render_size = av1_f(vlc, 1);
    if (av1->enable_render_size) {
-      av1->render_width = av1_f(vlc, 16);
-      av1->render_height = av1_f(vlc, 16);
+      av1->render_width_minus_1 = av1_f(vlc, 16);
+      av1->render_height_minus_1 = av1_f(vlc, 16);
    }
 }
 
@@ -671,39 +674,43 @@ static bool av1_frame_header(vlVaContext *context, struct vl_vlc *vlc,
 {
    struct pipe_av1_enc_picture_desc *av1 = &context->desc.av1enc;
    uint32_t frame_type;
-   uint32_t id_len = 0, all_frames;
-
+   uint32_t id_len = 0, all_frames = 255;
    bool frame_is_intra = false;
 
-   if (av1->seq.seq_bits.frame_id_number_present_flag)
-      id_len = av1->seq.delta_frame_id_length + av1->seq.additional_frame_id_length;
+   if (av1->seq.seq_bits.reduced_still_picture_header) {
+      frame_is_intra = true;
+      frame_type = FRAME_TYPE_KEY_FRAME;
+      av1->show_frame = 1;
+   } else {
+      if (av1->seq.seq_bits.frame_id_number_present_flag)
+         id_len = av1->seq.delta_frame_id_length + av1->seq.additional_frame_id_length;
 
-   all_frames = 255;
-   if (av1_f(vlc, 1)) /* show_existing_frame */
-      return false;
+      if (av1_f(vlc, 1)) /* show_existing_frame */
+         return false;
 
-   av1->obu_extension_flag = extension_flag;
-   av1->temporal_id = temporal_id;
-   av1->spatial_id = spatial_id;
+      av1->obu_extension_flag = extension_flag;
+      av1->temporal_id = temporal_id;
+      av1->spatial_id = spatial_id;
 
-   frame_type = av1_f(vlc, 2);
-   frame_is_intra = (frame_type == FRAME_TYPE_KEY_FRAME ||
-                     frame_type == FRAME_TYPE_INTRA_ONLY);
-   av1->show_frame = av1_f(vlc, 1);
-   if (av1->show_frame && av1->seq.seq_bits.decoder_model_info_present_flag
-                  && !(av1->seq.seq_bits.equal_picture_interval)) {
-      struct pipe_av1_enc_decoder_model_info *info = &av1->seq.decoder_model_info;
-      av1->frame_presentation_time = av1_f(vlc, info->frame_presentation_time_length_minus1 + 1);
+      frame_type = av1_f(vlc, 2);
+      frame_is_intra = (frame_type == FRAME_TYPE_KEY_FRAME ||
+                        frame_type == FRAME_TYPE_INTRA_ONLY);
+      av1->show_frame = av1_f(vlc, 1);
+      if (av1->show_frame && av1->seq.seq_bits.decoder_model_info_present_flag
+                     && !(av1->seq.seq_bits.equal_picture_interval)) {
+         struct pipe_av1_enc_decoder_model_info *info = &av1->seq.decoder_model_info;
+         av1->frame_presentation_time = av1_f(vlc, info->frame_presentation_time_length_minus1 + 1);
+      }
+
+      if (!av1->show_frame)
+         av1->showable_frame = av1_f(vlc, 1);
+
+      if (frame_type == FRAME_TYPE_SWITCH ||
+            (frame_type == FRAME_TYPE_KEY_FRAME && av1->show_frame))
+         av1->error_resilient_mode = 1;
+      else
+         av1->error_resilient_mode = av1_f(vlc, 1);
    }
-
-   if (!av1->show_frame)
-      av1->showable_frame = av1_f(vlc, 1);
-
-   if (frame_type == FRAME_TYPE_SWITCH ||
-         (frame_type == FRAME_TYPE_KEY_FRAME && av1->show_frame))
-      av1->error_resilient_mode = 1;
-   else
-      av1->error_resilient_mode = av1_f(vlc, 1);
 
    av1->disable_cdf_update = av1_f(vlc, 1);
    if (av1->seq.seq_bits.force_screen_content_tools == AV1_SELECT_SCREEN_CONTENT_TOOLS)
@@ -727,7 +734,7 @@ static bool av1_frame_header(vlVaContext *context, struct vl_vlc *vlc,
 
    if (frame_type == FRAME_TYPE_SWITCH)
       av1->frame_size_override_flag = 1;
-   else
+   else if (!av1->seq.seq_bits.reduced_still_picture_header)
       av1->frame_size_override_flag = av1_f(vlc, 1);
 
    if (av1->seq.seq_bits.enable_order_hint)
@@ -805,7 +812,7 @@ static bool av1_frame_header(vlVaContext *context, struct vl_vlc *vlc,
          av1->use_ref_frame_mvs = av1_f(vlc, 1);
    }
 
-   if (av1->disable_cdf_update)
+   if (av1->seq.seq_bits.reduced_still_picture_header || av1->disable_cdf_update)
       av1->disable_frame_end_update_cdf = 1;
    else
       av1->disable_frame_end_update_cdf = av1_f(vlc, 1);

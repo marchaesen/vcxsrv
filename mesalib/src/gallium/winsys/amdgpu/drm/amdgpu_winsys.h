@@ -13,7 +13,9 @@
 #include "winsys/radeon_winsys.h"
 #include "util/simple_mtx.h"
 #include "util/u_queue.h"
+#include "ac_linux_drm.h"
 #include <amdgpu.h>
+#include "amdgpu_userq.h"
 
 struct amdgpu_cs;
 
@@ -166,6 +168,8 @@ struct amdgpu_queue {
 
    /* The last context using this queue. */
    struct amdgpu_ctx *last_ctx;
+
+   struct amdgpu_userq userq;
 };
 
 /* This is part of every BO. */
@@ -197,7 +201,7 @@ struct amdgpu_winsys {
    struct pb_cache bo_cache;
    struct pb_slabs bo_slabs;  /* Slab allocator. */
 
-   amdgpu_device_handle dev;
+   ac_drm_device *dev;
 
    simple_mtx_t bo_fence_lock;
 
@@ -253,6 +257,16 @@ struct amdgpu_winsys {
     * for invoking them because sws_list can be NULL.
     */
    struct amdgpu_screen_winsys dummy_sws;
+
+   /*
+    * In case of userqueue, mesa should ensure that VM page tables are available
+    * when jobs are executed. For this, VM ioctl now outputs timeline syncobj.
+    * This timeline syncobj output will be used as one of the dependency
+    * fence in userqueue wait ioctl.
+    */
+   uint32_t vm_timeline_syncobj;
+   uint64_t vm_timeline_seq_num;
+   simple_mtx_t vm_ioctl_lock;
 };
 
 static inline struct amdgpu_screen_winsys *

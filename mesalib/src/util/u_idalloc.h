@@ -70,8 +70,8 @@ void
 util_idalloc_reserve(struct util_idalloc *buf, unsigned id);
 
 #define util_idalloc_foreach(buf, id) \
-   for (uint32_t _i = 0, _mask = (buf)->num_set_elements ? (buf)->data[0] : 0, id, \
-                 _count = (buf)->num_used; \
+   for (uint32_t _i = 0, id, _count = (buf)->num_set_elements, \
+         _mask = _count ? (buf)->data[0] : 0; \
         _i < _count; _mask = ++_i < _count ? (buf)->data[_i] : 0) \
       while (_mask) \
          if ((id = _i * 32 + u_bit_scan(&_mask)), true)

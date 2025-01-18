@@ -290,7 +290,7 @@ static void pvr_setup_static_vdm_sync(uint8_t *const pds_ptr,
    pvr_pds_setup_doutu(&ppp_state_update_program.usc_task_control,
                        usc_sync_offset_in_bytes,
                        0,
-                       PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE),
+                       ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE,
                        false);
 
    pvr_pds_kick_usc(&ppp_state_update_program,

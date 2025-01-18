@@ -58,7 +58,8 @@ void si_streamout_buffers_dirty(struct si_context *sctx)
 
 static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targets,
                                      struct pipe_stream_output_target **targets,
-                                     const unsigned *offsets)
+                                     const unsigned *offsets,
+                                     enum mesa_prim output_prim)
 {
    struct si_context *sctx = (struct si_context *)ctx;
    unsigned old_num_targets = sctx->streamout.num_targets;
@@ -141,41 +142,52 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
       if (sctx->gfx_level >= GFX12) {
          bool first_target = util_bitcount(enabled_mask) == 1;
 
-         /* The first enabled streamout target will contain the ordered ID/offset buffer for all
-          * targets.
+         /* The first enabled streamout target allocates the ordered ID/offset buffer for all
+          * targets. The other targets only hold the reference to the buffer because they need
+          * it for glDrawTransformFeedbackStream if stream != 0.
           */
-         if (first_target && !append_bitmask) {
-            /* The layout is:
-             *    struct {
-             *       struct {
-             *          uint32_t ordered_id; // equal for all buffers
-             *          uint32_t dwords_written;
-             *       } buffer[4];
-             *    };
-             *
-             * The buffer must be initialized to 0 and the address must be aligned to 64
-             * because it's faster when the atomic doesn't straddle a 64B block boundary.
-             */
-            unsigned alloc_size = 32;
-            unsigned alignment = 64;
-
-            si_resource_reference(&t->buf_filled_size, NULL);
-            u_suballocator_alloc(&sctx->allocator_zeroed_memory, alloc_size, alignment,
-                                 &t->buf_filled_size_offset,
-                                 (struct pipe_resource **)&t->buf_filled_size);
-
-            /* Offset to dwords_written of the first enabled streamout buffer. */
-            t->buf_filled_size_draw_count_offset = t->buf_filled_size_offset + i * 8 + 4;
-         }
-
          if (first_target) {
+            /* If not appending, we need to reset the buffer. */
+            if (!append_bitmask) {
+               /* The layout is:
+                *    struct {
+                *       struct {
+                *          uint32_t ordered_id; // equal for all buffers
+                *          uint32_t dwords_written; // it's actually in bytes
+                *       } buffer[4];
+                *    };
+                *
+                * The buffer must be initialized to 0 and the address must be aligned to 64
+                * because it's faster when the atomic doesn't straddle a 64B block boundary.
+                */
+               unsigned alloc_size = 32;
+               unsigned alignment = 64;
+
+               si_resource_reference(&t->buf_filled_size, NULL);
+               u_suballocator_alloc(&sctx->allocator_zeroed_memory, alloc_size, alignment,
+                                    &t->buf_filled_size_offset,
+                                    (struct pipe_resource **)&t->buf_filled_size);
+            }
+
+            /* Bind the buffer to the shader for global_atomic_ordered_add_b64. */
             struct pipe_shader_buffer sbuf;
             sbuf.buffer = &t->buf_filled_size->b.b;
             sbuf.buffer_offset = t->buf_filled_size_offset;
             sbuf.buffer_size = 32; /* unused, the shader only uses the low 32 bits of the address */
 
             si_set_internal_shader_buffer(sctx, SI_STREAMOUT_STATE_BUF, &sbuf);
+         } else {
+            /* All other streamout targets use the same buffer as the first one. */
+            struct si_streamout_target *first = sctx->streamout.targets[ffs(enabled_mask) - 1];
+
+            assert(first != t);
+            assert(first->buf_filled_size);
+            si_resource_reference(&t->buf_filled_size, first->buf_filled_size);
+            t->buf_filled_size_offset = first->buf_filled_size_offset;
          }
+
+         /* Offset to dwords_written of the streamout buffer. */
+         t->buf_filled_size_draw_count_offset = t->buf_filled_size_offset + i * 8 + 4;
       } else {
          /* GFX6-11 */
          if (!t->buf_filled_size) {
@@ -216,6 +228,9 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
    if (!!sctx->streamout.enabled_mask != !!enabled_mask)
       sctx->do_update_shaders = true; /* to keep/remove streamout shader code as an optimization */
 
+   sctx->streamout.output_prim = output_prim;
+   sctx->streamout.num_verts_per_prim = output_prim == MESA_PRIM_UNKNOWN ?
+                                           0 : mesa_vertices_per_prim(output_prim);
    sctx->streamout.num_targets = num_targets;
    sctx->streamout.enabled_mask = enabled_mask;
    sctx->streamout.append_bitmask = append_bitmask;
@@ -284,7 +299,7 @@ static void si_emit_streamout_begin(struct si_context *sctx, unsigned index)
       if (!t[i])
          continue;
 
-      t[i]->stride_in_dw = sctx->streamout.stride_in_dw[i];
+      t[i]->stride = sctx->streamout.stride_in_dw[i] * 4;
 
       if (sctx->gfx_level >= GFX12) {
          /* Only the first streamout target holds information. */
@@ -330,19 +345,19 @@ static void si_emit_streamout_begin(struct si_context *sctx, unsigned index)
 
             /* Append. */
             radeon_emit(PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
-            radeon_emit(STRMOUT_SELECT_BUFFER(i) |
-                        STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_FROM_MEM)); /* control */
-            radeon_emit(0);                                              /* unused */
-            radeon_emit(0);                                              /* unused */
-            radeon_emit(va);                                             /* src address lo */
-            radeon_emit(va >> 32);                                       /* src address hi */
+            radeon_emit(STRMOUT_SELECT_BUFFER(i) | STRMOUT_DATA_TYPE(1) | /* offset in bytes */
+                        STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_FROM_MEM));  /* control */
+            radeon_emit(0);                                               /* unused */
+            radeon_emit(0);                                               /* unused */
+            radeon_emit(va);                                              /* src address lo */
+            radeon_emit(va >> 32);                                        /* src address hi */
 
             radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size,
                                       RADEON_USAGE_READ | RADEON_PRIO_SO_FILLED_SIZE);
          } else {
             /* Start from the beginning. */
             radeon_emit(PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
-            radeon_emit(STRMOUT_SELECT_BUFFER(i) |
+            radeon_emit(STRMOUT_SELECT_BUFFER(i) | STRMOUT_DATA_TYPE(1) |   /* offset in bytes */
                         STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_FROM_PACKET)); /* control */
             radeon_emit(0);                                                 /* unused */
             radeon_emit(0);                                                 /* unused */
@@ -395,7 +410,7 @@ void si_emit_streamout_end(struct si_context *sctx)
          radeon_begin(cs);
          radeon_emit(PKT3(PKT3_STRMOUT_BUFFER_UPDATE, 4, 0));
          radeon_emit(STRMOUT_SELECT_BUFFER(i) | STRMOUT_OFFSET_SOURCE(STRMOUT_OFFSET_NONE) |
-                     STRMOUT_STORE_BUFFER_FILLED_SIZE); /* control */
+                     STRMOUT_DATA_TYPE(1) | STRMOUT_STORE_BUFFER_FILLED_SIZE); /* control */
          radeon_emit(va);                                  /* dst address lo */
          radeon_emit(va >> 32);                            /* dst address hi */
          radeon_emit(0);                                   /* unused */

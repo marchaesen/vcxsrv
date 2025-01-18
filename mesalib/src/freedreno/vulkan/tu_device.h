@@ -204,19 +204,6 @@ struct tu_instance
 VK_DEFINE_HANDLE_CASTS(tu_instance, vk.base, VkInstance,
                        VK_OBJECT_TYPE_INSTANCE)
 
-struct tu_queue
-{
-   struct vk_queue vk;
-
-   struct tu_device *device;
-
-   uint32_t msm_queue_id;
-   uint32_t priority;
-
-   int fence;           /* timestamp/fence of the last queue submission */
-};
-VK_DEFINE_HANDLE_CASTS(tu_queue, vk.base, VkQueue, VK_OBJECT_TYPE_QUEUE)
-
 /* This struct defines the layout of the global_bo */
 struct tu6_global
 {
@@ -280,6 +267,7 @@ struct tu_pvtmem_bo {
 };
 
 struct tu_virtio_device;
+struct tu_queue;
 
 struct tu_device
 {
@@ -356,9 +344,11 @@ struct tu_device
    struct util_vma_heap vma;
 
    /* bo list for submits: */
-   struct drm_msm_gem_submit_bo *bo_list;
+   struct drm_msm_gem_submit_bo *submit_bo_list;
    /* map bo handles to bo list index: */
-   uint32_t bo_count, bo_list_size;
+   uint32_t submit_bo_count, submit_bo_list_size;
+   /* bo list for dumping: */
+   struct util_dynarray dump_bo_list;
    mtx_t bo_mutex;
    /* protects imported BOs creation/freeing */
    struct u_rwlock dma_bo_lock;
@@ -502,6 +492,10 @@ VkResult
 tu_physical_device_init(struct tu_physical_device *device,
                         struct tu_instance *instance);
 
+void
+tu_physical_device_get_global_priority_properties(const struct tu_physical_device *pdevice,
+                                                  VkQueueFamilyGlobalPriorityPropertiesKHR *props);
+
 uint64_t
 tu_device_ticks_to_ns(struct tu_device *dev, uint64_t ts);
 
@@ -550,10 +544,12 @@ struct tu_u_trace_cmd_data
 struct tu_u_trace_submission_data
 {
    uint32_t submission_id;
+
    /* We have to know when timestamps are available,
-    * this sync object indicates it.
+    * this queue and fence indicates it.
     */
-   struct tu_u_trace_syncobj *syncobj;
+   struct tu_queue *queue;
+   uint32_t fence;
 
    uint32_t cmd_buffer_count;
    uint32_t last_buffer_with_tracepoints;
@@ -586,5 +582,11 @@ void
 tu_debug_bos_del(struct tu_device *dev, struct tu_bo *bo);
 void
 tu_debug_bos_print_stats(struct tu_device *dev);
+
+void
+tu_dump_bo_init(struct tu_device *dev, struct tu_bo *bo);
+void
+tu_dump_bo_del(struct tu_device *dev, struct tu_bo *bo);
+
 
 #endif /* TU_DEVICE_H */

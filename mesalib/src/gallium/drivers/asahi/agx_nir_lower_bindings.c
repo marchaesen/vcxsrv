@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "asahi/lib/agx_nir_passes.h"
-#include "compiler/glsl_types.h"
+#include "asahi/compiler/agx_nir.h"
 #include "compiler/nir/nir_builder.h"
 #include "util/bitset.h"
 #include "agx_state.h"
@@ -12,7 +11,6 @@
 #include "nir_builder_opcodes.h"
 #include "nir_intrinsics.h"
 #include "nir_intrinsics_indices.h"
-#include "shader_enums.h"
 
 /*
  * Lower binding table textures and images to texture state registers and (if

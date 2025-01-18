@@ -11,7 +11,8 @@
 
 #include "vk_command_pool.h"
 
-#define HK_CMD_BO_SIZE 1024 * 128
+#define HK_CMD_BO_SIZE     1024 * 128
+#define HK_CMD_POOL_BO_MAX 32
 
 /* Recyclable command buffer BO, used for both push buffers and upload */
 struct hk_cmd_bo {
@@ -29,6 +30,8 @@ struct hk_cmd_pool {
    /** List of hk_cmd_bo */
    struct list_head free_bos;
    struct list_head free_usc_bos;
+   uint32_t num_free_bos;
+   uint32_t num_free_usc_bos;
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(hk_cmd_pool, vk.base, VkCommandPool,

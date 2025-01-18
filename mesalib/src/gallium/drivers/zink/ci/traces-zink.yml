@@ -51,7 +51,7 @@ traces:
       checksum: 56f11d133f72712a6df13855ec00cdb0
   gputest/tessmark-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 45b323eeb8d9af7dfa7cf98f4bb319ba
+      checksum: 04a5a9b7cbc88d8a66c33b5f1c08294d
   humus/AmbientAperture-v2.trace:
     gl-zink-anv-tgl:
       checksum: 0f3b7351a84e1e6f15430f8766af4b4c

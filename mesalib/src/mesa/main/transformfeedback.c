@@ -182,7 +182,7 @@ _mesa_init_transform_feedback(struct gl_context *ctx)
 
    assert(ctx->TransformFeedback.DefaultObject->RefCount == 2);
 
-   _mesa_InitHashTable(&ctx->TransformFeedback.Objects);
+   _mesa_InitHashTable(&ctx->TransformFeedback.Objects, ctx->Shared->ReuseGLNames);
 
    _mesa_reference_buffer_object(ctx,
                                  &ctx->TransformFeedback.CurrentBuffer, NULL);
@@ -399,6 +399,7 @@ begin_transform_feedback(struct gl_context *ctx, GLenum mode, bool no_error)
    FLUSH_VERTICES(ctx, 0, 0);
 
    obj->Active = GL_TRUE;
+   obj->Mode = mode;
    ctx->TransformFeedback.Mode = mode;
 
    compute_transform_feedback_buffer_sizes(obj);
@@ -459,7 +460,7 @@ begin_transform_feedback(struct gl_context *ctx, GLenum mode, bool no_error)
 
    /* Start writing at the beginning of each target. */
    cso_set_stream_outputs(ctx->cso_context, obj->num_targets,
-                          obj->targets, offsets);
+                          obj->targets, offsets, mode);
    _mesa_update_valid_to_render_state(ctx);
 }
 
@@ -487,7 +488,7 @@ end_transform_feedback(struct gl_context *ctx,
    unsigned i;
    FLUSH_VERTICES(ctx, 0, 0);
 
-   cso_set_stream_outputs(ctx->cso_context, 0, NULL, NULL);
+   cso_set_stream_outputs(ctx->cso_context, 0, NULL, NULL, 0);
 
    /* The next call to glDrawTransformFeedbackStream should use the vertex
     * count from the last call to glEndTransformFeedback.
@@ -1248,7 +1249,7 @@ pause_transform_feedback(struct gl_context *ctx,
 {
    FLUSH_VERTICES(ctx, 0, 0);
 
-   cso_set_stream_outputs(ctx->cso_context, 0, NULL, NULL);
+   cso_set_stream_outputs(ctx->cso_context, 0, NULL, NULL, 0);
 
    obj->Paused = GL_TRUE;
    _mesa_update_valid_to_render_state(ctx);
@@ -1291,6 +1292,7 @@ resume_transform_feedback(struct gl_context *ctx,
 {
    FLUSH_VERTICES(ctx, 0, 0);
 
+   ctx->TransformFeedback.Mode = obj->Mode;
    obj->Paused = GL_FALSE;
 
    unsigned offsets[PIPE_MAX_SO_BUFFERS];
@@ -1300,7 +1302,7 @@ resume_transform_feedback(struct gl_context *ctx,
       offsets[i] = (unsigned)-1;
 
    cso_set_stream_outputs(ctx->cso_context, obj->num_targets,
-                          obj->targets, offsets);
+                          obj->targets, offsets, obj->Mode);
    _mesa_update_valid_to_render_state(ctx);
 }
 

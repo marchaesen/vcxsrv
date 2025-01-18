@@ -108,7 +108,7 @@ xkb_symbols "evdev" {
     key <FK20>   {      [ XF86AudioMicMute      ]       };
     key <FK21>   {      [ XF86TouchpadToggle    ]       };
     key <FK22>   {      [ XF86TouchpadOn        ]       };
-    key <FK23>   {      [ XF86TouchpadOff       ]       };
+    key <FK23>   {      [ XF86TouchpadOff, XF86Assistant ], type[Group1] = "PC_SHIFT_SUPER_LEVEL2" };
 
 //  key <I120>   {      [ ]       }; // KEY_MACRO
     key <I126>   {      [ plusminus             ]       };

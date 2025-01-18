@@ -377,8 +377,8 @@ fill_graphics_state_vars(struct d3d12_context *ctx,
          size += 4;
          break;
       case D3D12_STATE_VAR_PT_SPRITE:
-         ptr[0] = fui(1.0 / ctx->viewports[0].Width);
-         ptr[1] = fui(1.0 / ctx->viewports[0].Height);
+         ptr[0] = fui(1.0f / ctx->viewports[0].Width);
+         ptr[1] = fui(1.0f / ctx->viewports[0].Height);
          ptr[2] = fui(ctx->gfx_pipeline_state.rast->base.point_size);
          ptr[3] = fui(D3D12_MAX_POINT_SIZE);
          size += 4;
@@ -391,8 +391,8 @@ fill_graphics_state_vars(struct d3d12_context *ctx,
          assert(!cmd_sig_key->draw_or_dispatch_params); // Should only be set once
          cmd_sig_key->draw_or_dispatch_params = 1;
          cmd_sig_key->root_sig = ctx->gfx_pipeline_state.root_signature;
-         cmd_sig_key->params_root_const_offset = size;
-         cmd_sig_key->params_root_const_param = cur_root_param_idx;
+         cmd_sig_key->params_root_const_offset = static_cast<uint8_t>(size);
+         cmd_sig_key->params_root_const_param = static_cast<uint8_t>(cur_root_param_idx);
          size += 4;
          break;
       case D3D12_STATE_VAR_DEPTH_TRANSFORM:
@@ -439,7 +439,7 @@ fill_compute_state_vars(struct d3d12_context *ctx,
          ptr[2] = info->grid[2];
          cmd_sig_key->draw_or_dispatch_params = 1;
          cmd_sig_key->root_sig = ctx->compute_pipeline_state.root_signature;
-         cmd_sig_key->params_root_const_offset = size;
+         cmd_sig_key->params_root_const_offset = static_cast<uint8_t>(size);
          size += 4;
          break;
       case D3D12_STATE_VAR_TRANSFORM_GENERIC0:
@@ -600,7 +600,7 @@ update_compute_root_parameters(struct d3d12_context *ctx,
          uint32_t constants[D3D12_MAX_COMPUTE_STATE_VARS * 4];
          unsigned size = fill_compute_state_vars(ctx, info, shader_sel->current, constants, cmd_sig_key);
          if (cmd_sig_key->draw_or_dispatch_params)
-            cmd_sig_key->params_root_const_param = num_params;
+            cmd_sig_key->params_root_const_param = static_cast<uint8_t>(num_params);
          ctx->cmdlist->SetComputeRoot32BitConstants(num_params, size, constants, 0);
          num_params++;
       }

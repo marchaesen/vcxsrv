@@ -90,7 +90,7 @@ struct d3d12_video_decoder_references_manager
 
    uint8_t get_unused_index7bits()
    {
-      for (uint32_t testIdx = 0; testIdx < 127; testIdx++) {
+      for (uint8_t testIdx = 0; testIdx < 127; testIdx++) {
          auto it = std::find_if(m_DecodeTargetToOriginalIndex7Bits.begin(), m_DecodeTargetToOriginalIndex7Bits.end(),
             [&testIdx](const std::pair< struct pipe_video_buffer*, uint8_t > &p) {
                return p.second == testIdx;
@@ -237,8 +237,8 @@ d3d12_video_decoder_references_manager::update_entries_av1(T (&picEntries)[size]
       uint32_t        OutputSubresource              = 0u;
       bool            outNeedsTransitionToDecodeRead = false;
 
-      picEntry =
-         update_entry(picEntry, pOutputReference, OutputSubresource, outNeedsTransitionToDecodeRead);
+      picEntry = static_cast<T>(
+         update_entry(picEntry, pOutputReference, OutputSubresource, outNeedsTransitionToDecodeRead));
 
       if (outNeedsTransitionToDecodeRead) {
          ///

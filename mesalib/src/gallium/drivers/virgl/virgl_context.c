@@ -362,8 +362,7 @@ static struct pipe_surface *virgl_create_surface(struct pipe_context *ctx,
    if (!surf)
       return NULL;
 
-   assert(ctx->screen->get_param(ctx->screen,
-                                 PIPE_CAP_DEST_SURFACE_SRGB_CONTROL) ||
+   assert(ctx->screen->caps.dest_surface_srgb_control ||
           (util_format_is_srgb(templ->format) ==
            util_format_is_srgb(resource->format)));
 
@@ -1331,8 +1330,7 @@ static void virgl_blit(struct pipe_context *ctx,
    struct virgl_resource *dres = virgl_resource(blit->dst.resource);
    struct virgl_resource *sres = virgl_resource(blit->src.resource);
 
-   assert(ctx->screen->get_param(ctx->screen,
-                                 PIPE_CAP_DEST_SURFACE_SRGB_CONTROL) ||
+   assert(ctx->screen->caps.dest_surface_srgb_control ||
           (util_format_is_srgb(blit->dst.resource->format) ==
             util_format_is_srgb(blit->dst.format)));
 

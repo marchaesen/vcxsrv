@@ -42,32 +42,6 @@ binding_has_immutable_samplers(const VkDescriptorSetLayoutBinding *binding)
    }
 }
 
-static bool
-is_sampler(const VkDescriptorSetLayoutBinding *binding)
-{
-   switch (binding->descriptorType) {
-   case VK_DESCRIPTOR_TYPE_SAMPLER:
-   case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      return true;
-   default:
-      return false;
-   }
-}
-
-static bool
-is_texture(const VkDescriptorSetLayoutBinding *binding)
-{
-   switch (binding->descriptorType) {
-   case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-   case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-   case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-   case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-      return true;
-   default:
-      return false;
-   }
-}
-
 VkResult
 panvk_per_arch(CreateDescriptorSetLayout)(
    VkDevice _device, const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
@@ -156,8 +130,7 @@ panvk_per_arch(CreateDescriptorSetLayout)(
          }
       }
 
-      if (binding_layout->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-          binding_layout->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) {
+      if (vk_descriptor_type_is_dynamic(binding_layout->type)) {
          binding_layout->desc_idx = dyn_buf_idx;
          dyn_buf_idx += binding_layout->desc_count;
       } else {
@@ -190,7 +163,7 @@ panvk_per_arch(CreateDescriptorSetLayout)(
       /* Immutable samplers are ignored for now */
    }
 
-   _mesa_blake3_final(&hash_ctx, layout->hash);
+   _mesa_blake3_final(&hash_ctx, layout->vk.blake3);
 
    free(bindings);
    *pSetLayout = panvk_descriptor_set_layout_to_handle(layout);
@@ -210,8 +183,7 @@ panvk_per_arch(GetDescriptorSetLayoutSupport)(
       const VkDescriptorSetLayoutBinding *binding = &pCreateInfo->pBindings[i];
       VkDescriptorType type = binding->descriptorType;
 
-      if (type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-          type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+      if (vk_descriptor_type_is_dynamic(type))
          dyn_buf_count += binding->descriptorCount;
       else
          desc_count += panvk_get_desc_stride(type) * binding->descriptorCount;

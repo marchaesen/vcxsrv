@@ -141,3 +141,6 @@ dEQP-VK.robustness.robustness2.*
 dEQP-VK.shader_object.rendering.*
 dEQP-VK.sparse_resources.*
 dEQP-VK.transform_feedback.*
+
+# This times out
+spec@glsl-1.40@execution@tf-no-position

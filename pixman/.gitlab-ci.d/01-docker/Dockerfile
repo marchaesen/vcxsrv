@@ -10,13 +10,15 @@ ENV APT_UPDATE="apt-get update" \
     APT_INSTALL="apt-get install -y --no-install-recommends" \
     APT_CLEANUP="rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*"
 
-RUN ${APT_UPDATE} \
+ARG GCOVR_VERSION="~=7.2"
+ARG MESON_VERSION="~=1.6"
+RUN echo "deb http://deb.debian.org/debian bookworm-backports main" >  /etc/apt/sources.list.d/debian-12-backports.list \
+    && ${APT_UPDATE} \
     && ${APT_INSTALL} \
         # Build dependencies.
         build-essential \
         ninja-build \
         pkg-config \
-        qemu-user \
         # pipx dependencies.
         python3-argcomplete \
         python3-packaging \
@@ -28,6 +30,11 @@ RUN ${APT_UPDATE} \
         libxml2-dev \
         libxslt-dev \
         python3-dev \
+    # User bookworm-backports for QEMU, as it has version 7 by default, which
+    # has some issues.
+    && ${APT_INSTALL} \
+        $(grep bookworm /etc/os-release >/dev/null && echo -t bookworm-backports) \
+        qemu-user \
     && ${APT_CLEANUP} \
     # Install pipx using pip to have a more recent version of pipx, which
     # supports the `--global` flag.
@@ -35,8 +42,8 @@ RUN ${APT_UPDATE} \
     # Install a recent version of meson and gcovr using pipx to have the same
     # version across all variants regardless of base.
     && pipx install --global \
-        gcovr \
-        meson \
+        gcovr${GCOVR_VERSION} \
+        meson${MESON_VERSION} \
     && gcovr --version \
     && echo Meson version: \
     && meson --version
@@ -78,7 +85,7 @@ FROM native-base AS linux-amd64
 FROM native-base AS linux-arm-v5
 FROM native-base AS linux-arm-v7
 FROM native-base AS linux-arm64-v8
-FROM native-base AS linux-mips64el
+FROM native-base AS linux-mips64le
 FROM native-base AS linux-mipsel
 FROM native-base AS linux-ppc64le
 FROM native-base AS linux-riscv64
@@ -99,50 +106,90 @@ RUN ${APT_UPDATE} \
     && ${APT_INSTALL} gcc-multilib-powerpc64-linux-gnu \
     && ${APT_CLEANUP}
 
-# We use a common image for Windows i686 and amd64, as it doesn't make sense to
-# make them separate in terms of build time and image size. After two runs they
-# should use the same cache layers, so in the end it makes the collective image
-# size smaller.
-FROM base AS windows-base
-ARG LLVM_MINGW_RELEASE=20240619
-ARG LLVM_MINGW_VARIANT=llvm-mingw-${LLVM_MINGW_RELEASE}-msvcrt-ubuntu-20.04-x86_64
+# Windows base image with a pre-built LLVM MinGW toolchain.
+FROM base AS windows-llvm-base
+ARG LLVM_MINGW_RELEASE=20241203
+ARG LLVM_MINGW_VARIANT=llvm-mingw-${LLVM_MINGW_RELEASE}-ucrt-ubuntu-20.04
 RUN ${APT_UPDATE} \
-    && ${APT_INSTALL} wget \
+    && ${APT_INSTALL} \
+        procps \
+        wget \
     && ${APT_CLEANUP} \
-    && cd /opt \
-    && wget https://github.com/mstorsjo/llvm-mingw/releases/download/${LLVM_MINGW_RELEASE}/${LLVM_MINGW_VARIANT}.tar.xz \
-    && tar -xf ${LLVM_MINGW_VARIANT}.tar.xz \
-    && rm -f ${LLVM_MINGW_VARIANT}.tar.xz
-ENV PATH=${PATH}:/opt/${LLVM_MINGW_VARIANT}/bin
+    && wget https://github.com/mstorsjo/llvm-mingw/releases/download/${LLVM_MINGW_RELEASE}/${LLVM_MINGW_VARIANT}-`uname -m`.tar.xz \
+        -O - | tar -xJ -C /opt \
+    && mv /opt/llvm* /opt/llvm
+ENV PATH=/opt/llvm/bin:${PATH} \
+    # Inspired by https://code.videolan.org/videolan/docker-images
+    WINE_BOOT='wine wineboot --init \
+        && while pgrep wineserver > /dev/null; do \
+            echo "waiting ..."; \
+            sleep 1; \
+        done \
+        && rm -rf /tmp/wine-*'
 
-FROM windows-base AS windows-x86-base
+FROM windows-llvm-base AS windows-686
+ENV WINEPATH=/opt/llvm/i686-w64-mingw32/bin \
+    WINEARCH=win32
 RUN dpkg --add-architecture i386 \
     && ${APT_UPDATE} \
     && ${APT_INSTALL} \
-        gcc-mingw-w64-i686 \
-        gcc-mingw-w64-x86-64 \
-        mingw-w64-tools \
-        procps \
+        libwine:i386 \
         wine \
         wine32 \
+    && ${APT_CLEANUP} \
+    && ${WINE_BOOT}
+
+FROM windows-llvm-base AS windows-amd64
+ENV WINEPATH=/opt/llvm/x86_64-w64-mingw32/bin \
+    WINEARCH=win64
+RUN ${APT_UPDATE} \
+    && ${APT_INSTALL} \
+        libwine \
+        wine \
         wine64 \
     && ${APT_CLEANUP} \
-    # Inspired by https://code.videolan.org/videolan/docker-images
-    && wine wineboot --init \
-    && while pgrep wineserver > /dev/null; do \
-        echo "waiting ..."; \
-        sleep 1; \
-    done \
-    && rm -rf /tmp/wine-*
+    && ${WINE_BOOT}
 
-FROM windows-x86-base AS windows-686
-FROM windows-x86-base AS windows-amd64
+# Dependencies needed both for Wine build and the final image.
+FROM windows-llvm-base AS windows-wine-build-base
+RUN ${APT_UPDATE} \
+    && ${APT_INSTALL} \
+        libfreetype-dev \
+        libgnutls28-dev \
+        libkrb5-dev \
+        libx11-dev \
+        libxcomposite-dev \
+        libxcursor-dev \
+        libxext-dev \
+        libxfixes-dev \
+        libxi-dev \
+        libxrandr-dev \
+        libxrender-dev \
+    && ${APT_CLEANUP}
 
-# aarch64 image requires linaro/wine-arm64 as a base.
-FROM windows-base AS windows-arm64-v8
-RUN wine-arm64 wineboot --init \
-    && while pgrep wineserver > /dev/null; do \
-        echo "waiting ..."; \
-        sleep 1; \
-    done \
-    && rm -rf /tmp/wine-*
+# Wine build intermediate target, not going into the final image.
+FROM windows-wine-build-base AS windows-wine-build
+RUN ${APT_UPDATE} \
+    && ${APT_INSTALL} \
+        bison \
+        ca-certificates \
+        clang \
+        flex \
+        git \
+        lld \
+        llvm \
+    && ${APT_CLEANUP}
+ARG WINE_VERSION=9.22
+RUN git clone https://gitlab.winehq.org/wine/wine.git \
+        -b wine-${WINE_VERSION} \
+        --depth 1
+RUN cd wine \
+    && ./configure --enable-win64 --disable-tests --without-unwind --prefix=/opt/wine \
+    && make -j`nproc` \
+    && make install
+
+FROM windows-wine-build-base AS windows-arm64-v8
+COPY --from=windows-wine-build /opt/wine /opt/wine
+ENV PATH=/opt/wine/bin:${PATH} \
+    WINEPATH=/opt/llvm/aarch64-w64-mingw32/bin
+RUN ${WINE_BOOT}

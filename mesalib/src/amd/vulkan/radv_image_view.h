@@ -66,7 +66,7 @@ void radv_set_mutable_tex_desc_fields(struct radv_device *device, struct radv_im
                                       const struct legacy_surf_level *base_level_info, unsigned plane_id,
                                       unsigned base_level, unsigned first_level, unsigned block_width, bool is_stencil,
                                       bool is_storage_image, bool disable_compression, bool enable_write_compression,
-                                      uint32_t *state, const struct ac_surf_nbc_view *nbc_view);
+                                      uint32_t *state, const struct ac_surf_nbc_view *nbc_view, uint64_t offset);
 
 void radv_make_texture_descriptor(struct radv_device *device, struct radv_image *image, bool is_storage_image,
                                   VkImageViewType view_type, VkFormat vk_format, const VkComponentMapping *mapping,

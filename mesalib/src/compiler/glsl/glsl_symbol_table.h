@@ -82,8 +82,6 @@ struct glsl_symbol_table {
    ir_variable *get_variable(const char *name);
    const glsl_type *get_type(const char *name);
    ir_function *get_function(const char *name);
-   const glsl_type *get_interface(const char *name,
-                                  enum ir_variable_mode mode);
    int get_default_precision_qualifier(const char *type_name);
    /*@}*/
 
@@ -94,11 +92,6 @@ struct glsl_symbol_table {
     * available.
     */
    void disable_variable(const char *name);
-
-   /**
-    * Replaces the variable in the entry by the new variable.
-    */
-   void replace_variable(const char *name, ir_variable *v);
 
 private:
    symbol_table_entry *get_entry(const char *name);

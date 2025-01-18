@@ -1,0 +1,27 @@
+BasedOnStyle: LLVM
+AlwaysBreakAfterReturnType: TopLevelDefinitions
+BraceWrapping:
+  IndentBraces: true
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+IndentAccessModifiers: true
+IndentCaseBlocks: true
+IndentCaseLabels: true
+IndentWidth: 4
+BreakBeforeBraces: Allman
+AttributeMacros: ['__attribute__']
+AlignConsecutiveMacros: true
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: true
+AlignConsecutiveDeclarations: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackArguments: true
+BinPackParameters: false
+PenaltyBreakAssignment: 1000
+ReflowComments: false
+SpaceBeforeParens: Always
+SpaceInEmptyBlock: true
+SpacesInContainerLiterals: true
+TabWidth: 8
+UseTab: ForContinuationAndIndentation

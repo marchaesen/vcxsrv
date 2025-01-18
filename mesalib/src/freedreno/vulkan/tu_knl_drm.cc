@@ -10,6 +10,7 @@
 
 #include "tu_knl_drm.h"
 #include "tu_device.h"
+#include "tu_queue.h"
 #include "tu_rmv.h"
 
 VkResult
@@ -76,13 +77,14 @@ tu_drm_bo_finish(struct tu_device *dev, struct tu_bo *bo)
 
    TU_RMV(bo_destroy, dev, bo);
    tu_debug_bos_del(dev, bo);
+   tu_dump_bo_del(dev, bo);
 
    mtx_lock(&dev->bo_mutex);
-   dev->bo_count--;
-   dev->bo_list[bo->bo_list_idx] = dev->bo_list[dev->bo_count];
+   dev->submit_bo_count--;
+   dev->submit_bo_list[bo->submit_bo_list_idx] = dev->submit_bo_list[dev->submit_bo_count];
 
-   struct tu_bo* exchanging_bo = tu_device_lookup_bo(dev, dev->bo_list[bo->bo_list_idx].handle);
-   exchanging_bo->bo_list_idx = bo->bo_list_idx;
+   struct tu_bo* exchanging_bo = tu_device_lookup_bo(dev, dev->submit_bo_list[bo->submit_bo_list_idx].handle);
+   exchanging_bo->submit_bo_list_idx = bo->submit_bo_list_idx;
 
    if (bo->implicit_sync)
       dev->implicit_sync_bo_count--;
@@ -126,6 +128,52 @@ tu_drm_bo_finish(struct tu_device *dev, struct tu_bo *bo)
    }
 
    u_rwlock_rdunlock(&dev->dma_bo_lock);
+}
+
+void *
+msm_submit_create(struct tu_device *device)
+{
+   return vk_zalloc(&device->vk.alloc, sizeof(struct tu_msm_queue_submit), 8,
+                    VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
+}
+
+void
+msm_submit_finish(struct tu_device *device,
+                  void *_submit)
+{
+   struct tu_msm_queue_submit *submit =
+      (struct tu_msm_queue_submit *)_submit;
+
+   util_dynarray_fini(&submit->commands);
+   util_dynarray_fini(&submit->command_bos);
+   vk_free(&device->vk.alloc, submit);
+}
+
+void
+msm_submit_add_entries(struct tu_device *device, void *_submit,
+                       struct tu_cs_entry *entries, unsigned num_entries)
+{
+   struct tu_msm_queue_submit *submit =
+      (struct tu_msm_queue_submit *)_submit;
+
+   struct drm_msm_gem_submit_cmd *cmds = (struct drm_msm_gem_submit_cmd *)
+      util_dynarray_grow(&submit->commands, struct drm_msm_gem_submit_cmd,
+                         num_entries);
+
+   const struct tu_bo **bos = (const struct tu_bo **)
+      util_dynarray_grow(&submit->command_bos, struct tu_bo *,
+                         num_entries);
+
+   for (unsigned i = 0; i < num_entries; i++) {
+      cmds[i].type = MSM_SUBMIT_CMD_BUF;
+      cmds[i].submit_idx = entries[i].bo->submit_bo_list_idx;
+      cmds[i].submit_offset = entries[i].offset;
+      cmds[i].size = entries[i].size;
+      cmds[i].pad = 0;
+      cmds[i].nr_relocs = 0;
+      cmds[i].relocs = 0;
+      bos[i] = entries[i].bo;
+   }
 }
 
 uint32_t

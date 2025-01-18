@@ -137,6 +137,11 @@ uInformation(const char * /* s */ , ...
 #include <strings.h>
 #include <string.h>
 
+#if defined(_MSC_VER)
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#endif
+
 #define	NullString	((char *)NULL)
 
 #define	uStringText(s)		((s)==NullString?"<NullString>":(s))

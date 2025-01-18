@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC1091 # paths only become valid at runtime
+
 set -e
+
+. "${SCRIPTS_DIR}/setup-test-env.sh"
 
 ARTIFACTSDIR=$(pwd)/shader-db
 mkdir -p "$ARTIFACTSDIR"

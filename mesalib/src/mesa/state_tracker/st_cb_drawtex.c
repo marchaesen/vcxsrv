@@ -109,10 +109,8 @@ lookup_shader(struct st_context *st,
    }
 
    CachedShaders[i].handle =
-      st_nir_make_passthrough_shader(st, "st/drawtex VS",
-                                       MESA_SHADER_VERTEX,
-                                       num_attribs, inputs,
-                                       slots, NULL, 0);
+      st_nir_make_passthrough_vs(st, "st/drawtex VS", num_attribs, inputs,
+                                 slots, 0);
 
    NumCachedShaders++;
 
@@ -273,7 +271,7 @@ st_DrawTex(struct gl_context *ctx, GLfloat x, GLfloat y, GLfloat z,
    velems.count = numAttribs;
 
    cso_set_vertex_elements(cso, &velems);
-   cso_set_stream_outputs(cso, 0, NULL, NULL);
+   cso_set_stream_outputs(cso, 0, NULL, NULL, 0);
 
    /* viewport state: viewport matching window dims */
    {

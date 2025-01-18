@@ -3,7 +3,6 @@ KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4,Crash
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_array_rgba32i,Fail
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_rg16ui,Fail
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_rgba16,Fail
-KHR-GL46.shader_viewport_layer_array.ShaderViewportIndexTestCase,Fail
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_rgba32i,Fail
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_array_r11f_g11f_b10f,Fail
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_array_rg16i,Fail
@@ -77,10 +76,8 @@ KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_r
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_rgb10_a2,Fail
 
 glx@glx-multi-window-single-context,Fail
-glx@glx-multithread-clearbuffer,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
-glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 0,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 1,Fail
@@ -475,6 +472,7 @@ spec@arb_sample_shading@samplemask 8@noms partition,Fail
 spec@arb_sample_shading@samplemask 8@sample mask_in_one,Fail
 spec@arb_shader_image_load_store@early-z,Fail
 spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
+spec@arb_shader_storage_buffer_object@max-ssbo-size@fs,Crash
 spec@arb_shader_storage_buffer_object@max-ssbo-size@fsexceed,Crash
 spec@arb_shader_storage_buffer_object@max-ssbo-size@vs,Crash
 spec@arb_shader_storage_buffer_object@max-ssbo-size@vsexceed,Crash
@@ -547,7 +545,6 @@ spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_ust_test,Fai
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
-spec@ext_framebuffer_multisample@blit-mismatched-formats,Fail
 spec@ext_framebuffer_multisample@clip-and-scissor-blit 16 msaa,Fail
 spec@ext_framebuffer_multisample@enable-flag,Fail
 spec@ext_framebuffer_multisample@interpolation 16 centroid-deriv-disabled,Fail
@@ -630,13 +627,10 @@ wayland-dEQP-EGL.functional.create_context_ext.robust_gl_32.rgba4444_depth_no_st
 wayland-dEQP-EGL.functional.query_context.query_context.rgba4444_window,Crash
 wayland-dEQP-EGL.functional.render.single_context.gles3.rgba4444_window,Crash
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_y,Fail
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-index-wr,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_y,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_x,Fail
 wayland-dEQP-EGL.functional.resize.surface_size.shrink,Fail
-spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
-dEQP-GLES3.functional.fbo.multiview.samples_1,Fail
 spec@arb_gpu_shader_fp64@uniform_buffers@fs-ubo-load.indirect.3,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_y,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag,Fail
@@ -683,4 +677,17 @@ spec@ext_framebuffer_multisample@interpolation 8 centroid-deriv-disabled,Fail
 wayland-dEQP-EGL.functional.resize.surface_size.grow,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_x,Fail
-spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
+spec@ext_framebuffer_multisample@interpolation 6 non-centroid-deriv-disabled,Fail
+
+glx@glx-tfp,Fail
+glx@glx-visuals-depth -pixmap,Fail
+spec@arb_sample_shading@samplemask 4,Fail
+spec@ext_framebuffer_multisample@interpolation 6 centroid-deriv-disabled,Fail
+spec@ext_framebuffer_multisample@interpolation 8 non-centroid-deriv-disabled,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
+spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
+
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
+spec@!opengl 1.1@depthstencil-default_fb-blit samples=2,Fail
+spec@arb_sample_shading@samplemask 6,Fail
+spec@ext_framebuffer_multisample@interpolation 2 centroid-deriv-disabled,Fail

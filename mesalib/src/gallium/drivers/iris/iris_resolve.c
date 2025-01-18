@@ -965,13 +965,7 @@ iris_resource_get_aux_state(const struct iris_resource *res,
                             uint32_t level, uint32_t layer)
 {
    iris_resource_check_level_layer(res, level, layer);
-
-   if (res->surf.usage & ISL_SURF_USAGE_DEPTH_BIT) {
-      assert(isl_aux_usage_has_hiz(res->aux.usage));
-   } else {
-      assert(res->surf.samples == 1 ||
-             res->surf.msaa_layout == ISL_MSAA_LAYOUT_ARRAY);
-   }
+   assert(res->aux.usage != ISL_AUX_USAGE_NONE);
 
    return res->aux.state[level][layer];
 }
@@ -991,8 +985,7 @@ iris_resource_set_aux_state(struct iris_context *ice,
       assert(iris_resource_level_has_hiz(devinfo, res, level) ||
              !isl_aux_state_has_valid_aux(aux_state));
    } else {
-      assert(res->surf.samples == 1 ||
-             res->surf.msaa_layout == ISL_MSAA_LAYOUT_ARRAY);
+      assert(res->aux.usage != ISL_AUX_USAGE_NONE);
    }
 
    for (unsigned a = 0; a < num_layers; a++) {

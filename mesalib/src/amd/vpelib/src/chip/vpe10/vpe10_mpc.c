@@ -599,7 +599,6 @@ void vpe10_mpc_power_on_1dlut_shaper_3dlut(struct mpc *mpc, bool power_on)
     if (power_on && vpe_priv->init.debug.enable_mem_low_power.bits.mpc) {
         // REG_WAIT(VPMPCC_MCM_MEM_PWR_CTRL, VPMPCC_MCM_SHAPER_MEM_PWR_STATE, 0, 1, max_retries);
         //  Use two REG_SET instead of wait for State
-        //  TODO: Confirm if this delay is enough
         REG_SET_3(VPMPCC_MCM_MEM_PWR_CTRL, REG_DEFAULT(VPMPCC_MCM_MEM_PWR_CTRL),
             VPMPCC_MCM_SHAPER_MEM_PWR_DIS, power_on == true ? 1 : 0, VPMPCC_MCM_3DLUT_MEM_PWR_DIS,
             power_on == true ? 1 : 0, VPMPCC_MCM_1DLUT_MEM_PWR_DIS, power_on == true ? 1 : 0);
@@ -1317,7 +1316,7 @@ void vpe10_mpc_set_blend_lut(struct mpc *mpc, struct transfer_func *blend_tf)
 
         if (gamma_type == CM_DEGAM)
             vpe10_cm_helper_translate_curve_to_degamma_hw_format(
-                blend_tf, &mpc->blender_params, blend_tf->dirty[mpc->inst]); // TODO should init regamma_params first
+                blend_tf, &mpc->blender_params, blend_tf->dirty[mpc->inst]); 
         else
             vpe10_cm_helper_translate_curve_to_hw_format(
                 blend_tf, &mpc->blender_params, false, blend_tf->dirty[mpc->inst]);

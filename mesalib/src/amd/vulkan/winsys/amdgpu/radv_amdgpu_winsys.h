@@ -16,6 +16,7 @@
 #include "util/list.h"
 #include "util/rwlock.h"
 #include "ac_gpu_info.h"
+#include "ac_linux_drm.h"
 #include "radv_radeon_winsys.h"
 
 #include "vk_sync.h"
@@ -23,10 +24,10 @@
 
 struct radv_amdgpu_winsys {
    struct radeon_winsys base;
-   amdgpu_device_handle dev;
+   ac_drm_device *dev;
+   int fd;
 
    struct radeon_info info;
-   struct ac_addrlib *addrlib;
 
    bool debug_all_bos;
    bool debug_log_bos;

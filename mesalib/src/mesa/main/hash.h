@@ -54,7 +54,7 @@ struct _mesa_HashTable {
 };
 
 void
-_mesa_InitHashTable(struct _mesa_HashTable *table);
+_mesa_InitHashTable(struct _mesa_HashTable *table, bool enable_reuse);
 
 void
 _mesa_DeinitHashTable(struct _mesa_HashTable *table,
@@ -89,9 +89,6 @@ _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys);
 bool
 _mesa_HashFindFreeKeys(struct _mesa_HashTable *table, GLuint* keys,
                        GLuint numKeys);
-
-void
-_mesa_HashEnableNameReuse(struct _mesa_HashTable *table);
 
 /* Inline functions. */
 

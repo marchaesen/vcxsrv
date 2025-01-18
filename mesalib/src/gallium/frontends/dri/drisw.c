@@ -56,8 +56,7 @@ get_drawable_info(struct dri_drawable *drawable, int *x, int *y, int *w, int *h)
 {
    const __DRIswrastLoaderExtension *loader = drawable->screen->swrast_loader;
 
-   loader->getDrawableInfo(opaque_dri_drawable(drawable),
-                           x, y, w, h,
+   loader->getDrawableInfo(drawable, x, y, w, h,
                            drawable->loaderPrivate);
 }
 
@@ -66,7 +65,7 @@ put_image(struct dri_drawable *drawable, void *data, unsigned width, unsigned he
 {
    const __DRIswrastLoaderExtension *loader = drawable->screen->swrast_loader;
 
-   loader->putImage(opaque_dri_drawable(drawable), __DRI_SWRAST_IMAGE_OP_SWAP,
+   loader->putImage(drawable, __DRI_SWRAST_IMAGE_OP_SWAP,
                     0, 0, width, height,
                     data, drawable->loaderPrivate);
 }
@@ -77,7 +76,7 @@ put_image2(struct dri_drawable *drawable, void *data, int x, int y,
 {
    const __DRIswrastLoaderExtension *loader = drawable->screen->swrast_loader;
 
-   loader->putImage2(opaque_dri_drawable(drawable), __DRI_SWRAST_IMAGE_OP_SWAP,
+   loader->putImage2(drawable, __DRI_SWRAST_IMAGE_OP_SWAP,
                      x, y, width, height, stride,
                      data, drawable->loaderPrivate);
 }
@@ -91,11 +90,11 @@ put_image_shm(struct dri_drawable *drawable, int shmid, char *shmaddr,
 
    /* if we have the newer interface, don't have to add the offset_x here. */
    if (loader->base.version > 4 && loader->putImageShm2)
-     loader->putImageShm2(opaque_dri_drawable(drawable), __DRI_SWRAST_IMAGE_OP_SWAP,
+     loader->putImageShm2(drawable, __DRI_SWRAST_IMAGE_OP_SWAP,
                           x, y, width, height, stride,
                           shmid, shmaddr, offset, drawable->loaderPrivate);
    else
-     loader->putImageShm(opaque_dri_drawable(drawable), __DRI_SWRAST_IMAGE_OP_SWAP,
+     loader->putImageShm(drawable, __DRI_SWRAST_IMAGE_OP_SWAP,
                          x, y, width, height, stride,
                          shmid, shmaddr, offset + offset_x, drawable->loaderPrivate);
 }
@@ -105,8 +104,7 @@ get_image(struct dri_drawable *drawable, int x, int y, int width, int height, vo
 {
    const __DRIswrastLoaderExtension *loader = drawable->screen->swrast_loader;
 
-   loader->getImage(opaque_dri_drawable(drawable),
-                    x, y, width, height,
+   loader->getImage(drawable, x, y, width, height,
                     data, drawable->loaderPrivate);
 }
 
@@ -119,8 +117,7 @@ get_image2(struct dri_drawable *drawable, int x, int y, int width, int height, i
    if (loader->base.version < 3)
       return;
 
-   loader->getImage2(opaque_dri_drawable(drawable),
-                     x, y, width, height, stride,
+   loader->getImage2(drawable, x, y, width, height, stride,
                      data, drawable->loaderPrivate);
 }
 
@@ -140,9 +137,9 @@ get_image_shm(struct dri_drawable *drawable, int x, int y, int width, int height
       return false;
 
    if (loader->base.version > 5 && loader->getImageShm2)
-      return loader->getImageShm2(opaque_dri_drawable(drawable), x, y, width, height, whandle.handle, drawable->loaderPrivate);
+      return loader->getImageShm2(drawable, x, y, width, height, whandle.handle, drawable->loaderPrivate);
 
-   loader->getImageShm(opaque_dri_drawable(drawable), x, y, width, height, whandle.handle, drawable->loaderPrivate);
+   loader->getImageShm(drawable, x, y, width, height, whandle.handle, drawable->loaderPrivate);
    return true;
 }
 
@@ -374,7 +371,7 @@ dri_image_drawable_get_buffers(struct dri_drawable *drawable,
                                unsigned statts_count);
 
 static void
-handle_in_fence(struct dri_context *ctx, __DRIimage *img)
+handle_in_fence(struct dri_context *ctx, struct dri_image *img)
 {
    struct pipe_context *pipe = ctx->st->pipe;
    struct pipe_fence_handle *fence;
@@ -644,10 +641,8 @@ drisw_init_screen(struct dri_screen *screen, bool driver_name_is_inferred)
 
 /* swrast copy sub buffer entrypoint. */
 void
-driswCopySubBuffer(__DRIdrawable *pdp, int x, int y, int w, int h)
+driswCopySubBuffer(struct dri_drawable *drawable, int x, int y, int w, int h)
 {
-   struct dri_drawable *drawable = dri_drawable(pdp);
-
    assert(drawable->screen->swrast_loader);
 
    drisw_copy_sub_buffer(drawable, x, y, w, h);

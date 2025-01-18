@@ -693,6 +693,8 @@ lower_compute_system_value_instr(nir_builder *b,
                                                  base_group_id),
                                      nir_u2uN(b, group_size, bit_size)),
                          nir_u2uN(b, local_id, bit_size));
+      } else if (options && options->global_id_is_32bit && bit_size > 32) {
+         return nir_u2uN(b, nir_load_global_invocation_id(b, 32), bit_size);
       } else {
          return NULL;
       }

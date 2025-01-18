@@ -73,6 +73,7 @@ enum pipe_video_profile
    PIPE_VIDEO_PROFILE_VP9_PROFILE0,
    PIPE_VIDEO_PROFILE_VP9_PROFILE2,
    PIPE_VIDEO_PROFILE_AV1_MAIN,
+   PIPE_VIDEO_PROFILE_AV1_PROFILE2,
    PIPE_VIDEO_PROFILE_MAX
 };
 
@@ -91,6 +92,7 @@ enum pipe_video_cap
    PIPE_VIDEO_CAP_STACKED_FRAMES = 9,
    PIPE_VIDEO_CAP_MAX_MACROBLOCKS = 10,
    PIPE_VIDEO_CAP_MAX_TEMPORAL_LAYERS = 11,
+   PIPE_VIDEO_CAP_SKIP_CLEAR_SURFACE = 12,
    PIPE_VIDEO_CAP_ENC_MAX_SLICES_PER_FRAME = 13,
    PIPE_VIDEO_CAP_ENC_SLICES_STRUCTURE = 14,
    PIPE_VIDEO_CAP_ENC_MAX_REFERENCES_PER_FRAME = 15,
@@ -119,15 +121,6 @@ enum pipe_video_cap
       to kick off the work in the device
    */
    PIPE_VIDEO_CAP_REQUIRES_FLUSH_ON_END_FRAME = 32,
-
-   /*
-      If reported by the driver, then multiple p_video_codec encode
-      operations can be asynchronously enqueued (and also flushed)
-      with different feedback values in the device before get_feedback
-      is called on them to synchronize. The device can block on begin_frame
-      when it has reached its maximum async depth capacity
-   */
-   PIPE_VIDEO_CAP_ENC_SUPPORTS_ASYNC_OPERATION = 33,
    PIPE_VIDEO_CAP_MIN_WIDTH = 34,
    PIPE_VIDEO_CAP_MIN_HEIGHT = 35,
    PIPE_VIDEO_CAP_ENC_RATE_CONTROL_QVBR = 36,
@@ -172,6 +165,11 @@ enum pipe_video_cap
     * HEVC range extension support pipe_h265_enc_cap_range_extension_flags
     */
    PIPE_VIDEO_CAP_ENC_HEVC_RANGE_EXTENSION_FLAGS_SUPPORT = 52,
+   /*
+    * Video Post Processing support HDR content
+    */
+   PIPE_VIDEO_CAP_VPP_SUPPORT_HDR_INPUT = 53,
+   PIPE_VIDEO_CAP_VPP_SUPPORT_HDR_OUTPUT = 54,
 };
 
 enum pipe_video_h264_enc_dbk_filter_mode_flags
@@ -259,6 +257,7 @@ enum pipe_video_vpp_color_standard_type
    PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_BT601 = 0x1,
    PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_BT709 = 0x2,
    PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_BT2020 = 0xC,
+   PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_EXPLICIT = 0xD,
    PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_COUNT,
 };
 
@@ -281,6 +280,76 @@ enum pipe_video_vpp_chroma_siting
    PIPE_VIDEO_VPP_CHROMA_SITING_HORIZONTAL_CENTER = 0x20,
 };
 
+/* To be used for VPP state*/
+enum pipe_video_vpp_color_primaries {
+    PIPE_VIDEO_VPP_PRI_RESERVED0    = 0,
+    PIPE_VIDEO_VPP_PRI_BT709        = 1,
+    PIPE_VIDEO_VPP_PRI_UNSPECIFIED  = 2,
+    PIPE_VIDEO_VPP_PRI_RESERVED     = 3,
+    PIPE_VIDEO_VPP_PRI_BT470M       = 4,
+    PIPE_VIDEO_VPP_PRI_BT470BG      = 5,
+    PIPE_VIDEO_VPP_PRI_SMPTE170M    = 6,
+    PIPE_VIDEO_VPP_PRI_SMPTE240M    = 7,
+    PIPE_VIDEO_VPP_PRI_FILM         = 8,
+    PIPE_VIDEO_VPP_PRI_BT2020       = 9,
+    PIPE_VIDEO_VPP_PRI_SMPTE428     = 10,
+    PIPE_VIDEO_VPP_PRI_SMPTEST428_1 = PIPE_VIDEO_VPP_PRI_SMPTE428,
+    PIPE_VIDEO_VPP_PRI_SMPTE431     = 11,
+    PIPE_VIDEO_VPP_PRI_SMPTE432     = 12,
+    PIPE_VIDEO_VPP_PRI_EBU3213      = 22,
+    PIPE_VIDEO_VPP_PRI_JEDEC_P22    = PIPE_VIDEO_VPP_PRI_EBU3213,
+    PIPE_VIDEO_VPP_PRI_COUNT,
+};
+
+/* To be used for VPP state*/
+enum pipe_video_vpp_transfer_characteristic {
+    PIPE_VIDEO_VPP_TRC_RESERVED0    = 0,
+    PIPE_VIDEO_VPP_TRC_BT709        = 1,
+    PIPE_VIDEO_VPP_TRC_UNSPECIFIED  = 2,
+    PIPE_VIDEO_VPP_TRC_RESERVED     = 3,
+    PIPE_VIDEO_VPP_TRC_GAMMA22      = 4,
+    PIPE_VIDEO_VPP_TRC_GAMMA28      = 5,
+    PIPE_VIDEO_VPP_TRC_SMPTE170M    = 6,
+    PIPE_VIDEO_VPP_TRC_SMPTE240M    = 7,
+    PIPE_VIDEO_VPP_TRC_LINEAR       = 8,
+    PIPE_VIDEO_VPP_TRC_LOG          = 9,
+    PIPE_VIDEO_VPP_TRC_LOG_SQRT     = 10,
+    PIPE_VIDEO_VPP_TRC_IEC61966_2_4 = 11,
+    PIPE_VIDEO_VPP_TRC_BT1361_ECG   = 12,
+    PIPE_VIDEO_VPP_TRC_IEC61966_2_1 = 13,
+    PIPE_VIDEO_VPP_TRC_BT2020_10    = 14,
+    PIPE_VIDEO_VPP_TRC_BT2020_12    = 15,
+    PIPE_VIDEO_VPP_TRC_SMPTE2084    = 16,
+    PIPE_VIDEO_VPP_TRC_SMPTEST2084  = PIPE_VIDEO_VPP_TRC_SMPTE2084,
+    PIPE_VIDEO_VPP_TRC_SMPTE428     = 17,
+    PIPE_VIDEO_VPP_TRC_SMPTEST428_1 = PIPE_VIDEO_VPP_TRC_SMPTE428,
+    PIPE_VIDEO_VPP_TRC_ARIB_STD_B67 = 18,
+    PIPE_VIDEO_VPP_TRC_COUNT,
+};
+
+/* To be used for VPP state*/
+enum pipe_video_vpp_matrix_coefficients {
+    PIPE_VIDEO_VPP_MCF_RGB         = 0,
+    PIPE_VIDEO_VPP_MCF_BT709       = 1,
+    PIPE_VIDEO_VPP_MCF_UNSPECIFIED = 2,
+    PIPE_VIDEO_VPP_MCF_RESERVED    = 3,
+    PIPE_VIDEO_VPP_MCF_FCC         = 4,
+    PIPE_VIDEO_VPP_MCF_BT470BG     = 5,
+    PIPE_VIDEO_VPP_MCF_SMPTE170M   = 6,
+    PIPE_VIDEO_VPP_MCF_SMPTE240M   = 7,
+    PIPE_VIDEO_VPP_MCF_YCGCO       = 8,
+    PIPE_VIDEO_VPP_MCF_YCOCG       = PIPE_VIDEO_VPP_MCF_YCGCO,
+    PIPE_VIDEO_VPP_MCF_BT2020_NCL  = 9,
+    PIPE_VIDEO_VPP_MCF_BT2020_CL   = 10,
+    PIPE_VIDEO_VPP_MCF_SMPTE2085   = 11,
+    PIPE_VIDEO_VPP_MCF_CHROMA_DERIVED_NCL = 12,
+    PIPE_VIDEO_VPP_MCF_CHROMA_DERIVED_CL = 13,
+    PIPE_VIDEO_VPP_MCF_ICTCP       = 14,
+    PIPE_VIDEO_VPP_MCF_IPT_C2      = 15,
+    PIPE_VIDEO_VPP_MCF_YCGCO_RE    = 16,
+    PIPE_VIDEO_VPP_MCF_YCGCO_RO    = 17,
+    PIPE_VIDEO_VPP_MCF_COUNT,
+};
 
 /* To be used with cap PIPE_VIDEO_CAP_ENC_SLICES_STRUCTURE*/
 /**

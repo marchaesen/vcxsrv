@@ -24,13 +24,13 @@
 #include <sys/select.h>
 #endif
 
-#define xcb_fail_assert(_message, _var) { \
+#define xcb_fail_assert(_message, _var) do { \
 	unsigned int _var = 1; \
 	fprintf(stderr, "[xcb] Aborting, sorry about that.\n"); \
 	assert(!_var); \
-}
+} while (0)
 
-#define throw_thread_fail_assert(_message, _var) { \
+#define throw_thread_fail_assert(_message, _var) do { \
 	fprintf(stderr, "[xcb] " _message "\n"); \
         if (_Xglobal_lock) { \
             fprintf(stderr, "[xcb] You called XInitThreads, this is not your fault\n"); \
@@ -39,16 +39,16 @@
                             "and XInitThreads has not been called\n"); \
         } \
 	xcb_fail_assert(_message, _var); \
-}
+} while (0)
 
 /* XXX: It would probably be most useful if we stored the last-processed
  *      request, so we could find the offender from the message. */
-#define throw_extlib_fail_assert(_message, _var) { \
+#define throw_extlib_fail_assert(_message, _var) do { \
 	fprintf(stderr, "[xcb] " _message "\n"); \
 	fprintf(stderr, "[xcb] This is most likely caused by a broken X " \
 	                "extension library\n"); \
 	xcb_fail_assert(_message, _var); \
-}
+} while (0)
 
 static void return_socket(void *closure)
 {

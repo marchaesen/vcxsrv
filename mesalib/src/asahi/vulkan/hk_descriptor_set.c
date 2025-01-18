@@ -316,9 +316,7 @@ hk_UpdateDescriptorSets(VkDevice device, uint32_t descriptorWriteCount,
          }
       }
 
-      switch (src_binding_layout->type) {
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: {
+      if (vk_descriptor_type_is_dynamic(src_binding_layout->type)) {
          const uint32_t dst_dyn_start =
             dst_binding_layout->dynamic_buffer_index + copy->dstArrayElement;
          const uint32_t src_dyn_start =
@@ -326,10 +324,6 @@ hk_UpdateDescriptorSets(VkDevice device, uint32_t descriptorWriteCount,
          typed_memcpy(&dst->dynamic_buffers[dst_dyn_start],
                       &src->dynamic_buffers[src_dyn_start],
                       copy->descriptorCount);
-         break;
-      }
-      default:
-         break;
       }
    }
 }
@@ -489,7 +483,7 @@ hk_CreateDescriptorPool(VkDevice _device,
          return vk_error(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY);
       }
 
-      pool->mapped_ptr = pool->bo->map;
+      pool->mapped_ptr = agx_bo_map(pool->bo);
 
       /* The BO may be larger thanks to GPU page alignment.  We may as well
        * make that extra space available to the client.

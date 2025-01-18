@@ -767,11 +767,10 @@ static unsigned si_identity(unsigned slot)
 static void si_dump_descriptors(struct si_context *sctx, gl_shader_stage stage,
                                 const struct si_shader_info *info, struct u_log_context *log)
 {
-   enum pipe_shader_type processor = pipe_shader_type_from_mesa(stage);
    struct si_descriptors *descs =
-      &sctx->descriptors[SI_DESCS_FIRST_SHADER + processor * SI_NUM_SHADER_DESCS];
+      &sctx->descriptors[SI_DESCS_FIRST_SHADER + stage * SI_NUM_SHADER_DESCS];
    static const char *shader_name[] = {"VS", "PS", "GS", "TCS", "TES", "CS"};
-   const char *name = shader_name[processor];
+   const char *name = shader_name[stage];
    unsigned enabled_constbuf, enabled_shaderbuf, enabled_samplers;
    unsigned enabled_images;
 
@@ -782,15 +781,15 @@ static void si_dump_descriptors(struct si_context *sctx, gl_shader_stage stage,
       enabled_images = u_bit_consecutive(0, info->base.num_images);
    } else {
       enabled_constbuf =
-         sctx->const_and_shader_buffers[processor].enabled_mask >> SI_NUM_SHADER_BUFFERS;
+         sctx->const_and_shader_buffers[stage].enabled_mask >> SI_NUM_SHADER_BUFFERS;
       enabled_shaderbuf = 0;
       for (int i = 0; i < SI_NUM_SHADER_BUFFERS; i++) {
          enabled_shaderbuf |=
-            (sctx->const_and_shader_buffers[processor].enabled_mask &
+            (sctx->const_and_shader_buffers[stage].enabled_mask &
              1llu << (SI_NUM_SHADER_BUFFERS - i - 1)) << i;
       }
-      enabled_samplers = sctx->samplers[processor].enabled_mask;
-      enabled_images = sctx->images[processor].enabled_mask;
+      enabled_samplers = sctx->samplers[stage].enabled_mask;
+      enabled_images = sctx->images[stage].enabled_mask;
    }
 
    si_dump_descriptor_list(sctx->screen, &descs[SI_SHADER_DESCS_CONST_AND_SHADER_BUFFERS], name,

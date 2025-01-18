@@ -4,21 +4,29 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
+import datetime
+import math
+import os
 import re
 import sys
 
 from custom_logger import CustomLogger
 from serial_buffer import SerialBuffer
 
+ANSI_ESCAPE="\x1b[0K"
+ANSI_COLOUR="\x1b[0;36m"
+ANSI_RESET="\x1b[0m"
+SECTION_START="start"
+SECTION_END="end"
 
 class CrosServoRun:
     def __init__(self, cpu, ec, test_timeout, logger):
         self.cpu_ser = SerialBuffer(
-            cpu, "results/serial.txt", "R SERIAL-CPU> ")
+            cpu, "results/serial.txt", ": ")
         # Merge the EC serial into the cpu_ser's line stream so that we can
         # effectively poll on both at the same time and not have to worry about
         self.ec_ser = SerialBuffer(
-            ec, "results/serial-ec.txt", "R SERIAL-EC> ", line_queue=self.cpu_ser.line_queue)
+            ec, "results/serial-ec.txt", " EC: ", line_queue=self.cpu_ser.line_queue)
         self.test_timeout = test_timeout
         self.logger = logger
 
@@ -27,11 +35,11 @@ class CrosServoRun:
         self.cpu_ser.close()
 
     def ec_write(self, s):
-        print("W SERIAL-EC> %s" % s)
+        print("EC> %s" % s)
         self.ec_ser.serial.write(s.encode())
 
     def cpu_write(self, s):
-        print("W SERIAL-CPU> %s" % s)
+        print("> %s" % s)
         self.cpu_ser.serial.write(s.encode())
 
     def print_error(self, message):
@@ -40,6 +48,31 @@ class CrosServoRun:
         print(RED + message + NO_COLOR)
         self.logger.update_status_fail(message)
 
+    def get_rel_timestamp(self):
+        now = datetime.datetime.now(tz=datetime.UTC)
+        then_env = os.getenv("CI_JOB_STARTED_AT")
+        if not then_env:
+            return ""
+        delta = now - datetime.datetime.fromisoformat(then_env)
+        return f"[{math.floor(delta.seconds / 60):02}:{(delta.seconds % 60):02}]"
+
+    def get_cur_timestamp(self):
+        return str(int(datetime.datetime.timestamp(datetime.datetime.now())))
+
+    def print_gitlab_section(self, action, name, description, collapse=True):
+        assert action in [SECTION_START, SECTION_END]
+        out = ANSI_ESCAPE + "section_" + action + ":"
+        out += self.get_cur_timestamp() + ":"
+        out += name
+        if action == "start" and collapse:
+            out += "[collapsed=true]"
+        out += "\r" + ANSI_ESCAPE + ANSI_COLOUR
+        out += self.get_rel_timestamp() + " " + description + ANSI_RESET
+        print(out)
+
+    def boot_section(self, action):
+        self.print_gitlab_section(action, "dut_boot", "Booting hardware device", True)
+
     def run(self):
         # Flush any partial commands in the EC's prompt, then ask for a reboot.
         self.ec_write("\n")
@@ -47,6 +80,7 @@ class CrosServoRun:
 
         bootloader_done = False
         self.logger.create_job_phase("boot")
+        self.boot_section(SECTION_START)
         tftp_failures = 0
         # This is emitted right when the bootloader pauses to check for input.
         # Emit a ^N character to request network boot, because we don't have a

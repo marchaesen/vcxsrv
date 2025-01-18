@@ -1,0 +1,10 @@
+# Allow using `source` to execute the contents of other files than the one
+# being checked.
+external-sources=true
+
+# Do not print links to wiki pages explaining why this is an issue.
+wiki-link-count=0
+
+# All shell scripts are being run using bash, even if they are lacking
+# a shebang.
+shell=bash

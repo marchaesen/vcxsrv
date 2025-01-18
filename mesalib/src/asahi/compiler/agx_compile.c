@@ -6,6 +6,7 @@
  */
 
 #include "agx_compile.h"
+#include "asahi/clc/asahi_clc.h"
 #include "asahi/layout/layout.h"
 #include "compiler/nir/nir_builder.h"
 #include "util/bitset.h"
@@ -18,6 +19,7 @@
 #include "agx_compiler.h"
 #include "agx_debug.h"
 #include "agx_nir.h"
+#include "agx_opcodes.h"
 #include "glsl_types.h"
 #include "nir.h"
 #include "nir_builtin_builder.h"
@@ -25,8 +27,8 @@
 #include "nir_intrinsics_indices.h"
 #include "shader_enums.h"
 
-/* Alignment for shader programs. I'm not sure what the optimal value is. */
-#define AGX_CODE_ALIGN 0x100
+/* Cache-line align shader programs. This matches the prop compiler. */
+#define AGX_CODE_ALIGN 0x80
 
 /* clang-format off */
 static const struct debug_named_value agx_debug_options[] = {
@@ -50,6 +52,21 @@ DEBUG_GET_ONCE_FLAGS_OPTION(agx_compiler_debug, "AGX_MESA_DEBUG",
                             agx_debug_options, 0)
 
 int agx_compiler_debug = 0;
+
+/*
+ * Pad binary to a given alignment and return aligned offset into the binary.
+ */
+static unsigned
+agx_pad_binary(struct util_dynarray *dyn, uint32_t align)
+{
+   if (dyn->size % align) {
+      unsigned ngrow = align - (dyn->size % align);
+      memset(util_dynarray_grow_bytes(dyn, ngrow, 1), 0, ngrow);
+   }
+
+   assert((dyn->size % align) == 0);
+   return dyn->size;
+}
 
 uint64_t
 agx_get_compiler_debug(void)
@@ -613,6 +630,31 @@ agx_emit_load_vary(agx_builder *b, agx_index dest, nir_intrinsic_instr *instr)
    agx_emit_cached_split(b, dest, components);
 }
 
+static void
+agx_wait_pixel_mask(agx_builder *b, uint32_t mask)
+{
+   /* Background programs do not need to wait as they are the eldest pixels */
+   if (b->shader->key->fs.ignore_tib_dependencies) {
+      assert(b->shader->nir->info.internal);
+      return;
+   }
+
+   /* No need to wait twice on a fence */
+   mask &= ~b->shader->already_pixel_waited;
+   if (mask == 0) {
+      return;
+   }
+
+   agx_wait_pix(b, mask);
+
+   /* Only mark the fence as waited if we're not in control flow. Eventually we
+    * should do something smarter with a dataflow.
+    */
+   if (b->shader->total_nesting == 0) {
+      b->shader->already_pixel_waited |= mask;
+   }
+}
+
 static agx_instr *
 agx_emit_local_store_pixel(agx_builder *b, nir_intrinsic_instr *instr)
 {
@@ -620,13 +662,7 @@ agx_emit_local_store_pixel(agx_builder *b, nir_intrinsic_instr *instr)
 
    /* TODO: Reverse-engineer interactions with MRT */
    if (b->shader->stage == MESA_SHADER_FRAGMENT) {
-      if (b->shader->key->fs.ignore_tib_dependencies) {
-         assert(b->shader->nir->info.internal && "only for clear shaders");
-      } else if (b->shader->did_writeout) {
-         agx_wait_pix(b, 0x0004);
-      } else {
-         agx_wait_pix(b, 0x000C);
-      }
+      agx_wait_pixel_mask(b, 0xC);
    }
 
    /* Compact the registers according to the mask */
@@ -640,7 +676,6 @@ agx_emit_local_store_pixel(agx_builder *b, nir_intrinsic_instr *instr)
    agx_index collected = agx_emit_collect(b, compact_count, compacted);
    agx_index coords = explicit ? agx_src_index(&instr->src[2]) : agx_null();
 
-   b->shader->did_writeout = true;
    b->shader->out->tag_write_disable = false;
    return agx_st_tile(b, collected, agx_src_index(&instr->src[1]), coords,
                       agx_format_for_pipe(nir_intrinsic_format(instr)),
@@ -654,10 +689,6 @@ agx_emit_store_zs(agx_builder *b, nir_intrinsic_instr *instr)
    unsigned base = nir_intrinsic_base(instr);
    bool write_z = base & 1;
    bool write_s = base & 2;
-
-   /* TODO: Handle better */
-   assert(!b->shader->key->fs.ignore_tib_dependencies && "not used");
-   agx_wait_pix(b, 0x0001);
 
    agx_index z = agx_src_index(&instr->src[1]);
    agx_index s = agx_src_index(&instr->src[2]);
@@ -678,6 +709,7 @@ agx_emit_store_zs(agx_builder *b, nir_intrinsic_instr *instr)
     */
    b->shader->out->writes_sample_mask = true;
 
+   agx_wait_pixel_mask(b, 0x1);
    return agx_zs_emit(b, agx_src_index(&instr->src[0]), zs, base);
 }
 
@@ -685,10 +717,7 @@ static void
 agx_emit_local_load_pixel(agx_builder *b, agx_index dest,
                           nir_intrinsic_instr *instr)
 {
-   /* TODO: Reverse-engineer interactions with MRT */
-   assert(!b->shader->key->fs.ignore_tib_dependencies && "invalid usage");
-   agx_wait_pix(b, 0x0008);
-   b->shader->did_writeout = true;
+   agx_wait_pixel_mask(b, 0x8);
 
    unsigned nr_comps = instr->def.num_components;
    agx_ld_tile_to(b, dest, agx_src_index(&instr->src[0]), agx_null(),
@@ -1351,7 +1380,7 @@ agx_emit_intrinsic(agx_builder *b, nir_intrinsic_instr *instr)
          nir_src_is_const(instr->src[1]) && nir_src_as_uint(instr->src[1]) == 0;
 
       if (!no_tests)
-         agx_wait_pix(b, 0x0001);
+         agx_wait_pixel_mask(b, 0x1);
 
       return agx_sample_mask(b, agx_src_index(&instr->src[0]),
                              agx_src_index(&instr->src[1]));
@@ -1528,11 +1557,7 @@ agx_emit_intrinsic(agx_builder *b, nir_intrinsic_instr *instr)
    }
 
    case nir_intrinsic_begin_invocation_interlock: {
-      if (!b->shader->did_writeout &&
-          !b->shader->key->fs.ignore_tib_dependencies)
-         agx_wait_pix(b, 0x000C);
-
-      b->shader->did_writeout = true;
+      agx_wait_pixel_mask(b, 0xC);
       return NULL;
    }
 
@@ -1755,20 +1780,17 @@ agx_fminmax_to(agx_builder *b, agx_index dst, agx_index s0, agx_index s1,
    assert(!nir_alu_instr_is_signed_zero_preserve(alu) &&
           "should've been lowered");
 
-   bool fmax = alu->op == nir_op_fmax;
+   assert((alu->def.bit_size == 16) ==
+             (alu->op == nir_op_fmin || alu->op == nir_op_fmax) &&
+          "fp32 should be lowered");
+
+   bool fmax = alu->op == nir_op_fmax || alu->op == nir_op_fmax_agx;
    enum agx_fcond fcond = fmax ? AGX_FCOND_GTN : AGX_FCOND_LTN;
 
-   /* Calculate min/max with the appropriate hardware instruction */
-   agx_index tmp = agx_fcmpsel(b, s0, s1, s0, s1, fcond);
-
-   /* G13 flushes fp32 denorms and preserves fp16 denorms. Since cmpsel
-    * preserves denorms, we need to canonicalize for fp32. Canonicalizing fp16
-    * would be harmless but wastes an instruction.
+   /* Calculate min/max with the appropriate hardware instruction. This will not
+    * handle denorms, but we were already lowered for that.
     */
-   if (alu->def.bit_size == 32)
-      return agx_fadd_to(b, dst, tmp, agx_negzero());
-   else
-      return agx_mov_to(b, dst, tmp);
+   return agx_fcmpsel_to(b, dst, s0, s1, s0, s1, fcond);
 }
 
 static agx_instr *
@@ -1801,15 +1823,8 @@ agx_emit_alu(agx_builder *b, nir_alu_instr *instr)
 #define BINOP(nop, aop)                                                        \
    case nir_op_##nop:                                                          \
       return agx_##aop##_to(b, dst, s0, s1);
-#define TRIOP(nop, aop)                                                        \
-   case nir_op_##nop:                                                          \
-      return agx_##aop##_to(b, dst, s0, s1, s2);
 
    switch (instr->op) {
-      BINOP(fadd, fadd);
-      BINOP(fmul, fmul);
-      TRIOP(ffma, fma);
-
       UNOP(f2f16, fmov);
       UNOP(f2f16_rtne, fmov);
       UNOP(f2f32, fmov);
@@ -1831,6 +1846,33 @@ agx_emit_alu(agx_builder *b, nir_alu_instr *instr)
       BINOP(ior, or);
       BINOP(ixor, xor);
       BINOP(interleave_agx, intl);
+
+   case nir_op_fadd:
+      if (instr->def.bit_size == 16)
+         return agx_hadd_to(b, dst, s0, s1);
+      else
+         return agx_fadd_to(b, dst, s0, s1);
+
+   case nir_op_fmul:
+      if (instr->def.bit_size == 16)
+         return agx_hmul_to(b, dst, s0, s1);
+      else
+         return agx_fmul_to(b, dst, s0, s1);
+
+   case nir_op_ffma:
+      if (instr->def.bit_size == 16)
+         return agx_hfma_to(b, dst, s0, s1, s2);
+      else
+         return agx_ffma_to(b, dst, s0, s1, s2);
+
+   case nir_op_fsat: {
+      agx_instr *I = agx_fadd_to(b, dst, s0, agx_negzero());
+      if (instr->def.bit_size == 16)
+         I->op = AGX_OPCODE_HADD;
+
+      I->saturate = true;
+      return I;
+   }
 
    case nir_op_feq:
       return agx_fcmp_to(b, dst, s0, s1, AGX_FCOND_EQ, false);
@@ -1872,6 +1914,8 @@ agx_emit_alu(agx_builder *b, nir_alu_instr *instr)
 
    case nir_op_fmin:
    case nir_op_fmax:
+   case nir_op_fmin_agx:
+   case nir_op_fmax_agx:
       return agx_fminmax_to(b, dst, s0, s1, instr);
 
    case nir_op_imin:
@@ -1939,7 +1983,7 @@ agx_emit_alu(agx_builder *b, nir_alu_instr *instr)
          return agx_asr_to(b, dst, ishl16, agx_immediate(8));
       } else {
          assert(s0.size == AGX_SIZE_16 && "other conversions lowered");
-         return agx_iadd_to(b, dst, s0, i0, 0);
+         return agx_signext_to(b, dst, s0);
       }
    }
 
@@ -1989,12 +2033,6 @@ agx_emit_alu(agx_builder *b, nir_alu_instr *instr)
 
    case nir_op_usub_sat: {
       agx_instr *I = agx_iadd_to(b, dst, agx_abs(s0), agx_neg(agx_abs(s1)), 0);
-      I->saturate = true;
-      return I;
-   }
-
-   case nir_op_fsat: {
-      agx_instr *I = agx_fadd_to(b, dst, s0, agx_negzero());
       I->saturate = true;
       return I;
    }
@@ -2327,6 +2365,13 @@ static void
 agx_emit_jump(agx_builder *b, nir_jump_instr *instr)
 {
    agx_context *ctx = b->shader;
+
+   if (instr->type == nir_jump_halt) {
+      agx_stop(b);
+      ctx->current_block->unconditional_jumps = true;
+      return;
+   }
+
    assert(instr->type == nir_jump_break || instr->type == nir_jump_continue);
 
    /* Break out of either one or two loops */
@@ -2788,17 +2833,17 @@ agx_optimize_loop_nir(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_algebraic);
       NIR_PASS(progress, nir, nir_opt_constant_folding);
       NIR_PASS(progress, nir, nir_opt_undef);
-      NIR_PASS(progress, nir, nir_opt_shrink_vectors, true);
       NIR_PASS(progress, nir, nir_opt_loop_unroll);
    } while (progress);
 }
 
-static bool
-mem_vectorize_cb(unsigned align_mul, unsigned align_offset, unsigned bit_size,
-                 unsigned num_components, unsigned hole_size,
-                 nir_intrinsic_instr *low, nir_intrinsic_instr *high, void *data)
+bool
+agx_mem_vectorize_cb(unsigned align_mul, unsigned align_offset,
+                     unsigned bit_size, unsigned num_components,
+                     int64_t hole_size, nir_intrinsic_instr *low,
+                     nir_intrinsic_instr *high, void *data)
 {
-   if (hole_size)
+   if (hole_size > 0)
       return false;
 
    /* Must be aligned to the size of the load */
@@ -2940,7 +2985,7 @@ optimize_bounds(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 }
 
 static void
-agx_optimize_nir(nir_shader *nir, bool soft_fault, unsigned *preamble_size)
+agx_optimize_nir(nir_shader *nir, bool soft_fault, uint16_t *preamble_size)
 {
    /* This runs only once up front since other optimizations don't affect it */
    NIR_PASS(_, nir, nir_opt_shrink_stores, true);
@@ -2964,12 +3009,20 @@ agx_optimize_nir(nir_shader *nir, bool soft_fault, unsigned *preamble_size)
 
    NIR_PASS(_, nir, nir_opt_load_store_vectorize,
             &(const nir_load_store_vectorize_options){
-               .modes = nir_var_mem_global | nir_var_mem_constant,
-               .callback = mem_vectorize_cb,
+               .modes = nir_var_mem_global | nir_var_mem_constant |
+                        nir_var_shader_temp,
+               .callback = agx_mem_vectorize_cb,
             });
    NIR_PASS(_, nir, nir_lower_pack);
+   NIR_PASS(_, nir, nir_opt_algebraic);
 
-   nir_convert_to_lcssa(nir, true, true);
+   /* Lower addressing modes. The sooner we do this, the sooner we get rid of
+    * amul/aadd instructions and can let nir_opt_algebraic do its job. But we
+    * want to vectorize first since nir_opt_load_store_vectorize doesn't know
+    * how to handle our loads.
+    */
+   NIR_PASS(_, nir, agx_nir_lower_address);
+
    NIR_PASS_V(nir, nir_divergence_analysis);
    bool progress = false;
 
@@ -2982,15 +3035,20 @@ agx_optimize_nir(nir_shader *nir, bool soft_fault, unsigned *preamble_size)
 
    NIR_PASS(progress, nir, nir_opt_uniform_atomics, true);
    NIR_PASS(progress, nir, nir_opt_uniform_subgroup, &subgroups_options);
-
-   /* The above create operations that need lowering/optimizing */
    if (progress) {
       NIR_PASS(_, nir, agx_nir_lower_subgroups);
-      NIR_PASS(_, nir, nir_opt_algebraic);
    }
 
+   /* The above create operations that need lowering/optimizing */
+   do {
+      progress = false;
+
+      NIR_PASS(progress, nir, nir_opt_algebraic);
+      NIR_PASS(progress, nir, nir_opt_constant_folding);
+      NIR_PASS(progress, nir, nir_opt_dce);
+   } while (progress);
+
    progress = false;
-   NIR_PASS(progress, nir, agx_nir_lower_address);
 
    /* If address lowering made progress, clean up before forming preambles.
     * Otherwise the optimized preambles might just be constants! Do it before
@@ -3020,8 +3078,16 @@ agx_optimize_nir(nir_shader *nir, bool soft_fault, unsigned *preamble_size)
       } while (progress);
    }
 
-   if (preamble_size && (!(agx_compiler_debug & AGX_DBG_NOPREAMBLE)))
-      NIR_PASS(_, nir, agx_nir_opt_preamble, preamble_size);
+   /* Lower fmin/fmax before optimizing preambles so we can see across uniform
+    * expressions.
+    */
+   NIR_PASS(_, nir, agx_nir_lower_fminmax);
+
+   if (preamble_size && (!(agx_compiler_debug & AGX_DBG_NOPREAMBLE))) {
+      unsigned temp = *preamble_size;
+      NIR_PASS(_, nir, agx_nir_opt_preamble, &temp);
+      *preamble_size = temp;
+   }
 
    /* Forming preambles may dramatically reduce the instruction count
     * in certain blocks, causing some if-else statements to become
@@ -3033,7 +3099,12 @@ agx_optimize_nir(nir_shader *nir, bool soft_fault, unsigned *preamble_size)
    NIR_PASS(_, nir, nir_opt_peephole_select, 64, false, true);
    NIR_PASS(_, nir, nir_lower_int64);
 
+   /* We need to lower fmin/fmax again after nir_opt_algebraic_late due to f2fmp
+    * wackiness. This is usually a no-op but is required for correctness in
+    * GLES.
+    */
    NIR_PASS(_, nir, nir_opt_algebraic_late);
+   NIR_PASS(_, nir, agx_nir_lower_fminmax);
 
    /* Fuse add/sub/multiplies/shifts after running opt_algebraic_late to fuse
     * isub but before shifts are lowered.
@@ -3056,7 +3127,10 @@ agx_optimize_nir(nir_shader *nir, bool soft_fault, unsigned *preamble_size)
       nir_index_ssa_defs(impl);
    }
 
-   if (soft_fault) {
+   /* TODO: Reenable this pass. It's breaking Fallout 4 in ways I don't
+    * understand yet.
+    */
+   if (soft_fault && 0) {
       NIR_PASS(_, nir, nir_shader_intrinsics_pass, optimize_bounds,
                nir_metadata_control_flow, NULL);
    }
@@ -3176,7 +3250,7 @@ static nir_mem_access_size_align
 mem_access_size_align_cb(nir_intrinsic_op intrin, uint8_t bytes,
                          uint8_t bit_size, uint32_t align,
                          uint32_t align_offset, bool offset_is_const,
-                         const void *cb_data)
+                         enum gl_access_qualifier access, const void *cb_data)
 {
    align = nir_combined_align(align, align_offset);
 
@@ -3193,6 +3267,7 @@ mem_access_size_align_cb(nir_intrinsic_op intrin, uint8_t bytes,
       .num_components = MIN2(bytes / (bit_size / 8), 4),
       .bit_size = bit_size,
       .align = bit_size / 8,
+      .shift = nir_mem_access_shift_method_scalar,
    };
 }
 
@@ -3497,15 +3572,19 @@ agx_compile_function_nir(nir_shader *nir, nir_function_impl *impl,
    if (agx_should_dump(nir, AGX_DBG_SHADERS))
       agx_print_shader(ctx, stdout);
 
-   /* Pad binary */
-   if (binary->size % AGX_CODE_ALIGN) {
-      unsigned ngrow = AGX_CODE_ALIGN - (binary->size % AGX_CODE_ALIGN);
-      memset(util_dynarray_grow_bytes(binary, ngrow, 1), 0, ngrow);
+   /* Upload constants before the binary instead after to reduce the chance they
+    * get prefetched into the i-cache, when we want them only in the d-cache.
+    * Also helps fill the padding space for small preambles.
+    */
+   if (ctx->out->rodata.size_16 && !impl->function->is_preamble) {
+      ctx->out->rodata.offset = agx_pad_binary(binary, 4);
+      unsigned size_16 = ctx->out->rodata.size_16;
+
+      uint16_t *ro = util_dynarray_grow(binary, uint16_t, size_16);
+      memcpy(ro, ctx->rodata, size_16 * 2);
    }
 
-   unsigned offset = binary->size;
-   assert((offset % AGX_CODE_ALIGN) == 0);
-
+   unsigned offset = agx_pad_binary(binary, AGX_CODE_ALIGN);
    agx_pack_binary(ctx, binary);
 
    unsigned nr_gprs = ctx->max_reg + 1;
@@ -3614,8 +3693,7 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx)
 
    /* Lower large arrays to scratch and small arrays to csel */
    NIR_PASS(_, nir, nir_lower_vars_to_scratch, nir_var_function_temp, 256,
-            glsl_get_natural_size_align_bytes,
-            glsl_get_natural_size_align_bytes);
+            glsl_get_natural_size_align_bytes, glsl_get_word_size_align_bytes);
    NIR_PASS(_, nir, nir_lower_indirect_derefs, nir_var_function_temp, ~0);
    NIR_PASS(_, nir, nir_split_var_copies);
    NIR_PASS(_, nir, nir_lower_global_vars_to_local);
@@ -3698,6 +3776,9 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
    if (nir->info.stage == MESA_SHADER_FRAGMENT)
       info->tag_write_disable = !nir->info.writes_memory;
 
+   NIR_PASS(_, nir, nir_lower_printf_buffer, LIBAGX_PRINTF_BUFFER_ADDRESS,
+            LIBAGX_PRINTF_BUFFER_SIZE - 8);
+
    bool needs_libagx = true /* TODO: Optimize */;
 
    NIR_PASS(_, nir, nir_lower_frag_coord_to_pixel_coord);
@@ -3722,6 +3803,13 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
       .callback = mem_access_size_align_cb,
    };
    NIR_PASS(_, nir, nir_lower_mem_access_bit_sizes, &lower_mem_access_options);
+
+   /* Optimize scratch access */
+   NIR_PASS(_, nir, nir_lower_scratch_to_var);
+   NIR_PASS(_, nir, nir_lower_vars_to_scratch, nir_var_function_temp, 256,
+            glsl_get_natural_size_align_bytes,
+            glsl_get_natural_size_align_bytes);
+   NIR_PASS(_, nir, nir_lower_indirect_derefs, nir_var_function_temp, ~0);
 
    /* Cleanup 8-bit math before lowering */
    bool progress;
@@ -3819,8 +3907,12 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
       info->early_fragment_tests = nir->info.fs.early_fragment_tests;
    } else if (nir->info.stage == MESA_SHADER_COMPUTE) {
       info->imageblock_stride = nir->info.cs.image_block_size_per_thread_agx;
+
+      for (unsigned i = 0; i < 3; ++i) {
+         info->workgroup_size[i] = nir->info.workgroup_size[i];
+      }
    }
 
    out->binary = binary.data;
-   out->binary_size = binary.size;
+   info->binary_size = binary.size;
 }

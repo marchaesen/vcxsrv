@@ -51,7 +51,7 @@ tex_clamp(unsigned wrap, bool *needs_border)
    case PIPE_TEX_WRAP_MIRROR_CLAMP:
    case PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER:
       /* these two we could perhaps emulate, but we currently
-       * just don't advertise PIPE_CAP_TEXTURE_MIRROR_CLAMP
+       * just don't advertise pipe_caps.texture_mirror_clamp
        */
    default:
       DBG("invalid wrap: %u", wrap);
@@ -437,7 +437,6 @@ fd6_sampler_view_update(struct fd_context *ctx,
          .type = fdl_type_from_pipe_target(cso->target),
          .chroma_offsets = {FDL_CHROMA_LOCATION_COSITED_EVEN,
                             FDL_CHROMA_LOCATION_COSITED_EVEN},
-         .ubwc_fc_mutable = false,
       };
 
       if (rsc->b.b.format == PIPE_FORMAT_R8_G8B8_420_UNORM) {

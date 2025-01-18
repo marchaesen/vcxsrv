@@ -253,7 +253,7 @@ d3d12_lower_image_casts(nir_shader *s, struct d3d12_image_format_conversion_info
 
    if (progress) {
       nir_foreach_image_variable(var, s) {
-         if (var->data.driver_location < info->n_images && info->image_format_conversion[var->data.driver_location].emulated_format != PIPE_FORMAT_NONE) {
+         if ((var->data.driver_location < info->n_images) && info->image_format_conversion[var->data.driver_location].emulated_format != PIPE_FORMAT_NONE) {
             var->data.image.format = info->image_format_conversion[var->data.driver_location].emulated_format;
          }
       }

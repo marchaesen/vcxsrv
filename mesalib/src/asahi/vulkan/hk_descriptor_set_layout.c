@@ -193,14 +193,9 @@ hk_CreateDescriptorSetLayout(VkDevice device,
 
       layout->binding[b].array_size = binding->descriptorCount;
 
-      switch (binding->descriptorType) {
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+      if (vk_descriptor_type_is_dynamic(binding->descriptorType)) {
          layout->binding[b].dynamic_buffer_index = dynamic_buffer_count;
          dynamic_buffer_count += binding->descriptorCount;
-         break;
-      default:
-         break;
       }
 
       const VkMutableDescriptorTypeListEXT *type_list =
@@ -346,14 +341,8 @@ hk_GetDescriptorSetLayoutSupport(
       if (binding_flags != NULL && binding_flags->bindingCount > 0)
          flags = binding_flags->pBindingFlags[i];
 
-      switch (binding->descriptorType) {
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+      if (vk_descriptor_type_is_dynamic(binding->descriptorType))
          dynamic_buffer_count += binding->descriptorCount;
-         break;
-      default:
-         break;
-      }
 
       const VkMutableDescriptorTypeListEXT *type_list =
          hk_descriptor_get_type_list(binding->descriptorType, mutable_info, i);

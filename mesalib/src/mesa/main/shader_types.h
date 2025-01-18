@@ -188,7 +188,6 @@ struct gl_shader
 
    struct nir_shader *nir;
    struct exec_list *ir;
-   struct glsl_symbol_table *symbols;
 
    /**
     * Whether early fragment tests are enabled as defined by
@@ -246,9 +245,6 @@ struct gl_shader
 struct gl_linked_shader
 {
    gl_shader_stage Stage;
-
-   /** All gl_shader::compiled_source_blake3 combined. */
-   blake3_hash linked_source_blake3;
 
    struct gl_program *Program;  /**< Post-compile assembly code */
 

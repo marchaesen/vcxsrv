@@ -40,6 +40,13 @@ typedef struct {
 static nir_def *
 get_texcoord(nir_builder *b, lower_drawpixels_state *state)
 {
+   if (b->shader->info.io_lowered) {
+      nir_def *baryc =
+         nir_load_barycentric_pixel(b, 32, .interp_mode = INTERP_MODE_SMOOTH);
+      return nir_load_interpolated_input(b, 4, 32, baryc, nir_imm_int(b, 0),
+                                         .io_semantics.location = VARYING_SLOT_TEX0);
+   }
+
    if (state->texcoord == NULL) {
       state->texcoord = nir_get_variable_with_location(state->shader, nir_var_shader_in,
                                                        VARYING_SLOT_TEX0, glsl_vec4_type());

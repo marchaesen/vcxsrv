@@ -51,6 +51,12 @@ vk_expand_dst_access_flags2(VkPipelineStageFlags2 stages,
    if (access & VK_ACCESS_2_MEMORY_READ_BIT)
       access |= vk_read_access2_for_pipeline_stage_flags2(stages);
 
+   /* expand VK_ACCESS_2_MEMORY_WRITE_BIT for VK_ACCESS_2_HOST_WRITE_BIT */
+   if (access & VK_ACCESS_2_MEMORY_WRITE_BIT) {
+      access |= vk_write_access2_for_pipeline_stage_flags2(stages) &
+                VK_ACCESS_2_HOST_WRITE_BIT;
+   }
+
    if (access & VK_ACCESS_2_SHADER_READ_BIT)
       access |= VK_ACCESS_2_SHADER_SAMPLED_READ_BIT |
                 VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
@@ -77,8 +83,9 @@ vk_filter_dst_access_flags2(VkPipelineStageFlags2 stages,
    const VkAccessFlags2 all_read_access =
       vk_read_access2_for_pipeline_stage_flags2(stages);
 
-   /* We only care about read access in dst flags */
-   return vk_expand_dst_access_flags2(stages, access) & all_read_access;
+   /* We only care about read access (plus host write) in dst flags */
+   return vk_expand_dst_access_flags2(stages, access) &
+          (all_read_access | VK_ACCESS_2_HOST_WRITE_BIT);
 }
 
 VKAPI_ATTR void VKAPI_CALL

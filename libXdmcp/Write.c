@@ -40,7 +40,7 @@ XdmcpWriteHeader (
 {
     BYTE    *newData;
 
-    if ((int)buffer->size < 6 + (int)header->length)
+    if (buffer->size < 6 + (int)header->length)
     {
 	newData = calloc(XDM_MAX_MSGLEN, sizeof (BYTE));
 	if (!newData)

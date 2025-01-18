@@ -187,6 +187,7 @@
 #endif /* 2.24 */
 
 #if !GTK_CHECK_VERSION(3,0,0)
+#define GDK_IS_X11_DISPLAY(display) (1)
 #define GDK_IS_X11_WINDOW(window) (1)
 #endif
 

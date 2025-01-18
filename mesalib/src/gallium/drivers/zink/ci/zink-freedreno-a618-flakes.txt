@@ -32,7 +32,6 @@ dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.srgb8_alpha8_as
 
 # Found when expanding coverage on 2022/11/17, or randomly flaking
 dEQP-GLES31.functional.separate_shader.random.79
-dEQP-GLES3.functional.transform_feedback.random_full_array_capture.separate.lines.4
 dEQP-GLES3.functional.texture.specification.texsubimage3d_pbo.rgba4_2d_array
 dEQP-GLES3.functional.texture.format.sized.cube.rgba4_npot
 dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.*cubemap.*

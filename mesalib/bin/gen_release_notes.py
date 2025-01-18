@@ -40,7 +40,7 @@ import docutils.utils
 import docutils.parsers.rst.states as states
 
 CURRENT_GL_VERSION = '4.6'
-CURRENT_VK_VERSION = '1.3'
+CURRENT_VK_VERSION = '1.4'
 
 TEMPLATE = Template(textwrap.dedent("""\
     ${header}

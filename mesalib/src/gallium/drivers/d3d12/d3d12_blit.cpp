@@ -61,6 +61,7 @@ resolve_supported(const struct pipe_blit_info *info)
 
    if (info->filter != PIPE_TEX_FILTER_NEAREST ||
        info->scissor_enable ||
+       info->swizzle_enable ||
        info->num_window_rectangles > 0 ||
        info->alpha_blend)
       return false;
@@ -162,7 +163,7 @@ direct_copy_supported(struct d3d12_screen *screen,
                       const struct pipe_blit_info *info,
                       bool have_predication)
 {
-   if (info->scissor_enable || info->alpha_blend ||
+   if (info->scissor_enable || info->alpha_blend || info->swizzle_enable ||
        (have_predication && info->render_condition_enable) ||
        MAX2(info->src.resource->nr_samples, 1) != MAX2(info->dst.resource->nr_samples, 1)) {
       return false;
@@ -286,7 +287,8 @@ util_blit_save_state(struct d3d12_context *ctx)
    util_blitter_save_fragment_constant_buffer_slot(ctx->blitter, ctx->cbufs[PIPE_SHADER_FRAGMENT]);
    util_blitter_save_vertex_buffers(ctx->blitter, ctx->vbs, ctx->num_vbs);
    util_blitter_save_sample_mask(ctx->blitter, ctx->gfx_pipeline_state.sample_mask, 0);
-   util_blitter_save_so_targets(ctx->blitter, ctx->gfx_pipeline_state.num_so_targets, ctx->so_targets);
+   util_blitter_save_so_targets(ctx->blitter, ctx->gfx_pipeline_state.num_so_targets, ctx->so_targets,
+                                MESA_PRIM_UNKNOWN);
 }
 
 static void
@@ -327,7 +329,7 @@ create_tmp_resource(struct pipe_screen *screen,
 {
    struct pipe_resource tpl = {};
    tpl.width0 = info->dst.box.width;
-   tpl.height0 = info->dst.box.height;
+   tpl.height0 = static_cast<uint16_t>(info->dst.box.height);
    tpl.depth0 = info->dst.box.depth;
    tpl.array_size = 1;
    tpl.format = PIPE_FORMAT_R8_UINT;

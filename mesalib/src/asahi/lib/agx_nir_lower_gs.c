@@ -8,26 +8,19 @@
 #include "asahi/compiler/agx_compile.h"
 #include "compiler/nir/nir_builder.h"
 #include "gallium/include/pipe/p_defines.h"
-#include "shaders/draws.h"
-#include "shaders/geometry.h"
+#include "libagx/geometry.h"
+#include "libagx/libagx.h"
 #include "util/bitscan.h"
 #include "util/list.h"
 #include "util/macros.h"
 #include "util/ralloc.h"
 #include "util/u_math.h"
-#include "libagx_shaders.h"
 #include "nir.h"
 #include "nir_builder_opcodes.h"
 #include "nir_intrinsics.h"
 #include "nir_intrinsics_indices.h"
 #include "nir_xfb_info.h"
 #include "shader_enums.h"
-
-/* Marks a transform feedback store, which must not be stripped from the
- * prepass since that's where the transform feedback happens. Chosen as a
- * vendored flag not to alias other flags we'll see.
- */
-#define ACCESS_XFB (ACCESS_IS_SWIZZLED_AMD)
 
 enum gs_counter {
    GS_COUNTER_VERTICES = 0,
@@ -861,10 +854,9 @@ write_xfb(nir_builder *b, struct lower_gs_state *state, unsigned stream,
             nir_imm_int(b, buffer), nir_imm_int(b, stride),
             nir_imm_int(b, output.offset));
 
-         nir_build_store_global(
-            b, nir_channels(b, value, output.component_mask), addr,
-            .align_mul = 4, .write_mask = nir_component_mask(count),
-            .access = ACCESS_XFB);
+         nir_store_global(b, addr, 4,
+                          nir_channels(b, value, output.component_mask),
+                          nir_component_mask(count));
       }
    }
 
@@ -1084,15 +1076,6 @@ agx_nir_create_pre_gs(struct lower_gs_state *state, const nir_shader *libagx,
          add_counter(b, off_ptr, size);
       }
    }
-
-   /* The geometry shader receives a number of input primitives. The driver
-    * should disable this counter when tessellation is active TODO and count
-    * patches separately.
-    */
-   add_counter(
-      b,
-      nir_load_stat_query_address_agx(b, .base = PIPE_STAT_QUERY_IA_PRIMITIVES),
-      unrolled_in_prims);
 
    /* The geometry shader is invoked once per primitive (after unrolling
     * primitive restart). From the spec:
@@ -1505,139 +1488,4 @@ agx_nir_lower_vs_before_gs(struct nir_shader *vs,
       link_libagx(vs, libagx);
 
    return progress;
-}
-
-void
-agx_nir_prefix_sum_gs(nir_builder *b, const void *data)
-{
-   const unsigned *words = data;
-
-   b->shader->info.workgroup_size[0] = 1024;
-
-   libagx_prefix_sum(b, load_geometry_param(b, count_buffer),
-                     load_geometry_param(b, input_primitives),
-                     nir_imm_int(b, *words),
-                     nir_channel(b, nir_load_workgroup_id(b), 0));
-}
-
-void
-agx_nir_prefix_sum_tess(nir_builder *b, const void *data)
-{
-   b->shader->info.workgroup_size[0] = 1024;
-   libagx_prefix_sum_tess(b, nir_load_preamble(b, 1, 64, .base = 0));
-}
-
-void
-agx_nir_gs_setup_indirect(nir_builder *b, const void *data)
-{
-   const struct agx_gs_setup_indirect_key *key = data;
-
-   libagx_gs_setup_indirect(b, nir_load_preamble(b, 1, 64, .base = 0),
-                            nir_imm_int(b, key->prim),
-                            nir_channel(b, nir_load_local_invocation_id(b), 0));
-}
-
-void
-agx_nir_unroll_restart(nir_builder *b, const void *data)
-{
-   const struct agx_unroll_restart_key *key = data;
-   b->shader->info.workgroup_size[0] = 1024;
-
-   nir_def *ia = nir_load_preamble(b, 1, 64, .base = 0);
-   nir_def *draw = nir_channel(b, nir_load_workgroup_id(b), 0);
-   nir_def *lane = nir_channel(b, nir_load_local_invocation_id(b), 0);
-   nir_def *mode = nir_imm_int(b, key->prim);
-
-   if (key->index_size_B == 1)
-      libagx_unroll_restart_u8(b, ia, mode, draw, lane);
-   else if (key->index_size_B == 2)
-      libagx_unroll_restart_u16(b, ia, mode, draw, lane);
-   else if (key->index_size_B == 4)
-      libagx_unroll_restart_u32(b, ia, mode, draw, lane);
-   else
-      unreachable("invalid index size");
-}
-
-void
-agx_nir_tessellate(nir_builder *b, const void *data)
-{
-   const struct agx_tessellator_key *key = data;
-   b->shader->info.workgroup_size[0] = 64;
-
-   nir_def *params = nir_load_preamble(b, 1, 64, .base = 0);
-   nir_def *patch = nir_channel(b, nir_load_global_invocation_id(b, 32), 0);
-   nir_def *mode = nir_imm_int(b, key->mode);
-   nir_def *partitioning = nir_imm_int(b, key->partitioning);
-   nir_def *output_prim = nir_imm_int(b, key->output_primitive);
-
-   if (key->prim == TESS_PRIMITIVE_ISOLINES)
-      libagx_tess_isoline(b, params, mode, partitioning, output_prim, patch);
-   else if (key->prim == TESS_PRIMITIVE_TRIANGLES)
-      libagx_tess_tri(b, params, mode, partitioning, output_prim, patch);
-   else if (key->prim == TESS_PRIMITIVE_QUADS)
-      libagx_tess_quad(b, params, mode, partitioning, output_prim, patch);
-   else
-      unreachable("invalid tess primitive");
-}
-
-void
-agx_nir_tess_setup_indirect(nir_builder *b, const void *data)
-{
-   const struct agx_tess_setup_indirect_key *key = data;
-
-   nir_def *params = nir_load_preamble(b, 1, 64, .base = 0);
-   nir_def *with_counts = nir_imm_bool(b, key->with_counts);
-   nir_def *point_mode = nir_imm_bool(b, key->point_mode);
-
-   libagx_tess_setup_indirect(b, params, with_counts, point_mode);
-}
-
-void
-agx_nir_increment_statistic(nir_builder *b, const void *data)
-{
-   libagx_increment_statistic(b, nir_load_preamble(b, 1, 64, .base = 0));
-}
-
-void
-agx_nir_increment_cs_invocations(nir_builder *b, const void *data)
-{
-   libagx_increment_cs_invocations(b, nir_load_preamble(b, 1, 64, .base = 0));
-}
-
-void
-agx_nir_increment_ia_counters(nir_builder *b, const void *data)
-{
-   const struct agx_increment_ia_counters_key *key = data;
-   b->shader->info.workgroup_size[0] = key->index_size_B ? 1024 : 1;
-
-   nir_def *params = nir_load_preamble(b, 1, 64, .base = 0);
-   nir_def *index_size_B = nir_imm_int(b, key->index_size_B);
-   nir_def *thread = nir_channel(b, nir_load_global_invocation_id(b, 32), 0);
-
-   libagx_increment_ia_counters(b, params, index_size_B, thread);
-}
-
-void
-agx_nir_predicate_indirect(nir_builder *b, const void *data)
-{
-   const struct agx_predicate_indirect_key *key = data;
-
-   nir_def *params = nir_load_preamble(b, 1, 64, .base = 0);
-   nir_def *indexed = nir_imm_bool(b, key->indexed);
-   nir_def *thread = nir_channel(b, nir_load_global_invocation_id(b, 32), 0);
-
-   libagx_predicate_indirect(b, params, thread, indexed);
-}
-
-void
-agx_nir_decompress(nir_builder *b, const void *data)
-{
-   const struct agx_decompress_key *key = data;
-
-   nir_def *params = nir_load_preamble(b, 1, 64, .base = 0);
-   nir_def *tile = nir_load_workgroup_id(b);
-   nir_def *local = nir_channel(b, nir_load_local_invocation_id(b), 0);
-   nir_def *samples = nir_imm_int(b, key->nr_samples);
-
-   libagx_decompress(b, params, tile, local, samples);
 }

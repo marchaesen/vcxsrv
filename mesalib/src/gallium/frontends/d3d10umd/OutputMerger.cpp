@@ -417,7 +417,7 @@ CalcPrivateBlendStateSize(D3D10DDI_HDEVICE hDevice,                     // IN
  *
  * CalcPrivateBlendStateSize1 --
  *
- *    The CalcPrivateBlendStateSize function determines the size of
+ *    The CalcPrivateBlendStateSize1 function determines the size of
  *    the user-mode display driver's private region of memory (that
  *    is, the size of internal driver structures, not the size of
  *    the resource video memory) for a blend state.
@@ -436,7 +436,7 @@ CalcPrivateBlendStateSize1(D3D10DDI_HDEVICE hDevice,                     // IN
 /*
  * ----------------------------------------------------------------------
  *
- * translateBlend --
+ * translateBlendOp --
  *
  *   Translate blend function from svga3d to gallium representation.
  *
@@ -613,7 +613,7 @@ CreateBlendState(D3D10DDI_HDEVICE hDevice,                     // IN
  *
  * CreateBlendState1 --
  *
- *    The CreateBlendState function creates a blend state.
+ *    The CreateBlendState1 function creates a blend state.
  *
  * ----------------------------------------------------------------------
  */
@@ -951,7 +951,7 @@ CreateDepthStencilState(
  *
  * DestroyDepthStencilState --
  *
- *    The CreateDepthStencilState function creates a depth stencil state.
+ *    The DestroyDepthStencilState function destroy a depth stencil state.
  *
  * ----------------------------------------------------------------------
  */

@@ -239,7 +239,7 @@ typedef struct _Xtransport {
 
     int	(*Write)(
 	XtransConnInfo,		/* connection */
-	char *,			/* buf */
+	const char *,		/* buf */
 	int			/* size */
     );
 

@@ -29,7 +29,7 @@
 .vc4-rules:
   stage: broadcom
   rules:
-    - if: $FORCE_KERNEL_TAG != null
+    - if: $EXTERNAL_KERNEL_TAG != null
       when: never
     - !reference [.test, rules]
     - !reference [.igalia-farm-rules, rules]
@@ -56,7 +56,7 @@
 .v3d-rules:
   stage: broadcom
   rules:
-    - if: $FORCE_KERNEL_TAG != null
+    - if: $EXTERNAL_KERNEL_TAG != null
       when: never
     - !reference [.test, rules]
     - !reference [.igalia-farm-rules, rules]
@@ -97,7 +97,7 @@
 .v3dv-rules:
   stage: broadcom
   rules:
-    - if: $FORCE_KERNEL_TAG != null
+    - if: $EXTERNAL_KERNEL_TAG != null
       when: never
     - !reference [.test, rules]
     - !reference [.igalia-farm-rules, rules]
@@ -177,6 +177,11 @@
   extends:
     - .broadcom-test:arm64
     - .baremetal-arm64-asan-test
+
+.broadcom-ubsan-test:arm64:
+  extends:
+    - .broadcom-test:arm64
+    - .baremetal-arm64-ubsan-test
 
 .broadcom-test:arm32:
   extends:

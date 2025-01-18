@@ -157,8 +157,19 @@ static void lineedit_delete_line(TermLineEditor *le)
 
 void lineedit_send_line(TermLineEditor *le)
 {
+    bufchain output;
+    bufchain_init(&output);
+
     for (BufChar *bc = le->head; bc; bc = bc->next)
-        lineedit_send_data(le, make_ptrlen(bc->wire, bc->nwire));
+        bufchain_add(&output, bc->wire, bc->nwire);
+
+    while (bufchain_size(&output) > 0) {
+        ptrlen data = bufchain_prefix(&output);
+        lineedit_send_data(le, data);
+        bufchain_consume(&output, data.len);
+    }
+    bufchain_clear(&output);
+
     lineedit_free_buffer(le);
     le->quote_next_char = false;
 }
@@ -443,6 +454,24 @@ void lineedit_input(TermLineEditor *le, char ch, bool dedicated)
                     lineedit_complete_line(le);
                     return;
                 }
+            } else {
+                /* If we're not in LE_CRLF_NEWLINE mode, then ^J by
+                 * itself acts as a full newline character */
+                lineedit_complete_line(le);
+                return;
+            }
+
+
+          case CTRL('M'):
+            if (le->flags & LE_CRLF_NEWLINE) {
+                /* In this mode, ^M is literal, and can combine with
+                 * ^J (see case above). So do nothing, and fall
+                 * through into the 'treat it literally' code, */
+            } else {
+                /* If we're not in LE_CRLF_NEWLINE mode, then ^M by
+                 * itself acts as a full newline character */
+                lineedit_complete_line(le);
+                return;
             }
         }
     }

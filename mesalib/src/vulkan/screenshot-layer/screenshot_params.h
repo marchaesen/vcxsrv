@@ -38,7 +38,11 @@ extern "C" {
    SCREENSHOT_PARAM_CUSTOM(frames)                      \
    SCREENSHOT_PARAM_CUSTOM(log_type)                    \
    SCREENSHOT_PARAM_CUSTOM(output_dir)                  \
+   SCREENSHOT_PARAM_CUSTOM(region)                      \
    SCREENSHOT_PARAM_CUSTOM(help)
+
+#define LARGE_BUFFER_SIZE 16384  // 16 KB for large input strings
+#define STANDARD_BUFFER_SIZE 256
 
 enum screenshot_param_enabled {
 #define SCREENSHOT_PARAM_BOOL(name) SCREENSHOT_PARAM_ENABLED_##name,
@@ -72,14 +76,28 @@ struct frame_list {
    struct frame_node *head;
 };
 
+/*
+   Regions use percentages of an image to create a subimage
+   Ex: startX% = 0.25, startY% = 0.25, endX% = 0.60, endY% = 0.75
+   Original image size: width = 1920, height = 1080
+   startX = 480, startY = 270, endX = 1152, endY = 810
+   Resulting coordinates: ((480, 270), (1152, 270), (480, 810), (1152, 810))
+*/
+struct ImageRegion {
+   float startX, startY, endX, endY;
+   bool useImageRegion;
+};
+
 void remove_node(struct frame_list *, struct frame_node *, struct frame_node *);
 void destroy_frame_list(struct frame_list *);
+struct ImageRegion getRegionFromInput(const char *);
 
 void LOG(enum LogType, const char *, ...);
 
 struct screenshot_params {
    bool enabled[SCREENSHOT_PARAM_ENABLED_MAX];
    struct frame_list *frames;
+   struct ImageRegion region;
    const char *control;
    enum LogType log_type;
    const char *output_dir;

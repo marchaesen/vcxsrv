@@ -43,6 +43,8 @@ static const struct debug_control tu_debug_options[] = {
    { "noconform", TU_DEBUG_NOCONFORM },
    { "rd", TU_DEBUG_RD },
    { "hiprio", TU_DEBUG_HIPRIO },
+   { "noconcurrentresolves", TU_DEBUG_NO_CONCURRENT_RESOLVES },
+   { "noconcurrentunresolves", TU_DEBUG_NO_CONCURRENT_UNRESOLVES },
    { NULL, 0 }
 };
 
@@ -122,6 +124,15 @@ tu_tiling_config_update_tile_layout(struct tu_framebuffer *fb,
    uint32_t tile_align_h = dev->physical_device->info->tile_align_h;
    struct tu_tiling_config *tiling = &fb->tiling[gmem_layout];
 
+   *tiling = (struct tu_tiling_config) {
+      /* Put in dummy values that will assertion fail in register setup using
+       * them, since you shouldn't be doing gmem work if gmem is not possible.
+       */
+      .tile0 = (VkExtent2D) { ~0, ~0 },
+      .tile_count = (VkExtent2D) { .width = 1, .height = 1 },
+      .possible = false,
+   };
+
    /* From the Vulkan 1.3.232 spec, under VkFramebufferCreateInfo:
     *
     *   If the render pass uses multiview, then layers must be one and each
@@ -157,17 +168,8 @@ tu_tiling_config_update_tile_layout(struct tu_framebuffer *fb,
    /* will force to sysmem, don't bother trying to have a valid tile config
     * TODO: just skip all GMEM stuff when sysmem is forced?
     */
-   if (!pass->gmem_pixels[gmem_layout]) {
-      tiling->possible = false;
-      /* Put in dummy values that will assertion fail in register setup using
-       * them, since you shouldn't be doing gmem work if gmem is not possible.
-       */
-      tiling->tile_count = (VkExtent2D) { 1, 1 };
-      tiling->tile0 = (VkExtent2D) { ~0, ~0 };
+   if (!pass->gmem_pixels[gmem_layout])
       return;
-   }
-
-   tiling->possible = false;
 
    uint32_t best_tile_count = ~0;
    VkExtent2D tile_count;
@@ -329,6 +331,9 @@ tu_framebuffer_tiling_config(struct tu_framebuffer *fb,
       struct tu_tiling_config *tiling = &fb->tiling[gmem_layout];
       tu_tiling_config_update_tile_layout(fb, device, pass,
                                           (enum tu_gmem_layout) gmem_layout);
+      if (!tiling->possible)
+         continue;
+
       tu_tiling_config_update_pipe_layout(tiling, device);
       tu_tiling_config_update_pipes(tiling, device);
       tu_tiling_config_update_binning(tiling, device);

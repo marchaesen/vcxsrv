@@ -31,7 +31,7 @@ void si_llvm_es_build_end(struct si_shader_context *ctx)
    if (ctx->screen->info.gfx_level < GFX9 || ctx->shader->is_monolithic)
       return;
 
-   ac_build_endif(&ctx->ac, ctx->merged_wrap_if_label);
+   ac_build_endif(&ctx->ac, SI_MERGED_WRAP_IF_LABEL);
 
    LLVMValueRef ret = ctx->return_value;
 
@@ -75,5 +75,5 @@ void si_llvm_es_build_end(struct si_shader_context *ctx)
 void si_llvm_gs_build_end(struct si_shader_context *ctx)
 {
    if (ctx->screen->info.gfx_level >= GFX9)
-      ac_build_endif(&ctx->ac, ctx->merged_wrap_if_label);
+      ac_build_endif(&ctx->ac, SI_MERGED_WRAP_IF_LABEL);
 }

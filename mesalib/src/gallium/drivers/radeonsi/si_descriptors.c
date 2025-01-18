@@ -689,7 +689,7 @@ static void si_set_shader_image_desc(struct si_context *ctx, const struct pipe_i
    if (res->b.b.target == PIPE_BUFFER) {
       if (view->access & PIPE_IMAGE_ACCESS_WRITE)
          si_mark_image_range_valid(view);
-      uint32_t elements = si_clamp_texture_texel_count(screen->max_texel_buffer_elements,
+      uint32_t elements = si_clamp_texture_texel_count(screen->b.caps.max_texel_buffer_elements,
                                                        view->format, view->u.buf.size);
 
       si_make_buffer_descriptor(screen, res, view->format, view->u.buf.offset, elements,

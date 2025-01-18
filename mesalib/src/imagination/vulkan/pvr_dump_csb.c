@@ -177,7 +177,7 @@ pvr_dump_csb_block_take(struct pvr_dump_csb_block_ctx *const restrict ctx,
 #define pvr_dump_csb_block_take_packed(ctx, cmd, dest)             \
    ({                                                              \
       struct pvr_dump_csb_block_ctx *const _block_ctx = (ctx);     \
-      struct PVRX(cmd) *const _dest = (dest);                      \
+      struct ROGUE_##cmd *const _dest = (dest);                    \
       const void *const _ptr =                                     \
          pvr_dump_csb_block_take(_block_ctx, pvr_cmd_length(cmd)); \
       if (_ptr) {                                                  \
@@ -239,18 +239,18 @@ print_block_cdmctrl_kernel(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(CDMCTRL_KERNEL0) kernel0 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL1) kernel1 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL2) kernel2 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL3) kernel3 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL4) kernel4 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL5) kernel5 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL6) kernel6 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL7) kernel7 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL8) kernel8 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL9) kernel9 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL10) kernel10 = { 0 };
-   struct PVRX(CDMCTRL_KERNEL11) kernel11 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL0 kernel0 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL1 kernel1 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL2 kernel2 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL3 kernel3 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL4 kernel4 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL5 kernel5 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL6 kernel6 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL7 kernel7 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL8 kernel8 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL9 kernel9 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL10 kernel10 = { 0 };
+   struct ROGUE_CDMCTRL_KERNEL11 kernel11 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "KERNEL"))
       goto end_out;
@@ -295,25 +295,25 @@ print_block_cdmctrl_kernel(struct pvr_dump_csb_ctx *const csb_ctx,
       base_ctx,
       &kernel0,
       usc_common_size,
-      PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE),
+      ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE,
       "bytes");
    pvr_dump_field_member_u32_scaled_units(
       base_ctx,
       &kernel0,
       usc_unified_size,
-      PVRX(CDMCTRL_KERNEL0_USC_UNIFIED_SIZE_UNIT_SIZE),
+      ROGUE_CDMCTRL_KERNEL0_USC_UNIFIED_SIZE_UNIT_SIZE,
       "bytes");
    pvr_dump_field_member_u32_scaled_units(
       base_ctx,
       &kernel0,
       pds_temp_size,
-      PVRX(CDMCTRL_KERNEL0_PDS_TEMP_SIZE_UNIT_SIZE),
+      ROGUE_CDMCTRL_KERNEL0_PDS_TEMP_SIZE_UNIT_SIZE,
       "bytes");
    pvr_dump_field_member_u32_scaled_units(
       base_ctx,
       &kernel0,
       pds_data_size,
-      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE),
+      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE,
       "bytes");
    pvr_dump_field_member_enum(base_ctx,
                               &kernel0,
@@ -330,7 +330,7 @@ print_block_cdmctrl_kernel(struct pvr_dump_csb_ctx *const csb_ctx,
       device,
       BUFFER_TYPE_NONE,
       PVR_DEV_ADDR_OFFSET(pds_heap_base, kernel1.data_addr.addr),
-      kernel0.pds_data_size * PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE),
+      kernel0.pds_data_size * ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE,
       "pds_data_size");
    if (!ret)
       goto end_pop_ctx;
@@ -409,8 +409,8 @@ print_block_cdmctrl_stream_link(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(CDMCTRL_STREAM_LINK0) link0 = { 0 };
-   struct PVRX(CDMCTRL_STREAM_LINK1) link1 = { 0 };
+   struct ROGUE_CDMCTRL_STREAM_LINK0 link0 = { 0 };
+   struct ROGUE_CDMCTRL_STREAM_LINK1 link1 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STREAM_LINK"))
       goto end_out;
@@ -443,7 +443,7 @@ print_block_cdmctrl_stream_terminate(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(CDMCTRL_STREAM_TERMINATE) terminate = { 0 };
+   struct ROGUE_CDMCTRL_STREAM_TERMINATE terminate = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "TERMINATE"))
       goto end_out;
@@ -475,8 +475,8 @@ print_block_vdmctrl_ppp_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(VDMCTRL_PPP_STATE0) state0 = { 0 };
-   struct PVRX(VDMCTRL_PPP_STATE1) state1 = { 0 };
+   struct ROGUE_VDMCTRL_PPP_STATE0 state0 = { 0 };
+   struct ROGUE_VDMCTRL_PPP_STATE1 state1 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "PPP_STATE_UPDATE"))
       goto end_out;
@@ -519,9 +519,9 @@ print_block_vdmctrl_pds_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(VDMCTRL_PDS_STATE0) state0 = { 0 };
-   struct PVRX(VDMCTRL_PDS_STATE1) state1 = { 0 };
-   struct PVRX(VDMCTRL_PDS_STATE2) state2 = { 0 };
+   struct ROGUE_VDMCTRL_PDS_STATE0 state0 = { 0 };
+   struct ROGUE_VDMCTRL_PDS_STATE1 state1 = { 0 };
+   struct ROGUE_VDMCTRL_PDS_STATE2 state2 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "PDS_STATE_UPDATE"))
       goto end_out;
@@ -545,25 +545,25 @@ print_block_vdmctrl_pds_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
       base_ctx,
       &state0,
       usc_common_size,
-      PVRX(VDMCTRL_PDS_STATE0_USC_COMMON_SIZE_UNIT_SIZE),
+      ROGUE_VDMCTRL_PDS_STATE0_USC_COMMON_SIZE_UNIT_SIZE,
       "bytes");
    pvr_dump_field_member_u32_scaled_units(
       base_ctx,
       &state0,
       usc_unified_size,
-      PVRX(VDMCTRL_PDS_STATE0_USC_UNIFIED_SIZE_UNIT_SIZE),
+      ROGUE_VDMCTRL_PDS_STATE0_USC_UNIFIED_SIZE_UNIT_SIZE,
       "bytes");
    pvr_dump_field_member_u32_scaled_units(
       base_ctx,
       &state0,
       pds_temp_size,
-      PVRX(VDMCTRL_PDS_STATE0_PDS_TEMP_SIZE_UNIT_SIZE),
+      ROGUE_VDMCTRL_PDS_STATE0_PDS_TEMP_SIZE_UNIT_SIZE,
       "bytes");
    pvr_dump_field_member_u32_scaled_units(
       base_ctx,
       &state0,
       pds_data_size,
-      PVRX(VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE),
+      ROGUE_VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE,
       "bytes");
 
    pvr_dump_field_member_addr_offset(base_ctx,
@@ -575,7 +575,7 @@ print_block_vdmctrl_pds_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
       device,
       BUFFER_TYPE_NONE,
       PVR_DEV_ADDR_OFFSET(pds_heap_base, state1.pds_data_addr.addr),
-      state0.pds_data_size * PVRX(VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE),
+      state0.pds_data_size * ROGUE_VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE,
       "pds_data_size");
    if (!ret)
       goto end_pop_ctx;
@@ -626,12 +626,12 @@ print_block_vdmctrl_vdm_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(VDMCTRL_VDM_STATE0) state0 = { 0 };
-   struct PVRX(VDMCTRL_VDM_STATE1) state1 = { 0 };
-   struct PVRX(VDMCTRL_VDM_STATE2) state2 = { 0 };
-   struct PVRX(VDMCTRL_VDM_STATE3) state3 = { 0 };
-   struct PVRX(VDMCTRL_VDM_STATE4) state4 = { 0 };
-   struct PVRX(VDMCTRL_VDM_STATE5) state5 = { 0 };
+   struct ROGUE_VDMCTRL_VDM_STATE0 state0 = { 0 };
+   struct ROGUE_VDMCTRL_VDM_STATE1 state1 = { 0 };
+   struct ROGUE_VDMCTRL_VDM_STATE2 state2 = { 0 };
+   struct ROGUE_VDMCTRL_VDM_STATE3 state3 = { 0 };
+   struct ROGUE_VDMCTRL_VDM_STATE4 state4 = { 0 };
+   struct ROGUE_VDMCTRL_VDM_STATE5 state5 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "VDM_STATE_UPDATE"))
       goto end_out;
@@ -680,7 +680,7 @@ print_block_vdmctrl_vdm_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
             PVR_DEV_ADDR_OFFSET(pds_heap_base,
                                 state2.vs_pds_data_base_addr.addr),
             state5.vs_pds_data_size *
-               PVRX(VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE),
+               ROGUE_VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE,
             "pds_data_size");
       } else {
          /* FIXME: Determine the exact size of the PDS data section when no
@@ -725,7 +725,7 @@ print_block_vdmctrl_vdm_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
          base_ctx,
          &state4,
          vs_output_size,
-         PVRX(VDMCTRL_VDM_STATE4_VS_OUTPUT_SIZE_UNIT_SIZE),
+         ROGUE_VDMCTRL_VDM_STATE4_VS_OUTPUT_SIZE_UNIT_SIZE,
          "bytes");
 
       pvr_dump_field_member_u32_zero(base_ctx, &state5, vs_max_instances, 32);
@@ -733,25 +733,25 @@ print_block_vdmctrl_vdm_state_update(struct pvr_dump_csb_ctx *const csb_ctx,
          base_ctx,
          &state5,
          vs_usc_common_size,
-         PVRX(VDMCTRL_VDM_STATE5_VS_USC_COMMON_SIZE_UNIT_SIZE),
+         ROGUE_VDMCTRL_VDM_STATE5_VS_USC_COMMON_SIZE_UNIT_SIZE,
          "bytes");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &state5,
          vs_usc_unified_size,
-         PVRX(VDMCTRL_VDM_STATE5_VS_USC_UNIFIED_SIZE_UNIT_SIZE),
+         ROGUE_VDMCTRL_VDM_STATE5_VS_USC_UNIFIED_SIZE_UNIT_SIZE,
          "bytes");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &state5,
          vs_pds_temp_size,
-         PVRX(VDMCTRL_VDM_STATE5_VS_PDS_TEMP_SIZE_UNIT_SIZE),
+         ROGUE_VDMCTRL_VDM_STATE5_VS_PDS_TEMP_SIZE_UNIT_SIZE,
          "bytes");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &state5,
          vs_pds_data_size,
-         PVRX(VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE),
+         ROGUE_VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE,
          "bytes");
    } else {
       pvr_dump_field_member_not_present(base_ctx,
@@ -803,16 +803,16 @@ print_block_vdmctrl_index_list(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(VDMCTRL_INDEX_LIST0) index_list0 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST1) index_list1 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST2) index_list2 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST3) index_list3 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST4) index_list4 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST5) index_list5 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST6) index_list6 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST7) index_list7 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST8) index_list8 = { 0 };
-   struct PVRX(VDMCTRL_INDEX_LIST9) index_list9 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST0 index_list0 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST1 index_list1 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST2 index_list2 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST3 index_list3 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST4 index_list4 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST5 index_list5 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST6 index_list6 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST7 index_list7 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST8 index_list8 = { 0 };
+   struct ROGUE_VDMCTRL_INDEX_LIST9 index_list9 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "INDEX_LIST"))
       goto end_out;
@@ -1005,8 +1005,8 @@ print_block_vdmctrl_stream_link(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(VDMCTRL_STREAM_LINK0) link0 = { 0 };
-   struct PVRX(VDMCTRL_STREAM_LINK1) link1 = { 0 };
+   struct ROGUE_VDMCTRL_STREAM_LINK0 link0 = { 0 };
+   struct ROGUE_VDMCTRL_STREAM_LINK1 link1 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STREAM_LINK"))
       goto end_out;
@@ -1049,7 +1049,7 @@ print_block_vdmctrl_stream_return(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(VDMCTRL_STREAM_RETURN) return_ = { 0 };
+   struct ROGUE_VDMCTRL_STREAM_RETURN return_ = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STREAM_RETURN"))
       goto end_out;
@@ -1077,7 +1077,7 @@ print_block_vdmctrl_stream_terminate(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(VDMCTRL_STREAM_TERMINATE) terminate = { 0 };
+   struct ROGUE_VDMCTRL_STREAM_TERMINATE terminate = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "TERMINATE"))
       goto end_out;
@@ -1102,14 +1102,14 @@ end_out:
 
 static uint32_t
 print_block_ppp_state_header(struct pvr_dump_csb_ctx *const csb_ctx,
-                             struct PVRX(TA_STATE_HEADER) *const header_out)
+                             struct ROGUE_TA_STATE_HEADER *const header_out)
 {
    struct pvr_dump_csb_block_ctx ctx;
    struct pvr_dump_ctx *const base_ctx = &ctx.base.base;
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_STATE_HEADER) header = { 0 };
+   struct ROGUE_TA_STATE_HEADER header = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STATE_HEADER"))
       goto end_out;
@@ -1157,8 +1157,8 @@ end_out:
 
 static void print_block_ppp_state_isp_one_side(
    struct pvr_dump_csb_block_ctx *const ctx,
-   const struct PVRX(TA_STATE_ISPA) *const isp_a,
-   const struct PVRX(TA_STATE_ISPB) *const isp_b,
+   const struct ROGUE_TA_STATE_ISPA *const isp_a,
+   const struct ROGUE_TA_STATE_ISPB *const isp_b,
    const bool has_b)
 {
    struct pvr_dump_ctx *const base_ctx = &ctx->base.base;
@@ -1229,12 +1229,12 @@ print_block_ppp_state_isp(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_STATE_ISPCTL) isp_ctl = { 0 };
-   struct PVRX(TA_STATE_ISPA) isp_fa = { 0 };
-   struct PVRX(TA_STATE_ISPB) isp_fb = { 0 };
-   struct PVRX(TA_STATE_ISPA) isp_ba = { 0 };
-   struct PVRX(TA_STATE_ISPB) isp_bb = { 0 };
-   struct PVRX(TA_STATE_ISPDBSC) isp_dbsc = { 0 };
+   struct ROGUE_TA_STATE_ISPCTL isp_ctl = { 0 };
+   struct ROGUE_TA_STATE_ISPA isp_fa = { 0 };
+   struct ROGUE_TA_STATE_ISPB isp_fb = { 0 };
+   struct ROGUE_TA_STATE_ISPA isp_ba = { 0 };
+   struct ROGUE_TA_STATE_ISPB isp_bb = { 0 };
+   struct ROGUE_TA_STATE_ISPDBSC isp_dbsc = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STATE_ISP"))
       goto end_out;
@@ -1340,13 +1340,13 @@ print_block_ppp_state_pds(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_STATE_PDS_SHADERBASE) shader_base = { 0 };
-   struct PVRX(TA_STATE_PDS_TEXUNICODEBASE) tex_unicode_base = { 0 };
-   struct PVRX(TA_STATE_PDS_SIZEINFO1) size_info1 = { 0 };
-   struct PVRX(TA_STATE_PDS_SIZEINFO2) size_info2 = { 0 };
-   struct PVRX(TA_STATE_PDS_VARYINGBASE) varying_base = { 0 };
-   struct PVRX(TA_STATE_PDS_TEXTUREDATABASE) texture_data_base = { 0 };
-   struct PVRX(TA_STATE_PDS_UNIFORMDATABASE) uniform_data_base = { 0 };
+   struct ROGUE_TA_STATE_PDS_SHADERBASE shader_base = { 0 };
+   struct ROGUE_TA_STATE_PDS_TEXUNICODEBASE tex_unicode_base = { 0 };
+   struct ROGUE_TA_STATE_PDS_SIZEINFO1 size_info1 = { 0 };
+   struct ROGUE_TA_STATE_PDS_SIZEINFO2 size_info2 = { 0 };
+   struct ROGUE_TA_STATE_PDS_VARYINGBASE varying_base = { 0 };
+   struct ROGUE_TA_STATE_PDS_TEXTUREDATABASE texture_data_base = { 0 };
+   struct ROGUE_TA_STATE_PDS_UNIFORMDATABASE uniform_data_base = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STATE_PDS"))
       goto end_out;
@@ -1410,38 +1410,38 @@ print_block_ppp_state_pds(struct pvr_dump_csb_ctx *const csb_ctx,
          base_ctx,
          &size_info1,
          pds_uniformsize,
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_UNIFORMSIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_UNIFORMSIZE_UNIT_SIZE,
          "words");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &size_info1,
          pds_texturestatesize,
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE,
          "words");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &size_info1,
          pds_varyingsize,
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_VARYINGSIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_VARYINGSIZE_UNIT_SIZE,
          "words");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &size_info1,
          usc_varyingsize,
-         PVRX(TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE,
          "words");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &size_info1,
          pds_tempsize,
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE,
          "words");
 
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &size_info2,
          usc_sharedsize,
-         PVRX(TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE,
          "words");
       pvr_dump_field_member_bool(base_ctx, &size_info2, pds_tri_merge_disable);
       pvr_dump_field_member_u32(base_ctx, &size_info2, pds_batchnum);
@@ -1506,8 +1506,8 @@ print_block_ppp_region_clip(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_REGION_CLIP0) clip0 = { 0 };
-   struct PVRX(TA_REGION_CLIP1) clip1 = { 0 };
+   struct ROGUE_TA_REGION_CLIP0 clip0 = { 0 };
+   struct ROGUE_TA_REGION_CLIP1 clip1 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "REGION_CLIP"))
       goto end_out;
@@ -1612,7 +1612,7 @@ print_block_ppp_output_sel(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_OUTPUT_SEL) output_sel = { 0 };
+   struct ROGUE_TA_OUTPUT_SEL output_sel = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "OUTPUT_SEL"))
       goto end_out;
@@ -1667,9 +1667,9 @@ print_block_ppp_state_varying(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_STATE_VARYING0) varying0 = { 0 };
-   struct PVRX(TA_STATE_VARYING1) varying1 = { 0 };
-   struct PVRX(TA_STATE_VARYING2) varying2 = { 0 };
+   struct ROGUE_TA_STATE_VARYING0 varying0 = { 0 };
+   struct ROGUE_TA_STATE_VARYING1 varying1 = { 0 };
+   struct ROGUE_TA_STATE_VARYING2 varying2 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STATE_VARYING"))
       goto end_out;
@@ -1737,7 +1737,7 @@ print_block_ppp_state_ppp_ctrl(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_STATE_PPP_CTRL) ppp_ctrl = { 0 };
+   struct ROGUE_TA_STATE_PPP_CTRL ppp_ctrl = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STATE_PPP_CTRL"))
       goto end_out;
@@ -1793,9 +1793,9 @@ print_block_ppp_state_stream_out(struct pvr_dump_csb_ctx *const csb_ctx,
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_STATE_STREAM_OUT0) stream_out0 = { 0 };
-   struct PVRX(TA_STATE_STREAM_OUT1) stream_out1 = { 0 };
-   struct PVRX(TA_STATE_STREAM_OUT2) stream_out2 = { 0 };
+   struct ROGUE_TA_STATE_STREAM_OUT0 stream_out0 = { 0 };
+   struct ROGUE_TA_STATE_STREAM_OUT1 stream_out1 = { 0 };
+   struct ROGUE_TA_STATE_STREAM_OUT2 stream_out2 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STATE_STREAM_OUT"))
       goto end_out;
@@ -1853,13 +1853,13 @@ print_block_ppp_state_stream_out(struct pvr_dump_csb_ctx *const csb_ctx,
          base_ctx,
          &stream_out1,
          pds_temp_size,
-         PVRX(TA_STATE_STREAM_OUT1_PDS_TEMP_SIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_STREAM_OUT1_PDS_TEMP_SIZE_UNIT_SIZE,
          "bytes");
       pvr_dump_field_member_u32_scaled_units(
          base_ctx,
          &stream_out1,
          pds_data_size,
-         PVRX(TA_STATE_STREAM_OUT1_PDS_DATA_SIZE_UNIT_SIZE),
+         ROGUE_TA_STATE_STREAM_OUT1_PDS_DATA_SIZE_UNIT_SIZE,
          "bytes");
       pvr_dump_field_member_bool(base_ctx, &stream_out1, sync);
       pvr_dump_field_member_addr_offset(base_ctx,
@@ -1899,8 +1899,8 @@ print_block_ppp_state_terminate(struct pvr_dump_csb_ctx *const csb_ctx)
    uint32_t words_read = 0;
    bool ret = false;
 
-   struct PVRX(TA_STATE_TERMINATE0) terminate0 = { 0 };
-   struct PVRX(TA_STATE_TERMINATE1) terminate1 = { 0 };
+   struct ROGUE_TA_STATE_TERMINATE0 terminate0 = { 0 };
+   struct ROGUE_TA_STATE_TERMINATE1 terminate1 = { 0 };
 
    if (!pvr_dump_csb_block_ctx_push(&ctx, csb_ctx, "STATE_TERMINATE"))
       goto end_out;
@@ -1984,7 +1984,7 @@ static bool print_cdmctrl_buffer(struct pvr_dump_buffer_ctx *const parent_ctx,
       return false;
 
    do {
-      enum PVRX(CDMCTRL_BLOCK_TYPE) block_type;
+      enum ROGUE_CDMCTRL_BLOCK_TYPE block_type;
       const uint32_t *next_word;
       uint32_t words_read = 0;
 
@@ -1997,15 +1997,15 @@ static bool print_cdmctrl_buffer(struct pvr_dump_buffer_ctx *const parent_ctx,
       block_type =
          pvr_csb_unpack(next_word, CDMCTRL_STREAM_TERMINATE).block_type;
       switch (block_type) {
-      case PVRX(CDMCTRL_BLOCK_TYPE_COMPUTE_KERNEL):
+      case ROGUE_CDMCTRL_BLOCK_TYPE_COMPUTE_KERNEL:
          words_read = print_block_cdmctrl_kernel(&ctx, device);
          break;
 
-      case PVRX(CDMCTRL_BLOCK_TYPE_STREAM_LINK):
+      case ROGUE_CDMCTRL_BLOCK_TYPE_STREAM_LINK:
          words_read = print_block_cdmctrl_stream_link(&ctx);
          break;
 
-      case PVRX(CDMCTRL_BLOCK_TYPE_STREAM_TERMINATE):
+      case ROGUE_CDMCTRL_BLOCK_TYPE_STREAM_TERMINATE:
          words_read = print_block_cdmctrl_stream_terminate(&ctx);
          break;
 
@@ -2020,7 +2020,7 @@ static bool print_cdmctrl_buffer(struct pvr_dump_buffer_ctx *const parent_ctx,
       if (!print_block_hex(&ctx.base, words_read))
          ret = false;
 
-      if (block_type == PVRX(CDMCTRL_BLOCK_TYPE_STREAM_TERMINATE))
+      if (block_type == ROGUE_CDMCTRL_BLOCK_TYPE_STREAM_TERMINATE)
          break;
    } while (ret);
 
@@ -2046,7 +2046,7 @@ static bool print_vdmctrl_buffer(struct pvr_dump_buffer_ctx *const parent_ctx,
       return false;
 
    do {
-      enum PVRX(VDMCTRL_BLOCK_TYPE) block_type;
+      enum ROGUE_VDMCTRL_BLOCK_TYPE block_type;
       const uint32_t *next_word;
       uint32_t words_read = 0;
 
@@ -2058,31 +2058,31 @@ static bool print_vdmctrl_buffer(struct pvr_dump_buffer_ctx *const parent_ctx,
 
       block_type = pvr_csb_unpack(next_word, VDMCTRL_STREAM_RETURN).block_type;
       switch (block_type) {
-      case PVRX(VDMCTRL_BLOCK_TYPE_PPP_STATE_UPDATE):
+      case ROGUE_VDMCTRL_BLOCK_TYPE_PPP_STATE_UPDATE:
          words_read = print_block_vdmctrl_ppp_state_update(&ctx, device);
          break;
 
-      case PVRX(VDMCTRL_BLOCK_TYPE_PDS_STATE_UPDATE):
+      case ROGUE_VDMCTRL_BLOCK_TYPE_PDS_STATE_UPDATE:
          words_read = print_block_vdmctrl_pds_state_update(&ctx, device);
          break;
 
-      case PVRX(VDMCTRL_BLOCK_TYPE_VDM_STATE_UPDATE):
+      case ROGUE_VDMCTRL_BLOCK_TYPE_VDM_STATE_UPDATE:
          words_read = print_block_vdmctrl_vdm_state_update(&ctx, device);
          break;
 
-      case PVRX(VDMCTRL_BLOCK_TYPE_INDEX_LIST):
+      case ROGUE_VDMCTRL_BLOCK_TYPE_INDEX_LIST:
          words_read = print_block_vdmctrl_index_list(&ctx, device);
          break;
 
-      case PVRX(VDMCTRL_BLOCK_TYPE_STREAM_LINK):
+      case ROGUE_VDMCTRL_BLOCK_TYPE_STREAM_LINK:
          words_read = print_block_vdmctrl_stream_link(&ctx);
          break;
 
-      case PVRX(VDMCTRL_BLOCK_TYPE_STREAM_RETURN):
+      case ROGUE_VDMCTRL_BLOCK_TYPE_STREAM_RETURN:
          words_read = print_block_vdmctrl_stream_return(&ctx);
          break;
 
-      case PVRX(VDMCTRL_BLOCK_TYPE_STREAM_TERMINATE):
+      case ROGUE_VDMCTRL_BLOCK_TYPE_STREAM_TERMINATE:
          words_read = print_block_vdmctrl_stream_terminate(&ctx);
          break;
 
@@ -2097,7 +2097,7 @@ static bool print_vdmctrl_buffer(struct pvr_dump_buffer_ctx *const parent_ctx,
       if (!print_block_hex(&ctx.base, words_read))
          ret = false;
 
-      if (block_type == PVRX(VDMCTRL_BLOCK_TYPE_STREAM_TERMINATE))
+      if (block_type == ROGUE_VDMCTRL_BLOCK_TYPE_STREAM_TERMINATE)
          break;
    } while (ret);
 
@@ -2114,7 +2114,7 @@ static bool print_ppp_buffer(struct pvr_dump_buffer_ctx *const parent_ctx,
    uint32_t words_read;
    bool ret = false;
 
-   struct PVRX(TA_STATE_HEADER) header = { 0 };
+   struct ROGUE_TA_STATE_HEADER header = { 0 };
 
    if (!pvr_dump_csb_ctx_push(&ctx, parent_ctx))
       goto end_out;

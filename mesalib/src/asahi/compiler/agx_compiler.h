@@ -492,8 +492,8 @@ typedef struct {
    /* Does the shader statically use scratch memory? */
    bool any_scratch;
 
-   /* I don't really understand how writeout ops work yet */
-   bool did_writeout;
+   /* Mask of pixel fences we've definitely already waited for. */
+   uint16_t already_pixel_waited;
 
    /* Has r0l been zeroed yet due to control flow? */
    bool any_cf;
@@ -542,6 +542,9 @@ typedef struct {
    /* Stats for shader-db */
    unsigned loop_count;
    unsigned max_reg;
+
+   /* Promoted constants. These will be appended to the binary at the end. */
+   uint16_t rodata[512];
 } agx_context;
 
 static inline void
@@ -1044,6 +1047,7 @@ agx_validate_ra(UNUSED agx_context *ctx)
 
 enum agx_size agx_split_width(const agx_instr *I);
 bool agx_allows_16bit_immediate(agx_instr *I);
+unsigned agx_negate_src_index(agx_instr *I);
 
 static inline bool
 agx_is_float_src(const agx_instr *I, unsigned s)
@@ -1077,7 +1081,6 @@ void agx_liveness_ins_update(BITSET_WORD *live, agx_instr *I);
 
 bool agx_nir_opt_preamble(nir_shader *s, unsigned *preamble_size);
 bool agx_nir_lower_load_mask(nir_shader *shader);
-bool agx_nir_lower_address(nir_shader *shader);
 bool agx_nir_lower_ubo(nir_shader *shader);
 bool agx_nir_lower_shared_bitsize(nir_shader *shader);
 bool agx_nir_lower_frag_sidefx(nir_shader *s);

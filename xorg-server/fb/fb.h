@@ -1030,6 +1030,7 @@ extern _X_EXPORT Bool
                int dpiy, int width,     /* pixel width of frame buffer */
                int bpp);        /* bits per pixel of frame buffer */
 
+#ifdef FB_ACCESS_WRAPPER
 extern _X_EXPORT Bool
 wfbFinishScreenInit(ScreenPtr pScreen,
                     void *pbits,
@@ -1051,6 +1052,7 @@ wfbScreenInit(ScreenPtr pScreen,
               int width,
               int bpp,
               SetupWrapProcPtr setupWrap, FinishWrapProcPtr finishWrap);
+#endif
 
 extern _X_EXPORT Bool
 fbFinishScreenInit(ScreenPtr pScreen,

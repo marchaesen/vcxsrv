@@ -1,0 +1,137 @@
+Mesa 24.3.3 Release Notes / 2025-01-03
+======================================
+
+Mesa 24.3.3 is a bug fix release which fixes bugs found since the 24.3.2 release.
+
+Mesa 24.3.3 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.3.3 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+   SHA256: 105afc00a4496fa4d29da74e227085544919ec7c86bd92b0b6e7fcc32c7125f4  mesa-24.3.3.tar.xz
+   SHA512: 280d7a6dd64503ec398d449430270c78b5558c03bfeed3a42346573fd2db1aa3f96f5a212e49288718a7fe27447ee40235b066517622d68b0dfdd7b251a4e85f  mesa-24.3.3.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- X1-85: Portal 2: Bottom of portal gun disappears
+- nvk: Artifact Classic crash at loading screen
+- X-Plane 12: Prop disc rendering regression
+- Errors when enumerating devices create incorrect expecations
+- R6700XT: QP value doesn't affect output when using CQP rate control w/ H264/H265 VAAPI encoders
+- [r300] Regression in f424ef18010 breaks wayland on RS480M
+- anv: Missing text in Age of Mythology Retold on a Arc b580
+- radeonsi VAAPI - vc-1 interlaced decoding garbled on Polaris
+- X1-85: Half Life 2 water rendering artifacts
+
+
+Changes
+-------
+
+Benjamin Lee (1):
+
+- panvk/csf: fix alpha-to-coverage
+
+Boris Brezillon (1):
+
+- pan/cs: Fix cs_builder allocation failure robustness
+
+Connor Abbott (1):
+
+- freedreno/fdl: Fix 3d mipmapping height alignment
+
+David Rosca (3):
+
+- frontends/va: Fix decoding VC1 interlaced video
+- frontends/va: Don't allow Render/EndPicture without BeginPicture
+- radeonsi/vcn: Change required FW version for rc_per_pic_ex on VCN3
+
+Dylan Baker (4):
+
+- docs: Update checksums for 24.3.2
+- .pick_status.json: Update to 83a7d9a8141570a002ac37260c381d2c01e07493
+- .pick_status.json: Update to 272ff275fa27a2536e8699c7de100c8e266ae2b0
+- .pick_status.json: Update to 51a2f70e5e736636049c1180c1552c34a5f17009
+
+Erik Faye-Lund (1):
+
+- docs/ci: treat warnings as errors
+
+Georg Lehmann (2):
+
+- aco/optimizer: fix signed extract of sub dword temps with SDWA
+- aco/insert_exec: reset top exec for p_discard_if
+
+Janne Grunau (1):
+
+- panvk: Silence warning on incompatible DRM render devices
+
+Job Noorman (1):
+
+- ir3,freedreno: remove binning outputs after vs ucp lowering
+
+Juan A. Suarez Romero (1):
+
+- v3dv: fix BO allocation
+
+Lionel Landwerlin (1):
+
+- anv: fix index buffer size changes
+
+Martin Roukala (né Peres) (1):
+
+- ci/b2c: run the machine registration check before the test container
+
+Mary Guillemard (1):
+
+- nak: Fix 8-bit selection for vectors
+
+Mel Henning (1):
+
+- gallium/winsys/nouveau: Don't mark the api PUBLIC
+
+Pavel Ondračka (1):
+
+- r300: disable microtiling for scanout buffers
+
+Peyton Lee (1):
+
+- radeonsi/vpe: add destroy_fence function
+
+Qiang Yu (1):
+
+- aco: fix voffset missing when buffer store base >=4096
+
+Rob Clark (1):
+
+- freedreno/a6xx: Align lrz height to 32
+
+Rohan Garg (1):
+
+- isl: disable aux when creating uncompressed TileY/Tile64 surfaces from compressed ones
+
+Samuel Pitoiset (1):
+
+- radv: fix destroying DGC pipelines
+
+Thomas H.P. Andersen (1):
+
+- drirc/nvk: force_vk_vendor=-1 for Artifact Classic

@@ -308,10 +308,17 @@ dEQP-VK.shader_object.rendering.*
 dEQP-VK.sparse_resources.*
 dEQP-VK.transform_feedback.*
 
-# These are leaks in Vulkan CTS
-asan-KHR-GLES31.core.geometry_shader.input.gl_position_value
-asan-KHR-GLES31.core.geometry_shader.primitive_counter.lines_to_points_rp
-asan-KHR-GL31.ext_texture_shadow_lod.texturelodoffset.sampler2darrayshadow_vertex
+# This times out
+spec@glsl-1.40@execution@tf-no-position
 
-# CTS bug https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/5362
-asan-dEQP-VK.pipeline.monolithic.logic_op.r8g8_uint.equivalent
+# These are due an issue in CTS that is already fixed upstream
+asan-KHR-GL31.ext_texture_shadow_lod.texture.sampler2darrayshadow_bias_fragment
+asan-KHR-GLES31.core.geometry_shader.adjacency.adjacency_indiced_triangle_strip
+asan-KHR-GLES31.core.geometry_shader.api.fs_gs_draw_call
+asan-KHR-GLES31.core.geometry_shader.linking.more_ACs_in_GS_than_supported
+
+# Slow tests (> 1 minute to run)
+ubsan-dEQP-VK.ssbo.layout.3_level_unsized_array.std140.row_major_mat3x4_store_cols
+ubsan-dEQP-VK.ssbo.layout.basic_unsized_array.std430.column_major_mat4_store_cols
+ubsan-dEQP-VK.ssbo.layout.basic_unsized_array.std430.row_major_mat4_comp_access_store_cols
+ubsan-dEQP-VK.ssbo.layout.random.16bit.all_shared_buffer.33

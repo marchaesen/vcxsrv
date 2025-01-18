@@ -1,0 +1,208 @@
+Mesa 24.2.8 Release Notes / 2024-11-28
+======================================
+
+Mesa 24.2.8 is a bug fix release which fixes bugs found since the 24.2.7 release.
+
+Mesa 24.2.8 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.8 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: 999d0a854f43864fc098266aaf25600ce7961318a1e2e358bff94a7f53580e30  mesa-24.2.8.tar.xz
+    SHA512: 3aa1051a72e1428e42f9537d8f6a26f2ebddc78894e0f71d2cdcc9ed555ea4d6489ad8e74d4c59b8cdf7ea1c629fa725ac2fe1e385db5d3a582d8fe8186392d6  mesa-24.2.8.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- anv: Use-after-free detected by AddressSanitizer while running dEQP-VK
+- Confidential issue #11770
+- radv: DCC causes glitches in Red Dead Redemption 2
+- A5xx rendering issues with firefox
+- [ANV][Regression] Broken rendering in Flycast + Per-Pixel Alpha Sorting
+- vtn: OpTypeStruct in kernel parameters trigger assertion in glsl_types.h
+- radv: Resident Evil 6 Benchmark Tool has artifacts on 7900 XTX when DCC is enabled, game launched on 4K monitor without scaling and with FullHD settings
+- [AMD RX 6700 XT] Artifacts while upscaling games in fullscreen mode
+- Distorted pixelated graphics with Radeon RX 7900 XT with some games
+- Total War Warhammer 2 Graphical Glitch
+- Glitching artifacts in tile shaped patterns on 6700 XT, when using upscaled fullscreen game on labwc
+
+
+Changes
+-------
+
+Boris Brezillon (1):
+
+- panfrost: Increase AFBC body alignment requirement on v6+
+
+Daniel Schürmann (2):
+
+- aco/ra: set Pseudo_instruction::scratch_sgpr to SCC if it doesn't need to be preserved
+- aco/ra: use bitset for sgpr_operands_alias_defs
+
+Danylo Piliaiev (1):
+
+- nir/nir_opt_offsets: Do not fold load/store with const offset > max
+
+Dave Airlie (2):
+
+- venus: handle device probing properly.
+- v3dv: report correct error on failure to probe
+
+David Rosca (7):
+
+- radv/video: Fix H264 slice control
+- radv/video: Fix HEVC slice control
+- radv/video: Report correct encodeInputPictureGranularity
+- radv/video: Avoid selecting rc layer over maximum
+- gallium/vl: Don't support planar RGB as video format
+- frontends/va: Create surfaces with correct fourcc for RT format
+- frontends/va: Use compositor blit with different number of planes
+
+Eric Engestrom (12):
+
+- docs: add sha sum for 24.2.7
+- .pick_status.json: Update to 4ed8ef74b4dc111425d6596eb3341d91d563bf00
+- .pick_status.json: Mark ae85e6920c18c6f850c22e183f2f740c45b69ad3 as denominated
+- .pick_status.json: Mark a78c2bf2a41252045f7bb695d02d75fcd73a3957 as denominated
+- .pick_status.json: Mark ca947e1295a8aedd4b7f09ca89ab285156b1309e as denominated
+- .pick_status.json: Mark 962b996d4c569835e0c453a60bb4680d432d30f1 as denominated
+- .pick_status.json: Mark d21f7f75ff38ed26769235daf98af4a18b02f0ab as denominated
+- .pick_status.json: Mark 1368ee5e1aee9a760b445b7dd24d8b77be1b0800 as denominated
+- .pick_status.json: Update to e1a8fd80d411a5ff8fa19ffcf09516ac5099a25c
+- zink+nvk/ci: fix deqp binary used for gles tests
+- zink+radv/ci: fix deqp binary used for gles tests
+- .pick_status.json: Mark 44de5f1c46ceca4f8dd2c594b93ad3e29f2622bc as denominated
+
+Erik Faye-Lund (4):
+
+- panfrost: use 64-bits for layout calculations
+- panvk: set correct max extents for images
+- panvk: support binding swapchain memory
+- panvk: wire up swapchain image creation
+
+Francisco Jerez (1):
+
+- intel/fs/xe2: Fix up subdword integer region restriction with strided byte src and packed byte dst.
+
+Friedrich Vock (1):
+
+- vulkan/rmv: Correctly set heap size
+
+Georg Lehmann (6):
+
+- nir/move_discards_to_top: don't move across is_helper_invocation
+- nir/opt_intrinsic: rework sample mask opt with vector alu
+- nir/opt_intrinsic: fix sample mask opt with demote
+- nir: replace nir_opt_remove_phis_block with a single source version
+- nir: make nir_instr_clone usable with load_const and undef
+- nir/opt_remove_phis: rematerialize constants
+
+Hans-Kristian Arntzen (1):
+
+- radv: Fix missing gang barriers for task shaders.
+
+Ian Romanick (1):
+
+- Fix copy-and-paste bug in nir_lower_aapoint_impl
+
+Jesse Natalie (1):
+
+- wgl: Add missing idep_mesautilformat
+
+Juan A. Suarez Romero (1):
+
+- vc4: handle nir_op_ult32 intrinsic
+
+Juston Li (1):
+
+- util/cache_test: Fix racey Cache.List test
+
+Karmjit Mahil (1):
+
+- tu: Fix memory leaks on VK_PIPELINE_COMPILE_REQUIRED
+
+Karol Herbst (1):
+
+- vtn: handle struct kernel arguments passed by value
+
+Kenneth Graunke (1):
+
+- brw: Fix try_rebuild_source's ult32/ushr handling to use unsigned types
+
+Lionel Landwerlin (3):
+
+- brw: allocate physical register sizes for spilling
+- anv: fix missing push constant reallocation
+- anv: prevent access to destroyed vk_sync objects post submission
+
+Marek Olšák (1):
+
+- radeonsi: fix gl_FrontFace elimination when one side is culled
+
+Mary Guillemard (1):
+
+- panvk: Call vk_free on queue array instead of vk_object_free
+
+Matt Turner (2):
+
+- vulkan: Avoid pointer aliasing
+- nir: Get correct number of components
+
+Patrick Lerda (4):
+
+- r600: fix the evergreen sampler when the minification and the magnification are not identical
+- r600: restructure r600_create_vertex_fetch_shader() to remove memcpy()
+- r600: ensure that the last vertex is always processed on evergreen
+- r600: evergreen stencil/depth mipmap blit workaround
+
+Rhys Perry (5):
+
+- nir/algebraic: fix iabs(ishr(iabs(a), b)) optimization
+- nir/algebraic: check bit sizes in lowered unpack(pack()) optimization
+- nir/lcssa: fix premature exit of loop after rematerializing derefs
+- nir/opt_move_discards_to_top: use nir_tex_instr_has_implicit_derivative
+- nir: fix return value of nir_instr_move for some cases
+
+Robert Mader (1):
+
+- v3d: Support SAND128 base modifier
+
+Sam Lantinga (1):
+
+- util: Fixed crash in HEVC encoding on 32-bit systems
+
+Samuel Pitoiset (3):
+
+- radv: fix ignoring src stage mask when dst stage mask is BOTTOM_OF_PIPE
+- radv: add a new drirc option to disable DCC for mips and enable it for RDR2
+- radv: fix skipping on-disk shaders cache when not useful
+
+Tapani Pälli (1):
+
+- anv/android: always create 2 graphics and compute capable queues
+
+Vldly (1):
+
+- freedreno: Fix resource tracking on repeated map with discard
+
+liuqiang (1):
+
+- lavapipe: Resolved write to pointer after free

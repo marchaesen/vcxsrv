@@ -332,7 +332,8 @@ opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
    case nir_intrinsic_load_global:
    case nir_intrinsic_load_global_constant:
    case nir_intrinsic_load_kernel_input:
-   case nir_intrinsic_load_scratch: {
+   case nir_intrinsic_load_scratch:
+   case nir_intrinsic_load_attribute_pan: {
       /* Must be a vectorized intrinsic that we can resize. */
       assert(instr->num_components != 0);
 

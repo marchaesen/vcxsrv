@@ -1,0 +1,51 @@
+# These fail randomly
+glx@glx_arb_sync_control@timing.*
+glx@glx-multithread-texture
+
+# This one will be Crash or Fail depending on the shader cache state
+spec@!opengl 1.0@rasterpos
+spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked
+spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked
+
+# Random: ../src/util/hash_table.c:311: hash_table_search: Assertion `!key_pointer_is_reserved(ht, key)' failed.
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
+
+# Random
+# Mostly reported by "Some new flakes found:" and most of them never appear in the failures
+GTF-GL46.gtf30.GL3Tests.blend_minmax.blend_minmax_clamping
+GTF-GL46.gtf30.GL3Tests.blend_minmax.blend_minmax_draw
+
+dEQP-GLES3.functional.occlusion_query.all_occluders
+dEQP-GLES3.functional.occlusion_query.conservative_all_occluders
+dEQP-GLES3.functional.occlusion_query.conservative_depth_clear
+dEQP-GLES3.functional.occlusion_query.conservative_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.conservative_depth_clear_stencil_write
+dEQP-GLES3.functional.occlusion_query.conservative_depth_write
+dEQP-GLES3.functional.occlusion_query.conservative_depth_write_stencil_write_stencil_clear
+dEQP-GLES3.functional.occlusion_query.conservative_scissor
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_clear
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_write
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_write_depth_clear
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_write_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_write_stencil_write
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_stencil_write
+dEQP-GLES3.functional.occlusion_query.conservative_stencil_clear
+dEQP-GLES3.functional.occlusion_query.conservative_stencil_write
+dEQP-GLES3.functional.occlusion_query.depth_clear
+dEQP-GLES3.functional.occlusion_query.depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.depth_clear_stencil_write
+dEQP-GLES3.functional.occlusion_query.depth_write
+dEQP-GLES3.functional.occlusion_query.depth_write_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.depth_write_stencil_clear
+dEQP-GLES3.functional.occlusion_query.depth_write_stencil_write
+dEQP-GLES3.functional.occlusion_query.scissor
+dEQP-GLES3.functional.occlusion_query.scissor_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.scissor_depth_clear_stencil_write_stencil_clear
+dEQP-GLES3.functional.occlusion_query.scissor_depth_write_depth_clear
+dEQP-GLES3.functional.occlusion_query.scissor_depth_write_depth_clear_stencil_write
+dEQP-GLES3.functional.occlusion_query.scissor_depth_write_stencil_clear
+dEQP-GLES3.functional.occlusion_query.scissor_depth_write_stencil_write
+dEQP-GLES3.functional.occlusion_query.scissor_stencil_clear
+dEQP-GLES3.functional.occlusion_query.scissor_stencil_write_stencil_clear
+dEQP-GLES3.functional.occlusion_query.stencil_clear
+dEQP-GLES3.functional.occlusion_query.stencil_write

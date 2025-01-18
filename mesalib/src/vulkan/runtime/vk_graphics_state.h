@@ -341,7 +341,7 @@ struct vk_rasterization_state {
        *
        * MESA_VK_DYNAMIC_RS_DEPTH_BIAS_FACTORS
        */
-      float constant;
+      float constant_factor;
 
       /** VkPipelineRasterizationStateCreateInfo::depthBiasClamp
        *
@@ -353,7 +353,7 @@ struct vk_rasterization_state {
        *
        * MESA_VK_DYNAMIC_RS_DEPTH_BIAS_FACTORS
        */
-      float slope;
+      float slope_factor;
 
       /** VkDepthBiasRepresentationInfoEXT::depthBiasRepresentation
        *

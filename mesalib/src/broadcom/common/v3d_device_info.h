@@ -27,6 +27,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Struct for tracking features of the V3D chip across driver and compiler.
  */
@@ -92,5 +96,9 @@ v3d_device_has_unpack_max0(const struct v3d_device_info *devinfo)
                 (devinfo->rev >= 7 ||
                  (devinfo->rev == 6 && devinfo->compat_rev >= 4)));
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

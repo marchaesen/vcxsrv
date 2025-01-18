@@ -700,8 +700,8 @@ u_default_clear_texture(struct pipe_context *pipe,
    bool cleared = false;
    assert(data != NULL);
 
-   bool has_layers = screen->get_param(screen, PIPE_CAP_VS_INSTANCEID) &&
-                     screen->get_param(screen, PIPE_CAP_VS_LAYER_VIEWPORT);
+   bool has_layers = screen->caps.vs_instanceid &&
+                     screen->caps.vs_layer_viewport;
 
    if (has_layers) {
       cleared = util_clear_texture_as_surface(pipe, tex, level,
@@ -914,10 +914,11 @@ util_can_blit_via_copy_region(const struct pipe_blit_info *blit,
 
    unsigned mask = util_format_get_mask(blit->dst.format);
 
-   /* No masks, no filtering, no scissor, no blending */
+   /* No masks, no filtering, no scissor, no blending, no swizzle */
    if ((blit->mask & mask) != mask ||
        blit->filter != PIPE_TEX_FILTER_NEAREST ||
        blit->scissor_enable ||
+       blit->swizzle_enable ||
        blit->num_window_rectangles > 0 ||
        blit->alpha_blend ||
        (blit->render_condition_enable && render_condition_bound)) {

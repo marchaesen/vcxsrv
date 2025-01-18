@@ -27,8 +27,8 @@ transform_trig_input_vs_r500 = [
 # y = frac(x / 2PI)
 #
 transform_trig_input_fs_r500 = [
-        (('fsin', 'a(needs_fs_trig_input_fixup)'), ('fsin', ('ffract', ('fmul', 'a', 1 / (2 * pi))))),
-        (('fcos', 'a(needs_fs_trig_input_fixup)'), ('fcos', ('ffract', ('fmul', 'a', 1 / (2 * pi))))),
+        (('fsin', 'a'), ('fsin', ('ffract', ('fmul', 'a', 1 / (2 * pi))))),
+        (('fcos', 'a'), ('fcos', ('ffract', ('fmul', 'a', 1 / (2 * pi))))),
 ]
 
 # The is a pattern produced by wined3d for A0 register load.

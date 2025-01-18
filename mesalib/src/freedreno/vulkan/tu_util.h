@@ -49,6 +49,8 @@ enum tu_debug_flags
    TU_DEBUG_NOCONFORM = 1 << 24,
    TU_DEBUG_RD = 1 << 25,
    TU_DEBUG_HIPRIO = 1 << 26,
+   TU_DEBUG_NO_CONCURRENT_RESOLVES = 1 << 27,
+   TU_DEBUG_NO_CONCURRENT_UNRESOLVES = 1 << 28,
 };
 
 struct tu_env {

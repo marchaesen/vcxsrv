@@ -586,7 +586,10 @@ FcCacheInsert (FcCache *cache, struct stat *cache_stat)
 
     s = malloc (sizeof (FcCacheSkip) + (level - 1) * sizeof (FcCacheSkip *));
     if (!s)
+    {
+	unlock_cache ();
 	return FcFalse;
+    }
 
     s->cache = cache;
     s->size = cache->size;

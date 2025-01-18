@@ -198,7 +198,7 @@ d3d12_video_bitstream_builder_h264::write_sei_messages(const std::vector<H264_SE
                                                        std::vector<uint8_t>::iterator        placingPositionStart,
                                                        size_t &                              writtenBytes)
 {
-   uint64_t byte_offset_placing_start = std::distance(headerBitstream.begin(), placingPositionStart);
+   size_t byte_offset_placing_start = std::distance(headerBitstream.begin(), placingPositionStart);
    writtenBytes = 0;
 
    for (auto& message : sei_messages)

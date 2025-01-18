@@ -202,6 +202,9 @@ lima_do_blit(struct pipe_context *pctx,
       return false;
 
    /* Blitting of swizzled formats (R and RG) isn't implemented yet */
+   if (info->swizzle_enable)
+      return false;
+
    if (memcmp(identity,
               lima_format_get_texel_swizzle(info->src.resource->format),
               sizeof(identity)))

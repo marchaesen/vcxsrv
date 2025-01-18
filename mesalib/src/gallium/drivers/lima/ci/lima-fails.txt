@@ -390,7 +390,6 @@ spec@glsl-1.10@execution@variable-indexing@vs-varying-mat4-col-wr,Fail
 spec@glsl-1.10@execution@variable-indexing@vs-varying-mat4-row-wr,Fail
 spec@glsl-1.10@execution@variable-indexing@vs-varying-mat4-wr,Fail
 spec@glsl-1.10@glsl-fs-discard-only,Fail
-spec@glsl-1.10@linker@glsl-link-varyings-3,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-assign-div-mat2x4-mat2x4,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-assign-div-mat3x2-mat3x2,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-assign-div-mat3x4-mat3x4,Fail
@@ -555,22 +554,8 @@ spec@!opengl 1.5@depth-tex-compare,Fail
 spec@!opengl 2.0@early-z,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
-spec@!opengl 2.0@vertex-program-two-side back front2 back2,Fail
-spec@!opengl 2.0@vertex-program-two-side back front2 back2@vs and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side back front2,Fail
-spec@!opengl 2.0@vertex-program-two-side back front2@vs and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back2@vs and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back back2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back back2@vs and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled back front2 back2,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled back front2 back2@vs and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back front2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back front2@vs and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back@vs and fs,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled front back2@vs and fs,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled front back back2,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled front back back2@vs and fs,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled front front2 back2,Fail
@@ -591,9 +576,6 @@ spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_alpha_s3
 spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_alpha_s3tc_dxt3_ext,Fail
 spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_alpha_s3tc_dxt5_ext,Fail
 spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_s3tc_dxt1_ext,Fail
-
-# Expects that some format/internal_format combinations should be supported when they currently aren't.
-spec@arb_clear_texture@arb_clear_texture-supported-formats,Fail
 
 # Precision issue when lowering GL_RGB16 and GL_RGBA16
 spec@arb_clear_texture@arb_clear_texture-sized-formats,Fail
@@ -1070,6 +1052,30 @@ dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_ops.incr_incr_incr_wrap
 dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_ops.incr_wrap_keep_keep,Fail
 dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_ops.keep_keep_incr_wrap,Fail
 dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_ops.decr_incr_wrap_decr_wrap,Fail
-dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2dproj_vec3_bias,Fail
-dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2d_bias,Fail
 dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2dproj_vec4_bias,Fail
+
+# uprev Piglit in Mesa
+spec@!opengl 1.4@triangle-rasterization-fbo,Fail
+spec@!opengl 2.0@vertex-program-two-side enabled front back front2,Fail
+spec@!opengl 2.0@vertex-program-two-side enabled front back front2@vs and fs,Fail
+spec@arb_color_buffer_float@gl_rgba8-drawpixels,Fail
+spec@arb_texture_rg@rg-draw-pixels,Fail
+spec@arb_texture_rg@texture-rg,Fail
+spec@ext_framebuffer_blit@fbo-readdrawpix,Fail
+spec@glsl-1.20@execution@variable-indexing@vs-temp-array-mat4-index-col-row-wr,Crash
+spec@!opengl 1.0@gl-1.0-drawpixels-color-index,Fail
+spec@!opengl 1.1@texture-al,Fail
+spec@!opengl 1.4@triangle-rasterization,Fail
+spec@!opengl 2.0@vertex-program-two-side enabled front back,Fail
+spec@!opengl 2.0@vertex-program-two-side enabled front back@vs and fs,Fail
+spec@!opengl 2.0@vertex-program-two-side enabled front2 back2,Fail
+spec@!opengl 2.0@vertex-program-two-side enabled front2 back2@vs and fs,Fail
+spec@!opengl 2.1@pbo@test_draw_pixels,Fail
+spec@arb_pixel_buffer_object@pbo-drawpixels,Fail
+spec@ext_framebuffer_object@fbo-fragcoord2,Fail
+spec@glsl-1.10@execution@variable-indexing@vs-temp-array-mat4-index-col-row-wr,Crash
+
+# With linux kernel 6.13-rc4 uprev
+dEQP-GLES2.functional.shaders.operator.selection.bool_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.bvec2_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.bvec3_fragment,Fail

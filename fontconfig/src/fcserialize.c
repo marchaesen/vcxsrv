@@ -163,7 +163,7 @@ FcSerializeResize (FcSerialize *serialize, size_t new_count)
     size_t old_used = serialize->buckets_used;
     size_t old_count = serialize->buckets_count;
     FcSerializeBucket *old_buckets = serialize->buckets;
-    FcSerializeBucket *old_buckets_end = old_buckets + old_count;
+    FcSerializeBucket *old_buckets_end = old_buckets ? old_buckets + old_count : NULL;
 
     FcSerializeBucket *new_buckets = malloc (new_count * sizeof (*old_buckets));
     if (!new_buckets)

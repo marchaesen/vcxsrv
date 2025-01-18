@@ -64,6 +64,7 @@ is_format_supported(struct pipe_screen *screen, enum pipe_format format,
          break;
       case PIPE_FORMAT_NV12:
       case PIPE_FORMAT_NV21:
+      case PIPE_FORMAT_NV16:
          supported = screen->is_format_supported(screen, PIPE_FORMAT_R8_UNORM,
                                                  PIPE_TEXTURE_2D, nr_samples,
                                                  nr_storage_samples, usage) &&
@@ -166,7 +167,7 @@ is_format_supported(struct pipe_screen *screen, enum pipe_format format,
 }
 
 static bool
-is_nv12_as_r8_g8b8_supported(struct pipe_screen *screen, struct st_egl_image *out,
+is_fmt_as_r8_g8b8_supported(struct pipe_screen *screen, struct st_egl_image *out,
                              unsigned usage, bool *native_supported)
 {
    if (out->format == PIPE_FORMAT_NV12 &&
@@ -190,7 +191,44 @@ is_nv12_as_r8_g8b8_supported(struct pipe_screen *screen, struct st_egl_image *ou
       *native_supported = false;
       return true;
    }
+   if (out->format == PIPE_FORMAT_NV16 &&
+       out->texture->format == PIPE_FORMAT_R8_G8B8_422_UNORM &&
+       screen->is_format_supported(screen, PIPE_FORMAT_R8_G8B8_422_UNORM,
+                                   PIPE_TEXTURE_2D,
+                                   out->texture->nr_samples,
+                                   out->texture->nr_storage_samples,
+                                   usage)) {
+      *native_supported = false;
+      return true;
+   }
 
+   return false;
+}
+
+static bool
+is_fmt_as_r10_g10b10_supported(struct pipe_screen *screen, struct st_egl_image *out,
+                             unsigned usage, bool *native_supported)
+{
+   if (out->format == PIPE_FORMAT_NV15 &&
+       out->texture->format == PIPE_FORMAT_R10_G10B10_420_UNORM &&
+       screen->is_format_supported(screen, PIPE_FORMAT_R10_G10B10_420_UNORM,
+                                   PIPE_TEXTURE_2D,
+                                   out->texture->nr_samples,
+                                   out->texture->nr_storage_samples,
+                                   usage)) {
+      *native_supported = false;
+      return true;
+   }
+   if (out->format == PIPE_FORMAT_NV20 &&
+       out->texture->format == PIPE_FORMAT_R10_G10B10_422_UNORM &&
+       screen->is_format_supported(screen, PIPE_FORMAT_R10_G10B10_422_UNORM,
+                                   PIPE_TEXTURE_2D,
+                                   out->texture->nr_samples,
+                                   out->texture->nr_storage_samples,
+                                   usage)) {
+      *native_supported = false;
+      return true;
+   }
    return false;
 }
 
@@ -246,7 +284,8 @@ st_get_egl_image(struct gl_context *ctx, GLeglImageOES image_handle,
       return false;
    }
 
-   if (!is_nv12_as_r8_g8b8_supported(screen, out, usage, native_supported) &&
+   if (!is_fmt_as_r8_g8b8_supported(screen, out, usage, native_supported) &&
+       !is_fmt_as_r10_g10b10_supported(screen, out, usage, native_supported) &&
        !is_i420_as_r8_g8_b8_420_supported(screen, out, usage, native_supported) &&
        !is_format_supported(screen, out->format, out->texture->nr_samples,
                             out->texture->nr_storage_samples, usage,
@@ -381,6 +420,32 @@ st_bind_egl_image(struct gl_context *ctx,
          } else {
             texFormat = MESA_FORMAT_R_UNORM8;
             texObj->RequiredTextureImageUnits = 2;
+         }
+         break;
+      case PIPE_FORMAT_NV16:
+         if (stimg->texture->format == PIPE_FORMAT_R8_G8B8_422_UNORM ||
+             stimg->texture->format == PIPE_FORMAT_R8_B8G8_422_UNORM) {
+            texFormat = MESA_FORMAT_R8G8B8X8_UNORM;
+            texObj->RequiredTextureImageUnits = 1;
+         } else {
+            texFormat = MESA_FORMAT_R_UNORM8;
+            texObj->RequiredTextureImageUnits = 2;
+         }
+         break;
+      case PIPE_FORMAT_NV15:
+         if (stimg->texture->format == PIPE_FORMAT_R10_G10B10_420_UNORM) {
+            texFormat = MESA_FORMAT_R10G10B10X2_UNORM;
+            texObj->RequiredTextureImageUnits = 1;
+         } else {
+            unreachable("NV15 emulation requires R10_G10B10_420_UNORM support");
+         }
+         break;
+      case PIPE_FORMAT_NV20:
+         if (stimg->texture->format == PIPE_FORMAT_R10_G10B10_422_UNORM) {
+            texFormat = MESA_FORMAT_R10G10B10X2_UNORM;
+            texObj->RequiredTextureImageUnits = 1;
+         } else {
+            unreachable("NV20 emulation requires R10_G10B10_422_UNORM support");
          }
          break;
       case PIPE_FORMAT_P010:

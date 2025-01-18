@@ -72,7 +72,6 @@ struct agx_opcode_info {
    unsigned nr_dests;
    uint64_t immediates;
    struct agx_encoding encoding;
-   struct agx_encoding encoding_16;
    enum agx_schedule_class schedule_class;
    bool is_float : 1;
    bool can_eliminate : 1;

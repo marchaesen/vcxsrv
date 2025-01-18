@@ -5,6 +5,8 @@ spec@!opengl 1.2@tex3d-maxsize
 
 # assert due to a malformed vert decl
 spec@!opengl 1.1@vertex-fallbacks
+# intermittent OOM
+spec@!opengl 1.1@max-texture-size
 
 # arb_compute_shader: a crash and a timeout
 spec@arb_compute_shader@compute-and-render-bug-109630
@@ -25,3 +27,12 @@ spec@ext_texture_array@fbo-depth-array stencil-layered-clear
 # low-freq intermittent tessellation failures
 spec@arb_tessellation_shader@execution@tcs-input@tcs-input-mat2
 spec@arb_tessellation_shader@execution@tcs-input@tcs-input-uvec2_2
+spec@arb_tessellation_shader@execution@tcs-input@tcs-input-gl_position
+spec@arb_tessellation_shader@execution@tcs-input@tcs-input-int_2
+spec@arb_timer_query@timestamp-get
+
+# uprev Piglit in Mesa
+spec@arb_tessellation_shader@execution@built-in-functions@tcs-degrees-vec4
+spec@arb_tessellation_shader@execution@isoline
+spec@arb_tessellation_shader@execution@isoline-no-tcs
+spec@glsl-1.30@execution@texelfetch fs sampler2darray 98x1x9-98x129x9

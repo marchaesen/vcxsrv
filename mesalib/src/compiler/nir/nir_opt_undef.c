@@ -48,8 +48,7 @@ opt_undef_csel(nir_builder *b, nir_alu_instr *instr)
       return false;
 
    for (int i = 1; i <= 2; i++) {
-      nir_instr *parent = instr->src[i].src.ssa->parent_instr;
-      if (parent->type != nir_instr_type_undef)
+      if (!nir_src_is_undef(instr->src[i].src))
          continue;
 
       b->cursor = nir_instr_remove(&instr->instr);
@@ -63,24 +62,49 @@ opt_undef_csel(nir_builder *b, nir_alu_instr *instr)
    return false;
 }
 
+static bool
+op_is_mov_or_vec_or_pack_or_unpack(nir_op op)
+{
+   switch (op) {
+   case nir_op_pack_32_2x16:
+   case nir_op_pack_32_2x16_split:
+   case nir_op_pack_32_4x8:
+   case nir_op_pack_32_4x8_split:
+   case nir_op_pack_64_2x32:
+   case nir_op_pack_64_2x32_split:
+   case nir_op_pack_64_4x16:
+   case nir_op_unpack_32_2x16:
+   case nir_op_unpack_32_2x16_split_x:
+   case nir_op_unpack_32_2x16_split_y:
+   case nir_op_unpack_32_4x8:
+   case nir_op_unpack_64_2x32:
+   case nir_op_unpack_64_2x32_split_x:
+   case nir_op_unpack_64_2x32_split_y:
+   case nir_op_unpack_64_4x16:
+      return true;
+   default:
+      return nir_op_is_vec_or_mov(op);
+   }
+}
+
 /**
  * Replace vecN(undef, undef, ...) with a single undef.
  */
 static bool
 opt_undef_vecN(nir_builder *b, nir_alu_instr *alu)
 {
-   if (!nir_op_is_vec_or_mov(alu->op))
+   if (!op_is_mov_or_vec_or_pack_or_unpack(alu->op))
       return false;
 
    for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
-      if (alu->src[i].src.ssa->parent_instr->type != nir_instr_type_undef)
+      if (!nir_src_is_undef(alu->src[i].src))
          return false;
    }
 
    b->cursor = nir_before_instr(&alu->instr);
    nir_def *undef = nir_undef(b, alu->def.num_components,
                               alu->def.bit_size);
-   nir_def_rewrite_uses(&alu->def, undef);
+   nir_def_replace(&alu->def, undef);
 
    return true;
 }
@@ -102,8 +126,7 @@ nir_get_undef_mask(nir_def *def)
    /* nir_op_mov of undef is handled by opt_undef_vecN() */
    if (nir_op_is_vec(alu->op)) {
       for (int i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
-         if (alu->src[i].src.ssa->parent_instr->type ==
-             nir_instr_type_undef) {
+         if (nir_src_is_undef(alu->src[i].src)) {
             undef |= BITSET_MASK(nir_ssa_alu_instr_src_components(alu, i)) << i;
          }
       }
@@ -126,6 +149,7 @@ opt_undef_store(nir_intrinsic_instr *intrin)
       break;
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_vertex_output:
+   case nir_intrinsic_store_per_view_output:
    case nir_intrinsic_store_per_primitive_output:
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_store_shared:
@@ -183,15 +207,9 @@ visit_undef_use(nir_src *src, struct visit_info *info)
        */
       nir_alu_instr *alu = nir_instr_as_alu(instr);
 
-      /* Follow movs and vecs.
-       *
-       * Note that all vector component uses are followed and swizzles are
-       * ignored.
-       */
-      if (alu->op == nir_op_mov || nir_op_is_vec(alu->op)) {
-         nir_foreach_use_including_if(next_src, &alu->def) {
-            visit_undef_use(next_src, info);
-         }
+      /* opt_undef_vecN already copy propagated. */
+      if (op_is_mov_or_vec_or_pack_or_unpack(alu->op)) {
+         info->must_keep_undef = true;
          return;
       }
 
@@ -200,14 +218,6 @@ visit_undef_use(nir_src *src, struct visit_info *info)
       for (unsigned i = 0; i < num_srcs; i++) {
          if (&alu->src[i].src != src)
             continue;
-
-         if (nir_op_is_selection(alu->op) && i != 0) {
-            /* nir_opt_algebraic can eliminate a select opcode only if src0 is
-             * a constant. If the undef use is src1 or src2, it will be
-             * handled by opt_undef_csel.
-             */
-            continue;
-         }
 
          info->replace_undef_with_constant = true;
          if (nir_op_infos[alu->op].input_types[i] & nir_type_float &&
@@ -233,9 +243,13 @@ visit_undef_use(nir_src *src, struct visit_info *info)
  * to be eliminated by nir_opt_algebraic. 0 would not eliminate the FP opcode.
  */
 static bool
-replace_ssa_undef(nir_builder *b, nir_instr *instr,
-                  const struct undef_options *options)
+replace_ssa_undef(nir_builder *b, nir_instr *instr, void *data)
 {
+   if (instr->type != nir_instr_type_undef)
+      return false;
+
+   const struct undef_options *options = data;
+
    nir_undef_instr *undef = nir_instr_as_undef(instr);
    struct visit_info info = {0};
 
@@ -261,19 +275,14 @@ replace_ssa_undef(nir_builder *b, nir_instr *instr,
    if (undef->def.num_components > 1)
       replacement = nir_replicate(b, replacement, undef->def.num_components);
 
-   nir_def_rewrite_uses_after(&undef->def, replacement, &undef->instr);
-   nir_instr_remove(&undef->instr);
+   nir_def_replace(&undef->def, replacement);
    return true;
 }
 
 static bool
-nir_opt_undef_instr(nir_builder *b, nir_instr *instr, void *data)
+opt_undef_uses(nir_builder *b, nir_instr *instr, void *data)
 {
-   const struct undef_options *options = data;
-
-   if (instr->type == nir_instr_type_undef) {
-      return replace_ssa_undef(b, instr, options);
-   } else if (instr->type == nir_instr_type_alu) {
+   if (instr->type == nir_instr_type_alu) {
       nir_alu_instr *alu = nir_instr_as_alu(instr);
       return opt_undef_csel(b, alu) ||
              opt_undef_vecN(b, alu);
@@ -322,8 +331,14 @@ nir_opt_undef(nir_shader *shader)
    if (shader->info.use_legacy_math_rules)
       options.disallow_undef_to_nan = true;
 
-   return nir_shader_instructions_pass(shader,
-                                       nir_opt_undef_instr,
-                                       nir_metadata_control_flow,
-                                       &options);
+   bool progress = nir_shader_instructions_pass(shader,
+                                                opt_undef_uses,
+                                                nir_metadata_control_flow,
+                                                &options);
+   progress |= nir_shader_instructions_pass(shader,
+                                            replace_ssa_undef,
+                                            nir_metadata_control_flow,
+                                            &options);
+
+   return progress;
 }

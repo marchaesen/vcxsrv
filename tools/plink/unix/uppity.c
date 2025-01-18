@@ -650,6 +650,8 @@ int main(int argc, char **argv)
     struct cmdline_instance *ci = &instances[ninstances++];
     init_cmdline_instance(ci);
 
+    enable_dit();
+
     if (argc <= 1) {
         /*
          * We're going to terminate with an error message below,

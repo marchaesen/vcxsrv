@@ -163,7 +163,7 @@ typedef struct fd_set {
         }
 
 #else /* USE_POLL */
-#include <sys/poll.h>
+#include <poll.h>
 #endif /* USE_POLL */
 
 #else /* WIN32 */

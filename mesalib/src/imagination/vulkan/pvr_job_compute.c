@@ -83,14 +83,14 @@ pvr_submit_info_stream_init(struct pvr_compute_ctx *ctx,
       state.common_shared = true;
       state.common_size =
          DIV_ROUND_UP(sub_cmd->num_shared_regs << 2,
-                      PVRX(CR_CDM_CONTEXT_PDS1_COMMON_SIZE_UNIT_SIZE));
+                      ROGUE_CR_CDM_CONTEXT_PDS1_COMMON_SIZE_UNIT_SIZE);
       state.temp_size = 0;
 
       assert(load_program_data_size %
-                PVRX(CR_CDM_CONTEXT_PDS1_DATA_SIZE_UNIT_SIZE) ==
+                ROGUE_CR_CDM_CONTEXT_PDS1_DATA_SIZE_UNIT_SIZE ==
              0);
       state.data_size =
-         load_program_data_size / PVRX(CR_CDM_CONTEXT_PDS1_DATA_SIZE_UNIT_SIZE);
+         load_program_data_size / ROGUE_CR_CDM_CONTEXT_PDS1_DATA_SIZE_UNIT_SIZE;
       state.fence = false;
    }
    stream_ptr += pvr_cmd_length(CR_CDM_CONTEXT_PDS1);
@@ -169,7 +169,7 @@ static void pvr_submit_info_ext_stream_init(
       }
    }
 
-   if ((*header0_ptr & PVRX(KMD_STREAM_EXTHDR_DATA_MASK)) != 0) {
+   if ((*header0_ptr & ROGUE_KMD_STREAM_EXTHDR_DATA_MASK) != 0) {
       submit_info->fw_stream_len =
          (uint8_t *)ext_stream_ptr - (uint8_t *)submit_info->fw_stream;
       assert(submit_info->fw_stream_len <= ARRAY_SIZE(submit_info->fw_stream));

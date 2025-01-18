@@ -60,7 +60,7 @@ impl<'a, R> PipeQuery<'a, R> {
     }
 }
 
-impl<'a, R> Drop for PipeQuery<'a, R> {
+impl<R> Drop for PipeQuery<'_, R> {
     fn drop(&mut self) {
         // SAFETY: we are the only owner of that valid pointer
         unsafe {

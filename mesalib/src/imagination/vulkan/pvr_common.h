@@ -192,7 +192,7 @@ union pvr_sampler_descriptor {
    uint32_t words[PVR_SAMPLER_DESCRIPTOR_SIZE];
 
    struct {
-      /* Packed PVRX(TEXSTATE_SAMPLER). */
+      /* Packed ROGUE_TEXSTATE_SAMPLER. */
       uint64_t sampler_word;
       uint32_t compare_op;
       /* TODO: Figure out what this word is for and rename.

@@ -161,12 +161,13 @@ impl Platform {
             glsl_type_singleton_init_or_ref();
         }
 
-        self.devs = Device::all().collect();
+        self.devs = Device::all();
     }
 
     pub fn init_once() {
         PLATFORM_ENV_ONCE.call_once(load_env);
         // SAFETY: no concurrent static mut access due to std::Once
+        #[allow(static_mut_refs)]
         PLATFORM_ONCE.call_once(|| unsafe { PLATFORM.init() });
     }
 }

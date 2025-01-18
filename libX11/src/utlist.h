@@ -86,7 +86,7 @@ do {                                                                            
       (head)->prev = (head);                                                     \
       (head)->next = NULL;                                                       \
   }                                                                              \
-} while (0);
+} while (0)
 
 #define DL_DELETE(head,del)                                                      \
 do {                                                                             \
@@ -103,7 +103,7 @@ do {                                                                            
           (head)->prev = (del)->prev;                                            \
       }                                                                          \
   }                                                                              \
-} while (0);
+} while (0)
 
 
 #define DL_FOREACH(head,el)                                                      \

@@ -669,7 +669,7 @@ process_output_signature(struct dxil_module *mod, nir_shader *s)
           base_var->data.stream == var->data.stream)
          /* Combine fractional vars into any already existing row */
          get_additional_semantic_info(s, var, &semantic,
-                                      mod->psv_outputs[base_var->data.driver_location].start_row,
+                                      mod->psv_outputs[mod->output_mappings[base_var->data.driver_location]].start_row,
                                       s->info.clip_distance_array_size);
       else
          next_row = get_additional_semantic_info(s, var, &semantic, next_row, s->info.clip_distance_array_size);
@@ -677,6 +677,7 @@ process_output_signature(struct dxil_module *mod, nir_shader *s)
       mod->info.has_out_position |= semantic.kind== DXIL_SEM_POSITION;
       mod->info.has_out_depth |= semantic.kind == DXIL_SEM_DEPTH;
 
+      mod->output_mappings[var->data.driver_location] = num_outputs;
       struct dxil_psv_signature_element *psv_elm = &mod->psv_outputs[num_outputs];
 
       if (!fill_io_signature(mod, num_outputs, &semantic,
@@ -752,8 +753,18 @@ process_patch_const_signature(struct dxil_module *mod, nir_shader *s)
       get_semantic_name(var, &semantic, type);
 
       mod->patch_consts[num_consts].sysvalue = patch_sysvalue_name(var);
-      next_row = get_additional_semantic_info(s, var, &semantic, next_row, 0);
+      nir_variable *base_var = var;
+      if (var->data.location_frac)
+         base_var = nir_find_variable_with_location(s, mode, var->data.location);
+      if (base_var != var)
+         /* Combine fractional vars into any already existing row */
+         get_additional_semantic_info(s, var, &semantic,
+                                      mod->psv_patch_consts[mod->patch_mappings[base_var->data.driver_location]].start_row,
+                                      0);
+      else
+         next_row = get_additional_semantic_info(s, var, &semantic, next_row, 0);
 
+      mod->patch_mappings[var->data.driver_location] = num_consts;
       struct dxil_psv_signature_element *psv_elm = &mod->psv_patch_consts[num_consts];
 
       if (!fill_io_signature(mod, num_consts, &semantic,

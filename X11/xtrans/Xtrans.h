@@ -316,7 +316,7 @@ int TRANS(Read)(
 
 int TRANS(Write)(
     XtransConnInfo,	/* ciptr */
-    char *,		/* buf */
+    const char *,	/* buf */
     int			/* size */
 );
 

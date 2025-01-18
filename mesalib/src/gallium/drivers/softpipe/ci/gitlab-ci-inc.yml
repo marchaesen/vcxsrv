@@ -2,7 +2,7 @@
   stage: software-renderer
   rules:
     - !reference [.test, rules]
-    - if: $FORCE_KERNEL_TAG != null
+    - if: $EXTERNAL_KERNEL_TAG != null
       when: never
     - !reference [.gl-rules, rules]
     - changes: &softpipe_file_list
@@ -24,5 +24,3 @@
     - .softpipe-test
     # this must be last to avoid breaking dependency rules
     - .softpipe-rules
-  variables:
-    DEQP_EXPECTED_RENDERER: softpipe

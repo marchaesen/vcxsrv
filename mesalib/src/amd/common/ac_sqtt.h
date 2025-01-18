@@ -101,9 +101,6 @@ void ac_sqtt_finish(struct ac_sqtt *data);
 bool ac_is_sqtt_complete(const struct radeon_info *rad_info, const struct ac_sqtt *sqtt,
                          const struct ac_sqtt_data_info *info);
 
-uint32_t ac_get_expected_buffer_size(struct radeon_info *rad_info,
-                                     const struct ac_sqtt_data_info *info);
-
 /**
  * Identifiers for RGP SQ thread-tracing markers (Table 1)
  */

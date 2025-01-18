@@ -50,10 +50,12 @@ try_simplify_convert_intrin(nir_intrinsic_instr *conv)
    return progress;
 }
 
-static void
-lower_convert_alu_types_instr(nir_builder *b, nir_intrinsic_instr *conv)
+static bool
+lower_convert_alu_types_instr(nir_builder *b, nir_intrinsic_instr *conv, void *data)
 {
-   assert(conv->intrinsic == nir_intrinsic_convert_alu_types);
+   bool (*cb)(nir_intrinsic_instr *) = data;
+   if (conv->intrinsic != nir_intrinsic_convert_alu_types || (cb && !cb(conv)))
+      return false;
 
    b->cursor = nir_instr_remove(&conv->instr);
    nir_def *val =
@@ -63,40 +65,21 @@ lower_convert_alu_types_instr(nir_builder *b, nir_intrinsic_instr *conv)
                                 nir_intrinsic_rounding_mode(conv),
                                 nir_intrinsic_saturate(conv));
    nir_def_rewrite_uses(&conv->def, val);
+   return true;
 }
 
 static bool
-opt_simplify_convert_alu_types_impl(nir_function_impl *impl)
+opt_simplify(nir_builder *b, nir_intrinsic_instr *intr, void *_)
 {
-   bool progress = false;
-   bool lowered_instr = false;
+   if (intr->intrinsic != nir_intrinsic_convert_alu_types)
+      return false;
 
-   nir_builder b = nir_builder_create(impl);
+   bool progress = try_simplify_convert_intrin(intr);
 
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
-
-         nir_intrinsic_instr *conv = nir_instr_as_intrinsic(instr);
-         if (conv->intrinsic != nir_intrinsic_convert_alu_types)
-            continue;
-
-         if (try_simplify_convert_intrin(conv))
-            progress = true;
-
-         if (nir_intrinsic_rounding_mode(conv) == nir_rounding_mode_undef &&
-             !nir_intrinsic_saturate(conv)) {
-            lower_convert_alu_types_instr(&b, conv);
-            lowered_instr = true;
-         }
-      }
-   }
-
-   if (lowered_instr) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
+   if (nir_intrinsic_rounding_mode(intr) == nir_rounding_mode_undef &&
+       !nir_intrinsic_saturate(intr)) {
+      lower_convert_alu_types_instr(b, intr, NULL);
+      progress = true;
    }
 
    return progress;
@@ -105,62 +88,16 @@ opt_simplify_convert_alu_types_impl(nir_function_impl *impl)
 bool
 nir_opt_simplify_convert_alu_types(nir_shader *shader)
 {
-   bool progress = false;
-
-   nir_foreach_function_impl(impl, shader) {
-      if (opt_simplify_convert_alu_types_impl(impl))
-         progress = true;
-   }
-
-   return progress;
-}
-
-static bool
-lower_convert_alu_types_impl(nir_function_impl *impl,
-                             bool (*should_lower)(nir_intrinsic_instr *))
-{
-   bool progress = false;
-
-   nir_builder b = nir_builder_create(impl);
-
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
-
-         nir_intrinsic_instr *conv = nir_instr_as_intrinsic(instr);
-         if (conv->intrinsic != nir_intrinsic_convert_alu_types)
-            continue;
-
-         if (should_lower != NULL && !should_lower(conv))
-            continue;
-
-         lower_convert_alu_types_instr(&b, conv);
-         progress = true;
-      }
-   }
-
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_control_flow);
-   } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
-   }
-
-   return progress;
+   return nir_shader_intrinsics_pass(shader, opt_simplify,
+                                     nir_metadata_control_flow, NULL);
 }
 
 bool
 nir_lower_convert_alu_types(nir_shader *shader,
                             bool (*should_lower)(nir_intrinsic_instr *))
 {
-   bool progress = false;
-
-   nir_foreach_function_impl(impl, shader) {
-      if (lower_convert_alu_types_impl(impl, should_lower))
-         progress = true;
-   }
-
-   return progress;
+   return nir_shader_intrinsics_pass(shader, lower_convert_alu_types_instr,
+                                     nir_metadata_control_flow, should_lower);
 }
 
 static bool

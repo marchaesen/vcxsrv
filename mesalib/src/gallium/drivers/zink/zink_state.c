@@ -204,8 +204,8 @@ zink_bind_vertex_elements_state(struct pipe_context *pctx,
          decomposed_attrs_without_w = vs->u16.decomposed_attrs_without_w;
          break;
       case 4:
-         decomposed_attrs = vs->u16.decomposed_attrs;
-         decomposed_attrs_without_w = vs->u16.decomposed_attrs_without_w;
+         decomposed_attrs = vs->u32.decomposed_attrs;
+         decomposed_attrs_without_w = vs->u32.decomposed_attrs_without_w;
          break;
       }
       if (ctx->element_state->decomposed_attrs != decomposed_attrs ||

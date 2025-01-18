@@ -250,6 +250,11 @@ xkb_symbols "ps-olpc" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "olpc" {
+    include "af(fa-olpc)"
+};
+
+partial alphanumeric_keys
 xkb_symbols "fa-olpc" {
 
    name[Group1]= "Dari (Afghanistan, OLPC)";

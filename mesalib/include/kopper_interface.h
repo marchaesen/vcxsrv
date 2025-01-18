@@ -63,15 +63,15 @@ struct __DRIkopperExtensionRec {
      * on-screen surfaces (eg X11 window) and trying to create a swapchain for
      * a pixmap is undefined.
      */
-    __DRIdrawable *(*createNewDrawable)(__DRIscreen *screen,
-                                        const __DRIconfig *config,
+    struct dri_drawable *(*createNewDrawable)(struct dri_screen *screen,
+                                        const struct dri_config *config,
                                         void *loaderPrivate,
                                         __DRIkopperDrawableInfo *info);
     /* flags is a set of __DRI2_FLUSH_* flags */
-    int64_t (*swapBuffers)(__DRIdrawable *draw, uint32_t flush_flags);
-    void (*setSwapInterval)(__DRIdrawable *drawable, int interval);
-    int (*queryBufferAge)(__DRIdrawable *drawable);
-    int64_t (*swapBuffersWithDamage)(__DRIdrawable *draw, uint32_t flush_flags, int nrects, const int *rects);
+    int64_t (*swapBuffers)(struct dri_drawable *draw, uint32_t flush_flags);
+    void (*setSwapInterval)(struct dri_drawable *drawable, int interval);
+    int (*queryBufferAge)(struct dri_drawable *drawable);
+    int64_t (*swapBuffersWithDamage)(struct dri_drawable *draw, uint32_t flush_flags, int nrects, const int *rects);
 };
 
 /**
@@ -109,7 +109,7 @@ struct __DRIkopperLoaderExtensionRec {
     /* Asks the loader to fill in VkWhateverSurfaceCreateInfo etc. */
     void (*SetSurfaceCreateInfo)(void *draw, struct kopper_loader_info *out);
     /* Asks the loader to fill in the drawable's width and height */
-    void (*GetDrawableInfo)(__DRIdrawable *draw, int *w, int *h,
+    void (*GetDrawableInfo)(struct dri_drawable *draw, int *w, int *h,
                             void *closure);
 };
 #endif /* KOPPER_INTERFACE_H */

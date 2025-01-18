@@ -157,11 +157,11 @@ nir_options = {
    .max_unroll_iterations = 32, /* arbitrary */
    .force_indirect_unrolling = (nir_var_shader_in | nir_var_shader_out),
    .lower_device_index_to_zero = true,
-   .linker_ignore_precision = true,
    .support_16bit_alu = true,
    .preserve_mediump = true,
    .discard_is_demote = true,
    .scalarize_ddx = true,
+   .io_options = nir_io_dont_use_pos_for_non_fs_varyings | nir_io_mediump_is_32bit,
 };
 
 const nir_shader_compiler_options*
@@ -3589,7 +3589,9 @@ emit_store_output_via_intrinsic(struct ntd_context *ctx, nir_intrinsic_instr *in
 
    const struct dxil_value *opcode = dxil_module_get_int32_const(&ctx->mod, is_patch_constant ?
       DXIL_INTR_STORE_PATCH_CONSTANT : DXIL_INTR_STORE_OUTPUT);
-   const struct dxil_value *output_id = dxil_module_get_int32_const(&ctx->mod, nir_intrinsic_base(intr));
+   uint8_t *io_mappings = is_patch_constant ? ctx->mod.patch_mappings : ctx->mod.output_mappings;
+   uint8_t io_index = io_mappings[nir_intrinsic_base(intr)];
+   const struct dxil_value *output_id = dxil_module_get_int32_const(&ctx->mod, io_index);
    unsigned row_index = intr->intrinsic == nir_intrinsic_store_output ? 1 : 2;
 
    /* NIR has these as 1 row, N cols, but DXIL wants them as N rows, 1 col. We muck with these in the signature
@@ -3616,8 +3618,8 @@ emit_store_output_via_intrinsic(struct ntd_context *ctx, nir_intrinsic_instr *in
 
    if (ctx->mod.minor_validator >= 5) {
       struct dxil_signature_record *sig_rec = is_patch_constant ?
-         &ctx->mod.patch_consts[nir_intrinsic_base(intr)] :
-         &ctx->mod.outputs[nir_intrinsic_base(intr)];
+         &ctx->mod.patch_consts[io_index] :
+         &ctx->mod.outputs[io_index];
       unsigned comp_size = intr->src[0].ssa->bit_size == 64 ? 2 : 1;
       unsigned comp_mask = 0;
       if (is_tess_level)
@@ -3634,8 +3636,8 @@ emit_store_output_via_intrinsic(struct ntd_context *ctx, nir_intrinsic_instr *in
 
       if (!nir_src_is_const(intr->src[row_index])) {
          struct dxil_psv_signature_element *psv_rec = is_patch_constant ?
-            &ctx->mod.psv_patch_consts[nir_intrinsic_base(intr)] :
-            &ctx->mod.psv_outputs[nir_intrinsic_base(intr)];
+            &ctx->mod.psv_patch_consts[io_index] :
+            &ctx->mod.psv_outputs[io_index];
          psv_rec->dynamic_mask_and_stream |= comp_mask;
       }
    }
@@ -3701,10 +3703,12 @@ emit_load_input_via_intrinsic(struct ntd_context *ctx, nir_intrinsic_instr *intr
    if (!opcode)
       return false;
 
-   const struct dxil_value *input_id = dxil_module_get_int32_const(&ctx->mod,
-      is_patch_constant || is_output_control_point ?
-         nir_intrinsic_base(intr) :
-         ctx->mod.input_mappings[nir_intrinsic_base(intr)]);
+   uint8_t *io_mappings =
+      is_patch_constant ? ctx->mod.patch_mappings :
+      is_output_control_point ? ctx->mod.output_mappings :
+      ctx->mod.input_mappings;
+   uint8_t io_index = io_mappings[nir_intrinsic_base(intr)];
+   const struct dxil_value *input_id = dxil_module_get_int32_const(&ctx->mod, io_index);
    if (!input_id)
       return false;
 
@@ -3760,8 +3764,8 @@ emit_load_input_via_intrinsic(struct ntd_context *ctx, nir_intrinsic_instr *intr
        !is_output_control_point &&
        intr->intrinsic != nir_intrinsic_load_output) {
       struct dxil_signature_record *sig_rec = is_patch_constant ?
-         &ctx->mod.patch_consts[nir_intrinsic_base(intr)] :
-         &ctx->mod.inputs[ctx->mod.input_mappings[nir_intrinsic_base(intr)]];
+         &ctx->mod.patch_consts[io_index] :
+         &ctx->mod.inputs[io_index];
       unsigned comp_size = intr->def.bit_size == 64 ? 2 : 1;
       unsigned comp_mask = (1 << (intr->num_components * comp_size)) - 1;
       comp_mask <<= (var_base_component * comp_size);
@@ -3772,8 +3776,8 @@ emit_load_input_via_intrinsic(struct ntd_context *ctx, nir_intrinsic_instr *intr
 
       if (!nir_src_is_const(intr->src[row_index])) {
          struct dxil_psv_signature_element *psv_rec = is_patch_constant ?
-            &ctx->mod.psv_patch_consts[nir_intrinsic_base(intr)] :
-            &ctx->mod.psv_inputs[ctx->mod.input_mappings[nir_intrinsic_base(intr)]];
+            &ctx->mod.psv_patch_consts[io_index] :
+            &ctx->mod.psv_inputs[io_index];
          psv_rec->dynamic_mask_and_stream |= comp_mask;
       }
    }
@@ -3844,8 +3848,9 @@ emit_load_interpolated_input(struct ntd_context *ctx, nir_intrinsic_instr *intr)
    default:
       unreachable("Unsupported interpolation barycentric intrinsic");
    }
+   uint8_t io_index = ctx->mod.input_mappings[nir_intrinsic_base(intr)];
    args[0] = dxil_module_get_int32_const(&ctx->mod, opcode_val);
-   args[1] = dxil_module_get_int32_const(&ctx->mod, nir_intrinsic_base(intr));
+   args[1] = dxil_module_get_int32_const(&ctx->mod, io_index);
    args[2] = get_src(ctx, &intr->src[1], 0, nir_type_int);
 
    const struct dxil_func *func = dxil_get_function(&ctx->mod, func_name, DXIL_F32);
@@ -3858,8 +3863,7 @@ emit_load_interpolated_input(struct ntd_context *ctx, nir_intrinsic_instr *intr)
    unsigned base_component = nir_intrinsic_component(intr) - var_base_component;
 
    if (ctx->mod.minor_validator >= 5) {
-      struct dxil_signature_record *sig_rec =
-         &ctx->mod.inputs[ctx->mod.input_mappings[nir_intrinsic_base(intr)]];
+      struct dxil_signature_record *sig_rec = &ctx->mod.inputs[io_index];
       unsigned comp_size = intr->def.bit_size == 64 ? 2 : 1;
       unsigned comp_mask = (1 << (intr->num_components * comp_size)) - 1;
       comp_mask <<= (var_base_component * comp_size);
@@ -3867,8 +3871,7 @@ emit_load_interpolated_input(struct ntd_context *ctx, nir_intrinsic_instr *intr)
          sig_rec->elements[r].always_reads_mask |= (comp_mask & sig_rec->elements[r].mask);
 
       if (!nir_src_is_const(intr->src[1])) {
-         struct dxil_psv_signature_element *psv_rec =
-            &ctx->mod.psv_inputs[ctx->mod.input_mappings[nir_intrinsic_base(intr)]];
+         struct dxil_psv_signature_element *psv_rec = &ctx->mod.psv_inputs[io_index];
          psv_rec->dynamic_mask_and_stream |= comp_mask;
       }
    }
@@ -6228,11 +6231,11 @@ vectorize_filter(
    unsigned align_offset,
    unsigned bit_size,
    unsigned num_components,
-   unsigned hole_size,
+   int64_t hole_size,
    nir_intrinsic_instr *low, nir_intrinsic_instr *high,
    void *data)
 {
-   return !hole_size && util_is_power_of_two_nonzero(num_components);
+   return hole_size <= 0 && util_is_power_of_two_nonzero(num_components);
 }
 
 struct lower_mem_bit_sizes_data {
@@ -6247,6 +6250,7 @@ lower_mem_access_bit_sizes_cb(nir_intrinsic_op intrin,
                               uint32_t align_mul,
                               uint32_t align_offset,
                               bool offset_is_const,
+                              enum gl_access_qualifier access,
                               const void *cb_data)
 {
    const struct lower_mem_bit_sizes_data *data = cb_data;
@@ -6263,6 +6267,7 @@ lower_mem_access_bit_sizes_cb(nir_intrinsic_op intrin,
          .align = closest_bit_size / 8,
          .bit_size = closest_bit_size,
          .num_components = DIV_ROUND_UP(MIN2(bytes, 16) * 8, closest_bit_size),
+         .shift = nir_mem_access_shift_method_scalar,
       };
    }
 
@@ -6277,6 +6282,7 @@ lower_mem_access_bit_sizes_cb(nir_intrinsic_op intrin,
          .align = min_bit_size / 8,
          .bit_size = min_bit_size,
          .num_components = MIN2(4, ideal_num_components),
+         .shift = nir_mem_access_shift_method_scalar,
       };
    }
 
@@ -6296,6 +6302,7 @@ lower_mem_access_bit_sizes_cb(nir_intrinsic_op intrin,
       .align = bit_size / 8,
       .bit_size = bit_size,
       .num_components = MIN2(4, num_components),
+      .shift = nir_mem_access_shift_method_scalar,
    };
 }
 

@@ -8,6 +8,7 @@
 #include "tu_perfetto.h"
 #include "tu_buffer.h"
 #include "tu_device.h"
+#include "tu_queue.h"
 #include "tu_image.h"
 
 #include "util/hash_table.h"
@@ -363,33 +364,20 @@ emit_sync_timestamp(uint64_t cpu_ts, uint64_t gpu_ts)
    });
 }
 
-static void
-emit_submit_id(uint32_t submission_id)
+uint64_t
+tu_perfetto_begin_submit()
 {
-   TuRenderpassDataSource::Trace([=](TuRenderpassDataSource::TraceContext tctx) {
-      auto packet = tctx.NewTracePacket();
-
-      packet->set_timestamp(perfetto::base::GetBootTimeNs().count());
-
-      auto event = packet->set_vulkan_api_event();
-      auto submit = event->set_vk_queue_submit();
-
-      submit->set_submission_id(submission_id);
-   });
+   return perfetto::base::GetBootTimeNs().count();
 }
 
-struct tu_perfetto_clocks
-tu_perfetto_submit(struct tu_device *dev,
-                   uint32_t submission_id,
-                   struct tu_perfetto_clocks *gpu_clocks)
+static struct tu_perfetto_clocks
+sync_clocks(struct tu_device *dev,
+            const struct tu_perfetto_clocks *gpu_clocks)
 {
    struct tu_perfetto_clocks clocks {};
    if (gpu_clocks) {
       clocks = *gpu_clocks;
    }
-
-   if (!u_trace_perfetto_active(tu_device_get_u_trace(dev)))
-      return {};
 
    clocks.cpu = perfetto::base::GetBootTimeNs().count();
 
@@ -456,8 +444,36 @@ tu_perfetto_submit(struct tu_device *dev,
       next_clock_sync_ns = clocks.cpu + 30000000;
    }
 
-   emit_sync_timestamp(clocks.cpu, clocks.gpu_ts + clocks.gpu_ts_offset);
-   emit_submit_id(submission_id);
+   return clocks;
+}
+
+struct tu_perfetto_clocks
+tu_perfetto_end_submit(struct tu_queue *queue,
+                       uint32_t submission_id,
+                       uint64_t start_ts,
+                       struct tu_perfetto_clocks *gpu_clocks)
+{
+   struct tu_device *dev = queue->device;
+   if (!u_trace_perfetto_active(tu_device_get_u_trace(dev)))
+      return {};
+
+   struct tu_perfetto_clocks clocks = sync_clocks(dev, gpu_clocks);
+   if (clocks.gpu_ts > 0)
+      emit_sync_timestamp(clocks.cpu, clocks.gpu_ts + clocks.gpu_ts_offset);
+
+   TuRenderpassDataSource::Trace([=](TuRenderpassDataSource::TraceContext tctx) {
+      auto packet = tctx.NewTracePacket();
+
+      packet->set_timestamp(start_ts);
+
+      auto event = packet->set_vulkan_api_event();
+      auto submit = event->set_vk_queue_submit();
+
+      submit->set_duration_ns(clocks.cpu - start_ts);
+      submit->set_vk_queue((uintptr_t) queue);
+      submit->set_submission_id(submission_id);
+   });
+
    return clocks;
 }
 

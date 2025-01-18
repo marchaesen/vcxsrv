@@ -1,3 +1,9 @@
 # The CTS expects OpKill to terminate shaders while the spec allows it to be implemented
 # as OpDemoteToHelperInvocation. Wait for pending CTS fix.
 dEQP-VK.graphicsfuzz.while-inside-switch,Fail
+
+# Appeared after decreasing the fraction
+dEQP-VK.api.driver_properties.conformance_version,Fail
+dEQP-VK.info.device_extensions,Fail
+dEQP-VK.wsi.win32.swapchain.create.composite_alpha,Fail
+dEQP-VK.wsi.win32.swapchain.simulate_oom.composite_alpha,Fail

@@ -131,7 +131,7 @@ load_vs_input_from_blit_sgpr(nir_builder *b, unsigned input_index,
       /* Color or texture coordinates: */
       assert(input_index == 1);
 
-      unsigned vs_blit_property = s->shader->selector->info.base.vs.blit_sgprs_amd;
+      unsigned vs_blit_property = b->shader->info.vs.blit_sgprs_amd;
       if (vs_blit_property == SI_VS_BLIT_SGPRS_POS_COLOR + has_attribute_ring_address) {
          for (int i = 0; i < 4; i++)
             out[i] = ac_nir_load_arg_at_offset(b, &s->args->ac, s->args->vs_blit_inputs, 3 + i);
@@ -571,7 +571,7 @@ lower_vs_input_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
    unsigned num_components = intrin->def.num_components;
 
    nir_def *comp[4];
-   if (s->shader->selector->info.base.vs.blit_sgprs_amd)
+   if (b->shader->info.vs.blit_sgprs_amd)
       load_vs_input_from_blit_sgpr(b, input_index, s, comp);
    else
       load_vs_input_from_vertex_buffer(b, input_index, s, intrin->def.bit_size, comp);
@@ -598,7 +598,7 @@ si_nir_lower_vs_inputs(nir_shader *nir, struct si_shader *shader, struct si_shad
       .args = args,
    };
 
-   if (!sel->info.base.vs.blit_sgprs_amd)
+   if (!nir->info.vs.blit_sgprs_amd)
       get_vertex_index_for_all_inputs(nir, &state);
 
    return nir_shader_intrinsics_pass(nir, lower_vs_input_instr,

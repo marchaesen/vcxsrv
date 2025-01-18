@@ -482,6 +482,7 @@ do_blit_framebuffer(struct gl_context *ctx,
       struct gl_renderbuffer_attachment *srcAtt =
          &readFB->Attachment[readFB->_ColorReadBufferIndex];
       GLuint i;
+      GLenum src_base_fmt, dst_base_fmt;
 
       blit.mask = PIPE_MASK_RGBA;
 
@@ -497,6 +498,7 @@ do_blit_framebuffer(struct gl_context *ctx,
          if (!srcObj || !srcObj->pt) {
             return;
          }
+         src_base_fmt = srcObj->Image[0][0]->_BaseFormat;
 
          blit.src.resource = srcObj->pt;
          blit.src.level = srcAtt->TextureLevel;
@@ -519,7 +521,7 @@ do_blit_framebuffer(struct gl_context *ctx,
             return;
 
          srcSurf = srcRb->surface;
-
+         src_base_fmt = srcRb->_BaseFormat;
          blit.src.resource = srcSurf->texture;
          blit.src.level = srcSurf->u.tex.level;
          blit.src.box.z = srcSurf->u.tex.first_layer;
@@ -532,6 +534,7 @@ do_blit_framebuffer(struct gl_context *ctx,
          if (dstRb) {
             struct pipe_surface *dstSurf;
 
+            dst_base_fmt = dstRb->_BaseFormat;
             _mesa_update_renderbuffer_surface(ctx, dstRb);
 
             dstSurf = dstRb->surface;
@@ -542,6 +545,22 @@ do_blit_framebuffer(struct gl_context *ctx,
                blit.dst.box.z = dstSurf->u.tex.first_layer;
                blit.dst.format = dstSurf->format;
 
+               if (dst_base_fmt != src_base_fmt) {
+                  uint8_t map[6];
+                  /* we may have to add a swizzle to the blit */
+                  _mesa_compute_component_mapping(src_base_fmt, dst_base_fmt, map);
+                  for (int i = 0; i < 4; i++) {
+                     if (map[i] > MESA_FORMAT_SWIZZLE_W) {
+                        blit.swizzle_enable = true;
+                        blit.swizzle[i] = map[i];
+                     } else {
+                        /* the swizzle has already been mostly applied,
+                           so don't un-do it; we only want the 0's and 1's
+                           inserted */
+                        blit.swizzle[i] = i;
+                     }
+                  }
+               }
                ctx->pipe->blit(ctx->pipe, &blit);
                dstRb->defined = true; /* front buffer tracking */
             }

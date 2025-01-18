@@ -71,6 +71,7 @@ amd_common_files = files(
   'ac_descriptors.h',
   'ac_formats.c',
   'ac_formats.h',
+  'ac_linux_drm.h',
   'ac_shadowed_regs.c',
   'ac_shadowed_regs.h',
   'ac_spm.c',
@@ -81,26 +82,6 @@ amd_common_files = files(
   'ac_rgp.h',
   'ac_msgpack.c',
   'ac_msgpack.h',
-  'ac_nir.c',
-  'ac_nir.h',
-  'ac_nir_helpers.h',
-  'ac_nir_opt_outputs.c',
-  'ac_nir_cull.c',
-  'ac_nir_lower_esgs_io_to_mem.c',
-  'ac_nir_lower_global_access.c',
-  'ac_nir_lower_image_opcodes_cdna.c',
-  'ac_nir_lower_resinfo.c',
-  'ac_nir_lower_subdword_loads.c',
-  'ac_nir_lower_taskmesh_io_to_mem.c',
-  'ac_nir_lower_tess_io_to_mem.c',
-  'ac_nir_lower_tex.c',
-  'ac_nir_lower_ngg.c',
-  'ac_nir_lower_ps.c',
-  'ac_nir_meta.h',
-  'ac_nir_meta_cs_blit.c',
-  'ac_nir_meta_cs_clear_copy_buffer.c',
-  'ac_nir_meta_ps_resolve.c',
-  'ac_nir_opt_shared_append.c',
   'amd_family.c',
   'ac_parse_ib.c',
   'ac_perfcounter.c',
@@ -110,7 +91,55 @@ amd_common_files = files(
   'ac_vcn_av1_default.h',
   'ac_vcn_dec.c',
   'ac_vcn_enc.c',
+  'nir/ac_nir.c',
+  'nir/ac_nir.h',
+  'nir/ac_nir_helpers.h',
+  'nir/ac_nir_opt_outputs.c',
+  'nir/ac_nir_cull.c',
+  'nir/ac_nir_create_gs_copy_shader.c',
+  'nir/ac_nir_lower_esgs_io_to_mem.c',
+  'nir/ac_nir_lower_global_access.c',
+  'nir/ac_nir_lower_image_opcodes_cdna.c',
+  'nir/ac_nir_lower_intrinsics_to_args.c',
+  'nir/ac_nir_lower_legacy_gs.c',
+  'nir/ac_nir_lower_legacy_vs.c',
+  'nir/ac_nir_lower_mem_access_bit_sizes.c',
+  'nir/ac_nir_lower_resinfo.c',
+  'nir/ac_nir_lower_taskmesh_io_to_mem.c',
+  'nir/ac_nir_lower_tess_io_to_mem.c',
+  'nir/ac_nir_lower_tex.c',
+  'nir/ac_nir_lower_ngg.c',
+  'nir/ac_nir_lower_ngg_mesh.c',
+  'nir/ac_nir_lower_ps_early.c',
+  'nir/ac_nir_lower_ps_late.c',
+  'nir/ac_nir_lower_sin_cos.c',
+  'nir/ac_nir_meta.h',
+  'nir/ac_nir_meta_cs_blit.c',
+  'nir/ac_nir_meta_cs_clear_copy_buffer.c',
+  'nir/ac_nir_meta_ps_resolve.c',
+  'nir/ac_nir_opt_pack_half.c',
+  'nir/ac_nir_opt_shared_append.c',
+  'nir/ac_nir_prerast_utils.c',
 )
+
+if not with_platform_windows
+  amd_common_files += files(
+    'ac_linux_drm.c',
+  )
+endif
+
+link_with = []
+c_args = ['-DADDR_FASTCALL=']
+if with_amdgpu_virtio
+  c_args += ['-DHAVE_AMDGPU_VIRTIO', '-DENABLE_DRM_AMDGPU']
+  amd_common_files += files(
+    'virtio/amdgpu_virtio.c',
+    'virtio/amdgpu_virtio_bo.c',
+    'virtio/amdgpu_virtio_device.c',
+    'virtio/amdgpu_virtio_private.h',
+    'virtio/amdgpu_virtio_proto.h')
+  link_with += libvdrm
+endif
 
 if dep_elf.found()
   amd_common_files += files(
@@ -124,14 +153,15 @@ libamd_common = static_library(
   'amd_common',
   [amd_common_files, sid_tables_h, amdgfxregs_h, gfx10_format_table_c],
   include_directories : [
-    inc_include, inc_src, inc_amd,
+    inc_include, inc_src, inc_amd, inc_virtio_gpu,
   ],
   dependencies : [dep_llvm.partial_dependency(compile_args: true, includes: true)] + [
     dep_thread, dep_elf, dep_libdrm_amdgpu, dep_valgrind,
     idep_mesautil, idep_nir_headers, idep_nir
   ],
+  link_with: [ link_with ],
   gnu_symbol_visibility : 'hidden',
-  c_args : ['-DADDR_FASTCALL=']
+  c_args : c_args
 )
 
 idep_amdgfxregs_h = declare_dependency(sources : [amdgfxregs_h])

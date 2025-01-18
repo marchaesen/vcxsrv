@@ -1,38 +1,42 @@
 # Basic test set
 [[deqp]]
-deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-main.txt"]
+deqp = "/deqp-vk/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp-vk/mustpass/vk-main.txt"]
 timeout = 300
 renderer_check = "Turnip Adreno .* 618"
+tests_per_group = 5000
 
 # force-gmem testing
 # Autotuner forces sysmem on most CTS tests
 [[deqp]]
-deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-main.txt"]
+deqp = "/deqp-vk/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp-vk/mustpass/vk-main.txt"]
 timeout = 300
 prefix = "gmem-"
 fraction = 10
+tests_per_group = 5000
 [deqp.env]
 TU_DEBUG = "gmem,forcebin"
 
 # non-binning gmem-forced testing.  Takes about 2-5 seconds.
 [[deqp]]
-deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-main.txt"]
+deqp = "/deqp-vk/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp-vk/mustpass/vk-main.txt"]
 timeout = 300
 prefix = "nobin-"
 fraction = 10
 include = ["dEQP-VK.transform_feedback.*"]
+tests_per_group = 5000
 [deqp.env]
 TU_DEBUG = "gmem,nobin"
 
 # force-sysmem testing
 [[deqp]]
-deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-main.txt"]
+deqp = "/deqp-vk/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp-vk/mustpass/vk-main.txt"]
 timeout = 300
 include = ["dEQP-VK.renderpass.*"]
 prefix = "bypass-"
+tests_per_group = 5000
 [deqp.env]
 TU_DEBUG = "sysmem"

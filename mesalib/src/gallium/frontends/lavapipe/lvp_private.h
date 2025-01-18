@@ -312,8 +312,6 @@ struct lvp_image_view {
 struct lvp_sampler {
    struct vk_sampler vk;
    struct lp_descriptor desc;
-
-   struct lp_texture_handle *texture_handle;
 };
 
 struct lvp_descriptor_set_binding_layout {
@@ -459,6 +457,7 @@ struct lvp_shader {
    } inlines;
    struct pipe_stream_output_info stream_output;
    struct blob blob; //preserved for GetShaderBinaryDataEXT
+   uint32_t push_constant_size;
 };
 
 enum lvp_pipeline_type {
@@ -770,6 +769,9 @@ lvp_vk_format_to_pipe_format(VkFormat format)
       return vk_format_to_pipe_format(format);
    }
 }
+
+void
+lvp_sampler_init(struct lvp_device *device, struct lp_descriptor *desc, const VkSamplerCreateInfo *pCreateInfo, const struct vk_sampler *sampler);
 
 static inline uint8_t
 lvp_image_aspects_to_plane(ASSERTED const struct lvp_image *image,

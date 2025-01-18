@@ -1,0 +1,9 @@
+# Copyright (C) 2024 fontconfig Authors
+# SPDX-License-Identifier: HPND
+#
+# Coptic (cop)
+#
+# https://en.wikipedia.org/wiki/Coptic_script
+03E2-03EF  # Greek and Coptic
+2C80-2CF3  # Coptic
+2CF9-2CFF  # Coptic

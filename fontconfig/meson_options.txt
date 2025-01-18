@@ -16,6 +16,8 @@ option('cache-build', type : 'feature', value : 'enabled',
 option('iconv', type: 'feature', value: 'disabled')
 option('xml-backend', type: 'combo', choices: ['auto', 'expat', 'libxml2'], value: 'auto',
   description: 'Select xml backend to read config')
+option('fontations', type: 'feature', value: 'disabled',
+  description: 'Use Fontations (https://github.com/googlefonts/fontations) for indexing.')
 
 # Defaults
 option('default-hinting', type: 'combo', choices: ['none', 'slight', 'medium', 'full'], value: 'slight',

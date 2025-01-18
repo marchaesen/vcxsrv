@@ -207,11 +207,13 @@ __bitset_shl(BITSET_WORD *x, unsigned amount, unsigned n)
 
 /* bit range operations (e=end is inclusive)
  */
-#define BITSET_TEST_RANGE_INSIDE_WORD(x, b, e, mask) \
+#define BITSET_GET_RANGE_INSIDE_WORD(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
-   (((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) == \
-   (((BITSET_WORD)mask) << (b % BITSET_WORDBITS))) : \
+   (((x)[BITSET_BITWORD(b)] >> (b % BITSET_WORDBITS)) & \
+   BITSET_MASK((e) - (b) + 1)) : \
    (assert (!"BITSET_TEST_RANGE: bit range crosses word boundary"), 0))
+#define BITSET_TEST_RANGE_INSIDE_WORD(x, b, e, mask) \
+   (BITSET_GET_RANGE_INSIDE_WORD(x, b, e) == (mask))
 #define BITSET_SET_RANGE_INSIDE_WORD(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
    ((x)[BITSET_BITWORD(b)] |= BITSET_RANGE(b, e)) : \
@@ -350,9 +352,25 @@ __bitset_last_bit(const BITSET_WORD *x, int n)
    return 0;
 }
 
+/* Get the last bit set in a bitset before last_bit.
+ */
+static inline int
+__bitset_last_bit_before(const BITSET_WORD *x, int last_bit)
+{
+   int n = last_bit / BITSET_WORDBITS;
+   int reminder = last_bit % BITSET_WORDBITS;
+   if (reminder) {
+      BITSET_WORD last = x[n] & BITFIELD_MASK(reminder);
+      if (last)
+         return util_last_bit(last) + n * BITSET_WORDBITS;
+   }
+   return __bitset_last_bit(x, n);
+}
+
 #define BITSET_FFS(x) __bitset_ffs(x, ARRAY_SIZE(x))
 #define BITSET_LAST_BIT(x) __bitset_last_bit(x, ARRAY_SIZE(x))
 #define BITSET_LAST_BIT_SIZED(x, size) __bitset_last_bit(x, size)
+#define BITSET_LAST_BIT_BEFORE(x, last_bit) __bitset_last_bit_before(x, last_bit)
 #define BITSET_IS_EMPTY(x) __bitset_is_empty(x, ARRAY_SIZE(x))
 
 static inline unsigned

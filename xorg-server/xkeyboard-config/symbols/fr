@@ -835,9 +835,9 @@ xkb_symbols "dvorak" {
   key <SPCE> { [            space,            space,    nobreakspace,     nobreakspace ] };
 };
 
-// C'HWERTY: Breton keyboard. Ar c'hlavier brezhoneg.
+// C’HWERTY: Breton keyboard. Ar c’hlavier brezhoneg.
 // Copyright © 2009 Dominique Pellé <dominique.pelle@gmail.com>
-// Version: 0.1
+// Version: 0.2
 //
 // ┌─────┐
 // │ S A │   S = Reol = Shift,  A = ArErl + Pennlizherenn = AltGr + Shift
@@ -845,17 +845,17 @@ xkb_symbols "dvorak" {
 // └─────┘
 //
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
-// │ $ Γ │ 1 Δ │ 2 Θ │ 3 Λ │ 4 Ξ │ 5 Π │ 6 Σ │ 7 Φ │ 8 Ψ │ 9 Ç │ 0 Ω │ ° ß │ + ¬ ┃ ⌫ Souzañ┃
+// │ ~ Γ │ 1 Δ │ 2 Θ │ 3 Λ │ 4 Ξ │ 5 Π │ 6 Σ │ 7 Φ │ 8 Ψ │ 9 Ç │ 0 Ω │ ° ß │ + ¬ ┃ ⌫ Souzañ┃
 // │ ² ˙ │ & ¯ │ é ´ │ " # │ ' { │ ( [ │ - | │ è ` │ - \ │ ç ± │ à @ │ ) ] │ = } ┃         ┃
 // ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
-// ┃Toalenn┃ C'h │ W ω │ E ε │ R ρ │ T τ │ Y ψ │ U υ │ I ι │ O OE│ P π │ ¨ ¥ │ * £ ┃Enankañ┃
-// ┃     ↹ ┃ c'h │ w   │ e € │ r   │ t   │ y   │ u   │ i ı │ o oe│ p   │ ^ « │ / » ┃   ⏎   ┃
+// ┃Toalenn┃C’h Α│ W Ω │ E ε │ R Ρ │ T Τ │ Y Ψ │ U Υ │ I ι │ O Œ│ P Π │ ¨ ¥ │ * £ ┃Enankañ┃
+// ┃     ↹ ┃c’h α│ w ω │ e € │ r ρ │ t τ │ y ψ │ u υ │ i ı │ o œ│ p π │ ^ « │ / » ┃   ⏎   ┃
 // ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
-// ┃Prenn   ┃ A Æ │ S σ │ D δ │ F φ │ G γ │ H η │ J ς │ K κ │ L λ │ M μ │ Ù ® │ ! ¡ ┃      ┃
-// ┃Pennli ⇬┃ a æ │ s   │ d $ │ f   │ g   │ h   │ j   │ k   │ l   │ m   │ ù ŭ │ ? ¿ ┃      ┃
+// ┃Prenn   ┃ A Æ │ S Σ │ D δ │ F Φ │ G Γ │ H Η │ J ς │ K κ │ L Λ │ M Μ │ Ù ® │ ! ¡ ┃      ┃
+// ┃Pennli ⇬┃ a æ │ s σ │ d $ │ f φ │ g γ │ h η │ j ς │ k Κ │ l λ │ m μ │ ù ŭ │ ? ¿ ┃      ┃
 // ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
-// ┃       ┃ Q θ │ Z ζ │ X ξ │ C χ │ V   │ B β │ N ν │ CH  │ Ñ   │ : © │ ;   ┃             ┃
-// ┃Shift ⇧┃ q < │ z > │ x   │ c ¢ │ v   │ b   │ n   │ ch  │ ñ   │ .   │ ,   ┃Shift ⇧      ┃
+// ┃       ┃ Q θ │ Z ζ │ X Ξ │ C ς │ V Ο │ B Β │ N Ν │CH Χ │ Ñ ~ │ : © │ ; ‰ ┃             ┃
+// ┃Shift ⇧┃ q < │ z > │ x ξ │ c ¢ │ v ο │ b β │ n ν │ch χ │ ñ ~ │ . § │ , % ┃Shift ⇧      ┃
 // ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
 // ┃       ┃       ┃       ┃ ⍽ Espace insécable              ␣ ┃       ┃       ┃       ┃
 // ┃Reol   ┃Meta   ┃Erl    ┃ ␣ Espace                        ␣ ┃ArErl ⇮┃Menu   ┃Reol   ┃
@@ -883,47 +883,47 @@ xkb_symbols "bre" {
     key <AE12> { [           equal,           plus,      braceright,        notsign ] };
 
     // Second row
-    // Handling the C'H key correctly requires the XIM input method.
-    key <AD01> { [             c_h,            C_h,             C_H,    Greek_alpha ] };
-    key <AD02> { [               w,              W,     Greek_omega,    Greek_omega ] };
+    // Handling the C’H key correctly requires an input method.
+    key <AD01> { [             c_h,            C_h,     Greek_alpha,    Greek_ALPHA, C_H ], type[group1]="FOUR_LEVEL_PLUS_LOCK" };
+    key <AD02> { [               w,              W,     Greek_omega,    Greek_OMEGA ] };
     key <AD03> { [               e,              E,        EuroSign,  Greek_epsilon ] };
-    key <AD04> { [               r,              R,       Greek_rho,      Greek_rho ] };
-    key <AD05> { [               t,              T,       Greek_tau,      Greek_tau ] };
-    key <AD06> { [               y,              Y,       Greek_psi,      Greek_psi ] };
-    key <AD07> { [               u,              U,   Greek_upsilon,  Greek_upsilon ] };
+    key <AD04> { [               r,              R,       Greek_rho,      Greek_RHO ] };
+    key <AD05> { [               t,              T,       Greek_tau,      Greek_TAU ] };
+    key <AD06> { [               y,              Y,       Greek_psi,      Greek_PSI ] };
+    key <AD07> { [               u,              U,   Greek_upsilon,  Greek_UPSILON ] };
     key <AD08> { [               i,              I,        idotless,     Greek_iota ] };
     key <AD09> { [               o,              O,              oe,             OE ] };
-    key <AD10> { [               p,              P,        Greek_pi,       Greek_pi ] };
+    key <AD10> { [               p,              P,        Greek_pi,       Greek_PI ] };
     key <AD11> { [ dead_circumflex, dead_diaeresis,   guillemotleft,            yen ] };
     key <AD12> { [           slash,       asterisk,  guillemotright,       sterling ] };
 
     // Third row
     key <AC01> { [               a,              A,              ae,             AE ] };
-    key <AC02> { [               s,              S,     Greek_sigma,    Greek_sigma ] };
+    key <AC02> { [               s,              S,     Greek_sigma,    Greek_SIGMA ] };
     key <AC03> { [               d,              D,          dollar,    Greek_delta ] };
-    key <AC04> { [               f,              F,       Greek_phi,      Greek_phi ] };
-    key <AC05> { [               g,              G,     Greek_gamma,    Greek_gamma ] };
-    key <AC06> { [               h,              H,       Greek_eta,      Greek_eta ] };
+    key <AC04> { [               f,              F,       Greek_phi,      Greek_PHI ] };
+    key <AC05> { [               g,              G,     Greek_gamma,    Greek_GAMMA ] };
+    key <AC06> { [               h,              H,       Greek_eta,      Greek_ETA ] };
     key <AC07> { [               j,              J, Greek_finalsmallsigma, Greek_finalsmallsigma ] };
-    key <AC08> { [               k,              K,       Greek_kappa,  Greek_kappa ] };
-    key <AC09> { [               l,              L,       Greek_lamda, Greek_lambda ] };
-    key <AC10> { [               m,              M,          Greek_mu,     Greek_mu ] };
-    key <AC11> { [          ugrave,         Ugrave,            ubreve,   registered ] };
-    key <BKSL> { [        question,         exclam,      questiondown,   exclamdown ] };
+    key <AC08> { [               k,              K,     Greek_kappa,    Greek_KAPPA ] };
+    key <AC09> { [               l,              L,     Greek_lamda,   Greek_LAMBDA ] };
+    key <AC10> { [               m,              M,        Greek_mu,       Greek_MU ] };
+    key <AC11> { [          ugrave,         Ugrave,          ubreve,     registered ] };
+    key <BKSL> { [        question,         exclam,    questiondown,     exclamdown ] };
 
     // Fourth row
     key <LSGT> { [               q,              Q,            less,    Greek_theta ] };
     key <AB01> { [               z,              Z,         greater,     Greek_zeta ] };
-    key <AB02> { [               x,              X,        Greek_xi,       Greek_xi ] };
-    key <AB03> { [               c,              C,            cent,      Greek_chi ] };
-    key <AB04> { [               v,              V                                  ] };
-    key <AB05> { [               b,              B,      Greek_beta,     Greek_beta ] };
-    key <AB06> { [               n,              N,        Greek_nu,       Greek_nu ] };
-    // Handling the CH key correctly requires the XIM input method.
-    key <AB07> { [              ch,             Ch,              CH,  Greek_omicron ] };
-    key <AB08> { [          ntilde,         Ntilde                                  ] };
+    key <AB02> { [               x,              X,        Greek_xi,       Greek_XI ] };
+    key <AB03> { [               c,              C,            cent, Greek_finalsmallsigma ] };
+    key <AB04> { [               v,              V,   Greek_omicron,  Greek_OMICRON ] };
+    key <AB05> { [               b,              B,      Greek_beta,     Greek_BETA ] };
+    key <AB06> { [               n,              N,        Greek_nu,       Greek_NU ] };
+    // Handling the CH key correctly requires an input method.
+    key <AB07> { [              ch,             Ch,       Greek_chi,      Greek_CHI, CH ], type[group1]="FOUR_LEVEL_PLUS_LOCK" };
+    key <AB08> { [          ntilde,         Ntilde,      asciitilde,     dead_tilde ] };
     key <AB09> { [          period,          colon,         section,      copyright ] };
-    key <AB10> { [           comma,      semicolon,         percent                 ] };
+    key <AB10> { [           comma,      semicolon,         percent,       permille ] };
 
     key <SPCE> { [           space,   nobreakspace,           space,   nobreakspace ] };
 

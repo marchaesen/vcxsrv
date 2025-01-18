@@ -110,13 +110,27 @@ static void pvr_drm_buffer_acquire(struct pvr_drm_winsys_bo *drm_bo)
 
 static void pvr_drm_buffer_release(struct pvr_drm_winsys_bo *drm_bo)
 {
+   struct pvr_drm_winsys *drm_ws = to_pvr_drm_winsys(drm_bo->base.ws);
+
+   u_rwlock_rdlock(&drm_ws->dmabuf_bo_lock);
+
    if (p_atomic_dec_return(&drm_bo->ref_count) == 0) {
-      struct pvr_drm_winsys *drm_ws = to_pvr_drm_winsys(drm_bo->base.ws);
+      uint32_t handle = drm_bo->handle;
 
-      pvr_drm_destroy_gem_bo(drm_ws, drm_bo->handle);
+      /* Our BO structs are stored in a sparse array in the winsys structure,
+       * so we don't want to free the BO pointer, instead we want to reset it
+       * to 0, to signal that array entry as being free.
+       *
+       * We must do the reset before we actually free the BO in the kernel, since
+       * otherwise there is a chance the application creates another BO in a
+       * different thread and gets the same array entry, causing a race.
+       */
+      memset(drm_bo, 0, sizeof(*drm_bo));
 
-      vk_free(drm_ws->base.alloc, drm_bo);
+      pvr_drm_destroy_gem_bo(drm_ws, handle);
    }
+
+   u_rwlock_rdunlock(&drm_ws->dmabuf_bo_lock);
 }
 
 static VkResult
@@ -165,6 +179,13 @@ static uint64_t pvr_drm_get_alloc_flags(uint32_t ws_flags)
    return drm_flags;
 }
 
+static inline struct pvr_drm_winsys_bo *
+pvr_drm_winsys_lookup_bo(struct pvr_drm_winsys *drm_ws,
+                         uint32_t handle)
+{
+   return (struct pvr_drm_winsys_bo *) util_sparse_array_get(&drm_ws->bo_map, handle);
+}
+
 VkResult pvr_drm_winsys_buffer_create(struct pvr_winsys *ws,
                                       uint64_t size,
                                       uint64_t alignment,
@@ -185,16 +206,12 @@ VkResult pvr_drm_winsys_buffer_create(struct pvr_winsys *ws,
    if (type == PVR_WINSYS_BO_TYPE_DISPLAY)
       return pvr_drm_display_buffer_create(drm_ws, size, bo_out);
 
-   drm_bo = vk_zalloc(ws->alloc,
-                      sizeof(*drm_bo),
-                      8,
-                      VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
-   if (!drm_bo)
-      return vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
-
    result = pvr_drm_create_gem_bo(drm_ws, drm_flags, size, &handle);
    if (result != VK_SUCCESS)
-      goto err_vk_free_drm_bo;
+      return result;
+
+   drm_bo = pvr_drm_winsys_lookup_bo(drm_ws, handle);
+   assert(drm_bo && drm_bo->handle == 0);
 
    drm_bo->base.size = size;
    drm_bo->base.ws = ws;
@@ -206,11 +223,6 @@ VkResult pvr_drm_winsys_buffer_create(struct pvr_winsys *ws,
    *bo_out = &drm_bo->base;
 
    return VK_SUCCESS;
-
-err_vk_free_drm_bo:
-   vk_free(ws->alloc, drm_bo);
-
-   return result;
 }
 
 VkResult
@@ -218,46 +230,48 @@ pvr_drm_winsys_buffer_create_from_fd(struct pvr_winsys *ws,
                                      int fd,
                                      struct pvr_winsys_bo **const bo_out)
 {
+   struct pvr_drm_winsys *drm_ws = to_pvr_drm_winsys(ws);
    struct pvr_drm_winsys_bo *drm_bo;
    uint32_t handle;
-   VkResult result;
    off_t size;
    int ret;
 
-   drm_bo = vk_zalloc(ws->alloc,
-                      sizeof(*drm_bo),
-                      8,
-                      VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
-   if (!drm_bo)
-      return vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
-
    size = lseek(fd, 0, SEEK_END);
-   if (size == (off_t)-1) {
-      result = vk_error(NULL, VK_ERROR_INVALID_EXTERNAL_HANDLE);
-      goto err_vk_free_drm_bo;
-   }
+   if (size == (off_t)-1)
+      return vk_error(NULL, VK_ERROR_INVALID_EXTERNAL_HANDLE);
+
+   /* Importing the same dma-buf several times will yield the same GEM
+    * handle. Thus, there is a potential race when destroying a BO and importing
+    * the same dma-buf from different threads. We must not permit the creation
+    * of a dma-buf BO and its release to happen in parallel.
+    */
+   u_rwlock_wrlock(&drm_ws->dmabuf_bo_lock);
 
    ret = drmPrimeFDToHandle(ws->render_fd, fd, &handle);
    if (ret) {
-      result = vk_error(NULL, VK_ERROR_INVALID_EXTERNAL_HANDLE);
-      goto err_vk_free_drm_bo;
+      u_rwlock_wrunlock(&drm_ws->dmabuf_bo_lock);
+
+      return vk_error(NULL, VK_ERROR_INVALID_EXTERNAL_HANDLE);
    }
 
-   drm_bo->base.ws = ws;
-   drm_bo->base.size = (uint64_t)size;
-   drm_bo->base.is_imported = true;
-   drm_bo->handle = handle;
+   drm_bo = pvr_drm_winsys_lookup_bo(drm_ws, handle);
 
-   p_atomic_set(&drm_bo->ref_count, 1);
+   if (p_atomic_read(&drm_bo->ref_count) == 0) {
+      drm_bo->base.ws = ws;
+      drm_bo->base.size = (uint64_t)size;
+      drm_bo->base.is_imported = true;
+      drm_bo->handle = handle;
+
+      p_atomic_set(&drm_bo->ref_count, 1);
+   } else {
+      pvr_drm_buffer_acquire(drm_bo);
+   }
+
+   u_rwlock_wrunlock(&drm_ws->dmabuf_bo_lock);
 
    *bo_out = &drm_bo->base;
 
    return VK_SUCCESS;
-
-err_vk_free_drm_bo:
-   vk_free(ws->alloc, drm_bo);
-
-   return result;
 }
 
 void pvr_drm_winsys_buffer_destroy(struct pvr_winsys_bo *bo)

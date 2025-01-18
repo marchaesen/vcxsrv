@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
 
-set -e
+set -ue
 
 # Instead of starting one dEQP instance per available CPU core, pour our
 # concurrency at llvmpipe threads instead. This is mostly useful for VirGL and
@@ -36,7 +36,7 @@ THREAD=${DEQP_RUNNER_THREAD:-0}
 #    context data towards the guest
 #
 set_vsock_context() {
-    [ -n "${CI_JOB_ID}" ] || {
+    [ -n "${CI_JOB_ID:-}" ] || {
         echo "Missing or unset CI_JOB_ID env variable" >&2
         exit 1
     }
@@ -75,13 +75,17 @@ set_vsock_context || { echo "Could not generate crosvm vsock CID" >&2; exit 1; }
 
 # Securely pass the current variables to the crosvm environment
 echo "Variables passed through:"
-SCRIPT_DIR=$(readlink -en "${0%/*}")
-${SCRIPT_DIR}/common/generate-env.sh | tee ${VM_TEMP_DIR}/crosvm-env.sh
-cp ${SCRIPT_DIR}/setup-test-env.sh ${VM_TEMP_DIR}/setup-test-env.sh
+SCRIPTS_DIR=$(readlink -en "${0%/*}")
+${SCRIPTS_DIR}/common/generate-env.sh | tee ${VM_TEMP_DIR}/crosvm-env.sh
+cp ${SCRIPTS_DIR}/setup-test-env.sh ${VM_TEMP_DIR}/setup-test-env.sh
 
 # Set the crosvm-script as the arguments of the current script
-echo ". ${VM_TEMP_DIR}/setup-test-env.sh" > ${VM_TEMP_DIR}/crosvm-script.sh
-echo "$@" >> ${VM_TEMP_DIR}/crosvm-script.sh
+{
+  echo "export SCRIPTS_DIR=${SCRIPTS_DIR}"
+  echo "export RESULTS_DIR=${RESULTS_DIR}"
+  echo ". ${VM_TEMP_DIR}/setup-test-env.sh"
+  echo "$@"
+} > ${VM_TEMP_DIR}/crosvm-script.sh
 
 # Setup networking
 /usr/sbin/iptables-legacy -w -t nat -A POSTROUTING -o eth0 -j MASQUERADE
@@ -96,20 +100,25 @@ unset DISPLAY
 unset XDG_RUNTIME_DIR
 
 CROSVM_KERN_ARGS="quiet console=null root=my_root rw rootfstype=virtiofs ip=192.168.30.2::192.168.30.1:255.255.255.0:crosvm:eth0"
-CROSVM_KERN_ARGS="${CROSVM_KERN_ARGS} init=${SCRIPT_DIR}/crosvm-init.sh -- ${VSOCK_STDOUT} ${VSOCK_STDERR} ${VM_TEMP_DIR}"
+CROSVM_KERN_ARGS="${CROSVM_KERN_ARGS} init=${SCRIPTS_DIR}/crosvm-init.sh -- ${VSOCK_STDOUT} ${VSOCK_STDERR} ${VM_TEMP_DIR}"
 
-[ "${CROSVM_GALLIUM_DRIVER}" = "llvmpipe" ] && \
+[ "${CROSVM_GALLIUM_DRIVER:-}" = "llvmpipe" ] && \
     CROSVM_LIBGL_ALWAYS_SOFTWARE=true || CROSVM_LIBGL_ALWAYS_SOFTWARE=false
 
-set +e -x
+set +e
+
+if [ "${INSIDE_DEQP_RUNNER:-}" != "true" ]
+then
+  set -x
+fi
 
 # We aren't testing the host driver here, so we don't need to validate NIR on the host
 NIR_DEBUG="novalidate" \
-LIBGL_ALWAYS_SOFTWARE=${CROSVM_LIBGL_ALWAYS_SOFTWARE} \
-GALLIUM_DRIVER=${CROSVM_GALLIUM_DRIVER} \
-VK_DRIVER_FILES=$CI_PROJECT_DIR/install/share/vulkan/icd.d/${CROSVM_VK_DRIVER}_icd.x86_64.json \
+LIBGL_ALWAYS_SOFTWARE=${CROSVM_LIBGL_ALWAYS_SOFTWARE:-} \
+GALLIUM_DRIVER=${CROSVM_GALLIUM_DRIVER:-} \
+VK_DRIVER_FILES=$CI_PROJECT_DIR/install/share/vulkan/icd.d/${CROSVM_VK_DRIVER:-}_icd.x86_64.json \
 crosvm --no-syslog run \
-    --gpu "${CROSVM_GPU_ARGS}" --gpu-render-server "path=${VIRGL_RENDER_SERVER:-/usr/local/libexec/virgl_render_server}" \
+    --gpu "${CROSVM_GPU_ARGS:-}" --gpu-render-server "path=${VIRGL_RENDER_SERVER:-/usr/local/libexec/virgl_render_server}" \
     -m "${CROSVM_MEMORY:-4096}" -c "${CROSVM_CPU:-2}" --disable-sandbox \
     --shared-dir /:my_root:type=fs:writeback=true:timeout=60:cache=always \
     --net "host-ip=192.168.30.1,netmask=255.255.255.0,mac=AA:BB:CC:00:00:12" \
@@ -128,7 +137,7 @@ CROSVM_RET=$?
 
 # Show crosvm output on error to help with debugging
 [ ${CROSVM_RET} -eq 0 ] || {
-    set +x
+    { set +x; } 2>/dev/null
     echo "Dumping crosvm output.." >&2
     cat ${VM_TEMP_DIR}/crosvm >&2
     set -x

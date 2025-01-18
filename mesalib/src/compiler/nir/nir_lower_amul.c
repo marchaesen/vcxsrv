@@ -220,15 +220,21 @@ nir_lower_amul(nir_shader *shader,
          if (is_large(&state, var)) {
             state.has_large_ubo = true;
             unsigned size = MAX2(1, glsl_array_size(var->type));
-            for (unsigned i = 0; i < size; i++)
-               state.large_ubos[var->data.binding + i] = true;
+            for (unsigned i = 0; i < size; i++) {
+               unsigned idx = var->data.driver_location + i;
+               assert(idx < shader->info.num_ubos);
+               state.large_ubos[idx] = true;
+            }
          }
       } else if (var->data.mode == nir_var_mem_ssbo) {
          if (is_large(&state, var)) {
             state.has_large_ssbo = true;
             unsigned size = MAX2(1, glsl_array_size(var->type));
-            for (unsigned i = 0; i < size; i++)
-               state.large_ssbos[var->data.binding + i] = true;
+            for (unsigned i = 0; i < size; i++) {
+               unsigned idx = var->data.location + i;
+               assert(idx < shader->info.num_ssbos);
+               state.large_ssbos[idx] = true;
+            }
          }
       }
    }

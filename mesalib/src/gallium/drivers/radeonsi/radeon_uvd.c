@@ -1046,25 +1046,39 @@ static void ruvd_decode_bitstream(struct pipe_video_codec *decoder,
    if (!dec->bs_ptr)
       return;
 
-   for (i = 0; i < num_buffers; ++i) {
-      struct rvid_buffer *buf = &dec->bs_buffers[dec->cur_buffer];
-      unsigned new_size = dec->bs_size + sizes[i];
+   unsigned long total_bs_size = dec->bs_size;
+   for (i = 0; i < num_buffers; ++i)
+      total_bs_size += sizes[i];
 
-      if (new_size > buf->res->buf->size) {
-         dec->ws->buffer_unmap(dec->ws, buf->res->buf);
-         if (!si_vid_resize_buffer(dec->base.context, &dec->cs, buf, new_size, NULL)) {
-            RVID_ERR("Can't resize bitstream buffer!");
+   struct rvid_buffer *buf = &dec->bs_buffers[dec->cur_buffer];
+
+   if (total_bs_size > buf->res->buf->size) {
+      dec->ws->buffer_unmap(dec->ws, buf->res->buf);
+      dec->bs_ptr = NULL;
+
+      total_bs_size = align(total_bs_size, 128);
+
+      if (!dec->bs_size) {
+         struct rvid_buffer old_buf = *buf;
+         if (!si_vid_create_buffer(dec->screen, buf, total_bs_size, buf->usage)) {
+            RVID_ERR("Can't create bitstream buffer!");
             return;
          }
-
-         dec->bs_ptr = dec->ws->buffer_map(dec->ws, buf->res->buf, &dec->cs,
-                                           PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
-         if (!dec->bs_ptr)
-            return;
-
-         dec->bs_ptr += dec->bs_size;
+         si_vid_destroy_buffer(&old_buf);
+      } else if (!si_vid_resize_buffer(dec->base.context, &dec->cs, buf, total_bs_size, NULL)) {
+         RVID_ERR("Can't resize bitstream buffer!");
+         return;
       }
 
+      dec->bs_ptr = dec->ws->buffer_map(dec->ws, buf->res->buf, &dec->cs,
+                                        PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
+      if (!dec->bs_ptr)
+         return;
+
+      dec->bs_ptr += dec->bs_size;
+   }
+
+   for (i = 0; i < num_buffers; ++i) {
       memcpy(dec->bs_ptr, buffers[i], sizes[i]);
       dec->bs_size += sizes[i];
       dec->bs_ptr += sizes[i];
@@ -1144,7 +1158,6 @@ static int ruvd_end_frame(struct pipe_video_codec *decoder, struct pipe_video_bu
          if (!si_vid_create_buffer(dec->screen, &dec->ctx, ctx_size, PIPE_USAGE_DEFAULT)) {
             RVID_ERR("Can't allocated context buffer.\n");
          }
-         si_vid_clear_buffer(decoder->context, &dec->ctx);
       }
 
       if (dec->ctx.res)
@@ -1280,7 +1293,7 @@ struct pipe_video_codec *si_common_uvd_create_decoder(struct pipe_context *conte
    for (i = 0; i < 16; i++)
       dec->render_pic_list[i] = NULL;
    dec->fb_size = (sctx->family == CHIP_TONGA) ? FB_BUFFER_SIZE_TONGA : FB_BUFFER_SIZE;
-   bs_buf_size = width * height * (512 / (16 * 16));
+   bs_buf_size = align(width * height / 32, 128);
    for (i = 0; i < NUM_BUFFERS; ++i) {
       unsigned msg_fb_it_size = FB_BUFFER_OFFSET + dec->fb_size;
       STATIC_ASSERT(sizeof(struct ruvd_msg) <= FB_BUFFER_OFFSET);
@@ -1297,9 +1310,6 @@ struct pipe_video_codec *si_common_uvd_create_decoder(struct pipe_context *conte
          RVID_ERR("Can't allocated bitstream buffers.\n");
          goto error;
       }
-
-      si_vid_clear_buffer(context, &dec->msg_fb_it_buffers[i]);
-      si_vid_clear_buffer(context, &dec->bs_buffers[i]);
    }
 
    dpb_size = calc_dpb_size(dec);
@@ -1308,7 +1318,6 @@ struct pipe_video_codec *si_common_uvd_create_decoder(struct pipe_context *conte
          RVID_ERR("Can't allocated dpb.\n");
          goto error;
       }
-      si_vid_clear_buffer(context, &dec->dpb);
    }
 
    if (dec->stream_type == RUVD_CODEC_H264_PERF && sctx->family >= CHIP_POLARIS10) {
@@ -1317,7 +1326,6 @@ struct pipe_video_codec *si_common_uvd_create_decoder(struct pipe_context *conte
          RVID_ERR("Can't allocated context buffer.\n");
          goto error;
       }
-      si_vid_clear_buffer(context, &dec->ctx);
    }
 
    if (sctx->family >= CHIP_POLARIS10) {
@@ -1326,7 +1334,6 @@ struct pipe_video_codec *si_common_uvd_create_decoder(struct pipe_context *conte
          RVID_ERR("Can't allocated session ctx.\n");
          goto error;
       }
-      si_vid_clear_buffer(context, &dec->sessionctx);
    }
 
    if (sctx->family >= CHIP_VEGA10) {
@@ -1486,9 +1493,7 @@ void si_uvd_set_dt_surfaces(struct ruvd_msg *msg, struct radeon_surf *luma,
       break;
    case RUVD_SURFACE_TYPE_GFX9:
       msg->body.decode.dt_pitch = luma->u.gfx9.surf_pitch * luma->blk_w;
-      /* SWIZZLE LINEAR MODE */
-      msg->body.decode.dt_tiling_mode = RUVD_TILE_LINEAR;
-      msg->body.decode.dt_array_mode = RUVD_ARRAY_MODE_LINEAR;
+      msg->body.decode.dt_wa_chroma_bottom_offset = luma->u.gfx9.swizzle_mode;
       msg->body.decode.dt_luma_top_offset = texture_offset(luma, 0, type);
       msg->body.decode.dt_chroma_top_offset = texture_offset(chroma, 0, type);
       if (msg->body.decode.dt_field_mode) {

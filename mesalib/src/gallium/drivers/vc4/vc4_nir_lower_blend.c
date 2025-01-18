@@ -443,7 +443,7 @@ vc4_nir_blend_pipeline(struct vc4_compile *c, nir_builder *b, nir_def *src,
         nir_def *dst_vec4 = nir_unpack_unorm_4x8(b, packed_dst_color);
         nir_def *src_color[4], *unpacked_dst_color[4];
         for (unsigned i = 0; i < 4; i++) {
-                src_color[i] = nir_channel(b, src, i);
+                src_color[i] = nir_channel_or_undef(b, src, i);
                 unpacked_dst_color[i] = nir_channel(b, dst_vec4, i);
         }
 

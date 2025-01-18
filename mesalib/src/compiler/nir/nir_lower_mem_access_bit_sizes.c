@@ -68,6 +68,86 @@ dup_mem_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
    return dup;
 }
 
+static nir_def *
+shift_load_data_alignbyte_amd(nir_builder *b, nir_def *load, nir_def *offset)
+{
+   /* We don't need to mask the offset by 0x3 because only the low 2 bits matter. */
+   nir_def *comps[NIR_MAX_VEC_COMPONENTS];
+   unsigned i = 0;
+   for (; i < load->num_components - 1; i++)
+      comps[i] = nir_alignbyte_amd(b, nir_channel(b, load, i + 1), nir_channel(b, load, i), offset);
+
+   /* Shift the last element. */
+   comps[i] = nir_alignbyte_amd(b, nir_channel(b, load, i), nir_channel(b, load, i), offset);
+
+   return nir_vec(b, comps, load->num_components);
+}
+
+static nir_def *
+shift_load_data_shift64(nir_builder *b, nir_def *load, nir_def *offset, uint64_t align_mask)
+{
+   nir_def *comps[NIR_MAX_VEC_COMPONENTS];
+   nir_def *shift = nir_imul_imm(b, nir_iand_imm(b, offset, 0x3), 8);
+
+   for (unsigned i = 0; i < load->num_components - 1; i++) {
+      nir_def *qword = nir_pack_64_2x32_split(
+         b, nir_channel(b, load, i), nir_channel(b, load, i + 1));
+      qword = nir_ushr(b, qword, shift);
+      comps[i] = nir_unpack_64_2x32_split_x(b, qword);
+      if (i == load->num_components - 2)
+         comps[i + 1] = nir_unpack_64_2x32_split_y(b, qword);
+   }
+
+   return nir_vec(b, comps, load->num_components);
+}
+
+static nir_def *
+shift_load_data_scalar(nir_builder *b, nir_def *load, nir_def *offset, uint64_t align_mask)
+{
+   nir_def *pad = nir_iand_imm(b, offset, align_mask);
+   nir_def *shift = nir_imul_imm(b, pad, 8);
+
+   nir_def *shifted = nir_ushr(b, load, shift);
+
+   if (load->num_components > 1) {
+      nir_def *rev_shift =
+         nir_isub_imm(b, load->bit_size, shift);
+      nir_def *rev_shifted = nir_ishl(b, load, rev_shift);
+
+      nir_def *comps[NIR_MAX_VEC_COMPONENTS];
+      for (unsigned i = 1; i < load->num_components; i++)
+         comps[i - 1] = nir_channel(b, rev_shifted, i);
+
+      comps[load->num_components - 1] =
+         nir_imm_zero(b, 1, load->bit_size);
+
+      rev_shifted = nir_vec(b, comps, load->num_components);
+      shifted = nir_bcsel(b, nir_ieq_imm(b, shift, 0), load,
+                          nir_ior(b, shifted, rev_shifted));
+   }
+   return shifted;
+}
+
+static nir_def *
+shift_load_data(nir_builder *b, nir_def *load, nir_def *offset, uint64_t align_mask,
+                nir_mem_access_shift_method method)
+{
+   bool use_alignbyte = method == nir_mem_access_shift_method_bytealign_amd &&
+                        load->bit_size == 32 && align_mask == 0x3;
+   bool use_shift64 =
+      method == nir_mem_access_shift_method_shift64 && load->bit_size == 32 && align_mask == 0x3 &&
+      load->num_components >= 2;
+
+   offset = nir_u2u32(b, offset);
+
+   if (use_alignbyte)
+      return shift_load_data_alignbyte_amd(b, load, offset);
+   else if (use_shift64)
+      return shift_load_data_shift64(b, load, offset, align_mask);
+   else
+      return shift_load_data_scalar(b, load, offset, align_mask);
+}
+
 static bool
 lower_mem_load(nir_builder *b, nir_intrinsic_instr *intrin,
                nir_lower_mem_access_bit_sizes_cb mem_access_size_align_cb,
@@ -79,6 +159,8 @@ lower_mem_load(nir_builder *b, nir_intrinsic_instr *intrin,
    const uint32_t align_mul = nir_intrinsic_align_mul(intrin);
    const uint32_t whole_align_offset = nir_intrinsic_align_offset(intrin);
    const uint32_t whole_align = nir_intrinsic_align(intrin);
+   const enum gl_access_qualifier access =
+      nir_intrinsic_has_access(intrin) ? nir_intrinsic_access(intrin) : 0;
    nir_src *offset_src = nir_get_io_offset_src(intrin);
    const bool offset_is_const = nir_src_is_const(*offset_src);
    nir_def *offset = offset_src->ssa;
@@ -86,7 +168,7 @@ lower_mem_load(nir_builder *b, nir_intrinsic_instr *intrin,
    nir_mem_access_size_align requested =
       mem_access_size_align_cb(intrin->intrinsic, bytes_read,
                                bit_size, align_mul, whole_align_offset,
-                               offset_is_const, cb_data);
+                               offset_is_const, access, cb_data);
 
    assert(requested.num_components > 0);
    assert(requested.bit_size > 0);
@@ -111,7 +193,7 @@ lower_mem_load(nir_builder *b, nir_intrinsic_instr *intrin,
          nir_combined_align(align_mul, chunk_align_offset);
       requested = mem_access_size_align_cb(intrin->intrinsic, bytes_left,
                                            bit_size, align_mul, chunk_align_offset,
-                                           offset_is_const, cb_data);
+                                           offset_is_const, access, cb_data);
 
       unsigned chunk_bytes;
       assert(requested.num_components > 0);
@@ -126,11 +208,10 @@ lower_mem_load(nir_builder *b, nir_intrinsic_instr *intrin,
 
          uint64_t align_mask = requested.align - 1;
          nir_def *chunk_offset = nir_iadd_imm(b, offset, chunk_start);
-         nir_def *pad = nir_iand_imm(b, chunk_offset, align_mask);
-         chunk_offset = nir_iand_imm(b, chunk_offset, ~align_mask);
+         nir_def *aligned_offset = nir_iand_imm(b, chunk_offset, ~align_mask);
 
          nir_intrinsic_instr *load =
-            dup_mem_intrinsic(b, intrin, chunk_offset,
+            dup_mem_intrinsic(b, intrin, aligned_offset,
                               requested.align, 0, NULL,
                               requested.num_components, requested.bit_size);
 
@@ -139,25 +220,8 @@ lower_mem_load(nir_builder *b, nir_intrinsic_instr *intrin,
             requested.num_components * requested.bit_size / 8;
          chunk_bytes = MIN2(bytes_left, requested_bytes - max_pad);
 
-         nir_def *shift = nir_imul_imm(b, pad, 8);
-         nir_def *shifted = nir_ushr(b, &load->def, shift);
-
-         if (load->def.num_components > 1) {
-            nir_def *rev_shift =
-               nir_isub_imm(b, load->def.bit_size, shift);
-            nir_def *rev_shifted = nir_ishl(b, &load->def, rev_shift);
-
-            nir_def *comps[NIR_MAX_VEC_COMPONENTS];
-            for (unsigned i = 1; i < load->def.num_components; i++)
-               comps[i - 1] = nir_channel(b, rev_shifted, i);
-
-            comps[load->def.num_components - 1] =
-               nir_imm_zero(b, 1, load->def.bit_size);
-
-            rev_shifted = nir_vec(b, comps, load->def.num_components);
-            shifted = nir_bcsel(b, nir_ieq_imm(b, shift, 0), &load->def,
-                                nir_ior(b, shifted, rev_shifted));
-         }
+         nir_def *shifted = shift_load_data(
+            b, &load->def, chunk_offset, align_mask, requested.shift);
 
          unsigned chunk_bit_size = MIN2(8 << (ffs(chunk_bytes) - 1), bit_size);
          unsigned chunk_num_components = chunk_bytes / (chunk_bit_size / 8);
@@ -241,6 +305,8 @@ lower_mem_store(nir_builder *b, nir_intrinsic_instr *intrin,
    const uint32_t align_mul = nir_intrinsic_align_mul(intrin);
    const uint32_t whole_align_offset = nir_intrinsic_align_offset(intrin);
    const uint32_t whole_align = nir_intrinsic_align(intrin);
+   const enum gl_access_qualifier access =
+      nir_intrinsic_has_access(intrin) ? nir_intrinsic_access(intrin) : 0;
    nir_src *offset_src = nir_get_io_offset_src(intrin);
    const bool offset_is_const = nir_src_is_const(*offset_src);
    nir_def *offset = offset_src->ssa;
@@ -251,7 +317,7 @@ lower_mem_store(nir_builder *b, nir_intrinsic_instr *intrin,
    nir_mem_access_size_align requested =
       mem_access_size_align_cb(intrin->intrinsic, bytes_written,
                                bit_size, align_mul, whole_align_offset,
-                               offset_is_const, cb_data);
+                               offset_is_const, access, cb_data);
 
    assert(requested.num_components > 0);
    assert(requested.bit_size > 0);
@@ -291,7 +357,7 @@ lower_mem_store(nir_builder *b, nir_intrinsic_instr *intrin,
 
       requested = mem_access_size_align_cb(intrin->intrinsic, max_chunk_bytes,
                                            bit_size, align_mul, chunk_align_offset,
-                                           offset_is_const, cb_data);
+                                           offset_is_const, access, cb_data);
 
       uint32_t chunk_bytes = requested.num_components * (requested.bit_size / 8);
 
@@ -416,6 +482,7 @@ intrin_to_variable_mode(nir_intrinsic_op intrin)
       return nir_var_mem_global;
 
    case nir_intrinsic_load_global_constant:
+   case nir_intrinsic_load_constant:
       return nir_var_mem_constant;
 
    case nir_intrinsic_load_ssbo:
@@ -458,6 +525,7 @@ lower_mem_access_instr(nir_builder *b, nir_instr *instr, void *_data)
    case nir_intrinsic_load_push_constant:
    case nir_intrinsic_load_global:
    case nir_intrinsic_load_global_constant:
+   case nir_intrinsic_load_constant:
    case nir_intrinsic_load_ssbo:
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_scratch:

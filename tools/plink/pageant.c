@@ -648,6 +648,7 @@ static void signop_unlink(PageantSignOp *so)
 static void signop_free(PageantAsyncOp *pao)
 {
     PageantSignOp *so = container_of(pao, PageantSignOp, pao);
+    signop_unlink(so);
     strbuf_free(so->data_to_sign);
     sfree(so);
 }

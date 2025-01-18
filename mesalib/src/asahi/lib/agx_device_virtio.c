@@ -88,6 +88,7 @@ agx_virtio_bo_alloc(struct agx_device *dev, size_t size, size_t align,
       return NULL;
    }
 
+   /* Note: optional, can zero out for not mapping for sparse */
    req.addr = va->addr;
    req.blob_id = blob_id;
    req.vm_id = dev->vm_id;
@@ -106,6 +107,7 @@ agx_virtio_bo_alloc(struct agx_device *dev, size_t size, size_t align,
    /* Fresh handle */
    assert(!memcmp(bo, &((struct agx_bo){}), sizeof(*bo)));
 
+   bo->dev = dev;
    bo->size = size;
    bo->align = align;
    bo->flags = flags;
@@ -114,8 +116,6 @@ agx_virtio_bo_alloc(struct agx_device *dev, size_t size, size_t align,
    bo->blob_id = blob_id;
    bo->va = va;
    bo->vbo_res_id = vdrm_handle_to_res_id(dev->vdrm, handle);
-
-   dev->ops.bo_mmap(dev, bo);
    return bo;
 }
 
@@ -124,39 +124,93 @@ agx_virtio_bo_bind(struct agx_device *dev, struct agx_bo *bo, uint64_t addr,
                    size_t size_B, uint64_t offset_B, uint32_t flags,
                    bool unbind)
 {
-   assert(offset_B == 0 && "TODO: need to extend virtgpu");
-
    struct asahi_ccmd_gem_bind_req req = {
-      .op = unbind ? ASAHI_BIND_OP_UNBIND : ASAHI_BIND_OP_BIND,
-      .flags = flags,
-      .vm_id = dev->vm_id,
-      .res_id = bo->vbo_res_id,
-      .size = size_B,
-      .addr = addr,
       .hdr.cmd = ASAHI_CCMD_GEM_BIND,
       .hdr.len = sizeof(struct asahi_ccmd_gem_bind_req),
-   };
+      .bind = {
+         .op = unbind ? ASAHI_BIND_OP_UNBIND : ASAHI_BIND_OP_BIND,
+         .flags = flags,
+         .vm_id = dev->vm_id,
+         .handle = bo->vbo_res_id,
+         .offset = offset_B,
+         .range = size_B,
+         .addr = addr,
+      }};
 
    int ret = vdrm_send_req(dev->vdrm, &req.hdr, false);
    if (ret) {
-      fprintf(stderr, "DRM_IOCTL_ASAHI_GEM_BIND failed: %d (handle=%d)\n", ret,
+      fprintf(stderr, "ASAHI_CCMD_GEM_BIND failed: %d (handle=%d)\n", ret,
               bo->handle);
    }
 
    return ret;
 }
 
+static int
+agx_virtio_bo_bind_object(struct agx_device *dev, struct agx_bo *bo,
+                          uint32_t *object_handle, size_t size_B,
+                          uint64_t offset_B, uint32_t flags)
+{
+   struct asahi_ccmd_gem_bind_object_req req = {
+      .hdr.cmd = ASAHI_CCMD_GEM_BIND_OBJECT,
+      .hdr.len = sizeof(struct asahi_ccmd_gem_bind_object_req),
+      .bind = {
+         .op = ASAHI_BIND_OBJECT_OP_BIND,
+         .flags = flags,
+         .vm_id = 0,
+         .handle = bo->vbo_res_id,
+         .offset = offset_B,
+         .range = size_B,
+      }};
+
+   struct asahi_ccmd_gem_bind_object_rsp *rsp;
+
+   rsp = vdrm_alloc_rsp(dev->vdrm, &req.hdr,
+                        sizeof(struct asahi_ccmd_gem_bind_object_rsp));
+
+   int ret = vdrm_send_req(dev->vdrm, &req.hdr, true);
+   if (ret || rsp->ret) {
+      fprintf(stderr,
+              "ASAHI_CCMD_GEM_BIND_OBJECT bind failed: %d:%d (handle=%d)\n",
+              ret, rsp->ret, bo->handle);
+   }
+
+   if (!rsp->ret)
+      *object_handle = rsp->object_handle;
+
+   return rsp->ret;
+}
+
+static int
+agx_virtio_bo_unbind_object(struct agx_device *dev, uint32_t object_handle,
+                            uint32_t flags)
+{
+   struct asahi_ccmd_gem_bind_object_req req = {
+      .hdr.cmd = ASAHI_CCMD_GEM_BIND_OBJECT,
+      .hdr.len = sizeof(struct asahi_ccmd_gem_bind_object_req),
+      .bind = {
+         .op = ASAHI_BIND_OBJECT_OP_UNBIND,
+         .flags = flags,
+         .object_handle = object_handle,
+      }};
+
+   int ret = vdrm_send_req(dev->vdrm, &req.hdr, false);
+   if (ret) {
+      fprintf(stderr,
+              "ASAHI_CCMD_GEM_BIND_OBJECT unbind failed: %d (handle=%d)\n", ret,
+              object_handle);
+   }
+
+   return 0;
+}
+
 static void
 agx_virtio_bo_mmap(struct agx_device *dev, struct agx_bo *bo)
 {
-   if (bo->map) {
-      return;
-   }
-
-   bo->map = vdrm_bo_map(dev->vdrm, bo->handle, bo->size, NULL);
-   if (bo->map == MAP_FAILED) {
-      bo->map = NULL;
-      fprintf(stderr, "mmap failed: result=%p size=0x%llx fd=%i\n", bo->map,
+   bo->_map = vdrm_bo_map(dev->vdrm, bo->handle, bo->size, NULL);
+   if (bo->_map == MAP_FAILED) {
+      bo->_map = NULL;
+      fprintf(stderr, "mmap failed: result=%p size=0x%llx fd=%i\n", bo->_map,
               (long long)bo->size, dev->fd);
    }
 }
@@ -172,21 +226,39 @@ agx_virtio_get_params(struct agx_device *dev, void *buf, size_t size)
    };
    struct asahi_ccmd_get_params_rsp *rsp;
 
-   rsp =
-      vdrm_alloc_rsp(vdrm, &req.hdr, sizeof(struct asahi_ccmd_get_params_rsp));
+   rsp = vdrm_alloc_rsp(vdrm, &req.hdr,
+                        sizeof(struct asahi_ccmd_get_params_rsp) + size);
 
    int ret = vdrm_send_req(vdrm, &req.hdr, true);
    if (ret)
       goto out;
 
+   if (rsp->virt_uabi_version != ASAHI_PROTO_UNSTABLE_UABI_VERSION) {
+      fprintf(stderr, "Virt UABI mismatch: Host %d, Mesa %d\n",
+              rsp->virt_uabi_version, ASAHI_PROTO_UNSTABLE_UABI_VERSION);
+      return -1;
+   }
+
    ret = rsp->ret;
    if (!ret) {
-      memcpy(buf, &rsp->params, size);
+      memcpy(buf, &rsp->payload, size);
       return size;
    }
 
 out:
    return ret;
+}
+
+static void
+agx_virtio_serialize_attachments(char **ptr, uint64_t attachments,
+                                 uint32_t count)
+{
+   if (!count)
+      return;
+
+   size_t attachments_size = sizeof(struct drm_asahi_attachment) * count;
+   memcpy(*ptr, (char *)(uintptr_t)attachments, attachments_size);
+   *ptr += attachments_size;
 }
 
 static int
@@ -204,8 +276,18 @@ agx_virtio_submit(struct agx_device *dev, struct drm_asahi_submit *submit,
    for (int i = 0; i < submit->command_count; i++) {
       switch (commands[i].cmd_type) {
       case DRM_ASAHI_CMD_COMPUTE: {
+         struct drm_asahi_cmd_compute *compute =
+            (struct drm_asahi_cmd_compute *)(uintptr_t)commands[i].cmd_buffer;
          req_len += sizeof(struct drm_asahi_command) +
                     sizeof(struct drm_asahi_cmd_compute);
+         req_len +=
+            compute->attachment_count * sizeof(struct drm_asahi_attachment);
+
+         if (compute->extensions) {
+            assert(*(uint32_t *)(uintptr_t)compute->extensions ==
+                   ASAHI_COMPUTE_EXT_TIMESTAMPS);
+            req_len += sizeof(struct drm_asahi_cmd_compute_user_timestamps);
+         }
          break;
       }
 
@@ -216,6 +298,14 @@ agx_virtio_submit(struct agx_device *dev, struct drm_asahi_submit *submit,
                     sizeof(struct drm_asahi_cmd_render);
          req_len += render->fragment_attachment_count *
                     sizeof(struct drm_asahi_attachment);
+         req_len += render->vertex_attachment_count *
+                    sizeof(struct drm_asahi_attachment);
+
+         if (render->extensions) {
+            assert(*(uint32_t *)(uintptr_t)render->extensions ==
+                   ASAHI_RENDER_EXT_TIMESTAMPS);
+            req_len += sizeof(struct drm_asahi_cmd_render_user_timestamps);
+         }
          break;
       }
 
@@ -246,14 +336,39 @@ agx_virtio_submit(struct agx_device *dev, struct drm_asahi_submit *submit,
              commands[i].cmd_buffer_size);
       ptr += commands[i].cmd_buffer_size;
 
-      if (commands[i].cmd_type == DRM_ASAHI_CMD_RENDER) {
+      switch (commands[i].cmd_type) {
+      case DRM_ASAHI_CMD_RENDER: {
          struct drm_asahi_cmd_render *render =
             (struct drm_asahi_cmd_render *)(uintptr_t)commands[i].cmd_buffer;
-         size_t fragments_size = sizeof(struct drm_asahi_attachment) *
-                                 render->fragment_attachment_count;
-         memcpy(ptr, (char *)(uintptr_t)render->fragment_attachments,
-                fragments_size);
-         ptr += fragments_size;
+         agx_virtio_serialize_attachments(&ptr, render->vertex_attachments,
+                                          render->vertex_attachment_count);
+         agx_virtio_serialize_attachments(&ptr, render->fragment_attachments,
+                                          render->fragment_attachment_count);
+         if (render->extensions) {
+            struct drm_asahi_cmd_render_user_timestamps *ext =
+               (struct drm_asahi_cmd_render_user_timestamps *)(uintptr_t)
+                  render->extensions;
+            assert(!ext->next);
+            memcpy(ptr, (void *)ext, sizeof(*ext));
+            ptr += sizeof(*ext);
+         }
+         break;
+      }
+      case DRM_ASAHI_CMD_COMPUTE: {
+         struct drm_asahi_cmd_compute *compute =
+            (struct drm_asahi_cmd_compute *)(uintptr_t)commands[i].cmd_buffer;
+         agx_virtio_serialize_attachments(&ptr, compute->attachments,
+                                          compute->attachment_count);
+         if (compute->extensions) {
+            struct drm_asahi_cmd_compute_user_timestamps *ext =
+               (struct drm_asahi_cmd_compute_user_timestamps *)(uintptr_t)
+                  compute->extensions;
+            assert(!ext->next);
+            memcpy(ptr, (void *)ext, sizeof(*ext));
+            ptr += sizeof(*ext);
+         }
+         break;
+      }
       }
    }
 
@@ -301,6 +416,8 @@ const agx_device_ops_t agx_virtio_device_ops = {
    .bo_mmap = agx_virtio_bo_mmap,
    .get_params = agx_virtio_get_params,
    .submit = agx_virtio_submit,
+   .bo_bind_object = agx_virtio_bo_bind_object,
+   .bo_unbind_object = agx_virtio_bo_unbind_object,
 };
 
 bool

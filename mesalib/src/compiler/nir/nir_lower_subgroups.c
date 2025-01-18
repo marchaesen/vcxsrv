@@ -30,6 +30,14 @@
  * \file nir_opt_intrinsics.c
  */
 
+static unsigned
+get_max_subgroup_size(const nir_lower_subgroups_options *options)
+{
+   return options->subgroup_size
+             ? options->subgroup_size
+             : options->ballot_components * options->ballot_bit_size;
+}
+
 static nir_intrinsic_instr *
 lower_subgroups_64bit_split_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
                                       unsigned int component)
@@ -494,8 +502,9 @@ lower_boolean_shuffle(nir_builder *b, nir_intrinsic_instr *intrin,
    case nir_intrinsic_rotate: {
       nir_def *delta = nir_as_uniform(b, intrin->src[1].ssa);
       uint32_t cluster_size = nir_intrinsic_cluster_size(intrin);
-      cluster_size = cluster_size ? cluster_size : options->subgroup_size;
-      cluster_size = MIN2(cluster_size, options->subgroup_size);
+      unsigned subgroup_size = get_max_subgroup_size(options);
+      cluster_size = cluster_size ? cluster_size : subgroup_size;
+      cluster_size = MIN2(cluster_size, subgroup_size);
       if (cluster_size == 1) {
          return intrin->src[0].ssa;
       } else if (cluster_size == 2) {
@@ -845,7 +854,7 @@ lower_scan_reduce(nir_builder *b, nir_intrinsic_instr *intrin,
                   const nir_lower_subgroups_options *options)
 {
    const nir_op red_op = nir_intrinsic_reduction_op(intrin);
-   unsigned subgroup_size = options->subgroup_size;
+   unsigned subgroup_size = get_max_subgroup_size(options);
 
    /* Grab the cluster size */
    unsigned cluster_size = subgroup_size;
@@ -884,6 +893,12 @@ lower_scan_reduce(nir_builder *b, nir_intrinsic_instr *intrin,
 static bool
 lower_subgroups_filter(const nir_instr *instr, const void *_options)
 {
+   const nir_lower_subgroups_options *options = _options;
+
+   if (options->filter) {
+      return options->filter(instr, options->filter_data);
+   }
+
    return instr->type == nir_instr_type_intrinsic;
 }
 
@@ -1286,7 +1301,7 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
          return intrin->src[0].ssa;
       if (options->lower_to_scalar && intrin->num_components > 1)
          return lower_subgroup_op_to_scalar(b, intrin);
-      if (intrin->def.bit_size == 1 &&
+      if (intrin->def.bit_size == 1 && options->ballot_components == 1 &&
           (options->lower_boolean_reduce || options->lower_reduce))
          return lower_boolean_reduce(b, intrin, options);
       if (options->lower_reduce)
@@ -1297,7 +1312,7 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
    case nir_intrinsic_exclusive_scan:
       if (options->lower_to_scalar && intrin->num_components > 1)
          return lower_subgroup_op_to_scalar(b, intrin);
-      if (intrin->def.bit_size == 1 &&
+      if (intrin->def.bit_size == 1 && options->ballot_components == 1 &&
           (options->lower_boolean_reduce || options->lower_reduce))
          return lower_boolean_reduce(b, intrin, options);
       if (options->lower_reduce)
@@ -1307,6 +1322,10 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
    case nir_intrinsic_rotate:
       if (options->lower_rotate_to_shuffle &&
           (!options->lower_boolean_shuffle || intrin->src[0].ssa->bit_size != 1))
+         return lower_to_shuffle(b, intrin, options);
+      else if (options->lower_rotate_clustered_to_shuffle &&
+               nir_intrinsic_cluster_size(intrin) > 0 &&
+               (!options->lower_boolean_shuffle || intrin->src[0].ssa->bit_size != 1))
          return lower_to_shuffle(b, intrin, options);
       else if (options->lower_to_scalar && intrin->num_components > 1)
          return lower_subgroup_op_to_scalar(b, intrin);
@@ -1334,8 +1353,7 @@ bool
 nir_lower_subgroups(nir_shader *shader,
                     const nir_lower_subgroups_options *options)
 {
-   void *filter = options->filter ? options->filter : lower_subgroups_filter;
-   return nir_shader_lower_instructions(shader, filter,
+   return nir_shader_lower_instructions(shader, lower_subgroups_filter,
                                         lower_subgroups_instr,
                                         (void *)options);
 }

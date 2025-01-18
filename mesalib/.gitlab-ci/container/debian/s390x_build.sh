@@ -2,6 +2,8 @@
 
 set -e
 
+. .gitlab-ci/setup-test-env.sh
+
 arch=s390x
 
 # Ephemeral packages (installed for this script and removed again at the end)

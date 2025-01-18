@@ -286,7 +286,7 @@ d3d12_video_decoder_references_manager::store_future_reference(uint16_t         
 
    // Store the index to use for error handling when caller specifies and invalid reference index.
    m_currentOutputIndex = remappedIndex;
-   m_currentSubresourceIndex = subresourceIndex;
+   m_currentSubresourceIndex = static_cast<uint16_t>(subresourceIndex);
    m_currentResource = pTexture2D;
 
    return remappedIndex;

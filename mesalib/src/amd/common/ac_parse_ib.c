@@ -803,31 +803,24 @@ static void parse_sdma_ib(FILE *f, struct ac_ib_parser *ib)
       }
       case SDMA_OPCODE_CONSTANT_FILL: {
          fprintf(f, "CONSTANT_FILL\n");
-         ac_ib_get(ib);
-         fprintf(f, "\n");
-         ac_ib_get(ib);
-         fprintf(f, "\n");
+         uint32_t fill_va_lo = ac_ib_get(ib);
+         fprintf(f, "    fill va lo = %08x\n", fill_va_lo);
+         uint32_t fill_va_hi = ac_ib_get(ib);
+         fprintf(f, "    fill va hi = %08x\n", fill_va_hi);
          uint32_t value = ac_ib_get(ib);
          fprintf(f, "    fill value = %u\n", value);
          uint32_t byte_count = ac_ib_get(ib) + 1;
          fprintf(f, "    fill byte count = %u\n", byte_count);
-
-         unsigned dwords = byte_count / 4;
-         for (unsigned i = 0; i < dwords; ++i) {
-            ac_ib_get(ib);
-            fprintf(f, "\n");
-         }
-
          break;
       }
       case SDMA_OPCODE_WRITE: {
          fprintf(f, "WRITE\n");
 
          /* VA */
-         ac_ib_get(ib);
-         fprintf(f, "\n");
-         ac_ib_get(ib);
-         fprintf(f, "\n");
+         uint32_t va_lo = ac_ib_get(ib);
+         fprintf(f, "    va lo = %08x\n", va_lo);
+         uint32_t va_hi = ac_ib_get(ib);
+         fprintf(f, "    va hi = %08x\n", va_hi);
 
          uint32_t dwords = ac_ib_get(ib) + 1;
          fprintf(f, "    written dword count = %u\n", dwords);
@@ -950,9 +943,16 @@ static void parse_sdma_ib(FILE *f, struct ac_ib_parser *ib)
 
 static void print_vcn_unrecognized_params(FILE *f, struct ac_ib_parser *ib, uint32_t start_dw, uint32_t size)
 {
-   for (uint32_t i = ib->cur_dw - start_dw; i < size / 4; i++) {
-      ac_ib_get(ib);
-      fprintf(f, "    %s(unrecognized)%s\n", O_COLOR_RED, O_COLOR_RESET);
+   int32_t remaining = size / 4 - (ib->cur_dw - start_dw);
+   if (remaining < 0) {
+      fprintf(f, "%s%d incorrectly parsed DWORDs%s\n",
+              O_COLOR_RED, remaining * -1, O_COLOR_RESET);
+      ib->cur_dw += remaining;
+   } else {
+      while (remaining--) {
+         ac_ib_get(ib);
+         fprintf(f, "    %s(unrecognized)%s\n", O_COLOR_RED, O_COLOR_RESET);
+      }
    }
 }
 
@@ -1142,7 +1142,7 @@ static void parse_vcn_enc_ib(FILE *f, struct ac_ib_parser *ib)
       const uint32_t op = ac_ib_get(ib);
 
       if (op == RENCODE_IB_OP_INITIALIZE) {
-         fprintf(f, "%sINITIALIZE:%s\n", O_COLOR_PURPLE, O_COLOR_RESET);
+         fprintf(f, "%sINITIALIZE%s\n", O_COLOR_PURPLE, O_COLOR_RESET);
       } else if (op == RENCODE_IB_OP_CLOSE_SESSION) {
          fprintf(f, "%sCLOSE_SESSION%s\n", O_COLOR_PURPLE, O_COLOR_RESET);
       } else if (op == RENCODE_IB_OP_ENCODE) {
@@ -1211,6 +1211,10 @@ static void parse_vcn_enc_ib(FILE *f, struct ac_ib_parser *ib)
          }
          uint32_t display_remote = ac_ib_get(ib);
          fprintf(f, "    display remote = %u\n", display_remote);
+         if (ib->vcn_version >= VCN_4_0_0 && ib->vcn_version < VCN_5_0_0) {
+            uint32_t wa_flags = ac_ib_get(ib);
+            fprintf(f, "    WA flags = %u\n", wa_flags);
+         }
       } else if (op == cmd.layer_control) {
          fprintf(f, "%sLAYER_CONTROL%s\n", O_COLOR_GREEN, O_COLOR_RESET);
          uint32_t max_num_layers = ac_ib_get(ib);
@@ -1747,8 +1751,8 @@ static void parse_vcn_enc_ib(FILE *f, struct ac_ib_parser *ib)
          uint32_t frame_end_update = ac_ib_get(ib);
          fprintf(f, "    disable frame end update cdf = %u\n", frame_end_update);
          if (ib->vcn_version >= VCN_5_0_0) {
-            uint32_t unk1 = ac_ib_get(ib);
-            fprintf(f, "    ??? = %u\n", unk1);
+            uint32_t skip_mode = ac_ib_get(ib);
+            fprintf(f, "    disallow skip mode = %u\n", skip_mode);
             uint32_t delta_q_y_dc = ac_ib_get(ib);
             fprintf(f, "    delta QYDc = %u\n", delta_q_y_dc);
             uint32_t delta_q_u_dc = ac_ib_get(ib);
@@ -1904,6 +1908,13 @@ static void parse_vcn_ib(FILE *f, struct ac_ib_parser *ib)
             fprintf(f, "    checksum\n");
             uint32_t num_dwords = ac_ib_get(ib);
             fprintf(f, "    num dwords = %u\n", num_dwords);
+            break;
+         }
+         case RADEON_VCN_IB_COMMON_OP_WRITEMEMORY: {
+            fprintf(f, "%sOP_WRITEMEMORY%s\n", O_COLOR_CYAN, O_COLOR_RESET);
+            print_vcn_addr(f, ib, "    dest");
+            uint32_t data = ac_ib_get(ib);
+            fprintf(f, "    data = %u\n", data);
             break;
          }
          case RDECODE_IB_PARAM_DECODE_BUFFER: {

@@ -110,7 +110,7 @@ traces:
       checksum: 03251159007917a90247d2aa2cf5f68b
   warzone2100/warzone2100-default.trace:
     gl-panfrost-t760:
-      checksum: 4bc5eb01ffe1bf5ba4953ce17f09375f
+      checksum: da86f0bd148b39855050f042490f5dda
     gl-panfrost-t860:
       checksum: e4e92aa7bda9d68a12770d94b3e98f5a
   blender/blender-demo-cube_diorama.trace:

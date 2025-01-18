@@ -269,7 +269,10 @@ nir_get_clamp_limits(nir_builder *b,
    case nir_type_uint: {
       uint64_t uhigh = dest_bit_size == 64 ? ~0ull : (1ull << dest_bit_size) - 1;
       if (src_base_type != nir_type_float) {
-         *low = nir_imm_intN_t(b, 0, src_bit_size);
+         /* for uint->uint conversions, no need to clamp negatives */
+         if (src_base_type != nir_type_uint)
+            *low = nir_imm_intN_t(b, 0, src_bit_size);
+
          if (src_base_type == nir_type_uint || src_bit_size > dest_bit_size)
             *high = nir_imm_intN_t(b, uhigh, src_bit_size);
       } else {

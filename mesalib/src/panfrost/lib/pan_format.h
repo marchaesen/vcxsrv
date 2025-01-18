@@ -160,6 +160,7 @@ struct pan_decomposed_swizzle
 #define MALI_V6_A001 PAN_V6_SWIZZLE(A, 0, 0, 1)
 #define MALI_V6_ABG1 PAN_V6_SWIZZLE(A, B, G, 1)
 #define MALI_V6_ABGR PAN_V6_SWIZZLE(A, B, G, R)
+#define MALI_V6_ARGB PAN_V6_SWIZZLE(A, R, G, B)
 #define MALI_V6_BGR1 PAN_V6_SWIZZLE(B, G, R, 1)
 #define MALI_V6_BGRA PAN_V6_SWIZZLE(B, G, R, A)
 #define MALI_V6_GBA1 PAN_V6_SWIZZLE(G, B, A, 1)
@@ -190,6 +191,8 @@ struct pan_decomposed_swizzle
       (((MALI_SRGB_##srgb)) << 20)
 
 #endif
+
+#define MALI_EXTRACT_INDEX(pixfmt) (((pixfmt) >> 12) & 0xFF)
 
 static inline bool panfrost_format_is_yuv(enum pipe_format f)
 {

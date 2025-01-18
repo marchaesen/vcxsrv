@@ -44,6 +44,11 @@ spec:
       description:
         Additional flags passed to gcovr tool.
       default: ""
+    job_name_prefix:
+      description:
+        Additional prefix for the job name. Can be used to disable a job with a
+        "." prefix.
+      default: ""
     job_name_suffix:
       description:
         Additional suffix for the job name. Can be used to prevent job
@@ -61,16 +66,24 @@ spec:
         `allow_failure`.
       type: number
       default: 1
+    runner_tag:
+      description: GitLab runner tag for this job.
+      default: kvm
+    docker_job:
+      description: Docker image build job name.
+      default: docker:kvm
 ---
 
-"test:$[[ inputs.target ]]$[[ inputs.job_name_suffix ]]":
+"$[[ inputs.job_name_prefix ]]test:$[[ inputs.target ]]$[[ inputs.job_name_suffix ]]":
   extends: .target:all
+  tags:
+    - $[[ inputs.runner_tag | expand_vars ]]
   stage: test
   allow_failure: $[[ inputs.allow_failure ]]
   retry: $[[ inputs.retry ]]
   timeout: $[[ inputs.timeout ]]
   needs:
-    - job: docker
+    - job: $[[ inputs.docker_job | expand_vars ]]
       optional: true
       parallel:
         matrix:
@@ -82,28 +95,26 @@ spec:
   variables:
     TARGET: $[[ inputs.target ]]
     TEST_TIMEOUT_MULTIPLIER: $[[ inputs.test_timeout_multiplier ]]
-    GCOVR_FLAGS: $[[ inputs.gcovr_flags ]]
     MESON_ARGS: -t ${TEST_TIMEOUT_MULTIPLIER} --no-rebuild -v ${TEST_NAME}
+    MESON_TESTTHREADS: $[[ inputs.meson_testthreads ]]
   parallel:
     matrix:
       - TOOLCHAIN: $[[ inputs.toolchain ]]
         PIXMAN_DISABLE: $[[ inputs.pixman_disable ]]
         QEMU_CPU: $[[ inputs.qemu_cpu ]]
   script:
-    # Move MESON_TESTTHREADS to variables once
-    # https://github.com/mesonbuild/meson/pull/13604 gets released.
-    - |
-      if [ $[[ inputs.meson_testthreads ]] -gt 0 ]; then
-        MESON_TESTTHREADS=$[[ inputs.meson_testthreads ]]
-      fi
     - meson test -C ${BUILD_DIR} ${MESON_ARGS}
-  after_script:
+
+    # Generate coverage report.
     - mkdir -p ${COVERAGE_OUT}
-    - gcovr ${GCOVR_FLAGS} -r ./ ${BUILD_DIR} -e ./subprojects
-        --json ${COVERAGE_OUT}.json
-        --html-details ${COVERAGE_OUT}/coverage.html
-        --print-summary || echo "No coverage data available."
+    - if [ -f "${BUILD_DIR}/.coverage-enable" ]; then
+        gcovr $[[ inputs.gcovr_flags ]] -r ./ ${BUILD_DIR} -e ./subprojects
+          --json ${COVERAGE_OUT}.json
+          --html-details ${COVERAGE_OUT}/coverage.html
+          --print-summary;
+      fi
   artifacts:
+    when: always
     paths:
       - ${BUILD_DIR}/meson-logs/testlog.txt
       - ${COVERAGE_BASE_DIR}/

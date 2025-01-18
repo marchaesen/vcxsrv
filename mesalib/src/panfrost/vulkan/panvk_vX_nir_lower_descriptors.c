@@ -187,9 +187,7 @@ shader_desc_idx(uint32_t set, uint32_t binding, VkDescriptorType subdesc_type,
    /* On Valhall, all non-dynamic descriptors are accessed directly through
     * their set. The vertex attribute table always comes first, so we always
     * offset user sets by one if we're dealing with a vertex shader. */
-   if (PAN_ARCH >= 9 &&
-       bind_layout->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-       bind_layout->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+   if (PAN_ARCH >= 9 && !vk_descriptor_type_is_dynamic(bind_layout->type))
       return pan_res_handle(set + 1, bind_layout->desc_idx + subdesc_idx);
 
    /* On Bifrost, the SSBO descriptors are read directly from the set. */
@@ -274,17 +272,20 @@ shader_ssbo_table(nir_builder *b, unsigned set, unsigned binding,
           bind_layout->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
    bool is_dyn = bind_layout->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
 
-   if (b->shader->info.stage == MESA_SHADER_COMPUTE)
-      return !is_dyn ? offsetof(struct panvk_compute_sysvals, desc.sets[set])
-                     : offsetof(struct panvk_compute_sysvals, desc.dyn_ssbos);
-   else if (b->shader->info.stage == MESA_SHADER_VERTEX)
-      return !is_dyn
-                ? offsetof(struct panvk_graphics_sysvals, desc.sets[set])
-                : offsetof(struct panvk_graphics_sysvals, desc.vs_dyn_ssbos);
-   else
-      return !is_dyn
-                ? offsetof(struct panvk_graphics_sysvals, desc.sets[set])
-                : offsetof(struct panvk_graphics_sysvals, desc.fs_dyn_ssbos);
+   if (!is_dyn)
+      return PANVK_DESC_TABLE_USER + set;
+
+   switch (b->shader->info.stage) {
+   case MESA_SHADER_COMPUTE:
+      return PANVK_DESC_TABLE_CS_DYN_SSBOS;
+   case MESA_SHADER_VERTEX:
+      return PANVK_DESC_TABLE_VS_DYN_SSBOS;
+   case MESA_SHADER_FRAGMENT:
+      return PANVK_DESC_TABLE_FS_DYN_SSBOS;
+   default:
+      assert(!"Invalid stage");
+      return ~0;
+   }
 }
 #endif
 
@@ -333,9 +334,9 @@ build_res_index(nir_builder *b, uint32_t set, uint32_t binding,
 
    case nir_address_format_64bit_bounded_global:
    case nir_address_format_64bit_global_32bit_offset: {
-      unsigned base_addr_sysval_offs = shader_ssbo_table(b, set, binding, ctx);
+      unsigned desc_table = shader_ssbo_table(b, set, binding, ctx);
 
-      return nir_vec4(b, nir_imm_int(b, base_addr_sysval_offs),
+      return nir_vec4(b, nir_imm_int(b, desc_table),
                       nir_imm_int(b, desc_idx), array_index,
                       nir_imm_int(b, array_size - 1));
    }
@@ -414,7 +415,7 @@ build_buffer_addr_for_res_index(nir_builder *b, nir_def *res_index,
 
    case nir_address_format_64bit_bounded_global:
    case nir_address_format_64bit_global_32bit_offset: {
-      nir_def *base_addr_sysval_offset = nir_channel(b, res_index, 0);
+      nir_def *desc_table_index = nir_channel(b, res_index, 0);
       nir_def *first_desc_index = nir_channel(b, res_index, 1);
       nir_def *array_index = nir_channel(b, res_index, 2);
       nir_def *array_max = nir_channel(b, res_index, 3);
@@ -425,8 +426,11 @@ build_buffer_addr_for_res_index(nir_builder *b, nir_def *res_index,
       nir_def *desc_offset = nir_imul_imm(
          b, nir_iadd(b, array_index, first_desc_index), PANVK_DESCRIPTOR_SIZE);
 
-      nir_def *base_addr = nir_load_push_constant(
-         b, 1, 64, base_addr_sysval_offset, .base = 256, .range = 256);
+      nir_def *base_addr =
+         b->shader->info.stage == MESA_SHADER_COMPUTE
+            ? load_sysval_entry(b, compute, 64, desc.sets, desc_table_index)
+            : load_sysval_entry(b, graphics, 64, desc.sets, desc_table_index);
+
       nir_def *desc_addr = nir_iadd(b, base_addr, nir_u2u64(b, desc_offset));
       nir_def *desc =
          nir_load_global(b, desc_addr, PANVK_DESCRIPTOR_SIZE, 4, 32);
@@ -512,7 +516,7 @@ get_resource_deref_binding(nir_deref_instr *deref, uint32_t *set,
 
          /* Zero means variable array. The minus one should give us UINT32_MAX,
           * which matches what we want. */
-         *max_idx = glsl_array_size(nir_deref_instr_parent(deref)->type) - 1;
+         *max_idx = ((uint32_t)glsl_array_size(nir_deref_instr_parent(deref)->type)) - 1;
       }
 
       deref = nir_deref_instr_parent(deref);
@@ -556,13 +560,10 @@ load_resource_deref_desc(nir_builder *b, nir_deref_instr *deref,
    set_offset = nir_iadd_imm(b, set_offset, desc_offset);
 
 #if PAN_ARCH <= 7
-   unsigned set_base_addr_sysval_offs =
+   nir_def *set_base_addr =
       b->shader->info.stage == MESA_SHADER_COMPUTE
-         ? offsetof(struct panvk_compute_sysvals, desc.sets[set])
-         : offsetof(struct panvk_graphics_sysvals, desc.sets[set]);
-   nir_def *set_base_addr = nir_load_push_constant(
-      b, 1, 64, nir_imm_int(b, 0), .base = 256 + set_base_addr_sysval_offs,
-      .range = 8);
+         ? load_sysval_entry(b, compute, 64, desc.sets, nir_imm_int(b, set))
+         : load_sysval_entry(b, graphics, 64, desc.sets, nir_imm_int(b, set));
 
    unsigned desc_align = 1 << (ffs(PANVK_DESCRIPTOR_SIZE + desc_offset) - 1);
 
@@ -570,9 +571,10 @@ load_resource_deref_desc(nir_builder *b, nir_deref_instr *deref,
                           nir_iadd(b, set_base_addr, nir_u2u64(b, set_offset)),
                           desc_align, num_components, bit_size);
 #else
+   /* note that user sets start from index 1 */
    return nir_load_ubo(
       b, num_components, bit_size,
-      nir_imm_int(b, pan_res_handle(VALHALL_RESOURCE_TABLE_IDX, set)),
+      nir_imm_int(b, pan_res_handle(VALHALL_RESOURCE_TABLE_IDX, set + 1)),
       set_offset, .range = ~0u, .align_mul = PANVK_DESCRIPTOR_SIZE,
       .align_offset = desc_offset);
 #endif
@@ -628,6 +630,15 @@ load_img_size(nir_builder *b, nir_deref_instr *deref, enum glsl_sampler_dim dim,
    } else {
       nir_def *tex_sz = load_resource_deref_desc(
          b, deref, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 18, 3, 16, ctx);
+
+#if PAN_ARCH <= 7
+      if (is_array && dim == GLSL_SAMPLER_DIM_CUBE)
+         tex_sz =
+            nir_vector_insert_imm(b, tex_sz,
+                                     nir_udiv_imm(b, nir_channel(b, tex_sz, 2),
+                                                     6),
+                                     2);
+#endif
 
       if (is_array && dim == GLSL_SAMPLER_DIM_1D)
          tex_sz =
@@ -685,6 +696,15 @@ load_img_samples(nir_builder *b, nir_deref_instr *deref,
    return nir_iadd_imm(b, nir_u2u32(b, sample_count), 1);
 }
 
+static uint32_t
+get_desc_array_stride(const struct panvk_descriptor_set_binding_layout *layout)
+{
+   /* On Bifrost, descriptors are copied from the sets to the final
+    * descriptor tables which are per-type, making the stride one in
+    * this context. */
+   return PAN_ARCH >= 9 ? panvk_get_desc_stride(layout->type) : 1;
+}
+
 static bool
 lower_tex(nir_builder *b, nir_tex_instr *tex, const struct lower_desc_ctx *ctx)
 {
@@ -730,15 +750,21 @@ lower_tex(nir_builder *b, nir_tex_instr *tex, const struct lower_desc_ctx *ctx)
 
       uint32_t set, binding, index_imm, max_idx;
       nir_def *index_ssa;
-      get_resource_deref_binding(deref, &set, &binding, &index_imm, &index_ssa,
-                                 &max_idx);
+      get_resource_deref_binding(deref, &set, &binding, &index_imm, &index_ssa, &max_idx);
+
+      const struct panvk_descriptor_set_layout *set_layout =
+         get_set_layout(set, ctx);
+      const struct panvk_descriptor_set_binding_layout *bind_layout =
+         &set_layout->bindings[binding];
+      uint32_t desc_stride = get_desc_array_stride(bind_layout);
 
       tex->sampler_index =
          shader_desc_idx(set, binding, VK_DESCRIPTOR_TYPE_SAMPLER, ctx) +
-         index_imm;
+         index_imm * desc_stride;
 
       if (index_ssa != NULL) {
-         nir_tex_instr_add_src(tex, nir_tex_src_sampler_offset, index_ssa);
+         nir_def *offset = nir_imul_imm(b, index_ssa, desc_stride);
+         nir_tex_instr_add_src(tex, nir_tex_src_sampler_offset, offset);
       }
       progress = true;
    } else {
@@ -757,12 +783,19 @@ lower_tex(nir_builder *b, nir_tex_instr *tex, const struct lower_desc_ctx *ctx)
       get_resource_deref_binding(deref, &set, &binding, &index_imm, &index_ssa,
                                  &max_idx);
 
+      const struct panvk_descriptor_set_layout *set_layout =
+         get_set_layout(set, ctx);
+      const struct panvk_descriptor_set_binding_layout *bind_layout =
+         &set_layout->bindings[binding];
+      uint32_t desc_stride = get_desc_array_stride(bind_layout);
+
       tex->texture_index =
          shader_desc_idx(set, binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ctx) +
-         index_imm;
+         index_imm * desc_stride;
 
       if (index_ssa != NULL) {
-         nir_tex_instr_add_src(tex, nir_tex_src_texture_offset, index_ssa);
+         nir_def *offset = nir_imul_imm(b, index_ssa, desc_stride);
+         nir_tex_instr_add_src(tex, nir_tex_src_texture_offset, offset);
       }
       progress = true;
    }
@@ -879,9 +912,7 @@ record_binding(struct lower_desc_ctx *ctx, unsigned set, unsigned binding,
 
    /* On valhall, we only record dynamic bindings, others are accessed directly
     * from the set. */
-   if (PAN_ARCH >= 9 &&
-       binding_layout->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
-       binding_layout->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+   if (PAN_ARCH >= 9 && !vk_descriptor_type_is_dynamic(binding_layout->type))
       return;
 
    /* SSBOs are accessed directly from the sets, no need to record accesses
@@ -994,6 +1025,10 @@ create_copy_table(nir_shader *nir, struct lower_desc_ctx *ctx)
    for (uint32_t i = 0; i < PANVK_BIFROST_DESC_TABLE_COUNT; i++)
       copy_count += desc_info->others[i].count;
 #else
+   /* Dummy sampler comes after the vertex attributes. */
+   uint32_t dummy_sampler_idx = nir->info.stage == MESA_SHADER_VERTEX ? 16 : 0;
+   desc_info->dummy_sampler_handle = pan_res_handle(0, dummy_sampler_idx);
+
    copy_count = desc_info->dyn_bufs.count + desc_info->dyn_bufs.count;
 #endif
 
@@ -1017,6 +1052,9 @@ create_copy_table(nir_shader *nir, struct lower_desc_ctx *ctx)
       desc_info->others[i].count = 0;
    }
 #else
+   /* Dynamic buffers come after the dummy sampler. */
+   desc_info->dyn_bufs_start = dummy_sampler_idx + 1;
+
    desc_info->dyn_bufs.map = rzalloc_array(ctx->ht, uint32_t, copy_count);
    assert(desc_info->dyn_bufs.map);
 #endif
@@ -1032,15 +1070,6 @@ create_copy_table(nir_shader *nir, struct lower_desc_ctx *ctx)
       he->data = fill_copy_descs_for_binding(ctx, src.set, src.binding,
                                              src.subdesc, desc_count);
    }
-
-#if PAN_ARCH >= 9
-   /* Dummy sampler comes after the vertex attributes. */
-   uint32_t dummy_sampler_idx = nir->info.stage == MESA_SHADER_VERTEX ? 16 : 0;
-   desc_info->dummy_sampler_handle = pan_res_handle(0, dummy_sampler_idx);
-
-   /* Dynamic buffers come after the dummy sampler. */
-   desc_info->dyn_bufs_start = dummy_sampler_idx + 1;
-#endif
 }
 
 /* TODO: Texture instructions support bindless through DTSEL_IMM(63),
@@ -1172,7 +1201,7 @@ upload_shader_desc_info(struct panvk_device *dev, struct panvk_shader *shader,
    shader->desc_info.used_set_mask = desc_info->used_set_mask;
 }
 
-bool
+void
 panvk_per_arch(nir_lower_descriptors)(
    nir_shader *nir, struct panvk_device *dev,
    const struct vk_pipeline_robustness_state *rs, uint32_t set_layout_count,
@@ -1208,18 +1237,17 @@ panvk_per_arch(nir_lower_descriptors)(
    for (uint32_t i = 0; i < set_layout_count; i++)
       ctx.set_layouts[i] = to_panvk_descriptor_set_layout(set_layouts[i]);
 
-   progress = nir_shader_instructions_pass(nir, collect_instr_desc_access,
-                                           nir_metadata_all, &ctx);
+   NIR_PASS(progress, nir, nir_shader_instructions_pass,
+            collect_instr_desc_access, nir_metadata_all, &ctx);
    if (!progress)
       goto out;
 
    create_copy_table(nir, &ctx);
    upload_shader_desc_info(dev, shader, &ctx.desc_info);
 
-   progress = nir_shader_instructions_pass(nir, lower_descriptors_instr,
-                                           nir_metadata_control_flow, &ctx);
+   NIR_PASS(progress, nir, nir_shader_instructions_pass,
+            lower_descriptors_instr, nir_metadata_control_flow, &ctx);
 
 out:
    _mesa_hash_table_destroy(ctx.ht, NULL);
-   return progress;
 }

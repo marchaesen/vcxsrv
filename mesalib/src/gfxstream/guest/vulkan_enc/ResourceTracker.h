@@ -23,6 +23,7 @@
 #include "VulkanHandles.h"
 #include "goldfish_vk_transform_guest.h"
 #include "util/perf/cpu_trace.h"
+#include "util/detect_os.h"
 
 /// Use installed headers or locally defined Fuchsia-specific bits
 #ifdef VK_USE_PLATFORM_FUCHSIA
@@ -758,9 +759,9 @@ class ResourceTracker {
         uint64_t coherentMemorySize = 0;
         uint64_t coherentMemoryOffset = 0;
 
-#if defined(__ANDROID__)
+#if DETECT_OS_ANDROID
         GoldfishAddressSpaceBlockPtr goldfishBlock = nullptr;
-#endif  // defined(__ANDROID__)
+#endif  // DETECT_OS_ANDROID
         CoherentMemoryPtr coherentMemory = nullptr;
         VirtGpuResourcePtr blobPtr = nullptr;
     };
@@ -842,7 +843,7 @@ class ResourceTracker {
         VkDevice device;
         bool external = false;
         VkExportFenceCreateInfo exportFenceCreateInfo;
-#if defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(__linux__)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR) || DETECT_OS_LINUX
         // Note: -1 means already signaled.
         std::optional<int> syncFd;
 #endif
@@ -894,9 +895,9 @@ class ResourceTracker {
 
     struct GfxStreamVkFeatureInfo mFeatureInfo = {};
 
-#if defined(__ANDROID__)
+#if DETECT_OS_ANDROID
     std::unique_ptr<GoldfishAddressSpaceBlockProvider> mGoldfishAddressSpaceBlockProvider;
-#endif  // defined(__ANDROID__)
+#endif  // DETECT_OS_ANDROID
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
     std::unique_ptr<gfxstream::Gralloc> mGralloc = nullptr;
@@ -910,7 +911,7 @@ class ResourceTracker {
 
     // 32 bits only for now, upper bits may be used later.
     std::atomic<uint32_t> mAtomicId = 0;
-#if defined(VK_USE_PLATFORM_ANDROID_KHR) || defined(__linux__)
+#if defined(VK_USE_PLATFORM_ANDROID_KHR) || DETECT_OS_LINUX
     int mSyncDeviceFd = -1;
 #endif
 

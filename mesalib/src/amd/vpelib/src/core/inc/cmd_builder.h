@@ -44,10 +44,8 @@ struct cmd_builder {
     enum vpe_status (*build_plane_descriptor)(
         struct vpe_priv *vpe_priv, struct vpe_buf *buf, uint32_t cmd_idx);
 
-#ifdef VPE_BUILD_1_1
     enum vpe_status (*build_collaborate_sync_cmd)(
         struct vpe_priv *vpe_priv, struct vpe_build_bufs *cur_bufs);
-#endif
 };
 
 #ifdef __cplusplus

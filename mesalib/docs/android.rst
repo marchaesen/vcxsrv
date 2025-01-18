@@ -27,7 +27,7 @@ Then, create your Meson cross file to use it, something like this
     [binaries]
     ar = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar'
     c = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang']
-    cpp = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-static-libstdc++']
+    cpp = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '--start-no-unused-arguments', '-static-libstdc++', '--end-no-unused-arguments']
     c_ld = 'lld'
     cpp_ld = 'lld'
     strip = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-strip'
@@ -180,8 +180,8 @@ container and let it restart:
 
     kill $(cat /run/containers/android-run_oci/container.pid )
 
-Adding drivers to Android OS image
-----------------------------------
+Adding out-of-tree drivers to Android OS image
+----------------------------------------------
 
 When building your own Android OS images it's possible to add
 drivers built out of tree directly into the OS image. For
@@ -213,8 +213,6 @@ the ``aosp_cf_x86_64_phone-trunk_staging-userdebug`` build target
 for Android. Please note that the x86_64 cuttlefish target will require
 you to build mesa for 32bit and 64bit. Next we need to copy the build
 driver libraries into the source tree of Android and patch the binary names.
-Note that as of ``9b7bb6cc9fa``, libgallium will include the build tag in the
-name, so the name of that library will need to match the tag used in the build.
 
 .. code-block:: sh
 
@@ -223,13 +221,13 @@ name, so the name of that library will need to match the tag used in the build.
    mkdir prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_64}/lib/libEGL.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libglapi.so prebuilts/mesa/x86_64/
-   cp ${INSTALL_PREFIX_64}/lib/libgallium-24.3.0-devel.so prebuilts/mesa/x86_64/
+   cp ${INSTALL_PREFIX_64}/lib/libgallium_dri.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libGLESv1_CM.so  prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libGLESv2.so  prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libvulkan_lvp.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_32}/lib/libEGL.so prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_32}/lib/libglapi.so prebuilts/mesa/x86
-   cp ${INSTALL_PREFIX_32}/lib/libgallium-24.3.0-devel.so prebuilts/mesa/x86/
+   cp ${INSTALL_PREFIX_32}/lib/libgallium_dri.so prebuilts/mesa/x86/
    cp ${INSTALL_PREFIX_32}/lib/libGLESv1_CM.so  prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_32}/lib/libGLESv2.so  prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_32}/lib/libvulkan_lvp.so prebuilts/mesa/x86
@@ -267,13 +265,13 @@ the libraries in the build.
    }
 
    cc_prebuilt_library_shared {
-       name: "libgallium-24.3.0-devel",
+       name: "libgallium_dri",
        arch: {
            x86_64: {
-               srcs: ["x86_64/libgallium-24.3.0-devel.so"],
+               srcs: ["x86_64/libgallium_dri.so"],
            },
            x86: {
-               srcs: ["x86/libgallium-24.3.0-devel.so"],
+               srcs: ["x86/libgallium_dri.so"],
            },
        },
        strip: {
@@ -374,7 +372,7 @@ create the file
                        libGLESv1_CM_lp \
                        libGLESv2_lp \
                        libEGL_lp \
-                       libgallium-24.3.0-devel.so \
+                       libgallium_dri.so \
                        vulkan.lvp
    PRODUCT_VENDOR_PROPERTIES += \
            ro.hardware.egl=lp \
@@ -400,8 +398,8 @@ Next the file ``device/google/cuttlefish/shared/mesa/sepolicy/file_contexts``
    /vendor/lib(64)?/egl/libEGL_lp\.so u:object_r:same_process_hal_file:s0
    /vendor/lib(64)?/egl/libGLESv1_CM_lp\.so u:object_r:same_process_hal_file:s0
    /vendor/lib(64)?/egl/libGLESv2_lp\.so u:object_r:same_process_hal_file:s0
-   /vendor/lib(64)?/egl/libglapi\.so u:object_r:same_process_hal_file:s0
-   /vendor/lib(64)?/egl/libgallium\-24.3.0\-devel\.so u:object_r:same_process_hal_file:s0
+   /vendor/lib(64)?/libglapi\.so u:object_r:same_process_hal_file:s0
+   /vendor/lib(64)?/libgallium_dri\.so u:object_r:same_process_hal_file:s0
    /vendor/lib(64)?/hw/vulkan\.lvp\.so u:object_r:same_process_hal_file:s0
 
 After creating these files we need to modify the existing config files

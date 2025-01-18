@@ -11,3 +11,4 @@ caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["./_install/warp-skips.txt"]
 flakes = ["./_install/warp-flakes.txt"]
 renderer_check = 'Microsoft Direct3D12 \(Microsoft Basic Render Driver\)'
+tests_per_group = 5000

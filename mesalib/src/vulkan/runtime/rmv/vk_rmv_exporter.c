@@ -1086,8 +1086,8 @@ static void
 rmt_dump_heap_resource(struct vk_rmv_heap_description *description, FILE *output)
 {
    uint64_t data[2] = {0};
-   rmt_file_write_bits(data, description->alloc_flags, 0, 3);
-   rmt_file_write_bits(data, description->size, 4, 68);
+   rmt_file_write_bits(data, description->alloc_flags, 0, 4);
+   rmt_file_write_bits(data, description->size, 5, 68);
    rmt_file_write_bits(data, rmt_size_to_page_size(description->alignment), 69, 73);
    rmt_file_write_bits(data, description->heap_index, 74, 77);
    fwrite(data, 10, 1, output);

@@ -54,5 +54,12 @@ main (int argc, char **argv)
     assert (
         strcmp (format_name (PIXMAN_r5g6b5), "r5g6b5") == 0);
     
+
+    free (bits);
+    free (mbits);
+    pixman_image_unref (mask_img);
+    pixman_image_unref (dest_img);
+    pixman_image_unref (src_img);
+
     return 0;
 }

@@ -23,8 +23,6 @@ def setup_lava_proxy():
     )
     proxy = xmlrpc.client.ServerProxy(uri_str, allow_none=True, transport=transport)
 
-    print_log(f'Proxy for {config["uri"]} created.')
-
     return proxy
 
 

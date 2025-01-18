@@ -95,113 +95,6 @@ lima_screen_get_device_vendor(struct pipe_screen *pscreen)
 }
 
 static int
-lima_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
-{
-   switch (param) {
-   case PIPE_CAP_NPOT_TEXTURES:
-   case PIPE_CAP_BLEND_EQUATION_SEPARATE:
-   case PIPE_CAP_ACCELERATED:
-   case PIPE_CAP_UMA:
-   case PIPE_CAP_CLIP_HALFZ:
-   case PIPE_CAP_NATIVE_FENCE_FD:
-   case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
-   case PIPE_CAP_TEXTURE_SWIZZLE:
-   case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
-   case PIPE_CAP_TEXTURE_BARRIER:
-   case PIPE_CAP_SURFACE_SAMPLE_COUNT:
-      return 1;
-
-   /* not clear supported */
-   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
-      return 1;
-
-   case PIPE_CAP_FS_POSITION_IS_SYSVAL:
-   case PIPE_CAP_FS_POINT_IS_SYSVAL:
-   case PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL:
-      return 1;
-
-   case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
-      return 1;
-
-   case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      return 1 << (LIMA_MAX_MIP_LEVELS - 1);
-   case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
-   case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      return LIMA_MAX_MIP_LEVELS;
-
-   case PIPE_CAP_VENDOR_ID:
-      return 0x13B5;
-
-   case PIPE_CAP_VIDEO_MEMORY:
-      return 0;
-
-   case PIPE_CAP_PCI_GROUP:
-   case PIPE_CAP_PCI_BUS:
-   case PIPE_CAP_PCI_DEVICE:
-   case PIPE_CAP_PCI_FUNCTION:
-      return 0;
-
-   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
-   case PIPE_CAP_SHAREABLE_SHADERS:
-      return 0;
-
-   case PIPE_CAP_ALPHA_TEST:
-      return 1;
-
-   case PIPE_CAP_FLATSHADE:
-   case PIPE_CAP_TWO_SIDED_COLOR:
-   case PIPE_CAP_CLIP_PLANES:
-      return 0;
-
-   case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-      return 1;
-
-   /* Mali4x0 PP doesn't have a swizzle for load_input, so use POT-aligned
-    * varyings to avoid unnecessary movs for vec3 and precision downgrade
-    * in case if this vec3 is coordinates for a sampler
-    */
-   case PIPE_CAP_PREFER_POT_ALIGNED_VARYINGS:
-      return 1;
-
-   case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
-      return 1;
-
-   default:
-      return u_pipe_screen_get_param_defaults(pscreen, param);
-   }
-}
-
-static float
-lima_screen_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
-{
-   switch (param) {
-   case PIPE_CAPF_MIN_LINE_WIDTH:
-   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
-   case PIPE_CAPF_MIN_POINT_SIZE:
-   case PIPE_CAPF_MIN_POINT_SIZE_AA:
-      return 1;
-   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
-   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
-      return 0.1;
-   case PIPE_CAPF_MAX_LINE_WIDTH:
-   case PIPE_CAPF_MAX_LINE_WIDTH_AA:
-   case PIPE_CAPF_MAX_POINT_SIZE:
-   case PIPE_CAPF_MAX_POINT_SIZE_AA:
-      return 100.0f;
-   case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
-      return 16.0f;
-   case PIPE_CAPF_MAX_TEXTURE_LOD_BIAS:
-      return 15.0f;
-
-   default:
-      return 0.0f;
-   }
-}
-
-static int
 get_vertex_shader_param(struct lima_screen *screen,
                         enum pipe_shader_cap param)
 {
@@ -271,12 +164,10 @@ get_fragment_shader_param(struct lima_screen *screen,
    case PIPE_SHADER_CAP_MAX_TEMPS:
       return 256; /* need investigate */
 
-   case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
       return 1;
 
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
       return 0;
 
    default:
@@ -300,6 +191,87 @@ lima_screen_get_shader_param(struct pipe_screen *pscreen,
    default:
       return 0;
    }
+}
+
+static void
+lima_init_screen_caps(struct pipe_screen *screen)
+{
+   struct pipe_caps *caps = (struct pipe_caps *)&screen->caps;
+
+   u_init_pipe_screen_caps(screen, 1);
+
+   caps->npot_textures = true;
+   caps->blend_equation_separate = true;
+   caps->uma = true;
+   caps->clip_halfz = true;
+   caps->native_fence_fd = true;
+   caps->fragment_shader_texture_lod = true;
+   caps->texture_swizzle = true;
+   caps->vertex_color_unclamped = true;
+   caps->texture_barrier = true;
+   caps->surface_sample_count = true;
+
+   /* not clear supported */
+   caps->fs_coord_origin_upper_left = true;
+   caps->fs_coord_origin_lower_left = true;
+   caps->fs_coord_pixel_center_integer = true;
+   caps->fs_coord_pixel_center_half_integer = true;
+
+   caps->fs_position_is_sysval = true;
+   caps->fs_point_is_sysval = true;
+   caps->fs_face_is_integer_sysval = true;
+
+   caps->texture_half_float_linear = true;
+
+   caps->max_texture_2d_size = 1 << (LIMA_MAX_MIP_LEVELS - 1);
+   caps->max_texture_3d_levels =
+   caps->max_texture_cube_levels = LIMA_MAX_MIP_LEVELS;
+
+   caps->vendor_id = 0x13B5;
+
+   caps->video_memory = 0;
+
+   caps->pci_group =
+   caps->pci_bus =
+   caps->pci_device =
+   caps->pci_function = 0;
+
+   caps->texture_transfer_modes = 0;
+
+   caps->shareable_shaders = false;
+
+   caps->alpha_test = true;
+
+   caps->flatshade = false;
+   caps->two_sided_color = false;
+   caps->clip_planes = 0;
+
+   caps->fragment_shader_derivatives = true;
+
+   /* Mali4x0 PP doesn't have a swizzle for load_input, so use POT-aligned
+    * varyings to avoid unnecessary movs for vec3 and precision downgrade
+    * in case if this vec3 is coordinates for a sampler
+    */
+   caps->prefer_pot_aligned_varyings = true;
+
+   caps->max_dual_source_render_targets = true;
+
+   caps->min_line_width =
+   caps->min_line_width_aa =
+   caps->min_point_size =
+   caps->min_point_size_aa = 1;
+
+   caps->point_size_granularity =
+   caps->line_width_granularity = 0.1;
+
+   caps->max_line_width =
+   caps->max_line_width_aa =
+   caps->max_point_size =
+   caps->max_point_size_aa = 100.0f;
+
+   caps->max_texture_anisotropy = 16.0f;
+
+   caps->max_texture_lod_bias = 15.0f;
 }
 
 static bool
@@ -735,8 +707,6 @@ lima_screen_create(int fd, const struct pipe_screen_config *config,
    screen->base.get_name = lima_screen_get_name;
    screen->base.get_vendor = lima_screen_get_vendor;
    screen->base.get_device_vendor = lima_screen_get_device_vendor;
-   screen->base.get_param = lima_screen_get_param;
-   screen->base.get_paramf = lima_screen_get_paramf;
    screen->base.get_shader_param = lima_screen_get_shader_param;
    screen->base.context_create = lima_context_create;
    screen->base.is_format_supported = lima_screen_is_format_supported;
@@ -748,6 +718,8 @@ lima_screen_create(int fd, const struct pipe_screen_config *config,
    lima_resource_screen_init(screen);
    lima_fence_screen_init(screen);
    lima_disk_cache_init(screen);
+
+   lima_init_screen_caps(&screen->base);
 
    slab_create_parent(&screen->transfer_pool, sizeof(struct lima_transfer), 16);
 

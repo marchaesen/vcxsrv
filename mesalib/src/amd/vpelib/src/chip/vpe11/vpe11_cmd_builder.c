@@ -27,7 +27,6 @@
 #include "vpe11_command.h"
 #include "vpe10_cmd_builder.h"
 #include "vpe11_cmd_builder.h"
-#include "reg_helper.h"
 
 void vpe11_construct_cmd_builder(struct vpe_priv *vpe_priv, struct cmd_builder *builder)
 {

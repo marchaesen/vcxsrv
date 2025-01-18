@@ -24,49 +24,39 @@ include:
     inputs:
       target: linux-arm-v5
       qemu_cpu: arm1136
+      # Disable coverage, as the tests take too long to run with a single thread.
+      enable_gnu_coverage: false
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
       target: linux-arm-v7
+      toolchain: [gnu]  # TODO: https://gitlab.freedesktop.org/pixman/pixman/-/issues/113
       qemu_cpu: max
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
       target: linux-arm64-v8
-      qemu_cpu: max
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
       target: linux-mips
-      toolchain: [gnu]
+      toolchain: [gnu]  # TODO: https://gitlab.freedesktop.org/pixman/pixman/-/issues/105
       qemu_cpu: 74Kf
       enable_gnu_coverage: false
-  # TODO: Merge with the one above once the following issue is resolved:
-  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/105).
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
-      target: linux-mips
-      toolchain: [llvm]
-      qemu_cpu: 74Kf
-      job_name_suffix: ":failing"
-      allow_failure: true
-      retry: 0
-  - local: .gitlab-ci.d/templates/build.yml
-    inputs:
-      target: linux-mips64el
+      target: linux-mips64le
       qemu_cpu: Loongson-3A4000
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
       target: linux-mipsel
-      toolchain: [gnu]
+      toolchain: [gnu]  # TODO: https://gitlab.freedesktop.org/pixman/pixman/-/issues/105
       qemu_cpu: 74Kf
-  # TODO: Merge with the one above once the following issue is resolved:
-  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/105).
-  - local: .gitlab-ci.d/templates/build.yml
-    inputs:
-      target: linux-mipsel
-      toolchain: [llvm]
-      qemu_cpu: 74Kf
-      job_name_suffix: ":failing"
-      allow_failure: true
-      retry: 0
+      # Disable coverage, as the tests take too long to run with a single thread.
+      enable_gnu_coverage: false
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
       target: linux-ppc
@@ -75,7 +65,7 @@ include:
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
       target: linux-ppc64
-      qemu_cpu: ppc64
+      qemu_cpu: power9
       enable_gnu_coverage: false
   - local: .gitlab-ci.d/templates/build.yml
     inputs:
@@ -97,5 +87,6 @@ include:
     inputs:
       target: windows-arm64-v8
       toolchain: [llvm]  # GNU toolchain doesn't seem to support Windows on ARM.
-      qemu_cpu: max
       enable_gnu_coverage: false
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64

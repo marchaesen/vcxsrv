@@ -607,9 +607,9 @@ vk_rasterization_state_init(struct vk_rasterization_state *rs,
    rs->depth_bias.enable = rs_info->depthBiasEnable;
    if ((rs_info->depthBiasEnable || IS_DYNAMIC(RS_DEPTH_BIAS_ENABLE)) &&
        !IS_DYNAMIC(RS_DEPTH_BIAS_FACTORS)) {
-      rs->depth_bias.constant = rs_info->depthBiasConstantFactor;
+      rs->depth_bias.constant_factor = rs_info->depthBiasConstantFactor;
       rs->depth_bias.clamp = rs_info->depthBiasClamp;
-      rs->depth_bias.slope = rs_info->depthBiasSlopeFactor;
+      rs->depth_bias.slope_factor = rs_info->depthBiasSlopeFactor;
    }
    rs->line.width = rs_info->lineWidth;
 
@@ -2149,9 +2149,9 @@ vk_dynamic_graphics_state_copy(struct vk_dynamic_graphics_state *dst,
    COPY_IF_SET(RS_PROVOKING_VERTEX, rs.provoking_vertex);
    COPY_IF_SET(RS_RASTERIZATION_STREAM, rs.rasterization_stream);
    COPY_IF_SET(RS_DEPTH_BIAS_ENABLE, rs.depth_bias.enable);
-   COPY_IF_SET(RS_DEPTH_BIAS_FACTORS, rs.depth_bias.constant);
+   COPY_IF_SET(RS_DEPTH_BIAS_FACTORS, rs.depth_bias.constant_factor);
    COPY_IF_SET(RS_DEPTH_BIAS_FACTORS, rs.depth_bias.clamp);
-   COPY_IF_SET(RS_DEPTH_BIAS_FACTORS, rs.depth_bias.slope);
+   COPY_IF_SET(RS_DEPTH_BIAS_FACTORS, rs.depth_bias.slope_factor);
    COPY_IF_SET(RS_DEPTH_BIAS_FACTORS, rs.depth_bias.representation);
    COPY_IF_SET(RS_DEPTH_BIAS_FACTORS, rs.depth_bias.exact);
    COPY_IF_SET(RS_LINE_WIDTH, rs.line.width);
@@ -3106,11 +3106,11 @@ vk_common_CmdSetDepthBias2EXT(
    struct vk_dynamic_graphics_state *dyn = &cmd->dynamic_graphics_state;
 
    SET_DYN_VALUE(dyn, RS_DEPTH_BIAS_FACTORS,
-                 rs.depth_bias.constant, pDepthBiasInfo->depthBiasConstantFactor);
+                 rs.depth_bias.constant_factor, pDepthBiasInfo->depthBiasConstantFactor);
    SET_DYN_VALUE(dyn, RS_DEPTH_BIAS_FACTORS,
                  rs.depth_bias.clamp, pDepthBiasInfo->depthBiasClamp);
    SET_DYN_VALUE(dyn, RS_DEPTH_BIAS_FACTORS,
-                 rs.depth_bias.slope, pDepthBiasInfo->depthBiasSlopeFactor);
+                 rs.depth_bias.slope_factor, pDepthBiasInfo->depthBiasSlopeFactor);
 
    /** From the Vulkan 1.3.254 spec:
     *

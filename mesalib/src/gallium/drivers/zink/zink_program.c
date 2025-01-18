@@ -1111,9 +1111,9 @@ gfx_program_create(struct zink_context *ctx,
    }
    if (stages[MESA_SHADER_TESS_EVAL] && !stages[MESA_SHADER_TESS_CTRL]) {
       util_queue_fence_wait(&stages[MESA_SHADER_TESS_EVAL]->precompile.fence);
-      prog->shaders[MESA_SHADER_TESS_EVAL]->non_fs.generated_tcs =
-      prog->shaders[MESA_SHADER_TESS_CTRL] =
-        zink_shader_tcs_create(screen, vertices_per_patch);
+      if (!prog->shaders[MESA_SHADER_TESS_EVAL]->non_fs.generated_tcs)
+         prog->shaders[MESA_SHADER_TESS_EVAL]->non_fs.generated_tcs = zink_shader_tcs_create(screen, vertices_per_patch);
+      prog->shaders[MESA_SHADER_TESS_CTRL] = prog->shaders[MESA_SHADER_TESS_EVAL]->non_fs.generated_tcs;
       prog->stages_present |= BITFIELD_BIT(MESA_SHADER_TESS_CTRL);
    }
    prog->stages_remaining = prog->stages_present;
@@ -2584,7 +2584,8 @@ zink_set_primitive_emulation_keys(struct zink_context *ctx)
                   prim,
                   ctx->gfx_pipeline_state.rast_prim,
                   lower_edge_flags,
-                  lower_line_stipple || lower_quad_prim);
+                  lower_line_stipple || lower_quad_prim,
+                  true);
             }
             zink_lower_system_values_to_inlined_uniforms(nir);
 

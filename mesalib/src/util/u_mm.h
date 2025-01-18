@@ -29,10 +29,12 @@
  * heaps, etc.
  */
 
-
 #ifndef _U_MM_H_
 #define _U_MM_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct mem_block {
    struct mem_block *next, *prev;
@@ -87,5 +89,9 @@ extern void u_mmDestroy(struct mem_block *mmInit);
  * For debugging purposes.
  */
 extern void u_mmDumpMemInfo(const struct mem_block *mmInit);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

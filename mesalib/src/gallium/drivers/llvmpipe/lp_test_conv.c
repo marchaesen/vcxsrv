@@ -341,57 +341,57 @@ test_one(unsigned verbose,
 
 
 const struct lp_type conv_types[] = {
-   /* float, fixed,  sign,  norm, width, len */
+   /* float, fixed,  sign,  norm, sz preserve, nan preserve, width, len */
 
    /* Float */
-   {   true, false,  true,  true,    32,   4 },
-   {   true, false,  true, false,    32,   4 },
-   {   true, false, false,  true,    32,   4 },
-   {   true, false, false, false,    32,   4 },
+   {   true, false,  true,  true, false,       false,        32,   4 },
+   {   true, false,  true, false, false,       false,        32,   4 },
+   {   true, false, false,  true, false,       false,        32,   4 },
+   {   true, false, false, false, false,       false,        32,   4 },
 
-   {   true, false,  true,  true,    32,   8 },
-   {   true, false,  true, false,    32,   8 },
-   {   true, false, false,  true,    32,   8 },
-   {   true, false, false, false,    32,   8 },
+   {   true, false,  true,  true, false,       false,        32,   8 },
+   {   true, false,  true, false, false,       false,        32,   8 },
+   {   true, false, false,  true, false,       false,        32,   8 },
+   {   true, false, false, false, false,       false,        32,   8 },
 
    /* Fixed */
-   {  false,  true,  true,  true,    32,   4 },
-   {  false,  true,  true, false,    32,   4 },
-   {  false,  true, false,  true,    32,   4 },
-   {  false,  true, false, false,    32,   4 },
+   {  false,  true,  true,  true, false,       false,        32,   4 },
+   {  false,  true,  true, false, false,       false,        32,   4 },
+   {  false,  true, false,  true, false,       false,        32,   4 },
+   {  false,  true, false, false, false,       false,        32,   4 },
 
-   {  false,  true,  true,  true,    32,   8 },
-   {  false,  true,  true, false,    32,   8 },
-   {  false,  true, false,  true,    32,   8 },
-   {  false,  true, false, false,    32,   8 },
+   {  false,  true,  true,  true, false,       false,        32,   8 },
+   {  false,  true,  true, false, false,       false,        32,   8 },
+   {  false,  true, false,  true, false,       false,        32,   8 },
+   {  false,  true, false, false, false,       false,        32,   8 },
 
    /* Integer */
-   {  false, false,  true,  true,    32,   4 },
-   {  false, false,  true, false,    32,   4 },
-   {  false, false, false,  true,    32,   4 },
-   {  false, false, false, false,    32,   4 },
+   {  false, false,  true,  true, false,       false,        32,   4 },
+   {  false, false,  true, false, false,       false,        32,   4 },
+   {  false, false, false,  true, false,       false,        32,   4 },
+   {  false, false, false, false, false,       false,        32,   4 },
 
-   {  false, false,  true,  true,    32,   8 },
-   {  false, false,  true, false,    32,   8 },
-   {  false, false, false,  true,    32,   8 },
-   {  false, false, false, false,    32,   8 },
+   {  false, false,  true,  true, false,       false,        32,   8 },
+   {  false, false,  true, false, false,       false,        32,   8 },
+   {  false, false, false,  true, false,       false,        32,   8 },
+   {  false, false, false, false, false,       false,        32,   8 },
 
-   {  false, false,  true,  true,    16,   8 },
-   {  false, false,  true, false,    16,   8 },
-   {  false, false, false,  true,    16,   8 },
-   {  false, false, false, false,    16,   8 },
+   {  false, false,  true,  true, false,       false,        16,   8 },
+   {  false, false,  true, false, false,       false,        16,   8 },
+   {  false, false, false,  true, false,       false,        16,   8 },
+   {  false, false, false, false, false,       false,        16,   8 },
 
-   {  false, false,  true,  true,     8,  16 },
-   {  false, false,  true, false,     8,  16 },
-   {  false, false, false,  true,     8,  16 },
-   {  false, false, false, false,     8,  16 },
+   {  false, false,  true,  true, false,       false,        8,  16 },
+   {  false, false,  true, false, false,       false,        8,  16 },
+   {  false, false, false,  true, false,       false,        8,  16 },
+   {  false, false, false, false, false,       false,        8,  16 },
 
-   {  false, false,  true,  true,     8,   4 },
-   {  false, false,  true, false,     8,   4 },
-   {  false, false, false,  true,     8,   4 },
-   {  false, false, false, false,     8,   4 },
+   {  false, false,  true,  true, false,       false,        8,   4 },
+   {  false, false,  true, false, false,       false,        8,   4 },
+   {  false, false, false,  true, false,       false,        8,   4 },
+   {  false, false, false, false, false,       false,        8,   4 },
 
-   {  false, false,  false,  true,    8,   8 },
+   {  false, false,  false,  true, false,       false,        8,   8 },
 };
 
 
@@ -452,11 +452,11 @@ test_some(unsigned verbose, FILE *fp,
 bool
 test_single(unsigned verbose, FILE *fp)
 {
-   /*    float, fixed,  sign,  norm, width, len */
+   /*    float, fixed,  sign,  norm, sz preserve, nan preserve, width, len */
    struct lp_type f32x4_type =
-      {   true, false,  true,  true,    32,   4 };
+      {   true, false,  true,  true, false,       false,        32,   4 };
    struct lp_type ub8x4_type =
-      {  false, false, false,  true,     8,  16 };
+      {  false, false, false,  true, false,       false,         8,  16 };
 
    bool success;
 

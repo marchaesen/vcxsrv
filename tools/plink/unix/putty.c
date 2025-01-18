@@ -18,6 +18,10 @@
 
 #include "gtkcompat.h"
 
+#ifndef NOT_X_WINDOWS
+#include <gdk/gdkx.h>
+#endif
+
 /*
  * Stubs to avoid pty.c needing to be linked in.
  */
@@ -62,8 +66,11 @@ const bool dup_check_launchable = true;
 
 char *platform_get_x_display(void) {
     const char *display;
+#ifndef NOT_X_WINDOWS
     /* Try to take account of --display and what have you. */
-    if (!(display = gdk_get_display()))
+    if (!GDK_IS_X11_DISPLAY(gdk_display_get_default()) ||
+        !(display = gdk_get_display()))
+#endif
         /* fall back to traditional method */
         display = getenv("DISPLAY");
     return dupstr(display);
@@ -80,6 +87,7 @@ const unsigned cmdline_tooltype =
 void setup(bool single)
 {
     sk_init();
+    enable_dit();
     settings_set_default_protocol(be_default_protocol);
     /* Find the appropriate default port. */
     {

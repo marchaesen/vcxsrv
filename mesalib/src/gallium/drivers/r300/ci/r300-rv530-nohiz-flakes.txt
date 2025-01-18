@@ -32,3 +32,6 @@ spec@!opengl 1.0@depth-clear-precision-check@depth16
 spec@oes_texture_float@oes_texture_float*
 
 spec@!opengl 1.1@gl-1.1-read-pixels-after-display-list
+
+spec@glsl-1.10@execution@built-in-functions@fs-op-ge-int-int-using-if
+spec@glsl-1.10@execution@built-in-functions@vs-op-assign-div-mat2-float

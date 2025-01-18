@@ -34,17 +34,10 @@
 #include "vpe10_mpc.h"
 #include "vpe10_opp.h"
 #include "vpe11_command.h"
-#include "vpe10_cm_common.h"
 #include "vpe10_background.h"
 #include "vpe10_plane_desc_writer.h"
 #include "vpe11_vpe_desc_writer.h"
 #include "vpe10_config_writer.h"
-#include "vpe10/inc/asic/bringup_vpe_6_1_0_offset.h"
-#include "vpe10/inc/asic/bringup_vpe_6_1_0_sh_mask.h"
-#include "vpe10/inc/asic/bringup_vpe_6_1_0_default.h"
-#include "vpe10/inc/asic/vpe_1_0_offset.h"
-#include "custom_fp16.h"
-#include "custom_float.h"
 #include "background.h"
 
 #define LUT_NUM_ENTRIES   (17 * 17 * 17)
@@ -202,6 +195,7 @@ enum vpe_status vpe11_construct_resource(struct vpe_priv *vpe_priv, struct resou
     res->get_bufs_req                      = vpe10_get_bufs_req;
     res->check_bg_color_support            = vpe10_check_bg_color_support;
     res->check_mirror_rotation_support     = vpe10_check_mirror_rotation_support;
+    res->update_blnd_gamma                 = vpe10_update_blnd_gamma;
 
     return VPE_STATUS_OK;
 err:
@@ -249,8 +243,8 @@ enum vpe_status vpe11_set_num_segments(struct vpe_priv *vpe_priv, struct stream_
     *max_seg_width = min(*max_seg_width, max_lb_size / scl_data->taps.v_taps);
 
     num_segs = vpe_get_num_segments(vpe_priv, src_rect, dst_rect, *max_seg_width);
-    if ((src_rect->width > (uint32_t)(vpe_priv->vpe_num_instance * VPE_MIN_VIEWPORT_SIZE)) &&
-        (num_segs % vpe_priv->vpe_num_instance != 0)) {
+    if ((src_rect->width >= (uint32_t)(vpe_priv->vpe_num_instance * VPE_MIN_VIEWPORT_SIZE)) &&
+        ((num_segs % vpe_priv->vpe_num_instance) != 0)) {
         num_segs += (vpe_priv->vpe_num_instance - (num_segs % vpe_priv->vpe_num_instance));
     }
 

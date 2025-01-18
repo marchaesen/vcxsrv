@@ -218,7 +218,9 @@ struct dxil_module {
     * should be allocated dynamically based on on the maximum
     * driver_location across all input vars.
     */
-   unsigned input_mappings[DXIL_SHADER_MAX_IO_ROWS * 4];
+   uint8_t input_mappings[DXIL_SHADER_MAX_IO_ROWS * 4];
+   uint8_t output_mappings[DXIL_SHADER_MAX_IO_ROWS * 4];
+   uint8_t patch_mappings[DXIL_SHADER_MAX_IO_ROWS * 4];
 
    struct dxil_psv_signature_element psv_inputs[DXIL_SHADER_MAX_IO_ROWS];
    struct dxil_psv_signature_element psv_outputs[DXIL_SHADER_MAX_IO_ROWS];

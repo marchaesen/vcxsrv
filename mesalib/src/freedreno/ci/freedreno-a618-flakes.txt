@@ -128,10 +128,6 @@ spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
 # Flaky since around 2021-03-22.  First appeared on an innocent mingw branch.
 spec@arb_depth_texture@fbo-clear-formats
 
-# Flaky since 2021-12-02, during piglit uprev with commit
-# 0ef03f824d1833a853d1a20b4be121089bb9246c
-spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
-
 # Flaky since around 2021-05-21, the day after a piglit uprev reshuffled us.
 # *** gpu fault: ttbr0=000000001c941000 iova=000000010066a000 dir=READ type=TRANSLATION source=TP|VFD (0,0,0,1)
 spec@arb_map_buffer_range@map_invalidate_buffer_bit offset=0
@@ -171,7 +167,6 @@ spec@!opengl 1.1@masked-clear
 spec@!opengl 1.1@texsubimage
 spec@!opengl 3.0@gl30basic
 spec@arb_texture_multisample@texelfetch fs sampler2dms 4 1x71-501x71
-spec@egl 1.4@eglcreatepbuffersurface and then glclear
 spec@egl_nok_texture_from_pixmap@basic
 spec@ext_framebuffer_blit@fbo-sys-blit
 spec@ext_framebuffer_blit@fbo-sys-sub-blit
@@ -306,3 +301,53 @@ KHR-GL46.shader_bitfield_operation.bitfieldExtract.ivec3_3
 KHR-GL46.texture_repeat_mode.rgb565_49x23_1_clamp_to_edge
 KHR-GL46.gpu_shader_fp64.builtin.smoothstep_against_scalar_dvec4
 KHR-GL46.tessellation_shader.tessellation_shader_point_mode.points_verification
+
+KHR-GL46.blend_equation_advanced.test_coherency.multiplySequence
+KHR-GL46.compute_shader.copy-image
+KHR-GL46.gpu_shader_fp64.builtin.distance_dvec4
+KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4
+KHR-GL46.gpu_shader_fp64.fp64.varyings
+KHR-GL46.pixelstoragemodes.compressedteximage3d.rgba_astc_8x5.16_15_8
+KHR-GL46.pixelstoragemodes.compressedteximage3d.rgba_astc_8x5.32_30_1
+KHR-GL46.pixelstoragemodes.compressedteximage3d.rgba_astc_8x5.32_5_4
+KHR-GL46.pixelstoragemodes.compressedteximage3d.rgba_astc_8x5.8_15_4
+KHR-GL46.pixelstoragemodes.teximage3d.rgba32i.16_16_0
+KHR-GL46.pixelstoragemodes.teximage3d.rgba32ui.16_16_4
+KHR-GL46.sample_variables.mask.rgba8i.samples_0.mask_0
+KHR-GL46.shaders.uniform_block.instance_array_basic_type.std140.bool
+KHR-GL46.texture_swizzle.functional_format_idx_11_target_idx_1
+KHR-GL46.texture_swizzle.functional_format_idx_4_target_idx_4
+KHR-GL46.texture_swizzle.functional_format_idx_7_target_idx_4
+KHR-GL46.texture_swizzle.smoke_access_idx_11_channel_idx_1
+KHR-GL46.texture_swizzle.smoke_access_idx_2_channel_idx_3
+KHR-GL46.texture_swizzle.smoke_access_idx_7_channel_idx_1
+
+# Appeared after decreasing the fraction
+dEQP-VK.binding_model.shader_access.primary_cmd_buf.bind.combined_image_sampler_mutable.tess_eval.descriptor_array.2d_base_mip
+dEQP-VK.binding_model.shader_access.primary_cmd_buf.bind.storage_image.geometry.multiple_discontiguous_descriptor_sets.descriptor_array.2d_base_mip
+dEQP-VK.binding_model.shader_access.primary_cmd_buf.bind2.with_template.sampler_mutable.tess_eval.multiple_discontiguous_descriptor_sets.multiple_arbitrary_descriptors.2d_base_slice
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.bind2.with_push.combined_image_sampler_immutable.geometry.descriptor_array.cube_array_base_slice
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.bind2.with_push_template.sampler_immutable.tess_ctrl.single_descriptor.cube_base_slice
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.bind2.sampler_mutable.geometry.multiple_descriptor_sets.multiple_arbitrary_descriptors.2d_base_slice
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.bind.with_template.storage_image.tess_ctrl.multiple_descriptor_sets.descriptor_array.cube_base_slice
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.bind.sampler_immutable.geometry.single_descriptor.2d_base_mip
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.bind.with_push_template.sampler_immutable.geometry.multiple_discontiguous_descriptors.1d_base_slice
+dEQP-VK.clipping.user_defined.clip_distance.vert_tess.5
+dEQP-VK.clipping.user_defined.clip_distance.vert_geom.5_fragmentshader_read
+dEQP-VK.synchronization.timeline_semaphore.device_host.write_ssbo_tess_control_read_ssbo_geometry.buffer_16384
+dEQP-VK.synchronization.cross_instance.suballocated.write_ssbo_tess_control_read_ubo_texel_compute.buffer_16384_binary_semaphore_dma_buf
+dEQP-VK.synchronization2.op.single_queue.binary_semaphore.write_ssbo_tess_control_read_ubo_geometry.buffer_16384_specialized_access_flag
+dEQP-VK.synchronization2.cross_instance.suballocated.write_fill_buffer_read_ssbo_tess_control.buffer_16384_binary_semaphore_fd
+dEQP-VK.tessellation.invariance.primitive_set.triangles_equal_spacing_cw
+gmem-dEQP-VK.binding_model.shader_access.primary_cmd_buf.bind.with_push_template.sampler_immutable.tess_ctrl.multiple_discontiguous_descriptors.2d_base_slice
+gmem-dEQP-VK.fragment_operations.scissor.multi_viewport.scissor_10
+gmem-dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
+
+# With linux kernel 6.13-rc4 uprev
+dEQP-VK.tessellation.invariance.outer_edge_division.triangles_fractional_odd_spacing
+dEQP-VK.tessellation.invariance.outer_triangle_set.quads_equal_spacing
+dEQP-VK.tessellation.invariance.primitive_set.quads_fractional_odd_spacing_cw_point_mode
+gmem-dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.rgba32ui_rgba_astc_5x4_khr.texture2d_array_to_texture3d
+gmem-dEQP-VK.binding_model.shader_access.primary_cmd_buf.bind2.with_template.uniform_buffer_dynamic.geometry.multiple_descriptor_sets.descriptor_array.offset_view_nonzero_dynamic_zero
+gmem-dEQP-VK.tessellation.invariance.outer_edge_index_independence.triangles_fractional_even_spacing_ccw
+KHR-GL46.shader_storage_buffer_object.advanced-switchBuffers

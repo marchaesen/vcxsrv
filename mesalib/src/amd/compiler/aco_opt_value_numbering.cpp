@@ -313,6 +313,7 @@ can_eliminate(aco_ptr<Instruction>& instr)
    if (instr->definitions.empty() || instr->opcode == aco_opcode::p_phi ||
        instr->opcode == aco_opcode::p_linear_phi ||
        instr->opcode == aco_opcode::p_pops_gfx9_add_exiting_wave_id ||
+       instr->opcode == aco_opcode::p_shader_cycles_hi_lo_hi ||
        instr->definitions[0].isNoCSE())
       return false;
 

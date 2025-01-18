@@ -198,6 +198,12 @@ void r300_translate_vertex_shader(struct r300_context *r300,
     compiler.Base.debug = &r300->context.debug;
     compiler.Base.is_r500 = r300->screen->caps.is_r500;
     compiler.Base.disable_optimizations = DBG_ON(r300, DBG_NO_OPT);
+    /* Only R500 has few IEEE math opcodes. */
+    if (r300->screen->options.ieeemath && r300->screen->caps.is_r500) {
+        compiler.Base.math_rules = RC_MATH_IEEE;
+    } else if (r300->screen->options.ffmath) {
+        compiler.Base.math_rules = RC_MATH_FF;
+    }
     compiler.Base.has_half_swizzles = false;
     compiler.Base.has_presub = false;
     compiler.Base.has_omod = false;

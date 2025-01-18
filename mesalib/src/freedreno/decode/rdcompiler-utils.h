@@ -362,7 +362,7 @@ emit_shader_iova(struct replay_context *ctx, struct cmdstream *cs, uint64_t id)
    pkt_qw(prev_cs, cs->iova);                                                  \
    pkt(prev_cs, ibcs_size);
 
-static void
+UNUSED static void
 gpu_print(struct replay_context *ctx, struct cmdstream *_cs, uint64_t iova,
           uint32_t dwords)
 {
@@ -425,9 +425,9 @@ gpu_print(struct replay_context *ctx, struct cmdstream *_cs, uint64_t iova,
  * read the state of the buffer at the end of the cmdstream, not
  * at the point of the call.
  */
-static void
+UNUSED static void
 gpu_read_into_file(struct replay_context *ctx, struct cmdstream *_cs,
-                    uint64_t iova, uint64_t size, bool clear, const char *name)
+                   uint64_t iova, uint64_t size, bool clear, const char *name)
 {
    struct wrbuf *wrbuf = (struct wrbuf *) calloc(1, sizeof(struct wrbuf));
    wrbuf->iova = iova;

@@ -1,0 +1,10 @@
+[package]
+name = "fc-fontations"
+version = "0.1.0"
+
+[dependencies]
+fc-fontations-bindgen = { path = "./fc-fontations-bindgen" }
+libc = "0.2"
+
+[lib]
+path = "fc-fontations/mod.rs"

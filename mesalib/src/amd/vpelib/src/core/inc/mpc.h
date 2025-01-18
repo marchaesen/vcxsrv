@@ -107,7 +107,6 @@ struct mpc_denorm_clamp {
 };
 
 struct mpc_funcs {
-    // TODO finalize it
     void (*program_mpcc_mux)(struct mpc *mpc, enum mpc_mpccid mpcc_idx, enum mpc_mux_topsel topsel,
         enum mpc_mux_botsel botsel, enum mpc_mux_outmux outmux, enum mpc_mux_oppid oppid);
 

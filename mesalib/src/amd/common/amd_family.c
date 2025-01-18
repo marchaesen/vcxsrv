@@ -16,100 +16,56 @@
 const char *ac_get_family_name(enum radeon_family family)
 {
    switch (family) {
-   case CHIP_TAHITI:
-      return "TAHITI";
-   case CHIP_PITCAIRN:
-      return "PITCAIRN";
-   case CHIP_VERDE:
-      return "VERDE";
-   case CHIP_OLAND:
-      return "OLAND";
-   case CHIP_HAINAN:
-      return "HAINAN";
-   case CHIP_BONAIRE:
-      return "BONAIRE";
-   case CHIP_KABINI:
-      return "KABINI";
-   case CHIP_KAVERI:
-      return "KAVERI";
-   case CHIP_HAWAII:
-      return "HAWAII";
-   case CHIP_TONGA:
-      return "TONGA";
-   case CHIP_ICELAND:
-      return "ICELAND";
-   case CHIP_CARRIZO:
-      return "CARRIZO";
-   case CHIP_FIJI:
-      return "FIJI";
-   case CHIP_STONEY:
-      return "STONEY";
-   case CHIP_POLARIS10:
-      return "POLARIS10";
-   case CHIP_POLARIS11:
-      return "POLARIS11";
-   case CHIP_POLARIS12:
-      return "POLARIS12";
-   case CHIP_VEGAM:
-      return "VEGAM";
-   case CHIP_VEGA10:
-      return "VEGA10";
-   case CHIP_RAVEN:
-      return "RAVEN";
-   case CHIP_VEGA12:
-      return "VEGA12";
-   case CHIP_VEGA20:
-      return "VEGA20";
-   case CHIP_RAVEN2:
-      return "RAVEN2";
-   case CHIP_RENOIR:
-      return "RENOIR";
-   case CHIP_MI100:
-      return "MI100";
-   case CHIP_MI200:
-      return "MI200";
-   case CHIP_GFX940:
-      return "GFX940";
-   case CHIP_NAVI10:
-      return "NAVI10";
-   case CHIP_NAVI12:
-      return "NAVI12";
-   case CHIP_NAVI14:
-      return "NAVI14";
-   case CHIP_NAVI21:
-      return "NAVI21";
-   case CHIP_NAVI22:
-      return "NAVI22";
-   case CHIP_NAVI23:
-      return "NAVI23";
-   case CHIP_VANGOGH:
-      return "VANGOGH";
-   case CHIP_NAVI24:
-      return "NAVI24";
-   case CHIP_REMBRANDT:
-      return "REMBRANDT";
-   case CHIP_RAPHAEL_MENDOCINO:
-      return "RAPHAEL_MENDOCINO";
-   case CHIP_NAVI31:
-      return "NAVI31";
-   case CHIP_NAVI32:
-      return "NAVI32";
-   case CHIP_NAVI33:
-      return "NAVI33";
-   case CHIP_GFX1103_R1:
-      return "GFX1103_R1";
-   case CHIP_GFX1103_R2:
-      return "GFX1103_R2";
-   case CHIP_GFX1150:
-      return "GFX1150";
-   case CHIP_GFX1151:
-      return "GFX1151";
-   case CHIP_GFX1152:
-      return "GFX1152";
-   case CHIP_GFX1200:
-      return "GFX1200";
-   case CHIP_GFX1201:
-      return "GFX1201";
+#define CASE(name) case CHIP_##name: return #name
+   CASE(TAHITI);
+   CASE(PITCAIRN);
+   CASE(VERDE);
+   CASE(OLAND);
+   CASE(HAINAN);
+   CASE(BONAIRE);
+   CASE(KABINI);
+   CASE(KAVERI);
+   CASE(HAWAII);
+   CASE(TONGA);
+   CASE(ICELAND);
+   CASE(CARRIZO);
+   CASE(FIJI);
+   CASE(STONEY);
+   CASE(POLARIS10);
+   CASE(POLARIS11);
+   CASE(POLARIS12);
+   CASE(VEGAM);
+   CASE(VEGA10);
+   CASE(RAVEN);
+   CASE(VEGA12);
+   CASE(VEGA20);
+   CASE(RAVEN2);
+   CASE(RENOIR);
+   CASE(MI100);
+   CASE(MI200);
+   CASE(GFX940);
+   CASE(NAVI10);
+   CASE(NAVI12);
+   CASE(NAVI14);
+   CASE(NAVI21);
+   CASE(NAVI22);
+   CASE(NAVI23);
+   CASE(VANGOGH);
+   CASE(NAVI24);
+   CASE(REMBRANDT);
+   CASE(RAPHAEL_MENDOCINO);
+   CASE(NAVI31);
+   CASE(NAVI32);
+   CASE(NAVI33);
+   CASE(PHOENIX);
+   CASE(PHOENIX2);
+   CASE(GFX1150);
+   CASE(GFX1151);
+   CASE(GFX1152);
+   CASE(GFX1153);
+   CASE(GFX1200);
+   CASE(GFX1201);
+#undef CASE
    default:
       unreachable("Unknown GPU family");
    }
@@ -135,28 +91,6 @@ enum amd_gfx_level ac_get_gfx_level(enum radeon_family family)
       return GFX7;
 
    return GFX6;
-}
-
-unsigned ac_get_family_id(enum radeon_family family)
-{
-   if (family >= CHIP_GFX1200)
-      return FAMILY_GFX12;
-   if (family >= CHIP_GFX1150)
-      return FAMILY_GFX1150;
-   if (family >= CHIP_NAVI31)
-      return FAMILY_NV3;
-   if (family >= CHIP_NAVI21)
-      return FAMILY_NV;
-   if (family >= CHIP_NAVI10)
-      return FAMILY_NV;
-   if (family >= CHIP_VEGA10)
-      return FAMILY_AI;
-   if (family >= CHIP_TONGA)
-      return FAMILY_VI;
-   if (family >= CHIP_BONAIRE)
-      return FAMILY_CI;
-
-   return FAMILY_SI;
 }
 
 const char *ac_get_llvm_processor_name(enum radeon_family family)
@@ -243,8 +177,8 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
       return "gfx1101";
    case CHIP_NAVI33:
       return "gfx1102";
-   case CHIP_GFX1103_R1:
-   case CHIP_GFX1103_R2:
+   case CHIP_PHOENIX:
+   case CHIP_PHOENIX2:
       return "gfx1103";
    case CHIP_GFX1150:
       return "gfx1150";
@@ -252,6 +186,8 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
       return "gfx1151";
    case CHIP_GFX1152:
       return "gfx1152";
+   case CHIP_GFX1153:
+      return "gfx1153";
    case CHIP_GFX1200:
       return "gfx1200";
    case CHIP_GFX1201:

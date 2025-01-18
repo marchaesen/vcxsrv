@@ -24,6 +24,7 @@
 
 #include "tu_device.h"
 #include "tu_knl.h"
+#include "tu_queue.h"
 #include "tu_rmv.h"
 
 
@@ -52,6 +53,8 @@ tu_bo_init_new_explicit_iova(struct tu_device *dev,
                              (*out_bo)->iova, (*out_bo)->size,
                              VK_DEVICE_ADDRESS_BINDING_TYPE_BIND_EXT);
 
+   (*out_bo)->dump = flags & TU_BO_ALLOC_ALLOW_DUMP;
+
    return VK_SUCCESS;
 }
 
@@ -72,7 +75,7 @@ tu_bo_init_dmabuf(struct tu_device *dev,
     */
    if (dev->physical_device->has_cached_non_coherent_memory)
       (*bo)->cached_non_coherent = true;
-   
+
    return VK_SUCCESS;
 }
 
@@ -207,6 +210,8 @@ if (!(DETECT_ARCH_AARCH64 || DETECT_ARCH_X86 || DETECT_ARCH_X86_64))
 void tu_bo_allow_dump(struct tu_device *dev, struct tu_bo *bo)
 {
    dev->instance->knl->bo_allow_dump(dev, bo);
+
+   p_atomic_set(&bo->dump, true);
 }
 
 void
@@ -254,9 +259,11 @@ tu_device_get_suspend_count(struct tu_device *dev,
 }
 
 VkResult
-tu_device_wait_u_trace(struct tu_device *dev, struct tu_u_trace_syncobj *syncobj)
+tu_queue_wait_fence(struct tu_queue *queue, uint32_t fence,
+                    uint64_t timeout_ns)
 {
-   return dev->instance->knl->device_wait_u_trace(dev, syncobj);
+   return queue->device->instance->knl->queue_wait_fence(queue, fence,
+                                                         timeout_ns);
 }
 
 VkResult
@@ -280,11 +287,37 @@ tu_drm_submitqueue_close(struct tu_device *dev, uint32_t queue_id)
    dev->instance->knl->submitqueue_close(dev, queue_id);
 }
 
-VkResult
-tu_queue_submit(struct vk_queue *vk_queue, struct vk_queue_submit *submit)
+void *
+tu_submit_create(struct tu_device *dev)
 {
-   struct tu_queue *queue = container_of(vk_queue, struct tu_queue, vk);
-   return queue->device->instance->knl->queue_submit(queue, submit);
+   return dev->instance->knl->submit_create(dev);
+}
+
+void
+tu_submit_finish(struct tu_device *dev, void *submit)
+{
+   return dev->instance->knl->submit_finish(dev, submit);
+}
+
+void
+tu_submit_add_entries(struct tu_device *dev, void *submit,
+                      struct tu_cs_entry *entries,
+                      unsigned num_entries)
+{
+   return dev->instance->knl->submit_add_entries(dev, submit, entries,
+                                                 num_entries);
+}
+
+VkResult
+tu_queue_submit(struct tu_queue *queue, void *submit,
+                struct vk_sync_wait *waits, uint32_t wait_count,
+                struct vk_sync_signal *signals, uint32_t signal_count,
+                struct tu_u_trace_submission_data *u_trace_submission_data)
+{
+   return queue->device->instance->knl->queue_submit(queue, submit,
+                                                     waits, wait_count,
+                                                     signals, signal_count,
+                                                     u_trace_submission_data);
 }
 
 /**

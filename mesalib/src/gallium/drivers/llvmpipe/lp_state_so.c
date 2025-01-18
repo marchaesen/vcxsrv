@@ -73,7 +73,8 @@ static void
 llvmpipe_set_so_targets(struct pipe_context *pipe,
                         unsigned num_targets,
                         struct pipe_stream_output_target **targets,
-                        const unsigned *offsets)
+                        const unsigned *offsets,
+                        enum mesa_prim output_prim)
 {
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    unsigned i;

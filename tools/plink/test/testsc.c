@@ -82,6 +82,7 @@
 #include "mpint.h"
 #include "crypto/ecc.h"
 #include "crypto/ntru.h"
+#include "crypto/mlkem.h"
 
 static NORETURN PRINTF_LIKE(1, 2) void fatal_error(const char *p, ...)
 {
@@ -431,6 +432,9 @@ VOLATILE_WRAPPED_DEFN(static, size_t, looplimit, (size_t x))
     X(argon2)                                   \
     X(primegen_probabilistic)                   \
     X(ntru)                                     \
+    X(mlkem512)                                 \
+    X(mlkem768)                                 \
+    X(mlkem1024)                                \
     X(rfc6979_setup)                            \
     X(rfc6979_attempt)                          \
     /* end of list */
@@ -1745,6 +1749,60 @@ static void test_ntru(void)
     strbuf_free(buffer);
 }
 
+static void test_mlkem(const mlkem_params *params)
+{
+    char rho[32], sigma[32], z[32], m[32], ek[1568], dk[3168], c[1568];
+    char k[32], k2[32];
+
+    /* rho is a random but public value, so side channels are allowed
+     * to reveal it (and undoubtedly will). So we don't vary it
+     * between runs. */
+    random_read(rho, 32);
+
+    for (size_t i = 0; i < looplimit(32); i++) {
+        random_advance_counter();
+        random_read(sigma, 32);
+        random_read(z, 32);
+        random_read(m, 32);
+
+        log_start();
+
+        /* Every other iteration, tamper with the ciphertext so that
+         * implicit rejection occurs, because we need to test that
+         * that too is done in constant time. */
+        unsigned tampering = i & 1;
+
+        buffer_sink ek_sink[1]; buffer_sink_init(ek_sink, ek, sizeof(ek));
+        buffer_sink dk_sink[1]; buffer_sink_init(dk_sink, dk, sizeof(dk));
+        buffer_sink c_sink[1]; buffer_sink_init(c_sink, c, sizeof(c));
+        buffer_sink k_sink[1]; buffer_sink_init(k_sink, k, sizeof(k));
+        mlkem_keygen_rho_sigma(
+            BinarySink_UPCAST(ek_sink), BinarySink_UPCAST(dk_sink),
+            params, rho, sigma, z);
+        ptrlen ek_pl = make_ptrlen(ek, ek_sink->out - ek);
+        ptrlen dk_pl = make_ptrlen(dk, dk_sink->out - dk);
+        mlkem_encaps_internal(
+            BinarySink_UPCAST(c_sink), BinarySink_UPCAST(k_sink),
+            params, ek_pl, m);
+        dk[0] ^= tampering;
+        ptrlen c_pl = make_ptrlen(c, c_sink->out - c);
+        buffer_sink_init(k_sink, k2, sizeof(k2));
+        bool success = mlkem_decaps(
+            BinarySink_UPCAST(k_sink), params, dk_pl, c_pl);
+
+        log_end();
+
+        assert(success);
+        unsigned eq_expected = tampering ^ 1;
+        unsigned eq = smemeq(k, k2, 32);
+        assert(eq == eq_expected);
+    }
+}
+
+static void test_mlkem512(void) { test_mlkem(&mlkem_params_512); }
+static void test_mlkem768(void) { test_mlkem(&mlkem_params_768); }
+static void test_mlkem1024(void) { test_mlkem(&mlkem_params_1024); }
+
 static void test_rfc6979_setup(void)
 {
     mp_int *q = mp_new(512);
@@ -1820,6 +1878,11 @@ int main(int argc, char **argv)
     uint8_t tests_to_run[lenof(tests)];
     bool keep_outfiles = false;
     bool test_names_given = false;
+
+    /* One day, perhaps, if I ever get this test to work on Arm, we
+     * might actually _check_ DIT is enabled, and check we're sticking
+     * to the precise list of DIT-affected instructions */
+    enable_dit();
 
     memset(tests_to_run, 1, sizeof(tests_to_run));
     random_hash = ssh_hash_new(&ssh_sha256);

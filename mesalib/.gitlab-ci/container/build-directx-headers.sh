@@ -7,9 +7,13 @@
 
 set -uex
 
+uncollapsed_section_start directx-headers "Building directx-headers"
+
 git clone https://github.com/microsoft/DirectX-Headers -b v1.614.1 --depth 1
 pushd DirectX-Headers
 meson setup build --backend=ninja --buildtype=release -Dbuild-test=false ${EXTRA_MESON_ARGS:-}
 meson install -C build
 popd
 rm -rf DirectX-Headers
+
+section_end directx-headers

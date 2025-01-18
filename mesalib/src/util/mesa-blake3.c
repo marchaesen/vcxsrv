@@ -53,6 +53,13 @@ blake3_to_uint32(const blake3_hash blake3,
       out[i / 4] |= (uint32_t)blake3[i] << ((i % 4) * 8);
 }
 
+static void
+blake3_from_uint32(blake3_hash blake3, uint32_t in[BLAKE3_OUT_LEN32])
+{
+   for (unsigned i = 0; i < BLAKE3_OUT_LEN; i++)
+      blake3[i] = (in[i / 4] >> ((i % 4) * 8)) & 0xff;
+}
+
 void
 _mesa_blake3_print(FILE *f, const blake3_hash blake3)
 {
@@ -61,6 +68,24 @@ _mesa_blake3_print(FILE *f, const blake3_hash blake3)
    for (unsigned i = 0; i < BLAKE3_OUT_LEN32; i++) {
       fprintf(f, i ? ", 0x%08" PRIx32 : "0x%08" PRIx32, u32[i]);
    }
+}
+
+bool
+_mesa_blake3_from_printed_string(blake3_hash blake3, const char *printed)
+{
+   unsigned expected_len = BLAKE3_OUT_LEN32 * 12 - 2;
+   if (strlen(printed) != expected_len)
+      return false;
+
+   uint32_t u32[BLAKE3_OUT_LEN32];
+   for (unsigned i = 0; i < BLAKE3_OUT_LEN32; i++) {
+      int ret = sscanf(printed, i == BLAKE3_OUT_LEN32 - 1 ? "0x%08" PRIx32 : "0x%08" PRIx32 ", ", &u32[i]);
+      if (ret != 1)
+         return false;
+      printed += 12;
+   }
+   blake3_from_uint32(blake3, u32);
+   return true;
 }
 
 bool

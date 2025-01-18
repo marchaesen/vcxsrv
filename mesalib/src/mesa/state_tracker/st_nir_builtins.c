@@ -64,14 +64,21 @@ st_nir_finish_builtin_nir(struct st_context *st, nir_shader *nir)
    }
 
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
+   nir_recompute_io_bases(nir, nir_var_shader_in | nir_var_shader_out);
 
    st_nir_assign_vs_in_locations(nir);
    st_nir_assign_varying_locations(st, nir);
 
    st_nir_lower_samplers(screen, nir, NULL, NULL);
    st_nir_lower_uniforms(st, nir);
-   if (!screen->get_param(screen, PIPE_CAP_NIR_IMAGES_AS_DEREF))
+   if (!screen->caps.nir_images_as_deref)
       NIR_PASS(_, nir, gl_nir_lower_images, false);
+
+   if (nir->info.io_lowered &&
+       !(nir->options->io_options & nir_io_has_intrinsics)) {
+      NIR_PASS(_, nir, st_nir_unlower_io_to_vars);
+      gl_nir_opts(nir);
+   }
 
    if (screen->finalize_nir) {
       char *msg = screen->finalize_nir(screen, nir);
@@ -81,7 +88,7 @@ st_nir_finish_builtin_nir(struct st_context *st, nir_shader *nir)
    }
 }
 
-struct pipe_shader_state *
+void *
 st_nir_finish_builtin_shader(struct st_context *st,
                              nir_shader *nir)
 {
@@ -96,44 +103,41 @@ st_nir_finish_builtin_shader(struct st_context *st,
 }
 
 /**
- * Make a simple shader that copies inputs to corresponding outputs.
+ * Make a simple vertex shader that copies inputs to corresponding outputs.
  */
-struct pipe_shader_state *
-st_nir_make_passthrough_shader(struct st_context *st,
-                               const char *shader_name,
-                               gl_shader_stage stage,
-                               unsigned num_vars,
-                               const unsigned *input_locations,
-                               const gl_varying_slot *output_locations,
-                               unsigned *interpolation_modes,
-                               unsigned sysval_mask)
+void *
+st_nir_make_passthrough_vs(struct st_context *st,
+                           const char *shader_name,
+                           unsigned num_vars,
+                           const unsigned *input_locations,
+                           const gl_varying_slot *output_locations,
+                           unsigned sysval_mask)
 {
-   const struct glsl_type *vec4 = glsl_vec4_type();
    const nir_shader_compiler_options *options =
-      st_get_nir_compiler_options(st, stage);
+      st_get_nir_compiler_options(st, MESA_SHADER_VERTEX);
 
-   nir_builder b = nir_builder_init_simple_shader(stage, options,
+   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_VERTEX, options,
                                                   "%s", shader_name);
+   b.shader->info.io_lowered = true;
 
    for (unsigned i = 0; i < num_vars; i++) {
-      nir_variable *in;
+      nir_def *in;
+
       if (sysval_mask & (1 << i)) {
-         in = nir_create_variable_with_location(b.shader, nir_var_system_value,
-                                                input_locations[i],
-                                  glsl_int_type());
+         nir_variable *var =
+            nir_create_variable_with_location(b.shader, nir_var_system_value,
+                                              input_locations[i],
+                                              glsl_int_type());
+         in = nir_load_var(&b, var);
       } else {
-         in = nir_create_variable_with_location(b.shader, nir_var_shader_in,
-                                                input_locations[i], vec4);
+         in = nir_load_input(&b, 4, 32, nir_imm_int(&b, 0),
+                             .io_semantics.location = input_locations[i]);
       }
-      if (interpolation_modes)
-         in->data.interpolation = interpolation_modes[i];
 
-      nir_variable *out =
-         nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                           output_locations[i], in->type);
-      out->data.interpolation = in->data.interpolation;
-
-      nir_copy_var(&b, out, in);
+      nir_store_output(&b, in, nir_imm_int(&b, 0),
+                       .src_type = output_locations[i] == VARYING_SLOT_LAYER ?
+                                      nir_type_int32 : nir_type_float32,
+                       .io_semantics.location = output_locations[i]);
    }
 
    return st_nir_finish_builtin_shader(st, b.shader);
@@ -143,7 +147,7 @@ st_nir_make_passthrough_shader(struct st_context *st,
  * Make a simple shader that reads color value from a constant buffer
  * and uses it to clear all color buffers.
  */
-struct pipe_shader_state *
+void *
 st_nir_make_clearcolor_shader(struct st_context *st)
 {
    const nir_shader_compiler_options *options =
@@ -154,17 +158,15 @@ st_nir_make_clearcolor_shader(struct st_context *st)
    b.shader->info.num_ubos = 1;
    b.shader->num_outputs = 1;
    b.shader->num_uniforms = 1;
+   b.shader->info.io_lowered = true;
 
    /* Read clear color from constant buffer */
    nir_def *clear_color = nir_load_uniform(&b, 4, 32, nir_imm_int(&b,0),
                                                .range = 16,
                                                .dest_type = nir_type_float32);
 
-   nir_variable *color_out = nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                                               FRAG_RESULT_COLOR, glsl_vec4_type());
-
-   /* Write out the color */
-   nir_store_var(&b, color_out, clear_color, 0xf);
+   nir_store_output(&b, clear_color, nir_imm_int(&b, 0),
+                    .io_semantics.location = FRAG_RESULT_COLOR);
 
    return st_nir_finish_builtin_shader(st, b.shader);
 }

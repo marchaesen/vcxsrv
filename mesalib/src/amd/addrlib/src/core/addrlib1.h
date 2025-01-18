@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -69,6 +69,11 @@ public:
 
     static Lib* GetLib(
         ADDR_HANDLE hLib);
+
+    virtual UINT_32 GetInterfaceVersion() const
+    {
+        return 1;
+    }
 
     /// Returns tileIndex support
     BOOL_32 UseTileIndex(INT_32 index) const

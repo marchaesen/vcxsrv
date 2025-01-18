@@ -16,18 +16,17 @@ endif
 gfxstream_guest_args = []
 
 # Our internal guest build
-gfxstream_guest_args += '-DLINUX_GUEST_BUILD'
+if host_machine.system() == 'windows'
+  gfxstream_guest_args += '-DWINDOWS_GUEST_BUILD'
+else
+  gfxstream_guest_args += '-DLINUX_GUEST_BUILD'
+endif
 # Include the gfxstream private VkStructureType definitions
 gfxstream_guest_args += '-DVK_GFXSTREAM_STRUCTURE_TYPE_EXT'
 
 #===============#
 # Dependencies  #
 #===============#
-
-dl_dep = cc.find_library('dl', required: false)
-drm_dep = dependency('libdrm')
-thread_dep = dependency('threads')
-aemu_base_dep = dependency('aemu_base')
 
 with_kumquat = false
 virtgpu_kumquat_dep = dependency('virtgpu_kumquat_ffi', required: false)
@@ -39,16 +38,8 @@ endif
 # Includes      #
 #===============#
 
-inc_include_mesa = include_directories('../../../include')
 inc_vulkan_headers = include_directories('../../../include/vulkan')
 inc_vulkan_enc = include_directories('vulkan_enc')
-
-#================#
-# Mesa compat    #
-#================#
-# dep_libdrm = drm_dep
-# dep_dl = dl_dep
-# dep_thread = thread_dep
 
 #================#
 # Subdirectories #

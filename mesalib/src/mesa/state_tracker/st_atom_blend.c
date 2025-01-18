@@ -184,7 +184,7 @@ blend_per_rt(const struct st_context *st, unsigned num_cb)
 
    if (ctx->DrawBuffer->_BlendForceAlphaToOne) {
       /* Overriding requires independent blend functions (not just enables),
-       * requiring drivers to expose PIPE_CAP_INDEP_BLEND_FUNC.
+       * requiring drivers to expose pipe_caps.indep_blend_func.
        */
       assert(st->has_indep_blend_func);
 

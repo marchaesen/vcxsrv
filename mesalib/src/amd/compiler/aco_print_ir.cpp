@@ -848,6 +848,8 @@ print_block_kind(uint16_t kind, FILE* output)
       fprintf(output, "merge, ");
    if (kind & block_kind_invert)
       fprintf(output, "invert, ");
+   if (kind & block_kind_discard_early_exit)
+      fprintf(output, "discard_early_exit, ");
    if (kind & block_kind_uses_discard)
       fprintf(output, "discard, ");
    if (kind & block_kind_resume)
@@ -898,9 +900,30 @@ print_stage(Stage stage, FILE* output)
 }
 
 void
+print_debug_info(const Program* program, const Instruction* instr, FILE* output)
+{
+   fprintf(output, "// ");
+
+   assert(instr->operands[0].isConstant());
+   const auto& info = program->debug_info[instr->operands[0].constantValue()];
+   switch (info.type) {
+   case ac_shader_debug_info_src_loc:
+      if (info.src_loc.spirv_offset)
+         fprintf(output, "0x%x ", info.src_loc.spirv_offset);
+      fprintf(output, "%s:%u:%u", info.src_loc.file, info.src_loc.line, info.src_loc.column);
+      break;
+   }
+
+   fprintf(output, "\n");
+}
+
+void
 aco_print_block(enum amd_gfx_level gfx_level, const Block* block, FILE* output, unsigned flags,
                 const Program* program)
 {
+   if (block->instructions.empty() && block->linear_preds.empty())
+      return;
+
    fprintf(output, "BB%d\n", block->index);
    fprintf(output, "/* logical preds: ");
    for (unsigned pred : block->logical_preds)
@@ -924,6 +947,10 @@ aco_print_block(enum amd_gfx_level gfx_level, const Block* block, FILE* output, 
 
    for (auto const& instr : block->instructions) {
       fprintf(output, "\t");
+      if (instr->opcode == aco_opcode::p_debug_info) {
+         print_debug_info(program, instr.get(), output);
+         continue;
+      }
       if (flags & print_live_vars) {
          RegisterDemand demand = instr->register_demand;
          fprintf(output, "(%3u vgpr, %3u sgpr)   ", demand.vgpr, demand.sgpr);

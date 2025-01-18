@@ -30,6 +30,8 @@
 
 #include "pvr_winsys.h"
 #include "util/macros.h"
+#include "util/rwlock.h"
+#include "util/sparse_array.h"
 
 struct pvr_drm_winsys_heap {
    struct pvr_winsys_heap base;
@@ -40,6 +42,30 @@ struct pvr_drm_winsys {
 
    /* Packed bvnc */
    uint64_t bvnc;
+
+   /* Protects imported BOs creation/freeing, which includes the bo_map member
+    * below.
+    */
+   struct u_rwlock dmabuf_bo_lock;
+
+
+   /* This array holds all our 'struct pvr_drm_winsys_bo' allocations. We use
+    * this so we can add a refcount to our BOs and check if a particular BO was
+    * already allocated in this device using its GEM handle. This is necessary
+    * to properly manage BO imports, because the kernel doesn't refcount the
+    * underlying BO memory.
+    *
+    * Specifically, when self-importing (i.e. importing a BO into the same
+    * device that created it), the kernel will give us the same BO handle for
+    * both BOs and we must only free it once when both references are
+    * freed. Otherwise, if we are not self-importing, we get two different BO
+    * handles, and we want to free each one individually.
+    *
+    * The refcount is also useful for being able to maintain BOs across
+    * VK object lifetimes, such as pipelines suballocating out of BOs
+    * allocated on the device.
+    */
+   struct util_sparse_array bo_map;
 
    /* Required heaps */
    struct pvr_drm_winsys_heap general_heap;

@@ -74,7 +74,7 @@ etna_blit_save_state(struct etna_context *ctx, bool render_cond)
             ctx->cond_query, ctx->cond_cond, ctx->cond_mode);
 
    if (DBG_ENABLED(ETNA_DBG_DEQP))
-      util_blitter_save_so_targets(ctx->blitter, 0, NULL);
+      util_blitter_save_so_targets(ctx->blitter, 0, NULL, 0);
 }
 
 uint64_t

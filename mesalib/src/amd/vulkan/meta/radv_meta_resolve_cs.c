@@ -166,203 +166,84 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
 }
 
 static VkResult
-create_layout(struct radv_device *device)
+create_layout(struct radv_device *device, VkPipelineLayout *layout_out)
 {
-   VkResult result = VK_SUCCESS;
+   const char *key_data = "radv-resolve-cs-layout";
 
-   if (!device->meta_state.resolve_compute.ds_layout) {
-      const VkDescriptorSetLayoutBinding bindings[] = {
-         {
-            .binding = 0,
-            .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-         },
-         {
-            .binding = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-            .descriptorCount = 1,
-            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-         },
-      };
-
-      result =
-         radv_meta_create_descriptor_set_layout(device, 2, bindings, &device->meta_state.resolve_compute.ds_layout);
-      if (result != VK_SUCCESS)
-         return result;
-   }
-
-   if (!device->meta_state.resolve_compute.p_layout) {
-      const VkPushConstantRange pc_range = {
+   const VkDescriptorSetLayoutBinding bindings[] = {
+      {
+         .binding = 0,
+         .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+         .descriptorCount = 1,
          .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-         .size = 16,
-      };
+      },
+      {
+         .binding = 1,
+         .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+         .descriptorCount = 1,
+         .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+      },
+   };
 
-      result = radv_meta_create_pipeline_layout(device, &device->meta_state.resolve_compute.ds_layout, 1, &pc_range,
-                                                &device->meta_state.resolve_compute.p_layout);
-   }
+   const VkDescriptorSetLayoutCreateInfo desc_info = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+      .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT,
+      .bindingCount = 2,
+      .pBindings = bindings,
+   };
 
-   return result;
+   const VkPushConstantRange pc_range = {
+      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+      .size = 16,
+   };
+
+   return vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, &pc_range, key_data,
+                                      strlen(key_data), layout_out);
 }
 
 static VkResult
-create_color_resolve_pipeline(struct radv_device *device, int samples, bool is_integer, bool is_srgb,
-                              VkPipeline *pipeline)
+get_color_resolve_pipeline(struct radv_device *device, struct radv_image_view *src_iview, VkPipeline *pipeline_out,
+                           VkPipelineLayout *layout_out)
 {
+   const bool is_integer = vk_format_is_int(src_iview->vk.format);
+   const bool is_srgb = vk_format_is_srgb(src_iview->vk.format);
+   uint32_t samples = src_iview->image->vk.samples;
+   char key_data[64];
    VkResult result;
 
-   result = create_layout(device);
+   result = create_layout(device, layout_out);
    if (result != VK_SUCCESS)
       return result;
+
+   snprintf(key_data, sizeof(key_data), "radv-color-resolve-cs--%d-%d-%d", is_integer, is_srgb, samples);
+
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, key_data, strlen(key_data));
+   if (pipeline_from_cache != VK_NULL_HANDLE) {
+      *pipeline_out = pipeline_from_cache;
+      return VK_SUCCESS;
+   }
 
    nir_shader *cs = build_resolve_compute_shader(device, is_integer, is_srgb, samples);
 
-   result = radv_meta_create_compute_pipeline(device, cs, device->meta_state.resolve_compute.p_layout, pipeline);
+   const VkPipelineShaderStageCreateInfo stage_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = vk_shader_module_handle_from_nir(cs),
+      .pName = "main",
+      .pSpecializationInfo = NULL,
+   };
+
+   const VkComputePipelineCreateInfo pipeline_info = {
+      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      .stage = stage_info,
+      .flags = 0,
+      .layout = *layout_out,
+   };
+
+   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, key_data,
+                                            strlen(key_data), pipeline_out);
 
    ralloc_free(cs);
-   return result;
-}
-
-static VkResult
-create_depth_stencil_resolve_pipeline(struct radv_device *device, int samples, int index,
-                                      VkResolveModeFlagBits resolve_mode, VkPipeline *pipeline)
-{
-   VkResult result;
-
-   result = create_layout(device);
-   if (result != VK_SUCCESS)
-      return result;
-
-   nir_shader *cs = build_depth_stencil_resolve_compute_shader(device, samples, index, resolve_mode);
-
-   result = radv_meta_create_compute_pipeline(device, cs, device->meta_state.resolve_compute.p_layout, pipeline);
-
-   ralloc_free(cs);
-   return result;
-}
-
-VkResult
-radv_device_init_meta_resolve_compute_state(struct radv_device *device, bool on_demand)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   VkResult res;
-
-   if (on_demand)
-      return VK_SUCCESS;
-
-   for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; ++i) {
-      uint32_t samples = 1 << i;
-
-      res = create_color_resolve_pipeline(device, samples, false, false, &state->resolve_compute.rc[i].pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-
-      res = create_color_resolve_pipeline(device, samples, true, false, &state->resolve_compute.rc[i].i_pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-
-      res = create_color_resolve_pipeline(device, samples, false, true, &state->resolve_compute.rc[i].srgb_pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-
-      res = create_depth_stencil_resolve_pipeline(device, samples, DEPTH_RESOLVE, VK_RESOLVE_MODE_AVERAGE_BIT,
-                                                  &state->resolve_compute.depth[i].average_pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-
-      res = create_depth_stencil_resolve_pipeline(device, samples, DEPTH_RESOLVE, VK_RESOLVE_MODE_MAX_BIT,
-                                                  &state->resolve_compute.depth[i].max_pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-
-      res = create_depth_stencil_resolve_pipeline(device, samples, DEPTH_RESOLVE, VK_RESOLVE_MODE_MIN_BIT,
-                                                  &state->resolve_compute.depth[i].min_pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-
-      res = create_depth_stencil_resolve_pipeline(device, samples, STENCIL_RESOLVE, VK_RESOLVE_MODE_MAX_BIT,
-                                                  &state->resolve_compute.stencil[i].max_pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-
-      res = create_depth_stencil_resolve_pipeline(device, samples, STENCIL_RESOLVE, VK_RESOLVE_MODE_MIN_BIT,
-                                                  &state->resolve_compute.stencil[i].min_pipeline);
-      if (res != VK_SUCCESS)
-         return res;
-   }
-
-   res = create_depth_stencil_resolve_pipeline(device, 0, DEPTH_RESOLVE, VK_RESOLVE_MODE_SAMPLE_ZERO_BIT,
-                                               &state->resolve_compute.depth_zero_pipeline);
-   if (res != VK_SUCCESS)
-      return res;
-
-   return create_depth_stencil_resolve_pipeline(device, 0, STENCIL_RESOLVE, VK_RESOLVE_MODE_SAMPLE_ZERO_BIT,
-                                                &state->resolve_compute.stencil_zero_pipeline);
-}
-
-void
-radv_device_finish_meta_resolve_compute_state(struct radv_device *device)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   for (uint32_t i = 0; i < MAX_SAMPLES_LOG2; ++i) {
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.rc[i].pipeline, &state->alloc);
-
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.rc[i].i_pipeline, &state->alloc);
-
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.rc[i].srgb_pipeline, &state->alloc);
-
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.depth[i].average_pipeline,
-                           &state->alloc);
-
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.depth[i].max_pipeline, &state->alloc);
-
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.depth[i].min_pipeline, &state->alloc);
-
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.stencil[i].max_pipeline,
-                           &state->alloc);
-
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.stencil[i].min_pipeline,
-                           &state->alloc);
-   }
-
-   radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.depth_zero_pipeline, &state->alloc);
-
-   radv_DestroyPipeline(radv_device_to_handle(device), state->resolve_compute.stencil_zero_pipeline, &state->alloc);
-
-   device->vk.dispatch_table.DestroyDescriptorSetLayout(radv_device_to_handle(device), state->resolve_compute.ds_layout,
-                                                        &state->alloc);
-   radv_DestroyPipelineLayout(radv_device_to_handle(device), state->resolve_compute.p_layout, &state->alloc);
-}
-
-static VkResult
-get_color_resolve_pipeline(struct radv_device *device, struct radv_image_view *src_iview, VkPipeline *pipeline_out)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   uint32_t samples = src_iview->image->vk.samples;
-   uint32_t samples_log2 = ffs(samples) - 1;
-   VkResult result = VK_SUCCESS;
-   VkPipeline *pipeline;
-
-   mtx_lock(&state->mtx);
-
-   if (vk_format_is_int(src_iview->vk.format))
-      pipeline = &state->resolve_compute.rc[samples_log2].i_pipeline;
-   else if (vk_format_is_srgb(src_iview->vk.format))
-      pipeline = &state->resolve_compute.rc[samples_log2].srgb_pipeline;
-   else
-      pipeline = &state->resolve_compute.rc[samples_log2].pipeline;
-
-   if (!*pipeline) {
-      result = create_color_resolve_pipeline(device, samples, vk_format_is_int(src_iview->vk.format),
-                                             vk_format_is_srgb(src_iview->vk.format), pipeline);
-      if (result != VK_SUCCESS)
-         goto fail;
-   }
-
-   *pipeline_out = *pipeline;
-
-fail:
-   mtx_unlock(&state->mtx);
    return result;
 }
 
@@ -371,17 +252,17 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivi
              const VkOffset2D *src_offset, const VkOffset2D *dst_offset, const VkExtent2D *resolve_extent)
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   VkPipelineLayout layout;
    VkPipeline pipeline;
    VkResult result;
 
-   result = get_color_resolve_pipeline(device, src_iview, &pipeline);
+   result = get_color_resolve_pipeline(device, src_iview, &pipeline, &layout);
    if (result != VK_SUCCESS) {
       vk_command_buffer_set_error(&cmd_buffer->vk, result);
       return;
    }
 
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                 device->meta_state.resolve_compute.p_layout, 0, 2,
+   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 2,
                                  (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                            .dstBinding = 0,
                                                            .dstArrayElement = 0,
@@ -414,61 +295,54 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivi
       dst_offset->x,
       dst_offset->y,
    };
-   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.resolve_compute.p_layout,
-                              VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, 16,
+                              push_constants);
    radv_unaligned_dispatch(cmd_buffer, resolve_extent->width, resolve_extent->height, 1);
 }
 
 static VkResult
 get_depth_stencil_resolve_pipeline(struct radv_device *device, int samples, VkImageAspectFlags aspects,
-                                   VkResolveModeFlagBits resolve_mode, VkPipeline *pipeline_out)
+                                   VkResolveModeFlagBits resolve_mode, VkPipeline *pipeline_out,
+                                   VkPipelineLayout *layout_out)
 
 {
    const int index = aspects == VK_IMAGE_ASPECT_DEPTH_BIT ? DEPTH_RESOLVE : STENCIL_RESOLVE;
-   const uint32_t samples_log2 = ffs(samples) - 1;
-   struct radv_meta_state *state = &device->meta_state;
-   VkResult result = VK_SUCCESS;
-   VkPipeline *pipeline;
+   char key_data[64];
+   VkResult result;
 
-   mtx_lock(&state->mtx);
+   result = create_layout(device, layout_out);
+   if (result != VK_SUCCESS)
+      return result;
 
-   switch (resolve_mode) {
-   case VK_RESOLVE_MODE_SAMPLE_ZERO_BIT:
-      if (aspects == VK_IMAGE_ASPECT_DEPTH_BIT)
-         pipeline = &device->meta_state.resolve_compute.depth_zero_pipeline;
-      else
-         pipeline = &device->meta_state.resolve_compute.stencil_zero_pipeline;
-      break;
-   case VK_RESOLVE_MODE_AVERAGE_BIT:
-      assert(aspects == VK_IMAGE_ASPECT_DEPTH_BIT);
-      pipeline = &device->meta_state.resolve_compute.depth[samples_log2].average_pipeline;
-      break;
-   case VK_RESOLVE_MODE_MIN_BIT:
-      if (aspects == VK_IMAGE_ASPECT_DEPTH_BIT)
-         pipeline = &device->meta_state.resolve_compute.depth[samples_log2].min_pipeline;
-      else
-         pipeline = &device->meta_state.resolve_compute.stencil[samples_log2].min_pipeline;
-      break;
-   case VK_RESOLVE_MODE_MAX_BIT:
-      if (aspects == VK_IMAGE_ASPECT_DEPTH_BIT)
-         pipeline = &device->meta_state.resolve_compute.depth[samples_log2].max_pipeline;
-      else
-         pipeline = &device->meta_state.resolve_compute.stencil[samples_log2].max_pipeline;
-      break;
-   default:
-      unreachable("invalid resolve mode");
+   snprintf(key_data, sizeof(key_data), "radv-ds-resolve-cs-%d-%d-%d", index, resolve_mode, samples);
+
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, key_data, strlen(key_data));
+   if (pipeline_from_cache != VK_NULL_HANDLE) {
+      *pipeline_out = pipeline_from_cache;
+      return VK_SUCCESS;
    }
 
-   if (!*pipeline) {
-      result = create_depth_stencil_resolve_pipeline(device, samples, index, resolve_mode, pipeline);
-      if (result != VK_SUCCESS)
-         goto fail;
-   }
+   nir_shader *cs = build_depth_stencil_resolve_compute_shader(device, samples, index, resolve_mode);
 
-   *pipeline_out = *pipeline;
+   const VkPipelineShaderStageCreateInfo stage_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = vk_shader_module_handle_from_nir(cs),
+      .pName = "main",
+      .pSpecializationInfo = NULL,
+   };
 
-fail:
-   mtx_unlock(&state->mtx);
+   const VkComputePipelineCreateInfo pipeline_info = {
+      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      .stage = stage_info,
+      .flags = 0,
+      .layout = *layout_out,
+   };
+
+   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, key_data,
+                                            strlen(key_data), pipeline_out);
+
+   ralloc_free(cs);
    return result;
 }
 
@@ -480,17 +354,17 @@ emit_depth_stencil_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    const uint32_t samples = src_iview->image->vk.samples;
+   VkPipelineLayout layout;
    VkPipeline pipeline;
    VkResult result;
 
-   result = get_depth_stencil_resolve_pipeline(device, samples, aspects, resolve_mode, &pipeline);
+   result = get_depth_stencil_resolve_pipeline(device, samples, aspects, resolve_mode, &pipeline, &layout);
    if (result != VK_SUCCESS) {
       vk_command_buffer_set_error(&cmd_buffer->vk, result);
       return;
    }
 
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                 device->meta_state.resolve_compute.p_layout, 0, 2,
+   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 2,
                                  (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                            .dstBinding = 0,
                                                            .dstArrayElement = 0,
@@ -519,8 +393,8 @@ emit_depth_stencil_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image
 
    uint32_t push_constants[2] = {resolve_offset->x, resolve_offset->y};
 
-   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.resolve_compute.p_layout,
-                              VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push_constants), push_constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                              sizeof(push_constants), push_constants);
 
    radv_unaligned_dispatch(cmd_buffer, resolve_extent->width, resolve_extent->height, resolve_extent->depth);
 }
@@ -640,9 +514,9 @@ radv_cmd_buffer_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, struct 
    radv_meta_resolve_compute_image(cmd_buffer, src_iview->image, src_iview->vk.format, src_layout, dst_iview->image,
                                    dst_iview->vk.format, dst_layout, region);
 
-   cmd_buffer->state.flush_bits |=
-      RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
-      radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, NULL);
+   cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
+                                   radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                         VK_ACCESS_2_SHADER_WRITE_BIT, NULL, NULL);
 }
 
 void
@@ -663,8 +537,8 @@ radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkIm
     */
    cmd_buffer->state.flush_bits |=
       radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, NULL) |
-      radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT, NULL);
+                            VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, NULL, NULL) |
+      radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_SHADER_READ_BIT, NULL, NULL);
 
    struct radv_image_view *src_iview = render->ds_att.iview;
    VkImageLayout src_layout =
@@ -727,9 +601,9 @@ radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkIm
                               &(VkExtent3D){resolve_area.extent.width, resolve_area.extent.height, layer_count},
                               aspects, resolve_mode);
 
-   cmd_buffer->state.flush_bits |=
-      RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
-      radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, NULL);
+   cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
+                                   radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                                         VK_ACCESS_2_SHADER_WRITE_BIT, NULL, NULL);
 
    uint32_t queue_mask = radv_image_queue_family_mask(dst_image, cmd_buffer->qf, cmd_buffer->qf);
 
@@ -743,7 +617,7 @@ radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkIm
 
       uint32_t htile_value = radv_get_htile_initial_value(device, dst_image);
 
-      cmd_buffer->state.flush_bits |= radv_clear_htile(cmd_buffer, dst_image, &range, htile_value);
+      cmd_buffer->state.flush_bits |= radv_clear_htile(cmd_buffer, dst_image, &range, htile_value, false);
    }
 
    radv_image_view_finish(&tsrc_iview);

@@ -13,7 +13,6 @@ clover_opencl_cpp_args = [
   '-DLIBCLC_INCLUDEDIR="@0@/"'.format(dep_clc.get_variable(pkgconfig : 'includedir')),
   '-DLIBCLC_LIBEXECDIR="@0@/"'.format(dep_clc.get_variable(pkgconfig : 'libexecdir'))
 ]
-clover_spirv_cpp_args = []
 clover_incs = [inc_include, inc_src, inc_gallium, inc_gallium_aux]
 
 # the CL header files declare attributes on the CL types. Compilers warn if
@@ -25,10 +24,6 @@ endif
 
 if with_opencl_icd
   clover_cpp_args += '-DHAVE_CLOVER_ICD'
-endif
-
-if with_clover_spirv
-  clover_spirv_cpp_args += '-DHAVE_CLOVER_SPIRV'
 endif
 
 libclllvm = static_library(
@@ -48,7 +43,6 @@ libclllvm = static_library(
   cpp_args : [
     clover_cpp_args,
     clover_opencl_cpp_args,
-    clover_spirv_cpp_args,
     '-DCLANG_RESOURCE_DIR="@0@"'.format(join_paths(
       dep_llvm.get_variable(cmake : 'LLVM_LIBRARY_DIR', configtool: 'libdir'), 'clang',
       dep_llvm.version(), 'include',
@@ -57,32 +51,6 @@ libclllvm = static_library(
   gnu_symbol_visibility : 'hidden',
   dependencies : [dep_llvm, dep_elf, dep_llvmspirvlib, idep_mesautil],
 )
-
-idep_opencl_spirv = null_dep
-if with_clover_spirv
-  libclspirv = static_library(
-    'clspirv',
-    files('spirv/invocation.cpp', 'spirv/invocation.hpp'),
-    include_directories : clover_incs,
-    cpp_args : [clover_opencl_cpp_args, clover_spirv_cpp_args],
-    gnu_symbol_visibility : 'hidden',
-    dependencies : [dep_spirv_tools, idep_mesautil],
-  )
-
-  libclnir = static_library(
-    'clnir',
-    files('nir/invocation.cpp', 'nir/invocation.hpp'),
-    include_directories : [clover_incs, inc_mesa],
-    dependencies : [idep_nir, idep_vtn, idep_mesaclc],
-    cpp_args : [clover_opencl_cpp_args, clover_spirv_cpp_args],
-    gnu_symbol_visibility : 'hidden',
-  )
-
-  idep_opencl_spirv = declare_dependency(
-    dependencies : [idep_nir],
-    link_with : [libclspirv, libclnir],
-  )
-endif
 
 clover_files = files(
   'api/context.cpp',
@@ -150,10 +118,9 @@ libclover = static_library(
   include_directories : clover_incs,
   cpp_args : [
     clover_opencl_cpp_args,
-    clover_spirv_cpp_args,
     clover_cpp_args,
   ],
   gnu_symbol_visibility : 'hidden',
   link_with : [libclllvm],
-  dependencies : [idep_mesautil, idep_nir, idep_opencl_spirv],
+  dependencies : [idep_mesautil, idep_nir],
 )

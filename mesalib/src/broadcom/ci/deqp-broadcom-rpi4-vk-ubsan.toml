@@ -1,0 +1,6 @@
+[[deqp]]
+deqp = "/deqp-vk/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp-vk/mustpass/vk-main.txt"]
+tests_per_group = 5000
+renderer_check = "V3D 4.2.14"
+prefix = "ubsan-"

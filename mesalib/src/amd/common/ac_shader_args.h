@@ -161,7 +161,10 @@ struct ac_shader_args {
    struct ac_arg pos_fixed_pt;
 
    /* CS */
-   struct ac_arg local_invocation_ids;
+   struct ac_arg local_invocation_id_x;
+   struct ac_arg local_invocation_id_y;
+   struct ac_arg local_invocation_id_z;
+   struct ac_arg local_invocation_ids_packed;
    struct ac_arg num_work_groups;
    /* GFX6-11 only. GFX12+ uses read only SGPRs {TTMP9[0:31], TTMP7[0:15], TTMP7[16:31]}. */
    struct ac_arg workgroup_ids[3];

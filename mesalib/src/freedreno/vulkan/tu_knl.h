@@ -57,7 +57,8 @@ struct tu_bo {
    const char *name; /* pointer to device->bo_sizes's entry's name */
    int32_t refcnt;
 
-   uint32_t bo_list_idx;
+   uint32_t submit_bo_list_idx;
+   uint32_t dump_bo_list_idx;
 
 #ifdef TU_HAS_KGSL
    /* We have to store fd returned by ion_fd_data
@@ -70,6 +71,8 @@ struct tu_bo {
    bool implicit_sync : 1;
    bool never_unmap : 1;
    bool cached_non_coherent : 1;
+
+   bool dump;
 
    /* Pointer to the vk_object_base associated with the BO
     * for the purposes of VK_EXT_device_address_binding_report
@@ -101,10 +104,17 @@ struct tu_knl {
                            void *metadata, uint32_t metadata_size);
    int (*bo_get_metadata)(struct tu_device *dev, struct tu_bo *bo,
                           void *metadata, uint32_t metadata_size);
-   VkResult (*device_wait_u_trace)(struct tu_device *dev,
-                                   struct tu_u_trace_syncobj *syncobj);
-   VkResult (*queue_submit)(struct tu_queue *queue,
-                            struct vk_queue_submit *submit);
+   void *(*submit_create)(struct tu_device *device);
+   void (*submit_finish)(struct tu_device *device, void *_submit);
+   void (*submit_add_entries)(struct tu_device *device, void *_submit,
+                              struct tu_cs_entry *entries,
+                              unsigned num_entries);
+   VkResult (*queue_submit)(struct tu_queue *queue, void *_submit,
+                            struct vk_sync_wait *waits, uint32_t wait_count,
+                            struct vk_sync_signal *signals, uint32_t signal_count,
+                            struct tu_u_trace_submission_data *u_trace_submission_data);
+   VkResult (*queue_wait_fence)(struct tu_queue *queue, uint32_t fence,
+                                uint64_t timeout_ns);
 
    const struct vk_device_entrypoint_table *device_entrypoints;
 };
@@ -237,7 +247,25 @@ tu_drm_submitqueue_new(struct tu_device *dev,
 void
 tu_drm_submitqueue_close(struct tu_device *dev, uint32_t queue_id);
 
+void *
+tu_submit_create(struct tu_device *dev);
+
+void
+tu_submit_finish(struct tu_device *dev, void *submit);
+
+void
+tu_submit_add_entries(struct tu_device *dev, void *submit,
+                      struct tu_cs_entry *entries,
+                      unsigned num_entries);
+
 VkResult
-tu_queue_submit(struct vk_queue *vk_queue, struct vk_queue_submit *submit);
+tu_queue_submit(struct tu_queue *queue, void *submit,
+                struct vk_sync_wait *waits, uint32_t wait_count,
+                struct vk_sync_signal *signals, uint32_t signal_count,
+                struct tu_u_trace_submission_data *u_trace_submission_data);
+
+VkResult
+tu_queue_wait_fence(struct tu_queue *queue, uint32_t fence,
+                    uint64_t timeout_ns);
 
 #endif /* TU_DRM_H */

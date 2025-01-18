@@ -17,7 +17,7 @@ copy_to_image_use_gfx_pipeline(struct panvk_device *dev,
       return true;
 
    /* Writes to AFBC images must go through the graphics pipeline. */
-   if (drm_is_afbc(dst_img->pimage.layout.modifier))
+   if (drm_is_afbc(dst_img->vk.drm_format_mod))
       return true;
 
    return false;
@@ -62,15 +62,13 @@ panvk_per_arch(cmd_meta_compute_end)(
       push_set0->desc_count = save_ctx->push_set0.desc_count;
    }
 
-   if (memcmp(cmdbuf->state.push_constants.data, save_ctx->push_constants.data,
-              sizeof(cmdbuf->state.push_constants.data))) {
-      cmdbuf->state.push_constants = save_ctx->push_constants;
-      cmdbuf->state.compute.push_uniforms = 0;
-      cmdbuf->state.gfx.push_uniforms = 0;
-   }
+   cmdbuf->state.push_constants = save_ctx->push_constants;
+   compute_state_set_dirty(cmdbuf, PUSH_UNIFORMS);
 
    cmdbuf->state.compute.shader = save_ctx->cs.shader;
    cmdbuf->state.compute.cs.desc = save_ctx->cs.desc;
+   compute_state_set_dirty(cmdbuf, CS);
+   compute_state_set_dirty(cmdbuf, DESC_STATE);
 }
 
 void
@@ -101,6 +99,12 @@ panvk_per_arch(cmd_meta_gfx_start)(
    save_ctx->dyn_state.all = cmdbuf->vk.dynamic_graphics_state;
    save_ctx->dyn_state.vi = cmdbuf->state.gfx.dynamic.vi;
    save_ctx->dyn_state.sl = cmdbuf->state.gfx.dynamic.sl;
+   save_ctx->occlusion_query = cmdbuf->state.gfx.occlusion_query;
+
+   /* Ensure occlusion queries are disabled */
+   cmdbuf->state.gfx.occlusion_query.ptr = 0;
+   cmdbuf->state.gfx.occlusion_query.mode = MALI_OCCLUSION_MODE_DISABLED;
+   gfx_state_set_dirty(cmdbuf, OQ);
 }
 
 void
@@ -119,12 +123,9 @@ panvk_per_arch(cmd_meta_gfx_end)(
       push_set0->desc_count = save_ctx->push_set0.desc_count;
    }
 
-   if (memcmp(cmdbuf->state.push_constants.data, save_ctx->push_constants.data,
-              sizeof(cmdbuf->state.push_constants.data))) {
-      cmdbuf->state.push_constants = save_ctx->push_constants;
-      cmdbuf->state.compute.push_uniforms = 0;
-      cmdbuf->state.gfx.push_uniforms = 0;
-   }
+   cmdbuf->state.push_constants = save_ctx->push_constants;
+   gfx_state_set_dirty(cmdbuf, VS_PUSH_UNIFORMS);
+   gfx_state_set_dirty(cmdbuf, FS_PUSH_UNIFORMS);
 
    cmdbuf->state.gfx.fs.shader = save_ctx->fs.shader;
    cmdbuf->state.gfx.fs.desc = save_ctx->fs.desc;
@@ -136,14 +137,24 @@ panvk_per_arch(cmd_meta_gfx_end)(
    cmdbuf->state.gfx.vs.attribs = 0;
    cmdbuf->state.gfx.vs.attrib_bufs = 0;
    cmdbuf->state.gfx.fs.rsd = 0;
+#else
+   cmdbuf->state.gfx.fs.desc.res_table = 0;
+   cmdbuf->state.gfx.vs.desc.res_table = 0;
 #endif
 
    cmdbuf->vk.dynamic_graphics_state = save_ctx->dyn_state.all;
    cmdbuf->state.gfx.dynamic.vi = save_ctx->dyn_state.vi;
    cmdbuf->state.gfx.dynamic.sl = save_ctx->dyn_state.sl;
+   cmdbuf->state.gfx.occlusion_query = save_ctx->occlusion_query;
    memcpy(cmdbuf->vk.dynamic_graphics_state.dirty,
           cmdbuf->vk.dynamic_graphics_state.set,
           sizeof(cmdbuf->vk.dynamic_graphics_state.set));
+   gfx_state_set_dirty(cmdbuf, VS);
+   gfx_state_set_dirty(cmdbuf, FS);
+   gfx_state_set_dirty(cmdbuf, VB);
+   gfx_state_set_dirty(cmdbuf, OQ);
+   gfx_state_set_dirty(cmdbuf, DESC_STATE);
+   gfx_state_set_dirty(cmdbuf, RENDER_STATE);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -184,32 +195,21 @@ panvk_per_arch(CmdClearAttachments)(VkCommandBuffer commandBuffer,
    struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
    struct panvk_cmd_meta_graphics_save_ctx save = {0};
    struct vk_meta_rendering_info render = {
-      .view_mask = 0,
+      .view_mask = cmdbuf->state.gfx.render.view_mask,
       .samples = fbinfo->nr_samples,
       .color_attachment_count = fbinfo->rt_count,
+      .depth_attachment_format = cmdbuf->state.gfx.render.z_attachment.fmt,
+      .stencil_attachment_format = cmdbuf->state.gfx.render.s_attachment.fmt,
    };
+   /* Multiview is not supported pre-v10 */
+   assert(cmdbuf->state.gfx.render.view_mask == 0 || PAN_ARCH >= 10);
 
-   for (uint32_t i = 0; i < fbinfo->rt_count; i++) {
-      if (fbinfo->rts[i].view) {
-         render.color_attachment_formats[i] =
-            cmdbuf->state.gfx.render.color_attachments.fmts[i];
-         render.color_attachment_write_masks[i] =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-      }
-   }
-
-   if (fbinfo->zs.view.zs) {
-      render.depth_attachment_format =
-         vk_format_from_pipe_format(fbinfo->zs.view.zs->format);
-
-      if (vk_format_has_stencil(render.depth_attachment_format))
-         render.stencil_attachment_format = render.depth_attachment_format;
-   }
-
-   if (fbinfo->zs.view.s) {
-      render.stencil_attachment_format =
-         vk_format_from_pipe_format(fbinfo->zs.view.s->format);
+   for (uint32_t i = 0; i < render.color_attachment_count; i++) {
+       render.color_attachment_formats[i] =
+          cmdbuf->state.gfx.render.color_attachments.fmts[i];
+       render.color_attachment_write_masks[i] =
+          VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
    }
 
    panvk_per_arch(cmd_meta_gfx_start)(cmdbuf, &save);

@@ -479,10 +479,10 @@ read_src(read_ctx *ctx, nir_src *src)
 union packed_def {
    uint8_t u8;
    struct {
-      uint8_t _pad : 1;
       uint8_t num_components : 3;
       uint8_t bit_size : 3;
       uint8_t divergent : 1;
+      uint8_t loop_invariant : 1;
    };
 };
 
@@ -525,8 +525,8 @@ union packed_instr {
       unsigned no_signed_wrap : 1;
       unsigned no_unsigned_wrap : 1;
       unsigned padding : 1;
-      /* Reg: writemask; SSA: swizzles for 2 srcs */
-      unsigned writemask_or_two_swizzles : 4;
+      /* Swizzles for 2 srcs */
+      unsigned two_swizzles : 4;
       unsigned op : 9;
       unsigned packed_src_ssa_16bit : 1;
       /* Scalarized ALUs always have the same header. */
@@ -608,6 +608,7 @@ write_def(write_ctx *ctx, const nir_def *def, union packed_instr header,
       encode_num_components_in_3bits(def->num_components);
    pdef.bit_size = encode_bit_size_3bits(def->bit_size);
    pdef.divergent = def->divergent;
+   pdef.loop_invariant = def->loop_invariant;
    header.any.def = pdef.u8;
 
    /* Check if the current ALU instruction has the same header as the previous
@@ -670,6 +671,7 @@ read_def(read_ctx *ctx, nir_def *def, nir_instr *instr,
       num_components = decode_num_components_in_3bits(pdef.num_components);
    nir_def_init(instr, def, num_components, bit_size);
    def->divergent = pdef.divergent;
+   def->loop_invariant = pdef.loop_invariant;
    read_add_object(ctx, def);
 }
 
@@ -690,7 +692,7 @@ is_alu_src_ssa_16bit(write_ctx *ctx, const nir_alu_instr *alu)
 
       for (unsigned chan = 0; chan < src_components; chan++) {
          /* The swizzles for src0.x and src1.x are stored
-          * in writemask_or_two_swizzles for SSA ALUs.
+          * in two_swizzles for SSA ALUs.
           */
          if (i < 2 && chan == 0 && alu->src[i].swizzle[chan] < 4)
             continue;
@@ -722,9 +724,9 @@ write_alu(write_ctx *ctx, const nir_alu_instr *alu)
 
    if (header.alu.packed_src_ssa_16bit) {
       /* For packed srcs of SSA ALUs, this field stores the swizzles. */
-      header.alu.writemask_or_two_swizzles = alu->src[0].swizzle[0];
+      header.alu.two_swizzles = alu->src[0].swizzle[0];
       if (num_srcs > 1)
-         header.alu.writemask_or_two_swizzles |= alu->src[1].swizzle[0] << 2;
+         header.alu.two_swizzles |= alu->src[1].swizzle[0] << 2;
    }
 
    write_def(ctx, &alu->def, header, alu->instr.type);
@@ -823,9 +825,9 @@ read_alu(read_ctx *ctx, union packed_instr header)
    }
 
    if (header.alu.packed_src_ssa_16bit) {
-      alu->src[0].swizzle[0] = header.alu.writemask_or_two_swizzles & 0x3;
+      alu->src[0].swizzle[0] = header.alu.two_swizzles & 0x3;
       if (num_srcs > 1)
-         alu->src[1].swizzle[0] = header.alu.writemask_or_two_swizzles >> 2;
+         alu->src[1].swizzle[0] = header.alu.two_swizzles >> 2;
    }
 
    return alu;
@@ -1254,6 +1256,7 @@ read_load_const(read_ctx *ctx, union packed_instr header)
       nir_load_const_instr_create(ctx->nir, header.load_const.last_component + 1,
                                   decode_bit_size_3bits(header.load_const.bit_size));
    lc->def.divergent = false;
+   lc->def.loop_invariant = true;
 
    switch (header.load_const.packing) {
    case load_const_scalar_hi_19bits:
@@ -1348,6 +1351,7 @@ read_ssa_undef(read_ctx *ctx, union packed_instr header)
                              decode_bit_size_3bits(header.undef.bit_size));
 
    undef->def.divergent = false;
+   undef->def.loop_invariant = true;
 
    read_add_object(ctx, &undef->def);
    return undef;
@@ -1824,7 +1828,8 @@ static void
 write_loop(write_ctx *ctx, nir_loop *loop)
 {
    blob_write_uint8(ctx->blob, loop->control);
-   blob_write_uint8(ctx->blob, loop->divergent);
+   blob_write_uint8(ctx->blob, loop->divergent_continue);
+   blob_write_uint8(ctx->blob, loop->divergent_break);
    bool has_continue_construct = nir_loop_has_continue_construct(loop);
    blob_write_uint8(ctx->blob, has_continue_construct);
 
@@ -1842,7 +1847,8 @@ read_loop(read_ctx *ctx, struct exec_list *cf_list)
    nir_cf_node_insert_end(cf_list, &loop->cf_node);
 
    loop->control = blob_read_uint8(ctx->blob);
-   loop->divergent = blob_read_uint8(ctx->blob);
+   loop->divergent_continue = blob_read_uint8(ctx->blob);
+   loop->divergent_break = blob_read_uint8(ctx->blob);
    bool has_continue_construct = blob_read_uint8(ctx->blob);
 
    read_cf_list(ctx, &loop->body);
@@ -1965,9 +1971,17 @@ write_function(write_ctx *ctx, const nir_function *fxn)
       flags |= 0x40;
    if (fxn->is_tmp_globals_wrapper)
       flags |= 0x80;
+   if (fxn->workgroup_size[0] || fxn->workgroup_size[1] || fxn->workgroup_size[2])
+      flags |= 0x100;
    blob_write_uint32(ctx->blob, flags);
    if (fxn->name)
       blob_write_string(ctx->blob, fxn->name);
+
+   if (flags & 0x100) {
+      blob_write_uint32(ctx->blob, fxn->workgroup_size[0]);
+      blob_write_uint32(ctx->blob, fxn->workgroup_size[1]);
+      blob_write_uint32(ctx->blob, fxn->workgroup_size[2]);
+   }
 
    blob_write_uint32(ctx->blob, fxn->subroutine_index);
    blob_write_uint32(ctx->blob, fxn->num_subroutine_types);
@@ -1982,7 +1996,15 @@ write_function(write_ctx *ctx, const nir_function *fxn)
       uint32_t val =
          ((uint32_t)fxn->params[i].num_components) |
          ((uint32_t)fxn->params[i].bit_size) << 8;
+
+      bool has_name = fxn->params[i].name && !ctx->strip;
+      if (has_name)
+         val |= 0x10000;
+
       blob_write_uint32(ctx->blob, val);
+      if (has_name)
+         blob_write_string(ctx->blob, fxn->params[i].name);
+
       encode_type_to_blob(ctx->blob, fxn->params[i].type);
       blob_write_uint32(ctx->blob, encode_deref_modes(fxn->params[i].mode));
    }
@@ -2004,6 +2026,12 @@ read_function(read_ctx *ctx)
 
    nir_function *fxn = nir_function_create(ctx->nir, name);
 
+   if (flags & 0x100) {
+      fxn->workgroup_size[0] = blob_read_uint32(ctx->blob);
+      fxn->workgroup_size[1] = blob_read_uint32(ctx->blob);
+      fxn->workgroup_size[2] = blob_read_uint32(ctx->blob);
+   }
+
    fxn->subroutine_index = blob_read_uint32(ctx->blob);
    fxn->num_subroutine_types = blob_read_uint32(ctx->blob);
    for (unsigned i = 0; i < fxn->num_subroutine_types; i++) {
@@ -2013,9 +2041,13 @@ read_function(read_ctx *ctx)
    read_add_object(ctx, fxn);
 
    fxn->num_params = blob_read_uint32(ctx->blob);
-   fxn->params = ralloc_array(fxn, nir_parameter, fxn->num_params);
+   fxn->params = rzalloc_array(fxn, nir_parameter, fxn->num_params);
    for (unsigned i = 0; i < fxn->num_params; i++) {
       uint32_t val = blob_read_uint32(ctx->blob);
+      bool has_name = (val & 0x10000);
+      if (has_name)
+         fxn->params[i].name = blob_read_string(ctx->blob);
+
       fxn->params[i].num_components = val & 0xff;
       fxn->params[i].bit_size = (val >> 8) & 0xff;
       fxn->params[i].type = decode_type_from_blob(ctx->blob);
@@ -2114,7 +2146,7 @@ nir_serialize(struct blob *blob, const nir_shader *nir, bool strip)
    write_xfb_info(&ctx, nir->xfb_info);
 
    if (nir->info.uses_printf)
-      nir_serialize_printf_info(blob, nir->printf_info, nir->printf_info_count);
+      u_printf_serialize_info(blob, nir->printf_info, nir->printf_info_count);
 
    blob_overwrite_uint32(blob, idx_size_offset, ctx.next_idx);
 
@@ -2175,8 +2207,8 @@ nir_deserialize(void *mem_ctx,
 
    if (ctx.nir->info.uses_printf) {
       ctx.nir->printf_info =
-         nir_deserialize_printf_info(ctx.nir, blob,
-                                     &ctx.nir->printf_info_count);
+         u_printf_deserialize_info(ctx.nir, blob,
+                                   &ctx.nir->printf_info_count);
    }
 
    free(ctx.idx_table);
@@ -2210,46 +2242,4 @@ nir_shader_serialize_deserialize(nir_shader *shader)
 
    nir_shader_replace(shader, copy);
    ralloc_free(dead_ctx);
-}
-
-void
-nir_serialize_printf_info(struct blob *blob,
-                          const u_printf_info *printf_info,
-                          unsigned printf_info_count)
-{
-   blob_write_uint32(blob, printf_info_count);
-   for (int i = 0; i < printf_info_count; i++) {
-      const u_printf_info *info = &printf_info[i];
-      blob_write_uint32(blob, info->num_args);
-      blob_write_uint32(blob, info->string_size);
-      blob_write_bytes(blob, info->arg_sizes,
-                       info->num_args * sizeof(info->arg_sizes[0]));
-      /* we can't use blob_write_string, because it contains multiple NULL
-       * terminated strings */
-      blob_write_bytes(blob, info->strings, info->string_size);
-   }
-}
-
-u_printf_info *
-nir_deserialize_printf_info(void *mem_ctx,
-                            struct blob_reader *blob,
-                            unsigned *printf_info_count)
-{
-   *printf_info_count = blob_read_uint32(blob);
-
-   u_printf_info *printf_info =
-      ralloc_array(mem_ctx, u_printf_info, *printf_info_count);
-
-   for (int i = 0; i < *printf_info_count; i++) {
-      u_printf_info *info = &printf_info[i];
-      info->num_args = blob_read_uint32(blob);
-      info->string_size = blob_read_uint32(blob);
-      info->arg_sizes = ralloc_array(mem_ctx, unsigned, info->num_args);
-      blob_copy_bytes(blob, info->arg_sizes,
-                      info->num_args * sizeof(info->arg_sizes[0]));
-      info->strings = ralloc_array(mem_ctx, char, info->string_size);
-      blob_copy_bytes(blob, info->strings, info->string_size);
-   }
-
-   return printf_info;
 }

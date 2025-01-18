@@ -1,10 +1,26 @@
+KHR-GL46.layout_binding.buffer_layout_binding_atomicAdd_ComputeShader
+KHR-GL46.layout_binding.sampler2D_layout_binding_texture_ComputeShader
+KHR-GL46.packed_pixels.varied_rectangle.r32i
+KHR-GL46.shader_atomic_counter_ops_tests.ShaderAtomicCounterOpsBitwiseTestCase
+
 dEQP-GLES2.functional.shaders.random.swizzle.vertex.43
+dEQP-GLES3.functional.fbo.multiview.samples_1
+dEQP-GLES3.functional.fbo.multiview.samples_2
+dEQP-GLES3.functional.fbo.multiview.samples_4
 dEQP-GLES31.functional.copy_image.compressed.viewclass_astc_12x10_rgba.srgb8_alpha8_astc_12x10_khr_rgba_astc_12x10_khr.texture3d_to_texture3d
 dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.rgba_astc_4x4_khr_rgba32ui.texture2d_array_to_texture2d_array
+dEQP-GLES31.functional.draw_indirect.compute_interop.large.drawelements_separate_grid_100x100_drawcount_1
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.8x8x6_nearest
 dEQP-GLES3.functional.texture.filtering.cube.combinations.linear_linear_mirror_mirror
 dEQP-GLES3.functional.texture.shadow.cube.linear_mipmap_nearest.greater_depth_component32f
+
 object namespace pollution@framebuffer with glgetteximage
+spec@!opengl 1.0@rasterpos
+spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked
+spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked
+spec@!opengl 1.1@depthstencil-default_fb-blit samples=4
+spec@!opengl 1.1@max-texture-size
+spec@!opengl 1.1@ppgtt_memory_alignment
 spec@arb_fragment_shader_interlock@arb_fragment_shader_interlock-image-load-store
 spec@arb_instanced_arrays@arb_instanced_arrays-instanced_arrays-vbo
 spec@arb_shader_image_load_store@shader-mem-barrier
@@ -28,14 +44,11 @@ spec@arb_tessellation_shader@execution@built-in-functions@tcs-sign-vec3
 spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch
 spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB9_E5
 spec@arb_timer_query@timestamp-get
+spec@ext_texture_lod_bias@lodbias
 spec@glsl-1.10@execution@built-in-functions@vs-equal-vec2-vec2
 spec@glsl-1.50@execution@built-in-functions@gs-greaterthan-uvec3-uvec3
 spec@glsl-1.50@execution@geometry@point-size-out
 spec@glsl-1.50@execution@redeclare-pervertex-out-subset-gs
-spec@!opengl 1.0@rasterpos
-spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked
-spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked
-spec@!opengl 1.1@depthstencil-default_fb-blit samples=4
 
 # Marked as flake because it passes with ESO but crashes with pipelines.
 spec@arb_tessellation_shader@arb_tessellation_shader-tes-gs-max-output -small -scan 1 50
@@ -43,9 +56,51 @@ spec@arb_tessellation_shader@arb_tessellation_shader-tes-gs-max-output -small -s
 # uprev Piglit in Mesa (first seen on navi10 in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/58636780)
 KHR-GL46.sparse_buffer_tests.BufferStorageTest
 
-spec@ext_texture_lod_bias@lodbias
+spec@arb_pipeline_statistics_query@arb_pipeline_statistics_query-comp
+KHR-GL46.pipeline_statistics_query_tests_ARB.functional_geometry_shader_queries
 
-# uprev Piglit in Mesa
-dEQP-GLES3.functional.fbo.multiview.samples_1
-spec@!opengl 1.1@max-texture-size
+spec@arb_program_interface_query@arb_program_interface_query-resource-query
 
+# ERROR - dEQP error: malloc(): unaligned tcache chunk detected
+KHR-GL46.explicit_uniform_location.subroutine-index-loc
+KHR-GL46.explicit_uniform_location.subroutine-index-multiple-uniforms
+KHR-GL46.explicit_uniform_location.subroutine-loc-all-stages
+KHR-GL46.explicit_uniform_location.subroutine-loc-arrays
+KHR-GL46.explicit_uniform_location.subroutine-loc-arrays-mix
+KHR-GL46.explicit_uniform_location.subroutine-loc-nondecimal
+KHR-GL46.explicit_uniform_location.uniform-loc
+KHR-GL46.explicit_uniform_location.uniform-loc-arrays-of-arrays
+KHR-GL46.explicit_uniform_location.uniform-loc-arrays-spaced
+KHR-GL46.explicit_uniform_location.uniform-loc-implicit-in-some-stages3
+KHR-GL46.explicit_uniform_location.uniform-loc-mix-with-implicit2
+KHR-GL46.explicit_uniform_location.uniform-loc-mix-with-implicit3
+KHR-GL46.explicit_uniform_location.uniform-loc-types-mat
+KHR-GL46.explicit_uniform_location.uniform-loc-types-mix
+KHR-GL46.explicit_uniform_location.uniform-loc-types-samplers
+KHR-GL46.layout_binding.atomic_uint_layout_binding_atomic_ComputeShader
+KHR-GL46.layout_binding.block_layout_binding_block_ComputeShader
+KHR-GL46.layout_binding.image2D_layout_binding_imageLoad_ComputeShader
+KHR-GL46.layout_binding.sampler2DArray_layout_binding_texture_ComputeShader
+KHR-GL46.layout_binding.sampler3D_layout_binding_texture_ComputeShader
+KHR-GL46.layout_location.usampler_2d
+KHR-GL46.shader_atomic_counter_ops_tests.ShaderAtomicCounterOpsExchangeTestCase
+KHR-GL46.shader_atomic_counter_ops_tests.ShaderAtomicCounterOpsMinMaxTestCase
+dEQP-GLES31.functional.draw_indirect.compute_interop.separate.drawelements_compute_data_and_indices
+dEQP-GLES31.functional.draw_indirect.compute_interop.large.drawelements_separate_grid_500x500_drawcount_1
+dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.image_atomic_dispatch_100_calls_128x128_invocations
+dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.image_atomic_dispatch_2_calls_128x128_invocations
+dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.image_atomic_dispatch_5_calls_32x32_invocations
+dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.image_atomic_dispatch_5_calls_8x8_invocations
+dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.ssbo_atomic_counter_mixed_dispatch_100_calls_1k_invocations
+dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.ssbo_atomic_counter_mixed_dispatch_2_calls_128_invocations
+dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.ssbo_atomic_counter_mixed_dispatch_2_calls_1k_invocations
+dEQP-GLES31.functional.synchronization.inter_call.with_memory_barrier.image_overwrite
+
+# glcts: ../src/vulkan/runtime/vk_pipeline_cache.c:666: vk_pipeline_cache_destroy: Assertion `cache->object_cache->entries == 0' failed.
+dEQP-GLES31.functional.copy_image.mixed.viewclass_64_bits_mixed.rg32f_r11_eac.texture3d_to_cubemap
+
+# With linux kernel 6.13-rc4 uprev
+dEQP-GLES31.functional.draw_indirect.compute_interop.large.drawelements_separate_grid_100x100_drawcount_200
+dEQP-GLES31.functional.draw_indirect.compute_interop.large.drawelements_separate_grid_1200x1200_drawcount_1
+spec@arb_compute_shader@zero-dispatch-size
+spec@arb_fragment_layer_viewport@layer-gs-writes-in-range

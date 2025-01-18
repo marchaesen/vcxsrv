@@ -4,13 +4,19 @@
  */
 
 #include "agx_bg_eot.h"
+#include "util/simple_mtx.h"
+#include "util/u_debug.h"
 #include "agx_compile.h"
-#include "agx_device.h" /* for AGX_MEMORY_TYPE_SHADER */
-#include "agx_nir_passes.h"
+#include "agx_device.h"
+#include "agx_nir.h"
+#include "agx_nir_texture.h"
 #include "agx_tilebuffer.h"
+#include "agx_usc.h"
+#include "libagx_shaders.h"
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_intrinsics.h"
+#include "pool.h"
 
 static bool
 lower_tex_handle_to_u0(nir_builder *b, nir_intrinsic_instr *intr, void *data)
@@ -31,14 +37,14 @@ agx_compile_bg_eot_shader(struct agx_bg_eot_cache *cache, nir_shader *shader,
                           struct agx_shader_key *key,
                           struct agx_tilebuffer_layout *tib)
 {
-   agx_nir_lower_texture(shader, false);
+   agx_nir_lower_texture(shader);
    agx_preprocess_nir(shader, cache->dev->libagx);
    if (tib) {
       unsigned bindless_base = 0;
       agx_nir_lower_tilebuffer(shader, tib, NULL, &bindless_base, NULL, NULL);
       agx_nir_lower_monolithic_msaa(shader, tib->nr_samples);
       agx_nir_lower_multisampled_image_store(shader);
-      agx_nir_lower_texture(shader, false);
+      agx_nir_lower_texture(shader);
 
       nir_shader_intrinsics_pass(shader, lower_tex_handle_to_u0,
                                  nir_metadata_control_flow, NULL);
@@ -51,8 +57,8 @@ agx_compile_bg_eot_shader(struct agx_bg_eot_cache *cache, nir_shader *shader,
    agx_compile_shader_nir(shader, key, NULL, &bin);
 
    res->info = bin.info;
-   res->ptr = agx_pool_upload_aligned_with_bo(&cache->pool, bin.binary,
-                                              bin.binary_size, 128, &res->bo);
+   res->ptr = agx_pool_upload_aligned_with_bo(
+      &cache->pool, bin.binary, bin.info.binary_size, 128, &res->bo);
    free(bin.binary);
    ralloc_free(shader);
 
@@ -211,7 +217,9 @@ DERIVE_HASH_TABLE(agx_bg_eot_key);
 void
 agx_bg_eot_init(struct agx_bg_eot_cache *cache, struct agx_device *dev)
 {
-   agx_pool_init(&cache->pool, dev, AGX_BO_EXEC | AGX_BO_LOW_VA, true);
+   agx_pool_init(&cache->pool, dev, "Internal programs",
+                 AGX_BO_EXEC | AGX_BO_LOW_VA, true);
+   simple_mtx_init(&cache->lock, mtx_plain);
    cache->ht = agx_bg_eot_key_table_create(NULL);
    cache->dev = dev;
 }
@@ -221,6 +229,109 @@ agx_bg_eot_cleanup(struct agx_bg_eot_cache *cache)
 {
    agx_pool_cleanup(&cache->pool);
    _mesa_hash_table_destroy(cache->ht, NULL);
+   simple_mtx_destroy(&cache->lock);
    cache->ht = NULL;
    cache->dev = NULL;
+}
+
+static struct agx_precompiled_shader *
+agx_get_precompiled_locked(struct agx_bg_eot_cache *cache, unsigned program)
+{
+   simple_mtx_assert_locked(&cache->lock);
+
+   /* It is possible that, while waiting for the lock, another thread uploaded
+    * the shader. Check for that so we don't double-upload.
+    */
+   if (cache->precomp[program])
+      return cache->precomp[program];
+
+   /* Otherwise, we need to upload. */
+   struct agx_precompiled_shader *p =
+      ralloc(cache->ht, struct agx_precompiled_shader);
+
+   const uint32_t *bin = cache->dev->libagx_programs[program];
+   const struct agx_precompiled_kernel_info *info = (void *)bin;
+   const void *binary = (const uint8_t *)bin + sizeof(*info);
+
+   assert(info->main_offset == 0 || program != LIBAGX_HELPER);
+
+   p->b.workgroup =
+      agx_workgroup(info->workgroup_size[0], info->workgroup_size[1],
+                    info->workgroup_size[2]);
+
+   p->ptr = agx_pool_upload_aligned_with_bo(&cache->pool, binary,
+                                            info->binary_size, 128, &p->bo);
+
+   /* Bake launch */
+   agx_pack(&p->b.launch, CDM_LAUNCH_WORD_0, cfg) {
+      cfg.sampler_state_register_count = 1;
+      cfg.uniform_register_count = info->push_count;
+      cfg.preshader_register_count = info->nr_preamble_gprs;
+   }
+
+   /* Bake USC */
+   struct agx_usc_builder b =
+      agx_usc_builder(p->b.usc.data, sizeof(p->b.usc.data));
+
+   agx_usc_immediates(&b, &info->rodata, p->ptr);
+
+   if (info->uses_txf)
+      agx_usc_push_packed(&b, SAMPLER, cache->dev->txf_sampler);
+
+   agx_usc_shared(&b, info->local_size, info->imageblock_stride, 0);
+
+   agx_usc_pack(&b, SHADER, cfg) {
+      cfg.code = agx_usc_addr(cache->dev, p->ptr + info->main_offset);
+      cfg.unk_2 = 3;
+   }
+
+   agx_usc_pack(&b, REGISTERS, cfg) {
+      cfg.register_count = info->nr_gprs;
+      cfg.spill_size = 0;
+   }
+
+   if (info->nr_preamble_gprs) {
+      agx_usc_pack(&b, PRESHADER, cfg) {
+         cfg.code = agx_usc_addr(cache->dev, p->ptr + info->preamble_offset);
+      }
+   } else {
+      agx_usc_pack(&b, NO_PRESHADER, cfg)
+         ;
+   }
+
+   p->b.usc.size = b.head - p->b.usc.data;
+
+   /* We must only write to the cache once we are done compiling, since other
+    * threads may be reading the cache concurrently. Do this last.
+    */
+   p_atomic_set(&cache->precomp[program], p);
+   return p;
+}
+
+struct agx_precompiled_shader *
+agx_get_precompiled(struct agx_bg_eot_cache *cache, unsigned program)
+{
+   /* Shaders are immutable once written, so if we atomically read a non-NULL
+    * shader, then we have a valid cached shader and are done.
+    */
+   struct agx_precompiled_shader *ret = p_atomic_read(cache->precomp + program);
+
+   if (ret != NULL)
+      return ret;
+
+   /* Otherwise, take the lock and upload. */
+   simple_mtx_lock(&cache->lock);
+   ret = agx_get_precompiled_locked(cache, program);
+   simple_mtx_unlock(&cache->lock);
+
+   return ret;
+}
+
+uint64_t
+agx_helper_program(struct agx_bg_eot_cache *cache)
+{
+   struct agx_precompiled_shader *pc =
+      agx_get_precompiled(cache, LIBAGX_HELPER);
+
+   return pc->ptr | 1;
 }

@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 static const struct testcase
-   testcases[] =
+   testcases_a630[] =
       {
          /* A straightforward first testcase, linear, with an obvious format. */
          {
@@ -901,16 +901,384 @@ static const struct testcase
                      },
                },
          },
+         {
+            .format = PIPE_FORMAT_R16G16B16A16_UINT,
+            .is_3d = true,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 56,
+                  .height0 = 32,
+                  .depth0 = 18,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 512, .size0 = 16384},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+         {
+            .format = PIPE_FORMAT_R32_UINT,
+            .is_3d = true,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 56,
+                  .height0 = 32,
+                  .depth0 = 16,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 256, .size0 = 8192},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+         {
+            .format = PIPE_FORMAT_R8G8B8A8_UINT,
+            .is_3d = true,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 56,
+                  .height0 = 32,
+                  .depth0 = 16,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 256, .size0 = 8192},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+
+         /* dEQP-VK.image.texel_view_compatible.graphic.extended.3d_image.texture_read.astc_8x8_unorm_block.r32g32b32a32_uint
+          *
+          * This is an interesting case where the size is 4K-aligned but the
+          * height becomes not aligned, and we have to use MINLAYERSZ to
+          * intervene.
+          *
+          * This test can only use tiled layouts on a750+, and the blob seems
+          * to make this one texture linear rather than deal with the
+          * alignment problem.
+          */
+         {
+            .format = PIPE_FORMAT_R32G32B32A32_FLOAT,
+            .is_3d = true,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = false,
+                  .width0 = 76,
+                  .height0 = 76,
+                  .depth0 = 1,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 2048, .size0 = 163840},
+                        {.offset = 163840, .pitch = 1024, .size0 = 49152},
+                        {.offset = 212992, .pitch = 1024, .size0 = 49152},
+                        {.offset = 262144, .pitch = 1024},
+                        {.offset = 311296, .pitch = 1024},
+                        {.offset = 360448, .pitch = 1024},
+                        {.offset = 409600, .pitch = 1024},
+                     },
+               },
+         },
 
 };
+
+/* has_ubwc_linear_mipmap_fallback is supported started from A6XX gen4. */
+static const struct testcase
+   testcases_a660[] =
+      {
+         {
+            .format = PIPE_FORMAT_R8G8B8A8_UNORM,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 1024,
+                  .height0 = 1,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 4096},
+                        {.offset = 65536, .pitch = 2048},
+                        {.offset = 98304, .pitch = 1024},
+                        {.offset = 114688, .pitch = 512},
+                        {.offset = 122880, .pitch = 256},
+                        {.offset = 126976, .pitch = 256},
+                        {.offset = 131072, .pitch = 256},
+                        {.offset = 135168, .pitch = 256},
+                        {.offset = 135424, .pitch = 256},
+                        {.offset = 135680, .pitch = 256},
+                        {.offset = 135936, .pitch = 256},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 4096, .pitch = 64},
+                        {.offset = 8192, .pitch = 64},
+                        {.offset = 12288, .pitch = 64},
+                        {.offset = 16384, .pitch = 64},
+                        {.offset = 20480, .pitch = 64},
+                        {.offset = 24576, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+         {
+            .format = PIPE_FORMAT_R8G8B8A8_UNORM,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 2049,
+                  .height0 = 128,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 8448},
+                        {.offset = 1081344, .pitch = 4352},
+                        {.offset = 1359872, .pitch = 2304},
+                        {.offset = 1433600, .pitch = 1280},
+                        {.offset = 1454080, .pitch = 768},
+                        {.offset = 1466368, .pitch = 512},
+                        {.offset = 1474560, .pitch = 256},
+                        {.offset = 1478656, .pitch = 256},
+                        {.offset = 1482752, .pitch = 256},
+                        {.offset = 1483008, .pitch = 256},
+                        {.offset = 1483264, .pitch = 256},
+                        {.offset = 1483520, .pitch = 256},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 256},
+                        {.offset = 16384, .pitch = 128},
+                        {.offset = 24576, .pitch = 64},
+                        {.offset = 28672, .pitch = 64},
+                        {.offset = 32768, .pitch = 64},
+                        {.offset = 36864, .pitch = 64},
+                        {.offset = 40960, .pitch = 64},
+                        {.offset = 45056, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+
+         /* UBWC: Height comes from POT-aligned level 0. */
+         {
+            .format = PIPE_FORMAT_R8G8B8A8_UNORM,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 1024,
+                  .height0 = 1025,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 4096},
+                        {.offset = 4259840, .pitch = 2048},
+                        {.offset = 5308416, .pitch = 1024},
+                        {.offset = 5570560, .pitch = 512},
+                        {.offset = 5636096, .pitch = 256},
+                        {.offset = 5652480, .pitch = 256},
+                        {.offset = 5660672, .pitch = 256},
+                        {.offset = 5664768, .pitch = 256},
+                        {.offset = 5666816, .pitch = 256},
+                        {.offset = 5667840, .pitch = 256},
+                        {.offset = 5668352, .pitch = 256},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 32768, .pitch = 64},
+                        {.offset = 49152, .pitch = 64},
+                        {.offset = 57344, .pitch = 64},
+                        {.offset = 61440, .pitch = 64},
+                        {.offset = 65536, .pitch = 64},
+                        {.offset = 69632, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+
+         /* UBWC: Get at minimum height of a level across cpps */
+         {
+            .format = PIPE_FORMAT_R16_UINT,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 16384,
+                  .height0 = 1,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 32768},
+                        {.offset = 524288, .pitch = 16384},
+                        {.offset = 786432, .pitch = 8192},
+                        {.offset = 917504, .pitch = 4096},
+                        {.offset = 983040, .pitch = 2048},
+                        {.offset = 1015808, .pitch = 1024},
+                        {.offset = 1032192, .pitch = 512},
+                        {.offset = 1040384, .pitch = 256},
+                        {.offset = 1044480, .pitch = 256},
+                        {.offset = 1048576, .pitch = 256},
+                        {.offset = 1052672, .pitch = 256},
+                        {.offset = 1056768, .pitch = 256},
+                        {.offset = 1057024, .pitch = 256},
+                        {.offset = 1057280, .pitch = 256},
+                        {.offset = 1057536, .pitch = 256},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 1024},
+                        {.offset = 65536, .pitch = 512},
+                        {.offset = 98304, .pitch = 256},
+                        {.offset = 114688, .pitch = 128},
+                        {.offset = 122880, .pitch = 64},
+                        {.offset = 126976, .pitch = 64},
+                        {.offset = 131072, .pitch = 64},
+                        {.offset = 135168, .pitch = 64},
+                        {.offset = 139264, .pitch = 64},
+                        {.offset = 143360, .pitch = 64},
+                        {.offset = 147456, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+         {
+            .format = PIPE_FORMAT_R8G8B8A8_UNORM,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 16384,
+                  .height0 = 1,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 65536},
+                        {.offset = 1048576, .pitch = 32768},
+                        {.offset = 1572864, .pitch = 16384},
+                        {.offset = 1835008, .pitch = 8192},
+                        {.offset = 1966080, .pitch = 4096},
+                        {.offset = 2031616, .pitch = 2048},
+                        {.offset = 2064384, .pitch = 1024},
+                        {.offset = 2080768, .pitch = 512},
+                        {.offset = 2088960, .pitch = 256},
+                        {.offset = 2093056, .pitch = 256},
+                        {.offset = 2097152, .pitch = 256},
+                        {.offset = 2101248, .pitch = 256},
+                        {.offset = 2101504, .pitch = 256},
+                        {.offset = 2101760, .pitch = 256},
+                        {.offset = 2102016, .pitch = 256},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 1024},
+                        {.offset = 65536, .pitch = 512},
+                        {.offset = 98304, .pitch = 256},
+                        {.offset = 114688, .pitch = 128},
+                        {.offset = 122880, .pitch = 64},
+                        {.offset = 126976, .pitch = 64},
+                        {.offset = 131072, .pitch = 64},
+                        {.offset = 135168, .pitch = 64},
+                        {.offset = 139264, .pitch = 64},
+                        {.offset = 143360, .pitch = 64},
+                        {.offset = 147456, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+         {
+            .format = PIPE_FORMAT_R32G32B32A32_FLOAT,
+            .layout =
+               {
+                  .tile_mode = TILE6_3,
+                  .ubwc = true,
+                  .width0 = 16384,
+                  .height0 = 1,
+                  .slices =
+                     {
+                        {.offset = 0, .pitch = 262144},
+                        {.offset = 4194304, .pitch = 131072},
+                        {.offset = 6291456, .pitch = 65536},
+                        {.offset = 7340032, .pitch = 32768},
+                        {.offset = 7864320, .pitch = 16384},
+                        {.offset = 8126464, .pitch = 8192},
+                        {.offset = 8257536, .pitch = 4096},
+                        {.offset = 8323072, .pitch = 2048},
+                        {.offset = 8355840, .pitch = 1024},
+                        {.offset = 8372224, .pitch = 1024},
+                        {.offset = 8388608, .pitch = 1024},
+                        {.offset = 8404992, .pitch = 1024},
+                        {.offset = 8406016, .pitch = 1024},
+                        {.offset = 8407040, .pitch = 1024},
+                        {.offset = 8408064, .pitch = 1024},
+                     },
+                  .ubwc_slices =
+                     {
+                        {.offset = 0, .pitch = 4096},
+                        {.offset = 262144, .pitch = 2048},
+                        {.offset = 393216, .pitch = 1024},
+                        {.offset = 458752, .pitch = 512},
+                        {.offset = 491520, .pitch = 256},
+                        {.offset = 507904, .pitch = 128},
+                        {.offset = 516096, .pitch = 64},
+                        {.offset = 520192, .pitch = 64},
+                        {.offset = 524288, .pitch = 64},
+                        {.offset = 528384, .pitch = 64},
+                        {.offset = 532480, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                        {.offset = 0, .pitch = 64},
+                     },
+               },
+         },
+      };
 
 int
 main(int argc, char **argv)
 {
    int ret = 0;
 
-   for (int i = 0; i < ARRAY_SIZE(testcases); i++) {
-      if (!fdl_test_layout(&testcases[i], 630))
+   struct fd_dev_id a630_dev_id = {
+      .gpu_id = 630,
+   };
+   for (int i = 0; i < ARRAY_SIZE(testcases_a630); i++) {
+      if (!fdl_test_layout(&testcases_a630[i], &a630_dev_id))
+         ret = 1;
+   }
+
+   struct fd_dev_id a660_dev_id = {
+      .gpu_id = 660,
+   };
+   for (int i = 0; i < ARRAY_SIZE(testcases_a660); i++) {
+      if (!fdl_test_layout(&testcases_a660[i], &a660_dev_id))
          ret = 1;
    }
 

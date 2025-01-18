@@ -66,7 +66,7 @@ static const struct debug_named_value panfrost_debug_options[] = {
    {"nofp16",     PAN_DBG_NOFP16,    "Disable 16-bit support"},
    {"gl3",        PAN_DBG_GL3,      "Enable experimental GL 3.x implementation, up to 3.3"},
    {"noafbc",     PAN_DBG_NO_AFBC,  "Disable AFBC support"},
-   {"crc",        PAN_DBG_CRC,      "Enable transaction elimination"},
+   {"nocrc",      PAN_DBG_NO_CRC,   "Disable transaction elimination"},
    {"msaa16",     PAN_DBG_MSAA16,   "Enable MSAA 8x and 16x support"},
    {"linear",     PAN_DBG_LINEAR,   "Force linear textures"},
    {"nocache",    PAN_DBG_NO_CACHE, "Disable BO cache"},
@@ -76,6 +76,7 @@ static const struct debug_named_value panfrost_debug_options[] = {
 #endif
    {"yuv",        PAN_DBG_YUV,      "Tint YUV textures with blue for 1-plane and green for 2-plane"},
    {"forcepack",  PAN_DBG_FORCE_PACK,  "Force packing of AFBC textures on upload"},
+   {"cs",         PAN_DBG_CS,       "Enable extra checks in command stream"},
    DEBUG_NAMED_VALUE_END
 };
 /* clang-format on */
@@ -117,297 +118,6 @@ from_kmod_group_allow_priority_flags(
       flags |= PIPE_CONTEXT_PRIORITY_LOW;
 
    return flags;
-}
-
-static int
-panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
-{
-   struct panfrost_device *dev = pan_device(screen);
-
-   /* Our GL 3.x implementation is WIP */
-   bool is_gl3 = dev->debug & PAN_DBG_GL3;
-
-   /* Native MRT is introduced with v5 */
-   bool has_mrt = (dev->arch >= 5);
-
-   switch (param) {
-   case PIPE_CAP_NPOT_TEXTURES:
-   case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
-   case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
-   case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
-   case PIPE_CAP_DEPTH_CLIP_DISABLE:
-   case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
-   case PIPE_CAP_FRONTEND_NOOP:
-   case PIPE_CAP_SAMPLE_SHADING:
-   case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-   case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
-   case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
-   case PIPE_CAP_SHADER_PACK_HALF_FLOAT:
-   case PIPE_CAP_HAS_CONST_BW:
-      return 1;
-
-   /* Removed in v9 (Valhall) */
-   case PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE:
-      return dev->arch < 9;
-
-   case PIPE_CAP_MAX_RENDER_TARGETS:
-   case PIPE_CAP_FBFETCH:
-   case PIPE_CAP_FBFETCH_COHERENT:
-      return has_mrt ? 8 : 1;
-
-   case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
-      return 1;
-
-   case PIPE_CAP_OCCLUSION_QUERY:
-   case PIPE_CAP_PRIMITIVE_RESTART:
-   case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
-      return true;
-
-   case PIPE_CAP_ANISOTROPIC_FILTER:
-      return panfrost_device_gpu_rev(dev) >= dev->model->min_rev_anisotropic;
-
-   /* Compile side is done for Bifrost, Midgard TODO. Needs some kernel
-    * work to turn on, since CYCLE_COUNT_START needs to be issued. In
-    * kbase, userspace requests this via BASE_JD_REQ_PERMON. There is not
-    * yet way to request this with mainline TODO */
-   case PIPE_CAP_SHADER_CLOCK:
-      return 0;
-
-   case PIPE_CAP_VS_INSTANCEID:
-   case PIPE_CAP_TEXTURE_MULTISAMPLE:
-   case PIPE_CAP_SURFACE_SAMPLE_COUNT:
-      return true;
-
-   case PIPE_CAP_SAMPLER_VIEW_TARGET:
-   case PIPE_CAP_CLIP_HALFZ:
-   case PIPE_CAP_POLYGON_OFFSET_CLAMP:
-   case PIPE_CAP_TEXTURE_SWIZZLE:
-   case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
-   case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
-   case PIPE_CAP_BLEND_EQUATION_SEPARATE:
-   case PIPE_CAP_INDEP_BLEND_ENABLE:
-   case PIPE_CAP_INDEP_BLEND_FUNC:
-   case PIPE_CAP_GENERATE_MIPMAP:
-   case PIPE_CAP_ACCELERATED:
-   case PIPE_CAP_UMA:
-   case PIPE_CAP_TEXTURE_FLOAT_LINEAR:
-   case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
-   case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
-   case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
-   case PIPE_CAP_PACKED_UNIFORMS:
-   case PIPE_CAP_IMAGE_LOAD_FORMATTED:
-   case PIPE_CAP_CUBE_MAP_ARRAY:
-   case PIPE_CAP_COMPUTE:
-   case PIPE_CAP_INT64:
-      return 1;
-
-   case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
-      return 1;
-
-   case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
-      return PIPE_MAX_SO_BUFFERS;
-
-   case PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS:
-   case PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS:
-      return PIPE_MAX_SO_OUTPUTS;
-
-   case PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME:
-   case PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS:
-      return 1;
-
-   case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
-      return 2048;
-
-   case PIPE_CAP_GLSL_FEATURE_LEVEL:
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return is_gl3 ? 330 : 140;
-   case PIPE_CAP_ESSL_FEATURE_LEVEL:
-      return dev->arch >= 6 ? 320 : 310;
-
-   case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
-      return 16;
-
-   /* v7 (only) restricts component orders with AFBC. To workaround, we
-    * compose format swizzles with texture swizzles. pan_texture.c motsly
-    * handles this but we need to fix up the border colour.
-    */
-   case PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK:
-      if (dev->arch == 7 || dev->arch >= 10)
-         return PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
-      else
-         return 0;
-
-   case PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT:
-      return PAN_MAX_TEXEL_BUFFER_ELEMENTS;
-
-   /* Must be at least 64 for correct behaviour */
-   case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
-      return 64;
-
-   case PIPE_CAP_QUERY_TIME_ELAPSED:
-   case PIPE_CAP_QUERY_TIMESTAMP:
-      return dev->kmod.props.gpu_can_query_timestamp &&
-             dev->kmod.props.timestamp_frequency != 0;
-
-   case PIPE_CAP_TIMER_RESOLUTION:
-      return pan_gpu_time_to_ns(dev, 1);
-
-   /* The hardware requires element alignment for data conversion to work
-    * as expected. If data conversion is not required, this restriction is
-    * lifted on Midgard at a performance penalty. We conservatively
-    * require element alignment for vertex buffers, using u_vbuf to
-    * translate to match the hardware requirement.
-    *
-    * This is less heavy-handed than PIPE_VERTEX_INPUT_ALIGNMENT_4BYTE, which
-    * would needlessly require alignment even for 8-bit formats.
-    */
-   case PIPE_CAP_VERTEX_INPUT_ALIGNMENT:
-      return PIPE_VERTEX_INPUT_ALIGNMENT_ELEMENT;
-
-   case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      return 1 << (PAN_MAX_MIP_LEVELS - 1);
-
-   case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
-   case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      return PAN_MAX_MIP_LEVELS;
-
-   /* pixel coord is in integer sysval on bifrost. */
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
-      return dev->arch >= 6;
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
-      return dev->arch < 6;
-
-   case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
-      /* Hardware is upper left */
-      return 0;
-
-   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_TGSI_TEXCOORD:
-      return 1;
-
-   /* We would prefer varyings on Midgard, but proper sysvals on Bifrost */
-   case PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL:
-   case PIPE_CAP_FS_POSITION_IS_SYSVAL:
-   case PIPE_CAP_FS_POINT_IS_SYSVAL:
-      return dev->arch >= 6;
-
-   case PIPE_CAP_SEAMLESS_CUBE_MAP:
-   case PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE:
-      return true;
-
-   case PIPE_CAP_MAX_VERTEX_ELEMENT_SRC_OFFSET:
-      return 0xffff;
-
-   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
-      return 0;
-
-   case PIPE_CAP_ENDIANNESS:
-      return PIPE_ENDIAN_NATIVE;
-
-   case PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS:
-      return 4;
-
-   case PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET:
-      return -8;
-
-   case PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET:
-      return 7;
-
-   case PIPE_CAP_VIDEO_MEMORY: {
-      uint64_t system_memory;
-
-      if (!os_get_total_physical_memory(&system_memory))
-         return 0;
-
-      return (int)(system_memory >> 20);
-   }
-
-   case PIPE_CAP_SHADER_STENCIL_EXPORT:
-   case PIPE_CAP_CONDITIONAL_RENDER:
-   case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
-      return true;
-
-   case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
-      return 4;
-
-   case PIPE_CAP_MAX_VARYINGS:
-      return dev->arch >= 9 ? 16 : 32;
-
-   /* Removed in v6 (Bifrost) */
-   case PIPE_CAP_GL_CLAMP:
-   case PIPE_CAP_TEXTURE_MIRROR_CLAMP:
-   case PIPE_CAP_ALPHA_TEST:
-      return dev->arch <= 5;
-
-   /* Removed in v9 (Valhall). PRIMTIIVE_RESTART_FIXED_INDEX is of course
-    * still supported as it is core GLES3.0 functionality
-    */
-   case PIPE_CAP_EMULATE_NONFIXED_PRIMITIVE_RESTART:
-      return dev->arch >= 9;
-
-   case PIPE_CAP_FLATSHADE:
-   case PIPE_CAP_TWO_SIDED_COLOR:
-   case PIPE_CAP_CLIP_PLANES:
-      return 0;
-
-   case PIPE_CAP_PACKED_STREAM_OUTPUT:
-      return 0;
-
-   case PIPE_CAP_VIEWPORT_TRANSFORM_LOWERED:
-   case PIPE_CAP_PSIZ_CLAMPED:
-      return 1;
-
-   case PIPE_CAP_NIR_IMAGES_AS_DEREF:
-      return 0;
-
-   case PIPE_CAP_DRAW_INDIRECT:
-      return 1;
-
-   case PIPE_CAP_MULTI_DRAW_INDIRECT:
-      return dev->arch >= 10;
-
-   case PIPE_CAP_START_INSTANCE:
-   case PIPE_CAP_DRAW_PARAMETERS:
-      return pan_is_bifrost(dev);
-
-   case PIPE_CAP_SUPPORTED_PRIM_MODES:
-   case PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART: {
-      /* Mali supports GLES and QUADS. Midgard and v6 Bifrost
-       * support more */
-      uint32_t modes = BITFIELD_MASK(MESA_PRIM_QUADS + 1);
-
-      if (dev->arch <= 6) {
-         modes |= BITFIELD_BIT(MESA_PRIM_QUAD_STRIP);
-         modes |= BITFIELD_BIT(MESA_PRIM_POLYGON);
-      }
-
-      if (dev->arch >= 9) {
-         /* Although Valhall is supposed to support quads, they
-          * don't seem to work correctly. Disable to fix
-          * arb-provoking-vertex-render.
-          */
-         modes &= ~BITFIELD_BIT(MESA_PRIM_QUADS);
-      }
-
-      return modes;
-   }
-
-   case PIPE_CAP_IMAGE_STORE_FORMATTED:
-      return 1;
-
-   case PIPE_CAP_NATIVE_FENCE_FD:
-      return 1;
-
-   case PIPE_CAP_CONTEXT_PRIORITY_MASK:
-      return from_kmod_group_allow_priority_flags(
-         dev->kmod.props.allowed_group_priorities_mask);
-
-   case PIPE_CAP_ASTC_DECODE_MODE:
-      return dev->arch >= 9 && (dev->compressed_formats & (1 << 30));
-
-   default:
-      return u_pipe_screen_get_param_defaults(screen, param);
-   }
 }
 
 static int
@@ -461,11 +171,6 @@ panfrost_get_shader_param(struct pipe_screen *screen,
       return PAN_MAX_CONST_BUFFERS;
 
    case PIPE_SHADER_CAP_CONT_SUPPORTED:
-      return 0;
-
-   case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
-      return 1;
-   case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
       return 0;
 
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
@@ -529,43 +234,6 @@ panfrost_get_shader_param(struct pipe_screen *screen,
    return 0;
 }
 
-static float
-panfrost_get_paramf(struct pipe_screen *screen, enum pipe_capf param)
-{
-   switch (param) {
-   case PIPE_CAPF_MIN_LINE_WIDTH:
-   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
-   case PIPE_CAPF_MIN_POINT_SIZE:
-   case PIPE_CAPF_MIN_POINT_SIZE_AA:
-      return 1;
-
-   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
-   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
-      return 0.0625;
-
-   case PIPE_CAPF_MAX_LINE_WIDTH:
-   case PIPE_CAPF_MAX_LINE_WIDTH_AA:
-   case PIPE_CAPF_MAX_POINT_SIZE:
-   case PIPE_CAPF_MAX_POINT_SIZE_AA:
-      return 4095.9375;
-
-   case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
-      return 16.0;
-
-   case PIPE_CAPF_MAX_TEXTURE_LOD_BIAS:
-      return 16.0; /* arbitrary */
-
-   case PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY:
-      return 0.0f;
-
-   default:
-      debug_printf("Unexpected PIPE_CAPF %d query\n", param);
-      return 0.0;
-   }
-}
-
 static uint32_t
 pipe_to_pan_bind_flags(uint32_t pipe_bind_flags)
 {
@@ -620,8 +288,8 @@ panfrost_is_format_supported(struct pipe_screen *screen,
    /* Check we support the format with the given bind */
 
    unsigned pan_bind_flags = pipe_to_pan_bind_flags(bind);
-
    struct panfrost_format fmt = dev->formats[format];
+   unsigned fmt_bind_flags = fmt.bind;
 
    /* Also check that compressed texture formats are supported on this
     * particular chip. They may not be depending on system integration
@@ -634,7 +302,24 @@ panfrost_is_format_supported(struct pipe_screen *screen,
    if (!supported)
       return false;
 
-   return MALI_EXTRACT_INDEX(fmt.hw) && ((pan_bind_flags & ~fmt.bind) == 0);
+   if (bind & PIPE_BIND_DEPTH_STENCIL) {
+      /* On panfrost, S8_UINT is actually stored as X8S8_UINT, which
+       * causes us headaches when we try to bind it as DEPTH_STENCIL;
+       * the gallium driver doesn't handle this correctly. So reject
+       * it for now.
+       */
+      switch (format) {
+      case PIPE_FORMAT_S8_UINT:
+         fmt_bind_flags &= ~PAN_BIND_DEPTH_STENCIL;
+         break;
+      default:
+         /* no other special handling required yet */
+         break;
+      }
+   }
+
+   return MALI_EXTRACT_INDEX(fmt.hw) &&
+      ((pan_bind_flags & ~fmt_bind_flags) == 0);
 }
 
 static void
@@ -652,31 +337,6 @@ panfrost_query_compression_rates(struct pipe_screen *screen,
    *count = panfrost_afrc_query_rates(format, max, rates);
 }
 
-static void
-panfrost_query_compression_modifiers(struct pipe_screen *screen,
-                                     enum pipe_format format, uint32_t rate,
-                                     int max, uint64_t *modifiers, int *count)
-{
-   struct panfrost_device *dev = pan_device(screen);
-
-   if (!dev->has_afrc || rate == PIPE_COMPRESSION_FIXED_RATE_NONE) {
-      int mod_count = 0;
-      for (unsigned i = 0; i < PAN_MODIFIER_COUNT; ++i) {
-         if (drm_is_afrc(pan_best_modifiers[i]))
-            continue;
-         if (mod_count < max)
-            modifiers[mod_count] = pan_best_modifiers[i];
-         mod_count++;
-         if (max > 0 && mod_count >= max)
-            break;
-      }
-      *count = mod_count;
-      return;
-   }
-
-   *count = panfrost_afrc_get_modifiers(format, rate, max, modifiers);
-}
-
 /* We always support linear and tiled operations, both external and internal.
  * We support AFBC for a subset of formats, and colourspace transform for a
  * subset of those. */
@@ -685,7 +345,7 @@ static void
 panfrost_walk_dmabuf_modifiers(struct pipe_screen *screen,
                                enum pipe_format format, int max,
                                uint64_t *modifiers, unsigned int *external_only,
-                               int *out_count, uint64_t test_modifier)
+                               int *out_count, uint64_t test_modifier, bool allow_afrc)
 {
    /* Query AFBC status */
    struct panfrost_device *dev = pan_device(screen);
@@ -693,19 +353,25 @@ panfrost_walk_dmabuf_modifiers(struct pipe_screen *screen,
       dev->has_afbc && panfrost_format_supports_afbc(dev->arch, format);
    bool ytr = panfrost_afbc_can_ytr(format);
    bool tiled_afbc = panfrost_afbc_can_tile(dev->arch);
-   bool afrc = dev->has_afrc && panfrost_format_supports_afrc(format);
+   bool afrc = allow_afrc && dev->has_afrc && panfrost_format_supports_afrc(format);
 
    unsigned count = 0;
 
    for (unsigned i = 0; i < PAN_MODIFIER_COUNT; ++i) {
-      if (drm_is_afbc(pan_best_modifiers[i]) && !afbc)
-         continue;
+      if (drm_is_afbc(pan_best_modifiers[i])) {
+         if (!afbc)
+            continue;
 
-      if ((pan_best_modifiers[i] & AFBC_FORMAT_MOD_YTR) && !ytr)
-         continue;
+         if ((pan_best_modifiers[i] & AFBC_FORMAT_MOD_SPLIT) &&
+             !panfrost_afbc_can_split(dev->arch, format, pan_best_modifiers[i]))
+            continue;
 
-      if ((pan_best_modifiers[i] & AFBC_FORMAT_MOD_TILED) && !tiled_afbc)
-         continue;
+         if ((pan_best_modifiers[i] & AFBC_FORMAT_MOD_YTR) && !ytr)
+            continue;
+
+         if ((pan_best_modifiers[i] & AFBC_FORMAT_MOD_TILED) && !tiled_afbc)
+            continue;
+      }
 
       if (drm_is_afrc(pan_best_modifiers[i]) && !afrc)
          continue;
@@ -733,7 +399,27 @@ panfrost_query_dmabuf_modifiers(struct pipe_screen *screen,
                                 unsigned int *external_only, int *out_count)
 {
    panfrost_walk_dmabuf_modifiers(screen, format, max, modifiers, external_only,
-                                  out_count, DRM_FORMAT_MOD_INVALID);
+                                  out_count, DRM_FORMAT_MOD_INVALID, true);
+}
+
+static void
+panfrost_query_compression_modifiers(struct pipe_screen *screen,
+                                     enum pipe_format format, uint32_t rate,
+                                     int max, uint64_t *modifiers, int *count)
+{
+   struct panfrost_device *dev = pan_device(screen);
+
+   if (rate == PIPE_COMPRESSION_FIXED_RATE_NONE)
+      /* no compression requested, return all non-afrc formats */
+      panfrost_walk_dmabuf_modifiers(screen, format, max, modifiers,
+                                     NULL, /* external_only */
+                                     count,
+                                     DRM_FORMAT_MOD_INVALID,
+                                     false /* disallow afrc */);
+   else if (dev->has_afrc)
+      *count = panfrost_afrc_get_modifiers(format, rate, max, modifiers);
+   else
+      *count = 0;  /* compression requested but not supported */
 }
 
 static bool
@@ -747,7 +433,7 @@ panfrost_is_dmabuf_modifier_supported(struct pipe_screen *screen,
    int count;
 
    panfrost_walk_dmabuf_modifiers(screen, format, 1, &unused, &uint_extern_only,
-                                  &count, modifier);
+                                  &count, modifier, true);
 
    if (external_only)
       *external_only = uint_extern_only ? true : false;
@@ -867,6 +553,253 @@ panfrost_get_compute_param(struct pipe_screen *pscreen,
 }
 
 static void
+panfrost_init_screen_caps(struct panfrost_screen *screen)
+{
+   struct pipe_caps *caps = (struct pipe_caps *)&screen->base.caps;
+
+   u_init_pipe_screen_caps(&screen->base, 1);
+
+   struct panfrost_device *dev = &screen->dev;
+
+   /* Our GL 3.x implementation is WIP */
+   bool is_gl3 = dev->debug & PAN_DBG_GL3;
+
+   /* Native MRT is introduced with v5 */
+   bool has_mrt = (dev->arch >= 5);
+
+   caps->npot_textures = true;
+   caps->mixed_color_depth_bits = true;
+   caps->fragment_shader_texture_lod = true;
+   caps->vertex_color_unclamped = true;
+   caps->depth_clip_disable = true;
+   caps->mixed_framebuffer_sizes = true;
+   caps->frontend_noop = true;
+   caps->sample_shading = true;
+   caps->fragment_shader_derivatives = true;
+   caps->framebuffer_no_attachment = true;
+   caps->quads_follow_provoking_vertex_convention = true;
+   caps->shader_pack_half_float = true;
+   caps->has_const_bw = true;
+
+   /* Removed in v9 (Valhall) */
+   caps->depth_clip_disable_separate = dev->arch < 9;
+
+   caps->max_render_targets =
+   caps->fbfetch = has_mrt ? 8 : 1;
+   caps->fbfetch_coherent = true;
+
+   caps->max_dual_source_render_targets = 1;
+
+   caps->occlusion_query = true;
+   caps->primitive_restart = true;
+   caps->primitive_restart_fixed_index = true;
+
+   caps->anisotropic_filter =
+      panfrost_device_gpu_rev(dev) >= dev->model->min_rev_anisotropic;
+
+   /* Compile side is done for Bifrost, Midgard TODO. Needs some kernel
+    * work to turn on, since CYCLE_COUNT_START needs to be issued. In
+    * kbase, userspace requests this via BASE_JD_REQ_PERMON. There is not
+    * yet way to request this with mainline TODO */
+   caps->shader_clock = false;
+
+   caps->vs_instanceid = true;
+   caps->texture_multisample = true;
+   caps->surface_sample_count = true;
+
+   caps->sampler_view_target = true;
+   caps->clip_halfz = true;
+   caps->polygon_offset_clamp = true;
+   caps->texture_swizzle = true;
+   caps->texture_mirror_clamp_to_edge = true;
+   caps->vertex_element_instance_divisor = true;
+   caps->blend_equation_separate = true;
+   caps->indep_blend_enable = true;
+   caps->indep_blend_func = true;
+   caps->generate_mipmap = true;
+   caps->uma = true;
+   caps->texture_float_linear = true;
+   caps->texture_half_float_linear = true;
+   caps->shader_array_components = true;
+   caps->texture_buffer_objects = true;
+   caps->packed_uniforms = true;
+   caps->image_load_formatted = true;
+   caps->cube_map_array = true;
+   caps->compute = true;
+   caps->int64 = true;
+
+   caps->copy_between_compressed_and_plain_formats = true;
+
+   caps->max_stream_output_buffers = PIPE_MAX_SO_BUFFERS;
+
+   caps->max_stream_output_separate_components =
+   caps->max_stream_output_interleaved_components = PIPE_MAX_SO_OUTPUTS;
+
+   caps->stream_output_pause_resume = true;
+   caps->stream_output_interleave_buffers = true;
+
+   caps->max_texture_array_layers = 2048;
+
+   caps->glsl_feature_level =
+   caps->glsl_feature_level_compatibility = is_gl3 ? 330 : 140;
+   caps->essl_feature_level = dev->arch >= 6 ? 320 : 310;
+
+   caps->constant_buffer_offset_alignment = 16;
+
+   /* v7 (only) restricts component orders with AFBC. To workaround, we
+    * compose format swizzles with texture swizzles. pan_texture.c motsly
+    * handles this but we need to fix up the border colour.
+    */
+   caps->texture_border_color_quirk = dev->arch == 7 || dev->arch >= 10 ?
+      PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO : 0;
+
+   caps->max_texel_buffer_elements = PAN_MAX_TEXEL_BUFFER_ELEMENTS;
+
+   /* Must be at least 64 for correct behaviour */
+   caps->texture_buffer_offset_alignment = 64;
+
+   caps->query_time_elapsed =
+   caps->query_timestamp =
+      dev->kmod.props.gpu_can_query_timestamp &&
+      dev->kmod.props.timestamp_frequency != 0;
+
+   caps->timer_resolution = pan_gpu_time_to_ns(dev, 1);
+
+   /* The hardware requires element alignment for data conversion to work
+    * as expected. If data conversion is not required, this restriction is
+    * lifted on Midgard at a performance penalty. We conservatively
+    * require element alignment for vertex buffers, using u_vbuf to
+    * translate to match the hardware requirement.
+    *
+    * This is less heavy-handed than PIPE_VERTEX_INPUT_ALIGNMENT_4BYTE, which
+    * would needlessly require alignment even for 8-bit formats.
+    */
+   caps->vertex_input_alignment = PIPE_VERTEX_INPUT_ALIGNMENT_ELEMENT;
+
+   caps->max_texture_2d_size = 1 << (PAN_MAX_MIP_LEVELS - 1);
+
+   caps->max_texture_3d_levels =
+   caps->max_texture_cube_levels = PAN_MAX_MIP_LEVELS;
+
+   /* pixel coord is in integer sysval on bifrost. */
+   caps->fs_coord_pixel_center_integer = dev->arch >= 6;
+   caps->fs_coord_pixel_center_half_integer = dev->arch < 6;
+
+   /* Hardware is upper left */
+   caps->fs_coord_origin_lower_left = false;
+
+   caps->fs_coord_origin_upper_left = true;
+   caps->tgsi_texcoord = true;
+
+   /* We would prefer varyings on Midgard, but proper sysvals on Bifrost */
+   caps->fs_face_is_integer_sysval =
+   caps->fs_position_is_sysval =
+   caps->fs_point_is_sysval = dev->arch >= 6;
+
+   caps->seamless_cube_map = true;
+   caps->seamless_cube_map_per_texture = true;
+
+   caps->max_vertex_element_src_offset = 0xffff;
+
+   caps->texture_transfer_modes = 0;
+
+   caps->endianness = PIPE_ENDIAN_NATIVE;
+
+   caps->max_texture_gather_components = 4;
+
+   caps->min_texture_gather_offset = -8;
+
+   caps->max_texture_gather_offset = 7;
+
+   uint64_t system_memory;
+   caps->video_memory = os_get_total_physical_memory(&system_memory) ?
+      system_memory >> 20 : 0;
+
+   caps->shader_stencil_export = true;
+   caps->conditional_render = true;
+   caps->conditional_render_inverted = true;
+
+   caps->shader_buffer_offset_alignment = 4;
+
+   caps->max_varyings = dev->arch >= 9 ? 16 : 32;
+
+   /* Removed in v6 (Bifrost) */
+   caps->gl_clamp =
+   caps->texture_mirror_clamp =
+   caps->alpha_test = dev->arch <= 5;
+
+   /* Removed in v9 (Valhall). PRIMTIIVE_RESTART_FIXED_INDEX is of course
+    * still supported as it is core GLES3.0 functionality
+    */
+   caps->emulate_nonfixed_primitive_restart = dev->arch >= 9;
+
+   caps->flatshade = false;
+   caps->two_sided_color = false;
+   caps->clip_planes = 0;
+
+   caps->packed_stream_output = false;
+
+   caps->viewport_transform_lowered = true;
+   caps->psiz_clamped = true;
+
+   caps->nir_images_as_deref = false;
+
+   caps->draw_indirect = true;
+
+   caps->multi_draw_indirect = dev->arch >= 10;
+
+   caps->start_instance =
+   caps->draw_parameters = pan_is_bifrost(dev);
+
+   /* Mali supports GLES and QUADS. Midgard and v6 Bifrost
+    * support more */
+   uint32_t modes = BITFIELD_MASK(MESA_PRIM_QUADS + 1);
+
+   if (dev->arch <= 6) {
+      modes |= BITFIELD_BIT(MESA_PRIM_QUAD_STRIP);
+      modes |= BITFIELD_BIT(MESA_PRIM_POLYGON);
+   }
+
+   if (dev->arch >= 9) {
+      /* Although Valhall is supposed to support quads, they
+       * don't seem to work correctly. Disable to fix
+       * arb-provoking-vertex-render.
+       */
+      modes &= ~BITFIELD_BIT(MESA_PRIM_QUADS);
+   }
+
+   caps->supported_prim_modes =
+   caps->supported_prim_modes_with_restart = modes;
+
+   caps->image_store_formatted = true;
+
+   caps->native_fence_fd = true;
+
+   caps->context_priority_mask =
+      from_kmod_group_allow_priority_flags(
+         dev->kmod.props.allowed_group_priorities_mask);
+
+   caps->astc_decode_mode = dev->arch >= 9 && (dev->compressed_formats & (1 << 30));
+
+   caps->min_line_width =
+   caps->min_line_width_aa =
+   caps->min_point_size =
+   caps->min_point_size_aa = 1;
+
+   caps->point_size_granularity =
+   caps->line_width_granularity = 0.0625;
+
+   caps->max_line_width =
+   caps->max_line_width_aa =
+   caps->max_point_size =
+   caps->max_point_size_aa = 4095.9375;
+
+   caps->max_texture_anisotropy = 16.0;
+
+   caps->max_texture_lod_bias = 16.0; /* arbitrary */
+}
+
+static void
 panfrost_destroy_screen(struct pipe_screen *pscreen)
 {
    struct panfrost_device *dev = pan_device(pscreen);
@@ -953,7 +886,11 @@ panfrost_create_screen(int fd, const struct pipe_screen_config *config,
       debug_get_flags_option("PAN_MESA_DEBUG", panfrost_debug_options, 0);
    screen->max_afbc_packing_ratio = debug_get_num_option(
       "PAN_MAX_AFBC_PACKING_RATIO", DEFAULT_MAX_AFBC_PACKING_RATIO);
-   panfrost_open_device(screen, fd, dev);
+
+   if (panfrost_open_device(screen, fd, dev)) {
+      ralloc_free(screen);
+      return NULL;
+   }
 
    if (dev->debug & PAN_DBG_NO_AFBC)
       dev->has_afbc = false;
@@ -998,10 +935,8 @@ panfrost_create_screen(int fd, const struct pipe_screen_config *config,
    screen->base.get_vendor = panfrost_get_vendor;
    screen->base.get_device_vendor = panfrost_get_device_vendor;
    screen->base.get_driver_query_info = panfrost_get_driver_query_info;
-   screen->base.get_param = panfrost_get_param;
    screen->base.get_shader_param = panfrost_get_shader_param;
    screen->base.get_compute_param = panfrost_get_compute_param;
-   screen->base.get_paramf = panfrost_get_paramf;
    screen->base.get_timestamp = panfrost_get_timestamp;
    screen->base.is_format_supported = panfrost_is_format_supported;
    screen->base.query_dmabuf_modifiers = panfrost_query_dmabuf_modifiers;
@@ -1022,12 +957,18 @@ panfrost_create_screen(int fd, const struct pipe_screen_config *config,
    pan_blend_shader_cache_init(&dev->blend_shaders,
                                panfrost_device_gpu_id(dev));
 
+   panfrost_init_screen_caps(screen);
+
    panfrost_disk_cache_init(screen);
 
-   panfrost_pool_init(&screen->mempools.bin, NULL, dev, PAN_BO_EXECUTE, 4096,
-                      "Preload shaders", false, true);
-   panfrost_pool_init(&screen->mempools.desc, NULL, dev, 0, 65536,
-                      "Preload RSDs", false, true);
+   if (panfrost_pool_init(&screen->mempools.bin, NULL, dev, PAN_BO_EXECUTE,
+                          4096, "Preload shaders", false, true) ||
+       panfrost_pool_init(&screen->mempools.desc, NULL, dev, 0, 65536,
+                          "Preload RSDs", false, true)) {
+      panfrost_destroy_screen(&(screen->base));
+      return NULL;
+   }
+
    if (dev->arch == 4)
       panfrost_cmdstream_screen_init_v4(screen);
    else if (dev->arch == 5)

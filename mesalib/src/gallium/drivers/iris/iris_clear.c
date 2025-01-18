@@ -307,13 +307,58 @@ fast_clear_color(struct iris_context *ice,
                     box->x, box->y, box->x + box->width,
                     box->y + box->height);
    blorp_batch_finish(&blorp_batch);
-   iris_emit_end_of_pipe_sync(batch,
-                              "fast clear: post flush",
-                              PIPE_CONTROL_RENDER_TARGET_FLUSH |
-                              (devinfo->verx10 == 120 ?
-                                 PIPE_CONTROL_TILE_CACHE_FLUSH |
-                                 PIPE_CONTROL_DEPTH_STALL : 0) |
-                              PIPE_CONTROL_PSS_STALL_SYNC);
+
+   if (devinfo->verx10 >= 125) {
+      /* From the ACM PRM Vol. 9, "Color Fast Clear Synchronization":
+       *
+       *    Postamble post fast clear synchronization
+       *
+       *    PIPE_CONTROL:
+       *    PS sync stall = 1
+       *    RT flush = 1
+       */
+      iris_emit_pipe_control_flush(batch, "fast clear: post flush",
+                                   PIPE_CONTROL_RENDER_TARGET_FLUSH |
+                                   PIPE_CONTROL_PSS_STALL_SYNC);
+   } else if (devinfo->verx10 == 120) {
+      /* From the TGL PRM Vol. 9, "Color Fast Clear Synchronization":
+       *
+       *    Postamble post fast clear synchronization
+       *
+       *    PIPE_CONTROL:
+       *    Depth Stall = 1
+       *    Tile Cache Flush = 1
+       *    RT Write Flush = 1
+       *
+       * From the TGL PRM Vol. 2a, "PIPE_CONTROL::L3 Fabric Flush":
+       *
+       *    For a sequence of color fast clears. A single PIPE_CONTROL
+       *    command with Render Target Cache Flush, L3 Fabric Flush and Depth
+       *    Stall set at the end of the sequence suffices.
+       *
+       * Replace the Tile Cache flush with an L3 fabric flush.
+       */
+      iris_emit_pipe_control_flush(batch, "fast clear: post flush",
+                                   PIPE_CONTROL_DEPTH_STALL |
+                                   PIPE_CONTROL_L3_FABRIC_FLUSH |
+                                   PIPE_CONTROL_RENDER_TARGET_FLUSH);
+   } else {
+      /* From the Sky Lake PRM Vol. 7, "Render Target Fast Clear":
+       *
+       *    After Render target fast clear, pipe-control with color cache
+       *    write-flush must be issued before sending any DRAW commands on
+       *    that render target.
+       *
+       * From the Sky Lake PRM Vol. 7, "MCS Buffer for Render Target(s)":
+       *
+       *    Any transition from any value in {Clear, Render, Resolve} to a
+       *    different value in {Clear, Render, Resolve} requires end of pipe
+       *    synchronization.
+       */
+      iris_emit_end_of_pipe_sync(batch, "fast clear: post flush",
+                                 PIPE_CONTROL_RENDER_TARGET_FLUSH);
+   }
+
    iris_batch_sync_region_end(batch);
 
    iris_resource_set_aux_state(ice, res, level, box->z,

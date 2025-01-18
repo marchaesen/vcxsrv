@@ -363,7 +363,7 @@ nir_lower_aapoint_impl(nir_function_impl *impl, lower_aapoint *state,
 
    switch (bool_type) {
    case nir_type_bool1:
-      sel = nir_b32csel(b, nir_fge(b, k, dist), coverage, chan_val_one);
+      sel = nir_bcsel(b, nir_fge(b, k, dist), coverage, chan_val_one);
       break;
    case nir_type_bool32:
       sel = nir_b32csel(b, nir_fge32(b, k, dist), coverage, chan_val_one);

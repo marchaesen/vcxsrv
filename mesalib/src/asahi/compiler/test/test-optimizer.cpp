@@ -37,6 +37,7 @@ agx_optimize_and_dce(agx_context *ctx)
 
 #define CASE16(instr, expected) CASE(instr, expected, 16, true)
 #define CASE32(instr, expected) CASE(instr, expected, 32, true)
+#define CASE64(instr, expected) CASE(instr, expected, 64, true)
 
 #define CASE_NO_RETURN(instr, expected)                                        \
    CASE(instr, expected, 32 /* irrelevant */, false)
@@ -58,6 +59,9 @@ class Optimizer : public testing::Test {
    {
       mem_ctx = ralloc_context(NULL);
 
+      dx = agx_register(0, AGX_SIZE_64);
+      dz = agx_register(4, AGX_SIZE_64);
+
       wx = agx_register(0, AGX_SIZE_32);
       wy = agx_register(2, AGX_SIZE_32);
       wz = agx_register(4, AGX_SIZE_32);
@@ -74,7 +78,7 @@ class Optimizer : public testing::Test {
 
    void *mem_ctx;
 
-   agx_index wx, wy, wz, hx, hy, hz;
+   agx_index dx, dz, wx, wy, wz, hx, hy, hz;
 };
 
 TEST_F(Optimizer, FloatCopyprop)
@@ -228,6 +232,60 @@ TEST_F(Optimizer, Copyprop)
           agx_fmul_to(b, out, wx, wy));
 }
 
+TEST_F(Optimizer, SourceZeroExtend)
+{
+   CASE32(
+      {
+         agx_index t = agx_temp(b->shader, AGX_SIZE_32);
+         agx_mov_to(b, t, hy);
+         agx_ffs_to(b, out, t);
+      },
+      agx_ffs_to(b, out, hy));
+}
+
+TEST_F(Optimizer, AddSourceZeroExtend)
+{
+   CASE32(
+      {
+         agx_index t = agx_temp(b->shader, AGX_SIZE_32);
+         agx_mov_to(b, t, hy);
+         agx_iadd_to(b, out, wx, t, 1);
+      },
+      agx_iadd_to(b, out, wx, agx_abs(hy), 1));
+}
+
+TEST_F(Optimizer, AddSourceSignExtend)
+{
+   CASE32(
+      {
+         agx_index t = agx_temp(b->shader, AGX_SIZE_32);
+         agx_signext_to(b, t, hy);
+         agx_iadd_to(b, out, wx, t, 1);
+      },
+      agx_iadd_to(b, out, wx, hy, 1));
+}
+
+TEST_F(Optimizer, SubInlineImmediate)
+{
+   CASE16(agx_iadd_to(b, out, hx, agx_mov_imm(b, 16, -2), 0),
+          agx_iadd_to(b, out, hx, agx_neg(agx_immediate(2)), 0));
+
+   CASE32(agx_iadd_to(b, out, wx, agx_mov_imm(b, 32, -1), 0),
+          agx_iadd_to(b, out, wx, agx_neg(agx_immediate(1)), 0));
+
+   CASE64(agx_iadd_to(b, out, dx, agx_mov_imm(b, 64, -17), 0),
+          agx_iadd_to(b, out, dx, agx_neg(agx_immediate(17)), 0));
+
+   CASE16(agx_imad_to(b, out, hx, hy, agx_mov_imm(b, 16, -2), 0),
+          agx_imad_to(b, out, hx, hy, agx_neg(agx_immediate(2)), 0));
+
+   CASE32(agx_imad_to(b, out, wx, wy, agx_mov_imm(b, 32, -1), 0),
+          agx_imad_to(b, out, wx, wy, agx_neg(agx_immediate(1)), 0));
+
+   CASE64(agx_imad_to(b, out, dx, dz, agx_mov_imm(b, 64, -17), 0),
+          agx_imad_to(b, out, dx, dz, agx_neg(agx_immediate(17)), 0));
+}
+
 TEST_F(Optimizer, InlineHazards)
 {
    NEGCASE32({
@@ -280,7 +338,7 @@ TEST_F(Optimizer, IntCopypropDoesntConvert)
    NEGCASE32({
       agx_index cvt = agx_temp(b->shader, AGX_SIZE_32);
       agx_mov_to(b, cvt, hx);
-      agx_xor_to(b, out, cvt, wy);
+      agx_fmul_to(b, out, cvt, wy);
    });
 }
 

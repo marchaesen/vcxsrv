@@ -265,7 +265,8 @@ FcDirScanConfig (FcFontSet	*set,
     /*
      * Sort files to make things prettier
      */
-    qsort(files->strs, files->num, sizeof(FcChar8 *), cmpstringp);
+    if (files->num)
+        qsort(files->strs, files->num, sizeof(FcChar8 *), cmpstringp);
 
     /*
      * Scan file files to build font patterns

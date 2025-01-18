@@ -114,7 +114,10 @@ class VulkanReservedMarshalingCodegen(VulkanTypeIterator):
             else:
                 pass
 
-            streamNamespace = "android::base"
+            if self.variant == "guest":
+                streamNamespace = "gfxstream::aemu"
+            else:
+                streamNamespace = "android::base"
             if self.direction == "write":
                 self.cgen.stmt("%s::Stream::%s((uint8_t*)*%s)" % (streamNamespace, streamMethod, varname))
             else:
@@ -864,7 +867,7 @@ class VulkanReservedMarshaling(VulkanWrapperGenerator):
                 self.module.appendHeader(
                     self.cgenHeader.makeFuncDecl(marshalPrototype))
 
-                if name in CUSTOM_MARSHAL_TYPES:
+                if name in CUSTOM_MARSHAL_TYPES and CUSTOM_MARSHAL_TYPES[name].get("reservedmarshaling"):
                     self.module.appendImpl(
                         self.cgenImpl.makeFuncImpl(
                             marshalPrototype, structMarshalingCustom))
@@ -934,7 +937,7 @@ class VulkanReservedMarshaling(VulkanWrapperGenerator):
                 self.module.appendHeader(
                     self.cgenHeader.makeFuncDecl(unmarshalPrototype))
 
-                if name in CUSTOM_MARSHAL_TYPES:
+                if name in CUSTOM_MARSHAL_TYPES and CUSTOM_MARSHAL_TYPES[name].get("reservedunmarshaling"):
                     self.module.appendImpl(
                         self.cgenImpl.makeFuncImpl(
                             unmarshalPrototype, structUnmarshalingCustom))
@@ -970,7 +973,10 @@ class VulkanReservedMarshaling(VulkanWrapperGenerator):
 
         cgen.line("// known or null extension struct")
 
-        streamNamespace = "android::base"
+        if self.variant == "guest":
+            streamNamespace = "gfxstream::aemu"
+        else:
+            streamNamespace = "android::base"
 
         if direction == "write":
             cgen.stmt("memcpy(*%s, &%s, sizeof(uint32_t));" % (self.ptrVarName, sizeVar))

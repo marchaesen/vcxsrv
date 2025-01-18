@@ -2,5 +2,6 @@
 piglit_folder = "/piglit"
 profile = "cl"
 process_isolation = true
+timeout = 120.0
   [piglit.env]
   RUSTICL_ENABLE = "llvmpipe"

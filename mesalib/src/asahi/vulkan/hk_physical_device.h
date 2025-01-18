@@ -46,6 +46,7 @@ struct hk_physical_device {
    VkMemoryType mem_types[3];
    uint8_t mem_heap_count;
    uint8_t mem_type_count;
+   uint64_t sysmem;
 
    struct hk_queue_family queue_families[3];
    uint8_t queue_family_count;

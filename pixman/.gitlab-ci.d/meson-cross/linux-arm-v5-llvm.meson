@@ -1,8 +1,6 @@
 [binaries]
-c = ['clang', '-DCI_HAS_ALL_MIPS_CPU_FEATURES']
+c = 'clang'
 ar = 'llvm-ar'
 strip = 'llvm-strip'
 pkg-config = 'pkg-config'
-
-[project options]
-openmp = 'disabled'
+exe_wrapper = ['qemu-arm', '-cpu', 'arm1136']

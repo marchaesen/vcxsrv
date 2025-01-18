@@ -2,6 +2,8 @@
 
 set -ex
 
+uncollapsed_section_start gfxreconstruct "Building gfxreconstruct"
+
 GFXRECONSTRUCT_VERSION=761837794a1e57f918a85af7000b12e531b178ae
 
 git clone https://github.com/LunarG/gfxreconstruct.git \
@@ -17,3 +19,5 @@ cmake -S . -B _build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:
 cmake --build _build --parallel --target tools/{replay,info}/install/strip
 find . -not -path './build' -not -path './build/*' -delete
 popd
+
+section_end gfxreconstruct

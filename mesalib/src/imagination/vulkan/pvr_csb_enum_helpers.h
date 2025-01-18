@@ -28,7 +28,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "pvr_csb.h"
-#include "rogue/rogue.h"
+#include "pvr_private.h"
 #include "util/macros.h"
 
 static const char *
@@ -52,19 +52,19 @@ pvr_cmd_stream_type_to_str(const enum pvr_cmd_stream_type stream_type)
 
 /* TODO: Use VkSampleCountFlagBits as param type? */
 /* clang-format off */
-static inline enum PVRX(CR_ISP_AA_MODE_TYPE)
+static inline enum ROGUE_CR_ISP_AA_MODE_TYPE
 pvr_cr_isp_aa_mode_type(uint32_t samples)
 /* clang-format on */
 {
    switch (samples) {
    case 1:
-      return PVRX(CR_ISP_AA_MODE_TYPE_AA_NONE);
+      return ROGUE_CR_ISP_AA_MODE_TYPE_AA_NONE;
    case 2:
-      return PVRX(CR_ISP_AA_MODE_TYPE_AA_2X);
+      return ROGUE_CR_ISP_AA_MODE_TYPE_AA_2X;
    case 4:
-      return PVRX(CR_ISP_AA_MODE_TYPE_AA_4X);
+      return ROGUE_CR_ISP_AA_MODE_TYPE_AA_4X;
    case 8:
-      return PVRX(CR_ISP_AA_MODE_TYPE_AA_8X);
+      return ROGUE_CR_ISP_AA_MODE_TYPE_AA_8X;
    default:
       unreachable("Unsupported number of samples");
    }
@@ -72,16 +72,16 @@ pvr_cr_isp_aa_mode_type(uint32_t samples)
 
 /* clang-format off */
 static inline bool
-pvr_zls_format_type_is_packed(enum PVRX(CR_ZLS_FORMAT_TYPE) type)
+pvr_zls_format_type_is_packed(enum ROGUE_CR_ZLS_FORMAT_TYPE type)
 /* clang-format on */
 {
    switch (type) {
-   case PVRX(CR_ZLS_FORMAT_TYPE_24BITINT):
-   case PVRX(CR_ZLS_FORMAT_TYPE_F64Z):
+   case ROGUE_CR_ZLS_FORMAT_TYPE_24BITINT:
+   case ROGUE_CR_ZLS_FORMAT_TYPE_F64Z:
       return true;
 
-   case PVRX(CR_ZLS_FORMAT_TYPE_F32Z):
-   case PVRX(CR_ZLS_FORMAT_TYPE_16BITINT):
+   case ROGUE_CR_ZLS_FORMAT_TYPE_F32Z:
+   case ROGUE_CR_ZLS_FORMAT_TYPE_16BITINT:
       return false;
 
    default:
@@ -91,41 +91,20 @@ pvr_zls_format_type_is_packed(enum PVRX(CR_ZLS_FORMAT_TYPE) type)
 
 /* clang-format off */
 static inline bool
-pvr_zls_format_type_is_int(enum PVRX(CR_ZLS_FORMAT_TYPE) type)
+pvr_zls_format_type_is_int(enum ROGUE_CR_ZLS_FORMAT_TYPE type)
 /* clang-format on */
 {
    switch (type) {
-   case PVRX(CR_ZLS_FORMAT_TYPE_24BITINT):
-   case PVRX(CR_ZLS_FORMAT_TYPE_16BITINT):
+   case ROGUE_CR_ZLS_FORMAT_TYPE_24BITINT:
+   case ROGUE_CR_ZLS_FORMAT_TYPE_16BITINT:
       return true;
 
-   case PVRX(CR_ZLS_FORMAT_TYPE_F32Z):
-   case PVRX(CR_ZLS_FORMAT_TYPE_F64Z):
+   case ROGUE_CR_ZLS_FORMAT_TYPE_F32Z:
+   case ROGUE_CR_ZLS_FORMAT_TYPE_F64Z:
       return false;
 
    default:
       unreachable("Invalid ZLS format type");
-   }
-}
-
-/******************************************************************************
-   PDS
- ******************************************************************************/
-
-/* clang-format off */
-static inline enum PVRX(PDSINST_DOUTU_SAMPLE_RATE)
-pvr_pdsinst_doutu_sample_rate_from_rogue(enum rogue_msaa_mode msaa_mode)
-/* clang-format on */
-{
-   switch (msaa_mode) {
-   case ROGUE_MSAA_MODE_PIXEL:
-      return PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE);
-   case ROGUE_MSAA_MODE_SELECTIVE:
-      return PVRX(PDSINST_DOUTU_SAMPLE_RATE_SELECTIVE);
-   case ROGUE_MSAA_MODE_FULL:
-      return PVRX(PDSINST_DOUTU_SAMPLE_RATE_FULL);
-   default:
-      unreachable("Undefined MSAA mode.");
    }
 }
 
@@ -176,39 +155,39 @@ pvr_pbestate_source_pos(enum pvr_pbe_source_start_pos pos)
    TA
  ******************************************************************************/
 
-static inline enum PVRX(TA_CMPMODE) pvr_ta_cmpmode(VkCompareOp op)
+static inline enum ROGUE_TA_CMPMODE pvr_ta_cmpmode(VkCompareOp op)
 {
    /* enum values are identical, so we can just cast the input directly. */
-   return (enum PVRX(TA_CMPMODE))op;
+   return (enum ROGUE_TA_CMPMODE)op;
 }
 
-static inline enum PVRX(TA_ISPB_STENCILOP) pvr_ta_stencilop(VkStencilOp op)
+static inline enum ROGUE_TA_ISPB_STENCILOP pvr_ta_stencilop(VkStencilOp op)
 {
    /* enum values are identical, so we can just cast the input directly. */
-   return (enum PVRX(TA_ISPB_STENCILOP))op;
+   return (enum ROGUE_TA_ISPB_STENCILOP)op;
 }
 
 /* clang-format off */
-static inline enum PVRX(TA_OBJTYPE)
+static inline enum ROGUE_TA_OBJTYPE
 pvr_ta_objtype(VkPrimitiveTopology topology)
 /* clang-format on */
 {
    switch (topology) {
    case VK_PRIMITIVE_TOPOLOGY_POINT_LIST:
-      return PVRX(TA_OBJTYPE_SPRITE_01UV);
+      return ROGUE_TA_OBJTYPE_SPRITE_01UV;
 
    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST:
    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP:
    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY:
    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY:
-      return PVRX(TA_OBJTYPE_LINE);
+      return ROGUE_TA_OBJTYPE_LINE;
 
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST:
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP:
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY:
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
-      return PVRX(TA_OBJTYPE_TRIANGLE);
+      return ROGUE_TA_OBJTYPE_TRIANGLE;
 
    default:
       unreachable("Invalid topology.");
@@ -220,10 +199,10 @@ pvr_ta_objtype(VkPrimitiveTopology topology)
    TEXSTATE
  ******************************************************************************/
 
-static inline enum PVRX(TEXSTATE_CMP_MODE) pvr_texstate_cmpmode(VkCompareOp op)
+static inline enum ROGUE_TEXSTATE_CMP_MODE pvr_texstate_cmpmode(VkCompareOp op)
 {
    /* enum values are identical, so we can just cast the input directly. */
-   return (enum PVRX(TEXSTATE_CMP_MODE))op;
+   return (enum ROGUE_TEXSTATE_CMP_MODE)op;
 }
 
 /******************************************************************************
@@ -232,31 +211,31 @@ static inline enum PVRX(TEXSTATE_CMP_MODE) pvr_texstate_cmpmode(VkCompareOp op)
 
 /* clang-format off */
 static inline uint32_t
-pvr_vdmctrl_index_size_nr_bytes(enum PVRX(VDMCTRL_INDEX_SIZE) index_size)
+pvr_vdmctrl_index_size_nr_bytes(enum ROGUE_VDMCTRL_INDEX_SIZE index_size)
 /* clang-format on */
 {
    switch (index_size) {
-   case PVRX(VDMCTRL_INDEX_SIZE_B8):
+   case ROGUE_VDMCTRL_INDEX_SIZE_B8:
       return 1;
-   case PVRX(VDMCTRL_INDEX_SIZE_B16):
+   case ROGUE_VDMCTRL_INDEX_SIZE_B16:
       return 2;
-   case PVRX(VDMCTRL_INDEX_SIZE_B32):
+   case ROGUE_VDMCTRL_INDEX_SIZE_B32:
       return 4;
    default:
       return 0;
    }
 }
 
-static enum PVRX(VDMCTRL_INDEX_SIZE)
-   pvr_vdmctrl_index_size_from_type(VkIndexType type)
+static enum ROGUE_VDMCTRL_INDEX_SIZE
+pvr_vdmctrl_index_size_from_type(VkIndexType type)
 {
    switch (type) {
    case VK_INDEX_TYPE_UINT32:
-      return PVRX(VDMCTRL_INDEX_SIZE_B32);
+      return ROGUE_VDMCTRL_INDEX_SIZE_B32;
    case VK_INDEX_TYPE_UINT16:
-      return PVRX(VDMCTRL_INDEX_SIZE_B16);
+      return ROGUE_VDMCTRL_INDEX_SIZE_B16;
    case VK_INDEX_TYPE_UINT8_KHR:
-      return PVRX(VDMCTRL_INDEX_SIZE_B8);
+      return ROGUE_VDMCTRL_INDEX_SIZE_B8;
    default:
       unreachable("Invalid index type");
    }

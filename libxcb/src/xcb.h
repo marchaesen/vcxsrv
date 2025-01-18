@@ -29,11 +29,7 @@
 #define __XCB_H__
 #include <sys/types.h>
 
-#if defined(__solaris__)
-#include <inttypes.h>
-#else
 #include <stdint.h>
-#endif
 
 #ifndef _WIN32
 #include <sys/uio.h>
@@ -51,10 +47,34 @@ extern "C" {
  * @file xcb.h
  */
 
-#ifdef __GNUC__
+#ifndef __has_attribute
+# define __has_attribute(x) 0  /* Compatibility with older compilers. */
+#endif
+
+/*
+ * For the below checks, we currently assume that __GNUC__ indicates
+ * gcc 3.0 (released 2001) or later, as we require support for C99.
+ */
+
+/* Supported in gcc 2.5 and later */
+#if defined(__GNUC__) || __has_attribute(__const__)
+#define XCB_CONST_FUNCTION __attribute__((__const__))
+#else
+#define XCB_CONST_FUNCTION XCB_PURE_FUNCTION
+#endif
+
+/* Supported in gcc 2.7 and later */
+#if defined(__GNUC__) ||  __has_attribute(__packed__)
 #define XCB_PACKED __attribute__((__packed__))
 #else
 #define XCB_PACKED
+#endif
+
+/* Supported in gcc 2.96 and later */
+#if defined(__GNUC__) || __has_attribute(__pure__)
+#define XCB_PURE_FUNCTION __attribute__((__pure__))
+#else
+#define XCB_PURE_FUNCTION
 #endif
 
 /**
@@ -469,6 +489,7 @@ void xcb_prefetch_extension_data(xcb_connection_t *c, xcb_extension_t *ext);
  *
  * The result must not be freed.
  */
+XCB_PURE_FUNCTION
 const struct xcb_setup_t *xcb_get_setup(xcb_connection_t *c);
 
 /**
@@ -479,6 +500,7 @@ const struct xcb_setup_t *xcb_get_setup(xcb_connection_t *c);
  * Accessor for the file descriptor that was passed to the
  * xcb_connect_to_fd call that returned @p c.
  */
+XCB_PURE_FUNCTION
 int xcb_get_file_descriptor(xcb_connection_t *c);
 
 /**
@@ -499,6 +521,7 @@ int xcb_get_file_descriptor(xcb_connection_t *c);
  * @return XCB_CONN_CLOSED_PARSE_ERR, error during parsing display string.
  * @return XCB_CONN_CLOSED_INVALID_SCREEN, because the server does not have a screen matching the display.
  */
+XCB_PURE_FUNCTION
 int xcb_connection_has_error(xcb_connection_t *c);
 
 /**

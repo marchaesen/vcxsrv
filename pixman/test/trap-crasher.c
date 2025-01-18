@@ -35,5 +35,8 @@ main()
     dst = pixman_image_create_bits (PIXMAN_a8, 1, 1, NULL, -1);
 
     pixman_add_trapezoids (dst, 0, 0, ARRAY_LENGTH (traps), traps);
+
+    pixman_image_unref (dst);
+
     return (0);
 }

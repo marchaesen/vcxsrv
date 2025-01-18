@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "aemu/base/ring_buffer.h"
+#include "ring_buffer.h"
 
 #include <functional>
 #include <cstddef>

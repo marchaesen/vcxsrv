@@ -32,7 +32,7 @@ virgl-on-gles:
   extends:
     - virgl-on-gl
 
-virgl-traces:
+.virgl-traces:
   extends:
     - .virgl-test
     - .piglit-traces-test
@@ -57,7 +57,7 @@ virgl-traces:
   variables:
     PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=${FDO_HTTP_CACHE_URI}"
 
-virgl-iris-traces-performance:
+.virgl-iris-traces-performance:
   extends:
     - .virgl-iris-test
     - .virgl-iris-rules-performance
@@ -73,6 +73,5 @@ virgl-iris-traces-performance:
     - .virgl-rules
   variables:
     ANDROID_GPU_MODE: drm_virgl
-    ANDROID_DRIVER: virtio_gpu
     GPU_VERSION: virgl-gl
     DEQP_SUITE: android-virgl

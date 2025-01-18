@@ -46,7 +46,7 @@ constexpr unsigned MAX_SUBQUERIES = 4;
 struct d3d12_query_impl {
    ID3D12QueryHeap* query_heap;
    unsigned curr_query, num_queries;
-   size_t query_size;
+   unsigned query_size;
 
    D3D12_QUERY_TYPE d3d12qtype;
 

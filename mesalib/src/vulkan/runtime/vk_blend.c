@@ -68,7 +68,7 @@ vk_blend_op_to_pipe(VkBlendOp in)
 }
 
 enum pipe_blendfactor
-vk_blend_factor_to_pipe(enum VkBlendFactor vk_factor)
+vk_blend_factor_to_pipe(VkBlendFactor vk_factor)
 {
    switch (vk_factor) {
    case VK_BLEND_FACTOR_ZERO:

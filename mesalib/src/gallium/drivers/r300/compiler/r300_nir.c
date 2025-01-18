@@ -143,44 +143,24 @@ r300_optimize_nir(struct nir_shader *s, struct pipe_screen *screen)
    bool is_r500 = r300_screen(screen)->caps.is_r500;
 
    bool progress;
-   if (s->info.stage == MESA_SHADER_FRAGMENT) {
-      if (is_r500) {
-         NIR_PASS_V(s, r300_transform_fs_trig_input);
-      }
-   } else {
-      if (r300_screen(screen)->caps.has_tcl) {
-         if (r300_screen(screen)->caps.is_r500) {
-            /* Only nine should set both NTT shader name and
-             * use_legacy_math_rules and D3D9 already mandates
-             * the proper range for the trigonometric inputs.
-             */
-            if (!s->info.use_legacy_math_rules || !(s->info.name && !strcmp("TTN", s->info.name))) {
-               NIR_PASS_V(s, r300_transform_vs_trig_input);
-            }
-         } else {
-            if (r300_screen(screen)->caps.is_r400) {
-               NIR_PASS_V(s, r300_transform_vs_trig_input);
+   if (s->info.stage == MESA_SHADER_VERTEX && r300_screen(screen)->caps.has_tcl) {
+      /* There is no HW support for gl_ClipVertex, so we just remove it early. */
+      if (nir_shader_instructions_pass(s, remove_clip_vertex,
+                                       nir_metadata_control_flow, NULL)) {
+         unsigned clip_vertex_location = 0;
+         nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
+            if (var->data.location == VARYING_SLOT_CLIP_VERTEX) {
+               clip_vertex_location = var->data.driver_location;
             }
          }
-
-         /* There is no HW support for gl_ClipVertex, so we just remove it early. */
-         if (nir_shader_instructions_pass(s, remove_clip_vertex,
-                                          nir_metadata_control_flow, NULL)) {
-            unsigned clip_vertex_location = 0;
-            nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
-               if (var->data.location == VARYING_SLOT_CLIP_VERTEX) {
-                  clip_vertex_location = var->data.driver_location;
-               }
+         nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
+            if (var->data.driver_location > clip_vertex_location) {
+               var->data.driver_location--;
             }
-            nir_foreach_variable_with_modes(var, s, nir_var_shader_out) {
-               if (var->data.driver_location > clip_vertex_location) {
-                  var->data.driver_location--;
-               }
-            }
-            NIR_PASS_V(s, nir_remove_dead_variables, nir_var_shader_out, NULL);
-            fprintf(stderr, "r300: no HW support for clip vertex, expect misrendering.\n");
-            fprintf(stderr, "r300: software emulation can be enabled with RADEON_DEBUG=notcl.\n");
          }
+         NIR_PASS_V(s, nir_remove_dead_variables, nir_var_shader_out, NULL);
+         fprintf(stderr, "r300: no HW support for clip vertex, expect misrendering.\n");
+         fprintf(stderr, "r300: software emulation can be enabled with RADEON_DEBUG=notcl.\n");
       }
    }
 
@@ -272,10 +252,8 @@ r300_check_control_flow(nir_shader *s)
 }
 
 char *
-r300_finalize_nir(struct pipe_screen *pscreen, void *nir)
+r300_finalize_nir(struct pipe_screen *pscreen, struct nir_shader *s)
 {
-   nir_shader *s = nir;
-
    r300_optimize_nir(s, pscreen);
 
    /* st_program.c's parameter list optimization requires that future nir

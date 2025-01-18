@@ -170,7 +170,7 @@ d3d12_video_processor_end_frame(struct pipe_video_codec * codec,
 
     // Schedule process operation
 
-    pD3D12Proc->m_spCommandList->ProcessFrames1(pD3D12Proc->m_spVideoProcessor.Get(), &pD3D12Proc->m_OutputArguments.args, pD3D12Proc->m_ProcessInputs.size(), pD3D12Proc->m_ProcessInputs.data());
+    pD3D12Proc->m_spCommandList->ProcessFrames1(pD3D12Proc->m_spVideoProcessor.Get(), &pD3D12Proc->m_OutputArguments.args, static_cast<UINT>(pD3D12Proc->m_ProcessInputs.size()), pD3D12Proc->m_ProcessInputs.data());
 
     // Schedule reverse (back to common) transitions before command list closes for current frame
 
@@ -185,7 +185,7 @@ d3d12_video_processor_end_frame(struct pipe_video_codec * codec,
     return 0;
 }
 
-void
+int
 d3d12_video_processor_process_frame(struct pipe_video_codec *codec,
                         struct pipe_video_buffer *input_texture,
                         const struct pipe_vpp_desc *process_properties)
@@ -284,6 +284,7 @@ d3d12_video_processor_process_frame(struct pipe_video_codec *codec,
     /// Flush work to the GPU and blocking wait until GPU finishes
     ///
     pD3D12Proc->m_needsGPUFlush = true;
+    return 0;
 }
 
 void
@@ -348,8 +349,8 @@ d3d12_video_processor_flush(struct pipe_video_codec * codec)
         // this method before resetting list and allocator for next submission.
 
         if (pD3D12Proc->m_transitionsBeforeCloseCmdList.size() > 0) {
-            pD3D12Proc->m_spCommandList->ResourceBarrier(pD3D12Proc->m_transitionsBeforeCloseCmdList.size(),
-                                                            pD3D12Proc->m_transitionsBeforeCloseCmdList.data());
+            pD3D12Proc->m_spCommandList->ResourceBarrier(static_cast<UINT>(pD3D12Proc->m_transitionsBeforeCloseCmdList.size()),
+                                                         pD3D12Proc->m_transitionsBeforeCloseCmdList.data());
             pD3D12Proc->m_transitionsBeforeCloseCmdList.clear();
         }
 
@@ -629,7 +630,7 @@ d3d12_video_processor_check_caps_and_create_processor(struct d3d12_video_process
 
     hr = pD3D12Proc->m_spD3D12VideoDevice->CreateVideoProcessor(pD3D12Proc->m_NodeMask,
                                                             &pD3D12Proc->m_outputStreamDesc,
-                                                            pD3D12Proc->m_inputStreamDescs.size(),
+                                                            static_cast<UINT>(pD3D12Proc->m_inputStreamDescs.size()),
                                                             pD3D12Proc->m_inputStreamDescs.data(),
                                                             IID_PPV_ARGS(pD3D12Proc->m_spVideoProcessor.GetAddressOf()));
     if (FAILED(hr)) {
@@ -741,7 +742,7 @@ d3d12_video_processor_convert_pipe_rotation(enum pipe_video_vpp_orientation orie
     return result;
 }
 
-uint64_t
+unsigned int
 d3d12_video_processor_pool_current_index(struct d3d12_video_processor *pD3D12Proc)
 {
    return pD3D12Proc->m_fenceValue % D3D12_VIDEO_PROC_ASYNC_DEPTH;

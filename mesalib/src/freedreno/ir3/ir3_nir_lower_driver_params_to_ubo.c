@@ -13,6 +13,10 @@ static nir_def *
 load_primitive_map_ubo(nir_builder *b, struct ir3_shader_variant *v,
                        unsigned components, unsigned offset)
 {
+   if (v->binning_pass) {
+      return ir3_load_shared_driver_ubo(
+         b, components, &ir3_const_state(v)->primitive_map_ubo, offset);
+   }
    struct ir3_const_state *const_state = ir3_const_state_mut(v);
    return ir3_load_driver_ubo(b, components, &const_state->primitive_map_ubo,
                               offset);
@@ -22,6 +26,10 @@ static nir_def *
 load_primitive_param_ubo(nir_builder *b, struct ir3_shader_variant *v,
                          unsigned components, unsigned offset)
 {
+   if (v->binning_pass) {
+      return ir3_load_shared_driver_ubo(
+         b, components, &ir3_const_state(v)->primitive_param_ubo, offset);
+   }
    struct ir3_const_state *const_state = ir3_const_state_mut(v);
    return ir3_load_driver_ubo(b, components, &const_state->primitive_param_ubo,
                               offset);
@@ -31,6 +39,10 @@ static nir_def *
 load_driver_params_ubo(nir_builder *b, struct ir3_shader_variant *v,
                        unsigned components, unsigned offset)
 {
+   if (v->binning_pass) {
+      return ir3_load_shared_driver_ubo(
+         b, components, &ir3_const_state(v)->driver_params_ubo, offset);
+   }
    struct ir3_const_state *const_state = ir3_const_state_mut(v);
    return ir3_load_driver_ubo(b, components, &const_state->driver_params_ubo,
                               offset);
@@ -69,15 +81,13 @@ lower_driver_param_to_ubo(nir_builder *b, nir_intrinsic_instr *intr, void *in)
    case nir_intrinsic_load_tess_factor_base_ir3:
       result = load_primitive_param_ubo(b, v, components, 6);
       break;
-   /* These are still loaded using CP_LOAD_STATE for compatibility with indirect
-    * draws where the CP does a CP_LOAD_STATE for us internally:
-    */
-   case nir_intrinsic_load_draw_id:
-   case nir_intrinsic_load_base_vertex:
-   case nir_intrinsic_load_first_vertex:
-   case nir_intrinsic_load_base_instance:
-      return false;
    default: {
+      /* On current hw these are still pushed the old way for VS, because of
+       * the way SQE patches draw_id/base_vertex/first_vertex/base_instance.
+       */
+      if (v->type == MESA_SHADER_VERTEX)
+         return false;
+
       struct driver_param_info param_info;
       if (!ir3_get_driver_param_info(b->shader, intr, &param_info))
          return false;
@@ -99,6 +109,14 @@ ir3_nir_lower_driver_params_to_ubo(nir_shader *nir,
    bool result = nir_shader_intrinsics_pass(
       nir, lower_driver_param_to_ubo,
       nir_metadata_control_flow, v);
+
+   if (result) {
+      const struct ir3_const_state *const_state = ir3_const_state(v);
+
+      ir3_update_driver_ubo(nir, &const_state->primitive_map_ubo, "$primitive_map");
+      ir3_update_driver_ubo(nir, &const_state->primitive_param_ubo, "$primitive_param");
+      ir3_update_driver_ubo(nir, &const_state->driver_params_ubo, "$driver_params");
+   }
 
    return result;
 }

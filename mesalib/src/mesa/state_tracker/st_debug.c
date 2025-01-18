@@ -52,6 +52,7 @@ static const struct debug_named_value st_debug_flags[] = {
    { "wf",       DEBUG_WIREFRAME, NULL },
    { "gremedy",  DEBUG_GREMEDY, "Enable GREMEDY debug extensions" },
    { "noreadpixcache", DEBUG_NOREADPIXCACHE, NULL },
+   { "xfb",      DEBUG_PRINT_XFB, NULL },
    DEBUG_NAMED_VALUE_END
 };
 

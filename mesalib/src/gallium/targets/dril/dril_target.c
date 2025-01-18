@@ -47,25 +47,43 @@
    CONFIG_ZS(color, PIPE_FORMAT_Z16_UNORM), \
    CONFIG_ZS(color, PIPE_FORMAT_NONE) \
 
+/*
+ * (copy of a comment in dri_screen.c:dri_fill_in_modes())
+ *
+ * The 32-bit RGBA format must not precede the 32-bit BGRA format.
+ * Likewise for RGBX and BGRX.  Otherwise, the GLX client and the GLX
+ * server may disagree on which format the GLXFBConfig represents,
+ * resulting in swapped color channels.
+ *
+ * The problem, as of 2017-05-30:
+ * When matching a GLXFBConfig to a __DRIconfig, GLX ignores the channel
+ * order and chooses the first __DRIconfig with the expected channel
+ * sizes. Specifically, GLX compares the GLXFBConfig's and __DRIconfig's
+ * __DRI_ATTRIB_{CHANNEL}_SIZE but ignores __DRI_ATTRIB_{CHANNEL}_MASK.
+ *
+ * EGL does not suffer from this problem. It correctly compares the
+ * channel masks when matching EGLConfig to __DRIconfig.
+ */
+
 static const struct gl_config drilConfigs[] = {
-   CONFIG(PIPE_FORMAT_R8G8B8A8_UNORM),
-   CONFIG(PIPE_FORMAT_R8G8B8X8_UNORM),
    CONFIG(PIPE_FORMAT_B8G8R8A8_UNORM),
    CONFIG(PIPE_FORMAT_B8G8R8X8_UNORM),
-   CONFIG(PIPE_FORMAT_R10G10B10A2_UNORM),
-   CONFIG(PIPE_FORMAT_R10G10B10X2_UNORM),
+   CONFIG(PIPE_FORMAT_R8G8B8A8_UNORM),
+   CONFIG(PIPE_FORMAT_R8G8B8X8_UNORM),
    CONFIG(PIPE_FORMAT_B10G10R10A2_UNORM),
    CONFIG(PIPE_FORMAT_B10G10R10X2_UNORM),
-   CONFIG(PIPE_FORMAT_R5G6B5_UNORM),
-   CONFIG(PIPE_FORMAT_R5G5B5A1_UNORM),
-   CONFIG(PIPE_FORMAT_R5G5B5X1_UNORM),
-   CONFIG(PIPE_FORMAT_R4G4B4A4_UNORM),
-   CONFIG(PIPE_FORMAT_R4G4B4X4_UNORM),
+   CONFIG(PIPE_FORMAT_R10G10B10A2_UNORM),
+   CONFIG(PIPE_FORMAT_R10G10B10X2_UNORM),
    CONFIG(PIPE_FORMAT_B5G6R5_UNORM),
    CONFIG(PIPE_FORMAT_B5G5R5A1_UNORM),
    CONFIG(PIPE_FORMAT_B5G5R5X1_UNORM),
    CONFIG(PIPE_FORMAT_B4G4R4A4_UNORM),
    CONFIG(PIPE_FORMAT_B4G4R4X4_UNORM),
+   CONFIG(PIPE_FORMAT_R5G6B5_UNORM),
+   CONFIG(PIPE_FORMAT_R5G5B5A1_UNORM),
+   CONFIG(PIPE_FORMAT_R5G5B5X1_UNORM),
+   CONFIG(PIPE_FORMAT_R4G4B4A4_UNORM),
+   CONFIG(PIPE_FORMAT_R4G4B4X4_UNORM),
 };
 
 #define RGB UTIL_FORMAT_COLORSPACE_RGB

@@ -120,10 +120,6 @@ struct virgl_drm_cmd_buf {
    struct virgl_hw_res **res_bo;
    struct virgl_winsys *ws;
    uint32_t *res_hlist;
-
-   char                        is_handle_added[512];
-   unsigned                    reloc_indices_hashlist[512];
-
 };
 
 static inline struct virgl_drm_winsys *

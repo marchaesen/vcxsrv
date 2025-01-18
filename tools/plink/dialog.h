@@ -348,21 +348,8 @@ struct dlgcontrol {
              * files the file selector would do well to only show .PPK
              * files (on those systems where this is the chosen
              * extension).
-             *
-             * The precise contents of `filter' are platform-defined,
-             * unfortunately. The special value NULL means `all files'
-             * and is always a valid fallback.
-             *
-             * Unlike almost all strings in this structure, this value
-             * is NOT expected to require freeing (although of course
-             * you can always use ctrl_alloc if you do need to create
-             * one on the fly). This is because the likely mode of use
-             * is to define string constants in a platform-specific
-             * header file, and directly reference those. Or worse, a
-             * particular platform might choose to cast integers into
-             * this pointer type...
              */
-            FILESELECT_FILTER_TYPE filter;
+            FilereqFilter filter;
             /*
              * Some systems like to know whether a file selector is
              * choosing a file to read or one to write (and possibly
@@ -552,7 +539,7 @@ dlgcontrol *ctrl_draglist(struct controlset *, const char *label,
                           char shortcut, HelpCtx helpctx,
                           handler_fn handler, intorptr context);
 dlgcontrol *ctrl_filesel(struct controlset *, const char *label,
-                         char shortcut, FILESELECT_FILTER_TYPE filter,
+                         char shortcut, FilereqFilter filter,
                          bool write, const char *title, HelpCtx helpctx,
                          handler_fn handler, intorptr context);
 dlgcontrol *ctrl_fontsel(struct controlset *, const char *label,

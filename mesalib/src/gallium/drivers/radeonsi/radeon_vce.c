@@ -17,11 +17,6 @@
 
 #include <stdio.h>
 
-#define FW_40_2_2  ((40 << 24) | (2 << 16) | (2 << 8))
-#define FW_50_0_1  ((50 << 24) | (0 << 16) | (1 << 8))
-#define FW_50_1_2  ((50 << 24) | (1 << 16) | (2 << 8))
-#define FW_50_10_2 ((50 << 24) | (10 << 16) | (2 << 8))
-#define FW_50_17_3 ((50 << 24) | (17 << 16) | (3 << 8))
 #define FW_52_0_3  ((52 << 24) | (0 << 16) | (3 << 8))
 #define FW_52_4_3  ((52 << 24) | (4 << 16) | (3 << 8))
 #define FW_52_8_3  ((52 << 24) | (8 << 16) | (3 << 8))
@@ -30,11 +25,9 @@
 /**
  * flush commands to the hardware
  */
-static void flush(struct rvce_encoder *enc, unsigned flags)
+static void flush(struct rvce_encoder *enc, unsigned flags, struct pipe_fence_handle **fence)
 {
-   enc->ws->cs_flush(&enc->cs, flags, NULL);
-   enc->task_info_idx = 0;
-   enc->bs_idx = 0;
+   enc->ws->cs_flush(&enc->cs, flags, fence);
 }
 
 #if 0
@@ -64,141 +57,16 @@ static void dump_feedback(struct rvce_encoder *enc, struct rvid_buffer *fb)
 #endif
 
 /**
- * reset the CPB handling
+ * Calculate the offsets into the DPB
  */
-static void reset_cpb(struct rvce_encoder *enc)
-{
-   unsigned i;
-
-   list_inithead(&enc->cpb_slots);
-   for (i = 0; i < enc->cpb_num; ++i) {
-      struct rvce_cpb_slot *slot = &enc->cpb_array[i];
-      slot->index = i;
-      slot->picture_type = PIPE_H2645_ENC_PICTURE_TYPE_SKIP;
-      slot->frame_num = 0;
-      slot->pic_order_cnt = 0;
-      list_addtail(&slot->list, &enc->cpb_slots);
-   }
-}
-
-/**
- * sort l0 and l1 to the top of the list
- */
-static void sort_cpb(struct rvce_encoder *enc)
-{
-   struct rvce_cpb_slot *i, *l0 = NULL, *l1 = NULL;
-
-   LIST_FOR_EACH_ENTRY (i, &enc->cpb_slots, list) {
-      if (i->frame_num == enc->pic.ref_idx_l0_list[0])
-         l0 = i;
-
-      if (i->frame_num == enc->pic.ref_idx_l1_list[0])
-         l1 = i;
-
-      if (enc->pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_P && l0)
-         break;
-
-      if (enc->pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B && l0 && l1)
-         break;
-   }
-
-   if (l1) {
-      list_del(&l1->list);
-      list_add(&l1->list, &enc->cpb_slots);
-   }
-
-   if (l0) {
-      list_del(&l0->list);
-      list_add(&l0->list, &enc->cpb_slots);
-   }
-}
-
-/**
- * get number of cpbs based on dpb
- */
-static unsigned get_cpb_num(struct rvce_encoder *enc, unsigned level_idc)
-{
-   unsigned w = align(enc->base.width, 16) / 16;
-   unsigned h = align(enc->base.height, 16) / 16;
-   unsigned dpb;
-
-   switch (level_idc) {
-   case 10:
-      dpb = 396;
-      break;
-   case 11:
-      dpb = 900;
-      break;
-   case 12:
-   case 13:
-   case 20:
-      dpb = 2376;
-      break;
-   case 21:
-      dpb = 4752;
-      break;
-   case 22:
-   case 30:
-      dpb = 8100;
-      break;
-   case 31:
-      dpb = 18000;
-      break;
-   case 32:
-      dpb = 20480;
-      break;
-   case 40:
-   case 41:
-      dpb = 32768;
-      break;
-   case 42:
-      dpb = 34816;
-      break;
-   case 50:
-      dpb = 110400;
-      break;
-   default:
-   case 51:
-   case 52:
-      dpb = 184320;
-      break;
-   }
-
-   return MIN2(dpb / (w * h), 16);
-}
-
-/**
- * Get the slot for the currently encoded frame
- */
-struct rvce_cpb_slot *si_current_slot(struct rvce_encoder *enc)
-{
-   return list_entry(enc->cpb_slots.prev, struct rvce_cpb_slot, list);
-}
-
-/**
- * Get the slot for L0
- */
-struct rvce_cpb_slot *si_l0_slot(struct rvce_encoder *enc)
-{
-   return list_entry(enc->cpb_slots.next, struct rvce_cpb_slot, list);
-}
-
-/**
- * Get the slot for L1
- */
-struct rvce_cpb_slot *si_l1_slot(struct rvce_encoder *enc)
-{
-   return list_entry(enc->cpb_slots.next->next, struct rvce_cpb_slot, list);
-}
-
-/**
- * Calculate the offsets into the CPB
- */
-void si_vce_frame_offset(struct rvce_encoder *enc, struct rvce_cpb_slot *slot, signed *luma_offset,
+void si_vce_frame_offset(struct rvce_encoder *enc, unsigned slot, signed *luma_offset,
                          signed *chroma_offset)
 {
    struct si_screen *sscreen = (struct si_screen *)enc->screen;
-   unsigned pitch, vpitch, fsize;
+   unsigned pitch, vpitch, fsize, offset = 0;
+
+   if (enc->dual_pipe)
+      offset += RVCE_MAX_AUX_BUFFER_NUM * RVCE_MAX_BITSTREAM_OUTPUT_ROW_SIZE * 2;
 
    if (sscreen->info.gfx_level < GFX9) {
       pitch = align(enc->luma->u.legacy.level[0].nblk_x * enc->luma->bpe, 128);
@@ -209,7 +77,7 @@ void si_vce_frame_offset(struct rvce_encoder *enc, struct rvce_cpb_slot *slot, s
    }
    fsize = pitch * (vpitch + vpitch / 2);
 
-   *luma_offset = slot->index * fsize;
+   *luma_offset = offset + slot * fsize;
    *chroma_offset = *luma_offset + pitch * vpitch;
 }
 
@@ -225,13 +93,35 @@ static void rvce_destroy(struct pipe_video_codec *encoder)
       enc->fb = &fb;
       enc->session(enc);
       enc->destroy(enc);
-      flush(enc, PIPE_FLUSH_ASYNC);
+      flush(enc, PIPE_FLUSH_ASYNC, NULL);
       si_vid_destroy_buffer(&fb);
    }
-   si_vid_destroy_buffer(&enc->cpb);
+   si_vid_destroy_buffer(&enc->dpb);
    enc->ws->cs_destroy(&enc->cs);
-   FREE(enc->cpb_array);
    FREE(enc);
+}
+
+static unsigned get_dpb_size(struct rvce_encoder *enc, unsigned slots)
+{
+   struct si_screen *sscreen = (struct si_screen *)enc->screen;
+   unsigned dpb_size;
+
+   dpb_size = (sscreen->info.gfx_level < GFX9)
+                 ? align(enc->luma->u.legacy.level[0].nblk_x * enc->luma->bpe, 128) *
+                      align(enc->luma->u.legacy.level[0].nblk_y, 32)
+                 :
+
+                 align(enc->luma->u.gfx9.surf_pitch * enc->luma->bpe, 256) *
+                    align(enc->luma->u.gfx9.surf_height, 32);
+
+   dpb_size = dpb_size * 3 / 2;
+   dpb_size = dpb_size * slots;
+   if (enc->dual_pipe)
+      dpb_size += RVCE_MAX_AUX_BUFFER_NUM * RVCE_MAX_BITSTREAM_OUTPUT_ROW_SIZE * 2;
+
+   enc->dpb_slots = slots;
+
+   return dpb_size;
 }
 
 static void rvce_begin_frame(struct pipe_video_codec *encoder, struct pipe_video_buffer *source,
@@ -251,52 +141,27 @@ static void rvce_begin_frame(struct pipe_video_codec *encoder, struct pipe_video
       enc->pic.rate_ctrl[0].frame_rate_den != pic->rate_ctrl[0].frame_rate_den;
 
    enc->pic = *pic;
-   enc->base.max_references = pic->seq.max_num_ref_frames;
    enc->si_get_pic_param(enc, pic);
 
    enc->get_buffer(vid_buf->resources[0], &enc->handle, &enc->luma);
    enc->get_buffer(vid_buf->resources[1], NULL, &enc->chroma);
 
-   if (!enc->cpb_num) {
-      struct si_screen *sscreen = (struct si_screen *)encoder->context->screen;
-      unsigned cpb_size;
+   unsigned dpb_slots = MAX2(pic->seq.max_num_ref_frames + 1, pic->dpb_size);
 
-      /* TODO enable B frame with dual instance */
-      if ((sscreen->info.family >= CHIP_TONGA) && (enc->base.max_references == 1) &&
-            (sscreen->info.vce_harvest_config == 0))
-         enc->dual_inst = true;
+   if (enc->dpb_slots < dpb_slots) {
+      unsigned dpb_size;
 
-      enc->cpb_num = get_cpb_num(enc, enc->pic.seq.level_idc);
-      if (!enc->cpb_num)
-         return;
-
-      enc->cpb_array = CALLOC(enc->cpb_num, sizeof(struct rvce_cpb_slot));
-      if (!enc->cpb_array)
-         return;
-
-      cpb_size = (sscreen->info.gfx_level < GFX9)
-                    ? align(enc->luma->u.legacy.level[0].nblk_x * enc->luma->bpe, 128) *
-                         align(enc->luma->u.legacy.level[0].nblk_y, 32)
-                    :
-
-                    align(enc->luma->u.gfx9.surf_pitch * enc->luma->bpe, 256) *
-                       align(enc->luma->u.gfx9.surf_height, 32);
-
-      cpb_size = cpb_size * 3 / 2;
-      cpb_size = cpb_size * enc->cpb_num;
-      if (enc->dual_pipe)
-         cpb_size += RVCE_MAX_AUX_BUFFER_NUM * RVCE_MAX_BITSTREAM_OUTPUT_ROW_SIZE * 2;
-      if (!si_vid_create_buffer(enc->screen, &enc->cpb, cpb_size, PIPE_USAGE_DEFAULT)) {
-         RVID_ERR("Can't create CPB buffer.\n");
+      dpb_size = get_dpb_size(enc, dpb_slots);
+      if (!enc->dpb.res) {
+         if (!si_vid_create_buffer(enc->screen, &enc->dpb, dpb_size, PIPE_USAGE_DEFAULT)) {
+            RVID_ERR("Can't create DPB buffer.\n");
+            return;
+         }
+      } else if (!si_vid_resize_buffer(enc->base.context, &enc->cs, &enc->dpb, dpb_size, NULL)) {
+         RVID_ERR("Can't resize DPB buffer.\n");
          return;
       }
    }
-
-   if (pic->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
-      reset_cpb(enc);
-   else if (pic->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_P ||
-            pic->picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)
-      sort_cpb(enc);
 
    if (!enc->stream_handle) {
       struct rvid_buffer fb;
@@ -307,7 +172,7 @@ static void rvce_begin_frame(struct pipe_video_codec *encoder, struct pipe_video
       enc->create(enc);
       enc->config(enc);
       enc->feedback(enc);
-      flush(enc, PIPE_FLUSH_ASYNC);
+      flush(enc, PIPE_FLUSH_ASYNC, NULL);
       // dump_feedback(enc, &fb);
       si_vid_destroy_buffer(&fb);
       need_rate_control = false;
@@ -316,8 +181,81 @@ static void rvce_begin_frame(struct pipe_video_codec *encoder, struct pipe_video
    if (need_rate_control) {
       enc->session(enc);
       enc->config(enc);
-      flush(enc, PIPE_FLUSH_ASYNC);
+      flush(enc, PIPE_FLUSH_ASYNC, NULL);
    }
+}
+
+static void *si_vce_encode_headers(struct rvce_encoder *enc)
+{
+   unsigned num_slices = 0, num_headers = 0;
+
+   util_dynarray_foreach(&enc->pic.raw_headers, struct pipe_enc_raw_header, header) {
+      if (header->is_slice)
+         num_slices++;
+      num_headers++;
+   }
+
+   if (!num_headers || !num_slices || num_headers == num_slices)
+      return NULL;
+
+   size_t segments_size =
+      sizeof(struct rvce_output_unit_segment) * (num_headers - num_slices + 1);
+   struct rvce_feedback_data *data =
+      CALLOC_VARIANT_LENGTH_STRUCT(rvce_feedback_data, segments_size);
+   if (!data)
+      return NULL;
+
+   uint8_t *ptr = enc->ws->buffer_map(enc->ws, enc->bs_handle, &enc->cs,
+                                      PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
+   if (!ptr) {
+      RVID_ERR("Can't map bs buffer.\n");
+      FREE(data);
+      return NULL;
+   }
+
+   unsigned offset = 0;
+   struct rvce_output_unit_segment *slice_segment = NULL;
+
+   util_dynarray_foreach(&enc->pic.raw_headers, struct pipe_enc_raw_header, header) {
+      if (header->is_slice) {
+         if (slice_segment)
+            continue;
+         slice_segment = &data->segments[data->num_segments];
+         slice_segment->is_slice = true;
+      } else {
+         unsigned size;
+         /* Startcode may be 3 or 4 bytes. */
+         const uint8_t nal_byte = header->buffer[header->buffer[2] == 0x1 ? 3 : 4];
+
+         switch (header->type) {
+         case PIPE_H264_NAL_SPS:
+            size = si_vce_write_sps(enc, nal_byte, ptr + offset);
+            break;
+         case PIPE_H264_NAL_PPS:
+            size = si_vce_write_pps(enc, nal_byte, ptr + offset);
+            break;
+         default:
+            assert(header->buffer);
+            memcpy(ptr + offset, header->buffer, header->size);
+            size = header->size;
+            break;
+         }
+         data->segments[data->num_segments].size = size;
+         data->segments[data->num_segments].offset = offset;
+         offset += size;
+      }
+      data->num_segments++;
+   }
+
+   enc->bs_offset = align(offset, 16);
+   assert(enc->bs_offset < enc->bs_size);
+
+   assert(slice_segment);
+   slice_segment->offset = enc->bs_offset;
+
+   enc->ws->buffer_unmap(enc->ws, enc->bs_handle);
+
+   return data;
 }
 
 static void rvce_encode_bitstream(struct pipe_video_codec *encoder,
@@ -327,12 +265,16 @@ static void rvce_encode_bitstream(struct pipe_video_codec *encoder,
    struct rvce_encoder *enc = (struct rvce_encoder *)encoder;
    enc->get_buffer(destination, &enc->bs_handle, NULL);
    enc->bs_size = destination->width0;
+   enc->bs_offset = 0;
 
    *fb = enc->fb = CALLOC_STRUCT(rvid_buffer);
    if (!si_vid_create_buffer(enc->screen, enc->fb, 512, PIPE_USAGE_STAGING)) {
       RVID_ERR("Can't create feedback buffer.\n");
       return;
    }
+
+   enc->fb->user_data = si_vce_encode_headers(enc);
+
    if (!radeon_emitted(&enc->cs, 0))
       enc->session(enc);
    enc->encode(enc);
@@ -343,19 +285,9 @@ static int rvce_end_frame(struct pipe_video_codec *encoder, struct pipe_video_bu
                           struct pipe_picture_desc *picture)
 {
    struct rvce_encoder *enc = (struct rvce_encoder *)encoder;
-   struct rvce_cpb_slot *slot = list_entry(enc->cpb_slots.prev, struct rvce_cpb_slot, list);
 
-   if (!enc->dual_inst || enc->bs_idx > 1)
-      flush(enc, picture->flush_flags);
+   flush(enc, picture->flush_flags, picture->fence);
 
-   /* update the CPB backtrack with the just encoded frame */
-   slot->picture_type = enc->pic.picture_type;
-   slot->frame_num = enc->pic.frame_num;
-   slot->pic_order_cnt = enc->pic.pic_order_cnt;
-   if (!enc->pic.not_referenced) {
-      list_del(&slot->list);
-      list_add(&slot->list, &enc->cpb_slots);
-   }
    return 0;
 }
 
@@ -365,21 +297,53 @@ static void rvce_get_feedback(struct pipe_video_codec *encoder, void *feedback, 
    struct rvce_encoder *enc = (struct rvce_encoder *)encoder;
    struct rvid_buffer *fb = feedback;
 
-   if (size) {
-      uint32_t *ptr = enc->ws->buffer_map(enc->ws, fb->res->buf, &enc->cs,
-                                          PIPE_MAP_READ_WRITE | RADEON_MAP_TEMPORARY);
+   uint32_t *ptr = enc->ws->buffer_map(enc->ws, fb->res->buf, &enc->cs,
+                                       PIPE_MAP_READ_WRITE | RADEON_MAP_TEMPORARY);
 
-      if (ptr[1]) {
-         *size = ptr[4] - ptr[9];
-      } else {
-         *size = 0;
-      }
-
-      enc->ws->buffer_unmap(enc->ws, fb->res->buf);
+   if (ptr[1]) {
+      *size = ptr[4] - ptr[9];
+   } else {
+      *size = 0;
    }
+
+   enc->ws->buffer_unmap(enc->ws, fb->res->buf);
+
+   metadata->present_metadata = PIPE_VIDEO_FEEDBACK_METADATA_TYPE_CODEC_UNIT_LOCATION;
+
+   if (fb->user_data) {
+      struct rvce_feedback_data *data = fb->user_data;
+      metadata->codec_unit_metadata_count = data->num_segments;
+      for (unsigned i = 0; i < data->num_segments; i++) {
+         metadata->codec_unit_metadata[i].offset = data->segments[i].offset;
+         if (data->segments[i].is_slice) {
+            metadata->codec_unit_metadata[i].size = *size;
+            metadata->codec_unit_metadata[i].flags = 0;
+         } else {
+            metadata->codec_unit_metadata[i].size = data->segments[i].size;
+            metadata->codec_unit_metadata[i].flags = PIPE_VIDEO_CODEC_UNIT_LOCATION_FLAG_SINGLE_NALU;
+         }
+      }
+      FREE(fb->user_data);
+      fb->user_data = NULL;
+   } else {
+      metadata->codec_unit_metadata_count = 1;
+      metadata->codec_unit_metadata[0].offset = 0;
+      metadata->codec_unit_metadata[0].size = *size;
+      metadata->codec_unit_metadata[0].flags = 0;
+   }
+
    // dump_feedback(enc, fb);
    si_vid_destroy_buffer(fb);
    FREE(fb);
+}
+
+static int rvce_fence_wait(struct pipe_video_codec *encoder,
+                           struct pipe_fence_handle *fence,
+                           uint64_t timeout)
+{
+   struct rvce_encoder *enc = (struct rvce_encoder *)encoder;
+
+   return enc->ws->fence_wait(enc->ws, fence, timeout);
 }
 
 static void rvce_destroy_fence(struct pipe_video_codec *encoder,
@@ -397,7 +361,7 @@ static void rvce_flush(struct pipe_video_codec *encoder)
 {
    struct rvce_encoder *enc = (struct rvce_encoder *)encoder;
 
-   flush(enc, PIPE_FLUSH_ASYNC);
+   flush(enc, PIPE_FLUSH_ASYNC, NULL);
 }
 
 static void rvce_cs_flush(void *ctx, unsigned flags, struct pipe_fence_handle **fence)
@@ -429,8 +393,6 @@ struct pipe_video_codec *si_vce_create_encoder(struct pipe_context *context,
    if (sscreen->info.is_amdgpu)
       enc->use_vm = true;
 
-   enc->use_vui = true;
-
    if (sscreen->info.family >= CHIP_TONGA && sscreen->info.family != CHIP_STONEY &&
        sscreen->info.family != CHIP_POLARIS11 && sscreen->info.family != CHIP_POLARIS12 &&
        sscreen->info.family != CHIP_VEGAM)
@@ -445,6 +407,7 @@ struct pipe_video_codec *si_vce_create_encoder(struct pipe_context *context,
    enc->base.end_frame = rvce_end_frame;
    enc->base.flush = rvce_flush;
    enc->base.get_feedback = rvce_get_feedback;
+   enc->base.fence_wait = rvce_fence_wait;
    enc->base.destroy_fence = rvce_destroy_fence;
    enc->get_buffer = get_buffer;
 
@@ -456,30 +419,7 @@ struct pipe_video_codec *si_vce_create_encoder(struct pipe_context *context,
       goto error;
    }
 
-   switch (sscreen->info.vce_fw_version) {
-   case FW_40_2_2:
-      si_vce_40_2_2_init(enc);
-      break;
-
-   case FW_50_0_1:
-   case FW_50_1_2:
-   case FW_50_10_2:
-   case FW_50_17_3:
-      si_vce_50_init(enc);
-      break;
-
-   case FW_52_0_3:
-   case FW_52_4_3:
-   case FW_52_8_3:
-      si_vce_52_init(enc);
-      break;
-
-   default:
-      if ((sscreen->info.vce_fw_version & (0xff << 24)) >= FW_53) {
-         si_vce_52_init(enc);
-      } else
-         goto error;
-   }
+   si_vce_52_init(enc);
 
    return &enc->base;
 
@@ -496,11 +436,6 @@ error:
 bool si_vce_is_fw_version_supported(struct si_screen *sscreen)
 {
    switch (sscreen->info.vce_fw_version) {
-   case FW_40_2_2:
-   case FW_50_0_1:
-   case FW_50_1_2:
-   case FW_50_10_2:
-   case FW_50_17_3:
    case FW_52_0_3:
    case FW_52_4_3:
    case FW_52_8_3:

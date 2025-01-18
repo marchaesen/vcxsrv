@@ -2,6 +2,9 @@
 # shellcheck disable=SC2086 # we want word splitting
 
 set -e
+
+. .gitlab-ci/setup-test-env.sh
+
 set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive

@@ -19,8 +19,8 @@ xkb_symbols "pc105" {
     key <RTSH> {[  Shift_R    ]};
     key <LCTL> {[  Control_L  ]};
     key <RCTL> {[  Control_R  ]};
-    key <LALT> {[  Alt_L,  Meta_L  ]};
-    key <RALT> {[  Alt_R,  Meta_R  ]};
+    key <LALT> {[  Alt_L      ]};
+    key <RALT> {[  Alt_R      ]};
     key <LWIN> {[  Super_L    ]};
     key <RWIN> {[  Super_R    ]};
 

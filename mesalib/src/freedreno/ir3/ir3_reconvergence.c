@@ -154,6 +154,41 @@ ir3_calc_reconvergence(struct ir3_shader_variant *so)
 
                uinterval_tree_insert(&backward_edges, &edges[edge++].node);
             }
+         } else {
+            struct ir3_instruction *terminator =
+               ir3_block_get_terminator(block);
+
+            /* We don't want to mark targets of predicated branches as
+             * reconvergence points below because they don't need the
+             * branchstack:
+             *        |-- i --|
+             *        | ...   |
+             *        | predt |
+             *        |-------|
+             *    succ0 /   \ succ1
+             * |-- i+1 --| |-- i+2 --|
+             * | tblock  | | fblock  |
+             * | predf   | | jump    |
+             * |---------| |---------|
+             *    succ0 \   / succ0
+             *        |-- j --|
+             *        |  ...  |
+             *        |-------|
+             * Here, neither block i+2 nor block j need (jp). However, block i+1
+             * still needs a physical edge to block i+2 (control flow will fall
+             * through here) but the code below won't add it unless block i+2 is
+             * a reconvergence point. Therefore, we add it manually here.
+             *
+             * Note: we are here because the current block has only one
+             * successor which means that, if there is a predicated terminator,
+             * block will be block i+1 in the diagram above.
+             */
+            if (terminator && (terminator->opc == OPC_PREDT ||
+                               terminator->opc == OPC_PREDF)) {
+               struct ir3_block *next =
+                  list_entry(block->node.next, struct ir3_block, node);
+               ir3_block_link_physical(block, next);
+            }
          }
       }
    }

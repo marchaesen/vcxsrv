@@ -22,7 +22,7 @@ partial alphanumeric_keys
 xkb_symbols "left_hand" {
     include "brai(keypad_left)"
 
-    name[Group1]="Braille (left-handed)";
+    name[Group1]="Braille (one-handed, left)";
 
     key <AC03>	{ [ braille_dot_1 ] };
     key <AC02>	{ [ braille_dot_2 ] };
@@ -37,7 +37,7 @@ partial alphanumeric_keys
 xkb_symbols "left_hand_invert" {
     include "brai(left_hand)"
 
-    name[Group1]="Braille (left-handed inverted thumb)";
+    name[Group1]="Braille (one-handed, left, inverted thumb)";
 
     key <AB05>	{ [ braille_dot_5 ] };
     key <AB04>	{ [ braille_dot_6 ] };
@@ -48,7 +48,7 @@ partial alphanumeric_keys
 xkb_symbols "right_hand" {
     include "brai(keypad)"
 
-    name[Group1]="Braille (right-handed)";
+    name[Group1]="Braille (one-handed, right)";
 
     key <AC07>	{ [ braille_dot_1 ] };
     key <AB06>	{ [ braille_dot_2 ] };
@@ -63,7 +63,7 @@ partial alphanumeric_keys
 xkb_symbols "right_hand_invert" {
     include "brai(right_hand)"
 
-    name[Group1]="Braille (right-handed inverted thumb)";
+    name[Group1]="Braille (one-handed, right, inverted thumb)";
 
     key <AB05>	{ [ braille_dot_2 ] };
     key <AB06>	{ [ braille_dot_3 ] };

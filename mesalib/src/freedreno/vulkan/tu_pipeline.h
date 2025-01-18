@@ -32,6 +32,7 @@ enum tu_dynamic_state
    TU_DYNAMIC_STATE_VERTEX_INPUT,
    TU_DYNAMIC_STATE_PATCH_CONTROL_POINTS,
    TU_DYNAMIC_STATE_PRIM_MODE_SYSMEM,
+   TU_DYNAMIC_STATE_A7XX_FRAGMENT_SHADING_RATE = TU_DYNAMIC_STATE_PRIM_MODE_SYSMEM,
    TU_DYNAMIC_STATE_COUNT,
 };
 
@@ -101,6 +102,9 @@ struct tu_program_state
       unsigned dynamic_descriptor_offsets[MAX_SETS];
 
       bool per_view_viewport;
+      bool writes_shading_rate;
+      bool reads_shading_rate;
+      bool accesses_smask;
 };
 
 struct tu_pipeline_executable {

@@ -26,8 +26,6 @@
 #include "core/device.hpp"
 #include "core/binary.hpp"
 #include "llvm/invocation.hpp"
-#include "nir/invocation.hpp"
-#include "spirv/invocation.hpp"
 
 namespace clover {
    namespace compiler {
@@ -36,18 +34,6 @@ namespace clover {
                       const device &dev, const std::string &opts,
                       std::string &log) {
          switch (dev.ir_format()) {
-#ifdef HAVE_CLOVER_SPIRV
-         case PIPE_SHADER_IR_NIR_SERIALIZED:
-            switch (prog.il_type()) {
-            case program::il_type::source:
-               return llvm::compile_to_spirv(prog.source(), headers, dev, opts, log);
-            case program::il_type::spirv:
-               return spirv::compile_program(prog.source(), dev, log);
-            default:
-               unreachable("device with unsupported IL");
-               throw error(CL_INVALID_VALUE);
-            }
-#endif
          case PIPE_SHADER_IR_NATIVE:
             if (prog.il_type() == program::il_type::source)
                return llvm::compile_program(prog.source(), headers, dev, opts, log);
@@ -63,17 +49,6 @@ namespace clover {
       link_program(const std::vector<binary> &bs, const device &dev,
                    const std::string &opts, std::string &log) {
          switch (dev.ir_format()) {
-#ifdef HAVE_CLOVER_SPIRV
-         case PIPE_SHADER_IR_NIR_SERIALIZED: {
-            const bool create_library =
-               opts.find("-create-library") != std::string::npos;
-            auto spirv_linked_module = spirv::link_program(bs, dev, opts, log);
-            if (create_library)
-               return spirv_linked_module;
-            return nir::spirv_to_nir(spirv_linked_module,
-                                     dev, log);
-         }
-#endif
          case PIPE_SHADER_IR_NATIVE:
             return llvm::link_program(bs, dev, opts, log);
          default:

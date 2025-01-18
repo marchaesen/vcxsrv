@@ -2660,14 +2660,14 @@ def _man_request(self, name, void, aux):
         name = 'man/%s.%s' % (linkname, section)
         if manpaths:
             sys.stdout.write(name)
-        f = open(name, 'w')
+        f = open(name, 'w', encoding='UTF-8')
         f.write('.so man%s/%s.%s' % (section, func_name, section))
         f.close()
 
     if manpaths:
         sys.stdout.write('man/%s.%s ' % (func_name, section))
     # Our CWD is src/, so this will end up in src/man/
-    f = open('man/%s.%s' % (func_name, section), 'w')
+    f = open('man/%s.%s' % (func_name, section), 'w', encoding='UTF-8')
     f.write('.TH %s %s  "%s" "%s" "XCB Requests"\n' % (func_name, section, center_footer, left_footer))
     # Left-adjust instead of adjusting to both sides
     f.write('.ad l\n')
@@ -3035,7 +3035,7 @@ def _man_event(self, name):
     if manpaths:
         sys.stdout.write('man/%s.%s ' % (self.c_type, section))
     # Our CWD is src/, so this will end up in src/man/
-    f = open('man/%s.%s' % (self.c_type, section), 'w')
+    f = open('man/%s.%s' % (self.c_type, section), 'w', encoding='UTF-8')
     f.write('.TH %s %s  "%s" "%s" "XCB Events"\n' % (self.c_type, section, center_footer, left_footer))
     # Left-adjust instead of adjusting to both sides
     f.write('.ad l\n')

@@ -1,6 +1,8 @@
 KHR-GL46.shader_storage_buffer_object.advanced-usage-sync-cs
+KHR-GL46.texture_barrier.disjoint-texels
+KHR-GL46.texture_barrier_ARB.same-texel-rw-multipass
 KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreCS
 KHR-GLES31.core.shader_storage_buffer_object.advanced-usage-sync-cs
-spec@arb_shader_image_load_store@coherency@Tessellation evaluation-Fragment shader/'coherent' qualifier coherency test/512x512
 glx@glx-multithread-texture
 glx@glx-visuals-depth
+spec@arb_shader_image_load_store@coherency@Tessellation evaluation-Fragment shader/'coherent' qualifier coherency test/512x512

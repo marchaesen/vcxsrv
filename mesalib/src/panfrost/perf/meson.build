@@ -42,12 +42,7 @@ dep_panfrost_perf = declare_dependency(
 panfrost_quick = executable(
   'panquick',
   'quick.c',
-  include_directories : [
-    inc_include,
-    inc_src,
-    inc_panfrost,
-    inc_panfrost_hw,
- ],
+  include_directories : [inc_include, inc_src, inc_panfrost],
   dependencies : [
     dep_libdrm,
     libpanfrost_dep,

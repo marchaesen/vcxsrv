@@ -82,5 +82,9 @@ void
 vmw_svga_winsys_surface_init(struct svga_winsys_screen *sws,
                              struct svga_winsys_surface *surface,
                              unsigned surf_size, SVGA3dSurfaceAllFlags flags);
- 
+
+void
+vmw_svga_winsys_userspace_surface_destroy(struct svga_winsys_context *swc,
+                                          uint32 sid);
+
 #endif /* VMW_SURFACE_H_ */

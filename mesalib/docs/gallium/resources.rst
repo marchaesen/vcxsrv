@@ -55,7 +55,7 @@ They can be bound to stream output if supported.
 TODO: what about the restrictions lifted by the several later GL transform feedback extensions? How does one advertise that in Gallium?
 
 They can be also be bound to a shader stage (for sampling) as usual by
-creating an appropriate sampler view, if the driver supports PIPE_CAP_TEXTURE_BUFFER_OBJECTS.
+creating an appropriate sampler view, if the driver supports pipe_caps.texture_buffer_objects.
 This supports larger width than a 1d texture would
 (TODO limit currently unspecified, minimum must be at least 65536).
 Only the "direct fetch" sample opcodes are supported (TGSI_OPCODE_TXF,
@@ -81,9 +81,9 @@ D3D11: buffer resources
 PIPE_TEXTURE_1D / PIPE_TEXTURE_1D_ARRAY
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 1D surface accessed with normalized coordinates.
-1D array textures are supported depending on PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS.
+1D array textures are supported depending on pipe_caps.max_texture_array_layers.
 
-- If PIPE_CAP_NPOT_TEXTURES is not supported,
+- If pipe_caps.npot_textures is not supported,
       width must be a power of two
 - height0 must be 1
 - depth0 must be 1
@@ -93,7 +93,7 @@ PIPE_TEXTURE_1D / PIPE_TEXTURE_1D_ARRAY
 
 OpenGL: GL_TEXTURE_1D in GL 1.0
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
+- pipe_caps.npot_textures is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
 
 D3D11: 1D textures in D3D_FEATURE_LEVEL_10_0
 
@@ -117,9 +117,9 @@ D3D11: not supported (only PIPE_TEXTURE_2D with normalized coordinates is suppor
 PIPE_TEXTURE_2D / PIPE_TEXTURE_2D_ARRAY
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 2D surface accessed with normalized coordinates.
-2D array textures are supported depending on PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS.
+2D array textures are supported depending on pipe_caps.max_texture_array_layers.
 
-- If PIPE_CAP_NPOT_TEXTURES is not supported,
+- If pipe_caps.npot_textures is not supported,
       width and height must be powers of two
 - depth0 must be 1
 - array_size must be 1 for PIPE_TEXTURE_2D
@@ -129,13 +129,13 @@ PIPE_TEXTURE_2D / PIPE_TEXTURE_2D_ARRAY
 
 OpenGL: GL_TEXTURE_2D in GL 1.0
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
+- pipe_caps.npot_textures is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
 
 OpenCL: can create OpenCL images based on this, that can then be sampled arbitrarily
 
 D3D11: 2D textures
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to D3D_FEATURE_LEVEL_9_3
+- pipe_caps.npot_textures is equivalent to D3D_FEATURE_LEVEL_9_3
 
 PIPE_TEXTURE_3D
 ^^^^^^^^^^^^^^^
@@ -143,18 +143,18 @@ PIPE_TEXTURE_3D
 3-dimensional array of texels.
 Mipmap dimensions are reduced in all 3 coordinates.
 
-- If PIPE_CAP_NPOT_TEXTURES is not supported,
+- If pipe_caps.npot_textures is not supported,
       width, height and depth must be powers of two
 - array_size must be 1
 - Must use normalized coordinates
 
 OpenGL: GL_TEXTURE_3D in GL 1.2 or :ext:`GL_EXT_texture3D`
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
+- pipe_caps.npot_textures is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
 
 D3D11: 3D textures
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to D3D_FEATURE_LEVEL_10_0
+- pipe_caps.npot_textures is equivalent to D3D_FEATURE_LEVEL_10_0
 
 PIPE_TEXTURE_CUBE / PIPE_TEXTURE_CUBE_ARRAY
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -162,27 +162,27 @@ PIPE_TEXTURE_CUBE / PIPE_TEXTURE_CUBE_ARRAY
 Cube maps consist of 6 2D faces.
 The 6 surfaces form an imaginary cube, and sampling happens by mapping an
 input 3-vector to the point of the cube surface in that direction.
-Cube map arrays are supported depending on PIPE_CAP_CUBE_MAP_ARRAY.
+Cube map arrays are supported depending on pipe_caps.cube_map_array.
 
-Sampling may be optionally seamless if a driver supports it (PIPE_CAP_SEAMLESS_CUBE_MAP),
+Sampling may be optionally seamless if a driver supports it (pipe_caps.seamless_cube_map),
 resulting in filtering taking samples from multiple surfaces near to the edge.
 
 - Width and height must be equal
 - depth0 must be 1
 - array_size must be a multiple of 6
-- If PIPE_CAP_NPOT_TEXTURES is not supported,
+- If pipe_caps.npot_textures is not supported,
       width and height must be powers of two
 - Must use normalized coordinates
 
 OpenGL: GL_TEXTURE_CUBE_MAP in GL 1.3 or :ext:`GL_EXT_texture_cube_map`
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
+- pipe_caps.npot_textures is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
 - Seamless cube maps require GL 3.2 or :ext:`GL_ARB_seamless_cube_map` or :ext:`GL_AMD_seamless_cubemap_per_texture`
 - Cube map arrays require GL 4.0 or :ext:`GL_ARB_texture_cube_map_array`
 
 D3D11: 2D array textures with the D3D11_RESOURCE_MISC_TEXTURECUBE flag
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to D3D_FEATURE_LEVEL_10_0
+- pipe_caps.npot_textures is equivalent to D3D_FEATURE_LEVEL_10_0
 - Cube map arrays require D3D_FEATURE_LEVEL_10_1
 
 Surfaces

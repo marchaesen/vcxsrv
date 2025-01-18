@@ -72,16 +72,14 @@ _XkbReadGetIndicatorMapReply(Display *dpy,
 
     leds->phys_indicators = rep->realIndicators;
     if (rep->length > 0) {
-        register int left;
-
         if (!_XkbInitReadBuffer(dpy, &buf, (int) rep->length * 4))
             return BadAlloc;
         if (nread_rtrn)
             *nread_rtrn = (int) rep->length * 4;
         if (rep->which) {
-            register int i, bit;
+            unsigned int i, bit, left;
 
-            left = (int) rep->which;
+            left = rep->which;
             for (i = 0, bit = 1; (i < XkbNumIndicators) && (left);
                  i++, bit <<= 1) {
                 if (left & bit) {
@@ -106,7 +104,7 @@ _XkbReadGetIndicatorMapReply(Display *dpy,
                 }
             }
         }
-        left = _XkbFreeReadBuffer(&buf);
+        (void) _XkbFreeReadBuffer(&buf);
     }
     return Success;
 }

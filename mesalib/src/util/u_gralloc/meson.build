@@ -17,7 +17,12 @@ files_u_gralloc = files(
   'u_gralloc_qcom.c',
 )
 
-if dep_android_mapper4.found()
+if dep_android_ui.found()
+  files_u_gralloc += files('u_gralloc_imapper5_api.cpp')
+  c_args_for_u_gralloc += '-DUSE_IMAPPER4_METADATA_API'
+  cpp_args_for_u_gralloc += '-DUSE_IMAPPER4_METADATA_API'
+  options_for_u_gralloc += 'cpp_std=c++17'
+elif dep_android_mapper4.found()
   files_u_gralloc += files('u_gralloc_imapper4_api.cpp')
   c_args_for_u_gralloc += '-DUSE_IMAPPER4_METADATA_API'
   cpp_args_for_u_gralloc += '-DUSE_IMAPPER4_METADATA_API'

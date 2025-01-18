@@ -1018,6 +1018,16 @@ void trace_dump_blit_info(const struct pipe_blit_info *info)
    trace_dump_scissor_state(&info->scissor);
    trace_dump_member_end();
 
+   trace_dump_member(bool, info, swizzle_enable);
+   static const char *swiz = "RGBA01";
+   for (unsigned i = 0; i < 4; i++) {
+      unsigned s = (unsigned)info->swizzle[i];
+      mask[i] = s < 6 ? swiz[s] : '?';
+   }
+   trace_dump_member_begin("swizzle");
+   trace_dump_string(mask);
+   trace_dump_member_end();
+
    trace_dump_struct_end();
 }
 

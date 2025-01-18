@@ -40,6 +40,32 @@ struct vk_shader_module;
 #define HK_ROOT_UNIFORM       104
 #define HK_IMAGE_HEAP_UNIFORM 108
 
+struct hk_tess_info {
+   enum tess_primitive_mode mode : 8;
+   enum gl_tess_spacing spacing  : 8;
+   bool points;
+   bool ccw;
+};
+static_assert(sizeof(struct hk_tess_info) == 4, "packed");
+
+static struct hk_tess_info
+hk_tess_info_merge(struct hk_tess_info a, struct hk_tess_info b)
+{
+   static_assert(TESS_PRIMITIVE_UNSPECIFIED == 0, "zero state");
+   static_assert(TESS_SPACING_UNSPECIFIED == 0, "zero state");
+
+   /* Just merge by OR'ing the raw bits */
+   uint32_t x, y;
+   memcpy(&x, &a, sizeof(x));
+   memcpy(&y, &b, sizeof(y));
+
+   x |= y;
+
+   struct hk_tess_info out;
+   memcpy(&out, &x, sizeof(out));
+   return out;
+}
+
 struct hk_shader_info {
    union {
       struct {
@@ -48,13 +74,6 @@ struct hk_shader_info {
          uint8_t cull_distance_array_size;
          uint8_t _pad[7];
       } vs;
-
-      struct {
-         /* Local workgroup size */
-         uint16_t local_size[3];
-
-         uint8_t _pad[26];
-      } cs;
 
       struct {
          struct agx_interp_info interp;
@@ -70,21 +89,13 @@ struct hk_shader_info {
       } fs;
 
       struct {
-         uint8_t spacing;
-         uint8_t mode;
-         enum mesa_prim out_prim;
-         bool point_mode;
-         bool ccw;
-         uint8_t _pad[27];
-      } ts;
+         uint64_t tcs_per_vertex_outputs;
+         uint32_t tcs_output_stride;
+         uint8_t tcs_output_patch_size;
+         uint8_t tcs_nr_patch_outputs;
 
-      struct {
-         uint64_t per_vertex_outputs;
-         uint32_t output_stride;
-         uint8_t output_patch_size;
-         uint8_t nr_patch_outputs;
-         uint8_t _pad[18];
-      } tcs;
+         struct hk_tess_info info;
+      } tess;
 
       struct {
          unsigned count_words;
@@ -302,6 +313,11 @@ hk_pre_gs_variant(struct hk_api_shader *obj, bool rast_disc)
 struct hk_linked_shader {
    struct agx_linked_shader b;
 
+   /* True if the VS prolog uses software indexing, either for geom/tess or
+    * adjacency primitives.
+    */
+   bool sw_indexing;
+
    /* Distinct from hk_shader::counts due to addition of cf_binding_count, which
     * is delayed since it depends on cull distance.
     */
@@ -371,13 +387,6 @@ hk_get_nir_options(struct vk_physical_device *vk_pdev, gl_shader_stage stage,
 struct hk_api_shader *hk_meta_shader(struct hk_device *dev,
                                      hk_internal_builder_t builder, void *data,
                                      size_t data_size);
-
-static inline struct hk_shader *
-hk_meta_kernel(struct hk_device *dev, hk_internal_builder_t builder, void *data,
-               size_t data_size)
-{
-   return hk_only_variant(hk_meta_shader(dev, builder, data, data_size));
-}
 
 struct hk_passthrough_gs_key {
    /* Bit mask of outputs written by the VS/TES, to be passed through */

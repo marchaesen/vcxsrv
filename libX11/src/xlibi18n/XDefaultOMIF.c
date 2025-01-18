@@ -693,10 +693,10 @@ _XmbDefaultTextPerCharExtents(XOC oc, _Xconst char *text, int length,
     bzero((char *) &overall, sizeof(XCharStruct));
     *num_chars = 0;
 
-    CI_GET_DEFAULT_INFO_1D(font, def)
+    CI_GET_DEFAULT_INFO_1D(font, def);
 
     while (length-- > 0) {
-	CI_GET_CHAR_INFO_1D(font, *text, def, cs)
+	CI_GET_CHAR_INFO_1D(font, *text, def, cs);
 	text++;
 	if (cs == NULL)
 	    continue;

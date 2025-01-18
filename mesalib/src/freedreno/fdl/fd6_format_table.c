@@ -361,7 +361,8 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
 /* clang-format on */
 
 static enum a3xx_color_swap
-fd6_pipe2swap(enum pipe_format format, enum a6xx_tile_mode tile_mode)
+fd6_pipe2swap(enum pipe_format format, enum a6xx_tile_mode tile_mode,
+              bool is_mutable)
 {
    if (!formats[format].present)
       return WZYX;
@@ -370,7 +371,7 @@ fd6_pipe2swap(enum pipe_format format, enum a6xx_tile_mode tile_mode)
     * other hand, always respects swap.  We should return WZYX such that CCU
     * and TP agree each other.
     */
-   if (tile_mode)
+   if (tile_mode && !is_mutable)
       return WZYX;
 
    return formats[format].swap;
@@ -388,17 +389,18 @@ fd6_vertex_format(enum pipe_format format)
 enum a3xx_color_swap
 fd6_vertex_swap(enum pipe_format format)
 {
-   return fd6_pipe2swap(format, TILE6_LINEAR);
+   return fd6_pipe2swap(format, TILE6_LINEAR, false);
 }
 
 /* convert pipe format to texture sampler format: */
 enum a6xx_format
-fd6_texture_format(enum pipe_format format, enum a6xx_tile_mode tile_mode)
+fd6_texture_format(enum pipe_format format, enum a6xx_tile_mode tile_mode,
+                   bool is_mutable)
 {
    if (!formats[format].present)
       return FMT6_NONE;
 
-   if (!tile_mode) {
+   if (!tile_mode || is_mutable) {
       switch (format) {
       /* Linear ARGB/ABGR1555 has a special format for sampling (tiled
        * 1555/5551 formats always have the same swizzle and layout).
@@ -420,9 +422,10 @@ fd6_texture_format(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 }
 
 enum a3xx_color_swap
-fd6_texture_swap(enum pipe_format format, enum a6xx_tile_mode tile_mode)
+fd6_texture_swap(enum pipe_format format, enum a6xx_tile_mode tile_mode,
+                 bool is_mutable)
 {
-   if (!tile_mode) {
+   if (!tile_mode || is_mutable) {
       switch (format) {
       case PIPE_FORMAT_A1R5G5B5_UNORM:
          return WZYX;
@@ -445,7 +448,7 @@ fd6_texture_swap(enum pipe_format format, enum a6xx_tile_mode tile_mode)
    if (format == PIPE_FORMAT_X24S8_UINT)
       return XYZW;
 
-   return fd6_pipe2swap(format, tile_mode);
+   return fd6_pipe2swap(format, tile_mode, is_mutable);
 }
 
 /* convert pipe format to MRT / copydest format used for render-target: */
@@ -462,9 +465,10 @@ fd6_color_format(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 }
 
 enum a3xx_color_swap
-fd6_color_swap(enum pipe_format format, enum a6xx_tile_mode tile_mode)
+fd6_color_swap(enum pipe_format format, enum a6xx_tile_mode tile_mode,
+               bool is_mutable)
 {
-   return fd6_pipe2swap(format, tile_mode);
+   return fd6_pipe2swap(format, tile_mode, is_mutable);
 }
 
 enum a6xx_depth_format

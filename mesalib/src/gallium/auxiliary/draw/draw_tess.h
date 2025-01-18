@@ -117,6 +117,7 @@ int draw_tess_eval_shader_run(struct draw_tess_eval_shader *shader,
                               const struct tgsi_shader_info *input_info,
                               struct draw_vertex_info *output_verts,
                               struct draw_prim_info *output_prims,
+                              uint32_t **patch_lengths,
                               uint16_t **elts_out);
 
 #if DRAW_LLVM_AVAILABLE

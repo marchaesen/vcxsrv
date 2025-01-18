@@ -162,20 +162,6 @@ static void radeon_enc_ctx(struct radeon_encoder *enc)
 
 static void radeon_enc_session_init(struct radeon_encoder *enc)
 {
-   if (u_reduce_video_profile(enc->base.profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC) {
-      enc->enc_pic.session_init.encode_standard = RENCODE_ENCODE_STANDARD_H264;
-      enc->enc_pic.session_init.aligned_picture_width = align(enc->base.width, 16);
-   } else if (u_reduce_video_profile(enc->base.profile) == PIPE_VIDEO_FORMAT_HEVC) {
-      enc->enc_pic.session_init.encode_standard = RENCODE_ENCODE_STANDARD_HEVC;
-      enc->enc_pic.session_init.aligned_picture_width = align(enc->base.width, 64);
-   }
-   enc->enc_pic.session_init.aligned_picture_height = align(enc->base.height, 16);
-
-   enc->enc_pic.session_init.padding_width =
-      (enc->enc_pic.crop_left + enc->enc_pic.crop_right) * 2;
-   enc->enc_pic.session_init.padding_height =
-      (enc->enc_pic.crop_top + enc->enc_pic.crop_bottom) * 2;
-
    enc->enc_pic.session_init.slice_output_enabled = 0;
    enc->enc_pic.session_init.display_remote = 0;
    enc->enc_pic.session_init.pre_encode_mode = enc->enc_pic.quality_modes.pre_encode_mode;

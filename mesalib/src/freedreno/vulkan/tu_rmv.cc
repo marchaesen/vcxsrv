@@ -11,6 +11,7 @@
 #include "tu_device.h"
 #include "tu_event.h"
 #include "tu_image.h"
+#include "tu_queue.h"
 #include "tu_query_pool.h"
 
 #include <cstdio>

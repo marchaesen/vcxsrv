@@ -43,8 +43,6 @@
 
 #define DELAYED_X_CURSOR_TIMEOUT 5 /* ms */
 
-static DevPrivateKeyRec xwl_cursor_private_key;
-
 static void
 expand_source_and_mask(CursorPtr cursor, CARD32 *data)
 {
@@ -80,28 +78,14 @@ expand_source_and_mask(CursorPtr cursor, CARD32 *data)
 static Bool
 xwl_realize_cursor(DeviceIntPtr device, ScreenPtr screen, CursorPtr cursor)
 {
-    PixmapPtr pixmap;
-
-    pixmap = xwl_shm_create_pixmap(screen, cursor->bits->width,
-                                   cursor->bits->height, 32,
-                                   CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
-    dixSetPrivate(&cursor->devPrivates, &xwl_cursor_private_key, pixmap);
-
     return TRUE;
 }
 
 static Bool
 xwl_unrealize_cursor(DeviceIntPtr device, ScreenPtr screen, CursorPtr cursor)
 {
-    PixmapPtr pixmap;
     struct xwl_screen *xwl_screen;
     struct xwl_seat *xwl_seat;
-
-    pixmap = dixGetPrivate(&cursor->devPrivates, &xwl_cursor_private_key);
-    if (!pixmap)
-        return TRUE;
-
-    dixSetPrivate(&cursor->devPrivates, &xwl_cursor_private_key, NULL);
 
     /* When called from FreeCursor(), device is always NULL */
     xwl_screen = xwl_screen_get(screen);
@@ -110,7 +94,7 @@ xwl_unrealize_cursor(DeviceIntPtr device, ScreenPtr screen, CursorPtr cursor)
             xwl_seat->x_cursor = NULL;
     }
 
-    return xwl_shm_destroy_pixmap(pixmap);
+    return TRUE;
 }
 
 static void
@@ -173,8 +157,9 @@ xwl_cursor_attach_pixmap(struct xwl_seat *xwl_seat,
     xwl_cursor->frame_cb = wl_surface_frame(xwl_cursor->surface);
     wl_callback_add_listener(xwl_cursor->frame_cb, &frame_listener, xwl_cursor);
 
-    /* Hold a reference on the pixmap until it's released by the compositor */
-    pixmap->refcnt++;
+    /* The pixmap will be destroyed in xwl_cursor_buffer_release_callback()
+     * once the compositor is done with it.
+     */
     xwl_pixmap_set_buffer_release_cb(pixmap,
                                      xwl_cursor_buffer_release_callback,
                                      pixmap);
@@ -220,7 +205,9 @@ xwl_seat_set_cursor(struct xwl_seat *xwl_seat)
     }
 
     cursor = xwl_seat->x_cursor;
-    pixmap = dixGetPrivate(&cursor->devPrivates, &xwl_cursor_private_key);
+    pixmap = xwl_shm_create_pixmap(xwl_screen->screen, cursor->bits->width,
+                                   cursor->bits->height, 32,
+                                   CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
     if (!pixmap)
         return;
 
@@ -263,7 +250,9 @@ xwl_tablet_tool_set_cursor(struct xwl_tablet_tool *xwl_tablet_tool)
     }
 
     cursor = xwl_seat->x_cursor;
-    pixmap = dixGetPrivate(&cursor->devPrivates, &xwl_cursor_private_key);
+    pixmap = xwl_shm_create_pixmap(xwl_screen->screen, cursor->bits->width,
+                                   cursor->bits->height, 32,
+                                   CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
     if (!pixmap)
         return;
 
@@ -443,9 +432,6 @@ static miPointerScreenFuncRec xwl_pointer_screen_funcs = {
 Bool
 xwl_screen_init_cursor(struct xwl_screen *xwl_screen)
 {
-    if (!dixRegisterPrivateKey(&xwl_cursor_private_key, PRIVATE_CURSOR, 0))
-        return FALSE;
-
     return miPointerInitialize(xwl_screen->screen,
                                &xwl_pointer_sprite_funcs,
                                &xwl_pointer_screen_funcs, TRUE);

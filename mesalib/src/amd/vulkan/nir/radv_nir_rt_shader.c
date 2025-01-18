@@ -169,7 +169,7 @@ lower_rt_derefs(nir_shader *shader)
  */
 struct rt_variables {
    struct radv_device *device;
-   const VkPipelineCreateFlags2KHR flags;
+   const VkPipelineCreateFlags2 flags;
    bool monolithic;
 
    /* idx of the next shader to run in the next iteration of the main loop.
@@ -221,8 +221,7 @@ struct rt_variables {
 };
 
 static struct rt_variables
-create_rt_variables(nir_shader *shader, struct radv_device *device, const VkPipelineCreateFlags2KHR flags,
-                    bool monolithic)
+create_rt_variables(nir_shader *shader, struct radv_device *device, const VkPipelineCreateFlags2 flags, bool monolithic)
 {
    struct rt_variables vars = {
       .device = device,
@@ -1696,7 +1695,7 @@ radv_build_traversal_shader(struct radv_device *device, struct radv_ray_tracing_
                             struct radv_ray_tracing_stage_info *info)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
-   const VkPipelineCreateFlagBits2KHR create_flags = vk_rt_pipeline_create_flags(pCreateInfo);
+   const VkPipelineCreateFlagBits2 create_flags = vk_rt_pipeline_create_flags(pCreateInfo);
 
    /* Create the traversal shader as an intersection shader to prevent validation failures due to
     * invalid variable modes.*/
@@ -1772,7 +1771,12 @@ lower_rt_instruction_monolithic(nir_builder *b, nir_instr *instr, void *data)
 
    switch (intr->intrinsic) {
    case nir_intrinsic_execute_callable:
-      unreachable("nir_intrinsic_execute_callable");
+      /* It's allowed to place OpExecuteCallableKHR in a SPIR-V, even if the RT pipeline doesn't contain
+       * any callable shaders. However, it's impossible to execute the instruction in a valid way, so just remove any
+       * nir_intrinsic_execute_callable we encounter.
+       */
+      nir_instr_remove(instr);
+      return true;
    case nir_intrinsic_trace_ray: {
       vars->payload_offset = nir_src_as_uint(intr->src[10]);
 
@@ -1908,7 +1912,7 @@ radv_nir_lower_rt_abi(nir_shader *shader, const VkRayTracingPipelineCreateInfoKH
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 
-   const VkPipelineCreateFlagBits2KHR create_flags = vk_rt_pipeline_create_flags(pCreateInfo);
+   const VkPipelineCreateFlagBits2 create_flags = vk_rt_pipeline_create_flags(pCreateInfo);
 
    struct rt_variables vars = create_rt_variables(shader, device, create_flags, monolithic);
 

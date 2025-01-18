@@ -178,6 +178,9 @@ etna_update_blend(struct etna_context *ctx)
       current_rt++;
    }
 
+   if (current_rt == 0)
+      blend->rt[0].PE_COLOR_FORMAT = VIVS_PE_COLOR_FORMAT_OVERWRITE;
+
    return true;
 }
 

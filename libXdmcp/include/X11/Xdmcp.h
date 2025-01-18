@@ -128,6 +128,12 @@ typedef char *XdmcpNetaddr;
 # define XDM_ACCESS_ATTRIBUTE(X)
 #endif
 
+#if __has_attribute(pure)
+# define XDM_PURE_ATTRIBUTE __attribute__((pure))
+#else
+# define XDM_PURE_ATTRIBUTE
+#endif
+
 XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpWriteARRAY16(XdmcpBufferPtr buffer, const ARRAY16Ptr array);
 XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
@@ -169,6 +175,7 @@ XDM_ACCESS_ATTRIBUTE((read_write, 2))
 extern int XdmcpFill(int fd, XdmcpBufferPtr buffer, XdmcpNetaddr from, int *fromlen);
 
 XDM_ACCESS_ATTRIBUTE((read_only, 1))
+XDM_PURE_ATTRIBUTE
 extern int XdmcpReadRemaining(const XdmcpBufferPtr buffer);
 
 XDM_ACCESS_ATTRIBUTE((read_write, 1))
@@ -184,6 +191,7 @@ XDM_ACCESS_ATTRIBUTE((read_only, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpCopyARRAY8(const ARRAY8Ptr src, ARRAY8Ptr dst);
 
 XDM_ACCESS_ATTRIBUTE((read_only, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
+XDM_PURE_ATTRIBUTE
 extern int XdmcpARRAY8Equal(const ARRAY8Ptr array1, const ARRAY8Ptr array2);
 
 XDM_ACCESS_ATTRIBUTE((write_only, 1))
@@ -201,6 +209,7 @@ extern void XdmcpUnwrap(unsigned char *input, unsigned char *wrapper, unsigned c
 #endif
 
 XDM_ACCESS_ATTRIBUTE((read_only, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
+XDM_PURE_ATTRIBUTE
 extern int XdmcpCompareKeys (const XdmAuthKeyPtr a, const XdmAuthKeyPtr b);
 
 XDM_ACCESS_ATTRIBUTE((write_only, 1))

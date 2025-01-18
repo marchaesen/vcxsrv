@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from enum import Enum, IntFlag
 from functools import partial, reduce
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple, Optional, TypeAlias
+from typing import TYPE_CHECKING, Iterable, NamedTuple, Optional, TypeAlias
 
 ###############################################################################
 # Types
@@ -101,6 +101,7 @@ xkb_keymap_key_iter_t = CFUNCTYPE(None, xkb_keymap_p, xkb_keycode_t, c_void_p)
 XKB_CONTEXT_NO_DEFAULT_INCLUDES = 1 << 0
 XKB_CONTEXT_NO_ENVIRONMENT_NAMES = 1 << 1
 XKB_KEYCODE_INVALID = 0xFFFFFFFF
+XKB_MOD_INVALID = 0xFFFFFFFF
 XKB_STATE_MODS_EFFECTIVE = 1 << 3
 XKB_CONSUMED_MODE_XKB = 0
 XKB_KEYMAP_FORMAT_TEXT_V1 = 1
@@ -218,6 +219,12 @@ xkbcommon.xkb_state_key_get_level.restype = xkb_level_index_t
 
 xkbcommon.xkb_keymap_num_mods.argtypes = [POINTER(xkb_keymap)]
 xkbcommon.xkb_keymap_num_mods.restype = xkb_mod_index_t
+
+xkbcommon.xkb_keymap_mod_get_name.argtypes = [POINTER(xkb_keymap), xkb_mod_index_t]
+xkbcommon.xkb_keymap_mod_get_name.restype = c_char_p
+
+xkbcommon.xkb_keymap_mod_get_index.argtypes = [POINTER(xkb_keymap), c_char_p]
+xkbcommon.xkb_keymap_mod_get_index.restype = xkb_mod_index_t
 
 xkbcommon.xkb_state_mod_index_is_active.argtypes = [
     POINTER(xkb_state),
@@ -338,6 +345,38 @@ def init_state(
 
 def unref_state(state: xkb_state_p) -> None:
     xkbcommon.xkb_state_unref(state)
+
+
+def xkb_keymap_mod_get_index(keymap: xkb_keymap_p, name: str) -> str:
+    return xkbcommon.xkb_keymap_mod_get_index(keymap, name.encode("utf-8"))
+
+
+def xkb_keymap_mod_get_name(keymap: xkb_keymap_p, mod: int) -> str:
+    return xkbcommon.xkb_keymap_mod_get_name(keymap, mod).decode("utf-8")
+
+
+def xkb_keymap_get_mod_mask_from_names(
+    keymap: xkb_keymap_p, names: Iterable[str]
+) -> ModifierMask:
+    mods = filter(
+        lambda m: m != XKB_MOD_INVALID,
+        (xkb_keymap_mod_get_index(keymap, name) for name in names),
+    )
+    return reduce(lambda acc, m: acc | ModifierMask(1 << m), mods, ModifierMask(0))
+
+
+def xkb_keymap_get_usual_mod_mapping(
+    keymap: xkb_keymap_p, mask: ModifierMask
+) -> ModifierMask:
+    mods = (
+        "Alt" if Mod1 in mask else "",
+        "Meta" if Mod1 in mask else "",
+        "NumLock" if Mod2 in mask else "",
+        "LevelFive" if Mod3 in mask else "",
+        "Super" if Mod4 in mask else "",
+        "LevelThree" if Mod5 in mask else "",
+    )
+    return mask | xkb_keymap_get_mod_mask_from_names(keymap, mods)
 
 
 def xkb_keymap_led_get_name(keymap: xkb_keymap_p, led: int) -> str:
@@ -604,3 +643,20 @@ class ForeignState:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         unref_state(self._state)
+
+
+def has_vmod_queries(xkb_base: Path) -> bool:
+    """
+    Check if the used xkbcommon support querying virtual modifiers
+    """
+    with ForeignKeymap(xkb_base) as keymap:
+        mod = xkb_keymap_mod_get_index(keymap, "Alt")
+        Alt = ModifierMask((1 << mod) if mod != XKB_MOD_INVALID else 0)
+        assert Alt.value != 0
+        with ForeignState(keymap) as state:
+            # This is very indirect: if vmods are supported in queries, then
+            # we expect Result.active_mods to contain rmods and relevant vmods;
+            # else we will get only rmods.
+            r = state.process_key_event("LALT", xkb_key_direction.XKB_KEY_DOWN)
+            r = state.process_key_event("AD01", xkb_key_direction.XKB_KEY_DOWN)
+            return Alt in r.active_mods

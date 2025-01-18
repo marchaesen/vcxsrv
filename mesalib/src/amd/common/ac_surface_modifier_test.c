@@ -17,7 +17,7 @@
 #include "util/mesa-sha1.h"
 #include "addrlib/inc/addrinterface.h"
 
-#include "ac_surface_test_common.h"
+#include "ac_fake_hw_db.h"
 
 /*
  * The main goal of this test is making sure that we do
@@ -221,8 +221,6 @@ static void gfx12_generate_hash(struct ac_addrlib *ac_addrlib,
    ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT input = {0};
    input.size = sizeof(input);
    input.swizzleMode = surf->u.gfx9.swizzle_mode;
-   input.flags.color = 1;
-   input.flags.texture = 1;
    input.resourceType = ADDR_RSRC_TEX_2D;
    input.bpp = util_format_get_blocksizebits(entry->format);
    input.unAlignedDims.width = entry->w;
@@ -310,15 +308,65 @@ static void test_modifier(const struct radeon_info *info,
 
       uint64_t surf_size;
       unsigned aligned_pitch, aligned_height;
+      unsigned block_size_bits = 0;
       if (modifier != DRM_FORMAT_MOD_LINEAR) {
-         unsigned block_size_bits;
-
          if (info->gfx_level >= GFX12) {
-            assert(surf.u.gfx9.swizzle_mode == ADDR3_64KB_2D ||
-                   surf.u.gfx9.swizzle_mode == ADDR3_256B_2D);
-            block_size_bits = (surf.u.gfx9.swizzle_mode == ADDR3_256B_2D) ? 8 : 16;
+            switch (surf.u.gfx9.swizzle_mode) {
+            case ADDR3_256B_2D:
+               block_size_bits = 8;
+               break;
+            case ADDR3_4KB_2D:
+               block_size_bits = 12;
+               break;
+            case ADDR3_64KB_2D:
+               block_size_bits = 16;
+               break;
+            case ADDR3_256KB_2D:
+               block_size_bits = 18;
+               break;
+            default:
+               unreachable("invalid swizzle mode");
+            }
          } else {
-            block_size_bits = surf.u.gfx9.swizzle_mode >= ADDR_SW_256KB_Z_X ? 18 : 16;
+            switch (surf.u.gfx9.swizzle_mode) {
+            case ADDR_SW_256B_S:
+            case ADDR_SW_256B_D:
+            case ADDR_SW_256B_R:
+               block_size_bits = 8;
+               break;
+            case ADDR_SW_4KB_Z:
+            case ADDR_SW_4KB_S:
+            case ADDR_SW_4KB_D:
+            case ADDR_SW_4KB_R:
+            case ADDR_SW_4KB_Z_X:
+            case ADDR_SW_4KB_S_X:
+            case ADDR_SW_4KB_D_X:
+            case ADDR_SW_4KB_R_X:
+               block_size_bits = 12;
+               break;
+            case ADDR_SW_64KB_Z:
+            case ADDR_SW_64KB_S:
+            case ADDR_SW_64KB_D:
+            case ADDR_SW_64KB_R:
+            case ADDR_SW_64KB_Z_T:
+            case ADDR_SW_64KB_S_T:
+            case ADDR_SW_64KB_D_T:
+            case ADDR_SW_64KB_R_T:
+            case ADDR_SW_64KB_Z_X:
+            case ADDR_SW_64KB_S_X:
+            case ADDR_SW_64KB_D_X:
+            case ADDR_SW_64KB_R_X:
+               block_size_bits = 16;
+               break;
+            case ADDR_SW_256KB_Z_X:
+            case ADDR_SW_256KB_S_X:
+            case ADDR_SW_256KB_D_X:
+            case ADDR_SW_256KB_R_X:
+               block_size_bits = 18;
+               break;
+            default:
+               unreachable("invalid swizzle mode");
+            }
          }
 
          surf_size = block_count(dims[i][0], dims[i][1],
@@ -368,11 +416,14 @@ static void test_modifier(const struct radeon_info *info,
                                   (num_pipes +
                                    G_0098F8_PIPE_INTERLEAVE_SIZE_GFX9(info->gb_addr_config)));
          } else {
-            block_bits = 18 +
-               G_0098F8_NUM_RB_PER_SE(info->gb_addr_config) +
-               G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config);
+            unsigned num_se = G_0098F8_NUM_SHADER_ENGINES_GFX9(info->gb_addr_config);
+            unsigned num_rb_per_se = G_0098F8_NUM_RB_PER_SE(info->gb_addr_config);
+            unsigned num_rb = num_se + num_rb_per_se;
+            unsigned num_pipes = G_0098F8_NUM_PIPES(info->gb_addr_config) + num_se;
+            block_bits = 18 + num_rb;
             block_bits = MAX2(block_bits, 20);
-            dcc_align = 65536;
+            dcc_align = 1 << MAX2(block_size_bits,
+                                  MIN2(num_pipes, block_size_bits - 8) + num_rb + 8);
          }
 
          expected_offset = align(expected_offset, dcc_align);
@@ -463,10 +514,12 @@ int main()
    struct u_vector test_entries;
    u_vector_init_pow2(&test_entries, 64, sizeof(struct test_entry));
 
-   for (unsigned i = 0; i < ARRAY_SIZE(testcases); ++i) {
-      struct radeon_info info = get_radeon_info(&testcases[i]);
+   for (unsigned i = 0; i < ARRAY_SIZE(ac_fake_hw_db); ++i) {
+      struct radeon_info info = { .drm_major = 0 };
 
-      run_modifier_test(&test_entries, testcases[i].name, &info);
+      get_radeon_info(&info, &ac_fake_hw_db[i]);
+
+      run_modifier_test(&test_entries, ac_fake_hw_db[i].name, &info);
    }
 
    qsort(u_vector_tail(&test_entries),

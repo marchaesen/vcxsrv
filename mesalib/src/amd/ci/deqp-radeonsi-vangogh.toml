@@ -1,7 +1,7 @@
 [[deqp]]
-deqp = "/deqp/modules/gles31/deqp-gles31"
+deqp = "/deqp-gles/modules/gles31/deqp-gles31"
 caselists = [
-    "/deqp/mustpass/gles31-main.txt",
+    "/deqp-gles/mustpass/gles31-main.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
@@ -10,9 +10,9 @@ deqp_args = [
 ]
 
 [[deqp]]
-deqp = "/deqp/modules/gles3/deqp-gles3"
+deqp = "/deqp-gles/modules/gles3/deqp-gles3"
 caselists = [
-    "/deqp/mustpass/gles3-main.txt",
+    "/deqp-gles/mustpass/gles3-main.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
@@ -21,9 +21,9 @@ deqp_args = [
 ]
 
 [[deqp]]
-deqp = "/deqp/modules/gles2/deqp-gles2"
+deqp = "/deqp-gles/modules/gles2/deqp-gles2"
 caselists = [
-    "/deqp/mustpass/gles2-main.txt",
+    "/deqp-gles/mustpass/gles2-main.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
@@ -32,12 +32,12 @@ deqp_args = [
 ]
 
 [[deqp]]
-deqp = "/deqp/external/openglcts/modules/glcts"
+deqp = "/deqp-gles/external/openglcts/modules/glcts"
 caselists = [
     # The GLES* tests don't include the tests for the previous versions.
-    "/deqp/mustpass/gles2-khr-main.txt",
-    "/deqp/mustpass/gles3-khr-main.txt",
-    "/deqp/mustpass/gles31-khr-main.txt",
+    "/deqp-gles/mustpass/gles2-khr-main.txt",
+    "/deqp-gles/mustpass/gles3-khr-main.txt",
+    "/deqp-gles/mustpass/gles31-khr-main.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
@@ -46,11 +46,11 @@ deqp_args = [
 ]
 
 [[deqp]]
-deqp = "/deqp/external/openglcts/modules/glcts"
+deqp = "/deqp-gl/external/openglcts/modules/glcts"
 caselists = [
     # The GL* tests include the tests for the previous versions.
-    "/deqp/mustpass/gl46-main.txt",
-    "/deqp/mustpass/gl46-khr-single.txt",
+    "/deqp-gl/mustpass/gl46-main.txt",
+    "/deqp-gl/mustpass/gl46-khr-single.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",

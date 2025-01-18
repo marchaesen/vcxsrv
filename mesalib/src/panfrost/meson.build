@@ -2,12 +2,8 @@
 # Copyright © 2019 Collabora
 # SPDX-License-Identifier: MIT
 
-inc_panfrost_hw = include_directories([
-   'include'
-])
-
 inc_panfrost = include_directories([
-   '.', 'include', 'shared', 'midgard', 'compiler', 'lib'
+   '.', 'shared', 'midgard', 'compiler', 'lib'
 ])
 
 compile_args_panfrost = [
@@ -35,7 +31,6 @@ bifrost_compiler = executable(
     inc_include,
     inc_src,
     inc_panfrost,
-    inc_panfrost_hw,
  ],
   dependencies : [
     idep_nir,

@@ -48,36 +48,6 @@
 #include "fcfoundry.h"
 #include "ftglue.h"
 
-/*
- * Keep Han languages separated by eliminating languages
- * that the codePageRange bits says aren't supported
- */
-
-static const struct {
-    char    	    bit;
-    const FcChar8   lang[6];
-} FcCodePageRange[] = {
-    { 17,	"ja" },
-    { 18,	"zh-cn" },
-    { 19,	"ko" },
-    { 20,	"zh-tw" },
-};
-
-#define NUM_CODE_PAGE_RANGE (int) (sizeof FcCodePageRange / sizeof FcCodePageRange[0])
-
-FcBool
-FcFreeTypeIsExclusiveLang (const FcChar8  *lang)
-{
-    int	    i;
-
-    for (i = 0; i < NUM_CODE_PAGE_RANGE; i++)
-    {
-	if (FcLangCompare (lang, FcCodePageRange[i].lang) == FcLangEqual)
-	    return FcTrue;
-    }
-    return FcFalse;
-}
-
 typedef struct {
     const FT_UShort	platform_id;
     const FT_UShort	encoding_id;
@@ -1772,6 +1742,9 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
     {
 	char	    psname[256];
 	const char	    *tmp;
+
+	if (instance)
+            FT_Set_Named_Instance (face, id >> 16);
 	tmp = FT_Get_Postscript_Name (face);
 	if (!tmp)
 	{
@@ -1856,36 +1829,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 
     if (os2 && os2->version >= 0x0001 && os2->version != 0xffff)
     {
-	unsigned int i;
-	for (i = 0; i < NUM_CODE_PAGE_RANGE; i++)
-	{
-	    FT_ULong	bits;
-	    int		bit;
-	    if (FcCodePageRange[i].bit < 32)
-	    {
-		bits = os2->ulCodePageRange1;
-		bit = FcCodePageRange[i].bit;
-	    }
-	    else
-	    {
-		bits = os2->ulCodePageRange2;
-		bit = FcCodePageRange[i].bit - 32;
-	    }
-	    if (bits & (1U << bit))
-	    {
-		/*
-		 * If the font advertises support for multiple
-		 * "exclusive" languages, then include support
-		 * for any language found to have coverage
-		 */
-		if (exclusiveLang)
-		{
-		    exclusiveLang = 0;
-		    break;
-		}
-		exclusiveLang = FcCodePageRange[i].lang;
-	    }
-	}
+        exclusiveLang = FcLangIsExclusiveFromOs2(os2->ulCodePageRange1, os2->ulCodePageRange2);
     }
 
     if (os2 && os2->version != 0xffff)
@@ -2619,15 +2563,12 @@ FcFreeTypeCharSet (FT_Face face, FcBlanks *blanks FC_UNUSED)
 #endif
     for (o = 0; o < NUM_DECODE; o++)
     {
-	FcChar32        page, off, ucs4;
-	FcCharLeaf      *leaf;
+	FcChar32        ucs4;
 	FT_UInt	 	glyph;
 
 	if (FT_Select_Charmap (face, fcFontEncodings[o]) != 0)
 	    continue;
 
-	page = ~0;
-	leaf = NULL;
 	ucs4 = FT_Get_First_Char (face, &glyph);
 	while (glyph != 0)
 	{
@@ -2644,18 +2585,7 @@ FcFreeTypeCharSet (FT_Face face, FcBlanks *blanks FC_UNUSED)
 	    }
 
 	    if (good)
-	    {
 		FcCharSetAddChar (fcs, ucs4);
-		if ((ucs4 >> 8) != page)
-		{
-		    page = (ucs4 >> 8);
-		    leaf = FcCharSetFindLeafCreate (fcs, ucs4);
-		    if (!leaf)
-			goto bail;
-		}
-		off = ucs4 & 0xff;
-		leaf->map[off >> 5] |= (1U << (off & 0x1f));
-	    }
 
 	    ucs4 = FT_Get_Next_Char (face, ucs4, &glyph);
 	}

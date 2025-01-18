@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -68,11 +68,10 @@ struct SiChipSettings
     UINT_32 isPolaris10       : 1;
     UINT_32 isPolaris11       : 1;
     UINT_32 isPolaris12       : 1;
-    // VI fusion
     UINT_32 isVegaM           : 1;
     UINT_32 isCarrizo         : 1;
 
-    UINT_32                   : 2;
+    UINT_32                   : 1;
 };
 
 /**

@@ -116,6 +116,7 @@ struct vulkanCapset {
     uint32_t alwaysBlob;
     uint32_t externalSync;
     uint32_t virglSupportedFormats[16];
+    uint32_t vulkanBatchedDescriptorSetUpdate;
 };
 
 struct magmaCapset {

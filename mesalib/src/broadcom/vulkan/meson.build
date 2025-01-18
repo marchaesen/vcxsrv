@@ -19,7 +19,6 @@ libv3dv_files = files(
   'v3dv_bo.c',
   'v3dv_cl.c',
   'v3dv_cmd_buffer.c',
-  'v3dv_debug.h',
   'v3dv_descriptor_set.c',
   'v3dv_device.c',
   'v3dv_event.c',
@@ -47,7 +46,6 @@ files_per_version = files(
   'v3dvx_pipeline.c',
   'v3dvx_meta_common.c',
   'v3dvx_pipeline.c',
-  'v3dvx_query.c',
   'v3dvx_queue.c',
 )
 
@@ -60,6 +58,7 @@ v3dv_deps = [
   dep_libdrm,
   dep_valgrind,
   dep_v3d_hw,
+  idep_broadcom_perfcntrs,
   idep_nir,
   idep_nir_headers,
   idep_vulkan_util,

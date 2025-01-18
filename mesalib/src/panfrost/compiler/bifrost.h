@@ -517,47 +517,53 @@ enum bifrost_texture_fetch {
 };
 
 struct bifrost_texture_operation {
-   /* If immediate_indices is set:
-    *     - immediate sampler index
-    *     - index used as texture index
-    * Otherwise:
-    *      - bifrost_single_index in lower 2 bits
-    *      - 0x3 in upper 2 bits (single-texturing)
-    */
-   unsigned sampler_index_or_mode : 4;
-   unsigned index                 : 7;
-   bool immediate_indices         : 1;
-   enum bifrost_tex_op op         : 3;
+   union {
+      struct {
+         /* If immediate_indices is set:
+          *     - immediate sampler index
+          *     - index used as texture index
+          * Otherwise:
+          *      - bifrost_single_index in lower 2 bits
+          *      - 0x3 in upper 2 bits (single-texturing)
+          */
+         unsigned sampler_index_or_mode : 4;
+         unsigned index                 : 7;
+         bool immediate_indices         : 1;
+         enum bifrost_tex_op op         : 3;
 
-   /* If set for TEX/FETCH, loads texel offsets and multisample index from
-    * a staging register containing offset_x:offset_y:offset_z:ms_index
-    * packed 8:8:8:8. Offsets must be in [-31, +31]. If set for
-    * GRDESC(_DER), disable LOD bias. */
-   bool offset_or_bias_disable : 1;
+         /* If set for TEX/FETCH, loads texel offsets and multisample index from
+          * a staging register containing offset_x:offset_y:offset_z:ms_index
+          * packed 8:8:8:8. Offsets must be in [-31, +31]. If set for
+          * GRDESC(_DER), disable LOD bias. */
+         bool offset_or_bias_disable : 1;
 
-   /* If set for TEX/FETCH, loads fp32 shadow comparison value from a
-    * staging register. Implies fetch_component = gather4_r. If set for
-    * GRDESC(_DER), disables LOD clamping. */
-   bool shadow_or_clamp_disable : 1;
+         /* If set for TEX/FETCH, loads fp32 shadow comparison value from a
+          * staging register. Implies fetch_component = gather4_r. If set for
+          * GRDESC(_DER), disables LOD clamping. */
+         bool shadow_or_clamp_disable : 1;
 
-   /* If set, loads an uint32 array index from a staging register. */
-   bool array : 1;
+         /* If set, loads an uint32 array index from a staging register. */
+         bool array : 1;
 
-   /* Texture dimension, or 0 for a cubemap */
-   unsigned dimension : 2;
+         /* Texture dimension, or 0 for a cubemap */
+         unsigned dimension : 2;
 
-   /* Method to compute LOD value or for a FETCH, the
-    * bifrost_texture_fetch component specification */
-   enum bifrost_lod_mode lod_or_fetch : 3;
+         /* Method to compute LOD value or for a FETCH, the
+          * bifrost_texture_fetch component specification */
+         enum bifrost_lod_mode lod_or_fetch : 3;
 
-   /* Reserved */
-   unsigned zero : 1;
+         /* Reserved */
+         unsigned zero : 1;
 
-   /* Register format for the result */
-   enum bifrost_texture_format_full format : 4;
+         /* Register format for the result */
+         enum bifrost_texture_format_full format : 4;
 
-   /* Write mask for the result */
-   unsigned mask : 4;
+         /* Write mask for the result */
+         unsigned mask : 4;
+      };
+
+      uint32_t packed;
+   };
 } __attribute__((packed));
 
 struct bifrost_dual_texture_operation {

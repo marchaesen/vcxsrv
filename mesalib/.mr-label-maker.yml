@@ -40,6 +40,7 @@ issues:
         'intel/brw': 'intel-brw'
         'intel/elk': 'intel-elk'
         'intel/tools': 'intel-tools'
+        'intel/executor': 'intel-executor'
         'iris': 'iris'
         'isl': 'ISL'
         'lima': 'lima'
@@ -258,6 +259,7 @@ merge_requests:
         '^src/intel/compiler/elk': ['intel-elk']
         '^src/intel/dev/': ['intel']
         '^src/intel/ds/': ['intel']
+        '^src/intel/executor/': ['intel-executor']
         '^src/intel/genxml/': ['intel']
         '^src/intel/isl/': ['ISL']
         '^src/intel/nullhw-layer/': ['intel']

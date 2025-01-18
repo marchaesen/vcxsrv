@@ -655,7 +655,7 @@ void trace_dump_transfer_ptr(struct pipe_transfer *_transfer)
    }
 }
 
-void trace_dump_nir(void *nir)
+void trace_dump_nir(struct nir_shader *nir)
 {
    if (!dumping)
       return;

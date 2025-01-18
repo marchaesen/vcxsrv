@@ -6,9 +6,9 @@ traces-db:
 traces:
   0ad/0ad-v2.trace:
     broadcom-rpi4:
-      checksum: 8bdca9e63f483ee71970075842f003db
+      checksum: 97c16f22a887f03937c6ca9cd066f2d4
     broadcom-rpi5:
-      checksum: 3250bff5650882ced58d82779964ce0d
+      checksum: b218e753627320ad965abdef207fd7ce
 
   behdad-glyphy/glyphy-v2.trace:
     broadcom-rpi4:

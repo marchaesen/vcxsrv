@@ -11,16 +11,15 @@
 
 #include "ResourceTracker.h"
 #include "VulkanHandleMapping.h"
-#include "aemu/base/BumpPool.h"
-#include "aemu/base/files/Stream.h"
-#include "aemu/base/files/StreamSerializing.h"
+#include "BumpPool.h"
+#include "Stream.h"
 #include "gfxstream/guest/IOStream.h"
 #include "goldfish_vk_private_defs.h"
 
 namespace gfxstream {
 namespace vk {
 
-class VulkanStreamGuest : public android::base::Stream {
+class VulkanStreamGuest : public gfxstream::aemu::Stream {
    public:
     VulkanStreamGuest(gfxstream::guest::IOStream* stream);
     ~VulkanStreamGuest();
@@ -62,7 +61,7 @@ class VulkanStreamGuest : public android::base::Stream {
     uint8_t* reserve(size_t size);
 
    private:
-    android::base::BumpPool mPool;
+    gfxstream::aemu::BumpPool mPool;
     std::vector<uint8_t> mWriteBuffer;
     gfxstream::guest::IOStream* mStream = nullptr;
     DefaultHandleMapping mDefaultHandleMapping;

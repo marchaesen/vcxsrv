@@ -129,29 +129,9 @@ needs_vs_trig_input_fixup(UNUSED struct hash_table *ht, const nir_alu_instr *ins
    return false;
 }
 
-static inline bool
-needs_fs_trig_input_fixup(UNUSED struct hash_table *ht, const nir_alu_instr *instr, unsigned src,
-                          unsigned num_components, const uint8_t *swizzle)
-{
-   /* We are checking for ffract(a * (1 / 2 * pi)) pattern. */
-   nir_instr *parent = instr->src[src].src.ssa->parent_instr;
-   if (parent->type != nir_instr_type_alu)
-      return true;
-   nir_alu_instr *fract = nir_instr_as_alu(parent);
-   if (fract->op != nir_op_ffract)
-      return true;
-   parent = fract->src[0].src.ssa->parent_instr;
-
-   /* Now check for fmul(a, 1 / (2 * pi)). */
-   if (!check_instr_and_src_value(nir_op_fmul, &parent, 0.1591549))
-      return true;
-
-   return false;
-}
-
 bool r300_is_only_used_as_float(const nir_alu_instr *instr);
 
-char *r300_finalize_nir(struct pipe_screen *pscreen, void *nir);
+char *r300_finalize_nir(struct pipe_screen *pscreen, struct nir_shader *nir);
 
 extern bool r300_transform_vs_trig_input(struct nir_shader *shader);
 

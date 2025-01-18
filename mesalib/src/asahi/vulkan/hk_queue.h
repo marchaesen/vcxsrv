@@ -25,7 +25,7 @@ struct hk_queue {
       /* Current maximum timeline value for the queue's syncobj. If the
        * syncobj's value equals timeline_value, then all work is complete.
        */
-      uint32_t timeline_value;
+      uint64_t timeline_value;
    } drm;
 };
 

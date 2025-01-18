@@ -34,6 +34,13 @@
 static constexpr unsigned residency_batch_size = 128;
 
 static void
+log_eviction_info(struct d3d12_screen *screen, struct d3d12_bo *bo)
+{
+   screen->total_bytes_evicted += bo->estimated_size;
+   screen->num_evictions++;
+}
+
+static void
 evict_aged_allocations(struct d3d12_screen *screen, uint64_t completed_fence, int64_t time, int64_t grace_period)
 {
    ID3D12Pageable *to_evict[residency_batch_size];
@@ -52,6 +59,7 @@ evict_aged_allocations(struct d3d12_screen *screen, uint64_t completed_fence, in
       assert(bo->residency_status == d3d12_resident);
 
       to_evict[num_pending_evictions++] = bo->res;
+      log_eviction_info(screen, bo);
       bo->residency_status = d3d12_evicted;
       list_del(&bo->residency_list_entry);
 
@@ -84,6 +92,7 @@ evict_to_fence_or_budget(struct d3d12_screen *screen, uint64_t target_fence, uin
       assert(bo->residency_status == d3d12_resident);
 
       to_evict[num_pending_evictions++] = bo->res;
+      log_eviction_info(screen, bo);
       bo->residency_status = d3d12_evicted;
       list_del(&bo->residency_list_entry);
 

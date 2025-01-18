@@ -6,7 +6,7 @@ traces-db:
 traces:
   0ad/0ad-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: 744b55a9ea8efe0c605865ed39c3c167
+      checksum: 296d9d77d7f412b73f2114670dced22b
   bgfx/01-cubes.rdc:
     gl-vmware-llvmpipe:
       checksum: a453a832e0e07132bb2c92c3fed7df18
@@ -18,7 +18,7 @@ traces:
       checksum: 90e324ce490d0b25526925c139e4663d
   bgfx/04-mesh.rdc:
     gl-vmware-llvmpipe:
-      checksum: 274682ad4bf2ca4fa9cc92b55a7fd20b
+      checksum: 0c77cf3a153db5b6ea3ad3f3a4adf348
   bgfx/05-instancing.rdc:
     gl-vmware-llvmpipe:
       checksum: 948ec4c353485559163c575e80a01550
@@ -30,7 +30,7 @@ traces:
       checksum: 702793a6317d16de9f8045128401b31a
   bgfx/09-hdr.rdc:
     gl-vmware-llvmpipe:
-      checksum: 016dab082c1facafdd5512bf7b2f79db
+      checksum: 8df76865b66c8385ec5a3c1ce8e638ba
   bgfx/10-font.rdc:
     gl-vmware-llvmpipe:
       checksum: 0a1673e22adc3dc126c921fe9460b2fe
@@ -51,7 +51,7 @@ traces:
       checksum: 607edbe247f0977a011ea673965c376d
   bgfx/16-shadowmaps.rdc:
     gl-vmware-llvmpipe:
-      checksum: 6c31b4af0f0b55586d858681206ea87c
+      checksum: 24dfd4adb0fcac7043adbfe9b09f6eb8
   bgfx/18-ibl.rdc:
     gl-vmware-llvmpipe:
       checksum: f785c003caf9ea9f84212ffa5aa08815
@@ -75,13 +75,13 @@ traces:
       checksum: 015201fe000d6a323b0f7d3f218d3e47
   bgfx/31-rsm.rdc:
     gl-vmware-llvmpipe:
-      checksum: 4be8fda5d2289296fee9540306aef92e
+      checksum: 5e3d8fede81ee8dd3478272ed4f82e85
   bgfx/32-particles.rdc:
     gl-vmware-llvmpipe:
       checksum: 018418bdd7f60a186cce532613b0c7ab
   bgfx/33-pom.rdc:
     gl-vmware-llvmpipe:
-      checksum: 1d85816768c32de8f82af29802484079
+      checksum: aa3b4f5ea12edf6eb56cbd411fd4d5ac
   bgfx/34-mvs.rdc:
     gl-vmware-llvmpipe:
       checksum: 6ad9c7d97debb7bf495b0bfca921ba9c
@@ -108,13 +108,13 @@ traces:
       checksum: f8eba0fec6e3e0af9cb09844bc73bdc8
   gputest/furmark-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: 096903158e15a2f8a49711583c36027d
+      checksum: 214c2ebbe5e3b6a52bb9e6cb4575cc96
   gputest/triangle-v2.trace:
     gl-vmware-llvmpipe:
       checksum: 7812de00011a3a059892e36cea19c696
   humus/Portals-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: a55dd3d87a86b3b47121ff67861028c3
+      checksum: 68355026d723f9f7afa3a0f70b3b3c8f
   jvgs/jvgs-d27fb67-v2.trace:
     gl-vmware-llvmpipe:
       checksum: 43b89627364b4cabbab84931aef4ce5e
@@ -129,7 +129,7 @@ traces:
       checksum: db43c733f3f3d5253e263838e58d9111
   paraview/pv-waveletvolume-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: 7e0fc4f2f8c635e571793ed8fa705f85
+      checksum: d4b2183b435dcbe6234e0677d9440281
   pathfinder/canvas_moire-v2.trace:
     gl-vmware-llvmpipe:
       checksum: 25ba8f18274126670311bd3ffe058f74
@@ -158,4 +158,4 @@ traces:
       label: [unsupported]
   warzone2100/warzone2100-default.trace:
     gl-vmware-llvmpipe:
-      checksum: 8024a4bb006f4fa8d43fc7bb65854a64
+      checksum: 8acdc244844d1e46ca04b73c3ff3f834

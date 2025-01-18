@@ -1561,3 +1561,21 @@ nir_opt_deref(nir_shader *shader)
 
    return progress;
 }
+
+/*
+ * With library-based approaches to driver shaders, it may not be possible to
+ * implement constant_data directly, but LLVM loves to produce constants e.g.
+ * for designated initializers. This helper lowers away constant data. This may
+ * allow additional optimizations. If desired, the backend driver can regather
+ * constant data later with nir_opt_large_constants.
+ */
+void
+nir_lower_constant_to_temp(nir_shader *nir)
+{
+   nir_foreach_variable_with_modes(var, nir, nir_var_mem_constant) {
+      var->data.mode = nir_var_shader_temp;
+   }
+
+   nir_fixup_deref_modes(nir);
+   nir_lower_global_vars_to_local(nir);
+}

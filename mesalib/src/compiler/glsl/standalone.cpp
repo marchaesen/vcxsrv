@@ -32,7 +32,6 @@
 #include "ast.h"
 #include "glsl_parser_extras.h"
 #include "ir_optimization.h"
-#include "program.h"
 #include "standalone_scaffolding.h"
 #include "standalone.h"
 #include "util/set.h"

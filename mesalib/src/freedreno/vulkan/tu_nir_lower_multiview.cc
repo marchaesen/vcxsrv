@@ -74,9 +74,13 @@ bool
 tu_nir_lower_multiview(nir_shader *nir, uint32_t mask, struct tu_device *dev)
 {
    bool progress = false;
+   nir_lower_multiview_options options = {
+      .view_mask = mask,
+      .allowed_per_view_outputs = VARYING_BIT_POS
+   };
 
    if (!dev->physical_device->info->a6xx.supports_multiview_mask)
-      NIR_PASS(progress, nir, lower_multiview_mask, &mask);
+      NIR_PASS(progress, nir, lower_multiview_mask, &options.view_mask);
 
    unsigned num_views = util_logbase2(mask) + 1;
 
@@ -98,13 +102,13 @@ tu_nir_lower_multiview(nir_shader *nir, uint32_t mask, struct tu_device *dev)
     */
    if (!TU_DEBUG(NOMULTIPOS) &&
        num_views <= max_views_for_multipos && num_outputs + (num_views - 1) <= 32 &&
-       nir_can_lower_multiview(nir)) {
+       nir_can_lower_multiview(nir, options)) {
       /* It appears that the multiview mask is ignored when multi-position
        * output is enabled, so we have to write 0 to inactive views ourselves.
        */
-      NIR_PASS(progress, nir, lower_multiview_mask, &mask);
+      NIR_PASS(progress, nir, lower_multiview_mask, &options.view_mask);
 
-      NIR_PASS_V(nir, nir_lower_multiview, mask);
+      NIR_PASS_V(nir, nir_lower_multiview, options);
       progress = true;
    }
 

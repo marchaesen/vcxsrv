@@ -7,6 +7,8 @@
 
 #include "agx_device.h"
 #include <inttypes.h>
+#include "clc/asahi_clc.h"
+#include "util/macros.h"
 #include "util/ralloc.h"
 #include "util/timespec.h"
 #include "agx_bo.h"
@@ -15,6 +17,7 @@
 #include "agx_scratch.h"
 #include "decode.h"
 #include "glsl_types.h"
+#include "libagx_dgc.h"
 #include "libagx_shaders.h"
 
 #include <fcntl.h>
@@ -27,6 +30,7 @@
 #include "util/os_mman.h"
 #include "util/os_time.h"
 #include "util/simple_mtx.h"
+#include "util/u_printf.h"
 #include "git_sha1.h"
 #include "nir_serialize.h"
 #include "unstable_asahi_drm.h"
@@ -45,6 +49,7 @@ asahi_simple_ioctl(struct agx_device *dev, unsigned cmd, void *req)
 /* clang-format off */
 static const struct debug_named_value agx_debug_options[] = {
    {"trace",     AGX_DBG_TRACE,    "Trace the command stream"},
+   {"bodump",    AGX_DBG_BODUMP,   "Periodically dump live BOs"},
    {"no16",      AGX_DBG_NO16,     "Disable 16-bit support"},
    {"perf",      AGX_DBG_PERF,     "Print performance warnings"},
 #ifndef NDEBUG
@@ -66,6 +71,7 @@ static const struct debug_named_value agx_debug_options[] = {
    {"scratch",   AGX_DBG_SCRATCH,  "Debug scratch memory usage"},
    {"1queue",    AGX_DBG_1QUEUE,   "Force usage of a single queue for multiple contexts"},
    {"nosoft",    AGX_DBG_NOSOFT,   "Disable soft fault optimizations"},
+   {"bodumpverbose", AGX_DBG_BODUMPVERBOSE,   "Include extra info with dumps"},
    DEBUG_NAMED_VALUE_END
 };
 /* clang-format on */
@@ -75,8 +81,8 @@ agx_bo_free(struct agx_device *dev, struct agx_bo *bo)
 {
    const uint64_t handle = bo->handle;
 
-   if (bo->map)
-      munmap(bo->map, bo->size);
+   if (bo->_map)
+      munmap(bo->_map, bo->size);
 
    /* Free the VA. No need to unmap the BO, as the kernel will take care of that
     * when we close it.
@@ -154,6 +160,7 @@ agx_bo_alloc(struct agx_device *dev, size_t size, size_t align,
    /* Fresh handle */
    assert(!memcmp(bo, &((struct agx_bo){}), sizeof(*bo)));
 
+   bo->dev = dev;
    bo->size = gem_create.size;
    bo->align = align;
    bo->flags = flags;
@@ -179,18 +186,16 @@ agx_bo_alloc(struct agx_device *dev, size_t size, size_t align,
       return NULL;
    }
 
-   dev->ops.bo_mmap(dev, bo);
    return bo;
 }
 
 static void
 agx_bo_mmap(struct agx_device *dev, struct agx_bo *bo)
 {
+   assert(bo->_map == NULL && "not double mapped");
+
    struct drm_asahi_gem_mmap_offset gem_mmap_offset = {.handle = bo->handle};
    int ret;
-
-   if (bo->map)
-      return;
 
    ret = drmIoctl(dev->fd, DRM_IOCTL_ASAHI_GEM_MMAP_OFFSET, &gem_mmap_offset);
    if (ret) {
@@ -198,13 +203,13 @@ agx_bo_mmap(struct agx_device *dev, struct agx_bo *bo)
       assert(0);
    }
 
-   bo->map = os_mmap(NULL, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                     dev->fd, gem_mmap_offset.offset);
-   if (bo->map == MAP_FAILED) {
-      bo->map = NULL;
+   bo->_map = os_mmap(NULL, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+                      dev->fd, gem_mmap_offset.offset);
+   if (bo->_map == MAP_FAILED) {
+      bo->_map = NULL;
       fprintf(stderr,
               "mmap failed: result=%p size=0x%llx fd=%i offset=0x%llx %m\n",
-              bo->map, (long long)bo->size, dev->fd,
+              bo->_map, (long long)bo->size, dev->fd,
               (long long)gem_mmap_offset.offset);
    }
 }
@@ -229,6 +234,7 @@ agx_bo_import(struct agx_device *dev, int fd)
    dev->max_handle = MAX2(dev->max_handle, gem_handle);
 
    if (!bo->size) {
+      bo->dev = dev;
       bo->size = lseek(fd, 0, SEEK_END);
       bo->align = dev->params.vm_page_size;
 
@@ -294,8 +300,12 @@ agx_bo_import(struct agx_device *dev, int fd)
    }
    pthread_mutex_unlock(&dev->bo_map_lock);
 
-   if (dev->debug & AGX_DBG_TRACE)
+   assert(bo->dev != NULL && "post-condition");
+
+   if (dev->debug & AGX_DBG_TRACE) {
+      agx_bo_map(bo);
       agxdecode_track_alloc(dev->agxdecode, bo);
+   }
 
    return bo;
 
@@ -339,6 +349,52 @@ agx_bo_export(struct agx_device *dev, struct agx_bo *bo)
 
    assert(bo->prime_fd >= 0);
    return fd;
+}
+
+static int
+agx_bo_bind_object(struct agx_device *dev, struct agx_bo *bo,
+                   uint32_t *object_handle, size_t size_B, uint64_t offset_B,
+                   uint32_t flags)
+{
+   struct drm_asahi_gem_bind_object gem_bind = {
+      .op = ASAHI_BIND_OBJECT_OP_BIND,
+      .flags = flags,
+      .handle = bo->handle,
+      .vm_id = 0,
+      .offset = offset_B,
+      .range = size_B,
+   };
+
+   int ret = drmIoctl(dev->fd, DRM_IOCTL_ASAHI_GEM_BIND_OBJECT, &gem_bind);
+   if (ret) {
+      fprintf(stderr,
+              "DRM_IOCTL_ASAHI_GEM_BIND_OBJECT failed: %m (handle=%d)\n",
+              bo->handle);
+   }
+
+   *object_handle = gem_bind.object_handle;
+
+   return ret;
+}
+
+static int
+agx_bo_unbind_object(struct agx_device *dev, uint32_t object_handle,
+                     uint32_t flags)
+{
+   struct drm_asahi_gem_bind_object gem_bind = {
+      .op = ASAHI_BIND_OBJECT_OP_UNBIND,
+      .flags = flags,
+      .object_handle = object_handle,
+   };
+
+   int ret = drmIoctl(dev->fd, DRM_IOCTL_ASAHI_GEM_BIND_OBJECT, &gem_bind);
+   if (ret) {
+      fprintf(stderr,
+              "DRM_IOCTL_ASAHI_GEM_BIND_OBJECT failed: %m (object_handle=%d)\n",
+              object_handle);
+   }
+
+   return ret;
 }
 
 static void
@@ -391,7 +447,36 @@ const agx_device_ops_t agx_device_drm_ops = {
    .bo_mmap = agx_bo_mmap,
    .get_params = agx_get_params,
    .submit = agx_submit,
+   .bo_bind_object = agx_bo_bind_object,
+   .bo_unbind_object = agx_bo_unbind_object,
 };
+
+static uint64_t
+gcd(uint64_t n, uint64_t m)
+{
+   while (n != 0) {
+      uint64_t remainder = m % n;
+      m = n;
+      n = remainder;
+   }
+
+   return m;
+}
+
+static void
+agx_init_timestamps(struct agx_device *dev)
+{
+   uint64_t ts_gcd = gcd(dev->params.timer_frequency_hz, NSEC_PER_SEC);
+
+   dev->timestamp_to_ns.num = NSEC_PER_SEC / ts_gcd;
+   dev->timestamp_to_ns.den = dev->params.timer_frequency_hz / ts_gcd;
+
+   uint64_t user_ts_gcd = gcd(dev->params.timer_frequency_hz, NSEC_PER_SEC);
+
+   dev->user_timestamp_to_ns.num = NSEC_PER_SEC / user_ts_gcd;
+   dev->user_timestamp_to_ns.den =
+      dev->params.user_timestamp_frequency_hz / user_ts_gcd;
+}
 
 bool
 agx_open_device(void *memctx, struct agx_device *dev)
@@ -402,26 +487,31 @@ agx_open_device(void *memctx, struct agx_device *dev)
    dev->ops = agx_device_drm_ops;
 
    ssize_t params_size = -1;
-   drmVersionPtr version;
 
-   version = drmGetVersion(dev->fd);
-   if (!version) {
-      fprintf(stderr, "cannot get version: %s", strerror(errno));
-      return NULL;
-   }
+   /* DRM version check */
+   {
+      drmVersionPtr version = drmGetVersion(dev->fd);
+      if (!version) {
+         fprintf(stderr, "cannot get version: %s", strerror(errno));
+         return NULL;
+      }
 
-   if (!strcmp(version->name, "asahi")) {
-      dev->is_virtio = false;
-      dev->ops = agx_device_drm_ops;
-   } else if (!strcmp(version->name, "virtio_gpu")) {
-      dev->is_virtio = true;
-      if (!agx_virtio_open_device(dev)) {
-         fprintf(stderr,
-                 "Error opening virtio-gpu device for Asahi native context\n");
+      if (!strcmp(version->name, "asahi")) {
+         dev->is_virtio = false;
+         dev->ops = agx_device_drm_ops;
+      } else if (!strcmp(version->name, "virtio_gpu")) {
+         dev->is_virtio = true;
+         if (!agx_virtio_open_device(dev)) {
+            fprintf(
+               stderr,
+               "Error opening virtio-gpu device for Asahi native context\n");
+            return false;
+         }
+      } else {
          return false;
       }
-   } else {
-      return false;
+
+      drmFreeVersion(version);
    }
 
    params_size = dev->ops.get_params(dev, &dev->params, sizeof(dev->params));
@@ -503,6 +593,12 @@ agx_open_device(void *memctx, struct agx_device *dev)
     */
    uint64_t reservation = (1ull << 36);
 
+   /* Also reserve VA space for the printf buffer at a stable address, avoiding
+    * the need for relocs in precompiled shaders.
+    */
+   assert(reservation == LIBAGX_PRINTF_BUFFER_ADDRESS);
+   reservation += LIBAGX_PRINTF_BUFFER_SIZE;
+
    dev->guard_size = dev->params.vm_page_size;
    if (dev->params.vm_usc_start) {
       dev->shader_base = dev->params.vm_usc_start;
@@ -527,6 +623,8 @@ agx_open_device(void *memctx, struct agx_device *dev)
    assert(user_start < dev->params.vm_user_end);
 
    dev->agxdecode = agxdecode_new_context(dev->shader_base);
+
+   agx_init_timestamps(dev);
 
    util_sparse_array_init(&dev->bo_map, sizeof(struct agx_bo), 512);
    pthread_mutex_init(&dev->bo_map_lock, NULL);
@@ -565,20 +663,50 @@ agx_open_device(void *memctx, struct agx_device *dev)
 
    glsl_type_singleton_init_or_ref();
    struct blob_reader blob;
-   blob_reader_init(&blob, (void *)libagx_shaders_nir,
-                    sizeof(libagx_shaders_nir));
+   blob_reader_init(&blob, (void *)libagx_0_nir, sizeof(libagx_0_nir));
    dev->libagx = nir_deserialize(memctx, &agx_nir_options, &blob);
 
-   dev->helper = agx_build_helper(dev);
+   if (agx_gather_device_key(dev).needs_g13x_coherency == U_TRISTATE_YES) {
+      dev->libagx_programs = libagx_g13x;
+   } else {
+      dev->libagx_programs = libagx_g13g;
+   }
 
+   if (dev->params.gpu_generation >= 14 && dev->params.num_clusters_total > 1) {
+      dev->chip = AGX_CHIP_G14X;
+   } else if (dev->params.gpu_generation >= 14) {
+      dev->chip = AGX_CHIP_G14G;
+   } else if (dev->params.gpu_generation >= 13 &&
+              dev->params.num_clusters_total > 1) {
+      dev->chip = AGX_CHIP_G13X;
+   } else {
+      dev->chip = AGX_CHIP_G13G;
+   }
+
+   void *bo = agx_bo_create(dev, LIBAGX_PRINTF_BUFFER_SIZE, 0, AGX_BO_WRITEBACK,
+                            "Printf/abort");
+
+   ret = dev->ops.bo_bind(dev, bo, LIBAGX_PRINTF_BUFFER_ADDRESS,
+                          LIBAGX_PRINTF_BUFFER_SIZE, 0,
+                          ASAHI_BIND_READ | ASAHI_BIND_WRITE, false);
+   if (ret) {
+      fprintf(stderr, "Failed to bind printf buffer");
+      return false;
+   }
+
+   u_printf_init(&dev->printf, bo, agx_bo_map(bo));
+   u_printf_singleton_init_or_ref();
+   u_printf_singleton_add(dev->libagx->printf_info,
+                          dev->libagx->printf_info_count);
    return true;
 }
 
 void
 agx_close_device(struct agx_device *dev)
 {
+   agx_bo_unreference(dev, dev->printf.bo);
+   u_printf_destroy(&dev->printf);
    ralloc_free((void *)dev->libagx);
-   agx_bo_unreference(dev, dev->helper);
    agx_bo_cache_evict_all(dev);
    util_sparse_array_finish(&dev->bo_map);
    agxdecode_destroy_context(dev->agxdecode);
@@ -586,6 +714,7 @@ agx_close_device(struct agx_device *dev)
    util_vma_heap_finish(&dev->main_heap);
    util_vma_heap_finish(&dev->usc_heap);
    glsl_type_singleton_decref();
+   u_printf_singleton_decref();
 
    close(dev->fd);
 }
@@ -636,7 +765,8 @@ agx_destroy_command_queue(struct agx_device *dev, uint32_t queue_id)
       .queue_id = queue_id,
    };
 
-   return drmIoctl(dev->fd, DRM_IOCTL_ASAHI_QUEUE_DESTROY, &queue_destroy);
+   return asahi_simple_ioctl(dev, DRM_IOCTL_ASAHI_QUEUE_DESTROY,
+                             &queue_destroy);
 }
 
 int
@@ -725,6 +855,16 @@ agx_debug_fault(struct agx_device *dev, uint64_t addr)
 uint64_t
 agx_get_gpu_timestamp(struct agx_device *dev)
 {
+   if (dev->params.feat_compat & DRM_ASAHI_FEAT_GETTIME) {
+      struct drm_asahi_get_time get_time = {.flags = 0, .extensions = 0};
+
+      int ret = asahi_simple_ioctl(dev, DRM_IOCTL_ASAHI_GET_TIME, &get_time);
+      if (ret) {
+         fprintf(stderr, "DRM_IOCTL_ASAHI_GET_TIME failed: %m\n");
+      } else {
+         return get_time.gpu_timestamp;
+      }
+   }
 #if DETECT_ARCH_AARCH64
    uint64_t ret;
    __asm__ volatile("mrs \t%0, cntvct_el0" : "=r"(ret));
@@ -790,4 +930,29 @@ agx_get_driver_uuid(void *uuid)
 
    assert(SHA1_DIGEST_LENGTH >= UUID_SIZE);
    memcpy(uuid, sha1, UUID_SIZE);
+}
+
+unsigned
+agx_get_num_cores(const struct agx_device *dev)
+{
+   unsigned n = 0;
+
+   for (unsigned cl = 0; cl < dev->params.num_clusters_total; cl++) {
+      n += util_bitcount(dev->params.core_masks[cl]);
+   }
+
+   return n;
+}
+
+struct agx_device_key
+agx_gather_device_key(struct agx_device *dev)
+{
+   bool g13x_coh = (dev->params.gpu_generation == 13 &&
+                    dev->params.num_clusters_total > 1) ||
+                   dev->params.num_dies > 1;
+
+   return (struct agx_device_key){
+      .needs_g13x_coherency = u_tristate_make(g13x_coh),
+      .soft_fault = agx_has_soft_fault(dev),
+   };
 }

@@ -268,10 +268,6 @@ static void si_begin_gfx_cs_debug(struct si_context *ctx)
                              RADEON_USAGE_READWRITE | RADEON_PRIO_FENCE_TRACE);
 }
 
-static void si_add_gds_to_buffer_list(struct si_context *sctx)
-{
-}
-
 void si_set_tracked_regs_to_clear_state(struct si_context *ctx)
 {
    assert(ctx->gfx_level < GFX12);
@@ -367,7 +363,11 @@ void si_set_tracked_regs_to_clear_state(struct si_context *ctx)
    ctx->tracked_regs.reg_value[SI_TRACKED_VGT_GS_VERT_ITEMSIZE_2] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_VGT_GS_VERT_ITEMSIZE_3] = 0;
 
-   ctx->tracked_regs.reg_value[SI_TRACKED_SPI_VS_OUT_CONFIG] = 0;
+   if (ctx->gfx_level >= GFX12)
+      ctx->tracked_regs.reg_value[SI_TRACKED_DB_RENDER_OVERRIDE] = 0;
+   else
+      ctx->tracked_regs.reg_value[SI_TRACKED_SPI_VS_OUT_CONFIG] = 0;
+
    ctx->tracked_regs.reg_value[SI_TRACKED_VGT_PRIMITIVEID_EN] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_CB_DCC_CONTROL] = 0;
 

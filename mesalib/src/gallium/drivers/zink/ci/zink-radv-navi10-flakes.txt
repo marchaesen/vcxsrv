@@ -1,9 +1,19 @@
 KHR-GL46.packed_pixels.varied_rectangle.rgb16
+KHR-GL46.sparse_texture_tests.SparseTextureCommitment_texture_2d_rgba16
 dEQP-GLES2.functional.fragment_ops.blend.rgb_func_alpha_func.src.dst_color_src_alpha
 dEQP-GLES2.functional.texture.filtering.cube.nearest_linear_clamp_rgba4444_pot
-dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.srgb8_alpha8_astc_10x5_khr_rgba32i.texture2d_array_to_texture2d_array
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_nearest_repeat_repeat
+dEQP-GLES3.functional.default_vertex_attrib.int.vertex_attribi_4i
+dEQP-GLES3.functional.fbo.multiview.samples_1
+dEQP-GLES3.functional.fbo.multiview.samples_2
 dEQP-GLES3.functional.transform_feedback.array_element.interleaved.points.lowp_mat2x3
+dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.srgb8_alpha8_astc_10x5_khr_rgba32i.texture2d_array_to_texture2d_array
+dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.srgb8_alpha8_astc_12x10_khr_rgba32ui.texture2d_array_to_texture3d
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_32_bits.rg16ui_rgb10_a2.texture3d_to_texture2d_array
+dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_nearest_repeat_repeat
+spec@!opengl 1.0@rasterpos
+spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked
+spec@!opengl 1.0@rasterpos@glsl_vs_tes_linke
+spec@arb_compute_variable_group_size@local-size
 spec@arb_enhanced_layouts@execution@component-layout@sso-vs-gs-fs-array-interleave
 spec@arb_fragment_shader_interlock@arb_fragment_shader_interlock-image-load-store
 spec@arb_texture_cube_map@copyteximage cube samples=6
@@ -18,9 +28,6 @@ spec@ext_texture_array@copyteximage 2d_array samples=8
 spec@ext_transform_feedback@max-varyings
 spec@ext_transform_feedback@max-varyings@max-varying-arrays-of-arrays
 spec@glsl-1.50@execution@geometry@point-size-out
-spec@!opengl 1.0@rasterpos
-spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked
-spec@!opengl 1.0@rasterpos@glsl_vs_tes_linke
 
 # Marked as flake because it passes with ESO but crashes with pipelines.
 spec@arb_tessellation_shader@arb_tessellation_shader-tes-gs-max-output -small -scan 1 50

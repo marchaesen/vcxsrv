@@ -44,7 +44,7 @@
 void
 _mesa_init_performance_queries(struct gl_context *ctx)
 {
-   _mesa_InitHashTable(&ctx->PerfQuery.Objects);
+   _mesa_InitHashTable(&ctx->PerfQuery.Objects, ctx->Shared->ReuseGLNames);
 }
 
 static void

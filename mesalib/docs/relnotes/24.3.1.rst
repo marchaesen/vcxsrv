@@ -1,0 +1,220 @@
+Mesa 24.3.1 Release Notes / 2024-12-04
+======================================
+
+Mesa 24.3.1 is a bug fix release which fixes bugs found since the 24.3.0 release.
+
+Mesa 24.3.1 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.3.1 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+   SHA256: 9c795900449ce5bc7c526ba0ab3532a22c3c951cab7e0dd9de5fcac41b0843af  mesa-24.3.1.tar.xz
+   SHA512: deecf58e2c31e35d7c1943bb21184b52133a83fa472925128d3a03a57b26c92a476a6d3f7140ef2b78475b66affdabf97436ee8b324be204ce5bb940f78119c8  mesa-24.3.1.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- zink: zink_create_quads_emulation_gs doesn't write primitive ID
+- regression;bisected: c49a71c03c9166b0814db92420eadac74cbc4b11 leads to artifacts if on top of launched game (in full screen mode) show list running apps (Hold Alt + Tab)
+- black screen and "Failed to add framebuffer" error in wayland compositors when not filtering dmabuf formats with ccs modifiers on intel graphics when upgrading to mesa 24.3.0
+- nir: nir_opt_if_merge_test fails validation with NIR_DEBUG=validate_ssa_dominance
+- radv: Vulkan AV1 video decode glitches
+- Firestorm crashes on startup with Mesa 24.3
+
+
+Changes
+-------
+
+Alyssa Rosenzweig (1):
+
+- zink: fix gl_PrimitiveID reads with quads
+
+Antonino Maniscalco (1):
+
+- nir,zink,asahi: support passing through gl_PrimitiveID
+
+Boris Brezillon (2):
+
+- panfrost: Increase AFBC body alignment requirement on v6+
+- panvk/csf: Fix register overlap in issue_fragment_jobs()
+
+Caio Oliveira (1):
+
+- intel/brw: Fix decoding of cond_modifier and saturate in EU validation
+
+Chia-I Wu (3):
+
+- panvk: clang-format issue_fragment_jobs
+- panvk: fix frag_completed for layered rendering
+- panvk: fix vs image support
+
+Connor Abbott (1):
+
+- ir3: Fix reload_live_out() in shared RA
+
+Daniel Schürmann (2):
+
+- aco/ra: set Pseudo_instruction::scratch_sgpr to SCC if it doesn't need to be preserved
+- aco/ra: use bitset for sgpr_operands_alias_defs
+
+Dave Airlie (2):
+
+- v3dv: report correct error on failure to probe
+- venus: handle device probing properly.
+
+David Rosca (2):
+
+- gallium/vl: Don't support planar RGB as video format
+- radv/video: Always use setup reference slot when valid
+
+Derek Foreman (3):
+
+- vulkan/wsi/wayland: Fix time calculation
+- vulkan/wsi/wayland: Avoid spurious discard event at startup
+- vulkan/wsi/wayland: Move timing calculations to the swapchain
+
+Dylan Baker (13):
+
+- docs/relnotes/24.3.0: Add SHA sums
+- .pick_status.json: Update to a53e6ae6992af51ca422bd82d0adb8accda3b456
+- .pick_status.json: Update to 2e49448a433e30a0648b3986381f356335211ae9
+- .pick_status.json: Update to 8653abac095c76fc898cbd72bc67b10b828c3478
+- .pick_status.json: Update to 64ea1175cc88f10c6c5ec06a4c9d2d65436c51a6
+- .pick_status.json: Mark aae0c1d5a8dd446015d6208a6bf81942a1d4cebf as denominated
+- .pick_status.json: Update to 1b42bc76daf10b968409471e5829173e97ae297c
+- .pick_status.json: Mark 44de5f1c46ceca4f8dd2c594b93ad3e29f2622bc as denominated
+- .pick_status.json: Update to 0c55770b3ee30be1b91b6efc211674694afcc5cd
+- .pick_status.json: Update to cdf822632a16cd1f10aab93590c179bdc1bfa441
+- .pick_status.json: Mark 4d35002949c4ca0ffb00b9e98b828829553d51d4 as denominated
+- .pick_status.json: Update to d0f4d0b6d0f2786d54ad3b4811ec076770118ec1
+- .pick_status.json: Mark dfa4c55a4f24518e46f8a7002c5c69cdbad8feb5 as denominated
+
+Eric Engestrom (4):
+
+- zink+nvk/ci: fix deqp binary used for gles tests
+- zink+radv/ci: fix deqp binary used for gles tests
+- meson/megadriver: simplify setting common megadriver arguments
+- meson/megadriver: support various lib suffixes
+
+Erik Faye-Lund (5):
+
+- panfrost: use 64-bits for layout calculations
+- panvk: set correct max extents for images
+- panvk: support binding swapchain memory
+- panvk: wire up swapchain image creation
+- st/mesa: check requirements for MESA_texture_const_bandwidth
+
+Georg Lehmann (4):
+
+- nir/move_discards_to_top: don't move across is_helper_invocation
+- nir/opt_intrinsic: rework sample mask opt with vector alu
+- nir/opt_intrinsic: fix sample mask opt with demote
+- radv: fix reporting mesh/task/rt as supported dgc indirect stages
+
+Hans-Kristian Arntzen (1):
+
+- radv: Fix missing gang barriers for task shaders.
+
+Ian Romanick (1):
+
+- Fix copy-and-paste bug in nir_lower_aapoint_impl
+
+Juston Li (1):
+
+- util/cache_test: Fix racey Cache.List test
+
+Karmjit Mahil (1):
+
+- tu: Fix memory leaks on VK_PIPELINE_COMPILE_REQUIRED
+
+Karol Herbst (2):
+
+- rusticl: check for overrun status when deserializing
+- rusticl/program: check if provided binary pointers are null
+
+Konstantin (1):
+
+- radv: Do not overwrite VRS rates when doing fast clears
+
+Lina Versace (1):
+
+- anv: Fix feature pipelineProtectedAccess
+
+Lionel Landwerlin (1):
+
+- anv/iris: leave 4k alignments for clear colors with modifiers
+
+Marek Olšák (1):
+
+- Revert "gbm: mark surface buffers as explicit flushed"
+
+Mary Guillemard (1):
+
+- panvk: Call vk_free on queue array instead of vk_object_free
+
+Patrick Lerda (4):
+
+- r600: fix the evergreen sampler when the minification and the magnification are not identical
+- r600: restructure r600_create_vertex_fetch_shader() to remove memcpy()
+- r600: ensure that the last vertex is always processed on evergreen
+- r600: evergreen stencil/depth mipmap blit workaround
+
+Rhys Perry (3):
+
+- nir/opt_move_discards_to_top: use nir_tex_instr_has_implicit_derivative
+- nir: fix return value of nir_instr_move for some cases
+- nir/tests: fix SSA dominance in opt_if_merge tests
+
+Rob Clark (1):
+
+- vdrm+tu+fd: Make cross-device optional
+
+Robert Mader (1):
+
+- freedreno: Support offset query for multi-planar planes
+
+Samuel Pitoiset (1):
+
+- radv: fix skipping on-disk shaders cache when not useful
+
+Scott Moreau (1):
+
+- dri: Fix hardware cursor for cards without modifier support
+
+Simon Ser (1):
+
+- dri: revert INVALID modifier special-casing
+
+Tapani Pälli (1):
+
+- anv/android: always create 2 graphics and compute capable queues
+
+Timothy Arceri (1):
+
+- glsl: fix compiler global temp collisions
+
+Yinjie Yao (1):
+
+- radeonsi/vcn: Disable 2pass encode for VCN 5.0.
+
+liuqiang (1):
+
+- lavapipe: Resolved write to pointer after free

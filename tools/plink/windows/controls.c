@@ -1988,46 +1988,34 @@ bool winctrl_handle_command(struct dlgparam *dp, UINT msg,
             (msg == WM_COMMAND &&
              (HIWORD(wParam) == BN_CLICKED ||
               HIWORD(wParam) == BN_DOUBLECLICKED))) {
-            OPENFILENAMEW of;
-            wchar_t filename[FILENAME_MAX];
-
-            wchar_t *title_to_free = NULL;
-
-            memset(&of, 0, sizeof(of));
-            of.hwndOwner = dp->hwnd;
-            if (ctrl->fileselect.filter)
-                of.lpstrFilter = ctrl->fileselect.filter;
-            else
-                of.lpstrFilter = L"All Files (*.*)\0*\0\0\0";
-            of.lpstrCustomFilter = NULL;
-            of.nFilterIndex = 1;
-            of.lpstrFile = filename;
+            Filename *fn_prev = NULL;
             if (!ctrl->fileselect.just_button) {
-                GetDlgItemTextW(dp->hwnd, c->base_id+1,
-                                filename, lenof(filename));
-                filename[lenof(filename)-1] = L'\0';
-            } else {
-                *filename = L'\0';
+                wchar_t *text = GetDlgItemTextW_alloc(dp->hwnd, c->base_id+1);
+                if (*text)
+                    fn_prev = filename_from_wstr(text);
+                sfree(text);
             }
-            of.nMaxFile = lenof(filename);
-            of.lpstrFileTitle = NULL;
-            of.lpstrTitle = title_to_free = dup_mb_to_wc(
-                DEFAULT_CODEPAGE, ctrl->fileselect.title);
-            of.Flags = 0;
-            if (request_file_w(NULL, &of, false,
-                               ctrl->fileselect.for_writing)) {
+
+            Filename *fn = request_file(
+                dp->hwnd, ctrl->fileselect.title, fn_prev,
+                ctrl->fileselect.for_writing, NULL, false,
+                ctrl->fileselect.filter);
+            if (fn_prev)
+                filename_free(fn_prev);
+
+            if (fn) {
                 if (!ctrl->fileselect.just_button) {
-                    SetDlgItemTextW(dp->hwnd, c->base_id + 1, filename);
+                    SetDlgItemTextW(dp->hwnd, c->base_id + 1,
+                                    filename_to_wstr(fn));
                     ctrl->handler(ctrl, dp, dp->data, EVENT_VALCHANGE);
                 } else {
                     assert(!c->data);
-                    c->data = filename;
+                    c->data = fn;
                     ctrl->handler(ctrl, dp, dp->data, EVENT_ACTION);
                     c->data = NULL;
                 }
+                filename_free(fn);
             }
-
-            sfree(title_to_free);
         }
         break;
       case CTRL_FONTSELECT:
@@ -2433,7 +2421,7 @@ Filename *dlg_filesel_get(dlgcontrol *ctrl, dlgparam *dp)
         sfree(tmp);
         return ret;
     } else {
-        return filename_from_str(c->data);
+        return filename_copy(c->data);
     }
 }
 

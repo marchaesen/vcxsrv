@@ -45,7 +45,7 @@ panfrost_blitter_save(struct panfrost_context *ctx,
                                    ctx->uncompiled[PIPE_SHADER_VERTEX]);
    util_blitter_save_rasterizer(blitter, ctx->rasterizer);
    util_blitter_save_viewport(blitter, &ctx->pipe_viewport);
-   util_blitter_save_so_targets(blitter, 0, NULL);
+   util_blitter_save_so_targets(blitter, 0, NULL, 0);
 
    if (blitter_op & PAN_SAVE_FRAGMENT_STATE) {
       if (blitter_op & PAN_SAVE_FRAGMENT_CONSTANT)

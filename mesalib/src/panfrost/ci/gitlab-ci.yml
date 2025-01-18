@@ -74,7 +74,7 @@
         *panfrost_bifrost_file_list
       when: manual
 
-.panfrost-bifrost-vk-rules:
+.panfrost-vk-rules:
   stage: arm
   rules:
     - !reference [.test, rules]
@@ -90,7 +90,7 @@
         - src/panfrost/compiler/**/*
       when: on_success
 
-.panfrost-bifrost-vk-manual-rules:
+.panfrost-vk-manual-rules:
   stage: arm-postmerge
   extends: .no-auto-retry
   rules:
@@ -229,9 +229,8 @@
     BOOT_METHOD: u-boot
     KERNEL_IMAGE_NAME: Image
     KERNEL_IMAGE_TYPE: "image"
-    FORCE_KERNEL_TAG: "v6.11-rc7-mesa-f9e9"
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
     RUNNER_TAG: mesa-ci-x86-64-lava-rk3588-rock-5b
+    VK_DRIVER: panfrost
 
 # Status: https://lava.collabora.dev/scheduler/device_type/sun50i-h6-pine-h64
 .lava-sun50i-h6-pine-h64:arm64:
@@ -261,8 +260,6 @@ panfrost-t760-gles:arm32:
     - .panfrost-midgard-manual-rules
     - .panfrost-test
     - .lava-rk3288-veyron-jaq:arm32
-  variables:
-    JOB_TIMEOUT: 60
 
 panfrost-t760-traces:arm32:
   extends:
@@ -313,11 +310,6 @@ panfrost-t860-traces:arm64:
     - .panfrost-test
     - .lava-rk3399-gru-kevin:arm64
     - .panfrost-traces
-  variables:
-    # force fixed kernel until 6.11 is switched officially
-    FORCE_KERNEL_TAG: "v6.11-rc7-mesa-3fb8"
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
-
 
 panfrost-g52-gl:arm64:
   parallel: 4
@@ -337,7 +329,7 @@ panfrost-g52-vk:arm64:
     - .lava-test-deqp:arm64
     - .panfrost-test
     - .lava-meson-g12b-a311d-khadas-vim3:arm64
-    - .panfrost-bifrost-vk-rules
+    - .panfrost-vk-rules
   variables:
     # Using more than 4 cores cause instabilities
     FDO_CI_CONCURRENT: 4
@@ -345,18 +337,27 @@ panfrost-g52-vk:arm64:
     PAN_I_WANT_A_BROKEN_VULKAN_DRIVER: 1
     PANVK_DEBUG: "no_known_warn,sync"
     DEQP_SUITE: panfrost-g52-vk
+    DEQP_FRACTION: 16
     HWCI_START_WESTON: 1
+
+panfrost-g52-vk-full:arm64:
+  parallel: 4
+  extends:
+    - panfrost-g52-vk:arm64
+    - .panfrost-vk-manual-rules
+  timeout: 1h 30m
+  variables:
+    DEQP_FRACTION: 1
 
 panfrost-g52-piglit-gles2:arm64:
   extends:
-    - .lava-piglit:arm64
+    - .lava-test-deqp:arm64
     - .panfrost-bifrost-gl-rules
     - .panfrost-test
     - .lava-meson-g12b-a311d-khadas-vim3:arm64
   variables:
     HWCI_START_WESTON: 1
-    DEQP_VER: gles2
-    PIGLIT_PROFILES: quick_gl
+    DEQP_SUITE: panfrost-g52-piglit
 
 panfrost-g72-gl:arm64:
   parallel: 3
@@ -389,9 +390,36 @@ panfrost-g610-gl:arm64:
     DEQP_SUITE: panfrost-g610
     PAN_MESA_DEBUG: "deqp,sync,indirect"
 
-panfrost-g610-gl-full:arm64:
+# Disable this for now until it gets more stable
+.panfrost-g610-gl-piglit:arm64:
   extends:
     - panfrost-g610-gl:arm64
     - .panfrost-valhall-gl-manual-rules
+  variables:
+    DEQP_SUITE: panfrost-g610-piglit
+    HWCI_START_WESTON: 1
+
+panfrost-g610-vk:arm64:
+  parallel: 5
+  extends:
+    - .lava-test-deqp:arm64
+    - .panfrost-test
+    - .lava-rk3588-rock-5b:arm64
+    - .panfrost-vk-manual-rules
+  variables:
+    # Using more than 4 cores cause instabilities
+    FDO_CI_CONCURRENT: 4
+    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
+    PANVK_DEBUG: "no_known_warn,sync,cs"
+    DEQP_SUITE: panfrost-g610-vk
+    DEQP_FRACTION: 4
+    HWCI_START_WESTON: 1
+    LAVA_TAGS: at-least-8gb
+
+panfrost-g610-vk-full:arm64:
+  extends:
+    - panfrost-g610-vk:arm64
+    - .panfrost-vk-manual-rules
+  timeout: 1h 35m
   variables:
     DEQP_FRACTION: 1

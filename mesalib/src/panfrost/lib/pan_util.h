@@ -39,7 +39,7 @@
 #define PAN_DBG_SYNC  0x0010
 /* 0x20 unused */
 #define PAN_DBG_NOFP16  0x0040
-#define PAN_DBG_CRC     0x0080
+#define PAN_DBG_NO_CRC  0x0080
 #define PAN_DBG_GL3     0x0100
 #define PAN_DBG_NO_AFBC 0x0200
 #define PAN_DBG_MSAA16  0x0400
@@ -54,6 +54,7 @@
 
 #define PAN_DBG_YUV        0x20000
 #define PAN_DBG_FORCE_PACK 0x40000
+#define PAN_DBG_CS         0x80000
 
 struct pan_blendable_format;
 

@@ -22,7 +22,7 @@
  */
 
 #include "pvr_job_transfer.h"
-#include "pvr_uscgen.h"
+#include "usc/pvr_uscgen.h"
 #include "rogue/rogue.h"
 #include "rogue/rogue_builder.h"
 #include "util/u_dynarray.h"

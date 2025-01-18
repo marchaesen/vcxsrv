@@ -50,5 +50,8 @@ main ()
 	0, 0, 0, 0,
 	0, 0, WIDTH, HEIGHT);
 
+    pixman_image_unref (radial);
+    pixman_image_unref (dest);
+
     return 0;
 }

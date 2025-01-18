@@ -1,9 +1,9 @@
-A Vulkan layer to display information about the running application using an overlay.
+A Vulkan layer to take efficient screenshots to reduce performance loss in Vulkan applications.
 
 Building
 ========
 
-The overlay layer will be built if :code:`screenshot` is passed as a :code:`vulkan-layers` argument. For example:
+The screenshot layer will be built if :code:`screenshot` is passed as a :code:`vulkan-layers` argument. For example:
 
 .. code-block:: sh
 
@@ -58,6 +58,37 @@ To capture all frames:
 
   VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_screenshot VK_LAYER_MESA_SCREENSHOT_CONFIG=frames=all /path/to/my_vulkan_app
 
+To capture a ImageRegion:
+
+.. code-block:: sh
+
+  VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_screenshot VK_LAYER_MESA_SCREENSHOT_CONFIG=region=0.20/0.25/0.60/0.75 /path/to/my_vulkan_app
+
+Note:
+ - Using a region will capture a portion of the image on the GPU, meaning the copy time to the CPU memory can be reduced significantly if using a small enough region size, relative to the original image.
+ - The regions are percentages, represented by floating point values. the syntax for a region is 'region=<startX>/<startY>/<endX>/<endY>', where percentages are given for the starting width and starting height, along with ending width and ending height.
+ - - Example with vkcube:
+
+- - - Original size: 500x500 image
+
+.. code-block:: sh
+
+  mesa-screenshot: DEBUG: Screenshot Authorized!
+  mesa-screenshot: DEBUG: Needs 2 steps
+  mesa-screenshot: DEBUG: Time to copy: 123530 nanoseconds
+
+
+- - - Using '0.4/0.4/0.6/0.6' region: 100x100 image
+
+.. code-block:: sh
+
+  mesa-screenshot: DEBUG: Screenshot Authorized!
+  mesa-screenshot: DEBUG: Using region: startX = 40% (200), startY = 40% (200), endX = 60% (300), endY = 60% (300)
+  mesa-screenshot: DEBUG: Needs 2 steps
+  mesa-screenshot: DEBUG: Time to copy: 12679 nanoseconds
+
+Reducing a 500x500 image to a 100x100 image caused a reduction in the copy time by a factor of 10, meaning that we spend less time impacting the frame time and are able to run the workload with a negligible performance impact from the screenshot layer.
+
 Direct Socket Control
 ---------------------
 
@@ -67,21 +98,27 @@ Enabling communication with the client can be done with the following setup:
 
   VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_screenshot VK_LAYER_MESA_SCREENSHOT_CONFIG=comms /path/to/my_vulkan_app
 
-The Unix socket may be used directly if needed. Once a client connects to the socket, the overlay layer will immediately
+The Unix socket may be used directly if needed. Once a client connects to the socket, the screenshot layer will immediately
 send the following commands to the client:
 
 .. code-block:: sh
 
-  :MesaOverlayControlVersion=1;
+  :MesaScreenshotControlVersion=1;
   :DeviceName=<device name>;
   :MesaVersion=<mesa version>;
 
-The client connected to the overlay layer can trigger a screenshot to be taken by sending the command:
+The client connected to the screenshot layer can trigger a screenshot to be taken by sending the command:
 
 .. code-block:: sh
 
   :capture=<screenshot_name.png>;
 
 Note that the screenshot name must include '.png', other image types are not supported.
+
+To capture a region, the region information must be added to the 'region' command, along with the 'capture' command, separated by a comma:
+
+.. code-block:: sh
+
+  :region=0.25/0.25/0.75/0.75,capture=<screenshot_name.png>;
 
 .. _docs/install.rst: ../../docs/install.rst

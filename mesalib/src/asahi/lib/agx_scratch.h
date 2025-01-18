@@ -29,8 +29,6 @@ struct agx_scratch {
 #endif
 };
 
-struct agx_bo *agx_build_helper(struct agx_device *dev);
-
 void agx_scratch_init(struct agx_device *dev, struct agx_scratch *scratch);
 void agx_scratch_fini(struct agx_scratch *scratch);
 void agx_scratch_debug_pre(struct agx_scratch *scratch);

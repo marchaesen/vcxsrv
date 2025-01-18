@@ -14,7 +14,7 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *data)
       return false;
 
    /* Note: frag_coord should already have pixel-center lowering applied with
-    * nir_lower_wpos_center for VK, or PIPE_CAP_PIXEL_CENTER_INTEGER for GL.
+    * nir_lower_wpos_center for VK, or pipe_caps.pixel_center_integer for GL.
     */
    b->cursor = nir_before_instr(&intr->instr);
    nir_def *xy = nir_u2f32(b, nir_load_pixel_coord(b));

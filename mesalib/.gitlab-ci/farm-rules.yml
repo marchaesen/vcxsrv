@@ -217,25 +217,25 @@
     - !reference [.austriancoder-farm-rules, rules]
 
 
-.freedreno-farm-rules:
+.google-freedreno-farm-rules:
   rules:
-    - exists: [ .ci-farms-disabled/freedreno ]
+    - exists: [ .ci-farms-disabled/google-freedreno ]
       when: never
-    - changes: [ .ci-farms-disabled/freedreno ]
+    - changes: [ .ci-farms-disabled/google-freedreno ]
       if: '$CI_PIPELINE_SOURCE != "schedule"'
       when: on_success
     - changes: [ .ci-farms-disabled/* ]
       if: '$CI_PIPELINE_SOURCE != "schedule"'
       when: never
 
-.freedreno-farm-manual-rules:
+.google-freedreno-farm-manual-rules:
   rules:
-    - exists: [ .ci-farms-disabled/freedreno ]
+    - exists: [ .ci-farms-disabled/google-freedreno ]
       when: never
-    - changes: [ .ci-farms-disabled/freedreno ]
+    - changes: [ .ci-farms-disabled/google-freedreno ]
       if: '$CI_PIPELINE_SOURCE != "schedule"'
       when: never
-    - !reference [.freedreno-farm-rules, rules]
+    - !reference [.google-freedreno-farm-rules, rules]
 
 .vmware-farm-rules:
   rules:
@@ -323,8 +323,8 @@
       exists: [ .ci-farms-disabled/austriancoder ]
       when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes: [ .ci-farms-disabled/freedreno ]
-      exists: [ .ci-farms-disabled/freedreno ]
+      changes: [ .ci-farms-disabled/google-freedreno ]
+      exists: [ .ci-farms-disabled/google-freedreno ]
       when: never
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes: [ .ci-farms-disabled/ondracka ]

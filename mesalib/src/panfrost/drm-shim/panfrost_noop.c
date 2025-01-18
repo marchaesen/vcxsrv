@@ -214,8 +214,9 @@ panthor_ioctl_dev_query(int fd, unsigned long request, void *arg)
       struct drm_panthor_group_priorities_info *priorities_info =
          (struct drm_panthor_group_priorities_info *)dev_query->pointer;
 
-      /* Noop values */
-      priorities_info->allowed_mask = 0;
+      /* Default values */
+      priorities_info->allowed_mask =
+         PANTHOR_GROUP_PRIORITY_LOW | PANTHOR_GROUP_PRIORITY_MEDIUM;
 
       return 0;
    }

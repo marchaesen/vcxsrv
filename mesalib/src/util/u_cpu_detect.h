@@ -87,9 +87,6 @@ struct util_cpu_caps_t {
    int x86_cpu_type;
    unsigned cacheline;
 
-   unsigned has_intel:1;
-   unsigned has_mmx:1;
-   unsigned has_mmx2:1;
    unsigned has_sse:1;
    unsigned has_sse2:1;
    unsigned has_sse3:1;
@@ -101,9 +98,6 @@ struct util_cpu_caps_t {
    unsigned has_avx2:1;
    unsigned has_f16c:1;
    unsigned has_fma:1;
-   unsigned has_3dnow:1;
-   unsigned has_3dnow_ext:1;
-   unsigned has_xop:1;
    unsigned has_altivec:1;
    unsigned has_vsx:1;
    unsigned has_daz:1;

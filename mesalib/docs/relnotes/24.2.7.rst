@@ -1,0 +1,163 @@
+Mesa 24.2.7 Release Notes / 2024-11-13
+======================================
+
+Mesa 24.2.7 is a bug fix release which fixes bugs found since the 24.2.6 release.
+
+Mesa 24.2.7 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.7 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: a0ce37228679647268a83b3652d859dcf23d6f6430d751489d4464f6de6459fd  mesa-24.2.7.tar.xz
+    SHA512: 8776b45abe5e845c587c0fa9feb22d89f07457265ff63175fb42681ce56dff97b0e163d9e9ac80555ee04decb78754e7331e1015d95c5f84ca3c2549663291dd  mesa-24.2.7.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- brw_fs_opt_copy_propagation incorrectly handles size changes of uniforms
+- nouveau paraview msaa corruption 23.1 bisected regression
+- Missing xshmfence dependency for X11 WSI on macOS
+- [AMDGPU RDNA3] Black square artifacts in viewport renders in Blender
+- radv: test_sm67_sample_cmp_level test in vkd3d-proton fails
+- [ANV] LNL tiled corruption in background traci Blackops3-trace-dx11-1080p-high
+- [anv] Possible regression in e3814dee1ac0f90771b921a4f6f5aed10f06e8d4
+- Confidential issue #12092
+
+
+Changes
+-------
+
+Benjamin Herrenschmidt (1):
+
+- dril: Fixup order of pixel formats in drilConfigs
+
+Christian Gmeiner (1):
+
+- etnaviv: Fix incorrect pipe_nn creation
+
+Connor Abbott (1):
+
+- ir3: Fix detection of nontrivial continues
+
+David Rosca (1):
+
+- radeonsi/vcn: Enable VCN4 AV1 encode WA
+
+Eric Engestrom (9):
+
+- docs: add sha sum for 24.2.6
+- .pick_status.json: Update to ab1479ae6a845d2c7beeb0fed6e2153cc2b16c5e
+- .pick_status.json: Update to fe50011ddb35077c0d4cc2b31d56f8dd1376d5a2
+- meson: add dependencies needed by wsi_common_x11.c even on non-drm platforms
+- .pick_status.json: Update to 4d09cd7fa590cbd52d8772d5a251fab8b0874ab7
+- .pick_status.json: Mark 5cd054ebe5512aeac80e08528d8363335d0aeeb8 as denominated
+- .pick_status.json: Update to b32d0d4b4588bf207a9b85b03f2f1c7bb9e72d57
+- ci: raise priority of release manager pipelines
+- lima/ci: marking two failures as known to make the ci useful again
+
+Ian Romanick (2):
+
+- brw/copy: Don't copy propagate through smaller entry dest size
+- brw/cse: Don't eliminate instructions that write flags
+
+Job Noorman (1):
+
+- ir3/ra: prevent moving source intervals for shared collects
+
+Jose Maria Casanova Crespo (1):
+
+- v3d: Enable Early-Z with discards when depth updates are disabled
+
+Karmjit Mahil (3):
+
+- tu: Fix push_set host memory leak on command buffer reset
+- tu: Fix potential alloc of 0 size
+- nir: Fix \`no_lower_set` leak on early return
+
+Karol Herbst (2):
+
+- nv/codegen: Do not use a zero immediate for tex instructions
+- nvc0: return NULL instead of asserting in nvc0_resource_from_user_memory
+
+Lionel Landwerlin (5):
+
+- anv: avoid L3 fabric flush in pipeline barriers
+- vulkan/runtime: fix allocation failure handling
+- anv: fix even set/reset on blitter engine
+- anv: add texture cache inval after binding pool update
+- anv: update shader descriptor resource limits
+
+Lucas Fryzek (1):
+
+- lp: Only close udmabuf handle if its valid
+
+M Henning (2):
+
+- nvk/cmd_buffer: Pass count to set_root_array
+- nvk: Fix invalidation of NVK_CBUF_TYPE_DYNAMIC_UBO
+
+Marek Olšák (2):
+
+- radeonsi/gfx11: fix Z corruption for Blender
+- radeonsi/gfx12: fix AMD_DEBUG=nodcc not working
+
+Matt Turner (1):
+
+- anv: Align anv_descriptor_pool::host_mem
+
+Mike Blumenkrantz (1):
+
+- zink: stop leaking precompiled generated tcs
+
+Patrick Lerda (1):
+
+- r600: fix sfn_nir_legalize_image_load_store cubearray behavior
+
+Paulo Zanoni (1):
+
+- brw: add a NOP in between WHILE instructions on LNL
+
+Rhys Perry (1):
+
+- aco: don't byte align global VMEM loads if it might be unsafe
+
+Rob Clark (3):
+
+- util/primconvert: Avoid OoB with improbable draws
+- freedreno: Fix tile-per-pipe debug overrides
+- freedreno/a6xx: Stop exposing MSAA image load/store harder
+
+Samuel Pitoiset (2):
+
+- radv: add missing L2 non-coherent image case for mipmaps with DCC/HTILE on GFX11
+- radv: cleanup tools related resources when destroying logical device
+
+Timur Kristóf (1):
+
+- radv: Flush L2 cache for non-L2-coherent images in EndCommandBuffer.
+
+Tomeu Vizoso (1):
+
+- etnaviv/ml: Fix includes
+
+itycodes (1):
+
+- intel: Fix a typo in intel_device_info.c:has_get_tiling

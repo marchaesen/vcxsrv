@@ -29,7 +29,7 @@ Pop-Location
 # libva already has a build dir in their repo, use builddir instead
 $libva_build = New-Item -ItemType Directory -Path ".\deps\libva" -Name "builddir"
 Push-Location -Path $libva_build.FullName
-meson .. -Dprefix="$depsInstallPath"
+meson setup .. -Dprefix="$depsInstallPath"
 ninja -j32 install
 $buildstatus = $?
 Pop-Location
@@ -65,7 +65,7 @@ Write-Host "Building libva-utils"
 # libva-utils already has a build dir in their repo, use builddir instead
 $libva_utils_build = New-Item -ItemType Directory -Path ".\deps\libva-utils" -Name "builddir"
 Push-Location -Path $libva_utils_build.FullName
-meson .. -Dprefix="$depsInstallPath" --pkg-config-path="$depsInstallPath\lib\pkgconfig;$depsInstallPath\share\pkgconfig"
+meson setup .. -Dprefix="$depsInstallPath" --pkg-config-path="$depsInstallPath\lib\pkgconfig;$depsInstallPath\share\pkgconfig"
 ninja -j32 install
 $buildstatus = $?
 Pop-Location

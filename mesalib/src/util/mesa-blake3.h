@@ -69,6 +69,9 @@ void
 _mesa_blake3_print(FILE *f, const blake3_hash blake3);
 
 bool
+_mesa_blake3_from_printed_string(blake3_hash blake3, const char *printed);
+
+bool
 _mesa_printed_blake3_equal(const blake3_hash blake3,
                            const uint32_t printed_blake3[BLAKE3_OUT_LEN32]);
 

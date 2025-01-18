@@ -120,8 +120,7 @@ nine_upload_create(struct pipe_context *pipe, unsigned buffers_size,
 
     DBG("\n");
 
-    if (!pipe->screen->get_param(pipe->screen,
-                                 PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT))
+    if (!pipe->screen->caps.buffer_map_persistent_coherent)
         return NULL;
 
     upload = CALLOC_STRUCT(nine_buffer_upload);

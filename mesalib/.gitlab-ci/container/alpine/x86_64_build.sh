@@ -6,6 +6,9 @@
 # ALPINE_X86_64_BUILD_TAG
 
 set -e
+
+. .gitlab-ci/setup-test-env.sh
+
 set -o xtrace
 
 EPHEMERAL=(
@@ -38,7 +41,6 @@ DEPS=(
     elfutils-dev
     libclc-dev
     libdrm-dev
-    libselinux-dev
     libva-dev
     libpciaccess-dev
     zlib-dev

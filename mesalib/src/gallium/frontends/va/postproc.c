@@ -274,6 +274,12 @@ static VAStatus vlVaVidEngineBlit(vlVaDriver *drv, vlVaContext *context,
       context->desc.vidproc.in_colors_standard = PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_BT709;
    else if (param->surface_color_standard == VAProcColorStandardBT2020)
       context->desc.vidproc.in_colors_standard = PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_BT2020;
+   else if (param->surface_color_standard == VAProcColorStandardExplicit) {
+      context->desc.vidproc.in_colors_standard = PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_EXPLICIT;
+      context->desc.vidproc.in_color_primaries = param->input_color_properties.colour_primaries;
+      context->desc.vidproc.in_transfer_characteristics = param->input_color_properties.transfer_characteristics;
+      context->desc.vidproc.in_matrix_coefficients = param->input_color_properties.matrix_coefficients;
+   }
 
    // Input surface color range
    context->desc.vidproc.in_color_range = PIPE_VIDEO_VPP_CHROMA_COLOR_RANGE_NONE;
@@ -303,6 +309,12 @@ static VAStatus vlVaVidEngineBlit(vlVaDriver *drv, vlVaContext *context,
       context->desc.vidproc.out_colors_standard = PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_BT709;
    else if (param->output_color_standard == VAProcColorStandardBT2020)
       context->desc.vidproc.out_colors_standard = PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_BT2020;
+   else if (param->output_color_standard == VAProcColorStandardExplicit) {
+      context->desc.vidproc.out_colors_standard = PIPE_VIDEO_VPP_COLOR_STANDARD_TYPE_EXPLICIT;
+      context->desc.vidproc.out_color_primaries = param->output_color_properties.colour_primaries;
+      context->desc.vidproc.out_transfer_characteristics = param->output_color_properties.transfer_characteristics;
+      context->desc.vidproc.out_matrix_coefficients = param->output_color_properties.matrix_coefficients;
+   }
 
    // Output surface color range
    context->desc.vidproc.out_color_range = PIPE_VIDEO_VPP_CHROMA_COLOR_RANGE_NONE;
@@ -329,7 +341,9 @@ static VAStatus vlVaVidEngineBlit(vlVaDriver *drv, vlVaContext *context,
                                     &context->desc.base);
       context->needs_begin_frame = false;
    }
-   context->decoder->process_frame(context->decoder, src, &context->desc.vidproc);
+
+   if (context->decoder->process_frame(context->decoder, src, &context->desc.vidproc))
+      return VA_STATUS_ERROR_OPERATION_FAILED;
 
    return VA_STATUS_SUCCESS;
 }
@@ -345,9 +359,11 @@ static VAStatus vlVaPostProcBlit(vlVaDriver *drv, vlVaContext *context,
    struct pipe_surface **dst_surfaces;
    struct u_rect src_rect;
    struct u_rect dst_rect;
-   bool scale = false;
    bool grab = false;
-   unsigned i;
+   unsigned i, src_num_planes, dst_num_planes;
+
+   src_num_planes = util_format_get_num_planes(src->buffer_format);
+   dst_num_planes = util_format_get_num_planes(dst->buffer_format);
 
    if ((src->buffer_format == PIPE_FORMAT_B8G8R8X8_UNORM ||
         src->buffer_format == PIPE_FORMAT_B8G8R8A8_UNORM ||
@@ -360,28 +376,9 @@ static VAStatus vlVaPostProcBlit(vlVaDriver *drv, vlVaContext *context,
        !src->interlaced)
       grab = true;
 
-   if ((src->width != dst->width || src->height != dst->height) &&
-       (src->interlaced && dst->interlaced))
-      scale = true;
-
    src_surfaces = src->get_surfaces(src);
    if (!src_surfaces || !src_surfaces[0])
       return VA_STATUS_ERROR_INVALID_SURFACE;
-
-   if (scale || (src->interlaced != dst->interlaced && dst->interlaced)) {
-      vlVaSurface *surf;
-
-      surf = handle_table_get(drv->htab, context->target_id);
-      if (!surf)
-         return VA_STATUS_ERROR_INVALID_SURFACE;
-      surf->templat.interlaced = false;
-      dst->destroy(dst);
-
-      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0) != VA_STATUS_SUCCESS)
-         return VA_STATUS_ERROR_ALLOCATION_FAILED;
-
-      dst = context->target = surf->buffer;
-   }
 
    dst_surfaces = dst->get_surfaces(dst);
    if (!dst_surfaces || !dst_surfaces[0])
@@ -408,7 +405,9 @@ static VAStatus vlVaPostProcBlit(vlVaDriver *drv, vlVaContext *context,
    if (src->buffer_format == PIPE_FORMAT_YUYV ||
        src->buffer_format == PIPE_FORMAT_UYVY ||
        src->buffer_format == PIPE_FORMAT_YV12 ||
-       src->buffer_format == PIPE_FORMAT_IYUV) {
+       src->buffer_format == PIPE_FORMAT_IYUV ||
+       (src->interlaced == dst->interlaced &&
+        src_num_planes != dst_num_planes)) {
       vl_compositor_yuv_deint_full(&drv->cstate, &drv->compositor,
                                    src, dst, &src_rect, &dst_rect,
                                    VL_COMPOSITOR_NONE);
@@ -464,8 +463,7 @@ static VAStatus vlVaPostProcBlit(vlVaDriver *drv, vlVaContext *context,
       blit.mask = PIPE_MASK_RGBA;
       blit.filter = PIPE_TEX_MIPFILTER_LINEAR;
 
-      if (drv->pipe->screen->get_param(drv->pipe->screen,
-                                       PIPE_CAP_PREFER_COMPUTE_FOR_MULTIMEDIA))
+      if (drv->pipe->screen->caps.prefer_compute_for_multimedia)
          util_compute_blit(drv->pipe, &blit, &context->blit_cs);
       else
          drv->pipe->blit(drv->pipe, &blit);
@@ -504,9 +502,15 @@ vlVaApplyDeint(vlVaDriver *drv, vlVaContext *context,
       context->deint = NULL;
    }
 
+   if (!drv->pipe_gfx) {
+      drv->pipe_gfx = pipe_create_multimedia_context(drv->pipe->screen, false);
+      if (!drv->pipe_gfx)
+         return current;
+   }
+
    if (!context->deint) {
       context->deint = MALLOC(sizeof(struct vl_deint_filter));
-      if (!vl_deint_filter_init(context->deint, drv->pipe, current->width,
+      if (!vl_deint_filter_init(context->deint, drv->pipe_gfx, current->width,
                                 current->height, false, false, !current->interlaced)) {
          FREE(context->deint);
          context->deint = NULL;
@@ -520,6 +524,9 @@ vlVaApplyDeint(vlVaDriver *drv, vlVaContext *context,
 
    vl_deint_filter_render(context->deint, prevprev->buffer, prev->buffer,
                           current, next->buffer, field);
+
+   drv->pipe_gfx->flush(drv->pipe_gfx, NULL, 0);
+
    return context->deint->video_buffer;
 }
 
@@ -530,7 +537,7 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
    VARectangle def_src_region, def_dst_region;
    const VARectangle *src_region, *dst_region;
    VAProcPipelineParameterBuffer *param;
-   struct pipe_video_buffer *src, *dst;
+   struct pipe_video_buffer *src;
    vlVaSurface *src_surface, *dst_surface;
    unsigned i;
    struct pipe_screen *pscreen;
@@ -601,21 +608,6 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
    }
 
    src = src_surface->buffer;
-   dst = dst_surface->buffer;
-
-   /* convert the destination buffer to progressive if we're deinterlacing
-      otherwise we might end up deinterlacing twice */
-   if (param->num_filters && dst->interlaced) {
-      vlVaSurface *surf;
-      surf = dst_surface;
-      surf->templat.interlaced = false;
-      dst->destroy(dst);
-
-      if (vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0) != VA_STATUS_SUCCESS)
-         return VA_STATUS_ERROR_ALLOCATION_FAILED;
-
-      dst = context->target = surf->buffer;
-   }
 
    for (i = 0; i < param->num_filters; i++) {
       vlVaBuffer *buf = handle_table_get(drv->htab, param->filters[i]);
@@ -681,16 +673,17 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
    /* Some devices may be media only (PIPE_VIDEO_ENTRYPOINT_PROCESSING with video engine)
     * and won't have shader support
     */
-   if (!drv->vscreen->pscreen->get_param(drv->vscreen->pscreen, PIPE_CAP_GRAPHICS) &&
-       !drv->vscreen->pscreen->get_param(drv->vscreen->pscreen, PIPE_CAP_COMPUTE))
+   if (!drv->vscreen->pscreen->caps.graphics && !drv->vscreen->pscreen->caps.compute)
       return VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT;
+
+   /* Subsampled formats not supported */
+   if (util_format_is_subsampled_422(context->target->buffer_format))
+      return VA_STATUS_ERROR_UNIMPLEMENTED;
 
    vlVaSetProcParameters(drv, src_surface, dst_surface, param);
 
    /* Try other post proc implementations */
-   if (context->target->buffer_format != PIPE_FORMAT_NV12 &&
-       context->target->buffer_format != PIPE_FORMAT_P010 &&
-       context->target->buffer_format != PIPE_FORMAT_P016)
+   if (!util_format_is_yuv(context->target->buffer_format))
       ret = vlVaPostProcCompositor(drv, context, src_region, dst_region,
                                    src, context->target, deinterlace);
    else

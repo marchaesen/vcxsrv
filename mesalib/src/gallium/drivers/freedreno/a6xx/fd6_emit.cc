@@ -84,19 +84,19 @@ compute_ztest_mode(struct fd6_emit *emit, bool lrz_valid) assert_dt
       return emit->prog->lrz_mask.z_mode;
 
    struct fd_context *ctx = emit->ctx;
-   struct pipe_framebuffer_state *pfb = &ctx->batch->framebuffer;
    struct fd6_zsa_stateobj *zsa = fd6_zsa_stateobj(ctx->zsa);
    const struct ir3_shader_variant *fs = emit->fs;
 
    if (!zsa->base.depth_enabled) {
       return A6XX_LATE_Z;
    } else if ((fs->has_kill || zsa->alpha_test) &&
-              (zsa->writes_zs || !pfb->zsbuf)) {
-      /* Slightly odd, but seems like the hw wants us to select
-       * LATE_Z mode if there is no depth buffer + discard.  Either
-       * that, or when occlusion query is enabled.  See:
+              (zsa->writes_zs || ctx->occlusion_queries_active)) {
+      /* If occlusion queries are active, we don't want to use EARLY_Z
+       * since that will count samples that are discarded by fs
        *
-       * dEQP-GLES31.functional.fbo.no_attachments.*
+       * I'm not entirely sure about the interaction with LRZ, since
+       * that could discard samples that would otherwise only be
+       * hidden by a later draw.
        */
       return lrz_valid ? A6XX_EARLY_LRZ_LATE_Z : A6XX_LATE_Z;
    } else {

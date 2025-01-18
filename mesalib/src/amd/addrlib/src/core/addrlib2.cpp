@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -376,6 +376,238 @@ ADDR_E_RETURNCODE Lib::ComputeSurfaceAddrFromCoord(
         if (returnCode == ADDR_OK)
         {
             pOut->prtBlockIndex = static_cast<UINT_32>(pOut->addr / (64 * 1024));
+        }
+    }
+
+    return returnCode;
+}
+
+/**
+************************************************************************************************************************
+*   Lib::CopyLinearSurface
+*
+*   @brief
+*       Implements uncompressed linear copies between memory and images.
+*
+*   @return
+*       ADDR_E_RETURNCODE
+************************************************************************************************************************
+*/
+ADDR_E_RETURNCODE Lib::CopyLinearSurface(
+    const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+    const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+    UINT_32                             regionCount,
+    bool                                surfaceIsDst) const
+{
+    ADDR2_COMPUTE_SURFACE_INFO_INPUT  localIn  = {0};
+    ADDR2_COMPUTE_SURFACE_INFO_OUTPUT localOut = {0};
+    ADDR2_MIP_INFO                    mipInfo[MaxMipLevels] = {{0}};
+    ADDR_ASSERT(pIn->numMipLevels <= MaxMipLevels);
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+
+    if (pIn->numSamples > 1)
+    {
+        returnCode = ADDR_INVALIDPARAMS;
+    }
+
+    localIn.size         = sizeof(localIn);
+    localIn.flags        = pIn->flags;
+    localIn.swizzleMode  = pIn->swizzleMode;
+    localIn.resourceType = pIn->resourceType;
+    localIn.format       = pIn->format;
+    localIn.bpp          = pIn->bpp;
+    localIn.width        = Max(pIn->unAlignedDims.width,  1u);
+    localIn.height       = Max(pIn->unAlignedDims.height, 1u);
+    localIn.numSlices    = Max(pIn->unAlignedDims.depth,  1u);
+    localIn.numMipLevels = Max(pIn->numMipLevels,         1u);
+    localIn.numSamples   = Max(pIn->numSamples,           1u);
+
+    if (localIn.numMipLevels <= 1)
+    {
+        localIn.pitchInElement = pIn->pitchInElement;
+    }
+
+    localOut.size     = sizeof(localOut);
+    localOut.pMipInfo = mipInfo;
+
+    if (returnCode == ADDR_OK)
+    {
+        returnCode = ComputeSurfaceInfo(&localIn, &localOut);
+    }
+
+    if (returnCode == ADDR_OK)
+    {
+        for (UINT_32 regionIdx = 0; regionIdx < regionCount; regionIdx++)
+        {
+            const ADDR2_COPY_MEMSURFACE_REGION* pCurRegion = &pRegions[regionIdx];
+
+            void* pMipBase = VoidPtrInc(pIn->pMappedSurface,
+                                        (pIn->singleSubres ? 0 : mipInfo[pCurRegion->mipId].offset));
+
+            const size_t lineSizeBytes = (localIn.bpp >> 3) * pCurRegion->copyDims.width;
+            const size_t lineImgPitchBytes = (localIn.bpp >> 3) * mipInfo[pCurRegion->mipId].pitch;
+
+            for (UINT_32 sliceIdx = 0; sliceIdx < pCurRegion->copyDims.depth; sliceIdx++)
+            {
+                UINT_32 sliceCoord = sliceIdx + pCurRegion->slice;
+                size_t imgOffsetInMip = (localOut.sliceSize * sliceCoord) +
+                                        (lineImgPitchBytes * pCurRegion->y) +
+                                        (pCurRegion->x * (pIn->bpp >> 3));
+                size_t memOffset = sliceIdx * pCurRegion->memSlicePitch;
+
+                for (UINT_32 yIdx = 0; yIdx < pCurRegion->copyDims.height; yIdx++)
+                {
+                    if (surfaceIsDst)
+                    {
+                        memcpy(VoidPtrInc(pMipBase, imgOffsetInMip), VoidPtrInc(pCurRegion->pMem, memOffset), lineSizeBytes);
+                    }
+                    else
+                    {
+                        memcpy(VoidPtrInc(pCurRegion->pMem, memOffset), VoidPtrInc(pMipBase, imgOffsetInMip), lineSizeBytes);
+                    }
+
+                    imgOffsetInMip += lineImgPitchBytes;
+                    memOffset      += pCurRegion->memRowPitch;
+                }
+            }
+        }
+    }
+
+    return returnCode;
+}
+
+/**
+************************************************************************************************************************
+*   Lib::CopyMemToSurface
+*
+*   @brief
+*       Interface function stub of Addr2CopyMemToSurface.
+*
+*   @return
+*       ADDR_E_RETURNCODE
+************************************************************************************************************************
+*/
+ADDR_E_RETURNCODE Lib::CopyMemToSurface(
+    const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+    const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+    UINT_32                             regionCount) const
+{
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+
+    if ((regionCount == 0) || (pRegions == NULL))
+    {
+        returnCode = ADDR_INVALIDPARAMS;
+    }
+    else if (GetFillSizeFieldsFlags() == TRUE)
+    {
+        if (pIn->size  != sizeof(ADDR2_COPY_MEMSURFACE_INPUT))
+        {
+            returnCode = ADDR_INVALIDPARAMS;
+        }
+        else
+        {
+            UINT_32 baseSlice = pRegions[0].slice;
+            UINT_32 baseMip = pRegions[0].mipId;
+            BOOL_32 singleSubres = pIn->singleSubres;
+            for (UINT_32 i = 0; i < regionCount; i++)
+            {
+                if (pRegions[i].size != sizeof(ADDR2_COPY_MEMSURFACE_REGION))
+                {
+                    returnCode = ADDR_INVALIDPARAMS;
+                    break;
+                }
+                if (singleSubres &&
+                    ((pRegions[i].copyDims.depth != 1) ||
+                     (pRegions[i].slice != baseSlice) ||
+                     (pRegions[i].mipId != baseMip)))
+                {
+                    // Copy will cover multiple/interleaved subresources, a
+                    // mapped pointer to a single subres cannot be valid.
+                    returnCode = ADDR_INVALIDPARAMS;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (returnCode == ADDR_OK)
+    {
+        if (IsLinear(pIn->swizzleMode))
+        {
+            returnCode = CopyLinearSurface(pIn, pRegions, regionCount, true);
+        }
+        else
+        {
+            returnCode = HwlCopyMemToSurface(pIn, pRegions, regionCount);
+        }
+    }
+
+    return returnCode;
+}
+
+/**
+************************************************************************************************************************
+*   Lib::CopySurfaceToMem
+*
+*   @brief
+*       Interface function stub of Addr2CopySurfaceToMem.
+*
+*   @return
+*       ADDR_E_RETURNCODE
+************************************************************************************************************************
+*/
+ADDR_E_RETURNCODE Lib::CopySurfaceToMem(
+    const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+    const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+    UINT_32                             regionCount) const
+{
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+
+    if (regionCount == 0)
+    {
+        returnCode = ADDR_INVALIDPARAMS;
+    }
+    else if (GetFillSizeFieldsFlags() == TRUE)
+    {
+        if (pIn->size  != sizeof(ADDR2_COPY_MEMSURFACE_INPUT))
+        {
+            returnCode = ADDR_INVALIDPARAMS;
+        }
+        else
+        {
+            UINT_32 baseSlice = pRegions[0].slice;
+            UINT_32 baseMip = pRegions[0].mipId;
+            BOOL_32 singleSubres = pIn->singleSubres;
+            for (UINT_32 i = 0; i < regionCount; i++)
+            {
+                if (pRegions[i].size != sizeof(ADDR2_COPY_MEMSURFACE_REGION))
+                {
+                    returnCode = ADDR_INVALIDPARAMS;
+                    break;
+                }
+                if (singleSubres &&
+                    ((pRegions[i].copyDims.depth != 1) ||
+                     (pRegions[i].slice != baseSlice) ||
+                     (pRegions[i].mipId != baseMip)))
+                {
+                    // Copy will cover multiple/interleaved subresources, a
+                    // mapped pointer to a single subres cannot be valid.
+                    returnCode = ADDR_INVALIDPARAMS;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (returnCode == ADDR_OK)
+    {
+        if (IsLinear(pIn->swizzleMode))
+        {
+            returnCode = CopyLinearSurface(pIn, pRegions, regionCount, false);
+        }
+        else
+        {
+            returnCode = HwlCopySurfaceToMem(pIn, pRegions, regionCount);
         }
     }
 

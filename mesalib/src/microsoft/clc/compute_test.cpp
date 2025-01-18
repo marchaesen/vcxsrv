@@ -592,8 +592,10 @@ ComputeTest::run_shader_with_raw_args(Shader shader,
       }
    }
 
-   if (dxil->metadata.printf.uav_id > 0)
-      add_uav_resource(resources, 0, dxil->metadata.printf.uav_id, NULL, 1024 * 1024 / 4, 4);
+   if (dxil->metadata.printf.uav_id > 0) {
+      static constexpr uint32_t printf_initial_data[1024 * 1024 / 4] = { sizeof(uint32_t) };
+      add_uav_resource(resources, 0, dxil->metadata.printf.uav_id, printf_initial_data, ARRAY_SIZE(printf_initial_data), sizeof(printf_initial_data[0]));
+   }
 
    for (unsigned i = 0; i < dxil->metadata.num_consts; ++i)
       add_uav_resource(resources, 0, dxil->metadata.consts[i].uav_id,
@@ -810,7 +812,7 @@ ComputeTest::compile(const std::vector<const char *> &sources,
       args.source.value = sources[i];
 
       clc_binary spirv{};
-      if (!clc_compile_c_to_spirv(&args, &logger, &spirv))
+      if (!clc_compile_c_to_spirv(&args, &logger, &spirv, NULL))
          throw runtime_error("failed to compile object!");
 
       Shader shader;

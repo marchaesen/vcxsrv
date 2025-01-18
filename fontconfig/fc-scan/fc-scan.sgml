@@ -147,8 +147,7 @@ manpage.1: manpage.sgml
       <command>fc-pattern</command>(1)
     </para>
 
-    <para>The fontconfig user's guide, in HTML format:
-      <filename>/usr/share/doc/fontconfig/fontconfig-user.html</filename>.</para>
+    <para><ulink url="https://fontconfig.pages.freedesktop.org/fontconfig/fontconfig-user.html">The fontconfig user's guide</ulink></para>
 
  </refsect1>
   <refsect1>

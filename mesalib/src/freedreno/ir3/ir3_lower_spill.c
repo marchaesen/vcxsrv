@@ -36,12 +36,11 @@ component_bytes(struct ir3_register *src)
 static void
 set_base_reg(struct ir3_instruction *mem, unsigned val)
 {
-   struct ir3_instruction *mov = ir3_instr_create(mem->block, OPC_MOV, 1, 1);
+   struct ir3_instruction *mov =
+      ir3_instr_create_at(ir3_before_instr(mem), OPC_MOV, 1, 1);
    ir3_dst_create(mov, mem->srcs[0]->num, mem->srcs[0]->flags);
    ir3_src_create(mov, INVALID_REG, IR3_REG_IMMED)->uim_val = val;
    mov->cat1.dst_type = mov->cat1.src_type = TYPE_U32;
-
-   ir3_instr_move_before(mov, mem);
 }
 
 static void
@@ -55,12 +54,11 @@ reset_base_reg(struct ir3_instruction *mem)
    if (base->flags & IR3_REG_KILL)
       return;
 
-   struct ir3_instruction *mov = ir3_instr_create(mem->block, OPC_MOV, 1, 1);
+   struct ir3_instruction *mov =
+      ir3_instr_create_at(ir3_after_instr(mem), OPC_MOV, 1, 1);
    ir3_dst_create(mov, base->num, base->flags);
    ir3_src_create(mov, INVALID_REG, IR3_REG_IMMED)->uim_val = 0;
    mov->cat1.dst_type = mov->cat1.src_type = TYPE_U32;
-
-   ir3_instr_move_after(mov, mem);
 }
 
 /* There are 13 bits, but 1 << 12 will be sign-extended into a negative offset

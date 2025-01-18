@@ -186,7 +186,7 @@ struct iris_slab {
    struct iris_bo *entries;
 };
 
-#define BUCKET_ARRAY_SIZE (14 * 4)
+#define BUCKET_ARRAY_SIZE 25
 
 struct iris_bucket_cache {
    struct bo_cache_bucket bucket[BUCKET_ARRAY_SIZE];
@@ -242,6 +242,7 @@ struct iris_bufmgr {
    struct iris_border_color_pool border_color_pool;
 
    struct iris_bo *dummy_aux_bo;
+   struct iris_bo *mem_fence_bo;
 };
 
 static simple_mtx_t global_bufmgr_list_mutex = SIMPLE_MTX_INITIALIZER;
@@ -289,12 +290,6 @@ bucket_for_size(struct iris_bufmgr *bufmgr, uint64_t size,
    if (flags & BO_ALLOC_PROTECTED)
       return NULL;
 
-   /* TODO: Enable bo cache for compressed bos
-    * https://gitlab.freedesktop.org/mesa/mesa/-/issues/11362
-    */
-   if (bufmgr->devinfo.verx10 == 200 && (flags & BO_ALLOC_COMPRESSED))
-      return NULL;
-
    const struct intel_device_info *devinfo = &bufmgr->devinfo;
    struct iris_bucket_cache *cache = &bufmgr->bucket_cache[heap];
 
@@ -302,33 +297,29 @@ bucket_for_size(struct iris_bufmgr *bufmgr, uint64_t size,
        (flags & (BO_ALLOC_SHARED | BO_ALLOC_SCANOUT)))
       return NULL;
 
-   /* Calculating the pages and rounding up to the page size. */
-   const unsigned pages = (size + PAGE_SIZE - 1) / PAGE_SIZE;
+   const unsigned _4MB = 4 * 1024 * 1024;
+   const unsigned _6MB = 6 * 1024 * 1024;
+   const unsigned _8MB = 8 * 1024 * 1024;
+   const unsigned _64MB = 64 * 1024 * 1024;
+   unsigned index;
 
-   /* Row  Bucket sizes    clz((x-1) | 3)   Row    Column
-    *        in pages                      stride   size
-    *   0:   1  2  3  4 -> 30 30 30 30        4       1
-    *   1:   5  6  7  8 -> 29 29 29 29        4       1
-    *   2:  10 12 14 16 -> 28 28 28 28        8       2
-    *   3:  20 24 28 32 -> 27 27 27 27       16       4
-    */
-   const unsigned row = 30 - __builtin_clz((pages - 1) | 3);
-   const unsigned row_max_pages = 4 << row;
-
-   /* The '& ~2' is the special case for row 1. In row 1, max pages /
-    * 2 is 2, but the previous row maximum is zero (because there is
-    * no previous row). All row maximum sizes are power of 2, so that
-    * is the only case where that bit will be set.
-    */
-   const unsigned prev_row_max_pages = (row_max_pages / 2) & ~2;
-   int col_size_log2 = row - 1;
-   col_size_log2 += (col_size_log2 < 0);
-
-   const unsigned col = (pages - prev_row_max_pages +
-                        ((1 << col_size_log2) - 1)) >> col_size_log2;
-
-   /* Calculating the index based on the row and column. */
-   const unsigned index = (row * 4) + (col - 1);
+   if (size <= 4096) {
+      index = 0;
+   } else if (size <= _4MB) {
+      index = util_logbase2_ceil(size) - 12;
+   } else if (size <= _6MB) {
+      index = 11;
+   } else if (size <= _8MB) {
+      index = 12;
+   } else if (size <= _64MB) {
+      const unsigned power = util_logbase2(size);
+      const unsigned base_size = 1u << power;
+      const unsigned quarter_size = base_size / 4;
+      const unsigned quarter = DIV_ROUND_UP(size - base_size, quarter_size);
+      index = 12 + (power - 23) * 4 + quarter;
+   } else {
+      return NULL;
+   }
 
    return (index < cache->num_buckets) ? &cache->bucket[index] : NULL;
 }
@@ -864,7 +855,7 @@ flags_to_heap(struct iris_bufmgr *bufmgr, unsigned flags)
          return IRIS_HEAP_DEVICE_LOCAL_COMPRESSED;
 
       /* Discrete GPUs currently always snoop CPU caches. */
-      if ((flags & BO_ALLOC_SMEM) || (flags & BO_ALLOC_COHERENT))
+      if ((flags & BO_ALLOC_SMEM) || (flags & BO_ALLOC_CACHED_COHERENT))
          return IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
 
       if ((flags & BO_ALLOC_LMEM) ||
@@ -891,7 +882,7 @@ flags_to_heap(struct iris_bufmgr *bufmgr, unsigned flags)
       if (flags & BO_ALLOC_COMPRESSED)
          return IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED;
 
-      if (flags & BO_ALLOC_COHERENT)
+      if (flags & BO_ALLOC_CACHED_COHERENT)
          return IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
 
       return IRIS_HEAP_SYSTEM_MEMORY_UNCACHED;
@@ -1219,7 +1210,7 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
    struct bo_cache_bucket *bucket =
       bucket_for_size(bufmgr, size, heap, flags);
 
-   if (memzone != IRIS_MEMZONE_OTHER || (flags & BO_ALLOC_COHERENT))
+   if (memzone != IRIS_MEMZONE_OTHER || (flags & BO_ALLOC_CACHED_COHERENT))
       flags |= BO_ALLOC_NO_SUBALLOC;
 
    /* By default, capture all driver-internal buffers like shader kernels,
@@ -1287,7 +1278,7 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
    /* On integrated GPUs, enable snooping to ensure coherency if needed.
     * For discrete, we instead use SMEM and avoid WB maps for coherency.
     */
-   if ((flags & BO_ALLOC_COHERENT) &&
+   if ((flags & BO_ALLOC_CACHED_COHERENT) &&
        !bufmgr->devinfo.has_llc && bufmgr->devinfo.has_caching_uapi) {
       if (bufmgr->kmd_backend->bo_set_caching(bo, true) != 0)
          goto err_free;
@@ -1839,6 +1830,7 @@ static void
 iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
 {
    iris_bo_unreference(bufmgr->dummy_aux_bo);
+   iris_bo_unreference(bufmgr->mem_fence_bo);
 
    iris_destroy_border_color_pool(&bufmgr->border_color_pool);
 
@@ -2178,6 +2170,8 @@ add_bucket(struct iris_bufmgr *bufmgr, int size, enum iris_heap heap)
    struct iris_bucket_cache *cache = &bufmgr->bucket_cache[heap];
    unsigned int i = cache->num_buckets++;
 
+   assert(i < BUCKET_ARRAY_SIZE);
+
    list_inithead(&cache->bucket[i].head);
    cache->bucket[i].size = size;
 
@@ -2189,28 +2183,27 @@ add_bucket(struct iris_bufmgr *bufmgr, int size, enum iris_heap heap)
 static void
 init_cache_buckets(struct iris_bufmgr *bufmgr, enum iris_heap heap)
 {
-   uint64_t size, cache_max_size = 64 * 1024 * 1024;
+   const unsigned _6MB = 6 * 1024 * 1024;
+   const unsigned _8MB = 8 * 1024 * 1024;
+   const unsigned _64MB = 64 * 1024 * 1024;
 
-   /* OK, so power of two buckets was too wasteful of memory.
-    * Give 3 other sizes between each power of two, to hopefully
-    * cover things accurately enough.  (The alternative is
-    * probably to just go for exact matching of sizes, and assume
-    * that for things like composited window resize the tiled
-    * width/height alignment and rounding of sizes to pages will
-    * get us useful cache hit rates anyway)
-    */
-   add_bucket(bufmgr, PAGE_SIZE,     heap);
-   add_bucket(bufmgr, PAGE_SIZE * 2, heap);
-   add_bucket(bufmgr, PAGE_SIZE * 3, heap);
-
-   /* Initialize the linked lists for BO reuse cache. */
-   for (size = 4 * PAGE_SIZE; size <= cache_max_size; size *= 2) {
+   /* power-of-two buckets from 4K to 4MB */
+   for (uint64_t size = 4096; size < _8MB; size *= 2)
       add_bucket(bufmgr, size, heap);
 
+   /* 6MB */
+   add_bucket(bufmgr, _6MB, heap);
+
+   /* 8MB+: three sizes between each power of two to reduce waste */
+   for (uint64_t size = _8MB; size < _64MB; size *= 2) {
+      add_bucket(bufmgr, size, heap);
       add_bucket(bufmgr, size + size * 1 / 4, heap);
       add_bucket(bufmgr, size + size * 2 / 4, heap);
       add_bucket(bufmgr, size + size * 3 / 4, heap);
    }
+
+   /* 64MB */
+   add_bucket(bufmgr, _64MB, heap);
 }
 
 static struct intel_buffer *
@@ -2472,12 +2465,28 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
       bufmgr->dummy_aux_bo = iris_bo_alloc(bufmgr, "dummy_aux", 4096, 4096,
                                            IRIS_MEMZONE_OTHER, BO_ALLOC_PLAIN);
          if (!bufmgr->dummy_aux_bo)
-            goto error_dummy_aux;
+            goto error_alloc_bo;
+   }
+
+   /* Programming note from MI_MEM_FENCE specification:
+    *
+    *    Software must ensure STATE_SYSTEM_MEM_FENCE_ADDRESS command is
+    *    programmed prior to programming this command.
+    *
+    * HAS 1607240579 then provides the size information: 4K
+    */
+   if (devinfo->verx10 >= 200) {
+      bufmgr->mem_fence_bo = iris_bo_alloc(bufmgr, "mem_fence", 4096, 4096,
+                                           IRIS_MEMZONE_OTHER, BO_ALLOC_SMEM);
+      if (!bufmgr->mem_fence_bo)
+         goto error_alloc_bo;
    }
 
    return bufmgr;
 
-error_dummy_aux:
+error_alloc_bo:
+   iris_bo_unreference(bufmgr->dummy_aux_bo);
+   iris_bo_unreference(bufmgr->mem_fence_bo);
    iris_destroy_border_color_pool(&bufmgr->border_color_pool);
    intel_aux_map_finish(bufmgr->aux_map_ctx);
    _mesa_hash_table_destroy(bufmgr->handle_table, NULL);
@@ -2671,4 +2680,10 @@ uint64_t
 iris_bufmgr_get_dummy_aux_address(struct iris_bufmgr *bufmgr)
 {
    return bufmgr->dummy_aux_bo ? bufmgr->dummy_aux_bo->address : 0;
+}
+
+struct iris_bo *
+iris_bufmgr_get_mem_fence_bo(struct iris_bufmgr *bufmgr)
+{
+   return bufmgr->mem_fence_bo;
 }

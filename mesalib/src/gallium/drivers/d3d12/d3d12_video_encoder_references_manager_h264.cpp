@@ -57,7 +57,7 @@ d3d12_video_encoder_references_manager_h264::get_current_reference_frames()
 
    if ((m_curFrameState.FrameType != D3D12_VIDEO_ENCODER_FRAME_TYPE_H264_IDR_FRAME) &&
        (m_curFrameState.FrameType != D3D12_VIDEO_ENCODER_FRAME_TYPE_H264_I_FRAME)) {
-      retVal.NumTexture2Ds = m_CurrentFrameReferencesData.ReferenceTextures.pResources.size();
+      retVal.NumTexture2Ds = static_cast<UINT>(m_CurrentFrameReferencesData.ReferenceTextures.pResources.size());
       retVal.ppTexture2Ds = m_CurrentFrameReferencesData.ReferenceTextures.pResources.data();
 
       // D3D12 Encode expects null subresources for AoT
@@ -437,7 +437,7 @@ d3d12_video_encoder_references_manager_h264::begin_frame(D3D12_VIDEO_ENCODER_PIC
 
       // Set DPB descriptors
       m_curFrameState.ReferenceFramesReconPictureDescriptorsCount =
-         m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.size();
+         static_cast<UINT>(m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.size());
       m_curFrameState.pReferenceFramesReconPictureDescriptors =
          m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.data();
 

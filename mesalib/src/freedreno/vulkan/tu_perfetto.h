@@ -18,6 +18,7 @@ extern "C" {
 #define TU_PERFETTO_MAX_STACK_DEPTH 8
 
 struct tu_device;
+struct tu_queue;
 struct tu_u_trace_submission_data;
 
 struct tu_perfetto_stage {
@@ -46,10 +47,14 @@ struct tu_perfetto_clocks
    uint64_t gpu_ts_offset;
 };
 
+uint64_t
+tu_perfetto_begin_submit();
+
 struct tu_perfetto_clocks
-tu_perfetto_submit(struct tu_device *dev,
-                   uint32_t submission_id,
-                   struct tu_perfetto_clocks *clocks);
+tu_perfetto_end_submit(struct tu_queue *queue,
+                       uint32_t submission_id,
+                       uint64_t start_ts,
+                       struct tu_perfetto_clocks *clocks);
 
 void tu_perfetto_log_create_buffer(struct tu_device *dev, struct tu_buffer *buffer);
 void tu_perfetto_log_bind_buffer(struct tu_device *dev, struct tu_buffer *buffer);

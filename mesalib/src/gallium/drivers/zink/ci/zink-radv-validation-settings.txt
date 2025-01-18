@@ -1,0 +1,11 @@
+# Please include a comment with the log message and a testcase triggering each
+# VUID at the bottom of the file.
+#khronos_validation.message_id_filter = VUID-RuntimeSpirv-Location-06272,VUID-StandaloneSpirv-OpEntryPoint-08721,VUID-vkCmdDrawMultiEXT-dynamicPrimitiveTopologyUnrestricted-07500,VUID-vkCmdDrawMultiEXT-None-08879,VUID-vkCmdDrawMultiIndexedEXT-dynamicPrimitiveTopologyUnrestricted-07500,VUID-vkCmdDrawMultiIndexedEXT-None-08879,VUID-vkDestroyDevice-device-05137,VUID-vkQueueSubmit-pCommandBuffers-00065,VUID-VkShaderCreateInfoEXT-pCode-08737
+khronos_validation.message_id_filter = VUID-RuntimeSpirv-Location-06272,VUID-RuntimeSpirv-OpEntryPoint-08743,VUID-StandaloneSpirv-OpEntryPoint-08721,VUID-vkCmdDrawMultiEXT-dynamicRenderingUnusedAttachments-08911,VUID-vkCmdDrawMultiIndexedEXT-None-08879,VUID-vkDestroyDevice-device-05137,VUID-vkQueueSubmit-pCommandBuffers-00065,VUID-VkShaderCreateInfoEXT-pCode-08737,VUID-vkCmdDrawMultiEXT-None-08879,VUID-VkShaderCreateInfoEXT-pSetLayouts-parameter
+khronos_validation.report_flags = error
+khronos_validation.debug_action = VK_DBG_LAYER_ACTION_LOG_MSG,VK_DBG_LAYER_ACTION_BREAK
+VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
+khronos_validation.printf_buffer_size = 40960
+khronos_validation.printf_to_stdout = true
+khronos_validation.log_filename = stdout
+

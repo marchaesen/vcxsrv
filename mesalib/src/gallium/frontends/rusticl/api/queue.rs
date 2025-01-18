@@ -11,33 +11,32 @@ use rusticl_opencl_gen::*;
 use rusticl_proc_macros::cl_entrypoint;
 use rusticl_proc_macros::cl_info_entrypoint;
 
-use std::mem::MaybeUninit;
 use std::ptr;
 use std::sync::Arc;
 
 #[cl_info_entrypoint(clGetCommandQueueInfo)]
-impl CLInfo<cl_command_queue_info> for cl_command_queue {
-    fn query(&self, q: cl_command_queue_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
+unsafe impl CLInfo<cl_command_queue_info> for cl_command_queue {
+    fn query(&self, q: cl_command_queue_info, v: CLInfoValue) -> CLResult<CLInfoRes> {
         let queue = Queue::ref_from_raw(*self)?;
-        Ok(match q {
+        match q {
             CL_QUEUE_CONTEXT => {
                 // Note we use as_ptr here which doesn't increase the reference count.
                 let ptr = Arc::as_ptr(&queue.context);
-                cl_prop::<cl_context>(cl_context::from_ptr(ptr))
+                v.write::<cl_context>(cl_context::from_ptr(ptr))
             }
-            CL_QUEUE_DEVICE => cl_prop::<cl_device_id>(cl_device_id::from_ptr(queue.device)),
-            CL_QUEUE_DEVICE_DEFAULT => cl_prop::<cl_command_queue>(ptr::null_mut()),
-            CL_QUEUE_PROPERTIES => cl_prop::<cl_command_queue_properties>(queue.props),
+            CL_QUEUE_DEVICE => v.write::<cl_device_id>(cl_device_id::from_ptr(queue.device)),
+            CL_QUEUE_DEVICE_DEFAULT => v.write::<cl_command_queue>(ptr::null_mut()),
+            CL_QUEUE_PROPERTIES => v.write::<cl_command_queue_properties>(queue.props),
             CL_QUEUE_PROPERTIES_ARRAY => {
-                cl_prop::<&Option<Properties<cl_queue_properties>>>(&queue.props_v2)
+                v.write::<&Properties<cl_queue_properties>>(&queue.props_v2)
             }
-            CL_QUEUE_REFERENCE_COUNT => cl_prop::<cl_uint>(Queue::refcnt(*self)?),
+            CL_QUEUE_REFERENCE_COUNT => v.write::<cl_uint>(Queue::refcnt(*self)?),
             // clGetCommandQueueInfo, passing CL_QUEUE_SIZE Returns CL_INVALID_COMMAND_QUEUE since
             // command_queue cannot be a valid device command-queue.
-            CL_QUEUE_SIZE => return Err(CL_INVALID_COMMAND_QUEUE),
+            CL_QUEUE_SIZE => Err(CL_INVALID_COMMAND_QUEUE),
             // CL_INVALID_VALUE if param_name is not one of the supported values
-            _ => return Err(CL_INVALID_VALUE),
-        })
+            _ => Err(CL_INVALID_VALUE),
+        }
     }
 }
 
@@ -71,13 +70,14 @@ fn supported_command_queue_properties(
     dev: &Device,
     properties: cl_command_queue_properties,
 ) -> bool {
-    let profiling = cl_bitfield::from(CL_QUEUE_PROFILING_ENABLE);
-    let valid_flags = profiling;
-    if properties & !valid_flags != 0 {
-        return false;
+    let mut valid_flags = CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE;
+    if dev.caps.has_timestamp {
+        valid_flags |= CL_QUEUE_PROFILING_ENABLE;
     }
 
-    if properties & profiling != 0 && !dev.caps.has_timestamp {
+    // add on device queue properties here once supported and called from `clCreateCommandQueueWithProperties`
+
+    if properties & !cl_bitfield::from(valid_flags) != 0 {
         return false;
     }
 
@@ -88,7 +88,7 @@ pub fn create_command_queue_impl(
     context: cl_context,
     device: cl_device_id,
     properties: cl_command_queue_properties,
-    properties_v2: Option<Properties<cl_queue_properties>>,
+    properties_v2: Properties<cl_queue_properties>,
 ) -> CLResult<cl_command_queue> {
     let c = Context::arc_from_raw(context)?;
     let d = Device::ref_from_raw(device)?
@@ -119,7 +119,7 @@ fn create_command_queue(
     device: cl_device_id,
     properties: cl_command_queue_properties,
 ) -> CLResult<cl_command_queue> {
-    create_command_queue_impl(context, device, properties, None)
+    create_command_queue_impl(context, device, properties, Properties::default())
 }
 
 #[cl_entrypoint(clCreateCommandQueueWithProperties)]
@@ -129,23 +129,18 @@ fn create_command_queue_with_properties(
     properties: *const cl_queue_properties,
 ) -> CLResult<cl_command_queue> {
     let mut queue_properties = cl_command_queue_properties::default();
-    let properties = if properties.is_null() {
-        None
-    } else {
-        let properties = Properties::from_ptr(properties).ok_or(CL_INVALID_PROPERTY)?;
 
-        for (k, v) in &properties.props {
-            match *k as cl_uint {
-                CL_QUEUE_PROPERTIES => queue_properties = *v,
-                // CL_INVALID_QUEUE_PROPERTIES if values specified in properties are valid but are not
-                // supported by the device.
-                CL_QUEUE_SIZE => return Err(CL_INVALID_QUEUE_PROPERTIES),
-                _ => return Err(CL_INVALID_PROPERTY),
-            }
+    // SAFETY: properties is a 0 terminated array by spec.
+    let properties = unsafe { Properties::new(properties) }.ok_or(CL_INVALID_PROPERTY)?;
+    for (k, v) in properties.iter() {
+        match *k as cl_uint {
+            CL_QUEUE_PROPERTIES => queue_properties = *v,
+            // CL_INVALID_QUEUE_PROPERTIES if values specified in properties are valid but are not
+            // supported by the device.
+            CL_QUEUE_SIZE => return Err(CL_INVALID_QUEUE_PROPERTIES),
+            _ => return Err(CL_INVALID_PROPERTY),
         }
-
-        Some(properties)
-    };
+    }
 
     create_command_queue_impl(context, device, queue_properties, properties)
 }

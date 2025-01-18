@@ -2,6 +2,8 @@
 // Scroll Lock, Group, or Shift Lock state.
 
 default partial xkb_compatibility "scroll_lock" {
+    virtual_modifiers ScrollLock;
+
     indicator "Scroll Lock" {
 	allowExplicit;
 	whichModState= Locked;

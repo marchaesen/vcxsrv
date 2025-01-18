@@ -653,7 +653,8 @@ fd_stream_output_target_destroy(struct pipe_context *pctx,
 static void
 fd_set_stream_output_targets(struct pipe_context *pctx, unsigned num_targets,
                              struct pipe_stream_output_target **targets,
-                             const unsigned *offsets) in_dt
+                             const unsigned *offsets,
+                             enum mesa_prim output_prim) in_dt
 {
    struct fd_context *ctx = fd_context(pctx);
    struct fd_streamout_stateobj *so = &ctx->streamout;

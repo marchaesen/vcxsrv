@@ -8,11 +8,12 @@
 #include "util/format/u_formats.h"
 #include "agx_abi.h"
 #include "agx_linker.h"
+#include "agx_nir.h"
 #include "agx_nir_lower_gs.h"
 #include "agx_nir_lower_vbo.h"
-#include "agx_nir_passes.h"
 #include "agx_pack.h"
 #include "agx_tilebuffer.h"
+#include "libagx.h"
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_builder_opcodes.h"
@@ -138,6 +139,36 @@ lower_non_monolithic_uniforms(nir_builder *b, nir_intrinsic_instr *intr,
    }
 }
 
+static bool
+lower_adjacency(nir_builder *b, nir_intrinsic_instr *intr, void *data)
+{
+   const struct agx_vs_prolog_key *key = data;
+   b->cursor = nir_before_instr(&intr->instr);
+
+   if (intr->intrinsic != nir_intrinsic_load_vertex_id)
+      return false;
+
+   nir_def *id = nir_load_vertex_id(b);
+
+   if (key->adjacency == MESA_PRIM_LINES_ADJACENCY) {
+      id = libagx_map_to_line_adj(b, id);
+   } else if (key->adjacency == MESA_PRIM_TRIANGLE_STRIP_ADJACENCY) {
+      id = libagx_map_to_tri_strip_adj(b, id);
+   } else if (key->adjacency == MESA_PRIM_LINE_STRIP_ADJACENCY) {
+      id = libagx_map_to_line_strip_adj(b, id);
+   } else if (key->adjacency == MESA_PRIM_TRIANGLES_ADJACENCY) {
+      /* Sequence (0, 2, 4), (6, 8, 10), ... */
+      id = nir_imul_imm(b, id, 2);
+   } else {
+      unreachable("unknown");
+   }
+
+   id = agx_nir_load_vertex_id(b, id, key->sw_index_size_B);
+
+   nir_def_replace(&intr->def, id);
+   return true;
+}
+
 void
 agx_nir_vs_prolog(nir_builder *b, const void *key_)
 {
@@ -169,8 +200,17 @@ agx_nir_vs_prolog(nir_builder *b, const void *key_)
    /* Now lower the resulting program using the key */
    lower_vbo(b->shader, key->attribs, key->robustness);
 
+   /* Clean up redundant vertex ID loads */
+   if (!key->hw || key->adjacency) {
+      NIR_PASS(_, b->shader, nir_opt_cse);
+      NIR_PASS(_, b->shader, nir_opt_dce);
+   }
+
    if (!key->hw) {
       agx_nir_lower_sw_vs(b->shader, key->sw_index_size_B);
+   } else if (key->adjacency) {
+      nir_shader_intrinsics_pass(b->shader, lower_adjacency,
+                                 nir_metadata_control_flow, (void *)key);
    }
 
    /* Finally, lower uniforms according to our ABI */
@@ -436,7 +476,7 @@ agx_nir_fs_epilog(nir_builder *b, const void *key_)
    unsigned rt_spill = key->link.rt_spill_base;
    NIR_PASS(_, b->shader, agx_nir_lower_tilebuffer, &tib, colormasks, &rt_spill,
             write_samples, &force_translucent);
-   NIR_PASS(_, b->shader, agx_nir_lower_texture, false);
+   NIR_PASS(_, b->shader, agx_nir_lower_texture);
    NIR_PASS(_, b->shader, agx_nir_lower_multisampled_image_store);
 
    /* If the API shader runs once per sample, then the epilog runs once per
@@ -448,6 +488,14 @@ agx_nir_fs_epilog(nir_builder *b, const void *key_)
     * to the epilog, when sample shading is not used but blending is.
     */
    if (key->link.sample_shading) {
+      /* Lower the resulting discards. Done in agx_nir_lower_monolithic_msaa for
+       * the pixel shaded path. Must be done before agx_nir_lower_to_per_sample
+       * to avoid duplicating tests.
+       */
+      if (key->blend.alpha_to_coverage) {
+         NIR_PASS(_, b->shader, agx_nir_lower_sample_mask);
+      }
+
       NIR_PASS(_, b->shader, agx_nir_lower_to_per_sample);
       NIR_PASS(_, b->shader, agx_nir_lower_fs_active_samples_to_register);
 

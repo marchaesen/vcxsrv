@@ -221,8 +221,13 @@ primconvert_init_draw(struct primconvert_context *pc,
    }
 
    /* (step 5: allocate gpu memory sized for the FINAL index count) */
-   u_upload_alloc(pc->pipe->stream_uploader, 0, new_info->index_size * new_draw->count, 4,
+   uint64_t new_size = (uint64_t)new_info->index_size * new_draw->count;
+   if (new_size > UINT_MAX)
+      return false;
+   u_upload_alloc(pc->pipe->stream_uploader, 0, new_size, 4,
                   &ib_offset, &new_info->index.resource, &dst);
+   if (!dst)
+      return false;
    new_draw->start = ib_offset / new_info->index_size;
    new_draw->index_bias = info->index_size ? draw.index_bias : 0;
 

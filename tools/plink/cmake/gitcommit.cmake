@@ -6,34 +6,32 @@ set(commit "${DEFAULT_COMMIT}")
 set(TOPLEVEL_SOURCE_DIR ${CMAKE_SOURCE_DIR})
 
 execute_process(
-  COMMAND ${GIT_EXECUTABLE} rev-parse --show-toplevel
-  OUTPUT_VARIABLE git_worktree
+  COMMAND ${GIT_EXECUTABLE} rev-parse --show-cdup
+  OUTPUT_VARIABLE path_to_top
   ERROR_VARIABLE stderr
   RESULT_VARIABLE status)
-string(REGEX REPLACE "\n$" "" git_worktree "${git_worktree}")
+string(REGEX REPLACE "\n$" "" path_to_top "${path_to_top}")
 
-if(status EQUAL 0)
-  if(git_worktree STREQUAL CMAKE_SOURCE_DIR)
-    execute_process(
-      COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
-      OUTPUT_VARIABLE git_commit
-      ERROR_VARIABLE stderr
-      RESULT_VARIABLE status)
-    if(status EQUAL 0)
-      string(REGEX REPLACE "\n$" "" commit "${git_commit}")
-    else()
-      if(commit STREQUAL "unavailable")
-        message("Unable to determine git commit: 'git rev-parse HEAD' returned status ${status} and error output:\n${stderr}\n")
-      endif()
-    endif()
+# If we're at the top of a git repository, --show-cdup will print the
+# empty string (followed by a newline) and return success. If we're
+# lower down, it will return a sequence of "../../" that leads to the
+# top; if we're higher up it will fail with an error.
+if(status EQUAL 0 AND path_to_top STREQUAL "")
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+    OUTPUT_VARIABLE git_commit
+    ERROR_VARIABLE stderr
+    RESULT_VARIABLE status)
+  if(status EQUAL 0)
+    string(REGEX REPLACE "\n$" "" commit "${git_commit}")
   else()
     if(commit STREQUAL "unavailable")
-      message("Unable to determine git commit: top-level source dir ${CMAKE_SOURCE_DIR} is not the root of a repository")
+      message("Unable to determine git commit: 'git rev-parse HEAD' returned status ${status} and error output:\n${stderr}\n")
     endif()
   endif()
 else()
   if(commit STREQUAL "unavailable")
-    message("Unable to determine git commit: 'git rev-parse --show-toplevel' returned status ${status} and error output:\n${stderr}\n")
+    message("Unable to determine git commit: top-level source dir ${CMAKE_SOURCE_DIR} is not the root of a repository")
   endif()
 endif()
 

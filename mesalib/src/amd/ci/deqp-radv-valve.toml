@@ -1,0 +1,6 @@
+# Basic test set
+[[deqp]]
+deqp = "/deqp-vk-main/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp-vk-main/mustpass/vk-main.txt"]
+tests_per_group = 5000
+renderer_check = "RADV"

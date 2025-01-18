@@ -1,8 +1,8 @@
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
-caselists = ["/deqp/mustpass/gles2-main.txt"]
+caselists = ["/deqp-gles/mustpass/gles2-main.txt"]
 deqp_args = [
-    "/deqp/modules/gles2/deqp-gles2",
+    "/deqp-gles/modules/gles2/deqp-gles2",
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
     "--deqp-surface-type=pbuffer",
@@ -12,12 +12,14 @@ deqp_args = [
 timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
 version_check = "GL ES 3.2.*git"
 renderer_check = "virgl.*LLVMPIPE"
+[deqp.env]
+INSIDE_DEQP_RUNNER = "true"
 
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
-caselists = ["/deqp/mustpass/gles3-main.txt"]
+caselists = ["/deqp-gles/mustpass/gles3-main.txt"]
 deqp_args = [
-    "/deqp/modules/gles3/deqp-gles3",
+    "/deqp-gles/modules/gles3/deqp-gles3",
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
     "--deqp-surface-type=pbuffer",
@@ -25,12 +27,14 @@ deqp_args = [
     "--deqp-visibility=hidden"
 ]
 timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
+[deqp.env]
+INSIDE_DEQP_RUNNER = "true"
 
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
-caselists = ["/deqp/mustpass/gles31-main.txt"]
+caselists = ["/deqp-gles/mustpass/gles31-main.txt"]
 deqp_args = [
-    "/deqp/modules/gles31/deqp-gles31",
+    "/deqp-gles/modules/gles31/deqp-gles31",
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
     "--deqp-surface-type=pbuffer",
@@ -38,14 +42,16 @@ deqp_args = [
     "--deqp-visibility=hidden"
 ]
 timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
+[deqp.env]
+INSIDE_DEQP_RUNNER = "true"
 
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
 caselists = [
-    "/deqp/mustpass/gl32-main.txt",
+    "/deqp-gl/mustpass/gl32-main.txt",
 ]
 deqp_args = [
-    "/deqp/external/openglcts/modules/glcts",
+    "/deqp-gl/external/openglcts/modules/glcts",
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
     "--deqp-surface-type=pbuffer",
@@ -53,3 +59,5 @@ deqp_args = [
     "--deqp-visibility=hidden"
 ]
 timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
+[deqp.env]
+INSIDE_DEQP_RUNNER = "true"

@@ -1500,6 +1500,10 @@ enumerate_physical_devices(struct vn_instance *instance,
    struct vn_physical_device *physical_devs = NULL;
    VkResult result;
 
+   if (!instance->renderer) {
+       *out_count = 0;
+       return VK_SUCCESS;
+   }
    uint32_t count = 0;
    result = vn_call_vkEnumeratePhysicalDevices(
       ring, vn_instance_to_handle(instance), &count, NULL);

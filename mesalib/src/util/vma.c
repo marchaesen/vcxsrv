@@ -355,11 +355,12 @@ util_vma_heap_free(struct util_vma_heap *heap,
 uint64_t
 util_vma_heap_get_max_free_continuous_size(struct util_vma_heap *heap)
 {
-   if (list_is_empty(&heap->holes))
-      return 0;
+   uint64_t max_size = 0;
+   util_vma_foreach_hole_safe(hole, heap) {
+      max_size = MAX2(max_size, hole->size);
+   }
 
-   struct util_vma_hole *top_hole = list_first_entry(&heap->holes, struct util_vma_hole, link);
-   return top_hole->size;
+   return max_size;
 }
 
 void

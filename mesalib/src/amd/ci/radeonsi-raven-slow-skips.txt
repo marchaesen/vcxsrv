@@ -1,0 +1,6 @@
+# Skip tests, mainly because some tests exceed the 1 minute mark
+# Note that this not affect full jobs.
+
+glx@glx-buffer-age vblank_mode=0
+glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 1
+spec@egl 1.4@eglcreatepbuffersurface with egl_samples set

@@ -1,3 +1,0 @@
-! model		layout[4]	=	symbols
- $sun		$sun_custom	=	+sun_vndr/%l[4]%(v[4]):4
-  *		*		=	+%l[4]%(v[4]):4

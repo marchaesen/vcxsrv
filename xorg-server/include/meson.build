@@ -165,6 +165,8 @@ conf_data.set('HAVE_SETITIMER', cc.has_function('setitimer') ? '1' : false)
 conf_data.set('HAVE_SHMCTL64', cc.has_function('shmctl64') ? '1' : false)
 conf_data.set('HAVE_SIGACTION', cc.has_function('sigaction') ? '1' : false)
 conf_data.set('HAVE_SIGPROCMASK', cc.has_function('sigprocmask') ? '1' : false)
+# HAVE_SOCKLEN_T is used by xtrans when IPv6 is disabled
+conf_data.set('HAVE_SOCKLEN_T', cc.has_type('socklen_t', prefix: '#include <sys/socket.h>') ? '1' : false)
 conf_data.set('HAVE_STRCASECMP', cc.has_function('strcasecmp') ? '1' : false)
 conf_data.set('HAVE_STRCASESTR', cc.has_function('strcasestr') ? '1' : false)
 conf_data.set('HAVE_STRLCAT', cc.has_function('strlcat', dependencies: libbsd_dep) ? '1' : false)

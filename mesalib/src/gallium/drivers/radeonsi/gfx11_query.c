@@ -62,7 +62,8 @@ static bool gfx11_alloc_query_buffer(struct si_context *sctx)
       qbuf = list_first_entry(&sctx->shader_query_buffers, struct gfx11_sh_query_buffer, list);
       if (!qbuf->refcount &&
           !si_cs_is_buffer_referenced(sctx, qbuf->buf->buf, RADEON_USAGE_READWRITE) &&
-          sctx->ws->buffer_wait(sctx->ws, qbuf->buf->buf, 0, RADEON_USAGE_READWRITE)) {
+          sctx->ws->buffer_wait(sctx->ws, qbuf->buf->buf, 0,
+                                RADEON_USAGE_READWRITE | RADEON_USAGE_DISALLOW_SLOW_REPLY)) {
          /* Can immediately re-use the oldest buffer */
          list_del(&qbuf->list);
       } else {

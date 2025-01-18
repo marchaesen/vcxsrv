@@ -3,6 +3,8 @@
 
 set -uex
 
+uncollapsed_section_start wayland "Building Wayland"
+
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
 # DEBIAN_BUILD_TAG
@@ -13,7 +15,7 @@ set -uex
 # KERNEL_ROOTFS_TAG
 
 export LIBWAYLAND_VERSION="1.21.0"
-export WAYLAND_PROTOCOLS_VERSION="1.34"
+export WAYLAND_PROTOCOLS_VERSION="1.38"
 
 git clone https://gitlab.freedesktop.org/wayland/wayland
 cd wayland
@@ -26,7 +28,9 @@ rm -rf wayland
 git clone https://gitlab.freedesktop.org/wayland/wayland-protocols
 cd wayland-protocols
 git checkout "$WAYLAND_PROTOCOLS_VERSION"
-meson setup _build ${EXTRA_MESON_ARGS:-}
+meson setup -Dtests=false _build ${EXTRA_MESON_ARGS:-}
 meson install -C _build
 cd ..
 rm -rf wayland-protocols
+
+section_end wayland

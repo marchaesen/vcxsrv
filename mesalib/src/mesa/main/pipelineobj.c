@@ -93,7 +93,7 @@ _mesa_new_pipeline_object(struct gl_context *ctx, GLuint name)
 void
 _mesa_init_pipeline(struct gl_context *ctx)
 {
-   _mesa_InitHashTable(&ctx->Pipeline.Objects);
+   _mesa_InitHashTable(&ctx->Pipeline.Objects, ctx->Shared->ReuseGLNames);
 
    ctx->Pipeline.Current = NULL;
 

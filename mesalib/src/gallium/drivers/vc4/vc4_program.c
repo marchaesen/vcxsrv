@@ -2289,7 +2289,7 @@ vc4_shader_ntq(struct vc4_context *vc4, enum qstage stage,
         if (c->key->ucp_enables) {
                 if (stage == QSTAGE_FRAG) {
                         NIR_PASS_V(c->s, nir_lower_clip_fs,
-                                   c->key->ucp_enables, false);
+                                   c->key->ucp_enables, false, false);
                 } else {
                         NIR_PASS_V(c->s, nir_lower_clip_vs,
                                    c->key->ucp_enables, false, false, NULL);

@@ -196,6 +196,10 @@ struct pcvtid {
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__) || defined(__DragonFly__)
 #include <sys/mouse.h>
 #endif
+    /* Include these definitions in case ioctl_pc.h didn't get included */
+#ifndef CONSOLE_X_BELL
+#define CONSOLE_X_BELL _IOW('t',123,int[2])
+#endif
 
 #define CLEARDTR_SUPPORT
 

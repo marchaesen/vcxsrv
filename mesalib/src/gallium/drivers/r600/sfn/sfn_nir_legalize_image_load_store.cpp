@@ -83,6 +83,13 @@ r600_legalize_image_load_store_impl(nir_builder *b,
       unsigned num_src1_comp = MIN2(ir->src[1].ssa->num_components, num_components);
       unsigned src1_mask = (1 << num_src1_comp) - 1;
 
+      if (num_components == 3 && dim == GLSL_SAMPLER_DIM_CUBE) {
+         img_size = nir_vec3(b,
+                             nir_channel(b, img_size, 0),
+                             nir_channel(b, img_size, 1),
+                             nir_imul_imm(b, nir_channel(b, img_size, 2), 6));
+      }
+
       auto in_range = nir_ult(b,
                               nir_channels(b, ir->src[1].ssa, src1_mask),
                               nir_channels(b, img_size, mask));

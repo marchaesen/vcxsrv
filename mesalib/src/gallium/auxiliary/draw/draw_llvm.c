@@ -610,9 +610,6 @@ generate_vs(struct draw_llvm_variant *variant,
    params.info = &llvm->draw->vs.vertex_shader->info;
    params.ssbo_ptr = ssbos_ptr;
    params.image = draw_image;
-   params.aniso_filter_table = lp_jit_resources_aniso_filter_table(variant->gallivm,
-                                                                   variant->resources_type,
-                                                                   resources_ptr);
 
    if (llvm->draw->vs.vertex_shader->state.ir.nir &&
        llvm->draw->vs.vertex_shader->state.type == PIPE_SHADER_IR_NIR) {
@@ -2226,7 +2223,6 @@ draw_llvm_set_sampler_state(struct draw_context *draw,
          jit_sam->min_lod = s->min_lod;
          jit_sam->max_lod = s->max_lod;
          jit_sam->lod_bias = s->lod_bias;
-         jit_sam->max_aniso = s->max_anisotropy;
          COPY_4V(jit_sam->border_color, s->border_color.f);
       }
    }
@@ -2464,10 +2460,6 @@ draw_gs_llvm_generate(struct draw_llvm *llvm,
    params.ssbo_ptr = ssbos_ptr;
    params.image = image;
    params.gs_vertex_streams = variant->shader->base.num_vertex_streams;
-   params.aniso_filter_table = lp_jit_resources_aniso_filter_table(gallivm,
-                                                                   variant->resources_type,
-                                                                   resources_ptr);
-
 
    if (llvm->draw->gs.geometry_shader->state.type == PIPE_SHADER_IR_TGSI)
       lp_build_tgsi_soa(variant->gallivm,
@@ -3125,9 +3117,6 @@ draw_tcs_llvm_generate(struct draw_llvm *llvm,
       params.image = image;
       params.coro = &coro_info;
       params.tcs_iface = &tcs_iface.base;
-      params.aniso_filter_table = lp_jit_resources_aniso_filter_table(gallivm,
-                                                                      variant->resources_type,
-                                                                      resources_ptr);
 
       lp_build_nir_soa(variant->gallivm,
                        llvm->draw->tcs.tess_ctrl_shader->state.ir.nir,
@@ -3601,6 +3590,11 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
    system_values.vertices_in = lp_build_broadcast_scalar(&bldvec, patch_vertices_in);
 
    if (variant->key.primid_needed) {
+      /* In a fragment shader, it (gl_PrimitiveID) will contain the [...] value that would have been
+       * presented as input to the geometry shader had it been present.
+       * https://docs.vulkan.org/spec/latest/chapters/interfaces.html#interfaces-builtin-variables
+       * Store the primitive ID as-if the geometry shader did `gl_PrimitiveID = gl_PrimitiveIDIn`.
+       */
       int slot = variant->key.primid_output;
       for (unsigned i = 0; i < 4; i++) {
          outputs[slot][i] = lp_build_alloca(gallivm, lp_build_int_vec_type(gallivm, tes_type), "primid");
@@ -3652,7 +3646,6 @@ draw_tes_llvm_generate(struct draw_llvm *llvm,
       params.ssbo_ptr = ssbos_ptr;
       params.image = image;
       params.tes_iface = &tes_iface.base;
-      params.aniso_filter_table = lp_jit_resources_aniso_filter_table(gallivm, variant->resources_type, resources_ptr);
 
       lp_build_nir_soa(variant->gallivm,
                        llvm->draw->tes.tess_eval_shader->state.ir.nir,

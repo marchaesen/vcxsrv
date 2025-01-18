@@ -3,7 +3,7 @@
  * Copyright © 2024 Enrico Weigelt, metux IT consult <info@metux.net>
  */
 #ifndef _XSERVER_XKB_XKBTEXT_PRIV_H
-#define _XSERVER_XKB_XKBTEXt_PRIV_H
+#define _XSERVER_XKB_XKBTEXT_PRIV_H
 
 #include <X11/X.h>
 

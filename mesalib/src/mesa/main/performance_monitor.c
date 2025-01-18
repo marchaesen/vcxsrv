@@ -57,7 +57,7 @@
 void
 _mesa_init_performance_monitors(struct gl_context *ctx)
 {
-   _mesa_InitHashTable(&ctx->PerfMonitor.Monitors);
+   _mesa_InitHashTable(&ctx->PerfMonitor.Monitors, ctx->Shared->ReuseGLNames);
    ctx->PerfMonitor.NumGroups = 0;
    ctx->PerfMonitor.Groups = NULL;
 }

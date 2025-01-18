@@ -285,7 +285,7 @@ blit_to_staging(struct st_context *st, struct gl_renderbuffer *rb,
 
    /* We are creating a texture of the size of the region being read back.
     * Need to check for NPOT texture support. */
-   if (!screen->get_param(screen, PIPE_CAP_NPOT_TEXTURES) &&
+   if (!screen->caps.npot_textures &&
        (!util_is_power_of_two_or_zero(width) ||
         !util_is_power_of_two_or_zero(height)))
       return NULL;

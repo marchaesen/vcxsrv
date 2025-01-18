@@ -24,11 +24,15 @@
  * it can be tiled doesn't mean it can be compressed.
  */
 static bool
-ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt)
+ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt, unsigned nr_samples)
 {
    const struct fd_dev_info *info = fd_screen(pscreen)->info;
 
    switch (pfmt) {
+   case PIPE_FORMAT_Z24X8_UNORM:
+      /* MSAA+UBWC does not work without FMT6_Z24_UINT_S8_UINT: */
+      return info->a6xx.has_z24uint_s8uint || (nr_samples <= 1);
+
    case PIPE_FORMAT_X24S8_UINT:
    case PIPE_FORMAT_Z24_UNORM_S8_UINT:
       /* We can't sample stencil with UBWC on a630, and we may need to be able
@@ -114,7 +118,7 @@ can_do_ubwc(struct pipe_resource *prsc)
       return false;
    if (prsc->target != PIPE_TEXTURE_2D)
       return false;
-   if (!ok_ubwc_format(prsc->screen, prsc->format))
+   if (!ok_ubwc_format(prsc->screen, prsc->format, prsc->nr_samples))
       return false;
    return true;
 }
@@ -189,7 +193,7 @@ fd6_check_valid_format(struct fd_resource *rsc, enum pipe_format format)
    if (!rsc->layout.ubwc)
       return FORMAT_OK;
 
-   if (ok_ubwc_format(rsc->b.b.screen, format) &&
+   if (ok_ubwc_format(rsc->b.b.screen, format, rsc->b.b.nr_samples) &&
        valid_ubwc_format_cast(rsc, format))
       return FORMAT_OK;
 
@@ -232,29 +236,30 @@ static void
 setup_lrz(struct fd_resource *rsc)
 {
    struct fd_screen *screen = fd_screen(rsc->b.b.screen);
-   unsigned width0 = rsc->b.b.width0;
-   unsigned height0 = rsc->b.b.height0;
+   struct fdl_layout *layout = &rsc->layout;
+   unsigned width = layout->width0;
+   unsigned height = layout->height0;
 
    /* LRZ buffer is super-sampled: */
-   switch (rsc->b.b.nr_samples) {
+   switch (layout->nr_samples) {
    case 4:
-      width0 *= 2;
+      width *= 2;
       FALLTHROUGH;
    case 2:
-      height0 *= 2;
+      height *= 2;
    }
 
-   unsigned lrz_pitch = align(DIV_ROUND_UP(width0, 8), 32);
-   unsigned lrz_height = align(DIV_ROUND_UP(height0, 8), 16);
+   unsigned lrz_pitch = align(DIV_ROUND_UP(width, 8), 32);
+   unsigned lrz_height = align(DIV_ROUND_UP(height, 8), 32);
 
    rsc->lrz_height = lrz_height;
    rsc->lrz_width = lrz_pitch;
    rsc->lrz_pitch = lrz_pitch;
 
-   unsigned lrz_size = lrz_pitch * lrz_height * 2;
+   unsigned lrz_size = lrz_pitch * lrz_height * sizeof(uint16_t);
 
-   unsigned nblocksx = DIV_ROUND_UP(DIV_ROUND_UP(width0, 8), 16);
-   unsigned nblocksy = DIV_ROUND_UP(DIV_ROUND_UP(height0, 8), 4);
+   unsigned nblocksx = DIV_ROUND_UP(DIV_ROUND_UP(width, 8), 16);
+   unsigned nblocksy = DIV_ROUND_UP(DIV_ROUND_UP(height, 8), 4);
 
    /* Fast-clear buffer is 1bit/block */
    unsigned lrz_fc_size = DIV_ROUND_UP(nblocksx * nblocksy, 8);
@@ -263,7 +268,8 @@ setup_lrz(struct fd_resource *rsc)
     * on A7XX (HW limitation)
     */
    bool has_lrz_fc = screen->info->a6xx.enable_lrz_fast_clear &&
-                     lrz_fc_size <= fd_lrzfc_layout<CHIP>::FC_SIZE;
+                     lrz_fc_size <= fd_lrzfc_layout<CHIP>::FC_SIZE &&
+                     !FD_DBG(NOLRZFC);
 
    /* Allocate a LRZ fast-clear buffer even if we aren't using FC, if the
     * hw is re-using this buffer for direction tracking
@@ -281,16 +287,17 @@ static uint32_t
 fd6_setup_slices(struct fd_resource *rsc)
 {
    struct pipe_resource *prsc = &rsc->b.b;
+   struct fd_screen *screen = fd_screen(prsc->screen);
+
+   if (rsc->layout.ubwc && !ok_ubwc_format(prsc->screen, prsc->format, prsc->nr_samples))
+      rsc->layout.ubwc = false;
+
+   fdl6_layout(&rsc->layout, screen->info, prsc->format, fd_resource_nr_samples(prsc),
+               prsc->width0, prsc->height0, prsc->depth0, prsc->last_level + 1,
+               prsc->array_size, prsc->target == PIPE_TEXTURE_3D, false, NULL);
 
    if (!FD_DBG(NOLRZ) && has_depth(prsc->format) && !is_z32(prsc->format))
       setup_lrz<CHIP>(rsc);
-
-   if (rsc->layout.ubwc && !ok_ubwc_format(prsc->screen, prsc->format))
-      rsc->layout.ubwc = false;
-
-   fdl6_layout(&rsc->layout, prsc->format, fd_resource_nr_samples(prsc),
-               prsc->width0, prsc->height0, prsc->depth0, prsc->last_level + 1,
-               prsc->array_size, prsc->target == PIPE_TEXTURE_3D, NULL);
 
    return rsc->layout.size;
 }
@@ -299,6 +306,7 @@ static int
 fill_ubwc_buffer_sizes(struct fd_resource *rsc)
 {
    struct pipe_resource *prsc = &rsc->b.b;
+   struct fd_screen *screen = fd_screen(prsc->screen);
    struct fdl_explicit_layout l = {
       .offset = rsc->layout.slices[0].offset,
       .pitch = rsc->layout.pitch0,
@@ -310,9 +318,9 @@ fill_ubwc_buffer_sizes(struct fd_resource *rsc)
    rsc->layout.ubwc = true;
    rsc->layout.tile_mode = TILE6_3;
 
-   if (!fdl6_layout(&rsc->layout, prsc->format, fd_resource_nr_samples(prsc),
+   if (!fdl6_layout(&rsc->layout, screen->info, prsc->format, fd_resource_nr_samples(prsc),
                     prsc->width0, prsc->height0, prsc->depth0,
-                    prsc->last_level + 1, prsc->array_size, false, &l))
+                    prsc->last_level + 1, prsc->array_size, false, false, &l))
       return -1;
 
    if (rsc->layout.size > fd_bo_size(rsc->bo))
@@ -361,7 +369,10 @@ fd6_is_format_supported(struct pipe_screen *pscreen,
    case DRM_FORMAT_MOD_LINEAR:
       return true;
    case DRM_FORMAT_MOD_QCOM_COMPRESSED:
-      return ok_ubwc_format(pscreen, fmt);
+      /* screen->is_format_supported() is used only for dma-buf modifier queries,
+       * so no super-sampled images:
+       */
+      return ok_ubwc_format(pscreen, fmt, 0);
    case DRM_FORMAT_MOD_QCOM_TILED3:
       return fd6_tile_mode_for_format(fmt) == TILE6_3;
    default:

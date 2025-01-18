@@ -24,36 +24,6 @@ bvh_shaders = [
     [],
   ],
   [
-    'lbvh_generate_ir.comp',
-    'lbvh_generate_ir',
-    [],
-  ],
-  [
-    'lbvh_main.comp',
-    'lbvh_main',
-    [],
-  ],
-  [
-    'leaf.comp',
-    'leaf',
-    ['ALWAYS_ACTIVE=0'],
-  ],
-  [
-    'leaf.comp',
-    'leaf_always_active',
-    ['ALWAYS_ACTIVE=1'],
-  ],
-  [
-    'morton.comp',
-    'morton',
-    [],
-  ],
-  [
-    'ploc_internal.comp',
-    'ploc_internal',
-    [],
-  ],
-  [
     'update.comp',
     'update',
     [],
@@ -61,17 +31,20 @@ bvh_shaders = [
 ]
 
 bvh_include_dir = dir_source_root + '/src/amd/vulkan/bvh'
+vk_bvh_include_dir = dir_source_root + '/src/vulkan/runtime/bvh'
 
 bvh_includes = files(
   'build_helpers.h',
   'build_interface.h',
   'bvh.h',
+  vk_bvh_include_dir + '/vk_build_helpers.h',
+  vk_bvh_include_dir + '/vk_bvh.h',
 )
 
 bvh_spv = []
 foreach s : bvh_shaders
   command = [
-    prog_glslang, '-V', '-I' + bvh_include_dir, '--target-env', 'spirv1.5',
+    prog_glslang, '-V', '-I' + bvh_include_dir, '-I' + vk_bvh_include_dir, '--target-env', 'spirv1.5',
     '-x', '-o', '@OUTPUT@', '@INPUT@', glslang_depfile, glslang_quiet,
   ]
 

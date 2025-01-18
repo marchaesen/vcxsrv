@@ -95,6 +95,27 @@ enum vpe_status {
                                                    given case. */
 };
 
+/*****************************************************
+ * Enum for emitting VPE System Events
+ *****************************************************/
+
+/** @enum vpe_event_id
+ *  @brief Event IDs are VPE events that can be emitted through
+ *         the EventLog callback. For each event ID, the number of params
+ *         emitted must by synchronized with handler
+ */
+enum vpe_event_id {
+    VPE_EVENT_CHECK_SUPPORT, /**< Event emitted by vpe_check_support.
+                                  Params:
+                                          UInt32 num_streams,
+                                          UInt32 target_rect.width,
+                                          UInt32 target_rect.height,
+                                          UInt32 target_rect.height
+                               */
+
+    VPE_EVENT_MAX_ID         /**< Max ID represents the number of event IDs supported */
+};
+
 /** @enum vpe_ip_level
  *  @brief HW IP level
  */
@@ -312,6 +333,11 @@ struct vpe_cap_funcs {
  */
 typedef void (*vpe_log_func_t)(void *log_ctx, const char *fmt, ...);
 
+/** @brief Sys Event function
+ * @param[in] event_id event to emit to system log
+ */
+typedef void (*vpe_sys_event_func_t)(enum vpe_event_id event_id, ...);
+
 /** @brief system memory zalloc, allocated memory initailized with 0
  *
  * @param[in] mem_ctx  given in the struct @ref vpe_init_data
@@ -332,6 +358,8 @@ typedef void (*vpe_free_func_t)(void *mem_ctx, void *ptr);
 struct vpe_callback_funcs {
     void          *log_ctx; /**< optional. provided by the caller and pass back to callback */
     vpe_log_func_t log;     /**< Logging function */
+
+    vpe_sys_event_func_t sys_event; /**< System event function */
 
     void             *mem_ctx; /**< optional. provided by the caller and pass back to callback */
     vpe_zalloc_func_t zalloc;  /**< Memory allocation */
@@ -455,7 +483,6 @@ struct vpe_debug_options {
     uint32_t mpc_crc_ctrl            : 1;
     uint32_t skip_optimal_tap_check  : 1;
     uint32_t disable_lut_caching     : 1; /*< disable config caching for all luts */
-
     uint32_t bg_bit_depth;
 
     struct vpe_mem_low_power_enable_options enable_mem_low_power;
@@ -722,10 +749,9 @@ struct vpe_tonemap_params {
     enum vpe_color_primaries   lut_out_gamut;        /**< Output color primary */
     uint16_t                   input_pq_norm_factor; /**< Perceptual Quantizer normalization
                                                         factor. */
-    uint16_t lut_dim;                                /**< Size of one dimension of the 3D-LUT */
+    uint16_t                   lut_dim;              /**< Size of one dimension of the 3D-LUT */
     union {
         uint16_t *lut_data;                          /**< Accessible to CPU */
-        void     *dma_lut_data;                      /**< Accessible to GPU. Only for fast load */
     };
     bool is_dma_lut;
     bool enable_3dlut; /**< Enable/Disable 3D-LUT */

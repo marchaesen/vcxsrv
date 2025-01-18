@@ -38,7 +38,7 @@ static void
 emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
                          struct ir3_instruction **dst)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *offset;
    struct ir3_instruction *ldib;
    unsigned imm_offset_val;
@@ -87,7 +87,7 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 static void
 emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *stib, *val, *offset;
    unsigned wrmask = nir_intrinsic_write_mask(intr);
    unsigned ncomp = ffs(~wrmask) - 1;
@@ -146,14 +146,12 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    ir3_handle_bindless_cat6(stib, intr->src[1]);
    ir3_handle_nonuniform(stib, intr);
 
-   array_insert(b, b->keeps, stib);
+   array_insert(ctx->block, ctx->block->keeps, stib);
 }
 
 static struct ir3_instruction *
-emit_atomic(struct ir3_block *b,
-            nir_atomic_op op,
-            struct ir3_instruction *ibo,
-            struct ir3_instruction *src0,
+emit_atomic(struct ir3_builder *b, nir_atomic_op op,
+            struct ir3_instruction *ibo, struct ir3_instruction *src0,
             struct ir3_instruction *src1)
 {
    switch (op) {
@@ -202,10 +200,13 @@ emit_atomic(struct ir3_block *b,
 static struct ir3_instruction *
 emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *atomic, *ibo, *src0, *src1, *data, *dummy;
    nir_atomic_op op = nir_intrinsic_atomic_op(intr);
    type_t type = nir_atomic_op_type(op) == nir_type_int ? TYPE_S32 : TYPE_U32;
+   if (intr->def.bit_size == 64) {
+      type = TYPE_ATOMIC_U64;
+   }
 
    ibo = ir3_ssbo_to_ibo(ctx, intr->src[0]);
 
@@ -230,10 +231,23 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    if (op == nir_atomic_op_cmpxchg) {
       src0 = ir3_get_src(ctx, &intr->src[4])[0];
       struct ir3_instruction *compare = ir3_get_src(ctx, &intr->src[3])[0];
-      src1 = ir3_collect(b, dummy, compare, data);
+      if (intr->def.bit_size == 64) {
+         struct ir3_instruction *dummy2 = create_immed(b, 0);
+         struct ir3_instruction *compare2 = ir3_get_src(ctx, &intr->src[3])[1];
+         struct ir3_instruction *data2 = ir3_get_src(ctx, &intr->src[2])[1];
+         src1 = ir3_collect(b, dummy, dummy2, compare, compare2, data, data2);
+      } else {
+         src1 = ir3_collect(b, dummy, compare, data);
+      }
    } else {
       src0 = ir3_get_src(ctx, &intr->src[3])[0];
-      src1 = ir3_collect(b, dummy, data);
+      if (intr->def.bit_size == 64) {
+         struct ir3_instruction *dummy2 = create_immed(b, 0);
+         struct ir3_instruction *data2 = ir3_get_src(ctx, &intr->src[2])[1];
+         src1 = ir3_collect(b, dummy, dummy2, data, data2);
+      } else {
+         src1 = ir3_collect(b, dummy, data);
+      }
    }
 
    atomic = emit_atomic(b, op, ibo, src0, src1);
@@ -245,22 +259,24 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    ir3_handle_bindless_cat6(atomic, intr->src[0]);
 
    /* even if nothing consume the result, we can't DCE the instruction: */
-   array_insert(b, b->keeps, atomic);
+   array_insert(ctx->block, ctx->block->keeps, atomic);
 
    atomic->dsts[0]->wrmask = src1->dsts[0]->wrmask;
    ir3_reg_tie(atomic->dsts[0], atomic->srcs[2]);
    ir3_handle_nonuniform(atomic, intr);
-   struct ir3_instruction *split;
-   ir3_split_dest(b, &split, atomic, 0, 1);
-   return split;
-}
+
+   size_t num_results = intr->def.bit_size == 64 ? 2 : 1;
+   struct ir3_instruction *defs[num_results];
+   ir3_split_dest(b, defs, atomic, 0, num_results);
+   return ir3_create_collect(b, defs, num_results);
+  }
 
 /* src[] = { deref, coord, sample_index }. const_index[] = {} */
 static void
 emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
                           struct ir3_instruction **dst)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *ldib;
    struct ir3_instruction *const *coords = ir3_get_src(ctx, &intr->src[1]);
    unsigned ncoords = ir3_get_image_coords(intr, NULL);
@@ -285,7 +301,7 @@ emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 static void
 emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *stib;
    struct ir3_instruction *const *value = ir3_get_src(ctx, &intr->src[3]);
    struct ir3_instruction *const *coords = ir3_get_src(ctx, &intr->src[1]);
@@ -308,14 +324,14 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    ir3_handle_bindless_cat6(stib, intr->src[0]);
    ir3_handle_nonuniform(stib, intr);
 
-   array_insert(b, b->keeps, stib);
+   array_insert(ctx->block, ctx->block->keeps, stib);
 }
 
 /* src[] = { deref, coord, sample_index, value, compare }. const_index[] = {} */
 static struct ir3_instruction *
 emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *atomic, *ibo, *src0, *src1, *dummy;
    struct ir3_instruction *const *coords = ir3_get_src(ctx, &intr->src[1]);
    struct ir3_instruction *value = ir3_get_src(ctx, &intr->src[3])[0];
@@ -356,7 +372,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    ir3_handle_bindless_cat6(atomic, intr->src[0]);
 
    /* even if nothing consume the result, we can't DCE the instruction: */
-   array_insert(b, b->keeps, atomic);
+   array_insert(ctx->block, ctx->block->keeps, atomic);
 
    atomic->dsts[0]->wrmask = src1->dsts[0]->wrmask;
    ir3_reg_tie(atomic->dsts[0], atomic->srcs[2]);
@@ -370,7 +386,7 @@ static void
 emit_intrinsic_image_size(struct ir3_context *ctx, nir_intrinsic_instr *intr,
                           struct ir3_instruction **dst)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *ibo = ir3_image_to_ibo(ctx, intr->src[0]);
    struct ir3_instruction *resinfo = ir3_RESINFO(b, ibo, 0);
    resinfo->cat6.iim_val = 1;
@@ -391,7 +407,7 @@ emit_intrinsic_load_global_ir3(struct ir3_context *ctx,
                                nir_intrinsic_instr *intr,
                                struct ir3_instruction **dst)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    unsigned dest_components = nir_intrinsic_dest_components(intr);
    struct ir3_instruction *addr, *offset;
 
@@ -434,7 +450,7 @@ static void
 emit_intrinsic_store_global_ir3(struct ir3_context *ctx,
                                 nir_intrinsic_instr *intr)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *value, *addr, *offset;
    unsigned ncomp = nir_intrinsic_src_components(intr, 0);
 
@@ -468,7 +484,7 @@ emit_intrinsic_store_global_ir3(struct ir3_context *ctx,
    stg->cat6.type = type_uint_size(intr->src[0].ssa->bit_size);
    stg->cat6.iim_val = 1;
 
-   array_insert(b, b->keeps, stg);
+   array_insert(ctx->block, ctx->block->keeps, stg);
 
    stg->barrier_class = IR3_BARRIER_BUFFER_W;
    stg->barrier_conflict = IR3_BARRIER_BUFFER_R | IR3_BARRIER_BUFFER_W;
@@ -477,11 +493,14 @@ emit_intrinsic_store_global_ir3(struct ir3_context *ctx,
 static struct ir3_instruction *
 emit_intrinsic_atomic_global(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
-   struct ir3_block *b = ctx->block;
+   struct ir3_builder *b = &ctx->build;
    struct ir3_instruction *addr, *atomic, *src1;
    struct ir3_instruction *value = ir3_get_src(ctx, &intr->src[1])[0];
    nir_atomic_op op = nir_intrinsic_atomic_op(intr);
    type_t type = nir_atomic_op_type(op) == nir_type_int ? TYPE_S32 : TYPE_U32;
+   if (intr->def.bit_size == 64) {
+      type = TYPE_ATOMIC_U64;
+   }
 
    addr = ir3_collect(b, ir3_get_src(ctx, &intr->src[0])[0],
                       ir3_get_src(ctx, &intr->src[0])[1]);
@@ -489,8 +508,20 @@ emit_intrinsic_atomic_global(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    if (op == nir_atomic_op_cmpxchg) {
       struct ir3_instruction *compare = ir3_get_src(ctx, &intr->src[2])[0];
       src1 = ir3_collect(b, compare, value);
+      if (intr->def.bit_size == 64) {
+         struct ir3_instruction *compare2 = ir3_get_src(ctx, &intr->src[2])[1];
+         struct ir3_instruction *value2 = ir3_get_src(ctx, &intr->src[1])[1];
+         src1 = ir3_collect(b, compare, compare2, value, value2);
+      } else {
+         src1 = ir3_collect(b, compare, value);
+      }
    } else {
-      src1 = value;
+      if (intr->def.bit_size == 64) {
+         struct ir3_instruction *value2 = ir3_get_src(ctx, &intr->src[1])[1];
+         src1 = ir3_collect(b, value, value2);
+      } else {
+         src1 = value;
+      }
    }
 
    switch (op) {
@@ -535,9 +566,10 @@ emit_intrinsic_atomic_global(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    atomic->cat6.type = type;
    atomic->barrier_class = IR3_BARRIER_BUFFER_W;
    atomic->barrier_conflict = IR3_BARRIER_BUFFER_R | IR3_BARRIER_BUFFER_W;
+   atomic->dsts[0]->wrmask = MASK(intr->def.bit_size == 64 ? 2 : 1);
 
    /* even if nothing consume the result, we can't DCE the instruction: */
-   array_insert(b, b->keeps, atomic);
+   array_insert(ctx->block, ctx->block->keeps, atomic);
 
    return atomic;
 }

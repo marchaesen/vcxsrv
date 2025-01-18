@@ -45,7 +45,7 @@ VirtGpuKumquatDevice::VirtGpuKumquatDevice(enum VirtGpuCapset capset, int32_t de
 
     memset(&mCaps, 0, sizeof(struct VirtGpuCaps));
 
-#ifdef __ANDROID__
+#if DETECT_OS_ANDROID
     processName = getprogname();
 #endif
 
@@ -216,7 +216,7 @@ int VirtGpuKumquatDevice::execBuffer(struct VirtGpuExecBuffer& execbuffer,
     exec.size = execbuffer.command_size;
     exec.ring_idx = execbuffer.ring_idx;
     exec.command = (uint64_t)(uintptr_t)(execbuffer.command);
-    exec.fence_fd = -1;
+    exec.fence_handle = -1;
 
     if (blob) {
         blobHandle = blob->getBlobHandle();
@@ -231,7 +231,7 @@ int VirtGpuKumquatDevice::execBuffer(struct VirtGpuExecBuffer& execbuffer,
     }
 
     if (execbuffer.flags & kFenceOut) {
-        execbuffer.handle.osHandle = exec.fence_fd;
+        execbuffer.handle.osHandle = exec.fence_handle;
         execbuffer.handle.type = kFenceHandleSyncFd;
     }
 

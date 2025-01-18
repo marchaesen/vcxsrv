@@ -82,13 +82,13 @@ vdp_imp_device_create_x11(Display *display, int screen, VdpDevice *device,
       goto no_vscreen;
    }
 
-   dev->context = pipe_create_multimedia_context(pscreen);
+   dev->context = pipe_create_multimedia_context(pscreen, false);
    if (!dev->context) {
       ret = VDP_STATUS_RESOURCES;
       goto no_context;
    }
 
-   if (!pscreen->get_param(pscreen, PIPE_CAP_NPOT_TEXTURES)) {
+   if (!pscreen->caps.npot_textures) {
       ret = VDP_STATUS_NO_IMPLEMENTATION;
       goto no_context;
    }
@@ -136,7 +136,7 @@ vdp_imp_device_create_x11(Display *display, int screen, VdpDevice *device,
       goto no_handle;
    }
 
-   if (!vl_compositor_init(&dev->compositor, dev->context)) {
+   if (!vl_compositor_init(&dev->compositor, dev->context, false)) {
        ret = VDP_STATUS_ERROR;
        goto no_compositor;
    }

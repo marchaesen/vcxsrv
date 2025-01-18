@@ -35,7 +35,6 @@
 #include "main/uniforms.h"
 #include "compiler/glsl/ir.h"
 #include "compiler/glsl/glsl_parser_extras.h"
-#include "compiler/glsl/program.h"
 #include "util/bitscan.h"
 
 #include "state_tracker/st_context.h"

@@ -60,6 +60,22 @@ struct exec_info {
    }
 };
 
+struct if_context {
+   Temp cond;
+
+   bool divergent_old;
+   bool had_divergent_discard_old;
+   bool had_divergent_discard_then;
+   bool has_divergent_continue_old;
+   bool has_divergent_continue_then;
+   struct exec_info exec_old;
+
+   unsigned BB_if_idx;
+   unsigned invert_idx;
+   Block BB_invert;
+   Block BB_endif;
+};
+
 struct isel_context {
    const struct aco_compiler_options* options;
    const struct ac_shader_args* args;
@@ -85,6 +101,9 @@ struct isel_context {
       bool had_divergent_discard = false;
 
       struct exec_info exec;
+
+      bool skipping_empty_exec = false;
+      if_context empty_exec_skip;
    } cf_info;
 
    /* NIR range analysis. */
@@ -96,7 +115,7 @@ struct isel_context {
    Temp ttmp8;
 
    /* tessellation information */
-   uint64_t tcs_temp_only_inputs;
+   bool any_tcs_inputs_via_lds = false;
    bool tcs_in_out_eq = false;
 
    /* Fragment color output information */

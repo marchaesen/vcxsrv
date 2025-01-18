@@ -9,7 +9,6 @@
 
 #include "ac_binary.h"
 #include "amd_family.h"
-#include "compiler/nir/nir.h"
 #include "compiler/shader_enums.h"
 #include "util/format/u_format.h"
 
@@ -20,14 +19,19 @@
 extern "C" {
 #endif
 
-#define AC_SENDMSG_GS           2
-#define AC_SENDMSG_GS_DONE      3
-#define AC_SENDMSG_GS_ALLOC_REQ 9
+#define AC_SENDMSG_HS_TESSFACTOR    2
+
+#define AC_SENDMSG_GS               2
+#define AC_SENDMSG_GS_DONE          3
+#define AC_SENDMSG_GS_ALLOC_REQ     9
 
 #define AC_SENDMSG_GS_OP_NOP      (0 << 4)
 #define AC_SENDMSG_GS_OP_CUT      (1 << 4)
 #define AC_SENDMSG_GS_OP_EMIT     (2 << 4)
 #define AC_SENDMSG_GS_OP_EMIT_CUT (3 << 4)
+
+/* Reserve this size at the beginning of LDS for the tf0/1 shader message group vote. */
+#define AC_HS_MSG_VOTE_LDS_BYTES 16
 
 /* An extension of gl_access_qualifier describing other aspects of memory operations
  * for code generation.
@@ -239,13 +243,6 @@ enum ac_descriptor_type
    AC_DESC_PLANE_2,
 };
 
-void ac_set_nir_options(struct radeon_info *info, bool use_llvm,
-                        nir_shader_compiler_options *options);
-
-bool ac_nir_mem_vectorize_callback(unsigned align_mul, unsigned align_offset, unsigned bit_size,
-                                   unsigned num_components, unsigned hole_size,
-                                   nir_intrinsic_instr *low, nir_intrinsic_instr *high, void *data);
-
 unsigned ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil, bool writes_samplemask,
                                     bool writes_mrt0_alpha);
 
@@ -254,8 +251,6 @@ unsigned ac_get_cb_shader_mask(unsigned spi_shader_col_format);
 uint32_t ac_vgt_gs_mode(unsigned gs_max_vert_out, enum amd_gfx_level gfx_level);
 
 unsigned ac_get_tbuffer_format(enum amd_gfx_level gfx_level, unsigned dfmt, unsigned nfmt);
-
-const struct ac_data_format_info *ac_get_data_format_info(unsigned dfmt);
 
 const struct ac_vtx_format_info *ac_get_vtx_format_info_table(enum amd_gfx_level level,
                                                               enum radeon_family family);
@@ -304,9 +299,6 @@ uint32_t ac_compute_num_tess_patches(const struct radeon_info *info, uint32_t nu
                                      uint32_t lds_per_patch, uint32_t wave_size,
                                      bool tess_uses_primid);
 
-uint32_t ac_compute_tess_lds_size(const struct radeon_info *info,
-                                  uint32_t lds_per_patch, uint32_t num_patches);
-
 uint32_t ac_apply_cu_en(uint32_t value, uint32_t clear_mask, unsigned value_shift,
                         const struct radeon_info *info);
 
@@ -329,9 +321,8 @@ ac_ngg_get_scratch_lds_size(gl_shader_stage stage,
                             unsigned workgroup_size,
                             unsigned wave_size,
                             bool streamout_enabled,
-                            bool can_cull);
-
-enum gl_access_qualifier ac_get_mem_access_flags(const nir_intrinsic_instr *instr);
+                            bool can_cull,
+                            bool compact_primitives);
 
 union ac_hw_cache_flags ac_get_hw_cache_flags(enum amd_gfx_level gfx_level,
                                               enum gl_access_qualifier access);

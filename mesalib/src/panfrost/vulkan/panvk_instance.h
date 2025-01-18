@@ -23,6 +23,8 @@ enum panvk_debug_flags {
    PANVK_DEBUG_NO_KNOWN_WARN = 1 << 7,
    PANVK_DEBUG_CS = 1 << 8,
    PANVK_DEBUG_COPY_GFX = 1 << 9,
+   PANVK_DEBUG_FORCE_SIMULTANEOUS = 1 << 10,
+   PANVK_DEBUG_IMPLICIT_OTHERS_INV = 1 << 11,
 };
 
 #if defined(VK_USE_PLATFORM_WAYLAND_KHR) || \

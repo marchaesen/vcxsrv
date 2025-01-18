@@ -148,11 +148,10 @@ dri_st_framebuffer_flush_swapbuffers(struct st_context *st,
 /**
  * This is called when we need to set up GL rendering to a new X window.
  */
-__DRIdrawable *
-dri_create_drawable(__DRIscreen *psp, const __DRIconfig *config,
+struct dri_drawable *
+dri_create_drawable(struct dri_screen *screen, const struct dri_config *config,
                     bool isPixmap, void *loaderPrivate)
 {
-   struct dri_screen *screen = dri_screen(psp);
    const struct gl_config *visual = &config->modes;
    struct dri_drawable *drawable = NULL;
 
@@ -193,7 +192,7 @@ dri_create_drawable(__DRIscreen *psp, const __DRIconfig *config,
       break;
    }
 
-   return opaque_dri_drawable(drawable);
+   return drawable;
 }
 
 static void
@@ -262,12 +261,10 @@ dri_drawable_validate_att(struct dri_context *ctx,
  * These are used for GLX_EXT_texture_from_pixmap
  */
 void
-dri_set_tex_buffer2(__DRIcontext *pDRICtx, GLint target,
-                    GLint format, __DRIdrawable *dPriv)
+dri_set_tex_buffer2(struct dri_context *ctx, GLint target,
+                    GLint format, struct dri_drawable *drawable)
 {
-   struct dri_context *ctx = dri_context(pDRICtx);
    struct st_context *st = ctx->st;
-   struct dri_drawable *drawable = dri_drawable(dPriv);
    struct pipe_resource *pt;
 
    _mesa_glthread_finish(st->ctx);
@@ -474,13 +471,11 @@ notify_before_flush_cb(void* _args)
  * \param throttle_reason   the reason for throttling, 0 = no throttling
  */
 void
-dri_flush(__DRIcontext *cPriv,
-          __DRIdrawable *dPriv,
+dri_flush(struct dri_context *ctx,
+          struct dri_drawable *drawable,
           unsigned flags,
           enum __DRI2throttleReason reason)
 {
-   struct dri_context *ctx = dri_context(cPriv);
-   struct dri_drawable *drawable = dri_drawable(dPriv);
    struct st_context *st;
    unsigned flush_flags;
    struct notify_before_flush_cb_args args = { 0 };
@@ -576,19 +571,19 @@ dri_flush(__DRIcontext *cPriv,
  * DRI2 flush extension.
  */
 void
-dri_flush_drawable(__DRIdrawable *dPriv)
+dri_flush_drawable(struct dri_drawable *dPriv)
 {
    struct dri_context *ctx = dri_get_current();
 
    if (ctx)
-      dri_flush(opaque_dri_context(ctx), dPriv, __DRI2_FLUSH_DRAWABLE, -1);
+      dri_flush(ctx, dPriv, __DRI2_FLUSH_DRAWABLE, -1);
 }
 
 /**
  * dri_throttle - A DRI2ThrottleExtension throttling function.
  */
 void
-dri_throttle(__DRIcontext *cPriv, __DRIdrawable *dPriv,
+dri_throttle(struct dri_context *cPriv, struct dri_drawable *dPriv,
              enum __DRI2throttleReason reason)
 {
    dri_flush(cPriv, dPriv, 0, reason);

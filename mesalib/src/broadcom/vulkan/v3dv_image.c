@@ -461,7 +461,7 @@ v3dv_image_init(struct v3dv_device *device,
                                                      : DRM_FORMAT_MOD_LINEAR;
 
    const struct v3dv_format *format =
-      v3dv_X(device, get_format)(image->vk.format);
+      v3d_X((&device->devinfo), get_format)(image->vk.format);
    v3dv_assert(format != NULL && format->plane_count);
 
    assert(pCreateInfo->samples == VK_SAMPLE_COUNT_1_BIT ||
@@ -818,7 +818,7 @@ create_image_view(struct v3dv_device *device,
    }
 
    iview->vk.view_format = format;
-   iview->format = v3dv_X(device, get_format)(format);
+   iview->format = v3d_X((&device->devinfo), get_format)(format);
    assert(iview->format && iview->format->plane_count);
 
    for (uint8_t plane = 0; plane < iview->plane_count; plane++) {
@@ -829,9 +829,9 @@ create_image_view(struct v3dv_device *device,
 
       if (vk_format_is_depth_or_stencil(iview->vk.view_format)) {
          iview->planes[plane].internal_type =
-            v3dv_X(device, get_internal_depth_type)(iview->vk.view_format);
+            v3d_X((&device->devinfo), get_internal_depth_type)(iview->vk.view_format);
       } else {
-         v3dv_X(device, get_internal_type_bpp_for_output_format)
+         v3d_X((&device->devinfo), get_internal_type_bpp_for_output_format)
             (iview->format->planes[plane].rt_type,
              &iview->planes[plane].internal_type,
              &iview->planes[plane].internal_bpp);
@@ -846,7 +846,7 @@ create_image_view(struct v3dv_device *device,
       iview->planes[plane].channel_reverse = v3dv_format_swizzle_needs_reverse(format_swizzle);
    }
 
-   v3dv_X(device, pack_texture_shader_state)(device, iview);
+   v3d_X((&device->devinfo), pack_texture_shader_state)(device, iview);
 
    *pView = v3dv_image_view_to_handle(iview);
 
@@ -924,11 +924,11 @@ v3dv_CreateBufferView(VkDevice _device,
    view->size = view->offset + range;
    view->num_elements = num_elements;
    view->vk_format = pCreateInfo->format;
-   view->format = v3dv_X(device, get_format)(view->vk_format);
+   view->format = v3d_X((&device->devinfo), get_format)(view->vk_format);
 
    /* We don't support multi-plane formats for buffer views */
    assert(view->format->plane_count == 1);
-   v3dv_X(device, get_internal_type_bpp_for_output_format)
+   v3d_X((&device->devinfo), get_internal_type_bpp_for_output_format)
       (view->format->planes[0].rt_type, &view->internal_type, &view->internal_bpp);
 
    const VkBufferUsageFlags2CreateInfoKHR *flags2 =
@@ -943,7 +943,7 @@ v3dv_CreateBufferView(VkDevice _device,
 
    if (usage & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT ||
        usage & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
-      v3dv_X(device, pack_texture_shader_state_from_buffer_view)(device, view);
+      v3d_X((&device->devinfo), pack_texture_shader_state_from_buffer_view)(device, view);
 
    *pView = v3dv_buffer_view_to_handle(view);
 

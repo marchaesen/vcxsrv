@@ -1101,8 +1101,6 @@ try_update_scene_state(struct lp_setup_context *setup)
                 &setup->fs.current.jit_resources,
                 sizeof setup->fs.current.jit_resources);         
 
-         stored->jit_resources.aniso_filter_table =
-            lp_build_sample_aniso_filter_table();
          stored->variant = setup->fs.current.variant;
 
          if (!lp_scene_add_frag_shader_reference(scene,

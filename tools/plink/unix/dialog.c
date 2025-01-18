@@ -1739,6 +1739,9 @@ static void filefont_clicked(GtkButton *button, gpointer data)
     struct uctrl *uc = dlg_find_bywidget(dp, GTK_WIDGET(button));
 
     if (uc->ctrl->type == CTRL_FILESELECT) {
+        /*
+         * FIXME: do something about uc->ctrl->fileselect.filter
+         */
 #ifdef USE_GTK_FILE_CHOOSER_DIALOG
         GtkWidget *filechoose = gtk_file_chooser_dialog_new(
             uc->ctrl->fileselect.title, GTK_WINDOW(dp->window),
@@ -3345,9 +3348,18 @@ static void dlgparam_destroy(GtkWidget *widget, gpointer data)
             sfree(dp->selparams[i]);
         }
         sfree(dp->selparams);
+        dp->selparams = NULL;
     }
 #endif
-    sfree(dp);
+    /*
+     * Instead of freeing dp right now, defer it until we return to
+     * the GTK main loop. Then if any other last-minute GTK events
+     * happen while the rest of the widgets are being cleaned up, our
+     * handlers will still be able to try to look things up in dp.
+     * (They won't find anything - we've just emptied it - but at
+     * least they won't crash while trying.)
+     */
+    queue_toplevel_callback(sfree, dp);
 }
 
 static void messagebox_handler(dlgcontrol *ctrl, dlgparam *dp,

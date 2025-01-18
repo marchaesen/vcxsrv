@@ -21,4 +21,6 @@ bool radv_spm_init(struct radv_device *device);
 
 void radv_spm_finish(struct radv_device *device);
 
+bool radv_get_spm_trace(struct radv_queue *queue, struct ac_spm_trace *spm_trace);
+
 #endif /* RADV_SPM_H */

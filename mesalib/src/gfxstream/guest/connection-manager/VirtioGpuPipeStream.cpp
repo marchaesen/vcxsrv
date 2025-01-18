@@ -6,9 +6,13 @@
 #include "VirtioGpuPipeStream.h"
 
 #include <errno.h>
+
+#include "util/detect_os.h"
+#if DETECT_OS_LINUX
 #include <sys/mman.h>
-#include <sys/types.h>
 #include <unistd.h>
+#endif
+#include <sys/types.h>
 
 #include <cstring>
 #include <string>

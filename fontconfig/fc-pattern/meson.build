@@ -4,6 +4,6 @@ fcpattern = executable('fc-pattern', ['fc-pattern.c', fcstdint_h, alias_headers,
   link_with: [libfontconfig],
   c_args: c_args,
   install: true,
-)
+  install_tag: 'tools')
 
 tools_man_pages += ['fc-pattern']

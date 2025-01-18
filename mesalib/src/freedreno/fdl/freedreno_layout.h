@@ -14,6 +14,7 @@
 #include "util/u_math.h"
 
 #include "common/freedreno_common.h"
+#include "common/freedreno_dev_info.h"
 
 BEGINC;
 
@@ -100,6 +101,7 @@ struct fdl_layout {
    bool ubwc : 1;
    bool layer_first : 1; /* see above description */
    bool tile_all : 1;
+   bool is_mutable : 1;
 
    /* Note that for tiled textures, beyond a certain mipmap level (ie.
     * when width is less than block size) things switch to linear.  In
@@ -223,7 +225,7 @@ fdl_tile_mode(const struct fdl_layout *layout, int level)
 static inline bool
 fdl_ubwc_enabled(const struct fdl_layout *layout, int level)
 {
-   return layout->ubwc;
+   return layout->ubwc && !fdl_level_linear(layout, level);
 }
 
 const char *fdl_tile_mode_desc(const struct fdl_layout *layout, int level);
@@ -235,10 +237,11 @@ void fdl5_layout(struct fdl_layout *layout, enum pipe_format format,
                  uint32_t depth0, uint32_t mip_levels, uint32_t array_size,
                  bool is_3d);
 
-bool fdl6_layout(struct fdl_layout *layout, enum pipe_format format,
-                 uint32_t nr_samples, uint32_t width0, uint32_t height0,
-                 uint32_t depth0, uint32_t mip_levels, uint32_t array_size,
-                 bool is_3d, struct fdl_explicit_layout *plane_layout);
+bool fdl6_layout(struct fdl_layout *layout, const struct fd_dev_info *info,
+                 enum pipe_format format, uint32_t nr_samples, uint32_t width0,
+                 uint32_t height0, uint32_t depth0, uint32_t mip_levels,
+                 uint32_t array_size, bool is_3d, bool is_mutable,
+                 struct fdl_explicit_layout *plane_layout);
 
 static inline void
 fdl_set_pitchalign(struct fdl_layout *layout, unsigned pitchalign)
@@ -278,7 +281,6 @@ struct fdl_view_args {
    enum pipe_format format;
    enum fdl_view_type type;
    enum fdl_chroma_location chroma_offsets[2];
-   bool ubwc_fc_mutable;
 };
 
 #define FDL6_TEX_CONST_DWORDS 16

@@ -24,3 +24,15 @@ spec@!opengl 1.1@ppgtt_memory_alignment
 spec@egl 1.4@eglcreatepbuffersurface with egl_samples set
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
 
+# With linux kernel 6.13-rc4 uprev
+spec@!opengl 1.4@gl-1.4-rgba-mipmap-texture-with-rgb-visual
+spec@arb_gpu_shader5@texturegatheroffset@fs-rgb-2-int-2drect-const
+spec@arb_shader_image_load_store@coherency
+spec@arb_shader_image_load_store@coherency@Tessellation control-Tessellation evaluation shader/'coherent' qualifier coherency test/256x256
+spec@arb_shader_image_load_store@shader-mem-barrier
+spec@arb_shader_image_load_store@shader-mem-barrier@Geometry shader/'coherent' qualifier memory barrier test/modulus=64
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec2-index-wr
+spec@arb_texture_gather@texturegather@fs-rg-green-int-2darray
+spec@arm_shader_framebuffer_fetch_depth_stencil@arm_shader_framebuffer_fetch_depth_stencil gl_depth_component32f 16
+spec@ext_framebuffer_multisample@accuracy 32 depth_draw small depthstencil
+spec@ext_gpu_shader4@tex-miplevel-selection gpu4textureprojgrad 2dshadow

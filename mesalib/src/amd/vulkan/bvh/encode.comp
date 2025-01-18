@@ -36,31 +36,66 @@ void set_parent(uint32_t child, uint32_t parent)
 void
 main()
 {
-   /* Revert the order so we start at the root */
-   uint32_t global_id = DEREF(args.header).ir_internal_node_count - 1 - gl_GlobalInvocationID.x;
+   /* Encode leaf nodes. */
+   uint32_t dst_leaf_offset =
+      id_to_offset(RADV_BVH_ROOT_NODE) + SIZEOF(radv_bvh_box32_node);
 
+   uint32_t ir_leaf_node_size;
    uint32_t output_leaf_node_size;
    switch (args.geometry_type) {
-   case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
+   case VK_GEOMETRY_TYPE_TRIANGLES_KHR: {
+      ir_leaf_node_size = SIZEOF(vk_ir_triangle_node);
       output_leaf_node_size = SIZEOF(radv_bvh_triangle_node);
+
+      vk_ir_triangle_node src_node =
+         DEREF(REF(vk_ir_triangle_node)(OFFSET(args.intermediate_bvh, gl_GlobalInvocationID.x * ir_leaf_node_size)));
+      REF(radv_bvh_triangle_node) dst_node =
+         REF(radv_bvh_triangle_node)(OFFSET(args.output_bvh, dst_leaf_offset + gl_GlobalInvocationID.x * output_leaf_node_size));
+
+      DEREF(dst_node).coords = src_node.coords;
+      DEREF(dst_node).triangle_id = src_node.triangle_id;
+      DEREF(dst_node).geometry_id_and_flags = src_node.geometry_id_and_flags;
+      DEREF(dst_node).id = 9;
+
       break;
-   case VK_GEOMETRY_TYPE_AABBS_KHR:
+   }
+   case VK_GEOMETRY_TYPE_AABBS_KHR: {
+      ir_leaf_node_size = SIZEOF(vk_ir_aabb_node);
       output_leaf_node_size = SIZEOF(radv_bvh_aabb_node);
+
+      vk_ir_aabb_node src_node =
+         DEREF(REF(vk_ir_aabb_node)(OFFSET(args.intermediate_bvh, gl_GlobalInvocationID.x * ir_leaf_node_size)));
+      REF(radv_bvh_aabb_node) dst_node =
+         REF(radv_bvh_aabb_node)(OFFSET(args.output_bvh, dst_leaf_offset + gl_GlobalInvocationID.x * output_leaf_node_size));
+
+      DEREF(dst_node).primitive_id = src_node.primitive_id;
+      DEREF(dst_node).geometry_id_and_flags = src_node.geometry_id_and_flags;
+
       break;
-   default: /* instances */
+   }
+   default:
+      /* instances */
+      ir_leaf_node_size = SIZEOF(vk_ir_instance_node);
       output_leaf_node_size = SIZEOF(radv_bvh_instance_node);
+      /* Instance nodes have to be emitted inside the loop since encoding them
+       * loads an address from the IR node which is uninitialized for inactive nodes.
+       */
       break;
    }
 
-   uint32_t intermediate_leaf_nodes_size = args.leaf_node_count * SIZEOF(radv_ir_node);
-   uint32_t dst_leaf_offset =
-      id_to_offset(RADV_BVH_ROOT_NODE) + SIZEOF(radv_bvh_box32_node);
+   if (gl_GlobalInvocationID.x >= DEREF(args.header).ir_internal_node_count)
+      return;
+
+   /* Encode internal nodes. Revert the order so we start at the root */
+   uint32_t global_id = DEREF(args.header).ir_internal_node_count - 1 - gl_GlobalInvocationID.x;
+
+   uint32_t intermediate_leaf_nodes_size = args.leaf_node_count * ir_leaf_node_size;
    uint32_t dst_internal_offset = dst_leaf_offset + args.leaf_node_count * output_leaf_node_size;
 
-   REF(radv_ir_box_node) intermediate_internal_nodes =
-      REF(radv_ir_box_node)OFFSET(args.intermediate_bvh, intermediate_leaf_nodes_size);
-   REF(radv_ir_box_node) src_node = INDEX(radv_ir_box_node, intermediate_internal_nodes, global_id);
-   radv_ir_box_node src = DEREF(src_node);
+   REF(vk_ir_box_node) intermediate_internal_nodes =
+      REF(vk_ir_box_node)OFFSET(args.intermediate_bvh, intermediate_leaf_nodes_size);
+   REF(vk_ir_box_node) src_node = INDEX(vk_ir_box_node, intermediate_internal_nodes, global_id);
+   vk_ir_box_node src = DEREF(src_node);
 
    bool is_root_node = global_id == DEREF(args.header).ir_internal_node_count - 1;
 
@@ -70,10 +105,10 @@ main()
                     gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
 
       uint32_t bvh_offset = is_root_node ? id_to_offset(RADV_BVH_ROOT_NODE) : DEREF(src_node).bvh_offset;
-      if (bvh_offset == RADV_UNKNOWN_BVH_OFFSET)
+      if (bvh_offset == VK_UNKNOWN_BVH_OFFSET)
          continue;
 
-      if (bvh_offset == RADV_NULL_BVH_OFFSET)
+      if (bvh_offset == VK_NULL_BVH_OFFSET)
          break;
 
       REF(radv_bvh_box32_node) dst_node = REF(radv_bvh_box32_node)(OFFSET(args.output_bvh, bvh_offset));
@@ -92,11 +127,11 @@ main()
          float largest_surface_area = -INFINITY;
 
          for (int32_t i = 0; i < found_child_count; ++i) {
-            if (ir_id_to_type(children[i]) != radv_ir_node_internal)
+            if (ir_id_to_type(children[i]) != vk_ir_node_internal)
                continue;
 
-            radv_aabb bounds =
-               DEREF(REF(radv_ir_node)OFFSET(args.intermediate_bvh,
+            vk_aabb bounds =
+               DEREF(REF(vk_ir_node)OFFSET(args.intermediate_bvh,
                                              ir_id_to_offset(children[i]))).aabb;
 
             float surface_area = aabb_surface_area(bounds);
@@ -107,8 +142,8 @@ main()
          }
 
          if (collapsed_child_index != -1) {
-            REF(radv_ir_box_node) child_node =
-               REF(radv_ir_box_node)OFFSET(args.intermediate_bvh,
+            REF(vk_ir_box_node) child_node =
+               REF(vk_ir_box_node)OFFSET(args.intermediate_bvh,
                                         ir_id_to_offset(children[collapsed_child_index]));
             uint32_t grandchildren[2] = DEREF(child_node).children;
             uint32_t valid_grandchild_count = 0;
@@ -131,7 +166,7 @@ main()
                children[collapsed_child_index] = children[found_child_count];
             }
 
-            DEREF(child_node).bvh_offset = RADV_NULL_BVH_OFFSET;
+            DEREF(child_node).bvh_offset = VK_NULL_BVH_OFFSET;
          } else
             break;
       }
@@ -141,24 +176,46 @@ main()
          uint32_t offset = ir_id_to_offset(children[i]);
          uint32_t dst_offset;
 
-         if (type == radv_ir_node_internal) {
+         if (type == vk_ir_node_internal) {
 #if COMPACT
             dst_offset = atomicAdd(DEREF(args.header).dst_node_offset, SIZEOF(radv_bvh_box32_node));
 #else
             uint32_t offset_in_internal_nodes = offset - intermediate_leaf_nodes_size;
-            uint32_t child_index = offset_in_internal_nodes / SIZEOF(radv_ir_box_node);
+            uint32_t child_index = offset_in_internal_nodes / SIZEOF(vk_ir_box_node);
             dst_offset = dst_internal_offset + child_index * SIZEOF(radv_bvh_box32_node);
 #endif
 
-            REF(radv_ir_box_node) child_node = REF(radv_ir_box_node)OFFSET(args.intermediate_bvh, offset);
+            REF(vk_ir_box_node) child_node = REF(vk_ir_box_node)OFFSET(args.intermediate_bvh, offset);
             DEREF(child_node).bvh_offset = dst_offset;
          } else {
-            uint32_t child_index = offset / SIZEOF(radv_ir_node);
+            uint32_t child_index = offset / ir_leaf_node_size;
             dst_offset = dst_leaf_offset + child_index * output_leaf_node_size;
+
+            if (type == vk_ir_node_instance) {
+               vk_ir_instance_node src_node =
+                  DEREF(REF(vk_ir_instance_node)(OFFSET(args.intermediate_bvh, offset)));
+               REF(radv_bvh_instance_node) dst_node =
+                  REF(radv_bvh_instance_node)(OFFSET(args.output_bvh, dst_offset));
+
+               radv_accel_struct_header blas_header =
+                  DEREF(REF(radv_accel_struct_header)(src_node.base_ptr));
+
+               DEREF(dst_node).bvh_ptr = addr_to_node(src_node.base_ptr + blas_header.bvh_offset);
+               DEREF(dst_node).bvh_offset = blas_header.bvh_offset;
+
+               mat4 transform = mat4(src_node.otw_matrix);
+               mat4 inv_transform = transpose(inverse(transpose(transform)));
+               DEREF(dst_node).wto_matrix = mat3x4(inv_transform);
+               DEREF(dst_node).otw_matrix = mat3x4(transform);
+
+               DEREF(dst_node).custom_instance_and_mask = src_node.custom_instance_and_mask;
+               DEREF(dst_node).sbt_offset_and_flags = encode_sbt_offset_and_flags(src_node.sbt_offset_and_flags);
+               DEREF(dst_node).instance_id = src_node.instance_id;
+            }
          }
 
-         radv_aabb child_aabb =
-            DEREF(REF(radv_ir_node)OFFSET(args.intermediate_bvh, offset)).aabb;
+         vk_aabb child_aabb =
+            DEREF(REF(vk_ir_node)OFFSET(args.intermediate_bvh, offset)).aabb;
 
          DEREF(dst_node).coords[i] = child_aabb;
 

@@ -6,6 +6,8 @@
 
 set -uex
 
+uncollapsed_section_start va-tools "Building va-tools"
+
 git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
 
@@ -23,3 +25,5 @@ meson setup build -D tests=true -Dprefix=/va ${EXTRA_MESON_ARGS:-}
 meson install -C build
 popd
 rm -rf /va-utils
+
+section_end va-tools

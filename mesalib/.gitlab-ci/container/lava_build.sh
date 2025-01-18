@@ -8,6 +8,9 @@
 # KERNEL_ROOTFS_TAG
 
 set -e
+
+. .gitlab-ci/setup-test-env.sh
+
 set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
@@ -37,7 +40,6 @@ if [[ "$DEBIAN_ARCH" = "arm64" ]]; then
     BUILD_VK="ON"
     GCC_ARCH="aarch64-linux-gnu"
     KERNEL_ARCH="arm64"
-    SKQP_ARCH="arm64"
     DEFCONFIG="arch/arm64/configs/defconfig"
     DEVICE_TREES="rk3399-gru-kevin.dtb"
     DEVICE_TREES+=" meson-g12b-a311d-khadas-vim3.dtb"
@@ -48,7 +50,7 @@ if [[ "$DEBIAN_ARCH" = "arm64" ]]; then
     DEVICE_TREES+=" mt8192-asurada-spherion-r0.dtb"
     DEVICE_TREES+=" mt8183-kukui-jacuzzi-juniper-sku16.dtb"
     DEVICE_TREES+=" tegra210-p3450-0000.dtb"
-    DEVICE_TREES+=" apq8016-sbc.dtb"
+    DEVICE_TREES+=" apq8016-sbc-usb-host.dtb"
     DEVICE_TREES+=" apq8096-db820c.dtb"
     DEVICE_TREES+=" sc7180-trogdor-lazor-limozeen-nots-r5.dtb"
     DEVICE_TREES+=" sc7180-trogdor-kingoftown.dtb"
@@ -60,7 +62,6 @@ elif [[ "$DEBIAN_ARCH" = "armhf" ]]; then
     BUILD_VK="OFF"
     GCC_ARCH="arm-linux-gnueabihf"
     KERNEL_ARCH="arm"
-    SKQP_ARCH="arm"
     DEFCONFIG="arch/arm/configs/multi_v7_defconfig"
     DEVICE_TREES="rk3288-veyron-jaq.dtb"
     DEVICE_TREES+=" sun8i-h3-libretech-all-h3-cc.dtb"
@@ -86,7 +87,6 @@ else
     BUILD_VK="ON"
     GCC_ARCH="x86_64-linux-gnu"
     KERNEL_ARCH="x86_64"
-    SKQP_ARCH="x64"
     DEFCONFIG="arch/x86/configs/x86_64_defconfig"
     DEVICE_TREES=""
     KERNEL_IMAGE_NAME="bzImage"
@@ -114,6 +114,7 @@ fi
 
 # no need to remove these at end, image isn't saved at the end
 CONTAINER_EPHEMERAL=(
+    arch-test
     automake
     bc
     "clang-${LLVM_VERSION}"
@@ -183,6 +184,7 @@ PKG_CI=(
   bash ca-certificates curl
   initramfs-tools jq netcat-openbsd dropbear openssh-server
   libasan8
+  libubsan1
   git
   python3-dev python3-pip python3-setuptools python3-wheel
   weston # Wayland
@@ -292,6 +294,11 @@ mv /usr/local/bin/*-runner $ROOTFS/usr/bin/.
 
 
 ############### Build dEQP
+
+DEQP_API=tools \
+DEQP_TARGET=default \
+. .gitlab-ci/container/build-deqp.sh
+
 DEQP_API=GL \
 DEQP_TARGET=surfaceless \
 . .gitlab-ci/container/build-deqp.sh
@@ -300,11 +307,19 @@ DEQP_API=GLES \
 DEQP_TARGET=surfaceless \
 . .gitlab-ci/container/build-deqp.sh
 
-[ "$BUILD_VK" == "ON" ] && DEQP_API=VK \
-DEQP_TARGET=default \
-. .gitlab-ci/container/build-deqp.sh
+if [ "$BUILD_VK" == "ON" ]; then
+  DEQP_API=VK \
+  DEQP_TARGET=default \
+  . .gitlab-ci/container/build-deqp.sh
 
-mv /deqp $ROOTFS/.
+  DEQP_API=VK-main \
+  DEQP_TARGET=default \
+  . .gitlab-ci/container/build-deqp.sh
+fi
+
+rm -rf /VK-GL-CTS
+
+mv /deqp-* $ROOTFS/.
 
 
 ############### Build SKQP
@@ -348,10 +363,8 @@ if [[ ${DEBIAN_ARCH} = "amd64" ]]; then
 fi
 
 ############### Build ci-kdl
-section_start kdl "Prepare a venv for kdl"
 . .gitlab-ci/container/build-kdl.sh
 mv /ci-kdl $ROOTFS/
-section_end kdl
 
 ############### Build local stuff for use by igt and kernel testing, which
 ############### will reuse most of our container build process from a specific
@@ -374,12 +387,14 @@ if [ "$DEBIAN_ARCH" = "amd64" ]; then
 fi
 
 ############### Fill rootfs
+cp .gitlab-ci/setup-test-env.sh $ROOTFS/.
 cp .gitlab-ci/container/setup-rootfs.sh $ROOTFS/.
 cp .gitlab-ci/container/strip-rootfs.sh $ROOTFS/.
 cp .gitlab-ci/container/debian/llvm-snapshot.gpg.key $ROOTFS/.
 cp .gitlab-ci/container/debian/winehq.gpg.key $ROOTFS/.
 chroot $ROOTFS bash /setup-rootfs.sh
 rm $ROOTFS/{llvm-snapshot,winehq}.gpg.key
+rm "$ROOTFS/setup-test-env.sh"
 rm "$ROOTFS/setup-rootfs.sh"
 rm "$ROOTFS/strip-rootfs.sh"
 cp /etc/wgetrc $ROOTFS/etc/.

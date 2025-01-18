@@ -2,6 +2,8 @@
 // Num Lock, Group, or Shift Lock state.
 
 default partial xkb_compatibility "num_lock" {
+    virtual_modifiers  NumLock;
+
     indicator "Num Lock" {
 	!allowExplicit;
 	whichModState= Locked;

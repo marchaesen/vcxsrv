@@ -3,14 +3,15 @@
   extends: .container+build-rules
   # Cancel job if a newer commit is pushed to the same branch
   interruptible: true
-  # Build jobs don't take more than 1-3 minutes. 5-8 min max on a fresh runner
-  # without a populated ccache.
-  # These jobs are never slow, either they finish within reasonable time or
-  # something has gone wrong and the job will never terminate, so we should
-  # instead timeout so that the retry mechanism can kick in.
-  # A few exception are made, see `timeout:` overrides in the rest of this
-  # file.
-  timeout: 30m
+  variables:
+    # Build jobs don't take more than 1-3 minutes. 5-8 min max on a fresh runner
+    # without a populated ccache.
+    # These jobs are never slow, either they finish within reasonable time or
+    # something has gone wrong and the job will never terminate, so we should
+    # instead timeout so that the retry mechanism can kick in.
+    # A few exception are made, see overrides in the rest of this file.
+    BUILD_JOB_TIMEOUT: 15m
+  timeout: 1h
   # We don't want to download any previous job's artifacts
   dependencies: []
   artifacts:
@@ -60,7 +61,7 @@
   variables:
     LLVM_VERSION: 15
   script:
-    - .gitlab-ci/meson/build.sh
+    - &meson-build timeout --verbose ${BUILD_JOB_TIMEOUT_OVERRIDE:-$BUILD_JOB_TIMEOUT} .gitlab-ci/meson/build.sh
 
 
 # Make sure this list stays the same as all the jobs with
@@ -85,7 +86,7 @@
   # no need to wait on the "first one" to be done.
   # - job: windows-msvc
   #   optional: true
-  - job: python-test
+  - job: python-artifacts
     optional: true
 
 
@@ -95,6 +96,7 @@ debian-testing:
     - .ci-deqp-artifacts
   stage: build-for-tests
   variables:
+    BUILD_JOB_TIMEOUT: 30m
     UNWIND: "enabled"
     DRI_LOADERS: >
       -D glx=dri
@@ -117,7 +119,7 @@ debian-testing:
     S3_ARTIFACT_NAME: mesa-x86_64-default-${BUILDTYPE}
     LLVM_VERSION: 15
   script:
-    - .gitlab-ci/meson/build.sh
+    - *meson-build
     - .gitlab-ci/prepare-artifacts.sh
   artifacts:
     reports:
@@ -128,6 +130,7 @@ debian-testing-asan:
     - debian-testing
   stage: build-for-tests
   variables:
+    BUILD_JOB_TIMEOUT: 30m
     C_ARGS: >
       -Wno-error=stringop-truncation
     EXTRA_OPTION: >
@@ -158,6 +161,7 @@ debian-testing-msan:
     - debian-clang
   # `needs:` inherited from debian-clang
   variables:
+    BUILD_JOB_TIMEOUT: 30m
     # l_undef is incompatible with msan
     EXTRA_OPTION:
       -D b_sanitize=memory
@@ -173,6 +177,34 @@ debian-testing-msan:
     VULKAN_DRIVERS: intel,amd,broadcom,virtio
     # Do a host build for intel-clc (msan complains about
     # uninitialized values in the LLVM libs)
+    HOST_BUILD_OPTIONS: >
+      -D build-tests=false
+      -D enable-glcpp-tests=false
+      -D gallium-opencl=disabled
+      -D gallium-drivers=
+      -D vulkan-drivers=
+      -D video-codecs=
+      -D glx=disabled
+      -D platforms=
+      -D intel-clc=enabled
+      -D install-intel-clc=true
+
+debian-testing-ubsan:
+  extends:
+    - debian-testing
+  stage: build-for-tests
+  timeout: 40m
+  variables:
+    C_ARGS: >
+      -Wno-error=stringop-overflow
+      -Wno-error=stringop-truncation
+    CPP_ARGS: >
+      -Wno-error=array-bounds
+    EXTRA_OPTION: >
+      -D b_sanitize=undefined
+      -D intel-clc=system
+    S3_ARTIFACT_NAME: ""
+    ARTIFACTS_DEBUG_SYMBOLS: 1
     HOST_BUILD_OPTIONS: >
       -D build-tests=false
       -D enable-glcpp-tests=false
@@ -212,16 +244,16 @@ debian-build-testing:
       -D tools=drm-shim,etnaviv,freedreno,glsl,intel,intel-ui,nir,nouveau,lima,panfrost,asahi
     LLVM_VERSION: 15
     S3_ARTIFACT_NAME: debian-build-testing
-  script: |
-    .gitlab-ci/meson/build.sh
-    .gitlab-ci/prepare-artifacts.sh
-  timeout: 15m
+  script:
+    - *meson-build
+    - .gitlab-ci/prepare-artifacts.sh
 
 shader-db:
   stage: code-validation
   extends:
     - .use-debian/x86_64_build
   rules:
+    - !reference [.never-post-merge-rules, rules]
     - !reference [.core-rules, rules]
     # Keep this list in sync with the drivers tested in run-shader-db.sh
     - !reference [.freedreno-common-rules, rules]
@@ -285,7 +317,7 @@ debian-release:
     BUILDTYPE: "release"
     S3_ARTIFACT_NAME: "mesa-x86_64-default-${BUILDTYPE}"
   script:
-    - .gitlab-ci/meson/build.sh
+    - *meson-build
     - 'if [ -n "$MESA_CI_PERFORMANCE_ENABLED" ]; then .gitlab-ci/prepare-artifacts.sh; fi'
 
 alpine-build-testing:
@@ -296,6 +328,7 @@ alpine-build-testing:
     - !reference [.use-alpine/x86_64_build, needs]
     - !reference [.build-for-tests-jobs]
   variables:
+    BUILD_JOB_TIMEOUT: 30m
     BUILDTYPE: "release"
     C_ARGS: >
       -Wno-error=cpp
@@ -334,18 +367,17 @@ fedora-release:
     - !reference [.build-for-tests-jobs]
   variables:
     BUILDTYPE: "release"
+    # array-bounds are pure non-LTO gcc buggy warning
+    # maybe-uninitialized is misfiring in nir_lower_gs_intrinsics.c, and
+    # a "maybe" warning should never be an error anyway.
     C_ARGS: >
       -Wno-error=stringop-overflow
       -Wno-error=stringop-overread
+      -Wno-error=array-bounds
+      -Wno-error=maybe-uninitialized
     CPP_ARGS: >
       -Wno-error=dangling-reference
       -Wno-error=overloaded-virtual
-    C_LINK_ARGS: >
-      -Wno-error=stringop-overflow
-      -Wno-error=stringop-overread
-    CPP_LINK_ARGS: >
-      -Wno-error=stringop-overflow
-      -Wno-error=stringop-overread
     DRI_LOADERS: >
       -D glx=dri
       -D gbm=enabled
@@ -354,7 +386,6 @@ fedora-release:
       -D platforms=x11,wayland
     EXTRA_OPTION: >
       -D osmesa=true
-      -D selinux=true
       -D tools=drm-shim,etnaviv,freedreno,glsl,intel,nir,nouveau,lima,panfrost,imagination
       -D vulkan-layers=device-select,overlay
       -D intel-rt=enabled
@@ -405,10 +436,11 @@ debian-android:
       -D egl=enabled
       -D glvnd=disabled
       -D platforms=android
+    FORCE_FALLBACK_FOR: llvm
     EXTRA_OPTION: >
       -D android-stub=true
-      -D llvm=disabled
       -D platform-sdk-version=33
+      -D cpp_rtti=false
       -D valgrind=disabled
       -D android-libbacktrace=disabled
       -D intel-clc=system
@@ -434,13 +466,20 @@ debian-android:
     ARTIFACTS_DEBUG_SYMBOLS: 1
     S3_ARTIFACT_NAME: mesa-x86_64-android-${BUILDTYPE}
   script:
-    - CROSS=aarch64-linux-android GALLIUM_DRIVERS=etnaviv,freedreno,lima,panfrost,vc4,v3d VULKAN_DRIVERS=freedreno,broadcom,virtio .gitlab-ci/meson/build.sh
+    - export CROSS=aarch64-linux-android
+    - export GALLIUM_DRIVERS=etnaviv,freedreno,lima,panfrost,vc4,v3d
+    - export VULKAN_DRIVERS=freedreno,broadcom,virtio
+    - *meson-build
     # x86_64 build:
     # Can't do Intel because gen_decoder.c currently requires libexpat, which
     # is not a dependency that AOSP wants to accept.  Can't do Radeon Gallium
     # drivers because they requires LLVM, which we don't have an Android build
     # of.
-    - CROSS=x86_64-linux-android GALLIUM_DRIVERS=iris,virgl VULKAN_DRIVERS=amd,intel .gitlab-ci/meson/build.sh
+    - export CROSS=x86_64-linux-android
+    - export GALLIUM_DRIVERS=iris,virgl,zink,softpipe,llvmpipe,swrast
+    - export VULKAN_DRIVERS=virtio,swrast
+    - .gitlab-ci/create-llvm-meson-wrap-file.sh
+    - *meson-build
     - .gitlab-ci/prepare-artifacts.sh
 
 .meson-cross:
@@ -493,7 +532,7 @@ debian-arm32:
     # tempfiles in our artifacts.
     ARTIFACTS_DEBUG_SYMBOLS: 1
   script:
-    - .gitlab-ci/meson/build.sh
+    - *meson-build
     - .gitlab-ci/prepare-artifacts.sh
 
 debian-arm32-asan:
@@ -534,7 +573,7 @@ debian-arm64:
       -D gallium-rusticl=true
     S3_ARTIFACT_NAME: mesa-arm64-default-${BUILDTYPE}
   script:
-    - .gitlab-ci/meson/build.sh
+    - *meson-build
     - .gitlab-ci/prepare-artifacts.sh
 
 debian-arm64-asan:
@@ -550,6 +589,26 @@ debian-arm64-asan:
       -D tools=dlclose-skip
     ARTIFACTS_DEBUG_SYMBOLS: 1
     S3_ARTIFACT_NAME: mesa-arm64-asan-${BUILDTYPE}
+    MESON_TEST_ARGS: "--no-suite mesa:compiler"
+
+debian-arm64-ubsan:
+  extends:
+    - debian-arm64
+  stage: build-for-tests
+  variables:
+    C_ARGS: >
+      -Wno-error=array-bounds
+      -Wno-error=stringop-overflow
+      -Wno-error=stringop-truncation
+    CPP_ARGS: >
+      -Wno-error=array-bounds
+      -fno-var-tracking-assignments
+    DRI_LOADERS:
+      -D glvnd=disabled
+    EXTRA_OPTION: >
+      -D b_sanitize=undefined
+    ARTIFACTS_DEBUG_SYMBOLS: 1
+    S3_ARTIFACT_NAME: mesa-arm64-ubsan-${BUILDTYPE}
     MESON_TEST_ARGS: "--no-suite mesa:compiler"
 
 debian-arm64-build-test:
@@ -581,7 +640,7 @@ debian-arm64-release:
       -Wno-error=stringop-truncation
       -Wno-error=stringop-overread
   script:
-    - .gitlab-ci/meson/build.sh
+    - *meson-build
     - 'if [ -n "$MESA_CI_PERFORMANCE_ENABLED" ]; then .gitlab-ci/prepare-artifacts.sh; fi'
 
 debian-no-libdrm:
@@ -642,7 +701,6 @@ debian-clang:
       -D llvm=enabled
       -D microsoft-clc=disabled
       -D shared-llvm=enabled
-      -D opencl-spirv=true
       -D shared-glapi=enabled
     GALLIUM_DRIVERS: "iris,nouveau,r300,r600,freedreno,llvmpipe,softpipe,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12,crocus,i915,asahi"
     VULKAN_DRIVERS: intel,amd,freedreno,broadcom,virtio,swrast,panfrost,imagination-experimental,microsoft-experimental,nouveau
@@ -664,6 +722,7 @@ debian-clang-release:
   extends: debian-clang
   # `needs:` inherited from debian-clang
   variables:
+    BUILD_JOB_TIMEOUT: 30m
     BUILDTYPE: "release"
     DRI_LOADERS: >
       -D glx=xlib
@@ -679,7 +738,6 @@ debian-clang-release:
       -D llvm=enabled
       -D microsoft-clc=disabled
       -D shared-llvm=enabled
-      -D opencl-spirv=true
       -D shared-glapi=disabled
 
 windows-msvc:
@@ -701,6 +759,7 @@ debian-vulkan:
     - !reference [.meson-build, needs]
     - !reference [.build-for-tests-jobs]
   variables:
+    BUILD_JOB_TIMEOUT: 30m
     BUILDTYPE: debug
     LLVM_VERSION: 15
     UNWIND: "disabled"
@@ -741,8 +800,8 @@ debian-x86_32:
   variables:
     BUILDTYPE: debug
     CROSS: i386
-    VULKAN_DRIVERS: intel,amd,swrast,virtio
-    GALLIUM_DRIVERS: "iris,nouveau,r300,r600,radeonsi,llvmpipe,softpipe,virgl,zink,crocus,d3d12"
+    VULKAN_DRIVERS: intel,amd,swrast,virtio,panfrost
+    GALLIUM_DRIVERS: "iris,nouveau,r300,r600,radeonsi,llvmpipe,softpipe,virgl,zink,crocus,d3d12,panfrost"
     LLVM_VERSION: 15
     DRI_LOADERS:
       -D glvnd=disabled
@@ -797,17 +856,18 @@ debian-ppc64el:
     DRI_LOADERS:
       -D glvnd=disabled
 
-# This job tests our Python scripts, and also emits our scripts into
-# artifacts, so they can be reused for job submission to hardware devices.
-python-test:
+# This job emits our scripts into artifacts so they can be reused for
+# job submission to hardware devices.
+python-artifacts:
   stage: build-for-tests
   extends:
     - .use-debian/x86_64_pyutils
     - .build-common
   variables:
     GIT_STRATEGY: fetch
-    S3_ARTIFACT_NAME: mesa-python-test
+    S3_ARTIFACT_NAME: mesa-python-ci-artifacts
   timeout: 10m
   script:
-    - .gitlab-ci/run-pytest.sh
     - .gitlab-ci/prepare-artifacts-python.sh
+  tags:
+    - placeholder-job

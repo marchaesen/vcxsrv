@@ -103,7 +103,7 @@ _libmesaclc = static_library(
   c_args : _libmesaclc_c_args,
   cpp_args : [_libmesaclc_cpp_args, _libmesaclc_c_args],
   dependencies: [idep_nir, dep_clang, dep_llvm, dep_llvmspirvlib,
-                 idep_mesautil, dep_spirv_tools, idep_vtn]
+                 idep_mesautil, dep_spirv_tools, idep_vtn, dep_version]
 )
 
 _idep_mesaclc_link_args = []
@@ -116,3 +116,21 @@ idep_mesaclc = declare_dependency(
   include_directories : include_directories('.'),
   link_args : _idep_mesaclc_link_args,
 )
+
+if get_option('mesa-clc') == 'system'
+  prog_mesa_clc = find_program('mesa_clc', native : true)
+else
+  prog_mesa_clc = executable(
+    'mesa_clc',
+    ['mesa_clc.c'],
+    include_directories : [inc_include, inc_src],
+    c_args : [pre_args, no_override_init_args],
+    link_args : [ld_args_build_id],
+    dependencies : [idep_mesaclc, dep_llvm, dep_spirv_tools, idep_getopt],
+    # If we can run host binaries directly, just build mesa_clc for the host.
+    # Most commonly this happens when doing a cross compile from an x86_64 build
+    # machine to an x86 host
+    native : not meson.can_run_host_binaries(),
+    install : get_option('install-mesa-clc'),
+  )
+endif

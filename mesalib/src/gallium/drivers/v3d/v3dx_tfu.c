@@ -197,6 +197,10 @@ v3dX(tfu)(struct pipe_context *pctx,
                 fprintf(stderr, "Failed to submit TFU job: %d\n", ret);
                 return false;
         }
+        if (V3D_DBG(SYNC)) {
+                drmSyncobjWait(v3d->fd, &v3d->out_sync, 1, INT64_MAX,
+                               DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL, NULL);
+        }
 
         dst->writes++;
 

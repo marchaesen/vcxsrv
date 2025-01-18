@@ -67,7 +67,7 @@ util_lower_uint64_vertex_elements(const struct pipe_vertex_element **velems,
 
 /* Helper function to determine if the varying should contain the point
  * coordinates, given the sprite_coord_enable mask.  Requires
- * PIPE_CAP_TGSI_TEXCOORD to be enabled.
+ * pipe_caps.tgsi_texcoord to be enabled.
  */
 static inline bool
 util_varying_is_point_coord(gl_varying_slot slot, uint32_t sprite_coord_enable)

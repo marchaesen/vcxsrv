@@ -54,6 +54,7 @@ struct vdrm_device {
    const struct vdrm_device_funcs *funcs;
 
    struct virgl_renderer_capset_drm caps;
+   bool supports_cross_device;
    struct vdrm_shmem *shmem;
    uint8_t *rsp_mem;
    uint32_t rsp_mem_len;

@@ -47,7 +47,9 @@ FD_DEFINE_CAST(fd_acc_query_sample, fd5_query_sample);
 
 static void
 occlusion_resume(struct fd_acc_query *aq, struct fd_batch *batch)
+   assert_dt
 {
+   struct fd_context *ctx = batch->ctx;
    struct fd_ringbuffer *ring = batch->draw;
 
    OUT_PKT4(ring, REG_A5XX_RB_SAMPLE_COUNT_CONTROL, 1);
@@ -61,12 +63,14 @@ occlusion_resume(struct fd_acc_query *aq, struct fd_batch *batch)
    fd5_event_write(batch, ring, ZPASS_DONE, false);
    fd_reset_wfi(batch);
 
-   fd5_context(batch->ctx)->samples_passed_queries++;
+   ctx->occlusion_queries_active++;
 }
 
 static void
 occlusion_pause(struct fd_acc_query *aq, struct fd_batch *batch)
+   assert_dt
 {
+   struct fd_context *ctx = batch->ctx;
    struct fd_ringbuffer *ring = batch->draw;
 
    OUT_PKT7(ring, CP_MEM_WRITE, 4);
@@ -102,7 +106,8 @@ occlusion_pause(struct fd_acc_query *aq, struct fd_batch *batch)
    OUT_RELOC(ring, query_sample(aq, stop));   /* srcB */
    OUT_RELOC(ring, query_sample(aq, start));  /* srcC */
 
-   fd5_context(batch->ctx)->samples_passed_queries--;
+   assert(ctx->occlusion_queries_active > 0);
+   ctx->occlusion_queries_active--;
 }
 
 static void

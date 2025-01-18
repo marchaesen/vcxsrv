@@ -50,7 +50,7 @@ panfrost_supports_compressed_format(struct panfrost_device *dev,
    return dev->compressed_formats & BITFIELD_BIT(texfeat_bit);
 }
 
-void
+int
 panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
 {
    dev->memctx = memctx;
@@ -58,7 +58,7 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
    dev->kmod.dev = pan_kmod_dev_create(fd, PAN_KMOD_DEV_FLAG_OWNS_FD, NULL);
    if (!dev->kmod.dev) {
       close(fd);
-      return;
+      return -1;
    }
 
    pan_kmod_dev_query_props(dev->kmod.dev, &dev->kmod.props);
@@ -120,7 +120,8 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
    if (dev->arch < 10) {
       dev->tiler_heap = panfrost_bo_create(
          dev, 128 * 1024 * 1024, PAN_BO_INVISIBLE | PAN_BO_GROWABLE, "Tiler heap");
-      assert(dev->tiler_heap);
+      if (!dev->tiler_heap)
+         goto err_free_kmod_dev;
    }
 
    pthread_mutex_init(&dev->submit_lock, NULL);
@@ -128,14 +129,25 @@ panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
    /* Done once on init */
    dev->sample_positions = panfrost_bo_create(
       dev, panfrost_sample_positions_buffer_size(), 0, "Sample positions");
-   assert(dev->sample_positions);
+   if (!dev->sample_positions)
+      goto err_free_kmod_dev;
 
    panfrost_upload_sample_positions(dev->sample_positions->ptr.cpu);
-   return;
+   return 0;
 
 err_free_kmod_dev:
+   if (dev->decode_ctx)
+      pandecode_destroy_context(dev->decode_ctx);
+
+   panfrost_bo_unreference(dev->tiler_heap);
+   panfrost_bo_unreference(dev->sample_positions);
+
+   if (dev->kmod.vm)
+      pan_kmod_vm_destroy(dev->kmod.vm);
+
    pan_kmod_dev_destroy(dev->kmod.dev);
    dev->kmod.dev = NULL;
+   return -1;
 }
 
 void

@@ -34,7 +34,7 @@ tex_clamp(unsigned wrap, bool *needs_border)
    case PIPE_TEX_WRAP_MIRROR_CLAMP:
    case PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER:
       /* these two we could perhaps emulate, but we currently
-       * just don't advertise PIPE_CAP_TEXTURE_MIRROR_CLAMP
+       * just don't advertise pipe_caps.texture_mirror_clamp
        */
    default:
       DBG("invalid wrap: %u", wrap);

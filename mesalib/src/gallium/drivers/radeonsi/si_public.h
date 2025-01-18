@@ -9,7 +9,10 @@
 
 struct pipe_screen;
 struct pipe_screen_config;
+struct virgl_renderer_capset_drm;
 
 struct pipe_screen *radeonsi_screen_create(int fd, const struct pipe_screen_config *config);
+
+bool si_virtgpu_probe_nctx(int fd, const struct virgl_renderer_capset_drm *caps);
 
 #endif

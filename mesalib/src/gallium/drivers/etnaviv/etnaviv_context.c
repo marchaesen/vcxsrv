@@ -302,6 +302,9 @@ etna_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
       .sprite_coord_yinvert = !!ctx->rasterizer->sprite_coord_mode,
    };
 
+   if (screen->info->halti >= 5)
+      key.flatshade = ctx->rasterizer->flatshade;
+
     for (i = 0; i < pfb->nr_cbufs; i++) {
        if (pfb->cbufs[i])
          key.frag_rb_swap |= !!translate_pe_format_rb_swap(pfb->cbufs[i]->format) << i;
@@ -493,14 +496,12 @@ etna_reset_gpu_state(struct etna_context *ctx)
       etna_set_state(stream, VIVS_PE_HALTI4_UNK014C0, 0x00000000);
    }
    if (screen->info->halti >= 5) { /* Only on HALTI5+ */
-      etna_set_state(stream, VIVS_NTE_DESCRIPTOR_UNK14C40, 0x00000001);
+      etna_set_state(stream, VIVS_NTE_DESCRIPTOR_CONTROL,
+                     COND(!DBG_ENABLED(ETNA_DBG_NO_TEXDESC), VIVS_NTE_DESCRIPTOR_CONTROL_ENABLE));
       etna_set_state(stream, VIVS_FE_HALTI5_UNK007D8, 0x00000002);
       etna_set_state(stream, VIVS_PS_SAMPLER_BASE, 0x00000000);
       etna_set_state(stream, VIVS_VS_SAMPLER_BASE, 0x00000020);
       etna_set_state(stream, VIVS_SH_CONFIG, VIVS_SH_CONFIG_RTNE_ROUNDING);
-   } else { /* Only on pre-HALTI5 */
-      etna_set_state(stream, VIVS_GL_UNK03838, 0x00000000);
-      etna_set_state(stream, VIVS_GL_UNK03854, 0x00000000);
    }
 
    if (VIV_FEATURE(screen, ETNA_FEATURE_BUG_FIXES18))
@@ -511,7 +512,7 @@ etna_reset_gpu_state(struct etna_context *ctx)
       etna_set_state(stream, VIVS_RS_SINGLE_BUFFER, COND(screen->specs.single_buffer, VIVS_RS_SINGLE_BUFFER_ENABLE));
    }
 
-   if (screen->info->halti >= 5) {
+   if (screen->info->halti >= 5 && !DBG_ENABLED(ETNA_DBG_NO_TEXDESC)) {
       /* TXDESC cache flush - do this once at the beginning, as texture
        * descriptors are only written by the CPU once, then patched by the kernel
        * before command stream submission. It does not need flushing if the

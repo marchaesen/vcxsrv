@@ -5,6 +5,8 @@
 
 set -uex
 
+uncollapsed_section_start libdrm "Building libdrm"
+
 export LIBDRM_VERSION=libdrm-2.4.122
 
 curl -L -O --retry 4 -f --retry-all-errors --retry-delay 60 \
@@ -15,3 +17,5 @@ meson setup build -D vc4=disabled -D freedreno=disabled -D etnaviv=disabled ${EX
 meson install -C build
 cd ..
 rm -rf "$LIBDRM_VERSION"
+
+section_end libdrm

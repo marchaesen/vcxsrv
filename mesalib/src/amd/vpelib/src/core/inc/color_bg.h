@@ -26,11 +26,13 @@
 
 #include "color.h"
 
-void vpe_bg_color_convert(
-    enum color_space cs, struct transfer_func *output_tf, struct vpe_color *bg_color, bool enable_3dlut);
+void vpe_bg_color_convert(enum color_space cs, struct transfer_func *output_tf,
+    enum vpe_surface_pixel_format pixel_format, struct vpe_color *mpc_bg_color,
+    struct vpe_color *opp_bg_color, bool enable_3dlut);
 
 enum vpe_status vpe_bg_color_outside_cs_gamut(
     const struct vpe_priv *vpe_priv, struct vpe_color *bg_color);
 
-enum vpe_status vpe_is_valid_bg_color(const struct vpe_priv *vpe_priv, struct vpe_color *bg_color);
+bool vpe_bg_csc(struct vpe_color *bg_color, enum color_space cs);
 
+bool vpe_is_global_bg_blend_applied(struct stream_ctx *stream_ctx);

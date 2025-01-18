@@ -151,8 +151,8 @@ ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
 cd ..
 rm -rf wayland
 
-# Xwayland requires wayland-protocols >= 1.34, but Debian bullseye has 1.20 only
-git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.34
+# Xwayland requires wayland-protocols >= 1.38, but Debian bullseye has 1.20 only
+git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.38
 cd wayland-protocols
 meson _build
 ninja -C _build -j${FDO_CI_CONCURRENT:-4} install

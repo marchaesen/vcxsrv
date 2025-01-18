@@ -53,7 +53,7 @@ void main() {
     VOID_REF dst_ptr = OFFSET(dst_bvh, dst_offset);
     uint32_t src_offset = gl_GlobalInvocationID.x * args.geom_data.stride;
 
-    radv_aabb bounds;
+    vk_aabb bounds;
     bool is_active;
     if (args.geom_data.geometry_type == VK_GEOMETRY_TYPE_TRIANGLES_KHR) {
         is_active = build_triangle(bounds, dst_ptr, args.geom_data, gl_GlobalInvocationID.x);
@@ -65,7 +65,7 @@ void main() {
     if (!is_active)
         return;
 
-    DEREF(INDEX(radv_aabb, args.leaf_bounds, leaf_node_id)) = bounds;
+    DEREF(INDEX(vk_aabb, args.leaf_bounds, leaf_node_id)) = bounds;
     memoryBarrier(gl_ScopeDevice,
         gl_StorageSemanticsBuffer,
         gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
@@ -112,11 +112,11 @@ void main() {
 
         for (uint32_t i = 0; i < valid_child_count; ++i) {
             uint32_t child_offset = id_to_offset(children[i]);
-            radv_aabb child_bounds;
+            vk_aabb child_bounds;
             if (child_offset == dst_offset)
                 child_bounds = bounds;
             else if (child_offset >= internal_nodes_offset) {
-                child_bounds = radv_aabb(vec3(INFINITY), vec3(-INFINITY));
+                child_bounds = vk_aabb(vec3(INFINITY), vec3(-INFINITY));
                 REF(radv_bvh_box32_node) child_node = REF(radv_bvh_box32_node)OFFSET(dst_bvh, child_offset);
                 for (uint32_t j = 0; j < 4; ++j) {
                     if (DEREF(child_node).children[j] == RADV_BVH_INVALID_NODE)
@@ -126,16 +126,16 @@ void main() {
                 }
             } else {
                 uint32_t child_index = (child_offset - first_leaf_offset) / leaf_node_size;
-                child_bounds = DEREF(INDEX(radv_aabb, args.leaf_bounds, child_index));
+                child_bounds = DEREF(INDEX(vk_aabb, args.leaf_bounds, child_index));
             }
 
             DEREF(dst_node).coords[i] = child_bounds;
         }
 
         if (parent_id == RADV_BVH_ROOT_NODE) {
-            radv_aabb root_bounds = radv_aabb(vec3(INFINITY), vec3(-INFINITY));
+            vk_aabb root_bounds = vk_aabb(vec3(INFINITY), vec3(-INFINITY));
             for (uint32_t i = 0; i < valid_child_count; ++i) {
-                radv_aabb bounds = DEREF(dst_node).coords[i];
+                vk_aabb bounds = DEREF(dst_node).coords[i];
                 root_bounds.min = min(root_bounds.min, bounds.min);
                 root_bounds.max = max(root_bounds.max, bounds.max);
             }

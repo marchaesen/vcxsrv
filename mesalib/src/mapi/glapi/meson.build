@@ -65,7 +65,7 @@ libglapi_bridge = static_library(
   bridge_glapi_files,
   include_directories : [inc_mesa, inc_include, inc_src, inc_mapi, inc_gallium],
   c_args : [c_msvc_compat_args, bridge_glapi_args],
-  dependencies : [dep_thread, dep_selinux, idep_mesautil],
+  dependencies : [dep_thread, idep_mesautil],
   build_by_default : false,
 )
 
@@ -77,7 +77,7 @@ else
     static_glapi_files,
     include_directories : [inc_mesa, inc_include, inc_src, inc_mapi, inc_gallium],
     c_args : [c_msvc_compat_args, static_glapi_args],
-    dependencies : [dep_thread, dep_selinux, idep_mesautil],
+    dependencies : [dep_thread, idep_mesautil],
     build_by_default : false,
   )
 endif

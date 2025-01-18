@@ -174,6 +174,11 @@ lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
        (!has_dest && intrinsic->src[0].ssa->bit_size == 8))
       shift = 0;
 
+   if ((has_dest && intrinsic->def.bit_size == 64) ||
+       (!has_dest && intrinsic->src[0].ssa->bit_size == 64)) {
+      shift = 1;
+   }
+
    /* Here we create a new intrinsic and copy over all contents from the old
     * one. */
 

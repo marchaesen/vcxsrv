@@ -19,7 +19,7 @@ if with_platform_wayland
    vklayer_deps += dep_wayland_client
 endif
 
-vklayer_mesa_device_select = shared_library(
+shared_library(
   'VkLayer_MESA_device_select',
   vklayer_files,
   c_args : [no_override_init_args, vklayer_flags],

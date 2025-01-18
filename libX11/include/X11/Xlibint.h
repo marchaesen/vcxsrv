@@ -432,8 +432,8 @@ extern LockInfoPtr _Xglobal_lock;
 #define _XLockMutex(lock)		if (_XLockMutex_fn) (*_XLockMutex_fn)(lock)
 #define _XUnlockMutex(lock)	if (_XUnlockMutex_fn) (*_XUnlockMutex_fn)(lock)
 #endif
-#define _XCreateMutex(lock)	if (_XCreateMutex_fn) (*_XCreateMutex_fn)(lock);
-#define _XFreeMutex(lock)	if (_XFreeMutex_fn) (*_XFreeMutex_fn)(lock);
+#define _XCreateMutex(lock)	if (_XCreateMutex_fn) (*_XCreateMutex_fn)(lock)
+#define _XFreeMutex(lock)	if (_XFreeMutex_fn) (*_XFreeMutex_fn)(lock)
 
 #else /* XTHREADS */
 #define LockDisplay(dis)
@@ -644,13 +644,13 @@ extern void _XFlushGCCache(Display *dpy, GC gc);
  * "len" is the length of the data buffer.
  */
 #ifndef DataRoutineIsProcedure
-#define Data(dpy, data, len) {\
+#define Data(dpy, data, len) do {\
 	if (dpy->bufptr + (len) <= dpy->bufmax) {\
 		memcpy(dpy->bufptr, data, (size_t)(len));\
 		dpy->bufptr += ((size_t)((len) + 3) & (size_t)~3);\
 	} else\
 		_XSend(dpy, (_Xconst char*)(data), (long)(len));\
-}
+} while (0)
 #endif /* DataRoutineIsProcedure */
 
 
@@ -668,12 +668,13 @@ extern void _XFlushGCCache(Display *dpy, GC gc);
  *    BufAlloc (xTextElt *, elt, nbytes)
  */
 
-#define BufAlloc(type, ptr, n) \
+#define BufAlloc(type, ptr, n) do {      \
     if (dpy->bufptr + (n) > dpy->bufmax) \
         _XFlush (dpy); \
     ptr = (type) dpy->bufptr; \
     memset(ptr, '\0', (size_t)(n)); \
-    dpy->bufptr += (n);
+    dpy->bufptr += (n); \
+} while (0)
 
 #define Data16(dpy, data, len) Data((dpy), (_Xconst char *)(data), (len))
 #define _XRead16Pad(dpy, data, len) _XReadPad((dpy), (char *)(data), (len))
@@ -716,7 +717,7 @@ extern void _XRead32(
  * char.
  */
 #define CI_GET_CHAR_INFO_1D(fs,col,def,cs) \
-{ \
+do { \
     cs = def; \
     if (col >= fs->min_char_or_byte2 && col <= fs->max_char_or_byte2) { \
 	if (fs->per_char == NULL) { \
@@ -726,7 +727,7 @@ extern void _XRead32(
 	    if (CI_NONEXISTCHAR(cs)) cs = def; \
 	} \
     } \
-}
+} while (0)
 
 #define CI_GET_DEFAULT_INFO_1D(fs,cs) \
   CI_GET_CHAR_INFO_1D (fs, fs->default_char, NULL, cs)
@@ -738,7 +739,7 @@ extern void _XRead32(
  * column.  This is used for fonts that have more than row zero.
  */
 #define CI_GET_CHAR_INFO_2D(fs,row,col,def,cs) \
-{ \
+do { \
     cs = def; \
     if (row >= fs->min_byte1 && row <= fs->max_byte1 && \
 	col >= fs->min_char_or_byte2 && col <= fs->max_char_or_byte2) { \
@@ -752,19 +753,19 @@ extern void _XRead32(
 	    if (CI_NONEXISTCHAR(cs)) cs = def; \
         } \
     } \
-}
+} while (0)
 
 #define CI_GET_DEFAULT_INFO_2D(fs,cs) \
-{ \
+do { \
     unsigned int r = (fs->default_char >> 8); \
     unsigned int c = (fs->default_char & 0xff); \
     CI_GET_CHAR_INFO_2D (fs, r, c, NULL, cs); \
-}
+} while (0)
 
 
 /* srcvar must be a variable for large architecture version */
 #define OneDataCard32(dpy,dstaddr,srcvar) \
-  { *(CARD32 *)(dstaddr) = (srcvar); }
+    do { *(CARD32 *)(dstaddr) = (srcvar); } while (0)
 
 
 typedef struct _XInternalAsync {
@@ -804,12 +805,12 @@ typedef struct _XAsyncEState {
 } _XAsyncErrorState;
 
 extern void _XDeqAsyncHandler(Display *dpy, _XAsyncHandler *handler);
-#define DeqAsyncHandler(dpy,handler) { \
+#define DeqAsyncHandler(dpy,handler) do { \
     if (dpy->async_handlers == (handler)) \
 	dpy->async_handlers = (handler)->next; \
     else \
 	_XDeqAsyncHandler(dpy, handler); \
-    }
+    } while (0)
 
 typedef void (*FreeFuncType) (
     Display*	/* display */

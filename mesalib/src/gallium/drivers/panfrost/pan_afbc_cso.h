@@ -56,14 +56,14 @@ struct pan_afbc_block_info {
 };
 
 struct panfrost_afbc_size_info {
-   mali_ptr src;
-   mali_ptr metadata;
+   uint64_t src;
+   uint64_t metadata;
 } PACKED;
 
 struct panfrost_afbc_pack_info {
-   mali_ptr src;
-   mali_ptr dst;
-   mali_ptr metadata;
+   uint64_t src;
+   uint64_t dst;
+   uint64_t metadata;
    uint32_t header_size;
    uint32_t src_stride;
    uint32_t dst_stride;

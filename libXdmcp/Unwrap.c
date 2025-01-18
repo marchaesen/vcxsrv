@@ -74,7 +74,7 @@ XdmcpUnwrap (
 	    return; /* bad input length */
 	for (i = 0; i < 8; i++)
 	    blocks[k][i] = input[j + i];
-	_XdmcpAuthDoIt ((unsigned char *) (input + j), (unsigned char *) tmp, schedule, 0);
+	_XdmcpAuthDoIt ((input + j), tmp, schedule, 0);
 	/* block chaining */
 	k = (k == 0) ? 1 : 0;
 	for (i = 0; i < 8; i++)

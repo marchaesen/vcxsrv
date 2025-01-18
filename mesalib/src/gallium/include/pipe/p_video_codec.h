@@ -98,7 +98,7 @@ struct pipe_video_codec
    /**
     * Perform post-process effect
     */
-   void (*process_frame)(struct pipe_video_codec *codec,
+   int (*process_frame)(struct pipe_video_codec *codec,
                          struct pipe_video_buffer *source,
                          const struct pipe_vpp_desc *process_properties);
 
@@ -143,20 +143,6 @@ struct pipe_video_codec
     */
    void (*destroy_fence)(struct pipe_video_codec *codec,
                          struct pipe_fence_handle *fence);
-
-   /**
-    * Update target buffer address.
-    *
-    * Due to reallocation, target buffer address has changed, and the
-    * changed buffer will need to update to decoder so that when this buffer
-    * used as a reference frame, decoder can obtain its recorded information.
-    * Failed updating this buffer will miss reference frames and
-    * cause image corruption in the sebsequent output.
-    * If no target buffer change, this call is not necessary.
-    */
-   void (*update_decoder_target)(struct pipe_video_codec *codec,
-                                 struct pipe_video_buffer *old,
-                                 struct pipe_video_buffer *updated);
 
    /**
     * Gets the bitstream headers for a given pipe_picture_desc

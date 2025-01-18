@@ -740,7 +740,7 @@ DeliverStateNotifyEvent(DeviceIntPtr dev, WindowPtr win)
         (ev - 1)->deviceid |= MORE_EVENTS;
         bev->type = DeviceButtonStateNotify;
         bev->deviceid = dev->id;
-        memcpy((char *) &bev->buttons[4], (char *) &b->down[4],
+        memcpy((char *) &bev->buttons[0], (char *) &b->down[4],
                DOWN_LENGTH - 4);
     }
 

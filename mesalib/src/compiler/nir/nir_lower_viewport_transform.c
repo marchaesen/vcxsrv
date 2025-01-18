@@ -34,11 +34,17 @@
  * "Coordinate Transformation" of the OpenGL ES 3.2 full specification.
  *
  * This pass must run before lower_vars/lower_io such that derefs are
- * still in place.
+ * still in place. This pass must run after lower_io_to_temporaries so
+ * that the transformed position is not visible to user code.
  */
 
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
+
+/* Vulkan spec requires float accuracy to ~10^-5, so we need to differentiate
+ * between W=0 and W=10^-5. Clamping 1/W to 2^15 gives a bit of margin on top
+ * of this. */
+#define MAX_W_RECIP_ABS (float)(1l << 15)
 
 static bool
 lower_viewport_transform_instr(nir_builder *b, nir_intrinsic_instr *intr,
@@ -62,6 +68,11 @@ lower_viewport_transform_instr(nir_builder *b, nir_intrinsic_instr *intr,
    /* World space to normalised device coordinates to screen space */
 
    nir_def *w_recip = nir_frcp(b, nir_channel(b, input_point, 3));
+
+   /* Clamp w_recip so that small w does not result in Inf or unacceptable
+    * precision loss relative to clipping pre-transform. */
+   w_recip = nir_fclamp(b, w_recip, nir_imm_float(b, -MAX_W_RECIP_ABS),
+                        nir_imm_float(b, MAX_W_RECIP_ABS));
 
    nir_def *ndc_point = nir_fmul(b, nir_trim_vector(b, input_point, 3),
                                  w_recip);

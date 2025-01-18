@@ -35,5 +35,8 @@ main (int argc, char **argv)
     pixman_image_composite (
 	PIXMAN_OP_OVER, src, NULL, dest, -3, -3, 0, 0, 0, 0, 6, 2);
 
+    pixman_image_unref (src);
+    pixman_image_unref (dest);
+
     return 0;
 }

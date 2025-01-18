@@ -38,10 +38,10 @@ struct pan_indirect_dispatch_meta {
    unsigned gpu_id;
 
    /* Renderer state descriptor. */
-   mali_ptr rsd;
+   uint64_t rsd;
 
    /* Thread storage descriptor. */
-   mali_ptr tsd;
+   uint64_t tsd;
 
    /* Shader binary pool. */
    struct pan_pool *bin_pool;
@@ -54,9 +54,9 @@ struct pan_indirect_dispatch_meta {
 };
 
 struct pan_indirect_dispatch_info {
-   mali_ptr job;
-   mali_ptr indirect_dim;
-   mali_ptr num_wg_sysval[3];
+   uint64_t job;
+   uint64_t indirect_dim;
+   uint64_t num_wg_sysval[3];
 } PACKED;
 
 static inline void

@@ -232,13 +232,6 @@ const glsl_type *glsl_symbol_table::get_type(const char *name)
    return entry != NULL ? entry->t : NULL;
 }
 
-const glsl_type *glsl_symbol_table::get_interface(const char *name,
-                                                  enum ir_variable_mode mode)
-{
-   symbol_table_entry *entry = get_entry(name);
-   return entry != NULL ? entry->get_interface(mode) : NULL;
-}
-
 ir_function *glsl_symbol_table::get_function(const char *name)
 {
    symbol_table_entry *entry = get_entry(name);
@@ -272,15 +265,5 @@ glsl_symbol_table::disable_variable(const char *name)
    symbol_table_entry *entry = get_entry(name);
    if (entry != NULL) {
       entry->v = NULL;
-   }
-}
-
-void
-glsl_symbol_table::replace_variable(const char *name,
-                                    ir_variable *v)
-{
-   symbol_table_entry *entry = get_entry(name);
-   if (entry != NULL) {
-      entry->v = v;
    }
 }

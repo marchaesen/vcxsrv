@@ -1244,7 +1244,8 @@ static void
 v3d_set_stream_output_targets(struct pipe_context *pctx,
                               unsigned num_targets,
                               struct pipe_stream_output_target **targets,
-                              const unsigned *offsets)
+                              const unsigned *offsets,
+                              enum mesa_prim output_prim)
 {
         struct v3d_context *ctx = v3d_context(pctx);
         struct v3d_streamout_stateobj *so = &ctx->streamout;

@@ -39,7 +39,7 @@
  */
 #define PVR_CLEAR_COLOR_ARRAY_SIZE 4
 
-#define PVR_TEX_FORMAT_COUNT (PVRX(TEXSTATE_IMAGE_WORD0_TEXFORMAT_MAX_SIZE) + 1)
+#define PVR_TEX_FORMAT_COUNT (ROGUE_TEXSTATE_IMAGE_WORD0_TEXFORMAT_MAX_SIZE + 1)
 
 enum pvr_pbe_accum_format {
    PVR_PBE_ACCUM_FORMAT_INVALID = 0, /* Explicitly treat 0 as invalid. */
@@ -212,8 +212,8 @@ enum pvr_transfer_pbe_pixel_src {
    PVR_TRANSFER_PBE_PIXEL_SRC_NUM = 54,
 };
 
-/* FIXME: Replace all instances of uint32_t with PVRX(TEXSTATE_FORMAT) or
- * PVRX(TEXSTATE_FORMAT_COMPRESSED) after the pvr_common cleanup is complete.
+/* FIXME: Replace all instances of uint32_t with ROGUE_TEXSTATE_FORMAT or
+ * ROGUE_TEXSTATE_FORMAT_COMPRESSED after the pvr_common cleanup is complete.
  */
 
 struct pvr_tex_format_description {
@@ -281,7 +281,7 @@ static inline bool pvr_vk_format_is_fully_normalized(VkFormat vk_format)
 
 static inline uint32_t
 pvr_vk_format_get_common_color_channel_count(VkFormat src_format,
-                                         VkFormat dst_format)
+                                             VkFormat dst_format)
 {
    const struct util_format_description *dst_desc =
       vk_format_description(dst_format);
@@ -314,6 +314,5 @@ pvr_vk_format_get_common_color_channel_count(VkFormat src_format,
 
    return count;
 }
-
 
 #endif /* PVR_FORMATS_H */

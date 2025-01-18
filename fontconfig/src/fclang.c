@@ -39,6 +39,23 @@ typedef struct {
 
 #include "../fc-lang/fclang.h"
 
+/*
+ * Keep Han languages separated by eliminating languages
+ * that the codePageRange bits says aren't supported
+ */
+
+static const struct {
+    char    	    bit;
+    const FcChar8   lang[6];
+} FcCodePageRange[] = {
+    { 17,	"ja" },
+    { 18,	"zh-cn" },
+    { 19,	"ko" },
+    { 20,	"zh-tw" },
+};
+
+#define NUM_CODE_PAGE_RANGE (int) (sizeof FcCodePageRange / sizeof FcCodePageRange[0])
+
 struct _FcLangSet {
     FcStrSet	*extra;
     FcChar32    map_size;
@@ -125,7 +142,7 @@ FcFreeTypeLangSet (const FcCharSet  *charset,
 	 * not support other Han languages
 	 */
 	if (exclusiveCharset &&
-	    FcFreeTypeIsExclusiveLang (fcLangCharSets[i].lang))
+	    FcLangIsExclusive (fcLangCharSets[i].lang))
 	{
 	    if (fcLangCharSets[i].charset.num != exclusiveCharset->num)
 		continue;
@@ -1103,6 +1120,58 @@ FcLangSetSubtract (const FcLangSet *a, const FcLangSet *b)
 {
     return FcLangSetOperate(a, b, FcLangSetDel);
 }
+
+FcBool
+FcLangIsExclusive (const FcChar8  *lang)
+{
+    int	    i;
+
+    for (i = 0; i < NUM_CODE_PAGE_RANGE; i++)
+    {
+	if (FcLangCompare (lang, FcCodePageRange[i].lang) == FcLangEqual)
+	    return FcTrue;
+    }
+    return FcFalse;
+}
+
+const FcChar8 *
+FcLangIsExclusiveFromOs2(unsigned long os2ulUnicodeRange1, unsigned long os2ulUnicodeRange2)
+{
+    unsigned int i;
+    const FcChar8* exclusiveLang = 0;
+
+    for (i = 0; i < NUM_CODE_PAGE_RANGE; i++)
+    {
+        unsigned long bits;
+        int bit;
+        if (FcCodePageRange[i].bit < 32)
+        {
+            bits = os2ulUnicodeRange1;
+            bit = FcCodePageRange[i].bit;
+        }
+        else
+        {
+            bits = os2ulUnicodeRange2;
+            bit = FcCodePageRange[i].bit - 32;
+        }
+        if (bits & (1U << bit))
+        {
+            /*
+             * If the font advertises support for multiple
+             * "exclusive" languages, then include support
+             * for any language found to have coverage
+             */
+            if (exclusiveLang)
+            {
+                exclusiveLang = 0;
+                break;
+            }
+            exclusiveLang = FcCodePageRange[i].lang;
+        }
+    }
+    return exclusiveLang;
+}
+
 
 #define __fclang__
 #include "fcaliastail.h"

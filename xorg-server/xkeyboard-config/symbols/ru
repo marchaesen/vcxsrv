@@ -942,7 +942,7 @@ xkb_symbols "mac" {
     include "ru(common)"
     name[Group1]= "Russian (Macintosh)";
 
-    key <LSGT> { [          less,      greater  ] };
+    key <TLDE> { [          less,      greater  ] };
     key <AE02> { [             2,     quotedbl  ] };
     key <AE03> { [             3,   numerosign  ] };
     key <AE04> { [             4,      percent  ] };
@@ -950,7 +950,7 @@ xkb_symbols "mac" {
     key <AE06> { [             6,        comma  ] };
     key <AE07> { [             7,       period  ] };
     key <AE08> { [             8,    semicolon  ] };
-    key <TLDE> { [  bracketright,  bracketleft  ] };
+    key <LSGT> { [  bracketright,  bracketleft  ] };
     key <BKSL> { [   Cyrillic_io,  Cyrillic_IO  ] };
 
     key <AC06> { [   Cyrillic_er,  Cyrillic_ER, U20BD ] };

@@ -17,3 +17,5 @@ KHR-GL31.transform_feedback.draw_xfb_stream_instanced_test,Fail
 KHR-GL32.transform_feedback.draw_xfb_stream_instanced_test,Fail
 KHR-GL32.texture_lod_bias.texture_lod_bias_all,Fail
 KHR-GL32.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
+
+dEQP-GLES31.functional.tessellation.shader_input_output.barrier,Fail

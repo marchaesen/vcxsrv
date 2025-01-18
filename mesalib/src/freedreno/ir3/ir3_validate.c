@@ -7,6 +7,7 @@
 
 #include "util/ralloc.h"
 
+#include "instr-a3xx.h"
 #include "ir3.h"
 #include "ir3_compiler.h"
 
@@ -26,9 +27,10 @@ struct ir3_validate_ctx {
 };
 
 static void
-validate_error(struct ir3_validate_ctx *ctx, const char *condstr)
+validate_error(struct ir3_validate_ctx *ctx, const char *condstr,
+               const char *file, unsigned line)
 {
-   fprintf(stderr, "validation fail: %s\n", condstr);
+   fprintf(stderr, "validation fail at %s:%u: %s\n", file, line, condstr);
    if (ctx->current_instr) {
       fprintf(stderr, "  -> for instruction: ");
       ir3_print_instr(ctx->current_instr);
@@ -41,7 +43,7 @@ validate_error(struct ir3_validate_ctx *ctx, const char *condstr)
 #define validate_assert(ctx, cond)                                             \
    do {                                                                        \
       if (!(cond)) {                                                           \
-         validate_error(ctx, #cond);                                           \
+         validate_error(ctx, #cond, __FILE__, __LINE__);                       \
       }                                                                        \
    } while (0)
 
@@ -240,6 +242,7 @@ validate_instr(struct ir3_validate_ctx *ctx, struct ir3_instruction *instr)
           */
       } else if (instr->opc == OPC_ANY_MACRO || instr->opc == OPC_ALL_MACRO ||
                  instr->opc == OPC_READ_FIRST_MACRO ||
+                 instr->opc == OPC_READ_GETLAST_MACRO ||
                  instr->opc == OPC_READ_COND_MACRO) {
          /* nothing yet */
       } else if (n > 0) {
@@ -282,6 +285,7 @@ validate_instr(struct ir3_validate_ctx *ctx, struct ir3_instruction *instr)
             ctx, util_is_power_of_two_or_zero(instr->dsts[0]->wrmask + 1));
       } else if (instr->opc == OPC_ANY_MACRO || instr->opc == OPC_ALL_MACRO ||
                  instr->opc == OPC_READ_FIRST_MACRO ||
+                 instr->opc == OPC_READ_GETLAST_MACRO ||
                  instr->opc == OPC_READ_COND_MACRO) {
          /* nothing yet */
       } else if (instr->opc == OPC_ELECT_MACRO || instr->opc == OPC_SHPS_MACRO) {
@@ -442,6 +446,37 @@ validate_instr(struct ir3_validate_ctx *ctx, struct ir3_instruction *instr)
          validate_assert(ctx, !(instr->srcs[1]->flags & IR3_REG_HALF));
          validate_assert(ctx, !(instr->srcs[2]->flags & IR3_REG_HALF));
          validate_reg_size(ctx, instr->dsts[0], instr->cat6.type);
+	 break;
+      case OPC_ATOMIC_B_CMPXCHG:
+         if (instr->cat6.type == TYPE_ATOMIC_U64) {
+            validate_assert(ctx, !(instr->dsts[0]->flags & IR3_REG_HALF));
+            validate_assert(ctx, instr->dsts[0]->wrmask == 0x3f);
+         } else {
+            validate_reg_size(ctx, instr->dsts[0], instr->cat6.type);
+         }
+         validate_assert(ctx, !(instr->srcs[0]->flags & IR3_REG_HALF));
+         validate_assert(ctx, !(instr->srcs[1]->flags & IR3_REG_HALF));
+         break;
+      case OPC_ATOMIC_B_XCHG:
+         if (instr->cat6.type == TYPE_ATOMIC_U64) {
+            validate_assert(ctx, !(instr->dsts[0]->flags & IR3_REG_HALF));
+            validate_assert(ctx, instr->dsts[0]->wrmask == 0xf);
+         } else {
+            validate_reg_size(ctx, instr->dsts[0], instr->cat6.type);
+         }
+         validate_assert(ctx, !(instr->srcs[0]->flags & IR3_REG_HALF));
+         validate_assert(ctx, !(instr->srcs[1]->flags & IR3_REG_HALF));
+         break;
+      case OPC_ATOMIC_G_CMPXCHG:
+      case OPC_ATOMIC_G_XCHG:
+         if (instr->cat6.type == TYPE_ATOMIC_U64) {
+            validate_assert(ctx, !(instr->dsts[0]->flags & IR3_REG_HALF));
+            validate_assert(ctx, instr->dsts[0]->wrmask == 0x3);
+         } else {
+            validate_reg_size(ctx, instr->dsts[0], instr->cat6.type);
+         }
+         validate_assert(ctx, !(instr->srcs[0]->flags & IR3_REG_HALF));
+         validate_assert(ctx, !(instr->srcs[1]->flags & IR3_REG_HALF));
          break;
       case OPC_SHFL:
          validate_reg_size(ctx, instr->srcs[0], instr->cat6.type);

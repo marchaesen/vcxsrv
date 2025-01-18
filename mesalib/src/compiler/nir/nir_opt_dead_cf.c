@@ -241,6 +241,7 @@ node_is_dead(nir_cf_node *node)
             case nir_intrinsic_load_shared2_amd:
             case nir_intrinsic_load_output:
             case nir_intrinsic_load_per_vertex_output:
+            case nir_intrinsic_load_per_view_output:
                /* Same as above loads. */
                return false;
 

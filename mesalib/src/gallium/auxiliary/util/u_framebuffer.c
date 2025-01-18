@@ -245,7 +245,7 @@ util_framebuffer_get_num_samples(const struct pipe_framebuffer_state *fb)
       return MAX2(fb->samples, 1);
 
    /**
-    * If a driver doesn't advertise PIPE_CAP_SURFACE_SAMPLE_COUNT,
+    * If a driver doesn't advertise pipe_caps.surface_sample_count,
     * pipe_surface::nr_samples will always be 0.
     */
    for (i = 0; i < fb->nr_cbufs; i++) {

@@ -1793,8 +1793,11 @@ void *_XGetRequest(Display *dpy, CARD8 type, size_t len)
     dpy->last_req = dpy->bufptr;
 
     req = (xReq*)dpy->bufptr;
-    req->reqType = type;
-    req->length = len / 4;
+    *req = (xReq) {
+        .reqType = type,
+        .data = 0,
+        .length = len / 4
+    };
     dpy->bufptr += len;
     X_DPY_REQUEST_INCREMENT(dpy);
     return req;

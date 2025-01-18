@@ -203,6 +203,11 @@ struct wsi_device {
     * This requires VK_KHR_timeline_semaphore. */
    bool khr_present_wait;
 
+   struct {
+      /* Don't use the commit-timing protocol for pacing */
+      bool disable_timestamps;
+   } wayland;
+
    /*
     * This sets the ownership for a WSI memory object:
     *

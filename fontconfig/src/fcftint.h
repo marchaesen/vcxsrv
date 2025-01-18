@@ -37,9 +37,6 @@
 
 /* fcfreetype.c */
 FcPrivate FcBool
-FcFreeTypeIsExclusiveLang (const FcChar8  *lang);
-
-FcPrivate FcBool
 FcFreeTypeHasLang (FcPattern *pattern, const FcChar8 *lang);
 
 FcPrivate FcChar32

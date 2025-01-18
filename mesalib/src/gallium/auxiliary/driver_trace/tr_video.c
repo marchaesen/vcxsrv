@@ -202,7 +202,7 @@ trace_video_codec_encode_bitstream(struct pipe_video_codec *_codec,
     codec->encode_bitstream(codec, source, destination, feedback);
 }
 
-static void
+static int
 trace_video_codec_process_frame(struct pipe_video_codec *_codec,
                         struct pipe_video_buffer *_source,
                         const struct pipe_vpp_desc *process_properties)
@@ -219,6 +219,7 @@ trace_video_codec_process_frame(struct pipe_video_codec *_codec,
     trace_dump_call_end();
 
     codec->process_frame(codec, source, process_properties);
+    return 0;
 }
 
 static int
@@ -296,27 +297,6 @@ trace_video_codec_fence_wait(struct pipe_video_codec *_codec,
     return ret;
 }
 
-static void
-trace_video_codec_update_decoder_target(struct pipe_video_codec *_codec,
-                                struct pipe_video_buffer *_old,
-                                struct pipe_video_buffer *_updated)
-{
-    struct trace_video_codec *tr_vcodec = trace_video_codec(_codec);
-    struct pipe_video_codec *codec = tr_vcodec->video_codec;
-    struct trace_video_buffer *tr_old = trace_video_buffer(_old);
-    struct pipe_video_buffer *old = tr_old->video_buffer;
-    struct trace_video_buffer *tr_updated = trace_video_buffer(_updated);
-    struct pipe_video_buffer *updated = tr_updated->video_buffer;
-
-    trace_dump_call_begin("pipe_video_codec", "update_decoder_target");
-    trace_dump_arg(ptr, codec);
-    trace_dump_arg(ptr, old);
-    trace_dump_arg(ptr, updated);
-    trace_dump_call_end();
-
-    codec->update_decoder_target(codec, old, updated);
-}
-
 struct pipe_video_codec *
 trace_video_codec_create(struct trace_context *tr_ctx,
                          struct pipe_video_codec *video_codec)
@@ -349,7 +329,6 @@ trace_video_codec_create(struct trace_context *tr_ctx,
     TR_VC_INIT(flush);
     TR_VC_INIT(get_feedback);
     TR_VC_INIT(fence_wait);
-    TR_VC_INIT(update_decoder_target);
 
 #undef TR_VC_INIT
 

@@ -336,9 +336,9 @@ FcConfigReference (FcConfig *config)
 	    unlock_config ();
 
 	    config = FcInitLoadConfigAndFonts ();
+	    lock_config ();
 	    if (!config)
 		goto retry;
-	    lock_config ();
 	    if (!fc_atomic_ptr_cmpexch (&_fcConfig, NULL, config))
 	    {
 		FcConfigDestroy (config);
@@ -2989,12 +2989,38 @@ FcConfigGlobAdd (FcConfig	*config,
 		 FcBool		accept)
 {
     FcStrSet	*set = accept ? config->acceptGlobs : config->rejectGlobs;
-	FcChar8	*realglob = FcStrCopyFilename(glob);
-	if (!realglob)
-		return FcFalse;
+    FcChar8     *realglob = FcStrCopyFilename(glob);
+    FcChar8     *cwd = FcStrCopyFilename((const FcChar8 *) ".");
+    const FcChar8 *s;
+    FcBool       ret;
+    size_t       len = 0;
 
-    FcBool	 ret = FcStrSetAdd (set, realglob);
+    /*
+     * FcStrCopyFilename canonicalize a path string and prepend
+     * current directory name if no path included in a string.
+     * This isn't a desired behavior here.
+     * So drop the extra path name if they have. Otherwise use it as it is.
+     */
+    if (cwd == NULL)
+	    s = glob;
+    else
+    {
+	    len = strlen((const char *) cwd);
+	    /* No need to use FC_DIR_SEPARATOR because '\\' will be
+	     * replaced with / by FcConvertDosPath in FcStrCanonFilename
+	     */
+	    if (strncmp((const char *) cwd, (const char *) realglob, len) == 0 &&
+		realglob[len] == '/')
+		    s = &realglob[len + 1];
+	    else
+		    s = realglob;
+    }
+    if (!s)
+	    return FcFalse;
+
+    ret = FcStrSetAdd (set, s);
     FcStrFree(realglob);
+    FcStrFree(cwd);
     return ret;
 }
 

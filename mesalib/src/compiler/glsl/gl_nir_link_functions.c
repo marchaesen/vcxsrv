@@ -465,13 +465,27 @@ gl_nir_link_function_calls(struct gl_shader_program *prog,
                list_add(&func_sig->node, func_list);
             _mesa_hash_table_insert(func_lookup, func->name, func_list);
          }
+      }
 
+      /* Now that all functions are cloned we can clone any function
+       * implementations. We can't do this in the previous loop above because
+       * glsl to nir places function declarations next to implementations i.e.
+       * we have lost any predeclared function signatures so we won't always
+       * find them in the remap table until they have all been processed.
+       */
+      nir_foreach_function(func, shader_list[i]->nir) {
          if (func->impl) {
-            assert(!f->impl);
             nir_function_impl *f_impl =
                nir_function_impl_clone_remap_globals(linked_sh->Program->nir,
                                                      func->impl, remap_table);
 
+            struct hash_entry *e =
+               _mesa_hash_table_search(remap_table, func);
+            assert(e);
+
+            nir_function *f = (nir_function *) e->data;
+
+            assert(!f->impl);
             nir_function_set_impl(f, f_impl);
          }
       }

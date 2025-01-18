@@ -4,7 +4,7 @@
 project(
   'libXau',
   'c',
-  version : '1.0.11',
+  version : '1.0.12',
   license : 'MIT',
   meson_version : '>= 0.60.0',
 )

@@ -160,7 +160,7 @@ d3d12_create_query(struct pipe_context *pctx,
       }
 
       /* Query result goes into a readback buffer */
-      size_t buffer_size = query->subqueries[i].query_size * query->subqueries[i].num_queries;
+      unsigned buffer_size = query->subqueries[i].query_size * query->subqueries[i].num_queries;
       u_suballocator_alloc(&ctx->query_allocator, buffer_size, 256,
                            &query->subqueries[i].buffer_offset, &query->subqueries[i].buffer);
 

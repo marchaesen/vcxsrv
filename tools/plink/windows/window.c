@@ -448,6 +448,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     int guess_width, guess_height;
 
     dll_hijacking_protection();
+    enable_dit();
 
     hinst = inst;
     hprev = prev;
@@ -1504,11 +1505,6 @@ static void init_fonts(WinGuiSeat *wgs, int pick_width, int pick_height)
         wgs->font_width = get_font_width(wgs, hdc, &tm);
     }
 
-#ifdef RDB_DEBUG_PATCH
-    debug("Primary font H=%d, AW=%d, MW=%d\n",
-          tm.tmHeight, tm.tmAveCharWidth, tm.tmMaxCharWidth);
-#endif
-
     {
         CHARSETINFO info;
         DWORD cset = tm.tmCharSet;
@@ -1795,10 +1791,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
     int win_width, win_height, resize_action, window_border;
     RECT cr, wr;
 
-#ifdef RDB_DEBUG_PATCH
-    debug("reset_window()\n");
-#endif
-
     /* Current window sizes ... */
     GetWindowRect(wgs->term_hwnd, &wr);
     GetClientRect(wgs->term_hwnd, &cr);
@@ -1814,9 +1806,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
 
     /* Are we being forced to reload the fonts ? */
     if (reinit>1) {
-#ifdef RDB_DEBUG_PATCH
-        debug("reset_window() -- Forced deinit\n");
-#endif
         deinit_fonts(wgs);
         init_fonts(wgs, 0, 0);
     }
@@ -1828,9 +1817,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
     /* Is the window out of position ? */
     if (!reinit) {
         recompute_window_offset(wgs);
-#ifdef RDB_DEBUG_PATCH
-        debug("reset_window() -> Reposition terminal\n");
-#endif
     }
 
     if (IsZoomed(wgs->term_hwnd)) {
@@ -1857,10 +1843,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
                 wgs->offset_height =
                     (win_height - wgs->font_height*wgs->term->rows) / 2;
                 InvalidateRect(wgs->term_hwnd, NULL, true);
-#ifdef RDB_DEBUG_PATCH
-                debug("reset_window() -> Z font resize to (%d, %d)\n",
-                      wgs->font_width, wgs->font_height);
-#endif
             }
         } else {
             if (wgs->font_width * wgs->term->cols != win_width ||
@@ -1877,9 +1859,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
                 wgs->offset_height =
                     (win_height - window_border - wgs->font_height*wgs->term->rows) / 2;
                 InvalidateRect(wgs->term_hwnd, NULL, true);
-#ifdef RDB_DEBUG_PATCH
-                debug("reset_window() -> Zoomed term_size\n");
-#endif
             }
         }
         return;
@@ -1921,10 +1900,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
      * so we resize to the default font size.
      */
     if (reinit>0) {
-#ifdef RDB_DEBUG_PATCH
-        debug("reset_window() -> Forced re-init\n");
-#endif
-
         wgs->offset_width = wgs->offset_height = window_border;
         wgs->extra_width =
             wr.right - wr.left - cr.right + cr.left + wgs->offset_width*2;
@@ -2001,10 +1976,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
                     if ( width > wgs->term->cols )  width = wgs->term->cols;
                     term_size(wgs->term, height, width,
                               conf_get_int(wgs->conf, CONF_savelines));
-#ifdef RDB_DEBUG_PATCH
-                    debug("reset_window() -> term resize to (%d,%d)\n",
-                          height, width);
-#endif
                 }
             }
 
@@ -2014,11 +1985,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
                          SWP_NOMOVE | SWP_NOZORDER);
 
             InvalidateRect(wgs->term_hwnd, NULL, true);
-#ifdef RDB_DEBUG_PATCH
-            debug("reset_window() -> window resize to (%d,%d)\n",
-                  wgs->font_width*term->cols + wgs->extra_width,
-                  wgs->font_height*term->rows + wgs->extra_height);
-#endif
         }
         return;
     }
@@ -2040,10 +2006,6 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
             wr.bottom - wr.top - cr.bottom + cr.top + wgs->offset_height*2;
 
         InvalidateRect(wgs->term_hwnd, NULL, true);
-#ifdef RDB_DEBUG_PATCH
-        debug("reset_window() -> font resize to (%d,%d)\n",
-              wgs->font_width, wgs->font_height);
-#endif
     }
 }
 
@@ -2201,11 +2163,11 @@ static void free_hdc(WinGuiSeat *wgs, HDC hdc)
     ReleaseDC(wgs->term_hwnd, hdc);
 }
 
-static void wm_size_resize_term(WinGuiSeat *wgs, LPARAM lParam, bool border)
+static void wm_size_resize_term(WinGuiSeat *wgs, LPARAM lParam)
 {
     int width = LOWORD(lParam);
     int height = HIWORD(lParam);
-    int border_size = border ? conf_get_int(wgs->conf, CONF_window_border) : 0;
+    int border_size = conf_get_int(wgs->conf, CONF_window_border);
 
     int w = (width - border_size*2) / wgs->font_width;
     int h = (height - border_size*2) / wgs->font_height;
@@ -2224,12 +2186,12 @@ static void wm_size_resize_term(WinGuiSeat *wgs, LPARAM lParam, bool border)
          * numbers of resize events.
          */
         wgs->need_backend_resize = true;
-        conf_set_int(wgs->conf, CONF_height, h);
-        conf_set_int(wgs->conf, CONF_width, w);
     } else {
         term_size(wgs->term, h, w,
                   conf_get_int(wgs->conf, CONF_savelines));
     }
+    conf_set_int(wgs->conf, CONF_height, h);
+    conf_set_int(wgs->conf, CONF_width, w);
 }
 
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
@@ -2938,9 +2900,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
         term_update(wgs->term);
         break;
       case WM_ENTERSIZEMOVE:
-#ifdef RDB_DEBUG_PATCH
-        debug("WM_ENTERSIZEMOVE\n");
-#endif
         EnableSizeTip(true);
         wgs->resizing = true;
         wgs->need_backend_resize = false;
@@ -2948,9 +2907,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
       case WM_EXITSIZEMOVE:
         EnableSizeTip(false);
         wgs->resizing = false;
-#ifdef RDB_DEBUG_PATCH
-        debug("WM_EXITSIZEMOVE\n");
-#endif
         if (wgs->need_backend_resize) {
             term_size(wgs->term, conf_get_int(wgs->conf, CONF_height),
                       conf_get_int(wgs->conf, CONF_width),
@@ -3063,15 +3019,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
         break;
       case WM_SIZE:
         resize_action = conf_get_int(wgs->conf, CONF_resize_action);
-#ifdef RDB_DEBUG_PATCH
-        debug("WM_SIZE %s (%d,%d)\n",
-              (wParam == SIZE_MINIMIZED) ? "SIZE_MINIMIZED":
-              (wParam == SIZE_MAXIMIZED) ? "SIZE_MAXIMIZED":
-              (wParam == SIZE_RESTORED && resizing) ? "to":
-              (wParam == SIZE_RESTORED) ? "SIZE_RESTORED":
-              "...",
-              LOWORD(lParam), HIWORD(lParam));
-#endif
         term_notify_minimised(wgs->term, wParam == SIZE_MINIMIZED);
         {
             /*
@@ -3129,12 +3076,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
                 wgs->prev_rows = wgs->term->rows;
                 wgs->prev_cols = wgs->term->cols;
                 if (resize_action == RESIZE_TERM)
-                    wm_size_resize_term(wgs, lParam, false);
+                    wm_size_resize_term(wgs, lParam);
                 reset_window(wgs, 0);
             } else if (wParam == SIZE_RESTORED && wgs->was_zoomed) {
                 wgs->was_zoomed = false;
                 if (resize_action == RESIZE_TERM) {
-                    wm_size_resize_term(wgs, lParam, true);
+                    wm_size_resize_term(wgs, lParam);
                     reset_window(wgs, 2);
                 } else if (resize_action != RESIZE_FONT)
                     reset_window(wgs, 2);
@@ -3145,7 +3092,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
             } else if (resize_action == RESIZE_TERM ||
                        (resize_action == RESIZE_EITHER &&
                         !is_alt_pressed())) {
-                wm_size_resize_term(wgs, lParam, true);
+                wm_size_resize_term(wgs, lParam);
 
                 /*
                  * Sometimes, we can get a spontaneous resize event

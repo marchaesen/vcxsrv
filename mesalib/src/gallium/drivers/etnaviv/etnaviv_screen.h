@@ -67,6 +67,9 @@ struct etna_screen {
    struct etna_compiler *compiler;
    struct util_queue shader_compiler_queue;
 
+   /* dummy BO available to user that don't care about the content */
+   struct etna_bo *dummy_bo;
+
    /* dummy render target for GPUs that can't fully disable the color pipe */
    struct etna_reloc dummy_rt_reloc;
 

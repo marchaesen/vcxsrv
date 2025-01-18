@@ -197,7 +197,7 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
    nir->info.gs.input_primitive = MESA_PRIM_TRIANGLES;
    nir->info.gs.output_primitive = output_primitive;
    nir->info.gs.vertices_in = 3;
-   nir->info.gs.vertices_out = vertices_out;
+   nir->info.gs.vertices_out = static_cast<uint16_t>(vertices_out);
    nir->info.gs.invocations = 1;
    nir->info.gs.active_stream_mask = 1;
 

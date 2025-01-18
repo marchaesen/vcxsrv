@@ -28,7 +28,15 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 /* On win32, off_t is only 32 bit, so always using 64 bit size */
 int os_create_anonymous_file(int64_t size, const char *debug_name);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

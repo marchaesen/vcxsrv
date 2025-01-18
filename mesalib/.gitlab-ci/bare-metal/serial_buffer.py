@@ -22,7 +22,7 @@
 # IN THE SOFTWARE.
 
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import queue
 import serial
 import threading
@@ -130,9 +130,10 @@ class SerialBuffer:
                 if b == b'\n'[0]:
                     line = line.decode(errors="replace")
 
-                    time = datetime.now().strftime('%y-%m-%d %H:%M:%S')
-                    print("{endc}{time} {prefix}{line}".format(
-                        time=time, prefix=self.prefix, line=line, endc='\033[0m'), flush=True, end='')
+                    ts = datetime.now(tz=UTC)
+                    ts_str = f"{ts.hour:02}:{ts.minute:02}:{ts.second:02}.{int(ts.microsecond / 1000):03}"
+                    print("{endc}{time}{prefix}{line}".format(
+                        time=ts_str, prefix=self.prefix, line=line, endc='\033[0m'), flush=True, end='')
 
                     self.line_queue.put(line)
                     line = bytearray()

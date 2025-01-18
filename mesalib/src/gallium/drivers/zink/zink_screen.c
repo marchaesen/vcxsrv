@@ -548,578 +548,6 @@ have_fp32_filter_linear(struct zink_screen *screen)
 }
 
 static int
-zink_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
-{
-   struct zink_screen *screen = zink_screen(pscreen);
-
-   switch (param) {
-   case PIPE_CAP_NULL_TEXTURES:
-      return screen->info.rb_image_feats.robustImageAccess;
-   case PIPE_CAP_MULTIVIEW:
-      /* support OVR_multiview and OVR_multiview2 */
-      return screen->info.have_vulkan13 ? 2 * screen->info.feats11.multiview : 0;
-   case PIPE_CAP_TEXRECT:
-   case PIPE_CAP_MULTI_DRAW_INDIRECT_PARTIAL_STRIDE:
-      return 0;
-   case PIPE_CAP_ANISOTROPIC_FILTER:
-      return screen->info.feats.features.samplerAnisotropy;
-   case PIPE_CAP_EMULATE_NONFIXED_PRIMITIVE_RESTART:
-      return 1;
-   case PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART: {
-      uint32_t modes = BITFIELD_BIT(MESA_PRIM_LINE_STRIP) |
-                       BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP) |
-                       BITFIELD_BIT(MESA_PRIM_LINE_STRIP_ADJACENCY) |
-                       BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP_ADJACENCY);
-      if (screen->have_triangle_fans)
-         modes |= BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN);
-      if (screen->info.have_EXT_primitive_topology_list_restart) {
-         modes |= BITFIELD_BIT(MESA_PRIM_POINTS) |
-                  BITFIELD_BIT(MESA_PRIM_LINES) |
-                  BITFIELD_BIT(MESA_PRIM_LINES_ADJACENCY) |
-                  BITFIELD_BIT(MESA_PRIM_TRIANGLES) |
-                  BITFIELD_BIT(MESA_PRIM_TRIANGLES_ADJACENCY);
-         if (screen->info.list_restart_feats.primitiveTopologyPatchListRestart)
-            modes |= BITFIELD_BIT(MESA_PRIM_PATCHES);
-      }
-      return modes;
-   }
-   case PIPE_CAP_SUPPORTED_PRIM_MODES: {
-      uint32_t modes = BITFIELD_MASK(MESA_PRIM_COUNT);
-      if (!screen->have_triangle_fans || !screen->info.feats.features.geometryShader)
-        modes &= ~BITFIELD_BIT(MESA_PRIM_QUADS);
-      modes &= ~BITFIELD_BIT(MESA_PRIM_QUAD_STRIP);
-      modes &= ~BITFIELD_BIT(MESA_PRIM_POLYGON);
-      modes &= ~BITFIELD_BIT(MESA_PRIM_LINE_LOOP);
-      if (!screen->have_triangle_fans)
-         modes &= ~BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN);
-      return modes;
-   }
-
-   case PIPE_CAP_FBFETCH:
-      return 1;
-   case PIPE_CAP_FBFETCH_COHERENT:
-      return screen->info.have_EXT_rasterization_order_attachment_access;
-
-   case PIPE_CAP_MEMOBJ:
-      return screen->instance_info.have_KHR_external_memory_capabilities && (screen->info.have_KHR_external_memory_fd || screen->info.have_KHR_external_memory_win32);
-   case PIPE_CAP_FENCE_SIGNAL:
-      return screen->info.have_KHR_external_semaphore_fd || screen->info.have_KHR_external_semaphore_win32;
-   case PIPE_CAP_NATIVE_FENCE_FD:
-      return screen->instance_info.have_KHR_external_semaphore_capabilities && screen->info.have_KHR_external_semaphore_fd;
-   case PIPE_CAP_RESOURCE_FROM_USER_MEMORY:
-      return screen->info.have_EXT_external_memory_host;
-
-   case PIPE_CAP_SURFACE_REINTERPRET_BLOCKS:
-      return screen->info.have_vulkan11 || screen->info.have_KHR_maintenance2;
-
-   case PIPE_CAP_VALIDATE_ALL_DIRTY_STATES:
-   case PIPE_CAP_ALLOW_MAPPED_BUFFERS_DURING_EXECUTION:
-   case PIPE_CAP_MAP_UNSYNCHRONIZED_THREAD_SAFE:
-   case PIPE_CAP_SHAREABLE_SHADERS:
-   case PIPE_CAP_DEVICE_RESET_STATUS_QUERY:
-   case PIPE_CAP_QUERY_MEMORY_INFO:
-   case PIPE_CAP_NPOT_TEXTURES:
-   case PIPE_CAP_TGSI_TEXCOORD:
-   case PIPE_CAP_DRAW_INDIRECT:
-   case PIPE_CAP_TEXTURE_QUERY_LOD:
-   case PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS:
-   case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
-   case PIPE_CAP_FORCE_PERSAMPLE_INTERP:
-   case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
-   case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
-   case PIPE_CAP_QUERY_BUFFER_OBJECT:
-   case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
-   case PIPE_CAP_CLIP_HALFZ:
-   case PIPE_CAP_TEXTURE_QUERY_SAMPLES:
-   case PIPE_CAP_TEXTURE_BARRIER:
-   case PIPE_CAP_QUERY_SO_OVERFLOW:
-   case PIPE_CAP_GL_SPIRV:
-   case PIPE_CAP_CLEAR_SCISSORED:
-   case PIPE_CAP_INVALIDATE_BUFFER:
-   case PIPE_CAP_PREFER_REAL_BUFFER_IN_CONSTBUF0:
-   case PIPE_CAP_PACKED_UNIFORMS:
-   case PIPE_CAP_SHADER_PACK_HALF_FLOAT:
-   case PIPE_CAP_CULL_DISTANCE_NOCOMBINE:
-   case PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE:
-   case PIPE_CAP_LOAD_CONSTBUF:
-   case PIPE_CAP_MULTISAMPLE_Z_RESOLVE:
-   case PIPE_CAP_ALLOW_GLTHREAD_BUFFER_SUBDATA_OPT:
-   case PIPE_CAP_NIR_SAMPLERS_AS_DEREF:
-      return 1;
-
-   case PIPE_CAP_DRAW_VERTEX_STATE:
-      return screen->info.have_EXT_vertex_input_dynamic_state;
-
-   case PIPE_CAP_SURFACE_SAMPLE_COUNT:
-      return screen->vk_version >= VK_MAKE_VERSION(1,2,0);
-
-   case PIPE_CAP_SHADER_GROUP_VOTE:
-      if (screen->info.have_vulkan11 &&
-          (screen->info.subgroup.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT) &&
-          (screen->info.subgroup.supportedStages & VK_SHADER_STAGE_COMPUTE_BIT))
-         return true;
-      if (screen->info.have_EXT_shader_subgroup_vote)
-         return true;
-      return false;
-   case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
-      return 1;
-
-   case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
-      return screen->info.have_KHR_sampler_mirror_clamp_to_edge || (screen->info.have_vulkan12 && screen->info.feats12.samplerMirrorClampToEdge);
-
-   case PIPE_CAP_POLYGON_OFFSET_UNITS_UNSCALED:
-      return 1;
-
-   case PIPE_CAP_POLYGON_OFFSET_CLAMP:
-      return screen->info.feats.features.depthBiasClamp;
-
-   case PIPE_CAP_QUERY_PIPELINE_STATISTICS_SINGLE:
-      return screen->info.feats.features.pipelineStatisticsQuery;
-
-   case PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR:
-      return screen->info.feats.features.robustBufferAccess &&
-             (screen->info.rb2_feats.robustImageAccess2 || screen->driver_compiler_workarounds.lower_robustImageAccess2);
-
-   case PIPE_CAP_MULTI_DRAW_INDIRECT:
-      return screen->info.feats.features.multiDrawIndirect;
-
-   case PIPE_CAP_IMAGE_ATOMIC_FLOAT_ADD:
-      return (screen->info.have_EXT_shader_atomic_float &&
-              screen->info.atomic_float_feats.shaderSharedFloat32AtomicAdd &&
-              screen->info.atomic_float_feats.shaderBufferFloat32AtomicAdd);
-   case PIPE_CAP_SHADER_ATOMIC_INT64:
-      return (screen->info.have_KHR_shader_atomic_int64 &&
-              screen->info.atomic_int_feats.shaderSharedInt64Atomics &&
-              screen->info.atomic_int_feats.shaderBufferInt64Atomics);
-
-   case PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS:
-      return screen->info.have_KHR_draw_indirect_count;
-
-   case PIPE_CAP_START_INSTANCE:
-   case PIPE_CAP_DRAW_PARAMETERS:
-      return (screen->info.have_vulkan12 && screen->info.feats11.shaderDrawParameters) ||
-              screen->info.have_KHR_shader_draw_parameters;
-
-   case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
-      return screen->info.have_EXT_vertex_attribute_divisor;
-
-   case PIPE_CAP_MAX_VERTEX_STREAMS:
-      return screen->info.tf_props.maxTransformFeedbackStreams;
-
-   case PIPE_CAP_COMPUTE_SHADER_DERIVATIVES:
-      return screen->info.have_NV_compute_shader_derivatives;
-
-   case PIPE_CAP_INT64:
-   case PIPE_CAP_DOUBLES:
-      return 1;
-
-   case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
-      if (!screen->info.feats.features.dualSrcBlend)
-         return 0;
-      return screen->info.props.limits.maxFragmentDualSrcAttachments;
-
-   case PIPE_CAP_MAX_RENDER_TARGETS:
-      return screen->info.props.limits.maxColorAttachments;
-
-   case PIPE_CAP_OCCLUSION_QUERY:
-      return screen->info.feats.features.occlusionQueryPrecise;
-
-   case PIPE_CAP_PROGRAMMABLE_SAMPLE_LOCATIONS:
-      return screen->info.have_EXT_sample_locations && screen->info.have_EXT_extended_dynamic_state;
-
-   case PIPE_CAP_QUERY_TIME_ELAPSED:
-      return screen->timestamp_valid_bits > 0;
-
-   case PIPE_CAP_TEXTURE_MULTISAMPLE:
-      return 1;
-
-   case PIPE_CAP_FRAGMENT_SHADER_INTERLOCK:
-      return screen->info.have_EXT_fragment_shader_interlock;
-
-   case PIPE_CAP_SHADER_CLOCK:
-      return screen->info.have_KHR_shader_clock;
-
-   case PIPE_CAP_SHADER_BALLOT:
-      if (screen->info.props11.subgroupSize > 64)
-         return false;
-      if (screen->info.have_vulkan11 &&
-          screen->info.subgroup.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT)
-         return true;
-      if (screen->info.have_EXT_shader_subgroup_ballot)
-         return true;
-      return false;
-
-   case PIPE_CAP_DEMOTE_TO_HELPER_INVOCATION:
-      return screen->spirv_version >= SPIRV_VERSION(1, 6) ||
-             screen->info.have_EXT_shader_demote_to_helper_invocation;
-
-   case PIPE_CAP_SAMPLE_SHADING:
-      return screen->info.feats.features.sampleRateShading;
-
-   case PIPE_CAP_TEXTURE_SWIZZLE:
-      return 1;
-
-   case PIPE_CAP_VERTEX_INPUT_ALIGNMENT:
-      return screen->info.have_EXT_legacy_vertex_attributes ? PIPE_VERTEX_INPUT_ALIGNMENT_NONE : PIPE_VERTEX_INPUT_ALIGNMENT_ELEMENT;
-
-   case PIPE_CAP_GL_CLAMP:
-      return 0;
-
-   case PIPE_CAP_PREFER_IMM_ARRAYS_AS_CONSTBUF:
-      return 0; /* Assume that the vk driver is capable of moving imm arrays to some sort of constant storage on its own. */
-
-   case PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK: {
-      enum pipe_quirk_texture_border_color_swizzle quirk = PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_ALPHA_NOT_W;
-      if (!screen->info.border_color_feats.customBorderColorWithoutFormat)
-         return quirk | PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
-      /* assume that if drivers don't implement this extension they either:
-       * - don't support custom border colors
-       * - handle things correctly
-       * - hate border color accuracy
-       */
-      if (screen->info.have_EXT_border_color_swizzle &&
-          !screen->info.border_swizzle_feats.borderColorSwizzleFromImage)
-         return quirk | PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_NV50;
-      return quirk;
-   }
-
-   case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      return MIN2(screen->info.props.limits.maxImageDimension1D,
-                  screen->info.props.limits.maxImageDimension2D);
-   case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
-      return 1 + util_logbase2(screen->info.props.limits.maxImageDimension3D);
-   case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      return 1 + util_logbase2(screen->info.props.limits.maxImageDimensionCube);
-
-   case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
-   case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-      return 1;
-
-   case PIPE_CAP_BLEND_EQUATION_SEPARATE:
-   case PIPE_CAP_INDEP_BLEND_ENABLE:
-   case PIPE_CAP_INDEP_BLEND_FUNC:
-      return screen->info.feats.features.independentBlend;
-
-   case PIPE_CAP_DITHERING:
-      return 0;
-
-   case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
-      return screen->info.have_EXT_transform_feedback ? screen->info.tf_props.maxTransformFeedbackBuffers : 0;
-   case PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME:
-   case PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS:
-      return screen->info.have_EXT_transform_feedback;
-
-   case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
-      return screen->info.props.limits.maxImageArrayLayers;
-
-   case PIPE_CAP_DEPTH_CLIP_DISABLE:
-      return screen->info.have_EXT_depth_clip_enable;
-
-   case PIPE_CAP_SHADER_STENCIL_EXPORT:
-      return screen->info.have_EXT_shader_stencil_export;
-
-   case PIPE_CAP_VS_INSTANCEID:
-   case PIPE_CAP_SEAMLESS_CUBE_MAP:
-      return 1;
-
-   case PIPE_CAP_MIN_TEXEL_OFFSET:
-      return screen->info.props.limits.minTexelOffset;
-   case PIPE_CAP_MAX_TEXEL_OFFSET:
-      return screen->info.props.limits.maxTexelOffset;
-
-   case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
-      return 1;
-
-   case PIPE_CAP_CONDITIONAL_RENDER:
-     return 1;
-
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-   case PIPE_CAP_GLSL_FEATURE_LEVEL:
-      return 460;
-
-   case PIPE_CAP_COMPUTE:
-      return 1;
-
-   case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
-      return screen->info.props.limits.minUniformBufferOffsetAlignment;
-
-   case PIPE_CAP_QUERY_TIMESTAMP:
-      return screen->timestamp_valid_bits > 0;
-
-   case PIPE_CAP_QUERY_TIMESTAMP_BITS:
-      return screen->timestamp_valid_bits;
-
-   case PIPE_CAP_TIMER_RESOLUTION:
-      return ceil(screen->info.props.limits.timestampPeriod);
-
-   case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
-      return 1 << MIN_SLAB_ORDER;
-
-   case PIPE_CAP_CUBE_MAP_ARRAY:
-      return screen->info.feats.features.imageCubeArray;
-
-   case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
-   case PIPE_CAP_PRIMITIVE_RESTART:
-      return 1;
-
-   case PIPE_CAP_BINDLESS_TEXTURE:
-      if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB &&
-          (screen->info.db_props.maxDescriptorBufferBindings < 2 || screen->info.db_props.maxSamplerDescriptorBufferBindings < 2))
-         return 0;
-      return screen->info.have_EXT_descriptor_indexing;
-
-   case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
-      return screen->info.props.limits.minTexelBufferOffsetAlignment;
-
-   case PIPE_CAP_TEXTURE_TRANSFER_MODES: {
-      enum pipe_texture_transfer_mode mode = PIPE_TEXTURE_TRANSFER_BLIT;
-      if (!screen->is_cpu &&
-          screen->info.have_KHR_8bit_storage &&
-          screen->info.have_KHR_16bit_storage &&
-          screen->info.have_KHR_shader_float16_int8)
-         mode |= PIPE_TEXTURE_TRANSFER_COMPUTE;
-      return mode;
-   }
-
-   case PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT:
-      return MIN2(get_smallest_buffer_heap(screen),
-                  screen->info.props.limits.maxTexelBufferElements);
-
-   case PIPE_CAP_ENDIANNESS:
-      return PIPE_ENDIAN_NATIVE; /* unsure */
-
-   case PIPE_CAP_MAX_VIEWPORTS:
-      return MIN2(screen->info.props.limits.maxViewports, PIPE_MAX_VIEWPORTS);
-
-   case PIPE_CAP_IMAGE_LOAD_FORMATTED:
-      return screen->info.feats.features.shaderStorageImageReadWithoutFormat;
-
-   case PIPE_CAP_IMAGE_STORE_FORMATTED:
-      return screen->info.feats.features.shaderStorageImageWriteWithoutFormat;
-
-   case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
-      return 1;
-
-   case PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES:
-      return screen->info.props.limits.maxGeometryOutputVertices;
-   case PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS:
-      return screen->info.props.limits.maxGeometryTotalOutputComponents;
-
-   case PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS:
-      return 4;
-
-   case PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET:
-      return screen->info.props.limits.minTexelGatherOffset;
-   case PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET:
-      return screen->info.props.limits.maxTexelGatherOffset;
-
-   case PIPE_CAP_SAMPLER_REDUCTION_MINMAX_ARB:
-      return screen->info.feats12.samplerFilterMinmax || screen->info.have_EXT_sampler_filter_minmax;
-
-   case PIPE_CAP_OPENCL_INTEGER_FUNCTIONS:
-   case PIPE_CAP_INTEGER_MULTIPLY_32X16:
-      return screen->info.have_INTEL_shader_integer_functions2;
-
-   case PIPE_CAP_FS_FINE_DERIVATIVE:
-      return 1;
-
-   case PIPE_CAP_VENDOR_ID:
-      return screen->info.props.vendorID;
-   case PIPE_CAP_DEVICE_ID:
-      return screen->info.props.deviceID;
-
-   case PIPE_CAP_ACCELERATED:
-      return !screen->is_cpu;
-   case PIPE_CAP_VIDEO_MEMORY:
-      return get_video_mem(screen) >> 20;
-   case PIPE_CAP_UMA:
-      return screen->info.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
-
-   case PIPE_CAP_MAX_VERTEX_ATTRIB_STRIDE:
-      return screen->info.props.limits.maxVertexInputBindingStride;
-
-   case PIPE_CAP_SAMPLER_VIEW_TARGET:
-      return 1;
-
-   case PIPE_CAP_VS_LAYER_VIEWPORT:
-   case PIPE_CAP_TES_LAYER_VIEWPORT:
-      return screen->info.have_EXT_shader_viewport_index_layer ||
-             (screen->spirv_version >= SPIRV_VERSION(1, 5) &&
-              screen->info.feats12.shaderOutputLayer &&
-              screen->info.feats12.shaderOutputViewportIndex);
-
-   case PIPE_CAP_TEXTURE_FLOAT_LINEAR:
-      return have_fp32_filter_linear(screen);
-
-   case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
-      return 1;
-
-   case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
-      return screen->info.props.limits.minStorageBufferOffsetAlignment;
-
-   case PIPE_CAP_PCI_GROUP:
-   case PIPE_CAP_PCI_BUS:
-   case PIPE_CAP_PCI_DEVICE:
-   case PIPE_CAP_PCI_FUNCTION:
-      return 0; /* TODO: figure these out */
-
-   case PIPE_CAP_CULL_DISTANCE:
-      return screen->info.feats.features.shaderCullDistance;
-
-   case PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE:
-      return screen->info.feats.features.sparseResidencyBuffer ? ZINK_SPARSE_BUFFER_PAGE_SIZE : 0;
-
-   /* Sparse texture */
-   case PIPE_CAP_MAX_SPARSE_TEXTURE_SIZE:
-      return screen->info.feats.features.sparseResidencyImage2D ?
-         zink_get_param(pscreen, PIPE_CAP_MAX_TEXTURE_2D_SIZE) : 0;
-   case PIPE_CAP_MAX_SPARSE_3D_TEXTURE_SIZE:
-      return screen->info.feats.features.sparseResidencyImage3D ?
-         (1 << (zink_get_param(pscreen, PIPE_CAP_MAX_TEXTURE_3D_LEVELS) - 1)) : 0;
-   case PIPE_CAP_MAX_SPARSE_ARRAY_TEXTURE_LAYERS:
-      return screen->info.feats.features.sparseResidencyImage2D ?
-         zink_get_param(pscreen, PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS) : 0;
-   case PIPE_CAP_SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS:
-      return screen->info.feats.features.sparseResidencyImage2D ? 1 : 0;
-   case PIPE_CAP_QUERY_SPARSE_TEXTURE_RESIDENCY:
-      return screen->info.feats.features.sparseResidency2Samples &&
-             screen->info.feats.features.shaderResourceResidency ? 1 : 0;
-   case PIPE_CAP_CLAMP_SPARSE_TEXTURE_LOD:
-      return screen->info.feats.features.shaderResourceMinLod &&
-             screen->info.feats.features.sparseResidency2Samples &&
-             screen->info.feats.features.shaderResourceResidency ? 1 : 0;
-
-   case PIPE_CAP_VIEWPORT_SUBPIXEL_BITS:
-      return screen->info.props.limits.viewportSubPixelBits;
-
-   case PIPE_CAP_MAX_GS_INVOCATIONS:
-      return screen->info.props.limits.maxGeometryShaderInvocations;
-
-   case PIPE_CAP_MAX_COMBINED_SHADER_BUFFERS:
-      /* gallium handles this automatically */
-      return 0;
-
-   case PIPE_CAP_MAX_SHADER_BUFFER_SIZE_UINT:
-      /* 1<<27 is required by VK spec */
-      assert(screen->info.props.limits.maxStorageBufferRange >= 1 << 27);
-      /* clamp to VK spec minimum */
-      return MIN2(get_smallest_buffer_heap(screen), screen->info.props.limits.maxStorageBufferRange);
-
-   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
-      return 1;
-
-   case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
-      return 0;
-
-   case PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL:
-   case PIPE_CAP_FS_POINT_IS_SYSVAL:
-      return 1;
-
-   case PIPE_CAP_VIEWPORT_TRANSFORM_LOWERED:
-      return 1;
-
-   case PIPE_CAP_POINT_SIZE_FIXED:
-      return screen->info.have_KHR_maintenance5 ? PIPE_POINT_SIZE_LOWER_USER_ONLY : PIPE_POINT_SIZE_LOWER_ALWAYS;
-   case PIPE_CAP_FLATSHADE:
-   case PIPE_CAP_ALPHA_TEST:
-   case PIPE_CAP_CLIP_PLANES:
-   case PIPE_CAP_TWO_SIDED_COLOR:
-      return 0;
-
-   case PIPE_CAP_MAX_SHADER_PATCH_VARYINGS:
-      return screen->info.props.limits.maxTessellationControlPerPatchOutputComponents / 4;
-   case PIPE_CAP_MAX_VARYINGS:
-      /* need to reserve up to 60 of our varying components and 16 slots for streamout */
-      return MIN2(screen->info.props.limits.maxVertexOutputComponents / 4 / 2, 16);
-
-   case PIPE_CAP_DMABUF:
-#if defined(HAVE_LIBDRM) && (DETECT_OS_LINUX || DETECT_OS_BSD)
-      return screen->info.have_KHR_external_memory_fd &&
-             screen->info.have_EXT_external_memory_dma_buf &&
-             screen->info.have_EXT_queue_family_foreign
-             ? DRM_PRIME_CAP_IMPORT | DRM_PRIME_CAP_EXPORT
-             : 0;
-#else
-      return 0;
-#endif
-
-   case PIPE_CAP_DEPTH_BOUNDS_TEST:
-      return screen->info.feats.features.depthBounds;
-
-   case PIPE_CAP_POST_DEPTH_COVERAGE:
-      return screen->info.have_EXT_post_depth_coverage;
-
-   case PIPE_CAP_STRING_MARKER:
-      return screen->instance_info.have_EXT_debug_utils;
-
-   default:
-      return u_pipe_screen_get_param_defaults(pscreen, param);
-   }
-}
-
-static float
-zink_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
-{
-   struct zink_screen *screen = zink_screen(pscreen);
-
-   switch (param) {
-   case PIPE_CAPF_MIN_LINE_WIDTH:
-   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
-      if (!screen->info.feats.features.wideLines)
-         return 1.0f;
-      return MAX2(screen->info.props.limits.lineWidthRange[0], 0.01);
-
-   case PIPE_CAPF_MIN_POINT_SIZE:
-   case PIPE_CAPF_MIN_POINT_SIZE_AA:
-      if (!screen->info.feats.features.largePoints)
-         return 1.0f;
-      return MAX2(screen->info.props.limits.pointSizeRange[0], 0.01);
-
-
-   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
-      if (!screen->info.feats.features.wideLines)
-         return 0.1f;
-      return screen->info.props.limits.lineWidthGranularity;
-
-   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
-      if (!screen->info.feats.features.largePoints)
-         return 0.1f;
-      return screen->info.props.limits.pointSizeGranularity;
-
-
-   case PIPE_CAPF_MAX_LINE_WIDTH:
-   case PIPE_CAPF_MAX_LINE_WIDTH_AA:
-      if (!screen->info.feats.features.wideLines)
-         return 1.0f;
-      return screen->info.props.limits.lineWidthRange[1];
-
-   case PIPE_CAPF_MAX_POINT_SIZE:
-   case PIPE_CAPF_MAX_POINT_SIZE_AA:
-      if (!screen->info.feats.features.largePoints)
-         return 1.0f;
-      return screen->info.props.limits.pointSizeRange[1];
-
-   case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
-      if (!screen->info.feats.features.samplerAnisotropy)
-         return 1.0f;
-      return screen->info.props.limits.maxSamplerAnisotropy;
-
-   case PIPE_CAPF_MAX_TEXTURE_LOD_BIAS:
-      return screen->info.props.limits.maxSamplerLodBias;
-
-   case PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY:
-      return 0.0f; /* not implemented */
-   }
-
-   /* should only get here on unhandled cases */
-   return 0.0f;
-}
-
-static int
 zink_get_shader_param(struct pipe_screen *pscreen,
                        gl_shader_stage shader,
                        enum pipe_shader_cap param)
@@ -1237,8 +665,6 @@ zink_get_shader_param(struct pipe_screen *pscreen,
 
    case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
       return 1;
 
    case PIPE_SHADER_CAP_SUBROUTINES:
@@ -1314,6 +740,476 @@ zink_get_shader_param(struct pipe_screen *pscreen,
 
    /* should only get here on unhandled cases */
    return 0;
+}
+
+static void
+zink_init_screen_caps(struct zink_screen *screen)
+{
+   struct pipe_caps *caps = (struct pipe_caps *)&screen->base.caps;
+
+   u_init_pipe_screen_caps(&screen->base, screen->is_cpu ? 0 : 1);
+
+   caps->null_textures = screen->info.rb_image_feats.robustImageAccess;
+   /* support OVR_multiview and OVR_multiview2 */
+   caps->multiview = screen->info.have_vulkan13 ? 2 * screen->info.feats11.multiview : 0;
+   caps->texrect = false;
+   caps->multi_draw_indirect_partial_stride = false;
+   caps->anisotropic_filter = screen->info.feats.features.samplerAnisotropy;
+   caps->emulate_nonfixed_primitive_restart = true;
+   {
+      uint32_t modes = BITFIELD_BIT(MESA_PRIM_LINE_STRIP) |
+         BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP) |
+         BITFIELD_BIT(MESA_PRIM_LINE_STRIP_ADJACENCY) |
+         BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP_ADJACENCY);
+      if (screen->have_triangle_fans)
+         modes |= BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN);
+      if (screen->info.have_EXT_primitive_topology_list_restart) {
+         modes |= BITFIELD_BIT(MESA_PRIM_POINTS) |
+            BITFIELD_BIT(MESA_PRIM_LINES) |
+            BITFIELD_BIT(MESA_PRIM_LINES_ADJACENCY) |
+            BITFIELD_BIT(MESA_PRIM_TRIANGLES) |
+            BITFIELD_BIT(MESA_PRIM_TRIANGLES_ADJACENCY);
+         if (screen->info.list_restart_feats.primitiveTopologyPatchListRestart)
+            modes |= BITFIELD_BIT(MESA_PRIM_PATCHES);
+      }
+      caps->supported_prim_modes_with_restart = modes;
+   }
+   {
+      uint32_t modes = BITFIELD_MASK(MESA_PRIM_COUNT);
+      if (!screen->have_triangle_fans || !screen->info.feats.features.geometryShader)
+         modes &= ~BITFIELD_BIT(MESA_PRIM_QUADS);
+      modes &= ~BITFIELD_BIT(MESA_PRIM_QUAD_STRIP);
+      modes &= ~BITFIELD_BIT(MESA_PRIM_POLYGON);
+      modes &= ~BITFIELD_BIT(MESA_PRIM_LINE_LOOP);
+      if (!screen->have_triangle_fans)
+         modes &= ~BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN);
+      caps->supported_prim_modes = modes;
+   }
+#if defined(MVK_VERSION)
+   caps->fbfetch = 0;
+#else
+   caps->fbfetch = 1;
+#endif
+   caps->fbfetch_coherent = screen->info.have_EXT_rasterization_order_attachment_access;
+
+   caps->memobj =
+      screen->instance_info.have_KHR_external_memory_capabilities &&
+      (screen->info.have_KHR_external_memory_fd ||
+       screen->info.have_KHR_external_memory_win32);
+   caps->fence_signal =
+      screen->info.have_KHR_external_semaphore_fd ||
+      screen->info.have_KHR_external_semaphore_win32;
+   caps->native_fence_fd =
+      screen->instance_info.have_KHR_external_semaphore_capabilities &&
+      screen->info.have_KHR_external_semaphore_fd;
+   caps->resource_from_user_memory = screen->info.have_EXT_external_memory_host;
+
+   caps->surface_reinterpret_blocks =
+      screen->info.have_vulkan11 || screen->info.have_KHR_maintenance2;
+
+   caps->validate_all_dirty_states = true;
+   caps->allow_mapped_buffers_during_execution = true;
+   caps->map_unsynchronized_thread_safe = true;
+   caps->shareable_shaders = true;
+   caps->device_reset_status_query = true;
+   caps->query_memory_info = true;
+   caps->npot_textures = true;
+   caps->tgsi_texcoord = true;
+   caps->draw_indirect = true;
+   caps->texture_query_lod = true;
+   caps->glsl_tess_levels_as_inputs = true;
+   caps->copy_between_compressed_and_plain_formats = true;
+   caps->force_persample_interp = true;
+   caps->framebuffer_no_attachment = true;
+   caps->shader_array_components = true;
+   caps->query_buffer_object = true;
+   caps->conditional_render_inverted = true;
+   caps->clip_halfz = true;
+   caps->texture_query_samples = true;
+   caps->texture_barrier = true;
+   caps->query_so_overflow = true;
+   caps->gl_spirv = true;
+   caps->clear_scissored = true;
+   caps->invalidate_buffer = true;
+   caps->prefer_real_buffer_in_constbuf0 = true;
+   caps->packed_uniforms = true;
+   caps->shader_pack_half_float = true;
+   caps->seamless_cube_map_per_texture = true;
+   caps->load_constbuf = true;
+   caps->multisample_z_resolve = true;
+   caps->allow_glthread_buffer_subdata_opt = true;
+   caps->nir_samplers_as_deref = true;
+   caps->call_finalize_nir_in_linker = true;
+
+   caps->draw_vertex_state = screen->info.have_EXT_vertex_input_dynamic_state;
+
+   caps->surface_sample_count = screen->vk_version >= VK_MAKE_VERSION(1,2,0);
+
+   caps->shader_group_vote =
+      (screen->info.have_vulkan11 &&
+       (screen->info.subgroup.supportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT) &&
+       (screen->info.subgroup.supportedStages & VK_SHADER_STAGE_COMPUTE_BIT)) ||
+      screen->info.have_EXT_shader_subgroup_vote;
+   caps->quads_follow_provoking_vertex_convention = true;
+
+   caps->texture_mirror_clamp_to_edge =
+      screen->info.have_KHR_sampler_mirror_clamp_to_edge ||
+      (screen->info.have_vulkan12 && screen->info.feats12.samplerMirrorClampToEdge);
+
+   caps->polygon_offset_units_unscaled = true;
+
+   caps->polygon_offset_clamp = screen->info.feats.features.depthBiasClamp;
+
+   caps->query_pipeline_statistics_single =
+      screen->info.feats.features.pipelineStatisticsQuery;
+
+   caps->robust_buffer_access_behavior =
+      screen->info.feats.features.robustBufferAccess &&
+      (screen->info.rb2_feats.robustImageAccess2 ||
+       screen->driver_compiler_workarounds.lower_robustImageAccess2);
+
+   caps->multi_draw_indirect = screen->info.feats.features.multiDrawIndirect;
+
+   caps->image_atomic_float_add =
+      (screen->info.have_EXT_shader_atomic_float &&
+       screen->info.atomic_float_feats.shaderSharedFloat32AtomicAdd &&
+       screen->info.atomic_float_feats.shaderBufferFloat32AtomicAdd);
+   caps->shader_atomic_int64 =
+      (screen->info.have_KHR_shader_atomic_int64 &&
+       screen->info.atomic_int_feats.shaderSharedInt64Atomics &&
+       screen->info.atomic_int_feats.shaderBufferInt64Atomics);
+
+   caps->multi_draw_indirect_params = screen->info.have_KHR_draw_indirect_count;
+
+   caps->start_instance =
+   caps->draw_parameters =
+      (screen->info.have_vulkan12 && screen->info.feats11.shaderDrawParameters) ||
+      screen->info.have_KHR_shader_draw_parameters;
+
+   caps->vertex_element_instance_divisor =
+      screen->info.have_EXT_vertex_attribute_divisor;
+
+   caps->max_vertex_streams = screen->info.tf_props.maxTransformFeedbackStreams;
+
+   caps->compute_shader_derivatives = screen->info.have_NV_compute_shader_derivatives;
+
+   caps->int64 = true;
+   caps->doubles = true;
+
+   caps->max_dual_source_render_targets =
+      screen->info.feats.features.dualSrcBlend ?
+      screen->info.props.limits.maxFragmentDualSrcAttachments : 0;
+
+   caps->max_render_targets = screen->info.props.limits.maxColorAttachments;
+
+   caps->occlusion_query = screen->info.feats.features.occlusionQueryPrecise;
+
+   caps->programmable_sample_locations =
+      screen->info.have_EXT_sample_locations &&
+      screen->info.have_EXT_extended_dynamic_state;
+
+   caps->query_time_elapsed = screen->timestamp_valid_bits > 0;
+
+   caps->texture_multisample = true;
+
+   caps->fragment_shader_interlock = screen->info.have_EXT_fragment_shader_interlock;
+
+   caps->shader_clock = screen->info.have_KHR_shader_clock;
+
+   caps->shader_ballot =
+      screen->info.props11.subgroupSize <= 64 &&
+      ((screen->info.have_vulkan11 &&
+        screen->info.subgroup.supportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT) ||
+       screen->info.have_EXT_shader_subgroup_ballot);
+
+   caps->demote_to_helper_invocation =
+      screen->spirv_version >= SPIRV_VERSION(1, 6) ||
+      screen->info.have_EXT_shader_demote_to_helper_invocation;
+
+   caps->sample_shading = screen->info.feats.features.sampleRateShading;
+
+   caps->texture_swizzle = true;
+
+   caps->vertex_input_alignment =
+      screen->info.have_EXT_legacy_vertex_attributes ?
+      PIPE_VERTEX_INPUT_ALIGNMENT_NONE : PIPE_VERTEX_INPUT_ALIGNMENT_ELEMENT;
+
+   caps->gl_clamp = false;
+
+   /* Assume that the vk driver is capable of moving imm arrays to some sort of constant storage on its own. */
+   caps->prefer_imm_arrays_as_constbuf = false;
+   {
+      enum pipe_quirk_texture_border_color_swizzle quirk =
+         PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_ALPHA_NOT_W;
+      if (!screen->info.border_color_feats.customBorderColorWithoutFormat)
+         quirk |= PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
+      /* assume that if drivers don't implement this extension they either:
+       * - don't support custom border colors
+       * - handle things correctly
+       * - hate border color accuracy
+       */
+      else if (screen->info.have_EXT_border_color_swizzle &&
+               !screen->info.border_swizzle_feats.borderColorSwizzleFromImage)
+         quirk |= PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_NV50;
+      caps->texture_border_color_quirk = quirk;
+   }
+   caps->max_texture_2d_size =
+      MIN2(screen->info.props.limits.maxImageDimension1D,
+           screen->info.props.limits.maxImageDimension2D);
+   caps->max_texture_3d_levels =
+      1 + util_logbase2(screen->info.props.limits.maxImageDimension3D);
+   caps->max_texture_cube_levels =
+      1 + util_logbase2(screen->info.props.limits.maxImageDimensionCube);
+
+   caps->fragment_shader_texture_lod = true;
+   caps->fragment_shader_derivatives = true;
+
+   caps->blend_equation_separate =
+   caps->indep_blend_enable =
+   caps->indep_blend_func = screen->info.feats.features.independentBlend;
+
+   caps->dithering = false;
+
+   caps->max_stream_output_buffers =
+      screen->info.have_EXT_transform_feedback ?
+      screen->info.tf_props.maxTransformFeedbackBuffers : 0;
+   caps->stream_output_pause_resume =
+   caps->stream_output_interleave_buffers = screen->info.have_EXT_transform_feedback;
+
+   caps->max_texture_array_layers = screen->info.props.limits.maxImageArrayLayers;
+
+   caps->depth_clip_disable = screen->info.have_EXT_depth_clip_enable;
+
+   caps->shader_stencil_export = screen->info.have_EXT_shader_stencil_export;
+
+   caps->vs_instanceid = true;
+   caps->seamless_cube_map = true;
+
+   caps->min_texel_offset = screen->info.props.limits.minTexelOffset;
+   caps->max_texel_offset = screen->info.props.limits.maxTexelOffset;
+
+   caps->vertex_color_unclamped = true;
+
+   caps->conditional_render = true;
+
+   caps->glsl_feature_level_compatibility =
+   caps->glsl_feature_level = 460;
+
+   caps->compute = true;
+
+   caps->constant_buffer_offset_alignment =
+      screen->info.props.limits.minUniformBufferOffsetAlignment;
+
+   caps->query_timestamp = screen->timestamp_valid_bits > 0;
+
+   caps->query_timestamp_bits = screen->timestamp_valid_bits;
+
+   caps->timer_resolution = ceil(screen->info.props.limits.timestampPeriod);
+
+   caps->min_map_buffer_alignment = 1 << MIN_SLAB_ORDER;
+
+   caps->cube_map_array = screen->info.feats.features.imageCubeArray;
+
+   caps->texture_buffer_objects = true;
+   caps->primitive_restart = true;
+
+   caps->bindless_texture =
+      (zink_descriptor_mode != ZINK_DESCRIPTOR_MODE_DB ||
+       (screen->info.db_props.maxDescriptorBufferBindings >= 2 &&
+        screen->info.db_props.maxSamplerDescriptorBufferBindings >= 2)) &&
+      screen->info.have_EXT_descriptor_indexing;
+
+   caps->texture_buffer_offset_alignment =
+      screen->info.props.limits.minTexelBufferOffsetAlignment;
+
+   {
+      enum pipe_texture_transfer_mode mode = PIPE_TEXTURE_TRANSFER_BLIT;
+      if (!screen->is_cpu &&
+          screen->info.have_KHR_8bit_storage &&
+          screen->info.have_KHR_16bit_storage &&
+          screen->info.have_KHR_shader_float16_int8)
+         mode |= PIPE_TEXTURE_TRANSFER_COMPUTE;
+      caps->texture_transfer_modes = mode;
+   }
+
+   caps->max_texel_buffer_elements =
+      MIN2(get_smallest_buffer_heap(screen),
+           screen->info.props.limits.maxTexelBufferElements);
+
+   caps->endianness = PIPE_ENDIAN_NATIVE; /* unsure */
+
+   caps->max_viewports =
+      MIN2(screen->info.props.limits.maxViewports, PIPE_MAX_VIEWPORTS);
+
+   caps->image_load_formatted =
+      screen->info.feats.features.shaderStorageImageReadWithoutFormat;
+
+   caps->image_store_formatted =
+      screen->info.feats.features.shaderStorageImageWriteWithoutFormat;
+
+   caps->mixed_framebuffer_sizes = true;
+
+   caps->max_geometry_output_vertices =
+      screen->info.props.limits.maxGeometryOutputVertices;
+   caps->max_geometry_total_output_components =
+      screen->info.props.limits.maxGeometryTotalOutputComponents;
+
+   caps->max_texture_gather_components = 4;
+
+   caps->min_texture_gather_offset = screen->info.props.limits.minTexelGatherOffset;
+   caps->max_texture_gather_offset = screen->info.props.limits.maxTexelGatherOffset;
+
+   caps->sampler_reduction_minmax_arb =
+      screen->info.feats12.samplerFilterMinmax ||
+      screen->info.have_EXT_sampler_filter_minmax;
+
+   caps->opencl_integer_functions =
+   caps->integer_multiply_32x16 = screen->info.have_INTEL_shader_integer_functions2;
+
+   caps->fs_fine_derivative = true;
+
+   caps->vendor_id = screen->info.props.vendorID;
+   caps->device_id = screen->info.props.deviceID;
+
+   caps->video_memory = get_video_mem(screen) >> 20;
+   caps->uma = screen->info.props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+
+   caps->max_vertex_attrib_stride =
+      screen->info.props.limits.maxVertexInputBindingStride;
+
+   caps->sampler_view_target = true;
+
+   caps->vs_layer_viewport =
+   caps->tes_layer_viewport =
+      screen->info.have_EXT_shader_viewport_index_layer ||
+      (screen->spirv_version >= SPIRV_VERSION(1, 5) &&
+       screen->info.feats12.shaderOutputLayer &&
+       screen->info.feats12.shaderOutputViewportIndex);
+
+   caps->texture_float_linear = have_fp32_filter_linear(screen);
+
+   caps->texture_half_float_linear = true;
+
+   caps->shader_buffer_offset_alignment =
+      screen->info.props.limits.minStorageBufferOffsetAlignment;
+
+   caps->pci_group =
+   caps->pci_bus =
+   caps->pci_device =
+   caps->pci_function = 0; /* TODO: figure these out */
+
+   caps->cull_distance = screen->info.feats.features.shaderCullDistance;
+
+   caps->sparse_buffer_page_size =
+      screen->info.feats.features.sparseResidencyBuffer ? ZINK_SPARSE_BUFFER_PAGE_SIZE : 0;
+
+   /* Sparse texture */
+   caps->max_sparse_texture_size =
+      screen->info.feats.features.sparseResidencyImage2D ?
+      caps->max_texture_2d_size : 0;
+   caps->max_sparse_3d_texture_size =
+      screen->info.feats.features.sparseResidencyImage3D ?
+      (1 << (caps->max_texture_3d_levels - 1)) : 0;
+   caps->max_sparse_array_texture_layers =
+      screen->info.feats.features.sparseResidencyImage2D ?
+      caps->max_texture_array_layers : 0;
+   caps->sparse_texture_full_array_cube_mipmaps =
+      screen->info.feats.features.sparseResidencyImage2D;
+   caps->query_sparse_texture_residency =
+      screen->info.feats.features.sparseResidency2Samples &&
+      screen->info.feats.features.shaderResourceResidency;
+   caps->clamp_sparse_texture_lod =
+      screen->info.feats.features.shaderResourceMinLod &&
+      screen->info.feats.features.sparseResidency2Samples &&
+      screen->info.feats.features.shaderResourceResidency;
+
+   caps->viewport_subpixel_bits = screen->info.props.limits.viewportSubPixelBits;
+
+   caps->max_gs_invocations = screen->info.props.limits.maxGeometryShaderInvocations;
+
+   /* gallium handles this automatically */
+   caps->max_combined_shader_buffers = 0;
+
+   /* 1<<27 is required by VK spec */
+   assert(screen->info.props.limits.maxStorageBufferRange >= 1 << 27);
+   /* clamp to VK spec minimum */
+   caps->max_shader_buffer_size =
+      MIN2(get_smallest_buffer_heap(screen), screen->info.props.limits.maxStorageBufferRange);
+
+   caps->fs_coord_origin_upper_left = true;
+   caps->fs_coord_pixel_center_half_integer = true;
+
+   caps->fs_coord_origin_lower_left = false;
+   caps->fs_coord_pixel_center_integer = false;
+
+   caps->fs_face_is_integer_sysval = true;
+   caps->fs_point_is_sysval = true;
+
+   caps->viewport_transform_lowered = true;
+
+   caps->point_size_fixed =
+      screen->info.have_KHR_maintenance5 ?
+      PIPE_POINT_SIZE_LOWER_USER_ONLY : PIPE_POINT_SIZE_LOWER_ALWAYS;
+   caps->flatshade = false;
+   caps->alpha_test = false;
+   caps->clip_planes = 0;
+   caps->two_sided_color = false;
+
+   caps->max_shader_patch_varyings =
+      screen->info.props.limits.maxTessellationControlPerPatchOutputComponents / 4;
+   /* need to reserve up to 60 of our varying components and 16 slots for streamout */
+   caps->max_varyings =
+      MIN2(screen->info.props.limits.maxVertexOutputComponents / 4 / 2, 16);
+
+   caps->dmabuf =
+#if defined(HAVE_LIBDRM) && (DETECT_OS_LINUX || DETECT_OS_BSD)
+      screen->info.have_KHR_external_memory_fd &&
+      screen->info.have_EXT_external_memory_dma_buf &&
+      screen->info.have_EXT_queue_family_foreign
+      ? DRM_PRIME_CAP_IMPORT | DRM_PRIME_CAP_EXPORT : 0;
+#else
+      0;
+#endif
+
+   caps->depth_bounds_test = screen->info.feats.features.depthBounds;
+
+   caps->post_depth_coverage = screen->info.have_EXT_post_depth_coverage;
+
+   caps->string_marker = screen->instance_info.have_EXT_debug_utils;
+
+   caps->min_line_width =
+   caps->min_line_width_aa =
+      screen->info.feats.features.wideLines ?
+      MAX2(screen->info.props.limits.lineWidthRange[0], 0.01) : 1.0f;
+
+   caps->min_point_size =
+   caps->min_point_size_aa =
+      screen->info.feats.features.largePoints ?
+      MAX2(screen->info.props.limits.pointSizeRange[0], 0.01) : 1.0f;
+
+   caps->line_width_granularity =
+      screen->info.feats.features.wideLines ?
+      screen->info.props.limits.lineWidthGranularity : 0.1f;
+
+   caps->point_size_granularity =
+      screen->info.feats.features.largePoints ?
+      screen->info.props.limits.pointSizeGranularity : 0.1f;
+
+   caps->max_line_width =
+   caps->max_line_width_aa =
+      screen->info.feats.features.wideLines ?
+      screen->info.props.limits.lineWidthRange[1] : 1.0f;
+
+   caps->max_point_size =
+   caps->max_point_size_aa =
+      screen->info.feats.features.largePoints ?
+      screen->info.props.limits.pointSizeRange[1] : 1.0f;
+
+   caps->max_texture_anisotropy =
+      screen->info.feats.features.samplerAnisotropy ?
+      screen->info.props.limits.maxSamplerAnisotropy : 1.0f;
+
+   caps->max_texture_lod_bias = screen->info.props.limits.maxSamplerLodBias;
 }
 
 static VkSampleCountFlagBits
@@ -2108,12 +2004,17 @@ static bool
 zink_internal_setup_moltenvk(struct zink_screen *screen)
 {
 #if defined(MVK_VERSION)
+   // MoltenVK only supports VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE in newer Metal versions
+   // disable unless we can get MoltenVK to confirm it is supported
+   screen->have_dynamic_state_vertex_input_binding_stride = false;
+
    if (!screen->instance_info.have_MVK_moltenvk)
       return true;
 
    GET_PROC_ADDR_INSTANCE_LOCAL(screen, screen->instance, GetMoltenVKConfigurationMVK);
    GET_PROC_ADDR_INSTANCE_LOCAL(screen, screen->instance, SetMoltenVKConfigurationMVK);
    GET_PROC_ADDR_INSTANCE_LOCAL(screen, screen->instance, GetVersionStringsMVK);
+   GET_PROC_ADDR_INSTANCE_LOCAL(screen, screen->instance, GetPhysicalDeviceMetalFeaturesMVK);
 
    if (vk_GetVersionStringsMVK) {
       char molten_version[64] = {0};
@@ -2134,6 +2035,16 @@ zink_internal_setup_moltenvk(struct zink_screen *screen)
          // Encountered when using VK_FORMAT_R8G8_UNORM
          molten_config.fullImageViewSwizzle = VK_TRUE;
          vk_SetMoltenVKConfigurationMVK(screen->instance, &molten_config, &molten_config_size);
+      }
+   }
+
+   if (vk_GetPhysicalDeviceMetalFeaturesMVK) {
+      MVKPhysicalDeviceMetalFeatures metal_features={0};
+      size_t metal_features_size = sizeof(metal_features);
+
+      VkResult res = vk_GetPhysicalDeviceMetalFeaturesMVK(screen->pdev, &metal_features, &metal_features_size);
+      if (res == VK_SUCCESS) {
+        screen->have_dynamic_state_vertex_input_binding_stride = metal_features.dynamicVertexStride;
       }
    }
 #endif // MVK_VERSION
@@ -3003,6 +2914,16 @@ init_driver_workarounds(struct zink_screen *screen)
       break;
    }
 
+   /* these drivers cannot handle arbitary const value types */
+   switch (zink_driverid(screen)) {
+   case VK_DRIVER_ID_IMAGINATION_PROPRIETARY:
+      screen->driver_compiler_workarounds.broken_const = true;
+      break;
+   default:
+      screen->driver_compiler_workarounds.broken_const = false;
+      break;
+   }
+
    /* When robust contexts are advertised but robustImageAccess2 is not available */
    screen->driver_compiler_workarounds.lower_robustImageAccess2 =
       !screen->info.rb2_feats.robustImageAccess2 &&
@@ -3389,6 +3310,7 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
                                               VK_FORMAT_D24_UNORM_S8_UINT);
    screen->have_D32_SFLOAT_S8_UINT = zink_is_depth_format_supported(screen,
                                               VK_FORMAT_D32_SFLOAT_S8_UINT);
+   screen->have_dynamic_state_vertex_input_binding_stride = true;
 
    if (!zink_get_physical_device_info(screen)) {
       if (!screen->driver_name_is_inferred)
@@ -3530,8 +3452,6 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
    screen->base.get_compute_param = zink_get_compute_param;
    screen->base.get_timestamp = zink_get_timestamp;
    screen->base.query_memory_info = zink_query_memory_info;
-   screen->base.get_param = zink_get_param;
-   screen->base.get_paramf = zink_get_paramf;
    screen->base.get_shader_param = zink_get_shader_param;
    screen->base.get_compiler_options = zink_get_compiler_options;
    screen->base.get_sample_pixel_grid = zink_get_sample_pixel_grid;
@@ -3557,6 +3477,8 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
    screen->base.get_driver_query_info = zink_get_driver_query_info;
    screen->base.set_damage_region = zink_set_damage_region;
    screen->base.get_cl_cts_version = zink_cl_cts_version;
+
+   zink_init_screen_caps(screen);
 
    if (screen->info.have_EXT_sample_locations) {
       VkMultisamplePropertiesEXT prop;
@@ -3663,11 +3585,16 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       }
    }
    if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_AUTO) {
+      switch(screen->info.driver_props.driverID) {
       /* descriptor buffer is not performant with virt yet */
-      if (screen->info.driver_props.driverID == VK_DRIVER_ID_MESA_VENUS)
+      case VK_DRIVER_ID_MESA_VENUS:
+      /* db descriptor mode is known to be broken on IMG proprietary drivers */
+      case VK_DRIVER_ID_IMAGINATION_PROPRIETARY:
          zink_descriptor_mode = ZINK_DESCRIPTOR_MODE_LAZY;
-      else
+	 break;
+      default:
          zink_descriptor_mode = can_db ? ZINK_DESCRIPTOR_MODE_DB : ZINK_DESCRIPTOR_MODE_LAZY;
+      }
    }
    if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB) {
       const uint32_t sampler_size = MAX2(screen->info.db_props.combinedImageSamplerDescriptorSize, screen->info.db_props.robustUniformTexelBufferDescriptorSize);

@@ -60,7 +60,6 @@ SOFTWARE.
 			{IMMED}
 		</display>
 		<field name="IMMED" low="0" high="11" type="uint"/>
-		<pattern pos="12">1</pattern>
 	</override>
 
 	<display>
@@ -68,7 +67,8 @@ SOFTWARE.
 	</display>
 	<field name="SWIZ" low="0" high="1" type="#swiz"/>
 	<field name="CONST" low="2" high="10" type="uint"/>
-	<pattern low="11" high="12">10</pattern>
+	<pattern pos="12">1</pattern>
+	<assert pos="11">0</assert>
 	<encode>
 		<map name="CONST">src->num >> 2</map>
 		<map name="SWIZ">src->num &amp; 0x3</map>
@@ -288,7 +288,7 @@ SOFTWARE.
 
 <bitset name="sad.s32" extends="#instruction-cat3">
 	<pattern low="55" high="58">1111</pattern>   <!-- OPC -->
-	<derived name="FULL" expr="#false" type="bool"/>  <!-- We think? -->
+	<derived name="FULL" expr="#true" type="bool"/>
 </bitset>
 
 <bitset name="shrm" extends="#instruction-cat3-alt">

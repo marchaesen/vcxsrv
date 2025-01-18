@@ -25,19 +25,6 @@ struct ac_shader_abi {
    LLVMValueRef outputs[AC_LLVM_MAX_OUTPUTS * 4];
    bool is_16bit[AC_LLVM_MAX_OUTPUTS * 4];
 
-   /* These input registers sometimes need to be fixed up. */
-   LLVMValueRef vertex_id;
-   LLVMValueRef vs_rel_patch_id;
-   LLVMValueRef instance_id;
-
-   /* replaced registers when culling enabled */
-   LLVMValueRef vertex_id_replaced;
-   LLVMValueRef instance_id_replaced;
-   LLVMValueRef tes_u_replaced;
-   LLVMValueRef tes_v_replaced;
-   LLVMValueRef tes_rel_patch_id_replaced;
-   LLVMValueRef tes_patch_id_replaced;
-
    LLVMValueRef (*load_tess_varyings)(struct ac_shader_abi *abi, LLVMTypeRef type,
                                       unsigned driver_location, unsigned component,
                                       unsigned num_components);

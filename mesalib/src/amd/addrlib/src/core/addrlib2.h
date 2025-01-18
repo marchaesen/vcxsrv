@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -74,23 +74,6 @@ struct Dim3d
     UINT_32 d;
 };
 
-// Macro define resource block type
-enum AddrBlockType
-{
-    AddrBlockLinear    = 0, // Resource uses linear swizzle mode
-    AddrBlockMicro     = 1, // Resource uses 256B block
-    AddrBlockThin4KB   = 2, // Resource uses thin 4KB block
-    AddrBlockThick4KB  = 3, // Resource uses thick 4KB block
-    AddrBlockThin64KB  = 4, // Resource uses thin 64KB block
-    AddrBlockThick64KB = 5, // Resource uses thick 64KB block
-    AddrBlockThinVar   = 6, // Resource uses thin var block
-    AddrBlockThickVar  = 7, // Resource uses thick var block
-    AddrBlockMaxTiledType,
-
-    AddrBlockThin256KB  = AddrBlockThinVar,
-    AddrBlockThick256KB = AddrBlockThickVar,
-};
-
 enum AddrSwSet
 {
     AddrSwSetZ = 1 << ADDR_SW_Z,
@@ -111,23 +94,6 @@ const UINT_32 Log2Size64K = 16u;
 
 /**
 ************************************************************************************************************************
-* @brief Bit setting for swizzle pattern
-************************************************************************************************************************
-*/
-union ADDR_BIT_SETTING
-{
-    struct
-    {
-        UINT_16 x;
-        UINT_16 y;
-        UINT_16 z;
-        UINT_16 s;
-    };
-    UINT_64 value;
-};
-
-/**
-************************************************************************************************************************
 * @brief Swizzle pattern information
 ************************************************************************************************************************
 */
@@ -142,55 +108,6 @@ struct ADDR_SW_PATINFO
     UINT_8  nibble4Idx;
 };
 
-/**
-************************************************************************************************************************
-*   InitBit
-*
-*   @brief
-*       Initialize bit setting value via a return value
-************************************************************************************************************************
-*/
-#define InitBit(c, index) (1ull << ((c << 4) + index))
-
-const UINT_64 X0  = InitBit(0,  0);
-const UINT_64 X1  = InitBit(0,  1);
-const UINT_64 X2  = InitBit(0,  2);
-const UINT_64 X3  = InitBit(0,  3);
-const UINT_64 X4  = InitBit(0,  4);
-const UINT_64 X5  = InitBit(0,  5);
-const UINT_64 X6  = InitBit(0,  6);
-const UINT_64 X7  = InitBit(0,  7);
-const UINT_64 X8  = InitBit(0,  8);
-const UINT_64 X9  = InitBit(0,  9);
-const UINT_64 X10 = InitBit(0, 10);
-const UINT_64 X11 = InitBit(0, 11);
-
-const UINT_64 Y0  = InitBit(1,  0);
-const UINT_64 Y1  = InitBit(1,  1);
-const UINT_64 Y2  = InitBit(1,  2);
-const UINT_64 Y3  = InitBit(1,  3);
-const UINT_64 Y4  = InitBit(1,  4);
-const UINT_64 Y5  = InitBit(1,  5);
-const UINT_64 Y6  = InitBit(1,  6);
-const UINT_64 Y7  = InitBit(1,  7);
-const UINT_64 Y8  = InitBit(1,  8);
-const UINT_64 Y9  = InitBit(1,  9);
-const UINT_64 Y10 = InitBit(1, 10);
-const UINT_64 Y11 = InitBit(1, 11);
-
-const UINT_64 Z0  = InitBit(2,  0);
-const UINT_64 Z1  = InitBit(2,  1);
-const UINT_64 Z2  = InitBit(2,  2);
-const UINT_64 Z3  = InitBit(2,  3);
-const UINT_64 Z4  = InitBit(2,  4);
-const UINT_64 Z5  = InitBit(2,  5);
-const UINT_64 Z6  = InitBit(2,  6);
-const UINT_64 Z7  = InitBit(2,  7);
-const UINT_64 Z8  = InitBit(2,  8);
-
-const UINT_64 S0  = InitBit(3,  0);
-const UINT_64 S1  = InitBit(3,  1);
-const UINT_64 S2  = InitBit(3,  2);
 
 /**
 ************************************************************************************************************************
@@ -205,6 +122,10 @@ public:
     static Lib* GetLib(
         ADDR_HANDLE hLib);
 
+    virtual UINT_32 GetInterfaceVersion() const
+    {
+        return 2;
+    }
     //
     // Interface stubs
     //
@@ -221,6 +142,16 @@ public:
     ADDR_E_RETURNCODE ComputeSurfaceCoordFromAddr(
         const ADDR2_COMPUTE_SURFACE_COORDFROMADDR_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_COORDFROMADDR_OUTPUT*      pOut) const;
+    
+    ADDR_E_RETURNCODE CopyMemToSurface(
+        const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                            regionCount) const;
+
+    ADDR_E_RETURNCODE CopySurfaceToMem(
+        const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const;
 
     // For HTile
     ADDR_E_RETURNCODE ComputeHtileInfo(
@@ -473,7 +404,7 @@ protected:
         sample = (sample == 0) ? 1 : sample;
         frag   = (frag   == 0) ? sample : frag;
 
-        UINT_32 fmaskBpp = QLog2(frag);
+        UINT_32 fmaskBpp = Log2(frag);
 
         if (sample > frag)
         {
@@ -725,6 +656,24 @@ protected:
         return ADDR_NOTIMPLEMENTED;
     }
 
+    virtual ADDR_E_RETURNCODE HwlCopyMemToSurface(
+        const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlCopySurfaceToMem(
+        const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
     ADDR_E_RETURNCODE ComputeBlock256Equation(
         AddrResourceType rsrcType,
         AddrSwizzleMode swMode,
@@ -753,6 +702,12 @@ protected:
     ADDR_E_RETURNCODE ComputeSurfaceInfoTiled(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_INFO_OUTPUT*      pOut) const;
+
+    ADDR_E_RETURNCODE CopyLinearSurface(
+        const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount,
+        bool                                surfaceIsDst) const;
 
     ADDR_E_RETURNCODE ComputeSurfaceAddrFromCoordLinear(
         const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
@@ -892,13 +847,13 @@ protected:
             {
                 case ADDR_RSRC_TEX_3D:
                     // Fall through to share 2D case
-                    actualMipLevels = Max(actualMipLevels, Log2NonPow2(pIn->numSlices) + 1);
+                    actualMipLevels = Max(actualMipLevels, Log2(pIn->numSlices) + 1);
                 case ADDR_RSRC_TEX_2D:
                     // Fall through to share 1D case
-                    actualMipLevels = Max(actualMipLevels, Log2NonPow2(pIn->height) + 1);
+                    actualMipLevels = Max(actualMipLevels, Log2(pIn->height) + 1);
                 case ADDR_RSRC_TEX_1D:
                     // Base 1D case
-                    actualMipLevels = Max(actualMipLevels, Log2NonPow2(pIn->width) + 1);
+                    actualMipLevels = Max(actualMipLevels, Log2(pIn->width) + 1);
                     break;
                 default:
                     ADDR_ASSERT_ALWAYS();
@@ -976,8 +931,6 @@ protected:
     static const UINT_32    MaxSwModeType = 32;
     // Max number of resource type (2D/3D) supported for equation
     static const UINT_32    MaxRsrcType = 2;
-    // Max number of bpp (8bpp/16bpp/32bpp/64bpp/128bpp)
-    static const UINT_32    MaxElementBytesLog2  = 5;
     // Almost all swizzle mode + resource type support equation
     static const UINT_32    EquationTableSize = MaxElementBytesLog2 * MaxSwModeType * MaxRsrcType;
     // Equation table

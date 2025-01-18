@@ -47,7 +47,7 @@ LinuxVirtGpuDevice::LinuxVirtGpuDevice(enum VirtGpuCapset capset, int32_t descri
 
     memset(&mCaps, 0, sizeof(struct VirtGpuCaps));
 
-#ifdef __ANDROID__
+#if DETECT_OS_ANDROID
     processName = getprogname();
 #endif
 

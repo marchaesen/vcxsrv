@@ -809,6 +809,14 @@ vtn_handle_non_semantic_instruction(struct vtn_builder *b, SpvOp ext_opcode,
    return true;
 }
 
+static bool
+vtn_handle_non_semantic_debug_break_instruction(struct vtn_builder *b, SpvOp ext_opcode,
+                                                const uint32_t *w, unsigned count)
+{
+   nir_debug_break(&b->nb);
+   return true;
+}
+
 static void
 vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
                      const uint32_t *w, unsigned count)
@@ -833,6 +841,9 @@ vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
          val->ext_handler = vtn_handle_amd_shader_explicit_vertex_parameter_instruction;
       } else if (strcmp(ext, "OpenCL.std") == 0) {
          val->ext_handler = vtn_handle_opencl_instruction;
+      } else if ((strcmp(ext, "NonSemantic.DebugBreak") == 0)
+                && (b->options && b->options->emit_debug_break)) {
+         val->ext_handler = vtn_handle_non_semantic_debug_break_instruction;
       } else if (strstr(ext, "NonSemantic.") == ext) {
          val->ext_handler = vtn_handle_non_semantic_instruction;
       } else {
@@ -4858,6 +4869,7 @@ vtn_handle_entry_point(struct vtn_builder *b, const uint32_t *w,
    /* Let this be a name label regardless */
    unsigned name_words;
    entry_point->name = vtn_string_literal(b, &w[3], count - 3, &name_words);
+   entry_point->is_entrypoint = true;
 
    gl_shader_stage stage = vtn_stage_for_execution_model(w[1]);
    vtn_fail_if(stage == MESA_SHADER_NONE,
@@ -6089,10 +6101,10 @@ vtn_handle_ray_query_intrinsic(struct vtn_builder *b, SpvOp opcode,
 }
 
 static void
-vtn_handle_initialize_node_payloads(struct vtn_builder *b, SpvOp opcode,
+vtn_handle_allocate_node_payloads(struct vtn_builder *b, SpvOp opcode,
                                     const uint32_t *w, unsigned count)
 {
-   vtn_assert(opcode == SpvOpInitializeNodePayloadsAMDX);
+   vtn_assert(opcode == SpvOpAllocateNodePayloadsAMDX);
 
    nir_def *payloads = vtn_ssa_value(b, w[1])->def;
    mesa_scope scope = vtn_translate_scope(b, vtn_constant_uint(b, w[2]));
@@ -6609,11 +6621,8 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
          nir_undef(&b->nb, 1, 32));
       break;
 
-   case SpvOpInitializeNodePayloadsAMDX:
-      vtn_handle_initialize_node_payloads(b, opcode, w, count);
-      break;
-
-   case SpvOpFinalizeNodePayloadsAMDX:
+   case SpvOpAllocateNodePayloadsAMDX:
+      vtn_handle_allocate_node_payloads(b, opcode, w, count);
       break;
 
    case SpvOpFinishWritingNodePayloadAMDX:
@@ -6767,6 +6776,27 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
    return NULL;
 }
 
+/* See glsl_type_add_to_function_params and vtn_ssa_value_add_to_call_params */
+static void
+vtn_emit_kernel_entry_point_wrapper_struct_param(struct nir_builder *b,
+                                                 nir_deref_instr *deref,
+                                                 nir_call_instr *call,
+                                                 unsigned *idx)
+{
+   if (glsl_type_is_vector_or_scalar(deref->type)) {
+      call->params[(*idx)++] = nir_src_for_ssa(nir_load_deref(b, deref));
+   } else {
+      unsigned elems = glsl_get_length(deref->type);
+      for (unsigned i = 0; i < elems; i++) {
+         nir_deref_instr *child_deref = glsl_type_is_struct(deref->type)
+            ? nir_build_deref_struct(b, deref, i)
+            : nir_build_deref_array_imm(b, deref, i);
+         vtn_emit_kernel_entry_point_wrapper_struct_param(b, child_deref, call,
+                                                          idx);
+      }
+   }
+}
+
 static nir_function *
 vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
                                     nir_function *entry_point)
@@ -6785,7 +6815,8 @@ vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
 
    nir_call_instr *call = nir_call_instr_create(b->nb.shader, entry_point);
 
-   for (unsigned i = 0; i < entry_point->num_params; ++i) {
+   unsigned call_idx = 0;
+   for (unsigned i = 0; i < b->entry_point->func->type->length; ++i) {
       struct vtn_type *param_type = b->entry_point->func->type->params[i];
 
       b->shader->info.cs.has_variable_shared_mem |=
@@ -6826,16 +6857,29 @@ vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
          nir_variable *copy_var =
             nir_local_variable_create(impl, in_var->type, "copy_in");
          nir_copy_var(&b->nb, copy_var, in_var);
-         call->params[i] =
+         call->params[call_idx++] =
             nir_src_for_ssa(&nir_build_deref_var(&b->nb, copy_var)->def);
       } else if (param_type->base_type == vtn_base_type_image ||
                  param_type->base_type == vtn_base_type_sampler) {
          /* Don't load the var, just pass a deref of it */
-         call->params[i] = nir_src_for_ssa(&nir_build_deref_var(&b->nb, in_var)->def);
+         call->params[call_idx++] =
+            nir_src_for_ssa(&nir_build_deref_var(&b->nb, in_var)->def);
+      } else if (param_type->base_type == vtn_base_type_struct) {
+         /* We decompose struct and array parameters in vtn, so we'll need to
+          * handle it here explicitly.
+          * We have to keep the arguments on the actual entry point intact,
+          * because the runtimes rely on it to match the SPIR-V.
+          */
+         nir_deref_instr *deref = nir_build_deref_var(&b->nb, in_var);
+         vtn_emit_kernel_entry_point_wrapper_struct_param(&b->nb, deref, call,
+                                                          &call_idx);
       } else {
-         call->params[i] = nir_src_for_ssa(nir_load_var(&b->nb, in_var));
+         call->params[call_idx++] =
+            nir_src_for_ssa(nir_load_var(&b->nb, in_var));
       }
    }
+
+   assert(call_idx == entry_point->num_params);
 
    nir_builder_instr_insert(&b->nb, &call->instr);
 
@@ -6893,6 +6937,10 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    /* Handle all the preamble instructions */
    words = vtn_foreach_instruction(b, words, word_end,
                                    vtn_handle_preamble_instruction);
+
+   if (b->shader->info.subgroup_size == SUBGROUP_SIZE_UNIFORM &&
+       b->enabled_capabilities.GroupNonUniform)
+      b->shader->info.subgroup_size = SUBGROUP_SIZE_API_CONSTANT;
 
    /* DirectXShaderCompiler and glslang/shaderc both create OpKill from HLSL's
     * discard/clip, which uses demote semantics. DirectXShaderCompiler will use
@@ -7122,6 +7170,16 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    return shader;
 }
 
+static void
+print_func_param(FILE *fp, nir_function *func, unsigned p)
+{
+   if (func->params[p].name) {
+      fputs(func->params[p].name, fp);
+   } else {
+      fprintf(fp, "arg%u\n", p);
+   }
+}
+
 static bool
 func_to_nir_builder(FILE *fp, struct vtn_function *func)
 {
@@ -7144,9 +7202,9 @@ func_to_nir_builder(FILE *fp, struct vtn_function *func)
    fprintf(fp, "static inline %s\n", returns ? "nir_def *": "void");
    fprintf(fp, "%s(nir_builder *b", nir_func->name);
 
-   /* TODO: Can we recover parameter names? */
    for (unsigned i = first_param; i < nir_func->num_params; ++i) {
-      fprintf(fp, ", nir_def *arg%u", i);
+      fprintf(fp, ", nir_def *");
+      print_func_param(fp, nir_func, i);
    }
 
    fprintf(fp, ")\n{\n");
@@ -7156,11 +7214,17 @@ func_to_nir_builder(FILE *fp, struct vtn_function *func)
     */
    for (unsigned i = first_param; i < nir_func->num_params; ++i) {
       nir_parameter *param = &nir_func->params[i];
-      fprintf(fp, "   assert(arg%u->bit_size == %u);\n", i, param->bit_size);
-      fprintf(fp, "   assert(arg%u->num_components == %u);\n", i,
-              param->num_components);
-      fprintf(fp, "\n");
+
+      fprintf(fp, "   assert(");
+      print_func_param(fp, nir_func, i);
+      fprintf(fp, "->bit_size == %u);\n", param->bit_size);
+
+      fprintf(fp, "   assert(");
+      print_func_param(fp, nir_func, i);
+      fprintf(fp, "->num_components == %u);\n", param->num_components);
    }
+
+   fprintf(fp, "\n");
 
    /* Find the function to call. If not found, create a prototype */
    fprintf(fp, "   nir_function *func = nir_shader_get_function_for_name(b->shader, \"%s\");\n",
@@ -7170,14 +7234,23 @@ func_to_nir_builder(FILE *fp, struct vtn_function *func)
    fprintf(fp, "      func = nir_function_create(b->shader, \"%s\");\n",
            nir_func->name);
    fprintf(fp, "      func->num_params = %u;\n", nir_func->num_params);
-   fprintf(fp, "      func->params = ralloc_array(b->shader, nir_parameter, func->num_params);\n");
+   fprintf(fp, "      func->params = rzalloc_array(b->shader, nir_parameter, func->num_params);\n");
 
    for (unsigned i = 0; i < nir_func->num_params; ++i) {
+      nir_parameter param = nir_func->params[i];
+
       fprintf(fp, "\n");
-      fprintf(fp, "      func->params[%u].bit_size = %u;\n", i,
-              nir_func->params[i].bit_size);
+      fprintf(fp, "      func->params[%u].bit_size = %u;\n", i, param.bit_size);
       fprintf(fp, "      func->params[%u].num_components = %u;\n", i,
-              nir_func->params[i].num_components);
+              param.num_components);
+
+      if (returns && i == 0) {
+         fprintf(fp, "      func->params[%u].is_return = true;\n", i);
+      }
+
+      if (param.name) {
+         fprintf(fp, "      func->params[%u].name = \"%s\";\n", i, param.name);
+      }
    }
 
    fprintf(fp, "   }\n\n");
@@ -7213,8 +7286,10 @@ func_to_nir_builder(FILE *fp, struct vtn_function *func)
    if (returns)
       fprintf(fp, ", &deref->def");
 
-   for (unsigned i = first_param; i < nir_func->num_params; ++i)
-      fprintf(fp, ", arg%u", i);
+   for (unsigned i = first_param; i < nir_func->num_params; ++i) {
+      fprintf(fp, ", ");
+      print_func_param(fp, nir_func, i);
+   }
 
    fprintf(fp, ");\n");
 
@@ -7276,8 +7351,10 @@ spirv_library_to_nir_builder(FILE *fp, const uint32_t *words, size_t word_count,
 
    fprintf(fp, "#include \"compiler/nir/nir_builder.h\"\n\n");
 
+   nir_fixup_is_exported(b->shader);
+
    vtn_foreach_function(func, &b->functions) {
-      if (func->linkage != SpvLinkageTypeExport)
+      if (!func->nir_func->is_exported || func->nir_func->is_entrypoint)
          continue;
 
       if (!func_to_nir_builder(fp, func))

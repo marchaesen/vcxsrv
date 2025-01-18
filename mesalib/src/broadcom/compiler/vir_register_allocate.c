@@ -267,6 +267,8 @@ get_spill_type_for_temp(struct v3d_compile *c, int temp)
 static int
 v3d_choose_spill_node(struct v3d_compile *c)
 {
+        assert(c->num_temps > 1);
+
         const float tmu_scale = 10;
         float block_scale = 1.0;
         float spill_costs[c->num_temps];

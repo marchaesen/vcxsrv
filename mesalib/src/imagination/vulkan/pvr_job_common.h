@@ -49,7 +49,8 @@ enum pvr_pbe_gamma {
 struct pvr_pbe_surf_params {
    /* Swizzle for a format can be retrieved using pvr_get_format_swizzle(). */
    uint8_t swizzle[4];
-   /* is_normalized can be retrieved using pvr_vk_format_is_fully_normalized(). */
+   /* is_normalized can be retrieved using pvr_vk_format_is_fully_normalized().
+    */
    bool is_normalized;
    /* pbe_packmode can be retrieved using pvr_get_pbe_packmode(). */
    uint32_t pbe_packmode;

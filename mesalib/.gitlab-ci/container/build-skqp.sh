@@ -10,19 +10,31 @@
 
 set -uex
 
+uncollapsed_section_start skqp "Building skqp"
+
 SKQP_BRANCH=android-cts-12.1_r5
 
-SCRIPT_DIR=$(realpath "$(dirname "$0")")
+SCRIPT_DIR="$(pwd)/.gitlab-ci/container"
 SKQP_PATCH_DIR="${SCRIPT_DIR}/patches"
 BASE_ARGS_GN_FILE="${SCRIPT_DIR}/build-skqp_base.gn"
 
-SKQP_ARCH=${SKQP_ARCH:-x64}
+case "$DEBIAN_ARCH" in
+  amd64)
+    SKQP_ARCH=x64
+    ;;
+  armhf)
+    SKQP_ARCH=arm
+    ;;
+  arm64)
+    SKQP_ARCH=arm64
+    ;;
+esac
+
 SKIA_DIR=${SKIA_DIR:-$(mktemp -d)}
 SKQP_OUT_DIR=${SKIA_DIR}/out/${SKQP_ARCH}
 SKQP_INSTALL_DIR=${SKQP_INSTALL_DIR:-/skqp}
 SKQP_ASSETS_DIR="${SKQP_INSTALL_DIR}/assets"
 SKQP_BINARIES=(skqp list_gpu_unit_tests list_gms)
-
 
 create_gn_args() {
     # gn can be configured to cross-compile skia and its tools
@@ -88,3 +100,5 @@ popd
 rm -Rf "${SKIA_DIR}"
 
 set +ex
+
+section_end skqp

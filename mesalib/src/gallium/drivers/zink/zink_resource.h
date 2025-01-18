@@ -27,6 +27,7 @@
 #include "zink_types.h"
 
 #define ZINK_MAP_TEMPORARY (PIPE_MAP_DRV_PRV << 0)
+#define ZINK_MAP_QBO (PIPE_MAP_DRV_PRV << 1)
 #define ZINK_BIND_DESCRIPTOR (1u << 27)
 #define ZINK_BIND_MUTABLE (1u << 28)
 #define ZINK_BIND_DMABUF (1u << 29)

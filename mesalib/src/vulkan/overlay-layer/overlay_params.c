@@ -45,23 +45,16 @@ parse_position(const char *str)
    return LAYER_POSITION_TOP_LEFT;
 }
 
-static FILE *
+static const char *
 parse_output_file(const char *str)
 {
-   return fopen(str, "w+");
+   return strdup(str);
 }
 
 static const char *
 parse_control(const char *str)
 {
-   static char control_str[64];
-   if (strlen(str) > 63) {
-      fprintf(stderr, "ERROR: control string too long. Must be < 64 chars");
-      return NULL;
-   }
-   strcpy(control_str, str);
-
-   return control_str;
+   return strdup(str);
 }
 
 static uint32_t

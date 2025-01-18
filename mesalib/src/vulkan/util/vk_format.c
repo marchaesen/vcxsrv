@@ -260,7 +260,7 @@ const enum pipe_format vk_format_map[] = {
 };
 
 enum pipe_format
-vk_format_to_pipe_format(enum VkFormat vkformat)
+vk_format_to_pipe_format(VkFormat vkformat)
 {
    if (vkformat >= ARRAY_SIZE(vk_format_map)) {
       switch (vkformat) {
@@ -283,7 +283,7 @@ vk_format_to_pipe_format(enum VkFormat vkformat)
       case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
          return PIPE_FORMAT_Y8_U8_V8_422_UNORM;
       case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
-         return PIPE_FORMAT_Y8_U8V8_422_UNORM;
+         return PIPE_FORMAT_NV16;
       case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM:
          return PIPE_FORMAT_Y8_U8_V8_444_UNORM;
       case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:

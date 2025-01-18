@@ -999,6 +999,20 @@ tu_CreateRenderPass2(VkDevice _device,
       if (a != VK_ATTACHMENT_UNUSED) {
          tu_subpass_use_attachment(pass, i, a, pCreateInfo);
       }
+
+      const VkFragmentShadingRateAttachmentInfoKHR *fsr_att_info =
+         vk_find_struct_const(desc->pNext,
+                              FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
+      if (fsr_att_info && fsr_att_info->pFragmentShadingRateAttachment &&
+          fsr_att_info->pFragmentShadingRateAttachment->attachment !=
+             VK_ATTACHMENT_UNUSED) {
+         subpass->fsr_attachment =
+            fsr_att_info->pFragmentShadingRateAttachment->attachment;
+         subpass->fsr_attachment_texel_size =
+            fsr_att_info->shadingRateAttachmentTexelSize;
+      } else {
+         subpass->fsr_attachment = VK_ATTACHMENT_UNUSED;
+      }
    }
 
    tu_render_pass_patch_input_gmem(pass);
@@ -1233,6 +1247,25 @@ tu_setup_dynamic_render_pass(struct tu_cmd_buffer *cmd_buffer,
    } else {
       pass->fragment_density_map.attachment = VK_ATTACHMENT_UNUSED;
       pass->has_fdm = false;
+   }
+
+   const VkRenderingFragmentShadingRateAttachmentInfoKHR *fsr_info =
+      vk_find_struct_const(info->pNext,
+                           RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
+   if (fsr_info && fsr_info->imageView != VK_NULL_HANDLE) {
+      VK_FROM_HANDLE(tu_image_view, view, fsr_info->imageView);
+
+      struct tu_render_pass_attachment *att = &pass->attachments[a];
+      tu_setup_dynamic_attachment(att, view);
+      subpass->fsr_attachment = a++;
+      attachment_set_ops(device, att,
+                         VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                         VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                         VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                         VK_ATTACHMENT_STORE_OP_DONT_CARE);
+      subpass->fsr_attachment_texel_size = fsr_info->shadingRateAttachmentTexelSize;
+   } else {
+      subpass->fsr_attachment = VK_ATTACHMENT_UNUSED;
    }
 
    if (TU_DEBUG(FDM) && !tu_render_pass_disable_fdm(pass))

@@ -18,11 +18,6 @@
 #define CP_DMA_RAW_WAIT    (1 << 1)
 #define CP_DMA_CLEAR       (1 << 2)
 
-static bool cp_dma_use_L2(struct si_context *sctx)
-{
-   return sctx->gfx_level >= GFX7 && !sctx->screen->info.cp_sdma_ge_use_system_memory_scope;
-}
-
 /* The max number of bytes that can be copied per packet. */
 static inline unsigned cp_dma_max_byte_count(struct si_context *sctx)
 {
@@ -65,12 +60,12 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
       command |= S_415_RAW_WAIT(1);
 
    /* Src and dst flags. */
-   if (cp_dma_use_L2(sctx))
+   if (sctx->screen->info.cp_dma_use_L2)
       header |= S_501_DST_SEL(V_501_DST_ADDR_TC_L2);
 
    if (flags & CP_DMA_CLEAR) {
       header |= S_411_SRC_SEL(V_411_DATA);
-   } else if (cp_dma_use_L2(sctx)) {
+   } else if (sctx->screen->info.cp_dma_use_L2) {
       header |= S_501_SRC_SEL(V_501_SRC_ADDR_TC_L2);
    }
 
@@ -150,7 +145,7 @@ void si_cp_dma_clear_buffer(struct si_context *sctx, struct radeon_cmdbuf *cs,
    assert(!sctx->screen->info.cp_sdma_ge_use_system_memory_scope);
    assert(size && size % 4 == 0);
 
-   if (!cp_dma_use_L2(sctx)) {
+   if (!sctx->screen->info.cp_dma_use_L2) {
       sctx->barrier_flags |= SI_BARRIER_INV_L2;
       si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
    }
@@ -233,7 +228,7 @@ void si_cp_dma_copy_buffer(struct si_context *sctx, struct pipe_resource *dst,
    assert(size);
    assert(dst && src);
 
-   if (!cp_dma_use_L2(sctx)) {
+   if (!sctx->screen->info.cp_dma_use_L2) {
       sctx->barrier_flags |= SI_BARRIER_INV_L2;
       si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
    }

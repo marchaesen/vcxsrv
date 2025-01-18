@@ -40,6 +40,11 @@
 #include <stdlib.h>
 #include <time.h>
 
+static void dummy_sys_event(enum vpe_event_id eventId, ...)
+{
+    // Do nothing, if no callback is provided for sys event
+}
+
 static void override_debug_option(
     struct vpe_debug_options *debug, const struct vpe_debug_options *user_debug)
 {
@@ -133,8 +138,9 @@ static void verify_collaboration_mode(struct vpe_priv *vpe_priv)
     if (vpe_priv->pub.level == VPE_IP_LEVEL_1_1) {
         if (vpe_priv->collaboration_mode == true && vpe_priv->collaborate_sync_index == 0) {
             srand((unsigned int)time(NULL)); // Initialization, should only be called once.
-            uint32_t randnum                 = (uint32_t)rand();
-            randnum                          = randnum & 0x0000f000;
+            // coverity[dont_call]
+            uint32_t randnum                 = (uint32_t)rand() % 15;
+            randnum                          = randnum << 12;
             vpe_priv->collaborate_sync_index = (int32_t)randnum;
         }
     } else if (vpe_priv->pub.level == VPE_IP_LEVEL_1_0) {
@@ -196,6 +202,11 @@ struct vpe *vpe_create(const struct vpe_init_data *params)
 
     vpe_priv->init = *params;
 
+    // Make sys event an optional feature but hooking up to dummy function if no callback is
+    // provided
+    if (vpe_priv->init.funcs.sys_event == NULL)
+        vpe_priv->init.funcs.sys_event = dummy_sys_event;
+
     vpe_priv->pub.level =
         vpe_resource_parse_ip_version(params->ver_major, params->ver_minor, params->ver_rev);
 
@@ -230,10 +241,7 @@ struct vpe *vpe_create(const struct vpe_init_data *params)
     vpe_priv->ops_support      = false;
     vpe_priv->scale_yuv_matrix = true;
 
-#ifdef VPE_BUILD_1_1
     vpe_priv->collaborate_sync_index = 0;
-#endif
-
     return &vpe_priv->pub;
 }
 
@@ -471,11 +479,9 @@ enum vpe_status vpe_check_support(
     dpp             = vpe_priv->resource.dpp[0];
     status          = VPE_STATUS_OK;
 
-#ifdef VPE_BUILD_1_1
     vpe_priv->collaboration_mode = param->collaboration_mode;
     vpe_priv->vpe_num_instance   = param->num_instances;
     verify_collaboration_mode(vpe_priv);
-#endif
 
     required_virtual_streams = get_required_virtual_stream_count(vpe_priv, param);
 
@@ -546,7 +552,8 @@ enum vpe_status vpe_check_support(
         // output resource preparation for further checking (cache the result)
         output_ctx                     = &vpe_priv->output_ctx;
         output_ctx->surface            = param->dst_surface;
-        output_ctx->bg_color           = param->bg_color;
+        output_ctx->mpc_bg_color       = param->bg_color;
+        output_ctx->opp_bg_color       = param->bg_color;
         output_ctx->target_rect        = param->target_rect;
         output_ctx->alpha_mode         = param->alpha_mode;
         output_ctx->flags.hdr_metadata = param->flags.hdr_metadata;
@@ -580,7 +587,7 @@ enum vpe_status vpe_check_support(
         // if the bg_color support is false, there is a flag to verify if the bg_color falls in the
         // output gamut
         if (!vpe_priv->pub.caps->bg_color_check_support) {
-            status = vpe_priv->resource.check_bg_color_support(vpe_priv, &output_ctx->bg_color);
+            status = vpe_priv->resource.check_bg_color_support(vpe_priv, &output_ctx->mpc_bg_color);
             if (status != VPE_STATUS_OK) {
                 vpe_log(
                     "failed in checking the background color versus the output color space %d\n",
@@ -602,6 +609,9 @@ enum vpe_status vpe_check_support(
 
     if (vpe_priv->init.debug.assert_when_not_support)
         VPE_ASSERT(status == VPE_STATUS_OK);
+
+    vpe_event(VPE_EVENT_CHECK_SUPPORT, vpe_priv->num_streams, param->target_rect.width,
+        param->target_rect.height, status);
 
     return status;
 }
@@ -633,13 +643,11 @@ static bool validate_cached_param(struct vpe_priv *vpe_priv, const struct vpe_bu
        !(vpe_priv->init.debug.bg_color_fill_only == true && vpe_priv->num_streams == 1))
         return false;
 
-#ifdef VPE_BUILD_1_1
     if (vpe_priv->collaboration_mode != param->collaboration_mode)
         return false;
 
     if (param->num_instances > 0 && vpe_priv->vpe_num_instance != param->num_instances)
         return false;
-#endif
 
     for (i = 0; i < vpe_priv->num_input_streams; i++) {
         struct vpe_stream stream = param->streams[i];
@@ -655,7 +663,10 @@ static bool validate_cached_param(struct vpe_priv *vpe_priv, const struct vpe_bu
     if (output_ctx->alpha_mode != param->alpha_mode)
         return false;
 
-    if (memcmp(&output_ctx->bg_color, &param->bg_color, sizeof(struct vpe_color)))
+    if (memcmp(&output_ctx->mpc_bg_color, &param->bg_color, sizeof(struct vpe_color)))
+        return false;
+
+    if (memcmp(&output_ctx->opp_bg_color, &param->bg_color, sizeof(struct vpe_color)))
         return false;
 
     if (memcmp(&output_ctx->target_rect, &param->target_rect, sizeof(struct vpe_rect)))
@@ -783,31 +794,33 @@ enum vpe_status vpe_build_commands(
          * is used based on the information of the first stream.
          */
         vpe_bg_color_convert(vpe_priv->output_ctx.cs, vpe_priv->output_ctx.output_tf,
-            &vpe_priv->output_ctx.bg_color, vpe_priv->stream_ctx[0].enable_3dlut);
+            vpe_priv->output_ctx.surface.format, &vpe_priv->output_ctx.mpc_bg_color,
+            &vpe_priv->output_ctx.opp_bg_color, vpe_priv->stream_ctx[0].enable_3dlut);
 
-#ifdef VPE_BUILD_1_1
         if (vpe_priv->collaboration_mode == true) {
             status = builder->build_collaborate_sync_cmd(vpe_priv, &curr_bufs);
             if (status != VPE_STATUS_OK) {
                 vpe_log("failed in building collaborate sync cmd %d\n", (int)status);
             }
         }
-#endif
         for (cmd_idx = 0; cmd_idx < vpe_priv->vpe_cmd_vector->num_elements; cmd_idx++) {
             status = builder->build_vpe_cmd(vpe_priv, &curr_bufs, cmd_idx);
             if (status != VPE_STATUS_OK) {
                 vpe_log("failed in building vpe cmd %d\n", (int)status);
+                break;
             }
 
-#ifdef VPE_BUILD_1_1
             cmd_info = vpe_vector_get(vpe_priv->vpe_cmd_vector, cmd_idx);
-            if (cmd_info == NULL)
-                return VPE_STATUS_ERROR;
+            if (cmd_info == NULL) {
+                status = VPE_STATUS_ERROR;
+                break;
+            }
 
             if ((vpe_priv->collaboration_mode == true) && (cmd_info->insert_end_csync == true)) {
                 status = builder->build_collaborate_sync_cmd(vpe_priv, &curr_bufs);
                 if (status != VPE_STATUS_OK) {
                     vpe_log("failed in building collaborate sync cmd %d\n", (int)status);
+                    break;
                 }
 
                 // Add next collaborate sync start command when this vpe_cmd isn't the final one.
@@ -815,19 +828,17 @@ enum vpe_status vpe_build_commands(
                     status = builder->build_collaborate_sync_cmd(vpe_priv, &curr_bufs);
                     if (status != VPE_STATUS_OK) {
                         vpe_log("failed in building collaborate sync cmd %d\n", (int)status);
+                        break;
                     }
                 }
             }
-#endif
         }
-#ifdef VPE_BUILD_1_1
-        if (vpe_priv->collaboration_mode == true) {
+        if ((status == VPE_STATUS_OK) && (vpe_priv->collaboration_mode == true)) {
             status = builder->build_collaborate_sync_cmd(vpe_priv, &curr_bufs);
             if (status != VPE_STATUS_OK) {
                 vpe_log("failed in building collaborate sync cmd %d\n", (int)status);
             }
         }
-#endif
     }
 
     if (status == VPE_STATUS_OK) {

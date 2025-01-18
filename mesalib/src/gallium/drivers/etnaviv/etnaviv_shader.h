@@ -55,6 +55,8 @@ struct etna_shader_key
          unsigned sprite_coord_yinvert : 1;
          /* do we need to lower sample_tex_compare */
          unsigned has_sample_tex_compare : 1;
+         /* color varyings should be flat shaded */
+         unsigned flatshade : 1;
       };
       uint32_t global;
    };

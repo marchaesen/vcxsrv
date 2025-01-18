@@ -5,6 +5,8 @@
 # KERNEL_ROOTFS_TAG
 set -ex
 
+. setup-test-env.sh
+
 export DEBIAN_FRONTEND=noninteractive
 
 # Needed for ci-fairy, this revision is able to upload files to

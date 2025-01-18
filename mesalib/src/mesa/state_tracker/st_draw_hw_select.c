@@ -89,14 +89,11 @@ get_input_vertices(nir_builder *b, nir_def **v)
 {
    const int num_in_vert = b->shader->info.gs.vertices_in;
 
-   nir_variable *in_pos = nir_variable_create(
-      b->shader, nir_var_shader_in, glsl_array_type(glsl_vec4_type(), num_in_vert, 0),
-      "gl_Position");
-   in_pos->data.location = VARYING_SLOT_POS;
-
    nir_def *is_nan_or_inf = NULL;
    for (int i = 0; i < num_in_vert; i++) {
-      v[i] = nir_load_array_var_imm(b, in_pos, i);
+      v[i] = nir_load_per_vertex_input(b, 4, 32, nir_imm_int(b, i),
+                                       nir_imm_int(b, 0),
+                                       .io_semantics.location = VARYING_SLOT_POS);
       nir_def *r = has_nan_or_inf(b, v[i]);
       is_nan_or_inf = i ? nir_ior(b, is_nan_or_inf, r) : r;
    }
@@ -341,7 +338,7 @@ clip_with_plane(nir_builder *b, nir_variable *vert, nir_variable *num_vert,
    }
    end_for_loop(vert_loop);
 
-   nir_copy_var(b, num_vert, vert_index);
+   nir_store_var(b, num_vert, nir_load_var(b, vert_index), 0x1);
 }
 
 static nir_def *
@@ -394,12 +391,9 @@ update_result_buffer(nir_builder *b, nir_def *dmin, nir_def *dmax,
 {
    nir_def *offset;
    if (offset_from_attribute) {
-      nir_variable *in_offset = nir_variable_create(
-         b->shader, nir_var_shader_in,
-         glsl_array_type(glsl_uint_type(), b->shader->info.gs.vertices_in, 0),
-         "result_offset");
-      in_offset->data.location = VARYING_SLOT_VAR0;
-      offset = nir_load_array_var_imm(b, in_offset, 0);
+      offset = nir_load_per_vertex_input(b, 4, 32, nir_imm_int(b, 0),
+                                         nir_imm_int(b, 0),
+                                         .io_semantics.location = VARYING_SLOT_VAR0);
    } else {
       nir_variable *uni_offset = nir_variable_create(
          b->shader, nir_var_uniform, glsl_uint_type(), "result_offset");
@@ -620,6 +614,7 @@ hw_select_create_gs(struct st_context *st, union state_key state)
    nir->info.gs.vertices_out = 1;
    nir->info.gs.invocations = 1;
    nir->info.gs.active_stream_mask = 1;
+   nir->info.io_lowered = true;
 
    if (state.result_offset_from_attribute)
       nir->info.inputs_read |= VARYING_BIT_VAR(0);

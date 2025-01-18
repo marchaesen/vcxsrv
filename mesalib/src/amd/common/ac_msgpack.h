@@ -21,6 +21,5 @@ void ac_msgpack_add_fixmap_op(struct ac_msgpack *msgpack, uint32_t n);
 void ac_msgpack_add_fixarray_op(struct ac_msgpack *msgpack, uint32_t n);
 void ac_msgpack_add_fixstr(struct ac_msgpack *msgpack, const char *str);
 void ac_msgpack_add_uint(struct ac_msgpack *msgpack, uint64_t val);
-void ac_msgpack_add_int(struct ac_msgpack *msgpack, int64_t val);
 
 #endif

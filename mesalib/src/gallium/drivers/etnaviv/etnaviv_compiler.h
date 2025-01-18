@@ -61,7 +61,8 @@ struct etna_compiler {
 struct etna_shader_inout {
    int reg; /* native register */
    int slot; /* nir: gl_varying_slot or gl_vert_attrib */
-   int num_components;
+   uint8_t interpolation;
+   uint8_t num_components;
 };
 
 struct etna_shader_io_file {
@@ -137,6 +138,7 @@ struct etna_varying {
    uint32_t pa_attributes;
    uint8_t num_components;
    uint8_t use[4];
+   uint8_t semantic;
    uint8_t reg;
 };
 

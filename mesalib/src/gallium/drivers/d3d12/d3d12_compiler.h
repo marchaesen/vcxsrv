@@ -98,7 +98,7 @@ struct d3d12_image_format_conversion_info {
    enum pipe_format view_format, emulated_format;
 };
 struct d3d12_image_format_conversion_info_arr {
-   int n_images;
+   unsigned n_images;
    struct d3d12_image_format_conversion_info* image_format_conversion;
 };
 
@@ -190,7 +190,7 @@ struct d3d12_shader_key {
    dxil_texture_swizzle_state swizzle_state[PIPE_MAX_SHADER_SAMPLER_VIEWS];
    enum compare_func sampler_compare_funcs[PIPE_MAX_SHADER_SAMPLER_VIEWS];
 
-   int n_images;
+   unsigned n_images;
    struct d3d12_image_format_conversion_info image_format_conversion[PIPE_MAX_SHADER_IMAGES];
 };
 

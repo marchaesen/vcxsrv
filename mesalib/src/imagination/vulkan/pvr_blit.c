@@ -33,8 +33,8 @@
 #include "pvr_formats.h"
 #include "pvr_job_transfer.h"
 #include "pvr_private.h"
-#include "pvr_shader_factory.h"
-#include "pvr_static_shaders.h"
+#include "usc/programs/pvr_shader_factory.h"
+#include "usc/programs/pvr_static_shaders.h"
 #include "pvr_types.h"
 #include "util/bitscan.h"
 #include "util/list.h"
@@ -66,7 +66,7 @@ pvr_transfer_cmd_alloc(struct pvr_cmd_buffer *cmd_buffer)
    /* transfer_cmd->mapping_count is already set to zero. */
    transfer_cmd->sources[0].filter = PVR_FILTER_POINT;
    transfer_cmd->sources[0].resolve_op = PVR_RESOLVE_BLEND;
-   transfer_cmd->sources[0].addr_mode = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
+   transfer_cmd->sources[0].addr_mode = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
    transfer_cmd->cmd_buffer = cmd_buffer;
 
    return transfer_cmd;
@@ -212,7 +212,7 @@ static void pvr_setup_transfer_surface(struct pvr_device *device,
 }
 
 void pvr_CmdBlitImage2(VkCommandBuffer commandBuffer,
-                          const VkBlitImageInfo2 *pBlitImageInfo)
+                       const VkBlitImageInfo2 *pBlitImageInfo)
 {
    PVR_FROM_HANDLE(pvr_cmd_buffer, cmd_buffer, commandBuffer);
    PVR_FROM_HANDLE(pvr_image, src, pBlitImageInfo->srcImage);
@@ -534,10 +534,15 @@ pvr_copy_or_resolve_image_region(struct pvr_cmd_buffer *cmd_buffer,
       dst_extent.height = MAX2(1U, src_extent.height * block_height);
    }
 
-   /* We don't care what format dst is as it's guaranteed to be size compatible
-    * with src.
-    */
-   dst_format = pvr_get_raw_copy_format(src->vk.format);
+   if (src->vk.samples > dst->vk.samples) {
+      /* Resolve op needs to know the actual format. */
+      dst_format = dst->vk.format;
+   } else {
+      /* We don't care what format dst is as it's guaranteed to be size
+       * compatible with src.
+       */
+      dst_format = pvr_get_raw_copy_format(src->vk.format);
+   }
    src_format = dst_format;
 
    src_layers =
@@ -688,7 +693,7 @@ static bool pvr_can_merge_ds_regions(const VkImageCopy2 *pRegionA,
 }
 
 void pvr_CmdCopyImage2(VkCommandBuffer commandBuffer,
-                          const VkCopyImageInfo2 *pCopyImageInfo)
+                       const VkCopyImageInfo2 *pCopyImageInfo)
 {
    PVR_FROM_HANDLE(pvr_cmd_buffer, cmd_buffer, commandBuffer);
    PVR_FROM_HANDLE(pvr_image, src, pCopyImageInfo->srcImage);
@@ -1241,6 +1246,8 @@ static VkResult pvr_cmd_copy_buffer_region(struct pvr_cmd_buffer *cmd_buffer,
    while (offset < size) {
       const VkDeviceSize remaining_size = size - offset;
       struct pvr_transfer_cmd *transfer_cmd;
+      uint32_t src_align = (src_addr.addr + offset + src_offset) & 0xF;
+      uint32_t dst_align = (dst_addr.addr + offset + src_offset) & 0xF;
       uint32_t texel_width;
       VkDeviceSize texels;
       VkFormat vk_format;
@@ -1251,7 +1258,9 @@ static VkResult pvr_cmd_copy_buffer_region(struct pvr_cmd_buffer *cmd_buffer,
       if (is_fill) {
          vk_format = VK_FORMAT_R32_UINT;
          texel_width = 4U;
-      } else if (remaining_size >= 16U) {
+      } else if (remaining_size >= 16U && (src_align % 16U) == 0 &&
+                 (dst_align % 16U) == 0) {
+         /* Only if address is 128bpp aligned */
          vk_format = VK_FORMAT_R32G32B32A32_UINT;
          texel_width = 16U;
       } else if (remaining_size >= 4U) {
@@ -1355,7 +1364,7 @@ void pvr_CmdUpdateBuffer(VkCommandBuffer commandBuffer,
 }
 
 void pvr_CmdCopyBuffer2(VkCommandBuffer commandBuffer,
-                           const VkCopyBufferInfo2 *pCopyBufferInfo)
+                        const VkCopyBufferInfo2 *pCopyBufferInfo)
 {
    PVR_FROM_HANDLE(pvr_buffer, src, pCopyBufferInfo->srcBuffer);
    PVR_FROM_HANDLE(pvr_buffer, dst, pCopyBufferInfo->dstBuffer);
@@ -1645,7 +1654,7 @@ static VkResult pvr_clear_color_attachment_static(
    pvr_csb_pack (&texture_program.texture_dma_control[0],
                  PDSINST_DOUT_FIELDS_DOUTD_SRC1,
                  doutd_src1) {
-      doutd_src1.dest = PVRX(PDSINST_DOUTD_DEST_COMMON_STORE);
+      doutd_src1.dest = ROGUE_PDSINST_DOUTD_DEST_COMMON_STORE;
       doutd_src1.bsize = shader_info->const_shared_regs;
    }
 
@@ -1693,11 +1702,11 @@ static VkResult pvr_clear_color_attachment_static(
                  sizeinfo1) {
       sizeinfo1.pds_texturestatesize = DIV_ROUND_UP(
          clear_attachment_program->texture_program_data_size,
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE));
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE);
 
       sizeinfo1.pds_tempsize =
          DIV_ROUND_UP(clear_attachment_program->texture_program_pds_temps_count,
-                      PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE));
+                      ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE);
    }
 
    pvr_csb_pack (&pds_state[PVR_STATIC_CLEAR_PPP_PDS_TYPE_SIZEINFO2],
@@ -1705,7 +1714,7 @@ static VkResult pvr_clear_color_attachment_static(
                  sizeinfo2) {
       sizeinfo2.usc_sharedsize =
          DIV_ROUND_UP(shader_info->const_shared_regs,
-                      PVRX(TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE));
+                      ROGUE_TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE);
    }
 
    /* Dummy coefficient loading program. */
@@ -1726,8 +1735,11 @@ static VkResult pvr_clear_color_attachment_static(
    template.config.ispctl.upass =
       cmd_buffer->state.render_pass_info.isp_userpass;
 
-   if (template_idx & VK_IMAGE_ASPECT_STENCIL_BIT)
-      template.config.ispa.sref = stencil;
+   if (template_idx & VK_IMAGE_ASPECT_STENCIL_BIT) {
+      /* clang-format off */
+      template.config.ispa.sref = stencil & ROGUE_TA_STATE_ISPA_SREF_SIZE_MAX;
+      /* clang-format on */
+   }
 
    if (vs_has_rt_id_output) {
       template.config.output_sel.rhw_pres = true;
@@ -2005,8 +2017,11 @@ static void pvr_clear_attachments(struct pvr_cmd_buffer *cmd_buffer,
             cmd_buffer->device->static_clear_state.ppp_templates[template_idx];
 
          if (attachment->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT) {
+            /* clang-format off */
             template.config.ispa.sref =
-               attachment->clearValue.depthStencil.stencil;
+               attachment->clearValue.depthStencil.stencil &
+                  ROGUE_TA_STATE_ISPA_SREF_SIZE_MAX;
+            /* clang-format on */
          }
 
          if (vs_has_rt_id_output) {
@@ -2265,7 +2280,7 @@ void pvr_CmdClearAttachments(VkCommandBuffer commandBuffer,
 }
 
 void pvr_CmdResolveImage2(VkCommandBuffer commandBuffer,
-                             const VkResolveImageInfo2 *pResolveImageInfo)
+                          const VkResolveImageInfo2 *pResolveImageInfo)
 {
    PVR_FROM_HANDLE(pvr_image, src, pResolveImageInfo->srcImage);
    PVR_FROM_HANDLE(pvr_image, dst, pResolveImageInfo->dstImage);

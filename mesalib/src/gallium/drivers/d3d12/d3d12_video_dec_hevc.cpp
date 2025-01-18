@@ -108,7 +108,7 @@ d3d12_video_decoder_prepare_current_frame_references_hevc(struct d3d12_video_dec
       d3d12_video_decoder_get_current_dxva_picparams<DXVA_PicParams_HEVC>(pD3D12Dec)->RefPicList,
       pD3D12Dec->m_transitionsStorage);
 
-   pD3D12Dec->m_spDecodeCommandList->ResourceBarrier(pD3D12Dec->m_transitionsStorage.size(), pD3D12Dec->m_transitionsStorage.data());
+   pD3D12Dec->m_spDecodeCommandList->ResourceBarrier(static_cast<UINT>(pD3D12Dec->m_transitionsStorage.size()), pD3D12Dec->m_transitionsStorage.data());
 
    // Schedule reverse (back to common) transitions before command list closes for current frame
    for (auto BarrierDesc : pD3D12Dec->m_transitionsStorage) {
@@ -136,7 +136,7 @@ d3d12_video_decoder_prepare_dxva_slices_control_hevc(struct d3d12_video_decoder 
    debug_printf("[d3d12_video_decoder_hevc] Upper layer reported %d slices for this frame, parsing them below...\n",
                   picture_hevc->slice_parameter.slice_count);
 
-   uint64_t TotalSlicesDXVAArrayByteSize = picture_hevc->slice_parameter.slice_count * sizeof(DXVA_Slice_HEVC_Short);
+   size_t TotalSlicesDXVAArrayByteSize = picture_hevc->slice_parameter.slice_count * sizeof(DXVA_Slice_HEVC_Short);
    vecOutSliceControlBuffers.resize(TotalSlicesDXVAArrayByteSize);
 
    uint8_t* pData = vecOutSliceControlBuffers.data();
@@ -386,8 +386,8 @@ d3d12_video_decoder_dxva_picparams_from_pipe_picparams_hevc(
    memset(&dxvaStructure, 0, sizeof(dxvaStructure));
    
    uint8_t log2_min_cb_size = sps->log2_min_luma_coding_block_size_minus3 + 3;
-   dxvaStructure.PicWidthInMinCbsY = sps->pic_width_in_luma_samples  >> log2_min_cb_size;
-   dxvaStructure.PicHeightInMinCbsY = sps->pic_height_in_luma_samples >> log2_min_cb_size;
+   dxvaStructure.PicWidthInMinCbsY = static_cast<uint16_t>(sps->pic_width_in_luma_samples  >> log2_min_cb_size);
+   dxvaStructure.PicHeightInMinCbsY = static_cast<uint16_t>(sps->pic_height_in_luma_samples >> log2_min_cb_size);
    dxvaStructure.chroma_format_idc = sps->chroma_format_idc;
    dxvaStructure.separate_colour_plane_flag = sps->separate_colour_plane_flag;
    dxvaStructure.bit_depth_luma_minus8 = sps->bit_depth_luma_minus8;
@@ -415,7 +415,7 @@ d3d12_video_decoder_dxva_picparams_from_pipe_picparams_hevc(
 
    // NumDeltaPocsOfRefRpsIdx is not passed from VA to pipe, and VA doesn't have it defined in their va_dec_hevc header.
    // DXVA drivers should use wNumBitsForShortTermRPSInSlice (st_rps_bits in VA) to derive the slice header info instead
-   dxvaStructure.ucNumDeltaPocsOfRefRpsIdx            = pPipeDesc->NumDeltaPocsOfRefRpsIdx;
+   dxvaStructure.ucNumDeltaPocsOfRefRpsIdx            = static_cast<uint8_t>(pPipeDesc->NumDeltaPocsOfRefRpsIdx);
    dxvaStructure.wNumBitsForShortTermRPSInSlice = pps->st_rps_bits;
 
    dxvaStructure.scaling_list_enabled_flag = sps->scaling_list_enabled_flag;

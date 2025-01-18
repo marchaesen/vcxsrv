@@ -57,7 +57,6 @@ zink-anv-adl-full:
     - .zink-anv-manual-rules
   variables:
     DEQP_SUITE: zink-anv-adl-full
-    JOB_TIMEOUT: 105
     HWCI_START_WESTON: 1
   timeout: 2h
   parallel: 2
@@ -65,7 +64,7 @@ zink-anv-adl-full:
 zink-anv-tgl:
   extends:
     - .zink-anv-tgl-test
-  timeout: 1h
+  timeout: 30m
   variables:
     DEQP_SUITE: zink-anv-tgl
     PIGLIT_NO_WINDOW: 1
@@ -74,6 +73,7 @@ zink-anv-tgl:
     # MESA: error: ZINK: vkQueueSubmit failed (VK_ERROR_DEVICE_LOST)
     # Xorg: ../src/gallium/drivers/zink/zink_batch.c:599: zink_end_batch: Assertion `!ctx->batch_states' failed.
     PIGLIT_PLATFORM: gbm
+  parallel: 4
 
 # Manual full run when you want to double-check the full status.
 zink-anv-tgl-full:
@@ -82,20 +82,13 @@ zink-anv-tgl-full:
     - .zink-anv-manual-rules
   variables:
     DEQP_SUITE: zink-anv-tgl-full
-    JOB_TIMEOUT: 105
     HWCI_START_WESTON: 1
   timeout: 1h 45m
   parallel: 3
 
 zink-anv-tgl-traces:
   extends:
-    - .lava-piglit-traces:x86_64
-    - .zink-anv-tgl-test
-    - .zink-trace-test
-    # Add .lava-traces-base again to override .zink-anv-tgl-test setting the
-    # HWCI_TEST_SCRIPT, but .lava-piglit-traces having to come first to get
-    # dependencies right.
-    - .lava-traces-base
+    - .zink-anv-tgl-trace-test
   variables:
     PIGLIT_TRACES_FILE: traces-zink.yml
 
@@ -213,6 +206,7 @@ zink-radv-vangogh-valve:
     B2C_TIMEOUT_BOOT_MINUTES: 30
     B2C_TIMEOUT_OVERALL_MINUTES: 30
     FDO_CI_CONCURRENT: 6
+    ZINK_DEBUG: vvl
   # Override the list of tags to drop `priority:low`
   tags:
     - farm:$RUNNER_FARM_LOCATION
@@ -228,3 +222,4 @@ zink-radv-navi31-valve:
     GPU_VERSION: zink-radv-navi31
     B2C_TIMEOUT_BOOT_MINUTES: 75
     B2C_TIMEOUT_OVERALL_MINUTES: 75
+    ZINK_DEBUG: vvl

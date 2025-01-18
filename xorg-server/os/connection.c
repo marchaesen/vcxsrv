@@ -237,7 +237,7 @@ void
 CreateWellKnownSockets(void)
 {
     int i;
-    int partial;
+    int partial = 0;
 
     /* display is initialized to "0" by main(). It is then set to the display
      * number if specified on the command line. */

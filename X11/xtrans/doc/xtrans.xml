@@ -243,7 +243,7 @@ typedef struct _Xtransport {
 
     int     (*Write)(
      XtransConnInfo,          /* connection */
-     char *,               /* buf */
+     const char *,            /* buf */
      int               /* size */
     );
 
@@ -541,7 +541,7 @@ connection, and will return the minimum of the number bytes requested.
       <funcprototype>
         <funcdef>int <function>TRANS(Write)</function></funcdef>
         <paramdef>XtransConnInfo <parameter>connection</parameter></paramdef>
-        <paramdef>char *<parameter>buf</parameter></paramdef>
+        <paramdef>const char *<parameter>buf</parameter></paramdef>
         <paramdef>int <parameter>size</parameter></paramdef>
       </funcprototype>
     </funcsynopsis>

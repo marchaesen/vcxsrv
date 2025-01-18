@@ -121,6 +121,7 @@ xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
 	<value name="BLIT_OP_FILL_2D" value="39" variants="A5XX-"/>
 	<value name="BLIT_OP_COPY_2D" value="40" variants="A5XX-A6XX"/>
 	<value name="UNK_40" value="40" variants="A7XX"/>
+	<value name="LRZ_Q_CACHE_INVALIDATE" value="41" variants="A7XX"/>
 	<value name="BLIT_OP_SCALE_2D" value="42" variants="A5XX-"/>
 	<value name="CONTEXT_DONE_2D" value="43" variants="A5XX-"/>
 	<value name="UNK_2C" value="44" variants="A5XX-"/>

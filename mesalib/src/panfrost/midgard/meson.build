@@ -41,11 +41,7 @@ midgard_nir_algebraic_c = custom_target(
 libpanfrost_midgard_disasm = static_library(
   'panfrost_midgard_disasm',
   ['disassemble.c', 'midgard_ops.c', 'midgard_print_constant.c'],
-  include_directories : [
-   inc_include,
-   inc_src,
-   inc_panfrost_hw,
-  ],
+  include_directories : [inc_include, inc_src],
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false,
@@ -54,11 +50,7 @@ libpanfrost_midgard_disasm = static_library(
 libpanfrost_midgard = static_library(
   'panfrost_midgard',
   [libpanfrost_midgard_files, midgard_nir_algebraic_c],
-  include_directories : [
-   inc_include,
-   inc_src,
-   inc_panfrost_hw,
-  ],
+  include_directories : [inc_include, inc_src],
   dependencies: [
    idep_nir,
    idep_mesautil,

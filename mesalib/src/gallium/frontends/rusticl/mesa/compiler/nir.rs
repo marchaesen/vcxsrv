@@ -3,8 +3,9 @@ use mesa_rust_util::bitset;
 use mesa_rust_util::offset_of;
 
 use std::convert::TryInto;
-use std::ffi::CString;
+use std::ffi::CStr;
 use std::marker::PhantomData;
+use std::ops::Not;
 use std::ptr;
 use std::ptr::NonNull;
 use std::slice;
@@ -158,7 +159,9 @@ impl NirShader {
         blob: &mut blob_reader,
         options: *const nir_shader_compiler_options,
     ) -> Option<Self> {
-        unsafe { Self::new(nir_deserialize(ptr::null_mut(), options, blob)) }
+        // we already create the NirShader here so it gets automatically deallocated on overrun.
+        let nir = Self::new(unsafe { nir_deserialize(ptr::null_mut(), options, blob) })?;
+        blob.overrun.not().then_some(nir)
     }
 
     pub fn serialize(&self, blob: &mut blob) {
@@ -226,7 +229,7 @@ impl NirShader {
 
     #[cfg(debug_assertions)]
     pub fn validate(&self, when: &str) {
-        let cstr = CString::new(when).unwrap();
+        let cstr = std::ffi::CString::new(when).unwrap();
         unsafe { nir_validate_shader(self.nir.as_ptr(), cstr.as_ptr()) }
     }
 
@@ -474,9 +477,8 @@ impl NirShader {
         mode: nir_variable_mode,
         glsl_type: *const glsl_type,
         loc: usize,
-        name: &str,
+        name: &CStr,
     ) {
-        let name = CString::new(name).unwrap();
         unsafe {
             let var = nir_variable_create(self.nir.as_ptr(), mode, glsl_type, name.as_ptr());
             (*var).data.location = loc.try_into().unwrap();

@@ -264,6 +264,8 @@ int main(int argc, char **argv)
     ppk_save_parameters params = ppk_save_default_parameters;
     FingerprintType fptype = SSH_FPTYPE_DEFAULT;
 
+    enable_dit();
+
     if (is_interactive())
         progress_fp = stderr;
 

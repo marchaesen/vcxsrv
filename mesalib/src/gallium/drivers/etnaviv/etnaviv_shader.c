@@ -152,6 +152,7 @@ etna_link_shaders(struct etna_context *ctx, struct compiled_shader_state *cs,
    STATIC_ASSERT(VIVS_PA_SHADER_ATTRIBUTES__LEN >= ETNA_NUM_VARYINGS);
    for (int idx = 0; idx < link.num_varyings; ++idx)
       cs->PA_SHADER_ATTRIBUTES[idx] = link.varyings[idx].pa_attributes;
+   cs->pa_shader_attributes_states = link.num_varyings;
 
    cs->VS_END_PC = vs->code_size / 4;
    cs->VS_OUTPUT_COUNT = 1 + link.num_varyings; /* position + varyings */
@@ -232,22 +233,27 @@ etna_link_shaders(struct etna_context *ctx, struct compiled_shader_state *cs,
    uint32_t total_components = 0;
    DEFINE_ETNA_BITARRAY(num_components, ETNA_NUM_VARYINGS, 4) = {0};
    DEFINE_ETNA_BITARRAY(component_use, 4 * ETNA_NUM_VARYINGS, 2) = {0};
+   DEFINE_ETNA_BITARRAY(halti5_varying_semantic, 4 * 32, 4) = {0};
    for (int idx = 0; idx < link.num_varyings; ++idx) {
       const struct etna_varying *varying = &link.varyings[idx];
 
       etna_bitarray_set(num_components, 4, idx, varying->num_components);
       for (int comp = 0; comp < varying->num_components; ++comp) {
-         etna_bitarray_set(component_use, 2, total_components, varying->use[comp]);
+         if (ctx->screen->info->halti >= 5)
+            etna_bitarray_set(halti5_varying_semantic, 4, total_components, varying->semantic);
+         else
+            etna_bitarray_set(component_use, 2, total_components, varying->use[comp]);
          total_components += 1;
       }
    }
 
    cs->GL_VARYING_TOTAL_COMPONENTS =
       VIVS_GL_VARYING_TOTAL_COMPONENTS_NUM(align(total_components, 2));
-   cs->GL_VARYING_NUM_COMPONENTS[0] = num_components[0];
-   cs->GL_VARYING_NUM_COMPONENTS[1] = num_components[1];
-   cs->GL_VARYING_COMPONENT_USE[0] = component_use[0];
-   cs->GL_VARYING_COMPONENT_USE[1] = component_use[1];
+   memcpy(cs->GL_VARYING_NUM_COMPONENTS, num_components, sizeof(uint32_t) * 2);
+   memcpy(cs->GL_VARYING_COMPONENT_USE, component_use, sizeof(uint32_t) * 4);
+   memcpy(cs->GL_HALTI5_SHADER_ATTRIBUTES, halti5_varying_semantic,
+          sizeof(uint32_t) * VIVS_GL_HALTI5_SHADER_ATTRIBUTES__LEN);
+   cs->halti5_shader_attributes_states = DIV_ROUND_UP(total_components, 8);
 
    cs->GL_HALTI5_SH_SPECIALS =
       0x7f7f0000 | /* unknown bits, probably other PS inputs */

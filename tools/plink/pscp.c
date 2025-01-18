@@ -2130,12 +2130,12 @@ static void tolocal(CmdlineArg **args, size_t nargs)
  */
 static void get_dir_list(CmdlineArg **args, size_t nargs)
 {
-    char *wsrc, *host, *user;
+    char *wsrc_orig, *wsrc, *host, *user;
     const char *src;
     const char *q;
     char c;
 
-    wsrc = dupstr(cmdline_arg_to_str(args[0]));
+    wsrc = wsrc_orig = dupstr(cmdline_arg_to_str(args[0]));
 
     /* Separate host from filename */
     host = wsrc;
@@ -2186,7 +2186,7 @@ static void get_dir_list(CmdlineArg **args, size_t nargs)
         stripctrl_free(scc);
     }
 
-    sfree(wsrc);
+    sfree(wsrc_orig);
 }
 
 /*
@@ -2253,7 +2253,7 @@ void cmdline_error(const char *p, ...)
     va_start(ap, p);
     vfprintf(stderr, p, ap);
     va_end(ap);
-    fprintf(stderr, "\n      try typing just \"pscp\" for help\n");
+    fprintf(stderr, "\n      try typing \"pscp -h\" for help\n");
     exit(1);
 }
 
@@ -2274,6 +2274,7 @@ int psftp_main(CmdlineArgList *arglist)
     bool sanitise_stderr = true;
 
     sk_init();
+    enable_dit();
 
     /* Load Default Settings before doing anything else. */
     conf = conf_new();

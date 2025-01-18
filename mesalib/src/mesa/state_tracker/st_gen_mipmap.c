@@ -141,8 +141,7 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
     * if not then generate the mipmap by rendering/texturing.
     * If that fails, use the software fallback.
     */
-   if (!st->screen->get_param(st->screen,
-                              PIPE_CAP_GENERATE_MIPMAP) ||
+   if (!st->screen->caps.generate_mipmap ||
        !st->pipe->generate_mipmap(st->pipe, pt, format, baseLevel,
                                   lastLevel, first_layer, last_layer)) {
 

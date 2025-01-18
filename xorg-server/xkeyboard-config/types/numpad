@@ -1,4 +1,6 @@
 default partial xkb_types "pc" {
+    virtual_modifiers  NumLock;
+
     type "KEYPAD" {
 	modifiers = Shift + NumLock;
 	map[None] = Level1;
@@ -19,6 +21,8 @@ partial xkb_types "mac" {
 };
 
 partial xkb_types "microsoft" {
+    virtual_modifiers  NumLock;
+
     type "KEYPAD" {
 	modifiers = Shift + NumLock;
 	map[None] = Level1;
@@ -35,6 +39,8 @@ partial xkb_types "microsoft" {
 // Closest type is actually FOUR_LEVEL_X, but most numpad layouts use
 // FOUR_LEVEL_MIXED_KEYPAD, so that's the one we are going to override.
 partial xkb_types "shift3" {
+    virtual_modifiers Alt, NumLock;
+
     type "FOUR_LEVEL_MIXED_KEYPAD" {
 	modifiers = Shift + NumLock + Control + Alt;
 

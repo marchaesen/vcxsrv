@@ -89,7 +89,7 @@ hk_image_base_address(const struct hk_image *image, uint8_t plane)
 }
 
 static inline enum pipe_format
-hk_format_to_pipe_format(enum VkFormat vkformat)
+hk_format_to_pipe_format(VkFormat vkformat)
 {
    switch (vkformat) {
    case VK_FORMAT_R10X6_UNORM_PACK16:
@@ -129,3 +129,6 @@ hk_image_aspects_to_plane(const struct hk_image *image,
       return 2;
    }
 }
+
+struct agx_device;
+bool hk_can_compress_format(const struct agx_device *dev, VkFormat format);

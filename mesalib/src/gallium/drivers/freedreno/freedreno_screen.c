@@ -62,6 +62,7 @@ static const struct debug_named_value fd_debug_options[] = {
    {"sysmem",    FD_DBG_SYSMEM,   "Use sysmem only rendering (no tiling)"},
    {"serialc",   FD_DBG_SERIALC,  "Disable asynchronous shader compile"},
    {"shaderdb",  FD_DBG_SHADERDB, "Enable shaderdb output"},
+   {"nolrzfc",   FD_DBG_NOLRZFC,  "Disable LRZ fast-clear"},
    {"flush",     FD_DBG_FLUSH,    "Force flush after every draw"},
    {"inorder",   FD_DBG_INORDER,  "Disable reordering for draws/blits"},
    {"bstat",     FD_DBG_BSTAT,    "Print batch stats at context destroy"},
@@ -199,451 +200,6 @@ fd_query_memory_info(struct pipe_screen *pscreen,
    info->avail_device_memory = mem;
 }
 
-
-/*
-TODO either move caps to a2xx/a3xx specific code, or maybe have some
-tables for things that differ if the delta is not too much..
- */
-static int
-fd_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
-{
-   struct fd_screen *screen = fd_screen(pscreen);
-
-   /* this is probably not totally correct.. but it's a start: */
-   switch (param) {
-   /* Supported features (boolean caps). */
-   case PIPE_CAP_NPOT_TEXTURES:
-   case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
-   case PIPE_CAP_ANISOTROPIC_FILTER:
-   case PIPE_CAP_BLEND_EQUATION_SEPARATE:
-   case PIPE_CAP_TEXTURE_SWIZZLE:
-   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_SEAMLESS_CUBE_MAP:
-   case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
-   case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
-   case PIPE_CAP_STRING_MARKER:
-   case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
-   case PIPE_CAP_TEXTURE_BARRIER:
-   case PIPE_CAP_INVALIDATE_BUFFER:
-   case PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS:
-   case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
-   case PIPE_CAP_GL_SPIRV:
-   case PIPE_CAP_FBFETCH_COHERENT:
-   case PIPE_CAP_HAS_CONST_BW:
-      return 1;
-
-   case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
-   case PIPE_CAP_MULTI_DRAW_INDIRECT:
-   case PIPE_CAP_DRAW_PARAMETERS:
-   case PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS:
-   case PIPE_CAP_DEPTH_BOUNDS_TEST:
-      return is_a6xx(screen);
-
-   case PIPE_CAP_VERTEX_INPUT_ALIGNMENT:
-      return is_a2xx(screen) ? PIPE_VERTEX_INPUT_ALIGNMENT_4BYTE : PIPE_VERTEX_INPUT_ALIGNMENT_NONE;
-
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
-      return is_a2xx(screen);
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
-      return !is_a2xx(screen);
-
-   case PIPE_CAP_PACKED_UNIFORMS:
-      return !is_a2xx(screen);
-
-   case PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR:
-   case PIPE_CAP_DEVICE_RESET_STATUS_QUERY:
-      return screen->has_robustness;
-
-   case PIPE_CAP_COMPUTE:
-      return has_compute(screen);
-
-   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
-      if (screen->gen >= 6)
-         return PIPE_TEXTURE_TRANSFER_BLIT;
-      return 0;
-
-   case PIPE_CAP_PCI_GROUP:
-   case PIPE_CAP_PCI_BUS:
-   case PIPE_CAP_PCI_DEVICE:
-   case PIPE_CAP_PCI_FUNCTION:
-      return 0;
-
-   case PIPE_CAP_SUPPORTED_PRIM_MODES:
-   case PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART:
-      return screen->primtypes_mask;
-
-   case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
-   case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-   case PIPE_CAP_PRIMITIVE_RESTART:
-   case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
-   case PIPE_CAP_VS_INSTANCEID:
-   case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
-   case PIPE_CAP_INDEP_BLEND_ENABLE:
-   case PIPE_CAP_INDEP_BLEND_FUNC:
-   case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
-   case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
-   case PIPE_CAP_CONDITIONAL_RENDER:
-   case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
-   case PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE:
-   case PIPE_CAP_CLIP_HALFZ:
-      return is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) ||
-             is_a6xx(screen);
-
-   case PIPE_CAP_FAKE_SW_MSAA:
-      return !fd_screen_get_param(pscreen, PIPE_CAP_TEXTURE_MULTISAMPLE);
-
-   case PIPE_CAP_TEXTURE_MULTISAMPLE:
-   case PIPE_CAP_IMAGE_STORE_FORMATTED:
-   case PIPE_CAP_IMAGE_LOAD_FORMATTED:
-      return is_a5xx(screen) || is_a6xx(screen);
-
-   case PIPE_CAP_SURFACE_SAMPLE_COUNT:
-      return is_a6xx(screen);
-
-   case PIPE_CAP_DEPTH_CLIP_DISABLE:
-      return is_a3xx(screen) || is_a4xx(screen) || is_a6xx(screen);
-
-   case PIPE_CAP_POST_DEPTH_COVERAGE:
-   case PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE:
-   case PIPE_CAP_DEMOTE_TO_HELPER_INVOCATION:
-      return is_a6xx(screen);
-
-   case PIPE_CAP_SAMPLER_REDUCTION_MINMAX:
-   case PIPE_CAP_SAMPLER_REDUCTION_MINMAX_ARB:
-      return is_a6xx(screen) && screen->info->a6xx.has_sampler_minmax;
-
-   case PIPE_CAP_PROGRAMMABLE_SAMPLE_LOCATIONS:
-      return is_a6xx(screen) && screen->info->a6xx.has_sample_locations;
-
-   case PIPE_CAP_POLYGON_OFFSET_CLAMP:
-      return is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
-
-   case PIPE_CAP_PREFER_IMM_ARRAYS_AS_CONSTBUF:
-      return 0;
-
-   case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
-      if (is_a3xx(screen))
-         return 16;
-      if (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen))
-         return 64;
-      return 0;
-   case PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT:
-      /* We could possibly emulate more by pretending 2d/rect textures and
-       * splitting high bits of index into 2nd dimension..
-       */
-      if (is_a3xx(screen))
-         return A3XX_MAX_TEXEL_BUFFER_ELEMENTS_UINT;
-
-      /* Note that the Vulkan blob on a540 and 640 report a
-       * maxTexelBufferElements of just 65536 (the GLES3.2 and Vulkan
-       * minimum).
-       */
-      if (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen))
-         return A4XX_MAX_TEXEL_BUFFER_ELEMENTS_UINT;
-
-      return 0;
-
-   case PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK:
-      return PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
-
-   case PIPE_CAP_TEXTURE_FLOAT_LINEAR:
-   case PIPE_CAP_CUBE_MAP_ARRAY:
-   case PIPE_CAP_SAMPLER_VIEW_TARGET:
-   case PIPE_CAP_TEXTURE_QUERY_LOD:
-      return is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
-
-   case PIPE_CAP_START_INSTANCE:
-      /* Note that a5xx can do this, it just can't (at least with
-       * current firmware) do draw_indirect with base_instance.
-       * Since draw_indirect is needed sooner (gles31 and gl40 vs
-       * gl42), hide base_instance on a5xx.  :-/
-       */
-      return is_a4xx(screen) || is_a6xx(screen);
-
-   case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
-      return 64;
-
-   case PIPE_CAP_INT64:
-   case PIPE_CAP_DOUBLES:
-      return is_ir3(screen);
-
-   case PIPE_CAP_GLSL_FEATURE_LEVEL:
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      if (is_a6xx(screen))
-         return 460;
-      else if (is_ir3(screen))
-         return 140;
-      else
-         return 120;
-
-   case PIPE_CAP_ESSL_FEATURE_LEVEL:
-      if (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen))
-         return 320;
-      if (is_ir3(screen))
-         return 300;
-      return 120;
-
-   case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
-      if (is_a6xx(screen))
-         return 64;
-      if (is_a5xx(screen))
-         return 4;
-      if (is_a4xx(screen))
-         return 4;
-      return 0;
-
-   case PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS:
-      if (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen))
-         return 4;
-      return 0;
-
-   /* TODO if we need this, do it in nir/ir3 backend to avoid breaking
-    * precompile: */
-   case PIPE_CAP_FORCE_PERSAMPLE_INTERP:
-      return 0;
-
-   case PIPE_CAP_FBFETCH:
-      if (fd_device_version(screen->dev) >= FD_VERSION_GMEM_BASE &&
-          is_a6xx(screen))
-         return screen->max_rts;
-      return 0;
-   case PIPE_CAP_SAMPLE_SHADING:
-      if (is_a6xx(screen))
-         return 1;
-      return 0;
-
-   case PIPE_CAP_CONTEXT_PRIORITY_MASK:
-      return screen->priority_mask;
-
-   case PIPE_CAP_DRAW_INDIRECT:
-      if (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen))
-         return 1;
-      return 0;
-
-   case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
-      if (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen))
-         return 1;
-      return 0;
-
-   case PIPE_CAP_LOAD_CONSTBUF:
-      /* name is confusing, but this turns on std430 packing */
-      if (is_ir3(screen))
-         return 1;
-      return 0;
-
-   case PIPE_CAP_NIR_IMAGES_AS_DEREF:
-      return 0;
-
-   case PIPE_CAP_VS_LAYER_VIEWPORT:
-   case PIPE_CAP_TES_LAYER_VIEWPORT:
-      return is_a6xx(screen);
-
-   case PIPE_CAP_MAX_VIEWPORTS:
-      if (is_a6xx(screen))
-         return 16;
-      return 1;
-
-   case PIPE_CAP_MAX_VARYINGS:
-      return is_a6xx(screen) ? 31 : 16;
-
-   case PIPE_CAP_MAX_SHADER_PATCH_VARYINGS:
-      /* We don't really have a limit on this, it all goes into the main
-       * memory buffer. Needs to be at least 120 / 4 (minimum requirement
-       * for GL_MAX_TESS_PATCH_COMPONENTS).
-       */
-      return 128;
-
-   case PIPE_CAP_MAX_TEXTURE_UPLOAD_MEMORY_BUDGET:
-      return 64 * 1024 * 1024;
-
-   case PIPE_CAP_SHAREABLE_SHADERS:
-      if (is_ir3(screen))
-         return 1;
-      return 0;
-
-   /* Geometry shaders.. */
-   case PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES:
-      return 256;
-   case PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS:
-      return 2048;
-   case PIPE_CAP_MAX_GS_INVOCATIONS:
-      return 32;
-
-   /* Only a2xx has the half-border clamp mode in HW, just have mesa/st lower
-    * it for later HW.
-    */
-   case PIPE_CAP_GL_CLAMP:
-      return is_a2xx(screen);
-
-   case PIPE_CAP_CLIP_PLANES:
-      /* Gens that support GS, have GS lowered into a quasi-VS which confuses
-       * the frontend clip-plane lowering.  So we handle this in the backend
-       *
-       */
-      if (pscreen->get_shader_param(pscreen, PIPE_SHADER_GEOMETRY,
-                                    PIPE_SHADER_CAP_MAX_INSTRUCTIONS))
-         return 1;
-
-      /* On a3xx, there is HW support for GL user clip planes that
-       * occasionally has to fall back to shader key-based lowering to clip
-       * distances in the VS, and we don't support clip distances so that is
-       * always shader-based lowering in the FS.
-       *
-       * On a4xx, there is no HW support for clip planes, so they are
-       * always lowered to clip distances.  We also lack SW support for the
-       * HW's clip distances in HW, so we do shader-based lowering in the FS
-       * in the driver backend.
-       *
-       * On a5xx-a6xx, we have the HW clip distances hooked up, so we just let
-       * mesa/st lower desktop GL's clip planes to clip distances in the last
-       * vertex shader stage.
-       *
-       * NOTE: but see comment above about geometry shaders
-       */
-      return !is_a5xx(screen);
-
-   /* Stream output. */
-   case PIPE_CAP_MAX_VERTEX_STREAMS:
-      if (is_a6xx(screen))  /* has SO + GS */
-         return PIPE_MAX_SO_BUFFERS;
-      return 0;
-   case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
-      if (is_ir3(screen))
-         return PIPE_MAX_SO_BUFFERS;
-      return 0;
-   case PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME:
-   case PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS:
-   case PIPE_CAP_FS_POSITION_IS_SYSVAL:
-   case PIPE_CAP_TGSI_TEXCOORD:
-   case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
-   case PIPE_CAP_TEXTURE_QUERY_SAMPLES:
-   case PIPE_CAP_FS_FINE_DERIVATIVE:
-      if (is_ir3(screen))
-         return 1;
-      return 0;
-   case PIPE_CAP_SHADER_GROUP_VOTE:
-      return is_a6xx(screen);
-   case PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL:
-      return 1;
-   case PIPE_CAP_FS_POINT_IS_SYSVAL:
-      return is_a2xx(screen);
-   case PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS:
-   case PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS:
-      if (is_ir3(screen))
-         return 16 * 4; /* should only be shader out limit? */
-      return 0;
-
-   /* Texturing. */
-   case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      if (is_a6xx(screen) || is_a5xx(screen) || is_a4xx(screen))
-         return 16384;
-      else
-         return 8192;
-   case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      if (is_a6xx(screen) || is_a5xx(screen) || is_a4xx(screen))
-         return 15;
-      else
-         return 14;
-
-   case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
-      if (is_a3xx(screen))
-         return 11;
-      return 12;
-
-   case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
-      if (is_a6xx(screen))
-         return 2048;
-      return (is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen))
-                ? 256
-                : 0;
-
-   /* Render targets. */
-   case PIPE_CAP_MAX_RENDER_TARGETS:
-      return screen->max_rts;
-   case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
-      return (is_a3xx(screen) || is_a6xx(screen)) ? 1 : 0;
-
-   /* Queries. */
-   case PIPE_CAP_OCCLUSION_QUERY:
-      return is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) ||
-             is_a6xx(screen);
-   case PIPE_CAP_QUERY_TIMESTAMP:
-   case PIPE_CAP_QUERY_TIME_ELAPSED:
-      /* only a4xx, requires new enough kernel so we know max_freq: */
-      return (screen->max_freq > 0) &&
-             (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen));
-   case PIPE_CAP_TIMER_RESOLUTION:
-      return ticks_to_ns(1);
-   case PIPE_CAP_QUERY_BUFFER_OBJECT:
-   case PIPE_CAP_QUERY_SO_OVERFLOW:
-   case PIPE_CAP_QUERY_PIPELINE_STATISTICS_SINGLE:
-      return is_a6xx(screen);
-
-   case PIPE_CAP_VENDOR_ID:
-      return 0x5143;
-   case PIPE_CAP_DEVICE_ID:
-      return 0xFFFFFFFF;
-   case PIPE_CAP_ACCELERATED:
-      return 1;
-
-   case PIPE_CAP_VIDEO_MEMORY:
-      return (int)(get_memory_size(screen) >> 20);
-
-   case PIPE_CAP_QUERY_MEMORY_INFO: /* Enables GL_ATI_meminfo */
-      return get_memory_size(screen) != 0;
-
-   case PIPE_CAP_UMA:
-      return 1;
-   case PIPE_CAP_MEMOBJ:
-      return fd_device_version(screen->dev) >= FD_VERSION_MEMORY_FD;
-   case PIPE_CAP_NATIVE_FENCE_FD:
-      return fd_device_version(screen->dev) >= FD_VERSION_FENCE_FD;
-   case PIPE_CAP_FENCE_SIGNAL:
-      return screen->has_syncobj;
-   case PIPE_CAP_CULL_DISTANCE:
-      return is_a6xx(screen);
-   case PIPE_CAP_SHADER_STENCIL_EXPORT:
-      return is_a6xx(screen);
-   case PIPE_CAP_TWO_SIDED_COLOR:
-      return 0;
-   case PIPE_CAP_THROTTLE:
-      return screen->driconf.enable_throttling;
-   default:
-      return u_pipe_screen_get_param_defaults(pscreen, param);
-   }
-}
-
-static float
-fd_screen_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
-{
-   switch (param) {
-   case PIPE_CAPF_MIN_LINE_WIDTH:
-   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
-   case PIPE_CAPF_MIN_POINT_SIZE:
-   case PIPE_CAPF_MIN_POINT_SIZE_AA:
-      return 1;
-   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
-   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
-      return 0.1f;
-   case PIPE_CAPF_MAX_LINE_WIDTH:
-   case PIPE_CAPF_MAX_LINE_WIDTH_AA:
-      return 127.0f;
-   case PIPE_CAPF_MAX_POINT_SIZE:
-   case PIPE_CAPF_MAX_POINT_SIZE_AA:
-      return 4092.0f;
-   case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
-      return 16.0f;
-   case PIPE_CAPF_MAX_TEXTURE_LOD_BIAS:
-      return 15.0f;
-   case PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY:
-      return 0.0f;
-   }
-   mesa_loge("unknown paramf %d", param);
-   return 0;
-}
-
 static int
 fd_screen_get_shader_param(struct pipe_screen *pscreen,
                            enum pipe_shader_type shader,
@@ -705,8 +261,6 @@ fd_screen_get_shader_param(struct pipe_screen *pscreen,
       return is_ir3(screen) ? 16 : 1;
    case PIPE_SHADER_CAP_CONT_SUPPORTED:
       return 1;
-   case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
       /* a2xx compiler doesn't handle indirect: */
@@ -736,8 +290,6 @@ fd_screen_get_shader_param(struct pipe_screen *pscreen,
       return 16;
    case PIPE_SHADER_CAP_SUPPORTED_IRS:
       return (1 << PIPE_SHADER_IR_NIR) |
-             COND(has_compute(screen) && (shader == PIPE_SHADER_COMPUTE),
-                  (1 << PIPE_SHADER_IR_NIR_SERIALIZED)) |
              /* tgsi_to_nir doesn't support all stages: */
              COND((shader == PIPE_SHADER_VERTEX) ||
                   (shader == PIPE_SHADER_FRAGMENT) ||
@@ -866,6 +418,305 @@ fd_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
    }
 
    return 0;
+}
+
+static void
+fd_init_screen_caps(struct fd_screen *screen)
+{
+   struct pipe_caps *caps = (struct pipe_caps *)&screen->base.caps;
+
+   u_init_pipe_screen_caps(&screen->base, 1);
+
+   /* this is probably not totally correct.. but it's a start: */
+
+   /* Supported features (boolean caps). */
+   caps->npot_textures = true;
+   caps->mixed_framebuffer_sizes = true;
+   caps->anisotropic_filter = true;
+   caps->blend_equation_separate = true;
+   caps->texture_swizzle = true;
+   caps->fs_coord_origin_upper_left = true;
+   caps->seamless_cube_map = true;
+   caps->vertex_color_unclamped = true;
+   caps->quads_follow_provoking_vertex_convention = true;
+   caps->string_marker = true;
+   caps->mixed_color_depth_bits = true;
+   caps->texture_barrier = true;
+   caps->invalidate_buffer = true;
+   caps->glsl_tess_levels_as_inputs = true;
+   caps->texture_mirror_clamp_to_edge = true;
+   caps->gl_spirv = true;
+   caps->fbfetch_coherent = true;
+   caps->has_const_bw = true;
+
+   caps->copy_between_compressed_and_plain_formats =
+   caps->multi_draw_indirect =
+   caps->draw_parameters =
+   caps->multi_draw_indirect_params =
+   caps->depth_bounds_test = is_a6xx(screen);
+
+   caps->vertex_input_alignment =
+      is_a2xx(screen) ? PIPE_VERTEX_INPUT_ALIGNMENT_4BYTE : PIPE_VERTEX_INPUT_ALIGNMENT_NONE;
+
+   caps->fs_coord_pixel_center_integer = is_a2xx(screen);
+   caps->fs_coord_pixel_center_half_integer = !is_a2xx(screen);
+
+   caps->packed_uniforms = !is_a2xx(screen);
+
+   caps->robust_buffer_access_behavior =
+   caps->device_reset_status_query = screen->has_robustness;
+
+   caps->compute = has_compute(screen);
+
+   caps->texture_transfer_modes = screen->gen >= 6 ? PIPE_TEXTURE_TRANSFER_BLIT : 0;
+
+   caps->pci_group =
+   caps->pci_bus =
+   caps->pci_device =
+   caps->pci_function = 0;
+
+   caps->supported_prim_modes =
+   caps->supported_prim_modes_with_restart = screen->primtypes_mask;
+
+   caps->fragment_shader_texture_lod =
+   caps->fragment_shader_derivatives =
+   caps->primitive_restart =
+   caps->primitive_restart_fixed_index =
+   caps->vs_instanceid =
+   caps->vertex_element_instance_divisor =
+   caps->indep_blend_enable =
+   caps->indep_blend_func =
+   caps->texture_buffer_objects =
+   caps->texture_half_float_linear =
+   caps->conditional_render =
+   caps->conditional_render_inverted =
+   caps->seamless_cube_map_per_texture =
+   caps->clip_halfz =
+      is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
+
+   caps->texture_multisample =
+   caps->image_store_formatted =
+   caps->image_load_formatted = is_a5xx(screen) || is_a6xx(screen);
+
+   caps->fake_sw_msaa = !caps->texture_multisample;
+
+   caps->surface_sample_count = is_a6xx(screen);
+
+   caps->depth_clip_disable = is_a3xx(screen) || is_a4xx(screen) || is_a6xx(screen);
+
+   caps->post_depth_coverage =
+   caps->depth_clip_disable_separate =
+   caps->demote_to_helper_invocation = is_a6xx(screen);
+
+   caps->sampler_reduction_minmax =
+   caps->sampler_reduction_minmax_arb =
+      is_a6xx(screen) && screen->info->a6xx.has_sampler_minmax;
+
+   caps->programmable_sample_locations =
+      is_a6xx(screen) && screen->info->a6xx.has_sample_locations;
+
+   caps->polygon_offset_clamp = is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
+
+   caps->prefer_imm_arrays_as_constbuf = false;
+
+   caps->texture_buffer_offset_alignment = is_a3xx(screen) ? 16 :
+      (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen) ? 64 : 0);
+   caps->max_texel_buffer_elements =
+      /* We could possibly emulate more by pretending 2d/rect textures and
+       * splitting high bits of index into 2nd dimension..
+       */
+      is_a3xx(screen) ? A3XX_MAX_TEXEL_BUFFER_ELEMENTS_UINT :
+      /* Note that the Vulkan blob on a540 and 640 report a
+       * maxTexelBufferElements of just 65536 (the GLES3.2 and Vulkan
+       * minimum).
+       */
+      (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen) ?
+       A4XX_MAX_TEXEL_BUFFER_ELEMENTS_UINT : 0);
+
+   caps->texture_border_color_quirk = PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
+
+   caps->texture_float_linear =
+   caps->cube_map_array =
+   caps->sampler_view_target =
+   caps->texture_query_lod = is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
+
+   /* Note that a5xx can do this, it just can't (at least with
+    * current firmware) do draw_indirect with base_instance.
+    * Since draw_indirect is needed sooner (gles31 and gl40 vs
+    * gl42), hide base_instance on a5xx.  :-/
+    */
+   caps->start_instance = is_a4xx(screen) || is_a6xx(screen);
+
+   caps->constant_buffer_offset_alignment = 64;
+
+   caps->int64 =
+   caps->doubles = is_ir3(screen);
+
+   caps->glsl_feature_level =
+   caps->glsl_feature_level_compatibility =
+      is_a6xx(screen) ? 460 : (is_ir3(screen) ? 140 : 120);
+
+   caps->essl_feature_level =
+      is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen) ? 320 :
+      (is_ir3(screen) ? 300 : 120);
+
+   caps->shader_buffer_offset_alignment =
+      is_a6xx(screen) ? 64 : (is_a5xx(screen) || is_a4xx(screen) ? 4 : 0);
+
+   caps->max_texture_gather_components =
+      is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen) ? 4 : 0;
+
+   /* TODO if we need this, do it in nir/ir3 backend to avoid breaking
+    * precompile: */
+   caps->force_persample_interp = false;
+
+   caps->fbfetch =
+      fd_device_version(screen->dev) >= FD_VERSION_GMEM_BASE && is_a6xx(screen) ?
+      screen->max_rts : 0;
+   caps->sample_shading = is_a6xx(screen);
+
+   caps->context_priority_mask = screen->priority_mask;
+
+   caps->draw_indirect = is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
+
+   caps->framebuffer_no_attachment =
+      is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
+
+   /* name is confusing, but this turns on std430 packing */
+   caps->load_constbuf = is_ir3(screen);
+
+   caps->nir_images_as_deref = false;
+
+   caps->vs_layer_viewport =
+   caps->tes_layer_viewport = is_a6xx(screen);
+
+   caps->max_viewports = is_a6xx(screen) ? 16 : 1;
+
+   caps->max_varyings = is_a6xx(screen) ? 31 : 16;
+
+   /* We don't really have a limit on this, it all goes into the main
+    * memory buffer. Needs to be at least 120 / 4 (minimum requirement
+    * for GL_MAX_TESS_PATCH_COMPONENTS).
+    */
+   caps->max_shader_patch_varyings = 128;
+
+   caps->max_texture_upload_memory_budget = 64 * 1024 * 1024;
+
+   caps->shareable_shaders = is_ir3(screen);
+
+   /* Geometry shaders.. */
+   caps->max_geometry_output_vertices = 256;
+   caps->max_geometry_total_output_components = 2048;
+   caps->max_gs_invocations = 32;
+
+   /* Only a2xx has the half-border clamp mode in HW, just have mesa/st lower
+    * it for later HW.
+    */
+   caps->gl_clamp = is_a2xx(screen);
+
+   caps->clip_planes =
+      /* Gens that support GS, have GS lowered into a quasi-VS which confuses
+       * the frontend clip-plane lowering.  So we handle this in the backend
+       *
+       */
+      screen->base.get_shader_param(&screen->base, PIPE_SHADER_GEOMETRY,
+                                    PIPE_SHADER_CAP_MAX_INSTRUCTIONS) ? 1 :
+      /* On a3xx, there is HW support for GL user clip planes that
+       * occasionally has to fall back to shader key-based lowering to clip
+       * distances in the VS, and we don't support clip distances so that is
+       * always shader-based lowering in the FS.
+       *
+       * On a4xx, there is no HW support for clip planes, so they are
+       * always lowered to clip distances.  We also lack SW support for the
+       * HW's clip distances in HW, so we do shader-based lowering in the FS
+       * in the driver backend.
+       *
+       * On a5xx-a6xx, we have the HW clip distances hooked up, so we just let
+       * mesa/st lower desktop GL's clip planes to clip distances in the last
+       * vertex shader stage.
+       *
+       * NOTE: but see comment above about geometry shaders
+       */
+      (is_a5xx(screen) ? 0 : 1);
+
+   /* Stream output. */
+   caps->max_vertex_streams = is_a6xx(screen) ?  /* has SO + GS */
+      PIPE_MAX_SO_BUFFERS : 0;
+   caps->max_stream_output_buffers = is_ir3(screen) ? PIPE_MAX_SO_BUFFERS : 0;
+   caps->stream_output_pause_resume =
+   caps->stream_output_interleave_buffers =
+   caps->fs_position_is_sysval =
+   caps->tgsi_texcoord =
+   caps->shader_array_components =
+   caps->texture_query_samples =
+   caps->fs_fine_derivative = is_ir3(screen);
+   caps->shader_group_vote = is_a6xx(screen);
+   caps->fs_face_is_integer_sysval = true;
+   caps->fs_point_is_sysval = is_a2xx(screen);
+   caps->max_stream_output_separate_components =
+   caps->max_stream_output_interleaved_components = is_ir3(screen) ?
+      16 * 4 /* should only be shader out limit? */ : 0;
+
+   /* Texturing. */
+   caps->max_texture_2d_size =
+      is_a6xx(screen) || is_a5xx(screen) || is_a4xx(screen) ? 16384 : 8192;
+   caps->max_texture_cube_levels =
+      is_a6xx(screen) || is_a5xx(screen) || is_a4xx(screen) ? 15 : 14;
+
+   caps->max_texture_3d_levels = is_a3xx(screen) ? 11 : 12;
+
+   caps->max_texture_array_layers = is_a6xx(screen) ? 2048 :
+      (is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) ? 256 : 0);
+
+   /* Render targets. */
+   caps->max_render_targets = screen->max_rts;
+   caps->max_dual_source_render_targets = (is_a3xx(screen) || is_a6xx(screen)) ? 1 : 0;
+
+   /* Queries. */
+   caps->occlusion_query =
+      is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen);
+   caps->query_timestamp =
+   caps->query_time_elapsed =
+      /* only a4xx, requires new enough kernel so we know max_freq: */
+      (screen->max_freq > 0) && (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen));
+   caps->timer_resolution = ticks_to_ns(1);
+   caps->query_buffer_object =
+   caps->query_so_overflow =
+   caps->query_pipeline_statistics_single = is_a6xx(screen);
+
+   caps->vendor_id = 0x5143;
+   caps->device_id = 0xFFFFFFFF;
+
+   caps->video_memory = get_memory_size(screen) >> 20;
+
+   /* Enables GL_ATI_meminfo */
+   caps->query_memory_info = get_memory_size(screen) != 0;
+
+   caps->uma = true;
+   caps->memobj = fd_device_version(screen->dev) >= FD_VERSION_MEMORY_FD;
+   caps->native_fence_fd = fd_device_version(screen->dev) >= FD_VERSION_FENCE_FD;
+   caps->fence_signal = screen->has_syncobj;
+   caps->cull_distance = is_a6xx(screen);
+   caps->shader_stencil_export = is_a6xx(screen);
+   caps->two_sided_color = false;
+   caps->throttle = screen->driconf.enable_throttling;
+
+   caps->min_line_width =
+   caps->min_line_width_aa =
+   caps->min_point_size =
+   caps->min_point_size_aa = 1;
+
+   caps->point_size_granularity =
+   caps->line_width_granularity = 0.1f;
+
+   caps->max_line_width =
+   caps->max_line_width_aa = 127.0f;
+
+   caps->max_point_size =
+   caps->max_point_size_aa = 4092.0f;
+
+   caps->max_texture_anisotropy = 16.0f;
+   caps->max_texture_lod_bias = 15.0f;
 }
 
 static const void *
@@ -1234,8 +1085,6 @@ fd_screen_create(int fd,
    pscreen->destroy = fd_screen_destroy;
    pscreen->get_screen_fd = fd_screen_get_fd;
    pscreen->query_memory_info = fd_query_memory_info;
-   pscreen->get_param = fd_screen_get_param;
-   pscreen->get_paramf = fd_screen_get_paramf;
    pscreen->get_shader_param = fd_screen_get_shader_param;
    pscreen->get_compute_param = fd_get_compute_param;
    pscreen->get_compiler_options = fd_get_compiler_options;
@@ -1263,6 +1112,8 @@ fd_screen_create(int fd,
 
    pscreen->get_device_uuid = fd_screen_get_device_uuid;
    pscreen->get_driver_uuid = fd_screen_get_driver_uuid;
+
+   fd_init_screen_caps(screen);
 
    slab_create_parent(&screen->transfer_pool, sizeof(struct fd_transfer), 16);
 

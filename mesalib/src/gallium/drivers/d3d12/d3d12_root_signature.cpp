@@ -257,7 +257,7 @@ fill_key(struct d3d12_context *ctx, struct d3d12_root_signature_key *key, bool c
          key->stages[i].end_cb_bindings = shader->end_ubo_binding;
          key->stages[i].end_srv_binding = shader->end_srv_binding;
          key->stages[i].begin_srv_binding = shader->begin_srv_binding;
-         key->stages[i].state_vars_size = shader->state_vars_size;
+         key->stages[i].state_vars_size = static_cast<unsigned int>(shader->state_vars_size);
          key->stages[i].num_ssbos = shader->nir->info.num_ssbos;
          key->stages[i].num_images = shader->nir->info.num_images;
 

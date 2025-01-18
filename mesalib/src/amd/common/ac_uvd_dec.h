@@ -383,7 +383,7 @@ struct ruvd_msg {
          uint32_t dt_uv_surf_tile_config;
          // re-use dt_wa_chroma_top_offset as dt_ext_info for UV pitch in stoney
          uint32_t dt_wa_chroma_top_offset;
-         uint32_t dt_wa_chroma_bottom_offset;
+         uint32_t dt_wa_chroma_bottom_offset; /* gfx9: used as dt_swizzle_mode */
 
          uint32_t reserved[16];
 

@@ -8,29 +8,28 @@ use rusticl_opencl_gen::*;
 use rusticl_proc_macros::cl_entrypoint;
 use rusticl_proc_macros::cl_info_entrypoint;
 
-use std::mem::MaybeUninit;
+use std::ffi::CStr;
 
 #[cl_info_entrypoint(clGetPlatformInfo)]
-impl CLInfo<cl_platform_info> for cl_platform_id {
-    fn query(&self, q: cl_platform_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
+unsafe impl CLInfo<cl_platform_info> for cl_platform_id {
+    fn query(&self, q: cl_platform_info, v: CLInfoValue) -> CLResult<CLInfoRes> {
         self.get_ref()?;
-        Ok(match q {
-            // TODO spirv
-            CL_PLATFORM_EXTENSIONS => cl_prop(PLATFORM_EXTENSION_STR),
+        match q {
+            CL_PLATFORM_EXTENSIONS => v.write::<&str>(PLATFORM_EXTENSION_STR),
             CL_PLATFORM_EXTENSIONS_WITH_VERSION => {
-                cl_prop::<Vec<cl_name_version>>(PLATFORM_EXTENSIONS.to_vec())
+                v.write::<&[cl_name_version]>(&PLATFORM_EXTENSIONS)
             }
-            CL_PLATFORM_HOST_TIMER_RESOLUTION => cl_prop::<cl_ulong>(1),
-            CL_PLATFORM_ICD_SUFFIX_KHR => cl_prop("MESA"),
-            CL_PLATFORM_NAME => cl_prop("rusticl"),
-            CL_PLATFORM_NUMERIC_VERSION => cl_prop::<cl_version>(CLVersion::Cl3_0 as u32),
-            CL_PLATFORM_PROFILE => cl_prop("FULL_PROFILE"),
-            CL_PLATFORM_VENDOR => cl_prop("Mesa/X.org"),
+            CL_PLATFORM_HOST_TIMER_RESOLUTION => v.write::<cl_ulong>(1),
+            CL_PLATFORM_ICD_SUFFIX_KHR => v.write::<&CStr>(c"MESA"),
+            CL_PLATFORM_NAME => v.write::<&CStr>(c"rusticl"),
+            CL_PLATFORM_NUMERIC_VERSION => v.write::<cl_version>(CLVersion::Cl3_0.into()),
+            CL_PLATFORM_PROFILE => v.write::<&CStr>(c"FULL_PROFILE"),
+            CL_PLATFORM_VENDOR => v.write::<&CStr>(c"Mesa/X.org"),
             // OpenCL<space><major_version.minor_version><space><platform-specific information>
-            CL_PLATFORM_VERSION => cl_prop("OpenCL 3.0 "),
+            CL_PLATFORM_VERSION => v.write::<&CStr>(c"OpenCL 3.0 "),
             // CL_INVALID_VALUE if param_name is not one of the supported values
-            _ => return Err(CL_INVALID_VALUE),
-        })
+            _ => Err(CL_INVALID_VALUE),
+        }
     }
 }
 

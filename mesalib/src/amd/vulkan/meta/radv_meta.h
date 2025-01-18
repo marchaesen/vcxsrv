@@ -56,9 +56,9 @@ struct radv_meta_saved_state {
 
    struct radv_rendering_state render;
 
-   unsigned active_pipeline_gds_queries;
-   unsigned active_prims_gen_gds_queries;
-   unsigned active_prims_xfb_gds_queries;
+   unsigned active_emulated_pipeline_queries;
+   unsigned active_emulated_prims_gen_queries;
+   unsigned active_emulated_prims_xfb_queries;
    unsigned active_occlusion_queries;
 
    bool predicating;
@@ -105,58 +105,9 @@ extern const VkFormat radv_fs_key_format_exemplars[NUM_META_FS_KEYS];
 VkResult radv_device_init_meta(struct radv_device *device);
 void radv_device_finish_meta(struct radv_device *device);
 
-VkResult radv_device_init_meta_clear_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_clear_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_resolve_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_resolve_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_depth_decomp_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_depth_decomp_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_fast_clear_flush_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_fast_clear_flush_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_blit_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_blit_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_blit2d_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_blit2d_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_buffer_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_buffer_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_query_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_query_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_resolve_compute_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_resolve_compute_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_resolve_fragment_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_resolve_fragment_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_fmask_copy_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_fmask_copy_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_fmask_expand_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_fmask_expand_state(struct radv_device *device);
-
-void radv_device_finish_meta_dcc_retile_state(struct radv_device *device);
-
-void radv_device_finish_meta_copy_vrs_htile_state(struct radv_device *device);
-
 VkResult radv_device_init_null_accel_struct(struct radv_device *device);
 VkResult radv_device_init_accel_struct_build_state(struct radv_device *device);
 void radv_device_finish_accel_struct_build_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_etc_decode_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_etc_decode_state(struct radv_device *device);
-
-VkResult radv_device_init_meta_astc_decode_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_astc_decode_state(struct radv_device *device);
-
-VkResult radv_device_init_dgc_prepare_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_dgc_prepare_state(struct radv_device *device);
 
 void radv_meta_save(struct radv_meta_saved_state *saved_state, struct radv_cmd_buffer *cmd_buffer, uint32_t flags);
 
@@ -202,8 +153,6 @@ void radv_meta_blit2d(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2
 
 void radv_meta_end_blit2d(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_saved_state *save);
 
-VkResult radv_device_init_meta_bufimage_state(struct radv_device *device, bool on_demand);
-void radv_device_finish_meta_bufimage_state(struct radv_device *device);
 void radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf *src,
                                struct radv_meta_blit2d_buffer *dst, struct radv_meta_blit2d_rect *rect);
 
@@ -253,7 +202,7 @@ uint32_t radv_clear_fmask(struct radv_cmd_buffer *cmd_buffer, struct radv_image 
 uint32_t radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
                         const VkImageSubresourceRange *range, uint32_t value);
 uint32_t radv_clear_htile(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *image,
-                          const VkImageSubresourceRange *range, uint32_t value);
+                          const VkImageSubresourceRange *range, uint32_t value, bool is_clear);
 
 void radv_update_buffer_cp(struct radv_cmd_buffer *cmd_buffer, uint64_t va, const void *data, uint64_t size);
 
@@ -306,16 +255,7 @@ void radv_cmd_buffer_resolve_rendering_fs(struct radv_cmd_buffer *cmd_buffer, st
 void radv_depth_stencil_resolve_rendering_fs(struct radv_cmd_buffer *cmd_buffer, VkImageAspectFlags aspects,
                                              VkResolveModeFlagBits resolve_mode);
 
-VkResult radv_meta_create_compute_pipeline(struct radv_device *device, nir_shader *nir,
-                                           VkPipelineLayout pipeline_layout, VkPipeline *pipeline);
-
-VkResult radv_meta_create_pipeline_layout(struct radv_device *device, VkDescriptorSetLayout *set_layout,
-                                          uint32_t num_pc_ranges, const VkPushConstantRange *pc_ranges,
-                                          VkPipelineLayout *pipeline_layout);
-
-VkResult radv_meta_create_descriptor_set_layout(struct radv_device *device, uint32_t num_bindings,
-                                                const VkDescriptorSetLayoutBinding *bindings,
-                                                VkDescriptorSetLayout *desc_layout);
+VkResult radv_meta_get_noop_pipeline_layout(struct radv_device *device, VkPipelineLayout *layout_out);
 
 #ifdef __cplusplus
 }

@@ -36,6 +36,7 @@
 #include "mpint.h"
 #include "crypto/ecc.h"
 #include "crypto/ntru.h"
+#include "crypto/mlkem.h"
 #include "proxy/cproxy.h"
 
 static NORETURN PRINTF_LIKE(1, 2) void fatal_error(const char *p, ...)
@@ -99,6 +100,7 @@ uint64_t prng_reseed_time_ms(void)
     X(millerrabin, MillerRabin *, miller_rabin_free(v))                 \
     X(ntrukeypair, NTRUKeyPair *, ntru_keypair_free(v))                 \
     X(ntruencodeschedule, NTRUEncodeSchedule *, ntru_encode_schedule_free(v)) \
+    X(shakexof, ShakeXOF *, shake_xof_free(v))                          \
     /* end of list */
 
 typedef struct Value Value;
@@ -230,6 +232,7 @@ typedef struct mr_result TD_mr_result;
 typedef Argon2Flavour TD_argon2flavour;
 typedef FingerprintType TD_fptype;
 typedef HttpDigestHash TD_httpdigesthash;
+typedef const mlkem_params *TD_mlkem_params;
 
 #define BEGIN_ENUM_TYPE(name)                                           \
     static bool enum_translate_##name(ptrlen valname, TD_##name *out) { \
@@ -443,12 +446,19 @@ static unsigned *get_out_uint(BinarySource *in)
     return uval;
 }
 
-static BinarySink *get_out_val_string_binarysink(BinarySource *in)
+static strbuf **get_out_val_string(BinarySource *in)
 {
     Value *val = value_new(VT_string);
-    val->vu_string = strbuf_new();
+    val->vu_string = NULL;
     add_finaliser(finaliser_return_value, val);
-    return BinarySink_UPCAST(val->vu_string);
+    return &val->vu_string;
+}
+
+static BinarySink *get_out_val_string_binarysink(BinarySource *in)
+{
+    strbuf *sb = strbuf_new();
+    *get_out_val_string(in) = sb;
+    return BinarySink_UPCAST(sb);
 }
 
 static void return_val_string_asciz_const(strbuf *out, const char *s);
@@ -743,6 +753,14 @@ strbuf *ssh_hash_final_wrapper(ssh_hash *h)
     return sb;
 }
 
+strbuf *shake_xof_read_wrapper(ShakeXOF *sx, TD_uint size)
+{
+    strbuf *sb = strbuf_new();
+    void *p = strbuf_append(sb, size);
+    shake_xof_read(sx, p, size);
+    return sb;
+}
+
 void ssh_cipher_setiv_wrapper(ssh_cipher *c, ptrlen iv)
 {
     if (iv.len != ssh_cipher_alg(c)->blksize)
@@ -1020,6 +1038,33 @@ int16_list *ntru_decrypt_wrapper(int16_list *ciphertext, NTRUKeyPair *keypair)
     int16_list *out = make_int16_list(p);
     ntru_decrypt(out->integers, ciphertext->integers, keypair);
     return out;
+}
+
+void mlkem_keygen_internal_wrapper(
+    BinarySink *ek, BinarySink *dk, const mlkem_params *params,
+    ptrlen d, ptrlen z)
+{
+    assert(d.len == 32 && "Invalid d length");
+    assert(z.len == 32 && "Invalid z length");
+    mlkem_keygen_internal(ek, dk, params, d.ptr, z.ptr);
+}
+
+void mlkem_keygen_rho_sigma_wrapper(
+    BinarySink *ek, BinarySink *dk, const mlkem_params *params,
+    ptrlen rho, ptrlen sigma, ptrlen z)
+{
+    assert(rho.len == 32 && "Invalid rho length");
+    assert(sigma.len == 32 && "Invalid sigma length");
+    assert(z.len == 32 && "Invalid z length");
+    mlkem_keygen_rho_sigma(ek, dk, params, rho.ptr, sigma.ptr, z.ptr);
+}
+
+bool mlkem_encaps_internal_wrapper(BinarySink *ciphertext, BinarySink *kout,
+                                   const mlkem_params *params, ptrlen ek,
+                                   ptrlen m)
+{
+    assert(m.len == 32 && "Invalid m length");
+    return mlkem_encaps_internal(ciphertext, kout, params, ek, m.ptr);
 }
 
 strbuf *rsa_ssh1_encrypt_wrapper(ptrlen input, RSAKey *key)
@@ -1638,6 +1683,8 @@ int main(int argc, char **argv)
 {
     const char *infile = NULL, *outfile = NULL;
     bool doing_opts = true;
+
+    enable_dit(); /* in case this is used as a crypto helper (Hyrum's Law) */
 
     while (--argc > 0) {
         char *p = *++argv;

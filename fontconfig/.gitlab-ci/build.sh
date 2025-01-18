@@ -106,11 +106,13 @@ if [ x"$buildsys" == "xautotools" ]; then
     fi
 elif [ x"$buildsys" == "xmeson" ]; then
     pip install meson
+#   tomli not required for Python >= 3.11
+    pip install tomli
     for i in "${enable[@]}"; do
-        buildopt+=(-D$i=true)
+        buildopt+=(-D$i=enabled)
     done
     for i in "${disable[@]}"; do
-        buildopt+=(-D$i=false)
+        buildopt+=(-D$i=disabled)
     done
     case x"$backend" in
         'xexpat')

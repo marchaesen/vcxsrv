@@ -32,6 +32,7 @@
 #include "vk_util.h"
 #include "stdarg.h"
 #include "util/u_dynarray.h"
+#include "util/u_printf.h"
 
 void
 vk_debug_message(struct vk_instance *instance,
@@ -458,4 +459,15 @@ vk_common_QueueInsertDebugUtilsLabelEXT(
                                 &queue->labels,
                                 pLabelInfo);
    queue->region_begin = false;
+}
+
+VkResult
+vk_check_printf_status(struct vk_device *dev, struct u_printf_ctx *ctx)
+{
+   if (u_printf_check_abort(stdout, ctx)) {
+      vk_device_set_lost(dev, "GPU abort.");
+      return VK_ERROR_DEVICE_LOST;
+   } else {
+      return VK_SUCCESS;
+   }
 }

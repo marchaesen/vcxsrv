@@ -891,8 +891,10 @@ static VkResult pvr_process_queue_waits(struct pvr_queue *queue,
       uint32_t stage_wait_count = 0;
 
       for (uint32_t wait_idx = 0; wait_idx < wait_count; wait_idx++) {
-         if (!(pvr_stage_mask(waits[wait_idx].stage_mask) & BITFIELD_BIT(i)))
+         if (!(pvr_stage_mask_dst(waits[wait_idx].stage_mask) &
+               BITFIELD_BIT(i))) {
             continue;
+         }
 
          stage_waits[stage_wait_count++] = (struct vk_sync_wait){
             .sync = waits[wait_idx].sync,
@@ -900,6 +902,9 @@ static VkResult pvr_process_queue_waits(struct pvr_queue *queue,
             .wait_value = waits[wait_idx].wait_value,
          };
       }
+
+      if (!stage_wait_count)
+         continue;
 
       result = vk_sync_create(&device->vk,
                               &device->pdevice->ws->syncobj_type,
@@ -944,10 +949,13 @@ static VkResult pvr_driver_queue_submit(struct vk_queue *queue,
    if (result != VK_SUCCESS)
       return result;
 
-   result =
-      pvr_process_queue_waits(driver_queue, submit->waits, submit->wait_count);
-   if (result != VK_SUCCESS)
-      return result;
+   if (submit->wait_count) {
+      result = pvr_process_queue_waits(driver_queue,
+                                       submit->waits,
+                                       submit->wait_count);
+      if (result != VK_SUCCESS)
+         return result;
+   }
 
    for (uint32_t i = 0U; i < submit->command_buffer_count; i++) {
       result = pvr_process_cmd_buffer(

@@ -50,7 +50,7 @@ d3d12_fence_create_event(int *fd)
 inline bool
 d3d12_fence_wait_event(HANDLE event, int event_fd, uint64_t timeout_ns)
 {
-   DWORD timeout_ms = (timeout_ns == OS_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? INFINITE : timeout_ns / NsPerMs;
+   DWORD timeout_ms = (timeout_ns == OS_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? INFINITE : (DWORD)(timeout_ns / NsPerMs);
    return WaitForSingleObject(event, timeout_ms) == WAIT_OBJECT_0;
 }
 #else

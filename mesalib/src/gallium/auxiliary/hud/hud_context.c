@@ -572,7 +572,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_depth_stencil_alpha(cso, &hud->dsa);
    cso_set_rasterizer(cso, &hud->rasterizer);
    cso_set_viewport(cso, &viewport);
-   cso_set_stream_outputs(cso, 0, NULL, NULL);
+   cso_set_stream_outputs(cso, 0, NULL, NULL, 0);
    cso_set_tessctrl_shader_handle(cso, NULL);
    cso_set_tesseval_shader_handle(cso, NULL);
    cso_set_geometry_shader_handle(cso, NULL);
@@ -1208,19 +1208,19 @@ read_pane_settings(char *str, unsigned * const x, unsigned * const y,
 static bool
 has_occlusion_query(struct pipe_screen *screen)
 {
-   return screen->get_param(screen, PIPE_CAP_OCCLUSION_QUERY) != 0;
+   return screen->caps.occlusion_query != 0;
 }
 
 static bool
 has_streamout(struct pipe_screen *screen)
 {
-   return screen->get_param(screen, PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS) != 0;
+   return screen->caps.max_stream_output_buffers != 0;
 }
 
 static bool
 has_pipeline_stats_query(struct pipe_screen *screen)
 {
-   return screen->get_param(screen, PIPE_CAP_QUERY_PIPELINE_STATISTICS) != 0;
+   return screen->caps.query_pipeline_statistics != 0;
 }
 
 static void

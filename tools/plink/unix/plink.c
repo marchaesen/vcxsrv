@@ -683,6 +683,8 @@ int main(int argc, char **argv)
     struct winsize size;
     const struct BackendVtable *backvt;
 
+    enable_dit();
+
     /*
      * Initialise port and protocol to sensible defaults. (These
      * will be overridden by more or less anything.)

@@ -103,7 +103,7 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
    assert(program->ir_type == PIPE_SHADER_IR_NIR);
    si_nir_scan_shader(sscreen, sel->nir, &sel->info);
 
-   if (!sel->info.base.use_aco_amd && !*compiler)
+   if (!sel->nir->info.use_aco_amd && !*compiler)
       *compiler = si_create_llvm_compiler(sscreen);
 
    si_get_active_slot_masks(sscreen, &sel->info, &sel->active_const_and_shader_buffers,
@@ -117,11 +117,11 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
     */
    unsigned user_sgprs = SI_NUM_RESOURCE_SGPRS + (sel->info.uses_grid_size ? 3 : 0) +
                          (sel->info.uses_variable_block_size ? 1 : 0) +
-                         sel->info.base.cs.user_data_components_amd;
+                         sel->nir->info.cs.user_data_components_amd;
 
    /* Fast path for compute shaders - some descriptors passed via user SGPRs. */
    /* Shader buffers in user SGPRs. */
-   for (unsigned i = 0; i < MIN2(3, sel->info.base.num_ssbos) && user_sgprs <= 12; i++) {
+   for (unsigned i = 0; i < MIN2(3, sel->nir->info.num_ssbos) && user_sgprs <= 12; i++) {
       user_sgprs = align(user_sgprs, 4);
       if (i == 0)
          sel->cs_shaderbufs_sgpr_index = user_sgprs;
@@ -130,16 +130,16 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
    }
 
    /* Images in user SGPRs. */
-   unsigned non_fmask_images = u_bit_consecutive(0, sel->info.base.num_images);
+   unsigned non_fmask_images = u_bit_consecutive(0, sel->nir->info.num_images);
 
    /* Remove images with FMASK from the bitmask.  We only care about the first
     * 3 anyway, so we can take msaa_images[0] and ignore the rest.
     */
    if (sscreen->info.gfx_level < GFX11)
-      non_fmask_images &= ~sel->info.base.msaa_images[0];
+      non_fmask_images &= ~sel->nir->info.msaa_images[0];
 
    for (unsigned i = 0; i < 3 && non_fmask_images & (1 << i); i++) {
-      unsigned num_sgprs = BITSET_TEST(sel->info.base.image_buffers, i) ? 4 : 8;
+      unsigned num_sgprs = BITSET_TEST(sel->nir->info.image_buffers, i) ? 4 : 8;
 
       if (align(user_sgprs, num_sgprs) + num_sgprs > 16)
          break;
@@ -238,6 +238,8 @@ static void *si_create_compute_state(struct pipe_context *ctx, const struct pipe
          assert(cso->ir_type == PIPE_SHADER_IR_NIR);
          sel->nir = (struct nir_shader *)cso->prog;
       }
+
+      sel->nir->info.shared_size = cso->static_shared_mem;
 
       if (si_can_dump_shader(sscreen, sel->stage, SI_DUMP_INIT_NIR))
          nir_print_shader(sel->nir, stderr);
@@ -351,25 +353,24 @@ static void si_set_global_binding(struct pipe_context *ctx, unsigned first, unsi
 {
    unsigned i;
    struct si_context *sctx = (struct si_context *)ctx;
-   struct si_compute *program = sctx->cs_shader_state.program;
 
-   if (first + n > program->max_global_buffers) {
-      unsigned old_max = program->max_global_buffers;
-      program->max_global_buffers = first + n;
-      program->global_buffers = realloc(
-         program->global_buffers, program->max_global_buffers * sizeof(program->global_buffers[0]));
-      if (!program->global_buffers) {
+   if (first + n > sctx->max_global_buffers) {
+      unsigned old_max = sctx->max_global_buffers;
+      sctx->max_global_buffers = first + n;
+      sctx->global_buffers = realloc(
+         sctx->global_buffers, sctx->max_global_buffers * sizeof(sctx->global_buffers[0]));
+      if (!sctx->global_buffers) {
          fprintf(stderr, "radeonsi: failed to allocate compute global_buffers\n");
          return;
       }
 
-      memset(&program->global_buffers[old_max], 0,
-             (program->max_global_buffers - old_max) * sizeof(program->global_buffers[0]));
+      memset(&sctx->global_buffers[old_max], 0,
+             (sctx->max_global_buffers - old_max) * sizeof(sctx->global_buffers[0]));
    }
 
    if (!resources) {
       for (i = 0; i < n; i++) {
-         pipe_resource_reference(&program->global_buffers[first + i], NULL);
+         pipe_resource_reference(&sctx->global_buffers[first + i], NULL);
       }
       return;
    }
@@ -377,7 +378,7 @@ static void si_set_global_binding(struct pipe_context *ctx, unsigned first, unsi
    for (i = 0; i < n; i++) {
       uint64_t va;
       uint32_t offset;
-      pipe_resource_reference(&program->global_buffers[first + i], resources[i]);
+      pipe_resource_reference(&sctx->global_buffers[first + i], resources[i]);
       va = si_resource(resources[i])->gpu_address;
       offset = util_le32_to_cpu(*handles[i]);
       va += offset;
@@ -1257,8 +1258,8 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
       return;
 
    /* Global buffers */
-   for (i = 0; i < program->max_global_buffers; i++) {
-      struct si_resource *buffer = si_resource(program->global_buffers[i]);
+   for (i = 0; i < sctx->max_global_buffers; i++) {
+      struct si_resource *buffer = si_resource(sctx->global_buffers[i]);
       if (!buffer) {
          continue;
       }
@@ -1322,10 +1323,6 @@ void si_destroy_compute(struct si_compute *program)
       util_queue_drop_job(&sel->screen->shader_compiler_queue, &sel->ready);
       util_queue_fence_destroy(&sel->ready);
    }
-
-   for (unsigned i = 0; i < program->max_global_buffers; i++)
-      pipe_resource_reference(&program->global_buffers[i], NULL);
-   FREE(program->global_buffers);
 
    si_shader_destroy(&program->shader);
    ralloc_free(program->sel.nir);

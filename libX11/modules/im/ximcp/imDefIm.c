@@ -303,7 +303,7 @@ _XimPreConnectionIM(
 
     /* server name check */
     if( !(str = XGetAtomName( display, selection )) )
-	return False;
+	goto Error;
     if(!_XimCheckServerName(im, str)) {
 	XFree( (XPointer)str );
 	goto Error;

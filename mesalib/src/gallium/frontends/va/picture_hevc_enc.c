@@ -42,7 +42,7 @@ vlVaHandleVAEncPictureParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *cont
    VAEncPictureParameterBufferHEVC *h265;
    vlVaBuffer *coded_buf;
    vlVaSurface *surf;
-   int i;
+   int i, j;
 
    h265 = buf->data;
    context->desc.h265enc.decoded_curr_pic = h265->decoded_curr_pic.picture_id;
@@ -50,6 +50,30 @@ vlVaHandleVAEncPictureParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *cont
 
    for (i = 0; i < 15; i++)
       context->desc.h265enc.reference_frames[i] = h265->reference_frames[i].picture_id;
+
+   /* Evict unused surfaces */
+   for (i = 0; i < context->desc.h265enc.dpb_size; i++) {
+      struct pipe_h265_enc_dpb_entry *dpb = &context->desc.h265enc.dpb[i];
+      if (!dpb->id || dpb->id == h265->decoded_curr_pic.picture_id)
+         continue;
+      for (j = 0; j < ARRAY_SIZE(h265->reference_frames); j++) {
+         if (h265->reference_frames[j].picture_id == dpb->id) {
+            dpb->evict = false;
+            break;
+         }
+      }
+      if (j == ARRAY_SIZE(h265->reference_frames)) {
+         if (dpb->evict) {
+            surf = handle_table_get(drv->htab, dpb->id);
+            assert(surf);
+            surf->is_dpb = false;
+            surf->buffer = NULL;
+            /* Keep the buffer for reuse later */
+            dpb->id = 0;
+         }
+         dpb->evict = !dpb->evict;
+      }
+   }
 
    surf = handle_table_get(drv->htab, h265->decoded_curr_pic.picture_id);
    if (!surf)
@@ -60,27 +84,43 @@ vlVaHandleVAEncPictureParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *cont
          assert(surf->is_dpb);
          break;
       }
-      if (!context->desc.h265enc.dpb[i].id) {
-         assert(!surf->is_dpb);
+      if (!surf->is_dpb && !context->desc.h265enc.dpb[i].id) {
          surf->is_dpb = true;
          if (surf->buffer) {
             surf->buffer->destroy(surf->buffer);
             surf->buffer = NULL;
          }
-         if (context->decoder && context->decoder->create_dpb_buffer)
-            surf->buffer = context->decoder->create_dpb_buffer(context->decoder, &context->desc.base, &surf->templat);
+         if (context->decoder->create_dpb_buffer) {
+            struct pipe_video_buffer *buffer = context->desc.h265enc.dpb[i].buffer;
+            if (!buffer) {
+               /* Find unused buffer */
+               for (j = 0; j < context->desc.h265enc.dpb_size; j++) {
+                  struct pipe_h265_enc_dpb_entry *dpb = &context->desc.h265enc.dpb[j];
+                  if (!dpb->id && dpb->buffer) {
+                     buffer = dpb->buffer;
+                     dpb->buffer = NULL;
+                     break;
+                  }
+               }
+            }
+            if (!buffer)
+               buffer = context->decoder->create_dpb_buffer(context->decoder, &context->desc.base, &surf->templat);
+            surf->buffer = buffer;
+         }
          vlVaSetSurfaceContext(drv, surf, context);
-         context->desc.h265enc.dpb_size++;
+         if (i == context->desc.h265enc.dpb_size)
+            context->desc.h265enc.dpb_size++;
          break;
       }
    }
-   if (i == ARRAY_SIZE(context->desc.h264enc.dpb))
+   if (i == ARRAY_SIZE(context->desc.h265enc.dpb))
       return VA_STATUS_ERROR_INVALID_PARAMETER;
    context->desc.h265enc.dpb_curr_pic = i;
    context->desc.h265enc.dpb[i].id = h265->decoded_curr_pic.picture_id;
    context->desc.h265enc.dpb[i].pic_order_cnt = h265->decoded_curr_pic.pic_order_cnt;
    context->desc.h265enc.dpb[i].is_ltr = h265->decoded_curr_pic.flags & VA_PICTURE_HEVC_LONG_TERM_REFERENCE;
    context->desc.h265enc.dpb[i].buffer = surf->buffer;
+   context->desc.h265enc.dpb[i].evict = false;
 
    context->desc.h265enc.pic_order_cnt = h265->decoded_curr_pic.pic_order_cnt;
    coded_buf = handle_table_get(drv->htab, h265->coded_buf);
@@ -178,16 +218,24 @@ vlVaHandleVAEncSliceParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *contex
       context->desc.h265enc.num_ref_idx_l1_active_minus1 = h265->num_ref_idx_l1_active_minus1;
    }
 
-   for (int i = 0; i < 15; i++) {
-      if (h265->ref_pic_list0[i].picture_id != VA_INVALID_ID) {
-         context->desc.h265enc.ref_list0[i] = vlVaDpbIndex(context, h265->ref_pic_list0[i].picture_id);
-         context->desc.h265enc.ref_idx_l0_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h265enc.frame_idx,
-                                 UINT_TO_PTR(h265->ref_pic_list0[i].picture_id + 1)));
-      }
-      if (h265->ref_pic_list1[i].picture_id != VA_INVALID_ID && h265->slice_type == PIPE_H265_SLICE_TYPE_B) {
-         context->desc.h265enc.ref_list1[i] = vlVaDpbIndex(context, h265->ref_pic_list1[i].picture_id);
-         context->desc.h265enc.ref_idx_l1_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h265enc.frame_idx,
-                                 UINT_TO_PTR(h265->ref_pic_list1[i].picture_id + 1)));
+   if (h265->slice_type != PIPE_H265_SLICE_TYPE_I) {
+      for (int i = 0; i < 15; i++) {
+         if (h265->ref_pic_list0[i].picture_id != VA_INVALID_ID) {
+            context->desc.h265enc.ref_list0[i] = vlVaDpbIndex(context, h265->ref_pic_list0[i].picture_id);
+            if (context->desc.h265enc.ref_list0[i] == PIPE_H2645_LIST_REF_INVALID_ENTRY)
+               return VA_STATUS_ERROR_INVALID_PARAMETER;
+
+            context->desc.h265enc.ref_idx_l0_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h265enc.frame_idx,
+                                    UINT_TO_PTR(h265->ref_pic_list0[i].picture_id + 1)));
+         }
+         if (h265->ref_pic_list1[i].picture_id != VA_INVALID_ID && h265->slice_type == PIPE_H265_SLICE_TYPE_B) {
+            context->desc.h265enc.ref_list1[i] = vlVaDpbIndex(context, h265->ref_pic_list1[i].picture_id);
+            if (context->desc.h265enc.ref_list1[i] == PIPE_H2645_LIST_REF_INVALID_ENTRY)
+               return VA_STATUS_ERROR_INVALID_PARAMETER;
+
+            context->desc.h265enc.ref_idx_l1_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h265enc.frame_idx,
+                                    UINT_TO_PTR(h265->ref_pic_list1[i].picture_id + 1)));
+         }
       }
    }
 

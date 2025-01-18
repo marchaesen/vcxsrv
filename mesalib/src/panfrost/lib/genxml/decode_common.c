@@ -107,7 +107,7 @@ pandecode_find_mapped_gpu_mem_containing(struct pandecode_context *ctx,
  * detect GPU-side memory bugs by validating pointers.
  */
 void
-pandecode_validate_buffer(struct pandecode_context *ctx, mali_ptr addr,
+pandecode_validate_buffer(struct pandecode_context *ctx, uint64_t addr,
                           size_t sz)
 {
    if (!addr) {
@@ -360,7 +360,7 @@ pandecode_dump_mappings(struct pandecode_context *ctx)
 }
 
 void
-pandecode_abort_on_fault(struct pandecode_context *ctx, mali_ptr jc_gpu_va,
+pandecode_abort_on_fault(struct pandecode_context *ctx, uint64_t jc_gpu_va,
                          unsigned gpu_id)
 {
    simple_mtx_lock(&ctx->lock);
@@ -389,7 +389,7 @@ pandecode_abort_on_fault(struct pandecode_context *ctx, mali_ptr jc_gpu_va,
 }
 
 void
-pandecode_jc(struct pandecode_context *ctx, mali_ptr jc_gpu_va, unsigned gpu_id)
+pandecode_jc(struct pandecode_context *ctx, uint64_t jc_gpu_va, unsigned gpu_id)
 {
    simple_mtx_lock(&ctx->lock);
 
@@ -417,14 +417,14 @@ pandecode_jc(struct pandecode_context *ctx, mali_ptr jc_gpu_va, unsigned gpu_id)
 }
 
 void
-pandecode_cs(struct pandecode_context *ctx, mali_ptr queue_gpu_va,
-             uint32_t size, unsigned gpu_id, uint32_t *regs)
+pandecode_interpret_cs(struct pandecode_context *ctx, uint64_t queue_gpu_va,
+                       uint32_t size, unsigned gpu_id, uint32_t *regs)
 {
    simple_mtx_lock(&ctx->lock);
 
    switch (pan_arch(gpu_id)) {
    case 10:
-      pandecode_cs_v10(ctx, queue_gpu_va, size, gpu_id, regs);
+      pandecode_interpret_cs_v10(ctx, queue_gpu_va, size, gpu_id, regs);
       break;
    default:
       unreachable("Unsupported architecture");
@@ -434,7 +434,41 @@ pandecode_cs(struct pandecode_context *ctx, mali_ptr queue_gpu_va,
 }
 
 void
-pandecode_shader_disassemble(struct pandecode_context *ctx, mali_ptr shader_ptr,
+pandecode_cs_binary(struct pandecode_context *ctx, uint64_t bin_gpu_va,
+                   uint32_t size, unsigned gpu_id)
+{
+   simple_mtx_lock(&ctx->lock);
+
+   switch (pan_arch(gpu_id)) {
+   case 10:
+      pandecode_cs_binary_v10(ctx, bin_gpu_va, size, gpu_id);
+      break;
+   default:
+      unreachable("Unsupported architecture");
+   }
+
+   simple_mtx_unlock(&ctx->lock);
+}
+
+void
+pandecode_cs_trace(struct pandecode_context *ctx, uint64_t trace_gpu_va,
+                   uint32_t size, unsigned gpu_id)
+{
+   simple_mtx_lock(&ctx->lock);
+
+   switch (pan_arch(gpu_id)) {
+   case 10:
+      pandecode_cs_trace_v10(ctx, trace_gpu_va, size, gpu_id);
+      break;
+   default:
+      unreachable("Unsupported architecture");
+   }
+
+   simple_mtx_unlock(&ctx->lock);
+}
+
+void
+pandecode_shader_disassemble(struct pandecode_context *ctx, uint64_t shader_ptr,
                              unsigned gpu_id)
 {
    uint8_t *PANDECODE_PTR_VAR(ctx, code, shader_ptr);

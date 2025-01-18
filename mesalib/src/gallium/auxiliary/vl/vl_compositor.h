@@ -79,6 +79,15 @@ enum vl_compositor_chroma_location
    VL_COMPOSITOR_LOCATION_HORIZONTAL_CENTER  = (1 << 4)
 };
 
+enum vl_compositor_plane
+{
+   VL_COMPOSITOR_PLANE_NONE  = 0,
+   VL_COMPOSITOR_PLANE_Y     = (1 << 0),
+   VL_COMPOSITOR_PLANE_U     = (1 << 1),
+   VL_COMPOSITOR_PLANE_V     = (1 << 2),
+   VL_COMPOSITOR_PLANE_UV    = VL_COMPOSITOR_PLANE_U | VL_COMPOSITOR_PLANE_V
+};
+
 struct vl_compositor_layer
 {
    bool clearing;
@@ -165,6 +174,8 @@ struct vl_compositor
       struct {
          void *y;
          void *uv;
+         void *u;
+         void *v;
       } progressive;
    } cs_yuv;
 
@@ -181,6 +192,8 @@ struct vl_compositor
    struct {
       void *y;
       void *uv;
+      void *u;
+      void *v;
    } cs_rgb_yuv;
 
    bool shaders_initialized;
@@ -190,7 +203,7 @@ struct vl_compositor
  * initialize this compositor
  */
 bool
-vl_compositor_init(struct vl_compositor *compositor, struct pipe_context *pipe);
+vl_compositor_init(struct vl_compositor *compositor, struct pipe_context *pipe, bool compute_only);
 
 /**
  * init state bag

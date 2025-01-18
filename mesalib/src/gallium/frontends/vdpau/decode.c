@@ -653,6 +653,10 @@ vlVdpDecoderRenderAV1(struct pipe_av1_picture_desc *picture,
       picture_info->enable_order_hint;
    picture->picture_parameter.seq_info_fields.film_grain_params_present =
       picture_info->enable_fgs;
+   picture->picture_parameter.seq_info_fields.subsampling_x =
+      picture_info->subsampling_x;
+   picture->picture_parameter.seq_info_fields.subsampling_y =
+      picture_info->subsampling_y;
 
    picture->picture_parameter.current_frame_id = target;
    picture->picture_parameter.frame_width = picture_info->width;

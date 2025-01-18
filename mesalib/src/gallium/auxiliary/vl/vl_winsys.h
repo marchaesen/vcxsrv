@@ -46,6 +46,7 @@ extern "C" {
 #endif
 #include "pipe/p_defines.h"
 #include "util/format/u_formats.h"
+#include "frontend/sw_winsys.h"
 
 struct pipe_screen;
 struct pipe_surface;

@@ -128,4 +128,13 @@ pan_arch(unsigned gpu_id)
    }
 }
 
+static inline unsigned
+panfrost_max_effective_tile_size(unsigned arch)
+{
+   if (arch >= 10)
+      return 32 * 32;
+
+   return 16 * 16;
+}
+
 #endif

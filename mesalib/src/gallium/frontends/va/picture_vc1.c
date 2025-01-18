@@ -37,6 +37,7 @@ void vlVaHandlePictureParameterBufferVC1(vlVaDriver *drv, vlVaContext *context, 
    vlVaGetReferenceFrame(drv, vc1->backward_reference_picture, &context->desc.vc1.ref[1]);
    context->desc.vc1.picture_type = vc1->picture_fields.bits.picture_type;
    context->desc.vc1.frame_coding_mode = vc1->picture_fields.bits.frame_coding_mode;
+   context->desc.vc1.is_first_field = vc1->picture_fields.bits.is_first_field;
    context->desc.vc1.postprocflag = vc1->post_processing != 0;
    context->desc.vc1.pulldown = vc1->sequence_fields.bits.pulldown;
    context->desc.vc1.interlace = vc1->sequence_fields.bits.interlace;

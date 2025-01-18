@@ -80,7 +80,7 @@ SOFTWARE.
  *  If it is moving to the left, then we don't want it to flip until
  *  we traverse an entire pixel.
  */
-#define BRESINITPGON(dy, x1, x2, xStart, d, m, m1, incr1, incr2) { \
+#define BRESINITPGON(dy, x1, x2, xStart, d, m, m1, incr1, incr2) do { \
     int dx;      /* local storage */ \
 \
     /* \
@@ -104,9 +104,9 @@ SOFTWARE.
             d = -2 * m * (dy) + 2 * dx; \
         } \
     } \
-}
+} while (0)
 
-#define BRESINCRPGON(d, minval, m, m1, incr1, incr2) { \
+#define BRESINCRPGON(d, minval, m, m1, incr1, incr2) do { \
     if (m1 > 0) { \
         if (d > 0) { \
             minval += m1; \
@@ -126,7 +126,7 @@ SOFTWARE.
             d += incr2; \
         } \
     } \
-}
+} while (0)
 
 
 /*
@@ -256,7 +256,7 @@ typedef struct _ScanLineListBlock {
  *     the caller when the edge has been removed so he
  *     can reorder the Winding Active Edge Table.
  */
-#define EVALUATEEDGEWINDING(pAET, pPrevAET, y, fixWAET) { \
+#define EVALUATEEDGEWINDING(pAET, pPrevAET, y, fixWAET) do { \
    if (pAET->ymax == y) {          /* leaving this edge */ \
       pPrevAET->next = pAET->next; \
       pAET = pPrevAET->next; \
@@ -269,7 +269,7 @@ typedef struct _ScanLineListBlock {
       pPrevAET = pAET; \
       pAET = pAET->next; \
    } \
-}
+} while (0)
 
 
 /*
@@ -279,7 +279,7 @@ typedef struct _ScanLineListBlock {
  *     x value to be ready for the next scanline.
  *     The even-odd rule is in effect.
  */
-#define EVALUATEEDGEEVENODD(pAET, pPrevAET, y) { \
+#define EVALUATEEDGEEVENODD(pAET, pPrevAET, y) do { \
    if (pAET->ymax == y) {          /* leaving this edge */ \
       pPrevAET->next = pAET->next; \
       pAET = pPrevAET->next; \
@@ -291,4 +291,4 @@ typedef struct _ScanLineListBlock {
       pPrevAET = pAET; \
       pAET = pAET->next; \
    } \
-}
+} while (0)

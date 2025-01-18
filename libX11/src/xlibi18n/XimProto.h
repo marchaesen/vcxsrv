@@ -213,7 +213,7 @@ typedef CARD16	XICID;		/* Input Context ID */
 #define	XIM_PAD(length) ((4 - ((length) % 4)) % 4)
 
 #define XIM_SET_PAD(ptr, length)					\
-    {									\
+    do {								\
 	register int	 Counter = XIM_PAD((int)length);		\
 	if (Counter) {							\
 	    register char	*Ptr = (char *)(ptr) + (length);	\
@@ -221,6 +221,6 @@ typedef CARD16	XICID;		/* Input Context ID */
 	    for (; Counter; --Counter, ++Ptr)				\
 		*Ptr = '\0';						\
 	}								\
-    }
+    } while (0)
 
 #endif /* _XIMPROTO_H */

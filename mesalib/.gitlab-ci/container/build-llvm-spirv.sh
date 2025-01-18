@@ -2,6 +2,8 @@
 
 set -ex
 
+uncollapsed_section_start llvm-spirv "Building LLVM-SPIRV-Translator"
+
 VER="${LLVM_VERSION:?llvm not set}.0.0"
 
 curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
@@ -20,3 +22,5 @@ popd
 
 du -sh "SPIRV-LLVM-Translator-${VER}"
 rm -rf "SPIRV-LLVM-Translator-${VER}"
+
+section_end llvm-spirv

@@ -176,7 +176,7 @@ instr_is_invariant(nir_instr *instr, nir_loop *loop)
       return phi_is_invariant(nir_instr_as_phi(instr), loop);
    case nir_instr_type_intrinsic: {
       nir_intrinsic_instr *intrinsic = nir_instr_as_intrinsic(instr);
-      if (!(nir_intrinsic_infos[intrinsic->intrinsic].flags & NIR_INTRINSIC_CAN_REORDER))
+      if (!nir_intrinsic_can_reorder(intrinsic))
          return not_invariant;
    }
       FALLTHROUGH;
@@ -281,6 +281,28 @@ setup_loop_state(lcssa_state *state, nir_loop *loop)
 }
 
 static void
+convert_block_to_lcssa(nir_block *block, lcssa_state *state)
+{
+   nir_instr *instr = nir_block_last_instr(block);
+   while (instr) {
+      /* We assume "next" will not be removed. It is used to obtain the next iteration's
+       * pointer if "instr" is removed.
+       */
+      nir_instr *next = nir_instr_next(instr);
+
+      nir_foreach_def(instr, convert_loop_exit_for_ssa, state);
+
+      /* for outer loops, invariant instructions can be variant */
+      if (state->skip_invariants && instr->pass_flags == invariant)
+         instr->pass_flags = undefined;
+
+      nir_instr *if_removed = next ? nir_instr_prev(next) : nir_block_last_instr(block);
+      bool has_instr_been_removed = if_removed != instr;
+      instr = has_instr_been_removed ? if_removed : nir_instr_prev(instr);
+   }
+}
+
+static void
 convert_to_lcssa(nir_cf_node *cf_node, lcssa_state *state)
 {
    switch (cf_node->type) {
@@ -328,15 +350,8 @@ convert_to_lcssa(nir_cf_node *cf_node, lcssa_state *state)
          }
       }
 
-      nir_foreach_block_in_cf_node_reverse(block, cf_node) {
-         nir_foreach_instr_reverse_safe(instr, block) {
-            nir_foreach_def(instr, convert_loop_exit_for_ssa, state);
-
-            /* for outer loops, invariant instructions can be variant */
-            if (state->skip_invariants && instr->pass_flags == invariant)
-               instr->pass_flags = undefined;
-         }
-      }
+      nir_foreach_block_in_cf_node_reverse(block, cf_node)
+         convert_block_to_lcssa(block, state);
 
    end:
       /* For outer loops, the LCSSA-phi should be considered not invariant */
@@ -369,10 +384,8 @@ nir_convert_loop_to_lcssa(nir_loop *loop)
    state->skip_invariants = false;
    state->skip_bool_invariants = false;
 
-   nir_foreach_block_in_cf_node_reverse(block, &loop->cf_node) {
-      nir_foreach_instr_reverse_safe(instr, block)
-         nir_foreach_def(instr, convert_loop_exit_for_ssa, state);
-   }
+   nir_foreach_block_in_cf_node_reverse(block, &loop->cf_node)
+      convert_block_to_lcssa(block, state);
 
    ralloc_free(state);
 }

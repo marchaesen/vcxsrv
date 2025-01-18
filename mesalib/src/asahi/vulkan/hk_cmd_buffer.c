@@ -22,6 +22,7 @@
 #include "hk_physical_device.h"
 #include "hk_shader.h"
 
+#include "libagx_dgc.h"
 #include "pool.h"
 #include "shader_enums.h"
 #include "vk_pipeline_layout.h"
@@ -186,7 +187,7 @@ hk_pool_alloc_internal(struct hk_cmd_buffer *cmd, uint32_t size,
       util_dynarray_append(&cmd->large_bos, struct agx_bo *, bo);
       return (struct agx_ptr){
          .gpu = bo->va->addr,
-         .cpu = bo->map,
+         .cpu = agx_bo_map(bo),
       };
    }
 
@@ -219,7 +220,7 @@ hk_pool_alloc_internal(struct hk_cmd_buffer *cmd, uint32_t size,
     * BO.
     */
    if (uploader->map == NULL || size < uploader->offset) {
-      uploader->map = bo->bo->map;
+      uploader->map = agx_bo_map(bo->bo);
       uploader->base = bo->bo->va->addr;
       uploader->offset = size;
    }
@@ -636,10 +637,8 @@ hk_upload_usc_words(struct hk_cmd_buffer *cmd, struct hk_shader *s,
    struct hk_device *dev = hk_cmd_buffer_device(cmd);
 
    enum pipe_shader_type sw_stage = s->info.stage;
-   enum pipe_shader_type hw_stage = s->b.info.stage;
 
-   unsigned constant_push_ranges =
-      DIV_ROUND_UP(s->b.info.immediate_size_16, 64);
+   unsigned constant_push_ranges = DIV_ROUND_UP(s->b.info.rodata.size_16, 64);
    unsigned push_ranges = 2;
    unsigned stage_ranges = 3;
 
@@ -683,7 +682,7 @@ hk_upload_usc_words(struct hk_cmd_buffer *cmd, struct hk_shader *s,
       if (cmd->state.gfx.draw_id_ptr)
          agx_usc_uniform(&b, (6 * count) + 4, 1, cmd->state.gfx.draw_id_ptr);
 
-      if (hw_stage == MESA_SHADER_COMPUTE) {
+      if (linked->sw_indexing) {
          agx_usc_uniform(
             &b, (6 * count) + 8, 4,
             root_ptr + hk_root_descriptor_offset(draw.input_assembly));
@@ -708,35 +707,22 @@ hk_upload_usc_words(struct hk_cmd_buffer *cmd, struct hk_shader *s,
    return agx_usc_addr(&dev->dev, t.gpu);
 }
 
-/* Specialized variant of hk_upload_usc_words for internal dispatches that do
- * not use any state except for some directly mapped uniforms.
- */
-uint32_t
-hk_upload_usc_words_kernel(struct hk_cmd_buffer *cmd, struct hk_shader *s,
-                           void *data, size_t data_size)
+void
+hk_dispatch_precomp(struct hk_cs *cs, struct agx_grid grid,
+                    enum agx_barrier barrier, enum libagx_program idx,
+                    void *data, size_t data_size)
 {
-   struct hk_device *dev = hk_cmd_buffer_device(cmd);
+   struct hk_device *dev = hk_cmd_buffer_device(cs->cmd);
+   struct agx_precompiled_shader *prog = agx_get_precompiled(&dev->bg_eot, idx);
 
-   assert(s->info.stage == MESA_SHADER_COMPUTE);
-   assert(s->b.info.scratch_size == 0 && "you shouldn't be spilling!");
-   assert(s->b.info.preamble_scratch_size == 0 && "you shouldn't be spilling!");
+   struct agx_ptr t = hk_pool_usc_alloc(cs->cmd, agx_usc_size(15), 64);
+   uint64_t uploaded_data = hk_pool_upload(cs->cmd, data, data_size, 4);
 
-   unsigned constant_push_ranges =
-      DIV_ROUND_UP(s->b.info.immediate_size_16, 64);
+   agx_usc_words_precomp(t.cpu, &prog->b, uploaded_data, data_size);
 
-   size_t usc_size = agx_usc_size(constant_push_ranges + 7);
-   struct agx_ptr t = hk_pool_usc_alloc(cmd, usc_size, 64);
-   if (!t.cpu)
-      return 0;
-
-   struct agx_usc_builder b = agx_usc_builder(t.cpu, usc_size);
-
-   /* Map the data directly as uniforms starting at u0 */
-   agx_usc_uniform(&b, 0, DIV_ROUND_UP(data_size, 2),
-                   hk_pool_upload(cmd, data, data_size, 4));
-
-   agx_usc_push_blob(&b, s->only_linked->usc.data, s->only_linked->usc.size);
-   return agx_usc_addr(&dev->dev, t.gpu);
+   hk_dispatch_with_usc_launch(dev, cs, prog->b.launch,
+                               agx_usc_addr(&dev->dev, t.gpu), grid,
+                               prog->b.workgroup);
 }
 
 void
@@ -826,20 +812,11 @@ hk_ensure_cs_has_space(struct hk_cmd_buffer *cmd, struct hk_cs *cs,
    struct agx_ptr T = hk_pool_alloc(cmd, size, 256);
 
    /* Jump from the old control stream to the new control stream */
-   if (vdm) {
-      agx_pack(cs->current, VDM_STREAM_LINK, cfg) {
-         cfg.target_lo = T.gpu & BITFIELD_MASK(32);
-         cfg.target_hi = T.gpu >> 32;
-      }
-   } else {
-      agx_pack(cs->current, CDM_STREAM_LINK, cfg) {
-         cfg.target_lo = T.gpu & BITFIELD_MASK(32);
-         cfg.target_hi = T.gpu >> 32;
-      }
-   }
+   agx_cs_jump(cs->current, T.gpu, vdm);
 
    /* Swap out the control stream */
    cs->current = T.cpu;
    cs->end = cs->current + size;
+   cs->chunk = T;
    cs->stream_linked = true;
 }

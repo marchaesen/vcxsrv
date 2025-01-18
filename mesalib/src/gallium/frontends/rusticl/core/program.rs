@@ -60,7 +60,7 @@ fn get_disk_cache() -> &'static Option<DiskCache> {
     ];
     unsafe {
         DISK_CACHE_ONCE.call_once(|| {
-            DISK_CACHE = DiskCache::new("rusticl", &func_ptrs, 0);
+            DISK_CACHE = DiskCache::new(c"rusticl", &func_ptrs, 0);
         });
         &*addr_of!(DISK_CACHE)
     }
@@ -477,23 +477,18 @@ impl Program {
         res
     }
 
-    pub fn binaries(&self, vals: &[u8]) -> CLResult<Vec<*mut u8>> {
-        // if the application didn't provide any pointers, just return the length of devices
-        if vals.is_empty() {
-            return Ok(vec![std::ptr::null_mut(); self.devs.len()]);
-        }
-
-        // vals is an array of pointers where we should write the device binaries into
-        if vals.len() != self.devs.len() * size_of::<*const u8>() {
+    pub fn binaries(&self, ptrs: &[*mut u8]) -> CLResult<()> {
+        // ptrs is an array of pointers where we should write the device binaries into
+        if ptrs.len() < self.devs.len() {
             return Err(CL_INVALID_VALUE);
         }
 
-        let ptrs: &[*mut u8] = unsafe {
-            slice::from_raw_parts(vals.as_ptr().cast(), vals.len() / size_of::<*mut u8>())
-        };
-
         let lock = self.build_info();
-        for (i, d) in self.devs.iter().enumerate() {
+        for (d, ptr) in self.devs.iter().zip(ptrs) {
+            if ptr.is_null() {
+                return Err(CL_INVALID_VALUE);
+            }
+
             let info = lock.dev_build(d);
 
             // no spirv means nothing to write
@@ -506,7 +501,7 @@ impl Program {
                 let mut blob = blob::default();
 
                 // sadly we have to trust the buffer to be correctly sized...
-                blob_init_fixed(&mut blob, ptrs[i].cast(), usize::MAX);
+                blob_init_fixed(&mut blob, ptr.cast(), usize::MAX);
 
                 blob_write_bytes(
                     &mut blob,
@@ -531,7 +526,7 @@ impl Program {
             }
         }
 
-        Ok(ptrs.to_vec())
+        Ok(())
     }
 
     // TODO: at the moment we do not support compiling programs with different signatures across

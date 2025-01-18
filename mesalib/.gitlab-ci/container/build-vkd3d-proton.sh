@@ -6,7 +6,9 @@
 # KERNEL_ROOTFS_TAG
 set -ex
 
-VKD3D_PROTON_COMMIT="3d46c082906c77544385d10801e4c0184f0385d9"
+uncollapsed_section_start vkd3d-proton "Building vkd3d-proton"
+
+VKD3D_PROTON_COMMIT="b121e6d746341e0aaba7663e3d85f3194e8e20e1"
 
 VKD3D_PROTON_DST_DIR="/vkd3d-proton-tests"
 VKD3D_PROTON_SRC_DIR="/vkd3d-proton-src"
@@ -14,9 +16,8 @@ VKD3D_PROTON_BUILD_DIR="/vkd3d-proton-build"
 
 function build_arch {
   local arch="$1"
-  shift
 
-  meson "$@"                               \
+  meson setup                              \
         -Denable_tests=true                \
         --buildtype release                \
         --prefix "$VKD3D_PROTON_DST_DIR"   \
@@ -46,3 +47,5 @@ popd
 
 rm -rf "$VKD3D_PROTON_BUILD_DIR"
 rm -rf "$VKD3D_PROTON_SRC_DIR"
+
+section_end vkd3d-proton

@@ -195,6 +195,6 @@ bool ac_init_spm(const struct radeon_info *info,
                  struct ac_spm *spm);
 void ac_destroy_spm(struct ac_spm *spm);
 
-void ac_spm_get_trace(const struct ac_spm *spm, struct ac_spm_trace *trace);
+bool ac_spm_get_trace(const struct ac_spm *spm, struct ac_spm_trace *trace);
 
 #endif

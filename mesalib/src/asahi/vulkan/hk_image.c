@@ -221,7 +221,7 @@ vk_image_usage_to_format_features(VkImageUsageFlagBits usage_flag)
 }
 
 static bool
-hk_can_compress(struct agx_device *dev, VkFormat format, unsigned plane,
+hk_can_compress(const struct agx_device *dev, VkFormat format, unsigned plane,
                 unsigned width, unsigned height, unsigned samples,
                 VkImageCreateFlagBits flags, VkImageUsageFlagBits usage,
                 const void *pNext)
@@ -297,8 +297,8 @@ hk_can_compress(struct agx_device *dev, VkFormat format, unsigned plane,
    return true;
 }
 
-static bool
-hk_can_compress_format(struct agx_device *dev, VkFormat format)
+bool
+hk_can_compress_format(const struct agx_device *dev, VkFormat format)
 {
    /* Check compressability of a sufficiently large image of the same
     * format, since we don't have dimensions here. This is lossy for
@@ -659,6 +659,15 @@ hk_GetPhysicalDeviceSparseImageFormatProperties2(
    }
 }
 
+static bool
+hk_can_compress_create_info(struct hk_device *dev, unsigned plane,
+                            const VkImageCreateInfo *info)
+{
+   return hk_can_compress(&dev->dev, info->format, plane, info->extent.width,
+                          info->extent.height, info->samples, info->flags,
+                          info->usage, info->pNext);
+}
+
 static enum ail_tiling
 hk_map_tiling(struct hk_device *dev, const VkImageCreateInfo *info,
               unsigned plane, uint64_t modifier)
@@ -668,9 +677,7 @@ hk_map_tiling(struct hk_device *dev, const VkImageCreateInfo *info,
       return AIL_TILING_LINEAR;
 
    case VK_IMAGE_TILING_OPTIMAL:
-      if (hk_can_compress(&dev->dev, info->format, plane, info->extent.width,
-                          info->extent.height, info->samples, info->flags,
-                          info->usage, info->pNext)) {
+      if (hk_can_compress_create_info(dev, plane, info)) {
          return AIL_TILING_TWIDDLED_COMPRESSED;
       } else {
          return AIL_TILING_TWIDDLED;
@@ -703,12 +710,24 @@ modifier_get_score(uint64_t mod)
 }
 
 static uint64_t
-choose_drm_format_mod(uint32_t modifier_count, const uint64_t *modifiers)
+choose_drm_format_mod(struct hk_device *dev, uint8_t plane_count,
+                      const VkImageCreateInfo *info, uint32_t modifier_count,
+                      const uint64_t *modifiers)
 {
    uint64_t best_mod = UINT64_MAX;
    uint32_t best_score = 0;
+   bool can_compress = true;
+
+   for (uint8_t plane = 0; plane < plane_count; plane++) {
+      if (!hk_can_compress_create_info(dev, plane, info))
+         can_compress = false;
+   }
 
    for (uint32_t i = 0; i < modifier_count; ++i) {
+      if (!can_compress &&
+          modifiers[i] == DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED)
+         continue;
+
       uint32_t score = modifier_get_score(modifiers[i]);
       if (score > best_score) {
          best_mod = modifiers[i];
@@ -777,7 +796,8 @@ hk_image_init(struct hk_device *dev, struct hk_image *image,
                pCreateInfo->pNext,
                IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
 
-         modifier = choose_drm_format_mod(mod_list_info->drmFormatModifierCount,
+         modifier = choose_drm_format_mod(dev, image->plane_count, pCreateInfo,
+                                          mod_list_info->drmFormatModifierCount,
                                           mod_list_info->pDrmFormatModifiers);
       }
 
@@ -1213,7 +1233,7 @@ hk_image_plane_bind(struct hk_device *dev, struct hk_image_plane *plane,
       unreachable("todo");
    } else {
       plane->addr = mem->bo->va->addr + *offset_B;
-      plane->map = mem->bo->map + *offset_B;
+      plane->map = agx_bo_map(mem->bo) + *offset_B;
       plane->rem = mem->bo->size - (*offset_B);
    }
 

@@ -48,6 +48,7 @@ struct ir3_context {
    struct ir3_instruction **outputs;
 
    struct ir3_block *block;    /* the current block */
+   struct ir3_builder build;
    struct ir3_block *in_block; /* block created for shader inputs */
 
    nir_function_impl *impl;
@@ -83,6 +84,8 @@ struct ir3_context {
 
    /* Compute shader inputs: */
    struct ir3_instruction *local_invocation_id, *work_group_id;
+
+   struct ir3_instruction *frag_shading_rate;
 
    /* mapping from nir_register to defining instruction: */
    struct hash_table *def_ht;
@@ -138,6 +141,8 @@ struct ir3_context {
 
    unsigned prefetch_limit;
 
+   bool has_relative_load_const_ir3;
+
    /* set if we encounter something we can't handle yet, so we
     * can bail cleanly and fallback to TGSI compiler f/e
     */
@@ -179,6 +184,13 @@ struct ir3_context *ir3_context_init(struct ir3_compiler *compiler,
                                      struct ir3_shader_variant *so);
 void ir3_context_free(struct ir3_context *ctx);
 
+static inline void
+ir3_context_set_block(struct ir3_context *ctx, struct ir3_block *block)
+{
+   ctx->block = block;
+   ctx->build = ir3_builder_at(ir3_before_terminator(block));
+}
+
 struct ir3_instruction **ir3_get_dst_ssa(struct ir3_context *ctx,
                                          nir_def *dst, unsigned n);
 struct ir3_instruction **ir3_get_def(struct ir3_context *ctx, nir_def *def,
@@ -195,10 +207,10 @@ ir3_get_src(struct ir3_context *ctx, nir_src *src)
 }
 
 void ir3_put_def(struct ir3_context *ctx, nir_def *def);
-struct ir3_instruction *ir3_create_collect(struct ir3_block *block,
+struct ir3_instruction *ir3_create_collect(struct ir3_builder *build,
                                            struct ir3_instruction *const *arr,
                                            unsigned arrsz);
-void ir3_split_dest(struct ir3_block *block, struct ir3_instruction **dst,
+void ir3_split_dest(struct ir3_builder *build, struct ir3_instruction **dst,
                     struct ir3_instruction *src, unsigned base, unsigned n);
 void ir3_handle_bindless_cat6(struct ir3_instruction *instr, nir_src rsrc);
 void ir3_handle_nonuniform(struct ir3_instruction *instr,
@@ -207,10 +219,10 @@ void emit_intrinsic_image_size_tex(struct ir3_context *ctx,
                                    nir_intrinsic_instr *intr,
                                    struct ir3_instruction **dst);
 
-#define ir3_collect(block, ...)                                                \
+#define ir3_collect(build, ...)                                                \
    ({                                                                          \
       struct ir3_instruction *__arr[] = {__VA_ARGS__};                         \
-      ir3_create_collect(block, __arr, ARRAY_SIZE(__arr));                     \
+      ir3_create_collect(build, __arr, ARRAY_SIZE(__arr));                     \
    })
 
 NORETURN void ir3_context_error(struct ir3_context *ctx, const char *format,

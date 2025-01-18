@@ -68,7 +68,7 @@ dump_shader_info(struct ir3_shader_variant *v,
       "%u dwords, %u last-baryf, %u last-helper, %u half, %u full, %u constlen, "
       "%u cat0, %u cat1, %u cat2, %u cat3, %u cat4, %u cat5, %u cat6, %u cat7, "
       "%u stp, %u ldp, %u sstall, %u (ss), %u systall, %u (sy), %d waves, "
-      "%d loops\n",
+      "%d loops, %u preamble inst, %d early-preamble\n",
       ir3_shader_stage(v), v->info.instrs_count, v->info.nops_count,
       v->info.instrs_count - v->info.nops_count, v->info.mov_count,
       v->info.cov_count, v->info.sizedwords, v->info.last_baryf,
@@ -79,7 +79,8 @@ dump_shader_info(struct ir3_shader_variant *v,
       v->info.instrs_per_cat[4], v->info.instrs_per_cat[5],
       v->info.instrs_per_cat[6], v->info.instrs_per_cat[7],
       v->info.stp_count, v->info.ldp_count, v->info.sstall,
-      v->info.ss, v->info.systall, v->info.sy, v->info.max_waves, v->loops);
+      v->info.ss, v->info.systall, v->info.sy, v->info.max_waves, v->loops,
+      v->info.preamble_instrs_count, v->info.early_preamble);
 }
 
 static void
@@ -292,16 +293,6 @@ ir3_shader_compute_state_create(struct pipe_context *pctx,
    if (cso->ir_type == PIPE_SHADER_IR_NIR) {
       /* we take ownership of the reference: */
       nir = (nir_shader *)cso->prog;
-   } else if (cso->ir_type == PIPE_SHADER_IR_NIR_SERIALIZED) {
-      const nir_shader_compiler_options *options =
-            ir3_get_compiler_options(compiler);
-      const struct pipe_binary_program_header *hdr = cso->prog;
-      struct blob_reader reader;
-
-      blob_reader_init(&reader, hdr->blob, hdr->num_bytes);
-      nir = nir_deserialize(NULL, options, &reader);
-
-      ir3_finalize_nir(compiler, &ir3_options.nir_options, nir);
    } else {
       assert(cso->ir_type == PIPE_SHADER_IR_TGSI);
       if (ir3_shader_debug & IR3_DBG_DISASM) {
@@ -502,7 +493,7 @@ ir3_fixup_shader_state(struct pipe_context *pctx, struct ir3_shader_key *key)
 }
 
 static char *
-ir3_screen_finalize_nir(struct pipe_screen *pscreen, void *nir)
+ir3_screen_finalize_nir(struct pipe_screen *pscreen, struct nir_shader *nir)
 {
    struct fd_screen *screen = fd_screen(pscreen);
 

@@ -1,5 +1,6 @@
 /*
  * Copyright © 2021 Collabora Ltd.
+ * Copyright © 2024 Arm Ltd.
  *
  * Derived from tu_image.c which is:
  * Copyright © 2016 Red Hat.
@@ -22,6 +23,8 @@
 #include "panvk_physical_device.h"
 #include "panvk_priv_bo.h"
 #include "panvk_queue.h"
+#include "panvk_utrace.h"
+#include "panvk_utrace_perfetto.h"
 
 #include "genxml/decode.h"
 #include "genxml/gen_macros.h"
@@ -71,7 +74,7 @@ panvk_device_init_mempools(struct panvk_device *dev)
    panvk_pool_init(&dev->mempools.rw, dev, NULL, &rw_pool_props);
 
    struct panvk_pool_properties rw_nc_pool_props = {
-      .create_flags = PAN_KMOD_BO_FLAG_GPU_UNCACHED,
+      .create_flags = PAN_ARCH <= 9 ? 0 : PAN_KMOD_BO_FLAG_GPU_UNCACHED,
       .slab_size = 16 * 1024,
       .label = "Device RW uncached memory pool",
       .owns_bos = false,
@@ -130,6 +133,7 @@ panvk_meta_init(struct panvk_device *device)
       return result;
 
    device->meta.use_stencil_export = true;
+   device->meta.use_rect_list_pipeline = true;
    device->meta.max_bind_map_buffer_size_B = 64 * 1024;
    device->meta.cmd_bind_map_buffer = panvk_meta_cmd_bind_map_buffer;
 
@@ -153,6 +157,46 @@ panvk_meta_cleanup(struct panvk_device *device)
 /* Always reserve the lower 32MB. */
 #define PANVK_VA_RESERVE_BOTTOM 0x2000000ull
 
+static enum pan_kmod_group_allow_priority_flags
+global_priority_to_group_allow_priority_flag(
+   VkQueueGlobalPriorityKHR priority)
+{
+   switch (priority) {
+   case VK_QUEUE_GLOBAL_PRIORITY_LOW_KHR:
+      return PAN_KMOD_GROUP_ALLOW_PRIORITY_LOW;
+   case VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR:
+      return PAN_KMOD_GROUP_ALLOW_PRIORITY_MEDIUM;
+   case VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR:
+      return PAN_KMOD_GROUP_ALLOW_PRIORITY_HIGH;
+   case VK_QUEUE_GLOBAL_PRIORITY_REALTIME_KHR:
+      return PAN_KMOD_GROUP_ALLOW_PRIORITY_REALTIME;
+   default:
+      unreachable("Invalid global priority");
+   }
+}
+
+static VkResult
+check_global_priority(const struct panvk_physical_device *phys_dev,
+                      const VkDeviceQueueCreateInfo *create_info)
+{
+   const VkDeviceQueueGlobalPriorityCreateInfoKHR *priority_info =
+      vk_find_struct_const(create_info->pNext,
+                           DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_KHR);
+   const VkQueueGlobalPriorityKHR priority =
+      priority_info ? priority_info->globalPriority
+                    : VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR;
+
+   enum pan_kmod_group_allow_priority_flags requested_prio =
+      global_priority_to_group_allow_priority_flag(priority);
+   enum pan_kmod_group_allow_priority_flags allowed_prio_mask =
+      phys_dev->kmod.props.allowed_group_priorities_mask;
+
+   if (requested_prio & allowed_prio_mask)
+      return VK_SUCCESS;
+
+   return VK_ERROR_NOT_PERMITTED_KHR;
+}
+
 VkResult
 panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
                               const VkDeviceCreateInfo *pCreateInfo,
@@ -171,27 +215,33 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
 
    struct vk_device_dispatch_table dispatch_table;
 
-   /* For secondary command buffer support, overwrite any command entrypoints
-    * in the main device-level dispatch table with
-    * vk_cmd_enqueue_unless_primary_Cmd*.
-    */
-   vk_device_dispatch_table_from_entrypoints(
-      &dispatch_table, &vk_cmd_enqueue_unless_primary_device_entrypoints, true);
+
+
+   if (PAN_ARCH <= 9) {
+      /* For secondary command buffer support, overwrite any command entrypoints
+       * in the main device-level dispatch table with
+       * vk_cmd_enqueue_unless_primary_Cmd*.
+       */
+      vk_device_dispatch_table_from_entrypoints(
+         &dispatch_table, &vk_cmd_enqueue_unless_primary_device_entrypoints, true);
+
+      /* Populate our primary cmd_dispatch table. */
+      vk_device_dispatch_table_from_entrypoints(
+         &device->cmd_dispatch, &panvk_per_arch(device_entrypoints), true);
+      vk_device_dispatch_table_from_entrypoints(&device->cmd_dispatch,
+                                                &panvk_device_entrypoints,
+                                                false);
+      vk_device_dispatch_table_from_entrypoints(&device->cmd_dispatch,
+		                                &vk_common_device_entrypoints,
+                                                false);
+   }
 
    vk_device_dispatch_table_from_entrypoints(
-      &dispatch_table, &panvk_per_arch(device_entrypoints), false);
+      &dispatch_table, &panvk_per_arch(device_entrypoints), PAN_ARCH > 9);
    vk_device_dispatch_table_from_entrypoints(&dispatch_table,
                                              &panvk_device_entrypoints, false);
    vk_device_dispatch_table_from_entrypoints(&dispatch_table,
                                              &wsi_device_entrypoints, false);
-
-   /* Populate our primary cmd_dispatch table. */
-   vk_device_dispatch_table_from_entrypoints(
-      &device->cmd_dispatch, &panvk_per_arch(device_entrypoints), true);
-   vk_device_dispatch_table_from_entrypoints(&device->cmd_dispatch,
-                                             &panvk_device_entrypoints, false);
-   vk_device_dispatch_table_from_entrypoints(
-      &device->cmd_dispatch, &vk_common_device_entrypoints, false);
 
    result = vk_device_init(&device->vk, &physical_device->vk, &dispatch_table,
                            pCreateInfo, pAllocator);
@@ -204,7 +254,9 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
    device->vk.command_dispatch_table = &device->cmd_dispatch;
    device->vk.command_buffer_ops = &panvk_per_arch(cmd_buffer_ops);
    device->vk.shader_ops = &panvk_per_arch(device_shader_ops);
-   device->vk.submit_mode = VK_QUEUE_SUBMIT_MODE_THREADED_ON_DEMAND;
+#if PAN_ARCH >= 10
+   device->vk.check_status = panvk_per_arch(device_check_status);
+#endif
 
    device->kmod.allocator = (struct pan_kmod_allocator){
       .zalloc = panvk_kmod_zalloc,
@@ -266,6 +318,12 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
 
    panfrost_upload_sample_positions(device->sample_positions->addr.host);
 
+#if PAN_ARCH >= 10
+   result = panvk_per_arch(init_tiler_oom)(device);
+   if (result != VK_SUCCESS)
+      goto err_free_priv_bos;
+#endif
+
    vk_device_set_drm_fd(&device->vk, device->kmod.dev->fd);
 
    result = panvk_meta_init(device);
@@ -275,18 +333,20 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
    for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
       const VkDeviceQueueCreateInfo *queue_create =
          &pCreateInfo->pQueueCreateInfos[i];
+
+      result = check_global_priority(physical_device, queue_create);
+      if (result != VK_SUCCESS)
+         goto err_finish_queues;
+
       uint32_t qfi = queue_create->queueFamilyIndex;
       device->queues[qfi] =
-         vk_alloc(&device->vk.alloc,
+         vk_zalloc(&device->vk.alloc,
                   queue_create->queueCount * sizeof(struct panvk_queue), 8,
                   VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
       if (!device->queues[qfi]) {
          result = panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
          goto err_finish_queues;
       }
-
-      memset(device->queues[qfi], 0,
-             queue_create->queueCount * sizeof(struct panvk_queue));
 
       for (unsigned q = 0; q < queue_create->queueCount; q++) {
          result = panvk_per_arch(queue_init)(device, &device->queues[qfi][q], q,
@@ -298,6 +358,13 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
       }
    }
 
+   panvk_per_arch(utrace_context_init)(device);
+#if PAN_ARCH >= 10
+   panvk_utrace_perfetto_init(device, PANVK_SUBQUEUE_COUNT);
+#else
+   panvk_utrace_perfetto_init(device, 2);
+#endif
+
    *pDevice = panvk_device_to_handle(device);
    return VK_SUCCESS;
 
@@ -306,12 +373,13 @@ err_finish_queues:
       for (unsigned q = 0; q < device->queue_count[i]; q++)
          panvk_per_arch(queue_finish)(&device->queues[i][q]);
       if (device->queues[i])
-         vk_object_free(&device->vk, NULL, device->queues[i]);
+         vk_free(&device->vk.alloc, device->queues[i]);
    }
 
    panvk_meta_cleanup(device);
 
 err_free_priv_bos:
+   panvk_priv_bo_unref(device->tiler_oom.handlers_bo);
    panvk_priv_bo_unref(device->sample_positions);
    panvk_priv_bo_unref(device->tiler_heap);
    panvk_device_cleanup_mempools(device);
@@ -337,14 +405,17 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
    if (!device)
       return;
 
+   panvk_per_arch(utrace_context_fini)(device);
+
    for (unsigned i = 0; i < PANVK_MAX_QUEUE_FAMILIES; i++) {
       for (unsigned q = 0; q < device->queue_count[i]; q++)
          panvk_per_arch(queue_finish)(&device->queues[i][q]);
       if (device->queue_count[i])
-         vk_object_free(&device->vk, NULL, device->queues[i]);
+         vk_free(&device->vk.alloc, device->queues[i]);
    }
 
    panvk_meta_cleanup(device);
+   panvk_priv_bo_unref(device->tiler_oom.handlers_bo);
    panvk_priv_bo_unref(device->tiler_heap);
    panvk_priv_bo_unref(device->sample_positions);
    panvk_device_cleanup_mempools(device);

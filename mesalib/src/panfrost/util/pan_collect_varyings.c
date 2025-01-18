@@ -161,6 +161,41 @@ walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
    return false;
 }
 
+static bool
+collect_noperspective_varyings_fs(UNUSED nir_builder *b,
+                                  nir_intrinsic_instr *intr,
+                                  void *data)
+{
+   uint32_t *noperspective_varyings = data;
+
+   if (intr->intrinsic != nir_intrinsic_load_interpolated_input)
+      return false;
+
+   nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
+   if (sem.location < VARYING_SLOT_VAR0)
+      return false;
+
+   nir_intrinsic_instr *bary_instr = nir_src_as_intrinsic(intr->src[0]);
+   assert(bary_instr);
+   if (nir_intrinsic_interp_mode(bary_instr) == INTERP_MODE_NOPERSPECTIVE)
+      *noperspective_varyings |= BITFIELD_BIT(sem.location - VARYING_SLOT_VAR0);
+
+   return false;
+}
+
+uint32_t
+pan_nir_collect_noperspective_varyings_fs(nir_shader *s)
+{
+   assert(s->info.stage == MESA_SHADER_FRAGMENT);
+
+   uint32_t noperspective_varyings = 0;
+   nir_shader_intrinsics_pass(s, collect_noperspective_varyings_fs,
+                              nir_metadata_all,
+                              (void *)&noperspective_varyings);
+
+   return noperspective_varyings;
+}
+
 void
 pan_nir_collect_varyings(nir_shader *s, struct pan_shader_info *info)
 {
@@ -196,4 +231,8 @@ pan_nir_collect_varyings(nir_shader *s, struct pan_shader_info *info)
       info->varyings.output_count = count;
    else
       info->varyings.input_count = count;
+
+   if (s->info.stage == MESA_SHADER_FRAGMENT)
+      info->varyings.noperspective =
+         pan_nir_collect_noperspective_varyings_fs(s);
 }

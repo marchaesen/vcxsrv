@@ -160,6 +160,12 @@ BEGIN_ENUM_TYPE(argon2flavour)
     ENUM_VALUE("Argon2id", Argon2id)
 END_ENUM_TYPE(argon2flavour)
 
+BEGIN_ENUM_TYPE(mlkem_params)
+    ENUM_VALUE("mlkem512", &mlkem_params_512)
+    ENUM_VALUE("mlkem768", &mlkem_params_768)
+    ENUM_VALUE("mlkem1024", &mlkem_params_1024)
+END_ENUM_TYPE(mlkem_params)
+
 BEGIN_ENUM_TYPE(fptype)
     ENUM_VALUE("md5", SSH_FPTYPE_MD5)
     ENUM_VALUE("sha256", SSH_FPTYPE_SHA256)

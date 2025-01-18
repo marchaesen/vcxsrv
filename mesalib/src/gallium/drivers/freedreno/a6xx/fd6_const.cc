@@ -167,8 +167,11 @@ emit_stage_tess_consts(struct fd_ringbuffer *ring, const struct ir3_shader_varia
       int base = const_state->primitive_param_ubo.idx;
 
       fd6_upload_emit_driver_ubo(ctx, ring, v, base, num_params, params);
-   } else {
-      const unsigned regid = const_state->offsets.primitive_param;
+   } else if (ir3_const_can_upload(&const_state->allocs,
+                                   IR3_CONST_ALLOC_PRIMITIVE_PARAM,
+                                   v->constlen)) {
+      const unsigned regid =
+         const_state->allocs.consts[IR3_CONST_ALLOC_PRIMITIVE_PARAM].offset_vec4;
       int size = MIN2(1 + regid, v->constlen) - regid;
       if (size > 0)
          fd6_emit_const_user(ring, v, regid * 4, num_params, params);

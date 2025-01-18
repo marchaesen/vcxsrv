@@ -13,33 +13,6 @@
 #include "vk_common_entrypoints.h"
 #include "vk_format.h"
 
-VkResult
-radv_device_init_meta_etc_decode_state(struct radv_device *device, bool on_demand)
-{
-   const struct radv_physical_device *pdev = radv_device_physical(device);
-   struct radv_meta_state *state = &device->meta_state;
-
-   if (!pdev->emulate_etc2)
-      return VK_SUCCESS;
-
-   state->etc_decode.allocator = &state->alloc;
-   state->etc_decode.nir_options = &pdev->nir_options[MESA_SHADER_COMPUTE];
-   state->etc_decode.pipeline_cache = state->cache;
-   vk_texcompress_etc2_init(&device->vk, &state->etc_decode);
-
-   if (on_demand)
-      return VK_SUCCESS;
-
-   return vk_texcompress_etc2_late_init(&device->vk, &state->etc_decode);
-}
-
-void
-radv_device_finish_meta_etc_decode_state(struct radv_device *device)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   vk_texcompress_etc2_finish(&device->vk, &state->etc_decode);
-}
-
 static VkPipeline
 radv_get_etc_decode_pipeline(struct radv_cmd_buffer *cmd_buffer)
 {

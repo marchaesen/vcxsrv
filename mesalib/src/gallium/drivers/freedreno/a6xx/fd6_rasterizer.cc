@@ -126,7 +126,7 @@ __fd6_setup_rasterizer_stateobj(struct fd_context *ctx,
       );
    }
 
-   if (CHIP == A6XX && ctx->screen->info->a6xx.has_shading_rate) {
+   if (CHIP == A6XX && ctx->screen->info->a6xx.has_legacy_pipeline_shading_rate) {
       OUT_REG(ring, A6XX_RB_UNKNOWN_8A00());
       OUT_REG(ring, A6XX_RB_UNKNOWN_8A10());
       OUT_REG(ring, A6XX_RB_UNKNOWN_8A20());

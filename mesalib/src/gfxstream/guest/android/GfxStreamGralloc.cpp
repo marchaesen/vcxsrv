@@ -4,8 +4,9 @@
  */
 
 #include "gfxstream/guest/GfxStreamGralloc.h"
+#include "util/detect_os.h"
 
-#if defined(__ANDROID__)
+#if DETECT_OS_ANDROID
 
 #include <string>
 

@@ -58,7 +58,7 @@ struct panfrost_blend_state {
    unsigned enabled_mask : PIPE_MAX_COLOR_BUFS;
 };
 
-mali_ptr panfrost_get_blend(struct panfrost_batch *batch, unsigned rt,
+uint64_t panfrost_get_blend(struct panfrost_batch *batch, unsigned rt,
                             struct panfrost_bo **bo, unsigned *shader_offset);
 
 #endif

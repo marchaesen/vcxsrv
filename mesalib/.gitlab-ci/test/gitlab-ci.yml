@@ -43,32 +43,41 @@ rustfmt:
     - rustfmt --version
     - rustfmt --verbose src/**/lib.rs
 
-yaml-toml-shell-test:
+yaml-toml-shell-py-test:
   extends:
-    - python-test
+    - .use-debian/x86_64_pyutils
     - .no-auto-retry  # this job can't be flaky
+  stage: code-validation
   script:
-    - echo "If your change looks right but this script rejects it, contact @eric (GitLab) / eric_engestrom (IRC)."
     - uncollapsed_section_start tomllint "tomllint"
+    - echo "If your change looks right but this script rejects it, contact @eric (GitLab) / eric_engestrom (IRC)."
     - python3 bin/toml_lint.py
-    - uncollapsed_section_switch yamllint "yamllint"
+    - section_end tomllint
+    - section_start yamllint "yamllint"
     - .gitlab-ci/run-yamllint.sh
-    - uncollapsed_section_switch shellcheck "shellcheck"
+    - section_end yamllint
+    - section_start shellcheck "shellcheck"
     - .gitlab-ci/run-shellcheck.sh
-    - section_end
+    - section_end shellcheck
+    - .gitlab-ci/run-pytest.sh
   rules:
     - !reference [.disable-farm-mr-rules, rules]
     - !reference [.never-post-merge-rules, rules]
     - !reference [.no_scheduled_pipelines-rules, rules]
     - if: $GITLAB_USER_LOGIN == "marge-bot"
-      changes: &toml_lint_files
+      changes: &lint_files
         - .gitlab-ci/test/gitlab-ci.yml
         - .gitlab-ci/**/*.sh
+        - .shellcheckrc
         - bin/toml_lint.py
         - src/**/ci/*.toml
+        - .gitlab-ci/tests/**/*
+        - bin/ci/**/*
       when: on_success
-    - changes: *toml_lint_files
+    - changes: *lint_files
       when: manual
+  tags:
+    - placeholder-job
 
 .test-gl:
   extends:
@@ -105,7 +114,9 @@ yaml-toml-shell-test:
     - .test
     - .use-debian/x86_64_test-android
   variables:
-    S3_ARTIFACT_NAME: mesa-x86_64-android-debug
+    # This is for the guest artifacts from debian-android which will be
+    # downloaded explicitly by cuttlefish-runner.sh
+    S3_ANDROID_ARTIFACT_NAME: mesa-x86_64-android-debug
   needs:
     - job: debian-testing
       artifacts: true  # On the host we want the Linux build
@@ -229,12 +240,9 @@ yaml-toml-shell-test:
 
 # ARM32/64 testing of bare-metal boards attached to an x86 gitlab-runner system, using an asan mesa build
 .baremetal-arm32-asan-test:
-  extends:
-    - .baremetal-test
-    - .use-debian/baremetal_arm32_test
   variables:
-    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.8:/install/lib/libdlclose-skip.so"
     S3_ARTIFACT_NAME: mesa-arm32-asan-debugoptimized
+    DEQP_FORCE_ASAN: 1
   needs:
     - debian/baremetal_arm32_test
     - job: debian-arm32-asan
@@ -242,15 +250,24 @@ yaml-toml-shell-test:
     - !reference [.required-for-hardware-jobs, needs]
 
 .baremetal-arm64-asan-test:
+  variables:
+    S3_ARTIFACT_NAME: mesa-arm64-asan-debugoptimized
+    DEQP_FORCE_ASAN: 1
+  needs:
+    - debian/baremetal_arm64_test
+    - job: debian-arm64-asan
+      artifacts: false
+    - !reference [.required-for-hardware-jobs, needs]
+
+.baremetal-arm64-ubsan-test:
   extends:
     - .baremetal-test
     - .use-debian/baremetal_arm64_test
   variables:
-    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.8:/install/lib/libdlclose-skip.so"
-    S3_ARTIFACT_NAME: mesa-arm64-asan-debugoptimized
+    S3_ARTIFACT_NAME: mesa-arm64-ubsan-debugoptimized
   needs:
     - debian/baremetal_arm64_test
-    - job: debian-arm64-asan
+    - job: debian-arm64-ubsan
       artifacts: false
     - !reference [.required-for-hardware-jobs, needs]
 
@@ -277,8 +294,7 @@ yaml-toml-shell-test:
     # No need by default to pull the whole repo
     GIT_STRATEGY: none
     # boot2container initrd configuration parameters.
-    B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/gfx-ci/ci-tron/-/package_files/519/download'  # Linux 6.1
-    B2C_INITRAMFS_URL: 'https://gitlab.freedesktop.org/mupuf/boot2container/-/releases/v0.9.10/downloads/initramfs.linux_amd64.cpio.xz'
+    B2C_VERSION: v0.9.14
     B2C_JOB_SUCCESS_REGEX: 'hwci: mesa: pass, exit_code: 0\r$'
     B2C_LOG_LEVEL: 6
     B2C_POWEROFF_DELAY: 15
@@ -312,6 +328,8 @@ yaml-toml-shell-test:
 
     - |
       set -eux
+
+      section_start b2c_kernel_boot "Booting hardware device"
 
       # Useful as a hook point for runner admins. You may edit the
       # config.toml for the Gitlab runner and use a bind-mount to
@@ -372,7 +390,7 @@ yaml-toml-shell-test:
   after_script:
     # Keep the results path the same as baremetal and LAVA
     - mkdir -p "${JOB_FOLDER}"/results
-    - mv "${JOB_FOLDER}"/results results/
+    - mv "${JOB_FOLDER}"/results ./
     - !reference [default, after_script]
 
   artifacts:
@@ -383,10 +401,17 @@ yaml-toml-shell-test:
     reports:
       junit: results/**/junit.xml
 
+.b2c-x86_64-test:
+  extends:
+    - .b2c-test
+  variables:
+    B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/gfx-ci/ci-tron/-/package_files/519/download'  # Linux 6.1
+    B2C_INITRAMFS_URL: 'https://gitlab.freedesktop.org/gfx-ci/boot2container/-/releases/${B2C_VERSION}/downloads/initramfs.linux_amd64.cpio.xz'
+
 .b2c-x86_64-test-vk:
   extends:
     - .use-debian/x86_64_test-vk
-    - .b2c-test
+    - .b2c-x86_64-test
   needs:
     - debian/x86_64_test-vk
     - debian-testing
@@ -395,16 +420,23 @@ yaml-toml-shell-test:
 .b2c-x86_64-test-gl:
   extends:
     - .use-debian/x86_64_test-gl
-    - .b2c-test
+    - .b2c-x86_64-test
   needs:
     - debian/x86_64_test-gl
     - debian-testing
     - !reference [.required-for-hardware-jobs, needs]
 
+.b2c-arm64-test:
+  extends:
+    - .b2c-test
+  variables:
+    B2C_INITRAMFS_URL: 'https://gitlab.freedesktop.org/gfx-ci/boot2container/-/releases/${B2C_VERSION}/downloads/initramfs.linux_arm64.cpio.xz'
+    B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/gfx-ci/boot2container/-/releases/${B2C_VERSION}/downloads/linux-arm64'
+
 .b2c-arm64-test-vk:
   extends:
     - .use-debian/arm64_test-vk
-    - .b2c-test
+    - .b2c-arm64-test
   needs:
     - debian/arm64_test-vk
     - debian-arm64
@@ -413,7 +445,7 @@ yaml-toml-shell-test:
 .b2c-arm64-test-gl:
   extends:
     - .use-debian/arm64_test-gl
-    - .b2c-test
+    - .b2c-arm64-test
   needs:
     - debian/arm64_test-gl
     - debian-arm64

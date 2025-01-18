@@ -1,6 +1,8 @@
 // CapsLock uses internal capitalization rules,
 // Shift "pauses" CapsLock.
 partial xkb_types "internal" {
+    virtual_modifiers  LevelThree;
+
     type "ALPHABETIC" {
 	modifiers = Shift + Lock;
 	map[Shift] = Level2;
@@ -46,6 +48,8 @@ partial xkb_types "internal" {
 // CapsLock uses internal capitalization rules,
 // Shift does not cancel CapsLock.
 partial xkb_types "internal_nocancel" {
+    virtual_modifiers  LevelThree;
+
     type "ALPHABETIC" {
 	modifiers = Shift;
 	map[Shift] = Level2;
@@ -82,6 +86,8 @@ partial xkb_types "internal_nocancel" {
 // CapsLock acts as Shift with locking,
 // Shift "pauses" CapsLock.
 partial xkb_types "shift" {
+    virtual_modifiers  LevelThree;
+
     type "ALPHABETIC" {
 	modifiers = Shift + Lock;
 	map[Shift] = Level2;
@@ -126,6 +132,8 @@ partial xkb_types "shift" {
 // CapsLock acts as Shift with locking,
 // Shift does not cancel CapsLock.
 partial xkb_types "shift_nocancel" {
+    virtual_modifiers  LevelThree;
+
     type "ALPHABETIC" {
 	modifiers = Shift + Lock;
 	map[Shift] = Level2;

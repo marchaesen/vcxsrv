@@ -427,6 +427,15 @@ va_pack_alu(const bi_instr *I)
          hex |= 1ull << 25;
       break;
 
+   case BI_OPCODE_FLUSH_F32:
+   case BI_OPCODE_FLUSH_V2F16:
+      hex |= I->nan_mode << 8;
+      if (I->ftz)
+         hex |= 1ull << 10;
+      if (I->flush_inf)
+         hex |= 1ull << 11;
+      break;
+
    /* Add mux type */
    case BI_OPCODE_MUX_I32:
    case BI_OPCODE_MUX_V2I16:
@@ -904,14 +913,16 @@ va_pack_instr(const bi_instr *I)
       break;
    }
 
+   case BI_OPCODE_TEX_GRADIENT:
    case BI_OPCODE_TEX_SINGLE:
    case BI_OPCODE_TEX_FETCH:
    case BI_OPCODE_TEX_GATHER: {
       /* Image to read from */
       hex |= ((uint64_t)va_pack_src(I, 1)) << 0;
 
-      if (I->op == BI_OPCODE_TEX_FETCH && I->shadow)
-         invalid_instruction(I, "TEX_FETCH does not support .shadow");
+      if ((I->op == BI_OPCODE_TEX_FETCH || I->op == BI_OPCODE_TEX_GRADIENT) &&
+          I->shadow)
+         invalid_instruction(I, "texture instruction does not support .shadow");
 
       if (I->wide_indices)
          hex |= (1ull << 8);
@@ -926,6 +937,17 @@ va_pack_instr(const bi_instr *I)
       if (!bi_is_regfmt_16(I->register_format))
          hex |= (1ull << 46);
 
+      if (I->op == BI_OPCODE_TEX_GRADIENT) {
+         if (I->force_delta_enable)
+            hex |= (1ull << 12);
+         if (I->lod_bias_disable)
+            hex |= (1ull << 13);
+         if (I->lod_clamp_disable)
+            hex |= (1ull << 14);
+         if (I->derivative_enable)
+            hex |= (1ull << 15);
+      }
+
       if (I->op == BI_OPCODE_TEX_SINGLE)
          hex |= ((uint64_t)va_pack_lod_mode(I)) << 13;
 
@@ -936,7 +958,6 @@ va_pack_instr(const bi_instr *I)
       }
 
       hex |= (I->write_mask << 22);
-      hex |= ((uint64_t)va_pack_register_type(I)) << 26;
       hex |= ((uint64_t)I->dimension) << 28;
 
       break;

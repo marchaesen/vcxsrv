@@ -21,3 +21,6 @@ dEQP-VK.draw.dynamic_rendering.partial_secondary_cmd_buff.scissor.dynamic_scisso
 dEQP-VK.subgroups.clustered.framebuffer.subgroupclusteredmin_int8_t_tess_control
 dEQP-VK.texture.filtering.cube.sizes.64x64.nearest
 dEQP-VK.synchronization.global_priority_transition.low.semaphore.no_modifiers.from_compute_to_graphics
+
+# With linux kernel 6.13-rc4 uprev
+dEQP-VK.memory.allocation.basic.size_4KiB.forward.count_4000

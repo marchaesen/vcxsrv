@@ -134,7 +134,7 @@ _mesa_DeleteMemoryObjectsEXT(GLsizei n, const GLuint *memoryObjects)
                   memoryObjects);
    }
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glDeleteMemoryObjectsEXT(unsupported)");
       return;
@@ -169,7 +169,7 @@ _mesa_IsMemoryObjectEXT(GLuint memoryObject)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "glIsMemoryObjectEXT(unsupported)");
       return GL_FALSE;
@@ -191,7 +191,7 @@ _mesa_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
    if (MESA_VERBOSE & (VERBOSE_API))
       _mesa_debug(ctx, "%s(%d, %p)\n", func, n, memoryObjects);
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -236,7 +236,7 @@ _mesa_MemoryObjectParameterivEXT(GLuint memoryObject,
 
    const char *func = "glMemoryObjectParameterivEXT";
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -276,7 +276,7 @@ _mesa_GetMemoryObjectParameterivEXT(GLuint memoryObject,
 
    const char *func = "glMemoryObjectParameterivEXT";
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -337,7 +337,7 @@ texstorage_memory(GLuint dims, GLenum target, GLsizei levels,
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -381,7 +381,7 @@ texstorage_memory_ms(GLuint dims, GLenum target, GLsizei samples,
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -413,7 +413,7 @@ texturestorage_memory(GLuint dims, GLuint texture, GLsizei levels,
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -457,7 +457,7 @@ texturestorage_memory_ms(GLuint dims, GLuint texture, GLsizei samples,
 
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.EXT_memory_object) {
+   if (!_mesa_has_EXT_memory_object(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -770,7 +770,7 @@ _mesa_GenSemaphoresEXT(GLsizei n, GLuint *semaphores)
    if (MESA_VERBOSE & (VERBOSE_API))
       _mesa_debug(ctx, "%s(%d, %p)\n", func, n, semaphores);
 
-   if (!ctx->Extensions.EXT_semaphore) {
+   if (!_mesa_has_EXT_semaphore(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -805,7 +805,7 @@ _mesa_DeleteSemaphoresEXT(GLsizei n, const GLuint *semaphores)
       _mesa_debug(ctx, "%s(%d, %p)\n", func, n, semaphores);
    }
 
-   if (!ctx->Extensions.EXT_semaphore) {
+   if (!_mesa_has_EXT_semaphore(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -839,7 +839,7 @@ _mesa_IsSemaphoreEXT(GLuint semaphore)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   if (!ctx->Extensions.EXT_semaphore) {
+   if (!_mesa_has_EXT_semaphore(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glIsSemaphoreEXT(unsupported)");
       return GL_FALSE;
    }
@@ -867,7 +867,7 @@ _mesa_SemaphoreParameterui64vEXT(GLuint semaphore,
    GET_CURRENT_CONTEXT(ctx);
    const char *func = "glSemaphoreParameterui64vEXT";
 
-   if (!ctx->Extensions.EXT_semaphore) {
+   if (!_mesa_has_EXT_semaphore(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -899,7 +899,7 @@ _mesa_GetSemaphoreParameterui64vEXT(GLuint semaphore,
    GET_CURRENT_CONTEXT(ctx);
    const char *func = "glGetSemaphoreParameterui64vEXT";
 
-   if (!ctx->Extensions.EXT_semaphore) {
+   if (!_mesa_has_EXT_semaphore(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -937,7 +937,7 @@ _mesa_WaitSemaphoreEXT(GLuint semaphore,
 
    const char *func = "glWaitSemaphoreEXT";
 
-   if (!ctx->Extensions.EXT_semaphore) {
+   if (!_mesa_has_EXT_semaphore(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -997,7 +997,7 @@ _mesa_SignalSemaphoreEXT(GLuint semaphore,
 
    const char *func = "glSignalSemaphoreEXT";
 
-   if (!ctx->Extensions.EXT_semaphore) {
+   if (!_mesa_has_EXT_semaphore(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -1052,7 +1052,7 @@ _mesa_ImportMemoryFdEXT(GLuint memory,
 
    const char *func = "glImportMemoryFdEXT";
 
-   if (!ctx->Extensions.EXT_memory_object_fd) {
+   if (!_mesa_has_EXT_memory_object_fd(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -1080,7 +1080,7 @@ _mesa_ImportMemoryWin32HandleEXT(GLuint memory,
 
    const char *func = "glImportMemoryWin32HandleEXT";
 
-   if (!ctx->Extensions.EXT_memory_object_win32) {
+   if (!_mesa_has_EXT_memory_object_win32(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -1111,7 +1111,7 @@ _mesa_ImportMemoryWin32NameEXT(GLuint memory,
 
    const char *func = "glImportMemoryWin32NameEXT";
 
-   if (!ctx->Extensions.EXT_memory_object_win32) {
+   if (!_mesa_has_EXT_memory_object_win32(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -1141,7 +1141,7 @@ _mesa_ImportSemaphoreFdEXT(GLuint semaphore,
 
    const char *func = "glImportSemaphoreFdEXT";
 
-   if (!ctx->Extensions.EXT_semaphore_fd) {
+   if (!_mesa_has_EXT_semaphore_fd(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -1177,7 +1177,7 @@ _mesa_ImportSemaphoreWin32HandleEXT(GLuint semaphore,
 
    const char *func = "glImportSemaphoreWin32HandleEXT";
 
-   if (!ctx->Extensions.EXT_semaphore_win32) {
+   if (!_mesa_has_EXT_semaphore_win32(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -1189,7 +1189,7 @@ _mesa_ImportSemaphoreWin32HandleEXT(GLuint semaphore,
    }
 
    if (handleType == GL_HANDLE_TYPE_D3D12_FENCE_EXT &&
-       !ctx->screen->get_param(ctx->screen, PIPE_CAP_TIMELINE_SEMAPHORE_IMPORT)) {
+       !ctx->screen->caps.timeline_semaphore_import) {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(handleType=%u)", func, handleType);
    }
 
@@ -1221,7 +1221,7 @@ _mesa_ImportSemaphoreWin32NameEXT(GLuint semaphore,
 
    const char *func = "glImportSemaphoreWin32HandleEXT";
 
-   if (!ctx->Extensions.EXT_semaphore_win32) {
+   if (!_mesa_has_EXT_semaphore_win32(ctx)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
       return;
    }
@@ -1233,7 +1233,7 @@ _mesa_ImportSemaphoreWin32NameEXT(GLuint semaphore,
    }
 
    if (handleType == GL_HANDLE_TYPE_D3D12_FENCE_EXT &&
-       !ctx->screen->get_param(ctx->screen, PIPE_CAP_TIMELINE_SEMAPHORE_IMPORT)) {
+       !ctx->screen->caps.timeline_semaphore_import) {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(handleType=%u)", func, handleType);
    }
 

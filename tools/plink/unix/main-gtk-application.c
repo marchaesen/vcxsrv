@@ -78,6 +78,7 @@ https://wiki.gnome.org/Projects/GTK%2B/OSX/Bundling has some links.
 #define MAY_REFER_TO_GTK_IN_HEADERS
 
 #include "putty.h"
+#include "ssh.h"
 #include "gtkmisc.h"
 #include "gtkcompat.h"
 
@@ -293,6 +294,8 @@ static const GActionEntry app_actions[] = {
 int main(int argc, char **argv)
 {
     int status;
+
+    enable_dit();
 
     /* Call the function in ux{putty,pterm}.c to do app-type
      * specific setup */

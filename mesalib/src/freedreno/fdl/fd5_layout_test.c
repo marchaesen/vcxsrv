@@ -88,8 +88,11 @@ main(int argc, char **argv)
 {
    int ret = 0;
 
+   struct fd_dev_id a540_dev_id = {
+      .gpu_id = 540,
+   };
    for (int i = 0; i < ARRAY_SIZE(testcases); i++) {
-      if (!fdl_test_layout(&testcases[i], 540))
+      if (!fdl_test_layout(&testcases[i], &a540_dev_id))
          ret = 1;
    }
 

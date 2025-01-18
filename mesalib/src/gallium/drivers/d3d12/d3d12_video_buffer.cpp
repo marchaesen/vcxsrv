@@ -105,7 +105,7 @@ d3d12_video_buffer_create_impl(struct pipe_context *pipe,
       // YUV 4:2:0 formats in D3D12 always require multiple of 2 dimensions
       // We must respect the input dimensions of the imported resource handle (e.g no extra aligning)
       resource_creation_info->width0     = align(pD3D12VideoBuffer->base.width, 2);
-      resource_creation_info->height0    = align(pD3D12VideoBuffer->base.height, 2);
+      resource_creation_info->height0    = static_cast<uint16_t>(align(pD3D12VideoBuffer->base.height, 2));
 
       // WINSYS_HANDLE_TYPE_D3D12_RES implies taking ownership of the reference
       if(handle->type == WINSYS_HANDLE_TYPE_D3D12_RES)
@@ -125,7 +125,7 @@ d3d12_video_buffer_create_impl(struct pipe_context *pipe,
       // When creating (e.g not importing) resources we allocate
       // with a higher alignment to maximize HW compatibility
       resource_creation_info->width0     = align(pD3D12VideoBuffer->base.width, 2);
-      resource_creation_info->height0    = align(pD3D12VideoBuffer->base.height, 16);
+      resource_creation_info->height0    = static_cast<uint16_t>(align(pD3D12VideoBuffer->base.height, 16));
 
       pD3D12VideoBuffer->texture = (struct d3d12_resource *) pipe->screen->resource_create(pipe->screen, resource_creation_info);
    }
@@ -176,7 +176,7 @@ d3d12_video_buffer_from_handle(struct pipe_context *pipe,
          }
       }
       D3D12_RESOURCE_DESC res_desc = GetDesc(d3d12_res);
-      updated_template.width = res_desc.Width;
+      updated_template.width = static_cast<unsigned int>(res_desc.Width);
       updated_template.height = res_desc.Height;
       updated_template.buffer_format = d3d12_get_pipe_format(res_desc.Format);
       handle->format = updated_template.buffer_format;
@@ -527,7 +527,7 @@ d3d12_video_create_dpb_buffer_texarray(struct pipe_video_codec *codec,
    if (!pD3D12Enc->m_pVideoTexArrayDPBPool)
    {
       pipe_resource resource_creation_info = {};
-      resource_creation_info.array_size = d3d12_video_encoder_get_current_max_dpb_capacity(pD3D12Enc);
+      resource_creation_info.array_size = static_cast<uint16_t>(d3d12_video_encoder_get_current_max_dpb_capacity(pD3D12Enc));
       assert(resource_creation_info.array_size <= 32); // uint32_t used as a usage bitmap into m_pVideoTexArrayDPBPool
       buf = (d3d12_video_buffer*) d3d12_video_buffer_create_impl(codec->context, templat, &resource_creation_info, d3d12_video_buffer_creation_mode::create_resource, NULL, 0);
       pD3D12Enc->m_pVideoTexArrayDPBPool = &buf->texture->base.b;

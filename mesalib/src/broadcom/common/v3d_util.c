@@ -154,8 +154,6 @@ v3d_choose_tile_size(const struct v3d_device_info *devinfo,
        * configuration item) or active in the subpass for which we are enabling
        * the bit (which we can't tell until later, when we record commands for
        * the subpass). If it is the latter, then we cannot use this feature.
-       *
-       * FIXME: pending handling double_buffer.
        */
       const uint32_t color_bpp = total_color_bpp * (msaa ? 4 : 1);
       const uint32_t depth_bpp = 4 * (msaa ? 4 : 1);
@@ -167,8 +165,8 @@ v3d_choose_tile_size(const struct v3d_device_info *devinfo,
          idx++;
       } while (idx < ARRAY_SIZE(tile_sizes) / 2);
 
-      /* FIXME: pending handling double_buffer */
-      assert(!double_buffer);
+      if (double_buffer)
+         idx += 1;
    } else {
       /* On V3D 4.x tile size is selected based on the number of RTs, the
        * maximum bpp across all of them and whether 4x MSAA is used.

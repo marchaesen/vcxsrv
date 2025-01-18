@@ -708,6 +708,11 @@ nir_function_clone(nir_shader *ns, const nir_function *fxn)
    if (fxn->num_params) {
       nfxn->params = ralloc_array(ns, nir_parameter, fxn->num_params);
       memcpy(nfxn->params, fxn->params, sizeof(nir_parameter) * fxn->num_params);
+
+      for (unsigned i = 0; i < fxn->num_params; ++i) {
+         if (fxn->params[i].name)
+            nfxn->params[i].name = ralloc_strdup(ns, fxn->params[i].name);
+      }
    }
    nfxn->is_entrypoint = fxn->is_entrypoint;
    nfxn->is_preamble = fxn->is_preamble;
@@ -717,6 +722,9 @@ nir_function_clone(nir_shader *ns, const nir_function *fxn)
    nfxn->is_tmp_globals_wrapper = fxn->is_tmp_globals_wrapper;
    nfxn->num_subroutine_types = fxn->num_subroutine_types;
    nfxn->subroutine_index = fxn->subroutine_index;
+   nfxn->workgroup_size[0] = fxn->workgroup_size[0];
+   nfxn->workgroup_size[1] = fxn->workgroup_size[1];
+   nfxn->workgroup_size[2] = fxn->workgroup_size[2];
    if (fxn->num_subroutine_types) {
       nfxn->subroutine_types = ralloc_array(ns, const struct glsl_type *,
                                             fxn->num_subroutine_types);

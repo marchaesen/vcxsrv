@@ -33,7 +33,7 @@ default_src_texture(struct pipe_sampler_view *src_templ,
                     struct pipe_resource *src, unsigned srclevel)
 {
    bool cube_as_2darray =
-      src->screen->get_param(src->screen, PIPE_CAP_SAMPLER_VIEW_TARGET);
+      src->screen->caps.sampler_view_target;
 
    memset(src_templ, 0, sizeof(*src_templ));
 
@@ -70,7 +70,7 @@ fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond) assert_dt
    util_blitter_save_tesseval_shader(ctx->blitter, ctx->prog.ds);
    util_blitter_save_geometry_shader(ctx->blitter, ctx->prog.gs);
    util_blitter_save_so_targets(ctx->blitter, ctx->streamout.num_targets,
-                                ctx->streamout.targets);
+                                ctx->streamout.targets, MESA_PRIM_UNKNOWN);
    util_blitter_save_rasterizer(ctx->blitter, ctx->rasterizer);
    util_blitter_save_viewport(ctx->blitter, &ctx->viewport[0]);
    util_blitter_save_scissor(ctx->blitter, &ctx->scissor[0]);
@@ -232,7 +232,7 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
    pctx->bind_vertex_elements_state(pctx, ctx->solid_vbuf_state.vtx);
    util_set_vertex_buffers(pctx, 1, false,
                            &ctx->solid_vbuf_state.vertexbuf.vb[0]);
-   pctx->set_stream_output_targets(pctx, 0, NULL, NULL);
+   pctx->set_stream_output_targets(pctx, 0, NULL, NULL, 0);
 
    if (pfb->layers > 1)
       pctx->bind_vs_state(pctx, ctx->solid_layered_prog.vs);
@@ -439,7 +439,7 @@ fd_resource_copy_region(struct pipe_context *pctx, struct pipe_resource *dst,
       info.mask = util_format_get_mask(src->format);
       info.filter = PIPE_TEX_FILTER_NEAREST;
       info.scissor_enable = 0;
-
+      info.swizzle_enable = 0;
       if (ctx->blit(ctx, &info))
          return;
    }

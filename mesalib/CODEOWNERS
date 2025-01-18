@@ -127,6 +127,7 @@ gitlab-ci*.yml @eric
 /include/drm-uapi/pvr_drm.h @aashishc @frankbinns @luigi.santivetti
 /src/imagination/ @aashishc @frankbinns @luigi.santivetti
 /src/imagination/rogue/ @simon-perretta-img
+/src/imagination/pco/ @simon-perretta-img
 
 # Intel
 /include/drm-uapi/i915_drm.h @kwg @llandwerlin @gfxstrand @idr

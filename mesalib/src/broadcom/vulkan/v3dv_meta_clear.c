@@ -46,7 +46,7 @@ get_hw_clear_color(struct v3dv_device *device,
     * not the compatible format.
     */
    if (fb_format == image_format) {
-      v3dv_X(device, get_hw_clear_color)(color, internal_type, internal_size,
+      v3d_X((&device->devinfo), get_hw_clear_color)(color, internal_type, internal_size,
                                          hw_color);
    } else {
       union util_color uc;
@@ -78,7 +78,7 @@ clear_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
       return false;
 
    uint32_t internal_type, internal_bpp;
-   v3dv_X(cmd_buffer->device, get_internal_type_bpp_for_image_aspects)
+   v3d_X((&cmd_buffer->device->devinfo), get_internal_type_bpp_for_image_aspects)
       (fb_format, range->aspectMask,
        &internal_type, &internal_bpp);
 
@@ -132,18 +132,18 @@ clear_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
                            image->vk.samples > VK_SAMPLE_COUNT_1_BIT);
 
       struct v3dv_meta_framebuffer framebuffer;
-      v3dv_X(job->device, meta_framebuffer_init)(&framebuffer, fb_format,
+      v3d_X((&job->device->devinfo), meta_framebuffer_init)(&framebuffer, fb_format,
                                                  internal_type,
                                                  &job->frame_tiling);
 
-      v3dv_X(job->device, job_emit_binning_flush)(job);
+      v3d_X((&job->device->devinfo), job_emit_binning_flush)(job);
 
       /* If this triggers it is an application bug: the spec requires
        * that any aspects to clear are present in the image.
        */
       assert(range->aspectMask & image->vk.aspects);
 
-      v3dv_X(job->device, meta_emit_clear_image_rcl)
+      v3d_X((&job->device->devinfo), meta_emit_clear_image_rcl)
          (job, image, &framebuffer, &hw_clear_value,
           range->aspectMask, min_layer, max_layer, level);
 
@@ -950,7 +950,9 @@ get_depth_clear_pipeline(struct v3dv_cmd_buffer *cmd_buffer,
    assert(vk_format_is_depth_or_stencil(format));
 
    uint64_t key;
-   if (device->instance->meta_cache_enabled) {
+   bool meta_cache_enabled = device->instance->meta_cache_enabled;
+
+   if (meta_cache_enabled) {
       key = get_depth_clear_pipeline_cache_key(aspects, format, samples,
                                                is_layered, has_multiview);
       mtx_lock(&device->meta.mtx);
@@ -982,7 +984,7 @@ get_depth_clear_pipeline(struct v3dv_cmd_buffer *cmd_buffer,
    if (result != VK_SUCCESS)
       goto fail;
 
-   if (device->instance->meta_cache_enabled) {
+   if (meta_cache_enabled) {
       (*pipeline)->key = key;
       _mesa_hash_table_insert(device->meta.depth_clear.cache,
                               &(*pipeline)->key, *pipeline);

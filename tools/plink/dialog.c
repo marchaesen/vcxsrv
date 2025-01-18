@@ -392,7 +392,7 @@ dlgcontrol *ctrl_draglist(struct controlset *s, const char *label,
 }
 
 dlgcontrol *ctrl_filesel(struct controlset *s, const char *label,
-                         char shortcut, FILESELECT_FILTER_TYPE filter,
+                         char shortcut, FilereqFilter filter,
                          bool write, const char *title, HelpCtx helpctx,
                          handler_fn handler, intorptr context)
 {

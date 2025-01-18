@@ -6,7 +6,6 @@
 #include <errno.h>
 #include <string.h>
 
-#include "../vulkan_enc/vk_util.h"
 #include "GfxStreamConnectionManager.h"
 #include "GfxStreamRenderControl.h"
 #include "GfxStreamVulkanConnection.h"
@@ -14,11 +13,10 @@
 #include "VkEncoder.h"
 #include "gfxstream_vk_entrypoints.h"
 #include "gfxstream_vk_private.h"
+#include "util/detect_os.h"
 #include "util/perf/cpu_trace.h"
-#include "vk_alloc.h"
-#include "vk_device.h"
-#include "vk_instance.h"
 #include "vk_sync_dummy.h"
+#include "vk_util.h"
 
 uint32_t gSeqno = 0;
 uint32_t gNoRenderControlEnc = 0;
@@ -53,14 +51,6 @@ static GfxStreamConnectionManager* getConnectionManager(void) {
     auto transport = renderControlGetTransport();
     return GfxStreamConnectionManager::getThreadLocalInstance(transport, kCapsetGfxStreamVulkan);
 }
-
-#define VK_HOST_CONNECTION(ret)                               \
-    GfxStreamConnectionManager* mgr = getConnectionManager(); \
-    gfxstream::vk::VkEncoder* vkEnc = getVulkanEncoder(mgr);  \
-    if (!vkEnc) {                                             \
-        mesa_loge("vulkan: Failed to get Vulkan encoder\n");  \
-        return ret;                                           \
-    }
 
 namespace {
 
@@ -202,7 +192,7 @@ static VkResult gfxstream_vk_physical_device_init(
     memset(&dispatch_table, 0, sizeof(struct vk_physical_device_dispatch_table));
     vk_physical_device_dispatch_table_from_entrypoints(
         &dispatch_table, &gfxstream_vk_physical_device_entrypoints, false);
-#if !defined(__Fuchsia__)
+#if !DETECT_OS_FUCHSIA
     vk_physical_device_dispatch_table_from_entrypoints(&dispatch_table,
                                                        &wsi_physical_device_entrypoints, false);
 #endif
@@ -255,7 +245,7 @@ static VkResult gfxstream_vk_enumerate_devices(struct vk_instance* vk_instance) 
         for (uint32_t i = 0; i < deviceCount; i++) {
             struct gfxstream_vk_physical_device* gfxstream_physicalDevice =
                 (struct gfxstream_vk_physical_device*)vk_zalloc(
-                    &gfxstream_instance->vk.alloc, sizeof(struct gfxstream_vk_physical_device), 8,
+                    &gfxstream_instance->vk.alloc, sizeof(struct gfxstream_vk_physical_device), GFXSTREAM_DEFAULT_ALIGN,
                     VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
             if (!gfxstream_physicalDevice) {
                 result = VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -282,7 +272,7 @@ static struct vk_instance_extension_table* get_instance_extensions() {
     if (!instance_extension_table_initialized) {
         VkResult result = SetupInstanceForProcess();
         if (VK_SUCCESS == result) {
-            VK_HOST_CONNECTION(retTablePtr)
+            auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
             auto resources = gfxstream::vk::ResourceTracker::get();
             uint32_t numInstanceExts = 0;
             result = resources->on_vkEnumerateInstanceExtensionProperties(vkEnc, VK_SUCCESS, NULL,
@@ -327,7 +317,7 @@ VkResult gfxstream_vk_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
     struct gfxstream_vk_instance* instance;
 
     pAllocator = pAllocator ?: vk_default_allocator();
-    instance = (struct gfxstream_vk_instance*)vk_zalloc(pAllocator, sizeof(*instance), 8,
+    instance = (struct gfxstream_vk_instance*)vk_zalloc(pAllocator, sizeof(*instance), GFXSTREAM_DEFAULT_ALIGN,
                                                         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     if (NULL == instance) {
         return vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -338,6 +328,7 @@ VkResult gfxstream_vk_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
     {
         result = SetupInstanceForProcess();
         if (VK_SUCCESS != result) {
+            vk_free(pAllocator, instance);
             return vk_error(NULL, result);
         }
         uint32_t initialEnabledExtensionCount = pCreateInfo->enabledExtensionCount;
@@ -349,10 +340,11 @@ VkResult gfxstream_vk_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
         mutableCreateInfo->enabledExtensionCount = static_cast<uint32_t>(filteredExts.size());
         mutableCreateInfo->ppEnabledExtensionNames = filteredExts.data();
 
-        VK_HOST_CONNECTION(VK_ERROR_DEVICE_LOST);
+        auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
         result = vkEnc->vkCreateInstance(pCreateInfo, nullptr, &instance->internal_object,
                                          true /* do lock */);
         if (VK_SUCCESS != result) {
+            vk_free(pAllocator, instance);
             return vk_error(NULL, result);
         }
         // Revert the createInfo the user-set data
@@ -364,7 +356,7 @@ VkResult gfxstream_vk_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
     memset(&dispatch_table, 0, sizeof(struct vk_instance_dispatch_table));
     vk_instance_dispatch_table_from_entrypoints(&dispatch_table, &gfxstream_vk_instance_entrypoints,
                                                 false);
-#if !defined(__Fuchsia__)
+#if !DETECT_OS_FUCHSIA
     vk_instance_dispatch_table_from_entrypoints(&dispatch_table, &wsi_instance_entrypoints, false);
 #endif
 
@@ -390,7 +382,7 @@ void gfxstream_vk_DestroyInstance(VkInstance _instance, const VkAllocationCallba
 
     VK_FROM_HANDLE(gfxstream_vk_instance, instance, _instance);
 
-    VK_HOST_CONNECTION()
+    auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
     vkEnc->vkDestroyInstance(instance->internal_object, pAllocator, true /* do lock */);
 
     vk_instance_finish(&instance->vk);
@@ -399,6 +391,7 @@ void gfxstream_vk_DestroyInstance(VkInstance _instance, const VkAllocationCallba
     // To make End2EndTests happy, since now the host connection is statically linked to
     // libvulkan_ranchu.so [separate HostConnections now].
 #if defined(END2END_TESTS)
+    GfxStreamConnectionManager* mgr = getConnectionManager();
     mgr->threadLocalExit();
     VirtGpuDevice::resetInstance();
     gSeqno = 0;
@@ -453,7 +446,8 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
      * reaches it.
      */
     VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT* swapchainMaintenance1Features =
-        (VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT*)vk_find_struct<VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT>(pCreateInfo);
+        vk_find_struct(const_cast<VkDeviceCreateInfo*>(pCreateInfo),
+                       PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT);
     if (swapchainMaintenance1Features) {
         swapchainMaintenance1Features->swapchainMaintenance1 = VK_FALSE;
     }
@@ -461,7 +455,7 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
     const VkAllocationCallbacks* pMesaAllocator =
         pAllocator ?: &gfxstream_physicalDevice->instance->vk.alloc;
     struct gfxstream_vk_device* gfxstream_device = (struct gfxstream_vk_device*)vk_zalloc(
-        pMesaAllocator, sizeof(struct gfxstream_vk_device), 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+        pMesaAllocator, sizeof(struct gfxstream_vk_device), GFXSTREAM_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     result = gfxstream_device ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
     if (VK_SUCCESS == result) {
         uint32_t initialEnabledExtensionCount = pCreateInfo->enabledExtensionCount;
@@ -475,13 +469,12 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
 
         /* pNext = VkPhysicalDeviceGroupProperties */
         std::vector<VkPhysicalDevice> initialPhysicalDeviceList;
-        VkPhysicalDeviceGroupProperties* mutablePhysicalDeviceGroupProperties =
-            (VkPhysicalDeviceGroupProperties*)vk_find_struct<VkPhysicalDeviceGroupProperties>(
-                pCreateInfo);
+        VkPhysicalDeviceGroupProperties* mutablePhysicalDeviceGroupProperties = vk_find_struct(
+            const_cast<VkDeviceCreateInfo*>(pCreateInfo), PHYSICAL_DEVICE_GROUP_PROPERTIES);
         if (mutablePhysicalDeviceGroupProperties) {
             // Temporarily modify the VkPhysicalDeviceGroupProperties structure to use translated
             // VkPhysicalDevice references for the encoder call
-            for (int physDev = 0;
+            for (uint32_t physDev = 0;
                  physDev < mutablePhysicalDeviceGroupProperties->physicalDeviceCount; physDev++) {
                 initialPhysicalDeviceList.push_back(
                     mutablePhysicalDeviceGroupProperties->physicalDevices[physDev]);
@@ -502,7 +495,7 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
         if (mutablePhysicalDeviceGroupProperties) {
             // Revert the physicalDevice list in VkPhysicalDeviceGroupProperties to the user-set
             // data
-            for (int physDev = 0;
+            for (uint32_t physDev = 0;
                  physDev < mutablePhysicalDeviceGroupProperties->physicalDeviceCount; physDev++) {
                 initialPhysicalDeviceList.push_back(
                     mutablePhysicalDeviceGroupProperties->physicalDevices[physDev]);
@@ -516,7 +509,7 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
         memset(&dispatch_table, 0, sizeof(struct vk_device_dispatch_table));
         vk_device_dispatch_table_from_entrypoints(&dispatch_table, &gfxstream_vk_device_entrypoints,
                                                   false);
-#if !defined(__Fuchsia__)
+#if !DETECT_OS_FUCHSIA
         vk_device_dispatch_table_from_entrypoints(&dispatch_table, &wsi_device_entrypoints, false);
 #endif
 
@@ -557,7 +550,7 @@ void gfxstream_vk_GetDeviceQueue(VkDevice device, uint32_t queueFamilyIndex, uin
     MESA_TRACE_SCOPE("vkGetDeviceQueue");
     VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
     struct gfxstream_vk_queue* gfxstream_queue = (struct gfxstream_vk_queue*)vk_zalloc(
-        &gfxstream_device->vk.alloc, sizeof(struct gfxstream_vk_queue), 8,
+        &gfxstream_device->vk.alloc, sizeof(struct gfxstream_vk_queue), GFXSTREAM_DEFAULT_ALIGN,
         VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
     VkResult result = gfxstream_queue ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
     if (VK_SUCCESS == result) {
@@ -589,7 +582,7 @@ void gfxstream_vk_GetDeviceQueue2(VkDevice device, const VkDeviceQueueInfo2* pQu
     MESA_TRACE_SCOPE("vkGetDeviceQueue2");
     VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
     struct gfxstream_vk_queue* gfxstream_queue = (struct gfxstream_vk_queue*)vk_zalloc(
-        &gfxstream_device->vk.alloc, sizeof(struct gfxstream_vk_queue), 8,
+        &gfxstream_device->vk.alloc, sizeof(struct gfxstream_vk_queue), GFXSTREAM_DEFAULT_ALIGN,
         VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
     VkResult result = gfxstream_queue ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
     if (VK_SUCCESS == result) {
@@ -645,9 +638,8 @@ VkResult gfxstream_vk_AllocateMemory(VkDevice device, const VkMemoryAllocateInfo
     VK_FROM_HANDLE(gfxstream_vk_device, gfxstream_device, device);
     VkResult vkAllocateMemory_VkResult_return = (VkResult)0;
     /* VkMemoryDedicatedAllocateInfo */
-    VkMemoryDedicatedAllocateInfo* dedicatedAllocInfoPtr =
-        (VkMemoryDedicatedAllocateInfo*)vk_find_struct<VkMemoryDedicatedAllocateInfo>(
-            pAllocateInfo);
+    VkMemoryDedicatedAllocateInfo* dedicatedAllocInfoPtr = vk_find_struct(
+        const_cast<VkMemoryAllocateInfo*>(pAllocateInfo), MEMORY_DEDICATED_ALLOCATE_INFO);
     if (dedicatedAllocInfoPtr) {
         if (dedicatedAllocInfoPtr->buffer) {
             VK_FROM_HANDLE(gfxstream_vk_buffer, gfxstream_buffer, dedicatedAllocInfoPtr->buffer);
@@ -696,6 +688,18 @@ VkResult gfxstream_vk_EnumerateInstanceVersion(uint32_t* pApiVersion) {
             vkEnc->vkEnumerateInstanceVersion(pApiVersion, true /* do lock */);
     }
     return vkEnumerateInstanceVersion_VkResult_return;
+}
+
+static bool vk_descriptor_type_has_descriptor_buffer(VkDescriptorType type) {
+    switch (type) {
+        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+        case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+        case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+            return true;
+        default:
+            return false;
+    }
 }
 
 static std::vector<VkWriteDescriptorSet> transformDescriptorSetList(

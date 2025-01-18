@@ -31,12 +31,12 @@ opt_uniform_subgroup_filter(const nir_instr *instr, const void *_state)
    case nir_intrinsic_masked_swizzle_amd:
    case nir_intrinsic_vote_all:
    case nir_intrinsic_vote_any:
-      return !nir_src_is_divergent(intrin->src[0]);
+      return !nir_src_is_divergent(&intrin->src[0]);
 
    case nir_intrinsic_reduce:
    case nir_intrinsic_exclusive_scan:
    case nir_intrinsic_inclusive_scan: {
-      if (nir_src_is_divergent(intrin->src[0]))
+      if (nir_src_is_divergent(&intrin->src[0]))
          return false;
 
       const nir_op reduction_op = (nir_op) nir_intrinsic_reduction_op(intrin);

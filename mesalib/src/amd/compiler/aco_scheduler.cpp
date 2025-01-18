@@ -555,7 +555,7 @@ HazardResult
 perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
 {
    /* don't schedule discards downwards */
-   if (!upwards && instr->opcode == aco_opcode::p_exit_early_if)
+   if (!upwards && instr->opcode == aco_opcode::p_exit_early_if_not)
       return hazard_fail_unreorderable;
 
    /* In Primitive Ordered Pixel Shading, await overlapped waves as late as possible, and notify
@@ -602,7 +602,7 @@ perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
        instr->opcode == aco_opcode::s_sendmsg_rtn_b32 ||
        instr->opcode == aco_opcode::s_sendmsg_rtn_b64 ||
        instr->opcode == aco_opcode::p_end_with_regs || instr->opcode == aco_opcode::s_nop ||
-       instr->opcode == aco_opcode::s_sleep)
+       instr->opcode == aco_opcode::s_sleep || instr->opcode == aco_opcode::s_trap)
       return hazard_fail_unreorderable;
 
    memory_event_set instr_set;

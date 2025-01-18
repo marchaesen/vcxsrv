@@ -46,28 +46,15 @@ lower_impl(nir_function_impl *impl)
              util_bitcount64(shader->info.outputs_written));
 
       /* Load an edge flag. */
-      nir_io_semantics load_sem = { 0 };
-      load_sem.location = VERT_ATTRIB_EDGEFLAG;
-      load_sem.num_slots = 1;
-
       nir_def *load =
          nir_load_input(&b, 1, 32, nir_imm_int(&b, 0),
                         .base = shader->num_inputs++,
-                        .component = 0,
-                        .dest_type = nir_type_float32,
-                        .io_semantics = load_sem);
+                        .io_semantics.location = VERT_ATTRIB_EDGEFLAG);
 
       /* Store an edge flag. */
-      nir_io_semantics semantics = { 0 };
-      semantics.location = VARYING_SLOT_EDGE;
-      semantics.num_slots = 1;
-
       nir_store_output(&b, load, nir_imm_int(&b, 0),
                        .base = shader->num_outputs++,
-                       .component = 0,
-                       .io_semantics = semantics,
-                       .src_type = nir_type_float32,
-                       .write_mask = 0x1);
+                       .io_semantics.location = VARYING_SLOT_EDGE);
 
       nir_metadata_preserve(impl, nir_metadata_control_flow);
       return;

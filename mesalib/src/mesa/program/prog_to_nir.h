@@ -30,8 +30,8 @@
 extern "C" {
 #endif
 
-struct nir_shader *prog_to_nir(const struct gl_context *ctx, const struct gl_program *prog,
-                               const nir_shader_compiler_options *options);
+struct nir_shader *prog_to_nir(const struct gl_context *ctx,
+                               const struct gl_program *prog);
 
 enum glsl_sampler_dim _mesa_texture_index_to_sampler_dim(gl_texture_index index,
                                                          bool *is_array);

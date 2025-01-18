@@ -92,11 +92,11 @@ XrmParseCommand(
     char		**argend;
 
 #define PutCommandResource(value_str)				\
-    {								\
+    do {							\
     XrmStringToBindingQuarkList(				\
 	options[i].specifier, start_bindings, start_quarks);    \
     XrmQPutStringResource(pdb, bindings, quarks, value_str);    \
-    } /* PutCommandResource */
+    } while (0) /* PutCommandResource */
 
     myargc = (*argc);
     argend = argv + myargc;

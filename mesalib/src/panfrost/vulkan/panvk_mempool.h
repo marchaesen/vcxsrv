@@ -128,16 +128,18 @@ struct panvk_priv_mem {
    unsigned offset;
 };
 
+#define PANVK_PRIV_MEM_FLAGS_MASK ((uintptr_t)7)
+
 static struct panvk_priv_bo *
 panvk_priv_mem_bo(struct panvk_priv_mem mem)
 {
-   return (void *)(mem.bo & ~7ull);
+   return (struct panvk_priv_bo *)(mem.bo & ~PANVK_PRIV_MEM_FLAGS_MASK);
 }
 
 static uint32_t
 panvk_priv_mem_flags(struct panvk_priv_mem mem)
 {
-   return mem.bo & 7ull;
+   return mem.bo & PANVK_PRIV_MEM_FLAGS_MASK;
 }
 
 static inline uint64_t

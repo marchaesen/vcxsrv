@@ -424,22 +424,24 @@ ms_present_unflip(ScreenPtr screen, uint64_t event_id)
     PixmapPtr pixmap = screen->GetScreenPixmap(screen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(scrn);
     int i;
-    struct ms_present_vblank_event *event;
 
     ms_present_set_screen_vrr(scrn, FALSE);
 
-    event = calloc(1, sizeof(struct ms_present_vblank_event));
-    if (!event)
-        return;
+    if (ms_present_check_unflip(NULL, screen->root, pixmap, TRUE, NULL)) {
+        struct ms_present_vblank_event *event;
 
-    event->event_id = event_id;
-    event->unflip = TRUE;
+        event = calloc(1, sizeof(struct ms_present_vblank_event));
+        if (!event)
+            return;
 
-    if (ms_present_check_unflip(NULL, screen->root, pixmap, TRUE, NULL) &&
-        ms_do_pageflip(screen, pixmap, event, NULL, FALSE,
-                       ms_present_flip_handler, ms_present_flip_abort,
-                       "Present-unflip")) {
-        return;
+        event->event_id = event_id;
+        event->unflip = TRUE;
+
+        if (ms_do_pageflip(screen, pixmap, event, NULL, FALSE,
+                           ms_present_flip_handler, ms_present_flip_abort,
+                           "Present-unflip")) {
+            return;
+        }
     }
 
     for (i = 0; i < config->num_crtc; i++) {

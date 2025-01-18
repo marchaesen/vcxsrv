@@ -209,6 +209,10 @@ the correct layout is:
 VOP2 `v_pk_fmac_f16`. But like all other packed math opcodes, DPP does not function in practice.
 RDNA1 and RDNA2 support `v_pk_fmac_f16_dpp`.
 
+## ds_swizzle_b32 rotate/fft modes
+
+These are first mentioned in the GFX9 (Vega) ISA doc, information from the LLVM bug tracker
+and testing show they were already present on GFX8.
 
 # Hardware Bugs
 

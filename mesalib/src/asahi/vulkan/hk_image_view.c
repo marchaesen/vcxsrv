@@ -9,7 +9,7 @@
 #include "vulkan/vulkan_core.h"
 
 #include "agx_helpers.h"
-#include "agx_nir_passes.h"
+#include "agx_nir_texture.h"
 #include "agx_pack.h"
 #include "hk_device.h"
 #include "hk_entrypoints.h"

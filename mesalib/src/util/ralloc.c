@@ -264,6 +264,31 @@ ralloc_free(void *ptr)
    unsafe_free(info);
 }
 
+#ifndef NDEBUG
+static size_t
+ralloc_total_size_internal(const ralloc_header *info)
+{
+   /* Count the block itself. This requires NDEBUG for the statistic. */
+   unsigned sum = align64(info->size + sizeof(ralloc_header),
+                          alignof(ralloc_header));
+
+   /* Recursively count children */
+   ralloc_header *it = info->child;
+   while (it != NULL) {
+      sum += ralloc_total_size_internal(it);
+      it = it->next;
+   }
+
+   return sum;
+}
+
+size_t
+ralloc_total_size(const void *ptr)
+{
+   return ralloc_total_size_internal(get_header(ptr));
+}
+#endif
+
 static void
 unlink_block(ralloc_header *info)
 {

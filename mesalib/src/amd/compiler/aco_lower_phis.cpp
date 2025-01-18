@@ -373,7 +373,7 @@ lower_subdword_phis(Program* program, Block* block, aco_ptr<Instruction>& phi)
 {
    Builder bld(program);
    for (unsigned i = 0; i < phi->operands.size(); i++) {
-      if (phi->operands[i].isUndefined())
+      if (!phi->operands[i].isTemp())
          continue;
       if (phi->operands[i].regClass() == phi->definitions[0].regClass())
          continue;

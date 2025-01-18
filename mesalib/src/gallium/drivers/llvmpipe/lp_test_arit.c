@@ -30,13 +30,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util/u_pointer.h"
 #include "util/u_memory.h"
 #include "util/u_math.h"
 #include "util/u_cpu_detect.h"
 
 #include "gallivm/lp_bld.h"
-#include "gallivm/lp_bld_debug.h"
 #include "gallivm/lp_bld_init.h"
 #include "gallivm/lp_bld_arit.h"
 
@@ -143,9 +141,9 @@ const float exp2_values[] = {
    0.1,
    0.9,
    0.99,
-   1, 
-   2, 
-   4, 
+   1,
+   2,
+   4,
    60,
    INFINITY,
    NAN
@@ -154,7 +152,7 @@ const float exp2_values[] = {
 
 const float log2_values[] = {
 #if 0
-   /* 
+   /*
     * Smallest denormalized number; meant just for experimentation, but not
     * validation.
     */
@@ -296,16 +294,20 @@ wrap_ ## func(float x) \
 { \
    return func(x); \
 }
+WRAP(log2f)
 WRAP(expf)
 WRAP(logf)
 WRAP(sinf)
 WRAP(cosf)
+WRAP(nearbyintf)
 WRAP(floorf)
 WRAP(ceilf)
+#define log2f wrap_log2f
 #define expf wrap_expf
 #define logf wrap_logf
 #define sinf wrap_sinf
 #define cosf wrap_cosf
+#define nearbyintf wrap_nearbyintf
 #define floorf wrap_floorf
 #define ceilf wrap_ceilf
 #endif
@@ -475,9 +477,10 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
             continue;
          }
 
-         if (!util_get_cpu_caps()->has_neon &&
+         if (test->ref == &nearbyintf && length == 2 &&
+             !util_get_cpu_caps()->has_neon &&
              util_get_cpu_caps()->family != CPU_S390X &&
-             test->ref == &nearbyintf && length == 2 &&
+             !(util_get_cpu_caps()->has_sse4_1 && LLVM_VERSION_MAJOR >= 8) &&
              ref != roundf(testval)) {
             /* FIXME: The generic (non SSE) path in lp_build_iround, which is
              * always taken for length==2 regardless of native round support,
@@ -487,8 +490,8 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
 
          if (test->ref == &expf && util_inf_sign(testval) == -1) {
             /* Some older 64-bit MSVCRT versions return -inf instead of 0
-	     * for expf(-inf). As detecting the VC runtime version is
-	     * non-trivial, just ignore the test result. */
+            * for expf(-inf). As detecting the VC runtime version is
+            * non-trivial, just ignore the test result. */
 #if defined(_MSC_VER) && defined(_WIN64)
             expected_pass = pass;
 #endif

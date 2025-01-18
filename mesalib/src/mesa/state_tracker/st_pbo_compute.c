@@ -49,7 +49,7 @@ struct pbo_spec_async_data {
    unsigned uses;
    struct util_queue_fence fence;
    nir_shader *nir;
-   struct pipe_shader_state *cs;
+   void *cs;
 };
 
 struct pbo_async_data {

@@ -331,7 +331,7 @@ struct st_context
       void *upload_fs[5][2];
       /**
        * For drivers supporting formatless storing
-       * (PIPE_CAP_IMAGE_STORE_FORMATTED) it is a pointer to the download FS;
+       * (pipe_caps.image_store_formatted) it is a pointer to the download FS;
        * for those not supporting it, it is a pointer to an array of
        * PIPE_FORMAT_COUNT elements, where each element is a pointer to the
        * download FS using that PIPE_FORMAT as the storing format.

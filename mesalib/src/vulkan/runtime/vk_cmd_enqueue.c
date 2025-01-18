@@ -61,15 +61,15 @@ vk_descriptor_type_update_size(VkDescriptorType type)
 }
 
 static void
-vk_cmd_push_descriptor_set_with_template2_khr_free(
+vk_cmd_push_descriptor_set_with_template2_free(
    struct vk_cmd_queue *queue, struct vk_cmd_queue_entry *cmd)
 {
    struct vk_command_buffer *cmd_buffer =
       container_of(queue, struct vk_command_buffer, cmd_queue);
    struct vk_device *device = cmd_buffer->base.device;
 
-   struct vk_cmd_push_descriptor_set_with_template2_khr *info_ =
-      &cmd->u.push_descriptor_set_with_template2_khr;
+   struct vk_cmd_push_descriptor_set_with_template2 *info_ =
+      &cmd->u.push_descriptor_set_with_template2;
 
    VkPushDescriptorSetWithTemplateInfoKHR *info =
       info_->push_descriptor_set_with_template_info;
@@ -91,7 +91,7 @@ vk_cmd_push_descriptor_set_with_template2_khr_free(
 }
 
 VKAPI_ATTR void VKAPI_CALL
-vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate2KHR(
+vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate2(
    VkCommandBuffer commandBuffer,
    const VkPushDescriptorSetWithTemplateInfoKHR *pPushDescriptorSetWithTemplateInfo)
 {
@@ -105,8 +105,8 @@ vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate2KHR(
    if (!cmd)
       return;
 
-   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE2_KHR;
-   cmd->driver_free_cb = vk_cmd_push_descriptor_set_with_template2_khr_free;
+   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE2;
+   cmd->driver_free_cb = vk_cmd_push_descriptor_set_with_template2_free;
    list_addtail(&cmd->cmd_link, &cmd_buffer->cmd_queue.cmds);
 
    VkPushDescriptorSetWithTemplateInfoKHR *info =
@@ -114,7 +114,7 @@ vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate2KHR(
                 sizeof(VkPushDescriptorSetWithTemplateInfoKHR), 8,
                 VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
-   cmd->u.push_descriptor_set_with_template2_khr
+   cmd->u.push_descriptor_set_with_template2
       .push_descriptor_set_with_template_info = info;
 
    /* From the application's perspective, the vk_cmd_queue_entry can outlive the
@@ -244,13 +244,13 @@ vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate2KHR(
 
 err:
    if (cmd)
-      vk_cmd_push_descriptor_set_with_template2_khr_free(queue, cmd);
+      vk_cmd_push_descriptor_set_with_template2_free(queue, cmd);
 
    vk_command_buffer_set_error(cmd_buffer, VK_ERROR_OUT_OF_HOST_MEMORY);
 }
 
 VKAPI_ATTR void VKAPI_CALL
-vk_cmd_enqueue_CmdPushDescriptorSetWithTemplateKHR(
+vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate(
     VkCommandBuffer                             commandBuffer,
     VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
     VkPipelineLayout                            layout,
@@ -265,7 +265,7 @@ vk_cmd_enqueue_CmdPushDescriptorSetWithTemplateKHR(
       .pData = pData,
    };
 
-   vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate2KHR(commandBuffer, &two);
+   vk_cmd_enqueue_CmdPushDescriptorSetWithTemplate2(commandBuffer, &two);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -363,7 +363,7 @@ push_descriptors_set_free(struct vk_cmd_queue *queue,
 {
    struct vk_command_buffer *cmd_buffer =
       container_of(queue, struct vk_command_buffer, cmd_queue);
-   struct vk_cmd_push_descriptor_set_khr *pds = &cmd->u.push_descriptor_set_khr;
+   struct vk_cmd_push_descriptor_set *pds = &cmd->u.push_descriptor_set;
 
    VK_FROM_HANDLE(vk_pipeline_layout, vk_layout, pds->layout);
    vk_pipeline_layout_unref(cmd_buffer->base.device, vk_layout);
@@ -394,15 +394,15 @@ push_descriptors_set_free(struct vk_cmd_queue *queue,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-vk_cmd_enqueue_CmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
-                                       VkPipelineBindPoint pipelineBindPoint,
-                                       VkPipelineLayout layout,
-                                       uint32_t set,
-                                       uint32_t descriptorWriteCount,
-                                       const VkWriteDescriptorSet *pDescriptorWrites)
+vk_cmd_enqueue_CmdPushDescriptorSet(VkCommandBuffer commandBuffer,
+                                    VkPipelineBindPoint pipelineBindPoint,
+                                    VkPipelineLayout layout,
+                                    uint32_t set,
+                                    uint32_t descriptorWriteCount,
+                                    const VkWriteDescriptorSet *pDescriptorWrites)
 {
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
-   struct vk_cmd_push_descriptor_set_khr *pds;
+   struct vk_cmd_push_descriptor_set *pds;
 
    struct vk_cmd_queue_entry *cmd =
       vk_zalloc(cmd_buffer->cmd_queue.alloc, sizeof(*cmd), 8,
@@ -410,9 +410,9 @@ vk_cmd_enqueue_CmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
    if (!cmd)
       return;
 
-   pds = &cmd->u.push_descriptor_set_khr;
+   pds = &cmd->u.push_descriptor_set;
 
-   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET_KHR;
+   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET;
    cmd->driver_free_cb = push_descriptors_set_free;
    list_addtail(&cmd->cmd_link, &cmd_buffer->cmd_queue.cmds);
 
@@ -563,6 +563,7 @@ dispatch_graph_amdx_free(struct vk_cmd_queue *queue, struct vk_cmd_queue_entry *
 
 VKAPI_ATTR void VKAPI_CALL
 vk_cmd_enqueue_CmdDispatchGraphAMDX(VkCommandBuffer commandBuffer, VkDeviceAddress scratch,
+                                    VkDeviceSize scratchSize,
                                     const VkDispatchGraphCountInfoAMDX *pCountInfo)
 {
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
@@ -584,6 +585,7 @@ vk_cmd_enqueue_CmdDispatchGraphAMDX(VkCommandBuffer commandBuffer, VkDeviceAddre
    cmd->driver_free_cb = dispatch_graph_amdx_free;
 
    cmd->u.dispatch_graph_amdx.scratch = scratch;
+   cmd->u.dispatch_graph_amdx.scratch_size = scratchSize;
 
    cmd->u.dispatch_graph_amdx.count_info =
       vk_zalloc(alloc, sizeof(VkDispatchGraphCountInfoAMDX), 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
@@ -721,19 +723,19 @@ err:
    vk_command_buffer_set_error(cmd_buffer, VK_ERROR_OUT_OF_HOST_MEMORY);
 }
 
-VKAPI_ATTR void VKAPI_CALL vk_cmd_enqueue_CmdPushConstants2KHR(
+VKAPI_ATTR void VKAPI_CALL vk_cmd_enqueue_CmdPushConstants2(
    VkCommandBuffer                             commandBuffer,
    const VkPushConstantsInfoKHR* pPushConstantsInfo)
 {
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
    struct vk_cmd_queue *queue = &cmd_buffer->cmd_queue;
 
-   struct vk_cmd_queue_entry *cmd = vk_zalloc(queue->alloc, vk_cmd_queue_type_sizes[VK_CMD_PUSH_CONSTANTS2_KHR], 8,
+   struct vk_cmd_queue_entry *cmd = vk_zalloc(queue->alloc, vk_cmd_queue_type_sizes[VK_CMD_PUSH_CONSTANTS2], 8,
                                               VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!cmd)
       return;
 
-   cmd->type = VK_CMD_PUSH_CONSTANTS2_KHR;
+   cmd->type = VK_CMD_PUSH_CONSTANTS2;
 
    VkPushConstantsInfoKHR *info = vk_zalloc(queue->alloc, sizeof(*info), 8,
                                             VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
@@ -743,37 +745,37 @@ VKAPI_ATTR void VKAPI_CALL vk_cmd_enqueue_CmdPushConstants2KHR(
    memcpy(info, pPushConstantsInfo, sizeof(*info));
    memcpy(pValues, pPushConstantsInfo->pValues, pPushConstantsInfo->size);
 
-   cmd->u.push_constants2_khr.push_constants_info = info;
+   cmd->u.push_constants2.push_constants_info = info;
    info->pValues = pValues;
 
    list_addtail(&cmd->cmd_link, &cmd_buffer->cmd_queue.cmds);
 }
 
 static void
-vk_free_cmd_push_descriptor_set2_khr(struct vk_cmd_queue *queue,
-                                     struct vk_cmd_queue_entry *cmd)
+vk_free_cmd_push_descriptor_set2(struct vk_cmd_queue *queue,
+                                 struct vk_cmd_queue_entry *cmd)
 {
    ralloc_free(cmd->driver_data);
 }
 
-VKAPI_ATTR void VKAPI_CALL vk_cmd_enqueue_CmdPushDescriptorSet2KHR(
+VKAPI_ATTR void VKAPI_CALL vk_cmd_enqueue_CmdPushDescriptorSet2(
     VkCommandBuffer                             commandBuffer,
     const VkPushDescriptorSetInfoKHR*           pPushDescriptorSetInfo)
 {
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
-   struct vk_cmd_queue_entry *cmd = vk_zalloc(cmd_buffer->cmd_queue.alloc, vk_cmd_queue_type_sizes[VK_CMD_PUSH_DESCRIPTOR_SET2_KHR], 8,
+   struct vk_cmd_queue_entry *cmd = vk_zalloc(cmd_buffer->cmd_queue.alloc, vk_cmd_queue_type_sizes[VK_CMD_PUSH_DESCRIPTOR_SET2], 8,
                                               VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
-   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET2_KHR;
-   cmd->driver_free_cb = vk_free_cmd_push_descriptor_set2_khr;
+   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET2;
+   cmd->driver_free_cb = vk_free_cmd_push_descriptor_set2;
 
    void *ctx = cmd->driver_data = ralloc_context(NULL);
    if (pPushDescriptorSetInfo) {
-      cmd->u.push_descriptor_set2_khr.push_descriptor_set_info = vk_zalloc(cmd_buffer->cmd_queue.alloc, sizeof(VkPushDescriptorSetInfoKHR), 8,
+      cmd->u.push_descriptor_set2.push_descriptor_set_info = vk_zalloc(cmd_buffer->cmd_queue.alloc, sizeof(VkPushDescriptorSetInfoKHR), 8,
                                                                            VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
-      memcpy((void*)cmd->u.push_descriptor_set2_khr.push_descriptor_set_info, pPushDescriptorSetInfo, sizeof(VkPushDescriptorSetInfoKHR));
-      VkPushDescriptorSetInfoKHR *tmp_dst1 = (void *) cmd->u.push_descriptor_set2_khr.push_descriptor_set_info; (void) tmp_dst1;
+      memcpy((void*)cmd->u.push_descriptor_set2.push_descriptor_set_info, pPushDescriptorSetInfo, sizeof(VkPushDescriptorSetInfoKHR));
+      VkPushDescriptorSetInfoKHR *tmp_dst1 = (void *) cmd->u.push_descriptor_set2.push_descriptor_set_info; (void) tmp_dst1;
       VkPushDescriptorSetInfoKHR *tmp_src1 = (void *) pPushDescriptorSetInfo; (void) tmp_src1;
 
       const VkBaseInStructure *pnext = tmp_dst1->pNext;

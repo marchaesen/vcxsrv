@@ -1,0 +1,222 @@
+Mesa 24.3.2 Release Notes / 2024-12-19
+======================================
+
+Mesa 24.3.2 is a bug fix release which fixes bugs found since the 24.3.1 release.
+
+Mesa 24.3.2 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.3.2 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+   SHA256: ad9f5f3a6d2169e4786254ee6eb5062f746d11b826739291205d360f1f3ff716  mesa-24.3.2.tar.xz
+   SHA512: ea1065f7b466f1b2b3570c87585d6de15e3784a60d920c9f991c22720197d5947b598ac2c76773bed8150c91360ee5bbc77f3b48780a19502a8c4224baa728b9  mesa-24.3.2.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- crash on video playback
+- anv: bellwright needs force_vk_vendor=-1 %command% to launch
+- Up to 60% perf drop in SynMark DrvRes benchmark
+- Memory leak on closing and re-opening X11 windows
+- anv: \`MESA: warning: INTEL_HWCONFIG_MIN_GS_URB_ENTRIES (2) != devinfo->urb.min_entries[MESA_SHADER_GEOMETRY] (0)`
+- d3d12: va-api: build failure regression since 24.3.0-rc1 with MinGW GCC and clang
+- anv: Marvel Rivals XeSS crash, game needs force_vk_vendor=-1 env variable
+- aco: two nir_shader_clock are miss optimized to one for GFX12
+- aco: nir_ddx/ddy v_interp optimization does not work on GFX12
+- anv: vkd3d-proton hangs on TGL with test_multisample_rendering
+
+
+Changes
+-------
+
+Dave Airlie (1):
+
+- radv/video: set max slice counts to 1 for h264/5 encode
+
+David Rosca (4):
+
+- gallium/vl: Add plane order for Y8_400 format
+- radeonsi: Update minimum supported encode size for VCN5
+- radeonsi/vcn: Align bitstream buffer to 128 when resizing
+- radeonsi/uvd: Align bitstream buffer to 128 when resizing
+
+Dylan Baker (10):
+
+- docs: Add SHA sums for 24.3.1
+- .pick_status.json: Update to da77188d7db58bda61769646596eda2f4c3412fa
+- .pick_status.json: Update to b01afd06cd6e71da8bb2ffe88920097d80b51474
+- .pick_status.json: Update to cfb5687cb3ae6a2000635b18368ea53bca229acf
+- .pick_status.json: Update to 4ec3f6a0db9da78297fbce9161019d42f1c11103
+- .pick_status.json: Update to 0943f616d183835d4de56ad63feae340a5681cc4
+- .pick_status.json: Update to da4e2af010c2dd8e8668f0b62ae74383cb45dff0
+- .pick_status.json: Update to d5f88190fd82fdc7b666a7b02209d0bf337dcfd0
+- .pick_status.json: Update to 42b29837c9ba29fa4303f10bc4dd0c86f5aa11c0
+- .pick_status.json: Update to adfd7486c2916472860111bf37f79056cf4d43eb
+
+Eric R. Smith (2):
+
+- panfrost: fix read/write resource confusion in afbc_pack
+- panfrost: fix potential memory leak
+
+Erik Faye-Lund (3):
+
+- vulkan/meta: plug a couple of memory leaks
+- panvk: free preload-shaders after compiling
+- pan/cs: fix broken allocation-failure check
+
+Friedrich Vock (2):
+
+- aco/lower_to_hw_instr: Check the right instruction's opcode
+- radv/rt: Remove nir_intrinsic_execute_callable instrs in monolithic mode
+
+GKraats (1):
+
+- i915g: fix glClearColor using a 1 byte color format
+
+Georg Lehmann (5):
+
+- aco/gfx12: disable vinterp ddx/ddy optimization
+- nir/uub: properly limit float support to 32bit
+- aco/ra: don't write to exec/ttmp with mulk/addk/cmovk
+- aco/ra: disallow s_cmpk with scc operand
+- aco/ra: don't write to scc/ttmp with s_fmac
+
+Hans-Kristian Arntzen (7):
+
+- wsi/x11: Do not use allocation callbacks on a thread.
+- wsi/wayland: Only use commit timing protocol alongside present time.
+- wsi/wayland: Don't fallback to broken legacy throttling with FIFO
+- wsi/wayland: Handle FIFO -> MAILBOX transitions correctly
+- wsi/wayland: Remove unused present_mode member.
+- wsi/wayland: Add forward progress guarantee for present wait.
+- radv: Add radv_invariant_geom=true for Indiana Jones.
+
+Ian Romanick (4):
+
+- brw/algebraic: Fix ADD constant folding
+- brw/algebraic: Fix MUL constant folding
+- brw/emit: Fix typo in recently added ADD3 assertion
+- brw/emit: Fix BROADCAST when value is uniform and index is immediate
+
+Job Noorman (2):
+
+- ir3/isa: fix conflict between stib.b and stsc
+- ir3/isa: fix cat3-alt immed src
+
+Jordan Justen (5):
+
+- intel/dev: Split hwconfig warning check into hwconfig_item_warning()
+- intel/dev: Split apply and check paths for hwconfig
+- intel/dev: Don't process hwconfig table to apply items when not required
+- intel/dev: Add intel_check_hwconfig_items()
+- iris: Check that mem_fence_bo was created
+
+José Roberto de Souza (6):
+
+- intel/dev/xe: Fix access to eu_per_dss_mask
+- intel/dev/xe: Fix size of eu_per_dss_mask
+- intel/genxml/xe2: Add STATE_SYSTEM_MEM_FENCE_ADDRESS instruction
+- anv: Always create anv_async_submit in init_copy_video_queue_state()
+- anv: Emit STATE_SYSTEM_MEM_FENCE_ADDRESS
+- iris: Emit STATE_SYSTEM_MEM_FENCE_ADDRESS
+
+Juan A. Suarez Romero (1):
+
+- broadcom/compiler: fix fp16 conversion operations
+
+Karmjit Mahil (1):
+
+- util/idalloc: Fix util_idalloc_foreach() build issue
+
+Kenneth Graunke (1):
+
+- iris: Tune the BO cache's bucket sizes
+
+Lionel Landwerlin (4):
+
+- anv: fix missing bindings valid dynamic state change check
+- anv: set pipeline flags correct for imported libs
+- intel/decoder: fix COMPUTE_WALKER handling
+- blorp: use 2D dimension for 1D tiled images
+
+Louis-Francis Ratté-Boulianne (1):
+
+- panfrost: Re-emit texture descriptor if the data size has changed
+
+M Henning (1):
+
+- nvk: Fix uninitialized var warnings in host_copy
+
+Marek Olšák (1):
+
+- r600: fix a constant buffer memory leak for u_blitter
+
+Mi, Yanfeng (1):
+
+- anv:Fix memory grow calculation overflow issue
+
+Mykhailo Skorokhodov (1):
+
+- drirc/anv: force_vk_vendor=-1 for Bellwright
+
+Paulo Zanoni (2):
+
+- brw: don't forget the base when emitting SHADER_OPCODE_MOV_RELOC_IMM
+- brw: don't read past the end of old_src buffer in resize_sources()
+
+Peyton Lee (1):
+
+- frontends/va: function process_frame has return value
+
+Rhys Perry (1):
+
+- aco: don't CSE p_shader_cycles_hi_lo_hi
+
+Sagar Ghuge (1):
+
+- anv: Enable MCS_CCS compression on Gfx12+
+
+Samuel Pitoiset (10):
+
+- radv: fix initializing HTILE when the image has VRS rates
+- radv: add radv_disable_dcc_stores and enable for Indiana Jones: The Great Circle
+- radv: fix disabling DCC for stores with drirc
+- spirv: add an options to lower SpvOpTerminateInvocation to OpKill
+- radv: report same buffer aligment for DGC preprocessed buffer
+- Revert "radv: fix creating unlinked shaders with ESO when nextStage is 0"
+- radv/ci: fix expected list of failures for TAHITI
+- radv: fix missing variants for the last VGT stage with shader object
+- radv: fix capturing RT pipelines that return VK_OPERATION_DEFERRED_KHR for RGP
+- radv: add radv_lower_terminate_to_discard and enable for Indiana Jones
+
+Sil Vilerino (1):
+
+- vl/vl_winsys: Add missing include for function declaration
+
+Simon Ser (3):
+
+- dri: don't fetch X11 modifiers if we don't support them
+- egl/wayland: only supply LINEAR modifier when supported
+- egl/wayland: fallback to implicit modifiers if advertised by compositor
+
+Tapani Pälli (1):
+
+- drirc/anv: force_vk_vendor=-1 for Marvel Rivals

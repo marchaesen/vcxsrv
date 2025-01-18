@@ -73,8 +73,9 @@ enum tu_cmd_dirty_bits
    TU_CMD_DIRTY_RAST_ORDER = BIT(12),
    TU_CMD_DIRTY_FEEDBACK_LOOPS = BIT(13),
    TU_CMD_DIRTY_FS = BIT(14),
+   TU_CMD_DIRTY_SHADING_RATE = BIT(15),
    /* all draw states were disabled and need to be re-enabled: */
-   TU_CMD_DIRTY_DRAW_STATE = BIT(15)
+   TU_CMD_DIRTY_DRAW_STATE = BIT(16)
 };
 
 /* There are only three cache domains we have to care about: the CCU, or
@@ -514,6 +515,9 @@ struct tu_cmd_state
    bool raster_order_attachment_access_valid;
    bool blit_cache_cleaned;
    VkImageAspectFlags pipeline_feedback_loops;
+   bool pipeline_writes_shading_rate;
+   bool pipeline_reads_shading_rate;
+   bool pipeline_accesses_smask;
 
    bool pipeline_blend_lrz, pipeline_bandwidth;
    uint32_t pipeline_draw_states;
@@ -571,11 +575,11 @@ struct tu_cmd_buffer
 
    struct tu_descriptor_state descriptors[MAX_BIND_POINTS];
 
-   struct tu_render_pass_attachment dynamic_rp_attachments[2 * (MAX_RTS + 1) + 1];
+   struct tu_render_pass_attachment dynamic_rp_attachments[2 * (MAX_RTS + 1) + 2];
    struct tu_subpass_attachment dynamic_color_attachments[MAX_RTS];
    struct tu_subpass_attachment dynamic_input_attachments[MAX_RTS + 1];
    struct tu_subpass_attachment dynamic_resolve_attachments[MAX_RTS + 1];
-   const struct tu_image_view *dynamic_attachments[2 * (MAX_RTS + 1) + 1];
+   const struct tu_image_view *dynamic_attachments[2 * (MAX_RTS + 1) + 2];
    VkClearValue dynamic_clear_values[2 * (MAX_RTS + 1)];
 
    struct tu_render_pass dynamic_pass;
@@ -611,7 +615,10 @@ struct tu_cmd_buffer
 
    uint32_t vsc_draw_strm_pitch;
    uint32_t vsc_prim_strm_pitch;
+   uint64_t vsc_draw_strm_va, vsc_draw_strm_size_va, vsc_prim_strm_va;
    bool vsc_initialized;
+
+   bool prev_fsr_is_null;
 };
 VK_DEFINE_HANDLE_CASTS(tu_cmd_buffer, vk.base, VkCommandBuffer,
                        VK_OBJECT_TYPE_COMMAND_BUFFER)
@@ -677,6 +684,13 @@ template <chip CHIP>
 void tu_cmd_render(struct tu_cmd_buffer *cmd);
 
 enum fd_gpu_event : uint32_t;
+
+template <chip CHIP>
+void
+tu_emit_raw_event_write(struct tu_cmd_buffer *cmd,
+                        struct tu_cs *cs,
+                        enum vgt_event_type event,
+                        bool needs_seqno);
 
 template <chip CHIP>
 void

@@ -53,7 +53,6 @@
 #include "ir_optimization.h"
 #include "ir_rvalue_visitor.h"
 #include "nir.h"
-#include "program.h"
 #include "serialize.h"
 #include "shader_cache.h"
 #include "util/mesa-sha1.h"

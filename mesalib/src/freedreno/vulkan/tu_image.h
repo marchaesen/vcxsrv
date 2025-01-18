@@ -49,7 +49,7 @@ struct tu_image
 
    bool ubwc_enabled;
    bool force_linear_tile;
-   bool ubwc_fc_mutable;
+   bool is_mutable;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(tu_image, vk.base, VkImage, VK_OBJECT_TYPE_IMAGE)
 
@@ -122,6 +122,7 @@ ubwc_possible(struct tu_device *device,
               VkImageUsageFlags stencil_usage,
               const struct fd_dev_info *info,
               VkSampleCountFlagBits samples,
+              uint32_t mip_levels,
               bool use_z24uint_s8uint);
 
 struct tu_frag_area {

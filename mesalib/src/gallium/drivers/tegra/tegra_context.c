@@ -684,12 +684,13 @@ static void
 tegra_set_stream_output_targets(struct pipe_context *pcontext,
                                 unsigned num_targets,
                                 struct pipe_stream_output_target **targets,
-                                const unsigned *offsets)
+                                const unsigned *offsets,
+                                enum mesa_prim output_prim)
 {
    struct tegra_context *context = to_tegra_context(pcontext);
 
    context->gpu->set_stream_output_targets(context->gpu, num_targets,
-                                           targets, offsets);
+                                           targets, offsets, output_prim);
 }
 
 static void

@@ -152,6 +152,8 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
             FALLTHROUGH;
          case nir_intrinsic_load_uniform:
          case nir_intrinsic_load_preamble:
+         case nir_intrinsic_load_scalar_arg_amd:
+         case nir_intrinsic_load_vector_arg_amd:
          case nir_intrinsic_load_helper_invocation:
          case nir_intrinsic_is_helper_invocation:
          case nir_intrinsic_load_front_face:

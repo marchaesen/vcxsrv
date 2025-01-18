@@ -250,7 +250,6 @@ struct fixed31_32 vpe_fixpt_sin(struct fixed31_32 arg)
 
 struct fixed31_32 vpe_fixpt_cos(struct fixed31_32 arg)
 {
-    /* TODO implement argument normalization */
 
     const struct fixed31_32 square = vpe_fixpt_sqr(arg);
 
@@ -280,7 +279,6 @@ static struct fixed31_32 fixed31_32_exp_from_taylor_series(struct fixed31_32 arg
     unsigned int n = 9;
 
     struct fixed31_32 res = vpe_fixpt_from_fraction(n + 2, n + 1);
-    /* TODO find correct res */
 
     VPE_ASSERT(vpe_fixpt_lt(arg, vpe_fixpt_one));
 
@@ -322,13 +320,10 @@ struct fixed31_32 vpe_fixpt_exp(struct fixed31_32 arg)
 struct fixed31_32 vpe_fixpt_log(struct fixed31_32 arg)
 {
     struct fixed31_32 res = vpe_fixpt_neg(vpe_fixpt_one);
-    /* TODO improve 1st estimation */
 
     struct fixed31_32 error;
 
-    VPE_ASSERT(arg.value > 0);
-    /* TODO if arg is negative, return NaN */
-    /* TODO if arg is zero, return -INF */
+    VPE_ASSERT(arg.value > 0); /*log is defined only for positive numbers*/
 
     do {
         struct fixed31_32 res1 = vpe_fixpt_add(
@@ -337,7 +332,6 @@ struct fixed31_32 vpe_fixpt_log(struct fixed31_32 arg)
         error = vpe_fixpt_sub(res, res1);
 
         res = res1;
-        /* TODO determine max_allowed_error based on quality of exp() */
     } while (abs_i64(error.value) > 100ULL);
 
     return res;
@@ -426,4 +420,25 @@ unsigned int vpe_to_fixed_point(
     d_i = (int)((value * d_pix) + 0.5);
     d_i = d_i & mask;
     return d_i;
+}
+
+/* This function is a generic way to convert a double into fixpt format AdBu, where
+ * A is the decimal bits and B is the fractional bits. If clamp is set, it will
+ * clamp the max value, otherwise there is risk of overflow.
+ */
+unsigned long long vpe_double_to_fixed_point(
+    double x, unsigned long long decimal_bits, unsigned long long fractional_bits, bool clamp)
+{
+    unsigned long long shift   = 1;
+    double             norm    = (double)(shift << fractional_bits);
+    unsigned long long x_fixpt = (long long)(x * norm);
+    unsigned long long mask    = ((shift << (decimal_bits + fractional_bits)) - 1);
+
+    if ((clamp == true) && (x_fixpt > mask)) {
+        x_fixpt = mask;
+    } else {
+        x_fixpt = x_fixpt & mask;
+    }
+
+    return x_fixpt;
 }

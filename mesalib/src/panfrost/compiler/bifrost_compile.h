@@ -56,12 +56,6 @@ void bifrost_compile_shader_nir(nir_shader *nir,
       .lower_bitfield_extract = true,                                          \
       .lower_insert_byte = true,                                               \
                                                                                \
-      /* Vertex ID is zero based in the traditional geometry flows, but not in \
-       * the memory-allocated IDVS flow introduced and used exclusively in     \
-       * Valhall. So this is a machine property for us.                        \
-       */                                                                      \
-      .vertex_id_zero_based = (arch <= 7),                                     \
-                                                                               \
       .lower_pack_64_4x16 = true,                                              \
       .lower_pack_half_2x16 = true,                                            \
       .lower_pack_unorm_2x16 = true,                                           \
@@ -89,7 +83,6 @@ void bifrost_compile_shader_nir(nir_shader *nir,
       .fuse_ffma16 = true,                                                     \
       .fuse_ffma32 = true,                                                     \
       .fuse_ffma64 = true,                                                     \
-      .use_interpolated_input_intrinsics = true,                               \
                                                                                \
       .lower_uniforms_to_ubo = true,                                           \
                                                                                \
@@ -101,6 +94,7 @@ void bifrost_compile_shader_nir(nir_shader *nir,
          (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),     \
       .force_indirect_unrolling_sampler = true,                                \
       .scalarize_ddx = true,                                                   \
+      .support_indirect_inputs = (uint8_t)BITFIELD_MASK(PIPE_SHADER_TYPES),    \
    };
 
 DEFINE_OPTIONS(6);

@@ -1,4 +1,4 @@
-.default_tag: &default_tag "2024-04-22.1"
+.default_tag: &default_tag "2025-01-17.1"
 
 distributions:
   - name: fedora
@@ -7,8 +7,8 @@ distributions:
     qemu_based: false
     versions:
       - "rawhide"
+      - "41"
       - "40"
-      - "39"
     builds:
       - name: "autotools shared expat"
         variables:
@@ -31,6 +31,7 @@ distributions:
           FC_BUILDSYS: meson
           FC_BUILD_TYPE: shared
           FC_XML_BACKEND: libxml2
+          FC_BUILD_DISTCHECK: 1
       - name: "autotools static expat"
         build_only: "rawhide"
         variables:
@@ -56,7 +57,7 @@ distributions:
           FC_BUILD_TYPE: static
           FC_XML_BACKEND: libxml2
       - name: "mingw autotools static libxml2"
-        build_only: "rawhide"
+        build_only: "40"
         variables:
           FC_BUILDSYS: autotools
           FC_BUILD_TYPE: static
@@ -72,13 +73,19 @@ distributions:
           FC_BUILD_PLATFORM: mingw
           FC_BUILD_ARCH: linux-mingw-w64-64bit
           FC_BUILD_NO_INSTALL: 1
+      - name: "meson static libxml2 fontations"
+        build_only: "rawhide"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: static
+          FC_XML_BACKEND: libxml2
+          FC_BUILD_ENABLED: "fontations"
   - name: freebsd
     tag: *default_tag
     base_type: freebsd
     qemu_based: true
     versions:
-      - "14.0"
-      - "13.2"
+      - "14.1"
     builds:
       - name: "autotools shared expat"
         variables:
@@ -114,6 +121,7 @@ packages:
         "@buildsys-build",
         "autoconf",
         "automake",
+        "clang-devel",
         "libtool",
         "gettext",
         "gettext-devel",
@@ -135,6 +143,9 @@ packages:
         "mingw64-freetype",
         "mingw64-libxml2",
         "wine",
+        "rust",
+        "cargo",
+        "bindgen-cli"
       ]
   freebsd:
     needed:
@@ -153,7 +164,7 @@ packages:
         "ninja",
         "wget",
         "python3",
-        "py39-pip",
+        "py311-pip",
         "pkgconf",
         "gmake",
         "gettext-runtime",

@@ -72,7 +72,8 @@ static void virgl_destroy_so_target(struct pipe_context *ctx,
 static void virgl_set_so_targets(struct pipe_context *ctx,
                                 unsigned num_targets,
                                 struct pipe_stream_output_target **targets,
-                                const unsigned *offset)
+                                const unsigned *offset,
+                                 enum mesa_prim output_prim)
 {
    struct virgl_context *vctx = virgl_context(ctx);
    int i;

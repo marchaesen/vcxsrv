@@ -138,8 +138,8 @@ fill_so_declaration(const struct pipe_stream_output_info *info,
          entries[*num_entries].SemanticName = NULL;
          entries[*num_entries].SemanticIndex = 0;
          entries[*num_entries].StartComponent = 0;
-         entries[*num_entries].ComponentCount = skip_components;
-         entries[*num_entries].OutputSlot = buffer;
+         entries[*num_entries].ComponentCount = static_cast<BYTE>(skip_components);
+         entries[*num_entries].OutputSlot = static_cast<BYTE>(buffer);
          (*num_entries)++;
       }
 
@@ -157,9 +157,9 @@ fill_so_declaration(const struct pipe_stream_output_info *info,
       }
       entries[*num_entries].SemanticName = get_semantic_name(location, var->data.driver_location, &index);
       entries[*num_entries].SemanticIndex = index;
-      entries[*num_entries].StartComponent = output->start_component - var->data.location_frac;
-      entries[*num_entries].ComponentCount = output->num_components;
-      entries[*num_entries].OutputSlot = buffer;
+      entries[*num_entries].StartComponent = static_cast<BYTE>(output->start_component - var->data.location_frac);
+      entries[*num_entries].ComponentCount = static_cast<BYTE>(output->num_components);
+      entries[*num_entries].OutputSlot = static_cast<BYTE>(buffer);
       (*num_entries)++;
    }
 
@@ -339,7 +339,7 @@ create_gfx_pipeline_state(struct d3d12_context *ctx)
       rast.CullMode = D3D12_CULL_MODE_NONE;
 
    if (depth_bias(state->rast, reduced_prim)) {
-      rast.DepthBias = state->rast->base.offset_units * 2;
+      rast.DepthBias = static_cast<INT>(state->rast->base.offset_units * 2);
       rast.DepthBiasClamp = state->rast->base.offset_clamp;
       rast.SlopeScaledDepthBias = state->rast->base.offset_scale;
    }

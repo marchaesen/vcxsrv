@@ -76,7 +76,8 @@ _mesa_initialize_context( struct gl_context *ctx,
                           bool no_error,
                           const struct gl_config *visual,
                           struct gl_context *share_list,
-                          const struct dd_function_table *driverFunctions);
+                          const struct dd_function_table *driverFunctions,
+                          const struct st_config_options *options);
 
 extern struct _glapi_table *
 _mesa_alloc_dispatch_table(bool glthread);

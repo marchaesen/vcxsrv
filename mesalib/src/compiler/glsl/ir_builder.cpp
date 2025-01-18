@@ -99,30 +99,6 @@ swizzle_for_size(operand a, unsigned components)
 }
 
 ir_swizzle *
-swizzle_xxxx(operand a)
-{
-   return swizzle(a, SWIZZLE_XXXX, 4);
-}
-
-ir_swizzle *
-swizzle_yyyy(operand a)
-{
-   return swizzle(a, SWIZZLE_YYYY, 4);
-}
-
-ir_swizzle *
-swizzle_zzzz(operand a)
-{
-   return swizzle(a, SWIZZLE_ZZZZ, 4);
-}
-
-ir_swizzle *
-swizzle_wwww(operand a)
-{
-   return swizzle(a, SWIZZLE_WWWW, 4);
-}
-
-ir_swizzle *
 swizzle_x(operand a)
 {
    return swizzle(a, SWIZZLE_XXXX, 1);
@@ -144,24 +120,6 @@ ir_swizzle *
 swizzle_w(operand a)
 {
    return swizzle(a, SWIZZLE_WWWW, 1);
-}
-
-ir_swizzle *
-swizzle_xy(operand a)
-{
-   return swizzle(a, SWIZZLE_XYZW, 2);
-}
-
-ir_swizzle *
-swizzle_xyz(operand a)
-{
-   return swizzle(a, SWIZZLE_XYZW, 3);
-}
-
-ir_swizzle *
-swizzle_xyzw(operand a)
-{
-   return swizzle(a, SWIZZLE_XYZW, 4);
 }
 
 ir_expression *
@@ -213,11 +171,6 @@ ir_expression *mul(operand a, operand b)
    return expr(ir_binop_mul, a, b);
 }
 
-ir_expression *imul_high(operand a, operand b)
-{
-   return expr(ir_binop_imul_high, a, b);
-}
-
 ir_expression *div(operand a, operand b)
 {
    return expr(ir_binop_div, a, b);
@@ -241,11 +194,6 @@ ir_expression *trunc(operand a)
 ir_expression *round_even(operand a)
 {
    return expr(ir_unop_round_even, a);
-}
-
-ir_expression *fract(operand a)
-{
-   return expr(ir_unop_fract, a);
 }
 
 /* dot for vectors, mul for scalars */
@@ -299,12 +247,6 @@ ir_expression *
 exp(operand a)
 {
    return expr(ir_unop_exp, a);
-}
-
-ir_expression *
-rcp(operand a)
-{
-   return expr(ir_unop_rcp, a);
 }
 
 ir_expression *
@@ -362,12 +304,6 @@ greater(operand a, operand b)
 }
 
 ir_expression*
-lequal(operand a, operand b)
-{
-   return expr(ir_binop_gequal, b, a);
-}
-
-ir_expression*
 gequal(operand a, operand b)
 {
    return expr(ir_binop_gequal, a, b);
@@ -407,12 +343,6 @@ ir_expression*
 bit_or(operand a, operand b)
 {
    return expr(ir_binop_bit_or, a, b);
-}
-
-ir_expression*
-bit_xor(operand a, operand b)
-{
-   return expr(ir_binop_bit_xor, a, b);
 }
 
 ir_expression*
@@ -488,21 +418,9 @@ bitcast_u2f(operand a)
 }
 
 ir_expression*
-i2b(operand a)
-{
-   return expr(ir_unop_i2b, a);
-}
-
-ir_expression*
 b2i(operand a)
 {
    return expr(ir_unop_b2i, a);
-}
-
-ir_expression *
-f2b(operand a)
-{
-   return expr(ir_unop_f2b, a);
 }
 
 ir_expression *
@@ -563,18 +481,6 @@ ir_expression *
 f2d(operand a)
 {
    return expr(ir_unop_f2d, a);
-}
-
-ir_expression *
-i2d(operand a)
-{
-   return expr(ir_unop_i2d, a);
-}
-
-ir_expression *
-u2d(operand a)
-{
-   return expr(ir_unop_u2d, a);
 }
 
 ir_expression *

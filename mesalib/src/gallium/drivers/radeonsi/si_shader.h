@@ -139,10 +139,6 @@ struct nir_instr;
 /* D3D9 behaviour for COLOR0 requires 0001. GL is undefined. */
 #define SI_PS_INPUT_CNTL_UNUSED_COLOR0 SI_PS_INPUT_CNTL_0001
 
-#define SI_VECTOR_ARG_IS_COLOR               BITFIELD_BIT(0)
-#define SI_VECTOR_ARG_COLOR_COMPONENT(x)     (((x) & 0x7) << 1)
-#define SI_GET_VECTOR_ARG_COLOR_COMPONENT(x) (((x) >> 1) & 0x7)
-
 /* SGPR user data indices */
 enum
 {
@@ -242,19 +238,63 @@ enum
  * can be 55 at most. The ESGS vertex stride in dwords is: NUM_ES_OUTPUTS * 4 + 1
  * Only used by GFX9+ to compute LDS addresses of GS inputs.
  */
-#define GS_STATE_NUM_ES_OUTPUTS__SHIFT          13
+#define GS_STATE_NUM_ES_OUTPUTS__SHIFT          14
 #define GS_STATE_NUM_ES_OUTPUTS__MASK           0x3f
-/* Small prim filter precision = num_samples / quant_mode, which can only be equal to 1/2^n
- * where n is between 4 and 12. Knowing that, we only need to store 4 bits of the FP32 exponent.
- * Set it like this: value = (fui(num_samples / quant_mode) >> 23) & 0xf;
- * Expand to FP32 like this: ((0x70 | value) << 23);
- * With 0x70 = 112, we get 2^(112 + value - 127) = 2^(value - 15), which is always a negative
- * exponent and it's equal to 1/2^(15 - value).
+#define GS_STATE_CULL_FACE_FRONT__SHIFT         20
+#define GS_STATE_CULL_FACE_FRONT__MASK          0x1
+#define GS_STATE_CULL_FACE_BACK__SHIFT          21
+#define GS_STATE_CULL_FACE_BACK__MASK           0x1
+/* Small prim filter precision = num_samples / quant_mode where num_samples is in {1, 2, 4, 8} and
+ * quant_mode is in {256, 1024, 4096}, which is equal to 1/2^n where n is between 5 and 12.
+ *
+ * Equation 1: Represent the value as 1/2^n.
+ * Assumption: log_samples <= 3 and log_quant_mode >= 8
+ *    num_samples / quant_mode =
+ *    2^log_samples / 2^log_quant_mode =
+ *    1 / 2^(log_quant_mode - log_samples) [because log_samples < log_quant_mode]
+ *
+ * Knowing that, we only need 4 bits to represent the FP32 exponent and thus the FP32 number.
+ *
+ * Equation 2: Encoding the exponent.
+ *    1/2^(15 - value) in FP32 = ((value | 0x70) << 23) in binary if value < 15
+ * Proof: With 0x70 = 112, we get FP32 exponent 2^(112 + value - 127) according to the FP32
+ *        definition, which can be simplified to 2^(value - 15), which is a negative exponent
+ *        for value < 15. Given that 2^-n = 1/2^n, the FP32 number is equal to 1/2^(15 - value).
+ *
+ * Equation 3: Convert quant_mode_enum to log_quant_mode.
+ * quant_mode_enum:
+ *    0 means 256  = 2^8  --> log2(256)  = 8
+ *    1 means 1024 = 2^10 --> log2(1024) = 10
+ *    2 means 4096 = 2^12 --> log2(4096) = 12
+ *
+ * Conversion to log_quant_mode:
+ *    log_quant_mode = quant_mode_enum * 2 + 8. Proof:
+ *       0 * 2 + 8 = 8
+ *       1 * 2 + 8 = 10
+ *       2 * 2 + 8 = 12
+ *
+ * Equation 4: Get the exponent value for Equation 2 from Equation 1.
+ *    15 - value = log_quant_mode - log_samples
+ *    value = 15 - (log_quant_mode + log_samples)
+ *
+ * Combine equations 2, 3, and 4 to get the expression computing the FP32 number from log_samples
+ * and quant_mode_enum using integer ops:
+ *    (value | 0x70) << 23 =
+ *    ((15 - (log_quant_mode + log_samples)) | 0x70) << 23 =
+ *    ((15 - (quant_mode_enum * 2 + 8 + log_samples)) | 0x70) << 23 =
+ *    ((15 - quant_mode_enum * 2 - 8 - log_samples) | 0x70) << 23 =
+ *    ((7 - quant_mode_enum * 2 - log_samples) | 0x70) << 23 =
+ *
+ * Since "log_samples <= 3" and "quant_mode_enum * 2 <= 4", we need a SGPR field that stores:
+ *    triangle_precision = 7 - quant_mode_enum * 2 - log_samples
+ *
+ * Line precision ignores log_samples, so the shader should do:
+ *    line_precision = triangle_precision + log_samples
  */
-#define GS_STATE_SMALL_PRIM_PRECISION_NO_AA__SHIFT 19
-#define GS_STATE_SMALL_PRIM_PRECISION_NO_AA__MASK  0xf
-#define GS_STATE_SMALL_PRIM_PRECISION__SHIFT    23
-#define GS_STATE_SMALL_PRIM_PRECISION__MASK     0xf
+#define GS_STATE_SMALL_PRIM_PRECISION__SHIFT    22  /* triangle_precision */
+#define GS_STATE_SMALL_PRIM_PRECISION__MASK     0x7
+#define GS_STATE_SMALL_PRIM_PRECISION_LOG_SAMPLES__SHIFT 25
+#define GS_STATE_SMALL_PRIM_PRECISION_LOG_SAMPLES__MASK  0x3
 #define GS_STATE_STREAMOUT_QUERY_ENABLED__SHIFT 27
 #define GS_STATE_STREAMOUT_QUERY_ENABLED__MASK  0x1
 #define GS_STATE_PROVOKING_VTX_FIRST__SHIFT     28
@@ -288,13 +328,14 @@ enum
    MAX_SI_VS_BLIT_SGPRS = 10, /* +1 for the attribute ring address */
 };
 
-#define SI_NGG_CULL_TRIANGLES                (1 << 0)   /* this implies W, view.xy, and small prim culling */
-#define SI_NGG_CULL_BACK_FACE                (1 << 1)   /* back faces */
-#define SI_NGG_CULL_FRONT_FACE               (1 << 2)   /* front faces */
-#define SI_NGG_CULL_LINES                    (1 << 3)   /* the primitive type is lines */
-#define SI_NGG_CULL_SMALL_LINES_DIAMOND_EXIT (1 << 4)   /* cull small lines according to the diamond exit rule */
-#define SI_NGG_CULL_CLIP_PLANE_ENABLE(enable) (((enable) & 0xff) << 5)
-#define SI_NGG_CULL_GET_CLIP_PLANE_ENABLE(x)  (((x) >> 5) & 0xff)
+/* The following two are only set for vertex shaders that cull.
+ * TES and GS get the primitive type from shader_info.
+ */
+#define SI_NGG_CULL_VS_TRIANGLES             (1 << 0)   /* this implies W, view.xy, and small prim culling */
+#define SI_NGG_CULL_VS_LINES                 (1 << 1)   /* this implies W and view.xy culling */
+#define SI_NGG_CULL_SMALL_LINES_DIAMOND_EXIT (1 << 2)   /* cull small lines according to the diamond exit rule */
+#define SI_NGG_CULL_CLIP_PLANE_ENABLE(enable) (((enable) & 0xff) << 3)
+#define SI_NGG_CULL_GET_CLIP_PLANE_ENABLE(x)  (((x) >> 3) & 0xff)
 
 struct si_shader_profile {
    uint32_t blake3[BLAKE3_OUT_LEN32];
@@ -428,21 +469,26 @@ struct si_shader_info {
    union si_input_info input[PIPE_MAX_SHADER_INPUTS];
    uint8_t output_semantic[PIPE_MAX_SHADER_OUTPUTS];
    uint8_t output_usagemask[PIPE_MAX_SHADER_OUTPUTS];
-   uint8_t output_readmask[PIPE_MAX_SHADER_OUTPUTS];
    uint8_t output_streams[PIPE_MAX_SHADER_OUTPUTS];
    uint8_t output_type[PIPE_MAX_SHADER_OUTPUTS]; /* enum nir_alu_type */
+   uint8_t output_xfb_writemask[PIPE_MAX_SHADER_OUTPUTS];
 
+   uint8_t num_streamout_components;
    uint8_t num_vs_inputs;
    uint8_t num_vbos_in_user_sgprs;
-   uint8_t num_stream_output_components[4];
+   uint8_t num_stream_output_components[4]; /* for GS streams, not streamout */
    uint16_t enabled_streamout_buffer_mask;
 
    uint64_t inputs_read; /* "get_unique_index" bits */
-   uint64_t tcs_vgpr_only_inputs; /* TCS inputs that are only in VGPRs, not LDS. */
+   uint64_t tcs_inputs_via_temp;
+   uint64_t tcs_inputs_via_lds;
 
-   uint64_t outputs_written_before_tes_gs; /* "get_unique_index" bits */
+   /* For VS before {TCS, TES, GS} and TES before GS. */
+   uint64_t ls_es_outputs_written;     /* "get_unique_index" bits */
    uint64_t outputs_written_before_ps; /* "get_unique_index" bits */
-   uint32_t patch_outputs_written;     /* "get_unique_index_patch" bits */
+   uint64_t tcs_outputs_written_for_tes;   /* "get_unique_index" bits */
+   uint32_t patch_outputs_written_for_tes; /* "get_unique_index_patch" bits */
+   uint32_t tess_levels_written_for_tes;   /* "get_unique_index_patch" bits */
 
    uint8_t clipdist_mask;
    uint8_t culldist_mask;
@@ -469,6 +515,9 @@ struct si_shader_info {
    bool reads_samplemask;   /**< does fragment shader read sample mask? */
    bool reads_tess_factors; /**< If TES reads TESSINNER or TESSOUTER */
    bool writes_z;           /**< does fragment shader write Z value? */
+   /* We need both because both can be present in different conditional blocks. */
+   bool output_z_equals_input_z; /**< gl_FragDepth == gl_FragCoord.z for any write */
+   bool output_z_is_not_input_z; /**< gl_FragDepth != gl_FragCoord.z for any write */
    bool writes_stencil;     /**< does fragment shader write stencil value? */
    bool writes_samplemask;  /**< does fragment shader write sample mask? */
    bool writes_edgeflag;    /**< vertex shader outputs edgeflag */
@@ -509,6 +558,7 @@ struct si_shader_info {
    bool uses_sampleid;
    bool uses_layer_id;
    bool has_non_uniform_tex_access;
+   bool has_shadow_comparison;
 
    bool uses_vmem_sampler_or_bvh;
    bool uses_vmem_load_other; /* all other VMEM loads and atomics with return */
@@ -566,7 +616,6 @@ struct si_shader_selector {
 
    struct si_shader_info info;
 
-   enum pipe_shader_type pipe_shader_type;
    uint8_t const_and_shader_buf_descriptors_index;
    uint8_t sampler_and_images_descriptors_index;
    uint8_t cs_shaderbufs_sgpr_index;
@@ -633,10 +682,12 @@ struct si_ps_epilog_bits {
    unsigned last_cbuf : 3;
    unsigned alpha_func : 3;
    unsigned alpha_to_one : 1;
-   unsigned alpha_to_coverage_via_mrtz : 1;  /* gfx11+ */
+   unsigned alpha_to_coverage_via_mrtz : 1;  /* gfx11+ or alpha_to_one */
    unsigned clamp_color : 1;
    unsigned dual_src_blend_swizzle : 1;      /* gfx11+ */
    unsigned rbplus_depth_only_opt:1;
+   unsigned kill_z:1;
+   unsigned kill_stencil:1;
    unsigned kill_samplemask:1;
 };
 
@@ -724,8 +775,14 @@ struct si_shader_key_ge {
       unsigned remove_streamout : 1;
 
       /* For NGG VS and TES. */
-      unsigned ngg_culling : 13; /* SI_NGG_CULL_* */
+      unsigned ngg_culling : 11; /* SI_NGG_CULL_* */
 
+      /* If NGG VS streamout knows the number of vertices per primitive at compile time,
+       * it can put stores for all vertices in the same VMEM clause, instead of storing
+       * vertices for the 2nd and 3rd vertex conditionally because the primitive type is
+       * unknown.
+       */
+      unsigned ngg_vs_streamout_num_verts_per_prim : 2;
 
       /* For shaders where monolithic variants have better code.
        *
@@ -739,7 +796,7 @@ struct si_shader_key_ge {
       unsigned same_patch_vertices:1;
 
       /* For TCS. */
-      unsigned tes_prim_mode : 3;
+      unsigned tes_prim_mode : 2;
       unsigned tes_reads_tess_factors : 1;
 
       unsigned inline_uniforms:1;
@@ -966,6 +1023,8 @@ struct si_shader {
          unsigned num_interp;
          unsigned spi_gs_out_config_ps;
          unsigned pa_sc_hisz_control;
+         bool writes_z;
+         bool writes_stencil;
          bool writes_samplemask;
       } ps;
    };
@@ -1009,15 +1068,11 @@ const char *si_get_shader_name(const struct si_shader *shader);
 void si_shader_binary_clean(struct si_shader_binary *binary);
 struct nir_shader *si_deserialize_shader(struct si_shader_selector *sel);
 unsigned si_get_ps_num_interp(struct si_shader *ps);
-bool si_shader_binary_open(struct si_screen *screen, struct si_shader *shader,
-                           struct ac_rtld_binary *rtld);
-bool si_get_external_symbol(enum amd_gfx_level gfx_level, void *data, const char *name,
-                            uint64_t *value);
 unsigned si_get_shader_prefetch_size(struct si_shader *shader);
 unsigned si_get_shader_binary_size(struct si_screen *screen, struct si_shader *shader);
 
 /* si_shader_info.c */
-void si_nir_scan_shader(struct si_screen *sscreen,  const struct nir_shader *nir,
+void si_nir_scan_shader(struct si_screen *sscreen, struct nir_shader *nir,
                         struct si_shader_info *info);
 
 /* si_shader_nir.c */
@@ -1026,7 +1081,7 @@ void si_lower_mediump_io(struct nir_shader *nir);
 bool si_alu_to_scalar_packed_math_filter(const struct nir_instr *instr, const void *data);
 void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first);
 void si_nir_late_opts(struct nir_shader *nir);
-char *si_finalize_nir(struct pipe_screen *screen, void *nirptr);
+char *si_finalize_nir(struct pipe_screen *screen, struct nir_shader *nir);
 
 /* si_state_shaders.cpp */
 unsigned si_shader_num_alloc_param_exports(struct si_shader *shader);
@@ -1036,6 +1091,8 @@ void gfx9_get_gs_info(struct si_shader_selector *es, struct si_shader_selector *
 bool gfx10_is_ngg_passthrough(struct si_shader *shader);
 unsigned si_shader_lshs_vertex_stride(struct si_shader *ls);
 bool si_should_clear_lds(struct si_screen *sscreen, const struct nir_shader *shader);
+unsigned si_get_output_prim_simplified(const struct si_shader_selector *sel,
+                                       const union si_shader_key *key);
 
 /* Inline helpers. */
 
@@ -1063,30 +1120,12 @@ static inline struct si_shader **si_get_main_shader_part(struct si_shader_select
    return &sel->main_shader_part[index];
 }
 
-static inline bool si_shader_uses_bindless_samplers(struct si_shader_selector *selector)
+static inline bool gfx10_has_variable_edgeflags(struct si_shader *shader)
 {
-   return selector ? selector->info.uses_bindless_samplers : false;
-}
+   unsigned output_prim = si_get_output_prim_simplified(shader->selector, &shader->key);
 
-static inline bool si_shader_uses_bindless_images(struct si_shader_selector *selector)
-{
-   return selector ? selector->info.uses_bindless_images : false;
-}
-
-static inline bool gfx10_edgeflags_have_effect(struct si_shader *shader)
-{
-   if (shader->selector->stage == MESA_SHADER_VERTEX &&
-       !shader->selector->info.base.vs.blit_sgprs_amd &&
-       !(shader->key.ge.opt.ngg_culling & SI_NGG_CULL_LINES))
-      return true;
-
-   return false;
-}
-
-static inline bool gfx10_ngg_writes_user_edgeflags(struct si_shader *shader)
-{
-   return gfx10_edgeflags_have_effect(shader) &&
-          shader->selector->info.writes_edgeflag;
+   return shader->selector->stage == MESA_SHADER_VERTEX &&
+          (output_prim == MESA_PRIM_TRIANGLES || output_prim == MESA_PRIM_UNKNOWN);
 }
 
 static inline bool si_shader_uses_streamout(const struct si_shader *shader)
@@ -1104,6 +1143,24 @@ static inline bool si_shader_uses_discard(struct si_shader *shader)
           shader->key.ps.part.prolog.poly_stipple ||
           shader->key.ps.mono.point_smoothing ||
           shader->key.ps.part.epilog.alpha_func != PIPE_FUNC_ALWAYS;
+}
+
+static inline bool si_shader_culling_enabled(struct si_shader *shader)
+{
+   /* Legacy VS/TES/GS and ES don't cull in the shader. */
+   if (!shader->key.ge.as_ngg || shader->key.ge.as_es) {
+      assert(!shader->key.ge.opt.ngg_culling);
+      return false;
+   }
+
+   if (shader->key.ge.opt.ngg_culling)
+      return true;
+
+   unsigned output_prim = si_get_output_prim_simplified(shader->selector, &shader->key);
+
+   /* This enables NGG culling for non-monolithic TES and GS. */
+   return shader->selector->ngg_cull_vert_threshold == 0 &&
+          (output_prim == MESA_PRIM_TRIANGLES || output_prim == MESA_PRIM_LINES);
 }
 
 #ifdef __cplusplus

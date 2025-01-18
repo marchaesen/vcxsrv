@@ -91,7 +91,7 @@ static inline unsigned vk_conv_topology(VkPrimitiveTopology topology)
    }
 }
 
-static inline unsigned vk_conv_wrap_mode(enum VkSamplerAddressMode addr_mode)
+static inline unsigned vk_conv_wrap_mode(VkSamplerAddressMode addr_mode)
 {
    switch (addr_mode) {
    case VK_SAMPLER_ADDRESS_MODE_REPEAT:

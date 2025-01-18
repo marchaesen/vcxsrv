@@ -2016,25 +2016,25 @@
         <variant>
           <configItem>
             <name>left_hand</name>
-            <description>Braille (left-handed)</description>
+            <description>Braille (one-handed, left)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>left_hand_invert</name>
-            <description>Braille (left-handed inverted thumb)</description>
+            <description>Braille (one-handed, left, inverted thumb)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>right_hand</name>
-            <description>Braille (right-handed)</description>
+            <description>Braille (one-handed, right)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>right_hand_invert</name>
-            <description>Braille (right-handed inverted thumb)</description>
+            <description>Braille (one-handed, right, inverted thumb)</description>
           </configItem>
         </variant>
       </variantList>
@@ -3060,13 +3060,13 @@
         <variant>
           <configItem>
             <name>dvorak-l</name>
-            <description>English (Dvorak, left-handed)</description>
+            <description>English (Dvorak, one-handed, left)</description>
           </configItem>
         </variant>
         <variant>
           <configItem>
             <name>dvorak-r</name>
-            <description>English (Dvorak, right-handed)</description>
+            <description>English (Dvorak, one-handed, right)</description>
           </configItem>
         </variant>
         <variant>

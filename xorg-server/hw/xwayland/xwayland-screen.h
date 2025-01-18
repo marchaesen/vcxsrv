@@ -117,6 +117,7 @@ struct xwl_screen {
     struct wp_tearing_control_manager_v1 *tearing_control_manager;
     struct wp_fractional_scale_manager_v1 *fractional_scale_manager;
     struct wp_linux_drm_syncobj_manager_v1 *explicit_sync;
+    struct xdg_system_bell_v1 *system_bell;
     struct xorg_list drm_lease_devices;
     struct xorg_list queued_drm_lease_devices;
     struct xorg_list drm_leases;

@@ -313,8 +313,10 @@ configureDeviceSection(int screennum)
                 len += strlen(opttype);
 
                 ptr->dev_comment = realloc(ptr->dev_comment, len);
-                if (!ptr->dev_comment)
+                if (!ptr->dev_comment) {
+                    free(optname);
                     break;
+                }
                 p_e = ptr->dev_comment + strlen(ptr->dev_comment);
                 sprintf(p_e, "%s%-20s%s%s%s", prefix, optname, middle,
                         opttype, suffix);

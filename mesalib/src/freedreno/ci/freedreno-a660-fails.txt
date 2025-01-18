@@ -1,30 +1,78 @@
-KHR-GL46.multi_bind.dispatch_bind_image_textures,Fail
 KHR-GL46.shader_image_load_store.basic-allTargets-store,Fail
 KHR-GL46.shader_subroutine.control_flow_and_returned_subroutine_values_used_as_subroutine_input,Fail
 
 dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 
 #glcts update
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_x,Fail
 dEQP-GLES2.functional.texture.mipmap.cube.projected.nearest_linear,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_x,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_x,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_x,Fail
 KHR-GLES3.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
 KHR-GL46.texture_lod_basic.lod_selection,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_x,Fail
 KHR-GL46.texture_lod_bias.texture_lod_bias_all,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_x,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag,Fail
-KHR-GL46.direct_state_access.renderbuffers_storage_multisample,Fail
 
 # GL tests above, Vulkan tests below
 
+# New fails in 1.3.10.0, appeared after decreasing the fraction
+dEQP-VK.dynamic_rendering.primary_cmd_buff.local_read.input_attachments_without_mapping,Fail
+dEQP-VK.dynamic_rendering.primary_cmd_buff.local_read.max_input_attachments,Fail
 
+# OpenCL tests below
+#
+## rusticl-core issues:
+#
+#Unexpected CL error: CL_BUILD_PROGRAM_FAILURE -11
+#Expected CL error: CL_INVALID_BUILD_OPTIONS -43
+api@clbuildprogram,Fail
+
+#Unexpected CL error: CL_COMPILE_PROGRAM_FAILURE -15
+#Expected CL error: CL_INVALID_COMPILER_OPTIONS -66
+api@clcompileprogram,Fail
+
+#Unexpected CL error: CL_SUCCESS 0
+#Expected CL error: CL_KERNEL_ARG_INFO_NOT_AVAILABLE -19
+api@clgetkernelarginfo,Fail
+
+#Unexpected CL error: CL_SUCCESS 0
+#Expected CL error: CL_INVALID_LINKER_OPTIONS -67
+#Failed (error code: CL_SUCCESS): Trigger CL_INVALID_LINKER_OPTIONS if the linker options specified by options are invalid.
+#Unexpected CL error: CL_LINK_PROGRAM_FAILURE -17
+#Expected CL error: CL_INVALID_OPERATION -59
+#Failed (error code: CL_LINK_PROGRAM_FAILURE): Trigger CL_INVALID_OPERATION if the rules for devices containing compiled binaries or libraries as described in input_programs argument above are not followed.
+#Unexpected CL error: CL_SUCCESS 0
+#Expected CL error: CL_LINK_PROGRAM_FAILURE -17
+api@cllinkprogram,Fail
+
+# can be resolved by RUSTICL_FEATURES=fp16,fp64
+program@build@vector-data-types,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/8408
+program@execute@global-offset,Fail
+program@execute@global-offset@3d- input dependent,Fail
+
+#
+## freedreno issues:
+#
+#Error at data[0]
+custom@r600 create release buffer bug,Fail
+
+#
+## works on OnePlus 6:
+#
+#Failed: return NULL if platform is not a valid platform
+api@clgetextensionfunctionaddressforplatform,Fail
+
+#
+## Not our problem:
+#
+# CL_DEVICE_MAX_READ_IMAGE_ARGS: failed, expected at least 128, got 16 
+api@clgetdeviceinfo,Fail
+
+# CL_QUEUE_SIZE Unexpected CL error: CL_INVALID_COMMAND_QUEUE -36
+api@clgetcommandqueueinfo,Fail
+
+# broken piglit test (doesn't account for FTZ)
+program@execute@builtin@builtin-float-nextafter-1.0.generated,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float1,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float16,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float2,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float4,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float8,Fail

@@ -214,8 +214,8 @@ _mesa_glthread_init(struct gl_context *ctx)
    struct glthread_state *glthread = &ctx->GLThread;
    assert(!glthread->enabled);
 
-   if (!screen->get_param(screen, PIPE_CAP_MAP_UNSYNCHRONIZED_THREAD_SAFE) ||
-       !screen->get_param(screen, PIPE_CAP_ALLOW_MAPPED_BUFFERS_DURING_EXECUTION))
+   if (!screen->caps.map_unsynchronized_thread_safe ||
+       !screen->caps.allow_mapped_buffers_during_execution)
       return;
 
    if (!util_queue_init(&glthread->queue, "gl", MARSHAL_MAX_BATCHES - 2,
@@ -223,7 +223,7 @@ _mesa_glthread_init(struct gl_context *ctx)
       return;
    }
 
-   _mesa_InitHashTable(&glthread->VAOs);
+   _mesa_InitHashTable(&glthread->VAOs, ctx->Shared->ReuseGLNames);
    _mesa_glthread_reset_vao(&glthread->DefaultVAO);
    glthread->CurrentVAO = &glthread->DefaultVAO;
 

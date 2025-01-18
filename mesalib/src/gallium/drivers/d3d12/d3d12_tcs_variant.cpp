@@ -135,7 +135,7 @@ create_tess_ctrl_shader_variant(struct d3d12_context *ctx, struct d3d12_tcs_vari
       nir_store_deref(&b, store_idx, nir_channel(&b, load_outer, i), 0xff);
    }
 
-   nir->info.tess.tcs_vertices_out = key->vertices_out;
+   nir->info.tess.tcs_vertices_out = static_cast<uint8_t>(key->vertices_out);
    nir_validate_shader(nir, "created");
    NIR_PASS_V(nir, nir_lower_var_copies);
 

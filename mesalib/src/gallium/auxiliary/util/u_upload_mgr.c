@@ -73,8 +73,7 @@ u_upload_create(struct pipe_context *pipe, unsigned default_size,
    upload->flags = flags;
 
    upload->map_persistent =
-      pipe->screen->get_param(pipe->screen,
-                              PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT);
+      pipe->screen->caps.buffer_map_persistent_coherent;
 
    if (upload->map_persistent) {
       upload->map_flags = PIPE_MAP_WRITE |

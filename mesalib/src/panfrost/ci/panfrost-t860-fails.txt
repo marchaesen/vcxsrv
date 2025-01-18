@@ -74,6 +74,7 @@ dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
 # OpenCL below
 api@clbuildprogram,Fail
 api@clcompileprogram,Fail
+api@clgetcommandqueueinfo,Fail
 api@clgetextensionfunctionaddressforplatform,Fail
 api@clgetkernelarginfo,Fail
 api@cllinkprogram,Fail
@@ -94,9 +95,8 @@ program@execute@atomic_cmpxchg-local@simple uint,Fail
 program@execute@atomic_int32_cmpxchg-local,Fail
 program@execute@atomic_int32_cmpxchg-local@simple int,Fail
 program@execute@atomic_int32_cmpxchg-local@simple uint,Fail
-program@execute@bswap,Fail
-program@execute@bswap@s_bswap_u64,Fail
-program@execute@bswap@v_bswap_u64,Fail
+program@execute@atomic_int32_xchg-global-return,Crash
+program@execute@atomic_xchg-global-return,Crash
 program@execute@builtin@builtin-char-abs-1.0.generated,Crash
 program@execute@builtin@builtin-char-abs_diff-1.0.generated,Crash
 program@execute@builtin@builtin-char-add_sat-1.0.generated,Crash
@@ -615,3 +615,4 @@ program@execute@vstore@vstorea_half-float-private@vector storea_half private off
 program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float3,Fail
 program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float4,Fail
 program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float8,Fail
+program@run kernel with max work item sizes,Fail

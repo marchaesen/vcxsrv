@@ -32,8 +32,8 @@ radv_suspend_queries(struct radv_meta_saved_state *state, struct radv_cmd_buffer
 
    /* Pipeline statistics queries. */
    if (cmd_buffer->state.active_pipeline_queries > 0) {
-      state->active_pipeline_gds_queries = cmd_buffer->state.active_pipeline_gds_queries;
-      cmd_buffer->state.active_pipeline_gds_queries = 0;
+      state->active_emulated_pipeline_queries = cmd_buffer->state.active_emulated_pipeline_queries;
+      cmd_buffer->state.active_emulated_pipeline_queries = 0;
       cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
    }
 
@@ -51,16 +51,16 @@ radv_suspend_queries(struct radv_meta_saved_state *state, struct radv_cmd_buffer
    }
 
    /* Primitives generated queries (NGG). */
-   if (cmd_buffer->state.active_prims_gen_gds_queries) {
-      state->active_prims_gen_gds_queries = cmd_buffer->state.active_prims_gen_gds_queries;
-      cmd_buffer->state.active_prims_gen_gds_queries = 0;
+   if (cmd_buffer->state.active_emulated_prims_gen_queries) {
+      state->active_emulated_prims_gen_queries = cmd_buffer->state.active_emulated_prims_gen_queries;
+      cmd_buffer->state.active_emulated_prims_gen_queries = 0;
       cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
    }
 
    /* Transform feedback queries (NGG). */
-   if (cmd_buffer->state.active_prims_xfb_gds_queries) {
-      state->active_prims_xfb_gds_queries = cmd_buffer->state.active_prims_xfb_gds_queries;
-      cmd_buffer->state.active_prims_xfb_gds_queries = 0;
+   if (cmd_buffer->state.active_emulated_prims_xfb_queries) {
+      state->active_emulated_prims_xfb_queries = cmd_buffer->state.active_emulated_prims_xfb_queries;
+      cmd_buffer->state.active_emulated_prims_xfb_queries = 0;
       cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
    }
 }
@@ -77,7 +77,7 @@ radv_resume_queries(const struct radv_meta_saved_state *state, struct radv_cmd_b
 
    /* Pipeline statistics queries. */
    if (cmd_buffer->state.active_pipeline_queries > 0) {
-      cmd_buffer->state.active_pipeline_gds_queries = state->active_pipeline_gds_queries;
+      cmd_buffer->state.active_emulated_pipeline_queries = state->active_emulated_pipeline_queries;
       cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
    }
 
@@ -94,14 +94,14 @@ radv_resume_queries(const struct radv_meta_saved_state *state, struct radv_cmd_b
    }
 
    /* Primitives generated queries (NGG). */
-   if (state->active_prims_gen_gds_queries) {
-      cmd_buffer->state.active_prims_gen_gds_queries = state->active_prims_gen_gds_queries;
+   if (state->active_emulated_prims_gen_queries) {
+      cmd_buffer->state.active_emulated_prims_gen_queries = state->active_emulated_prims_gen_queries;
       cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
    }
 
    /* Transform feedback queries (NGG). */
-   if (state->active_prims_xfb_gds_queries) {
-      cmd_buffer->state.active_prims_xfb_gds_queries = state->active_prims_xfb_gds_queries;
+   if (state->active_emulated_prims_xfb_queries) {
+      cmd_buffer->state.active_emulated_prims_xfb_queries = state->active_emulated_prims_xfb_queries;
       cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
    }
 }
@@ -117,8 +117,8 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
 
    state->flags = flags;
    state->active_occlusion_queries = 0;
-   state->active_prims_gen_gds_queries = 0;
-   state->active_prims_xfb_gds_queries = 0;
+   state->active_emulated_prims_gen_queries = 0;
+   state->active_emulated_prims_xfb_queries = 0;
 
    if (state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE) {
       assert(!(state->flags & RADV_META_SAVE_COMPUTE_PIPELINE));
@@ -331,16 +331,13 @@ num_cache_entries(VkPipelineCache cache)
    return s->entries;
 }
 
-static bool
+static void
 radv_load_meta_pipeline(struct radv_device *device)
 {
-#ifdef _WIN32
-   return false;
-#else
+#ifndef _WIN32
    char path[PATH_MAX + 1];
    struct stat st;
    void *data = NULL;
-   bool ret = false;
    int fd = -1;
    struct vk_pipeline_cache *cache = NULL;
 
@@ -376,13 +373,11 @@ fail:
    if (cache) {
       device->meta_state.cache = vk_pipeline_cache_to_handle(cache);
       device->meta_state.initial_cache_entries = num_cache_entries(device->meta_state.cache);
-      ret = device->meta_state.initial_cache_entries > 0;
    }
 
    free(data);
    if (fd >= 0)
       close(fd);
-   return ret;
 #endif
 }
 
@@ -432,7 +427,7 @@ fail:
 VkResult
 radv_device_init_meta(struct radv_device *device)
 {
-   struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
    VkResult result;
 
    memset(&device->meta_state, 0, sizeof(device->meta_state));
@@ -444,168 +439,61 @@ radv_device_init_meta(struct radv_device *device)
       .pfnFree = meta_free,
    };
 
-   bool loaded_cache = radv_load_meta_pipeline(device);
-   bool on_demand = !loaded_cache;
+   radv_load_meta_pipeline(device);
+
+   result = vk_meta_device_init(&device->vk, &device->meta_state.device);
+   if (result != VK_SUCCESS)
+      return result;
+
+   device->meta_state.device.pipeline_cache = device->meta_state.cache;
 
    mtx_init(&device->meta_state.mtx, mtx_plain);
 
-   result = radv_device_init_meta_clear_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_clear;
+   if (pdev->emulate_etc2) {
+      device->meta_state.etc_decode.allocator = &device->meta_state.alloc;
+      device->meta_state.etc_decode.nir_options = &pdev->nir_options[MESA_SHADER_COMPUTE];
+      device->meta_state.etc_decode.pipeline_cache = device->meta_state.cache;
 
-   result = radv_device_init_meta_resolve_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_resolve;
-
-   result = radv_device_init_meta_blit_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_blit;
-
-   result = radv_device_init_meta_blit2d_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_blit2d;
-
-   result = radv_device_init_meta_bufimage_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_bufimage;
-
-   result = radv_device_init_meta_depth_decomp_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_depth_decomp;
-
-   result = radv_device_init_meta_buffer_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_buffer;
-
-   result = radv_device_init_meta_query_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_query;
-
-   result = radv_device_init_meta_fast_clear_flush_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_fast_clear;
-
-   result = radv_device_init_meta_resolve_compute_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_resolve_compute;
-
-   result = radv_device_init_meta_resolve_fragment_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_resolve_fragment;
-
-   if (pdev->use_fmask) {
-      result = radv_device_init_meta_fmask_expand_state(device, on_demand);
-      if (result != VK_SUCCESS)
-         goto fail_fmask_expand;
-
-      result = radv_device_init_meta_fmask_copy_state(device, on_demand);
-      if (result != VK_SUCCESS)
-         goto fail_fmask_copy;
+      vk_texcompress_etc2_init(&device->vk, &device->meta_state.etc_decode);
    }
 
-   result = radv_device_init_meta_etc_decode_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_etc_decode;
-
-   result = radv_device_init_meta_astc_decode_state(device, on_demand);
-   if (result != VK_SUCCESS)
-      goto fail_astc_decode;
-
-   if (radv_uses_device_generated_commands(device)) {
-      result = radv_device_init_dgc_prepare_state(device, on_demand);
+   if (pdev->emulate_astc) {
+      result = vk_texcompress_astc_init(&device->vk, &device->meta_state.alloc, device->meta_state.cache,
+                                        &device->meta_state.astc_decode);
       if (result != VK_SUCCESS)
-         goto fail_dgc;
+         return result;
    }
 
-   if (device->vk.enabled_extensions.KHR_acceleration_structure) {
-      if (device->vk.enabled_features.nullDescriptor) {
-         result = radv_device_init_null_accel_struct(device);
-         if (result != VK_SUCCESS)
-            goto fail_accel_struct;
-      }
-
-      /* FIXME: Acceleration structure builds hang when the build shaders are compiled with LLVM.
-       * Work around it by forcing ACO for now.
-       */
-      bool use_llvm = pdev->use_llvm;
-      if (loaded_cache || use_llvm) {
-         pdev->use_llvm = false;
-         result = radv_device_init_accel_struct_build_state(device);
-         pdev->use_llvm = use_llvm;
-
-         if (result != VK_SUCCESS)
-            goto fail_accel_struct;
-      }
+   if (device->vk.enabled_features.nullDescriptor) {
+      result = radv_device_init_null_accel_struct(device);
+      if (result != VK_SUCCESS)
+         return result;
    }
 
    return VK_SUCCESS;
-
-fail_accel_struct:
-   radv_device_finish_accel_struct_build_state(device);
-fail_dgc:
-   radv_device_finish_dgc_prepare_state(device);
-fail_astc_decode:
-   radv_device_finish_meta_astc_decode_state(device);
-fail_etc_decode:
-   radv_device_finish_meta_etc_decode_state(device);
-fail_fmask_copy:
-   radv_device_finish_meta_fmask_copy_state(device);
-fail_fmask_expand:
-   radv_device_finish_meta_fmask_expand_state(device);
-fail_resolve_fragment:
-   radv_device_finish_meta_resolve_fragment_state(device);
-fail_resolve_compute:
-   radv_device_finish_meta_resolve_compute_state(device);
-fail_fast_clear:
-   radv_device_finish_meta_fast_clear_flush_state(device);
-fail_query:
-   radv_device_finish_meta_query_state(device);
-fail_buffer:
-   radv_device_finish_meta_buffer_state(device);
-fail_depth_decomp:
-   radv_device_finish_meta_depth_decomp_state(device);
-fail_bufimage:
-   radv_device_finish_meta_bufimage_state(device);
-fail_blit2d:
-   radv_device_finish_meta_blit2d_state(device);
-fail_blit:
-   radv_device_finish_meta_blit_state(device);
-fail_resolve:
-   radv_device_finish_meta_resolve_state(device);
-fail_clear:
-   radv_device_finish_meta_clear_state(device);
-
-   mtx_destroy(&device->meta_state.mtx);
-   vk_common_DestroyPipelineCache(radv_device_to_handle(device), device->meta_state.cache, NULL);
-   return result;
 }
 
 void
 radv_device_finish_meta(struct radv_device *device)
 {
-   radv_device_finish_dgc_prepare_state(device);
-   radv_device_finish_meta_etc_decode_state(device);
-   radv_device_finish_meta_astc_decode_state(device);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
+   if (pdev->emulate_etc2)
+      vk_texcompress_etc2_finish(&device->vk, &device->meta_state.etc_decode);
+
+   if (pdev->emulate_astc) {
+      if (device->meta_state.astc_decode)
+         vk_texcompress_astc_finish(&device->vk, &device->meta_state.alloc, device->meta_state.astc_decode);
+   }
+
    radv_device_finish_accel_struct_build_state(device);
-   radv_device_finish_meta_clear_state(device);
-   radv_device_finish_meta_resolve_state(device);
-   radv_device_finish_meta_blit_state(device);
-   radv_device_finish_meta_blit2d_state(device);
-   radv_device_finish_meta_bufimage_state(device);
-   radv_device_finish_meta_depth_decomp_state(device);
-   radv_device_finish_meta_query_state(device);
-   radv_device_finish_meta_buffer_state(device);
-   radv_device_finish_meta_fast_clear_flush_state(device);
-   radv_device_finish_meta_resolve_compute_state(device);
-   radv_device_finish_meta_resolve_fragment_state(device);
-   radv_device_finish_meta_fmask_expand_state(device);
-   radv_device_finish_meta_dcc_retile_state(device);
-   radv_device_finish_meta_copy_vrs_htile_state(device);
-   radv_device_finish_meta_fmask_copy_state(device);
 
    radv_store_meta_pipeline(device);
    vk_common_DestroyPipelineCache(radv_device_to_handle(device), device->meta_state.cache, NULL);
    mtx_destroy(&device->meta_state.mtx);
+
+   if (device->meta_state.device.cache)
+      vk_meta_device_finish(&device->vk, &device->meta_state.device);
 }
 
 nir_builder PRINTFLIKE(3, 4)
@@ -722,55 +610,10 @@ radv_break_on_count(nir_builder *b, nir_variable *var, nir_def *count)
 }
 
 VkResult
-radv_meta_create_compute_pipeline(struct radv_device *device, nir_shader *nir, VkPipelineLayout pipeline_layout,
-                                  VkPipeline *pipeline)
+radv_meta_get_noop_pipeline_layout(struct radv_device *device, VkPipelineLayout *layout_out)
 {
-   const VkPipelineShaderStageCreateInfo stage_info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-      .module = vk_shader_module_handle_from_nir(nir),
-      .pName = "main",
-      .pSpecializationInfo = NULL,
-   };
+   const char *key_data = "radv-noop";
 
-   const VkComputePipelineCreateInfo pipeline_info = {
-      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      .stage = stage_info,
-      .flags = 0,
-      .layout = pipeline_layout,
-   };
-
-   return radv_compute_pipeline_create(radv_device_to_handle(device), device->meta_state.cache, &pipeline_info, NULL,
-                                       pipeline);
-}
-
-VkResult
-radv_meta_create_pipeline_layout(struct radv_device *device, VkDescriptorSetLayout *set_layout, uint32_t num_pc_ranges,
-                                 const VkPushConstantRange *pc_ranges, VkPipelineLayout *pipeline_layout)
-{
-   const VkPipelineLayoutCreateInfo pipeline_layout_info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = !!set_layout,
-      .pSetLayouts = set_layout,
-      .pushConstantRangeCount = num_pc_ranges,
-      .pPushConstantRanges = pc_ranges,
-   };
-
-   return radv_CreatePipelineLayout(radv_device_to_handle(device), &pipeline_layout_info, &device->meta_state.alloc,
-                                    pipeline_layout);
-}
-
-VkResult
-radv_meta_create_descriptor_set_layout(struct radv_device *device, uint32_t num_bindings,
-                                       const VkDescriptorSetLayoutBinding *bindings, VkDescriptorSetLayout *desc_layout)
-{
-   const VkDescriptorSetLayoutCreateInfo desc_layout_info = {
-      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-      .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR,
-      .bindingCount = num_bindings,
-      .pBindings = bindings,
-   };
-
-   return radv_CreateDescriptorSetLayout(radv_device_to_handle(device), &desc_layout_info, &device->meta_state.alloc,
-                                         desc_layout);
+   return vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, NULL, NULL, key_data, strlen(key_data),
+                                      layout_out);
 }

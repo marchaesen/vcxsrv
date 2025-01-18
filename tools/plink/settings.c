@@ -30,6 +30,8 @@ static const struct keyvalwhere ciphernames[] = {
  * in sync with those. */
 static const struct keyvalwhere kexnames[] = {
     { "ntru-curve25519",    KEX_NTRU_HYBRID, -1, +1 },
+    { "mlkem-curve25519",   KEX_MLKEM_25519_HYBRID, KEX_NTRU_HYBRID, +1 },
+    { "mlkem-nist",         KEX_MLKEM_NIST_HYBRID, KEX_MLKEM_25519_HYBRID, +1 },
     { "ecdh",               KEX_ECDH,       -1, +1 },
     /* This name is misleading: it covers both SHA-256 and SHA-1 variants */
     { "dh-gex-sha1",        KEX_DHGEX,      -1, -1 },
@@ -65,7 +67,7 @@ static const struct keyvalwhere hknames[] = {
  * This is currently precisely the same as the set in
  * ssh/ttymode-list.h, but could in principle differ if other backends
  * started to support tty modes (e.g., the pty backend).
- * The set of modes in in this array is currently significant for
+ * The set of modes in this array is currently significant for
  * settings migration from old versions; if they change, review the
  * gppmap() invocation for "TerminalModes".
  */

@@ -26,7 +26,6 @@
 #include "st_program.h"
 #include "st_shader_cache.h"
 #include "st_util.h"
-#include "compiler/glsl/program.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_serialize.h"
 #include "main/uniforms.h"

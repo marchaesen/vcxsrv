@@ -11,6 +11,7 @@
 
 #include "radeon_vcn.h"
 #include "util/macros.h"
+#include "radeon_bitstream.h"
 
 #include "ac_vcn_enc.h"
 
@@ -49,6 +50,12 @@
       }                                                                                          \
    } while(0)
 
+#define RADEON_ENC_ERR(fmt, args...)                                                             \
+   do {                                                                                          \
+      enc->error = true;                                                                         \
+      fprintf(stderr, "EE %s:%d %s VCN - " fmt, __FILE__, __LINE__, __func__, ##args);           \
+   } while(0)
+
 typedef void (*radeon_enc_get_buffer)(struct pipe_resource *resource, struct pb_buffer_lean **handle,
                                       struct radeon_surf **surface);
 
@@ -58,10 +65,13 @@ struct pipe_video_codec *radeon_create_encoder(struct pipe_context *context,
                                                radeon_enc_get_buffer get_buffer);
 
 struct radeon_enc_dpb_buffer {
+   struct pipe_video_buffer templ, *pre;
+
    struct si_texture *luma;      /* recon luma */
    struct si_texture *chroma;    /* recon chroma */
    struct rvid_buffer *fcb;      /* frame context buffer*/
-   struct rvid_buffer *pre;      /* preenc recon */
+   struct si_texture *pre_luma;  /* preenc recon luma */
+   struct si_texture *pre_chroma;/* preenc recon chroma */
    struct rvid_buffer *pre_fcb;  /* preenc frame context buffer */
 };
 
@@ -87,10 +97,6 @@ struct radeon_enc_pic {
       } av1;
    };
 
-   unsigned crop_left;
-   unsigned crop_right;
-   unsigned crop_top;
-   unsigned crop_bottom;
    unsigned pic_width_in_luma_samples;
    unsigned pic_height_in_luma_samples;
    unsigned bit_depth_luma_minus8;
@@ -98,8 +104,6 @@ struct radeon_enc_pic {
    unsigned nal_unit_type;
    unsigned temporal_id;
    unsigned num_temporal_layers;
-   unsigned dpb_luma_size;
-   unsigned dpb_chroma_size;
    unsigned total_coloc_bytes;
    rvcn_enc_quality_modes_t quality_modes;
 
@@ -126,14 +130,11 @@ struct radeon_enc_pic {
    struct {
       struct {
          struct {
-            uint32_t enable_render_size:1;
             uint32_t enable_error_resilient_mode:1;
             uint32_t force_integer_mv:1;
             uint32_t disable_screen_content_tools:1;
             uint32_t is_obu_frame:1;
          };
-         uint32_t render_width;
-         uint32_t render_height;
          uint32_t *copy_start;
       };
       rvcn_enc_av1_spec_misc_t av1_spec_misc;
@@ -231,6 +232,7 @@ struct radeon_encoder {
    struct pb_buffer_lean *handle;
    struct radeon_surf *luma;
    struct radeon_surf *chroma;
+   struct pipe_video_buffer *source;
 
    struct pb_buffer_lean *bs_handle;
    unsigned bs_size;
@@ -247,19 +249,10 @@ struct radeon_encoder {
    rvcn_enc_cmd_t cmd;
 
    unsigned alignment;
-   unsigned shifter;
-   unsigned bits_in_shifter;
-   unsigned num_zeros;
-   unsigned byte_index;
-   unsigned bits_output;
-   unsigned bits_size;
-   uint8_t *bits_buf;
-   uint32_t bits_buf_pos;
    uint32_t total_task_size;
    uint32_t *p_task_size;
    struct rvcn_sq_var sq;
 
-   bool emulation_prevention;
    bool need_feedback;
    bool need_rate_control;
    bool need_rc_per_pic;
@@ -268,6 +261,8 @@ struct radeon_encoder {
    unsigned dpb_slots;
    unsigned roi_size;
    unsigned metadata_size;
+
+   bool error;
 
    enum {
       DPB_LEGACY = 0,
@@ -309,34 +304,8 @@ void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer_lean *bu
 
 void radeon_enc_dummy(struct radeon_encoder *enc);
 
-void radeon_enc_set_emulation_prevention(struct radeon_encoder *enc, bool set);
-
-void radeon_enc_set_output_buffer(struct radeon_encoder *enc, uint8_t *buffer);
-
-void radeon_enc_output_one_byte(struct radeon_encoder *enc, unsigned char byte);
-
-void radeon_enc_emulation_prevention(struct radeon_encoder *enc, unsigned char byte);
-
-void radeon_enc_code_fixed_bits(struct radeon_encoder *enc, unsigned int value,
-                                unsigned int num_bits);
-
-void radeon_enc_reset(struct radeon_encoder *enc);
-
-void radeon_enc_byte_align(struct radeon_encoder *enc);
-
-void radeon_enc_flush_headers(struct radeon_encoder *enc);
-
-void radeon_enc_code_ue(struct radeon_encoder *enc, unsigned int value);
-
-void radeon_enc_code_se(struct radeon_encoder *enc, int value);
-
-void radeon_enc_code_uvlc(struct radeon_encoder *enc, unsigned int value);
-
 void radeon_enc_code_leb128(unsigned char *buf, unsigned int value,
                             unsigned int num_bytes);
-
-void radeon_enc_code_ns(struct radeon_encoder *enc, unsigned int value,
-                        unsigned int max);
 
 void radeon_enc_1_2_init(struct radeon_encoder *enc);
 
@@ -360,33 +329,15 @@ unsigned int radeon_enc_write_pps_hevc(struct radeon_encoder *enc, uint8_t *out)
 
 unsigned int radeon_enc_write_sequence_header(struct radeon_encoder *enc, uint8_t *obu_bytes, uint8_t *out);
 
-void radeon_enc_hrd_parameters(struct radeon_encoder *enc,
-                               struct pipe_h264_enc_hrd_params *hrd);
-
-void radeon_enc_hevc_profile_tier_level(struct radeon_encoder *enc,
-                                        unsigned int max_num_sub_layers_minus1,
-                                        struct pipe_h265_profile_tier_level *ptl);
-
-void radeon_enc_hevc_hrd_parameters(struct radeon_encoder *enc,
-                                    unsigned int common_inf_present_flag,
-                                    unsigned int max_sub_layers_minus1,
-                                    struct pipe_h265_enc_hrd_params *hrd);
-
-unsigned int radeon_enc_hevc_st_ref_pic_set(struct radeon_encoder *enc,
-                                            unsigned int index,
-                                            unsigned int num_short_term_ref_pic_sets,
-                                            struct pipe_h265_st_ref_pic_set *st_rps);
-
 void radeon_enc_av1_bs_instruction_type(struct radeon_encoder *enc,
+                                        struct radeon_bitstream *bs,
                                         unsigned int inst, unsigned int obu_type);
 
-void radeon_enc_av1_obu_header(struct radeon_encoder *enc, uint32_t obu_type);
+void radeon_enc_av1_obu_header(struct radeon_encoder *enc, struct radeon_bitstream *bs, uint32_t obu_type);
 
-void radeon_enc_av1_frame_header_common(struct radeon_encoder *enc, bool frame_header);
+void radeon_enc_av1_frame_header_common(struct radeon_encoder *enc, struct radeon_bitstream *bs, bool frame_header);
 
-void radeon_enc_av1_tile_group(struct radeon_encoder *enc);
-
-unsigned char *radeon_enc_av1_header_size_offset(struct radeon_encoder *enc);
+void radeon_enc_av1_tile_group(struct radeon_encoder *enc, struct radeon_bitstream *bs);
 
 unsigned int radeon_enc_value_bits(unsigned int value);
 
@@ -398,7 +349,7 @@ bool radeon_enc_is_av1_uniform_tile (uint32_t nb_sb, uint32_t nb_tiles,
 void radeon_enc_av1_tile_layout (uint32_t nb_sb, uint32_t nb_tiles, uint32_t min_nb_sb,
                                  struct tile_1d_layout *p);
 
-bool radeon_enc_av1_skip_mode_allowed(struct radeon_encoder *enc);
+bool radeon_enc_av1_skip_mode_allowed(struct radeon_encoder *enc, uint32_t frames[2]);
 
 void radeon_enc_create_dpb_aux_buffers(struct radeon_encoder *enc,
                                        struct radeon_enc_dpb_buffer *buf);

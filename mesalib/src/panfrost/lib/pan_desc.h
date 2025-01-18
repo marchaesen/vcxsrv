@@ -71,7 +71,7 @@ struct pan_fb_zs_attachment {
 struct pan_tiler_context {
    union {
       struct {
-         mali_ptr desc;
+         uint64_t desc;
          /* A tiler descriptor can only handle a limited amount of layers.
           * If the number of layers is bigger than this, several tiler
           * descriptors will be issued, each with a different layer_offset.
@@ -79,7 +79,7 @@ struct pan_tiler_context {
          uint8_t layer_offset;
       } valhall;
       struct {
-         mali_ptr desc;
+         uint64_t desc;
       } bifrost;
       struct {
          /* Sum of vertex counts (for non-indexed draws), index counts, or ~0 if
@@ -88,9 +88,9 @@ struct pan_tiler_context {
          uint32_t vertex_count;
          bool disable;
          bool no_hierarchical_tiling;
-         mali_ptr polygon_list;
+         uint64_t polygon_list;
          struct {
-            mali_ptr start;
+            uint64_t start;
             unsigned size;
          } heap;
       } midgard;
@@ -99,13 +99,13 @@ struct pan_tiler_context {
 
 struct pan_tls_info {
    struct {
-      mali_ptr ptr;
+      uint64_t ptr;
       unsigned size;
    } tls;
 
    struct {
       unsigned instances;
-      mali_ptr ptr;
+      uint64_t ptr;
       unsigned size;
    } wls;
 };
@@ -131,7 +131,7 @@ struct pan_fb_info {
 
    struct {
       unsigned stride;
-      mali_ptr base;
+      uint64_t base;
    } tile_map;
 
    union {
@@ -140,9 +140,11 @@ struct pan_fb_info {
 
    /* Optimal tile buffer size. */
    unsigned tile_buf_budget;
+   unsigned tile_size;
+   unsigned cbuf_allocation;
 
    /* Sample position array. */
-   mali_ptr sample_positions;
+   uint64_t sample_positions;
 
    /* Only used on Valhall */
    bool sprite_coord_origin;
@@ -183,7 +185,10 @@ pan_sample_pattern(unsigned samples)
 }
 #endif
 
-void GENX(pan_emit_tls)(const struct pan_tls_info *info, void *out);
+void GENX(pan_select_tile_size)(struct pan_fb_info *fb);
+
+void GENX(pan_emit_tls)(const struct pan_tls_info *info,
+                        struct mali_local_storage_packed *out);
 
 int GENX(pan_select_crc_rt)(const struct pan_fb_info *fb, unsigned tile_size);
 
@@ -194,7 +199,7 @@ unsigned GENX(pan_emit_fbd)(const struct pan_fb_info *fb, unsigned layer_idx,
 
 #if PAN_ARCH <= 9
 void GENX(pan_emit_fragment_job_payload)(const struct pan_fb_info *fb,
-                                         mali_ptr fbd, void *out);
+                                         uint64_t fbd, void *out);
 #endif
 
 #endif /* ifdef PAN_ARCH */

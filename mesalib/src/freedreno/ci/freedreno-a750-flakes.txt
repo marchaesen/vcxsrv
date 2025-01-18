@@ -1,3 +1,35 @@
+KHR-GL46.shader_atomic_counters.basic-usage-tes
+KHR-GL46.shader_bitfield_operation.bitfieldInsert.ivec3_2
+KHR-GL46.shader_bitfield_operation.findMSB.uint_0
+KHR-GL46.shader_image_size.advanced-nonMS-tes-uint
+KHR-GL46.shader_image_size.basic-nonMS-tes-float
+KHR-GL46.shader_storage_buffer_object.advanced-usage-sync-cs
+KHR-GL46.shader_storage_buffer_object.advanced-write-tessellation
+KHR-GL46.tessellation_shader.single.max_patch_vertices
+KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_PatchVerticesIn
+KHR-GL46.transform_feedback.draw_xfb_feedbackk_test
+
+KHR-GLES31.core.shader_storage_buffer_object.advanced-usage-sync-cs
+dEQP-GLES3.functional.polygon_offset.fixed16_enable
+dEQP-GLES3.functional.polygon_offset.fixed16_render_with_units
+dEQP-GLES3.functional.polygon_offset.fixed24_enable
+dEQP-GLES31.functional.compute.shared_var.basic_type.mat3_mediump
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_64_bits.rg32ui_rgba16f.texture2d_array_to_texture2d_array
+dEQP-GLES31.functional.fbo.no_attachments.interaction.127x127ms0_default_129x129ms0
+dEQP-GLES31.functional.image_load_store.cube.load_store.rgba16f
+dEQP-GLES31.functional.shaders.builtin_var.compute.local_invocation_id
+dEQP-GLES31.functional.ssbo.layout.3_level_unsized_array.packed.mat4
+dEQP-GLES31.functional.ssbo.layout.basic_unsized_array.std140.row_major_mat3
+dEQP-GLES31.functional.ssbo.layout.instance_array_basic_type.std140.column_major_mat2x3
+dEQP-GLES31.functional.ssbo.layout.random.arrays_of_arrays.4
+dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.row_major_mediump_mat4
+dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.highp_mat3
+dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.highp_int
+dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.lowp_ivec3
+dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.row_major_highp_mat4
+dEQP-GLES31.functional.ssbo.layout.single_struct_array.per_block_buffer.std430
+
+
 dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.generate_mipmaps.from_base_level.layercount_1.a2b10g10r10_unorm_pack32.optimal_general_linear
 dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.generate_mipmaps.from_base_level.layercount_1.a2r10g10b10_unorm_pack32.general_optimal_linear
 dEQP-VK.api.copy_and_blit.copy_commands2.blit_image.all_formats.generate_mipmaps.from_base_level.layercount_6.r16_unorm.optimal_general_cubic
@@ -137,6 +169,12 @@ dEQP-VK.query_pool.occlusion_query.get_results_size_32_stride_12_with_availabili
 dEQP-VK.query_pool.statistics_query.fragment_shader_invocations.primary.64bits_dstoffset_cmdcopyquerypoolresults_triangle_fan_clear_depth
 
 dEQP-VK.renderpass.suballocation.multisample_resolve.layers_6.r16_sfloat.samples_4_resolve_level_2
+dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_1_1_multiviewport
+dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_1_2_multiviewport
+dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_2_1_multiviewport
+dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_2_2_multiviewport
+dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_1_1_multiviewport
+dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_1_2_multiviewport
 dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_2_1_multiviewport
 dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_2_2_multiviewport
 dEQP-VK.renderpass2.suballocation.multisample_resolve.layers_6.r8g8b8a8_snorm.samples_4_resolve_level_2
@@ -211,6 +249,11 @@ dEQP-VK.ubo.2_level_array.scalar.column_major_mat3.fragment
 dEQP-VK.ubo.3_level_array.std430.mat4x2.both_comp_access
 
 
+dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_1_1_multiviewport
+dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_1_2_multiviewport
+dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_2_1_multiviewport
+dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_2_2_multiviewport
+dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_1_1_multiviewport
 dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_1_2_multiviewport
 dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_2_1_multiviewport
 dynamic-dEQP-VK.renderpass2.fragment_density_map.2_views.render.non_divisible_density_size.2_samples.static_subsampled_2_2_multiviewport

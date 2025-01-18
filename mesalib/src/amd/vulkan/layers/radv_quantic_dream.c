@@ -7,7 +7,7 @@
 #include "radv_entrypoints.h"
 
 VKAPI_ATTR VkResult VKAPI_CALL
-quantic_dream_UnmapMemory2KHR(VkDevice _device, const VkMemoryUnmapInfoKHR *pMemoryUnmapInfo)
+quantic_dream_UnmapMemory2(VkDevice _device, const VkMemoryUnmapInfo *pMemoryUnmapInfo)
 {
    /* Detroit: Become Human repeatedly calls vkMapMemory and vkUnmapMemory on the same buffer.
     * This creates high overhead in the kernel due to mapping operation and page fault costs.

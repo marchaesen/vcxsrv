@@ -31,6 +31,7 @@
 #define MAY_REFER_TO_GTK_IN_HEADERS
 
 #include "putty.h"
+#include "ssh.h"
 #include "terminal.h"
 #include "gtkcompat.h"
 #include "unifont.h"
@@ -551,8 +552,6 @@ bool do_cmdline(int argc, char **argv, bool do_everything, Conf *conf)
         }
     }
 
-    cmdline_arg_list_free(arglist);
-
     return err;
 }
 
@@ -596,6 +595,7 @@ int main(int argc, char **argv)
     bool need_config_box;
 
     setlocale(LC_CTYPE, "");
+    enable_dit();
 
     /* Call the function in ux{putty,pterm}.c to do app-type
      * specific setup */

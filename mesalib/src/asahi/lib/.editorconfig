@@ -1,0 +1,4 @@
+[unstable_asahi_drm.h]
+indent_style = tab
+indent_size = 8
+max_line_length = 100

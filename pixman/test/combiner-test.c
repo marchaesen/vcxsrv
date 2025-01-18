@@ -147,5 +147,9 @@ main ()
 	}
     }	
 
+    free (src_bytes);
+    free (mask_bytes);
+    free (dest_bytes);
+
     return 0;
 }

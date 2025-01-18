@@ -8,6 +8,7 @@ use mesa_rust_gen::pipe_fd_type::*;
 use mesa_rust_gen::*;
 use mesa_rust_util::has_required_feature;
 
+use std::mem;
 use std::mem::size_of;
 use std::os::raw::*;
 use std::ptr;
@@ -49,6 +50,10 @@ impl PipeContext {
         }
 
         Some(s)
+    }
+
+    pub(crate) fn pipe(&self) -> NonNull<pipe_context> {
+        self.pipe
     }
 
     pub fn buffer_subdata(
@@ -205,12 +210,12 @@ impl PipeContext {
         }
     }
 
-    pub fn buffer_map(
+    pub fn buffer_map_flags(
         &self,
         res: &PipeResource,
         offset: i32,
         size: i32,
-        rw: RWFlags,
+        flags: pipe_map_flags,
     ) -> Option<PipeTransfer> {
         let b = pipe_box {
             x: offset,
@@ -220,11 +225,30 @@ impl PipeContext {
             ..Default::default()
         };
 
-        self.resource_map(res, &b, rw.into(), true)
+        self.resource_map(res, &b, flags, true)
+    }
+
+    pub fn buffer_map(
+        &self,
+        res: &PipeResource,
+        offset: i32,
+        size: i32,
+        rw: RWFlags,
+    ) -> Option<PipeTransfer> {
+        self.buffer_map_flags(res, offset, size, rw.into())
     }
 
     pub(super) fn buffer_unmap(&self, tx: *mut pipe_transfer) {
         unsafe { self.pipe.as_ref().buffer_unmap.unwrap()(self.pipe.as_ptr(), tx) };
+    }
+
+    pub fn texture_map_flags(
+        &self,
+        res: &PipeResource,
+        bx: &pipe_box,
+        flags: pipe_map_flags,
+    ) -> Option<PipeTransfer> {
+        self.resource_map(res, bx, flags, false)
     }
 
     pub fn texture_map(
@@ -233,7 +257,7 @@ impl PipeContext {
         bx: &pipe_box,
         rw: RWFlags,
     ) -> Option<PipeTransfer> {
-        self.resource_map(res, bx, rw.into(), false)
+        self.texture_map_flags(res, bx, rw.into())
     }
 
     pub(super) fn texture_unmap(&self, tx: *mut pipe_transfer) {
@@ -397,20 +421,11 @@ impl PipeContext {
         variable_local_mem: u32,
     ) {
         let info = pipe_grid_info {
-            pc: 0,
-            input: ptr::null(),
             variable_shared_mem: variable_local_mem,
             work_dim: work_dim,
             block: block,
-            last_block: [0; 3],
             grid: grid,
-            grid_base: [0; 3],
-            indirect: ptr::null_mut(),
-            indirect_offset: 0,
-            indirect_stride: 0,
-            draw_count: 0,
-            indirect_draw_count_offset: 0,
-            indirect_draw_count: ptr::null_mut(),
+            ..Default::default()
         };
         unsafe { self.pipe.as_ref().launch_grid.unwrap()(self.pipe.as_ptr(), &info) }
     }
@@ -428,25 +443,6 @@ impl PipeContext {
         }
     }
 
-    pub fn create_sampler_view(
-        &self,
-        res: &PipeResource,
-        format: pipe_format,
-        app_img_info: Option<&AppImgInfo>,
-    ) -> *mut pipe_sampler_view {
-        let template = res.pipe_sampler_view_template(format, app_img_info);
-
-        unsafe {
-            let s_view = self.pipe.as_ref().create_sampler_view.unwrap()(
-                self.pipe.as_ptr(),
-                res.pipe(),
-                &template,
-            );
-
-            s_view
-        }
-    }
-
     pub fn clear_global_binding(&self, count: u32) {
         unsafe {
             self.pipe.as_ref().set_global_binding.unwrap()(
@@ -459,7 +455,7 @@ impl PipeContext {
         }
     }
 
-    pub fn set_sampler_views(&self, views: &mut [*mut pipe_sampler_view]) {
+    pub fn set_sampler_views(&self, mut views: Vec<PipeSamplerView>) {
         unsafe {
             self.pipe.as_ref().set_sampler_views.unwrap()(
                 self.pipe.as_ptr(),
@@ -467,10 +463,14 @@ impl PipeContext {
                 0,
                 views.len() as u32,
                 0,
-                false,
-                views.as_mut_ptr(),
+                true,
+                PipeSamplerView::as_pipe(views.as_mut_slice()),
             )
         }
+
+        // the take_ownership parameter of set_sampler_views is set to true, so we need to forget
+        // about them on our side as ownership has been transferred to the driver.
+        views.into_iter().for_each(mem::forget);
     }
 
     pub fn clear_sampler_views(&self, count: u32) {
@@ -482,14 +482,10 @@ impl PipeContext {
                 0,
                 count,
                 0,
-                false,
+                true,
                 samplers.as_mut_ptr(),
             )
         }
-    }
-
-    pub fn sampler_view_destroy(&self, view: *mut pipe_sampler_view) {
-        unsafe { self.pipe.as_ref().sampler_view_destroy.unwrap()(self.pipe.as_ptr(), view) }
     }
 
     pub fn set_shader_images(&self, images: &[PipeImageView]) {
@@ -626,6 +622,7 @@ fn has_required_cbs(context: &pipe_context) -> bool {
         & has_required_feature!(context, launch_grid)
         & has_required_feature!(context, memory_barrier)
         & has_required_feature!(context, resource_copy_region)
+        // implicitly used through pipe_sampler_view_reference
         & has_required_feature!(context, sampler_view_destroy)
         & has_required_feature!(context, set_constant_buffer)
         & has_required_feature!(context, set_global_binding)

@@ -78,11 +78,12 @@ struct PACKED fd_lrzfc_layout<A7XX> {
    union {
       struct {
          enum fd_lrz_gpu_dir dir_track;
-         uint8_t _pad_;
+         uint8_t _padding0;
          uint32_t gras_lrz_depth_view;
       };
       uint8_t metadata[512];
    };
+   uint8_t _padding1[1536];
    union {
       struct {
          uint8_t fc2_a[FC_SIZE];
@@ -91,5 +92,9 @@ struct PACKED fd_lrzfc_layout<A7XX> {
       uint8_t fc2[FC_SIZE * 2];
    };
 };
+
+static_assert(sizeof(fd_lrzfc_layout<A7XX>) == 0x1800);
+static_assert(offsetof(fd_lrzfc_layout<A7XX>, fc1) == 0x0);
+static_assert(offsetof(fd_lrzfc_layout<A7XX>, fc2) == 0x1000);
 
 #endif

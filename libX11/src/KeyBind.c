@@ -462,6 +462,9 @@ UCSConvertCase( register unsigned code,
         else if ( (code >= 0x00e0 && code <= 0x00f6) ||
 	          (code >= 0x00f8 && code <= 0x00fe) )
             *upper -= 0x20;
+        /* The following code points do not map within Latin-1 and
+         * require special handling in XConvertCase
+         */
         else if (code == 0x00ff)      /* y with diaeresis */
             *upper = 0x0178;
         else if (code == 0x00b5)      /* micro sign */
@@ -655,15 +658,34 @@ XConvertCase(
 {
     /* Latin 1 keysym */
     if (sym < 0x100) {
-        UCSConvertCase(sym, lower, upper);
-	return;
+        /* Special cases that do not map within Latin-1 */
+        switch (sym) {
+        case XK_ydiaeresis:
+            *lower = sym;
+            *upper = XK_Ydiaeresis;
+            return;
+        case XK_mu:
+            *lower = sym;
+            *upper = XK_Greek_MU;
+            return;
+        case XK_ssharp:
+            *lower = sym;
+            *upper = 0x1001e9e;
+            return;
+        default:
+            UCSConvertCase(sym, lower, upper);
+            return;
+        }
     }
 
     /* Unicode keysym */
     if ((sym & 0xff000000) == 0x01000000) {
         UCSConvertCase((sym & 0x00ffffff), lower, upper);
-        *upper |= 0x01000000;
-        *lower |= 0x01000000;
+        /* Use the Unicode keysym mask only for non Latin-1 */
+        if (*upper >= 0x100)
+            *upper |= 0x01000000;
+        if (*lower >= 0x100)
+            *lower |= 0x01000000;
         return;
     }
 

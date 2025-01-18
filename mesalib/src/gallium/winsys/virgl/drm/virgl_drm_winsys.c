@@ -759,24 +759,14 @@ static void virgl_drm_free_res_list(struct virgl_drm_cmd_buf *cbuf)
    FREE(cbuf->res_bo);
 }
 
-static bool virgl_drm_lookup_res(struct virgl_drm_cmd_buf *cbuf,
-                                 struct virgl_hw_res *res)
+static bool virgl_drm_res_is_added(struct virgl_drm_cmd_buf *cbuf,
+                                   struct virgl_hw_res *res)
 {
-   unsigned hash = res->res_handle & (sizeof(cbuf->is_handle_added)-1);
-   int i;
-
-   if (cbuf->is_handle_added[hash]) {
-      i = cbuf->reloc_indices_hashlist[hash];
+   for (int i = 0; i < cbuf->cres; i++) {
       if (cbuf->res_bo[i] == res)
          return true;
-
-      for (i = 0; i < cbuf->cres; i++) {
-         if (cbuf->res_bo[i] == res) {
-            cbuf->reloc_indices_hashlist[hash] = i;
-            return true;
-         }
-      }
    }
+
    return false;
 }
 
@@ -784,7 +774,9 @@ static void virgl_drm_add_res(struct virgl_drm_winsys *qdws,
                               struct virgl_drm_cmd_buf *cbuf,
                               struct virgl_hw_res *res)
 {
-   unsigned hash = res->res_handle & (sizeof(cbuf->is_handle_added)-1);
+   bool already_in_list = virgl_drm_res_is_added(cbuf, res);
+   if (unlikely(already_in_list))
+      return;
 
    if (cbuf->cres >= cbuf->nres) {
       unsigned new_nres = cbuf->nres + 256;
@@ -811,9 +803,6 @@ static void virgl_drm_add_res(struct virgl_drm_winsys *qdws,
    cbuf->res_bo[cbuf->cres] = NULL;
    virgl_drm_resource_reference(&qdws->base, &cbuf->res_bo[cbuf->cres], res);
    cbuf->res_hlist[cbuf->cres] = res->bo_handle;
-   cbuf->is_handle_added[hash] = true;
-
-   cbuf->reloc_indices_hashlist[hash] = cbuf->cres;
    p_atomic_inc(&res->num_cs_references);
    cbuf->cres++;
 }
@@ -832,8 +821,6 @@ static void virgl_drm_clear_res_list(struct virgl_drm_cmd_buf *cbuf)
    }
 
    cbuf->cres = 0;
-
-   memset(cbuf->is_handle_added, 0, sizeof(cbuf->is_handle_added));
 }
 
 static void virgl_drm_emit_res(struct virgl_winsys *qws,
@@ -842,13 +829,11 @@ static void virgl_drm_emit_res(struct virgl_winsys *qws,
 {
    struct virgl_drm_winsys *qdws = virgl_drm_winsys(qws);
    struct virgl_drm_cmd_buf *cbuf = virgl_drm_cmd_buf(_cbuf);
-   bool already_in_list = virgl_drm_lookup_res(cbuf, res);
 
    if (write_buf)
       cbuf->base.buf[cbuf->base.cdw++] = res->res_handle;
 
-   if (!already_in_list)
-      virgl_drm_add_res(qdws, cbuf, res);
+   virgl_drm_add_res(qdws, cbuf, res);
 }
 
 static bool virgl_drm_res_is_ref(struct virgl_winsys *qws,

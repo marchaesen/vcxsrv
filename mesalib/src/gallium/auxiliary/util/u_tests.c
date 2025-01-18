@@ -324,8 +324,7 @@ tgsi_vs_window_space_position(struct pipe_context *ctx)
    bool pass = true;
    static const float red[] = {1, 0, 0, 1};
 
-   if (!ctx->screen->get_param(ctx->screen,
-                               PIPE_CAP_VS_WINDOW_SPACE_POSITION)) {
+   if (!ctx->screen->caps.vs_window_space_position) {
       util_report_result(SKIP);
       return;
    }
@@ -385,7 +384,7 @@ null_sampler_view(struct pipe_context *ctx, unsigned tgsi_tex_target)
    unsigned num_expected = tgsi_tex_target == TGSI_TEXTURE_BUFFER ? 1 : 2;
 
    if (tgsi_tex_target == TGSI_TEXTURE_BUFFER &&
-       !ctx->screen->get_param(ctx->screen, PIPE_CAP_TEXTURE_BUFFER_OBJECTS)) {
+       !ctx->screen->caps.texture_buffer_objects) {
       util_report_result_helper(SKIP, "%s: %s", __func__,
                                 tgsi_texture_names[tgsi_tex_target]);
       return;
@@ -534,7 +533,7 @@ test_sync_file_fences(struct pipe_context *ctx)
    bool pass = true;
    enum pipe_fd_type fd_type = PIPE_FD_TYPE_NATIVE_SYNC;
 
-   if (!screen->get_param(screen, PIPE_CAP_NATIVE_FENCE_FD))
+   if (!screen->caps.native_fence_fd)
       return;
 
    struct cso_context *cso = cso_create_context(ctx, 0);
@@ -638,12 +637,12 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
    snprintf(name, sizeof(name), "%s: %s, %u samples", __func__,
             use_fbfetch ? "FBFETCH" : "sampler", MAX2(num_samples, 1));
 
-   if (!ctx->screen->get_param(ctx->screen, PIPE_CAP_TEXTURE_BARRIER)) {
+   if (!ctx->screen->caps.texture_barrier) {
       util_report_result_helper(SKIP, name);
       return;
    }
    if (use_fbfetch &&
-       !ctx->screen->get_param(ctx->screen, PIPE_CAP_FBFETCH)) {
+       !ctx->screen->caps.fbfetch) {
       util_report_result_helper(SKIP, name);
       return;
    }

@@ -29,11 +29,6 @@
 #include <xf86drm.h>
 #endif
 
-/* The "RAW" clocks on Linux are called "FAST" on FreeBSD */
-#if !defined(CLOCK_MONOTONIC_RAW) && defined(CLOCK_MONOTONIC_FAST)
-#define CLOCK_MONOTONIC_RAW CLOCK_MONOTONIC_FAST
-#endif
-
 struct radv_binning_settings {
    unsigned context_states_per_bin;    /* allowed range: [1, 6] */
    unsigned persistent_states_per_bin; /* allowed range: [1, 32] */
@@ -50,11 +45,9 @@ struct radv_physical_device_cache_key {
    uint32_t disable_aniso_single_level : 1;
    uint32_t disable_shrink_image_store : 1;
    uint32_t disable_sinking_load_input_fs : 1;
-   uint32_t dual_color_blend_by_location : 1;
    uint32_t emulate_rt : 1;
    uint32_t ge_wave32 : 1;
    uint32_t invariant_geom : 1;
-   uint32_t lower_discard_to_demote : 1;
    uint32_t no_fmask : 1;
    uint32_t no_ngg_gs : 1;
    uint32_t no_rt : 1;
@@ -63,6 +56,7 @@ struct radv_physical_device_cache_key {
    uint32_t split_fma : 1;
    uint32_t ssbo_non_uniform : 1;
    uint32_t tex_non_uniform : 1;
+   uint32_t lower_terminate_to_discard : 1;
    uint32_t use_llvm : 1;
    uint32_t use_ngg : 1;
    uint32_t use_ngg_culling : 1;
@@ -85,6 +79,8 @@ struct radv_physical_device {
    uint8_t driver_uuid[VK_UUID_SIZE];
    uint8_t device_uuid[VK_UUID_SIZE];
    uint8_t cache_uuid[VK_UUID_SIZE];
+
+   struct ac_addrlib *addrlib;
 
    int local_fd;
    int master_fd;
@@ -169,6 +165,7 @@ struct radv_physical_device {
    struct {
       unsigned data0;
       unsigned data1;
+      unsigned data2;
       unsigned cmd;
       unsigned cntl;
    } vid_dec_reg;
@@ -251,7 +248,7 @@ radv_use_llvm_for_stage(const struct radv_physical_device *pdev, UNUSED gl_shade
    return pdev->use_llvm;
 }
 
-bool radv_enable_rt(const struct radv_physical_device *pdev, bool rt_pipelines);
+bool radv_enable_rt(const struct radv_physical_device *pdev);
 
 bool radv_emulate_rt(const struct radv_physical_device *pdev);
 

@@ -64,7 +64,7 @@ fd6_screen_is_format_supported(struct pipe_screen *pscreen,
    }
 
    bool has_color = fd6_color_format(format, TILE6_LINEAR) != FMT6_NONE;
-   bool has_tex = fd6_texture_format(format, TILE6_LINEAR) != FMT6_NONE;
+   bool has_tex = fd6_texture_format(format, TILE6_LINEAR, false) != FMT6_NONE;
 
    if ((usage & (PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_SHADER_IMAGE)) &&
        has_tex &&
@@ -74,7 +74,7 @@ fd6_screen_is_format_supported(struct pipe_screen *pscreen,
    }
 
    if (usage & PIPE_BIND_SHADER_IMAGE) {
-      if (sample_count > 1)
+      if (sample_count > 0)
          return false;
 
       /* So, this only matters for image writes but 'usage' doesn't
@@ -140,7 +140,7 @@ static const enum pc_di_primtype primtypes[] = {
    [MESA_PRIM_TRIANGLES_ADJACENCY]         = DI_PT_TRI_ADJ,
    [MESA_PRIM_TRIANGLE_STRIP_ADJACENCY]    = DI_PT_TRISTRIP_ADJ,
    [MESA_PRIM_PATCHES]                     = DI_PT_PATCHES0,
-   [MESA_PRIM_COUNT]                         = DI_PT_RECTLIST,  /* internal clear blits */
+   [MESA_PRIM_COUNT]                       = DI_PT_RECTLIST,  /* internal clear blits */
 };
 /* clang-format on */
 

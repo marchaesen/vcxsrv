@@ -106,7 +106,7 @@ typedef Cursor	(*TryShapeCursorFunc) (Display	    *dpy,
 static XModuleType  _XcursorModule;
 static Bool	    _XcursorModuleTried;
 
-#define GetFunc(type,name,ret) {\
+#define GetFunc(type,name,ret) do { \
     static Bool	    been_here; \
     static type	    staticFunc; \
      \
@@ -124,7 +124,7 @@ static Bool	    _XcursorModuleTried;
     } \
     ret = staticFunc; \
     _XUnlockMutex (_Xglobal_lock); \
-}
+} while (0)
 
 static Cursor
 _XTryShapeCursor (Display	    *dpy,

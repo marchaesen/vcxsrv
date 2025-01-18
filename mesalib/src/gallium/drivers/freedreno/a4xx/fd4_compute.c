@@ -54,7 +54,8 @@ cs_program_emit(struct fd_ringbuffer *ring, struct ir3_shader_variant *v)
                      COND(v->has_ssbo, A4XX_HLSQ_CS_CONTROL_REG_SSBO_ENABLE) |
                      A4XX_HLSQ_CS_CONTROL_REG_CONSTLENGTH(v->constlen / 4));
 
-   uint32_t driver_param_base = v->const_state->offsets.driver_param * 4;
+   uint32_t driver_param_base =
+      v->const_state->allocs.consts[IR3_CONST_ALLOC_DRIVER_PARAMS].offset_vec4 * 4;
    uint32_t local_invocation_id, work_group_id, local_group_size_id,
       num_wg_id, work_dim_id, unused_id;
    local_invocation_id =

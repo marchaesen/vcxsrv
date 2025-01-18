@@ -28,7 +28,6 @@
 #include "vpe_priv.h"
 #include "vpe10_dpp.h"
 #include "color.h"
-#include "vpe10/inc/vpe10_cm_common.h"
 #include "hw_shared.h"
 #include "reg_helper.h"
 
@@ -186,10 +185,6 @@ static void vpe10_dpp_program_prealpha_dealpha(struct dpp *dpp)
     uint32_t program_prealpha_dealpha = 0;
     PROGRAM_ENTRY();
 
-    if (program_prealpha_dealpha) {
-        dealpha_en = 1;
-        realpha_en = 1;
-    }
     REG_SET_2(
         VPCNVC_PRE_DEALPHA, 0, PRE_DEALPHA_EN, dealpha_en, PRE_DEALPHA_ABLND_EN, dealpha_ablnd_en);
     REG_SET_2(
@@ -237,14 +232,18 @@ void vpe10_dpp_program_cnv(
     switch (format) {
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_XRGB8888:
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_XBGR8888:
+        pixel_format = 8;
         alpha_en = 0;
+        break;
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_ARGB8888:
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_ABGR8888:
         pixel_format = 8;
         break;
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_RGBX8888:
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_BGRX8888:
+        pixel_format = 9;
         alpha_en = 0;
+        break;
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_RGBA8888:
     case VPE_SURFACE_PIXEL_FORMAT_GRPH_BGRA8888:
         pixel_format = 9;

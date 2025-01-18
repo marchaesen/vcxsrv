@@ -53,6 +53,7 @@ static const struct {
    [CHIP_NAVI22] = {0x73C0, 8, true},
    [CHIP_NAVI23] = {0x73E0, 8, true},
    [CHIP_NAVI31] = {0x744C, 24, true},
+   [CHIP_GFX1200] = {0x0000, 4, true}, /* TODO: Fill with real info. */
    /* clang-format on */
 };
 
@@ -71,7 +72,9 @@ radv_null_winsys_query_info(struct radeon_winsys *rws, struct radeon_info *gpu_i
          gpu_info->family = i;
          gpu_info->name = ac_get_family_name(i);
 
-         if (gpu_info->family >= CHIP_NAVI31)
+         if (gpu_info->family >= CHIP_GFX1200)
+            gpu_info->gfx_level = GFX12;
+         else if (gpu_info->family >= CHIP_NAVI31)
             gpu_info->gfx_level = GFX11;
          else if (i >= CHIP_NAVI21)
             gpu_info->gfx_level = GFX10_3;

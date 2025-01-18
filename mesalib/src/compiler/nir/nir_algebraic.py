@@ -208,6 +208,7 @@ class Value(object):
       ${'true' if val.nsz else 'false'},
       ${'true' if val.nnan else 'false'},
       ${'true' if val.ninf else 'false'},
+      ${'true' if val.swizzle_y else 'false'},
       ${val.c_opcode()},
       ${val.comm_expr_idx}, ${val.comm_exprs},
       { ${', '.join(src.array_index for src in val.sources)} },
@@ -361,7 +362,7 @@ class Variable(Value):
       return '{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}'
 
 _opcode_re = re.compile(r"(?P<inexact>~)?(?P<exact>!)?(?P<opcode>\w+)(?:@(?P<bits>\d+))?"
-                        r"(?P<cond>\([^\)]+\))?")
+                        r"(?P<cond>\([^\)]+\))?(?P<swizzle_y>\.y)?")
 
 class Expression(Value):
    def __init__(self, expr, name_base, varset, algebraic_pass):
@@ -391,6 +392,7 @@ class Expression(Value):
       self.nsz = cond.pop('nsz', False)
       self.nnan = cond.pop('nnan', False)
       self.ninf = cond.pop('ninf', False)
+      self.swizzle_y = m.group('swizzle_y') is not None
 
       assert len(cond) <= 1
       self.cond = cond.popitem()[0] if cond else None

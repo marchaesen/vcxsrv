@@ -17,13 +17,12 @@
 #include "util/u_video.h"
 #include "vl/vl_video_buffer.h"
 
-static const unsigned index_to_shifts[4] = {24, 16, 8, 0};
-
 /* set quality modes from the input */
 static void radeon_vcn_enc_quality_modes(struct radeon_encoder *enc,
                                          struct pipe_enc_quality_modes *in)
 {
    rvcn_enc_quality_modes_t *p = &enc->enc_pic.quality_modes;
+   struct si_screen *sscreen = (struct si_screen *)enc->screen;
 
    p->preset_mode = in->preset_mode > RENCODE_PRESET_MODE_HIGH_QUALITY
                                     ? RENCODE_PRESET_MODE_HIGH_QUALITY
@@ -38,6 +37,13 @@ static void radeon_vcn_enc_quality_modes(struct radeon_encoder *enc,
 
    if (enc->enc_pic.rc_session_init.rate_control_method == RENCODE_RATE_CONTROL_METHOD_QUALITY_VBR)
       p->pre_encode_mode = RENCODE_PREENCODE_MODE_4X;
+
+   /* Disabling 2pass encoding for VCN 5.0
+    * This is a temporary limitation only for VCN 5.0 due to HW,
+    * once verified in future VCN 5.X versions, it will be enabled again. 
+    */
+   if (sscreen->info.vcn_ip_version >= VCN_5_0_0)
+      p->pre_encode_mode = RENCODE_PREENCODE_MODE_NONE;
 
    p->vbaq_mode = in->vbaq_mode ? RENCODE_VBAQ_AUTO : RENCODE_VBAQ_NONE;
 
@@ -216,20 +222,44 @@ static void radeon_vcn_enc_get_latency_param(struct radeon_encoder *enc)
       sscreen->debug_flags & DBG(LOW_LATENCY_ENCODE) ? 1000 : 0;
 }
 
-static void radeon_vcn_enc_h264_get_cropping_param(struct radeon_encoder *enc,
-                                                   struct pipe_h264_enc_picture_desc *pic)
+static void radeon_vcn_enc_h264_get_session_param(struct radeon_encoder *enc,
+                                                  struct pipe_h264_enc_picture_desc *pic)
 {
+   if (enc->enc_pic.session_init.aligned_picture_width)
+      return;
+
+   uint32_t align_width = PIPE_H264_MB_SIZE;
+   uint32_t align_height = PIPE_H264_MB_SIZE;
+
+   enc->enc_pic.session_init.encode_standard = RENCODE_ENCODE_STANDARD_H264;
+   enc->enc_pic.session_init.aligned_picture_width = align(enc->base.width, align_width);
+   enc->enc_pic.session_init.aligned_picture_height = align(enc->base.height, align_height);
+
+   uint32_t padding_width = 0;
+   uint32_t padding_height = 0;
+   uint32_t max_padding_width = align_width - 2;
+   uint32_t max_padding_height = align_height - 2;
+
+   if (enc->enc_pic.session_init.aligned_picture_width > enc->source->width)
+      padding_width = enc->enc_pic.session_init.aligned_picture_width - enc->source->width;
+   if (enc->enc_pic.session_init.aligned_picture_height > enc->source->height)
+      padding_height = enc->enc_pic.session_init.aligned_picture_height - enc->source->height;
+
+   /* Input surface can be smaller if the difference is within padding bounds. */
+   if (padding_width > max_padding_width || padding_height > max_padding_height)
+      RADEON_ENC_ERR("Input surface size doesn't match aligned size\n");
+
    if (pic->seq.enc_frame_cropping_flag) {
-      enc->enc_pic.crop_left = pic->seq.enc_frame_crop_left_offset;
-      enc->enc_pic.crop_right = pic->seq.enc_frame_crop_right_offset;
-      enc->enc_pic.crop_top = pic->seq.enc_frame_crop_top_offset;
-      enc->enc_pic.crop_bottom = pic->seq.enc_frame_crop_bottom_offset;
-   } else {
-      enc->enc_pic.crop_left = 0;
-      enc->enc_pic.crop_right = 0;
-      enc->enc_pic.crop_top = 0;
-      enc->enc_pic.crop_bottom = 0;
+      uint32_t pad_w =
+         (pic->seq.enc_frame_crop_left_offset + pic->seq.enc_frame_crop_right_offset) * 2;
+      uint32_t pad_h =
+         (pic->seq.enc_frame_crop_top_offset + pic->seq.enc_frame_crop_bottom_offset) * 2;
+      padding_width = CLAMP(pad_w, padding_width, max_padding_width);
+      padding_height = CLAMP(pad_h, padding_height, max_padding_height);
    }
+
+   enc->enc_pic.session_init.padding_width = padding_width;
+   enc->enc_pic.session_init.padding_height = padding_height;
 }
 
 static void radeon_vcn_enc_h264_get_dbk_param(struct radeon_encoder *enc,
@@ -481,6 +511,12 @@ static void radeon_vcn_enc_h264_get_param(struct radeon_encoder *enc,
    enc->enc_pic.h264_enc_params.is_long_term = pic->is_ltr;
    enc->enc_pic.not_referenced = pic->not_referenced;
 
+   if ((pic->ref_list0[0] != PIPE_H2645_LIST_REF_INVALID_ENTRY &&
+        pic->dpb[pic->ref_list0[0]].picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B) ||
+       (pic->ref_list1[0] != PIPE_H2645_LIST_REF_INVALID_ENTRY &&
+        pic->dpb[pic->ref_list1[0]].picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B))
+      RADEON_ENC_ERR("B-frame references not supported\n");
+
    if (enc->dpb_type == DPB_TIER_2) {
       for (uint32_t i = 0; i < ARRAY_SIZE(pic->dpb); i++) {
          struct pipe_video_buffer *buf = pic->dpb[i].buffer;
@@ -490,7 +526,7 @@ static void radeon_vcn_enc_h264_get_param(struct radeon_encoder *enc,
       }
    }
 
-   radeon_vcn_enc_h264_get_cropping_param(enc, pic);
+   radeon_vcn_enc_h264_get_session_param(enc, pic);
    radeon_vcn_enc_h264_get_dbk_param(enc, pic);
    radeon_vcn_enc_h264_get_rc_param(enc, pic);
    radeon_vcn_enc_h264_get_spec_misc_param(enc, pic);
@@ -505,20 +541,44 @@ static void radeon_vcn_enc_h264_get_param(struct radeon_encoder *enc,
    radeon_vcn_enc_quality_modes(enc, &pic->quality_modes);
 }
 
-static void radeon_vcn_enc_hevc_get_cropping_param(struct radeon_encoder *enc,
-                                                   struct pipe_h265_enc_picture_desc *pic)
+static void radeon_vcn_enc_hevc_get_session_param(struct radeon_encoder *enc,
+                                                  struct pipe_h265_enc_picture_desc *pic)
 {
+   if (enc->enc_pic.session_init.aligned_picture_width)
+      return;
+
+   uint32_t align_width = PIPE_H265_ENC_CTB_SIZE;
+   uint32_t align_height = 16;
+
+   enc->enc_pic.session_init.encode_standard = RENCODE_ENCODE_STANDARD_HEVC;
+   enc->enc_pic.session_init.aligned_picture_width = align(enc->base.width, align_width);
+   enc->enc_pic.session_init.aligned_picture_height = align(enc->base.height, align_height);
+
+   uint32_t padding_width = 0;
+   uint32_t padding_height = 0;
+   uint32_t max_padding_width = align_width - 2;
+   uint32_t max_padding_height = align_height - 2;
+
+   if (enc->enc_pic.session_init.aligned_picture_width > enc->source->width)
+      padding_width = enc->enc_pic.session_init.aligned_picture_width - enc->source->width;
+   if (enc->enc_pic.session_init.aligned_picture_height > enc->source->height)
+      padding_height = enc->enc_pic.session_init.aligned_picture_height - enc->source->height;
+
+   /* Input surface can be smaller if the difference is within padding bounds. */
+   if (padding_width > max_padding_width || padding_height > max_padding_height)
+      RADEON_ENC_ERR("Input surface size doesn't match aligned size\n");
+
    if (pic->seq.conformance_window_flag) {
-      enc->enc_pic.crop_left = pic->seq.conf_win_left_offset;
-      enc->enc_pic.crop_right = pic->seq.conf_win_right_offset;
-      enc->enc_pic.crop_top = pic->seq.conf_win_top_offset;
-      enc->enc_pic.crop_bottom = pic->seq.conf_win_bottom_offset;
-   } else {
-      enc->enc_pic.crop_left = 0;
-      enc->enc_pic.crop_right = 0;
-      enc->enc_pic.crop_top = 0;
-      enc->enc_pic.crop_bottom = 0;
+      uint32_t pad_w =
+         (pic->seq.conf_win_left_offset + pic->seq.conf_win_right_offset) * 2;
+      uint32_t pad_h =
+         (pic->seq.conf_win_top_offset + pic->seq.conf_win_bottom_offset) * 2;
+      padding_width = CLAMP(pad_w, padding_width, max_padding_width);
+      padding_height = CLAMP(pad_h, padding_height, max_padding_height);
    }
+
+   enc->enc_pic.session_init.padding_width = padding_width;
+   enc->enc_pic.session_init.padding_height = padding_height;
 }
 
 static void radeon_vcn_enc_hevc_get_dbk_param(struct radeon_encoder *enc,
@@ -696,7 +756,7 @@ static void radeon_vcn_enc_hevc_get_param(struct radeon_encoder *enc,
       }
    }
 
-   radeon_vcn_enc_hevc_get_cropping_param(enc, pic);
+   radeon_vcn_enc_hevc_get_session_param(enc, pic);
    radeon_vcn_enc_hevc_get_dbk_param(enc, pic);
    radeon_vcn_enc_hevc_get_rc_param(enc, pic);
    radeon_vcn_enc_hevc_get_slice_ctrl_param(enc, pic);
@@ -711,11 +771,66 @@ static void radeon_vcn_enc_hevc_get_param(struct radeon_encoder *enc,
    radeon_vcn_enc_quality_modes(enc, &pic->quality_modes);
 }
 
-static void radeon_vcn_enc_av1_get_spec_misc_param(struct radeon_encoder *enc,
-                                                   struct pipe_av1_enc_picture_desc *pic)
+static void radeon_vcn_enc_av1_get_session_param(struct radeon_encoder *enc,
+                                                 struct pipe_av1_enc_picture_desc *pic)
 {
    struct si_screen *sscreen = (struct si_screen *)enc->screen;
 
+   if (enc->enc_pic.session_init.aligned_picture_width)
+      return;
+
+   enc->enc_pic.session_init.encode_standard = RENCODE_ENCODE_STANDARD_AV1;
+
+   uint32_t width = enc->enc_pic.pic_width_in_luma_samples;
+   uint32_t height = enc->enc_pic.pic_height_in_luma_samples;
+   uint32_t align_width, align_height;
+
+   if (sscreen->info.vcn_ip_version < VCN_5_0_0) {
+      align_width = PIPE_AV1_ENC_SB_SIZE;
+      align_height = 16;
+      enc->enc_pic.session_init.aligned_picture_width = align(width, align_width);
+      enc->enc_pic.session_init.aligned_picture_height = align(height, align_height);
+      if (!(height % 8) && (height % 16))
+         enc->enc_pic.session_init.aligned_picture_height = height + 2;
+      enc->enc_pic.av1.coded_width = enc->enc_pic.session_init.aligned_picture_width;
+      enc->enc_pic.av1.coded_height = enc->enc_pic.session_init.aligned_picture_height;
+      if (sscreen->info.vcn_ip_version == VCN_4_0_2 ||
+          sscreen->info.vcn_ip_version == VCN_4_0_5 ||
+          sscreen->info.vcn_ip_version == VCN_4_0_6)
+         enc->enc_pic.session_init.WA_flags = 1;
+   } else {
+      align_width = 8;
+      align_height = 2;
+      enc->enc_pic.session_init.aligned_picture_width = align(width, align_width);
+      enc->enc_pic.session_init.aligned_picture_height = align(height, align_height);
+      enc->enc_pic.av1.coded_width = width;
+      enc->enc_pic.av1.coded_height = height;
+   }
+
+   uint32_t padding_width = 0;
+   uint32_t padding_height = 0;
+   uint32_t max_padding_width = align_width - 2;
+   uint32_t max_padding_height = align_height - 2;
+
+   if (enc->enc_pic.session_init.aligned_picture_width > enc->source->width)
+      padding_width = enc->enc_pic.session_init.aligned_picture_width - enc->source->width;
+   if (enc->enc_pic.session_init.aligned_picture_height > enc->source->height)
+      padding_height = enc->enc_pic.session_init.aligned_picture_height - enc->source->height;
+
+   /* Input surface can be smaller if the difference is within padding bounds. */
+   if (padding_width > max_padding_width || padding_height > max_padding_height)
+      RADEON_ENC_ERR("Input surface size doesn't match aligned size\n");
+
+   padding_width = MAX2(padding_width, enc->enc_pic.session_init.aligned_picture_width - width);
+   padding_height = MAX2(padding_height, enc->enc_pic.session_init.aligned_picture_height - height);
+
+   enc->enc_pic.session_init.padding_width = padding_width;
+   enc->enc_pic.session_init.padding_height = padding_height;
+}
+
+static void radeon_vcn_enc_av1_get_spec_misc_param(struct radeon_encoder *enc,
+                                                   struct pipe_av1_enc_picture_desc *pic)
+{
    enc->enc_pic.av1_spec_misc.cdef_mode = pic->seq.seq_bits.enable_cdef;
    enc->enc_pic.av1_spec_misc.disable_cdf_update = pic->disable_cdf_update;
    enc->enc_pic.av1_spec_misc.disable_frame_end_update_cdf = pic->disable_frame_end_update_cdf;
@@ -749,15 +864,6 @@ static void radeon_vcn_enc_av1_get_spec_misc_param(struct radeon_encoder *enc,
       enc->enc_pic.av1_spec_misc.mv_precision = RENCODE_AV1_MV_PRECISION_FORCE_INTEGER_MV;
    else
       enc->enc_pic.av1_spec_misc.mv_precision = RENCODE_AV1_MV_PRECISION_ALLOW_HIGH_PRECISION;
-
-   if (sscreen->info.vcn_ip_version >= VCN_5_0_0) {
-      enc->enc_pic.av1.skip_mode_allowed = radeon_enc_av1_skip_mode_allowed(enc);
-      if (enc->enc_pic.av1.compound) {
-         enc->need_spec_misc =
-            !enc->enc_pic.av1.skip_mode_allowed != enc->enc_pic.av1_spec_misc.disallow_skip_mode;
-         enc->enc_pic.av1_spec_misc.disallow_skip_mode = !enc->enc_pic.av1.skip_mode_allowed;
-      }
-   }
 }
 
 static void radeon_vcn_enc_av1_get_rc_param(struct radeon_encoder *enc,
@@ -873,13 +979,10 @@ static void radeon_vcn_enc_av1_get_param(struct radeon_encoder *enc,
       pic->seq.bit_depth_minus8;
    enc_pic->pic_width_in_luma_samples = pic->seq.pic_width_in_luma_samples;
    enc_pic->pic_height_in_luma_samples = pic->seq.pic_height_in_luma_samples;
-   enc_pic->enable_render_size = pic->enable_render_size;
    enc_pic->enable_error_resilient_mode = pic->error_resilient_mode;
    enc_pic->force_integer_mv = pic->force_integer_mv;
    enc_pic->disable_screen_content_tools = !pic->allow_screen_content_tools;
    enc_pic->is_obu_frame = pic->enable_frame_obu;
-   enc_pic->render_width = pic->render_width;
-   enc_pic->render_height = pic->render_height;
 
    enc_pic->enc_params.reference_picture_index =
       pic->ref_list0[0] == PIPE_H2645_LIST_REF_INVALID_ENTRY ?
@@ -902,6 +1005,23 @@ static void radeon_vcn_enc_av1_get_param(struct radeon_encoder *enc,
          enc_pic->av1.compound = true; /* UNIDIR_COMP */
          enc_pic->av1_enc_params.lsm_reference_frame_index[1] = pic->ref_list0[1];
       }
+
+      uint32_t skip_frames[2];
+      enc_pic->av1.skip_mode_allowed = radeon_enc_av1_skip_mode_allowed(enc, skip_frames);
+
+      if (enc_pic->av1.compound) {
+         bool disallow_skip_mode = enc_pic->av1_spec_misc.disallow_skip_mode;
+         enc_pic->av1_spec_misc.disallow_skip_mode = !enc_pic->av1.skip_mode_allowed;
+         /* Skip mode frames must match reference frames */
+         if (enc_pic->av1.skip_mode_allowed) {
+            enc_pic->av1_spec_misc.disallow_skip_mode =
+               skip_frames[0] != enc_pic->av1_enc_params.lsm_reference_frame_index[0] ||
+               skip_frames[1] != enc_pic->av1_enc_params.lsm_reference_frame_index[1];
+         }
+         enc->need_spec_misc = disallow_skip_mode != enc_pic->av1_spec_misc.disallow_skip_mode;
+      } else {
+         enc->need_spec_misc = false;
+      }
    }
 
    if (enc->dpb_type == DPB_TIER_2) {
@@ -913,6 +1033,7 @@ static void radeon_vcn_enc_av1_get_param(struct radeon_encoder *enc,
       }
    }
 
+   radeon_vcn_enc_av1_get_session_param(enc, pic);
    radeon_vcn_enc_av1_get_spec_misc_param(enc, pic);
    radeon_vcn_enc_av1_get_rc_param(enc, pic);
    radeon_vcn_enc_av1_get_tile_config(enc, pic);
@@ -1045,7 +1166,7 @@ static int setup_cdf(struct radeon_encoder *enc)
                                enc->cdf,
                                VCN_ENC_AV1_DEFAULT_CDF_SIZE,
                                PIPE_USAGE_DYNAMIC)) {
-      RVID_ERR("Can't create CDF buffer.\n");
+      RADEON_ENC_ERR("Can't create CDF buffer.\n");
       goto error;
    }
 
@@ -1118,8 +1239,6 @@ static int setup_dpb(struct radeon_encoder *enc, uint32_t num_reconstructed_pict
    enc_pic->ctx_buf.rec_luma_pitch   = pitch;
    enc_pic->ctx_buf.pre_encode_picture_luma_pitch   = pitch;
    enc_pic->ctx_buf.num_reconstructed_pictures = num_reconstructed_pictures;
-   enc_pic->dpb_luma_size   = luma_size;
-   enc_pic->dpb_chroma_size = chroma_size;
    enc_pic->total_coloc_bytes = total_coloc_bytes;
 
    offset = 0;
@@ -1320,6 +1439,7 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
    struct vl_video_buffer *vid_buf = (struct vl_video_buffer *)source;
    unsigned dpb_slots = 0;
 
+   enc->source = source;
    enc->need_rate_control = false;
    enc->need_rc_per_pic = false;
 
@@ -1368,7 +1488,7 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
       if (!enc->cdf) {
          enc->cdf = CALLOC_STRUCT(rvid_buffer);
          if (setup_cdf(enc)) {
-            RVID_ERR("Can't create cdf buffer.\n");
+            RADEON_ENC_ERR("Can't create cdf buffer.\n");
             goto error;
          }
       }
@@ -1383,7 +1503,7 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
       if (setup_dpb(enc, dpb_slots)) {
          if (!enc->dpb ||
              !si_vid_create_buffer(enc->screen, enc->dpb, enc->dpb_size, PIPE_USAGE_DEFAULT)) {
-            RVID_ERR("Can't create DPB buffer.\n");
+            RADEON_ENC_ERR("Can't create DPB buffer.\n");
             goto error;
          }
       }
@@ -1393,7 +1513,7 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
       enc->meta = CALLOC_STRUCT(rvid_buffer);
       if (!enc->meta ||
           !si_vid_create_buffer(enc->screen, enc->meta, enc->metadata_size, PIPE_USAGE_DEFAULT)) {
-         RVID_ERR("Can't create meta buffer.\n");
+         RADEON_ENC_ERR("Can't create meta buffer.\n");
          goto error;
       }
    }
@@ -1401,12 +1521,12 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
    if (dpb_slots > enc->dpb_slots) {
       setup_dpb(enc, dpb_slots);
       if (!si_vid_resize_buffer(enc->base.context, &enc->cs, enc->dpb, enc->dpb_size, NULL)) {
-         RVID_ERR("Can't resize DPB buffer.\n");
+         RADEON_ENC_ERR("Can't resize DPB buffer.\n");
          goto error;
       }
       if (sscreen->info.vcn_ip_version >= VCN_5_0_0 && enc->metadata_size &&
           !si_vid_resize_buffer(enc->base.context, &enc->cs, enc->meta, enc->metadata_size, NULL)) {
-         RVID_ERR("Can't resize meta buffer.\n");
+         RADEON_ENC_ERR("Can't resize meta buffer.\n");
          goto error;
       }
    }
@@ -1418,12 +1538,12 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
          enc->roi_size = roi_buffer_size(enc);
          if (!enc->roi || !enc->roi_size ||
              !si_vid_create_buffer(enc->screen, enc->roi, enc->roi_size, PIPE_USAGE_DYNAMIC)) {
-            RVID_ERR("Can't create ROI buffer.\n");
+            RADEON_ENC_ERR("Can't create ROI buffer.\n");
             goto error;
          }
       }
       if(generate_roi_map(enc)) {
-         RVID_ERR("Can't form roi map.\n");
+         RADEON_ENC_ERR("Can't form roi map.\n");
          goto error;
       }
    }
@@ -1448,7 +1568,7 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
       if (!enc->si ||
           !enc->stream_handle ||
           !si_vid_create_buffer(enc->screen, enc->si, 128 * 1024, PIPE_USAGE_DEFAULT)) {
-         RVID_ERR("Can't create session buffer.\n");
+         RADEON_ENC_ERR("Can't create session buffer.\n");
          goto error;
       }
       si_vid_create_buffer(enc->screen, &fb, 4096, PIPE_USAGE_STAGING);
@@ -1557,7 +1677,7 @@ static void *radeon_vcn_enc_encode_headers(struct radeon_encoder *enc)
    uint8_t *ptr = enc->ws->buffer_map(enc->ws, enc->bs_handle, &enc->cs,
                                       PIPE_MAP_WRITE | RADEON_MAP_TEMPORARY);
    if (!ptr) {
-      RVID_ERR("Can't map bs buffer.\n");
+      RADEON_ENC_ERR("Can't map bs buffer.\n");
       FREE(data);
       return NULL;
    }
@@ -1604,6 +1724,9 @@ static void radeon_enc_encode_bitstream(struct pipe_video_codec *encoder,
    struct radeon_encoder *enc = (struct radeon_encoder *)encoder;
    struct vl_video_buffer *vid_buf = (struct vl_video_buffer *)source;
 
+   if (enc->error)
+      return;
+
    enc->get_buffer(destination, &enc->bs_handle, NULL);
    enc->bs_size = destination->width0;
    enc->bs_offset = 0;
@@ -1611,7 +1734,7 @@ static void radeon_enc_encode_bitstream(struct pipe_video_codec *encoder,
    *fb = enc->fb = CALLOC_STRUCT(rvid_buffer);
 
    if (!si_vid_create_buffer(enc->screen, enc->fb, 4096, PIPE_USAGE_STAGING)) {
-      RVID_ERR("Can't create feedback buffer.\n");
+      RADEON_ENC_ERR("Can't create feedback buffer.\n");
       return;
    }
 
@@ -1620,7 +1743,7 @@ static void radeon_enc_encode_bitstream(struct pipe_video_codec *encoder,
    if (vid_buf->base.statistics_data) {
       enc->get_buffer(vid_buf->base.statistics_data, &enc->stats, NULL);
       if (enc->stats->size < sizeof(rvcn_encode_stats_type_0_t)) {
-         RVID_ERR("Encoder statistics output buffer is too small.\n");
+         RADEON_ENC_ERR("Encoder statistics output buffer is too small.\n");
          enc->stats = NULL;
       }
       vid_buf->base.statistics_data = NULL;
@@ -1636,6 +1759,10 @@ static int radeon_enc_end_frame(struct pipe_video_codec *encoder, struct pipe_vi
                                 struct pipe_picture_desc *picture)
 {
    struct radeon_encoder *enc = (struct radeon_encoder *)encoder;
+
+   if (enc->error)
+      return -1;
+
    return flush(enc, picture->flush_flags, picture->fence);
 }
 
@@ -1759,24 +1886,25 @@ void radeon_enc_create_dpb_aux_buffers(struct radeon_encoder *enc, struct radeon
       return;
 
    uint32_t fcb_size = radeon_enc_frame_context_buffer_size(enc);
-   uint32_t recon_size = enc->enc_pic.dpb_luma_size + enc->enc_pic.dpb_chroma_size;
 
    buf->fcb = CALLOC_STRUCT(rvid_buffer);
    if (!buf->fcb || !si_vid_create_buffer(enc->screen, buf->fcb, fcb_size, PIPE_USAGE_DEFAULT)) {
-      RVID_ERR("Can't create fcb buffer!\n");
+      RADEON_ENC_ERR("Can't create fcb buffer!\n");
       return;
    }
 
    if (enc->enc_pic.quality_modes.pre_encode_mode) {
-      buf->pre = CALLOC_STRUCT(rvid_buffer);
-      if (!buf->pre || !si_vid_create_buffer(enc->screen, buf->pre, recon_size, PIPE_USAGE_DEFAULT)) {
-         RVID_ERR("Can't create preenc buffer!\n");
+      buf->pre = enc->base.context->create_video_buffer(enc->base.context, &buf->templ);
+      if (!buf->pre) {
+         RADEON_ENC_ERR("Can't create preenc buffer!\n");
          return;
       }
+      buf->pre_luma = (struct si_texture *)((struct vl_video_buffer *)buf->pre)->resources[0];
+      buf->pre_chroma = (struct si_texture *)((struct vl_video_buffer *)buf->pre)->resources[1];
 
       buf->pre_fcb = CALLOC_STRUCT(rvid_buffer);
       if (!buf->pre_fcb || !si_vid_create_buffer(enc->screen, buf->pre_fcb, fcb_size, PIPE_USAGE_DEFAULT)) {
-         RVID_ERR("Can't create preenc fcb buffer!\n");
+         RADEON_ENC_ERR("Can't create preenc fcb buffer!\n");
          return;
       }
    }
@@ -1786,8 +1914,10 @@ static void radeon_enc_destroy_dpb_buffer(void *data)
 {
    struct radeon_enc_dpb_buffer *dpb = data;
 
+   if (dpb->pre)
+      dpb->pre->destroy(dpb->pre);
+
    RADEON_ENC_DESTROY_VIDEO_BUFFER(dpb->fcb);
-   RADEON_ENC_DESTROY_VIDEO_BUFFER(dpb->pre);
    RADEON_ENC_DESTROY_VIDEO_BUFFER(dpb->pre_fcb);
    FREE(dpb);
 }
@@ -1798,13 +1928,16 @@ static struct pipe_video_buffer *radeon_enc_create_dpb_buffer(struct pipe_video_
 {
    struct radeon_encoder *enc = (struct radeon_encoder *)encoder;
 
-   struct pipe_video_buffer *buf = enc->base.context->create_video_buffer(enc->base.context, templat);
+   struct pipe_video_buffer templ = *templat;
+   templ.bind |= PIPE_BIND_VIDEO_ENCODE_DPB;
+   struct pipe_video_buffer *buf = enc->base.context->create_video_buffer(enc->base.context, &templ);
    if (!buf) {
-      RVID_ERR("Can't create dpb buffer!\n");
+      RADEON_ENC_ERR("Can't create dpb buffer!\n");
       return NULL;
    }
 
    struct radeon_enc_dpb_buffer *dpb = CALLOC_STRUCT(radeon_enc_dpb_buffer);
+   dpb->templ = templ;
    dpb->luma = (struct si_texture *)((struct vl_video_buffer *)buf)->resources[0];
    dpb->chroma = (struct si_texture *)((struct vl_video_buffer *)buf)->resources[1];
 
@@ -1828,7 +1961,7 @@ struct pipe_video_codec *radeon_create_encoder(struct pipe_context *context,
       return NULL;
 
    if (sctx->vcn_has_ctx) {
-      enc->ectx = pipe_create_multimedia_context(context->screen);
+      enc->ectx = context->screen->context_create(context->screen, NULL, PIPE_CONTEXT_COMPUTE_ONLY);
       if (!enc->ectx)
          sctx->vcn_has_ctx = false;
    }
@@ -1845,14 +1978,13 @@ struct pipe_video_codec *radeon_create_encoder(struct pipe_context *context,
    enc->base.fence_wait = radeon_enc_fence_wait;
    enc->base.destroy_fence = radeon_enc_destroy_fence;
    enc->get_buffer = get_buffer;
-   enc->bits_in_shifter = 0;
    enc->screen = context->screen;
    enc->ws = ws;
 
    if (!ws->cs_create(&enc->cs,
        (sctx->vcn_has_ctx) ? ((struct si_context *)enc->ectx)->ctx : sctx->ctx,
        AMD_IP_VCN_ENC, radeon_enc_cs_flush, enc)) {
-      RVID_ERR("Can't get command submission context.\n");
+      RADEON_ENC_ERR("Can't get command submission context.\n");
       goto error;
    }
 
@@ -1879,7 +2011,7 @@ struct pipe_video_codec *radeon_create_encoder(struct pipe_context *context,
       radeon_enc_4_0_init(enc);
    }
    else if (sscreen->info.vcn_ip_version >= VCN_3_0_0) {
-      if (sscreen->info.vcn_enc_minor_version >= 24)
+      if (sscreen->info.vcn_enc_minor_version >= 29)
          enc->enc_pic.use_rc_per_pic_ex = true;
       radeon_enc_3_0_init(enc);
    }
@@ -1913,96 +2045,6 @@ void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer_lean *bu
    RADEON_ENC_CS(addr);
 }
 
-void radeon_enc_set_emulation_prevention(struct radeon_encoder *enc, bool set)
-{
-   if (set != enc->emulation_prevention) {
-      enc->emulation_prevention = set;
-      enc->num_zeros = 0;
-   }
-}
-
-void radeon_enc_set_output_buffer(struct radeon_encoder *enc, uint8_t *buffer)
-{
-   enc->bits_buf = buffer;
-   enc->bits_buf_pos = 0;
-}
-
-void radeon_enc_output_one_byte(struct radeon_encoder *enc, unsigned char byte)
-{
-   if (enc->bits_buf) {
-      enc->bits_buf[enc->bits_buf_pos++] = byte;
-      return;
-   }
-
-   if (enc->byte_index == 0)
-      enc->cs.current.buf[enc->cs.current.cdw] = 0;
-   enc->cs.current.buf[enc->cs.current.cdw] |=
-      ((unsigned int)(byte) << index_to_shifts[enc->byte_index]);
-   enc->byte_index++;
-
-   if (enc->byte_index >= 4) {
-      enc->byte_index = 0;
-      enc->cs.current.cdw++;
-   }
-}
-
-void radeon_enc_emulation_prevention(struct radeon_encoder *enc, unsigned char byte)
-{
-   if (enc->emulation_prevention) {
-      if ((enc->num_zeros >= 2) && ((byte == 0x00) || (byte == 0x01) ||
-         (byte == 0x02) || (byte == 0x03))) {
-         radeon_enc_output_one_byte(enc, 0x03);
-         enc->bits_output += 8;
-         enc->num_zeros = 0;
-      }
-      enc->num_zeros = (byte == 0 ? (enc->num_zeros + 1) : 0);
-   }
-}
-
-void radeon_enc_code_fixed_bits(struct radeon_encoder *enc, unsigned int value,
-                                unsigned int num_bits)
-{
-   unsigned int bits_to_pack = 0;
-   enc->bits_size += num_bits;
-
-   while (num_bits > 0) {
-      unsigned int value_to_pack = value & (0xffffffff >> (32 - num_bits));
-      bits_to_pack =
-         num_bits > (32 - enc->bits_in_shifter) ? (32 - enc->bits_in_shifter) : num_bits;
-
-      if (bits_to_pack < num_bits)
-         value_to_pack = value_to_pack >> (num_bits - bits_to_pack);
-
-      enc->shifter |= value_to_pack << (32 - enc->bits_in_shifter - bits_to_pack);
-      num_bits -= bits_to_pack;
-      enc->bits_in_shifter += bits_to_pack;
-
-      while (enc->bits_in_shifter >= 8) {
-         unsigned char output_byte = (unsigned char)(enc->shifter >> 24);
-         enc->shifter <<= 8;
-         radeon_enc_emulation_prevention(enc, output_byte);
-         radeon_enc_output_one_byte(enc, output_byte);
-         enc->bits_in_shifter -= 8;
-         enc->bits_output += 8;
-      }
-   }
-}
-
-void radeon_enc_code_uvlc(struct radeon_encoder *enc, unsigned int value)
-{
-   uint32_t num_bits = 0;
-   uint64_t value_plus1 = (uint64_t)value + 1;
-   uint32_t num_leading_zeros = 0;
-
-   while ((uint64_t)1 << num_bits <= value_plus1)
-      num_bits++;
-
-   num_leading_zeros = num_bits - 1;
-   radeon_enc_code_fixed_bits(enc, 0, num_leading_zeros);
-   radeon_enc_code_fixed_bits(enc, 1, 1);
-   radeon_enc_code_fixed_bits(enc, (uint32_t)value_plus1, num_leading_zeros);
-}
-
 void radeon_enc_code_leb128(uint8_t *buf, uint32_t value,
                             uint32_t num_bytes)
 {
@@ -2021,71 +2063,6 @@ void radeon_enc_code_leb128(uint8_t *buf, uint32_t value,
    } while((leb128_byte & 0x80));
 }
 
-void radeon_enc_reset(struct radeon_encoder *enc)
-{
-   enc->emulation_prevention = false;
-   enc->shifter = 0;
-   enc->bits_in_shifter = 0;
-   enc->bits_output = 0;
-   enc->num_zeros = 0;
-   enc->byte_index = 0;
-   enc->bits_size = 0;
-   enc->bits_buf = NULL;
-   enc->bits_buf_pos = 0;
-}
-
-void radeon_enc_byte_align(struct radeon_encoder *enc)
-{
-   unsigned int num_padding_zeros = (32 - enc->bits_in_shifter) % 8;
-
-   if (num_padding_zeros > 0)
-      radeon_enc_code_fixed_bits(enc, 0, num_padding_zeros);
-}
-
-void radeon_enc_flush_headers(struct radeon_encoder *enc)
-{
-   if (enc->bits_in_shifter != 0) {
-      unsigned char output_byte = (unsigned char)(enc->shifter >> 24);
-      radeon_enc_emulation_prevention(enc, output_byte);
-      radeon_enc_output_one_byte(enc, output_byte);
-      enc->bits_output += enc->bits_in_shifter;
-      enc->shifter = 0;
-      enc->bits_in_shifter = 0;
-      enc->num_zeros = 0;
-   }
-
-   if (enc->byte_index > 0) {
-      enc->cs.current.cdw++;
-      enc->byte_index = 0;
-   }
-}
-
-void radeon_enc_code_ue(struct radeon_encoder *enc, unsigned int value)
-{
-   unsigned int x = 0;
-   unsigned int ue_code = value + 1;
-   value += 1;
-
-   while (value) {
-      value = (value >> 1);
-      x += 1;
-   }
-
-   if (x > 1)
-     radeon_enc_code_fixed_bits(enc, 0, x - 1);
-   radeon_enc_code_fixed_bits(enc, ue_code, x);
-}
-
-void radeon_enc_code_se(struct radeon_encoder *enc, int value)
-{
-   unsigned int v = 0;
-
-   if (value != 0)
-      v = (value < 0 ? ((unsigned int)(0 - value) << 1) : (((unsigned int)(value) << 1) - 1));
-
-   radeon_enc_code_ue(enc, v);
-}
-
 unsigned int radeon_enc_av1_tile_log2(unsigned int blk_size, unsigned int max)
 {
    unsigned int k;
@@ -2094,30 +2071,6 @@ unsigned int radeon_enc_av1_tile_log2(unsigned int blk_size, unsigned int max)
    for (k = 0; (blk_size << k) < max; k++) {}
 
    return k;
-}
-
-void radeon_enc_code_ns(struct radeon_encoder *enc, unsigned int value, unsigned int max)
-{
-   unsigned w = 0;
-   unsigned m;
-   unsigned max_num = max;
-
-   while ( max_num ) {
-      max_num >>= 1;
-      w++;
-   }
-
-   m = ( 1 << w ) - max;
-
-   assert(w > 1);
-
-   if ( value < m )
-      radeon_enc_code_fixed_bits(enc, value, (w - 1));
-   else {
-      unsigned diff = value - m;
-      unsigned out = (((diff >> 1) + m) << 1) | (diff & 0x1);
-      radeon_enc_code_fixed_bits(enc, out, w);
-   }
 }
 
 /* dummy function for re-using the same pipeline */
@@ -2134,13 +2087,14 @@ static void radeon_enc_av1_bs_copy_end(struct radeon_encoder *enc, uint32_t bits
 
 /* av1 bitstream instruction type */
 void radeon_enc_av1_bs_instruction_type(struct radeon_encoder *enc,
+                                        struct radeon_bitstream *bs,
                                         uint32_t inst,
                                         uint32_t obu_type)
 {
-   radeon_enc_flush_headers(enc);
+   radeon_bs_flush_headers(bs);
 
-   if (enc->bits_output)
-      radeon_enc_av1_bs_copy_end(enc, enc->bits_output);
+   if (bs->bits_output)
+      radeon_enc_av1_bs_copy_end(enc, bs->bits_output);
 
    enc->enc_pic.copy_start = &enc->cs.current.buf[enc->cs.current.cdw++];
    RADEON_ENC_CS(inst);
@@ -2154,7 +2108,7 @@ void radeon_enc_av1_bs_instruction_type(struct radeon_encoder *enc,
    } else
       RADEON_ENC_CS(0); /* allocate a dword for number of bits */
 
-   radeon_enc_reset(enc);
+   radeon_bs_reset(bs, NULL, &enc->cs);
 }
 
 uint32_t radeon_enc_value_bits(uint32_t value)

@@ -582,12 +582,13 @@ gl_nir_validate_intrastage_interface_blocks(struct gl_shader_program *prog,
                                   true /* match_precision */)) {
                linker_error(prog, "definitions of interface block `%s' do not"
                             " match\n", glsl_get_type_name(var->interface_type));
-               return;
+               goto fail;
             }
          }
       }
    }
 
+ fail:
    ralloc_free(mem_ctx);
 }
 
