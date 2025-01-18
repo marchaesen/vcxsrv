@@ -80,9 +80,7 @@ Author:  Adobe Systems Incorporated
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xmd.h>
@@ -232,7 +230,7 @@ dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client, Mask access)
     if (rc != Success)
         goto bad;
 
-    rc = XaceHook(XACE_CLIENT_ACCESS, client, clients[clientIndex], access);
+    rc = XaceHookClientAccess(client, clients[clientIndex], access);
     if (rc != Success)
         goto bad;
 
@@ -800,7 +798,7 @@ CreateCallbackList(CallbackListPtr *pcbl)
         }
     }
 
-    listsToCleanup = (CallbackListPtr **) xnfrealloc(listsToCleanup,
+    listsToCleanup = (CallbackListPtr **) XNFrealloc(listsToCleanup,
                                                      sizeof(CallbackListPtr *) *
                                                      (numCallbackListsToCleanup
                                                       + 1));

@@ -1,6 +1,6 @@
 [wrap-file]
-directory = proc-macro2-1.0.70
-source_url = https://crates.io/api/v1/crates/proc-macro2/1.0.70/download
-source_filename = proc-macro2-1.0.70.tar.gz
-source_hash = 39278fbbf5fb4f646ce651690877f89d1c5811a3d4acb27700c1cb3cdb78fd3b
+directory = proc-macro2-1.0.86
+source_url = https://crates.io/api/v1/crates/proc-macro2/1.0.86/download
+source_filename = proc-macro2-1.0.86.tar.gz
+source_hash = 5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77
 patch_directory = proc-macro2

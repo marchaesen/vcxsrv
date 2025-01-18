@@ -4,8 +4,17 @@
     - !reference [.test, rules]
     - !reference [.lavapipe-rules, rules]
     - changes: &venus_file_list
-      - src/virtio/**/*
+        - src/virtio/**/*
       when: on_success
+
+.venus-manual-rules:
+  stage: layered-backends-postmerge
+  extends: .no-auto-retry
+  rules:
+    - !reference [.test, rules]
+    - !reference [.lavapipe-manual-rules, rules]
+    - changes: *venus_file_list
+      when: manual
 
 
 .venus-lavapipe-test:

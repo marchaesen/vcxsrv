@@ -9,7 +9,9 @@ softpipe:
   extends: .softpipe-deqp-test
   script: |
     . "$SCRIPTS_DIR"/setup-test-env.sh
-    LD_LIBRARY_PATH=`pwd`/install/lib xvfb-run --server-args='-noreset' bash -c ". $SCRIPTS_DIR/setup-test-env.sh && ${XVFB_SCRIPT}"
+    export LD_LIBRARY_PATH=$CI_PROJECT_DIR/install/lib
+    export LIBGL_DRIVERS_PATH=$CI_PROJECT_DIR/install/lib/dri
+    xvfb-run -e results/xvfb.log --server-args='-noreset' bash -c ". $SCRIPTS_DIR/setup-test-env.sh && ${XVFB_SCRIPT}"
 
 softpipe-asan-gles31:
   variables:

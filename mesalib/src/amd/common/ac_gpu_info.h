@@ -85,6 +85,8 @@ struct radeon_info {
    bool has_clear_state;
    bool has_distributed_tess;
    bool has_dcc_constant_encode;
+   bool has_tc_compatible_htile;
+   bool has_etc_support;
    bool has_rbplus;     /* if RB+ registers exist */
    bool rbplus_allowed; /* if RB+ is allowed */
    bool has_load_ctx_reg_pkt;
@@ -123,6 +125,9 @@ struct radeon_info {
    bool has_set_sh_pairs;
    bool has_set_sh_pairs_packed;
    bool has_set_uconfig_pairs;
+   bool needs_llvm_wait_wa; /* True if the chip needs to workarounds based on s_waitcnt_deptr but
+                             * the LLVM version doesn't work with multiparts shaders.
+                             */
 
    /* conformant_trunc_coord is equal to TA_CNTL2.TRUNCATE_COORD_MODE, which exists since gfx11.
     *
@@ -178,6 +183,7 @@ struct radeon_info {
 
    /* CP info. */
    bool gfx_ib_pad_with_type2;
+   bool has_cp_dma;
    uint32_t me_fw_version;
    uint32_t me_fw_feature;
    uint32_t mec_fw_version;
@@ -213,7 +219,9 @@ struct radeon_info {
    uint32_t max_submitted_ibs[AMD_NUM_IP_TYPES];
    bool is_amdgpu;
    bool has_userptr;
+   bool has_syncobj;
    bool has_timeline_syncobj;
+   bool has_fence_to_handle;
    bool has_local_buffers;
    bool has_bo_metadata;
    bool has_eqaa_surface_allocator;
@@ -262,6 +270,7 @@ struct radeon_info {
    uint32_t max_vgpr_alloc;
    uint32_t wave64_vgpr_alloc_granularity;
    uint32_t max_scratch_waves;
+   bool has_scratch_base_registers;
 
    /* Pos, prim, and attribute rings. */
    uint32_t attribute_ring_size_per_se;   /* GFX11+ */
@@ -377,6 +386,8 @@ void ac_get_task_info(const struct radeon_info *info,
                       struct ac_task_info *task_info);
 
 uint32_t ac_memory_ops_per_clock(uint32_t vram_type);
+
+uint32_t ac_gfx103_get_cu_mask_ps(const struct radeon_info *info);
 
 #ifdef __cplusplus
 }

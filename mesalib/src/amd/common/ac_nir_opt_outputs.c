@@ -301,8 +301,7 @@ bool ac_nir_optimize_outputs(nir_shader *nir, bool sprite_tex_disallowed,
    }
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_dominance |
-                                  nir_metadata_block_index);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

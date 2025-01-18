@@ -129,58 +129,58 @@ lower_unpack_32_to_8(nir_builder *b, nir_def *src)
 }
 
 static bool
-lower_pack_instr(nir_builder *b, nir_instr *instr, void *data)
+lower_pack_instr(nir_builder *b, nir_alu_instr *alu_instr, void *data)
 {
-   if (instr->type != nir_instr_type_alu)
+   nir_lower_packing_op op;
+   switch (alu_instr->op) {
+   case nir_op_pack_64_2x32:
+      op = nir_lower_packing_op_pack_64_2x32;
+      break;
+   case nir_op_unpack_64_2x32:
+      op = nir_lower_packing_op_unpack_64_2x32;
+      break;
+   case nir_op_pack_64_4x16:
+      op = nir_lower_packing_op_pack_64_4x16;
+      break;
+   case nir_op_unpack_64_4x16:
+      op = nir_lower_packing_op_unpack_64_4x16;
+      break;
+   case nir_op_pack_32_2x16:
+      op = nir_lower_packing_op_pack_32_2x16;
+      break;
+   case nir_op_unpack_32_2x16:
+      op = nir_lower_packing_op_unpack_32_2x16;
+      break;
+   case nir_op_pack_32_4x8:
+      op = nir_lower_packing_op_pack_32_4x8;
+      break;
+   case nir_op_unpack_32_4x8:
+      op = nir_lower_packing_op_unpack_32_4x8;
+      break;
+   default:
       return false;
+   }
 
-   nir_alu_instr *alu_instr = (nir_alu_instr *)instr;
-
-   if (alu_instr->op != nir_op_pack_64_2x32 &&
-       alu_instr->op != nir_op_unpack_64_2x32 &&
-       alu_instr->op != nir_op_pack_64_4x16 &&
-       alu_instr->op != nir_op_unpack_64_4x16 &&
-       alu_instr->op != nir_op_pack_32_2x16 &&
-       alu_instr->op != nir_op_unpack_32_2x16 &&
-       alu_instr->op != nir_op_pack_32_4x8 &&
-       alu_instr->op != nir_op_unpack_32_4x8)
+   if (b->shader->options->skip_lower_packing_ops & BITFIELD_BIT(op))
       return false;
 
    b->cursor = nir_before_instr(&alu_instr->instr);
 
-   nir_def *src = nir_ssa_for_alu_src(b, alu_instr, 0);
-   nir_def *dest;
+   typedef nir_def *(*lower_func_t)(nir_builder *b, nir_def *src);
+   static const lower_func_t lower_funcs[nir_lower_packing_num_ops] = {
+      [nir_lower_packing_op_pack_64_2x32]   = lower_pack_64_from_32,
+      [nir_lower_packing_op_unpack_64_2x32] = lower_unpack_64_to_32,
+      [nir_lower_packing_op_pack_64_4x16]   = lower_pack_64_from_16,
+      [nir_lower_packing_op_unpack_64_4x16] = lower_unpack_64_to_16,
+      [nir_lower_packing_op_pack_32_2x16]   = lower_pack_32_from_16,
+      [nir_lower_packing_op_unpack_32_2x16] = lower_unpack_32_to_16,
+      [nir_lower_packing_op_pack_32_4x8]    = lower_pack_32_from_8,
+      [nir_lower_packing_op_unpack_32_4x8]  = lower_unpack_32_to_8,
+   };
 
-   switch (alu_instr->op) {
-   case nir_op_pack_64_2x32:
-      dest = lower_pack_64_from_32(b, src);
-      break;
-   case nir_op_unpack_64_2x32:
-      dest = lower_unpack_64_to_32(b, src);
-      break;
-   case nir_op_pack_64_4x16:
-      dest = lower_pack_64_from_16(b, src);
-      break;
-   case nir_op_unpack_64_4x16:
-      dest = lower_unpack_64_to_16(b, src);
-      break;
-   case nir_op_pack_32_2x16:
-      dest = lower_pack_32_from_16(b, src);
-      break;
-   case nir_op_unpack_32_2x16:
-      dest = lower_unpack_32_to_16(b, src);
-      break;
-   case nir_op_pack_32_4x8:
-      dest = lower_pack_32_from_8(b, src);
-      break;
-   case nir_op_unpack_32_4x8:
-      dest = lower_unpack_32_to_8(b, src);
-      break;
-   default:
-      unreachable("Impossible opcode");
-   }
-   nir_def_rewrite_uses(&alu_instr->def, dest);
-   nir_instr_remove(&alu_instr->instr);
+   nir_def *src = nir_ssa_for_alu_src(b, alu_instr, 0);
+   nir_def *dest = lower_funcs[op](b, src);
+   nir_def_replace(&alu_instr->def, dest);
 
    return true;
 }
@@ -188,6 +188,6 @@ lower_pack_instr(nir_builder *b, nir_instr *instr, void *data)
 bool
 nir_lower_pack(nir_shader *shader)
 {
-   return nir_shader_instructions_pass(shader, lower_pack_instr,
-                                       nir_metadata_block_index | nir_metadata_dominance, NULL);
+   return nir_shader_alu_pass(shader, lower_pack_instr,
+                              nir_metadata_control_flow, NULL);
 }

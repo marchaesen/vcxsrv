@@ -672,6 +672,21 @@ tu_autotune_begin_renderpass(struct tu_cmd_buffer *cmd,
       tu_cs_emit(cs, CP_EVENT_WRITE7_0(.event = ZPASS_DONE,
                                        .write_sample_count = true).value);
       tu_cs_emit_qw(cs, result_iova);
+
+      /* If the renderpass contains an occlusion query with its own ZPASS_DONE,
+       * we have to provide a fake ZPASS_DONE event here to logically close the
+       * previous one, preventing firmware from misbehaving due to nested events.
+       * This writes into the samples_end field, which will be overwritten in
+       * tu_autotune_end_renderpass.
+       */
+      if (cmd->state.rp.has_zpass_done_sample_count_write_in_rp) {
+         tu_cs_emit_pkt7(cs, CP_EVENT_WRITE7, 3);
+         tu_cs_emit(cs, CP_EVENT_WRITE7_0(.event = ZPASS_DONE,
+                                          .write_sample_count = true,
+                                          .sample_count_end_offset = true,
+                                          .write_accum_sample_count_diff = true).value);
+         tu_cs_emit_qw(cs, result_iova);
+      }
    } else {
       tu_cs_emit_regs(cs,
                         A6XX_RB_SAMPLE_COUNT_ADDR(.qword = result_iova));
@@ -697,10 +712,24 @@ void tu_autotune_end_renderpass(struct tu_cmd_buffer *cmd,
    tu_cs_emit_regs(cs, A6XX_RB_SAMPLE_COUNT_CONTROL(.copy = true));
 
    if (cmd->device->physical_device->info->a7xx.has_event_write_sample_count) {
+      /* If the renderpass contains ZPASS_DONE events we emit a fake ZPASS_DONE
+       * event here, composing a pair of these events that firmware handles without
+       * issue. This first event writes into the samples_end field and the second
+       * event overwrites it. The second event also enables the accumulation flag
+       * even when we don't use that result because the blob always sets it.
+       */
+      if (cmd->state.rp.has_zpass_done_sample_count_write_in_rp) {
+         tu_cs_emit_pkt7(cs, CP_EVENT_WRITE7, 3);
+         tu_cs_emit(cs, CP_EVENT_WRITE7_0(.event = ZPASS_DONE,
+                                          .write_sample_count = true).value);
+         tu_cs_emit_qw(cs, result_iova + offsetof(struct tu_renderpass_samples, samples_end));
+      }
+
       tu_cs_emit_pkt7(cs, CP_EVENT_WRITE7, 3);
       tu_cs_emit(cs, CP_EVENT_WRITE7_0(.event = ZPASS_DONE,
                                        .write_sample_count = true,
-                                       .sample_count_end_offset = true).value);
+                                       .sample_count_end_offset = true,
+                                       .write_accum_sample_count_diff = true).value);
       tu_cs_emit_qw(cs, result_iova);
    } else {
       result_iova += offsetof(struct tu_renderpass_samples, samples_end);

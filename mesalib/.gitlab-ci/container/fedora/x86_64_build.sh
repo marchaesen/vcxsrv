@@ -48,7 +48,6 @@ DEPS=(
     "pkgconfig(libclc)"
     "pkgconfig(libelf)"
     "pkgconfig(libglvnd)"
-    "pkgconfig(libomxil-bellagio)"
     "pkgconfig(libselinux)"
     "pkgconfig(libva)"
     "pkgconfig(pciaccess)"
@@ -78,6 +77,7 @@ DEPS=(
     python3-mako
     python3-ply
     python3-pycparser
+    python3-yaml
     rust-packaging
     vulkan-headers
     spirv-tools-devel
@@ -101,8 +101,7 @@ tar -xvf $XORGMACROS_VERSION.tar.bz2 && rm $XORGMACROS_VERSION.tar.bz2
 cd $XORGMACROS_VERSION; ./configure; make install; cd ..
 rm -rf $XORGMACROS_VERSION
 
-# We need at least 1.4.0 for rusticl
-pip install meson==1.4.0
+. .gitlab-ci/container/install-meson.sh
 
 . .gitlab-ci/container/build-mold.sh
 

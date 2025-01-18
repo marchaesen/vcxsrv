@@ -6,11 +6,15 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <stdlib.h>
+
 #include <hardware/hardware.h>
 #include <hardware/hwvulkan.h>
 #include <vulkan/vk_icd.h>
 
 #include "util/log.h"
+
+#include "panvk_entrypoints.h"
 
 static int panvk_hal_open(const struct hw_module_t *mod, const char *id,
                           struct hw_device_t **dev);

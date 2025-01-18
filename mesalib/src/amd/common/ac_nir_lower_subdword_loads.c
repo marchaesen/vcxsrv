@@ -52,6 +52,10 @@ lower_subdword_loads(nir_builder *b, nir_instr *instr, void *data)
       if (!(modes & nir_var_mem_global))
          return false;
       break;
+   case nir_intrinsic_load_push_constant:
+      if (!(modes & nir_var_mem_push_const))
+         return false;
+      break;
    default:
       return false;
    }
@@ -93,6 +97,13 @@ lower_subdword_loads(nir_builder *b, nir_instr *instr, void *data)
       return true;
    }
 
+   b->cursor = nir_before_instr(instr);
+
+   if (nir_intrinsic_has_base(intr)) {
+      offset = nir_iadd_imm(b, offset, nir_intrinsic_base(intr));
+      nir_intrinsic_set_base(intr, 0);
+   }
+
    /* Multi-component unaligned loads may straddle the dword boundary.
     * E.g. for 2 components, we need to load an extra dword, and so on.
     */
@@ -114,7 +125,6 @@ lower_subdword_loads(nir_builder *b, nir_instr *instr, void *data)
       /* There is a good probability that the offset is "iadd" adding
        * align_offset. Subtracting align_offset should eliminate it.
        */
-      b->cursor = nir_before_instr(instr);
       nir_src_rewrite(src_offset, nir_iadd_imm(b, offset, -align_offset));
 
       b->cursor = nir_after_instr(instr);
@@ -132,7 +142,6 @@ lower_subdword_loads(nir_builder *b, nir_instr *instr, void *data)
    assert(align_mul <= 2 && align_offset <= 3);
 
    /* Round down by masking out the bits. */
-   b->cursor = nir_before_instr(instr);
    nir_src_rewrite(src_offset, nir_iand_imm(b, offset, ~0x3));
 
    /* We need to shift bits in the loaded vector by this number. */
@@ -211,6 +220,5 @@ bool
 ac_nir_lower_subdword_loads(nir_shader *nir, ac_nir_lower_subdword_options options)
 {
    return nir_shader_instructions_pass(nir, lower_subdword_loads,
-                                       nir_metadata_dominance |
-                                       nir_metadata_block_index, &options);
+                                       nir_metadata_control_flow, &options);
 }

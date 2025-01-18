@@ -1,22 +1,5 @@
 # Copyright © 2017 Intel Corporation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 nir_depends = files('nir_opcodes.py', 'nir_intrinsics.py')
 
@@ -62,8 +45,7 @@ nir_opt_algebraic_c = custom_target(
   'nir_opt_algebraic.c',
   input : 'nir_opt_algebraic.py',
   output : 'nir_opt_algebraic.c',
-  command : [prog_python, '@INPUT@'],
-  capture : true,
+  command : [prog_python, '@INPUT@', '--out', '@OUTPUT@'],
   depend_files : nir_algebraic_depends,
 )
 
@@ -111,6 +93,7 @@ files_libnir = files(
   'nir_deref.h',
   'nir_divergence_analysis.c',
   'nir_dominance.c',
+  'nir_format_convert.c',
   'nir_format_convert.h',
   'nir_from_ssa.c',
   'nir_functions.c',
@@ -150,7 +133,6 @@ files_libnir = files(
   'nir_lower_convert_alu_types.c',
   'nir_lower_variable_initializers.c',
   'nir_lower_discard_if.c',
-  'nir_lower_discard_or_demote.c',
   'nir_lower_double_ops.c',
   'nir_lower_drawpixels.c',
   'nir_lower_fb_read.c',
@@ -221,6 +203,7 @@ files_libnir = files(
   'nir_lower_var_copies.c',
   'nir_lower_vec_to_regs.c',
   'nir_lower_vec3_to_vec4.c',
+  'nir_lower_view_index_to_device_index.c',
   'nir_lower_viewport_transform.c',
   'nir_lower_wpos_center.c',
   'nir_lower_wpos_ytransform.c',
@@ -248,10 +231,12 @@ files_libnir = files(
   'nir_opt_find_array_copies.c',
   'nir_opt_fragdepth.c',
   'nir_opt_gcm.c',
+  'nir_opt_generate_bfi.c',
   'nir_opt_idiv_const.c',
   'nir_opt_if.c',
   'nir_opt_intrinsics.c',
   'nir_opt_large_constants.c',
+  'nir_opt_licm.c',
   'nir_opt_load_store_vectorize.c',
   'nir_opt_loop.c',
   'nir_opt_loop_unroll.c',
@@ -268,7 +253,6 @@ files_libnir = files(
   'nir_opt_reassociate_bfi.c',
   'nir_opt_rematerialize_compares.c',
   'nir_opt_remove_phis.c',
-  'nir_opt_reuse_constants.c',
   'nir_opt_shrink_stores.c',
   'nir_opt_shrink_vectors.c',
   'nir_opt_sink.c',
@@ -277,6 +261,7 @@ files_libnir = files(
   'nir_opt_uniform_subgroup.c',
   'nir_opt_varyings.c',
   'nir_opt_vectorize.c',
+  'nir_opt_vectorize_io.c',
   'nir_passthrough_gs.c',
   'nir_passthrough_tcs.c',
   'nir_phi_builder.c',
@@ -329,7 +314,7 @@ _libnir = static_library(
   include_directories : [inc_include, inc_src],
   c_args : [c_msvc_compat_args, no_override_init_args, no_misleading_indentation],
   gnu_symbol_visibility : 'hidden',
-  dependencies : [idep_compiler, dep_valgrind],
+  dependencies : [idep_compiler, dep_valgrind, idep_mesautil],
   build_by_default : false,
 )
 
@@ -339,7 +324,7 @@ inc_nir = include_directories('.')
 idep_nir_headers = declare_dependency(
   sources : [nir_opcodes_h, nir_builder_opcodes_h, nir_intrinsics_h, nir_intrinsics_indices_h,
              ir_expression_operation_h, builtin_types_h],
-  include_directories : [inc_nir, inc_compiler],
+  include_directories : [inc_nir, inc_compiler, inc_src, inc_include],
 )
 
 # Also link with nir
@@ -371,6 +356,7 @@ if with_tests
         'tests/control_flow_tests.cpp',
         'tests/core_tests.cpp',
         'tests/dce_tests.cpp',
+        'tests/format_convert_tests.cpp',
         'tests/load_store_vectorizer_tests.cpp',
         'tests/loop_analyze_tests.cpp',
         'tests/loop_unroll_tests.cpp',
@@ -378,6 +364,7 @@ if with_tests
         'tests/mod_analysis_tests.cpp',
         'tests/negative_equal_tests.cpp',
         'tests/opt_if_tests.cpp',
+        'tests/opt_loop_tests.cpp',
         'tests/opt_peephole_select.cpp',
         'tests/opt_shrink_vectors_tests.cpp',
         'tests/opt_varyings_tests_bicm_binary_alu.cpp',

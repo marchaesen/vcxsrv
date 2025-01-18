@@ -182,6 +182,7 @@ vir_opt_dead_code(struct v3d_compile *c)
                 }
         }
 
+        struct qinst *last_multop = NULL;
         vir_for_each_block(block, c) {
                 struct qinst *last_flags_write = NULL;
                 c->cur_block = block;
@@ -191,6 +192,11 @@ vir_opt_dead_code(struct v3d_compile *c)
                          */
                         if (v3d_qpu_reads_flags(&inst->qpu))
                                 last_flags_write = NULL;
+
+                        if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU &&
+                            inst->qpu.alu.mul.op == V3D_QPU_M_MULTOP) {
+                                last_multop = inst;
+                        }
 
                         if (inst->dst.file != QFILE_NULL &&
                             !(inst->dst.file == QFILE_TEMP &&
@@ -261,6 +267,16 @@ vir_opt_dead_code(struct v3d_compile *c)
                                 assert(unifa);
                                 if (!increment_unifa_address(c, unifa))
                                         continue;
+                        }
+
+                        /* If we drop umul24 we should also drop the previous
+                         * multop that we emit with it.
+                         */
+                        if (inst->qpu.type == V3D_QPU_INSTR_TYPE_ALU &&
+                            inst->qpu.alu.mul.op == V3D_QPU_M_UMUL24 &&
+                            last_multop) {
+                                dce(c, last_multop);
+                                last_multop = NULL;
                         }
 
                         assert(inst != last_flags_write);

@@ -77,7 +77,7 @@ draw_create_context(struct pipe_context *pipe, void *context,
 
 #if DRAW_LLVM_AVAILABLE
    if (try_llvm && draw_get_option_use_llvm()) {
-      draw->llvm = draw_llvm_create(draw, (LLVMContextRef)context);
+      draw->llvm = draw_llvm_create(draw, (lp_context_ref *)context);
    }
 #endif
 
@@ -370,6 +370,12 @@ draw_set_clip_state(struct draw_context *draw,
    draw_do_flush(draw, DRAW_FLUSH_PARAMETER_CHANGE);
 
    memcpy(&draw->plane[6], clip->ucp, sizeof(clip->ucp));
+}
+
+void
+draw_set_viewmask(struct draw_context *draw, uint8_t viewmask)
+{
+   draw->viewmask = viewmask;
 }
 
 

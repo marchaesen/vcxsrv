@@ -125,6 +125,12 @@ struct v3d_resource {
         uint32_t initialized_buffers;
 
         /**
+         * The resource has been invalidated by glInvalidateFramebuffer so
+         * it doesn't need to be loaded until another job writes to it.
+         */
+        bool invalidated;
+
+        /**
          * A serial ID that is incremented every time a new BO is bound to a
          * resource. We use this to track scenarios where we might need to
          * update other resources to point to the new BO (like sampler states

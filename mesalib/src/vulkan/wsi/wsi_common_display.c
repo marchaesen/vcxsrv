@@ -41,6 +41,7 @@
 #include <xcb/randr.h>
 #include <X11/Xlib-xcb.h>
 #endif
+#include "util/cnd_monotonic.h"
 #include "util/hash_table.h"
 #include "util/list.h"
 #include "util/os_time.h"
@@ -107,11 +108,11 @@ struct wsi_display {
    /* Used with syncobj imported from driver side. */
    int                          syncobj_fd;
 
-   pthread_mutex_t              wait_mutex;
-   pthread_cond_t               wait_cond;
+   mtx_t                        wait_mutex;
+   struct u_cnd_monotonic       wait_cond;
    pthread_t                    wait_thread;
 
-   pthread_cond_t               hotplug_cond;
+   struct u_cnd_monotonic       hotplug_cond;
    pthread_t                    hotplug_thread;
 
    struct list_head             connectors; /* list of all discovered connectors */
@@ -150,8 +151,8 @@ struct wsi_display_swapchain {
    uint64_t                     flip_sequence;
    VkResult                     status;
 
-   pthread_mutex_t              present_id_mutex;
-   pthread_cond_t               present_id_cond;
+   mtx_t                        present_id_mutex;
+   struct u_cnd_monotonic       present_id_cond;
    uint64_t                     present_id;
    VkResult                     present_id_error;
 
@@ -1099,7 +1100,7 @@ wsi_display_surface_get_present_rectangles(VkIcdSurfaceBase *surface_base,
    wsi_display_mode *mode = wsi_display_mode_from_handle(surface->displayMode);
    VK_OUTARRAY_MAKE_TYPED(VkRect2D, out, pRects, pRectCount);
 
-   if (wsi_device_matches_drm_fd(wsi_device, mode->connector->wsi->fd)) {
+   if (wsi_device->can_present_on_device(wsi_device->pdevice, mode->connector->wsi->fd)) {
       vk_outarray_append_typed(VkRect2D, &out, rect) {
          *rect = (VkRect2D) {
             .offset = { 0, 0 },
@@ -1209,8 +1210,8 @@ wsi_display_swapchain_destroy(struct wsi_swapchain *drv_chain,
    for (uint32_t i = 0; i < chain->base.image_count; i++)
       wsi_display_image_finish(drv_chain, &chain->images[i]);
 
-   pthread_mutex_destroy(&chain->present_id_mutex);
-   pthread_cond_destroy(&chain->present_id_cond);
+   mtx_destroy(&chain->present_id_mutex);
+   u_cnd_monotonic_destroy(&chain->present_id_cond);
 
    wsi_swapchain_finish(&chain->base);
    vk_free(allocator, chain);
@@ -1251,23 +1252,23 @@ wsi_display_present_complete(struct wsi_display_swapchain *swapchain,
                              struct wsi_display_image *image)
 {
    if (image->present_id) {
-      pthread_mutex_lock(&swapchain->present_id_mutex);
+      mtx_lock(&swapchain->present_id_mutex);
       if (image->present_id > swapchain->present_id) {
          swapchain->present_id = image->present_id;
-         pthread_cond_broadcast(&swapchain->present_id_cond);
+         u_cnd_monotonic_broadcast(&swapchain->present_id_cond);
       }
-      pthread_mutex_unlock(&swapchain->present_id_mutex);
+      mtx_unlock(&swapchain->present_id_mutex);
    }
 }
 
 static void
 wsi_display_surface_error(struct wsi_display_swapchain *swapchain, VkResult result)
 {
-   pthread_mutex_lock(&swapchain->present_id_mutex);
+   mtx_lock(&swapchain->present_id_mutex);
    swapchain->present_id = UINT64_MAX;
    swapchain->present_id_error = result;
-   pthread_cond_broadcast(&swapchain->present_id_cond);
-   pthread_mutex_unlock(&swapchain->present_id_mutex);
+   u_cnd_monotonic_broadcast(&swapchain->present_id_cond);
+   mtx_unlock(&swapchain->present_id_mutex);
 }
 
 static void
@@ -1344,10 +1345,10 @@ wsi_display_wait_thread(void *data)
    for (;;) {
       int ret = poll(&pollfd, 1, -1);
       if (ret > 0) {
-         pthread_mutex_lock(&wsi->wait_mutex);
+         mtx_lock(&wsi->wait_mutex);
          (void) drmHandleEvent(wsi->fd, &event_context);
-         pthread_cond_broadcast(&wsi->wait_cond);
-         pthread_mutex_unlock(&wsi->wait_mutex);
+         u_cnd_monotonic_broadcast(&wsi->wait_cond);
+         mtx_unlock(&wsi->wait_mutex);
       }
    }
    return NULL;
@@ -1368,18 +1369,18 @@ wsi_display_start_wait_thread(struct wsi_display *wsi)
 static void
 wsi_display_stop_wait_thread(struct wsi_display *wsi)
 {
-   pthread_mutex_lock(&wsi->wait_mutex);
+   mtx_lock(&wsi->wait_mutex);
    if (wsi->wait_thread) {
       pthread_cancel(wsi->wait_thread);
       pthread_join(wsi->wait_thread, NULL);
       wsi->wait_thread = 0;
    }
-   pthread_mutex_unlock(&wsi->wait_mutex);
+   mtx_unlock(&wsi->wait_mutex);
 }
 
 static int
-cond_timedwait_ns(pthread_cond_t *cond,
-                  pthread_mutex_t *mutex,
+cond_timedwait_ns(struct u_cnd_monotonic *cond,
+                  mtx_t *mutex,
                   uint64_t timeout_ns)
 {
    struct timespec abs_timeout = {
@@ -1387,7 +1388,7 @@ cond_timedwait_ns(pthread_cond_t *cond,
       .tv_nsec = timeout_ns % 1000000000ULL,
    };
 
-   int ret = pthread_cond_timedwait(cond, mutex, &abs_timeout);
+   int ret = u_cnd_monotonic_timedwait(cond, mutex, &abs_timeout);
    wsi_display_debug("%9ld done waiting for event %d\n", pthread_self(), ret);
    return ret;
 }
@@ -1455,7 +1456,7 @@ wsi_display_acquire_next_image(struct wsi_swapchain *drv_chain,
    if (timeout != 0 && timeout != UINT64_MAX)
       timeout = wsi_rel_to_abs_time(timeout);
 
-   pthread_mutex_lock(&wsi->wait_mutex);
+   mtx_lock(&wsi->wait_mutex);
    for (;;) {
       for (uint32_t i = 0; i < chain->base.image_count; i++) {
          if (chain->images[i].state == WSI_IMAGE_IDLE) {
@@ -1482,7 +1483,7 @@ wsi_display_acquire_next_image(struct wsi_swapchain *drv_chain,
       }
    }
 done:
-   pthread_mutex_unlock(&wsi->wait_mutex);
+   mtx_unlock(&wsi->wait_mutex);
 
    if (result != VK_SUCCESS)
       return result;
@@ -1647,7 +1648,7 @@ wsi_display_fence_wait(struct wsi_display_fence *fence, uint64_t timeout)
                      pthread_self(), fence->sequence,
                      (int64_t) (timeout - os_time_get_nano()));
    wsi_display_debug_code(uint64_t start_ns = os_time_get_nano());
-   pthread_mutex_lock(&fence->wsi->wait_mutex);
+   mtx_lock(&fence->wsi->wait_mutex);
 
    VkResult result;
    int ret = 0;
@@ -1678,7 +1679,7 @@ wsi_display_fence_wait(struct wsi_display_fence *fence, uint64_t timeout)
          break;
       }
    }
-   pthread_mutex_unlock(&fence->wsi->wait_mutex);
+   mtx_unlock(&fence->wsi->wait_mutex);
    wsi_display_debug("%9lu fence wait %f ms\n",
                      pthread_self(),
                      ((int64_t) (os_time_get_nano() - start_ns)) /
@@ -1709,9 +1710,9 @@ wsi_display_fence_destroy(struct wsi_display_fence *fence)
 {
    /* Destroy hotplug fence list. */
    if (fence->device_event) {
-      pthread_mutex_lock(&fence->wsi->wait_mutex);
+      mtx_lock(&fence->wsi->wait_mutex);
       list_del(&fence->link);
-      pthread_mutex_unlock(&fence->wsi->wait_mutex);
+      mtx_unlock(&fence->wsi->wait_mutex);
       fence->event_received = true;
    }
 
@@ -1865,9 +1866,9 @@ wsi_register_vblank_event(struct wsi_display_fence *fence,
        * processed and try again
        */
 
-      pthread_mutex_lock(&wsi->wait_mutex);
+      mtx_lock(&wsi->wait_mutex);
       ret = wsi_display_wait_for_event(wsi, wsi_rel_to_abs_time(100000000ull));
-      pthread_mutex_unlock(&wsi->wait_mutex);
+      mtx_unlock(&wsi->wait_mutex);
 
       if (ret) {
          wsi_display_debug("vblank queue full, event wait failed\n");
@@ -2009,7 +2010,7 @@ wsi_display_queue_present(struct wsi_swapchain *drv_chain,
    assert(image->state == WSI_IMAGE_DRAWING);
    wsi_display_debug("present %d\n", image_index);
 
-   pthread_mutex_lock(&wsi->wait_mutex);
+   mtx_lock(&wsi->wait_mutex);
 
    /* Make sure that the page flip handler is processed in finite time if using present wait. */
    if (present_id)
@@ -2022,7 +2023,7 @@ wsi_display_queue_present(struct wsi_swapchain *drv_chain,
    if (result != VK_SUCCESS)
       chain->status = result;
 
-   pthread_mutex_unlock(&wsi->wait_mutex);
+   mtx_unlock(&wsi->wait_mutex);
 
    if (result != VK_SUCCESS)
       return result;
@@ -2051,16 +2052,16 @@ wsi_display_wait_for_present(struct wsi_swapchain *wsi_chain,
 
    timespec_from_nsec(&abs_timespec, abs_timeout);
 
-   pthread_mutex_lock(&chain->present_id_mutex);
+   mtx_lock(&chain->present_id_mutex);
    while (chain->present_id < waitValue) {
-      int ret = pthread_cond_timedwait(&chain->present_id_cond,
-                                       &chain->present_id_mutex,
-                                       &abs_timespec);
-      if (ret == ETIMEDOUT) {
+      int ret = u_cnd_monotonic_timedwait(&chain->present_id_cond,
+                                          &chain->present_id_mutex,
+                                          &abs_timespec);
+      if (ret == thrd_timedout) {
          result = VK_TIMEOUT;
          break;
       }
-      if (ret) {
+      if (ret != thrd_success) {
          result = VK_ERROR_DEVICE_LOST;
          break;
       }
@@ -2068,7 +2069,7 @@ wsi_display_wait_for_present(struct wsi_swapchain *wsi_chain,
 
    if (result == VK_SUCCESS && chain->present_id_error)
       result = chain->present_id_error;
-   pthread_mutex_unlock(&chain->present_id_mutex);
+   mtx_unlock(&chain->present_id_mutex);
    return result;
 }
 
@@ -2100,15 +2101,15 @@ wsi_display_surface_create_swapchain(
       .same_gpu = true,
    };
 
-   int ret = pthread_mutex_init(&chain->present_id_mutex, NULL);
-   if (ret != 0) {
+   int ret = mtx_init(&chain->present_id_mutex, mtx_plain);
+   if (ret != thrd_success) {
       vk_free(allocator, chain);
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
 
-   bool bret = wsi_init_pthread_cond_monotonic(&chain->present_id_cond);
-   if (!bret) {
-      pthread_mutex_destroy(&chain->present_id_mutex);
+   ret = u_cnd_monotonic_init(&chain->present_id_cond);
+   if (ret != thrd_success) {
+      mtx_destroy(&chain->present_id_mutex);
       vk_free(allocator, chain);
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
@@ -2117,8 +2118,8 @@ wsi_display_surface_create_swapchain(
                                         create_info, &image_params.base,
                                         allocator);
    if (result != VK_SUCCESS) {
-      pthread_cond_destroy(&chain->present_id_cond);
-      pthread_mutex_destroy(&chain->present_id_mutex);
+      u_cnd_monotonic_destroy(&chain->present_id_cond);
+      mtx_destroy(&chain->present_id_mutex);
       vk_free(allocator, chain);
       return result;
    }
@@ -2147,8 +2148,8 @@ wsi_display_surface_create_swapchain(
             wsi_display_image_finish(&chain->base,
                                      &chain->images[image]);
          }
-         pthread_cond_destroy(&chain->present_id_cond);
-         pthread_mutex_destroy(&chain->present_id_mutex);
+         u_cnd_monotonic_destroy(&chain->present_id_cond);
+         mtx_destroy(&chain->present_id_mutex);
          wsi_swapchain_finish(&chain->base);
          vk_free(allocator, chain);
          goto fail_init_images;
@@ -2237,15 +2238,15 @@ udev_event_listener_thread(void *data)
             /* Note, this supports both drmSyncobjWait for fence->syncobj
              * and wsi_display_wait_for_event.
              */
-            pthread_mutex_lock(&wsi->wait_mutex);
-            pthread_cond_broadcast(&wsi->hotplug_cond);
+            mtx_lock(&wsi->wait_mutex);
+            u_cnd_monotonic_broadcast(&wsi->hotplug_cond);
             list_for_each_entry(struct wsi_display_fence, fence,
                                 &wsi_device->hotplug_fences, link) {
                if (fence->syncobj)
                   drmSyncobjSignal(wsi->syncobj_fd, &fence->syncobj, 1);
                fence->event_received = true;
             }
-            pthread_mutex_unlock(&wsi->wait_mutex);
+            mtx_unlock(&wsi->wait_mutex);
             udev_device_unref(dev);
          }
       } else if (ret < 0) {
@@ -2292,18 +2293,20 @@ wsi_display_init_wsi(struct wsi_device *wsi_device,
 
    list_inithead(&wsi->connectors);
 
-   int ret = pthread_mutex_init(&wsi->wait_mutex, NULL);
-   if (ret) {
+   int ret = mtx_init(&wsi->wait_mutex, mtx_plain);
+   if (ret != thrd_success) {
       result = VK_ERROR_OUT_OF_HOST_MEMORY;
       goto fail_mutex;
    }
 
-   if (!wsi_init_pthread_cond_monotonic(&wsi->wait_cond)) {
+   ret = u_cnd_monotonic_init(&wsi->wait_cond);
+   if (ret != thrd_success) {
       result = VK_ERROR_OUT_OF_HOST_MEMORY;
       goto fail_cond;
    }
 
-   if (!wsi_init_pthread_cond_monotonic(&wsi->hotplug_cond)) {
+   ret = u_cnd_monotonic_init(&wsi->hotplug_cond);
+   if (ret != thrd_success) {
       result = VK_ERROR_OUT_OF_HOST_MEMORY;
       goto fail_hotplug_cond;
    }
@@ -2321,9 +2324,9 @@ wsi_display_init_wsi(struct wsi_device *wsi_device,
    return VK_SUCCESS;
 
 fail_hotplug_cond:
-   pthread_cond_destroy(&wsi->wait_cond);
+   u_cnd_monotonic_destroy(&wsi->wait_cond);
 fail_cond:
-   pthread_mutex_destroy(&wsi->wait_mutex);
+   mtx_destroy(&wsi->wait_mutex);
 fail_mutex:
    vk_free(alloc, wsi);
 fail:
@@ -2352,9 +2355,9 @@ wsi_display_finish_wsi(struct wsi_device *wsi_device,
          pthread_join(wsi->hotplug_thread, NULL);
       }
 
-      pthread_mutex_destroy(&wsi->wait_mutex);
-      pthread_cond_destroy(&wsi->wait_cond);
-      pthread_cond_destroy(&wsi->hotplug_cond);
+      mtx_destroy(&wsi->wait_mutex);
+      u_cnd_monotonic_destroy(&wsi->wait_cond);
+      u_cnd_monotonic_destroy(&wsi->hotplug_cond);
 
       vk_free(alloc, wsi);
    }
@@ -2822,7 +2825,7 @@ wsi_AcquireXlibDisplayEXT(VkPhysicalDevice physicalDevice,
    if (!crtc)
       return VK_ERROR_INITIALIZATION_FAILED;
 
-#ifdef HAVE_DRI3_MODIFIERS
+#ifdef HAVE_X11_DRM
    xcb_randr_lease_t lease = xcb_generate_id(connection);
    xcb_randr_create_lease_cookie_t cl_c =
       xcb_randr_create_lease(connection, root, lease, 1, 1,
@@ -2920,15 +2923,15 @@ wsi_register_device_event(VkDevice _device,
 
 #ifdef HAVE_LIBUDEV
    /* Start listening for output change notifications. */
-   pthread_mutex_lock(&wsi->wait_mutex);
+   mtx_lock(&wsi->wait_mutex);
    if (!wsi->hotplug_thread) {
       if (pthread_create(&wsi->hotplug_thread, NULL, udev_event_listener_thread,
                          wsi_device)) {
-         pthread_mutex_unlock(&wsi->wait_mutex);
+         mtx_unlock(&wsi->wait_mutex);
          return VK_ERROR_OUT_OF_HOST_MEMORY;
       }
    }
-   pthread_mutex_unlock(&wsi->wait_mutex);
+   mtx_unlock(&wsi->wait_mutex);
 #endif
 
    struct wsi_display_fence *fence;
@@ -2942,9 +2945,9 @@ wsi_register_device_event(VkDevice _device,
 
    fence->device_event = true;
 
-   pthread_mutex_lock(&wsi->wait_mutex);
+   mtx_lock(&wsi->wait_mutex);
    list_addtail(&fence->link, &wsi_device->hotplug_fences);
-   pthread_mutex_unlock(&wsi->wait_mutex);
+   mtx_unlock(&wsi->wait_mutex);
 
    if (sync_out) {
       ret = wsi_display_sync_create(device, fence, sync_out);
@@ -3111,7 +3114,7 @@ wsi_AcquireDrmDisplayEXT(VkPhysicalDevice physicalDevice,
    VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
    struct wsi_device *wsi_device = pdevice->wsi_device;
 
-   if (!wsi_device_matches_drm_fd(wsi_device, drmFd))
+   if (!wsi_device->can_present_on_device(wsi_device->pdevice, drmFd))
       return VK_ERROR_UNKNOWN;
 
    struct wsi_display *wsi =
@@ -3145,7 +3148,7 @@ wsi_GetDrmDisplayEXT(VkPhysicalDevice physicalDevice,
    VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
    struct wsi_device *wsi_device = pdevice->wsi_device;
 
-   if (!wsi_device_matches_drm_fd(wsi_device, drmFd)) {
+   if (!wsi_device->can_present_on_device(wsi_device->pdevice, drmFd)) {
       *pDisplay = VK_NULL_HANDLE;
       return VK_ERROR_UNKNOWN;
    }

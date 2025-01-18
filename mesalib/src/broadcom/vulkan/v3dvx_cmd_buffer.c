@@ -1574,6 +1574,22 @@ v3dX(cmd_buffer_emit_line_width)(struct v3dv_cmd_buffer *cmd_buffer)
 }
 
 void
+v3dX(cmd_buffer_emit_default_point_size)(struct v3dv_cmd_buffer *cmd_buffer)
+{
+   struct v3dv_job *job = cmd_buffer->state.job;
+   assert(job);
+
+   v3dv_cl_ensure_space_with_branch(&job->bcl, cl_packet_length(POINT_SIZE));
+   v3dv_return_if_oom(cmd_buffer, NULL);
+
+   cl_emit(&job->bcl, POINT_SIZE, point) {
+     point.point_size = 1.0f;
+   }
+
+   job->emitted_default_point_size = true;
+}
+
+void
 v3dX(cmd_buffer_emit_sample_state)(struct v3dv_cmd_buffer *cmd_buffer)
 {
    struct v3dv_pipeline *pipeline = cmd_buffer->state.gfx.pipeline;
@@ -2604,7 +2620,9 @@ v3dX(cmd_buffer_emit_gl_shader_state)(struct v3dv_cmd_buffer *cmd_buffer)
 
          attr.stride =
             cmd_buffer->vk.dynamic_graphics_state.vi_binding_strides[binding];
-         attr.maximum_index = 0xffffff;
+
+         attr.maximum_index = attr.stride == 0 ?
+                              1u : MIN2(0xffffffu, c_vb->size / attr.stride);
       }
 
       emitted_va_count++;
@@ -2724,11 +2742,12 @@ v3dX(cmd_buffer_emit_index_buffer)(struct v3dv_cmd_buffer *cmd_buffer)
          &job->bcl, cl_packet_length(INDEX_BUFFER_SETUP));
       v3dv_return_if_oom(cmd_buffer, NULL);
 
-      const uint32_t offset = cmd_buffer->state.index_buffer.offset;
+      const uint32_t offset = ibuffer->mem_offset +
+                              cmd_buffer->state.index_buffer.offset;
+      assert(ibuffer->mem->bo->size >= offset);
       cl_emit(&job->bcl, INDEX_BUFFER_SETUP, ib) {
-         ib.address = v3dv_cl_address(ibuffer->mem->bo,
-                                      ibuffer->mem_offset + offset);
-         ib.size = ibuffer->mem->bo->size;
+         ib.address = v3dv_cl_address(ibuffer->mem->bo, offset);
+         ib.size = cmd_buffer->state.index_buffer.size;
       }
    }
 

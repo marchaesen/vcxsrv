@@ -328,13 +328,13 @@ pandecode_run_idvs(struct pandecode_context *ctx, FILE *fp,
       (ctx, cs_get_u64(qctx, 20), "Fragment shader", qctx->gpu_id);
    }
 
-   DUMP_ADDR(ctx, LOCAL_STORAGE, cs_get_u64(qctx, 24),
+   DUMP_ADDR(ctx, LOCAL_STORAGE, cs_get_u64(qctx, reg_position_tsd),
              "Position Local Storage @%" PRIx64 ":\n",
              cs_get_u64(qctx, reg_position_tsd));
-   DUMP_ADDR(ctx, LOCAL_STORAGE, cs_get_u64(qctx, 24),
+   DUMP_ADDR(ctx, LOCAL_STORAGE, cs_get_u64(qctx, reg_vary_tsd),
              "Varying Local Storage @%" PRIx64 ":\n",
              cs_get_u64(qctx, reg_vary_tsd));
-   DUMP_ADDR(ctx, LOCAL_STORAGE, cs_get_u64(qctx, 30),
+   DUMP_ADDR(ctx, LOCAL_STORAGE, cs_get_u64(qctx, reg_frag_tsd),
              "Fragment Local Storage @%" PRIx64 ":\n",
              cs_get_u64(qctx, reg_frag_tsd));
 
@@ -825,6 +825,41 @@ interpret_ceu_jump(struct pandecode_context *ctx, struct queue_ctx *qctx,
    return true;
 }
 
+static bool
+eval_cond(struct queue_ctx *qctx, enum mali_cs_condition cond, uint32_t reg)
+{
+   int32_t val = qctx->regs[reg];
+
+   switch (cond) {
+   case MALI_CS_CONDITION_LEQUAL:
+      return val <= 0;
+   case MALI_CS_CONDITION_EQUAL:
+      return val == 0;
+   case MALI_CS_CONDITION_LESS:
+      return val < 0;
+   case MALI_CS_CONDITION_GREATER:
+      return val > 0;
+   case MALI_CS_CONDITION_NEQUAL:
+      return val != 0;
+   case MALI_CS_CONDITION_GEQUAL:
+      return val >= 0;
+   case MALI_CS_CONDITION_ALWAYS:
+      return true;
+   default:
+      assert(!"Invalid condition");
+      return false;
+   }
+}
+
+static void
+interpret_ceu_branch(struct pandecode_context *ctx, struct queue_ctx *qctx,
+                     int16_t offset, enum mali_cs_condition cond,
+                     uint32_t reg)
+{
+   if (eval_cond(qctx, cond, reg))
+      qctx->ip += offset;
+}
+
 /*
  * Interpret a single instruction of the CS, updating the register file,
  * instruction pointer, and call stack. Memory access and GPU controls are
@@ -854,6 +889,22 @@ interpret_ceu_instr(struct pandecode_context *ctx, struct queue_ctx *qctx)
       pan_unpack(bytes, CS_MOVE32, I);
 
       qctx->regs[I.destination] = I.immediate;
+      break;
+   }
+
+   case MALI_CS_OPCODE_LOAD_MULTIPLE: {
+      pan_unpack(bytes, CS_LOAD_MULTIPLE, I);
+      mali_ptr addr =
+         ((uint64_t)qctx->regs[I.address + 1] << 32) | qctx->regs[I.address];
+      addr += I.offset;
+
+      uint32_t *src =
+         pandecode_fetch_gpu_mem(ctx, addr, util_last_bit(I.mask) * 4);
+
+      for (uint32_t i = 0; i < 16; i++) {
+         if (I.mask & BITFIELD_BIT(i))
+            qctx->regs[I.base_register + i] = src[i];
+      }
       break;
    }
 
@@ -908,6 +959,13 @@ interpret_ceu_instr(struct pandecode_context *ctx, struct queue_ctx *qctx)
       }
 
       return interpret_ceu_jump(ctx, qctx, I.address, I.length);
+   }
+
+   case MALI_CS_OPCODE_BRANCH: {
+      pan_unpack(bytes, CS_BRANCH, I);
+
+      interpret_ceu_branch(ctx, qctx, I.offset, I.condition, I.value);
+      break;
    }
 
    default:

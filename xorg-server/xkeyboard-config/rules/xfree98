@@ -8,7 +8,7 @@
   jp106		=	xfree98(jp106)	pc(jp106)
 
 ! model		layout		=	symbols
-  pc98		nec_vndr/jp	=	nec_vndr/jp(pc98)
+  pc98		jp		=	nec_vndr/jp(pc98)+nec_vndr/jp(jp):2
   jp106		jp		=	jp
 
 ! model		layout	=	compat		types

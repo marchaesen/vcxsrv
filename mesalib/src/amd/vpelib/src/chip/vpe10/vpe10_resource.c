@@ -27,13 +27,17 @@
 #include "vpe10_resource.h"
 #include "vpe10_cmd_builder.h"
 #include "vpe10_vpec.h"
-#include "vpe10_cdc.h"
+#include "vpe10_cdc_fe.h"
+#include "vpe10_cdc_be.h"
 #include "vpe10_dpp.h"
 #include "vpe10_mpc.h"
 #include "vpe10_opp.h"
-#include "vpe_command.h"
+#include "vpe10_command.h"
 #include "vpe10_cm_common.h"
 #include "vpe10_background.h"
+#include "vpe10_vpe_desc_writer.h"
+#include "vpe10_plane_desc_writer.h"
+#include "vpe10_config_writer.h"
 #include "vpe10/inc/asic/bringup_vpe_6_1_0_offset.h"
 #include "vpe10/inc/asic/bringup_vpe_6_1_0_sh_mask.h"
 #include "vpe10/inc/asic/bringup_vpe_6_1_0_default.h"
@@ -42,6 +46,7 @@
 #include "custom_float.h"
 #include "background.h"
 #include "vpe_visual_confirm.h"
+#include "color_bg.h"
 
 #define LUT_NUM_ENTRIES   (17 * 17 * 17)
 #define LUT_ENTRY_SIZE    (2)
@@ -60,14 +65,35 @@
     .reg_name = {BASE(reg##reg_name##_BASE_IDX) + reg##reg_name, reg##reg_name##_##DEFAULT,        \
         reg##reg_name##_##DEFAULT, false}
 
-/***************** CDC registers ****************/
-#define cdc_regs(id) [id] = {CDC_REG_LIST_VPE10(id)}
+#define SRIDFVL1(reg_name)                                                                          \
+    .reg_name = {BASE(reg##reg_name##_BASE_IDX) + reg##reg_name, reg##reg_name##_##DEFAULT,         \
+        reg##reg_name##_##DEFAULT, false}
 
-static struct vpe10_cdc_registers cdc_regs[] = {cdc_regs(0)};
+#define SRIDFVL2(reg_name, block, id)                                                                  \
+    .block##_##reg_name = {BASE(reg##block##id##_##reg_name##_BASE_IDX) + reg##block##id##_##reg_name, \
+        reg##block##id##_##reg_name##_##DEFAULT, reg##block##id##_##reg_name##_##DEFAULT, false}
 
-static const struct vpe10_cdc_shift cdc_shift = {CDC_FLIED_LIST_VPE10(__SHIFT)};
+#define SRIDFVL3(reg_name, block, id)                                                                  \
+    .block##_##reg_name = {BASE(reg##block##_##reg_name##_BASE_IDX) + reg##block##_##reg_name,         \
+        reg##block##_##reg_name##_##DEFAULT, reg##block##_##reg_name##_##DEFAULT, false}
 
-static const struct vpe10_cdc_mask cdc_mask = {CDC_FLIED_LIST_VPE10(_MASK)};
+/***************** CDC FE registers ****************/
+#define cdc_fe_regs(id) [id] = {CDC_FE_REG_LIST_VPE10(id)}
+
+static struct vpe10_cdc_fe_registers cdc_fe_regs[] = {cdc_fe_regs(0)};
+
+static const struct vpe10_cdc_fe_shift cdc_fe_shift = {CDC_FE_FIELD_LIST_VPE10(__SHIFT)};
+
+static const struct vpe10_cdc_fe_mask cdc_fe_mask = {CDC_FE_FIELD_LIST_VPE10(_MASK)};
+
+/***************** CDC BE registers ****************/
+#define cdc_be_regs(id) [id] = {CDC_BE_REG_LIST_VPE10(id)}
+
+static struct vpe10_cdc_be_registers cdc_be_regs[] = {cdc_be_regs(0)};
+
+static const struct vpe10_cdc_be_shift cdc_be_shift = {CDC_BE_FIELD_LIST_VPE10(__SHIFT)};
+
+static const struct vpe10_cdc_be_mask cdc_be_mask = {CDC_BE_FIELD_LIST_VPE10(_MASK)};
 
 /***************** DPP registers ****************/
 #define dpp_regs(id) [id] = {DPP_REG_LIST_VPE10(id)}
@@ -109,11 +135,13 @@ static struct vpe_caps caps = {
             .num_opp       = 1,
             .num_mpc_3dlut = 1,
             .num_queue     = 8,
+            .num_cdc_be    = 1,
         },
     .color_caps = {.dpp =
                        {
                            .pre_csc    = 1,
                            .luma_key   = 0,
+                           .color_key  = 1,
                            .dgam_ram   = 0,
                            .post_csc   = 1,
                            .gamma_corr = 1,
@@ -149,19 +177,26 @@ static struct vpe_caps caps = {
                     .p010            = 1, /**< planar 4:2:0 10-bit */
                     .p016            = 0, /**< planar 4:2:0 16-bit */
                     .ayuv            = 0, /**< packed 4:4:4 */
-                    .yuy2            = 0  /**< packed 4:2:2 */
+                    .yuy2 = 0
                 },
-            .output_pixel_format_support = {.argb_packed_32b = 1,
-                .nv12                                        = 0,
-                .fp16                                        = 1,
-                .p010                                        = 0,
-                .p016                                        = 0,
-                .ayuv                                        = 0,
-                .yuy2                                        = 0},
-            .max_upscale_factor          = 64000,
+            .output_pixel_format_support =
+                {
+                    .argb_packed_32b = 1,
+                    .nv12            = 0,
+                    .fp16            = 1,
+                    .p010            = 0, /**< planar 4:2:0 10-bit */
+                    .p016            = 0, /**< planar 4:2:0 16-bit */
+                    .ayuv            = 0, /**< packed 4:4:4 */
+                    .yuy2 = 0
+                },
+            .max_upscale_factor = 64000,
 
-            // 6:1 downscaling ratio: 1000/6 = 166.666
-            .max_downscale_factor = 167,
+            /*
+             * 4:1 downscaling ratio : 1000 / 4 = 250
+             * vpelib does not support more than 4:1 to preserve quality
+             * due to the limitation of using maximum number of 8 taps
+             */
+            .max_downscale_factor = 250,
 
             .pitch_alignment    = 256,
             .addr_alignment     = 256,
@@ -172,18 +207,19 @@ static struct vpe_caps caps = {
 static bool vpe10_init_scaler_data(struct vpe_priv *vpe_priv, struct stream_ctx *stream_ctx,
     struct scaler_data *scl_data, struct vpe_rect *src_rect, struct vpe_rect *dst_rect)
 {
-    struct dpp *dpp = vpe_priv->resource.dpp[0];
+    struct dpp *dpp;
+    dpp = vpe_priv->resource.dpp[0];
+
     calculate_scaling_ratios(scl_data, src_rect, dst_rect, stream_ctx->stream.surface_info.format);
 
-    if (vpe_priv->init.debug.skip_optimal_tap_check) {
-        scl_data->taps.v_taps   = stream_ctx->stream.scaling_info.taps.v_taps;
-        scl_data->taps.h_taps   = stream_ctx->stream.scaling_info.taps.h_taps;
-        scl_data->taps.v_taps_c = stream_ctx->stream.scaling_info.taps.v_taps_c;
-        scl_data->taps.h_taps_c = stream_ctx->stream.scaling_info.taps.h_taps_c;
-    } else {
-        if (!dpp->funcs->get_optimal_number_of_taps(
-                dpp, scl_data, &stream_ctx->stream.scaling_info.taps))
+    scl_data->taps.v_taps   = stream_ctx->stream.scaling_info.taps.v_taps;
+    scl_data->taps.h_taps   = stream_ctx->stream.scaling_info.taps.h_taps;
+    scl_data->taps.v_taps_c = stream_ctx->stream.scaling_info.taps.v_taps_c;
+    scl_data->taps.h_taps_c = stream_ctx->stream.scaling_info.taps.h_taps_c;
+    if (!vpe_priv->init.debug.skip_optimal_tap_check) {
+        if (!dpp->funcs->get_optimal_number_of_taps(src_rect, dst_rect, &scl_data->taps)) {
             return false;
+        }
     }
 
     if ((stream_ctx->stream.use_external_scaling_coeffs ==
@@ -233,31 +269,54 @@ enum vpe_status vpe10_set_num_segments(struct vpe_priv *vpe_priv, struct stream_
     return VPE_STATUS_OK;
 }
 
-bool vpe10_get_dcc_compression_cap(const struct vpe *vpe, const struct vpe_dcc_surface_param *input,
-    struct vpe_surface_dcc_cap *output)
+bool vpe10_get_dcc_compression_output_cap(const struct vpe *vpe, const struct vpe_dcc_surface_param *params, struct vpe_surface_dcc_cap *cap)
 {
-    struct vpe_priv *vpe_priv = container_of(vpe, struct vpe_priv, pub);
-    struct vpec     *vpec     = &vpe_priv->resource.vpec;
-
-    return vpec->funcs->get_dcc_compression_cap(vpec, input, output);
+    cap->capable = false;
+    return cap->capable;
 }
 
-static struct vpe_cap_funcs cap_funcs = {.get_dcc_compression_cap = vpe10_get_dcc_compression_cap};
-
-struct cdc *vpe10_cdc_create(struct vpe_priv *vpe_priv, int inst)
+bool vpe10_get_dcc_compression_input_cap(const struct vpe *vpe, const struct vpe_dcc_surface_param *params, struct vpe_surface_dcc_cap *cap)
 {
-    struct vpe10_cdc *vpe10_cdc = vpe_zalloc(sizeof(struct vpe10_cdc));
+    cap->capable = false;
+    return cap->capable;
+}
 
-    if (!vpe10_cdc)
+static struct vpe_cap_funcs cap_funcs =
+{
+    .get_dcc_compression_output_cap = vpe10_get_dcc_compression_output_cap,
+    .get_dcc_compression_input_cap  = vpe10_get_dcc_compression_input_cap
+};
+
+struct cdc_fe *vpe10_cdc_fe_create(struct vpe_priv *vpe_priv, int inst)
+{
+    struct vpe10_cdc_fe *vpe10_cdc_fe = vpe_zalloc(sizeof(struct vpe10_cdc_fe));
+
+    if (!vpe10_cdc_fe)
         return NULL;
 
-    vpe10_construct_cdc(vpe_priv, &vpe10_cdc->base);
+    vpe10_construct_cdc_fe(vpe_priv, &vpe10_cdc_fe->base);
 
-    vpe10_cdc->regs  = &cdc_regs[inst];
-    vpe10_cdc->mask  = &cdc_mask;
-    vpe10_cdc->shift = &cdc_shift;
+    vpe10_cdc_fe->regs  = &cdc_fe_regs[inst];
+    vpe10_cdc_fe->mask  = &cdc_fe_mask;
+    vpe10_cdc_fe->shift = &cdc_fe_shift;
 
-    return &vpe10_cdc->base;
+    return &vpe10_cdc_fe->base;
+}
+
+struct cdc_be *vpe10_cdc_be_create(struct vpe_priv *vpe_priv, int inst)
+{
+    struct vpe10_cdc_be *vpe10_cdc_be = vpe_zalloc(sizeof(struct vpe10_cdc_be));
+
+    if (!vpe10_cdc_be)
+        return NULL;
+
+    vpe10_construct_cdc_be(vpe_priv, &vpe10_cdc_be->base);
+
+    vpe10_cdc_be->regs  = &cdc_be_regs[inst];
+    vpe10_cdc_be->mask  = &cdc_be_mask;
+    vpe10_cdc_be->shift = &cdc_be_shift;
+
+    return &vpe10_cdc_be->base;
 }
 
 struct dpp *vpe10_dpp_create(struct vpe_priv *vpe_priv, int inst)
@@ -317,8 +376,8 @@ enum vpe_status vpe10_construct_resource(struct vpe_priv *vpe_priv, struct resou
 
     vpe10_construct_vpec(vpe_priv, &res->vpec);
 
-    res->cdc[0] = vpe10_cdc_create(vpe_priv, 0);
-    if (!res->cdc[0])
+    res->cdc_fe[0] = vpe10_cdc_fe_create(vpe_priv, 0);
+    if (!res->cdc_fe[0])
         goto err;
 
     res->dpp[0] = vpe10_dpp_create(vpe_priv, 0);
@@ -329,11 +388,19 @@ enum vpe_status vpe10_construct_resource(struct vpe_priv *vpe_priv, struct resou
     if (!res->mpc[0])
         goto err;
 
+    res->cdc_be[0] = vpe10_cdc_be_create(vpe_priv, 0);
+    if (!res->cdc_be[0])
+        goto err;
+
     res->opp[0] = vpe10_opp_create(vpe_priv, 0);
     if (!res->opp[0])
         goto err;
 
     vpe10_construct_cmd_builder(vpe_priv, &res->cmd_builder);
+    vpe10_construct_vpe_desc_writer(&vpe_priv->vpe_desc_writer);
+    vpe10_construct_plane_desc_writer(&vpe_priv->plane_desc_writer);
+    vpe10_config_writer_init(&vpe_priv->config_writer);
+
     vpe_priv->num_pipe = 1;
 
     res->internal_hdr_normalization = 1;
@@ -351,6 +418,8 @@ enum vpe_status vpe10_construct_resource(struct vpe_priv *vpe_priv, struct resou
     res->program_frontend                  = vpe10_program_frontend;
     res->program_backend                   = vpe10_program_backend;
     res->get_bufs_req                      = vpe10_get_bufs_req;
+    res->check_bg_color_support            = vpe10_check_bg_color_support;
+    res->check_mirror_rotation_support     = vpe10_check_mirror_rotation_support;
 
     return VPE_STATUS_OK;
 err:
@@ -360,9 +429,9 @@ err:
 
 void vpe10_destroy_resource(struct vpe_priv *vpe_priv, struct resource *res)
 {
-    if (res->cdc[0] != NULL) {
-        vpe_free(container_of(res->cdc[0], struct vpe10_cdc, base));
-        res->cdc[0] = NULL;
+    if (res->cdc_fe[0] != NULL) {
+        vpe_free(container_of(res->cdc_fe[0], struct vpe10_cdc_fe, base));
+        res->cdc_fe[0] = NULL;
     }
 
     if (res->dpp[0] != NULL) {
@@ -373,6 +442,11 @@ void vpe10_destroy_resource(struct vpe_priv *vpe_priv, struct resource *res)
     if (res->mpc[0] != NULL) {
         vpe_free(container_of(res->mpc[0], struct vpe10_mpc, base));
         res->mpc[0] = NULL;
+    }
+
+    if (res->cdc_be[0] != NULL) {
+        vpe_free(container_of(res->cdc_be[0], struct vpe10_cdc_be, base));
+        res->cdc_be[0] = NULL;
     }
 
     if (res->opp[0] != NULL) {
@@ -419,6 +493,11 @@ bool vpe10_check_h_mirror_support(bool *input_mirror, bool *output_mirror)
     *input_mirror  = false;
     *output_mirror = true;
     return true;
+}
+
+enum vpe_status vpe10_check_bg_color_support(struct vpe_priv* vpe_priv, struct vpe_color* bg_color)
+{
+    return vpe_is_valid_bg_color(vpe_priv, bg_color);
 }
 
 void vpe10_calculate_dst_viewport_and_active(
@@ -501,7 +580,7 @@ enum vpe_status vpe10_calculate_segments(
     struct dpp         *dpp                  = vpe_priv->resource.dpp[0];
     const uint32_t      max_lb_size          = dpp->funcs->get_line_buffer_size();
 
-    for (stream_idx = 0; stream_idx < params->num_streams; stream_idx++) {
+    for (stream_idx = 0; stream_idx < vpe_priv->num_streams; stream_idx++) {
         stream_ctx = &vpe_priv->stream_ctx[stream_idx];
         src_rect   = &stream_ctx->stream.scaling_info.src_rect;
         dst_rect   = &stream_ctx->stream.scaling_info.dst_rect;
@@ -663,73 +742,47 @@ static void build_clamping_params(
     }
 }
 
-static void frontend_config_callback(
-    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size)
-{
-    struct config_frontend_cb_ctx *cb_ctx     = (struct config_frontend_cb_ctx *)ctx;
-    struct vpe_priv               *vpe_priv   = cb_ctx->vpe_priv;
-    struct stream_ctx             *stream_ctx = &vpe_priv->stream_ctx[cb_ctx->stream_idx];
-    enum vpe_cmd_type              cmd_type;
-
-    if (cb_ctx->stream_sharing) {
-        VPE_ASSERT(stream_ctx->num_configs <
-                   (int)(sizeof(stream_ctx->configs) / sizeof(struct config_record)));
-
-        stream_ctx->configs[stream_ctx->num_configs].config_base_addr = cfg_base_gpu;
-        stream_ctx->configs[stream_ctx->num_configs].config_size      = size;
-        stream_ctx->num_configs++;
-    } else if (cb_ctx->stream_op_sharing) {
-        cmd_type = cb_ctx->cmd_type;
-
-        VPE_ASSERT(
-            stream_ctx->num_stream_op_configs[cmd_type] <
-            (int)(sizeof(stream_ctx->stream_op_configs[cmd_type]) / sizeof(struct config_record)));
-
-        stream_ctx->stream_op_configs[cmd_type][stream_ctx->num_stream_op_configs[cmd_type]]
-            .config_base_addr = cfg_base_gpu;
-        stream_ctx->stream_op_configs[cmd_type][stream_ctx->num_stream_op_configs[cmd_type]]
-            .config_size = size;
-        stream_ctx->num_stream_op_configs[cmd_type]++;
-    }
-
-    vpe_desc_writer_add_config_desc(
-        &vpe_priv->vpe_desc_writer, cfg_base_gpu, false, vpe_priv->config_writer.buf->tmz);
-}
-
 int32_t vpe10_program_frontend(struct vpe_priv *vpe_priv, uint32_t pipe_idx, uint32_t cmd_idx,
     uint32_t cmd_input_idx, bool seg_only)
 {
-    struct vpe_cmd_info       *cmd_info     = &vpe_priv->vpe_cmd_info[cmd_idx];
+    struct vpe_cmd_info *cmd_info = vpe_vector_get(vpe_priv->vpe_cmd_vector, cmd_idx);
+    VPE_ASSERT(cmd_info);
+
     struct vpe_cmd_input      *cmd_input    = &cmd_info->inputs[cmd_input_idx];
     struct stream_ctx         *stream_ctx   = &vpe_priv->stream_ctx[cmd_input->stream_idx];
     struct vpe_surface_info   *surface_info = &stream_ctx->stream.surface_info;
-    struct cdc                *cdc          = vpe_priv->resource.cdc[pipe_idx];
+    struct cdc_fe             *cdc_fe       = vpe_priv->resource.cdc_fe[pipe_idx];
     struct dpp                *dpp          = vpe_priv->resource.dpp[pipe_idx];
     struct mpc                *mpc          = vpe_priv->resource.mpc[pipe_idx];
     enum input_csc_select      select       = INPUT_CSC_SELECT_BYPASS;
     uint32_t                   hw_mult      = 0;
+    struct cnv_keyer_params    keyer_params;
     struct custom_float_format fmt;
 
     vpe_priv->fe_cb_ctx.stream_idx = cmd_input->stream_idx;
     vpe_priv->fe_cb_ctx.vpe_priv   = vpe_priv;
 
     config_writer_set_callback(
-        &vpe_priv->config_writer, &vpe_priv->fe_cb_ctx, frontend_config_callback);
+        &vpe_priv->config_writer, &vpe_priv->fe_cb_ctx, vpe_frontend_config_callback);
 
-    config_writer_set_type(&vpe_priv->config_writer, CONFIG_TYPE_DIRECT);
+    config_writer_set_type(&vpe_priv->config_writer, CONFIG_TYPE_DIRECT, pipe_idx);
 
     if (!seg_only) {
         /* start front-end programming that can be shared among segments */
         vpe_priv->fe_cb_ctx.stream_sharing = true;
 
-        cdc->funcs->program_surface_config(cdc, surface_info->format, stream_ctx->stream.rotation,
+        cdc_fe->funcs->program_surface_config(cdc_fe, surface_info->format,
+            stream_ctx->stream.rotation,
             // set to false as h_mirror is not supported by input, only supported in output
             false, surface_info->swizzle);
-        cdc->funcs->program_crossbar_config(cdc, surface_info->format);
+        cdc_fe->funcs->program_crossbar_config(cdc_fe, surface_info->format);
 
         dpp->funcs->program_cnv(dpp, surface_info->format, vpe_priv->expansion_mode);
         if (stream_ctx->bias_scale)
             dpp->funcs->program_cnv_bias_scale(dpp, stream_ctx->bias_scale);
+
+        dpp->funcs->build_keyer_params(dpp, stream_ctx, &keyer_params);
+        dpp->funcs->program_alpha_keyer(dpp, &keyer_params);
 
         /* If input adjustment exists, program the ICSC with those values. */
         if (stream_ctx->input_cs) {
@@ -779,8 +832,8 @@ int32_t vpe10_program_frontend(struct vpe_priv *vpe_priv, uint32_t pipe_idx, uin
     vpe_priv->fe_cb_ctx.stream_op_sharing = false;
     vpe_priv->fe_cb_ctx.cmd_type          = VPE_CMD_TYPE_COMPOSITING;
 
-    cdc->funcs->program_viewport(
-        cdc, &cmd_input->scaler_data.viewport, &cmd_input->scaler_data.viewport_c);
+    cdc_fe->funcs->program_viewport(
+        cdc_fe, &cmd_input->scaler_data.viewport, &cmd_input->scaler_data.viewport_c);
 
     dpp->funcs->set_segment_scaler(dpp, &cmd_input->scaler_data);
 
@@ -789,33 +842,13 @@ int32_t vpe10_program_frontend(struct vpe_priv *vpe_priv, uint32_t pipe_idx, uin
     return 0;
 }
 
-static void backend_config_callback(
-    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size)
-{
-    struct config_backend_cb_ctx *cb_ctx     = (struct config_backend_cb_ctx *)ctx;
-    struct vpe_priv              *vpe_priv   = cb_ctx->vpe_priv;
-    struct output_ctx            *output_ctx = &vpe_priv->output_ctx;
-
-    if (cb_ctx->share) {
-        VPE_ASSERT(
-            output_ctx->num_configs < (sizeof(output_ctx->configs) / sizeof(struct config_record)));
-
-        output_ctx->configs[output_ctx->num_configs].config_base_addr = cfg_base_gpu;
-        output_ctx->configs[output_ctx->num_configs].config_size      = size;
-        output_ctx->num_configs++;
-    }
-
-    vpe_desc_writer_add_config_desc(
-        &vpe_priv->vpe_desc_writer, cfg_base_gpu, false, vpe_priv->config_writer.buf->tmz);
-}
-
 int32_t vpe10_program_backend(
     struct vpe_priv *vpe_priv, uint32_t pipe_idx, uint32_t cmd_idx, bool seg_only)
 {
     struct output_ctx       *output_ctx   = &vpe_priv->output_ctx;
     struct vpe_surface_info *surface_info = &vpe_priv->output_ctx.surface;
 
-    struct cdc *cdc = vpe_priv->resource.cdc[pipe_idx];
+    struct cdc_be *cdc_be = vpe_priv->resource.cdc_be[pipe_idx];
     struct opp *opp = vpe_priv->resource.opp[pipe_idx];
     struct mpc *mpc = vpe_priv->resource.mpc[pipe_idx];
 
@@ -827,16 +860,17 @@ int32_t vpe10_program_backend(
 
     vpe_priv->be_cb_ctx.vpe_priv = vpe_priv;
     config_writer_set_callback(
-        &vpe_priv->config_writer, &vpe_priv->be_cb_ctx, backend_config_callback);
+        &vpe_priv->config_writer, &vpe_priv->be_cb_ctx, vpe_backend_config_callback);
 
-    config_writer_set_type(&vpe_priv->config_writer, CONFIG_TYPE_DIRECT);
+    config_writer_set_type(&vpe_priv->config_writer, CONFIG_TYPE_DIRECT, pipe_idx);
 
     if (!seg_only) {
         /* start back-end programming that can be shared among segments */
         vpe_priv->be_cb_ctx.share = true;
 
-        cdc->funcs->program_p2b_config(cdc, surface_info->format);
-        cdc->funcs->program_global_sync(cdc, VPE10_CDC_VUPDATE_OFFSET_DEFAULT,
+        cdc_be->funcs->program_p2b_config(
+            cdc_be, surface_info->format, surface_info->swizzle, &output_ctx->target_rect, NULL);
+        cdc_be->funcs->program_global_sync(cdc_be, VPE10_CDC_VUPDATE_OFFSET_DEFAULT,
             VPE10_CDC_VUPDATE_WIDTH_DEFAULT, VPE10_CDC_VREADY_OFFSET_DEFAULT);
 
         mpc->funcs->set_output_transfer_func(mpc, output_ctx);
@@ -889,7 +923,7 @@ enum vpe_status vpe10_populate_cmd_info(struct vpe_priv *vpe_priv)
     uint16_t             stream_idx;
     uint16_t             segment_idx;
     struct stream_ctx   *stream_ctx;
-    struct vpe_cmd_info *cmd_info;
+    struct vpe_cmd_info  cmd_info = {0};
     bool                 tm_enabled;
 
     for (stream_idx = 0; stream_idx < vpe_priv->num_streams; stream_idx++) {
@@ -898,29 +932,39 @@ enum vpe_status vpe10_populate_cmd_info(struct vpe_priv *vpe_priv)
         tm_enabled = stream_ctx->stream.tm_params.UID != 0 || stream_ctx->stream.tm_params.enable_3dlut;
 
         for (segment_idx = 0; segment_idx < stream_ctx->num_segments; segment_idx++) {
-            if (vpe_priv->num_vpe_cmds >= MAX_VPE_CMD) {
+            if (vpe_priv->vpe_cmd_vector->num_elements >= MAX_VPE_CMD) {
                 return VPE_STATUS_CMD_OVERFLOW_ERROR;
             }
 
-            cmd_info                       = &vpe_priv->vpe_cmd_info[vpe_priv->num_vpe_cmds];
-            cmd_info->inputs[0].stream_idx = stream_idx;
-            cmd_info->cd                   = (uint8_t)(stream_ctx->num_segments - segment_idx - 1);
-            memcpy(&(cmd_info->inputs[0].scaler_data),
-                &(stream_ctx->segment_ctx[segment_idx].scaler_data), sizeof(struct scaler_data));
-            cmd_info->dst_viewport = stream_ctx->segment_ctx[segment_idx].scaler_data.dst_viewport;
-            cmd_info->dst_viewport_c =
-                stream_ctx->segment_ctx[segment_idx].scaler_data.dst_viewport_c;
-            cmd_info->num_inputs = 1;
-            cmd_info->ops        = VPE_CMD_OPS_COMPOSITING;
-            cmd_info->tm_enabled = tm_enabled;
-            vpe_priv->num_vpe_cmds++;
-            if (cmd_info->cd == (stream_ctx->num_segments - 1)) {
-                cmd_info->is_begin = true;
-            }
+            cmd_info.inputs[0].stream_idx  = stream_idx;
+            cmd_info.cd                    = (uint8_t)(stream_ctx->num_segments - segment_idx - 1);
+            cmd_info.inputs[0].scaler_data = stream_ctx->segment_ctx[segment_idx].scaler_data;
+            cmd_info.num_outputs           = 1;
 
-            if (cmd_info->cd == 0) {
-                cmd_info->is_end = true;
+            cmd_info.outputs[0].dst_viewport =
+                stream_ctx->segment_ctx[segment_idx].scaler_data.dst_viewport;
+            cmd_info.outputs[0].dst_viewport_c =
+                stream_ctx->segment_ctx[segment_idx].scaler_data.dst_viewport_c;
+
+            cmd_info.num_inputs         = 1;
+            cmd_info.ops                = VPE_CMD_OPS_COMPOSITING;
+            cmd_info.tm_enabled         = tm_enabled;
+            cmd_info.insert_start_csync = false;
+            cmd_info.insert_end_csync   = false;
+            vpe_vector_push(vpe_priv->vpe_cmd_vector, &cmd_info);
+
+            // The following codes are only valid if blending is supported
+            /*
+            if (cmd_info->ops == VPE_CMD_OPS_BLENDING) {
+                if (cmd_info->cd == (stream_ctx->num_segments - 1)) {
+                    cmd_info->insert_start_csync = true;
+                }
+
+                if (cmd_info->cd == 0) {
+                    cmd_info->insert_end_csync = true;
+                }
             }
+            */
         }
     }
 
@@ -935,6 +979,7 @@ void vpe10_create_stream_ops_config(struct vpe_priv *vpe_priv, uint32_t pipe_idx
     struct dpp          *dpp      = vpe_priv->resource.dpp[pipe_idx];
     struct mpc          *mpc      = vpe_priv->resource.mpc[pipe_idx];
     enum vpe_cmd_type    cmd_type = VPE_CMD_TYPE_COUNT;
+    struct vpe_vector   *config_vector;
 
     vpe_priv->fe_cb_ctx.stream_op_sharing = true;
     vpe_priv->fe_cb_ctx.stream_sharing    = false;
@@ -951,7 +996,8 @@ void vpe10_create_stream_ops_config(struct vpe_priv *vpe_priv, uint32_t pipe_idx
         return;
 
     // return if already generated
-    if (stream_ctx->num_stream_op_configs[cmd_type])
+    config_vector = stream_ctx->stream_op_configs[pipe_idx][cmd_type];
+    if (config_vector->num_elements)
         return;
 
     vpe_priv->fe_cb_ctx.cmd_type = cmd_type;
@@ -1038,7 +1084,7 @@ void vpe10_create_stream_ops_config(struct vpe_priv *vpe_priv, uint32_t pipe_idx
     config_writer_complete(&vpe_priv->config_writer);
 }
 
-#define VPE10_GENERAL_VPE_DESC_SIZE                64    // 4 * (4 + (2 * num_configs))
+#define VPE10_GENERAL_VPE_DESC_SIZE                144   // 4 * (4 + (2 * MAX_NUM_SAVED_CONFIG))
 #define VPE10_GENERAL_EMB_USAGE_FRAME_SHARED       6000  // currently max 4804 is recorded
 #define VPE10_GENERAL_EMB_USAGE_3DLUT_FRAME_SHARED 40960 // currently max 35192 is recorded
 #define VPE10_GENERAL_EMB_USAGE_BG_SHARED          2400 // currently max 1772 + 92 + 72 = 1936 is recorded
@@ -1057,8 +1103,9 @@ void vpe10_get_bufs_req(struct vpe_priv *vpe_priv, struct vpe_bufs_req *req)
     req->cmd_buf_size = 0;
     req->emb_buf_size = 0;
 
-    for (i = 0; i < vpe_priv->num_vpe_cmds; i++) {
-        cmd_info = &vpe_priv->vpe_cmd_info[i];
+    for (i = 0; i < vpe_priv->vpe_cmd_vector->num_elements; i++) {
+        cmd_info = vpe_vector_get(vpe_priv->vpe_cmd_vector, i);
+        VPE_ASSERT(cmd_info);
 
         // each cmd consumes one VPE descriptor
         req->cmd_buf_size += VPE10_GENERAL_VPE_DESC_SIZE;
@@ -1091,4 +1138,17 @@ void vpe10_get_bufs_req(struct vpe_priv *vpe_priv, struct vpe_bufs_req *req)
 
         req->emb_buf_size += emb_req;
     }
+}
+
+enum vpe_status vpe10_check_mirror_rotation_support(const struct vpe_stream *stream)
+{
+    VPE_ASSERT(stream != NULL);
+
+    if (stream->rotation != VPE_ROTATION_ANGLE_0)
+        return VPE_STATUS_ROTATION_NOT_SUPPORTED;
+
+    if (stream->vertical_mirror)
+        return VPE_STATUS_MIRROR_NOT_SUPPORTED;
+
+    return VPE_STATUS_OK;
 }

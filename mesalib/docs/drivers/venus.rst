@@ -139,7 +139,7 @@ Make sure a host Wayland compositor is running.  Replace
 ``--display-window-keyboard --display-window-mouse`` by
 ``--wayland-sock=<path-to-wayland-socket>`` when starting crosvm.
 
-In the guest, build and start sommelier, the special Wayland compositor,
+In the guest, build and start Sommelier, the special Wayland compositor,
 
 .. code-block:: sh
 

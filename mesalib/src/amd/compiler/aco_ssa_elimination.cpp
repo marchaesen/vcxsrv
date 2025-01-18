@@ -215,6 +215,7 @@ try_remove_simple_block(ssa_elimination_ctx& ctx, Block* block)
       assert(branch.target[1] == block->index);
       branch.target[1] = succ.index;
       branch.opcode = aco_opcode::p_branch;
+      branch.rarely_taken = branch.never_taken = false;
    } else if (branch.target[1] == block->index) {
       /* check if there is a fall-through path from block to succ */
       bool falls_through = block->index < succ.index;
@@ -256,6 +257,7 @@ try_remove_simple_block(ssa_elimination_ctx& ctx, Block* block)
          branch.operands.pop_back();
 
       branch.opcode = aco_opcode::p_branch;
+      branch.rarely_taken = branch.never_taken = false;
    }
 
    for (unsigned i = 0; i < pred.linear_succs.size(); i++)
@@ -338,7 +340,8 @@ try_optimize_branching_sequence(ssa_elimination_ctx& ctx, Block& block, const in
    if (exec_copy->opcode != and_saveexec && exec_copy->opcode != aco_opcode::p_parallelcopy)
       return;
 
-   if (exec_val->definitions.size() > 1)
+   /* Only allow SALU with multiple definitions. */
+   if (!exec_val->isSALU() && exec_val->definitions.size() > 1)
       return;
 
    const bool vcmpx_exec_only = ctx.program->gfx_level >= GFX10;
@@ -398,7 +401,8 @@ try_optimize_branching_sequence(ssa_elimination_ctx& ctx, Block& block, const in
     */
    const bool can_reassign =
       vopc || (exec_copy->opcode == aco_opcode::p_parallelcopy &&
-               (exec_val->isSALU() || exec_val->opcode == aco_opcode::p_parallelcopy));
+               (exec_val->isSALU() || exec_val->opcode == aco_opcode::p_parallelcopy ||
+                exec_val->opcode == aco_opcode::p_create_vector));
 
    /* The reassignment is not worth it when both the original exec needs to be copied
     * and the new exec copy can't be removed. In this case we'd end up with more instructions.
@@ -425,13 +429,6 @@ try_optimize_branching_sequence(ssa_elimination_ctx& ctx, Block& block, const in
              regs_intersect(exec_copy_def, Definition(instr->pseudo().scratch_sgpr, s1)))
             return;
       }
-
-      /* Check if the instruction may implicitly read VCC, eg. v_cndmask or add with carry.
-       * Rewriting these operands may require format conversion because of encoding limitations.
-       */
-      if (exec_wr_def.physReg() == vcc && instr->isVALU() && instr->operands.size() >= 3 &&
-          !instr->isVOP3())
-         return;
    }
 
    if (save_original_exec) {
@@ -507,8 +504,10 @@ try_optimize_branching_sequence(ssa_elimination_ctx& ctx, Block& block, const in
       exec_copy->operands[0] = Operand(exec, ctx.program->lane_mask);
    }
 
-   if (exec_val->opcode == aco_opcode::p_parallelcopy && exec_val->operands[0].isConstant() &&
-       exec_val->operands[0].constantValue()) {
+   bool has_nonzero_op =
+      std::any_of(exec_val->operands.begin(), exec_val->operands.end(),
+                  [](const Operand& op) -> bool { return op.isConstant() && op.constantValue(); });
+   if (exec_val->isPseudo() && has_nonzero_op) {
       /* Remove the branch instruction when exec is constant non-zero. */
       aco_ptr<Instruction>& branch = block.instructions.back();
       if (branch->opcode == aco_opcode::p_cbranch_z && branch->operands[0].physReg() == exec)

@@ -27,40 +27,8 @@
 #include "util/u_math.h"
 #include <sys/mman.h>
 
-static const struct spirv_capabilities spirv_caps = {
-   .Addresses = true,
-   .Float16 = true,
-   .Float64 = true,
-   .Groups = true,
-   .StorageImageWriteWithoutFormat = true,
-   .Int8 = true,
-   .Int16 = true,
-   .Int64 = true,
-   .Int64Atomics = true,
-   .Kernel = true,
-   .Linkage = true, /* We receive linked kernel from clc */
-   .DenormFlushToZero = true,
-   .DenormPreserve = true,
-   .SignedZeroInfNanPreserve = true,
-   .RoundingModeRTE = true,
-   .RoundingModeRTZ = true,
-   .GenericPointer = true,
-   .GroupNonUniform = true,
-   .GroupNonUniformArithmetic = true,
-   .GroupNonUniformClustered = true,
-   .GroupNonUniformBallot = true,
-   .GroupNonUniformQuad = true,
-   .GroupNonUniformShuffle = true,
-   .GroupNonUniformVote = true,
-   .SubgroupDispatch = true,
-
-   .SubgroupShuffleINTEL = true,
-   .SubgroupBufferBlockIOINTEL = true,
-};
-
 static const struct spirv_to_nir_options spirv_options = {
    .environment = NIR_SPIRV_OPENCL,
-   .capabilities = &spirv_caps,
    .shared_addr_format = nir_address_format_62bit_generic,
    .global_addr_format = nir_address_format_62bit_generic,
    .temp_addr_format = nir_address_format_62bit_generic,
@@ -125,6 +93,46 @@ lower_builtins(nir_builder *b, nir_instr *instr, void *data)
    } else if (strcmp(func->name, "nir_fence_helper_exit_agx") == 0) {
       b->cursor = nir_instr_remove(&call->instr);
       nir_fence_helper_exit_agx(b);
+      return true;
+   } else if (strcmp(func->name, "nir_bindless_image_load_array") == 0) {
+      b->cursor = nir_instr_remove(&call->instr);
+
+      nir_def *texel = nir_bindless_image_load(
+         b, 4, 32, call->params[1].ssa, call->params[2].ssa, nir_imm_int(b, 0),
+         nir_imm_int(b, 0), .image_array = true,
+         .image_dim = GLSL_SAMPLER_DIM_2D, .dest_type = nir_type_uint32,
+         .access = ACCESS_IN_BOUNDS_AGX);
+
+      nir_store_deref(b, nir_src_as_deref(call->params[0]), texel, 0xf);
+      return true;
+   } else if (strcmp(func->name, "nir_bindless_image_store_array") == 0) {
+      b->cursor = nir_instr_remove(&call->instr);
+
+      nir_bindless_image_store(
+         b, call->params[0].ssa, call->params[1].ssa, nir_imm_int(b, 0),
+         call->params[2].ssa, nir_imm_int(b, 0), .image_array = true,
+         .image_dim = GLSL_SAMPLER_DIM_2D, .src_type = nir_type_uint32,
+         .access = ACCESS_NON_READABLE);
+      return true;
+   } else if (strcmp(func->name, "nir_bindless_image_load_ms_array") == 0) {
+      b->cursor = nir_instr_remove(&call->instr);
+
+      nir_def *texel = nir_bindless_image_load(
+         b, 4, 32, call->params[1].ssa, call->params[2].ssa,
+         call->params[3].ssa, nir_imm_int(b, 0), .image_array = true,
+         .image_dim = GLSL_SAMPLER_DIM_MS, .dest_type = nir_type_uint32,
+         .access = ACCESS_IN_BOUNDS_AGX);
+
+      nir_store_deref(b, nir_src_as_deref(call->params[0]), texel, 0xf);
+      return true;
+   } else if (strcmp(func->name, "nir_bindless_image_store_ms_array") == 0) {
+      b->cursor = nir_instr_remove(&call->instr);
+
+      nir_bindless_image_store(
+         b, call->params[0].ssa, call->params[1].ssa, call->params[2].ssa,
+         call->params[3].ssa, nir_imm_int(b, 0), .image_array = true,
+         .image_dim = GLSL_SAMPLER_DIM_MS, .src_type = nir_type_uint32,
+         .access = ACCESS_NON_READABLE);
       return true;
    }
 

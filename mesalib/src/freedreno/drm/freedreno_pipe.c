@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2012-2018 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2012-2018 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -200,8 +182,17 @@ uint32_t
 fd_pipe_emit_fence(struct fd_pipe *pipe, struct fd_ringbuffer *ring)
 {
    uint32_t fence = ++pipe->last_fence;
+   unsigned gen = fd_dev_gen(&pipe->dev_id);
 
-   if (pipe->is_64bit) {
+   if (gen >= A7XX) {
+      OUT_PKT7(ring, CP_EVENT_WRITE7, 4);
+      OUT_RING(ring, CP_EVENT_WRITE_0_EVENT(CACHE_FLUSH_TS) |
+               CP_EVENT_WRITE7_0_WRITE_SRC(EV_WRITE_USER_32B) |
+               CP_EVENT_WRITE7_0_WRITE_DST(EV_DST_RAM) |
+               CP_EVENT_WRITE7_0_WRITE_ENABLED);
+      OUT_RELOC(ring, control_ptr(pipe, fence));   /* ADDR_LO/HI */
+      OUT_RING(ring, fence);
+   } else if (gen >= A5XX) {
       OUT_PKT7(ring, CP_EVENT_WRITE, 4);
       OUT_RING(ring, CP_EVENT_WRITE_0_EVENT(CACHE_FLUSH_TS));
       OUT_RELOC(ring, control_ptr(pipe, fence));   /* ADDR_LO/HI */

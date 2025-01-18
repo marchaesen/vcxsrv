@@ -263,19 +263,10 @@ pack_half_1x16_rtz(float x)
  * Evaluate one component of unpackHalf2x16.
  */
 static float
-unpack_half_1x16_flush_to_zero(uint16_t u)
+unpack_half_1x16(uint16_t u, bool ftz)
 {
-   if (0 == (u & 0x7c00))
+   if (0 == (u & 0x7c00) && ftz)
       u &= 0x8000;
-   return _mesa_half_to_float(u);
-}
-
-/**
- * Evaluate one component of unpackHalf2x16.
- */
-static float
-unpack_half_1x16(uint16_t u)
-{
    return _mesa_half_to_float(u);
 }
 
@@ -291,9 +282,9 @@ static uint32_t pack_32_to_r11g11b10_v3d(const uint32_t src0,
                                          const uint32_t src1)
 {
    float rgb[3] = {
-      unpack_half_1x16((src0 & 0xffff)),
-      unpack_half_1x16((src0 >> 16)),
-      unpack_half_1x16((src1 & 0xffff)),
+      unpack_half_1x16((src0 & 0xffff), false),
+      unpack_half_1x16((src0 >> 16), false),
+      unpack_half_1x16((src1 & 0xffff), false),
    };
 
    return float3_to_r11g11b10f(rgb);

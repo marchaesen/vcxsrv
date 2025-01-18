@@ -102,7 +102,6 @@ struct aco_shader_info {
    bool has_ngg_early_prim_export;
    bool image_2d_view_of_3d;
    unsigned workgroup_size;
-   bool has_epilog;                        /* Only for TCS or PS. */
    bool merged_shader_compiled_separately; /* GFX9+ */
    struct ac_arg next_stage_pc;
    struct ac_arg epilog_pc; /* Vulkan only */
@@ -127,6 +126,7 @@ struct aco_shader_info {
       uint32_t num_interp;
       unsigned spi_ps_input_ena;
       unsigned spi_ps_input_addr;
+      bool has_epilog;
 
       /* OpenGL only */
       struct ac_arg alpha_reference;
@@ -141,7 +141,6 @@ struct aco_shader_info {
 };
 
 enum aco_compiler_debug_level {
-   ACO_COMPILER_DEBUG_LEVEL_PERFWARN,
    ACO_COMPILER_DEBUG_LEVEL_ERROR,
 };
 

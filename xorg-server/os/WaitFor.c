@@ -52,9 +52,7 @@ SOFTWARE.
  *
  *****************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <errno.h>
 #include <stdio.h>
@@ -66,11 +64,12 @@ SOFTWARE.
 
 #include "dix/dix_priv.h"
 #include "os/busfault.h"
+#include "os/screensaver.h"
 
 #include "misc.h"
 #include "osdep.h"
 #include "dixstruct_priv.h"
-#include "opaque.h"
+#include "globals.h"
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
@@ -502,13 +501,13 @@ NextDPMSTimeout(INT32 timeout)
     switch (DPMSPowerLevel) {
     case DPMSModeOn:
         DPMS_CHECK_TIMEOUT(DPMSStandbyTime)
-
+        /* fallthrough */
     case DPMSModeStandby:
         DPMS_CHECK_TIMEOUT(DPMSSuspendTime)
-
+        /* fallthrough */
     case DPMSModeSuspend:
         DPMS_CHECK_TIMEOUT(DPMSOffTime)
-
+        /* fallthrough */
     default:                   /* DPMSModeOff */
         return 0;
     }

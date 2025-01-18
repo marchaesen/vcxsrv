@@ -64,8 +64,10 @@ vdp_imp_device_create_x11(Display *display, int screen, VdpDevice *device,
    pipe_reference_init(&dev->reference, 1);
 
    dev->vscreen = vl_dri3_screen_create(display, screen);
+#ifdef HAVE_X11_DRI2
    if (!dev->vscreen)
       dev->vscreen = vl_dri2_screen_create(display, screen);
+#endif
    if (!dev->vscreen)
       dev->vscreen = vl_xlib_swrast_screen_create(display, screen);
    if (!dev->vscreen) {
@@ -74,6 +76,12 @@ vdp_imp_device_create_x11(Display *display, int screen, VdpDevice *device,
    }
 
    pscreen = dev->vscreen->pscreen;
+   /* video cannot work if these are not supported */
+   if (!pscreen->get_video_param || !pscreen->is_video_format_supported) {
+      ret = VDP_STATUS_RESOURCES;
+      goto no_vscreen;
+   }
+
    dev->context = pipe_create_multimedia_context(pscreen);
    if (!dev->context) {
       ret = VDP_STATUS_RESOURCES;

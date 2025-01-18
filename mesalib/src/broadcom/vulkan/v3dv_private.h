@@ -115,12 +115,6 @@
 
 struct v3dv_instance;
 
-#ifdef USE_V3D_SIMULATOR
-#define using_v3d_simulator true
-#else
-#define using_v3d_simulator false
-#endif
-
 struct v3d_simulator_file;
 
 /* Minimum required by the Vulkan 1.1 spec */
@@ -145,10 +139,6 @@ struct v3dv_physical_device {
    dev_t primary_devid;
    dev_t render_devid;
 
-#if using_v3d_simulator
-   uint32_t device_id;
-#endif
-
    uint8_t driver_build_sha1[20];
    uint8_t pipeline_cache_uuid[VK_UUID_SIZE];
    uint8_t device_uuid[VK_UUID_SIZE];
@@ -168,7 +158,9 @@ struct v3dv_physical_device {
 
    struct v3d_device_info devinfo;
 
+#if USE_V3D_SIMULATOR
    struct v3d_simulator_file *sim_file;
+#endif
 
    const struct v3d_compiler *compiler;
    uint32_t next_program_id;
@@ -235,6 +227,7 @@ struct v3dv_instance {
 
    bool pipeline_cache_enabled;
    bool default_pipeline_cache_enabled;
+   bool meta_cache_enabled;
 };
 
 /* FIXME: In addition to tracking the last job submitted by GPU queue (cl, csd,
@@ -819,7 +812,7 @@ struct v3dv_buffer {
    struct vk_object_base base;
 
    VkDeviceSize size;
-   VkBufferUsageFlags usage;
+   VkBufferUsageFlagBits2KHR usage;
    uint32_t alignment;
 
    struct v3dv_device_memory *mem;
@@ -1285,6 +1278,9 @@ struct v3dv_job {
    /* If this is a CL job, whether we should sync before binning */
    bool needs_bcl_sync;
 
+   /* If we have emitted a (default) point size packet in this job */
+   bool emitted_default_point_size;
+
    /* Job specs for CPU jobs */
    union {
       struct v3dv_reset_query_cpu_job_info          query_reset;
@@ -1385,6 +1381,7 @@ struct v3dv_draw_info {
 struct v3dv_vertex_binding {
    struct v3dv_buffer *buffer;
    VkDeviceSize offset;
+   VkDeviceSize size;
 };
 
 struct v3dv_descriptor_state {
@@ -1494,6 +1491,7 @@ struct v3dv_cmd_buffer_state {
    struct {
       VkBuffer buffer;
       VkDeviceSize offset;
+      VkDeviceSize size;
       uint8_t index_size;
    } index_buffer;
 
@@ -1598,7 +1596,6 @@ struct v3dv_cmd_buffer_state {
     * so we need to keep track of it in the cmd_buffer state
     */
    bool incompatible_ez_test;
-
 };
 
 void
@@ -1932,6 +1929,7 @@ struct v3dv_pipeline_stage {
    const struct vk_shader_module *module;
    const char *entrypoint;
    const VkSpecializationInfo *spec_info;
+   const VkShaderModuleCreateInfo *module_info;
 
    nir_shader *nir;
 
@@ -2057,11 +2055,11 @@ struct v3dv_descriptor_set_layout {
    /* Shader stages affected by this descriptor set */
    uint16_t shader_stages;
 
-   /* Number of descriptors in this descriptor set */
-   uint32_t descriptor_count;
-
    /* Number of dynamic offsets used by this descriptor set */
    uint16_t dynamic_offset_count;
+
+   /* Number of descriptors in this descriptor set */
+   uint32_t descriptor_count;
 
    /* Descriptor set layouts can be destroyed even if they are still being
     * used.
@@ -2229,7 +2227,7 @@ struct v3dv_pipeline {
    struct v3dv_device *device;
 
    VkShaderStageFlags active_stages;
-   VkPipelineCreateFlags flags;
+   VkPipelineCreateFlagBits2KHR flags;
 
    struct v3dv_render_pass *pass;
    struct v3dv_subpass *subpass;
@@ -2270,11 +2268,8 @@ struct v3dv_pipeline {
 
    bool negative_one_to_one;
 
-   /* Accessed by binding. So vb[binding]->stride is the stride of the vertex
-    * array with such binding
-    */
+   /* Indexed by vertex binding. */
    struct v3dv_pipeline_vertex_binding {
-      uint32_t stride;
       uint32_t instance_divisor;
    } vb[MAX_VBS];
    uint32_t vb_count;
@@ -2371,7 +2366,7 @@ v3dv_cmd_buffer_get_descriptor_state(struct v3dv_cmd_buffer *cmd_buffer,
       return &cmd_buffer->state.gfx.descriptor_state;
 }
 
-const nir_shader_compiler_options *v3dv_pipeline_get_nir_options(void);
+const nir_shader_compiler_options *v3dv_pipeline_get_nir_options(const struct v3d_device_info *devinfo);
 
 uint32_t v3dv_physical_device_vendor_id(const struct v3dv_physical_device *dev);
 uint32_t v3dv_physical_device_device_id(const struct v3dv_physical_device *dev);
@@ -2565,10 +2560,11 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(v3dv_sampler, base, VkSampler,
 static inline int
 v3dv_ioctl(int fd, unsigned long request, void *arg)
 {
-   if (using_v3d_simulator)
-      return v3d_simulator_ioctl(fd, request, arg);
-   else
-      return drmIoctl(fd, request, arg);
+#if USE_V3D_SIMULATOR
+   return v3d_simulator_ioctl(fd, request, arg);
+#else
+   return drmIoctl(fd, request, arg);
+#endif
 }
 
 /* Flags OOM conditions in command buffer state.
@@ -2623,24 +2619,6 @@ u64_compare(const void *key1, const void *key2)
    }                                                  \
    v3d_X_thing;                                       \
 })
-
-/* Helper to get hw-specific macro values */
-#define V3DV_X(device, thing) ({                                \
-   __typeof(V3D42_##thing) V3D_X_THING;                         \
-   switch (device->devinfo.ver) {                               \
-   case 42:                                                     \
-      V3D_X_THING = V3D42_##thing;                              \
-      break;                                                    \
-   case 71:                                                     \
-      V3D_X_THING = V3D71_##thing;                              \
-      break;                                                    \
-   default:                                                     \
-      unreachable("Unsupported hardware generation");           \
-   }                                                            \
-   V3D_X_THING;                                                 \
-})
-
-
 
 /* v3d_macros from common requires v3dX and V3DX definitions. Below we need to
  * define v3dX for each version supported, because when we compile code that

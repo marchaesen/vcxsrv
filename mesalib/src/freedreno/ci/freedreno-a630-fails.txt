@@ -15,8 +15,6 @@ spec@ext_external_objects@vk-image-overwrite@RGBA 8 UINT optimal: Failed to crea
 spec@ext_external_objects@vk-image-overwrite@RGBA 8 UNORM optimal: Failed to create texture from GL memory object.,Fail
 spec@ext_external_objects@vk-stencil-display@D32S8,Fail
 
-KHR-GL46.gpu_shader_fp64.fp64.max_uniform_components,Fail
-
 KHR-GL46.shader_image_load_store.basic-allFormats-store,Fail
 KHR-GL46.shading_language_420pack.binding_images,Fail
 
@@ -34,32 +32,22 @@ dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 # new fails with gl45:
 #
 
-# MESA: warning: sample averaging on fallback z24s8 blit when we shouldn't.
-KHR-GL46.direct_state_access.renderbuffers_storage_multisample,Fail
 
 KHR-GL46.multi_bind.dispatch_bind_image_textures,Fail
-
-# Fails when TU_DEBUG=forcebin is set
-gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
-gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_vert,Fail
 
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
-glx@glx-swap-pixmap-bad,Fail
 
 # "../src/freedreno/ir3/ir3_shader.h:968:ir3_link_add: Assertion `i < ARRAY_SIZE(l->var)' failed."
 shaders@glsl-max-varyings >max_varying_components,Crash
 
-spec@arb_depth_buffer_float@fbo-clear-formats stencil,Fail
-spec@arb_depth_buffer_float@fbo-clear-formats stencil@GL_DEPTH32F_STENCIL8,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F NPOT,Fail
 
-spec@arb_occlusion_query@occlusion_query_order,Fail
 spec@arb_point_sprite@arb_point_sprite-interactions 1.0,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
@@ -98,7 +86,9 @@ spec@arb_sample_shading@samplemask 4@noms partition,Fail
 # 0ef03f824d1833a853d1a20b4be121089bb9246c
 spec@arb_shader_image_load_store@qualifiers,Fail
 spec@arb_shader_image_load_store@qualifiers@r8/permissive layout qualifiers/permissive access qualifiers/permissive binding test,Fail
+spec@arb_shader_image_load_store@qualifiers@r8/permissive layout qualifiers/strict access qualifiers/permissive binding test,Fail
 spec@arb_shader_image_load_store@qualifiers@r8/strict layout qualifiers/permissive access qualifiers/permissive binding test,Fail
+spec@arb_shader_image_load_store@qualifiers@r8/strict layout qualifiers/strict access qualifiers/permissive binding test,Fail
 
 # ir3_nir_lower_tess.c:251: lower_block_to_explicit_output: Assertion `util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1)' failed.
 spec@arb_tessellation_shader@execution@tcs-input-read-mat,Crash
@@ -218,8 +208,6 @@ spec@khr_texture_compression_astc@miptree-gles hdr,Fail
 spec@khr_texture_compression_astc@miptree-gles hdr@HDR Profile,Fail
 spec@khr_texture_compression_astc@miptree-gles ldr,Fail
 spec@khr_texture_compression_astc@miptree-gles ldr@LDR Profile,Fail
-spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
-spec@khr_texture_compression_astc@miptree-gles srgb-fp@sRGB decode full precision,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-sd,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-sd@sRGB skip decode,Fail
 spec@khr_texture_compression_astc@miptree-gl hdr,Fail
@@ -238,8 +226,9 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
 
-# crash in tgsi exec doing st_freedback_draw_vbo().
-spec@!opengl 1.0@rasterpos,Crash
+spec@!opengl 1.0@rasterpos,Fail
+spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
+spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
 
 spec@!opengl 1.1@polygon-mode-facing,Fail
 spec@!opengl 1.1@polygon-mode,Fail
@@ -272,22 +261,6 @@ spec@!opengl 1.0@depth-clear-precision-check@depth24,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth24_stencil8,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
 
-# These seem to fail with zink as well (and on various other drivers
-# from what I can tell from expectations files, so maybe test issue?)
-spec@arb_query_buffer_object@coherency,Fail
-spec@arb_query_buffer_object@coherency@index-buffer-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@coherency@indirect-dispatch-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_COMPUTE_SHADER_INVOCATIONS,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_GEOMETRY_SHADER_INVOCATIONS,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TESS_EVALUATION_SHADER_INVOCATIONS,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,Fail
-
-spec@arb_vertex_attrib_64bit@execution@unused-sub-dvec4-01,Crash
-spec@arb_vertex_attrib_64bit@execution@unused-sub-dvec4-02,Crash
-
 spec@arb_gpu_shader5@arb_gpu_shader5-interpolateatsample-dynamically-nonuniform,Fail
 spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams,Fail
 spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams-without-invocations,Fail
@@ -302,40 +275,40 @@ spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-inverse-dmat4,Fail
 spec@arb_gpu_shader_fp64@uniform_buffers@fs-ubo-load.indirect.3,Fail
 spec@glsl-4.00@execution@built-in-functions@fs-op-div-double-dmat4,Fail
 
-dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_stencil,Fail
-
-dEQP-VK.binding_model.descriptor_buffer.basic.limits,Fail
-gmem-dEQP-VK.binding_model.descriptor_buffer.basic.limits,Fail
-
-# New CTS failures in 1.3.6.3
-dEQP-VK.info.device_mandatory_features,Fail
-
-# New CTS failures in 1.3.7.0
-dEQP-VK.api.version_check.unavailable_entry_points,Fail
-dEQP-VK.dynamic_rendering.primary_cmd_buff.basic.partial_binding_depth_stencil,Fail
-dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d24_unorm_s8_uint.compatibility_depth_zero_stencil_zero_testing_stencil,Fail
-gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.32bit.triangle_fan.draw,Fail
-gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.64bit.line_list_with_adjacency.indirect,Fail
-gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.pgq_64bit_xfb_32bit.triangle_strip_with_adjacency.draw,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.64bit.tese.no_xfb.rast.patch_list.pgq_default.two_draws.pqg_first.before_2_queries,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.line_list.pgq_default_xfb_0.two_draws.xfbq_first.none,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.queue_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.line_list_with_adjacency.pgq_default_xfb_0.two_draws.xfbq_first.before_2_queries,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.queue_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.point_list.pgq_default_xfb_default.two_draws.pqg_first.none_2_queries,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.pgq_32bit_xfb_64bit.tese.xfb.rast.patch_list.pgq_default_xfb_default.single_draw.xfbq_first.after_2_queries_with_availability,Fail
-
-gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.pgq_32bit_xfb_64bit.triangle_strip_with_adjacency.draw,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.line_list_with_adjacency.pgq_0_xfb_0.single_draw.xfbq_first.none,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.line_list.pgq_default_xfb_default.two_draws.pqg_first.before,Fail
-stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.queue_reset.pgq_64bit_xfb_32bit.tese.xfb.rast.patch_list.pgq_default_xfb_default.single_draw.pqg_first.after_2_queries,Fail
-
-# New CTS failures in 1.3.8.0
-dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d24_unorm_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_stencil,Fail
-gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.32bit.line_list_with_adjacency.indirect,Fail
-
-# New CTS failures in 1.3.8.2
-dEQP-VK.spirv_assembly.instruction.graphics.float_controls.fp32.input_args.rounding_rte_conv_from_int32_up_vert,Fail
-
 # uprev Piglit in Mesa
 spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int16,Fail
 spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int8,Fail
+glx@glx-swap-pixmap-bad,Fail
+spec@arb_occlusion_query@occlusion_query_order,Fail
+spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
+spec@khr_texture_compression_astc@miptree-gles srgb-fp@sRGB decode full precision,Fail
 
+# glcts update
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_x,Fail
+dEQP-GLES2.functional.texture.mipmap.cube.projected.nearest_linear,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_x,Fail
+KHR-GL46.texture_view.view_classes,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_x,Fail
+KHR-GLES3.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
+KHR-GL46.texture_lod_basic.lod_selection,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_y,Fail
+KHR-GL46.texture_lod_bias.texture_lod_bias_all,Fail
+KHR-GL46.direct_state_access.renderbuffers_storage_multisample,Fail
+
+# GL tests above, Vulkan tests below
+
+
+# New CTS failures in 1.3.7.0
+dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d24_unorm_s8_uint.compatibility_depth_zero_stencil_zero_testing_stencil,Fail
+dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d24_unorm_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_stencil,Fail
+dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_stencil,Fail

@@ -1,4 +1,4 @@
-# Copyright (C) 2024 Igalia S.L.
+# Copyright © 2024 Igalia S.L.
 # SPDX-License-Identifier: MIT
 
 

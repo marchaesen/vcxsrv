@@ -29,10 +29,6 @@
 
 #include "v3dv_private.h"
 
-/* FIXME: C&P from radv, perhaps a common place?*/
-void
-v3dv_print_spirv(const char *data, uint32_t size, FILE *fp);
-
 void
 v3dv_print_v3d_key(struct v3d_key *key, uint32_t v3d_key_size);
 

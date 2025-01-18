@@ -402,13 +402,11 @@ nir_lower_const_arrays_to_uniforms(nir_shader *shader,
 
          nir_def *new_def = nir_load_deref(&b, new_deref_instr);
 
-         nir_def_rewrite_uses(&intrin->def, new_def);
-         nir_instr_remove(&intrin->instr);
+         nir_def_replace(&intrin->def, new_def);
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
 
    ralloc_free(var_infos);
    _mesa_hash_table_destroy(const_array_vars, NULL);

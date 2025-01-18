@@ -134,16 +134,16 @@ _XlcDefaultMapModifiers(
     const char *user_mods,
     const char *prog_mods)
 {
-    int i;
+    size_t i;
     char *mods;
 
     if (!_XlcValidModSyntax(prog_mods, im_valid))
 	return (char *)NULL;
     if (!_XlcValidModSyntax(user_mods, im_valid))
 	return (char *)NULL;
-    i = (int) strlen(prog_mods) + 1;
+    i = strlen(prog_mods) + 1;
     if (user_mods)
-	i = (int) ((size_t) i + strlen(user_mods));
+	i += strlen(user_mods);
     mods = Xmalloc(i);
     if (mods) {
 	strcpy(mods, prog_mods);

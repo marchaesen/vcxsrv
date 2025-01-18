@@ -97,8 +97,11 @@ prototype_string(const glsl_type *return_type, const char *name,
    ralloc_asprintf_append(&str, "%s(", name);
 
    const char *comma = "";
-   foreach_in_list(const ir_variable, param, parameters) {
-      ralloc_asprintf_append(&str, "%s%s", comma, glsl_get_type_name(param->type));
+   foreach_in_list(const ir_instruction, param, parameters) {
+      ralloc_asprintf_append(&str, "%s%s", comma,
+                             glsl_get_type_name(param->ir_type ==
+                                                ir_type_variable ? ((ir_variable *)param)->type :
+                                                ((ir_rvalue *)param)->type));
       comma = ", ";
    }
 
@@ -701,6 +704,8 @@ match_function_by_name(const char *name,
       /* Look for a match in the local shader.  If exact, we're done. */
       bool is_exact = false;
       sig = local_sig = f->matching_signature(state, actual_parameters,
+                                              state->has_implicit_conversions(),
+                                              state->has_implicit_int_to_uint_conversion(),
                                               allow_builtins, &is_exact);
       if (is_exact)
          return sig;
@@ -752,6 +757,8 @@ match_subroutine_by_name(const char *name,
       return NULL;
    *var_r = var;
    sig = found->matching_signature(state, actual_parameters,
+                                   state->has_implicit_conversions(),
+                                   state->has_implicit_int_to_uint_conversion(),
                                    false, &is_exact);
    return sig;
 }
@@ -1159,7 +1166,9 @@ implicitly_convert_component(ir_rvalue * &from, const glsl_base_type to,
                           from->type->vector_elements,
                           from->type->matrix_columns);
 
-      if (_mesa_glsl_can_implicitly_convert(from->type, desired_type, state)) {
+      if (_mesa_glsl_can_implicitly_convert(from->type, desired_type,
+                                            state->has_implicit_conversions(),
+                                            state->has_implicit_int_to_uint_conversion())) {
          /* Even though convert_component() implements the constructor
           * conversion rules (not the implicit conversion rules), its safe
           * to use it here because we already checked that the implicit
@@ -2394,6 +2403,24 @@ ast_function_expression::hir(exec_list *instructions,
          }
 
          ir_rvalue *result = convert_component(ir, desired_type);
+
+         /* If the bindless packing constructors are used directly as function
+          * params to bultin functions the compiler doesn't know what to do
+          * with them. To avoid this make sure we always copy the results from
+          * the pack to a temp first.
+          */
+         if (result->as_expression() &&
+             result->as_expression()->operation == ir_unop_pack_sampler_2x32) {
+            ir_variable *var =
+               new(ctx) ir_variable(desired_type, "sampler_ctor",
+                                    ir_var_temporary);
+            instructions->push_tail(var);
+
+            ir_dereference *lhs = new(ctx) ir_dereference_variable(var);
+            ir_instruction *assignment = new(ctx) ir_assignment(lhs, result);
+            instructions->push_tail(assignment);
+            result = lhs;
+         }
 
          /* Attempt to convert the parameter to a constant valued expression.
           * After doing so, track whether or not all the parameters to the

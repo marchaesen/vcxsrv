@@ -41,6 +41,7 @@
 #define     FMT_32_32_32_32                 0x00000022
 #define     FMT_32_32_32_32_FLOAT           0x00000023
 #define     FMT_1                           0x00000025
+#define     FMT_1_REVERSED                  0x00000026
 #define     FMT_GB_GR                       0x00000027
 #define     FMT_BG_RG                       0x00000028
 #define     FMT_32_AS_8                     0x00000029

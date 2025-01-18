@@ -282,7 +282,7 @@ preceded by a line with just ``l42:``.
 ``branch`` and ``absbranch`` fields can additionally have a ``call="true"``
 attribute. For now, this just changes the disassembly. In particular the label
 prefix is changed to ``fxn`` and an extra empty line before the destination is
-added to visually seperate the disassembly into functions. So, for example, a
+added to visually separate the disassembly into functions. So, for example, a
 call instruction defined like this:
 
 .. code-block:: xml
@@ -347,7 +347,7 @@ The ``type`` attribute specifies that the input to encoding an instruction
 is a ``struct ir3_instruction *``.  In the case of bitset hierarchies with
 multiple possible leaf nodes, a ``case-prefix`` attribute should be supplied
 along with a function that maps the bitset encode source to an enum value
-with the specified prefix prepended to uppercase'd leaf node name.  I.e. in
+with the specified prefix prepended to uppercased leaf node name.  I.e. in
 this case, "add.f" becomes ``OPC_ADD_F``.
 
 Individual ``<map>`` elements teach the encoder how to map from the encode

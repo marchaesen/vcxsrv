@@ -295,7 +295,7 @@ util_blit(struct d3d12_context *ctx,
 {
    util_blit_save_state(ctx);
 
-   util_blitter_blit(ctx->blitter, info);
+   util_blitter_blit(ctx->blitter, info, NULL);
 }
 
 static bool
@@ -599,6 +599,7 @@ static void
 blit_replicate_stencil(struct d3d12_context *ctx,
                        const struct pipe_blit_info *info)
 {
+   struct pipe_context *pctx = &ctx->base;
    assert(info->mask & PIPE_MASK_S);
 
    if (D3D12_DEBUG_BLIT & d3d12_debug)
@@ -611,6 +612,15 @@ blit_replicate_stencil(struct d3d12_context *ctx,
       util_blit(ctx, &new_info);
    }
 
+   struct pipe_surface *dst_view, dst_templ;
+   util_blitter_default_dst_texture(&dst_templ, info->dst.resource,
+                           info->dst.level, info->dst.box.z);
+   dst_view = pctx->create_surface(pctx, info->dst.resource, &dst_templ);
+
+   util_blit_save_state(ctx);
+   util_blitter_clear_depth_stencil(ctx->blitter, dst_view, PIPE_CLEAR_STENCIL,
+                                    0, 0, info->dst.box.x, info->dst.box.y,
+                                    info->dst.box.width, info->dst.box.height);
    util_blit_save_state(ctx);
    util_blitter_stencil_fallback(ctx->blitter, info->dst.resource,
                                  info->dst.level,
@@ -619,6 +629,8 @@ blit_replicate_stencil(struct d3d12_context *ctx,
                                  info->src.level,
                                  &info->src.box,
                                  info->scissor_enable ? &info->scissor : NULL);
+
+   pipe_surface_release(pctx, &dst_view);
 }
 
 void

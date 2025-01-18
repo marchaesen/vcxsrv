@@ -52,7 +52,7 @@ if host_machine.system() == 'windows' and get_option('default_library') in ['bot
 endif
 
 libfontconfig = library('fontconfig',
-  fc_sources, alias_headers, ft_alias_headers, fclang_h, fccase_h, fcobjshash_h,
+  fc_sources, alias_headers, ft_alias_headers, fclang_h, fccase_h, fcobjshash_h, fcstdint_h,
   c_shared_args: fc_c_shared_args,
   include_directories: incbase,
   dependencies: [deps, math_dep],

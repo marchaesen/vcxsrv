@@ -1,0 +1,7 @@
+[[piglit]]
+piglit_folder = "/piglit"
+profile = "cl"
+timeout = 300
+process_isolation = true
+  [piglit.env]
+  RUSTICL_ENABLE = "v3d"

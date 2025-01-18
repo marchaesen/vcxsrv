@@ -54,8 +54,6 @@ d3d12_video_encoder_update_current_frame_pic_params_info_h264(struct d3d12_video
                                                               struct pipe_picture_desc *  picture,
                                                               D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA &picParams,
                                                               bool &bUsedAsReference);
-D3D12_VIDEO_ENCODER_FRAME_TYPE_H264
-d3d12_video_encoder_convert_frame_type_h264(enum pipe_h2645_enc_picture_type picType);
 uint32_t
 d3d12_video_encoder_build_codec_headers_h264(struct d3d12_video_encoder *pD3D12Enc,
                                              std::vector<uint64_t> &pWrittenCodecUnitsSizes);
@@ -65,5 +63,12 @@ d3d12_video_encoder_compare_slice_config_h264_hevc(
    D3D12_VIDEO_ENCODER_PICTURE_CONTROL_SUBREGIONS_LAYOUT_DATA_SLICES targetConfig,
    D3D12_VIDEO_ENCODER_FRAME_SUBREGION_LAYOUT_MODE                   otherMode,
    D3D12_VIDEO_ENCODER_PICTURE_CONTROL_SUBREGIONS_LAYOUT_DATA_SLICES otherConfig);
+
+uint32_t
+d3d12_video_encoder_build_slice_svc_prefix_nalu_h264(struct d3d12_video_encoder *   pD3D12Enc,
+                                                     EncodedBitstreamResolvedMetadata& associatedMetadata,
+                                                     std::vector<uint8_t> &         headerBitstream,
+                                                     std::vector<uint8_t>::iterator placingPositionStart,
+                                                     size_t &                       writtenSVCPrefixNalBytes);
 
 #endif

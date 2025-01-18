@@ -55,6 +55,8 @@ int
 v3dX(get_driver_query_group_info_perfcnt)(struct v3d_screen *screen, unsigned index,
                                           struct pipe_driver_query_group_info *info)
 {
+        struct v3d_device_info *devinfo = &screen->devinfo;
+
         if (!screen->has_perfmon)
                 return 0;
 
@@ -66,7 +68,8 @@ v3dX(get_driver_query_group_info_perfcnt)(struct v3d_screen *screen, unsigned in
 
         info->name = "V3D counters";
         info->max_active_queries = DRM_V3D_MAX_PERF_COUNTERS;
-        info->num_queries = ARRAY_SIZE(v3d_performance_counters);
+        info->num_queries = devinfo->max_perfcnt ? devinfo->max_perfcnt
+                                                 : ARRAY_SIZE(v3d_performance_counters);
 
         return 1;
 }
@@ -75,17 +78,42 @@ int
 v3dX(get_driver_query_info_perfcnt)(struct v3d_screen *screen, unsigned index,
                                     struct pipe_driver_query_info *info)
 {
+        struct v3d_device_info *devinfo = &screen->devinfo;
+        unsigned max_perfcnt = devinfo->max_perfcnt ? devinfo->max_perfcnt
+                                                    : ARRAY_SIZE(v3d_performance_counters);
+
         if (!screen->has_perfmon)
                 return 0;
 
         if (!info)
-                return ARRAY_SIZE(v3d_performance_counters);
+                return max_perfcnt;
 
-        if (index >= ARRAY_SIZE(v3d_performance_counters))
+        if (index >= max_perfcnt)
                 return 0;
 
+        if (screen->perfcnt_names) {
+                if (screen->perfcnt_names[index]) {
+                        info->name = screen->perfcnt_names[index];
+                } else {
+                        struct drm_v3d_perfmon_get_counter counter = {
+                                .counter = index,
+                        };
+                        int ret = v3d_ioctl(screen->fd, DRM_IOCTL_V3D_PERFMON_GET_COUNTER, &counter);
+                        if (ret != 0) {
+                                fprintf(stderr, "Failed to get performance counter %d: %s\n",
+                                        index, strerror(errno));
+                                return 0;
+                        }
+
+                        screen->perfcnt_names[index] = ralloc_strdup(screen->perfcnt_names,
+                                                                     (const char *) counter.name);
+                        info->name = screen->perfcnt_names[index];
+                }
+        } else {
+                info->name = v3d_performance_counters[index][V3D_PERFCNT_NAME];
+        }
+
         info->group_id = 0;
-        info->name = v3d_performance_counters[index][V3D_PERFCNT_NAME];
         info->query_type = PIPE_QUERY_DRIVER_SPECIFIC + index;
         info->result_type = PIPE_DRIVER_QUERY_RESULT_TYPE_CUMULATIVE;
         info->type = PIPE_DRIVER_QUERY_TYPE_UINT64;
@@ -237,13 +265,15 @@ v3dX(create_batch_query_perfcnt)(struct v3d_context *v3d, unsigned num_queries,
         struct v3d_query_perfcnt *pquery = NULL;
         struct v3d_query *query;
         struct v3d_perfmon_state *perfmon = NULL;
+        struct v3d_device_info *devinfo = &v3d->screen->devinfo;
+        unsigned max_perfcnt = devinfo->max_perfcnt ? devinfo->max_perfcnt
+                                                    : ARRAY_SIZE(v3d_performance_counters);
         int i;
 
         /* Validate queries */
         for (i = 0; i < num_queries; i++) {
                 if (query_types[i] < PIPE_QUERY_DRIVER_SPECIFIC ||
-                    query_types[i] >= PIPE_QUERY_DRIVER_SPECIFIC +
-                    ARRAY_SIZE(v3d_performance_counters)) {
+                    query_types[i] >= PIPE_QUERY_DRIVER_SPECIFIC + max_perfcnt) {
                         fprintf(stderr, "Invalid query type\n");
                         return NULL;
                 }

@@ -23,9 +23,7 @@
  * SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <float.h>
 #include <math.h>
@@ -33,6 +31,9 @@
 
 #include <X11/X.h>
 #include <X11/Xatom.h>
+
+#include "dix/dix_priv.h"
+#include "dix/property_priv.h"
 
 #include "compositeext.h"
 #include "compint.h"
@@ -316,7 +317,7 @@ damage_report(DamagePtr pDamage, RegionPtr pRegion, void *data)
 
     window_pixmap = xwl_screen->screen->GetWindowPixmap(xwl_window->surface_window);
     if (xwl_is_client_pixmap(window_pixmap))
-        xwl_screen->screen->DestroyPixmap(xwl_window_swap_pixmap(xwl_window));
+        xwl_screen->screen->DestroyPixmap(xwl_window_swap_pixmap(xwl_window, FALSE));
 }
 
 static void
@@ -494,6 +495,18 @@ window_get_client_toplevel(WindowPtr window)
     return window;
 }
 
+static Bool
+is_output_suitable_for_fullscreen(struct xwl_output *xwl_output)
+{
+    if (xwl_output == NULL)
+        return FALSE;
+
+    if (xwl_output->width == 0 || xwl_output->height == 0)
+        return FALSE;
+
+    return TRUE;
+}
+
 static struct xwl_output *
 xwl_window_get_output(struct xwl_window *xwl_window)
 {
@@ -501,11 +514,11 @@ xwl_window_get_output(struct xwl_window *xwl_window)
     struct xwl_output *xwl_output;
 
     xwl_output = xwl_output_get_output_from_name(xwl_screen, xwl_screen->output_name);
-    if (xwl_output)
+    if (is_output_suitable_for_fullscreen(xwl_output))
         return xwl_output;
 
     xwl_output = xwl_output_from_wl_output(xwl_screen, xwl_window->wl_output);
-    if (xwl_output)
+    if (is_output_suitable_for_fullscreen(xwl_output))
         return xwl_output;
 
     return xwl_screen_get_first_output(xwl_screen);
@@ -1053,7 +1066,7 @@ xwl_window_enter_output(struct xwl_window *xwl_window, struct xwl_output *xwl_ou
 {
     struct xwl_window_output *window_output;
 
-    window_output = xnfcalloc(1, sizeof(struct xwl_window_output));
+    window_output = XNFcallocarray(1, sizeof(struct xwl_window_output));
     window_output->xwl_output = xwl_output;
     xorg_list_add(&window_output->link, &xwl_window->xwl_output_list);
 }
@@ -1351,6 +1364,9 @@ xwl_window_update_surface_window(struct xwl_window *xwl_window)
         if (!RegionEqual(&window->winSize, &surface_window->winSize))
             break;
 
+        if (!window->mapped)
+            break;
+
         /* The surface window must be top-level for its window pixmap */
         window_pixmap = screen->GetWindowPixmap(window);
         if (window_pixmap == surface_pixmap)
@@ -1364,6 +1380,10 @@ xwl_window_update_surface_window(struct xwl_window *xwl_window)
          */
         if (window->drawable.depth == 32)
             continue;
+
+        if (window->redirectDraw == RedirectDrawManual &&
+            !xwl_present_window_redirected(window))
+            break;
 
         surface_window = window;
     }
@@ -1398,7 +1418,7 @@ xwl_window_update_surface_window(struct xwl_window *xwl_window)
     }
 
     if (surface_window->drawable.depth != xwl_window->surface_window->drawable.depth)
-        xwl_window_buffers_dispose(xwl_window);
+        xwl_window_buffers_dispose(xwl_window, FALSE);
 
     xwl_window->surface_window = surface_window;
     register_damage(xwl_window);
@@ -1609,7 +1629,7 @@ release_wl_surface_for_window_legacy_delay(struct xwl_window *xwl_window)
      * and Wayland processing so that the compositor has the time to
      * establish the association before the wl_surface is destroyed.
      */
-    xwl_wl_surface = xnfcalloc(1, sizeof *xwl_wl_surface);
+    xwl_wl_surface = XNFcallocarray(1, sizeof *xwl_wl_surface);
     xwl_wl_surface->wl_surface = xwl_window->surface;
     xorg_list_add(&xwl_wl_surface->link,
                   &xwl_window->xwl_screen->pending_wl_surface_destroy);
@@ -1634,28 +1654,15 @@ release_wl_surface_for_window(struct xwl_window *xwl_window)
         release_wl_surface_for_window_legacy_delay(xwl_window);
 }
 
-Bool
-xwl_unrealize_window(WindowPtr window)
+static void
+xwl_window_dispose(struct xwl_window *xwl_window)
 {
-    ScreenPtr screen = window->drawable.pScreen;
-    struct xwl_screen *xwl_screen;
-    struct xwl_window *xwl_window;
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
     struct xwl_seat *xwl_seat;
-    Bool ret;
+    WindowPtr window = xwl_window->toplevel;
+    ScreenPtr screen = xwl_screen->screen;
 
-    xwl_screen = xwl_screen_get(screen);
-
-    xwl_window = xwl_window_get(window);
-    if (xwl_window)
-        compUnredirectWindow(serverClient, window, CompositeRedirectManual);
-
-    screen->UnrealizeWindow = xwl_screen->UnrealizeWindow;
-    ret = (*screen->UnrealizeWindow) (window);
-    xwl_screen->UnrealizeWindow = screen->UnrealizeWindow;
-    screen->UnrealizeWindow = xwl_unrealize_window;
-
-    if (!xwl_window)
-        return ret;
+    compUnredirectWindow(serverClient, window, CompositeRedirectManual);
 
     xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
         if (xwl_seat->focus_window == xwl_window)
@@ -1695,9 +1702,10 @@ xwl_unrealize_window(WindowPtr window)
     release_wl_surface_for_window(xwl_window);
     xorg_list_del(&xwl_window->link_damage);
     xorg_list_del(&xwl_window->link_window);
-    unregister_damage(xwl_window);
 
-    xwl_window_buffers_dispose(xwl_window);
+    /* Special case for the root window in rootful mode */
+    xwl_window_buffers_dispose(xwl_window,
+                               (!xwl_screen->rootless && window == screen->root));
 
     if (xwl_window->window_buffers_timer)
         TimerFree(xwl_window->window_buffers_timer);
@@ -1709,6 +1717,25 @@ xwl_unrealize_window(WindowPtr window)
 
     free(xwl_window);
     dixSetPrivate(&window->devPrivates, &xwl_window_private_key, NULL);
+}
+
+Bool
+xwl_unrealize_window(WindowPtr window)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    struct xwl_window *xwl_window = xwl_window_get(window);
+    Bool ret;
+
+    if (xwl_window) {
+        unregister_damage(xwl_window);
+        xwl_window_dispose(xwl_window);
+    }
+
+    screen->UnrealizeWindow = xwl_screen->UnrealizeWindow;
+    ret = (*screen->UnrealizeWindow) (window);
+    xwl_screen->UnrealizeWindow = screen->UnrealizeWindow;
+    screen->UnrealizeWindow = xwl_unrealize_window;
 
     return ret;
 }
@@ -1740,7 +1767,7 @@ xwl_window_set_window_pixmap(WindowPtr window,
          old_pixmap->drawable.height == pixmap->drawable.height))
        return;
 
-    xwl_window_buffers_dispose(xwl_window);
+    xwl_window_buffers_dispose(xwl_window, FALSE);
 }
 
 Bool
@@ -1917,10 +1944,14 @@ xwl_destroy_window(WindowPtr window)
 {
     ScreenPtr screen = window->drawable.pScreen;
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    struct xwl_window *xwl_window = xwl_window_get(window);
     Bool ret;
 
     if (xwl_screen->present)
         xwl_present_cleanup(window);
+
+    if (xwl_window)
+        xwl_window_dispose(xwl_window);
 
     screen->DestroyWindow = xwl_screen->DestroyWindow;
 
@@ -1946,7 +1977,7 @@ xwl_window_attach_buffer(struct xwl_window *xwl_window)
     PixmapPtr pixmap;
     int i;
 
-    pixmap = xwl_window_swap_pixmap(xwl_window);
+    pixmap = xwl_window_swap_pixmap(xwl_window, TRUE);
     buffer = xwl_pixmap_get_wl_buffer(pixmap);
 
     if (!buffer) {

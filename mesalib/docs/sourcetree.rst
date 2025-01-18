@@ -139,7 +139,6 @@ each directory.
          -  **hgl** - Haiku OpenGL
          -  **lavapipe** - Vulkan frontend, software Vulkan rasterizer using LLVMpipe.
          -  **nine** - D3D9 frontend, see targets/d3dadapter9
-         -  **omx** - OpenMAX Bellagio frontend
          -  **osmesa** - Off-screen OpenGL rendering library
          -  **va** - VA-API frontend
          -  **vdpau** - VDPAU frontend

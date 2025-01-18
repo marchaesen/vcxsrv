@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 #include <assert.h>
+#include "ac_pm4.h"
 #include "ac_rgp.h"
 #include "amd_family.h"
 
@@ -35,10 +36,12 @@ struct ac_sqtt {
    struct radeon_cmdbuf *stop_cs[2];
    /* struct radeon_winsys_bo or struct pb_buffer */
    void *bo;
+   uint64_t buffer_va;
    void *ptr;
    uint32_t buffer_size;
    int start_frame;
    char *trigger_file;
+   bool instruction_timing_enabled;
 
    uint32_t cmdbuf_ids_per_queue[AMD_NUM_IP_TYPES];
 
@@ -90,10 +93,6 @@ uint64_t ac_sqtt_get_info_offset(unsigned se);
 
 uint64_t ac_sqtt_get_data_offset(const struct radeon_info *rad_info, const struct ac_sqtt *sqtt,
                                  unsigned se);
-uint64_t ac_sqtt_get_info_va(uint64_t va, unsigned se);
-
-uint64_t ac_sqtt_get_data_va(const struct radeon_info *rad_info, const struct ac_sqtt *sqtt,
-                             uint64_t va, unsigned se);
 
 void ac_sqtt_init(struct ac_sqtt *data);
 
@@ -549,13 +548,20 @@ bool ac_check_profile_state(const struct radeon_info *info);
 union rgp_sqtt_marker_cb_id ac_sqtt_get_next_cmdbuf_id(struct ac_sqtt *sqtt,
                                                        enum amd_ip_type ip_type);
 
-bool ac_sqtt_se_is_disabled(const struct radeon_info *info, unsigned se);
-
 bool ac_sqtt_get_trace(struct ac_sqtt *sqtt, const struct radeon_info *info,
                        struct ac_sqtt_trace *sqtt_trace);
 
+uint32_t ac_sqtt_get_ctrl(const struct radeon_info *info, bool enable);
+
 uint32_t ac_sqtt_get_shader_mask(const struct radeon_info *info);
 
-uint32_t ac_sqtt_get_active_cu(const struct radeon_info *info, unsigned se);
+void ac_sqtt_emit_start(const struct radeon_info *info, struct ac_pm4_state *pm4,
+                        const struct ac_sqtt *sqtt, bool is_compute_queue);
+
+void ac_sqtt_emit_stop(const struct radeon_info *info, struct ac_pm4_state *pm4,
+                       bool is_compute_queue);
+
+void ac_sqtt_emit_wait(const struct radeon_info *info, struct ac_pm4_state *pm4,
+                       const struct ac_sqtt *sqtt, bool is_compute_queue);
 
 #endif

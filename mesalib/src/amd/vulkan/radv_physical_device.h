@@ -55,7 +55,6 @@ struct radv_physical_device_cache_key {
    uint32_t ge_wave32 : 1;
    uint32_t invariant_geom : 1;
    uint32_t lower_discard_to_demote : 1;
-   uint32_t mesh_fast_launch_2 : 1;
    uint32_t no_fmask : 1;
    uint32_t no_ngg_gs : 1;
    uint32_t no_rt : 1;
@@ -182,7 +181,7 @@ struct radv_physical_device {
    enum radv_video_enc_hw_ver enc_hw_ver;
    uint32_t encoder_interface_version;
    bool video_encode_enabled;
-
+   bool video_decode_enabled;
    struct radv_physical_device_cache_key cache_key;
 
    uint32_t tess_distribution_mode;
@@ -210,7 +209,8 @@ static inline bool
 radv_has_shader_buffer_float_minmax(const struct radv_physical_device *pdev, unsigned bitsize)
 {
    return (pdev->info.gfx_level <= GFX7 && !pdev->use_llvm) || pdev->info.gfx_level == GFX10 ||
-          pdev->info.gfx_level == GFX10_3 || (pdev->info.gfx_level == GFX11 && bitsize == 32);
+          pdev->info.gfx_level == GFX10_3 ||
+          ((pdev->info.gfx_level == GFX11 || pdev->info.gfx_level == GFX11_5) && bitsize == 32);
 }
 
 static inline bool
@@ -254,8 +254,6 @@ radv_use_llvm_for_stage(const struct radv_physical_device *pdev, UNUSED gl_shade
 bool radv_enable_rt(const struct radv_physical_device *pdev, bool rt_pipelines);
 
 bool radv_emulate_rt(const struct radv_physical_device *pdev);
-
-bool radv_device_supports_etc(const struct radv_physical_device *pdev);
 
 uint32_t radv_find_memory_index(const struct radv_physical_device *pdev, VkMemoryPropertyFlags flags);
 

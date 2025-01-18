@@ -29,7 +29,6 @@
 #include "tu_dynamic_rendering.h"
 #include "tu_knl_drm.h"
 
-#define VIRGL_RENDERER_UNSTABLE_APIS 1
 #include "virglrenderer_hw.h"
 #include "msm_proto.h"
 
@@ -88,16 +87,15 @@ struct tu_virtio_device {
    struct u_vector zombie_vmas_stage_2;
 };
 
-static int tu_drm_get_param(struct tu_device *dev, uint32_t param, uint64_t *value);
+static int tu_drm_get_param(struct vdrm_device *vdrm, uint32_t param, uint64_t *value);
 
 /**
  * Helper for simple pass-thru ioctls
  */
 static int
-virtio_simple_ioctl(struct tu_device *dev, unsigned cmd, void *_req)
+virtio_simple_ioctl(struct vdrm_device *vdrm, unsigned cmd, void *_req)
 {
    MESA_TRACE_FUNC();
-   struct vdrm_device *vdrm = dev->vdev->vdrm;
    unsigned req_len = sizeof(struct msm_ccmd_ioctl_simple_req);
    unsigned rsp_len = sizeof(struct msm_ccmd_ioctl_simple_rsp);
 
@@ -151,7 +149,7 @@ query_faults(struct tu_device *dev, uint64_t *value)
    if (vdrm_shmem_has_field(vdev->shmem, global_faults)) {
       global_faults = vdev->shmem->global_faults;
    } else {
-      int ret = tu_drm_get_param(dev, MSM_PARAM_FAULTS, &global_faults);
+      int ret = tu_drm_get_param(vdev->vdrm, MSM_PARAM_FAULTS, &global_faults);
       if (ret)
          return ret;
    }
@@ -258,7 +256,7 @@ virtio_device_finish(struct tu_device *dev)
 }
 
 static int
-tu_drm_get_param(struct tu_device *dev, uint32_t param, uint64_t *value)
+tu_drm_get_param(struct vdrm_device *vdrm, uint32_t param, uint64_t *value)
 {
    /* Technically this requires a pipe, but the kernel only supports one pipe
     * anyway at the time of writing and most of these are clearly pipe
@@ -268,7 +266,7 @@ tu_drm_get_param(struct tu_device *dev, uint32_t param, uint64_t *value)
       .param = param,
    };
 
-   int ret = virtio_simple_ioctl(dev, DRM_IOCTL_MSM_GET_PARAM, &req);
+   int ret = virtio_simple_ioctl(vdrm, DRM_IOCTL_MSM_GET_PARAM, &req);
    if (ret)
       return ret;
 
@@ -277,16 +275,49 @@ tu_drm_get_param(struct tu_device *dev, uint32_t param, uint64_t *value)
    return 0;
 }
 
+static uint32_t
+tu_drm_get_highest_bank_bit(struct vdrm_device *vdrm)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(vdrm, MSM_PARAM_HIGHEST_BANK_BIT, &value);
+   if (ret)
+      return 0;
+
+   return value;
+}
+
+static enum fdl_macrotile_mode
+tu_drm_get_macrotile_mode(struct vdrm_device *vdrm)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(vdrm, MSM_PARAM_MACROTILE_MODE, &value);
+   if (ret)
+      return FDL_MACROTILE_INVALID;
+
+   return (enum fdl_macrotile_mode) value;
+}
+
+static uint32_t
+tu_drm_get_ubwc_swizzle(struct vdrm_device *vdrm)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(vdrm, MSM_PARAM_UBWC_SWIZZLE, &value);
+   if (ret)
+      return ~0;
+
+   return value;
+}
+
 static int
 virtio_device_get_gpu_timestamp(struct tu_device *dev, uint64_t *ts)
 {
-   return tu_drm_get_param(dev, MSM_PARAM_TIMESTAMP, ts);
+   return tu_drm_get_param(dev->vdev->vdrm, MSM_PARAM_TIMESTAMP, ts);
 }
 
 static int
 virtio_device_get_suspend_count(struct tu_device *dev, uint64_t *suspend_count)
 {
-   int ret = tu_drm_get_param(dev, MSM_PARAM_SUSPENDS, suspend_count);
+   int ret = tu_drm_get_param(dev->vdev->vdrm, MSM_PARAM_SUSPENDS, suspend_count);
    return ret;
 }
 
@@ -312,11 +343,13 @@ virtio_submitqueue_new(struct tu_device *dev,
           priority < dev->physical_device->submitqueue_priority_count);
 
    struct drm_msm_submitqueue req = {
-      .flags = 0,
+      .flags = dev->physical_device->info->chip >= 7 &&
+         dev->physical_device->has_preemption ?
+         MSM_SUBMITQUEUE_ALLOW_PREEMPT : 0,
       .prio = priority,
    };
 
-   int ret = virtio_simple_ioctl(dev, DRM_IOCTL_MSM_SUBMITQUEUE_NEW, &req);
+   int ret = virtio_simple_ioctl(dev->vdev->vdrm, DRM_IOCTL_MSM_SUBMITQUEUE_NEW, &req);
    if (ret)
       return ret;
 
@@ -327,7 +360,23 @@ virtio_submitqueue_new(struct tu_device *dev,
 static void
 virtio_submitqueue_close(struct tu_device *dev, uint32_t queue_id)
 {
-   virtio_simple_ioctl(dev, DRM_IOCTL_MSM_SUBMITQUEUE_CLOSE, &queue_id);
+   virtio_simple_ioctl(dev->vdev->vdrm, DRM_IOCTL_MSM_SUBMITQUEUE_CLOSE, &queue_id);
+}
+
+static bool
+virtio_has_preemption(struct vdrm_device *vdrm)
+{
+   struct drm_msm_submitqueue req = {
+      .flags = MSM_SUBMITQUEUE_ALLOW_PREEMPT,
+      .prio = vdrm->caps.u.msm.priorities / 2,
+   };
+
+   int ret = virtio_simple_ioctl(vdrm, DRM_IOCTL_MSM_SUBMITQUEUE_NEW, &req);
+   if (ret)
+      return false;
+
+   virtio_simple_ioctl(vdrm, DRM_IOCTL_MSM_SUBMITQUEUE_CLOSE, &req.id);
+   return true;
 }
 
 static VkResult
@@ -492,6 +541,7 @@ virtio_allocate_userspace_iova_locked(struct tu_device *dev,
 
 static VkResult
 tu_bo_init(struct tu_device *dev,
+           struct vk_object_base *base,
            struct tu_bo *bo,
            uint32_t gem_handle,
            uint64_t size,
@@ -541,6 +591,7 @@ tu_bo_init(struct tu_device *dev,
       .name = name,
       .refcnt = 1,
       .bo_list_idx = idx,
+      .base = base,
    };
 
    mtx_unlock(&dev->bo_mutex);
@@ -583,12 +634,13 @@ tu_bo_set_kernel_name(struct tu_device *dev, struct tu_bo *bo, const char *name)
 
 static VkResult
 virtio_bo_init(struct tu_device *dev,
-            struct tu_bo **out_bo,
-            uint64_t size,
-            uint64_t client_iova,
-            VkMemoryPropertyFlags mem_property,
-            enum tu_bo_alloc_flags flags,
-            const char *name)
+               struct vk_object_base *base,
+               struct tu_bo **out_bo,
+               uint64_t size,
+               uint64_t client_iova,
+               VkMemoryPropertyFlags mem_property,
+               enum tu_bo_alloc_flags flags,
+               const char *name)
 {
    struct tu_virtio_device *vdev = dev->vdev;
    struct msm_ccmd_gem_new_req req = {
@@ -652,7 +704,7 @@ virtio_bo_init(struct tu_device *dev,
 
    bo->res_id = res_id;
 
-   result = tu_bo_init(dev, bo, handle, size, req.iova, flags, name);
+   result = tu_bo_init(dev, base, bo, handle, size, req.iova, flags, name);
    if (result != VK_SUCCESS) {
       memset(bo, 0, sizeof(*bo));
       goto fail;
@@ -673,7 +725,7 @@ virtio_bo_init(struct tu_device *dev,
        *
        * MSM already does this automatically for uncached (MSM_BO_WC) memory.
        */
-      tu_sync_cache_bo(dev, bo, 0, VK_WHOLE_SIZE, TU_MEM_SYNC_CACHE_TO_GPU);
+      tu_bo_sync_cache(dev, bo, 0, VK_WHOLE_SIZE, TU_MEM_SYNC_CACHE_TO_GPU);
    }
 
    return VK_SUCCESS;
@@ -749,7 +801,7 @@ virtio_bo_init_dmabuf(struct tu_device *dev,
    }
 
    result =
-      tu_bo_init(dev, bo, handle, size, iova, TU_BO_ALLOC_NO_FLAGS, "dmabuf");
+      tu_bo_init(dev, NULL, bo, handle, size, iova, TU_BO_ALLOC_NO_FLAGS, "dmabuf");
    if (result != VK_SUCCESS) {
       util_vma_heap_free(&dev->vma, iova, size);
       memset(bo, 0, sizeof(*bo));
@@ -987,8 +1039,8 @@ setup_fence_cmds(struct tu_device *dev)
    struct tu_virtio_device *vdev = dev->vdev;
    VkResult result;
 
-   result = tu_bo_init_new(dev, &vdev->fence_cmds_mem, sizeof(*vdev->fence_cmds),
-                           (enum tu_bo_alloc_flags)
+   result = tu_bo_init_new(dev, NULL, &vdev->fence_cmds_mem,
+                           sizeof(*vdev->fence_cmds), (enum tu_bo_alloc_flags)
                               (TU_BO_ALLOC_ALLOW_DUMP | TU_BO_ALLOC_GPU_READ_ONLY),
                            "fence_cmds");
    if (result != VK_SUCCESS)
@@ -1006,8 +1058,16 @@ setup_fence_cmds(struct tu_device *dev)
 
       memset(c, 0, sizeof(*c));
 
-      c->pkt[0] = pm4_pkt7_hdr((uint8_t)CP_EVENT_WRITE, 4);
-      c->pkt[1] = CP_EVENT_WRITE_0_EVENT(CACHE_FLUSH_TS);
+      if (fd_dev_gen(&dev->physical_device->dev_id) >= A7XX) {
+         c->pkt[0] = pm4_pkt7_hdr((uint8_t)CP_EVENT_WRITE7, 4);
+         c->pkt[1] = CP_EVENT_WRITE7_0(.event = CACHE_FLUSH_TS,
+                           .write_src = EV_WRITE_USER_32B,
+                           .write_dst = EV_DST_RAM,
+                           .write_enabled = true).value;
+      } else {
+         c->pkt[0] = pm4_pkt7_hdr((uint8_t)CP_EVENT_WRITE, 4);
+         c->pkt[1] = CP_EVENT_WRITE_0_EVENT(CACHE_FLUSH_TS);
+      }
       c->pkt[2] = fence_iova;
       c->pkt[3] = fence_iova >> 32;
    }
@@ -1189,7 +1249,7 @@ static VkResult
 virtio_queue_submit(struct tu_queue *queue, struct vk_queue_submit *submit)
 {
    MESA_TRACE_FUNC();
-   uint32_t perf_pass_index = queue->device->perfcntrs_pass_cs ?
+   uint32_t perf_pass_index = queue->device->perfcntrs_pass_cs_entries ?
                               submit->perf_pass_index : ~0;
    struct tu_virtio_queue_submit submit_req;
 
@@ -1287,13 +1347,35 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
                                version->name);
    }
 
+   /* Try to connect. If this doesn't work, it's probably because we're running
+    * in a non-Adreno VM. Unless startup debug info is specifically requested,
+    * we should silently exit and let another Vulkan driver try probing instead.
+    */
    vdrm = vdrm_device_connect(fd, VIRTGPU_DRM_CONTEXT_MSM);
    if (!vdrm) {
-      return vk_startup_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
-                               "could not get connect vdrm: %s", strerror(errno));
+      if (TU_DEBUG(STARTUP)) {
+         return vk_startup_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
+                                  "could not get connect vdrm: %s", strerror(errno));
+      } else {
+         return VK_ERROR_INCOMPATIBLE_DRIVER;
+      }
    }
 
    caps = vdrm->caps;
+
+   /* TODO add something to virgl_renderer_capset_drm to avoid round-trip to
+    * host if virglrenderer is new enough.
+    */
+   bool has_preemption = virtio_has_preemption(vdrm);
+
+   /* If virglrenderer is too old, we may need another round-trip to get this.
+    */
+   if (caps.u.msm.highest_bank_bit == 0)
+      caps.u.msm.highest_bank_bit = tu_drm_get_highest_bank_bit(vdrm);
+
+   /* TODO add these to the caps struct */
+   uint32_t bank_swizzle_levels = tu_drm_get_ubwc_swizzle(vdrm);
+   enum fdl_macrotile_mode macrotile_mode = tu_drm_get_macrotile_mode(vdrm);
 
    vdrm_device_close(vdrm);
 
@@ -1309,6 +1391,7 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
    mesa_logd("gmem_base:           0x%0" PRIx64, caps.u.msm.gmem_base);
    mesa_logd("chip_id:             0x%0" PRIx64, caps.u.msm.chip_id);
    mesa_logd("max_freq:            %u", caps.u.msm.max_freq);
+   mesa_logd("highest_bank_bit:    %u", caps.u.msm.highest_bank_bit);
 
    if (caps.wire_format_version != 2) {
       return vk_startup_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
@@ -1349,7 +1432,12 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
    device->gmem_base      = caps.u.msm.gmem_base;
    device->va_start       = caps.u.msm.va_start;
    device->va_size        = caps.u.msm.va_size;
+   device->ubwc_config.highest_bank_bit = caps.u.msm.highest_bank_bit;
    device->has_set_iova   = true;
+   device->has_preemption = has_preemption;
+
+   device->ubwc_config.bank_swizzle_levels = bank_swizzle_levels;
+   device->ubwc_config.macrotile_mode = macrotile_mode;
 
    device->gmem_size = debug_get_num_option("TU_GMEM", device->gmem_size);
 

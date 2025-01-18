@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!DOCTYPE OpenGLAPI SYSTEM "gl_API.dtd">
+
+<OpenGLAPI>
+
+<category name="GL_KHR_shader_subgroup" number="196">
+
+  <enum name="SUBGROUP_SIZE_KHR"               count="1" value="0x9532">
+    <size name="GetIntegerv"   mode="get"/>
+    <size name="GetInteger64v" mode="get"/>
+  </enum>
+
+  <enum name="SUBGROUP_SUPPORTED_STAGES_KHR"   count="1" value="0x9533">
+    <size name="GetIntegerv"   mode="get"/>
+    <size name="GetInteger64v" mode="get"/>
+  </enum>
+
+  <enum name="SUBGROUP_SUPPORTED_FEATURES_KHR" count="1" value="0x9534">
+    <size name="GetIntegerv"   mode="get"/>
+    <size name="GetInteger64v" mode="get"/>
+  </enum>
+
+  <enum name="SUBGROUP_QUAD_ALL_STAGES_KHR"    count="1" value="0x9535">
+    <size name="GetBooleanv"   mode="get"/>
+  </enum>
+
+  <enum name="SUBGROUP_FEATURE_BASIC_BIT_KHR"            value="0x00000001"/>
+  <enum name="SUBGROUP_FEATURE_VOTE_BIT_KHR"             value="0x00000002"/>
+  <enum name="SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR"       value="0x00000004"/>
+  <enum name="SUBGROUP_FEATURE_BALLOT_BIT_KHR"           value="0x00000008"/>
+  <enum name="SUBGROUP_FEATURE_SHUFFLE_BIT_KHR"          value="0x00000010"/>
+  <enum name="SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR" value="0x00000020"/>
+  <enum name="SUBGROUP_FEATURE_CLUSTERED_BIT_KHR"        value="0x00000040"/>
+  <enum name="SUBGROUP_FEATURE_QUAD_BIT_KHR"             value="0x00000080"/>
+
+</category>
+
+</OpenGLAPI>

@@ -1256,10 +1256,19 @@ vtn_emit_branch(struct vtn_builder *b, const struct vtn_block *block,
       break;
 
    case vtn_branch_type_discard:
-      if (b->convert_discard_to_demote)
+      if (b->convert_discard_to_demote) {
          nir_demote(&b->nb);
-      else
+
+         /* Workaround for outdated test cases from CTS and Tint which assume
+          * that OpKill always terminates the invocation. Break from the
+          * current loop if it exists in order to prevent infinite loops.
+          */
+         struct vtn_construct *loop = block->parent->innermost_loop;
+         if (loop)
+            vtn_emit_break_for_construct(b, block, loop);
+      } else {
          nir_discard(&b->nb);
+      }
       break;
 
    case vtn_branch_type_terminate_invocation:
@@ -1501,9 +1510,7 @@ vtn_emit_control_flow_propagation(struct vtn_builder *b,
 
    if (top->needs_break_propagation) {
       vtn_assert(parent_with_nloop->break_var);
-      nir_push_if(&b->nb, nir_load_var(&b->nb, parent_with_nloop->break_var));
-      nir_jump(&b->nb, nir_jump_break);
-      nir_pop_if(&b->nb, NULL);
+      nir_break_if(&b->nb, nir_load_var(&b->nb, parent_with_nloop->break_var));
    }
 }
 

@@ -246,10 +246,6 @@ add_color_format_variants(const struct stw_pf_color_info *color_formats,
    unsigned num_added = 0;
    int force_samples = 0;
 
-   unsigned supported_flags = 0;
-   if (stw_dev->stw_winsys && stw_dev->stw_winsys->get_pfd_flags)
-      supported_flags = stw_dev->stw_winsys->get_pfd_flags(screen);
-
    /* Since GLUT for Windows doesn't support MSAA we have an env var
     * to force all pixel formats to have a particular number of samples.
     */
@@ -298,13 +294,11 @@ add_color_format_variants(const struct stw_pf_color_info *color_formats,
 
             for (f = 0; f < ARRAY_SIZE(stw_pf_flag); f++) {
                stw_pfd_flag flag = stw_pf_flag[f];
-               if ((supported_flags & flag) != flag)
-                  continue;
                for (acc = 0; acc < 2; acc++) {
                   stw_pixelformat_add(stw_dev, extended, &color_formats[cfmt],
                                        depth, acc * 16,
                                        (flag & stw_pfd_double_buffer) != 0,
-                                       (flag == stw_pfd_gdi_support) != 0, samples);
+                                       (flag & stw_pfd_gdi_support) != 0, samples);
                   num_added++;
                }
             }

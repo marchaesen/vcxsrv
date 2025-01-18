@@ -48,7 +48,6 @@ struct merge_node {
 
 struct cssa_ctx {
    Program* program;
-   std::vector<IDSet>& live_out;                  /* live-out sets per block */
    std::vector<std::vector<copy>> parallelcopies; /* copies per block */
    std::vector<merge_set> merge_sets;             /* each vector is one (ordered) merge set */
    std::unordered_map<uint32_t, merge_node> merge_node_table; /* tempid -> merge node */
@@ -71,7 +70,7 @@ collect_parallelcopies(cssa_ctx& ctx)
          /* if the definition is not temp, it is the exec mask.
           * We can reload the exec mask directly from the spill slot.
           */
-         if (!def.isTemp())
+         if (!def.isTemp() || def.isKill())
             continue;
 
          Block::edge_vec& preds =
@@ -103,15 +102,11 @@ collect_parallelcopies(cssa_ctx& ctx)
             Temp tmp = bld.tmp(def.regClass());
             ctx.parallelcopies[preds[i]].emplace_back(copy{Definition(tmp), op});
             phi->operands[i] = Operand(tmp);
+            phi->operands[i].setKill(true);
 
             /* place the new operands in the same merge set */
             set.emplace_back(tmp);
             ctx.merge_node_table[tmp.id()] = {op, index, preds[i]};
-
-            /* update the liveness information */
-            if (op.isKill())
-               ctx.live_out[preds[i]].erase(op.tempId());
-            ctx.live_out[preds[i]].insert(tmp.id());
 
             has_preheader_copy |= i == 0 && block.kind & block_kind_loop_header;
          }
@@ -151,14 +146,23 @@ inline bool
 dominates(cssa_ctx& ctx, Temp a, Temp b)
 {
    assert(defined_after(ctx, b, a));
-   merge_node& node_a = ctx.merge_node_table[a.id()];
-   merge_node& node_b = ctx.merge_node_table[b.id()];
-   unsigned idom = node_b.defined_at;
-   while (idom > node_a.defined_at)
-      idom = b.regClass().type() == RegType::vgpr ? ctx.program->blocks[idom].logical_idom
-                                                  : ctx.program->blocks[idom].linear_idom;
+   Block& parent = ctx.program->blocks[ctx.merge_node_table[a.id()].defined_at];
+   Block& child = ctx.program->blocks[ctx.merge_node_table[b.id()].defined_at];
+   if (b.regClass().type() == RegType::vgpr)
+      return dominates_logical(parent, child);
+   else
+      return dominates_linear(parent, child);
+}
 
-   return idom == node_a.defined_at;
+/* Checks whether some variable is live-out, not considering any phi-uses. */
+inline bool
+is_live_out(cssa_ctx& ctx, Temp var, uint32_t block_idx)
+{
+   Block::edge_vec& succs = var.is_linear() ? ctx.program->blocks[block_idx].linear_succs
+                                            : ctx.program->blocks[block_idx].logical_succs;
+
+   return std::any_of(succs.begin(), succs.end(), [&](unsigned succ)
+                      { return ctx.program->live.live_in[succ].count(var.id()); });
 }
 
 /* check intersection between var and parent:
@@ -171,22 +175,17 @@ intersects(cssa_ctx& ctx, Temp var, Temp parent)
    assert(node_var.index != node_parent.index);
    uint32_t block_idx = node_var.defined_at;
 
-   /* if the parent is live-out at the definition block of var, they intersect */
-   bool parent_live = ctx.live_out[block_idx].count(parent.id());
-   if (parent_live)
-      return true;
-
-   /* parent is defined in a different block than var */
+   /* if parent is defined in a different block than var */
    if (node_parent.defined_at < node_var.defined_at) {
       /* if the parent is not live-in, they don't interfere */
-      Block::edge_vec& preds = var.type() == RegType::vgpr
-                                  ? ctx.program->blocks[block_idx].logical_preds
-                                  : ctx.program->blocks[block_idx].linear_preds;
-      for (uint32_t pred : preds) {
-         if (!ctx.live_out[pred].count(parent.id()))
-            return false;
-      }
+      if (!ctx.program->live.live_in[block_idx].count(parent.id()))
+         return false;
    }
+
+   /* if the parent is live-out at the definition block of var, they intersect */
+   bool parent_live = is_live_out(ctx, parent, block_idx);
+   if (parent_live)
+      return true;
 
    for (const copy& cp : ctx.parallelcopies[block_idx]) {
       /* if var is defined at the edge, they don't intersect */
@@ -327,26 +326,24 @@ bool
 try_coalesce_copy(cssa_ctx& ctx, copy copy, uint32_t block_idx)
 {
    /* we can only coalesce temporaries */
-   if (!copy.op.isTemp())
+   if (!copy.op.isTemp() || !copy.op.isKill())
+      return false;
+
+   /* we can only coalesce copies of the same register class */
+   if (copy.op.regClass() != copy.def.regClass())
       return false;
 
    /* try emplace a merge_node for the copy operand */
    merge_node& op_node = ctx.merge_node_table[copy.op.tempId()];
    if (op_node.defined_at == -1u) {
       /* find defining block of operand */
-      uint32_t pred = block_idx;
-      do {
-         block_idx = pred;
-         pred = copy.op.regClass().type() == RegType::vgpr ? ctx.program->blocks[pred].logical_idom
-                                                           : ctx.program->blocks[pred].linear_idom;
-      } while (block_idx != pred && ctx.live_out[pred].count(copy.op.tempId()));
+      while (ctx.program->live.live_in[block_idx].count(copy.op.tempId()))
+         block_idx = copy.op.regClass().type() == RegType::vgpr
+                        ? ctx.program->blocks[block_idx].logical_idom
+                        : ctx.program->blocks[block_idx].linear_idom;
       op_node.defined_at = block_idx;
       op_node.value = copy.op;
    }
-
-   /* we can only coalesce copies of the same register class */
-   if (copy.op.regClass() != copy.def.regClass())
-      return false;
 
    /* check if this operand has not yet been coalesced */
    if (op_node.index == -1u) {
@@ -365,7 +362,7 @@ try_coalesce_copy(cssa_ctx& ctx, copy copy, uint32_t block_idx)
 
 /* node in the location-transfer-graph */
 struct ltg_node {
-   copy cp;
+   copy* cp;
    uint32_t read_idx;
    uint32_t num_uses = 0;
 };
@@ -375,17 +372,18 @@ struct ltg_node {
 void
 emit_copies_block(Builder& bld, std::map<uint32_t, ltg_node>& ltg, RegType type)
 {
+   RegisterDemand live_changes;
+   RegisterDemand reg_demand = bld.it->get()->register_demand - get_temp_registers(bld.it->get()) -
+                               get_live_changes(bld.it->get());
    auto&& it = ltg.begin();
    while (it != ltg.end()) {
-      const copy& cp = it->second.cp;
+      copy& cp = *it->second.cp;
+
       /* wrong regclass or still needed as operand */
       if (cp.def.regClass().type() != type || it->second.num_uses > 0) {
          ++it;
          continue;
       }
-
-      /* emit the copy */
-      bld.copy(cp.def, it->second.cp.op);
 
       /* update the location transfer graph */
       if (it->second.read_idx != -1u) {
@@ -394,12 +392,24 @@ emit_copies_block(Builder& bld, std::map<uint32_t, ltg_node>& ltg, RegType type)
             other->second.num_uses--;
       }
       ltg.erase(it);
+
+      /* Remove the kill flag if we still need this operand for other copies. */
+      if (cp.op.isKill() && std::any_of(ltg.begin(), ltg.end(),
+                                        [&](auto& other) { return other.second.cp->op == cp.op; }))
+         cp.op.setKill(false);
+
+      /* emit the copy */
+      Instruction* instr = bld.copy(cp.def, cp.op);
+      live_changes += get_live_changes(instr);
+      RegisterDemand temps = get_temp_registers(instr);
+      instr->register_demand = reg_demand + live_changes + temps;
+
       it = ltg.begin();
    }
 
    /* count the number of remaining circular dependencies */
-   unsigned num = std::count_if(ltg.begin(), ltg.end(),
-                                [&](auto& n) { return n.second.cp.def.regClass().type() == type; });
+   unsigned num = std::count_if(
+      ltg.begin(), ltg.end(), [&](auto& n) { return n.second.cp->def.regClass().type() == type; });
 
    /* if there are circular dependencies, we just emit them as single parallelcopy */
    if (num) {
@@ -410,14 +420,22 @@ emit_copies_block(Builder& bld, std::map<uint32_t, ltg_node>& ltg, RegType type)
          create_instruction(aco_opcode::p_parallelcopy, Format::PSEUDO, num, num)};
       it = ltg.begin();
       for (unsigned i = 0; i < num; i++) {
-         while (it->second.cp.def.regClass().type() != type)
+         while (it->second.cp->def.regClass().type() != type)
             ++it;
 
-         copy->definitions[i] = it->second.cp.def;
-         copy->operands[i] = it->second.cp.op;
+         copy->definitions[i] = it->second.cp->def;
+         copy->operands[i] = it->second.cp->op;
          it = ltg.erase(it);
       }
+      live_changes += get_live_changes(copy.get());
+      RegisterDemand temps = get_temp_registers(copy.get());
+      copy->register_demand = reg_demand + live_changes + temps;
       bld.insert(std::move(copy));
+   }
+
+   /* Update RegisterDemand after inserted copies */
+   for (auto instr_it = bld.it; instr_it != bld.instructions->end(); ++instr_it) {
+      instr_it->get()->register_demand += live_changes;
    }
 }
 
@@ -438,19 +456,31 @@ emit_parallelcopies(cssa_ctx& ctx)
       bool has_sgpr_copy = false;
 
       /* first, try to coalesce all parallelcopies */
-      for (const copy& cp : ctx.parallelcopies[i]) {
+      for (copy& cp : ctx.parallelcopies[i]) {
          if (try_coalesce_copy(ctx, cp, i)) {
+            assert(cp.op.isTemp() && cp.op.isKill());
+            /* As this temp will be used as phi operand and becomes live-out,
+             * remove the kill flag from any other copy of this same temp.
+             */
+            for (copy& other : ctx.parallelcopies[i]) {
+               if (&other != &cp && other.op.isTemp() && other.op.getTemp() == cp.op.getTemp())
+                  other.op.setKill(false);
+            }
             renames.emplace(cp.def.tempId(), cp.op);
-            /* update liveness info */
-            ctx.live_out[i].erase(cp.def.tempId());
-            ctx.live_out[i].insert(cp.op.tempId());
          } else {
             uint32_t read_idx = -1u;
-            if (cp.op.isTemp())
+            if (cp.op.isTemp()) {
                read_idx = ctx.merge_node_table[cp.op.tempId()].index;
+               /* In case the original phi-operand was killed, it might still be live-out
+                * if the logical successor is not the same as linear successors.
+                * Thus, re-check whether the temp is live-out.
+                */
+               cp.op.setKill(cp.op.isKill() && !is_live_out(ctx, cp.op.getTemp(), i));
+               cp.op.setFirstKill(cp.op.isKill());
+            }
             uint32_t write_idx = ctx.merge_node_table[cp.def.tempId()].index;
             assert(write_idx != -1u);
-            ltg[write_idx] = {cp, read_idx};
+            ltg[write_idx] = {&cp, read_idx};
 
             bool is_vgpr = cp.def.regClass().type() == RegType::vgpr;
             has_vgpr_copy |= is_vgpr;
@@ -483,16 +513,14 @@ emit_parallelcopies(cssa_ctx& ctx)
 
       if (has_sgpr_copy) {
          /* emit SGPR copies */
-         aco_ptr<Instruction> branch = std::move(block.instructions.back());
-         block.instructions.pop_back();
-         bld.reset(&block.instructions);
+         bld.reset(&block.instructions, std::prev(block.instructions.end()));
          emit_copies_block(bld, ltg, RegType::sgpr);
-         bld.insert(std::move(branch));
       }
    }
 
-   /* finally, rename coalesced phi operands */
+   RegisterDemand new_demand;
    for (Block& block : ctx.program->blocks) {
+      /* Finally, rename coalesced phi operands */
       for (aco_ptr<Instruction>& phi : block.instructions) {
          if (phi->opcode != aco_opcode::p_phi && phi->opcode != aco_opcode::p_linear_phi)
             break;
@@ -507,21 +535,32 @@ emit_parallelcopies(cssa_ctx& ctx)
             }
          }
       }
+
+      /* Resummarize the block's register demand */
+      block.register_demand = block.live_in_demand;
+      for (const aco_ptr<Instruction>& instr : block.instructions)
+         block.register_demand.update(instr->register_demand);
+      new_demand.update(block.register_demand);
    }
+
+   /* Update max_reg_demand and num_waves */
+   update_vgpr_sgpr_demand(ctx.program, new_demand);
+
    assert(renames.empty());
 }
 
 } /* end namespace */
 
 void
-lower_to_cssa(Program* program, live& live_vars)
+lower_to_cssa(Program* program)
 {
-   reindex_ssa(program, live_vars.live_out);
-   cssa_ctx ctx = {program, live_vars.live_out};
+   reindex_ssa(program);
+   cssa_ctx ctx = {program};
    collect_parallelcopies(ctx);
    emit_parallelcopies(ctx);
 
-   /* update live variable information */
-   live_vars = live_var_analysis(program);
+   /* Validate live variable information */
+   if (!validate_live_vars(program))
+      abort();
 }
 } // namespace aco

@@ -33,7 +33,7 @@ ValueFactory::set_virtual_register_base(int base)
 }
 
 bool
-ValueFactory::allocate_registers(const std::list<nir_intrinsic_instr *>& regs)
+ValueFactory::allocate_registers(const nir_intrinsic_instr_alloc& regs)
 {
    struct array_entry {
       unsigned index;

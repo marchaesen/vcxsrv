@@ -164,8 +164,7 @@ struct InstrPred {
       case Format::SMEM: {
          SMEM_instruction& aS = a->smem();
          SMEM_instruction& bS = b->smem();
-         return aS.sync == bS.sync && aS.glc == bS.glc && aS.dlc == bS.dlc && aS.nv == bS.nv &&
-                aS.disable_wqm == bS.disable_wqm;
+         return aS.sync == bS.sync && aS.cache.value == bS.cache.value;
       }
       case Format::VINTRP: {
          VINTRP_instruction& aI = a->vintrp();
@@ -203,21 +202,21 @@ struct InstrPred {
          MTBUF_instruction& bM = b->mtbuf();
          return aM.sync == bM.sync && aM.dfmt == bM.dfmt && aM.nfmt == bM.nfmt &&
                 aM.offset == bM.offset && aM.offen == bM.offen && aM.idxen == bM.idxen &&
-                aM.glc == bM.glc && aM.dlc == bM.dlc && aM.slc == bM.slc && aM.tfe == bM.tfe &&
+                aM.cache.value == bM.cache.value && aM.tfe == bM.tfe &&
                 aM.disable_wqm == bM.disable_wqm;
       }
       case Format::MUBUF: {
          MUBUF_instruction& aM = a->mubuf();
          MUBUF_instruction& bM = b->mubuf();
          return aM.sync == bM.sync && aM.offset == bM.offset && aM.offen == bM.offen &&
-                aM.idxen == bM.idxen && aM.glc == bM.glc && aM.dlc == bM.dlc && aM.slc == bM.slc &&
-                aM.tfe == bM.tfe && aM.lds == bM.lds && aM.disable_wqm == bM.disable_wqm;
+                aM.idxen == bM.idxen && aM.cache.value == bM.cache.value && aM.tfe == bM.tfe &&
+                aM.lds == bM.lds && aM.disable_wqm == bM.disable_wqm;
       }
       case Format::MIMG: {
          MIMG_instruction& aM = a->mimg();
          MIMG_instruction& bM = b->mimg();
          return aM.sync == bM.sync && aM.dmask == bM.dmask && aM.unrm == bM.unrm &&
-                aM.glc == bM.glc && aM.slc == bM.slc && aM.tfe == bM.tfe && aM.da == bM.da &&
+                aM.cache.value == bM.cache.value && aM.tfe == bM.tfe && aM.da == bM.da &&
                 aM.lwe == bM.lwe && aM.r128 == bM.r128 && aM.a16 == bM.a16 && aM.d16 == bM.d16 &&
                 aM.disable_wqm == bM.disable_wqm;
       }
@@ -264,6 +263,13 @@ struct vn_ctx {
 bool
 dominates(vn_ctx& ctx, uint32_t parent, uint32_t child)
 {
+   Block& parent_b = ctx.program->blocks[parent];
+   Block& child_b = ctx.program->blocks[child];
+   if (!dominates_logical(parent_b, child_b) || parent_b.loop_nest_depth > child_b.loop_nest_depth)
+      return false;
+   if (parent_b.loop_nest_depth == child_b.loop_nest_depth && parent_b.loop_nest_depth == 0)
+      return true;
+
    unsigned parent_loop_nest_depth = ctx.program->blocks[parent].loop_nest_depth;
    while (parent < child && parent_loop_nest_depth <= ctx.program->blocks[child].loop_nest_depth)
       child = ctx.program->blocks[child].logical_idom;
@@ -379,6 +385,12 @@ process_block(vn_ctx& ctx, Block& block)
                ctx.renames[instr->definitions[i].tempId()] = orig_instr->definitions[i].getTemp();
                if (instr->definitions[i].isPrecise())
                   orig_instr->definitions[i].setPrecise(true);
+               if (instr->definitions[i].isSZPreserve())
+                  orig_instr->definitions[i].setSZPreserve(true);
+               if (instr->definitions[i].isInfPreserve())
+                  orig_instr->definitions[i].setInfPreserve(true);
+               if (instr->definitions[i].isNaNPreserve())
+                  orig_instr->definitions[i].setNaNPreserve(true);
                /* SPIR_V spec says that an instruction marked with NUW wrapping
                 * around is undefined behaviour, so we can break additions in
                 * other contexts.

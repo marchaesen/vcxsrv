@@ -32,10 +32,9 @@ and Jim Haggerty of Metheus.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
+#include "dix/cursor_priv.h"
 #include "dix/eventconvert.h"
 
 #include "dixstruct.h"
@@ -722,7 +721,7 @@ RecordSendProtocolEvents(RecordClientsAndProtocolPtr pRCAP,
                  pev->u.u.type == ButtonPress ||
                  pev->u.u.type == ButtonRelease ||
                  pev->u.u.type == KeyPress || pev->u.u.type == KeyRelease)) {
-                int scr = XineramaGetCursorScreen(inputInfo.pointer);
+                int scr = inputInfo.pointer->spriteInfo->sprite->screen->myNum;
 
                 memcpy(&shiftedEvent, pev, sizeof(xEvent));
                 shiftedEvent.u.keyButtonPointer.rootX +=
@@ -1393,17 +1392,13 @@ typedef struct {
     short first, last;          /* if for extension, major opcode interval */
 } SetInfoRec, *SetInfoPtr;
 
-#if defined(ERR) && defined(__sun)
-#undef ERR /* Avoid conflict with Solaris <sys/regset.h> */
-#endif
-
 /* These constant are used to index into an array of SetInfoRec. */
 enum { REQ,                     /* set info for requests */
-    REP,                        /* set info for replies */
-    ERR,                        /* set info for errors */
-    DEV,                        /* set info for device events */
-    DLEV,                       /* set info for delivered events */
-    PREDEFSETS
+    RI_REP,                     /* set info for replies */
+    RI_ERR,                     /* set info for errors */
+    RI_DEV,                     /* set info for device events */
+    RI_DLEV,                    /* set info for delivered events */
+    RI_PREDEFSETS
 };                              /* number of predefined array entries */
 
 /* RecordAllocIntervals
@@ -1583,7 +1578,7 @@ RecordRegisterClients(RecordContextPtr pContext, ClientPtr client,
      * protocol types, plus one per range for extension requests, plus one per
      * range for extension replies.
      */
-    maxSets = PREDEFSETS + 2 * stuff->nRanges;
+    maxSets = RI_PREDEFSETS + 2 * stuff->nRanges;
     si = xallocarray(maxSets, sizeof(SetInfoRec));
     if (!si) {
         err = BadAlloc;
@@ -1595,7 +1590,7 @@ RecordRegisterClients(RecordContextPtr pContext, ClientPtr client,
     for (i = 0; i < maxSets; i++)
         si[i].intervals = NULL;
 
-    pExtReqSets = si + PREDEFSETS;
+    pExtReqSets = si + RI_PREDEFSETS;
     pExtRepSets = pExtReqSets + stuff->nRanges;
 
     pRanges = (xRecordRange *) (((XID *) &stuff[1]) + stuff->nClients);
@@ -1612,31 +1607,31 @@ RecordRegisterClients(RecordContextPtr pContext, ClientPtr client,
     if (err != Success)
         goto bailout;
 
-    err = RecordConvertRangesToIntervals(&si[REP], pRanges, stuff->nRanges,
+    err = RecordConvertRangesToIntervals(&si[RI_REP], pRanges, stuff->nRanges,
                                          offset_of(rr, coreRepliesFirst), NULL,
                                          NULL);
     if (err != Success)
         goto bailout;
 
-    err = RecordConvertRangesToIntervals(&si[REP], pRanges, stuff->nRanges,
+    err = RecordConvertRangesToIntervals(&si[RI_REP], pRanges, stuff->nRanges,
                                          offset_of(rr, extRepliesMajorFirst),
                                          pExtRepSets, &nExtRepSets);
     if (err != Success)
         goto bailout;
 
-    err = RecordConvertRangesToIntervals(&si[ERR], pRanges, stuff->nRanges,
+    err = RecordConvertRangesToIntervals(&si[RI_ERR], pRanges, stuff->nRanges,
                                          offset_of(rr, errorsFirst), NULL,
                                          NULL);
     if (err != Success)
         goto bailout;
 
-    err = RecordConvertRangesToIntervals(&si[DLEV], pRanges, stuff->nRanges,
+    err = RecordConvertRangesToIntervals(&si[RI_DLEV], pRanges, stuff->nRanges,
                                          offset_of(rr, deliveredEventsFirst),
                                          NULL, NULL);
     if (err != Success)
         goto bailout;
 
-    err = RecordConvertRangesToIntervals(&si[DEV], pRanges, stuff->nRanges,
+    err = RecordConvertRangesToIntervals(&si[RI_DEV], pRanges, stuff->nRanges,
                                          offset_of(rr, deviceEventsFirst), NULL,
                                          NULL);
     if (err != Success)
@@ -1716,38 +1711,38 @@ RecordRegisterClients(RecordContextPtr pContext, ClientPtr client,
     else
         pRCAP->pRequestMajorOpSet = NULL;
 
-    if (si[REP].intervals) {
+    if (si[RI_REP].intervals) {
         pRCAP->pReplyMajorOpSet =
-            RecordCreateSet(si[REP].intervals, si[REP].nintervals,
-                            (RecordSetPtr) ((char *) pRCAP + si[REP].offset),
-                            si[REP].size);
+            RecordCreateSet(si[RI_REP].intervals, si[RI_REP].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[RI_REP].offset),
+                            si[RI_REP].size);
     }
     else
         pRCAP->pReplyMajorOpSet = NULL;
 
-    if (si[ERR].intervals) {
+    if (si[RI_ERR].intervals) {
         pRCAP->pErrorSet =
-            RecordCreateSet(si[ERR].intervals, si[ERR].nintervals,
-                            (RecordSetPtr) ((char *) pRCAP + si[ERR].offset),
-                            si[ERR].size);
+            RecordCreateSet(si[RI_ERR].intervals, si[RI_ERR].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[RI_ERR].offset),
+                            si[RI_ERR].size);
     }
     else
         pRCAP->pErrorSet = NULL;
 
-    if (si[DEV].intervals) {
+    if (si[RI_DEV].intervals) {
         pRCAP->pDeviceEventSet =
-            RecordCreateSet(si[DEV].intervals, si[DEV].nintervals,
-                            (RecordSetPtr) ((char *) pRCAP + si[DEV].offset),
-                            si[DEV].size);
+            RecordCreateSet(si[RI_DEV].intervals, si[RI_DEV].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[RI_DEV].offset),
+                            si[RI_DEV].size);
     }
     else
         pRCAP->pDeviceEventSet = NULL;
 
-    if (si[DLEV].intervals) {
+    if (si[RI_DLEV].intervals) {
         pRCAP->pDeliveredEventSet =
-            RecordCreateSet(si[DLEV].intervals, si[DLEV].nintervals,
-                            (RecordSetPtr) ((char *) pRCAP + si[DLEV].offset),
-                            si[DLEV].size);
+            RecordCreateSet(si[RI_DLEV].intervals, si[RI_DLEV].nintervals,
+                            (RecordSetPtr) ((char *) pRCAP + si[RI_DLEV].offset),
+                            si[RI_DLEV].size);
     }
     else
         pRCAP->pDeliveredEventSet = NULL;

@@ -790,7 +790,7 @@ void r600_resource_copy_region(struct pipe_context *ctx,
 	util_blitter_blit_generic(rctx->blitter, dst_view, &dstbox,
 				  src_view, src_box, src_width0, src_height0,
 				  PIPE_MASK_RGBAZS, PIPE_TEX_FILTER_NEAREST, NULL,
-				  false, false, 0);
+				  false, false, 0, NULL);
 	r600_blitter_end(ctx);
 
 	pipe_surface_reference(&dst_view, NULL);
@@ -884,7 +884,7 @@ static bool do_hardware_msaa_resolve(struct pipe_context *ctx,
 
 	r600_blitter_begin(ctx, R600_BLIT |
 			   (info->render_condition_enable ? 0 : R600_DISABLE_RENDER_COND));
-	util_blitter_blit(rctx->blitter, &blit);
+	util_blitter_blit(rctx->blitter, &blit, NULL);
 	r600_blitter_end(ctx);
 
 	pipe_resource_reference(&tmp, NULL);
@@ -935,7 +935,7 @@ static void r600_blit(struct pipe_context *ctx,
 
 	r600_blitter_begin(ctx, R600_BLIT |
 			   (info->render_condition_enable ? 0 : R600_DISABLE_RENDER_COND));
-	util_blitter_blit(rctx->blitter, info);
+	util_blitter_blit(rctx->blitter, info, NULL);
 	r600_blitter_end(ctx);
 }
 

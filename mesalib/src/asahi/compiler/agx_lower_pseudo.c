@@ -44,6 +44,33 @@ cmpsel_for_break_if(agx_builder *b, agx_instr *I)
    return agx_push_exec(b, 0);
 }
 
+static void
+swap(agx_builder *b, agx_index x, agx_index y)
+{
+   assert(!x.memory && "already lowered");
+   assert(!y.memory && "already lowered");
+
+   /* We can swap lo/hi halves of a 32-bit register with a 32-bit extr */
+   if (x.size == AGX_SIZE_16 && (x.value >> 1) == (y.value >> 1)) {
+
+      assert(((x.value & 1) == (1 - (y.value & 1))) &&
+             "no trivial swaps, and only 2 halves of a register");
+
+      /* r0 = extr r0, r0, #16
+       *    = (((r0 << 32) | r0) >> 16) & 0xFFFFFFFF
+       *    = (((r0 << 32) >> 16) & 0xFFFFFFFF) | (r0 >> 16)
+       *    = (r0l << 16) | r0h
+       */
+      agx_index reg32 = agx_register(x.value & ~1, AGX_SIZE_32);
+      agx_extr_to(b, reg32, reg32, reg32, agx_immediate(16), 0);
+   } else {
+      /* Otherwise, we're swapping GPRs and fallback on a XOR swap. */
+      agx_xor_to(b, x, x, y);
+      agx_xor_to(b, y, x, y);
+      agx_xor_to(b, x, x, y);
+   }
+}
+
 static agx_instr *
 lower(agx_builder *b, agx_instr *I)
 {
@@ -90,6 +117,10 @@ lower(agx_builder *b, agx_instr *I)
       else
          return cmpsel_for_break_if(b, I);
    }
+
+   case AGX_OPCODE_SWAP:
+      swap(b, I->src[0], I->src[1]);
+      return (void *)true;
 
    case AGX_OPCODE_EXPORT:
       /* We already lowered exports during RA, we just need to remove them late

@@ -829,8 +829,8 @@ BOOL_32 EgBasedLib::HwlReduceBankWidthHeight(
         if (valid == FALSE)
         {
             ADDR_WARN(
-                0, ("TILE_SIZE(%d)*BANK_WIDTH(%d)*BANK_HEIGHT(%d) <= ROW_SIZE(%d)",
-                tileSize, pTileInfo->bankWidth, pTileInfo->bankHeight, m_rowSize));
+                0, "TILE_SIZE(%d)*BANK_WIDTH(%d)*BANK_HEIGHT(%d) <= ROW_SIZE(%d)",
+                tileSize, pTileInfo->bankWidth, pTileInfo->bankHeight, m_rowSize);
         }
     }
 
@@ -1031,7 +1031,7 @@ BOOL_32 EgBasedLib::SanityCheckMacroTiled(
     {
         if (pTileInfo->tileSplitBytes > m_rowSize)
         {
-            ADDR_WARN(0, ("tileSplitBytes is bigger than row size"));
+            ADDR_WARN(0, "tileSplitBytes is bigger than row size");
         }
     }
 

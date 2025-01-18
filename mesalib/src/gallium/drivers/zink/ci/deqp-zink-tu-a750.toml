@@ -1,0 +1,67 @@
+# Basic test set
+[[deqp]]
+deqp = "/deqp/modules/gles2/deqp-gles2"
+caselists = ["/deqp/mustpass/gles2-main.txt"]
+deqp_args = [
+    "--deqp-surface-width=256", "--deqp-surface-height=256",
+    "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
+    "--deqp-gl-config-name=rgba8888d24s8ms0",
+]
+version_check = "GL ES 3.2.*git"
+renderer_check = "zink.*Adreno.*750"
+
+[[deqp]]
+deqp = "/deqp/modules/gles3/deqp-gles3"
+caselists = ["/deqp/mustpass/gles3-main.txt"]
+deqp_args = [
+    "--deqp-surface-width=256", "--deqp-surface-height=256",
+    "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
+    "--deqp-gl-config-name=rgba8888d24s8ms0",
+]
+
+[[deqp]]
+deqp = "/deqp/modules/gles31/deqp-gles31"
+caselists = ["/deqp/mustpass/gles31-main.txt"]
+deqp_args = [
+    "--deqp-surface-width=256", "--deqp-surface-height=256",
+    "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
+    "--deqp-gl-config-name=rgba8888d24s8ms0",
+]
+
+[[deqp]]
+deqp = "/deqp/external/openglcts/modules/glcts"
+caselists = [
+    "/deqp/mustpass/gles2-khr-main.txt",
+    "/deqp/mustpass/gles3-khr-main.txt",
+    "/deqp/mustpass/gles31-khr-main.txt",
+]
+deqp_args = [
+    "--deqp-surface-width=256", "--deqp-surface-height=256",
+    "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
+    "--deqp-gl-config-name=rgba8888d24s8ms0",
+]
+
+[[deqp]]
+deqp = "/deqp/external/openglcts/modules/glcts"
+caselists = [
+    "/deqp/mustpass/gl46-main.txt",
+]
+deqp_args = [
+    "--deqp-surface-width=256", "--deqp-surface-height=256",
+    "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
+    "--deqp-gl-config-name=rgba8888d24s8ms0",
+]
+
+# FIXME: Disabled because it is currently way too flaky
+#[[piglit]]
+#piglit_folder = "/piglit"
+##profile = "gpu"  # hangs
+##profile = "quick_gl"  # hangs
+#profile = "quick_shader"
+#process_isolation = true
+#timeout = 180.0
+#  [piglit.env]
+#  PIGLIT_NO_WINDOW = "1"
+#  PIGLIT_PLATFORM = "gbm"
+#  WAFFLE_PLATFORM = "gbm"
+#  FREEDRENO_HANGCHECK_MS = "2000"

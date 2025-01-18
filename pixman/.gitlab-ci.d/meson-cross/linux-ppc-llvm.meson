@@ -1,0 +1,15 @@
+[binaries]
+c = ['clang', '-target', 'powerpc-linux-gnu']
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+exe_wrapper = ['qemu-ppc', '-L', '/usr/powerpc-linux-gnu/']
+
+[built-in options]
+# We cannot use LLD, as it doesn't support big-endian PPC.
+c_link_args = ['-target', 'powerpc-linux-gnu']
+
+[host_machine]
+system = 'linux'
+cpu_family = 'ppc'
+cpu = 'ppc'
+endian = 'big'

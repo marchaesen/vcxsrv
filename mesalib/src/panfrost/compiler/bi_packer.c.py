@@ -25,12 +25,16 @@ from bifrost_isa import *
 from mako.template import Template
 
 # Consider pseudo instructions when getting the modifier list
-instructions_with_pseudo = parse_instructions(sys.argv[1], include_pseudo = True)
+instructions_with_pseudo = {}
+for arg in sys.argv[1:]:
+    new_instructions = parse_instructions(arg, include_pseudo = True)
+    instructions_with_pseudo.update(new_instructions)
+
 ir_instructions_with_pseudo = partition_mnemonics(instructions_with_pseudo)
 modifier_lists = order_modifiers(ir_instructions_with_pseudo)
 
 # ...but strip for packing
-instructions = parse_instructions(sys.argv[1])
+instructions = parse_instructions(sys.argv[2])  # skip the pseudo instructions in sys.argv[1]
 ir_instructions = partition_mnemonics(instructions)
 
 # Packs sources into an argument. Offset argument to work around a quirk of our

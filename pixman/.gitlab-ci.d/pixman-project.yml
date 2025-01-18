@@ -1,0 +1,61 @@
+# This file contains the set of jobs run by the pixman project:
+# https://gitlab.freedesktop.org/pixman/pixman/-/pipelines
+
+stages:
+  - docker
+  - build
+  - test
+  - summary
+
+variables:
+  # Make it possible to change RUNNER_TAG from GitLab variables. The default
+  # `kvm` tag has been tested with FDO infrastructure.
+  RUNNER_TAG: kvm
+
+  # Docker image global configuration.
+  DOCKER_TAG: latest
+  DOCKER_IMAGE_NAME: registry.freedesktop.org/pixman/pixman/pixman:${DOCKER_TAG}
+
+  # Execute to load a target-specific environment.
+  LOAD_TARGET_ENV: source .gitlab-ci.d/01-docker/target-env/${TARGET}.env
+
+  # Enable/disable specific targets for code and platform coverage targets.
+  ACTIVE_TARGET_PATTERN: '/linux-386|linux-amd64|linux-arm-v5|linux-arm-v7|linux-arm64-v8|linux-mips|linux-mips64el|linux-mipsel|linux-ppc|linux-ppc64|linux-ppc64le|linux-riscv64|windows-686|windows-amd64|windows-arm64-v8/i'
+
+workflow:
+  rules:
+    # Use modified Docker image if building in MR and Docker image is affected
+    # by the MR.
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+      changes:
+        paths:
+          - .gitlab-ci.d/01-docker.yml
+          - .gitlab-ci.d/01-docker/**/*
+      variables:
+        DOCKER_TAG: $CI_COMMIT_REF_SLUG
+        DOCKER_IMAGE_NAME: ${CI_REGISTRY_IMAGE}/pixman:${DOCKER_TAG}
+
+    # A standard set of GitLab CI triggers (i.e., MR, schedule, default branch,
+    # and tag).
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_PIPELINE_SOURCE == 'schedule'
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+default:
+  tags:
+    - $RUNNER_TAG
+
+  # Retry in case the runner is misconfigured for multi-arch builds or some
+  # random unexpected runner error occurs (it happened during testing).
+  retry: 1
+
+include:
+  - local: "/.gitlab-ci.d/templates/targets.yml"
+  - local: "/.gitlab-ci.d/01-docker.yml"
+  - local: "/.gitlab-ci.d/02-build.yml"
+  - local: "/.gitlab-ci.d/03-test.yml"
+  - local: "/.gitlab-ci.d/04-summary.yml"

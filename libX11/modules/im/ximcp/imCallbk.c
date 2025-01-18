@@ -327,15 +327,17 @@ _XimStrConversionCallback(Xim im,
 	 * `cbrec.text->length' means the string length in characters
 	 */
 	{
+	    size_t blen;
 	    length_in_bytes = (cbrec.text->encoding_is_wchar)?
 		sizeof(wchar_t) * cbrec.text->length: /* wchar */
 		strlen(cbrec.text->string.mbs);	/* mb */
-	    buf_len = XIM_HEADER_SIZE +
+	    blen = XIM_HEADER_SIZE +
 		sz_CARD16 +
 		2 + length_in_bytes +
 		XIM_PAD(2 + length_in_bytes) +
 		2 + 2 + sz_CARD32 * cbrec.text->length;
-	    buf = Xmalloc(buf_len);
+	    buf = Xmalloc(blen);
+	    buf_len = (INT16) blen;
 	}
 	_XimSetHeader((XPointer)buf, XIM_STR_CONVERSION_REPLY, 0, &buf_len);
 	buf_len -= XIM_HEADER_SIZE; /* added by _XimSetHeader (HACK) */

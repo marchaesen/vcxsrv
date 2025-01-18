@@ -49,8 +49,7 @@ replace_intrinsic_with_vec(nir_builder *b, nir_intrinsic_instr *intr,
         /* Replace the old intrinsic with a reference to our reconstructed
          * vector.
          */
-        nir_def_rewrite_uses(&intr->def, vec);
-        nir_instr_remove(&intr->instr);
+        nir_def_replace(&intr->def, vec);
 }
 
 static nir_def *
@@ -96,13 +95,13 @@ vc4_nir_get_vattr_channel_vpm(struct vc4_compile *c,
                               uint8_t swiz,
                               const struct util_format_description *desc)
 {
+        if (swiz > PIPE_SWIZZLE_W)
+                return vc4_nir_get_swizzled_channel(b, vpm_reads, swiz);
+
         const struct util_format_channel_description *chan =
                 &desc->channel[swiz];
-        nir_def *temp;
 
-        if (swiz > PIPE_SWIZZLE_W) {
-                return vc4_nir_get_swizzled_channel(b, vpm_reads, swiz);
-        } else if (chan->size == 32 && chan->type == UTIL_FORMAT_TYPE_FLOAT) {
+        if (chan->size == 32 && chan->type == UTIL_FORMAT_TYPE_FLOAT) {
                 return vc4_nir_get_swizzled_channel(b, vpm_reads, swiz);
         } else if (chan->size == 32 && chan->type == UTIL_FORMAT_TYPE_SIGNED) {
                 if (chan->normalized) {
@@ -117,7 +116,7 @@ vc4_nir_get_vattr_channel_vpm(struct vc4_compile *c,
                     chan->type == UTIL_FORMAT_TYPE_SIGNED)) {
                 nir_def *vpm = vpm_reads[0];
                 if (chan->type == UTIL_FORMAT_TYPE_SIGNED) {
-                        temp = nir_ixor(b, vpm, nir_imm_int(b, 0x80808080));
+                        nir_def *temp = nir_ixor(b, vpm, nir_imm_int(b, 0x80808080));
                         if (chan->normalized) {
                                 return nir_fadd_imm(b, nir_fmul_imm(b,
                                                                     vc4_nir_unpack_8f(b, temp, swiz),
@@ -141,6 +140,7 @@ vc4_nir_get_vattr_channel_vpm(struct vc4_compile *c,
                    (chan->type == UTIL_FORMAT_TYPE_UNSIGNED ||
                     chan->type == UTIL_FORMAT_TYPE_SIGNED)) {
                 nir_def *vpm = vpm_reads[swiz / 2];
+                nir_def *temp;
 
                 /* Note that UNPACK_16F eats a half float, not ints, so we use
                  * UNPACK_16_I for all of these.
@@ -349,8 +349,7 @@ vc4_nir_lower_io_impl(struct vc4_compile *c, nir_function_impl *impl)
                         vc4_nir_lower_io_instr(c, &b, instr);
         }
 
-        nir_metadata_preserve(impl, nir_metadata_block_index |
-                              nir_metadata_dominance);
+        nir_metadata_preserve(impl, nir_metadata_control_flow);
 
         return true;
 }

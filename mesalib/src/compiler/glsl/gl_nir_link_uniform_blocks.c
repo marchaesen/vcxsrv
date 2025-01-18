@@ -24,7 +24,6 @@
 #include "nir.h"
 #include "nir_deref.h"
 #include "gl_nir_linker.h"
-#include "ir_uniform.h" /* for gl_uniform_storage */
 #include "linker_util.h"
 #include "main/consts_exts.h"
 #include "main/shader_types.h"
@@ -876,8 +875,8 @@ allocate_uniform_blocks(void *mem_ctx, struct hash_table *block_hash,
                         struct gl_linked_shader *shader,
                         struct gl_uniform_block **out_blks, unsigned *num_blocks,
                         struct gl_uniform_buffer_variable **out_variables,
-                        unsigned *num_variables,
-                        enum block_type block_type)
+                        unsigned *num_variables, enum block_type block_type,
+                        bool supports_std430)
 {
    *num_variables = 0;
    *num_blocks = 0;
@@ -903,6 +902,34 @@ allocate_uniform_blocks(void *mem_ctx, struct hash_table *block_hash,
       if (prog->data->spirv) {
          count_block(var->type, num_blocks, num_variables);
       } else {
+         /* For UBO and SSBO variables, we need explicit types */
+         const glsl_type *explicit_ifc_type =
+            glsl_get_explicit_interface_type(var->interface_type,
+                                             supports_std430);
+
+         var->interface_type = explicit_ifc_type;
+
+         if (glsl_type_is_interface(glsl_without_array(var->type))) {
+            /* If the type contains the interface, wrap the explicit type in
+             * the right number of arrays.
+             */
+            var->type = glsl_type_wrap_in_arrays(explicit_ifc_type, var->type);
+         } else {
+            /* Otherwise, this variable is one entry in the interface */
+            UNUSED bool found = false;
+            for (unsigned i = 0; i < explicit_ifc_type->length; i++) {
+               const glsl_struct_field *field =
+                  &explicit_ifc_type->fields.structure[i];
+               if (strcmp(var->name, field->name) != 0)
+                  continue;
+
+               var->type = field->type;
+               found = true;
+               break;
+            }
+            assert(found);
+         }
+
          /* Process the block.  Bail if there was an error. */
          struct link_uniform_block_active *b =
             process_block(mem_ctx, block_hash, var);
@@ -1159,7 +1186,7 @@ link_linked_shader_uniform_blocks(void *mem_ctx,
    allocate_uniform_blocks(mem_ctx, block_hash, prog, shader,
                            blocks, num_blocks,
                            &variables, &num_variables,
-                           block_type);
+                           block_type, consts->UseSTD430AsDefaultPacking);
    if (!prog->data->LinkStatus)
       return;
 

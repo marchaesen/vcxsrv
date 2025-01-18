@@ -24,21 +24,6 @@
       ASSERT_SHADER_EQUAL(A->shader, B->shader);                               \
    } while (0)
 
-static inline void
-extr_swap(agx_builder *b, agx_index x)
-{
-   x.size = AGX_SIZE_32;
-   agx_extr_to(b, x, x, x, agx_immediate(16), 0);
-}
-
-static inline void
-xor_swap(agx_builder *b, agx_index x, agx_index y)
-{
-   agx_xor_to(b, x, x, y);
-   agx_xor_to(b, y, x, y);
-   agx_xor_to(b, x, x, y);
-}
-
 class LowerParallelCopy : public testing::Test {
  protected:
    LowerParallelCopy()
@@ -162,7 +147,7 @@ TEST_F(LowerParallelCopy, Swap)
    };
 
    CASE(test_1, {
-      xor_swap(b, agx_register(0, AGX_SIZE_32), agx_register(2, AGX_SIZE_32));
+      agx_swap(b, agx_register(0, AGX_SIZE_32), agx_register(2, AGX_SIZE_32));
    });
 
    struct agx_copy test_2[] = {
@@ -170,7 +155,9 @@ TEST_F(LowerParallelCopy, Swap)
       {.dest = 1, .src = agx_register(0, AGX_SIZE_16)},
    };
 
-   CASE(test_2, { extr_swap(b, agx_register(0, AGX_SIZE_16)); });
+   CASE(test_2, {
+      agx_swap(b, agx_register(0, AGX_SIZE_16), agx_register(1, AGX_SIZE_16));
+   });
 }
 
 TEST_F(LowerParallelCopy, Cycle3)
@@ -182,8 +169,8 @@ TEST_F(LowerParallelCopy, Cycle3)
    };
 
    CASE(test, {
-      extr_swap(b, agx_register(0, AGX_SIZE_16));
-      xor_swap(b, agx_register(1, AGX_SIZE_16), agx_register(2, AGX_SIZE_16));
+      agx_swap(b, agx_register(0, AGX_SIZE_16), agx_register(1, AGX_SIZE_16));
+      agx_swap(b, agx_register(1, AGX_SIZE_16), agx_register(2, AGX_SIZE_16));
    });
 }
 
@@ -213,8 +200,8 @@ TEST_F(LowerParallelCopy, TwoSwaps)
    };
 
    CASE(test, {
-      xor_swap(b, agx_register(4, AGX_SIZE_32), agx_register(2, AGX_SIZE_32));
-      xor_swap(b, agx_register(6, AGX_SIZE_32), agx_register(2, AGX_SIZE_32));
+      agx_swap(b, agx_register(4, AGX_SIZE_32), agx_register(2, AGX_SIZE_32));
+      agx_swap(b, agx_register(6, AGX_SIZE_32), agx_register(2, AGX_SIZE_32));
    });
 }
 

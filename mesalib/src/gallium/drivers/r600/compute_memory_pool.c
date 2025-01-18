@@ -415,8 +415,7 @@ void compute_memory_demote_item(struct compute_memory_pool *pool,
 	 * temporary buffer. Download is skipped for items:
 	 * - Not mapped for reading or writing (PIPE_MAP_DISCARD_RANGE).
 	 * - Not writable by the device. */
-	if ((item->status & (ITEM_MAPPED_FOR_READING|ITEM_MAPPED_FOR_WRITING)) &&
-		!(r600_resource(dst)->flags & RADEON_FLAG_READ_ONLY)) {
+	if ((item->status & (ITEM_MAPPED_FOR_READING|ITEM_MAPPED_FOR_WRITING))) {
 
 		u_box_1d(item->start_in_dw * 4, item->size_in_dw * 4, &box);
 

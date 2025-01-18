@@ -1,11 +1,9 @@
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-visuals-depth -pixmap,Fail
 glx@glx-visuals-stencil -pixmap,Fail
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
-shaders@glsl-bug-110796,Fail
 shaders@point-vertex-id divisor,Fail
 shaders@point-vertex-id gl_instanceid divisor,Fail
 shaders@point-vertex-id gl_instanceid,Fail
@@ -128,8 +126,6 @@ spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE_ALPHA32UI_EXT,Fail
 spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE_ALPHA8I_EXT,Fail
 spec@arb_texture_buffer_object@formats (fs- arb)@GL_LUMINANCE_ALPHA8UI_EXT,Fail
 spec@arb_texture_buffer_object@formats (vs- arb),Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_ALPHA16F_ARB,Fail
-spec@arb_texture_buffer_object@formats (vs- arb)@GL_ALPHA32F_ARB,Fail
 spec@arb_texture_buffer_object@formats (vs- arb)@GL_INTENSITY16F_ARB,Fail
 spec@arb_texture_buffer_object@formats (vs- arb)@GL_INTENSITY16I_EXT,Fail
 spec@arb_texture_buffer_object@formats (vs- arb)@GL_INTENSITY16UI_EXT,Fail
@@ -158,13 +154,6 @@ spec@arb_texture_buffer_object@texture-buffer-size-clamp,Fail
 spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_sampler,Fail
 spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_sampler,Fail
 spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_sampler,Fail
-spec@arb_texture_float@fbo-blending-formats,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_INTENSITY32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_LUMINANCE_ALPHA32F_ARB,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_RGB32F,Fail
-spec@arb_texture_float@fbo-blending-formats@GL_RGBA32F,Fail
 spec@arb_texture_float@texwrap formats bordercolor,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_float@texwrap formats bordercolor-swizzled@GL_ALPHA32F_ARB- swizzled- border color only,Fail
@@ -179,43 +168,7 @@ spec@arb_texture_float@texwrap formats bordercolor@GL_LUMINANCE32F_ARB- border c
 spec@arb_texture_float@texwrap formats bordercolor@GL_LUMINANCE_ALPHA32F_ARB- border color only,Fail
 spec@arb_texture_float@texwrap formats bordercolor@GL_RGB32F- border color only,Fail
 spec@arb_texture_float@texwrap formats bordercolor@GL_RGBA32F- border color only,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch.*,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R16I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R16_SNORM,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R32I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R8I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_R8_SNORM,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG16F,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG16I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG16_SNORM,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG32F,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG32I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG8I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RG8_SNORM,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB10,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB10_A2,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB10_A2UI,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB16I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB16_SNORM,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB32I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB4,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB8,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB8I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGB9_E5,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA16,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA16F,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA16I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA32F,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA32I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA4,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA8,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_RGBA8I,Fail
-spec@arb_texture_multisample@arb_texture_multisample-dsa-texelfetch@Texture type: GL_SRGB8_ALPHA8,Fail
 spec@arb_texture_rectangle@1-1-linear-texture,Fail
-spec@arb_texture_rg@fbo-blending-formats-float,Fail
-spec@arb_texture_rg@fbo-blending-formats-float@GL_R32F,Fail
-spec@arb_texture_rg@fbo-blending-formats-float@GL_RG32F,Fail
 spec@arb_texture_rg@texwrap formats bordercolor,Fail
 spec@arb_texture_rg@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_R16- swizzled- border color only,Fail
@@ -234,7 +187,6 @@ spec@arb_texture_rg@texwrap formats-float offset@GL_RG32F- NPOT,Fail
 spec@arb_texture_rg@texwrap formats-float,Fail
 spec@arb_texture_rg@texwrap formats-float@GL_R32F- NPOT,Fail
 spec@arb_texture_rg@texwrap formats-float@GL_RG32F- NPOT,Fail
-spec@arb_texture_storage@texture-storage@cube array texture,Fail
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_rgba,Fail
@@ -245,29 +197,8 @@ spec@ext_framebuffer_multisample@interpolation 2 centroid-edges,Fail
 spec@ext_framebuffer_multisample@interpolation 4 centroid-edges,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
 spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-modifiers,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-modifiers@autogen-R16-DRM_FORMAT_MOD_LINEAR-clear_reimport,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_argb8888,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_nv12,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_nv21,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_vyuy,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xrgb8888,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y210,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y212,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y216,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y412,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y416,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvyu,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88,Fail
 spec@ext_packed_depth_stencil@texwrap formats bordercolor,Fail
 spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled,Fail
 spec@ext_packed_depth_stencil@texwrap formats bordercolor-swizzled@GL_DEPTH24_STENCIL8- swizzled- border color only,Fail
@@ -330,7 +261,9 @@ spec@ext_transform_feedback@tessellation line_loop smooth,Fail
 spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
 spec@ext_transform_feedback@tessellation triangle_strip flat_first,Fail
 spec@glsl-1.10@execution@glsl-fs-inline-explosion,Crash
-spec@glsl-1.10@execution@glsl-vs-inline-explosion,Crash
+spec@glsl-1.10@execution@glsl-vs-inline-explosion,Fail
+spec@glsl-1.10@execution@loops@glsl-fs-unroll-explosion,Crash
+spec@glsl-1.10@execution@loops@glsl-vs-unroll-explosion,Crash
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-primitives,Fail
 spec@glsl-1.20@execution@fs-underflow-mul-compare-zero,Fail
@@ -391,11 +324,6 @@ spec@nv_image_formats@compiler@declaration-disallow-rgba16-unorm-cube.vert,Fail
 spec@nv_read_depth@read_depth_gles3,Fail
 spec@oes_point_sprite@arb_point_sprite-checkerboard_gles1,Fail
 spec@oes_shader_io_blocks@compiler@layout-location-aliasing.vert,Fail
-
-# This crashes only when LLVM is not enabled. This is because Gallium backend
-# uses TGSI to do some task that do not contains a sampler; when LLVM is
-# enabled, it uses LLVM instead, which is complete.
-spec@!opengl 1.0@rasterpos,Crash
 
 # There are two problems here. On one side, hardware do not support
 # different polygon mode for front and back faces. By default we
@@ -587,5 +515,230 @@ spec@arb_texture_barrier@arb_texture_barrier-blending-in-shader 512 42 8 8 4,Fai
 spec@arb_texture_barrier@arb_texture_barrier-blending-in-shader 512 42 8 8 7,Fail
 spec@arb_texture_barrier@arb_texture_barrier-blending-in-shader 512 42 8 8 8,Fail
 
-# This seems to be a Vulkan Loader issue. Can be fixed by compiling the loader from the Github repo.
-dEQP-VK.api.get_device_proc_addr.non_enabled,Fail
+# Piglit OpenCL tests
+api@clbuildprogram,Fail
+api@clcompileprogram,Fail
+api@clgetcommandqueueinfo,Fail
+api@clgetextensionfunctionaddressforplatform,Fail
+api@clgetkernelarginfo,Fail
+api@cllinkprogram,Fail
+program@build@vector-data-types,Fail
+program@execute@amdgcn-f32-inline-immediates,Fail
+program@execute@amdgcn-f32-inline-immediates@add integer 64,Fail
+program@execute@amdgcn.sign_extend_inreg,Crash
+program@execute@builtin@builtin-float-nextafter-1.0.generated,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float1,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float16,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float2,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float4,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float8,Fail
+program@execute@builtin@builtin-float-pow-1.0.generated,Fail
+program@execute@builtin@builtin-float-pow-1.0.generated@pow float16,Fail
+program@execute@builtin@builtin-float-pow-1.0.generated@pow float4,Fail
+program@execute@builtin@builtin-float-pow-1.0.generated@pow float8,Fail
+program@execute@builtin@builtin-float-powr-1.0.generated,Fail
+program@execute@builtin@builtin-float-powr-1.0.generated@powr float16,Fail
+program@execute@builtin@builtin-float-powr-1.0.generated@powr float4,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float1,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float16,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float2,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float4,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float8,Fail
+program@execute@builtin@builtin-long-abs-1.0.generated,Crash
+program@execute@builtin@builtin-long-clamp-1.1.generated,Crash
+program@execute@builtin@builtin-long-mad_hi-1.0.generated,Crash
+program@execute@builtin@builtin-long-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-long-max-1.1.generated,Crash
+program@execute@builtin@builtin-long-min-1.1.generated,Crash
+program@execute@builtin@builtin-long-mul_hi-1.0.generated,Crash
+program@execute@builtin@builtin-long-popcount-1.2.generated,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long1,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long16,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long2,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long4,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long8,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated,Crash
+program@execute@builtin@builtin-ulong-mad_hi-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-max-1.1.generated,Crash
+program@execute@builtin@builtin-ulong-min-1.1.generated,Crash
+program@execute@builtin@builtin-ulong-mul_hi-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-popcount-1.2.generated,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong1,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong16,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong2,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong4,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong8,Fail
+program@execute@global-offset,Fail
+program@execute@global-offset@3d- input dependent,Fail
+program@execute@scalar-arithmetic-long,Crash
+program@execute@scalar-arithmetic-ulong,Crash
+program@execute@scalar-comparison-long,Crash
+program@execute@scalar-comparison-ulong,Crash
+program@execute@scalar-load-long,Crash
+program@execute@scalar-load-ulong,Crash
+program@run kernel with max work item sizes,Fail
+
+# Failures from arm32
+arm32-KHR-GL31.texture_size_promotion.functional,Fail
+
+# https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/931
+asan-spec@arb_texture_buffer_object@formats (vs- ext_gpu_shader4),Fail
+KHR-GL31.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
+KHR-GL31.transform_feedback3.multiple_streams,Fail
+asan-KHR-GLES31.core.tessellation_shader.tessellation_shader_triangles_tessellation.inner_tessellation_level_rounding,Fail
+asan-KHR-GLES31.core.constant_expressions.array_max_vec4_tess_control,Fail
+asan-KHR-GLES31.core.blend_equation_advanced.mismatching_qualifier.GL_DIFFERENCE_KHR,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgb16f.16_0,Fail
+asan-KHR-GL31.ext_texture_shadow_lod.texture.sampler2darrayshadow_bias_fragment,Fail
+asan-KHR-GLES31.core.compute_shader.resource-texture,Fail
+asan-KHR-GLES31.core.program_interface_query.link-failure,Fail
+asan-KHR-GLES31.core.program_interface_query.transform-feedback-types,Fail
+asan-KHR-GLES31.core.texture_gather.plain-gather-float-2d-srgb-alpha,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.vec3_from_float_mat4x2_float_invalid_vs,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_sqrt_float_tess_control,Fail
+asan-KHR-GLES31.core.draw_indirect.basic-binding-zero,Fail
+asan-KHR-GLES31.core.shader_multisample_interpolation.render.sample.rgba8ui.samples_2,Fail
+asan-KHR-GLES31.core.texture_storage_multisample.FunctionalTests.blitting_multisampled_integer_attachment,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_exp2_float_tess_control,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgb5a1.16_1_0,Fail
+asan-KHR-GLES31.core.tessellation_shader.tessellation_invariance.invariance_rule5,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec4_from_mat4x3_mat4x3_invalid_vs,Fail
+asan-KHR-GLES31.core.internalformat.texture2d.luminance_unsigned_byte_luminance,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.r32f.16_0_0,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_clamp_vec2_float_tess_control,Fail
+asan-KHR-GL31.texture_repeat_mode.depth_component16_11x131_2_mirrored_repeat,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.frexp.vec3_zero,Fail
+asan-KHR-GLES31.core.shader_image_size.advanced-nonMS-cs-float,Fail
+asan-KHR-GLES31.core.internalformat.texture2d.rg_float_rg32f,Fail
+asan-KHR-GLES31.core.constant_expressions.array_sqrt_vec3_compute,Fail
+asan-KHR-GLES31.core.constant_expressions.array_normalize_vec2_tess_eval,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec3_from_mat2_fs,Fail
+asan-KHR-GLES31.core.texture_storage_multisample.APIDependencies.framebuffer_texture2d_used_with_invalid_level,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rg32i.0_0_0,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec2_from_bool_mat3x4_vs,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_sin_vec2_compute,Fail
+asan-KHR-GL31.texture_repeat_mode.r8_49x23_2_clamp_to_edge,Fail
+asan-KHR-GLES31.core.sample_variables.mask.rgba32f.samples_4.mask_6,Fail
+asan-KHR-GLES31.core.internalformat.texture2d.rg_unsigned_byte_rg8,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_length_vec4_compute,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.bitfieldExtract.uvec2_3,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgba8.1_1_0,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rg16f.16_1,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec4_from_mat3x2_fs,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_degrees_vec4_compute,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec3_from_int_mat3_int_invalid_fs,Fail
+asan-KHR-GLES31.core.texture_cube_map_array.fbo_incompleteness,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.packUnorm4x8.2,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_log2_vec3_compute,Fail
+asan-KHR-GLES31.core.compute_shader.resource-atomic-counter,Fail
+asan-KHR-GLES31.core.blend_equation_advanced.blend_all.GL_MULTIPLY_KHR_all_qualifier,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgb10a2ui.16_16_1,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.findMSB.int_2,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.r16ui.16_1_0,Fail
+asan-KHR-GLES31.core.geometry_shader.linking.more_ACs_in_GS_than_supported,Fail
+asan-KHR-GLES31.core.shader_storage_buffer_object.basic-std430Layout-case5-vs,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_normalize_vec2_tess_control,Fail
+asan-KHR-GLES31.core.blend_equation_advanced.blend_specific.GL_HSL_LUMINOSITY_KHR,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rg8i.16_16,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.frexp.vec4_3,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.usubBorrow.uvec3_1,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.findMSB.ivec2_3,Fail
+asan-KHR-GLES31.core.shader_storage_buffer_object.advanced-switchPrograms-cs,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_round_vec4_tess_eval,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.vec4_from_mat2x4_fs,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec2_from_int_mat2x4_vs,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgba16f.16_16_1,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec4_from_mat4_vs,Fail
+asan-KHR-GLES31.core.constant_expressions.array_asin_vec4_geometry,Fail
+asan-KHR-GLES31.core.texture_storage_multisample.APIGLTexStorage2DMultisample.multisample_texture_tex_storage_2d_reconfiguration_rejected,Fail
+asan-KHR-GLES31.core.constant_expressions.array_sign_vec3_tess_eval,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_normalize_vec4_tess_control,Fail
+asan-KHR-GL31.texture_repeat_mode.rgb10_a2_49x23_2_clamp_to_edge,Fail
+asan-KHR-GLES31.core.gpu_shader5.texture_gather_offset_color_clamp_to_edge,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec4_from_mat4x3_vs,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgb16f.16_16,Fail
+asan-KHR-GLES31.core.program_interface_query.empty-shaders,Fail
+asan-KHR-GLES31.core.constant_expressions.array_cos_vec2_tess_eval,Fail
+asan-KHR-GLES31.core.constant_expressions.array_normalize_vec3_tess_eval,Fail
+asan-KHR-GLES31.core.sample_variables.mask.rgba8.samples_0.mask_0,Fail
+asan-KHR-GLES31.core.constant_expressions.array_normalize_vec3_tess_control,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.findMSB.uvec4_0,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_sqrt_float_geometry,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgb16ui.16_0,Fail
+asan-KHR-GLES31.core.sample_variables.mask.rgba8ui.samples_4.mask_zero,Fail
+asan-KHR-GLES31.core.geometry_shader.adjacency.adjacency_indiced_triangle_strip,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgb565.0_0_0,Fail
+asan-KHR-GL31.texture_repeat_mode.r8_11x131_1_mirrored_repeat,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgb8snorm.0_0,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_clamp_vec3_tess_control,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec2_from_int_mat2x3_vs,Fail
+asan-KHR-GLES31.core.draw_indirect.basic-binding-default,Fail
+asan-KHR-GLES31.core.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_MaxPatchVertices_Position_PointSize_primitive_mode_quads_vertex_ordering__vertex_spacing_equal_spacing_point_mode_disabled,Fail
+asan-KHR-GLES31.core.shader_storage_buffer_object.basic-std430Layout-case1-cs,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.r11g11b10f.1_1_0,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.bitfieldReverse.int_1,Fail
+asan-KHR-GLES31.core.shader_multisample_interpolation.render.interpolate_at_sample.rgba8ui.samples_1,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgb8ui.1_1,Fail
+asan-KHR-GLES31.core.constant_expressions.array_sqrt_vec4_tess_control,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.vec3_from_float_mat2x4_fs,Fail
+asan-KHR-GLES31.core.shader_storage_buffer_object.basic-stdLayout_UBO_SSBO-case1-vs,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rg8snorm.16_16_1,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec3_from_bool_mat4_fs,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.usubBorrow.uint_2,Fail
+asan-KHR-GLES31.core.constant_expressions.array_acos_vec3_geometry,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.r16i.16_1,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec2_from_bool_mat3_bool_invalid_vs,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.bitfieldExtract.uvec4_1,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.r8i.16_1_1,Fail
+asan-KHR-GLES31.core.texture_storage_multisample.APIDependencies.no_error_generated_for_valid_framebuffer_texture2d_calls,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec4_from_mat4x2_mat4x2_invalid_fs,Fail
+asan-KHR-GLES31.core.compute_shader.sso-case2,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec3_from_int_mat4_vs,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgb8.16_1_1,Fail
+asan-KHR-GLES31.core.constant_expressions.array_pow_vec4_tess_control,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgba8.16_16,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec4_from_int_mat4x3_int_invalid_vs,Fail
+asan-KHR-GLES31.core.internalformat.texture2d.depth_component_unsigned_int_depth_component16,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec4_from_bool_mat2x4_fs,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_log2_float_geometry,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rg8.1_0_0,Fail
+asan-KHR-GLES31.core.draw_indirect.advanced-twoPass-transformFeedback-arrays,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.r16ui.16_16,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgba16i.1_1_1,Fail
+asan-KHR-GL31.texture_repeat_mode.rgb565_49x23_1_mirrored_repeat,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgba8snorm.1_1_0,Fail
+asan-KHR-GLES31.core.constant_expressions.array_clamp_vec4_tess_eval,Fail
+asan-KHR-GLES31.core.constant_expressions.array_log2_vec2_compute,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgba16ui.16_0_0,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgb16ui.1_0,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgba16f.16_0_0,Fail
+asan-KHR-GLES31.core.gpu_shader5.images_array_indexing,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.r8snorm.16_0,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec2_from_int_mat4_fs,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.r32i.16_0,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgb8ui.16_16_4,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage2d.rgb10a2ui.1_0,Fail
+asan-KHR-GLES31.core.shader_multisample_interpolation.render.interpolate_at_centroid_check.rgba8.samples_1,Fail
+asan-KHR-GLES31.core.shader_image_size.advanced-nonMS-cs-int,Fail
+asan-KHR-GLES31.core.draw_indirect.basic-mode-drawElements-triangle_strip_adjacency,Fail
+asan-KHR-GLES31.core.sample_variables.mask.rgba8ui.samples_0.mask_6,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.vec2_from_mat2x3_vs,Fail
+asan-KHR-GLES31.core.explicit_uniform_location.uniform-loc-implicit-in-some-stages,Fail
+asan-KHR-GLES31.core.constant_expressions.basic_inversesqrt_vec2_geometry,Fail
+asan-KHR-GL31.transform_feedback3.multiple_streams,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec3_from_bool_mat3x2_bool_invalid_fs,Fail
+asan-KHR-GLES31.core.geometry_shader.api.fs_gs_draw_call,Fail
+asan-KHR-GLES31.core.pixelstoragemodes.teximage3d.rgb10a2ui.1_1_0,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.ivec4_from_int_mat3x2_fs,Fail
+asan-KHR-GLES31.core.shader_bitfield_operation.umulExtended.uvec4_3,Fail
+asan-KHR-GL31.shaders30.glsl_constructors.bvec3_from_mat2x3_vs,Fail
+asan-KHR-GLES31.core.draw_indirect.negative-noindirect-arrays,Fail
+asan-KHR-GLES31.core.constant_expressions.array_exp2_vec3_tess_eval,Fail
+KHR-GL31.transform_feedback3.skip_multiple_buffers,Fail
+KHR-GL31.transform_feedback3.skip_components,Fail
+arm32-KHR-GL31.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Fail
+arm32-KHR-GL31.transform_feedback3.multiple_streams,Fail
+arm32-KHR-GL31.transform_feedback3.skip_components,Fail
+arm32-KHR-GL31.transform_feedback3.skip_multiple_buffers,Fail

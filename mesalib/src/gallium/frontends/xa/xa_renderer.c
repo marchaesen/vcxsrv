@@ -529,6 +529,8 @@ renderer_draw_yuv(struct xa_context *r,
    struct cso_velems_state velems;
    velems.count = num_attribs;
    memcpy(velems.velems, r->velems, sizeof(r->velems[0]) * velems.count);
+   for (unsigned i = 0; i < velems.count; i++)
+       velems.velems[i].src_stride = velems.count * 4 * sizeof(float);
 
    cso_set_vertex_elements(r->cso, &velems);
    util_draw_user_vertex_buffer(r->cso, r->buffer, MESA_PRIM_QUADS,

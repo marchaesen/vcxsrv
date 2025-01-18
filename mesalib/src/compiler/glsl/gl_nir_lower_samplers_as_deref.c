@@ -59,7 +59,6 @@
 #include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_deref.h"
 #include "gl_nir.h"
-#include "ir_uniform.h"
 
 #include "util/compiler.h"
 #include "main/shader_types.h"
@@ -362,8 +361,7 @@ gl_nir_lower_samplers_as_deref(nir_shader *shader,
                                                _mesa_key_string_equal);
 
    bool progress = nir_shader_instructions_pass(shader, lower_instr,
-                                                nir_metadata_block_index |
-                                                nir_metadata_dominance,
+                                                nir_metadata_control_flow,
                                                 &state);
 
    if (progress) {

@@ -18,7 +18,6 @@
 #include "svga_state.h"
 #include "svga_swtnl.h"
 
-#include "svga_types.h"
 #include "svga_reg.h"
 #include "svga3d_reg.h"
 #include "svga_draw.h"

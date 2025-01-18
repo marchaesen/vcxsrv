@@ -14,13 +14,6 @@
 
 struct agx_device;
 
-enum agx_alloc_type {
-   AGX_ALLOC_REGULAR = 0,
-   AGX_ALLOC_MEMMAP = 1,
-   AGX_ALLOC_CMDBUF = 2,
-   AGX_NUM_ALLOC,
-};
-
 enum agx_bo_flags {
    /* BO is shared across processes (imported or exported) and therefore cannot
     * be cached locally
@@ -46,11 +39,25 @@ enum agx_bo_flags {
    AGX_BO_READONLY = 1 << 5,
 };
 
+enum agx_va_flags {
+   /* VA must be inside the USC region, otherwise unrestricted. */
+   AGX_VA_USC = (1 << 0),
+
+   /* VA must be fixed, otherwise allocated by the driver. */
+   AGX_VA_FIXED = (1 << 1),
+};
+
+struct agx_va {
+   enum agx_va_flags flags;
+   uint64_t addr;
+   uint64_t size_B;
+};
+
 struct agx_ptr {
    /* If CPU mapped, CPU address. NULL if not mapped */
    void *cpu;
 
-   /* If type REGULAR, mapped GPU address */
+   /* Mapped GPU address */
    uint64_t gpu;
 };
 
@@ -64,59 +71,63 @@ struct agx_bo {
    /* The time this BO was used last, so we can evict stale BOs. */
    time_t last_used;
 
-   enum agx_alloc_type type;
-
    /* Creation attributes */
    enum agx_bo_flags flags;
    size_t size;
    size_t align;
 
    /* Mapping */
-   struct agx_ptr ptr;
+   struct agx_va *va;
+   void *map;
 
-   /* Index unique only up to type, process-local */
+   /* Process-local index */
    uint32_t handle;
 
    /* DMA-BUF fd clone for adding fences to imports/exports */
    int prime_fd;
 
-   /* Syncobj handle of the current writer, if any */
-   uint32_t writer_syncobj;
-
-   /* Owner */
-   struct agx_device *dev;
+   /* Current writer, if any (queue in upper 32 bits, syncobj in lower 32 bits) */
+   uint64_t writer;
 
    /* Update atomically */
    int32_t refcnt;
 
-   /* Used while decoding, marked read-only */
-   bool ro;
-
-   /* Used while decoding, mapped */
-   bool mapped;
-
    /* For debugging */
    const char *label;
+
+   /* virtio blob_id */
+   uint32_t blob_id;
+   uint32_t vbo_res_id;
 };
 
-struct agx_bo *agx_bo_create_aligned(struct agx_device *dev, unsigned size,
-                                     unsigned align, enum agx_bo_flags flags,
-                                     const char *label);
-static inline struct agx_bo *
-agx_bo_create(struct agx_device *dev, unsigned size, enum agx_bo_flags flags,
-              const char *label)
+static inline uint32_t
+agx_bo_writer_syncobj(uint64_t writer)
 {
-   return agx_bo_create_aligned(dev, size, 0, flags, label);
+   return writer;
 }
 
+static inline uint32_t
+agx_bo_writer_queue(uint64_t writer)
+{
+   return writer >> 32;
+}
+
+static inline uint64_t
+agx_bo_writer(uint32_t queue, uint32_t syncobj)
+{
+   return (((uint64_t)queue) << 32) | syncobj;
+}
+
+struct agx_bo *agx_bo_create(struct agx_device *dev, unsigned size,
+                             unsigned align, enum agx_bo_flags flags,
+                             const char *label);
+
 void agx_bo_reference(struct agx_bo *bo);
-void agx_bo_unreference(struct agx_bo *bo);
+void agx_bo_unreference(struct agx_device *dev, struct agx_bo *bo);
 struct agx_bo *agx_bo_import(struct agx_device *dev, int fd);
-int agx_bo_export(struct agx_bo *bo);
+int agx_bo_export(struct agx_device *dev, struct agx_bo *bo);
 
 void agx_bo_free(struct agx_device *dev, struct agx_bo *bo);
-struct agx_bo *agx_bo_alloc(struct agx_device *dev, size_t size, size_t align,
-                            enum agx_bo_flags flags);
 struct agx_bo *agx_bo_cache_fetch(struct agx_device *dev, size_t size,
                                   size_t align, uint32_t flags,
                                   const bool dontwait);

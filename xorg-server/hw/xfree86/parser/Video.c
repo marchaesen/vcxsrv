@@ -97,6 +97,8 @@ xf86parseVideoPortSubSection(void)
         switch (token) {
         case COMMENT:
             ptr->vp_comment = xf86addComment(ptr->vp_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->vp_comment)) != STRING)
@@ -154,6 +156,8 @@ xf86parseVideoAdaptorSection(void)
         switch (token) {
         case COMMENT:
             ptr->va_comment = xf86addComment(ptr->va_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->va_comment)) != STRING)

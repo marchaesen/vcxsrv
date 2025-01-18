@@ -76,7 +76,10 @@ r300_nir_opt_algebraic_late = [
         (('fabs', ('fneg', a)), ('fabs', a)),
         # Some cleanups after comparison lowering if one of the operands is 0.
         (('fadd', a, 0.0), a),
-        (('fadd', a, ('fneg', 0.0)), a)
+        (('fadd', a, ('fneg', 0.0)), a),
+        # NIR terminate_if expects bools, but we can handle floats just fine
+        # so get rid of the unneeded select.
+        (('fcsel_ge(is_only_used_by_terminate_if)', a, 0.0, 1.0), ('fneg', a)),
 ]
 
 # This is very late flrp lowering to clean up after bcsel->fcsel->flrp.

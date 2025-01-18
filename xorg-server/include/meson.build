@@ -176,6 +176,7 @@ conf_data.set('HAVE_VASPRINTF', cc.has_function('vasprintf') ? '1' : false)
 conf_data.set('HAVE_VSNPRINTF', cc.has_function('vsnprintf') ? '1' : false)
 conf_data.set('HAVE_WALKCONTEXT', cc.has_function('walkcontext') ? '1' : false)
 conf_data.set('HAVE_XUCRED_CR_PID', cc.has_member('struct xucred', 'cr_pid', prefix : '#include <sys/ucred.h>') ? '1' : false)
+conf_data.set('LOCK_SERVER', host_machine.system() != 'windows' ? '1' : false)
 
 # Don't let X dependencies typedef 'pointer'
 conf_data.set('_XTYPEDEF_POINTER', '1')
@@ -438,7 +439,6 @@ endif
 if build_xorg
     install_data(
         [
-            'XIstubs.h',
             'Xprintf.h',
             'callback.h',
             'client.h',
@@ -453,7 +453,6 @@ if build_xorg
             'dixevents.h',
             'dixfont.h',
             'dixfontstr.h',
-            'dixgrabs.h',
             'dixstruct.h',
             'events.h',
             'exevents.h',

@@ -219,6 +219,9 @@ can_move_intrinsic(nir_intrinsic_instr *instr, opt_preamble_ctx *ctx)
    case nir_intrinsic_load_sample_pos_from_id:
    case nir_intrinsic_load_kernel_input:
    case nir_intrinsic_load_buffer_amd:
+   case nir_intrinsic_image_levels:
+   case nir_intrinsic_image_deref_levels:
+   case nir_intrinsic_bindless_image_levels:
    case nir_intrinsic_image_samples:
    case nir_intrinsic_image_deref_samples:
    case nir_intrinsic_bindless_image_samples:
@@ -232,6 +235,7 @@ can_move_intrinsic(nir_intrinsic_instr *instr, opt_preamble_ctx *ctx)
    case nir_intrinsic_masked_swizzle_amd:
    case nir_intrinsic_load_ssbo_address:
    case nir_intrinsic_bindless_resource_ir3:
+   case nir_intrinsic_load_const_ir3:
    case nir_intrinsic_load_constant_agx:
       return can_move_srcs(&instr->instr, ctx);
 
@@ -273,17 +277,9 @@ can_move_instr(nir_instr *instr, opt_preamble_ctx *ctx)
       }
       return can_move_srcs(instr, ctx);
    }
-   case nir_instr_type_alu: {
-      /* The preamble is presumably run with only one thread, so we can't run
-       * derivatives in it.
-       * TODO: Replace derivatives with 0 instead, if real apps hit this.
-       */
-      nir_alu_instr *alu = nir_instr_as_alu(instr);
-      if (nir_op_is_derivative(alu->op))
-         return false;
-      else
-         return can_move_srcs(instr, ctx);
-   }
+   case nir_instr_type_alu:
+      return can_move_srcs(instr, ctx);
+
    case nir_instr_type_intrinsic:
       return can_move_intrinsic(nir_instr_as_intrinsic(instr), ctx);
 
@@ -966,8 +962,7 @@ nir_opt_preamble(nir_shader *shader, const nir_opt_preamble_options *options,
    }
 
    nir_metadata_preserve(impl,
-                         nir_metadata_block_index |
-                            nir_metadata_dominance);
+                         nir_metadata_control_flow);
 
    ralloc_free(remap_table);
    free(ctx.states);

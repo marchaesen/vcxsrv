@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2014 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2014 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -121,9 +103,7 @@ load_glsl(unsigned num_files, char *const *files, gl_shader_stage stage)
    if (!prog)
       errx(1, "couldn't parse `%s'", files[0]);
 
-   nir_shader *nir = glsl_to_nir(&local_ctx.Const, prog, stage, nir_options);
-
-   gl_nir_inline_functions(nir);
+   nir_shader *nir = prog->_LinkedShaders[stage]->Program->nir;
 
    /* required NIR passes: */
    if (nir_options->lower_all_io_to_temps ||
@@ -131,7 +111,8 @@ load_glsl(unsigned num_files, char *const *files, gl_shader_stage stage)
        nir->info.stage == MESA_SHADER_GEOMETRY) {
       NIR_PASS_V(nir, nir_lower_io_to_temporaries,
                  nir_shader_get_entrypoint(nir), true, true);
-   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
+   } else if (nir->info.stage == MESA_SHADER_TESS_EVAL ||
+              nir->info.stage == MESA_SHADER_FRAGMENT) {
       NIR_PASS_V(nir, nir_lower_io_to_temporaries,
                  nir_shader_get_entrypoint(nir), true, false);
    }
@@ -416,8 +397,10 @@ main(int argc, char **argv)
       return -1;
    }
 
+   const struct ir3_shader_nir_options options = {};
+
    ir3_nir_lower_io_to_temporaries(nir);
-   ir3_finalize_nir(compiler, nir);
+   ir3_finalize_nir(compiler, &options, nir);
 
    struct ir3_shader *shader = rzalloc_size(NULL, sizeof(*shader));
    shader->compiler = compiler;
@@ -435,7 +418,7 @@ main(int argc, char **argv)
    shader->variants = v;
    shader->variant_count = 1;
 
-   ir3_nir_lower_variant(v, nir);
+   ir3_nir_lower_variant(v, &options, nir);
 
    info = "NIR compiler";
    ret = ir3_compile_shader_nir(compiler, shader, v);

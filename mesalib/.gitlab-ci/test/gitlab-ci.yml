@@ -17,6 +17,7 @@
     paths:
       - results/
   rules:
+    - !reference [.common-rules, rules]
     - !reference [.never-post-merge-rules, rules]
 
 .formatting-check:
@@ -41,35 +42,32 @@ rustfmt:
     - shopt -s globstar
     - rustfmt --version
     - rustfmt --verbose src/**/lib.rs
-    - rustfmt --verbose src/**/main.rs
 
-python-test:
-  # Cancel job if a newer commit is pushed to the same branch
-  interruptible: true
-  stage: code-validation
+yaml-toml-shell-test:
   extends:
-    - .use-debian/x86_64_build
-  variables:
-    GIT_STRATEGY: fetch
-  timeout: 10m
+    - python-test
+    - .no-auto-retry  # this job can't be flaky
   script:
-    - cd bin/ci
-    - pip install --break-system-packages -r test/requirements.txt
-    - PYTHONPATH=. pytest -v
+    - echo "If your change looks right but this script rejects it, contact @eric (GitLab) / eric_engestrom (IRC)."
+    - uncollapsed_section_start tomllint "tomllint"
+    - python3 bin/toml_lint.py
+    - uncollapsed_section_switch yamllint "yamllint"
+    - .gitlab-ci/run-yamllint.sh
+    - uncollapsed_section_switch shellcheck "shellcheck"
+    - .gitlab-ci/run-shellcheck.sh
+    - section_end
   rules:
     - !reference [.disable-farm-mr-rules, rules]
     - !reference [.never-post-merge-rules, rules]
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: on_success
-    - if: $CI_PIPELINE_SOURCE == "push" && $CI_PROJECT_NAMESPACE == "mesa" && $GITLAB_USER_LOGIN != "marge-bot"
-      when: on_success
+    - !reference [.no_scheduled_pipelines-rules, rules]
     - if: $GITLAB_USER_LOGIN == "marge-bot"
-      changes: &bin_ci_files
-        - .gitlab-ci.yml
-        - .gitlab-ci/**/*
-        - bin/ci/**/*
+      changes: &toml_lint_files
+        - .gitlab-ci/test/gitlab-ci.yml
+        - .gitlab-ci/**/*.sh
+        - bin/toml_lint.py
+        - src/**/ci/*.toml
       when: on_success
-    - changes: *bin_ci_files
+    - changes: *toml_lint_files
       when: manual
 
 .test-gl:
@@ -124,14 +122,8 @@ python-test:
       - results/
 
 .b2c-vkd3d-proton-test:
-  artifacts:
-    when: on_failure
-    name: "mesa_${CI_JOB_NAME}"
-    paths:
-      - results/vkd3d-proton.log
   variables:
-    HWCI_TEST_SCRIPT: ./install/vkd3d-proton/run.sh
-    B2C_JOB_SUCCESS_REGEX: 'vkd3d-proton execution: SUCCESS\r$'
+    HWCI_TEST_SCRIPT: install/vkd3d-runner.sh
 
 .piglit-traces-test:
   artifacts:
@@ -211,12 +203,12 @@ python-test:
 .baremetal-test-arm32:
   extends:
     - .baremetal-test
-    - .use-debian/arm32_test
+    - .use-debian/baremetal_arm32_test
   variables:
     DEBIAN_ARCH: armhf
     S3_ARTIFACT_NAME: mesa-arm32-default-debugoptimized
   needs:
-    - debian/arm32_test
+    - debian/baremetal_arm32_test
     - job: debian-arm32
       artifacts: false
     - !reference [.required-for-hardware-jobs, needs]
@@ -225,12 +217,12 @@ python-test:
 .baremetal-test-arm64:
   extends:
     - .baremetal-test
-    - .use-debian/arm64_test
+    - .use-debian/baremetal_arm64_test
   variables:
     DEBIAN_ARCH: arm64
     S3_ARTIFACT_NAME: mesa-arm64-default-debugoptimized
   needs:
-    - debian/arm64_test
+    - debian/baremetal_arm64_test
     - job: debian-arm64
       artifacts: false
     - !reference [.required-for-hardware-jobs, needs]
@@ -239,12 +231,12 @@ python-test:
 .baremetal-arm32-asan-test:
   extends:
     - .baremetal-test
-    - .use-debian/arm32_test
+    - .use-debian/baremetal_arm32_test
   variables:
     DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.8:/install/lib/libdlclose-skip.so"
     S3_ARTIFACT_NAME: mesa-arm32-asan-debugoptimized
   needs:
-    - debian/arm32_test
+    - debian/baremetal_arm32_test
     - job: debian-arm32-asan
       artifacts: false
     - !reference [.required-for-hardware-jobs, needs]
@@ -252,12 +244,12 @@ python-test:
 .baremetal-arm64-asan-test:
   extends:
     - .baremetal-test
-    - .use-debian/arm64_test
+    - .use-debian/baremetal_arm64_test
   variables:
     DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.8:/install/lib/libdlclose-skip.so"
     S3_ARTIFACT_NAME: mesa-arm64-asan-debugoptimized
   needs:
-    - debian/arm64_test
+    - debian/baremetal_arm64_test
     - job: debian-arm64-asan
       artifacts: false
     - !reference [.required-for-hardware-jobs, needs]
@@ -287,8 +279,7 @@ python-test:
     # boot2container initrd configuration parameters.
     B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/gfx-ci/ci-tron/-/package_files/519/download'  # Linux 6.1
     B2C_INITRAMFS_URL: 'https://gitlab.freedesktop.org/mupuf/boot2container/-/releases/v0.9.10/downloads/initramfs.linux_amd64.cpio.xz'
-    B2C_JOB_SUCCESS_REGEX: '\[.*\]: Execution is over, pipeline status: 0\r$'
-    B2C_JOB_WARN_REGEX: '\*ERROR\* ring .* timeout'
+    B2C_JOB_SUCCESS_REGEX: 'hwci: mesa: pass, exit_code: 0\r$'
     B2C_LOG_LEVEL: 6
     B2C_POWEROFF_DELAY: 15
     B2C_SESSION_END_REGEX: '^.*It''s now safe to turn off your computer\r$'
@@ -408,4 +399,22 @@ python-test:
   needs:
     - debian/x86_64_test-gl
     - debian-testing
+    - !reference [.required-for-hardware-jobs, needs]
+
+.b2c-arm64-test-vk:
+  extends:
+    - .use-debian/arm64_test-vk
+    - .b2c-test
+  needs:
+    - debian/arm64_test-vk
+    - debian-arm64
+    - !reference [.required-for-hardware-jobs, needs]
+
+.b2c-arm64-test-gl:
+  extends:
+    - .use-debian/arm64_test-gl
+    - .b2c-test
+  needs:
+    - debian/arm64_test-gl
+    - debian-arm64
     - !reference [.required-for-hardware-jobs, needs]

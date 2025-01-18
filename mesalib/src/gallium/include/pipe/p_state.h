@@ -403,6 +403,8 @@ struct pipe_framebuffer_state
 
    /** multiple color buffers for multiple render targets */
    uint8_t nr_cbufs;
+   /** used for multiview */
+   uint8_t viewmask;
    struct pipe_surface *cbufs[PIPE_MAX_COLOR_BUFS];
 
    struct pipe_surface *zsbuf;      /**< Z/stencil buffer */
@@ -483,7 +485,8 @@ struct pipe_sampler_view
    /* Put the refcount on its own cache line to prevent "False sharing". */
    EXCLUSIVE_CACHELINE(struct pipe_reference reference);
 
-   enum pipe_format format:14;      /**< typed PIPE_FORMAT_x */
+   enum pipe_format format:12;      /**< typed PIPE_FORMAT_x */
+   unsigned astc_decode_format:2;   /**< intermediate format used for ASTC textures */
    bool is_tex2d_from_buf:1;       /**< true if union is tex2d_from_buf */
    enum pipe_texture_target target:5; /**< PIPE_TEXTURE_x */
    unsigned swizzle_r:3;         /**< PIPE_SWIZZLE_x for red component */
@@ -533,6 +536,7 @@ struct pipe_image_view
          unsigned last_layer:16;      /**< last layer to use for array textures */
          unsigned level:8;            /**< mipmap level to use */
          bool single_layer_view;      /**< single layer view of array */
+         bool is_2d_view_of_3d;
       } tex;
       struct {
          unsigned offset;   /**< offset in bytes */
@@ -556,39 +560,44 @@ struct pipe_resource
    /* Put the refcount on its own cache line to prevent "False sharing". */
    EXCLUSIVE_CACHELINE(struct pipe_reference reference);
 
-   unsigned width0; /**< Used by both buffers and textures. */
+   uint32_t width0; /**< Used by both buffers and textures. */
    uint16_t height0; /* Textures: The maximum height/depth/array_size is 16k. */
    uint16_t depth0;
    uint16_t array_size;
 
    enum pipe_format format:16;         /**< PIPE_FORMAT_x */
    enum pipe_texture_target target:8; /**< PIPE_TEXTURE_x */
-   unsigned last_level:8;    /**< Index of last mipmap level present/defined */
+   uint8_t last_level;    /**< Index of last mipmap level present/defined */
 
    /** Number of samples determining quality, driving rasterizer, shading,
     *  and framebuffer.
     */
-   unsigned nr_samples:8;
+   uint8_t nr_samples;
 
    /** Multiple samples within a pixel can have the same value.
     *  nr_storage_samples determines how many slots for different values
     *  there are per pixel. Only color buffers can set this lower than
     *  nr_samples.
     */
-   unsigned nr_storage_samples:8;
+   uint8_t nr_storage_samples;
 
-   unsigned nr_sparse_levels:8; /**< Mipmap levels support partial resident */
+   uint8_t nr_sparse_levels; /**< Mipmap levels support partial resident */
 
-   unsigned usage:8;         /**< PIPE_USAGE_x (not a bitmask) */
-   unsigned bind;            /**< bitmask of PIPE_BIND_x */
-   unsigned flags;           /**< bitmask of PIPE_RESOURCE_FLAG_x */
+   unsigned compression_rate:4; /**< Fixed-rate compresion bitrate if any */
+
+   enum pipe_resource_usage usage:4;
+   uint32_t bind;            /**< bitmask of PIPE_BIND_x */
+   uint32_t flags;           /**< bitmask of PIPE_RESOURCE_FLAG_x */
 
    /**
     * For planar images, ie. YUV EGLImage external, etc, pointer to the
     * next plane.
     */
    struct pipe_resource *next;
-   /* The screen pointer should be last for optimal structure packing. */
+   /* The screen pointer should be last for optimal structure packing.
+    * This pointer cannot be casted directly to a driver's screen. Use
+    * screen::get_driver_pipe_screen instead if it's non-NULL.
+    */
    struct pipe_screen *screen; /**< screen that this texture belongs to */
 };
 
@@ -845,8 +854,7 @@ struct pipe_draw_info
    /* sizeof(mode) == 1 is required by draw merging in u_threaded_context. */
    uint8_t mode;              /**< the mode of the primitive */
 #endif
-   uint8_t index_size;        /**< if 0, the draw is not indexed. */
-   uint8_t view_mask;         /**< mask of multiviews for this draw */
+   uint16_t index_size;        /**< if 0, the draw is not indexed. */
    bool primitive_restart:1;
    bool has_user_indices:1;   /**< if true, use index.user_buffer */
    bool index_bounds_valid:1; /**< whether min_index and max_index are valid;

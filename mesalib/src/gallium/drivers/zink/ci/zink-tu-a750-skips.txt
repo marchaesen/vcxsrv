@@ -2,6 +2,11 @@ GTF-GL46.gtf32.GL3Tests.packed_pixels.packed_pixels_pixelstore
 KHR-GL46.texture_swizzle.smoke
 KHR-Single-GL46.arrays_of_arrays_gl.SubroutineFunctionCalls2
 
+# timeout (60sec)
+dEQP-GLES31.functional.fbo.no_attachments.npot_size.31x31
+KHR-GL46.copy_image.functional
+KHR-GL46.texture_swizzle.functional
+
 # crashes
 KHR-Single-GL46.enhanced_layouts.xfb_capture_inactive_output_component
 
@@ -21,3 +26,4 @@ spec@!opengl 1.0@gl-1.0-drawbuffer-modes
 spec@arb_texture_cube_map@cubemap npot
 spec@arb_texture_cube_map_array@arb_texture_cube_map_array-sampler-cube-array-shadow
 spec@egl_nok_texture_from_pixmap@basic
+KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4

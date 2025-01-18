@@ -2,45 +2,45 @@ layout_mappings=layoutsMapping.lst
 variant_mappings=variantsMapping.lst
 
 scripts= \
-    0012-ml_s.part \
-    0014-ml1_s.part \
-    0017-ml2_s.part \
-    0019-ml3_s.part \
-    0021-ml4_s.part \
-    0010-mlv_s.part \
-    0016-ml1v1_s.part \
-    0023-ml2v2_s.part \
-    0024-ml3v3_s.part \
-    0025-ml4v4_s.part \
+    base.ml_s.part \
+    base.ml1_s.part \
+    base.ml2_s.part \
+    base.ml3_s.part \
+    base.ml4_s.part \
+    base.mlv_s.part \
+    base.ml1v1_s.part \
+    base.ml2v2_s.part \
+    base.ml3v3_s.part \
+    base.ml4v4_s.part
 
-0014-ml1_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mls --number=1 $@ $(layout_mappings) $(variant_mappings)
-
-0017-ml2_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mls --number=2 $@ $(layout_mappings) $(variant_mappings)
-
-0019-ml3_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mls --number=3 $@ $(layout_mappings) $(variant_mappings)
-
-0021-ml4_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mls --number=4 $@ $(layout_mappings) $(variant_mappings)
-
-0016-ml1v1_s.part: map-variants.py $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mlvs --number=1 $@ $(variant_mappings)
-
-0023-ml2v2_s.part: map-variants.py $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mlvs --number=2 $@ $(variant_mappings)
-
-0024-ml3v3_s.part: map-variants.py $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mlvs --number=3 $@ $(variant_mappings)
-
-0025-ml4v4_s.part: map-variants.py $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mlvs --number=4 $@ $(variant_mappings)
-
-0012-ml_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+base.ml_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
 	$(PYTHON3) map-variants.py --want=mls $@ $(layout_mappings) $(variant_mappings)
 
-0010-mlv_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
-	$(PYTHON3) map-variants.py --want=mlvs $@ $(variant_mappings)
+base.ml1_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mls --number=1 $@ $(layout_mappings) $(variant_mappings)
+
+base.ml2_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mls --number=2 $@ $(layout_mappings) $(variant_mappings)
+
+base.ml3_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mls --number=3 $@ $(layout_mappings) $(variant_mappings)
+
+base.ml4_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mls --number=4 $@ $(layout_mappings) $(variant_mappings)
+
+base.mlv_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mlvs $@ $(layout_mappings) $(variant_mappings)
+
+base.ml1v1_s.part: map-variants.py $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mlvs --number=1 $@ $(variant_mappings)
+
+base.ml2v2_s.part: map-variants.py $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mlvs --number=2 $@ $(variant_mappings)
+
+base.ml3v3_s.part: map-variants.py $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mlvs --number=3 $@ $(variant_mappings)
+
+base.ml4v4_s.part: map-variants.py $(variant_mappings)
+	$(PYTHON3) map-variants.py --want=mlvs --number=4 $@ $(variant_mappings)
 
 all: $(scripts)

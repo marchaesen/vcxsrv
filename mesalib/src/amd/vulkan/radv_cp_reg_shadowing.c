@@ -44,12 +44,7 @@ radv_create_shadow_regs_preamble(struct radv_device *device, struct radv_queue_s
    ac_create_shadowing_ib_preamble(gpu_info, (pm4_cmd_add_fn)&radeon_emit, cs, queue_state->shadowed_regs->va,
                                    device->pbb_allowed);
 
-   while (cs->cdw & 7) {
-      if (gpu_info->gfx_ib_pad_with_type2)
-         radeon_emit(cs, PKT2_NOP_PAD);
-      else
-         radeon_emit(cs, PKT3_NOP_PAD);
-   }
+   ws->cs_pad(cs, 0);
 
    result = radv_bo_create(
       device, NULL, cs->cdw * 4, 4096, ws->cs_domain(ws),
@@ -123,7 +118,9 @@ radv_init_shadowed_regs_buffer_state(const struct radv_device *device, struct ra
    radeon_check_space(ws, cs, 768);
 
    radv_emit_shadow_regs_preamble(cs, device, &queue->state);
-   ac_emulate_clear_state(gpu_info, cs, radv_set_context_reg_array);
+
+   if (pdev->info.gfx_level < GFX12)
+      ac_emulate_clear_state(gpu_info, cs, radv_set_context_reg_array);
 
    result = ws->cs_finalize(cs);
    if (result == VK_SUCCESS) {

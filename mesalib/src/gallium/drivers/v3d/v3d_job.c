@@ -34,6 +34,7 @@
 #include "broadcom/cle/v3dx_pack.h"
 #include "broadcom/common/v3d_macros.h"
 #include "util/hash_table.h"
+#include "util/perf/cpu_trace.h"
 #include "util/ralloc.h"
 #include "util/set.h"
 #include "broadcom/clif/clif_dump.h"
@@ -75,6 +76,9 @@ v3d_job_free(struct v3d_context *v3d, struct v3d_job *job)
         }
         if (job->bbuf)
                 pipe_surface_reference(&job->bbuf, NULL);
+
+        if (job->dbuf)
+                pipe_surface_reference(&job->dbuf, NULL);
 
         if (v3d->job == job)
                 v3d->job = NULL;
@@ -152,6 +156,8 @@ v3d_job_add_write_resource(struct v3d_job *job, struct pipe_resource *prsc)
 void
 v3d_flush_jobs_using_bo(struct v3d_context *v3d, struct v3d_bo *bo)
 {
+        MESA_TRACE_FUNC();
+
         hash_table_foreach(v3d->jobs, entry) {
                 struct v3d_job *job = entry->data;
 
@@ -232,8 +238,10 @@ v3d_flush_jobs_writing_resource(struct v3d_context *v3d,
                 needs_flush = !v3d_job_writes_resource_from_tf(job, prsc);
         }
 
-        if (needs_flush)
+        if (needs_flush) {
+                MESA_TRACE_FUNC();
                 v3d_job_submit(v3d, job);
+        }
 }
 
 void
@@ -270,8 +278,10 @@ v3d_flush_jobs_reading_resource(struct v3d_context *v3d,
                         needs_flush = true;
                 }
 
-                if (needs_flush)
+                if (needs_flush) {
+                        MESA_TRACE_FUNC();
                         v3d_job_submit(v3d, job);
+                }
 
                 /* Reminder: v3d->jobs is safe to keep iterating even
                  * after deletion of an entry.
@@ -302,6 +312,10 @@ v3d_get_job(struct v3d_context *v3d,
                         cbufs[1],
                         cbufs[2],
                         cbufs[3],
+                        cbufs[4],
+                        cbufs[5],
+                        cbufs[6],
+                        cbufs[7],
                 },
                 .zsbuf = zsbuf,
                 .bbuf = bbuf,
@@ -406,20 +420,20 @@ v3d_get_job_for_fbo(struct v3d_context *v3d)
                 if (cbufs[i]) {
                         struct v3d_resource *rsc = v3d_resource(cbufs[i]->texture);
                         if (!rsc->writes)
-                                job->clear |= PIPE_CLEAR_COLOR0 << i;
+                                job->clear_tlb |= PIPE_CLEAR_COLOR0 << i;
                 }
         }
 
         if (zsbuf) {
                 struct v3d_resource *rsc = v3d_resource(zsbuf->texture);
                 if (!rsc->writes)
-                        job->clear |= PIPE_CLEAR_DEPTH;
+                        job->clear_tlb |= PIPE_CLEAR_DEPTH;
 
                 if (rsc->separate_stencil)
                         rsc = rsc->separate_stencil;
 
                 if (!rsc->writes)
-                        job->clear |= PIPE_CLEAR_STENCIL;
+                        job->clear_tlb |= PIPE_CLEAR_STENCIL;
         }
 
         job->draw_tiles_x = DIV_ROUND_UP(v3d->framebuffer.width,
@@ -499,6 +513,8 @@ v3d_job_submit(struct v3d_context *v3d, struct v3d_job *job)
 {
         struct v3d_screen *screen = v3d->screen;
         struct v3d_device_info *devinfo = &screen->devinfo;
+
+        MESA_TRACE_FUNC();
 
         if (!job->needs_flush)
                 goto done;

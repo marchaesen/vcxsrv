@@ -54,7 +54,7 @@ remove_hs_intrinsics(nir_function_impl *impl)
          nir_instr_remove(instr);
       }
    }
-   nir_metadata_preserve(impl, nir_metadata_block_index | nir_metadata_dominance);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
 }
 
 static void
@@ -142,9 +142,7 @@ start_tcs_loop(nir_builder *b, struct tcs_patch_loop_state *state, nir_deref_ins
    nir_store_deref(b, loop_var_deref, nir_imm_int(b, 0), 1);
    state->loop = nir_push_loop(b);
    state->count = nir_load_deref(b, loop_var_deref);
-   nir_push_if(b, nir_ige_imm(b, state->count, b->impl->function->shader->info.tess.tcs_vertices_out));
-   nir_jump(b, nir_jump_break);
-   nir_pop_if(b, NULL);
+   nir_break_if(b, nir_ige_imm(b, state->count, b->impl->function->shader->info.tess.tcs_vertices_out));
    state->insert_cursor = b->cursor;
    nir_store_deref(b, loop_var_deref, nir_iadd_imm(b, state->count, 1), 1);
    nir_pop_loop(b, state->loop);
@@ -357,7 +355,7 @@ dxil_nir_fixup_tess_level_for_domain(nir_shader *nir)
          };
 
          nir_shader_instructions_pass(nir, remove_tess_level_accesses,
-            nir_metadata_block_index | nir_metadata_dominance, &pass_data);
+            nir_metadata_control_flow, &pass_data);
       }
    }
    return progress;

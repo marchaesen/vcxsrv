@@ -113,31 +113,25 @@ etna_acc_get_query_result(struct etna_context *ctx, struct etna_query *q,
    struct etna_acc_query *aq = etna_acc_query(q);
    struct etna_resource *rsc = etna_resource(aq->prsc);
    const struct etna_acc_sample_provider *p = aq->provider;
+   uint32_t prep_op = DRM_ETNA_PREP_READ;
 
    assert(list_is_empty(&aq->node));
 
-   if (etna_resource_status(ctx, rsc) & ETNA_PENDING_WRITE) {
-      if (!wait) {
-         /* piglit spec@arb_occlusion_query@occlusion_query_conform
-          * test, and silly apps perhaps, get stuck in a loop trying
-          * to get query result forever with wait==false..  we don't
-          * wait to flush unnecessarily but we also don't want to
-          * spin forever.
-          */
-         if (aq->no_wait_cnt++ > 5) {
-            etna_flush(&ctx->base, NULL, 0, true);
-            aq->no_wait_cnt = 0;
-         }
+   /* ARB_occlusion_query says:
+    *     "Querying the state for a given occlusion query forces that
+    *      occlusion query to complete within a finite amount of time."
+    *
+    * So, regardless of whether we are supposed to wait or not, we do need to
+    * flush now.
+    */
+   if (etna_resource_status(ctx, rsc) & ETNA_PENDING_WRITE)
+      etna_flush(&ctx->base, NULL, 0, true);
 
-         return false;
-      } else {
-         /* flush that GPU executes all query related actions */
-         etna_flush(&ctx->base, NULL, 0, true);
-      }
-   }
+   if (!wait)
+      prep_op |= DRM_ETNA_PREP_NOSYNC;
 
    /* get the result */
-   int ret = etna_bo_cpu_prep(rsc->bo, DRM_ETNA_PREP_READ);
+   int ret = etna_bo_cpu_prep(rsc->bo, prep_op);
    if (ret)
       return false;
 

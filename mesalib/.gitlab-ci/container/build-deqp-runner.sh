@@ -3,47 +3,73 @@
 
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
-# DEBIAN_X86_64_TEST_ANDROID_TAG
-# DEBIAN_X86_64_TEST_GL_TAG
-# DEBIAN_X86_64_TEST_VK_TAG
+# DEBIAN_TEST_ANDROID_TAG
+# DEBIAN_BASE_TAG
 # KERNEL_ROOTFS_TAG
 
-set -ex
+set -uex
 
-DEQP_RUNNER_VERSION=0.18.0
+DEQP_RUNNER_VERSION=0.20.2
+
+commits_to_backport=(
+)
+
+patch_files=(
+)
 
 DEQP_RUNNER_GIT_URL="${DEQP_RUNNER_GIT_URL:-https://gitlab.freedesktop.org/mesa/deqp-runner.git}"
 
-if [ -n "${DEQP_RUNNER_GIT_TAG}${DEQP_RUNNER_GIT_REV}" ]; then
-    # Build and install from source
-    DEQP_RUNNER_CARGO_ARGS="--git $DEQP_RUNNER_GIT_URL"
-
-    if [ -n "${DEQP_RUNNER_GIT_TAG}" ]; then
-        DEQP_RUNNER_CARGO_ARGS="--tag ${DEQP_RUNNER_GIT_TAG} ${DEQP_RUNNER_CARGO_ARGS}"
-        DEQP_RUNNER_GIT_CHECKOUT="$DEQP_RUNNER_GIT_TAG"
-    else
-        DEQP_RUNNER_CARGO_ARGS="--rev ${DEQP_RUNNER_GIT_REV} ${DEQP_RUNNER_CARGO_ARGS}"
-        DEQP_RUNNER_GIT_CHECKOUT="$DEQP_RUNNER_GIT_REV"
-    fi
-
-    DEQP_RUNNER_CARGO_ARGS="${DEQP_RUNNER_CARGO_ARGS} ${EXTRA_CARGO_ARGS}"
+if [ -n "${DEQP_RUNNER_GIT_TAG:-}" ]; then
+    DEQP_RUNNER_GIT_CHECKOUT="$DEQP_RUNNER_GIT_TAG"
+elif [ -n "${DEQP_RUNNER_GIT_REV:-}" ]; then
+    DEQP_RUNNER_GIT_CHECKOUT="$DEQP_RUNNER_GIT_REV"
 else
-    # Install from package registry
-    DEQP_RUNNER_CARGO_ARGS="--version ${DEQP_RUNNER_VERSION} ${EXTRA_CARGO_ARGS} -- deqp-runner"
     DEQP_RUNNER_GIT_CHECKOUT="v$DEQP_RUNNER_VERSION"
 fi
 
+BASE_PWD=$PWD
+
+mkdir -p /deqp-runner
+pushd /deqp-runner
+mkdir deqp-runner-git
+pushd deqp-runner-git
+git init
+git remote add origin "$DEQP_RUNNER_GIT_URL"
+git fetch --depth 1 origin "$DEQP_RUNNER_GIT_CHECKOUT"
+git checkout FETCH_HEAD
+
+for commit in "${commits_to_backport[@]}"
+do
+  PATCH_URL="https://gitlab.freedesktop.org/mesa/deqp-runner/-/commit/$commit.patch"
+  echo "Backport deqp-runner commit $commit from $PATCH_URL"
+  curl -L --retry 4 -f --retry-all-errors --retry-delay 60 $PATCH_URL | git am
+done
+
+for patch in "${patch_files[@]}"
+do
+  echo "Apply patch to deqp-runner from $patch"
+  git am "$BASE_PWD/.gitlab-ci/container/patches/$patch"
+done
+
+if [ -z "${RUST_TARGET:-}" ]; then
+    RUST_TARGET=""
+fi
+
 if [[ "$RUST_TARGET" != *-android ]]; then
+    # When CC (/usr/lib/ccache/gcc) variable is set, the rust compiler uses
+    # this variable when cross-compiling arm32 and build fails for zsys-sys.
+    # So unset the CC variable when cross-compiling for arm32.
+    SAVEDCC=${CC:-}
+    if [ "$RUST_TARGET" = "armv7-unknown-linux-gnueabihf" ]; then
+        unset CC
+    fi
     cargo install --locked  \
         -j ${FDO_CI_CONCURRENT:-4} \
         --root /usr/local \
-        ${DEQP_RUNNER_CARGO_ARGS}
+        ${EXTRA_CARGO_ARGS:-} \
+        --path .
+    CC=$SAVEDCC
 else
-    mkdir -p /deqp-runner
-    pushd /deqp-runner
-    git clone --branch "$DEQP_RUNNER_GIT_CHECKOUT" --depth 1 "$DEQP_RUNNER_GIT_URL" deqp-runner-git
-    pushd deqp-runner-git
-
     cargo install --locked  \
         -j ${FDO_CI_CONCURRENT:-4} \
         --root /usr/local --version 2.10.0 \
@@ -57,14 +83,14 @@ else
     cargo uninstall --locked  \
         --root /usr/local \
         cargo-ndk
-
-    popd
-    rm -rf deqp-runner-git
-    popd
 fi
+
+popd
+rm -rf deqp-runner-git
+popd
 
 # remove unused test runners to shrink images for the Mesa CI build (not kernel,
 # which chooses its own deqp branch)
-if [ -z "${DEQP_RUNNER_GIT_TAG}${DEQP_RUNNER_GIT_REV}" ]; then
+if [ -z "${DEQP_RUNNER_GIT_TAG:-}${DEQP_RUNNER_GIT_REV:-}" ]; then
     rm -f /usr/local/bin/igt-runner
 fi

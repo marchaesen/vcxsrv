@@ -24,11 +24,7 @@ in this Software without prior written authorization from The Open Group.
 
 ********************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#else
-#define SHAPE
-#endif
 
 #include <stdlib.h>
 #include <X11/X.h>

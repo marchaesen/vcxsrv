@@ -187,7 +187,7 @@ vn_sizeof_VkFramebufferCreateInfo_self(const VkFramebufferCreateInfo *val)
     size += vn_sizeof_VkFlags(&val->flags);
     size += vn_sizeof_VkRenderPass(&val->renderPass);
     size += vn_sizeof_uint32_t(&val->attachmentCount);
-    if (val->pAttachments) {
+    if (!(val->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT)) {
         size += vn_sizeof_array_size(val->attachmentCount);
         for (uint32_t i = 0; i < val->attachmentCount; i++)
             size += vn_sizeof_VkImageView(&val->pAttachments[i]);
@@ -242,7 +242,7 @@ vn_encode_VkFramebufferCreateInfo_self(struct vn_cs_encoder *enc, const VkFrameb
     vn_encode_VkFlags(enc, &val->flags);
     vn_encode_VkRenderPass(enc, &val->renderPass);
     vn_encode_uint32_t(enc, &val->attachmentCount);
-    if (val->pAttachments) {
+    if (!(val->flags & VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT)) {
         vn_encode_array_size(enc, val->attachmentCount);
         for (uint32_t i = 0; i < val->attachmentCount; i++)
             vn_encode_VkImageView(enc, &val->pAttachments[i]);

@@ -307,8 +307,7 @@ lower_named_interface_blocks(struct gl_linked_shader *sh)
    state.mem_ctx = mem_ctx;
    state.interface_namespace = interface_namespace;
    nir_shader_intrinsics_pass(sh->Program->nir, flatten_named_interface_derefs,
-                              nir_metadata_block_index |
-                              nir_metadata_dominance, &state);
+                              nir_metadata_control_flow, &state);
 
    /* Third pass: Mark now lowered blks as ordinary globals to be dead code
     * eliminated. Also use this oppotunity to set the compact flag where

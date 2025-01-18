@@ -26,7 +26,7 @@ pub trait CLInfo<I> {
         param_value: *mut ::std::os::raw::c_void,
         param_value_size_ret: *mut usize,
     ) -> CLResult<()> {
-        let arr = if !param_value.is_null() {
+        let arr = if !param_value.is_null() && param_value_size != 0 {
             unsafe { slice::from_raw_parts(param_value.cast(), param_value_size) }
         } else {
             &[]
@@ -97,7 +97,7 @@ macro_rules! cl_prop_for_type {
     ($ty: ty) => {
         impl CLProp for $ty {
             fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-                unsafe { slice::from_raw_parts((self as *const Self).cast(), size_of::<Self>()) }
+                unsafe { slice::from_raw_parts(std::ptr::from_ref(self).cast(), size_of::<Self>()) }
                     .to_vec()
             }
         }
@@ -224,9 +224,9 @@ where
     }
 }
 
-pub fn cl_prop<T: CLProp>(v: T) -> Vec<MaybeUninit<u8>>
+pub fn cl_prop<T>(v: T) -> Vec<MaybeUninit<u8>>
 where
-    T: Sized,
+    T: CLProp + Sized,
 {
     v.cl_vec()
 }

@@ -85,7 +85,7 @@ default xkb_geometry "model100" {
 	};
 	row {
 	    left= 43;
-	    keys { <AE02>, <AD02>, { <AC02>, color="grey20" }, <AB02>, <INS> };
+	    keys { <AE02>, <AD02>, { <AC02>, color="grey20" }, <AB02>, <LSGT> };
 	};
 	row {
 	    left= 62;
@@ -137,7 +137,7 @@ default xkb_geometry "model100" {
 	    <AD07>=<KP7>,  <AD08>=<KP8>,  <AD09>=<KP9>,  <AD10>=<KPSU>,
 	    <AC07>=<KP4>,  <AC08>=<KP5>, <AC09>=<KP6>,  <AC10>=<KPAD>,
 	    <AB07>=<KP1>,  <AB08>=<KP2>, <AB09>=<KP3>,  <AB10>=<KPEN>,
-	    <AE10>=<KPDL>, <AE11>=<KPEN>
+	    <AE10>=<KPDL>, <AE11>=<KPEN>, <LSGT>=<INS>
 	};
     }; // End of "RightAlpha" section
 

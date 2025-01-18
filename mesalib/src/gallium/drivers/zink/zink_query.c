@@ -891,8 +891,6 @@ begin_query(struct zink_context *ctx, struct zink_query *q)
       return;
    }
 
-   zink_flush_dgc_if_enabled(ctx);
-
    update_query_id(ctx, q);
    q->predicate_dirty = true;
    if (q->needs_reset)
@@ -978,7 +976,7 @@ zink_begin_query(struct pipe_context *pctx,
    util_dynarray_clear(&query->starts);
    query->start_offset = 0;
 
-   if (ctx->in_rp) {
+   if (ctx->in_rp || (query->type == PIPE_QUERY_TIME_ELAPSED)) {
       begin_query(ctx, query);
    } else {
       /* never directly start queries out of renderpass, always defer */
@@ -1004,8 +1002,6 @@ end_query(struct zink_context *ctx, struct zink_query *q)
 {
    if (q->type == PIPE_QUERY_TIMESTAMP_DISJOINT || q->type >= PIPE_QUERY_DRIVER_SPECIFIC)
       return;
-
-   zink_flush_dgc_if_enabled(ctx);
 
    ASSERTED struct zink_query_buffer *qbo = q->curr_qbo;
    assert(qbo);
@@ -1310,7 +1306,6 @@ zink_start_conditional_render(struct zink_context *ctx)
 void
 zink_stop_conditional_render(struct zink_context *ctx)
 {
-   zink_flush_dgc_if_enabled(ctx);
    zink_clear_apply_conditionals(ctx);
    if (unlikely(!zink_screen(ctx->base.screen)->info.have_EXT_conditional_rendering) || !ctx->render_condition.active)
       return;
@@ -1329,7 +1324,6 @@ zink_render_condition(struct pipe_context *pctx,
    zink_batch_no_rp(ctx);
    VkQueryResultFlagBits flags = 0;
 
-   zink_flush_dgc_if_enabled(ctx);
    ctx->bs->has_work = true;
    if (query == NULL) {
       /* force conditional clears if they exist */

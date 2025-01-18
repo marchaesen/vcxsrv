@@ -603,7 +603,14 @@ Test:SpvParserCFGTest_EmitBody_IfBreak_FromThen_ForwardWithinThen.spvasm:main|Fr
 Test:SpvParserCFGTest_EmitBody_IfBreak_FromThenWithForward_FromElseWithForward_AlsoPremerge.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_IfSelection_TrueBranch_LoopBreak.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_Kill_InsideIf.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_EmitBody_Kill_InsideLoop.spvasm:main|Fragment: Pass
+Test:SpvParserCFGTest_EmitBody_Kill_InsideLoop.spvasm:main|Fragment: Fail
+DXIL: Function: main: error: Loop must have break.
+Validation failed.
+Failed to validate DXIL
+
+
+
+
 Test:SpvParserCFGTest_EmitBody_Kill_TopLevel.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_Loop_BodyAlwaysBreaks.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_Loop_BodyConditionallyBreaks_FromFalse.spvasm:main|Fragment: Pass

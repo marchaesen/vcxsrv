@@ -1327,11 +1327,9 @@ _get_real_paths_from_prefix(FcConfigParse *parse, const FcChar8 *path, const FcC
 	    if (!p)
 		return NULL;
 	    parent = FcStrDirname (p);
+	    FcStrFree (p);
 	    if (!parent)
-	    {
-		free (p);
 		return NULL;
-	    }
 	}
     }
 #ifndef _WIN32

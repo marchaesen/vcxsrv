@@ -228,8 +228,7 @@ nir_lower_bool_to_int32(nir_shader *shader)
 
    progress |=
       nir_shader_instructions_pass(shader, nir_lower_bool_to_int32_instr,
-                                   nir_metadata_block_index |
-                                      nir_metadata_dominance,
+                                   nir_metadata_control_flow,
                                    NULL);
    return progress;
 }

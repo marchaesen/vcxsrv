@@ -266,6 +266,8 @@ agx_read_registers(const agx_instr *I, unsigned s)
       /* See agx_write_registers */
       if (s == 0)
          return util_bitcount(I->mask) * MIN2(size, 2);
+      else if (s == 2 && I->explicit_coords)
+         return 2;
       else
          return size;
 
@@ -298,23 +300,32 @@ agx_read_registers(const agx_instr *I, unsigned s)
          return agx_coordinate_registers(I);
       } else if (s == 1) {
          /* LOD */
-         if (I->lod_mode == AGX_LOD_MODE_LOD_GRAD) {
+         if (I->lod_mode == AGX_LOD_MODE_LOD_GRAD ||
+             I->lod_mode == AGX_LOD_MODE_LOD_GRAD_MIN) {
+
+            /* Technically only 16-bit but we model as 32-bit to keep the IR
+             * simple, since the gradient is otherwise 32-bit.
+             */
+            unsigned min = I->lod_mode == AGX_LOD_MODE_LOD_GRAD_MIN ? 2 : 0;
+
             switch (I->dim) {
             case AGX_DIM_1D:
             case AGX_DIM_1D_ARRAY:
-               return 2 * 2 * 1;
+               return (2 * 2 * 1) + min;
             case AGX_DIM_2D:
             case AGX_DIM_2D_ARRAY:
             case AGX_DIM_2D_MS_ARRAY:
             case AGX_DIM_2D_MS:
-               return 2 * 2 * 2;
+               return (2 * 2 * 2) + min;
             case AGX_DIM_CUBE:
             case AGX_DIM_CUBE_ARRAY:
             case AGX_DIM_3D:
-               return 2 * 2 * 3;
+               return (2 * 2 * 3) + min;
             }
 
             unreachable("Invalid texture dimension");
+         } else if (I->lod_mode == AGX_LOD_MODE_AUTO_LOD_BIAS_MIN) {
+            return 2;
          } else {
             return 1;
          }
@@ -324,6 +335,12 @@ agx_read_registers(const agx_instr *I, unsigned s)
       } else {
          return size;
       }
+
+   case AGX_OPCODE_BLOCK_IMAGE_STORE:
+      if (s == 3 && I->explicit_coords)
+         return agx_coordinate_registers(I);
+      else
+         return size;
 
    case AGX_OPCODE_ATOMIC:
    case AGX_OPCODE_LOCAL_ATOMIC:
@@ -342,6 +359,7 @@ static bool
 agx_validate_width(agx_context *ctx)
 {
    bool succ = true;
+   enum agx_size *sizes = calloc(ctx->alloc, sizeof(*sizes));
 
    agx_foreach_instr_global(ctx, I) {
       agx_foreach_dest(I, d) {
@@ -356,6 +374,9 @@ agx_validate_width(agx_context *ctx)
             agx_print_instr(I, stderr);
             fprintf(stderr, "\n");
          }
+
+         if (I->dest[d].type == AGX_INDEX_NORMAL)
+            sizes[I->dest[d].value] = I->dest[d].size;
       }
 
       agx_foreach_src(I, s) {
@@ -376,6 +397,21 @@ agx_validate_width(agx_context *ctx)
       }
    }
 
+   /* Check sources after all defs processed for proper backedge handling */
+   agx_foreach_instr_global(ctx, I) {
+      agx_foreach_ssa_src(I, s) {
+         if (sizes[I->src[s].value] != I->src[s].size) {
+            succ = false;
+            fprintf(stderr, "source %u, expected el size %u, got el size %u\n",
+                    s, agx_size_align_16(sizes[I->src[s].value]),
+                    agx_size_align_16(I->src[s].size));
+            agx_print_instr(I, stderr);
+            fprintf(stderr, "\n");
+         }
+      }
+   }
+
+   free(sizes);
    return succ;
 }
 
@@ -423,6 +459,8 @@ agx_validate_sr(const agx_instr *I)
    switch (I->sr) {
    case AGX_SR_ACTIVE_THREAD_INDEX_IN_QUAD:
    case AGX_SR_ACTIVE_THREAD_INDEX_IN_SUBGROUP:
+   case AGX_SR_TOTAL_ACTIVE_THREADS_IN_QUAD:
+   case AGX_SR_TOTAL_ACTIVE_THREADS_IN_SUBGROUP:
    case AGX_SR_COVERAGE_MASK:
    case AGX_SR_IS_ACTIVE_THREAD:
       return coverage;
@@ -478,6 +516,20 @@ agx_validate(agx_context *ctx, const char *after)
             fprintf(stderr, "Invalid defs after %s\n", after);
             agx_print_instr(I, stderr);
             fail = true;
+         }
+      }
+
+      /* agx_validate_defs skips phi sources, so validate them now */
+      agx_foreach_block(ctx, block) {
+         agx_foreach_phi_in_block(block, phi) {
+            agx_foreach_ssa_src(phi, s) {
+               if (!BITSET_TEST(defs, phi->src[s].value)) {
+                  fprintf(stderr, "Undefined phi source %u after %s\n",
+                          phi->src[s].value, after);
+                  agx_print_instr(phi, stderr);
+                  fail = true;
+               }
+            }
          }
       }
 

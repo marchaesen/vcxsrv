@@ -224,6 +224,25 @@ struct vk_image_buffer_layout {
    uint64_t image_stride_B;
 };
 
+static inline VkDeviceSize
+vk_image_buffer_range(const struct vk_image *image,
+                      const struct vk_image_buffer_layout *buf_layout,
+                      const VkExtent3D *elem_extent,
+                      const VkImageSubresourceLayers *subres)
+{
+   uint32_t depth_or_layer_count =
+      MAX2(elem_extent->depth, vk_image_subresource_layer_count(image, subres));
+
+   /* Depth, layer_count and height must be at least one, and we rely on that
+    * for the rest of the buffer range calculation. */
+   assert(depth_or_layer_count > 0);
+   assert(elem_extent->height > 0);
+
+   return (VkDeviceSize)buf_layout->image_stride_B * (depth_or_layer_count - 1) +
+          (VkDeviceSize)buf_layout->row_stride_B * (elem_extent->height - 1) +
+          (VkDeviceSize)buf_layout->element_size_B * elem_extent->width;
+}
+
 struct vk_image_buffer_layout
 vk_image_buffer_copy_layout(const struct vk_image *image,
                             const VkBufferImageCopy2* region);

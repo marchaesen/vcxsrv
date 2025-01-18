@@ -179,9 +179,15 @@ enum iris_heap {
     */
    IRIS_HEAP_SYSTEM_MEMORY_UNCACHED,
 
+   /** IRIS_HEAP_SYSTEM_MEMORY_UNCACHED + compressed, only supported in Xe2 */
+   IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED,
+
    /** Device-local memory (VRAM).  Cannot be placed in system memory! */
    IRIS_HEAP_DEVICE_LOCAL,
    IRIS_HEAP_MAX_NO_VRAM = IRIS_HEAP_DEVICE_LOCAL,
+
+   /** Device-local compressed memory, only supported in Xe2 */
+   IRIS_HEAP_DEVICE_LOCAL_COMPRESSED,
 
    /** Device-local memory that may be evicted to system memory if needed. */
    IRIS_HEAP_DEVICE_LOCAL_PREFERRED,
@@ -205,7 +211,8 @@ iris_heap_is_device_local(enum iris_heap heap)
 {
    return heap == IRIS_HEAP_DEVICE_LOCAL ||
           heap == IRIS_HEAP_DEVICE_LOCAL_PREFERRED ||
-          heap == IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR;
+          heap == IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR ||
+          heap == IRIS_HEAP_DEVICE_LOCAL_COMPRESSED;
 }
 
 #define IRIS_BATCH_COUNT 3
@@ -375,6 +382,8 @@ struct iris_bo {
 #define BO_ALLOC_CAPTURE         (1<<8)
 /* Can be mapped. */
 #define BO_ALLOC_CPU_VISIBLE     (1<<9)
+/* BO content is compressed. */
+#define BO_ALLOC_COMPRESSED      (1<<10)
 
 /**
  * Allocate a buffer object.
@@ -655,6 +664,7 @@ uint32_t iris_bufmgr_get_global_vm_id(struct iris_bufmgr *bufmgr);
 bool iris_bufmgr_use_global_vm_id(struct iris_bufmgr *bufmgr);
 struct intel_bind_timeline *iris_bufmgr_get_bind_timeline(struct iris_bufmgr *bufmgr);
 bool iris_bufmgr_compute_engine_supported(struct iris_bufmgr *bufmgr);
+uint64_t iris_bufmgr_get_dummy_aux_address(struct iris_bufmgr *bufmgr);
 
 enum iris_madvice {
    IRIS_MADVICE_WILL_NEED = 0,

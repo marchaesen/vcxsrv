@@ -987,8 +987,7 @@ amdgpu_cs_setup_preemption(struct radeon_cmdbuf *rcs, const uint32_t *preamble_i
                                   RADEON_DOMAIN_VRAM,
                                   (radeon_bo_flag)
                                   (RADEON_FLAG_NO_INTERPROCESS_SHARING |
-                                   RADEON_FLAG_GTT_WC |
-                                   RADEON_FLAG_READ_ONLY));
+                                   RADEON_FLAG_GTT_WC));
    if (!preamble_bo)
       return false;
 

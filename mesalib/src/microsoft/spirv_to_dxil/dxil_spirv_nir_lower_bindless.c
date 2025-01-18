@@ -223,9 +223,8 @@ dxil_spirv_nir_lower_bindless(nir_shader *nir, struct dxil_spirv_nir_lower_bindl
    bool ret = dxil_nir_guess_image_formats(nir);
 
    ret |= nir_shader_instructions_pass(nir, lower_bindless_instr,
-                                       nir_metadata_dominance |
-                                          nir_metadata_block_index |
-                                          nir_metadata_loop_analysis,
+                                       nir_metadata_control_flow |
+                                       nir_metadata_loop_analysis,
                                        options);
    ret |= nir_remove_dead_derefs(nir);
 
@@ -310,8 +309,7 @@ bool
 dxil_spirv_nir_lower_buffer_device_address(nir_shader *nir)
 {
    return nir_shader_intrinsics_pass(nir, lower_buffer_device_address,
-                                     nir_metadata_block_index |
-                                     nir_metadata_dominance |
+                                     nir_metadata_control_flow |
                                      nir_metadata_loop_analysis,
                                      NULL);
 }

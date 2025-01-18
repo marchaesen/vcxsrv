@@ -325,8 +325,7 @@ r600_lower_tess_io_impl(nir_builder *b, nir_instr *instr, enum mesa_prim prim_ty
          auto base = nir_load_tcs_in_param_base_r600(b);
          vertices_in = nir_channel(b, base, 2);
       }
-      nir_def_rewrite_uses(&op->def, vertices_in);
-      nir_instr_remove(&op->instr);
+      nir_def_replace(&op->def, vertices_in);
       return true;
    }
    case nir_intrinsic_load_per_vertex_input: {

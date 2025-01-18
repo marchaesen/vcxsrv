@@ -20,9 +20,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include "dix/dix_priv.h"
 
@@ -43,7 +41,7 @@ typedef struct _SelectionEvent *SelectionEventPtr;
 
 typedef struct _SelectionEvent {
     SelectionEventPtr next;
-    Atom selection;
+    Selection *selection;
     CARD32 eventMask;
     ClientPtr pClient;
     WindowPtr pWindow;
@@ -79,16 +77,17 @@ XFixesSelectionCallback(CallbackListPtr *callbacks, void *data, void *args)
     }
     UpdateCurrentTimeIf();
     for (e = selectionEvents; e; e = e->next) {
-        if (e->selection == selection->selection && (e->eventMask & eventMask)) {
-            xXFixesSelectionNotifyEvent ev;
-            ev.type = XFixesEventBase + XFixesSelectionNotify;
-            ev.subtype = subtype;
-            ev.window = e->pWindow->drawable.id;
-            ev.owner = (subtype == XFixesSetSelectionOwnerNotify) ?
-                            selection->window : 0;
-            ev.selection = e->selection;
-            ev.timestamp = currentTime.milliseconds;
-            ev.selectionTimestamp = selection->lastTimeChanged.milliseconds;
+        if (e->selection == selection && (e->eventMask & eventMask)) {
+            xXFixesSelectionNotifyEvent ev = {
+                .type = XFixesEventBase + XFixesSelectionNotify,
+                .subtype = subtype,
+                .window = e->pWindow->drawable.id,
+                .owner = (subtype == XFixesSetSelectionOwnerNotify) ?
+                            selection->window : 0,
+                .selection = e->selection->selection,
+                .timestamp = currentTime.milliseconds,
+                .selectionTimestamp = selection->lastTimeChanged.milliseconds
+            };
             WriteEventsToClient(e->pClient, 1, (xEvent *) &ev);
         }
     }
@@ -119,13 +118,14 @@ CheckSelectionCallback(void)
 
 static int
 XFixesSelectSelectionInput(ClientPtr pClient,
-                           Atom selection, WindowPtr pWindow, CARD32 eventMask)
+                           Atom selection_name, WindowPtr pWindow, CARD32 eventMask)
 {
     void *val;
     int rc;
     SelectionEventPtr *prev, e;
+    Selection *selection;
 
-    rc = XaceHook(XACE_SELECTION_ACCESS, pClient, selection, DixGetAttrAccess);
+    rc = dixLookupSelection(&selection, selection_name, pClient, DixGetAttrAccess);
     if (rc != Success)
         return rc;
 

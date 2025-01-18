@@ -56,7 +56,7 @@ When sample shading is enabled in a non-monolithic fragment shader, the fragment
 shader has the following register inputs:
 
 * `r0l = 0`. This is the hardware nesting counter.
-* `r0h` is the mask of samples currently being shaded. This usually equals to
+* `r1l` is the mask of samples currently being shaded. This usually equals to
   `1 << sample ID`, for "true" per-sample shading.
 
 When sample shading is disabled, no register inputs are defined. The fragment
@@ -66,11 +66,13 @@ Registers have the following layout at the end of the fragment shader (read by
 the fragment epilog):
 
 * `r0l = 0` if sample shading is enabled. This is implicitly true.
-* `r0h` preserved if sample shading is enabled.
+* `r1l` preserved if sample shading is enabled.
 * `r2` and `r3l` contain the emitted depth/stencil respectively, if
   depth and/or stencil are written by the fragment shader. Depth/stencil writes
   must be deferred to the epilog for correctness when the epilog can discard
   (i.e. when alpha-to-coverage is enabled).
+* `r3h` contains the logically emitted sample mask, if the fragment shader uses
+  forced early tests. This predicates the epilog's stores.
 * The vec4 of 32-bit registers beginning at `r(4 * (i + 1))` contains the colour
   output for render target `i`. When dual source blending is enabled, there is
   only a single render target and the dual source colour is treated as the

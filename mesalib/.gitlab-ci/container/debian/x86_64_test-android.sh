@@ -108,3 +108,5 @@ rm -rf "/${ndk:?}"
 apt-get purge -y "${EPHEMERAL[@]}"
 
 . .gitlab-ci/container/container_post_build.sh
+
+. .gitlab-ci/container/strip-rootfs.sh

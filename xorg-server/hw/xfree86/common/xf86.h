@@ -254,12 +254,6 @@ extern _X_EXPORT void
 xf86DrvMsg(int scrnIndex, MessageType type, const char *format, ...)
 _X_ATTRIBUTE_PRINTF(3, 4);
 extern _X_EXPORT void
-xf86MsgVerb(MessageType type, int verb, const char *format, ...)
-_X_ATTRIBUTE_PRINTF(3, 4);
-extern _X_EXPORT void
-xf86Msg(MessageType type, const char *format, ...)
-_X_ATTRIBUTE_PRINTF(2, 3);
-extern _X_EXPORT void
 xf86ErrorFVerb(int verb, const char *format, ...)
 _X_ATTRIBUTE_PRINTF(2, 3);
 extern _X_EXPORT void
@@ -405,5 +399,9 @@ extern _X_EXPORT ScreenPtr xf86ScrnToScreen(ScrnInfoPtr pScrn);
 /* Update the internal total dimensions of all ScreenRecs together */
 extern _X_EXPORT void
 xf86UpdateDesktopDimensions(void);
+
+/* only for backwards (source) compatibility */
+#define xf86MsgVerb LogMessageVerb
+#define xf86Msg(type, ...) LogMessageVerb(type, 1, __VA_ARGS__)
 
 #endif                          /* _XF86_H */

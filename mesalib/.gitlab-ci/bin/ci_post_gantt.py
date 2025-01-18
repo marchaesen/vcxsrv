@@ -82,7 +82,7 @@ def gitlab_post_reply_to_note(gl, event, reply_message):
         merge_request = project.mergerequests.get(merge_request_iid)
 
         # Find the discussion to which the note belongs
-        discussions = merge_request.discussions.list(as_list=False)
+        discussions = merge_request.discussions.list(iterator=True)
         target_discussion = next(
             (
                 d

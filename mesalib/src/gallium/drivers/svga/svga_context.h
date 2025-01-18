@@ -18,6 +18,7 @@
 #include "util/u_blitter.h"
 #include "util/list.h"
 
+#include "vm_basic_types.h"
 #include "svga_screen.h"
 #include "svga_state.h"
 #include "svga_winsys.h"
@@ -82,9 +83,9 @@ enum svga_hud {
 
 #define CONST0_UPLOAD_ALIGNMENT 256
 #define SVGA_MAX_UAVIEWS        SVGA3D_DX11_1_MAX_UAVIEWS
-#define SVGA_MAX_IMAGES         SVGA3D_MAX_UAVIEWS
-#define SVGA_MAX_SHADER_BUFFERS	SVGA3D_MAX_UAVIEWS
-#define SVGA_MAX_ATOMIC_BUFFERS	SVGA3D_MAX_UAVIEWS
+#define SVGA_MAX_IMAGES         SVGA3D_DX11_MAX_UAVIEWS
+#define SVGA_MAX_SHADER_BUFFERS SVGA3D_DX11_MAX_UAVIEWS
+#define SVGA_MAX_ATOMIC_BUFFERS SVGA3D_DX11_MAX_UAVIEWS
 
 enum svga_surface_state
 {
@@ -387,7 +388,7 @@ struct svga_hw_clear_state
    unsigned num_prescale;
 
    unsigned num_rendertargets;
-   struct pipe_surface *rtv[SVGA3D_MAX_RENDER_TARGETS];
+   struct pipe_surface *rtv[SVGA3D_DX_MAX_RENDER_TARGETS];
    struct pipe_surface *dsv;
 };
 

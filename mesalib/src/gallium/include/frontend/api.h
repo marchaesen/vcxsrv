@@ -200,6 +200,7 @@ struct st_config_options
    bool force_gl_map_buffer_synchronized;
    bool transcode_etc;
    bool transcode_astc;
+   bool allow_compressed_fallback;
    char *force_gl_vendor;
    char *force_gl_renderer;
    char *mesa_extension_override;

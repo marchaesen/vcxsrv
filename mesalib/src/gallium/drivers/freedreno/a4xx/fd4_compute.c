@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2021 Ilia Mirkin <imirkin@alum.mit.edu>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2021 Ilia Mirkin <imirkin@alum.mit.edu>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Ilia Mirkin <imirkin@alum.mit.edu>
@@ -77,12 +59,12 @@ cs_program_emit(struct fd_ringbuffer *ring, struct ir3_shader_variant *v)
       num_wg_id, work_dim_id, unused_id;
    local_invocation_id =
       ir3_find_sysval_regid(v, SYSTEM_VALUE_LOCAL_INVOCATION_ID);
-   work_group_id = driver_param_base + IR3_DP_WORKGROUP_ID_X;
-   num_wg_id = driver_param_base + IR3_DP_NUM_WORK_GROUPS_X;
-   local_group_size_id = driver_param_base + IR3_DP_LOCAL_GROUP_SIZE_X;
-   work_dim_id = driver_param_base + IR3_DP_WORK_DIM;
+   work_group_id = driver_param_base + IR3_DP_CS(workgroup_id_x);
+   num_wg_id = driver_param_base + IR3_DP_CS(num_work_groups_x);
+   local_group_size_id = driver_param_base + IR3_DP_CS(local_group_size_x);
+   work_dim_id = driver_param_base + IR3_DP_CS(work_dim);
    /* NOTE: At some point we'll want to use this, it's probably WGOFFSETCONSTID */
-   unused_id = driver_param_base + IR3_DP_BASE_GROUP_X;
+   unused_id = driver_param_base + IR3_DP_CS(base_group_x);
 
    OUT_PKT0(ring, REG_A4XX_HLSQ_CL_CONTROL_0, 2);
    OUT_RING(ring, A4XX_HLSQ_CL_CONTROL_0_WGIDCONSTID(work_group_id) |

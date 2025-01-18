@@ -141,6 +141,7 @@ void
 _mesa_delete_linked_shader(struct gl_context *,
                            struct gl_linked_shader *sh)
 {
+   ralloc_free(sh->Program->nir);
    ralloc_free(sh->Program);
    ralloc_free(sh);
 }
@@ -160,7 +161,6 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
    shProg->data->UniformStorage = NULL;
    shProg->NumUniformRemapTable = 0;
    shProg->UniformRemapTable = NULL;
-   shProg->UniformHash = NULL;
 
    ralloc_free(shProg->data->InfoLog);
    shProg->data->InfoLog = ralloc_strdup(shProg->data, "");
@@ -239,6 +239,7 @@ void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
 
    ctx->Extensions.EXT_gpu_shader4 = true;
    ctx->Extensions.EXT_shader_integer_mix = true;
+   ctx->Extensions.EXT_shadow_samplers = true;
    ctx->Extensions.EXT_texture_array = true;
 
    ctx->Extensions.MESA_shader_integer_functions = true;
@@ -307,21 +308,29 @@ standalone_create_shader_program(void)
    whole_program->FragDataBindings = new string_to_uint_map;
    whole_program->FragDataIndexBindings = new string_to_uint_map;
 
+   exec_list_make_empty(&whole_program->EmptyUniformLocations);
+
    return whole_program;
 }
 
 void
 standalone_destroy_shader_program(struct gl_shader_program *whole_program)
 {
+   for (unsigned i = 0; i < whole_program->NumShaders; i++) {
+         ralloc_free(whole_program->Shaders[i]->nir);
+   }
+
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (whole_program->_LinkedShaders[i])
+      if (whole_program->_LinkedShaders[i]) {
+         if (whole_program->_LinkedShaders[i]->Program->Parameters)
+            _mesa_free_parameter_list(whole_program->_LinkedShaders[i]->Program->Parameters);
          _mesa_delete_linked_shader(NULL, whole_program->_LinkedShaders[i]);
+      }
    }
 
    delete whole_program->AttributeBindings;
    delete whole_program->FragDataBindings;
    delete whole_program->FragDataIndexBindings;
-   delete whole_program->UniformHash;
 
    ralloc_free(whole_program);
 }
@@ -329,10 +338,14 @@ standalone_destroy_shader_program(struct gl_shader_program *whole_program)
 struct gl_shader *
 standalone_add_shader_source(struct gl_context *ctx, struct gl_shader_program *whole_program, GLenum type, const char *source)
 {
+   blake3_hash source_blake3;
+   _mesa_blake3_compute(source, strlen(source), source_blake3);
+
    struct gl_shader *shader = rzalloc(whole_program, gl_shader);
    shader->Type = type;
    shader->Stage = _mesa_shader_enum_to_shader_stage(type);
    shader->Source = source;
+   memcpy(shader->source_blake3, source_blake3, BLAKE3_OUT_LEN);
 
    whole_program->Shaders = reralloc(whole_program, whole_program->Shaders,
                                      struct gl_shader *, whole_program->NumShaders + 1);

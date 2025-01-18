@@ -68,4 +68,7 @@ ConfigStatus xf86HandleConfigFile(Bool);
 Bool xf86AutoConfig(void);
 GDevPtr autoConfigDevice(GDevPtr preconf_device);
 
+void xf86SetVerbosity(int verb);
+void xf86SetLogVerbosity(int verb);
+
 #endif                          /* _xf86_config_h */

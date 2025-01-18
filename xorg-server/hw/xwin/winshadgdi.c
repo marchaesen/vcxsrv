@@ -34,6 +34,8 @@
 #include "win.h"
 #include "winprefs.h"
 
+#include "dix/colormap_priv.h"
+
 /*
  * Local function prototypes
  */
@@ -1140,8 +1142,8 @@ winCreateColormapShadowGDI(ColormapPtr pColormap)
     dwEntriesMax = pVisual->ColormapEntries;
 
     /* Allocate a Windows logical color palette with max entries */
-    lpPaletteNew = calloc(sizeof(LOGPALETTE)
-                          + (dwEntriesMax - 1) * sizeof(PALETTEENTRY), 1);
+    lpPaletteNew = calloc(1, sizeof(LOGPALETTE)
+                          + (dwEntriesMax - 1) * sizeof(PALETTEENTRY));
     if (lpPaletteNew == NULL) {
         ErrorF("winCreateColormapShadowGDI - Couldn't allocate palette "
                "with %d entries\n", (int) dwEntriesMax);
@@ -1187,7 +1189,7 @@ winDestroyColormapShadowGDI(ColormapPtr pColormap)
      * will not have had winUninstallColormap called on it.  Thus,
      * we need to handle the default colormap in a special way.
      */
-    if (pColormap->flags & IsDefault) {
+    if (pColormap->flags & CM_IsDefault) {
         winDebug("winDestroyColormapShadowGDI - Destroying default "
                  "colormap\n");
 

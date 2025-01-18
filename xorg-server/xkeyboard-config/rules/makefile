@@ -9,52 +9,49 @@ DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\rules
 USE_COMPAT_RULES = 1
 
 parts = \
-	0000-hdr.part \
-	0001-lists.part \
-	0002-RULESET.lists.part \
-	0004-RULESET.m_k.part \
-	0005-l1_k.part \
-	0006-l_k.part \
-	0007-o_k.part \
-	0008-ml_g.part \
-	0009-m_g.part \
-	0011-mlv_s.part \
-	0013-ml_s.part \
-	0015-ml1_s.part \
-	0018-ml2_s.part  \
-	0020-ml3_s.part  \
-	0022-ml4_s.part  \
-	0026-RULESET.m_s.part \
-	0027-RULESET.ml_s1.part \
-	0033-ml_c.part \
-	0034-ml1_c.part \
-	0035-m_t.part \
-	0036-lo_s.part \
-	0037-l1o_s.part \
-	0038-l2o_s.part \
-	0039-l3o_s.part \
-	0040-l4o_s.part \
-	0042-o_s.part \
-	0043-o_c.part \
-	0044-o_t.part
+  0000-hdr.part\
+  0001-lists.part\
+  0002-RULESET.lists.part\
+  0004-RULESET.model_keycodes.part\
+  0005-layout1_keycodes.part\
+  0006-layout_keycodes.part\
+  0007-options_keycodes.part\
+  0008-modellayout_geometry.part\
+  0009-model_geometry.part\
+  0011-modellayoutvariant_symbols.part\
+  0013-modellayout_symbols.part\
+  0016-modellayout1_symbols.part\
+  0018-modellayout2_symbols.part\
+  0020-modellayout3_symbols.part\
+  0022-modellayout4_symbols.part\
+  0026-RULESET.model_symbols.part\
+  0027-RULESET.modellayout_symbols1.part\
+  0033-modellayout_compat.part\
+  0034-modellayout1_compat.part\
+  0035-model_types.part\
+  0036-layoutoption_symbols.part\
+  0037-layout1option_symbols.part\
+  0038-layout2option_symbols.part\
+  0039-layout3option_symbols.part\
+  0040-layout4option_symbols.part\
+  0012-ml_s.part\
+  0015-ml1_s.part\
+  0017-ml2_s.part\
+  0019-ml3_s.part\
+  0021-ml4_s.part\
+  0010-mlv_s.part\
+  0014-ml1v1_s.part\
+  0023-ml2v2_s.part\
+  0024-ml3v3_s.part\
+  0025-ml4v4_s.part
 
 compat_parts = \
-	compat/0010-mlv_s.part \
-	compat/0012-ml_s.part \
-	compat/0014-ml1_s.part \
-	compat/0016-ml1v1_s.part \
-	compat/0017-ml2_s.part \
-	compat/0019-ml3_s.part \
-	compat/0021-ml4_s.part \
-	compat/0023-ml2v2_s.part  \
-	compat/0024-ml3v3_s.part  \
-	compat/0025-ml4v4_s.part  \
-	compat/0028-lv_c.part   \
-	compat/0029-l1v1_c.part \
-	compat/0030-l2v2_c.part \
-	compat/0031-l3v3_c.part \
-	compat/0032-l4v4_c.part \
-	compat/0041-o_s.part
+  compat/0028-layoutvariant_compat.part\
+  compat/0029-layout1variant1_compat.part\
+  compat/0030-layout2variant2_compat.part\
+  compat/0031-layout3variant3_compat.part\
+  compat/0032-layout4variant4_compat.part\
+  compat/0041-option_symbols.part
 
 if USE_COMPAT_RULES
 parts += $(compat_parts)

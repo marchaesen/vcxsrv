@@ -197,6 +197,9 @@ default xkb_keycodes "evdev" {
 	<SUPR> =   206;
 	<HYPR> =   207;
 
+	// These indexes and names are hardcoded in various places:
+	// libxkbcommon, xf86-input-evdev and xf86-input-libinput drivers, etc.
+	// Do not change them without synchronizing!
 	indicator 1  = "Caps Lock";
 	indicator 2  = "Num Lock";
 	indicator 3  = "Scroll Lock";

@@ -1,7 +1,5 @@
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
@@ -12,7 +10,6 @@
 #include "windowstr.h"
 #include <xkbsrv.h>
 
-#include "dixgrabs.h"
 #include "os.h"
 #include "xf86.h"
 

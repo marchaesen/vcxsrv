@@ -84,7 +84,7 @@ static void sp_blit(struct pipe_context *pipe,
                      sp->sampler_views[PIPE_SHADER_FRAGMENT]);
    util_blitter_save_render_condition(sp->blitter, sp->render_cond_query,
                                       sp->render_cond_cond, sp->render_cond_mode);
-   util_blitter_blit(sp->blitter, info);
+   util_blitter_blit(sp->blitter, info, NULL);
 }
 
 static void

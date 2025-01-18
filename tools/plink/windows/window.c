@@ -121,6 +121,7 @@ static void reset_window(WinGuiSeat *wgs, int reinit);
 static void flash_window(WinGuiSeat *wgs, int mode);
 static void sys_cursor_update(WinGuiSeat *wgs);
 static bool get_fullscreen_rect(WinGuiSeat *wgs, RECT *ss);
+static bool get_workingarea_rect(WinGuiSeat *wgs, RECT *ss);
 
 static void conf_cache_data(WinGuiSeat *wgs);
 
@@ -390,7 +391,7 @@ static void sw_SetWindowText(HWND hwnd, wchar_t *text)
     if (unicode_window) {
         SetWindowTextW(hwnd, text);
     } else {
-        char *mb = dup_wc_to_mb(DEFAULT_CODEPAGE, 0, text, "?");
+        char *mb = dup_wc_to_mb(DEFAULT_CODEPAGE, text, "?");
         SetWindowTextA(hwnd, mb);
         sfree(mb);
     }
@@ -417,7 +418,7 @@ wchar_t *terminal_window_class_w(void)
 {
     static wchar_t *classname = NULL;
     if (!classname)
-        classname = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
+        classname = dup_mb_to_wc(DEFAULT_CODEPAGE, appname);
     if (!hprev) {
         WNDCLASSW wndclassw;
         SETUP_WNDCLASS(wndclassw, classname);
@@ -549,9 +550,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
         bool resize_forbidden = false;
         if (vt && vt->flags & BACKEND_RESIZE_FORBIDDEN)
             resize_forbidden = true;
-        wchar_t *uappname = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
-        wgs->window_name = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
-        wgs->icon_name = dup_mb_to_wc(DEFAULT_CODEPAGE, 0, appname);
+        wchar_t *uappname = dup_mb_to_wc(DEFAULT_CODEPAGE, appname);
+        wgs->window_name = dup_mb_to_wc(DEFAULT_CODEPAGE, appname);
+        wgs->icon_name = dup_mb_to_wc(DEFAULT_CODEPAGE, appname);
         if (!conf_get_bool(wgs->conf, CONF_scrollbar))
             winmode &= ~(WS_VSCROLL);
         if (conf_get_int(wgs->conf, CONF_resize_action) == RESIZE_DISABLED ||
@@ -645,13 +646,51 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     }
 
     /*
-     * Resize the window, now we know what size we _really_ want it
-     * to be.
+     * Compute what size we _really_ want the window to be.
      */
     guess_width = wgs->extra_width + wgs->font_width * wgs->term->cols;
     guess_height = wgs->extra_height + wgs->font_height * wgs->term->rows;
-    SetWindowPos(wgs->term_hwnd, NULL, 0, 0, guess_width, guess_height,
-                 SWP_NOMOVE | SWP_NOREDRAW | SWP_NOZORDER);
+
+    /*
+     * Resize the window to that size, also repositioning it if it's extended
+     * off the edge of a monitor.
+     */
+    {
+        /* Find the previous coordinates of the window */
+        RECT winr;
+        GetWindowRect(wgs->term_hwnd, &winr);
+
+        int x = winr.left;
+        int y = winr.top;
+
+        /* Adjust them if necessary */
+        RECT war;
+        if (get_workingarea_rect(wgs, &war)) {
+            /*
+             * Try to ensure the window is entirely within the monitor's
+             * working area, by adjusting its position if not.
+             *
+             * We first move it left, if it overlaps off the right side. Then
+             * we move it right if it overlaps off the left side. This means
+             * that if it's wider than the working area (so that some overlap
+             * is unavoidable), we prefer to get its left edge in bounds than
+             * its right edge. Similarly, we do the y checks in the same
+             * order, privileging the top edge over the bottom.
+             */
+            if (x + guess_width > war.right)
+                x = war.right - guess_width;
+            if (x < war.left)
+                x = war.left;
+            if (y + guess_height > war.bottom)
+                y = war.bottom - guess_height;
+            if (y < war.top)
+                y = war.top;
+        }
+
+        /* And set the window to the final size and position we've chosen */
+        SetWindowPos(wgs->term_hwnd, NULL, x, y, guess_width, guess_height,
+                    SWP_NOREDRAW | SWP_NOZORDER);
+    }
 
     /*
      * Set up a caret bitmap, with no content.
@@ -700,10 +739,12 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
         wgs->popup_menus[SYSMENU].menu = GetSystemMenu(wgs->term_hwnd, false);
         wgs->popup_menus[CTXMENU].menu = CreatePopupMenu();
-        AppendMenu(wgs->popup_menus[CTXMENU].menu, MF_ENABLED,
-                   IDM_COPY, "&Copy");
-        AppendMenu(wgs->popup_menus[CTXMENU].menu, MF_ENABLED,
-                   IDM_PASTE, "&Paste");
+
+        for (j = 0; j < lenof(wgs->popup_menus); j++) {
+            m = wgs->popup_menus[j].menu;
+            AppendMenu(m, MF_ENABLED, IDM_COPY, "&Copy");
+            AppendMenu(m, MF_ENABLED, IDM_PASTE, "&Paste");
+        }
 
         wgs->savedsess_menu = CreateMenu();
         get_sesslist(&sesslist, true);
@@ -1803,9 +1844,14 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
         if (resize_action != RESIZE_TERM) {
             if (wgs->font_width != win_width/wgs->term->cols ||
                 wgs->font_height != win_height/wgs->term->rows) {
+                int fw = (win_width - 2*window_border) / wgs->term->cols;
+                int fh = (win_height - 2*window_border) / wgs->term->rows;
+                /* In case that subtraction made the font size go
+                 * negative in an edge case, bound it below by 1 */
+                if (fw < 1) fw = 1;
+                if (fh < 1) fh = 1;
                 deinit_fonts(wgs);
-                init_fonts(wgs, win_width/wgs->term->cols,
-                           win_height/wgs->term->rows);
+                init_fonts(wgs, fw, fh);
                 wgs->offset_width =
                     (win_width - wgs->font_width*wgs->term->cols) / 2;
                 wgs->offset_height =
@@ -1822,13 +1868,14 @@ static void reset_window(WinGuiSeat *wgs, int reinit)
                 /* Our only choice at this point is to change the
                  * size of the terminal; Oh well.
                  */
-                term_size(wgs->term, win_height / wgs->font_height,
-                          win_width / wgs->font_width,
+                term_size(wgs->term,
+                          (win_height - 2*window_border) / wgs->font_height,
+                          (win_width - 2*window_border) / wgs->font_width,
                           conf_get_int(wgs->conf, CONF_savelines));
                 wgs->offset_width =
-                    (win_width - wgs->font_width*wgs->term->cols) / 2;
+                    (win_width - window_border - wgs->font_width*wgs->term->cols) / 2;
                 wgs->offset_height =
-                    (win_height - wgs->font_height*wgs->term->rows) / 2;
+                    (win_height - window_border - wgs->font_height*wgs->term->rows) / 2;
                 InvalidateRect(wgs->term_hwnd, NULL, true);
 #ifdef RDB_DEBUG_PATCH
                 debug("reset_window() -> Zoomed term_size\n");
@@ -4613,8 +4660,11 @@ static int TranslateKey(WinGuiSeat *wgs, UINT message, WPARAM wParam,
             p += format_function_key((char *)p, wgs->term, fkey_number,
                                      shift_state & 1, shift_state & 2,
                                      left_alt, &consumed_alt);
-            if (consumed_alt)
-                left_alt = false; /* supersedes the usual prefixing of Esc */
+            if (consumed_alt) {
+                /* supersedes the usual prefixing of Esc */
+                p -= 1;
+                memmove(output, output + 1, p - output);
+            }
             return p - output;
 
             SmallKeypadKey sk_key;
@@ -4629,11 +4679,15 @@ static int TranslateKey(WinGuiSeat *wgs, UINT message, WPARAM wParam,
             if (shift_state & 2)
                 break;
 
+            consumed_alt = false;
             p += format_small_keypad_key((char *)p, wgs->term, sk_key,
                                          shift_state & 1, shift_state & 2,
                                          left_alt, &consumed_alt);
-            if (consumed_alt)
-                left_alt = false; /* supersedes the usual prefixing of Esc */
+            if (consumed_alt) {
+                /* supersedes the usual prefixing of Esc */
+                p -= 1;
+                memmove(output, output + 1, p - output);
+            }
             return p - output;
 
             char xkey;
@@ -4646,8 +4700,11 @@ static int TranslateKey(WinGuiSeat *wgs, UINT message, WPARAM wParam,
             consumed_alt = false;
             p += format_arrow_key((char *)p, wgs->term, xkey, shift_state & 1,
                                   shift_state & 2, left_alt, &consumed_alt);
-            if (consumed_alt)
-                left_alt = false; /* supersedes the usual prefixing of Esc */
+            if (consumed_alt) {
+                /* supersedes the usual prefixing of Esc */
+                p -= 1;
+                memmove(output, output + 1, p - output);
+            }
             return p - output;
 
           case VK_RETURN:
@@ -4818,7 +4875,7 @@ static int TranslateKey(WinGuiSeat *wgs, UINT message, WPARAM wParam,
 static void wintw_set_title(TermWin *tw, const char *title, int codepage)
 {
     WinGuiSeat *wgs = container_of(tw, WinGuiSeat, termwin);
-    wchar_t *new_window_name = dup_mb_to_wc(codepage, 0, title);
+    wchar_t *new_window_name = dup_mb_to_wc(codepage, title);
     if (!wcscmp(new_window_name, wgs->window_name)) {
         sfree(new_window_name);
         return;
@@ -4833,7 +4890,7 @@ static void wintw_set_title(TermWin *tw, const char *title, int codepage)
 static void wintw_set_icon_title(TermWin *tw, const char *title, int codepage)
 {
     WinGuiSeat *wgs = container_of(tw, WinGuiSeat, termwin);
-    wchar_t *new_icon_name = dup_mb_to_wc(codepage, 0, title);
+    wchar_t *new_icon_name = dup_mb_to_wc(codepage, title);
     if (!wcscmp(new_icon_name, wgs->icon_name)) {
         sfree(new_icon_name);
         return;
@@ -5739,19 +5796,32 @@ static bool is_full_screen(WinGuiSeat *wgs)
     return true;
 }
 
-/* Get the rect/size of a full screen window using the nearest available
+/* Get a MONITORINFO structure for the nearest available monitor, if the
+ * multimon API is available and returns success. Shared subroutine between
+ * get_fullscreen_rect() and get_workingarea_rect(). */
+static bool get_monitor_info(WinGuiSeat *wgs, MONITORINFO *mi)
+{
+#if defined(MONITOR_DEFAULTTONEAREST) && !defined(NO_MULTIMON)
+    if (p_GetMonitorInfoA && p_MonitorFromWindow) {
+        HMONITOR mon;
+        mon = p_MonitorFromWindow(wgs->term_hwnd, MONITOR_DEFAULTTONEAREST);
+        mi->cbSize = sizeof(*mi);
+        p_GetMonitorInfoA(mon, mi);
+        return true;
+    }
+#endif
+    return false;
+}
+
+
+/* Get the rect/size of a full-screen window on the nearest available
  * monitor in multimon systems; default to something sensible if only
  * one monitor is present. */
 static bool get_fullscreen_rect(WinGuiSeat *wgs, RECT *ss)
 {
 #if defined(MONITOR_DEFAULTTONEAREST) && !defined(NO_MULTIMON)
-    if (p_GetMonitorInfoA && p_MonitorFromWindow) {
-        HMONITOR mon;
-        MONITORINFO mi;
-        mon = p_MonitorFromWindow(wgs->term_hwnd, MONITOR_DEFAULTTONEAREST);
-        mi.cbSize = sizeof(mi);
-        p_GetMonitorInfoA(mon, &mi);
-
+    MONITORINFO mi;
+    if (get_monitor_info(wgs, &mi)) {
         /* structure copy */
         *ss = mi.rcMonitor;
         return true;
@@ -5762,6 +5832,24 @@ static bool get_fullscreen_rect(WinGuiSeat *wgs, RECT *ss)
         ss->right = GetSystemMetrics(SM_CXSCREEN);
         ss->bottom = GetSystemMetrics(SM_CYSCREEN);
 */
+    return GetClientRect(GetDesktopWindow(), ss);
+}
+
+
+/* Similar to get_fullscreen_rect, but retrieves the working area of the
+ * monitor (minus the taskbar) instead of its full extent. */
+static bool get_workingarea_rect(WinGuiSeat *wgs, RECT *ss)
+{
+#if defined(MONITOR_DEFAULTTONEAREST) && !defined(NO_MULTIMON)
+    MONITORINFO mi;
+    if (get_monitor_info(wgs, &mi)) {
+        /* structure copy */
+        *ss = mi.rcWork;
+        return true;
+    }
+#endif
+    /* Fallback is the same as get_monitor_rect, which is good _enough_:
+     * if the window overlaps the taskbar, that's not too bad a failure. */
     return GetClientRect(GetDesktopWindow(), ss);
 }
 

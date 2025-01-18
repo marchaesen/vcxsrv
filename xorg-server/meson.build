@@ -4,7 +4,7 @@ project('xserver', 'c',
             'c_std=gnu99',
         ],
         version: '21.1.99.1',
-        meson_version: '>= 0.56.0',
+        meson_version: '>= 0.58.0',
 )
 release_date = '2021-07-05'
 
@@ -63,6 +63,7 @@ add_project_arguments(common_wflags, language : ['c', 'objc'])
 libdrm_req = '>= 2.4.116'
 libselinux_req = '>= 2.0.86'
 xext_req = '>= 1.0.99.4'
+xproto_req = '>= 7.0.31'
 wayland_req = '>= 1.21.0'
 wayland_protocols_req = '>= 1.34'
 gbm_req = '>= 10.2'
@@ -70,7 +71,7 @@ xf86dgaproto_req = '>= 2.0.99.1'
 xshmfence_req = '>= 1.1'
 
 x11_dep = dependency('x11')
-xproto_dep = dependency('xproto', version: '>= 7.0.31', fallback: ['xorgproto', 'ext_xorgproto'])
+xproto_dep = dependency('xproto', version: xproto_req, fallback: ['xorgproto', 'ext_xorgproto'])
 randrproto_dep = dependency('randrproto', version: '>= 1.6.0', fallback: ['xorgproto', 'ext_xorgproto'])
 renderproto_dep = dependency('renderproto', version: '>= 0.11', fallback: ['xorgproto', 'ext_xorgproto'])
 xextproto_dep = dependency('xextproto', version: '>= 7.2.99.901', fallback: ['xorgproto', 'ext_xorgproto'])
@@ -174,15 +175,18 @@ else
     default_font_path = dfp
 endif
 
-hal_option = get_option('hal')
 glamor_option = get_option('glamor')
+
+hal_option = get_option('hal')
+if ['windows', 'darwin', 'cygwin'].contains(host_machine.system())
+    hal_option = 'false'
+endif
 
 build_udev = get_option('udev')
 build_udev_kms = get_option('udev_kms')
-if ['windows',  'darwin', 'cygwin'].contains(host_machine.system())
+if ['windows', 'darwin', 'cygwin', 'freebsd', 'netbsd', 'openbsd', 'sunos'].contains(host_machine.system())
     build_udev = false
     build_udev_kms = false
-    hal_option = 'false'
 endif
 
 if get_option('systemd_logind') == 'auto'
@@ -225,7 +229,6 @@ if (host_machine.system() != 'darwin' and
         dependency('wayland-protocols', version: wayland_protocols_req, required: xwayland_required),
         dependency('libxcvt', fallback: ['libxcvt', 'libxcvt_dep'], required: xwayland_required),
     ]
-
     if build_glamor
         xwayland_dep += dependency('xshmfence', version: xshmfence_req, required: xwayland_required)
         xwayland_dep += dependency('libdrm', version: libdrm_req, required: xwayland_required)
@@ -241,25 +244,21 @@ if (host_machine.system() != 'darwin' and
     endforeach
 endif
 
-build_xnest = false
-if (host_machine.system() != 'windows')
-    if get_option('xnest') != 'false'
-        xnest_required = get_option('xnest') == 'true'
-
-        xnest_dep = [
-            dependency('xext', version: xext_req, required: xnest_required),
-            dependency('x11', required: xnest_required),
-            dependency('xau', required: xnest_required),
-        ]
-
-        build_xnest = true
-        # check for all the deps being found, to handle 'auto' mode.
-        foreach d: xnest_dep
-            if not d.found()
-                build_xnest = false
-            endif
-        endforeach
-    endif
+## configure Xnest - nesting X server
+build_xnest = get_option('xnest') != 'false'
+xnest_required = get_option('xnest') == 'true'
+xnest_dep = [
+    dependency('xext', version: xext_req, required: xnest_required),
+    dependency('x11', required: xnest_required),
+    dependency('xau', required: xnest_required),
+]
+if get_option('xnest') == 'auto'
+    # check for all the deps being found, to handle 'auto' mode.
+    foreach d: xnest_dep
+        if not d.found()
+            build_xnest = false
+        endif
+    endforeach
 endif
 
 build_xwin = false
@@ -286,11 +285,23 @@ if build_xquartz
     build_rootless = true
 endif
 
+# IPv6 support
+have_AF_INET6 = cc.compiles('''
+#ifdef WIN32
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#endif
+int main(void) { int foo = AF_INET6; return foo; }''')
 if get_option('ipv6') == 'auto'
-    build_ipv6 = cc.has_function('getaddrinfo')
+    build_ipv6 = cc.has_function('getaddrinfo') and have_AF_INET6
 else
     build_ipv6 = get_option('ipv6') == 'true'
 endif
+if build_ipv6 and not have_AF_INET6
+    error('ipv6 support needs AF_INET6')
+endif
+message('IPv6 support: ' + (build_ipv6 ? 'YES' : 'NO'))
 
 int10 = get_option('int10')
 if int10 == 'auto'
@@ -495,13 +506,23 @@ else
     build_dri2 = get_option('dri2') == 'true'
 endif
 
+if host_machine.system() in ['freebsd', 'openbsd']
+   epoll_dep = dependency('epoll-shim')
+else
+   epoll_dep = []
+endif
+
+have_eventfd = cc.has_header('sys/eventfd.h', dependencies: epoll_dep)
 if get_option('dri3') == 'auto'
-    build_dri3 = dri3proto_dep.found() and xshmfence_dep.found() and libdrm_dep.found()
+    build_dri3 = dri3proto_dep.found() and xshmfence_dep.found() and libdrm_dep.found() and have_eventfd
 else
     build_dri3 = get_option('dri3') == 'true'
     if build_dri3
        if not xshmfence_dep.found()
            error('DRI3 requested, but xshmfence not found')
+       endif
+       if not have_eventfd
+           error('DRI3 requested, but sys/eventfd.h not found')
        endif
     endif
 endif
@@ -847,6 +868,7 @@ if build_xorg
 
     sdk_required_modules = [
       'pixman-1 >= 0.27.2',
+      f'xproto @xproto_req@',
     ]
 
     # XXX this isn't trying very hard, but hard enough.

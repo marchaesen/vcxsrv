@@ -25,13 +25,13 @@
 #define VULKAN_WSI_COMMON_QUEUE_H
 
 #include <time.h>
-#include <pthread.h>
+#include "util/cnd_monotonic.h"
 #include "util/u_vector.h"
 
 struct wsi_queue {
    struct u_vector vector;
-   pthread_mutex_t mutex;
-   pthread_cond_t cond;
+   mtx_t mutex;
+   struct u_cnd_monotonic cond;
 };
 
 static inline int
@@ -46,30 +46,18 @@ wsi_queue_init(struct wsi_queue *queue, int length)
    if (!ret)
       return ENOMEM;
 
-   pthread_condattr_t condattr;
-   ret = pthread_condattr_init(&condattr);
-   if (ret)
+   ret = u_cnd_monotonic_init(&queue->cond);
+   if (ret != thrd_success)
       goto fail_vector;
 
-   ret = pthread_condattr_setclock(&condattr, CLOCK_MONOTONIC);
-   if (ret)
-      goto fail_condattr;
-
-   ret = pthread_cond_init(&queue->cond, &condattr);
-   if (ret)
-      goto fail_condattr;
-
-   ret = pthread_mutex_init(&queue->mutex, NULL);
-   if (ret)
+   ret = mtx_init(&queue->mutex, mtx_plain);
+   if (ret != thrd_success)
       goto fail_cond;
 
-   pthread_condattr_destroy(&condattr);
    return 0;
 
 fail_cond:
-   pthread_cond_destroy(&queue->cond);
-fail_condattr:
-   pthread_condattr_destroy(&condattr);
+   u_cnd_monotonic_destroy(&queue->cond);
 fail_vector:
    u_vector_finish(&queue->vector);
 
@@ -80,8 +68,8 @@ static inline void
 wsi_queue_destroy(struct wsi_queue *queue)
 {
    u_vector_finish(&queue->vector);
-   pthread_mutex_destroy(&queue->mutex);
-   pthread_cond_destroy(&queue->cond);
+   mtx_destroy(&queue->mutex);
+   u_cnd_monotonic_destroy(&queue->cond);
 }
 
 static inline void
@@ -89,19 +77,16 @@ wsi_queue_push(struct wsi_queue *queue, uint32_t index)
 {
    uint32_t *elem;
 
-   pthread_mutex_lock(&queue->mutex);
+   mtx_lock(&queue->mutex);
 
    if (u_vector_length(&queue->vector) == 0)
-      pthread_cond_signal(&queue->cond);
+      u_cnd_monotonic_signal(&queue->cond);
 
    elem = u_vector_add(&queue->vector);
    *elem = index;
 
-   pthread_mutex_unlock(&queue->mutex);
+   mtx_unlock(&queue->mutex);
 }
-
-#define NSEC_PER_SEC 1000000000
-#define INT_TYPE_MAX(type) ((1ull << (sizeof(type) * 8 - 1)) - 1)
 
 static inline VkResult
 wsi_queue_pull(struct wsi_queue *queue, uint32_t *index, uint64_t timeout)
@@ -109,28 +94,17 @@ wsi_queue_pull(struct wsi_queue *queue, uint32_t *index, uint64_t timeout)
    VkResult result;
    int32_t ret;
 
-   pthread_mutex_lock(&queue->mutex);
+   mtx_lock(&queue->mutex);
 
-   struct timespec now;
-   clock_gettime(CLOCK_MONOTONIC, &now);
-
-   uint32_t abs_nsec = now.tv_nsec + timeout % NSEC_PER_SEC;
-   uint64_t abs_sec = now.tv_sec + (abs_nsec / NSEC_PER_SEC) +
-                      (timeout / NSEC_PER_SEC);
-   abs_nsec %= NSEC_PER_SEC;
-
-   /* Avoid roll-over in tv_sec on 32-bit systems if the user provided timeout
-    * is UINT64_MAX
-    */
-   struct timespec abstime;
-   abstime.tv_nsec = abs_nsec;
-   abstime.tv_sec = MIN2(abs_sec, INT_TYPE_MAX(abstime.tv_sec));
+   struct timespec abs_timeout_ts;
+   timespec_from_nsec(&abs_timeout_ts, os_time_get_absolute_timeout(timeout));
 
    while (u_vector_length(&queue->vector) == 0) {
-      ret = pthread_cond_timedwait(&queue->cond, &queue->mutex, &abstime);
-      if (ret == 0) {
+      ret = u_cnd_monotonic_timedwait(&queue->cond, &queue->mutex,
+                                      &abs_timeout_ts);
+      if (ret == thrd_success) {
          continue;
-      } else if (ret == ETIMEDOUT) {
+      } else if (ret == thrd_timedout) {
          result = VK_TIMEOUT;
          goto end;
       } else {
@@ -145,7 +119,7 @@ wsi_queue_pull(struct wsi_queue *queue, uint32_t *index, uint64_t timeout)
    result = VK_SUCCESS;
 
 end:
-   pthread_mutex_unlock(&queue->mutex);
+   mtx_unlock(&queue->mutex);
 
    return result;
 }

@@ -49,9 +49,9 @@ _mesa_InitHashTable(struct _mesa_HashTable *table)
 {
    memset(table, 0, sizeof(*table));
    util_sparse_array_init(&table->array, sizeof(void*), 1024);
-   util_idalloc_init(&table->id_alloc, 8);
+   util_idalloc_sparse_init(&table->id_alloc);
    /* Mark ID = 0 as used, so that we don't return it. */
-   util_idalloc_reserve(&table->id_alloc, 0);
+   util_idalloc_sparse_reserve(&table->id_alloc, 0);
    simple_mtx_init(&table->Mutex, mtx_plain);
 }
 
@@ -75,13 +75,13 @@ _mesa_DeinitHashTable(struct _mesa_HashTable *table,
                       void *userData)
 {
    if (free_callback) {
-      util_idalloc_foreach_no_zero_safe(&table->id_alloc, id) {
+      util_idalloc_sparse_foreach_no_zero_safe(&table->id_alloc, id) {
          free_callback(*(void**)util_sparse_array_get(&table->array, id),
                        userData);
       }
    }
 
-   util_idalloc_fini(&table->id_alloc);
+   util_idalloc_sparse_fini(&table->id_alloc);
    util_sparse_array_finish(&table->array);
    simple_mtx_destroy(&table->Mutex);
 }
@@ -115,7 +115,7 @@ _mesa_HashInsertLocked(struct _mesa_HashTable *table, GLuint key, void *data)
 
    *(void**)util_sparse_array_get(&table->array, key) = data;
 
-   util_idalloc_reserve(&table->id_alloc, key);
+   util_idalloc_sparse_reserve(&table->id_alloc, key);
 }
 
 /**
@@ -149,7 +149,7 @@ _mesa_HashRemoveLocked(struct _mesa_HashTable *table, GLuint key)
    assert(key);
    *(void**)util_sparse_array_get(&table->array, key) = NULL;
 
-   util_idalloc_free(&table->id_alloc, key);
+   util_idalloc_sparse_free(&table->id_alloc, key);
 }
 
 void
@@ -174,7 +174,7 @@ _mesa_HashWalkLocked(struct _mesa_HashTable *table,
 {
    assert(callback);
 
-   util_idalloc_foreach_no_zero_safe(&table->id_alloc, id) {
+   util_idalloc_sparse_foreach_no_zero_safe(&table->id_alloc, id) {
       callback(*(void**)util_sparse_array_get(&table->array, id), userData);
    }
 }
@@ -207,7 +207,7 @@ _mesa_HashFindFreeKeyBlock(struct _mesa_HashTable *table, GLuint numKeys)
 {
    const GLuint maxKey = ~((GLuint) 0) - 1;
    if (table->alloc_via_idalloc) {
-      return util_idalloc_alloc_range(&table->id_alloc, numKeys);
+      return util_idalloc_sparse_alloc_range(&table->id_alloc, numKeys);
    } else if (maxKey - numKeys > table->MaxKey) {
       /* the quick solution */
       return table->MaxKey + 1;
@@ -248,7 +248,7 @@ _mesa_HashFindFreeKeys(struct _mesa_HashTable *table, GLuint* keys, GLuint numKe
    }
 
    for (int i = 0; i < numKeys; i++) {
-      keys[i] = util_idalloc_alloc(&table->id_alloc);
+      keys[i] = util_idalloc_sparse_alloc(&table->id_alloc);
    }
 
    return true;

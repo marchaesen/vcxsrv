@@ -77,6 +77,22 @@ pan_nir_emit_combined_store(nir_builder *b, nir_intrinsic_instr *rt0_store,
 
    nir_builder_instr_insert(b, &intr->instr);
 }
+
+static bool
+kill_depth_stencil_writes(nir_builder *b, nir_intrinsic_instr *intr,
+                          UNUSED void *data)
+{
+   if (intr->intrinsic != nir_intrinsic_store_output)
+      return false;
+
+   nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
+   if (sem.location != FRAG_RESULT_DEPTH && sem.location != FRAG_RESULT_STENCIL)
+      return false;
+
+   nir_instr_remove(&intr->instr);
+   return true;
+}
+
 bool
 pan_nir_lower_zs_store(nir_shader *nir)
 {
@@ -84,6 +100,11 @@ pan_nir_lower_zs_store(nir_shader *nir)
 
    if (nir->info.stage != MESA_SHADER_FRAGMENT)
       return false;
+
+   /* Remove all stencil/depth writes if early fragment test is forced. */
+   if (nir->info.fs.early_fragment_tests)
+      progress |= nir_shader_intrinsics_pass(nir, kill_depth_stencil_writes,
+                                             nir_metadata_control_flow, NULL);
 
    nir_foreach_function_impl(impl, nir) {
       nir_intrinsic_instr *stores[3] = {NULL};
@@ -182,7 +203,7 @@ pan_nir_lower_zs_store(nir_shader *nir)
       }
 
       nir_metadata_preserve(impl,
-                            nir_metadata_block_index | nir_metadata_dominance);
+                            nir_metadata_control_flow);
       progress = true;
    }
 

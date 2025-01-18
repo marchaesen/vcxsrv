@@ -17,6 +17,7 @@ LIBGLSL_FILES = \
 	glsl/ast_function.cpp \
 	glsl/ast_to_hir.cpp \
 	glsl/ast_type.cpp \
+        glsl/gl_nir_link_functions.c \
 	glsl/builtin_functions.cpp \
 	glsl/builtin_functions.h \
 	glsl/builtin_int64.h \
@@ -62,7 +63,6 @@ LIBGLSL_FILES = \
 	glsl/ir_equals.cpp \
 	glsl/ir_expression_flattening.cpp \
 	glsl/ir_expression_flattening.h \
-	glsl/ir_function_can_inline.cpp \
 	glsl/ir_function_detect_recursion.cpp \
 	glsl/ir_function_inlining.h \
 	glsl/ir_function.cpp \
@@ -81,12 +81,8 @@ LIBGLSL_FILES = \
 	glsl/ir_variable_refcount.cpp \
 	glsl/ir_variable_refcount.h \
 	glsl/ir_visitor.h \
-	glsl/linker.cpp \
-	glsl/linker.h \
 	glsl/linker_util.h \
 	glsl/linker_util.cpp \
-	glsl/link_functions.cpp \
-	glsl/link_interface_blocks.cpp \
 	glsl/link_uniform_block_active_visitor.h \
 	glsl/link_varyings.h \
 	glsl/list.h \
@@ -186,6 +182,7 @@ NIR_FILES = \
 	nir/nir_deref.h \
 	nir/nir_divergence_analysis.c \
 	nir/nir_dominance.c \
+	nir/nir_format_convert.c \
 	nir/nir_format_convert.h \
 	nir/nir_from_ssa.c \
 	nir/nir_gather_info.c \
@@ -217,7 +214,6 @@ NIR_FILES = \
 	nir/nir_lower_convert_alu_types.c \
 	nir/nir_lower_variable_initializers.c \
 	nir/nir_lower_discard_if.c \
-	nir/nir_lower_discard_or_demote.c \
 	nir/nir_lower_double_ops.c \
 	nir/nir_lower_drawpixels.c \
 	nir/nir_lower_fb_read.c \

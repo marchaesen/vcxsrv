@@ -119,6 +119,12 @@ pvr_submit_info_stream_init(struct pvr_compute_ctx *ctx,
       stream_ptr += pvr_cmd_length(CR_COMPUTE_CLUSTER);
    }
 
+   if (PVR_HAS_FEATURE(dev_info, tpu_dm_global_registers)) {
+      pvr_csb_pack (stream_ptr, CR_TPU_TAG_CDM_CTRL, value) {
+      }
+      stream_ptr += pvr_cmd_length(CR_TPU_TAG_CDM_CTRL);
+   }
+
    if (PVR_HAS_FEATURE(dev_info, gpu_multicore_support)) {
       pvr_finishme(
          "Emit execute_count when feature gpu_multicore_support is present");

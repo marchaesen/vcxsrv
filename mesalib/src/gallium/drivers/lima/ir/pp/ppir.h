@@ -84,6 +84,7 @@ typedef enum {
    ppir_op_min,
    ppir_op_max,
    ppir_op_trunc,
+   ppir_op_clamp_pos,
 
    ppir_op_and,
    ppir_op_or,

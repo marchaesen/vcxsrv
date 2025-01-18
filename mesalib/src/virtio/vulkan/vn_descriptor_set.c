@@ -345,6 +345,7 @@ vn_CreateDescriptorPool(VkDevice device,
           i >= mutable_descriptor_info->mutableDescriptorTypeListCount) {
          BITSET_ONES(mutable_types);
       } else {
+         BITSET_ZERO(mutable_types);
          const VkMutableDescriptorTypeListEXT *list =
             &mutable_descriptor_info->pMutableDescriptorTypeLists[i];
 

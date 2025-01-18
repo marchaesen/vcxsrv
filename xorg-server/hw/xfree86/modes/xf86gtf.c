@@ -100,7 +100,7 @@
 DisplayModePtr
 xf86GTFMode(int h_pixels, int v_lines, float freq, int interlaced, int margins)
 {
-    DisplayModeRec *mode = xnfcalloc(1, sizeof(DisplayModeRec));
+    DisplayModeRec *mode = XNFcallocarray(1, sizeof(DisplayModeRec));
 
     float h_pixels_rnd;
     float v_lines_rnd;

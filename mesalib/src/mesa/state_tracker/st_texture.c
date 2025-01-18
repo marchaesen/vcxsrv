@@ -63,7 +63,8 @@ st_texture_create(struct st_context *st,
                   GLuint layers,
                   GLuint nr_samples,
                   GLuint bind,
-                  bool sparse)
+                  bool sparse,
+                  uint32_t compression)
 {
    struct pipe_resource pt, *newtex;
    struct pipe_screen *screen = st->screen;
@@ -96,6 +97,7 @@ st_texture_create(struct st_context *st,
    pt.flags = PIPE_RESOURCE_FLAG_TEXTURING_MORE_LIKELY;
    pt.nr_samples = nr_samples;
    pt.nr_storage_samples = nr_samples;
+   pt.compression_rate = compression;
 
    if (sparse)
       pt.flags |= PIPE_RESOURCE_FLAG_SPARSE;
@@ -443,7 +445,8 @@ st_create_color_map_texture(struct gl_context *ctx)
 
    /* create texture for color map/table */
    pt = st_texture_create(st, PIPE_TEXTURE_2D, format, 0,
-                          texSize, texSize, 1, 1, 0, PIPE_BIND_SAMPLER_VIEW, false);
+                          texSize, texSize, 1, 1, 0, PIPE_BIND_SAMPLER_VIEW, false,
+                          PIPE_COMPRESSION_FIXED_RATE_NONE);
    return pt;
 }
 

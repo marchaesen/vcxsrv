@@ -227,47 +227,47 @@ void vlVaHandleSliceParameterBufferHEVC(vlVaContext *context, vlVaBuffer *buf)
 {
    VASliceParameterBufferHEVC *h265 = buf->data;
 
-   assert(buf->size >= sizeof(VASliceParameterBufferHEVC) && buf->num_elements == 1);
+   for (uint32_t buffer_idx = 0; buffer_idx < buf->num_elements; buffer_idx++, h265++) {
+      uint32_t slice_index = context->desc.h265.slice_parameter.slice_count + buffer_idx;
 
-   switch(h265->LongSliceFlags.fields.slice_type) {
-   /* Depending on slice_type, only update relevant reference */
-   case 0: /* HEVC_SLICE_B */
-      for (int j = 0 ; j < 15 ; j++)
-         context->desc.h265.RefPicList[context->desc.h265.slice_parameter.slice_count][1][j] = h265->RefPicList[1][j];
-      FALLTHROUGH;
-   case 1: /* HEVC_SLICE_P */
-      for (int j = 0 ; j < 15 ; j++)
-         context->desc.h265.RefPicList[context->desc.h265.slice_parameter.slice_count][0][j] = h265->RefPicList[0][j];
-      FALLTHROUGH;
-   default:
-      break;
+      ASSERTED const size_t max_pipe_hevc_slices = ARRAY_SIZE(context->desc.h265.slice_parameter.slice_data_offset);
+      assert(slice_index < max_pipe_hevc_slices);
+
+      switch(h265->LongSliceFlags.fields.slice_type) {
+      /* Depending on slice_type, only update relevant reference */
+      case 0: /* HEVC_SLICE_B */
+         for (int j = 0 ; j < 15 ; j++)
+            context->desc.h265.RefPicList[slice_index][1][j] = h265->RefPicList[1][j];
+         FALLTHROUGH;
+      case 1: /* HEVC_SLICE_P */
+         for (int j = 0 ; j < 15 ; j++)
+            context->desc.h265.RefPicList[slice_index][0][j] = h265->RefPicList[0][j];
+         FALLTHROUGH;
+      default:
+         break;
+      }
+      context->desc.h265.UseRefPicList = true;
+
+      context->desc.h265.slice_parameter.slice_info_present = true;
+      context->desc.h265.slice_parameter.slice_data_size[slice_index] = h265->slice_data_size;
+      context->desc.h265.slice_parameter.slice_data_offset[slice_index] = h265->slice_data_offset;
+
+      switch (h265->slice_data_flag) {
+      case VA_SLICE_DATA_FLAG_ALL:
+         context->desc.h265.slice_parameter.slice_data_flag[slice_index] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_WHOLE;
+         break;
+      case VA_SLICE_DATA_FLAG_BEGIN:
+         context->desc.h265.slice_parameter.slice_data_flag[slice_index] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_BEGIN;
+         break;
+      case VA_SLICE_DATA_FLAG_MIDDLE:
+         context->desc.h265.slice_parameter.slice_data_flag[slice_index] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_MIDDLE;
+         break;
+      case VA_SLICE_DATA_FLAG_END:
+         context->desc.h265.slice_parameter.slice_data_flag[slice_index] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_END;
+         break;
+      default:
+         break;
+      }
    }
-   context->desc.h265.UseRefPicList = true;
-
-   ASSERTED const size_t max_pipe_hevc_slices = ARRAY_SIZE(context->desc.h265.slice_parameter.slice_data_offset);
-   assert(context->desc.h265.slice_parameter.slice_count < max_pipe_hevc_slices);
-
-   context->desc.h265.slice_parameter.slice_info_present = true;
-   context->desc.h265.slice_parameter.slice_data_size[context->desc.h265.slice_parameter.slice_count] = h265->slice_data_size;
-   context->desc.h265.slice_parameter.slice_data_offset[context->desc.h265.slice_parameter.slice_count] = h265->slice_data_offset;
-
-   switch (h265->slice_data_flag) {
-   case VA_SLICE_DATA_FLAG_ALL:
-      context->desc.h265.slice_parameter.slice_data_flag[context->desc.h265.slice_parameter.slice_count] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_WHOLE;
-      break;
-   case VA_SLICE_DATA_FLAG_BEGIN:
-      context->desc.h265.slice_parameter.slice_data_flag[context->desc.h265.slice_parameter.slice_count] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_BEGIN;
-      break;
-   case VA_SLICE_DATA_FLAG_MIDDLE:
-      context->desc.h265.slice_parameter.slice_data_flag[context->desc.h265.slice_parameter.slice_count] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_MIDDLE;
-      break;
-   case VA_SLICE_DATA_FLAG_END:
-      context->desc.h265.slice_parameter.slice_data_flag[context->desc.h265.slice_parameter.slice_count] = PIPE_SLICE_BUFFER_PLACEMENT_TYPE_END;
-      break;
-   default:
-      break;
-   }
-
-   /* assert(buf->num_elements == 1) above; */
-   context->desc.h265.slice_parameter.slice_count++;
+   context->desc.h265.slice_parameter.slice_count += buf->num_elements;
 }

@@ -34,7 +34,7 @@
 #include <linux/fcntl.h>
 #endif
 
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
 
 #include <string.h>
 #include <fcntl.h>

@@ -10,7 +10,7 @@ use rusticl_proc_macros::cl_info_entrypoint;
 
 use std::mem::MaybeUninit;
 
-#[cl_info_entrypoint(cl_get_platform_info)]
+#[cl_info_entrypoint(clGetPlatformInfo)]
 impl CLInfo<cl_platform_info> for cl_platform_id {
     fn query(&self, q: cl_platform_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
         self.get_ref()?;
@@ -34,7 +34,7 @@ impl CLInfo<cl_platform_info> for cl_platform_id {
     }
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clGetPlatformIDs)]
 fn get_platform_ids(
     num_entries: cl_uint,
     platforms: *mut cl_platform_id,
@@ -67,7 +67,7 @@ fn get_platform_ids(
     Ok(())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clUnloadPlatformCompiler)]
 fn unload_platform_compiler(platform: cl_platform_id) -> CLResult<()> {
     platform.get_ref()?;
     // TODO unload the compiler

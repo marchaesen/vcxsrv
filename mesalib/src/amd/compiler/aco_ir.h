@@ -15,6 +15,7 @@
 
 #include "ac_binary.h"
 #include "ac_hw_stage.h"
+#include "ac_shader_util.h"
 #include "amd_family.h"
 #include <algorithm>
 #include <bitset>
@@ -30,7 +31,7 @@ extern uint64_t debug_flags;
 enum {
    DEBUG_VALIDATE_IR = 0x1,
    DEBUG_VALIDATE_RA = 0x2,
-   DEBUG_PERFWARN = 0x4,
+   DEBUG_VALIDATE_LIVE_VARS = 0x4,
    DEBUG_FORCE_WAITCNT = 0x8,
    DEBUG_NO_VN = 0x10,
    DEBUG_NO_OPT = 0x20,
@@ -150,9 +151,6 @@ struct float_mode {
       };
       uint8_t val = 0;
    };
-   /* if false, optimizations which may remove infs/nan/-0.0 can be done */
-   bool preserve_signed_zero_inf_nan32 : 1;
-   bool preserve_signed_zero_inf_nan16_64 : 1;
    /* if false, optimizations which may remove denormal flushing can be done */
    bool must_flush_denorms32 : 1;
    bool must_flush_denorms16_64 : 1;
@@ -163,10 +161,7 @@ struct float_mode {
     * current one instead. */
    bool canReplace(float_mode other) const noexcept
    {
-      return val == other.val &&
-             (preserve_signed_zero_inf_nan32 || !other.preserve_signed_zero_inf_nan32) &&
-             (preserve_signed_zero_inf_nan16_64 || !other.preserve_signed_zero_inf_nan16_64) &&
-             (must_flush_denorms32 || !other.must_flush_denorms32) &&
+      return val == other.val && (must_flush_denorms32 || !other.must_flush_denorms32) &&
              (must_flush_denorms16_64 || !other.must_flush_denorms16_64) &&
              (care_about_round32 || !other.care_about_round32) &&
              (care_about_round16_64 || !other.care_about_round16_64);
@@ -179,7 +174,11 @@ enum wait_type {
    wait_type_vm = 2,
    /* GFX10+ */
    wait_type_vs = 3,
-   wait_type_num = 4,
+   /* GFX12+ */
+   wait_type_sample = 4,
+   wait_type_bvh = 5,
+   wait_type_km = 6,
+   wait_type_num = 7,
 };
 
 struct Instruction;
@@ -191,6 +190,9 @@ struct wait_imm {
    uint8_t lgkm;
    uint8_t vm;
    uint8_t vs;
+   uint8_t sample;
+   uint8_t bvh;
+   uint8_t km;
 
    wait_imm();
    wait_imm(uint16_t vm_, uint16_t exp_, uint16_t lgkm_, uint16_t vs_);
@@ -223,6 +225,9 @@ static_assert(offsetof(wait_imm, exp) == wait_type_exp);
 static_assert(offsetof(wait_imm, lgkm) == wait_type_lgkm);
 static_assert(offsetof(wait_imm, vm) == wait_type_vm);
 static_assert(offsetof(wait_imm, vs) == wait_type_vs);
+static_assert(offsetof(wait_imm, sample) == wait_type_sample);
+static_assert(offsetof(wait_imm, bvh) == wait_type_bvh);
+static_assert(offsetof(wait_imm, km) == wait_type_km);
 
 /* s_wait_event immediate bits. */
 enum wait_event_imm : uint16_t {
@@ -231,7 +236,8 @@ enum wait_event_imm : uint16_t {
     * their ordered sections (by performing the `done` export), and that the current wave may enter
     * its ordered section.
     */
-   wait_event_imm_dont_wait_export_ready = 0x1,
+   wait_event_imm_dont_wait_export_ready_gfx11 = 0x1,
+   wait_event_imm_wait_export_ready_gfx12 = 0x2,
 };
 
 constexpr Format
@@ -447,8 +453,8 @@ class Operand final {
 public:
    constexpr Operand()
        : reg_(PhysReg{128}), isTemp_(false), isFixed_(true), isConstant_(false), isKill_(false),
-         isUndef_(true), isFirstKill_(false), constSize(0), isLateKill_(false), is16bit_(false),
-         is24bit_(false), signext(false)
+         isUndef_(true), isFirstKill_(false), constSize(0), isLateKill_(false), isClobbered_(false),
+         isCopyKill_(false), is16bit_(false), is24bit_(false), signext(false)
    {}
 
    explicit Operand(Temp r) noexcept
@@ -793,11 +799,28 @@ public:
 
    constexpr bool isLateKill() const noexcept { return isLateKill_; }
 
+   /* Indicates that the Operand's register gets clobbered by the instruction. */
+   constexpr void setClobbered(bool flag) noexcept { isClobbered_ = flag; }
+   constexpr bool isClobbered() const noexcept { return isClobbered_; }
+
+   /* Indicates that the Operand must be copied in order to satisfy register
+    * constraints. The copy is immediately killed by the instruction.
+    */
+   constexpr void setCopyKill(bool flag) noexcept
+   {
+      isCopyKill_ = flag;
+      if (flag)
+         setKill(flag);
+   }
+   constexpr bool isCopyKill() const noexcept { return isCopyKill_; }
+
    constexpr void setKill(bool flag) noexcept
    {
       isKill_ = flag;
-      if (!flag)
+      if (!flag) {
          setFirstKill(false);
+         setCopyKill(false);
+      }
    }
 
    constexpr bool isKill() const noexcept { return isKill_ || isFirstKill(); }
@@ -862,6 +885,8 @@ private:
          uint8_t isFirstKill_ : 1;
          uint8_t constSize : 2;
          uint8_t isLateKill_ : 1;
+         uint8_t isClobbered_ : 1;
+         uint8_t isCopyKill_ : 1;
          uint8_t is16bit_ : 1;
          uint8_t is24bit_ : 1;
          uint8_t signext : 1;
@@ -880,15 +905,12 @@ private:
 class Definition final {
 public:
    constexpr Definition()
-       : temp(Temp(0, s1)), reg_(0), isFixed_(0), isKill_(0), isPrecise_(0), isNUW_(0), isNoCSE_(0)
+       : temp(Temp(0, s1)), reg_(0), isFixed_(0), isKill_(0), isPrecise_(0), isInfPreserve_(0),
+         isNaNPreserve_(0), isSZPreserve_(0), isNUW_(0), isNoCSE_(0)
    {}
-   Definition(uint32_t index, RegClass type) noexcept : temp(index, type) {}
    explicit Definition(Temp tmp) noexcept : temp(tmp) {}
-   Definition(PhysReg reg, RegClass type) noexcept : temp(Temp(0, type)) { setFixed(reg); }
-   Definition(uint32_t tmpId, PhysReg reg, RegClass type) noexcept : temp(Temp(tmpId, type))
-   {
-      setFixed(reg);
-   }
+   explicit Definition(PhysReg reg, RegClass type) noexcept : temp(Temp(0, type)) { setFixed(reg); }
+   explicit Definition(Temp tmp, PhysReg reg) noexcept : temp(tmp) { setFixed(reg); }
 
    constexpr bool isTemp() const noexcept { return tempId() > 0; }
 
@@ -924,6 +946,18 @@ public:
 
    constexpr bool isPrecise() const noexcept { return isPrecise_; }
 
+   constexpr void setInfPreserve(bool inf_preserve) noexcept { isInfPreserve_ = inf_preserve; }
+
+   constexpr bool isInfPreserve() const noexcept { return isInfPreserve_; }
+
+   constexpr void setNaNPreserve(bool nan_preserve) noexcept { isNaNPreserve_ = nan_preserve; }
+
+   constexpr bool isNaNPreserve() const noexcept { return isNaNPreserve_; }
+
+   constexpr void setSZPreserve(bool sz_preserve) noexcept { isSZPreserve_ = sz_preserve; }
+
+   constexpr bool isSZPreserve() const noexcept { return isSZPreserve_; }
+
    /* No Unsigned Wrap */
    constexpr void setNUW(bool nuw) noexcept { isNUW_ = nuw; }
 
@@ -941,12 +975,88 @@ private:
          uint8_t isFixed_ : 1;
          uint8_t isKill_ : 1;
          uint8_t isPrecise_ : 1;
+         uint8_t isInfPreserve_ : 1;
+         uint8_t isNaNPreserve_ : 1;
+         uint8_t isSZPreserve_ : 1;
          uint8_t isNUW_ : 1;
          uint8_t isNoCSE_ : 1;
       };
       /* can't initialize bit-fields in c++11, so work around using a union */
       uint8_t control_ = 0;
    };
+};
+
+struct RegisterDemand {
+   constexpr RegisterDemand() = default;
+   constexpr RegisterDemand(const int16_t v, const int16_t s) noexcept : vgpr{v}, sgpr{s} {}
+   int16_t vgpr = 0;
+   int16_t sgpr = 0;
+
+   constexpr friend bool operator==(const RegisterDemand a, const RegisterDemand b) noexcept
+   {
+      return a.vgpr == b.vgpr && a.sgpr == b.sgpr;
+   }
+
+   constexpr bool exceeds(const RegisterDemand other) const noexcept
+   {
+      return vgpr > other.vgpr || sgpr > other.sgpr;
+   }
+
+   constexpr RegisterDemand operator+(const Temp t) const noexcept
+   {
+      if (t.type() == RegType::sgpr)
+         return RegisterDemand(vgpr, sgpr + t.size());
+      else
+         return RegisterDemand(vgpr + t.size(), sgpr);
+   }
+
+   constexpr RegisterDemand operator+(const RegisterDemand other) const noexcept
+   {
+      return RegisterDemand(vgpr + other.vgpr, sgpr + other.sgpr);
+   }
+
+   constexpr RegisterDemand operator-(const RegisterDemand other) const noexcept
+   {
+      return RegisterDemand(vgpr - other.vgpr, sgpr - other.sgpr);
+   }
+
+   constexpr RegisterDemand& operator+=(const RegisterDemand other) noexcept
+   {
+      vgpr += other.vgpr;
+      sgpr += other.sgpr;
+      return *this;
+   }
+
+   constexpr RegisterDemand& operator-=(const RegisterDemand other) noexcept
+   {
+      vgpr -= other.vgpr;
+      sgpr -= other.sgpr;
+      return *this;
+   }
+
+   constexpr RegisterDemand& operator+=(const Temp t) noexcept
+   {
+      if (t.type() == RegType::sgpr)
+         sgpr += t.size();
+      else
+         vgpr += t.size();
+      return *this;
+   }
+
+   constexpr RegisterDemand& operator-=(const Temp t) noexcept
+   {
+      if (t.type() == RegType::sgpr)
+         sgpr -= t.size();
+      else
+         vgpr -= t.size();
+      return *this;
+   }
+
+   constexpr void update(const RegisterDemand other) noexcept
+   {
+      vgpr = std::max(vgpr, other.vgpr);
+      sgpr = std::max(sgpr, other.sgpr);
+   }
 };
 
 struct Block;
@@ -975,7 +1085,10 @@ struct SDWA_instruction;
 struct Instruction {
    aco_opcode opcode;
    Format format;
-   uint32_t pass_flags;
+   union {
+      uint32_t pass_flags;
+      RegisterDemand register_demand;
+   };
 
    aco::span<Operand> operands;
    aco::span<Definition> definitions;
@@ -1299,11 +1412,7 @@ static_assert(sizeof(SALU_instruction) == sizeof(Instruction) + 4, "Unexpected p
  */
 struct SMEM_instruction : public Instruction {
    memory_sync_info sync;
-   bool glc : 1; /* VI+: globally coherent */
-   bool dlc : 1; /* NAVI: device level coherent */
-   bool nv : 1;  /* VEGA only: Non-volatile */
-   bool disable_wqm : 1;
-   uint8_t padding : 4;
+   ac_hw_cache_flags cache;
 };
 static_assert(sizeof(SMEM_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
 
@@ -1482,19 +1591,16 @@ static_assert(sizeof(LDSDIR_instruction) == sizeof(Instruction) + 8, "Unexpected
  */
 struct MUBUF_instruction : public Instruction {
    memory_sync_info sync;
+   ac_hw_cache_flags cache;
    bool offen : 1;           /* Supply an offset from VGPR (VADDR) */
    bool idxen : 1;           /* Supply an index from VGPR (VADDR) */
    bool addr64 : 1;          /* SI, CIK: Address size is 64-bit */
-   bool glc : 1;             /* globally coherent */
-   bool dlc : 1;             /* NAVI: device level coherent */
-   bool slc : 1;             /* system level coherent */
    bool tfe : 1;             /* texture fail enable */
    bool lds : 1;             /* Return read-data to LDS instead of VGPRs */
-   uint16_t disable_wqm : 1; /* Require an exec mask without helper invocations */
-   uint16_t offset : 12;     /* Unsigned byte offset - 12 bit */
-   uint16_t swizzled : 1;
-   uint16_t padding0 : 2;
-   uint16_t padding1;
+   bool disable_wqm : 1;     /* Require an exec mask without helper invocations */
+   uint8_t padding0 : 2;
+   uint8_t padding1;
+   uint16_t offset; /* Unsigned byte offset - 12 bit */
 };
 static_assert(sizeof(MUBUF_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
@@ -1508,16 +1614,14 @@ static_assert(sizeof(MUBUF_instruction) == sizeof(Instruction) + 8, "Unexpected 
  */
 struct MTBUF_instruction : public Instruction {
    memory_sync_info sync;
+   ac_hw_cache_flags cache;
    uint8_t dfmt : 4;         /* Data Format of data in memory buffer */
    uint8_t nfmt : 3;         /* Numeric format of data in memory */
    bool offen : 1;           /* Supply an offset from VGPR (VADDR) */
-   uint16_t idxen : 1;       /* Supply an index from VGPR (VADDR) */
-   uint16_t glc : 1;         /* globally coherent */
-   uint16_t dlc : 1;         /* NAVI: device level coherent */
-   uint16_t slc : 1;         /* system level coherent */
-   uint16_t tfe : 1;         /* texture fail enable */
-   uint16_t disable_wqm : 1; /* Require an exec mask without helper invocations */
-   uint16_t padding : 10;
+   bool idxen : 1;           /* Supply an index from VGPR (VADDR) */
+   bool tfe : 1;             /* texture fail enable */
+   bool disable_wqm : 1;     /* Require an exec mask without helper invocations */
+   uint8_t padding : 5;
    uint16_t offset; /* Unsigned byte offset - 12 bit */
 };
 static_assert(sizeof(MTBUF_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
@@ -1533,12 +1637,10 @@ static_assert(sizeof(MTBUF_instruction) == sizeof(Instruction) + 8, "Unexpected 
  */
 struct MIMG_instruction : public Instruction {
    memory_sync_info sync;
+   ac_hw_cache_flags cache;
    uint8_t dmask;        /* Data VGPR enable mask */
    uint8_t dim : 3;      /* NAVI: dimensionality */
    bool unrm : 1;        /* Force address to be un-normalized */
-   bool dlc : 1;         /* NAVI: device level coherent */
-   bool glc : 1;         /* globally coherent */
-   bool slc : 1;         /* system level coherent */
    bool tfe : 1;         /* texture fail enable */
    bool da : 1;          /* declare an array */
    bool lwe : 1;         /* LOD warning enable */
@@ -1547,9 +1649,8 @@ struct MIMG_instruction : public Instruction {
    bool d16 : 1;         /* Convert 32-bit data to 16-bit data */
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
    bool strict_wqm : 1;  /* VADDR is a linear VGPR and additional VGPRs may be copied into it */
-   uint8_t padding0 : 1;
+   uint8_t padding0 : 4;
    uint8_t padding1;
-   uint8_t padding2;
 };
 static_assert(sizeof(MIMG_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
@@ -1562,15 +1663,13 @@ static_assert(sizeof(MIMG_instruction) == sizeof(Instruction) + 8, "Unexpected p
  */
 struct FLAT_instruction : public Instruction {
    memory_sync_info sync;
-   bool slc : 1; /* system level coherent */
-   bool glc : 1; /* globally coherent */
-   bool dlc : 1; /* NAVI: device level coherent */
+   ac_hw_cache_flags cache;
    bool lds : 1;
    bool nv : 1;
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
-   uint8_t padding0 : 2;
+   uint8_t padding0 : 5;
+   uint8_t padding1;
    int16_t offset; /* Vega/Navi only */
-   uint16_t padding1;
 };
 static_assert(sizeof(FLAT_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
@@ -1600,10 +1699,11 @@ struct Pseudo_branch_instruction : public Instruction {
     */
    uint32_t target[2];
 
-   /* Indicates that selection control prefers to remove this instruction if possible.
-    * This is set when the branch is divergent and always taken, or flattened.
-    */
-   bool selection_control_remove;
+   /* Indicates that this rarely or never jumps to target[0]. */
+   bool rarely_taken;
+   bool never_taken;
+
+   uint16_t padding;
 };
 static_assert(sizeof(Pseudo_branch_instruction) == sizeof(Instruction) + 12, "Unexpected padding");
 
@@ -1718,6 +1818,7 @@ is_phi(aco_ptr<Instruction>& instr)
    return is_phi(instr.get());
 }
 
+bool is_wait_export_ready(amd_gfx_level gfx_level, const Instruction* instr);
 memory_sync_info get_sync_info(const Instruction* instr);
 
 inline bool
@@ -1748,14 +1849,9 @@ aco_ptr<Instruction> convert_to_DPP(amd_gfx_level gfx_level, aco_ptr<Instruction
                                     bool dpp8);
 bool needs_exec_mask(const Instruction* instr);
 
-aco_opcode get_ordered(aco_opcode op);
-aco_opcode get_unordered(aco_opcode op);
-aco_opcode get_inverse(aco_opcode op);
-aco_opcode get_swapped(aco_opcode op);
-aco_opcode get_f32_cmp(aco_opcode op);
+aco_opcode get_vcmp_inverse(aco_opcode op);
+aco_opcode get_vcmp_swapped(aco_opcode op);
 aco_opcode get_vcmpx(aco_opcode op);
-unsigned get_cmp_bitsize(aco_opcode op);
-bool is_fp_cmp(aco_opcode op);
 bool is_cmpx(aco_opcode op);
 
 bool can_swap_operands(aco_ptr<Instruction>& instr, aco_opcode* new_op, unsigned idx0 = 0,
@@ -1770,6 +1866,49 @@ unsigned get_vopd_opy_start(const Instruction* instr);
 unsigned get_operand_size(aco_ptr<Instruction>& instr, unsigned index);
 
 bool should_form_clause(const Instruction* a, const Instruction* b);
+
+enum vmem_type : uint8_t {
+   vmem_nosampler = 1 << 0,
+   vmem_sampler = 1 << 1,
+   vmem_bvh = 1 << 2,
+};
+
+/* VMEM instructions of the same type return in-order. For GFX12+, this determines which counter
+ * is used.
+ */
+uint8_t get_vmem_type(enum amd_gfx_level gfx_level, Instruction* instr);
+
+/* For all of the counters, the maximum value means no wait.
+ * Some of the counters are larger than their bit field,
+ * but there is no wait mechanism that allows waiting only for higher values.
+ */
+struct depctr_wait {
+   union {
+      struct {
+         /* VALU completion, apparently even used for VALU without vgpr writes. */
+         unsigned va_vdst : 4;
+         /* VALU sgpr write (not including vcc/vcc_hi). */
+         unsigned va_sdst : 3;
+         /* VALU sgpr read. */
+         unsigned va_ssrc : 1;
+         /* unknown. */
+         unsigned hold_cnt : 1;
+         /* VMEM/DS vgpr read. */
+         unsigned vm_vsrc : 3;
+         /* VALU vcc/vcc_hi write. */
+         unsigned va_vcc : 1;
+         /* SALU sgpr, vcc/vcc_hi or scc write. */
+         unsigned sa_sdst : 1;
+         /* VALU exec/exec_hi write. */
+         unsigned va_exec : 1;
+         /* SALU exec/exec_hi write. */
+         unsigned sa_exec : 1;
+      };
+      unsigned packed = -1;
+   };
+};
+
+depctr_wait parse_depctr_wait(const Instruction* instr);
 
 enum block_kind {
    /* uniform indicates that leaving this block,
@@ -1792,79 +1931,6 @@ enum block_kind {
    block_kind_end_with_regs = 1 << 15,
 };
 
-struct RegisterDemand {
-   constexpr RegisterDemand() = default;
-   constexpr RegisterDemand(const int16_t v, const int16_t s) noexcept : vgpr{v}, sgpr{s} {}
-   int16_t vgpr = 0;
-   int16_t sgpr = 0;
-
-   constexpr friend bool operator==(const RegisterDemand a, const RegisterDemand b) noexcept
-   {
-      return a.vgpr == b.vgpr && a.sgpr == b.sgpr;
-   }
-
-   constexpr bool exceeds(const RegisterDemand other) const noexcept
-   {
-      return vgpr > other.vgpr || sgpr > other.sgpr;
-   }
-
-   constexpr RegisterDemand operator+(const Temp t) const noexcept
-   {
-      if (t.type() == RegType::sgpr)
-         return RegisterDemand(vgpr, sgpr + t.size());
-      else
-         return RegisterDemand(vgpr + t.size(), sgpr);
-   }
-
-   constexpr RegisterDemand operator+(const RegisterDemand other) const noexcept
-   {
-      return RegisterDemand(vgpr + other.vgpr, sgpr + other.sgpr);
-   }
-
-   constexpr RegisterDemand operator-(const RegisterDemand other) const noexcept
-   {
-      return RegisterDemand(vgpr - other.vgpr, sgpr - other.sgpr);
-   }
-
-   constexpr RegisterDemand& operator+=(const RegisterDemand other) noexcept
-   {
-      vgpr += other.vgpr;
-      sgpr += other.sgpr;
-      return *this;
-   }
-
-   constexpr RegisterDemand& operator-=(const RegisterDemand other) noexcept
-   {
-      vgpr -= other.vgpr;
-      sgpr -= other.sgpr;
-      return *this;
-   }
-
-   constexpr RegisterDemand& operator+=(const Temp t) noexcept
-   {
-      if (t.type() == RegType::sgpr)
-         sgpr += t.size();
-      else
-         vgpr += t.size();
-      return *this;
-   }
-
-   constexpr RegisterDemand& operator-=(const Temp t) noexcept
-   {
-      if (t.type() == RegType::sgpr)
-         sgpr -= t.size();
-      else
-         vgpr -= t.size();
-      return *this;
-   }
-
-   constexpr void update(const RegisterDemand other) noexcept
-   {
-      vgpr = std::max(vgpr, other.vgpr);
-      sgpr = std::max(sgpr, other.sgpr);
-   }
-};
-
 /* CFG */
 struct Block {
    using edge_vec = small_vec<uint32_t, 2>;
@@ -1878,9 +1944,19 @@ struct Block {
    edge_vec logical_succs;
    edge_vec linear_succs;
    RegisterDemand register_demand = RegisterDemand();
+   RegisterDemand live_in_demand = RegisterDemand();
    uint32_t kind = 0;
    int32_t logical_idom = -1;
    int32_t linear_idom = -1;
+
+   /* Preorder and postorder traversal indices of the dominance tree. Because a program can have
+    * several dominance trees (because of block_kind_resume), these start at the block index of the
+    * root node. */
+   uint32_t logical_dom_pre_index = 0;
+   uint32_t logical_dom_post_index = 0;
+   uint32_t linear_dom_pre_index = 0;
+   uint32_t linear_dom_post_index = 0;
+
    uint16_t loop_nest_depth = 0;
    uint16_t divergent_if_logical_depth = 0;
    uint16_t uniform_if_depth = 0;
@@ -1991,6 +2067,7 @@ struct DeviceInfo {
    unsigned simd_per_cu;
    bool has_fast_fma32 = false;
    bool has_mac_legacy32 = false;
+   bool has_fmac_legacy32 = false;
    bool fused_mad_mix = false;
    bool xnack_enabled = false;
    bool sram_ecc_enabled = false;
@@ -2004,6 +2081,7 @@ enum class CompilationProgress {
    after_isel,
    after_spilling,
    after_ra,
+   after_lower_to_hw,
 };
 
 class Program final {
@@ -2026,6 +2104,7 @@ public:
    bool has_pops_overlapped_waves_wait = false;
    bool has_color_exports = false;
    bool is_prolog = false;
+   bool is_epilog = false;
 
    std::vector<uint8_t> constant_data;
    Temp private_segment_buffer;
@@ -2054,32 +2133,27 @@ public:
    bool pending_lds_access = false;
 
    struct {
+      monotonic_buffer_resource memory;
+      /* live-in temps per block */
+      std::vector<IDSet> live_in;
+   } live;
+
+   struct {
       FILE* output = stderr;
       bool shorten_messages = false;
       void (*func)(void* private_data, enum aco_compiler_debug_level level, const char* message);
       void* private_data;
    } debug;
 
-   uint32_t allocateId(RegClass rc)
-   {
-      assert(allocationID <= 16777215);
-      temp_rc.push_back(rc);
-      return allocationID++;
-   }
-
    void allocateRange(unsigned amount)
    {
-      assert(allocationID + amount <= 16777216);
+      assert(temp_rc.size() + amount <= 16777216);
       temp_rc.resize(temp_rc.size() + amount);
-      allocationID += amount;
    }
 
    Temp allocateTmp(RegClass rc) { return Temp(allocateId(rc), rc); }
 
-   uint32_t peekAllocationId() { return allocationID; }
-
-   friend void reindex_ssa(Program* program);
-   friend void reindex_ssa(Program* program, std::vector<IDSet>& live_out);
+   uint32_t peekAllocationId() { return temp_rc.size(); }
 
    Block* create_and_insert_block()
    {
@@ -2099,14 +2173,12 @@ public:
    }
 
 private:
-   uint32_t allocationID = 1;
-};
-
-struct live {
-   /* live temps out per block */
-   std::vector<IDSet> live_out;
-   /* register demand (sgpr/vgpr) per instruction per block */
-   std::vector<std::vector<RegisterDemand>> register_demand;
+   uint32_t allocateId(RegClass rc)
+   {
+      assert(temp_rc.size() <= 16777215);
+      temp_rc.push_back(rc);
+      return temp_rc.size() - 1;
+   }
 };
 
 struct ra_test_policy {
@@ -2148,7 +2220,7 @@ void lower_phis(Program* program);
 void lower_subdword(Program* program);
 void calc_min_waves(Program* program);
 void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand);
-live live_var_analysis(Program* program);
+void live_var_analysis(Program* program);
 std::vector<uint16_t> dead_code_analysis(Program* program);
 void dominator_tree(Program* program);
 void insert_exec_mask(Program* program);
@@ -2156,15 +2228,18 @@ void value_numbering(Program* program);
 void optimize(Program* program);
 void optimize_postRA(Program* program);
 void setup_reduce_temp(Program* program);
-void lower_to_cssa(Program* program, live& live_vars);
-void register_allocation(Program* program, live& live_vars, ra_test_policy = {});
+void lower_to_cssa(Program* program);
+void register_allocation(Program* program, ra_test_policy = {});
+void reindex_ssa(Program* program);
 void ssa_elimination(Program* program);
 void lower_to_hw_instr(Program* program);
-void schedule_program(Program* program, live& live_vars);
+void schedule_program(Program* program);
 void schedule_ilp(Program* program);
 void schedule_vopd(Program* program);
-void spill(Program* program, live& live_vars);
-void insert_wait_states(Program* program);
+void spill(Program* program);
+void insert_waitcnt(Program* program);
+void insert_delay_alu(Program* program);
+void combine_delay_alu(Program* program);
 bool dealloc_vgprs(Program* program);
 void insert_NOPs(Program* program);
 void form_hard_clauses(Program* program);
@@ -2179,13 +2254,7 @@ bool print_asm(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
 bool validate_ir(Program* program);
 bool validate_cfg(Program* program);
 bool validate_ra(Program* program);
-#ifndef NDEBUG
-void perfwarn(Program* program, bool cond, const char* msg, Instruction* instr = NULL);
-#else
-#define perfwarn(program, cond, msg, ...)                                                          \
-   do {                                                                                            \
-   } while (0)
-#endif
+bool validate_live_vars(Program* program);
 
 void collect_presched_stats(Program* program);
 void collect_preasm_stats(Program* program);
@@ -2213,22 +2282,16 @@ void aco_print_operand(const Operand* operand, FILE* output, unsigned flags = 0)
 void aco_print_instr(enum amd_gfx_level gfx_level, const Instruction* instr, FILE* output,
                      unsigned flags = 0);
 void aco_print_program(const Program* program, FILE* output, unsigned flags = 0);
-void aco_print_program(const Program* program, FILE* output, const live& live_vars,
-                       unsigned flags = 0);
 
-void _aco_perfwarn(Program* program, const char* file, unsigned line, const char* fmt, ...);
 void _aco_err(Program* program, const char* file, unsigned line, const char* fmt, ...);
 
-#define aco_perfwarn(program, ...) _aco_perfwarn(program, __FILE__, __LINE__, __VA_ARGS__)
 #define aco_err(program, ...)      _aco_err(program, __FILE__, __LINE__, __VA_ARGS__)
 
 int get_op_fixed_to_def(Instruction* instr);
 
 /* utilities for dealing with register demand */
-RegisterDemand get_live_changes(aco_ptr<Instruction>& instr);
-RegisterDemand get_temp_registers(aco_ptr<Instruction>& instr);
-RegisterDemand get_demand_before(RegisterDemand demand, aco_ptr<Instruction>& instr,
-                                 aco_ptr<Instruction>& instr_before);
+RegisterDemand get_live_changes(Instruction* instr);
+RegisterDemand get_temp_registers(Instruction* instr);
 
 /* number of sgprs that need to be allocated but might notbe addressable as s0-s105 */
 uint16_t get_extra_sgprs(Program* program);
@@ -2245,6 +2308,20 @@ uint16_t get_addr_sgpr_from_waves(Program* program, uint16_t max_waves);
 uint16_t get_addr_vgpr_from_waves(Program* program, uint16_t max_waves);
 
 bool uses_scratch(Program* program);
+
+inline bool
+dominates_logical(const Block& parent, const Block& child)
+{
+   return child.logical_dom_pre_index >= parent.logical_dom_pre_index &&
+          child.logical_dom_post_index <= parent.logical_dom_post_index;
+}
+
+inline bool
+dominates_linear(const Block& parent, const Block& child)
+{
+   return child.linear_dom_pre_index >= parent.linear_dom_pre_index &&
+          child.linear_dom_post_index <= parent.linear_dom_post_index;
+}
 
 typedef struct {
    const int16_t opcode_gfx7[static_cast<int>(aco_opcode::num_opcodes)];

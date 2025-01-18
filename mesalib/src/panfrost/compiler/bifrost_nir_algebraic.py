@@ -27,6 +27,7 @@ import math
 a = 'a'
 b = 'b'
 c = 'c'
+d = 'd'
 
 # In general, bcsel is cheaper than bitwise arithmetic on Mali. On
 # Bifrost, we can implement bcsel as either CSEL or MUX to schedule to either
@@ -43,16 +44,17 @@ opt_bool_bitwise = [
 ]
 
 algebraic_late = [
+    (('pack_32_4x8_split', a, b, c, d),
+     ('pack_32_2x16_split', ('ior', ('u2u16', a), ('ishl', ('u2u16', b), 8)),
+                            ('ior', ('u2u16', c), ('ishl', ('u2u16', d), 8)))),
+
     # Canonical form. The scheduler will convert back if it makes sense.
     (('fmul', a, 2.0), ('fadd', a, a)),
 
     # Fuse Mali-specific clamps
-    (('fmin', ('fmax', a, -1.0), 1.0), ('fsat_signed_mali', a)),
-    (('fmax', ('fmin', a, 1.0), -1.0), ('fsat_signed_mali', a)),
-    (('fmax', a, 0.0), ('fclamp_pos_mali', a)),
-
-    (('fabs', ('fddx', a)), ('fabs', ('fddx_must_abs_mali', a))),
-    (('fabs', ('fddy', b)), ('fabs', ('fddy_must_abs_mali', b))),
+    (('fmin', ('fmax', a, -1.0), 1.0), ('fsat_signed', a)),
+    (('fmax', ('fmin', a, 1.0), -1.0), ('fsat_signed', a)),
+    (('fmax', a, 0.0), ('fclamp_pos', a)),
 
     (('b32csel', 'b@32', ('iadd', 'a@32', 1), a), ('iadd', a, ('b2i32', b))),
 

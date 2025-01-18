@@ -58,64 +58,44 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// Debug assertions used in AddrLib
-////////////////////////////////////////////////////////////////////////////////////////////////////
-#if defined(_WIN32) && (_MSC_VER >= 1400)
-    #define ADDR_ANALYSIS_ASSUME(expr) __analysis_assume(expr)
-#else
-    #define ADDR_ANALYSIS_ASSUME(expr) do { (void)(expr); } while (0)
-#endif
-
-#if DEBUG
-    #if defined( _WIN32 )
-        #define ADDR_ASSERT(__e)                                \
-        {                                                       \
-            ADDR_ANALYSIS_ASSUME(__e);                          \
-            if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); } \
-        }
-    #else
-        #define ADDR_ASSERT(__e) if ( !((__e) ? TRUE : FALSE)) { ADDR_DBG_BREAK(); }
-    #endif
-
-    #if ADDR_SILENCE_ASSERT_ALWAYS
-        #define ADDR_ASSERT_ALWAYS()
-    #else
-        #define ADDR_ASSERT_ALWAYS() ADDR_DBG_BREAK()
-    #endif
-
-    #define ADDR_UNHANDLED_CASE() ADDR_ASSERT(!"Unhandled case")
-    #define ADDR_NOT_IMPLEMENTED() ADDR_ASSERT(!"Not implemented");
-#else //DEBUG
-    #if defined( _WIN32 )
-        #define ADDR_ASSERT(__e) { ADDR_ANALYSIS_ASSUME(__e); }
-    #else
-        #define ADDR_ASSERT(__e)
-    #endif
-    #define ADDR_ASSERT_ALWAYS()
-    #define ADDR_UNHANDLED_CASE()
-    #define ADDR_NOT_IMPLEMENTED()
-#endif //DEBUG
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Debug print macro from legacy address library
+// Debug print macro
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 #if DEBUG
 
-#define ADDR_PRNT(a)    Object::DebugPrint a
+// Forward decl.
+namespace Addr {
+
+/// @brief Debug print helper
+/// This function sends messages to thread-local callbacks for printing. If no callback is present
+/// it is sent to stderr.
+///
+VOID DebugPrint( const CHAR* pDebugString, ...);
+
+/// This function sets thread-local callbacks (or NULL) for printing. It should be called when
+/// entering addrlib and is implicitly called by GetLib().
+VOID ApplyDebugPrinters(ADDR_DEBUGPRINT pfnDebugPrint, ADDR_CLIENT_HANDLE pClientHandle);
+}
+
+/// @brief Printf-like macro for printing messages
+#define ADDR_PRNT(msg, ...) Addr::DebugPrint(msg, ##__VA_ARGS__)
+
+/// @brief Resets thread-local debug state
+/// @ingroup util
+///
+/// This macro resets any thread-local state on where to print a message.
+/// It should be called before returning from addrlib.
+#define ADDR_RESET_DEBUG_PRINTERS() Addr::ApplyDebugPrinters(NULL, NULL)
 
 /// @brief Macro for reporting informational messages
 /// @ingroup util
 ///
 /// This macro optionally prints an informational message to stdout.
 /// The first parameter is a condition -- if it is true, nothing is done.
-/// The second pararmeter MUST be a parenthesis-enclosed list of arguments,
-/// starting with a string. This is passed to printf() or an equivalent
-/// in order to format the informational message. For example,
-/// ADDR_INFO(0, ("test %d",3) ); prints out "test 3".
+/// The second parameter is a message that may have printf-like args.
+/// Any remaining parameters are used to format the message.
 ///
-#define ADDR_INFO(cond, a)         \
-{ if (!(cond)) { ADDR_PRNT(a); } }
+#define ADDR_INFO(cond, msg, ...)         \
+do { if (!(cond)) { Addr::DebugPrint(msg, ##__VA_ARGS__); } } while (0)
 
 
 /// @brief Macro for reporting error warning messages
@@ -124,17 +104,14 @@
 /// This macro optionally prints an error warning message to stdout,
 /// followed by the file name and line number where the macro was called.
 /// The first parameter is a condition -- if it is true, nothing is done.
-/// The second pararmeter MUST be a parenthesis-enclosed list of arguments,
-/// starting with a string. This is passed to printf() or an equivalent
-/// in order to format the informational message. For example,
-/// ADDR_WARN(0, ("test %d",3) ); prints out "test 3" followed by
-/// a second line with the file name and line number.
+/// The second parameter is a message that may have printf-like args.
+/// Any remaining parameters are used to format the message.
 ///
-#define ADDR_WARN(cond, a)         \
-{ if (!(cond))                     \
-  { ADDR_PRNT(a);                  \
-    ADDR_PRNT(("  WARNING in file %s, line %d\n", __FILE__, __LINE__)); \
-} }
+#define ADDR_WARN(cond, msg, ...)         \
+do { if (!(cond))                         \
+  { Addr::DebugPrint(msg, ##__VA_ARGS__); \
+    Addr::DebugPrint("  WARNING in file %s, line %d\n", __FILE__, __LINE__); \
+} } while (0)
 
 
 /// @brief Macro for reporting fatal error conditions
@@ -144,33 +121,75 @@
 /// after printing an error warning message to stdout,
 /// followed by the file name and line number where the macro was called.
 /// The first parameter is a condition -- if it is true, nothing is done.
-/// The second pararmeter MUST be a parenthesis-enclosed list of arguments,
-/// starting with a string. This is passed to printf() or an equivalent
-/// in order to format the informational message. For example,
-/// ADDR_EXIT(0, ("test %d",3) ); prints out "test 3" followed by
-/// a second line with the file name and line number, then stops execution.
+/// The second parameter is a message that may have printf-like args.
+/// Any remaining parameters are used to format the message.
 ///
-#define ADDR_EXIT(cond, a)         \
-{ if (!(cond))                     \
-  { ADDR_PRNT(a); ADDR_DBG_BREAK();\
-} }
+#define ADDR_EXIT(cond, msg, ...)                           \
+do { if (!(cond))                                           \
+  { Addr::DebugPrint(msg, ##__VA_ARGS__); ADDR_DBG_BREAK(); \
+} } while (0)
 
 #else // DEBUG
 
-#define ADDRDPF 1 ? (void)0 : (void)
+#define ADDR_RESET_DEBUG_PRINTERS()
 
-#define ADDR_PRNT(a)
+#define ADDR_PRNT(msg, ...)
 
 #define ADDR_DBG_BREAK()
 
-#define ADDR_INFO(cond, a)
+#define ADDR_INFO(cond, msg, ...)
 
-#define ADDR_WARN(cond, a)
+#define ADDR_WARN(cond, msg, ...)
 
-#define ADDR_EXIT(cond, a)
+#define ADDR_EXIT(cond, msg, ...)
 
 #endif // DEBUG
 ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Debug assertions used in AddrLib
+////////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined(_WIN32) && (_MSC_VER >= 1400)
+    #define ADDR_ANALYSIS_ASSUME(expr) __analysis_assume(expr)
+#else
+    #define ADDR_ANALYSIS_ASSUME(expr) do { (void)(expr); } while (0)
+#endif
+
+#if DEBUG
+    #define ADDR_BREAK_WITH_MSG(msg)                                      \
+        do {                                                              \
+            Addr::DebugPrint(msg " in file %s:%d\n", __FILE__, __LINE__); \
+            ADDR_DBG_BREAK();                                             \
+        } while (0)
+
+    #define ADDR_ASSERT(__e)                                    \
+    do {                                                        \
+        ADDR_ANALYSIS_ASSUME(__e);                              \
+        if ( !((__e) ? TRUE : FALSE)) {                         \
+            ADDR_BREAK_WITH_MSG("Assertion '" #__e "' failed"); \
+        }                                                       \
+    } while (0)
+
+    #if ADDR_SILENCE_ASSERT_ALWAYS
+        #define ADDR_ASSERT_ALWAYS()
+    #else
+        #define ADDR_ASSERT_ALWAYS() ADDR_BREAK_WITH_MSG("Unconditional assert failed")
+    #endif
+
+    #define ADDR_UNHANDLED_CASE() ADDR_BREAK_WITH_MSG("Unhandled case")
+    #define ADDR_NOT_IMPLEMENTED() ADDR_BREAK_WITH_MSG("Not implemented");
+#else //DEBUG
+    #if defined( _WIN32 )
+        #define ADDR_ASSERT(__e) ADDR_ANALYSIS_ASSUME(__e)
+    #else
+        #define ADDR_ASSERT(__e)
+    #endif
+    #define ADDR_ASSERT_ALWAYS()
+    #define ADDR_UNHANDLED_CASE()
+    #define ADDR_NOT_IMPLEMENTED()
+#endif //DEBUG
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 #if defined(static_assert)
 #define ADDR_C_ASSERT(__e) static_assert(__e, "")
@@ -215,8 +234,15 @@ namespace V2
 // Common constants
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 static const UINT_32 MaxSurfaceHeight = 16384;
-
 } // V2
+
+namespace V3
+{
+////////////////////////////////////////////////////////////////////////////////////////////////////
+// Common constants
+////////////////////////////////////////////////////////////////////////////////////////////////////
+static const UINT_32 MaxSurfaceHeight = 65536;
+} // V3
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Common macros

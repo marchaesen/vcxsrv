@@ -125,7 +125,6 @@ extern "C" {
 
 struct nir_shader;
 struct nir_instr;
-struct nir_lower_subgroups_options;
 
 #define SI_NUM_INTERP     32
 #define SI_MAX_ATTRIBS    16
@@ -448,7 +447,6 @@ struct si_shader_info {
    uint8_t clipdist_mask;
    uint8_t culldist_mask;
 
-   uint16_t lshs_vertex_stride;
    uint16_t esgs_vertex_stride;
    uint16_t gsvs_vertex_size;
    uint8_t gs_input_verts_per_prim;
@@ -497,6 +495,7 @@ struct si_shader_info {
    bool uses_variable_block_size;
    bool uses_grid_size;
    bool uses_tg_size;
+   bool uses_atomic_ordered_add;
    bool writes_position;
    bool writes_psize;
    bool writes_clipvertex;
@@ -552,12 +551,14 @@ struct si_shader_selector {
 
    /* The compiled NIR shader without a prolog and/or epilog (not
     * uploaded to a buffer object).
+    *
+    * [0] for wave32, [1] for wave64.
     */
-   struct si_shader *main_shader_part;
-   struct si_shader *main_shader_part_ls;     /* as_ls is set in the key */
-   struct si_shader *main_shader_part_es;     /* as_es is set in the key */
-   struct si_shader *main_shader_part_ngg;    /* as_ngg is set in the key */
-   struct si_shader *main_shader_part_ngg_es; /* for Wave32 TES before legacy GS */
+   struct si_shader *main_shader_part[2];
+   struct si_shader *main_shader_part_ls[2];     /* as_ls is set in the key */
+   struct si_shader *main_shader_part_es;        /* as_es && !as_ngg in the key */
+   struct si_shader *main_shader_part_ngg[2];    /* !as_es && as_ngg in the key */
+   struct si_shader *main_shader_part_ngg_es[2]; /* as_es && as_ngg in the key */
 
    struct nir_shader *nir;
    void *nir_binary;
@@ -642,6 +643,7 @@ struct si_ps_epilog_bits {
 union si_shader_part_key {
    struct {
       struct si_ps_prolog_bits states;
+      unsigned use_aco : 1;
       unsigned wave32 : 1;
       unsigned num_input_sgprs : 6;
       /* Color interpolation and two-side color selection. */
@@ -654,6 +656,7 @@ union si_shader_part_key {
    } ps_prolog;
    struct {
       struct si_ps_epilog_bits states;
+      unsigned use_aco : 1;
       unsigned wave32 : 1;
       unsigned uses_discard : 1;
       unsigned colors_written : 8;
@@ -852,6 +855,7 @@ struct si_shader {
 
    struct si_shader_selector *selector;
    struct si_shader_selector *previous_stage_sel; /* for refcounting */
+   struct si_shader *next_shader; /* Only used during compilation of LS and ES when merged. */
 
    struct si_shader_part *prolog;
    struct si_shader *previous_stage; /* for GFX9 */
@@ -863,7 +867,10 @@ struct si_shader {
     * in use.
     */
    uint64_t gpu_address;
-   struct si_resource *scratch_bo;
+   /* Only used on GFX6-10 where the scratch address must be inserted into the shader binary.
+    * This is the scratch address that the current shader binary contains.
+    */
+   uint64_t scratch_va;
    union si_shader_key key;
    struct util_queue_fence ready;
    bool compilation_failed;
@@ -872,6 +879,7 @@ struct si_shader {
    bool is_binary_shared;
    bool is_gs_copy_shader;
    uint8_t wave_size;
+   unsigned complete_shader_binary_size;
 
    /* The following data is all that's needed for binary shaders. */
    struct si_shader_binary binary;
@@ -1006,6 +1014,7 @@ bool si_shader_binary_open(struct si_screen *screen, struct si_shader *shader,
 bool si_get_external_symbol(enum amd_gfx_level gfx_level, void *data, const char *name,
                             uint64_t *value);
 unsigned si_get_shader_prefetch_size(struct si_shader *shader);
+unsigned si_get_shader_binary_size(struct si_screen *screen, struct si_shader *shader);
 
 /* si_shader_info.c */
 void si_nir_scan_shader(struct si_screen *sscreen,  const struct nir_shader *nir,
@@ -1020,30 +1029,38 @@ void si_nir_late_opts(struct nir_shader *nir);
 char *si_finalize_nir(struct pipe_screen *screen, void *nirptr);
 
 /* si_state_shaders.cpp */
+unsigned si_shader_num_alloc_param_exports(struct si_shader *shader);
 unsigned si_determine_wave_size(struct si_screen *sscreen, struct si_shader *shader);
 void gfx9_get_gs_info(struct si_shader_selector *es, struct si_shader_selector *gs,
                       struct gfx9_gs_info *out);
 bool gfx10_is_ngg_passthrough(struct si_shader *shader);
-
+unsigned si_shader_lshs_vertex_stride(struct si_shader *ls);
 bool si_should_clear_lds(struct si_screen *sscreen, const struct nir_shader *shader);
 
 /* Inline helpers. */
 
 /* Return the pointer to the main shader part's pointer. */
 static inline struct si_shader **si_get_main_shader_part(struct si_shader_selector *sel,
-                                                         const union si_shader_key *key)
+                                                         const union si_shader_key *key,
+                                                         unsigned wave_size)
 {
+   assert(wave_size == 32 || wave_size == 64);
+   unsigned index = wave_size / 32 - 1;
+
    if (sel->stage <= MESA_SHADER_GEOMETRY) {
       if (key->ge.as_ls)
-         return &sel->main_shader_part_ls;
+         return &sel->main_shader_part_ls[index];
       if (key->ge.as_es && key->ge.as_ngg)
-         return &sel->main_shader_part_ngg_es;
-      if (key->ge.as_es)
+         return &sel->main_shader_part_ngg_es[index];
+      if (key->ge.as_es) {
+         /* legacy GS only support wave 64 */
+         assert(wave_size == 64);
          return &sel->main_shader_part_es;
+      }
       if (key->ge.as_ngg)
-         return &sel->main_shader_part_ngg;
+         return &sel->main_shader_part_ngg[index];
    }
-   return &sel->main_shader_part;
+   return &sel->main_shader_part[index];
 }
 
 static inline bool si_shader_uses_bindless_samplers(struct si_shader_selector *selector)

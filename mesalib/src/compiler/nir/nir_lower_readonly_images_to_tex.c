@@ -75,7 +75,9 @@ lower_readonly_image_instr_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
                                      const struct readonly_image_lower_options *options)
 {
    if (intrin->intrinsic != nir_intrinsic_image_deref_load &&
-       intrin->intrinsic != nir_intrinsic_image_deref_size)
+       intrin->intrinsic != nir_intrinsic_image_deref_size &&
+       intrin->intrinsic != nir_intrinsic_image_deref_levels &&
+       intrin->intrinsic != nir_intrinsic_image_deref_samples)
       return false;
 
    nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
@@ -102,12 +104,25 @@ lower_readonly_image_instr_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
    nir_texop texop;
    switch (intrin->intrinsic) {
    case nir_intrinsic_image_deref_load:
-      texop = nir_texop_txf;
-      num_srcs = 3;
+      if (nir_intrinsic_image_dim(intrin) == GLSL_SAMPLER_DIM_MS) {
+         texop = nir_texop_txf_ms;
+         num_srcs = 4;
+      } else {
+         texop = nir_texop_txf;
+         num_srcs = 3;
+      }
       break;
    case nir_intrinsic_image_deref_size:
       texop = nir_texop_txs;
       num_srcs = 2;
+      break;
+   case nir_intrinsic_image_deref_levels:
+      texop = nir_texop_query_levels;
+      num_srcs = 1;
+      break;
+   case nir_intrinsic_image_deref_samples:
+      texop = nir_texop_texture_samples;
+      num_srcs = 1;
       break;
    default:
       unreachable("Unsupported intrinsic");
@@ -145,7 +160,13 @@ lower_readonly_image_instr_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
       nir_def *lod = intrin->src[3].ssa;
       tex->src[2] = nir_tex_src_for_ssa(nir_tex_src_lod, lod);
 
-      assert(num_srcs == 3);
+      if (texop == nir_texop_txf_ms) {
+         assert(num_srcs == 4);
+         nir_def *ms_index = intrin->src[2].ssa;
+         tex->src[3] = nir_tex_src_for_ssa(nir_tex_src_ms_index, ms_index);
+      } else {
+         assert(num_srcs == 3);
+      }
 
       tex->dest_type = nir_intrinsic_dest_type(intrin);
       nir_def_init(&tex->instr, &tex->def, 4, 32);
@@ -163,6 +184,13 @@ lower_readonly_image_instr_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
       break;
    }
 
+   case nir_intrinsic_image_deref_levels:
+   case nir_intrinsic_image_deref_samples:
+      assert(num_srcs == 1);
+      tex->dest_type = nir_type_uint32;
+      nir_def_init(&tex->instr, &tex->def, 1, 32);
+      break;
+
    default:
       unreachable("Unsupported intrinsic");
    }
@@ -172,8 +200,7 @@ lower_readonly_image_instr_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin
    nir_def *res = nir_trim_vector(b, &tex->def,
                                   intrin->def.num_components);
 
-   nir_def_rewrite_uses(&intrin->def, res);
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, res);
 
    return true;
 }
@@ -225,7 +252,6 @@ nir_lower_readonly_images_to_tex(nir_shader *shader, bool per_variable)
 {
    struct readonly_image_lower_options options = { per_variable };
    return nir_shader_instructions_pass(shader, lower_readonly_image_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &options);
 }

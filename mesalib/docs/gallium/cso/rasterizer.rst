@@ -84,8 +84,8 @@ light_twoside
    along with the front/back information to set the final vertex colors
    prior to rasterization.
 
-   The frontface vertex shader color output is marked with TGSI semantic
-   COLOR[0], and backface COLOR[1].
+   The front-face vertex shader color output is marked with TGSI semantic
+   COLOR[0], and back-face COLOR[1].
 
 front_ccw
     Indicates whether the window order of front-facing polygons is
@@ -337,8 +337,8 @@ clip_plane_enable
 conservative_raster_mode
     The conservative rasterization mode.  For PIPE_CONSERVATIVE_RASTER_OFF,
     conservative rasterization is disabled.  For PIPE_CONSERVATIVE_RASTER_POST_SNAP
-    or PIPE_CONSERVATIVE_RASTER_PRE_SNAP, conservative rasterization is nabled.
-    When conservative rasterization is enabled, the polygon smooth, line mooth,
+    or PIPE_CONSERVATIVE_RASTER_PRE_SNAP, conservative rasterization is enabled.
+    When conservative rasterization is enabled, the polygon smooth, line smooth,
     point smooth and line stipple settings are ignored.
     With the post-snap mode, unlike the pre-snap mode, fragments are never
     generated for degenerate primitives.  Degenerate primitives, when rasterized,

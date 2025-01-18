@@ -1,0 +1,112 @@
+spec:
+  inputs:
+    target:
+      description:
+        Build target in form of "OS-ARCH" pair (e.g., linux-amd64). Mostly the
+        same as platform string for Docker but with a hyphen instead of slash.
+    toolchain:
+      description:
+        An array of toolchains to test with. Each toolchain should have an
+        appropriate Meson cross file.
+      type: array
+      default: [gnu, llvm]
+    qemu_cpu:
+      description:
+        An array of QEMU_CPU environmental variables used as a job matrix
+        variable, and in turn by Docker (which uses QEMU underneath). It is not
+        used by x86 targets, as they are executed natively on the host.
+      type: array
+      default: [""]
+    pixman_disable:
+      description:
+        An array of PIXMAN_DISABLE targets used as a job matrix variable.
+      type: array
+      default: [""]
+    timeout:
+      description:
+        GitLab job timeout property. May need to be increased for slow
+        targets.
+      default: 1h
+    test_timeout_multiplier:
+      description:
+        Test timeout multiplier flag used for Meson test execution. May need to
+        be increased for slow targets.
+      type: number
+      default: 20
+    meson_testthreads:
+      description:
+        Sets MESON_TESTTHREADS environmental variable. For some platforms, the
+        tests should be executed one by one (without multithreading) to prevent
+        gcovr errors.
+      type: number
+      default: 0
+    gcovr_flags:
+      description:
+        Additional flags passed to gcovr tool.
+      default: ""
+    job_name_suffix:
+      description:
+        Additional suffix for the job name. Can be used to prevent job
+        duplication for jobs for the same target.
+      default: ""
+    allow_failure:
+      description:
+        Set the `allow_failure` flag for jobs that are expected to fail.
+        Remember to set `retry` argument to 0 to prevent unnecessary retries.
+      type: boolean
+      default: false
+    retry:
+      description:
+        Set the `retry` flag for a job. Usually used together with
+        `allow_failure`.
+      type: number
+      default: 1
+---
+
+"test:$[[ inputs.target ]]$[[ inputs.job_name_suffix ]]":
+  extends: .target:all
+  stage: test
+  allow_failure: $[[ inputs.allow_failure ]]
+  retry: $[[ inputs.retry ]]
+  timeout: $[[ inputs.timeout ]]
+  needs:
+    - job: docker
+      optional: true
+      parallel:
+        matrix:
+          - TARGET: $[[ inputs.target ]]
+    - job: build:$[[ inputs.target ]]
+      parallel:
+        matrix:
+          - TOOLCHAIN: $[[ inputs.toolchain ]]
+  variables:
+    TARGET: $[[ inputs.target ]]
+    TEST_TIMEOUT_MULTIPLIER: $[[ inputs.test_timeout_multiplier ]]
+    GCOVR_FLAGS: $[[ inputs.gcovr_flags ]]
+    MESON_ARGS: -t ${TEST_TIMEOUT_MULTIPLIER} --no-rebuild -v ${TEST_NAME}
+  parallel:
+    matrix:
+      - TOOLCHAIN: $[[ inputs.toolchain ]]
+        PIXMAN_DISABLE: $[[ inputs.pixman_disable ]]
+        QEMU_CPU: $[[ inputs.qemu_cpu ]]
+  script:
+    # Move MESON_TESTTHREADS to variables once
+    # https://github.com/mesonbuild/meson/pull/13604 gets released.
+    - |
+      if [ $[[ inputs.meson_testthreads ]] -gt 0 ]; then
+        MESON_TESTTHREADS=$[[ inputs.meson_testthreads ]]
+      fi
+    - meson test -C ${BUILD_DIR} ${MESON_ARGS}
+  after_script:
+    - mkdir -p ${COVERAGE_OUT}
+    - gcovr ${GCOVR_FLAGS} -r ./ ${BUILD_DIR} -e ./subprojects
+        --json ${COVERAGE_OUT}.json
+        --html-details ${COVERAGE_OUT}/coverage.html
+        --print-summary || echo "No coverage data available."
+  artifacts:
+    paths:
+      - ${BUILD_DIR}/meson-logs/testlog.txt
+      - ${COVERAGE_BASE_DIR}/
+    reports:
+      junit:
+        - ${BUILD_DIR}/meson-logs/testlog.junit.xml

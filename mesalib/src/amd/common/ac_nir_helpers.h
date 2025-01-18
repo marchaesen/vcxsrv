@@ -112,18 +112,16 @@ ac_nir_export_parameters(nir_builder *b,
                          nir_def *(*outputs_16bit_hi)[4]);
 
 nir_def *
-ac_nir_calc_io_offset(nir_builder *b,
-                      nir_intrinsic_instr *intrin,
-                      nir_def *base_stride,
-                      unsigned component_stride,
-                      ac_nir_map_io_driver_location map_io);
-
-nir_def *
-ac_nir_calc_io_offset_mapped(nir_builder *b,
+ac_nir_calc_io_off(nir_builder *b,
                              nir_intrinsic_instr *intrin,
                              nir_def *base_stride,
                              unsigned component_stride,
                              unsigned mapped_location);
+
+unsigned
+ac_nir_map_io_location(unsigned location,
+                       uint64_t mask,
+                       ac_nir_map_io_driver_location map_io);
 
 nir_def *
 ac_nir_cull_primitive(nir_builder *b,
@@ -135,6 +133,17 @@ ac_nir_cull_primitive(nir_builder *b,
 
 void
 ac_nir_sleep(nir_builder *b, unsigned num_cycles);
+
+nir_def *
+ac_average_samples(nir_builder *b, nir_def **samples, unsigned num_samples);
+
+void
+ac_optimization_barrier_vgpr_array(const struct radeon_info *info, nir_builder *b,
+                                   nir_def **array, unsigned num_elements,
+                                   unsigned num_components);
+
+nir_def *
+ac_get_global_ids(nir_builder *b, unsigned num_components, unsigned bit_size);
 
 #ifdef __cplusplus
 }

@@ -283,8 +283,8 @@ static void radeon_uvd_enc_rc_session_init(struct radeon_uvd_encoder *enc,
                                            struct pipe_picture_desc *picture)
 {
    struct pipe_h265_enc_picture_desc *pic = (struct pipe_h265_enc_picture_desc *)picture;
-   enc->enc_pic.rc_session_init.vbv_buffer_level = pic->rc.vbv_buf_lv;
-   switch (pic->rc.rate_ctrl_method) {
+   enc->enc_pic.rc_session_init.vbv_buffer_level = pic->rc[0].vbv_buf_lv;
+   switch (pic->rc[0].rate_ctrl_method) {
    case PIPE_H2645_ENC_RATE_CONTROL_METHOD_DISABLE:
       enc->enc_pic.rc_session_init.rate_control_method = RENC_UVD_RATE_CONTROL_METHOD_NONE;
       break;
@@ -311,14 +311,18 @@ static void radeon_uvd_enc_rc_layer_init(struct radeon_uvd_encoder *enc,
                                          struct pipe_picture_desc *picture)
 {
    struct pipe_h265_enc_picture_desc *pic = (struct pipe_h265_enc_picture_desc *)picture;
-   enc->enc_pic.rc_layer_init.target_bit_rate = pic->rc.target_bitrate;
-   enc->enc_pic.rc_layer_init.peak_bit_rate = pic->rc.peak_bitrate;
-   enc->enc_pic.rc_layer_init.frame_rate_num = pic->rc.frame_rate_num;
-   enc->enc_pic.rc_layer_init.frame_rate_den = pic->rc.frame_rate_den;
-   enc->enc_pic.rc_layer_init.vbv_buffer_size = pic->rc.vbv_buffer_size;
-   enc->enc_pic.rc_layer_init.avg_target_bits_per_picture = pic->rc.target_bits_picture;
-   enc->enc_pic.rc_layer_init.peak_bits_per_picture_integer = pic->rc.peak_bits_picture_integer;
-   enc->enc_pic.rc_layer_init.peak_bits_per_picture_fractional = pic->rc.peak_bits_picture_fraction;
+   enc->enc_pic.rc_layer_init.target_bit_rate = pic->rc[0].target_bitrate;
+   enc->enc_pic.rc_layer_init.peak_bit_rate = pic->rc[0].peak_bitrate;
+   enc->enc_pic.rc_layer_init.frame_rate_num = pic->rc[0].frame_rate_num;
+   enc->enc_pic.rc_layer_init.frame_rate_den = pic->rc[0].frame_rate_den;
+   enc->enc_pic.rc_layer_init.vbv_buffer_size = pic->rc[0].vbv_buffer_size;
+   enc->enc_pic.rc_layer_init.avg_target_bits_per_picture =
+      pic->rc[0].target_bitrate * ((float)pic->rc[0].frame_rate_den / pic->rc[0].frame_rate_num);
+   enc->enc_pic.rc_layer_init.peak_bits_per_picture_integer =
+      pic->rc[0].peak_bitrate * ((float)pic->rc[0].frame_rate_den / pic->rc[0].frame_rate_num);
+   enc->enc_pic.rc_layer_init.peak_bits_per_picture_fractional =
+      (((pic->rc[0].peak_bitrate * (uint64_t)pic->rc[0].frame_rate_den) % pic->rc[0].frame_rate_num) << 32) /
+      pic->rc[0].frame_rate_num;
 
    RADEON_ENC_BEGIN(RENC_UVD_IB_PARAM_RATE_CONTROL_LAYER_INIT);
    RADEON_ENC_CS(enc->enc_pic.rc_layer_init.target_bit_rate);
@@ -857,13 +861,13 @@ static void radeon_uvd_enc_rc_per_pic(struct radeon_uvd_encoder *enc,
                                       struct pipe_picture_desc *picture)
 {
    struct pipe_h265_enc_picture_desc *pic = (struct pipe_h265_enc_picture_desc *)picture;
-   enc->enc_pic.rc_per_pic.qp = pic->rc.quant_i_frames;
+   enc->enc_pic.rc_per_pic.qp = pic->rc[0].quant_i_frames;
    enc->enc_pic.rc_per_pic.min_qp_app = 0;
    enc->enc_pic.rc_per_pic.max_qp_app = 51;
    enc->enc_pic.rc_per_pic.max_au_size = 0;
-   enc->enc_pic.rc_per_pic.enabled_filler_data = pic->rc.fill_data_enable;
+   enc->enc_pic.rc_per_pic.enabled_filler_data = pic->rc[0].fill_data_enable;
    enc->enc_pic.rc_per_pic.skip_frame_enable = false;
-   enc->enc_pic.rc_per_pic.enforce_hrd = pic->rc.enforce_hrd;
+   enc->enc_pic.rc_per_pic.enforce_hrd = pic->rc[0].enforce_hrd;
 
    RADEON_ENC_BEGIN(RENC_UVD_IB_PARAM_RATE_CONTROL_PER_PICTURE);
    RADEON_ENC_CS(enc->enc_pic.rc_per_pic.qp);

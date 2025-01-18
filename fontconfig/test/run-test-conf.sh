@@ -53,6 +53,7 @@ done
 for i in \
 	test-issue-286.json \
 	test-style-match.json \
+	test-filter.json \
     ; do
     echo $RUNNER $TESTDIR/$i ...
     $RUNNER $TESTDIR/../conf.d/10-autohint.conf $TESTDIR/$i

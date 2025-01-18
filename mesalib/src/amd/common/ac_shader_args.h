@@ -181,9 +181,9 @@ struct ac_shader_args {
    struct {
       struct ac_arg uniform_shader_addr;
       struct ac_arg sbt_descriptors;
-      struct ac_arg launch_size;
+      struct ac_arg launch_sizes[3];
       struct ac_arg launch_size_addr;
-      struct ac_arg launch_id;
+      struct ac_arg launch_ids[3];
       struct ac_arg dynamic_callable_stack_base;
       struct ac_arg traversal_shader_addr;
       struct ac_arg shader_addr;

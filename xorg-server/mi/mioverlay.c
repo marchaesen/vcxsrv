@@ -1,13 +1,14 @@
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #ifdef CreateWindow
 #undef CreateWindow
 #endif
 
 #include <X11/X.h>
+
+#include "dix/cursor_priv.h"
+
 #include "scrnintstr.h"
 #include <X11/extensions/shapeproto.h>
 #include "validate.h"
@@ -1864,7 +1865,7 @@ MarkUnderlayWindow(WindowPtr pWin)
     if (pTree->valdata)
         return;
     pTree->valdata =
-        (miOverlayValDataPtr) xnfalloc(sizeof(miOverlayValDataRec));
+        (miOverlayValDataPtr) XNFalloc(sizeof(miOverlayValDataRec));
     pTree->valdata->oldAbsCorner.x = pWin->drawable.x;
     pTree->valdata->oldAbsCorner.y = pWin->drawable.y;
     pTree->valdata->borderVisible = NullRegion;

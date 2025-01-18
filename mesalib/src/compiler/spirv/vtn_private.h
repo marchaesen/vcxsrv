@@ -36,13 +36,12 @@
 
 extern uint32_t mesa_spirv_debug;
 
-#ifndef NDEBUG
 #define MESA_SPIRV_DEBUG(flag) unlikely(mesa_spirv_debug & (MESA_SPIRV_DEBUG_ ## flag))
-#else
-#define MESA_SPIRV_DEBUG(flag) false
-#endif
 
 #define MESA_SPIRV_DEBUG_STRUCTURED     (1u << 0)
+#define MESA_SPIRV_DEBUG_VALUES         (1u << 1)
+#define MESA_SPIRV_DEBUG_ASM            (1u << 2)
+#define MESA_SPIRV_DEBUG_COLOR          (1u << 3)
 
 struct vtn_builder;
 struct vtn_decoration;
@@ -365,8 +364,8 @@ struct vtn_type {
 
       /* Members for pointer types */
       struct {
-         /* For pointers, the vtn_type for dereferenced type */
-         struct vtn_type *deref;
+         /* For pointers, the vtn_type of the object pointed to. */
+         struct vtn_type *pointed;
 
          /* Storage class for pointers */
          SpvStorageClass storage_class;
@@ -484,16 +483,8 @@ struct vtn_pointer {
    /** The variable mode for the referenced data */
    enum vtn_variable_mode mode;
 
-   /** The dereferenced type of this pointer */
+   /** The pointer type of this pointer */
    struct vtn_type *type;
-
-   /** The pointer type of this pointer
-    *
-    * This may be NULL for some temporary pointers constructed as part of a
-    * large load, store, or copy.  It MUST be valid for all pointers which are
-    * stored as SPIR-V SSA values.
-    */
-   struct vtn_type *ptr_type;
 
    /** The referenced variable, if known
     *
@@ -698,6 +689,8 @@ struct vtn_builder {
    struct vtn_function *func;
    struct list_head functions;
 
+   struct hash_table *strings;
+
    /* Current function parameter index */
    unsigned func_param_idx;
 
@@ -732,6 +725,9 @@ vtn_untyped_value(struct vtn_builder *b, uint32_t value_id)
                "SPIR-V id %u is out-of-bounds", value_id);
    return &b->values[value_id];
 }
+
+void vtn_print_value(struct vtn_builder *b, struct vtn_value *val, FILE *f);
+void vtn_dump_values(struct vtn_builder *b, FILE *f);
 
 static inline uint32_t
 vtn_id_for_value(struct vtn_builder *b, struct vtn_value *value)

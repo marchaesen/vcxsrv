@@ -48,6 +48,7 @@ enum tu_debug_flags
    TU_DEBUG_FDM = 1 << 23,
    TU_DEBUG_NOCONFORM = 1 << 24,
    TU_DEBUG_RD = 1 << 25,
+   TU_DEBUG_HIPRIO = 1 << 26,
 };
 
 struct tu_env {

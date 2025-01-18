@@ -55,6 +55,48 @@ enum H264_NALU_TYPE
    /* 24...31 UNSPECIFIED */
 };
 
+typedef struct
+{
+   // nal header
+   H264_NALREF_IDC nal_ref_idc;
+
+   // nal_unit_header_svc_extension( )
+   uint32_t idr_flag;                   // u(1)
+   uint32_t priority_id;                // u(6)
+   uint32_t no_inter_layer_pred_flag;   // u(1)
+   uint32_t dependency_id;              // u(3)
+   uint32_t quality_id;                 // u(4)
+   uint32_t temporal_id;                // u(3)
+   uint32_t use_ref_base_pic_flag;      // u(1)
+   uint32_t discardable_flag;           // u(1)
+   uint32_t output_flag;                // u(1)
+   // uint32_t reserved_three_2bits;    // u(2)
+
+   // prefix_nal_unit_svc ( )
+   uint32_t store_ref_base_pic_flag;                          // u(1)
+   // uint32_t additional_prefix_nal_unit_extension_flag;     // u(1)
+} H264_SLICE_PREFIX_SVC;
+
+enum H264_SEI_TYPE
+{
+   H264_SEI_SCALABILITY_INFO = 24,
+};
+
+typedef struct
+{
+   uint32_t num_layers_minus1;                                                  // ue(v)
+   uint32_t temporal_id[/* as per codec spec num_layers_minus1 range */ 2048];  // u(3)
+} H264_SEI_SCALABILITYINFO;
+
+typedef struct H264_SEI_MESSAGE
+{
+   H264_SEI_TYPE payload_type;
+   union
+   {
+      H264_SEI_SCALABILITYINFO scalability_info;
+   };
+} H264_SEI_MESSAGE;
+
 typedef struct H264_HRD_PARAMS
 {
    uint32_t cpb_cnt_minus1;
@@ -190,6 +232,15 @@ class d3d12_video_nalu_writer_h264
    void write_access_unit_delimiter_nalu(std::vector<uint8_t> &         headerBitstream,
                                          std::vector<uint8_t>::iterator placingPositionStart,
                                          size_t &                       writtenBytes);
+   void write_sei_nalu(H264_SEI_MESSAGE               sei_message,
+                       std::vector<uint8_t> &         headerBitstream,
+                       std::vector<uint8_t>::iterator placingPositionStart,
+                       size_t &                       writtenBytes);
+
+   void write_slice_svc_prefix(const H264_SLICE_PREFIX_SVC &         nal_svc_prefix,
+                               std::vector<uint8_t> &                headerBitstream,
+                               std::vector<uint8_t>::iterator        placingPositionStart,
+                               size_t &                              writtenBytes);
 
  private:
    // Writes from structure into bitstream with RBSP trailing but WITHOUT NAL unit wrap (eg. nal_idc_type, etc)
@@ -207,7 +258,8 @@ class d3d12_video_nalu_writer_h264
    uint32_t wrap_rbsp_into_nalu(d3d12_video_encoder_bitstream *pNALU,
                                 d3d12_video_encoder_bitstream *pRBSP,
                                 uint32_t                       iNaluIdc,
-                                uint32_t                       iNaluType);
+                                uint32_t                       iNaluType,
+                                const H264_SLICE_PREFIX_SVC*   pSvcExtendedHeader = NULL);
 };
 
 #endif

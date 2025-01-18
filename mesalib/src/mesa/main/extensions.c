@@ -284,6 +284,7 @@ _mesa_init_extensions(struct gl_extensions *extensions)
    extensions->EXT_EGL_image_storage = GL_TRUE;
    extensions->EXT_gpu_program_parameters = GL_TRUE;
    extensions->EXT_provoking_vertex = GL_TRUE;
+   extensions->EXT_shadow_samplers = GL_TRUE;
    extensions->EXT_stencil_two_side = GL_TRUE;
    extensions->EXT_texture_env_dot3 = GL_TRUE;
 

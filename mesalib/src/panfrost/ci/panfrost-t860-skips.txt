@@ -10,3 +10,9 @@ dEQP-GLES31.functional.draw_indirect.compute_interop.large.*
 
 # Mix of passes, flakes, and fails, with little discernible pattern. Skip.
 dEQP-GLES3.functional.draw_buffers_indexed.random.*
+
+# OpenCL timeouts
+program@execute@builtin@builtin-float-lgamma-1.0.generated
+program@execute@builtin@builtin-float-lgamma_r-1.0.generated
+program@execute@builtin@builtin-float-sincos-1.0.generated
+program@execute@pyrit-wpa-psk

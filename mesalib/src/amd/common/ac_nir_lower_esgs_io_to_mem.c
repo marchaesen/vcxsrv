@@ -35,6 +35,11 @@ typedef struct {
 
    /* Enable fix for triangle strip adjacency in geometry shader. */
    bool gs_triangle_strip_adjacency_fix;
+
+   /* Bit mask of inputs read by the GS,
+    * this is used for linking ES outputs to GS inputs.
+    */
+   uint64_t gs_inputs_read;
 } lower_esgs_io_state;
 
 static nir_def *
@@ -145,10 +150,18 @@ lower_es_output_store(nir_builder *b,
    }
 
    lower_esgs_io_state *st = (lower_esgs_io_state *) state;
+
+   /* When an ES output isn't read by GS, don't emit anything. */
+   if ((io_sem.no_varying || !(st->gs_inputs_read & BITFIELD64_BIT(io_sem.location)))) {
+      nir_instr_remove(&intrin->instr);
+      return true;
+   }
+
    const unsigned write_mask = nir_intrinsic_write_mask(intrin);
 
    b->cursor = nir_before_instr(&intrin->instr);
-   nir_def *io_off = ac_nir_calc_io_offset(b, intrin, nir_imm_int(b, 16u), 4u, st->map_io);
+   unsigned mapped = ac_nir_map_io_location(io_sem.location, st->gs_inputs_read, st->map_io);
+   nir_def *io_off = ac_nir_calc_io_off(b, intrin, nir_imm_int(b, 16u), 4u, mapped);
    nir_def *store_val = intrin->src[0].ssa;
 
    if (st->gfx_level <= GFX8) {
@@ -277,7 +290,9 @@ gs_per_vertex_input_offset(nir_builder *b,
       vertex_offset = nir_imul(b, vertex_offset, nir_load_esgs_vertex_stride_amd(b));
 
    unsigned base_stride = st->gfx_level >= GFX9 ? 1 : 64 /* Wave size on GFX6-8 */;
-   nir_def *io_off = ac_nir_calc_io_offset(b, instr, nir_imm_int(b, base_stride * 4u), base_stride, st->map_io);
+   const nir_io_semantics io_sem = nir_intrinsic_io_semantics(instr);
+   unsigned mapped = ac_nir_map_io_location(io_sem.location, st->gs_inputs_read, st->map_io);
+   nir_def *io_off = ac_nir_calc_io_off(b, instr, nir_imm_int(b, base_stride * 4u), base_stride, mapped);
    nir_def *off = nir_iadd(b, io_off, vertex_offset);
    return nir_imul_imm(b, off, 4u);
 }
@@ -314,16 +329,18 @@ void
 ac_nir_lower_es_outputs_to_mem(nir_shader *shader,
                                ac_nir_map_io_driver_location map,
                                enum amd_gfx_level gfx_level,
-                               unsigned esgs_itemsize)
+                               unsigned esgs_itemsize,
+                               uint64_t gs_inputs_read)
 {
    lower_esgs_io_state state = {
       .gfx_level = gfx_level,
       .esgs_itemsize = esgs_itemsize,
       .map_io = map,
+      .gs_inputs_read = gs_inputs_read,
    };
 
    nir_shader_intrinsics_pass(shader, lower_es_output_store,
-                                nir_metadata_block_index | nir_metadata_dominance,
+                                nir_metadata_control_flow,
                                 &state);
 }
 
@@ -337,6 +354,7 @@ ac_nir_lower_gs_inputs_to_mem(nir_shader *shader,
       .gfx_level = gfx_level,
       .map_io = map,
       .gs_triangle_strip_adjacency_fix = triangle_strip_adjacency_fix,
+      .gs_inputs_read = shader->info.inputs_read,
    };
 
    nir_shader_lower_instructions(shader,

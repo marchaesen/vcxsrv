@@ -12,6 +12,7 @@
 #include "svga_resource_buffer.h"
 #include "svga_resource_texture.h"
 #include "svga_surface.h"
+#include "svga_resource_buffer_upload.h"
 
 //#include "util/u_blit_sw.h"
 #include "util/format/u_format.h"
@@ -690,7 +691,7 @@ try_blit(struct svga_context *svga, const struct pipe_blit_info *blit_info)
 
    svga_toggle_render_condition(svga, blit.render_condition_enable, false);
 
-   util_blitter_blit(svga->blitter, &blit);
+   util_blitter_blit(svga->blitter, &blit, NULL);
 
    svga_toggle_render_condition(svga, blit.render_condition_enable, true);
 
@@ -806,6 +807,13 @@ is_texture_valid_to_copy(struct svga_context *svga,
    if (resource->target == PIPE_BUFFER) {
       struct svga_buffer *buf = svga_buffer(resource);
       struct svga_buffer_surface *bufsurf = buf->bufsurf;
+
+      if (!bufsurf) {
+         if (svga_buffer_validate_host_surface(svga, buf, buf->bind_flags)
+               != PIPE_OK)
+            return false;
+         bufsurf = buf->bufsurf;
+      }
 
       return (bufsurf &&
 	      bufsurf->surface_state >= SVGA_SURFACE_STATE_UPDATED);

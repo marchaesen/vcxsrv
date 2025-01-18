@@ -24,6 +24,7 @@
 #define VK_SYNC_TIMELINE_H
 
 #include "c11/threads.h"
+#include "util/cnd_monotonic.h"
 #include "util/list.h"
 #include "util/macros.h"
 
@@ -79,7 +80,7 @@ struct vk_sync_timeline {
    struct vk_sync sync;
 
    mtx_t mutex;
-   cnd_t cond;
+   struct u_cnd_monotonic cond;
 
    uint64_t highest_past;
    uint64_t highest_pending;

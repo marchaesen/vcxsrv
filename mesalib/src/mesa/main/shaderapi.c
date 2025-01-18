@@ -53,7 +53,6 @@
 #include "compiler/glsl/builtin_functions.h"
 #include "compiler/glsl/glsl_parser_extras.h"
 #include "compiler/glsl/ir.h"
-#include "compiler/glsl/ir_uniform.h"
 #include "compiler/glsl/program.h"
 #include "program/program.h"
 #include "program/prog_print.h"
@@ -63,6 +62,7 @@
 #include "util/crc32.h"
 #include "util/os_file.h"
 #include "util/list.h"
+#include "util/log.h"
 #include "util/perf/cpu_trace.h"
 #include "util/u_process.h"
 #include "util/u_string.h"
@@ -78,10 +78,10 @@
 /* shader_replacement.h must declare a variable like this:
 
    struct _shader_replacement {
-      // process name. If null, only sha1 is used to match
+      // process name. If null, only blake3 is used to match
       const char *app;
-      // original glsl shader sha1
-      const char *sha1;
+      // original glsl shader blake3
+      const char *blake3;
       // shader stage
       gl_shader_stage stage;
       ... any other information ...
@@ -93,7 +93,7 @@
 
    char* load_shader_replacement(struct _shader_replacement *repl);
 
-   And a method to replace the shader without sha1 matching:
+   And a method to replace the shader without blake3 matching:
 
    char *try_direct_replace(const char *app, const char *source)
 
@@ -103,7 +103,7 @@
 #else
 struct _shader_replacement {
    const char *app;
-   const char *sha1;
+   const char *blake3;
    gl_shader_stage stage;
 };
 struct _shader_replacement shader_replacements[0];
@@ -1231,29 +1231,10 @@ _mesa_compile_shader(struct gl_context *ctx, struct gl_shader *sh)
       /* this call will set the shader->CompileStatus field to indicate if
        * compilation was successful.
        */
-      _mesa_glsl_compile_shader(ctx, sh, false, false, false);
+      _mesa_glsl_compile_shader(ctx, sh, NULL, false, false, false);
 
       if (ctx->_Shader->Flags & GLSL_LOG) {
          _mesa_write_shader_to_file(sh);
-      }
-
-      if (ctx->_Shader->Flags & GLSL_DUMP) {
-         if (sh->CompileStatus) {
-            if (sh->ir) {
-               _mesa_log("GLSL IR for shader %d:\n", sh->Name);
-               _mesa_print_ir(_mesa_get_log_file(), sh->ir, NULL);
-            } else {
-               _mesa_log("No GLSL IR for shader %d (shader may be from "
-                         "cache)\n", sh->Name);
-            }
-            _mesa_log("\n\n");
-         } else {
-            _mesa_log("GLSL shader %d failed to compile.\n", sh->Name);
-         }
-         if (sh->InfoLog && sh->InfoLog[0] != 0) {
-            _mesa_log("GLSL shader %d info log:\n", sh->Name);
-            _mesa_log("%s\n", sh->InfoLog);
-         }
       }
    }
 
@@ -1941,7 +1922,7 @@ _mesa_LinkProgram(GLuint programObj)
  * <path>/<stage prefix>_<CHECKSUM>.arb
  */
 static char *
-construct_name(const gl_shader_stage stage, const char *sha,
+construct_name(const gl_shader_stage stage, const char *blake3_str,
                const char *source, const char *path)
 {
    static const char *types[] = {
@@ -1950,7 +1931,7 @@ construct_name(const gl_shader_stage stage, const char *sha,
 
    const char *format = strncmp(source, "!!ARB", 5) ? "glsl" : "arb";
 
-   return ralloc_asprintf(NULL, "%s/%s_%s.%s", path, types[stage], sha, format);
+   return ralloc_asprintf(NULL, "%s/%s_%s.%s", path, types[stage], blake3_str, format);
 }
 
 /**
@@ -1958,13 +1939,13 @@ construct_name(const gl_shader_stage stage, const char *sha,
  */
 void
 _mesa_dump_shader_source(const gl_shader_stage stage, const char *source,
-                         const uint8_t sha1[SHA1_DIGEST_LENGTH])
+                         const blake3_hash blake3)
 {
 #ifndef CUSTOM_SHADER_REPLACEMENT
    static bool path_exists = true;
    char *dump_path;
    FILE *f;
-   char sha[64];
+   char blake3_str[BLAKE3_OUT_LEN * 2 + 1];
 
    if (!path_exists)
       return;
@@ -1975,8 +1956,8 @@ _mesa_dump_shader_source(const gl_shader_stage stage, const char *source,
       return;
    }
 
-   _mesa_sha1_format(sha, sha1);
-   char *name = construct_name(stage, sha, source, dump_path);
+   _mesa_blake3_format(blake3_str, blake3);
+   char *name = construct_name(stage, blake3_str, source, dump_path);
 
    f = fopen(name, "w");
    if (f) {
@@ -1997,16 +1978,16 @@ _mesa_dump_shader_source(const gl_shader_stage stage, const char *source,
  */
 GLcharARB *
 _mesa_read_shader_source(const gl_shader_stage stage, const char *source,
-                         const uint8_t sha1[SHA1_DIGEST_LENGTH])
+                         const blake3_hash blake3)
 {
    char *read_path;
    static bool path_exists = true;
    int len, shader_size = 0;
    GLcharARB *buffer;
    FILE *f;
-   char sha[64];
+   char blake3_str[BLAKE3_OUT_LEN * 2 + 1];
 
-   _mesa_sha1_format(sha, sha1);
+   _mesa_blake3_format(blake3_str, blake3);
 
    if (!debug_get_bool_option("MESA_NO_SHADER_REPLACEMENT", false)) {
       const char *process_name = util_get_process_name();
@@ -2023,7 +2004,8 @@ _mesa_read_shader_source(const gl_shader_stage stage, const char *source,
              strcmp(process_name, shader_replacements[i].app) != 0)
             continue;
 
-         if (memcmp(sha, shader_replacements[i].sha1, 40) != 0)
+         if (memcmp(blake3_str, shader_replacements[i].blake3,
+                    BLAKE3_OUT_LEN * 2) != 0)
             continue;
 
          return load_shader_replacement(&shader_replacements[i]);
@@ -2039,7 +2021,7 @@ _mesa_read_shader_source(const gl_shader_stage stage, const char *source,
       return NULL;
    }
 
-   char *name = construct_name(stage, sha, source, read_path);
+   char *name = construct_name(stage, blake3_str, source, read_path);
    f = fopen(name, "r");
    ralloc_free(name);
    if (!f)
@@ -2144,7 +2126,7 @@ shader_source(struct gl_context *ctx, GLuint shaderObj, GLsizei count,
    source[totalLength - 1] = '\0';
    source[totalLength - 2] = '\0';
 
-   /* Compute the original source sha1 before shader replacement. */
+   /* Compute the original source blake3 before shader replacement. */
    blake3_hash original_blake3;
    _mesa_blake3_compute(source, strlen(source), original_blake3);
 

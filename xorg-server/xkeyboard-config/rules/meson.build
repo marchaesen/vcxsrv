@@ -2,51 +2,74 @@
 install_data('README', 'xkb.dtd', 'xfree98',
              install_dir: dir_xkb_rules)
 
+base_xml = files('base.xml')
+base_extras_xml = files('base.extras.xml')
+
 # the actual rules files are generated from a list of parts in a very
 # specific order
 parts = [
     '0000-hdr.part',
     '0001-lists.part',
     '0002-@0@.lists.part',
-    '0004-@0@.m_k.part',
-    '0005-l1_k.part',
-    '0006-l_k.part',
-    '0007-o_k.part',
-    '0008-ml_g.part',
-    '0009-m_g.part',
-    '0011-mlv_s.part',
-    '0013-ml_s.part',
-    '0015-ml1_s.part',
-    '0018-ml2_s.part',
-    '0020-ml3_s.part',
-    '0022-ml4_s.part',
-    '0026-@0@.m_s.part',
-    '0027-@0@.ml_s1.part',
-    '0033-ml_c.part',
-    '0034-ml1_c.part',
-    '0035-m_t.part',
-    '0036-lo_s.part',
-    '0037-l1o_s.part',
-    '0038-l2o_s.part',
-    '0039-l3o_s.part',
-    '0040-l4o_s.part',
-    '0042-o_s.part',
-    '0043-o_c.part',
-    '0044-o_t.part',
+    '0004-@0@.model_keycodes.part',
+    '0005-layout1_keycodes.part',
+    '0006-layout_keycodes.part',
+    '0007-options_keycodes.part',
+    '0008-modellayout_geometry.part',
+    '0009-model_geometry.part',
+    '0011-modellayoutvariant_symbols.part',
+    '0013-modellayout_symbols.part',
+    '0016-modellayout1_symbols.part',
+    '0018-modellayout2_symbols.part',
+    '0020-modellayout3_symbols.part',
+    '0022-modellayout4_symbols.part',
+    '0026-@0@.model_symbols.part',
+    '0027-@0@.modellayout_symbols1.part',
+    '0033-modellayout_compat.part',
+    '0034-modellayout1_compat.part',
+    '0035-model_types.part',
+    '0036-layoutoption_symbols.part',
+    '0037-layout1option_symbols.part',
+    '0038-layout2option_symbols.part',
+    '0039-layout3option_symbols.part',
+    '0040-layout4option_symbols.part',
+     # 0042-option_symbols.part is generated from base{.extras}.xml
+     # 0043-option_compat.part is generated from base{.extras}.xml
+     # 0044-option_types.part is generated from base{.extras}.xml
 ]
 
-# generated compat parts
-rules_compat_generated = []
+rules_parts_generated = []
+
+generate_rules_options_symbols = find_program('generate-options-symbols.py')
+generated = [
+    ['0042-option_symbols.part', 'symbols'],
+    ['0043-option_compat.part', 'compatibility'],
+    ['0044-option_types.part', 'types'],
+]
+foreach g: generated
+    filename = g[0]
+    section = g[1]
+    part = custom_target(filename,
+                         build_by_default: true,
+                         command: [generate_rules_options_symbols,
+                                   '--rules-section=@0@'.format(section),
+                                   '--xkb-config-root', meson.project_source_root(),
+                                   base_xml, base_extras_xml],
+                         output: filename,
+                         capture: true,
+                         install: false)
+    rules_parts_generated += [part]
+endforeach
 
 if get_option('compat-rules')
   # non-generated compat parts
   parts += [
-      'compat/0028-lv_c.part',
-      'compat/0029-l1v1_c.part',
-      'compat/0030-l2v2_c.part',
-      'compat/0031-l3v3_c.part',
-      'compat/0032-l4v4_c.part',
-      'compat/0041-o_s.part',
+      'compat/0028-layoutvariant_compat.part',
+      'compat/0029-layout1variant1_compat.part',
+      'compat/0030-layout2variant2_compat.part',
+      'compat/0031-layout3variant3_compat.part',
+      'compat/0032-layout4variant4_compat.part',
+      'compat/0041-option_symbols.part',
   ]
 
   layout_mappings = files('compat/layoutsMapping.lst')
@@ -57,7 +80,7 @@ if get_option('compat-rules')
   # each with the level name in the filename
   lvl_ml_s = {
     '0': '0012-ml_s.part',
-    '1': '0014-ml1_s.part',
+    '1': '0015-ml1_s.part',
     '2': '0017-ml2_s.part',
     '3': '0019-ml3_s.part',
     '4': '0021-ml4_s.part',
@@ -65,7 +88,7 @@ if get_option('compat-rules')
 
   lvl_mlv_s = {
     '0': '0010-mlv_s.part',
-    '1': '0016-ml1v1_s.part',
+    '1': '0014-ml1v1_s.part',
     '2': '0023-ml2v2_s.part',
     '3': '0024-ml3v3_s.part',
     '4': '0025-ml4v4_s.part',
@@ -77,32 +100,44 @@ if get_option('compat-rules')
                            build_by_default: true,
                            command: [
                                map_variants_py,
-                               '--want=mls',
                                '--number=@0@'.format(lvl),
                                '@OUTPUT@',
                                layout_mappings,
-                               variant_mappings,
                            ],
                            output: ml_s_file,
                            install: false)
-      rules_compat_generated += [ml_s]
+      rules_parts_generated += [ml_s]
 
       mlv_s_file = lvl_mlv_s['@0@'.format(lvl)]
       mlv_s = custom_target(mlv_s_file,
                            build_by_default: true,
                            command: [
                                map_variants_py,
-                               '--want=mlvs',
+                               '--has-variant',
                                '--number=@0@'.format(lvl),
                                '@OUTPUT@',
                                variant_mappings,
                            ],
                            output: mlv_s_file,
                            install: false)
-      rules_compat_generated += [mlv_s]
+      rules_parts_generated += [mlv_s]
   endforeach
 endif # compat-rules
 
+MINIMUM_PYTHON_VERSION = '3.11'
+MINIMUM_PYTHON_VERSION_WITH_MODULE_FALLBACK = '3.9'
+pymod = import('python')
+python = pymod.find_installation('python3')
+if python.language_version().version_compare('<@0@'.format(MINIMUM_PYTHON_VERSION))
+    # Now require strenum module as fallback
+    python = pymod.find_installation('python3', modules: ['strenum'])
+    if python.language_version().version_compare('<@0@'.format(MINIMUM_PYTHON_VERSION_WITH_MODULE_FALLBACK))
+        error('Minimum required Python version: @0@, but got: @1@'.format(
+            MINIMUM_PYTHON_VERSION_WITH_MODULE_FALLBACK,
+            python.language_version()
+        ))
+    endif
+endif
 merge_py = find_program('merge.py')
 xml2lst = find_program('xml2lst.pl')
 foreach ruleset: ['base', 'evdev']
@@ -127,9 +162,9 @@ foreach ruleset: ['base', 'evdev']
                   build_by_default: true,
                   command: [
                       merge_py,
-                      rules_parts + rules_compat_generated,
+                      rules_parts + rules_parts_generated,
                   ],
-                  depends: rules_compat_generated,
+                  depends: rules_parts_generated,
                   output: ruleset,
                   capture: true,
                   install: true,
@@ -137,7 +172,7 @@ foreach ruleset: ['base', 'evdev']
 
     # Third: the xml files, simply copied from the base*.xml files
     ruleset_xml = configure_file(output: '@0@.xml'.format(ruleset),
-                       input: 'base.xml',
+                       input: base_xml,
                        copy: true,
                        install: true,
                        install_dir: dir_xkb_rules)
@@ -148,7 +183,7 @@ foreach ruleset: ['base', 'evdev']
     endif
 
     configure_file(output: '@0@.extras.xml'.format(ruleset),
-                   input: 'base.extras.xml',
+                   input: base_extras_xml,
                    copy: true,
                    install: true,
                    install_dir: dir_xkb_rules)

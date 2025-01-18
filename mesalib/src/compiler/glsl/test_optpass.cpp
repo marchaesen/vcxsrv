@@ -72,8 +72,6 @@ do_optimization(struct exec_list *ir, const char *optimization,
       return do_dead_code_local(ir);
    } else if (strcmp(optimization, "do_dead_code_unlinked") == 0) {
       return do_dead_code_unlinked(ir);
-   } else if (strcmp(optimization, "do_function_inlining") == 0) {
-      return do_function_inlining(ir);
    } else if (sscanf(optimization,
                      "do_lower_jumps ( %d , %d , %d , %d ) ",
                      &int_0, &int_1, &int_2, &int_3) == 4) {

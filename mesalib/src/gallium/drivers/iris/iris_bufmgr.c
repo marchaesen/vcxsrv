@@ -51,6 +51,7 @@
 #include "common/intel_mem.h"
 #include "c99_alloca.h"
 #include "dev/intel_debug.h"
+#include "common/intel_common.h"
 #include "common/intel_gem.h"
 #include "dev/intel_device_info.h"
 #include "drm-uapi/dma-buf.h"
@@ -233,13 +234,14 @@ struct iris_bufmgr {
    struct intel_bind_timeline bind_timeline; /* Xe only */
    bool bo_reuse:1;
    bool use_global_vm:1;
-   bool compute_engine_supported:1;
 
    struct intel_aux_map_context *aux_map_ctx;
 
    struct pb_slabs bo_slabs[NUM_SLAB_ALLOCATORS];
 
    struct iris_border_color_pool border_color_pool;
+
+   struct iris_bo *dummy_aux_bo;
 };
 
 static simple_mtx_t global_bufmgr_list_mutex = SIMPLE_MTX_INITIALIZER;
@@ -285,6 +287,12 @@ bucket_for_size(struct iris_bufmgr *bufmgr, uint64_t size,
                 enum iris_heap heap, unsigned flags)
 {
    if (flags & BO_ALLOC_PROTECTED)
+      return NULL;
+
+   /* TODO: Enable bo cache for compressed bos
+    * https://gitlab.freedesktop.org/mesa/mesa/-/issues/11362
+    */
+   if (bufmgr->devinfo.verx10 == 200 && (flags & BO_ALLOC_COMPRESSED))
       return NULL;
 
    const struct intel_device_info *devinfo = &bufmgr->devinfo;
@@ -775,15 +783,24 @@ iris_slab_alloc(void *priv,
    }
    assert(slab_size != 0);
 
-   if (heap == IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT ||
-       heap == IRIS_HEAP_SYSTEM_MEMORY_UNCACHED)
+   switch (heap) {
+   case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED:
+   case IRIS_HEAP_DEVICE_LOCAL_COMPRESSED:
+      flags |= BO_ALLOC_COMPRESSED;
+      break;
+   case IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT:
+   case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED:
       flags |= BO_ALLOC_SMEM;
-   else if (heap == IRIS_HEAP_DEVICE_LOCAL)
+      break;
+   case IRIS_HEAP_DEVICE_LOCAL:
       flags |= BO_ALLOC_LMEM;
-   else if (heap == IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR)
+      break;
+   case IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR:
       flags |= BO_ALLOC_LMEM | BO_ALLOC_CPU_VISIBLE;
-   else
+      break;
+   default:
       flags |= BO_ALLOC_PLAIN;
+   }
 
    slab->bo =
       iris_bo_alloc(bufmgr, "slab", slab_size, slab_size, memzone, flags);
@@ -843,6 +860,9 @@ flags_to_heap(struct iris_bufmgr *bufmgr, unsigned flags)
    const struct intel_device_info *devinfo = &bufmgr->devinfo;
 
    if (bufmgr->vram.size > 0) {
+      if (flags & BO_ALLOC_COMPRESSED)
+         return IRIS_HEAP_DEVICE_LOCAL_COMPRESSED;
+
       /* Discrete GPUs currently always snoop CPU caches. */
       if ((flags & BO_ALLOC_SMEM) || (flags & BO_ALLOC_COHERENT))
          return IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
@@ -867,6 +887,9 @@ flags_to_heap(struct iris_bufmgr *bufmgr, unsigned flags)
    } else {
       assert(!devinfo->has_llc);
       assert(!(flags & BO_ALLOC_LMEM));
+
+      if (flags & BO_ALLOC_COMPRESSED)
+         return IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED;
 
       if (flags & BO_ALLOC_COHERENT)
          return IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
@@ -1112,11 +1135,16 @@ alloc_fresh_bo(struct iris_bufmgr *bufmgr, uint64_t bo_size, unsigned flags)
          break;
       case IRIS_HEAP_DEVICE_LOCAL:
       case IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR:
+      case IRIS_HEAP_DEVICE_LOCAL_COMPRESSED:
          regions[num_regions++] = bufmgr->vram.region;
          break;
       case IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT:
          regions[num_regions++] = bufmgr->sys.region;
          break;
+      case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED:
+         /* not valid, compressed in discrete is always created with
+          * IRIS_HEAP_DEVICE_LOCAL_PREFERRED_COMPRESSED
+          */
       case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED:
          /* not valid; discrete cards always enable snooping */
       case IRIS_HEAP_MAX:
@@ -1146,7 +1174,9 @@ const char *
 iris_heap_to_string[IRIS_HEAP_MAX] = {
    [IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT] = "system-cached-coherent",
    [IRIS_HEAP_SYSTEM_MEMORY_UNCACHED] = "system-uncached",
+   [IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED] = "system-uncached-compressed",
    [IRIS_HEAP_DEVICE_LOCAL] = "local",
+   [IRIS_HEAP_DEVICE_LOCAL_COMPRESSED] = "local-compressed",
    [IRIS_HEAP_DEVICE_LOCAL_PREFERRED] = "local-preferred",
    [IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR] = "local-cpu-visible-small-bar",
 };
@@ -1166,6 +1196,10 @@ heap_to_mmap_mode(struct iris_bufmgr *bufmgr, enum iris_heap heap)
       return IRIS_MMAP_WB;
    case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED:
       return IRIS_MMAP_WC;
+   case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED:
+   case IRIS_HEAP_DEVICE_LOCAL_COMPRESSED:
+      /* compressed bos are not mmaped */
+      return IRIS_MMAP_NONE;
    default:
       unreachable("invalid heap");
    }
@@ -1544,7 +1578,8 @@ iris_get_heap_max(struct iris_bufmgr *bufmgr)
              IRIS_HEAP_MAX_LARGE_BAR : IRIS_HEAP_MAX;
    }
 
-   return IRIS_HEAP_MAX_NO_VRAM;
+   return bufmgr->devinfo.ver >= 20 ? IRIS_HEAP_MAX_NO_VRAM :
+                                      IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED;
 }
 
 /** Frees all cached buffers significantly older than @time. */
@@ -1803,6 +1838,8 @@ iris_bufmgr_destroy_global_vm(struct iris_bufmgr *bufmgr)
 static void
 iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
 {
+   iris_bo_unreference(bufmgr->dummy_aux_bo);
+
    iris_destroy_border_color_pool(&bufmgr->border_color_pool);
 
    /* Free aux-map buffers */
@@ -2320,17 +2357,7 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
    iris_bufmgr_get_meminfo(bufmgr, devinfo);
    bufmgr->kmd_backend = iris_kmd_backend_get(devinfo->kmd_type);
 
-   struct intel_query_engine_info *engine_info;
-   engine_info = intel_engine_get_info(bufmgr->fd, bufmgr->devinfo.kmd_type);
-   bufmgr->devinfo.has_compute_engine = engine_info &&
-                                        intel_engines_count(engine_info,
-                                                            INTEL_ENGINE_CLASS_COMPUTE);
-   bufmgr->compute_engine_supported = bufmgr->devinfo.has_compute_engine &&
-                                      intel_engines_supported_count(bufmgr->fd,
-                                                                    &bufmgr->devinfo,
-                                                                    engine_info,
-                                                                    INTEL_ENGINE_CLASS_COMPUTE);
-   free(engine_info);
+   intel_common_update_device_info(bufmgr->fd, devinfo);
 
    if (!iris_bufmgr_init_global_vm(bufmgr))
       goto error_init_vm;
@@ -2441,8 +2468,20 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
 
    iris_init_border_color_pool(bufmgr, &bufmgr->border_color_pool);
 
+   if (intel_needs_workaround(devinfo, 14019708328)) {
+      bufmgr->dummy_aux_bo = iris_bo_alloc(bufmgr, "dummy_aux", 4096, 4096,
+                                           IRIS_MEMZONE_OTHER, BO_ALLOC_PLAIN);
+         if (!bufmgr->dummy_aux_bo)
+            goto error_dummy_aux;
+   }
+
    return bufmgr;
 
+error_dummy_aux:
+   iris_destroy_border_color_pool(&bufmgr->border_color_pool);
+   intel_aux_map_finish(bufmgr->aux_map_ctx);
+   _mesa_hash_table_destroy(bufmgr->handle_table, NULL);
+   _mesa_hash_table_destroy(bufmgr->name_table, NULL);
 error_slabs_init:
    for (unsigned i = 0; i < NUM_SLAB_ALLOCATORS; i++) {
       if (!bufmgr->bo_slabs[i].groups)
@@ -2595,7 +2634,7 @@ iris_bufmgr_use_global_vm_id(struct iris_bufmgr *bufmgr)
 bool
 iris_bufmgr_compute_engine_supported(struct iris_bufmgr *bufmgr)
 {
-   return bufmgr->compute_engine_supported;
+   return bufmgr->devinfo.engine_class_supported_count[INTEL_ENGINE_CLASS_COMPUTE];
 }
 
 /**
@@ -2614,6 +2653,9 @@ iris_heap_to_pat_entry(const struct intel_device_info *devinfo,
    case IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR:
    case IRIS_HEAP_DEVICE_LOCAL_PREFERRED:
       return &devinfo->pat.writecombining;
+   case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED:
+   case IRIS_HEAP_DEVICE_LOCAL_COMPRESSED:
+      return &devinfo->pat.compressed;
    default:
       unreachable("invalid heap for platforms using PAT entries");
    }
@@ -2623,4 +2665,10 @@ struct intel_bind_timeline *
 iris_bufmgr_get_bind_timeline(struct iris_bufmgr *bufmgr)
 {
    return &bufmgr->bind_timeline;
+}
+
+uint64_t
+iris_bufmgr_get_dummy_aux_address(struct iris_bufmgr *bufmgr)
+{
+   return bufmgr->dummy_aux_bo ? bufmgr->dummy_aux_bo->address : 0;
 }

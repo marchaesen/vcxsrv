@@ -21,7 +21,7 @@ use std::ptr;
 use std::slice;
 use std::sync::Arc;
 
-#[cl_info_entrypoint(cl_get_kernel_info)]
+#[cl_info_entrypoint(clGetKernelInfo)]
 impl CLInfo<cl_kernel_info> for cl_kernel {
     fn query(&self, q: cl_kernel_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
         let kernel = Kernel::ref_from_raw(*self)?;
@@ -44,7 +44,7 @@ impl CLInfo<cl_kernel_info> for cl_kernel {
     }
 }
 
-#[cl_info_entrypoint(cl_get_kernel_arg_info)]
+#[cl_info_entrypoint(clGetKernelArgInfo)]
 impl CLInfoObj<cl_kernel_arg_info, cl_uint> for cl_kernel {
     fn query(&self, idx: cl_uint, q: cl_kernel_arg_info) -> CLResult<Vec<MaybeUninit<u8>>> {
         let kernel = Kernel::ref_from_raw(*self)?;
@@ -72,7 +72,7 @@ impl CLInfoObj<cl_kernel_arg_info, cl_uint> for cl_kernel {
     }
 }
 
-#[cl_info_entrypoint(cl_get_kernel_work_group_info)]
+#[cl_info_entrypoint(clGetKernelWorkGroupInfo)]
 impl CLInfoObj<cl_kernel_work_group_info, cl_device_id> for cl_kernel {
     fn query(
         &self,
@@ -247,7 +247,7 @@ unsafe fn kernel_work_arr_mut<'a>(arr: *mut usize, work_dim: cl_uint) -> Option<
     }
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCreateKernel)]
 fn create_kernel(
     program: cl_program,
     kernel_name: *const ::std::os::raw::c_char,
@@ -281,17 +281,17 @@ fn create_kernel(
     Ok(Kernel::new(name, Arc::clone(&p), &build).into_cl())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clRetainKernel)]
 fn retain_kernel(kernel: cl_kernel) -> CLResult<()> {
     Kernel::retain(kernel)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clReleaseKernel)]
 fn release_kernel(kernel: cl_kernel) -> CLResult<()> {
     Kernel::release(kernel)
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCreateKernelsInProgram)]
 fn create_kernels_in_program(
     program: cl_program,
     num_kernels: cl_uint,
@@ -336,7 +336,7 @@ fn create_kernels_in_program(
     Ok(())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clSetKernelArg)]
 fn set_kernel_arg(
     kernel: cl_kernel,
     arg_index: cl_uint,
@@ -367,8 +367,15 @@ fn set_kernel_arg(
                     return Err(CL_INVALID_ARG_SIZE);
                 }
             }
-            _ => {
-                if arg.size != arg_size {
+
+            KernelArgType::Sampler => {
+                if arg_size != std::mem::size_of::<cl_sampler>() {
+                    return Err(CL_INVALID_ARG_SIZE);
+                }
+            }
+
+            KernelArgType::Constant(size) => {
+                if size as usize != arg_size {
                     return Err(CL_INVALID_ARG_SIZE);
                 }
             }
@@ -385,7 +392,7 @@ fn set_kernel_arg(
             }
             // If the argument is of type sampler_t, the arg_value entry must be a pointer to the
             // sampler object.
-            KernelArgType::Constant | KernelArgType::Sampler => {
+            KernelArgType::Constant(_) | KernelArgType::Sampler => {
                 if arg_value.is_null() {
                     return Err(CL_INVALID_ARG_VALUE);
                 }
@@ -399,7 +406,7 @@ fn set_kernel_arg(
                 KernelArgValue::None
             } else {
                 match arg.kind {
-                    KernelArgType::Constant => KernelArgValue::Constant(
+                    KernelArgType::Constant(_) => KernelArgValue::Constant(
                         slice::from_raw_parts(arg_value.cast(), arg_size).to_vec(),
                     ),
                     KernelArgType::MemConstant | KernelArgType::MemGlobal => {
@@ -432,7 +439,7 @@ fn set_kernel_arg(
     //• CL_MAX_SIZE_RESTRICTION_EXCEEDED if the size in bytes of the memory object (if the argument is a memory object) or arg_size (if the argument is declared with local qualifier) exceeds a language- specified maximum size restriction for this argument, such as the MaxByteOffset SPIR-V decoration. This error code is missing before version 2.2.
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clSetKernelArgSVMPointer)]
 fn set_kernel_arg_svm_pointer(
     kernel: cl_kernel,
     arg_index: cl_uint,
@@ -463,7 +470,7 @@ fn set_kernel_arg_svm_pointer(
     // CL_INVALID_ARG_VALUE if arg_value specified is not a valid value.
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clSetKernelExecInfo)]
 fn set_kernel_exec_info(
     kernel: cl_kernel,
     param_name: cl_kernel_exec_info,
@@ -505,7 +512,7 @@ fn set_kernel_exec_info(
     // CL_INVALID_OPERATION if param_name is CL_KERNEL_EXEC_INFO_SVM_FINE_GRAIN_SYSTEM and param_value is CL_TRUE but no devices in context associated with kernel support fine-grain system SVM allocations.
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clEnqueueNDRangeKernel)]
 fn enqueue_ndrange_kernel(
     command_queue: cl_command_queue,
     kernel: cl_kernel,
@@ -633,7 +640,7 @@ fn enqueue_ndrange_kernel(
     //• CL_INVALID_OPERATION if SVM pointers are passed as arguments to a kernel and the device does not support SVM or if system pointers are passed as arguments to a kernel and/or stored inside SVM allocations passed as kernel arguments and the device does not support fine grain system SVM allocations.
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clEnqueueTask)]
 fn enqueue_task(
     command_queue: cl_command_queue,
     kernel: cl_kernel,
@@ -657,13 +664,13 @@ fn enqueue_task(
     )
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clCloneKernel)]
 fn clone_kernel(source_kernel: cl_kernel) -> CLResult<cl_kernel> {
     let k = Kernel::ref_from_raw(source_kernel)?;
     Ok(Arc::new(k.clone()).into_cl())
 }
 
-#[cl_entrypoint]
+#[cl_entrypoint(clGetKernelSuggestedLocalWorkSizeKHR)]
 fn get_kernel_suggested_local_work_size_khr(
     command_queue: cl_command_queue,
     kernel: cl_kernel,

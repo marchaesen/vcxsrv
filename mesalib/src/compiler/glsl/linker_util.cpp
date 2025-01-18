@@ -27,9 +27,58 @@
 #include "linker_util.h"
 #include "util/bitscan.h"
 #include "util/set.h"
-#include "ir_uniform.h" /* for gl_uniform_storage */
-#include "main/shader_types.h"
 #include "main/consts_exts.h"
+
+void
+linker_error(gl_shader_program *prog, const char *fmt, ...)
+{
+   va_list ap;
+
+   ralloc_strcat(&prog->data->InfoLog, "error: ");
+   va_start(ap, fmt);
+   ralloc_vasprintf_append(&prog->data->InfoLog, fmt, ap);
+   va_end(ap);
+
+   prog->data->LinkStatus = LINKING_FAILURE;
+}
+
+void
+linker_warning(gl_shader_program *prog, const char *fmt, ...)
+{
+   va_list ap;
+
+   ralloc_strcat(&prog->data->InfoLog, "warning: ");
+   va_start(ap, fmt);
+   ralloc_vasprintf_append(&prog->data->InfoLog, fmt, ap);
+   va_end(ap);
+
+}
+
+void
+link_shaders_init(struct gl_context *ctx, struct gl_shader_program *prog)
+{
+   prog->data->LinkStatus = LINKING_SUCCESS; /* All error paths will set this to false */
+   prog->data->Validated = false;
+
+   /* Section 7.3 (Program Objects) of the OpenGL 4.5 Core Profile spec says:
+    *
+    *     "Linking can fail for a variety of reasons as specified in the
+    *     OpenGL Shading Language Specification, as well as any of the
+    *     following reasons:
+    *
+    *     - No shader objects are attached to program."
+    *
+    * The Compatibility Profile specification does not list the error.  In
+    * Compatibility Profile missing shader stages are replaced by
+    * fixed-function.  This applies to the case where all stages are
+    * missing.
+    */
+   if (prog->NumShaders == 0) {
+      if (ctx->API != API_OPENGL_COMPAT)
+         linker_error(prog, "no shaders attached to the program\n");
+      return;
+   }
+}
 
 /**
  * Given a string identifying a program resource, break it into a base name
@@ -458,4 +507,76 @@ interpolation_string(unsigned interpolation)
 
    assert(!"Should not get here.");
    return "";
+}
+
+bool
+_mesa_glsl_can_implicitly_convert(const glsl_type *from, const glsl_type *desired,
+                                  bool has_implicit_conversions,
+                                  bool has_implicit_int_to_uint_conversion)
+{
+   if (from == desired)
+      return true;
+
+   /* GLSL 1.10 and ESSL do not allow implicit conversions. */
+   if (!has_implicit_conversions)
+      return false;
+
+   /* There is no conversion among matrix types. */
+   if (from->matrix_columns > 1 || desired->matrix_columns > 1)
+      return false;
+
+   /* Vector size must match. */
+   if (from->vector_elements != desired->vector_elements)
+      return false;
+
+   /* int and uint can be converted to float. */
+   if (glsl_type_is_float(desired) && (glsl_type_is_integer_32(from) ||
+       glsl_type_is_float_16(from)))
+      return true;
+
+   /* With GLSL 4.0, ARB_gpu_shader5, or MESA_shader_integer_functions, int
+    * can be converted to uint.  Note that state may be NULL here, when
+    * resolving function calls in the linker. By this time, all the
+    * state-dependent checks have already happened though, so allow anything
+    * that's allowed in any shader version.
+    */
+   if (has_implicit_int_to_uint_conversion &&
+       desired->base_type == GLSL_TYPE_UINT && from->base_type == GLSL_TYPE_INT)
+      return true;
+
+   /* No implicit conversions from double. */
+   if (glsl_type_is_double(from))
+      return false;
+
+   /* Conversions from different types to double. */
+   if (glsl_type_is_double(desired)) {
+      if (glsl_type_is_float_16_32(from))
+         return true;
+      if (glsl_type_is_integer_32(from))
+         return true;
+   }
+
+   return false;
+}
+
+void
+resource_name_updated(struct gl_resource_name *name)
+{
+   if (name->string) {
+      name->length = strlen(name->string);
+
+      const char *last_square_bracket = strrchr(name->string, '[');
+      if (last_square_bracket) {
+         name->last_square_bracket = last_square_bracket - name->string;
+         name->suffix_is_zero_square_bracketed =
+            strcmp(last_square_bracket, "[0]") == 0;
+      } else {
+         name->last_square_bracket = -1;
+         name->suffix_is_zero_square_bracketed = false;
+      }
+   } else {
+      name->length = 0;
+      name->last_square_bracket = -1;
+      name->suffix_is_zero_square_bracketed = false;
+   }
 }

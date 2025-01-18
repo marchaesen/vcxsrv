@@ -23,16 +23,15 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include "dix/dix_priv.h"
+#include "dix/dixgrabs_priv.h"
 #include "dix/eventconvert.h"
+#include "dix/input_priv.h"
 
 #include "inputstr.h"
 #include "scrnintstr.h"
-#include "dixgrabs.h"
 #include "eventstr.h"
 #include "exevents.h"
 #include "exglobals.h"
@@ -115,10 +114,8 @@ void
 GestureEndGesture(GestureInfoPtr gi)
 {
     if (gi->has_listener) {
-        if (gi->listener.grab) {
-            FreeGrab(gi->listener.grab);
-            gi->listener.grab = NULL;
-        }
+        FreeGrab(gi->listener.grab);
+        gi->listener.grab = NULL;
         gi->listener.listener = 0;
         gi->has_listener = FALSE;
     }

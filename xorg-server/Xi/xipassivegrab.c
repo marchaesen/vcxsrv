@@ -29,14 +29,13 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XI2proto.h>
 
 #include "dix/dix_priv.h"
+#include "dix/dixgrabs_priv.h"
 #include "dix/exevents_priv.h"
 
 #include "inputstr.h"           /* DeviceIntPtr      */
@@ -44,7 +43,6 @@
 #include "swaprep.h"
 #include "exglobals.h"          /* BadDevice */
 #include "xipassivegrab.h"
-#include "dixgrabs.h"
 #include "misc.h"
 #include "inpututils.h"
 

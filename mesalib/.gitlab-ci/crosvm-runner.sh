@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
+
 set -e
+
+# Instead of starting one dEQP instance per available CPU core, pour our
+# concurrency at llvmpipe threads instead. This is mostly useful for VirGL and
+# Venus, which serialise quite a bit at the host level. So instead of smashing
+# it with a pile of concurrent jobs which don't actually parallelise very well,
+# we use that concurrency for llvmpipe/lavapipe's render pipeline.
+if [ -n "${PARALLELISE_VIA_LP_THREADS:-}" ]; then
+    export LP_NUM_THREADS="${FDO_CI_CONCURRENT:-4}"
+    export FDO_CI_CONCURRENT=1
+fi
 
 # If run outside of a deqp-runner invoction (e.g. piglit trace replay), then act
 # the same as the first thread in its threadpool.

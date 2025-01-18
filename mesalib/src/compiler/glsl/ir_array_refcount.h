@@ -40,7 +40,9 @@ class ir_array_refcount_entry
 {
 public:
    ir_array_refcount_entry(ir_variable *var);
+   ir_array_refcount_entry(const ir_array_refcount_entry &) = delete;
    ~ir_array_refcount_entry();
+   ir_array_refcount_entry & operator=(const ir_array_refcount_entry &) = delete;
 
    ir_variable *var; /* The key: the variable's pointer. */
 

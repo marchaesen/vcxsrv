@@ -8,12 +8,6 @@
 KHR-GLES31.core.geometry_shader.rendering.rendering.triangles_with_adjacency_input_line_strip_output_triangle_strip_adjacency_drawcall,Fail
 KHR-GLES31.core.geometry_shader.rendering.rendering.triangles_with_adjacency_input_triangle_strip_output_triangle_strip_adjacency_drawcall,Fail
 
-# ANGLE passes depthBiasConstantFactor directly to GlobalDepthOffsetConstant, while zink multiplies by 2.0.
-# radeonsi has an extra 2.0 factor in the 16-bit depth case vs 24-bit, which radv doesn't have.
-# I expect this is a radv bug due to missing VK CTS coverage:
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/4169
-dEQP-GLES3.functional.polygon_offset.fixed16_render_with_units,Fail
-
 # Failure in later miplevels, occasionally flaky
 dEQP-GLES3.functional.texture.specification.teximage2d_depth.depth_component24,Fail
 dEQP-GLES3.functional.texture.specification.teximage2d_depth.depth24_stencil8,Fail
@@ -48,3 +42,53 @@ dEQP-GLES31.functional.texture.specification.texstorage3d.format.depth32f_stenci
 multisample-dEQP-GLES31.functional.blend_equation_advanced.basic.multiply,Fail
 multisample-dEQP-GLES31.functional.blend_equation_advanced.basic.overlay,Fail
 multisample-dEQP-GLES31.functional.blend_equation_advanced.basic.screen,Fail
+
+# New failures ES CTS 3.2.11.0
+dEQP-GLES2.functional.fbo.completeness.renderable.renderbuffer.color0.bgra,Fail
+dEQP-GLES2.functional.fbo.render.resize.rbo_bgra,Fail
+dEQP-GLES2.functional.fbo.completeness.renderable.renderbuffer.stencil.bgra,Fail
+dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.no_rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra,Fail
+KHR-GLES3.cull_distance.functional,Fail
+KHR-GLES3.clip_distance.coverage,Fail
+dEQP-GLES2.functional.fbo.render.depth.rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.stencil.npot_rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.color.blend_npot_rbo_bgra,Fail
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.completeness.renderable.renderbuffer.depth.bgra,Fail
+dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.stencil_clear.rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.no_rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra,Fail
+dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.no_rebind_rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.resize.rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES3.functional.fbo.completeness.renderable.renderbuffer.stencil.bgra,Fail
+dEQP-GLES3.functional.fbo.completeness.renderable.renderbuffer.depth.bgra,Fail
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.color.blend_rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.stencil.npot_rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.color.blend_npot_rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.stencil.rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.resize.rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.stencil.rbo_bgra_stencil_index8,Fail
+dEQP-GLES3.functional.fbo.completeness.renderable.renderbuffer.color0.bgra,Fail
+dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.shared_colorbuffer_clear.rbo_bgra,Fail
+dEQP-GLES2.functional.fbo.render.depth.npot_rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.stencil_clear.rbo_bgra_depth_component16_stencil_index8,Fail
+dEQP-GLES2.functional.fbo.render.color.blend_rbo_bgra,Fail
+dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra,Fail
+dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.no_rebind_rbo_bgra_depth_component16,Fail
+
+# new with ANGLE 2024-10-17
+KHR-GLES31.core.texture_buffer.texture_buffer_max_size,Fail

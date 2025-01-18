@@ -485,6 +485,7 @@ default xkb_keycodes "evdev" {
 	<I550> = 550;		// #define KEY_LIGHTS_TOGGLE       542
 	<I568> = 568;		// #define KEY_ALS_TOGGLE          560
 	<I569> = 569;		// #define KEY_ROTATE_LOCK_TOGGLE  561
+	<I570> = 570;		// #define KEY_REFRESH_RATE_TOGGLE 562
 	<I584> = 584;		// #define KEY_BUTTONCONFIG        576
 	<I585> = 585;		// #define KEY_TASKMANAGER         577
 	<I586> = 586;		// #define KEY_JOURNAL             578
@@ -499,6 +500,8 @@ default xkb_keycodes "evdev" {
 	<I595> = 595;		// #define KEY_CAMERA_ACCESS_ENABLE 587
 	<I596> = 596;		// #define KEY_CAMERA_ACCESS_DISABLE 588
 	<I597> = 597;		// #define KEY_CAMERA_ACCESS_TOGGLE 589
+	<I598> = 598;		// #define KEY_ACCESSIBILITY       590
+	<I599> = 599;		// #define KEY_DO_NOT_DISTURB      591
 	<I600> = 600;		// #define KEY_BRIGHTNESS_MIN      592
 	<I601> = 601;		// #define KEY_BRIGHTNESS_MAX      593
 	<I616> = 616;		// #define KEY_KBDINPUTASSIST_PREV 608
@@ -595,6 +598,9 @@ default xkb_keycodes "evdev" {
 	<SUPR> =   206;
 	<HYPR> =   207;
 
+	// These indexes and names are hardcoded in various places:
+	// libxkbcommon, xf86-input-evdev and xf86-input-libinput drivers, etc.
+	// Do not change them without synchronizing!
 	indicator 1  = "Caps Lock";
 	indicator 2  = "Num Lock";
 	indicator 3  = "Scroll Lock";

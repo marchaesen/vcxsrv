@@ -1354,8 +1354,8 @@ radv_CmdBuildAccelerationStructuresKHR(VkCommandBuffer commandBuffer, uint32_t i
 
    enum radv_cmd_flush_bits flush_bits =
       RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT, NULL) |
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT, NULL);
+      radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, NULL) |
+      radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_READ_BIT, NULL);
 
    radv_meta_save(&saved_state, cmd_buffer,
                   RADV_META_SAVE_COMPUTE_PIPELINE | RADV_META_SAVE_DESCRIPTORS | RADV_META_SAVE_CONSTANTS);
@@ -1512,7 +1512,8 @@ radv_CmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuffer, const VkCopy
                               device->meta_state.accel_struct_build.copy_p_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                               sizeof(consts), &consts);
 
-   cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, NULL);
+   cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                                                         VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, NULL);
 
    radv_indirect_dispatch(
       cmd_buffer, src_buffer->bo,
@@ -1617,7 +1618,8 @@ radv_CmdCopyAccelerationStructureToMemoryKHR(VkCommandBuffer commandBuffer,
                               device->meta_state.accel_struct_build.copy_p_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
                               sizeof(consts), &consts);
 
-   cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, NULL);
+   cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
+                                                         VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, NULL);
 
    radv_indirect_dispatch(
       cmd_buffer, src_buffer->bo,

@@ -105,7 +105,6 @@ glx@glx_arb_sync_control@waitformsc,Fail
 
 glslparsertest@glsl2@gst-gl-text-download-i420-yv12.frag,Fail
 shaders@glsl-arb-fragment-coord-conventions,Fail
-shaders@glsl-bug-110796,Fail
 shaders@glsl-max-vertex-attrib,Fail
 spec@!opengl 1.0@gl-1.0-drawbuffer-modes,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
@@ -821,6 +820,13 @@ spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 
+# There are two problems here. On one side, hardware do not support
+# different polygon mode for front and back faces. By default we
+# choose the mode set for front face, unless we are culling it; in
+# this case we choose the mode set for back face. The other problem is
+# that we do not support rendering quads, so Gallium decomposes them
+# in triangles. This has the drawback that when setting polygon mode
+# as lines, we are rendering an extra edge.
 spec@!opengl 1.1@polygon-mode,Fail
 spec@!opengl 1.1@polygon-mode-offset,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on bottom edge,Fail
@@ -847,6 +853,7 @@ spec@!opengl 1.1@polygon-mode-offset@config 5: Expected white pixel on top edge,
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected blue pixel in center,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on right edge,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on top edge,Fail
+
 spec@!opengl 1.1@texsubimage-unpack,Fail
 spec@!opengl 1.1@texwrap 2d proj,Fail
 spec@!opengl 1.1@texwrap 2d proj@GL_RGBA8- NPOT- projected,Fail
@@ -1196,3 +1203,33 @@ spec@glsl-1.10@execution@glsl-1.10-built-in-uniform-state,Fail
 
 # Couldn't reproduce locally
 spec@oes_packed_depth_stencil@depth_stencil texture gles2,Fail
+
+# Failures from arm32
+arm32-KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_component16,Fail
+arm32-KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_component24,Fail
+arm32-KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_short_depth_component16,Fail
+arm32-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
+arm32-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
+arm32-dEQP-GLES2.functional.depth_stencil_clear.depth_stencil_masked,Fail
+arm32-dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_linear_linear_mirror_rgba8888,Fail
+arm32-dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_linear_linear_repeat_rgba8888,Fail
+arm32-dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_nearest_linear_mirror_rgba8888,Fail
+arm32-dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_nearest_linear_repeat_rgba8888,Fail
+arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_repeat_non_square,Fail
+arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_clamp_non_square,Fail
+arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_mirror_non_square,Fail
+arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_repeat_non_square,Fail
+arm32-dEQP-GLES2.functional.texture.wrap.clamp_clamp_nearest_npot_etc1,Fail
+arm32-dEQP-GLES2.functional.uniform_api.random.3,Fail
+arm32-dEQP-GLES2.functional.uniform_api.random.79,Fail
+
+# These are known failures
+asan-KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_component16,Fail
+asan-dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_clamp_non_square,Fail
+asan-dEQP-GLES2.functional.texture.wrap.clamp_clamp_nearest_npot_etc1,Fail
+
+asan-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
+arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_mirror_non_square,Fail
+arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_clamp_non_square,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_mirror_non_square,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_clamp_non_square,Fail

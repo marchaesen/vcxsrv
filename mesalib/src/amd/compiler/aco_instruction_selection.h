@@ -35,6 +35,31 @@ struct shader_io_state {
    }
 };
 
+struct exec_info {
+   /* Set to false when loop_nest_depth==0 && parent_if.is_divergent==false */
+   bool potentially_empty_discard = false;
+   uint16_t potentially_empty_break_depth = UINT16_MAX;
+   /* Set to false when loop_nest_depth==exec_potentially_empty_break_depth,
+    * parent_if.is_divergent==false and parent_loop.has_divergent_continue==false. Also set to
+    * false if loop_nest_depth<exec_potentially_empty_break_depth. */
+   bool potentially_empty_break = false;
+   uint16_t potentially_empty_continue_depth = UINT16_MAX;
+   /* Set to false when loop_nest_depth==exec_potentially_empty_break_depth
+    * and parent_if.is_divergent==false. */
+   bool potentially_empty_continue = false;
+
+   void combine(struct exec_info& other)
+   {
+      potentially_empty_discard |= other.potentially_empty_discard;
+      potentially_empty_break_depth =
+         std::min(potentially_empty_break_depth, other.potentially_empty_break_depth);
+      potentially_empty_break |= other.potentially_empty_break;
+      potentially_empty_continue_depth =
+         std::min(potentially_empty_continue_depth, other.potentially_empty_continue_depth);
+      potentially_empty_continue |= other.potentially_empty_continue;
+   }
+};
+
 struct isel_context {
    const struct aco_compiler_options* options;
    const struct ac_shader_args* args;
@@ -58,14 +83,8 @@ struct isel_context {
          bool is_divergent = false;
       } parent_if;
       bool had_divergent_discard = false;
-      bool exec_potentially_empty_discard =
-         false; /* set to false when loop_nest_depth==0 && parent_if.is_divergent==false */
-      uint16_t exec_potentially_empty_break_depth = UINT16_MAX;
-      /* Set to false when loop_nest_depth==exec_potentially_empty_break_depth
-       * and parent_if.is_divergent==false. Called _break but it's also used for
-       * loop continues. */
-      bool exec_potentially_empty_break = false;
-      std::unique_ptr<unsigned[]> nir_to_aco; /* NIR block index to ACO block index */
+
+      struct exec_info exec;
    } cf_info;
 
    /* NIR range analysis. */
@@ -73,6 +92,8 @@ struct isel_context {
    nir_unsigned_upper_bound_config ub_config;
 
    Temp arg_temps[AC_MAX_ARGS];
+   Operand workgroup_id[3];
+   Temp ttmp8;
 
    /* tessellation information */
    uint64_t tcs_temp_only_inputs;

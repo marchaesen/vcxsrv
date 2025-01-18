@@ -123,6 +123,7 @@ enum radeon_family
    CHIP_GFX1103_R2,
    CHIP_GFX1150,
    CHIP_GFX1151,
+   CHIP_GFX1152,
    CHIP_GFX1200,
    CHIP_GFX1201,
    CHIP_LAST,
@@ -244,6 +245,9 @@ enum sdma_version {
 
    /* GFX11.5 */
    SDMA_6_1 = SDMA_VERSION_VALUE(6, 1),
+
+   /* GFX12 */
+   SDMA_7_0 = SDMA_VERSION_VALUE(7, 0),
 };
 
 const char *ac_get_family_name(enum radeon_family family);

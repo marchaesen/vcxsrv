@@ -32,9 +32,7 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include "dix-config.h"
-#endif
 
 #include <errno.h>
 #include <unistd.h>
@@ -396,7 +394,7 @@ ms_setup_entity(ScrnInfoPtr scrn, int entity_num)
     xf86SetEntityInstanceForScreen(scrn, entity_num, xf86GetNumEntityInstances(entity_num) - 1);
 
     if (!pPriv->ptr)
-        pPriv->ptr = xnfcalloc(sizeof(modesettingEntRec), 1);
+        pPriv->ptr = XNFcallocarray(1, sizeof(modesettingEntRec));
 }
 
 #ifdef XSERVER_LIBPCIACCESS
@@ -515,7 +513,7 @@ GetRec(ScrnInfoPtr pScrn)
     if (pScrn->driverPrivate)
         return TRUE;
 
-    pScrn->driverPrivate = xnfcalloc(sizeof(modesettingRec), 1);
+    pScrn->driverPrivate = XNFcallocarray(1, sizeof(modesettingRec));
 
     return TRUE;
 }
@@ -1025,7 +1023,7 @@ ms_unwrap_property_requests(ScrnInfoPtr scrn)
 }
 
 static void
-FreeRec(ScrnInfoPtr pScrn)
+FreeScreen(ScrnInfoPtr pScrn)
 {
     modesettingPtr ms;
 
@@ -2214,12 +2212,6 @@ AdjustFrame(ScrnInfoPtr pScrn, int x, int y)
     modesettingPtr ms = modesettingPTR(pScrn);
 
     drmmode_adjust_frame(pScrn, &ms->drmmode, x, y);
-}
-
-static void
-FreeScreen(ScrnInfoPtr pScrn)
-{
-    FreeRec(pScrn);
 }
 
 static void

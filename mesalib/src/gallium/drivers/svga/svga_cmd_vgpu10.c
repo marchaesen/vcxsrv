@@ -872,7 +872,7 @@ SVGA3D_vgpu10_DefineBlendState(struct svga_winsys_context *swc,
 
    SVGA3D_CREATE_COMMAND(DefineBlendState, DEFINE_BLEND_STATE);
 
-   for (i = 0; i < SVGA3D_MAX_RENDER_TARGETS; i++) {
+   for (i = 0; i < SVGA3D_DX_MAX_RENDER_TARGETS; i++) {
       /* At most, one of blend or logicop can be enabled */
       assert(perRT[i].blendEnable == 0 || perRT[i].logicOpEnable == 0);
    }

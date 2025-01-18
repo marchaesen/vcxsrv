@@ -988,7 +988,7 @@ LLVMValueRef ac_build_load_to_sgpr_uint_wraparound(struct ac_llvm_context *ctx, 
 
 static unsigned get_cache_flags(struct ac_llvm_context *ctx, enum gl_access_qualifier access)
 {
-   return ac_get_hw_cache_flags(ctx->info, access).value;
+   return ac_get_hw_cache_flags(ctx->gfx_level, access).value;
 }
 
 static void ac_build_buffer_store_common(struct ac_llvm_context *ctx, LLVMValueRef rsrc,
@@ -1159,7 +1159,7 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx, LLVMValueR
       assert(!d16);
 
       union ac_hw_cache_flags cache_flags =
-         ac_get_hw_cache_flags(ctx->info, access | ACCESS_TYPE_LOAD);
+         ac_get_hw_cache_flags(ctx->gfx_level, access | ACCESS_TYPE_LOAD);
       char code[1024];
 
       /* The definition in the assembly and the one in the constraint string

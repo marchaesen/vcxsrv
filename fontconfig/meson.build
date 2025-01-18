@@ -316,6 +316,8 @@ if default_fonts_dirs == ['yes']
     fc_fonts_paths = ['WINDOWSFONTDIR', 'WINDOWSUSERFONTDIR']
   elif host_machine.system() == 'darwin'
     fc_fonts_paths = ['/System/Library/Fonts', '/Library/Fonts', '~/Library/Fonts', '/System/Library/Assets/com_apple_MobileAsset_Font3', '/System/Library/Assets/com_apple_MobileAsset_Font4']
+  elif host_machine.system() == 'android'
+    fc_fonts_paths = ['/system/fonts/', '/product/fonts/']
   else
     fc_fonts_paths = ['/usr/share/fonts', '/usr/local/share/fonts']
   endif

@@ -1,22 +1,5 @@
 # Copyright © 2019 Raspberry Pi Ltd
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 v3dv_entrypoints = custom_target(
   'v3dv_entrypoints',
@@ -36,7 +19,6 @@ libv3dv_files = files(
   'v3dv_bo.c',
   'v3dv_cl.c',
   'v3dv_cmd_buffer.c',
-  'v3dv_debug.c',
   'v3dv_debug.h',
   'v3dv_descriptor_set.c',
   'v3dv_device.c',
@@ -71,12 +53,7 @@ files_per_version = files(
 
 v3d_versions = ['42', '71']
 
-v3dv_flags = []
-
-dep_v3d_hw = dependency('v3d_hw', required : false)
-if dep_v3d_hw.found()
-  v3dv_flags += '-DUSE_V3D_SIMULATOR'
-endif
+v3dv_flags = [v3d_simulator_arg]
 
 v3dv_deps = [
   dep_dl,
@@ -88,6 +65,7 @@ v3dv_deps = [
   idep_vulkan_util,
   idep_vulkan_runtime,
   idep_vulkan_wsi,
+  idep_mesautil,
 ]
 
 if with_platform_x11
@@ -158,7 +136,7 @@ broadcom_icd = custom_target(
   output : 'broadcom_icd.@0@.json'.format(host_machine.cpu()),
   command : [
     prog_python, '@INPUT0@',
-    '--api-version', '1.2', '--xml', '@INPUT1@',
+    '--api-version', '1.3', '--xml', '@INPUT1@',
     '--lib-path', join_paths(get_option('prefix'), get_option('libdir'),
     		  	     'libvulkan_broadcom.so'),
     '--out', '@OUTPUT@',

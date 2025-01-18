@@ -71,7 +71,11 @@ _XcmsModuloF(
 #define XCMS_SIXTHPI		0.523598775598298820
 #define XCMS_RADIANS(d)		((d) * XCMS_PI / 180.0)
 #define XCMS_DEGREES(r)		((r) * 180.0 / XCMS_PI)
+#ifdef __vax__
+#define XCMS_X6_UNDERFLOWS	(3.784659e-07)	/* X**6 almost underflows*/
+#else
 #define XCMS_X6_UNDERFLOWS	(4.209340e-52)	/* X**6 almost underflows */
+#endif
 #define XCMS_X16_UNDERFLOWS	(5.421010e-20)	/* X**16 almost underflows*/
 #define XCMS_CHAR_BIT		8
 #define XCMS_LONG_MAX		0x7FFFFFFF

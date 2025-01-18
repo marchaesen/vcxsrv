@@ -26,7 +26,7 @@
 #include "common.h"
 #include "vpe_priv.h"
 #include "vpe10_opp.h"
-#include "vpe_command.h"
+#include "vpe10_command.h"
 #include "hw_shared.h"
 #include "reg_helper.h"
 

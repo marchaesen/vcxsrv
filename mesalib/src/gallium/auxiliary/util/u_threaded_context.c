@@ -579,6 +579,7 @@ tc_batch_flush(struct threaded_context *tc, bool full_copy)
    tc_batch_check(next);
    tc_debug_check(tc);
    tc->bytes_mapped_estimate = 0;
+   tc->bytes_replaced_estimate = 0;
    p_atomic_add(&tc->num_offloaded_slots, next->num_total_slots);
 
    if (next->token) {
@@ -755,6 +756,7 @@ _tc_sync(struct threaded_context *tc, UNUSED const char *info, UNUSED const char
    if (next->num_total_slots) {
       p_atomic_add(&tc->num_direct_slots, next->num_total_slots);
       tc->bytes_mapped_estimate = 0;
+      tc->bytes_replaced_estimate = 0;
       tc_add_call_end(next);
       tc_batch_execute(next, NULL, 0);
       tc_begin_next_buffer_list(tc);
@@ -1522,6 +1524,7 @@ tc_set_framebuffer_state(struct pipe_context *_pipe,
    p->state.samples = fb->samples;
    p->state.layers = fb->layers;
    p->state.nr_cbufs = nr_cbufs;
+   p->state.viewmask = fb->viewmask;
 
    /* when unbinding, mark attachments as used for the current batch */
    for (unsigned i = 0; i < tc->nr_cbufs; i++) {
@@ -2397,9 +2400,19 @@ tc_create_image_handle(struct pipe_context *_pipe,
 {
    struct threaded_context *tc = threaded_context(_pipe);
    struct pipe_context *pipe = tc->pipe;
+   struct pipe_resource *resource = image->resource;
 
-   if (image->resource->target == PIPE_BUFFER)
-      tc_buffer_disable_cpu_storage(image->resource);
+   if (image->access & PIPE_IMAGE_ACCESS_WRITE &&
+       resource && resource->target == PIPE_BUFFER) {
+      struct threaded_resource *tres = threaded_resource(resource);
+
+      /* The CPU storage doesn't support writable buffer. */
+      tc_buffer_disable_cpu_storage(resource);
+
+      util_range_add(&tres->b, &tres->valid_buffer_range,
+                     image->u.buf.offset,
+                     image->u.buf.offset + image->u.buf.size);
+   }
 
    tc_sync(tc);
    return pipe->create_image_handle(pipe, image);
@@ -2440,6 +2453,10 @@ tc_make_image_handle_resident(struct pipe_context *_pipe, uint64_t handle,
 /********************************************************************
  * transfer
  */
+
+static void
+tc_flush(struct pipe_context *_pipe, struct pipe_fence_handle **fence,
+         unsigned flags);
 
 struct tc_replace_buffer_storage {
    struct tc_call_base base;
@@ -2488,6 +2505,13 @@ tc_invalidate_buffer(struct threaded_context *tc,
        tbuf->is_user_ptr ||
        tbuf->b.flags & (PIPE_RESOURCE_FLAG_SPARSE | PIPE_RESOURCE_FLAG_UNMAPPABLE))
       return false;
+
+   assert(tbuf->b.target == PIPE_BUFFER);
+   tc->bytes_replaced_estimate += tbuf->b.width0;
+
+   if (tc->bytes_replaced_limit && (tc->bytes_replaced_estimate > tc->bytes_replaced_limit)) {
+      tc_flush(&tc->base, NULL, PIPE_FLUSH_ASYNC);
+   }
 
    /* Allocate a new one. */
    new_buf = screen->resource_create(screen, &tbuf->b);
@@ -2593,9 +2617,9 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
       usage |= PIPE_MAP_UNSYNCHRONIZED;
 
    if (!(usage & PIPE_MAP_UNSYNCHRONIZED)) {
-      /* If discarding the entire range, discard the whole resource instead. */
+      /* If discarding the entire valid range, discard the whole resource instead. */
       if (usage & PIPE_MAP_DISCARD_RANGE &&
-          offset == 0 && size == tres->b.width0)
+          util_ranges_covered(&tres->valid_buffer_range, offset, offset + size))
          usage |= PIPE_MAP_DISCARD_WHOLE_RESOURCE;
 
       /* Discard the whole resource if needed. */
@@ -2877,10 +2901,6 @@ tc_transfer_flush_region(struct pipe_context *_pipe,
    p->transfer = transfer;
    p->box = *rel_box;
 }
-
-static void
-tc_flush(struct pipe_context *_pipe, struct pipe_fence_handle **fence,
-         unsigned flags);
 
 struct tc_buffer_unmap {
    struct tc_call_base base;
@@ -4508,9 +4528,8 @@ tc_call_blit(struct pipe_context *pipe, void *call)
 }
 
 static void
-tc_blit(struct pipe_context *_pipe, const struct pipe_blit_info *info)
+tc_blit_enqueue(struct threaded_context *tc, const struct pipe_blit_info *info)
 {
-   struct threaded_context *tc = threaded_context(_pipe);
    struct tc_blit_call *blit = tc_add_call(tc, TC_CALL_blit, tc_blit_call);
 
    tc_set_resource_batch_usage(tc, info->dst.resource);
@@ -4518,11 +4537,33 @@ tc_blit(struct pipe_context *_pipe, const struct pipe_blit_info *info)
    tc_set_resource_batch_usage(tc, info->src.resource);
    tc_set_resource_reference(&blit->info.src.resource, info->src.resource);
    memcpy(&blit->info, info, sizeof(*info));
-   if (tc->options.parse_renderpass_info) {
-      tc->renderpass_info_recording->has_resolve = info->src.resource->nr_samples > 1 &&
-                                                   info->dst.resource->nr_samples <= 1 &&
-                                                   tc->fb_resolve == info->dst.resource;
+}
+
+static void
+tc_blit(struct pipe_context *_pipe, const struct pipe_blit_info *info)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   /* filter out untracked non-resolves */
+   if (!tc->options.parse_renderpass_info ||
+       info->src.resource->nr_samples <= 1 ||
+       info->dst.resource->nr_samples > 1) {
+      tc_blit_enqueue(tc, info);
+      return;
    }
+
+   if (tc->fb_resolve == info->dst.resource) {
+      /* optimize out this blit entirely */
+      tc->renderpass_info_recording->has_resolve = true;
+      return;
+   }
+   for (unsigned i = 0; i < PIPE_MAX_COLOR_BUFS; i++) {
+      if (tc->fb_resources[i] == info->src.resource) {
+         tc->renderpass_info_recording->has_resolve = true;
+         break;
+      }
+   }
+   tc_blit_enqueue(tc, info);
 }
 
 struct tc_generate_mipmap {

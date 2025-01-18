@@ -2,6 +2,7 @@
 #include <xwin-config.h>
 #endif
 #include "win.h"
+#include "dix/dix_priv.h"
 
 void XdmcpHostSelected(int HostIndex);
 

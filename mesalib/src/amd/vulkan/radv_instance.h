@@ -11,8 +11,9 @@
 #ifndef RADV_INSTANCE_H
 #define RADV_INSTANCE_H
 
+#include "util/simple_mtx.h"
 #include "util/xmlconfig.h"
-
+#include "radv_radeon_winsys.h"
 #include "vk_instance.h"
 
 #ifdef ANDROID_STRICT
@@ -37,8 +38,11 @@ struct radv_instance {
 
    VkAllocationCallbacks alloc;
 
+   simple_mtx_t shader_dump_mtx;
+
    uint64_t debug_flags;
    uint64_t perftest_flags;
+   enum radeon_ctx_pstate profile_pstate;
 
    struct {
       struct driOptionCache options;
@@ -49,6 +53,7 @@ struct radv_instance {
       bool disable_shrink_image_store;
       bool disable_aniso_single_level;
       bool disable_trunc_coord;
+      bool disable_depth_storage;
       bool zero_vram;
       bool disable_sinking_load_input_fs;
       bool flush_before_query_copy;

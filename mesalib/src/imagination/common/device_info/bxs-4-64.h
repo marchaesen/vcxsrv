@@ -67,6 +67,7 @@ static const struct pvr_device_features pvr_device_features_36_V_104_796 = {
    .has_tile_size_x = true,
    .has_tile_size_y = true,
    .has_tpu_border_colour_enhanced = true,
+   .has_tpu_dm_global_registers = true,
    .has_tpu_extended_integer_lookup = true,
    .has_tpu_image_state_v2 = true,
    .has_usc_f16sop_u8 = true,

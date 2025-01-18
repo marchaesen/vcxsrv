@@ -1675,8 +1675,6 @@ static const nir_op op_trans[TGSI_OPCODE_LAST] = {
    [TGSI_OPCODE_LG2] = nir_op_flog2,
    [TGSI_OPCODE_POW] = nir_op_fpow,
    [TGSI_OPCODE_COS] = nir_op_fcos,
-   [TGSI_OPCODE_DDX] = nir_op_fddx,
-   [TGSI_OPCODE_DDY] = nir_op_fddy,
    [TGSI_OPCODE_KILL] = 0,
    [TGSI_OPCODE_PK2H] = 0, /* XXX */
    [TGSI_OPCODE_PK2US] = 0, /* XXX */
@@ -1712,9 +1710,6 @@ static const nir_op op_trans[TGSI_OPCODE_LAST] = {
    [TGSI_OPCODE_UIF] = 0,
    [TGSI_OPCODE_ELSE] = 0,
    [TGSI_OPCODE_ENDIF] = 0,
-
-   [TGSI_OPCODE_DDX_FINE] = nir_op_fddx_fine,
-   [TGSI_OPCODE_DDY_FINE] = nir_op_fddy_fine,
 
    [TGSI_OPCODE_CEIL] = nir_op_fceil,
    [TGSI_OPCODE_I2F] = nir_op_i2f32,
@@ -2020,6 +2015,22 @@ ttn_emit_instruction(struct ttn_compile *c)
 
    case TGSI_OPCODE_BARRIER:
       ttn_barrier(b);
+      break;
+
+   case TGSI_OPCODE_DDX:
+      dst = nir_ddx(b, src[0]);
+      break;
+
+   case TGSI_OPCODE_DDX_FINE:
+      dst = nir_ddx_fine(b, src[0]);
+      break;
+
+   case TGSI_OPCODE_DDY:
+      dst = nir_ddy(b, src[0]);
+      break;
+
+   case TGSI_OPCODE_DDY_FINE:
+      dst = nir_ddy_fine(b, src[0]);
       break;
 
    default:
@@ -2547,8 +2558,8 @@ ttn_finalize_nir(struct ttn_compile *c, struct pipe_screen *screen)
       free(msg);
    } else {
       ttn_optimize_nir(nir);
-      nir_shader_gather_info(nir, c->build.impl);
    }
+   nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 
    nir->info.num_images = c->num_images;
    nir->info.num_textures = c->num_samplers;
@@ -2600,6 +2611,7 @@ load_nir_from_disk_cache(struct disk_cache *cache,
     * However we do still check if the first element is indeed the size,
     * as we cannot fully trust disk_cache_get (EGL_ANDROID_blob_cache) */
    if (buffer[0] != size) {
+      free(buffer);
       return NULL;
    }
 

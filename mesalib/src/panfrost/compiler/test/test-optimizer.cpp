@@ -32,7 +32,7 @@ bi_optimizer(bi_context *ctx)
 {
    bi_opt_mod_prop_forward(ctx);
    bi_opt_mod_prop_backward(ctx);
-   bi_opt_dead_code_eliminate(ctx);
+   bi_opt_dce(ctx, true);
 }
 
 /* Define reg first so it has a consistent variable index, and pass it to an

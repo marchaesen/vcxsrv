@@ -30,18 +30,26 @@
 extern "C" {
 #endif
 
-#define OPP_REG_LIST_VPE10(id)                                                                     \
-    SRIDFVL(VPFMT_CLAMP_COMPONENT_R, VPFMT, id), SRIDFVL(VPFMT_CLAMP_COMPONENT_G, VPFMT, id),      \
-        SRIDFVL(VPFMT_CLAMP_COMPONENT_B, VPFMT, id), SRIDFVL(VPFMT_DYNAMIC_EXP_CNTL, VPFMT, id),   \
-        SRIDFVL(VPFMT_CONTROL, VPFMT, id), SRIDFVL(VPFMT_BIT_DEPTH_CONTROL, VPFMT, id),            \
+#define OPP_REG_LIST_VPE10_COMMON(id)                                                              \
+    SRIDFVL(VPFMT_CLAMP_COMPONENT_R, VPFMT, id),                                                   \
+        SRIDFVL(VPFMT_CLAMP_COMPONENT_G, VPFMT, id),                                               \
+        SRIDFVL(VPFMT_CLAMP_COMPONENT_B, VPFMT, id),                                               \
+        SRIDFVL(VPFMT_DYNAMIC_EXP_CNTL, VPFMT, id),                                                \
+        SRIDFVL(VPFMT_CONTROL, VPFMT, id),                                                         \
+        SRIDFVL(VPFMT_BIT_DEPTH_CONTROL, VPFMT, id),                                               \
         SRIDFVL(VPFMT_DITHER_RAND_R_SEED, VPFMT, id),                                              \
         SRIDFVL(VPFMT_DITHER_RAND_G_SEED, VPFMT, id),                                              \
-        SRIDFVL(VPFMT_DITHER_RAND_B_SEED, VPFMT, id), SRIDFVL(VPFMT_CLAMP_CNTL, VPFMT, id),        \
-        SRIDFVL(VPOPP_PIPE_CONTROL, VPOPP_PIPE, id),                                               \
-        SRIDFVL(VPOPP_TOP_CLK_CONTROL, VPOPP_TOP, id),                                             \
-        SRIDFVL(VPOPP_PIPE_CRC_CONTROL, VPOPP_PIPE_CRC, id),
+        SRIDFVL(VPFMT_DITHER_RAND_B_SEED, VPFMT, id),                                              \
+        SRIDFVL(VPFMT_CLAMP_CNTL, VPFMT, id),                                                      \
+        SRIDFVL(VPOPP_PIPE_CONTROL, VPOPP_PIPE, id)
 
-#define OPP_FIELD_LIST_VPE10(post_fix)                                                             \
+
+#define OPP_REG_LIST_VPE10(id)                                                                     \
+    OPP_REG_LIST_VPE10_COMMON(id),                                                                 \
+        SRIDFVL(VPOPP_TOP_CLK_CONTROL, VPOPP_TOP, id),                                             \
+        SRIDFVL(VPOPP_PIPE_CRC_CONTROL, VPOPP_PIPE_CRC, id)
+
+#define OPP_FIELD_LIST_VPE10_COMMON(post_fix)                                                      \
     SFRB(VPFMT_CLAMP_LOWER_R, VPFMT_CLAMP_COMPONENT_R, post_fix),                                  \
         SFRB(VPFMT_CLAMP_UPPER_R, VPFMT_CLAMP_COMPONENT_R, post_fix),                              \
         SFRB(VPFMT_CLAMP_LOWER_G, VPFMT_CLAMP_COMPONENT_G, post_fix),                              \
@@ -75,12 +83,15 @@ extern "C" {
         SFRB(VPOPP_PIPE_DIGITAL_BYPASS_EN, VPOPP_PIPE_CONTROL, post_fix),                          \
         SFRB(VPOPP_PIPE_ALPHA, VPOPP_PIPE_CONTROL, post_fix),                                      \
         SFRB(VPOPP_VPECLK_R_GATE_DIS, VPOPP_TOP_CLK_CONTROL, post_fix),                            \
-        SFRB(VPOPP_VPECLK_G_GATE_DIS, VPOPP_TOP_CLK_CONTROL, post_fix),                            \
+        SFRB(VPOPP_VPECLK_G_GATE_DIS, VPOPP_TOP_CLK_CONTROL, post_fix)
+
+#define OPP_FIELD_LIST_VPE10(post_fix)                                                             \
+    OPP_FIELD_LIST_VPE10_COMMON(post_fix),                                                         \
         SFRB(VPOPP_PIPE_CRC_EN, VPOPP_PIPE_CRC_CONTROL, post_fix),                                 \
         SFRB(VPOPP_PIPE_CRC_CONT_EN, VPOPP_PIPE_CRC_CONTROL, post_fix),                            \
         SFRB(VPOPP_PIPE_CRC_PIXEL_SELECT, VPOPP_PIPE_CRC_CONTROL, post_fix)
 
-#define OPP_REG_VARIABLE_LIST_VPE10                                                                \
+#define OPP_REG_VARIABLE_LIST_VPE10_COMMON                                                         \
     reg_id_val VPFMT_CLAMP_COMPONENT_R;                                                            \
     reg_id_val VPFMT_CLAMP_COMPONENT_G;                                                            \
     reg_id_val VPFMT_CLAMP_COMPONENT_B;                                                            \
@@ -91,11 +102,15 @@ extern "C" {
     reg_id_val VPFMT_DITHER_RAND_G_SEED;                                                           \
     reg_id_val VPFMT_DITHER_RAND_B_SEED;                                                           \
     reg_id_val VPFMT_CLAMP_CNTL;                                                                   \
-    reg_id_val VPOPP_PIPE_CONTROL;                                                                 \
     reg_id_val VPOPP_TOP_CLK_CONTROL;                                                              \
+    reg_id_val VPOPP_PIPE_CONTROL;
+
+
+#define OPP_REG_VARIABLE_LIST_VPE10                                                                \
+    OPP_REG_VARIABLE_LIST_VPE10_COMMON                                                             \
     reg_id_val VPOPP_PIPE_CRC_CONTROL;
 
-#define OPP_FIELD_VARIABLE_LIST_VPE10(type)                                                        \
+#define OPP_FIELD_VARIABLE_LIST_VPE10_COMMON(type)                                                 \
     type VPFMT_CLAMP_LOWER_R;                                                                      \
     type VPFMT_CLAMP_UPPER_R;                                                                      \
     type VPFMT_CLAMP_LOWER_G;                                                                      \
@@ -129,7 +144,10 @@ extern "C" {
     type VPOPP_PIPE_DIGITAL_BYPASS_EN;                                                             \
     type VPOPP_PIPE_ALPHA;                                                                         \
     type VPOPP_VPECLK_R_GATE_DIS;                                                                  \
-    type VPOPP_VPECLK_G_GATE_DIS;                                                                  \
+    type VPOPP_VPECLK_G_GATE_DIS;
+
+#define OPP_FIELD_VARIABLE_LIST_VPE10(type)                                                        \
+    OPP_FIELD_VARIABLE_LIST_VPE10_COMMON(type)                                                     \
     type VPOPP_PIPE_CRC_EN;                                                                        \
     type VPOPP_PIPE_CRC_CONT_EN;                                                                   \
     type VPOPP_PIPE_CRC_PIXEL_SELECT;

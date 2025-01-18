@@ -300,7 +300,6 @@ def main():
     print ' * Generated automatically from svga3d_reg.h by svga_dump.py.'
     print ' */'
     print
-    print '#include "svga_types.h"'
     print '#include "svga_shader_dump.h"'
     print '#include "svga3d_reg.h"'
     print
@@ -314,8 +313,7 @@ def main():
     )
 
     headers = [
-        'svga_types.h', 
-        'svga3d_reg.h', 
+        'svga3d_reg.h',
     ]
 
     decls = parser.parse(headers, config, parser.COMPILATION_MODE.ALL_AT_ONCE)

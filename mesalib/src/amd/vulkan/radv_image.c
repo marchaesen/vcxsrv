@@ -12,6 +12,7 @@
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
 #include "ac_drm_fourcc.h"
+#include "ac_formats.h"
 #include "radv_android.h"
 #include "radv_buffer.h"
 #include "radv_buffer_view.h"
@@ -71,8 +72,7 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device, const VkImageCrea
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
 
-   /* TC-compat HTILE is only available for GFX8+. */
-   if (pdev->info.gfx_level < GFX8)
+   if (!pdev->info.has_tc_compatible_htile)
       return false;
 
    /* TC-compat HTILE looks broken on Tonga (and Iceland is the same design) and the documented bug
@@ -177,9 +177,7 @@ bool
 radv_are_formats_dcc_compatible(const struct radv_physical_device *pdev, const void *pNext, VkFormat format,
                                 VkImageCreateFlags flags, bool *sign_reinterpret)
 {
-   bool blendable;
-
-   if (!radv_is_colorbuffer_format_supported(pdev, format, &blendable))
+   if (!radv_is_colorbuffer_format_supported(pdev, format))
       return false;
 
    if (sign_reinterpret != NULL)
@@ -383,6 +381,9 @@ radv_use_htile_for_image(const struct radv_device *device, const struct radv_ima
 
    if (instance->debug_flags & RADV_DEBUG_NO_HIZ ||
        (compression && compression->flags == VK_IMAGE_COMPRESSION_DISABLED_EXT))
+      return false;
+
+   if (image->vk.usage & VK_IMAGE_USAGE_STORAGE_BIT)
       return false;
 
    /* TODO:
@@ -639,6 +640,9 @@ radv_get_surface_flags(struct radv_device *device, struct radv_image *image, uns
       unreachable("unhandled image type");
    }
 
+   if (image->vk.create_flags & (VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT | VK_IMAGE_CREATE_2D_VIEW_COMPATIBLE_BIT_EXT))
+      flags |= RADEON_SURF_VIEW_3D_AS_2D_ARRAY;
+
    /* Required for clearing/initializing a specific layer on GFX8. */
    flags |= RADEON_SURF_CONTIGUOUS_DCC_LAYERS;
 
@@ -716,25 +720,6 @@ radv_get_surface_flags(struct radv_device *device, struct radv_image *image, uns
    return flags;
 }
 
-unsigned
-radv_map_swizzle(unsigned swizzle)
-{
-   switch (swizzle) {
-   case PIPE_SWIZZLE_Y:
-      return V_008F0C_SQ_SEL_Y;
-   case PIPE_SWIZZLE_Z:
-      return V_008F0C_SQ_SEL_Z;
-   case PIPE_SWIZZLE_W:
-      return V_008F0C_SQ_SEL_W;
-   case PIPE_SWIZZLE_0:
-      return V_008F0C_SQ_SEL_0;
-   case PIPE_SWIZZLE_1:
-      return V_008F0C_SQ_SEL_1;
-   default: /* PIPE_SWIZZLE_X */
-      return V_008F0C_SQ_SEL_X;
-   }
-}
-
 void
 radv_compose_swizzle(const struct util_format_description *desc, const VkComponentMapping *mapping,
                      enum pipe_swizzle swizzle[4])
@@ -764,22 +749,6 @@ radv_compose_swizzle(const struct util_format_description *desc, const VkCompone
    }
 }
 
-bool
-vi_alpha_is_on_msb(const struct radv_device *device, const VkFormat format)
-{
-   const struct radv_physical_device *pdev = radv_device_physical(device);
-
-   if (pdev->info.gfx_level >= GFX11)
-      return false;
-
-   const struct util_format_description *desc = vk_format_description(format);
-
-   if (pdev->info.gfx_level >= GFX10 && desc->nr_channels == 1)
-      return desc->swizzle[3] == PIPE_SWIZZLE_X;
-
-   return radv_translate_colorswap(format, false) <= 1;
-}
-
 static void
 radv_query_opaque_metadata(struct radv_device *device, struct radv_image *image, unsigned plane_id,
                            struct radeon_bo_metadata *md)
@@ -796,7 +765,7 @@ radv_query_opaque_metadata(struct radv_device *device, struct radv_image *image,
 
    radv_make_texture_descriptor(device, image, false, (VkImageViewType)image->vk.image_type, plane_format,
                                 &fixedmapping, 0, image->vk.mip_levels - 1, 0, image->vk.array_layers - 1, plane_width,
-                                plane_height, image->vk.extent.depth, 0.0f, desc, NULL, 0, NULL, NULL);
+                                plane_height, image->vk.extent.depth, 0.0f, desc, NULL, NULL, NULL);
 
    radv_set_mutable_tex_desc_fields(device, image, base_level_info, plane_id, 0, 0, surface->blk_w, false, false, false,
                                     false, desc, NULL);
@@ -960,7 +929,9 @@ radv_image_is_l2_coherent(const struct radv_device *device, const struct radv_im
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
 
-   if (pdev->info.gfx_level >= GFX10) {
+   if (pdev->info.gfx_level >= GFX12) {
+      return true; /* Everything is coherent with TC L2. */
+   } else if (pdev->info.gfx_level >= GFX10) {
       return !pdev->info.tcc_rb_non_coherent && !radv_image_is_pipe_misaligned(device, image);
    } else if (pdev->info.gfx_level == GFX9) {
       if (image->vk.samples == 1 &&
@@ -1134,7 +1105,8 @@ radv_image_create_layout(struct radv_device *device, struct radv_image_create_in
    if (image->vk.usage & (VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR |
                           VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR |
                           VK_IMAGE_USAGE_VIDEO_ENCODE_DPB_BIT_KHR)) {
-      assert(profile_list);
+      if (!device->vk.enabled_features.videoMaintenance1)
+         assert(profile_list);
       uint32_t width_align, height_align;
       radv_video_get_profile_alignments(pdev, profile_list, &width_align, &height_align);
       image_info.width = align(image_info.width, width_align);
@@ -1291,7 +1263,7 @@ radv_select_modifier(const struct radv_device *dev, VkFormat format,
       .dcc_retile = true,
    };
 
-   ac_get_supported_modifiers(&pdev->info, &modifier_options, vk_format_to_pipe_format(format), &mod_count, NULL);
+   ac_get_supported_modifiers(&pdev->info, &modifier_options, radv_format_to_pipe_format(format), &mod_count, NULL);
 
    uint64_t *mods = calloc(mod_count, sizeof(*mods));
 
@@ -1299,7 +1271,7 @@ radv_select_modifier(const struct radv_device *dev, VkFormat format,
    if (!mods)
       return mod_list->pDrmFormatModifiers[0];
 
-   ac_get_supported_modifiers(&pdev->info, &modifier_options, vk_format_to_pipe_format(format), &mod_count, mods);
+   ac_get_supported_modifiers(&pdev->info, &modifier_options, radv_format_to_pipe_format(format), &mod_count, mods);
 
    for (unsigned i = 0; i < mod_count; ++i) {
       for (uint32_t j = 0; j < mod_list->drmFormatModifierCount; ++j) {
@@ -1632,15 +1604,6 @@ radv_image_is_renderable(const struct radv_device *device, const struct radv_ima
       return false;
 
    return true;
-}
-
-unsigned
-radv_tile_mode_index(const struct radv_image_plane *plane, unsigned level, bool stencil)
-{
-   if (stencil)
-      return plane->surface.u.legacy.zs.stencil_tiling_index[level];
-   else
-      return plane->surface.u.legacy.tiling_index[level];
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

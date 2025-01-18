@@ -45,7 +45,8 @@ CSRCS = settings.c \
  null-lp.c \
  bidi.c \
  no-lineedit.c \
- no-term.c
+ no-term.c \
+ null-socket.c
 
 vpath %.c proxy stubs terminal
 

@@ -65,8 +65,8 @@ TEMPLATE = Template(textwrap.dedent("""\
     the apiVersion property of the VkPhysicalDeviceProperties struct
     depends on the particular driver being used.
 
-    SHA256 checksum
-    ---------------
+    SHA checksums
+    -------------
 
     ::
 

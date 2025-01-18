@@ -122,11 +122,19 @@ void conf_editbox_handler(dlgcontrol *ctrl, dlgparam *dlg,
 
     if (type->type == EDIT_STR) {
         if (event == EVENT_REFRESH) {
-            char *field = conf_get_str(conf, key);
-            dlg_editbox_set(ctrl, dlg, field);
+            bool utf8;
+            char *field = conf_get_str_ambi(conf, key, &utf8);
+            if (utf8)
+                dlg_editbox_set_utf8(ctrl, dlg, field);
+            else
+                dlg_editbox_set(ctrl, dlg, field);
         } else if (event == EVENT_VALCHANGE) {
-            char *field = dlg_editbox_get(ctrl, dlg);
-            conf_set_str(conf, key, field);
+            char *field = dlg_editbox_get_utf8(ctrl, dlg);
+            if (!conf_try_set_utf8(conf, key, field)) {
+                sfree(field);
+                field = dlg_editbox_get(ctrl, dlg);
+                conf_set_str(conf, key, field);
+            }
             sfree(field);
         }
     } else {
@@ -2190,6 +2198,9 @@ void setup_config_box(struct controlbox *b, bool midsession,
     ctrl_checkbox(s, "Disable bidirectional text display",
                   'd', HELPCTX(features_bidi), conf_checkbox_handler,
                   I(CONF_no_bidi));
+    ctrl_checkbox(s, "Disable bracketed paste mode",
+                  'p', HELPCTX(features_bracketed_paste), conf_checkbox_handler,
+                  I(CONF_no_bracketed_paste));
 
     /*
      * The Window panel.

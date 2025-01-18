@@ -40,6 +40,8 @@
 #include <GL/glxproto.h>
 #include "vndservervendor.h"
 
+#include "dix/dix_priv.h"
+
 ExtensionEntry *GlxExtensionEntry;
 int GlxErrorBase = 0;
 static CallbackListRec vndInitCallbackList;

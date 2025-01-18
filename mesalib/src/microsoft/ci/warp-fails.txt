@@ -1,0 +1,3 @@
+# The CTS expects OpKill to terminate shaders while the spec allows it to be implemented
+# as OpDemoteToHelperInvocation. Wait for pending CTS fix.
+dEQP-VK.graphicsfuzz.while-inside-switch,Fail

@@ -59,6 +59,10 @@ static bool
 constant_fold(struct vc4_compile *c, struct qinst *inst)
 {
         int nsrc = qir_get_nsrc(inst);
+
+        if (nsrc == 0)
+                return false;
+
         uint32_t ui[nsrc];
 
         for (int i = 0; i < nsrc; i++) {

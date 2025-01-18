@@ -542,6 +542,6 @@ st_nir_lower_atifs_samplers(struct nir_shader *s, const uint8_t *texture_index)
    }
 
    return nir_shader_instructions_pass(s, st_nir_lower_atifs_samplers_instr,\
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance, (void *)texture_index);
+                                       nir_metadata_control_flow,
+                                       (void *)texture_index);
 }

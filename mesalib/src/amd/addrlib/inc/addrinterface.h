@@ -24,8 +24,9 @@ extern "C"
 #endif
 
 #define ADDRLIB_VERSION_MAJOR 9
-#define ADDRLIB_VERSION_MINOR 1
-#define ADDRLIB_VERSION ((ADDRLIB_VERSION_MAJOR << 16) | ADDRLIB_VERSION_MINOR)
+#define ADDRLIB_VERSION_MINOR 11
+#define ADDRLIB_MAKE_VERSION(major, minor) ((major << 16) | minor)
+#define ADDRLIB_VERSION                    ADDRLIB_MAKE_VERSION(ADDRLIB_VERSION_MAJOR, ADDRLIB_VERSION_MINOR)
 
 /// Virtually all interface functions need ADDR_HANDLE as first parameter
 typedef VOID*   ADDR_HANDLE;
@@ -2424,13 +2425,13 @@ typedef union _ADDR2_SURFACE_FLAGS
         UINT_32 stencil           :  1; ///< Thie resource is a stencil buffer, can be used with DSV
         UINT_32 fmask             :  1; ///< This is an fmask surface
         UINT_32 overlay           :  1; ///< This is an overlay surface
-        UINT_32 display           :  1; ///< This resource is displable, can be used with DRV
+        UINT_32 display           :  1; ///< This resource is displayable, can be used with DRV
         UINT_32 prt               :  1; ///< This is a partially resident texture
         UINT_32 qbStereo          :  1; ///< This is a quad buffer stereo surface
         UINT_32 interleaved       :  1; ///< Special flag for interleaved YUV surface padding
         UINT_32 texture           :  1; ///< This resource can be used with SRV
         UINT_32 unordered         :  1; ///< This resource can be used with UAV
-        UINT_32 rotated           :  1; ///< This resource is rotated and displable
+        UINT_32 rotated           :  1; ///< This resource is rotated and displayable
         UINT_32 needEquation      :  1; ///< This resource needs equation to be generated if possible
         UINT_32 opt4space         :  1; ///< This resource should be optimized for space
         UINT_32 minimizeAlign     :  1; ///< This resource should use minimum alignment
@@ -2439,7 +2440,8 @@ typedef union _ADDR2_SURFACE_FLAGS
         UINT_32 metaPipeUnaligned :  1; ///< This resource has pipe unaligned metadata
         UINT_32 view3dAs2dArray   :  1; ///< This resource is a 3D resource viewed as 2D array
         UINT_32 allowExtEquation  :  1; ///< If unset, only legacy DX eqs are allowed (2 XORs)
-        UINT_32 reserved          : 12; ///< Reserved bits
+        UINT_32 requireMetadata   :  1; ///< This resource must support metadata
+        UINT_32 reserved          : 11; ///< Reserved bits
     };
 
     UINT_32 value;
@@ -4065,7 +4067,12 @@ typedef union _ADDR3_SURFACE_FLAGS
         UINT_32 p010               : 1;
         UINT_32 view3dAs2dArray    : 1;
         UINT_32 isVrsImage         : 1; ///< This resource is a VRS source image
-        UINT_32 reserved           : 21; ///< Reserved bits
+        UINT_32 reserved1          : 2;
+        UINT_32 denseSliceExact    : 1;  ///< Pad dimensions such that
+                                         ///  Pow2Align(pitch*height, surfAlign)==pitch*height
+        UINT_32 qbStereo           : 1;  ///< Quad buffer stereo surface
+        UINT_32 display            : 1;  ///< This resource is displayable, can be used with DRV
+        UINT_32 reserved           : 16; ///< Reserved bits
     };
 
     UINT_32 value;
@@ -4108,10 +4115,11 @@ typedef struct _ADDR3_COMPUTE_SURFACE_INFO_INPUT
 */
 typedef struct _ADDR3_MIP_INFO
 {
-    UINT_32             pitch;              ///< Pitch in elements
+    UINT_32             pitch;              ///< Pitch in elements of image data
+    UINT_32             pitchForSlice;      ///< Pitch in elements used to compute slice size
     UINT_32             height;             ///< Padded height in elements
     UINT_32             depth;              ///< Padded depth
-    UINT_32             pixelPitch;         ///< Pitch in pixels
+    UINT_32             pixelPitch;         ///< Pitch in pixels for image data
     UINT_32             pixelHeight;        ///< Padded height in pixels
     UINT_32             equationIndex;      ///< Equation index in the equation table
     UINT_64             offset;             ///< Offset in bytes from mip base, should only be used
@@ -4138,7 +4146,8 @@ typedef struct _ADDR3_MIP_INFO
 typedef struct _ADDR3_COMPUTE_SURFACE_INFO_OUTPUT
 {
     UINT_32             size;                 ///< Size of this structure in bytes
-    UINT_32             pitch;                ///< Pitch in elements (blocks for compressed formats)
+    UINT_32             pitch;                ///< Pitch in elements for image data
+    UINT_32             pitchForSlice;        ///< Pitch in elements used to compute slice size
     UINT_32             pixelPitch;           ///< Pitch in original pixels
     UINT_32             pixelHeight;          ///< Height in original pixels
     UINT_32             pixelBits;            ///< Original bits per pixel, passed from input
@@ -4148,6 +4157,7 @@ typedef struct _ADDR3_COMPUTE_SURFACE_INFO_OUTPUT
                                               ///  or padded number of slices for 2d array resource
     UINT_32             height;               ///< Padded height (of mip0) in elements
     UINT_64             sliceSize;            ///< Slice (total mip chain) size in bytes
+    UINT_64             sliceSizeDensePacked; ///< Slice (total mip chain) size of image data in bytes
     UINT_64             surfSize;             ///< Surface (total mip chain) size in bytes
     UINT_32             baseAlign;            ///< Base address alignment
     ADDR_EXTENT3D       blockExtent;          ///< Dimensions in element inside one block
@@ -4157,6 +4167,8 @@ typedef struct _ADDR3_COMPUTE_SURFACE_INFO_OUTPUT
     BOOL_32             mipChainInTail;       ///< If whole mipchain falls into mip tail block
     UINT_32             firstMipIdInTail;     ///< The id of first mip in tail, if there is no mip
                                               ///  in tail, it will be set to number of mip levels
+    /// Stereo info
+    ADDR_QBSTEREOINFO*  pStereoInfo;          ///< Stereo info, needed if qbStereo flag is TRUE
 } ADDR3_COMPUTE_SURFACE_INFO_OUTPUT;
 
 /**
@@ -4181,7 +4193,8 @@ typedef union _ADDR3_SWMODE_SET
         UINT_32 sw3d4kB     :  1;
         UINT_32 sw3d64kB    :  1;
         UINT_32 sw3d256kB   :  1;
-        UINT_32 reserved    : 24;
+        UINT_32 reserved1   :  2;
+        UINT_32 reserved    : 22;
     };
 
     UINT_32 value;
@@ -4447,7 +4460,7 @@ typedef struct _ADDR3_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT
 *       Calculate sub resource offset to support swizzle pattern.
 ****************************************************************************************************
 */
-VOID ADDR_API Addr3ComputeSubResourceOffsetForSwizzlePattern(
+ADDR_E_RETURNCODE ADDR_API Addr3ComputeSubResourceOffsetForSwizzlePattern(
     ADDR_HANDLE                                                     hLib,
     const ADDR3_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,
     ADDR3_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut);

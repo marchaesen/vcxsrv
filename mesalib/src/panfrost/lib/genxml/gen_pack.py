@@ -125,6 +125,13 @@ __gen_unpack_padded(const uint8_t *restrict cl, uint32_t start, uint32_t end)
         ({ PREFIX2(T, pack)((uint32_t *) (dst), &name);  \\
            _loop_terminate = NULL; }))
 
+#define pan_pack_nodefaults(dst, T, name)                   \\
+   for (struct PREFIX1(T) name = { 0 }, \\
+        *_loop_terminate = &name;                           \\
+        __builtin_expect(_loop_terminate != NULL, 1);       \\
+        ({ PREFIX2(T, pack)((uint32_t *) (dst), &name);  \\
+           _loop_terminate = NULL; }))
+
 #define pan_unpack(src, T, name)                        \\
         struct PREFIX1(T) name;                         \\
         PREFIX2(T, unpack)((uint8_t *)(src), &name)
@@ -165,6 +172,17 @@ static inline void pan_merge_helper(uint32_t *dst, const uint32_t *src, size_t b
 
 #define pan_merge(packed1, packed2, type) \
         pan_merge_helper((packed1).opaque, (packed2).opaque, pan_size(type))
+
+static inline const char *mali_component_swizzle(unsigned val) {
+        static const char swiz_name[] = "RGBA01??";
+        static char out_str[5], *outp;
+        outp = out_str;
+        for (int i = 0; i < 12; i += 3) {
+                *outp++ = swiz_name[(val >> i) & 7];
+        }
+        *outp = 0;
+        return out_str;
+}
 
 /* From presentations, 16x16 tiles externally. Use shift for fast computation
  * of tile numbers. */
@@ -347,7 +365,7 @@ class Field(object):
             type = 'uint64_t'
         elif self.type == 'int':
             type = 'int32_t'
-        elif self.type in ['uint', 'hex', 'uint/float', 'padded', 'Pixel Format']:
+        elif self.type in ['uint', 'hex', 'uint/float', 'padded', 'Pixel Format', 'Component Swizzle']:
             type = 'uint32_t'
         elif self.type in self.parser.structs:
             type = 'struct ' + self.parser.gen_prefix(safe_name(self.type.upper()))
@@ -498,7 +516,7 @@ class Group(object):
                     elif field.modifier[0] == "log2":
                         value = "util_logbase2({})".format(value)
 
-                if field.type in ["uint", "hex", "uint/float", "address", "Pixel Format"]:
+                if field.type in ["uint", "hex", "uint/float", "address", "Pixel Format", "Component Swizzle"]:
                     s = "util_bitpack_uint(%s, %d, %d)" % \
                         (value, start, end)
                 elif field.type == "padded":
@@ -580,7 +598,7 @@ class Group(object):
             args.append(str(fieldref.start))
             args.append(str(fieldref.end))
 
-            if field.type in set(["uint", "hex", "uint/float", "address", "Pixel Format"]):
+            if field.type in set(["uint", "hex", "uint/float", "address", "Pixel Format", "Component Swizzle"]):
                 convert = "__gen_unpack_uint"
             elif field.type in self.parser.enums:
                 convert = "(enum %s)__gen_unpack_uint" % enum_name(field.type)
@@ -644,6 +662,8 @@ class Group(object):
                 print('   fprintf(fp, "%*s{}: 0x%X (%f)\\n", indent, "", {}, uif({}));'.format(name, val, val))
             elif field.type == "Pixel Format":
                 print('   mali_pixel_format_print(fp, {});'.format(val))
+            elif field.type == "Component Swizzle":
+                print('   fprintf(fp, "%*s{}: %u (%s)\\n", indent, "", {}, mali_component_swizzle({}));'.format(name, val, val))
             else:
                 print('   fprintf(fp, "%*s{}: %u\\n", indent, "", {});'.format(name, val))
 

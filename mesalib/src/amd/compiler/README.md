@@ -249,7 +249,6 @@ We also have `ACO_DEBUG` options:
 
 * `validateir` - Validate the ACO IR between compilation stages. By default, enabled in debug builds and disabled in release builds.
 * `validatera` - Perform a RA (register allocation) validation.
-* `perfwarn` - Warn when sub-optimal instructions are found.
 * `force-waitcnt` - Forces ACO to emit a wait state after each instruction when there is something to wait for. Harms performance.
 * `novn` - Disables the ACO value numbering stage.
 * `noopt` - Disables the ACO optimizer.

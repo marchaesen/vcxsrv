@@ -1,6 +1,6 @@
 libteflon = shared_library(
   'teflon',
-  [ 'target.c' ],
+  [ 'teflon_target.c' ],
   include_directories : [ inc_src, inc_util, inc_include, inc_gallium, inc_gallium_aux, inc_gallium_winsys, inc_gallium_drivers ],
   link_whole : [ libteflon_st ],
   link_with : [libpipe_loader_static, libws_null, libwsw, libswdri, libswkmsdri, libgallium ],
@@ -9,6 +9,7 @@ libteflon = shared_library(
   dependencies : [
     driver_etnaviv,
     idep_nir,
+    idep_mesautil,
   ],
   install : true,
 )

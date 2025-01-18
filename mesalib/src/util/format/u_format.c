@@ -1520,3 +1520,26 @@ util_format_get_max_channel_size(enum pipe_format format)
                8 : desc->channel[max_src_chan].size;
    }
 }
+
+static uint32_t blocksizes_64kb[5][6][3] = {
+/*   3D              2D 1 sample      2D 2 samples     2D 4 samples      2D 8 samples   2D 16 samples) */
+   { { 64, 32, 32 }, { 256, 256, 1 }, { 128, 256, 1 }, { 128, 128, 1 }, { 64, 128, 1 }, { 64, 64, 1 } }, /* 8 bits */
+   { { 32, 32, 32 }, { 256, 128, 1 }, { 128, 128, 1 }, { 128, 64,  1 }, { 64, 64,  1 }, { 64, 32, 1 } }, /* 16 bits */
+   { { 32, 32, 16 }, { 128, 128, 1 }, { 64,  128, 1 }, { 64,  64,  1 }, { 32, 64,  1 }, { 32, 32, 1 } }, /* 32 bits */
+   { { 32, 16, 16 }, { 128, 64,  1 }, { 64,  64,  1 }, { 64,  32,  1 }, { 32, 32,  1 }, { 32, 16, 1 } }, /* 64 bits */
+   { { 16, 16, 16 }, { 64,  64,  1 }, { 32,  64,  1 }, { 32,  32,  1 }, { 16, 32,  1 }, { 16, 16, 1 } }, /* 128 bits */
+};
+
+uint32_t
+util_format_get_tilesize(enum pipe_format format, uint32_t dimensions, uint32_t samples, uint32_t axis)
+{
+   if (dimensions == 1)
+      return axis == 0 ? 64 * 1024 : 1;
+
+   uint32_t kind = 0;
+   if (dimensions == 2)
+      kind = util_logbase2(samples) + 1;
+
+   uint32_t block_size_log2 = util_logbase2_ceil(util_format_get_blocksize(format));
+   return blocksizes_64kb[block_size_log2][kind][axis];
+}

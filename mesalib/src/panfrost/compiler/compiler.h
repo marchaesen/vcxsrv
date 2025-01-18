@@ -713,6 +713,7 @@ typedef struct bi_block {
    struct bi_block *successors[2];
    struct util_dynarray predecessors;
    bool unconditional_jumps;
+   bool loop_header;
 
    /* Per 32-bit word live masks for the block indexed by node */
    uint8_t *live_in;
@@ -1048,8 +1049,12 @@ bi_src_index(nir_src *src)
 #define bi_foreach_dest(ins, v) for (unsigned v = 0; v < ins->nr_dests; ++v)
 
 #define bi_foreach_ssa_src(ins, v)                                             \
-   for (unsigned v = 0; v < ins->nr_srcs; ++v)                                 \
+   bi_foreach_src(ins, v)                                                      \
       if (ins->src[v].type == BI_INDEX_NORMAL)
+
+#define bi_foreach_ssa_dest(ins, v)                                            \
+   bi_foreach_dest(ins, v)                                                     \
+      if (ins->dest[v].type == BI_INDEX_NORMAL)
 
 #define bi_foreach_instr_and_src_in_tuple(tuple, ins, s)                       \
    bi_foreach_instr_in_tuple(tuple, ins)                                       \
@@ -1126,10 +1131,10 @@ void bi_mark_clauses_td(bi_context *ctx);
 
 void bi_analyze_helper_requirements(bi_context *ctx);
 void bi_opt_copy_prop(bi_context *ctx);
+void bi_opt_dce(bi_context *ctx, bool partial);
 void bi_opt_cse(bi_context *ctx);
 void bi_opt_mod_prop_forward(bi_context *ctx);
 void bi_opt_mod_prop_backward(bi_context *ctx);
-void bi_opt_dead_code_eliminate(bi_context *ctx);
 void bi_opt_fuse_dual_texture(bi_context *ctx);
 void bi_opt_dce_post_ra(bi_context *ctx);
 void bi_opt_message_preload(bi_context *ctx);

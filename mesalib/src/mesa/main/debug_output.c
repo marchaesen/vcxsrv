@@ -34,6 +34,7 @@
 #include "version.h"
 #include "util/hash_table.h"
 #include "util/list.h"
+#include "util/log.h"
 #include "util/u_memory.h"
 #include "api_exec_decl.h"
 

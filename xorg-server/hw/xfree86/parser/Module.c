@@ -95,6 +95,8 @@ xf86parseModuleSubSection(XF86LoadPtr head, char *name)
         switch (token) {
         case COMMENT:
             ptr->load_comment = xf86addComment(ptr->load_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case OPTION:
             ptr->load_opt = xf86parseOption(ptr->load_opt);
@@ -126,6 +128,8 @@ xf86parseModuleSection(void)
         switch (token) {
         case COMMENT:
             ptr->mod_comment = xf86addComment(ptr->mod_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case LOAD:
             if (xf86getSubToken(&(ptr->mod_comment)) != STRING)
@@ -230,10 +234,13 @@ xf86addNewLoadDirective(XF86LoadPtr head, const char *name, int type,
     new->ignore = 0;
     new->list.next = NULL;
 
-    if ((token = xf86getToken(NULL)) == COMMENT)
+    if ((token = xf86getToken(NULL)) == COMMENT) {
         new->load_comment = xf86addComment(new->load_comment, xf86_lex_val.str);
-    else
+        free(xf86_lex_val.str);
+        xf86_lex_val.str = NULL;
+    } else {
         xf86unGetToken(token);
+    }
 
     return ((XF86LoadPtr) xf86addListItem((glp) head, (glp) new));
 }

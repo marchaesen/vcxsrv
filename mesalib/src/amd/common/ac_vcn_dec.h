@@ -1153,13 +1153,6 @@ typedef struct rvcn_dec_vp9_probs_segment_s {
    };
 } rvcn_dec_vp9_probs_segment_t;
 
-struct rvcn_av1_prob_funcs
-{
-   void (*init_mode_probs)(void * prob);
-   void (*init_mv_probs)(void *prob);
-   void (*default_coef_probs)(void *prob, int index);
-};
-
 typedef struct rvcn_dec_av1_fg_init_buf_s {
    short luma_grain_block[64][96];
    short cb_grain_block[32][48];
@@ -1210,5 +1203,9 @@ struct jpeg_params {
 #define RDECODE_VCN2_5_ENGINE_CNTL      0x9b4
 
 #define RDECODE_SESSION_CONTEXT_SIZE (128 * 1024)
+
+unsigned ac_vcn_dec_calc_ctx_size_av1(unsigned av1_version);
+void ac_vcn_av1_init_probs(unsigned av1_version, uint8_t *prob);
+void ac_vcn_av1_init_film_grain_buffer(rvcn_dec_film_grain_params_t *fg_params, rvcn_dec_av1_fg_init_buf_t *fg_buf);
 
 #endif

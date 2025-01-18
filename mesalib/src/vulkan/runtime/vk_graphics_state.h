@@ -40,7 +40,7 @@ struct vk_device;
 
 /** Enumeration of all Vulkan dynamic graphics states
  *
- * Enumerants are named with both the abreviation of the state group to which
+ * Enumerants are named with both the abbreviation of the state group to which
  * the state belongs as well as the name of the state itself.  These are
  * intended to pretty closely match the VkDynamicState enum but may not match
  * perfectly all the time.
@@ -58,6 +58,7 @@ enum mesa_vk_dynamic_graphics_state {
    MESA_VK_DYNAMIC_VP_SCISSOR_COUNT,
    MESA_VK_DYNAMIC_VP_SCISSORS,
    MESA_VK_DYNAMIC_VP_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE,
+   MESA_VK_DYNAMIC_VP_DEPTH_CLAMP_RANGE,
    MESA_VK_DYNAMIC_DR_RECTANGLES,
    MESA_VK_DYNAMIC_DR_MODE,
    MESA_VK_DYNAMIC_DR_ENABLE,
@@ -113,6 +114,11 @@ enum mesa_vk_dynamic_graphics_state {
 };
 
 #define MESA_VK_ATTACHMENT_UNUSED (0xff)
+
+/* This means that input attachments without an index map to this attachment.
+ * It is only used for depth and stencil attachments.
+ */
+#define MESA_VK_ATTACHMENT_NO_INDEX (0xfe)
 
 /** Populate a bitset with dynamic states
  *
@@ -196,6 +202,18 @@ struct vk_viewport_state {
    /** VkPipelineViewportDepthClipControlCreateInfoEXT::negativeOneToOne
     */
    bool depth_clip_negative_one_to_one;
+
+   /** VkPipelineViewportDepthClampControlCreateInfoEXT::depthClampMode
+    *
+    * MESA_VK_DYNAMIC_GRAPHICS_STATE_VP_DEPTH_CLAMP_RANGE
+    */
+   VkDepthClampModeEXT depth_clamp_mode;
+
+   /** VkPipelineViewportDepthClampControlCreateInfoEXT::pDepthClampRange
+    *
+    * MESA_VK_DYNAMIC_GRAPHICS_STATE_VP_DEPTH_CLAMP_RANGE
+    */
+   VkDepthClampRangeEXT depth_clamp_range;
 
    /** VkPipelineViewportStateCreateInfo::viewportCount
     *
@@ -413,6 +431,15 @@ struct vk_fragment_shading_rate_state {
     */
    VkFragmentShadingRateCombinerOpKHR combiner_ops[2];
 };
+
+static inline bool
+vk_fragment_shading_rate_is_disabled(const struct vk_fragment_shading_rate_state *fsr)
+{
+   return fsr->fragment_size.width == 1 &&
+          fsr->fragment_size.height == 1 &&
+          fsr->combiner_ops[0] == VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR &&
+          fsr->combiner_ops[1] == VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
+}
 
 /***/
 struct vk_sample_locations_state {
@@ -694,6 +721,8 @@ static_assert(MESA_VK_MAX_COLOR_ATTACHMENTS == 8,
 #define MESA_VK_RP_ATTACHMENT_COLOR_BIT(n) \
    ((enum vk_rp_attachment_flags)(MESA_VK_RP_ATTACHMENT_COLOR_0_BIT << (n)))
 
+#define MESA_VK_COLOR_ATTACHMENT_COUNT_UNKNOWN 0xff
+
 /***/
 struct vk_input_attachment_location_state {
    /** VkRenderingInputAttachmentIndexInfoKHR::pColorAttachmentLocations
@@ -701,6 +730,18 @@ struct vk_input_attachment_location_state {
     * MESA_VK_DYNAMIC_INPUT_ATTACHMENT_MAP
     */
    uint8_t color_map[MESA_VK_MAX_COLOR_ATTACHMENTS];
+
+   /** VkRenderingInputAttachmentIndexInfoKHR::colorAttachmentCount
+    *
+    * This must match vk_render_pass_state::color_attachment_count or be equal
+    * to MESA_VK_COLOR_ATTACHMENT_COUNT_UNKNOWN, in which case it can be
+    * assumed that there is an identity mapping and every input attachment
+    * with an index is a color attachment. Unlike vk_render_pass_state this
+    * state is available when compiling the fragment shader.
+    *
+    * MESA_VK_DYNAMIC_INPUT_ATTACHMENT_MAP
+    */
+   uint8_t color_attachment_count;
 
    /** VkRenderingInputAttachmentIndexInfoKHR::pDepthInputAttachmentIndex
     *
@@ -981,7 +1022,7 @@ struct vk_graphics_pipeline_state {
    /** Fragment shading rate state */
    const struct vk_fragment_shading_rate_state *fsr;
 
-   /** Multiesample state */
+   /** Multisample state */
    const struct vk_multisample_state *ms;
 
    /** Depth stencil state */
@@ -1136,21 +1177,21 @@ vk_graphics_pipeline_get_state(const struct vk_graphics_pipeline_state *state,
 
 /** Initialize a vk_dynamic_graphics_state with defaults
  *
- * :param dyn:          |out| Dynamic graphics state to initizlie
+ * :param dyn:          |out| Dynamic graphics state to initialize
  */
 void
 vk_dynamic_graphics_state_init(struct vk_dynamic_graphics_state *dyn);
 
 /** Clear a vk_dynamic_graphics_state to defaults
  *
- * :param dyn:          |out| Dynamic graphics state to initizlie
+ * :param dyn:          |out| Dynamic graphics state to initialize
  */
 void
 vk_dynamic_graphics_state_clear(struct vk_dynamic_graphics_state *dyn);
 
 /** Initialize a vk_dynamic_graphics_state for a pipeline
  *
- * :param dyn:          |out| Dynamic graphics state to initizlie
+ * :param dyn:          |out| Dynamic graphics state to initialize
  * :param supported:    |in|  Bitset of all dynamic state supported by the driver.
  * :param p:            |in|  The pipeline state from which to initialize the
  *                            dynamic state.
@@ -1247,6 +1288,13 @@ vk_cmd_set_cb_attachment_count(struct vk_command_buffer *cmd,
 void
 vk_cmd_set_rp_attachments(struct vk_command_buffer *cmd,
                           enum vk_rp_attachment_flags attachments);
+
+/* This is equivalent to CmdSetRenderingAttachmentLocationsKHR() but easier to
+ * invoke from inside drivers.
+ */
+void
+vk_cmd_set_rendering_attachment_locations(struct vk_command_buffer *cmd,
+                                          const VkRenderingAttachmentLocationInfoKHR *info);
 
 const char *
 vk_dynamic_graphic_state_to_str(enum mesa_vk_dynamic_graphics_state state);

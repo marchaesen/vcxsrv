@@ -31,7 +31,7 @@ mv $registry_names.tmp $registry_names
 # name[Group1]="blah blah" and print out a line `filename(variant):"blah blah"`.
 # Ideally that file should then match the base{.extras}.xml extracted names, i.e.
 # the two files are in sync.
-for sym in "$ROOT"/symbols/*; do
+for sym in $(find "$ROOT"/symbols/ -type f -maxdepth 1); do
   if [ -f "$sym" ]; then
     id="$(basename "$sym")"
     export id

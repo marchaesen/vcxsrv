@@ -38,6 +38,8 @@
 #include "drm-uapi/drm_fourcc.h"
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
+#include "util/u_drm.h"
+
 #include "vk_format.h"
 #include "vk_log.h"
 #include "vk_object.h"
@@ -45,7 +47,212 @@
 
 #define PANVK_MAX_PLANES 1
 
-static unsigned
+static bool
+panvk_image_can_use_mod(struct panvk_image *image, uint64_t mod)
+{
+   struct panvk_physical_device *phys_dev =
+      to_panvk_physical_device(image->vk.base.device->physical);
+   unsigned arch = pan_arch(phys_dev->kmod.props.gpu_prod_id);
+   struct panvk_instance *instance =
+      to_panvk_instance(image->vk.base.device->physical->instance);
+   enum pipe_format pfmt = vk_format_to_pipe_format(image->vk.format);
+   bool forced_linear = (instance->debug_flags & PANVK_DEBUG_LINEAR) ||
+                        image->vk.tiling == VK_IMAGE_TILING_LINEAR ||
+                        image->vk.image_type == VK_IMAGE_TYPE_1D;
+
+   /* If the image is meant to be linear, don't bother testing the
+    * other cases. */
+   if (forced_linear)
+      return mod == DRM_FORMAT_MOD_LINEAR;
+
+   if (drm_is_afbc(mod)) {
+      /* Disallow AFBC if either of these is true
+       * - PANVK_DEBUG does not have the 'afbc' flag set
+       * - storage image views are requested
+       * - this is a multisample image
+       * - the GPU doesn't support AFBC
+       * - the format is not AFBC-able
+       * - tiling is set to linear
+       * - this is a 1D image
+       * - this is a 3D image on a pre-v7 GPU
+       */
+      if (!(instance->debug_flags & PANVK_DEBUG_AFBC) ||
+          ((image->vk.usage | image->vk.stencil_usage) &
+           VK_IMAGE_USAGE_STORAGE_BIT) ||
+          image->vk.samples > 1 ||
+          !panfrost_query_afbc(&phys_dev->kmod.props) ||
+          !panfrost_format_supports_afbc(arch, pfmt) ||
+          image->vk.tiling == VK_IMAGE_TILING_LINEAR ||
+          image->vk.image_type == VK_IMAGE_TYPE_1D ||
+          (image->vk.image_type == VK_IMAGE_TYPE_3D && arch < 7))
+         return false;
+
+      const struct util_format_description *fdesc =
+         util_format_description(pfmt);
+      bool is_rgb = fdesc->colorspace == UTIL_FORMAT_COLORSPACE_RGB ||
+                    fdesc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB;
+
+      if ((mod & AFBC_FORMAT_MOD_YTR) && (!is_rgb || fdesc->nr_channels >= 3))
+         return false;
+
+      /* We assume all other unsupported AFBC modes have been filtered out
+       * through pan_best_modifiers[]. */
+      return true;
+   }
+
+   if (mod == DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED) {
+      /* If we're dealing with a compressed format that requires non-compressed
+       * views we can't use U_INTERLEAVED tiling because the tiling is different
+       * between compressed and non-compressed formats. If we wanted to support
+       * format re-interpretation we would have to specialize the shaders
+       * accessing non-compressed image views (coordinate patching for
+       * sampled/storage image, frag_coord patching for color attachments). Let's
+       * keep things simple for now and make all compressed images that
+       * have VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT set linear. */
+      return !(image->vk.create_flags &
+               VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT);
+   }
+
+   /* If we get there, it must be linear to be supported. */
+   return mod == DRM_FORMAT_MOD_LINEAR;
+}
+
+static void
+panvk_image_apply_explicit_mod(
+   struct panvk_image *image,
+   const VkImageDrmFormatModifierExplicitCreateInfoEXT *explicit)
+{
+   struct panvk_physical_device *phys_dev =
+      to_panvk_physical_device(image->vk.base.device->physical);
+   unsigned arch = pan_arch(phys_dev->kmod.props.gpu_prod_id);
+   uint64_t mod = explicit->drmFormatModifier;
+
+   /* TODO: support arrays, 3D, multisample and depth-stencil. */
+   struct pan_image_explicit_layout plane0_layout = {
+      .offset = explicit->pPlaneLayouts[0].offset,
+      .row_stride = explicit->pPlaneLayouts[0].rowPitch,
+   };
+
+   assert(!vk_format_is_depth_or_stencil(image->vk.format));
+   assert(image->vk.samples == 1);
+   assert(image->vk.array_layers == 1);
+   assert(image->vk.image_type != VK_IMAGE_TYPE_3D);
+   assert(explicit->drmFormatModifierPlaneCount == 1);
+   assert(panvk_image_can_use_mod(image, mod));
+
+   image->pimage.layout.modifier = mod;
+   pan_image_layout_init(arch, &image->pimage.layout, &plane0_layout);
+}
+
+static void
+panvk_image_select_mod_from_list(struct panvk_image *image,
+                                 const uint64_t *mods, uint32_t mod_count)
+{
+   struct panvk_physical_device *phys_dev =
+      to_panvk_physical_device(image->vk.base.device->physical);
+   unsigned arch = pan_arch(phys_dev->kmod.props.gpu_prod_id);
+
+   for (unsigned i = 0; i < PAN_MODIFIER_COUNT; ++i) {
+      if (!panvk_image_can_use_mod(image, pan_best_modifiers[i]))
+         continue;
+
+      if (!mod_count ||
+          drm_find_modifier(pan_best_modifiers[i], mods, mod_count)) {
+         image->pimage.layout.modifier = pan_best_modifiers[i];
+         pan_image_layout_init(arch, &image->pimage.layout, NULL);
+         return;
+      }
+   }
+
+   /* If we reached that point without finding a proper modifier, there's
+    * a serious issue. */
+   image->pimage.layout.modifier = DRM_FORMAT_MOD_INVALID;
+   assert(!"Invalid modifier");
+}
+
+static void
+panvk_image_select_mod(struct panvk_image *image,
+                       const VkImageCreateInfo *pCreateInfo)
+{
+   if (pCreateInfo->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
+      const VkImageDrmFormatModifierListCreateInfoEXT *mod_list =
+         vk_find_struct_const(pCreateInfo->pNext,
+                              IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
+      const VkImageDrmFormatModifierExplicitCreateInfoEXT *explicit_mod =
+         vk_find_struct_const(
+            pCreateInfo->pNext,
+            IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
+
+      if (explicit_mod)
+         panvk_image_apply_explicit_mod(image, explicit_mod);
+      else if (mod_list)
+         panvk_image_select_mod_from_list(image, mod_list->pDrmFormatModifiers,
+                                          mod_list->drmFormatModifierCount);
+      else
+         assert(!"Missing modifier info");
+
+      return;
+   }
+
+   panvk_image_select_mod_from_list(image, NULL, 0);
+}
+
+static void
+panvk_image_pre_mod_select_meta_adjustments(struct panvk_image *image)
+{
+   const VkImageAspectFlags aspects = vk_format_aspects(image->vk.format);
+
+   /* We do image blit/resolve with vk_meta, so when an image is flagged as
+    * being a potential transfer source, we also need to add the sampled usage.
+    */
+   if (image->vk.usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+      image->vk.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+      if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
+         image->vk.stencil_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+   }
+
+   if (image->vk.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+      /* Similarly, image that can be a transfer destination can be attached
+       * as a color or depth-stencil attachment by vk_meta. */
+      if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
+         image->vk.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+      if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
+         image->vk.stencil_usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+      if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
+         image->vk.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+         image->vk.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+      }
+
+      /* vk_meta creates 2D array views of 3D images. */
+      if (image->vk.image_type == VK_IMAGE_TYPE_3D)
+         image->vk.create_flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
+   }
+
+   /* Needed for resolve operations. */
+   if (image->vk.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+      image->vk.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+
+   if (image->vk.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+      if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
+         image->vk.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+
+      if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
+         image->vk.stencil_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+   }
+
+   if ((image->vk.usage &
+        (VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)) &&
+       util_format_is_compressed(image->pimage.layout.format)) {
+      /* We need to be able to create RGBA views of compressed formats for
+       * vk_meta copies. */
+      image->vk.create_flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT |
+                                VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT;
+   }
+}
+
+static uint64_t
 panvk_image_get_total_size(const struct panvk_image *image)
 {
    assert(util_format_get_num_planes(image->pimage.layout.format) == 1);
@@ -67,22 +274,18 @@ panvk_image_type_to_mali_tex_dim(VkImageType type)
    }
 }
 
-static VkResult
-panvk_image_create(VkDevice _device, const VkImageCreateInfo *pCreateInfo,
-                   const VkAllocationCallbacks *alloc, VkImage *pImage,
-                   uint64_t modifier, const VkSubresourceLayout *plane_layouts)
+VKAPI_ATTR VkResult VKAPI_CALL
+panvk_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+                  const VkAllocationCallbacks *pAllocator, VkImage *pImage)
 {
-   VK_FROM_HANDLE(panvk_device, device, _device);
-   struct panvk_physical_device *phys_dev =
-      to_panvk_physical_device(device->vk.physical);
-   struct panvk_image *image = NULL;
+   VK_FROM_HANDLE(panvk_device, dev, device);
 
-   image = vk_image_create(&device->vk, pCreateInfo, alloc, sizeof(*image));
+   struct panvk_image *image =
+      vk_image_create(&dev->vk, pCreateInfo, pAllocator, sizeof(*image));
    if (!image)
-      return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+      return panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    image->pimage.layout = (struct pan_image_layout){
-      .modifier = modifier,
       .format = vk_format_to_pipe_format(image->vk.format),
       .dim = panvk_image_type_to_mali_tex_dim(image->vk.image_type),
       .width = image->vk.extent.width,
@@ -93,121 +296,17 @@ panvk_image_create(VkDevice _device, const VkImageCreateInfo *pCreateInfo,
       .nr_slices = image->vk.mip_levels,
    };
 
-   unsigned arch = pan_arch(phys_dev->kmod.props.gpu_prod_id);
-   pan_image_layout_init(arch, &image->pimage.layout, NULL);
+   /* Add any create/usage flags that might be needed for meta operations.
+    * This is run before the modifier selection because some
+    * usage/create_flags influence the modifier selection logic. */
+   panvk_image_pre_mod_select_meta_adjustments(image);
+
+   /* Now that we've patched the create/usage flags, we can proceed with the
+    * modifier selection. */
+   panvk_image_select_mod(image, pCreateInfo);
 
    *pImage = panvk_image_to_handle(image);
    return VK_SUCCESS;
-}
-
-static uint64_t
-panvk_image_select_mod(VkDevice _device, const VkImageCreateInfo *pCreateInfo,
-                       const VkSubresourceLayout **plane_layouts)
-{
-   VK_FROM_HANDLE(panvk_device, device, _device);
-   struct panvk_instance *instance =
-      to_panvk_instance(device->vk.physical->instance);
-   struct panvk_physical_device *phys_dev =
-      to_panvk_physical_device(device->vk.physical);
-   enum pipe_format fmt = vk_format_to_pipe_format(pCreateInfo->format);
-   bool noafbc = !(instance->debug_flags & PANVK_DEBUG_AFBC);
-   bool linear = instance->debug_flags & PANVK_DEBUG_LINEAR;
-
-   *plane_layouts = NULL;
-
-   if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
-      return DRM_FORMAT_MOD_LINEAR;
-
-   if (pCreateInfo->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
-      const VkImageDrmFormatModifierListCreateInfoEXT *mod_info =
-         vk_find_struct_const(pCreateInfo->pNext,
-                              IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
-      const VkImageDrmFormatModifierExplicitCreateInfoEXT *drm_explicit_info =
-         vk_find_struct_const(
-            pCreateInfo->pNext,
-            IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
-
-      assert(mod_info || drm_explicit_info);
-
-      uint64_t modifier;
-
-      if (mod_info) {
-         modifier = DRM_FORMAT_MOD_LINEAR;
-         for (unsigned i = 0; i < mod_info->drmFormatModifierCount; i++) {
-            if (drm_is_afbc(mod_info->pDrmFormatModifiers[i]) && !noafbc) {
-               modifier = mod_info->pDrmFormatModifiers[i];
-               break;
-            }
-         }
-      } else {
-         modifier = drm_explicit_info->drmFormatModifier;
-         assert(modifier == DRM_FORMAT_MOD_LINEAR ||
-                modifier == DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED ||
-                (drm_is_afbc(modifier) && !noafbc));
-         *plane_layouts = drm_explicit_info->pPlaneLayouts;
-      }
-
-      return modifier;
-   }
-
-   const struct wsi_image_create_info *wsi_info =
-      vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
-   if (wsi_info && wsi_info->scanout)
-      return DRM_FORMAT_MOD_LINEAR;
-
-   assert(pCreateInfo->tiling == VK_IMAGE_TILING_OPTIMAL);
-
-   if (linear)
-      return DRM_FORMAT_MOD_LINEAR;
-
-   /* Image store don't work on AFBC images */
-   if (pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT)
-      return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
-
-   /* AFBC does not support layered multisampling */
-   if (pCreateInfo->samples > 1)
-      return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
-
-   if (!panfrost_query_afbc(&phys_dev->kmod.props))
-      return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
-
-   /* Only a small selection of formats are AFBC'able */
-   unsigned arch = pan_arch(phys_dev->kmod.props.gpu_prod_id);
-   if (!panfrost_format_supports_afbc(arch, fmt))
-      return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
-
-   /* 3D AFBC is only supported on Bifrost v7+. It's supposed to
-    * be supported on Midgard but it doesn't seem to work.
-    */
-   if (pCreateInfo->imageType == VK_IMAGE_TYPE_3D && arch < 7)
-      return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
-
-   /* For one tile, AFBC is a loss compared to u-interleaved */
-   if (pCreateInfo->extent.width <= 16 && pCreateInfo->extent.height <= 16)
-      return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
-
-   if (noafbc)
-      return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
-
-   uint64_t afbc_type =
-      AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 | AFBC_FORMAT_MOD_SPARSE;
-
-   if (panfrost_afbc_can_ytr(fmt))
-      afbc_type |= AFBC_FORMAT_MOD_YTR;
-
-   return DRM_FORMAT_MOD_ARM_AFBC(afbc_type);
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-panvk_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
-                  const VkAllocationCallbacks *pAllocator, VkImage *pImage)
-{
-   const VkSubresourceLayout *plane_layouts;
-   uint64_t modifier =
-      panvk_image_select_mod(device, pCreateInfo, &plane_layouts);
-
-   return panvk_image_create(device, pCreateInfo, pAllocator, pImage, modifier,
-                             plane_layouts);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -284,7 +383,8 @@ panvk_GetImageSparseMemoryRequirements2(
    uint32_t *pSparseMemoryRequirementCount,
    VkSparseImageMemoryRequirements2 *pSparseMemoryRequirements)
 {
-   panvk_stub();
+   /* Sparse images are not yet supported. */
+   *pSparseMemoryRequirementCount = 0;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

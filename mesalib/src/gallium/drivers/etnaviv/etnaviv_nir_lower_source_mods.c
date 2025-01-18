@@ -112,7 +112,6 @@ etna_nir_lower_to_source_mods(nir_shader *shader)
 
    return nir_shader_instructions_pass(shader,
                                        nir_lower_to_source_mods_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        NULL);
 }

@@ -5,18 +5,6 @@
 # Still running after 3 hours, time is spent in batch_draw_tracking().
 KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
 
-# causes a hangcheck timeout on a618:
-# msm ae00000.mdss: [drm:hangcheck_handler] *ERROR* A618: hangcheck detected gpu lockup rb 0!
-#
-# even if they sometimes pass and could be categorized as flakes, we skip them
-# because device loss will end up failing the rest of the caselist.
-dEQP-VK.api.command_buffers.record_many_draws_primary_2
-dEQP-VK.api.command_buffers.record_many_draws_secondary_2
-dEQP-VK.graphicsfuzz.spv-stable-maze-flatten-copy-composite
-spill-dEQP-VK.graphicsfuzz.cov-function-two-loops-limit-using-arguments-array-element-copies
-spill-dEQP-VK.graphicsfuzz.cov-nested-loop-large-array-index-using-vector-components
-spill-dEQP-VK.graphicsfuzz.cov-nested-loop-undefined-smoothstep-never-executed
-
 # 60s timeout
 KHR-GLES31.core.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_MaxPatchVertices_Position_PointSize
 KHR-GL46.copy_image.functional

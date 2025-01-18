@@ -2,6 +2,8 @@
 
 # This crashes on Ubuntu 20.04, but not later LTS versions
 glx@glx-make-current
+# samples=8 is flaky
+glx@glx-copy-sub-buffer
 
 glx@glx-swap-event_interval
 glx@glx-multithread-texture
@@ -18,8 +20,9 @@ spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
 
 # glcts
-
 KHR-GL46.sparse_texture2_tests.SparseTexture2Lookup
+# flaky (at least on gfx11 and gfx10)
+GTF-GL46.gtf30.GL3Tests.blend_minmax.blend_minmax_clamping
 
 # NGG culling (gfx10-gfx10.3) breaks this statistic. Only reproducible with AMD_DEBUG=mono
 # or when asynchronous compilation finishes before the test is finished.
@@ -33,7 +36,18 @@ KHR-GL46.geometry_shader.primitive_counter.lines_to_line_strip
 KHR-GL46.geometry_shader.primitive_counter.lines_to_line_strip_rp
 KHR-GL46.geometry_shader.primitive_counter.triangles_to_line_strip
 KHR-GL46.geometry_shader.primitive_counter.triangles_to_line_strip_rp
+KHR-GL46.geometry_shader.primitive_counter.points_to_line_strip
+KHR-GL46.geometry_shader.primitive_counter.points_to_line_strip_rp
+KHR-GLES31.core.geometry_shader.primitive_counter.points_to_line_strip
+KHR-GLES31.core.geometry_shader.primitive_counter.points_to_line_strip_rp
+KHR-GLES32.core.geometry_shader.primitive_counter.points_to_line_strip
+KHR-GLES32.core.geometry_shader.primitive_counter.points_to_line_strip_rp
 dEQP-GLES31.functional.tessellation.invariance.primitive_set.triangles_fractional_even_spacing_ccw_point_mode
 dEQP-GLES31.functional.tessellation.invariance.primitive_set.triangles_fractional_even_spacing_cw_point_mode
 dEQP-GLES31.functional.tessellation.invariance.primitive_set.triangles_fractional_odd_spacing_ccw_point_mode
 dEQP-GLES31.functional.tessellation.invariance.primitive_set.triangles_fractional_odd_spacing_cw_point_mode
+
+# This one will be Crash or Fail depending on the shader cache state
+spec@!opengl 1.0@rasterpos
+spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked
+spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked

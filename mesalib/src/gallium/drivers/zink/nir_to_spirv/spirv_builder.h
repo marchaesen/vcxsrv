@@ -63,6 +63,8 @@ struct spirv_builder {
 };
 
 struct spriv_tex_src {
+   SpvId src;
+   SpvId cl_sampler;
    SpvId coord;
    SpvId proj;
    SpvId bias;
@@ -74,7 +76,6 @@ struct spriv_tex_src {
    SpvId offset;
    SpvId sample;
    SpvId tex_offset;
-   SpvId bindless;
    SpvId min_lod;
    bool sparse;
 };

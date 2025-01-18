@@ -237,7 +237,7 @@ etna_ml_subgraph_create(struct pipe_context *pcontext,
                         unsigned count)
 {
    struct etna_context *ctx = etna_context(pcontext);
-   unsigned nn_core_count = ctx->screen->specs.nn_core_count;
+   unsigned nn_core_count = ctx->screen->info->npu.nn_core_count;
    struct etna_ml_subgraph *subgraph;
    struct list_head operations;
    unsigned tensor_count;
@@ -358,7 +358,7 @@ void
 etna_ml_subgraph_invoke(struct pipe_context *pctx, struct pipe_ml_subgraph *psubgraph, struct pipe_tensor *input)
 {
    struct etna_context *ctx = etna_context(pctx);
-   unsigned tp_core_count = ctx->screen->specs.tp_core_count;
+   unsigned tp_core_count = ctx->screen->info->npu.tp_core_count;
    struct etna_ml_subgraph *subgraph = (struct etna_ml_subgraph *)(psubgraph);
    struct etna_cmd_stream *stream = ctx->stream;
    static bool is_initialized = false;

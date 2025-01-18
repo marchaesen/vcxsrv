@@ -47,7 +47,8 @@ vn_ring_get_layout(size_t buf_size,
 struct vn_ring *
 vn_ring_create(struct vn_instance *instance,
                const struct vn_ring_layout *layout,
-               uint8_t direct_order);
+               uint8_t direct_order,
+               bool is_tls_ring);
 
 void
 vn_ring_destroy(struct vn_ring *ring);

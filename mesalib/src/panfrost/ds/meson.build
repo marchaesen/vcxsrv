@@ -1,7 +1,6 @@
 # Copyright © 2020 Collabora, Ltd.
 # Author: Antonio Caggiano <antonio.caggiano@collabora.com>
 # Author: Robert Beckett <bob.beckett@collabora.com>
-#
 # SPDX-License-Identifier: MIT
 
 pps_panfrost_sources = [

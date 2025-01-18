@@ -669,7 +669,7 @@ static void r300_resource_copy_region(struct pipe_context *pipe,
     util_blitter_blit_generic(r300->blitter, dst_view, &dstbox,
                               src_view, src_box, src_width0, src_height0,
                               PIPE_MASK_RGBAZS, PIPE_TEX_FILTER_NEAREST, NULL,
-                              false, false, 0);
+                              false, false, 0, NULL);
     r300_blitter_end(r300);
 
     pipe_surface_reference(&dst_view, NULL);
@@ -791,7 +791,7 @@ static void r300_msaa_resolve(struct pipe_context *pipe,
     blit.src.box.z = 0;
 
     r300_blitter_begin(r300, R300_BLIT | R300_IGNORE_RENDER_COND);
-    util_blitter_blit(r300->blitter, &blit);
+    util_blitter_blit(r300->blitter, &blit, NULL);
     r300_blitter_end(r300);
 
     pipe_resource_reference(&tmp, NULL);
@@ -859,7 +859,7 @@ static void r300_blit(struct pipe_context *pipe,
 
     r300_blitter_begin(r300, R300_BLIT |
 		       (info.render_condition_enable ? 0 : R300_IGNORE_RENDER_COND));
-    util_blitter_blit(r300->blitter, &info);
+    util_blitter_blit(r300->blitter, &info, NULL);
     r300_blitter_end(r300);
 }
 

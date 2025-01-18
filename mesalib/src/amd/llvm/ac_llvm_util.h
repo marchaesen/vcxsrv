@@ -43,18 +43,16 @@ enum ac_float_mode
 
 /* Per-thread persistent LLVM objects. */
 struct ac_llvm_compiler {
-   LLVMTargetLibraryInfoRef target_library_info;
-   LLVMPassManagerRef passmgr;
-
    /* Default compiler. */
    LLVMTargetMachineRef tm;
-   struct ac_compiler_passes *passes;
+   struct ac_midend_optimizer *meo;
+   struct ac_backend_optimizer *beo;
 
    /* Optional compiler for faster compilation with fewer optimizations.
     * LLVM modules can be created with "tm" too. There is no difference.
     */
    LLVMTargetMachineRef low_opt_tm; /* uses -O1 instead of -O2 */
-   struct ac_compiler_passes *low_opt_passes;
+   struct ac_backend_optimizer *low_opt_beo;
 };
 
 LLVMTargetRef ac_get_llvm_target(const char *triple);
@@ -77,8 +75,6 @@ void ac_llvm_add_target_dep_function_attr(LLVMValueRef F, const char *name, unsi
 void ac_llvm_set_workgroup_size(LLVMValueRef F, unsigned size);
 void ac_llvm_set_target_features(LLVMValueRef F, struct ac_llvm_context *ctx, bool wgp_mode);
 
-LLVMTargetLibraryInfoRef ac_create_target_library_info(const char *triple);
-void ac_dispose_target_library_info(LLVMTargetLibraryInfoRef library_info);
 PUBLIC void ac_init_shared_llvm_once(void); /* Do not use directly, use ac_init_llvm_once */
 void ac_init_llvm_once(void);
 
@@ -86,12 +82,15 @@ bool ac_init_llvm_compiler(struct ac_llvm_compiler *compiler, enum radeon_family
                            enum ac_target_machine_options tm_options);
 void ac_destroy_llvm_compiler(struct ac_llvm_compiler *compiler);
 
-struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm);
-void ac_destroy_llvm_passes(struct ac_compiler_passes *p);
-bool ac_compile_module_to_elf(struct ac_compiler_passes *p, LLVMModuleRef module,
+struct ac_midend_optimizer *ac_create_midend_optimizer(LLVMTargetMachineRef tm,
+                                                       bool check_ir);
+void ac_destroy_midend_optimiser(struct ac_midend_optimizer *meo);
+bool ac_llvm_optimize_module(struct ac_midend_optimizer *meo, LLVMModuleRef module);
+
+struct ac_backend_optimizer *ac_create_backend_optimizer(LLVMTargetMachineRef tm);
+void ac_destroy_backend_optimizer(struct ac_backend_optimizer *beo);
+bool ac_compile_module_to_elf(struct ac_backend_optimizer *beo, LLVMModuleRef module,
                               char **pelf_buffer, size_t *pelf_size);
-LLVMPassManagerRef ac_create_passmgr(LLVMTargetLibraryInfoRef target_library_info,
-                                     bool check_ir);
 
 static inline bool ac_has_vec3_support(enum amd_gfx_level chip, bool use_format)
 {

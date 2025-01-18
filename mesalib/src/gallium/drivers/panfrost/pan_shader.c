@@ -85,9 +85,7 @@ lower_load_poly_line_smooth_enabled(nir_shader *nir,
             continue;
 
          b.cursor = nir_before_instr(instr);
-         nir_def_rewrite_uses(&intrin->def, nir_imm_true(&b));
-
-         nir_instr_remove(instr);
+         nir_def_replace(&intrin->def, nir_imm_true(&b));
          nir_instr_free(instr);
       }
    }
@@ -166,7 +164,7 @@ panfrost_shader_compile(struct panfrost_screen *screen, const nir_shader *ir,
                  panfrost_device_gpu_id(dev) < 0x700);
    }
 
-   NIR_PASS_V(s, panfrost_nir_lower_sysvals, &out->sysvals);
+   NIR_PASS_V(s, panfrost_nir_lower_sysvals, dev->arch, &out->sysvals);
 
    /* Lower resource indices */
    NIR_PASS_V(s, panfrost_nir_lower_res_indices, &inputs);

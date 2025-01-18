@@ -324,6 +324,11 @@ stw_framebuffer_create(HWND hWnd, const struct stw_pixelformat_info *pfi, enum s
       fb->winsys_framebuffer =
          stw_dev->stw_winsys->create_framebuffer(stw_dev->screen, hWnd, pfi->iPixelFormat);
 
+   if (fb->winsys_framebuffer && fb->winsys_framebuffer->set_latency) {
+      int latency = driQueryOptioni(&stw_dev->option_cache, "wgl_frame_latency");
+      fb->winsys_framebuffer->set_latency(fb->winsys_framebuffer, latency);
+   }
+
 #ifdef _GAMING_XBOX
    fb->prev_wndproc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)&stw_call_window_proc_xbox);
 #endif

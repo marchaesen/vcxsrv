@@ -168,7 +168,7 @@ export VK_DRIVER_FILES="/install/share/vulkan/icd.d/${VK_DRIVER}_icd.$ARCH.json"
 if [ -n "$HWCI_START_XORG" ]; then
   echo "touch /xorg-started; sleep 100000" > /xorg-script
   env \
-    xinit /bin/sh /xorg-script -- /usr/bin/Xorg -noreset -s 0 -dpms -logfile /Xorg.0.log &
+    xinit /bin/sh /xorg-script -- /usr/bin/Xorg -noreset -s 0 -dpms -logfile "$RESULTS_DIR/Xorg.0.log" &
   BACKGROUND_PIDS="$! $BACKGROUND_PIDS"
 
   # Wait for xorg to be ready for connections.
@@ -201,14 +201,12 @@ if [ -n "$HWCI_START_WESTON" ]; then
 fi
 
 set +e
-bash -c ". $SCRIPTS_DIR/setup-test-env.sh && $HWCI_TEST_SCRIPT"
+$HWCI_TEST_SCRIPT ${HWCI_TEST_ARGS:-}
 EXIT_CODE=$?
 set -e
 
 # Let's make sure the results are always stored in current working directory
-mv -f ${CI_PROJECT_DIR}/results ./ 2>/dev/null || true
-
-[ ${EXIT_CODE} -ne 0 ] || rm -rf results/trace/"$PIGLIT_REPLAY_DEVICE_NAME"
+mv -f ${RESULTS_DIR} ./ 2>/dev/null || true
 
 # Make sure that capture-devcoredump is done before we start trying to tar up
 # artifacts -- if it's writing while tar is reading, tar will throw an error and
@@ -231,6 +229,6 @@ set +x
 # the result of our run, so try really hard to get it out rather than losing
 # the run. The device gets shut down right at this point, and a630 seems to
 # enjoy corrupting the last line of serial output before shutdown.
-for _ in $(seq 0 3); do echo "hwci: mesa: $RESULT"; sleep 1; echo; done
+for _ in $(seq 0 3); do echo "hwci: mesa: $RESULT, exit_code: $EXIT_CODE"; sleep 1; echo; done
 
 exit $EXIT_CODE

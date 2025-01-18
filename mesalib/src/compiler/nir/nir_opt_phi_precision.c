@@ -460,8 +460,7 @@ nir_opt_phi_precision(nir_shader *shader)
 
       if (progress) {
          nir_metadata_preserve(impl,
-                               nir_metadata_block_index |
-                                  nir_metadata_dominance);
+                               nir_metadata_control_flow);
       } else {
          nir_metadata_preserve(impl, nir_metadata_all);
       }

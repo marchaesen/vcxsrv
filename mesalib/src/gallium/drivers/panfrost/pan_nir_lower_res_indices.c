@@ -109,6 +109,19 @@ lower_load_ubo_intrin(nir_builder *b, nir_intrinsic_instr *intrin)
 }
 
 static bool
+lower_ssbo_intrin(nir_builder *b, nir_intrinsic_instr *intrin)
+{
+   b->cursor = nir_before_instr(&intrin->instr);
+
+   nir_def *new_offset = nir_ior_imm(b, intrin->src[0].ssa,
+                                     pan_res_handle(PAN_TABLE_SSBO, 0));
+
+   nir_src_rewrite(&intrin->src[0], new_offset);
+
+   return true;
+}
+
+static bool
 lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
                 const struct panfrost_compile_inputs *inputs)
 {
@@ -121,6 +134,9 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
       return lower_input_intrin(b, intrin, inputs);
    case nir_intrinsic_load_ubo:
       return lower_load_ubo_intrin(b, intrin);
+   case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_ssbo_address:
+      return lower_ssbo_intrin(b, intrin);
    default:
       return false;
    }
@@ -153,6 +169,6 @@ panfrost_nir_lower_res_indices(nir_shader *shader,
       return false;
 
    return nir_shader_instructions_pass(
-      shader, lower_instr, nir_metadata_block_index | nir_metadata_dominance,
+      shader, lower_instr, nir_metadata_control_flow,
       inputs);
 }

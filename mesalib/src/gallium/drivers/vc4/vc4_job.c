@@ -30,6 +30,7 @@
 #include "vc4_cl_dump.h"
 #include "vc4_context.h"
 #include "util/hash_table.h"
+#include "util/perf/cpu_trace.h"
 
 static void
 vc4_job_free(struct vc4_context *vc4, struct vc4_job *job)
@@ -103,6 +104,9 @@ vc4_flush_jobs_writing_resource(struct vc4_context *vc4,
                                                            prsc);
         if (entry) {
                 struct vc4_job *job = entry->data;
+
+                MESA_TRACE_FUNC();
+
                 vc4_job_submit(vc4, job);
         }
 }
@@ -112,6 +116,8 @@ vc4_flush_jobs_reading_resource(struct vc4_context *vc4,
                                 struct pipe_resource *prsc)
 {
         struct vc4_resource *rsc = vc4_resource(prsc);
+
+        MESA_TRACE_FUNC();
 
         vc4_flush_jobs_writing_resource(vc4, prsc);
 
@@ -369,6 +375,8 @@ vc4_submit_setup_rcl_msaa_surface(struct vc4_job *job,
 void
 vc4_job_submit(struct vc4_context *vc4, struct vc4_job *job)
 {
+        MESA_TRACE_FUNC();
+
         if (!job->needs_flush)
                 goto done;
 

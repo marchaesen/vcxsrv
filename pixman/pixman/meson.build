@@ -38,15 +38,13 @@ endif
 
 pixman_simd_libs = []
 simds = [
-  # the mmx library can be compiled with mmx on x86/x86_64, iwmmxt on
-  # some arm cores, or loongson mmi on loongson mips systems. The
-  # libraries will all have the same name, "pixman-mmx", but there is
-  # no chance of more than one version being built in the same build
-  # because no system could have mmx, iwmmxt, and mmi, and it
-  # simplifies the build logic to give them the same name.
+  # the mmx library can be compiled with mmx on x86/x86_64 or loongson
+  # mmi on loongson mips systems. The libraries will all have the same
+  # name, "pixman-mmx", but there is no chance of more than one version
+  # being built in the same build because no system could have mmx and
+  # mmi, and it simplifies the build logic to give them the same name.
   ['mmx', have_mmx, mmx_flags, []],
   ['mmx', have_loongson_mmi, loongson_mmi_flags, []],
-  ['mmx', have_iwmmxt, iwmmxt_flags, []],
 
   ['sse2', have_sse2, sse2_flags, []],
   ['ssse3', have_ssse3, ssse3_flags, []],

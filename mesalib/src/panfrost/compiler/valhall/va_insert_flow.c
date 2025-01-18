@@ -115,9 +115,16 @@ bi_ld_vary_writes_hidden_register(const bi_instr *I)
 static bool
 bi_is_memory_access(const bi_instr *I)
 {
-   /* On the attribute unit but functionally a general memory load */
-   if (I->op == BI_OPCODE_LD_ATTR_TEX)
+   /* Some instructions on the attribute unit are functionally
+      a general memory load */
+   switch (I->op) {
+   case BI_OPCODE_LD_ATTR_TEX:
+   case BI_OPCODE_LD_TEX:
+   case BI_OPCODE_LD_TEX_IMM:
       return true;
+   default:
+      break;
+   }
 
    /* UBOs are read-only so there are no ordering constriants */
    if (I->seg == BI_SEG_UBO)

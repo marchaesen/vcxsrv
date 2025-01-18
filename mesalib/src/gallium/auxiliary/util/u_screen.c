@@ -73,7 +73,6 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
       return 0;
 
    case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-   case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
    case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
       unreachable("driver must implement these.");
 
@@ -86,6 +85,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
    case PIPE_CAP_INDEP_BLEND_ENABLE:
    case PIPE_CAP_INDEP_BLEND_FUNC:
+   case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
    case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS: /* Enables GL_EXT_texture_array */
    case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
    case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
@@ -100,6 +100,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_FRAGMENT_COLOR_CLAMPED:
    case PIPE_CAP_SEAMLESS_CUBE_MAP:
    case PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE:
+   case PIPE_CAP_MULTIVIEW:
       return 0;
 
    case PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART:
@@ -139,12 +140,11 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
 
    case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
    case PIPE_CAP_USER_VERTEX_BUFFERS:
-   case PIPE_CAP_VERTEX_BUFFER_OFFSET_4BYTE_ALIGNED_ONLY:
-   case PIPE_CAP_VERTEX_BUFFER_STRIDE_4BYTE_ALIGNED_ONLY:
-   case PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY:
-   case PIPE_CAP_VERTEX_ATTRIB_ELEMENT_ALIGNED_ONLY:
    case PIPE_CAP_COMPUTE:
       return 0;
+
+   case PIPE_CAP_VERTEX_INPUT_ALIGNMENT:
+      return PIPE_VERTEX_INPUT_ALIGNMENT_NONE;
 
    case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
       /* GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT default value. */
@@ -314,7 +314,6 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
    case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
    case PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS:
-   case PIPE_CAP_SHADER_CAN_READ_OUTPUTS:
    case PIPE_CAP_NATIVE_FENCE_FD:
       return 0;
 
@@ -550,12 +549,23 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_VALIDATE_ALL_DIRTY_STATES:
    case PIPE_CAP_NULL_TEXTURES:
    case PIPE_CAP_ASTC_VOID_EXTENTS_NEED_DENORM_FLUSH:
+   case PIPE_CAP_ASTC_DECODE_MODE:
    case PIPE_CAP_HAS_CONST_BW:
       return 0;
+
+   case PIPE_CAP_TEXTURE_SAMPLER_INDEPENDENT:
+      /* this is expected of gallium drivers, but some just don't support it */
+      return 1;
 
    case PIPE_CAP_PERFORMANCE_MONITOR:
       return pscreen->get_driver_query_info && pscreen->get_driver_query_group_info &&
              pscreen->get_driver_query_group_info(pscreen, 0, NULL) != 0;
+
+   case PIPE_CAP_SHADER_SUBGROUP_SIZE:
+   case PIPE_CAP_SHADER_SUBGROUP_SUPPORTED_STAGES:
+   case PIPE_CAP_SHADER_SUBGROUP_SUPPORTED_FEATURES:
+   case PIPE_CAP_SHADER_SUBGROUP_QUAD_ALL_STAGES:
+      return 0;
 
    default:
       unreachable("bad PIPE_CAP_*");

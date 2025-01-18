@@ -1,0 +1,11 @@
+partial xkb_compatibility "num" {
+    include "lednum(group_lock)"
+};
+
+partial xkb_compatibility "caps" {
+    include "ledcaps(group_lock)"
+};
+
+partial xkb_compatibility "scroll" {
+    include "ledscroll(group_lock)"
+};

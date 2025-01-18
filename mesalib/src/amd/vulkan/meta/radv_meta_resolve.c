@@ -13,12 +13,11 @@
 #include "sid.h"
 #include "vk_format.h"
 
-/* emit 0, 0, 0, 1 */
 static nir_shader *
 build_nir_fs(struct radv_device *dev)
 {
    const struct glsl_type *vec4 = glsl_vec4_type();
-   nir_variable *f_color; /* vec4, fragment output color */
+   nir_variable *f_color;
 
    nir_builder b = radv_meta_init_shader(dev, MESA_SHADER_FRAGMENT, "meta_resolve_fs");
 
@@ -30,32 +29,19 @@ build_nir_fs(struct radv_device *dev)
 }
 
 static VkResult
-create_pipeline(struct radv_device *device, VkShaderModule vs_module_h, VkFormat format, VkPipeline *pipeline)
+create_pipeline(struct radv_device *device, VkFormat format, VkPipeline *pipeline)
 {
    VkResult result;
    VkDevice device_h = radv_device_to_handle(device);
 
-   nir_shader *fs_module = build_nir_fs(device);
-   if (!fs_module) {
-      /* XXX: Need more accurate error */
-      result = VK_ERROR_OUT_OF_HOST_MEMORY;
-      goto cleanup;
-   }
-
-   VkPipelineLayoutCreateInfo pl_create_info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .setLayoutCount = 0,
-      .pSetLayouts = NULL,
-      .pushConstantRangeCount = 0,
-      .pPushConstantRanges = NULL,
-   };
-
    if (!device->meta_state.resolve.p_layout) {
-      result = radv_CreatePipelineLayout(radv_device_to_handle(device), &pl_create_info, &device->meta_state.alloc,
-                                         &device->meta_state.resolve.p_layout);
+      result = radv_meta_create_pipeline_layout(device, NULL, 0, NULL, &device->meta_state.resolve.p_layout);
       if (result != VK_SUCCESS)
-         goto cleanup;
+         return result;
    }
+
+   nir_shader *vs_module = radv_meta_build_nir_vs_generate_vertices(device);
+   nir_shader *fs_module = build_nir_fs(device);
 
    VkFormat color_formats[2] = {format, format};
    const VkPipelineRenderingCreateInfo rendering_create_info = {
@@ -75,7 +61,7 @@ create_pipeline(struct radv_device *device, VkShaderModule vs_module_h, VkFormat
                {
                   .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                   .stage = VK_SHADER_STAGE_VERTEX_BIT,
-                  .module = vs_module_h,
+                  .module = vk_shader_module_handle_from_nir(vs_module),
                   .pName = "main",
                },
                {
@@ -156,13 +142,29 @@ create_pipeline(struct radv_device *device, VkShaderModule vs_module_h, VkFormat
          .custom_blend_mode = V_028808_CB_RESOLVE,
       },
       &device->meta_state.alloc, pipeline);
-   if (result != VK_SUCCESS)
-      goto cleanup;
 
-   goto cleanup;
-
-cleanup:
+   ralloc_free(vs_module);
    ralloc_free(fs_module);
+   return result;
+}
+
+static VkResult
+get_pipeline(struct radv_device *device, unsigned fs_key, VkPipeline *pipeline_out)
+{
+   struct radv_meta_state *state = &device->meta_state;
+   VkResult result = VK_SUCCESS;
+
+   mtx_lock(&state->mtx);
+   if (!state->resolve.pipeline[fs_key]) {
+      result = create_pipeline(device, radv_fs_key_format_exemplars[fs_key], &state->resolve.pipeline[fs_key]);
+      if (result != VK_SUCCESS)
+         goto fail;
+   }
+
+   *pipeline_out = state->resolve.pipeline[fs_key];
+
+fail:
+   mtx_unlock(&state->mtx);
    return result;
 }
 
@@ -185,25 +187,15 @@ radv_device_init_meta_resolve_state(struct radv_device *device, bool on_demand)
 
    VkResult res = VK_SUCCESS;
    struct radv_meta_state *state = &device->meta_state;
-   nir_shader *vs_module = radv_meta_build_nir_vs_generate_vertices(device);
-   if (!vs_module) {
-      /* XXX: Need more accurate error */
-      res = VK_ERROR_OUT_OF_HOST_MEMORY;
-      goto cleanup;
-   }
 
    for (uint32_t i = 0; i < NUM_META_FS_KEYS; ++i) {
       VkFormat format = radv_fs_key_format_exemplars[i];
       unsigned fs_key = radv_format_meta_fs_key(device, format);
 
-      VkShaderModule vs_module_h = vk_shader_module_handle_from_nir(vs_module);
-      res = create_pipeline(device, vs_module_h, format, &state->resolve.pipeline[fs_key]);
+      res = create_pipeline(device, format, &state->resolve.pipeline[fs_key]);
       if (res != VK_SUCCESS)
-         goto cleanup;
+          return res;
    }
-
-cleanup:
-   ralloc_free(vs_module);
 
    return res;
 }
@@ -215,16 +207,25 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *src_im
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
    unsigned fs_key = radv_format_meta_fs_key(device, vk_format);
+   VkPipeline pipeline;
+   VkResult result;
 
-   cmd_buffer->state.flush_bits |=
-      radv_src_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, src_image) |
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT, src_image) |
-      radv_dst_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, dst_image);
+   result = get_pipeline(device, fs_key, &pipeline);
+   if (result != VK_SUCCESS) {
+      vk_command_buffer_set_error(&cmd_buffer->vk, result);
+      return;
+   }
 
-   radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS, device->meta_state.resolve.pipeline[fs_key]);
+   cmd_buffer->state.flush_bits |= radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, src_image) |
+                                   radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT, src_image);
+
+   radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
    radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
-   cmd_buffer->state.flush_bits |= radv_src_access_flush(cmd_buffer, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, dst_image);
+   cmd_buffer->state.flush_bits |= radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, dst_image);
 }
 
 enum radv_resolve_method {
@@ -284,31 +285,6 @@ radv_pick_resolve_method_images(struct radv_device *device, struct radv_image *s
    }
 }
 
-static VkResult
-build_resolve_pipeline(struct radv_device *device, unsigned fs_key)
-{
-   VkResult result = VK_SUCCESS;
-
-   if (device->meta_state.resolve.pipeline[fs_key])
-      return result;
-
-   mtx_lock(&device->meta_state.mtx);
-   if (device->meta_state.resolve.pipeline[fs_key]) {
-      mtx_unlock(&device->meta_state.mtx);
-      return result;
-   }
-
-   nir_shader *vs_module = radv_meta_build_nir_vs_generate_vertices(device);
-
-   VkShaderModule vs_module_h = vk_shader_module_handle_from_nir(vs_module);
-   result = create_pipeline(device, vs_module_h, radv_fs_key_format_exemplars[fs_key],
-                            &device->meta_state.resolve.pipeline[fs_key]);
-
-   ralloc_free(vs_module);
-   mtx_unlock(&device->meta_state.mtx);
-   return result;
-}
-
 static void
 radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image,
                                  VkImageLayout src_image_layout, struct radv_image *dst_image,
@@ -321,8 +297,6 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv
 
    assert(src_image->vk.samples > 1);
    assert(dst_image->vk.samples == 1);
-
-   unsigned fs_key = radv_format_meta_fs_key(device, dst_image->vk.format);
 
    /* From the Vulkan 1.0 spec:
     *
@@ -379,12 +353,6 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv
 
    radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &resolve_area);
 
-   VkResult ret = build_resolve_pipeline(device, fs_key);
-   if (ret != VK_SUCCESS) {
-      vk_command_buffer_set_error(&cmd_buffer->vk, ret);
-      return;
-   }
-
    struct radv_image_view src_iview;
    radv_image_view_init(&src_iview, device,
                         &(VkImageViewCreateInfo){
@@ -401,7 +369,7 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv
                                  .layerCount = 1,
                               },
                         },
-                        0, NULL);
+                        NULL);
 
    struct radv_image_view dst_iview;
    radv_image_view_init(&dst_iview, device,
@@ -419,7 +387,7 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv
                                  .layerCount = 1,
                               },
                         },
-                        0, NULL);
+                        NULL);
 
    const VkRenderingAttachmentInfo color_atts[2] = {
       {
@@ -440,6 +408,7 @@ radv_meta_resolve_hardware_image(struct radv_cmd_buffer *cmd_buffer, struct radv
 
    const VkRenderingInfo rendering_info = {
       .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+      .flags = VK_RENDERING_INPUT_ATTACHMENT_NO_CONCURRENT_WRITES_BIT_MESA,
       .renderArea = resolve_area,
       .layerCount = 1,
       .colorAttachmentCount = 2,
@@ -578,6 +547,7 @@ radv_cmd_buffer_resolve_rendering_hw(struct radv_cmd_buffer *cmd_buffer, struct 
 
    const VkRenderingInfo rendering_info = {
       .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+      .flags = VK_RENDERING_INPUT_ATTACHMENT_NO_CONCURRENT_WRITES_BIT_MESA,
       .renderArea = saved_state.render.area,
       .layerCount = 1,
       .viewMask = saved_state.render.view_mask,
@@ -586,12 +556,6 @@ radv_cmd_buffer_resolve_rendering_hw(struct radv_cmd_buffer *cmd_buffer, struct 
    };
 
    radv_CmdBeginRendering(radv_cmd_buffer_to_handle(cmd_buffer), &rendering_info);
-
-   VkResult ret = build_resolve_pipeline(device, radv_format_meta_fs_key(device, dst_iview->vk.format));
-   if (ret != VK_SUCCESS) {
-      vk_command_buffer_set_error(&cmd_buffer->vk, ret);
-      return;
-   }
 
    emit_resolve(cmd_buffer, src_img, dst_img, dst_iview->vk.format);
 

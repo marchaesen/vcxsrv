@@ -24,12 +24,13 @@ traces:
       checksum: c7c3df989f88852e88bef101b5c1dc22
     crocus-hsw:
       checksum: bb84373a69751942956d2320cff6dd1d
-  gputest/gimark-v2.trace:
-    crocus-g41:
-      label: [unsupported]
-    crocus-hsw:
-      label: [skip, flakes]
-      text: lighting comes in from a different direction than on freedreno?
+# gimark requires an environment var to work around a bug, disable for now
+#  gputest/gimark-v2.trace:
+#    crocus-g41:
+#      label: [unsupported]
+#    crocus-hsw:
+#      label: [skip, flakes]
+#      text: lighting comes in from a different direction than on freedreno?
   gputest/pixmark-julia-fp32-v2.trace:
     crocus-g41:
       checksum: 03776a063ee7049256acd414239a7f13

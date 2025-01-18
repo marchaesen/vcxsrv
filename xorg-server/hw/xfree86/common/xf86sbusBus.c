@@ -68,12 +68,12 @@ CheckSbusDevice(const char *device, int fbNum)
     if (!sbusDeviceTable[i].devId)
         return;
     xf86SbusInfo =
-        xnfreallocarray(xf86SbusInfo, ++xf86nSbusInfo + 1, sizeof(psdp));
+        XNFreallocarray(xf86SbusInfo, ++xf86nSbusInfo + 1, sizeof(psdp));
     xf86SbusInfo[xf86nSbusInfo] = NULL;
-    xf86SbusInfo[xf86nSbusInfo - 1] = psdp = xnfcalloc(sizeof(sbusDevice), 1);
+    xf86SbusInfo[xf86nSbusInfo - 1] = psdp = XNFcallocarray(1, sizeof(sbusDevice));
     psdp->devId = sbusDeviceTable[i].devId;
     psdp->fbNum = fbNum;
-    psdp->device = xnfstrdup(device);
+    psdp->device = XNFstrdup(device);
     psdp->width = fbattr.fbtype.fb_width;
     psdp->height = fbattr.fbtype.fb_height;
     psdp->fd = -1;
@@ -406,7 +406,7 @@ xf86MatchSbusInstances(const char *driverName, int sbusDevId,
         if (psdp->fd == -2)
             continue;
         ++allocatedInstances;
-        instances = xnfreallocarray(instances,
+        instances = XNFreallocarray(instances,
                                     allocatedInstances, sizeof(struct Inst));
         instances[allocatedInstances - 1].sbus = psdp;
         instances[allocatedInstances - 1].dev = NULL;
@@ -532,7 +532,7 @@ xf86MatchSbusInstances(const char *driverName, int sbusDevId,
 
         /* Allocate an entry in the lists to be returned */
         numFound++;
-        retEntities = xnfreallocarray(retEntities, numFound, sizeof(int));
+        retEntities = XNFreallocarray(retEntities, numFound, sizeof(int));
         retEntities[numFound - 1]
             = xf86ClaimSbusSlot(psdp, drvp, instances[i].dev,
                                 instances[i].dev->active ? TRUE : FALSE);
@@ -589,7 +589,7 @@ xf86SbusUseBuiltinMode(ScrnInfoPtr pScrn, sbusDevicePtr psdp)
 {
     DisplayModePtr mode;
 
-    mode = xnfcalloc(sizeof(DisplayModeRec), 1);
+    mode = XNFcallocarray(sizeof(DisplayModeRec), 1);
     mode->name = "current";
     mode->next = mode;
     mode->prev = mode;
@@ -698,7 +698,7 @@ xf86SbusHandleColormaps(ScreenPtr pScreen, sbusDevicePtr psdp)
     if (!dixRegisterPrivateKey(sbusPaletteKey, PRIVATE_SCREEN, 0))
         FatalError("Cannot register sbus private key");
 
-    cmap = xnfcalloc(1, sizeof(sbusCmapRec));
+    cmap = XNFcallocarray(1, sizeof(sbusCmapRec));
     dixSetPrivate(&pScreen->devPrivates, sbusPaletteKey, cmap);
     cmap->psdp = psdp;
     fbcmap.index = 0;

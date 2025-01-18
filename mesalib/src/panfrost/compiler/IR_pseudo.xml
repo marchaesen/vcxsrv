@@ -1,0 +1,195 @@
+<!--
+  Copyright (C) 2024 Collabora Ltd.
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the "Software"),
+  to deal in the Software without restriction, including without limitation
+  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+  and/or sell copies of the Software, and to permit persons to whom the
+  Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice (including the next
+  paragraph) shall be included in all copies or substantial portions of the
+  Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+-->
+
+<bifrost>
+
+  <!-- Pseudo instruction representing dual texturing on Bifrost. Lowered to
+       TEXC after register allocation, when the second destination register can
+       be combined with the texture operation descriptor. -->
+  <ins name="TEXC_DUAL" staging="rw=sr_count" pseudo="true" message="tex" dests="2" unit="add">
+    <src start="0"/>
+    <src start="3"/>
+    <src start="6" mask="0xf7"/>
+    <mod name="skip" start="9" size="1" opt="skip"/>
+    <immediate name="sr_count" size="4" pseudo="true"/>
+    <immediate name="sr_count_2" size="4" pseudo="true"/>
+    <mod name="lod_mode" start="13" size="1" default="zero_lod" pseudo="true">
+      <opt>computed_lod</opt>
+      <opt>zero_lod</opt>
+    </mod>
+  </ins>
+
+  <!--- Lowered to *SEG_ADD/+SEG_ADD -->
+  <ins name="SEG_ADD.i64" pseudo="true" unit="add">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="seg" size="3">
+      <reserved/>
+      <reserved/>
+      <opt>wls</opt>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <opt>tl</opt>
+    </mod>
+    <mod name="preserve_null" size="1" opt="preserve_null"/>
+  </ins>
+
+  <!-- Scheduler lowered to *ATOM_C.i32/+ATOM_CX. Real Valhall instructions. -->
+  <ins name="ATOM_RETURN.i32" pseudo="true" staging="rw=sr_count" message="atomic" unit="add">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="atom_opc" start="9" size="5">
+      <reserved/>
+      <reserved/>
+      <opt>aadd</opt>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <opt>asmin</opt>
+      <opt>asmax</opt>
+      <opt>aumin</opt>
+      <opt>aumax</opt>
+      <opt>aand</opt>
+      <opt>aor</opt>
+      <opt>axor</opt>
+      <opt>axchg</opt> <!-- For Valhall -->
+      <opt>acmpxchg</opt> <!-- For Valhall -->
+    </mod>
+    <!-- not actually encoded, but used for IR -->
+    <immediate name="sr_count" size="4" pseudo="true"/>
+  </ins>
+
+  <ins name="ATOM1_RETURN.i32" pseudo="true" staging="w=sr_count" message="atomic" unit="add">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="atom_opc" start="6" size="3">
+      <opt>ainc</opt>
+      <opt>adec</opt>
+      <opt>aumax1</opt>
+      <opt>asmax1</opt>
+      <opt>aor1</opt>
+    </mod>
+    <!-- not actually encoded, but used for IR -->
+    <immediate name="sr_count" size="4" pseudo="true"/>
+  </ins>
+
+  <ins name="ATOM.i32" pseudo="true" staging="r=sr_count" message="atomic" unit="add">
+    <src start="0"/>
+    <src start="3"/>
+    <mod name="atom_opc" start="9" size="4">
+      <reserved/>
+      <reserved/>
+      <opt>aadd</opt>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <reserved/>
+      <opt>asmin</opt>
+      <opt>asmax</opt>
+      <opt>aumin</opt>
+      <opt>aumax</opt>
+      <opt>aand</opt>
+      <opt>aor</opt>
+      <opt>axor</opt>
+    </mod>
+    <!-- not actually encoded, but used for IR -->
+    <immediate name="sr_count" size="4" pseudo="true"/>
+  </ins>
+
+  <!-- *CUBEFACE1/+CUBEFACE2 pair, two destinations, scheduler lowered -->
+  <ins name="CUBEFACE" pseudo="true" dests="2" unit="add">
+    <src start="0"/>
+    <src start="3"/>
+    <src start="6"/>
+    <mod name="neg0" size="1" opt="neg"/>
+    <mod name="neg1" size="1" opt="neg"/>
+    <mod name="neg2" size="1" opt="neg"/>
+  </ins>
+
+  <ins name="FABSNEG.f32" pseudo="true" unit="fma">
+    <src start="0" mask="0xfb"/>
+    <mod name="neg0" start="7" size="1" opt="neg"/>
+    <mod name="abs0" start="12" size="1" opt="abs"/>
+    <mod name="widen0" size="2">
+      <opt>none</opt>
+      <opt>h0</opt>
+      <opt>h1</opt>
+    </mod>
+  </ins>
+
+  <ins name="FABSNEG.v2f16" pseudo="true" unit="fma">
+    <src start="0" mask="0xfb"/>
+    <mod name="abs0" size="1" opt="abs"/>
+    <mod name="neg0" start="7" size="1" opt="neg"/>
+    <mod name="swz0" start="9" size="2" default="h01">
+      <opt>h00</opt>
+      <opt>h10</opt>
+      <opt>h01</opt>
+      <opt>h11</opt>
+    </mod>
+  </ins>
+
+  <ins name="FCLAMP.f32" pseudo="true" unit="fma">
+    <src start="0" mask="0xfb"/>
+    <mod name="clamp" start="15" size="2">
+      <opt>none</opt>
+      <opt>clamp_0_inf</opt>
+      <opt>clamp_m1_1</opt>
+      <opt>clamp_0_1</opt>
+    </mod>
+  </ins>
+
+  <ins name="FCLAMP.v2f16" pseudo="true" unit="fma">
+    <src start="0" mask="0xfb"/>
+    <mod name="clamp" start="15" size="2">
+      <opt>none</opt>
+      <opt>clamp_0_inf</opt>
+      <opt>clamp_m1_1</opt>
+      <opt>clamp_0_1</opt>
+    </mod>
+  </ins>
+
+  <ins name="DISCARD.b32" pseudo="true" dests="0" unit="add">
+    <src start="0"/>
+    <mod name="widen0" size="2">
+      <opt>none</opt>
+      <opt>h0</opt>
+      <opt>h1</opt>
+    </mod>
+  </ins>
+
+  <ins name="PHI" pseudo="true" variable_srcs="true" unit="add"/>
+
+  <ins name="COLLECT.i32" pseudo="true" variable_srcs="true" unit="add"/>
+
+  <ins name="SPLIT.i32" pseudo="true" variable_dests="true" unit="add">
+    <src start="0"/>
+  </ins>
+
+
+</bifrost>

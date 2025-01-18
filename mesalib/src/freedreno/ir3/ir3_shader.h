@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2014 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2014 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -39,60 +21,95 @@
 
 BEGINC;
 
-/* driver param indices: */
-enum ir3_driver_param {
-   /* compute shader driver params: */
-   IR3_DP_NUM_WORK_GROUPS_X = 0,
-   IR3_DP_NUM_WORK_GROUPS_Y = 1,
-   IR3_DP_NUM_WORK_GROUPS_Z = 2,
-   IR3_DP_WORK_DIM          = 3,
-   IR3_DP_BASE_GROUP_X = 4,
-   IR3_DP_BASE_GROUP_Y = 5,
-   IR3_DP_BASE_GROUP_Z = 6,
-   IR3_DP_CS_SUBGROUP_SIZE = 7,
-   IR3_DP_LOCAL_GROUP_SIZE_X = 8,
-   IR3_DP_LOCAL_GROUP_SIZE_Y = 9,
-   IR3_DP_LOCAL_GROUP_SIZE_Z = 10,
-   IR3_DP_SUBGROUP_ID_SHIFT = 11,
-   IR3_DP_WORKGROUP_ID_X = 12,
-   IR3_DP_WORKGROUP_ID_Y = 13,
-   IR3_DP_WORKGROUP_ID_Z = 14,
+#define dword_offsetof(type, name) DIV_ROUND_UP(offsetof(type, name), 4)
+#define dword_sizeof(type)         DIV_ROUND_UP(sizeof(type), 4)
+
+/**
+ * Driver params for compute shaders.
+ *
+ * Note, driver param structs should be size aligned to vec4
+ */
+struct ir3_driver_params_cs {
    /* NOTE: gl_NumWorkGroups should be vec4 aligned because
     * glDispatchComputeIndirect() needs to load these from
     * the info->indirect buffer.  Keep that in mind when/if
     * adding any addition CS driver params.
     */
-   IR3_DP_CS_COUNT = 16, /* must be aligned to vec4 */
-
-   /* vertex shader driver params: */
-   IR3_DP_DRAWID = 0,
-   IR3_DP_VTXID_BASE = 1,
-   IR3_DP_INSTID_BASE = 2,
-   IR3_DP_VTXCNT_MAX = 3,
-   IR3_DP_IS_INDEXED_DRAW = 4,  /* Note: boolean, ie. 0 or ~0 */
-   /* user-clip-plane components, up to 8x vec4's: */
-   IR3_DP_UCP0_X = 5,
-   /* .... */
-   IR3_DP_UCP7_W = 36,
-   IR3_DP_VS_COUNT = 40, /* must be aligned to vec4 */
-
-   /* TCS driver params: */
-   IR3_DP_HS_DEFAULT_OUTER_LEVEL_X = 0,
-   IR3_DP_HS_DEFAULT_OUTER_LEVEL_Y = 1,
-   IR3_DP_HS_DEFAULT_OUTER_LEVEL_Z = 2,
-   IR3_DP_HS_DEFAULT_OUTER_LEVEL_W = 3,
-   IR3_DP_HS_DEFAULT_INNER_LEVEL_X = 4,
-   IR3_DP_HS_DEFAULT_INNER_LEVEL_Y = 5,
-   IR3_DP_HS_COUNT = 8, /* must be aligned to vec4 */
-
-   /* fragment shader driver params: */
-   IR3_DP_FS_SUBGROUP_SIZE = 0,
-   /* Dynamic params (that aren't known when compiling the shader) */
-   IR3_DP_FS_DYNAMIC = 4,
-   IR3_DP_FS_FRAG_INVOCATION_COUNT = IR3_DP_FS_DYNAMIC,
-   IR3_DP_FS_FRAG_SIZE = IR3_DP_FS_DYNAMIC + 4,
-   IR3_DP_FS_FRAG_OFFSET = IR3_DP_FS_DYNAMIC + 6,
+   uint32_t num_work_groups_x;
+   uint32_t num_work_groups_y;
+   uint32_t num_work_groups_z;
+   uint32_t work_dim;
+   uint32_t base_group_x;
+   uint32_t base_group_y;
+   uint32_t base_group_z;
+   uint32_t subgroup_size;
+   uint32_t local_group_size_x;
+   uint32_t local_group_size_y;
+   uint32_t local_group_size_z;
+   uint32_t subgroup_id_shift;
+   uint32_t workgroup_id_x;
+   uint32_t workgroup_id_y;
+   uint32_t workgroup_id_z;
+   uint32_t __pad;
 };
+#define IR3_DP_CS(name) dword_offsetof(struct ir3_driver_params_cs, name)
+
+/**
+ * Driver params for vertex shaders.
+ *
+ * Note, driver param structs should be size aligned to vec4
+ */
+struct ir3_driver_params_vs {
+   uint32_t draw_id;
+   uint32_t vtxid_base;
+   uint32_t instid_base;
+   uint32_t vtxcnt_max;
+   uint32_t is_indexed_draw;  /* Note: boolean, ie. 0 or ~0 */
+   /* user-clip-plane components, up to 8x vec4's: */
+   struct {
+      uint32_t x;
+      uint32_t y;
+      uint32_t z;
+      uint32_t w;
+   } ucp[8];
+   uint32_t __pad_37_39[3];
+};
+#define IR3_DP_VS(name) dword_offsetof(struct ir3_driver_params_vs, name)
+
+/**
+ * Driver params for TCS shaders.
+ *
+ * Note, driver param structs should be size aligned to vec4
+ */
+struct ir3_driver_params_tcs {
+   uint32_t default_outer_level_x;
+   uint32_t default_outer_level_y;
+   uint32_t default_outer_level_z;
+   uint32_t default_outer_level_w;
+   uint32_t default_inner_level_x;
+   uint32_t default_inner_level_y;
+   uint32_t __pad_06_07[2];
+};
+#define IR3_DP_TCS(name) dword_offsetof(struct ir3_driver_params_tcs, name)
+
+/**
+ * Driver params for fragment shaders.
+ *
+ * Note, driver param structs should be size aligned to vec4
+ */
+struct ir3_driver_params_fs {
+   uint32_t subgroup_size;
+   uint32_t __pad_01_03[3];
+   /* Dynamic params (that aren't known when compiling the shader) */
+#define IR3_DP_FS_DYNAMIC dword_offsetof(struct ir3_driver_params_fs, frag_invocation_count)
+   uint32_t frag_invocation_count;
+   uint32_t __pad_05_07[3];
+   uint32_t frag_size;
+   uint32_t __pad_09;
+   uint32_t frag_offset;
+   uint32_t __pad_11_12[2];
+};
+#define IR3_DP_FS(name) dword_offsetof(struct ir3_driver_params_fs, name)
 
 #define IR3_MAX_SHADER_BUFFERS  32
 #define IR3_MAX_SHADER_IMAGES   32
@@ -198,11 +215,18 @@ struct ir3_driver_ubo {
  */
 struct ir3_const_state {
    unsigned num_ubos;
+   unsigned num_app_ubos;      /* # of UBOs not including driver UBOs */
    unsigned num_driver_params; /* scalar */
 
    struct ir3_driver_ubo consts_ubo;
    struct ir3_driver_ubo driver_params_ubo;
    struct ir3_driver_ubo primitive_map_ubo, primitive_param_ubo;
+
+   /* Optional const allocations (preamble, UBO, etc.) may shift the required
+    * consts more than they expect. The free space for optional allocations
+    * should respect required_consts_aligment_vec4.
+    */
+   uint32_t required_consts_aligment_vec4;
 
    int32_t constant_data_dynamic_offsets;
 
@@ -519,6 +543,17 @@ struct ir3_disasm_info {
 /* Represents half register in regid */
 #define HALF_REG_ID 0x100
 
+/* Options for common NIR optimization passes done in ir3. This is used for both
+ * finalize and post-finalize (where it has to be in the shader).
+ */
+struct ir3_shader_nir_options {
+   /* For the modes specified, accesses are assumed to be bounds-checked as
+    * defined by VK_EXT_robustness2 and optimizations may have to be more
+    * conservative.
+    */
+   nir_variable_mode robust_modes;
+};
+
 struct ir3_shader_options {
    unsigned num_reserved_user_consts;
    /* What API-visible wavesizes are allowed. Even if only double wavesize is
@@ -534,6 +569,8 @@ struct ir3_shader_options {
 
    uint32_t push_consts_base;
    uint32_t push_consts_dwords;
+
+   struct ir3_shader_nir_options nir_options;
 };
 
 /**
@@ -632,6 +669,9 @@ struct ir3_shader_variant {
 
    /* Whether dual-source blending is enabled. */
    bool dual_src_blend;
+
+   /* Whether early preamble is enabled. */
+   bool early_preamble;
 
    /* Size in bytes of required shared memory */
    unsigned shared_size;
@@ -834,8 +874,13 @@ struct ir3_shader_variant {
       struct {
          unsigned req_input_mem;
          unsigned req_local_mem;
+         bool force_linear_dispatch;
+         uint32_t local_invocation_id;
+         uint32_t work_group_id;
       } cs;
    };
+
+   uint32_t vtxid_base;
 
    /* For when we don't have a shader, variant's copy of streamout state */
    struct ir3_stream_output_info stream_output;
@@ -906,6 +951,7 @@ struct ir3_shader {
       struct {
          unsigned req_input_mem;    /* in dwords */
          unsigned req_local_mem;
+         bool force_linear_dispatch;
       } cs;
       /* For vertex shaders: */
       struct {
@@ -934,11 +980,18 @@ struct ir3_shader {
  * emit, for both binning and draw pass (a6xx+), the binning pass re-uses it's
  * corresponding draw pass shaders const_state.
  */
-static inline struct ir3_const_state *
+static inline const struct ir3_const_state *
 ir3_const_state(const struct ir3_shader_variant *v)
 {
    if (v->binning_pass)
       return v->nonbinning->const_state;
+   return v->const_state;
+}
+
+static inline struct ir3_const_state *
+ir3_const_state_mut(const struct ir3_shader_variant *v)
+{
+   assert(!v->binning_pass);
    return v->const_state;
 }
 
@@ -982,6 +1035,9 @@ ir3_max_const(const struct ir3_shader_variant *v)
 {
    return _ir3_max_const(v, v->key.safe_constlen);
 }
+
+uint16_t ir3_const_find_imm(struct ir3_shader_variant *v, uint32_t imm);
+uint16_t ir3_const_add_imm(struct ir3_shader_variant *v, uint32_t imm);
 
 /* Return true if a variant may need to be recompiled due to exceeding the
  * maximum "safe" constlen.

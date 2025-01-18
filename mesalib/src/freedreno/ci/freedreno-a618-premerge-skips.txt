@@ -6,3 +6,8 @@
 KHR-GL46.texture_swizzle.smoke
 KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4
 KHR-GL46.gpu_shader_fp64.fp64.varyings
+
+# Slow tests that may hit 60s timeout pre-merge, but pass otherwise
+dEQP-VK.memory.mapping.*.full.variable.implicit_unmap*
+dEQP-VK.spirv_assembly.instruction.graphics.16bit_storage.struct_mixed_types.uniform_buffer_block_vert
+dEQP-VK.spirv_assembly.instruction.*.spirv_ids_abuse.lots_ids*

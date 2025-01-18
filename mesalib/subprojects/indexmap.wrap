@@ -1,0 +1,6 @@
+[wrap-file]
+directory = indexmap-2.2.6
+source_url = https://crates.io/api/v1/crates/indexmap/2.2.6/download
+source_filename = indexmap-2.2.6.tar.gz
+source_hash = 168fb715dda47215e360912c096649d23d58bf392ac62f73919e831745e40f26
+patch_directory = indexmap

@@ -498,6 +498,77 @@ vn_encode_VkRenderPassCreateInfo(struct vn_cs_encoder *enc, const VkRenderPassCr
     vn_encode_VkRenderPassCreateInfo_self(enc, val);
 }
 
+/* struct VkRenderingAreaInfoKHR chain */
+
+static inline size_t
+vn_sizeof_VkRenderingAreaInfoKHR_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkRenderingAreaInfoKHR_self(const VkRenderingAreaInfoKHR *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_uint32_t(&val->viewMask);
+    size += vn_sizeof_uint32_t(&val->colorAttachmentCount);
+    if (val->pColorAttachmentFormats) {
+        size += vn_sizeof_array_size(val->colorAttachmentCount);
+        size += vn_sizeof_VkFormat_array(val->pColorAttachmentFormats, val->colorAttachmentCount);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    size += vn_sizeof_VkFormat(&val->depthAttachmentFormat);
+    size += vn_sizeof_VkFormat(&val->stencilAttachmentFormat);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkRenderingAreaInfoKHR(const VkRenderingAreaInfoKHR *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkRenderingAreaInfoKHR_pnext(val->pNext);
+    size += vn_sizeof_VkRenderingAreaInfoKHR_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkRenderingAreaInfoKHR_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkRenderingAreaInfoKHR_self(struct vn_cs_encoder *enc, const VkRenderingAreaInfoKHR *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_uint32_t(enc, &val->viewMask);
+    vn_encode_uint32_t(enc, &val->colorAttachmentCount);
+    if (val->pColorAttachmentFormats) {
+        vn_encode_array_size(enc, val->colorAttachmentCount);
+        vn_encode_VkFormat_array(enc, val->pColorAttachmentFormats, val->colorAttachmentCount);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+    vn_encode_VkFormat(enc, &val->depthAttachmentFormat);
+    vn_encode_VkFormat(enc, &val->stencilAttachmentFormat);
+}
+
+static inline void
+vn_encode_VkRenderingAreaInfoKHR(struct vn_cs_encoder *enc, const VkRenderingAreaInfoKHR *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_RENDERING_AREA_INFO_KHR });
+    vn_encode_VkRenderingAreaInfoKHR_pnext(enc, val->pNext);
+    vn_encode_VkRenderingAreaInfoKHR_self(enc, val);
+}
+
 /* struct VkAttachmentDescriptionStencilLayout chain */
 
 static inline size_t
@@ -1487,6 +1558,66 @@ static inline void vn_decode_vkGetRenderAreaGranularity_reply(struct vn_cs_decod
     }
 }
 
+static inline size_t vn_sizeof_vkGetRenderingAreaGranularityKHR(VkDevice device, const VkRenderingAreaInfoKHR* pRenderingAreaInfo, VkExtent2D* pGranularity)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkGetRenderingAreaGranularityKHR_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkDevice(&device);
+    cmd_size += vn_sizeof_simple_pointer(pRenderingAreaInfo);
+    if (pRenderingAreaInfo)
+        cmd_size += vn_sizeof_VkRenderingAreaInfoKHR(pRenderingAreaInfo);
+    cmd_size += vn_sizeof_simple_pointer(pGranularity);
+    if (pGranularity)
+        cmd_size += vn_sizeof_VkExtent2D_partial(pGranularity);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkGetRenderingAreaGranularityKHR(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkRenderingAreaInfoKHR* pRenderingAreaInfo, VkExtent2D* pGranularity)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkGetRenderingAreaGranularityKHR_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkDevice(enc, &device);
+    if (vn_encode_simple_pointer(enc, pRenderingAreaInfo))
+        vn_encode_VkRenderingAreaInfoKHR(enc, pRenderingAreaInfo);
+    if (vn_encode_simple_pointer(enc, pGranularity))
+        vn_encode_VkExtent2D_partial(enc, pGranularity);
+}
+
+static inline size_t vn_sizeof_vkGetRenderingAreaGranularityKHR_reply(VkDevice device, const VkRenderingAreaInfoKHR* pRenderingAreaInfo, VkExtent2D* pGranularity)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkGetRenderingAreaGranularityKHR_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip device */
+    /* skip pRenderingAreaInfo */
+    cmd_size += vn_sizeof_simple_pointer(pGranularity);
+    if (pGranularity)
+        cmd_size += vn_sizeof_VkExtent2D(pGranularity);
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkGetRenderingAreaGranularityKHR_reply(struct vn_cs_decoder *dec, VkDevice device, const VkRenderingAreaInfoKHR* pRenderingAreaInfo, VkExtent2D* pGranularity)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkGetRenderingAreaGranularityKHR_EXT);
+
+    /* skip device */
+    /* skip pRenderingAreaInfo */
+    if (vn_decode_simple_pointer(dec)) {
+        vn_decode_VkExtent2D(dec, pGranularity);
+    } else {
+        pGranularity = NULL;
+    }
+}
+
 static inline size_t vn_sizeof_vkCreateRenderPass2(VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
 {
     const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCreateRenderPass2_EXT;
@@ -1623,6 +1754,27 @@ static inline void vn_submit_vkGetRenderAreaGranularity(struct vn_ring *vn_ring,
     }
 }
 
+static inline void vn_submit_vkGetRenderingAreaGranularityKHR(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkRenderingAreaInfoKHR* pRenderingAreaInfo, VkExtent2D* pGranularity, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkGetRenderingAreaGranularityKHR(device, pRenderingAreaInfo, pGranularity);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetRenderingAreaGranularityKHR_reply(device, pRenderingAreaInfo, pGranularity) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkGetRenderingAreaGranularityKHR(enc, cmd_flags, device, pRenderingAreaInfo, pGranularity);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
 static inline void vn_submit_vkCreateRenderPass2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
@@ -1702,6 +1854,25 @@ static inline void vn_async_vkGetRenderAreaGranularity(struct vn_ring *vn_ring, 
 {
     struct vn_ring_submit_command submit;
     vn_submit_vkGetRenderAreaGranularity(vn_ring, 0, device, renderPass, pGranularity, &submit);
+}
+
+static inline void vn_call_vkGetRenderingAreaGranularityKHR(struct vn_ring *vn_ring, VkDevice device, const VkRenderingAreaInfoKHR* pRenderingAreaInfo, VkExtent2D* pGranularity)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetRenderingAreaGranularityKHR(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pRenderingAreaInfo, pGranularity, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkGetRenderingAreaGranularityKHR_reply(dec, device, pRenderingAreaInfo, pGranularity);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkGetRenderingAreaGranularityKHR(struct vn_ring *vn_ring, VkDevice device, const VkRenderingAreaInfoKHR* pRenderingAreaInfo, VkExtent2D* pGranularity)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetRenderingAreaGranularityKHR(vn_ring, 0, device, pRenderingAreaInfo, pGranularity, &submit);
 }
 
 static inline VkResult vn_call_vkCreateRenderPass2(struct vn_ring *vn_ring, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)

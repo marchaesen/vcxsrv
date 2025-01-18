@@ -47,7 +47,7 @@ nggc_bool_setting(nir_builder *b, unsigned mask, lower_abi_state *s)
 static nir_def *
 shader_query_bool_setting(nir_builder *b, unsigned mask, lower_abi_state *s)
 {
-   nir_def *settings = ac_nir_load_arg(b, &s->args->ac, s->args->shader_query_state);
+   nir_def *settings = GET_SGPR_FIELD_NIR(s->args->ngg_state, NGG_STATE_QUERY);
    return nir_test_mask(b, settings, mask);
 }
 
@@ -350,7 +350,7 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       break;
    case nir_intrinsic_load_provoking_vtx_in_prim_amd: {
       if (s->gfx_state->dynamic_provoking_vtx_mode) {
-         replacement = ac_nir_load_arg(b, &s->args->ac, s->args->ngg_provoking_vtx);
+         replacement = GET_SGPR_FIELD_NIR(s->args->ngg_state, NGG_STATE_PROVOKING_VTX);
       } else {
          unsigned provoking_vertex = 0;
          if (s->gfx_state->rs.provoking_vtx_last) {
@@ -415,7 +415,10 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
    case nir_intrinsic_load_streamout_offset_amd:
       replacement = ac_nir_load_arg(b, &s->args->ac, s->args->ac.streamout_offset[nir_intrinsic_base(intrin)]);
       break;
-
+   case nir_intrinsic_load_xfb_state_address_gfx12_amd:
+      replacement = nir_pack_64_2x32_split(b, ac_nir_load_arg(b, &s->args->ac, s->args->streamout_state),
+                                           nir_imm_int(b, s->address32_hi));
+      break;
    case nir_intrinsic_load_lds_ngg_gs_out_vertex_base_amd:
       if (s->info->merged_shader_compiled_separately) {
          replacement = GET_SGPR_FIELD_NIR(s->args->ngg_lds_layout, NGG_LDS_LAYOUT_GS_OUT_VERTEX_BASE);
@@ -436,7 +439,7 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       if (stage == MESA_SHADER_VERTEX) {
          /* For dynamic primitive topology with streamout. */
          if (s->info->vs.dynamic_num_verts_per_prim) {
-            replacement = ac_nir_load_arg(b, &s->args->ac, s->args->num_verts_per_prim);
+            replacement = GET_SGPR_FIELD_NIR(s->args->ngg_state, NGG_STATE_NUM_VERTS_PER_PRIM);
          } else {
             replacement = nir_imm_int(b, radv_get_num_vertices_per_prim(s->gfx_state));
          }
@@ -486,14 +489,11 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       replacement = nir_ilt_imm(b, prim_mask, 0);
       break;
    }
-   case nir_intrinsic_load_poly_line_smooth_enabled:
-      if (s->gfx_state->dynamic_line_rast_mode) {
-         nir_def *line_rast_mode = GET_SGPR_FIELD_NIR(s->args->ps_state, PS_STATE_LINE_RAST_MODE);
-         replacement = nir_ieq_imm(b, line_rast_mode, VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_KHR);
-      } else {
-         replacement = nir_imm_bool(b, s->gfx_state->rs.line_smooth_enabled);
-      }
+   case nir_intrinsic_load_poly_line_smooth_enabled: {
+      nir_def *line_rast_mode = GET_SGPR_FIELD_NIR(s->args->ps_state, PS_STATE_LINE_RAST_MODE);
+      replacement = nir_ieq_imm(b, line_rast_mode, VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_KHR);
       break;
+   }
    case nir_intrinsic_load_initial_edgeflags_amd:
       replacement = nir_imm_int(b, 0);
       break;
@@ -569,5 +569,5 @@ radv_nir_lower_abi(nir_shader *shader, enum amd_gfx_level gfx_level, const struc
          state.gsvs_ring[i] = load_gsvs_ring(&b, &state, i);
    }
 
-   nir_shader_intrinsics_pass(shader, lower_abi_instr, nir_metadata_dominance | nir_metadata_block_index, &state);
+   nir_shader_intrinsics_pass(shader, lower_abi_instr, nir_metadata_control_flow, &state);
 }

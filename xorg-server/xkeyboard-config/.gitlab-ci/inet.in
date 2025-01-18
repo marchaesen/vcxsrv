@@ -101,11 +101,14 @@ xkb_symbols "evdev" {
     key <HELP>   {      [ Help                  ]       };
     key <LNFD>   {      [ Linefeed              ]       };
 
+// These are historical mappings that must not be removed.
+// xf86-input-libinput and xf86-input-evdev drivers
+// remap the respective evdev codes to F20-F24 since the
+// evdev codes are not routable in X.
+    key <FK20>   {      [ XF86AudioMicMute      ]       };
     key <FK21>   {      [ XF86TouchpadToggle    ]       };
     key <FK22>   {      [ XF86TouchpadOn        ]       };
     key <FK23>   {      [ XF86TouchpadOff       ]       };
-
-    key <FK20>   {      [ XF86AudioMicMute      ]       };
 
 //  key <I120>   {      [ ]       }; // KEY_MACRO
     key <I126>   {      [ plusminus             ]       };

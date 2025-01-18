@@ -53,6 +53,10 @@ typedef struct _PixmapFormat *PixmapFormatPtr;
 typedef struct _Visual *VisualPtr;
 typedef struct _Depth *DepthPtr;
 typedef struct _Screen *ScreenPtr;
+
+extern _X_EXPORT void AttachOutputGPU(ScreenPtr pScreen, ScreenPtr newScreen);
+extern _X_EXPORT void DetachOutputGPU(ScreenPtr output);
+
 typedef struct _ColormapRec *ColormapPtr;
 
 #endif                          /* SCREENINT_H */

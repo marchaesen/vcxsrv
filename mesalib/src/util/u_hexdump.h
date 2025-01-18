@@ -13,28 +13,23 @@ static inline void
 u_hexdump(FILE *fp, const uint8_t *hex, size_t cnt, bool with_strings)
 {
    for (unsigned i = 0; i < cnt; ++i) {
-      if ((i & 0xF) == 0)
-         fprintf(fp, "%06X  ", i);
+      if ((i & 0xF) == 0 && i >= 0x10) {
+         unsigned j;
 
-      uint8_t v = hex[i];
-
-      if (v == 0 && (i & 0xF) == 0) {
-         /* Check if we're starting an aligned run of zeroes */
-         unsigned zero_count = 0;
-
-         for (unsigned j = i; j < cnt; ++j) {
-            if (hex[j] == 0)
-               zero_count++;
-            else
+         for (j = i; j + 0x10 < cnt; j += 0x10) {
+            if (memcmp(&hex[j], &hex[j - 0x10], 0x10))
                break;
          }
 
-         if (zero_count >= 32) {
+         if (j > i) {
             fprintf(fp, "*\n");
-            i += (zero_count & ~0xF) - 1;
+            i = j - 1;
             continue;
          }
       }
+
+      if ((i & 0xF) == 0)
+         fprintf(fp, "%06X  ", i);
 
       fprintf(fp, "%02X ", hex[i]);
       if ((i & 0xF) == 0xF && with_strings) {

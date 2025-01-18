@@ -1,7 +1,9 @@
 KHR-GL46.packed_pixels.varied_rectangle.rgb16
+dEQP-GLES2.functional.fragment_ops.blend.rgb_func_alpha_func.src.dst_color_src_alpha
 dEQP-GLES2.functional.texture.filtering.cube.nearest_linear_clamp_rgba4444_pot
 dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.srgb8_alpha8_astc_10x5_khr_rgba32i.texture2d_array_to_texture2d_array
 dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_nearest_repeat_repeat
+dEQP-GLES3.functional.transform_feedback.array_element.interleaved.points.lowp_mat2x3
 spec@arb_enhanced_layouts@execution@component-layout@sso-vs-gs-fs-array-interleave
 spec@arb_fragment_shader_interlock@arb_fragment_shader_interlock-image-load-store
 spec@arb_texture_cube_map@copyteximage cube samples=6
@@ -28,3 +30,9 @@ dEQP-GLES31.functional.copy_image.mixed.viewclass_64_bits_mixed.signed_r11_eac_r
 KHR-GL46.packed_pixels.varied_rectangle.rgb10_a2ui
 spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec3-index-wr-before-barrier
 
+# First seen in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/58636780
+KHR-GL46.sparse_buffer_tests.BufferStorageTest
+
+# Low occurrence flakes
+dEQP-GLES3.functional.fbo.multiview.samples_4
+spec@glsl-1.50@execution@redeclare-pervertex-out-subset-gs

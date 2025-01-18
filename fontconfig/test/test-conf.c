@@ -278,7 +278,7 @@ build_pattern (json_object *obj)
 }
 
 static FcFontSet *
-build_fs (FcConfig *config, json_object *obj)
+build_fs (FcConfig *config, json_object *obj, FcBool filter)
 {
     FcFontSet *fs = FcFontSetCreate ();
     int i, n;
@@ -292,7 +292,8 @@ build_fs (FcConfig *config, json_object *obj)
 	if (json_object_get_type (o) != json_type_object)
 	    continue;
 	pat = build_pattern (o);
-	if (FcConfigAcceptFont (config, pat))
+	if (FcConfigAcceptFont (config, pat) &&
+	    (!filter || FcConfigAcceptFilter (config, pat)))
 	    FcFontSetAdd (fs, pat);
 	else
 	    FcPatternDestroy(pat);
@@ -302,18 +303,70 @@ build_fs (FcConfig *config, json_object *obj)
 }
 
 static FcBool
+filter_func (const FcPattern *f, void *user_data)
+{
+    FcPattern *filter = (FcPattern *)user_data;
+    FcPatternIter iter;
+    FcBool ret = FcTrue;
+
+    FcPatternIterStart (filter, &iter);
+    if (!(ret = FcPatternIterIsValid (filter, &iter)))
+	goto bail;
+    do
+    {
+	const char *obj = FcPatternIterGetObject (filter, &iter);
+	int i, n = FcPatternIterValueCount(filter, &iter);
+
+	for (i = 0; i < n; i++)
+	{
+	    FcValue v, v2;
+	    FcValueBinding b;
+
+	    if (FcPatternIterGetValue (filter, &iter, i, &v, &b) != FcResultMatch)
+	    {
+		ret = FcFalse;
+		goto bail;
+	    }
+	    if (FcPatternGet (f, obj, 0, &v2) != FcResultMatch)
+	    {
+		ret = FcFalse;
+		goto bail;
+	    }
+	    if (!FcValueEqual (v, v2))
+	    {
+		ret = FcFalse;
+		goto bail;
+	    }
+	}
+    } while (FcPatternIterNext (filter, &iter));
+bail:
+    return ret;
+}
+
+static FcBool
 build_fonts (FcConfig *config, json_object *root)
 {
-    json_object *fonts;
+    json_object *fonts, *filter;
     FcFontSet *fs;
+    FcPattern *filterpat;
 
+    if (json_object_object_get_ex (root, "filter", &filter))
+    {
+	if (json_object_get_type (filter) != json_type_object)
+	{
+	    fprintf (stderr, "W: Invalid filter defined\n");
+	    return FcFalse;
+	}
+	filterpat = build_pattern (filter);
+	FcConfigSetFontSetFilter(config, filter_func, (FcDestroyFunc)FcPatternDestroy, filterpat);
+    }
     if (!json_object_object_get_ex (root, "fonts", &fonts) ||
 	json_object_get_type (fonts) != json_type_array)
     {
 	fprintf (stderr, "W: No fonts defined\n");
 	return FcFalse;
     }
-    fs = build_fs (config, fonts);
+    fs = build_fs (config, fonts, FcTrue);
     /* FcConfigSetFonts (config, fs, FcSetSystem); */
     if (config->fonts[FcSetSystem])
 	FcFontSetDestroy (config->fonts[FcSetSystem]);
@@ -341,6 +394,7 @@ run_test (FcConfig *config, json_object *root)
 	json_object_iter iter;
 	FcPattern *query = NULL;
 	FcPattern *result = NULL;
+	FcPattern *filterpat = NULL;
 	FcFontSet *result_fs = NULL;
 	const char *method = NULL;
 
@@ -388,7 +442,7 @@ run_test (FcConfig *config, json_object *root)
 		}
 		if (result_fs)
 		    FcFontSetDestroy (result_fs);
-		result_fs = build_fs (config, iter.val);
+		result_fs = build_fs (config, iter.val, FcFalse);
 	    }
 	    else if (strcmp (iter.key, "$comment") == 0)
 	    {

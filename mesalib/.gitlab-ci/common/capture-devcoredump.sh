@@ -7,7 +7,7 @@ while true; do
   devcds=$(find /sys/devices/virtual/devcoredump/ -name data 2>/dev/null)
   for i in $devcds; do
     echo "Found a devcoredump at $i."
-    if cp $i /results/first.devcore; then
+    if cp $i $RESULTS_DIR/first.devcore; then
       echo 1 > $i
       echo "Saved to the job artifacts at /first.devcore"
       exit 0
@@ -23,7 +23,7 @@ while true; do
         rm "$tmpfile"
     else
         echo "Found an i915 error state at $i size=$filesize."
-        if cp "$tmpfile" /results/first.i915_error_state; then
+        if cp "$tmpfile" $RESULTS_DIR/first.i915_error_state; then
             rm "$tmpfile"
             echo 1 > "$i"
             echo "Saved to the job artifacts at /first.i915_error_state"

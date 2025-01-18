@@ -1,0 +1,20 @@
+[binaries]
+c = 'x86_64-w64-mingw32-clang'
+ar = 'x86_64-w64-mingw32-llvm-ar'
+strip = 'x86_64-w64-mingw32-strip'
+windres = 'x86_64-w64-mingw32-windres'
+exe_wrapper = 'wine'
+
+[built-in options]
+# Static linking is a workaround around `libwinpthread-1` not being discovered correctly.
+c_link_args = ['-static']
+
+[project options]
+# OpenMP is disabled as it is not being discovered correctly during tests.
+openmp = 'disabled'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

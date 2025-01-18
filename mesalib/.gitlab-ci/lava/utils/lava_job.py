@@ -35,6 +35,7 @@ class LAVAJob:
         self._is_finished = False
         self.log: dict[str, Any] = log
         self.status = "not_submitted"
+        self._exit_code = None
         self.__exception: Optional[Exception] = None
 
     def heartbeat(self) -> None:
@@ -49,6 +50,15 @@ class LAVAJob:
     def status(self, new_status: str) -> None:
         self._status = new_status
         self.log["status"] = self._status
+
+    @property
+    def exit_code(self) -> int:
+        return self._exit_code
+
+    @exit_code.setter
+    def exit_code(self, code: int) -> None:
+        self._exit_code = code
+        self.log["exit_code"] = self._exit_code
 
     @property
     def job_id(self) -> int:
@@ -158,9 +168,10 @@ class LAVAJob:
         last_line = None  # Print all lines. lines[:None] == lines[:]
 
         for idx, line in enumerate(lava_lines):
-            if result := re.search(r"hwci: mesa: (pass|fail)", line):
+            if result := re.search(r"hwci: mesa: (pass|fail), exit_code: (\d+)", line):
                 self._is_finished = True
-                self.status = result[1]
+                self.status = result.group(1)
+                self.exit_code = int(result.group(2))
 
                 last_line = idx + 1
                 # We reached the log end here. hwci script has finished.
@@ -171,6 +182,9 @@ class LAVAJob:
         print_log(exception)
         self.cancel()
         self.exception = exception
+
+        # Set the exit code to nonzero value
+        self.exit_code = 1
 
         # Give more accurate status depending on exception
         if isinstance(exception, MesaCIKnownIssueException):

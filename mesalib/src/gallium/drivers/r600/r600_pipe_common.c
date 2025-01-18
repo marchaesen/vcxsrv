@@ -23,7 +23,7 @@
 #include <sys/utsname.h>
 #include <stdlib.h>
 
-#if LLVM_AVAILABLE
+#if AMD_LLVM_AVAILABLE
 #include <llvm-c/TargetMachine.h>
 #endif
 
@@ -1252,7 +1252,7 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 
 	snprintf(rscreen->renderer_string, sizeof(rscreen->renderer_string),
 		 "%s (%sDRM %i.%i.%i%s"
-#if LLVM_AVAILABLE
+#if AMD_LLVM_AVAILABLE
 		 ", LLVM " MESA_LLVM_VERSION_STRING
 #endif
 		 ")",
@@ -1338,6 +1338,7 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		printf("drm = %i.%i.%i\n", rscreen->info.drm_major,
 		       rscreen->info.drm_minor, rscreen->info.drm_patchlevel);
 		printf("has_userptr = %i\n", rscreen->info.has_userptr);
+		printf("has_syncobj = %u\n", rscreen->info.has_syncobj);
 
 		printf("r600_max_quad_pipes = %i\n", rscreen->info.r600_max_quad_pipes);
 		printf("max_gpu_freq_mhz = %i\n", rscreen->info.max_gpu_freq_mhz);

@@ -125,7 +125,6 @@ bool
 nir_lower_interpolation(nir_shader *shader, nir_lower_interpolation_options options)
 {
    return nir_shader_instructions_pass(shader, nir_lower_interpolation_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &options);
 }

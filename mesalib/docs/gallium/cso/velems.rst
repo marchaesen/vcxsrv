@@ -27,8 +27,9 @@ very simple set of rules for padding out unspecified components. If an input
 uses less than four components, it will be padded out with the constant vector
 ``(0, 0, 0, 1)``.
 
-Fog, point size, the facing bit, and edgeflags, all are in the standard format
-of ``(x, 0, 0, 1)``, and so only the first component of those inputs is used.
+Fog, point size, the facing bit, and edge flags, all are in the standard
+format of ``(x, 0, 0, 1)``, and so only the first component of those inputs is
+used.
 
 Position
 %%%%%%%%

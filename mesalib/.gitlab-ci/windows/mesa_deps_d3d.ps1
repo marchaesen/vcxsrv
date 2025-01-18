@@ -8,7 +8,7 @@ $depsInstallPath="C:\mesa-deps"
 
 Write-Host "Downloading DirectX 12 Agility SDK at:"
 Get-Date
-Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.613.2 -OutFile 'agility.zip'
+Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.614.1 -OutFile 'agility.zip'
 Expand-Archive -Path 'agility.zip' -DestinationPath 'C:\agility'
 # Copy Agility SDK into mesa-deps\bin\D3D12
 New-Item -ErrorAction SilentlyContinue -ItemType Directory -Path $depsInstallPath\bin -Name 'D3D12'

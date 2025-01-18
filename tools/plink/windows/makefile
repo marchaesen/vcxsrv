@@ -44,7 +44,9 @@ UTILS_CSRCS = \
   shinydialogbox.c \
   split_into_argv.c \
   version.c \
-  win_strerror.c
+  win_strerror.c \
+	cmdline_arg.c \
+	split_into_argv_w.c
 
 CSRCS =  agent-client.c \
  cliloop.c \
@@ -60,13 +62,9 @@ CSRCS =  agent-client.c \
  local-proxy.c \
  x11.c \
  noise.c \
- agent-client.c \
  gss.c \
  sharing.c \
  serial.c \
- agent-client.c \
- putty.c \
- help.c \
  no-jump-list.c \
  config.c \
  handle-io.c \

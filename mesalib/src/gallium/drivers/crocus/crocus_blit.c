@@ -373,7 +373,7 @@ crocus_u_blitter(struct crocus_context *ice,
    if (!util_format_has_alpha(dinfo.dst.resource->format))
       dinfo.mask &= ~PIPE_MASK_A;
    crocus_blitter_begin(ice, CROCUS_SAVE_FRAMEBUFFER | CROCUS_SAVE_TEXTURES | CROCUS_SAVE_FRAGMENT_STATE, info->render_condition_enable);
-   util_blitter_blit(ice->blitter, &dinfo);
+   util_blitter_blit(ice->blitter, &dinfo, NULL);
 }
 
 /**
@@ -412,7 +412,7 @@ crocus_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
                struct pipe_blit_info depth_blit = *info;
                depth_blit.mask = PIPE_MASK_Z;
                crocus_blitter_begin(ice, CROCUS_SAVE_FRAMEBUFFER | CROCUS_SAVE_TEXTURES | CROCUS_SAVE_FRAGMENT_STATE, info->render_condition_enable);
-               util_blitter_blit(ice->blitter, &depth_blit);
+               util_blitter_blit(ice->blitter, &depth_blit, NULL);
 
                struct pipe_surface *dst_view, dst_templ;
                util_blitter_default_dst_texture(&dst_templ, info->dst.resource, info->dst.level, info->dst.box.z);

@@ -11,6 +11,7 @@
 #include <X11/Xdefs.h>
 
 #include "os.h"
+#include "dix/dix_priv.h"
 
 /*
  * This is to prevent re-entrancy to FatalError() when aborting.

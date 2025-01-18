@@ -84,16 +84,12 @@ nir_opt_conditional_discard_block(nir_builder *b, nir_block *block)
    b->cursor = nir_before_cf_node(prev_node);
 
    switch (intrin->intrinsic) {
-   case nir_intrinsic_discard:
-      op = nir_intrinsic_discard_if;
-      break;
    case nir_intrinsic_demote:
       op = nir_intrinsic_demote_if;
       break;
    case nir_intrinsic_terminate:
       op = nir_intrinsic_terminate_if;
       break;
-   case nir_intrinsic_discard_if:
    case nir_intrinsic_demote_if:
    case nir_intrinsic_terminate_if:
       cond = nir_iand(b, cond, intrin->src[0].ssa);

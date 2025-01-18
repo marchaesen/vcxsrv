@@ -26,6 +26,11 @@
 
 #include "fixed31_32.h"
 
+#define MAX_3DLUT 1
+
+#define MAX_INPUT_PIPE  1
+#define MAX_OUTPUT_PIPE 1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -149,6 +154,11 @@ enum gamut_remap_select {
     GAMUT_REMAP_COMA_COEFF,
 };
 
+enum lut_dimension {
+    LUT_DIM_INVALID = 0,
+    LUT_DIM_9       = 9,
+    LUT_DIM_17      = 17,
+};
 struct vpe_rgb {
     uint32_t red;
     uint32_t green;
@@ -173,8 +183,8 @@ struct tetrahedral_params {
         struct tetrahedral_17x17x17 tetrahedral_17;
         struct tetrahedral_9x9x9    tetrahedral_9;
     };
-    bool use_tetrahedral_9;
-    bool use_12bits;
+    enum lut_dimension lut_dim;
+    bool               use_12bits;
 };
 
 enum vpe_lut_mode {

@@ -71,8 +71,7 @@ rewrite_load(nir_intrinsic_instr *load, struct regs_to_ssa_state *state)
    nir_intrinsic_instr *decl = nir_instr_as_intrinsic(reg->parent_instr);
    nir_def *def = nir_phi_builder_value_get_block_def(value, block);
 
-   nir_def_rewrite_uses(&load->def, def);
-   nir_instr_remove(&load->instr);
+   nir_def_replace(&load->def, def);
 
    if (nir_def_is_unused(&decl->def))
       nir_instr_remove(&decl->instr);
@@ -133,8 +132,7 @@ nir_lower_reg_intrinsics_to_ssa_impl(nir_function_impl *impl)
       return false;
    }
 
-   nir_metadata_require(impl, nir_metadata_block_index |
-                                 nir_metadata_dominance);
+   nir_metadata_require(impl, nir_metadata_control_flow);
    nir_index_ssa_defs(impl);
 
    void *dead_ctx = ralloc_context(NULL);
@@ -172,8 +170,7 @@ nir_lower_reg_intrinsics_to_ssa_impl(nir_function_impl *impl)
 
    ralloc_free(dead_ctx);
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
    return true;
 }
 

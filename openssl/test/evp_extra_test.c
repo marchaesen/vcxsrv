@@ -2721,6 +2721,47 @@ static int test_emptyikm_HKDF(void)
     return ret;
 }
 
+static int test_empty_salt_info_HKDF(void)
+{
+    EVP_PKEY_CTX *pctx;
+    unsigned char out[20];
+    size_t outlen;
+    int ret = 0;
+    unsigned char salt[] = "";
+    unsigned char key[] = "012345678901234567890123456789";
+    unsigned char info[] = "";
+    const unsigned char expected[] = {
+	0x67, 0x12, 0xf9, 0x27, 0x8a, 0x8a, 0x3a, 0x8f, 0x7d, 0x2c, 0xa3, 0x6a,
+	0xaa, 0xe9, 0xb3, 0xb9, 0x52, 0x5f, 0xe0, 0x06,
+    };
+    size_t expectedlen = sizeof(expected);
+
+    if (!TEST_ptr(pctx = EVP_PKEY_CTX_new_from_name(testctx, "HKDF", testpropq)))
+        goto done;
+
+    outlen = sizeof(out);
+    memset(out, 0, outlen);
+
+    if (!TEST_int_gt(EVP_PKEY_derive_init(pctx), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256()), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt,
+                                                        sizeof(salt) - 1), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_set1_hkdf_key(pctx, key,
+                                                       sizeof(key) - 1), 0)
+            || !TEST_int_gt(EVP_PKEY_CTX_add1_hkdf_info(pctx, info,
+                                                        sizeof(info) - 1), 0)
+            || !TEST_int_gt(EVP_PKEY_derive(pctx, out, &outlen), 0)
+            || !TEST_mem_eq(out, outlen, expected, expectedlen))
+        goto done;
+
+    ret = 1;
+
+ done:
+    EVP_PKEY_CTX_free(pctx);
+
+    return ret;
+}
+
 #ifndef OPENSSL_NO_EC
 static int test_X509_PUBKEY_inplace(void)
 {
@@ -4886,6 +4927,7 @@ static int custom_md_cleanup(EVP_MD_CTX *ctx)
 
 static int test_custom_md_meth(void)
 {
+    ASN1_OBJECT *o = NULL;
     EVP_MD_CTX *mdctx = NULL;
     EVP_MD *tmp = NULL;
     char mess[] = "Test Message\n";
@@ -4931,8 +4973,21 @@ static int test_custom_md_meth(void)
             || !TEST_int_eq(custom_md_cleanup_called, 1))
         goto err;
 
+    if (!TEST_int_eq(OBJ_create("1.3.6.1.4.1.16604.998866.1",
+                                "custom-md", "custom-md"), NID_undef)
+            || !TEST_int_eq(ERR_GET_LIB(ERR_peek_error()), ERR_LIB_OBJ)
+            || !TEST_int_eq(ERR_GET_REASON(ERR_get_error()), OBJ_R_OID_EXISTS))
+        goto err;
+
+    o = ASN1_OBJECT_create(nid, (unsigned char *)
+                                "\53\6\1\4\1\201\201\134\274\373\122\1", 12,
+                                "custom-md", "custom-md");
+    if (!TEST_int_eq(OBJ_add_object(o), nid))
+        goto err;
+
     testresult = 1;
  err:
+    ASN1_OBJECT_free(o);
     EVP_MD_CTX_free(mdctx);
     EVP_MD_meth_free(tmp);
     return testresult;
@@ -5583,6 +5638,25 @@ static int test_aes_rc4_keylen_change_cve_2023_5363(void)
 }
 #endif
 
+static int test_invalid_ctx_for_digest(void)
+{
+    int ret;
+    EVP_MD_CTX *mdctx;
+
+    mdctx = EVP_MD_CTX_new();
+    if (!TEST_ptr(mdctx))
+        return 0;
+
+    if (!TEST_int_eq(EVP_DigestUpdate(mdctx, "test", sizeof("test") - 1), 0))
+        ret = 0;
+    else
+        ret = 1;
+
+    EVP_MD_CTX_free(mdctx);
+
+    return ret;
+}
+
 int setup_tests(void)
 {
     OPTION_CHOICE o;
@@ -5660,6 +5734,7 @@ int setup_tests(void)
 #endif
     ADD_TEST(test_HKDF);
     ADD_TEST(test_emptyikm_HKDF);
+    ADD_TEST(test_empty_salt_info_HKDF);
 #ifndef OPENSSL_NO_EC
     ADD_TEST(test_X509_PUBKEY_inplace);
     ADD_TEST(test_X509_PUBKEY_dup);
@@ -5752,6 +5827,8 @@ int setup_tests(void)
 #ifndef OPENSSL_NO_RC4
     ADD_TEST(test_aes_rc4_keylen_change_cve_2023_5363);
 #endif
+
+    ADD_TEST(test_invalid_ctx_for_digest);
 
     return 1;
 }

@@ -3,6 +3,7 @@ LIBRARY=libfb
 
 CCFLAGS:=$(CCFLAGS:-RTCc=)
 
+INCLUDES += ..
 DEFINES += PIXMAN_API=
 
 CSRCS = 	\

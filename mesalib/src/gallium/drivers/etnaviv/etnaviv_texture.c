@@ -367,7 +367,7 @@ etna_texture_init(struct pipe_context *pctx)
    pctx->set_sampler_views = etna_set_sampler_views;
    pctx->texture_barrier = etna_texture_barrier;
 
-   if (screen->specs.halti >= 5) {
+   if (screen->info->halti >= 5) {
       u_suballocator_init(&ctx->tex_desc_allocator, pctx, 4096, 0,
                           PIPE_USAGE_IMMUTABLE, 0, true);
       etna_texture_desc_init(pctx);
@@ -382,6 +382,6 @@ etna_texture_fini(struct pipe_context *pctx)
    struct etna_context *ctx = etna_context(pctx);
    struct etna_screen *screen = ctx->screen;
 
-   if (screen->specs.halti >= 5)
+   if (screen->info->halti >= 5)
       u_suballocator_destroy(&ctx->tex_desc_allocator);
 }

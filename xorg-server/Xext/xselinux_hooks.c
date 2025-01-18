@@ -22,9 +22,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * All rights reserved.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <errno.h>
 #include <sys/socket.h>
@@ -32,8 +30,10 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdarg.h>
 #include <libaudit.h>
 #include <X11/Xatom.h>
+#include <X11/Xfuncproto.h>
 
 #include "dix/registry_priv.h"
+#include "os/client_priv.h"
 
 #include "selection.h"
 #include "inputstr.h"
@@ -42,7 +42,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "propertyst.h"
 #include "extnsionst.h"
 #include "xacestr.h"
-#include "client.h"
 #define _XSELINUX_NEED_FLASK_MAP
 #include "xselinuxint.h"
 

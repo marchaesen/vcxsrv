@@ -97,6 +97,12 @@ can_reorder(const Instruction* const instr)
    case aco_opcode::s_set_gpr_idx_idx:
    case aco_opcode::s_sendmsg_rtn_b32:
    case aco_opcode::s_sendmsg_rtn_b64:
+   case aco_opcode::s_barrier_signal:
+   case aco_opcode::s_barrier_signal_isfirst:
+   case aco_opcode::s_get_barrier_state:
+   case aco_opcode::s_barrier_init:
+   case aco_opcode::s_barrier_join:
+   case aco_opcode::s_wakeup_barrier:
    /* SOPK */
    case aco_opcode::s_cbranch_i_fork:
    case aco_opcode::s_getreg_b32:
@@ -119,7 +125,7 @@ can_reorder(const Instruction* const instr)
 }
 
 VOPDInfo
-get_vopd_info(const Instruction* instr)
+get_vopd_info(const SchedILPContext& ctx, const Instruction* instr)
 {
    if (instr->format != Format::VOP1 && instr->format != Format::VOP2)
       return VOPDInfo();
@@ -139,6 +145,11 @@ get_vopd_info(const Instruction* instr)
    case aco_opcode::v_subrev_f32: info.op = aco_opcode::v_dual_subrev_f32; break;
    case aco_opcode::v_mul_legacy_f32: info.op = aco_opcode::v_dual_mul_dx9_zero_f32; break;
    case aco_opcode::v_mov_b32: info.op = aco_opcode::v_dual_mov_b32; break;
+   case aco_opcode::v_bfrev_b32:
+      if (!instr->operands[0].isConstant())
+         return VOPDInfo();
+      info.op = aco_opcode::v_dual_mov_b32;
+      break;
    case aco_opcode::v_cndmask_b32:
       info.op = aco_opcode::v_dual_cndmask_b32;
       info.is_commutative = false;
@@ -171,19 +182,23 @@ get_vopd_info(const Instruction* instr)
    static const unsigned bank_mask[3] = {0x3, 0x3, 0x1};
    bool has_sgpr = false;
    for (unsigned i = 0; i < instr->operands.size(); i++) {
+      Operand op = instr->operands[i];
+      if (instr->opcode == aco_opcode::v_bfrev_b32)
+         op = Operand::get_const(ctx.program->gfx_level, util_bitreverse(op.constantValue()), 4);
+
       unsigned port = (instr->opcode == aco_opcode::v_fmamk_f32 && i == 1) ? 2 : i;
-      if (instr->operands[i].isOfType(RegType::vgpr))
-         info.src_banks |= 1 << (port * 4 + (instr->operands[i].physReg().reg() & bank_mask[port]));
+      if (op.isOfType(RegType::vgpr))
+         info.src_banks |= 1 << (port * 4 + (op.physReg().reg() & bank_mask[port]));
 
       /* Check all operands because of fmaak/fmamk. */
-      if (instr->operands[i].isLiteral()) {
-         assert(!info.has_literal || info.literal == instr->operands[i].constantValue());
+      if (op.isLiteral()) {
+         assert(!info.has_literal || info.literal == op.constantValue());
          info.has_literal = true;
-         info.literal = instr->operands[i].constantValue();
+         info.literal = op.constantValue();
       }
 
       /* Check all operands because of cndmask. */
-      has_sgpr |= !instr->operands[i].isConstant() && instr->operands[i].isOfType(RegType::sgpr);
+      has_sgpr |= !op.isConstant() && op.isOfType(RegType::sgpr);
    }
 
    /* An instruction can't use both a literal and an SGPR. */
@@ -290,7 +305,8 @@ is_memory_instr(const Instruction* const instr)
    /* For memory instructions, we allow to reorder them with ALU if it helps
     * to form larger clauses or to increase def-use distances.
     */
-   return instr->isVMEM() || instr->isFlatLike() || instr->isSMEM() || instr->accessesLDS();
+   return instr->isVMEM() || instr->isFlatLike() || instr->isSMEM() || instr->accessesLDS() ||
+          instr->isEXP();
 }
 
 constexpr unsigned max_sgpr = 128;
@@ -307,7 +323,7 @@ add_entry(SchedILPContext& ctx, Instruction* const instr, const uint32_t idx)
    ctx.active_mask |= mask;
 
    if (ctx.is_vopd) {
-      VOPDInfo vopd = get_vopd_info(entry.instr);
+      VOPDInfo vopd = get_vopd_info(ctx, entry.instr);
 
       ctx.vopd[idx] = vopd;
       ctx.vopd_odd_mask &= ~mask;
@@ -632,18 +648,23 @@ select_instruction_vopd(const SchedILPContext& ctx, bool* use_vopd)
 }
 
 void
-get_vopd_opcode_operands(Instruction* instr, const VOPDInfo& info, bool swap, aco_opcode* op,
-                         unsigned* num_operands, Operand* operands)
+get_vopd_opcode_operands(const SchedILPContext& ctx, Instruction* instr, const VOPDInfo& info,
+                         bool swap, aco_opcode* op, unsigned* num_operands, Operand* operands)
 {
    *op = info.op;
    *num_operands += instr->operands.size();
    std::copy(instr->operands.begin(), instr->operands.end(), operands);
 
+   if (instr->opcode == aco_opcode::v_bfrev_b32) {
+      operands[0] = Operand::get_const(ctx.program->gfx_level,
+                                       util_bitreverse(operands[0].constantValue()), 4);
+   }
+
    if (swap && info.op == aco_opcode::v_dual_mov_b32) {
       *op = aco_opcode::v_dual_add_nc_u32;
       (*num_operands)++;
+      operands[1] = operands[0];
       operands[0] = Operand::zero();
-      operands[1] = instr->operands[0];
    } else if (swap) {
       if (info.op == aco_opcode::v_dual_sub_f32)
          *op = aco_opcode::v_dual_subrev_f32;
@@ -683,8 +704,8 @@ create_vopd_instruction(const SchedILPContext& ctx, unsigned idx)
    aco_opcode x_op, y_op;
    unsigned num_operands = 0;
    Operand operands[6];
-   get_vopd_opcode_operands(x, x_info, swap_x, &x_op, &num_operands, operands);
-   get_vopd_opcode_operands(y, y_info, swap_y, &y_op, &num_operands, operands + num_operands);
+   get_vopd_opcode_operands(ctx, x, x_info, swap_x, &x_op, &num_operands, operands);
+   get_vopd_opcode_operands(ctx, y, y_info, swap_y, &y_op, &num_operands, operands + num_operands);
 
    Instruction* instr = create_instruction(x_op, Format::VOPD, num_operands, 2);
    instr->vopd().opy = y_op;

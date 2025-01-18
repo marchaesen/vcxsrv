@@ -226,60 +226,6 @@ _mesa_symbol_table_replace_symbol(struct _mesa_symbol_table *table,
     return 0;
 }
 
-int
-_mesa_symbol_table_add_global_symbol(struct _mesa_symbol_table *table,
-                                     const char *name, void *declaration)
-{
-   struct scope_level *top_scope;
-   struct symbol *inner_sym = NULL;
-   struct symbol *sym = find_symbol(table, name);
-
-   while (sym) {
-      if (sym->depth == 0)
-         return -1;
-
-      inner_sym = sym;
-
-      /* Get symbol from the outer scope with the same name */
-      sym = sym->next_with_same_name;
-   }
-
-   /* Find the top-level scope */
-   for (top_scope = table->current_scope; top_scope->next != NULL;
-        top_scope = top_scope->next) {
-      /* empty */
-   }
-
-   sym = calloc(1, sizeof(*sym) + (inner_sym ? 0 : strlen(name) + 1));
-   if (sym == NULL) {
-      _mesa_error_no_memory(__func__);
-      return -1;
-   }
-
-   if (inner_sym) {
-      /* In case we add the global out of order store a link to the global
-       * symbol in global.
-       */
-      inner_sym->next_with_same_name = sym;
-
-      sym->name = inner_sym->name;
-   } else {
-      sym->name = (char *)(sym + 1);
-      strcpy(sym->name, name);
-   }
-
-   sym->next_with_same_scope = top_scope->symbols;
-   sym->data = declaration;
-
-   top_scope->symbols = sym;
-
-   _mesa_hash_table_insert(table->ht, sym->name, sym);
-
-   return 0;
-}
-
-
-
 struct _mesa_symbol_table *
 _mesa_symbol_table_ctor(void)
 {

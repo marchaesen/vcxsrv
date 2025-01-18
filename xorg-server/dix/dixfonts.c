@@ -48,9 +48,7 @@ Equipment Corporation.
 
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <stddef.h>
 #include <X11/X.h>
@@ -827,7 +825,7 @@ ListFonts(ClientPtr client, unsigned char *pattern, unsigned length,
     if (length > XLFDMAXFONTNAMELEN)
         return BadAlloc;
 
-    i = XaceHook(XACE_SERVER_ACCESS, client, DixGetAttrAccess);
+    i = XaceHookServerAccess(client, DixGetAttrAccess);
     if (i != Success)
         return i;
 
@@ -1080,7 +1078,7 @@ StartListFontsWithInfo(ClientPtr client, int length, unsigned char *pattern,
     if (length > XLFDMAXFONTNAMELEN)
         return BadAlloc;
 
-    i = XaceHook(XACE_SERVER_ACCESS, client, DixGetAttrAccess);
+    i = XaceHookServerAccess(client, DixGetAttrAccess);
     if (i != Success)
         return i;
 
@@ -1389,18 +1387,18 @@ int
 PolyText(ClientPtr client, DrawablePtr pDraw, GC * pGC, unsigned char *pElt,
          unsigned char *endReq, int xorg, int yorg, int reqType, XID did)
 {
-    PTclosureRec local_closure;
-
-    local_closure.pElt = pElt;
-    local_closure.endReq = endReq;
-    local_closure.client = client;
-    local_closure.pDraw = pDraw;
-    local_closure.xorg = xorg;
-    local_closure.yorg = yorg;
-    local_closure.reqType = reqType;
-    local_closure.pGC = pGC;
-    local_closure.did = did;
-    local_closure.err = Success;
+    PTclosureRec local_closure = {
+        .client = client,
+        .pDraw = pDraw,
+        .pGC = pGC,
+        .pElt = pElt,
+        .endReq = endReq,
+        .xorg = xorg,
+        .yorg = yorg,
+        .reqType = reqType,
+        .did = did,
+        .err = Success
+    };
 
     (void) doPolyText(client, &local_closure);
     return Success;
@@ -1718,7 +1716,7 @@ SetFontPathElements(int npaths, unsigned char *paths, int *bad, Bool persist)
 int
 SetFontPath(ClientPtr client, int npaths, unsigned char *paths)
 {
-    int err = XaceHook(XACE_SERVER_ACCESS, client, DixManageAccess);
+    int err = XaceHookServerAccess(client, DixManageAccess);
 
     if (err != Success)
         return err;
@@ -1731,7 +1729,8 @@ SetFontPath(ClientPtr client, int npaths, unsigned char *paths)
         int bad;
 
         err = SetFontPathElements(npaths, paths, &bad, FALSE);
-        client->errorValue = bad;
+        if (err != Success)
+            client->errorValue = bad;
     }
     return err;
 }
@@ -1806,7 +1805,7 @@ GetFontPath(ClientPtr client, int *count, int *length, unsigned char **result)
     int len;
     FontPathElementPtr fpe;
 
-    i = XaceHook(XACE_SERVER_ACCESS, client, DixGetAttrAccess);
+    i = XaceHookServerAccess(client, DixGetAttrAccess);
     if (i != Success)
         return i;
 

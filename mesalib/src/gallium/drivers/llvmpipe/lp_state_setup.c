@@ -652,7 +652,7 @@ generate_setup_variant(struct lp_setup_variant_key *key,
             variant->no);
 
    struct gallivm_state *gallivm;
-   variant->gallivm = gallivm = gallivm_create(func_name, lp->context, NULL);
+   variant->gallivm = gallivm = gallivm_create(func_name, &lp->context, NULL);
    if (!variant->gallivm) {
       goto fail;
    }
@@ -688,6 +688,8 @@ generate_setup_variant(struct lp_setup_variant_key *key,
                        arg_types, ARRAY_SIZE(arg_types), 0);
 
    variant->function = LLVMAddFunction(gallivm->module, func_name, func_type);
+   variant->function_name = MALLOC(strlen(func_name)+1);
+   strcpy(variant->function_name, func_name);
    if (!variant->function)
       goto fail;
 
@@ -732,7 +734,7 @@ generate_setup_variant(struct lp_setup_variant_key *key,
    gallivm_compile_module(gallivm);
 
    variant->jit_function = (lp_jit_setup_triangle)
-      gallivm_jit_function(gallivm, variant->function);
+      gallivm_jit_function(gallivm, variant->function, variant->function_name);
    if (!variant->jit_function)
       goto fail;
 
@@ -832,6 +834,7 @@ remove_setup_variant(struct llvmpipe_context *lp,
 
    list_del(&variant->list_item_global.list);
    lp->nr_setup_variants--;
+   FREE(variant->function_name);
    FREE(variant);
 }
 

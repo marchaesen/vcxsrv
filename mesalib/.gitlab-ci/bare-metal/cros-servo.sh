@@ -99,7 +99,7 @@ fi
 echo "$BM_CMDLINE" > /tftp/cmdline
 
 set +e
-STRUCTURED_LOG_FILE=job_detail.json
+STRUCTURED_LOG_FILE=results/job_detail.json
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --update dut_job_type "${DEVICE_TYPE}"
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --update farm "${FARM}"
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --create-dut-job dut_name "${CI_RUNNER_DESCRIPTION}"
@@ -107,7 +107,7 @@ python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --update-dut-time su
 python3 $BM/cros_servo_run.py \
         --cpu $BM_SERIAL \
         --ec $BM_SERIAL_EC \
-        --test-timeout ${TEST_PHASE_TIMEOUT:-20}
+        --test-timeout ${TEST_PHASE_TIMEOUT_MINUTES:-20}
 ret=$?
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --close-dut-job
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --close
@@ -117,7 +117,6 @@ set -e
 # will look for them.
 cp -Rp /nfs/results/. results/
 if [ -f "${STRUCTURED_LOG_FILE}" ]; then
-  cp -p ${STRUCTURED_LOG_FILE} results/
   echo "Structured log file is available at https://${CI_PROJECT_ROOT_NAMESPACE}.pages.freedesktop.org/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts/results/${STRUCTURED_LOG_FILE}"
 fi
 

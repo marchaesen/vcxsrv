@@ -32,7 +32,9 @@
 
 #include <X11/Xlib-xcb.h>
 #include <X11/extensions/dri2tokens.h>
+#ifdef HAVE_X11_DRI2
 #include <xcb/dri2.h>
+#endif
 #include <xf86drm.h>
 #include <errno.h>
 
@@ -67,13 +69,16 @@ struct vl_dri_screen
    struct u_rect dirty_areas[2];
 
    bool flushed;
+#ifdef HAVE_X11_DRI2
    xcb_dri2_swap_buffers_cookie_t swap_cookie;
    xcb_dri2_wait_sbc_cookie_t wait_cookie;
    xcb_dri2_get_buffers_cookie_t buffers_cookie;
+#endif
 
    int64_t last_ust, ns_frame, last_msc, next_msc;
 };
 
+#ifdef HAVE_X11_DRI2
 static const unsigned attachments[1] = { XCB_DRI2_ATTACHMENT_BUFFER_BACK_LEFT };
 
 static void vl_dri2_screen_destroy(struct vl_screen *vscreen);
@@ -317,6 +322,7 @@ get_xcb_screen(xcb_screen_iterator_t iter, int screen)
 
     return NULL;
 }
+#endif
 
 static xcb_visualtype_t *
 get_xcb_visualtype_for_depth(struct vl_screen *vscreen, int depth)
@@ -370,6 +376,21 @@ vl_dri2_format_for_depth(struct vl_screen *vscreen, int depth)
    }
 }
 
+xcb_screen_t *
+vl_dri_get_screen_for_root(xcb_connection_t *conn, xcb_window_t root)
+{
+   xcb_screen_iterator_t screen_iter =
+   xcb_setup_roots_iterator(xcb_get_setup(conn));
+
+   for (; screen_iter.rem; xcb_screen_next (&screen_iter)) {
+      if (screen_iter.data->root == root)
+         return screen_iter.data;
+   }
+
+   return NULL;
+}
+
+#ifdef HAVE_X11_DRI2
 struct vl_screen *
 vl_dri2_screen_create(Display *display, int screen)
 {
@@ -520,3 +541,4 @@ vl_dri2_screen_destroy(struct vl_screen *vscreen)
    /* There is no user provided fd */
    FREE(scrn);
 }
+#endif

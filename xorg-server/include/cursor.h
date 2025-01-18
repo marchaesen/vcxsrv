@@ -57,76 +57,15 @@ SOFTWARE.
 /* Provide support for alpha composited cursors */
 #define ARGB_CURSOR
 
-struct _DeviceIntRec;
-
 typedef struct _Cursor *CursorPtr;
+// FUN FACT: If you typedef a pointer type, like the `CursorPtr` above
+// then `const CursorPtr` or `CursorPtr const` actually means `struct _Cursor *const`, a constant pointer
+// which is probably not what you want(a pointer to constant).
+// Maybe better just keep the `*` around, or you have to typedef a separate constPtr type.
+typedef struct _Cursor const *ConstCursorPtr;
 typedef struct _CursorMetric *CursorMetricPtr;
-
-extern _X_EXPORT CursorPtr rootCursor;
 
 extern _X_EXPORT int FreeCursor(void *pCurs,
                                 XID cid);
-
-extern _X_EXPORT CursorPtr RefCursor(CursorPtr /* cursor */);
-extern _X_EXPORT CursorPtr UnrefCursor(CursorPtr /* cursor */);
-extern _X_EXPORT int CursorRefCount(const CursorPtr /* cursor */);
-
-extern _X_EXPORT int AllocARGBCursor(unsigned char * /*psrcbits */ ,
-                                     unsigned char * /*pmaskbits */ ,
-                                     CARD32 * /*argb */ ,
-                                     CursorMetricPtr /*cm */ ,
-                                     unsigned /*foreRed */ ,
-                                     unsigned /*foreGreen */ ,
-                                     unsigned /*foreBlue */ ,
-                                     unsigned /*backRed */ ,
-                                     unsigned /*backGreen */ ,
-                                     unsigned /*backBlue */ ,
-                                     CursorPtr * /*ppCurs */ ,
-                                     ClientPtr /*client */ ,
-                                     XID /*cid */ );
-
-extern _X_EXPORT int AllocGlyphCursor(Font /*source */ ,
-                                      unsigned int /*sourceChar */ ,
-                                      Font /*mask */ ,
-                                      unsigned int /*maskChar */ ,
-                                      unsigned /*foreRed */ ,
-                                      unsigned /*foreGreen */ ,
-                                      unsigned /*foreBlue */ ,
-                                      unsigned /*backRed */ ,
-                                      unsigned /*backGreen */ ,
-                                      unsigned /*backBlue */ ,
-                                      CursorPtr * /*ppCurs */ ,
-                                      ClientPtr /*client */ ,
-                                      XID /*cid */ );
-
-extern _X_EXPORT CursorPtr CreateRootCursor(char * /*pfilename */ ,
-                                            unsigned int /*glyph */ );
-
-extern _X_EXPORT int ServerBitsFromGlyph(FontPtr /*pfont */ ,
-                                         unsigned int /*ch */ ,
-                                         CursorMetricPtr /*cm */ ,
-                                         unsigned char ** /*ppbits */ );
-
-extern _X_EXPORT Bool CursorMetricsFromGlyph(FontPtr /*pfont */ ,
-                                             unsigned /*ch */ ,
-                                             CursorMetricPtr /*cm */ );
-
-extern _X_EXPORT void CheckCursorConfinement(WindowPtr /*pWin */ );
-
-extern _X_EXPORT void NewCurrentScreen(struct _DeviceIntRec * /*pDev */ ,
-                                       ScreenPtr /*newScreen */ ,
-                                       int /*x */ ,
-                                       int /*y */ );
-
-extern _X_EXPORT Bool PointerConfinedToScreen(struct _DeviceIntRec * /* pDev */
-                                              );
-
-extern _X_EXPORT void GetSpritePosition(struct _DeviceIntRec * /* pDev */ ,
-                                        int * /*px */ ,
-                                        int * /*py */ );
-
-#ifdef PANORAMIX
-extern _X_EXPORT int XineramaGetCursorScreen(struct _DeviceIntRec *pDev);
-#endif                          /* PANORAMIX */
 
 #endif                          /* CURSOR_H */

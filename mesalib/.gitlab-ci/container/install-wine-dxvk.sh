@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ue
 
 overrideDll() {
   if ! wine reg add 'HKEY_CURRENT_USER\Software\Wine\DllOverrides' /v "$1" /d native /f; then

@@ -281,7 +281,7 @@ lower_load_vs_input(nir_builder *b, nir_intrinsic_instr *intrin, lower_vs_inputs
 
       /* Add excess constant offset to the index. */
       unsigned const_off = attrib_offset + count_format_bytes(f, 0, start);
-      if (attrib_stride && const_off > attrib_stride) {
+      if (attrib_stride && const_off >= attrib_stride) {
          index = nir_iadd_imm(b, base_index, const_off / attrib_stride);
          const_off %= attrib_stride;
       }
@@ -385,8 +385,7 @@ lower_vs_input_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       replacement = lower_load_vs_input(b, intrin, s);
    }
 
-   nir_def_rewrite_uses(&intrin->def, replacement);
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, replacement);
    nir_instr_free(&intrin->instr);
 
    return true;
@@ -405,6 +404,5 @@ radv_nir_lower_vs_inputs(nir_shader *shader, const struct radv_shader_stage *vs_
       .gpu_info = gpu_info,
    };
 
-   return nir_shader_intrinsics_pass(shader, lower_vs_input_instr, nir_metadata_dominance | nir_metadata_block_index,
-                                     &state);
+   return nir_shader_intrinsics_pass(shader, lower_vs_input_instr, nir_metadata_control_flow, &state);
 }

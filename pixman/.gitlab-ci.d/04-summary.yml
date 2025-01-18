@@ -1,0 +1,51 @@
+# Summary stage
+#
+# This stage takes coverage reports from test runs for all architectures, and
+# merges it into a single report, with GitLab visualization. There is also an
+# HTML report generated as a separate artifact.
+
+summary:
+  extends: .target:all
+  stage: summary
+  variables:
+    TARGET: linux-amd64
+    COVERAGE_SUMMARY_DIR: ${COVERAGE_BASE_DIR}/summary
+  needs:
+    - job: test:linux-386
+      optional: true
+    - job: test:linux-amd64
+      optional: true
+    - job: test:linux-arm-v5
+      optional: true
+    - job: test:linux-arm-v7
+      optional: true
+    - job: test:linux-arm64-v8
+      optional: true
+    - job: test:linux-mips64el
+      optional: true
+    - job: test:linux-mipsel
+      optional: true
+    - job: test:linux-ppc64le
+      optional: true
+    - job: test:linux-riscv64
+      optional: true
+  script:
+    - echo "Input coverage reports:" && ls ${COVERAGE_BASE_DIR}/*.json || (echo "No coverage reports available." && exit)
+    - |
+      args=( )
+      for f in ${COVERAGE_BASE_DIR}/*.json; do
+        args+=( "-a" "$f" )
+      done
+    - mkdir -p ${COVERAGE_SUMMARY_DIR}
+    - gcovr "${args[@]}"
+        --cobertura-pretty --cobertura ${COVERAGE_SUMMARY_DIR}/coverage.xml
+        --html-details ${COVERAGE_SUMMARY_DIR}/coverage.html
+        --txt --print-summary
+  coverage: '/^TOTAL.*\s+(\d+\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: ${COVERAGE_SUMMARY_DIR}/coverage.xml
+    paths:
+      - ${COVERAGE_SUMMARY_DIR}/

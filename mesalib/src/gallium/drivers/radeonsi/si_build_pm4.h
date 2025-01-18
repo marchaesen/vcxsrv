@@ -503,6 +503,17 @@
    } \
 } while (0)
 
+/* Other packet helpers. */
+#define radeon_event_write(event_type) do { \
+   unsigned __event_type = (event_type); \
+   radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0)); \
+   radeon_emit(EVENT_TYPE(__event_type) | \
+               EVENT_INDEX(__event_type == V_028A90_VS_PARTIAL_FLUSH || \
+                           __event_type == V_028A90_PS_PARTIAL_FLUSH || \
+                           __event_type == V_028A90_CS_PARTIAL_FLUSH ? 4 : \
+                           __event_type == V_028A90_PIXEL_PIPE_STAT_CONTROL ? 1 : 0)); \
+} while (0)
+
 /* This should be evaluated at compile time if all parameters are constants. */
 static ALWAYS_INLINE unsigned
 si_get_user_data_base(enum amd_gfx_level gfx_level, enum si_has_tess has_tess,

@@ -119,6 +119,8 @@ xf86parseDisplaySubSection(void)
         switch (token) {
         case COMMENT:
             ptr->disp_comment = xf86addComment(ptr->disp_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case VIEWPORT:
             if (xf86getSubToken(&(ptr->disp_comment)) != NUMBER)
@@ -256,6 +258,8 @@ xf86parseScreenSection(void)
         switch (token) {
         case COMMENT:
             ptr->scrn_comment = xf86addComment(ptr->scrn_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->scrn_comment)) != STRING)

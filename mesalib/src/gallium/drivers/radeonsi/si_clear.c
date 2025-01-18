@@ -9,6 +9,7 @@
 #include "util/format/u_format.h"
 #include "util/u_pack_color.h"
 #include "util/u_surface.h"
+#include "ac_formats.h"
 
 enum {
    SI_CLEAR = SI_SAVE_FRAGMENT_STATE | SI_SAVE_FRAGMENT_CONSTANT,
@@ -48,47 +49,21 @@ static void si_init_clear_image_dcc_single(struct si_clear_info *info, struct si
 }
 
 void si_execute_clears(struct si_context *sctx, struct si_clear_info *info,
-                       unsigned num_clears, unsigned types, bool render_condition_enable)
+                       unsigned num_clears, bool render_condition_enable)
 {
-   if (!num_clears)
-      return;
-
-   /* Flush caches and wait for idle. */
-   if (types & (SI_CLEAR_TYPE_CMASK | SI_CLEAR_TYPE_DCC)) {
-      si_make_CB_shader_coherent(sctx, sctx->framebuffer.nr_samples,
-                                 sctx->framebuffer.CB_has_shader_readable_metadata,
-                                 sctx->framebuffer.all_DCC_pipe_aligned);
-   }
-
-   if (types & SI_CLEAR_TYPE_HTILE) {
-      si_make_DB_shader_coherent(sctx, sctx->framebuffer.nr_samples, sctx->framebuffer.has_stencil,
-                                 sctx->framebuffer.DB_has_shader_readable_metadata);
-   }
-
-   /* Flush caches in case we use compute. */
-   sctx->flags |= SI_CONTEXT_INV_VCACHE;
-
-   /* GFX6-8: CB and DB don't use L2. */
-   if (sctx->gfx_level <= GFX8)
-      sctx->flags |= SI_CONTEXT_INV_L2;
-
-   si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
-
-   unsigned flags = SI_OP_SKIP_CACHE_INV_BEFORE |
-                    (render_condition_enable ? SI_OP_CS_RENDER_COND_ENABLE : 0);
+   assert(num_clears);
 
    /* Execute clears. */
    for (unsigned i = 0; i < num_clears; i++) {
       if (info[i].format) {
          si_compute_clear_image_dcc_single(sctx, (struct si_texture*)info[i].resource,
                                            info[i].level, info[i].format, &info[i].color,
-                                           flags);
+                                           render_condition_enable);
          continue;
       }
 
       if (info[i].is_dcc_msaa) {
-         gfx9_clear_dcc_msaa(sctx, info[i].resource, info[i].clear_value,
-                             flags, SI_COHERENCY_CP);
+         gfx9_clear_dcc_msaa(sctx, info[i].resource, info[i].clear_value, render_condition_enable);
          continue;
       }
 
@@ -97,23 +72,14 @@ void si_execute_clears(struct si_context *sctx, struct si_clear_info *info,
       if (info[i].writemask != 0xffffffff) {
          si_compute_clear_buffer_rmw(sctx, info[i].resource, info[i].offset, info[i].size,
                                      info[i].clear_value, info[i].writemask,
-                                     flags, SI_COHERENCY_CP);
+                                     render_condition_enable);
       } else {
          /* Compute shaders are much faster on both dGPUs and APUs. Don't use CP DMA. */
          si_clear_buffer(sctx, info[i].resource, info[i].offset, info[i].size,
-                         &info[i].clear_value, 4, flags, SI_COHERENCY_CP,
-                         SI_COMPUTE_CLEAR_METHOD);
+                         &info[i].clear_value, 4, SI_COMPUTE_CLEAR_METHOD,
+                         render_condition_enable);
       }
    }
-
-   /* Wait for idle. */
-   sctx->flags |= SI_CONTEXT_CS_PARTIAL_FLUSH;
-
-   /* GFX6-8: CB and DB don't use L2. */
-   if (sctx->gfx_level <= GFX8)
-      sctx->flags |= SI_CONTEXT_WB_L2;
-
-   si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
 }
 
 static bool si_alloc_separate_cmask(struct si_screen *sscreen, struct si_texture *tex)
@@ -174,32 +140,6 @@ static bool si_set_clear_color(struct si_texture *tex, enum pipe_format surface_
    return true;
 }
 
-/** Linearize and convert luminance/intensity to red. */
-enum pipe_format si_simplify_cb_format(enum pipe_format format)
-{
-   format = util_format_linear(format);
-   format = util_format_luminance_to_red(format);
-   return util_format_intensity_to_red(format);
-}
-
-bool vi_alpha_is_on_msb(struct si_screen *sscreen, enum pipe_format format)
-{
-   if (sscreen->info.gfx_level >= GFX11)
-      return false;
-
-   format = si_simplify_cb_format(format);
-   const struct util_format_description *desc = util_format_description(format);
-   unsigned comp_swap = si_translate_colorswap(sscreen->info.gfx_level, format, false);
-
-   /* The following code matches the hw behavior. */
-   if (desc->nr_channels == 1) {
-      return (comp_swap == V_028C70_SWAP_ALT_REV) != (sscreen->info.family == CHIP_RAVEN2 ||
-                                                      sscreen->info.family == CHIP_RENOIR);
-   }
-
-   return comp_swap != V_028C70_SWAP_STD_REV && comp_swap != V_028C70_SWAP_ALT_REV;
-}
-
 static bool gfx8_get_dcc_clear_parameters(struct si_screen *sscreen, enum pipe_format base_format,
                                           enum pipe_format surface_format,
                                           const union pipe_color_union *color, uint32_t *clear_value,
@@ -217,7 +157,7 @@ static bool gfx8_get_dcc_clear_parameters(struct si_screen *sscreen, enum pipe_f
    bool has_alpha = false;
 
    const struct util_format_description *desc =
-      util_format_description(si_simplify_cb_format(surface_format));
+      util_format_description(ac_simplify_cb_format(surface_format));
 
    /* 128-bit fast clear with different R,G,B values is unsupported. */
    if (desc->block.bits == 128 && (color->ui[0] != color->ui[1] || color->ui[0] != color->ui[2]))
@@ -229,8 +169,8 @@ static bool gfx8_get_dcc_clear_parameters(struct si_screen *sscreen, enum pipe_f
    if (desc->layout != UTIL_FORMAT_LAYOUT_PLAIN)
       return true; /* need ELIMINATE_FAST_CLEAR */
 
-   bool base_alpha_is_on_msb = vi_alpha_is_on_msb(sscreen, base_format);
-   bool surf_alpha_is_on_msb = vi_alpha_is_on_msb(sscreen, surface_format);
+   bool base_alpha_is_on_msb = ac_alpha_is_on_msb(&sscreen->info, base_format);
+   bool surf_alpha_is_on_msb = ac_alpha_is_on_msb(&sscreen->info, surface_format);
 
    /* Formats with 3 channels can't have alpha. */
    if (desc->nr_channels == 3)
@@ -316,7 +256,7 @@ static bool gfx11_get_dcc_clear_parameters(struct si_screen *sscreen, struct si_
                                            bool fail_if_slow)
 {
    const struct util_format_description *desc =
-      util_format_description(si_simplify_cb_format(surface_format));
+      util_format_description(ac_simplify_cb_format(surface_format));
    unsigned start_bit = UINT_MAX;
    unsigned end_bit = 0;
 
@@ -1148,7 +1088,44 @@ static void si_fast_clear(struct si_context *sctx, unsigned *buffers,
       }
    }
 
-   si_execute_clears(sctx, info, num_clears, clear_types, sctx->render_cond_enabled);
+   if (num_clears) {
+      si_barrier_before_image_fast_clear(sctx, clear_types);
+      si_execute_clears(sctx, info, num_clears, sctx->render_cond_enabled);
+      si_barrier_after_image_fast_clear(sctx);
+   }
+}
+
+static void si_fb_clear_via_compute(struct si_context *sctx, unsigned *buffers,
+                                    const union pipe_color_union *color)
+{
+   struct pipe_framebuffer_state *fb = &sctx->framebuffer.state;
+
+   unsigned color_buffer_mask = (*buffers & PIPE_CLEAR_COLOR) >> util_logbase2(PIPE_CLEAR_COLOR0);
+   while (color_buffer_mask) {
+      unsigned i = u_bit_scan(&color_buffer_mask);
+
+      struct pipe_surface *surf = fb->cbufs[i];
+      unsigned depth = surf->u.tex.last_layer - surf->u.tex.first_layer + 1;
+      struct si_texture *tex = (struct si_texture *)surf->texture;
+
+      /* If DCC is enable (which can happen with thick tiling on gfx8, don't use compute to get
+       * compressed clears.
+       */
+      if (vi_dcc_enabled(tex, surf->u.tex.level))
+         continue;
+
+      /* Clears of thick and linear layouts are fastest with compute. */
+      if (tex->surface.thick_tiling ||
+          (tex->surface.is_linear && (surf->height > 1 || depth > 1 || surf->width >= 8192))) {
+         struct pipe_box box;
+
+         u_box_3d(0, 0, surf->u.tex.first_layer, surf->width, surf->height, depth, &box);
+
+         if (si_compute_clear_image(sctx, &tex->buffer.b.b, surf->format, surf->u.tex.level, &box,
+                                    color, sctx->render_cond_enabled, true))
+            *buffers &= ~(PIPE_CLEAR_COLOR0 << i); /* success */
+      }
+   }
 }
 
 static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
@@ -1171,6 +1148,10 @@ static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
       buffers &= ~PIPE_CLEAR_STENCIL;
 
    si_fast_clear(sctx, &buffers, color, depth, stencil);
+   if (!buffers)
+      return; /* all buffers have been cleared */
+
+   si_fb_clear_via_compute(sctx, &buffers, color);
    if (!buffers)
       return; /* all buffers have been cleared */
 
@@ -1201,8 +1182,8 @@ static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
             if ((zstex->depth_clear_value[level] != 0) != (depth != 0)) {
                /* ZRANGE_PRECISION register of a bound surface will change so we
                 * must flush the DB caches. */
-               sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_DB;
-               si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+               sctx->barrier_flags |= SI_BARRIER_SYNC_AND_INV_DB;
+               si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
             }
             /* Update DB_DEPTH_CLEAR. */
             zstex->depth_clear_value[level] = depth;
@@ -1237,8 +1218,8 @@ static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
        * The root cause is unknown.
        */
       if (sctx->gfx_level == GFX11 || sctx->gfx_level == GFX11_5) {
-         sctx->flags |= SI_CONTEXT_VS_PARTIAL_FLUSH;
-         si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+         sctx->barrier_flags |= SI_BARRIER_SYNC_VS;
+         si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
       }
    }
 
@@ -1415,7 +1396,9 @@ bool si_compute_fast_clear_image(struct si_context *sctx, struct pipe_resource *
    }
 
    assert(num_clears <= ARRAY_SIZE(info));
-   si_execute_clears(sctx, info, num_clears, clear_types, render_condition_enable);
+   si_barrier_before_image_fast_clear(sctx, clear_types);
+   si_execute_clears(sctx, info, num_clears, render_condition_enable);
+   si_barrier_after_image_fast_clear(sctx);
    return true;
 }
 
@@ -1446,12 +1429,9 @@ static void si_clear_render_target(struct pipe_context *ctx, struct pipe_surface
                                    render_condition_enabled, true))
       return;
 
-   if (dst->texture->nr_samples <= 1 &&
-       (sctx->gfx_level >= GFX10 || !vi_dcc_enabled(sdst, dst->u.tex.level))) {
-      si_compute_clear_render_target(ctx, dst, color, dstx, dsty, width, height,
-                                     render_condition_enabled);
+   if (si_compute_clear_image(sctx, dst->texture, dst->format, dst->u.tex.level, &box, color,
+                              render_condition_enabled, true))
       return;
-   }
 
    si_gfx_clear_render_target(ctx, dst, color, dstx, dsty, width, height,
                               render_condition_enabled);

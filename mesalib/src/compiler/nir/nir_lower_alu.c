@@ -37,16 +37,9 @@
  * The shader must be in SSA for this pass.
  */
 
-#define LOWER_MUL_HIGH (1 << 0)
-
 static bool
-lower_alu_instr(nir_builder *b, nir_instr *instr_, UNUSED void *cb_data)
+lower_alu_instr(nir_builder *b, nir_alu_instr *instr, UNUSED void *cb_data)
 {
-   if (instr_->type != nir_instr_type_alu)
-      return false;
-
-   nir_alu_instr *instr = nir_instr_as_alu(instr_);
-
    nir_def *lowered = NULL;
 
    b->cursor = nir_before_instr(&instr->instr);
@@ -104,16 +97,19 @@ lower_alu_instr(nir_builder *b, nir_instr *instr_, UNUSED void *cb_data)
           *
           * http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
           */
+
+         lowered = nir_ssa_for_alu_src(b, instr, 0);
+         unsigned bit_size = lowered->bit_size;
+
          nir_def *c1 = nir_imm_int(b, 1);
          nir_def *c2 = nir_imm_int(b, 2);
          nir_def *c4 = nir_imm_int(b, 4);
-         nir_def *c24 = nir_imm_int(b, 24);
-         nir_def *c33333333 = nir_imm_int(b, 0x33333333);
-         nir_def *c55555555 = nir_imm_int(b, 0x55555555);
-         nir_def *c0f0f0f0f = nir_imm_int(b, 0x0f0f0f0f);
-         nir_def *c01010101 = nir_imm_int(b, 0x01010101);
+         nir_def *cshift = nir_imm_int(b, bit_size - 8);
+         nir_def *c33333333 = nir_imm_intN_t(b, 0x33333333, bit_size);
+         nir_def *c55555555 = nir_imm_intN_t(b, 0x55555555, bit_size);
+         nir_def *c0f0f0f0f = nir_imm_intN_t(b, 0x0f0f0f0f, bit_size);
+         nir_def *c01010101 = nir_imm_intN_t(b, 0x01010101, bit_size);
 
-         lowered = nir_ssa_for_alu_src(b, instr, 0);
 
          lowered = nir_isub(b, lowered,
                             nir_iand(b, nir_ushr(b, lowered, c1), c55555555));
@@ -130,7 +126,9 @@ lower_alu_instr(nir_builder *b, nir_instr *instr_, UNUSED void *cb_data)
                                                        nir_ushr(b, lowered, c4)),
                                               c0f0f0f0f),
                                      c01010101),
-                            c24);
+                            cshift);
+
+         lowered = nir_u2u32(b, lowered);
       }
       break;
 
@@ -209,13 +207,36 @@ lower_alu_instr(nir_builder *b, nir_instr *instr_, UNUSED void *cb_data)
       }
       break;
 
+   case nir_op_fmin:
+   case nir_op_fmax: {
+      if (!b->shader->options->lower_fminmax_signed_zero ||
+          !nir_alu_instr_is_signed_zero_preserve(instr))
+         break;
+
+      nir_def *s0 = nir_ssa_for_alu_src(b, instr, 0);
+      nir_def *s1 = nir_ssa_for_alu_src(b, instr, 1);
+
+      bool max = instr->op == nir_op_fmax;
+      nir_def *iminmax = max ? nir_imax(b, s0, s1) : nir_imin(b, s0, s1);
+
+      /* Lower the fmin/fmax to a no_signed_zero fmin/fmax. This ensures that
+       * nir_lower_alu is idempotent, and allows the backend to implement
+       * soundly the no_signed_zero subset of fmin/fmax.
+       */
+      b->fp_fast_math &= ~FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE;
+      nir_def *fminmax = max ? nir_fmax(b, s0, s1) : nir_fmin(b, s0, s1);
+      b->fp_fast_math = instr->fp_fast_math;
+
+      lowered = nir_bcsel(b, nir_feq(b, s0, s1), iminmax, fminmax);
+      break;
+   }
+
    default:
       break;
    }
 
    if (lowered) {
-      nir_def_rewrite_uses(&instr->def, lowered);
-      nir_instr_remove(&instr->instr);
+      nir_def_replace(&instr->def, lowered);
       return true;
    } else {
       return false;
@@ -227,11 +248,10 @@ nir_lower_alu(nir_shader *shader)
 {
    if (!shader->options->lower_bitfield_reverse &&
        !shader->options->lower_bit_count &&
-       !shader->options->lower_mul_high)
+       !shader->options->lower_mul_high &&
+       !shader->options->lower_fminmax_signed_zero)
       return false;
 
-   return nir_shader_instructions_pass(shader, lower_alu_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
-                                       NULL);
+   return nir_shader_alu_pass(shader, lower_alu_instr,
+                              nir_metadata_control_flow, NULL);
 }

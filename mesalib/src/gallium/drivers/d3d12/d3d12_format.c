@@ -172,7 +172,8 @@
    MAP_FORMAT2(X32_S8X24, UINT, R32G8X24, TYPELESS) \
 \
    MAP_FORMAT_YUV(NV12) \
-   MAP_FORMAT_YUV(P010)
+   MAP_FORMAT_YUV(P010) \
+   MAP_FORMAT_YUV(AYUV)
 
 static const DXGI_FORMAT formats[PIPE_FORMAT_COUNT] = {
    FORMAT_TABLE()
@@ -624,6 +625,8 @@ d3d12_convert_pipe_video_profile_to_dxgi_format(enum pipe_video_profile profile)
       case PIPE_VIDEO_PROFILE_HEVC_MAIN_10:
       case PIPE_VIDEO_PROFILE_VP9_PROFILE2:
          return DXGI_FORMAT_P010;
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
+         return DXGI_FORMAT_AYUV;
       default:
       {
          unreachable("Unsupported pipe video profile");

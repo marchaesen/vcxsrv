@@ -8,7 +8,7 @@
 
 #include "util/u_debug.h"
 
-#if LLVM_AVAILABLE
+#if AMD_LLVM_AVAILABLE
 #if defined(_MSC_VER) && defined(restrict)
 #undef restrict
 #endif
@@ -161,6 +161,7 @@ print_asm_clrx(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
 #else
    char path[] = "/tmp/fileXXXXXX";
    char line[2048], command[128];
+   bool ret = false;
    FILE* p;
    int fd;
 
@@ -172,8 +173,10 @@ print_asm_clrx(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
       return true;
 
    for (unsigned i = 0; i < exec_size; i++) {
-      if (write(fd, &binary[i], 4) == -1)
+      if (write(fd, &binary[i], 4) == -1) {
+         ret = true;
          goto fail;
+      }
    }
 
    sprintf(command, "clrxdisasm --gpuType=%s -r %s", gpu_type, path);
@@ -183,6 +186,7 @@ print_asm_clrx(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
       if (!fgets(line, sizeof(line), p)) {
          fprintf(output, "clrxdisasm not found\n");
          pclose(p);
+         ret = true;
          goto fail;
       }
 
@@ -239,16 +243,14 @@ print_asm_clrx(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
       print_constant_data(output, program);
    }
 
-   return false;
-
 fail:
    close(fd);
    unlink(path);
-   return true;
+   return ret;
 #endif
 }
 
-#if LLVM_AVAILABLE
+#if AMD_LLVM_AVAILABLE
 std::pair<bool, size_t>
 disasm_instr(amd_gfx_level gfx_level, LLVMDisasmContextRef disasm, uint32_t* binary,
              unsigned exec_size, size_t pos, char* outline, unsigned outline_size)
@@ -366,14 +368,14 @@ print_asm_llvm(Program* program, std::vector<uint32_t>& binary, unsigned exec_si
 
    return invalid;
 }
-#endif /* LLVM_AVAILABLE */
+#endif /* AMD_LLVM_AVAILABLE */
 
 } /* end namespace */
 
 bool
 check_print_asm_support(Program* program)
 {
-#if LLVM_AVAILABLE
+#if AMD_LLVM_AVAILABLE
    if (program->gfx_level >= GFX8) {
       /* LLVM disassembler only supports GFX8+ */
       const char* name = ac_get_llvm_processor_name(program->family);
@@ -404,7 +406,7 @@ check_print_asm_support(Program* program)
 bool
 print_asm(Program* program, std::vector<uint32_t>& binary, unsigned exec_size, FILE* output)
 {
-#if LLVM_AVAILABLE
+#if AMD_LLVM_AVAILABLE
    if (program->gfx_level >= GFX8) {
       return print_asm_llvm(program, binary, exec_size, output);
    }

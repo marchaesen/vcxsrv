@@ -174,8 +174,19 @@ match_invocation_comparison(nir_scalar scalar)
          return get_dim(nir_scalar_chase_alu_src(scalar, 0));
    } else if (scalar.def->parent_instr->type == nir_instr_type_intrinsic) {
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(scalar.def->parent_instr);
-      if (intrin->intrinsic == nir_intrinsic_elect)
+      if (intrin->intrinsic == nir_intrinsic_elect) {
          return 0x8;
+      } else if (intrin->intrinsic == nir_intrinsic_inverse_ballot) {
+         unsigned bitcount = 0;
+         for (unsigned i = 0; i < intrin->src[0].ssa->num_components; i++) {
+            scalar = nir_scalar_resolved(intrin->src[0].ssa, i);
+            if (!nir_scalar_is_const(scalar))
+               return 0;
+            bitcount += util_bitcount64(nir_scalar_as_uint(scalar));
+         }
+         if (bitcount <= 1)
+            return 0x8;
+      }
    }
 
    return 0;
@@ -276,10 +287,11 @@ optimize_atomic(nir_builder *b, nir_intrinsic_instr *intrin, bool return_prev)
 }
 
 static void
-optimize_and_rewrite_atomic(nir_builder *b, nir_intrinsic_instr *intrin)
+optimize_and_rewrite_atomic(nir_builder *b, nir_intrinsic_instr *intrin,
+                            bool fs_atomics_predicated)
 {
    nir_if *helper_nif = NULL;
-   if (b->shader->info.stage == MESA_SHADER_FRAGMENT) {
+   if (b->shader->info.stage == MESA_SHADER_FRAGMENT && !fs_atomics_predicated) {
       nir_def *helper = nir_is_helper_invocation(b, 1);
       helper_nif = nir_push_if(b, nir_inot(b, helper));
    }
@@ -309,7 +321,7 @@ optimize_and_rewrite_atomic(nir_builder *b, nir_intrinsic_instr *intrin)
 }
 
 static bool
-opt_uniform_atomics(nir_function_impl *impl)
+opt_uniform_atomics(nir_function_impl *impl, bool fs_atomics_predicated)
 {
    bool progress = false;
    nir_builder b = nir_builder_create(impl);
@@ -335,7 +347,7 @@ opt_uniform_atomics(nir_function_impl *impl)
             continue;
 
          b.cursor = nir_before_instr(instr);
-         optimize_and_rewrite_atomic(&b, intrin);
+         optimize_and_rewrite_atomic(&b, intrin, fs_atomics_predicated);
          progress = true;
       }
    }
@@ -344,7 +356,7 @@ opt_uniform_atomics(nir_function_impl *impl)
 }
 
 bool
-nir_opt_uniform_atomics(nir_shader *shader)
+nir_opt_uniform_atomics(nir_shader *shader, bool fs_atomics_predicated)
 {
    bool progress = false;
 
@@ -358,7 +370,9 @@ nir_opt_uniform_atomics(nir_shader *shader)
       return false;
 
    nir_foreach_function_impl(impl, shader) {
-      if (opt_uniform_atomics(impl)) {
+      nir_metadata_require(impl, nir_metadata_block_index);
+
+      if (opt_uniform_atomics(impl, fs_atomics_predicated)) {
          progress = true;
          nir_metadata_preserve(impl, nir_metadata_none);
       } else {

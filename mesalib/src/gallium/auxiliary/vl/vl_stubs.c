@@ -108,6 +108,16 @@ vl_video_buffer_create_ex2(struct pipe_context *pipe,
    return NULL;
 }
 
+struct pipe_video_buffer *
+vl_video_buffer_create_as_resource(struct pipe_context *pipe,
+                                   const struct pipe_video_buffer *tmpl,
+                                   const uint64_t *modifiers,
+                                   int modifiers_count)
+{
+   assert(0);
+   return NULL;
+}
+
 void
 vl_video_buffer_destroy(struct pipe_video_buffer *buffer)
 {
@@ -145,9 +155,3 @@ vl_create_mpeg12_decoder(struct pipe_context *pipe,
    assert(0);
    return NULL;
 }
-
-/*
- * vl_zscan
- */
-const int vl_zscan_normal[] = {0};
-const int vl_zscan_alternate[] = {0};

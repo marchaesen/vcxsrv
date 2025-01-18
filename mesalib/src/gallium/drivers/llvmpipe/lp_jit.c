@@ -418,11 +418,13 @@ lp_jit_texture_from_pipe(struct lp_jit_texture *jit, const struct pipe_sampler_v
                }
             }
 
+            bool is_2d_view_of_3d = res->target == PIPE_TEXTURE_3D && view->target == PIPE_TEXTURE_2D;
+
             if (res->target == PIPE_TEXTURE_1D_ARRAY ||
                 res->target == PIPE_TEXTURE_2D_ARRAY ||
                 res->target == PIPE_TEXTURE_CUBE ||
                 res->target == PIPE_TEXTURE_CUBE_ARRAY ||
-                (res->target == PIPE_TEXTURE_3D && view->target == PIPE_TEXTURE_2D)) {
+                is_2d_view_of_3d) {
                /*
                 * For array textures, we don't have first_layer, instead
                 * adjust last_layer (stored as depth) plus the mip level
@@ -432,8 +434,13 @@ lp_jit_texture_from_pipe(struct lp_jit_texture *jit, const struct pipe_sampler_v
                 */
                jit->depth = view->u.tex.last_layer - view->u.tex.first_layer + 1;
                for (unsigned j = first_level; j <= last_level; j++) {
-                  jit->mip_offsets[j] += view->u.tex.first_layer *
-                                             lp_tex->img_stride[j];
+                  if (is_2d_view_of_3d && (res->flags & PIPE_RESOURCE_FLAG_SPARSE)) {
+                     jit->mip_offsets[j] = llvmpipe_get_texel_offset(
+                        view->texture, j, 0, 0, view->u.tex.first_layer);
+                  } else {
+                     jit->mip_offsets[j] += view->u.tex.first_layer *
+                                                lp_tex->img_stride[j];
+                  }
                }
                if (view->target == PIPE_TEXTURE_CUBE ||
                    view->target == PIPE_TEXTURE_CUBE_ARRAY) {
@@ -445,6 +452,9 @@ lp_jit_texture_from_pipe(struct lp_jit_texture *jit, const struct pipe_sampler_v
                else
                   assert(view->u.tex.last_layer < res->array_size);
             }
+
+            if (res->flags & PIPE_RESOURCE_FLAG_SPARSE)
+               jit->residency = lp_tex->residency;
          } else {
             /*
              * For tex2d_from_buf, adjust width and height with application
@@ -577,7 +587,14 @@ lp_jit_image_from_pipe(struct lp_jit_image *jit, const struct pipe_image_view *v
              * XXX For mip levels, could do something similar.
              */
             jit->depth = view->u.tex.last_layer - view->u.tex.first_layer + 1;
-            mip_offset += view->u.tex.first_layer * lp_res->img_stride[view->u.tex.level];
+
+            if (res->target == PIPE_TEXTURE_3D && view->u.tex.first_layer != 0 &&
+                (res->flags & PIPE_RESOURCE_FLAG_SPARSE)) {
+               mip_offset = llvmpipe_get_texel_offset(
+                  res, view->u.tex.level, 0, 0, view->u.tex.first_layer);
+            } else {
+               mip_offset += view->u.tex.first_layer * lp_res->img_stride[view->u.tex.level];
+            }
          } else
             jit->depth = u_minify(jit->depth, view->u.tex.level);
 
@@ -609,6 +626,11 @@ lp_jit_image_from_pipe(struct lp_jit_image *jit, const struct pipe_image_view *v
             jit->base = (uint8_t *)jit->base +
                view->u.tex2d_from_buf.offset * image_blocksize;
          }
+      }
+
+      if (res->flags & PIPE_RESOURCE_FLAG_SPARSE) {
+         jit->residency = lp_res->residency;
+         jit->base_offset = (uint32_t)((uintptr_t)jit->base - (uintptr_t)lp_res->tex_data);
       }
    }
 }

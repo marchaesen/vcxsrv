@@ -147,6 +147,7 @@ lower_system_value_instr(nir_builder *b, nir_instr *instr, void *_state)
    }
 
    case nir_intrinsic_load_input:
+   case nir_intrinsic_load_per_primitive_input:
       if (b->shader->options->lower_layer_fs_input_to_sysval &&
           b->shader->info.stage == MESA_SHADER_FRAGMENT &&
           nir_intrinsic_io_semantics(intrin).location == VARYING_SLOT_LAYER)
@@ -230,9 +231,6 @@ lower_system_value_instr(nir_builder *b, nir_instr *instr, void *_state)
          if (b->shader->options->lower_device_index_to_zero)
             return nir_imm_int(b, 0);
          break;
-
-      case SYSTEM_VALUE_GLOBAL_GROUP_SIZE:
-         return build_global_group_size(b, bit_size);
 
       case SYSTEM_VALUE_BARYCENTRIC_LINEAR_PIXEL:
          return nir_load_barycentric(b, nir_intrinsic_load_barycentric_pixel,
@@ -541,7 +539,7 @@ lower_compute_system_value_instr(nir_builder *b,
          return lower_id_to_index(b, local_index, local_size, bit_size);
       }
       if (options && options->shuffle_local_ids_for_quad_derivatives &&
-          b->shader->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS &&
+          b->shader->info.derivative_group == DERIVATIVE_GROUP_QUADS &&
           _mesa_set_search(state->lower_once_list, instr) == NULL) {
          nir_def *ids = nir_load_local_invocation_id(b);
          _mesa_set_add(state->lower_once_list, ids->parent_instr);
@@ -716,7 +714,7 @@ lower_compute_system_value_instr(nir_builder *b,
       /* OpenCL's global_linear_id explicitly ignores the global offset */
       assert(b->shader->info.stage == MESA_SHADER_KERNEL);
       nir_def *global_id = nir_load_global_invocation_id(b, bit_size);
-      nir_def *global_size = build_global_group_size(b, bit_size);
+      nir_def *global_size = nir_load_global_size(b, bit_size);
 
       /* index = id.x + ((id.y + (id.z * size.y)) * size.x) */
       nir_def *index;
@@ -726,6 +724,12 @@ lower_compute_system_value_instr(nir_builder *b,
       index = nir_imul(b, nir_channel(b, global_size, 0), index);
       index = nir_iadd(b, nir_channel(b, global_id, 0), index);
       return index;
+   }
+
+   case nir_intrinsic_load_global_size: {
+      if (options && !options->has_global_size)
+         return build_global_group_size(b, bit_size);
+      return NULL;
    }
 
    case nir_intrinsic_load_workgroup_id: {
@@ -799,8 +803,8 @@ nir_lower_compute_system_values(nir_shader *shader,
 
    /* Update this so as not to lower it again. */
    if (options && options->shuffle_local_ids_for_quad_derivatives &&
-       shader->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS)
-      shader->info.cs.derivative_group = DERIVATIVE_GROUP_LINEAR;
+       shader->info.derivative_group == DERIVATIVE_GROUP_QUADS)
+      shader->info.derivative_group = DERIVATIVE_GROUP_LINEAR;
 
    return progress;
 }

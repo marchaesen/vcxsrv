@@ -58,6 +58,11 @@ static unsigned _min(unsigned a, unsigned b)
    return (a < b) ? a : b;
 }
 
+static float _minf(float a, float b)
+{
+   return (a < b) ? a : b;
+}
+
 static float _maxf(float a, float b)
 {
    return (a > b) ? a : b;
@@ -73,6 +78,30 @@ static int _clamp(int a, int min, int max)
       return a;
 }
 
+static unsigned mesa_to_gl_stages(unsigned stages)
+{
+   unsigned ret = 0;
+
+   if (stages & BITFIELD_BIT(MESA_SHADER_VERTEX))
+      ret |= GL_VERTEX_SHADER_BIT;
+
+   if (stages & BITFIELD_BIT(MESA_SHADER_TESS_CTRL))
+      ret |= GL_TESS_CONTROL_SHADER_BIT;
+
+   if (stages & BITFIELD_BIT(MESA_SHADER_TESS_EVAL))
+      ret |= GL_TESS_EVALUATION_SHADER_BIT;
+
+   if (stages & BITFIELD_BIT(MESA_SHADER_GEOMETRY))
+      ret |= GL_GEOMETRY_SHADER_BIT;
+
+   if (stages & BITFIELD_BIT(MESA_SHADER_FRAGMENT))
+      ret |= GL_FRAGMENT_SHADER_BIT;
+
+   if (stages & BITFIELD_BIT(MESA_SHADER_COMPUTE))
+      ret |= GL_COMPUTE_SHADER_BIT;
+
+   return ret;
+}
 
 /**
  * Query driver to get implementation limits.
@@ -150,7 +179,7 @@ void st_init_limits(struct pipe_screen *screen,
             screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_ANISOTROPY));
 
    c->MaxTextureLodBias =
-      screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_LOD_BIAS);
+      _minf(31.0f, screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_LOD_BIAS));
 
    c->QuadsFollowProvokingVertexConvention =
       screen->get_param(screen,
@@ -169,8 +198,6 @@ void st_init_limits(struct pipe_screen *screen,
    c->MaxUniformBlockSize &= ~3;
 
    c->HasFBFetch = screen->get_param(screen, PIPE_CAP_FBFETCH);
-
-   c->SupportsReadingOutputs = screen->get_param(screen, PIPE_CAP_SHADER_CAN_READ_OUTPUTS);
 
    c->CombinedClipCullDistanceArrays = !screen->get_param(screen, PIPE_CAP_CULL_DISTANCE_NOCOMBINE);
 
@@ -201,28 +228,20 @@ void st_init_limits(struct pipe_screen *screen,
               MAX_TEXTURE_IMAGE_UNITS);
 
       pc->MaxInstructions =
-      pc->MaxNativeInstructions =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INSTRUCTIONS);
       pc->MaxAluInstructions =
-      pc->MaxNativeAluInstructions =
          screen->get_shader_param(screen, sh,
                                   PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS);
       pc->MaxTexInstructions =
-      pc->MaxNativeTexInstructions =
          screen->get_shader_param(screen, sh,
                                   PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS);
       pc->MaxTexIndirections =
-      pc->MaxNativeTexIndirections =
          screen->get_shader_param(screen, sh,
                                   PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS);
       pc->MaxAttribs =
-      pc->MaxNativeAttribs =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS);
       pc->MaxTemps =
-      pc->MaxNativeTemps =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_TEMPS);
-      pc->MaxAddressRegs =
-      pc->MaxNativeAddressRegs = sh == PIPE_SHADER_VERTEX ? 1 : 0;
 
       pc->MaxUniformComponents =
          screen->get_shader_param(screen, sh,
@@ -252,8 +271,7 @@ void st_init_limits(struct pipe_screen *screen,
        * internal values in addition to what the source program uses.  So, we
        * drop the limit one step lower, to 2048, to be safe.
        */
-      pc->MaxParameters =
-      pc->MaxNativeParameters = MIN2(pc->MaxUniformComponents / 4, 2048);
+      pc->MaxParameters = MIN2(pc->MaxUniformComponents / 4, 2048);
       pc->MaxInputComponents =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS) * 4;
       pc->MaxOutputComponents =
@@ -348,7 +366,7 @@ void st_init_limits(struct pipe_screen *screen,
          !screen->get_shader_param(screen, sh,
                                    PIPE_SHADER_CAP_INDIRECT_CONST_ADDR);
 
-      if (pc->MaxNativeInstructions &&
+      if (pc->MaxInstructions &&
           (options->EmitNoIndirectUniform || pc->MaxUniformBlocks < 12)) {
          can_ubo = false;
       }
@@ -626,6 +644,15 @@ void st_init_limits(struct pipe_screen *screen,
 
    c->HasDrawVertexState =
       screen->get_param(screen, PIPE_CAP_DRAW_VERTEX_STATE);
+
+   c->ShaderSubgroupSize =
+      screen->get_param(screen, PIPE_CAP_SHADER_SUBGROUP_SIZE);
+   c->ShaderSubgroupSupportedStages =
+      mesa_to_gl_stages(screen->get_param(screen, PIPE_CAP_SHADER_SUBGROUP_SUPPORTED_STAGES));
+   c->ShaderSubgroupSupportedFeatures =
+      screen->get_param(screen, PIPE_CAP_SHADER_SUBGROUP_SUPPORTED_FEATURES);
+   c->ShaderSubgroupQuadAllStages =
+      screen->get_param(screen, PIPE_CAP_SHADER_SUBGROUP_QUAD_ALL_STAGES);
 }
 
 
@@ -836,6 +863,7 @@ void st_init_extensions(struct pipe_screen *screen,
 #endif
       { o(EXT_shader_samples_identical),     PIPE_CAP_SHADER_SAMPLES_IDENTICAL         },
       { o(EXT_texture_array),                PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS         },
+      { o(EXT_texture_compression_astc_decode_mode), PIPE_CAP_ASTC_DECODE_MODE         },
       { o(EXT_texture_filter_anisotropic),   PIPE_CAP_ANISOTROPIC_FILTER               },
       { o(EXT_texture_filter_minmax),        PIPE_CAP_SAMPLER_REDUCTION_MINMAX         },
       { o(EXT_texture_mirror_clamp),         PIPE_CAP_TEXTURE_MIRROR_CLAMP             },
@@ -843,6 +871,8 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(EXT_texture_swizzle),              PIPE_CAP_TEXTURE_SWIZZLE                  },
       { o(EXT_transform_feedback),           PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS        },
       { o(EXT_window_rectangles),            PIPE_CAP_MAX_WINDOW_RECTANGLES            },
+
+      { o(KHR_shader_subgroup),              PIPE_CAP_SHADER_SUBGROUP_SIZE             },
 
       { o(AMD_depth_clamp_separate),         PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE      },
       { o(AMD_framebuffer_multisample_advanced), PIPE_CAP_FRAMEBUFFER_MSAA_CONSTRAINTS },
@@ -954,25 +984,11 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_RGTC2_UNORM,
           PIPE_FORMAT_RGTC2_SNORM } },
 
-      /* RGTC software fallback support. */
-      { { o(ARB_texture_compression_rgtc) },
-        { PIPE_FORMAT_R8_UNORM,
-          PIPE_FORMAT_R8_SNORM,
-          PIPE_FORMAT_R8G8_UNORM,
-          PIPE_FORMAT_R8G8_SNORM } },
-
       { { o(EXT_texture_compression_latc) },
         { PIPE_FORMAT_LATC1_UNORM,
           PIPE_FORMAT_LATC1_SNORM,
           PIPE_FORMAT_LATC2_UNORM,
           PIPE_FORMAT_LATC2_SNORM } },
-
-      /* LATC software fallback support. */
-      { { o(EXT_texture_compression_latc) },
-        { PIPE_FORMAT_L8_UNORM,
-          PIPE_FORMAT_L8_SNORM,
-          PIPE_FORMAT_L8A8_UNORM,
-          PIPE_FORMAT_L8A8_SNORM } },
 
       { { o(EXT_texture_compression_s3tc),
           o(ANGLE_texture_compression_dxt) },
@@ -981,32 +997,17 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_DXT3_RGBA,
           PIPE_FORMAT_DXT5_RGBA } },
 
-      /* S3TC software fallback support. */
-      { { o(EXT_texture_compression_s3tc),
-          o(ANGLE_texture_compression_dxt) },
-        { PIPE_FORMAT_R8G8B8A8_UNORM } },
-
       { { o(EXT_texture_compression_s3tc_srgb) },
         { PIPE_FORMAT_DXT1_SRGB,
           PIPE_FORMAT_DXT1_SRGBA,
           PIPE_FORMAT_DXT3_SRGBA,
           PIPE_FORMAT_DXT5_SRGBA } },
 
-      /* S3TC SRGB software fallback support. */
-      { { o(EXT_texture_compression_s3tc_srgb) },
-        { PIPE_FORMAT_R8G8B8A8_SRGB } },
-
       { { o(ARB_texture_compression_bptc) },
         { PIPE_FORMAT_BPTC_RGBA_UNORM,
           PIPE_FORMAT_BPTC_SRGBA,
           PIPE_FORMAT_BPTC_RGB_FLOAT,
           PIPE_FORMAT_BPTC_RGB_UFLOAT } },
-
-      /* BPTC software fallback support. */
-      { { o(ARB_texture_compression_bptc) },
-        { PIPE_FORMAT_R8G8B8A8_UNORM,
-          PIPE_FORMAT_R8G8B8A8_SRGB,
-          PIPE_FORMAT_R16G16B16X16_FLOAT } },
 
       { { o(TDFX_texture_compression_FXT1) },
         { PIPE_FORMAT_FXT1_RGB,
@@ -1043,12 +1044,6 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_ASTC_12x10_SRGB,
           PIPE_FORMAT_ASTC_12x12_SRGB } },
 
-      /* ASTC software fallback support. */
-      { { o(KHR_texture_compression_astc_ldr),
-          o(KHR_texture_compression_astc_sliced_3d) },
-        { PIPE_FORMAT_R8G8B8A8_UNORM,
-          PIPE_FORMAT_R8G8B8A8_SRGB } },
-
       { { o(EXT_texture_shared_exponent) },
         { PIPE_FORMAT_R9G9B9E5_FLOAT } },
 
@@ -1077,9 +1072,6 @@ void st_init_extensions(struct pipe_screen *screen,
       { { o(ATI_texture_compression_3dc) },
         { PIPE_FORMAT_LATC2_UNORM } },
 
-      { { o(ATI_texture_compression_3dc) },
-        { PIPE_FORMAT_L8A8_UNORM } },
-
       { { o(MESA_ycbcr_texture) },
         { PIPE_FORMAT_UYVY,
           PIPE_FORMAT_YUYV },
@@ -1100,6 +1092,41 @@ void st_init_extensions(struct pipe_screen *screen,
         { PIPE_FORMAT_ATC_RGB,
           PIPE_FORMAT_ATC_RGBA_EXPLICIT,
           PIPE_FORMAT_ATC_RGBA_INTERPOLATED } },
+   };
+
+   /* Required: sampler support */
+   static const struct st_extension_format_mapping texture_mapping_compressed_fallback[] = {
+      { { o(KHR_texture_compression_astc_ldr),
+          o(KHR_texture_compression_astc_sliced_3d) },
+        { PIPE_FORMAT_R8G8B8A8_UNORM,
+          PIPE_FORMAT_R8G8B8A8_SRGB } },
+
+      { { o(ARB_texture_compression_rgtc) },
+        { PIPE_FORMAT_R8_UNORM,
+          PIPE_FORMAT_R8_SNORM,
+          PIPE_FORMAT_R8G8_UNORM,
+          PIPE_FORMAT_R8G8_SNORM } },
+
+      { { o(EXT_texture_compression_latc) },
+        { PIPE_FORMAT_L8_UNORM,
+          PIPE_FORMAT_L8_SNORM,
+          PIPE_FORMAT_L8A8_UNORM,
+          PIPE_FORMAT_L8A8_SNORM } },
+
+      { { o(EXT_texture_compression_s3tc),
+          o(ANGLE_texture_compression_dxt) },
+        { PIPE_FORMAT_R8G8B8A8_UNORM } },
+
+      { { o(EXT_texture_compression_s3tc_srgb) },
+        { PIPE_FORMAT_R8G8B8A8_SRGB } },
+
+      { { o(ARB_texture_compression_bptc) },
+        { PIPE_FORMAT_R8G8B8A8_UNORM,
+          PIPE_FORMAT_R8G8B8A8_SRGB,
+          PIPE_FORMAT_R16G16B16X16_FLOAT } },
+
+      { { o(ATI_texture_compression_3dc) },
+        { PIPE_FORMAT_L8A8_UNORM } },
    };
 
    /* Required: vertex fetch support. */
@@ -1152,6 +1179,11 @@ void st_init_extensions(struct pipe_screen *screen,
    init_format_extensions(screen, extensions, texture_mapping,
                           ARRAY_SIZE(texture_mapping), PIPE_TEXTURE_2D,
                           PIPE_BIND_SAMPLER_VIEW);
+   if (options->allow_compressed_fallback)
+      init_format_extensions(screen, extensions,
+                             texture_mapping_compressed_fallback,
+                             ARRAY_SIZE(texture_mapping_compressed_fallback),
+                             PIPE_TEXTURE_2D, PIPE_BIND_SAMPLER_VIEW);
    init_format_extensions(screen, extensions, vertex_mapping,
                           ARRAY_SIZE(vertex_mapping), PIPE_BUFFER,
                           PIPE_BIND_VERTEX_BUFFER);
@@ -1252,6 +1284,19 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->EXT_shader_integer_mix = GL_TRUE;
       extensions->ARB_arrays_of_arrays = GL_TRUE;
       extensions->MESA_shader_integer_functions = GL_TRUE;
+
+      switch (screen->get_param(screen, PIPE_CAP_MULTIVIEW)) {
+      case 1:
+         extensions->OVR_multiview = GL_TRUE;
+         break;
+      case 2:
+         extensions->OVR_multiview = GL_TRUE;
+         extensions->OVR_multiview2 = GL_TRUE;
+         break;
+      }
+
+      extensions->OVR_multiview_multisampled_render_to_texture = extensions->EXT_multisampled_render_to_texture &&
+                                                                 extensions->OVR_multiview;
 
       if (screen->get_param(screen, PIPE_CAP_OPENCL_INTEGER_FUNCTIONS) &&
           screen->get_param(screen, PIPE_CAP_INTEGER_MULTIPLY_32X16)) {

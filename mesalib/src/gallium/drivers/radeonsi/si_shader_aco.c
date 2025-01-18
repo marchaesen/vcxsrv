@@ -43,7 +43,8 @@ si_fill_aco_options(struct si_screen *screen, gl_shader_stage stage,
 {
    options->dump_shader =
       si_can_dump_shader(screen, stage, SI_DUMP_ACO_IR) ||
-      si_can_dump_shader(screen, stage, SI_DUMP_ASM);
+      si_can_dump_shader(screen, stage, SI_DUMP_ASM) ||
+      screen->options.debug_disassembly;
    options->dump_preoptir = si_can_dump_shader(screen, stage, SI_DUMP_INIT_ACO_IR);
    options->record_ir = screen->record_llvm_ir;
    options->is_opengl = true;
@@ -88,7 +89,6 @@ si_fill_aco_shader_info(struct si_shader *shader, struct aco_shader_info *info,
    case MESA_SHADER_TESS_CTRL:
       info->vs.tcs_in_out_eq = key->ge.opt.same_patch_vertices;
       info->vs.tcs_temp_only_input_mask = sel->info.tcs_vgpr_only_inputs;
-      info->has_epilog = !shader->is_monolithic;
       info->tcs.pass_tessfactors_by_reg = sel->info.tessfactors_are_def_in_all_invocs;
       info->tcs.patch_stride = si_get_tcs_out_patch_stride(&sel->info);
       info->tcs.tcs_offchip_layout = args->tcs_offchip_layout;
@@ -100,7 +100,7 @@ si_fill_aco_shader_info(struct si_shader *shader, struct aco_shader_info *info,
       info->ps.spi_ps_input_ena = shader->config.spi_ps_input_ena;
       info->ps.spi_ps_input_addr = shader->config.spi_ps_input_addr;
       info->ps.alpha_reference = args->alpha_reference;
-      info->has_epilog = !shader->is_monolithic;
+      info->ps.has_epilog = !shader->is_monolithic;
       break;
    default:
       break;

@@ -1594,7 +1594,7 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
           */
          target_can_be_compresed =
             ctx->Extensions.EXT_texture_compression_s3tc &&
-            (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility);
+            _mesa_is_gles3_compatible(ctx);
          break;
       case MESA_FORMAT_LAYOUT_ASTC:
          target_can_be_compresed =
@@ -1987,7 +1987,7 @@ texture_error_check( struct gl_context *ctx,
        *     "Specifying a value for internalformat that is not one of the
        *      above (acceptable) values generates the error INVALID VALUE."
        */
-      if (err == GL_INVALID_ENUM && _mesa_is_gles(ctx) && ctx->Version < 20)
+      if (err == GL_INVALID_ENUM && _mesa_is_gles1(ctx))
          err = GL_INVALID_VALUE;
 
       _mesa_error(ctx, err,
@@ -3544,7 +3544,7 @@ static void
 egl_image_target_texture(struct gl_context *ctx,
                          struct gl_texture_object *texObj, GLenum target,
                          GLeglImageOES image, bool tex_storage,
-                         const char *caller)
+                         bool tex_compression, const char *caller)
 {
    struct gl_texture_image *texImage;
    FLUSH_VERTICES(ctx, 0, 0);
@@ -3554,8 +3554,7 @@ egl_image_target_texture(struct gl_context *ctx,
    if (!texObj)
       return;
 
-   if (!image || (ctx->Driver.ValidateEGLImage &&
-                  !ctx->Driver.ValidateEGLImage(ctx, image))) {
+   if (!image || !st_validate_egl_image(ctx, image)) {
       _mesa_error(ctx, GL_INVALID_VALUE, "%s(image=%p)", caller, image);
       return;
    }
@@ -3578,8 +3577,8 @@ egl_image_target_texture(struct gl_context *ctx,
 
       struct st_egl_image stimg;
       bool native_supported;
-      if (!st_get_egl_image(ctx, image, PIPE_BIND_SAMPLER_VIEW, caller,
-                            &stimg, &native_supported)) {
+      if (!st_get_egl_image(ctx, image, PIPE_BIND_SAMPLER_VIEW, tex_compression,
+                            caller, &stimg, &native_supported)) {
          _mesa_unlock_texture(ctx, texObj);
          return;
       }
@@ -3638,11 +3637,28 @@ _mesa_EGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image)
    }
 
    if (valid_target) {
-      egl_image_target_texture(ctx, NULL, target, image, false, func);
+      egl_image_target_texture(ctx, NULL, target, image, false, false, func);
    } else {
       _mesa_error(ctx, GL_INVALID_ENUM, "%s(target=%d)", func, target);
    }
 }
+
+static bool
+parse_surface_compression(GLint attrib, bool *compression)
+{
+   switch (attrib) {
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_DEFAULT_EXT:
+      *compression = true;
+      break;
+   case GL_SURFACE_COMPRESSION_FIXED_RATE_NONE_EXT:
+      *compression = false;
+      break;
+   default:
+      return false;
+   }
+   return true;
+}
+
 
 static void
 egl_image_target_texture_storage(struct gl_context *ctx,
@@ -3650,14 +3666,26 @@ egl_image_target_texture_storage(struct gl_context *ctx,
                                  GLeglImageOES image, const GLint *attrib_list,
                                  const char *caller)
 {
+   bool tex_compression = false;
+
    /*
-    * EXT_EGL_image_storage:
+    * EXT_EGL_image_storage_compression:
     *
-    * "<attrib_list> must be NULL or a pointer to the value GL_NONE."
+    * Attributes that can be specified in <attrib_list> include
+    * SURFACE_COMPRESSION_EXT.
     */
-   if (attrib_list && attrib_list[0] != GL_NONE) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "%s(image=%p)", caller, image);
-      return;
+   for (int i = 0; attrib_list && attrib_list[i] != GL_NONE; ++i) {
+      switch (attrib_list[i]) {
+      case GL_SURFACE_COMPRESSION_EXT:
+         if (!parse_surface_compression(attrib_list[++i], &tex_compression)) {
+            _mesa_error(ctx, GL_INVALID_VALUE, "%s(image=%p)", caller, image);
+            return;
+         }
+         break;
+      default:
+         _mesa_error(ctx, GL_INVALID_VALUE, "%s(image=%p)", caller, image);
+         return;
+      }
    }
 
    /*
@@ -3691,7 +3719,8 @@ egl_image_target_texture_storage(struct gl_context *ctx,
    }
 
    if (valid_target) {
-      egl_image_target_texture(ctx, texObj, target, image, true, caller);
+      egl_image_target_texture(ctx, texObj, target, image, true,
+                               tex_compression, caller);
    } else {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(target=%d)", caller, target);
    }
@@ -5572,7 +5601,7 @@ compressed_subtexture_target_check(struct gl_context *ctx, GLenum target,
          case MESA_FORMAT_LAYOUT_S3TC:
             targetOK =
                ctx->Extensions.EXT_texture_compression_s3tc &&
-               (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility);
+               _mesa_is_gles3_compatible(ctx);
             break;
          case MESA_FORMAT_LAYOUT_ASTC:
             targetOK =

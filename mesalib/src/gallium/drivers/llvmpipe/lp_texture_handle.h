@@ -25,13 +25,12 @@
 #define LP_SAMPLER_MATRIX
 
 #include "util/bitset.h"
+#include "util/u_atomic.h"
 #include "util/u_dynarray.h"
 #include "util/format/u_format.h"
 #include "util/simple_mtx.h"
 #include "gallivm/lp_bld_sample.h"
 #include "gallivm/lp_bld_jit_sample.h"
-
-#define LP_SAMPLE_KEY_COUNT (1 << 11)
 
 struct lp_sampler_matrix {
    struct lp_texture_functions **textures;
@@ -46,10 +45,14 @@ struct lp_sampler_matrix {
    /* Per sample key functions which compile and cache sample functions on demand. */
    void *jit_sample_functions[LP_SAMPLE_KEY_COUNT];
    void *compile_function;
-   struct hash_table *cache;
+   p_atomic_uint64_t latest_cache;
+   struct util_dynarray trash_caches;
    simple_mtx_t lock;
 
    struct llvmpipe_context *ctx;
+
+   /* Use a separate LLVMContext since it is not thread safe but can be accessed by shaders. */
+   lp_context_ref context;
 
    struct util_dynarray gallivms;
 };

@@ -1,22 +1,5 @@
 # Copyright © 2017 Intel Corporation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 subdir('gen')
 
@@ -80,7 +63,7 @@ endif
 libglapi_bridge = static_library(
   'glapi_bridge',
   bridge_glapi_files,
-  include_directories : [inc_mesa, inc_include, inc_src, inc_mapi],
+  include_directories : [inc_mesa, inc_include, inc_src, inc_mapi, inc_gallium],
   c_args : [c_msvc_compat_args, bridge_glapi_args],
   dependencies : [dep_thread, dep_selinux, idep_mesautil],
   build_by_default : false,
@@ -92,7 +75,7 @@ else
   libglapi_static = static_library(
     'glapi_static',
     static_glapi_files,
-    include_directories : [inc_mesa, inc_include, inc_src, inc_mapi],
+    include_directories : [inc_mesa, inc_include, inc_src, inc_mapi, inc_gallium],
     c_args : [c_msvc_compat_args, static_glapi_args],
     dependencies : [dep_thread, dep_selinux, idep_mesautil],
     build_by_default : false,
@@ -107,7 +90,7 @@ if with_any_opengl and not with_shared_glapi and with_tests and not with_platfor
     executable(
       'glapi_static_check_table',
       ['tests/check_table.cpp', glapitable_h],
-      include_directories : [inc_include, inc_src, inc_mesa, inc_mapi],
+      include_directories : [inc_include, inc_src, inc_mesa, inc_mapi, inc_gallium],
       link_with : [libglapi_static],
       dependencies : [idep_gtest, dep_thread],
     ),

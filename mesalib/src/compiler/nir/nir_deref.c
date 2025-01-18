@@ -394,8 +394,7 @@ nir_remove_dead_derefs_impl(nir_function_impl *impl)
    }
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }
@@ -453,10 +452,9 @@ void
 nir_fixup_deref_modes(nir_shader *shader)
 {
    nir_shader_instructions_pass(shader, nir_fixup_deref_modes_instr,
-                                nir_metadata_block_index |
-                                   nir_metadata_dominance |
-                                   nir_metadata_live_defs |
-                                   nir_metadata_instr_index,
+                                nir_metadata_control_flow |
+                                nir_metadata_live_defs |
+                                nir_metadata_instr_index,
                                 NULL);
 }
 
@@ -471,16 +469,17 @@ nir_fixup_deref_types_instr(UNUSED struct nir_builder *b, nir_instr *instr, UNUS
    if (deref->deref_type == nir_deref_type_var) {
       parent_derived_type = deref->var->type;
    } else if (deref->deref_type == nir_deref_type_array ||
-              deref->deref_type == nir_deref_type_struct) {
+              deref->deref_type == nir_deref_type_array_wildcard) {
       nir_deref_instr *parent = nir_src_as_deref(deref->parent);
-      if (deref->deref_type == nir_deref_type_array) {
-         parent_derived_type = glsl_get_array_element(parent->type);
-      } else if (deref->deref_type == nir_deref_type_struct) {
-         parent_derived_type =
-            glsl_get_struct_field(parent->type, deref->strct.index);
-      } else {
-         unreachable("Unsupported deref type");
-      }
+      parent_derived_type = glsl_get_array_element(parent->type);
+   }  else if (deref->deref_type == nir_deref_type_struct) {
+      nir_deref_instr *parent = nir_src_as_deref(deref->parent);
+      parent_derived_type = glsl_get_struct_field(parent->type, deref->strct.index);
+   } else if (deref->deref_type == nir_deref_type_ptr_as_array) {
+      nir_deref_instr *parent = nir_src_as_deref(deref->parent);
+      parent_derived_type = parent->type;
+   } else if (deref->deref_type == nir_deref_type_cast) {
+      return false;
    } else {
       unreachable("Unsupported deref type");
    }
@@ -497,10 +496,9 @@ void
 nir_fixup_deref_types(nir_shader *shader)
 {
    nir_shader_instructions_pass(shader, nir_fixup_deref_types_instr,
-                                nir_metadata_block_index |
-                                   nir_metadata_dominance |
-                                   nir_metadata_live_defs |
-                                   nir_metadata_instr_index,
+                                nir_metadata_control_flow |
+                                nir_metadata_live_defs |
+                                nir_metadata_instr_index,
                                 NULL);
 }
 
@@ -1166,9 +1164,7 @@ opt_remove_sampler_cast(nir_deref_instr *cast)
    /* We're a cast from a more detailed sampler type to a bare sampler or a
     * texture type with the same dimensionality.
     */
-   nir_def_rewrite_uses(&cast->def,
-                        &parent->def);
-   nir_instr_remove(&cast->instr);
+   nir_def_replace(&cast->def, &parent->def);
 
    /* Recursively crawl the deref tree and clean up types */
    nir_deref_instr_fixup_child_types(parent);
@@ -1287,9 +1283,7 @@ opt_deref_ptr_as_array(nir_builder *b, nir_deref_instr *deref)
           parent->cast.align_mul == 0 &&
           nir_deref_cast_is_trivial(parent))
          parent = nir_deref_instr_parent(parent);
-      nir_def_rewrite_uses(&deref->def,
-                           &parent->def);
-      nir_instr_remove(&deref->instr);
+      nir_def_replace(&deref->def, &parent->def);
       return true;
    }
 
@@ -1467,8 +1461,7 @@ opt_known_deref_mode_is(nir_builder *b, nir_intrinsic_instr *intrin)
    if (deref_is == NULL)
       return false;
 
-   nir_def_rewrite_uses(&intrin->def, deref_is);
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, deref_is);
    return true;
 }
 
@@ -1548,8 +1541,7 @@ nir_opt_deref_impl(nir_function_impl *impl)
    }
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

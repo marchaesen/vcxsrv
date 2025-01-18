@@ -2,6 +2,9 @@
 # non-zero-length and not starting with '#', will regex match to
 # delete lines from the test list.  Be careful.
 
+# no Vulkan support
+spec@ext_external_objects@vk.*
+
 # no msaa support
 .*msaa.*
 .*multisample.*
@@ -13,6 +16,9 @@ spec@arb_gpu_shader5
 spec@arb_gpu_shader_fp64
 spec@arb_gpu_shader_int64
 spec@arb_tessellation_shader
+
+# Timeouts sometimes
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
 
 # 1.5 minutes
 spec@!opengl 1.2@tex3d-maxsize

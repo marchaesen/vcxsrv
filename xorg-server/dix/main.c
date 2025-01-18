@@ -73,25 +73,30 @@ Equipment Corporation.
 
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #include <version-config.h>
-#endif
 
+#include <pixman.h>
 #include <X11/X.h>
 #include <X11/Xos.h>            /* for unistd.h  */
 #include <X11/Xproto.h>
-#include <pixman.h>
+#include <X11/fonts/font.h>
+#include <X11/fonts/fontstruct.h>
+#include <X11/fonts/libxfont2.h>
 
 #include "dix/callback_priv.h"
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
+#include "dix/input_priv.h"
 #include "dix/gc_priv.h"
 #include "dix/registry_priv.h"
 #include "os/audit.h"
 #include "os/auth.h"
+#include "os/client_priv.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
+#include "os/screensaver.h"
 
 #include "scrnintstr.h"
 #include "misc.h"
@@ -105,16 +110,11 @@ Equipment Corporation.
 #include "colormapst.h"
 #include "cursorstr.h"
 #include "selection.h"
-#include <X11/fonts/font.h>
-#include <X11/fonts/fontstruct.h>
-#include <X11/fonts/libxfont2.h>
-#include "opaque.h"
 #include "servermd.h"
 #include "hotplug.h"
 #include "dixfont.h"
 #include "extnsionst.h"
 #include "privates.h"
-#include "client.h"
 #include "exevents.h"
 #ifdef PANORAMIX
 #include "panoramiXsrv.h"
@@ -211,7 +211,7 @@ dix_main(int argc, char *argv[], char *envp[])
             CreateWellKnownSockets();
             for (i = 1; i < LimitClients; i++)
                 clients[i] = NullClient;
-            serverClient = calloc(sizeof(ClientRec), 1);
+            serverClient = calloc(1, sizeof(ClientRec));
             if (!serverClient)
                 FatalError("couldn't create server client");
             InitClient(serverClient, 0, (void *) NULL);
@@ -285,7 +285,7 @@ dix_main(int argc, char *argv[], char *envp[])
             FatalError("could not open default font");
         }
 
-        if (!(rootCursor = CreateRootCursor(NULL, 0))) {
+        if (!(rootCursor = CreateRootCursor())) {
             FatalError("could not open default cursor font");
         }
 

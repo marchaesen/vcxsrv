@@ -8,9 +8,9 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- cmdstream.xml (  16933 bytes, from 2024-01-19 15:52:43)
-- copyright.xml (   1597 bytes, from 2022-05-20 05:37:53)
-- common.xml    (  35664 bytes, from 2024-01-19 15:52:43)
+- cmdstream.xml (  16933 bytes, from 2024-04-10 11:43:40)
+- copyright.xml (   1597 bytes, from 2016-11-10 13:58:32)
+- common.xml    (  35664 bytes, from 2024-04-10 11:43:40)
 
 Copyright (C) 2012-2024 by the following authors:
 - Wladimir J. van der Laan <laanwj@gmail.com>

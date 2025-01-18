@@ -452,6 +452,19 @@ st_get_sampler_view_format(const struct st_context *st,
    return format;
 }
 
+static unsigned
+gl_astc_decode_precision_to_pipe(GLint precision)
+{
+   switch (precision) {
+   case GL_RGBA8:
+      return PIPE_ASTC_DECODE_FORMAT_UNORM8;
+   case GL_RGB9_E5:
+      return PIPE_ASTC_DECODE_FORMAT_RGB9E5;
+   case GL_RGBA16F:
+   default:
+      return PIPE_ASTC_DECODE_FORMAT_FLOAT16;
+   }
+}
 
 static struct pipe_sampler_view *
 st_create_texture_sampler_view_from_stobj(struct st_context *st,
@@ -487,6 +500,9 @@ st_create_texture_sampler_view_from_stobj(struct st_context *st,
    templ.swizzle_g = GET_SWZ(swizzle, 1);
    templ.swizzle_b = GET_SWZ(swizzle, 2);
    templ.swizzle_a = GET_SWZ(swizzle, 3);
+
+   templ.astc_decode_format =
+      gl_astc_decode_precision_to_pipe(texObj->AstcDecodePrecision);
 
    return st->pipe->create_sampler_view(st->pipe, texObj->pt, &templ);
 }

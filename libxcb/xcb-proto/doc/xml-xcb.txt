@@ -19,7 +19,7 @@ xcb.xsd      An XML Schema defining the data format for describing the X
 Generating C bindings
 =====================
 
-See libxcb <http://cgit.freedesktop.org/xcb/libxcb/>.
+See libxcb <https://gitlab.freedesktop.org/xorg/lib/libxcb>.
 
 
 Protocol Description Format

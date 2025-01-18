@@ -8,6 +8,18 @@
 
 #include "adreno_pm4.xml.h"
 
+/* On terminology:
+ * - CLEAN events write dirty cache lines to memory.
+ * - INVALIDATE events cause subsequent reads to read the cache line from
+ *   memory.
+ *
+ * Prior to a7xx CLEAN was instead called FLUSH. On a7xx FLUSH events do a
+ * clean and invalidate. We stick to the a7xx terminology in fd_gpu_event, and
+ * map FD_*_CLEAN events to the corresponding FLUSH events on a6xx. Note
+ * however that FLUSH_SO_* events, which write streamout counters to memory
+ * and also do a CACHE_CLEAN, haven't changed their names on a7xx.
+ */
+
 enum fd_gpu_event : uint32_t {
     FD_WRITE_PRIMITIVE_COUNTS = 0,
     FD_START_PRIMITIVE_CTRS,
@@ -22,13 +34,13 @@ enum fd_gpu_event : uint32_t {
     FD_FLUSH_SO_1,
     FD_FLUSH_SO_2,
     FD_FLUSH_SO_3,
-    FD_CACHE_FLUSH,
+    FD_CACHE_CLEAN,
     FD_CACHE_INVALIDATE,
     FD_CCU_INVALIDATE_DEPTH,
     FD_CCU_INVALIDATE_COLOR,
-    FD_CCU_FLUSH_BLIT_CACHE,
-    FD_CCU_FLUSH_DEPTH,
-    FD_CCU_FLUSH_COLOR,
+    FD_CCU_CLEAN_BLIT_CACHE,
+    FD_CCU_CLEAN_DEPTH,
+    FD_CCU_CLEAN_COLOR,
     FD_LRZ_CLEAR,
     FD_LRZ_FLUSH,
     FD_BLIT,
@@ -60,13 +72,13 @@ constexpr inline struct fd_gpu_event_info fd_gpu_events<A6XX>[FD_GPU_EVENT_MAX] 
     {FLUSH_SO_1, false},              /* FD_FLUSH_SO_1 */
     {FLUSH_SO_2, false},              /* FD_FLUSH_SO_2 */
     {FLUSH_SO_3, false},              /* FD_FLUSH_SO_3 */
-    {CACHE_FLUSH_TS, true},           /* FD_CACHE_FLUSH */
+    {CACHE_FLUSH_TS, true},           /* FD_CACHE_CLEAN */
     {CACHE_INVALIDATE, false},        /* FD_CACHE_INVALIDATE */
     {PC_CCU_INVALIDATE_DEPTH, false}, /* FD_CCU_INVALIDATE_DEPTH */
     {PC_CCU_INVALIDATE_COLOR, false}, /* FD_CCU_INVALIDATE_COLOR */
-    {PC_CCU_RESOLVE_TS, true},        /* FD_CCU_FLUSH_BLIT_CACHE */
-    {PC_CCU_FLUSH_DEPTH_TS, true},    /* FD_CCU_FLUSH_DEPTH */
-    {PC_CCU_FLUSH_COLOR_TS, true},    /* FD_CCU_FLUSH_COLOR */
+    {PC_CCU_RESOLVE_TS, true},        /* FD_CCU_CLEAN_BLIT_CACHE */
+    {PC_CCU_FLUSH_DEPTH_TS, true},    /* FD_CCU_CLEAN_DEPTH */
+    {PC_CCU_FLUSH_COLOR_TS, true},    /* FD_CCU_CLEAN_COLOR */
     {LRZ_CLEAR, false},               /* FD_LRZ_CLEAR */
     {LRZ_FLUSH, false},               /* FD_LRZ_FLUSH */
     {BLIT, false},                    /* FD_BLIT */
@@ -88,13 +100,13 @@ constexpr inline struct fd_gpu_event_info fd_gpu_events<A7XX>[FD_GPU_EVENT_MAX] 
     {FLUSH_SO_1, false},              /* FD_FLUSH_SO_1 */
     {FLUSH_SO_2, false},              /* FD_FLUSH_SO_2 */
     {FLUSH_SO_3, false},              /* FD_FLUSH_SO_3 */
-    {CACHE_FLUSH7, false},            /* FD_CACHE_FLUSH */
+    {CACHE_CLEAN, false},             /* FD_CACHE_CLEAN */
     {CACHE_INVALIDATE7, false},       /* FD_CACHE_INVALIDATE */
     {CCU_INVALIDATE_DEPTH, false},    /* FD_CCU_INVALIDATE_DEPTH */
     {CCU_INVALIDATE_COLOR, false},    /* FD_CCU_INVALIDATE_COLOR */
-    {CCU_RESOLVE_CLEAN, false},       /* FD_CCU_FLUSH_BLIT_CACHE */
-    {CCU_FLUSH_DEPTH, false},         /* FD_CCU_FLUSH_DEPTH */
-    {CCU_FLUSH_COLOR, false},         /* FD_CCU_FLUSH_COLOR */
+    {CCU_RESOLVE_CLEAN, false},       /* FD_CCU_CLEAN_BLIT_CACHE */
+    {CCU_CLEAN_DEPTH, false},         /* FD_CCU_CLEAN_DEPTH */
+    {CCU_CLEAN_COLOR, false},         /* FD_CCU_CLEAN_COLOR */
     {LRZ_CLEAR, false},               /* FD_LRZ_CLEAR */
     {LRZ_FLUSH, false},               /* FD_LRZ_FLUSH */
     {BLIT, false},                    /* FD_BLIT */

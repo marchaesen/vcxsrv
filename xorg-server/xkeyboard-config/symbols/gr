@@ -12,22 +12,24 @@ xkb_symbols "basic" {
 
 	name[Group1] = "Greek";
 
-	key <TLDE> {[  any,  any,          U2015                 ]}; // ―
-	key <AE01> {[  any,  any,          U2022,    onesuperior ]}; // •
-	key <AE02> {[  any,  any,        onehalf,    twosuperior ]};
-	key <AE03> {[  any,  any,       sterling,  threesuperior ]};
-	key <AE04> {[  any,  any,     onequarter,  threequarters ]};
-	key <AE05> {[  any,  any,       EuroSign,       permille ]};
-	key <AE06> {[  any,  any,          U03F0                 ]}; // ϰ
-	key <AE07> {[  any,  any,          U03D7,          U03CF ]}; // ϗ Ϗ
-	key <AE08> {[  any,  any,          U20AF                 ]}; // ₯
-	key <AE10> {[  any,  any,         degree                 ]};
-	key <AE11> {[  any,  any,      plusminus                 ]};
+	key <TLDE> {[  any,  any,          U2015                       ]}; // ―
+	key <AE01> {[  any,  any,          U2022,          onesuperior ]}; // •
+	key <AE02> {[  any,  any,        onehalf,          twosuperior ]};
+	key <AE03> {[  any,  any,       sterling,        threesuperior ]};
+	key <AE04> {[  any,  any,     onequarter,        threequarters ]};
+	key <AE05> {[  any,  any,       EuroSign,             permille ]};
+	key <AE06> {[  any,  any,          U03F0,            paragraph ]}; // ϰ ¶
+	key <AE07> {[  any,  any,          U03D7,                U03CF ]}; // ϗ Ϗ
+	key <AE08> {[  any,  any,          U20AF,             currency ]}; // ₯ ¤
+	key <AE09> {[  any,  any,      brokenbar,  leftsinglequotemark ]};
+	key <AE10> {[  any,  any,         degree, rightsinglequotemark ]};
+	key <AE11> {[  any,  any,      plusminus                       ]};
 
 	key <AD01> {[  any,  any, periodcentered                 ]};
 	key <AD02> {[  any,  any,          U03DB,          U03DA ]}; // ϛ Ϛ
+	key <AD03> {[  any,  any,       EuroSign,          U03F5 ]}; // € ϵ
 	key <AD04> {[  any,  any,     registered,          U03F1 ]}; // ® ϱ
-	key <AD06> {[  any,  any,          U03D2,          U03D2 ]}; // ϒ ϒ
+	key <AD06> {[  any,  any,          U03D2,            yen ]}; // ϒ ¥
 	key <AD07> {[  any,  any,          U03D1,          U03F4 ]}; // ϑ ϴ
 	key <AD08> {[  any,  any,          U037B,          U03FD ]}; // ͻ Ͻ
 	key <AD09> {[  any,  any,          U03D9,          U03D8 ]}; // ϙ Ϙ
@@ -45,6 +47,7 @@ xkb_symbols "basic" {
 	key <AC09> {[  any,  any,          U03F2,          U03F9 ]}; // ϲ Ϲ
 	key <AC10> {[  any,  any,     dead_acute,     dead_psili ]};
 	key <AC11> {[  any,  any,     dead_grave,     dead_dasia ]};
+	key <BKSL> {[  any,  any,        notsign                 ]};
 
 	key <AB01> {[  any,  any,          U037D,          U03FF ]}; // ͽ Ͽ
 	key <AB02> {[  any,  any,     rightarrow,      leftarrow ]};
@@ -55,8 +58,6 @@ xkb_symbols "basic" {
 	key <AB07> {[  any,  any,          U03FB,          U03FA ]}; // ϻ Ϻ
 	key <AB08> {[  any,  any,  guillemotleft,       ellipsis ]};
 	key <AB09> {[  any,  any, guillemotright, periodcentered ]};
-
-	include "eurosign(e)"
 
 	include "level3(ralt_switch)"
 };
@@ -176,23 +177,23 @@ xkb_symbols "colemak" {
 
     key <AD01>	{[           semicolon,          colon, periodcentered             ]};
     key <AD02>	{[ Greek_finalsmallsigma,  Greek_SIGMA,          U03DB,      U03DA ]};
-    key <AD03>	{[           Greek_phi,      Greek_PHI,          U03D5             ]};
+    key <AD03>	{[           Greek_phi,      Greek_PHI,          U03D5,  Greek_PHI ]};
     key <AD04>	{[            Greek_pi,       Greek_PI,          U03E1,      U03E0 ]};
     key <AD05>	{[         Greek_gamma,    Greek_GAMMA,          U03DD,      U03DC ]};
     key <AD06>	{[            Greek_xi,       Greek_XI,          U037C,      U03FE ]};
     key <AD07>	{[         Greek_lamda,    Greek_LAMDA,          U03F2,      U03F9 ]};
     key <AD08>	{[         Greek_theta,    Greek_THETA,          U03D1,      U03F4 ]};
-    key <AD09>	{[       Greek_upsilon,  Greek_UPSILON,          U03D2,      U03D2 ]};
+    key <AD09>	{[       Greek_upsilon,  Greek_UPSILON,          U03D2,        yen ]};
     key <AD10>	{[          dead_acute, dead_diaeresis,     dead_acute, dead_psili ]};
 
     key <AC01>	{[         Greek_alpha,    Greek_ALPHA                             ]};
     key <AC02>	{[           Greek_rho,      Greek_RHO,     registered,      U03F1 ]};
-    key <AC03>	{[         Greek_sigma,    Greek_SIGMA                             ]};
+    key <AC03>	{[         Greek_sigma,    Greek_SIGMA,        section             ]};
     key <AC04>	{[           Greek_tau,      Greek_TAU                             ]};
     key <AC05>	{[         Greek_delta,    Greek_DELTA,      downarrow,    uparrow ]};
-    key <AC06>	{[           Greek_eta,      Greek_ETA                             ]};
+    key <AC06>	{[           Greek_eta,      Greek_ETA,          U03F3,      U037F ]};
     key <AC07>	{[            Greek_nu,       Greek_NU,          U0374,      U0375 ]};
-    key <AC08>	{[       Greek_epsilon,  Greek_EPSILON,       EuroSign             ]};
+    key <AC08>	{[       Greek_epsilon,  Greek_EPSILON,       EuroSign,      U03F5 ]};
     key <AC09>	{[          Greek_iota,     Greek_IOTA,          U037B,      U03FD ]};
     key <AC10>	{[       Greek_omicron,  Greek_OMICRON                             ]};
 

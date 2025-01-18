@@ -2,4 +2,4 @@
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
 tests_per_group = 5000
-renderer = "V3D 7.1.7"
+renderer_check = "V3D 7.1.7"

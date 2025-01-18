@@ -34,22 +34,11 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#else /* X monolithic tree */
-#define HAVE_STDLIB_H 1  /* assumed since all ANSI C platforms require it */
-#include <X11/Xosdefs.h> /* get string.h or strings.h as appropriate */
 #endif
 
 #include <stdio.h>
-#if HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
-#if HAVE_STRING_H
 #include <string.h>
-#else
-#if HAVE_STRINGS_H
-#include <strings.h>
-#endif
-#endif
 #include <ctype.h>
 #include <assert.h>
 
@@ -61,14 +50,6 @@
 #include "Xft.h"
 #include <fontconfig/fcprivate.h>
 #include <fontconfig/fcfreetype.h>
-
-/* Added to <X11/Xfuncproto.h> in X11R6.9 and later */
-#ifndef _X_HIDDEN
-# define _X_HIDDEN /**/
-#endif
-#ifndef _X_EXPORT
-# define _X_EXPORT /**/
-#endif
 
 typedef struct _XftMatcher {
     char    *object;

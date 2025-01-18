@@ -450,31 +450,33 @@ parse_enable_string(const char *debug,
    uint64_t flag = default_value;
 
    if (debug != NULL) {
-      for (; control->string != NULL; control++) {
-         if (!strcmp(debug, "all")) {
-            flag |= control->flag;
+      const char *s = debug;
+      unsigned n;
 
+      for (; n = strcspn(s, ", "), *s; s += MAX2(1, n)) {
+         bool enable;
+         if (s[0] == '+') {
+            enable = true;
+            s++; n--;
+         } else if (s[0] == '-') {
+            enable = false;
+            s++; n--;
          } else {
-            const char *s = debug;
-            unsigned n;
-
-            for (; n = strcspn(s, ", "), *s; s += MAX2(1, n)) {
-               bool enable;
-               if (s[0] == '+') {
-                  enable = true;
-                  s++; n--;
-               } else if (s[0] == '-') {
-                  enable = false;
-                  s++; n--;
-               } else {
-                  enable = true;
-               }
-               if (strlen(control->string) == n &&
-                   !strncmp(control->string, s, n)) {
+            enable = true;
+         }
+         if (!strncmp(s, "all", 3)) {
+            if (enable)
+               flag = ~0ull;
+            else
+               flag = 0;
+         } else {
+            for (const struct debug_control *c = control; c->string != NULL; c++) {
+               if (strlen(c->string) == n &&
+                   !strncmp(c->string, s, n)) {
                   if (enable)
-                     flag |= control->flag;
+                     flag |= c->flag;
                   else
-                     flag &= ~control->flag;
+                     flag &= ~c->flag;
                }
             }
          }

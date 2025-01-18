@@ -1,3 +1,4 @@
+// Copyright (c) 2020-2024 Advanced Micro Devices, Inc. All rights reserved.
 #ifndef VPE_1_0_OFFSET_H
 #define VPE_1_0_OFFSET_H
 

@@ -59,7 +59,7 @@ static void create(struct rvce_encoder *enc)
    RVCE_BEGIN(0x01000001);                                            // create cmd
    RVCE_CS(0x00000000);                                               // encUseCircularBuffer
    RVCE_CS(u_get_h264_profile_idc(enc->base.profile));                // encProfile
-   RVCE_CS(enc->base.level);                                          // encLevel
+   RVCE_CS(enc->pic.seq.level_idc);                                   // encLevel
    RVCE_CS(0x00000000);                                               // encPicStructRestriction
    RVCE_CS(enc->base.width);                                          // encImageWidth
    RVCE_CS(enc->base.height);                                         // encImageHeight
@@ -72,6 +72,20 @@ static void create(struct rvce_encoder *enc)
 
 static void rate_control(struct rvce_encoder *enc)
 {
+   uint32_t target_bits_picture =
+      enc->pic.rate_ctrl[0].target_bitrate *
+      ((float)enc->pic.rate_ctrl[0].frame_rate_den /
+      enc->pic.rate_ctrl[0].frame_rate_num);
+   uint32_t peak_bits_picture_integer =
+      enc->pic.rate_ctrl[0].peak_bitrate *
+      ((float)enc->pic.rate_ctrl[0].frame_rate_den /
+      enc->pic.rate_ctrl[0].frame_rate_num);
+   uint32_t peak_bits_picture_fraction =
+      (((enc->pic.rate_ctrl[0].peak_bitrate *
+      (uint64_t)enc->pic.rate_ctrl[0].frame_rate_den) %
+      enc->pic.rate_ctrl[0].frame_rate_num) << 32) /
+      enc->pic.rate_ctrl[0].frame_rate_num;
+
    RVCE_BEGIN(0x04000005);                                 // rate control
    RVCE_CS(enc->pic.rate_ctrl[0].rate_ctrl_method);           // encRateControlMethod
    RVCE_CS(enc->pic.rate_ctrl[0].target_bitrate);             // encRateControlTargetBitRate
@@ -86,9 +100,9 @@ static void rate_control(struct rvce_encoder *enc)
    RVCE_CS(0x00000000);                                    // encVBVBufferLevel
    RVCE_CS(0x00000000);                                    // encMaxAUSize
    RVCE_CS(0x00000000);                                    // encQPInitialMode
-   RVCE_CS(enc->pic.rate_ctrl[0].target_bits_picture);        // encTargetBitsPerPicture
-   RVCE_CS(enc->pic.rate_ctrl[0].peak_bits_picture_integer);  // encPeakBitsPerPictureInteger
-   RVCE_CS(enc->pic.rate_ctrl[0].peak_bits_picture_fraction); // encPeakBitsPerPictureFractional
+   RVCE_CS(target_bits_picture);                           // encTargetBitsPerPicture
+   RVCE_CS(peak_bits_picture_integer);                     // encPeakBitsPerPictureInteger
+   RVCE_CS(peak_bits_picture_fraction);                    // encPeakBitsPerPictureFractional
    RVCE_CS(0x00000000);                                    // encMinQP
    RVCE_CS(0x00000033);                                    // encMaxQP
    RVCE_CS(0x00000000);                                    // encSkipFrameEnable

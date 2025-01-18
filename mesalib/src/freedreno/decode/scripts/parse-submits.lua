@@ -108,7 +108,7 @@ function finish()
 		printf("-------\n")
 		printf("  # of draws: %u\n", draws)
 		printf("  mode: %s\n", drawmode)
-		if drawmode == "RM6_GMEM" then
+		if drawmode == "RM6_BIN_RENDER_START" then
 			printf("  bin size: %ux%u (%u bins)\n", binw, binh, nbins)
 		end
 		if depthtest or depthwrite then
@@ -138,7 +138,7 @@ function finish()
 
 	for base,mrt in pairs(mrts) do
 		printf("  MRT[0x%x:0x%x]:\t%ux%u\t\t%s (%s)", base, mrt.flag, mrt.w, mrt.h, mrt.format, mrt.samples)
-		if drawmode == "RM6_GMEM" then
+		if drawmode == "RM6_BIN_RENDER_START" then
 			if cleared[mrt.gmem] then
 				printf("\tCLEARED")
 			end
@@ -183,7 +183,7 @@ end
 -- Track the current mode:
 local mode = ""
 function CP_SET_MARKER(pkt, size)
-	mode = pkt[0].MARKER
+	mode = pkt[0].MODE
 	dbg("mode: %s\n", mode)
 end
 
@@ -193,7 +193,7 @@ function CP_EVENT_WRITE(pkt, size)
 	end
 	nullbatch = false
 	local m = tostring(mode)
-	if m == "RM6_GMEM" then
+	if m == "RM6_BIN_RENDER_START" then
 		-- either clear or restore:
 		if r.RB_BLIT_INFO.CLEAR_MASK == 0 then
 			restored[r.RB_BLIT_BASE_GMEM] = 1
@@ -237,7 +237,7 @@ function CP_EVENT_WRITE(pkt, size)
 			sysmem,
 			flag,
 			r.RB_BLIT_BASE_GMEM)
-	elseif m == "RM6_RESOLVE" then
+	elseif m == "RM6_BIN_RESOLVE" then
 		resolved[r.RB_BLIT_BASE_GMEM] = 1
 	else
 		printf("I am confused!!!\n")
@@ -291,10 +291,10 @@ function handle_blit()
 end
 
 function valid_transition(curmode, newmode)
-	if curmode == "RM6_BINNING" and newmode == "RM6_GMEM" then
+	if curmode == "RM6_BIN_VISIBILITY" and newmode == "RM6_BIN_RENDER_START" then
 		return true
 	end
-	if curmode == "RM6_GMEM" and newmode == "RM6_RESOLVE" then
+	if curmode == "RM6_BIN_RENDER_START" and newmode == "RM6_BIN_RESOLVE" then
 		return true
 	end
 	return false
@@ -324,12 +324,15 @@ function draw(primtype, nindx)
 		end
 	end
 
-	if m ~= "RM6_GMEM" and m ~= "RM6_BYPASS" then
-		if m == "RM6_BINNING" then
+	if m ~= "RM6_BIN_RENDER_START" and m ~= "RM6_DIRECT_RENDER" then
+		if m == "RM6_BIN_VISIBILITY" then
 			drawmode = m
 			return
 		end
-		if m == "RM6_RESOLVE" and primtype == "EVENT:BLIT" then
+		if m == "RM6_BIN_RESOLVE" and primtype == "EVENT:BLIT" then
+			return
+		end
+		if m == "RM6_BLIT2DSCALE" and primtype == "EVENT:LRZ_CLEAR" then
 			return
 		end
 		printf("unknown MODE %s for primtype %s\n", m, primtype)
@@ -338,7 +341,7 @@ function draw(primtype, nindx)
 
 	-- Only count the first tile for GMEM mode to avoid counting
 	-- each draw for each tile
-	if m == "RM6_GMEM" then
+	if m == "RM6_BIN_RENDER_START" then
 		if r.RB_WINDOW_OFFSET.X ~= 0 or r.RB_WINDOW_OFFSET.Y ~= 0 then
 			return
 		end
@@ -397,7 +400,7 @@ function draw(primtype, nindx)
 
 	-- TODO should also check for stencil buffer for z32+s8 case
 
-	if m == "RM6_GMEM" then
+	if m == "RM6_BIN_RENDER_START" then
 		binw = r.VSC_BIN_SIZE.WIDTH
 		binh = r.VSC_BIN_SIZE.HEIGHT
 		nbins = r.VSC_BIN_COUNT.NX * r.VSC_BIN_COUNT.NY

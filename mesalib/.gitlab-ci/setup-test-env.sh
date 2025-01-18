@@ -57,6 +57,12 @@ function section_start {
     [ "$state_x" -eq 0 ] || set -x
 }
 
+function uncollapsed_section_start {
+    x_off 2>/dev/null
+    build_section_start "" $*
+    [ "$state_x" -eq 0 ] || set -x
+}
+
 function build_section_end {
     echo -e "\e[0Ksection_end:$(date +%s):$1\r\e[0K"
     CURRENT_SECTION=""
@@ -100,7 +106,15 @@ export -f section_switch
 export -f uncollapsed_section_switch
 
 # Freedesktop requirement (needed for Wayland)
-[ -n "${XDG_RUNTIME_DIR}" ] || export XDG_RUNTIME_DIR="$(mktemp -p "$PWD" -d xdg-runtime-XXXXXX)"
+[ -n "${XDG_RUNTIME_DIR:-}" ] || export XDG_RUNTIME_DIR="$(mktemp -p "$PWD" -d xdg-runtime-XXXXXX)"
+
+if [ -z "${RESULTS_DIR:-}" ]; then
+	export RESULTS_DIR="$(pwd)/results"
+	if [ -e "${RESULTS_DIR}" ]; then
+		rm -rf "${RESULTS_DIR}"
+	fi
+	mkdir -p "${RESULTS_DIR}"
+fi
 
 set -E
 trap 'trap_err $?' ERR

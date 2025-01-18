@@ -193,10 +193,9 @@ radv_load_output(struct radv_shader_context *ctx, unsigned index, unsigned chan)
 }
 
 static void
-ac_llvm_finalize_module(struct radv_shader_context *ctx, LLVMPassManagerRef passmgr)
+ac_llvm_finalize_module(struct radv_shader_context *ctx, struct ac_midend_optimizer *meo)
 {
-   LLVMRunPassManager(passmgr, ctx->ac.module);
-
+   ac_llvm_optimize_module(meo, ctx->ac.module);
    ac_llvm_context_dispose(&ctx->ac);
 }
 
@@ -390,7 +389,7 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, const struct radv_nir
       fprintf(stderr, "\n");
    }
 
-   ac_llvm_finalize_module(&ctx, ac_llvm->passmgr);
+   ac_llvm_finalize_module(&ctx, ac_llvm->meo);
 
    free(name);
 

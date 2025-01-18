@@ -100,6 +100,7 @@ v3d_memory_barrier(struct pipe_context *pctx, unsigned int flags)
          * else we flush the job automatically when we needed.
          */
         const unsigned int flush_flags = PIPE_BARRIER_SHADER_BUFFER |
+                                         PIPE_BARRIER_GLOBAL_BUFFER |
                                          PIPE_BARRIER_IMAGE;
 
 	if (!(flags & flush_flags))
@@ -117,6 +118,7 @@ v3d_invalidate_resource(struct pipe_context *pctx, struct pipe_resource *prsc)
         struct v3d_resource *rsc = v3d_resource(prsc);
 
         rsc->initialized_buffers = 0;
+        rsc->invalidated = true;
 
         struct hash_entry *entry = _mesa_hash_table_search(v3d->write_jobs,
                                                            prsc);
@@ -124,8 +126,17 @@ v3d_invalidate_resource(struct pipe_context *pctx, struct pipe_resource *prsc)
                 return;
 
         struct v3d_job *job = entry->data;
-        if (job->key.zsbuf && job->key.zsbuf->texture == prsc)
+        if (job->key.zsbuf && job->key.zsbuf->texture == prsc) {
                 job->store &= ~(PIPE_CLEAR_DEPTH | PIPE_CLEAR_STENCIL);
+                return;
+        }
+
+        for (int i = 0; i < job->nr_cbufs; i++) {
+                if (job->cbufs[i] && job->cbufs[i]->texture == prsc) {
+                        job->store &= ~(PIPE_CLEAR_COLOR0 << i);
+                        return;
+                }
+        }
 }
 
 /**
@@ -287,6 +298,10 @@ v3d_context_destroy(struct pipe_context *pctx)
 
         v3d_flush(pctx);
 
+        util_dynarray_foreach(&v3d->global_buffers, struct pipe_resource *, res) {
+                pipe_resource_reference(res, NULL);
+        }
+
         if (v3d->blitter)
                 util_blitter_destroy(v3d->blitter);
 
@@ -424,6 +439,7 @@ v3d_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
         v3d->sample_mask = (1 << V3D_MAX_SAMPLES) - 1;
         v3d->active_queries = true;
+        util_dynarray_init(&v3d->global_buffers, v3d);
 
         return &v3d->base;
 

@@ -117,14 +117,15 @@ Equipment Corporation.
  *      resource "owned" by the client.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 
+#include "dix/colormap_priv.h"
+#include "dix/dixgrabs_priv.h"
 #include "dix/gc_priv.h"
 #include "dix/registry_priv.h"
+#include "os/osdep.h"
 
 #include "misc.h"
 #include "os.h"
@@ -135,8 +136,6 @@ Equipment Corporation.
 #include "dixfont.h"
 #include "colormap.h"
 #include "inputstr.h"
-#include "dixevents.h"
-#include "dixgrabs.h"
 #include "cursor.h"
 #ifdef PANORAMIX
 #include "panoramiX.h"
@@ -686,7 +685,7 @@ HashResourceID(XID id, unsigned int numBits)
     id &= mask;
     if (numBits < 9)
         return (id ^ (id >> numBits) ^ (id >> (numBits<<1))) & ~((~0U) << numBits);
-    return (id ^ (id >> numBits)) & ~((~0) << numBits);
+    return (id ^ (id >> numBits)) & ~((~0U) << numBits);
 }
 
 static XID
@@ -1223,7 +1222,7 @@ dixLookupResourceByType(void **result, XID id, RESTYPE rtype,
         return resourceTypes[rtype & TypeMask].errorValue;
 
     if (client) {
-        cid = XaceHook(XACE_RESOURCE_ACCESS, client, id, res->type,
+        cid = XaceHookResourceAccess(client, id, res->type,
                        res->value, X11_RESTYPE_NONE, NULL, mode);
         if (cid == BadValue)
             return resourceTypes[rtype & TypeMask].errorValue;
@@ -1258,7 +1257,7 @@ dixLookupResourceByClass(void **result, XID id, RESTYPE rclass,
         return BadValue;
 
     if (client) {
-        cid = XaceHook(XACE_RESOURCE_ACCESS, client, id, res->type,
+        cid = XaceHookResourceAccess(client, id, res->type,
                        res->value, X11_RESTYPE_NONE, NULL, mode);
         if (cid != Success)
             return cid;

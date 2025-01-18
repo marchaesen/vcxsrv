@@ -181,7 +181,7 @@ int etna_bo_cache_free(struct etna_bo_cache *cache, struct etna_bo *bo)
 	if (bucket) {
 		struct timespec time;
 
-		clock_gettime(CLOCK_MONOTONIC, &time);
+		clock_gettime(CLOCK_MONOTONIC_COARSE, &time);
 
 		bo->free_time = time.tv_sec;
 		VG_BO_RELEASE(bo);

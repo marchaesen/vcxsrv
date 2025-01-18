@@ -26,6 +26,8 @@
 #include "vk_image.h"
 #include "vk_meta.h"
 
+#include "glsl_types.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,8 +49,11 @@ vk_meta_rendering_info_copy(struct vk_meta_rendering_info *dst,
    dst->view_mask = src->view_mask;
    dst->samples = src->samples;
    dst->color_attachment_count = src->color_attachment_count;
-   for (uint32_t a = 0; a < src->color_attachment_count; a++)
+   for (uint32_t a = 0; a < src->color_attachment_count; a++) {
       dst->color_attachment_formats[a] = src->color_attachment_formats[a];
+      dst->color_attachment_write_masks[a] =
+         src->color_attachment_write_masks[a];
+   }
    dst->depth_attachment_format = src->depth_attachment_format;
    dst->stencil_attachment_format = src->stencil_attachment_format;
 }
@@ -75,6 +80,23 @@ vk_image_render_view_type(const struct vk_image *image, uint32_t layer_count)
    case VK_IMAGE_TYPE_3D:
       return layer_count == 1 ? VK_IMAGE_VIEW_TYPE_2D :
                                 VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+   default:
+      unreachable("Invalid image type");
+   }
+}
+
+static inline VkImageViewType
+vk_image_storage_view_type(const struct vk_image *image)
+{
+   switch (image->image_type) {
+   case VK_IMAGE_TYPE_1D:
+      return image->array_layers == 1 ? VK_IMAGE_VIEW_TYPE_1D
+                                      : VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+   case VK_IMAGE_TYPE_2D:
+      return image->array_layers == 1 ? VK_IMAGE_VIEW_TYPE_2D
+                                      : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+   case VK_IMAGE_TYPE_3D:
+      return VK_IMAGE_VIEW_TYPE_3D;
    default:
       unreachable("Invalid image type");
    }

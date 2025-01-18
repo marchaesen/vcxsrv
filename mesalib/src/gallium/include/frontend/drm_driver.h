@@ -10,6 +10,7 @@ struct pipe_screen;
 struct pipe_screen_config;
 struct pipe_context;
 struct pipe_resource;
+struct virgl_renderer_capset_drm;
 
 struct drm_driver_descriptor
 {
@@ -35,6 +36,12 @@ struct drm_driver_descriptor
     */
    struct pipe_screen* (*create_screen)(int drm_fd,
                                         const struct pipe_screen_config *config);
+
+   /**
+    * Optional hook to probe for driver support for virtgpu native-context
+    * support.
+    */
+   bool (*probe_nctx)(int drm_fd, const struct virgl_renderer_capset_drm *caps);
 };
 
 extern const struct drm_driver_descriptor driver_descriptor;

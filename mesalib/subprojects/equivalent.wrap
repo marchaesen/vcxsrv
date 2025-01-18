@@ -1,0 +1,6 @@
+[wrap-file]
+directory = equivalent-1.0.1
+source_url = https://crates.io/api/v1/crates/equivalent/1.0.1/download
+source_filename = equivalent-1.0.1.tar.gz
+source_hash = 5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5
+patch_directory = equivalent

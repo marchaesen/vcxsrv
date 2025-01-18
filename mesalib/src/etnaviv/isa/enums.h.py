@@ -19,7 +19,11 @@ extern "C" {
 % for name, enum in enums.items():
 enum PACKED ${prefix}_${name} {
 % for k, v in enum.items():
+   % if v:
    ${k} = ${v},
+   % else:
+   ${k},
+   %endif
 % endfor
 };
 
@@ -63,14 +67,8 @@ def main():
     opc = {}
 
     for instr in isa.instructions():
-        pattern = instr.xml.findall('pattern')
-        bit05 = int(pattern[0].text, 2)
-        bit6 = int(pattern[1].text, 2)
-        num = bit05 | (bit6 << 6)
+        opc[prefix.upper() + '_OPC_' + instr.name.upper()] = None
 
-        opc[prefix.upper() + '_OPC_' + instr.name.upper()] = num
-
-    opc = dict(sorted(opc.items(), key=lambda item: int(item[1])))
     enums['opc'] = opc
 
     with open(args.output, "w", encoding="UTF-8") as fh:

@@ -153,7 +153,6 @@ Options include
 -  **--dump-ast** - dump source syntax tree
 -  **--dump-hir** - dump high-level IR code
 -  **--dump-lir** - dump low-level IR code
--  **--dump-builder** - dump C++ ir_builder code to generate the shader's GLSL IR
 -  **--link** - link shaders
 -  **--just-log** - display only shader / linker info if exist, without
    any header or separator

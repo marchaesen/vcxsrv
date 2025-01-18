@@ -45,7 +45,7 @@ etna_nir_lower_texture(nir_shader *s, struct etna_shader_key *key)
                                                   key->tex_swizzle);
 
    NIR_PASS(progress, s, nir_shader_instructions_pass, lower_txs,
-         nir_metadata_block_index | nir_metadata_dominance, NULL);
+         nir_metadata_control_flow, NULL);
 
    return progress;
 }

@@ -1,25 +1,7 @@
 /*
- * Copyright (C) 2016 Rob Clark <robclark@freedesktop.org>
+ * Copyright © 2016 Rob Clark <robclark@freedesktop.org>
  * Copyright © 2018 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -183,6 +165,7 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _TC(R8G8B8A8_SRGB,    8_8_8_8_UNORM,         WZYX),
    _TC(R8G8B8X8_SRGB,    8_8_8_8_UNORM,         WZYX),
    VTC(R8G8B8A8_SNORM,   8_8_8_8_SNORM,         WZYX),
+   VTC(R8G8B8X8_SNORM,   8_8_8_8_SNORM,         WZYX),
    VTC(R8G8B8A8_UINT,    8_8_8_8_UINT,          WZYX),
    VTC(R8G8B8A8_SINT,    8_8_8_8_SINT,          WZYX),
    V__(R8G8B8A8_USCALED, 8_8_8_8_UINT,          WZYX),
@@ -202,11 +185,19 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _TC(X8B8G8R8_UNORM,   8_8_8_8_UNORM,         XYZW),
    _TC(A8B8G8R8_SRGB,    8_8_8_8_UNORM,         XYZW),
    _TC(X8B8G8R8_SRGB,    8_8_8_8_UNORM,         XYZW),
+   VTC(A8B8G8R8_SNORM,   8_8_8_8_SNORM,         XYZW),
+   VTC(X8B8G8R8_SNORM,   8_8_8_8_SNORM,         XYZW),
+   VTC(A8B8G8R8_UINT,    8_8_8_8_UINT,          XYZW),
+   VTC(X8B8G8R8_SINT,    8_8_8_8_SINT,          XYZW),
 
    VTC(A8R8G8B8_UNORM,   8_8_8_8_UNORM,         ZYXW),
    _TC(X8R8G8B8_UNORM,   8_8_8_8_UNORM,         ZYXW),
    _TC(A8R8G8B8_SRGB,    8_8_8_8_UNORM,         ZYXW),
    _TC(X8R8G8B8_SRGB,    8_8_8_8_UNORM,         ZYXW),
+   VTC(A8R8G8B8_SNORM,   8_8_8_8_SNORM,         ZYXW),
+   VTC(X8R8G8B8_SNORM,   8_8_8_8_SNORM,         ZYXW),
+   VTC(A8R8G8B8_UINT,    8_8_8_8_UINT,          ZYXW),
+   VTC(X8R8G8B8_SINT,    8_8_8_8_SINT,          ZYXW),
 
    FMT(R10G10B10A2_UNORM, 10_10_10_2_UNORM, 10_10_10_2_UNORM, 10_10_10_2_UNORM_DEST, WZYX),
    FMT(B10G10R10A2_UNORM, 10_10_10_2_UNORM, 10_10_10_2_UNORM, 10_10_10_2_UNORM_DEST, WXYZ),
@@ -360,8 +351,8 @@ static const struct fd6_format formats[PIPE_FORMAT_COUNT] = {
    _T_(ASTC_12x10_SRGB, ASTC_12x10,             WZYX),
    _T_(ASTC_12x12_SRGB, ASTC_12x12,             WZYX),
 
-   _T_(R8G8_R8B8_UNORM, R8G8R8B8_422_UNORM, WZYX), /* YUYV */
-   _T_(G8R8_B8R8_UNORM, G8R8B8R8_422_UNORM, WZYX), /* UYVY */
+   _T_(G8B8_G8R8_UNORM, R8G8R8B8_422_UNORM,     WZYX), /* YUYV */
+   _T_(B8G8_R8G8_UNORM, G8R8B8R8_422_UNORM,     WZYX), /* UYVY */
 
    _T_(R8_G8B8_420_UNORM, R8_G8B8_2PLANE_420_UNORM, WZYX), /* Gallium NV12 */
    _T_(G8_B8R8_420_UNORM, R8_G8B8_2PLANE_420_UNORM, WZYX), /* Vulkan NV12 */

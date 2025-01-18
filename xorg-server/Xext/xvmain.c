@@ -73,14 +73,16 @@ SOFTWARE.
 **
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <string.h>
-
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvproto.h>
+
+#include "Xext/xvdix_priv.h"
+
 #include "misc.h"
 #include "os.h"
 #include "scrnintstr.h"
@@ -94,35 +96,44 @@ SOFTWARE.
 #include "opaque.h"
 #include "input.h"
 
-#define GLOBAL
-
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/Xvproto.h>
-#include "xvdix.h"
-
 #ifdef PANORAMIX
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
 #endif
 #include "xvdisp.h"
 
+#define SCREEN_PROLOGUE(pScreen, field) ((pScreen)->field = ((XvScreenPtr) \
+    dixLookupPrivate(&(pScreen)->devPrivates, XvScreenKey))->field)
+
+#define SCREEN_EPILOGUE(pScreen, field, wrapper)\
+    ((pScreen)->field = wrapper)
+
+typedef struct _XvVideoNotifyRec {
+    struct _XvVideoNotifyRec *next;
+    ClientPtr client;
+    unsigned long id;
+    unsigned long mask;
+} XvVideoNotifyRec, *XvVideoNotifyPtr;
+
 static DevPrivateKeyRec XvScreenKeyRec;
 
+Bool noXvExtension = FALSE;
+
 #define XvScreenKey (&XvScreenKeyRec)
-unsigned long XvExtensionGeneration = 0;
-unsigned long XvScreenGeneration = 0;
-unsigned long XvResourceGeneration = 0;
+static unsigned long XvExtensionGeneration = 0;
+static unsigned long XvScreenGeneration = 0;
+static unsigned long XvResourceGeneration = 0;
 
 int XvReqCode;
-int XvEventBase;
+static int XvEventBase;
 int XvErrorBase;
 
 RESTYPE XvRTPort;
-RESTYPE XvRTEncoding;
-RESTYPE XvRTGrab;
-RESTYPE XvRTVideoNotify;
-RESTYPE XvRTVideoNotifyList;
-RESTYPE XvRTPortNotify;
+static RESTYPE XvRTEncoding;
+static RESTYPE XvRTGrab;
+static RESTYPE XvRTVideoNotify;
+static RESTYPE XvRTVideoNotifyList;
+static RESTYPE XvRTPortNotify;
 
 /* EXTERNAL */
 
@@ -469,7 +480,7 @@ XvdiSendVideoNotify(XvPortPtr pPort, DrawablePtr pDraw, int reason)
 
 }
 
-int
+static int
 XvdiSendPortNotify(XvPortPtr pPort, Atom attribute, INT32 value)
 {
     XvPortNotifyPtr pn;

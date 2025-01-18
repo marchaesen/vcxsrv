@@ -354,7 +354,7 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap, Bool modifiers_ok)
 
     scratch_gc = GetScratchGC(pixmap->drawable.depth, screen);
     ValidateGC(&pixmap->drawable, scratch_gc);
-    scratch_gc->ops->CopyArea(&pixmap->drawable, &exported->drawable,
+    (void) scratch_gc->ops->CopyArea(&pixmap->drawable, &exported->drawable,
                               scratch_gc,
                               0, 0, width, height, 0, 0);
     FreeScratchGC(scratch_gc);
@@ -1089,13 +1089,13 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
     Bool force_es = FALSE;
     const char *glvnd_vendor = NULL;
 
-    glamor_egl = calloc(sizeof(*glamor_egl), 1);
+    glamor_egl = calloc(1, sizeof(*glamor_egl));
     if (glamor_egl == NULL)
         return FALSE;
     if (xf86GlamorEGLPrivateIndex == -1)
         xf86GlamorEGLPrivateIndex = xf86AllocateScrnInfoPrivateIndex();
 
-    options = xnfalloc(sizeof(GlamorEGLOptions));
+    options = XNFalloc(sizeof(GlamorEGLOptions));
     memcpy(options, GlamorEGLOptions, sizeof(GlamorEGLOptions));
     xf86ProcessOptions(scrn->scrnIndex, scrn->options, options);
     glvnd_vendor = xf86GetOptValString(options, GLAMOREGLOPT_VENDOR_LIBRARY);

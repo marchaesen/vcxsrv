@@ -73,15 +73,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-/* avoid conflicts with Solaris sys/regset.h */
-# if defined(__sun) && defined(CS)
-#  undef CS
-#  undef DS
-#  undef SS
-#  undef ES
-#  undef FS
-#  undef GS
-# endif
 #endif /* NO_SYS_HEADERS */
 
 /*--------------------------- Inline Functions ----------------------------*/

@@ -1,25 +1,7 @@
 /*
- * Copyright (C) 2016 Rob Clark <robclark@freedesktop.org>
+ * Copyright © 2016 Rob Clark <robclark@freedesktop.org>
  * Copyright © 2018 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -37,6 +19,7 @@
 #include "freedreno_query_hw.h"
 #include "freedreno_resource.h"
 #include "freedreno_state.h"
+#include "freedreno_stompable_regs.h"
 #include "freedreno_tracepoints.h"
 
 #include "fd6_blend.h"
@@ -230,6 +213,7 @@ compute_lrz_state(struct fd6_emit *emit) assert_dt
    return lrz;
 }
 
+template <chip CHIP>
 static struct fd_ringbuffer *
 build_lrz(struct fd6_emit *emit) assert_dt
 {
@@ -243,14 +227,39 @@ build_lrz(struct fd6_emit *emit) assert_dt
 
    fd6_ctx->last.lrz = lrz;
 
+   unsigned ndwords = (CHIP >= A7XX) ? 10 : 8;
    struct fd_ringbuffer *ring = fd_submit_new_ringbuffer(
-      ctx->batch->submit, 8 * 4, FD_RINGBUFFER_STREAMING);
+      ctx->batch->submit, ndwords * 4, FD_RINGBUFFER_STREAMING);
 
-   OUT_REG(ring,
-           A6XX_GRAS_LRZ_CNTL(.enable = lrz.enable, .lrz_write = lrz.write,
-                              .greater = lrz.direction == FD_LRZ_GREATER,
-                              .z_test_enable = lrz.test,
-                              .z_bounds_enable = lrz.z_bounds_enable, ));
+   if (CHIP >= A7XX) {
+      OUT_REG(ring,
+         A6XX_GRAS_LRZ_CNTL(
+            .enable = lrz.enable,
+            .lrz_write = lrz.write,
+            .greater = lrz.direction == FD_LRZ_GREATER,
+            .z_test_enable = lrz.test,
+            .z_bounds_enable = lrz.z_bounds_enable,
+         )
+      );
+      OUT_REG(ring,
+         A7XX_GRAS_LRZ_CNTL2(
+            .disable_on_wrong_dir = false,
+            .fc_enable = false,
+         )
+      );
+   } else {
+      OUT_REG(ring,
+         A6XX_GRAS_LRZ_CNTL(
+            .enable = lrz.enable,
+            .lrz_write = lrz.write,
+            .greater = lrz.direction == FD_LRZ_GREATER,
+            .fc_enable = false,
+            .z_test_enable = lrz.test,
+            .z_bounds_enable = lrz.z_bounds_enable,
+            .disable_on_wrong_dir = false,
+         )
+      );
+   }
    OUT_REG(ring, A6XX_RB_LRZ_CNTL(.enable = lrz.enable, ));
 
    OUT_REG(ring, A6XX_RB_DEPTH_PLANE_CNTL(.z_mode = lrz.z_mode, ));
@@ -392,6 +401,7 @@ build_sample_locations(struct fd6_emit *emit)
    return ring;
 }
 
+template <chip CHIP>
 static void
 fd6_emit_streamout(struct fd_ringbuffer *ring, struct fd6_emit *emit) assert_dt
 {
@@ -432,7 +442,8 @@ fd6_emit_streamout(struct fd_ringbuffer *ring, struct fd6_emit *emit) assert_dt
       } else {
          OUT_PKT7(ring, CP_MEM_TO_REG, 3);
          OUT_RING(ring, CP_MEM_TO_REG_0_REG(REG_A6XX_VPC_SO_BUFFER_OFFSET(i)) |
-                           CP_MEM_TO_REG_0_SHIFT_BY_2 | CP_MEM_TO_REG_0_UNK31 |
+                           COND(CHIP == A6XX, CP_MEM_TO_REG_0_SHIFT_BY_2) |
+                           CP_MEM_TO_REG_0_UNK31 |
                            CP_MEM_TO_REG_0_CNT(0));
          OUT_RELOC(ring, offset_bo, 0, 0, 0);
       }
@@ -605,7 +616,7 @@ fd6_emit_3d_state(struct fd_ringbuffer *ring, struct fd6_emit *emit)
          fd6_state_add_group(&emit->state, state, FD6_GROUP_ZSA);
          break;
       case FD6_GROUP_LRZ:
-         state = build_lrz(emit);
+         state = build_lrz<CHIP>(emit);
          if (state)
             fd6_state_take_group(&emit->state, state, FD6_GROUP_LRZ);
          break;
@@ -635,7 +646,7 @@ fd6_emit_3d_state(struct fd_ringbuffer *ring, struct fd6_emit *emit)
          fd6_state_take_group(&emit->state, state, FD6_GROUP_PROG_FB_RAST);
          break;
       case FD6_GROUP_BLEND:
-         state = fd6_blend_variant(ctx->blend, pfb->samples, ctx->sample_mask)
+         state = fd6_blend_variant<CHIP>(ctx->blend, pfb->samples, ctx->sample_mask)
                     ->stateobj;
          fd6_state_add_group(&emit->state, state, FD6_GROUP_BLEND);
          break;
@@ -668,16 +679,16 @@ fd6_emit_3d_state(struct fd_ringbuffer *ring, struct fd6_emit *emit)
          fd6_state_take_group(&emit->state, state, FD6_GROUP_FS_BINDLESS);
          break;
       case FD6_GROUP_CONST:
-         state = fd6_build_user_consts<PIPELINE>(emit);
+         state = fd6_build_user_consts<CHIP, PIPELINE>(emit);
          fd6_state_take_group(&emit->state, state, FD6_GROUP_CONST);
          break;
       case FD6_GROUP_DRIVER_PARAMS:
-         state = fd6_build_driver_params<PIPELINE>(emit);
+         state = fd6_build_driver_params<CHIP, PIPELINE>(emit);
          fd6_state_take_group(&emit->state, state, FD6_GROUP_DRIVER_PARAMS);
          break;
       case FD6_GROUP_PRIMITIVE_PARAMS:
          if (PIPELINE == HAS_TESS_GS) {
-            state = fd6_build_tess_consts(emit);
+            state = fd6_build_tess_consts<CHIP>(emit);
             fd6_state_take_group(&emit->state, state, FD6_GROUP_PRIMITIVE_PARAMS);
          }
          break;
@@ -702,7 +713,7 @@ fd6_emit_3d_state(struct fd_ringbuffer *ring, struct fd6_emit *emit)
          fd6_state_take_group(&emit->state, state, FD6_GROUP_FS_TEX);
          break;
       case FD6_GROUP_SO:
-         fd6_emit_streamout(ring, emit);
+         fd6_emit_streamout<CHIP>(ring, emit);
          break;
       case FD6_GROUP_PRIM_MODE_SYSMEM:
          state = build_prim_mode(emit, ctx, false);
@@ -776,83 +787,147 @@ fd6_emit_cs_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
    fd6_state_emit(&state, ring);
 }
+FD_GENX(fd6_emit_cs_state);
 
+template <chip CHIP>
 void
 fd6_emit_ccu_cntl(struct fd_ringbuffer *ring, struct fd_screen *screen, bool gmem)
 {
-   enum a6xx_ccu_cache_size cache_size = (enum a6xx_ccu_cache_size)(screen->info->a6xx.gmem_ccu_color_cache_fraction);
-   uint32_t offset = gmem ? screen->ccu_offset_gmem : screen->ccu_offset_bypass;
-   uint32_t offset_hi = offset >> 21;
-   offset &= 0x1fffff;
+   const struct fd6_gmem_config *cfg = gmem ? &screen->config_gmem : &screen->config_sysmem;
+   enum a6xx_ccu_cache_size color_cache_size = !gmem ? CCU_CACHE_SIZE_FULL :
+      (enum a6xx_ccu_cache_size)(screen->info->a6xx.gmem_ccu_color_cache_fraction);
+   uint32_t color_offset = cfg->color_ccu_offset & 0x1fffff;
+   uint32_t color_offset_hi = cfg->color_ccu_offset >> 21;
 
-   OUT_REG(ring,
-           A6XX_RB_CCU_CNTL(.gmem_fast_clear_disable =
-                               !screen->info->a6xx.has_gmem_fast_clear,
-                            .concurrent_resolve =
-                               screen->info->a6xx.concurrent_resolve,
-                            .depth_offset_hi = 0,
-                            .color_offset_hi = offset_hi,
-                            .depth_cache_size = CCU_CACHE_SIZE_FULL,
-                            .depth_offset = 0,
-                            .color_cache_size = cache_size,
-                            .color_offset = offset,
-                            ));
+   uint32_t depth_offset = cfg->depth_ccu_offset & 0x1fffff;
+   uint32_t depth_offset_hi = cfg->depth_ccu_offset >> 21;
+
+   if (CHIP == A7XX) {
+      OUT_REG(ring,
+         A7XX_RB_CCU_CNTL2(
+            .depth_offset_hi = depth_offset_hi,
+            .color_offset_hi = color_offset_hi,
+            .depth_cache_size = CCU_CACHE_SIZE_FULL,
+            .depth_offset = depth_offset,
+            .color_cache_size = color_cache_size,
+            .color_offset = color_offset,
+         )
+      );
+
+      if (screen->info->a7xx.has_gmem_vpc_attr_buf) {
+         OUT_REG(ring,
+            A7XX_VPC_ATTR_BUF_SIZE_GMEM(.size_gmem = cfg->vpc_attr_buf_size),
+            A7XX_VPC_ATTR_BUF_BASE_GMEM(.base_gmem = cfg->vpc_attr_buf_offset)
+         );
+         OUT_REG(ring,
+            A7XX_PC_ATTR_BUF_SIZE_GMEM(.size_gmem = cfg->vpc_attr_buf_size)
+         );
+      }
+   } else {
+      OUT_WFI5(ring);   /* early a6xx (a630?) needed this */
+
+      OUT_REG(ring,
+         RB_CCU_CNTL(
+            CHIP,
+            .gmem_fast_clear_disable =
+               !screen->info->a6xx.has_gmem_fast_clear,
+            .concurrent_resolve =
+               screen->info->a6xx.concurrent_resolve,
+            .depth_offset_hi = depth_offset_hi,
+            .color_offset_hi = color_offset_hi,
+            .depth_cache_size = CCU_CACHE_SIZE_FULL,
+            .depth_offset = depth_offset,
+            .color_cache_size = color_cache_size,
+            .color_offset = color_offset,
+         )
+      );
+   }
+}
+FD_GENX(fd6_emit_ccu_cntl);
+
+template <chip CHIP>
+static void
+fd6_emit_stomp(struct fd_ringbuffer *ring, const uint16_t *regs, size_t count)
+{
+   for (size_t i = 0; i < count; i++) {
+      if (fd_reg_stomp_allowed(CHIP, regs[i])) {
+         WRITE(regs[i], 0xffffffff);
+      }
+   }
 }
 
-template void fd6_emit_cs_state<A6XX>(struct fd_context *ctx, struct fd_ringbuffer *ring, struct fd6_compute_state *cs);
-template void fd6_emit_cs_state<A7XX>(struct fd_context *ctx, struct fd_ringbuffer *ring, struct fd6_compute_state *cs);
-
-/* emit setup at begin of new cmdstream buffer (don't rely on previous
- * state, there could have been a context switch between ioctls):
- */
 template <chip CHIP>
 void
-fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
+fd6_emit_static_regs(struct fd_context *ctx, struct fd_ringbuffer *ring)
 {
-   struct fd_screen *screen = batch->ctx->screen;
+   struct fd_screen *screen = ctx->screen;
 
-   if (!batch->nondraw) {
-      trace_start_state_restore(&batch->trace, ring);
+   if (CHIP >= A7XX) {
+      /* On A7XX, RB_CCU_CNTL was broken into two registers, RB_CCU_CNTL which has
+       * static properties that can be set once, this requires a WFI to take effect.
+       * While the newly introduced register RB_CCU_CNTL2 has properties that may
+       * change per-RP and don't require a WFI to take effect, only CCU inval/flush
+       * events are required.
+       */
+      OUT_REG(ring,
+         RB_CCU_CNTL(
+            CHIP,
+            .gmem_fast_clear_disable = true, // !screen->info->a6xx.has_gmem_fast_clear,
+            .concurrent_resolve = screen->info->a6xx.concurrent_resolve,
+         )
+      );
    }
 
-   OUT_PKT7(ring, CP_SET_MODE, 1);
-   OUT_RING(ring, 0);
+   for (size_t i = 0; i < ARRAY_SIZE(screen->info->a6xx.magic_raw); i++) {
+      auto magic_reg = screen->info->a6xx.magic_raw[i];
+      if (!magic_reg.reg)
+         break;
 
-   fd6_cache_inv(batch, ring);
+      uint32_t value = magic_reg.value;
+      switch(magic_reg.reg) {
+         case REG_A6XX_TPL1_DBG_ECO_CNTL1:
+            value = (value & ~A6XX_TPL1_DBG_ECO_CNTL1_TP_UBWC_FLAG_HINT) |
+                    (screen->info->a7xx.enable_tp_ubwc_flag_hint
+                        ? A6XX_TPL1_DBG_ECO_CNTL1_TP_UBWC_FLAG_HINT
+                        : 0);
+            break;
+      }
 
-   OUT_REG(ring,
-           HLSQ_INVALIDATE_CMD(CHIP, .vs_state = true, .hs_state = true,
-                                    .ds_state = true, .gs_state = true,
-                                    .fs_state = true, .cs_state = true,
-                                    .cs_ibo = true, .gfx_ibo = true,
-                                    .cs_shared_const = true,
-                                    .gfx_shared_const = true,
-                                    .cs_bindless = 0x1f, .gfx_bindless = 0x1f));
-
-   OUT_WFI5(ring);
+      WRITE(magic_reg.reg, value);
+   }
 
    WRITE(REG_A6XX_RB_DBG_ECO_CNTL, screen->info->a6xx.magic.RB_DBG_ECO_CNTL);
    WRITE(REG_A6XX_SP_FLOAT_CNTL, A6XX_SP_FLOAT_CNTL_F16_NO_INF);
    WRITE(REG_A6XX_SP_DBG_ECO_CNTL, screen->info->a6xx.magic.SP_DBG_ECO_CNTL);
    WRITE(REG_A6XX_SP_PERFCTR_ENABLE, 0x3f);
-   WRITE(REG_A6XX_TPL1_UNKNOWN_B605, 0x44);
+   if (CHIP == A6XX)
+      WRITE(REG_A6XX_TPL1_UNKNOWN_B605, 0x44);
    WRITE(REG_A6XX_TPL1_DBG_ECO_CNTL, screen->info->a6xx.magic.TPL1_DBG_ECO_CNTL);
-   WRITE(REG_A6XX_HLSQ_UNKNOWN_BE00, 0x80);
-   WRITE(REG_A6XX_HLSQ_UNKNOWN_BE01, 0);
+   if (CHIP == A6XX) {
+      WRITE(REG_A6XX_HLSQ_UNKNOWN_BE00, 0x80);
+      WRITE(REG_A6XX_HLSQ_UNKNOWN_BE01, 0);
+   }
 
    WRITE(REG_A6XX_VPC_DBG_ECO_CNTL, screen->info->a6xx.magic.VPC_DBG_ECO_CNTL);
    WRITE(REG_A6XX_GRAS_DBG_ECO_CNTL, screen->info->a6xx.magic.GRAS_DBG_ECO_CNTL);
-   WRITE(REG_A6XX_HLSQ_DBG_ECO_CNTL, screen->info->a6xx.magic.HLSQ_DBG_ECO_CNTL);
+   if (CHIP == A6XX)
+      WRITE(REG_A6XX_HLSQ_DBG_ECO_CNTL, screen->info->a6xx.magic.HLSQ_DBG_ECO_CNTL);
    WRITE(REG_A6XX_SP_CHICKEN_BITS, screen->info->a6xx.magic.SP_CHICKEN_BITS);
    WRITE(REG_A6XX_SP_IBO_COUNT, 0);
    WRITE(REG_A6XX_SP_UNKNOWN_B182, 0);
-   WRITE(REG_A6XX_HLSQ_SHARED_CONSTS, 0);
+   if (CHIP == A6XX)
+      WRITE(REG_A6XX_HLSQ_SHARED_CONSTS, 0);
    WRITE(REG_A6XX_UCHE_UNKNOWN_0E12, screen->info->a6xx.magic.UCHE_UNKNOWN_0E12);
    WRITE(REG_A6XX_UCHE_CLIENT_PF, screen->info->a6xx.magic.UCHE_CLIENT_PF);
    WRITE(REG_A6XX_RB_UNKNOWN_8E01, screen->info->a6xx.magic.RB_UNKNOWN_8E01);
    WRITE(REG_A6XX_SP_UNKNOWN_A9A8, 0);
-   WRITE(REG_A6XX_SP_MODE_CONTROL,
-         A6XX_SP_MODE_CONTROL_CONSTANT_DEMOTION_ENABLE | 4);
+   OUT_REG(ring,
+      A6XX_SP_MODE_CONTROL(
+         .constant_demotion_enable = true,
+         .isammode = ISAMMODE_GL,
+         .shared_consts_enable = false,
+      )
+   );
    WRITE(REG_A6XX_VFD_ADD_OFFSET, A6XX_VFD_ADD_OFFSET_VERTEX);
    WRITE(REG_A6XX_VPC_UNKNOWN_9107, 0);
    WRITE(REG_A6XX_RB_UNKNOWN_8811, 0x00000010);
@@ -863,12 +938,16 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    WRITE(REG_A6XX_GRAS_UNKNOWN_8110, 0x2);
 
    WRITE(REG_A6XX_RB_UNKNOWN_8818, 0);
-   WRITE(REG_A6XX_RB_UNKNOWN_8819, 0);
-   WRITE(REG_A6XX_RB_UNKNOWN_881A, 0);
-   WRITE(REG_A6XX_RB_UNKNOWN_881B, 0);
-   WRITE(REG_A6XX_RB_UNKNOWN_881C, 0);
-   WRITE(REG_A6XX_RB_UNKNOWN_881D, 0);
-   WRITE(REG_A6XX_RB_UNKNOWN_881E, 0);
+
+   if (CHIP == A6XX) {
+      WRITE(REG_A6XX_RB_UNKNOWN_8819, 0);
+      WRITE(REG_A6XX_RB_UNKNOWN_881A, 0);
+      WRITE(REG_A6XX_RB_UNKNOWN_881B, 0);
+      WRITE(REG_A6XX_RB_UNKNOWN_881C, 0);
+      WRITE(REG_A6XX_RB_UNKNOWN_881D, 0);
+      WRITE(REG_A6XX_RB_UNKNOWN_881E, 0);
+   }
+
    WRITE(REG_A6XX_RB_UNKNOWN_88F0, 0);
 
    WRITE(REG_A6XX_VPC_POINT_COORD_INVERT, A6XX_VPC_POINT_COORD_INVERT(0).value);
@@ -878,6 +957,9 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
 
    OUT_REG(ring, PC_RASTER_CNTL(CHIP));
 
+   if (CHIP == A7XX)
+      OUT_REG(ring, A7XX_PC_RASTER_CNTL_V2());
+
    WRITE(REG_A6XX_PC_MULTIVIEW_CNTL, 0);
 
    WRITE(REG_A6XX_SP_UNKNOWN_B183, 0);
@@ -886,8 +968,10 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    WRITE(REG_A6XX_GRAS_VS_LAYER_CNTL, 0);
    WRITE(REG_A6XX_GRAS_SC_CNTL, A6XX_GRAS_SC_CNTL_CCUSINGLECACHELINESIZE(2));
    WRITE(REG_A6XX_GRAS_UNKNOWN_80AF, 0);
-   WRITE(REG_A6XX_VPC_UNKNOWN_9210, 0);
-   WRITE(REG_A6XX_VPC_UNKNOWN_9211, 0);
+   if (CHIP == A6XX) {
+      WRITE(REG_A6XX_VPC_UNKNOWN_9210, 0);
+      WRITE(REG_A6XX_VPC_UNKNOWN_9211, 0);
+   }
    WRITE(REG_A6XX_VPC_UNKNOWN_9602, 0);
    WRITE(REG_A6XX_PC_UNKNOWN_9E72, 0);
    /* NOTE blob seems to (mostly?) use 0xb2 for SP_TP_MODE_CNTL
@@ -904,13 +988,9 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
 
    emit_marker6(ring, 7);
 
-   OUT_PKT4(ring, REG_A6XX_VFD_MODE_CNTL, 1);
-   OUT_RING(ring, 0x00000000); /* VFD_MODE_CNTL */
+   OUT_REG(ring, A6XX_VFD_MODE_CNTL(RENDERING_PASS));
 
    WRITE(REG_A6XX_VFD_MULTIVIEW_CNTL, 0);
-
-   OUT_PKT4(ring, REG_A6XX_PC_MODE_CNTL, 1);
-   OUT_RING(ring, 0x0000001f); /* PC_MODE_CNTL */
 
    /* Clear any potential pending state groups to be safe: */
    OUT_PKT7(ring, CP_SET_DRAW_STATE, 3);
@@ -922,6 +1002,17 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
 
    OUT_PKT4(ring, REG_A6XX_VPC_SO_STREAM_CNTL, 1);
    OUT_RING(ring, 0x00000000); /* VPC_SO_STREAM_CNTL */
+
+   if (CHIP >= A7XX) {
+      OUT_REG(ring, A6XX_GRAS_LRZ_CNTL());
+      OUT_REG(ring, A7XX_GRAS_LRZ_CNTL2());
+   } else {
+      OUT_REG(ring, A6XX_GRAS_LRZ_CNTL());
+   }
+
+   OUT_REG(ring, A6XX_RB_LRZ_CNTL());
+   OUT_REG(ring, A6XX_RB_DEPTH_PLANE_CNTL());
+   OUT_REG(ring, A6XX_GRAS_SU_DEPTH_PLANE_CNTL());
 
    OUT_PKT4(ring, REG_A6XX_GRAS_LRZ_CNTL, 1);
    OUT_RING(ring, 0x00000000);
@@ -938,19 +1029,7 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
       OUT_RING(ring, 0);
    }
 
-   /* This happens after all drawing has been emitted to the draw CS, so we know
-    * whether we need the tess BO pointers.
-    */
-   if (batch->tessellation) {
-      assert(screen->tess_bo);
-      fd_ringbuffer_attach_bo(ring, screen->tess_bo);
-      OUT_PKT4(ring, REG_A6XX_PC_TESSFACTOR_ADDR, 2);
-      OUT_RELOC(ring, screen->tess_bo, 0, 0, 0);
-      /* Updating PC_TESSFACTOR_ADDR could race with the next draw which uses it. */
-      OUT_WFI5(ring);
-   }
-
-   struct fd6_context *fd6_ctx = fd6_context(batch->ctx);
+   struct fd6_context *fd6_ctx = fd6_context(ctx);
    struct fd_bo *bcolor_mem = fd6_ctx->bcolor_mem;
 
    OUT_PKT4(ring, REG_A6XX_SP_TP_BORDER_COLOR_BASE_ADDR, 2);
@@ -959,13 +1038,125 @@ fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
    OUT_PKT4(ring, REG_A6XX_SP_PS_TP_BORDER_COLOR_BASE_ADDR, 2);
    OUT_RELOC(ring, bcolor_mem, 0, 0, 0);
 
+   /* These regs are blocked (CP_PROTECT) on a6xx: */
+   if (CHIP >= A7XX) {
+      OUT_REG(ring,
+         TPL1_BICUBIC_WEIGHTS_TABLE_0(CHIP, 0),
+         TPL1_BICUBIC_WEIGHTS_TABLE_1(CHIP, 0x3fe05ff4),
+         TPL1_BICUBIC_WEIGHTS_TABLE_2(CHIP, 0x3fa0ebee),
+         TPL1_BICUBIC_WEIGHTS_TABLE_3(CHIP, 0x3f5193ed),
+         TPL1_BICUBIC_WEIGHTS_TABLE_4(CHIP, 0x3f0243f0),
+      );
+   }
+
+   if (CHIP >= A7XX) {
+      /* Blob sets these two per draw. */
+      OUT_REG(ring, A7XX_PC_TESS_PARAM_SIZE(FD6_TESS_PARAM_SIZE));
+      /* Blob adds a bit more space ({0x10, 0x20, 0x30, 0x40} bytes)
+       * but the meaning of this additional space is not known,
+       * so we play safe and don't add it.
+       */
+      OUT_REG(ring, A7XX_PC_TESS_FACTOR_SIZE(FD6_TESS_FACTOR_SIZE));
+   }
+
+   /* There is an optimization to skip executing draw states for draws with no
+    * instances. Instead of simply skipping the draw, internally the firmware
+    * sets a bit in PC_DRAW_INITIATOR that seemingly skips the draw. However
+    * there is a hardware bug where this bit does not always cause the FS
+    * early preamble to be skipped. Because the draw states were skipped,
+    * SP_FS_CTRL_REG0, SP_FS_OBJ_START and so on are never updated and a
+    * random FS preamble from the last draw is executed. If the last visible
+    * draw is from the same submit, it shouldn't be a problem because we just
+    * re-execute the same preamble and preambles don't have side effects, but
+    * if it's from another process then we could execute a garbage preamble
+    * leading to hangs and faults. To make sure this doesn't happen, we reset
+    * SP_FS_CTRL_REG0 here, making sure that the EARLYPREAMBLE bit isn't set
+    * so any leftover early preamble doesn't get executed. Other stages don't
+    * seem to be affected.
+    */
+   if (screen->info->a6xx.has_early_preamble) {
+      WRITE(REG_A6XX_SP_FS_CTRL_REG0, 0);
+   }
+}
+FD_GENX(fd6_emit_static_regs);
+
+/* emit setup at begin of new cmdstream buffer (don't rely on previous
+ * state, there could have been a context switch between ioctls):
+ */
+template <chip CHIP>
+void
+fd6_emit_restore(struct fd_batch *batch, struct fd_ringbuffer *ring)
+{
+   struct fd_context *ctx = batch->ctx;
+   struct fd_screen *screen = ctx->screen;
+
+   if (!batch->nondraw) {
+      trace_start_state_restore(&batch->trace, ring);
+   }
+
+   if (FD_DBG(STOMP)) {
+      fd6_emit_stomp<CHIP>(ring, &RP_BLIT_REGS<CHIP>[0], ARRAY_SIZE(RP_BLIT_REGS<CHIP>));
+      fd6_emit_stomp<CHIP>(ring, &CMD_REGS<CHIP>[0], ARRAY_SIZE(CMD_REGS<CHIP>));
+   }
+
+   OUT_PKT7(ring, CP_SET_MODE, 1);
+   OUT_RING(ring, 0);
+
+   if (CHIP == A6XX) {
+      fd6_cache_inv<CHIP>(ctx, ring);
+   } else {
+      OUT_PKT7(ring, CP_THREAD_CONTROL, 1);
+      OUT_RING(ring, CP_THREAD_CONTROL_0_THREAD(CP_SET_THREAD_BR) |
+                     CP_THREAD_CONTROL_0_CONCURRENT_BIN_DISABLE);
+
+      fd6_event_write<CHIP>(ctx, ring, FD_CCU_INVALIDATE_COLOR);
+      fd6_event_write<CHIP>(ctx, ring, FD_CCU_INVALIDATE_DEPTH);
+
+      OUT_PKT7(ring, CP_EVENT_WRITE, 1);
+      OUT_RING(ring, UNK_40);
+
+      fd6_event_write<CHIP>(ctx, ring, FD_CACHE_INVALIDATE);
+      OUT_WFI5(ring);
+   }
+
+   OUT_REG(ring,
+      HLSQ_INVALIDATE_CMD(CHIP,
+         .vs_state = true, .hs_state = true,
+         .ds_state = true, .gs_state = true,
+         .fs_state = true, .cs_state = true,
+         .cs_ibo = true,   .gfx_ibo = true,
+         .cs_shared_const = true,
+         .gfx_shared_const = true,
+         .cs_bindless = CHIP == A6XX ? 0x1f : 0xff,
+         .gfx_bindless = CHIP == A6XX ? 0x1f : 0xff,
+      )
+   );
+
+   OUT_WFI5(ring);
+
+   fd6_emit_ib(ring, fd6_context(ctx)->restore);
+   fd6_emit_ccu_cntl<CHIP>(ring, screen, false);
+
+   OUT_PKT7(ring, CP_SET_AMBLE, 3);
+   uint32_t dwords = fd_ringbuffer_emit_reloc_ring_full(ring, fd6_context(ctx)->preamble, 0) / 4;
+   OUT_RING(ring, CP_SET_AMBLE_2_DWORDS(dwords) |
+                  CP_SET_AMBLE_2_TYPE(BIN_PREAMBLE_AMBLE_TYPE));
+
+   OUT_PKT7(ring, CP_SET_AMBLE, 3);
+   OUT_RING(ring, 0x00000000);
+   OUT_RING(ring, 0x00000000);
+   OUT_RING(ring, CP_SET_AMBLE_2_TYPE(PREAMBLE_AMBLE_TYPE));
+
+   OUT_PKT7(ring, CP_SET_AMBLE, 3);
+   OUT_RING(ring, 0x00000000);
+   OUT_RING(ring, 0x00000000);
+   OUT_RING(ring, CP_SET_AMBLE_2_TYPE(POSTAMBLE_AMBLE_TYPE));
+
    if (!batch->nondraw) {
       trace_end_state_restore(&batch->trace, ring);
    }
 }
-
-template void fd6_emit_restore<A6XX>(struct fd_batch *batch, struct fd_ringbuffer *ring);
-template void fd6_emit_restore<A7XX>(struct fd_batch *batch, struct fd_ringbuffer *ring);
+FD_GENX(fd6_emit_restore);
 
 static void
 fd6_mem_to_mem(struct fd_ringbuffer *ring, struct pipe_resource *dst,

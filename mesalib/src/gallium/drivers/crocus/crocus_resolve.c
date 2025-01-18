@@ -604,8 +604,7 @@ crocus_hiz_exec(struct crocus_context *ice,
                 struct crocus_batch *batch,
                 struct crocus_resource *res,
                 unsigned int level, unsigned int start_layer,
-                unsigned int num_layers, enum isl_aux_op op,
-                bool update_clear_depth)
+                unsigned int num_layers, enum isl_aux_op op)
 {
    struct crocus_screen *screen = batch->screen;
    const struct intel_device_info *devinfo = &batch->screen->devinfo;
@@ -686,9 +685,7 @@ crocus_hiz_exec(struct crocus_context *ice,
                                   &res->base.b, res->aux.usage, level, true);
 
    struct blorp_batch blorp_batch;
-   enum blorp_batch_flags flags = 0;
-   flags |= update_clear_depth ? 0 : BLORP_BATCH_NO_UPDATE_CLEAR_COLOR;
-   blorp_batch_init(&ice->blorp, &blorp_batch, batch, flags);
+   blorp_batch_init(&ice->blorp, &blorp_batch, batch, 0);
    blorp_hiz_op(&blorp_batch, &surf, level, start_layer, num_layers, op);
    blorp_batch_finish(&blorp_batch);
 
@@ -860,7 +857,7 @@ crocus_resource_prepare_access(struct crocus_context *ice,
             assert(aux_op == ISL_AUX_OP_PARTIAL_RESOLVE);
             crocus_mcs_partial_resolve(ice, batch, res, layer, 1);
          } else if (isl_aux_usage_has_hiz(res->aux.usage)) {
-            crocus_hiz_exec(ice, batch, res, level, layer, 1, aux_op, false);
+            crocus_hiz_exec(ice, batch, res, level, layer, 1, aux_op);
          } else if (res->aux.usage == ISL_AUX_USAGE_STC_CCS) {
             unreachable("crocus doesn't resolve STC_CCS resources");
          } else {

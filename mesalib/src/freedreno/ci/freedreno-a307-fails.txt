@@ -162,7 +162,6 @@ glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
-shaders@glsl-bug-110796,Fail
 shaders@point-vertex-id divisor,Crash
 shaders@point-vertex-id gl_instanceid,Crash
 shaders@point-vertex-id gl_instanceid divisor,Crash
@@ -172,7 +171,6 @@ shaders@point-vertex-id gl_vertexid gl_instanceid,Crash
 shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Crash
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
-spec@!opengl 1.0@rasterpos,Crash
 spec@!opengl 1.1@depthstencil-default_fb-blit,Fail
 spec@!opengl 1.1@depthstencil-default_fb-copypixels,Fail
 spec@!opengl 1.1@polygon-mode,Fail
@@ -215,8 +213,6 @@ spec@!opengl 3.1@required-texture-attachment-formats,Fail
 spec@!opengl 3.1@vao-broken-attrib,Crash
 spec@!opengl es 3.0@minmax,Fail
 spec@amd_seamless_cubemap_per_texture@amd_seamless_cubemap_per_texture,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-getfragdataindex,Fail
-spec@arb_blend_func_extended@arb_blend_func_extended-getfragdataindex_gles3,Fail
 spec@arb_clip_control@arb_clip_control-depth-precision,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats stencil,Fail
@@ -851,11 +847,6 @@ spec@glsl-1.40@uniform_buffer@two-stages,Fail
 # new failures since 2023/02/08 (CTS uprevs, regressions etc.)
 shaders@glsl-max-varyings >max_varying_components,Fail
 spec@!opengl 1.0@gl-1.0-ortho-pos,Fail
-spec@!opengl 1.1@gl_select - alpha-test enabled,Fail
-spec@!opengl 1.1@gl_select - depth-test enabled,Fail
-spec@!opengl 1.1@gl_select - no test function,Fail
-spec@!opengl 1.1@gl_select - scissor-test enabled,Fail
-spec@!opengl 1.1@gl_select - stencil-test enabled,Fail
 spec@!opengl 1.1@line-smooth-stipple,Fail
 spec@!opengl 1.1@teximage-colors gl_alpha16@Exact upload-download of GL_ALPHA16,Fail
 spec@!opengl 1.1@texwrap 1d,Fail
@@ -1151,3 +1142,24 @@ spec@ext_texture_srgb@texwrap formats@GL_SLUMINANCE8_ALPHA8- NPOT,Fail
 spec@ext_texture_srgb@texwrap formats@GL_SRGB8- NPOT,Fail
 spec@ext_texture_srgb@texwrap formats@GL_SRGB8_ALPHA8- NPOT,Fail
 spec@nv_copy_image@nv_copy_image-formats@Source: GL_ALPHA16/Destination: GL_ALPHA16,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/11215
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int8,Fail
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int16,Fail
+
+# glcts update
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_y,Fail
+dEQP-GLES2.functional.texture.mipmap.cube.projected.nearest_linear,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag,Fail

@@ -1,24 +1,6 @@
 /*
  * Copyright © 2023 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #define FD_BO_NO_HARDPIN 1
@@ -26,44 +8,9 @@
 #include "freedreno_batch.h"
 
 #include "fd6_barrier.h"
-#include "fd6_context.h"
+#include "fd6_emit.h"
 
-/* TODO probably more of the various fd6_event_write() should be
- * consolidated here.
- */
-
-static uint32_t
-event_write(struct fd_context *ctx, struct fd_ringbuffer *ring,
-            enum vgt_event_type evt)
-{
-   bool timestamp = false;
-   switch (evt) {
-   case CACHE_FLUSH_TS:
-   case WT_DONE_TS:
-   case RB_DONE_TS:
-   case PC_CCU_FLUSH_DEPTH_TS:
-   case PC_CCU_FLUSH_COLOR_TS:
-   case PC_CCU_RESOLVE_TS:
-      timestamp = true;
-      break;
-   default:
-      break;
-   }
-
-   OUT_PKT7(ring, CP_EVENT_WRITE, timestamp ? 4 : 1);
-   OUT_RING(ring, CP_EVENT_WRITE_0_EVENT(evt));
-   if (timestamp) {
-      struct fd6_context *fd6_ctx = fd6_context(ctx);
-      uint32_t seqno = ++fd6_ctx->seqno;
-      OUT_RELOC(ring, control_ptr(fd6_ctx, seqno)); /* ADDR_LO/HI */
-      OUT_RING(ring, seqno);
-
-      return seqno;
-   }
-
-   return 0;
-}
-
+template <chip CHIP>
 void
 fd6_emit_flushes(struct fd_context *ctx, struct fd_ringbuffer *ring,
                  unsigned flushes)
@@ -74,22 +21,22 @@ fd6_emit_flushes(struct fd_context *ctx, struct fd_ringbuffer *ring,
     * However it does seem to work for UCHE.
     */
    if (flushes & (FD6_FLUSH_CCU_COLOR | FD6_INVALIDATE_CCU_COLOR))
-      event_write(ctx, ring, PC_CCU_FLUSH_COLOR_TS);
+      fd6_event_write<CHIP>(ctx, ring, FD_CCU_CLEAN_COLOR);
 
    if (flushes & (FD6_FLUSH_CCU_DEPTH | FD6_INVALIDATE_CCU_DEPTH))
-      event_write(ctx, ring, PC_CCU_FLUSH_DEPTH_TS);
+      fd6_event_write<CHIP>(ctx, ring, FD_CCU_CLEAN_DEPTH);
 
    if (flushes & FD6_INVALIDATE_CCU_COLOR)
-      event_write(ctx, ring, PC_CCU_INVALIDATE_COLOR);
+      fd6_event_write<CHIP>(ctx, ring, FD_CCU_INVALIDATE_COLOR);
 
    if (flushes & FD6_INVALIDATE_CCU_DEPTH)
-      event_write(ctx, ring, PC_CCU_INVALIDATE_DEPTH);
+      fd6_event_write<CHIP>(ctx, ring, FD_CCU_INVALIDATE_DEPTH);
 
    if (flushes & FD6_FLUSH_CACHE)
-      event_write(ctx, ring, CACHE_FLUSH_TS);
+      fd6_event_write<CHIP>(ctx, ring, FD_CACHE_CLEAN);
 
    if (flushes & FD6_INVALIDATE_CACHE)
-      event_write(ctx, ring, CACHE_INVALIDATE);
+      fd6_event_write<CHIP>(ctx, ring, FD_CACHE_INVALIDATE);
 
    if (flushes & FD6_WAIT_MEM_WRITES)
       OUT_PKT7(ring, CP_WAIT_MEM_WRITES, 0);
@@ -100,13 +47,16 @@ fd6_emit_flushes(struct fd_context *ctx, struct fd_ringbuffer *ring,
    if (flushes & FD6_WAIT_FOR_ME)
       OUT_PKT7(ring, CP_WAIT_FOR_ME, 0);
 }
+FD_GENX(fd6_emit_flushes);
 
+template <chip CHIP>
 void
 fd6_barrier_flush(struct fd_batch *batch)
 {
-   fd6_emit_flushes(batch->ctx, batch->draw, batch->barrier);
+   fd6_emit_flushes<CHIP>(batch->ctx, batch->draw, batch->barrier);
    batch->barrier = 0;
 }
+FD_GENX(fd6_barrier_flush);
 
 static void
 add_flushes(struct pipe_context *pctx, unsigned flushes)

@@ -607,6 +607,12 @@ struct ast_type_qualifier {
          unsigned explicit_xfb_stride:1; /**< xfb_stride value assigned explicitly by shader code */
          /** \} */
 
+         /**
+          * Flag set if GL_OVR_multiview num_views_relative layout
+          * qualifier is used.
+          */
+         unsigned explicit_numviews:1;
+
 	 /** \name Layout qualifiers for GL_ARB_tessellation_shader */
 	 /** \{ */
 	 /* tess eval input layout */
@@ -744,6 +750,14 @@ struct ast_type_qualifier {
     * This field is only valid if \c explicit_binding is set.
     */
    ast_expression *binding;
+
+   /**
+    * Binding specified via GL_OVR_multiview's "num_views" keyword.
+    *
+    * \note
+    * This field is only valid if \c explicit_numviews is set.
+    */
+   ast_expression *num_views;
 
    /**
     * Offset specified via GL_ARB_shader_atomic_counter's or

@@ -10,6 +10,7 @@
 #include "util/u_log.h"
 #include "util/u_surface.h"
 #include "util/hash_table.h"
+#include "ac_nir_meta.h"
 
 enum
 {
@@ -506,8 +507,8 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
          /* Required before and after FMASK and DCC_DECOMPRESS. */
          if (custom_blend == sctx->custom_blend_fmask_decompress ||
              custom_blend == sctx->custom_blend_dcc_decompress) {
-            sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_CB;
-            si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+            sctx->barrier_flags |= SI_BARRIER_SYNC_AND_INV_CB;
+            si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
          }
 
          si_blitter_begin(sctx, SI_DECOMPRESS);
@@ -516,8 +517,8 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
 
          if (custom_blend == sctx->custom_blend_fmask_decompress ||
              custom_blend == sctx->custom_blend_dcc_decompress) {
-            sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_CB;
-            si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+            sctx->barrier_flags |= SI_BARRIER_SYNC_AND_INV_CB;
+            si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
          }
 
          /* When running FMASK decompression with DCC, we need to run the "eliminate fast clear" pass
@@ -932,7 +933,7 @@ void si_decompress_subresource(struct pipe_context *ctx, struct pipe_resource *t
        */
       if (sctx->framebuffer.state.zsbuf && sctx->framebuffer.state.zsbuf->u.tex.level == level &&
           sctx->framebuffer.state.zsbuf->texture == tex)
-         si_update_fb_dirtiness_after_rendering(sctx);
+         si_fb_barrier_after_rendering(sctx, SI_FB_BARRIER_SYNC_DB);
 
       si_decompress_depth(sctx, stex, planes, level, level, first_layer, last_layer);
    } else if (stex->surface.fmask_size || stex->cmask_buffer ||
@@ -945,7 +946,7 @@ void si_decompress_subresource(struct pipe_context *ctx, struct pipe_resource *t
          if (sctx->framebuffer.state.cbufs[i] &&
              sctx->framebuffer.state.cbufs[i]->u.tex.level == level &&
              sctx->framebuffer.state.cbufs[i]->texture == tex) {
-            si_update_fb_dirtiness_after_rendering(sctx);
+            si_fb_barrier_after_rendering(sctx, SI_FB_BARRIER_SYNC_CB);
             break;
          }
       }
@@ -964,12 +965,13 @@ void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst
 
    /* Handle buffers first. */
    if (dst->target == PIPE_BUFFER && src->target == PIPE_BUFFER) {
-      si_copy_buffer(sctx, dst, src, dstx, src_box->x, src_box->width, SI_OP_SYNC_BEFORE_AFTER);
+      si_barrier_before_simple_buffer_op(sctx, 0, dst, src);
+      si_copy_buffer(sctx, dst, src, dstx, src_box->x, src_box->width);
+      si_barrier_after_simple_buffer_op(sctx, 0, dst, src);
       return;
    }
 
-   if (si_compute_copy_image(sctx, dst, dst_level, src, src_level, dstx, dsty, dstz,
-                             src_box, SI_OP_SYNC_BEFORE_AFTER))
+   if (si_compute_copy_image(sctx, dst, dst_level, src, src_level, dstx, dsty, dstz, src_box, true))
       return;
 
    si_gfx_copy_image(sctx, dst, dst_level, dstx, dsty, dstz, src, src_level, src_box);
@@ -1056,7 +1058,7 @@ void si_gfx_copy_image(struct si_context *sctx, struct pipe_resource *dst,
    si_blitter_begin(sctx, SI_COPY);
    util_blitter_blit_generic(sctx->blitter, dst_view, &dstbox, src_view, src_box, src->width0,
                              src->height0, PIPE_MASK_RGBAZS, PIPE_TEX_FILTER_NEAREST, NULL,
-                             false, false, 0);
+                             false, false, 0, NULL);
    si_blitter_end(sctx);
 
    pipe_surface_reference(&dst_view, NULL);
@@ -1068,8 +1070,8 @@ static void si_do_CB_resolve(struct si_context *sctx, const struct pipe_blit_inf
                              enum pipe_format format)
 {
    /* Required before and after CB_RESOLVE. */
-   sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_CB;
-   si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+   sctx->barrier_flags |= SI_BARRIER_SYNC_AND_INV_CB;
+   si_mark_atom_dirty(sctx, &sctx->atoms.s.barrier);
 
    si_blitter_begin(
       sctx, SI_COLOR_RESOLVE | (info->render_condition_enable ? 0 : SI_DISABLE_RENDER_COND));
@@ -1103,7 +1105,8 @@ static bool resolve_formats_compatible(enum pipe_format src, enum pipe_format ds
    return *need_rgb_to_bgr;
 }
 
-bool si_msaa_resolve_blit_via_CB(struct pipe_context *ctx, const struct pipe_blit_info *info)
+bool si_msaa_resolve_blit_via_CB(struct pipe_context *ctx, const struct pipe_blit_info *info,
+                                 bool fail_if_slow)
 {
    struct si_context *sctx = (struct si_context *)ctx;
 
@@ -1116,12 +1119,45 @@ bool si_msaa_resolve_blit_via_CB(struct pipe_context *ctx, const struct pipe_bli
    unsigned dst_width = u_minify(info->dst.resource->width0, info->dst.level);
    unsigned dst_height = u_minify(info->dst.resource->height0, info->dst.level);
    enum pipe_format format = info->src.format;
+   unsigned num_channels = util_format_description(format)->nr_channels;
 
    /* Check basic requirements for hw resolve. */
    if (!(info->src.resource->nr_samples > 1 && info->dst.resource->nr_samples <= 1 &&
          !util_format_is_pure_integer(format) && !util_format_is_depth_or_stencil(format) &&
          util_max_layer(info->src.resource, 0) == 0))
       return false;
+
+   /* Return if this is slower than alternatives. */
+   if (fail_if_slow) {
+      /* CB_RESOLVE is much slower without FMASK. */
+      if (sctx->screen->debug_flags & DBG(NO_FMASK))
+         return false;
+
+      /* Verified on: Tahiti, Hawaii, Tonga, Vega10, Navi10, Navi21 */
+      switch (sctx->gfx_level) {
+      case GFX6:
+         return false;
+
+      case GFX7:
+         if (src->surface.bpe != 16)
+            return false;
+         break;
+
+      case GFX8:
+      case GFX9:
+      case GFX10:
+         return false;
+
+      case GFX10_3:
+         if (!(src->surface.bpe == 8 && src->buffer.b.b.nr_samples == 8 && num_channels == 4) &&
+             !(src->surface.bpe == 16 && src->buffer.b.b.nr_samples == 4))
+            return false;
+         break;
+
+      default:
+         unreachable("unexpected gfx version");
+      }
+   }
 
    /* Hardware MSAA resolve doesn't work if SPI format = NORM16_ABGR and
     * the format is R16G16. Use R16A16, which does work.
@@ -1172,7 +1208,9 @@ bool si_msaa_resolve_blit_via_CB(struct pipe_context *ctx, const struct pipe_bli
          if (!vi_dcc_get_clear_info(sctx, dst, info->dst.level, DCC_UNCOMPRESSED, &clear_info))
             return false;
 
-         si_execute_clears(sctx, &clear_info, 1, SI_CLEAR_TYPE_DCC, info->render_condition_enable);
+         si_barrier_before_image_fast_clear(sctx, SI_CLEAR_TYPE_DCC);
+         si_execute_clears(sctx, &clear_info, 1, info->render_condition_enable);
+         si_barrier_after_image_fast_clear(sctx);
          dst->dirty_level_mask &= ~(1 << info->dst.level);
       }
 
@@ -1215,7 +1253,7 @@ static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
       if (sscreen->async_compute_context) {
          si_compute_copy_image((struct si_context*)sctx->screen->async_compute_context,
                                info->dst.resource, 0, info->src.resource, 0, 0, 0, 0,
-                               &info->src.box, 0);
+                               &info->src.box, false);
          si_flush_gfx_cs((struct si_context*)sctx->screen->async_compute_context, 0, NULL);
          simple_mtx_unlock(&sscreen->async_compute_context_lock);
          return;
@@ -1227,13 +1265,13 @@ static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
    if (unlikely(sctx->sqtt_enabled))
       sctx->sqtt_next_event = EventCmdResolveImage;
 
-   if (si_msaa_resolve_blit_via_CB(ctx, info))
+   if (si_msaa_resolve_blit_via_CB(ctx, info, true))
       return;
 
    if (unlikely(sctx->sqtt_enabled))
       sctx->sqtt_next_event = EventCmdCopyImage;
 
-   if (si_compute_blit(sctx, info, false))
+   if (si_compute_blit(sctx, info, NULL, 0, 0, true))
       return;
 
    si_gfx_blit(ctx, info);
@@ -1258,8 +1296,75 @@ void si_gfx_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
    if (unlikely(sctx->sqtt_enabled))
       sctx->sqtt_next_event = EventCmdBlitImage;
 
+   /* Use a custom MSAA resolving pixel shader. */
+   void *fs = NULL;
+   if (!util_format_is_depth_or_stencil(info->dst.resource->format) &&
+       !util_format_is_depth_or_stencil(info->src.resource->format) &&
+       !util_format_is_pure_integer(info->dst.format) &&
+       info->dst.resource->nr_samples <= 1 &&
+       info->src.resource->nr_samples >= 2 &&
+       !info->sample0_only &&
+       (info->filter == PIPE_TEX_FILTER_NEAREST ||
+        /* No scaling */
+        (info->dst.box.width == abs(info->src.box.width) &&
+         info->dst.box.height == abs(info->src.box.height)))) {
+      union ac_ps_resolve_key key;
+      key.key = 0;
+
+      /* LLVM is slower on GFX10.3 and older because it doesn't form VMEM clauses and it's more
+       * difficult to force them with optimization barriers when FMASK is used.
+       */
+      key.use_aco = true;
+      key.src_is_array = info->src.resource->target == PIPE_TEXTURE_1D_ARRAY ||
+                         info->src.resource->target == PIPE_TEXTURE_2D_ARRAY ||
+                         info->src.resource->target == PIPE_TEXTURE_CUBE ||
+                         info->src.resource->target == PIPE_TEXTURE_CUBE_ARRAY;
+      key.log_samples = util_logbase2(info->src.resource->nr_samples);
+      key.last_dst_channel = util_format_get_last_component(info->dst.format);
+      key.last_src_channel = util_format_get_last_component(info->src.format);
+      key.last_src_channel = MIN2(key.last_src_channel, key.last_dst_channel);
+      key.x_clamp_to_edge = si_should_blit_clamp_to_edge(info, BITFIELD_BIT(0));
+      key.y_clamp_to_edge = si_should_blit_clamp_to_edge(info, BITFIELD_BIT(1));
+      key.a16 = sctx->gfx_level >= GFX9 && util_is_box_sint16(&info->dst.box) &&
+                util_is_box_sint16(&info->src.box);
+      unsigned max_dst_chan_size = util_format_get_max_channel_size(info->dst.format);
+      unsigned max_src_chan_size = util_format_get_max_channel_size(info->src.format);
+
+      if (key.use_aco && util_format_is_float(info->dst.format) && max_dst_chan_size == 32) {
+         /* TODO: ACO doesn't meet precision expectations of this test when the destination format
+          * is R32G32B32A32_FLOAT, the source format is R8G8B8A8_UNORM, and the resolving math uses
+          * FP16. It's theoretically arguable whether FP16 is legal in this case. LLVM passes
+          * the test.
+          *
+          * piglit/bin/copyteximage CUBE -samples=2 -auto
+          */
+         key.d16 = 0;
+      } else {
+         /* Resolving has precision issues all the way down to R11G11B10_FLOAT. */
+         key.d16 = ((!key.use_aco && !sctx->screen->use_aco && sctx->gfx_level >= GFX8) ||
+                    /* ACO doesn't support D16 on GFX8 */
+                    ((key.use_aco || sctx->screen->use_aco) && sctx->gfx_level >= GFX9)) &&
+                   MIN2(max_dst_chan_size, max_src_chan_size) <= 10;
+      }
+
+      fs = _mesa_hash_table_u64_search(sctx->ps_resolve_shaders, key.key);
+      if (!fs) {
+         struct ac_ps_resolve_options options = {
+            .nir_options = sctx->b.screen->get_compiler_options(sctx->b.screen, PIPE_SHADER_IR_NIR,
+                                                                PIPE_SHADER_FRAGMENT),
+            .info = &sctx->screen->info,
+            .use_aco = sctx->screen->use_aco,
+            .no_fmask = sctx->screen->debug_flags & DBG(NO_FMASK),
+            .print_key = si_can_dump_shader(sctx->screen, MESA_SHADER_FRAGMENT, SI_DUMP_SHADER_KEY),
+         };
+
+         fs = si_create_shader_state(sctx, ac_create_resolve_ps(&options, &key));
+         _mesa_hash_table_u64_insert(sctx->ps_resolve_shaders, key.key, fs);
+      }
+   }
+
    si_blitter_begin(sctx, SI_BLIT | (info->render_condition_enable ? 0 : SI_DISABLE_RENDER_COND));
-   util_blitter_blit(sctx->blitter, info);
+   util_blitter_blit(sctx->blitter, info, fs);
    si_blitter_end(sctx);
 }
 

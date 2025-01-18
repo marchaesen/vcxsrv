@@ -44,7 +44,6 @@ dEQP-GLES2.functional.shaders.loops.for_constant_iterations.double_continue_frag
 dEQP-GLES2.functional.shaders.loops.for_constant_iterations.double_continue_vertex,Fail
 dEQP-GLES2.functional.shaders.loops.for_constant_iterations.mixed_break_continue_fragment,Fail
 dEQP-GLES2.functional.shaders.loops.for_constant_iterations.mixed_break_continue_vertex,Fail
-dEQP-GLES2.functional.shaders.random.all_features.fragment.5,Fail
 dEQP-GLES2.functional.shaders.random.all_features.fragment.6,Fail
 dEQP-GLES2.functional.shaders.random.all_features.fragment.93,Fail
 dEQP-GLES2.functional.shaders.random.all_features.fragment.97,Fail
@@ -476,3 +475,9 @@ KHR-GLES2.texture_3d.filtering.sizes.63x63x63_nearest,Fail
 KHR-GLES2.texture_3d.filtering.sizes.63x63x63_nearest_mipmap_linear,Fail
 KHR-GLES2.texture_3d.filtering.sizes.63x63x63_nearest_mipmap_nearest,Fail
 
+dEQP-GLES2.functional.texture.mipmap.2d.projected.nearest_nearest_mirror,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.nearest_nearest_repeat,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.nearest_nearest_clamp,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.linear_nearest_repeat,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.linear_nearest_mirror,Fail
+dEQP-GLES2.functional.texture.mipmap.2d.projected.linear_nearest_clamp,Fail

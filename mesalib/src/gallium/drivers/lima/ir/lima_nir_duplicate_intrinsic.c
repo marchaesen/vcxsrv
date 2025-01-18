@@ -119,8 +119,7 @@ lima_nir_duplicate_intrinsic_impl(nir_shader *shader, nir_function_impl *impl,
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
 }
 
 /* Duplicate load uniforms for every user.

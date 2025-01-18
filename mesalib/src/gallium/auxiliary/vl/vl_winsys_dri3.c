@@ -552,20 +552,6 @@ free_buffer:
    return NULL;
 }
 
-static xcb_screen_t *
-dri3_get_screen_for_root(xcb_connection_t *conn, xcb_window_t root)
-{
-   xcb_screen_iterator_t screen_iter =
-   xcb_setup_roots_iterator(xcb_get_setup(conn));
-
-   for (; screen_iter.rem; xcb_screen_next (&screen_iter)) {
-      if (screen_iter.data->root == root)
-         return screen_iter.data;
-   }
-
-   return NULL;
-}
-
 static void
 vl_dri3_flush_frontbuffer(struct pipe_screen *screen,
                           struct pipe_context *pipe,
@@ -828,7 +814,7 @@ vl_dri3_screen_create(Display *display, int screen)
    if (!geom_reply)
       goto close_fd;
 
-   scrn->base.xcb_screen = dri3_get_screen_for_root(scrn->conn, geom_reply->root);
+   scrn->base.xcb_screen = vl_dri_get_screen_for_root(scrn->conn, geom_reply->root);
    if (!scrn->base.xcb_screen) {
       free(geom_reply);
       goto close_fd;

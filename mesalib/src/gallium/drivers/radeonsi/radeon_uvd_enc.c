@@ -114,9 +114,9 @@ static void radeon_uvd_enc_get_param(struct radeon_uvd_encoder *enc,
    radeon_uvd_enc_get_vui_param(enc, pic);
 }
 
-static void flush(struct radeon_uvd_encoder *enc, unsigned flags)
+static int flush(struct radeon_uvd_encoder *enc, unsigned flags)
 {
-   enc->ws->cs_flush(&enc->cs, flags, NULL);
+   return enc->ws->cs_flush(&enc->cs, flags, NULL);
 }
 
 static void radeon_uvd_enc_flush(struct pipe_video_codec *encoder)
@@ -130,13 +130,13 @@ static void radeon_uvd_enc_cs_flush(void *ctx, unsigned flags, struct pipe_fence
    // just ignored
 }
 
-static unsigned get_cpb_num(struct radeon_uvd_encoder *enc)
+static unsigned get_cpb_num(struct radeon_uvd_encoder *enc, unsigned level_idc)
 {
    unsigned w = align(enc->base.width, 16) / 16;
    unsigned h = align(enc->base.height, 16) / 16;
    unsigned dpb;
 
-   switch (enc->base.level) {
+   switch (level_idc) {
    case UVD_HEVC_LEVEL_1:
       dpb = 36864;
       break;
@@ -185,13 +185,37 @@ static void radeon_uvd_enc_begin_frame(struct pipe_video_codec *encoder,
 {
    struct radeon_uvd_encoder *enc = (struct radeon_uvd_encoder *)encoder;
    struct vl_video_buffer *vid_buf = (struct vl_video_buffer *)source;
+   struct pipe_h265_enc_picture_desc *pic = (struct pipe_h265_enc_picture_desc *)picture;
 
-   radeon_uvd_enc_get_param(enc, (struct pipe_h265_enc_picture_desc *)picture);
+   radeon_uvd_enc_get_param(enc, pic);
 
    enc->get_buffer(vid_buf->resources[0], &enc->handle, &enc->luma);
    enc->get_buffer(vid_buf->resources[1], NULL, &enc->chroma);
 
    enc->need_feedback = false;
+
+   if (!enc->cpb_num) {
+      struct si_screen *sscreen = (struct si_screen *)encoder->context->screen;
+      unsigned cpb_size;
+
+      enc->cpb_num = get_cpb_num(enc, pic->seq.general_level_idc);
+      if (!enc->cpb_num)
+         return;
+
+      cpb_size = (sscreen->info.gfx_level < GFX9)
+                    ? align(enc->luma->u.legacy.level[0].nblk_x * enc->luma->bpe, 128) *
+                         align(enc->luma->u.legacy.level[0].nblk_y, 32)
+                    : align(enc->luma->u.gfx9.surf_pitch * enc->luma->bpe, 256) *
+                         align(enc->luma->u.gfx9.surf_height, 32);
+
+      cpb_size = cpb_size * 3 / 2;
+      cpb_size = cpb_size * enc->cpb_num;
+
+      if (!si_vid_create_buffer(enc->screen, &enc->cpb, cpb_size, PIPE_USAGE_DEFAULT)) {
+         RVID_ERR("Can't create CPB buffer.\n");
+         return;
+      }
+   }
 
    if (!enc->stream_handle) {
       struct rvid_buffer fb;
@@ -225,12 +249,12 @@ static void radeon_uvd_enc_encode_bitstream(struct pipe_video_codec *encoder,
    enc->encode(enc);
 }
 
-static void radeon_uvd_enc_end_frame(struct pipe_video_codec *encoder,
+static int radeon_uvd_enc_end_frame(struct pipe_video_codec *encoder,
                                      struct pipe_video_buffer *source,
                                      struct pipe_picture_desc *picture)
 {
    struct radeon_uvd_encoder *enc = (struct radeon_uvd_encoder *)encoder;
-   flush(enc, picture->flush_flags);
+   return flush(enc, picture->flush_flags);
 }
 
 static void radeon_uvd_enc_destroy(struct pipe_video_codec *encoder)
@@ -293,9 +317,6 @@ struct pipe_video_codec *radeon_uvd_create_encoder(struct pipe_context *context,
    struct si_screen *sscreen = (struct si_screen *)context->screen;
    struct si_context *sctx = (struct si_context *)context;
    struct radeon_uvd_encoder *enc;
-   struct pipe_video_buffer *tmp_buf, templat = {};
-   struct radeon_surf *tmp_surf;
-   unsigned cpb_size;
 
    if (!si_radeon_uvd_enc_supported(sscreen)) {
       RVID_ERR("Unsupported UVD ENC fw version loaded!\n");
@@ -326,46 +347,12 @@ struct pipe_video_codec *radeon_uvd_create_encoder(struct pipe_context *context,
       goto error;
    }
 
-   templat.buffer_format = PIPE_FORMAT_NV12;
-   templat.width = enc->base.width;
-   templat.height = enc->base.height;
-   templat.interlaced = false;
-
-   if (!(tmp_buf = context->create_video_buffer(context, &templat))) {
-      RVID_ERR("Can't create video buffer.\n");
-      goto error;
-   }
-
-   enc->cpb_num = get_cpb_num(enc);
-
-   if (!enc->cpb_num)
-      goto error;
-
-   get_buffer(((struct vl_video_buffer *)tmp_buf)->resources[0], NULL, &tmp_surf);
-
-   cpb_size = (sscreen->info.gfx_level < GFX9)
-                 ? align(tmp_surf->u.legacy.level[0].nblk_x * tmp_surf->bpe, 128) *
-                      align(tmp_surf->u.legacy.level[0].nblk_y, 32)
-                 : align(tmp_surf->u.gfx9.surf_pitch * tmp_surf->bpe, 256) *
-                      align(tmp_surf->u.gfx9.surf_height, 32);
-
-   cpb_size = cpb_size * 3 / 2;
-   cpb_size = cpb_size * enc->cpb_num;
-   tmp_buf->destroy(tmp_buf);
-
-   if (!si_vid_create_buffer(enc->screen, &enc->cpb, cpb_size, PIPE_USAGE_DEFAULT)) {
-      RVID_ERR("Can't create CPB buffer.\n");
-      goto error;
-   }
-
    radeon_uvd_enc_1_1_init(enc);
 
    return &enc->base;
 
 error:
    enc->ws->cs_destroy(&enc->cs);
-
-   si_vid_destroy_buffer(&enc->cpb);
 
    FREE(enc);
    return NULL;

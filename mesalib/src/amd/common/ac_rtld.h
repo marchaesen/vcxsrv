@@ -35,6 +35,8 @@ struct ac_rtld_options {
    /* Loader will insert an s_sethalt 1 instruction as the
     * first instruction. */
    bool halt_at_entry : 1;
+
+   bool waitcnt_wa : 1;
 };
 
 /* Lightweight wrapper around underlying ELF objects. */

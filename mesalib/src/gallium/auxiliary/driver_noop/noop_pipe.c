@@ -659,6 +659,30 @@ static unsigned int noop_get_dmabuf_modifier_planes(struct pipe_screen *screen,
    return oscreen->get_dmabuf_modifier_planes(oscreen, modifier, format);
 }
 
+static void noop_query_compression_rates(struct pipe_screen *screen,
+                                         enum pipe_format format, int max,
+                                         uint32_t *rates, int *count)
+{
+   struct noop_pipe_screen *noop_screen = (struct noop_pipe_screen*)screen;
+   struct pipe_screen *oscreen = noop_screen->oscreen;
+
+   *count = 0;
+   if (oscreen->query_compression_rates)
+      oscreen->query_compression_rates(oscreen, format, max, rates, count);
+}
+
+static void noop_query_compression_modifiers(struct pipe_screen *screen,
+                                             enum pipe_format fmt, uint32_t rate,
+                                             int max, uint64_t *mods, int *count)
+{
+   struct noop_pipe_screen *noop_screen = (struct noop_pipe_screen*)screen;
+   struct pipe_screen *oscreen = noop_screen->oscreen;
+
+   *count = 0;
+   if (oscreen->query_compression_modifiers)
+      oscreen->query_compression_modifiers(oscreen, fmt, rate, max, mods, count);
+}
+
 static void noop_get_driver_uuid(struct pipe_screen *screen, char *uuid)
 {
    struct noop_pipe_screen *noop_screen = (struct noop_pipe_screen*)screen;
@@ -752,6 +776,15 @@ static void noop_set_fence_timeline_value(struct pipe_screen *screen,
    oscreen->set_fence_timeline_value(oscreen, fence, value);
 }
 
+static struct pipe_screen * noop_get_driver_pipe_screen(struct pipe_screen *_screen)
+{
+   struct pipe_screen * screen = ((struct noop_pipe_screen*)_screen)->oscreen;
+
+   if (screen->get_driver_pipe_screen)
+      return screen->get_driver_pipe_screen(screen);
+   return screen;
+}
+
 struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
 {
    struct noop_pipe_screen *noop_screen;
@@ -811,6 +844,9 @@ struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
       screen->get_sparse_texture_virtual_page_size = noop_get_sparse_texture_virtual_page_size;
    if (oscreen->set_fence_timeline_value)
       screen->set_fence_timeline_value = noop_set_fence_timeline_value;
+   screen->query_compression_rates = noop_query_compression_rates;
+   screen->query_compression_modifiers = noop_query_compression_modifiers;
+   screen->get_driver_pipe_screen = noop_get_driver_pipe_screen;
 
    slab_create_parent(&noop_screen->pool_transfers,
                       sizeof(struct pipe_transfer), 64);

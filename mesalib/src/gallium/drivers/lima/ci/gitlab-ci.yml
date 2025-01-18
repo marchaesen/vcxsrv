@@ -18,6 +18,7 @@
     FDO_CI_CONCURRENT: 4
     GPU_VERSION: lima
     RUNNER_TAG: mesa-ci-x86-64-lava-lima
+    FDO_HTTP_CACHE_URI: "http://caching-proxy/cache/?uri="
 
 lima-mali450-deqp:arm64:
   extends:
@@ -25,7 +26,6 @@ lima-mali450-deqp:arm64:
     - .lima-rules
     - .lava-meson-gxl-s805x-libretech-ac:arm64
   variables:
-    FDO_HTTP_CACHE_URI: ''
     HWCI_START_WESTON: 1
     DEQP_SUITE: lima-mali450-deqp
     VISIBILITY_GROUP: "mesa-ci"
@@ -37,7 +37,6 @@ lima-mali450-piglit:arm64:
     - .lava-meson-gxl-s805x-libretech-ac:arm64
   variables:
     DEQP_SUITE: lima-mali450-piglit
-    FDO_HTTP_CACHE_URI: ''
     PIGLIT_PLATFORM: gbm
     VISIBILITY_GROUP: "mesa-ci"
   parallel: 2

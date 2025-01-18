@@ -31,9 +31,7 @@ from The Open Group.
  * Author:  Keith Packard, MIT X Consortium
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include   <X11/X.h>
 #include   <X11/Xauth.h>
@@ -50,7 +48,6 @@ from The Open Group.
 
 #include "os/auth.h"
 
-#include "rpcauth.h"
 #include "xdmcp.h"
 #include "xdmauth.h"
 #include "mitauth.h"
@@ -80,15 +77,6 @@ static struct protocol protocols[] = {
     {(unsigned short) 19, "XDM-AUTHORIZATION-1",
      XdmAddCookie, XdmCheckCookie, XdmResetCookie,
      XdmFromID, XdmRemoveCookie,
-#ifdef XCSECURITY
-     NULL
-#endif
-     },
-#endif
-#ifdef SECURE_RPC
-    {(unsigned short) 9, "SUN-DES-1",
-     SecureRPCAdd, SecureRPCCheck, SecureRPCReset,
-     SecureRPCFromID, SecureRPCRemove,
 #ifdef XCSECURITY
      NULL
 #endif

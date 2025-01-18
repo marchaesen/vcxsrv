@@ -62,6 +62,107 @@ lower_subgroup_op_to_32bit(nir_builder *b, nir_intrinsic_instr *intrin)
    return nir_pack_64_2x32_split(b, &intr_x->def, &intr_y->def);
 }
 
+/* Return a mask which is 1 for threads up to the run-time subgroup size, i.e.
+ * 1 for the entire subgroup. SPIR-V requires us to return 0 for indices at or
+ * above the subgroup size for the masks, but gt_mask and ge_mask make them 1
+ * so we have to "and" with this mask.
+ */
+static nir_def *
+build_subgroup_mask(nir_builder *b,
+                    const nir_lower_subgroups_options *options)
+{
+   nir_def *subgroup_size = nir_load_subgroup_size(b);
+
+   /* First compute the result assuming one ballot component. */
+   nir_def *result =
+      nir_ushr(b, nir_imm_intN_t(b, ~0ull, options->ballot_bit_size),
+               nir_isub_imm(b, options->ballot_bit_size,
+                            subgroup_size));
+
+   /* Since the subgroup size and ballot bitsize are both powers of two, there
+    * are two possible cases to consider:
+    *
+    * (1) The subgroup size is less than the ballot bitsize. We need to return
+    * "result" in the first component and 0 in every other component.
+    * (2) The subgroup size is a multiple of the ballot bitsize. We need to
+    * return ~0 if the subgroup size divided by the ballot bitsize is less
+    * than or equal to the index in the vector and 0 otherwise. For example,
+    * with a target ballot type of 4 x uint32 and subgroup_size = 64 we'd need
+    * to return { ~0, ~0, 0, 0 }.
+    *
+    * In case (2) it turns out that "result" will be ~0, because
+    * "ballot_bit_size - subgroup_size" is also a multiple of
+    * "ballot_bit_size" and since nir_ushr masks the shift value it will
+    * shifted by 0. This means that the first component can just be "result"
+    * in all cases.  The other components will also get the correct value in
+    * case (1) if we just use the rule in case (2), so we'll get the correct
+    * result if we just follow (2) and then replace the first component with
+    * "result".
+    */
+   nir_const_value min_idx[4];
+   for (unsigned i = 0; i < options->ballot_components; i++)
+      min_idx[i] = nir_const_value_for_int(i * options->ballot_bit_size, 32);
+   nir_def *min_idx_val = nir_build_imm(b, options->ballot_components, 32, min_idx);
+
+   nir_def *result_extended =
+      nir_pad_vector_imm_int(b, result, ~0ull, options->ballot_components);
+
+   return nir_bcsel(b, nir_ult(b, min_idx_val, subgroup_size),
+                    result_extended, nir_imm_intN_t(b, 0, options->ballot_bit_size));
+}
+
+/* Return a ballot-mask-sized value which represents "val" sign-extended and
+ * then shifted left by "shift". Only particular values for "val" are
+ * supported, see below.
+ *
+ * This function assumes that `val << shift` will never span a ballot_bit_size
+ * word and that the high bit of val can be extended across the entire result.
+ * This is trivially satisfied for 0, 1, ~0, and ~1.  However, it may also be
+ * fine for other values if the shift is guaranteed to be sufficiently
+ * aligned.  One example is 0xf when the shift is known to be a multiple of 4.
+ */
+static nir_def *
+build_ballot_imm_ishl(nir_builder *b, int64_t val, nir_def *shift,
+                      const nir_lower_subgroups_options *options)
+{
+   /* First compute the result assuming one ballot component. */
+   nir_def *result =
+      nir_ishl(b, nir_imm_intN_t(b, val, options->ballot_bit_size), shift);
+
+   if (options->ballot_components == 1)
+      return result;
+
+   /* Fix up the result when there is > 1 component. The idea is that nir_ishl
+    * masks out the high bits of the shift value already, so in case there's
+    * more than one component the component which 1 would be shifted into
+    * already has the right value and all we have to do is fixup the other
+    * components. Components below it should always be 0, and components above
+    * it must be either 0 or ~0 because of the assert above. For example, if
+    * the target ballot size is 2 x uint32, and we're shifting 1 by 33, then
+    * we'll feed 33 into ishl, which will mask it off to get 1, so we'll
+    * compute a single-component result of 2, which is correct for the second
+    * component, but the first component needs to be 0, which we get by
+    * comparing the high bits of the shift with 0 and selecting the original
+    * answer or 0 for the first component (and something similar with the
+    * second component). This idea is generalized here for any component count
+    */
+   nir_const_value min_shift[4];
+   for (unsigned i = 0; i < options->ballot_components; i++)
+      min_shift[i] = nir_const_value_for_int(i * options->ballot_bit_size, 32);
+   nir_def *min_shift_val = nir_build_imm(b, options->ballot_components, 32, min_shift);
+
+   nir_const_value max_shift[4];
+   for (unsigned i = 0; i < options->ballot_components; i++)
+      max_shift[i] = nir_const_value_for_int((i + 1) * options->ballot_bit_size, 32);
+   nir_def *max_shift_val = nir_build_imm(b, options->ballot_components, 32, max_shift);
+
+   return nir_bcsel(b, nir_ult(b, shift, max_shift_val),
+                    nir_bcsel(b, nir_ult(b, shift, min_shift_val),
+                              nir_imm_intN_t(b, val >> 63, result->bit_size),
+                              result),
+                    nir_imm_intN_t(b, 0, result->bit_size));
+}
+
 static nir_def *
 ballot_type_to_uint(nir_builder *b, nir_def *value,
                     const nir_lower_subgroups_options *options)
@@ -641,9 +742,10 @@ build_scan_full(nir_builder *b, nir_intrinsic_op op, nir_op red_op,
 static nir_def *
 build_scan_reduce(nir_builder *b, nir_intrinsic_op op, nir_op red_op,
                   nir_def *data, nir_def *mask, unsigned max_mask_bits,
-                  unsigned subgroup_size)
+                  const nir_lower_subgroups_options *options)
 {
-   nir_def *lt_mask = nir_load_subgroup_lt_mask(b, 1, subgroup_size);
+   nir_def *lt_mask = nir_load_subgroup_lt_mask(b, options->ballot_components,
+                                                options->ballot_bit_size);
 
    /* Mask of all channels whose values we need to accumulate.  Our own value
     * is already in accum, if inclusive, thanks to the initialization above.
@@ -655,8 +757,8 @@ build_scan_reduce(nir_builder *b, nir_intrinsic_op op, nir_op red_op,
       /* At each step, our buddy channel is the first channel we have yet to
        * take into account in the accumulator.
        */
-      nir_def *has_buddy = nir_ine_imm(b, remaining, 0);
-      nir_def *buddy = nir_ufind_msb(b, remaining);
+      nir_def *has_buddy = nir_bany_inequal(b, remaining, nir_imm_int(b, 0));
+      nir_def *buddy = nir_ballot_find_msb(b, 32, remaining);
 
       /* Accumulate with our buddy channel, if any */
       nir_def *buddy_data = nir_shuffle(b, data, buddy);
@@ -680,8 +782,8 @@ build_scan_reduce(nir_builder *b, nir_intrinsic_op op, nir_op red_op,
        * code is cleaner this way.
        */
       nir_def *lower = nir_iand(b, mask, lt_mask);
-      nir_def *has_buddy = nir_ine_imm(b, lower, 0);
-      nir_def *buddy = nir_ufind_msb(b, lower);
+      nir_def *has_buddy = nir_bany_inequal(b, lower, nir_imm_int(b, 0));
+      nir_def *buddy = nir_ballot_find_msb(b, 32, lower);
 
       nir_def *buddy_data = nir_shuffle(b, data, buddy);
       nir_def *identity = build_identity(b, data->bit_size, red_op);
@@ -693,7 +795,7 @@ build_scan_reduce(nir_builder *b, nir_intrinsic_op op, nir_op red_op,
 
    case nir_intrinsic_reduce: {
       /* For reductions, we need to take the top value of the scan */
-      nir_def *idx = nir_ufind_msb(b, mask);
+      nir_def *idx = nir_ballot_find_msb(b, 32, mask);
       return nir_shuffle(b, data, idx);
    }
 
@@ -703,10 +805,47 @@ build_scan_reduce(nir_builder *b, nir_intrinsic_op op, nir_op red_op,
 }
 
 static nir_def *
+build_cluster_mask(nir_builder *b, unsigned cluster_size,
+                   const nir_lower_subgroups_options *options)
+{
+   nir_def *idx = nir_load_subgroup_invocation(b);
+   nir_def *cluster = nir_iand_imm(b, idx, ~(uint64_t)(cluster_size - 1));
+
+   if (cluster_size <= options->ballot_bit_size) {
+      return build_ballot_imm_ishl(b, BITFIELD_MASK(cluster_size), cluster,
+                                   options);
+   }
+
+   /* Since the cluster size and the ballot bit size are both powers of 2,
+    * cluster size will be a multiple of the ballot bit size. Therefore, each
+    * ballot component will be either all ones or all zeros. Build a vec for
+    * which each component holds the value of `cluster` for which the mask
+    * should be all ones.
+    */
+   nir_const_value cluster_sel_const[4];
+   assert(ARRAY_SIZE(cluster_sel_const) >= options->ballot_components);
+
+   for (unsigned i = 0; i < options->ballot_components; i++) {
+      unsigned cluster_val =
+         ROUND_DOWN_TO(i * options->ballot_bit_size, cluster_size);
+      cluster_sel_const[i] =
+         nir_const_value_for_uint(cluster_val, options->ballot_bit_size);
+   }
+
+   nir_def *cluster_sel =
+      nir_build_imm(b, options->ballot_components, options->ballot_bit_size,
+                    cluster_sel_const);
+   nir_def *ones = nir_imm_intN_t(b, -1, options->ballot_bit_size);
+   nir_def *zeros = nir_imm_intN_t(b, 0, options->ballot_bit_size);
+   return nir_bcsel(b, nir_ieq(b, cluster, cluster_sel), ones, zeros);
+}
+
+static nir_def *
 lower_scan_reduce(nir_builder *b, nir_intrinsic_instr *intrin,
-                  unsigned subgroup_size)
+                  const nir_lower_subgroups_options *options)
 {
    const nir_op red_op = nir_intrinsic_reduction_op(intrin);
+   unsigned subgroup_size = options->subgroup_size;
 
    /* Grab the cluster size */
    unsigned cluster_size = subgroup_size;
@@ -717,10 +856,11 @@ lower_scan_reduce(nir_builder *b, nir_intrinsic_instr *intrin,
    }
 
    /* Check if all invocations are active. If so, we use the fast path. */
-   nir_def *mask = nir_ballot(b, 1, subgroup_size, nir_imm_true(b));
+   nir_def *mask = nir_ballot(b, options->ballot_components,
+                              options->ballot_bit_size, nir_imm_true(b));
 
    nir_def *full, *partial;
-   nir_push_if(b, nir_ieq_imm(b, mask, -1));
+   nir_push_if(b, nir_ball_iequal(b, mask, build_subgroup_mask(b, options)));
    {
       full = build_scan_full(b, intrin->intrinsic, red_op,
                              intrin->src[0].ssa, cluster_size);
@@ -729,18 +869,13 @@ lower_scan_reduce(nir_builder *b, nir_intrinsic_instr *intrin,
    {
       /* Mask according to the cluster size */
       if (cluster_size < subgroup_size) {
-         nir_def *idx = nir_load_subgroup_invocation(b);
-         nir_def *cluster = nir_iand_imm(b, idx, ~(uint64_t)(cluster_size - 1));
-
-         nir_def *cluster_mask = nir_imm_int(b, BITFIELD_MASK(cluster_size));
-         cluster_mask = nir_ishl(b, cluster_mask, cluster);
-
+         nir_def *cluster_mask = build_cluster_mask(b, cluster_size, options);
          mask = nir_iand(b, mask, cluster_mask);
       }
 
       partial = build_scan_reduce(b, intrin->intrinsic, red_op,
                                   intrin->src[0].ssa, mask, cluster_size,
-                                  subgroup_size);
+                                  options);
    }
    nir_pop_if(b, NULL);
    return nir_if_phi(b, full, partial);
@@ -750,55 +885,6 @@ static bool
 lower_subgroups_filter(const nir_instr *instr, const void *_options)
 {
    return instr->type == nir_instr_type_intrinsic;
-}
-
-/* Return a ballot-mask-sized value which represents "val" sign-extended and
- * then shifted left by "shift". Only particular values for "val" are
- * supported, see below.
- */
-static nir_def *
-build_ballot_imm_ishl(nir_builder *b, int64_t val, nir_def *shift,
-                      const nir_lower_subgroups_options *options)
-{
-   /* This only works if all the high bits are the same as bit 1. */
-   assert((val >> 2) == (val & 0x2 ? -1 : 0));
-
-   /* First compute the result assuming one ballot component. */
-   nir_def *result =
-      nir_ishl(b, nir_imm_intN_t(b, val, options->ballot_bit_size), shift);
-
-   if (options->ballot_components == 1)
-      return result;
-
-   /* Fix up the result when there is > 1 component. The idea is that nir_ishl
-    * masks out the high bits of the shift value already, so in case there's
-    * more than one component the component which 1 would be shifted into
-    * already has the right value and all we have to do is fixup the other
-    * components. Components below it should always be 0, and components above
-    * it must be either 0 or ~0 because of the assert above. For example, if
-    * the target ballot size is 2 x uint32, and we're shifting 1 by 33, then
-    * we'll feed 33 into ishl, which will mask it off to get 1, so we'll
-    * compute a single-component result of 2, which is correct for the second
-    * component, but the first component needs to be 0, which we get by
-    * comparing the high bits of the shift with 0 and selecting the original
-    * answer or 0 for the first component (and something similar with the
-    * second component). This idea is generalized here for any component count
-    */
-   nir_const_value min_shift[4];
-   for (unsigned i = 0; i < options->ballot_components; i++)
-      min_shift[i] = nir_const_value_for_int(i * options->ballot_bit_size, 32);
-   nir_def *min_shift_val = nir_build_imm(b, options->ballot_components, 32, min_shift);
-
-   nir_const_value max_shift[4];
-   for (unsigned i = 0; i < options->ballot_components; i++)
-      max_shift[i] = nir_const_value_for_int((i + 1) * options->ballot_bit_size, 32);
-   nir_def *max_shift_val = nir_build_imm(b, options->ballot_components, 32, max_shift);
-
-   return nir_bcsel(b, nir_ult(b, shift, max_shift_val),
-                    nir_bcsel(b, nir_ult(b, shift, min_shift_val),
-                              nir_imm_intN_t(b, val >> 63, result->bit_size),
-                              result),
-                    nir_imm_intN_t(b, 0, result->bit_size));
 }
 
 static nir_def *
@@ -828,53 +914,26 @@ build_subgroup_gt_mask(nir_builder *b,
    return build_ballot_imm_ishl(b, ~1ull, subgroup_idx, options);
 }
 
-/* Return a mask which is 1 for threads up to the run-time subgroup size, i.e.
- * 1 for the entire subgroup. SPIR-V requires us to return 0 for indices at or
- * above the subgroup size for the masks, but gt_mask and ge_mask make them 1
- * so we have to "and" with this mask.
- */
 static nir_def *
-build_subgroup_mask(nir_builder *b,
+build_subgroup_quad_mask(nir_builder *b,
+                         const nir_lower_subgroups_options *options)
+{
+   nir_def *subgroup_idx = nir_load_subgroup_invocation(b);
+   nir_def *quad_first_idx = nir_iand_imm(b, subgroup_idx, ~0x3);
+
+   return build_ballot_imm_ishl(b, 0xf, quad_first_idx, options);
+}
+
+static nir_def *
+build_quad_vote_any(nir_builder *b, nir_def *src,
                     const nir_lower_subgroups_options *options)
 {
-   nir_def *subgroup_size = nir_load_subgroup_size(b);
+   nir_def *ballot = nir_ballot(b, options->ballot_components,
+                                   options->ballot_bit_size,
+                                   src);
+   nir_def *mask = build_subgroup_quad_mask(b, options);
 
-   /* First compute the result assuming one ballot component. */
-   nir_def *result =
-      nir_ushr(b, nir_imm_intN_t(b, ~0ull, options->ballot_bit_size),
-               nir_isub_imm(b, options->ballot_bit_size,
-                            subgroup_size));
-
-   /* Since the subgroup size and ballot bitsize are both powers of two, there
-    * are two possible cases to consider:
-    *
-    * (1) The subgroup size is less than the ballot bitsize. We need to return
-    * "result" in the first component and 0 in every other component.
-    * (2) The subgroup size is a multiple of the ballot bitsize. We need to
-    * return ~0 if the subgroup size divided by the ballot bitsize is less
-    * than or equal to the index in the vector and 0 otherwise. For example,
-    * with a target ballot type of 4 x uint32 and subgroup_size = 64 we'd need
-    * to return { ~0, ~0, 0, 0 }.
-    *
-    * In case (2) it turns out that "result" will be ~0, because
-    * "ballot_bit_size - subgroup_size" is also a multiple of
-    * "ballot_bit_size" and since nir_ushr masks the shift value it will
-    * shifted by 0. This means that the first component can just be "result"
-    * in all cases.  The other components will also get the correct value in
-    * case (1) if we just use the rule in case (2), so we'll get the correct
-    * result if we just follow (2) and then replace the first component with
-    * "result".
-    */
-   nir_const_value min_idx[4];
-   for (unsigned i = 0; i < options->ballot_components; i++)
-      min_idx[i] = nir_const_value_for_int(i * options->ballot_bit_size, 32);
-   nir_def *min_idx_val = nir_build_imm(b, options->ballot_components, 32, min_idx);
-
-   nir_def *result_extended =
-      nir_pad_vector_imm_int(b, result, ~0ull, options->ballot_components);
-
-   return nir_bcsel(b, nir_ult(b, min_idx_val, subgroup_size),
-                    result_extended, nir_imm_intN_t(b, 0, options->ballot_bit_size));
+   return nir_ine_imm(b, nir_iand(b, ballot, mask), 0);
 }
 
 static nir_def *
@@ -1203,6 +1262,18 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
          return lower_subgroup_op_to_scalar(b, intrin);
       break;
 
+   case nir_intrinsic_quad_vote_any:
+      if (options->lower_quad_vote)
+         return build_quad_vote_any(b, intrin->src[0].ssa, options);
+      break;
+   case nir_intrinsic_quad_vote_all:
+      if (options->lower_quad_vote) {
+         nir_def *not_src = nir_inot(b, intrin->src[0].ssa);
+         nir_def *any_not = build_quad_vote_any(b, not_src, options);
+         return nir_inot(b, any_not);
+      }
+      break;
+
    case nir_intrinsic_reduce: {
       nir_def *ret = NULL;
       /* A cluster size greater than the subgroup size is implemention defined */
@@ -1219,7 +1290,7 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
           (options->lower_boolean_reduce || options->lower_reduce))
          return lower_boolean_reduce(b, intrin, options);
       if (options->lower_reduce)
-         return lower_scan_reduce(b, intrin, options->subgroup_size);
+         return lower_scan_reduce(b, intrin, options);
       return ret;
    }
    case nir_intrinsic_inclusive_scan:
@@ -1230,7 +1301,7 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
           (options->lower_boolean_reduce || options->lower_reduce))
          return lower_boolean_reduce(b, intrin, options);
       if (options->lower_reduce)
-         return lower_scan_reduce(b, intrin, options->subgroup_size);
+         return lower_scan_reduce(b, intrin, options);
       break;
 
    case nir_intrinsic_rotate:

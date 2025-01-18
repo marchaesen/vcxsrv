@@ -1,0 +1,8 @@
+[binaries]
+c = ['gcc', '-DCI_HAS_ALL_MIPS_CPU_FEATURES']
+ar = 'ar'
+strip = 'strip'
+pkg-config = 'pkg-config'
+
+[project options]
+openmp = 'disabled'

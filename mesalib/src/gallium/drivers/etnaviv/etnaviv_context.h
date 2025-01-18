@@ -99,8 +99,7 @@ enum etna_uniform_contents {
    ETNA_UNIFORM_TEXTURE_WIDTH,
    ETNA_UNIFORM_TEXTURE_HEIGHT,
    ETNA_UNIFORM_TEXTURE_DEPTH,
-   ETNA_UNIFORM_UBO0_ADDR,
-   ETNA_UNIFORM_UBOMAX_ADDR = ETNA_UNIFORM_UBO0_ADDR + ETNA_MAX_CONST_BUF - 1,
+   ETNA_UNIFORM_UBO_ADDR,
 };
 
 struct etna_shader_uniform_info {
@@ -144,6 +143,7 @@ struct etna_context {
       ETNA_DIRTY_TEXTURE_CACHES  = (1 << 18),
       ETNA_DIRTY_DERIVE_TS       = (1 << 19),
       ETNA_DIRTY_SCISSOR_CLIP    = (1 << 20),
+      ETNA_DIRTY_SHADER_CACHES   = (1 << 21),
    } dirty;
 
    struct slab_child_pool transfer_pool;

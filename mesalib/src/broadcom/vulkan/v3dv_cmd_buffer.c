@@ -1439,7 +1439,7 @@ cmd_buffer_emit_subpass_clears(struct v3dv_cmd_buffer *cmd_buffer)
     */
    if (cmd_buffer->state.tile_aligned_render_area &&
        !subpass->do_depth_clear_with_draw &&
-       !subpass->do_depth_clear_with_draw) {
+       !subpass->do_stencil_clear_with_draw) {
       return;
    }
 
@@ -2544,8 +2544,10 @@ v3dv_cmd_buffer_meta_state_push(struct v3dv_cmd_buffer *cmd_buffer,
       state->meta.attachment_alloc_count = state->attachment_alloc_count;
    }
    state->meta.attachment_count = state->attachment_alloc_count;
-   memcpy(state->meta.attachments, state->attachments,
-          attachment_state_total_size);
+   if (state->meta.attachments) {
+      memcpy(state->meta.attachments, state->attachments,
+             attachment_state_total_size);
+   }
 
    if (state->subpass_idx != -1) {
       state->meta.subpass_idx = state->subpass_idx;
@@ -2599,8 +2601,10 @@ v3dv_cmd_buffer_meta_state_pop(struct v3dv_cmd_buffer *cmd_buffer,
       sizeof(struct v3dv_cmd_buffer_attachment_state);
    const uint32_t attachment_state_total_size =
       attachment_state_item_size * state->meta.attachment_count;
-   memcpy(state->attachments, state->meta.attachments,
-          attachment_state_total_size);
+   if (attachment_state_total_size > 0) {
+      memcpy(state->attachments, state->meta.attachments,
+             attachment_state_total_size);
+   }
 
    if (state->meta.subpass_idx != -1) {
       state->pass = v3dv_render_pass_from_handle(state->meta.pass);
@@ -3056,6 +3060,11 @@ v3dv_cmd_buffer_emit_pre_draw(struct v3dv_cmd_buffer *cmd_buffer,
    if (BITSET_TEST(dyn->dirty, MESA_VK_DYNAMIC_RS_LINE_WIDTH))
       v3dv_X(device, cmd_buffer_emit_line_width)(cmd_buffer);
 
+   if (dyn->ia.primitive_topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST &&
+       !job->emitted_default_point_size) {
+      v3dv_X(device, cmd_buffer_emit_default_point_size)(cmd_buffer);
+   }
+
    if (*dirty & V3DV_CMD_DIRTY_PIPELINE)
       v3dv_X(device, cmd_buffer_emit_sample_state)(cmd_buffer);
 
@@ -3460,14 +3469,29 @@ v3dv_CmdBindVertexBuffers2(VkCommandBuffer commandBuffer,
       if (BITSET_TEST(dyn->dirty, MESA_VK_DYNAMIC_VI_BINDING_STRIDES))
          vb_state_changed = true;
    }
-   /* FIXME: at this moment we don't do any thing with pSizes. */
+
    for (uint32_t i = 0; i < bindingCount; i++) {
-      if (vb[firstBinding + i].buffer != v3dv_buffer_from_handle(pBuffers[i])) {
+      struct v3dv_buffer *buffer = v3dv_buffer_from_handle(pBuffers[i]);
+      if (vb[firstBinding + i].buffer != buffer) {
          vb[firstBinding + i].buffer = v3dv_buffer_from_handle(pBuffers[i]);
          vb_state_changed = true;
       }
+
       if (vb[firstBinding + i].offset != pOffsets[i]) {
          vb[firstBinding + i].offset = pOffsets[i];
+         vb_state_changed = true;
+      }
+      assert(pOffsets[i] <= buffer->size);
+
+      VkDeviceSize size;
+      if (!pSizes || pSizes[i] == VK_WHOLE_SIZE)
+         size = buffer->size - pOffsets[i];
+      else
+         size = pSizes[i];
+      assert(pOffsets[i] + size <= buffer->size);
+
+      if (vb[firstBinding + i].size != size) {
+         vb[firstBinding + i].size = size;
          vb_state_changed = true;
       }
    }
@@ -3477,22 +3501,32 @@ v3dv_CmdBindVertexBuffers2(VkCommandBuffer commandBuffer,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-v3dv_CmdBindIndexBuffer(VkCommandBuffer commandBuffer,
-                        VkBuffer buffer,
-                        VkDeviceSize offset,
-                        VkIndexType indexType)
+v3dv_CmdBindIndexBuffer2KHR(VkCommandBuffer commandBuffer,
+                            VkBuffer buffer,
+                            VkDeviceSize offset,
+                            VkDeviceSize size,
+                            VkIndexType indexType)
 {
    V3DV_FROM_HANDLE(v3dv_cmd_buffer, cmd_buffer, commandBuffer);
+
+   assert(buffer != VK_NULL_HANDLE);
+
+   if (size == VK_WHOLE_SIZE) {
+      assert(v3dv_buffer_from_handle(buffer)->size >= offset);
+      size = v3dv_buffer_from_handle(buffer)->size - offset;
+   }
 
    const uint32_t index_size = vk_index_type_to_bytes(indexType);
    if (buffer == cmd_buffer->state.index_buffer.buffer &&
        offset == cmd_buffer->state.index_buffer.offset &&
+       size == cmd_buffer->state.index_buffer.size &&
        index_size == cmd_buffer->state.index_buffer.index_size) {
       return;
    }
 
    cmd_buffer->state.index_buffer.buffer = buffer;
    cmd_buffer->state.index_buffer.offset = offset;
+   cmd_buffer->state.index_buffer.size = size;
    cmd_buffer->state.index_buffer.index_size = index_size;
    cmd_buffer->state.dirty |= V3DV_CMD_DIRTY_INDEX_BUFFER;
 }
@@ -3915,7 +3949,8 @@ v3dv_cmd_buffer_ensure_array_state(struct v3dv_cmd_buffer *cmd_buffer,
          return;
       }
 
-      memcpy(*ptr, old_buffer, prev_slot_count * slot_size);
+      if (old_buffer)
+         memcpy(*ptr, old_buffer, prev_slot_count * slot_size);
       *alloc_count = new_slot_count;
    }
    assert(used_count < *alloc_count);

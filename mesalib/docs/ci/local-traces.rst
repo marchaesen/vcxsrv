@@ -32,7 +32,7 @@ Simulating CI trace job
 
 Sometimes it's useful to be able to test traces on your local machine instead of the Mesa CI runner. To simulate the CI environment as closely as possible.
 
-Download the YAML file from your driver's ``ci/`` directory and then change the path in the YAML file from local proxy or MinIO to the local directory (url-like format ``file://``)
+Download the YAML file from your driver's ``ci/`` directory and then change the path in the YAML file from local proxy or MinIO to the local directory (URL-like format ``file://``)
 
 .. code-block:: sh
 

@@ -127,7 +127,7 @@ etna_blit(struct pipe_context *pctx, const struct pipe_blit_info *blit_info)
    }
 
    etna_blit_save_state(ctx, info.render_condition_enable);
-   util_blitter_blit(ctx->blitter, &info);
+   util_blitter_blit(ctx->blitter, &info, NULL);
 
 success:
    if (info.dst.resource->bind & PIPE_BIND_SAMPLER_VIEW)

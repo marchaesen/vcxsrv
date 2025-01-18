@@ -115,7 +115,7 @@ xf86AddBusDeviceToConfigure(const char *driver, BusType bus, void *busData,
     /* Allocate new structure occurrence */
     i = nDevToConfig++;
     DevToConfig =
-        xnfreallocarray(DevToConfig, nDevToConfig, sizeof(DevToConfigRec));
+        XNFreallocarray(DevToConfig, nDevToConfig, sizeof(DevToConfigRec));
     memset(DevToConfig + i, 0, sizeof(DevToConfigRec));
 
     DevToConfig[i].GDev.chipID =
@@ -124,8 +124,8 @@ xf86AddBusDeviceToConfigure(const char *driver, BusType bus, void *busData,
     DevToConfig[i].iDriver = CurrentDriver;
 
     /* Fill in what we know, converting the driver name to lower case */
-    lower_driver = xnfalloc(strlen(driver) + 1);
-    for (j = 0; (lower_driver[j] = tolower(driver[j])); j++);
+    lower_driver = XNFalloc(strlen(driver) + 1);
+    for (j = 0; (lower_driver[j] = tolower((unsigned char)driver[j])); j++);
     DevToConfig[i].GDev.driver = lower_driver;
 
     switch (bus) {
@@ -165,8 +165,8 @@ configureInputSection(void)
 
     parsePrologue(XF86ConfInputPtr, XF86ConfInputRec);
 
-    ptr->inp_identifier = xnfstrdup("Keyboard0");
-    ptr->inp_driver = xnfstrdup("kbd");
+    ptr->inp_identifier = XNFstrdup("Keyboard0");
+    ptr->inp_driver = XNFstrdup("kbd");
     ptr->list.next = NULL;
 
     /* Crude mechanism to auto-detect mouse (os dependent) */
@@ -181,17 +181,17 @@ configureInputSection(void)
     }
 
     mouse = calloc(1, sizeof(XF86ConfInputRec));
-    mouse->inp_identifier = xnfstrdup("Mouse0");
-    mouse->inp_driver = xnfstrdup("mouse");
+    mouse->inp_identifier = XNFstrdup("Mouse0");
+    mouse->inp_driver = XNFstrdup("mouse");
     mouse->inp_option_lst =
-        xf86addNewOption(mouse->inp_option_lst, xnfstrdup("Protocol"),
-                         xnfstrdup(DFLT_MOUSE_PROTO));
+        xf86addNewOption(mouse->inp_option_lst, XNFstrdup("Protocol"),
+                         XNFstrdup(DFLT_MOUSE_PROTO));
     mouse->inp_option_lst =
-        xf86addNewOption(mouse->inp_option_lst, xnfstrdup("Device"),
-                         xnfstrdup(DFLT_MOUSE_DEV));
+        xf86addNewOption(mouse->inp_option_lst, XNFstrdup("Device"),
+                         XNFstrdup(DFLT_MOUSE_DEV));
     mouse->inp_option_lst =
-        xf86addNewOption(mouse->inp_option_lst, xnfstrdup("ZAxisMapping"),
-                         xnfstrdup("4 5 6 7"));
+        xf86addNewOption(mouse->inp_option_lst, XNFstrdup("ZAxisMapping"),
+                         XNFstrdup("4 5 6 7"));
     ptr = (XF86ConfInputPtr) xf86addListItem((glp) ptr, (glp) mouse);
     return ptr;
 }
@@ -294,7 +294,7 @@ configureDeviceSection(int screennum)
             "        ### <string>: \"String\", <freq>: \"<f> Hz/kHz/MHz\",\n"
             "        ### <percent>: \"<f>%\"\n"
             "        ### [arg]: arg optional\n";
-        ptr->dev_comment = xnfstrdup(descrip);
+        ptr->dev_comment = XNFstrdup(descrip);
         if (ptr->dev_comment) {
             for (p = DevToConfig[screennum].GDev.options; p->name != NULL; p++) {
                 char *p_e;
@@ -341,9 +341,9 @@ configureLayoutSection(void)
         iptr = malloc(sizeof(XF86ConfInputrefRec));
         iptr->list.next = NULL;
         iptr->iref_option_lst = NULL;
-        iptr->iref_inputdev_str = xnfstrdup("Mouse0");
+        iptr->iref_inputdev_str = XNFstrdup("Mouse0");
         iptr->iref_option_lst =
-            xf86addNewOption(iptr->iref_option_lst, xnfstrdup("CorePointer"),
+            xf86addNewOption(iptr->iref_option_lst, XNFstrdup("CorePointer"),
                              NULL);
         ptr->lay_input_lst = (XF86ConfInputrefPtr)
             xf86addListItem((glp) ptr->lay_input_lst, (glp) iptr);
@@ -355,9 +355,9 @@ configureLayoutSection(void)
         iptr = malloc(sizeof(XF86ConfInputrefRec));
         iptr->list.next = NULL;
         iptr->iref_option_lst = NULL;
-        iptr->iref_inputdev_str = xnfstrdup("Keyboard0");
+        iptr->iref_inputdev_str = XNFstrdup("Keyboard0");
         iptr->iref_option_lst =
-            xf86addNewOption(iptr->iref_option_lst, xnfstrdup("CoreKeyboard"),
+            xf86addNewOption(iptr->iref_option_lst, XNFstrdup("CoreKeyboard"),
                              NULL);
         ptr->lay_input_lst = (XF86ConfInputrefPtr)
             xf86addListItem((glp) ptr->lay_input_lst, (glp) iptr);
@@ -429,9 +429,9 @@ configureFilesSection(void)
     parsePrologue(XF86ConfFilesPtr, XF86ConfFilesRec);
 
     if (xf86ModulePath)
-        ptr->file_modulepath = xnfstrdup(xf86ModulePath);
+        ptr->file_modulepath = XNFstrdup(xf86ModulePath);
     if (defaultFontPath)
-        ptr->file_fontpath = xnfstrdup(defaultFontPath);
+        ptr->file_fontpath = XNFstrdup(defaultFontPath);
 
     return ptr;
 }
@@ -444,8 +444,8 @@ configureMonitorSection(int screennum)
 
     XNFasprintf(&tmp, "Monitor%d", screennum);
     ptr->mon_identifier = tmp;
-    ptr->mon_vendor = xnfstrdup("Monitor Vendor");
-    ptr->mon_modelname = xnfstrdup("Monitor Model");
+    ptr->mon_vendor = XNFstrdup("Monitor Vendor");
+    ptr->mon_modelname = XNFstrdup("Monitor Model");
 
     return ptr;
 }
@@ -489,7 +489,7 @@ configureDDCMonitorSection(int screennum)
 
     XNFasprintf(&tmp, "Monitor%d", screennum);
     ptr->mon_identifier = tmp;
-    ptr->mon_vendor = xnfstrdup(ConfiguredMonitor->vendor.name);
+    ptr->mon_vendor = XNFstrdup(ConfiguredMonitor->vendor.name);
     XNFasprintf(&ptr->mon_modelname, "%x", ConfiguredMonitor->vendor.prod_id);
 
     /* features in centimetres, we want millimetres */
@@ -527,7 +527,7 @@ configureDDCMonitorSection(int screennum)
 
     if (ConfiguredMonitor->features.dpms) {
         ptr->mon_option_lst =
-            xf86addNewOption(ptr->mon_option_lst, xnfstrdup("DPMS"), NULL);
+            xf86addNewOption(ptr->mon_option_lst, XNFstrdup("DPMS"), NULL);
     }
 
     return ptr;
@@ -707,10 +707,10 @@ DoConfigure(void)
 
     xf86DoConfigurePass1 = FALSE;
 
-    dev2screen = xnfcalloc(nDevToConfig, sizeof(int));
+    dev2screen = XNFcallocarray(nDevToConfig, sizeof(int));
 
     {
-        Bool *driverProbed = xnfcalloc(xf86NumDrivers, sizeof(Bool));
+        Bool *driverProbed = XNFcallocarray(xf86NumDrivers, sizeof(Bool));
 
         for (screennum = 0; screennum < nDevToConfig; screennum++) {
             int k, l, n, oldNumScreens;

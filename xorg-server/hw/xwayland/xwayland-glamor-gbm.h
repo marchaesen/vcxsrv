@@ -42,4 +42,12 @@ Bool xwl_glamor_gbm_init_egl(struct xwl_screen *xwl_screen);
 Bool xwl_glamor_gbm_init_screen(struct xwl_screen *xwl_screen);
 drmDevice *xwl_gbm_get_main_device(struct xwl_screen *xwl_screen);
 
+/* Explicit buffer synchronization points */
+Bool xwl_glamor_gbm_set_syncpts(struct xwl_window *xwl_window, PixmapPtr pixmap);
+void xwl_glamor_gbm_dispose_syncpts(PixmapPtr pixmap);
+void xwl_glamor_gbm_wait_syncpts(PixmapPtr pixmap);
+void xwl_glamor_gbm_wait_release_fence(struct xwl_window *xwl_window,
+                                       PixmapPtr pixmap,
+                                       struct xwl_window_buffer *xwl_window_buffer);
+
 #endif /* XWAYLAND_GLAMOR_GBM_H */

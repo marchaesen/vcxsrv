@@ -45,8 +45,7 @@
 #include <sys/sysmacros.h>
 #endif
 #include <GL/gl.h>
-#include <GL/internal/dri_interface.h>
-#include <GL/internal/mesa_interface.h>
+#include "mesa_interface.h"
 #include "loader.h"
 #include "util/libdrm.h"
 #include "util/os_file.h"
@@ -741,24 +740,7 @@ loader_set_logger(loader_logger *logger)
    log_ = logger;
 }
 
-char *
-loader_get_extensions_name(const char *driver_name)
-{
-   char *name = NULL;
-
-   if (asprintf(&name, "%s_%s", __DRI_DRIVER_GET_EXTENSIONS, driver_name) < 0)
-      return NULL;
-
-   const size_t len = strlen(name);
-   for (size_t i = 0; i < len; i++) {
-      if (name[i] == '-')
-         name[i] = '_';
-   }
-
-   return name;
-}
 #endif
-
 bool
 loader_bind_extensions(void *data,
                        const struct dri_extension_match *matches, size_t num_matches,
@@ -825,7 +807,7 @@ loader_open_driver_lib(const char *driver_name,
    search_paths = NULL;
    if (__normal_user() && search_path_vars) {
       for (int i = 0; search_path_vars[i] != NULL; i++) {
-         search_paths = getenv(search_path_vars[i]);
+         search_paths = os_get_option(search_path_vars[i]);
          if (search_paths)
             break;
       }
@@ -873,54 +855,5 @@ loader_open_driver_lib(const char *driver_name,
    log_(_LOADER_DEBUG, "MESA-LOADER: dlopen(%s)\n", path);
 
    return driver;
-}
-
-/**
- * Opens a DRI driver using its driver name, returning the __DRIextension
- * entrypoints.
- *
- * \param driverName - a name like "i965", "radeon", "nouveau", etc.
- * \param out_driver - Address where the dlopen() return value will be stored.
- * \param search_path_vars - NULL-terminated list of env vars that can be used
- * to override the DEFAULT_DRIVER_DIR search path.
- */
-const struct __DRIextensionRec **
-loader_open_driver(const char *driver_name,
-                   void **out_driver_handle,
-                   const char **search_path_vars,
-                   bool driver_name_is_inferred)
-{
-   char *get_extensions_name;
-   const struct __DRIextensionRec **extensions = NULL;
-   const struct __DRIextensionRec **(*get_extensions)(void);
-
-   void *driver = loader_open_driver_lib(driver_name, "_dri", search_path_vars,
-                                         DEFAULT_DRIVER_DIR, !driver_name_is_inferred);
-
-   if (!driver)
-      goto failed;
-
-   get_extensions_name = loader_get_extensions_name(driver_name);
-   if (get_extensions_name) {
-      get_extensions = dlsym(driver, get_extensions_name);
-      if (get_extensions) {
-         extensions = get_extensions();
-      } else {
-         log_(_LOADER_DEBUG, "MESA-LOADER: driver does not expose %s(): %s\n",
-              get_extensions_name, dlerror());
-      }
-      free(get_extensions_name);
-   }
-
-   if (extensions == NULL) {
-      log_(_LOADER_WARNING,
-           "MESA-LOADER: driver exports no extensions (%s)\n", dlerror());
-      dlclose(driver);
-      driver = NULL;
-   }
-
-failed:
-   *out_driver_handle = driver;
-   return extensions;
 }
 #endif

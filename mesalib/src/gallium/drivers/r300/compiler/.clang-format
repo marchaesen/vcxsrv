@@ -1,0 +1,6 @@
+
+BasedOnStyle: InheritParentConfig
+
+AllowShortCaseLabelsOnASingleLine: True
+
+DisableFormat: false

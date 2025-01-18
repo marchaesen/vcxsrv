@@ -13,9 +13,13 @@ def error(msg: str) -> None:
 
 
 class Source:
-    def __init__(self, filename: str, url: typing.Optional[str]):
+    def __init__(self, filename: str, url: typing.Optional[str],
+                 template: typing.Optional[str] = None, remove:
+                 typing.Optional[str] = None):
         self.file = pathlib.Path(filename)
         self.url = url
+        self.template = template
+        self.remove = remove
 
     def sync(self) -> None:
         if self.url is None:
@@ -35,11 +39,36 @@ class Source:
         else:
             content = req.content
 
-        with open(self.file, 'wb') as f:
+        content = str(content, encoding='utf-8')
+        if self.remove is not None:
+            content = content.replace(self.remove, '')
+        if self.template is not None:
+            content = self.template % content
+
+        with open(self.file, 'w') as f:
             f.write(content)
 
         print('Done')
 
+
+VK_ANDROID_NATIVE_BUFFER_TEMPLATE = """\
+/* MESA: A hack to avoid #ifdefs in driver code. */
+#ifdef __ANDROID__
+
+#include <cutils/native_handle.h>
+#if ANDROID_API_LEVEL < 28
+/* buffer_handle_t was defined in the deprecated system/window.h */
+typedef const native_handle_t *buffer_handle_t;
+#endif
+
+#else
+
+typedef void *buffer_handle_t;
+
+#endif
+
+%s\
+"""
 
 # a URL of `None` means there is no upstream, because *we* are the upstream
 SOURCES = [
@@ -176,7 +205,8 @@ SOURCES = [
             Source('include/vulkan/vulkan_xcb.h',               'https://github.com/KhronosGroup/Vulkan-Headers/raw/main/include/vulkan/vulkan_xcb.h'),
             Source('include/vulkan/vulkan_xlib.h',              'https://github.com/KhronosGroup/Vulkan-Headers/raw/main/include/vulkan/vulkan_xlib.h'),
             Source('include/vulkan/vulkan_xlib_xrandr.h',       'https://github.com/KhronosGroup/Vulkan-Headers/raw/main/include/vulkan/vulkan_xlib_xrandr.h'),
-            Source('include/vulkan/vk_android_native_buffer.h', 'https://android.googlesource.com/platform/frameworks/native/+/master/vulkan/include/vulkan/vk_android_native_buffer.h?format=TEXT'),
+            Source('include/vulkan/vk_android_native_buffer.h', 'https://android.googlesource.com/platform/frameworks/native/+/master/vulkan/include/vulkan/vk_android_native_buffer.h?format=TEXT',
+                   template=VK_ANDROID_NATIVE_BUFFER_TEMPLATE, remove='#include <cutils/native_handle.h>\n'),
             Source('include/vk_video/vulkan_video_codec_av1std.h', 'https://github.com/KhronosGroup/Vulkan-Headers/raw/main/include/vk_video/vulkan_video_codec_av1std.h'),
             Source('include/vk_video/vulkan_video_codec_av1std_decode.h', 'https://github.com/KhronosGroup/Vulkan-Headers/raw/main/include/vk_video/vulkan_video_codec_av1std_decode.h'),
             Source('include/vk_video/vulkan_video_codec_h264std.h', 'https://github.com/KhronosGroup/Vulkan-Headers/raw/main/include/vk_video/vulkan_video_codec_h264std.h'),

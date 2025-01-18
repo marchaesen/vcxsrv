@@ -55,7 +55,10 @@ public:
     VOID* Alloc(size_t size) const;
     VOID  Free(VOID* pObj) const;
 
-    VOID DebugPrint(const CHAR* pDebugString, ...) const;
+#if DEBUG
+    // This function should be called on every addrlib entrypoint (usually implicit by GetLib())
+    VOID  SetDebugPrinters() const { ApplyDebugPrinters(m_client.callbacks.debugPrint, m_client.handle); }
+#endif
 
     const Client* GetClient() const {return &m_client;}
 

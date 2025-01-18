@@ -67,6 +67,8 @@ rusticl_lower_intrinsics_instr(
         return nir_load_var(b, nir_find_variable_with_location(b->shader, nir_var_uniform, state->base_global_invoc_id_loc));
     case nir_intrinsic_load_base_workgroup_id:
         return nir_load_var(b, nir_find_variable_with_location(b->shader, nir_var_uniform, state->base_workgroup_id_loc));
+    case nir_intrinsic_load_global_size:
+        return nir_load_var(b, nir_find_variable_with_location(b->shader, nir_var_uniform, state->global_size_loc));
     case nir_intrinsic_load_num_workgroups:
         return nir_load_var(b, nir_find_variable_with_location(b->shader, nir_var_uniform, state->num_workgroups_loc));
     case nir_intrinsic_load_constant_base_ptr:

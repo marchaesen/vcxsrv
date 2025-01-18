@@ -6,6 +6,7 @@
 
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
+#include "nir/nir_serialize.h"
 
 #include "vk_shader_module.h"
 
@@ -13,20 +14,11 @@
 #include "radv_debug.h"
 #include "radv_descriptor_set.h"
 #include "radv_entrypoints.h"
+#include "radv_pipeline_binary.h"
 #include "radv_pipeline_cache.h"
 #include "radv_pipeline_rt.h"
 #include "radv_rmv.h"
 #include "radv_shader.h"
-
-struct radv_ray_tracing_state_key {
-   uint32_t stage_count;
-   struct radv_ray_tracing_stage *stages;
-
-   uint32_t group_count;
-   struct radv_ray_tracing_group *groups;
-
-   struct radv_shader_stage_key stage_keys[MESA_VULKAN_SHADER_STAGES];
-};
 
 struct rt_handle_hash_entry {
    uint32_t key;
@@ -286,17 +278,37 @@ radv_rt_fill_stage_info(const VkRayTracingPipelineCreateInfoKHR *pCreateInfo, st
 }
 
 static void
-radv_init_rt_stage_hashes(const struct radv_device *device, const VkRayTracingPipelineCreateInfoKHR *pCreateInfo,
+radv_init_rt_stage_hashes(const struct radv_device *device,
+                          VkPipelineCreateFlags2KHR pipeline_flags,
+                          const VkRayTracingPipelineCreateInfoKHR *pCreateInfo,
                           struct radv_ray_tracing_stage *stages, const struct radv_shader_stage_key *stage_keys)
 {
-   for (uint32_t idx = 0; idx < pCreateInfo->stageCount; idx++) {
-      const VkPipelineShaderStageCreateInfo *sinfo = &pCreateInfo->pStages[idx];
-      gl_shader_stage s = vk_to_mesa_shader_stage(sinfo->stage);
-      struct mesa_sha1 ctx;
+   const VkPipelineBinaryInfoKHR *binary_info = vk_find_struct_const(pCreateInfo->pNext, PIPELINE_BINARY_INFO_KHR);
+   if (binary_info && binary_info->binaryCount > 0) {
+      for (uint32_t i = 0; i < binary_info->binaryCount; i++) {
+         VK_FROM_HANDLE(radv_pipeline_binary, pipeline_binary, binary_info->pPipelineBinaries[i]);
+         struct blob_reader blob;
 
-      _mesa_sha1_init(&ctx);
-      radv_pipeline_hash_shader_stage(sinfo, &stage_keys[s], &ctx);
-      _mesa_sha1_final(&ctx, stages[idx].sha1);
+         blob_reader_init(&blob, pipeline_binary->data, pipeline_binary->size);
+
+         const struct radv_ray_tracing_binary_header *header =
+            (const struct radv_ray_tracing_binary_header *)blob_read_bytes(&blob, sizeof(*header));
+
+         if (header->is_traversal_shader)
+            continue;
+
+         memcpy(stages[i].sha1, header->stage_sha1, SHA1_DIGEST_LENGTH);
+      }
+   } else {
+      for (uint32_t idx = 0; idx < pCreateInfo->stageCount; idx++) {
+         const VkPipelineShaderStageCreateInfo *sinfo = &pCreateInfo->pStages[idx];
+         gl_shader_stage s = vk_to_mesa_shader_stage(sinfo->stage);
+         struct mesa_sha1 ctx;
+
+         _mesa_sha1_init(&ctx);
+         radv_pipeline_hash_shader_stage(pipeline_flags, sinfo, &stage_keys[s], &ctx);
+         _mesa_sha1_final(&ctx, stages[idx].sha1);
+      }
    }
 }
 
@@ -351,6 +363,8 @@ radv_rt_nir_to_asm(struct radv_device *device, struct vk_pipeline_cache *cache,
                    struct radv_serialized_shader_arena_block *replay_block, struct radv_shader **out_shader)
 {
    struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_instance *instance = radv_physical_device_instance(pdev);
+
    struct radv_shader_binary *binary;
    bool keep_executable_info = radv_pipeline_capture_shaders(device, pipeline->base.base.create_flags);
    bool keep_statistic_info = radv_pipeline_capture_shader_stats(device, pipeline->base.base.create_flags);
@@ -385,7 +399,7 @@ radv_rt_nir_to_asm(struct radv_device *device, struct vk_pipeline_cache *cache,
          .address_format = nir_address_format_32bit_offset,
          .stack_alignment = 16,
          .localized_loads = true,
-         .vectorizer_callback = radv_mem_vectorize_callback,
+         .vectorizer_callback = ac_nir_mem_vectorize_callback,
          .vectorizer_data = &pdev->info.gfx_level,
       };
       nir_lower_shader_calls(stage->nir, &opts, &resume_shaders, &num_resume_shaders, stage->nir);
@@ -418,14 +432,17 @@ radv_rt_nir_to_asm(struct radv_device *device, struct vk_pipeline_cache *cache,
 
       if (stage_info)
          radv_gather_unused_args(stage_info, shaders[i]);
-
-      if (radv_can_dump_shader(device, temp_stage.nir, false))
-         nir_print_shader(temp_stage.nir, stderr);
    }
 
    bool dump_shader = radv_can_dump_shader(device, shaders[0], false);
    bool replayable =
       pipeline->base.base.create_flags & VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR;
+
+   if (dump_shader) {
+      simple_mtx_lock(&instance->shader_dump_mtx);
+      for (uint32_t i = 0; i < num_shaders; i++)
+         nir_print_shader(shaders[i], stderr);
+   }
 
    /* Compile NIR shader to AMD assembly. */
    binary =
@@ -434,6 +451,9 @@ radv_rt_nir_to_asm(struct radv_device *device, struct vk_pipeline_cache *cache,
    if (replay_block || replayable) {
       VkResult result = radv_shader_create_uncached(device, binary, replayable, replay_block, &shader);
       if (result != VK_SUCCESS) {
+         if (dump_shader)
+            simple_mtx_unlock(&instance->shader_dump_mtx);
+
          free(binary);
          return result;
       }
@@ -450,6 +470,9 @@ radv_rt_nir_to_asm(struct radv_device *device, struct vk_pipeline_cache *cache,
          shader->spirv_size = stage->spirv.size;
       }
    }
+
+   if (dump_shader)
+      simple_mtx_unlock(&instance->shader_dump_mtx);
 
    free(binary);
 
@@ -575,7 +598,8 @@ radv_rt_compile_shaders(struct radv_device *device, struct vk_pipeline_cache *ca
 
       struct radv_shader_stage *stage = &stages[i];
       gl_shader_stage s = vk_to_mesa_shader_stage(pCreateInfo->pStages[i].stage);
-      radv_pipeline_stage_init(&pCreateInfo->pStages[i], pipeline_layout, &stage_keys[s], stage);
+      radv_pipeline_stage_init(pipeline->base.base.create_flags, &pCreateInfo->pStages[i],
+                               pipeline_layout, &stage_keys[s], stage);
 
       /* precompile the shader */
       stage->nir = radv_shader_spirv_to_nir(device, stage, NULL, false);
@@ -618,9 +642,10 @@ radv_rt_compile_shaders(struct radv_device *device, struct vk_pipeline_cache *ca
          (library && !has_callable) || always_inlined || (monolithic && rt_stages[idx].stage != MESA_SHADER_RAYGEN);
       nir_needed &= !rt_stages[idx].nir;
       if (nir_needed) {
+         const bool cached = !stage->key.optimisations_disabled &&
+                             !(pipeline->base.base.create_flags & VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR);
          rt_stages[idx].stack_size = stage->nir->scratch_size;
-         rt_stages[idx].nir = radv_pipeline_cache_nir_to_handle(device, cache, stage->nir, rt_stages[idx].sha1,
-                                                                !stage->key.optimisations_disabled);
+         rt_stages[idx].nir = radv_pipeline_cache_nir_to_handle(device, cache, stage->nir, rt_stages[idx].sha1, cached);
       }
 
       stage->feedback.duration += os_time_get_nano() - stage_start;
@@ -666,8 +691,10 @@ radv_rt_compile_shaders(struct radv_device *device, struct vk_pipeline_cache *ca
     * shaders.
     */
    bool traversal_needed = !library && (!monolithic || raygen_imported);
-   if (!traversal_needed)
-      return VK_SUCCESS;
+   if (!traversal_needed) {
+      result = VK_SUCCESS;
+      goto cleanup;
+   }
 
    struct radv_ray_tracing_stage_info traversal_info = {
       .set_flags = 0xFFFFFFFF,
@@ -817,7 +844,7 @@ compile_rt_prolog(struct radv_device *device, struct radv_ray_tracing_pipeline *
    pipeline->prolog->max_waves = radv_get_max_waves(device, config, &pipeline->prolog->info);
 }
 
-static void
+void
 radv_ray_tracing_pipeline_hash(const struct radv_device *device, const VkRayTracingPipelineCreateInfoKHR *pCreateInfo,
                                const struct radv_ray_tracing_state_key *rt_state, unsigned char *hash)
 {
@@ -884,9 +911,14 @@ radv_rt_pipeline_compile(struct radv_device *device, const VkRayTracingPipelineC
 
    /* Skip the shaders cache when any of the below are true:
     * - shaders are captured because it's for debugging purposes
+    * - binaries are captured for later uses
     * - ray history is enabled
+    * - group handles are saved and reused on a subsequent run (ie. capture/replay)
     */
-   if (keep_executable_info || emit_ray_history) {
+   if (keep_executable_info || emit_ray_history ||
+       (pipeline->base.base.create_flags &
+        (VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR |
+         VK_PIPELINE_CREATE_2_RAY_TRACING_SHADER_GROUP_HANDLE_CAPTURE_REPLAY_BIT_KHR))) {
       skip_shaders_cache = true;
    }
 
@@ -917,14 +949,14 @@ done:
    return result;
 }
 
-static void
+void
 radv_ray_tracing_state_key_finish(struct radv_ray_tracing_state_key *rt_state)
 {
    free(rt_state->stages);
    free(rt_state->groups);
 }
 
-static VkResult
+VkResult
 radv_generate_ray_tracing_state_key(struct radv_device *device, const VkRayTracingPipelineCreateInfoKHR *pCreateInfo,
                                     struct radv_ray_tracing_state_key *rt_state)
 {
@@ -961,7 +993,8 @@ radv_generate_ray_tracing_state_key(struct radv_device *device, const VkRayTraci
 
    radv_generate_rt_shaders_key(device, pCreateInfo, rt_state->stage_keys);
 
-   radv_init_rt_stage_hashes(device, pCreateInfo, rt_state->stages, rt_state->stage_keys);
+   VkPipelineCreateFlags2KHR create_flags = vk_rt_pipeline_create_flags(pCreateInfo);
+   radv_init_rt_stage_hashes(device, create_flags, pCreateInfo, rt_state->stages, rt_state->stage_keys);
 
    result = radv_rt_fill_group_info(device, pCreateInfo, rt_state->stages, rt_state->groups);
    if (result != VK_SUCCESS)
@@ -972,6 +1005,67 @@ radv_generate_ray_tracing_state_key(struct radv_device *device, const VkRayTraci
 fail:
    radv_ray_tracing_state_key_finish(rt_state);
    return result;
+}
+
+static VkResult
+radv_ray_tracing_pipeline_import_binary(struct radv_device *device, struct radv_ray_tracing_pipeline *pipeline,
+                                        const VkPipelineBinaryInfoKHR *binary_info)
+{
+   blake3_hash pipeline_hash;
+   struct mesa_blake3 ctx;
+
+   _mesa_blake3_init(&ctx);
+
+   for (uint32_t i = 0; i < binary_info->binaryCount; i++) {
+      VK_FROM_HANDLE(radv_pipeline_binary, pipeline_binary, binary_info->pPipelineBinaries[i]);
+      struct radv_shader *shader;
+      struct blob_reader blob;
+
+      blob_reader_init(&blob, pipeline_binary->data, pipeline_binary->size);
+
+      const struct radv_ray_tracing_binary_header *header =
+         (const struct radv_ray_tracing_binary_header *)blob_read_bytes(&blob, sizeof(*header));
+
+      if (header->is_traversal_shader) {
+         shader = radv_shader_deserialize(device, pipeline_binary->key, sizeof(pipeline_binary->key), &blob);
+         if (!shader)
+            return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+
+         pipeline->base.base.shaders[MESA_SHADER_INTERSECTION] = shader;
+
+         _mesa_blake3_update(&ctx, pipeline_binary->key, sizeof(pipeline_binary->key));
+         continue;
+      }
+
+      memcpy(&pipeline->stages[i].info, &header->stage_info, sizeof(pipeline->stages[i].info));
+      pipeline->stages[i].stack_size = header->stack_size;
+
+      if (header->has_shader) {
+         shader = radv_shader_deserialize(device, pipeline_binary->key, sizeof(pipeline_binary->key), &blob);
+         if (!shader)
+            return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+
+         pipeline->stages[i].shader = shader;
+
+         _mesa_blake3_update(&ctx, pipeline_binary->key, sizeof(pipeline_binary->key));
+      }
+
+      if (header->has_nir) {
+         nir_shader *nir = nir_deserialize(NULL, NULL, &blob);
+
+         pipeline->stages[i].nir = radv_pipeline_cache_nir_to_handle(device, NULL, nir, header->stage_sha1, false);
+         ralloc_free(nir);
+
+         if (!pipeline->stages[i].nir)
+            return VK_ERROR_OUT_OF_HOST_MEMORY;
+      }
+   }
+
+   _mesa_blake3_final(&ctx, pipeline_hash);
+
+   pipeline->base.base.pipeline_hash = *(uint64_t *)pipeline_hash;
+
+   return VK_SUCCESS;
 }
 
 static VkResult
@@ -1022,10 +1116,16 @@ radv_rt_pipeline_create(VkDevice _device, VkPipelineCache _cache, const VkRayTra
    if (result != VK_SUCCESS)
       goto fail;
 
-   result = radv_rt_pipeline_compile(device, pCreateInfo, pipeline, cache, &rt_state, capture_replay_blocks,
-                                     creation_feedback);
-   if (result != VK_SUCCESS)
-      goto fail;
+   const VkPipelineBinaryInfoKHR *binary_info = vk_find_struct_const(pCreateInfo->pNext, PIPELINE_BINARY_INFO_KHR);
+
+   if (binary_info && binary_info->binaryCount > 0) {
+      result = radv_ray_tracing_pipeline_import_binary(device, pipeline, binary_info);
+   } else {
+      result = radv_rt_pipeline_compile(device, pCreateInfo, pipeline, cache, &rt_state, capture_replay_blocks,
+                                        creation_feedback);
+      if (result != VK_SUCCESS)
+         goto fail;
+   }
 
    if (!(pipeline->base.base.create_flags & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR)) {
       compute_rt_stack_size(pCreateInfo, pipeline);

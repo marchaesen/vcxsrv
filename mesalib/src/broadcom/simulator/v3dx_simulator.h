@@ -32,10 +32,14 @@ struct drm_v3d_get_param;
 struct drm_v3d_submit_cl;
 struct drm_v3d_submit_tfu;
 struct drm_v3d_submit_csd;
+struct drm_v3d_perfmon_get_counter;
 
 void v3dX(simulator_init_regs)(struct v3d_hw *v3d);
 int v3dX(simulator_get_param_ioctl)(struct v3d_hw *v3d,
+                                    uint32_t perfcnt_total,
                                     struct drm_v3d_get_param *args);
+int v3dX(simulator_perfmon_get_counter_ioctl)(uint32_t perfcnt_total,
+                                              struct drm_v3d_perfmon_get_counter *args);
 void v3dX(simulator_submit_cl_ioctl)(struct v3d_hw *v3d,
                                      struct drm_v3d_submit_cl *args,
                                      uint32_t gmp_offset);

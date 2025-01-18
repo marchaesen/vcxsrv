@@ -78,7 +78,7 @@ void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_h
    struct radeon_cmdbuf *cs = &ctx->gfx_cs;
    struct radeon_winsys *ws = ctx->ws;
    struct si_screen *sscreen = ctx->screen;
-   const unsigned wait_ps_cs = SI_CONTEXT_PS_PARTIAL_FLUSH | SI_CONTEXT_CS_PARTIAL_FLUSH;
+   const unsigned wait_ps_cs = SI_BARRIER_SYNC_PS | SI_BARRIER_SYNC_CS;
    unsigned wait_flags = 0;
 
    if (ctx->gfx_flush_in_progress)
@@ -146,13 +146,13 @@ void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_h
           * and make this process guilty of hanging.
           */
          if (ctx->gfx_level >= GFX12)
-            wait_flags |= SI_CONTEXT_VS_PARTIAL_FLUSH;
+            wait_flags |= SI_BARRIER_SYNC_VS;
       }
    }
 
    /* Make sure CP DMA is idle at the end of IBs after L2 prefetches
     * because the kernel doesn't wait for it. */
-   if (ctx->gfx_level >= GFX7)
+   if (ctx->gfx_level >= GFX7 && ctx->screen->info.has_cp_dma)
       si_cp_dma_wait_for_idle(ctx, &ctx->gfx_cs);
 
    /* If we use s_sendmsg to set tess factors to all 0 or all 1 instead of writing to the tess
@@ -160,15 +160,14 @@ void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_h
     */
    if ((ctx->gfx_level == GFX11 || ctx->gfx_level == GFX11_5) && ctx->has_tessellation) {
       radeon_begin(cs);
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_SQ_NON_EVENT) | EVENT_INDEX(0));
+      radeon_event_write(V_028A90_SQ_NON_EVENT);
       radeon_end();
    }
 
    /* Wait for draw calls to finish if needed. */
    if (wait_flags) {
-      ctx->flags |= wait_flags;
-      si_emit_cache_flush_direct(ctx);
+      ctx->barrier_flags |= wait_flags;
+      si_emit_barrier_direct(ctx);
    }
    ctx->gfx_last_ib_is_busy = (wait_flags & wait_ps_cs) != wait_ps_cs;
 
@@ -463,16 +462,16 @@ void si_begin_new_gfx_cs(struct si_context *ctx, bool first_cs)
     *
     * TODO: Do we also need to invalidate CB & DB caches?
     */
-   ctx->flags |= SI_CONTEXT_INV_L2;
+   ctx->barrier_flags |= SI_BARRIER_INV_L2;
    if (ctx->gfx_level < GFX10)
-      ctx->flags |= SI_CONTEXT_INV_ICACHE | SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE;
+      ctx->barrier_flags |= SI_BARRIER_INV_ICACHE | SI_BARRIER_INV_SMEM | SI_BARRIER_INV_VMEM;
 
    /* Disable pipeline stats if there are no active queries. */
-   ctx->flags &= ~SI_CONTEXT_START_PIPELINE_STATS & ~SI_CONTEXT_STOP_PIPELINE_STATS;
+   ctx->barrier_flags &= ~SI_BARRIER_EVENT_PIPELINESTAT_START & ~SI_BARRIER_EVENT_PIPELINESTAT_STOP;
    if (ctx->num_hw_pipestat_streamout_queries)
-      ctx->flags |= SI_CONTEXT_START_PIPELINE_STATS;
+      ctx->barrier_flags |= SI_BARRIER_EVENT_PIPELINESTAT_START;
    else
-      ctx->flags |= SI_CONTEXT_STOP_PIPELINE_STATS;
+      ctx->barrier_flags |= SI_BARRIER_EVENT_PIPELINESTAT_STOP;
 
    ctx->pipeline_stats_enabled = -1; /* indicate that the current hw state is unknown */
 
@@ -480,9 +479,9 @@ void si_begin_new_gfx_cs(struct si_context *ctx, bool first_cs)
     * When switching NGG->legacy, we need to flush VGT for certain hw generations.
     */
    if (ctx->screen->info.has_vgt_flush_ngg_legacy_bug && !ctx->ngg)
-      ctx->flags |= SI_CONTEXT_VGT_FLUSH;
+      ctx->barrier_flags |= SI_BARRIER_EVENT_VGT_FLUSH;
 
-   si_mark_atom_dirty(ctx, &ctx->atoms.s.cache_flush);
+   si_mark_atom_dirty(ctx, &ctx->atoms.s.barrier);
    si_mark_atom_dirty(ctx, &ctx->atoms.s.spi_ge_ring_state);
 
    if (ctx->screen->attribute_pos_prim_ring) {
@@ -511,7 +510,7 @@ void si_begin_new_gfx_cs(struct si_context *ctx, bool first_cs)
       struct si_pm4_state *preamble = is_secure ? ctx->cs_preamble_state_tmz :
                                                   ctx->cs_preamble_state;
       radeon_begin(&ctx->gfx_cs);
-      radeon_emit_array(preamble->pm4, preamble->ndw);
+      radeon_emit_array(preamble->base.pm4, preamble->base.ndw);
       radeon_end();
    }
 
@@ -683,598 +682,4 @@ void si_emit_ts(struct si_context *sctx, struct si_resource* buffer, unsigned in
    uint64_t va = buffer->gpu_address + offset;
    si_cp_release_mem(sctx, cs, V_028A90_BOTTOM_OF_PIPE_TS, 0, EOP_DST_SEL_MEM, EOP_INT_SEL_NONE,
                         EOP_DATA_SEL_TIMESTAMP, buffer, va, 0, PIPE_QUERY_TIMESTAMP);
-}
-
-void si_emit_surface_sync(struct si_context *sctx, struct radeon_cmdbuf *cs, unsigned cp_coher_cntl)
-{
-   bool compute_ib = !sctx->has_graphics;
-
-   assert(sctx->gfx_level <= GFX9);
-
-   /* This seems problematic with GFX7 (see #4764) */
-   if (sctx->gfx_level != GFX7)
-      cp_coher_cntl |= 1u << 31; /* don't sync PFP, i.e. execute the sync in ME */
-
-   radeon_begin(cs);
-
-   if (sctx->gfx_level == GFX9 || compute_ib) {
-      /* Flush caches and wait for the caches to assert idle. */
-      radeon_emit(PKT3(PKT3_ACQUIRE_MEM, 5, 0));
-      radeon_emit(cp_coher_cntl); /* CP_COHER_CNTL */
-      radeon_emit(0xffffffff);    /* CP_COHER_SIZE */
-      radeon_emit(0xffffff);      /* CP_COHER_SIZE_HI */
-      radeon_emit(0);             /* CP_COHER_BASE */
-      radeon_emit(0);             /* CP_COHER_BASE_HI */
-      radeon_emit(0x0000000A);    /* POLL_INTERVAL */
-   } else {
-      /* ACQUIRE_MEM is only required on a compute ring. */
-      radeon_emit(PKT3(PKT3_SURFACE_SYNC, 3, 0));
-      radeon_emit(cp_coher_cntl); /* CP_COHER_CNTL */
-      radeon_emit(0xffffffff);    /* CP_COHER_SIZE */
-      radeon_emit(0);             /* CP_COHER_BASE */
-      radeon_emit(0x0000000A);    /* POLL_INTERVAL */
-   }
-   radeon_end();
-
-   /* ACQUIRE_MEM has an implicit context roll if the current context
-    * is busy. */
-   if (!compute_ib)
-      sctx->context_roll = true;
-}
-
-static struct si_resource *si_get_wait_mem_scratch_bo(struct si_context *ctx,
-                                                      struct radeon_cmdbuf *cs, bool is_secure)
-{
-   struct si_screen *sscreen = ctx->screen;
-
-   assert(ctx->gfx_level < GFX11);
-
-   if (likely(!is_secure)) {
-      return ctx->wait_mem_scratch;
-   } else {
-      assert(sscreen->info.has_tmz_support);
-      if (!ctx->wait_mem_scratch_tmz) {
-         ctx->wait_mem_scratch_tmz =
-            si_aligned_buffer_create(&sscreen->b,
-                                     PIPE_RESOURCE_FLAG_UNMAPPABLE |
-                                     SI_RESOURCE_FLAG_DRIVER_INTERNAL |
-                                     PIPE_RESOURCE_FLAG_ENCRYPTED,
-                                     PIPE_USAGE_DEFAULT, 4,
-                                     sscreen->info.tcc_cache_line_size);
-         si_cp_write_data(ctx, ctx->wait_mem_scratch_tmz, 0, 4, V_370_MEM, V_370_ME,
-                          &ctx->wait_mem_number);
-      }
-
-      return ctx->wait_mem_scratch_tmz;
-   }
-}
-
-static void prepare_cb_db_flushes(struct si_context *ctx, unsigned *flags)
-{
-   /* Don't flush CB and DB if there have been no draw calls. */
-   if (ctx->num_draw_calls == ctx->last_cb_flush_num_draw_calls &&
-       ctx->num_decompress_calls == ctx->last_cb_flush_num_decompress_calls)
-      *flags &= ~SI_CONTEXT_FLUSH_AND_INV_CB;
-
-   if (ctx->num_draw_calls == ctx->last_db_flush_num_draw_calls &&
-       ctx->num_decompress_calls == ctx->last_db_flush_num_decompress_calls)
-      *flags &= ~SI_CONTEXT_FLUSH_AND_INV_DB;
-
-   /* Track the last flush. */
-   if (*flags & SI_CONTEXT_FLUSH_AND_INV_CB) {
-      ctx->num_cb_cache_flushes++;
-      ctx->last_cb_flush_num_draw_calls = ctx->num_draw_calls;
-      ctx->last_cb_flush_num_decompress_calls = ctx->num_decompress_calls;
-   }
-   if (*flags & SI_CONTEXT_FLUSH_AND_INV_DB) {
-      ctx->num_db_cache_flushes++;
-      ctx->last_db_flush_num_draw_calls = ctx->num_draw_calls;
-      ctx->last_db_flush_num_decompress_calls = ctx->num_decompress_calls;
-   }
-}
-
-void gfx10_emit_cache_flush(struct si_context *ctx, struct radeon_cmdbuf *cs)
-{
-   uint32_t gcr_cntl = 0;
-   unsigned cb_db_event = 0;
-   unsigned flags = ctx->flags;
-
-   if (!flags)
-      return;
-
-   if (!ctx->has_graphics) {
-      /* Only process compute flags. */
-      flags &= SI_CONTEXT_INV_ICACHE | SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE |
-               SI_CONTEXT_INV_L2 | SI_CONTEXT_WB_L2 | SI_CONTEXT_INV_L2_METADATA |
-               SI_CONTEXT_CS_PARTIAL_FLUSH;
-   }
-
-   /* We don't need these. */
-   assert(!(flags & (SI_CONTEXT_VGT_STREAMOUT_SYNC | SI_CONTEXT_FLUSH_AND_INV_DB_META)));
-
-   prepare_cb_db_flushes(ctx, &flags);
-
-   radeon_begin(cs);
-
-   if (flags & SI_CONTEXT_VGT_FLUSH) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
-   }
-
-   if (flags & SI_CONTEXT_INV_ICACHE)
-      gcr_cntl |= S_586_GLI_INV(V_586_GLI_ALL);
-   if (flags & SI_CONTEXT_INV_SCACHE) {
-      /* TODO: When writing to the SMEM L1 cache, we need to set SEQ
-       * to FORWARD when both L1 and L2 are written out (WB or INV).
-       */
-      gcr_cntl |= S_586_GL1_INV(1) | S_586_GLK_INV(1);
-   }
-   if (flags & SI_CONTEXT_INV_VCACHE)
-      gcr_cntl |= S_586_GL1_INV(1) | S_586_GLV_INV(1);
-
-   /* The L2 cache ops are:
-    * - INV: - invalidate lines that reflect memory (were loaded from memory)
-    *        - don't touch lines that were overwritten (were stored by gfx clients)
-    * - WB: - don't touch lines that reflect memory
-    *       - write back lines that were overwritten
-    * - WB | INV: - invalidate lines that reflect memory
-    *             - write back lines that were overwritten
-    *
-    * GLM doesn't support WB alone. If WB is set, INV must be set too.
-    */
-   if (flags & SI_CONTEXT_INV_L2) {
-      /* Writeback and invalidate everything in L2. */
-      gcr_cntl |= S_586_GL2_INV(1) | S_586_GL2_WB(1) |
-                  (ctx->gfx_level < GFX12 ? S_586_GLM_INV(1) | S_586_GLM_WB(1) : 0);
-      ctx->num_L2_invalidates++;
-   } else if (flags & SI_CONTEXT_WB_L2) {
-      gcr_cntl |= S_586_GL2_WB(1) |
-                  (ctx->gfx_level < GFX12 ? S_586_GLM_WB(1) | S_586_GLM_INV(1) : 0);
-   } else if (flags & SI_CONTEXT_INV_L2_METADATA) {
-      assert(ctx->gfx_level < GFX12);
-      gcr_cntl |= S_586_GLM_INV(1) | S_586_GLM_WB(1);
-   }
-
-   if (flags & (SI_CONTEXT_FLUSH_AND_INV_CB | SI_CONTEXT_FLUSH_AND_INV_DB)) {
-      if (ctx->gfx_level < GFX12 && flags & SI_CONTEXT_FLUSH_AND_INV_CB) {
-         /* Flush CMASK/FMASK/DCC. Will wait for idle later. */
-         radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-         radeon_emit(EVENT_TYPE(V_028A90_FLUSH_AND_INV_CB_META) | EVENT_INDEX(0));
-      }
-
-      /* Gfx11 can't flush DB_META and should use a TS event instead. */
-      if (ctx->gfx_level < GFX12 && ctx->gfx_level != GFX11 &&
-          flags & SI_CONTEXT_FLUSH_AND_INV_DB) {
-         /* Flush HTILE. Will wait for idle later. */
-         radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-         radeon_emit(EVENT_TYPE(V_028A90_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));
-      }
-
-      /* First flush CB/DB, then L1/L2. */
-      gcr_cntl |= S_586_SEQ(V_586_SEQ_FORWARD);
-
-      if ((flags & (SI_CONTEXT_FLUSH_AND_INV_CB | SI_CONTEXT_FLUSH_AND_INV_DB)) ==
-          (SI_CONTEXT_FLUSH_AND_INV_CB | SI_CONTEXT_FLUSH_AND_INV_DB)) {
-         cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
-      } else if (flags & SI_CONTEXT_FLUSH_AND_INV_CB) {
-         cb_db_event = V_028A90_FLUSH_AND_INV_CB_DATA_TS;
-      } else if (flags & SI_CONTEXT_FLUSH_AND_INV_DB) {
-         if (ctx->gfx_level == GFX11)
-            cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
-         else
-            cb_db_event = V_028A90_FLUSH_AND_INV_DB_DATA_TS;
-      } else {
-         assert(0);
-      }
-   } else {
-      /* Wait for graphics shaders to go idle if requested. */
-      if (flags & SI_CONTEXT_PS_PARTIAL_FLUSH) {
-         radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-         radeon_emit(EVENT_TYPE(V_028A90_PS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-         /* Only count explicit shader flushes, not implicit ones. */
-         ctx->num_vs_flushes++;
-         ctx->num_ps_flushes++;
-      } else if (flags & SI_CONTEXT_VS_PARTIAL_FLUSH) {
-         radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-         radeon_emit(EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-         ctx->num_vs_flushes++;
-      }
-   }
-
-   if (flags & SI_CONTEXT_CS_PARTIAL_FLUSH && ctx->compute_is_busy) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_CS_PARTIAL_FLUSH | EVENT_INDEX(4)));
-      ctx->num_cs_flushes++;
-      ctx->compute_is_busy = false;
-   }
-
-   if (cb_db_event) {
-      if (ctx->gfx_level >= GFX11) {
-         /* Get GCR_CNTL fields, because the encoding is different in RELEASE_MEM. */
-         unsigned glm_wb = G_586_GLM_WB(gcr_cntl);
-         unsigned glm_inv = G_586_GLM_INV(gcr_cntl);
-         unsigned glk_wb = G_586_GLK_WB(gcr_cntl);
-         unsigned glk_inv = G_586_GLK_INV(gcr_cntl);
-         unsigned glv_inv = G_586_GLV_INV(gcr_cntl);
-         unsigned gl1_inv = G_586_GL1_INV(gcr_cntl);
-         assert(G_586_GL2_US(gcr_cntl) == 0);
-         assert(G_586_GL2_RANGE(gcr_cntl) == 0);
-         assert(G_586_GL2_DISCARD(gcr_cntl) == 0);
-         unsigned gl2_inv = G_586_GL2_INV(gcr_cntl);
-         unsigned gl2_wb = G_586_GL2_WB(gcr_cntl);
-         unsigned gcr_seq = G_586_SEQ(gcr_cntl);
-
-         gcr_cntl &= C_586_GLM_WB & C_586_GLM_INV & C_586_GLK_WB & C_586_GLK_INV &
-                     C_586_GLV_INV & C_586_GL1_INV & C_586_GL2_INV & C_586_GL2_WB; /* keep SEQ */
-
-         /* Send an event that flushes caches. */
-         radeon_emit(PKT3(PKT3_RELEASE_MEM, 6, 0));
-         radeon_emit(S_490_EVENT_TYPE(cb_db_event) |
-                     S_490_EVENT_INDEX(5) |
-                     S_490_GLM_WB(glm_wb) | S_490_GLM_INV(glm_inv) | S_490_GLV_INV(glv_inv) |
-                     S_490_GL1_INV(gl1_inv) | S_490_GL2_INV(gl2_inv) | S_490_GL2_WB(gl2_wb) |
-                     S_490_SEQ(gcr_seq) | S_490_GLK_WB(glk_wb) | S_490_GLK_INV(glk_inv) |
-                     S_490_PWS_ENABLE(1));
-         radeon_emit(0); /* DST_SEL, INT_SEL, DATA_SEL */
-         radeon_emit(0); /* ADDRESS_LO */
-         radeon_emit(0); /* ADDRESS_HI */
-         radeon_emit(0); /* DATA_LO */
-         radeon_emit(0); /* DATA_HI */
-         radeon_emit(0); /* INT_CTXID */
-
-         if (unlikely(ctx->sqtt_enabled)) {
-            radeon_end();
-            si_sqtt_describe_barrier_start(ctx, &ctx->gfx_cs);
-            radeon_begin_again(cs);
-         }
-
-         /* Wait for the event and invalidate remaining caches if needed. */
-         radeon_emit(PKT3(PKT3_ACQUIRE_MEM, 6, 0));
-         radeon_emit(S_580_PWS_STAGE_SEL(flags & SI_CONTEXT_PFP_SYNC_ME ? V_580_CP_PFP :
-                                                                          V_580_CP_ME) |
-                     S_580_PWS_COUNTER_SEL(V_580_TS_SELECT) |
-                     S_580_PWS_ENA2(1) |
-                     S_580_PWS_COUNT(0));
-         radeon_emit(0xffffffff); /* GCR_SIZE */
-         radeon_emit(0x01ffffff); /* GCR_SIZE_HI */
-         radeon_emit(0); /* GCR_BASE_LO */
-         radeon_emit(0); /* GCR_BASE_HI */
-         radeon_emit(S_585_PWS_ENA(1));
-         radeon_emit(gcr_cntl); /* GCR_CNTL */
-
-         if (unlikely(ctx->sqtt_enabled)) {
-            radeon_end();
-            si_sqtt_describe_barrier_end(ctx, &ctx->gfx_cs, flags);
-            radeon_begin_again(cs);
-         }
-
-         gcr_cntl = 0; /* all done */
-         flags &= ~SI_CONTEXT_PFP_SYNC_ME;
-      } else {
-         /* GFX10 */
-         radeon_end();
-
-         struct si_resource *wait_mem_scratch =
-           si_get_wait_mem_scratch_bo(ctx, cs, ctx->ws->cs_is_secure(cs));
-
-         /* CB/DB flush and invalidate via RELEASE_MEM.
-          * Combine this with other cache flushes when possible.
-          */
-         uint64_t va = wait_mem_scratch->gpu_address;
-         ctx->wait_mem_number++;
-
-         /* Get GCR_CNTL fields, because the encoding is different in RELEASE_MEM. */
-         unsigned glm_wb = G_586_GLM_WB(gcr_cntl);
-         unsigned glm_inv = G_586_GLM_INV(gcr_cntl);
-         unsigned glv_inv = G_586_GLV_INV(gcr_cntl);
-         unsigned gl1_inv = G_586_GL1_INV(gcr_cntl);
-         assert(G_586_GL2_US(gcr_cntl) == 0);
-         assert(G_586_GL2_RANGE(gcr_cntl) == 0);
-         assert(G_586_GL2_DISCARD(gcr_cntl) == 0);
-         unsigned gl2_inv = G_586_GL2_INV(gcr_cntl);
-         unsigned gl2_wb = G_586_GL2_WB(gcr_cntl);
-         unsigned gcr_seq = G_586_SEQ(gcr_cntl);
-
-         gcr_cntl &= C_586_GLM_WB & C_586_GLM_INV & C_586_GLV_INV & C_586_GL1_INV & C_586_GL2_INV &
-                     C_586_GL2_WB; /* keep SEQ */
-
-         si_cp_release_mem(ctx, cs, cb_db_event,
-                           S_490_GLM_WB(glm_wb) | S_490_GLM_INV(glm_inv) | S_490_GLV_INV(glv_inv) |
-                           S_490_GL1_INV(gl1_inv) | S_490_GL2_INV(gl2_inv) | S_490_GL2_WB(gl2_wb) |
-                           S_490_SEQ(gcr_seq),
-                           EOP_DST_SEL_MEM, EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM,
-                           EOP_DATA_SEL_VALUE_32BIT, wait_mem_scratch, va, ctx->wait_mem_number,
-                           SI_NOT_QUERY);
-
-         if (unlikely(ctx->sqtt_enabled)) {
-            si_sqtt_describe_barrier_start(ctx, &ctx->gfx_cs);
-         }
-
-         si_cp_wait_mem(ctx, cs, va, ctx->wait_mem_number, 0xffffffff, WAIT_REG_MEM_EQUAL);
-
-         if (unlikely(ctx->sqtt_enabled)) {
-            si_sqtt_describe_barrier_end(ctx, &ctx->gfx_cs, flags);
-         }
-
-         radeon_begin_again(cs);
-      }
-   }
-
-   /* Ignore fields that only modify the behavior of other fields. */
-   if (gcr_cntl & C_586_GL1_RANGE & C_586_GL2_RANGE & C_586_SEQ) {
-      unsigned dont_sync_pfp = (!(flags & SI_CONTEXT_PFP_SYNC_ME)) << 31;
-
-      /* Flush caches and wait for the caches to assert idle.
-       * The cache flush is executed in the ME, but the PFP waits
-       * for completion.
-       */
-      radeon_emit(PKT3(PKT3_ACQUIRE_MEM, 6, 0));
-      radeon_emit(dont_sync_pfp); /* CP_COHER_CNTL */
-      radeon_emit(0xffffffff); /* CP_COHER_SIZE */
-      radeon_emit(0xffffff);   /* CP_COHER_SIZE_HI */
-      radeon_emit(0);          /* CP_COHER_BASE */
-      radeon_emit(0);          /* CP_COHER_BASE_HI */
-      radeon_emit(0x0000000A); /* POLL_INTERVAL */
-      radeon_emit(gcr_cntl);   /* GCR_CNTL */
-   } else if (flags & SI_CONTEXT_PFP_SYNC_ME) {
-      /* Synchronize PFP with ME. (this stalls PFP) */
-      radeon_emit(PKT3(PKT3_PFP_SYNC_ME, 0, 0));
-      radeon_emit(0);
-   }
-
-   if (flags & SI_CONTEXT_START_PIPELINE_STATS && ctx->pipeline_stats_enabled != 1) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_PIPELINESTAT_START) | EVENT_INDEX(0));
-      ctx->pipeline_stats_enabled = 1;
-   } else if (flags & SI_CONTEXT_STOP_PIPELINE_STATS && ctx->pipeline_stats_enabled != 0) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_PIPELINESTAT_STOP) | EVENT_INDEX(0));
-      ctx->pipeline_stats_enabled = 0;
-   }
-   radeon_end();
-
-   ctx->flags = 0;
-}
-
-void gfx6_emit_cache_flush(struct si_context *sctx, struct radeon_cmdbuf *cs)
-{
-   uint32_t flags = sctx->flags;
-
-   if (!flags)
-      return;
-
-   if (!sctx->has_graphics) {
-      /* Only process compute flags. */
-      flags &= SI_CONTEXT_INV_ICACHE | SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE |
-               SI_CONTEXT_INV_L2 | SI_CONTEXT_WB_L2 | SI_CONTEXT_INV_L2_METADATA |
-               SI_CONTEXT_CS_PARTIAL_FLUSH;
-   }
-
-   uint32_t cp_coher_cntl = 0;
-   const uint32_t flush_cb_db = flags & (SI_CONTEXT_FLUSH_AND_INV_CB | SI_CONTEXT_FLUSH_AND_INV_DB);
-
-   assert(sctx->gfx_level <= GFX9);
-
-   prepare_cb_db_flushes(sctx, &flags);
-
-   /* GFX6 has a bug that it always flushes ICACHE and KCACHE if either
-    * bit is set. An alternative way is to write SQC_CACHES, but that
-    * doesn't seem to work reliably. Since the bug doesn't affect
-    * correctness (it only does more work than necessary) and
-    * the performance impact is likely negligible, there is no plan
-    * to add a workaround for it.
-    */
-
-   if (flags & SI_CONTEXT_INV_ICACHE)
-      cp_coher_cntl |= S_0085F0_SH_ICACHE_ACTION_ENA(1);
-   if (flags & SI_CONTEXT_INV_SCACHE)
-      cp_coher_cntl |= S_0085F0_SH_KCACHE_ACTION_ENA(1);
-
-   if (sctx->gfx_level <= GFX8) {
-      if (flags & SI_CONTEXT_FLUSH_AND_INV_CB) {
-         cp_coher_cntl |= S_0085F0_CB_ACTION_ENA(1) | S_0085F0_CB0_DEST_BASE_ENA(1) |
-                          S_0085F0_CB1_DEST_BASE_ENA(1) | S_0085F0_CB2_DEST_BASE_ENA(1) |
-                          S_0085F0_CB3_DEST_BASE_ENA(1) | S_0085F0_CB4_DEST_BASE_ENA(1) |
-                          S_0085F0_CB5_DEST_BASE_ENA(1) | S_0085F0_CB6_DEST_BASE_ENA(1) |
-                          S_0085F0_CB7_DEST_BASE_ENA(1);
-
-         /* Necessary for DCC */
-         if (sctx->gfx_level == GFX8)
-            si_cp_release_mem(sctx, cs, V_028A90_FLUSH_AND_INV_CB_DATA_TS, 0, EOP_DST_SEL_MEM,
-                              EOP_INT_SEL_NONE, EOP_DATA_SEL_DISCARD, NULL, 0, 0, SI_NOT_QUERY);
-      }
-      if (flags & SI_CONTEXT_FLUSH_AND_INV_DB)
-         cp_coher_cntl |= S_0085F0_DB_ACTION_ENA(1) | S_0085F0_DB_DEST_BASE_ENA(1);
-   }
-
-   radeon_begin(cs);
-
-   if (flags & SI_CONTEXT_FLUSH_AND_INV_CB) {
-      /* Flush CMASK/FMASK/DCC. SURFACE_SYNC will wait for idle. */
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_FLUSH_AND_INV_CB_META) | EVENT_INDEX(0));
-   }
-   if (flags & (SI_CONTEXT_FLUSH_AND_INV_DB | SI_CONTEXT_FLUSH_AND_INV_DB_META)) {
-      /* Flush HTILE. SURFACE_SYNC will wait for idle. */
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));
-   }
-
-   /* Wait for shader engines to go idle.
-    * VS and PS waits are unnecessary if SURFACE_SYNC is going to wait
-    * for everything including CB/DB cache flushes.
-    */
-   if (!flush_cb_db) {
-      if (flags & SI_CONTEXT_PS_PARTIAL_FLUSH) {
-         radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-         radeon_emit(EVENT_TYPE(V_028A90_PS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-         /* Only count explicit shader flushes, not implicit ones
-          * done by SURFACE_SYNC.
-          */
-         sctx->num_vs_flushes++;
-         sctx->num_ps_flushes++;
-      } else if (flags & SI_CONTEXT_VS_PARTIAL_FLUSH) {
-         radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-         radeon_emit(EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-         sctx->num_vs_flushes++;
-      }
-   }
-
-   if (flags & SI_CONTEXT_CS_PARTIAL_FLUSH && sctx->compute_is_busy) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_CS_PARTIAL_FLUSH) | EVENT_INDEX(4));
-      sctx->num_cs_flushes++;
-      sctx->compute_is_busy = false;
-   }
-
-   /* VGT state synchronization. */
-   if (flags & SI_CONTEXT_VGT_FLUSH) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
-   }
-   if (flags & SI_CONTEXT_VGT_STREAMOUT_SYNC) {
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_VGT_STREAMOUT_SYNC) | EVENT_INDEX(0));
-   }
-
-   radeon_end();
-
-   /* GFX9: Wait for idle if we're flushing CB or DB. ACQUIRE_MEM doesn't
-    * wait for idle on GFX9. We have to use a TS event.
-    */
-   if (sctx->gfx_level == GFX9 && flush_cb_db) {
-      uint64_t va;
-      unsigned tc_flags, cb_db_event;
-
-      /* Set the CB/DB flush event. */
-      switch (flush_cb_db) {
-      case SI_CONTEXT_FLUSH_AND_INV_CB:
-         cb_db_event = V_028A90_FLUSH_AND_INV_CB_DATA_TS;
-         break;
-      case SI_CONTEXT_FLUSH_AND_INV_DB:
-         cb_db_event = V_028A90_FLUSH_AND_INV_DB_DATA_TS;
-         break;
-      default:
-         /* both CB & DB */
-         cb_db_event = V_028A90_CACHE_FLUSH_AND_INV_TS_EVENT;
-      }
-
-      /* These are the only allowed combinations. If you need to
-       * do multiple operations at once, do them separately.
-       * All operations that invalidate L2 also seem to invalidate
-       * metadata. Volatile (VOL) and WC flushes are not listed here.
-       *
-       * TC    | TC_WB         = writeback & invalidate L2
-       * TC    | TC_WB | TC_NC = writeback & invalidate L2 for MTYPE == NC
-       *         TC_WB | TC_NC = writeback L2 for MTYPE == NC
-       * TC            | TC_NC = invalidate L2 for MTYPE == NC
-       * TC    | TC_MD         = writeback & invalidate L2 metadata (DCC, etc.)
-       * TCL1                  = invalidate L1
-       */
-      tc_flags = 0;
-
-      if (flags & SI_CONTEXT_INV_L2_METADATA) {
-         tc_flags = EVENT_TC_ACTION_ENA | EVENT_TC_MD_ACTION_ENA;
-      }
-
-      /* Ideally flush TC together with CB/DB. */
-      if (flags & SI_CONTEXT_INV_L2) {
-         /* Writeback and invalidate everything in L2 & L1. */
-         tc_flags = EVENT_TC_ACTION_ENA | EVENT_TC_WB_ACTION_ENA;
-
-         /* Clear the flags. */
-         flags &= ~(SI_CONTEXT_INV_L2 | SI_CONTEXT_WB_L2);
-         sctx->num_L2_invalidates++;
-      }
-
-      /* Do the flush (enqueue the event and wait for it). */
-      struct si_resource* wait_mem_scratch =
-        si_get_wait_mem_scratch_bo(sctx, cs, sctx->ws->cs_is_secure(cs));
-
-      va = wait_mem_scratch->gpu_address;
-      sctx->wait_mem_number++;
-
-      si_cp_release_mem(sctx, cs, cb_db_event, tc_flags, EOP_DST_SEL_MEM,
-                        EOP_INT_SEL_SEND_DATA_AFTER_WR_CONFIRM, EOP_DATA_SEL_VALUE_32BIT,
-                        wait_mem_scratch, va, sctx->wait_mem_number, SI_NOT_QUERY);
-
-      if (unlikely(sctx->sqtt_enabled)) {
-         si_sqtt_describe_barrier_start(sctx, &sctx->gfx_cs);
-      }
-
-      si_cp_wait_mem(sctx, cs, va, sctx->wait_mem_number, 0xffffffff, WAIT_REG_MEM_EQUAL);
-
-      if (unlikely(sctx->sqtt_enabled)) {
-         si_sqtt_describe_barrier_end(sctx, &sctx->gfx_cs, sctx->flags);
-      }
-   }
-
-   /* GFX6-GFX8 only:
-    *   When one of the CP_COHER_CNTL.DEST_BASE flags is set, SURFACE_SYNC
-    *   waits for idle, so it should be last. SURFACE_SYNC is done in PFP.
-    *
-    * cp_coher_cntl should contain all necessary flags except TC and PFP flags
-    * at this point.
-    *
-    * GFX6-GFX7 don't support L2 write-back.
-    */
-   if (flags & SI_CONTEXT_INV_L2 || (sctx->gfx_level <= GFX7 && (flags & SI_CONTEXT_WB_L2))) {
-      /* Invalidate L1 & L2. (L1 is always invalidated on GFX6)
-       * WB must be set on GFX8+ when TC_ACTION is set.
-       */
-      si_emit_surface_sync(sctx, cs,
-                           cp_coher_cntl | S_0085F0_TC_ACTION_ENA(1) | S_0085F0_TCL1_ACTION_ENA(1) |
-                              S_0301F0_TC_WB_ACTION_ENA(sctx->gfx_level >= GFX8));
-      cp_coher_cntl = 0;
-      sctx->num_L2_invalidates++;
-   } else {
-      /* L1 invalidation and L2 writeback must be done separately,
-       * because both operations can't be done together.
-       */
-      if (flags & SI_CONTEXT_WB_L2) {
-         /* WB = write-back
-          * NC = apply to non-coherent MTYPEs
-          *      (i.e. MTYPE <= 1, which is what we use everywhere)
-          *
-          * WB doesn't work without NC.
-          */
-         si_emit_surface_sync(
-            sctx, cs,
-            cp_coher_cntl | S_0301F0_TC_WB_ACTION_ENA(1) | S_0301F0_TC_NC_ACTION_ENA(1));
-         cp_coher_cntl = 0;
-         sctx->num_L2_writebacks++;
-      }
-      if (flags & SI_CONTEXT_INV_VCACHE) {
-         /* Invalidate per-CU VMEM L1. */
-         si_emit_surface_sync(sctx, cs, cp_coher_cntl | S_0085F0_TCL1_ACTION_ENA(1));
-         cp_coher_cntl = 0;
-      }
-   }
-
-   /* If TC flushes haven't cleared this... */
-   if (cp_coher_cntl)
-      si_emit_surface_sync(sctx, cs, cp_coher_cntl);
-
-   if (flags & SI_CONTEXT_PFP_SYNC_ME) {
-      radeon_begin(cs);
-      radeon_emit(PKT3(PKT3_PFP_SYNC_ME, 0, 0));
-      radeon_emit(0);
-      radeon_end();
-   }
-
-   if (flags & SI_CONTEXT_START_PIPELINE_STATS && sctx->pipeline_stats_enabled != 1) {
-      radeon_begin(cs);
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_PIPELINESTAT_START) | EVENT_INDEX(0));
-      radeon_end();
-      sctx->pipeline_stats_enabled = 1;
-   } else if (flags & SI_CONTEXT_STOP_PIPELINE_STATS && sctx->pipeline_stats_enabled != 0) {
-      radeon_begin(cs);
-      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
-      radeon_emit(EVENT_TYPE(V_028A90_PIPELINESTAT_STOP) | EVENT_INDEX(0));
-      radeon_end();
-      sctx->pipeline_stats_enabled = 0;
-   }
-
-   sctx->flags = 0;
 }

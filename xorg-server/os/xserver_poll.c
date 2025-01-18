@@ -73,20 +73,19 @@
 				 Includes
 \*---------------------------------------------------------------------------*/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <unistd.h>			     /* standard Unix definitions */
 #include <sys/types.h>                       /* system types */
 #include <sys/time.h>                        /* time definitions */
 #include <assert.h>                          /* assertion macros */
 #include <string.h>                          /* string functions */
-#include "xserver_poll.h"
 
 #if defined(WIN32) && !defined(__CYGWIN__)
 #include <X11/Xwinsock.h>
 #endif
+
+#include "os/xserver_poll.h"
 
 /*---------------------------------------------------------------------------*\
 				  Macros

@@ -18,8 +18,6 @@ struct tu_native_format
    enum a3xx_color_swap swap : 8;
 };
 
-enum pipe_format tu_vk_format_to_pipe_format(VkFormat vk_format);
-
 static inline bool
 tu_pipe_format_is_float16(enum pipe_format format)
 {

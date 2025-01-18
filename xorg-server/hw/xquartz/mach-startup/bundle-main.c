@@ -30,12 +30,12 @@
 
 #include <CoreFoundation/CoreFoundation.h>
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <errno.h>
 #include <X11/Xlib.h>
+#include <X11/Xfuncproto.h>
+
 #include <assert.h>
 #include <unistd.h>
 #include <stdio.h>

@@ -39,6 +39,9 @@ v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun drm_i
     struct drm_v3d_get_param hub_ident3 = {
             .param = DRM_V3D_PARAM_V3D_HUB_IDENT3,
     };
+    struct drm_v3d_get_param max_perfcnt = {
+            .param = DRM_V3D_PARAM_MAX_PERF_COUNTERS,
+    };
     int ret;
 
     ret = drm_ioctl(fd, DRM_IOCTL_V3D_GET_PARAM, &ident0);
@@ -68,15 +71,22 @@ v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun drm_i
     devinfo->has_accumulators = devinfo->ver < 71;
 
     switch (devinfo->ver) {
-        case 42:
-        case 71:
-                break;
-        default:
-                fprintf(stderr,
-                        "V3D %d.%d not supported by this version of Mesa.\n",
-                        devinfo->ver / 10,
-                        devinfo->ver % 10);
-                return false;
+    case 42:
+            devinfo->clipper_xy_granularity = 256.0f;
+            devinfo->cle_readahead = 256u;
+            devinfo->cle_buffer_min_size = 4096u;
+            break;
+    case 71:
+            devinfo->clipper_xy_granularity = 64.0f;
+            devinfo->cle_readahead = 1024u;
+            devinfo->cle_buffer_min_size = 16384u;
+            break;
+    default:
+            fprintf(stderr,
+                    "V3D %d.%d not supported by this version of Mesa.\n",
+                    devinfo->ver / 10,
+                    devinfo->ver % 10);
+            return false;
     }
 
     ret = drm_ioctl(fd, DRM_IOCTL_V3D_GET_PARAM, &hub_ident3);
@@ -87,6 +97,17 @@ v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun drm_i
     }
 
    devinfo->rev = (hub_ident3.value >> 8) & 0xff;
+   devinfo->compat_rev = (hub_ident3.value >> 16) & 0xff;
+
+    ret = drm_ioctl(fd, DRM_IOCTL_V3D_GET_PARAM, &max_perfcnt);
+    if (ret != 0) {
+            /* Kernel doesn't have support to return the maximum number of
+             * performance counters.
+             */
+            devinfo->max_perfcnt = 0;
+    } else {
+            devinfo->max_perfcnt = max_perfcnt.value;
+    }
 
    return true;
 }

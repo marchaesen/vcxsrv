@@ -26,8 +26,7 @@ def define_tracepoints(args):
     
 
     def begin_end_tp(name, tp_args=[], tp_struct=None, tp_print=None,
-                     tp_default_enabled=True, end_pipelined=True,
-                     need_cs_param=False):
+                     tp_default_enabled=True, need_cs_param=False):
         global si_default_tps
         if tp_default_enabled:
             si_default_tps.append(name)
@@ -41,7 +40,6 @@ def define_tracepoints(args):
                    tp_struct=tp_struct,
                    tp_perfetto='si_ds_end_{0}'.format(name),
                    tp_print=tp_print,
-                   end_of_pipe=end_pipelined,
                    need_cs_param=need_cs_param)
 
     # Various draws/dispatch, radeonsi

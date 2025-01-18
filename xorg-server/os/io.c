@@ -51,9 +51,7 @@ SOFTWARE.
  *
  *****************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #undef DEBUG_COMMUNICATION
 
@@ -359,13 +357,8 @@ ReadRequestFromClient(ClientPtr client)
         if (result <= 0) {
             if ((result < 0) && ETEST(errno)) {
                 mark_client_not_ready(client);
-#if defined(SVR4) && defined(__i386__) && !defined(__sun)
-                if (0)
-#endif
-                {
-                    YieldControlNoInput(client);
-                    return 0;
-                }
+                YieldControlNoInput(client);
+                return 0;
             }
             YieldControlDeath();
             return -1;

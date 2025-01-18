@@ -1011,7 +1011,7 @@ blend_hsl_luminosity (rgb_t *res,
 		sa *= ma;						\
 		sc.r *= ma;						\
 		sc.g *= ma;						\
-		sc.g *= ma;						\
+		sc.b *= ma;						\
 	    }								\
 									\
 	    blend_ ## name (&rc, &dc, da, &sc, sa);			\

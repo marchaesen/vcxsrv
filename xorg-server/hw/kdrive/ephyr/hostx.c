@@ -23,12 +23,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
-
-#include "hostx.h"
-#include "input.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,13 +32,16 @@
 #include <errno.h>
 #include <time.h>
 #include <err.h>
-
 #ifndef _MSC_VER
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #endif
+
+#include "dix/input_priv.h"
+
+#include "hostx.h"
 
 #define X_INCLUDE_STRING_H
 #include <X11/Xos_r.h>
@@ -1606,7 +1604,7 @@ __glXQueryServerString(CARD32 name)
     /* The spec doesn't mention this, but the Xorg server replies with
      * a string already terminated with '\0'. */
     len = xcb_glx_query_server_string_string_length(reply);
-    buf = xnfalloc(len);
+    buf = XNFalloc(len);
     memcpy(buf, str, len);
     free(reply);
 

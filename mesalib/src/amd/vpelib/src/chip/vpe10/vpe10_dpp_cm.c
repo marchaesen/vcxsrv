@@ -1,3 +1,4 @@
+// Copyright (c) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
 
 #include "vpe_priv.h"
 #include "reg_helper.h"
@@ -132,7 +133,7 @@ static void vpe10_dpp_program_gammcor_lut(
     }
 }
 
-static void vpe10_dpp_program_gamcor_lut(struct dpp *dpp, const struct pwl_params *params)
+void vpe10_dpp_program_gamcor_lut(struct dpp *dpp, const struct pwl_params *params)
 {
     struct vpe10_xfer_func_reg gam_regs = {0};
 
@@ -185,8 +186,11 @@ void vpe10_dpp_program_input_transfer_func(struct dpp *dpp, struct transfer_func
 
     PROGRAM_ENTRY();
 
-    // There should always have input_tf
+    struct stream_ctx *stream_ctx = &vpe_priv->stream_ctx[vpe_priv->fe_cb_ctx.stream_idx];
+    bool               bypass;
+
     VPE_ASSERT(input_tf);
+    // There should always have input_tf
     // Only accept either DISTRIBUTED_POINTS or BYPASS
     // No support for PREDEFINED case
     VPE_ASSERT(input_tf->type == TF_TYPE_DISTRIBUTED_POINTS || input_tf->type == TF_TYPE_BYPASS);
@@ -194,10 +198,15 @@ void vpe10_dpp_program_input_transfer_func(struct dpp *dpp, struct transfer_func
     // VPE always do NL scaling using gamcor, thus skipping dgam (default bypass)
     // dpp->funcs->program_pre_dgam(dpp, tf);
     if (input_tf->type == TF_TYPE_DISTRIBUTED_POINTS) {
-        vpe10_cm_helper_translate_curve_to_degamma_hw_format(input_tf, &dpp->degamma_params);
+        vpe10_cm_helper_translate_curve_to_degamma_hw_format(
+            input_tf, &dpp->degamma_params, input_tf->dirty[dpp->inst]);
         params = &dpp->degamma_params;
     }
-    vpe10_dpp_program_gamcor_lut(dpp, params);
+
+    bypass = ((input_tf->type == TF_TYPE_BYPASS) || dpp->vpe_priv->init.debug.bypass_gamcor);
+
+    CONFIG_CACHE(input_tf, stream_ctx, vpe_priv->init.debug.disable_lut_caching, bypass,
+        vpe10_dpp_program_gamcor_lut(dpp, params), dpp->inst);
 }
 
 void vpe10_dpp_program_gamut_remap(struct dpp *dpp, struct colorspace_transform *gamut_remap)

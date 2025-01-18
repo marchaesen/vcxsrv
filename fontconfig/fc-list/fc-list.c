@@ -113,6 +113,7 @@ main (int argc, char **argv)
     int			brief = 0;
     int			quiet = 0;
     const FcChar8	*format = NULL;
+    const FcChar8	*format_optarg = NULL;
     int			nfont = 0;
     int			i;
     FcObjectSet		*os = 0;
@@ -136,7 +137,7 @@ main (int argc, char **argv)
 	    brief = 1;
 	    break;
 	case 'f':
-	    format = (FcChar8 *) strdup (optarg);
+	    format_optarg = format = (FcChar8 *) strdup (optarg);
 	    break;
 	case 'q':
 	    quiet = 1;
@@ -217,6 +218,10 @@ main (int argc, char **argv)
     if (fs) {
 	nfont = fs->nfont;
 	FcFontSetDestroy (fs);
+    }
+    if (format_optarg)
+    {
+	free ((void *)format_optarg);
     }
 
     FcFini ();

@@ -6,7 +6,7 @@ xkb_symbols "e" {
 };
 
 // EuroSign on E, level 4
-// Alternative to eurosing(e) to keep 3rd level symbol.
+// Alternative to eurosign(e) to keep 3rd level symbol.
 partial
 xkb_symbols "E" {
     key <AD03>	{ [  NoSymbol,   NoSymbol,   NoSymbol,	EuroSign ]	};

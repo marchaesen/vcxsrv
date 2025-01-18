@@ -33,9 +33,9 @@
    Equipment Corporation.
  ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
+
+#include <X11/Xfuncproto.h>
 
 #include "pseudoramiX.h"
 #include "extnsionst.h"
@@ -46,8 +46,8 @@
 #include <X11/extensions/panoramiXproto.h>
 #include "globals.h"
 
-#define TRACE PseudoramiXTrace("TRACE " __FILE__ ":%s",__FUNCTION__)
-#define DEBUG_LOG PseudoramiXDebug
+#define TRACE LogMessageVerb(X_NONE, 10, "TRACE " __FILE__ ":%s", __FUNCTION__)
+#define DEBUG_LOG(...) LogMessageVerb(X_NONE, 3, __VA_ARGS__);
 
 Bool noPseudoramiXExtension = FALSE;
 extern Bool noRRXineramaExtension;
@@ -99,34 +99,6 @@ static PseudoramiXScreenRec *pseudoramiXScreens = NULL;
 static int pseudoramiXScreensAllocated = 0;
 static int pseudoramiXNumScreens = 0;
 static unsigned long pseudoramiXGeneration = 0;
-
-static void
-PseudoramiXTrace(const char *format, ...)
-    _X_ATTRIBUTE_PRINTF(1, 2);
-
-static void
-PseudoramiXTrace(const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    LogVMessageVerb(X_NONE, 10, format, ap);
-    va_end(ap);
-}
-
-static void
-PseudoramiXDebug(const char *format, ...)
-    _X_ATTRIBUTE_PRINTF(1, 2);
-
-static void
-PseudoramiXDebug(const char *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    LogVMessageVerb(X_NONE, 3, format, ap);
-    va_end(ap);
-}
 
 // Add a PseudoramiX screen.
 // The rest of the X server will know nothing about this screen.

@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
@@ -45,12 +45,6 @@
 #include <openssl/provider.h>
 #if !defined(OPENSSL_SYS_MSDOS)
 # include <unistd.h>
-#endif
-
-#if defined(__TANDEM)
-# if defined(OPENSSL_TANDEM_FLOSS)
-#  include <floss.h(floss_fork)>
-# endif
 #endif
 
 #if defined(_WIN32)
@@ -846,8 +840,12 @@ static int EVP_Update_loop(void *args)
     unsigned char *buf = tempargs->buf;
     EVP_CIPHER_CTX *ctx = tempargs->ctx;
     int outl, count, rc;
+    unsigned char faketag[16] = { 0xcc };
 
     if (decrypt) {
+        if (EVP_CIPHER_get_flags(EVP_CIPHER_CTX_get0_cipher(ctx)) & EVP_CIPH_FLAG_AEAD_CIPHER) {
+            (void)EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, sizeof(faketag), faketag);
+        }
         for (count = 0; COND(c[D_EVP][testnum]); count++) {
             rc = EVP_DecryptUpdate(ctx, buf, &outl, buf, lengths[testnum]);
             if (rc != 1) {
@@ -937,7 +935,7 @@ static int EVP_Update_loop_aead(void *args)
                                     sizeof(faketag), faketag) > 0
                 && EVP_DecryptUpdate(ctx, NULL, &outl, aad, sizeof(aad)) > 0
                 && EVP_DecryptUpdate(ctx, buf, &outl, buf, lengths[testnum]) > 0
-                && EVP_DecryptFinal_ex(ctx, buf + outl, &outl) >0)
+                && EVP_DecryptFinal_ex(ctx, buf + outl, &outl) > 0)
                 realcount++;
         }
     } else {
@@ -3033,7 +3031,7 @@ int speed_main(int argc, char **argv)
             ERR_print_errors(bio_err);
             op_count = 1;
         } else {
-            pkey_print_message("private", "rsa encrypt",
+            pkey_print_message("public", "rsa encrypt",
                                rsa_keys[testnum].bits, seconds.rsa);
             /* RSA_blinding_on(rsa_key[testnum],NULL); */
             Time_F(START);
@@ -3101,7 +3099,6 @@ int speed_main(int argc, char **argv)
             loopargs[i].sigsize = loopargs[i].buflen;
             if (loopargs[i].dsa_sign_ctx[testnum] == NULL
                 || EVP_PKEY_sign_init(loopargs[i].dsa_sign_ctx[testnum]) <= 0
-
                 || EVP_PKEY_sign(loopargs[i].dsa_sign_ctx[testnum],
                                  loopargs[i].buf2,
                                  &loopargs[i].sigsize,
@@ -3178,7 +3175,6 @@ int speed_main(int argc, char **argv)
             loopargs[i].sigsize = loopargs[i].buflen;
             if (loopargs[i].ecdsa_sign_ctx[testnum] == NULL
                 || EVP_PKEY_sign_init(loopargs[i].ecdsa_sign_ctx[testnum]) <= 0
-
                 || EVP_PKEY_sign(loopargs[i].ecdsa_sign_ctx[testnum],
                                  loopargs[i].buf2,
                                  &loopargs[i].sigsize,

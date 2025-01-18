@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<registry>
+    <comment>
+Copyright 2023 Google LLC
+SPDX-License-Identifier: MIT
+    </comment>
+
+    <comment>
+This file, vk_gfxstream.xml, is the Vulkan API Registry for gfxstream
+specific entries.
+    </comment>
+        <types comment="Vulkan type definitions">
+        <!-- b/295587347 VkNativeBufferANDROID diverged from upstream -->
+        <type category="struct" name="VkNativeBufferANDROID" structextends="VkImageCreateInfo">
+            <member values="VK_STRUCTURE_TYPE_NATIVE_BUFFER_ANDROID"><type>VkStructureType</type> <name>sType</name></member>
+            <member optional="true">const <type>void</type>* <name>pNext</name></member>
+            <member noautovalidity="true">const <type>uint32_t</type>* <name>handle</name></member>
+            <member><type>int</type> <name>stride</name></member>
+            <member><type>int</type> <name>format</name></member>
+            <member><type>int</type> <name>usage</name></member>
+            <member><type>VkNativeBufferUsage2ANDROID</type> <name>usage2</name></member>
+        </type>
+        <type category="struct" name="VkImportColorBufferGOOGLE" structextends="VkMemoryAllocateInfo">
+            <member values="VK_STRUCTURE_TYPE_IMPORT_COLOR_BUFFER_GOOGLE"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>uint32_t</type>   <name>colorBuffer</name></member>
+        </type>
+        <type category="struct" name="VkImportBufferGOOGLE" structextends="VkMemoryAllocateInfo">
+            <member values="VK_STRUCTURE_TYPE_IMPORT_BUFFER_GOOGLE"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>uint32_t</type>   <name>buffer</name></member>
+        </type>
+        <type category="struct" name="VkCreateBlobGOOGLE" structextends="VkMemoryAllocateInfo">
+            <member values="VK_STRUCTURE_TYPE_CREATE_BLOB_GOOGLE"><type>VkStructureType</type> <name>sType</name></member>
+            <member><type>void</type>*                  <name>pNext</name></member>
+            <member><type>uint32_t</type>   <name>blobMem</name></member>
+            <member><type>uint32_t</type>   <name>blobFlags</name></member>
+            <member><type>uint64_t</type>   <name>blobId</name></member>
+        </type>
+    </types>
+
+    <commands comment="Vulkan command definitions">
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY,VK_ERROR_MEMORY_MAP_FAILED">
+            <proto><type>VkResult</type> <name>vkMapMemoryIntoAddressSpaceGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param externsync="true"><type>VkDeviceMemory</type> <name>memory</name></param>
+            <param optional="false,true"><type>uint64_t</type>* <name>pAddress</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkUpdateDescriptorSetWithTemplateSizedGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param externsync="true"><type>VkDescriptorSet</type> <name>descriptorSet</name></param>
+            <param><type>VkDescriptorUpdateTemplate</type> <name>descriptorUpdateTemplate</name></param>
+            <param><type>uint32_t</type> <name>imageInfoCount</name></param>
+            <param><type>uint32_t</type> <name>bufferInfoCount</name></param>
+            <param><type>uint32_t</type> <name>bufferViewCount</name></param>
+            <param optional="true" len="imageInfoCount">const <type>uint32_t</type>* <name>pImageInfoEntryIndices</name></param>
+            <param optional="true" len="bufferInfoCount">const <type>uint32_t</type>* <name>pBufferInfoEntryIndices</name></param>
+            <param optional="true" len="bufferViewCount">const <type>uint32_t</type>* <name>pBufferViewEntryIndices</name></param>
+            <param optional="true" len="imageInfoCount">const <type>VkDescriptorImageInfo</type>* <name>pImageInfos</name></param>
+            <param optional="true" len="bufferInfoCount">const <type>VkDescriptorBufferInfo</type>* <name>pBufferInfos</name></param>
+            <param optional="true" len="bufferViewCount">const <type>VkBufferView</type>* <name>pBufferViews</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkUpdateDescriptorSetWithTemplateSized2GOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param externsync="true"><type>VkDescriptorSet</type> <name>descriptorSet</name></param>
+            <param><type>VkDescriptorUpdateTemplate</type> <name>descriptorUpdateTemplate</name></param>
+            <param><type>uint32_t</type> <name>imageInfoCount</name></param>
+            <param><type>uint32_t</type> <name>bufferInfoCount</name></param>
+            <param><type>uint32_t</type> <name>bufferViewCount</name></param>
+            <param><type>uint32_t</type> <name>inlineUniformBlockCount</name></param>
+            <param optional="true" len="imageInfoCount">const <type>uint32_t</type>* <name>pImageInfoEntryIndices</name></param>
+            <param optional="true" len="bufferInfoCount">const <type>uint32_t</type>* <name>pBufferInfoEntryIndices</name></param>
+            <param optional="true" len="bufferViewCount">const <type>uint32_t</type>* <name>pBufferViewEntryIndices</name></param>
+            <param optional="true" len="imageInfoCount">const <type>VkDescriptorImageInfo</type>* <name>pImageInfos</name></param>
+            <param optional="true" len="bufferInfoCount">const <type>VkDescriptorBufferInfo</type>* <name>pBufferInfos</name></param>
+            <param optional="true" len="bufferViewCount">const <type>VkBufferView</type>* <name>pBufferViews</name></param>
+            <param optional="true" len="inlineUniformBlockCount">const <type>uint8_t</type>* <name>pInlineUniformBlockData</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkBeginCommandBufferAsyncGOOGLE</name></proto>
+            <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
+            <param>const <type>VkCommandBufferBeginInfo</type>* <name>pBeginInfo</name></param>
+            <implicitexternsyncparams>
+                <param>the sname:VkCommandPool that pname:commandBuffer was allocated from</param>
+            </implicitexternsyncparams>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkEndCommandBufferAsyncGOOGLE</name></proto>
+            <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
+            <implicitexternsyncparams>
+                <param>the sname:VkCommandPool that pname:commandBuffer was allocated from</param>
+            </implicitexternsyncparams>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkResetCommandBufferAsyncGOOGLE</name></proto>
+            <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
+            <param optional="true"><type>VkCommandBufferResetFlags</type> <name>flags</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkCommandBufferHostSyncGOOGLE</name></proto>
+            <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
+            <param><type>uint32_t</type> <name>needHostSync</name></param>
+            <param><type>uint32_t</type> <name>sequenceNumber</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+            <proto><type>VkResult</type> <name>vkCreateImageWithRequirementsGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param>const <type>VkImageCreateInfo</type>* <name>pCreateInfo</name></param>
+            <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
+            <param><type>VkImage</type>* <name>pImage</name></param>
+            <param><type>VkMemoryRequirements</type>* <name>pMemoryRequirements</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+            <proto><type>VkResult</type> <name>vkCreateBufferWithRequirementsGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param>const <type>VkBufferCreateInfo</type>* <name>pCreateInfo</name></param>
+            <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
+            <param><type>VkBuffer</type>* <name>pBuffer</name></param>
+            <param><type>VkMemoryRequirements</type>* <name>pMemoryRequirements</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
+            <proto><type>VkResult</type> <name>vkGetMemoryHostAddressInfoGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param externsync="true"><type>VkDeviceMemory</type> <name>memory</name></param>
+            <param optional="false,true"><type>uint64_t</type>* <name>pAddress</name></param>
+            <param optional="false,true"><type>uint64_t</type>* <name>pSize</name></param>
+            <param optional="false,true"><type>uint64_t</type>* <name>pHostmemId</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY,VK_ERROR_OUT_OF_DEVICE_MEMORY">
+            <proto><type>VkResult</type> <name>vkFreeMemorySyncGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param optional="true" externsync="true"><type>VkDeviceMemory</type> <name>memory</name></param>
+            <param optional="true">const <type>VkAllocationCallbacks</type>* <name>pAllocator</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueHostSyncGOOGLE</name></proto>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
+            <param><type>uint32_t</type> <name>needHostSync</name></param>
+            <param><type>uint32_t</type> <name>sequenceNumber</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueSubmitAsyncGOOGLE</name></proto>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
+            <param optional="true"><type>uint32_t</type> <name>submitCount</name></param>
+            <param len="submitCount" externsync="pSubmits[].pWaitSemaphores[],pSubmits[].pSignalSemaphores[]">const <type>VkSubmitInfo</type>* <name>pSubmits</name></param>
+            <param optional="true" externsync="true"><type>VkFence</type> <name>fence</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueSubmitAsync2GOOGLE</name></proto>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
+            <param optional="true"><type>uint32_t</type> <name>submitCount</name></param>
+            <param len="submitCount" externsync="pSubmits[].pWaitSemaphores[],pSubmits[].pSignalSemaphores[]">const <type>VkSubmitInfo2</type>* <name>pSubmits</name></param>
+            <param optional="true" externsync="true"><type>VkFence</type> <name>fence</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueWaitIdleAsyncGOOGLE</name></proto>
+            <param><type>VkQueue</type> <name>queue</name></param>
+        </command>
+        <command queues="sparse_binding">
+            <proto><type>void</type> <name>vkQueueBindSparseAsyncGOOGLE</name></proto>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
+            <param optional="true"><type>uint32_t</type> <name>bindInfoCount</name></param>
+            <param len="bindInfoCount" externsync="pBindInfo[].pWaitSemaphores[],pBindInfo[].pSignalSemaphores[],pBindInfo[].pBufferBinds[].buffer,pBindInfo[].pImageOpaqueBinds[].image,pBindInfo[].pImageBinds[].image">const <type>VkBindSparseInfo</type>* <name>pBindInfo</name></param>
+            <param optional="true" externsync="true"><type>VkFence</type> <name>fence</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkGetLinearImageLayoutGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param><type>VkFormat</type> <name>format</name></param>
+            <param><type>VkDeviceSize</type>* <name>pOffset</name></param>
+            <param><type>VkDeviceSize</type>* <name>pRowPitchAlignment</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkGetLinearImageLayout2GOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param>const <type>VkImageCreateInfo</type>* <name>pCreateInfo</name></param>
+            <param><type>VkDeviceSize</type>* <name>pOffset</name></param>
+            <param><type>VkDeviceSize</type>* <name>pRowPitchAlignment</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueFlushCommandsGOOGLE</name></proto>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
+            <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
+            <param><type>VkDeviceSize</type> <name>dataSize</name></param>
+            <param len="dataSize">const <type>void</type>* <name>pData</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
+            <proto><type>VkResult</type> <name>vkGetBlobGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param externsync="true"><type>VkDeviceMemory</type> <name>memory</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueCommitDescriptorSetUpdatesGOOGLE</name></proto>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
+            <param externsync="true"><type>uint32_t</type> <name>descriptorPoolCount</name></param>
+            <param len="descriptorPoolCount" externsync="true">const <type>VkDescriptorPool</type>* <name>pDescriptorPools</name></param>
+            <param externsync="true"><type>uint32_t</type> <name>descriptorSetCount</name></param>
+            <param len="descriptorSetCount" externsync="true">const <type>VkDescriptorSetLayout</type>* <name>pSetLayouts</name></param>
+            <param len="descriptorSetCount" externsync="true">const <type>uint64_t</type>* <name>pDescriptorSetPoolIds</name></param>
+            <param len="descriptorSetCount" externsync="true">const <type>uint32_t</type>* <name>pDescriptorSetWhichPool</name></param>
+            <param len="descriptorSetCount" externsync="true">const <type>uint32_t</type>* <name>pDescriptorSetPendingAllocation</name></param>
+            <param len="descriptorSetCount" externsync="true">const <type>uint32_t</type>* <name>pDescriptorWriteStartingIndices</name></param>
+            <param externsync="true"><type>uint32_t</type> <name>pendingDescriptorWriteCount</name></param>
+            <param len="pendingDescriptorWriteCount" externsync="true">const <type>VkWriteDescriptorSet</type>* <name>pPendingDescriptorWrites</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkCollectDescriptorPoolIdsGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param externsync="true"><type>VkDescriptorPool</type> <name>descriptorPool</name></param>
+            <param optiona="false,true"><type>uint32_t</type>* <name>pPoolIdCount</name></param>
+            <param optional="true" len="pPoolIdCount"><type>uint64_t</type>* <name>pPoolIds</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueSignalReleaseImageANDROIDAsyncGOOGLE</name></proto>
+            <param><type>VkQueue</type> <name>queue</name></param>
+            <param optional="true"><type>uint32_t</type> <name>waitSemaphoreCount</name></param>
+            <param noautovalidity="true" len="waitSemaphoreCount">const <type>VkSemaphore</type>* <name>pWaitSemaphores</name></param>
+            <param><type>VkImage</type> <name>image</name></param>
+        </command>
+        <command>
+            <proto><type>VkResult</type> <name>vkQueueSignalReleaseImageANDROID</name></proto>
+            <param><type>VkQueue</type> <name>queue</name></param>
+            <param optional="true"><type>uint32_t</type> <name>waitSemaphoreCount</name></param>
+            <param noautovalidity="true" len="waitSemaphoreCount">const <type>VkSemaphore</type>* <name>pWaitSemaphores</name></param>
+            <param><type>VkImage</type> <name>image</name></param>
+            <param><type>int</type>* <name>pNativeFenceFd</name></param>
+        </command>
+        <command>
+            <proto><type>void</type> <name>vkQueueFlushCommandsFromAuxMemoryGOOGLE</name></proto>
+            <param externsync="true"><type>VkQueue</type> <name>queue</name></param>
+            <param externsync="true"><type>VkCommandBuffer</type> <name>commandBuffer</name></param>
+            <param><type>VkDeviceMemory</type> <name>deviceMemory</name></param>
+            <param><type>VkDeviceSize</type> <name>dataOffset</name></param>
+            <param><type>VkDeviceSize</type> <name>dataSize</name></param>
+        </command>
+        <command successcodes="VK_SUCCESS" errorcodes="VK_ERROR_OUT_OF_HOST_MEMORY">
+            <proto><type>VkResult</type> <name>vkGetSemaphoreGOOGLE</name></proto>
+            <param><type>VkDevice</type> <name>device</name></param>
+            <param><type>VkSemaphore</type> <name>semaphore</name></param>
+	    <param><type>uint64_t</type> <name>syncId</name></param>
+        </command>
+    </commands>
+    <extensions comment="Vulkan extension interface definitions">
+        <extension name="VK_ANDROID_native_buffer" supported="vulkan"/>
+        <extension name="VK_GOOGLE_gfxstream" number="386" author="GOOGLE" contact="Lingfeng Yang @frank,Roman Kiryanov @rkir,Yilong Li @liyl_google" supported="vulkan" type="instance">
+            <require>
+                <enum value="0"                                             name="VK_GOOGLE_GFXSTREAM_SPEC_VERSION"/>
+                <enum value="386"                                           name="VK_GOOGLE_GFXSTREAM_NUMBER"/>
+                <enum value="&quot;VK_GOOGLE_gfxstream&quot;"               name="VK_GOOGLE_GFXSTREAM_EXTENSION_NAME"/>
+                <enum offset="0" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_IMPORT_COLOR_BUFFER_GOOGLE"/>
+                <enum offset="1" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_IMPORT_BUFFER_GOOGLE"/>
+                <enum offset="2" extends="VkStructureType"                  name="VK_STRUCTURE_TYPE_CREATE_BLOB_GOOGLE"/>
+                <type name="VkImportColorBufferGOOGLE"/>
+                <type name="VkImportBufferGOOGLE"/>
+                <type name="VkCreateBlobGOOGLE"/>
+                <command name="vkMapMemoryIntoAddressSpaceGOOGLE"/>
+                <command name="vkUpdateDescriptorSetWithTemplateSizedGOOGLE"/>
+                <command name="vkBeginCommandBufferAsyncGOOGLE"/>
+                <command name="vkEndCommandBufferAsyncGOOGLE"/>
+                <command name="vkResetCommandBufferAsyncGOOGLE"/>
+                <command name="vkCommandBufferHostSyncGOOGLE"/>
+                <command name="vkCreateImageWithRequirementsGOOGLE"/>
+                <command name="vkCreateBufferWithRequirementsGOOGLE"/>
+                <command name="vkGetMemoryHostAddressInfoGOOGLE"/>
+                <command name="vkFreeMemorySyncGOOGLE"/>
+                <command name="vkQueueHostSyncGOOGLE"/>
+                <command name="vkQueueSubmitAsyncGOOGLE"/>
+                <command name="vkQueueWaitIdleAsyncGOOGLE"/>
+                <command name="vkQueueBindSparseAsyncGOOGLE"/>
+                <command name="vkGetLinearImageLayoutGOOGLE"/>
+                <command name="vkGetLinearImageLayout2GOOGLE"/>
+                <command name="vkQueueFlushCommandsGOOGLE"/>
+                <command name="vkQueueCommitDescriptorSetUpdatesGOOGLE"/>
+                <command name="vkCollectDescriptorPoolIdsGOOGLE"/>
+                <command name="vkQueueSignalReleaseImageANDROIDAsyncGOOGLE"/>
+                <command name="vkQueueFlushCommandsFromAuxMemoryGOOGLE"/>
+                <command name="vkGetBlobGOOGLE"/>
+                <command name="vkUpdateDescriptorSetWithTemplateSized2GOOGLE"/>
+                <command name="vkQueueSubmitAsync2GOOGLE"/>
+                <command name="vkGetSemaphoreGOOGLE"/>
+            </require>
+        </extension>
+    </extensions>
+</registry>

@@ -8,17 +8,17 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- state.xml     (  28218 bytes, from 2023-11-13 11:29:31)
-- common.xml    (  35465 bytes, from 2023-11-13 11:29:31)
-- common_3d.xml (  15069 bytes, from 2023-11-13 11:29:31)
-- state_hi.xml  (  34935 bytes, from 2023-11-13 11:29:31)
-- copyright.xml (   1597 bytes, from 2018-02-10 13:09:26)
-- state_2d.xml  (  52271 bytes, from 2023-09-13 13:37:23)
-- state_3d.xml  (  86123 bytes, from 2023-11-13 12:42:26)
-- state_blt.xml (  14424 bytes, from 2023-09-13 13:37:23)
-- state_vg.xml  (   5975 bytes, from 2018-02-10 13:09:26)
+- state.xml     (  30526 bytes, from 2024-10-03 13:48:59)
+- common.xml    (  35664 bytes, from 2024-10-03 13:48:59)
+- common_3d.xml (  15069 bytes, from 2024-10-03 13:48:59)
+- state_hi.xml  (  35909 bytes, from 2024-10-03 13:48:59)
+- copyright.xml (   1597 bytes, from 2024-04-10 16:26:25)
+- state_2d.xml  (  52271 bytes, from 2024-04-10 16:26:25)
+- state_3d.xml  (  89542 bytes, from 2024-10-03 13:56:36)
+- state_blt.xml (  14592 bytes, from 2024-10-03 13:48:59)
+- state_vg.xml  (   5975 bytes, from 2024-04-10 16:26:25)
 
-Copyright (C) 2012-2023 by the following authors:
+Copyright (C) 2012-2024 by the following authors:
 - Wladimir J. van der Laan <laanwj@gmail.com>
 - Christian Gmeiner <christian.gmeiner@gmail.com>
 - Lucas Stach <l.stach@pengutronix.de>
@@ -298,6 +298,11 @@ DEALINGS IN THE SOFTWARE.
 #define VIVS_BLT_MIP_ADDR(i0)				       (0x000140c0 + 0x4*(i0))
 
 #define VIVS_BLT_MIP_STRIDE(i0)				       (0x00014300 + 0x4*(i0))
+
+#define VIVS_BLT_MULTI_CLUSTER_UNK14338				0x00014338
+#define VIVS_BLT_MULTI_CLUSTER_UNK14338_SELECTED_CLUSTER__MASK	0x000000ff
+#define VIVS_BLT_MULTI_CLUSTER_UNK14338_SELECTED_CLUSTER__SHIFT	0
+#define VIVS_BLT_MULTI_CLUSTER_UNK14338_SELECTED_CLUSTER(x)	(((x) << VIVS_BLT_MULTI_CLUSTER_UNK14338_SELECTED_CLUSTER__SHIFT) & VIVS_BLT_MULTI_CLUSTER_UNK14338_SELECTED_CLUSTER__MASK)
 
 #define VIVS_BLT_SRC_END					0x000140f4
 

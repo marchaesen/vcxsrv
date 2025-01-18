@@ -31,12 +31,13 @@
  * delta times between each image.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xmd.h>
+
+#include "dix/cursor_priv.h"
+
 #include "servermd.h"
 #include "scrnintstr.h"
 #include "dixstruct.h"
@@ -336,7 +337,7 @@ AnimCursorCreate(CursorPtr *cursors, CARD32 *deltas, int ncursor,
 
     /* security creation/labeling check */
     if (ac->timer)
-        rc = XaceHook(XACE_RESOURCE_ACCESS, client, cid, X11_RESTYPE_CURSOR, pCursor,
+        rc = XaceHookResourceAccess(client, cid, X11_RESTYPE_CURSOR, pCursor,
                       X11_RESTYPE_NONE, NULL, DixCreateAccess);
 
     if (rc != Success) {

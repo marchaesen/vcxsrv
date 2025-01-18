@@ -72,6 +72,11 @@ enum vpe_cmd_type {
     VPE_CMD_TYPE_COUNT
 };
 
+enum vpe_stream_type {
+    VPE_STREAM_TYPE_INPUT,
+    VPE_STREAM_TYPE_BG_GEN,
+};
+
 /** this represents a segement context.
  * each segment has its own version of data */
 struct segment_ctx {
@@ -85,51 +90,56 @@ struct vpe_cmd_input {
     struct scaler_data scaler_data;
 };
 
+struct vpe_cmd_output {
+    struct vpe_rect dst_viewport;
+    struct vpe_rect dst_viewport_c;
+};
+
 struct vpe_cmd_info {
     enum vpe_cmd_ops ops;
     uint8_t          cd; // count down value
 
     // input
     uint16_t             num_inputs;
-    struct vpe_cmd_input inputs[MAX_PIPE];
+    struct vpe_cmd_input inputs[MAX_INPUT_PIPE];
 
     // output
-    struct vpe_rect dst_viewport;
-    struct vpe_rect dst_viewport_c;
+    uint16_t              num_outputs;
+    struct vpe_cmd_output outputs[MAX_OUTPUT_PIPE];
 
     bool tm_enabled;
-    bool is_begin;
-    bool is_end;
+    bool insert_start_csync;
+    bool insert_end_csync;
 };
 
 struct config_record {
     uint64_t config_base_addr;
-    uint64_t  config_size;
+    uint64_t config_size;
 };
 
 /** represents a stream input, i.e. common to all segments */
 struct stream_ctx {
     struct vpe_priv *vpe_priv;
 
-    int32_t           stream_idx;
-    struct vpe_stream stream; /**< stores all the input data */
+    enum vpe_stream_type stream_type;
+    int32_t              stream_idx;
+    struct vpe_stream    stream; /**< stores all the input data */
 
     uint16_t            num_segments;
     struct segment_ctx *segment_ctx;
 
-    uint16_t num_configs;                               // shared among same stream
-    uint16_t num_stream_op_configs[VPE_CMD_TYPE_COUNT]; // shared among same cmd type within the
-                                                        // same stream
-    struct config_record configs[16];
-    struct config_record stream_op_configs[VPE_CMD_TYPE_COUNT][16];
+    // share configs that can be re-used once generated
+    struct vpe_vector *configs[MAX_INPUT_PIPE];
+    struct vpe_vector *stream_op_configs[MAX_INPUT_PIPE][VPE_CMD_TYPE_COUNT];
 
     // cached color properties
     bool                     per_pixel_alpha;
     enum color_transfer_func tf;
     enum color_space         cs;
     bool                     enable_3dlut;
-    bool                     update_3dlut;
-    uint64_t                 UID_3DLUT;                 // UID for current 3D LUT params
+    uint64_t                 uid_3dlut;                 // UID for current 3D LUT params
+    bool                     geometric_scaling;
+    bool                     is_yuv_input;
 
     union {
         struct {
@@ -149,11 +159,9 @@ struct stream_ctx {
     struct vpe_3dlut            *lut3d_func;     // for 3dlut
     struct transfer_func        *blend_tf;       // for 1dlut
     white_point_gain             white_point_gain;
-
-    bool                    flip_horizonal_output;
-    struct vpe_color_adjust color_adjustments; // stores the current color adjustments params
-    struct fixed31_32
-        tf_scaling_factor; // a scaling factor that acts as a gain on the transfer function
+    bool                         flip_horizonal_output;
+    struct vpe_color_adjust      color_adjustments; // stores the current color adjustments params
+    struct fixed31_32            tf_scaling_factor; // a gain applied on a transfer function
 };
 
 struct output_ctx {
@@ -168,8 +176,8 @@ struct output_ctx {
     enum color_transfer_func tf;
     enum color_space         cs;
 
-    uint32_t             num_configs;
-    struct config_record configs[8];
+    // store generated per-pipe configs that can be reused
+    struct vpe_vector *configs[MAX_OUTPUT_PIPE];
 
     union {
         struct {
@@ -227,9 +235,7 @@ struct vpe_priv {
     struct calculate_buffer cal_buffer;
     struct vpe_bufs_req     bufs_required; /**< cached required buffer size for the checked ops */
 
-    // number of total vpe cmds
-    uint16_t            num_vpe_cmds;
-    struct vpe_cmd_info vpe_cmd_info[MAX_VPE_CMD];
+    struct vpe_vector  *vpe_cmd_vector;
     bool                ops_support;
 
     // writers
@@ -240,14 +246,16 @@ struct vpe_priv {
     struct config_backend_cb_ctx  be_cb_ctx;
 
     // input ctx
-    uint32_t           num_streams;
-    struct stream_ctx *stream_ctx;
+    uint32_t           num_virtual_streams; // streams created by VPE
+    uint32_t           num_input_streams;   // streams inputed from build params
+    uint32_t           num_streams;         // input streams + virtual streams
+    struct stream_ctx *stream_ctx;          // input streams allocated first, then virtual streams
 
     // output ctx
     struct output_ctx output_ctx;
 
     uint16_t        num_pipe;
-    struct pipe_ctx pipe_ctx[MAX_PIPE];
+    struct pipe_ctx pipe_ctx[MAX_INPUT_PIPE];
 
     // internal temp structure for creating pure BG filling
     struct vpe_build_param *dummy_input_param;

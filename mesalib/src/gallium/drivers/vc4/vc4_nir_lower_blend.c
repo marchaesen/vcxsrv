@@ -130,7 +130,7 @@ static nir_def *
 vc4_nir_set_packed_chan(nir_builder *b, nir_def *src0, nir_def *src1,
                         int chan)
 {
-        unsigned chan_mask = 0xff << (chan * 8);
+        unsigned chan_mask = 0xffu << (chan * 8);
         return nir_ior(b,
                        nir_iand_imm(b, src0, ~chan_mask),
                        nir_iand_imm(b, src1, chan_mask));
@@ -492,7 +492,7 @@ vc4_nir_blend_pipeline(struct vc4_compile *c, nir_builder *b, nir_def *src,
         for (int i = 0; i < 4; i++) {
                 if (format_swiz[i] < 4 &&
                     !(c->fs_key->blend.colormask & (1 << format_swiz[i]))) {
-                        colormask &= ~(0xff << (i * 8));
+                        colormask &= ~(0xffu << (i * 8));
                 }
         }
 
@@ -596,8 +596,7 @@ vc4_nir_lower_blend(nir_shader *s, struct vc4_compile *c)
                 }
 
                 nir_metadata_preserve(impl,
-                                      nir_metadata_block_index |
-                                      nir_metadata_dominance);
+                                      nir_metadata_control_flow);
         }
 
         /* If we didn't do alpha-to-coverage on the output color, we still

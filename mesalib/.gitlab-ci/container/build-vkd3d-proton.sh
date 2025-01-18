@@ -2,15 +2,15 @@
 
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
-# DEBIAN_X86_64_TEST_VK_TAG
+# DEBIAN_TEST_VK_TAG
 # KERNEL_ROOTFS_TAG
 set -ex
 
-VKD3D_PROTON_COMMIT="c3b385606a93baed42482d822805e0d9c2f3f603"
+VKD3D_PROTON_COMMIT="3d46c082906c77544385d10801e4c0184f0385d9"
 
 VKD3D_PROTON_DST_DIR="/vkd3d-proton-tests"
 VKD3D_PROTON_SRC_DIR="/vkd3d-proton-src"
-VKD3D_PROTON_BUILD_DIR="/vkd3d-proton-$VKD3D_PROTON_VERSION"
+VKD3D_PROTON_BUILD_DIR="/vkd3d-proton-build"
 
 function build_arch {
   local arch="$1"
@@ -37,6 +37,11 @@ git submodule update --init --recursive
 git submodule update --recursive
 build_arch 64
 build_arch 86
+mkdir "$VKD3D_PROTON_DST_DIR/tests"
+cp \
+  "tests/test-runner.sh" \
+  "tests/d3d12_tests.h" \
+  "$VKD3D_PROTON_DST_DIR/tests/"
 popd
 
 rm -rf "$VKD3D_PROTON_BUILD_DIR"

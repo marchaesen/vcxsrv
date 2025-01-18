@@ -24,9 +24,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ********************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <xkb-config.h>
 
@@ -74,13 +72,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define	PHYS_LEDS	0x07
 #endif
 #endif
-
-#define	MAX_TOC	16
-typedef struct _SrvXkmInfo {
-    DeviceIntPtr dev;
-    FILE *file;
-    XkbDescPtr xkb;
-} SrvXkmInfo;
 
 /***====================================================================***/
 
@@ -215,11 +206,11 @@ XkbInitRules(XkbRMLVOSet *rmlvo,
              const char *variant,
              const char *options)
 {
-    rmlvo->rules = rules ? xnfstrdup(rules) : NULL;
-    rmlvo->model = model ? xnfstrdup(model) : NULL;
-    rmlvo->layout = layout ? xnfstrdup(layout) : NULL;
-    rmlvo->variant = variant ? xnfstrdup(variant) : NULL;
-    rmlvo->options = options ? xnfstrdup(options) : NULL;
+    rmlvo->rules = rules ? XNFstrdup(rules) : NULL;
+    rmlvo->model = model ? XNFstrdup(model) : NULL;
+    rmlvo->layout = layout ? XNFstrdup(layout) : NULL;
+    rmlvo->variant = variant ? XNFstrdup(variant) : NULL;
+    rmlvo->options = options ? XNFstrdup(options) : NULL;
 }
 
 static void
@@ -778,11 +769,11 @@ XkbProcessArguments(int argc, char *argv[], int i)
         else {
             XkbWantAccessX = 1;
 
-            if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+            if (((i + 1) < argc) && (isdigit((unsigned char)argv[i + 1][0]))) {
                 XkbDfltAccessXTimeout = atoi(argv[++i]);
                 j++;
 
-                if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+                if (((i + 1) < argc) && (isdigit((unsigned char)argv[i + 1][0]))) {
                     /*
                      * presumption that the reasonably useful range of
                      * values fits in 0..MAXINT since SunOS 4 doesn't
@@ -792,14 +783,14 @@ XkbProcessArguments(int argc, char *argv[], int i)
                         strtol(argv[++i], NULL, 16);
                     j++;
                 }
-                if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+                if (((i + 1) < argc) && (isdigit((unsigned char)argv[i + 1][0]))) {
                     if (argv[++i][0] == '1')
                         XkbDfltAccessXFeedback = XkbAccessXFeedbackMask;
                     else
                         XkbDfltAccessXFeedback = 0;
                     j++;
                 }
-                if (((i + 1) < argc) && (isdigit(argv[i + 1][0]))) {
+                if (((i + 1) < argc) && (isdigit((unsigned char)argv[i + 1][0]))) {
                     XkbDfltAccessXOptions = (unsigned short)
                         strtol(argv[++i], NULL, 16);
                     j++;

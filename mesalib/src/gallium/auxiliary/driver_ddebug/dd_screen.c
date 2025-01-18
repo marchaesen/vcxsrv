@@ -252,6 +252,34 @@ dd_screen_resource_from_handle(struct pipe_screen *_screen,
 }
 
 static struct pipe_resource *
+dd_screen_resource_create_with_modifiers(struct pipe_screen *_screen,
+                                         const struct pipe_resource *templat,
+                                         const uint64_t *modifiers, int count)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+   struct pipe_resource *res =
+      screen->resource_create_with_modifiers(screen, templat,
+                                             modifiers, count);
+
+   if (!res)
+      return NULL;
+   res->screen = _screen;
+   return res;
+}
+
+static void
+dd_screen_query_dmabuf_modifiers(struct pipe_screen *_screen,
+                                 enum pipe_format format, int max,
+                                 uint64_t *modifiers,
+                                 unsigned int *external_only, int *count)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+   screen->query_dmabuf_modifiers(screen, format, max, modifiers,
+                                  external_only, count);
+}
+
+
+static struct pipe_resource *
 dd_screen_resource_from_user_memory(struct pipe_screen *_screen,
                                     const struct pipe_resource *templ,
                                     void *user_memory)
@@ -517,6 +545,15 @@ match_uint(const char **cur, unsigned *value)
    return true;
 }
 
+static struct pipe_screen * dd_get_driver_pipe_screen(struct pipe_screen *_screen)
+{
+   struct pipe_screen * screen = dd_screen(_screen)->screen;
+
+   if (screen->get_driver_pipe_screen)
+      return screen->get_driver_pipe_screen(screen);
+   return screen;
+}
+
 struct pipe_screen *
 ddebug_screen_create(struct pipe_screen *screen)
 {
@@ -634,6 +671,8 @@ ddebug_screen_create(struct pipe_screen *screen)
    /* is_video_format_supported */
    SCR_INIT(can_create_resource);
    dscreen->base.resource_create = dd_screen_resource_create;
+   dscreen->base.resource_create_with_modifiers = dd_screen_resource_create_with_modifiers;
+   dscreen->base.query_dmabuf_modifiers = dd_screen_query_dmabuf_modifiers;
    dscreen->base.resource_from_handle = dd_screen_resource_from_handle;
    SCR_INIT(resource_from_memobj);
    SCR_INIT(resource_from_user_memory);
@@ -658,6 +697,7 @@ ddebug_screen_create(struct pipe_screen *screen)
    SCR_INIT(get_sparse_texture_virtual_page_size);
    SCR_INIT(create_vertex_state);
    SCR_INIT(vertex_state_destroy);
+   dscreen->base.get_driver_pipe_screen = dd_get_driver_pipe_screen;
 
 #undef SCR_INIT
 

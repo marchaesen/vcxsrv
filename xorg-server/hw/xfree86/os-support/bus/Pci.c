@@ -125,6 +125,7 @@
 #endif
 
 #include "Pci.h"
+#include "../xf86_os_support.h"
 
 Bool
 xf86scanpci(void)
@@ -134,7 +135,9 @@ xf86scanpci(void)
     success = (pci_system_init() == 0);
 
     /* choose correct platform/OS specific PCI init routine */
-    osPciInit();
+#if !defined(__linux__)
+    xf86InitVidMem();
+#endif
 
     return success;
 }

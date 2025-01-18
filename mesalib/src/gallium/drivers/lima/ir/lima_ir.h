@@ -75,4 +75,6 @@ void lima_nir_duplicate_load_uniforms(nir_shader *shader);
 
 bool lima_nir_lower_txp(nir_shader *shader);
 
+bool lima_nir_ppir_algebraic_late(nir_shader *shader);
+
 #endif

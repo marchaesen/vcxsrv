@@ -223,14 +223,6 @@ void cl_ensure_space(struct vc4_cl *cl, uint32_t size);
 #define cl_packet_pack(packet)   V3D21_ ## packet ## _pack
 #define cl_packet_struct(packet)   V3D21_ ## packet
 
-static inline void *
-cl_get_emit_space(struct vc4_cl_out **cl, size_t size)
-{
-        void *addr = *cl;
-        cl_advance(cl, size);
-        return addr;
-}
-
 /* Macro for setting up an emit of a CL struct.  A temporary unpacked struct
  * is created, which you get to set fields in of the form:
  *

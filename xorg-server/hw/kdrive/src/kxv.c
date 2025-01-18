@@ -35,11 +35,14 @@ of the copyright holder.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
-#include "kdrive.h"
 
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvproto.h>
+
+#include "Xext/xvdix_priv.h"
+
+#include "kdrive.h"
 #include "scrnintstr.h"
 #include "regionstr.h"
 #include "windowstr.h"
@@ -49,10 +52,6 @@ of the copyright holder.
 #include "resource.h"
 #include "gcstruct.h"
 #include "dixstruct.h"
-
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/Xvproto.h>
-
 #include "kxv.h"
 #include "fourcc.h"
 

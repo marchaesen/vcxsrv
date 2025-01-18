@@ -62,7 +62,15 @@ static const VAImageFormat formats[] =
    {.fourcc = VA_FOURCC('B','G','R','X'), .byte_order = VA_LSB_FIRST, 32, 24,
     0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000},
    {.fourcc = VA_FOURCC('R','G','B','X'), .byte_order = VA_LSB_FIRST, 32, 24,
-    0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000}
+    0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000},
+   {.fourcc = VA_FOURCC('A','R','3','0'), .byte_order = VA_LSB_FIRST, 32, 30,
+    0x3ff00000, 0x000ffc00, 0x000003ff, 0x30000000},
+   {.fourcc = VA_FOURCC('A','B','3','0'), .byte_order = VA_LSB_FIRST, 32, 30,
+    0x000003ff, 0x000ffc00, 0x3ff00000, 0x30000000},
+   {.fourcc = VA_FOURCC('X','R','3','0'), .byte_order = VA_LSB_FIRST, 32, 30,
+    0x3ff00000, 0x000ffc00, 0x000003ff, 0x00000000},
+   {.fourcc = VA_FOURCC('X','B','3','0'), .byte_order = VA_LSB_FIRST, 32, 30,
+    0x000003ff, 0x000ffc00, 0x3ff00000, 0x00000000},
 };
 
 static void
@@ -180,6 +188,10 @@ vlVaCreateImage(VADriverContextP ctx, VAImageFormat *format, int width, int heig
    case VA_FOURCC('A','R','G','B'):
    case VA_FOURCC('B','G','R','X'):
    case VA_FOURCC('R','G','B','X'):
+   case VA_FOURCC('A','R','3','0'):
+   case VA_FOURCC('A','B','3','0'):
+   case VA_FOURCC('X','R','3','0'):
+   case VA_FOURCC('X','B','3','0'):
       img->num_planes = 1;
       img->pitches[0] = w * 4;
       img->offsets[0] = 0;
@@ -236,7 +248,7 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    vlVaDriver *drv;
    vlVaSurface *surf;
    vlVaBuffer *img_buf;
-   VAImage *img;
+   VAImage *img = NULL;
    VAStatus status;
    struct pipe_screen *screen;
    struct pipe_resource *buf_resources[VL_NUM_COMPONENTS];
@@ -273,10 +285,13 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    if (!screen)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
 
+   mtx_lock(&drv->mutex);
    surf = handle_table_get(drv->htab, surface);
-
-   if (!surf || !surf->buffer)
-      return VA_STATUS_ERROR_INVALID_SURFACE;
+   vlVaGetSurfaceBuffer(drv, surf);
+   if (!surf || !surf->buffer) {
+      status = VA_STATUS_ERROR_INVALID_SURFACE;
+      goto exit_on_error;
+   }
 
    if (surf->buffer->interlaced) {
       for (i = 0; i < ARRAY_SIZE(derive_interlaced_allowlist); i++)
@@ -286,25 +301,32 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
       if (i >= ARRAY_SIZE(derive_interlaced_allowlist) ||
           !screen->get_video_param(screen, PIPE_VIDEO_PROFILE_UNKNOWN,
                                    PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
-                                   PIPE_VIDEO_CAP_SUPPORTS_PROGRESSIVE))
-         return VA_STATUS_ERROR_OPERATION_FAILED;
+                                   PIPE_VIDEO_CAP_SUPPORTS_PROGRESSIVE)) {
+         status = VA_STATUS_ERROR_OPERATION_FAILED;
+         goto exit_on_error;
+      }
    } else if (util_format_get_num_planes(surf->buffer->buffer_format) >= 2 &&
               (!screen->get_video_param(screen, PIPE_VIDEO_PROFILE_UNKNOWN,
                                        PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
                                        PIPE_VIDEO_CAP_SUPPORTS_CONTIGUOUS_PLANES_MAP) ||
                !surf->buffer->contiguous_planes)) {
-      return VA_STATUS_ERROR_OPERATION_FAILED;
+      status = VA_STATUS_ERROR_OPERATION_FAILED;
+      goto exit_on_error;
    }
 
    memset(buf_resources, 0, sizeof(buf_resources));
    surf->buffer->get_resources(surf->buffer, buf_resources);
 
-   if (!buf_resources[0])
-      return VA_STATUS_ERROR_ALLOCATION_FAILED;
+   if (!buf_resources[0]) {
+      status = VA_STATUS_ERROR_ALLOCATION_FAILED;
+      goto exit_on_error;
+   }
 
    img = CALLOC(1, sizeof(VAImage));
-   if (!img)
-      return VA_STATUS_ERROR_ALLOCATION_FAILED;
+   if (!img) {
+      status = VA_STATUS_ERROR_ALLOCATION_FAILED;
+      goto exit_on_error;
+   }
 
    img->format.fourcc = PipeFormatToVaFourcc(surf->buffer->buffer_format);
    img->buf = VA_INVALID_ID;
@@ -324,7 +346,6 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
       }
    }
 
-   mtx_lock(&drv->mutex);
    if (screen->resource_get_info) {
       screen->resource_get_info(screen, buf_resources[0], &stride,
                                 &offset);
@@ -347,6 +368,10 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    case VA_FOURCC('R','G','B','A'):
    case VA_FOURCC('B','G','R','X'):
    case VA_FOURCC('R','G','B','X'):
+   case VA_FOURCC('A','R','3','0'):
+   case VA_FOURCC('A','B','3','0'):
+   case VA_FOURCC('X','R','3','0'):
+   case VA_FOURCC('X','B','3','0'):
       img->pitches[0] = stride > 0 ? stride : w * 4;
       assert(img->pitches[0] >= (w * 4));
       img->data_size  = img->pitches[0] * h;
@@ -522,6 +547,7 @@ vlVaGetImage(VADriverContextP ctx, VASurfaceID surface, int x, int y,
 
    mtx_lock(&drv->mutex);
    surf = handle_table_get(drv->htab, surface);
+   vlVaGetSurfaceBuffer(drv, surf);
    if (!surf || !surf->buffer) {
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_INVALID_SURFACE;
@@ -663,6 +689,7 @@ vlVaPutImage(VADriverContextP ctx, VASurfaceID surface, VAImageID image,
    mtx_lock(&drv->mutex);
 
    surf = handle_table_get(drv->htab, surface);
+   vlVaGetSurfaceBuffer(drv, surf);
    if (!surf || !surf->buffer) {
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_INVALID_SURFACE;
@@ -701,7 +728,9 @@ vlVaPutImage(VADriverContextP ctx, VASurfaceID surface, VAImageID image,
       surf->templat.buffer_format = format;
       if (format == PIPE_FORMAT_YUYV || format == PIPE_FORMAT_UYVY ||
           format == PIPE_FORMAT_B8G8R8A8_UNORM || format == PIPE_FORMAT_B8G8R8X8_UNORM ||
-          format == PIPE_FORMAT_R8G8B8A8_UNORM || format == PIPE_FORMAT_R8G8B8X8_UNORM)
+          format == PIPE_FORMAT_R8G8B8A8_UNORM || format == PIPE_FORMAT_R8G8B8X8_UNORM ||
+          format == PIPE_FORMAT_B10G10R10A2_UNORM || format == PIPE_FORMAT_B10G10R10X2_UNORM ||
+          format == PIPE_FORMAT_R10G10B10A2_UNORM || format == PIPE_FORMAT_R10G10B10X2_UNORM)
          surf->templat.interlaced = false;
       tmp_buf = drv->pipe->create_video_buffer(drv->pipe, &surf->templat);
 

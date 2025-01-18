@@ -91,7 +91,6 @@ enum pipe_video_cap
    PIPE_VIDEO_CAP_STACKED_FRAMES = 9,
    PIPE_VIDEO_CAP_MAX_MACROBLOCKS = 10,
    PIPE_VIDEO_CAP_MAX_TEMPORAL_LAYERS = 11,
-   PIPE_VIDEO_CAP_EFC_SUPPORTED = 12,
    PIPE_VIDEO_CAP_ENC_MAX_SLICES_PER_FRAME = 13,
    PIPE_VIDEO_CAP_ENC_SLICES_STRUCTURE = 14,
    PIPE_VIDEO_CAP_ENC_MAX_REFERENCES_PER_FRAME = 15,
@@ -165,6 +164,14 @@ enum pipe_video_cap
     * Encoding surface width/height alignment
     */
    PIPE_VIDEO_CAP_ENC_SURFACE_ALIGNMENT = 50,
+   /*
+    * HEVC range extension support pipe_h265_enc_cap_range_extension
+    */
+   PIPE_VIDEO_CAP_ENC_HEVC_RANGE_EXTENSION_SUPPORT = 51,
+   /*
+    * HEVC range extension support pipe_h265_enc_cap_range_extension_flags
+    */
+   PIPE_VIDEO_CAP_ENC_HEVC_RANGE_EXTENSION_FLAGS_SUPPORT = 52,
 };
 
 enum pipe_video_h264_enc_dbk_filter_mode_flags
@@ -193,6 +200,7 @@ enum codec_unit_location_flags
    PIPE_VIDEO_CODEC_UNIT_LOCATION_FLAG_NONE = 0x0,
    /* Requires PIPE_VIDEO_FEEDBACK_METADATA_TYPE_MAX_SLICE_SIZE_OVERFLOW */
    PIPE_VIDEO_CODEC_UNIT_LOCATION_FLAG_MAX_SLICE_SIZE_OVERFLOW = 0x1,
+   PIPE_VIDEO_CODEC_UNIT_LOCATION_FLAG_SINGLE_NALU = 0x2,
 };
 
 /* To be used with PIPE_VIDEO_CAP_ENC_SUPPORTS_FEEDBACK_METADATA

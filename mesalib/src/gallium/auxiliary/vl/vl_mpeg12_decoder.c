@@ -746,7 +746,7 @@ vl_mpeg12_decode_bitstream(struct pipe_video_codec *decoder,
    vl_mpg12_bs_decode(&buf->bs, target, desc, num_buffers, buffers, sizes);
 }
 
-static void
+static int
 vl_mpeg12_end_frame(struct pipe_video_codec *decoder,
                     struct pipe_video_buffer *target,
                     struct pipe_picture_desc *picture)
@@ -843,6 +843,7 @@ vl_mpeg12_end_frame(struct pipe_video_codec *decoder,
    dec->context->flush(dec->context, NULL, 0);
    ++dec->current_buffer;
    dec->current_buffer %= 4;
+   return 0;
 }
 
 static void

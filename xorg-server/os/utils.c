@@ -48,9 +48,7 @@ OR PERFORMANCE OF THIS SOFTWARE.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #ifdef __CYGWIN__
 #include <stdlib.h>
@@ -94,7 +92,7 @@ __stdcall unsigned long GetTickCount(void);
 #ifndef WIN32
 #include <sys/wait.h>
 #endif
-#if !defined(SYSV) && !defined(WIN32)
+#if !defined(WIN32)
 #include <sys/resource.h>
 #endif
 #include <sys/stat.h>
@@ -109,10 +107,12 @@ __stdcall unsigned long GetTickCount(void);
 #endif
 
 #include "dix/dix_priv.h"
+#include "dix/input_priv.h"
 #include "os/auth.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
+#include "os/serverlock.h"
 
 #include "dixstruct.h"
 #include "xkbsrv.h"
@@ -175,9 +175,6 @@ Bool noXFixesExtension = FALSE;
 /* Xinerama is disabled by default unless enabled via +xinerama */
 Bool noPanoramiXExtension = TRUE;
 #endif
-#ifdef XV
-Bool noXvExtension = FALSE;
-#endif
 #ifdef DRI2
 Bool noDRI2Extension = FALSE;
 #endif
@@ -229,199 +226,6 @@ OsSignal(int sig, OsSigHandlerPtr handler)
     return oact.sa_handler;
 #endif
 }
-
-/*
- * Explicit support for a server lock file like the ones used for UUCP.
- * For architectures with virtual terminals that can run more than one
- * server at a time.  This keeps the servers from stomping on each other
- * if the user forgets to give them different display numbers.
- */
-#define LOCK_DIR "/tmp"
-#define LOCK_TMP_PREFIX "/.tX"
-#define LOCK_PREFIX "/.X"
-#define LOCK_SUFFIX "-lock"
-
-#ifdef _MSC_VER
-#define LockFile szLockFile
-#endif
-
-#if !defined(WIN32) || defined(__CYGWIN__)
-#define LOCK_SERVER
-#endif
-
-#ifndef LOCK_SERVER
-void
-LockServer(void)
-{}
-
-void
-UnlockServer(void)
-{}
-#else /* LOCK_SERVER */
-static Bool StillLocking = FALSE;
-static char LockFile[PATH_MAX];
-static Bool nolock = FALSE;
-
-/*
- * LockServer --
- *      Check if the server lock file exists.  If so, check if the PID
- *      contained inside is valid.  If so, then die.  Otherwise, create
- *      the lock file containing the PID.
- */
-void
-LockServer(void)
-{
-#if defined(WIN32) && !defined(__CYGWIN__)
-  char MutexName[100];
-  sprintf(MutexName, "Global\\VcXsrv_Mutex_%d\n", atoi(display));
-  if (!CreateMutex(NULL,TRUE,MutexName) || GetLastError()== ERROR_ALREADY_EXISTS)
-  {
-    FatalError("Server is already active for display %d\n", atoi(display));
-  }
-#else
-    char tmp[PATH_MAX], pid_str[12];
-    int lfd, i, haslock, l_pid, t;
-    const char *tmppath = LOCK_DIR;
-    int len;
-    char port[20];
-
-    if (nolock || NoListenAll)
-        return;
-    /*
-     * Path names
-     */
-    snprintf(port, sizeof(port), "%d", atoi(display));
-    len = strlen(LOCK_PREFIX) > strlen(LOCK_TMP_PREFIX) ? strlen(LOCK_PREFIX) :
-        strlen(LOCK_TMP_PREFIX);
-    len += strlen(tmppath) + strlen(port) + strlen(LOCK_SUFFIX) + 1;
-    if (len > sizeof(LockFile))
-        FatalError("Display name `%s' is too long\n", port);
-    (void) sprintf(tmp, "%s" LOCK_TMP_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
-    (void) sprintf(LockFile, "%s" LOCK_PREFIX "%s" LOCK_SUFFIX, tmppath, port);
-
-    /*
-     * Create a temporary file containing our PID.  Attempt three times
-     * to create the file.
-     */
-    StillLocking = TRUE;
-    i = 0;
-    do {
-        i++;
-        lfd = open(tmp, O_CREAT | O_EXCL | O_WRONLY, 0644);
-        if (lfd < 0)
-            sleep(2);
-        else
-            break;
-    } while (i < 3);
-    if (lfd < 0) {
-        unlink(tmp);
-        i = 0;
-        do {
-            i++;
-            lfd = open(tmp, O_CREAT | O_EXCL | O_WRONLY, 0644);
-            if (lfd < 0)
-                sleep(2);
-            else
-                break;
-        } while (i < 3);
-    }
-    if (lfd < 0)
-        FatalError("Could not create lock file in %s\n", tmp);
-    snprintf(pid_str, sizeof(pid_str), "%10lu\n", (unsigned long) getpid());
-    if (write(lfd, pid_str, 11) != 11)
-        FatalError("Could not write pid to lock file in %s\n", tmp);
-    (void) fchmod(lfd, 0444);
-    (void) close(lfd);
-
-    /*
-     * OK.  Now the tmp file exists.  Try three times to move it in place
-     * for the lock.
-     */
-    i = 0;
-    haslock = 0;
-    while ((!haslock) && (i++ < 3)) {
-        haslock = (link(tmp, LockFile) == 0);
-        if (haslock) {
-            /*
-             * We're done.
-             */
-            break;
-        }
-        else if (errno == EEXIST) {
-            /*
-             * Read the pid from the existing file
-             */
-            lfd = open(LockFile, O_RDONLY | O_NOFOLLOW);
-            if (lfd < 0) {
-                unlink(tmp);
-                FatalError("Can't read lock file %s\n", LockFile);
-            }
-            pid_str[0] = '\0';
-            if (read(lfd, pid_str, 11) != 11) {
-                /*
-                 * Bogus lock file.
-                 */
-                unlink(LockFile);
-                close(lfd);
-                continue;
-            }
-            pid_str[11] = '\0';
-            sscanf(pid_str, "%d", &l_pid);
-            close(lfd);
-
-            /*
-             * Now try to kill the PID to see if it exists.
-             */
-            errno = 0;
-            t = kill(l_pid, 0);
-            if ((t < 0) && (errno == ESRCH)) {
-                /*
-                 * Stale lock file.
-                 */
-                unlink(LockFile);
-                continue;
-            }
-            else if (((t < 0) && (errno == EPERM)) || (t == 0)) {
-                /*
-                 * Process is still active.
-                 */
-                unlink(tmp);
-                FatalError
-                    ("Server is already active for display %s\n%s %s\n%s\n",
-                     port, "\tIf this server is no longer running, remove",
-                     LockFile, "\tand start again.");
-            }
-        }
-        else {
-            unlink(tmp);
-            FatalError
-                ("Linking lock file (%s) in place failed: %s\n",
-                 LockFile, strerror(errno));
-        }
-    }
-    unlink(tmp);
-    if (!haslock)
-        FatalError("Could not create server lock file: %s\n", LockFile);
-    StillLocking = FALSE;
-#endif
-}
-
-/*
- * UnlockServer --
- *      Remove the server lock file.
- */
-void
-UnlockServer(void)
-{
-    if (nolock || NoListenAll)
-        return;
-
-    if (!StillLocking) {
-
-        (void) unlink(LockFile);
-    }
-}
-#endif /* LOCK_SERVER */
 
 /* Force connections to close on SIGHUP from init */
 
@@ -576,9 +380,7 @@ UseMsg(void)
 #ifdef RLIMIT_STACK
     ErrorF("-ls int                limit stack space to N Kb\n");
 #endif
-#ifdef LOCK_SERVER
-    ErrorF("-nolock                disable the locking mechanism\n");
-#endif
+    LockServerUseMsg();
     ErrorF("-maxclients n          set maximum number of clients (power of two)\n");
     ErrorF("-nolisten string       don't listen on protocol\n");
     ErrorF("-listen string         listen on protocol\n");
@@ -600,8 +402,7 @@ UseMsg(void)
     ErrorF("+xinerama              Enable XINERAMA extension\n");
     ErrorF("-xinerama              Disable XINERAMA extension\n");
 #endif
-    ErrorF
-        ("-dumbSched             Disable smart scheduling and threaded input, enable old behavior\n");
+    ErrorF("-dumbSched             Disable smart scheduling and threaded input, enable old behavior\n");
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
     ErrorF("+extension name        Enable extension\n");
     ErrorF("-extension name        Disable extension\n");
@@ -646,7 +447,7 @@ VerifyDisplayName(const char *d)
        for digits, or exception of :0.0 and similar (two decimal points max)
        */
     for (i = 0; i < strlen(d); i++) {
-        if (!isdigit(d[i])) {
+        if (!isdigit((unsigned char)d[i])) {
             if (d[i] != '.' || period_found)
                 return 0;
             period_found = TRUE;
@@ -797,9 +598,7 @@ ProcessCommandLine(int argc, char *argv[])
         else if (strcmp(argv[i], "-displayfd") == 0) {
             if (++i < argc) {
                 displayfd = atoi(argv[i]);
-#ifdef LOCK_SERVER
-                nolock = TRUE;
-#endif
+                DisableServerLock();
             }
             else
                 UseMsg();
@@ -888,7 +687,7 @@ ProcessCommandLine(int argc, char *argv[])
                     ("Warning: the -nolock option can only be used by root\n");
             else
 #endif
-                nolock = TRUE;
+                DisableServerLock();
         }
 #endif
         else if ( strcmp( argv[i], "-maxclients") == 0)
@@ -972,7 +771,7 @@ ProcessCommandLine(int argc, char *argv[])
         else if (strcmp(argv[i], "-terminate") == 0) {
             dispatchExceptionAtReset = DE_TERMINATE;
             terminateDelay = -1;
-            if ((i + 1 < argc) && (isdigit(*argv[i + 1])))
+            if ((i + 1 < argc) && (isdigit((unsigned char)*argv[i + 1])))
                terminateDelay = atoi(argv[++i]);
             terminateDelay = max(0, terminateDelay);
         }
@@ -1116,7 +915,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
         char hname[1024], *hnameptr;
         unsigned int len;
 
-#if defined(IPv6) && defined(AF_INET6)
+#if defined(IPv6)
         struct addrinfo hints, *ai = NULL;
 #else
         struct hostent *host;
@@ -1127,7 +926,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
 #endif
 
         gethostname(hname, 1024);
-#if defined(IPv6) && defined(AF_INET6)
+#if defined(IPv6)
         memset(&hints, 0, sizeof(hints));
         hints.ai_flags = AI_CANONNAME;
         if (getaddrinfo(hname, NULL, &hints, &ai) == 0) {
@@ -1157,7 +956,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
         p += sizeof(AUTHORIZATION_NAME);
         memcpy(p, hnameptr, len);
         p += len;
-#if defined(IPv6) && defined(AF_INET6)
+#if defined(IPv6)
         if (ai) {
             freeaddrinfo(ai);
         }
@@ -1710,26 +1509,6 @@ PrivsElevated(void)
  * external wrapper utility.
  */
 
-/* Consider LD* variables insecure? */
-#ifndef REMOVE_ENV_LD
-#define REMOVE_ENV_LD 1
-#endif
-
-/* Remove long environment variables? */
-#ifndef REMOVE_LONG_ENV
-#define REMOVE_LONG_ENV 1
-#endif
-
-/*
- * Disallow stdout or stderr as pipes?  It's possible to block the X server
- * when piping stdout+stderr to a pipe.
- *
- * Don't enable this because it looks like it's going to cause problems.
- */
-#ifndef NO_OUTPUT_PIPES
-#define NO_OUTPUT_PIPES 0
-#endif
-
 /* Check args and env only if running setuid (euid == 0 && euid != uid) ? */
 #ifndef CHECK_EUID
 #ifndef WIN32
@@ -1739,38 +1518,21 @@ PrivsElevated(void)
 #endif
 #endif
 
-/*
- * Maybe the locale can be faked to make isprint(3) report that everything
- * is printable?  Avoid it by default.
- */
-#ifndef USE_ISPRINT
-#define USE_ISPRINT 0
-#endif
-
 #define MAX_ARG_LENGTH          128
 #define MAX_ENV_LENGTH          2048
 #define MAX_ENV_PATH_LENGTH     2048    /* Limit for *PATH and TERMCAP */
 
-#if USE_ISPRINT
-#include <ctype.h>
-#define checkPrintable(c) isprint(c)
-#else
 #define checkPrintable(c) (((c) & 0x7f) >= 0x20 && ((c) & 0x7f) != 0x7f)
-#endif
 
 enum BadCode {
     NotBad = 0,
     UnsafeArg,
     ArgTooLong,
     UnprintableArg,
-    EnvTooLong,
-    OutputIsPipe,
     InternalError
 };
 
-#if defined(VENDORSUPPORT)
-#define BUGADDRESS VENDORSUPPORT
-#elif defined(BUILDERADDR)
+#if defined(BUILDERADDR)
 #define BUGADDRESS BUILDERADDR
 #else
 #define BUGADDRESS "xorg@freedesktop.org"
@@ -1781,7 +1543,7 @@ CheckUserParameters(int argc, char **argv, char **envp)
 {
     enum BadCode bad = NotBad;
     int i = 0, j;
-    char *a, *e = NULL;
+    char *a = NULL;
 
 #if CHECK_EUID
     if (PrivsElevated())
@@ -1816,61 +1578,19 @@ CheckUserParameters(int argc, char **argv, char **envp)
             for (i = 0; envp[i]; i++) {
 
                 /* Check for bad environment variables and values */
-#if REMOVE_ENV_LD
                 while (envp[i] && (strncmp(envp[i], "LD", 2) == 0)) {
                     for (j = i; envp[j]; j++) {
                         envp[j] = envp[j + 1];
                     }
                 }
-#endif
                 if (envp[i] && (strlen(envp[i]) > MAX_ENV_LENGTH)) {
-#if REMOVE_LONG_ENV
                     for (j = i; envp[j]; j++) {
                         envp[j] = envp[j + 1];
                     }
                     i--;
-#else
-                    char *eq;
-                    int len;
-
-                    eq = strchr(envp[i], '=');
-                    if (!eq)
-                        continue;
-                    len = eq - envp[i];
-                    e = strndup(envp[i], len);
-                    if (!e) {
-                        bad = InternalError;
-                        break;
-                    }
-                    if (len >= 4 &&
-                        (strcmp(e + len - 4, "PATH") == 0 ||
-                         strcmp(e, "TERMCAP") == 0)) {
-                        if (strlen(envp[i]) > MAX_ENV_PATH_LENGTH) {
-                            bad = EnvTooLong;
-                            break;
-                        }
-                        else {
-                            free(e);
-                        }
-                    }
-                    else {
-                        bad = EnvTooLong;
-                        break;
-                    }
-#endif
                 }
             }
         }
-#if NO_OUTPUT_PIPES
-        if (!bad) {
-            struct stat buf;
-
-            if (fstat(fileno(stdout), &buf) == 0 && S_ISFIFO(buf.st_mode))
-                bad = OutputIsPipe;
-            if (fstat(fileno(stderr), &buf) == 0 && S_ISFIFO(buf.st_mode))
-                bad = OutputIsPipe;
-        }
-#endif
     }
     switch (bad) {
     case NotBad:
@@ -1884,12 +1604,6 @@ CheckUserParameters(int argc, char **argv, char **envp)
     case UnprintableArg:
         ErrorF("Command line argument number %d contains unprintable"
                " characters\n", i);
-        break;
-    case EnvTooLong:
-        ErrorF("Environment variable `%s' is too long\n", e);
-        break;
-    case OutputIsPipe:
-        ErrorF("Stdout and/or stderr is a pipe\n");
         break;
     case InternalError:
         ErrorF("Internal Error\n");

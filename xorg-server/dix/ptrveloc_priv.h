@@ -14,23 +14,15 @@
 struct _DeviceVelocityRec;
 
 /**
- * profile
- * returns actual acceleration depending on velocity, acceleration control,...
- */
-typedef double (*PointerAccelerationProfileFunc)
- (DeviceIntPtr dev, struct _DeviceVelocityRec * vel,
-  double velocity, double threshold, double accelCoeff);
-
-/**
  * a motion history, with just enough information to
  * calc mean velocity and decide which motion was along
  * a more or less straight line
  */
-typedef struct _MotionTracker {
+struct _MotionTracker {
     double dx, dy;              /* accumulated delta for each axis */
     int time;                   /* time of creation */
     int dir;                    /* initial direction bitfield */
-} MotionTracker, *MotionTrackerPtr;
+};
 
 /**
  * contains the run-time data for the predictable scheme, that is, a

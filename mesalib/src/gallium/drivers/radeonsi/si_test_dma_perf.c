@@ -11,420 +11,282 @@
 #define MIN_SIZE   512
 #define MAX_SIZE   (128 * 1024 * 1024)
 #define SIZE_SHIFT 1
-#define NUM_RUNS   128
+#define WARMUP_RUNS 16
+#define NUM_RUNS   32
 
-static double get_MBps_rate(unsigned num_bytes, unsigned ns)
-{
-   return (num_bytes / (1024.0 * 1024.0)) / (ns / 1000000000.0);
-}
+enum {
+   TEST_FILL_VRAM,
+   TEST_FILL_VRAM_12B,
+   TEST_FILL_GTT,
+   TEST_FILL_GTT_12B,
+   TEST_COPY_VRAM_VRAM,
+   TEST_COPY_VRAM_GTT,
+   TEST_COPY_GTT_VRAM,
+   NUM_TESTS,
+};
+
+static const char *test_strings[] = {
+   [TEST_FILL_VRAM] = "fill->VRAM",
+   [TEST_FILL_VRAM_12B] = "fill->VRAM 12B",
+   [TEST_FILL_GTT] = "fill->GTT",
+   [TEST_FILL_GTT_12B] = "fill->GTT 12B",
+   [TEST_COPY_VRAM_VRAM] = "VRAM->VRAM",
+   [TEST_COPY_VRAM_GTT] = "VRAM->GTT",
+   [TEST_COPY_GTT_VRAM] = "GTT->VRAM",
+};
+
+enum {
+   METHOD_DEFAULT,
+   METHOD_CP_DMA,
+   METHOD_COMPUTE_2DW,
+   METHOD_COMPUTE_3DW,
+   METHOD_COMPUTE_4DW,
+   NUM_METHODS,
+};
+
+static const char *method_strings[] = {
+   [METHOD_DEFAULT] = "Default",
+   [METHOD_CP_DMA] = "CP DMA",
+   [METHOD_COMPUTE_2DW] = "CS 2dw",
+   [METHOD_COMPUTE_3DW] = "CS 3dw",
+   [METHOD_COMPUTE_4DW] = "CS 4dw",
+};
+
+enum {
+   ALIGN_MAX,
+   ALIGN_256,
+   ALIGN_128,
+   ALIGN_64,
+   ALIGN_4,
+   ALIGN_2,
+   ALIGN_1,
+   ALIGN_SRC128,
+   ALIGN_SRC64,
+   ALIGN_SRC4,
+   ALIGN_SRC2,
+   ALIGN_SRC1,
+   ALIGN_DST128,
+   ALIGN_DST64,
+   ALIGN_DST4,
+   ALIGN_DST2,
+   ALIGN_DST1,
+   ALIGN_SRC4_DST2,
+   ALIGN_SRC4_DST1,
+   ALIGN_SRC2_DST4,
+   ALIGN_SRC2_DST1,
+   ALIGN_SRC1_DST4,
+   ALIGN_SRC1_DST2,
+   NUM_ALIGNMENTS,
+};
+
+struct align_info_t {
+   const char *string;
+   unsigned src_offset;
+   unsigned dst_offset;
+};
+
+static const struct align_info_t align_info[] = {
+   [ALIGN_MAX] = {"both=max", 0, 0},
+   [ALIGN_256] = {"both=256", 256, 256},
+   [ALIGN_128] = {"both=128", 128, 128},
+   [ALIGN_64] = {"both=64", 64, 64},
+   [ALIGN_4] = {"both=4", 4, 4},
+   [ALIGN_2] = {"both=2", 2, 2},
+   [ALIGN_1] = {"both=1", 1, 1},
+   [ALIGN_SRC128] = {"src=128", 128, 0},
+   [ALIGN_SRC64] = {"src=64", 64, 0},
+   [ALIGN_SRC4] = {"src=4", 4, 0},
+   [ALIGN_SRC2] = {"src=2", 2, 0},
+   [ALIGN_SRC1] = {"src=1", 1, 0},
+   [ALIGN_DST128] = {"dst=128", 0, 128},
+   [ALIGN_DST64] = {"dst=64", 0, 64},
+   [ALIGN_DST4] = {"dst=4", 0, 4},
+   [ALIGN_DST2] = {"dst=2", 0, 2},
+   [ALIGN_DST1] = {"dst=1", 0, 1},
+   [ALIGN_SRC4_DST2] = {"src=4 dst=2", 4, 2},
+   [ALIGN_SRC4_DST1] = {"src=4 dst=1", 4, 1},
+   [ALIGN_SRC2_DST4] = {"src=2 dst=4", 2, 4},
+   [ALIGN_SRC2_DST1] = {"src=2 dst=1", 2, 1},
+   [ALIGN_SRC1_DST4] = {"src=1 dst=4", 1, 4},
+   [ALIGN_SRC1_DST2] = {"src=1 dst=2", 1, 2},
+};
 
 void si_test_dma_perf(struct si_screen *sscreen)
 {
    struct pipe_screen *screen = &sscreen->b;
    struct pipe_context *ctx = screen->context_create(screen, NULL, 0);
    struct si_context *sctx = (struct si_context *)ctx;
-   const uint32_t clear_value = 0x12345678;
-   static const unsigned cs_dwords_per_thread_list[] = {64, 32, 16, 8, 4, 2, 1};
-   /* The list of per-SA wave limits to test. */
-   static const unsigned cs_waves_per_sh_list[] = {0, 8};
 
-#define NUM_SHADERS ARRAY_SIZE(cs_dwords_per_thread_list)
-#define NUM_METHODS (3 + 3 * NUM_SHADERS * ARRAY_SIZE(cs_waves_per_sh_list))
+   sscreen->ws->cs_set_pstate(&sctx->gfx_cs, RADEON_CTX_PSTATE_PEAK);
 
-   static const char *method_str[] = {
-      "CP MC   ",
-      "CP L2   ",
-      "CP L2   ",
-   };
-   static const char *placement_str[] = {
-      /* Clear */
-      "fill->VRAM",
-      "fill->GTT ",
-      /* Copy */
-      "VRAM->VRAM",
-      "VRAM->GTT ",
-      "GTT ->VRAM",
-   };
-
-   printf("DMA rate is in MB/s for each size. Slow cases are skipped and print 0.\n");
-   printf("Heap       ,Method  ,L2p,Wa,");
+   printf("Test          , Method , Alignment  ,");
    for (unsigned size = MIN_SIZE; size <= MAX_SIZE; size <<= SIZE_SHIFT) {
-      if (size >= 1024)
+      if (size >= 1024 * 1024)
+         printf("%6uMB,", size / (1024 * 1024));
+      else if (size >= 1024)
          printf("%6uKB,", size / 1024);
       else
          printf(" %6uB,", size);
    }
    printf("\n");
 
-   /* results[log2(size)][placement][method][] */
-   struct si_result {
-      bool is_valid;
-      bool is_cp;
-      bool is_cs;
-      unsigned cache_policy;
-      unsigned dwords_per_thread;
-      unsigned waves_per_sh;
-      unsigned score;
-      unsigned index; /* index in results[x][y][index] */
-   } results[32][ARRAY_SIZE(placement_str)][NUM_METHODS] = {};
-
    /* Run benchmarks. */
-   for (unsigned placement = 0; placement < ARRAY_SIZE(placement_str); placement++) {
-      bool is_copy = placement >= 2;
+   for (unsigned test_flavor = 0; test_flavor < NUM_TESTS; test_flavor++) {
+      bool is_copy = test_flavor >= TEST_COPY_VRAM_VRAM;
 
-      printf("-----------,--------,---,--,");
-      for (unsigned size = MIN_SIZE; size <= MAX_SIZE; size <<= SIZE_SHIFT)
-         printf("--------,");
-      printf("\n");
+      if (test_flavor)
+         puts("");
 
       for (unsigned method = 0; method < NUM_METHODS; method++) {
-         bool test_cp = method <= 2;
-         bool test_cs = method >= 3;
-         unsigned cs_method = method - 3;
-         unsigned cs_waves_per_sh =
-            test_cs ? cs_waves_per_sh_list[cs_method / (3 * NUM_SHADERS)] : 0;
-         cs_method %= 3 * NUM_SHADERS;
-         unsigned cache_policy =
-            test_cp ? method % 3 : test_cs ? (cs_method / NUM_SHADERS) : 0;
-         unsigned cs_dwords_per_thread =
-            test_cs ? cs_dwords_per_thread_list[cs_method % NUM_SHADERS] : 0;
+         for (unsigned align = 0; align < NUM_ALIGNMENTS; align++) {
+            unsigned dwords_per_thread, clear_value_size;
+            unsigned src_offset = align_info[align].src_offset;
+            unsigned dst_offset = align_info[align].dst_offset;
 
-         if (sctx->gfx_level == GFX6) {
-            /* GFX6 doesn't support CP DMA operations through L2. */
-            if (test_cp && cache_policy != L2_BYPASS)
+            /* offset > 0 && offset < 4 is the only case when the compute shader performs the same
+             * as offset=0 without any alignment optimizations, so shift the offset by 4 to get
+             * unaligned performance.
+             */
+            if (src_offset && src_offset < 4)
+               src_offset += 4;
+            if (dst_offset && dst_offset < 4)
+               dst_offset += 4;
+
+            if (!is_copy && dst_offset != src_offset)
                continue;
-            /* WAVES_PER_SH is in multiples of 16 on GFX6. */
-            if (test_cs && cs_waves_per_sh % 16 != 0)
-               continue;
-         }
 
-         /* SI_RESOURCE_FLAG_GL2_BYPASS setting RADEON_FLAG_GL2_BYPASS doesn't affect
-          * chips before gfx9.
-          */
-         if (test_cs && cache_policy && sctx->gfx_level < GFX9)
-            continue;
+            if (test_flavor == TEST_FILL_VRAM_12B || test_flavor == TEST_FILL_GTT_12B) {
+               if ((method != METHOD_DEFAULT && method != METHOD_COMPUTE_3DW &&
+                    method != METHOD_COMPUTE_4DW) || dst_offset % 4)
+                  continue;
 
-         printf("%s ,", placement_str[placement]);
-         if (test_cs) {
-            printf("CS x%-4u,%3s,", cs_dwords_per_thread,
-                   cache_policy == L2_LRU ? "LRU" : cache_policy == L2_STREAM ? "Str" : "");
-         } else {
-            printf("%s,%3s,", method_str[method],
-                   method == L2_LRU ? "LRU" : method == L2_STREAM ? "Str" : "");
-         }
-         if (test_cs && cs_waves_per_sh)
-            printf("%2u,", cs_waves_per_sh);
-         else
-            printf("  ,");
+               dwords_per_thread = method == METHOD_COMPUTE_3DW ? 3 : 4;
+               clear_value_size = 12;
+            } else {
+               if (method == METHOD_COMPUTE_3DW)
+                  continue;
 
-         void *compute_shader = NULL;
-         if (test_cs) {
-            compute_shader = si_create_dma_compute_shader(sctx, cs_dwords_per_thread, is_copy);
-         }
-
-         double score = 0;
-         for (unsigned size = MIN_SIZE; size <= MAX_SIZE; size <<= SIZE_SHIFT) {
-            /* Don't test bigger sizes if it's too slow. Print 0. */
-            if (size >= 512 * 1024 && score < 400 * (size / (4 * 1024 * 1024))) {
-               printf("%7.0f ,", 0.0);
-               continue;
+               dwords_per_thread = method == METHOD_COMPUTE_2DW ? 2 : 4;
+               clear_value_size = dst_offset % 4 ? 1 : 4;
             }
 
-            enum pipe_resource_usage dst_usage, src_usage;
-            struct pipe_resource *dst, *src;
-            unsigned query_type = PIPE_QUERY_TIME_ELAPSED;
-            unsigned flags = cache_policy == L2_BYPASS ? SI_RESOURCE_FLAG_GL2_BYPASS : 0;
+            printf("%-14s, %-7s, %-11s,", test_strings[test_flavor], method_strings[method],
+                   align_info[align].string);
 
-            if (placement == 0 || placement == 2 || placement == 4)
-               dst_usage = PIPE_USAGE_DEFAULT;
-            else
-               dst_usage = PIPE_USAGE_STREAM;
+            for (unsigned size = MIN_SIZE; size <= MAX_SIZE; size <<= SIZE_SHIFT) {
+               struct pipe_resource *dst, *src;
+               enum pipe_resource_usage dst_usage = PIPE_USAGE_DEFAULT;
+               enum pipe_resource_usage src_usage = PIPE_USAGE_DEFAULT;
 
-            if (placement == 2 || placement == 3)
-               src_usage = PIPE_USAGE_DEFAULT;
-            else
-               src_usage = PIPE_USAGE_STREAM;
+               if (test_flavor == TEST_FILL_GTT || test_flavor == TEST_FILL_GTT_12B ||
+                   test_flavor == TEST_COPY_VRAM_GTT)
+                  dst_usage = PIPE_USAGE_STREAM;
 
-            dst = pipe_aligned_buffer_create(screen, flags, dst_usage, size, 256);
-            src = is_copy ? pipe_aligned_buffer_create(screen, flags, src_usage, size, 256) : NULL;
+               if (test_flavor == TEST_COPY_GTT_VRAM)
+                  src_usage = PIPE_USAGE_STREAM;
 
-            /* Wait for idle before testing, so that other processes don't mess up the results. */
-            sctx->flags |= SI_CONTEXT_CS_PARTIAL_FLUSH |
-                           SI_CONTEXT_FLUSH_AND_INV_CB |
-                           SI_CONTEXT_FLUSH_AND_INV_DB;
-            si_emit_cache_flush_direct(sctx);
+               /* Don't test large sizes with GTT because it's slow. */
+               if ((dst_usage == PIPE_USAGE_STREAM || src_usage == PIPE_USAGE_STREAM) &&
+                   size > 16 * 1024 * 1024) {
+                  printf("%8s,", "n/a");
+                  continue;
+               }
 
-            struct pipe_query *q = ctx->create_query(ctx, query_type, 0);
-            ctx->begin_query(ctx, q);
+               dst = pipe_aligned_buffer_create(screen, 0, dst_usage, dst_offset + size, 256);
+               src = is_copy ? pipe_aligned_buffer_create(screen, 0, src_usage, src_offset + size, 256) : NULL;
 
-            /* Run tests. */
-            for (unsigned iter = 0; iter < NUM_RUNS; iter++) {
-               if (test_cp) {
-                  /* CP DMA */
-                  if (is_copy) {
-                     si_cp_dma_copy_buffer(sctx, dst, src, 0, 0, size, SI_OP_SYNC_BEFORE_AFTER,
-                                           SI_COHERENCY_NONE, cache_policy);
+               struct pipe_query *q = ctx->create_query(ctx, PIPE_QUERY_TIME_ELAPSED, 0);
+               bool success = true;
+
+               /* Run tests. */
+               for (unsigned iter = 0; iter < WARMUP_RUNS + NUM_RUNS; iter++) {
+                  const uint32_t clear_value[4] = {0x12345678, 0x23456789, 0x34567890, 0x45678901};
+
+                  if (iter == WARMUP_RUNS)
+                     ctx->begin_query(ctx, q);
+
+                  if (method == METHOD_DEFAULT) {
+                     if (is_copy) {
+                        si_barrier_before_simple_buffer_op(sctx, 0, dst, src);
+                        si_copy_buffer(sctx, dst, src, dst_offset, src_offset, size);
+                        si_barrier_after_simple_buffer_op(sctx, 0, dst, src);
+                     } else {
+                        sctx->b.clear_buffer(&sctx->b, dst, dst_offset, size, &clear_value,
+                                             clear_value_size);
+                     }
+                  } else if (method == METHOD_CP_DMA) {
+                     /* CP DMA */
+                     if (sscreen->info.cp_sdma_ge_use_system_memory_scope) {
+                        /* The CP DMA code doesn't implement this case. */
+                        success = false;
+                        continue;
+                     }
+
+                     if (is_copy) {
+                        /* CP DMA copies are about as slow as PCIe on GFX6-8. */
+                        if (sctx->gfx_level <= GFX8 && size > 16 * 1024 * 1024) {
+                           success = false;
+                           continue;
+                        }
+
+                        si_barrier_before_simple_buffer_op(sctx, 0, dst, src);
+                        si_cp_dma_copy_buffer(sctx, dst, src, dst_offset, src_offset, size);
+                        si_barrier_after_simple_buffer_op(sctx, 0, dst, src);
+                     } else {
+                        /* CP DMA clears must be aligned to 4 bytes. */
+                        if (dst_offset % 4 || size % 4 ||
+                            /* CP DMA clears are so slow on GFX6-8 that we risk getting a GPU timeout. */
+                            (sctx->gfx_level <= GFX8 && size > 512 * 1024)) {
+                           success = false;
+                           continue;
+                        }
+
+                        assert(clear_value_size == 4);
+                        si_barrier_before_simple_buffer_op(sctx, 0, dst, src);
+                        si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, dst, dst_offset, size,
+                                               clear_value[0]);
+                        si_barrier_after_simple_buffer_op(sctx, 0, dst, src);
+                     }
                   } else {
-                     si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, dst, 0, size, clear_value,
-                                            SI_OP_SYNC_BEFORE_AFTER, SI_COHERENCY_NONE,
-                                            cache_policy);
-                  }
-               } else {
-                  /* Compute */
-                  /* The memory accesses are coalesced, meaning that the 1st instruction writes
-                   * the 1st contiguous block of data for the whole wave, the 2nd instruction
-                   * writes the 2nd contiguous block of data, etc.
-                   */
-                  unsigned instructions_per_thread = MAX2(1, cs_dwords_per_thread / 4);
-                  unsigned dwords_per_instruction = cs_dwords_per_thread / instructions_per_thread;
-                  unsigned dwords_per_wave = cs_dwords_per_thread * 64;
-
-                  unsigned num_dwords = size / 4;
-                  unsigned num_instructions = DIV_ROUND_UP(num_dwords, dwords_per_instruction);
-
-                  struct pipe_grid_info info = {};
-                  info.block[0] = MIN2(64, num_instructions);
-                  info.block[1] = 1;
-                  info.block[2] = 1;
-                  info.grid[0] = DIV_ROUND_UP(num_dwords, dwords_per_wave);
-                  info.grid[1] = 1;
-                  info.grid[2] = 1;
-
-                  struct pipe_shader_buffer sb[2] = {};
-                  sb[is_copy].buffer = dst;
-                  sb[is_copy].buffer_size = size;
-
-                  if (is_copy) {
-                     sb[0].buffer = src;
-                     sb[0].buffer_size = size;
-                  } else {
-                     for (unsigned i = 0; i < 4; i++)
-                        sctx->cs_user_data[i] = clear_value;
+                     /* Compute */
+                     si_barrier_before_simple_buffer_op(sctx, 0, dst, src);
+                     success &=
+                        si_compute_clear_copy_buffer(sctx, dst, dst_offset, src, src_offset,
+                                                     size, clear_value, clear_value_size,
+                                                     dwords_per_thread, false, false);
+                     si_barrier_after_simple_buffer_op(sctx, 0, dst, src);
                   }
 
-                  ctx->set_shader_buffers(ctx, PIPE_SHADER_COMPUTE, 0, is_copy ? 2 : 1, sb, 0x1);
-                  ctx->bind_compute_state(ctx, compute_shader);
-                  sctx->cs_max_waves_per_sh = cs_waves_per_sh;
-
-                  ctx->launch_grid(ctx, &info);
-
-                  ctx->bind_compute_state(ctx, NULL);
-                  sctx->cs_max_waves_per_sh = 0; /* disable the limit */
+                  sctx->barrier_flags |= SI_BARRIER_INV_L2;
                }
 
-               /* Flush L2, so that we don't just test L2 cache performance except for L2_LRU. */
-               sctx->flags |= SI_CONTEXT_INV_VCACHE |
-                              (cache_policy == L2_LRU ? 0 : SI_CONTEXT_INV_L2) |
-                              SI_CONTEXT_CS_PARTIAL_FLUSH;
-               si_emit_cache_flush_direct(sctx);
-            }
+               ctx->end_query(ctx, q);
 
-            ctx->end_query(ctx, q);
-            ctx->flush(ctx, NULL, PIPE_FLUSH_ASYNC);
+               pipe_resource_reference(&dst, NULL);
+               pipe_resource_reference(&src, NULL);
 
-            pipe_resource_reference(&dst, NULL);
-            pipe_resource_reference(&src, NULL);
+               /* Get results. */
+               union pipe_query_result result;
 
-            /* Get results. */
+               ctx->get_query_result(ctx, q, true, &result);
+               ctx->destroy_query(ctx, q);
 
-            union pipe_query_result result;
-
-            ctx->get_query_result(ctx, q, true, &result);
-            ctx->destroy_query(ctx, q);
-
-            score = get_MBps_rate(size, result.u64 / (double)NUM_RUNS);
-            printf("%7.0f ,", score);
-            fflush(stdout);
-
-            struct si_result *r = &results[util_logbase2(size)][placement][method];
-            r->is_valid = true;
-            r->is_cp = test_cp;
-            r->is_cs = test_cs;
-            r->cache_policy = cache_policy;
-            r->dwords_per_thread = cs_dwords_per_thread;
-            r->waves_per_sh = cs_waves_per_sh;
-            r->score = score;
-            r->index = method;
-         }
-         puts("");
-
-         if (compute_shader)
-            ctx->delete_compute_state(ctx, compute_shader);
-      }
-   }
-
-   puts("");
-   puts("static struct si_method");
-   printf("get_best_clear_for_%s(enum radeon_bo_domain dst, uint64_t size64, bool async, bool "
-          "cached)\n",
-          sctx->screen->info.name);
-   puts("{");
-   puts("   unsigned size = MIN2(size64, UINT_MAX);\n");
-
-   /* Analyze results and find the best methods. */
-   for (unsigned placement = 0; placement < ARRAY_SIZE(placement_str); placement++) {
-      if (placement == 0)
-         puts("   if (dst == RADEON_DOMAIN_VRAM) {");
-      else if (placement == 1)
-         puts("   } else { /* GTT */");
-      else if (placement == 2) {
-         puts("}");
-         puts("");
-         puts("static struct si_method");
-         printf("get_best_copy_for_%s(enum radeon_bo_domain dst, enum radeon_bo_domain src,\n",
-                sctx->screen->info.name);
-         printf("                     uint64_t size64, bool async, bool cached)\n");
-         puts("{");
-         puts("   unsigned size = MIN2(size64, UINT_MAX);\n");
-         puts("   if (src == RADEON_DOMAIN_VRAM && dst == RADEON_DOMAIN_VRAM) {");
-      } else if (placement == 3)
-         puts("   } else if (src == RADEON_DOMAIN_VRAM && dst == RADEON_DOMAIN_GTT) {");
-      else
-         puts("   } else { /* GTT -> VRAM */");
-
-      for (unsigned mode = 0; mode < 3; mode++) {
-         bool async = mode == 0;
-         bool cached = mode == 1;
-
-         if (async)
-            puts("      if (async) { /* async compute */");
-         else if (cached)
-            puts("      if (cached) { /* gfx ring */");
-         else
-            puts("      } else { /* gfx ring - uncached */");
-
-         /* The list of best chosen methods. */
-         struct si_result *methods[32];
-         unsigned method_max_size[32];
-         unsigned num_methods = 0;
-
-         for (unsigned size = MIN_SIZE; size <= MAX_SIZE; size <<= SIZE_SHIFT) {
-            /* Find the best method. */
-            struct si_result *best = NULL;
-
-            for (unsigned i = 0; i < NUM_METHODS; i++) {
-               struct si_result *r = &results[util_logbase2(size)][placement][i];
-
-               if (!r->is_valid)
-                  continue;
-
-               /* Ban CP DMA clears via MC on <= GFX8. They are super slow
-                * on GTT, which we can get due to BO evictions.
+               /* Navi10 and Vega10 sometimes incorrectly return elapsed time of 0 nanoseconds
+                * for very small ops.
                 */
-               if (sctx->gfx_level <= GFX8 && placement == 1 && r->is_cp &&
-                   r->cache_policy == L2_BYPASS)
-                  continue;
-
-               if (async) {
-                  /* The following constraints for compute IBs try to limit
-                   * resource usage so as not to decrease the performance
-                   * of gfx IBs too much.
-                   */
-
-                  /* Don't use CP DMA on asynchronous rings, because
-                   * the engine is shared with gfx IBs.
-                   */
-                  if (r->is_cp)
-                     continue;
-
-                  /* Don't use L2 caching on asynchronous rings to minimize
-                   * L2 usage.
-                   */
-                  if (r->cache_policy == L2_LRU)
-                     continue;
-
-                  /* Asynchronous compute recommends waves_per_sh != 0
-                   * to limit CU usage. */
-                  if (r->is_cs && r->waves_per_sh == 0)
-                     continue;
+               if (success && result.u64) {
+                  double GB = 1024.0 * 1024.0 * 1024.0;
+                  double seconds = result.u64 / (double)NUM_RUNS / (1000.0 * 1000.0 * 1000.0);
+                  double GBps = (size / GB) / seconds * (test_flavor == TEST_COPY_VRAM_VRAM ? 2 : 1);
+                  printf("%8.2f,", GBps);
                } else {
-                  if (cached && r->cache_policy == L2_BYPASS)
-                     continue;
-                  if (!cached && r->cache_policy == L2_LRU)
-                     continue;
-               }
-
-               if (!best) {
-                  best = r;
-                  continue;
-               }
-
-               /* Assume some measurement error. Earlier methods occupy fewer
-                * resources, so the next method is always more greedy, and we
-                * don't want to select it due to a measurement error.
-                */
-               double min_improvement = 1.03;
-
-               if (best->score * min_improvement < r->score)
-                  best = r;
-            }
-
-            if (num_methods > 0) {
-               unsigned prev_index = num_methods - 1;
-               struct si_result *prev = methods[prev_index];
-               struct si_result *prev_this_size =
-                  &results[util_logbase2(size)][placement][prev->index];
-
-               /* If the best one is also the best for the previous size,
-                * just bump the size for the previous one.
-                *
-                * If there is no best, it means all methods were too slow
-                * for this size and were not tested. Use the best one for
-                * the previous size.
-                */
-               if (!best ||
-                   /* If it's the same method as for the previous size: */
-                   (prev->is_cp == best->is_cp &&
-                    prev->is_cs == best->is_cs && prev->cache_policy == best->cache_policy &&
-                    prev->dwords_per_thread == best->dwords_per_thread &&
-                    prev->waves_per_sh == best->waves_per_sh) ||
-                   /* If the method for the previous size is also the best
-                    * for this size: */
-                   (prev_this_size->is_valid && prev_this_size->score * 1.03 > best->score)) {
-                  method_max_size[prev_index] = size;
-                  continue;
+                  printf("%8s,", "n/a");
                }
             }
-
-            /* Add it to the list. */
-            assert(num_methods < ARRAY_SIZE(methods));
-            methods[num_methods] = best;
-            method_max_size[num_methods] = size;
-            num_methods++;
-         }
-
-         for (unsigned i = 0; i < num_methods; i++) {
-            struct si_result *best = methods[i];
-            unsigned size = method_max_size[i];
-
-            /* The size threshold is between the current benchmarked
-             * size and the next benchmarked size. */
-            if (i < num_methods - 1)
-               printf("         if (size <= %9u) ", (size + (size << SIZE_SHIFT)) / 2);
-            else if (i > 0)
-               printf("         else                   ");
-            else
-               printf("         ");
-            printf("return ");
-
-            assert(best);
-            const char *cache_policy_str =
-               best->cache_policy == L2_BYPASS ? "L2_BYPASS" :
-               best->cache_policy == L2_LRU ? "L2_LRU   " : "L2_STREAM";
-
-            if (best->is_cp) {
-               printf("CP_DMA(%s);\n", cache_policy_str);
-            }
-            if (best->is_cs) {
-               printf("COMPUTE(%s, %u, %u);\n", cache_policy_str,
-                      best->dwords_per_thread, best->waves_per_sh);
-            }
+            puts("");
          }
       }
-      puts("      }");
    }
-   puts("   }");
-   puts("}");
 
    ctx->destroy(ctx);
    exit(0);
@@ -534,5 +396,235 @@ si_test_mem_perf(struct si_screen *sscreen)
    }
 
 
+   exit(0);
+}
+
+#define COLOR_RESET  "\033[0m"
+#define COLOR_RED    "\033[1;31m"
+#define COLOR_YELLOW "\033[1;33m"
+#define COLOR_CYAN   "\033[1;36m"
+
+void si_test_clear_buffer(struct si_screen *sscreen)
+{
+   struct pipe_screen *screen = &sscreen->b;
+   struct pipe_context *ctx = screen->context_create(screen, NULL, 0);
+   struct si_context *sctx = (struct si_context *)ctx;
+   unsigned buf_size = 32;
+   unsigned num_tests = 0, num_passes = 0;
+
+   srand(0x9b47d95b);
+
+   printf("dst, si,dw, %-*s, %-*s, %-*s, %-*s\n",
+          32, "clear value",
+          buf_size * 2, "init dst",
+          buf_size * 2, "expected dst",
+          buf_size * 2, "observed dst");
+   printf("off, ze,th\n");
+
+   /* Generate an infinite number of random tests. */
+   while (1) {
+      struct pipe_resource *dst;
+
+      dst = pipe_aligned_buffer_create(screen, 0, PIPE_USAGE_STAGING, buf_size, 256);
+
+      unsigned clear_value_size = 1 << (rand() % 6);
+      if (clear_value_size == 32)
+         clear_value_size = 12; /* test only 1, 2, 4, 8, 16, and 12 */
+
+      uint8_t *clear_value = (uint8_t *)malloc(buf_size);
+      uint8_t *init_dst_buffer = (uint8_t *)malloc(buf_size);
+      uint8_t *expected_dst_buffer = (uint8_t *)malloc(buf_size);
+      uint8_t *read_dst_buffer = (uint8_t *)malloc(buf_size);
+
+      for (unsigned i = 0; i < buf_size; i++) {
+         clear_value[i] = rand();
+         init_dst_buffer[i] = rand();
+         expected_dst_buffer[i] = rand();
+      }
+
+      pipe_buffer_write(ctx, dst, 0, buf_size, init_dst_buffer);
+
+      unsigned op_size = (((rand() % buf_size) + 1) / clear_value_size) * clear_value_size;
+      if (!op_size)
+         op_size = clear_value_size;
+
+      unsigned dst_offset = rand() % (buf_size - op_size + 1);
+      if (clear_value_size == 12)
+         dst_offset &= ~0x3;
+
+      unsigned dwords_per_thread = 1 << (rand() % 3);
+      dwords_per_thread = MAX2(dwords_per_thread, DIV_ROUND_UP(clear_value_size, 4));
+
+      memcpy(expected_dst_buffer, init_dst_buffer, buf_size);
+      for (unsigned i = 0; i < op_size; i++)
+         expected_dst_buffer[dst_offset + i] = clear_value[i % clear_value_size];
+
+      printf(" %2u, %2u, %u, ", dst_offset, op_size, dwords_per_thread);
+
+      /* Visualize the clear. */
+      for (unsigned i = 0; i < clear_value_size; i++)
+         printf("%02x", clear_value[i]);
+      for (unsigned i = clear_value_size; i < 16; i++)
+         printf("  ");
+
+      printf("%s, %s", COLOR_RESET, COLOR_CYAN);
+      for (unsigned i = 0; i < buf_size; i++) {
+         printf("%s%02x",
+                i < dst_offset || i >= dst_offset + op_size ? COLOR_CYAN : COLOR_RESET,
+                init_dst_buffer[i]);
+      }
+      printf("%s, ", COLOR_RESET);
+      for (unsigned i = 0; i < buf_size; i++) {
+         printf("%s%02x",
+                i >= dst_offset && i < dst_offset + op_size ? COLOR_YELLOW : COLOR_CYAN,
+                expected_dst_buffer[i]);
+      }
+      printf("%s, ", COLOR_RESET);
+      fflush(stdout);
+
+      si_barrier_before_simple_buffer_op(sctx, 0, dst, NULL);
+      bool done = si_compute_clear_copy_buffer(sctx, dst, dst_offset, NULL, 0, op_size,
+                                               (uint32_t*)clear_value, clear_value_size,
+                                               dwords_per_thread, false, false);
+      si_barrier_after_simple_buffer_op(sctx, 0, dst, NULL);
+
+      if (done) {
+         pipe_buffer_read(ctx, dst, 0, buf_size, read_dst_buffer);
+         bool success = !memcmp(read_dst_buffer, expected_dst_buffer, buf_size);
+
+         num_tests++;
+         if (success)
+            num_passes++;
+
+         for (unsigned i = 0; i < buf_size; i++) {
+            printf("%s%02x",
+                   read_dst_buffer[i] != expected_dst_buffer[i] ? COLOR_RED :
+                   i >= dst_offset && i < dst_offset + op_size ? COLOR_YELLOW : COLOR_CYAN,
+                   read_dst_buffer[i]);
+         }
+
+         printf("%s, %s [%u/%u]\n", COLOR_RESET, success ? "pass" : "fail", num_passes, num_tests);
+      } else {
+         printf("%*s, skip [%u/%u]\n", buf_size * 2, "", num_passes, num_tests);
+      }
+
+      free(clear_value);
+      free(init_dst_buffer);
+      free(expected_dst_buffer);
+      free(read_dst_buffer);
+      pipe_resource_reference(&dst, NULL);
+   }
+
+   ctx->destroy(ctx);
+   exit(0);
+}
+
+void si_test_copy_buffer(struct si_screen *sscreen)
+{
+   struct pipe_screen *screen = &sscreen->b;
+   struct pipe_context *ctx = screen->context_create(screen, NULL, 0);
+   struct si_context *sctx = (struct si_context *)ctx;
+   unsigned buf_size = 32;
+   unsigned num_tests = 0, num_passes = 0;
+
+   srand(0x9b47d95b);
+
+   printf("src,dst, si,dw, %-*s, %-*s, %-*s, %-*s\n",
+          MIN2(buf_size, 32) * 2, "init src",
+          MIN2(buf_size, 32) * 2, "init dst",
+          MIN2(buf_size, 32) * 2, "expected dst",
+          MIN2(buf_size, 32) * 2, "observed dst");
+   printf("off,off, ze,th\n");
+
+   /* Generate an infinite number of random tests. */
+   while (1) {
+      struct pipe_resource *dst, *src;
+
+      dst = pipe_aligned_buffer_create(screen, 0, PIPE_USAGE_STAGING, buf_size, 256);
+      src = pipe_aligned_buffer_create(screen, 0, PIPE_USAGE_STAGING, buf_size, 256);
+
+      uint8_t *init_src_buffer = (uint8_t *)malloc(buf_size);
+      uint8_t *init_dst_buffer = (uint8_t *)malloc(buf_size);
+      uint8_t *expected_dst_buffer = (uint8_t *)malloc(buf_size);
+      uint8_t *read_dst_buffer = (uint8_t *)malloc(buf_size);
+
+      for (unsigned i = 0; i < buf_size; i++) {
+         init_src_buffer[i] = rand();
+         init_dst_buffer[i] = rand();
+      }
+
+      pipe_buffer_write(ctx, src, 0, buf_size, init_src_buffer);
+      pipe_buffer_write(ctx, dst, 0, buf_size, init_dst_buffer);
+
+      unsigned dst_offset = rand() % buf_size;
+      unsigned op_size = (rand() % (buf_size - dst_offset)) + 1;
+      unsigned src_offset = rand() % (buf_size - op_size + 1);
+      unsigned dwords_per_thread = 1 << (rand() % 3);
+
+      memcpy(expected_dst_buffer, init_dst_buffer, buf_size);
+      memcpy(expected_dst_buffer + dst_offset, init_src_buffer + src_offset, op_size);
+
+      printf(" %2u, %2u, %2u, %u, ", src_offset, dst_offset, op_size, dwords_per_thread);
+
+      if (buf_size <= 32) {
+         /* Visualize the copy. */
+         for (unsigned i = 0; i < buf_size; i++) {
+            printf("%s%02x",
+                   i >= src_offset && i < src_offset + op_size ? COLOR_YELLOW : COLOR_RESET,
+                   init_src_buffer[i]);
+         }
+         printf("%s, %s", COLOR_RESET, COLOR_CYAN);
+         for (unsigned i = 0; i < buf_size; i++) {
+            printf("%s%02x",
+                   i < dst_offset || i >= dst_offset + op_size ? COLOR_CYAN : COLOR_RESET,
+                   init_dst_buffer[i]);
+         }
+         printf("%s, ", COLOR_RESET);
+         for (unsigned i = 0; i < buf_size; i++) {
+            printf("%s%02x",
+                   i >= dst_offset && i < dst_offset + op_size ? COLOR_YELLOW : COLOR_CYAN,
+                   expected_dst_buffer[i]);
+         }
+         printf("%s, ", COLOR_RESET);
+      }
+      fflush(stdout);
+
+      si_barrier_before_simple_buffer_op(sctx, 0, dst, src);
+      bool done = si_compute_clear_copy_buffer(sctx, dst, dst_offset, src, src_offset, op_size,
+                                               NULL, 0, dwords_per_thread, false, false);
+      si_barrier_after_simple_buffer_op(sctx, 0, dst, src);
+
+      if (done) {
+         pipe_buffer_read(ctx, dst, 0, buf_size, read_dst_buffer);
+         bool success = !memcmp(read_dst_buffer, expected_dst_buffer, buf_size);
+
+         num_tests++;
+         if (success)
+            num_passes++;
+
+         if (buf_size <= 32) {
+            for (unsigned i = 0; i < buf_size; i++) {
+               printf("%s%02x",
+                      read_dst_buffer[i] != expected_dst_buffer[i] ? COLOR_RED :
+                      i >= dst_offset && i < dst_offset + op_size ? COLOR_YELLOW : COLOR_CYAN,
+                      read_dst_buffer[i]);
+            }
+            printf("%s, ", COLOR_RESET);
+         }
+
+         printf("%s [%u/%u]\n", success ? "pass" : "fail", num_passes, num_tests);
+      } else {
+         printf("%*s, skip [%u/%u]\n", buf_size * 2, "", num_passes, num_tests);
+      }
+
+      free(init_src_buffer);
+      free(init_dst_buffer);
+      free(expected_dst_buffer);
+      free(read_dst_buffer);
+      pipe_resource_reference(&dst, NULL);
+      pipe_resource_reference(&src, NULL);
+   }
+
+   ctx->destroy(ctx);
    exit(0);
 }

@@ -119,8 +119,7 @@ lower_printf_intrin(nir_builder *b, nir_intrinsic_instr *prntf, void *_options)
    nir_pop_if(b, NULL);
 
    nir_def *ret_val = nir_if_phi(b, printf_succ_val, printf_fail_val);
-   nir_def_rewrite_uses(&prntf->def, ret_val);
-   nir_instr_remove(&prntf->instr);
+   nir_def_replace(&prntf->def, ret_val);
 
    return true;
 }
@@ -178,7 +177,7 @@ nir_printf_fmt(nir_builder *b,
       default:  unreachable("invalid");
       }
 
-      nir_def *def = va_arg(ap, nir_def*);
+      ASSERTED nir_def *def = va_arg(ap, nir_def*);
       assert(def->bit_size / 8 == arg_size);
 
       info->num_args++;

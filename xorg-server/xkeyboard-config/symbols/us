@@ -876,6 +876,8 @@ xkb_symbols "colemak_dh" {
     key <AB03> { [            d,            D,  dead_diaeresis,       asciitilde ] };
     key <AB05> { [            z,            Z,              ae,               AE ] }; //Z appears here too because <LSGT> key is not present on ANSI keyboards
     key <AB07> { [            h,            H,      dead_caron,       asciitilde ] };
+
+    key <CAPS> { [    Caps_Lock,    Caps_Lock,       Caps_Lock,        Caps_Lock ] };
 };
 
 // Colemak-DH (Wide) symbols for xkb on X.Org Server 7.x
@@ -938,11 +940,11 @@ xkb_symbols "colemak_dh_wide_iso" {
     include "us(colemak_dh_wide)"
     name[Group1]= "English (Colemak-DH Wide ISO)";
 
-    key <AD12> { [ numbersign, asciitilde,    backslash,        bar ] };
+    key <AD12> { [      slash,   question, questiondown, asciitilde ] };
     key <BKSL> { [ apostrophe,   quotedbl,       otilde,     Otilde ] };
 
     key <AB05> { [  backslash,        bar,   asciitilde,  brokenbar ] };
-    key <AB06> { [      slash,   question, questiondown, asciitilde ] };
+    key <AB06> { [ numbersign, asciitilde,    backslash,        bar ] };
 };
 
 // Colemak-DH (ortholinear) symbols for xkb on X.Org Server 7.x
@@ -1695,8 +1697,8 @@ xkb_symbols "symbolic" {
  key <AE08> { [ 8,     asterisk,    eightsuperior, infinity       ] }; // 8 * ⁸ ∞
  key <AE09> { [ 9,     parenleft,   ninesuperior,  periodcentered ] }; // 9 ( ⁹ ·
  key <AE10> { [ 0,     parenright,  zerosuperior,  degree         ] }; // 0 ) ⁰ °
- key <AE11> { [ minus, underscore,  notequal,      plusminus      ] }; // - _ ≠ ±
- key <AE12> { [ equal, plus,        multiply,      division       ] }; // = + × ÷
+ key <AE11> { [ minus, underscore,  multiply,      division       ] }; // - _ × ÷
+ key <AE12> { [ equal, plus,        notequal,      plusminus      ] }; // = + ≠ ±
 
  key <AD01> { [ q,            Q,          U2200,         U2203         ] }; // q Q ∀ ∃
  key <AD02> { [ w,            W,          elementof,     notelementof  ] }; // w W ∈ ∉
@@ -2021,16 +2023,20 @@ xkb_symbols "3l" {
     key <AB10> { [ ISO_Level5_Shift ] }; // Cur/Num Modifier
 
     // Top row numbers - not part of spec, but given for convenience
-    key <AE01> { [ 1 ] };
-    key <AE02> { [ 2 ] };
-    key <AE03> { [ 3 ] };
-    key <AE04> { [ 4 ] };
-    key <AE05> { [ 5 ] };
-    key <AE06> { [ 6 ] };
-    key <AE07> { [ 7 ] };
-    key <AE08> { [ 8 ] };
-    key <AE09> { [ 9 ] };
-    key <AE10> { [ 0 ] };
+    key.type[Group1] = "TWO_LEVEL";
+    key <TLDE> { [ grave, asciitilde  ] };
+    key <AE01> { [ 1,     exclam      ] };
+    key <AE02> { [ 2,     at          ] };
+    key <AE03> { [ 3,     numbersign  ] };
+    key <AE04> { [ 4,     dollar      ] };
+    key <AE05> { [ 5,     percent     ] };
+    key <AE06> { [ 6,     asciicircum ] };
+    key <AE07> { [ 7,     ampersand   ] };
+    key <AE08> { [ 8,     asterisk    ] };
+    key <AE09> { [ 9,     parenleft   ] };
+    key <AE10> { [ 0,     parenright  ] };
+    key <AE11> { [ minus, underscore  ] };
+    key <AE12> { [ equal, plus        ] };
 
     // Main keys
     // Order of mods (defined by EIGHT_LEVEL_SEMIALPHABETIC) is:
@@ -2038,17 +2044,19 @@ xkb_symbols "3l" {
     key.type[Group1] = "EIGHT_LEVEL_SEMIALPHABETIC";
 
     // Second row
-    key <AD01> { [ q,         Q,         quotedbl,     Greek_omicron,  Prior,     Prior,      U21CD,    Greek_OMICRON ] };
-    key <AD02> { [ f,         F,         underscore,   Greek_phi,      BackSpace, BackSpace,  U21A4,    Greek_PHI ] };
-    key <AD03> { [ u,         U,         bracketleft,  Greek_upsilon,  Up,        Up,         U2191,    Greek_UPSILON ] };
-    key <AD04> { [ y,         Y,         bracketright, Greek_psi,      Delete,    Delete,     U21A6,    Greek_PSI ] };
-    key <AD05> { [ z,         Z,         asciicircum,  Greek_zeta,     Next,      Next,       U21CF,    Greek_ZETA ] };
-    key <AD06> { [ x,         X,         exclam,       Greek_xi,       NoSymbol,  NoSymbol,   U2260,    Greek_XI ] };
-    key <AD07> { [ k,         K,         less,         Greek_kappa,    1,         A,          U2A7D,    Greek_KAPPA ] };
-    key <AD08> { [ c,         C,         greater,      Greek_chi,      2,         B,          U2A7E,    Greek_CHI ] };
-    key <AD09> { [ w,         W,         equal,        Greek_omega,    3,         C,          U2261,    Greek_OMEGA ] };
-    key <AD10> { [ b,         B,         ampersand,    Greek_beta,     NoSymbol,  NoSymbol,   U2248,    Greek_BETA ] };
-
+    key <AD01> { [ q,            Q,          quotedbl,     Greek_omicron,  Prior,     Prior,      U21CD,    Greek_OMICRON ] };
+    key <AD02> { [ f,            F,          underscore,   Greek_phi,      BackSpace, BackSpace,  U21A4,    Greek_PHI ] };
+    key <AD03> { [ u,            U,          bracketleft,  Greek_upsilon,  Up,        Up,         U2191,    Greek_UPSILON ] };
+    key <AD04> { [ y,            Y,          bracketright, Greek_psi,      Delete,    Delete,     U21A6,    Greek_PSI ] };
+    key <AD05> { [ z,            Z,          asciicircum,  Greek_zeta,     Next,      Next,       U21CF,    Greek_ZETA ] };
+    key <AD06> { [ x,            X,          exclam,       Greek_xi,       NoSymbol,  NoSymbol,   U2260,    Greek_XI ] };
+    key <AD07> { [ k,            K,          less,         Greek_kappa,    1,         A,          U2264,    Greek_KAPPA ] };
+    key <AD08> { [ c,            C,          greater,      Greek_chi,      2,         B,          U2265,    Greek_CHI ] };
+    key <AD09> { [ w,            W,          equal,        Greek_omega,    3,         C,          U2261,    Greek_OMEGA ] };
+    key <AD10> { [ b,            B,          ampersand,    Greek_beta,     NoSymbol,  NoSymbol,   U2248,    Greek_BETA ] };
+    key <AD11> { [ bracketleft,  braceleft,  NoSymbol,     NoSymbol,       NoSymbol,  NoSymbol,   NoSymbol, NoSymbol ] };
+    key <AD12> { [ bracketright, braceright, NoSymbol,     NoSymbol,       NoSymbol,  NoSymbol,   NoSymbol, NoSymbol ] };
+    
     // Home row
     key <AC01> { [ o,         O,         slash,        Greek_omega,    Home,      Home,       U21D0,    Greek_OMEGA ] };
     key <AC02> { [ h,         H,         minus,        Greek_theta,    Left,      Left,       U2190,    Greek_THETA ] };

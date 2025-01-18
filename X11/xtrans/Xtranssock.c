@@ -224,7 +224,7 @@ static Sockettrans2dev Sockettrans2devtab[] = {
 static int TRANS(SocketINETClose) (XtransConnInfo ciptr);
 #endif
 
-#if defined(TCPCONN) || defined(TRANS_REOPEN)
+#if (defined(TCPCONN) && defined(TRANS_SERVER)) || defined(TRANS_REOPEN)
 static int
 is_numeric (const char *str)
 {
@@ -294,7 +294,7 @@ TRANS(SocketSelectFamily) (int first, const char *family)
 
     prmsg (3,"SocketSelectFamily(%s)\n", family);
 
-    for (i = first + 1; i < NUMSOCKETFAMILIES;i++)
+    for (i = first + 1; i < (int)NUMSOCKETFAMILIES; i++)
     {
         if (!strcmp (family, Sockettrans2devtab[i].transname))
 	    return i;
@@ -836,14 +836,22 @@ TRANS(SocketOpen) (int i, int type)
 	return NULL;
     }
 
-    if ((ciptr->fd = socket(Sockettrans2devtab[i].family, type,
-	Sockettrans2devtab[i].protocol)) < 0
+    ciptr->fd = socket(Sockettrans2devtab[i].family, type,
+                       Sockettrans2devtab[i].protocol);
+
 #ifndef WIN32
 #if (defined(X11_t) && !defined(USE_POLL)) || defined(FS_t) || defined(FONT_t)
-       || ciptr->fd >= sysconf(_SC_OPEN_MAX)
+    if (ciptr->fd >= sysconf(_SC_OPEN_MAX))
+    {
+	prmsg (2, "SocketOpen: socket() returned out of range fd %d\n",
+	       ciptr->fd);
+	close (ciptr->fd);
+	ciptr->fd = -1;
+    }
 #endif
 #endif
-      ) {
+
+    if (ciptr->fd < 0) {
 #ifdef WIN32
 	errno = WSAGetLastError();
 #endif
@@ -1170,7 +1178,7 @@ static int
 set_sun_path(const char *port, const char *upath, char *path, int abstract)
 {
     struct sockaddr_un s;
-    int maxlen = sizeof(s.sun_path) - 1;
+    ssize_t maxlen = sizeof(s.sun_path) - 1;
     const char *at = "";
 
     if (!port || !*port || !path)
@@ -1186,7 +1194,7 @@ set_sun_path(const char *port, const char *upath, char *path, int abstract)
     if (*port == '/') /* a full pathname */
 	upath = "";
 
-    if (strlen(port) + strlen(upath) > maxlen)
+    if ((ssize_t)(strlen(at) + strlen(upath) + strlen(port)) > maxlen)
 	return -1;
     snprintf(path, sizeof(s.sun_path), "%s%s%s", at, upath, port);
     return 0;
@@ -1222,7 +1230,7 @@ TRANS(SocketCreateListener) (XtransConnInfo ciptr,
     else
 	retry = 0;
 
-    while (bind (fd, (struct sockaddr *) sockname, namelen) < 0)
+    while (bind (fd, sockname, namelen) < 0)
     {
 	if (errno == EADDRINUSE) {
 	    if (flags & ADDR_IN_USE_ALLOWED)
@@ -1833,6 +1841,11 @@ TRANS(SocketINETConnect) (XtransConnInfo ciptr,
 	    }
 	} else {
 	    addrlist = malloc(sizeof(struct addrlist));
+	    if (addrlist == NULL) {
+		prmsg (1, "SocketINETConnect() can't allocate memory "
+			"for addrlist: %s\n", strerror(errno));
+		return TRANS_CONNECT_FAILED;
+	    }
 	    addrlist->firstaddr = NULL;
 	}
 

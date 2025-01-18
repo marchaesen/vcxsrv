@@ -42,6 +42,12 @@ static uint8_t si_vectorize_callback(const nir_instr *instr, const void *data)
       switch (alu->op) {
       case nir_op_unpack_32_2x16_split_x:
       case nir_op_unpack_32_2x16_split_y:
+      case nir_op_extract_i8:
+      case nir_op_extract_u8:
+      case nir_op_extract_i16:
+      case nir_op_extract_u16:
+      case nir_op_insert_u8:
+      case nir_op_insert_u16:
          return 1;
       default:
          return 2;
@@ -71,6 +77,7 @@ static unsigned si_lower_bit_size_callback(const nir_instr *instr, void *data)
 
 void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
 {
+   bool use_aco = sscreen->use_aco || nir->info.use_aco_amd;
    bool progress;
 
    do {
@@ -80,7 +87,7 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
 
       NIR_PASS(progress, nir, nir_lower_vars_to_ssa);
       NIR_PASS(progress, nir, nir_lower_alu_to_scalar,
-               nir->options->lower_to_scalar_filter, (void *)sscreen->use_aco);
+               nir->options->lower_to_scalar_filter, (void *)use_aco);
       NIR_PASS(progress, nir, nir_lower_phis_to_scalar, false);
 
       if (first) {
@@ -103,7 +110,7 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
 
       if (lower_alu_to_scalar) {
          NIR_PASS_V(nir, nir_lower_alu_to_scalar,
-                    nir->options->lower_to_scalar_filter, (void *)sscreen->use_aco);
+                    nir->options->lower_to_scalar_filter, (void *)use_aco);
       }
       if (lower_phis_to_scalar)
          NIR_PASS_V(nir, nir_lower_phis_to_scalar, false);
@@ -115,6 +122,7 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
       /* Needed for algebraic lowering */
       NIR_PASS(progress, nir, nir_lower_bit_size, si_lower_bit_size_callback, NULL);
       NIR_PASS(progress, nir, nir_opt_algebraic);
+      NIR_PASS(progress, nir, nir_opt_generate_bfi);
       NIR_PASS(progress, nir, nir_opt_constant_folding);
 
       if (!nir->info.flrp_lowered) {
@@ -145,10 +153,8 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
       if (nir->info.stage == MESA_SHADER_FRAGMENT)
          NIR_PASS_V(nir, nir_opt_move_discards_to_top);
 
-      if (sscreen->info.has_packed_math_16bit) {
-         NIR_PASS(progress, nir, nir_opt_vectorize, si_vectorize_callback,
-                  (void *)sscreen->use_aco);
-      }
+      if (sscreen->info.has_packed_math_16bit)
+         NIR_PASS(progress, nir, nir_opt_vectorize, si_vectorize_callback, (void *)use_aco);
    } while (progress);
 
    NIR_PASS_V(nir, nir_lower_var_copies);
@@ -280,8 +286,6 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
     * - ensure constant offsets for texture instructions are folded
     *   and copy-propagated
     */
-   NIR_PASS_V(nir, nir_lower_int64);
-
    const struct nir_lower_tex_options lower_tex_options = {
       .lower_txp = ~0u,
       .lower_txf_offset = true,
@@ -303,10 +307,6 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
    NIR_PASS_V(nir, si_lower_intrinsics);
 
    NIR_PASS_V(nir, ac_nir_lower_sin_cos);
-
-   NIR_PASS_V(nir, nir_lower_subgroups, sscreen->nir_lower_subgroups_options);
-
-   NIR_PASS_V(nir, nir_lower_discard_or_demote, true);
 
    /* Lower load constants to scalar and then clean up the mess */
    NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
@@ -342,16 +342,16 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
        * divisible by 2.
        */
       options.lower_local_invocation_index =
-         nir->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS ||
+         nir->info.derivative_group == DERIVATIVE_GROUP_QUADS ||
          (sscreen->info.gfx_level >= GFX12 &&
-          nir->info.cs.derivative_group == DERIVATIVE_GROUP_NONE &&
+          nir->info.derivative_group == DERIVATIVE_GROUP_NONE &&
           (nir->info.workgroup_size_variable ||
            (nir->info.workgroup_size[0] % 2 == 0 && nir->info.workgroup_size[1] % 2 == 0)));
       NIR_PASS_V(nir, nir_lower_compute_system_values, &options);
 
       /* Gfx12 supports this in hw. */
       if (sscreen->info.gfx_level < GFX12 &&
-          nir->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS) {
+          nir->info.derivative_group == DERIVATIVE_GROUP_QUADS) {
          nir_opt_cse(nir); /* CSE load_local_invocation_id */
          memset(&options, 0, sizeof(options));
          options.shuffle_local_ids_for_quad_derivatives = true;

@@ -239,7 +239,7 @@ proc_dri3_pixmap_from_buffer(ClientPtr client)
     pixmap->drawable.id = stuff->pixmap;
 
     /* security creation/labeling check */
-    rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pixmap, X11_RESTYPE_PIXMAP,
+    rc = XaceHookResourceAccess(client, stuff->pixmap, X11_RESTYPE_PIXMAP,
                   pixmap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
 
     if (rc != Success) {
@@ -503,7 +503,7 @@ proc_dri3_pixmap_from_buffers(ClientPtr client)
     pixmap->drawable.id = stuff->pixmap;
 
     /* security creation/labeling check */
-    rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pixmap, X11_RESTYPE_PIXMAP,
+    rc = XaceHookResourceAccess(client, stuff->pixmap, X11_RESTYPE_PIXMAP,
                   pixmap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
 
     if (rc != Success) {

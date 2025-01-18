@@ -203,6 +203,9 @@ void
 vbo_exec_update_eval_maps(struct gl_context *ctx);
 
 void
+vbo_reset_all_attr(struct gl_context *ctx);
+
+void
 vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags);
 
 void

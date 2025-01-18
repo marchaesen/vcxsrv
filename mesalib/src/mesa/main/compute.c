@@ -197,7 +197,7 @@ validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
     *  of <group_size_x>, <group_size_y>, and <group_size_z> is not a multiple
     *  of four."
     */
-   if (prog->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS &&
+   if (prog->info.derivative_group == DERIVATIVE_GROUP_QUADS &&
        ((info->block[0] & 1) || (info->block[1] & 1))) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glDispatchComputeGroupSizeARB(derivative_group_quadsNV "
@@ -206,7 +206,7 @@ validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   if (prog->info.cs.derivative_group == DERIVATIVE_GROUP_LINEAR &&
+   if (prog->info.derivative_group == DERIVATIVE_GROUP_LINEAR &&
        total_invocations & 3) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glDispatchComputeGroupSizeARB(derivative_group_linearNV "

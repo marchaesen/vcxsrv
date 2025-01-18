@@ -32,9 +32,7 @@
  * This doesn't implement pageflipping yet.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include "dix-config.h"
-#endif
 
 #include <errno.h>
 #include <time.h>
@@ -320,7 +318,7 @@ ms_dri2_copy_region2(ScreenPtr screen, DrawablePtr drawable, RegionPtr pRegion,
      * callback chain so we know that will happen before the client
      * tries to render again.
      */
-    gc->ops->CopyArea(src, dst, gc,
+    (void) gc->ops->CopyArea(src, dst, gc,
                       0, 0,
                       drawable->width, drawable->height,
                       off_x, off_y);
@@ -550,10 +548,8 @@ can_exchange(ScrnInfoPtr scrn, DrawablePtr draw,
         drmmode_crtc_private_ptr drmmode_crtc = config->crtc[i]->driver_private;
 
         /* Don't do pageflipping if CRTCs are rotated. */
-#ifdef GLAMOR_HAS_GBM
         if (drmmode_crtc->rotate_bo.gbm)
             return FALSE;
-#endif
 
         if (xf86_crtc_on(config->crtc[i]))
             num_crtcs_on++;

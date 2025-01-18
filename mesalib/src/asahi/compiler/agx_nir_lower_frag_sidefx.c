@@ -89,8 +89,7 @@ agx_nir_lower_frag_sidefx(nir_shader *s)
       return false;
 
    bool done = false;
-   nir_shader_intrinsics_pass(
-      s, pass, nir_metadata_block_index | nir_metadata_dominance, &done);
+   nir_shader_intrinsics_pass(s, pass, nir_metadata_control_flow, &done);
 
    /* If there's no render targets written, just put the write at the end */
    if (!done) {

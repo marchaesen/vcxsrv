@@ -1,0 +1,232 @@
+Mesa 24.2.4 Release Notes / 2024-10-03
+======================================
+
+Mesa 24.2.4 is a bug fix release which fixes bugs found since the 24.2.3 release.
+
+Mesa 24.2.4 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.4 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: 5ea42a8bb6d58aec9754c9f553b1e413f67c09403741f8e2786c3f9e63d3461a  mesa-24.2.4.tar.xz
+    SHA512: f0f1c23591cce85966efaf3988afdb14b64ceb7216b3994e8fc50e8ddc62c35a84b2013285c84080d963aec2afb94dac345f5f00e7ccf9ae7e9ab3f5b9ba0bcb  mesa-24.2.4.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- Faaast Penguin requires force_vk_vendor set
+- ANV: Deadlock(game) bugged invisible player/NPC models and missing textures
+- anv: dEQP-VK.mesh_shader.ext.misc.clip_geom_provoking_last and dEQP-VK.mesh_shader.ext.misc.clip_geom_and_task_shader_provoking_last fail on MTL
+- zink missing dep on spirv_info_h?
+- building lavapipe with LLVM-19 and running any vulkan app on a Zen4 CPU shows text on terminal..
+- Adreno 740v3 (Quest 3) Image Corruption
+- Update defaults for launch crash with XESS in Satisfactory 1.0
+- [bisected][zink] dEQP-GLES3.functional.fbo.multiview.samples_1 failing after feature enabled on zink
+
+
+Changes
+-------
+
+Aleksi Sapon (2):
+
+- llvmpipe: fix quad group helper invocation masking
+- llvmpipe: correctly implement output variables loads
+
+Benjamin Otte (1):
+
+- nvk: Don't emit critical messages during init
+
+Boris Brezillon (1):
+
+- pan/va: Fix nir_op_pack_uvec4_to_uint
+
+Caio Oliveira (1):
+
+- intel/brw: Skip per-primitive inputs when computing flat input mask
+
+Colin Marc (2):
+
+- vulkan/video: set HEVC nuh_temporal_id_plus1 and nal_unit_type correctly
+- radv/video: set TemporalId correctly
+
+Corentin Noël (1):
+
+- virgl: Avoid a race condition on handle removal
+
+Daniel Svensson (1):
+
+- zink: add spirv_info_h dep to libzink.
+
+Dave Airlie (3):
+
+- radv/video/enc: report pictureAccessGranularity of CTB size.
+- radv/video: add encode field for vcn4
+- radv/video: handle missing h265 feedback struct.
+
+David Heidelberg (2):
+
+- freedreno/ir3: mad.x24 is not safe to lower
+- freedreno/ir3: Do not allow 16-bit mad.x24
+
+David Rosca (2):
+
+- radeonsi/vcn: Don't reuse context with multiple VCN instances
+- frontends/va: Fix AV1 packed header parsing
+
+Eric Engestrom (10):
+
+- docs: add sha sum for 24.2.3
+- .pick_status.json: Update to 00c94e0cd4d46b093c20b2ec2be35ab3de3cb8a6
+- .pick_status.json: Mark 4b51a2c9daa92f39a2045ca48f707eb3cdb79018 as denominated
+- .pick_status.json: Update to bf41cf2eeffca5ec102e67f9c5e9f2c65deae43f
+- .pick_status.json: Update to f6e7520b139f45971cdfa027aee29405c13c726d
+- .pick_status.json: Update to a74ebffc6a6193445231563cdaa4494933b6c281
+- .pick_status.json: Update to 85bc72ad263e0c6620fe8c74d29e68411971013b
+- .pick_status.json: Update to 61f3294786d52f3a95f0fa314eb21d90a0485624
+- .pick_status.json: Update to 023277173ce1d84c448626ded21e4d2b66363b41
+- egl: fix dri2_from_names() call
+
+Erik Faye-Lund (3):
+
+- panfrost: unify compressed formats
+- panfrost: store texfeat_bit in panfrost_format
+- panfrost: check fmt.bitfeat_bit for compressed-support
+
+Faith Ekstrand (1):
+
+- nvk: Handle aspects in D32_S8_UINT copies
+
+GKraats (2):
+
+- i915g: fix texture3d npot mipmaps
+- X11: fix crash of gnome-shell if mesa is compiled with legacy-x11=dri2
+
+Gert Wollny (2):
+
+- nir/opt_algebraic: Allow two-step lowering of ftrunc\@64 to use ffract\@64
+- Revert: r600/sfn: call nir_lower_doubles explicitely"
+
+Iván Briano (4):
+
+- anv: free shaders on rt pipeline compile error
+- anv: skip rt pipeline compile if we found all shaders
+- vulkan: use standard sample locations if there's no VkPipelineSampleLocationsStateCreateInfoEXT
+- anv: allocate sparse descriptor buffers from the correct heap
+
+José Roberto de Souza (5):
+
+- anv: Fix context id or exec queue used to open perf stream
+- anv: Add warning about mismatch between query queues
+- anv: Make sure all previous vm binds are done before execute perf query pool
+- anv: Check if vkCreateQueryPool() is being created in a supported queue
+- anv: Fix condition to clear query pool with blorp
+
+Kenneth Graunke (1):
+
+- intel/brw: Don't include sync.nop in INTEL_DEBUG instruction counts
+
+Konstantin Seurer (4):
+
+- radv: Initialize sqtt state before meta state
+- lavapipe: Fix report_ray_intersection affecting terminated rays
+- lavapipe: Do not return in report_ray_intersection
+- radv: Fix report_ray_intersection affecting terminated rays
+
+Lionel Landwerlin (12):
+
+- brw: fix virtual register splitting to not go below physical register size
+- clc: find opencl headers from the installed llvm/clang location
+- anv: fix missing tracking for alpha-to-coverage runtime changes
+- anv: Only flush render target cache when detecting RT changes
+- iris: ensure null render target for specific cases
+- brw: move null_rt control up a layer
+- brw: disable null_rt only if color output does not affect other outputs
+- anv: add missing pipeline instance multiplier
+- zink: avoid host transfer usage with sparse
+- anv: limit 22018402687 to impacted platforms
+- anv: consolidate pre/post draw workaround in helpers
+- anv: optimize WA 16011107343/22018402687
+
+Lucas Fryzek (2):
+
+- drisw: Copy entire buffer ignoring damage regions
+- egl/dri/wl: Move swrast damage region from put to swap
+
+Marek Olšák (1):
+
+- nir/opt_vectorize_io: fix skipped output vectorization if inputs were vectorized
+
+Mike Blumenkrantz (4):
+
+- vk/image: fix view creation for planar video aspects
+- zink: check HAVE_LIBDRM for xf86drm.h include
+- util/vbuf: delete/fix broken incompatible stride calc
+- mesa: fix sample count handling for MSRTT
+
+Mohamed Ahmed (1):
+
+- nvk: Block off non-2D DRM format modifier images
+
+Nikita Popov (1):
+
+- gallium: Don't pass avx512er and avx512pf features on LLVM 19
+
+Patrick Lerda (4):
+
+- iris: fix iris_ensure_indirect_generation_shader() memory leak
+- i915: fix vertex atan regression
+- r600/sfn: fix class Shader object m_register_allocations memory leak
+- r600/sfn: fix class Shader object last_alu_with_indirect_reg memory leak
+
+Rhys Perry (3):
+
+- aco/tests: update assembler tests for llvm
+- aco: workaround hazards in emit_long_jump
+- nir/opt_loop: rematerialize header block derefs in their use blocks
+
+Samuel Pitoiset (3):
+
+- radv: fix assigning mesh shader outputs when clip/cull distances are read in FS
+- aco: fix descriptor leaking when printing assembly with CLRX
+- radv: do not keep executable info when compiling shaders for ESO
+
+Sviatoslav Peleshko (2):
+
+- anv: Update XeSS workaround executable names for Satisfactory 1.0
+- intel/brw: Don't apply discard_if condition opt if it can change results
+
+Tapani Pälli (1):
+
+- drirc/anv: force_vk_vendor=-1 for Faaast Penguin
+
+Thomas Wagner (3):
+
+- llvmpipe: Fix external memory object reference
+- llvmpipe: Unmap DMA buffer to release all resources
+- llvmpipe: properly save llvmpipe_memory_allocation in memory_object
+
+Timothy Arceri (1):
+
+- glsl: fix gl_{Clip,Cull}Distance error messages
+
+Valentine Burley (1):
+
+- freedreno/devices: Fix A740v3 from Quest 3

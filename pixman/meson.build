@@ -332,52 +332,11 @@ elif use_a64neon.enabled()
   error('A64 NEON Support unavailable, but required')
 endif
 
-use_iwmmxt = get_option('iwmmxt')
-have_iwmmxt = false
-iwmmxt_flags = ['-flax-vector-conversions', '-Winline']
-if not use_iwmmxt.disabled()
-  if get_option('iwmmxt2')
-    iwmmxt_flags += '-march=iwmmxt2'
-  else
-    iwmmxt_flags += '-march=iwmmxt'
-  endif
-
-  if host_machine.cpu_family() == 'arm'
-    if cc.compiles('''
-        #ifndef __IWMMXT__
-        #error "IWMMXT not enabled (with -march=iwmmxt)"
-        #endif
-        #if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8))
-        #error "Need GCC >= 4.8 for IWMMXT intrinsics"
-        #endif
-        #include <mmintrin.h>
-        int main () {
-          union {
-            __m64 v;
-            char c[8];
-          } a = { .c = {1, 2, 3, 4, 5, 6, 7, 8} };
-          int b = 4;
-          __m64 c = _mm_srli_si64 (a.v, b);
-        }
-        ''',
-        args : iwmmxt_flags,
-        name : 'IWMMXT Intrinsic Support')
-      have_iwmmxt = true
-    endif
-  endif
-endif
-
-if have_iwmmxt
-  config.set10('USE_ARM_IWMMXT', true)
-elif use_iwmmxt.enabled()
-  error('IWMMXT Support unavailable, but required')
-endif
-
 use_mips_dspr2 = get_option('mips-dspr2')
 have_mips_dspr2 = false
 mips_dspr2_flags = ['-mdspr2']
 if not use_mips_dspr2.disabled()
-  if host_machine.cpu_family() == 'mips32'
+  if host_machine.cpu_family().startswith('mips')
     if cc.compiles('''
         #if !(defined(__mips__) &&  __mips_isa_rev >= 2)
         #error MIPS DSPr2 is currently only available on MIPS32r2 platforms.
@@ -393,7 +352,7 @@ if not use_mips_dspr2.disabled()
             );
             return c;
         }''',
-        args : mipds_dspr2_flags,
+        args : mips_dspr2_flags,
         name : 'DSPr2 Intrinsic Support')
       have_mips_dspr2 = true
     endif

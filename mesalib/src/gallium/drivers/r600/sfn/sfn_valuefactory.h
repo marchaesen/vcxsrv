@@ -204,9 +204,11 @@ public:
 
    int new_register_index();
 
+   using nir_intrinsic_instr_alloc =
+      std::list<nir_intrinsic_instr *, Allocator<nir_intrinsic_instr *>>;
 
    /* Allocate registers */
-   bool allocate_registers(const std::list<nir_intrinsic_instr *>& regs);
+   bool allocate_registers(const nir_intrinsic_instr_alloc& regs);
    PRegister allocate_pinned_register(int sel, int chan);
    RegisterVec4 allocate_pinned_vec4(int sel, bool is_ssa);
 

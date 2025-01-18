@@ -537,8 +537,8 @@ union packed_instr {
       unsigned instr_type : 4;
       unsigned deref_type : 3;
       unsigned cast_type_same_as_last : 1;
-      unsigned modes : 5; /* See (de|en)code_deref_modes() */
-      unsigned _pad : 9;
+      unsigned modes : 6; /* See (de|en)code_deref_modes() */
+      unsigned _pad : 8;
       unsigned in_bounds : 1;
       unsigned packed_src_ssa_16bit : 1; /* deref_var redefines this */
       unsigned def : 8;
@@ -587,6 +587,12 @@ union packed_instr {
       unsigned type : 2;
       unsigned _pad : 26;
    } jump;
+   struct {
+      unsigned instr_type : 4;
+      unsigned type : 4;
+      unsigned string_length : 16;
+      unsigned def : 8;
+   } debug_info;
 };
 
 /* Write "lo24" as low 24 bits in the first uint32. */
@@ -825,7 +831,8 @@ read_alu(read_ctx *ctx, union packed_instr header)
    return alu;
 }
 
-#define MODE_ENC_GENERIC_BIT (1 << 4)
+#define NUM_GENERIC_MODES 4
+#define MODE_ENC_GENERIC_BIT (1 << 5)
 
 static nir_variable_mode
 decode_deref_modes(unsigned modes)
@@ -846,10 +853,18 @@ encode_deref_modes(nir_variable_mode modes)
     * case, we need the full bitfield.  Fortunately, there are only 4 of
     * these.  For all other modes, we can only have one mode at a time so we
     * can compress them by only storing the bit position.  This, plus one bit
-    * to select encoding, lets us pack the entire bitfield in 5 bits.
+    * to select encoding, lets us pack the entire bitfield in 6 bits.
+    */
+
+   /* Assert that the modes we are compressing fit along with the generic bit
+    */
+   STATIC_ASSERT((nir_num_variable_modes - NUM_GENERIC_MODES) <
+                 MODE_ENC_GENERIC_BIT);
+
+   /* Assert that the generic modes are defined at the end of the modes enum
     */
    STATIC_ASSERT((nir_var_all & ~nir_var_mem_generic) <
-                 (1 << MODE_ENC_GENERIC_BIT));
+                 (1 << (nir_num_variable_modes - NUM_GENERIC_MODES)));
 
    unsigned enc;
    if (modes == 0 || (modes & nir_var_mem_generic)) {
@@ -1584,6 +1599,63 @@ read_call(read_ctx *ctx)
 }
 
 static void
+write_debug_info(write_ctx *ctx, const nir_debug_info_instr *di)
+{
+   union packed_instr header;
+   header.u32 = 0;
+
+   header.debug_info.instr_type = nir_instr_type_debug_info;
+   header.debug_info.type = di->type;
+   header.debug_info.string_length = di->string_length;
+
+   switch (di->type) {
+   case nir_debug_info_src_loc:
+      blob_write_uint32(ctx->blob, header.u32);
+      blob_write_uint32(ctx->blob, di->src_loc.line);
+      blob_write_uint32(ctx->blob, di->src_loc.column);
+      blob_write_uint32(ctx->blob, di->src_loc.spirv_offset);
+      blob_write_uint8(ctx->blob, di->src_loc.source);
+      if (di->src_loc.line)
+         write_src(ctx, &di->src_loc.filename);
+      return;
+   case nir_debug_info_string:
+      write_def(ctx, &di->def, header, di->instr.type);
+      blob_write_bytes(ctx->blob, di->string, di->string_length);
+      return;
+   }
+
+   unreachable("Unimplemented nir_debug_info_type");
+}
+
+static nir_debug_info_instr *
+read_debug_info(read_ctx *ctx, union packed_instr header)
+{
+   nir_debug_info_type type = header.debug_info.type;
+
+   switch (type) {
+   case nir_debug_info_src_loc: {
+      nir_debug_info_instr *di = nir_debug_info_instr_create(ctx->nir, type, 0);
+      di->src_loc.line = blob_read_uint32(ctx->blob);
+      di->src_loc.column = blob_read_uint32(ctx->blob);
+      di->src_loc.spirv_offset = blob_read_uint32(ctx->blob);
+      di->src_loc.source = blob_read_uint8(ctx->blob);
+      if (di->src_loc.line)
+         read_src(ctx, &di->src_loc.filename);
+      return di;
+   }
+   case nir_debug_info_string: {
+      nir_debug_info_instr *di =
+         nir_debug_info_instr_create(ctx->nir, type, header.debug_info.string_length);
+      read_def(ctx, &di->def, &di->instr, header);
+      memcpy(di->string, blob_read_bytes(ctx->blob, di->string_length), di->string_length);
+      return di;
+   }
+   }
+
+   unreachable("Unimplemented nir_debug_info_type");
+}
+
+static void
 write_instr(write_ctx *ctx, const nir_instr *instr)
 {
    /* We have only 4 bits for the instruction type. */
@@ -1617,6 +1689,9 @@ write_instr(write_ctx *ctx, const nir_instr *instr)
    case nir_instr_type_call:
       blob_write_uint32(ctx->blob, instr->type);
       write_call(ctx, nir_instr_as_call(instr));
+      break;
+   case nir_instr_type_debug_info:
+      write_debug_info(ctx, nir_instr_as_debug_info(instr));
       break;
    case nir_instr_type_parallel_copy:
       unreachable("Cannot write parallel copies");
@@ -1667,6 +1742,9 @@ read_instr(read_ctx *ctx, nir_block *block)
       break;
    case nir_instr_type_call:
       instr = &read_call(ctx)->instr;
+      break;
+   case nir_instr_type_debug_info:
+      instr = &read_debug_info(ctx, header)->instr;
       break;
    case nir_instr_type_parallel_copy:
       unreachable("Cannot read parallel copies");
@@ -1885,6 +1963,8 @@ write_function(write_ctx *ctx, const nir_function *fxn)
       flags |= 0x20;
    if (fxn->is_subroutine)
       flags |= 0x40;
+   if (fxn->is_tmp_globals_wrapper)
+      flags |= 0x80;
    blob_write_uint32(ctx->blob, flags);
    if (fxn->name)
       blob_write_string(ctx->blob, fxn->name);
@@ -1903,6 +1983,8 @@ write_function(write_ctx *ctx, const nir_function *fxn)
          ((uint32_t)fxn->params[i].num_components) |
          ((uint32_t)fxn->params[i].bit_size) << 8;
       blob_write_uint32(ctx->blob, val);
+      encode_type_to_blob(ctx->blob, fxn->params[i].type);
+      blob_write_uint32(ctx->blob, encode_deref_modes(fxn->params[i].mode));
    }
 
    /* At first glance, it looks like we should write the function_impl here.
@@ -1936,6 +2018,8 @@ read_function(read_ctx *ctx)
       uint32_t val = blob_read_uint32(ctx->blob);
       fxn->params[i].num_components = val & 0xff;
       fxn->params[i].bit_size = (val >> 8) & 0xff;
+      fxn->params[i].type = decode_type_from_blob(ctx->blob);
+      fxn->params[i].mode = decode_deref_modes(blob_read_uint32(ctx->blob));
    }
 
    fxn->is_entrypoint = flags & 0x1;
@@ -1945,6 +2029,7 @@ read_function(read_ctx *ctx)
    fxn->should_inline = flags & 0x10;
    fxn->dont_inline = flags & 0x20;
    fxn->is_subroutine = flags & 0x40;
+   fxn->is_tmp_globals_wrapper = flags & 0x80;
 }
 
 static void

@@ -1,0 +1,5 @@
+[binaries]
+c = 'clang'
+ar = 'llvm-ar'
+strip = 'llvm-strip'
+pkg-config = 'pkg-config'

@@ -64,7 +64,7 @@ AC_SUBST([XFT_LT_VERSION])
 #
 # Check for Xrender
 #
-PKG_CHECK_MODULES(XRENDER, xrender >= 0.8.2 x11)
+PKG_CHECK_MODULES(XRENDER, xrender >= 0.8.2 x11 xproto >= 7.0.22)
 
 # Check freetype configuration
 PKG_CHECK_MODULES(FREETYPE, freetype2 >= 2.1.6)

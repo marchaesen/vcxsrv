@@ -1,0 +1,155 @@
+Mesa 24.0.9 Release Notes / 2024-06-06
+======================================
+
+Mesa 24.0.9 is a bug fix release which fixes bugs found since the 24.0.8 release.
+
+Mesa 24.0.9 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.0.9 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA256 checksum
+---------------
+
+::
+
+    51aa686ca4060e38711a9e8f60c8f1efaa516baf411946ed7f2c265cd582ca4c  mesa-24.0.9.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- RustiCL: deadlock when calling clGetProfilingInfo() on callbacks
+- dEQP-VK.pipeline.pipeline_library.shader_module_identifier.pipeline_from_id.graphics regression
+- anv: unbounded shader cache
+- radv: Crash due to nir validation fail in Enshrouded
+- radv: Crash due to nir validation fail in Enshrouded
+- panforst: T604 issue with using u32 for flat varyings
+
+
+Changes
+-------
+
+Alexandre Marquet (1):
+
+- pan/mdg: quirk to disable auto32
+
+David Heidelberg (2):
+
+- subprojects: uprev perfetto to v45.0
+- ci/nouveau: move disabled jobs back from include into main gitlab-ci.yml
+
+David Rosca (1):
+
+- frontends/va: Fix leak when destroying VAEncCodedBufferType
+
+Eric Engestrom (11):
+
+- docs: add sha256sum for 24.0.8
+- .pick_status.json: Update to 18c736bcfc55b8fa309ede02332b9c7a2ca22e78
+- .pick_status.json: Mark 01bac643f6c088f7537edf18f2d4094881c1ecda as denominated
+- .pick_status.json: Update to 4b6f7613c0bd161548f1bd45d42b65b4841a278a
+- .pick_status.json: Mark eefe34127f8e8ae2ba91a7837b9dfef999dc3f87 as denominated
+- .pick_status.json: Update to a1ea0956b46778d0331e4ef60ebd2be057fd0e9f
+- .pick_status.json: Mark 410ca6a3e99c5c1c9c91f0f79bf43a35103cbd98 as denominated
+- freedreno/a6xx: fix kernel -> compute handling
+- panfrost: mark tests as fixed
+- panfrost/ci: add missing genxml trigger path
+- .pick_status.json: Update to 6f713a764fb412567caaabd9ae574822e79da383
+
+Eric R. Smith (4):
+
+- get_color_read_type: make sure format/type combo is legal for gles
+- glsl: test both inputs when sorting varyings for xfb
+- panfrost: fix some omissions in valhall flow control
+- panfrost: change default rounding mode for samplers
+
+Friedrich Vock (2):
+
+- radv: Use max_se instead of num_se where appropriate
+- radeonsi: Use max_se instead of num_se where appropriate
+
+Iago Toral Quiroga (4):
+
+- broadcom/compiler: make add_node return the node index
+- broadcom/compiler: don't assign payload registers to spilling setup temps
+- broadcom/compiler: apply payload conflict to spill setup before RA
+- v3dv: fix incorrect index buffer size
+
+Iván Briano (1):
+
+- anv: check cmd_buffer is on a transfer queue more properly
+
+Jose Maria Casanova Crespo (8):
+
+- v3d: fix CLE MMU errors avoiding using last bytes of CL BOs.
+- v3dv: fix CLE MMU errors avoiding using last bytes of CL BOs.
+- v3d: Increase alignment to 16k on CL BO on RPi5
+- v3dv: Increase alignment to 16k on CL BO on RPi5
+- v3dv: V3D_CL_MAX_INSTR_SIZE bytes in last CL instruction not needed
+- v3dv: Emit stencil draw clear if needed for GFXH-1461
+- v3dv: really fix CLE MMU errors on 7.1HW Rpi5
+- v3d: really fix CLE MMU errors on 7.1HW Rpi5
+
+Juan A. Suarez Romero (1):
+
+- ci: define SNMP base interface on runner
+
+Karol Herbst (5):
+
+- gallium/vl: stub vl_video_buffer_create_as_resource
+- gallium/vl: remove stubs which are defined in mesa_util
+- meson: centralize galliumvl_stub handling
+- rusticl: link against libgalliumvl_stub
+- rusticl/event: fix deadlock when calling clGetEventProfilingInfo inside callbacks
+
+Kevin Chuang (1):
+
+- anv: Properly fetch partial results in vkGetQueryPoolResults
+
+Lionel Landwerlin (5):
+
+- anv: use weak_ref mode for global pipeline caches
+- anv: fix shader identifier handling
+- intel/brw: ensure find_live_channel don't access arch register without sync
+- anv: fix utrace compute walker timestamp captures
+- anv: fix timestamp copies from secondary buffers
+
+Renato Pereyra (1):
+
+- anv: Attempt to compile all pipelines even after errors
+
+Rhys Perry (3):
+
+- aco: create lcssa phis for continue_or_break loops when necessary
+- aco: create lcssa phis for continue_or_break loops when necessary
+- radv: malloc graphics pipeline stages
+
+Samuel Pitoiset (6):
+
+- radv: allow 3d views with VK_IMAGE_CREATE_2D_VIEW_COMPATIBLE_BIT_EXT
+- radv: set image view descriptors as buffer for non-graphics GPU
+- radv: mark some formats as unsupported on GFX8/CARRIZO
+- radv: only set ALPHA_IS_ON_MSB if the image has DCC on GFX6-9
+- radv: fix setting a custom pitch for CB on GFX10_3+
+- radv: fix flushing DB meta cache on GFX11.5
+
+Tapani Pälli (1):
+
+- anv/android: enable emulated astc for applications
+
+Yusuf Khan (1):
+
+- zink/query: begin time elapsed queries even if we arent in a rp

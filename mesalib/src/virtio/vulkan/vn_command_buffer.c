@@ -17,6 +17,7 @@
 #include "vn_device.h"
 #include "vn_feedback.h"
 #include "vn_image.h"
+#include "vn_physical_device.h"
 #include "vn_query_pool.h"
 #include "vn_render_pass.h"
 
@@ -40,9 +41,12 @@ vn_cmd_submit(struct vn_command_buffer *cmd);
    } while (0)
 
 static bool
-vn_image_memory_barrier_has_present_src(
+vn_image_memory_barriers_needs_present_fix(
    const VkImageMemoryBarrier *img_barriers, uint32_t count)
 {
+   if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+      return false;
+
    for (uint32_t i = 0; i < count; i++) {
       if (img_barriers[i].oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR ||
           img_barriers[i].newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
@@ -52,9 +56,12 @@ vn_image_memory_barrier_has_present_src(
 }
 
 static bool
-vn_dependency_info_has_present_src(uint32_t dep_count,
-                                   const VkDependencyInfo *dep_infos)
+vn_dependency_infos_needs_present_fix(uint32_t dep_count,
+                                      const VkDependencyInfo *dep_infos)
 {
+   if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+      return false;
+
    for (uint32_t i = 0; i < dep_count; i++) {
       for (uint32_t j = 0; j < dep_infos[i].imageMemoryBarrierCount; j++) {
          const VkImageMemoryBarrier2 *b =
@@ -65,16 +72,76 @@ vn_dependency_info_has_present_src(uint32_t dep_count,
          }
       }
    }
-
    return false;
 }
 
-static inline VkImageMemoryBarrier *
-vn_cmd_get_image_memory_barriers(struct vn_command_buffer *cmd,
-                                 uint32_t count)
+struct vn_cmd_fix_image_memory_barrier_result {
+   bool availability_op_needed; // set src access/stage (flush)
+   bool visibility_op_needed;   // set dst access/stage (invalidate)
+   bool external_acquire_unmodified;
+};
+
+struct vn_cmd_cached_storage {
+   VkDependencyInfo *dep_infos;
+   union {
+      VkImageMemoryBarrier *barriers;
+      VkImageMemoryBarrier2 *barriers2;
+   };
+   uint32_t acquire_unmodified_count;
+   uint32_t used_acquire_unmodified;
+   VkExternalMemoryAcquireUnmodifiedEXT *acquire_unmodified_infos;
+};
+
+static inline bool
+vn_cmd_get_cached_storage(struct vn_command_buffer *cmd,
+                          VkStructureType barrier_type,
+                          uint32_t barrier_count,
+                          uint32_t dep_info_count,
+                          struct vn_cmd_cached_storage *out_storage)
 {
-   return vn_cached_storage_get(&cmd->pool->storage,
-                                count * sizeof(VkImageMemoryBarrier));
+   size_t dep_infos_size = dep_info_count * sizeof(VkDependencyInfo);
+   size_t barriers_size;
+
+   switch (barrier_type) {
+   case VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER:
+      assert(!dep_info_count);
+      barriers_size = barrier_count * sizeof(VkImageMemoryBarrier);
+      break;
+   case VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2:
+      barriers_size = barrier_count * sizeof(VkImageMemoryBarrier2);
+      break;
+   default:
+      unreachable("invalid barrier_type");
+   }
+
+   size_t total_size =
+      dep_infos_size + barriers_size +
+      barrier_count * sizeof(VkExternalMemoryAcquireUnmodifiedEXT);
+   void *data = vn_cached_storage_get(&cmd->pool->storage, total_size);
+   if (!data)
+      return false;
+
+   memset(out_storage, 0, sizeof(*out_storage));
+   if (dep_info_count) {
+      out_storage->dep_infos = data;
+      data += dep_infos_size;
+   }
+   out_storage->barriers = data;
+   data += barriers_size;
+
+   out_storage->acquire_unmodified_count = barrier_count;
+   out_storage->acquire_unmodified_infos = data;
+   return true;
+}
+
+static inline VkExternalMemoryAcquireUnmodifiedEXT *
+vn_cached_get_acquire_unmodified(struct vn_cmd_cached_storage *storage)
+{
+   VkExternalMemoryAcquireUnmodifiedEXT *acquire_unmodified =
+      &storage->acquire_unmodified_infos[storage->used_acquire_unmodified++];
+   assert(storage->used_acquire_unmodified <=
+          storage->acquire_unmodified_count);
+   return acquire_unmodified;
 }
 
 /* About VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, the spec says
@@ -139,155 +206,157 @@ vn_cmd_get_image_memory_barriers(struct vn_command_buffer *cmd,
  * I likely also violate some VUs or miss some cases below.  They are
  * hopefully fixable and are left as TODOs.
  */
-static void
-vn_cmd_fix_image_memory_barrier(const struct vn_command_buffer *cmd,
-                                const VkImageMemoryBarrier *src_barrier,
-                                VkImageMemoryBarrier *out_barrier)
+static struct vn_cmd_fix_image_memory_barrier_result
+vn_cmd_fix_image_memory_barrier_common(const struct vn_image *img,
+                                       uint32_t cmd_pool_qfi,
+                                       VkImageLayout *old_layout,
+                                       VkImageLayout *new_layout,
+                                       uint32_t *src_qfi,
+                                       uint32_t *dst_qfi)
 {
-   const struct vn_image *img = vn_image_from_handle(src_barrier->image);
+   assert(VN_PRESENT_SRC_INTERNAL_LAYOUT != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-   *out_barrier = *src_barrier;
+   struct vn_cmd_fix_image_memory_barrier_result result = {
+      .availability_op_needed = true,
+      .visibility_op_needed = true,
+   };
 
    /* no fix needed */
-   if (out_barrier->oldLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
-       out_barrier->newLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-      return;
+   if (*old_layout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
+       *new_layout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+      return result;
 
    assert(img->wsi.is_wsi);
 
-   if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-      return;
-
    /* prime blit src or no layout transition */
-   if (img->wsi.is_prime_blit_src ||
-       out_barrier->oldLayout == out_barrier->newLayout) {
-      if (out_barrier->oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-         out_barrier->oldLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
-      if (out_barrier->newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-         out_barrier->newLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
-      return;
+   if (img->wsi.is_prime_blit_src || *old_layout == *new_layout) {
+      if (*old_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+         *old_layout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
+      if (*new_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+         *new_layout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
+      return result;
    }
 
-   if (out_barrier->oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-      out_barrier->oldLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
+   if (*old_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+      *old_layout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
 
-      /* no availability operation needed */
-      out_barrier->srcAccessMask = 0;
+      result.availability_op_needed = false;
+      result.external_acquire_unmodified = true;
 
-      const uint32_t dst_qfi = out_barrier->dstQueueFamilyIndex;
       if (img->sharing_mode == VK_SHARING_MODE_CONCURRENT) {
-         out_barrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-         out_barrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      } else if (dst_qfi == out_barrier->srcQueueFamilyIndex ||
-                 dst_qfi == cmd->pool->queue_family_index) {
-         out_barrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-         out_barrier->dstQueueFamilyIndex = cmd->pool->queue_family_index;
+         *src_qfi = VK_QUEUE_FAMILY_FOREIGN_EXT;
+         *dst_qfi = VK_QUEUE_FAMILY_IGNORED;
+      } else if (*dst_qfi == *src_qfi || *dst_qfi == cmd_pool_qfi) {
+         *src_qfi = VK_QUEUE_FAMILY_FOREIGN_EXT;
+         *dst_qfi = cmd_pool_qfi;
       } else {
          /* The barrier also defines a queue family ownership transfer, and
           * this is the one that gets submitted to the source queue family to
           * release the ownership.  Skip both the transfer and the transition.
           */
-         out_barrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         out_barrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         out_barrier->newLayout = out_barrier->oldLayout;
+         *src_qfi = VK_QUEUE_FAMILY_IGNORED;
+         *dst_qfi = VK_QUEUE_FAMILY_IGNORED;
+         *new_layout = *old_layout;
       }
    } else {
-      out_barrier->newLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
+      *new_layout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
 
-      /* no visibility operation needed */
-      out_barrier->dstAccessMask = 0;
+      result.visibility_op_needed = false;
 
-      const uint32_t src_qfi = out_barrier->srcQueueFamilyIndex;
       if (img->sharing_mode == VK_SHARING_MODE_CONCURRENT) {
-         out_barrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         out_barrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-      } else if (src_qfi == out_barrier->dstQueueFamilyIndex ||
-                 src_qfi == cmd->pool->queue_family_index) {
-         out_barrier->srcQueueFamilyIndex = cmd->pool->queue_family_index;
-         out_barrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
+         *src_qfi = VK_QUEUE_FAMILY_IGNORED;
+         *dst_qfi = VK_QUEUE_FAMILY_FOREIGN_EXT;
+      } else if (*src_qfi == *dst_qfi || *src_qfi == cmd_pool_qfi) {
+         *src_qfi = cmd_pool_qfi;
+         *dst_qfi = VK_QUEUE_FAMILY_FOREIGN_EXT;
       } else {
          /* The barrier also defines a queue family ownership transfer, and
           * this is the one that gets submitted to the destination queue
           * family to acquire the ownership.  Skip both the transfer and the
           * transition.
           */
-         out_barrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         out_barrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         out_barrier->oldLayout = out_barrier->newLayout;
+         *src_qfi = VK_QUEUE_FAMILY_IGNORED;
+         *dst_qfi = VK_QUEUE_FAMILY_IGNORED;
+         *old_layout = *new_layout;
       }
+   }
+
+   return result;
+}
+
+static void
+vn_cmd_set_external_acquire_unmodified(VkBaseOutStructure *chain,
+                                       struct vn_cmd_cached_storage *storage)
+{
+   VkExternalMemoryAcquireUnmodifiedEXT *acquire_unmodified =
+      vk_find_struct(chain->pNext, EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXT);
+   if (acquire_unmodified) {
+      acquire_unmodified->acquireUnmodifiedMemory = VK_TRUE;
+   } else {
+      acquire_unmodified = vn_cached_get_acquire_unmodified(storage);
+      *acquire_unmodified = (VkExternalMemoryAcquireUnmodifiedEXT){
+         .sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXT,
+         .pNext = chain->pNext,
+         .acquireUnmodifiedMemory = VK_TRUE,
+      };
+      chain->pNext = (void *)acquire_unmodified;
    }
 }
 
-/** See vn_cmd_fix_image_memory_barrier(). */
+static void
+vn_cmd_fix_image_memory_barrier(const struct vn_command_buffer *cmd,
+                                VkImageMemoryBarrier *barrier,
+                                struct vn_cmd_cached_storage *storage)
+{
+   const struct vn_physical_device *physical_dev =
+      cmd->pool->device->physical_device;
+   const struct vn_image *img = vn_image_from_handle(barrier->image);
+
+   struct vn_cmd_fix_image_memory_barrier_result result =
+      vn_cmd_fix_image_memory_barrier_common(
+         img, cmd->pool->queue_family_index, &barrier->oldLayout,
+         &barrier->newLayout, &barrier->srcQueueFamilyIndex,
+         &barrier->dstQueueFamilyIndex);
+   if (!result.availability_op_needed)
+      barrier->srcAccessMask = 0;
+   if (!result.visibility_op_needed)
+      barrier->dstAccessMask = 0;
+
+   if (result.external_acquire_unmodified &&
+       physical_dev->renderer_extensions
+          .EXT_external_memory_acquire_unmodified)
+      vn_cmd_set_external_acquire_unmodified((VkBaseOutStructure *)barrier,
+                                             storage);
+}
+
 static void
 vn_cmd_fix_image_memory_barrier2(const struct vn_command_buffer *cmd,
-                                 VkImageMemoryBarrier2 *b)
+                                 VkImageMemoryBarrier2 *barrier,
+                                 struct vn_cmd_cached_storage *storage)
 {
-   if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-      return;
+   const struct vn_physical_device *physical_dev =
+      cmd->pool->device->physical_device;
+   const struct vn_image *img = vn_image_from_handle(barrier->image);
 
-   if (b->oldLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
-       b->newLayout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-      return;
-
-   const struct vn_image *img = vn_image_from_handle(b->image);
-   assert(img->wsi.is_wsi);
-
-   if (img->wsi.is_prime_blit_src || b->oldLayout == b->newLayout) {
-      if (b->oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-         b->oldLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
-      if (b->newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-         b->newLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
-      return;
+   struct vn_cmd_fix_image_memory_barrier_result result =
+      vn_cmd_fix_image_memory_barrier_common(
+         img, cmd->pool->queue_family_index, &barrier->oldLayout,
+         &barrier->newLayout, &barrier->srcQueueFamilyIndex,
+         &barrier->dstQueueFamilyIndex);
+   if (!result.availability_op_needed) {
+      barrier->srcStageMask = 0;
+      barrier->srcAccessMask = 0;
+   }
+   if (!result.visibility_op_needed) {
+      barrier->dstStageMask = 0;
+      barrier->dstAccessMask = 0;
    }
 
-   if (b->oldLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-      b->oldLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
-
-      /* no availability operation needed */
-      b->srcStageMask = 0;
-      b->srcAccessMask = 0;
-
-      if (img->sharing_mode == VK_SHARING_MODE_CONCURRENT) {
-         b->srcQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-         b->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      } else if (b->dstQueueFamilyIndex == b->srcQueueFamilyIndex ||
-                 b->dstQueueFamilyIndex == cmd->pool->queue_family_index) {
-         b->srcQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-         b->dstQueueFamilyIndex = cmd->pool->queue_family_index;
-      } else {
-         /* The barrier also defines a queue family ownership transfer, and
-          * this is the one that gets submitted to the source queue family to
-          * release the ownership.  Skip both the transfer and the transition.
-          */
-         b->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         b->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         b->newLayout = b->oldLayout;
-      }
-   } else {
-      b->newLayout = VN_PRESENT_SRC_INTERNAL_LAYOUT;
-
-      /* no visibility operation needed */
-      b->dstStageMask = 0;
-      b->dstAccessMask = 0;
-
-      if (img->sharing_mode == VK_SHARING_MODE_CONCURRENT) {
-         b->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         b->dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-      } else if (b->srcQueueFamilyIndex == b->dstQueueFamilyIndex ||
-                 b->srcQueueFamilyIndex == cmd->pool->queue_family_index) {
-         b->srcQueueFamilyIndex = cmd->pool->queue_family_index;
-         b->dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-      } else {
-         /* The barrier also defines a queue family ownership transfer, and
-          * this is the one that gets submitted to the destination queue
-          * family to acquire the ownership.  Skip both the transfer and the
-          * transition.
-          */
-         b->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         b->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-         b->oldLayout = b->newLayout;
-      }
+   if (result.external_acquire_unmodified &&
+       physical_dev->renderer_extensions
+          .EXT_external_memory_acquire_unmodified) {
+      vn_cmd_set_external_acquire_unmodified((VkBaseOutStructure *)barrier,
+                                             storage);
    }
 }
 
@@ -301,32 +370,30 @@ vn_cmd_wait_events_fix_image_memory_barriers(
    *out_transfer_count = 0;
 
    if (cmd->builder.in_render_pass ||
-       !vn_image_memory_barrier_has_present_src(src_barriers, count))
+       !vn_image_memory_barriers_needs_present_fix(src_barriers, count))
       return src_barriers;
 
-   VkImageMemoryBarrier *img_barriers =
-      vn_cmd_get_image_memory_barriers(cmd, count * 2);
-   if (!img_barriers) {
+   struct vn_cmd_cached_storage storage;
+   if (!vn_cmd_get_cached_storage(cmd, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                  count * 2, /*dep_info_count=*/0,
+                                  &storage)) {
       cmd->state = VN_COMMAND_BUFFER_STATE_INVALID;
       return src_barriers;
    }
+   VkImageMemoryBarrier *img_barriers = storage.barriers;
+   VkImageMemoryBarrier *transfer_barriers = storage.barriers + count;
 
    /* vkCmdWaitEvents cannot be used for queue family ownership transfers.
     * Nothing appears to be said about the submission order of image memory
     * barriers in the same array.  We take the liberty to move queue family
     * ownership transfers to the tail.
     */
-   VkImageMemoryBarrier *transfer_barriers = img_barriers + count;
    uint32_t transfer_count = 0;
    uint32_t valid_count = 0;
    for (uint32_t i = 0; i < count; i++) {
       VkImageMemoryBarrier *img_barrier = &img_barriers[valid_count];
-      vn_cmd_fix_image_memory_barrier(cmd, &src_barriers[i], img_barrier);
-
-      if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-         valid_count++;
-         continue;
-      }
+      *img_barrier = src_barriers[i];
+      vn_cmd_fix_image_memory_barrier(cmd, img_barrier, &storage);
 
       if (img_barrier->srcQueueFamilyIndex ==
           img_barrier->dstQueueFamilyIndex) {
@@ -354,22 +421,22 @@ vn_cmd_pipeline_barrier_fix_image_memory_barriers(
    uint32_t count)
 {
    if (cmd->builder.in_render_pass ||
-       !vn_image_memory_barrier_has_present_src(src_barriers, count))
+       !vn_image_memory_barriers_needs_present_fix(src_barriers, count))
       return src_barriers;
 
-   VkImageMemoryBarrier *img_barriers =
-      vn_cmd_get_image_memory_barriers(cmd, count);
-   if (!img_barriers) {
+   struct vn_cmd_cached_storage storage;
+   if (!vn_cmd_get_cached_storage(cmd, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                  count, /*dep_info_count=*/0, &storage)) {
       cmd->state = VN_COMMAND_BUFFER_STATE_INVALID;
       return src_barriers;
    }
 
-   for (uint32_t i = 0; i < count; i++) {
-      vn_cmd_fix_image_memory_barrier(cmd, &src_barriers[i],
-                                      &img_barriers[i]);
-   }
+   memcpy(storage.barriers, src_barriers,
+          count * sizeof(VkImageMemoryBarrier));
+   for (uint32_t i = 0; i < count; i++)
+      vn_cmd_fix_image_memory_barrier(cmd, &storage.barriers[i], &storage);
 
-   return img_barriers;
+   return storage.barriers;
 }
 
 static const VkDependencyInfo *
@@ -378,41 +445,39 @@ vn_cmd_fix_dependency_infos(struct vn_command_buffer *cmd,
                             const VkDependencyInfo *dep_infos)
 {
    if (cmd->builder.in_render_pass ||
-       !vn_dependency_info_has_present_src(dep_count, dep_infos))
+       !vn_dependency_infos_needs_present_fix(dep_count, dep_infos))
       return dep_infos;
 
    uint32_t total_barrier_count = 0;
    for (uint32_t i = 0; i < dep_count; i++)
       total_barrier_count += dep_infos[i].imageMemoryBarrierCount;
 
-   size_t tmp_size = dep_count * sizeof(VkDependencyInfo) +
-                     total_barrier_count * sizeof(VkImageMemoryBarrier2);
-   void *tmp = vn_cached_storage_get(&cmd->pool->storage, tmp_size);
-   if (!tmp) {
+   struct vn_cmd_cached_storage storage;
+   if (!vn_cmd_get_cached_storage(cmd,
+                                  VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                  total_barrier_count, dep_count, &storage)) {
       cmd->state = VN_COMMAND_BUFFER_STATE_INVALID;
       return dep_infos;
    }
+   memcpy(storage.dep_infos, dep_infos, dep_count * sizeof(VkDependencyInfo));
 
-   VkDependencyInfo *new_dep_infos = tmp;
-   tmp += dep_count * sizeof(VkDependencyInfo);
-   memcpy(new_dep_infos, dep_infos, dep_count * sizeof(VkDependencyInfo));
-
+   uint32_t barrier_index = 0;
    for (uint32_t i = 0; i < dep_count; i++) {
       uint32_t barrier_count = dep_infos[i].imageMemoryBarrierCount;
 
-      VkImageMemoryBarrier2 *new_barriers = tmp;
-      tmp += barrier_count * sizeof(VkImageMemoryBarrier2);
+      VkImageMemoryBarrier2 *new_barriers = &storage.barriers2[barrier_index];
+      barrier_index += barrier_count;
 
       memcpy(new_barriers, dep_infos[i].pImageMemoryBarriers,
              barrier_count * sizeof(VkImageMemoryBarrier2));
-      new_dep_infos[i].pImageMemoryBarriers = new_barriers;
+      storage.dep_infos[i].pImageMemoryBarriers = new_barriers;
 
       for (uint32_t j = 0; j < barrier_count; j++) {
-         vn_cmd_fix_image_memory_barrier2(cmd, &new_barriers[j]);
+         vn_cmd_fix_image_memory_barrier2(cmd, &new_barriers[j], &storage);
       }
    }
 
-   return new_dep_infos;
+   return storage.dep_infos;
 }
 
 static void
@@ -464,9 +529,9 @@ vn_cmd_transfer_present_src_images(
    const struct vn_present_src_attachment *atts,
    uint32_t count)
 {
-   VkImageMemoryBarrier *img_barriers =
-      vn_cmd_get_image_memory_barriers(cmd, count);
-   if (!img_barriers) {
+   struct vn_cmd_cached_storage storage;
+   if (!vn_cmd_get_cached_storage(cmd, VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                  count, /*dep_info_count=*/0, &storage)) {
       cmd->state = VN_COMMAND_BUFFER_STATE_INVALID;
       return;
    }
@@ -478,16 +543,12 @@ vn_cmd_transfer_present_src_images(
       dst_stage_mask |= atts[i].dst_stage_mask;
 
       vn_present_src_attachment_to_image_memory_barrier(
-         images[i], &atts[i], &img_barriers[i], acquire);
-      vn_cmd_fix_image_memory_barrier(cmd, &img_barriers[i],
-                                      &img_barriers[i]);
+         images[i], &atts[i], &storage.barriers[i], acquire);
+      vn_cmd_fix_image_memory_barrier(cmd, &storage.barriers[i], &storage);
    }
 
-   if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
-      return;
-
    vn_cmd_encode_memory_barriers(cmd, src_stage_mask, dst_stage_mask, 0, NULL,
-                                 count, img_barriers);
+                                 count, storage.barriers);
 }
 
 struct vn_cmd_query_record *
@@ -1191,6 +1252,17 @@ vn_CmdBindIndexBuffer(VkCommandBuffer commandBuffer,
 }
 
 void
+vn_CmdBindIndexBuffer2KHR(VkCommandBuffer commandBuffer,
+                          VkBuffer buffer,
+                          VkDeviceSize offset,
+                          VkDeviceSize size,
+                          VkIndexType indexType)
+{
+   VN_CMD_ENQUEUE(vkCmdBindIndexBuffer2KHR, commandBuffer, buffer, offset,
+                  size, indexType);
+}
+
+void
 vn_CmdBindVertexBuffers(VkCommandBuffer commandBuffer,
                         uint32_t firstBinding,
                         uint32_t bindingCount,
@@ -1718,18 +1790,27 @@ vn_cmd_get_query_count(VkCommandBuffer cmd_handle)
              : 1;
 }
 
-static inline void
+static void
 vn_cmd_record_query(VkCommandBuffer cmd_handle,
                     VkQueryPool pool_handle,
                     uint32_t query,
                     uint32_t query_count,
                     bool copy)
 {
+   struct vn_command_buffer *cmd = vn_command_buffer_from_handle(cmd_handle);
    struct vn_query_pool *query_pool = vn_query_pool_from_handle(pool_handle);
-   if (!query_pool->fb_buf)
+
+   if (unlikely(VN_PERF(NO_QUERY_FEEDBACK)))
       return;
 
-   struct vn_command_buffer *cmd = vn_command_buffer_from_handle(cmd_handle);
+   if (unlikely(!query_pool->fb_buf)) {
+      if (vn_query_feedback_buffer_init_once(cmd->pool->device, query_pool) !=
+          VK_SUCCESS) {
+         cmd->state = VN_COMMAND_BUFFER_STATE_INVALID;
+         return;
+      }
+   }
+
    struct vn_cmd_query_record *record = vn_cmd_pool_alloc_query_record(
       cmd->pool, query_pool, query, query_count, copy);
    if (!record) {

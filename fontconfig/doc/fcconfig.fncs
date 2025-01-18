@@ -71,6 +71,36 @@ in <parameter>config</parameter> since 2.12.0, returning FcFalse if that call fa
 Returns the current default configuration.
 @@
 
+@RET@           FcConfig *
+@FUNC@          FcConfigSetFontSetFilter
+@TYPE1@         FcConfig *                      @ARG1@          config
+@TYPE2@         FcFilterFontSetFunc%            @ARG2@          filter_func
+@TYPE3@         FcDestroyFunc%                  @ARG3@          destroy_data_func
+@TYPE4@         void *                          @ARG4@          user_data
+@PURPOSE@       Set a predicate function to filter fontsets
+@DESC@
+Sets <parameter>filter_func</parameter> as a predicate function and filter out
+fontsets in <parameter>config</parameter> as desired.
+<parameter>filter_func</parameter> will be called with a font pattern and
+<parameter>user_data</parameter> only when loading caches.
+When <parameter>config</parameter> is going to be destroyed,
+<parameter>user_data</parameter> will be destroyed through
+<parameter>destroy_data_func</parameter> if it is set.
+@SINCE@         2.16.0
+@@
+
+@RET@           FcBool
+@FUNC@          FcConfigAcceptFilter
+@TYPE1@         FcConfig *                      @ARG1@          config
+@TYPE2@         const FcPattern *               @ARG2@          font
+@PURPOSE@       Test whether the given pattern matches filter
+@DESC@
+This triggers a predicate function set by <function>FcConfigSetFontSetFilter</function>
+and return FcTrue if <parameter>font</parameter> matches something they expect.
+otherwise FcFalse.
+@SINCE@         2.16.0
+@@
+
 @RET@           FcBool
 @FUNC@          FcConfigUptoDate
 @TYPE1@         FcConfig *                      @ARG1@          config
@@ -514,4 +544,3 @@ in configuration file. This function tries to match 'pat' with them and
 return FcFalse if 'pat' is rejected, otherwise FcTrue.
 @SINCE@		2.15.1
 @@
-

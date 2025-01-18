@@ -1,0 +1,4 @@
+default partial
+xkb_symbols "none" {
+    include "srvr_ctrl(no_srvr_keys)"
+};

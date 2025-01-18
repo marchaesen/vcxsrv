@@ -5,6 +5,7 @@
 
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
+#include "util/list.h"
 #include "agx_nir.h"
 #include "nir_builder_opcodes.h"
 #include "nir_intrinsics.h"
@@ -61,6 +62,12 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
       nir_def *is_first = nir_ieq_imm(b, active_id, 0);
       nir_def *first_bit = nir_ballot(b, 1, 32, is_first);
       nir_def_rewrite_uses(&intr->def, nir_ufind_msb(b, first_bit));
+      return true;
+   }
+
+   case nir_intrinsic_last_invocation: {
+      nir_def *active_mask = nir_ballot(b, 1, 32, nir_imm_true(b));
+      nir_def_rewrite_uses(&intr->def, nir_ufind_msb(b, active_mask));
       return true;
    }
 
@@ -148,6 +155,26 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
       return true;
    }
 
+   case nir_intrinsic_ballot: {
+      /* Optimize popcount(ballot(true)) to load_active_subgroup_count_agx() */
+      if (!nir_src_is_const(intr->src[0]) || !nir_src_as_bool(intr->src[0]) ||
+          !list_is_singular(&intr->def.uses))
+         return false;
+
+      nir_src *use = list_first_entry(&intr->def.uses, nir_src, use_link);
+      nir_instr *parent = nir_src_parent_instr(use);
+      if (parent->type != nir_instr_type_alu)
+         return false;
+
+      nir_alu_instr *alu = nir_instr_as_alu(parent);
+      if (alu->op != nir_op_bit_count)
+         return false;
+
+      nir_def_rewrite_uses(&alu->def,
+                           nir_load_active_subgroup_count_agx(b, 32));
+      return true;
+   }
+
    default:
       return false;
    }
@@ -217,8 +244,8 @@ agx_nir_lower_subgroups(nir_shader *s)
    bool progress = nir_lower_subgroups(s, &opts);
 
    /* Then do AGX-only lowerings on top */
-   progress |= nir_shader_intrinsics_pass(
-      s, lower, nir_metadata_block_index | nir_metadata_dominance, NULL);
+   progress |=
+      nir_shader_intrinsics_pass(s, lower, nir_metadata_control_flow, NULL);
 
    return progress;
 }

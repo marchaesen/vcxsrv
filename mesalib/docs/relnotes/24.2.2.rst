@@ -1,0 +1,161 @@
+Mesa 24.2.2 Release Notes / 2024-09-05
+======================================
+
+Mesa 24.2.2 is a bug fix release which fixes bugs found since the 24.2.1 release.
+
+Mesa 24.2.2 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.2 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+   SHA256: fd077d3104edbe459e2b8597d2757ec065f9bd2d620b8c0b9cc88c2bf9891d02  mesa-24.2.2.tar.xz
+   SHA512: d9979f7a1ae7bfeb0658d1b6c9021b7d0043c3ca71db9deaa2fc8a3d4c07cd58497b9233737a31fb66ef711a369a859757a63fb86c2aadd859867f9a4eaf16a9  mesa-24.2.2.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- [clc] [FTBFS] [llvm20+] no matching function for GetResourcesPath
+- [AMDGPU RDNA3] Viewport compositing generates severe graphical artifacts in Blender
+- Arma Reforger causes amdgpu crash on 24.2
+- [Regression][Vulkan][TGL]Failed to render to depth image at non-zero mip level on Mesa 24.1 and later
+
+
+Changes
+-------
+
+Dave Airlie (1):
+
+- vulkan/video: fix vui encoding
+
+David Heidelberg (1):
+
+- panfrost: drop leftover definition after pan_nir_lower_64bit_intrin removal
+
+David Rosca (2):
+
+- frontends/va: Fix locking in vlVaDeriveImage
+- frontends/va: Fix locking in vlVaQueryVideoProcPipelineCaps
+
+Dylan Baker (1):
+
+- .pick_status.json: Update to 4aa1259eb4a86a94596dd31d6b80a99ce6d91299
+
+Eric Engestrom (7):
+
+- docs: add sha sum for 24.2.1
+- .pick_status.json: Update to 51e05c284465786bf125d9d36081e9152c80619b
+- v3dv/ci: fix test timeout for v3dv-rpi5-vk-full:arm64
+- etnaviv/ci: fix gc2000_piglit test timeout
+- .pick_status.json: Mark 4888d39f29ae84dd279f2bd4714eb0f6e8ba5d20 as denominated
+- .pick_status.json: Mark 033818fdd99a543fd1cb17cc8e4be07f831a9003 as denominated
+- .pick_status.json: Update to 3e4f73b3a0e0b9420f9614d3e271c49225c6f5d3
+
+Faith Ekstrand (5):
+
+- vulkan/pipeline: Handle VIEW_INDEX_FROM_DEVICE_INDEX_BIT
+- nvk: Hash minSampleShading in nvk_hash_graphics_state()
+- nvk: Don't do linear<->tiled copies for rendering suspend/resume
+- nvk: Take depth image layer counts from the VkRenderingInfo
+- vulkan: Allow pColorAttachmentLocations == NULL in CmdSetRenderingAttachmentLocationsKHR()
+
+Iván Briano (1):
+
+- nir: add pass to convert ViewIndex to DeviceIndex
+
+Jesse Natalie (2):
+
+- d3d12: Don't use a vertex re-ordering GS for line primitives
+- microsoft/compiler: Move nir_lower_undef_to_zero out of the optimization loop
+
+Job Noorman (1):
+
+- ir3: fix recognizing const/imm registers as a0
+
+Jordan Justen (4):
+
+- intel/dev: Update hwconfig => max_threads_per_psd for Xe2
+- intel/dev: Re-enable LNL PCI IDs (without INTEL_FORCE_PROBE) on Mesa 24.2
+- intel/dev: Enable BMG PCI IDs (without INTEL_FORCE_PROBE)
+- anv: Drop "not yet supported" warning for Xe2
+
+Karol Herbst (1):
+
+- clc: fix compilation error with llvm-20
+
+Kenneth Graunke (2):
+
+- intel/brw: Drop misguided sign extension attempts in extract_imm()
+- intel/brw: Fix extract_imm for subregion reads of 64-bit immediates
+
+Konstantin Seurer (1):
+
+- nir/opt_loop: Fix handling else-breaks in merge_terminators
+
+Lionel Landwerlin (3):
+
+- anv: fix utrace compute timestamp reads on Gfx20
+- iris: fix utrace compute end timestamp reads on Gfx20
+- brw: align spilling offsets to physical register sizes
+
+Lucas Stach (1):
+
+- etnaviv: emit SAMPLER_LOG_SIZE on sampler state changes
+
+Mike Blumenkrantz (2):
+
+- dril: use the super fallback path for software fallback
+- dril: also create double-buffered configs in swrast fallback
+
+Patrick Lerda (1):
+
+- iris: fix indirect draw refcnt imbalance
+
+Pierre-Eric Pelloux-Prayer (1):
+
+- radeonsi: don't always update shader coherency draw call counter
+
+Rhys Perry (1):
+
+- aco/ra: fix sub-dword get_reg_specified in some cases
+
+Rohan Garg (1):
+
+- anv: prefetch samplers when dispatching compute shaders
+
+Roland Scheidegger (1):
+
+- llvmpipe: Fix type mismatch when storing residency info
+
+Samuel Pitoiset (1):
+
+- radv: fix emitting DGC indirect draws with drawid/base_instance
+
+Tapani Pälli (1):
+
+- anv: set correct miplevel for anv_image_hiz_op
+
+Valentine Burley (1):
+
+- tu: Fix VK_EXT_extended_dynamic_state3 feature
+
+Zan Dobersek (1):
+
+- tu: use instance indices in RD dump filenames

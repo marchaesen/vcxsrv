@@ -427,7 +427,7 @@ sparcPromAssignNodes(void)
                     xf86ErrorF("Inconsistent /proc/fb with FBIOGATTR\n");
             }
             else if (!devicePtrs[fbNum]) {
-                devicePtrs[fbNum] = psdp = xnfcalloc(sizeof(sbusDevice), 1);
+                devicePtrs[fbNum] = psdp = XNFcallocarray(1, sizeof(sbusDevice));
                 psdp->devId = devId;
                 psdp->fbNum = fbNum;
                 psdp->fd = -2;
@@ -440,7 +440,7 @@ sparcPromAssignNodes(void)
     for (i = 0, j = 0; i < 32; i++)
         if (devicePtrs[i] && devicePtrs[i]->fbNum == -1)
             j++;
-    xf86SbusInfo = xnfreallocarray(xf86SbusInfo, n + j + 1, sizeof(psdp));
+    xf86SbusInfo = XNFreallocarray(xf86SbusInfo, n + j + 1, sizeof(psdp));
     for (i = 0, psdpp = xf86SbusInfo; i < 32; i++)
         if (devicePtrs[i]) {
             if (devicePtrs[i]->fbNum == -1) {

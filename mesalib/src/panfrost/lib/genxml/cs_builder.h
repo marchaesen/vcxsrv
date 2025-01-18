@@ -29,6 +29,9 @@
 
 #include "gen_macros.h"
 
+#include "util/bitset.h"
+#include "util/u_dynarray.h"
+
 /*
  * cs_builder implements a builder for CSF command streams. It manages the
  * allocation and overflow behaviour of queues and provides helpers for emitting
@@ -51,6 +54,30 @@ struct cs_buffer {
    uint32_t capacity;
 };
 
+/**
+ * This is used to check that:
+ * 1. registers are not used as a source after being loaded without a
+ *    WAIT(<ls_scoreboard>) in the middle
+ * 2. registers are not reused (used as a destination) after they served as a
+ *    STORE() source without a WAIT(<ls_scoreboard>) in the middle
+ */
+struct cs_load_store_tracker {
+   BITSET_DECLARE(pending_loads, 256);
+   BITSET_DECLARE(pending_stores, 256);
+   uint8_t sb_slot;
+};
+
+enum cs_reg_perm {
+   CS_REG_NO_ACCESS = 0,
+   CS_REG_RD = BITFIELD_BIT(1),
+   CS_REG_WR = BITFIELD_BIT(2),
+   CS_REG_RW = CS_REG_RD | CS_REG_WR,
+};
+
+struct cs_builder;
+
+typedef enum cs_reg_perm (*reg_perm_cb_t)(struct cs_builder *b, unsigned reg);
+
 struct cs_builder_conf {
    /* Number of 32-bit registers in the hardware register file */
    uint8_t nr_registers;
@@ -60,6 +87,12 @@ struct cs_builder_conf {
 
    /* CS buffer allocator */
    struct cs_buffer (*alloc_buffer)(void *cookie);
+
+   /* Optional load/store tracker. */
+   struct cs_load_store_tracker *ls_tracker;
+
+   /* Optional register access checker. */
+   reg_perm_cb_t reg_perm;
 
    /* Cookie passed back to alloc_buffer() */
    void *cookie;
@@ -83,15 +116,60 @@ struct cs_chunk {
    };
 };
 
+/* Monolithic sequence of instruction. Must live in a virtually contiguous
+ * portion of code.
+ */
+struct cs_block {
+   /* Used to insert the block in the block stack. */
+   struct cs_block *next;
+};
+
+#define CS_LABEL_INVALID_POS ~0u
+
+/* Labels can only be used inside a cs_block. They can be defined and
+ * referenced before they are set to point to a specific position
+ * in the block. */
+struct cs_label {
+   /* The last reference we have seen pointing to this block before
+    * it was set. If set to CS_LABEL_INVALID_POS, no forward reference
+    * pointing to this label exist.
+    */
+   uint32_t last_forward_ref;
+
+   /* The label target. If set to CS_LABEL_INVALID_POS, the label has
+    * not been set yet.
+    */
+   uint32_t target;
+};
+
+/* CS if/else block. */
+struct cs_if_else {
+   struct cs_block block;
+   struct cs_label end_label;
+};
+
 struct cs_builder {
    /* CS builder configuration */
    struct cs_builder_conf conf;
+
+   /* True if an allocation failed, making the whole CS invalid. */
+   bool invalid;
 
    /* Initial (root) CS chunk. */
    struct cs_chunk root_chunk;
 
    /* Current CS chunk. */
    struct cs_chunk cur_chunk;
+
+   /* Temporary storage for inner blocks that need to be built
+    * and copied in one monolithic sequence of instructions with no
+    * jump in the middle.
+    */
+   struct {
+      struct cs_block *stack;
+      struct util_dynarray instrs;
+      struct cs_if_else pending_if;
+   } blocks;
 
    /* Move immediate instruction at the end of the last CS chunk that needs to
     * be patched with the final length of the current CS chunk in order to
@@ -105,7 +183,7 @@ struct cs_builder {
    uint64_t discard_instr_slot;
 };
 
-static void
+static inline void
 cs_builder_init(struct cs_builder *b, const struct cs_builder_conf *conf,
                 struct cs_buffer root_buffer)
 {
@@ -119,12 +197,36 @@ cs_builder_init(struct cs_builder *b, const struct cs_builder_conf *conf,
     * at least that too.
     */
    b->conf.nr_kernel_registers = MAX2(b->conf.nr_kernel_registers, 3);
+
+   util_dynarray_init(&b->blocks.instrs, NULL);
 }
 
-static bool
+static inline bool
 cs_is_valid(struct cs_builder *b)
 {
-   return b->cur_chunk.buffer.cpu != NULL;
+   return !b->invalid;
+}
+
+static inline bool
+cs_is_empty(struct cs_builder *b)
+{
+   return b->cur_chunk.pos == 0 &&
+          b->root_chunk.buffer.gpu == b->cur_chunk.buffer.gpu;
+}
+
+static inline uint64_t
+cs_root_chunk_gpu_addr(struct cs_builder *b)
+{
+   return b->root_chunk.buffer.gpu;
+}
+
+static inline uint32_t
+cs_root_chunk_size(struct cs_builder *b)
+{
+   /* Make sure cs_finish() was called. */
+   assert(!memcmp(&b->cur_chunk, &(struct cs_chunk){0}, sizeof(b->cur_chunk)));
+
+   return b->root_chunk.size * sizeof(uint64_t);
 }
 
 /*
@@ -138,7 +240,7 @@ cs_is_valid(struct cs_builder *b)
  * This notably requires patching the previous chunk with the length
  * we ended up emitting for this chunk.
  */
-static void
+static inline void
 cs_wrap_chunk(struct cs_builder *b)
 {
    if (!cs_is_valid(b))
@@ -151,21 +253,6 @@ cs_wrap_chunk(struct cs_builder *b)
 
    if (b->root_chunk.buffer.gpu == b->cur_chunk.buffer.gpu)
       b->root_chunk.size = b->cur_chunk.size;
-}
-
-/* Call this when you are done building a command stream and want to prepare
- * it for submission.
- */
-static void
-cs_finish(struct cs_builder *b)
-{
-   if (!cs_is_valid(b))
-      return;
-
-   cs_wrap_chunk(b);
-
-   /* This prevents adding instructions after that point. */
-   memset(&b->cur_chunk, 0, sizeof(b->cur_chunk));
 }
 
 enum cs_index_type {
@@ -202,16 +289,77 @@ cs_to_reg_tuple(struct cs_index idx, ASSERTED unsigned expected_size)
    return idx.reg;
 }
 
-static inline uint8_t
-cs_to_reg32(struct cs_index idx)
+static inline unsigned
+cs_src_tuple(struct cs_builder *b, struct cs_index src, ASSERTED unsigned count)
 {
-   return cs_to_reg_tuple(idx, 1);
+   unsigned reg = cs_to_reg_tuple(src, count);
+
+   if (unlikely(b->conf.reg_perm)) {
+      for (unsigned i = reg; i < reg + count; i++) {
+         assert((b->conf.reg_perm(b, i) & CS_REG_RD) ||
+                !"Trying to read a restricted register");
+      }
+   }
+
+   struct cs_load_store_tracker *ls_tracker = b->conf.ls_tracker;
+
+   if (unlikely(ls_tracker)) {
+      for (unsigned i = reg; i < reg + count; i++) {
+         if (BITSET_TEST(ls_tracker->pending_loads, i))
+            assert(!"register used as a source before flushing loads\n");
+      }
+   }
+
+   return reg;
 }
 
-static inline uint8_t
-cs_to_reg64(struct cs_index idx)
+static inline unsigned
+cs_src32(struct cs_builder *b, struct cs_index src)
 {
-   return cs_to_reg_tuple(idx, 2);
+   return cs_src_tuple(b, src, 1);
+}
+
+static inline unsigned
+cs_src64(struct cs_builder *b, struct cs_index src)
+{
+   return cs_src_tuple(b, src, 2);
+}
+
+static inline unsigned
+cs_dst_tuple(struct cs_builder *b, struct cs_index dst, ASSERTED unsigned count)
+{
+   unsigned reg = cs_to_reg_tuple(dst, count);
+
+   if (unlikely(b->conf.reg_perm)) {
+      for (unsigned i = reg; i < reg + count; i++) {
+         assert((b->conf.reg_perm(b, i) & CS_REG_WR) ||
+                !"Trying to write a restricted register");
+      }
+   }
+
+   struct cs_load_store_tracker *ls_tracker = b->conf.ls_tracker;
+
+   if (unlikely(ls_tracker)) {
+      for (unsigned i = reg; i < reg + count; i++) {
+         if (BITSET_TEST(ls_tracker->pending_stores, i))
+            assert(
+               !"register reused as a destination before flushing stores\n");
+      }
+   }
+
+   return reg;
+}
+
+static inline unsigned
+cs_dst32(struct cs_builder *b, struct cs_index dst)
+{
+   return cs_dst_tuple(b, dst, 1);
+}
+
+static inline unsigned
+cs_dst64(struct cs_builder *b, struct cs_index dst)
+{
+   return cs_dst_tuple(b, dst, 2);
 }
 
 static inline struct cs_index
@@ -267,22 +415,47 @@ cs_extract32(struct cs_builder *b, struct cs_index idx, unsigned word)
    return cs_reg32(b, idx.reg + word);
 }
 
+static inline struct cs_block *
+cs_cur_block(struct cs_builder *b)
+{
+   return b->blocks.stack;
+}
+
 #define JUMP_SEQ_INSTR_COUNT 4
 
 static inline void *
-cs_alloc_ins(struct cs_builder *b)
+cs_alloc_ins_block(struct cs_builder *b, uint32_t num_instrs)
 {
+   /* Don't call this function with num_instrs=0. */
+   assert(num_instrs > 0);
+
    /* If an allocation failure happened before, we just discard all following
     * instructions.
     */
-   if (unlikely(!b->cur_chunk.buffer.cpu))
+   if (unlikely(!cs_is_valid(b)))
       return &b->discard_instr_slot;
+
+   if (cs_cur_block(b))
+      return util_dynarray_grow(&b->blocks.instrs, uint64_t, num_instrs);
+
+   /* Lazy root chunk allocation. */
+   if (unlikely(!b->root_chunk.buffer.cpu)) {
+      b->root_chunk.buffer = b->conf.alloc_buffer(b->conf.cookie);
+      b->cur_chunk.buffer = b->root_chunk.buffer;
+      if (!b->cur_chunk.buffer.cpu) {
+         b->invalid = true;
+         return &b->discard_instr_slot;
+      }
+   }
+
+   /* Make sure the instruction sequence fits in a single chunk. */
+   assert(b->cur_chunk.buffer.capacity >= num_instrs);
 
    /* If the current chunk runs out of space, allocate a new one and jump to it.
     * We actually do this a few instructions before running out, because the
     * sequence to jump to a new queue takes multiple instructions.
     */
-   if (unlikely((b->cur_chunk.size + JUMP_SEQ_INSTR_COUNT) >
+   if (unlikely((b->cur_chunk.size + num_instrs + JUMP_SEQ_INSTR_COUNT) >
                 b->cur_chunk.buffer.capacity)) {
       /* Now, allocate a new chunk */
       struct cs_buffer newbuf = b->conf.alloc_buffer(b->conf.cookie);
@@ -325,8 +498,114 @@ cs_alloc_ins(struct cs_builder *b)
       b->cur_chunk.pos = 0;
    }
 
-   assert(b->cur_chunk.size < b->cur_chunk.buffer.capacity);
-   return b->cur_chunk.buffer.cpu + (b->cur_chunk.pos++);
+   assert(b->cur_chunk.size + num_instrs - 1 < b->cur_chunk.buffer.capacity);
+   uint32_t pos = b->cur_chunk.pos;
+   b->cur_chunk.pos += num_instrs;
+   return b->cur_chunk.buffer.cpu + pos;
+}
+
+static inline void
+cs_flush_block_instrs(struct cs_builder *b)
+{
+   if (cs_cur_block(b) != NULL)
+      return;
+
+   uint32_t num_instrs =
+      util_dynarray_num_elements(&b->blocks.instrs, uint64_t);
+   if (!num_instrs)
+      return;
+
+   void *buffer = cs_alloc_ins_block(b, num_instrs);
+
+   if (likely(cs_is_valid(b)))
+      memcpy(buffer, b->blocks.instrs.data, b->blocks.instrs.size);
+
+   util_dynarray_clear(&b->blocks.instrs);
+}
+
+static inline uint32_t
+cs_block_next_pos(struct cs_builder *b)
+{
+   assert(cs_cur_block(b) != NULL);
+
+   return util_dynarray_num_elements(&b->blocks.instrs, uint64_t);
+}
+
+static inline void
+cs_label_init(struct cs_label *label)
+{
+   label->last_forward_ref = CS_LABEL_INVALID_POS;
+   label->target = CS_LABEL_INVALID_POS;
+}
+
+static inline void
+cs_set_label(struct cs_builder *b, struct cs_label *label)
+{
+   assert(label->target == CS_LABEL_INVALID_POS);
+   label->target = cs_block_next_pos(b);
+
+   for (uint32_t next_forward_ref, forward_ref = label->last_forward_ref;
+        forward_ref != CS_LABEL_INVALID_POS; forward_ref = next_forward_ref) {
+      uint64_t *ins =
+         util_dynarray_element(&b->blocks.instrs, uint64_t, forward_ref);
+
+      assert(forward_ref < label->target);
+      assert(label->target - forward_ref <= INT16_MAX);
+
+      /* Save the next forward reference to this target before overwritting
+       * it with the final offset.
+       */
+      int16_t offset = *ins & BITFIELD64_MASK(16);
+
+      next_forward_ref =
+         offset > 0 ? forward_ref - offset : CS_LABEL_INVALID_POS;
+
+      assert(next_forward_ref == CS_LABEL_INVALID_POS ||
+             next_forward_ref < forward_ref);
+
+      *ins &= ~BITFIELD64_MASK(16);
+      *ins |= label->target - forward_ref - 1;
+   }
+}
+
+static inline void
+cs_flush_pending_if(struct cs_builder *b)
+{
+   if (likely(cs_cur_block(b) != &b->blocks.pending_if.block))
+      return;
+
+   cs_set_label(b, &b->blocks.pending_if.end_label);
+   b->blocks.stack = b->blocks.pending_if.block.next;
+}
+
+static inline void *
+cs_alloc_ins(struct cs_builder *b)
+{
+   /* If an instruction is emitted after an if_end(), it flushes the pending if,
+    * causing further cs_else_start() instructions to be invalid. */
+   cs_flush_pending_if(b);
+   cs_flush_block_instrs(b);
+
+   return cs_alloc_ins_block(b, 1);
+}
+
+/* Call this when you are done building a command stream and want to prepare
+ * it for submission.
+ */
+static inline void
+cs_finish(struct cs_builder *b)
+{
+   if (!cs_is_valid(b))
+      return;
+
+   cs_flush_pending_if(b);
+   cs_flush_block_instrs(b);
+   cs_wrap_chunk(b);
+
+   /* This prevents adding instructions after that point. */
+   memset(&b->cur_chunk, 0, sizeof(b->cur_chunk));
+
+   util_dynarray_fini(&b->blocks.instrs);
 }
 
 /*
@@ -366,21 +645,58 @@ cs_now(void)
 {
    return (struct cs_async_op){
       .wait_mask = 0,
-      .signal_slot = 0,
+      .signal_slot = ~0,
    };
+}
+
+static inline bool
+cs_instr_is_asynchronous(enum mali_cs_opcode opcode, uint16_t wait_mask)
+{
+   switch (opcode) {
+   case MALI_CS_OPCODE_FLUSH_CACHE2:
+   case MALI_CS_OPCODE_FINISH_TILING:
+   case MALI_CS_OPCODE_LOAD_MULTIPLE:
+   case MALI_CS_OPCODE_STORE_MULTIPLE:
+   case MALI_CS_OPCODE_RUN_COMPUTE:
+   case MALI_CS_OPCODE_RUN_COMPUTE_INDIRECT:
+   case MALI_CS_OPCODE_RUN_FRAGMENT:
+   case MALI_CS_OPCODE_RUN_FULLSCREEN:
+   case MALI_CS_OPCODE_RUN_IDVS:
+   case MALI_CS_OPCODE_RUN_TILING:
+      /* Always asynchronous. */
+      return true;
+
+   case MALI_CS_OPCODE_FINISH_FRAGMENT:
+   case MALI_CS_OPCODE_SYNC_ADD32:
+   case MALI_CS_OPCODE_SYNC_SET32:
+   case MALI_CS_OPCODE_SYNC_ADD64:
+   case MALI_CS_OPCODE_SYNC_SET64:
+   case MALI_CS_OPCODE_STORE_STATE:
+   case MALI_CS_OPCODE_TRACE_POINT:
+   case MALI_CS_OPCODE_HEAP_OPERATION:
+      /* Asynchronous only if wait_mask != 0. */
+      return wait_mask != 0;
+
+   default:
+      return false;
+   }
 }
 
 #define cs_apply_async(I, async)                                               \
    do {                                                                        \
       I.wait_mask = async.wait_mask;                                           \
-      I.signal_slot = async.signal_slot;                                       \
+      I.signal_slot = cs_instr_is_asynchronous(I.opcode, I.wait_mask)          \
+                         ? async.signal_slot                                   \
+                         : 0;                                                  \
+      assert(I.signal_slot != ~0 ||                                            \
+             !"Can't use cs_now() on pure async instructions");                \
    } while (0)
 
 static inline void
 cs_move32_to(struct cs_builder *b, struct cs_index dest, unsigned imm)
 {
    cs_emit(b, MOVE32, I) {
-      I.destination = cs_to_reg32(dest);
+      I.destination = cs_dst32(b, dest);
       I.immediate = imm;
    }
 }
@@ -389,10 +705,279 @@ static inline void
 cs_move48_to(struct cs_builder *b, struct cs_index dest, uint64_t imm)
 {
    cs_emit(b, MOVE, I) {
-      I.destination = cs_to_reg64(dest);
+      I.destination = cs_dst64(b, dest);
       I.immediate = imm;
    }
 }
+
+static inline void
+cs_block_start(struct cs_builder *b, struct cs_block *block)
+{
+   cs_flush_pending_if(b);
+   block->next = b->blocks.stack;
+   b->blocks.stack = block;
+}
+
+static inline void
+cs_block_end(struct cs_builder *b, struct cs_block *block)
+{
+   cs_flush_pending_if(b);
+
+   assert(cs_cur_block(b) == block);
+
+   b->blocks.stack = block->next;
+
+   cs_flush_block_instrs(b);
+}
+
+static inline void
+cs_branch(struct cs_builder *b, int offset, enum mali_cs_condition cond,
+          struct cs_index val)
+{
+   cs_emit(b, BRANCH, I) {
+      I.offset = offset;
+      I.condition = cond;
+      I.value = cs_src32(b, val);
+   }
+}
+
+static inline void
+cs_branch_label(struct cs_builder *b, struct cs_label *label,
+                enum mali_cs_condition cond, struct cs_index val)
+{
+   assert(cs_cur_block(b) != NULL);
+
+   if (label->target == CS_LABEL_INVALID_POS) {
+      uint32_t branch_ins_pos = cs_block_next_pos(b);
+
+      /* Instead of emitting a BRANCH with the final offset, we record the
+       * diff between the current branch, and the previous branch that was
+       * referencing this unset label. This way we build a single link list
+       * that can be walked when the label is set with cs_set_label().
+       * We use -1 as the end-of-list marker.
+       */
+      int16_t offset = -1;
+      if (label->last_forward_ref != CS_LABEL_INVALID_POS) {
+         assert(label->last_forward_ref < branch_ins_pos);
+         assert(branch_ins_pos - label->last_forward_ref <= INT16_MAX);
+         offset = branch_ins_pos - label->last_forward_ref;
+      }
+
+      cs_emit(b, BRANCH, I) {
+         I.offset = offset;
+         I.condition = cond;
+         I.value = cond != MALI_CS_CONDITION_ALWAYS ? cs_src32(b, val) : 0;
+      }
+
+      label->last_forward_ref = branch_ins_pos;
+   } else {
+      int32_t offset = label->target - cs_block_next_pos(b) - 1;
+
+      /* The branch target is encoded in a 16-bit signed integer, make sure we
+       * don't underflow.
+       */
+      assert(offset >= INT16_MIN);
+
+      /* Backward references are easy, we can emit them immediately. */
+      cs_emit(b, BRANCH, I) {
+         I.offset = offset;
+         I.condition = cond;
+         I.value = cs_src32(b, val);
+      }
+   }
+}
+
+static inline enum mali_cs_condition
+cs_invert_cond(enum mali_cs_condition cond)
+{
+   switch (cond) {
+   case MALI_CS_CONDITION_LEQUAL:
+      return MALI_CS_CONDITION_GREATER;
+   case MALI_CS_CONDITION_EQUAL:
+      return MALI_CS_CONDITION_NEQUAL;
+   case MALI_CS_CONDITION_LESS:
+      return MALI_CS_CONDITION_GEQUAL;
+   case MALI_CS_CONDITION_GREATER:
+      return MALI_CS_CONDITION_LEQUAL;
+   case MALI_CS_CONDITION_NEQUAL:
+      return MALI_CS_CONDITION_EQUAL;
+   case MALI_CS_CONDITION_GEQUAL:
+      return MALI_CS_CONDITION_LESS;
+   case MALI_CS_CONDITION_ALWAYS:
+      unreachable("cannot invert ALWAYS");
+   default:
+      unreachable("invalid cond");
+   }
+}
+
+static inline struct cs_if_else *
+cs_if_start(struct cs_builder *b, struct cs_if_else *if_else,
+            enum mali_cs_condition cond, struct cs_index val)
+{
+   cs_block_start(b, &if_else->block);
+   cs_label_init(&if_else->end_label);
+   cs_branch_label(b, &if_else->end_label, cs_invert_cond(cond), val);
+   return if_else;
+}
+
+static inline void
+cs_if_end(struct cs_builder *b, struct cs_if_else *if_else)
+{
+   assert(cs_cur_block(b) == &if_else->block);
+
+   b->blocks.pending_if.block.next = if_else->block.next;
+   b->blocks.stack = &b->blocks.pending_if.block;
+   b->blocks.pending_if.end_label = if_else->end_label;
+}
+
+static inline struct cs_if_else *
+cs_else_start(struct cs_builder *b, struct cs_if_else *if_else)
+{
+   assert(cs_cur_block(b) == &b->blocks.pending_if.block);
+
+   if_else->block.next = b->blocks.pending_if.block.next;
+   b->blocks.stack = &if_else->block;
+   cs_label_init(&if_else->end_label);
+   cs_branch_label(b, &if_else->end_label, MALI_CS_CONDITION_ALWAYS,
+                   cs_undef());
+   cs_set_label(b, &b->blocks.pending_if.end_label);
+   cs_label_init(&b->blocks.pending_if.end_label);
+
+   return if_else;
+}
+
+static inline void
+cs_else_end(struct cs_builder *b, struct cs_if_else *if_else)
+{
+   cs_set_label(b, &if_else->end_label);
+   cs_block_end(b, &if_else->block);
+}
+
+#define cs_if(__b, __cond, __val)                                              \
+   for (struct cs_if_else __storage,                                           \
+        *__if_else = cs_if_start(__b, &__storage, __cond, __val);              \
+        __if_else != NULL; cs_if_end(__b, __if_else), __if_else = NULL)
+
+#define cs_else(__b)                                                           \
+   for (struct cs_if_else __storage,                                           \
+        *__if_else = cs_else_start(__b, &__storage);                           \
+        __if_else != NULL; cs_else_end(__b, __if_else), __if_else = NULL)
+
+struct cs_loop {
+   struct cs_label start, end;
+   struct cs_block block;
+   enum mali_cs_condition cond;
+   struct cs_index val;
+   struct cs_load_store_tracker *orig_ls_state;
+   struct cs_load_store_tracker ls_state;
+};
+
+static inline void
+cs_loop_diverge_ls_update(struct cs_builder *b, struct cs_loop *loop)
+{
+   if (likely(!b->conf.ls_tracker))
+      return;
+
+   if (!loop->orig_ls_state) {
+      loop->orig_ls_state = b->conf.ls_tracker;
+      loop->ls_state = *loop->orig_ls_state;
+      b->conf.ls_tracker = &loop->ls_state;
+   } else {
+      BITSET_OR(loop->orig_ls_state->pending_loads,
+                loop->orig_ls_state->pending_loads,
+                loop->ls_state.pending_loads);
+      BITSET_OR(loop->orig_ls_state->pending_stores,
+                loop->orig_ls_state->pending_stores,
+                loop->ls_state.pending_stores);
+   }
+}
+
+static inline struct cs_loop *
+cs_do_while_start(struct cs_builder *b, struct cs_loop *loop,
+                  enum mali_cs_condition cond, struct cs_index val)
+{
+   *loop = (struct cs_loop){
+      .cond = cond,
+      .val = val,
+   };
+
+   cs_block_start(b, &loop->block);
+   cs_label_init(&loop->start);
+   cs_label_init(&loop->end);
+   cs_set_label(b, &loop->start);
+   return loop;
+}
+
+static inline struct cs_loop *
+cs_while_start(struct cs_builder *b, struct cs_loop *loop,
+               enum mali_cs_condition cond, struct cs_index val)
+{
+   cs_do_while_start(b, loop, cond, val);
+
+   /* Do an initial check on the condition, and if it's false, jump to
+    * the end of the loop block. For 'while(true)' loops, skip the
+    * conditional branch.
+    */
+   if (cond != MALI_CS_CONDITION_ALWAYS) {
+      cs_branch_label(b, &loop->end, cs_invert_cond(cond), val);
+      cs_loop_diverge_ls_update(b, loop);
+   }
+
+   return loop;
+}
+
+static inline void
+cs_loop_conditional_continue(struct cs_builder *b, struct cs_loop *loop,
+                             enum mali_cs_condition cond, struct cs_index val)
+{
+   cs_flush_pending_if(b);
+   assert(cs_cur_block(b) == &loop->block);
+   cs_branch_label(b, &loop->start, cond, val);
+   cs_loop_diverge_ls_update(b, loop);
+}
+
+static inline void
+cs_loop_conditional_break(struct cs_builder *b, struct cs_loop *loop,
+                          enum mali_cs_condition cond, struct cs_index val)
+{
+   cs_flush_pending_if(b);
+   assert(cs_cur_block(b) == &loop->block);
+   cs_branch_label(b, &loop->end, cond, val);
+   cs_loop_diverge_ls_update(b, loop);
+}
+
+static inline void
+cs_while_end(struct cs_builder *b, struct cs_loop *loop)
+{
+   cs_flush_pending_if(b);
+   cs_branch_label(b, &loop->start, loop->cond, loop->val);
+   cs_set_label(b, &loop->end);
+   cs_block_end(b, &loop->block);
+
+   if (unlikely(loop->orig_ls_state)) {
+      BITSET_OR(loop->orig_ls_state->pending_loads,
+                loop->orig_ls_state->pending_loads,
+                loop->ls_state.pending_loads);
+      BITSET_OR(loop->orig_ls_state->pending_stores,
+                loop->orig_ls_state->pending_stores,
+                loop->ls_state.pending_stores);
+      b->conf.ls_tracker = loop->orig_ls_state;
+   }
+}
+
+#define cs_while(__b, __cond, __val)                                           \
+   for (struct cs_loop __loop_storage,                                         \
+        *__loop = cs_while_start(__b, &__loop_storage, __cond, __val);         \
+        __loop != NULL; cs_while_end(__b, __loop), __loop = NULL)
+
+#define cs_continue(__b)                                                       \
+   cs_loop_conditional_continue(__b, __loop, MALI_CS_CONDITION_ALWAYS,         \
+                                cs_undef())
+
+#define cs_break(__b)                                                          \
+   cs_loop_conditional_break(__b, __loop, MALI_CS_CONDITION_ALWAYS, cs_undef())
+
+/* Pseudoinstructions follow */
 
 static inline void
 cs_move64_to(struct cs_builder *b, struct cs_index dest, uint64_t imm)
@@ -409,9 +994,20 @@ cs_move64_to(struct cs_builder *b, struct cs_index dest, uint64_t imm)
 static inline void
 cs_wait_slots(struct cs_builder *b, unsigned wait_mask, bool progress_inc)
 {
+   struct cs_load_store_tracker *ls_tracker = b->conf.ls_tracker;
+
    cs_emit(b, WAIT, I) {
       I.wait_mask = wait_mask;
       I.progress_increment = progress_inc;
+   }
+
+   /* We don't do advanced tracking of cs_defer(), and assume that
+    * load/store will be flushed with an explicit wait on the load/store
+    * scoreboard. */
+   if (unlikely(ls_tracker) &&
+       (wait_mask & BITFIELD_BIT(ls_tracker->sb_slot))) {
+      BITSET_CLEAR_RANGE(ls_tracker->pending_loads, 0, 255);
+      BITSET_CLEAR_RANGE(ls_tracker->pending_stores, 0, 255);
    }
 }
 
@@ -482,7 +1078,7 @@ cs_run_idvs(struct cs_builder *b, uint32_t flags_override, bool progress_inc,
          I.draw_id_register_enable = false;
       } else {
          I.draw_id_register_enable = true;
-         I.draw_id = cs_to_reg32(draw_id);
+         I.draw_id = cs_src32(b, draw_id);
       }
 
       assert(varying_sel.spd == 1);
@@ -520,7 +1116,7 @@ cs_run_fullscreen(struct cs_builder *b, uint32_t flags_override,
    cs_emit(b, RUN_FULLSCREEN, I) {
       I.flags_override = flags_override;
       I.progress_increment = progress_inc;
-      I.dcd = cs_to_reg64(dcd);
+      I.dcd = cs_src64(b, dcd);
    }
 }
 
@@ -540,8 +1136,8 @@ cs_finish_fragment(struct cs_builder *b, bool increment_frag_completed,
    cs_emit(b, FINISH_FRAGMENT, I) {
       I.increment_fragment_completed = increment_frag_completed;
       cs_apply_async(I, async);
-      I.first_heap_chunk = cs_to_reg64(first_free_heap_chunk);
-      I.last_heap_chunk = cs_to_reg64(last_free_heap_chunk);
+      I.first_heap_chunk = cs_src64(b, first_free_heap_chunk);
+      I.last_heap_chunk = cs_src64(b, last_free_heap_chunk);
    }
 }
 
@@ -550,8 +1146,8 @@ cs_add32(struct cs_builder *b, struct cs_index dest, struct cs_index src,
          unsigned imm)
 {
    cs_emit(b, ADD_IMMEDIATE32, I) {
-      I.destination = cs_to_reg32(dest);
-      I.source = cs_to_reg32(src);
+      I.destination = cs_dst32(b, dest);
+      I.source = cs_src32(b, src);
       I.immediate = imm;
    }
 }
@@ -561,8 +1157,8 @@ cs_add64(struct cs_builder *b, struct cs_index dest, struct cs_index src,
          unsigned imm)
 {
    cs_emit(b, ADD_IMMEDIATE64, I) {
-      I.destination = cs_to_reg64(dest);
-      I.source = cs_to_reg64(src);
+      I.destination = cs_dst64(b, dest);
+      I.source = cs_src64(b, src);
       I.immediate = imm;
    }
 }
@@ -572,9 +1168,9 @@ cs_umin32(struct cs_builder *b, struct cs_index dest, struct cs_index src1,
           struct cs_index src2)
 {
    cs_emit(b, UMIN32, I) {
-      I.destination = cs_to_reg32(dest);
-      I.source_1 = cs_to_reg32(src1);
-      I.source_2 = cs_to_reg32(src2);
+      I.destination = cs_dst32(b, dest);
+      I.source_1 = cs_src32(b, src1);
+      I.source_2 = cs_src32(b, src2);
    }
 }
 
@@ -582,11 +1178,21 @@ static inline void
 cs_load_to(struct cs_builder *b, struct cs_index dest, struct cs_index address,
            unsigned mask, int offset)
 {
+   unsigned count = util_last_bit(mask);
+   unsigned base_reg = cs_dst_tuple(b, dest, count);
+
    cs_emit(b, LOAD_MULTIPLE, I) {
-      I.base_register = cs_to_reg_tuple(dest, util_bitcount(mask));
-      I.address = cs_to_reg64(address);
+      I.base_register = base_reg;
+      I.address = cs_src64(b, address);
       I.mask = mask;
       I.offset = offset;
+   }
+
+   if (unlikely(b->conf.ls_tracker)) {
+      for (unsigned i = 0; i < count; i++) {
+         if (mask & BITFIELD_BIT(i))
+            BITSET_SET(b->conf.ls_tracker->pending_loads, base_reg + i);
+      }
    }
 }
 
@@ -608,11 +1214,21 @@ static inline void
 cs_store(struct cs_builder *b, struct cs_index data, struct cs_index address,
          unsigned mask, int offset)
 {
+   unsigned count = util_last_bit(mask);
+   unsigned base_reg = cs_src_tuple(b, data, count);
+
    cs_emit(b, STORE_MULTIPLE, I) {
-      I.base_register = cs_to_reg_tuple(data, util_bitcount(mask));
-      I.address = cs_to_reg64(address);
+      I.base_register = base_reg;
+      I.address = cs_src64(b, address);
       I.mask = mask;
       I.offset = offset;
+   }
+
+   if (unlikely(b->conf.ls_tracker)) {
+      for (unsigned i = 0; i < count; i++) {
+         if (mask & BITFIELD_BIT(i))
+            BITSET_SET(b->conf.ls_tracker->pending_stores, base_reg + i);
+      }
    }
 }
 
@@ -630,17 +1246,6 @@ cs_store64(struct cs_builder *b, struct cs_index data, struct cs_index address,
    cs_store(b, data, address, BITFIELD_MASK(2), offset);
 }
 
-static inline void
-cs_branch(struct cs_builder *b, int offset, enum mali_cs_condition cond,
-          struct cs_index val)
-{
-   cs_emit(b, BRANCH, I) {
-      I.offset = offset;
-      I.condition = cond;
-      I.value = cs_to_reg32(val);
-   }
-}
-
 /*
  * Select which scoreboard entry will track endpoint tasks and other tasks
  * respectively. Pass to cs_wait to wait later.
@@ -655,13 +1260,18 @@ cs_set_scoreboard_entry(struct cs_builder *b, unsigned ep, unsigned other)
       I.endpoint_entry = ep;
       I.other_entry = other;
    }
+
+   /* We assume the load/store scoreboard entry is static to keep things
+    * simple. */
+   if (unlikely(b->conf.ls_tracker))
+      assert(b->conf.ls_tracker->sb_slot == other);
 }
 
 static inline void
 cs_progress_wait(struct cs_builder *b, unsigned queue, struct cs_index ref)
 {
    cs_emit(b, PROGRESS_WAIT, I) {
-      I.source = cs_to_reg64(ref);
+      I.source = cs_src64(b, ref);
       I.queue = queue;
    }
 }
@@ -673,8 +1283,8 @@ cs_set_exception_handler(struct cs_builder *b,
 {
    cs_emit(b, SET_EXCEPTION_HANDLER, I) {
       I.exception_type = exception_type;
-      I.address = cs_to_reg64(address);
-      I.length = cs_to_reg32(length);
+      I.address = cs_src64(b, address);
+      I.length = cs_src32(b, length);
    }
 }
 
@@ -682,8 +1292,8 @@ static inline void
 cs_call(struct cs_builder *b, struct cs_index address, struct cs_index length)
 {
    cs_emit(b, CALL, I) {
-      I.address = cs_to_reg64(address);
-      I.length = cs_to_reg32(length);
+      I.address = cs_src64(b, address);
+      I.length = cs_src32(b, length);
    }
 }
 
@@ -691,8 +1301,8 @@ static inline void
 cs_jump(struct cs_builder *b, struct cs_index address, struct cs_index length)
 {
    cs_emit(b, JUMP, I) {
-      I.address = cs_to_reg64(address);
-      I.length = cs_to_reg32(length);
+      I.address = cs_src64(b, address);
+      I.length = cs_src32(b, length);
    }
 }
 
@@ -723,7 +1333,7 @@ cs_flush_caches(struct cs_builder *b, enum mali_cs_flush_mode l2,
       I.l2_flush_mode = l2;
       I.lsc_flush_mode = lsc;
       I.other_invalidate = other_inv;
-      I.latest_flush_id = cs_to_reg32(flush_id);
+      I.latest_flush_id = cs_src32(b, flush_id);
       cs_apply_async(I, async);
    }
 }
@@ -737,8 +1347,8 @@ cs_flush_caches(struct cs_builder *b, enum mali_cs_flush_mode l2,
       cs_emit(b, SYNC_SET##__cnt_width, I) {                                   \
          I.error_propagate = propagate_error;                                  \
          I.scope = scope;                                                      \
-         I.data = cs_to_reg##__cnt_width(val);                                 \
-         I.address = cs_to_reg64(addr);                                        \
+         I.data = cs_src##__cnt_width(b, val);                                 \
+         I.address = cs_src64(b, addr);                                        \
          cs_apply_async(I, async);                                             \
       }                                                                        \
    }                                                                           \
@@ -751,8 +1361,8 @@ cs_flush_caches(struct cs_builder *b, enum mali_cs_flush_mode l2,
       cs_emit(b, SYNC_ADD##__cnt_width, I) {                                   \
          I.error_propagate = propagate_error;                                  \
          I.scope = scope;                                                      \
-         I.data = cs_to_reg##__cnt_width(val);                                 \
-         I.address = cs_to_reg64(addr);                                        \
+         I.data = cs_src##__cnt_width(b, val);                                 \
+         I.address = cs_src64(b, addr);                                        \
          cs_apply_async(I, async);                                             \
       }                                                                        \
    }                                                                           \
@@ -766,8 +1376,8 @@ cs_flush_caches(struct cs_builder *b, enum mali_cs_flush_mode l2,
       cs_emit(b, SYNC_WAIT##__cnt_width, I) {                                  \
          I.error_reject = reject_error;                                        \
          I.condition = cond;                                                   \
-         I.data = cs_to_reg##__cnt_width(ref);                                 \
-         I.address = cs_to_reg64(addr);                                        \
+         I.data = cs_src##__cnt_width(b, ref);                                 \
+         I.address = cs_src64(b, addr);                                        \
       }                                                                        \
    }
 
@@ -781,7 +1391,7 @@ cs_store_state(struct cs_builder *b, struct cs_index address, int offset,
    cs_emit(b, STORE_STATE, I) {
       I.offset = offset;
       I.state = state;
-      I.address = cs_to_reg64(address);
+      I.address = cs_src64(b, address);
       cs_apply_async(I, async);
    }
 }
@@ -798,14 +1408,14 @@ static inline void
 cs_progress_store(struct cs_builder *b, struct cs_index src)
 {
    cs_emit(b, PROGRESS_STORE, I)
-      I.source = cs_to_reg64(src);
+      I.source = cs_src64(b, src);
 }
 
 static inline void
 cs_progress_load(struct cs_builder *b, struct cs_index dst)
 {
    cs_emit(b, PROGRESS_LOAD, I)
-      I.destination = cs_to_reg64(dst);
+      I.destination = cs_dst64(b, dst);
 }
 
 static inline void
@@ -833,7 +1443,7 @@ static inline void
 cs_heap_set(struct cs_builder *b, struct cs_index address)
 {
    cs_emit(b, HEAP_SET, I) {
-      I.address = cs_to_reg64(address);
+      I.address = cs_src64(b, address);
    }
 }
 
@@ -870,8 +1480,154 @@ cs_trace_point(struct cs_builder *b, struct cs_index regs,
                struct cs_async_op async)
 {
    cs_emit(b, TRACE_POINT, I) {
-      I.base_register = cs_to_reg_tuple(regs, regs.size);
+      I.base_register = cs_src_tuple(b, regs, regs.size);
       I.register_count = regs.size;
       cs_apply_async(I, async);
    }
 }
+
+struct cs_match {
+   struct cs_block block;
+   struct cs_label break_label;
+   struct cs_block case_block;
+   struct cs_label next_case_label;
+   struct cs_index val;
+   struct cs_index scratch_reg;
+   struct cs_load_store_tracker case_ls_state;
+   struct cs_load_store_tracker ls_state;
+   struct cs_load_store_tracker *orig_ls_state;
+   bool default_emitted;
+};
+
+static inline struct cs_match *
+cs_match_start(struct cs_builder *b, struct cs_match *match,
+               struct cs_index val, struct cs_index scratch_reg)
+{
+   *match = (struct cs_match){
+      .val = val,
+      .scratch_reg = scratch_reg,
+      .orig_ls_state = b->conf.ls_tracker,
+   };
+
+   cs_block_start(b, &match->block);
+   cs_label_init(&match->break_label);
+   cs_label_init(&match->next_case_label);
+
+   return match;
+}
+
+static inline void
+cs_match_case_ls_set(struct cs_builder *b, struct cs_match *match)
+{
+   if (unlikely(match->orig_ls_state)) {
+      match->case_ls_state = *match->orig_ls_state;
+      b->conf.ls_tracker = &match->case_ls_state;
+   }
+}
+
+static inline void
+cs_match_case_ls_get(struct cs_match *match)
+{
+   if (unlikely(match->orig_ls_state)) {
+      BITSET_OR(match->ls_state.pending_loads,
+                match->case_ls_state.pending_loads,
+                match->ls_state.pending_loads);
+      BITSET_OR(match->ls_state.pending_stores,
+                match->case_ls_state.pending_stores,
+                match->ls_state.pending_stores);
+   }
+}
+
+static inline void
+cs_match_case(struct cs_builder *b, struct cs_match *match, uint32_t id)
+{
+   assert(!match->default_emitted || !"default case must be last");
+   if (match->next_case_label.last_forward_ref != CS_LABEL_INVALID_POS) {
+      cs_branch_label(b, &match->break_label, MALI_CS_CONDITION_ALWAYS,
+                      cs_undef());
+      cs_block_end(b, &match->case_block);
+      cs_match_case_ls_get(match);
+      cs_set_label(b, &match->next_case_label);
+      cs_label_init(&match->next_case_label);
+   }
+
+   if (id)
+      cs_add32(b, match->scratch_reg, match->val, -id);
+
+   cs_branch_label(b, &match->next_case_label, MALI_CS_CONDITION_NEQUAL,
+                   id ? match->scratch_reg : match->val);
+
+   cs_match_case_ls_set(b, match);
+   cs_block_start(b, &match->case_block);
+}
+
+static inline void
+cs_match_default(struct cs_builder *b, struct cs_match *match)
+{
+   assert(match->next_case_label.last_forward_ref != CS_LABEL_INVALID_POS ||
+          !"default case requires at least one other case");
+   cs_branch_label(b, &match->break_label, MALI_CS_CONDITION_ALWAYS,
+                   cs_undef());
+
+   if (cs_cur_block(b) == &match->case_block) {
+      cs_block_end(b, &match->case_block);
+      cs_match_case_ls_get(match);
+   }
+
+   cs_set_label(b, &match->next_case_label);
+   cs_label_init(&match->next_case_label);
+   cs_match_case_ls_set(b, match);
+   cs_block_start(b, &match->case_block);
+   match->default_emitted = true;
+}
+
+static inline void
+cs_match_end(struct cs_builder *b, struct cs_match *match)
+{
+   if (cs_cur_block(b) == &match->case_block) {
+      cs_match_case_ls_get(match);
+      cs_block_end(b, &match->case_block);
+   }
+
+   if (unlikely(match->orig_ls_state)) {
+      if (!match->default_emitted) {
+         /* If we don't have a default, assume we don't handle all possible cases
+          * and the match load/store state with the original load/store state.
+          */
+         BITSET_OR(match->orig_ls_state->pending_loads,
+                   match->ls_state.pending_loads,
+                   match->orig_ls_state->pending_loads);
+         BITSET_OR(match->orig_ls_state->pending_stores,
+                   match->ls_state.pending_stores,
+                   match->orig_ls_state->pending_stores);
+      } else {
+         *match->orig_ls_state = match->ls_state;
+      }
+
+      b->conf.ls_tracker = match->orig_ls_state;
+   }
+
+   cs_set_label(b, &match->next_case_label);
+   cs_set_label(b, &match->break_label);
+
+   cs_block_end(b, &match->block);
+}
+
+#define cs_match(__b, __val, __scratch)                                        \
+   for (struct cs_match __match_storage,                                       \
+        *__match = cs_match_start(__b, &__match_storage, __val, __scratch);    \
+        __match != NULL; cs_match_end(__b, &__match_storage), __match = NULL)
+
+#define cs_case(__b, __ref)                                                    \
+   for (bool __case_defined = ({                                               \
+           cs_match_case(__b, __match, __ref);                                 \
+           false;                                                              \
+        });                                                                    \
+        !__case_defined; __case_defined = true)
+
+#define cs_default(__b)                                                        \
+   for (bool __default_defined = ({                                            \
+           cs_match_default(__b, __match);                                     \
+           false;                                                              \
+        });                                                                    \
+        !__default_defined; __default_defined = true)

@@ -166,7 +166,8 @@ ftglue_stream_frame_exit( FT_Stream  stream )
 FTGLUE_APIDEF( FT_Error )
 ftglue_face_goto_table( FT_Face    face,
                         FT_ULong   the_tag,
-                        FT_Stream  stream )
+                        FT_Stream  stream,
+                        FT_ULong  *table_size )
 {
   FT_Error  error;
 
@@ -238,6 +239,8 @@ ftglue_face_goto_table( FT_Face    face,
       {
         LOG(( "TrueType table (start: %ld) (size: %ld)\n", start, size ));
         error = ftglue_stream_seek( stream, start );
+	if (table_size)
+	  *table_size = size;
         goto FoundIt;
       }
     }

@@ -84,16 +84,13 @@ nir_lower_patch_vertices(nir_shader *nir,
                }
 
                progress = true;
-               nir_def_rewrite_uses(&intr->def,
-                                    val);
-               nir_instr_remove(instr);
+               nir_def_replace(&intr->def, val);
             }
          }
       }
 
       if (progress) {
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                        nir_metadata_dominance);
+         nir_metadata_preserve(impl, nir_metadata_control_flow);
       }
    }
 

@@ -36,10 +36,22 @@
 #include "xf86Priv.h"
 #include "xf86_OSlib.h"
 
+#if defined(USE_I386_IOPL) || defined(USE_AMD64_IOPL)
+#include <machine/sysarch.h>
+#endif
+
 #if defined(__NetBSD__) && !defined(MAP_FILE)
 #define MAP_FLAGS MAP_SHARED
 #else
 #define MAP_FLAGS (MAP_FILE | MAP_SHARED)
+#endif
+
+#ifndef CONSOLE_X_TV_ON
+#define CONSOLE_X_TV_ON _IOW('t',155,int)
+#endif
+
+#ifndef CONSOLE_X_TV_OFF
+#define CONSOLE_X_TV_OFF _IO('t',156)
 #endif
 
 #ifdef __OpenBSD__

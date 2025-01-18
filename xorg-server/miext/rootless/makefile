@@ -1,6 +1,7 @@
 LIBRARY=librootless
 
 DEFINES += PIXMAN_API=
+INCLUDES += ../..
 
 librootless_la_SOURCES = \
 	rootlessCommon.c \

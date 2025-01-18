@@ -11,7 +11,7 @@ HOST=$1
 cat >/usr/local/bin/${HOST}-pkg-config <<EOF
 #!/bin/sh
 
-PKG_CONFIG_SYSROOT_DIR=/usr/${HOST} PKG_CONFIG_LIBDIR=/usr/${HOST}/lib/pkgconfig:/usr/share/pkgconfig pkg-config \$@
+PKG_CONFIG_SYSROOT_DIR=/usr/${HOST} PKG_CONFIG_LIBDIR=/usr/${HOST}/lib/pkgconfig:/usr/${HOST}/share/pkgconfig pkg-config \$@
 EOF
 chmod +x /usr/local/bin/${HOST}-pkg-config
 
@@ -68,9 +68,9 @@ build 'https://gitlab.freedesktop.org/xorg/lib/libfontenc.git' 'libfontenc-1.1.4
 build 'https://gitlab.freedesktop.org/xorg/lib/libXfont.git'  'libXfont2-2.0.3'
 build 'https://gitlab.freedesktop.org/xorg/lib/libXdmcp.git' 'libXdmcp-1.1.3'
 build 'https://gitlab.freedesktop.org/xorg/lib/libXfixes.git' 'libXfixes-5.0.3'
-build 'https://gitlab.freedesktop.org/xorg/lib/libxcb-util.git' '0.4.0'
-build 'https://gitlab.freedesktop.org/xorg/lib/libxcb-image.git' '0.4.0'
-build 'https://gitlab.freedesktop.org/xorg/lib/libxcb-wm.git' '0.4.1'
+build 'https://gitlab.freedesktop.org/xorg/lib/libxcb-util.git' 'xcb-util-0.4.1-gitlab'
+build 'https://gitlab.freedesktop.org/xorg/lib/libxcb-image.git' 'xcb-util-image-0.4.1-gitlab'
+build 'https://gitlab.freedesktop.org/xorg/lib/libxcb-wm.git' 'xcb-util-wm-0.4.2'
 
 # workaround xcb_windefs.h leaking all Windows API types into X server build
 # (some of which clash which types defined by Xmd.h) XXX: This is a bit of a

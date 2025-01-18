@@ -50,17 +50,17 @@ SOFTWARE.
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
-#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XIproto.h>
+
+#include "dix/input_priv.h"
+
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include "exevents.h"
 #include "exglobals.h"
-
 #include "setmmap.h"
 
 /***********************************************************************

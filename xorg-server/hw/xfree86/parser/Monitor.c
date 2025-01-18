@@ -269,6 +269,8 @@ xf86parseVerboseMode(void)
         switch (token) {
         case COMMENT:
             ptr->ml_comment = xf86addComment(ptr->ml_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case DOTCLOCK:
             if ((token = xf86getSubToken(&(ptr->ml_comment))) != NUMBER)
@@ -413,6 +415,8 @@ xf86parseMonitorSection(void)
         switch (token) {
         case COMMENT:
             ptr->mon_comment = xf86addComment(ptr->mon_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->mon_comment)) != STRING)
@@ -599,6 +603,8 @@ xf86parseModesSection(void)
         switch (token) {
         case COMMENT:
             ptr->modes_comment = xf86addComment(ptr->modes_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case IDENTIFIER:
             if (xf86getSubToken(&(ptr->modes_comment)) != STRING)

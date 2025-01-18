@@ -395,8 +395,7 @@ nir_convert_to_lcssa(nir_shader *shader, bool skip_invariants, bool skip_bool_in
 
       if (state->progress) {
          progress = true;
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                        nir_metadata_dominance);
+         nir_metadata_preserve(impl, nir_metadata_control_flow);
       } else {
          nir_metadata_preserve(impl, nir_metadata_all);
       }

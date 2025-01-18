@@ -12,102 +12,6 @@
 #include "tu_device.h"
 #include "tu_rmv.h"
 
-static inline void
-tu_sync_cacheline_to_gpu(void const *p __attribute__((unused)))
-{
-#if DETECT_ARCH_AARCH64
-   /* Clean data cache. */
-   __asm volatile("dc cvac, %0" : : "r" (p) : "memory");
-#elif (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
-   __builtin_ia32_clflush(p);
-#elif DETECT_ARCH_ARM
-   /* DCCMVAC - same as DC CVAC on aarch64.
-    * Seems to be illegal to call from userspace.
-    */
-   //__asm volatile("mcr p15, 0, %0, c7, c10, 1" : : "r" (p) : "memory");
-   unreachable("Cache line clean is unsupported on ARMv7");
-#endif
-}
-
-static inline void
-tu_sync_cacheline_from_gpu(void const *p __attribute__((unused)))
-{
-#if DETECT_ARCH_AARCH64
-   /* Clean and Invalidate data cache, there is no separate Invalidate. */
-   __asm volatile("dc civac, %0" : : "r" (p) : "memory");
-#elif (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
-   __builtin_ia32_clflush(p);
-#elif DETECT_ARCH_ARM
-   /* DCCIMVAC - same as DC CIVAC on aarch64.
-    * Seems to be illegal to call from userspace.
-    */
-   //__asm volatile("mcr p15, 0, %0, c7, c14, 1" : : "r" (p) : "memory");
-   unreachable("Cache line invalidate is unsupported on ARMv7");
-#endif
-}
-
-void
-tu_sync_cache_bo(struct tu_device *dev,
-                 struct tu_bo *bo,
-                 VkDeviceSize offset,
-                 VkDeviceSize size,
-                 enum tu_mem_sync_op op)
-{
-   uintptr_t level1_dcache_size = dev->physical_device->level1_dcache_size;
-   char *start = (char *) bo->map + offset;
-   char *end = start + (size == VK_WHOLE_SIZE ? (bo->size - offset) : size);
-
-   start = (char *) ((uintptr_t) start & ~(level1_dcache_size - 1));
-
-   for (; start < end; start += level1_dcache_size) {
-      if (op == TU_MEM_SYNC_CACHE_TO_GPU) {
-         tu_sync_cacheline_to_gpu(start);
-      } else {
-         tu_sync_cacheline_from_gpu(start);
-      }
-   }
-}
-
-static VkResult
-sync_cache(VkDevice _device,
-           enum tu_mem_sync_op op,
-           uint32_t count,
-           const VkMappedMemoryRange *ranges)
-{
-   VK_FROM_HANDLE(tu_device, device, _device);
-
-   if (!device->physical_device->has_cached_non_coherent_memory) {
-      tu_finishme(
-         "data cache clean and invalidation are unsupported on this arch!");
-      return VK_SUCCESS;
-   }
-
-   for (uint32_t i = 0; i < count; i++) {
-      VK_FROM_HANDLE(tu_device_memory, mem, ranges[i].memory);
-      tu_sync_cache_bo(device, mem->bo, ranges[i].offset, ranges[i].size, op);
-   }
-
-   return VK_SUCCESS;
-}
-
-VkResult
-tu_FlushMappedMemoryRanges(VkDevice _device,
-                           uint32_t memoryRangeCount,
-                           const VkMappedMemoryRange *pMemoryRanges)
-{
-   return sync_cache(_device, TU_MEM_SYNC_CACHE_TO_GPU, memoryRangeCount,
-                     pMemoryRanges);
-}
-
-VkResult
-tu_InvalidateMappedMemoryRanges(VkDevice _device,
-                                uint32_t memoryRangeCount,
-                                const VkMappedMemoryRange *pMemoryRanges)
-{
-   return sync_cache(_device, TU_MEM_SYNC_CACHE_FROM_GPU, memoryRangeCount,
-                     pMemoryRanges);
-}
-
 VkResult
 tu_allocate_userspace_iova(struct tu_device *dev,
                            uint64_t size,
@@ -130,11 +34,11 @@ tu_allocate_userspace_iova(struct tu_device *dev,
           * them from the other end of the address space.
           */
          dev->vma.alloc_high = true;
-         *iova = util_vma_heap_alloc(&dev->vma, size, 0x1000);
+         *iova = util_vma_heap_alloc(&dev->vma, size, os_page_size);
       }
    } else {
       dev->vma.alloc_high = false;
-      *iova = util_vma_heap_alloc(&dev->vma, size, 0x1000);
+      *iova = util_vma_heap_alloc(&dev->vma, size, os_page_size);
    }
 
    if (!*iova)

@@ -406,6 +406,8 @@ FcNameConvert (FcType type, const char *object, FcChar8 *string)
 	    v.u.r = FcRangeCreateDouble (b, e);
 	break;
     default:
+	/* No valid type to convert */
+	v.type = FcTypeVoid;
 	break;
     }
     return v;

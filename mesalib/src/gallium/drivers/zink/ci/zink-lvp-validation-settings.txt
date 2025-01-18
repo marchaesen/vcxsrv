@@ -1,6 +1,6 @@
 # Please include a comment with the log message and a testcase triggering each
 # VUID at the bottom of the file.
-khronos_validation.message_id_filter = VUID-VkPhysicalDeviceProperties2-pNext-pNext,VUID-VkDeviceCreateInfo-pNext-pNext,VUID-RuntimeSpirv-Location-06272,VUID-vkCmdDrawMultiEXT-None-02699,VUID-RuntimeSpirv-OpEntryPoint-08743,VUID-vkCmdPipelineBarrier2-shaderTileImageColorReadAccess-08718,VUID-VkGraphicsPipelineCreateInfo-flags-06482,VUID-vkCmdPipelineBarrier2-None-08719
+khronos_validation.message_id_filter = VUID-VkPhysicalDeviceProperties2-pNext-pNext,VUID-VkDeviceCreateInfo-pNext-pNext,VUID-RuntimeSpirv-Location-06272,VUID-vkCmdDrawMultiEXT-None-02699,VUID-RuntimeSpirv-OpEntryPoint-08743,VUID-vkCmdPipelineBarrier2-shaderTileImageColorReadAccess-08718,VUID-VkGraphicsPipelineCreateInfo-flags-06482,VUID-vkCmdPipelineBarrier2-None-08719,VUID-vkCmdDrawMultiEXT-rasterizationSamples-07474
 khronos_validation.report_flags = error
 khronos_validation.debug_action = VK_DBG_LAYER_ACTION_LOG_MSG,VK_DBG_LAYER_ACTION_BREAK
 VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
@@ -56,7 +56,5 @@ khronos_validation.log_filename = stdout
 #
 # VVL bug https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/5735
 
-# VVL missing support for KHR_dynamic_rendering_local_read
-# VUID-vkCmdPipelineBarrier2-shaderTileImageColorReadAccess-08718
-# VUID-VkGraphicsPipelineCreateInfo-flags-06482
-# VUID-vkCmdPipelineBarrier2-None-08719
+# spec broken
+# VUID-vkCmdDrawMultiEXT-rasterizationSamples-07474

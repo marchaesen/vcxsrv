@@ -139,6 +139,7 @@ xwayland_server = executable(
     include_directories: wayland_inc,
     dependencies: [
         common_dep,
+        epoll_dep,
         xwayland_dep,
         xwaylandproto_dep,
     ],
@@ -182,6 +183,7 @@ pkgconfig.generate(
     filebase: 'xwayland',
     name: 'Xwayland',
     description: 'X Server for Wayland',
+    dataonly: true,
     variables: [
         'exec_prefix=${prefix}',
         'xwayland=' + xwayland_path / xwayland_server.name(),

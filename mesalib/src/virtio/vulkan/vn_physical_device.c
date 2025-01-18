@@ -162,6 +162,7 @@ vn_physical_device_init_features(struct vn_physical_device *physical_dev)
 
       /* KHR */
       VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate;
+      VkPhysicalDeviceMaintenance5FeaturesKHR maintenance5;
       VkPhysicalDeviceShaderClockFeaturesKHR shader_clock;
       VkPhysicalDeviceShaderExpectAssumeFeaturesKHR expect_assume;
 
@@ -269,6 +270,7 @@ vn_physical_device_init_features(struct vn_physical_device *physical_dev)
    VN_ADD_PNEXT_EXT(feats2, FRAGMENT_SHADING_RATE_FEATURES_KHR, local_feats.fragment_shading_rate, exts->KHR_fragment_shading_rate);
    VN_ADD_PNEXT_EXT(feats2, SHADER_CLOCK_FEATURES_KHR, local_feats.shader_clock, exts->KHR_shader_clock);
    VN_ADD_PNEXT_EXT(feats2, SHADER_EXPECT_ASSUME_FEATURES_KHR, local_feats.expect_assume, exts->KHR_shader_expect_assume);
+   VN_ADD_PNEXT_EXT(feats2, MAINTENANCE_5_FEATURES_KHR, local_feats.maintenance5, exts->KHR_maintenance5);
 
    /* EXT */
    VN_ADD_PNEXT_EXT(feats2, ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT, local_feats.attachment_feedback_loop_layout, exts->EXT_attachment_feedback_loop_layout);
@@ -310,24 +312,6 @@ vn_physical_device_init_features(struct vn_physical_device *physical_dev)
     * See vn_physical_device_get_native_extensions.
     */
    VN_SET_CORE_VALUE(feats, deviceMemoryReport, true);
-
-   /* To support sparse binding with feedback, we require sparse binding queue
-    * families to  also support submiting feedback commands. Any queue
-    * families that exclusively support sparse binding are filtered out. If a
-    * device only supports sparse binding with exclusive queue families that
-    * get filtered out then disable the feature.
-    */
-   if (physical_dev->sparse_binding_disabled) {
-      VN_SET_CORE_VALUE(feats, sparseBinding, false);
-      VN_SET_CORE_VALUE(feats, sparseResidencyBuffer, false);
-      VN_SET_CORE_VALUE(feats, sparseResidencyImage2D, false);
-      VN_SET_CORE_VALUE(feats, sparseResidencyImage3D, false);
-      VN_SET_CORE_VALUE(feats, sparseResidency2Samples, false);
-      VN_SET_CORE_VALUE(feats, sparseResidency4Samples, false);
-      VN_SET_CORE_VALUE(feats, sparseResidency8Samples, false);
-      VN_SET_CORE_VALUE(feats, sparseResidency16Samples, false);
-      VN_SET_CORE_VALUE(feats, sparseResidencyAliased, false);
-   }
 
    /* Disable unsupported ExtendedDynamicState3Features */
    if (exts->EXT_extended_dynamic_state3) {
@@ -433,6 +417,8 @@ vn_physical_device_sanitize_properties(struct vn_physical_device *physical_dev)
    if (!forward_driver_version)
       props->driverVersion = vk_get_driver_version();
 
+   physical_dev->wa_min_fb_align = strstr(props->deviceName, "JSL") ? 128 : 1;
+
    char device_name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
    int device_name_len = snprintf(device_name, sizeof(device_name),
                                   "Virtio-GPU Venus (%s)", props->deviceName);
@@ -456,17 +442,6 @@ vn_physical_device_sanitize_properties(struct vn_physical_device *physical_dev)
    VN_SET_CORE_VALUE(props, conformanceVersion.patch, 0);
 
    vn_physical_device_init_uuids(physical_dev);
-
-   /* See comment for sparse binding feature disable */
-   if (physical_dev->sparse_binding_disabled) {
-      VN_SET_CORE_VALUE(props, sparseAddressSpaceSize, 0);
-      VN_SET_CORE_VALUE(props, sparseResidencyStandard2DBlockShape, 0);
-      VN_SET_CORE_VALUE(props, sparseResidencyStandard2DMultisampleBlockShape,
-                        0);
-      VN_SET_CORE_VALUE(props, sparseResidencyStandard3DBlockShape, 0);
-      VN_SET_CORE_VALUE(props, sparseResidencyAlignedMipSize, 0);
-      VN_SET_CORE_VALUE(props, sparseResidencyNonResidentStrict, 0);
-   }
 
    /* Disable unsupported VkPhysicalDeviceFragmentShadingRatePropertiesKHR */
    if (exts->KHR_fragment_shading_rate) {
@@ -671,6 +646,10 @@ vn_physical_device_init_properties(struct vn_physical_device *physical_dev)
       props->sharedImage = true;
 #endif
 
+   /* TODO: Fix sparse binding on lavapipe. */
+   if (props->driverID == VK_DRIVER_ID_MESA_LLVMPIPE)
+      physical_dev->sparse_binding_disabled = true;
+
    vn_physical_device_sanitize_properties(physical_dev);
 }
 
@@ -743,45 +722,31 @@ vn_physical_device_init_memory_properties(
    /* Kernel makes every mapping coherent. If a memory type is truly
     * incoherent, it's better to remove the host-visible flag than silently
     * making it coherent. However, for app compatibility purpose, when
-    * coherent-cached memory type is unavailable, we emulate the first cached
-    * memory type with the first coherent memory type.
+    * coherent-cached memory type is unavailable, we append the cached bit to
+    * the first coherent memory type.
     */
-   uint32_t coherent_uncached = VK_MAX_MEMORY_TYPES;
-   uint32_t incoherent_cached = VK_MAX_MEMORY_TYPES;
+   bool has_coherent_cached = false;
+   uint32_t first_coherent = VK_MAX_MEMORY_TYPES;
    VkPhysicalDeviceMemoryProperties *props = &physical_dev->memory_properties;
    for (uint32_t i = 0; i < props->memoryTypeCount; i++) {
-      const VkMemoryPropertyFlags flags = props->memoryTypes[i].propertyFlags;
-      const bool coherent = flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-      const bool cached = flags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-      if (coherent && cached) {
-         coherent_uncached = VK_MAX_MEMORY_TYPES;
-         incoherent_cached = VK_MAX_MEMORY_TYPES;
-         break;
-      } else if (coherent && coherent_uncached == VK_MAX_MEMORY_TYPES) {
-         coherent_uncached = i;
-      } else if (cached && incoherent_cached == VK_MAX_MEMORY_TYPES) {
-         incoherent_cached = i;
+      VkMemoryPropertyFlags *flags = &props->memoryTypes[i].propertyFlags;
+      const bool coherent = *flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+      const bool cached = *flags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+      if (coherent) {
+         if (first_coherent == VK_MAX_MEMORY_TYPES)
+            first_coherent = i;
+         if (cached)
+            has_coherent_cached = true;
+      } else if (cached) {
+         *flags &= ~(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                     VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
       }
    }
 
-   for (uint32_t i = 0; i < props->memoryTypeCount; i++) {
-      VkMemoryType *type = &props->memoryTypes[i];
-      if (i == incoherent_cached) {
-         /* Only get here if no coherent+cached type is available, and the
-          * spec guarantees that there is at least one coherent type, so it
-          * must be coherent+uncached, hence the index is always valid.
-          */
-         assert(coherent_uncached < props->memoryTypeCount);
-         type->heapIndex = props->memoryTypes[coherent_uncached].heapIndex;
-      } else if (!(type->propertyFlags &
-                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-         type->propertyFlags &= ~(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                  VK_MEMORY_PROPERTY_HOST_CACHED_BIT);
-      }
+   if (!has_coherent_cached) {
+      props->memoryTypes[first_coherent].propertyFlags |=
+         VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
    }
-
-   physical_dev->coherent_uncached = coherent_uncached;
-   physical_dev->incoherent_cached = incoherent_cached;
 }
 
 static void
@@ -1090,6 +1055,7 @@ vn_physical_device_get_passthrough_extensions(
 
       /* KHR */
       .KHR_fragment_shading_rate = true,
+      .KHR_maintenance5 = true,
       .KHR_pipeline_library = true,
       .KHR_push_descriptor = true,
       .KHR_shader_clock = true,
@@ -1107,6 +1073,7 @@ vn_physical_device_get_passthrough_extensions(
       .EXT_depth_clip_enable = true,
       .EXT_extended_dynamic_state3 = true,
       .EXT_dynamic_rendering_unused_attachments = true,
+      .EXT_external_memory_acquire_unmodified = true,
       .EXT_fragment_shader_interlock = true,
       .EXT_graphics_pipeline_library = !VN_DEBUG(NO_GPL),
       .EXT_image_2d_view_of_3d = true,
@@ -1165,14 +1132,6 @@ vn_physical_device_init_supported_extensions(
          physical_dev->extension_spec_versions[i] = MIN2(
             physical_dev->extension_spec_versions[i], props->specVersion);
       }
-   }
-
-   /* override VK_ANDROID_native_buffer spec version */
-   if (native.ANDROID_native_buffer) {
-      const uint32_t index =
-         VN_EXTENSION_TABLE_INDEX(native, ANDROID_native_buffer);
-      physical_dev->extension_spec_versions[index] =
-         VN_ANDROID_NATIVE_BUFFER_SPEC_VERSION;
    }
 }
 
@@ -1326,6 +1285,38 @@ vn_image_format_cache_fini(struct vn_physical_device *physical_dev)
       vn_image_format_cache_debug_dump(cache);
 }
 
+static void
+vn_physical_device_disable_sparse_binding(
+   struct vn_physical_device *physical_dev)
+{
+   /* To support sparse binding with feedback, we require sparse binding queue
+    * families to  also support submiting feedback commands. Any queue
+    * families that exclusively support sparse binding are filtered out. If a
+    * device only supports sparse binding with exclusive queue families that
+    * get filtered out then disable the feature.
+    */
+
+   struct vk_features *feats = &physical_dev->base.base.supported_features;
+   VN_SET_CORE_VALUE(feats, sparseBinding, false);
+   VN_SET_CORE_VALUE(feats, sparseResidencyBuffer, false);
+   VN_SET_CORE_VALUE(feats, sparseResidencyImage2D, false);
+   VN_SET_CORE_VALUE(feats, sparseResidencyImage3D, false);
+   VN_SET_CORE_VALUE(feats, sparseResidency2Samples, false);
+   VN_SET_CORE_VALUE(feats, sparseResidency4Samples, false);
+   VN_SET_CORE_VALUE(feats, sparseResidency8Samples, false);
+   VN_SET_CORE_VALUE(feats, sparseResidency16Samples, false);
+   VN_SET_CORE_VALUE(feats, sparseResidencyAliased, false);
+
+   struct vk_properties *props = &physical_dev->base.base.properties;
+   VN_SET_CORE_VALUE(props, sparseAddressSpaceSize, 0);
+   VN_SET_CORE_VALUE(props, sparseResidencyStandard2DBlockShape, 0);
+   VN_SET_CORE_VALUE(props, sparseResidencyStandard2DMultisampleBlockShape,
+                     0);
+   VN_SET_CORE_VALUE(props, sparseResidencyStandard3DBlockShape, 0);
+   VN_SET_CORE_VALUE(props, sparseResidencyAlignedMipSize, 0);
+   VN_SET_CORE_VALUE(props, sparseResidencyNonResidentStrict, 0);
+}
+
 static VkResult
 vn_physical_device_init(struct vn_physical_device *physical_dev)
 {
@@ -1350,6 +1341,8 @@ vn_physical_device_init(struct vn_physical_device *physical_dev)
    /* TODO query all caps with minimal round trips */
    vn_physical_device_init_features(physical_dev);
    vn_physical_device_init_properties(physical_dev);
+   if (physical_dev->sparse_binding_disabled)
+      vn_physical_device_disable_sparse_binding(physical_dev);
 
    vn_physical_device_init_memory_properties(physical_dev);
 

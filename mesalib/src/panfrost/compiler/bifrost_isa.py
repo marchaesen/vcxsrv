@@ -102,8 +102,8 @@ def parse_modifiers(obj, include_pseudo):
         opts = [x.text if x.tag == 'opt' else x.tag for x in mod.findall('*')]
 
         if len(opts) == 0:
-            assert('opt' in mod.attrib)
-            opts = ['none', mod.attrib['opt']]
+            if 'opt' in mod.attrib:
+                opts = ['none', mod.attrib['opt']]
 
         # Find suitable default
         default = mod.attrib.get('default', 'none' if 'none' in opts else None)
@@ -121,6 +121,33 @@ def parse_copy(enc, existing):
         for ex in existing:
             if ex[0][0] == name:
                 ex[0][1] = node.get('start')
+
+mod_names = {
+    'cmp'     : [['cmpf', None, None], None, ['eq', 'gt', 'ge', 'ne', 'lt', 'le', 'gtlt', 'total']],
+    # FIXME: Valhall can accept any integer comparision, but the old IR generator only generated
+    #   gt and ge, and left out lt and le. For now follow the old way so we can compare generated files,
+    #   but we should switch over to the proper way once everything is working
+#    'cmpfi'    : [['cmpf', None, None], None, ['eq', 'ne', 'gt', 'ge', 'lt', 'le']],
+    'cmpfi'     : [['cmpf', None, None], None, ['eq', 'ne', 'gt', 'ge']],
+    'eq'        : [['cmpf', None, None], 'ne', ['eq', 'ne']],
+    'dimension' : [['dimension', None, None], None, ['1d', '2d', '3d', 'cube']],
+    'fetch_component' : [['fetch_component', None, None], None, ['gather4_r', 'gather4_g', 'gather4_b', 'gather4_a']],
+    'lod_mode': [['va_lod_mode', None, None], 'zero_lod', ['zero_lod', 'computed_lod', 'explicit', 'computed_bias', 'grdesc']],
+    'regfmt'  : [['register_format', None, None], None, ['f16', 'f32', 's32', 'u32', 's16', 'u16', 'f64', 'i64', 'auto']],
+    'result_type' : [['result_type', None, None], None, ['i1', 'f1', 'm1']],
+    'sample'  : [['sample', None, None], 'none', ['center', 'centroid', 'sample', 'explicit', 'none']],
+    'update'  : [['update', None, None], None, ['store', 'retrieve', 'conditional', 'clobber']],
+    'vecsize' : [['vecsize', None, None], 'none', ['none', 'v2', 'v3', 'v4']],
+    'source_format' : [['source_format', None, None], None, ['flat32', 'flat16', 'f32', 'f16']],
+
+    'array_enable': [['array_enable', None, None], 'none', ['none', 'array_enable']], 
+    'integer_coordinates': [['integer_coordinates', None, None], 'none', ['none', 'integer_coordinates']],
+    'shadow'      : [['shadow', None, None], 'none', ['none', 'shadow']], 
+    'skip'        : [['skip', None, None], 'none', ['none', 'skip']], 
+    'texel_offset': [['texel_offset', None, None], 'none', ['none', 'texel_offset']], 
+    'wide_indices': [['wide_indices', None, None], 'none', ['none', 'wide_indices']], 
+    'write_mask' : [['write_mask', None, None], 'none', ['none', 'r', 'g', 'rg', 'b', 'rb', 'gb', 'rgb', 'a', 'ra', 'ga', 'rga', 'ba', 'rba', 'gba', 'rgba']]
+    }
 
 def parse_instruction(ins, include_pseudo):
     common = {
@@ -144,12 +171,21 @@ def parse_instruction(ins, include_pseudo):
     if 'exact' in ins.attrib:
         common['exact'] = parse_exact(ins)
 
+    extra_modifiers=[]
+    src_num = 0
     for src in ins.findall('src'):
         if src.attrib.get('pseudo', False) and not include_pseudo:
             continue
 
         mask = int(src.attrib['mask'], 0) if ('mask' in src.attrib) else 0xFF
-        common['srcs'].append([int(src.attrib['start'], 0), mask])
+        if src.attrib.get('start') is not None:
+            common['srcs'].append([int(src.attrib['start'], 0), mask])
+        else:
+            common['srcs'].append([src_num*3, mask])
+        if src.attrib.get('absneg', False):
+            extra_modifiers.append([['neg'+str(src_num), '0', '1'], 'neg',['none', 'neg']])
+            extra_modifiers.append([['abs'+str(src_num), '0', '1'], 'abs',['none', 'abs']])
+        src_num += 1
 
     for imm in ins.findall('immediate'):
         if imm.attrib.get('pseudo', False) and not include_pseudo:
@@ -158,8 +194,49 @@ def parse_instruction(ins, include_pseudo):
         start = int(imm.attrib['start']) if 'start' in imm.attrib else None
         common['immediates'].append([imm.attrib['name'], start, int(imm.attrib['size'])])
 
+    # FIXME valhall ISA.xml uses <imm/> instead of <immediate/>
+    for imm in ins.findall('imm'):
+        if imm.attrib.get('pseudo', False) and not include_pseudo:
+            continue
+
+        base_name = imm.attrib['name']
+        name = imm.attrib.get('ir_name', base_name)
+        if not name:
+            continue
+
+        start = int(imm.attrib['start']) if 'start' in imm.attrib else None
+        common['immediates'].append([name, start, int(imm.attrib['size'])])
+
+    staging_read = False
+    staging_write = False
+    for sr in ins.findall('sr'):
+        if sr.attrib.get('read', False):
+            staging_read = True
+        if sr.attrib.get('write', False):
+            staging_write = True
+
+    if staging_read:
+        common['staging'] = 'r'
+    if staging_write:
+        common['staging'] += 'w'
+    for sr in ins.findall('sr_count'):
+        size = sr.attrib.get('count', 'sr_count')
+        common['staging_count'] = size
+
+    for m in ins.findall('*'):
+        name = m.tag
+        if name == 'cmp':
+            if m.attrib.get('int_only', False):
+                name = 'cmpfi'
+            elif m.attrib.get('eqne_only', False):
+                name = 'cmpfeq'
+        if name == 'va_mod':
+            name = m.attrib.get('name', '')
+        if name in mod_names:
+            extra_modifiers.append(mod_names[name])
+
     common['derived'] = parse_derived(ins)
-    common['modifiers'] = parse_modifiers(ins, include_pseudo)
+    common['modifiers'] = parse_modifiers(ins, include_pseudo) + extra_modifiers
 
     for swap in ins.findall('swap'):
         lr = [int(swap.get('left')), int(swap.get('right'))]
@@ -195,8 +272,38 @@ def parse_instruction(ins, include_pseudo):
 
     return variants
 
+def ins_name(ins, group = False):
+    # a historical artifact: the first character of the name should contain
+    # a single character tag to indicate the unit: '+' for add, '*' for fma
+    # bifrost has only those two units, valhall has others but for those
+    # it doesn't matter (pretend they are '+')
+    if not group:
+        group = ins
+
+    base_name = ins.attrib['name']
+    if group.attrib['unit'] == 'fma':
+        tagged_name = '*' + base_name
+    else:
+        tagged_name = '+' + base_name
+    return tagged_name
+
 def parse_instructions(xml, include_unused = False, include_pseudo = False):
     final = {}
+
+    # look at groups of instructions
+    groups = ET.parse(xml).getroot().findall('group')
+    for gr in groups:
+        if gr.attrib.get('unused', False) and not include_unused:
+            continue
+        if gr.attrib.get('pseudo', False) and not include_pseudo:
+            continue
+        group_base = parse_instruction(gr, include_pseudo)
+        for ins in gr.findall('ins'):
+            parsed = copy.deepcopy(group_base)
+            tagged_name = ins_name(ins, gr)
+            final[tagged_name] = parsed
+
+    # now look at individual instructions
     instructions = ET.parse(xml).getroot().findall('ins')
 
     for ins in instructions:
@@ -211,7 +318,8 @@ def parse_instructions(xml, include_unused = False, include_pseudo = False):
         if parsed[0][1]["pseudo"] and not include_pseudo:
             continue
 
-        final[ins.attrib['name']] = parsed
+        tagged_name = ins_name(ins)
+        final[tagged_name] = parsed
 
     return final
 

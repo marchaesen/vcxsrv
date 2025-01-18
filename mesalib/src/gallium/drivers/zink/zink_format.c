@@ -165,28 +165,69 @@ zink_format_get_emulated_alpha(enum pipe_format format)
    return emulate_red_alpha(format);
 }
 
+
+enum pipe_format
+zink_format_emulate_x8(enum pipe_format format)
+{
+   /* convert missing Xn variants to An */
+   switch (format) {
+   case PIPE_FORMAT_B8G8R8X8_UNORM:
+      return PIPE_FORMAT_B8G8R8A8_UNORM;
+
+   case PIPE_FORMAT_B8G8R8X8_SRGB:
+      return PIPE_FORMAT_B8G8R8A8_SRGB;
+   case PIPE_FORMAT_R8G8B8X8_SRGB:
+      return PIPE_FORMAT_R8G8B8A8_SRGB;
+
+   case PIPE_FORMAT_R8G8B8X8_SINT:
+      return PIPE_FORMAT_R8G8B8A8_SINT;
+   case PIPE_FORMAT_R8G8B8X8_SNORM:
+      return PIPE_FORMAT_R8G8B8A8_SNORM;
+   case PIPE_FORMAT_R8G8B8X8_UNORM:
+      return PIPE_FORMAT_R8G8B8A8_UNORM;
+
+   case PIPE_FORMAT_R16G16B16X16_FLOAT:
+      return PIPE_FORMAT_R16G16B16A16_FLOAT;
+   case PIPE_FORMAT_R16G16B16X16_SINT:
+      return PIPE_FORMAT_R16G16B16A16_SINT;
+   case PIPE_FORMAT_R16G16B16X16_SNORM:
+      return PIPE_FORMAT_R16G16B16A16_SNORM;
+   case PIPE_FORMAT_R16G16B16X16_UNORM:
+      return PIPE_FORMAT_R16G16B16A16_UNORM;
+
+   case PIPE_FORMAT_R32G32B32X32_FLOAT:
+      return PIPE_FORMAT_R32G32B32A32_FLOAT;
+   case PIPE_FORMAT_R32G32B32X32_SINT:
+      return PIPE_FORMAT_R32G32B32A32_SINT;
+
+   case PIPE_FORMAT_R10G10B10X2_SINT:
+      return PIPE_FORMAT_R10G10B10A2_SINT;
+   case PIPE_FORMAT_R10G10B10X2_SNORM:
+      return PIPE_FORMAT_R10G10B10A2_SNORM;
+   case PIPE_FORMAT_R10G10B10X2_UNORM:
+      return PIPE_FORMAT_R10G10B10A2_UNORM;
+
+   case PIPE_FORMAT_B10G10R10X2_SINT:
+      return PIPE_FORMAT_B10G10R10A2_SINT;
+   case PIPE_FORMAT_B10G10R10X2_SNORM:
+      return PIPE_FORMAT_B10G10R10A2_SNORM;
+   case PIPE_FORMAT_B10G10R10X2_UNORM:
+      return PIPE_FORMAT_B10G10R10A2_UNORM;
+
+   case PIPE_FORMAT_R5G5B5X1_UNORM:
+      return PIPE_FORMAT_R5G5B5A1_UNORM;
+   case PIPE_FORMAT_B5G5R5X1_UNORM:
+      return PIPE_FORMAT_B5G5R5A1_UNORM;
+
+   default:
+      return format;
+   }
+}
+
 bool
 zink_format_is_voidable_rgba_variant(enum pipe_format format)
 {
-   const struct util_format_description *desc = util_format_description(format);
-   unsigned chan;
-
-   if(desc->block.width != 1 ||
-      desc->block.height != 1 ||
-      (desc->block.bits != 32 && desc->block.bits != 64 &&
-       desc->block.bits != 128))
-      return false;
-
-   if (desc->nr_channels != 4)
-      return false;
-
-   unsigned size = desc->channel[0].size;
-   for(chan = 0; chan < 4; ++chan) {
-      if(desc->channel[chan].size != size)
-         return false;
-   }
-
-   return true;
+   return format != zink_format_emulate_x8(format);
 }
 
 void

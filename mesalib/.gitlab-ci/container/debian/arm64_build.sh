@@ -26,6 +26,7 @@ DEPS=(
     ccache
     cmake
     curl
+    "clang-${LLVM_VERSION}"
     fastboot
     flatbuffers-compiler
     flex
@@ -33,11 +34,15 @@ DEPS=(
     git
     glslang-tools
     kmod
+    "libclang-${LLVM_VERSION}-dev"
+    "libclang-cpp${LLVM_VERSION}-dev"
+    "libclang-common-${LLVM_VERSION}-dev"
     libasan8
     libdrm-dev
     libelf-dev
     libexpat1-dev
     libflatbuffers-dev
+    "libllvm${LLVM_VERSION}"
     libvulkan-dev
     libx11-dev
     libx11-xcb-dev
@@ -85,6 +90,16 @@ arch=armhf
 . .gitlab-ci/container/build-mold.sh
 
 . .gitlab-ci/container/build-wayland.sh
+
+. .gitlab-ci/container/build-llvm-spirv.sh
+
+. .gitlab-ci/container/build-libclc.sh
+
+. .gitlab-ci/container/install-meson.sh
+
+. .gitlab-ci/container/build-rust.sh
+
+. .gitlab-ci/container/build-bindgen.sh
 
 apt-get purge -y "${EPHEMERAL[@]}"
 

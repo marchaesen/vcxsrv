@@ -28,8 +28,8 @@
 #pragma once
 
 #include <stdint.h>
-#include "vpe_command.h"
 #include "config_writer.h"
+#include "vpe_command.h"
 
 #ifdef __cplusplus
 extern "C" {

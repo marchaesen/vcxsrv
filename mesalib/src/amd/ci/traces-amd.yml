@@ -38,7 +38,7 @@ traces:
       checksum: 6cb8190a2ee4c335291914fbc70a8bb8
   gputest/furmark-v2.trace:
     gl-radeonsi-stoney:
-      checksum: cc6344ca8f5348c5e39dafb1b38edd7c
+      checksum: d9452b1aa606d61a51a80fb4644b7303
   gputest/triangle-v2.trace:
     gl-radeonsi-stoney:
       checksum: 2d0527e7288a0fc31099404546dadbfb
@@ -50,9 +50,10 @@ traces:
       label: [skip]
       text: Nothing wrong with it, proxy issues. Revert ASAP.
       checksum: 0e7441a7f2c86c75eeac72269786e7a1
-  gputest/gimark-v2.trace:
-    gl-radeonsi-stoney:
-      checksum: 942a9334e5e830cdfb950a72d77c48f5
+# gimark requires an environment var to work around a bug, disable for now
+#  gputest/gimark-v2.trace:
+#    gl-radeonsi-stoney:
+#      checksum: 942a9334e5e830cdfb950a72d77c48f5
   gputest/pixmark-julia-fp32-v2.trace:
     gl-radeonsi-stoney:
       checksum: 832d5f8268e953d6aa754c0aaf4b65d3
@@ -67,7 +68,7 @@ traces:
       checksum: 2832d2190df232bcbde71a4b720303e1
   gputest/tessmark-v2.trace:
     gl-radeonsi-stoney:
-      checksum: 071c8863793e7adcd95acb054592f819
+      checksum: 609c82248eec789f7389063639f288c3
   humus/AmbientAperture-v2.trace:
     gl-radeonsi-stoney:
       checksum: ed3444722d2468d5306bc734f0c24089

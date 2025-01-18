@@ -323,9 +323,10 @@ try_tree_grafting(ir_assignment *start,
       fprintf(stderr, "\n");
    }
 
-   for (ir_instruction *ir = (ir_instruction *)start->next;
-	ir != bb_last->next;
-	ir = (ir_instruction *)ir->next) {
+   for (exec_node *node = start->next;
+	node != bb_last->next;
+	node = node->next) {
+      ir_instruction *ir = (ir_instruction *) node;
 
       if (debug) {
 	 fprintf(stderr, "- ");
@@ -347,11 +348,13 @@ tree_grafting_basic_block(ir_instruction *bb_first,
 			  void *data)
 {
    struct tree_grafting_info *info = (struct tree_grafting_info *)data;
-   ir_instruction *ir, *next;
+   ir_instruction *ir;
+   exec_node *node, *node_next;
 
-   for (ir = bb_first, next = (ir_instruction *)ir->next;
-	ir != bb_last->next;
-	ir = next, next = (ir_instruction *)ir->next) {
+   for (node = bb_first, node_next = bb_first->next;
+	node != bb_last->next;
+	node = node_next, node_next = node->next) {
+      ir = (ir_instruction *) node;
       ir_assignment *assign = ir->as_assignment();
 
       if (!assign)

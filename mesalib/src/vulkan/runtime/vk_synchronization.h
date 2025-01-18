@@ -95,6 +95,14 @@ VkAccessFlags2
 vk_write_access2_for_pipeline_stage_flags2(VkPipelineStageFlags2 stages);
 
 VkAccessFlags2
+vk_expand_src_access_flags2(VkPipelineStageFlags2 stages,
+                            VkAccessFlags2 access);
+
+VkAccessFlags2
+vk_expand_dst_access_flags2(VkPipelineStageFlags2 stages,
+                            VkAccessFlags2 access);
+
+VkAccessFlags2
 vk_filter_src_access_flags2(VkPipelineStageFlags2 stages,
                             VkAccessFlags2 access);
 

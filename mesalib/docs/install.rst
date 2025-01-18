@@ -153,7 +153,7 @@ OpenGL
    LD_LIBRARY_PATH="$MESA_INSTALLDIR/lib64" glxinfo
 
 You may need to use ``lib`` instead of ``lib64`` on some systems or a full
-library specifier on debian.  Look inside ``installdir`` for the directory that
+library specifier on Debian.  Look inside ``installdir`` for the directory that
 contains ``libGL.so`` and use that one.
 
 Vulkan

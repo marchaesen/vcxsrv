@@ -34,13 +34,25 @@
 #include "util/u_memory.h"
 #include "vl/vl_winsys.h"
 
+#include "loader.h"
+
 static void
 vl_drm_screen_destroy(struct vl_screen *vscreen);
 
 struct vl_screen *
-vl_drm_screen_create(int fd)
+vl_drm_screen_create(int fd, bool honor_dri_prime)
 {
    struct vl_screen *vscreen;
+   int libva_owned_fd = -1;
+
+   if (honor_dri_prime) {
+      /* Pass a non-NULL value as the 2nd param in order to not
+       * close the original fd - it's owned by libva.
+       * If fd is overriden, we'll close after the call to
+       * pipe_loader_drm_probe_fd because pipe_loader dups the fd.
+       */
+      loader_get_user_preferred_fd(&fd, &libva_owned_fd);
+   }
 
    vscreen = CALLOC_STRUCT(vl_screen);
    if (!vscreen)
@@ -48,6 +60,9 @@ vl_drm_screen_create(int fd)
 
    if (pipe_loader_drm_probe_fd(&vscreen->dev, fd, false))
       vscreen->pscreen = pipe_loader_create_screen(vscreen->dev, false);
+
+   if (libva_owned_fd >= 0 && libva_owned_fd != fd)
+      close(fd);
 
    if (!vscreen->pscreen)
       goto release_pipe;

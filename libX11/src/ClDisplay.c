@@ -47,6 +47,7 @@ XCloseDisplay (
 {
 	register _XExtension *ext;
 	register int i;
+	xcb_connection_t *connection;
 
 	if (!(dpy->flags & XlibDisplayClosing))
 	{
@@ -68,7 +69,8 @@ XCloseDisplay (
 	    if (X_DPY_GET_REQUEST(dpy) != X_DPY_GET_LAST_REQUEST_READ(dpy))
 		XSync(dpy, 1);
 	}
-	xcb_disconnect(dpy->xcb->connection);
+	connection = dpy->xcb->connection;
 	_XFreeDisplayStructure (dpy);
+	xcb_disconnect(connection);
 	return 0;
 }

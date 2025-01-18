@@ -1267,7 +1267,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
 
       case GL_PRIMITIVE_RESTART_FIXED_INDEX:
-         if (!_mesa_is_gles3(ctx) && !_mesa_has_ARB_ES3_compatibility(ctx))
+         if (!_mesa_is_gles3_compatible(ctx))
             goto invalid_enum_error;
          if (ctx->Array.PrimitiveRestartFixedIndex != state) {
             ctx->Array.PrimitiveRestartFixedIndex = state;
@@ -1939,7 +1939,7 @@ _mesa_IsEnabled( GLenum cap )
          return ctx->Array.PrimitiveRestart;
 
       case GL_PRIMITIVE_RESTART_FIXED_INDEX:
-         if (!_mesa_is_gles3(ctx) && !_mesa_has_ARB_ES3_compatibility(ctx))
+         if (!_mesa_is_gles3_compatible(ctx))
             goto invalid_enum_error;
          return ctx->Array.PrimitiveRestartFixedIndex;
 

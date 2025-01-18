@@ -9,6 +9,10 @@
 #include "util/macros.h"
 #include "ac_gpu_info.h"
 
+#if AMD_LLVM_AVAILABLE
+#include <llvm/Config/llvm-config.h>
+#endif
+
 const char *ac_get_family_name(enum radeon_family family)
 {
    switch (family) {
@@ -100,6 +104,8 @@ const char *ac_get_family_name(enum radeon_family family)
       return "GFX1150";
    case CHIP_GFX1151:
       return "GFX1151";
+   case CHIP_GFX1152:
+      return "GFX1152";
    case CHIP_GFX1200:
       return "GFX1200";
    case CHIP_GFX1201:
@@ -206,7 +212,11 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
    case CHIP_MI200:
       return "gfx90a";
    case CHIP_GFX940:
-      return "gfx940";
+      return
+#if AMD_LLVM_AVAILABLE
+             LLVM_VERSION_MAJOR >= 17 ? "gfx942" :
+#endif
+             "gfx940";
    case CHIP_NAVI10:
       return "gfx1010";
    case CHIP_NAVI12:
@@ -240,6 +250,8 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
       return "gfx1150";
    case CHIP_GFX1151:
       return "gfx1151";
+   case CHIP_GFX1152:
+      return "gfx1152";
    case CHIP_GFX1200:
       return "gfx1200";
    case CHIP_GFX1201:

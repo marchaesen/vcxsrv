@@ -1,24 +1,6 @@
 /*
  * Copyright © 2022 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef FREEDRENO_COMMON_H_
@@ -27,6 +9,35 @@
 #include "util/u_atomic.h"
 
 #ifdef __cplusplus
+
+#include <tuple>
+
+#define __FD_GPU_GENS A6XX, A7XX
+#define FD_GENX(FUNC_NAME)                                                   \
+   template <chip... CHIPs> constexpr auto FUNC_NAME##instantiate()          \
+   {                                                                         \
+      return std::tuple_cat(std::make_tuple(FUNC_NAME<CHIPs>)...);           \
+   }                                                                         \
+   static constexpr auto FUNC_NAME##tmpl __attribute__((used)) =             \
+      FUNC_NAME##instantiate<__FD_GPU_GENS>();
+
+#define FD_CALLX(info, thing)                                                \
+   ({                                                                        \
+      decltype(&thing<A6XX>) genX_thing;                                     \
+      switch (info->chip) {                                                  \
+      case 6:                                                                \
+         genX_thing = &thing<A6XX>;                                          \
+         break;                                                              \
+      case 7:                                                                \
+         genX_thing = &thing<A7XX>;                                          \
+         break;                                                              \
+      default:                                                               \
+         unreachable("Unknown hardware generation");                         \
+      }                                                                      \
+      genX_thing;                                                            \
+   })
+
+
 template<typename E>
 struct BitmaskEnum {
    E value;

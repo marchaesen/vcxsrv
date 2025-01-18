@@ -82,7 +82,7 @@ softpipe_draw_vbo(struct pipe_context *pipe,
       return;
 
    if (indirect && indirect->buffer) {
-      util_draw_indirect(pipe, info, indirect);
+      util_draw_indirect(pipe, info, drawid_offset, indirect);
       return;
    }
 

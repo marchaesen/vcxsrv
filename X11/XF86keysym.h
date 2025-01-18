@@ -385,6 +385,7 @@
 #define XF86XK_LightsToggle             _EVDEVK(0x21e)  /* v3.10   KEY_LIGHTS_TOGGLE */
 #define XF86XK_ALSToggle                _EVDEVK(0x230)  /* v3.13   KEY_ALS_TOGGLE */
 /* Use: XF86XK_RotationLockToggle       _EVDEVK(0x231)     v4.16   KEY_ROTATE_LOCK_TOGGLE */
+#define XF86XK_RefreshRateToggle        _EVDEVK(0x232)  /* v6.9    KEY_REFRESH_RATE_TOGGLE */
 #define XF86XK_Buttonconfig             _EVDEVK(0x240)  /* v3.16   KEY_BUTTONCONFIG */
 #define XF86XK_Taskmanager              _EVDEVK(0x241)  /* v3.16   KEY_TASKMANAGER */
 #define XF86XK_Journal                  _EVDEVK(0x242)  /* v3.16   KEY_JOURNAL */
@@ -399,6 +400,8 @@
 #define XF86XK_CameraAccessEnable       _EVDEVK(0x24b)  /* v6.2    KEY_CAMERA_ACCESS_ENABLE */
 #define XF86XK_CameraAccessDisable      _EVDEVK(0x24c)  /* v6.2    KEY_CAMERA_ACCESS_DISABLE */
 #define XF86XK_CameraAccessToggle       _EVDEVK(0x24d)  /* v6.2    KEY_CAMERA_ACCESS_TOGGLE */
+#define XF86XK_Accessibility            _EVDEVK(0x24e)  /* v6.10   KEY_ACCESSIBILITY */
+#define XF86XK_DoNotDisturb             _EVDEVK(0x24f)  /* v6.10   KEY_DO_NOT_DISTURB */
 #define XF86XK_BrightnessMin            _EVDEVK(0x250)  /* v3.16   KEY_BRIGHTNESS_MIN */
 #define XF86XK_BrightnessMax            _EVDEVK(0x251)  /* v3.16   KEY_BRIGHTNESS_MAX */
 #define XF86XK_KbdInputAssistPrev       _EVDEVK(0x260)  /* v3.18   KEY_KBDINPUTASSIST_PREV */

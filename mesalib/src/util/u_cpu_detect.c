@@ -72,7 +72,7 @@
 #include <elf.h>
 #endif
 
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
 #include <unistd.h>
 #endif
 
@@ -471,6 +471,31 @@ check_os_mips64_support(void)
 }
 #endif /* DETECT_ARCH_MIPS64 */
 
+#if DETECT_ARCH_LOONGARCH64
+static void
+check_os_loongarch64_support(void)
+{
+#if DETECT_OS_LINUX
+    Elf64_auxv_t aux;
+    int fd;
+
+    fd = open("/proc/self/auxv", O_RDONLY | O_CLOEXEC);
+    if (fd >= 0) {
+       while (read(fd, &aux, sizeof(Elf64_auxv_t)) == sizeof(Elf64_auxv_t)) {
+          if (aux.a_type == AT_HWCAP) {
+             uint64_t hwcap = aux.a_un.a_val;
+
+             util_cpu_caps.has_lsx = (hwcap >> 4) & 1;
+             util_cpu_caps.has_lasx = (hwcap >> 5) & 1;
+             break;
+          }
+       }
+       close (fd);
+    }
+#endif /* DETECT_OS_LINUX */
+}
+#endif /* DETECT_ARCH_LOONGARCH64 */
+
 
 static void
 get_cpu_topology(void)
@@ -737,7 +762,7 @@ _util_cpu_detect_once(void)
       GetSystemInfo(&system_info);
       available_cpus = MAX2(1, system_info.dwNumberOfProcessors);
    }
-#elif DETECT_OS_UNIX
+#elif DETECT_OS_POSIX
 #  if defined(HAS_SCHED_GETAFFINITY)
    {
       /* sched_setaffinity() can be used to further restrict the number of
@@ -805,7 +830,7 @@ _util_cpu_detect_once(void)
       total_cpus = ncpu;
    }
 #  endif /* DETECT_OS_BSD */
-#endif /* DETECT_OS_UNIX */
+#endif /* DETECT_OS_POSIX */
 
    util_cpu_caps.nr_cpus = MAX2(1, available_cpus);
    total_cpus = MAX2(total_cpus, util_cpu_caps.nr_cpus);
@@ -944,6 +969,10 @@ _util_cpu_detect_once(void)
    check_os_mips64_support();
 #endif /* DETECT_ARCH_MIPS64 */
 
+#if DETECT_ARCH_LOONGARCH64
+   check_os_loongarch64_support();
+#endif /* DETECT_ARCH_LOONGARCH64 */
+
 #if DETECT_ARCH_S390
    util_cpu_caps.family = CPU_S390X;
 #endif
@@ -981,6 +1010,8 @@ _util_cpu_detect_once(void)
       printf("util_cpu_caps.has_neon = %u\n", util_cpu_caps.has_neon);
       printf("util_cpu_caps.has_msa = %u\n", util_cpu_caps.has_msa);
       printf("util_cpu_caps.has_daz = %u\n", util_cpu_caps.has_daz);
+      printf("util_cpu_caps.has_lsx = %u\n", util_cpu_caps.has_lsx);
+      printf("util_cpu_caps.has_lasx = %u\n", util_cpu_caps.has_lasx);
       printf("util_cpu_caps.has_avx512f = %u\n", util_cpu_caps.has_avx512f);
       printf("util_cpu_caps.has_avx512dq = %u\n", util_cpu_caps.has_avx512dq);
       printf("util_cpu_caps.has_avx512ifma = %u\n", util_cpu_caps.has_avx512ifma);

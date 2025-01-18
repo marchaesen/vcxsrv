@@ -51,12 +51,13 @@
 #ifndef _xf86Xinput_h
 #define _xf86Xinput_h
 
+#include <X11/Xfuncproto.h>
+
 #include "xf86.h"
 #include "xf86str.h"
 #include "inputstr.h"
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
-#include "XIstubs.h"
 
 /* Input device flags */
 #define XI86_ALWAYS_CORE	0x04    /* device always controls the pointer */

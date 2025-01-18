@@ -32,13 +32,19 @@
 
 struct etna_context;
 
-struct etna_blend_state {
-   struct pipe_blend_state base;
-
-   bool fo_allowed;
-
+struct etna_rt_blend_state {
    uint32_t PE_ALPHA_CONFIG;
    uint32_t PE_COLOR_FORMAT;
+   uint32_t PE_HALTI5_COLORMASK;
+   bool alpha_enable : 1;
+   bool separate_alpha : 1;
+   bool fo_allowed : 1;
+};
+
+struct etna_blend_state {
+   struct pipe_blend_state base;
+   struct etna_rt_blend_state rt[PIPE_MAX_COLOR_BUFS];
+
    uint32_t PE_LOGIC_OP;
    uint32_t PE_DITHER[2];
 };

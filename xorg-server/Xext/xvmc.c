@@ -1,12 +1,12 @@
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <string.h>
-
 #include <X11/X.h>
 #include <X11/Xproto.h>
+
+#include "Xext/xvdix_priv.h"
+
 #include "misc.h"
 #include "os.h"
 #include "dixstruct.h"
@@ -16,7 +16,6 @@
 #include "extinit_priv.h"
 #include "servermd.h"
 #include <X11/Xfuncproto.h>
-#include "xvdix.h"
 #include <X11/extensions/XvMC.h>
 #include <X11/extensions/Xvproto.h>
 #include <X11/extensions/XvMCproto.h>
@@ -43,8 +42,6 @@ int XvMCEventBase;
 static RESTYPE XvMCRTContext;
 static RESTYPE XvMCRTSurface;
 static RESTYPE XvMCRTSubpicture;
-
-int (*XvMCScreenInitProc)(ScreenPtr, int, XvMCAdaptorPtr) = NULL;
 
 typedef struct {
     int num_adaptors;

@@ -289,6 +289,8 @@ llvmpipe_fs_variant_linear_llvm(struct llvmpipe_context *lp,
    LLVMSetFunctionCallConv(function, LLVMCCallConv);
 
    variant->linear_function = function;
+   variant->linear_function_name = MALLOC(strlen(func_name)+1);
+   strcpy(variant->linear_function_name, func_name);
 
    /* XXX: need to propagate noalias down into color param now we are
     * passing a pointer-to-pointer?
@@ -299,8 +301,10 @@ llvmpipe_fs_variant_linear_llvm(struct llvmpipe_context *lp,
       }
    }
 
-   if (variant->gallivm->cache->data_size)
+   if (variant->gallivm->cache->data_size) {
+      gallivm_stub_func(gallivm, function);
       return;
+   }
 
    LLVMValueRef context_ptr = LLVMGetParam(function, 0);
    LLVMValueRef x = LLVMGetParam(function, 1);

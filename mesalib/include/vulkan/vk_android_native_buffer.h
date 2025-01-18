@@ -1,4 +1,37 @@
 /*
+ * MESA: buffer_handle_t is defined by all Mesa builds, even if
+ * one is building for a non-Android target.  This avoids unnecessary
+ * conditionals in driver code.
+ *
+ * We don't need to define buffer_handle_t locally when (__ANDROID__)
+ * or ANDROID are set.  Here's the distinction between the two:
+ *
+ * - AOSP always defines ANDROID, since it just means one is using the
+ *   AOSP tree. It means the build environment is Android, roughly.
+ * - __ANDROID__ is defined by the toolchain.  This typically means the
+ *   build target is Android.
+ *
+ * If the build environment is Android, AOSP can provide common Android
+ * headers, such as <cutils/native_handle.h>.  This allows one to build
+ * and test certain aspects of Android window system code, on the host
+ * system rather the build target.
+ */
+
+#if defined(__ANDROID__) || defined(ANDROID)
+
+#include <cutils/native_handle.h>
+#if ANDROID_API_LEVEL < 28
+/* buffer_handle_t was defined in the deprecated system/window.h */
+typedef const native_handle_t *buffer_handle_t;
+#endif
+
+#else
+
+typedef void *buffer_handle_t;
+
+#endif
+
+/*
  * Copyright 2015 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,19 +50,7 @@
 #ifndef __VK_ANDROID_NATIVE_BUFFER_H__
 #define __VK_ANDROID_NATIVE_BUFFER_H__
 
-/* MESA: A hack to avoid #ifdefs in driver code. */
-#ifdef __ANDROID__
-#include <cutils/native_handle.h>
 #include <vulkan/vulkan.h>
-
-#if ANDROID_API_LEVEL < 28
-/* buffer_handle_t was defined in the deprecated system/window.h */
-typedef const native_handle_t *buffer_handle_t;
-#endif
-
-#else
-typedef void *buffer_handle_t;
-#endif
 
 #ifdef __cplusplus
 extern "C" {

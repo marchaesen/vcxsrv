@@ -24,133 +24,133 @@
 //from The Open Group.
 //
 // symbols for a NEC PC98 keyboard
-default xkb_symbols "pc98" {
+xkb_symbols "pc98" {
 
-    key <ESC>  { [ Escape		]	};
+    key <ESC>  { [ Escape		] };
 
     // Alphanumeric section
-    key <AE01> { [ 1, exclam 		], [ kana_NU		]	};
-    key <AE02> { [ 2, quotedbl		], [ kana_FU		]	};
-    key <AE03> { [ 3, numbersign	], [ kana_A, kana_a	]	};
-    key <AE04> { [ 4, dollar		], [ kana_U, kana_u	]	};
-    key <AE05> { [ 5, percent		], [ kana_E, kana_e	]	};
-    key <AE06> { [ 6, ampersand		], [ kana_O, kana_o	]	};
-    key <AE07> { [ 7, apostrophe	], [ kana_YA, kana_ya	]	};
-    key <AE08> { [ 8, parenleft		], [ kana_YU, kana_yu	]	};
-    key <AE09> { [ 9, parenright	], [ kana_YO, kana_yo	]	};
-    key <AE10> { [ 0 			], [ kana_WA, kana_WO	]	};
-    key <AE11> { [ minus, equal		], [ kana_HO		]	};
-    key <AE12> { [ asciicircum, grave 	], [ kana_HE		]	};
-    key <BKSL> { [ backslash, bar 	], [ prolongedsound	]	};
-    key <BKSP> { [ BackSpace		]	};
+    key <AE01> { [ 1, exclam 		] };
+    key <AE02> { [ 2, quotedbl		] };
+    key <AE03> { [ 3, numbersign	] };
+    key <AE04> { [ 4, dollar		] };
+    key <AE05> { [ 5, percent		] };
+    key <AE06> { [ 6, ampersand		] };
+    key <AE07> { [ 7, apostrophe	] };
+    key <AE08> { [ 8, parenleft		] };
+    key <AE09> { [ 9, parenright	] };
+    key <AE10> { [ 0 			] };
+    key <AE11> { [ minus, equal		] };
+    key <AE12> { [ asciicircum, grave 	] };
+    key <BKSL> { [ backslash, bar 	] };
+    key <BKSP> { [ BackSpace		] };
 
-    key  <TAB> { [ Tab,	ISO_Left_Tab	]	};
-    key <AD01> { [ q, Q 		], [ kana_TA		]	};
-    key <AD02> { [ w, W			], [ kana_TE		]	};
-    key <AD03> { [ e, E			], [ kana_I, kana_i	]	};
-    key <AD04> { [ r, R			], [ kana_SU		]	};
-    key <AD05> { [ t, T			], [ kana_KA		]	};
-    key <AD06> { [ y, Y			], [ kana_N		]	};
-    key <AD07> { [ u, U			], [ kana_NA		]	};
-    key <AD08> { [ i, I			], [ kana_NI		]	};
-    key <AD09> { [ o, O			], [ kana_RA		]	};
-    key <AD10> { [ p, P			], [ kana_SE		]	};
-    key <AD11> { [ at, asciitilde	], [ voicedsound	]	};
-    key <AD12> { [ bracketleft,	braceleft ], [ semivoicedsound, kana_openingbracket ] };
-    key <RTRN> { [ Return		]	};
+    key  <TAB> { [ Tab,	ISO_Left_Tab	] };
+    key <AD01> { [ q, Q 		] };
+    key <AD02> { [ w, W			] };
+    key <AD03> { [ e, E			] };
+    key <AD04> { [ r, R			] };
+    key <AD05> { [ t, T			] };
+    key <AD06> { [ y, Y			] };
+    key <AD07> { [ u, U			] };
+    key <AD08> { [ i, I			] };
+    key <AD09> { [ o, O			] };
+    key <AD10> { [ p, P			] };
+    key <AD11> { [ at, asciitilde	] };
+    key <AD12> { [ bracketleft,	braceleft ] };
+    key <RTRN> { [ Return		] };
 
-    key <LCTL> { [ Control_L		]	};
-    key <CAPS> { [ Caps_Lock		]	};
-    key <AC01> { [ a, A 		], [ kana_CHI		]	};
-    key <AC02> { [ s, S			], [ kana_TO		]	};
-    key <AC03> { [ d, D			], [ kana_SHI		]	};
-    key <AC04> { [ f, F			], [ kana_HA		]	};
-    key <AC05> { [ g, G			], [ kana_KI		]	};
-    key <AC06> { [ h, H			], [ kana_KU		]	};
-    key <AC07> { [ j, J			], [ kana_MA		]	};
-    key <AC08> { [ k, K			], [ kana_NO		]	};
-    key <AC09> { [ l, L			], [ kana_RI		]	};
-    key <AC10> { [ semicolon, plus	], [ kana_RE		]	};
-    key <AC11> { [ colon, asterisk	], [ kana_KE		]	};
-    key <AC12> { [ bracketright, braceright ], [ kana_MU, kana_closingbracket ] };
+    key <LCTL> { [ Control_L		] };
+    key <CAPS> { [ Caps_Lock		] };
+    key <AC01> { [ a, A 		] };
+    key <AC02> { [ s, S			] };
+    key <AC03> { [ d, D			] };
+    key <AC04> { [ f, F			] };
+    key <AC05> { [ g, G			] };
+    key <AC06> { [ h, H			] };
+    key <AC07> { [ j, J			] };
+    key <AC08> { [ k, K			] };
+    key <AC09> { [ l, L			] };
+    key <AC10> { [ semicolon, plus	] };
+    key <AC11> { [ colon, asterisk	] };
+    key <AC12> { [ bracketright, braceright ] };
 
-    key <LFSH> { [ Shift_L		]	};
-    key <AB01> { [ z, Z 		], [ kana_TSU, kana_tsu	]	};
-    key <AB02> { [ x, X			], [ kana_SA		]	};
-    key <AB03> { [ c, C			], [ kana_SO		]	};
-    key <AB04> { [ v, V			], [ kana_HI		]	};
-    key <AB05> { [ b, B			], [ kana_KO		]	};
-    key <AB06> { [ n, N			], [ kana_MI		]	};
-    key <AB07> { [ m, M			], [ kana_MO		]	};
-    key <AB08> { [ comma, less		], [ kana_NE, kana_comma ]	};
-    key <AB09> { [ period, greater	], [ kana_RU, kana_fullstop ]	};
-    key <AB10> { [ slash, question	], [ kana_ME, kana_middledot ]	};
-    key <AB11> { [ NoSymbol, underscore	], [ kana_RO		]	};
-//    key <RTSH> { [ Shift_R		]	};
+    key <LFSH> { [ Shift_L		] };
+    key <AB01> { [ z, Z 		] };
+    key <AB02> { [ x, X			] };
+    key <AB03> { [ c, C			] };
+    key <AB04> { [ v, V			] };
+    key <AB05> { [ b, B			] };
+    key <AB06> { [ n, N			] };
+    key <AB07> { [ m, M			] };
+    key <AB08> { [ comma, less		] };
+    key <AB09> { [ period, greater	] };
+    key <AB10> { [ slash, question	] };
+    key <AB11> { [ NoSymbol, underscore	] };
+//    key <RTSH> { [ Shift_R		] };
 
-    key <ALGR> { [ Mode_switch		]	};
-    key <LALT> { [ Alt_L		]	};
-    key <NFER> { [ Muhenkan		]	};
-    key <SPCE> { [ space		]	};
-    key <XFER> { [ Henkan, Kanji	]	};
+    key <ALGR> { [ Mode_switch		] };
+    key <LALT> { [ Alt_L		] };
+    key <NFER> { [ Muhenkan		] };
+    key <SPCE> { [ space		] };
+    key <XFER> { [ Henkan, Kanji	] };
     // End alphanumeric section
 
     // Begin "Function" section
-    key <BRK>  { [ Break		]	};
-    key <PRSC> { [ Print		]	};
-    key <FK01> { [ F1			]	};
-    key <FK02> { [ F2			]	};
-    key <FK03> { [ F3			]	};
-    key <FK04> { [ F4			]	};
-    key <FK05> { [ F5			]	};
-    key <FK06> { [ F6			]	};
-    key <FK07> { [ F7			]	};
-    key <FK08> { [ F8			]	};
-    key <FK09> { [ F9			]	};
-    key <FK10> { [ F10			]	};
-    key <FK11> { [ F11			]	};
-    key <FK12> { [ F12			]	};
-    key <FK13> { [ F13			]	};
-    key <FK14> { [ F14			]	};
-    key <FK15> { [ F15			]	};
+    key <BRK>  { [ Break		] };
+    key <PRSC> { [ Print		] };
+    key <FK01> { [ F1			] };
+    key <FK02> { [ F2			] };
+    key <FK03> { [ F3			] };
+    key <FK04> { [ F4			] };
+    key <FK05> { [ F5			] };
+    key <FK06> { [ F6			] };
+    key <FK07> { [ F7			] };
+    key <FK08> { [ F8			] };
+    key <FK09> { [ F9			] };
+    key <FK10> { [ F10			] };
+    key <FK11> { [ F11			] };
+    key <FK12> { [ F12			] };
+    key <FK13> { [ F13			] };
+    key <FK14> { [ F14			] };
+    key <FK15> { [ F15			] };
     // End "Function" section
 
     // Begin "Editing" section
-    key <INS>  { [ Insert		]	};
-    key <DELE> { [ Delete		]	};
-    key <PGUP> { [ Prior		]	};
-    key <PGDN> { [ Next			]	};
-    key <UP>   { [ Up			]	};
-    key <LEFT> { [ Left			]	};
-    key <RGHT> { [ Right		]	};
-    key <DOWN> { [ Down			]	};
+    key <INS>  { [ Insert		] };
+    key <DELE> { [ Delete		] };
+    key <PGUP> { [ Prior		] };
+    key <PGDN> { [ Next			] };
+    key <UP>   { [ Up			] };
+    key <LEFT> { [ Left			] };
+    key <RGHT> { [ Right		] };
+    key <DOWN> { [ Down			] };
     // End "Editing" section
 
     // Begin "Keypad" section
-    key <HOME> { [ Clear, Home		]	 };
-    key <HELP> { [ Help			]	};
-    key <KPSU> { [ KP_Subtract		]	};
-    key <KPDV> { [ KP_Divide		]	};
+    key <HOME> { [ Clear, Home		] };
+    key <HELP> { [ Help			] };
+    key <KPSU> { [ KP_Subtract		] };
+    key <KPDV> { [ KP_Divide		] };
 
-    key  <KP7> { [ KP_7			]	};
-    key  <KP8> { [ KP_8			]	};
-    key  <KP9> { [ KP_9			]	};
-    key <KPMU> { [ KP_Multiply		]	};
+    key  <KP7> { [ KP_7			] };
+    key  <KP8> { [ KP_8			] };
+    key  <KP9> { [ KP_9			] };
+    key <KPMU> { [ KP_Multiply		] };
 
-    key  <KP4> { [ KP_4			]	};
-    key  <KP5> { [ KP_5			]	};
-    key  <KP6> { [ KP_6			]	};
-    key <KPAD> { [ KP_Add		]	};
+    key  <KP4> { [ KP_4			] };
+    key  <KP5> { [ KP_5			] };
+    key  <KP6> { [ KP_6			] };
+    key <KPAD> { [ KP_Add		] };
 
-    key  <KP1> { [ KP_1			]	};
-    key  <KP2> { [ KP_2			]	};
-    key  <KP3> { [ KP_3			]	};
-    key <KPEQ> { [ KP_Equal 		]	};
+    key  <KP1> { [ KP_1			] };
+    key  <KP2> { [ KP_2			] };
+    key  <KP3> { [ KP_3			] };
+    key <KPEQ> { [ KP_Equal 		] };
 
-    key  <KP0> { [ KP_0			]	};
-    key <KPSP> { [ KP_Separator		]	};
-    key <KPDC> { [ KP_Decimal		]	};
-//    key <KPEN> { [ KP_Enter		]	};
+    key  <KP0> { [ KP_0			] };
+    key <KPSP> { [ KP_Separator		] };
+    key <KPDC> { [ KP_Decimal		] };
+//    key <KPEN> { [ KP_Enter		] };
     // End "Keypad" section
 
     modifier_map Shift  { Shift_L };
@@ -158,4 +158,58 @@ default xkb_symbols "pc98" {
     modifier_map Control{ Control_L };
     modifier_map Mod1   { Alt_L };
     modifier_map Mod2   { Mode_switch };
+};
+
+default xkb_symbols "jp" {
+    key <AE01> { [ kana_NU		] };
+    key <AE02> { [ kana_FU		] };
+    key <AE03> { [ kana_A, kana_a	] };
+    key <AE04> { [ kana_U, kana_u	] };
+    key <AE05> { [ kana_E, kana_e	] };
+    key <AE06> { [ kana_O, kana_o	] };
+    key <AE07> { [ kana_YA, kana_ya	] };
+    key <AE08> { [ kana_YU, kana_yu	] };
+    key <AE09> { [ kana_YO, kana_yo	] };
+    key <AE10> { [ kana_WA, kana_WO	] };
+    key <AE11> { [ kana_HO		] };
+    key <AE12> { [ kana_HE		] };
+    key <BKSL> { [ prolongedsound	] };
+
+    key <AD01> { [ kana_TA		] };
+    key <AD02> { [ kana_TE		] };
+    key <AD03> { [ kana_I, kana_i	] };
+    key <AD04> { [ kana_SU		] };
+    key <AD05> { [ kana_KA		] };
+    key <AD06> { [ kana_N		] };
+    key <AD07> { [ kana_NA		] };
+    key <AD08> { [ kana_NI		] };
+    key <AD09> { [ kana_RA		] };
+    key <AD10> { [ kana_SE		] };
+    key <AD11> { [ voicedsound		] };
+    key <AD12> { [ semivoicedsound, kana_openingbracket ] };
+
+    key <AC01> { [ kana_CHI		] };
+    key <AC02> { [ kana_TO		] };
+    key <AC03> { [ kana_SHI		] };
+    key <AC04> { [ kana_HA		] };
+    key <AC05> { [ kana_KI		] };
+    key <AC06> { [ kana_KU		] };
+    key <AC07> { [ kana_MA		] };
+    key <AC08> { [ kana_NO		] };
+    key <AC09> { [ kana_RI		] };
+    key <AC10> { [ kana_RE		] };
+    key <AC11> { [ kana_KE		] };
+    key <AC12> { [ kana_MU, kana_closingbracket ] };
+
+    key <AB01> { [ kana_TSU, kana_tsu	] };
+    key <AB02> { [ kana_SA		] };
+    key <AB03> { [ kana_SO		] };
+    key <AB04> { [ kana_HI		] };
+    key <AB05> { [ kana_KO		] };
+    key <AB06> { [ kana_MI		] };
+    key <AB07> { [ kana_MO		] };
+    key <AB08> { [ kana_NE, kana_comma ] };
+    key <AB09> { [ kana_RU, kana_fullstop ] };
+    key <AB10> { [ kana_ME, kana_middledot ] };
+    key <AB11> { [ kana_RO		] };
 };

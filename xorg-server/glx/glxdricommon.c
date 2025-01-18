@@ -23,13 +23,7 @@
  * SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#else
-
-#include "glheader.h"
-
-#endif
 
 #include <ctype.h>
 #include <stdint.h>

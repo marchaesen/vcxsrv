@@ -237,8 +237,7 @@ clc_lower_input_image_deref(nir_builder *b, struct clc_image_lower_context *cont
                }
 
                /* No actual intrinsic needed here, just reference the loaded variable */
-               nir_def_rewrite_uses(&intrinsic->def, *cached_deref);
-               nir_instr_remove(&intrinsic->instr);
+               nir_def_replace(&intrinsic->def, *cached_deref);
                break;
             }
 
@@ -819,6 +818,8 @@ clc_spirv_to_dxil(struct clc_libclc *lib,
          NIR_PASS(progress, nir, nir_opt_undef);
          NIR_PASS(progress, nir, nir_opt_constant_folding);
          NIR_PASS(progress, nir, nir_opt_cse);
+         NIR_PASS(progress, nir, nir_split_var_copies);
+         NIR_PASS(progress, nir, nir_lower_var_copies);
          NIR_PASS(progress, nir, nir_lower_vars_to_ssa);
          NIR_PASS(progress, nir, nir_opt_algebraic);
       } while (progress);

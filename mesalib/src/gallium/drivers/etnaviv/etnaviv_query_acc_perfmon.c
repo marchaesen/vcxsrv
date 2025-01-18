@@ -90,9 +90,6 @@ pm_query(struct etna_context *ctx, struct etna_acc_query *aq, unsigned flags)
 
    etna_cmd_stream_perf(stream, &p);
    resource_written(ctx, aq->prsc);
-
-   /* force a flush in !wait case in etna_acc_get_query_result(..) */
-   aq->no_wait_cnt = 10;
 }
 
 static bool

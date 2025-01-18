@@ -12,9 +12,7 @@ is" without express or implied warranty.
 
 */
 
-#ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xdefs.h>

@@ -104,6 +104,8 @@ xf86parsePointerSection(void)
         switch (token) {
         case COMMENT:
             ptr->inp_comment = xf86addComment(ptr->inp_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case PROTOCOL:
             if (xf86getSubToken(&(ptr->inp_comment)) != STRING)

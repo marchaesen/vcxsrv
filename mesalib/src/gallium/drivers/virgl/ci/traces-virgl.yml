@@ -9,7 +9,7 @@ traces:
       checksum: f8eba0fec6e3e0af9cb09844bc73bdc8
   gputest/furmark-v2.trace:
     gl-virgl:
-      checksum: 57ddd36b117adc9216c65c10d914a37e
+      checksum: e9013d2861ac60b5b80d759455a6f058
   gputest/triangle-v2.trace:
     gl-virgl:
       checksum: 7812de00011a3a059892e36cea19c696
@@ -30,7 +30,7 @@ traces:
       checksum: 73ccaff82ea764057fb0f93f0024cf84
   gputest/pixmark-volplosion-v2.trace:
     gl-virgl:
-      checksum: 62761bc1ec6ed28c85302ec9d1e57329
+      checksum: aef0b32ce99a3b25d35304ca08032833
   gputest/plot3d-v2.trace:
     gl-virgl:
       checksum: 96f9fdf530e6041a4f56762b8378f22e
@@ -108,7 +108,7 @@ traces:
       label: [crash]
   godot/Material Testers.x86_64_2020.04.08_13.38_frame799.rdc:
     gl-virgl:
-      checksum: 0258b50142f47396b4ad1d9d6d6331cf
+      checksum: 7da4cd514fd0c58db50c3a9ea273886f
   ror/ror-default.trace:
     gl-virgl:
       label: [crash]

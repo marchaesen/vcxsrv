@@ -139,7 +139,7 @@ following example::
 Multiple ``Backport-to:`` lines are allowed.
 
 The last option is deprecated and mostly here for historical reasons
-dating back to when patch submision was done via emails: using a ``Cc:``
+dating back to when patch submission was done via emails: using a ``Cc:``
 tag. Support for this tag will be removed at some point.
 Here are some examples of such a note::
 

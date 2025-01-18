@@ -28,15 +28,14 @@
  * @file Protocol handling for the XIQueryDevice request/reply.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/Xatom.h>
 #include <X11/extensions/XI2proto.h>
 
 #include "dix/exevents_priv.h"
+#include "dix/input_priv.h"
 
 #include "inputstr.h"
 #include "xkbstr.h"
@@ -88,7 +87,7 @@ ProcXIQueryDevice(ClientPtr client)
         len += SizeDeviceInfo(dev);
     }
     else {
-        skip = calloc(sizeof(Bool), inputInfo.numDevices);
+        skip = calloc(inputInfo.numDevices, sizeof(Bool));
         if (!skip)
             return BadAlloc;
 
@@ -177,7 +176,7 @@ ShouldSkipDevice(ClientPtr client, int deviceid, DeviceIntPtr dev)
 {
     /* if all devices are not being queried, only master devices are */
     if (deviceid == XIAllDevices || IsMaster(dev)) {
-        int rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixGetAttrAccess);
+        int rc = XaceHookDeviceAccess(client, dev, DixGetAttrAccess);
 
         if (rc == Success)
             return FALSE;
@@ -574,7 +573,7 @@ ListDeviceClasses(ClientPtr client, DeviceIntPtr dev,
     int rc;
 
     /* Check if the current device state should be suppressed */
-    rc = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixReadAccess);
+    rc = XaceHookDeviceAccess(client, dev, DixReadAccess);
 
     if (dev->button) {
         (*nclasses)++;

@@ -4,4 +4,3 @@ dEQP-VK.pipeline.pipeline_library.framebuffer_attachment.diff_attachments_2d_32x
 # uprev Piglit in Mesa
 dEQP-VK.dynamic_rendering.primary_cmd_buff.basic.2_secondary_2_primary_cmdbuffers_resuming
 dEQP-VK.dynamic_rendering.primary_cmd_buff.basic.contents_secondary_primary_cmdbuffers_resuming
-

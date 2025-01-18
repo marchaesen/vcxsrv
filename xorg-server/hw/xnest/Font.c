@@ -12,16 +12,16 @@ is" without express or implied warranty.
 
 */
 
-#ifdef HAVE_XNEST_CONFIG_H
 #include <xnest-config.h>
-#endif
 
+#include <stddef.h>
 #include <X11/X.h>
 #include <X11/Xatom.h>
 #include <X11/Xdefs.h>
 #include <X11/Xproto.h>
 #include <X11/fonts/font.h>
 #include <X11/fonts/fontstruct.h>
+#include <X11/fonts/libxfont2.h>
 
 #include "misc.h"
 #include "regionstr.h"
@@ -47,7 +47,7 @@ xnestRealizeFont(ScreenPtr pScreen, FontPtr pFont)
 
     xfont2_font_set_private(pFont, xnestFontPrivateIndex, NULL);
 
-    name_atom = MakeAtom("FONT", 4, True);
+    name_atom = MakeAtom("FONT", 4, TRUE);
     value_atom = 0L;
 
     nprops = pFont->info.nprops;
@@ -60,12 +60,12 @@ xnestRealizeFont(ScreenPtr pScreen, FontPtr pFont)
         }
 
     if (!value_atom)
-        return False;
+        return FALSE;
 
     name = NameForAtom(value_atom);
 
     if (!name)
-        return False;
+        return FALSE;
 
     priv = (void *) malloc(sizeof(xnestPrivFont));
     xfont2_font_set_private(pFont, xnestFontPrivateIndex, priv);
@@ -73,9 +73,9 @@ xnestRealizeFont(ScreenPtr pScreen, FontPtr pFont)
     xnestFontPriv(pFont)->font_struct = XLoadQueryFont(xnestDisplay, name);
 
     if (!xnestFontStruct(pFont))
-        return False;
+        return FALSE;
 
-    return True;
+    return TRUE;
 }
 
 Bool
@@ -87,5 +87,5 @@ xnestUnrealizeFont(ScreenPtr pScreen, FontPtr pFont)
         free(xnestFontPriv(pFont));
         xfont2_font_set_private(pFont, xnestFontPrivateIndex, NULL);
     }
-    return True;
+    return TRUE;
 }

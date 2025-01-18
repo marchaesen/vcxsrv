@@ -329,7 +329,7 @@ lp_build_alpha_to_coverage(struct gallivm_state *gallivm,
 
    lp_build_context_init(&bld, gallivm, type);
 
-   alpha_ref_value = lp_build_const_vec(gallivm, type, 0.5);
+   alpha_ref_value = lp_build_const_vec(gallivm, type, 0);
 
    test = lp_build_cmp(&bld, PIPE_FUNC_GREATER, alpha, alpha_ref_value);
 

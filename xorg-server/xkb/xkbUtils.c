@@ -48,9 +48,7 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <stdio.h>
 #include <ctype.h>
@@ -1466,8 +1464,8 @@ _XkbCopyGeom(XkbDescPtr src, XkbDescPtr dst)
                     strcpy(dprop->value, sprop->value);
                 }
                 else {
-                    dprop->name = xstrdup(sprop->name);
-                    dprop->value = xstrdup(sprop->value);
+                    dprop->name = Xstrdup(sprop->name);
+                    dprop->value = Xstrdup(sprop->value);
                 }
             }
 
@@ -1520,7 +1518,7 @@ _XkbCopyGeom(XkbDescPtr src, XkbDescPtr dst)
                     strcpy(dcolor->spec, scolor->spec);
                 }
                 else {
-                    dcolor->spec = xstrdup(scolor->spec);
+                    dcolor->spec = Xstrdup(scolor->spec);
                 }
                 dcolor->pixel = scolor->pixel;
             }

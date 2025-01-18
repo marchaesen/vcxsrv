@@ -171,6 +171,10 @@ ail_initialize_twiddled(struct ail_layout *layout)
       poth_el = u_minify(poth_el, 1);
    }
 
+   /* Add the end offset so we can easily recover the size of a level */
+   assert(layout->levels < ARRAY_SIZE(layout->level_offsets_B));
+   layout->level_offsets_B[layout->levels] = offset_B;
+
    /* Align layer size if we have mipmaps and one miptree is larger than one
     * page */
    layout->page_aligned_layers = layout->levels != 1 && offset_B > AIL_PAGESIZE;
@@ -225,10 +229,15 @@ ail_initialize_compression(struct ail_layout *layout)
 
       layout->level_offsets_compressed_B[l] = compbuf_B;
 
-      /* The compression buffer seems to have 8 bytes per 16 x 16 sample block. */
-      unsigned cmpw_el = DIV_ROUND_UP(util_next_power_of_two(width_sa), 16);
-      unsigned cmph_el = DIV_ROUND_UP(util_next_power_of_two(height_sa), 16);
-      compbuf_B += ALIGN_POT(cmpw_el * cmph_el * 8, AIL_CACHELINE);
+      /* The metadata buffer contains 8 bytes per 16x16 compression tile.
+       * Addressing is fully twiddled, so both width and height are padded to
+       * powers-of-two.
+       */
+      unsigned w_tl = DIV_ROUND_UP(util_next_power_of_two(width_sa), 16);
+      unsigned h_tl = DIV_ROUND_UP(util_next_power_of_two(height_sa), 16);
+      unsigned B_per_tl_2 = 8;
+
+      compbuf_B += ALIGN_POT(w_tl * h_tl * B_per_tl_2, AIL_CACHELINE);
 
       width_sa = DIV_ROUND_UP(width_sa, 2);
       height_sa = DIV_ROUND_UP(height_sa, 2);

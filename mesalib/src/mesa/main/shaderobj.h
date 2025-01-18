@@ -161,7 +161,7 @@ _mesa_shader_stage_to_subroutine_prefix(gl_shader_stage stage)
   case MESA_SHADER_TESS_EVAL:
     return "__subu_e";
   default:
-    return NULL;
+    unreachable("bad value in _mesa_shader_stage_to_subroutine_prefix()");
   }
 }
 

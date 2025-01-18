@@ -41,9 +41,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include "compint.h"
 
@@ -247,7 +245,7 @@ compRestoreWindow(WindowPtr pWin, PixmapPtr pPixmap)
             val.val = IncludeInferiors;
             ChangeGC(NullClient, pGC, GCSubwindowMode, &val);
             ValidateGC(&pWin->drawable, pGC);
-            (*pGC->ops->CopyArea) (&pPixmap->drawable,
+            (void) (*pGC->ops->CopyArea) (&pPixmap->drawable,
                                    &pWin->drawable, pGC, x, y, w, h, 0, 0);
             FreeScratchGC(pGC);
         }
@@ -552,11 +550,12 @@ compNewPixmap(WindowPtr pWin, int x, int y, int w, int h)
             val.val = IncludeInferiors;
             ChangeGC(NullClient, pGC, GCSubwindowMode, &val);
             ValidateGC(&pPixmap->drawable, pGC);
-            (*pGC->ops->CopyArea) (&pParent->drawable,
-                                   &pPixmap->drawable,
-                                   pGC,
-                                   x - pParent->drawable.x,
-                                   y - pParent->drawable.y, w, h, 0, 0);
+            (void) (*pGC->ops->CopyArea) (&pParent->drawable,
+                                          &pPixmap->drawable,
+                                          pGC,
+                                          x - pParent->drawable.x,
+                                          y - pParent->drawable.y,
+                                          w, h, 0, 0);
             FreeScratchGC(pGC);
         }
     }

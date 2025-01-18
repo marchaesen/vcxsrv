@@ -65,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1673
+#define _gloffset_COUNT 1678
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -475,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1265
+#define driDispatchRemapTable_size 1270
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1743,6 +1743,11 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define InternalInvalidateFramebufferAncillaryMESA_remap_index 1262
 #define DrawElementsPacked_remap_index 1263
 #define DrawElementsUserBufPacked_remap_index 1264
+#define TexStorageAttribs2DEXT_remap_index 1265
+#define TexStorageAttribs3DEXT_remap_index 1266
+#define FramebufferTextureMultiviewOVR_remap_index 1267
+#define NamedFramebufferTextureMultiviewOVR_remap_index 1268
+#define FramebufferTextureMultisampleMultiviewOVR_remap_index 1269
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -3009,6 +3014,11 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_InternalInvalidateFramebufferAncillaryMESA driDispatchRemapTable[InternalInvalidateFramebufferAncillaryMESA_remap_index]
 #define _gloffset_DrawElementsPacked driDispatchRemapTable[DrawElementsPacked_remap_index]
 #define _gloffset_DrawElementsUserBufPacked driDispatchRemapTable[DrawElementsUserBufPacked_remap_index]
+#define _gloffset_TexStorageAttribs2DEXT driDispatchRemapTable[TexStorageAttribs2DEXT_remap_index]
+#define _gloffset_TexStorageAttribs3DEXT driDispatchRemapTable[TexStorageAttribs3DEXT_remap_index]
+#define _gloffset_FramebufferTextureMultiviewOVR driDispatchRemapTable[FramebufferTextureMultiviewOVR_remap_index]
+#define _gloffset_NamedFramebufferTextureMultiviewOVR driDispatchRemapTable[NamedFramebufferTextureMultiviewOVR_remap_index]
+#define _gloffset_FramebufferTextureMultisampleMultiviewOVR driDispatchRemapTable[FramebufferTextureMultisampleMultiviewOVR_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) (* GET_NewList(disp)) parameters
@@ -16392,6 +16402,46 @@ typedef void (GLAPIENTRYP _glptr_DrawElementsUserBufPacked)(const GLvoid *);
 #define SET_DrawElementsUserBufPacked(disp, func) do { \
    void (GLAPIENTRYP fn)(const GLvoid *) = func; \
    SET_by_offset(disp, _gloffset_DrawElementsUserBufPacked, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_TexStorageAttribs2DEXT)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, const GLint *);
+#define CALL_TexStorageAttribs2DEXT(disp, parameters) (* GET_TexStorageAttribs2DEXT(disp)) parameters
+#define GET_TexStorageAttribs2DEXT(disp) ((_glptr_TexStorageAttribs2DEXT)(GET_by_offset((disp), _gloffset_TexStorageAttribs2DEXT)))
+#define SET_TexStorageAttribs2DEXT(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, const GLint *) = func; \
+   SET_by_offset(disp, _gloffset_TexStorageAttribs2DEXT, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_TexStorageAttribs3DEXT)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, const GLint *);
+#define CALL_TexStorageAttribs3DEXT(disp, parameters) (* GET_TexStorageAttribs3DEXT(disp)) parameters
+#define GET_TexStorageAttribs3DEXT(disp) ((_glptr_TexStorageAttribs3DEXT)(GET_by_offset((disp), _gloffset_TexStorageAttribs3DEXT)))
+#define SET_TexStorageAttribs3DEXT(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, const GLint *) = func; \
+   SET_by_offset(disp, _gloffset_TexStorageAttribs3DEXT, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_FramebufferTextureMultiviewOVR)(GLenum, GLenum, GLuint, GLint, GLint, GLsizei);
+#define CALL_FramebufferTextureMultiviewOVR(disp, parameters) (* GET_FramebufferTextureMultiviewOVR(disp)) parameters
+#define GET_FramebufferTextureMultiviewOVR(disp) ((_glptr_FramebufferTextureMultiviewOVR)(GET_by_offset((disp), _gloffset_FramebufferTextureMultiviewOVR)))
+#define SET_FramebufferTextureMultiviewOVR(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLenum, GLenum, GLuint, GLint, GLint, GLsizei) = func; \
+   SET_by_offset(disp, _gloffset_FramebufferTextureMultiviewOVR, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_NamedFramebufferTextureMultiviewOVR)(GLuint, GLenum, GLuint, GLint, GLint, GLsizei);
+#define CALL_NamedFramebufferTextureMultiviewOVR(disp, parameters) (* GET_NamedFramebufferTextureMultiviewOVR(disp)) parameters
+#define GET_NamedFramebufferTextureMultiviewOVR(disp) ((_glptr_NamedFramebufferTextureMultiviewOVR)(GET_by_offset((disp), _gloffset_NamedFramebufferTextureMultiviewOVR)))
+#define SET_NamedFramebufferTextureMultiviewOVR(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLuint, GLenum, GLuint, GLint, GLint, GLsizei) = func; \
+   SET_by_offset(disp, _gloffset_NamedFramebufferTextureMultiviewOVR, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_FramebufferTextureMultisampleMultiviewOVR)(GLenum, GLenum, GLuint, GLint, GLsizei, GLint, GLsizei);
+#define CALL_FramebufferTextureMultisampleMultiviewOVR(disp, parameters) (* GET_FramebufferTextureMultisampleMultiviewOVR(disp)) parameters
+#define GET_FramebufferTextureMultisampleMultiviewOVR(disp) ((_glptr_FramebufferTextureMultisampleMultiviewOVR)(GET_by_offset((disp), _gloffset_FramebufferTextureMultisampleMultiviewOVR)))
+#define SET_FramebufferTextureMultisampleMultiviewOVR(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLenum, GLenum, GLuint, GLint, GLsizei, GLint, GLsizei) = func; \
+   SET_by_offset(disp, _gloffset_FramebufferTextureMultisampleMultiviewOVR, fn); \
 } while (0)
 
 

@@ -2643,16 +2643,6 @@ _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *st
    state->prog->arb.NumAttributes =
       util_bitcount64(state->prog->info.inputs_read);
 
-   /*
-    * Initialize native counts to logical counts.  The device driver may
-    * change them if program is translated into a hardware program.
-    */
-   state->prog->arb.NumNativeInstructions = state->prog->arb.NumInstructions;
-   state->prog->arb.NumNativeTemporaries = state->prog->arb.NumTemporaries;
-   state->prog->arb.NumNativeParameters = state->prog->arb.NumParameters;
-   state->prog->arb.NumNativeAttributes = state->prog->arb.NumAttributes;
-   state->prog->arb.NumNativeAddressRegs = state->prog->arb.NumAddressRegs;
-
    result = GL_TRUE;
 
 error:

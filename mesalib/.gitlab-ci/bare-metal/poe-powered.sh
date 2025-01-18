@@ -182,7 +182,7 @@ if [ -n "$BM_BOOTCONFIG" ]; then
 fi
 
 set +e
-STRUCTURED_LOG_FILE=job_detail.json
+STRUCTURED_LOG_FILE=results/job_detail.json
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --update dut_job_type "${DEVICE_TYPE}"
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --update farm "${FARM}"
 ATTEMPTS=3
@@ -199,7 +199,8 @@ while [ $((ATTEMPTS--)) -gt 0 ]; do
           --dev="$BM_SERIAL" \
           --powerup="$BM_POWERUP" \
           --powerdown="$BM_POWERDOWN" \
-          --test-timeout ${TEST_PHASE_TIMEOUT:-20}
+          --boot-timeout-seconds ${BOOT_PHASE_TIMEOUT_SECONDS:-300} \
+          --test-timeout-minutes ${TEST_PHASE_TIMEOUT_MINUTES:-$((CI_JOB_TIMEOUT/60 - ${TEST_SETUP_AND_UPLOAD_MARGIN_MINUTES:-5}))}
   ret=$?
 
   if [ $ret -eq 2 ]; then
@@ -220,7 +221,6 @@ date +'%F %T'
 # will look for them.
 cp -Rp /nfs/results/. results/
 if [ -f "${STRUCTURED_LOG_FILE}" ]; then
-  cp -p ${STRUCTURED_LOG_FILE} results/
   echo "Structured log file is available at ${ARTIFACTS_BASE_URL}/results/${STRUCTURED_LOG_FILE}"
 fi
 

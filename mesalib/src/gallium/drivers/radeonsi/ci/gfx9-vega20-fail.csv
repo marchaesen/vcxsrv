@@ -21,9 +21,6 @@ glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
-spec@!opengl 1.0@rasterpos,Fail
-spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
-spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
 spec@!opengl 1.1@line-smooth-stipple,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-last,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-last,Fail
@@ -36,7 +33,6 @@ spec@arb_program_interface_query@arb_program_interface_query-getprogramresourcei
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
-spec@arb_tessellation_shader@execution@tesslevels-indirect,Crash
 spec@egl_ext_protected_content@conformance,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y210,Fail

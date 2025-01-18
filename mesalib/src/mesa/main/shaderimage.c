@@ -165,6 +165,77 @@ _mesa_get_shader_image_format(GLenum format)
    }
 }
 
+GLenum
+_mesa_get_shader_image_pixel_type(GLenum image_format)
+{
+   /* This is the mapping from image format to pixel type described in table
+    * 8.35 from the OpenGL 4.6 Compatibility spec.
+    */
+   switch (image_format) {
+   case GL_RGBA32F:
+   case GL_RG32F:
+   case GL_R32F:
+      return GL_FLOAT;
+
+   case GL_RGBA16F:
+   case GL_RG16F:
+   case GL_R16F:
+      return GL_HALF_FLOAT;
+
+   case GL_R11F_G11F_B10F:
+      return GL_UNSIGNED_INT_10F_11F_11F_REV;
+
+   case GL_RGBA32UI:
+   case GL_RG32UI:
+   case GL_R32UI:
+      return GL_UNSIGNED_INT;
+
+   case GL_RGBA16UI:
+   case GL_RG16UI:
+   case GL_R16UI:
+   case GL_RGBA16:
+   case GL_RG16:
+   case GL_R16:
+      return GL_UNSIGNED_SHORT;
+
+   case GL_RGB10_A2UI:
+   case GL_RGB10_A2:
+      return GL_UNSIGNED_INT_2_10_10_10_REV;
+
+   case GL_RGBA8UI:
+   case GL_RG8UI:
+   case GL_R8UI:
+   case GL_RGBA8:
+   case GL_RG8:
+   case GL_R8:
+      return GL_UNSIGNED_BYTE;
+
+   case GL_RGBA32I:
+   case GL_RG32I:
+   case GL_R32I:
+      return GL_INT;
+
+   case GL_RGBA16I:
+   case GL_RG16I:
+   case GL_R16I:
+   case GL_RGBA16_SNORM:
+   case GL_RG16_SNORM:
+   case GL_R16_SNORM:
+      return GL_SHORT;
+
+   case GL_RGBA8I:
+   case GL_RG8I:
+   case GL_R8I:
+   case GL_RGBA8_SNORM:
+   case GL_RG8_SNORM:
+   case GL_R8_SNORM:
+      return GL_BYTE;
+
+   default:
+      return GL_NONE;
+   }
+}
+
 enum image_format_class
 {
    /** Not a valid image format. */

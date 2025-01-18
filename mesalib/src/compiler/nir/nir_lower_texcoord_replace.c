@@ -124,8 +124,7 @@ nir_lower_texcoord_replace_impl(nir_function_impl *impl,
       }
    }
 
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+   nir_metadata_preserve(impl, nir_metadata_control_flow);
 }
 
 void

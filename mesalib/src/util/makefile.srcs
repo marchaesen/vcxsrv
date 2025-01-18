@@ -11,16 +11,20 @@ format_srgb.c: format_srgb.py
 	$(PYTHON3) $(srcdir)/format_srgb.py > $@
 
 u_format_gen := $(srcdir)/format/u_format_table.py
-u_format_deps := $(srcdir)/format/u_format.csv \
+u_format_deps := $(srcdir)/format/u_format.yaml \
 	$(srcdir)/format/u_format_pack.py \
 	$(srcdir)/format/u_format_parse.py
+
+format/u_format_gen.h: $(u_format_deps)
+	@mkdir -p $(dir $@)
+	$(PYTHON3) $(u_format_gen) --enums $< > $@
 
 format/u_format_pack.h: $(u_format_deps)
 	@mkdir -p $(dir $@)
 	$(PYTHON3) $(u_format_gen) --header $< > $@
 
-format/u_format_table.c: $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv
-	$(PYTHON3) $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv > $@
+format/u_format_table.c: $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.yaml
+	$(PYTHON3) $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.yaml > $@
 
 driconf_static_gen := driconf_static.py
 driconf_static_deps := 00-mesa-defaults.conf

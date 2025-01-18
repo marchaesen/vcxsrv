@@ -51,20 +51,6 @@
 
 #define _COMPILER_H
 
-/* Map Sun compiler platform defines to gcc-style used in the code */
-#if defined(__amd64) && !defined(__amd64__)
-#define __amd64__
-#endif
-#if defined(__i386) && !defined(__i386__)
-#define __i386__
-#endif
-#if defined(__sparc) && !defined(__sparc__)
-#define __sparc__
-#endif
-#if defined(__sparcv9) && !defined(__sparc64__)
-#define __sparc64__
-#endif
-
 #ifndef _X_EXPORT
 #include <X11/Xfuncproto.h>
 #endif

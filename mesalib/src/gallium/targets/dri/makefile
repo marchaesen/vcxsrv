@@ -10,13 +10,13 @@ INCLUDES += $(MHMAKECONF)/include ../../../loader ../../auxiliary ../../auxiliar
 
 LIBRARY = libgallium
 
-vpath %.c ../../frontends/dri:../../auxiliary/os:../../auxiliary/indices:../../auxiliary/postprocess:../../auxiliary/driver_noop:../../auxiliary/driver_rbug:../../auxiliary/driver_trace:../../auxiliary/driver_ddebug:../../auxiliary/cso_cache:../../auxiliary/util:../../auxiliary/translate:../../auxiliary/rtasm:../../auxiliary/tgsi:../../auxiliary/hud:../../auxiliary/draw:../../auxiliary/nir:../../auxiliary/pipe-loader:../../drivers/softpipe:../../winsys/sw/dri::../../winsys/sw/wrapper:../../winsys/sw/null
+vpath %.c ../../frontends/dri:../../auxiliary/os:../../auxiliary/indices:../../auxiliary/postprocess:../../auxiliary/driver_noop:../../auxiliary/driver_rbug:../../auxiliary/driver_trace:../../auxiliary/driver_ddebug:../../auxiliary/cso_cache:../../auxiliary/util:../../auxiliary/translate:../../auxiliary/rtasm:../../auxiliary/tgsi:../../auxiliary/hud:../../auxiliary/draw:../../auxiliary/nir:../../auxiliary/pipe-loader:../../drivers/softpipe:../../winsys/sw/dri::../../winsys/sw/wrapper:../../winsys/sw/null:../dril
 
 tr_util.c ../../auxiliary/tr_util.h: ../../include/pipe/p_defines.h ../../include/pipe/p_video_enums.h ../../../util/blend.h
 	$(PYTHON3) ../../auxiliary/driver_trace/enums2names.py $^ -C tr_util.c -H ../../auxiliary/tr_util.h -I tr_util.h
 
 
-CSRCS := target.c drisw.c dri_context.c dri_screen.c dri_drawable.c dri_helpers.c dri_query_renderer.c dri_util.c \
+CSRCS := dril_target.c drisw.c dri_context.c dri_screen.c dri_drawable.c dri_helpers.c dri_query_renderer.c dri_util.c \
   pp_colors.c pp_mlaa.c pp_init.c pp_run.c pp_program.c pp_celshade.c \
   cso_context.c cso_cache.c cso_hash.c \
   u_vbuf.c u_upload_mgr.c u_simple_shaders.c u_bitmask.c u_gen_mipmap.c u_draw.c u_helpers.c u_framebuffer.c u_tile.c u_surface.c u_draw_quad.c u_sampler.c u_screen.c u_pstipple.c u_blitter.c u_texture.c u_transfer.c \
@@ -32,5 +32,4 @@ CSRCS := target.c drisw.c dri_context.c dri_screen.c dri_drawable.c dri_helpers.
    u_dump_defines.c u_log.c tr_video.c tr_context.c tr_texture.c u_threaded_context.c \
    noop_pipe.c noop_state.c nir_draw_helpers.c \
    u_prim_restart.c u_driconf.c \
-   tr_util.c \
-   pipe_loader_sw.c
+   tr_util.c

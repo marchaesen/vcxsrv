@@ -30,18 +30,26 @@
 
 /* Convenience */
 
-#define MALI_BLEND_AU_R8G8B8A8    (MALI_RGBA8_TB << 12)
-#define MALI_BLEND_PU_R8G8B8A8    (MALI_RGBA8_TB << 12)
-#define MALI_BLEND_AU_R10G10B10A2 (MALI_RGB10_A2_TB << 12)
-#define MALI_BLEND_PU_R10G10B10A2 (MALI_RGB10_A2_TB << 12)
-#define MALI_BLEND_AU_R8G8B8A2    (MALI_RGB8_A2_AU << 12)
-#define MALI_BLEND_PU_R8G8B8A2    (MALI_RGB8_A2_PU << 12)
-#define MALI_BLEND_AU_R4G4B4A4    (MALI_RGBA4_AU << 12)
-#define MALI_BLEND_PU_R4G4B4A4    (MALI_RGBA4_PU << 12)
-#define MALI_BLEND_AU_R5G6B5A0    (MALI_R5G6B5_AU << 12)
-#define MALI_BLEND_PU_R5G6B5A0    (MALI_R5G6B5_PU << 12)
-#define MALI_BLEND_AU_R5G5B5A1    (MALI_RGB5_A1_AU << 12)
-#define MALI_BLEND_PU_R5G5B5A1    (MALI_RGB5_A1_PU << 12)
+#if PAN_ARCH == 6
+#define MALI_RGBA_SWIZZLE         PAN_V6_SWIZZLE(R, G, B, A)
+#define MALI_RGB1_SWIZZLE         PAN_V6_SWIZZLE(R, G, B, A)
+#else
+#define MALI_RGBA_SWIZZLE         MALI_RGB_COMPONENT_ORDER_RGBA
+#define MALI_RGB1_SWIZZLE         MALI_RGB_COMPONENT_ORDER_RGB1
+#endif
+
+#define MALI_BLEND_AU_R8G8B8A8    (MALI_RGBA8_TB << 12)    | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_PU_R8G8B8A8    (MALI_RGBA8_TB << 12)    | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_AU_R10G10B10A2 (MALI_RGB10_A2_TB << 12) | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_PU_R10G10B10A2 (MALI_RGB10_A2_TB << 12) | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_AU_R8G8B8A2    (MALI_RGB8_A2_AU << 12)  | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_PU_R8G8B8A2    (MALI_RGB8_A2_PU << 12)  | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_AU_R4G4B4A4    (MALI_RGBA4_AU << 12)    | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_PU_R4G4B4A4    (MALI_RGBA4_PU << 12)    | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_AU_R5G6B5A0    (MALI_R5G6B5_AU << 12)   | MALI_RGB1_SWIZZLE
+#define MALI_BLEND_PU_R5G6B5A0    (MALI_R5G6B5_PU << 12)   | MALI_RGB1_SWIZZLE
+#define MALI_BLEND_AU_R5G5B5A1    (MALI_RGB5_A1_AU << 12)  | MALI_RGBA_SWIZZLE
+#define MALI_BLEND_PU_R5G5B5A1    (MALI_RGB5_A1_PU << 12)  | MALI_RGBA_SWIZZLE
 
 #if PAN_ARCH <= 5
 #define BFMT2(pipe, internal, writeback, srgb)                                 \
@@ -49,18 +57,6 @@
       MALI_COLOR_BUFFER_INTERNAL_FORMAT_##internal,                            \
       MALI_COLOR_FORMAT_##writeback,                                           \
       { 0, 0 },                                                                \
-   }
-#elif PAN_ARCH == 6
-#define BFMT2(pipe, internal, writeback, srgb)                                 \
-   [PIPE_FORMAT_##pipe] = {                                                    \
-      MALI_COLOR_BUFFER_INTERNAL_FORMAT_##internal,                            \
-      MALI_COLOR_FORMAT_##writeback,                                           \
-      {                                                                        \
-         MALI_BLEND_PU_##internal | (srgb ? (1 << 20) : 0) |                   \
-            PAN_V6_SWIZZLE(R, G, B, A),                                        \
-         MALI_BLEND_AU_##internal | (srgb ? (1 << 20) : 0) |                   \
-            PAN_V6_SWIZZLE(R, G, B, A),                                        \
-      },                                                                       \
    }
 #else
 #define BFMT2(pipe, internal, writeback, srgb)                                 \
@@ -148,6 +144,25 @@ const struct pan_blendable_format
    }
 #endif
 
+#if PAN_ARCH <= 7
+#define FMTC(pipe, texfeat, interchange, swizzle, srgb)                        \
+   [PIPE_FORMAT_##pipe] = {                                                    \
+      .hw = MALI_PACK_FMT(texfeat, swizzle, srgb),                             \
+      .bind = PAN_BIND_SAMPLER_VIEW,                                           \
+      .texfeat_bit = MALI_##texfeat,                                           \
+   }
+#else
+   /* Map to interchange format, as compression is specified in the plane
+    * descriptor on Valhall.
+    */
+#define FMTC(pipe, texfeat, interchange, swizzle, srgb)                        \
+   [PIPE_FORMAT_##pipe] = {                                                    \
+      .hw = MALI_PACK_FMT(interchange, swizzle, srgb),                         \
+      .bind = PAN_BIND_SAMPLER_VIEW,                                           \
+      .texfeat_bit = MALI_##texfeat,                                           \
+   }
+#endif
+
 /* clang-format off */
 const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
    FMT(NONE,                    CONSTANT,        0000, L, VTR_),
@@ -164,167 +179,87 @@ const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
    FMT_YUV(R8_B8_G8_420_UNORM, Y8_U8_V8_420, YVUA, NO_SWAP, CENTER, _T__),
 #endif
 
-#if PAN_ARCH <= 7
-   FMT(ETC1_RGB8,               ETC2_RGB8,       RGB1, L, _T__),
-   FMT(ETC2_RGB8,               ETC2_RGB8,       RGB1, L, _T__),
-   FMT(ETC2_SRGB8,              ETC2_RGB8,       RGB1, S, _T__),
-   FMT(ETC2_R11_UNORM,          ETC2_R11_UNORM,  R001, L, _T__),
-   FMT(ETC2_RGBA8,              ETC2_RGBA8,      RGBA, L, _T__),
-   FMT(ETC2_SRGBA8,             ETC2_RGBA8,      RGBA, S, _T__),
-   FMT(ETC2_RG11_UNORM,         ETC2_RG11_UNORM, RG01, L, _T__),
-   FMT(ETC2_R11_SNORM,          ETC2_R11_SNORM,  R001, L, _T__),
-   FMT(ETC2_RG11_SNORM,         ETC2_RG11_SNORM, RG01, L, _T__),
-   FMT(ETC2_RGB8A1,             ETC2_RGB8A1,     RGBA, L, _T__),
-   FMT(ETC2_SRGB8A1,            ETC2_RGB8A1,     RGBA, S, _T__),
-   FMT(DXT1_RGB,                BC1_UNORM,       RGB1, L, _T__),
-   FMT(DXT1_RGBA,               BC1_UNORM,       RGBA, L, _T__),
-   FMT(DXT1_SRGB,               BC1_UNORM,       RGB1, S, _T__),
-   FMT(DXT1_SRGBA,              BC1_UNORM,       RGBA, S, _T__),
-   FMT(DXT3_RGBA,               BC2_UNORM,       RGBA, L, _T__),
-   FMT(DXT3_SRGBA,              BC2_UNORM,       RGBA, S, _T__),
-   FMT(DXT5_RGBA,               BC3_UNORM,       RGBA, L, _T__),
-   FMT(DXT5_SRGBA,              BC3_UNORM,       RGBA, S, _T__),
-   FMT(RGTC1_UNORM,             BC4_UNORM,       R001, L, _T__),
-   FMT(RGTC1_SNORM,             BC4_SNORM,       R001, L, _T__),
-   FMT(RGTC2_UNORM,             BC5_UNORM,       RG01, L, _T__),
-   FMT(RGTC2_SNORM,             BC5_SNORM,       RG01, L, _T__),
-   FMT(BPTC_RGB_FLOAT,          BC6H_SF16,       RGB1, L, _T__),
-   FMT(BPTC_RGB_UFLOAT,         BC6H_UF16,       RGB1, L, _T__),
-   FMT(BPTC_RGBA_UNORM,         BC7_UNORM,       RGBA, L, _T__),
-   FMT(BPTC_SRGBA,              BC7_UNORM,       RGBA, S, _T__),
-   FMT(ASTC_4x4,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_5x4,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_5x5,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_6x5,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_6x6,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_8x5,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_8x6,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_8x8,                ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_10x5,               ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_10x6,               ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_10x8,               ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_10x10,              ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_12x10,              ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_12x12,              ASTC_2D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_4x4_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_5x4_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_5x5_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_6x5_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_6x6_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_8x5_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_8x6_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_8x8_SRGB,           ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_10x5_SRGB,          ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_10x6_SRGB,          ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_10x8_SRGB,          ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_10x10_SRGB,         ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_12x10_SRGB,         ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_12x12_SRGB,         ASTC_2D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_3x3x3,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_4x3x3,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_4x4x3,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_4x4x4,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_5x4x4,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_5x5x4,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_5x5x5,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_6x5x5,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_6x6x5,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_6x6x6,              ASTC_3D_HDR,     RGBA, L, _T__),
-   FMT(ASTC_3x3x3_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_4x3x3_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_4x4x3_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_4x4x4_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_5x4x4_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_5x5x4_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_5x5x5_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_6x5x5_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_6x6x5_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-   FMT(ASTC_6x6x6_SRGB,         ASTC_3D_LDR,     RGBA, S, _T__),
-#else
-   /* Map to interchange format, as compression is specified in the plane
-    * descriptor on Valhall.
-    */
-   FMT(ETC1_RGB8,               RGBA8_UNORM,     RGB1, L, _T__),
-   FMT(ETC2_RGB8,               RGBA8_UNORM,     RGB1, L, _T__),
-   FMT(ETC2_SRGB8,              RGBA8_UNORM,     RGB1, S, _T__),
-   FMT(ETC2_R11_UNORM,          R16_UNORM,       R001, L, _T__),
-   FMT(ETC2_RGBA8,              RGBA8_UNORM,     RGBA, L, _T__),
-   FMT(ETC2_SRGBA8,             RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ETC2_RG11_UNORM,         RG16_UNORM,      RG01, L, _T__),
-   FMT(ETC2_R11_SNORM,          R16_SNORM,       R001, L, _T__),
-   FMT(ETC2_RG11_SNORM,         RG16_SNORM,      RG01, L, _T__),
-   FMT(ETC2_RGB8A1,             RGBA8_UNORM,     RGBA, L, _T__),
-   FMT(ETC2_SRGB8A1,            RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(DXT1_RGB,                RGBA8_UNORM,     RGB1, L, _T__),
-   FMT(DXT1_RGBA,               RGBA8_UNORM,     RGBA, L, _T__),
-   FMT(DXT1_SRGB,               RGBA8_UNORM,     RGB1, S, _T__),
-   FMT(DXT1_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(DXT3_RGBA,               RGBA8_UNORM,     RGBA, L, _T__),
-   FMT(DXT3_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(DXT5_RGBA,               RGBA8_UNORM,     RGBA, L, _T__),
-   FMT(DXT5_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(RGTC1_UNORM,             R16_UNORM,       R001, L, _T__),
-   FMT(RGTC1_SNORM,             R16_SNORM,       R001, L, _T__),
-   FMT(RGTC2_UNORM,             RG16_UNORM,      RG01, L, _T__),
-   FMT(RGTC2_SNORM,             RG16_SNORM,      RG01, L, _T__),
-   FMT(BPTC_RGB_FLOAT,          RGBA16F,         RGB1, L, _T__),
-   FMT(BPTC_RGB_UFLOAT,         RGBA16F,         RGB1, L, _T__),
-   FMT(BPTC_RGBA_UNORM,         RGBA8_UNORM,     RGBA, L, _T__),
-   FMT(BPTC_SRGBA,              RGBA8_UNORM,     RGBA, S, _T__),
+   FMTC(ETC1_RGB8,               ETC2_RGB8,       RGBA8_UNORM, RGB1, L),
+   FMTC(ETC2_RGB8,               ETC2_RGB8,       RGBA8_UNORM, RGB1, L),
+   FMTC(ETC2_SRGB8,              ETC2_RGB8,       RGBA8_UNORM, RGB1, S),
+   FMTC(ETC2_R11_UNORM,          ETC2_R11_UNORM,  R16_UNORM,   R001, L),
+   FMTC(ETC2_RGBA8,              ETC2_RGBA8,      RGBA8_UNORM, RGBA, L),
+   FMTC(ETC2_SRGBA8,             ETC2_RGBA8,      RGBA8_UNORM, RGBA, S),
+   FMTC(ETC2_RG11_UNORM,         ETC2_RG11_UNORM, RG16_UNORM,  RG01, L),
+   FMTC(ETC2_R11_SNORM,          ETC2_R11_SNORM,  R16_SNORM,   R001, L),
+   FMTC(ETC2_RG11_SNORM,         ETC2_RG11_SNORM, RG16_SNORM,  RG01, L),
+   FMTC(ETC2_RGB8A1,             ETC2_RGB8A1,     RGBA8_UNORM, RGBA, L),
+   FMTC(ETC2_SRGB8A1,            ETC2_RGB8A1,     RGBA8_UNORM, RGBA, S),
+   FMTC(DXT1_RGB,                BC1_UNORM,       RGBA8_UNORM, RGB1, L),
+   FMTC(DXT1_RGBA,               BC1_UNORM,       RGBA8_UNORM, RGBA, L),
+   FMTC(DXT1_SRGB,               BC1_UNORM,       RGBA8_UNORM, RGB1, S),
+   FMTC(DXT1_SRGBA,              BC1_UNORM,       RGBA8_UNORM, RGBA, S),
+   FMTC(DXT3_RGBA,               BC2_UNORM,       RGBA8_UNORM, RGBA, L),
+   FMTC(DXT3_SRGBA,              BC2_UNORM,       RGBA8_UNORM, RGBA, S),
+   FMTC(DXT5_RGBA,               BC3_UNORM,       RGBA8_UNORM, RGBA, L),
+   FMTC(DXT5_SRGBA,              BC3_UNORM,       RGBA8_UNORM, RGBA, S),
+   FMTC(RGTC1_UNORM,             BC4_UNORM,       R16_UNORM,   R001, L),
+   FMTC(RGTC1_SNORM,             BC4_SNORM,       R16_SNORM,   R001, L),
+   FMTC(RGTC2_UNORM,             BC5_UNORM,       RG16_UNORM,  RG01, L),
+   FMTC(RGTC2_SNORM,             BC5_SNORM,       RG16_SNORM,  RG01, L),
+   FMTC(BPTC_RGB_FLOAT,          BC6H_SF16,       RGBA16F,     RGB1, L),
+   FMTC(BPTC_RGB_UFLOAT,         BC6H_UF16,       RGBA16F,     RGB1, L),
+   FMTC(BPTC_RGBA_UNORM,         BC7_UNORM,       RGBA8_UNORM, RGBA, L),
+   FMTC(BPTC_SRGBA,              BC7_UNORM,       RGBA8_UNORM, RGBA, S),
 
-   /* Mesa does not yet support astc_decode_mode extensions, so non-sRGB
-    * formats must be assumed to be wide.
+   /* If ASTC decode mode is set to RGBA8, the hardware format
+    * will be overriden to RGBA8_UNORM later on.
     */
-   FMT(ASTC_4x4,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_5x4,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_5x5,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_6x5,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_6x6,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_8x5,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_8x6,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_8x8,                RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_10x5,               RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_10x6,               RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_10x8,               RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_10x10,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_12x10,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_12x12,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_3x3x3,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_4x3x3,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_4x4x3,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_4x4x4,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_5x4x4,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_5x5x4,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_5x5x5,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_6x5x5,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_6x6x5,              RGBA16F,         RGBA, L, _T__),
-   FMT(ASTC_6x6x6,              RGBA16F,         RGBA, L, _T__),
+   FMTC(ASTC_4x4,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_5x4,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_5x5,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_6x5,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_6x6,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_8x5,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_8x6,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_8x8,                ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_10x5,               ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_10x6,               ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_10x8,               ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_10x10,              ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_12x10,              ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_12x12,              ASTC_2D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_3x3x3,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_4x3x3,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_4x4x3,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_4x4x4,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_5x4x4,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_5x5x4,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_5x5x5,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_6x5x5,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_6x6x5,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
+   FMTC(ASTC_6x6x6,              ASTC_3D_HDR,     RGBA16F,     RGBA, L),
 
    /* By definition, sRGB formats are narrow */
-   FMT(ASTC_4x4_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_5x4_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_5x5_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_6x5_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_6x6_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_8x5_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_8x6_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_8x8_SRGB,           RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_10x5_SRGB,          RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_10x6_SRGB,          RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_10x8_SRGB,          RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_10x10_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_12x10_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_12x12_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_3x3x3_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_4x3x3_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_4x4x3_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_4x4x4_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_5x4x4_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_5x5x4_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_5x5x5_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_6x5x5_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-   FMT(ASTC_6x6x5_SRGB,         RGBA8_UNORM,     RGBA, S, _T__),
-#endif
+   FMTC(ASTC_4x4_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_5x4_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_5x5_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_6x5_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_6x6_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_8x5_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_8x6_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_8x8_SRGB,           ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_10x5_SRGB,          ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_10x6_SRGB,          ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_10x8_SRGB,          ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_10x10_SRGB,         ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_12x10_SRGB,         ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_12x12_SRGB,         ASTC_2D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_3x3x3_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_4x3x3_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_4x4x3_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_4x4x4_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_5x4x4_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_5x5x4_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_5x5x5_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_6x5x5_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_6x6x5_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
+   FMTC(ASTC_6x6x6_SRGB,         ASTC_3D_LDR,     RGBA8_UNORM, RGBA, S),
 
    FMT(R5G6B5_UNORM,            RGB565,          RGB1, L, VTR_),
    FMT(B5G6R5_UNORM,            RGB565,          BGR1, L, VTR_),
@@ -396,6 +331,7 @@ const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
    FMT(R16G16_SNORM,            RG16_SNORM,      RG01, L, VTR_),
    FMT(R8G8B8_SNORM,            RGB8_SNORM,      RGB1, L, VTR_),
    FMT(R8G8B8A8_SNORM,          RGBA8_SNORM,     RGBA, L, VTR_),
+   FMT(B8G8R8A8_SNORM,          RGBA8_SNORM,     BGRA, L, VTR_),
    FMT(R16G16B16A16_SNORM,      RGBA16_SNORM,    RGBA, L, VTR_),
 #else
    /* So far we haven't needed SNORM rendering on Midgard */
@@ -405,6 +341,7 @@ const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
    FMT(R16G16_SNORM,            RG16_SNORM,      RG01, L, VT__),
    FMT(R8G8B8_SNORM,            RGB8_SNORM,      RGB1, L, VT__),
    FMT(R8G8B8A8_SNORM,          RGBA8_SNORM,     RGBA, L, VT__),
+   FMT(B8G8R8A8_SNORM,          RGBA8_SNORM,     BGRA, L, VT__),
    FMT(R16G16B16A16_SNORM,      RGBA16_SNORM,    RGBA, L, VT__),
 #endif
    FMT(I8_SINT,                 R8I,             RRRR, L, VTR_),
@@ -582,6 +519,9 @@ const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
    FMT(X24S8_UINT,              S8,              GRBA, L, _T_Z),
    FMT(S8_UINT,                 S8,              GRBA, L, _T__),
 
+   /* similarly, the interchange format is RGBA8, but we only
+      actually store 1 component in memory here */
+   FMT(A8_UNORM,                RGBA8_UNORM,     000A, L, VTR_),
 #else
    /* Specify real formats on Bifrost */
    FMT(Z32_FLOAT_S8X24_UINT,    Z32_X32,         RGBA, L, _T_Z),
@@ -599,7 +539,7 @@ const struct panfrost_format GENX(panfrost_pipe_format)[PIPE_FORMAT_COUNT] = {
 };
 /* clang-format on */
 
-#if PAN_ARCH == 7
+#if PAN_ARCH == 7 || PAN_ARCH >= 10
 /*
  * Decompose a component ordering swizzle into a component ordering (applied
  * first) and a swizzle (applied second). The output ordering "pre" is allowed

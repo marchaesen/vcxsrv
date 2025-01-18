@@ -120,7 +120,7 @@ enum wsi_explicit_sync_timelines
    WSI_ES_ACQUIRE,
    WSI_ES_RELEASE,
 
-   WSI_ES_COUNT, 
+   WSI_ES_COUNT,
 };
 
 struct wsi_image_explicit_sync_timeline {
@@ -183,7 +183,7 @@ struct wsi_swapchain {
 
    struct wsi_image_info image_info;
    uint32_t image_count;
-   
+
    uint64_t present_serial;
 
    struct {
@@ -225,7 +225,7 @@ struct wsi_swapchain {
 };
 
 bool
-wsi_device_matches_drm_fd(const struct wsi_device *wsi, int drm_fd);
+wsi_device_matches_drm_fd(VkPhysicalDevice pdevice, int drm_fd);
 
 void
 wsi_wl_surface_destroy(VkIcdSurfaceBase *icd_surface, VkInstance _instance,
@@ -416,6 +416,11 @@ VkResult wsi_win32_init_wsi(struct wsi_device *wsi_device,
                          VkPhysicalDevice physical_device);
 void wsi_win32_finish_wsi(struct wsi_device *wsi_device,
                        const VkAllocationCallbacks *alloc);
+VkResult wsi_metal_init_wsi(struct wsi_device *wsi_device,
+                           const VkAllocationCallbacks *alloc,
+                           VkPhysicalDevice physical_device);
+void wsi_metal_finish_wsi(struct wsi_device *wsi_device,
+                          const VkAllocationCallbacks *alloc);
 
 
 VkResult
@@ -440,11 +445,6 @@ void wsi_headless_finish_wsi(struct wsi_device *wsi_device,
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(wsi_swapchain, base, VkSwapchainKHR,
                                VK_OBJECT_TYPE_SWAPCHAIN_KHR)
-
-#if defined(HAVE_PTHREAD) && !defined(_WIN32)
-bool
-wsi_init_pthread_cond_monotonic(pthread_cond_t *cond);
-#endif
 
 #ifdef __cplusplus
 }

@@ -60,7 +60,7 @@
 #define VL_VA_DRIVER(ctx) ((vlVaDriver *)ctx->pDriverData)
 #define VL_VA_PSCREEN(ctx) (VL_VA_DRIVER(ctx)->vscreen->pscreen)
 
-#define VL_VA_MAX_IMAGE_FORMATS 17
+#define VL_VA_MAX_IMAGE_FORMATS 21
 #define VL_VA_ENC_GOP_COEFF 16
 
 #define UINT_TO_PTR(x) ((void*)(uintptr_t)(x))
@@ -84,6 +84,21 @@
 
 #define VBAQ_DISABLE (0)
 #define VBAQ_AUTO    (1)
+
+#define ENC_PACKED_HEADERS_H264 (VA_ENC_PACKED_HEADER_SEQUENCE | \
+                                 VA_ENC_PACKED_HEADER_PICTURE | \
+                                 VA_ENC_PACKED_HEADER_SLICE | \
+                                 VA_ENC_PACKED_HEADER_MISC | \
+                                 VA_ENC_PACKED_HEADER_RAW_DATA)
+#define ENC_PACKED_HEADERS_HEVC (VA_ENC_PACKED_HEADER_SEQUENCE | \
+                                 VA_ENC_PACKED_HEADER_PICTURE | \
+                                 VA_ENC_PACKED_HEADER_SLICE | \
+                                 VA_ENC_PACKED_HEADER_MISC | \
+                                 VA_ENC_PACKED_HEADER_RAW_DATA)
+#define ENC_PACKED_HEADERS_AV1  (VA_ENC_PACKED_HEADER_SEQUENCE | \
+                                 VA_ENC_PACKED_HEADER_PICTURE  | \
+                                 VA_ENC_PACKED_HEADER_MISC | \
+                                 VA_ENC_PACKED_HEADER_RAW_DATA)
 
 static inline enum pipe_video_chroma_format
 ChromaToPipe(int format)
@@ -134,6 +149,14 @@ VaFourccToPipeFormat(unsigned format)
       return PIPE_FORMAT_R8G8B8X8_UNORM;
    case VA_FOURCC('R','G','B','P'):
       return PIPE_FORMAT_R8_G8_B8_UNORM;
+   case VA_FOURCC('A','R','3','0'):
+      return PIPE_FORMAT_B10G10R10A2_UNORM;
+   case VA_FOURCC('A','B','3','0'):
+      return PIPE_FORMAT_R10G10B10A2_UNORM;
+   case VA_FOURCC('X','R','3','0'):
+      return PIPE_FORMAT_B10G10R10X2_UNORM;
+   case VA_FOURCC('X','B','3','0'):
+      return PIPE_FORMAT_R10G10B10X2_UNORM;
    case VA_FOURCC('Y','8','0','0'):
       return PIPE_FORMAT_Y8_400_UNORM;
    case VA_FOURCC('4','4','4','P'):
@@ -174,7 +197,15 @@ PipeFormatToVaFourcc(enum pipe_format p_format)
       return VA_FOURCC('B','G','R','X');
    case PIPE_FORMAT_R8G8B8X8_UNORM:
       return VA_FOURCC('R','G','B','X');
-    case PIPE_FORMAT_R8_G8_B8_UNORM:
+   case PIPE_FORMAT_B10G10R10A2_UNORM:
+      return VA_FOURCC('A','R','3','0');
+   case PIPE_FORMAT_R10G10B10A2_UNORM:
+      return VA_FOURCC('A','B','3','0');
+   case PIPE_FORMAT_B10G10R10X2_UNORM:
+      return VA_FOURCC('X','R','3','0');
+   case PIPE_FORMAT_R10G10B10X2_UNORM:
+      return VA_FOURCC('X','B','3','0');
+   case PIPE_FORMAT_R8_G8_B8_UNORM:
       return VA_FOURCC('R','G','B','P');
    case PIPE_FORMAT_Y8_400_UNORM:
       return VA_FOURCC('Y','8','0','0');
@@ -303,6 +334,9 @@ typedef struct {
    char vendor_string[256];
 
    bool has_external_handles;
+
+   int efc_count;
+   void *last_efc_surface;
 } vlVaDriver;
 
 typedef struct {
@@ -383,6 +417,15 @@ typedef struct {
    int packed_header_type;
    bool packed_header_emulation_bytes;
    struct set *surfaces;
+   unsigned slice_data_offset;
+   bool have_slice_params;
+
+   struct {
+      void **buffers;
+      unsigned *sizes;
+      unsigned num_buffers;
+      unsigned allocated_size;
+   } bs;
 } vlVaContext;
 
 typedef struct {
@@ -392,7 +435,7 @@ typedef struct {
    unsigned int rt_format;
 } vlVaConfig;
 
-typedef struct {
+typedef struct vlVaSurface {
    struct pipe_video_buffer templat, *buffer;
    struct util_dynarray subpics; /* vlVaSubpicture */
    vlVaContext *ctx;
@@ -401,9 +444,10 @@ typedef struct {
    unsigned int frame_num_cnt;
    bool force_flushed;
    struct pipe_video_buffer *obsolete_buf;
-   enum pipe_format encoder_format;
    bool full_range;
    struct pipe_fence_handle *fence;
+   struct vlVaSurface *efc_surface; /* input surface for EFC */
+   bool is_dpb;
 } vlVaSurface;
 
 typedef struct {
@@ -521,6 +565,10 @@ VAStatus vlVaMapBuffer2(VADriverContextP ctx, VABufferID buf_id, void **pbuf, ui
 VAStatus vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);
 VAStatus vlVaHandleSurfaceAllocate(vlVaDriver *drv, vlVaSurface *surface, struct pipe_video_buffer *templat,
                                    const uint64_t *modifiers, unsigned int modifiers_count);
+struct pipe_video_buffer *vlVaGetSurfaceBuffer(vlVaDriver *drv, vlVaSurface *surface);
+void vlVaAddRawHeader(struct util_dynarray *headers, uint8_t type, uint32_t size, uint8_t *buf,
+                      bool is_slice, uint32_t emulation_bytes_start);
+void vlVaSetSurfaceContext(vlVaDriver *drv, vlVaSurface *surf, vlVaContext *context);
 void vlVaGetReferenceFrame(vlVaDriver *drv, VASurfaceID surface_id, struct pipe_video_buffer **ref_frame);
 void vlVaHandlePictureParameterBufferMPEG12(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);
 void vlVaHandleIQMatrixBufferMPEG12(vlVaContext *context, vlVaBuffer *buf);
@@ -546,10 +594,7 @@ void vlVaHandlePictureParameterBufferVP9(vlVaDriver *drv, vlVaContext *context, 
 void vlVaHandleSliceParameterBufferVP9(vlVaContext *context, vlVaBuffer *buf);
 void vlVaDecoderVP9BitstreamHeader(vlVaContext *context, vlVaBuffer *buf);
 void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);
-void vlVaHandleSliceParameterBufferAV1(vlVaContext *context, vlVaBuffer *buf, unsigned num_slices, unsigned slice_offset);
-void getEncParamPresetH264(vlVaContext *context);
-void getEncParamPresetH265(vlVaContext *context);
-void getEncParamPresetAV1(vlVaContext *context);
+void vlVaHandleSliceParameterBufferAV1(vlVaContext *context, vlVaBuffer *buf);
 void vlVaHandleVAEncMiscParameterTypeQualityLevel(struct pipe_enc_quality_modes *p, vlVaQualityBits *in);
 VAStatus vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);
 VAStatus vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);
@@ -570,6 +615,7 @@ VAStatus vlVaHandleVAEncPackedHeaderDataBufferTypeHEVC(vlVaContext *context, vlV
 VAStatus vlVaHandleVAEncMiscParameterTypeQualityLevelHEVC(vlVaContext *context, VAEncMiscParameterBuffer *buf);
 VAStatus vlVaHandleVAEncMiscParameterTypeMaxFrameSizeHEVC(vlVaContext *context, VAEncMiscParameterBuffer *buf);
 VAStatus vlVaHandleVAEncMiscParameterTypeHRDHEVC(vlVaContext *context, VAEncMiscParameterBuffer *buf);
+VAStatus vlVaHandleVAEncMiscParameterTypeTemporalLayerHEVC(vlVaContext *context, VAEncMiscParameterBuffer *buf);
 
 #if VA_CHECK_VERSION(1, 16, 0)
 VAStatus vlVaHandleVAEncSequenceParameterBufferTypeAV1(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);

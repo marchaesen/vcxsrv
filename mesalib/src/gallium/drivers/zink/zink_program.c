@@ -796,7 +796,7 @@ optimized_compile_job(void *data, void *gdata, int thread_index)
    if (pc_entry->gpl.gkey)
       pipeline = zink_create_gfx_pipeline_combined(screen, pc_entry->prog, pc_entry->gpl.ikey->pipeline, &pc_entry->gpl.gkey->pipeline, 1, pc_entry->gpl.okey->pipeline, true, false);
    else
-      pipeline = zink_create_gfx_pipeline(screen, pc_entry->prog, pc_entry->prog->objs, &pc_entry->state, pc_entry->state.element_state->binding_map, zink_primitive_topology(pc_entry->state.gfx_prim_mode), true, NULL);
+      pipeline = zink_create_gfx_pipeline(screen, pc_entry->prog, pc_entry->prog->objs, &pc_entry->state, pc_entry->state.element_state->binding_map, zink_primitive_topology(pc_entry->state.gfx_prim_mode), true);
    if (pipeline) {
       pc_entry->gpl.unoptimized_pipeline = pc_entry->pipeline;
       pc_entry->pipeline = pipeline;
@@ -814,7 +814,7 @@ optimized_shobj_compile_job(void *data, void *gdata, int thread_index)
       objs[i].mod = VK_NULL_HANDLE;
       objs[i].spirv = pc_entry->shobjs[i].spirv;
    }
-   pc_entry->pipeline = zink_create_gfx_pipeline(screen, pc_entry->prog, objs, &pc_entry->state, NULL, zink_primitive_topology(pc_entry->state.gfx_prim_mode), true, NULL);
+   pc_entry->pipeline = zink_create_gfx_pipeline(screen, pc_entry->prog, objs, &pc_entry->state, NULL, zink_primitive_topology(pc_entry->state.gfx_prim_mode), true);
    /* no unoptimized_pipeline dance */
 }
 
@@ -860,7 +860,7 @@ update_cs_shader_module(struct zink_context *ctx, struct zink_compute_program *c
    struct zink_shader_module *zm = NULL;
    unsigned inline_size = 0, nonseamless_size = 0, zs_swizzle_size = 0;
    struct zink_shader_key *key = &ctx->compute_pipeline_state.key;
-   ASSERTED bool check_robustness = screen->driver_workarounds.lower_robustImageAccess2 && (ctx->flags & PIPE_CONTEXT_ROBUST_BUFFER_ACCESS);
+   ASSERTED bool check_robustness = screen->driver_compiler_workarounds.lower_robustImageAccess2 && (ctx->flags & PIPE_CONTEXT_ROBUST_BUFFER_ACCESS);
    assert(zink_cs_key(key)->robust_access == check_robustness);
 
    if (ctx && zs->info.num_inlinable_uniforms &&
@@ -1183,13 +1183,13 @@ gfx_program_init(struct zink_context *ctx, struct zink_gfx_program *prog)
    if (prog->libs)
       p_atomic_inc(&prog->libs->refcount);
 
-   struct mesa_sha1 sctx;
-   _mesa_sha1_init(&sctx);
+   struct mesa_blake3 sctx;
+   _mesa_blake3_init(&sctx);
    for (int i = 0; i < ZINK_GFX_SHADER_COUNT; ++i) {
       if (prog->shaders[i])
-         _mesa_sha1_update(&sctx, prog->shaders[i]->base.sha1, sizeof(prog->shaders[i]->base.sha1));
+         _mesa_blake3_update(&sctx, prog->shaders[i]->base.sha1, sizeof(prog->shaders[i]->base.sha1));
    }
-   _mesa_sha1_final(&sctx, prog->base.sha1);
+   _mesa_blake3_final(&sctx, prog->base.blake3);
 
    if (!zink_descriptor_program_init(ctx, &prog->base))
       goto fail;
@@ -1350,6 +1350,85 @@ fail:
    return NULL;
 }
 
+static void
+print_pipeline_stats(struct zink_screen *screen, VkPipeline pipeline, struct util_debug_callback *debug)
+{
+   VkPipelineInfoKHR pinfo = {
+     VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
+     NULL,
+     pipeline 
+   };
+   unsigned exe_count = 0;
+   VkPipelineExecutablePropertiesKHR props[10] = {0};
+   for (unsigned i = 0; i < ARRAY_SIZE(props); i++) {
+      props[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR;
+      props[i].pNext = NULL;
+   }
+   VKSCR(GetPipelineExecutablePropertiesKHR)(screen->dev, &pinfo, &exe_count, NULL);
+   VKSCR(GetPipelineExecutablePropertiesKHR)(screen->dev, &pinfo, &exe_count, props);
+   for (unsigned e = 0; e < exe_count; e++) {
+      VkPipelineExecutableInfoKHR info = {
+         VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR,
+         NULL,
+         pipeline,
+         e
+      };
+      unsigned count = 0;
+
+      struct u_memstream stream;
+      char *print_buf;
+      size_t print_buf_sz;
+
+      if (!u_memstream_open(&stream, &print_buf, &print_buf_sz)) {
+         mesa_loge("ZINK: failed to open memstream!");
+         return;
+      }
+
+      FILE *f = u_memstream_get(&stream);
+      fprintf(f, "%s shader: ", props[e].name);
+      VkPipelineExecutableStatisticKHR *stats = NULL;
+      VKSCR(GetPipelineExecutableStatisticsKHR)(screen->dev, &info, &count, NULL);
+      stats = calloc(count, sizeof(VkPipelineExecutableStatisticKHR));
+      if (!stats) {
+         mesa_loge("ZINK: failed to allocate stats!");
+         return;
+      }
+         
+      for (unsigned i = 0; i < count; i++)
+         stats[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR;
+      VKSCR(GetPipelineExecutableStatisticsKHR)(screen->dev, &info, &count, stats);
+
+      for (unsigned i = 0; i < count; i++) {
+         if (i)
+            fprintf(f, ", ");
+
+         switch (stats[i].format) {
+         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR:
+            fprintf(f, "%u %s", stats[i].value.b32, stats[i].name);
+            break;
+         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR:
+            fprintf(f, "%" PRIi64 " %s", stats[i].value.i64, stats[i].name);
+            break;
+         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR:
+            fprintf(f, "%" PRIu64 " %s", stats[i].value.u64, stats[i].name);
+            break;
+         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR:
+            fprintf(f, "%g %s", stats[i].value.f64, stats[i].name);
+            break;
+         default:
+            unreachable("unknown statistic");
+         }
+      }
+
+      /* print_buf is only valid after flushing. */
+      fflush(f);
+      util_debug_message(debug, SHADER_INFO, "%s", print_buf);
+
+      u_memstream_close(&stream);
+      free(print_buf);
+   }
+}
+
 static uint32_t
 hash_compute_pipeline_state_local_size(const void *key)
 {
@@ -1419,10 +1498,10 @@ precompile_compute_job(void *data, void *gdata, int thread_index)
    util_dynarray_init(&comp->shader_cache[0], comp);
    util_dynarray_init(&comp->shader_cache[1], comp);
 
-   struct mesa_sha1 sha1_ctx;
-   _mesa_sha1_init(&sha1_ctx);
-   _mesa_sha1_update(&sha1_ctx, comp->shader->blob.data, comp->shader->blob.size);
-   _mesa_sha1_final(&sha1_ctx, comp->base.sha1);
+   struct mesa_blake3 blake3_ctx;
+   _mesa_blake3_init(&blake3_ctx);
+   _mesa_blake3_update(&blake3_ctx, comp->shader->blob.data, comp->shader->blob.size);
+   _mesa_blake3_final(&blake3_ctx, comp->base.blake3);
 
    zink_descriptor_program_init(comp->base.ctx, &comp->base);
 
@@ -1455,11 +1534,17 @@ create_compute_program(struct zink_context *ctx, nir_shader *nir)
    _mesa_hash_table_init(&comp->pipelines, comp, NULL, comp->use_local_size ?
                                                        equals_compute_pipeline_state_local_size :
                                                        equals_compute_pipeline_state);
-   if (zink_debug & ZINK_DEBUG_NOBGC)
+
+   if (zink_debug & (ZINK_DEBUG_NOBGC|ZINK_DEBUG_SHADERDB))
       precompile_compute_job(comp, screen, 0);
    else
       util_queue_add_job(&screen->cache_get_thread, comp, &comp->base.cache_fence,
                         precompile_compute_job, NULL, 0);
+
+   if (zink_debug & ZINK_DEBUG_SHADERDB) {
+      print_pipeline_stats(screen, comp->base_pipeline, &ctx->dbg);
+   }
+
    return comp;
 }
 
@@ -1699,9 +1784,6 @@ out:
 static void
 bind_gfx_stage(struct zink_context *ctx, gl_shader_stage stage, struct zink_shader *shader)
 {
-   /* RADV doesn't support binding pipelines in DGC */
-   if (zink_screen(ctx->base.screen)->info.nv_dgc_props.maxGraphicsShaderGroupCount == 0)
-      zink_flush_dgc_if_enabled(ctx);
    if (shader && shader->info.num_inlinable_uniforms)
       ctx->shader_has_inlinable_uniforms_mask |= 1 << stage;
    else
@@ -1925,7 +2007,7 @@ zink_bind_fs_state(struct pipe_context *pctx,
       }
       zink_set_zs_needs_shader_swizzle_key(ctx, MESA_SHADER_FRAGMENT, false);
       if (shadow_mask != ctx->gfx_stages[MESA_SHADER_FRAGMENT]->fs.legacy_shadow_mask &&
-          !zink_screen(pctx->screen)->driver_workarounds.needs_zs_shader_swizzle)
+          !zink_screen(pctx->screen)->driver_compiler_workarounds.needs_zs_shader_swizzle)
          zink_update_shadow_samplerviews(ctx, shadow_mask | ctx->gfx_stages[MESA_SHADER_FRAGMENT]->fs.legacy_shadow_mask);
       if (!ctx->track_renderpasses && !ctx->blitting)
          ctx->rp_tc_info_updated = true;
@@ -2086,83 +2168,6 @@ print_exe_stages(VkShaderStageFlags stages)
 }
 
 static void
-print_pipeline_stats(struct zink_screen *screen, VkPipeline pipeline, struct util_debug_callback *debug)
-{
-   VkPipelineInfoKHR pinfo = {
-     VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
-     NULL,
-     pipeline 
-   };
-   unsigned exe_count = 0;
-   VkPipelineExecutablePropertiesKHR props[10] = {0};
-   for (unsigned i = 0; i < ARRAY_SIZE(props); i++) {
-      props[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_PROPERTIES_KHR;
-      props[i].pNext = NULL;
-   }
-   VKSCR(GetPipelineExecutablePropertiesKHR)(screen->dev, &pinfo, &exe_count, NULL);
-   VKSCR(GetPipelineExecutablePropertiesKHR)(screen->dev, &pinfo, &exe_count, props);
-   for (unsigned e = 0; e < exe_count; e++) {
-      VkPipelineExecutableInfoKHR info = {
-         VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_INFO_KHR,
-         NULL,
-         pipeline,
-         e
-      };
-      unsigned count = 0;
-
-      struct u_memstream stream;
-      char *print_buf;
-      size_t print_buf_sz;
-
-      if (!u_memstream_open(&stream, &print_buf, &print_buf_sz)) {
-         mesa_loge("ZINK: failed to open memstream!");
-         return;
-      }
-
-      FILE *f = u_memstream_get(&stream);
-      fprintf(f, "type: %s", props[e].name);
-      VkPipelineExecutableStatisticKHR *stats = NULL;
-      VKSCR(GetPipelineExecutableStatisticsKHR)(screen->dev, &info, &count, NULL);
-      stats = calloc(count, sizeof(VkPipelineExecutableStatisticKHR));
-      if (!stats) {
-         mesa_loge("ZINK: failed to allocate stats!");
-         return;
-      }
-         
-      for (unsigned i = 0; i < count; i++)
-         stats[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR;
-      VKSCR(GetPipelineExecutableStatisticsKHR)(screen->dev, &info, &count, stats);
-
-      for (unsigned i = 0; i < count; i++) {
-         fprintf(f, ", ");
-         switch (stats[i].format) {
-         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_BOOL32_KHR:
-            fprintf(f, "%s: %u", stats[i].name, stats[i].value.b32);
-            break;
-         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_INT64_KHR:
-            fprintf(f, "%s: %" PRIi64, stats[i].name, stats[i].value.i64);
-            break;
-         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_UINT64_KHR:
-            fprintf(f, "%s: %" PRIu64, stats[i].name, stats[i].value.u64);
-            break;
-         case VK_PIPELINE_EXECUTABLE_STATISTIC_FORMAT_FLOAT64_KHR:
-            fprintf(f, "%s: %g", stats[i].name, stats[i].value.f64);
-            break;
-         default:
-            unreachable("unknown statistic");
-         }
-      }
-
-      /* print_buf is only valid after flushing. */
-      fflush(f);
-      util_debug_message(debug, SHADER_INFO, "%s\n", print_buf);
-
-      u_memstream_close(&stream);
-      free(print_buf);
-   }
-}
-
-static void
 gfx_program_precompile_job(void *data, void *gdata, int thread_index)
 {
    struct zink_screen *screen = gdata;
@@ -2235,7 +2240,7 @@ zink_link_gfx_shader(struct pipe_context *pctx, void **shaders)
          generate_gfx_program_modules(ctx, screen,  prog, &ctx->gfx_pipeline_state);
       VkPipeline pipeline = zink_create_gfx_pipeline(screen, prog, prog->objs, &ctx->gfx_pipeline_state,
                                                      ctx->gfx_pipeline_state.element_state->binding_map,
-                                                     shaders[MESA_SHADER_TESS_EVAL] ? VK_PRIMITIVE_TOPOLOGY_PATCH_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, true, NULL);
+                                                     shaders[MESA_SHADER_TESS_EVAL] ? VK_PRIMITIVE_TOPOLOGY_PATCH_LIST : VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, true);
       print_pipeline_stats(screen, pipeline, &ctx->dbg);
       VKSCR(DestroyPipeline)(screen->dev, pipeline, NULL);
    } else {

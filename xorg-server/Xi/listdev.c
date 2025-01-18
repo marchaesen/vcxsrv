@@ -50,22 +50,22 @@ SOFTWARE.
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>              /* for inputstr.h    */
 #include <X11/Xproto.h>         /* Request macro     */
-#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
+
+#include "dix/input_priv.h"
+
+#include "inputstr.h"           /* DeviceIntPtr      */
 #include "XIstubs.h"
 #include "extnsionst.h"
 #include "exevents.h"
 #include "xace.h"
 #include "xkbsrv.h"
 #include "xkbstr.h"
-
 #include "listdev.h"
 
 /***********************************************************************
@@ -309,7 +309,7 @@ ShouldSkipDevice(ClientPtr client, DeviceIntPtr d)
 {
     /* don't send master devices other than VCP/VCK */
     if (!IsMaster(d) || d == inputInfo.pointer ||d == inputInfo.keyboard) {
-        int rc = XaceHook(XACE_DEVICE_ACCESS, client, d, DixGetAttrAccess);
+        int rc = XaceHookDeviceAccess(client, d, DixGetAttrAccess);
 
         if (rc == Success)
             return FALSE;
@@ -349,7 +349,7 @@ ProcXListInputDevices(ClientPtr client)
     rep.length = 0;
 
     /* allocate space for saving skip value */
-    skip = calloc(sizeof(Bool), inputInfo.numDevices);
+    skip = calloc(inputInfo.numDevices, sizeof(Bool));
     if (!skip)
         return BadAlloc;
 

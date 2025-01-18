@@ -89,3 +89,27 @@ spec@intel_shader_integer_functions2
 spec@nv_alpha_to_coverage_dither_control
 spec@nv_compute_shader_derivatives
 spec@nv_shader_atomic_int64
+
+# uprev Piglit in Mesa
+spec@arb_es2_compatibility@fbo-blending-formats
+spec@arb_es2_compatibility@fbo-blending-formats@GL_RGB565
+spec@arb_texture_rg@fbo-blending-formats
+spec@arb_texture_rg@fbo-blending-formats@GL_R16
+spec@arb_texture_rg@fbo-blending-formats@GL_R8
+spec@arb_texture_rg@fbo-blending-formats@GL_RG
+spec@arb_texture_rg@fbo-blending-formats@GL_RG16
+spec@arb_texture_rg@fbo-blending-formats@GL_RG8
+spec@ext_framebuffer_object@fbo-blending-formats@GL_R3_G3_B2
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB10
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB12
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB16
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB5
+spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB8
+
+# See https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/947
+# uprev Piglit in Mesa, reported as UnexpectedImprovement(Skip)
+spec@ext_texture_compression_s3tc@s3tc-errors_gles2
+spec@ext_texture_compression_s3tc@s3tc-teximage_gles2
+spec@ext_texture_compression_s3tc@s3tc-texsubimage_gles2
+

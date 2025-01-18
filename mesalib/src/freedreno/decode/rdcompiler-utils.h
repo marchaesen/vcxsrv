@@ -330,7 +330,13 @@ emit_shader_iova(struct replay_context *ctx, struct cmdstream *cs, uint64_t id)
 {
    uint64_t *shader_iova = (uint64_t *)
       _mesa_hash_table_u64_search(ctx->compiled_shaders, id);
-   pkt_qw(cs, *shader_iova);
+   if (shader_iova) {
+      pkt_qw(cs, *shader_iova);
+   } else {
+      fprintf(stderr,
+              "Not override for shader at 0x%" PRIx64 ", using original\n", id);
+      pkt_qw(cs, id);
+   }
 }
 
 #define begin_draw_state()                                                     \

@@ -627,6 +627,19 @@ add_aux_map_bos_to_batch(struct iris_batch *batch)
 }
 
 static void
+add_pixel_hash_table_bo_to_batch(struct iris_batch *batch)
+{
+
+   if (batch->ice->state.pixel_hashing_tables &&
+       batch->name == IRIS_BATCH_RENDER) {
+      struct iris_bo *bo = iris_resource_bo(
+         batch->ice->state.pixel_hashing_tables);
+      ensure_exec_obj_space(batch, 1);
+      add_bo_to_batch(batch, bo, false);
+   }
+}
+
+static void
 finish_seqno(struct iris_batch *batch)
 {
    struct iris_fine_fence *sq = iris_fine_fence_new(batch);
@@ -658,6 +671,7 @@ iris_finish_batch(struct iris_batch *batch)
    }
 
    add_aux_map_bos_to_batch(batch);
+   add_pixel_hash_table_bo_to_batch(batch);
 
    finish_seqno(batch);
 

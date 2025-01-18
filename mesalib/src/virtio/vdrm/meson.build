@@ -18,6 +18,7 @@ libvdrm = static_library(
   dependencies: [
     dep_libdrm,
     dep_valgrind,
+    idep_mesautil,
   ],
   link_with: [
     _libmesa_util,

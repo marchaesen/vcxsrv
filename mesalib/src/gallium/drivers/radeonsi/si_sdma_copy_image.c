@@ -8,7 +8,7 @@
 #include "si_build_pm4.h"
 #include "sid.h"
 #include "util/u_memory.h"
-
+#include "ac_formats.h"
 
 static
 bool si_prepare_for_sdma_copy(struct si_context *sctx, struct si_texture *dst,struct si_texture *src)
@@ -113,9 +113,15 @@ static bool si_sdma_v4_v5_copy_texture(struct si_context *sctx, struct si_textur
       uint64_t linear_address = linear == ssrc ? src_address : dst_address;
       struct radeon_cmdbuf *cs = sctx->sdma_cs;
       assert(tiled->buffer.b.b.depth0 == 1);
-      bool dcc = false;
+      bool dcc;
 
       if (is_v7) {
+         /* Compress only when dst has DCC. If src has DCC, it automatically decompresses according
+          * to PTE.D (page table bit) even if we don't enable DCC in the packet.
+          */
+         dcc = tiled == sdst &&
+               tiled->buffer.flags & RADEON_FLAG_GFX12_ALLOW_DCC;
+
          /* Check if everything fits into the bitfields */
          if (!(tiled_width <= (1 << 16) && tiled_height <= (1 << 16) &&
                linear_pitch <= (1 << 16) && linear_slice_pitch <= (1ull << 32) &&
@@ -160,20 +166,29 @@ static bool si_sdma_v4_v5_copy_texture(struct si_context *sctx, struct si_textur
       radeon_emit(0);
 
       if (dcc) {
-         unsigned hw_fmt = ac_get_cb_format(sctx->gfx_level, tiled->buffer.b.b.format);
-         unsigned hw_type = ac_get_cb_number_type(tiled->buffer.b.b.format);
+         unsigned data_format = ac_get_cb_format(sctx->gfx_level, tiled->buffer.b.b.format);
+         unsigned number_type = ac_get_cb_number_type(tiled->buffer.b.b.format);
          uint64_t md_address = tiled_address + tiled->surface.meta_offset;
 
-         /* Add metadata */
-         radeon_emit((uint32_t)md_address);
-         radeon_emit((uint32_t)(md_address >> 32));
-         radeon_emit(hw_fmt |
-                     vi_alpha_is_on_msb(sctx->screen, tiled->buffer.b.b.format) << 8 |
-                     hw_type << 9 |
-                     tiled->surface.u.gfx9.color.dcc.max_compressed_block_size << 24 |
-                     V_028C78_MAX_BLOCK_SIZE_256B << 26 |
-                     tmz << 29 |
-                     tiled->surface.u.gfx9.color.dcc.pipe_aligned << 31);
+         if (is_v7) {
+            radeon_emit(data_format |
+                        number_type << 9) |
+                        (2 << 16) | /* 0: bypass DCC, 2: decompress reads if PTE.D */
+                        (1 << 18) | /* 0: bypass DCC, 1: write compressed if PTE.D, 2: write uncompressed if PTE.D */
+                        (tiled->surface.u.gfx9.color.dcc.max_compressed_block_size << 24) |
+                        (1 << 26); /* max uncompressed block size: 256B */
+         } else {
+            /* Add metadata */
+            radeon_emit((uint32_t)md_address);
+            radeon_emit((uint32_t)(md_address >> 32));
+            radeon_emit(data_format |
+                        ac_alpha_is_on_msb(&sctx->screen->info, tiled->buffer.b.b.format) << 8 |
+                        number_type << 9 |
+                        tiled->surface.u.gfx9.color.dcc.max_compressed_block_size << 24 |
+                        V_028C78_MAX_BLOCK_SIZE_256B << 26 |
+                        tmz << 29 |
+                        tiled->surface.u.gfx9.color.dcc.pipe_aligned << 31);
+         }
       }
       radeon_end();
       return true;

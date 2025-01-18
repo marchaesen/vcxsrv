@@ -47,12 +47,6 @@
 #define DRM_VC4_PARAM_SUPPORTS_THREADED_FS	5
 #endif
 
-#ifdef USE_VC4_SIMULATOR
-#define using_vc4_simulator true
-#else
-#define using_vc4_simulator false
-#endif
-
 #define VC4_DIRTY_BLEND         (1 <<  0)
 #define VC4_DIRTY_RASTERIZER    (1 <<  1)
 #define VC4_DIRTY_ZSA           (1 <<  2)
@@ -471,10 +465,11 @@ void vc4_simulator_open_from_handle(int fd, int handle, uint32_t size);
 static inline int
 vc4_ioctl(int fd, unsigned long request, void *arg)
 {
-        if (using_vc4_simulator)
-                return vc4_simulator_ioctl(fd, request, arg);
-        else
-                return drmIoctl(fd, request, arg);
+#ifdef USE_VC4_SIMULATOR
+        return vc4_simulator_ioctl(fd, request, arg);
+#else
+        return drmIoctl(fd, request, arg);
+#endif
 }
 
 void vc4_set_shader_uniform_dirty_flags(struct vc4_compiled_shader *shader);

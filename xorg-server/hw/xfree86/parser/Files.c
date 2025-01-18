@@ -89,6 +89,8 @@ xf86parseFilesSection(void)
         switch (token) {
         case COMMENT:
             ptr->file_comment = xf86addComment(ptr->file_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         case FONTPATH:
             if (xf86getSubToken(&(ptr->file_comment)) != STRING)

@@ -12,7 +12,6 @@
 struct nir_shader;
 struct pipe_screen;
 
-const void *nir_to_rc(struct nir_shader *s,
-                      struct pipe_screen *screen);
+const void *nir_to_rc(struct nir_shader *s, struct pipe_screen *screen);
 
 #endif /* NIR_TO_RC_H */

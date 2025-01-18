@@ -267,24 +267,17 @@ the counters, you can work out which ones they were at the GL level by
 opening the trace up in qapitrace and using ``^-G`` to jump to that call
 number and ``^-L`` to look up the GL state at that call.
 
-shader-db
----------
+Trace Testing
+-------------
 
 shader-db is often used as a proxy for real-world app performance when
 working on the compiler in Mesa.  On VC4, there is a lot of
 state-dependent code in the shaders (like blending or vertex attribute
 format handling), so the typical `shader-db
 <https://gitlab.freedesktop.org/mesa/shader-db>`__ will miss important
-areas for optimization.  Instead, anholt wrote a `new one
-<https://cgit.freedesktop.org/~anholt/shader-db-2/>`__ based on
-apitraces.  Once you have a collection of traces, starting from
-`traces-db <https://gitlab.freedesktop.org/gfx-ci/tracie/traces-db/>`__,
-you can test a compiler change in this shader-db with::
-
-  ./run.py > before
-  (cd ../mesa && make install)
-  ./run.py > after
-  ./report.py before after
+areas for optimization.  Piglit can instead test apitraces, such as
+those captured in
+`traces-db <https://gitlab.freedesktop.org/gfx-ci/tracie/traces-db/>`__.
 
 Hardware Documentation
 ----------------------

@@ -77,5 +77,5 @@ midgard_nir_lod_errata(nir_shader *shader)
 {
    return nir_shader_instructions_pass(
       shader, nir_lod_errata_instr,
-      nir_metadata_block_index | nir_metadata_dominance, NULL);
+      nir_metadata_control_flow, NULL);
 }

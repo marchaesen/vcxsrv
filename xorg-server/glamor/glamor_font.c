@@ -20,6 +20,12 @@
  * OF THIS SOFTWARE.
  */
 
+#include <dix-config.h>
+
+#include <stddef.h>
+#include <X11/fonts/fontstruct.h> // libxfont2.h missed to include that
+#include <X11/fonts/libxfont2.h>
+
 #include "glamor_priv.h"
 #include "glamor_font.h"
 #include <dixfontstr.h>

@@ -39,8 +39,6 @@ struct vn_device {
    uint32_t *queue_families;
    uint32_t queue_family_count;
 
-   struct vn_device_memory_pool memory_pools[VK_MAX_MEMORY_TYPES];
-
    struct vn_feedback_pool feedback_pool;
 
    /* feedback cmd pool per queue family used by the device

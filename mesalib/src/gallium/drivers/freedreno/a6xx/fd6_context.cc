@@ -1,25 +1,7 @@
 /*
- * Copyright (C) 2016 Rob Clark <robclark@freedesktop.org>
+ * Copyright © 2016 Rob Clark <robclark@freedesktop.org>
  * Copyright © 2018 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -61,6 +43,12 @@ fd6_context_destroy(struct pipe_context *pctx) in_dt
 
    if (fd6_ctx->sample_locations_disable_stateobj)
       fd_ringbuffer_del(fd6_ctx->sample_locations_disable_stateobj);
+
+   if (fd6_ctx->preamble)
+      fd_ringbuffer_del(fd6_ctx->preamble);
+
+   if (fd6_ctx->restore)
+      fd_ringbuffer_del(fd6_ctx->restore);
 
    fd_context_destroy(pctx);
 
@@ -267,7 +255,7 @@ fd6_context_create(struct pipe_screen *pscreen, void *priv,
    pctx->destroy = fd6_context_destroy;
    pctx->create_blend_state = fd6_blend_state_create;
    pctx->create_rasterizer_state = fd6_rasterizer_state_create;
-   pctx->create_depth_stencil_alpha_state = fd6_zsa_state_create;
+   pctx->create_depth_stencil_alpha_state = fd6_zsa_state_create<CHIP>;
    pctx->create_vertex_elements_state = fd6_vertex_state_create;
 
    fd6_draw_init<CHIP>(pctx);
@@ -275,7 +263,7 @@ fd6_context_create(struct pipe_screen *pscreen, void *priv,
    fd6_gmem_init<CHIP>(pctx);
    fd6_texture_init(pctx);
    fd6_prog_init<CHIP>(pctx);
-   fd6_query_context_init(pctx);
+   fd6_query_context_init<CHIP>(pctx);
 
    setup_state_map(&fd6_ctx->base);
 
@@ -329,9 +317,12 @@ fd6_context_create(struct pipe_screen *pscreen, void *priv,
 
    fd6_ctx->sample_locations_disable_stateobj = ring;
 
+   fd6_ctx->preamble = fd6_build_preemption_preamble<CHIP>(&fd6_ctx->base);
+
+   ring = fd_ringbuffer_new_object(fd6_ctx->base.pipe, 0x1000);
+   fd6_emit_static_regs<CHIP>(&fd6_ctx->base, ring);
+   fd6_ctx->restore = ring;
+
    return fd_context_init_tc(pctx, flags);
 }
-
-/* Teach the compiler about needed variants: */
-template struct pipe_context *fd6_context_create<A6XX>(struct pipe_screen *pscreen, void *priv, unsigned flags);
-template struct pipe_context *fd6_context_create<A7XX>(struct pipe_screen *pscreen, void *priv, unsigned flags);
+FD_GENX(fd6_context_create);

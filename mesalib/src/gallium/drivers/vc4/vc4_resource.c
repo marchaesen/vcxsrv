@@ -25,6 +25,7 @@
 #include "pipe/p_defines.h"
 #include "util/u_memory.h"
 #include "util/format/u_format.h"
+#include "util/perf/cpu_trace.h"
 #include "util/u_inlines.h"
 #include "util/u_resource.h"
 #include "util/u_surface.h"
@@ -103,6 +104,8 @@ vc4_map_usage_prep(struct pipe_context *pctx,
 {
         struct vc4_context *vc4 = vc4_context(pctx);
         struct vc4_resource *rsc = vc4_resource(prsc);
+
+        MESA_TRACE_FUNC();
 
         if (usage & PIPE_MAP_DISCARD_WHOLE_RESOURCE) {
                 if (vc4_resource_bo_alloc(rsc)) {

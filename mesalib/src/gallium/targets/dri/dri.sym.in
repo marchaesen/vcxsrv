@@ -1,11 +1,77 @@
 {
 	global:
+		ddebug_screen_create;
+		noop_screen_create;
+		util_run_tests;
+		trace_screen_create;
 		__driDriverGetExtensions*;
+		driCreate*;
+		driCopy*;
+		driSwap*;
+		driDestroy*;
+		driGet*;
+		driIndexConfigAttrib;
+		dri*indContext*;
+		driswCopySubBuffer;
+		dri_set_tex_buffer2;
+		kopper*;
+		dri_query_renderer_string;
+		dri_query_renderer_integer;
+		dri_flush_drawable;
+		dri_flush;
+		dri_invalidate_drawable;
+		dri2GalliumConfigQuery*;
+		dri_throttle;
+		dri_get_initial_swap_interval;
+		dri_valid_swap_interval;
+		dri_interop_query_device_info;
+		dri_interop_export_object;
+		dri_interop_flush_objects;
+		dri_create_image_with_modifiers;
+		dri_create_image_from_renderbuffer;
+		dri2_set_in_fence_fd;
+		dri2_query_compression_rates;
+		dri2_query_compression_modifiers;
+		dri2_destroy_image;
+		dri2_create_from_texture;
+		dri_create_image;
+		dri2_query_image;
+		dri2_dup_image;
+		dri2_validate_usage;
+		dri2_from_names;
+		dri2_from_planar;
+		dri2_from_dma_bufs;
+		dri2_blit_image;
+		dri2_get_capabilities;
+		dri2_map_image;
+		dri2_unmap_image;
+		dri_query_dma_buf_formats;
+		dri_query_dma_buf_modifiers;
+		dri2_query_dma_buf_format_modifier_attribs;
+		dri_query_compatible_render_only_device_fd;
+		driSWRastQueryBufferAge;
+		dri_set_damage_region;
+		dri_fence_get_caps;
+		dri_create_fence;
+		dri_create_fence_fd;
+		dri_get_fence_fd;
+		dri_get_fence_from_cl_event;
+		dri_destroy_fence;
+		dri_client_wait_sync;
+		dri_server_wait_sync;
+		dri_set_blob_cache_funcs;
+		dri_get_pipe_screen;
+		dri_get_screen_param;
+		dri3*;
+		loader_dri3*;
+		dri_create_drawable;
 		@nouveau_drm_screen_create@
 		@radeon_drm_winsys_create@
 		@amdgpu_winsys_create@
 		@fd_drm_screen_create_renderonly@
 		@ac_init_shared_llvm_once@
+		@va_driver_init@
+		@vdp_imp_device_create_x11@
 	local:
 		*;
 };

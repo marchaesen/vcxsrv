@@ -37,6 +37,9 @@ vn_CreateQueryPool(VkDevice device,
    vn_object_base_init(&pool->base, VK_OBJECT_TYPE_QUERY_POOL, &dev->base);
 
    pool->allocator = *alloc;
+   pool->query_count = pCreateInfo->queryCount;
+
+   simple_mtx_init(&pool->mutex, mtx_plain);
 
    switch (pCreateInfo->queryType) {
    case VK_QUERY_TYPE_OCCLUSION:
@@ -86,20 +89,6 @@ vn_CreateQueryPool(VkDevice device,
       break;
    }
 
-   if (!VN_PERF(NO_QUERY_FEEDBACK)) {
-      /* Feedback results are always 64 bit and include availability bit
-       * (also 64 bit)
-       */
-      const uint32_t slot_size = (pool->result_array_size * 8) + 8;
-      VkResult result = vn_feedback_buffer_create(
-         dev, slot_size * pCreateInfo->queryCount, alloc, &pool->fb_buf);
-      if (result != VK_SUCCESS) {
-         vn_object_base_fini(&pool->base);
-         vk_free(alloc, pool);
-         return vn_error(dev->instance, result);
-      }
-   }
-
    /* Venus has to handle overflow behavior with query feedback to keep
     * consistency between vkCmdCopyQueryPoolResults and vkGetQueryPoolResults.
     * The default query feedback behavior is to wrap on overflow. However, per
@@ -146,6 +135,8 @@ vn_DestroyQueryPool(VkDevice device,
 
    if (pool->fb_buf)
       vn_feedback_buffer_destroy(dev, pool->fb_buf, alloc);
+
+   simple_mtx_destroy(&pool->mutex);
 
    vn_async_vkDestroyQueryPool(dev->primary_ring, device, queryPool, NULL);
 
@@ -373,4 +364,27 @@ vn_GetQueryPoolResults(VkDevice device,
 
    vk_free(alloc, packed_data);
    return vn_result(dev->instance, result);
+}
+
+VkResult
+vn_query_feedback_buffer_init_once(struct vn_device *dev,
+                                   struct vn_query_pool *pool)
+{
+   VkResult result = VK_SUCCESS;
+
+   simple_mtx_lock(&pool->mutex);
+   if (pool->fb_buf)
+      goto out_unlock;
+
+   const uint32_t fb_buf_size =
+      (pool->result_array_size + 1) * sizeof(uint64_t) * pool->query_count;
+   struct vn_feedback_buffer *fb_buf;
+   result =
+      vn_feedback_buffer_create(dev, fb_buf_size, &pool->allocator, &fb_buf);
+   if (result == VK_SUCCESS)
+      pool->fb_buf = fb_buf;
+
+out_unlock:
+   simple_mtx_unlock(&pool->mutex);
+   return result;
 }

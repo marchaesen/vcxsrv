@@ -513,11 +513,30 @@ v3dv_image_init(struct v3dv_device *device,
 }
 
 static VkResult
+create_image_from_swapchain(struct v3dv_device *device,
+                            const VkImageCreateInfo *pCreateInfo,
+                            const VkImageSwapchainCreateInfoKHR *swapchain_info,
+                            const VkAllocationCallbacks *pAllocator,
+                            VkImage *pImage);
+
+static VkResult
 create_image(struct v3dv_device *device,
              const VkImageCreateInfo *pCreateInfo,
              const VkAllocationCallbacks *pAllocator,
              VkImage *pImage)
 {
+#if DETECT_OS_ANDROID
+   /* VkImageSwapchainCreateInfoKHR is not useful at all */
+   const VkImageSwapchainCreateInfoKHR *swapchain_info = NULL;
+#else
+   const VkImageSwapchainCreateInfoKHR *swapchain_info =
+      vk_find_struct_const(pCreateInfo->pNext, IMAGE_SWAPCHAIN_CREATE_INFO_KHR);
+#endif
+
+   if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE)
+      return create_image_from_swapchain(device, pCreateInfo, swapchain_info,
+                                         pAllocator, pImage);
+
    VkResult result;
    struct v3dv_image *image = NULL;
 
@@ -600,29 +619,17 @@ v3dv_CreateImage(VkDevice _device,
                  VkImage *pImage)
 {
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
-
-#if DETECT_OS_ANDROID
-   /* VkImageSwapchainCreateInfoKHR is not useful at all */
-   const VkImageSwapchainCreateInfoKHR *swapchain_info = NULL;
-#else
-   const VkImageSwapchainCreateInfoKHR *swapchain_info =
-      vk_find_struct_const(pCreateInfo->pNext, IMAGE_SWAPCHAIN_CREATE_INFO_KHR);
-#endif
-
-   if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE)
-      return create_image_from_swapchain(device, pCreateInfo, swapchain_info,
-                                         pAllocator, pImage);
-
    return create_image(device, pCreateInfo, pAllocator, pImage);
 }
 
-VKAPI_ATTR void VKAPI_CALL
-v3dv_GetImageSubresourceLayout(VkDevice device,
-                               VkImage _image,
-                               const VkImageSubresource *subresource,
-                               VkSubresourceLayout *layout)
+static void
+get_image_subresource_layout(struct v3dv_device *device,
+                             struct v3dv_image *image,
+                             const VkImageSubresource2KHR *subresource2,
+                             VkSubresourceLayout2KHR *layout2)
 {
-   V3DV_FROM_HANDLE(v3dv_image, image, _image);
+   const VkImageSubresource *subresource = &subresource2->imageSubresource;
+   VkSubresourceLayout *layout = &layout2->subresourceLayout;
 
    uint8_t plane = v3dv_plane_from_aspect(subresource->aspectMask);
    const struct v3d_resource_slice *slice =
@@ -666,6 +673,37 @@ v3dv_GetImageSubresourceLayout(VkDevice device,
             layout->size = prev_slice->offset - slice->offset;
       }
    }
+}
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_GetImageSubresourceLayout2KHR(VkDevice _device,
+                                   VkImage _image,
+                                   const VkImageSubresource2KHR *subresource2,
+                                   VkSubresourceLayout2KHR *layout2)
+{
+   V3DV_FROM_HANDLE(v3dv_device, device, _device);
+   V3DV_FROM_HANDLE(v3dv_image, image, _image);
+   get_image_subresource_layout(device, image, subresource2, layout2);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+v3dv_GetDeviceImageSubresourceLayoutKHR(VkDevice vk_device,
+                                        const VkDeviceImageSubresourceInfoKHR *pInfo,
+                                        VkSubresourceLayout2KHR *pLayout)
+{
+   V3DV_FROM_HANDLE(v3dv_device, device, vk_device);
+
+   memset(&pLayout->subresourceLayout, 0, sizeof(pLayout->subresourceLayout));
+
+   VkImage vk_image = VK_NULL_HANDLE;
+   VkResult result = create_image(device, pInfo->pCreateInfo, NULL, &vk_image);
+   if (result != VK_SUCCESS)
+      return;
+
+   struct v3dv_image *image = v3dv_image_from_handle(vk_image);
+   get_image_subresource_layout(device, image, pInfo->pSubresource, pLayout);
+
+   v3dv_DestroyImage(vk_device, vk_image, NULL);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -893,8 +931,18 @@ v3dv_CreateBufferView(VkDevice _device,
    v3dv_X(device, get_internal_type_bpp_for_output_format)
       (view->format->planes[0].rt_type, &view->internal_type, &view->internal_bpp);
 
-   if (buffer->usage & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT ||
-       buffer->usage & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
+   const VkBufferUsageFlags2CreateInfoKHR *flags2 =
+      vk_find_struct_const(pCreateInfo->pNext,
+                           BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR);
+
+   VkBufferUsageFlags2KHR usage;
+   if (flags2)
+      usage = flags2->usage;
+   else
+      usage = buffer->usage;
+
+   if (usage & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT ||
+       usage & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)
       v3dv_X(device, pack_texture_shader_state_from_buffer_view)(device, view);
 
    *pView = v3dv_buffer_view_to_handle(view);

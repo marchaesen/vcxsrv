@@ -1,23 +1,5 @@
 # Copyright 2022 Advanced Micro Devices, Inc.
-# All Rights Reserved.
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 c_args_vpe = cc.get_supported_arguments([
   '-Wall',
@@ -35,6 +17,7 @@ c_args_vpe = cc.get_supported_arguments([
   '-Werror=enum-conversion',
   '-Werror=enum-compare',
   '-Werror=maybe-uninitialized',
+  '-Werror=parentheses',
 ])
 
 c_args_vpe += [
@@ -81,10 +64,8 @@ vpe_files = files(
   'src/core/vpe_visual_confirm.c',
   'src/core/mpc.c',
   'src/core/config_writer.c',
-  'src/core/plane_desc_writer.c',
   'src/core/color_gamut.c',
   'src/core/vpelib.c',
-  'src/core/vpe_desc_writer.c',
   'src/core/3dlut_builder.c',
   'src/core/geometric_scaling.c',
   'src/core/color_test_values.c',
@@ -99,10 +80,16 @@ vpe_files = files(
   'src/utils/inc/fixed31_32.h',
   'src/utils/inc/conversion.h',
   'src/utils/inc/calc_u64.h',
+  'src/utils/inc/vector.h',
   'src/utils/custom_fp16.c',
   'src/utils/custom_float.c',
   'src/utils/conversion.c',
   'src/utils/fixpt31_32.c',
+  'src/utils/vector.c',
+  'src/chip/vpe10/inc/vpe10_command.h',
+  'src/chip/vpe10/inc/vpe10_plane_desc_writer.h',
+  'src/chip/vpe10/inc/vpe10_vpe_desc_writer.h',
+  'src/chip/vpe10/inc/vpe10_config_writer.h',
   'src/chip/vpe10/inc/vpe10_background.h',
   'src/chip/vpe10/inc/vpe10_cm_common.h',
   'src/chip/vpe10/inc/vpe10_vpec.h',
@@ -114,8 +101,11 @@ vpe_files = files(
   'src/chip/vpe10/inc/asic/bringup_vpe_6_1_0_sh_mask.h',
   'src/chip/vpe10/inc/asic/vpe_1_0_offset.h',
   'src/chip/vpe10/inc/vpe10_resource.h',
-  'src/chip/vpe10/inc/vpe10_cdc.h',
+  'src/chip/vpe10/inc/vpe10_cdc_fe.h',
+  'src/chip/vpe10/inc/vpe10_cdc_be.h',
   'src/chip/vpe10/inc/vpe10_dpp.h',
+  'src/chip/vpe10/vpe10_plane_desc_writer.c',
+  'src/chip/vpe10/vpe10_vpe_desc_writer.c',
   'src/chip/vpe10/vpe10_cm_common.c',
   'src/chip/vpe10/vpe10_dpp.c',
   'src/chip/vpe10/vpe10_resource.c',
@@ -125,12 +115,17 @@ vpe_files = files(
   'src/chip/vpe10/vpe10_dpp_cm.c',
   'src/chip/vpe10/vpe10_opp.c',
   'src/chip/vpe10/vpe10_background.c',
-  'src/chip/vpe10/vpe10_cdc.c',
+  'src/chip/vpe10/vpe10_cdc_fe.c',
+  'src/chip/vpe10/vpe10_cdc_be.c',
   'src/chip/vpe10/vpe10_vpec.c',
+  'src/chip/vpe10/vpe10_config_writer.c',
+  'src/chip/vpe11/inc/vpe11_command.h',
   'src/chip/vpe11/inc/vpe11_cmd_builder.h',
   'src/chip/vpe11/inc/vpe11_resource.h',
+  'src/chip/vpe11/inc/vpe11_vpe_desc_writer.h',
   'src/chip/vpe11/vpe11_cmd_builder.c',
   'src/chip/vpe11/vpe11_resource.c',
+  'src/chip/vpe11/vpe11_vpe_desc_writer.c'
 )
 
 inc_amd_vpe = include_directories(

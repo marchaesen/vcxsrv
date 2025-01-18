@@ -259,6 +259,7 @@
     <field name="Tile height (sw)" size="3" start="158" type="uint" modifier="log2" default="1"/>
     <field name="Layer stride (sw)" size="27" start="161" type="uint" modifier="shr(7)"/>
     <field name="Sample count log2 (sw)" size="2" start="188" type="uint"/>
+    <field name="Buffer offset (sw)" size="32" start="128" type="uint"/>
   </struct>
 
   <struct name="Texture" size="24">
@@ -301,8 +302,9 @@
     <field name="Depth (linear)" size="11" start="128" type="uint" modifier="minus(1)" default="1"/>
     <field name="Layer stride (linear)" size="27" start="139" type="uint" modifier="shr(7)"/>
 
-    <!-- Buffer texture size -->
-    <field name="Software-defined" size="64" start="128" type="hex"/>
+    <!-- Buffer texture metadata  -->
+    <field name="Buffer size (sw)" size="32" start="128" type="uint"/>
+    <field name="Buffer offset (sw)" size="32" start="160" type="uint"/>
   </struct>
 
   <enum name="Wrap">
@@ -856,8 +858,7 @@
   <struct name="Index List" size="4">
     <field name="Index buffer hi" size="8" start="0" type="hex"/>
     <field name="Primitive" size="8" start="8" type="Primitive"/>
-    <!-- Metal sets this bit for strips, probably wrong though -->
-    <field name="Restart enable" size="1" start="16" type="bool"/> 
+    <field name="Restart enable" size="1" start="16" type="bool"/>
     <field name="Index size" size="3" start="17" type="Index size"/>
 
     <field name="Index buffer size present" size="1" start="20" type="bool"/>
@@ -937,8 +938,7 @@
     <field name="Instance stride present" size="1" start="25" type="bool"/>
 
     <field name="Indirect present" size="1" start="26" type="bool"/>
-    <!-- Present for both indirect and direct -->
-    <field name="Unknown present" size="1" start="28" type="bool"/>
+    <field name="Factor buffer size present" size="1" start="28" type="bool"/>
 
     <field name="Unknown 1" size="1" start="28" type="hex"/> <!-- 1 -->
     <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Tessellate"/>
@@ -978,8 +978,8 @@
     <field name="Size" size="32" start="2:0" type="uint"/>
   </struct>
 
-  <struct name="VDM Tessellate: Unknown" size="4">
-    <field name="Unknown 7" size="32" start="0" type="hex"/> <!-- 3F -->
+  <struct name="VDM Tessellate: Factor buffer size" size="4">
+    <field name="Size (words)" size="32" start="0" type="uint" modifier="minus(1)"/>
   </struct>
 
   <struct name="VDM Stream Terminate" size="32">

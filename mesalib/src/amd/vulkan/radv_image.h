@@ -75,6 +75,12 @@ struct radv_image {
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(radv_image, vk.base, VkImage, VK_OBJECT_TYPE_IMAGE)
 
+static inline uint64_t
+radv_image_get_va(const struct radv_image *image, uint32_t bind_idx)
+{
+   return radv_buffer_get_va(image->bindings[bind_idx].bo) + image->bindings[bind_idx].offset;
+}
+
 static inline bool
 radv_image_extent_compare(const struct radv_image *image, const VkExtent3D *extent)
 {
@@ -209,8 +215,8 @@ radv_image_get_fast_clear_va(const struct radv_image *image, uint32_t base_level
 {
    assert(radv_image_has_clear_value(image));
 
-   uint64_t va = radv_buffer_get_va(image->bindings[0].bo);
-   va += image->bindings[0].offset + image->clear_value_offset + base_level * 8;
+   uint64_t va = radv_image_get_va(image, 0);
+   va += image->clear_value_offset + base_level * 8;
    return va;
 }
 
@@ -219,8 +225,8 @@ radv_image_get_fce_pred_va(const struct radv_image *image, uint32_t base_level)
 {
    assert(image->fce_pred_offset != 0);
 
-   uint64_t va = radv_buffer_get_va(image->bindings[0].bo);
-   va += image->bindings[0].offset + image->fce_pred_offset + base_level * 8;
+   uint64_t va = radv_image_get_va(image, 0);
+   va += image->fce_pred_offset + base_level * 8;
    return va;
 }
 
@@ -229,8 +235,8 @@ radv_image_get_dcc_pred_va(const struct radv_image *image, uint32_t base_level)
 {
    assert(image->dcc_pred_offset != 0);
 
-   uint64_t va = radv_buffer_get_va(image->bindings[0].bo);
-   va += image->bindings[0].offset + image->dcc_pred_offset + base_level * 8;
+   uint64_t va = radv_image_get_va(image, 0);
+   va += image->dcc_pred_offset + base_level * 8;
    return va;
 }
 
@@ -239,8 +245,8 @@ radv_get_tc_compat_zrange_va(const struct radv_image *image, uint32_t base_level
 {
    assert(image->tc_compat_zrange_offset != 0);
 
-   uint64_t va = radv_buffer_get_va(image->bindings[0].bo);
-   va += image->bindings[0].offset + image->tc_compat_zrange_offset + base_level * 4;
+   uint64_t va = radv_image_get_va(image, 0);
+   va += image->tc_compat_zrange_offset + base_level * 4;
    return va;
 }
 
@@ -249,8 +255,8 @@ radv_get_ds_clear_value_va(const struct radv_image *image, uint32_t base_level)
 {
    assert(radv_image_has_clear_value(image));
 
-   uint64_t va = radv_buffer_get_va(image->bindings[0].bo);
-   va += image->bindings[0].offset + image->clear_value_offset + base_level * 8;
+   uint64_t va = radv_image_get_va(image, 0);
+   va += image->clear_value_offset + base_level * 8;
    return va;
 }
 
@@ -299,9 +305,7 @@ radv_image_get_iterate256(const struct radv_device *device, struct radv_image *i
    const struct radv_physical_device *pdev = radv_device_physical(device);
 
    /* ITERATE_256 is required for depth or stencil MSAA images that are TC-compatible HTILE. */
-   return pdev->info.gfx_level >= GFX10 &&
-          (image->vk.usage & (VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)) &&
-          radv_image_is_tc_compat_htile(image) && image->vk.samples > 1;
+   return pdev->info.gfx_level >= GFX10 && radv_image_is_tc_compat_htile(image) && image->vk.samples > 1;
 }
 
 bool radv_are_formats_dcc_compatible(const struct radv_physical_device *pdev, const void *pNext, VkFormat format,
@@ -311,12 +315,8 @@ bool radv_image_use_dcc_image_stores(const struct radv_device *device, const str
 
 bool radv_image_use_dcc_predication(const struct radv_device *device, const struct radv_image *image);
 
-unsigned radv_map_swizzle(unsigned swizzle);
-
 void radv_compose_swizzle(const struct util_format_description *desc, const VkComponentMapping *mapping,
                           enum pipe_swizzle swizzle[4]);
-
-bool vi_alpha_is_on_msb(const struct radv_device *device, const VkFormat format);
 
 void radv_init_metadata(struct radv_device *device, struct radv_image *image, struct radeon_bo_metadata *metadata);
 
@@ -375,7 +375,5 @@ unsigned radv_image_queue_family_mask(const struct radv_image *image, enum radv_
                                       enum radv_queue_family queue_family);
 
 bool radv_image_is_renderable(const struct radv_device *device, const struct radv_image *image);
-
-unsigned radv_tile_mode_index(const struct radv_image_plane *plane, unsigned level, bool stencil);
 
 #endif /* RADV_IMAGE_H */

@@ -31,6 +31,8 @@
 #include "dpp.h"
 #include "mpc.h"
 #include "opp.h"
+#include "vector.h"
+#include "hw_shared.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +42,8 @@ struct vpe_priv;
 struct vpe_cmd_info;
 struct segment_ctx;
 
-#define MAX_PIPE 2
+#define MIN_VPE_CMD    (1024)
+#define MIN_NUM_CONFIG (16)
 
 enum vpe_cmd_ops;
 
@@ -69,6 +72,8 @@ struct resource {
     enum vpe_status (*calculate_segments)(
         struct vpe_priv *vpe_priv, const struct vpe_build_param *params);
 
+    enum vpe_status(*check_bg_color_support)(struct vpe_priv* vpe_priv, struct vpe_color* bg_color);
+
     enum vpe_status (*set_num_segments)(struct vpe_priv *vpe_priv, struct stream_ctx *stream_ctx,
         struct scaler_data *scl_data, struct vpe_rect *src_rect, struct vpe_rect *dst_rect,
         uint32_t *max_seg_width);
@@ -95,14 +100,17 @@ struct resource {
 
     void (*get_bufs_req)(struct vpe_priv *vpe_priv, struct vpe_bufs_req *req);
 
+    enum vpe_status (*check_mirror_rotation_support)(const struct vpe_stream *stream);
+
     // Indicates the nominal range hdr input content should be in during processing.
     int internal_hdr_normalization;
 
     // vpep components
-    struct cdc        *cdc[MAX_PIPE];
-    struct dpp        *dpp[MAX_PIPE];
-    struct opp        *opp[MAX_PIPE];
-    struct mpc        *mpc[MAX_PIPE];
+    struct cdc_fe     *cdc_fe[MAX_INPUT_PIPE];
+    struct cdc_be     *cdc_be[MAX_OUTPUT_PIPE];
+    struct dpp        *dpp[MAX_INPUT_PIPE];
+    struct opp        *opp[MAX_INPUT_PIPE];
+    struct mpc        *mpc[MAX_INPUT_PIPE];
     struct cmd_builder cmd_builder;
 };
 
@@ -124,9 +132,6 @@ struct segment_ctx *vpe_alloc_segment_ctx(struct vpe_priv *vpe_priv, uint16_t nu
 struct stream_ctx *vpe_alloc_stream_ctx(struct vpe_priv *vpe_priv, uint32_t num_streams);
 
 void vpe_free_stream_ctx(struct vpe_priv *vpe_priv);
-
-/** output ctx */
-void vpe_free_output_ctx(struct vpe_priv *vpe_priv);
 
 /** pipe resource management */
 void vpe_pipe_reset(struct vpe_priv *vpe_priv);
@@ -151,6 +156,13 @@ void vpe_handle_output_h_mirror(struct vpe_priv *vpe_priv);
 
 void vpe_resource_build_bit_depth_reduction_params(
     struct opp *opp, struct bit_depth_reduction_params *fmt_bit_depth);
+
+/** resource function call backs*/
+void vpe_frontend_config_callback(
+    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size, uint32_t pipe_idx);
+
+void vpe_backend_config_callback(
+    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size, uint32_t pipe_idx);
 
 #ifdef __cplusplus
 }

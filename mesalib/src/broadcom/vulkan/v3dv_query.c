@@ -773,6 +773,9 @@ v3dv_GetQueryPoolResults(VkDevice _device,
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
    V3DV_FROM_HANDLE(v3dv_query_pool, pool, queryPool);
 
+   if (vk_device_is_lost(&device->vk))
+      return VK_ERROR_DEVICE_LOST;
+
    return v3dv_get_query_pool_results_cpu(device, pool, firstQuery, queryCount,
                                           pData, stride, flags);
 }
@@ -1075,7 +1078,8 @@ copy_pipeline_index_from_flags(VkQueryResultFlags flags)
 }
 
 static nir_shader *
-get_copy_query_results_cs(VkQueryResultFlags flags);
+get_copy_query_results_cs(const nir_shader_compiler_options *compiler_options,
+                          VkQueryResultFlags flags);
 
 static void
 cmd_buffer_emit_copy_query_pool_results(struct v3dv_cmd_buffer *cmd_buffer,
@@ -1092,7 +1096,10 @@ cmd_buffer_emit_copy_query_pool_results(struct v3dv_cmd_buffer *cmd_buffer,
    /* Create the required copy pipeline if not yet created */
    uint32_t pipeline_idx = copy_pipeline_index_from_flags(flags);
    if (!device->queries.copy_pipeline[pipeline_idx]) {
-      nir_shader *copy_query_results_cs_nir = get_copy_query_results_cs(flags);
+      const nir_shader_compiler_options *compiler_options =
+         v3dv_pipeline_get_nir_options(&device->devinfo);
+      nir_shader *copy_query_results_cs_nir =
+         get_copy_query_results_cs(compiler_options, flags);
       VkResult result =
          v3dv_create_compute_pipeline_from_nir(
                device, copy_query_results_cs_nir,
@@ -1350,7 +1357,8 @@ v3dv_EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
 {
    V3DV_FROM_HANDLE(v3dv_physical_device, pDevice, physicalDevice);
 
-   return v3dv_X(pDevice, enumerate_performance_query_counters)(pCounterCount,
+   return v3dv_X(pDevice, enumerate_performance_query_counters)(pDevice,
+                                                                pCounterCount,
                                                                 pCounters,
                                                                 pCounterDescriptions);
 }
@@ -1401,9 +1409,8 @@ nir_get_query_availability(nir_builder *b,
 }
 
 static nir_shader *
-get_set_query_availability_cs()
+get_set_query_availability_cs(const nir_shader_compiler_options *options)
 {
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options,
                                                   "set query availability cs");
 
@@ -1465,9 +1472,8 @@ nir_read_occlusion_counter(nir_builder *b,
 }
 
 static nir_shader *
-get_reset_occlusion_query_cs()
+get_reset_occlusion_query_cs(const nir_shader_compiler_options *options)
 {
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options,
                                                   "reset occlusion query cs");
 
@@ -1519,13 +1525,13 @@ write_query_buffer(nir_builder *b,
 }
 
 static nir_shader *
-get_copy_query_results_cs(VkQueryResultFlags flags)
+get_copy_query_results_cs(const nir_shader_compiler_options *options,
+                          VkQueryResultFlags flags)
 {
    bool flag_64bit = flags & VK_QUERY_RESULT_64_BIT;
    bool flag_avail = flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT;
    bool flag_partial = flags & VK_QUERY_RESULT_PARTIAL_BIT;
 
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options,
                                                   "copy query results cs");
 
@@ -1646,8 +1652,12 @@ create_query_pipelines(struct v3dv_device *device)
          return false;
    }
 
+   const nir_shader_compiler_options *compiler_options =
+      v3dv_pipeline_get_nir_options(&device->devinfo);
+
    if (!device->queries.avail_pipeline) {
-      nir_shader *set_query_availability_cs_nir = get_set_query_availability_cs();
+      nir_shader *set_query_availability_cs_nir =
+         get_set_query_availability_cs(compiler_options);
       result = v3dv_create_compute_pipeline_from_nir(device,
                                                      set_query_availability_cs_nir,
                                                      device->queries.avail_pipeline_layout,
@@ -1688,7 +1698,8 @@ create_query_pipelines(struct v3dv_device *device)
    }
 
    if (!device->queries.reset_occlusion_pipeline) {
-      nir_shader *reset_occlusion_query_cs_nir = get_reset_occlusion_query_cs();
+      nir_shader *reset_occlusion_query_cs_nir =
+         get_reset_occlusion_query_cs(compiler_options);
       result = v3dv_create_compute_pipeline_from_nir(
                   device,
                   reset_occlusion_query_cs_nir,

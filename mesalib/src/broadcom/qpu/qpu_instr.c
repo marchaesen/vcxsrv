@@ -370,6 +370,12 @@ v3d_qpu_unpack_name(enum v3d_qpu_input_unpack unpack)
                 return ".hh";
         case V3D_QPU_UNPACK_SWAP_16:
                 return ".swp";
+        case V3D71_QPU_UNPACK_SAT:
+                return ".sat";
+        case V3D71_QPU_UNPACK_NSAT:
+                return ".nsat";
+        case V3D71_QPU_UNPACK_MAX0:
+                return ".max0";
         default:
                 unreachable("bad unpack value");
         }

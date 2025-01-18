@@ -28,7 +28,7 @@ static unsigned
 svga_get_image_size_constant(const struct svga_context *svga, float **dest,
                              enum pipe_shader_type shader,
                              unsigned num_image_views,
-                             const struct svga_image_view images[PIPE_SHADER_TYPES][SVGA3D_MAX_UAVIEWS])
+                             const struct svga_image_view images[PIPE_SHADER_TYPES][SVGA_MAX_IMAGES])
 {
    uint32_t *dest_u = (uint32_t *) *dest;
 

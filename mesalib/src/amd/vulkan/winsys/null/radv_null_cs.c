@@ -66,6 +66,11 @@ radv_null_cs_create(struct radeon_winsys *ws, enum amd_ip_type ip_type, UNUSED b
    return &cs->base;
 }
 
+static void
+radv_null_cs_pad(struct radeon_cmdbuf *_cs, unsigned leave_dw_space)
+{
+}
+
 static VkResult
 radv_null_cs_finalize(struct radeon_cmdbuf *_cs)
 {
@@ -89,4 +94,5 @@ radv_null_cs_init_functions(struct radv_null_winsys *ws)
    ws->base.cs_create = radv_null_cs_create;
    ws->base.cs_finalize = radv_null_cs_finalize;
    ws->base.cs_destroy = radv_null_cs_destroy;
+   ws->base.cs_pad = radv_null_cs_pad;
 }

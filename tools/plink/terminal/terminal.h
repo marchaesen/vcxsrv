@@ -157,6 +157,7 @@ struct terminal_tag {
     int raw_mouse_reported_y;
 
     bool bracketed_paste, bracketed_paste_active;
+    bool no_bracketed_paste;           /* disabled in configuration */
 
     int cset_attr[2];
 
@@ -226,7 +227,7 @@ struct terminal_tag {
     int attr_mask;
 
     wchar_t *paste_buffer;
-    int paste_len, paste_pos;
+    size_t paste_len, paste_pos;
 
     Backend *backend;
 

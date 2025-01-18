@@ -24,9 +24,7 @@
 /* Test relies on assert() */
 #undef NDEBUG
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <stdint.h>
 #include <X11/X.h>
@@ -35,15 +33,16 @@
 #include <X11/Xatom.h>
 
 #include "dix/dix_priv.h"
+#include "dix/dixgrabs_priv.h"
 #include "dix/eventconvert.h"
 #include "dix/exevents_priv.h"
+#include "dix/input_priv.h"
 
 #include "misc.h"
 #include "resource.h"
 #include "windowstr.h"
 #include "inputstr.h"
 #include "exglobals.h"
-#include "dixgrabs.h"
 #include "eventstr.h"
 #include "inpututils.h"
 #include "mi.h"
@@ -1214,27 +1213,27 @@ dix_input_attributes(void)
     assert(memcmp(orig, new, sizeof(InputAttributes)) == 0);
     FreeInputAttributes(new);
 
-    orig->product = xnfstrdup("product name");
+    orig->product = XNFstrdup("product name");
     new = DuplicateInputAttributes(orig);
     cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig->vendor = xnfstrdup("vendor name");
+    orig->vendor = XNFstrdup("vendor name");
     new = DuplicateInputAttributes(orig);
     cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig->device = xnfstrdup("device path");
+    orig->device = XNFstrdup("device path");
     new = DuplicateInputAttributes(orig);
     cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig->pnp_id = xnfstrdup("PnPID");
+    orig->pnp_id = XNFstrdup("PnPID");
     new = DuplicateInputAttributes(orig);
     cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
 
-    orig->usb_id = xnfstrdup("USBID");
+    orig->usb_id = XNFstrdup("USBID");
     new = DuplicateInputAttributes(orig);
     cmp_attr_fields(orig, new);
     FreeInputAttributes(new);
@@ -1256,23 +1255,22 @@ static void
 dix_input_valuator_masks(void)
 {
     ValuatorMask *mask = NULL, *copy;
-    int nvaluators = MAX_VALUATORS;
-    double valuators[nvaluators];
-    int val_ranged[nvaluators];
+    double valuators[MAX_VALUATORS];
+    int val_ranged[MAX_VALUATORS];
     int i;
     int first_val, num_vals;
 
-    for (i = 0; i < nvaluators; i++) {
+    for (i = 0; i < MAX_VALUATORS; i++) {
         valuators[i] = i + 0.5;
         val_ranged[i] = i;
     }
 
-    mask = valuator_mask_new(nvaluators);
+    mask = valuator_mask_new(MAX_VALUATORS);
     assert(mask != NULL);
     assert(valuator_mask_size(mask) == 0);
     assert(valuator_mask_num_valuators(mask) == 0);
 
-    for (i = 0; i < nvaluators; i++) {
+    for (i = 0; i < MAX_VALUATORS; i++) {
         assert(!valuator_mask_isset(mask, i));
         valuator_mask_set_double(mask, i, valuators[i]);
         assert(valuator_mask_isset(mask, i));
@@ -1282,13 +1280,13 @@ dix_input_valuator_masks(void)
         assert(valuator_mask_num_valuators(mask) == i + 1);
     }
 
-    for (i = 0; i < nvaluators; i++) {
+    for (i = 0; i < MAX_VALUATORS; i++) {
         assert(valuator_mask_isset(mask, i));
         valuator_mask_unset(mask, i);
         /* we're removing valuators from the front, so size should stay the
          * same until the last bit is removed */
-        if (i < nvaluators - 1)
-            assert(valuator_mask_size(mask) == nvaluators);
+        if (i < MAX_VALUATORS - 1)
+            assert(valuator_mask_size(mask) == MAX_VALUATORS);
         assert(!valuator_mask_isset(mask, i));
     }
 
@@ -1296,7 +1294,7 @@ dix_input_valuator_masks(void)
     valuator_mask_zero(mask);
     assert(valuator_mask_size(mask) == 0);
     assert(valuator_mask_num_valuators(mask) == 0);
-    for (i = 0; i < nvaluators; i++)
+    for (i = 0; i < MAX_VALUATORS; i++)
         assert(!valuator_mask_isset(mask, i));
 
     first_val = 5;
@@ -1305,7 +1303,7 @@ dix_input_valuator_masks(void)
     valuator_mask_set_range(mask, first_val, num_vals, val_ranged);
     assert(valuator_mask_size(mask) == first_val + num_vals);
     assert(valuator_mask_num_valuators(mask) == num_vals);
-    for (i = 0; i < nvaluators; i++) {
+    for (i = 0; i < MAX_VALUATORS; i++) {
         double val;
 
         if (i < first_val || i >= first_val + num_vals) {
@@ -1322,14 +1320,14 @@ dix_input_valuator_masks(void)
         }
     }
 
-    copy = valuator_mask_new(nvaluators);
+    copy = valuator_mask_new(MAX_VALUATORS);
     valuator_mask_copy(copy, mask);
     assert(mask != copy);
     assert(valuator_mask_size(mask) == valuator_mask_size(copy));
     assert(valuator_mask_num_valuators(mask) ==
            valuator_mask_num_valuators(copy));
 
-    for (i = 0; i < nvaluators; i++) {
+    for (i = 0; i < MAX_VALUATORS; i++) {
         double a, b;
 
         assert(valuator_mask_isset(mask, i) == valuator_mask_isset(copy, i));

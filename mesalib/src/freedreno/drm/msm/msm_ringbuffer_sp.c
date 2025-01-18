@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2018 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2018 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -31,6 +13,7 @@
 #include "util/os_file.h"
 
 #include "drm/freedreno_ringbuffer_sp.h"
+#include "freedreno_rd_output.h"
 #include "msm_priv.h"
 
 static int
@@ -146,7 +129,7 @@ flush_submit_list(struct list_head *submit_list)
 
    DEBUG_MSG("nr_cmds=%u, nr_bos=%u", req.nr_cmds, req.nr_bos);
 
-   ret = drmCommandWriteRead(msm_pipe->base.dev->fd, DRM_MSM_GEM_SUBMIT, &req,
+   ret = drmCommandWriteRead(pipe->dev->fd, DRM_MSM_GEM_SUBMIT, &req,
                              sizeof(req));
    if (ret) {
       ERROR_MSG("submit failed: %d (%s)", ret, strerror(errno));
@@ -155,6 +138,8 @@ flush_submit_list(struct list_head *submit_list)
       fd_submit->out_fence->kfence = req.fence;
       fd_submit->out_fence->fence_fd = req.fence_fd;
    }
+
+   msm_dump_rd(pipe, &req);
 
    if (!bos_on_stack)
       free(submit_bos);

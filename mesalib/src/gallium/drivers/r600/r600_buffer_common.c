@@ -615,8 +615,7 @@ r600_buffer_from_user_memory(struct pipe_screen *screen,
 	util_range_add(&rbuffer->b.b, &rbuffer->b.valid_buffer_range, 0, templ->width0);
 
 	/* Convert a user pointer to a buffer. */
-	rbuffer->buf = ws->buffer_from_ptr(ws, user_memory, templ->width0,
-	                                   templ->usage == PIPE_USAGE_IMMUTABLE? RADEON_FLAG_READ_ONLY : 0);
+	rbuffer->buf = ws->buffer_from_ptr(ws, user_memory, templ->width0, 0);
 	if (!rbuffer->buf) {
 		FREE(rbuffer);
 		return NULL;

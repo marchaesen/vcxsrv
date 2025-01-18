@@ -51,9 +51,16 @@ analyze(const struct pan_shader_info *s, bool writes_zs_or_oq,
     * be deferred until the value is known after the ZS_EMIT instruction,
     * if present. ZS_EMIT must precede ATEST, so the value is known when
     * ATEST executes, justifying the late test/update.
+    * Also, if alpha_to_coverage is set that also forces a late update.
+    * NOTE: it's not at all clear why alpha_to_coverage always requires
+    * a late update; the late update should only really be required if
+    * we're writing z or stencil, or testing for occlusion queries.
+    * The docs are somewhat contradictory on this point.
+    * But empirically we observe this requirement on Valhall, and doing
+    * the update later is never wrong (just potentially a bit slower).
     */
    bool shader_writes_zs = (s->fs.writes_depth || s->fs.writes_stencil);
-   bool late_update = shader_writes_zs;
+   bool late_update = shader_writes_zs || alpha_to_coverage;
    bool late_kill = shader_writes_zs;
 
    /* Late coverage updates are required if the coverage mask depends on

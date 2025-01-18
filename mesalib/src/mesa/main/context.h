@@ -346,6 +346,34 @@ _mesa_is_gles32(const struct gl_context *ctx)
 
 
 static inline bool
+_mesa_is_gles2_compatible(const struct gl_context *ctx)
+{
+   return _mesa_is_gles2(ctx) || _mesa_has_ARB_ES2_compatibility(ctx);
+}
+
+
+static inline bool
+_mesa_is_gles3_compatible(const struct gl_context *ctx)
+{
+   return _mesa_is_gles3(ctx) || _mesa_has_ARB_ES3_compatibility(ctx);
+}
+
+
+static inline bool
+_mesa_is_gles31_compatible(const struct gl_context *ctx)
+{
+   return _mesa_is_gles31(ctx) || _mesa_has_ARB_ES3_1_compatibility(ctx);
+}
+
+
+static inline bool
+_mesa_is_gles32_compatible(const struct gl_context *ctx)
+{
+   return _mesa_is_gles32(ctx) || _mesa_has_ARB_ES3_2_compatibility(ctx);
+}
+
+
+static inline bool
 _mesa_is_no_error_enabled(const struct gl_context *ctx)
 {
    return ctx->Const.ContextFlags & GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;

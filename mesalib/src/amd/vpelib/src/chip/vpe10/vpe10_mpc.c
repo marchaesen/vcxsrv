@@ -75,7 +75,7 @@ void vpe10_mpc_program_mpcc_mux(struct mpc *mpc, enum mpc_mpccid mpcc_idx,
 
     REG_SET(VPMPCC_TOP_SEL, 0, VPMPCC_TOP_SEL, topsel);
     REG_SET(VPMPCC_BOT_SEL, 0, VPMPCC_BOT_SEL, botsel);
-    REG_SET(VPMPC_OUT0_MUX, 0, VPMPC_OUT_MUX, outmux);
+    REG_SET(VPMPC_OUT_MUX, 0, VPMPC_OUT_MUX, outmux);
     REG_SET(VPMPCC_VPOPP_ID, 0, VPMPCC_VPOPP_ID, oppid);
 
     /* program mux and MPCC_MODE */
@@ -209,7 +209,7 @@ void vpe10_mpc_set_output_csc(
     struct color_matrices_reg ocsc_regs;
 
     REG_SET(VPMPC_OUT_CSC_COEF_FORMAT, 0, VPMPC_OCSC0_COEF_FORMAT, 0);
-    REG_SET(VPMPC_OUT0_CSC_MODE, 0, VPMPC_OCSC_MODE, ocsc_mode);
+    REG_SET(VPMPC_OUT_CSC_MODE, 0, VPMPC_OCSC_MODE, ocsc_mode);
 
     if (ocsc_mode == MPC_OUTPUT_CSC_DISABLE)
         return;
@@ -223,8 +223,8 @@ void vpe10_mpc_set_output_csc(
     ocsc_regs.masks.csc_c12  = REG_FIELD_MASK(VPMPC_OCSC_C12_A);
 
     if (ocsc_mode == MPC_OUTPUT_CSC_COEF_A) {
-        ocsc_regs.csc_c11_c12 = REG_OFFSET(VPMPC_OUT0_CSC_C11_C12_A);
-        ocsc_regs.csc_c33_c34 = REG_OFFSET(VPMPC_OUT0_CSC_C33_C34_A);
+        ocsc_regs.csc_c11_c12 = REG_OFFSET(VPMPC_OUT_CSC_C11_C12_A);
+        ocsc_regs.csc_c33_c34 = REG_OFFSET(VPMPC_OUT_CSC_C33_C34_A);
     } else {
         VPE_ASSERT(0);
         return;
@@ -242,7 +242,7 @@ void vpe10_mpc_set_ocsc_default(struct mpc *mpc, enum vpe_surface_pixel_format p
     const uint16_t           *regval = NULL;
 
     REG_SET(VPMPC_OUT_CSC_COEF_FORMAT, 0, VPMPC_OCSC0_COEF_FORMAT, 0);
-    REG_SET(VPMPC_OUT0_CSC_MODE, 0, VPMPC_OCSC_MODE, ocsc_mode);
+    REG_SET(VPMPC_OUT_CSC_MODE, 0, VPMPC_OCSC_MODE, ocsc_mode);
 
     if (ocsc_mode == MPC_OUTPUT_CSC_DISABLE)
         return;
@@ -257,8 +257,8 @@ void vpe10_mpc_set_ocsc_default(struct mpc *mpc, enum vpe_surface_pixel_format p
     ocsc_regs.masks.csc_c12  = REG_FIELD_MASK(VPMPC_OCSC_C12_A);
 
     if (ocsc_mode == MPC_OUTPUT_CSC_COEF_A) {
-        ocsc_regs.csc_c11_c12 = REG_OFFSET(VPMPC_OUT0_CSC_C11_C12_A);
-        ocsc_regs.csc_c33_c34 = REG_OFFSET(VPMPC_OUT0_CSC_C33_C34_A);
+        ocsc_regs.csc_c11_c12 = REG_OFFSET(VPMPC_OUT_CSC_C11_C12_A);
+        ocsc_regs.csc_c33_c34 = REG_OFFSET(VPMPC_OUT_CSC_C33_C34_A);
     } else {
         VPE_ASSERT(0);
         return;
@@ -732,7 +732,7 @@ static void vpe10_mpc_set3dlut_ram12_indirect(
 
     uint32_t data_array_size = (entries / 2 * 3); // DW size of config data array, actual size
 
-    config_writer_set_type(config_writer, CONFIG_TYPE_INDIRECT);
+    config_writer_set_type(config_writer, CONFIG_TYPE_INDIRECT, mpc->inst);
 
     // Optimized by single VPEP indirect config packet
     // Fill the 3dLut array pointer
@@ -743,7 +743,7 @@ static void vpe10_mpc_set3dlut_ram12_indirect(
         config_writer, REG_OFFSET(VPMPCC_MCM_3DLUT_INDEX), 0, REG_OFFSET(VPMPCC_MCM_3DLUT_DATA));
 
     // restore back to direct
-    config_writer_set_type(config_writer, CONFIG_TYPE_DIRECT);
+    config_writer_set_type(config_writer, CONFIG_TYPE_DIRECT, mpc->inst);
 }
 
 static void vpe10_mpc_set3dlut_ram10(struct mpc *mpc, const struct vpe_rgb *lut, uint32_t entries)
@@ -801,7 +801,7 @@ static void vpe10_mpc_set3dlut_ram10_indirect(
     // DW0: R1<<22 | G1<<12 | B1 <<2
     //...
 
-    config_writer_set_type(config_writer, CONFIG_TYPE_INDIRECT);
+    config_writer_set_type(config_writer, CONFIG_TYPE_INDIRECT, mpc->inst);
 
     // Optimized by single VPEP indirect config packet
     // Fill the 3dLut array pointer
@@ -812,7 +812,7 @@ static void vpe10_mpc_set3dlut_ram10_indirect(
         config_writer, REG_OFFSET(VPMPCC_MCM_3DLUT_INDEX), 0, REG_OFFSET(VPMPCC_MCM_3DLUT_DATA));
 
     // resume back to direct
-    config_writer_set_type(config_writer, CONFIG_TYPE_DIRECT);
+    config_writer_set_type(config_writer, CONFIG_TYPE_DIRECT, mpc->inst);
 }
 
 static void vpe10_mpc_set_3dlut_mode(
@@ -856,7 +856,7 @@ void vpe10_mpc_program_3dlut(struct mpc *mpc, const struct tetrahedral_params *p
     // always use LUT_RAM_A except for bypass mode which is not the case here
     mode = LUT_RAM_A;
 
-    is_17x17x17             = !params->use_tetrahedral_9;
+    is_17x17x17             = (params->lut_dim == LUT_DIM_17);
     is_12bits_color_channel = params->use_12bits;
     if (is_17x17x17) {
         lut0      = params->tetrahedral_17.lut0;
@@ -931,7 +931,7 @@ bool vpe10_mpc_program_3dlut_indirect(struct mpc *mpc,
     struct tetrahedral_9x9x9    *tetra9  = NULL;
 
     // make sure it is in DIRECT type
-    config_writer_set_type(config_writer, CONFIG_TYPE_DIRECT);
+    config_writer_set_type(config_writer, CONFIG_TYPE_DIRECT, mpc->inst);
 
     if (lut0_3_buf == NULL) {
         vpe10_mpc_set_3dlut_mode(mpc, LUT_BYPASS, false);
@@ -1209,20 +1209,20 @@ void vpe10_mpc_set_denorm(struct mpc *mpc, int opp_id, enum color_depth output_d
 
     /*program min and max clamp values for the pixel components*/
     if (denorm_clamp) {
-        REG_SET_3(VPMPC_OUT0_DENORM_CONTROL, 0, VPMPC_OUT_DENORM_MODE, denorm_mode,
+        REG_SET_3(VPMPC_OUT_DENORM_CONTROL, 0, VPMPC_OUT_DENORM_MODE, denorm_mode,
             VPMPC_OUT_DENORM_CLAMP_MAX_R_CR, denorm_clamp->clamp_max_r_cr,
             VPMPC_OUT_DENORM_CLAMP_MIN_R_CR, denorm_clamp->clamp_min_r_cr);
-        REG_SET_2(VPMPC_OUT0_DENORM_CLAMP_G_Y, 0, VPMPC_OUT_DENORM_CLAMP_MAX_G_Y,
+        REG_SET_2(VPMPC_OUT_DENORM_CLAMP_G_Y, 0, VPMPC_OUT_DENORM_CLAMP_MAX_G_Y,
             denorm_clamp->clamp_max_g_y, VPMPC_OUT_DENORM_CLAMP_MIN_G_Y,
             denorm_clamp->clamp_min_g_y);
-        REG_SET_2(VPMPC_OUT0_DENORM_CLAMP_B_CB, 0, VPMPC_OUT_DENORM_CLAMP_MAX_B_CB,
+        REG_SET_2(VPMPC_OUT_DENORM_CLAMP_B_CB, 0, VPMPC_OUT_DENORM_CLAMP_MAX_B_CB,
             denorm_clamp->clamp_max_b_cb, VPMPC_OUT_DENORM_CLAMP_MIN_B_CB,
             denorm_clamp->clamp_min_b_cb);
     } else {
-        REG_SET(VPMPC_OUT0_DENORM_CONTROL, REG_DEFAULT(VPMPC_OUT0_DENORM_CONTROL),
+        REG_SET(VPMPC_OUT_DENORM_CONTROL, REG_DEFAULT(VPMPC_OUT_DENORM_CONTROL),
             VPMPC_OUT_DENORM_MODE, denorm_mode);
-        REG_SET_DEFAULT(VPMPC_OUT0_DENORM_CLAMP_G_Y);
-        REG_SET_DEFAULT(VPMPC_OUT0_DENORM_CLAMP_B_CB);
+        REG_SET_DEFAULT(VPMPC_OUT_DENORM_CLAMP_G_Y);
+        REG_SET_DEFAULT(VPMPC_OUT_DENORM_CLAMP_B_CB);
     }
 }
 
@@ -1230,7 +1230,7 @@ void vpe10_mpc_set_out_float_en(struct mpc *mpc, bool float_enable)
 {
     PROGRAM_ENTRY();
 
-    REG_SET(VPMPC_OUT0_FLOAT_CONTROL, 0, VPMPC_OUT_FLOAT_EN, float_enable);
+    REG_SET(VPMPC_OUT_FLOAT_CONTROL, 0, VPMPC_OUT_FLOAT_EN, float_enable);
 }
 
 void vpe10_mpc_program_mpc_out(struct mpc *mpc, enum vpe_surface_pixel_format format)
@@ -1241,28 +1241,35 @@ void vpe10_mpc_program_mpc_out(struct mpc *mpc, enum vpe_surface_pixel_format fo
 }
 
 void vpe10_mpc_set_mpc_shaper_3dlut(
-    struct mpc *mpc, const struct transfer_func *func_shaper, const struct vpe_3dlut *lut3d_func)
+    struct mpc *mpc, struct transfer_func *func_shaper, struct vpe_3dlut *lut3d_func)
 {
-    const struct pwl_params *shaper_lut = NULL;
+    const struct pwl_params         *shaper_lut = NULL;
+    const struct tetrahedral_params *lut3d_params;
+
+    PROGRAM_ENTRY();
+    struct stream_ctx *stream_ctx = &vpe_priv->stream_ctx[vpe_priv->fe_cb_ctx.stream_idx];
+    bool               bypass;
+
     // get the shaper lut params
     if (func_shaper) {
         if (func_shaper->type == TF_TYPE_DISTRIBUTED_POINTS) {
-            vpe10_cm_helper_translate_curve_to_hw_format(
-                func_shaper, &mpc->shaper_params, true); // should init shaper_params first
+            vpe10_cm_helper_translate_curve_to_hw_format(func_shaper, &mpc->shaper_params, true,
+                func_shaper->dirty[mpc->inst]);          // should init shaper_params first
             shaper_lut = &mpc->shaper_params;            // are there shaper prams in dpp instead?
         } else if (func_shaper->type == TF_TYPE_HWPWL) {
             shaper_lut = &func_shaper->pwl;
         }
     }
 
-    mpc->funcs->program_shaper(mpc, shaper_lut);
+    bypass = (!shaper_lut || (func_shaper && func_shaper->type == TF_TYPE_BYPASS));
+    CONFIG_CACHE(func_shaper, stream_ctx, vpe_priv->init.debug.disable_lut_caching, bypass,
+        mpc->funcs->program_shaper(mpc, shaper_lut), mpc->inst);
 
-    if (lut3d_func) {
-        if (lut3d_func->state.bits.initialized)
-            mpc->funcs->program_3dlut(mpc, &lut3d_func->lut_3d);
-        else
-            mpc->funcs->program_3dlut(mpc, NULL);
-    }
+    bypass       = (!lut3d_func || !lut3d_func->state.bits.initialized);
+    lut3d_params = (bypass) ? (NULL) : (&lut3d_func->lut_3d);
+    CONFIG_CACHE(lut3d_func, stream_ctx, vpe_priv->init.debug.disable_lut_caching, bypass,
+        mpc->funcs->program_3dlut(mpc, lut3d_params), mpc->inst);
+
     return;
 }
 
@@ -1270,27 +1277,39 @@ void vpe10_mpc_set_output_transfer_func(struct mpc *mpc, struct output_ctx *outp
 {
     /* program OGAM only for the top pipe*/
     struct pwl_params *params = NULL;
-    bool               ret    = false;
+    bool               bypass;
 
-    if (ret == false && output_ctx->output_tf) {
+    PROGRAM_ENTRY();
+
+    if (output_ctx->output_tf) {
         // No support HWPWL as it is legacy
         if (output_ctx->output_tf->type == TF_TYPE_DISTRIBUTED_POINTS) {
             vpe10_cm_helper_translate_curve_to_hw_format( // this is cm3.0 version instead 1.0
                                                           // as DCN3.2
-                output_ctx->output_tf, &mpc->regamma_params, false);
+                output_ctx->output_tf, &mpc->regamma_params, false, output_ctx->output_tf->dirty[mpc->inst]);
             params = &mpc->regamma_params;
         }
         /* there are no ROM LUTs in OUTGAM */
         if (output_ctx->output_tf->type == TF_TYPE_PREDEFINED)
             VPE_ASSERT(0);
     }
-    mpc->funcs->set_output_gamma(mpc, params);
+
+    bypass = (!output_ctx->output_tf || (output_ctx->output_tf->type == TF_TYPE_BYPASS) ||
+              vpe_priv->init.debug.cm_in_bypass || vpe_priv->init.debug.bypass_ogam);
+
+    CONFIG_CACHE(output_ctx->output_tf, output_ctx, vpe_priv->init.debug.disable_lut_caching,
+        bypass, mpc->funcs->set_output_gamma(mpc, params), mpc->inst);
 }
 
-void vpe10_mpc_set_blend_lut(struct mpc *mpc, const struct transfer_func *blend_tf)
+void vpe10_mpc_set_blend_lut(struct mpc *mpc, struct transfer_func *blend_tf)
 {
     struct pwl_params *blend_lut = NULL;
     enum cm_type gamma_type = CM_DEGAM;
+
+    PROGRAM_ENTRY();
+
+    struct stream_ctx *stream_ctx = &vpe_priv->stream_ctx[vpe_priv->fe_cb_ctx.stream_idx];
+    bool               bypass;
 
     if (blend_tf && blend_tf->type == TF_TYPE_DISTRIBUTED_POINTS) {
 
@@ -1298,18 +1317,23 @@ void vpe10_mpc_set_blend_lut(struct mpc *mpc, const struct transfer_func *blend_
 
         if (gamma_type == CM_DEGAM)
             vpe10_cm_helper_translate_curve_to_degamma_hw_format(
-                blend_tf, &mpc->blender_params); // TODO should init regamma_params first
+                blend_tf, &mpc->blender_params, blend_tf->dirty[mpc->inst]); // TODO should init regamma_params first
         else
-            vpe10_cm_helper_translate_curve_to_hw_format(blend_tf, &mpc->blender_params, false);
+            vpe10_cm_helper_translate_curve_to_hw_format(
+                blend_tf, &mpc->blender_params, false, blend_tf->dirty[mpc->inst]);
 
         blend_lut = &mpc->blender_params;
     }
 
-    mpc->funcs->program_1dlut(mpc, blend_lut, gamma_type);
+    bypass =
+        ((!blend_tf) || (blend_tf->type == TF_TYPE_BYPASS) || vpe_priv->init.debug.bypass_blndgam);
+
+    CONFIG_CACHE(blend_tf, stream_ctx, vpe_priv->init.debug.disable_lut_caching, bypass,
+        mpc->funcs->program_1dlut(mpc, blend_lut, gamma_type), mpc->inst);
 }
 
-bool vpe10_mpc_program_movable_cm(struct mpc *mpc, const struct transfer_func *func_shaper,
-    const struct vpe_3dlut *lut3d_func, const struct transfer_func *blend_tf, bool afterblend)
+bool vpe10_mpc_program_movable_cm(struct mpc *mpc, struct transfer_func *func_shaper,
+    struct vpe_3dlut *lut3d_func, struct transfer_func *blend_tf, bool afterblend)
 {
     struct pwl_params *params = NULL;
     bool               ret    = false;

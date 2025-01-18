@@ -112,34 +112,6 @@ barrier_draw_buffers(struct zink_context *ctx, const struct pipe_draw_info *dinf
    }
 }
 
-static void
-bind_vertex_buffers_dgc(struct zink_context *ctx)
-{
-   struct zink_vertex_elements_state *elems = ctx->element_state;
-
-   ctx->vertex_buffers_dirty = false;
-   if (!elems->hw_state.num_bindings)
-      return;
-   for (unsigned i = 0; i < elems->hw_state.num_bindings; i++) {
-      struct pipe_vertex_buffer *vb = ctx->vertex_buffers + ctx->element_state->hw_state.binding_map[i];
-      assert(vb);
-      VkBindVertexBufferIndirectCommandNV *ptr;
-      VkIndirectCommandsLayoutTokenNV *token = zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_VERTEX_BUFFER_NV, (void**)&ptr);
-      token->vertexBindingUnit = ctx->element_state->hw_state.binding_map[i];
-      if (vb->buffer.resource) {
-         struct zink_resource *res = zink_resource(vb->buffer.resource);
-         assert(res->obj->bda);
-         ptr->bufferAddress = res->obj->bda + vb->buffer_offset;
-         ptr->size = res->base.b.width0;
-         ptr->stride = ctx->element_state->hw_state.b.strides[i];
-      } else {
-         ptr->bufferAddress = 0;
-         ptr->size = 0;
-         ptr->stride = 0;
-      }
-   }
-}
-
 template <zink_dynamic_state DYNAMIC_STATE>
 static void
 zink_bind_vertex_buffers(struct zink_context *ctx)
@@ -191,47 +163,6 @@ update_drawid(struct zink_context *ctx, unsigned draw_id)
                       &draw_id);
 }
 
-static void
-update_drawid_dgc(struct zink_context *ctx, unsigned draw_id)
-{
-   uint32_t *ptr;
-   VkIndirectCommandsLayoutTokenNV *token = zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_NV, (void**)&ptr);
-   token->pushconstantOffset = offsetof(struct zink_gfx_push_constant, draw_id);
-   token->pushconstantSize = sizeof(unsigned);
-   *ptr = draw_id;
-}
-
-ALWAYS_INLINE static void
-draw_indexed_dgc_need_index_buffer_unref(struct zink_context *ctx,
-                 const struct pipe_draw_info *dinfo,
-                 const struct pipe_draw_start_count_bias *draws,
-                 unsigned num_draws,
-                 unsigned draw_id,
-                 bool needs_drawid)
-{
-   if (dinfo->increment_draw_id && needs_drawid) {
-      for (unsigned i = 0; i < num_draws; i++) {
-         update_drawid_dgc(ctx, draw_id);
-         VkDrawIndexedIndirectCommand *ptr, cmd = {
-            draws[i].count, dinfo->instance_count, 0, draws[i].index_bias, dinfo->start_instance
-         };
-         zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NV, (void**)&ptr);
-         *ptr = cmd;
-         draw_id++;
-      }
-   } else {
-      if (needs_drawid)
-         update_drawid_dgc(ctx, draw_id);
-      for (unsigned i = 0; i < num_draws; i++) {
-         VkDrawIndexedIndirectCommand *ptr, cmd = {
-            draws[i].count, dinfo->instance_count, 0, draws[i].index_bias, dinfo->start_instance
-         };
-         zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NV, (void**)&ptr);
-         *ptr = cmd;
-      }
-   }
-}
-
 ALWAYS_INLINE static void
 draw_indexed_need_index_buffer_unref(struct zink_context *ctx,
              const struct pipe_draw_info *dinfo,
@@ -257,37 +188,6 @@ draw_indexed_need_index_buffer_unref(struct zink_context *ctx,
             draws[i].count, dinfo->instance_count,
             0, draws[i].index_bias, dinfo->start_instance);
 
-   }
-}
-
-ALWAYS_INLINE static void
-draw_indexed_dgc(struct zink_context *ctx,
-                 const struct pipe_draw_info *dinfo,
-                 const struct pipe_draw_start_count_bias *draws,
-                 unsigned num_draws,
-                 unsigned draw_id,
-                 bool needs_drawid)
-{
-   if (dinfo->increment_draw_id && needs_drawid) {
-      for (unsigned i = 0; i < num_draws; i++) {
-         update_drawid_dgc(ctx, draw_id);
-         VkDrawIndexedIndirectCommand *ptr, cmd = {
-            draws[i].count, dinfo->instance_count, draws[i].start, draws[i].index_bias, dinfo->start_instance
-         };
-         zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NV, (void**)&ptr);
-         *ptr = cmd;
-         draw_id++;
-      }
-   } else {
-      if (needs_drawid)
-         update_drawid_dgc(ctx, draw_id);
-      for (unsigned i = 0; i < num_draws; i++) {
-         VkDrawIndexedIndirectCommand *ptr, cmd = {
-            draws[i].count, dinfo->instance_count, draws[i].start, draws[i].index_bias, dinfo->start_instance
-         };
-         zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_INDEXED_NV, (void**)&ptr);
-         *ptr = cmd;
-      }
    }
 }
 
@@ -326,37 +226,6 @@ draw_indexed(struct zink_context *ctx,
    }
 }
 
-ALWAYS_INLINE static void
-draw_dgc(struct zink_context *ctx,
-         const struct pipe_draw_info *dinfo,
-         const struct pipe_draw_start_count_bias *draws,
-         unsigned num_draws,
-         unsigned draw_id,
-         bool needs_drawid)
-{
-   if (dinfo->increment_draw_id && needs_drawid) {
-      for (unsigned i = 0; i < num_draws; i++) {
-         update_drawid_dgc(ctx, draw_id);
-         VkDrawIndirectCommand *ptr, cmd = {
-            draws[i].count, dinfo->instance_count, draws[i].start, dinfo->start_instance
-         };
-         zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_NV, (void**)&ptr);
-         *ptr = cmd;
-         draw_id++;
-      }
-   } else {
-      if (needs_drawid)
-         update_drawid_dgc(ctx, draw_id);
-      for (unsigned i = 0; i < num_draws; i++) {
-         VkDrawIndirectCommand *ptr, cmd = {
-            draws[i].count, dinfo->instance_count, draws[i].start, dinfo->start_instance
-         };
-         zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_DRAW_NV, (void**)&ptr);
-         *ptr = cmd;
-      }
-   }
-}
-
 template <zink_multidraw HAS_MULTIDRAW>
 ALWAYS_INLINE static void
 draw(struct zink_context *ctx,
@@ -390,7 +259,7 @@ draw(struct zink_context *ctx,
 
 template <zink_dynamic_state DYNAMIC_STATE, bool BATCH_CHANGED>
 static bool
-update_gfx_pipeline(struct zink_context *ctx, struct zink_batch_state *bs, enum mesa_prim mode, bool can_dgc)
+update_gfx_pipeline(struct zink_context *ctx, struct zink_batch_state *bs, enum mesa_prim mode)
 {
    VkPipeline prev_pipeline = ctx->gfx_pipeline_state.pipeline;
    const struct zink_screen *screen = zink_screen(ctx->base.screen);
@@ -409,18 +278,8 @@ update_gfx_pipeline(struct zink_context *ctx, struct zink_batch_state *bs, enum 
    }
    if (pipeline) {
       pipeline_changed = prev_pipeline != pipeline;
-      if (BATCH_CHANGED || pipeline_changed || ctx->shobj_draw) {
-         ctx->dgc.last_prog = ctx->curr_program;
-         if (unlikely(can_dgc && screen->info.nv_dgc_props.maxGraphicsShaderGroupCount == 1)) {
-            VkBindShaderGroupIndirectCommandNV *ptr;
-            zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_SHADER_GROUP_NV, (void**)&ptr);
-            util_dynarray_append(&ctx->dgc.pipelines, VkPipeline, pipeline);
-            /* zero-indexed -> base + group + num_pipelines-1 = base + num_pipelines */
-            ptr->groupIndex = util_dynarray_num_elements(&ctx->dgc.pipelines, VkPipeline) + 1;
-         } else {
-            VKCTX(CmdBindPipeline)(bs->cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-         }
-      }
+      if (BATCH_CHANGED || pipeline_changed || ctx->shobj_draw)
+         VKCTX(CmdBindPipeline)(bs->cmdbuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
       ctx->shobj_draw = false;
    } else {
       if (BATCH_CHANGED || shaders_changed || !ctx->shobj_draw) {
@@ -519,9 +378,6 @@ zink_draw(struct pipe_context *pctx,
       zink_rebind_all_images(ctx);
    }
 
-   if (mode_changed)
-      zink_flush_dgc_if_enabled(ctx);
-
    unsigned index_offset = 0;
    unsigned index_size = dinfo->index_size;
    struct pipe_resource *index_buffer = NULL;
@@ -571,10 +427,6 @@ zink_draw(struct pipe_context *pctx,
    /* this may re-emit draw buffer barriers, but such synchronization is harmless */
    if (!ctx->blitting)
       zink_update_barriers(ctx, false, index_buffer, dindirect ? dindirect->buffer : NULL, dindirect ? dindirect->indirect_draw_count : NULL);
-
-   bool can_dgc = false;
-   if (unlikely(zink_debug & ZINK_DEBUG_DGC))
-      can_dgc = !so_target && !ctx->num_so_targets && (!dindirect || !dindirect->buffer);
 
    /* ensure synchronization between doing streamout with counter buffer
     * and using counter buffer for indirect draw
@@ -662,15 +514,7 @@ zink_draw(struct pipe_context *pctx,
          VK_INDEX_TYPE_UINT32,
       };
       struct zink_resource *res = zink_resource(index_buffer);
-      if (unlikely(can_dgc)) {
-         VkBindIndexBufferIndirectCommandNV *ptr;
-         zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_INDEX_BUFFER_NV, (void**)&ptr);
-         ptr->bufferAddress = res->obj->bda + index_offset;
-         ptr->size = res->base.b.width0;
-         ptr->indexType = index_type[index_size >> 1];
-      } else {
-         VKCTX(CmdBindIndexBuffer)(bs->cmdbuf, res->obj->buffer, index_offset, index_type[index_size >> 1]);
-      }
+      VKCTX(CmdBindIndexBuffer)(bs->cmdbuf, res->obj->buffer, index_offset, index_type[index_size >> 1]);
    }
    if (DYNAMIC_STATE < ZINK_DYNAMIC_STATE2) {
       if (ctx->gfx_pipeline_state.dyn_state2.primitive_restart != dinfo->primitive_restart)
@@ -681,7 +525,7 @@ zink_draw(struct pipe_context *pctx,
    if (have_streamout && ctx->dirty_so_targets)
       zink_emit_stream_output_targets(pctx);
 
-   bool pipeline_changed = update_gfx_pipeline<DYNAMIC_STATE, BATCH_CHANGED>(ctx, bs, mode, can_dgc);
+   bool pipeline_changed = update_gfx_pipeline<DYNAMIC_STATE, BATCH_CHANGED>(ctx, bs, mode);
 
    if (BATCH_CHANGED || ctx->vp_state_changed || (DYNAMIC_STATE == ZINK_NO_DYNAMIC_STATE && pipeline_changed)) {
       VkViewport viewports[PIPE_MAX_VIEWPORTS];
@@ -884,9 +728,7 @@ zink_draw(struct pipe_context *pctx,
 
    if (!DRAW_STATE) {
       if (BATCH_CHANGED || ctx->vertex_buffers_dirty) {
-         if (unlikely(can_dgc))
-            bind_vertex_buffers_dgc(ctx);
-         else if (DYNAMIC_STATE == ZINK_DYNAMIC_VERTEX_INPUT || ctx->gfx_pipeline_state.uses_dynamic_stride)
+         if (DYNAMIC_STATE == ZINK_DYNAMIC_VERTEX_INPUT || ctx->gfx_pipeline_state.uses_dynamic_stride)
             zink_bind_vertex_buffers<DYNAMIC_STATE>(ctx);
          else
             zink_bind_vertex_buffers<ZINK_NO_DYNAMIC_STATE>(ctx);
@@ -922,31 +764,15 @@ zink_draw(struct pipe_context *pctx,
 
    if (reads_basevertex) {
       unsigned draw_mode_is_indexed = index_size > 0;
-      if (unlikely(can_dgc)) {
-         uint32_t *ptr;
-         VkIndirectCommandsLayoutTokenNV *token = zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_NV, (void**)&ptr);
-         token->pushconstantOffset = offsetof(struct zink_gfx_push_constant, draw_mode_is_indexed);
-         token->pushconstantSize = sizeof(unsigned);
-         *ptr = draw_mode_is_indexed;
-      } else {
-         VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,
-                           offsetof(struct zink_gfx_push_constant, draw_mode_is_indexed), sizeof(unsigned),
-                           &draw_mode_is_indexed);
-      }
+      VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,
+                        offsetof(struct zink_gfx_push_constant, draw_mode_is_indexed), sizeof(unsigned),
+                        &draw_mode_is_indexed);
    }
    if (ctx->curr_program->shaders[MESA_SHADER_TESS_CTRL] &&
        ctx->curr_program->shaders[MESA_SHADER_TESS_CTRL]->non_fs.is_generated) {
-      if (unlikely(can_dgc)) {
-         float *ptr;
-         VkIndirectCommandsLayoutTokenNV *token = zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_NV, (void**)&ptr);
-         token->pushconstantOffset = offsetof(struct zink_gfx_push_constant, default_inner_level);
-         token->pushconstantSize = sizeof(float) * 6;
-         memcpy(ptr, &ctx->tess_levels[0], sizeof(float) * 6);
-      } else {
-         VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,
-                           offsetof(struct zink_gfx_push_constant, default_inner_level), sizeof(float) * 6,
-                           &ctx->tess_levels[0]);
-      }
+      VKCTX(CmdPushConstants)(bs->cmdbuf, ctx->curr_program->base.layout, VK_SHADER_STAGE_ALL_GRAPHICS,
+                        offsetof(struct zink_gfx_push_constant, default_inner_level), sizeof(float) * 6,
+                        &ctx->tess_levels[0]);
    }
 
    if (!screen->optimal_keys) {
@@ -1054,16 +880,10 @@ zink_draw(struct pipe_context *pctx,
          } else
             VKCTX(CmdDrawIndexedIndirect)(bs->cmdbuf, indirect->obj->buffer, dindirect->offset, dindirect->draw_count, dindirect->stride);
       } else {
-         if (unlikely(can_dgc)) {
-            if (need_index_buffer_unref)
-               draw_indexed_dgc_need_index_buffer_unref(ctx, dinfo, draws, num_draws, drawid_offset, needs_drawid);
-            else
-               draw_indexed_dgc(ctx, dinfo, draws, num_draws, drawid_offset, needs_drawid);
-         } else if (need_index_buffer_unref) {
+         if (need_index_buffer_unref)
             draw_indexed_need_index_buffer_unref(ctx, dinfo, draws, num_draws, drawid_offset, needs_drawid);
-         } else {
+         else
             draw_indexed<HAS_MULTIDRAW>(ctx, dinfo, draws, num_draws, drawid_offset, needs_drawid);
-         }
       }
    } else {
       if (so_target && screen->info.tf_props.transformFeedbackDraw) {
@@ -1095,17 +915,13 @@ zink_draw(struct pipe_context *pctx,
          } else
             VKCTX(CmdDrawIndirect)(bs->cmdbuf, indirect->obj->buffer, dindirect->offset, dindirect->draw_count, dindirect->stride);
       } else {
-         if (unlikely(can_dgc))
-            draw_dgc(ctx, dinfo, draws, num_draws, drawid_offset, needs_drawid);
-         else
-            draw<HAS_MULTIDRAW>(ctx, dinfo, draws, num_draws, drawid_offset, needs_drawid);
+         draw<HAS_MULTIDRAW>(ctx, dinfo, draws, num_draws, drawid_offset, needs_drawid);
       }
    }
 
    if (unlikely(zink_tracing))
       zink_cmd_debug_marker_end(ctx, bs->cmdbuf, marker);
 
-   ctx->dgc.valid = can_dgc;
    if (have_streamout) {
       for (unsigned i = 0; i < ctx->num_so_targets; i++) {
          struct zink_so_target *t = zink_so_target(ctx->so_targets[i]);
@@ -1179,19 +995,9 @@ zink_bind_vertex_state(struct zink_context *ctx, struct pipe_vertex_state *vstat
    struct zink_resource *res = zink_resource(vstate->input.vbuffer.buffer.resource);
    zink_batch_resource_usage_set(ctx->bs, res, false, true);
    VkDeviceSize offset = vstate->input.vbuffer.buffer_offset;
-   if (unlikely(zink_debug & ZINK_DEBUG_DGC)) {
-      VkBindVertexBufferIndirectCommandNV *ptr;
-      VkIndirectCommandsLayoutTokenNV *token = zink_dgc_add_token(ctx, VK_INDIRECT_COMMANDS_TOKEN_TYPE_VERTEX_BUFFER_NV, (void**)&ptr);
-      token->vertexBindingUnit = 0;
-      token->vertexDynamicStride = VK_FALSE;
-      ptr->bufferAddress = res->obj->bda + offset;
-      ptr->size = res->base.b.width0;
-      ptr->stride = 0;
-   } else {
-      VKCTX(CmdBindVertexBuffers)(cmdbuf, 0,
-                                 zstate->velems.hw_state.num_bindings,
-                                 &res->obj->buffer, &offset);
-   }
+   VKCTX(CmdBindVertexBuffers)(cmdbuf, 0,
+                               zstate->velems.hw_state.num_bindings,
+                               &res->obj->buffer, &offset);
 }
 
 template <zink_multidraw HAS_MULTIDRAW, zink_dynamic_state DYNAMIC_STATE, util_popcnt HAS_POPCNT, bool BATCH_CHANGED>

@@ -49,8 +49,6 @@ in this Software without prior written authorization from The Open Group.
 #define OCTANT7		(1 << (YMAJOR))
 #define OCTANT8		(1 << (0))
 
-#define XMAJOROCTANTS		(OCTANT1 | OCTANT4 | OCTANT5 | OCTANT8)
-
 #define DEFAULTZEROLINEBIAS	(OCTANT2 | OCTANT3 | OCTANT4 | OCTANT5)
 
 /*
@@ -110,9 +108,6 @@ extern _X_EXPORT void miSetZeroLineBias(ScreenPtr /* pScreen */ ,
 
 #define SWAPINT(i, j) \
 {  int _t = i;  i = j;  j = _t; }
-
-#define SWAPPT(i, j) \
-{  DDXPointRec _t; _t = i;  i = j; j = _t; }
 
 #define SWAPINT_PAIR(x1, y1, x2, y2)\
 {   int t = x1;  x1 = x2;  x2 = t;\

@@ -32,8 +32,10 @@
 
 #if defined(__GNUC__) && (__GNUC__ >= 4)
 #define FC_ATTRIBUTE_SENTINEL(x) __attribute__((__sentinel__(0)))
+#define FC_ATTRIBUTE_MAY_ALIAS __attribute__((may_alias))
 #else
 #define FC_ATTRIBUTE_SENTINEL(x)
+#define FC_ATTRIBUTE_MAY_ALIAS
 #endif
 
 #ifndef FcPublic
@@ -253,7 +255,7 @@ typedef enum _FcValueBinding {
 
 typedef struct _FcPattern   FcPattern;
 
-typedef struct _FcPatternIter {
+typedef struct FC_ATTRIBUTE_MAY_ALIAS _FcPatternIter {
     void *dummy1;
     void *dummy2;
 } FcPatternIter;
@@ -336,6 +338,9 @@ typedef struct _FcStrList   FcStrList;
 typedef struct _FcStrSet    FcStrSet;
 
 typedef struct _FcCache	    FcCache;
+
+typedef void (* FcDestroyFunc) (void *data);
+typedef FcBool (* FcFilterFontSetFunc) (const FcPattern *font, void *user_data);
 
 _FCFUNCPROTOBEGIN
 
@@ -458,6 +463,10 @@ FcConfigAcceptFont (FcConfig	    *config,
 		    const FcPattern *font);
 
 FcPublic FcBool
+FcConfigAcceptFilter (FcConfig        *config,
+		      const FcPattern *font);
+
+FcPublic FcBool
 FcConfigAppFontAddFile (FcConfig    *config,
 			const FcChar8  *file);
 
@@ -485,6 +494,12 @@ FcConfigGetSysRoot (const FcConfig *config);
 FcPublic void
 FcConfigSetSysRoot (FcConfig      *config,
 		    const FcChar8 *sysroot);
+
+FcPublic FcConfig *
+FcConfigSetFontSetFilter (FcConfig            *config,
+			  FcFilterFontSetFunc filter_func,
+			  FcDestroyFunc       destroy_data_func,
+			  void                *user_data);
 
 FcPublic void
 FcConfigFileInfoIterInit (FcConfig		*config,
@@ -1147,6 +1162,7 @@ FcConfigParseAndLoadFromMemory (FcConfig       *config,
 _FCFUNCPROTOEND
 
 #undef FC_ATTRIBUTE_SENTINEL
+#undef FC_ATTRIBUTE_MAY_ALIAS
 
 
 #ifndef _FCINT_H_

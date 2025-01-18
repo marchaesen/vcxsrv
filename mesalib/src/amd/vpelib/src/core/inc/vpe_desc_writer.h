@@ -37,33 +37,47 @@ struct vpe_desc_writer {
      * i.e. config header
      * it is always constructed in emb_buf
      */
-    uint64_t base_gpu_va;
-    uint64_t base_cpu_va;
+    uint64_t        base_gpu_va;
+    uint64_t        base_cpu_va;
 
     uint32_t        num_config_desc;
     bool            plane_desc_added;
     enum vpe_status status;
+
+    /* public function hooks for vpe desc writer */
+
+    /** initialize the vpe descriptor writer with buffer
+     * Calls right before building any vpe descriptor
+     *
+     * @param   writer      writer instance
+     * @param   buf         points to the current buf,
+     *                      each config_writer_fill will update the address
+     * @param   cd          count down of slice in a frame
+     */
+    enum vpe_status (*init)(struct vpe_desc_writer *writer, struct vpe_buf *buf, int cd);
+
+    /** add the plane descriptor address to the vpe descriptor
+     *
+     * @param   writer              writer instance
+     * @param   plane_desc_addr     plane descriptor address
+     * @param   tmz
+     */
+    void (*add_plane_desc)(struct vpe_desc_writer *writer, uint64_t plane_desc_addr, uint8_t tmz);
+
+    /** add the plane descriptor address to the vpe descriptor
+     *
+     * @param   writer              writer instance
+     * @param   plane_desc_addr     plane descriptor address
+     * @param   tmz
+     */
+    void (*add_config_desc)(
+        struct vpe_desc_writer *writer, uint64_t config_desc_addr, bool reuse, uint8_t tmz);
+
+    /** finalize the config descriptor header
+     * @param   writer              writer instance
+     */
+    void (*complete)(struct vpe_desc_writer *writer);
 };
-
-/** initialize the vpe descriptor writer.
- * Calls right before building any vpe descriptor
- *
- * /param   writer      writer instance
- * /param   buf         points to the current buf,
- *                      each config_writer_fill will update the address
- * /param   cd          count down of slice in a frame
- */
-void vpe_desc_writer_init(struct vpe_desc_writer *writer, struct vpe_buf *buf, int cd);
-
-/** fill the value to the command buffer. */
-void vpe_desc_writer_add_plane_desc(
-    struct vpe_desc_writer *writer, uint64_t plane_desc_addr, bool tmz);
-
-/** fill the value to the command buffer. */
-void vpe_desc_writer_add_config_desc(
-    struct vpe_desc_writer *writer, uint64_t config_desc_addr, bool reuse, bool tmz);
-
-void vpe_desc_writer_complete(struct vpe_desc_writer *writer);
 
 #ifdef __cplusplus
 }

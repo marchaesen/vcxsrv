@@ -1,24 +1,6 @@
 /*
  * Copyright © 2019 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef FREEDRENO_LAYOUT_H_
@@ -296,6 +278,7 @@ struct fdl_view_args {
    enum pipe_format format;
    enum fdl_view_type type;
    enum fdl_chroma_location chroma_offsets[2];
+   bool ubwc_fc_mutable;
 };
 
 #define FDL6_TEX_CONST_DWORDS 16
@@ -350,6 +333,41 @@ fdl6_buffer_view_init(uint32_t *descriptor, enum pipe_format format,
 void
 fdl6_format_swiz(enum pipe_format format, bool has_z24uint_s8uint,
                  unsigned char *format_swiz);
+
+enum fdl_macrotile_mode {
+   FDL_MACROTILE_4_CHANNEL,
+   FDL_MACROTILE_8_CHANNEL,
+   /* Used internally by turnip */
+   FDL_MACROTILE_INVALID = ~0,
+};
+
+/* Parameters that affect UBWC swizzling. Note that because we don't handle
+ * compression, this isn't a complete set of knobs. See the documentation in
+ * fd6_tiled_memcpy.c for a description of each one.
+ */
+struct fdl_ubwc_config {
+   unsigned highest_bank_bit;
+   unsigned bank_swizzle_levels;
+   enum fdl_macrotile_mode macrotile_mode;
+};
+
+void
+fdl6_memcpy_linear_to_tiled(uint32_t x_start, uint32_t y_start,
+                            uint32_t width, uint32_t height,
+                            char *dst, const char *src,
+                            const struct fdl_layout *dst_layout,
+                            unsigned dst_miplevel,
+                            uint32_t src_pitch,
+                            const struct fdl_ubwc_config *config);
+
+void
+fdl6_memcpy_tiled_to_linear(uint32_t x_start, uint32_t y_start,
+                            uint32_t width, uint32_t height,
+                            char *dst, const char *src,
+                            const struct fdl_layout *src_layout,
+                            unsigned src_miplevel,
+                            uint32_t dst_pitch,
+                            const struct fdl_ubwc_config *config);
 
 ENDC;
 

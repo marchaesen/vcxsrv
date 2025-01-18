@@ -39,11 +39,14 @@ u_trace is controlled by environment variables:
       traces can be collected without setting this but it may miss some
       events prior to the tracing session being started.
    ``markers``
-      enables marker instrumentation, will print utrace markers into
+      enables marker instrumentation, will print trace markers into
       the CS which can then be viewed by dumping the CS from the driver.
 
          - For Turnip, ``cffdump`` can be used to view the markers in
            the trace.
+   ``indirects``
+      enables indirect data capture for some of the tracepoints (like
+      indirect draw count or indirect dispatch size)
 
 .. envvar:: MESA_GPU_TRACEFILE
 
@@ -68,6 +71,6 @@ u_trace is controlled by environment variables:
       * - Turnip
         - .. envvar:: TU_GPU_TRACEPOINT
         - ``src/freedreno/vulkan/tu_tracepoints.py``
-      * - Anv
+      * - ANV
         - .. envvar:: INTEL_GPU_TRACEPOINT
         - ``src/intel/vulkan/intel_tracepoints.py``

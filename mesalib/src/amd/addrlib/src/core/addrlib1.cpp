@@ -126,7 +126,7 @@ Lib* Lib::GetLib(
         ADDR_ASSERT_ALWAYS();
         hLib = NULL;
     }
-    return static_cast<Lib*>(hLib);
+    return static_cast<Lib*>(pAddrLib);
 }
 
 

@@ -23,6 +23,7 @@
  */
 
 #include <string.h>
+#include <math.h>
 #include "common.h"
 #include "vpe_priv.h"
 #include "vpe10_dpp.h"
@@ -40,6 +41,7 @@ static struct dpp_funcs vpe10_dpp_funcs = {
     .program_cnv            = vpe10_dpp_program_cnv,
     .program_pre_dgam       = vpe10_dpp_cnv_program_pre_dgam,
     .program_cnv_bias_scale = vpe10_dpp_program_cnv_bias_scale,
+    .build_keyer_params     = vpe10_dpp_build_keyer_params,
     .program_alpha_keyer    = vpe10_dpp_cnv_program_alpha_keyer,
     .program_crc            = vpe10_dpp_program_crc,
 
@@ -65,78 +67,70 @@ void vpe10_construct_dpp(struct vpe_priv *vpe_priv, struct dpp *dpp)
 }
 
 bool vpe10_dpp_get_optimal_number_of_taps(
-    struct dpp *dpp, struct scaler_data *scl_data, const struct vpe_scaling_taps *in_taps)
+    struct vpe_rect *src_rect, struct vpe_rect *dst_rect, struct vpe_scaling_taps *taps)
 {
-    struct vpe_priv *vpe_priv   = dpp->vpe_priv;
-    uint32_t         h_taps_min = 0, v_taps_min = 0;
-    /*
-     * Set default taps if none are provided
-     * From programming guide: taps = min{ ceil(2*H_RATIO,1), 8} for downscaling
-     * taps = 4 for upscaling
-     */
-    if (in_taps->h_taps > 8 || in_taps->v_taps > 8 || in_taps->h_taps_c > 8 ||
-        in_taps->v_taps_c > 8)
+    double   h_ratio = 1.0, v_ratio = 1.0;
+    uint32_t h_taps = 1, v_taps = 1;
+    if (taps->h_taps > 8 || taps->v_taps > 8 || taps->h_taps_c > 8 || taps->v_taps_c > 8)
         return false;
 
-    if (vpe_fixpt_ceil(scl_data->ratios.horz) > 1)
-        h_taps_min = (uint32_t)max(4, min(2 * vpe_fixpt_ceil(scl_data->ratios.horz), 8));
-    else
-        h_taps_min = (uint32_t)4;
+    /*
+     * if calculated taps are greater than 8, it means the downscaling ratio is greater than 4:1,
+     * and since the given taps are used by default, if the given taps are less than the
+     * calculated ones, the image quality will not be good, so vpelib would reject this case.
+     */
 
-    if (in_taps->h_taps == 0) {
-        scl_data->taps.h_taps = h_taps_min;
+    // Horizontal taps
+
+    h_ratio = (double)src_rect->width / (double)dst_rect->width;
+
+    if (src_rect->width == dst_rect->width) {
+        h_taps = 1;
+    } else if (h_ratio > 1) {
+        h_taps = (uint32_t)max(4, ceil(h_ratio * 2.0));
     } else {
-        if (in_taps->h_taps < h_taps_min)
-            return false;
-
-        scl_data->taps.h_taps = in_taps->h_taps;
+        h_taps = 4;
     }
 
-    if (vpe_fixpt_ceil(scl_data->ratios.vert) > 1)
-        v_taps_min =
-            (uint32_t)max(4, min(vpe_fixpt_ceil(vpe_fixpt_mul_int(scl_data->ratios.vert, 2)), 8));
-    else
-        v_taps_min = (uint32_t)4;
-
-    if (in_taps->v_taps == 0) {
-        scl_data->taps.v_taps = v_taps_min;
-    } else {
-        if (in_taps->v_taps < v_taps_min)
-            return false;
-
-        scl_data->taps.v_taps = in_taps->v_taps;
+    if (h_taps != 1) {
+        h_taps += h_taps % 2;
     }
 
-    if (in_taps->h_taps_c == 0) {
-        // default to 2 as mmd only uses bilinear for chroma
-        scl_data->taps.h_taps_c = (uint32_t)2;
-    } else
-        scl_data->taps.h_taps_c = in_taps->h_taps_c;
+    if (taps->h_taps == 0 && h_taps <= 8) {
+        taps->h_taps = h_taps;
+    } else if (taps->h_taps < h_taps || h_taps > 8) {
+        return false;
+    }
 
-    if (in_taps->v_taps_c == 0) {
-        // default to 2 as mmd only uses bilinear for chroma
-        scl_data->taps.v_taps_c = (uint32_t)2;
-    } else
-        scl_data->taps.v_taps_c = in_taps->v_taps_c;
+    // Vertical taps
+    v_ratio = (double)src_rect->height / (double)dst_rect->height;
 
-    /* taps can be either 1 or an even number */
-    if (scl_data->taps.h_taps % 2 && scl_data->taps.h_taps != 1)
-        scl_data->taps.h_taps++;
+    if (src_rect->height == dst_rect->height) {
+        v_taps = 1;
+    } else if (v_ratio > 1) {
+        v_taps = (uint32_t)max(4, ceil(v_ratio * 2.0));
+    } else {
+        v_taps = 4;
+    }
 
-    if (scl_data->taps.v_taps % 2 && scl_data->taps.v_taps != 1)
-        scl_data->taps.v_taps++;
+    if (v_taps != 1) {
+        v_taps += v_taps % 2;
+    }
 
-    if (scl_data->taps.h_taps_c % 2 && scl_data->taps.h_taps_c != 1)
-        scl_data->taps.h_taps_c++;
+    if (taps->v_taps == 0 && v_taps <= 8) {
+        taps->v_taps = v_taps;
+    } else if (taps->v_taps < v_taps || v_taps > 8) {
+        return false;
+    }
 
-    if (scl_data->taps.v_taps_c % 2 && scl_data->taps.v_taps_c != 1)
-        scl_data->taps.v_taps_c++;
+    // Chroma taps
+    if (taps->h_taps_c == 0) {
+        taps->h_taps_c = 2;
+    }
 
-    // bypass scaler if all ratios are 1
-    if (IDENTITY_RATIO(scl_data->ratios.horz))
-        scl_data->taps.h_taps = 1;
-    if (IDENTITY_RATIO(scl_data->ratios.vert))
-        scl_data->taps.v_taps = 1;
+    if (taps->v_taps_c == 0) {
+        taps->v_taps_c = 2;
+    }
 
     return true;
 }
@@ -353,26 +347,88 @@ void vpe10_dpp_cnv_program_pre_dgam(struct dpp *dpp, enum color_transfer_func tr
         VPCNVC_PRE_DEGAM, 0, PRE_DEGAM_MODE, pre_degam_en, PRE_DEGAM_SELECT, degamma_lut_selection);
 }
 
-void vpe10_dpp_cnv_program_alpha_keyer(struct dpp *dpp, struct cnv_color_keyer_params *color_keyer)
+/** @brief Build the color Keyer Structure */
+void vpe10_dpp_build_keyer_params(
+    struct dpp *dpp, const struct stream_ctx *stream_ctx, struct cnv_keyer_params *keyer_params)
+{
+    if (stream_ctx->stream.enable_luma_key) {
+        keyer_params->keyer_en     = 1;
+        keyer_params->is_color_key = 0;
+        keyer_params->keyer_mode   = stream_ctx->stream.keyer_mode;
+
+        keyer_params->luma_keyer.lower_luma_bound =
+            (uint16_t)(stream_ctx->stream.lower_luma_bound * 65535);
+        keyer_params->luma_keyer.upper_luma_bound =
+            (uint16_t)(stream_ctx->stream.upper_luma_bound * 65535);
+    } else if (stream_ctx->stream.color_keyer.enable_color_key) {
+        keyer_params->keyer_en     = 1;
+        keyer_params->is_color_key = 1;
+        keyer_params->keyer_mode   = stream_ctx->stream.keyer_mode;
+
+        keyer_params->color_keyer.color_keyer_green_low =
+            (uint16_t)(stream_ctx->stream.color_keyer.lower_g_bound * 65535);
+        keyer_params->color_keyer.color_keyer_green_high =
+            (uint16_t)(stream_ctx->stream.color_keyer.upper_g_bound * 65535);
+        keyer_params->color_keyer.color_keyer_alpha_low =
+            (uint16_t)(stream_ctx->stream.color_keyer.lower_a_bound * 65535);
+        keyer_params->color_keyer.color_keyer_alpha_high =
+            (uint16_t)(stream_ctx->stream.color_keyer.upper_a_bound * 65535);
+        keyer_params->color_keyer.color_keyer_red_low =
+            (uint16_t)(stream_ctx->stream.color_keyer.lower_r_bound * 65535);
+        keyer_params->color_keyer.color_keyer_red_high =
+            (uint16_t)(stream_ctx->stream.color_keyer.upper_r_bound * 65535);
+        keyer_params->color_keyer.color_keyer_blue_low =
+            (uint16_t)(stream_ctx->stream.color_keyer.lower_b_bound * 65535);
+        keyer_params->color_keyer.color_keyer_blue_high =
+            (uint16_t)(stream_ctx->stream.color_keyer.upper_b_bound * 65535);
+    } else {
+        keyer_params->keyer_en = 0;
+    }
+}
+
+/** @brief Program DPP FCNV Keyer
+ * if keyer_params.keyer_en -> Program keyer
+ * else program reset default
+ */
+void vpe10_dpp_cnv_program_alpha_keyer(struct dpp *dpp, const struct cnv_keyer_params *keyer_params)
 {
     PROGRAM_ENTRY();
 
-    REG_SET_2(VPCNVC_COLOR_KEYER_CONTROL, 0, COLOR_KEYER_EN, color_keyer->color_keyer_en,
-        COLOR_KEYER_MODE, color_keyer->color_keyer_mode);
+    if (keyer_params->keyer_en && keyer_params->is_color_key) {
+        uint8_t keyer_mode = 0;
 
-    REG_SET_2(VPCNVC_COLOR_KEYER_ALPHA, 0, COLOR_KEYER_ALPHA_LOW,
-        color_keyer->color_keyer_alpha_low, COLOR_KEYER_ALPHA_HIGH,
-        color_keyer->color_keyer_alpha_high);
+        switch (keyer_params->keyer_mode) {
+        case VPE_KEYER_MODE_FORCE_00:
+            keyer_mode = 0;
+            break;
+        case VPE_KEYER_MODE_FORCE_FF:
+            keyer_mode = 1;
+            break;
+        case VPE_KEYER_MODE_RANGE_FF:
+            keyer_mode = 2;
+            break;
+        case VPE_KEYER_MODE_RANGE_00:
+        default:
+            keyer_mode = 3; // Default Mode VPE_KEYER_MODE_RANGE_00
+            break;
+        }
 
-    REG_SET_2(VPCNVC_COLOR_KEYER_RED, 0, COLOR_KEYER_RED_LOW, color_keyer->color_keyer_red_low,
-        COLOR_KEYER_RED_HIGH, color_keyer->color_keyer_red_high);
-
-    REG_SET_2(VPCNVC_COLOR_KEYER_GREEN, 0, COLOR_KEYER_GREEN_LOW,
-        color_keyer->color_keyer_green_low, COLOR_KEYER_GREEN_HIGH,
-        color_keyer->color_keyer_green_high);
-
-    REG_SET_2(VPCNVC_COLOR_KEYER_BLUE, 0, COLOR_KEYER_BLUE_LOW, color_keyer->color_keyer_blue_low,
-        COLOR_KEYER_BLUE_HIGH, color_keyer->color_keyer_blue_high);
+        REG_SET_2(VPCNVC_COLOR_KEYER_CONTROL, 0, COLOR_KEYER_EN, 1, COLOR_KEYER_MODE, keyer_mode);
+        REG_SET_2(VPCNVC_COLOR_KEYER_GREEN, 0, COLOR_KEYER_GREEN_LOW,
+            keyer_params->color_keyer.color_keyer_green_low, COLOR_KEYER_GREEN_HIGH,
+            keyer_params->color_keyer.color_keyer_green_high);
+        REG_SET_2(VPCNVC_COLOR_KEYER_BLUE, 0, COLOR_KEYER_BLUE_LOW,
+            keyer_params->color_keyer.color_keyer_blue_low, COLOR_KEYER_BLUE_HIGH,
+            keyer_params->color_keyer.color_keyer_blue_high);
+        REG_SET_2(VPCNVC_COLOR_KEYER_RED, 0, COLOR_KEYER_RED_LOW,
+            keyer_params->color_keyer.color_keyer_red_low, COLOR_KEYER_RED_HIGH,
+            keyer_params->color_keyer.color_keyer_red_high);
+        REG_SET_2(VPCNVC_COLOR_KEYER_ALPHA, 0, COLOR_KEYER_ALPHA_LOW,
+            keyer_params->color_keyer.color_keyer_alpha_low, COLOR_KEYER_ALPHA_HIGH,
+            keyer_params->color_keyer.color_keyer_alpha_high);
+    } else {
+        REG_SET_DEFAULT(VPCNVC_COLOR_KEYER_CONTROL);
+    }
 }
 
 uint32_t vpe10_get_line_buffer_size()

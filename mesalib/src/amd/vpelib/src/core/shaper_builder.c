@@ -26,39 +26,6 @@
 #include "custom_fp16.h"
 #include "fixed31_32.h"
 
-struct x_axis_config {
-    int offset;
-    int segments_num;
-};
-
-struct point_config {
-    int custom_float_x;
-    int custom_float_y;
-    int custom_float_slope;
-};
-
-struct curve_points32 {
-    struct point_config red;
-    struct point_config green;
-    struct point_config blue;
-};
-
-struct lut_point {
-    int red;
-    int green;
-    int blue;
-    int delta_red;
-    int delta_green;
-    int delta_blue;
-};
-
-struct pwl_parameter2 {
-    struct x_axis_config  arr_curve_points[34];
-    struct curve_points32 corner_points[2];
-    struct lut_point      rgb_resulted[256];
-    int                   hw_points_num;
-};
-
 struct shaper_setup_out {
     int exp_begin_raw;
     int exp_end_raw;

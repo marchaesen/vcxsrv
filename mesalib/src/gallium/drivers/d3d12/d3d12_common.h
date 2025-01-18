@@ -88,6 +88,11 @@ GetOutputStreamDesc(ID3D12VideoProcessor *proc)
 {
    return proc->GetOutputStreamDesc();
 }
+inline D3D12_RESOURCE_ALLOCATION_INFO
+GetResourceAllocationInfo(ID3D12Device *dev, UINT visibleMask, UINT numResourceDescs, const D3D12_RESOURCE_DESC *pResourceDescs)
+{
+   return dev->GetResourceAllocationInfo(visibleMask, numResourceDescs, pResourceDescs);
+}
 #else
 inline D3D12_CPU_DESCRIPTOR_HANDLE
 GetCPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
@@ -136,6 +141,13 @@ GetOutputStreamDesc(ID3D12VideoProcessor *proc)
 {
    D3D12_VIDEO_PROCESS_OUTPUT_STREAM_DESC ret;
    proc->GetOutputStreamDesc(&ret);
+   return ret;
+}
+inline D3D12_RESOURCE_ALLOCATION_INFO
+GetResourceAllocationInfo(ID3D12Device *dev, UINT visibleMask, UINT numResourceDescs, const D3D12_RESOURCE_DESC *pResourceDescs)
+{
+   D3D12_RESOURCE_ALLOCATION_INFO ret;
+   dev->GetResourceAllocationInfo(&ret, visibleMask, numResourceDescs, pResourceDescs);
    return ret;
 }
 #endif

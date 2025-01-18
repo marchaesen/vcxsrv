@@ -1,24 +1,6 @@
 /*
- * Copyright (c) 2013 Rob Clark <robdclark@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2013 Rob Clark <robdclark@gmail.com>
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef INSTR_A3XX_H_
@@ -305,6 +287,7 @@ typedef enum {
    OPC_GETSPID         = _OPC(6, 36), /* SP ID */
    OPC_GETWID          = _OPC(6, 37), /* wavefront ID */
    OPC_GETFIBERID      = _OPC(6, 38), /* fiber ID */
+   OPC_SHFL            = _OPC(6, 39),
 
    /* Logical opcodes for things that differ in a6xx+ */
    OPC_STC             = _OPC(6, 40),
@@ -428,7 +411,7 @@ typedef enum {
    TYPE_S16 = 4,
    TYPE_S32 = 5,
    TYPE_U8 = 6,
-   TYPE_S8 = 7, // XXX I assume?
+   TYPE_U8_32 = 7,
 } type_t;
 
 static inline uint32_t
@@ -437,6 +420,7 @@ type_size(type_t type)
    switch (type) {
    case TYPE_F32:
    case TYPE_U32:
+   case TYPE_U8_32:
    case TYPE_S32:
       return 32;
    case TYPE_F16:
@@ -444,7 +428,6 @@ type_size(type_t type)
    case TYPE_S16:
       return 16;
    case TYPE_U8:
-   case TYPE_S8:
       return 8;
    default:
       ir3_assert(0); /* invalid type */
@@ -487,13 +470,13 @@ type_float(type_t type)
 static inline int
 type_uint(type_t type)
 {
-   return (type == TYPE_U32) || (type == TYPE_U16) || (type == TYPE_U8);
+   return (type == TYPE_U32) || (type == TYPE_U16) || (type == TYPE_U8) || (type == TYPE_U8_32);
 }
 
 static inline int
 type_sint(type_t type)
 {
-   return (type == TYPE_S32) || (type == TYPE_S16) || (type == TYPE_S8);
+   return (type == TYPE_S32) || (type == TYPE_S16);
 }
 
 typedef enum {
@@ -523,6 +506,8 @@ regid(int num, int comp)
 #define REG_A0 61 /* address register */
 #define REG_P0 62 /* predicate register */
 #define REG_P0_X regid(REG_P0, 0) /* p0.x */
+
+#define INVALID_CONST_REG UINT16_MAX
 
 /* With is_bindless_s2en = 1, this determines whether bindless is enabled and
  * if so, how to get the (base, index) pair for both sampler and texture.

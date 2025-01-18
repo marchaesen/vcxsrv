@@ -43,8 +43,7 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
                          struct zink_gfx_pipeline_state *state,
                          const uint8_t *binding_map,
                          VkPrimitiveTopology primitive_topology,
-                         bool optimize,
-                         struct util_dynarray *dgc)
+                         bool optimize)
 {
    struct zink_rasterizer_hw_state *hw_rast_state = (void*)&state->dyn_state3;
    VkPipelineVertexInputStateCreateInfo vertex_input_state;
@@ -138,7 +137,7 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
       ms_state.minSampleShading = 1.0;
    } else if (state->min_samples > 0) {
       ms_state.sampleShadingEnable = VK_TRUE;
-      ms_state.minSampleShading = (float)(state->rast_samples + 1) / (state->min_samples + 1);
+      ms_state.minSampleShading = MIN2((float)(state->rast_samples + 1) / (state->min_samples + 1), 1.0f);
    }
 
    VkPipelineViewportStateCreateInfo viewport_state = {0};
@@ -409,27 +408,6 @@ zink_create_gfx_pipeline(struct zink_screen *screen,
    pci.pStages = shader_stages;
    pci.stageCount = num_stages;
 
-   VkGraphicsShaderGroupCreateInfoNV gci = {
-      VK_STRUCTURE_TYPE_GRAPHICS_SHADER_GROUP_CREATE_INFO_NV,
-      NULL,
-      pci.stageCount,
-      pci.pStages,
-      pci.pVertexInputState,
-      pci.pTessellationState
-   };
-   VkGraphicsPipelineShaderGroupsCreateInfoNV dgci = {
-      VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_SHADER_GROUPS_CREATE_INFO_NV,
-      pci.pNext,
-      1,
-      &gci,
-      dgc ? util_dynarray_num_elements(dgc, VkPipeline) : 0,
-      dgc ? dgc->data : NULL
-   };
-   if (zink_debug & ZINK_DEBUG_DGC) {
-      pci.flags |= VK_PIPELINE_CREATE_INDIRECT_BINDABLE_BIT_NV;
-      pci.pNext = &dgci;
-   }
-
    VkPipeline pipeline;
    u_rwlock_wrlock(&prog->base.pipeline_cache_lock);
    VkResult result;
@@ -537,7 +515,7 @@ zink_create_gfx_pipeline_output(struct zink_screen *screen, struct zink_gfx_pipe
       ms_state.minSampleShading = 1.0;
    } else if (state->min_samples > 0) {
       ms_state.sampleShadingEnable = VK_TRUE;
-      ms_state.minSampleShading = (float)(state->rast_samples + 1) / (state->min_samples + 1);
+      ms_state.minSampleShading = MIN2((float)(state->rast_samples + 1) / (state->min_samples + 1), 1.0f);
    }
 
    VkDynamicState dynamicStateEnables[30] = {

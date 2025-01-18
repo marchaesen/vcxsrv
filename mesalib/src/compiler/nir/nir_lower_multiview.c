@@ -64,6 +64,8 @@ shader_writes_to_memory(nir_shader *shader)
          case nir_intrinsic_store_shared2_amd:
          case nir_intrinsic_shared_atomic:
          case nir_intrinsic_shared_atomic_swap:
+         case nir_intrinsic_shared_append_amd:
+         case nir_intrinsic_shared_consume_amd:
          case nir_intrinsic_task_payload_atomic:
          case nir_intrinsic_task_payload_atomic_swap:
          case nir_intrinsic_image_deref_store:

@@ -172,7 +172,11 @@ static int ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
         ERR_raise(ERR_LIB_EC, ERR_R_EC_LIB);
         goto err;
     }
-    order = EC_GROUP_get0_order(group);
+
+    if ((order = EC_GROUP_get0_order(group)) == NULL) {
+        ERR_raise(ERR_LIB_EC, ERR_R_EC_LIB);
+        goto err;
+    }
 
     /* Preallocate space */
     order_bits = BN_num_bits(order);
@@ -198,17 +202,17 @@ static int ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in,
                                                                libctx, propq);
 #endif
                 } else {
-                    res = BN_generate_dsa_nonce(k, order, priv_key, dgst, dlen,
-                                                ctx);
+                    res = ossl_bn_gen_dsa_nonce_fixed_top(k, order, priv_key,
+                                                          dgst, dlen, ctx);
                 }
             } else {
-                res = BN_priv_rand_range_ex(k, order, 0, ctx);
+                res = ossl_bn_priv_rand_range_fixed_top(k, order, 0, ctx);
             }
             if (!res) {
                 ERR_raise(ERR_LIB_EC, EC_R_RANDOM_NUMBER_GENERATION_FAILED);
                 goto err;
             }
-        } while (BN_is_zero(k));
+        } while (ossl_bn_is_word_fixed_top(k, 0));
 
         /* compute r the x-coordinate of generator * k */
         if (!EC_POINT_mul(group, tmp_point, k, NULL, NULL, ctx)) {
@@ -308,7 +312,11 @@ ECDSA_SIG *ossl_ecdsa_simple_sign_sig(const unsigned char *dgst, int dgst_len,
         goto err;
     }
 
-    order = EC_GROUP_get0_order(group);
+    if ((order = EC_GROUP_get0_order(group)) == NULL) {
+        ERR_raise(ERR_LIB_EC, ERR_R_EC_LIB);
+        goto err;
+    }
+
     i = BN_num_bits(order);
     /*
      * Need to truncate digest if it is too long: first truncate whole bytes.

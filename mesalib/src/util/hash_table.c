@@ -306,7 +306,7 @@ _mesa_hash_table_set_deleted_key(struct hash_table *ht, const void *deleted_key)
 }
 
 static struct hash_entry *
-hash_table_search(struct hash_table *ht, uint32_t hash, const void *key)
+hash_table_search(const struct hash_table *ht, uint32_t hash, const void *key)
 {
    assert(!key_pointer_is_reserved(ht, key));
 
@@ -342,7 +342,7 @@ hash_table_search(struct hash_table *ht, uint32_t hash, const void *key)
  * modified by the user.
  */
 struct hash_entry *
-_mesa_hash_table_search(struct hash_table *ht, const void *key)
+_mesa_hash_table_search(const struct hash_table *ht, const void *key)
 {
    assert(ht->key_hash_function);
    return hash_table_search(ht, ht->key_hash_function(key), key);

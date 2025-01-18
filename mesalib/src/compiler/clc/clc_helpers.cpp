@@ -61,7 +61,7 @@
 
 #include "spirv.h"
 
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
 #include <dlfcn.h>
 #endif
 
@@ -488,10 +488,12 @@ public:
                kernel.localSize[0] = ins->words[ins->operands[2].offset];
                kernel.localSize[1] = ins->words[ins->operands[3].offset];
                kernel.localSize[2] = ins->words[ins->operands[4].offset];
+               break;
             case SpvExecutionModeLocalSizeHint:
                kernel.localSizeHint[0] = ins->words[ins->operands[2].offset];
                kernel.localSizeHint[1] = ins->words[ins->operands[3].offset];
                kernel.localSizeHint[2] = ins->words[ins->operands[4].offset];
+               break;
             default:
                return;
             }
@@ -884,10 +886,16 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
       return {};
    }
 
-   // GetResourcePath is a way to retrive the actual libclang resource dir based on a given binary
+   // GetResourcePath is a way to retrieve the actual libclang resource dir based on a given binary
    // or library.
-   auto clang_res_path =
-      fs::path(Driver::GetResourcesPath(std::string(clang_path), CLANG_RESOURCE_DIR)) / "include";
+   auto tmp_res_path =
+#if LLVM_VERSION_MAJOR >= 20
+      Driver::GetResourcesPath(std::string(clang_path));
+#else
+      Driver::GetResourcesPath(std::string(clang_path), CLANG_RESOURCE_DIR);
+#endif
+   auto clang_res_path = fs::path(tmp_res_path) / "include";
+
    free(clang_path);
 
    c->getHeaderSearchOpts().UseBuiltinIncludes = true;
@@ -896,6 +904,12 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
 
    // Add opencl-c generic search path
    c->getHeaderSearchOpts().AddPath(clang_res_path.string(),
+                                    clang::frontend::Angled,
+                                    false, false);
+
+   auto clang_install_res_path =
+      fs::path(LLVM_LIB_DIR) / "clang" / std::to_string(LLVM_VERSION_MAJOR) / "include";
+   c->getHeaderSearchOpts().AddPath(clang_install_res_path.string(),
                                     clang::frontend::Angled,
                                     false, false);
 #endif
@@ -942,6 +956,21 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
    if (args->features.images_write_3d) {
       c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_3d_image_writes");
       c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+__opencl_c_3d_image_writes");
+   }
+   if (args->features.images_depth) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_depth_images");
+   }
+   if (args->features.images_gl_depth) {
+      c->getPreprocessorOpts().addMacroDef("cl_khr_gl_depth_images=1");
+   }
+   if (args->features.images_mipmap) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_mipmap_image");
+   }
+   if (args->features.images_mipmap_writes) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_mipmap_image_writes");
+   }
+   if (args->features.images_gl_msaa) {
+      c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_khr_gl_msaa_sharing");
    }
    if (args->features.intel_subgroups) {
       c->getTargetOpts().OpenCLExtensionsAsWritten.push_back("+cl_intel_subgroups");
@@ -1039,9 +1068,7 @@ llvm_mod_to_spirv(std::unique_ptr<::llvm::Module> mod,
       return -1;
    }
 
-   const char *const *extensions = NULL;
-   if (args)
-      extensions = args->allowed_spirv_extensions;
+   const char *const *extensions = args->allowed_spirv_extensions;
    if (!extensions) {
       /* The SPIR-V parser doesn't handle all extensions */
       static const char *default_extensions[] = {
@@ -1228,10 +1255,17 @@ clc_link_spirv_binaries(const struct clc_linker_args *args,
    context.SetMessageConsumer(msgconsumer);
    spvtools::LinkerOptions options;
    options.SetAllowPartialLinkage(args->create_library);
+   #if defined(HAS_SPIRV_LINK_LLVM_WORKAROUND) && LLVM_VERSION_MAJOR >= 17
+      options.SetAllowPtrTypeMismatch(true);
+   #endif
    options.SetCreateLibrary(args->create_library);
    std::vector<uint32_t> linkingResult;
    spv_result_t status = spvtools::Link(context, binaries, &linkingResult, options);
    if (status != SPV_SUCCESS) {
+      #if !defined(HAS_SPIRV_LINK_LLVM_WORKAROUND) && LLVM_VERSION_MAJOR >= 17
+        clc_warning(logger, "SPIRV-Tools doesn't contain https://github.com/KhronosGroup/SPIRV-Tools/pull/5534\n");
+        clc_warning(logger, "Please update in order to prevent spurious linking failures\n");
+      #endif
       return -1;
    }
 

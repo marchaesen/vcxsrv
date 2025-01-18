@@ -36,5 +36,8 @@ spec@ext_texture_array@texsubimage array
 KHR-GL46.layout_location.sampler_2d_shadow
 
 # uprev Piglit in Mesa
+KHR-GL46.direct_state_access.textures_image_query_errors
 spec@ext_framebuffer_multisample@accuracy all_samples depth_draw small depthstencil
 
+KHR-GL46.layout_binding.image2D_layout_binding_imageLoad_ComputeShader
+KHR-GL46.limits.max_geometry_total_output_components

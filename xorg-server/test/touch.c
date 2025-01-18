@@ -24,15 +24,15 @@
 /* Test relies on assert() */
 #undef NDEBUG
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <stdint.h>
+
+#include "dix/input_priv.h"
+
 #include "inputstr.h"
 #include "assert.h"
 #include "scrnintstr.h"
-
 #include "tests-common.h"
 
 static void
@@ -62,7 +62,7 @@ touch_grow_queue(void)
 
     memset(&dev, 0, sizeof(dev));
     dev.type = MASTER_POINTER;  /* claim it's a master to stop ptracccel */
-    dev.name = xnfstrdup("test device");
+    dev.name = XNFstrdup("test device");
     dev.id = 2;
 
     InitValuatorClassDeviceStruct(&dev, 2, labels, 10, Absolute);
@@ -128,7 +128,7 @@ touch_find_ddxid(void)
 
     memset(&dev, 0, sizeof(dev));
     dev.type = MASTER_POINTER;  /* claim it's a master to stop ptracccel */
-    dev.name = xnfstrdup("test device");
+    dev.name = XNFstrdup("test device");
     dev.id = 2;
 
     InitValuatorClassDeviceStruct(&dev, 2, labels, 10, Absolute);
@@ -202,7 +202,7 @@ touch_begin_ddxtouch(void)
 
     memset(&dev, 0, sizeof(dev));
     dev.type = MASTER_POINTER;  /* claim it's a master to stop ptracccel */
-    dev.name = xnfstrdup("test device");
+    dev.name = XNFstrdup("test device");
     dev.id = 2;
     inputInfo.devices = &dev;
 
@@ -252,7 +252,7 @@ touch_begin_touch(void)
 
     memset(&dev, 0, sizeof(dev));
     dev.type = MASTER_POINTER;  /* claim it's a master to stop ptracccel */
-    dev.name = xnfstrdup("test device");
+    dev.name = XNFstrdup("test device");
     dev.id = 2;
 
     ti = TouchBeginTouch(&dev, sourceid, touchid, TRUE);
@@ -289,7 +289,7 @@ touch_init(void)
 
     memset(&dev, 0, sizeof(dev));
     dev.type = MASTER_POINTER;  /* claim it's a master to stop ptracccel */
-    dev.name = xnfstrdup("test device");
+    dev.name = XNFstrdup("test device");
 
     memset(&sprite, 0, sizeof(sprite));
     dev.spriteInfo = &sprite;

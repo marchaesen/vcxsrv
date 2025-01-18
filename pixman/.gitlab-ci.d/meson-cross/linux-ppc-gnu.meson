@@ -1,0 +1,11 @@
+[binaries]
+c = 'powerpc-linux-gnu-gcc'
+ar = 'powerpc-linux-gnu-ar'
+strip = 'powerpc-linux-gnu-strip'
+exe_wrapper = ['qemu-ppc', '-L', '/usr/powerpc-linux-gnu']
+
+[host_machine]
+system = 'linux'
+cpu_family = 'ppc'
+cpu = 'ppc'
+endian = 'big'

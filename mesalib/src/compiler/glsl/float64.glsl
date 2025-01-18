@@ -223,6 +223,31 @@ __flt64_nonnan(uint64_t __a, uint64_t __b)
    return !__feq64_nonnan(__a, __b) && (lt != both_negative);
 }
 
+bool
+__flt64_nonnan_minmax(uint64_t __a, uint64_t __b)
+{
+   uvec2 a = unpackUint2x32(__a);
+   uvec2 b = unpackUint2x32(__b);
+
+   /* See __flt64_nonnan. For implementing fmin/fmax, we compare -0 < 0, so the
+    * implied logic is a bit simpler:
+    *
+    *    both_negative(a, b) ? a > b : a < b
+    *
+    * If a == b, it doesn't matter what we return, so that's equivalent to:
+    *
+    *    both_negative(a, b) ? a >= b : a < b
+    *    both_negative(a, b) ? !(a < b) : a < b
+    *    both_negative(a, b) ^ (a < b)
+    *
+    * XOR is again implemented using !=.
+    */
+   bool lt = ilt64(a.y, a.x, b.y, b.x);
+   bool both_negative = (a.y & b.y & 0x80000000u) != 0;
+
+   return (lt != both_negative);
+}
+
 /* Returns true if the double-precision floating-point value `a' is less than
  * the corresponding value `b', and false otherwise.  The comparison is performed
  * according to the IEEE Standard for Floating-Point Arithmetic.
@@ -1691,7 +1716,7 @@ __fmin64(uint64_t a, uint64_t b)
     * rules.  Flow control is bad!
     */
    bool b_nan = __is_nan(b);
-   bool a_lt_b = __flt64_nonnan(a, b);
+   bool a_lt_b = __flt64_nonnan_minmax(a, b);
    bool a_nan = __is_nan(a);
 
    return (b_nan || a_lt_b) && !a_nan ? a : b;
@@ -1705,7 +1730,7 @@ __fmax64(uint64_t a, uint64_t b)
     * rules.  Flow control is bad!
     */
    bool b_nan = __is_nan(b);
-   bool a_lt_b = __flt64_nonnan(a, b);
+   bool a_lt_b = __flt64_nonnan_minmax(a, b);
    bool a_nan = __is_nan(a);
 
    return (b_nan || a_lt_b) && !a_nan ? b : a;

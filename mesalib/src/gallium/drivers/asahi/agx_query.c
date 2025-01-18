@@ -48,6 +48,7 @@ is_timer(struct agx_query *query)
 
 struct agx_oq_heap {
    /* The GPU allocation itself */
+   struct agx_device *dev;
    struct agx_bo *bo;
 
    /* Bitset of query indices that are in use */
@@ -58,7 +59,7 @@ static void
 agx_destroy_oq_heap(void *heap_)
 {
    struct agx_oq_heap *heap = heap_;
-   agx_bo_unreference(heap->bo);
+   agx_bo_unreference(heap->dev, heap->bo);
 }
 
 static struct agx_oq_heap *
@@ -67,9 +68,10 @@ agx_alloc_oq_heap(struct agx_context *ctx)
    struct agx_oq_heap *heap = rzalloc(ctx, struct agx_oq_heap);
    ralloc_set_destructor(heap, agx_destroy_oq_heap);
 
-   heap->bo = agx_bo_create(agx_device(ctx->base.screen),
-                            AGX_MAX_OCCLUSION_QUERIES * sizeof(uint64_t),
-                            AGX_BO_WRITEBACK, "Occlusion query heap");
+   heap->dev = agx_device(ctx->base.screen);
+   heap->bo =
+      agx_bo_create(heap->dev, AGX_MAX_OCCLUSION_QUERIES * sizeof(uint64_t), 0,
+                    AGX_BO_WRITEBACK, "Occlusion query heap");
 
    /* At the start, everything is available */
    BITSET_ONES(heap->available);
@@ -103,8 +105,8 @@ agx_alloc_oq(struct agx_context *ctx)
    unsigned offset = index * sizeof(uint64_t);
 
    return (struct agx_ptr){
-      (uint8_t *)heap->bo->ptr.cpu + offset,
-      heap->bo->ptr.gpu + offset,
+      (uint8_t *)heap->bo->map + offset,
+      heap->bo->va->addr + offset,
    };
 }
 
@@ -113,7 +115,7 @@ agx_oq_index(struct agx_context *ctx, struct agx_query *q)
 {
    assert(is_occlusion(q));
 
-   return (q->ptr.gpu - ctx->oq->bo->ptr.gpu) / sizeof(uint64_t);
+   return (q->ptr.gpu - ctx->oq->bo->va->addr) / sizeof(uint64_t);
 }
 
 static void
@@ -137,7 +139,7 @@ agx_get_occlusion_heap(struct agx_batch *batch)
    struct agx_bo *bo = batch->ctx->oq->bo;
 
    if (agx_batch_uses_bo(batch, bo))
-      return bo->ptr.gpu;
+      return bo->va->addr;
    else
       return 0;
 }
@@ -164,8 +166,11 @@ agx_create_query(struct pipe_context *ctx, unsigned query_type, unsigned index)
        * tracking / reference counting to deal with lifetimes.
        */
       query->bo = agx_bo_create(agx_device(ctx->screen), sizeof(uint64_t) * 2,
-                                AGX_BO_WRITEBACK, "Query");
-      query->ptr = query->bo->ptr;
+                                0, AGX_BO_WRITEBACK, "Query");
+      query->ptr = (struct agx_ptr){
+         .gpu = query->bo->va->addr,
+         .cpu = query->bo->map,
+      };
    }
 
    if (!query->ptr.gpu) {
@@ -216,6 +221,7 @@ agx_destroy_query(struct pipe_context *pctx, struct pipe_query *pquery)
 {
    struct agx_context *ctx = agx_context(pctx);
    struct agx_query *query = (struct agx_query *)pquery;
+   struct agx_device *dev = agx_device(pctx->screen);
 
    /* We don't reference count the occlusion query allocations, so we need to
     * sync writers when destroying so we can freely write from the CPU after
@@ -228,7 +234,7 @@ agx_destroy_query(struct pipe_context *pctx, struct pipe_query *pquery)
       sync_query_writers(ctx, query, "Occlusion query destroy");
       agx_free_oq(ctx, query);
    } else {
-      agx_bo_unreference(query->bo);
+      agx_bo_unreference(dev, query->bo);
    }
 
    free(pquery);
@@ -543,7 +549,7 @@ agx_get_query_result_resource_gpu(struct agx_context *ctx,
    memcpy(&saved_cb, &stage->cb[0], sizeof(struct pipe_constant_buffer));
 
    /* Set params */
-   uint64_t params[2] = {query->ptr.gpu, rsrc->bo->ptr.gpu + offset};
+   uint64_t params[2] = {query->ptr.gpu, rsrc->bo->va->addr + offset};
    agx_batch_writes_range(batch, rsrc, offset, result_type_size(result_type));
 
    struct pipe_constant_buffer cb = {
@@ -553,8 +559,8 @@ agx_get_query_result_resource_gpu(struct agx_context *ctx,
    ctx->base.set_constant_buffer(&ctx->base, PIPE_SHADER_COMPUTE, 0, false,
                                  &cb);
 
-   struct pipe_grid_info grid = {.block = {1, 1, 1}, .grid = {1, 1, 1}};
-   agx_launch(batch, &grid, cs, NULL, PIPE_SHADER_COMPUTE);
+   struct agx_grid grid = agx_grid_direct(1, 1, 1, 1, 1, 1);
+   agx_launch(batch, &grid, cs, NULL, PIPE_SHADER_COMPUTE, 0);
 
    /* take_ownership=true so do not unreference */
    ctx->base.set_constant_buffer(&ctx->base, PIPE_SHADER_COMPUTE, 0, true,
@@ -619,8 +625,12 @@ agx_get_oq_index(struct agx_batch *batch, struct agx_query *query)
 uint64_t
 agx_get_query_address(struct agx_batch *batch, struct agx_query *query)
 {
-   agx_add_query_to_batch(batch, query);
-   return query->ptr.gpu;
+   if (query) {
+      agx_add_query_to_batch(batch, query);
+      return query->ptr.gpu;
+   } else {
+      return 0;
+   }
 }
 
 void

@@ -21,9 +21,7 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <string.h>
 
@@ -33,6 +31,7 @@ SOFTWARE.
 #include <X11/extensions/Xvproto.h>
 
 #include "dix/dix_priv.h"
+#include "Xext/xvdix_priv.h"
 
 #include "misc.h"
 #include "scrnintstr.h"
@@ -42,7 +41,6 @@ SOFTWARE.
 #include "dixstruct.h"
 #include "resource.h"
 #include "opaque.h"
-#include "xvdix.h"
 #ifdef MITSHM
 #include <X11/extensions/shmproto.h>
 #include "shmint.h"

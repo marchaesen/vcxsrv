@@ -12,6 +12,7 @@
 #include "svga_hw_reg.h"
 #include "svga_shader.h"
 #include "svga_tgsi.h"
+#include "vm_basic_types.h"
 #include "svga3d_shaderdefs.h"
 
 struct src_register

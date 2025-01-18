@@ -166,7 +166,7 @@ static enum pipe_error
 emit_fb_vgpu10(struct svga_context *svga)
 {
    const struct svga_screen *ss = svga_screen(svga->pipe.screen);
-   struct pipe_surface *rtv[SVGA3D_MAX_RENDER_TARGETS];
+   struct pipe_surface *rtv[SVGA3D_DX_MAX_RENDER_TARGETS];
    struct pipe_surface *dsv;
    struct pipe_framebuffer_state *curr = &svga->curr.framebuffer;
    struct pipe_framebuffer_state *hw = &svga->state.hw_clear.framebuffer;

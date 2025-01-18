@@ -81,6 +81,8 @@ nir_builder MUST_CHECK PRINTFLIKE(3, 4)
 typedef bool (*nir_instr_pass_cb)(struct nir_builder *, nir_instr *, void *);
 typedef bool (*nir_intrinsic_pass_cb)(struct nir_builder *,
                                       nir_intrinsic_instr *, void *);
+typedef bool (*nir_alu_pass_cb)(struct nir_builder *,
+                                nir_alu_instr *, void *);
 
 /**
  * Iterates over all the instructions in a NIR function and calls the given pass
@@ -168,6 +170,39 @@ nir_shader_intrinsics_pass(nir_shader *shader,
          nir_foreach_instr_safe(instr, block) {
             if (instr->type == nir_instr_type_intrinsic) {
                nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+               func_progress |= pass(&b, intr, cb_data);
+            }
+         }
+      }
+
+      if (func_progress) {
+         nir_metadata_preserve(impl, preserved);
+         progress = true;
+      } else {
+         nir_metadata_preserve(impl, nir_metadata_all);
+      }
+   }
+
+   return progress;
+}
+
+/* As above, but for ALU */
+static inline bool
+nir_shader_alu_pass(nir_shader *shader,
+                    nir_alu_pass_cb pass,
+                    nir_metadata preserved,
+                    void *cb_data)
+{
+   bool progress = false;
+
+   nir_foreach_function_impl(impl, shader) {
+      bool func_progress = false;
+      nir_builder b = nir_builder_create(impl);
+
+      nir_foreach_block_safe(block, impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type == nir_instr_type_alu) {
+               nir_alu_instr *intr = nir_instr_as_alu(instr);
                func_progress |= pass(&b, intr, cb_data);
             }
          }
@@ -1955,6 +1990,46 @@ nir_tex_src_for_ssa(nir_tex_src_type src_type, nir_def *def)
    return src;
 }
 
+#undef nir_ddx
+#undef nir_ddx_fine
+#undef nir_ddx_coarse
+#undef nir_ddy
+#undef nir_ddy_fine
+#undef nir_ddy_coarse
+
+static inline nir_def *
+nir_build_deriv(nir_builder *b, nir_def *x, nir_intrinsic_op intrin)
+{
+   if (b->shader->options->scalarize_ddx && x->num_components > 1) {
+      nir_def *res[NIR_MAX_VEC_COMPONENTS] = { NULL };
+
+      for (unsigned i = 0; i < x->num_components; ++i) {
+         res[i] = _nir_build_ddx(b, x->bit_size, nir_channel(b, x, i));
+         nir_instr_as_intrinsic(res[i]->parent_instr)->intrinsic = intrin;
+      }
+
+      return nir_vec(b, res, x->num_components);
+   } else {
+      nir_def *res = _nir_build_ddx(b, x->bit_size, x);
+      nir_instr_as_intrinsic(res->parent_instr)->intrinsic = intrin;
+      return res;
+   }
+}
+
+#define DEF_DERIV(op)                                                        \
+   static inline nir_def *                                                   \
+      nir_##op(nir_builder *build, nir_def *src0)                            \
+   {                                                                         \
+      return nir_build_deriv(build, src0, nir_intrinsic_##op);               \
+   }
+
+DEF_DERIV(ddx)
+DEF_DERIV(ddx_fine)
+DEF_DERIV(ddx_coarse)
+DEF_DERIV(ddy)
+DEF_DERIV(ddy_fine)
+DEF_DERIV(ddy_coarse)
+
 /*
  * Find a texture source, remove it, and return its nir_def. If the texture
  * source does not exist, return NULL. This is useful for texture lowering pass
@@ -2124,6 +2199,16 @@ nir_goto_if(nir_builder *build, struct nir_block *target, nir_def *cond,
 }
 
 static inline void
+nir_break_if(nir_builder *build, nir_def *cond)
+{
+   nir_if *nif = nir_push_if(build, cond);
+   {
+      nir_jump(build, nir_jump_break);
+   }
+   nir_pop_if(build, nif);
+}
+
+static inline void
 nir_build_call(nir_builder *build, nir_function *func, size_t count,
                nir_def **args)
 {
@@ -2136,6 +2221,27 @@ nir_build_call(nir_builder *build, nir_function *func, size_t count,
 
    nir_builder_instr_insert(build, &call->instr);
 }
+
+static inline void
+nir_discard(nir_builder *build)
+{
+   if (build->shader->options->discard_is_demote)
+      nir_demote(build);
+   else
+      nir_terminate(build);
+}
+
+static inline void
+nir_discard_if(nir_builder *build, nir_def *src)
+{
+   if (build->shader->options->discard_is_demote)
+      nir_demote_if(build, src);
+   else
+      nir_terminate_if(build, src);
+}
+
+nir_def *
+nir_build_string(nir_builder *build, const char *value);
 
 /*
  * Call a given nir_function * with a variadic number of nir_def * arguments.

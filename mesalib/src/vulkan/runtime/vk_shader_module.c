@@ -123,25 +123,3 @@ vk_shader_module_spirv_version(const struct vk_shader_module *mod)
 
    return vk_spirv_version((uint32_t *)mod->data, mod->size);
 }
-
-VkResult
-vk_shader_module_to_nir(struct vk_device *device,
-                        const struct vk_shader_module *mod,
-                        gl_shader_stage stage,
-                        const char *entrypoint_name,
-                        const VkSpecializationInfo *spec_info,
-                        const struct spirv_to_nir_options *spirv_options,
-                        const nir_shader_compiler_options *nir_options,
-                        void *mem_ctx, nir_shader **nir_out)
-{
-   const VkPipelineShaderStageCreateInfo info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      .stage = mesa_to_vk_shader_stage(stage),
-      .module = vk_shader_module_to_handle((struct vk_shader_module *)mod),
-      .pName = entrypoint_name,
-      .pSpecializationInfo = spec_info,
-   };
-   return vk_pipeline_shader_stage_to_nir(device, &info,
-                                          spirv_options, nir_options,
-                                          mem_ctx, nir_out);
-}

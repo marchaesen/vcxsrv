@@ -11,7 +11,7 @@ Import-Module (Join-Path $vsInstallPath "Common7\Tools\Microsoft.VisualStudio.De
 
 $vcvars_ver_arg=$args
 if ($null -eq $vcvars_ver_arg[0]) {
-  $vcvars_ver_arg="-vcvars_ver=14.29"
+  $vcvars_ver_arg="-vcvars_ver=14"
 }
 
 Enter-VsDevShell -VsInstallPath $vsInstallPath -SkipAutomaticLocation -DevCmdArguments "$vcvars_ver_arg -arch=x64 -no_logo -host_arch=amd64"

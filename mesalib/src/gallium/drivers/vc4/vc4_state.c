@@ -260,12 +260,12 @@ vc4_create_depth_stencil_alpha_state(struct pipe_context *pctx,
                         back_writemask_bits =
                                 tlb_stencil_setup_writemask(back->writemask);
 
-                        so->stencil_uniforms[0] |= (1 << 30);
+                        so->stencil_uniforms[0] |= (UINT32_C(1) << 30);
                         so->stencil_uniforms[1] =
                                 tlb_stencil_setup_bits(back, back_writemask_bits);
-                        so->stencil_uniforms[1] |= (2 << 30);
+                        so->stencil_uniforms[1] |= (UINT32_C(2) << 30);
                 } else {
-                        so->stencil_uniforms[0] |= (3 << 30);
+                        so->stencil_uniforms[0] |= (UINT32_C(3) << 30);
                 }
 
                 if (front_writemask_bits == 0xff ||

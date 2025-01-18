@@ -210,14 +210,7 @@ lower_builtin_instr(nir_builder *b, nir_intrinsic_instr *intrin,
    def = nir_swizzle(b, def, swiz, intrin->num_components);
 
    /* and rewrite uses of original instruction: */
-   nir_def_rewrite_uses(&intrin->def, def);
-
-   /* at this point intrin should be unused.  We need to remove it
-    * (rather than waiting for DCE pass) to avoid dangling reference
-    * to remove'd var.  And we have to remove the original uniform
-    * var since we don't want it to get uniform space allocated.
-    */
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, def);
 
    return true;
 }
@@ -244,8 +237,7 @@ st_nir_lower_builtin(nir_shader *shader)
       progress |= nir_lower_indirect_var_derefs(shader, vars);
 
       if (nir_shader_intrinsics_pass(shader, lower_builtin_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance, NULL)) {
+                                       nir_metadata_control_flow, NULL)) {
          nir_remove_dead_derefs(shader);
          progress = true;
       }

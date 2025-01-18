@@ -97,7 +97,8 @@ store_general(struct v3d_job *job,
                 surf = v3d_surface(psurf);
         }
 
-        *stores_pending &= ~pipe_bit;
+        if (stores_pending)
+                *stores_pending &= ~pipe_bit;
 
         struct v3d_resource *rsc = v3d_resource(psurf->texture);
 
@@ -131,13 +132,18 @@ store_general(struct v3d_job *job,
                         store.height_in_ub_or_stride = slice->stride;
                 }
 
-                assert(!resolve_4x || job->bbuf);
-                if (psurf->texture->nr_samples > 1)
+                if (psurf->texture->nr_samples > 1) {
                         store.decimate_mode = V3D_DECIMATE_MODE_ALL_SAMPLES;
-                else if (resolve_4x && job->bbuf->texture->nr_samples > 1)
+                } else if (resolve_4x) {
+                        /* We are resolving from a MSAA blit buffer or we are
+                         * resolving directly from TLB to a resolve buffer
+                         */
+                        assert((job->bbuf && job->bbuf->texture->nr_samples > 1) ||
+                               (job->dbuf && job->dbuf->texture->nr_samples <= 1));
                         store.decimate_mode = V3D_DECIMATE_MODE_4X;
-                else
+                } else {
                         store.decimate_mode = V3D_DECIMATE_MODE_SAMPLE_0;
+                }
         }
 }
 
@@ -223,18 +229,31 @@ v3d_rcl_emit_stores(struct v3d_job *job, struct v3d_cl *cl, int layer)
          * perspective.  Non-MSAA surfaces will use
          * STORE_MULTI_SAMPLE_RESOLVED_TILE_COLOR_BUFFER_EXTENDED.
          */
-        assert(!job->bbuf || job->nr_cbufs <= 1);
+        assert((!job->bbuf && !job->dbuf) || job->nr_cbufs <= 1);
         for (int i = 0; i < job->nr_cbufs; i++) {
-                uint32_t bit = PIPE_CLEAR_COLOR0 << i;
-                if (!(job->store & bit))
-                        continue;
-
                 struct pipe_surface *psurf = job->cbufs[i];
                 if (!psurf)
                         continue;
 
+                uint32_t bit = PIPE_CLEAR_COLOR0 << i;
+                if (job->blit_tlb & bit) {
+                        assert(job->dbuf);
+                        bool blit_resolve =
+                                job->dbuf->texture->nr_samples <= 1 &&
+                                psurf->texture->nr_samples > 1;
+                        store_general(job, cl, job->dbuf, layer,
+                                      RENDER_TARGET_0 + i, bit, NULL,
+                                      false, blit_resolve);
+                }
+
+                if (!(job->store & bit))
+                        continue;
+
+                bool blit_resolve =
+                        job->bbuf && job->bbuf->texture->nr_samples > 1 &&
+                        psurf->texture->nr_samples <= 1;
                 store_general(job, cl, psurf, layer, RENDER_TARGET_0 + i, bit,
-                              &stores_pending, general_color_clear, job->bbuf);
+                              &stores_pending, general_color_clear, blit_resolve);
         }
 
         if (job->store & PIPE_CLEAR_DEPTHSTENCIL && job->zsbuf) {
@@ -282,7 +301,7 @@ v3d_rcl_emit_stores(struct v3d_job *job, struct v3d_cl *cl, int layer)
          * clear packet's Z/S bit is broken, but the RTs bit ends up
          * clearing Z/S.
          */
-        if (job->clear) {
+        if (job->clear_tlb) {
 #if V3D_VERSION == 42
                 cl_emit(cl, CLEAR_TILE_BUFFERS, clear) {
                         clear.clear_z_stencil_buffer = !job->early_zs_clear;
@@ -641,7 +660,7 @@ v3dX(emit_rcl)(struct v3d_job *job)
 
                 assert(job->zsbuf || config.early_z_disable);
 
-                job->early_zs_clear = (job->clear & PIPE_CLEAR_DEPTHSTENCIL) &&
+                job->early_zs_clear = (job->clear_tlb & PIPE_CLEAR_DEPTHSTENCIL) &&
                         !(job->load & PIPE_CLEAR_DEPTHSTENCIL) &&
                         !(job->store & PIPE_CLEAR_DEPTHSTENCIL);
 

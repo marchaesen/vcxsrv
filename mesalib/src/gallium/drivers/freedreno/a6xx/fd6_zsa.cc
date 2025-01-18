@@ -1,25 +1,7 @@
 /*
- * Copyright (C) 2016 Rob Clark <robclark@freedesktop.org>
+ * Copyright © 2016 Rob Clark <robclark@freedesktop.org>
  * Copyright © 2018 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -90,6 +72,7 @@ update_lrz_stencil(struct fd6_zsa_stateobj *so, enum pipe_compare_func func,
    }
 }
 
+template <chip CHIP>
 void *
 fd6_zsa_state_create(struct pipe_context *pctx,
                      const struct pipe_depth_stencil_alpha_state *cso)
@@ -237,7 +220,8 @@ fd6_zsa_state_create(struct pipe_context *pctx,
 
    /* Build the four state permutations (with/without alpha/depth-clamp)*/
    for (int i = 0; i < 4; i++) {
-      struct fd_ringbuffer *ring = fd_ringbuffer_new_object(ctx->pipe, 12 * 4);
+      struct fd_ringbuffer *ring = fd_ringbuffer_new_object(ctx->pipe, 16 * 4);
+      bool depth_clamp_enable = (i & FD6_ZSA_DEPTH_CLAMP);
 
       OUT_PKT4(ring, REG_A6XX_RB_ALPHA_CONTROL, 1);
       OUT_RING(ring,
@@ -248,23 +232,37 @@ fd6_zsa_state_create(struct pipe_context *pctx,
       OUT_PKT4(ring, REG_A6XX_RB_STENCIL_CONTROL, 1);
       OUT_RING(ring, so->rb_stencil_control);
 
+      OUT_REG(ring, A6XX_GRAS_SU_STENCIL_CNTL(cso->stencil[0].enabled));
+
       OUT_PKT4(ring, REG_A6XX_RB_DEPTH_CNTL, 1);
       OUT_RING(ring,
-               so->rb_depth_cntl | COND(i & FD6_ZSA_DEPTH_CLAMP,
+               so->rb_depth_cntl | COND(depth_clamp_enable || CHIP >= A7XX,
                                         A6XX_RB_DEPTH_CNTL_Z_CLAMP_ENABLE));
+
+      OUT_REG(ring, A6XX_GRAS_SU_DEPTH_CNTL(cso->depth_enabled));
 
       OUT_PKT4(ring, REG_A6XX_RB_STENCILMASK, 2);
       OUT_RING(ring, so->rb_stencilmask);
       OUT_RING(ring, so->rb_stencilwrmask);
 
-      OUT_REG(ring, A6XX_RB_Z_BOUNDS_MIN(cso->depth_bounds_min),
-                    A6XX_RB_Z_BOUNDS_MAX(cso->depth_bounds_max));
+      if (CHIP >= A7XX && !depth_clamp_enable) {
+         OUT_REG(ring,
+            A6XX_RB_Z_BOUNDS_MIN(0.0f),
+            A6XX_RB_Z_BOUNDS_MAX(1.0f),
+         );
+      } else {
+         OUT_REG(ring,
+            A6XX_RB_Z_BOUNDS_MIN(cso->depth_bounds_min),
+            A6XX_RB_Z_BOUNDS_MAX(cso->depth_bounds_max),
+         );
+      }
 
       so->stateobj[i] = ring;
    }
 
    return so;
 }
+FD_GENX(fd6_zsa_state_create);
 
 void
 fd6_zsa_state_delete(struct pipe_context *pctx, void *hwcso)

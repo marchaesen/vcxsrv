@@ -201,6 +201,27 @@ tmu_write_is_sequence_terminator(uint32_t waddr)
 }
 
 static bool
+is_tmu_sequence_terminator(struct qinst *inst)
+{
+        if (inst->qpu.type != V3D_QPU_INSTR_TYPE_ALU)
+                return false;
+
+        if (inst->qpu.alu.add.op != V3D_QPU_A_NOP) {
+                if (!inst->qpu.alu.add.magic_write)
+                        return false;
+                return tmu_write_is_sequence_terminator(inst->qpu.alu.add.waddr);
+        }
+
+        if (inst->qpu.alu.mul.op != V3D_QPU_M_NOP) {
+                if (!inst->qpu.alu.mul.magic_write)
+                        return false;
+                return tmu_write_is_sequence_terminator(inst->qpu.alu.mul.waddr);
+        }
+
+        return false;
+}
+
+static bool
 can_reorder_tmu_write(const struct v3d_device_info *devinfo, uint32_t waddr)
 {
         if (tmu_write_is_sequence_terminator(waddr))
@@ -945,13 +966,13 @@ qpu_raddrs_used(const struct v3d_qpu_instr *a,
 
         uint64_t raddrs_used = 0;
         if (v3d_qpu_uses_mux(a, V3D_QPU_MUX_A))
-                raddrs_used |= (1ll << a->raddr_a);
+                raddrs_used |= (UINT64_C(1) << a->raddr_a);
         if (!a->sig.small_imm_b && v3d_qpu_uses_mux(a, V3D_QPU_MUX_B))
-                raddrs_used |= (1ll << a->raddr_b);
+                raddrs_used |= (UINT64_C(1) << a->raddr_b);
         if (v3d_qpu_uses_mux(b, V3D_QPU_MUX_A))
-                raddrs_used |= (1ll << b->raddr_a);
+                raddrs_used |= (UINT64_C(1) << b->raddr_a);
         if (!b->sig.small_imm_b && v3d_qpu_uses_mux(b, V3D_QPU_MUX_B))
-                raddrs_used |= (1ll << b->raddr_b);
+                raddrs_used |= (UINT64_C(1) << b->raddr_b);
 
         return raddrs_used;
 }
@@ -1014,7 +1035,7 @@ qpu_merge_raddrs(struct v3d_qpu_instr *result,
                 return true;
 
         int raddr_a = ffsll(raddrs_used) - 1;
-        raddrs_used &= ~(1ll << raddr_a);
+        raddrs_used &= ~(UINT64_C(1) << raddr_a);
         result->raddr_a = raddr_a;
 
         if (!result->sig.small_imm_b) {
@@ -1533,6 +1554,7 @@ retry:
                          * this aspect in the compiler yet.
                          */
                         if (prev_inst->inst->qpu.sig.ldtmu &&
+                            is_tmu_sequence_terminator(n->inst) &&
                             !scoreboard->first_ldtmu_after_thrsw &&
                             (scoreboard->pending_ldtmu_count +
                              n->inst->ldtmu_count > 16 / c->threads)) {

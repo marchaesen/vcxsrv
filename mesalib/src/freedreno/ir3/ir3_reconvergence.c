@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2023 Valve Corporation
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2023 Valve Corporation
+ * SPDX-License-Identifier: MIT
  */
 
 /* The pass uses information on which branches are divergent in order to
@@ -122,6 +104,10 @@ ir3_calc_reconvergence(struct ir3_shader_variant *so)
          edge_count++;
       if (block->successors[1])
          edge_count++;
+
+      block->physical_predecessors_count = 0;
+      block->physical_successors_count = 0;
+      block->reconvergence_point = false;
    }
 
    struct rb_tree forward_edges, backward_edges;
@@ -154,7 +140,7 @@ ir3_calc_reconvergence(struct ir3_shader_variant *so)
                };
 
                uinterval_tree_insert(&forward_edges, &edges[edge++].node);
-            } else if (block->successors[i]->index < block->index - 1) {
+            } else if (block->successors[i]->index <= block->index) {
                edges[edge] = (struct logical_edge) {
                   .node = {
                      .interval = {
@@ -188,12 +174,48 @@ ir3_calc_reconvergence(struct ir3_shader_variant *so)
          continue;
       if (block->successors[0] && block->successors[1] &&
           block->divergent_condition) {
-         unsigned idx = block->successors[0]->index >
-            block->successors[1]->index ? 0 : 1;
-         block->successors[idx]->reconvergence_point = true;
-         blocks[block->successors[idx]->index].first_divergent_pred =
-            block->index;
-         u_worklist_push_tail(&worklist, block->successors[idx], index);
+         struct ir3_block *reconv_points[2];
+         unsigned num_reconv_points;
+         struct ir3_instruction *prev_instr = NULL;
+
+         if (!list_is_singular(&block->instr_list)) {
+            prev_instr =
+               list_entry(terminator->node.prev, struct ir3_instruction, node);
+         }
+
+         if (prev_instr && is_terminator(prev_instr)) {
+            /* There are two terminating branches so both successors are
+             * reconvergence points (i.e., there is no fall through into the
+             * next block). This can only happen after ir3_legalize when we fail
+             * to eliminate a non-invertible branch. For example:
+             * getone #bb0
+             * jump #bb1
+             * bb0: (jp)...
+             * bb1: (jp)...
+             */
+            reconv_points[0] = block->successors[0];
+            reconv_points[1] = block->successors[1];
+            num_reconv_points = 2;
+         } else {
+            unsigned idx =
+               block->successors[0]->index > block->successors[1]->index ? 0
+                                                                         : 1;
+            reconv_points[0] = block->successors[idx];
+            reconv_points[1] = NULL;
+            num_reconv_points = 1;
+         }
+
+         for (unsigned i = 0; i < num_reconv_points; i++) {
+            struct ir3_block *reconv_point = reconv_points[i];
+            reconv_point->reconvergence_point = true;
+
+            struct block_data *reconv_point_data = &blocks[reconv_point->index];
+            if (reconv_point_data->first_divergent_pred > block->index) {
+               reconv_point_data->first_divergent_pred = block->index;
+            }
+
+            u_worklist_push_tail(&worklist, reconv_point, index);
+         }
       }
    }
 
@@ -201,6 +223,31 @@ ir3_calc_reconvergence(struct ir3_shader_variant *so)
       struct ir3_block *block =
          u_worklist_pop_head(&worklist, struct ir3_block, index);
       assert(block->reconvergence_point);
+
+      /* Backwards branches extend the range of divergence. For example, a
+       * divergent break creates a reconvergence point after the loop that
+       * stays outstanding throughout subsequent iterations, even at points
+       * before the break. This takes that into account.
+       *
+       * More precisely, a backwards edge that originates between the block and
+       * it's first_divergent_pred (i.e. in the divergence range) extends the
+       * divergence range to the beginning of its destination if it is taken, or
+       * alternatively to the end of the block before its destination.
+       */
+      struct uinterval interval2 = {
+         blocks[block->index].first_divergent_pred,
+         blocks[block->index].first_divergent_pred
+      };
+      uinterval_tree_foreach (struct logical_edge, back_edge, interval2, &backward_edges,
+                              node) {
+         if (back_edge->end_block->index < block->index) {
+            if (blocks[block->index].first_divergent_pred >
+                back_edge->start_block->index - 1) {
+               blocks[block->index].first_divergent_pred =
+                  back_edge->start_block->index - 1;
+            }
+         }
+      }
 
       /* Iterate over all edges stepping over the block. */
       struct uinterval interval = { block->index, block->index };
@@ -232,43 +279,22 @@ ir3_calc_reconvergence(struct ir3_shader_variant *so)
             u_worklist_push_tail(&worklist, edge->end_block, index);
          }
 
-         /* Backwards branches extend the range of divergence. For example, a
-          * divergent break creates a reconvergence point after the loop that
-          * stays outstanding throughout subsequent iterations, even at points
-          * before the break. This takes that into account.
-          *
-          * More precisely, a backwards edge that originates between the start
-          * and end of "edge" extends the divergence range to the beginning of
-          * its destination if it is taken, or alternatively to the end of the
-          * block before its destination.
-          *
-          * TODO: in case we ever start accepting weird non-structured control
-          * flow, we may also need to handle this above if a divergent branch
-          * crosses over a backwards edge.
-          */
-         struct uinterval interval2 = { edge->start_block->index, edge->start_block->index };
-         uinterval_tree_foreach (struct logical_edge, back_edge, interval2, &backward_edges,
-                                 node) {
-            if (back_edge->end_block->index < edge->end_block->index) {
-               if (blocks[edge->end_block->index].first_divergent_pred >
-                   back_edge->start_block->index - 1) {
-                  blocks[edge->end_block->index].first_divergent_pred =
-                     back_edge->start_block->index - 1;
-                  u_worklist_push_tail(&worklist, edge->end_block, index);
-               }
-            }
-         }
-
          if (!prev || prev->start_block != edge->start_block) {
             /* We should only process this edge + block combination once, and
              * we use the fact that edges are sorted by start point to avoid
              * adding redundant physical edges in case multiple edges have the
              * same start point by comparing with the previous edge. Therefore
              * we should only add the physical edge once.
+             * However, we should skip logical successors of the edge's start
+             * block since physical edges for those have already been added
+             * initially.
              */
-            for (unsigned i = 0; i < block->physical_predecessors_count; i++)
-               assert(block->physical_predecessors[i] != edge->start_block);
-            ir3_block_link_physical(edge->start_block, block);
+            if (block != edge->start_block->successors[0] &&
+                block != edge->start_block->successors[1]) {
+               for (unsigned i = 0; i < block->physical_predecessors_count; i++)
+                  assert(block->physical_predecessors[i] != edge->start_block);
+               ir3_block_link_physical(edge->start_block, block);
+            }
          }
          prev = edge;
       }

@@ -285,8 +285,7 @@ lower_impl(nir_function_impl *impl,
    }
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }
@@ -339,8 +338,7 @@ split_phi(nir_builder *b, nir_phi_instr *phi)
 
    b->cursor = nir_after_phis(nir_cursor_current_block(b->cursor));
    nir_def *merged = nir_pack_64_2x32_split(b, &lowered[0]->def, &lowered[1]->def);
-   nir_def_rewrite_uses(&phi->def, merged);
-   nir_instr_remove(&phi->instr);
+   nir_def_replace(&phi->def, merged);
 }
 
 static bool
@@ -362,7 +360,6 @@ bool
 nir_lower_64bit_phis(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader, lower_64bit_phi_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        NULL);
 }

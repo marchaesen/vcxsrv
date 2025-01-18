@@ -1,5 +1,4 @@
 CSRCS=miarc.c		\
-	mibitblt.c	\
 	micmap.c	\
 	micopy.c	\
 	midash.c	\
@@ -7,7 +6,6 @@ CSRCS=miarc.c		\
 	mieq.c		\
 	miexpose.c	\
 	mifillarc.c	\
-	mifillrct.c	\
 	migc.c		\
 	miglblt.c	\
 	mioverlay.c	\

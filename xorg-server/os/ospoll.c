@@ -20,14 +20,15 @@
  * OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
-#include <X11/X.h>
-#include <X11/Xproto.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <X11/X.h>
+#include <X11/Xproto.h>
+
+#include "os/xserver_poll.h"
+
 #include "misc.h"               /* for typedef of pointer */
 #include "ospoll.h"
 #include "list.h"

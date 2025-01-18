@@ -19,14 +19,14 @@ for driver in freedreno intel lima v3d vc4; do
 done
 
 # Run shader-db over a number of supported chipsets for nouveau
-#for chipset in 40 a3 c0 e4 f0 134 162; do
-#    section_start shader-db-nouveau-${chipset} "Running shader-db for nouveau - ${chipset}"
-#    env LD_PRELOAD="$LIBDIR/libnouveau_noop_drm_shim.so" \
-#        NOUVEAU_CHIPSET=${chipset} \
-#        ./run -j"${FDO_CI_CONCURRENT:-4}" ./shaders \
-#            > "$ARTIFACTSDIR/nouveau-${chipset}-shader-db.txt"
-#    section_end shader-db-nouveau-${chipset}
-#done
+for chipset in 40 a3 c0 e4 f0 134 162; do
+    section_start shader-db-nouveau-${chipset} "Running shader-db for nouveau - ${chipset}"
+    env LD_PRELOAD="$LIBDIR/libnouveau_noop_drm_shim.so" \
+        NOUVEAU_CHIPSET=${chipset} \
+        ./run -j"${FDO_CI_CONCURRENT:-4}" ./shaders \
+            > "$ARTIFACTSDIR/nouveau-${chipset}-shader-db.txt"
+    section_end shader-db-nouveau-${chipset}
+done
 
 # Run shader-db for r300 (RV370 and RV515)
 for chipset in 0x5460 0x7140; do

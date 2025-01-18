@@ -31,6 +31,7 @@ $template = "See $($env:ARTIFACTS_BASE_URL)/results/{{testcase}}.xml"
 deqp-runner junit --testsuite dEQP --results "$($results)/failures.csv" --output "$($results)/junit.xml" --limit 50 --template $template
 Copy-Item -Path "C:\deqp\testlog.css" -Destination $($results)
 Copy-Item -Path "C:\deqp\testlog.xsl" -Destination $($results)
+Remove-Item -Path "$($results)/*.shader_cache"
 
 if (!$deqpstatus) {
     Exit 1

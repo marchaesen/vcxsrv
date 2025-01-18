@@ -1,22 +1,5 @@
 # Copyright © 2017 Broadcom
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 files_libvc4 = files(
   'kernel/vc4_drv.h',
@@ -83,15 +66,21 @@ files_libvc4 = files(
 
 vc4_c_args = []
 
+vc4_deps = [
+  dep_simpenrose, dep_libdrm, dep_valgrind,
+  idep_nir_headers, idep_mesautil,
+]
+
 libvc4_neon = []
 if host_machine.cpu_family() == 'arm'
   libvc4_neon = static_library(
     'vc4_neon',
-    'vc4_tiling_lt_neon.c',
+    'vc4_tiling_lt.c',
     include_directories : [
       inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_broadcom
     ],
-    c_args : '-mfpu=neon',
+    c_args : ['-mfpu=neon', '-DV3D_BUILD_NEON'],
+    dependencies : vc4_deps,
   )
   vc4_c_args += '-DUSE_ARM_ASM'
 endif
@@ -110,10 +99,7 @@ libvc4 = static_library(
   link_with: libvc4_neon,
   c_args : [vc4_c_args],
   gnu_symbol_visibility : 'hidden',
-  dependencies : [
-    dep_simpenrose, dep_libdrm, dep_valgrind,
-    idep_nir_headers, idep_mesautil,
-  ],
+  dependencies : vc4_deps,
   build_by_default : false,
 )
 

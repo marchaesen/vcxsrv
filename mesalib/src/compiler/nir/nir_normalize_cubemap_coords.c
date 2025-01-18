@@ -68,7 +68,6 @@ bool
 nir_normalize_cubemap_coords(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader, normalize_cubemap_coords,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        NULL);
 }

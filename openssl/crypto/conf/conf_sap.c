@@ -7,8 +7,6 @@
  * https://www.openssl.org/source/license.html
  */
 
-#define _XOPEN_SOURCE_EXTENDED   /* To get a definition of strdup() */
-
 #include <stdio.h>
 #include <openssl/crypto.h>
 #include "internal/cryptlib.h"
@@ -40,6 +38,8 @@ void OPENSSL_config(const char *appname)
         settings.appname = strdup(appname);
     settings.flags = DEFAULT_CONF_MFLAGS;
     OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, &settings);
+
+    free(settings.appname);
 }
 #endif
 

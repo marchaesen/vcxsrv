@@ -26,11 +26,7 @@ in this Software without prior written authorization from the X Consortium.
  * Author:  Keith Packard, MIT X Consortium
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#else
-#define SCREENSAVER
-#endif
 
 #ifdef CreateWindow
 #undef CreateWindow
@@ -41,7 +37,10 @@ in this Software without prior written authorization from the X Consortium.
 #include <X11/Xproto.h>
 #include <X11/extensions/saverproto.h>
 
+#include "dix/colormap_priv.h"
+#include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
+#include "os/screensaver.h"
 
 #include "misc.h"
 #include "os.h"
@@ -51,7 +50,6 @@ in this Software without prior written authorization from the X Consortium.
 #include "extnsionst.h"
 #include "dixstruct.h"
 #include "resource.h"
-#include "opaque.h"
 #include "gcstruct.h"
 #include "cursorstr.h"
 #include "colormapst.h"
@@ -70,30 +68,13 @@ in this Software without prior written authorization from the X Consortium.
 
 static int ScreenSaverEventBase = 0;
 
-static Bool ScreenSaverHandle(ScreenPtr /* pScreen */ ,
-                              int /* xstate */ ,
-                              Bool      /* force */
-    );
-
-static Bool
- CreateSaverWindow(ScreenPtr    /* pScreen */
-    );
-
-static Bool
- DestroySaverWindow(ScreenPtr   /* pScreen */
-    );
-
-static void
- UninstallSaverColormap(ScreenPtr       /* pScreen */
-    );
-
-static void
- CheckScreenPrivate(ScreenPtr   /* pScreen */
-    );
-
-static void SScreenSaverNotifyEvent(xScreenSaverNotifyEvent * /* from */ ,
-                                    xScreenSaverNotifyEvent *   /* to */
-    );
+static Bool ScreenSaverHandle(ScreenPtr pScreen, int xstate, Bool force);
+static Bool CreateSaverWindow(ScreenPtr pScreen);
+static Bool DestroySaverWindow(ScreenPtr pScreen);
+static void UninstallSaverColormap(ScreenPtr pScreen);
+static void CheckScreenPrivate(ScreenPtr pScreen);
+static void SScreenSaverNotifyEvent(xScreenSaverNotifyEvent *from,
+                                    xScreenSaverNotifyEvent *to);
 
 static RESTYPE SuspendType;     /* resource type for suspension records */
 
@@ -200,8 +181,6 @@ static DevPrivateKeyRec ScreenPrivateKeyRec;
     dixSetPrivate(&(s)->devPrivates, ScreenPrivateKey, v);
 #define SetupScreen(s)	ScreenSaverScreenPrivatePtr pPriv = (s ? GetScreenPrivate(s) : NULL)
 
-#define New(t)	(malloc(sizeof (t)))
-
 static void
 CheckScreenPrivate(ScreenPtr pScreen)
 {
@@ -224,7 +203,7 @@ MakeScreenPrivate(ScreenPtr pScreen)
 
     if (pPriv)
         return pPriv;
-    pPriv = New(ScreenSaverScreenPrivateRec);
+    pPriv = calloc(1, sizeof(ScreenSaverScreenPrivateRec));
     if (!pPriv)
         return 0;
     pPriv->events = 0;
@@ -274,7 +253,7 @@ setEventMask(ScreenPtr pScreen, ClientPtr client, unsigned long mask)
     }
     else {
         if (!pEv) {
-            pEv = New(ScreenSaverEventRec);
+            pEv = calloc(1, sizeof(ScreenSaverEventRec));
             if (!pEv) {
                 CheckScreenPrivate(pScreen);
                 return FALSE;
@@ -652,8 +631,7 @@ ProcScreenSaverQueryInfo(ClientPtr client)
                            DixGetAttrAccess);
     if (rc != Success)
         return rc;
-    rc = XaceHook(XACE_SCREENSAVER_ACCESS, client, pDraw->pScreen,
-                  DixGetAttrAccess);
+    rc = XaceHookScreensaverAccess(client, pDraw->pScreen, DixGetAttrAccess);
     if (rc != Success)
         return rc;
 
@@ -722,8 +700,7 @@ ProcScreenSaverSelectInput(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    rc = XaceHook(XACE_SCREENSAVER_ACCESS, client, pDraw->pScreen,
-                  DixSetAttrAccess);
+    rc = XaceHookScreensaverAccess(client, pDraw->pScreen, DixSetAttrAccess);
     if (rc != Success)
         return rc;
 
@@ -766,7 +743,7 @@ ScreenSaverSetAttributes(ClientPtr client)
     pScreen = pDraw->pScreen;
     pParent = pScreen->root;
 
-    ret = XaceHook(XACE_SCREENSAVER_ACCESS, client, pScreen, DixSetAttrAccess);
+    ret = XaceHookScreensaverAccess(client, pScreen, DixSetAttrAccess);
     if (ret != Success)
         return ret;
 
@@ -855,7 +832,7 @@ ScreenSaverSetAttributes(ClientPtr client)
         if (!pPriv)
             return FALSE;
     }
-    pAttr = New(ScreenSaverAttrRec);
+    pAttr = calloc(1, sizeof(ScreenSaverAttrRec));
     if (!pAttr) {
         ret = BadAlloc;
         goto bail;

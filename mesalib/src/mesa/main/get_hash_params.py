@@ -696,6 +696,12 @@ descriptor=[
   [ "VIEWPORT_SWIZZLE_Y_NV", "LOC_CUSTOM, TYPE_ENUM, 0, extra_NV_viewport_swizzle" ],
   [ "VIEWPORT_SWIZZLE_Z_NV", "LOC_CUSTOM, TYPE_ENUM, 0, extra_NV_viewport_swizzle" ],
   [ "VIEWPORT_SWIZZLE_W_NV", "LOC_CUSTOM, TYPE_ENUM, 0, extra_NV_viewport_swizzle" ],
+
+# GL_KHR_shader_subgroup
+  [ "SUBGROUP_SIZE_KHR", "CONTEXT_INT(Const.ShaderSubgroupSize), extra_KHR_shader_subgroup" ],
+  [ "SUBGROUP_SUPPORTED_STAGES_KHR", "CONTEXT_INT(Const.ShaderSubgroupSupportedStages), extra_KHR_shader_subgroup" ],
+  [ "SUBGROUP_SUPPORTED_FEATURES_KHR", "CONTEXT_INT(Const.ShaderSubgroupSupportedFeatures), extra_KHR_shader_subgroup" ],
+  [ "SUBGROUP_QUAD_ALL_STAGES_KHR", "CONTEXT_BOOL(Const.ShaderSubgroupQuadAllStages), extra_KHR_shader_subgroup" ],
 ]},
 
 # Enums in OpenGL and ES 3.2

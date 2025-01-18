@@ -11,7 +11,7 @@ class radv_llvm_per_thread_info {
 public:
    radv_llvm_per_thread_info(enum radeon_family arg_family, enum ac_target_machine_options arg_tm_options,
                              unsigned arg_wave_size)
-       : family(arg_family), tm_options(arg_tm_options), wave_size(arg_wave_size), passes(NULL)
+       : family(arg_family), tm_options(arg_tm_options), wave_size(arg_wave_size), beo(NULL)
    {
    }
 
@@ -25,8 +25,8 @@ public:
       if (!ac_init_llvm_compiler(&llvm_info, family, tm_options))
          return false;
 
-      passes = ac_create_llvm_passes(llvm_info.tm);
-      if (!passes)
+      beo = ac_create_backend_optimizer(llvm_info.tm);
+      if (!beo)
          return false;
 
       return true;
@@ -34,7 +34,7 @@ public:
 
    bool compile_to_memory_buffer(LLVMModuleRef module, char **pelf_buffer, size_t *pelf_size)
    {
-      return ac_compile_module_to_elf(passes, module, pelf_buffer, pelf_size);
+      return ac_compile_module_to_elf(beo, module, pelf_buffer, pelf_size);
    }
 
    bool is_same(enum radeon_family arg_family, enum ac_target_machine_options arg_tm_options, unsigned arg_wave_size)
@@ -49,7 +49,7 @@ private:
    enum radeon_family family;
    enum ac_target_machine_options tm_options;
    unsigned wave_size;
-   struct ac_compiler_passes *passes;
+   struct ac_backend_optimizer *beo;
 };
 
 /* we have to store a linked list per thread due to the possibility of multiple gpus being required */
@@ -68,9 +68,9 @@ radv_compile_to_elf(struct ac_llvm_compiler *info, LLVMModuleRef module, char **
    }
 
    if (!thread_info) {
-      struct ac_compiler_passes *passes = ac_create_llvm_passes(info->tm);
-      bool ret = ac_compile_module_to_elf(passes, module, pelf_buffer, pelf_size);
-      ac_destroy_llvm_passes(passes);
+      struct ac_backend_optimizer *beo = ac_create_backend_optimizer(info->tm);
+      bool ret = ac_compile_module_to_elf(beo, module, pelf_buffer, pelf_size);
+      ac_destroy_backend_optimizer(beo);
       return ret;
    }
 

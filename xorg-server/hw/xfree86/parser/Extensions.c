@@ -67,6 +67,8 @@ xf86parseExtensionsSection(void)
         case COMMENT:
             ptr->extensions_comment =
                 xf86addComment(ptr->extensions_comment, xf86_lex_val.str);
+            free(xf86_lex_val.str);
+            xf86_lex_val.str = NULL;
             break;
         default:
             Error(INVALID_KEYWORD_MSG, xf86tokenString());

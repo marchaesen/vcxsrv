@@ -315,6 +315,7 @@ private:
    bool emit_shader_clock(nir_intrinsic_instr *instr);
    bool emit_wait_ack();
    bool emit_barrier(nir_intrinsic_instr *instr);
+   bool emit_tex_fdd(const nir_intrinsic_instr* intr, int opcode, bool fine);
    bool emit_load_reg(nir_intrinsic_instr *intr);
    bool emit_load_reg_indirect(nir_intrinsic_instr *intr);
    bool emit_store_reg(nir_intrinsic_instr *intr);
@@ -395,14 +396,19 @@ private:
       Instr *last_kill_instr{nullptr};
       Instr *last_lds_access{nullptr};
       Instr *last_group_barrier{nullptr};
-      std::unordered_map<int, Instr * > last_alu_with_indirect_reg;
+      std::unordered_map<int,
+                         Instr *,
+                         std::hash<int>,
+                         std::equal_to<int>,
+                         Allocator<std::pair<const int, Instr *>>>
+         last_alu_with_indirect_reg;
       bool prepare_mem_barrier{false};
    };
 
    InstructionChain m_chain_instr;
    std::list<Instr *, Allocator<Instr *>> m_loops;
    int m_control_flow_depth{0};
-   std::list<nir_intrinsic_instr*> m_register_allocations;
+   ValueFactory::nir_intrinsic_instr_alloc m_register_allocations;
 };
 
 } // namespace r600

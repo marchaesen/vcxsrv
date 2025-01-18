@@ -11,7 +11,6 @@ NEED_STRNDUP=1
 INCLUDES += ../dix ..
 DEFINES += PIXMAN_API=
 
-SECURERPC_SRCS = rpcauth.c
 XDMCP_SRCS = xdmcp.c
 XORG_SRCS = log.c
 BUSFAULT_SRCS = busfault.c
@@ -45,11 +44,8 @@ libos_la_SOURCES = 	\
 	alloc.c  \
 	fmt.c \
 	string.c \
+	serverlock.c \
 	$(XORG_SRCS)
-
-if SECURE_RPC
-libos_la_SOURCES += $(SECURERPC_SRCS)
-endif
 
 if POLL
 else

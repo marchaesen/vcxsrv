@@ -1158,9 +1158,7 @@ winDestroyPixmapMultiwindow(PixmapPtr pPixmap)
     pPixmapPriv->pbmih = NULL;
 
     /* Free the pixmap memory */
-    free(pPixmap);
-    pPixmap = NULL;
-
+    FreePixmap(pPixmap);
     return TRUE;
 }
 

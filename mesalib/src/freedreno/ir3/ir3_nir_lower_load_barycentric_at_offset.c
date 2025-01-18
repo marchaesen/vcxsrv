@@ -1,24 +1,6 @@
 /*
  * Copyright © 2019 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "compiler/nir/nir_builder.h"
@@ -51,8 +33,8 @@ ir3_nir_lower_load_barycentric_at_offset_instr(nir_builder *b, nir_instr *instr,
        * times the derivatives of ij in screen space.
        */
       nir_def *new_ij = ij;
-      new_ij = nir_ffma(b, chan(off, 0), nir_fddx(b, ij), new_ij);
-      new_ij = nir_ffma(b, chan(off, 1), nir_fddy(b, ij), new_ij);
+      new_ij = nir_ffma(b, chan(off, 0), nir_ddx(b, ij), new_ij);
+      new_ij = nir_ffma(b, chan(off, 1), nir_ddy(b, ij), new_ij);
 
       return new_ij;
    } else {
@@ -70,8 +52,8 @@ ir3_nir_lower_load_barycentric_at_offset_instr(nir_builder *b, nir_instr *instr,
 
       /* Get the offset value from pixel center for ij, and also for w. */
       nir_def *pos = sij;
-      pos = nir_ffma(b, chan(off, 0), nir_fddx(b, sij), pos);
-      pos = nir_ffma(b, chan(off, 1), nir_fddy(b, sij), pos);
+      pos = nir_ffma(b, chan(off, 0), nir_ddx(b, sij), pos);
+      pos = nir_ffma(b, chan(off, 1), nir_ddy(b, sij), pos);
 
       /* convert back into screen space, dividing by the offset 1/w */
       return nir_fmul(b, nir_trim_vector(b, pos, 2),

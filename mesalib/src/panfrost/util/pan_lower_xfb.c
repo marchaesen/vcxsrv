@@ -101,5 +101,5 @@ bool
 pan_lower_xfb(nir_shader *nir)
 {
    return nir_shader_intrinsics_pass(
-      nir, lower_xfb, nir_metadata_block_index | nir_metadata_dominance, NULL);
+      nir, lower_xfb, nir_metadata_control_flow, NULL);
 }

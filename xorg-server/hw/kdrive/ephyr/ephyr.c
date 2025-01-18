@@ -23,9 +23,7 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
@@ -1276,7 +1274,7 @@ static Status
 MouseInit(KdPointerInfo * pi)
 {
     pi->driverPrivate = (EphyrPointerPrivate *)
-        calloc(sizeof(EphyrPointerPrivate), 1);
+        calloc(1, sizeof(EphyrPointerPrivate));
     ((EphyrPointerPrivate *) pi->driverPrivate)->enabled = FALSE;
     pi->nAxes = 3;
     pi->nButtons = 32;
@@ -1337,7 +1335,7 @@ EphyrKeyboardInit(KdKeyboardInfo * ki)
     XkbControlsRec controls;
 
     ki->driverPrivate = (EphyrKbdPrivate *)
-        calloc(sizeof(EphyrKbdPrivate), 1);
+        calloc(1, sizeof(EphyrKbdPrivate));
 
     if (hostx_load_keymap(&keySyms, modmap, &controls)) {
         XkbApplyMappingChange(ki->dixdev, &keySyms,

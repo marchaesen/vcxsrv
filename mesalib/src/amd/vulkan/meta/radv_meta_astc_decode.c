@@ -26,14 +26,11 @@ radv_device_init_meta_astc_decode_state(struct radv_device *device, bool on_dema
 void
 radv_device_finish_meta_astc_decode_state(struct radv_device *device)
 {
-   const struct radv_physical_device *pdev = radv_device_physical(device);
    struct radv_meta_state *state = &device->meta_state;
    struct vk_texcompress_astc_state *astc = state->astc_decode;
 
-   if (!pdev->emulate_astc)
-      return;
-
-   vk_texcompress_astc_finish(&device->vk, &state->alloc, astc);
+   if (astc)
+      vk_texcompress_astc_finish(&device->vk, &state->alloc, astc);
 }
 
 static void
@@ -50,8 +47,7 @@ decode_astc(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivie
    vk_texcompress_astc_fill_write_descriptor_sets(state->astc_decode, &write_desc_set,
                                                   radv_image_view_to_handle(src_iview), layout,
                                                   radv_image_view_to_handle(dst_iview), format);
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, state->astc_decode->p_layout,
-                                 0, /* set number */
+   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, state->astc_decode->p_layout, 0,
                                  VK_TEXCOMPRESS_ASTC_WRITE_DESC_SET_COUNT, write_desc_set.descriptor_set);
 
    VkPipeline pipeline =
@@ -111,7 +107,7 @@ image_view_init(struct radv_device *device, struct radv_image *image, VkFormat f
          },
    };
 
-   radv_image_view_init(iview, device, &iview_create_info, 0, NULL);
+   radv_image_view_init(iview, device, &iview_create_info, NULL);
 }
 
 void

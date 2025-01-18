@@ -71,6 +71,11 @@ protected:
         return inTail;
     }
 
+    virtual ADDR_E_RETURNCODE HwlComputeSurfaceAddrFromCoordLinear(
+        const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
+        const ADDR3_COMPUTE_SURFACE_INFO_INPUT*          pSurfInfoIn,
+        ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const override;
+
     virtual ADDR_E_RETURNCODE HwlComputeSurfaceAddrFromCoordTiled(
         const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const override;
@@ -87,12 +92,21 @@ protected:
         const ADDR3_COMPUTE_SLICE_PIPEBANKXOR_INPUT* pIn,
         ADDR3_COMPUTE_SLICE_PIPEBANKXOR_OUTPUT*      pOut) const override;
 
+    virtual UINT_32 HwlGetEquationIndex(
+        const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn) const override;
+
     virtual UINT_32 HwlGetEquationTableInfo(const ADDR_EQUATION** ppEquationTable) const override
     {
         *ppEquationTable = m_equationTable;
 
         return m_numEquations;
     }
+
+    BOOL_32 HwlValidateNonSwModeParams(const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT* pIn) const override;
+
+    virtual ADDR_E_RETURNCODE HwlGetPossibleSwizzleModes(
+        const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT*   pIn,
+        ADDR3_GET_POSSIBLE_SWIZZLE_MODE_OUTPUT*        pOut) const override;
 
     virtual ChipFamily HwlConvertChipFamily(UINT_32 uChipFamily, UINT_32 uChipRevision) override;
 
@@ -101,6 +115,9 @@ protected:
         const ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT* pIn,
         ADDR_EXTENT3D*                                 pExtent) const override final;
 
+    ADDR_EXTENT3D HwlGetMicroBlockSize(
+        const ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT* pIn) const;
+
     virtual ADDR_EXTENT3D HwlGetMipInTailMaxSize(
         const ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT* pIn,
         const ADDR_EXTENT3D&                           blockDims) const override final;
@@ -108,11 +125,38 @@ protected:
 private:
     static const SwizzleModeFlags SwizzleModeTable[ADDR3_MAX_TYPE];
 
+    // Number of unique swizzle patterns (one entry per swizzle mode + MSAA + bpp configuration)
+    static const UINT_32 NumSwizzlePatterns  = 19 * MaxElementBytesLog2;
+
+    // Equation table
+    ADDR_EQUATION        m_equationTable[NumSwizzlePatterns];
+
+    /**
+    ************************************************************************************************************************
+    * @brief Bitmasks for swizzle mode determination on GFX12
+    ************************************************************************************************************************
+    */
+    static const UINT_32 Blk256KBSwModeMask = (1u << ADDR3_256KB_2D)  |
+                                              (1u << ADDR3_256KB_3D);
+    static const UINT_32 Blk64KBSwModeMask  = (1u << ADDR3_64KB_2D)   |
+                                              (1u << ADDR3_64KB_3D);
+    static const UINT_32 Blk4KBSwModeMask   = (1u << ADDR3_4KB_2D)    |
+                                              (1u << ADDR3_4KB_3D);
+    static const UINT_32 Blk256BSwModeMask  = (1u << ADDR3_256B_2D);
+
+    static const UINT_32 MaxImageDim  = 32768; // Max image size is 32k
+    static const UINT_32 MaxMipLevels = 16;
+
     virtual ADDR_E_RETURNCODE HwlComputePipeBankXor(
         const ADDR3_COMPUTE_PIPEBANKXOR_INPUT* pIn,
         ADDR3_COMPUTE_PIPEBANKXOR_OUTPUT*      pOut) const override;
 
     virtual BOOL_32 HwlInitGlobalParams(const ADDR_CREATE_INPUT* pCreateIn) override;
+
+    virtual ADDR_E_RETURNCODE HwlComputeStereoInfo(
+        const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn,
+        UINT_32*                                pAlignY,
+        UINT_32*                                pRightXor) const override;
 
     void SanityCheckSurfSize(
         const ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT*   pIn,

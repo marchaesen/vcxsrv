@@ -32,9 +32,19 @@ static void get_rate_control_param(struct rvce_encoder *enc, struct pipe_h264_en
    enc->enc_pic.rc.vbv_buf_lv = pic->rate_ctrl[0].vbv_buf_lv;
    enc->enc_pic.rc.fill_data_enable = pic->rate_ctrl[0].fill_data_enable;
    enc->enc_pic.rc.enforce_hrd = pic->rate_ctrl[0].enforce_hrd;
-   enc->enc_pic.rc.target_bits_picture = pic->rate_ctrl[0].target_bits_picture;
-   enc->enc_pic.rc.peak_bits_picture_integer = pic->rate_ctrl[0].peak_bits_picture_integer;
-   enc->enc_pic.rc.peak_bits_picture_fraction = pic->rate_ctrl[0].peak_bits_picture_fraction;
+   enc->enc_pic.rc.target_bits_picture =
+      enc->pic.rate_ctrl[0].target_bitrate *
+      ((float)enc->pic.rate_ctrl[0].frame_rate_den /
+      enc->pic.rate_ctrl[0].frame_rate_num);
+   enc->enc_pic.rc.peak_bits_picture_integer =
+      enc->pic.rate_ctrl[0].peak_bitrate *
+      ((float)enc->pic.rate_ctrl[0].frame_rate_den /
+      enc->pic.rate_ctrl[0].frame_rate_num);
+   enc->enc_pic.rc.peak_bits_picture_fraction =
+      (((enc->pic.rate_ctrl[0].peak_bitrate *
+      (uint64_t)enc->pic.rate_ctrl[0].frame_rate_den) %
+      enc->pic.rate_ctrl[0].frame_rate_num) << 32) /
+      enc->pic.rate_ctrl[0].frame_rate_num;
 }
 
 static void get_motion_estimation_param(struct rvce_encoder *enc,
@@ -170,7 +180,7 @@ static void create(struct rvce_encoder *enc)
    RVCE_BEGIN(0x01000001); // create cmd
    RVCE_CS(enc->enc_pic.ec.enc_use_circular_buffer);
    RVCE_CS(u_get_h264_profile_idc(enc->base.profile)); // encProfile
-   RVCE_CS(enc->base.level);                           // encLevel
+   RVCE_CS(enc->pic.seq.level_idc);                    // encLevel
    RVCE_CS(enc->enc_pic.ec.enc_pic_struct_restriction);
    RVCE_CS(enc->base.width);  // encImageWidth
    RVCE_CS(enc->base.height); // encImageHeight

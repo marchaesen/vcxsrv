@@ -50,7 +50,7 @@ xkb_symbols "pc105" {
     modifier_map Mod4  { <SUPR> };
 
     key <HYPR> {[  NoSymbol, Hyper_L  ]};
-    modifier_map Mod4  { <HYPR> };
+    modifier_map Mod3  { <HYPR> };
 
     include "srvr_ctrl(fkey2vt)"
 

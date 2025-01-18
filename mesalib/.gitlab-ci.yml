@@ -36,6 +36,10 @@ workflow:
         KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
         MESA_CI_PERFORMANCE_ENABLED: 1
         VALVE_INFRA_VANGOGH_JOB_PRIORITY: ""  # Empty tags are ignored by gitlab
+        # fast-fail in merge pipelines: stop early if we get this many unexpected fails/crashes
+        DEQP_RUNNER_MAX_FAILS: 40
+        # Flag to advertise the CI scripts if we are in a merge pipeline
+        IS_MERGE_PIPELINE: 1
     # post-merge pipeline
     - if: &is-post-merge $GITLAB_USER_LOGIN == "marge-bot" && $CI_PIPELINE_SOURCE == "push"
     # nightly pipeline
@@ -144,18 +148,28 @@ stages:
   - sanity
   - container
   - git-archive
-  - build-x86_64
-  - build-misc
+  - build-for-tests
+  - build-only
   - code-validation
   - amd
+  - amd-postmerge
   - intel
+  - intel-postmerge
   - nouveau
+  - nouveau-postmerge
   - arm
+  - arm-postmerge
   - broadcom
+  - broadcom-postmerge
   - freedreno
+  - freedreno-postmerge
   - etnaviv
+  - etnaviv-postmerge
   - software-renderer
+  - software-renderer-postmerge
   - layered-backends
+  - layered-backends-postmerge
+  - performance
   - deploy
 
 include:
@@ -185,7 +199,15 @@ include:
 .rules-anchors:
   # Pre-merge pipeline
   - &is-pre-merge '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  # Push to a branch on a fork
+  - &is-fork-push '$CI_PROJECT_NAMESPACE != "mesa" && $CI_PIPELINE_SOURCE == "push"'
 
+
+# Rules applied to every job in the pipeline
+.common-rules:
+  rules:
+    - if: *is-fork-push
+      when: manual
 
 .never-post-merge-rules:
   rules:
@@ -195,6 +217,7 @@ include:
 
 .container+build-rules:
   rules:
+    - !reference [.common-rules, rules]
     # Run when re-enabling a disabled farm, but not when disabling it
     - !reference [.disable-farm-mr-rules, rules]
     # Never run immediately after merging, as we just ran everything
@@ -295,19 +318,20 @@ sanity:
     - |
       set -eu
       image_tags=(
-        DEBIAN_BASE_TAG
-        DEBIAN_BUILD_TAG
-        DEBIAN_X86_64_TEST_ANDROID_TAG
-        DEBIAN_X86_64_TEST_GL_TAG
-        DEBIAN_X86_64_TEST_VK_TAG
         ALPINE_X86_64_BUILD_TAG
         ALPINE_X86_64_LAVA_SSH_TAG
+        DEBIAN_BASE_TAG
+        DEBIAN_BUILD_TAG
+        DEBIAN_PYUTILS_TAG
+        DEBIAN_TEST_ANDROID_TAG
+        DEBIAN_TEST_GL_TAG
+        DEBIAN_TEST_VK_TAG
         FEDORA_X86_64_BUILD_TAG
         KERNEL_ROOTFS_TAG
         KERNEL_TAG
         PKG_REPO_REV
-        WINDOWS_X64_MSVC_TAG
         WINDOWS_X64_BUILD_TAG
+        WINDOWS_X64_MSVC_TAG
         WINDOWS_X64_TEST_TAG
       )
       for var in "${image_tags[@]}"
@@ -348,4 +372,6 @@ mr-label-maker-test:
     - job: clang-format
       optional: true
     - job: rustfmt
+      optional: true
+    - job: toml-lint
       optional: true

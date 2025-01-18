@@ -1,6 +1,5 @@
 /*
  * Copyright © 2021 Google, Inc.
- *
  * SPDX-License-Identifier: MIT
  */
 
@@ -8,11 +7,16 @@
 
 #include "pps/pps_driver.h"
 
-#include "common/freedreno_dev_info.h"
-#include "drm/freedreno_drmif.h"
-#include "drm/freedreno_ringbuffer.h"
-#include "perfcntrs/freedreno_dt.h"
-#include "perfcntrs/freedreno_perfcntr.h"
+extern "C" {
+struct fd_dev_id;
+struct fd_dev_info;
+struct fd_device;
+struct fd_pipe;
+struct fd_ringbuffer;
+struct fd_perfcntr_group;
+struct fd_perfcntr_countable;
+struct fd_perfcntr_counter;
+};
 
 namespace pps
 {

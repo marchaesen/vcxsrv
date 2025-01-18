@@ -12,7 +12,7 @@ option(
   type : 'array',
   value : ['auto'],
   choices : [
-    'auto', 'x11', 'wayland', 'haiku', 'android', 'windows',
+    'auto', 'x11', 'wayland', 'haiku', 'android', 'windows', 'macos',
   ],
   description : 'window systems to support. If this is set to `auto`, all ' +
                 'platforms applicable will be enabled.'
@@ -52,13 +52,6 @@ option(
 )
 
 option(
-  'dri3',
-  type : 'feature',
-  deprecated: {'true': 'enabled', 'false': 'disabled'},
-  description : 'enable support for dri3'
-)
-
-option(
   'dri-drivers-path',
   type : 'string',
   value : '',
@@ -66,11 +59,11 @@ option(
 )
 
 option(
-  'dri-search-path',
-  type : 'string',
-  value : '',
-  description : 'Locations to search for dri drivers, passed as colon ' +
-                'separated list. Default: dri-drivers-path.'
+  'unversion-libgallium',
+  type : 'boolean',
+  value : false,
+  description : 'Do not include mesa version in libgallium DSO filename. ' +
+                'Do not enable unless you know what you are doing. Default: false'
 )
 
 option(
@@ -86,13 +79,14 @@ option(
   type : 'array',
   value : ['auto'],
   choices : [
-    'auto', 'kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
+    'auto', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
     'swrast', 'v3d', 'vc4', 'etnaviv', 'tegra', 'i915', 'svga', 'virgl',
     'panfrost', 'iris', 'lima', 'zink', 'd3d12', 'asahi', 'crocus', 'all',
+    'softpipe', 'llvmpipe',
   ],
   description : 'List of gallium drivers to build. If this is set to auto ' +
                 'all drivers applicable to the target OS/architecture ' +
-                'will be built'
+                'will be built.'
 )
 
 option(
@@ -114,22 +108,6 @@ option(
   type : 'string',
   value : '',
   description : 'path to put vdpau libraries. defaults to $libdir/vdpau.'
-)
-
-option(
-  'gallium-omx',
-  type : 'combo',
-  value : 'auto',
-  choices : ['auto', 'disabled', 'bellagio', 'tizonia'],
-  description : 'enable gallium omx frontend.',
-)
-
-option(
-  'omx-libs-path',
-  type : 'string',
-  value : '',
-  description : 'path to put omx libraries. defaults to omx-bellagio ' +
-                'pkg-config pluginsdir.'
 )
 
 option(
@@ -183,6 +161,14 @@ option(
 )
 
 option(
+  'gallium-rusticl-enable-drivers',
+  type : 'array',
+  value : ['auto', 'asahi'],
+  description : 'List of gallium drivers for which rusticl will be enabled ' +
+                'by default',
+)
+
+option(
   'gallium-wgl-dll-name',
   type : 'string',
   value : 'libgallium_wgl',
@@ -227,7 +213,8 @@ option(
   value : ['auto'],
   choices : ['auto', 'amd', 'broadcom', 'freedreno', 'intel', 'intel_hasvk',
              'panfrost', 'swrast', 'virtio', 'imagination-experimental',
-             'microsoft-experimental', 'nouveau', 'all'],
+             'microsoft-experimental', 'nouveau', 'asahi',
+             'gfxstream-experimental', 'all'],
   description : 'List of vulkan drivers to build. If this is set to auto ' +
                 'all drivers applicable to the target OS/architecture ' +
                 'will be built'
@@ -302,7 +289,7 @@ option(
   'vulkan-layers',
   type : 'array',
   value : [],
-  choices : ['device-select', 'intel-nullhw', 'overlay'],
+  choices : ['device-select', 'intel-nullhw', 'overlay', 'screenshot'],
   description : 'List of vulkan layers to build'
 )
 
@@ -424,6 +411,24 @@ option(
 )
 
 option(
+  'amd-use-llvm',
+  type : 'boolean',
+  value : true,
+  description : 'Whether to use LLVM for the AMD drivers, if LLVM ' +
+                'is included.'
+)
+
+option (
+  'llvm-orcjit',
+  type : 'boolean',
+  value : false,
+  description: 'Build llvmpipe with LLVM ORCJIT support. Has no effect when ' +
+               'building for architectures without LLVM MCJIT support -- ' +
+               'ORCJIT is the only choice on such architectures and will ' +
+               'always be enabled.'
+)
+
+option(
   'valgrind',
   type : 'feature',
   deprecated: {'true': 'enabled', 'false': 'disabled'},
@@ -473,6 +478,20 @@ option(
   value : false,
   description : 'Build and install Intel unit tests which require the GPU. ' +
                 'This option is for developers and the Intel CI system only.'
+)
+
+option(
+  'html-docs',
+  type : 'feature',
+  value : 'disabled',
+  description : 'Build HTML documentation.'
+)
+
+option(
+  'html-docs-path',
+  type : 'string',
+  value : '',
+  description : 'Location to install HTML documentation. Default: $datadir/doc/mesa.'
 )
 
 option(
@@ -716,4 +735,14 @@ option(
   description : 'Build custom xmlconfig (driconf) support. If disabled, ' +
                 'the default driconf file is hardcoded into Mesa. ' +
                 'Requires expat.'
+)
+
+option(
+  'legacy-x11',
+  type : 'array',
+  value : ['none'],
+  description : 'Build legacy X11 support features.',
+  choices : [
+    'none', 'dri2'
+  ],
 )

@@ -1,8 +1,5 @@
 GTF-GL46.gtf40.GL3Tests.transform_feedback2.transform_feedback2_two_buffers,Fail
-dEQP-GLES3.functional.fbo.depth.depth_test_clamp.depth32f_stencil8,Fail
-dEQP-GLES3.functional.fbo.depth.depth_test_clamp.depth_component32f,Fail
-dEQP-GLES3.functional.fbo.depth.depth_write_clamp.depth32f_stencil8,Fail
-dEQP-GLES3.functional.fbo.depth.depth_write_clamp.depth_component32f,Fail
+dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 
 GTF-GL46.gtf30.GL3Tests.sgis_texture_lod.sgis_texture_lod_basic_lod_selection,Fail
 

@@ -419,14 +419,91 @@ panfrost_should_tile(struct panfrost_device *dev,
    return can_tile && (pres->base.usage != PIPE_USAGE_STREAM);
 }
 
+static bool
+panfrost_should_afrc(struct panfrost_device *dev,
+                     const struct panfrost_resource *pres, enum pipe_format fmt)
+{
+   const unsigned valid_binding = PIPE_BIND_RENDER_TARGET |
+                                  PIPE_BIND_BLENDABLE | PIPE_BIND_SAMPLER_VIEW |
+                                  PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_SHARED;
+
+   if (pres->base.bind & ~valid_binding)
+      return false;
+
+   /* AFRC support is optional */
+   if (!dev->has_afrc)
+      return false;
+
+   /* AFRC<-->staging is expensive */
+   if (pres->base.usage == PIPE_USAGE_STREAM)
+      return false;
+
+   /* Only a small selection of formats are AFRC'able */
+   if (!panfrost_format_supports_afrc(fmt))
+      return false;
+
+   /* AFRC does not support layered (GLES3 style) multisampling. Use
+    * EXT_multisampled_render_to_texture instead */
+   if (pres->base.nr_samples > 1)
+      return false;
+
+   switch (pres->base.target) {
+   case PIPE_TEXTURE_2D:
+   case PIPE_TEXTURE_RECT:
+   case PIPE_TEXTURE_2D_ARRAY:
+   case PIPE_TEXTURE_CUBE:
+   case PIPE_TEXTURE_CUBE_ARRAY:
+   case PIPE_TEXTURE_3D:
+      break;
+
+   default:
+      return false;
+   }
+
+   return true;
+}
+
 static uint64_t
-panfrost_best_modifier(struct panfrost_device *dev,
+panfrost_best_modifier(struct pipe_screen *pscreen,
                        const struct panfrost_resource *pres,
                        enum pipe_format fmt)
 {
+   struct panfrost_screen *screen = pan_screen(pscreen);
+   struct panfrost_device *dev = pan_device(pscreen);
+
    /* Force linear textures when debugging tiling/compression */
    if (unlikely(dev->debug & PAN_DBG_LINEAR))
       return DRM_FORMAT_MOD_LINEAR;
+
+   int afrc_rate = screen->force_afrc_rate;
+   if (afrc_rate < 0)
+      afrc_rate = pres->base.compression_rate;
+   if (afrc_rate > PIPE_COMPRESSION_FIXED_RATE_NONE &&
+       panfrost_should_afrc(dev, pres, fmt)) {
+      /* It's not really possible to decide on a global AFRC-rate,
+       * because the set of valid AFRC rates varies from format to
+       * format. So instead, treat this as a minimum rate, and search
+       * for the next valid one.
+       */
+      for (int i = afrc_rate; i < 12; ++i) {
+         if (panfrost_afrc_get_modifiers(fmt, i, 0, NULL)) {
+            afrc_rate = i;
+            break;
+         }
+      }
+   }
+
+   if (afrc_rate != PIPE_COMPRESSION_FIXED_RATE_NONE &&
+       panfrost_should_afrc(dev, pres, fmt)) {
+      uint64_t mod;
+      unsigned num_mods = 0;
+
+      STATIC_ASSERT(PIPE_COMPRESSION_FIXED_RATE_DEFAULT == PAN_AFRC_RATE_DEFAULT);
+      num_mods = panfrost_afrc_get_modifiers(fmt, afrc_rate, 1, &mod);
+      if (num_mods > 0) {
+         return mod;
+      }
+   }
 
    if (panfrost_should_afbc(dev, pres, fmt)) {
       uint64_t afbc = AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 | AFBC_FORMAT_MOD_SPARSE;
@@ -466,13 +543,14 @@ panfrost_should_checksum(const struct panfrost_device *dev,
 }
 
 static void
-panfrost_resource_setup(struct panfrost_device *dev,
+panfrost_resource_setup(struct pipe_screen *screen,
                         struct panfrost_resource *pres, uint64_t modifier,
                         enum pipe_format fmt)
 {
+   struct panfrost_device *dev = pan_device(screen);
    uint64_t chosen_mod = modifier != DRM_FORMAT_MOD_INVALID
                             ? modifier
-                            : panfrost_best_modifier(dev, pres, fmt);
+                            : panfrost_best_modifier(screen, pres, fmt);
    enum mali_texture_dimension dim =
       panfrost_translate_texture_dimension(pres->base.target);
 
@@ -499,6 +577,10 @@ panfrost_resource_setup(struct panfrost_device *dev,
       .nr_slices = pres->base.last_level + 1,
       .crc = panfrost_should_checksum(dev, pres),
    };
+
+   /* Update the compression rate with the correct value as we
+    * want the real bitrate and not DEFAULT */
+   pres->base.compression_rate = panfrost_afrc_get_rate(fmt, chosen_mod);
 
    ASSERTED bool valid =
       pan_image_layout_init(dev->arch, &pres->image.layout, NULL);
@@ -632,6 +714,10 @@ panfrost_resource_create_with_modifier(struct pipe_screen *screen,
    struct panfrost_device *dev = pan_device(screen);
 
    struct panfrost_resource *so = CALLOC_STRUCT(panfrost_resource);
+
+   if (!so)
+      return NULL;
+
    so->base = *template;
    so->base.screen = screen;
 
@@ -654,7 +740,7 @@ panfrost_resource_create_with_modifier(struct pipe_screen *screen,
       so->modifier_constant = true;
    }
 
-   panfrost_resource_setup(dev, so, modifier, template->format);
+   panfrost_resource_setup(screen, so, modifier, template->format);
 
    /* Guess a label based on the bind */
    unsigned bind = template->bind;
@@ -720,7 +806,7 @@ panfrost_resource_create_with_modifier(struct pipe_screen *screen,
 
       if (!so->scanout) {
          fprintf(stderr, "Failed to create scanout resource\n");
-         free(so);
+         FREE(so);
          return NULL;
       }
       assert(handle.type == WINSYS_HANDLE_TYPE_FD);
@@ -728,7 +814,7 @@ panfrost_resource_create_with_modifier(struct pipe_screen *screen,
       close(handle.handle);
 
       if (!so->bo) {
-         free(so);
+         FREE(so);
          return NULL;
       }
 
@@ -744,6 +830,12 @@ panfrost_resource_create_with_modifier(struct pipe_screen *screen,
 
       so->bo =
          panfrost_bo_create(dev, so->image.layout.data_size, flags, label);
+
+      if (!so->bo) {
+         FREE(so);
+         return NULL;
+      }
+
       so->image.data.base = so->bo->ptr.gpu;
 
       so->constant_stencil = true;
@@ -837,6 +929,7 @@ pan_alloc_staging(struct panfrost_context *ctx, struct panfrost_resource *rsc,
    tmpl.last_level = 0;
    tmpl.bind |= PIPE_BIND_LINEAR;
    tmpl.bind &= ~PAN_BIND_SHARED_MASK;
+   tmpl.compression_rate = PIPE_COMPRESSION_FIXED_RATE_NONE;
 
    struct pipe_resource *pstaging =
       pctx->screen->resource_create(pctx->screen, &tmpl);
@@ -1120,8 +1213,9 @@ panfrost_ptr_map(struct pipe_context *pctx, struct pipe_resource *resource,
    if (usage & PIPE_MAP_WRITE)
       rsrc->constant_stencil = false;
 
-   /* We don't have s/w routines for AFBC, so use a staging texture */
-   if (drm_is_afbc(rsrc->image.layout.modifier)) {
+   /* We don't have s/w routines for AFBC/AFRC, so use a staging texture */
+   if (drm_is_afbc(rsrc->image.layout.modifier) ||
+       drm_is_afrc(rsrc->image.layout.modifier)) {
       struct panfrost_resource *staging =
          pan_alloc_staging(ctx, rsrc, level, box);
       assert(staging);
@@ -1147,13 +1241,15 @@ panfrost_ptr_map(struct pipe_context *pctx, struct pipe_resource *resource,
       if ((usage & PIPE_MAP_READ) &&
           (valid || panfrost_any_batch_writes_rsrc(ctx, rsrc))) {
          pan_blit_to_staging(pctx, transfer);
-         panfrost_flush_writer(ctx, staging, "AFBC read staging blit");
+         panfrost_flush_writer(ctx, staging, "AFBC/AFRC tex read staging blit");
          panfrost_bo_wait(staging->bo, INT64_MAX, false);
       }
 
       panfrost_bo_mmap(staging->bo);
       return staging->bo->ptr.cpu;
    }
+
+   bool already_mapped = bo->ptr.cpu != NULL;
 
    /* If we haven't already mmaped, now's the time */
    panfrost_bo_mmap(bo);
@@ -1204,7 +1300,9 @@ panfrost_ptr_map(struct pipe_context *pctx, struct pipe_resource *resource,
       copy_resource = false;
    }
 
-   if (create_new_bo) {
+   if (create_new_bo &&
+       (!(resource->flags & PIPE_RESOURCE_FLAG_MAP_PERSISTENT) ||
+        !already_mapped)) {
       /* Make sure we re-emit any descriptors using this resource */
       panfrost_dirty_state_all(ctx);
 
@@ -1337,7 +1435,7 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
       };
 
       /* data_valid is not valid until flushed */
-      panfrost_flush_writer(ctx, rsrc, "AFBC decompressing blit");
+      panfrost_flush_writer(ctx, rsrc, "AFBC/AFRC decompressing blit");
 
       for (int i = 0; i <= rsrc->base.last_level; i++) {
          if (BITSET_TEST(rsrc->valid.data, i)) {
@@ -1355,7 +1453,7 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
       /* we lose track of tmp_rsrc after this point, and the BO migration
        * (from tmp_rsrc to rsrc) doesn't transfer the last_writer to rsrc
        */
-      panfrost_flush_writer(ctx, tmp_rsrc, "AFBC decompressing blit");
+      panfrost_flush_writer(ctx, tmp_rsrc, "AFBC/AFRC decompressing blit");
    }
 
    panfrost_bo_unreference(rsrc->bo);
@@ -1364,7 +1462,7 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
    rsrc->image.data.base = rsrc->bo->ptr.gpu;
    panfrost_bo_reference(rsrc->bo);
 
-   panfrost_resource_setup(pan_device(ctx->base.screen), rsrc, modifier,
+   panfrost_resource_setup(ctx->base.screen, rsrc, modifier,
                            tmp_rsrc->base.format);
    /* panfrost_resource_setup will force the modifier to stay constant when
     * called with a specific modifier. We don't want that here, we want to
@@ -1373,32 +1471,51 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
    pipe_resource_reference(&tmp_prsrc, NULL);
 }
 
-/* Validate that an AFBC resource may be used as a particular format. If it may
- * not, decompress it on the fly. Failure to do so can produce wrong results or
- * invalid data faults when sampling or rendering to AFBC */
+/* Validate that an AFBC/AFRC resource may be used as a particular format. If it
+ * may not, decompress it on the fly. Failure to do so can produce wrong results
+ * or invalid data faults when sampling or rendering to AFBC */
 
 void
-pan_legalize_afbc_format(struct panfrost_context *ctx,
-                         struct panfrost_resource *rsrc,
-                         enum pipe_format format, bool write, bool discard)
+pan_legalize_format(struct panfrost_context *ctx,
+                    struct panfrost_resource *rsrc, enum pipe_format format,
+                    bool write, bool discard)
 {
    struct panfrost_device *dev = pan_device(ctx->base.screen);
+   enum pipe_format old_format = rsrc->base.format;
+   enum pipe_format new_format = format;
+   bool compatible = true;
 
-   if (!drm_is_afbc(rsrc->image.layout.modifier))
+   if (!drm_is_afbc(rsrc->image.layout.modifier) &&
+       !drm_is_afrc(rsrc->image.layout.modifier))
       return;
 
-   if (panfrost_afbc_format(dev->arch, rsrc->base.format) !=
-       panfrost_afbc_format(dev->arch, format)) {
+   if (drm_is_afbc(rsrc->image.layout.modifier)) {
+      compatible = (panfrost_afbc_format(dev->arch, old_format) ==
+                    panfrost_afbc_format(dev->arch, new_format));
+   } else if (drm_is_afrc(rsrc->image.layout.modifier)) {
+      struct pan_afrc_format_info old_info =
+         panfrost_afrc_get_format_info(old_format);
+      struct pan_afrc_format_info new_info =
+         panfrost_afrc_get_format_info(new_format);
+      compatible = !memcmp(&old_info, &new_info, sizeof(old_info));
+   }
+
+   if (!compatible) {
       pan_resource_modifier_convert(
          ctx, rsrc, DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED, !discard,
-         "Reinterpreting AFBC surface as incompatible format");
+         drm_is_afbc(rsrc->image.layout.modifier)
+            ? "Reinterpreting AFBC surface as incompatible format"
+            : "Reinterpreting AFRC surface as incompatible format");
       return;
    }
 
-   if (write && (rsrc->image.layout.modifier & AFBC_FORMAT_MOD_SPARSE) == 0)
+   /* Can't write to AFBC-P resources */
+   if (write && drm_is_afbc(rsrc->image.layout.modifier) &&
+      (rsrc->image.layout.modifier & AFBC_FORMAT_MOD_SPARSE) == 0) {
       pan_resource_modifier_convert(
          ctx, rsrc, rsrc->image.layout.modifier | AFBC_FORMAT_MOD_SPARSE,
          !discard, "Legalizing resource to allow writing");
+   }
 }
 
 static bool
@@ -1459,6 +1576,7 @@ panfrost_get_afbc_superblock_sizes(struct panfrost_context *ctx,
    panfrost_flush_batches_accessing_rsrc(ctx, rsrc, "AFBC before size flush");
    batch = panfrost_get_fresh_batch_for_fbo(ctx, "AFBC superblock sizes");
    bo = panfrost_bo_create(dev, metadata_size, 0, "AFBC superblock sizes");
+   assert(bo);
 
    for (int level = first_level; level <= last_level; ++level) {
       unsigned offset = out_offsets[level - first_level];
@@ -1555,6 +1673,7 @@ panfrost_pack_afbc(struct panfrost_context *ctx,
 
    struct panfrost_bo *dst =
       panfrost_bo_create(dev, new_size, 0, "AFBC compact texture");
+   assert(dst);
    struct panfrost_batch *batch =
       panfrost_get_fresh_batch_for_fbo(ctx, "AFBC compaction");
 
@@ -1580,6 +1699,7 @@ panfrost_ptr_unmap(struct pipe_context *pctx, struct pipe_transfer *transfer)
    /* Gallium expects writeback here, so we tile */
 
    struct panfrost_context *ctx = pan_context(pctx);
+   struct pipe_screen *screen = ctx->base.screen;
    struct panfrost_transfer *trans = pan_transfer(transfer);
    struct panfrost_resource *prsrc =
       (struct panfrost_resource *)transfer->resource;
@@ -1588,10 +1708,10 @@ panfrost_ptr_unmap(struct pipe_context *pctx, struct pipe_transfer *transfer)
    if (transfer->usage & PIPE_MAP_WRITE)
       prsrc->valid.crc = false;
 
-   /* AFBC will use a staging resource. `initialized` will be set when the
-    * fragment job is created; this is deferred to prevent useless surface
+   /* AFBC/AFRC will use a staging resource. `initialized` will be set when
+    * the fragment job is created; this is deferred to prevent useless surface
     * reloads that can cascade into DATA_INVALID_FAULTs due to reading
-    * malformed AFBC data if uninitialized */
+    * malformed AFBC/AFRC data if uninitialized */
 
    if (trans->staging.rsrc) {
       if (transfer->usage & PIPE_MAP_WRITE) {
@@ -1599,7 +1719,7 @@ panfrost_ptr_unmap(struct pipe_context *pctx, struct pipe_transfer *transfer)
 
             panfrost_bo_unreference(prsrc->bo);
 
-            panfrost_resource_setup(dev, prsrc, DRM_FORMAT_MOD_LINEAR,
+            panfrost_resource_setup(screen, prsrc, DRM_FORMAT_MOD_LINEAR,
                                     prsrc->image.layout.format);
 
             prsrc->bo = pan_resource(trans->staging.rsrc)->bo;
@@ -1608,8 +1728,8 @@ panfrost_ptr_unmap(struct pipe_context *pctx, struct pipe_transfer *transfer)
          } else {
             bool discard = panfrost_can_discard(&prsrc->base, &transfer->box,
                                                 transfer->usage);
-            pan_legalize_afbc_format(ctx, prsrc, prsrc->image.layout.format,
-                                     true, discard);
+            pan_legalize_format(ctx, prsrc, prsrc->image.layout.format, true,
+                                discard);
             pan_blit_from_staging(pctx, trans);
             panfrost_flush_batches_accessing_rsrc(
                ctx, pan_resource(trans->staging.rsrc),
@@ -1635,7 +1755,7 @@ panfrost_ptr_unmap(struct pipe_context *pctx, struct pipe_transfer *transfer)
          if (prsrc->image.layout.modifier ==
              DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED) {
             if (panfrost_should_linear_convert(ctx, prsrc, transfer)) {
-               panfrost_resource_setup(dev, prsrc, DRM_FORMAT_MOD_LINEAR,
+               panfrost_resource_setup(screen, prsrc, DRM_FORMAT_MOD_LINEAR,
                                        prsrc->image.layout.format);
                if (prsrc->image.layout.data_size > panfrost_bo_size(bo)) {
                   const char *label = bo->label;

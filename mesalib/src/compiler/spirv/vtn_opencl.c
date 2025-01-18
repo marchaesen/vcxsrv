@@ -70,8 +70,8 @@ vtn_opencl_mangle(const char *in_name,
          if (address_space > 0)
             args_str += sprintf(args_str, "U3AS%d", address_space);
 
-         type = src_types[i]->deref->type;
-         base_type = src_types[i]->deref->base_type;
+         type = src_types[i]->pointed->type;
+         base_type = src_types[i]->pointed->base_type;
       }
 
       if (const_mask & (1 << i))
@@ -86,7 +86,7 @@ vtn_opencl_mangle(const char *in_name,
          bool substitution = false;
          for (unsigned j = 0; j < i; ++j) {
             const struct glsl_type *other_type = src_types[j]->base_type == vtn_base_type_pointer ?
-               src_types[j]->deref->type : src_types[j]->type;
+               src_types[j]->pointed->type : src_types[j]->type;
             if (type == other_type) {
                substitution = true;
                break;
@@ -403,7 +403,7 @@ get_pointer_type(struct vtn_builder *b, struct vtn_type *t, SpvStorageClass stor
                b, vtn_storage_class_to_mode(b, storage_class, NULL, NULL)));
    ret->base_type = vtn_base_type_pointer;
    ret->storage_class = storage_class;
-   ret->deref = t;
+   ret->pointed = t;
    return ret;
 }
 
@@ -411,7 +411,7 @@ static struct vtn_type *
 get_signed_type(struct vtn_builder *b, struct vtn_type *t)
 {
    if (t->base_type == vtn_base_type_pointer) {
-      return get_pointer_type(b, get_signed_type(b, t->deref), t->storage_class);
+      return get_pointer_type(b, get_signed_type(b, t->pointed), t->storage_class);
    }
    return get_vtn_type_for_glsl_type(
       b, glsl_vector_type(glsl_signed_base_type_of(glsl_get_base_type(t->type)),
@@ -596,11 +596,11 @@ handle_core(struct vtn_builder *b, uint32_t opcode,
        */
       for (unsigned i = 0; i < num_srcs; ++i) {
          if (src_types[i]->base_type == vtn_base_type_pointer &&
-             src_types[i]->deref->base_type == vtn_base_type_vector &&
-             src_types[i]->deref->length == 3) {
+             src_types[i]->pointed->base_type == vtn_base_type_vector &&
+             src_types[i]->pointed->length == 3) {
             src_types[i] =
                get_pointer_type(b,
-                                get_vtn_type_for_glsl_type(b, glsl_replace_vector_type(src_types[i]->deref->type, 4)),
+                                get_vtn_type_for_glsl_type(b, glsl_replace_vector_type(src_types[i]->pointed->type, 4)),
                                 src_types[i]->storage_class);
          }
       }
@@ -657,7 +657,7 @@ _handle_v_load_store(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
    unsigned alignment = vec_aligned ? glsl_get_cl_alignment(type->type) :
                                       glsl_get_bit_size(type->type) / 8;
    enum glsl_base_type ptr_base_type =
-      glsl_get_base_type(p->pointer->type->type);
+      glsl_get_base_type(p->pointer->type->pointed->type);
    if (base_type != ptr_base_type) {
       vtn_fail_if(ptr_base_type != GLSL_TYPE_FLOAT16 ||
                   (base_type != GLSL_TYPE_FLOAT &&

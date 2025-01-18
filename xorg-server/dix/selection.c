@@ -44,9 +44,7 @@ SOFTWARE.
 
 ********************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include "dix/dix_priv.h"
 
@@ -82,8 +80,21 @@ dixLookupSelection(Selection ** result, Atom selectionName,
         if (pSel->selection == selectionName)
             break;
 
-    if (pSel)
-        rc = XaceHookSelectionAccess(client, &pSel, access_mode);
+    if (!pSel) {
+        pSel = dixAllocateObjectWithPrivates(Selection, PRIVATE_SELECTION);
+        if (!pSel)
+            return BadAlloc;
+        pSel->selection = selectionName;
+        pSel->next = CurrentSelections;
+        CurrentSelections = pSel;
+    }
+
+    /* security creation/labeling check */
+    rc = XaceHookSelectionAccess(client, &pSel, access_mode | DixCreateAccess);
+    if (rc != Success) {
+        return rc;
+    }
+
     *result = pSel;
     return rc;
 }
@@ -175,46 +186,24 @@ ProcSetSelectionOwner(ClientPtr client)
      */
     rc = dixLookupSelection(&pSel, stuff->selection, client, DixSetAttrAccess);
 
-    if (rc == Success) {
-        /* If the timestamp in client's request is in the past relative
-           to the time stamp indicating the last time the owner of the
-           selection was set, do not set the selection, just return
-           success. */
-        if (CompareTimeStamps(time, pSel->lastTimeChanged) == EARLIER)
-            return Success;
-        if (pSel->client && (!pWin || (pSel->client != client))) {
-            xEvent event;
-            event.u.selectionClear.time = time.milliseconds;
-            event.u.selectionClear.window = pSel->window;
-            event.u.selectionClear.atom = pSel->selection;
-            
-            event.u.u.type = SelectionClear;
-            WriteEventsToClient(pSel->client, 1, &event);
-        }
-    }
-    else if (rc == BadMatch) {
-        /*
-         * It doesn't exist, so add it...
-         */
-        pSel = dixAllocateObjectWithPrivates(Selection, PRIVATE_SELECTION);
-        if (!pSel)
-            return BadAlloc;
-
-        pSel->selection = stuff->selection;
-
-        /* security creation/labeling check */
-        rc = XaceHookSelectionAccess(client, &pSel,
-                                     DixCreateAccess | DixSetAttrAccess);
-        if (rc != Success) {
-            free(pSel);
-            return rc;
-        }
-
-        pSel->next = CurrentSelections;
-        CurrentSelections = pSel;
-    }
-    else
+    if (rc != Success)
         return rc;
+
+    /* If the timestamp in client's request is in the past relative
+       to the time stamp indicating the last time the owner of the
+       selection was set, do not set the selection, just return
+       success. */
+    if (CompareTimeStamps(time, pSel->lastTimeChanged) == EARLIER)
+        return Success;
+    if (pSel->client && (!pWin || (pSel->client != client))) {
+        xEvent event = {
+            .u.selectionClear.time = time.milliseconds,
+            .u.selectionClear.window = pSel->window,
+            .u.selectionClear.atom = pSel->selection
+        };
+        event.u.u.type = SelectionClear;
+        WriteEventsToClient(pSel->client, 1, &event);
+    }
 
     pSel->lastTimeChanged = time;
     pSel->window = stuff->window;

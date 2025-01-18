@@ -23,15 +23,13 @@
  * Author: Daniel Stone <daniel@fooishbar.org>
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include "dix-config.h"
-#endif
 
 #include "dix/exevents_priv.h"
+#include "dix/input_priv.h"
 
 #include "exglobals.h"
 #include "misc.h"
-#include "input.h"
 #include "inputstr.h"
 #include "xace.h"
 #include "xkbsrv.h"
@@ -54,7 +52,7 @@ check_butmap_change(DeviceIntPtr dev, CARD8 *map, int len, CARD32 *errval_out,
         return BadDevice;
     }
 
-    ret = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixManageAccess);
+    ret = XaceHookDeviceAccess(client, dev, DixManageAccess);
     if (ret != Success) {
         client->errorValue = dev->id;
         return ret;
@@ -135,7 +133,7 @@ check_modmap_change(ClientPtr client, DeviceIntPtr dev, KeyCode *modmap)
     int ret, i;
     XkbDescPtr xkb;
 
-    ret = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixManageAccess);
+    ret = XaceHookDeviceAccess(client, dev, DixManageAccess);
     if (ret != Success)
         return ret;
 
@@ -293,7 +291,7 @@ generate_modkeymap(ClientPtr client, DeviceIntPtr dev,
     KeyCode *modkeymap = NULL;
     int i, j, ret;
 
-    ret = XaceHook(XACE_DEVICE_ACCESS, client, dev, DixGetAttrAccess);
+    ret = XaceHookDeviceAccess(client, dev, DixGetAttrAccess);
     if (ret != Success)
         return ret;
 

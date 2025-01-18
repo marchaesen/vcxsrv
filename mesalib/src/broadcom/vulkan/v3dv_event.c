@@ -27,9 +27,8 @@
 #include "vk_common_entrypoints.h"
 
 static nir_shader *
-get_set_event_cs()
+get_set_event_cs(const nir_shader_compiler_options *options)
 {
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options,
                                                   "set event cs");
 
@@ -52,9 +51,8 @@ get_set_event_cs()
 }
 
 static nir_shader *
-get_wait_event_cs()
+get_wait_event_cs(const nir_shader_compiler_options *options)
 {
-   const nir_shader_compiler_options *options = v3dv_pipeline_get_nir_options();
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options,
                                                   "wait event cs");
 
@@ -137,8 +135,11 @@ create_event_pipelines(struct v3dv_device *device)
 
    VkPipeline pipeline;
 
+   const nir_shader_compiler_options *options =
+      v3dv_pipeline_get_nir_options(&device->devinfo);
+
    if (!device->events.set_event_pipeline) {
-      nir_shader *set_event_cs_nir = get_set_event_cs();
+      nir_shader *set_event_cs_nir = get_set_event_cs(options);
       result = v3dv_create_compute_pipeline_from_nir(device,
                                                      set_event_cs_nir,
                                                      device->events.pipeline_layout,
@@ -151,7 +152,7 @@ create_event_pipelines(struct v3dv_device *device)
    }
 
    if (!device->events.wait_event_pipeline) {
-      nir_shader *wait_event_cs_nir = get_wait_event_cs();
+      nir_shader *wait_event_cs_nir = get_wait_event_cs(options);
       result = v3dv_create_compute_pipeline_from_nir(device,
                                                      wait_event_cs_nir,
                                                      device->events.pipeline_layout,
@@ -450,6 +451,8 @@ v3dv_GetEventStatus(VkDevice _device, VkEvent _event)
 {
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
    V3DV_FROM_HANDLE(v3dv_event, event, _event);
+   if (vk_device_is_lost(&device->vk))
+      return VK_ERROR_DEVICE_LOST;
    return event_get_value(device, event) ? VK_EVENT_SET : VK_EVENT_RESET;
 }
 

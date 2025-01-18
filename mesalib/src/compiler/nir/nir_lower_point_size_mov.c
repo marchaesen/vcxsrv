@@ -99,7 +99,7 @@ nir_lower_point_size_mov(nir_shader *shader,
 
 
    bool progress = false;
-   nir_metadata preserved = nir_metadata_dominance | nir_metadata_block_index;
+   nir_metadata preserved = nir_metadata_control_flow;
    nir_variable *in = nir_state_variable_create(shader, glsl_vec4_type(),
                                                 "gl_PointSizeClampedMESA",
                                                 pointsize_state_tokens);

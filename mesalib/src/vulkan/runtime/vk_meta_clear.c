@@ -368,6 +368,9 @@ vk_meta_clear_rendering(struct vk_meta_device *meta,
 
       VK_FROM_HANDLE(vk_image_view, iview, att_info->imageView);
       render.color_attachment_formats[i] = iview->format;
+      render.color_attachment_write_masks[i] =
+         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
       assert(render.samples == 0 || render.samples == iview->image->samples);
       render.samples = MAX2(render.samples, iview->image->samples);
 
@@ -486,6 +489,9 @@ clear_image_level_layers(struct vk_command_buffer *cmd,
       vk_render.pColorAttachments = &vk_att;
       meta_render.color_attachment_count = 1;
       meta_render.color_attachment_formats[0] = format;
+      meta_render.color_attachment_write_masks[0] =
+         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+         VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
    }
 
    if (image->aspects & VK_IMAGE_ASPECT_DEPTH_BIT) {

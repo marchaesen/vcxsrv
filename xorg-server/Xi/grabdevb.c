@@ -50,9 +50,7 @@ SOFTWARE.
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
@@ -126,7 +124,7 @@ ProcXGrabDeviceButton(ClientPtr client)
     }
     else {
         mdev = PickKeyboard(client);
-        ret = XaceHook(XACE_DEVICE_ACCESS, client, mdev, DixUseAccess);
+        ret = XaceHookDeviceAccess(client, mdev, DixUseAccess);
         if (ret != Success)
             return ret;
     }

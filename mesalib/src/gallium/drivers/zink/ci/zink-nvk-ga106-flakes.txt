@@ -1,0 +1,155 @@
+KHR-GL46.direct_state_access.framebuffers_texture_layer_attachment
+KHR-GL46.geometry_shader.api.getProgramiv3
+KHR-GL46.geometry_shader.limits.max_output_vertices
+KHR-GL46.limits.max_fragment_atomic_counter_buffers
+KHR-GL46.packed_pixels.rectangle.r8
+KHR-GL46.packed_pixels.rectangle.rgba32ui
+KHR-GL46.packed_pixels.rectangle.rgba8_snorm
+KHR-GL46.packed_pixels.varied_rectangle.*
+KHR-GL46.packed_pixels.varied_rectangle.rgb4
+KHR-GL46.packed_pixels.varied_rectangle.rgba12
+KHR-GL46.packed_pixels.varied_rectangle.rgba32i
+KHR-GL46.texture_buffer.texture_buffer_max_size
+KHR-GL46.texture_swizzle.smoke
+
+dEQP-GLES2.functional.shaders.random.comparison_ops.vertex.36
+dEQP-GLES2.functional.shaders.random.comparison_ops.vertex.43
+dEQP-GLES3.functional.buffer.map.read_write.usage_hints.pixel_unpack_dynamic_read
+dEQP-GLES3.functional.shaders.builtin_variable.max_vertex_uniform_vectors_fragment
+dEQP-GLES3.functional.shaders.indexing.matrix_subscript.mat2_dynamic_loop_write_static_loop_read_vertex
+dEQP-GLES3.functional.shaders.indexing.vector_subscript.vec4_static_loop_subscript_write_component_read_vertex
+dEQP-GLES3.functional.shaders.precision.int.highp_div_fragment
+dEQP-GLES3.functional.shaders.preprocessor.comments.multiline_comment_define_vertex
+dEQP-GLES3.functional.shaders.preprocessor.operator_precedence.modulo_vs_plus_fragment
+dEQP-GLES3.functional.uniform_api.value.initial.render.basic_array.ivec4_both
+dEQP-GLES31.functional.copy_image.compressed.viewclass_astc_10x5_rgba.srgb8_alpha8_astc_10x5_khr_srgb8_alpha8_astc_10x5_khr.texture2d_array_to_texture2d
+dEQP-GLES31.functional.copy_image.compressed.viewclass_astc_8x5_rgba.srgb8_alpha8_astc_8x5_khr_rgba_astc_8x5_khr.texture2d_array_to_texture2d
+dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.rgba32f_rgba_astc_5x4_khr.texture3d_to_texture2d_array
+dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.rgba32ui_srgb8_alpha8_astc_10x6_khr.texture2d_to_texture2d_array
+dEQP-GLES31.functional.texture.format.sized.cube_array.depth_component32f_npot
+
+# All the double tests in this group seem to be flaky
+spec@.*@execution@built-in-functions@.*(double|dvec|dmat).*
+
+spec@!opengl 1.0@gl-1.0-blend-func
+spec@!opengl 1.1@copypixels-sync
+spec@!opengl 1.1@draw-sync
+spec@!opengl 1.1@getteximage-depth
+spec@!opengl 1.1@polygon-mode
+spec@!opengl 1.1@texsubimage
+spec@!opengl 1.2@tex3d
+spec@!opengl 2.0@attribs
+spec@!opengl 2.0@tex3d-npot
+spec@arb_bindless_texture@execution@images@uniform-struct
+spec@arb_color_buffer_float@gl_rgba16f-render
+spec@arb_color_buffer_float@gl_rgba8-render-sanity
+spec@arb_color_buffer_float@gl_rgba8_snorm-render
+spec@arb_color_buffer_float@gl_rgba8_snorm-render-fog
+spec@arb_copy_image@arb_copy_image-targets gl_texture_1d_array 32 1 12 gl_texture_2d_array 32 16 18 11 0 3 5 9 7 14 1 8
+spec@arb_copy_image@arb_copy_image-targets gl_texture_1d_array 32 1 12 gl_texture_3d 32 16 18 11 0 3 5 9 2 14 1 7
+spec@arb_copy_image@arb_copy_image-targets gl_texture_1d_array 32 1 12 gl_texture_cube_map_array 32 32 18 11 0 3 5 17 2 14 1 7
+spec@arb_copy_image@arb_copy_image-targets gl_texture_2d_array 32 32 15 gl_texture_1d_array 32 1 16 11 2 5 5 0 7 14 1 7
+spec@arb_copy_image@arb_copy_image-targets gl_texture_2d_array 32 32 15 gl_texture_2d_array 32 16 15 11 12 5 5 7 2 14 9 9
+spec@arb_copy_image@arb_copy_image-targets gl_texture_2d_array 32 32 15 gl_texture_cube_map_array 32 32 18 11 5 2 5 9 7 14 7 11
+spec@arb_copy_image@arb_copy_image-targets gl_texture_3d 32 32 17 gl_texture_3d 32 16 18 11 5 2 5 9 7 14 7 11
+spec@arb_copy_image@arb_copy_image-targets gl_texture_cube_map 32 32 6 gl_texture_2d 32 16 1 11 12 3 5 7 0 14 9 1
+spec@arb_copy_image@arb_copy_image-targets gl_texture_cube_map 32 32 6 gl_texture_2d_array 32 16 15 11 12 1 5 3 2 14 11 4
+spec@arb_copy_image@arb_copy_image-targets gl_texture_cube_map_array 32 32 18 gl_texture_cube_map_array 16 16 18 11 5 2 5 9 7 5 7 11
+spec@arb_copy_image@arb_copy_image-targets gl_texture_cube_map_array 32 32 18 gl_texture_rectangle 32 16 1 11 12 13 5 7 0 14 6 1
+spec@arb_gpu_shader5@execution@sampler_array_indexing@vs-nonuniform-control-flow
+spec@arb_pixel_buffer_object@pbo-drawpixels
+spec@arb_pixel_buffer_object@texsubimage-unpack pbo
+spec@arb_sample_locations@test
+spec@arb_shader_image_load_store@semantics@imageLoad/Tessellation control shader/r8/image2D test
+spec@arb_shader_precision@fs-fma-float-float-float
+spec@arb_shader_precision@gs-radians-float
+spec@arb_shader_precision@vs-op-assign-add-vec4-float
+spec@arb_tessellation_shader@execution@tcs-input-read-nonconst
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-float-index-wr
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-float-index-wr-before-barrier
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec2-index-wr
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec2-index-wr-before-barrier
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec3-index-wr
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec3-index-wr-before-barrier
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec4-index-wr
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-output-array-vec4-index-wr-before-barrier
+spec@arb_texture_compression@texwrap formats
+spec@arb_texture_compression@texwrap formats@GL_COMPRESSED_LUMINANCE- NPOT
+spec@arb_texture_cube_map_array@texturesize@gs-texturesize-samplercubearrayshadow
+spec@arb_texture_multisample@texelfetch fs sampler2dms 4 71x1-71x13
+spec@arb_texture_multisample@texelfetch fs sampler2dmsarray 4 1x129x9-98x129x9
+spec@arb_texture_multisample@texelfetch fs sampler2dmsarray 4 98x1x9-98x129x9
+spec@arb_texture_rg@fbo-blending-formats
+spec@arb_texture_view@rendering-formats
+spec@arb_vertex_attrib_64bit@execution@vs_in@vs-input-double_dvec4-double_dmat3-position
+spec@arb_vertex_attrib_64bit@execution@vs_in@vs-input-position-float_vec4_array3-double_dvec4
+spec@ext_external_objects@vk-image-display-muliple-textures
+spec@ext_external_objects@vk-image-overwrite@RGBA 4 UNORM linear
+spec@ext_framebuffer_multisample@clip-and-scissor-blit 2 msaa
+spec@ext_framebuffer_multisample@clip-and-scissor-blit 2 upsample
+spec@ext_framebuffer_multisample@clip-and-scissor-blit 4 upsample
+spec@ext_framebuffer_multisample@line-smooth 6
+spec@ext_framebuffer_multisample@line-smooth 8
+spec@ext_framebuffer_multisample@polygon-smooth 2
+spec@ext_framebuffer_object@fbo-blending-formats
+spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render
+spec@ext_texture_array@copyteximage 1d_array samples=4
+spec@ext_texture_array@copyteximage 2d_array samples=2
+spec@ext_texture_array@fbo-depth-array depth-clear
+spec@ext_texture_array@fbo-depth-array depth-draw
+spec@ext_texture_array@fbo-depth-array depth-layered-clear
+spec@ext_texture_array@fbo-depth-array fs-writes-depth
+spec@ext_texture_array@fbo-depth-array stencil-clear
+spec@ext_texture_array@fbo-depth-array stencil-draw
+spec@ext_texture_array@fbo-depth-array stencil-layered-clear
+spec@ext_texture_integer@getteximage-clamping
+spec@ext_texture_snorm@fbo-blending-formats
+spec@ext_texture_swizzle@ext_texture_swizzle-swizzle
+spec@glsl-1.10@execution@built-in-functions@fs-op-assign-add-float-float
+spec@glsl-1.10@execution@derivatives@glsl-derivs-abs
+spec@glsl-1.10@execution@glsl-1.10-linear-fog
+spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontsecondarycolor-smooth-none
+spec@glsl-1.10@execution@varying-packing@simple uvec3 separate
+spec@glsl-1.20@execution@clipping@vs-clip-vertex-homogeneity
+spec@glsl-1.30@execution@built-in-functions@vs-op-bitxor-abs-not-ivec3-int
+spec@glsl-1.30@execution@fs-texture-sampler2dshadow-03
+spec@glsl-1.30@execution@interpolation@interpolation-flat-gl_backsecondarycolor-smooth-distance
+spec@glsl-1.30@execution@interpolation@interpolation-flat-other-smooth-vertex
+spec@glsl-1.30@execution@interpolation@interpolation-none-gl_backcolor-flat-distance
+spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backsecondarycolor-flat-vertex
+spec@glsl-1.30@execution@interpolation@interpolation-noperspective-gl_backsecondarycolor-smooth-none
+spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_backsecondarycolor-smooth-fixed
+spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontsecondarycolor-flat-fixed
+spec@glsl-1.30@execution@interpolation@interpolation-smooth-gl_frontsecondarycolor-smooth-vertex
+spec@glsl-1.30@execution@interpolation@interpolation-smooth-other-flat-fixed
+spec@glsl-1.30@execution@tex-miplevel-selection textureprojlodoffset 3d
+spec@glsl-1.30@execution@texelfetch fs sampler1d 1-513
+spec@glsl-1.30@execution@texelfetch fs sampler1darray 1x281-501x281
+spec@glsl-1.30@execution@texelfetch fs sampler1darray 1x71-501x71
+spec@glsl-1.30@execution@texelfetch fs sampler2d 1x281-501x281
+spec@glsl-1.30@execution@texelfetch fs sampler2d 1x71-501x71
+spec@glsl-1.30@execution@texelfetch fs sampler2d 281x1-281x281
+spec@glsl-1.30@execution@texelfetch fs sampler2d 71x1-71x281
+spec@glsl-1.30@execution@texelfetch fs sampler2darray 1x129x9-98x129x9
+spec@glsl-1.30@execution@texelfetch fs sampler2darray 98x1x9-98x129x9
+spec@glsl-1.30@execution@texelfetch fs sampler3d 1x129x9-98x129x9
+spec@glsl-1.30@execution@texelfetch fs sampler3d 98x129x1-98x129x9
+spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9
+spec@glsl-1.30@execution@texelfetch@vs-texelfetch-isampler2darray-swizzle
+spec@glsl-1.30@execution@texelfetch@vs-texelfetch-isampler3d
+spec@glsl-1.30@execution@texelfetchoffset@fs-texelfetch-sampler1darray
+spec@glsl-1.30@execution@texelfetchoffset@fs-texelfetch-usampler1darray
+spec@glsl-1.30@linker@interpolation-qualifiers@default-gl_backsecondarycolor-flat-gl_secondarycolor
+spec@glsl-1.50@execution@built-in-functions@gs-op-assign-rshift-uvec2-int
+spec@glsl-1.50@execution@compatibility@clipping@gs-clip-vertex-enables
+spec@glsl-4.20@execution@vs_in@vs-input-ubyte_uint-short_int-double_dvec3-position
+spec@glsl-4.30@execution@built-in-functions@cs-lessthan-vec4-vec4
+spec@glsl-4.30@execution@built-in-functions@cs-op-assign-sub-mat3x2-mat3x2
+spec@glsl-4.30@execution@built-in-functions@cs-op-rshift-ivec4-int
+spec@glsl-4.30@execution@built-in-functions@cs-op-uplus-mat2
+spec@glsl-4.30@execution@built-in-functions@cs-smoothstep-vec3-vec3-vec3
+spec@khr_texture_compression_astc@array-gles
+spec@nv_half_float@attribs-half-float
+spec@nv_primitive_restart@primitive-restart-draw-mode-lines
+spec@nv_primitive_restart@primitive-restart-draw-mode-polygon
+spec@nv_primitive_restart@primitive-restart-draw-mode-quad_strip

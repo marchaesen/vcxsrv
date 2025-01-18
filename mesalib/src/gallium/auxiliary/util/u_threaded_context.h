@@ -152,6 +152,8 @@
  *    which must be managed by the driver; if a buffer is bound multiple times in
  *    the same binding point (e.g., vertex buffer slots 0,1,2), this will be counted
  *    as a single rebind.
+ *    A buffer which has had its backing storage replaced may have its backing storage
+ *    accessed through multiple pipe_resources.
  *
  *
  * Optional resource busy callbacks for better performance
@@ -599,6 +601,12 @@ struct threaded_context {
     */
    uint64_t bytes_mapped_estimate;
    uint64_t bytes_mapped_limit;
+
+   /* Estimation of how replacement buffer bytes are in
+    * the current tc_batch.
+    */
+   uint64_t bytes_replaced_estimate;
+   uint64_t bytes_replaced_limit;
 
    struct util_queue queue;
    struct util_queue_fence *fence;

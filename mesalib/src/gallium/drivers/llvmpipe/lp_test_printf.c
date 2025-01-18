@@ -89,30 +89,27 @@ static bool
 test_printf(unsigned verbose, FILE *fp,
             const struct printf_test_case *testcase)
 {
-   LLVMContextRef context;
+   lp_context_ref context;
    struct gallivm_state *gallivm;
    LLVMValueRef test;
    test_printf_t test_printf_func;
    bool success = true;
 
-   context = LLVMContextCreate();
-#if LLVM_VERSION_MAJOR == 15
-   LLVMContextSetOpaquePointers(context, false);
-#endif
-   gallivm = gallivm_create("test_module", context, NULL);
+   lp_context_create(&context);
+   gallivm = gallivm_create("test_module", &context, NULL);
 
    test = add_printf_test(gallivm);
 
    gallivm_compile_module(gallivm);
 
-   test_printf_func = (test_printf_t) gallivm_jit_function(gallivm, test);
+   test_printf_func = (test_printf_t) gallivm_jit_function(gallivm, test, "test_printf");
 
    gallivm_free_ir(gallivm);
 
    test_printf_func(0);
 
    gallivm_destroy(gallivm);
-   LLVMContextDispose(context);
+   lp_context_destroy(&context);
 
    return success;
 }

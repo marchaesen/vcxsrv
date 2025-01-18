@@ -50,12 +50,12 @@
 #include <X11/Xatom.h>
 
 #include "config/dbus-core.h"
+#include "dix/input_priv.h"
 #include "dix/screenint_priv.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
 
-#include "input.h"
 #include "servermd.h"
 #include "windowstr.h"
 #include "scrnintstr.h"
@@ -798,7 +798,7 @@ OsVendorInit(void)
 /*
  * ddxGiveUp --
  *      Device dependent cleanup. Called by by dix before normal server death.
- *      For SYSV386 we must switch the terminal back to normal mode. No error-
+ *      On some OSes we must switch the terminal back to normal mode. No error-
  *      checking here, since there should be restored as much as possible.
  */
 
@@ -856,37 +856,26 @@ ddxGiveUp(enum ExitCode error)
 void
 OsVendorFatalError(const char *f, va_list args)
 {
-#ifdef VENDORSUPPORT
-    ErrorFSigSafe("\nPlease refer to your Operating System Vendor support "
-                 "pages\nat %s for support on this crash.\n", VENDORSUPPORT);
-#else
     ErrorFSigSafe("\nPlease consult the " XVENDORNAME " support \n\t at "
                  __VENDORDWEBSUPPORT__ "\n for help. \n");
-#endif
     if (xf86LogFile && xf86LogFileWasOpened)
         ErrorFSigSafe("Please also check the log file at \"%s\" for additional "
                      "information.\n", xf86LogFile);
     ErrorFSigSafe("\n");
 }
 
-int
+void
 xf86SetVerbosity(int verb)
 {
-    int save = xf86Verbose;
-
     xf86Verbose = verb;
     LogSetParameter(XLOG_VERBOSITY, verb);
-    return save;
 }
 
-int
+void
 xf86SetLogVerbosity(int verb)
 {
-    int save = xf86LogVerbose;
-
     xf86LogVerbose = verb;
     LogSetParameter(XLOG_FILE_VERBOSITY, verb);
-    return save;
 }
 
 static void

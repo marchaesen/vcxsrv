@@ -28,7 +28,6 @@
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
 #include "gl_nir.h"
-#include "ir_uniform.h"
 #include "main/config.h"
 #include "main/shader_types.h"
 #include <assert.h>
@@ -179,7 +178,6 @@ gl_nir_lower_atomics(nir_shader *shader,
    };
 
    return nir_shader_instructions_pass(shader, gl_nir_lower_atomics_instr,
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        &data);
 }

@@ -516,7 +516,7 @@ vn_queue_submission_prepare(struct vn_queue_submission *submit)
          submit->submit_batches[0].pNext, WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA);
       if (info) {
          submit->wsi_mem = vn_device_memory_from_handle(info->memory);
-         assert(!submit->wsi_mem->base_memory && submit->wsi_mem->base_bo);
+         assert(submit->wsi_mem->base_bo);
       }
    }
 
@@ -1931,6 +1931,7 @@ vn_semaphore_get_feedback_cmd(struct vn_device *dev, struct vn_semaphore *sem)
       sfb_cmd = list_first_entry(&sem->feedback.free_cmds,
                                  struct vn_semaphore_feedback_cmd, head);
       list_move_to(&sfb_cmd->head, &sem->feedback.pending_cmds);
+      sem->feedback.free_cmd_count--;
    }
    simple_mtx_unlock(&sem->feedback.cmd_mtx);
 
@@ -2132,8 +2133,16 @@ vn_GetSemaphoreCounterValue(VkDevice device,
          simple_mtx_lock(&sem->feedback.cmd_mtx);
          list_for_each_entry_safe(struct vn_semaphore_feedback_cmd, sfb_cmd,
                                   &sem->feedback.pending_cmds, head) {
-            if (counter >= vn_feedback_get_counter(sfb_cmd->src_slot))
-               list_move_to(&sfb_cmd->head, &sem->feedback.free_cmds);
+            if (counter >= vn_feedback_get_counter(sfb_cmd->src_slot)) {
+               /* avoid over-caching more than normal runtime usage */
+               if (sem->feedback.free_cmd_count > 5) {
+                  list_del(&sfb_cmd->head);
+                  vn_semaphore_feedback_cmd_free(dev, sfb_cmd);
+               } else {
+                  list_move_to(&sfb_cmd->head, &sem->feedback.free_cmds);
+                  sem->feedback.free_cmd_count++;
+               }
+            }
          }
          simple_mtx_unlock(&sem->feedback.cmd_mtx);
 

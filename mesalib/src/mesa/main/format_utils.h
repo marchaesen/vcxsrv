@@ -43,10 +43,6 @@ extern const mesa_array_format RGBA8_UBYTE;
 extern const mesa_array_format RGBA32_UINT;
 extern const mesa_array_format RGBA32_INT;
 
-bool
-_mesa_format_to_array(mesa_format, GLenum *type, int *num_components,
-                      uint8_t swizzle[4], bool *normalized);
-
 void
 _mesa_swizzle_and_convert(void *dst,
                           enum mesa_array_format_datatype dst_type,

@@ -32,6 +32,6 @@ pass(struct nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *data)
 bool
 agx_nir_lower_shared_bitsize(nir_shader *shader)
 {
-   return nir_shader_intrinsics_pass(
-      shader, pass, nir_metadata_block_index | nir_metadata_dominance, NULL);
+   return nir_shader_intrinsics_pass(shader, pass, nir_metadata_control_flow,
+                                     NULL);
 }

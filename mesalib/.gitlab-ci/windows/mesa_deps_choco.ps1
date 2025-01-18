@@ -68,7 +68,7 @@ Get-Date
 python -m pip install --upgrade pip --progress-bar off
 Write-Host "Installing python packages at:"
 Get-Date
-pip3 install packaging meson mako numpy --progress-bar off
+pip3 install packaging meson mako "numpy < 2.0" pyyaml --progress-bar off
 if (!$?) {
   Write-Host "Failed to install dependencies from pip"
   Exit 1

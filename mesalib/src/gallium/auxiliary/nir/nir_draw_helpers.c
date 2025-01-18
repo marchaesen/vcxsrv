@@ -177,6 +177,9 @@ lower_aaline_instr(nir_builder *b, nir_instr *instr, void *data)
       return false;
    if (var->data.location < FRAG_RESULT_DATA0 && var->data.location != FRAG_RESULT_COLOR)
       return false;
+   uint32_t mask = nir_intrinsic_write_mask(intrin) << var->data.location_frac;
+   if (!(mask & BITFIELD_BIT(3)))
+      return false;
 
    nir_def *out_input = intrin->src[1].ssa;
    b->cursor = nir_before_instr(instr);
@@ -223,12 +226,10 @@ lower_aaline_instr(nir_builder *b, nir_instr *instr, void *data)
 
    tmp = nir_fmul(b, nir_channel(b, tmp, 0),
                   nir_fmin(b, nir_channel(b, tmp, 1), max));
-   tmp = nir_fmul(b, nir_channel(b, out_input, 3), tmp);
+   tmp = nir_fmul(b, nir_channel(b, out_input, out_input->num_components - 1), tmp);
 
-   nir_def *out = nir_vec4(b, nir_channel(b, out_input, 0),
-                                 nir_channel(b, out_input, 1),
-                                 nir_channel(b, out_input, 2),
-                                 tmp);
+   nir_def *out = nir_vector_insert_imm(b, out_input, tmp,
+                                        out_input->num_components - 1);
    nir_src_rewrite(&intrin->src[1], out);
    return true;
 }

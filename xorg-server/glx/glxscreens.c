@@ -28,13 +28,7 @@
  * Silicon Graphics, Inc.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#else
-
-#include "glheader.h"
-
-#endif
 
 #include <GL/glxtokens.h>
 #include <string.h>
@@ -432,7 +426,7 @@ __glXScreenInit(__GLXscreen * pGlxScreen, ScreenPtr pScreen)
 
     i = __glXGetExtensionString(pGlxScreen->glx_enable_bits, NULL);
     if (i > 0) {
-        pGlxScreen->GLXextensions = xnfalloc(i);
+        pGlxScreen->GLXextensions = XNFalloc(i);
         (void) __glXGetExtensionString(pGlxScreen->glx_enable_bits,
                                        pGlxScreen->GLXextensions);
     }

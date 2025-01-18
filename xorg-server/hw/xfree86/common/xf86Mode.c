@@ -1457,7 +1457,7 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
      * Store the clockRanges for later use by the VidMode extension.
      */
     nt_list_for_each_entry(cp, clockRanges, next) {
-        ClockRangePtr newCR = xnfalloc(sizeof(ClockRange));
+        ClockRangePtr newCR = XNFalloc(sizeof(ClockRange));
         memcpy(newCR, cp, sizeof(ClockRange));
         newCR->next = NULL;
         if (scrp->clockRanges == NULL)
@@ -1574,7 +1574,7 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
             }
 
             if (status == MODE_OK) {
-                new = xnfalloc(sizeof(DisplayModeRec));
+                new = XNFalloc(sizeof(DisplayModeRec));
                 *new = *p;
                 new->next = NULL;
                 if (!q) {
@@ -1585,7 +1585,7 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
                 }
                 new->prev = NULL;
                 q = new;
-                q->name = xnfstrdup(p->name);
+                q->name = XNFstrdup(p->name);
                 q->status = MODE_OK;
             }
             else {
@@ -1615,10 +1615,10 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
     if (modeNames != NULL) {
         for (i = 0; modeNames[i] != NULL; i++) {
             userModes = TRUE;
-            new = xnfcalloc(1, sizeof(DisplayModeRec));
+            new = XNFcallocarray(1, sizeof(DisplayModeRec));
             new->prev = last;
             new->type = M_T_USERDEF;
-            new->name = xnfstrdup(modeNames[i]);
+            new->name = XNFstrdup(modeNames[i]);
             if (new->prev)
                 new->prev->next = new;
             *endp = last = new;
@@ -1683,9 +1683,9 @@ xf86ValidateModes(ScrnInfoPtr scrp, DisplayModePtr availModes,
             if (r == NULL)
                 break;
 
-            p = xnfcalloc(1, sizeof(DisplayModeRec));
+            p = XNFcallocarray(1, sizeof(DisplayModeRec));
             p->prev = last;
-            p->name = xnfstrdup(r->name);
+            p->name = XNFstrdup(r->name);
             if (!userModes)
                 p->type = M_T_USERDEF;
             if (p->prev)

@@ -1,0 +1,15 @@
+# Copyright © 2024 Google
+# SPDX-License-Identifier: MIT
+
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 100
+IncludeCategories:
+  - Regex: '^(<(gtest|gmock))'
+    Priority: -1
+FixNamespaceComments: true
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# Ensure proper formatting of macros such as GOLDFISH_VK_LIST_DISPATCHABLE_HANDLE_TYPES
+StatementMacros: ["f"]

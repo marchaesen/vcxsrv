@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2019 Google, Inc.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2019 Google, Inc.
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -53,6 +35,8 @@
       }                                                                        \
    } while (0)
 
+#define SCHED_DEBUG_DUMP_DEPTH 1
+
 /*
  * Post RA Instruction Scheduling
  */
@@ -83,7 +67,6 @@ struct ir3_postsched_node {
 
    bool has_sy_src, has_ss_src;
 
-   unsigned delay;
    unsigned max_delay;
 };
 
@@ -167,24 +150,6 @@ schedule(struct ir3_postsched_ctx *ctx, struct ir3_instruction *instr)
    }
 }
 
-static void
-dump_state(struct ir3_postsched_ctx *ctx)
-{
-   if (!SCHED_DEBUG)
-      return;
-
-   foreach_sched_node (n, &ctx->dag->heads) {
-      di(n->instr, "maxdel=%3d    ", n->max_delay);
-
-      util_dynarray_foreach (&n->dag.edges, struct dag_edge, edge) {
-         struct ir3_postsched_node *child =
-            (struct ir3_postsched_node *)edge->child;
-
-         di(child->instr, " -> (%d parents) ", child->dag.parent_count);
-      }
-   }
-}
-
 static unsigned
 node_delay(struct ir3_postsched_ctx *ctx, struct ir3_postsched_node *n)
 {
@@ -205,6 +170,36 @@ node_delay_soft(struct ir3_postsched_ctx *ctx, struct ir3_postsched_node *n)
       delay = MAX2(delay, ctx->sy_delay);
 
    return delay;
+}
+
+static void
+dump_node(struct ir3_postsched_ctx *ctx, struct ir3_postsched_node *n,
+          int level)
+{
+   if (level > SCHED_DEBUG_DUMP_DEPTH)
+      return;
+
+   di(n->instr, "%*s%smaxdel=%d, node_delay=%d,node_delay_soft=%d, %d parents ",
+      level * 2, "", (level > 0 ? "-> " : ""), n->max_delay, node_delay(ctx, n),
+      node_delay_soft(ctx, n), n->dag.parent_count);
+
+   util_dynarray_foreach (&n->dag.edges, struct dag_edge, edge) {
+      struct ir3_postsched_node *child =
+         (struct ir3_postsched_node *)edge->child;
+
+      dump_node(ctx, child, level + 1);
+   }
+}
+
+static void
+dump_state(struct ir3_postsched_ctx *ctx)
+{
+   if (!SCHED_DEBUG)
+      return;
+
+   foreach_sched_node (n, &ctx->dag->heads) {
+      dump_node(ctx, n, 0);
+   }
 }
 
 /* find instruction to schedule: */
@@ -316,25 +311,6 @@ choose_instr(struct ir3_postsched_ctx *ctx)
       return chosen->instr;
    }
 
-   /* Next try to find a ready leader that can be scheduled without nop's,
-    * which in the case of things that need (sy)/(ss) could result in
-    * stalls.. but we've already decided there is not a better option.
-    */
-   foreach_sched_node (n, &ctx->dag->heads) {
-      unsigned d = node_delay(ctx, n);
-
-      if (d > 0)
-         continue;
-
-      if (!chosen || (chosen->max_delay < n->max_delay))
-         chosen = n;
-   }
-
-   if (chosen) {
-      di(chosen->instr, "csp: chose (hard ready)");
-      return chosen->instr;
-   }
-
    /* Otherwise choose leader with maximum cost:
     */
    foreach_sched_node (n, &ctx->dag->heads) {
@@ -410,14 +386,23 @@ add_single_reg_dep(struct ir3_postsched_deps_state *state,
    if (src_n >= 0 && dep && state->direction == F) {
       struct ir3_compiler *compiler = state->ctx->ir->compiler;
       /* get the dst_n this corresponds to */
-      unsigned dst_n = state->dst_n[num];
-      unsigned d_soft = ir3_delayslots(compiler, dep->instr, node->instr, src_n, true);
+      unsigned dst_n = *dst_n_ptr;
       d = ir3_delayslots_with_repeat(compiler, dep->instr, node->instr, dst_n, src_n);
-      node->delay = MAX2(node->delay, d_soft);
       if (is_sy_producer(dep->instr))
          node->has_sy_src = true;
       if (needs_ss(compiler, dep->instr, node->instr))
          node->has_ss_src = true;
+   }
+
+   if (src_n >= 0 && dep && state->direction == R) {
+      /* If node generates a WAR hazard (because it doesn't consume its sources
+       * immediately, dep needs (ss) to sync its dest. Even though this isn't a
+       * (ss) source (but rather a dest), the effect is exactly the same so we
+       * model it as such.
+       */
+      if (is_war_hazard_producer(node->instr)) {
+         dep->has_ss_src = true;
+      }
    }
 
    add_dep(state, dep, node, d);
@@ -561,15 +546,30 @@ static void
 sched_dag_max_delay_cb(struct dag_node *node, void *state)
 {
    struct ir3_postsched_node *n = (struct ir3_postsched_node *)node;
+   struct ir3_postsched_ctx *ctx = state;
    uint32_t max_delay = 0;
 
    util_dynarray_foreach (&n->dag.edges, struct dag_edge, edge) {
       struct ir3_postsched_node *child =
          (struct ir3_postsched_node *)edge->child;
-      max_delay = MAX2(child->max_delay, max_delay);
+      unsigned delay = edge->data;
+      unsigned sy_delay = 0;
+      unsigned ss_delay = 0;
+
+      if (child->has_sy_src && is_sy_producer(n->instr)) {
+         sy_delay = soft_sy_delay(n->instr, ctx->block->shader);
+      }
+
+      if (child->has_ss_src &&
+          needs_ss(ctx->v->compiler, n->instr, child->instr)) {
+         ss_delay = soft_ss_delay(n->instr);
+      }
+
+      delay = MAX3(delay, sy_delay, ss_delay);
+      max_delay = MAX2(child->max_delay + delay, max_delay);
    }
 
-   n->max_delay = MAX2(n->max_delay, max_delay + n->delay);
+   n->max_delay = MAX2(n->max_delay, max_delay);
 }
 
 static void
@@ -649,7 +649,7 @@ sched_dag_init(struct ir3_postsched_ctx *ctx)
 #endif
 
    // TODO do we want to do this after reverse-dependencies?
-   dag_traverse_bottom_up(ctx->dag, sched_dag_max_delay_cb, NULL);
+   dag_traverse_bottom_up(ctx->dag, sched_dag_max_delay_cb, ctx);
 }
 
 static void

@@ -29,9 +29,7 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include   <X11/X.h>
 
@@ -408,7 +406,7 @@ miDCSaveUnderCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
     pGC = pBuffer->pSaveGC;
     if (pSave->drawable.serialNumber != pGC->serialNumber)
         ValidateGC((DrawablePtr) pSave, pGC);
-    (*pGC->ops->CopyArea) ((DrawablePtr) pWin, (DrawablePtr) pSave, pGC,
+    (void) (*pGC->ops->CopyArea) ((DrawablePtr) pWin, (DrawablePtr) pSave, pGC,
                            x, y, w, h, 0, 0);
     return TRUE;
 }
@@ -432,7 +430,7 @@ miDCRestoreUnderCursor(DeviceIntPtr pDev, ScreenPtr pScreen,
     pGC = pBuffer->pRestoreGC;
     if (pWin->drawable.serialNumber != pGC->serialNumber)
         ValidateGC((DrawablePtr) pWin, pGC);
-    (*pGC->ops->CopyArea) ((DrawablePtr) pSave, (DrawablePtr) pWin, pGC,
+    (void) (*pGC->ops->CopyArea) ((DrawablePtr) pSave, (DrawablePtr) pWin, pGC,
                            0, 0, w, h, x, y);
     return TRUE;
 }

@@ -44,9 +44,7 @@ SOFTWARE.
 
 ******************************************************************/
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <assert.h>
 #include <X11/X.h>
@@ -567,7 +565,7 @@ CreateGC(DrawablePtr pDrawable, BITS32 mask, XID *pval, int *pStatus,
     }
 
     /* security creation/labeling check */
-    *pStatus = XaceHook(XACE_RESOURCE_ACCESS, client, gcid, X11_RESTYPE_GC, pGC,
+    *pStatus = XaceHookResourceAccess(client, gcid, X11_RESTYPE_GC, pGC,
                         X11_RESTYPE_NONE, NULL, DixCreateAccess | DixSetAttrAccess);
     if (*pStatus != Success)
         goto out;
@@ -833,7 +831,8 @@ CreateScratchGC(ScreenPtr pScreen, unsigned depth)
         FreeGC(pGC, (XID) 0);
         pGC = (GCPtr) NULL;
     }
-    pGC->graphicsExposures = FALSE;
+    else
+        pGC->graphicsExposures = FALSE;
     return pGC;
 }
 

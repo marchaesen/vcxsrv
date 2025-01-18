@@ -303,7 +303,8 @@ dead_code_local_basic_block(ir_instruction *first,
 			     ir_instruction *last,
 			     void *data)
 {
-   ir_instruction *ir, *ir_next;
+   ir_instruction *ir;
+   exec_node *node, *node_next;
    /* List of avaialble_copy */
    exec_list assignments;
    bool *out_progress = (bool *)data;
@@ -313,8 +314,9 @@ dead_code_local_basic_block(ir_instruction *first,
    linear_ctx *lin_ctx = linear_context(ctx);
 
    /* Safe looping, since process_assignment */
-   for (ir = first, ir_next = (ir_instruction *)first->next;;
-	ir = ir_next, ir_next = (ir_instruction *)ir->next) {
+   for (node = first, node_next = first->next;;
+	node = node_next, node_next = node->next) {
+      ir = (ir_instruction *) node;
       ir_assignment *ir_assign = ir->as_assignment();
 
       if (debug) {

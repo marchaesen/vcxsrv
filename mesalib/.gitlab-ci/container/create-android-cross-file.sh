@@ -22,7 +22,7 @@ cpp = ['ccache', '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/${arch2}${sdk_v
 c_ld = 'lld'
 cpp_ld = 'lld'
 strip = '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'
-pkgconfig = ['/usr/bin/pkgconf']
+pkg-config = ['/usr/bin/pkgconf']
 
 [host_machine]
 system = 'android'

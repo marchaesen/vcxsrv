@@ -68,8 +68,6 @@ struct radv_sqtt_shaders_reloc {
 struct radv_graphics_pipeline {
    struct radv_pipeline base;
 
-   struct radv_pipeline_layout layout;
-
    bool uses_drawid;
    bool uses_baseinstance;
 
@@ -88,19 +86,13 @@ struct radv_graphics_pipeline {
 
    VkShaderStageFlags active_stages;
 
-   uint32_t spi_shader_col_format;
-   uint32_t cb_shader_mask;
-
    struct radv_dynamic_state dynamic_state;
 
-   struct radv_vs_input_state vs_input_state;
+   struct radv_vertex_input_state vertex_input;
 
    struct radv_multisample_state ms;
    struct radv_ia_multi_vgt_param_helpers ia_multi_vgt_param;
    uint32_t binding_stride[MAX_VBS];
-   uint8_t attrib_bindings[MAX_VERTEX_ATTRIBS];
-   uint32_t attrib_ends[MAX_VERTEX_ATTRIBS];
-   uint32_t attrib_index_offset[MAX_VERTEX_ATTRIBS];
    uint32_t db_render_control;
 
    /* Last pre-PS API stage */
@@ -108,8 +100,6 @@ struct radv_graphics_pipeline {
 
    unsigned rast_prim;
 
-   /* For vk_graphics_pipeline_state */
-   void *state_data;
 
    /* Custom blend mode for internal operations. */
    unsigned custom_blend_mode;
@@ -126,11 +116,11 @@ struct radv_graphics_pipeline {
    /* Whether the pipeline uses VRS coarse shading internally. */
    bool uses_vrs_coarse_shading;
 
-   /* For graphics pipeline library */
-   bool retain_shaders;
-
    /* For relocation of shaders with RGP. */
    struct radv_sqtt_shaders_reloc *sqtt_shaders_reloc;
+
+   /* Whether the pipeline imported binaries. */
+   bool has_pipeline_binaries;
 };
 
 RADV_DECL_PIPELINE_DOWNCAST(graphics, RADV_PIPELINE_GRAPHICS)
@@ -148,6 +138,11 @@ struct radv_graphics_lib_pipeline {
    struct radv_graphics_pipeline base;
 
    struct vk_graphics_pipeline_state graphics_state;
+
+   /* For vk_graphics_pipeline_state */
+   void *state_data;
+
+   struct radv_pipeline_layout layout;
 
    VkGraphicsPipelineLibraryFlagsEXT lib_flags;
 
@@ -565,8 +560,6 @@ radv_normalize_blend_factor(VkBlendOp op, VkBlendFactor *src_factor, VkBlendFact
 void radv_blend_remove_dst(VkBlendOp *func, VkBlendFactor *src_factor, VkBlendFactor *dst_factor,
                            VkBlendFactor expected_dst, VkBlendFactor replacement_src);
 
-unsigned radv_compact_spi_shader_col_format(uint32_t spi_shader_col_format);
-
 unsigned radv_format_meta_fs_key(struct radv_device *device, VkFormat format);
 
 struct radv_ia_multi_vgt_param_helpers radv_compute_ia_multi_vgt_param(const struct radv_device *device,
@@ -631,7 +624,6 @@ struct radv_graphics_pipeline_create_info {
    bool db_stencil_clear;
    bool depth_compress_disable;
    bool stencil_compress_disable;
-   bool resummarize_enable;
    uint32_t custom_blend_mode;
 };
 
@@ -643,5 +635,27 @@ VkResult radv_graphics_pipeline_create(VkDevice device, VkPipelineCache cache,
 void radv_destroy_graphics_pipeline(struct radv_device *device, struct radv_graphics_pipeline *pipeline);
 
 void radv_destroy_graphics_lib_pipeline(struct radv_device *device, struct radv_graphics_lib_pipeline *pipeline);
+
+struct radv_graphics_pipeline_state {
+   struct vk_graphics_pipeline_state vk;
+   void *vk_data;
+
+   bool compilation_required;
+
+   struct radv_shader_stage *stages;
+
+   struct radv_graphics_pipeline_key key;
+
+   struct radv_pipeline_layout layout;
+};
+
+void radv_graphics_pipeline_hash(const struct radv_device *device, const struct radv_graphics_pipeline_state *gfx_state,
+                                 unsigned char *hash);
+
+VkResult radv_generate_graphics_pipeline_state(struct radv_device *device,
+                                               const VkGraphicsPipelineCreateInfo *pCreateInfo,
+                                               struct radv_graphics_pipeline_state *gfx_state);
+
+void radv_graphics_pipeline_state_finish(struct radv_device *device, struct radv_graphics_pipeline_state *gfx_state);
 
 #endif /* RADV_PIPELINE_GRAPHICS_H */

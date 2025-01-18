@@ -3220,12 +3220,12 @@ int tls_provider_init(const OSSL_CORE_HANDLE *handle,
     OSSL_LIB_CTX *libctx = OSSL_LIB_CTX_new_from_dispatch(handle, in);
     OSSL_FUNC_core_obj_create_fn *c_obj_create= NULL;
     OSSL_FUNC_core_obj_add_sigid_fn *c_obj_add_sigid= NULL;
-    PROV_XOR_CTX *prov_ctx = xor_newprovctx(libctx);
+    PROV_XOR_CTX *xor_prov_ctx = xor_newprovctx(libctx);
 
-    if (libctx == NULL || prov_ctx == NULL)
-        return 0;
+    if (libctx == NULL || xor_prov_ctx == NULL)
+        goto err;
 
-    *provctx = prov_ctx;
+    *provctx = xor_prov_ctx;
 
     /*
      * Randomise the group_id and code_points we're going to use to ensure we
@@ -3258,23 +3258,29 @@ int tls_provider_init(const OSSL_CORE_HANDLE *handle,
      */
     if (!c_obj_create(handle, XORSIGALG_OID, XORSIGALG_NAME, XORSIGALG_NAME)) {
         ERR_raise(ERR_LIB_USER, XORPROV_R_OBJ_CREATE_ERR);
-        return 0;
+        goto err;
     }
 
     if (!c_obj_add_sigid(handle, XORSIGALG_OID, "", XORSIGALG_OID)) {
         ERR_raise(ERR_LIB_USER, XORPROV_R_OBJ_CREATE_ERR);
-        return 0;
+        goto err;
     }
     if (!c_obj_create(handle, XORSIGALG_HASH_OID, XORSIGALG_HASH_NAME, NULL)) {
         ERR_raise(ERR_LIB_USER, XORPROV_R_OBJ_CREATE_ERR);
-        return 0;
+        goto err;
     }
 
     if (!c_obj_add_sigid(handle, XORSIGALG_HASH_OID, XORSIGALG_HASH, XORSIGALG_HASH_OID)) {
         ERR_raise(ERR_LIB_USER, XORPROV_R_OBJ_CREATE_ERR);
-        return 0;
+        goto err;
     }
 
     *out = tls_prov_dispatch_table;
     return 1;
+
+err:
+    OPENSSL_free(xor_prov_ctx);
+    *provctx = NULL;
+    OSSL_LIB_CTX_free(libctx);
+    return 0;
 }

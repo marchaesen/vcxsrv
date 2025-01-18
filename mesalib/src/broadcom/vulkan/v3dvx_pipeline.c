@@ -375,7 +375,9 @@ pack_shader_state_record(struct v3dv_pipeline *pipeline)
 
    bool point_size_in_shaded_vertex_data;
    if (!pipeline->has_gs) {
-      point_size_in_shaded_vertex_data = pipeline->topology == MESA_PRIM_POINTS;
+      struct v3d_vs_prog_data *prog_data_vs =
+         pipeline->shared_data->variants[BROADCOM_SHADER_VERTEX]->prog_data.vs;
+         point_size_in_shaded_vertex_data = prog_data_vs->writes_psiz;
    } else {
       struct v3d_gs_prog_data *prog_data_gs =
          pipeline->shared_data->variants[BROADCOM_SHADER_GEOMETRY]->prog_data.gs;
@@ -683,7 +685,6 @@ v3dX(pipeline_pack_compile_state)(struct v3dv_pipeline *pipeline,
       const VkVertexInputBindingDescription *desc =
          &vi_info->pVertexBindingDescriptions[i];
 
-      pipeline->vb[desc->binding].stride = desc->stride;
       pipeline->vb[desc->binding].instance_divisor = desc->inputRate;
    }
 

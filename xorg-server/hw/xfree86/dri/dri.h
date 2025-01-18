@@ -277,8 +277,6 @@ extern _X_EXPORT void *DRIGetContextStore(DRIContextPrivPtr context);
 
 extern _X_EXPORT void DRIWindowExposures(WindowPtr pWin, RegionPtr prgn);
 
-extern _X_EXPORT Bool DRIDestroyWindow(WindowPtr pWin);
-
 extern _X_EXPORT void DRICopyWindow(WindowPtr pWin,
                                     DDXPointRec ptOldOrg, RegionPtr prgnSrc);
 

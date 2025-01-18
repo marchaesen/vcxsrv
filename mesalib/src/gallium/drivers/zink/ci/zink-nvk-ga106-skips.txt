@@ -1,0 +1,11 @@
+# Pretty much everything fails
+glx@
+
+# Timeouts
+KHR-GL46.copy_image.functional
+spec@!opengl 1.1@streaming-texture-leak
+spec@arb_gpu_shader5@texturegatheroffset@fs-r-0-unorm-2d-const
+spec@arb_gpu_shader5@texturegatheroffset@vs-rg-1-uint-2darray-const
+spec@arb_texture_buffer_object@subdata-sync
+spec@ext_framebuffer_object@fbo-drawbuffers
+spec@ext_texture_env_combine@texture-env-combine

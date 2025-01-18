@@ -44,12 +44,14 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 
 ******************************************************************/
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/extensions/shapeconst.h>
+
+#include "dix/cursor_priv.h"
+#include "dix/input_priv.h"
+
 #include "regionstr.h"
 #include "region.h"
 #include "mi.h"
@@ -124,7 +126,7 @@ miMarkWindow(WindowPtr pWin)
 
     if (pWin->valdata)
         return;
-    val = (ValidatePtr) xnfalloc(sizeof(ValidateRec));
+    val = (ValidatePtr) XNFalloc(sizeof(ValidateRec));
     val->before.oldAbsCorner.x = pWin->drawable.x;
     val->before.oldAbsCorner.y = pWin->drawable.y;
     val->before.borderVisible = NullRegion;

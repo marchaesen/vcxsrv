@@ -1,0 +1,7 @@
+dEQP-VK.spirv_assembly.instruction.compute.spirv_ids_abuse.lots_ids
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_frag
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_geom
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tessc
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tesse
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_vert
+gmem-dEQP-VK.spirv_assembly.instruction.compute.spirv_ids_abuse.lots_ids

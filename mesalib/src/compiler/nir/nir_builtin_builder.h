@@ -48,6 +48,11 @@ nir_def *nir_atan(nir_builder *b, nir_def *y_over_x);
 nir_def *nir_atan2(nir_builder *b, nir_def *y, nir_def *x);
 
 nir_def *
+nir_build_texture_query(nir_builder *b, nir_tex_instr *tex, nir_texop texop,
+                        unsigned components, nir_alu_type dest_type,
+                        bool include_coord, bool include_lod);
+
+nir_def *
 nir_get_texture_lod(nir_builder *b, nir_tex_instr *tex);
 
 nir_def *
@@ -139,13 +144,21 @@ nir_bitselect(nir_builder *b, nir_def *x, nir_def *y, nir_def *s)
 static inline nir_def *
 nir_copysign(nir_builder *b, nir_def *x, nir_def *y)
 {
-   uint64_t masks = 1ull << (x->bit_size - 1);
-   uint64_t maskv = ~masks;
+   if (b->shader->options->no_integers) {
+      /* Unlike the integer path, this is not signed zero correct. We assume
+       * integerless backends don't care.
+       */
+      nir_def *abs = nir_fabs(b, x);
+      return nir_bcsel(b, nir_flt_imm(b, y, 0.0), nir_fneg(b, abs), abs);
+   } else {
+      uint64_t masks = 1ull << (x->bit_size - 1);
+      uint64_t maskv = ~masks;
 
-   nir_def *s = nir_imm_intN_t(b, masks, x->bit_size);
-   nir_def *v = nir_imm_intN_t(b, maskv, x->bit_size);
+      nir_def *s = nir_imm_intN_t(b, masks, x->bit_size);
+      nir_def *v = nir_imm_intN_t(b, maskv, x->bit_size);
 
-   return nir_ior(b, nir_iand(b, x, v), nir_iand(b, y, s));
+      return nir_ior(b, nir_iand(b, x, v), nir_iand(b, y, s));
+   }
 }
 
 static inline nir_def *

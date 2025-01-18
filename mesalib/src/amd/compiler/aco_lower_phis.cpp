@@ -15,6 +15,8 @@
 
 namespace aco {
 
+namespace {
+
 enum class pred_defined : uint8_t {
    undef = 0,
    const_1 = 1,
@@ -247,19 +249,33 @@ init_state(Program* program, Block* block, ssa_state* state, aco_ptr<Instruction
    unsigned start = block->logical_preds[0];
    unsigned end = block->linear_preds.back();
 
-   /* For boolean loop exit phis, start at the loop pre-header */
-   if (block->kind & block_kind_loop_exit && phi->opcode == aco_opcode::p_boolean_phi) {
+   /* The value might not be loop-invariant if the loop has a divergent break and
+    *  - this is a boolean phi, which must be combined with logical exits from previous iterations
+    *  - or the loop also has an additional linear exit (continue_or_break), which might be taken in
+    *    a different iteration than the logical exit
+    */
+   bool continue_or_break = block->linear_preds.size() > block->logical_preds.size();
+   bool has_divergent_break = std::any_of(
+      block->logical_preds.begin(), block->logical_preds.end(),
+      [&](unsigned pred) { return !(program->blocks[pred].kind & block_kind_uniform); });
+   if (block->kind & block_kind_loop_exit && has_divergent_break &&
+       (phi->opcode == aco_opcode::p_boolean_phi || continue_or_break)) {
+      /* Start at the loop pre-header as we need the value from previous iterations. */
       while (program->blocks[start].loop_nest_depth >= state->loop_nest_depth)
          start--;
       end = block->index - 1;
       /* If the loop-header has a back-edge, we need to insert a phi.
        * This will contain a defined value */
       if (program->blocks[start + 1].linear_preds.size() > 1) {
-         state->any_pred_defined[start + 1] = pred_defined::temp | pred_defined::zero;
-         /* add dominating zero: this allows to emit simpler merge sequences
-          * if we can ensure that all disabled lanes are always zero on incoming values
-          */
-         state->any_pred_defined[start] = pred_defined::const_0;
+         if (phi->opcode == aco_opcode::p_boolean_phi) {
+            state->any_pred_defined[start + 1] = pred_defined::temp | pred_defined::zero;
+            /* add dominating zero: this allows to emit simpler merge sequences
+             * if we can ensure that all disabled lanes are always zero on incoming values
+             */
+            state->any_pred_defined[start] = pred_defined::const_0;
+         } else {
+            state->any_pred_defined[start + 1] = pred_defined::temp;
+         }
       }
    }
 
@@ -300,6 +316,21 @@ init_state(Program* program, Block* block, ssa_state* state, aco_ptr<Instruction
 void
 lower_phi_to_linear(Program* program, ssa_state* state, Block* block, aco_ptr<Instruction>& phi)
 {
+   if (phi->opcode == aco_opcode::p_phi) {
+      /* Insert p_as_uniform for VGPR->SGPR phis. */
+      Builder bld(program);
+      for (unsigned i = 0; i < phi->operands.size(); i++) {
+         if (phi->operands[i].isOfType(RegType::vgpr)) {
+            Block* pred = &program->blocks[block->logical_preds[i]];
+            Temp new_phi_src = bld.tmp(phi->definitions[0].regClass());
+            insert_before_logical_end(
+               pred, bld.pseudo(aco_opcode::p_as_uniform, Definition(new_phi_src), phi->operands[i])
+                        .get_ptr());
+            phi->operands[i].setTemp(new_phi_src);
+         }
+      }
+   }
+
    if (block->linear_preds == block->logical_preds) {
       phi->opcode = aco_opcode::p_linear_phi;
       return;
@@ -363,6 +394,8 @@ lower_subdword_phis(Program* program, Block* block, aco_ptr<Instruction>& phi)
    }
    return;
 }
+
+} /* end namespace */
 
 void
 lower_phis(Program* program)

@@ -1,5 +1,4 @@
 # Copyright © 2022 Valve Corporation
-# 
 # SPDX-License-Identifier: MIT
 
 radv_annotate_layer = custom_target(

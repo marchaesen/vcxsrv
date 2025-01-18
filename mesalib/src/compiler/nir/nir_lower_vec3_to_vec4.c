@@ -145,8 +145,7 @@ nir_lower_vec3_to_vec4(nir_shader *shader, nir_variable_mode modes)
 
    progress |= nir_shader_instructions_pass(shader,
                                             lower_vec3_to_vec4_instr,
-                                            nir_metadata_block_index |
-                                               nir_metadata_dominance,
+                                            nir_metadata_control_flow,
                                             &modes);
 
    return progress;

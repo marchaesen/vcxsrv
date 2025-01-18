@@ -37,13 +37,14 @@
 #include "util/format/u_format.h"
 #include "pan_format.h"
 #include "pan_pool.h"
+#include "pan_props.h"
 #include "pan_util.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define PAN_MODIFIER_COUNT 6
+#define PAN_MODIFIER_COUNT 12
 extern uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT];
 
 struct pan_image_slice_layout {
@@ -110,7 +111,7 @@ struct pan_image_layout {
 
    struct pan_image_slice_layout slices[MAX_MIP_LEVELS];
 
-   unsigned data_size;
+   uint64_t data_size;
    unsigned array_stride;
 };
 
@@ -146,6 +147,10 @@ struct pan_image_view {
       unsigned offset;
       unsigned size;
    } buf;
+
+   struct {
+      unsigned narrow;
+   } astc;
 };
 
 static inline const struct pan_image *
@@ -278,6 +283,67 @@ uint32_t pan_slice_align(uint64_t modifier);
 
 uint32_t pan_afbc_body_align(uint64_t modifier);
 
+/* AFRC */
+
+#define AFRC_CLUMPS_PER_TILE 64
+
+enum pan_afrc_rate {
+   PAN_AFRC_RATE_NONE,
+   PAN_AFRC_RATE_1BPC,
+   PAN_AFRC_RATE_2BPC,
+   PAN_AFRC_RATE_3BPC,
+   PAN_AFRC_RATE_4BPC,
+   PAN_AFRC_RATE_5BPC,
+   PAN_AFRC_RATE_6BPC,
+   PAN_AFRC_RATE_7BPC,
+   PAN_AFRC_RATE_8BPC,
+   PAN_AFRC_RATE_9BPC,
+   PAN_AFRC_RATE_10BPC,
+   PAN_AFRC_RATE_11BPC,
+   PAN_AFRC_RATE_12BPC,
+   PAN_AFRC_RATE_DEFAULT = 0xF
+};
+
+enum pan_afrc_interchange_format {
+   PAN_AFRC_ICHANGE_FORMAT_RAW,
+   PAN_AFRC_ICHANGE_FORMAT_YUV444,
+   PAN_AFRC_ICHANGE_FORMAT_YUV422,
+   PAN_AFRC_ICHANGE_FORMAT_YUV420,
+};
+
+struct pan_afrc_format_info {
+   unsigned bpc : 4;
+   unsigned num_comps : 3;
+   unsigned ichange_fmt : 2;
+   unsigned num_planes : 2;
+};
+
+struct pan_afrc_format_info
+panfrost_afrc_get_format_info(enum pipe_format format);
+
+bool panfrost_format_supports_afrc(enum pipe_format format);
+
+bool panfrost_afrc_is_scan(uint64_t modifier);
+
+struct pan_block_size panfrost_afrc_clump_size(enum pipe_format format,
+                                               bool scan);
+
+struct pan_block_size panfrost_afrc_tile_size(enum pipe_format format,
+                                              uint64_t modifier);
+
+unsigned panfrost_afrc_block_size_from_modifier(uint64_t modifier);
+
+unsigned pan_afrc_row_stride(enum pipe_format format, uint64_t modifier,
+                             uint32_t width);
+
+unsigned panfrost_afrc_query_rates(enum pipe_format format, unsigned max,
+                                   uint32_t *rates);
+
+unsigned panfrost_afrc_get_modifiers(enum pipe_format format, uint32_t rate,
+                                     unsigned max, uint64_t *modifiers);
+
+uint32_t panfrost_afrc_get_rate(enum pipe_format format, uint64_t modifier);
+
 struct pan_block_size panfrost_block_size(uint64_t modifier,
                                           enum pipe_format format);
 
@@ -301,6 +367,10 @@ unsigned panfrost_texture_offset(const struct pan_image_layout *layout,
 #define drm_is_afbc(mod)                                                       \
    ((mod >> 52) ==                                                             \
     (DRM_FORMAT_MOD_ARM_TYPE_AFBC | (DRM_FORMAT_MOD_VENDOR_ARM << 4)))
+
+#define drm_is_afrc(mod)                                                       \
+   ((mod >> 52) ==                                                             \
+    (DRM_FORMAT_MOD_ARM_TYPE_AFRC | (DRM_FORMAT_MOD_VENDOR_ARM << 4)))
 
 struct pan_image_explicit_layout {
    unsigned offset;
@@ -335,6 +405,14 @@ void pan_iview_get_surface(const struct pan_image_view *iview, unsigned level,
 #if PAN_ARCH >= 9
 enum mali_afbc_compression_mode
 GENX(pan_afbc_compression_mode)(enum pipe_format format);
+#endif
+
+#if PAN_ARCH >= 10
+enum mali_afrc_format
+GENX(pan_afrc_format)(struct pan_afrc_format_info info, uint64_t modifier,
+                      unsigned plane);
+enum mali_afrc_block_size GENX(pan_afrc_block_size)(uint64_t modifier,
+                                                    unsigned index);
 #endif
 
 #ifdef __cplusplus

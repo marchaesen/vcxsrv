@@ -468,6 +468,7 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
    struct v3dv_job *job = cmd_buffer->state.job;
    assert(job);
    assert(job->cmd_buffer == cmd_buffer);
+   struct v3d_device_info *devinfo = &cmd_buffer->device->devinfo;
 
    struct texture_bo_list tex_bos = { 0 };
    struct state_bo_list state_bos = { 0 };
@@ -508,14 +509,14 @@ v3dv_write_uniforms_wg_offsets(struct v3dv_cmd_buffer *cmd_buffer,
          break;
 
       case QUNIFORM_VIEWPORT_X_SCALE: {
-         float clipper_xy_granularity = V3DV_X(cmd_buffer->device, CLIPPER_XY_GRANULARITY);
-         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][0] * clipper_xy_granularity);
+         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][0] *
+                                 devinfo->clipper_xy_granularity);
          break;
       }
 
       case QUNIFORM_VIEWPORT_Y_SCALE: {
-         float clipper_xy_granularity = V3DV_X(cmd_buffer->device, CLIPPER_XY_GRANULARITY);
-         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][1] * clipper_xy_granularity);
+         cl_aligned_f(&uniforms, dynamic->viewport.scale[0][1] *
+                                 devinfo->clipper_xy_granularity);
          break;
       }
 

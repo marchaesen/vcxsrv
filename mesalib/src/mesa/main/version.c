@@ -284,6 +284,7 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->EXT_framebuffer_sRGB &&
                          extensions->EXT_packed_float &&
                          extensions->EXT_texture_array &&
+                         extensions->EXT_texture_integer &&
                          extensions->EXT_texture_shared_exponent &&
                          extensions->EXT_transform_feedback &&
                          extensions->NV_conditional_render);
@@ -770,13 +771,13 @@ _mesa_get_shading_language_version(const struct gl_context *ctx,
       GLSL_VERSION("");
 
    /* GLSL es */
-   if (_mesa_is_gles32(ctx) || ctx->Extensions.ARB_ES3_2_compatibility)
+   if (_mesa_is_gles32_compatible(ctx))
       GLSL_VERSION("320 es");
-   if (_mesa_is_gles31(ctx) || ctx->Extensions.ARB_ES3_1_compatibility)
+   if (_mesa_is_gles31_compatible(ctx))
       GLSL_VERSION("310 es");
-   if (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility)
+   if (_mesa_is_gles3_compatible(ctx))
       GLSL_VERSION("300 es");
-   if (_mesa_is_gles2(ctx) || ctx->Extensions.ARB_ES2_compatibility)
+   if (_mesa_is_gles2_compatible(ctx))
       GLSL_VERSION("100");
 
 #undef GLSL_VERSION

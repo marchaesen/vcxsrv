@@ -24,9 +24,7 @@
  *
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
 
 #include <X11/X.h>
 #include <X11/extensions/XI2.h>
@@ -35,6 +33,7 @@
 
 #include "dix/dix_priv.h"
 #include "dix/eventconvert.h"
+#include "dix/input_priv.h"
 
 #include "inputstr.h"
 #include "windowstr.h"
@@ -623,14 +622,19 @@ FixDeviceValuator(DeviceIntPtr dev, deviceValuator * ev, ValuatorClassPtr v,
     switch (ev->num_valuators) {
     case 6:
         ev->valuator5 = v->axisVal[first + 5];
+        /* fallthrough */
     case 5:
         ev->valuator4 = v->axisVal[first + 4];
+        /* fallthrough */
     case 4:
         ev->valuator3 = v->axisVal[first + 3];
+        /* fallthrough */
     case 3:
         ev->valuator2 = v->axisVal[first + 2];
+        /* fallthrough */
     case 2:
         ev->valuator1 = v->axisVal[first + 1];
+        /* fallthrough */
     case 1:
         ev->valuator0 = v->axisVal[first];
         break;
@@ -669,8 +673,10 @@ FixDeviceStateNotify(DeviceIntPtr dev, deviceStateNotify * ev, KeyClassPtr k,
         switch (ev->num_valuators) {
         case 3:
             ev->valuator2 = v->axisVal[first + 2];
+            /* fallthrough */
         case 2:
             ev->valuator1 = v->axisVal[first + 1];
+            /* fallthrough */
         case 1:
             ev->valuator0 = v->axisVal[first];
             break;

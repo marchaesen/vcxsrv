@@ -28,8 +28,8 @@ authorization from the authors.
 -->
 
 <!-- Specifications:
-     http://cgit.freedesktop.org/xorg/proto/inputproto/tree/specs/XIproto.txt
-     http://cgit.freedesktop.org/xorg/proto/inputproto/tree/specs/XI2proto.txt
+     https://gitlab.freedesktop.org/xorg/proto/xorgproto/-/blob/master/specs/XIproto.txt
+     https://gitlab.freedesktop.org/xorg/proto/xorgproto/-/blob/master/specs/XI2proto.txt
 -->
 
 <xcb header="xinput" extension-xname="XInputExtension" extension-name="Input"
@@ -96,7 +96,7 @@ authorization from the authors.
 
                Even the creation of that fake class has been dropped
                from libXi in 2009 by the following change:
-               http://cgit.freedesktop.org/xorg/lib/libXi/commit/?id=62858c426e6de1b99df660251737233afd335302
+               https://gitlab.freedesktop.org/xorg/lib/libxi/-/commit/62858c426e6de1b99df660251737233afd335302
 
                <item name="Attach">    <value>7</value> </item>
         -->
@@ -2700,15 +2700,15 @@ authorization from the authors.
         <!-- We need not allow the newer events which are based on
              the GenericEvent extension:
              The wire-protocol-spec
-             https://cgit.freedesktop.org/xorg/lib/libXi/tree/specs/encoding.xml?idĺibXi-1.7.9#n1793
+             https://gitlab.freedesktop.org/xorg/lib/libxi/-/blob/libXi-1.7.9/specs/encoding.xml?ref_type=tags#L1793
              only allows fixed sized events, which seems
              to rule out GenericEvent.
 
              The xlib-implementation also assumes fixed-sized events.
-             https://cgit.freedesktop.org/xorg/lib/libXi/tree/src/XSndExEv.c?id=libXi-1.7.9#n106
+             https://gitlab.freedesktop.org/xorg/lib/libxi/-/blob/libXi-1.7.9/src/XSndExEv.c?ref_type=tag#L106
 
              The Xserver also allows only non-GE events:
-	     https:g/xorg/xserver/tree/Xi/sendexev.c?id=xorg-server-1.19.1#n144
+	     https://gitlab.freedesktop.org/xorg/xserver/-/blob/xorg-server-1.19.1/Xi/sendexev.c?ref_type=tag#L144
         -->
     </eventstruct>
 

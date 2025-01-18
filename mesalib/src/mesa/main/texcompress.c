@@ -360,7 +360,7 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
       formats[n++] = GL_PALETTE8_RGB5_A1_OES;
    }
 
-   if (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility) {
+   if (_mesa_is_gles3_compatible(ctx)) {
       formats[n++] = GL_COMPRESSED_RGB8_ETC2;
       formats[n++] = GL_COMPRESSED_RGBA8_ETC2_EAC;
       formats[n++] = GL_COMPRESSED_R11_EAC;

@@ -81,6 +81,16 @@ _mesa_half_to_float(uint16_t val)
       __asm volatile("vcvtph2ps %1, %0" : "=v"(out) : "v"(in));
       return out[0];
    }
+#elif defined(USE_AARCH64_ASM)
+   float result;
+   uint16_t in = val;
+
+   __asm volatile(
+     "fcvt %s0, %h1\n"
+     : "=w"(result)
+     : "w"(in)
+   );
+   return result;
 #endif
    return _mesa_half_to_float_slow(val);
 }

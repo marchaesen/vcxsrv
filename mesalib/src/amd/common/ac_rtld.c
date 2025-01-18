@@ -320,6 +320,7 @@ bool ac_rtld_open(struct ac_rtld_binary *binary, struct ac_rtld_open_info i)
       report_if(!part->sections);
 
       Elf_Scn *section = NULL;
+      bool first_section = true;
       while ((section = elf_nextscn(part->elf, section))) {
          Elf64_Shdr *shdr = elf64_getshdr(section);
          struct ac_rtld_section *s = &part->sections[elf_ndxscn(section)];
@@ -348,6 +349,13 @@ bool ac_rtld_open(struct ac_rtld_binary *binary, struct ac_rtld_open_info i)
             }
 
             if (s->is_pasted_text) {
+               if (part_idx > 0 && first_section && binary->options.waitcnt_wa) {
+                  /* Reserve a dword at the beginning of this part. */
+                  exec_size += 4;
+                  pasted_text_size += 4;
+                  first_section = false;
+               }
+
                s->offset = pasted_text_size;
                pasted_text_size += shdr->sh_size;
             } else {
@@ -715,6 +723,7 @@ int ac_rtld_upload(struct ac_rtld_upload_info *u)
    for (unsigned i = 0; i < u->binary->num_parts; ++i) {
       struct ac_rtld_part *part = &u->binary->parts[i];
 
+      bool first_section = true;
       Elf_Scn *section = NULL;
       while ((section = elf_nextscn(part->elf, section))) {
          Elf64_Shdr *shdr = elf64_getshdr(section);
@@ -727,6 +736,13 @@ int ac_rtld_upload(struct ac_rtld_upload_info *u)
 
          Elf_Data *data = elf_getdata(section, NULL);
          report_elf_if(!data || data->d_size != shdr->sh_size);
+
+         if (i > 0 && first_section && u->binary->options.waitcnt_wa) {
+            assert(s->offset >= 4);
+            *(uint32_t *)(u->rx_ptr + s->offset - 4) = util_cpu_to_le32(0xbf880fff);
+            first_section = false;
+         }
+
          memcpy(u->rx_ptr + s->offset, data->d_buf, shdr->sh_size);
 
          size = MAX2(size, s->offset + shdr->sh_size);

@@ -28,19 +28,22 @@ static void
 build_constant_load(nir_builder *b, nir_deref_instr *deref, nir_constant *c)
 {
    if (glsl_type_is_vector_or_scalar(deref->type)) {
-      nir_load_const_instr *load =
-         nir_load_const_instr_create(b->shader,
-                                     glsl_get_vector_elements(deref->type),
-                                     glsl_get_bit_size(deref->type));
-      memcpy(load->value, c->values, sizeof(*load->value) * load->def.num_components);
-      nir_builder_instr_insert(b, &load->instr);
-      nir_store_deref(b, deref, &load->def, ~0);
+      const unsigned num_components = glsl_get_vector_elements(deref->type);
+      const unsigned bit_size = glsl_get_bit_size(deref->type);
+      nir_def *imm = nir_build_imm(b, num_components, bit_size, c->values);
+      nir_store_deref(b, deref, imm, ~0);
    } else if (glsl_type_is_struct_or_ifc(deref->type)) {
       unsigned len = glsl_get_length(deref->type);
       for (unsigned i = 0; i < len; i++) {
          build_constant_load(b, nir_build_deref_struct(b, deref, i),
                              c->elements[i]);
       }
+   } else if (glsl_type_is_cmat(deref->type)) {
+      const struct glsl_type *elem_type = glsl_get_cmat_element(deref->type);
+      assert(glsl_type_is_scalar(elem_type));
+      const unsigned bit_size = glsl_get_bit_size(elem_type);
+      nir_def *elem = nir_build_imm(b, 1, bit_size, c->values);
+      nir_cmat_construct(b, &deref->def, elem);
    } else {
       assert(glsl_type_is_array(deref->type) ||
              glsl_type_is_matrix(deref->type));
@@ -119,8 +122,7 @@ nir_lower_variable_initializers(nir_shader *shader, nir_variable_mode modes)
 
       if (impl_progress) {
          progress = true;
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                        nir_metadata_dominance |
+         nir_metadata_preserve(impl, nir_metadata_control_flow |
                                         nir_metadata_live_defs);
       } else {
          nir_metadata_preserve(impl, nir_metadata_all);
@@ -151,6 +153,7 @@ nir_zero_initialize_shared_memory(nir_shader *shader,
    const unsigned local_count = shader->info.workgroup_size[0] *
                                 shader->info.workgroup_size[1] *
                                 shader->info.workgroup_size[2];
+   const unsigned stride = chunk_size * local_count;
 
    /* The initialization logic is simplified if we can always split the memory
     * in full chunk_size units.
@@ -159,30 +162,41 @@ nir_zero_initialize_shared_memory(nir_shader *shader,
 
    const unsigned chunk_comps = chunk_size / 4;
 
-   nir_variable *it = nir_local_variable_create(b.impl, glsl_uint_type(),
-                                                "zero_init_iterator");
    nir_def *local_index = nir_load_local_invocation_index(&b);
    nir_def *first_offset = nir_imul_imm(&b, local_index, chunk_size);
-   nir_store_var(&b, it, first_offset, 0x1);
 
-   nir_loop *loop = nir_push_loop(&b);
-   {
-      nir_def *offset = nir_load_var(&b, it);
-
-      nir_push_if(&b, nir_uge_imm(&b, offset, shared_size));
+   if (stride >= shared_size) {
+      nir_push_if(&b, nir_ult_imm(&b, first_offset, shared_size));
       {
-         nir_jump(&b, nir_jump_break);
+         nir_store_shared(&b, nir_imm_zero(&b, chunk_comps, 32), first_offset,
+                          .align_mul = chunk_size,
+                          .write_mask = ((1 << chunk_comps) - 1));
       }
       nir_pop_if(&b, NULL);
+   } else {
+      nir_variable *it = nir_local_variable_create(b.impl, glsl_uint_type(),
+                                                   "zero_init_iterator");
+      nir_store_var(&b, it, first_offset, 0x1);
 
-      nir_store_shared(&b, nir_imm_zero(&b, chunk_comps, 32), offset,
-                       .align_mul = chunk_size,
-                       .write_mask = ((1 << chunk_comps) - 1));
+      nir_loop *loop = nir_push_loop(&b);
+      {
+         nir_def *offset = nir_load_var(&b, it);
 
-      nir_def *new_offset = nir_iadd_imm(&b, offset, chunk_size * local_count);
-      nir_store_var(&b, it, new_offset, 0x1);
+         nir_push_if(&b, nir_uge_imm(&b, offset, shared_size));
+         {
+            nir_jump(&b, nir_jump_break);
+         }
+         nir_pop_if(&b, NULL);
+
+         nir_store_shared(&b, nir_imm_zero(&b, chunk_comps, 32), offset,
+                          .align_mul = chunk_size,
+                          .write_mask = ((1 << chunk_comps) - 1));
+
+         nir_def *new_offset = nir_iadd_imm(&b, offset, stride);
+         nir_store_var(&b, it, new_offset, 0x1);
+      }
+      nir_pop_loop(&b, loop);
    }
-   nir_pop_loop(&b, loop);
 
    nir_barrier(&b, SCOPE_WORKGROUP, SCOPE_WORKGROUP, NIR_MEMORY_ACQ_REL,
                nir_var_mem_shared);

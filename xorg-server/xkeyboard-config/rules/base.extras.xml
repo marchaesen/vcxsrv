@@ -220,6 +220,12 @@
         </variant>
         <variant>
           <configItem popularity="exotic">
+            <name>noted</name>
+            <description>German (Noted)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
             <name>ru-recom</name>
             <!-- Keyboard indicator for Russian layouts -->
             <shortDescription>ru</shortDescription>
@@ -285,6 +291,20 @@
             <name>oldhunlig</name>
             <shortDescription>oldhun(lig)</shortDescription>
             <description>Old Hungarian (for ligatures)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>oldhun_sk_sh</name>
+            <shortDescription>oldhun(SK,Sh)</shortDescription>
+            <description>Old Hungarian (Carpathian Highlands, S as Sh)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>oldhun_sk_sz</name>
+            <shortDescription>oldhun(SK,Sz)</shortDescription>
+            <description>Old Hungarian (Carpathian Highlands, S as Sz)</description>
           </configItem>
         </variant>
         <variant>
@@ -888,6 +908,59 @@
             </languageList>
           </configItem>
         </variant>
+        <variant>
+          <configItem popularity="exotic">
+            <name>diktor</name>
+            <shortDescription>diktor</shortDescription>
+            <description>Russian (Diktor)</description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+            </languageList>
+          </configItem>
+        </variant> 
+        <variant>
+          <configItem popularity="exotic">
+            <name>ruintl_ru</name>
+            <shortDescription>ru</shortDescription>
+            <description>Russian (international, RU)</description>
+            <languageList>
+              <iso639Id>rus</iso639Id>
+              <iso639Id>bel</iso639Id>
+              <iso639Id>bul</iso639Id>
+              <iso639Id>srp</iso639Id>
+              <iso639Id>ukr</iso639Id>
+            </languageList>
+          </configItem>
+        </variant> 
+        <variant>
+          <configItem popularity="exotic">
+            <name>ruintl_en</name>
+            <shortDescription>en</shortDescription>
+            <description>Russian (international, EN)</description>
+            <languageList>
+              <iso639Id>eng</iso639Id>
+              <iso639Id>hun</iso639Id>
+              <iso639Id>nld</iso639Id>
+              <iso639Id>dan</iso639Id>
+              <iso639Id>spa</iso639Id>
+              <iso639Id>ita</iso639Id>
+              <iso639Id>lit</iso639Id>
+              <iso639Id>mlt</iso639Id>
+              <iso639Id>deu</iso639Id>
+              <iso639Id>pol</iso639Id>
+              <iso639Id>por</iso639Id>
+              <iso639Id>ron</iso639Id>
+              <iso639Id>slk</iso639Id>
+              <iso639Id>slv</iso639Id>
+              <iso639Id>tur</iso639Id>
+              <iso639Id>fin</iso639Id>
+              <iso639Id>fra</iso639Id>
+              <iso639Id>ces</iso639Id>
+              <iso639Id>swe</iso639Id>
+              <iso639Id>est</iso639Id>
+            </languageList>
+          </configItem>
+        </variant> 
       </variantList>
     </layout>
     <layout>

@@ -1053,6 +1053,8 @@ glsl_texture_type(enum glsl_sampler_dim dim, bool array, enum glsl_base_type typ
          return (array ? &glsl_type_builtin_error : &glsl_type_builtin_vtexture3D);
       case GLSL_SAMPLER_DIM_BUF:
          return (array ? &glsl_type_builtin_error : &glsl_type_builtin_vtextureBuffer);
+      case GLSL_SAMPLER_DIM_MS:
+         return (array ? &glsl_type_builtin_vtexture2DMSArray : &glsl_type_builtin_vtexture2DMS);
       default:
          return &glsl_type_builtin_error;
       }
@@ -1223,6 +1225,8 @@ glsl_image_type(enum glsl_sampler_dim dim, bool array, enum glsl_base_type type)
          return (array ? &glsl_type_builtin_error : &glsl_type_builtin_vimage3D);
       case GLSL_SAMPLER_DIM_BUF:
          return (array ? &glsl_type_builtin_error : &glsl_type_builtin_vbuffer);
+      case GLSL_SAMPLER_DIM_MS:
+         return (array ? &glsl_type_builtin_vimage2DMSArray : &glsl_type_builtin_vimage2DMS);
       default:
          return &glsl_type_builtin_error;
       }
@@ -3685,7 +3689,7 @@ glsl_channel_type(const glsl_type *t)
    }
 }
 
-static void
+void
 glsl_size_align_handle_array_and_structs(const glsl_type *type,
                                          glsl_type_size_align_func size_align,
                                          unsigned *size, unsigned *align)

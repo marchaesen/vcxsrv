@@ -101,11 +101,14 @@ xkb_symbols "evdev" {
     key <HELP>   {      [ Help                  ]       };
     key <LNFD>   {      [ Linefeed              ]       };
 
+// These are historical mappings that must not be removed.
+// xf86-input-libinput and xf86-input-evdev drivers
+// remap the respective evdev codes to F20-F24 since the
+// evdev codes are not routable in X.
+    key <FK20>   {      [ XF86AudioMicMute      ]       };
     key <FK21>   {      [ XF86TouchpadToggle    ]       };
     key <FK22>   {      [ XF86TouchpadOn        ]       };
     key <FK23>   {      [ XF86TouchpadOff       ]       };
-
-    key <FK20>   {      [ XF86AudioMicMute      ]       };
 
 //  key <I120>   {      [ ]       }; // KEY_MACRO
     key <I126>   {      [ plusminus             ]       };
@@ -311,6 +314,7 @@ xkb_symbols "evdev" {
    key <I550>   {       [ XF86LightsToggle               ]      }; // KEY_LIGHTS_TOGGLE
    key <I568>   {       [ XF86ALSToggle                  ]      }; // KEY_ALS_TOGGLE
    key <I569>   {       [ XF86RotationLockToggle         ]      }; // KEY_ROTATE_LOCK_TOGGLE
+   key <I570>   {       [ XF86RefreshRateToggle          ]      }; // KEY_REFRESH_RATE_TOGGLE
    key <I584>   {       [ XF86Buttonconfig               ]      }; // KEY_BUTTONCONFIG
    key <I585>   {       [ XF86Taskmanager                ]      }; // KEY_TASKMANAGER
    key <I586>   {       [ XF86Journal                    ]      }; // KEY_JOURNAL
@@ -325,6 +329,8 @@ xkb_symbols "evdev" {
    key <I595>   {       [ XF86CameraAccessEnable         ]      }; // KEY_CAMERA_ACCESS_ENABLE
    key <I596>   {       [ XF86CameraAccessDisable        ]      }; // KEY_CAMERA_ACCESS_DISABLE
    key <I597>   {       [ XF86CameraAccessToggle         ]      }; // KEY_CAMERA_ACCESS_TOGGLE
+   key <I598>   {       [ XF86Accessibility              ]      }; // KEY_ACCESSIBILITY
+   key <I599>   {       [ XF86DoNotDisturb               ]      }; // KEY_DO_NOT_DISTURB
    key <I600>   {       [ XF86BrightnessMin              ]      }; // KEY_BRIGHTNESS_MIN
    key <I601>   {       [ XF86BrightnessMax              ]      }; // KEY_BRIGHTNESS_MAX
    key <I616>   {       [ XF86KbdInputAssistPrev         ]      }; // KEY_KBDINPUTASSIST_PREV

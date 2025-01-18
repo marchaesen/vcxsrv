@@ -18,6 +18,7 @@ def fastboot_deploy_actions(
     job_definition: "LAVAJobDefinition", nfsrootfs
 ) -> tuple[dict[str, Any], ...]:
     args = job_definition.job_submitter
+    cmdline = f"{job_definition.lava_nfs_args}{job_definition.extra_nfsroot_args}"
     fastboot_deploy_nfs = {
         "timeout": {"minutes": 10},
         "to": "nfs",
@@ -39,7 +40,7 @@ def fastboot_deploy_actions(
                 "steps": [
                     f"cat Image.gz {args.dtb_filename}.dtb > Image.gz+dtb",
                     "mkbootimg --kernel Image.gz+dtb"
-                    + ' --cmdline "root=/dev/nfs rw nfsroot=$NFS_SERVER_IP:$NFS_ROOTFS,tcp,hard rootwait ip=dhcp init=/init"'
+                    + f' --cmdline "{cmdline}"'
                     + " --pagesize 4096 --base 0x80000000 -o boot.img",
                 ],
             }

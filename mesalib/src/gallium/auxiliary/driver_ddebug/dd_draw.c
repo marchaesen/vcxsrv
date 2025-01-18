@@ -698,7 +698,7 @@ dd_dump_call(FILE *f, struct dd_draw_state *state, struct dd_call *call)
 static void
 dd_kill_process(void)
 {
-#if DETECT_OS_UNIX
+#if DETECT_OS_POSIX
    sync();
 #endif
    fprintf(stderr, "dd: Aborting the process...\n");

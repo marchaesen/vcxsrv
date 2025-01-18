@@ -29,6 +29,7 @@
 #define ETNAVIV_STATE_H_
 
 #include "etnaviv_context.h"
+#include "etnaviv_screen.h"
 #include "pipe/p_context.h"
 
 static inline bool
@@ -41,6 +42,24 @@ static inline bool
 etna_stencil_enabled(struct etna_context *ctx)
 {
    return ctx->zsa && ctx->zsa->stencil[0].enabled;
+}
+
+static inline bool
+etna_use_ts_for_mrt(const struct etna_screen *screen, const struct pipe_framebuffer_state *fb)
+{
+   if (screen->info->halti >= 2)
+      return true;
+
+   unsigned count = 0;
+
+   for (unsigned i = 0; i < fb->nr_cbufs; i++) {
+      if (!fb->cbufs[i])
+         continue;
+
+      count++;
+   }
+
+   return count <= 1;
 }
 
 bool

@@ -187,9 +187,6 @@ spec@ext_framebuffer_multisample@interpolation 8 centroid-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 non-centroid-deriv-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 non-centroid-disabled,Fail
 
-# Polygon smoothing isn't supported in Vulkan.
-spec@!opengl 1.0@gl-1.0-polygon-line-aa,Fail
-
 # Regression noticed in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/891104
 spec@arb_viewport_array@display-list,Fail
 

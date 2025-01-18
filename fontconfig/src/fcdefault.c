@@ -338,7 +338,10 @@ FcDefaultSubstitute (FcPattern *pattern)
     else
     {
 	FcPatternIterGetValue(pattern, &iter, 0, &v, NULL);
-	size = v.u.d;
+	if (v.type == FcTypeInteger)
+	    size = (double)v.u.i;
+	else
+	    size = v.u.d;
 	size = size / dpi * 72.0 / scale;
     }
     (void) FcPatternObjectDel (pattern, FC_SIZE_OBJECT);

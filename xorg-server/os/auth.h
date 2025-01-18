@@ -111,4 +111,6 @@ int ChangeAccessControl(ClientPtr client, int fEnabled);
 
 void AccessUsingXdmcp(void);
 
+extern Bool defeatAccessControl;
+
 #endif /* _XSERVER_OS_AUTH_H */

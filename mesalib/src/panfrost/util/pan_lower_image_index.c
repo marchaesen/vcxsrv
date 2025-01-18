@@ -51,5 +51,5 @@ pan_lower_image_index(nir_shader *shader, unsigned vs_img_attrib_offset)
 
    return nir_shader_intrinsics_pass(
       shader, lower_image_intr,
-      nir_metadata_block_index | nir_metadata_dominance, &vs_img_attrib_offset);
+      nir_metadata_control_flow, &vs_img_attrib_offset);
 }

@@ -195,7 +195,19 @@ agx_opt_trivial_phi(agx_context *ctx)
                same = phi->src[s];
             }
 
-            if (all_same) {
+            /* Only optimize trivial phis with normal sources. It is possible
+             * to optimize something like `phi #0, #0` but...
+             *
+             * 1. It would inadvently propagate constants which may be invalid.
+             *    Copyprop knows the rules for this, but we don't here.
+             *
+             * 2. These trivial phis should be optimized at the NIR level. This
+             *    pass is just to clean up spilling.
+             *
+             * So skip them for correctness in case NIR misses something (which
+             * can happen depending on pass order).
+             */
+            if (all_same && same.type == AGX_INDEX_NORMAL) {
                remap[phi->dest[0].value] = same;
                agx_remove_instruction(phi);
                progress = true;

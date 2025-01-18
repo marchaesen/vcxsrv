@@ -12,7 +12,6 @@
 
 struct radeon_compiler;
 
-
 /**
  * \file
  * Represents a paired ALU instruction, as found in R300 and R500
@@ -34,72 +33,63 @@ struct radeon_compiler;
 #define RC_PAIR_PRESUB_SRC 3
 
 struct rc_pair_instruction_source {
-	unsigned int Used:1;
-	unsigned int File:4;
-	unsigned int Index:RC_REGISTER_INDEX_BITS;
+   unsigned int Used : 1;
+   unsigned int File : 4;
+   unsigned int Index : RC_REGISTER_INDEX_BITS;
 };
 
 struct rc_pair_instruction_arg {
-	unsigned int Source:2;
-	unsigned int Swizzle:12;
-	unsigned int Abs:1;
-	unsigned int Negate:1;
+   unsigned int Source : 2;
+   unsigned int Swizzle : 12;
+   unsigned int Abs : 1;
+   unsigned int Negate : 1;
 };
 
 struct rc_pair_sub_instruction {
-	unsigned int Opcode:8;
-	unsigned int DestIndex:RC_REGISTER_INDEX_BITS;
-	unsigned int WriteMask:4;
-	unsigned int Target:2;
-	unsigned int OutputWriteMask:3;
-	unsigned int DepthWriteMask:1;
-	unsigned int Saturate:1;
-	unsigned int Omod:3;
+   unsigned int Opcode : 8;
+   unsigned int DestIndex : RC_REGISTER_INDEX_BITS;
+   unsigned int WriteMask : 4;
+   unsigned int Target : 2;
+   unsigned int OutputWriteMask : 3;
+   unsigned int DepthWriteMask : 1;
+   unsigned int Saturate : 1;
+   unsigned int Omod : 3;
 
-	struct rc_pair_instruction_source Src[4];
-	struct rc_pair_instruction_arg Arg[3];
+   struct rc_pair_instruction_source Src[4];
+   struct rc_pair_instruction_arg Arg[3];
 };
 
 struct rc_pair_instruction {
-	struct rc_pair_sub_instruction RGB;
-	struct rc_pair_sub_instruction Alpha;
+   struct rc_pair_sub_instruction RGB;
+   struct rc_pair_sub_instruction Alpha;
 
-	unsigned int WriteALUResult:2;
-	unsigned int ALUResultCompare:3;
-	unsigned int Nop:1;
-	unsigned int SemWait:1;
+   unsigned int WriteALUResult : 2;
+   unsigned int ALUResultCompare : 3;
+   unsigned int Nop : 1;
+   unsigned int SemWait : 1;
 };
 
-typedef void (*rc_pair_foreach_src_fn)
-			(void *, struct rc_pair_instruction_source *);
+typedef void (*rc_pair_foreach_src_fn)(void *, struct rc_pair_instruction_source *);
 
 /**
  * General helper functions for dealing with the paired instruction format.
  */
 /*@{*/
-int rc_pair_alloc_source(struct rc_pair_instruction *pair,
-	unsigned int rgb, unsigned int alpha,
-	rc_register_file file, unsigned int index);
+int rc_pair_alloc_source(struct rc_pair_instruction *pair, unsigned int rgb, unsigned int alpha,
+                         rc_register_file file, unsigned int index);
 
-void rc_pair_foreach_source_that_alpha_reads(
-	struct rc_pair_instruction * pair,
-	void * data,
-	rc_pair_foreach_src_fn cb);
+void rc_pair_foreach_source_that_alpha_reads(struct rc_pair_instruction *pair, void *data,
+                                             rc_pair_foreach_src_fn cb);
 
-void rc_pair_foreach_source_that_rgb_reads(
-	struct rc_pair_instruction * pair,
-	void * data,
-	rc_pair_foreach_src_fn cb);
+void rc_pair_foreach_source_that_rgb_reads(struct rc_pair_instruction *pair, void *data,
+                                           rc_pair_foreach_src_fn cb);
 
-struct rc_pair_instruction_source * rc_pair_get_src(
-	struct rc_pair_instruction * pair_inst,
-	struct rc_pair_instruction_arg * arg);
+struct rc_pair_instruction_source *rc_pair_get_src(struct rc_pair_instruction *pair_inst,
+                                                   struct rc_pair_instruction_arg *arg);
 
-int rc_pair_get_src_index(
-	struct rc_pair_instruction * pair_inst,
-	struct rc_pair_instruction_source * src);
+int rc_pair_get_src_index(struct rc_pair_instruction *pair_inst,
+                          struct rc_pair_instruction_source *src);
 /*@}*/
-
 
 /**
  * Compiler passes that operate with the paired format.

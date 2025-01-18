@@ -55,3 +55,563 @@ dEQP-GLES31.functional.texture.gather.basic.cube.rgba8ui.base_level.level_1,Fail
 dEQP-GLES31.functional.texture.gather.basic.cube.rgba8ui.no_corners.size_pot.clamp_to_edge_repeat,Fail
 dEQP-GLES31.functional.texture.gather.basic.cube.rgba8ui.no_corners.size_pot.mirrored_repeat_clamp_to_edge,Fail
 dEQP-GLES31.functional.texture.gather.basic.cube.rgba8ui.no_corners.size_pot.repeat_mirrored_repeat,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
+
+
+# OpenCL below
+api@clbuildprogram,Fail
+api@clcompileprogram,Fail
+api@clgetextensionfunctionaddressforplatform,Fail
+api@clgetkernelarginfo,Fail
+api@cllinkprogram,Fail
+program@bitcoin: phatk kernel,Crash
+program@build@vector-data-types,Fail
+program@execute@amdgcn-f32-inline-immediates,Fail
+program@execute@amdgcn-f32-inline-immediates@add integer 64,Fail
+program@execute@amdgcn.sign_extend_inreg,Fail
+program@execute@amdgcn.sign_extend_inreg@SALU i16 in i64 0,Fail
+program@execute@amdgcn.sign_extend_inreg@SALU i32 in i64 0,Fail
+program@execute@amdgcn.sign_extend_inreg@SALU i8 in i64 0,Fail
+program@execute@amdgcn.sign_extend_inreg@VALU i16 in i64 0,Fail
+program@execute@amdgcn.sign_extend_inreg@VALU i32 in i64 0,Fail
+program@execute@amdgcn.sign_extend_inreg@VALU i8 in i64 0,Fail
+program@execute@atomic_cmpxchg-local,Fail
+program@execute@atomic_cmpxchg-local@simple int,Fail
+program@execute@atomic_cmpxchg-local@simple uint,Fail
+program@execute@atomic_int32_cmpxchg-local,Fail
+program@execute@atomic_int32_cmpxchg-local@simple int,Fail
+program@execute@atomic_int32_cmpxchg-local@simple uint,Fail
+program@execute@bswap,Fail
+program@execute@bswap@s_bswap_u64,Fail
+program@execute@bswap@v_bswap_u64,Fail
+program@execute@builtin@builtin-char-abs-1.0.generated,Crash
+program@execute@builtin@builtin-char-abs_diff-1.0.generated,Crash
+program@execute@builtin@builtin-char-add_sat-1.0.generated,Crash
+program@execute@builtin@builtin-char-clamp-1.1.generated,Crash
+program@execute@builtin@builtin-char-clz-1.0.generated,Crash
+program@execute@builtin@builtin-char-hadd-1.0.generated,Crash
+program@execute@builtin@builtin-char-mad_hi-1.0.generated,Crash
+program@execute@builtin@builtin-char-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-char-max-1.1.generated,Crash
+program@execute@builtin@builtin-char-min-1.1.generated,Crash
+program@execute@builtin@builtin-char-mul_hi-1.0.generated,Crash
+program@execute@builtin@builtin-char-popcount-1.2.generated,Crash
+program@execute@builtin@builtin-char-rhadd-1.0.generated,Crash
+program@execute@builtin@builtin-char-rotate-1.0.generated,Crash
+program@execute@builtin@builtin-char-sub_sat-1.0.generated,Crash
+program@execute@builtin@builtin-char-upsample-1.0.generated,Crash
+program@execute@builtin@builtin-float-fma-1.0.generated,Crash
+program@execute@builtin@builtin-float-nextafter-1.0.generated,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float1,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float16,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float2,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float4,Fail
+program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float8,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float1,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float16,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float2,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float4,Fail
+program@execute@builtin@builtin-float-sign-1.0.generated@sign float8,Fail
+program@execute@builtin@builtin-int-mad_sat-1.0.generated,Fail
+program@execute@builtin@builtin-int-mad_sat-1.0.generated@mad_sat int1,Fail
+program@execute@builtin@builtin-int-mad_sat-1.0.generated@mad_sat int16,Fail
+program@execute@builtin@builtin-int-mad_sat-1.0.generated@mad_sat int2,Fail
+program@execute@builtin@builtin-int-mad_sat-1.0.generated@mad_sat int4,Fail
+program@execute@builtin@builtin-int-mad_sat-1.0.generated@mad_sat int8,Fail
+program@execute@builtin@builtin-long-abs-1.0.generated,Fail
+program@execute@builtin@builtin-long-abs-1.0.generated@abs long1,Fail
+program@execute@builtin@builtin-long-abs-1.0.generated@abs long16,Fail
+program@execute@builtin@builtin-long-abs-1.0.generated@abs long2,Fail
+program@execute@builtin@builtin-long-abs-1.0.generated@abs long4,Fail
+program@execute@builtin@builtin-long-abs-1.0.generated@abs long8,Fail
+program@execute@builtin@builtin-long-abs_diff-1.0.generated,Fail
+program@execute@builtin@builtin-long-abs_diff-1.0.generated@abs_diff long1,Fail
+program@execute@builtin@builtin-long-abs_diff-1.0.generated@abs_diff long16,Fail
+program@execute@builtin@builtin-long-abs_diff-1.0.generated@abs_diff long2,Fail
+program@execute@builtin@builtin-long-abs_diff-1.0.generated@abs_diff long4,Fail
+program@execute@builtin@builtin-long-abs_diff-1.0.generated@abs_diff long8,Fail
+program@execute@builtin@builtin-long-add_sat-1.0.generated,Fail
+program@execute@builtin@builtin-long-add_sat-1.0.generated@add_sat long1,Fail
+program@execute@builtin@builtin-long-add_sat-1.0.generated@add_sat long16,Fail
+program@execute@builtin@builtin-long-add_sat-1.0.generated@add_sat long2,Fail
+program@execute@builtin@builtin-long-add_sat-1.0.generated@add_sat long4,Fail
+program@execute@builtin@builtin-long-add_sat-1.0.generated@add_sat long8,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@clamp long1,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@clamp long16,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@clamp long2,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@clamp long4,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@clamp long8,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@tss_clamp long16,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@tss_clamp long2,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@tss_clamp long4,Fail
+program@execute@builtin@builtin-long-clamp-1.1.generated@tss_clamp long8,Fail
+program@execute@builtin@builtin-long-clz-1.0.generated,Crash
+program@execute@builtin@builtin-long-hadd-1.0.generated,Fail
+program@execute@builtin@builtin-long-hadd-1.0.generated@hadd long1,Fail
+program@execute@builtin@builtin-long-hadd-1.0.generated@hadd long16,Fail
+program@execute@builtin@builtin-long-hadd-1.0.generated@hadd long2,Fail
+program@execute@builtin@builtin-long-hadd-1.0.generated@hadd long4,Fail
+program@execute@builtin@builtin-long-hadd-1.0.generated@hadd long8,Fail
+program@execute@builtin@builtin-long-mad_hi-1.0.generated,Crash
+program@execute@builtin@builtin-long-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-long-max-1.1.generated,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@max long1,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@max long16,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@max long2,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@max long4,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@max long8,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@tss_max long16,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@tss_max long2,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@tss_max long4,Fail
+program@execute@builtin@builtin-long-max-1.1.generated@tss_max long8,Fail
+program@execute@builtin@builtin-long-min-1.1.generated,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@min long1,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@min long16,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@min long2,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@min long4,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@min long8,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@tss_min long16,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@tss_min long2,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@tss_min long4,Fail
+program@execute@builtin@builtin-long-min-1.1.generated@tss_min long8,Fail
+program@execute@builtin@builtin-long-mul_hi-1.0.generated,Crash
+program@execute@builtin@builtin-long-popcount-1.2.generated,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long1,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long16,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long2,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long4,Fail
+program@execute@builtin@builtin-long-popcount-1.2.generated@popcount long8,Fail
+program@execute@builtin@builtin-long-rhadd-1.0.generated,Fail
+program@execute@builtin@builtin-long-rhadd-1.0.generated@rhadd long1,Fail
+program@execute@builtin@builtin-long-rhadd-1.0.generated@rhadd long16,Fail
+program@execute@builtin@builtin-long-rhadd-1.0.generated@rhadd long2,Fail
+program@execute@builtin@builtin-long-rhadd-1.0.generated@rhadd long4,Fail
+program@execute@builtin@builtin-long-rhadd-1.0.generated@rhadd long8,Fail
+program@execute@builtin@builtin-long-rotate-1.0.generated,Fail
+program@execute@builtin@builtin-long-rotate-1.0.generated@rotate long1,Fail
+program@execute@builtin@builtin-long-rotate-1.0.generated@rotate long16,Fail
+program@execute@builtin@builtin-long-rotate-1.0.generated@rotate long2,Fail
+program@execute@builtin@builtin-long-rotate-1.0.generated@rotate long4,Fail
+program@execute@builtin@builtin-long-rotate-1.0.generated@rotate long8,Fail
+program@execute@builtin@builtin-long-sub_sat-1.0.generated,Fail
+program@execute@builtin@builtin-long-sub_sat-1.0.generated@sub_sat long1,Fail
+program@execute@builtin@builtin-long-sub_sat-1.0.generated@sub_sat long16,Fail
+program@execute@builtin@builtin-long-sub_sat-1.0.generated@sub_sat long2,Fail
+program@execute@builtin@builtin-long-sub_sat-1.0.generated@sub_sat long4,Fail
+program@execute@builtin@builtin-long-sub_sat-1.0.generated@sub_sat long8,Fail
+program@execute@builtin@builtin-short-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-short-rotate-1.0.generated,Fail
+program@execute@builtin@builtin-short-rotate-1.0.generated@rotate short1,Fail
+program@execute@builtin@builtin-short-rotate-1.0.generated@rotate short16,Fail
+program@execute@builtin@builtin-short-rotate-1.0.generated@rotate short2,Fail
+program@execute@builtin@builtin-short-rotate-1.0.generated@rotate short4,Fail
+program@execute@builtin@builtin-short-rotate-1.0.generated@rotate short8,Fail
+program@execute@builtin@builtin-shuffle-char-uchar,Crash
+program@execute@builtin@builtin-shuffle-long-ulong,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long16 ulong16,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long16 ulong2,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long16 ulong4,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long16 ulong8,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long2 ulong16,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long2 ulong2,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long2 ulong4,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long2 ulong8,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long4 ulong16,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long4 ulong2,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long4 ulong4,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long4 ulong8,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long8 ulong16,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long8 ulong2,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long8 ulong4,Fail
+program@execute@builtin@builtin-shuffle-long-ulong@shuffle long8 ulong8,Fail
+program@execute@builtin@builtin-shuffle-short-ushort,Crash
+program@execute@builtin@builtin-shuffle-uchar-uchar,Crash
+program@execute@builtin@builtin-shuffle-ulong-ulong,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong16 ulong16,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong16 ulong2,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong16 ulong4,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong16 ulong8,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong2 ulong16,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong2 ulong2,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong2 ulong4,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong2 ulong8,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong4 ulong16,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong4 ulong2,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong4 ulong4,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong4 ulong8,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong8 ulong16,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong8 ulong2,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong8 ulong4,Fail
+program@execute@builtin@builtin-shuffle-ulong-ulong@shuffle ulong8 ulong8,Fail
+program@execute@builtin@builtin-shuffle-ushort-ushort,Crash
+program@execute@builtin@builtin-shuffle2-char-uchar,Crash
+program@execute@builtin@builtin-shuffle2-long-ulong,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long16 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long16 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long16 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long16 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long2 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long2 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long2 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long2 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long4 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long4 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long4 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long4 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long8 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long8 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long8 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-long-ulong@shuffle2 long8 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-short-ushort,Crash
+program@execute@builtin@builtin-shuffle2-uchar-uchar,Crash
+program@execute@builtin@builtin-shuffle2-ulong-ulong,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong16 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong16 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong16 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong16 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong2 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong2 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong2 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong2 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong4 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong4 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong4 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong4 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong8 ulong16,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong8 ulong2,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong8 ulong4,Fail
+program@execute@builtin@builtin-shuffle2-ulong-ulong@shuffle2 ulong8 ulong8,Fail
+program@execute@builtin@builtin-shuffle2-ushort-ushort,Crash
+program@execute@builtin@builtin-uchar-abs_diff-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-add_sat-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-clamp-1.1.generated,Crash
+program@execute@builtin@builtin-uchar-clz-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-hadd-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-mad_hi-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-max-1.1.generated,Crash
+program@execute@builtin@builtin-uchar-min-1.1.generated,Crash
+program@execute@builtin@builtin-uchar-mul_hi-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-popcount-1.2.generated,Crash
+program@execute@builtin@builtin-uchar-rhadd-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-rotate-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-sub_sat-1.0.generated,Crash
+program@execute@builtin@builtin-uchar-upsample-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-abs_diff-1.0.generated,Fail
+program@execute@builtin@builtin-ulong-abs_diff-1.0.generated@abs_diff ulong1,Fail
+program@execute@builtin@builtin-ulong-abs_diff-1.0.generated@abs_diff ulong16,Fail
+program@execute@builtin@builtin-ulong-abs_diff-1.0.generated@abs_diff ulong2,Fail
+program@execute@builtin@builtin-ulong-abs_diff-1.0.generated@abs_diff ulong4,Fail
+program@execute@builtin@builtin-ulong-abs_diff-1.0.generated@abs_diff ulong8,Fail
+program@execute@builtin@builtin-ulong-add_sat-1.0.generated,Fail
+program@execute@builtin@builtin-ulong-add_sat-1.0.generated@add_sat ulong1,Fail
+program@execute@builtin@builtin-ulong-add_sat-1.0.generated@add_sat ulong16,Fail
+program@execute@builtin@builtin-ulong-add_sat-1.0.generated@add_sat ulong2,Fail
+program@execute@builtin@builtin-ulong-add_sat-1.0.generated@add_sat ulong4,Fail
+program@execute@builtin@builtin-ulong-add_sat-1.0.generated@add_sat ulong8,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@clamp ulong1,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@clamp ulong16,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@clamp ulong2,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@clamp ulong4,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@clamp ulong8,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@tss_clamp ulong16,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@tss_clamp ulong2,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@tss_clamp ulong4,Fail
+program@execute@builtin@builtin-ulong-clamp-1.1.generated@tss_clamp ulong8,Fail
+program@execute@builtin@builtin-ulong-clz-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-hadd-1.0.generated,Fail
+program@execute@builtin@builtin-ulong-hadd-1.0.generated@hadd ulong1,Fail
+program@execute@builtin@builtin-ulong-hadd-1.0.generated@hadd ulong16,Fail
+program@execute@builtin@builtin-ulong-hadd-1.0.generated@hadd ulong2,Fail
+program@execute@builtin@builtin-ulong-hadd-1.0.generated@hadd ulong4,Fail
+program@execute@builtin@builtin-ulong-hadd-1.0.generated@hadd ulong8,Fail
+program@execute@builtin@builtin-ulong-mad_hi-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-max-1.1.generated,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@max ulong1,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@max ulong16,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@max ulong2,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@max ulong4,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@max ulong8,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@tss_max ulong16,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@tss_max ulong2,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@tss_max ulong4,Fail
+program@execute@builtin@builtin-ulong-max-1.1.generated@tss_max ulong8,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@min ulong1,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@min ulong16,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@min ulong2,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@min ulong4,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@min ulong8,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@tss_min ulong16,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@tss_min ulong2,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@tss_min ulong4,Fail
+program@execute@builtin@builtin-ulong-min-1.1.generated@tss_min ulong8,Fail
+program@execute@builtin@builtin-ulong-mul_hi-1.0.generated,Crash
+program@execute@builtin@builtin-ulong-popcount-1.2.generated,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong1,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong16,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong2,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong4,Fail
+program@execute@builtin@builtin-ulong-popcount-1.2.generated@popcount ulong8,Fail
+program@execute@builtin@builtin-ulong-rhadd-1.0.generated,Fail
+program@execute@builtin@builtin-ulong-rhadd-1.0.generated@rhadd ulong1,Fail
+program@execute@builtin@builtin-ulong-rhadd-1.0.generated@rhadd ulong16,Fail
+program@execute@builtin@builtin-ulong-rhadd-1.0.generated@rhadd ulong2,Fail
+program@execute@builtin@builtin-ulong-rhadd-1.0.generated@rhadd ulong4,Fail
+program@execute@builtin@builtin-ulong-rhadd-1.0.generated@rhadd ulong8,Fail
+program@execute@builtin@builtin-ulong-rotate-1.0.generated,Fail
+program@execute@builtin@builtin-ulong-rotate-1.0.generated@rotate ulong1,Fail
+program@execute@builtin@builtin-ulong-rotate-1.0.generated@rotate ulong16,Fail
+program@execute@builtin@builtin-ulong-rotate-1.0.generated@rotate ulong2,Fail
+program@execute@builtin@builtin-ulong-rotate-1.0.generated@rotate ulong4,Fail
+program@execute@builtin@builtin-ulong-rotate-1.0.generated@rotate ulong8,Fail
+program@execute@builtin@builtin-ulong-sub_sat-1.0.generated,Fail
+program@execute@builtin@builtin-ulong-sub_sat-1.0.generated@sub_sat ulong1,Fail
+program@execute@builtin@builtin-ulong-sub_sat-1.0.generated@sub_sat ulong16,Fail
+program@execute@builtin@builtin-ulong-sub_sat-1.0.generated@sub_sat ulong2,Fail
+program@execute@builtin@builtin-ulong-sub_sat-1.0.generated@sub_sat ulong4,Fail
+program@execute@builtin@builtin-ulong-sub_sat-1.0.generated@sub_sat ulong8,Fail
+program@execute@builtin@builtin-ushort-mad_sat-1.0.generated,Crash
+program@execute@builtin@builtin-ushort-rotate-1.0.generated,Fail
+program@execute@builtin@builtin-ushort-rotate-1.0.generated@rotate ushort1,Fail
+program@execute@builtin@builtin-ushort-rotate-1.0.generated@rotate ushort16,Fail
+program@execute@builtin@builtin-ushort-rotate-1.0.generated@rotate ushort2,Fail
+program@execute@builtin@builtin-ushort-rotate-1.0.generated@rotate ushort4,Fail
+program@execute@builtin@builtin-ushort-rotate-1.0.generated@rotate ushort8,Fail
+program@execute@clz-optimizations,Crash
+program@execute@float-convert_long,Fail
+program@execute@float-convert_long@convert_long(float),Fail
+program@execute@float-convert_long@convert_ulong(float),Fail
+program@execute@global-offset,Fail
+program@execute@global-offset@3d- input dependent,Fail
+program@execute@load-hi16,Crash
+program@execute@load-lo16,Crash
+program@execute@program-scope-arrays,Crash
+program@execute@scalar-arithmetic-char,Crash
+program@execute@scalar-arithmetic-long,Crash
+program@execute@scalar-arithmetic-uchar,Crash
+program@execute@scalar-arithmetic-ulong,Crash
+program@execute@scalar-comparison-char,Crash
+program@execute@scalar-comparison-long,Fail
+program@execute@scalar-comparison-long@small_num<=big_num,Fail
+program@execute@scalar-comparison-long@small_num<big_num,Fail
+program@execute@scalar-comparison-long@small_num>=big_num,Fail
+program@execute@scalar-comparison-long@small_num>big_num,Fail
+program@execute@scalar-comparison-uchar,Crash
+program@execute@vload@vload-char-constant,Crash
+program@execute@vload@vload-char-global,Crash
+program@execute@vload@vload-char-local,Crash
+program@execute@vload@vload-char-private,Crash
+program@execute@vload@vload-short-constant,Crash
+program@execute@vload@vload-short-local,Crash
+program@execute@vload@vload-short-private,Crash
+program@execute@vload@vload-uchar-constant,Crash
+program@execute@vload@vload-uchar-global,Crash
+program@execute@vload@vload-uchar-local,Crash
+program@execute@vload@vload-uchar-private,Crash
+program@execute@vload@vload-ushort-constant,Crash
+program@execute@vload@vload-ushort-local,Crash
+program@execute@vload@vload-ushort-private,Crash
+program@execute@vstore@vstore-char-global,Fail
+program@execute@vstore@vstore-char-global@vector store global char16,Fail
+program@execute@vstore@vstore-char-global@vector store global char3,Fail
+program@execute@vstore@vstore-char-global@vector store global char4,Fail
+program@execute@vstore@vstore-char-global@vector store global char8,Fail
+program@execute@vstore@vstore-char-global@vector store global offset char16,Fail
+program@execute@vstore@vstore-char-global@vector store global offset char3,Fail
+program@execute@vstore@vstore-char-global@vector store global offset char4,Fail
+program@execute@vstore@vstore-char-global@vector store global offset char8,Fail
+program@execute@vstore@vstore-char-local,Fail
+program@execute@vstore@vstore-char-local@vector store local char16,Fail
+program@execute@vstore@vstore-char-local@vector store local char3,Fail
+program@execute@vstore@vstore-char-local@vector store local char4,Fail
+program@execute@vstore@vstore-char-local@vector store local char8,Fail
+program@execute@vstore@vstore-char-local@vector store local offset char16,Fail
+program@execute@vstore@vstore-char-local@vector store local offset char3,Fail
+program@execute@vstore@vstore-char-local@vector store local offset char4,Fail
+program@execute@vstore@vstore-char-local@vector store local offset char8,Fail
+program@execute@vstore@vstore-char-private,Fail
+program@execute@vstore@vstore-char-private@vector store private char16,Fail
+program@execute@vstore@vstore-char-private@vector store private char3,Fail
+program@execute@vstore@vstore-char-private@vector store private char4,Fail
+program@execute@vstore@vstore-char-private@vector store private char8,Fail
+program@execute@vstore@vstore-char-private@vector store private offset char16,Fail
+program@execute@vstore@vstore-char-private@vector store private offset char3,Fail
+program@execute@vstore@vstore-char-private@vector store private offset char4,Fail
+program@execute@vstore@vstore-char-private@vector store private offset char8,Fail
+program@execute@vstore@vstore-short-global,Fail
+program@execute@vstore@vstore-short-global@vector store global offset short16,Fail
+program@execute@vstore@vstore-short-global@vector store global offset short2,Fail
+program@execute@vstore@vstore-short-global@vector store global offset short3,Fail
+program@execute@vstore@vstore-short-global@vector store global offset short4,Fail
+program@execute@vstore@vstore-short-global@vector store global offset short8,Fail
+program@execute@vstore@vstore-short-global@vector store global short16,Fail
+program@execute@vstore@vstore-short-global@vector store global short2,Fail
+program@execute@vstore@vstore-short-global@vector store global short3,Fail
+program@execute@vstore@vstore-short-global@vector store global short4,Fail
+program@execute@vstore@vstore-short-global@vector store global short8,Fail
+program@execute@vstore@vstore-short-local,Fail
+program@execute@vstore@vstore-short-local@vector store local offset short16,Fail
+program@execute@vstore@vstore-short-local@vector store local offset short2,Fail
+program@execute@vstore@vstore-short-local@vector store local offset short3,Fail
+program@execute@vstore@vstore-short-local@vector store local offset short4,Fail
+program@execute@vstore@vstore-short-local@vector store local offset short8,Fail
+program@execute@vstore@vstore-short-local@vector store local short16,Fail
+program@execute@vstore@vstore-short-local@vector store local short2,Fail
+program@execute@vstore@vstore-short-local@vector store local short3,Fail
+program@execute@vstore@vstore-short-local@vector store local short4,Fail
+program@execute@vstore@vstore-short-local@vector store local short8,Fail
+program@execute@vstore@vstore-short-private,Fail
+program@execute@vstore@vstore-short-private@vector store private offset short16,Fail
+program@execute@vstore@vstore-short-private@vector store private offset short2,Fail
+program@execute@vstore@vstore-short-private@vector store private offset short3,Fail
+program@execute@vstore@vstore-short-private@vector store private offset short4,Fail
+program@execute@vstore@vstore-short-private@vector store private offset short8,Fail
+program@execute@vstore@vstore-short-private@vector store private short16,Fail
+program@execute@vstore@vstore-short-private@vector store private short2,Fail
+program@execute@vstore@vstore-short-private@vector store private short3,Fail
+program@execute@vstore@vstore-short-private@vector store private short4,Fail
+program@execute@vstore@vstore-short-private@vector store private short8,Fail
+program@execute@vstore@vstore-uchar-global,Fail
+program@execute@vstore@vstore-uchar-global@vector store global offset uchar16,Fail
+program@execute@vstore@vstore-uchar-global@vector store global offset uchar3,Fail
+program@execute@vstore@vstore-uchar-global@vector store global offset uchar4,Fail
+program@execute@vstore@vstore-uchar-global@vector store global offset uchar8,Fail
+program@execute@vstore@vstore-uchar-global@vector store global uchar16,Fail
+program@execute@vstore@vstore-uchar-global@vector store global uchar3,Fail
+program@execute@vstore@vstore-uchar-global@vector store global uchar4,Fail
+program@execute@vstore@vstore-uchar-global@vector store global uchar8,Fail
+program@execute@vstore@vstore-uchar-local,Fail
+program@execute@vstore@vstore-uchar-local@vector store local offset uchar16,Fail
+program@execute@vstore@vstore-uchar-local@vector store local offset uchar3,Fail
+program@execute@vstore@vstore-uchar-local@vector store local offset uchar4,Fail
+program@execute@vstore@vstore-uchar-local@vector store local offset uchar8,Fail
+program@execute@vstore@vstore-uchar-local@vector store local uchar16,Fail
+program@execute@vstore@vstore-uchar-local@vector store local uchar3,Fail
+program@execute@vstore@vstore-uchar-local@vector store local uchar4,Fail
+program@execute@vstore@vstore-uchar-local@vector store local uchar8,Fail
+program@execute@vstore@vstore-uchar-private,Fail
+program@execute@vstore@vstore-uchar-private@vector store private offset uchar16,Fail
+program@execute@vstore@vstore-uchar-private@vector store private offset uchar3,Fail
+program@execute@vstore@vstore-uchar-private@vector store private offset uchar4,Fail
+program@execute@vstore@vstore-uchar-private@vector store private offset uchar8,Fail
+program@execute@vstore@vstore-uchar-private@vector store private uchar16,Fail
+program@execute@vstore@vstore-uchar-private@vector store private uchar3,Fail
+program@execute@vstore@vstore-uchar-private@vector store private uchar4,Fail
+program@execute@vstore@vstore-uchar-private@vector store private uchar8,Fail
+program@execute@vstore@vstore-ushort-global,Fail
+program@execute@vstore@vstore-ushort-global@vector store global offset ushort16,Fail
+program@execute@vstore@vstore-ushort-global@vector store global offset ushort2,Fail
+program@execute@vstore@vstore-ushort-global@vector store global offset ushort3,Fail
+program@execute@vstore@vstore-ushort-global@vector store global offset ushort4,Fail
+program@execute@vstore@vstore-ushort-global@vector store global offset ushort8,Fail
+program@execute@vstore@vstore-ushort-global@vector store global ushort16,Fail
+program@execute@vstore@vstore-ushort-global@vector store global ushort2,Fail
+program@execute@vstore@vstore-ushort-global@vector store global ushort3,Fail
+program@execute@vstore@vstore-ushort-global@vector store global ushort4,Fail
+program@execute@vstore@vstore-ushort-global@vector store global ushort8,Fail
+program@execute@vstore@vstore-ushort-local,Fail
+program@execute@vstore@vstore-ushort-local@vector store local offset ushort16,Fail
+program@execute@vstore@vstore-ushort-local@vector store local offset ushort2,Fail
+program@execute@vstore@vstore-ushort-local@vector store local offset ushort3,Fail
+program@execute@vstore@vstore-ushort-local@vector store local offset ushort4,Fail
+program@execute@vstore@vstore-ushort-local@vector store local offset ushort8,Fail
+program@execute@vstore@vstore-ushort-local@vector store local ushort16,Fail
+program@execute@vstore@vstore-ushort-local@vector store local ushort2,Fail
+program@execute@vstore@vstore-ushort-local@vector store local ushort3,Fail
+program@execute@vstore@vstore-ushort-local@vector store local ushort4,Fail
+program@execute@vstore@vstore-ushort-local@vector store local ushort8,Fail
+program@execute@vstore@vstore-ushort-private,Fail
+program@execute@vstore@vstore-ushort-private@vector store private offset ushort16,Fail
+program@execute@vstore@vstore-ushort-private@vector store private offset ushort2,Fail
+program@execute@vstore@vstore-ushort-private@vector store private offset ushort3,Fail
+program@execute@vstore@vstore-ushort-private@vector store private offset ushort4,Fail
+program@execute@vstore@vstore-ushort-private@vector store private offset ushort8,Fail
+program@execute@vstore@vstore-ushort-private@vector store private ushort16,Fail
+program@execute@vstore@vstore-ushort-private@vector store private ushort2,Fail
+program@execute@vstore@vstore-ushort-private@vector store private ushort3,Fail
+program@execute@vstore@vstore-ushort-private@vector store private ushort4,Fail
+program@execute@vstore@vstore-ushort-private@vector store private ushort8,Fail
+program@execute@vstore@vstore_half-float-global,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global float16,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global float2,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global float3,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global float4,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global float8,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global offset float16,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global offset float2,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global offset float3,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global offset float4,Fail
+program@execute@vstore@vstore_half-float-global@vector store_half global offset float8,Fail
+program@execute@vstore@vstore_half-float-local,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local float16,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local float2,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local float3,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local float4,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local float8,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local offset float16,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local offset float2,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local offset float3,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local offset float4,Fail
+program@execute@vstore@vstore_half-float-local@vector store_half local offset float8,Fail
+program@execute@vstore@vstore_half-float-private,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private float16,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private float2,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private float3,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private float4,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private float8,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private offset float16,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private offset float2,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private offset float3,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private offset float4,Fail
+program@execute@vstore@vstore_half-float-private@vector store_half private offset float8,Fail
+program@execute@vstore@vstorea_half-float-global,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global float16,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global float2,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global float3,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global float4,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global float8,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global offset float16,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global offset float2,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global offset float3,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global offset float4,Fail
+program@execute@vstore@vstorea_half-float-global@vector storea_half global offset float8,Fail
+program@execute@vstore@vstorea_half-float-local,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local float16,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local float2,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local float3,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local float4,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local float8,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local offset float16,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local offset float2,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local offset float3,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local offset float4,Fail
+program@execute@vstore@vstorea_half-float-local@vector storea_half local offset float8,Fail
+program@execute@vstore@vstorea_half-float-private,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private float16,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private float2,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private float3,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private float4,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private float8,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float16,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float2,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float3,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float4,Fail
+program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float8,Fail

@@ -73,6 +73,9 @@ struct agx_shader_info {
    /* Local memory allocation in bytes */
    unsigned local_size;
 
+   /* Local imageblock allocation in bytes per thread */
+   unsigned imageblock_stride;
+
    /* Scratch memory allocation in bytes for main/preamble respectively */
    unsigned scratch_size, preamble_scratch_size;
 
@@ -185,14 +188,24 @@ struct agx_fs_shader_key {
    uint8_t cf_base;
 };
 
-struct agx_shader_key {
-   /* Number of reserved preamble slots at the start */
-   unsigned reserved_preamble;
-
+struct agx_device_key {
    /* Does the target GPU need explicit cluster coherency for atomics?
     * Only used on G13X.
     */
    bool needs_g13x_coherency;
+
+   /* Is soft fault enabled? This is technically system-wide policy set by the
+    * kernel, but that's functionally a hardware feature.
+    */
+   bool soft_fault;
+};
+
+struct agx_shader_key {
+   /* Device info */
+   struct agx_device_key dev;
+
+   /* Number of reserved preamble slots at the start */
+   unsigned reserved_preamble;
 
    /* Library routines to link against */
    const nir_shader *libagx;
@@ -236,6 +249,7 @@ bool agx_nir_lower_discard_zs_emit(nir_shader *s);
 bool agx_nir_lower_sample_mask(nir_shader *s);
 bool agx_nir_lower_interpolation(nir_shader *s);
 
+bool agx_nir_lower_cull_distance_vs(struct nir_shader *s);
 bool agx_nir_lower_cull_distance_fs(struct nir_shader *s,
                                     unsigned nr_distances);
 
@@ -269,6 +283,7 @@ static const nir_shader_compiler_options agx_nir_options = {
    .lower_isign = true,
    .lower_fsign = true,
    .lower_iabs = true,
+   .lower_fminmax_signed_zero = true,
    .lower_fdph = true,
    .lower_ffract = true,
    .lower_ldexp = true,
@@ -300,4 +315,6 @@ static const nir_shader_compiler_options agx_nir_options = {
    .lower_doubles_options = (nir_lower_doubles_options)(~0),
    .lower_fquantize2f16 = true,
    .compact_arrays = true,
+   .discard_is_demote = true,
+   .scalarize_ddx = true,
 };

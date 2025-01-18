@@ -1,24 +1,6 @@
 /*
  * Copyright © 2020 Valve Corporation
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  */
 
@@ -53,8 +35,20 @@ struct fd_dev_info {
 
    int wave_granularity;
 
+   /* These are fallback values that should match what drm/msm programs, for
+    * kernels that don't support returning them. Newer devices should not set
+    * them and just use the value from the kernel.
+    */
+   uint32_t highest_bank_bit;
+   uint32_t ubwc_swizzle;
+   uint32_t macrotile_mode;
+
    /* Information for private memory calculations */
    uint32_t fibers_per_sp;
+
+   uint32_t threadsize_base;
+
+   uint32_t max_waves;
 
    /* number of CCU is always equal to the number of SP */
    union {
@@ -87,9 +81,7 @@ struct fd_dev_info {
       /* Does the hw support GL_QCOM_shading_rate? */
       bool has_shading_rate;
 
-      /* newer a6xx allows using 16-bit descriptor for both 16-bit
-       * and 32-bit access
-       */
+      /* Whether a 16-bit descriptor can be used */
       bool storage_16bit;
 
       /* The latest known a630_sqe.fw fails to wait for WFI before
@@ -110,6 +102,11 @@ struct fd_dev_info {
       bool depth_bounds_require_depth_test_quirk;
 
       bool has_tex_filter_cubic;
+
+      /* The blob driver does not support SEPARATE_RECONSTRUCTION_FILTER_BIT
+       * before a6xx_gen3.  It still sets CHROMA_LINEAR bit according to
+       * chromaFilter, but the bit has no effect before a6xx_gen3.
+       */
       bool has_separate_chroma_filter;
 
       bool has_sample_locations;
@@ -139,6 +136,7 @@ struct fd_dev_info {
       bool enable_lrz_fast_clear;
       bool has_lrz_dir_tracking;
       bool lrz_track_quirk;
+      bool has_lrz_feedback;
 
       /* Some generations have a bit to add the multiview index to the
        * viewport index, which lets us implement different scaling for
@@ -174,6 +172,11 @@ struct fd_dev_info {
 
       /* See ir3_compiler::has_scalar_alu. */
       bool has_scalar_alu;
+      /* See ir3_compiler::has_early_preamble. */
+      bool has_early_preamble;
+
+      bool has_isam_v;
+      bool has_ssbo_imm_offsets;
 
       /* Whether writing to UBWC attachment and reading the same image as input
        * attachment or as a texture reads correct values from the image.
@@ -248,12 +251,52 @@ struct fd_dev_info {
        */
       bool ubwc_unorm_snorm_int_compatible;
 
-      /* Blob doesn't use hw binning with GS on all a6xx and a7xx, however
-       * in Turnip it worked without issues until a750. On a750 there are CTS
-       * failures when e.g. dEQP-VK.subgroups.arithmetic.framebuffer.* in
-       * parallel with "forcebin". It is exacerbated by using "syncdraw".
+      /* Having zero consts in one FS may corrupt consts in follow up FSs,
+       * on such GPUs blob never has zero consts in FS. The mechanism of
+       * corruption is unknown.
        */
-      bool no_gs_hw_binning_quirk;
+      bool fs_must_have_non_zero_constlen_quirk;
+
+      /* On a750 there is a hardware bug where certain VPC sizes in a GS with
+       * an input primitive type that is a triangle with adjacency can hang
+       * with a high enough vertex count.
+       */
+      bool gs_vpc_adjacency_quirk;
+
+      /* On a740 TPL1_DBG_ECO_CNTL1.TP_UBWC_FLAG_HINT must be the same between
+       * all drivers in the system, somehow having different values affects
+       * BLIT_OP_SCALE. We cannot automatically match blob's value, so the
+       * best thing we could do is a toggle.
+       */
+      bool enable_tp_ubwc_flag_hint;
+
+      bool storage_8bit;
+
+      /* A750+ added a special flag that allows HW to correctly interpret UBWC, including
+       * UBWC fast-clear when casting image to a different format permitted by Vulkan.
+       * So it's possible to have UBWC enabled for image that has e.g. R32_UINT and
+       * R8G8B8A8_UNORM in the mutable formats list.
+       */
+      bool ubwc_all_formats_compatible;
+
+      bool has_compliant_dp4acc;
+
+      /* Whether a single clear blit could be used for both sysmem and gmem.*/
+      bool has_generic_clear;
+
+      /* Whether r8g8 UBWC fast-clear work correctly. */
+      bool r8g8_faulty_fast_clear_quirk;
+
+      /* a750 has a bug where writing and then reading a UBWC-compressed IBO
+       * requires flushing UCHE. This is reproducible in many CTS tests, for
+       * example dEQP-VK.image.load_store.with_format.2d.*.
+       */
+      bool ubwc_coherency_quirk;
+
+      /* Whether CP_ALWAYS_ON_COUNTER only resets on device loss rather than
+       * on every suspend/resume.
+       */
+      bool has_persistent_counter;
    } a7xx;
 };
 

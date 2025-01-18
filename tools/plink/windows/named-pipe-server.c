@@ -63,11 +63,6 @@ static const char *sk_namedpipeserver_socket_error(Socket *s)
     return ps->error;
 }
 
-static SocketPeerInfo *sk_namedpipeserver_peer_info(Socket *s)
-{
-    return NULL;
-}
-
 static bool create_named_pipe(NamedPipeServerSocket *ps, bool first_instance)
 {
     SECURITY_ATTRIBUTES sa;
@@ -175,7 +170,7 @@ static void named_pipe_accept_loop(NamedPipeServerSocket *ps,
 
         errmsg = dupprintf("Error while listening to named pipe: %s",
                            win_strerror(error));
-        plug_log(ps->plug, 1, sk_namedpipe_addr(ps->pipename), 0,
+        plug_log(ps->plug, &ps->sock, 1, sk_namedpipe_addr(ps->pipename), 0,
                  errmsg, error);
         sfree(errmsg);
         break;
@@ -196,7 +191,7 @@ static const SocketVtable NamedPipeServerSocket_sockvt = {
     .plug = sk_namedpipeserver_plug,
     .close = sk_namedpipeserver_close,
     .socket_error = sk_namedpipeserver_socket_error,
-    .peer_info = sk_namedpipeserver_peer_info,
+    .endpoint_info = nullsock_endpoint_info,
 };
 
 Socket *new_named_pipe_listener(const char *pipename, Plug *plug)

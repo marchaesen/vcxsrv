@@ -81,6 +81,7 @@ BFI_MASK = immediate("bfi_mask")
 LOD_MODE = immediate("lod_mode", "enum agx_lod_mode")
 PIXEL_OFFSET = immediate("pixel_offset")
 STACK_SIZE = immediate("stack_size", 'int16_t')
+EXPLICIT_COORDS = immediate("explicit_coords", "bool")
 
 DIM = enum("dim", {
     0: '1d',
@@ -105,6 +106,7 @@ GATHER = enum("gather", {
 OFFSET = immediate("offset", "bool")
 SHADOW = immediate("shadow", "bool")
 QUERY_LOD = immediate("query_lod", "bool")
+COHERENT = immediate("coherent", "bool")
 SCOREBOARD = immediate("scoreboard")
 ICOND = immediate("icond", "enum agx_icond")
 FCOND = immediate("fcond", "enum agx_fcond")
@@ -133,7 +135,9 @@ SR = enum("sr", {
    52: 'thread_index_in_subgroup',
    53: 'subgroup_index_in_threadgroup',
    56: 'active_thread_index_in_quad',
+   57: 'total_active_threads_in_quad',
    58: 'active_thread_index_in_subgroup',
+   59: 'total_active_threads_in_subgroup',
    60: 'coverage_mask',
    62: 'backfacing',
    63: 'is_active_thread',
@@ -307,15 +311,16 @@ op("texture_sample",
       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET, SHADOW,
                         QUERY_LOD, GATHER])
 for memory, can_reorder in [("texture", True), ("image", False)]:
+    coherency = [COHERENT] if not can_reorder else []
     op(f"{memory}_load", encoding_32 = (0x71, 0x7F, 8, 10), # XXX WRONG SIZE
-       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET],
+       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET] + coherency,
        can_reorder = can_reorder,
        schedule_class = "none" if can_reorder else "load")
 
 # sources are base, index
 op("device_load",
       encoding_32 = (0x05, 0x7F, 6, 8),
-      srcs = 2, imms = [FORMAT, MASK, SHIFT, SCOREBOARD], can_reorder = False,
+      srcs = 2, imms = [FORMAT, MASK, SHIFT, SCOREBOARD, COHERENT], can_reorder = False,
       schedule_class = "load")
 
 # sources are base (relative to workgroup memory), index
@@ -328,7 +333,7 @@ op("local_load",
 # TODO: Consider permitting the short form
 op("device_store",
       encoding_32 = (0x45 | (1 << 47), 0, 8, _),
-      dests = 0, srcs = 3, imms = [FORMAT, MASK, SHIFT, SCOREBOARD], can_eliminate = False,
+      dests = 0, srcs = 3, imms = [FORMAT, MASK, SHIFT, SCOREBOARD, COHERENT], can_eliminate = False,
       schedule_class = "store")
 
 # sources are value, base, index
@@ -369,13 +374,14 @@ op("sample_mask", (0x7fc1, 0xffff, 6, _), dests = 0, srcs = 2,
 op("zs_emit", (0x41, 0xFF | L, 4, _), dests = 0, srcs = 2,
               can_eliminate = False, imms = [ZS], schedule_class = "coverage")
 
-# Essentially same encoding. Last source is the sample mask
-op("ld_tile", (0x49, 0x7F, 8, _), dests = 1, srcs = 1,
-        imms = [FORMAT, MASK, PIXEL_OFFSET], can_reorder = False,
+# Sources: sample mask, explicit coords (if present)
+op("ld_tile", (0x49, 0x7F, 8, _), dests = 1, srcs = 2,
+        imms = [FORMAT, MASK, PIXEL_OFFSET, EXPLICIT_COORDS], can_reorder = False,
         schedule_class = "coverage")
 
-op("st_tile", (0x09, 0x7F, 8, _), dests = 0, srcs = 2,
-      can_eliminate = False, imms = [FORMAT, MASK, PIXEL_OFFSET],
+# Sources: value, sample mask, explicit coords (if present)
+op("st_tile", (0x09, 0x7F, 8, _), dests = 0, srcs = 3,
+      can_eliminate = False, imms = [FORMAT, MASK, PIXEL_OFFSET, EXPLICIT_COORDS],
       schedule_class = "coverage")
 
 for (name, exact) in [("any", 0xC000), ("none", 0xC020), ("none_after", 0xC020)]:
@@ -418,20 +424,24 @@ op("stop", (0x88, 0xFFFF, 2, _), dests = 0, can_eliminate = False,
    schedule_class = "invalid")
 op("trap", (0x08, 0xFFFF, 2, _), dests = 0, can_eliminate = False,
    schedule_class = "invalid")
+
+# These are modelled as total barriers since they can guard global memory
+# access too, and even need to be properly ordered with loads.
 op("wait_pix", (0x48, 0xFF, 4, _), dests = 0, imms = [WRITEOUT],
-   can_eliminate = False, schedule_class = "coverage")
+   can_eliminate = False, schedule_class = "barrier")
 op("signal_pix", (0x58, 0xFF, 4, _), dests = 0, imms = [WRITEOUT],
-   can_eliminate = False, schedule_class = "coverage")
+   can_eliminate = False, schedule_class = "barrier")
 
 # Sources are the data vector, the coordinate vector, the LOD, the bindless
 # table if present (zero for texture state registers), and texture index.
-op("image_write", (0xF1 | (1 << 23) | (9 << 43), 0xFF, 6, 8), dests = 0, srcs = 5, imms
-   = [DIM], can_eliminate = False, schedule_class = "store")
+op("image_write", (0xF1 | (1 << 23), 0xFF, 6, 8), dests = 0, srcs = 5, imms
+   = [DIM, COHERENT], can_eliminate = False, schedule_class = "store")
 
-# Sources are the image, the offset within shared memory, and the layer.
+# Sources are the image base, image index, the offset within shared memory, and
+# the coordinates (or just the layer if implicit).
 # TODO: Do we need the short encoding?
-op("block_image_store", (0xB1, 0xFF, 10, _), dests = 0, srcs = 3,
-   imms = [FORMAT, DIM], can_eliminate = False, schedule_class = "store")
+op("block_image_store", (0xB1, 0xFF, 10, _), dests = 0, srcs = 4,
+   imms = [FORMAT, DIM, EXPLICIT_COORDS], can_eliminate = False, schedule_class = "store")
 
 # Barriers
 op("threadgroup_barrier", (0x0068, 0xFFFF, 2, _), dests = 0, srcs = 0,
@@ -455,6 +465,10 @@ memory_barrier("memory_barrier_2", 2, 2, 9)
 memory_barrier("memory_barrier_3", 2, 1, 9)
 memory_barrier("unknown_barrier_1", 0, 3, 3)
 memory_barrier("unknown_barrier_2", 0, 3, 0)
+
+# Seen with device-scope memory barriers. Again not clear what's what.
+memory_barrier("device_barrier_1", 3, 1, 9)
+memory_barrier("device_barrier_2", 3, 2, 9)
 
 op("doorbell", (0x60020 | 0x28 << 32, (1 << 48) - 1, 6, _), dests = 0,
       can_eliminate = False, can_reorder = False, imms = [IMM])
@@ -486,6 +500,11 @@ op("not", _, srcs = 1)
 op("collect", _, srcs = VARIABLE)
 op("split", _, srcs = 1, dests = VARIABLE)
 op("phi", _, srcs = VARIABLE, schedule_class = "preload")
+
+# The srcs double as destinations. Only deals in registers. This is generated by
+# parallel copy lowering and lowered soon after. We need this as a dedicated
+# instruction only for RA validation.
+op("swap", _, dests = 0, srcs = 2)
 
 op("unit_test", _, dests = 0, srcs = 1, can_eliminate = False)
 

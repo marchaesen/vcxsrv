@@ -28,17 +28,12 @@ import textwrap
 import xml.etree.ElementTree as ET
 import sys
 
-tree = ET.parse(os.path.join(os.path.dirname(__file__), 'ISA.xml'))
-root = tree.getroot()
-
 # All instructions in the ISA
 instructions = []
 
-# All immediates in the ISA
-ilut = root.findall('lut')[0]
-assert(ilut.attrib['name'] == "Immediates")
-immediates = [int(imm.text, base=0) for imm in ilut.findall('constant')]
+MODIFIERS = {}
 enums = {}
+immediates = []
 
 def xmlbool(s):
     assert(s.lower() in ["false", "true"])
@@ -277,6 +272,8 @@ def build_instr(el, overrides = {}):
     i = 0
 
     for src in el.findall('src'):
+        if (src.attrib.get('pseudo', False)):
+            continue
         built = build_source(src, i, tsize)
         sources += [built]
 
@@ -301,9 +298,9 @@ def build_instr(el, overrides = {}):
 
     modifiers = []
     for mod in el:
-        if mod.tag in MODIFIERS:
+        if (mod.tag in MODIFIERS) and not (mod.attrib.get('pseudo', False)):
             modifiers.append(MODIFIERS[mod.tag])
-        elif mod.tag =='mod':
+        elif mod.tag =='va_mod':
             modifiers.append(build_modifier(mod))
 
     instr = Instruction(name, opcode, opcode2, srcs = sources, dests = dests, immediates = imms, modifiers = modifiers, staging = staging, unit = unit)
@@ -355,7 +352,7 @@ def safe_name(name):
 
     return name.lower()
 
-# Parses out the size part of an opocde name
+# Parses out the size part of an opcode name
 def typesize(opcode):
     if opcode[-3:] == '128':
         return 128
@@ -369,70 +366,87 @@ def typesize(opcode):
         except:
             return 32
 
-for child in root.findall('enum'):
-    enums[safe_name(child.attrib['name'])] = build_enum(child)
-
-MODIFIERS = {
-    # Texture instructions share a common encoding
-    "wide_indices": Flag("wide_indices", 8),
-    "array_enable": Flag("array_enable", 10),
-    "texel_offset": Flag("texel_offset", 11),
-    "shadow": Flag("shadow", 12),
-    "integer_coordinates": Flag("integer_coordinates", 13),
-    "fetch_component": Modifier("fetch_component", 14, 2),
-    "lod_mode": Modifier("lod_mode", 13, 3),
-    "lod_bias_disable": Modifier("lod_mode", 13, 1),
-    "lod_clamp_disable": Modifier("lod_mode", 14, 1),
-    "write_mask": Modifier("write_mask", 22, 4),
-    "register_type": Modifier("register_type", 26, 2),
-    "dimension": Modifier("dimension", 28, 2),
-    "skip": Flag("skip", 39),
-    "register_width": Modifier("register_width", 46, 1, force_enum = "register_width"),
-    "secondary_register_width": Modifier("secondary_register_width", 47, 1, force_enum = "register_width"),
-    "vartex_register_width": Modifier("varying_texture_register_width", 24, 2),
-
-    "atom_opc": Modifier("atomic_operation", 22, 4),
-    "atom_opc_1": Modifier("atomic_operation_with_1", 22, 4),
-    "inactive_result": Modifier("inactive_result", 22, 4),
-    "memory_access": Modifier("memory_access", 24, 2),
-    "regfmt": Modifier("register_format", 24, 3),
-    "source_format": Modifier("source_format", 24, 4),
-    "vecsize": Modifier("vector_size", 28, 2),
-
-    "slot": Modifier("slot", 30, 3),
-    "roundmode": Modifier("round_mode", 30, 2),
-    "result_type": Modifier("result_type", 30, 2),
-    "saturate": Flag("saturate", 30),
-    "not_result": Flag("not_result", 30),
-
-    "lane_op": Modifier("lane_operation", 32, 2),
-    "cmp": Modifier("condition", 32, 3),
-    "clamp": Modifier("clamp", 32, 2),
-    "sr_count": Modifier("staging_register_count", 33, 3, implied = True),
-    "sample_and_update": Modifier("sample_and_update_mode", 33, 3),
-    "sr_write_count": Modifier("staging_register_write_count", 36, 3, implied = True),
-
-    "conservative": Flag("conservative", 35),
-    "subgroup": Modifier("subgroup_size", 36, 4),
-    "update": Modifier("update_mode", 36, 2),
-    "sample": Modifier("sample_mode", 38, 2),
-}
-
 # Parse the ISA
-for child in root:
-    if child.tag == 'group':
-        build_group(child)
-    elif child.tag == 'ins':
-        build_instr(child)
+def valhall_parse_isa(xmlfile = False):
+    global MODIFIERS
+    global enums
+    global immediates
+    global root
 
-instruction_dict = { ins.name: ins for ins in instructions }
+    xmlfile = os.path.join(os.path.dirname(__file__), 'ISA.xml')
+    tree = ET.parse(xmlfile)
+    root = tree.getroot()
 
-# Validate there are no duplicated instructions
-if len(instruction_dict) != len(instructions):
-    import collections
-    counts = collections.Counter([i.name for i in instructions])
-    for c in counts:
-        if counts[c] != 1:
-            print(f'{c} appeared {counts[c]} times.')
+    # All immediates in the ISA
+    ilut = root.findall('lut')[0]
+    assert(ilut.attrib['name'] == "Immediates")
+    immediates = [int(imm.text, base=0) for imm in ilut.findall('constant')]
 
-assert(len(instruction_dict) == len(instructions))
+    for child in root.findall('enum'):
+        enums[safe_name(child.attrib['name'])] = build_enum(child)
+
+    MODIFIERS = {
+        # Texture instructions share a common encoding
+        "wide_indices": Flag("wide_indices", 8),
+        "array_enable": Flag("array_enable", 10),
+        "texel_offset": Flag("texel_offset", 11),
+        "shadow": Flag("shadow", 12),
+        "integer_coordinates": Flag("integer_coordinates", 13),
+        "fetch_component": Modifier("fetch_component", 14, 2),
+        "lod_mode": Modifier("lod_mode", 13, 3),
+        "lod_bias_disable": Modifier("lod_mode", 13, 1),
+        "lod_clamp_disable": Modifier("lod_mode", 14, 1),
+        "write_mask": Modifier("write_mask", 22, 4),
+        "register_type": Modifier("register_type", 26, 2),
+        "dimension": Modifier("dimension", 28, 2),
+        "skip": Flag("skip", 39),
+        "register_width": Modifier("register_width", 46, 1, force_enum = "register_width"),
+        "secondary_register_width": Modifier("secondary_register_width", 47, 1, force_enum = "register_width"),
+        "vartex_register_width": Modifier("varying_texture_register_width", 24, 2),
+
+        "atom_opc": Modifier("atomic_operation", 22, 4),
+        "atom_opc_1": Modifier("atomic_operation_with_1", 22, 4),
+        "inactive_result": Modifier("inactive_result", 22, 4),
+        "memory_access": Modifier("memory_access", 24, 2),
+        "regfmt": Modifier("register_format", 24, 3),
+        "source_format": Modifier("source_format", 24, 4),
+        "vecsize": Modifier("vector_size", 28, 2),
+
+        "slot": Modifier("slot", 30, 3),
+        "roundmode": Modifier("round_mode", 30, 2),
+        "result_type": Modifier("result_type", 30, 2),
+        "saturate": Flag("saturate", 30),
+        "not_result": Flag("not_result", 30),
+
+        "lane_op": Modifier("lane_operation", 32, 2),
+        "cmp": Modifier("condition", 32, 3),
+        "clamp": Modifier("clamp", 32, 2),
+        "sr_count": Modifier("staging_register_count", 33, 3, implied = True),
+        "sample_and_update": Modifier("sample_and_update_mode", 33, 3),
+        "sr_write_count": Modifier("staging_register_write_count", 36, 3, implied = True),
+
+        "conservative": Flag("conservative", 35),
+        "subgroup": Modifier("subgroup_size", 36, 4),
+        "update": Modifier("update_mode", 36, 2),
+        "sample": Modifier("sample_mode", 38, 2),
+    }
+
+    for child in root:
+        if child.tag == 'group':
+            build_group(child)
+        elif child.tag == 'ins':
+            build_instr(child)
+
+    instruction_dict = { ins.name: ins for ins in instructions }
+
+    # Validate there are no duplicated instructions
+    if len(instruction_dict) != len(instructions):
+        import collections
+        counts = collections.Counter([i.name for i in instructions])
+        for c in counts:
+            if counts[c] != 1:
+                print(f'{c} appeared {counts[c]} times.')
+
+    assert(len(instruction_dict) == len(instructions))
+
+    return (instructions, immediates, enums, typesize, safe_name)

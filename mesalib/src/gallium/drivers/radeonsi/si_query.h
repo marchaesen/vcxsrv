@@ -149,17 +149,6 @@ enum
    SI_QUERY_EMULATE_GS_COUNTERS = (1 << 3),
 };
 
-struct si_query_hw_ops {
-   bool (*prepare_buffer)(struct si_context *, struct si_query_buffer *);
-   void (*emit_start)(struct si_context *, struct si_query_hw *, struct si_resource *buffer,
-                      uint64_t va);
-   void (*emit_stop)(struct si_context *, struct si_query_hw *, struct si_resource *buffer,
-                     uint64_t va);
-   void (*clear_result)(struct si_query_hw *, union pipe_query_result *);
-   void (*add_result)(struct si_screen *screen, struct si_query_hw *, void *buffer,
-                      union pipe_query_result *result);
-};
-
 struct si_query_buffer {
    /* The buffer where query results are stored. */
    struct si_resource *buf;
@@ -169,7 +158,6 @@ struct si_query_buffer {
    struct si_query_buffer *previous;
    /* Offset of the next free result after current query data */
    unsigned results_end;
-   bool unprepared;
 };
 
 void si_query_buffer_destroy(struct si_screen *sctx, struct si_query_buffer *buffer);
@@ -180,7 +168,6 @@ bool si_query_buffer_alloc(struct si_context *sctx, struct si_query_buffer *buff
 
 struct si_query_hw {
    struct si_query b;
-   const struct si_query_hw_ops *ops;
    unsigned flags;
 
    /* The query buffer and how many results are in it. */

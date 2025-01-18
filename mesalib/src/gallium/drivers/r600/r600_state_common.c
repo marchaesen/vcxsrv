@@ -3246,6 +3246,7 @@ uint32_t r600_colorformat_endian_swap(uint32_t colorformat, bool do_endian_swap)
 		case V_0280A0_COLOR_5_6_5:
 		case V_0280A0_COLOR_1_5_5_5:
 		case V_0280A0_COLOR_4_4_4_4:
+		case V_0280A0_COLOR_16_FLOAT:
 		case V_0280A0_COLOR_16:
 			return (do_endian_swap ? ENDIAN_8IN16 : ENDIAN_NONE);
 
@@ -3258,10 +3259,12 @@ uint32_t r600_colorformat_endian_swap(uint32_t colorformat, bool do_endian_swap)
 			 */
 			return ENDIAN_NONE;
 
+		case V_0280A0_COLOR_10_11_11_FLOAT:
 		case V_0280A0_COLOR_2_10_10_10:
 		case V_0280A0_COLOR_8_24:
 		case V_0280A0_COLOR_24_8:
 		case V_0280A0_COLOR_32_FLOAT:
+		case V_0280A0_COLOR_32:
 			return (do_endian_swap ? ENDIAN_8IN32 : ENDIAN_NONE);
 
 		case V_0280A0_COLOR_16_16_FLOAT:

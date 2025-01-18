@@ -23,6 +23,7 @@
          agx_builder *b = B;                                                   \
          expected;                                                             \
       }                                                                        \
+      A->shader->scratch_size_B = 1024;                                        \
       agx_lower_spill(A->shader);                                              \
       ASSERT_SHADER_EQUAL(A->shader, B->shader);                               \
    } while (0)

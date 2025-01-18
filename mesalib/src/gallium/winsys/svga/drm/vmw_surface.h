@@ -44,7 +44,7 @@ struct vmw_svga_winsys_surface
    uint32_t mapcount; /* Number of mappers */
    uint32_t map_mode; /* PIPE_MAP_[READ|WRITE] */
    void *data; /* Pointer to data if mapcount != 0*/
-   bool shared; /* Shared surface. Never discard */
+   bool nodiscard; /* Never discard */
    uint32_t size; /* Size of backing buffer */
    bool rebind; /* Surface needs a rebind after next unmap */
 };

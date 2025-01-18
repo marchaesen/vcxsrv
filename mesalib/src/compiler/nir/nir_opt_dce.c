@@ -96,6 +96,16 @@ is_live(BITSET_WORD *defs_live, nir_instr *instr)
       }
       return false;
    }
+   case nir_instr_type_debug_info: {
+      nir_debug_info_instr *di = nir_instr_as_debug_info(instr);
+      if (di->type == nir_debug_info_src_loc) {
+         nir_instr *next = nir_instr_next(instr);
+         return !next || next->type != nir_instr_type_debug_info;
+      } else if (di->type == nir_debug_info_string) {
+         return is_def_live(&di->def, defs_live);
+      }
+      return true;
+   }
    default:
       unreachable("unexpected instr type");
    }
@@ -238,8 +248,7 @@ nir_opt_dce_impl(nir_function_impl *impl)
    nir_instr_free_list(&dead_instrs);
 
    if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

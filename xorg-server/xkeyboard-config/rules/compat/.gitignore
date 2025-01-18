@@ -1,12 +1,9 @@
-<<<<<<< HEAD
-=======
 base.ml2_s.part
 base.ml2v2_s.part
 base.ml3_s.part
 base.ml3v3_s.part
 base.ml4_s.part
 base.ml4v4_s.part
->>>>>>> origin/released
 0010-mlv_s.part
 0012-ml_s.part
 0014-ml1_s.part
@@ -17,12 +14,3 @@ base.ml4v4_s.part
 0023-ml2v2_s.part
 0024-ml3v3_s.part
 0025-ml4v4_s.part
-<<<<<<< HEAD
-ml1_s.bat
-ml1v1_s.bat
-ml_s.bat
-mln_s.bat
-mlnvn_s.bat
-mlv_s.bat
-=======
->>>>>>> origin/released

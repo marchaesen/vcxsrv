@@ -32,12 +32,16 @@
 #include <xorg-config.h>
 #endif
 
+#include <X11/X.h>
+#include <X11/Xproto.h>
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvproto.h>
+
+#include "Xext/xvdix_priv.h"
+
 #include "misc.h"
 #include "xf86.h"
 #include "xf86_OSproc.h"
-
-#include <X11/X.h>
-#include <X11/Xproto.h>
 #include "scrnintstr.h"
 #include "regionstr.h"
 #include "windowstr.h"
@@ -47,11 +51,7 @@
 #include "resource.h"
 #include "gcstruct.h"
 #include "dixstruct.h"
-
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/Xvproto.h>
 #include "xvdix.h"
-
 #include "xf86xvpriv.h"
 
 /* XvAdaptorRec fields */

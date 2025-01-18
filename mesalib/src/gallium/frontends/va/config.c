@@ -172,6 +172,21 @@ static unsigned int get_screen_supported_va_rt_formats(struct pipe_screen *pscre
                                           profile,
                                           entrypoint))
       supported_rt_formats |= VA_RT_FORMAT_RGB32;
+
+   if (pscreen->is_video_format_supported(pscreen, PIPE_FORMAT_R10G10B10A2_UNORM,
+                                          profile,
+                                          entrypoint) ||
+       pscreen->is_video_format_supported(pscreen, PIPE_FORMAT_B10G10R10A2_UNORM,
+                                          profile,
+                                          entrypoint) ||
+       pscreen->is_video_format_supported(pscreen, PIPE_FORMAT_R10G10B10X2_UNORM,
+                                          profile,
+                                          entrypoint) ||
+       pscreen->is_video_format_supported(pscreen, PIPE_FORMAT_B10G10R10X2_UNORM,
+                                          profile,
+                                          entrypoint))
+      supported_rt_formats |= VA_RT_FORMAT_RGB32_10;
+
    if (pscreen->is_video_format_supported(pscreen, PIPE_FORMAT_R8_G8_B8_UNORM,
                                           profile,
                                           entrypoint))
@@ -266,6 +281,7 @@ vlVaGetConfigAttributes(VADriverContextP ctx, VAProfile profile, VAEntrypoint en
             value = pscreen->get_video_param(pscreen, ProfileToPipe(profile),
                                              PIPE_VIDEO_ENTRYPOINT_ENCODE,
                                              PIPE_VIDEO_CAP_MAX_TEMPORAL_LAYERS);
+            assert(value <= 4);
             if (value > 0) {
                value -= 1;
                value |= (1 << 8);   /* temporal_layer_bitrate_control_flag */
@@ -274,11 +290,12 @@ vlVaGetConfigAttributes(VADriverContextP ctx, VAProfile profile, VAEntrypoint en
          case VAConfigAttribEncPackedHeaders:
             value = VA_ENC_PACKED_HEADER_NONE;
             if ((u_reduce_video_profile(ProfileToPipe(profile)) == PIPE_VIDEO_FORMAT_MPEG4_AVC))
-               value |= VA_ENC_PACKED_HEADER_SEQUENCE;
-            if ((u_reduce_video_profile(ProfileToPipe(profile)) == PIPE_VIDEO_FORMAT_HEVC))
-               value |= VA_ENC_PACKED_HEADER_SEQUENCE;
+               value |= ENC_PACKED_HEADERS_H264;
+            else if ((u_reduce_video_profile(ProfileToPipe(profile)) == PIPE_VIDEO_FORMAT_HEVC))
+               value |= ENC_PACKED_HEADERS_HEVC;
             else if (u_reduce_video_profile(ProfileToPipe(profile)) == PIPE_VIDEO_FORMAT_AV1)
-               value |= (VA_ENC_PACKED_HEADER_SEQUENCE | VA_ENC_PACKED_HEADER_PICTURE);
+               value |= ENC_PACKED_HEADERS_AV1;
+
             break;
          case VAConfigAttribEncMaxSlices:
          {
@@ -716,14 +733,15 @@ vlVaCreateConfig(VADriverContextP ctx, VAProfile profile, VAEntrypoint entrypoin
          }
       }
       if (attrib_list[i].type == VAConfigAttribEncPackedHeaders) {
+         uint32_t attrib_value = attrib_list[i].value;
          if (config->entrypoint != PIPE_VIDEO_ENTRYPOINT_ENCODE ||
-             (((attrib_list[i].value != 0)) &&
-              ((attrib_list[i].value != 1) || u_reduce_video_profile(ProfileToPipe(profile))
-               != PIPE_VIDEO_FORMAT_MPEG4_AVC) &&
-              ((attrib_list[i].value != 1) || u_reduce_video_profile(ProfileToPipe(profile))
-               != PIPE_VIDEO_FORMAT_HEVC) &&
-              ((attrib_list[i].value != 3) || u_reduce_video_profile(ProfileToPipe(profile))
-               != PIPE_VIDEO_FORMAT_AV1))) {
+             (((attrib_value != 0)) &&
+              ((attrib_value & ENC_PACKED_HEADERS_H264) != attrib_value ||
+                  u_reduce_video_profile(ProfileToPipe(profile)) != PIPE_VIDEO_FORMAT_MPEG4_AVC) &&
+              ((attrib_value & ENC_PACKED_HEADERS_HEVC) != attrib_value ||
+                  u_reduce_video_profile(ProfileToPipe(profile)) != PIPE_VIDEO_FORMAT_HEVC) &&
+              ((attrib_value & ENC_PACKED_HEADERS_AV1) != attrib_value ||
+                  u_reduce_video_profile(ProfileToPipe(profile)) != PIPE_VIDEO_FORMAT_AV1))) {
             FREE(config);
             return VA_STATUS_ERROR_INVALID_VALUE;
          }

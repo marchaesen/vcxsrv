@@ -25,7 +25,7 @@
 
 #include <xwayland-config.h>
 
-#if !defined(SYSV) && !defined(WIN32)
+#if !defined(WIN32)
 #include <sys/resource.h>
 #endif
 
@@ -33,12 +33,14 @@
 #include <errno.h>
 
 #include <X11/Xatom.h>
+#include <X11/Xfuncproto.h>
 
 #include "dix/dix_priv.h"
 #include "dix/screenint_priv.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
+#include "os/xserver_poll.h"
 
 #include <selection.h>
 #include <micmap.h>
@@ -48,7 +50,6 @@
 #include <glx_extinit.h>
 #include <opaque.h>
 #include <os.h>
-#include <xserver_poll.h>
 #include <propertyst.h>
 #include <version-config.h>
 

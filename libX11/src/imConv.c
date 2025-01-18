@@ -177,6 +177,8 @@ _XimLookupMBText(
     if ((nbytes == 0) || (symbol == NoSymbol)) return count;
 
     if (count > 1) {
+	if ((unsigned)count >= sizeof(look))
+	    return 0;
 	memcpy(look, (char *)buffer,count);
 	look[count] = '\0';
 	if ((count = im->methods->ctstombs(ic->core.im,
@@ -320,6 +322,8 @@ _XimLookupUTF8Text(
     if ((nbytes == 0) || (symbol == NoSymbol)) return count;
 
     if (count > 1) {
+	if ((unsigned)count >= sizeof(look))
+	    return 0;
 	memcpy(look, (char *)buffer,count);
 	look[count] = '\0';
 	if ((count = im->methods->ctstoutf8(ic->core.im,

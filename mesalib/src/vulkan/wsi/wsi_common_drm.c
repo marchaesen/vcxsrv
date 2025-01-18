@@ -440,10 +440,10 @@ wsi_common_drm_devices_equal(int fd_a, int fd_b)
 }
 
 bool
-wsi_device_matches_drm_fd(const struct wsi_device *wsi, int drm_fd)
+wsi_device_matches_drm_fd(VkPhysicalDevice physicalDevice, int drm_fd)
 {
-   if (wsi->can_present_on_device)
-      return wsi->can_present_on_device(wsi->pdevice, drm_fd);
+   VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
+   const struct wsi_device *wsi = pdevice->wsi_device;
 
    drmDevicePtr fd_device;
    int ret = drmGetDevice2(drm_fd, 0, &fd_device);
@@ -854,40 +854,62 @@ static const uint32_t wsi_explicit_sync_free_levels[] = {
    (WSI_ES_STATE_RELEASE_MATERIALIZED),
 };
 
-static uint32_t
-wsi_drm_image_explicit_sync_state(struct vk_device *device, struct wsi_image *image)
+static void
+wsi_drm_images_explicit_sync_state(struct vk_device *device, int count, uint32_t *indices,
+                                   struct wsi_image **images, uint32_t *flags)
 {
-   if (image->explicit_sync[WSI_ES_RELEASE].timeline == 0) {
-      /* This image has never been used in a timeline.
-       * It must be free.
-       */
-      return WSI_ES_STATE_RELEASE_SIGNALLED | WSI_ES_STATE_RELEASE_MATERIALIZED | WSI_ES_STATE_ACQUIRE_SIGNALLED;
+   struct wsi_image *image;
+   int i;
+
+   memset(flags, 0, count * sizeof(flags[0]));
+
+   for (i = 0; i < count; i++) {
+      if (images[indices[i]]->explicit_sync[WSI_ES_RELEASE].timeline == 0) {
+         /* This image has never been used in a timeline.
+          * It must be free.
+          */
+         flags[i] = WSI_ES_STATE_RELEASE_SIGNALLED | WSI_ES_STATE_RELEASE_MATERIALIZED | WSI_ES_STATE_ACQUIRE_SIGNALLED;
+         return;
+      }
    }
 
-   uint64_t points[WSI_ES_COUNT] = { 0 };
-   uint32_t handles[WSI_ES_COUNT] = {
-      image->explicit_sync[WSI_ES_ACQUIRE].handle,
-      image->explicit_sync[WSI_ES_RELEASE].handle
-   };
-   int ret = drmSyncobjQuery(device->drm_fd, handles, points, WSI_ES_COUNT);
+   STACK_ARRAY(uint64_t, points, count * WSI_ES_COUNT);
+   STACK_ARRAY(uint32_t, handles, count * WSI_ES_COUNT);
+
+   for (i = 0; i < count; i++) {
+      points[i * WSI_ES_COUNT + WSI_ES_ACQUIRE] = 0;
+      points[i * WSI_ES_COUNT + WSI_ES_RELEASE] = 0;
+
+      image = images[indices[i]];
+      handles[i * WSI_ES_COUNT + WSI_ES_ACQUIRE] = image->explicit_sync[WSI_ES_ACQUIRE].handle;
+      handles[i * WSI_ES_COUNT + WSI_ES_RELEASE] = image->explicit_sync[WSI_ES_RELEASE].handle;
+   }
+
+   int ret = drmSyncobjQuery(device->drm_fd, handles, points, count * WSI_ES_COUNT);
    if (ret)
-      return 0;
+      goto done;
 
-   uint32_t flags = 0;
-   if (points[WSI_ES_ACQUIRE] >= image->explicit_sync[WSI_ES_ACQUIRE].timeline) {
-      flags |= WSI_ES_STATE_ACQUIRE_SIGNALLED;
+   for (i = 0; i < count; i++) {
+      image = images[indices[i]];
+
+      if (points[i * WSI_ES_COUNT + WSI_ES_ACQUIRE] >= image->explicit_sync[WSI_ES_ACQUIRE].timeline)
+         flags[i] |= WSI_ES_STATE_ACQUIRE_SIGNALLED;
+
+      if (points[i * WSI_ES_COUNT + WSI_ES_RELEASE] >= image->explicit_sync[WSI_ES_RELEASE].timeline) {
+         flags[i] |= WSI_ES_STATE_RELEASE_SIGNALLED | WSI_ES_STATE_RELEASE_MATERIALIZED;
+      } else {
+         uint32_t first_signalled;
+         ret = drmSyncobjTimelineWait(device->drm_fd, &handles[i * WSI_ES_COUNT + WSI_ES_RELEASE],
+                                      &image->explicit_sync[WSI_ES_RELEASE].timeline, 1, 0,
+                                      DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE, &first_signalled);
+         if (ret == 0)
+            flags[i] |= WSI_ES_STATE_RELEASE_MATERIALIZED;
+      }
    }
 
-   if (points[WSI_ES_RELEASE] >= image->explicit_sync[WSI_ES_RELEASE].timeline) {
-      flags |= WSI_ES_STATE_RELEASE_SIGNALLED | WSI_ES_STATE_RELEASE_MATERIALIZED;
-   } else {
-      uint32_t first_signalled;
-      ret = drmSyncobjTimelineWait(device->drm_fd, &handles[WSI_ES_RELEASE], &image->explicit_sync[WSI_ES_RELEASE].timeline, 1, 0, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE, &first_signalled);
-      if (ret == 0)
-         flags |= WSI_ES_STATE_RELEASE_MATERIALIZED;
-   }
-
-   return flags;
+done:
+   STACK_ARRAY_FINISH(handles);
+   STACK_ARRAY_FINISH(points);
 }
 
 static uint64_t
@@ -908,7 +930,6 @@ wsi_drm_wait_for_explicit_sync_release(struct wsi_swapchain *chain,
                                        uint64_t rel_timeout_ns,
                                        uint32_t *image_index)
 {
-#ifdef HAVE_LIBDRM
    STACK_ARRAY(uint32_t, handles, image_count);
    STACK_ARRAY(uint64_t, points, image_count);
    STACK_ARRAY(uint32_t, indices, image_count);
@@ -928,7 +949,6 @@ wsi_drm_wait_for_explicit_sync_release(struct wsi_swapchain *chain,
       if (images[i]->acquired)
          continue;
 
-      flags[unacquired_image_count] = wsi_drm_image_explicit_sync_state(device, images[i]);
       handles[unacquired_image_count] = images[i]->explicit_sync[WSI_ES_RELEASE].handle;
       points[unacquired_image_count] = images[i]->explicit_sync[WSI_ES_RELEASE].timeline;
       indices[unacquired_image_count] = i;
@@ -940,6 +960,8 @@ wsi_drm_wait_for_explicit_sync_release(struct wsi_swapchain *chain,
       ret = -ETIME;
       goto done;
    }
+
+   wsi_drm_images_explicit_sync_state(device, unacquired_image_count, indices, images, flags);
 
    /* Find the most optimal image using the free levels above. */
    for (uint32_t free_level_idx = 0; free_level_idx < ARRAY_SIZE(wsi_explicit_sync_free_levels); free_level_idx++) {
@@ -989,7 +1011,4 @@ done:
       return rel_timeout_ns ? VK_TIMEOUT : VK_NOT_READY;
    else
       return VK_ERROR_OUT_OF_DATE_KHR;
-#else
-   return VK_ERROR_FEATURE_NOT_PRESENT;
-#endif
 }

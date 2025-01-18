@@ -349,6 +349,8 @@ def disasm_op(name, op):
 
 print('#include "util/macros.h"')
 print('#include "bifrost/disassemble.h"')
+print('#include "bifrost/bi_disasm.h"')
+print('#include "bifrost.h"')
 
 states = expand_states(instructions)
 print('#define _BITS(bits, pos, width) (((bits) >> (pos)) & ((1 << (width)) - 1))')

@@ -5,6 +5,10 @@
 # Note that for adding labels via gitlab-triage, the label must first be created in the project.
 
 
+################################################################################
+# Rules definitions
+################################################################################
+
 .too-exotic: &too-exotic
   name: "Close as too exotic"
   conditions:
@@ -27,6 +31,10 @@
       [instructions for Xorg](https://who-t.blogspot.com/2021/02/a-pre-supplied-custom-keyboard-layout.html)
       and [instructions for Wayland](https://xkbcommon.github.io/libxkbcommon/doc/current/md_doc_user_configuration.html).
     status: "close"
+
+################################################################################
+# Rules
+################################################################################
 
 resource_rules:
   issues:

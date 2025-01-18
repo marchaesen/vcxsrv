@@ -683,24 +683,13 @@ lower_ufind_msb64(nir_builder *b, nir_def *x)
    nir_def *lo_count = nir_ufind_msb(b, x_lo);
    nir_def *hi_count = nir_ufind_msb(b, x_hi);
 
-   if (b->shader->options->lower_uadd_sat) {
-      nir_def *valid_hi_bits = nir_ine_imm(b, x_hi, 0);
-      nir_def *hi_res = nir_iadd_imm(b, hi_count, 32);
-      return nir_bcsel(b, valid_hi_bits, hi_res, lo_count);
-   } else {
-      /* If hi_count was -1, it will still be -1 after this uadd_sat. As a
-       * result, hi_count is either -1 or the correct return value for 64-bit
-       * ufind_msb.
-       */
-      nir_def *hi_res = nir_uadd_sat(b, nir_imm_intN_t(b, 32, 32), hi_count);
-
-      /* hi_res is either -1 or a value in the range [63, 32]. lo_count is
-       * either -1 or a value in the range [31, 0]. The imax will pick
-       * lo_count only when hi_res is -1. In those cases, lo_count is
-       * guaranteed to be the correct answer.
-       */
-      return nir_imax(b, hi_res, lo_count);
-   }
+   /* hi_count is either -1 or a value in the range [31, 0]. lo_count is
+    * the same. The imax will pick lo_count only when hi_count is -1. In those
+    * cases, lo_count is guaranteed to be the correct answer.
+    * The ior 32 is always safe here as with -1 the value won't change,
+    * otherwise it adds 32, which is what we want anyway.
+    */
+   return nir_imax(b, lo_count, nir_ior_imm(b, hi_count, 32));
 }
 
 static nir_def *
@@ -713,11 +702,9 @@ lower_find_lsb64(nir_builder *b, nir_def *x)
 
    /* Use umin so that -1 (no bits found) becomes larger (0xFFFFFFFF)
     * than any actual bit position, so we return a found bit instead.
-    * This is similar to the ufind_msb lowering. If you need this lowering
-    * without uadd_sat, add code like in lower_ufind_msb64.
+    * This is similar to the ufind_msb lowering.
     */
-   assert(!b->shader->options->lower_uadd_sat);
-   return nir_umin(b, lo_lsb, nir_uadd_sat(b, hi_lsb, nir_imm_int(b, 32)));
+   return nir_umin(b, lo_lsb, nir_ior_imm(b, hi_lsb, 32));
 }
 
 static nir_def *
@@ -1269,10 +1256,15 @@ should_lower_int64_intrinsic(const nir_intrinsic_instr *intrin,
    switch (intrin->intrinsic) {
    case nir_intrinsic_read_invocation:
    case nir_intrinsic_read_first_invocation:
+   case nir_intrinsic_read_invocation_cond_ir3:
    case nir_intrinsic_shuffle:
    case nir_intrinsic_shuffle_xor:
    case nir_intrinsic_shuffle_up:
    case nir_intrinsic_shuffle_down:
+   case nir_intrinsic_shuffle_xor_uniform_ir3:
+   case nir_intrinsic_shuffle_up_uniform_ir3:
+   case nir_intrinsic_shuffle_down_uniform_ir3:
+   case nir_intrinsic_rotate:
    case nir_intrinsic_quad_broadcast:
    case nir_intrinsic_quad_swap_horizontal:
    case nir_intrinsic_quad_swap_vertical:
@@ -1313,10 +1305,15 @@ lower_int64_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin)
    switch (intrin->intrinsic) {
    case nir_intrinsic_read_invocation:
    case nir_intrinsic_read_first_invocation:
+   case nir_intrinsic_read_invocation_cond_ir3:
    case nir_intrinsic_shuffle:
    case nir_intrinsic_shuffle_xor:
    case nir_intrinsic_shuffle_up:
    case nir_intrinsic_shuffle_down:
+   case nir_intrinsic_shuffle_xor_uniform_ir3:
+   case nir_intrinsic_shuffle_up_uniform_ir3:
+   case nir_intrinsic_shuffle_down_uniform_ir3:
+   case nir_intrinsic_rotate:
    case nir_intrinsic_quad_broadcast:
    case nir_intrinsic_quad_swap_horizontal:
    case nir_intrinsic_quad_swap_vertical:

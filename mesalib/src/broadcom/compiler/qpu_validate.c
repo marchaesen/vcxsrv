@@ -52,6 +52,9 @@ struct v3d_qpu_validate_state {
         bool thrend_found;
 
         int thrsw_count;
+
+        bool rtop_hazard;
+        bool rtop_valid;
 };
 
 static void
@@ -129,6 +132,16 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
 
         if (inst->type != V3D_QPU_INSTR_TYPE_ALU)
                 return;
+
+        if (inst->alu.mul.op == V3D_QPU_M_MULTOP)
+            state->rtop_valid = true;
+
+        if (inst->alu.mul.op == V3D_QPU_M_UMUL24) {
+            if (state->rtop_hazard)
+                fail_instr(state, "UMUL24 reads rtop from MULTOP but it got cleared by a previous THRSW");
+            state->rtop_valid = false;
+            state->rtop_hazard = false;
+        }
 
         if (inst->alu.add.op == V3D_QPU_A_SETMSF &&
             state->first_tlb_z_write >= 0 &&
@@ -366,6 +379,11 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                         fail_instr(state, "TMUWT in last instruction");
         }
 
+        if (state->rtop_valid && state->ip == state->last_thrsw_ip + 2) {
+                state->rtop_hazard = true;
+                state->rtop_valid = false;
+        }
+
         if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH) {
                 if (in_branch_delay_slots(state))
                         fail_instr(state, "branch in a branch delay slot.");
@@ -410,6 +428,8 @@ qpu_validate(struct v3d_compile *c)
                 .ip = 0,
 
                 .last_thrsw_found = !c->last_thrsw,
+                .rtop_hazard = false,
+                .rtop_valid = false,
         };
 
         vir_for_each_block(block, c) {

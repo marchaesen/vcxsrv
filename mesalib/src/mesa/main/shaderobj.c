@@ -134,6 +134,7 @@ _mesa_delete_shader(struct gl_context *ctx, struct gl_shader *sh)
    free((void *)sh->Source);
    free((void *)sh->FallbackSource);
    free(sh->Label);
+   ralloc_free(sh->nir);
    ralloc_free(sh);
 }
 
@@ -342,11 +343,6 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
       ralloc_free(shProg->UniformRemapTable);
       shProg->NumUniformRemapTable = 0;
       shProg->UniformRemapTable = NULL;
-   }
-
-   if (shProg->UniformHash) {
-      string_to_uint_map_dtor(shProg->UniformHash);
-      shProg->UniformHash = NULL;
    }
 
    if (shProg->data)

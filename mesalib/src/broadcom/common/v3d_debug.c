@@ -82,8 +82,6 @@ static const struct debug_named_value debug_control[] = {
           "Precompiles shader variant at shader state creation time (v3d only)" },
         { "ra",          V3D_DEBUG_RA,
           "Dump register allocation failures" },
-        { "dump_spirv",  V3D_DEBUG_DUMP_SPIRV,
-          "Dump SPIR-V code (v3dv only)" },
         { "tmu32",  V3D_DEBUG_TMU_32BIT,
           "Force 32-bit precision on all TMU operations" },
         /* This can lead to incorrect behavior for applications that do

@@ -56,8 +56,7 @@ lower_cube_size(nir_builder *b, nir_intrinsic_instr *intrin)
    }
 
    nir_def *vec = nir_vec_scalars(b, comps, intrin->def.num_components);
-   nir_def_rewrite_uses(&intrin->def, vec);
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, vec);
    nir_instr_free(&intrin->instr);
 }
 
@@ -154,9 +153,7 @@ lower_image_samples_identical_to_fragment_mask_load(nir_builder *b, nir_intrinsi
    nir_builder_instr_insert(b, &fmask_load->instr);
 
    nir_def *samples_identical = nir_ieq_imm(b, &fmask_load->def, 0);
-   nir_def_rewrite_uses(&intrin->def, samples_identical);
-
-   nir_instr_remove(&intrin->instr);
+   nir_def_replace(&intrin->def, samples_identical);
    nir_instr_free(&intrin->instr);
 }
 
@@ -218,7 +215,6 @@ bool
 nir_lower_image(nir_shader *nir, const nir_lower_image_options *options)
 {
    return nir_shader_intrinsics_pass(nir, lower_image_intrin,
-                                     nir_metadata_block_index |
-                                        nir_metadata_dominance,
+                                     nir_metadata_control_flow,
                                      (void *)options);
 }

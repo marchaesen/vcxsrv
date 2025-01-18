@@ -196,9 +196,9 @@ copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer, struct radv_buffer *buf
 
       /* Perform Blit */
       if (cs) {
-         radv_meta_buffer_to_image_cs(cmd_buffer, &buf_bsurf, &img_bsurf, 1, &rect);
+         radv_meta_buffer_to_image_cs(cmd_buffer, &buf_bsurf, &img_bsurf, &rect);
       } else {
-         radv_meta_blit2d(cmd_buffer, NULL, &buf_bsurf, &img_bsurf, 1, &rect);
+         radv_meta_blit2d(cmd_buffer, NULL, &buf_bsurf, &img_bsurf, &rect);
       }
 
       /* Once we've done the blit, all of the actual information about
@@ -232,10 +232,11 @@ radv_CmdCopyBufferToImage2(VkCommandBuffer commandBuffer, const VkCopyBufferToIm
    }
 
    if (radv_is_format_emulated(pdev, dst_image->vk.format)) {
-      cmd_buffer->state.flush_bits |=
-         RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
-         radv_src_access_flush(cmd_buffer, VK_ACCESS_TRANSFER_WRITE_BIT, dst_image) |
-         radv_dst_access_flush(cmd_buffer, VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT, dst_image);
+      cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
+                                      radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                                            VK_ACCESS_TRANSFER_WRITE_BIT, dst_image) |
+                                      radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                                            VK_ACCESS_TRANSFER_READ_BIT, dst_image);
 
       const enum util_format_layout format_layout = vk_format_description(dst_image->vk.format)->layout;
       for (unsigned r = 0; r < pCopyBufferToImageInfo->regionCount; r++) {
@@ -344,7 +345,7 @@ copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer, struct radv_buffer *buf
       rect.src_y = img_offset_el.y;
 
       /* Perform Blit */
-      radv_meta_image_to_buffer(cmd_buffer, &img_info, &buf_info, 1, &rect);
+      radv_meta_image_to_buffer(cmd_buffer, &img_info, &buf_info, &rect);
 
       buf_info.offset += buf_extent_el.width * buf_extent_el.height * buf_info.bs;
       img_info.layer++;
@@ -559,12 +560,12 @@ copy_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image, VkI
 
       /* Perform Blit */
       if (cs) {
-         radv_meta_image_to_image_cs(cmd_buffer, &b_src, &b_dst, 1, &rect);
+         radv_meta_image_to_image_cs(cmd_buffer, &b_src, &b_dst, &rect);
       } else {
-         if (radv_can_use_fmask_copy(cmd_buffer, b_src.image, b_dst.image, 1, &rect)) {
+         if (radv_can_use_fmask_copy(cmd_buffer, b_src.image, b_dst.image, &rect)) {
             radv_fmask_copy(cmd_buffer, &b_src, &b_dst);
          } else {
-            radv_meta_blit2d(cmd_buffer, &b_src, NULL, &b_dst, 1, &rect);
+            radv_meta_blit2d(cmd_buffer, &b_src, NULL, &b_dst, &rect);
          }
       }
 
@@ -611,10 +612,11 @@ radv_CmdCopyImage2(VkCommandBuffer commandBuffer, const VkCopyImageInfo2 *pCopyI
    }
 
    if (radv_is_format_emulated(pdev, dst_image->vk.format)) {
-      cmd_buffer->state.flush_bits |=
-         RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
-         radv_src_access_flush(cmd_buffer, VK_ACCESS_TRANSFER_WRITE_BIT, dst_image) |
-         radv_dst_access_flush(cmd_buffer, VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT, dst_image);
+      cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
+                                      radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                                            VK_ACCESS_TRANSFER_WRITE_BIT, dst_image) |
+                                      radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                                                            VK_ACCESS_TRANSFER_READ_BIT, dst_image);
 
       const enum util_format_layout format_layout = vk_format_description(dst_image->vk.format)->layout;
       for (unsigned r = 0; r < pCopyImageInfo->regionCount; r++) {

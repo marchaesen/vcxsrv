@@ -17,8 +17,7 @@
 
 #include "pan_kmod_backend.h"
 
-/* Only needed for pan_arch(), don't add per-arch stuff here. */
-#include "genxml/gen_macros.h"
+#include "pan_props.h"
 
 const struct pan_kmod_ops panfrost_kmod_ops;
 
@@ -136,6 +135,7 @@ panfrost_dev_query_thread_props(const struct pan_kmod_dev *dev,
 
    uint32_t thread_features =
       panfrost_query_raw(fd, DRM_PANFROST_PARAM_THREAD_FEATURES, true, 0);
+   props->max_tasks_per_core = MAX2(thread_features >> 24, 1);
    props->num_registers_per_core = thread_features & 0xffff;
    if (!props->num_registers_per_core) {
       switch (pan_arch(props->gpu_prod_id)) {
@@ -202,6 +202,12 @@ panfrost_dev_query_props(const struct pan_kmod_dev *dev,
       panfrost_query_raw(fd, DRM_PANFROST_PARAM_AFBC_FEATURES, true, 0);
 
    panfrost_dev_query_thread_props(dev, props);
+
+   if (dev->driver.version.major > 1 || dev->driver.version.minor >= 3) {
+      props->gpu_can_query_timestamp = true;
+      props->timestamp_frequency = panfrost_query_raw(
+         fd, DRM_PANFROST_PARAM_SYSTEM_TIMESTAMP_FREQUENCY, true, 0);
+   }
 }
 
 static uint32_t
@@ -461,6 +467,13 @@ panfrost_kmod_vm_bind(struct pan_kmod_vm *vm, enum pan_kmod_vm_op_mode mode,
    return 0;
 }
 
+static uint64_t
+panfrost_kmod_query_timestamp(const struct pan_kmod_dev *dev)
+{
+   return panfrost_query_raw(dev->fd, DRM_PANFROST_PARAM_SYSTEM_TIMESTAMP,
+                             false, 0);
+}
+
 const struct pan_kmod_ops panfrost_kmod_ops = {
    .dev_create = panfrost_kmod_dev_create,
    .dev_destroy = panfrost_kmod_dev_destroy,
@@ -476,4 +489,5 @@ const struct pan_kmod_ops panfrost_kmod_ops = {
    .vm_create = panfrost_kmod_vm_create,
    .vm_destroy = panfrost_kmod_vm_destroy,
    .vm_bind = panfrost_kmod_vm_bind,
+   .query_timestamp = panfrost_kmod_query_timestamp,
 };

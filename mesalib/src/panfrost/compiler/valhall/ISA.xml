@@ -778,7 +778,12 @@
     <value desc="Set bottom bit">aor1</value>
   </enum>
 
-  <ins name="NOP" title="No operation" dests="0" opcode="0x00" unit="CVT">
+  <!-- note that the `unused="true"` annotation here just means that this
+       particular entry is unused by the compiler. This may be because the
+       instruction isn't generated yet, but it may also be because there
+       is a duplicate instruction in the Bifrost or pseudo XML files
+  -->
+  <ins name="NOP" title="No operation" dests="0" opcode="0x00" unused="true" unit="CVT">
     <desc>
       Do nothing. Useful at the start of a block for waiting on slots required
       by the first actual instruction of the block, to reconcile dependencies
@@ -786,7 +791,7 @@
     </desc>
   </ins>
 
-  <ins name="BRANCHZ" title="Compare to zero and branch" dests="0" opcode="0x1F" unit="CVT">
+  <ins name="BRANCHZ" title="Compare to zero and branch" dests="0" opcode="0x1F" unused="true" unit="CVT">
     <desc>
       Branches to a specified relative offset if its source is nonzero (default)
       or if its source is zero (if `.eq` is set). The offset is 27-bits and
@@ -805,10 +810,10 @@
     <src combine="true">Value to compare against zero</src>
     <imm name="offset" start="8" size="27" signed="true"/>
     <conservative/>
-    <mod name="eq" start="36" size="1"/>
+    <va_mod name="eq" start="36" size="1"/>
   </ins>
 
-  <ins name="DISCARD.f32" title="Discard fragment" dests="0" opcode="0x20" unit="CVT">
+  <ins name="DISCARD.f32" title="Discard fragment" dests="0" opcode="0x20" unused="true" unit="CVT">
     <desc>
       Evaluates the given condition, and if it passes, discards the current
       fragment and terminates the thread. Only valid in a **fragment** shader.
@@ -818,7 +823,7 @@
     <src absneg="true" swizzle="true">Right value to compare</src>
   </ins>
 
-  <ins name="BRANCHZI" title="Compare to zero and branch indirect" opcode="0x2F" unit="CVT">
+  <ins name="BRANCHZI" title="Compare to zero and branch indirect" opcode="0x2F" dests="0" last="true" unit="CVT">
     <desc>
       Jump to an indirectly specified (absolute or relative) address. Used to
       jump to blend shaders at the end of a fragment shader.
@@ -826,11 +831,11 @@
     <src combine="true">Value to compare against zero</src>
     <src>Branch target</src>
     <conservative/>
-    <mod name="eq" start="36" size="1"/>
-    <mod name="absolute" start="40" size="1"/>
+    <va_mod name="eq" start="36" size="1"/>
+    <va_mod name="absolute" start="40" size="1"/>
   </ins>
 
-  <ins name="BARRIER" title="Execution and memory barrier" opcode="0x45" unit="NONE">
+  <ins name="BARRIER" title="Execution and memory barrier" opcode="0x45" unused="true" unit="NONE">
     <desc>
       General-purpose barrier. Must use slot #7. Must be paired with a
       `.wait` flow on the instruction.
@@ -838,7 +843,7 @@
     <slot/>
   </ins>
 
-  <group name="CSEL" title="Floating-point conditional select" dests="1" unit="CVT">
+  <group name="CSEL" title="Floating-point conditional select" dests="1" unused="true" unit="CVT">
     <ins name="CSEL.f32" opcode="0x154"/>
     <ins name="CSEL.v2f16" opcode="0x155"/>
     <desc>
@@ -852,7 +857,7 @@
     <src float="true">Return value if false</src>
   </group>
 
-  <group name="CSEL" title="Integer conditional select" dests="1" unit="CVT">
+  <group name="CSEL" title="Integer conditional select" dests="1" unused="true" unit="CVT">
     <ins name="CSEL.u32" opcode="0x150"/>
     <ins name="CSEL.v2u16" opcode="0x151"/>
     <ins name="CSEL.s32" opcode="0x158"/>
@@ -873,7 +878,7 @@
     <src>Return value if false</src>
   </group>
 
-  <ins name="LD_VAR_SPECIAL" title="Load special varying" opcode="0x56" unit="V">
+  <ins name="LD_VAR_SPECIAL" title="Load special varying" opcode="0x56" unused="true" unit="V">
     <sr write="true"/>
     <sr_count/>
     <vecsize/>
@@ -885,37 +890,39 @@
     <imm name="index" start="12" size="4"/> <!-- 0 for pointx, 1 for pointy, 2 for fragw, 3 for fragz -->
   </ins>
 
-  <group name="LD_VAR_BUF_IMM" title="Load immediate varying" unit="V">
+  <group name="LD_VAR_BUF_IMM" title="Load immediate varying" message="varying" unit="V">
     <desc>Interpolates a given varying from hardware buffer</desc>
     <ins name="LD_VAR_BUF_IMM.f32" opcode="0x5C"/>
     <ins name="LD_VAR_BUF_IMM.f16" opcode="0x5D"/>
     <slot/>
     <vecsize/>
     <source_format/>
+    <regfmt pseudo="true"/>
     <sample/>
     <update/>
     <sr write="true"/>
-    <sr_count/>
+    <sr_count count="format"/>
     <src/>
     <imm name="index" start="16" size="8"/>
   </group>
 
-  <group name="LD_VAR_BUF" title="Load indirect varying" unit="V">
+  <group name="LD_VAR_BUF" title="Load indirect varying" message="varying" unit="V">
     <desc>Interpolates a given varying from hardware buffer</desc>
     <ins name="LD_VAR_BUF.f32" opcode="0x6C"/>
     <ins name="LD_VAR_BUF.f16" opcode="0x6D"/>
     <slot/>
     <vecsize/>
     <source_format/>
+    <regfmt pseudo="true"/>
     <sample/>
     <update/>
     <sr write="true"/>
-    <sr_count/>
+    <sr_count count="format"/>
     <src/>
     <src/>
   </group>
 
-  <ins name="LD_VAR" title="Load indirect varying" unit="V" opcode="0x64">
+  <ins name="LD_VAR" title="Load indirect varying" unused="true" unit="V" opcode="0x64">
     <desc>Interpolates a given varying from a software buffer</desc>
     <slot/>
     <vecsize/>
@@ -928,7 +935,7 @@
     <src>Varying index and table</src>
   </ins>
 
-  <ins name="LD_VAR_IMM" title="Load immediate varying" unit="V" opcode="0x54">
+  <ins name="LD_VAR_IMM" title="Load immediate varying" unused="true" unit="V" opcode="0x54">
     <desc>Interpolates a given varying from a software buffer</desc>
     <slot/>
     <vecsize/>
@@ -942,7 +949,7 @@
     <imm name="index" start="12" size="8"/>
   </ins>
 
-  <ins name="LD_VAR_FLAT" title="Load indirect varying" unit="V" opcode="0x55">
+  <ins name="LD_VAR_FLAT" title="Load indirect varying" unused="true" unit="V" opcode="0x55">
     <desc>Fetches a given varying from a software buffer</desc>
     <slot/>
     <vecsize/>
@@ -952,7 +959,7 @@
     <src>Varying index and table</src>
   </ins>
 
-  <ins name="LD_VAR_FLAT_IMM" title="Load immediate varying" unit="V" opcode="0x41">
+  <ins name="LD_VAR_FLAT_IMM" title="Load immediate varying" unused="true" unit="V" opcode="0x41">
     <desc>Fetches a given varying from a software buffer</desc>
     <slot/>
     <vecsize/>
@@ -963,7 +970,7 @@
     <imm name="index" start="12" size="8"/>
   </ins>
 
-  <ins name="LD_ATTR_IMM" title="Load immediate attribute" opcode="0x66" opcode2="0" unit="LS">
+  <ins name="LD_ATTR_IMM" title="Load immediate attribute" opcode="0x66" opcode2="0" unused="true" unit="LS">
     <desc>
       Load `vecsize` components from the attribute descriptor at entry `index`
       of resource table `table` at index (vertex ID, instance ID), converting
@@ -973,7 +980,7 @@
     <vecsize/>
     <regfmt/>
     <slot/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src>Vertex ID</src>
     <src>Instance ID</src>
@@ -981,7 +988,7 @@
     <imm name="table" start="16" size="4"/>
   </ins>
 
-  <ins name="LD_ATTR" title="Load indirect attribute" opcode="0x76" opcode2="0" unit="LS">
+  <ins name="LD_ATTR" title="Load indirect attribute" opcode="0x76" opcode2="0" unused="true" unit="LS">
     <desc>
       Load `vecsize` components from the attribute descriptor at the specified
       location at index (vertex ID, instance ID), converting
@@ -993,49 +1000,49 @@
     <vecsize/>
     <regfmt/>
     <slot/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src>Vertex ID</src>
     <src>Instance ID</src>
     <src>Index and table</src>
   </ins>
 
-  <ins name="LD_TEX_IMM" title="Load immediate texture" opcode="0x66" opcode2="1" unit="LS">
+  <ins name="LD_TEX_IMM" title="Load immediate texture" opcode="0x66" opcode2="1" message="attribute" unit="LS">
     <desc>
       Load `vecsize` components from the texture descriptor at entry `index`
       of resource table `table`, converting
       to the specified register format.
     </desc>
-    <sr_count/>
+    <sr_count count="format"/>
     <vecsize/>
     <regfmt/>
     <slot/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src>X/Y coordinates (16:16)</src>
     <src>Z/W coordinates (16:16)</src>
-    <imm name="index" start="20" size="4"/>
-    <imm name="table" start="16" size="4"/>
+    <imm name="index" ir_name="texture_index" start="20" size="4"/>
+    <imm name="table" ir_name="" start="16" size="4"/>
   </ins>
 
-  <ins name="LD_TEX" title="Load indirect texture" opcode="0x76" opcode2="1" unit="LS">
+  <ins name="LD_TEX" title="Load indirect texture" message="attribute" opcode="0x76" opcode2="1" unit="LS">
     <desc>
       Load `vecsize` components from the texture descriptor at the specified
       location at index, converting
       to the specified register format.
     </desc>
-    <sr_count/>
+    <sr_count count="format"/>
     <vecsize/>
     <regfmt/>
     <slot/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src>X/Y coordinates (16:16)</src>
     <src>Z/W coordinates (16:16)</src>
     <src>Index and table</src>
   </ins>
 
-  <ins name="LEA_ATTR_IMM" title="Load effective address of image texel" opcode="0x67" opcode2="0" unit="LS">
+  <ins name="LEA_ATTR_IMM" title="Load effective address of image texel" opcode="0x67" opcode2="0" unused="true" unit="LS">
     <desc>
       Load the effective address of an attribute specified with the
       given immediate index. Returns three staging register: the low/high
@@ -1043,7 +1050,7 @@
     </desc>
     <slot/>
     <sr_count/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src>Vertex index</src>
     <src>Instance index</src>
@@ -1051,7 +1058,7 @@
     <imm name="index" start="20" size="4"/>
   </ins>
 
-  <ins name="LEA_ATTR" title="Load effective address of image texel" opcode="0x77" opcode2="0" unit="LS">
+  <ins name="LEA_ATTR" title="Load effective address of image texel" opcode="0x77" opcode2="0" unused="true" unit="LS">
     <desc>
       Load the effective address of an attribute specified with the
       given index. Returns three staging register: the low/high
@@ -1060,14 +1067,14 @@
     <vecsize/>
     <slot/>
     <sr_count/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src>Vertex index</src>
     <src>Instance index</src>
     <src>Attribute index and table</src>
   </ins>
 
-  <ins name="LEA_TEX_IMM" title="Load effective address of image texel" opcode="0x67" opcode2="1" unit="LS">
+  <ins name="LEA_TEX_IMM" title="Load effective address of image texel" opcode="0x67" opcode2="1" unused="true" unit="LS">
     <desc>
       Load the effective address of a texel from the image specified with the
       given immediate index. Returns three staging registers: the low/high
@@ -1080,7 +1087,7 @@
     </desc>
     <slot/>
     <sr_count/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src>X/Y coordinates (16:16)</src>
     <src>Z/W coordinates (16:16)</src>
@@ -1088,7 +1095,7 @@
     <imm name="index" start="20" size="4"/>
   </ins>
 
-  <ins name="LEA_TEX" title="Load effective address of image texel" opcode="0x77" opcode2="1" unit="LS">
+  <ins name="LEA_TEX" title="Load effective address of image texel" opcode="0x77" opcode2="1" unused="true" unit="LS">
     <desc>
       Load the effective address of a texel from the image specified with the
       given index. Returns three staging register: the low/high
@@ -1102,14 +1109,14 @@
     <vecsize/>
     <slot/>
     <sr_count/>
-    <mod name="descriptor_type" start="128" size="1" implied="true"/>
+    <va_mod name="descriptor_type" start="128" size="1" implied="true"/>
     <sr write="true"/>
     <src size="16">X/Y coordinates (16:16)</src>
     <src>Z/W coordinates (16:16)</src>
     <src>Index and table</src>
   </ins>
 
-  <ins name="LD_BUFFER.i8" title="Global memory load" opcode="0x6a" opcode2="0" unit="LS">
+  <ins name="LD_BUFFER.i8" title="Global memory load" message="load" opcode="0x6a" opcode2="0" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1118,15 +1125,15 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_8_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="1"/>
+    <va_mod name="load_lane_8_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Address to load from after adding offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LD_BUFFER.i16" title="Global memory load" opcode="0x6a" opcode2="1" unit="LS">
+  <ins name="LD_BUFFER.i16" title="Global memory load" message="load" opcode="0x6a" opcode2="1" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1135,15 +1142,15 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_16_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="1"/>
+    <va_mod name="load_lane_16_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Byte offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LD_BUFFER.i24" title="Global memory load" opcode="0x6a" opcode2="2" unit="LS">
+  <ins name="LD_BUFFER.i24" title="Global memory load" message="load" opcode="0x6a" opcode2="2" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1152,15 +1159,15 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_24_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="1"/>
+    <va_mod name="load_lane_24_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Byte offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LD_BUFFER.i32" title="Global memory load" opcode="0x6a" opcode2="3" unit="LS">
+  <ins name="LD_BUFFER.i32" title="Global memory load" message="load" opcode="0x6a" opcode2="3" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1169,15 +1176,15 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_32_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="1"/>
+    <va_mod name="load_lane_32_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Byte offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LD_BUFFER.i48" title="Global memory load" opcode="0x6a" opcode2="4" unit="LS">
+  <ins name="LD_BUFFER.i48" title="Global memory load" message="load" opcode="0x6a" opcode2="4" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1186,15 +1193,15 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_48_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="2"/>
+    <va_mod name="load_lane_48_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Byte offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LD_BUFFER.i64" title="Global memory load" opcode="0x6a" opcode2="5" unit="LS">
+  <ins name="LD_BUFFER.i64" title="Global memory load" message="load" opcode="0x6a" opcode2="5" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1203,15 +1210,15 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_64_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="2"/>
+    <va_mod name="load_lane_64_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Byte offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LD_BUFFER.i96" title="Global memory load" opcode="0x6a" opcode2="6" unit="LS">
+  <ins name="LD_BUFFER.i96" title="Global memory load" message="load" opcode="0x6a" opcode2="6" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1220,15 +1227,15 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_96_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="3"/>
+    <va_mod name="load_lane_96_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Byte offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LD_BUFFER.i128" title="Global memory load" opcode="0x6a" opcode2="7" unit="LS">
+  <ins name="LD_BUFFER.i128" title="Global memory load" message="load" opcode="0x6a" opcode2="7" unit="LS">
     <desc>
       Loads a buffer descriptor. If bits 25...31 of the mode descriptor are
       all-ones, load from the buffer descriptors in the table indexed by the
@@ -1237,123 +1244,123 @@
       the mode descriptor.
     </desc>
     <sr write="true"/>
-    <sr_count/>
-    <mod name="load_lane_128_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <sr_count count="4"/>
+    <va_mod name="load_lane_128_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="32">Byte offset</src>
     <src size="32">Mode descriptor</src>
   </ins>
 
-  <ins name="LEA_BUF_IMM" title="Load buffer effective address" opcode="0x5E" unit="LS">
+  <ins name="LEA_BUF_IMM" title="Load buffer effective address" message="attribute" opcode="0x5E" unit="LS">
     <desc>
       Load effective address of a buffer with an immediate offset added.
     </desc>
     <sr write="true"/>
-    <sr_count/>
+    <sr_count count="2"/>
     <slot/>
-    <imm name="table" start="8" size="4"/>
-    <imm name="index" start="12" size="8"/>
+    <imm name="table" ir_name="" start="8" size="4"/>
+    <imm name="index" ir_name="" start="12" size="8"/>
     <src>Linear ID</src>
   </ins>
 
-  <ins name="LOAD.i8" title="Global memory load" opcode="0x60" opcode2="0" unit="LS">
+  <ins name="LOAD.i8" title="Global memory load" opcode="0x60" opcode2="0" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_8_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_8_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <ins name="LOAD.i16" title="Global memory load" opcode="0x60" opcode2="1" unit="LS">
+  <ins name="LOAD.i16" title="Global memory load" opcode="0x60" opcode2="1" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_16_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_16_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <ins name="LOAD.i24" title="Global memory load" opcode="0x60" opcode2="2" unit="LS">
+  <ins name="LOAD.i24" title="Global memory load" opcode="0x60" opcode2="2" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_24_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_24_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <ins name="LOAD.i32" title="Global memory load" opcode="0x60" opcode2="3" unit="LS">
+  <ins name="LOAD.i32" title="Global memory load" opcode="0x60" opcode2="3" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_32_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_32_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <ins name="LOAD.i48" title="Global memory load" opcode="0x60" opcode2="4" unit="LS">
+  <ins name="LOAD.i48" title="Global memory load" opcode="0x60" opcode2="4" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_48_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_48_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <ins name="LOAD.i64" title="Global memory load" opcode="0x60" opcode2="5" unit="LS">
+  <ins name="LOAD.i64" title="Global memory load" opcode="0x60" opcode2="5" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_64_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_64_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <ins name="LOAD.i96" title="Global memory load" opcode="0x60" opcode2="6" unit="LS">
+  <ins name="LOAD.i96" title="Global memory load" opcode="0x60" opcode2="6" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_96_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_96_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <ins name="LOAD.i128" title="Global memory load" opcode="0x60" opcode2="7" unit="LS">
+  <ins name="LOAD.i128" title="Global memory load" opcode="0x60" opcode2="7" unused="true" unit="LS">
     <desc>Loads from main memory</desc>
     <sr write="true"/>
     <memory_access/>
     <sr_count/>
-    <mod name="load_lane_128_bit" start="36" size="3"/>
-    <mod name="unsigned" start="39" size="1"/>
+    <va_mod name="load_lane_128_bit" start="36" size="3"/>
+    <va_mod name="unsigned" start="39" size="1"/>
     <slot/>
     <src size="64">Address to load from after adding offset</src>
     <imm name="offset" start="8" size="16" signed="true"/>
   </ins>
 
-  <group name="STORE" title="Global memory store" opcode="0x61" unit="LS">
+  <group name="STORE" title="Global memory store" opcode="0x61" unused="true" unit="LS">
     <desc>Stores to main memory</desc>
     <sr read="true"/>
     <ins name="STORE.i8" opcode2="0x0"/>
@@ -1371,7 +1378,18 @@
     <imm name="offset" start="8" size="16" signed="true"/>
   </group>
 
-  <ins name="ST_CVT" title="Store with conversion" opcode="0x71" unit="LS">
+  <ins name="LEA_BUFFER" title="Load buffer effective address" message="attribute" opcode="0x6B" unit="LS">
+    <desc>
+      Load effective address of a simple buffer with an offset added.
+    </desc>
+    <sr write="true"/>
+    <sr_count count="2"/>
+    <slot/>
+    <src>Offset</src>
+    <src>Index</src>
+  </ins>
+
+  <ins name="ST_CVT" title="Store with conversion" opcode="0x71" unused="true" unit="LS">
     <desc>
       Store to memory with data conversion. The address to store to is given in
       the first source, which must be a 64-bit register (a pair of 32-bit
@@ -1380,7 +1398,7 @@
       Used with LEA_TEX_IMM to implement image stores.
     </desc>
     <slot/>
-    <mod name="memory_access" start="37" size="3"/>
+    <va_mod name="memory_access" start="37" size="3"/>
     <vecsize/>
     <regfmt/>
     <sr read="true"/>
@@ -1390,7 +1408,7 @@
     <src>Internal conversion descriptor</src>
   </ins>
 
-  <ins name="LD_TILE" title="Load from tilebuffer" opcode="0x78" unit="NONE">
+  <ins name="LD_TILE" title="Load from tilebuffer" opcode="0x78" unused="true" unit="NONE">
     <desc>
       Loads a given render target, specified in the pixel indices descriptor, at
       a given location and sample, and convert to the format specified in the
@@ -1407,7 +1425,7 @@
     <src>Conversion descriptor</src>
   </ins>
 
-  <ins name="ST_TILE" title="Store to tilebuffer" opcode="0x79" unit="NONE">
+  <ins name="ST_TILE" title="Store to tilebuffer" opcode="0x79" unused="true" unit="NONE">
     <desc>
       Store to given render target, specified in the pixel indices descriptor, at
       a given location and sample, and convert to the format specified in the
@@ -1423,7 +1441,7 @@
     <src>Conversion descriptor</src>
   </ins>
 
-  <ins name="BLEND" title="Blend render target" opcode="0x7F" unit="NONE">
+  <ins name="BLEND" title="Blend render target" opcode="0x7F" unused="true" unit="NONE">
     <desc>
       Blends a given render target. This loads the API-specified blend state for
       the render target from the first source. Blend descriptors are available
@@ -1459,7 +1477,7 @@
     <regfmt/>
   </ins>
 
-  <ins name="ATEST" title="Alpha test" opcode="0x7D" unit="NONE">
+  <ins name="ATEST" title="Alpha test" opcode="0x7D" unused="true" unit="NONE">
     <desc>
       Does alpha-to-coverage testing, updating the sample coverage mask. ATEST
       does not do an implicit discard. It should be executed before the first
@@ -1472,13 +1490,13 @@
     <sr_count/>
   </ins>
 
-  <ins name="ZS_EMIT" title="Depth/stencil write" opcode="0x7E" unit="NONE">
+  <ins name="ZS_EMIT" title="Depth/stencil write" opcode="0x7E" unused="true" unit="NONE">
     <desc>
       Programatically writes out depth, stencil, or both, depending on which
       modifiers are set. Used to implement gl_FragDepth and gl_FragStencil.
     </desc>
-    <mod name="z" start="25" size="1"/>
-    <mod name="stencil" start="24" size="1"/>
+    <va_mod name="z" start="25" size="1"/>
+    <va_mod name="stencil" start="24" size="1"/>
     <sr write="true">Updated coverage mask</sr>
     <src>Depth value</src>
     <src>Stencil value</src>
@@ -1487,7 +1505,7 @@
     <slot/>
   </ins>
 
-  <group name="CONVERT" title="Data conversions" dests="1" opcode="0x90" unit="CVT">
+  <group name="CONVERT" title="Data conversions" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>
       Performs the given data conversion. Note that floating-point rounding is
       handled via the same hardware and therefore shares an encoding. Round mode
@@ -1506,7 +1524,7 @@
     <src widen="true">Value to convert</src>
   </group>
 
-  <group name="CONVERT" title="16->32 integer data conversions" dests="1" opcode="0x90" unit="CVT">
+  <group name="CONVERT" title="16->32 integer data conversions" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>
       Performs the given data conversion.
     </desc>
@@ -1519,7 +1537,7 @@
     <src swizzle="true" size="16">Value to convert</src>
   </group>
 
-  <group name="CONVERT" title="Float-to-int data conversions" dests="1" opcode="0x90" unit="CVT">
+  <group name="CONVERT" title="Float-to-int data conversions" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>Performs the given data conversion.</desc>
     <ins name="F32_TO_S32" opcode2="0xC"/>
     <ins name="F32_TO_U32" opcode2="0x1C"/>
@@ -1527,7 +1545,7 @@
     <src absneg="true">Value to convert</src>
   </group>
 
-  <group name="CONVERT" title="Float-to-int data conversions" dests="1" opcode="0x90" unit="CVT">
+  <group name="CONVERT" title="Float-to-int data conversions" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>Performs the given data conversion.</desc>
     <ins name="V2F16_TO_V2S16" opcode2="0xE"/>
     <ins name="V2F16_TO_V2U16" opcode2="0x1E"/>
@@ -1537,13 +1555,13 @@
     <src swizzle="true" absneg="true" size="16">Value to convert</src>
   </group>
 
-  <ins name="F16_TO_F32" title="16-bit float to 32-bit float conversion" dests="1" opcode="0x90" opcode2="0xB" unit="CVT">
+  <ins name="F16_TO_F32" title="16-bit float to 32-bit float conversion" dests="1" opcode="0x90" opcode2="0xB" unused="true" unit="CVT">
     <desc>Converts up with the specified round mode.</desc>
     <roundmode/>
     <src lane="28" size="16" absneg="true">Value to convert</src>
   </ins>
 
-  <group name="CONVERT" title="8-bit to 32-bit data conversions" dests="1" opcode="0x90" unit="CVT">
+  <group name="CONVERT" title="8-bit to 32-bit data conversions" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>
       Performs the given data conversion.
     </desc>
@@ -1557,7 +1575,7 @@
     <src lane="28" size="8">Value to convert</src>
   </group>
 
-  <group name="CONVERT" title="8-bit to 16-bit data conversions" dests="1" opcode="0x90" unit="CVT">
+  <group name="CONVERT" title="8-bit to 16-bit data conversions" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>
       Performs the given data conversion.
     </desc>
@@ -1571,7 +1589,7 @@
     <src halfswizzle="true" size="8">Value to convert</src>
   </group>
 
-  <group name="FROUND" title="Floating-point rounding" dests="1" opcode="0x90" unit="CVT">
+  <group name="FROUND" title="Floating-point rounding" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>
       Performs the given rounding, using the convert unit.
     </desc>
@@ -1583,33 +1601,33 @@
     <src swizzle="true" absneg="true">Value to convert</src>
   </group>
 
-  <ins name="MOV.i32" title="Register move" dests="1" opcode="0x91" opcode2="0x0" unit="CVT">
+  <ins name="MOV.i32" title="Register move" dests="1" opcode="0x91" opcode2="0x0" unused="true" unit="CVT">
     <desc>Canonical register-to-register move.</desc>
     <src/>
   </ins>
 
-  <ins name="CLZ.u32" title="Count leading zeroes" dests="1" opcode="0x91" opcode2="0x4" unit="CVT">
+  <ins name="CLZ.u32" title="Count leading zeroes" dests="1" opcode="0x91" opcode2="0x4" unused="true" unit="CVT">
     <desc>
       Used as a primitive for various bitwise operations.
     </desc>
     <src/>
   </ins>
 
-  <ins name="CLZ.v2u16" title="Count leading zeroes" dests="1" opcode="0x91" opcode2="0x5" unit="CVT">
+  <ins name="CLZ.v2u16" title="Count leading zeroes" dests="1" opcode="0x91" opcode2="0x5" unused="true" unit="CVT">
     <desc>
       Used as a primitive for various bitwise operations.
     </desc>
     <src swizzle="true"/>
   </ins>
 
-  <ins name="CLZ.v4u8" title="Count leading zeroes" dests="1" opcode="0x91" opcode2="0x6" unit="CVT">
+  <ins name="CLZ.v4u8" title="Count leading zeroes" dests="1" opcode="0x91" opcode2="0x6" unused="true" unit="CVT">
     <desc>
       Used as a primitive for various bitwise operations.
     </desc>
     <src/>
   </ins>
 
-  <ins name="IABS.s32" title="Absolute value" dests="1" opcode="0x91" opcode2="0x8" unit="CVT">
+  <ins name="IABS.s32" title="Absolute value" dests="1" opcode="0x91" opcode2="0x8" unused="true" unit="CVT">
     <desc>
       64-bit abs may be constructed in 4 instructions (5 clocks) by checking the
       sign with `ICMP.s32.lt.m1 hi, 0` and negating based on the result with
@@ -1618,15 +1636,15 @@
     <src widen="true"/>
   </ins>
 
-  <ins name="IABS.v2s16" title="Absolute value" dests="1" opcode="0x91" opcode2="0x9" unit="CVT">
+  <ins name="IABS.v2s16" title="Absolute value" dests="1" opcode="0x91" opcode2="0x9" unused="true" unit="CVT">
     <src widen="true"/>
   </ins>
 
-  <ins name="IABS.v4s8" title="Absolute value" dests="1" opcode="0x91" opcode2="0xa" unit="CVT">
+  <ins name="IABS.v4s8" title="Absolute value" dests="1" opcode="0x91" opcode2="0xa" unused="true" unit="CVT">
     <src/>
   </ins>
 
-  <ins name="POPCOUNT.i32" title="Population count" dests="1" opcode="0x91" opcode2="0xC" unit="SFU">
+  <ins name="POPCOUNT.i32" title="Population count" dests="1" opcode="0x91" opcode2="0xC" unused="true" unit="SFU">
     <desc>
       Only available as 32-bit. Smaller bitsizes require explicit conversions.
       64-bit popcount may be constructed in 3 clocks by separate 32-bit
@@ -1636,28 +1654,28 @@
     <src/>
   </ins>
 
-  <ins name="BITREV.i32" title="Bitwise reverse" dests="1" opcode="0x91" opcode2="0xD" unit="SFU">
+  <ins name="BITREV.i32" title="Bitwise reverse" dests="1" opcode="0x91" opcode2="0xD" unused="true" unit="SFU">
     <desc>
       Only available as 32-bit. Other bitsizes may be derived with swizzles.
     </desc>
     <src/>
   </ins>
 
-  <ins name="NOT_OLD.i32" title="Bitwise complement" dests="1" opcode="0x91" opcode2="0xE" unit="SFU">
+  <ins name="NOT_OLD.i32" title="Bitwise complement" dests="1" opcode="0x91" opcode2="0xE" unused="true" unit="SFU">
     <desc>
       For fully featured bitwise operation, see the shift opcodes.
     </desc>
     <src/>
   </ins>
 
-  <ins name="NOT_OLD.i64" title="Bitwise complement" dests="1" opcode="0x191" opcode2="0xE" unit="SFU">
+  <ins name="NOT_OLD.i64" title="Bitwise complement" dests="1" opcode="0x191" opcode2="0xE" unused="true" unit="SFU">
     <desc>
       For fully featured bitwise operation, see the shift opcodes.
     </desc>
     <src/>
   </ins>
 
-  <ins name="WMASK" title="Warp mask" dests="1" opcode="0x95" unit="CVT">
+  <ins name="WMASK" title="Warp mask" dests="1" opcode="0x95" unused="true" unit="CVT">
     <desc>
       Returns the mask of lanes ever active within the warp (subgroup), such
       that the source is nonzero. The number of work-items in a subgroup is
@@ -1673,7 +1691,7 @@
     <subgroup/>
   </ins>
 
-  <group name="FREXP" title="Fraction/exponent extract" dests="1" opcode="0x99" unit="CVT">
+  <group name="FREXP" title="Fraction/exponent extract" dests="1" opcode="0x99" unused="true" unit="CVT">
     <ins name="FREXPM.f32" opcode2="0"/>
     <ins name="FREXPM.v2f16" opcode2="1"/>
     <ins name="FREXPE.f32" opcode2="2"/>
@@ -1685,12 +1703,12 @@
       adjusted to be compatible with Valhall's argument reduction for logarithm
       and square root computation respectively.
     </desc>
-    <mod name="sqrt" start="24" size="1"/>
-    <mod name="log" start="25" size="1"/>
+    <va_mod name="sqrt" start="24" size="1"/>
+    <va_mod name="log" start="25" size="1"/>
     <src float="true" swizzle="true"/>
   </group>
 
-  <group name="SFU" title="Special function unit" dests="1" opcode="0x9C" unit="SFU">
+  <group name="SFU" title="Special function unit" dests="1" opcode="0x9C" unused="true" unit="SFU">
     <ins name="FRCP.f32" opcode2="0"/>
     <ins name="FRCP.f16" opcode2="1"/>
     <ins name="FRSQ.f32" opcode2="2"/>
@@ -1712,7 +1730,7 @@
     <src float="true" swizzle="true" absneg="true"/>
   </group>
 
-  <group name="SFU" title="Special function unit" dests="1" opcode="0x9C" unit="SFU">
+  <group name="SFU" title="Special function unit" dests="1" opcode="0x9C" unused="true" unit="SFU">
     <ins name="FSIN_TABLE.u6" opcode2="4"/>
     <ins name="FCOS_TABLE.u6" opcode2="5"/>
     <ins name="FSINCOS_OFFSET.u6" opcode2="6"/>
@@ -1725,7 +1743,7 @@
     <src/>
   </group>
 
-  <group name="FADD" title="Floating-point add" dests="1" opcode2="0" unit="FMA">
+  <group name="FADD" title="Floating-point add" dests="1" opcode2="0" unused="true" unit="FMA">
     <ins name="FADD.f32" opcode="0xA4"/>
     <ins name="FADD.v2f16" opcode="0xA5"/>
     <desc>$A + B$</desc>
@@ -1734,7 +1752,7 @@
     <src absneg="true" swizzle="true">B</src>
   </group>
 
-  <group name="FMIN" title="Floating-point minimum" dests="1" opcode2="2" unit="CVT">
+  <group name="FMIN" title="Floating-point minimum" dests="1" opcode2="2" unused="true" unit="CVT">
     <ins name="FMIN.f32" opcode="0xA4"/>
     <ins name="FMIN.v2f16" opcode="0xA5"/>
     <desc>$\min \{ A, B \}$</desc>
@@ -1743,7 +1761,7 @@
     <src absneg="true" swizzle="true">B</src>
   </group>
 
-  <group name="FMAX" title="Floating-point maximum" dests="1" opcode2="3" unit="CVT">
+  <group name="FMAX" title="Floating-point maximum" dests="1" opcode2="3" unused="true" unit="CVT">
     <ins name="FMAX.f32" opcode="0xA4"/>
     <ins name="FMAX.v2f16" opcode="0xA5"/>
     <desc>$\max \{ A, B \}$</desc>
@@ -1752,7 +1770,7 @@
     <src absneg="true" swizzle="true">B</src>
   </group>
 
-  <group name="V2F32_TO_V2F16" title="Vectorized floating-point conversion" dests="1" opcode2="4" unit="CVT">
+  <group name="V2F32_TO_V2F16" title="Vectorized floating-point conversion" dests="1" opcode2="4" unused="true" unit="CVT">
     <ins name="V2F32_TO_V2F16" opcode="0xA5"/>
     <desc>
       Given a pair of 32-bit floats, output a pair of 16-bit floats packed into
@@ -1764,7 +1782,7 @@
     <src absneg="true">B</src>
   </group>
 
-  <group name="LDEXP" title="Floating-point rescaling" dests="1" opcode2="6" unit="FMA">
+  <group name="LDEXP" title="Floating-point rescaling" dests="1" opcode2="6" unused="true" unit="FMA">
     <ins name="LDEXP.f32" opcode="0xA4"/>
     <ins name="LDEXP.v2f16" opcode="0xA5"/>
     <desc>
@@ -1779,7 +1797,7 @@
     <!-- Also has infinity handling for arctan -->
   </group>
 
-  <ins name="FEXP.f32" title="Floating-point exponent" dests="1" opcode="0xA4" opcode2="8" unit="SFU">
+  <ins name="FEXP.f32" title="Floating-point exponent" dests="1" opcode="0xA4" opcode2="8" unused="true" unit="SFU">
     <desc>
       Calculates the base-2 exponent of an argument specified as a 8:24
       fixed-point. The original argument is passed as well for correct handling
@@ -1790,7 +1808,7 @@
     <src absneg="true">Input as 32-bit float</src>
   </ins>
 
-  <ins name="FADD_LSCALE.f32" title="Floating-point add with logarithm scale" dests="1" opcode="0xA4" opcode2="9" unit="FMA">
+  <ins name="FADD_LSCALE.f32" title="Floating-point add with logarithm scale" dests="1" opcode="0xA4" opcode2="9" unused="true" unit="FMA">
     <desc>
       Performs a floating-point addition specialized for logarithm computation.
     </desc>
@@ -1799,18 +1817,18 @@
     <src absneg="true">B</src>
   </ins>
 
-  <ins name="FATAN_ASSIST.f32" title="ATAN calculation helper" dests="1" opcode="0xA4" opcode2="14" unit="SFU">
+  <ins name="FATAN_ASSIST.f32" title="ATAN calculation helper" dests="1" opcode="0xA4" opcode2="14" unused="true" unit="SFU">
     <desc>
       Used for `atan2()` implementation. Destination is two 16-bit
       values (int and float) for the first form, and a single 32-bit float when
       `.second` is set (indicating the FATAN_TABLE.f32 instruction).
     </desc>
-    <mod name="second" start="24" size="1"/>
+    <va_mod name="second" start="24" size="1"/>
     <src>A</src>
     <src>B</src>
   </ins>
 
-  <group name="IADD" title="Integer addition" dests="1" opcode2="0" unit="CVT">
+  <group name="IADD" title="Integer addition" dests="1" opcode2="0" unused="true" unit="CVT">
     <desc>
       $A + B$ with optional saturation.
 
@@ -1831,13 +1849,13 @@
     <saturate/>
   </group>
 
-  <ins name="MKVEC.v2i16" title="Make 16-bit vector" dests="1" opcode="0xA1" opcode2="0x5" unit="CVT">
+  <ins name="MKVEC.v2i16" title="Make 16-bit vector" dests="1" opcode="0xA1" opcode2="0x5" unused="true" unit="CVT">
     <desc>Calculates $A | (B \ll 16)$. Used to implement `(ushort2)(A, B)`</desc>
     <src swizzle="true">A</src>
     <src swizzle="true">B</src>
   </ins>
 
-  <group name="ISUB" title="Integer subtract" dests="1" opcode2="1" unit="CVT">
+  <group name="ISUB" title="Integer subtract" dests="1" opcode2="1" unused="true" unit="CVT">
     <ins name="ISUB.u32" opcode="0xA0"/>
     <ins name="ISUB.v2u16" opcode="0xA1"/>
     <ins name="ISUB.v4u8" opcode="0xA2"/>
@@ -1852,7 +1870,7 @@
     <saturate/>
   </group>
 
-  <group name="SEG_ADD" title="Segment addition" dests="1" opcode2="6" unit="CVT">
+  <group name="SEG_ADD" title="Segment addition" dests="1" opcode2="6" unused="true" unit="CVT">
     <desc>
       Similar to SHADDX, but especially used for loading offsets into
       WLS. Usually this is only required for atomic operations, which cannot
@@ -1861,13 +1879,13 @@
       .neg indicates SEG_SUB instead.
     </desc>
     <ins name="SEG_ADD.u64" opcode="0x1A3"/>
-    <mod name="neg" start="38" size="1"/>
-    <mod name="preserve_null" start="39" size="1"/>
+    <va_mod name="neg" start="38" size="1"/>
+    <va_mod name="preserve_null" start="39" size="1"/>
     <src>A</src>
     <src widen="true">B</src>
   </group>
 
-  <group name="SHADDX" title="Shift, extend, and 64-bit add" dests="1" opcode2="7" unit="CVT">
+  <group name="SHADDX" title="Shift, extend, and 64-bit add" dests="1" opcode2="7" unused="true" unit="CVT">
     <desc>
       Sign or zero extend B to 64-bits, left-shift by `shift`, and add the
       64-bit value A. These instructions accelerate address arithmetic, but may
@@ -1880,7 +1898,7 @@
     <src widen="true">B</src>
   </group>
 
-  <group name="IMUL" title="Integer multiply" dests="1" opcode2="0x0A" unit="SFU">
+  <group name="IMUL" title="Integer multiply" dests="1" opcode2="0x0A" unused="true" unit="SFU">
     <ins name="IMUL.i32" opcode="0xA0"/>
     <ins name="IMUL.v2i16" opcode="0xA1"/>
     <ins name="IMUL.v4i8" opcode="0xA2"/>
@@ -1901,14 +1919,14 @@
     <saturate/>
   </group>
 
-  <group name="HADD" title="Integer half-add" dests="1" opcode2="0x0B" unit="CVT">
+  <group name="HADD" title="Integer half-add" dests="1" opcode2="0x0B" unused="true" unit="CVT">
     <ins name="HADD.u32" opcode="0xA0"/>
     <ins name="HADD.v2u16" opcode="0xA1"/>
     <ins name="HADD.v4u8" opcode="0xA2"/>
     <ins name="HADD.s32" opcode="0xA8"/>
     <ins name="HADD.v2s16" opcode="0xA9"/>
     <ins name="HADD.v4s8" opcode="0xAA"/>
-    <mod name="rhadd" start="30" size="1"/>
+    <va_mod name="rhadd" start="30" size="1"/>
     <src widen="true">A</src>
     <src widen="true">B</src>
     <desc>
@@ -1918,7 +1936,7 @@
     </desc>
   </group>
 
-  <group name="CLPER" title="Cross-lane permute" dests="1" opcode2="0xF" unit="SFU">
+  <group name="CLPER" title="Cross-lane permute" dests="1" opcode2="0xF" unused="true" unit="SFU">
     <ins name="CLPER.i32" opcode="0xA0"/>
     <ins name="CLPER.v2u16" opcode="0xA1"/>
     <ins name="CLPER.v4u8" opcode="0xA2"/>
@@ -1940,7 +1958,7 @@
     <inactive_result/>
   </group>
 
-  <group name="FMA" title="Fused floating-point multiply add" dests="1" unit="FMA">
+  <group name="FMA" title="Fused floating-point multiply add" dests="1" unused="true" unit="FMA">
     <ins name="FMA.f32" opcode="0xB2"/>
     <ins name="FMA.v2f16" opcode="0xB3"/>
     <desc>$A \cdot B + C$</desc>
@@ -1950,12 +1968,12 @@
     <src absneg="true" swizzle="true">C</src>
   </group>
 
-  <group name="LSHIFT_AND" title="Left shift and bitwise AND" dests="1" opcode2="0x100" unit="SFU">
+  <group name="LSHIFT_AND" title="Left shift and bitwise AND" dests="1" opcode2="0x100" unused="true" unit="SFU">
     <ins name="LSHIFT_AND.i32" opcode="0xB4"/>
     <ins name="LSHIFT_AND.v2i16" opcode="0xB5"/>
     <ins name="LSHIFT_AND.v4i8" opcode="0xB6"/>
     <ins name="LSHIFT_AND.i64" opcode="0x1B7"/>
-    <mod name="left" start="128" size="1" implied="true"/>
+    <va_mod name="left" start="128" size="1" implied="true"/>
     <desc>
       Left shifts its first source by a specified amount and bitwise ANDs it with the
       second source, optionally inverting the second source or the result.
@@ -1966,31 +1984,31 @@
     <src not="true">B</src>
   </group>
 
-  <group name="RSHIFT_AND" title="Right shift and bitwise AND" dests="1" opcode2="0x000" unit="SFU">
+  <group name="RSHIFT_AND" title="Right shift and bitwise AND" dests="1" opcode2="0x000" unused="true" unit="SFU">
     <ins name="RSHIFT_AND.i32" opcode="0xB4"/>
     <ins name="RSHIFT_AND.v2i16" opcode="0xB5"/>
     <ins name="RSHIFT_AND.v4i8" opcode="0xB6"/>
     <ins name="RSHIFT_AND.i64" opcode="0x1B7"/>
-    <mod name="left" start="128" size="1" implied="true"/>
+    <va_mod name="left" start="128" size="1" implied="true"/>
     <desc>
       Right shifts its first source by a specified amount and bitwise ANDs it with the
       second source, optionally inverting the second source or the result. If
       `signed` is set, the hardware performs an arithmetic right shift; otherwise,
       it performs an unsigned right shift.
     </desc>
-    <mod name="signed" start="34" size="1"/>
+    <va_mod name="signed" start="34" size="1"/>
     <not_result/>
     <src widen="true">A</src>
     <src lanes="true" size="8">shift</src>
     <src not="true">B</src>
   </group>
 
-  <group name="LSHIFT_OR" title="Left shift and bitwise OR" dests="1" opcode2="0x101" unit="SFU">
+  <group name="LSHIFT_OR" title="Left shift and bitwise OR" dests="1" opcode2="0x101" unused="true" unit="SFU">
     <ins name="LSHIFT_OR.i32" opcode="0xB4"/>
     <ins name="LSHIFT_OR.v2i16" opcode="0xB5"/>
     <ins name="LSHIFT_OR.v4i8" opcode="0xB6"/>
     <ins name="LSHIFT_OR.i64" opcode="0x1B7"/>
-    <mod name="left" start="128" size="1" implied="true"/>
+    <va_mod name="left" start="128" size="1" implied="true"/>
     <desc>
       Left shifts its first source by a specified amount and bitwise ORs it with the
       second source, optionally inverting the second source or the result.
@@ -2001,31 +2019,31 @@
     <src not="true">B</src>
   </group>
 
-  <group name="RSHIFT_OR" title="Right shift and bitwise OR" dests="1" opcode2="0x001" unit="SFU">
+  <group name="RSHIFT_OR" title="Right shift and bitwise OR" dests="1" opcode2="0x001" unused="true" unit="SFU">
     <ins name="RSHIFT_OR.i32" opcode="0xB4"/>
     <ins name="RSHIFT_OR.v2i16" opcode="0xB5"/>
     <ins name="RSHIFT_OR.v4i8" opcode="0xB6"/>
     <ins name="RSHIFT_OR.i64" opcode="0x1B7"/>
-    <mod name="left" start="128" size="1" implied="true"/>
+    <va_mod name="left" start="128" size="1" implied="true"/>
     <desc>
       Right shifts its first source by a specified amount and bitwise ORs it with the
       second source, optionally inverting the second source or the result. If
       `signed` is set, the hardware performs an arithmetic right shift; otherwise,
       it performs an unsigned right shift.
    </desc>
-    <mod name="signed" start="34" size="1"/>
+    <va_mod name="signed" start="34" size="1"/>
     <not_result/>
     <src widen="true">A</src>
     <src lanes="true" size="8">shift</src>
     <src not="true">B</src>
   </group>
 
-  <group name="LSHIFT_XOR" title="Left shift and bitwise XOR" dests="1" opcode2="0x102" unit="SFU">
+  <group name="LSHIFT_XOR" title="Left shift and bitwise XOR" dests="1" opcode2="0x102" unused="true" unit="SFU">
     <ins name="LSHIFT_XOR.i32" opcode="0xB4"/>
     <ins name="LSHIFT_XOR.v2i16" opcode="0xB5"/>
     <ins name="LSHIFT_XOR.v4i8" opcode="0xB6"/>
     <ins name="LSHIFT_XOR.i64" opcode="0x1B7"/>
-    <mod name="left" start="128" size="1" implied="true"/>
+    <va_mod name="left" start="128" size="1" implied="true"/>
     <desc>
       Left shifts its first source by a specified amount and bitwise XORs it with the
       second source, optionally inverting the second source or the result.
@@ -2036,26 +2054,26 @@
     <src not="true">B</src>
   </group>
 
-  <group name="RSHIFT_XOR" title="Right shift and bitwise XOR" dests="1" opcode2="0x002" unit="SFU">
+  <group name="RSHIFT_XOR" title="Right shift and bitwise XOR" dests="1" opcode2="0x002" unused="true" unit="SFU">
     <ins name="RSHIFT_XOR.i32" opcode="0xB4"/>
     <ins name="RSHIFT_XOR.v2i16" opcode="0xB5"/>
     <ins name="RSHIFT_XOR.v4i8" opcode="0xB6"/>
     <ins name="RSHIFT_XOR.i64" opcode="0x1B7"/>
-    <mod name="left" start="128" size="1" implied="true"/>
+    <va_mod name="left" start="128" size="1" implied="true"/>
     <desc>
       Right shifts its first source by a specified amount and bitwise XORs it with the
       second source, optionally inverting the second source or the result. If
       `signed` is set, the hardware performs an arithmetic right shift; otherwise,
       it performs an unsigned right shift.
     </desc>
-    <mod name="signed" start="34" size="1"/>
+    <va_mod name="signed" start="34" size="1"/>
     <not_result/>
     <src widen="true">A</src>
     <src lanes="true" size="8">shift</src>
     <src not="true">B</src>
   </group>
 
-  <ins name="MUX.i32" title="Mux" dests="1" opcode="0xB8" unit="SFU">
+  <ins name="MUX.i32" title="Mux" dests="1" opcode="0xB8" unused="true" unit="SFU">
     <desc>
       Mux between A and B based on the provided mask. The condition specified
       as the `mux` modifier is evaluated on the mask. If true, `A` is chosen,
@@ -2063,13 +2081,13 @@
       `bitselect()` in OpenCL, so `MUX.i32.bit A, B, mask` calculates
       `(A &amp; mask) | (B &amp; ~mask)`.
     </desc>
-    <mod name="mux" start="32" size="2"/>
+    <va_mod name="mux" start="32" size="2"/>
     <src>A</src>
     <src>B</src>
     <src>Mask</src>
   </ins>
 
-  <ins name="MUX.v2i16" title="Mux" dests="1" opcode="0xB9" unit="SFU">
+  <ins name="MUX.v2i16" title="Mux" dests="1" opcode="0xB9" unused="true" unit="SFU">
     <desc>
       Mux between A and B based on the provided mask. The condition specified
       as the `mux` modifier is evaluated on the mask. If true, `A` is chosen,
@@ -2077,13 +2095,13 @@
       `bitselect()` in OpenCL, so `MUX.v2i16.bit A, B, mask` calculates
       `(A &amp; mask) | (B &amp; ~mask)`.
     </desc>
-    <mod name="mux" start="32" size="2"/>
+    <va_mod name="mux" start="32" size="2"/>
     <src swizzle="true">A</src>
     <src swizzle="true">B</src>
     <src swizzle="true">Mask</src>
   </ins>
 
-  <ins name="MUX.v4i8" title="Mux" dests="1" opcode="0xBA" unit="SFU">
+  <ins name="MUX.v4i8" title="Mux" dests="1" opcode="0xBA" unused="true" unit="SFU">
     <desc>
       Mux between A and B based on the provided mask. The condition specified
       as the `mux` modifier is evaluated on the mask. If true, `A` is chosen,
@@ -2091,20 +2109,20 @@
       `bitselect()` in OpenCL, so `MUX.v4i8.bit A, B, mask` calculates
       `(A &amp; mask) | (B &amp; ~mask)`.
     </desc>
-    <mod name="mux" start="32" size="2"/>
+    <va_mod name="mux" start="32" size="2"/>
     <src>A</src>
     <src>B</src>
     <src>Mask</src>
   </ins>
 
-  <ins name="CUBE_SSEL" title="Cube S-coordinate select" dests="1" opcode="0xBC" opcode2="0" unit="SFU">
+  <ins name="CUBE_SSEL" title="Cube S-coordinate select" dests="1" opcode="0xBC" opcode2="0" unused="true" unit="SFU">
     <desc>During a cube map transform, select the S coordinate given a selected face.</desc>
     <src absneg="true">Z coordinate as 32-bit floating point</src>
     <src absneg="true">X coordinate as 32-bit floating point</src>
     <src>Cube face index</src>
   </ins>
 
-  <ins name="CUBE_TSEL" title="Cube T-coordinate select" dests="1" opcode="0xBC" opcode2="1" unit="SFU">
+  <ins name="CUBE_TSEL" title="Cube T-coordinate select" dests="1" opcode="0xBC" opcode2="1" unused="true" unit="SFU">
     <desc>During a cube map transform, select the T coordinate given a selected face.</desc>
     <src absneg="true">Y coordinate as 32-bit floating point</src>
     <src absneg="true">Z coordinate as 32-bit floating point</src>
@@ -2126,21 +2144,21 @@
     <src>CD</src>
   </ins>
 
-  <ins name="CUBEFACE1" title="Cube map transform step 1" dests="1" opcode="0xC0" unit="SFU">
+  <ins name="CUBEFACE1" title="Cube map transform step 1" dests="1" opcode="0xC0" unused="true" unit="SFU">
     <desc>Select the maximum absolute value of its arguments.</desc>
     <src absneg="true">X coordinate as 32-bit floating point</src>
     <src absneg="true">Y coordinate as 32-bit floating point</src>
     <src absneg="true">Z coordinate as 32-bit floating point</src>
   </ins>
 
-  <ins name="CUBEFACE2" title="Cube map transform step 2" dests="1" opcode="0xC1" unit="SFU">
+  <ins name="CUBEFACE2_V9" title="Cube map transform step 2" dests="1" opcode="0xC1" unit="SFU">
     <desc>Select the cube face index corresponding to the arguments.</desc>
     <src absneg="true">X coordinate as 32-bit floating point</src>
     <src absneg="true">Y coordinate as 32-bit floating point</src>
     <src absneg="true">Z coordinate as 32-bit floating point</src>
   </ins>
 
-  <group name="IDP" title="8-bit dot product" dests="1" opcode="0xC2" unit="FMA">
+  <group name="IDP" title="8-bit dot product" dests="1" opcode="0xC2" unused="true" unit="FMA">
     <desc>
       8-bit integer dot product between 4 channel vectors, intended for machine
       learning. Available in both unsigned and signed variants, controlling
@@ -2172,7 +2190,7 @@
     <ins name="ICMP_OR.u32" opcode="0xF0"/>
     <ins name="ICMP_OR.v2u16" opcode="0xF1"/>
     <ins name="ICMP_OR.v4u8" opcode="0xF2"/>
-    <cmp/>
+    <cmp int_only="true"/>
     <result_type/>
     <src widen="true">A</src>
     <src widen="true">B</src>
@@ -2189,7 +2207,7 @@
     <ins name="ICMP_AND.u32" opcode="0xF0"/>
     <ins name="ICMP_AND.v2u16" opcode="0xF1"/>
     <ins name="ICMP_AND.v4u8" opcode="0xF2"/>
-    <cmp/>
+    <cmp int_only="true"/>
     <result_type/>
     <src widen="true">A</src>
     <src widen="true">B</src>
@@ -2239,7 +2257,7 @@
     <ins name="ICMP_OR.s32" opcode="0xF8"/>
     <ins name="ICMP_OR.v2s16" opcode="0xF9"/>
     <ins name="ICMP_OR.v4s8" opcode="0xFA"/>
-    <cmp/>
+    <cmp int_only="true"/>
     <result_type/>
     <src widen="true">A</src>
     <src widen="true">B</src>
@@ -2256,7 +2274,7 @@
     <ins name="ICMP_AND.s32" opcode="0xF8"/>
     <ins name="ICMP_AND.v2s16" opcode="0xF9"/>
     <ins name="ICMP_AND.v4s8" opcode="0xFA"/>
-    <cmp/>
+    <cmp int_only="true"/>
     <result_type/>
     <src widen="true">A</src>
     <src widen="true">B</src>
@@ -2279,7 +2297,7 @@
     </desc>
     <ins name="ICMP_MULTI.u32" opcode="0xF0"/>
     <ins name="ICMP_MULTI.s32" opcode="0xF8"/>
-    <cmp/>
+    <cmp int_only="true"/>
     <result_type/>
     <src widen="true">A</src>
     <src widen="true">B</src>
@@ -2296,7 +2314,7 @@
       `IADD_IMM.i32` with the source tied to zero is the canonical immediate move.
     </desc>
     <src>A</src>
-    <imm name="constant" start="8" size="32"/>
+    <imm name="constant" ir_name="index" start="8" size="32"/>
   </ins>
 
   <ins name="IADD_IMM.v2i16" title="Integer addition with immediate" dests="1" opcode="0x111" unit="CVT">
@@ -2308,7 +2326,7 @@
       single 16-bit constant requires replication of the constant.
     </desc>
     <src>A</src>
-    <imm name="constant" start="8" size="32"/>
+    <imm name="constant" ir_name="index" start="8" size="32"/>
   </ins>
 
   <ins name="IADD_IMM.v4i8" title="Integer addition with immediate" dests="1" opcode="0x112" unit="CVT">
@@ -2320,7 +2338,7 @@
       single 8-bit constant requires replication of the constant.
     </desc>
     <src>A</src>
-    <imm name="constant" start="8" size="32"/>
+    <imm name="constant" ir_name="index" start="8" size="32"/>
   </ins>
 
   <ins name="FADD_IMM.f32" title="Floating-point addition with immediate" dests="1" opcode="0x114" unit="FMA">
@@ -2331,7 +2349,7 @@
       inline, `FADD.f32` is preferred.
     </desc>
     <src>A</src>
-    <imm name="constant" start="8" size="32"/>
+    <imm name="constant" ir_name="index" start="8" size="32"/>
   </ins>
 
   <ins name="FADD_IMM.v2f16" title="Floating-point addition with immediate" dests="1" opcode="0x115" unit="FMA">
@@ -2343,14 +2361,14 @@
       single 16-bit constant requires replication of the constant.
     </desc>
     <src float="true">A</src>
-    <imm name="constant" start="8" size="32"/>
+    <imm name="constant" ir_name="index" start="8" size="32"/>
   </ins>
 
-  <ins name="ATOM1_RETURN.i32" title="Atomic operations on memory with 1" opcode="0x69" opcode2="3" unit="LS">
+  <ins name="ATOM1_RETURN.i32" title="Atomic operations on memory with 1" opcode="0x69" opcode2="3" unused="true" unit="LS">
     <slot/>
     <sr_count/>
     <atom_opc_1/>
-    <mod name="memory_width" start="128" size="1" implied="true"/>
+    <va_mod name="memory_width" start="128" size="1" implied="true"/>
 
     <!-- Optional for ATOM1.i32, in which sr_count must be 0 -->
     <sr write="true"/>
@@ -2358,11 +2376,11 @@
     <imm name="offset" start="8" size="8"/>
   </ins>
 
-  <ins name="ATOM1_RETURN.i64" title="Atomic operations on memory with 1" opcode="0x69" opcode2="5" unit="LS">
+  <ins name="ATOM1_RETURN.i64" title="Atomic operations on memory with 1" opcode="0x69" opcode2="5" unused="true" unit="LS">
     <slot/>
     <sr_count/>
     <atom_opc_1/>
-    <mod name="memory_width" start="128" size="1" implied="true"/>
+    <va_mod name="memory_width" start="128" size="1" implied="true"/>
 
     <!-- Optional for ATOM1.i64, in which sr_count must be 0 -->
     <sr write="true"/>
@@ -2370,38 +2388,38 @@
     <imm name="offset" start="8" size="8"/>
   </ins>
 
-  <ins name="ATOM.i32" title="Atomic operations on memory" opcode="0x68" opcode2="3" unit="LS">
+  <ins name="ATOM.i32" title="Atomic operations on memory" opcode="0x68" opcode2="3" unused="true" unit="LS">
     <slot/>
     <sr_count/>
     <atom_opc/>
-    <mod name="memory_width" start="128" size="1" implied="true"/>
+    <va_mod name="memory_width" start="128" size="1" implied="true"/>
 
     <sr read="true"/>
     <src size="64">64-bit address to operate on</src>
     <imm name="offset" start="8" size="8"/>
   </ins>
 
-  <ins name="ATOM.i64" title="Atomic operations on memory" opcode="0x68" opcode2="5" unit="LS">
+  <ins name="ATOM.i64" title="Atomic operations on memory" opcode="0x68" opcode2="5" unused="true" unit="LS">
     <slot/>
     <sr_count/>
     <atom_opc/>
-    <mod name="memory_width" start="128" size="1" implied="true"/>
+    <va_mod name="memory_width" start="128" size="1" implied="true"/>
 
     <sr read="true"/>
     <src size="64">64-bit address to operate on</src>
     <imm name="offset" start="8" size="8"/>
   </ins>
 
-  <ins name="ATOM_RETURN.i32" title="Atomic operations on memory" opcode="0x120" opcode2="3" unit="LS">
+  <ins name="ATOM_RETURN.i32" title="Atomic operations on memory" opcode="0x120" opcode2="3" unused="true" unit="LS">
     <slot/>
     <sr_count/>
     <sr_write_count/>
 
     <!-- Only valid with .xchg to implement ACMPXCHG -->
-    <mod name="compare" start="26" size="1"/>
+    <va_mod name="compare" start="26" size="1"/>
 
     <atom_opc/>
-    <mod name="memory_width" start="128" size="1" implied="true"/>
+    <va_mod name="memory_width" start="128" size="1" implied="true"/>
 
     <sr write="true" flags="false"/>
     <sr read="true" flags="rw"/>
@@ -2409,13 +2427,13 @@
     <imm name="offset" start="8" size="8"/>
   </ins>
 
-  <ins name="ATOM_RETURN.i64" title="Atomic operations on memory" opcode="0x120" opcode2="5" unit="LS">
+  <ins name="ATOM_RETURN.i64" title="Atomic operations on memory" opcode="0x120" opcode2="5" unused="true" unit="LS">
     <slot/>
     <sr_count/>
     <sr_write_count/>
-    <mod name="compare" start="26" size="1"/>
+    <va_mod name="compare" start="26" size="1"/>
     <atom_opc/>
-    <mod name="memory_width" start="128" size="1" implied="true"/>
+    <va_mod name="memory_width" start="128" size="1" implied="true"/>
 
     <sr write="true" flags="false"/>
     <sr read="true" flags="rw"/>
@@ -2423,7 +2441,7 @@
     <imm name="offset" start="8" size="8"/>
   </ins>
 
-  <ins name="TEX_FETCH" title="Texel fetch" opcode="0x125" unit="T">
+  <ins name="TEX_FETCH" title="Texel fetch" opcode="0x125" message="tex" unit="T">
     <desc>Unfiltered textured instruction.</desc>
     <slot/>
     <skip/>
@@ -2434,6 +2452,7 @@
     <wide_indices/>
     <array_enable/>
     <texel_offset/>
+    <regfmt pseudo="true"/>
 
     <!-- Leave secondary_register_width as 0 -->
     <sr_count/>
@@ -2442,9 +2461,11 @@
     <sr write="true" flags="false"/>
     <sr read="true" flags="false"/>
     <src size="64">Image to read from</src>
+    <src pseudo="true">Dummy for IR</src>
+    <immediate name="sr_count" size="4" pseudo="true"/>
   </ins>
 
-  <ins name="TEX_SINGLE" title="Texture load" opcode="0x128" unit="T">
+  <ins name="TEX_SINGLE" title="Texture load" opcode="0x128" message="tex" unit="T">
     <desc>Ordinary texturing instruction using a sampler.</desc>
     <slot/>
     <skip/>
@@ -2455,6 +2476,7 @@
     <wide_indices/>
     <array_enable/>
     <texel_offset/>
+    <regfmt pseudo="true"/>
     <shadow/>
     <lod_mode/>
 
@@ -2465,9 +2487,11 @@
     <sr write="true" flags="false"/>
     <sr read="true" flags="false"/>
     <src size="64">Image to read from</src>
+    <src pseudo="true">Dummy for IR</src>
+    <immediate name="sr_count" size="4" pseudo="true"/>
   </ins>
 
-  <ins name="TEX_GATHER" title="Texel gather" opcode="0x129" unit="T">
+  <ins name="TEX_GATHER" title="Texel gather" opcode="0x129" message="tex" unit="T">
     <desc>Texture gather instruction.</desc>
     <slot/>
     <skip/>
@@ -2480,18 +2504,21 @@
     <texel_offset/>
     <integer_coordinates/>
     <fetch_component/>
+    <regfmt pseudo="true"/>
     <shadow/>
 
     <!-- Leave secondary_register_width as 0 -->
-    <sr_count/>
+    <sr_count count="sr_count"/>
     <sr_write_count/>
 
     <sr write="true" flags="false"/>
     <sr read="true" flags="false"/>
     <src size="64">Image to read from</src>
+    <src pseudo="true">Dummy source for IR</src>
+    <immediate name="sr_count" size="4" pseudo="true"/>
   </ins>
 
-  <ins name="TEX_DUAL" title="Dual texture" opcode="0x12F" unit="T">
+  <ins name="TEX_DUAL" title="Dual texture" opcode="0x12F" unused="true" unit="T">
     <desc>Pair of texture instructions.</desc>
     <slot/>
     <skip/>
@@ -2514,7 +2541,7 @@
     <src size="64">Image to read from</src>
   </ins>
 
-  <ins name="VAR_TEX_BUF_SINGLE" title="Fused varying-texturing" opcode="0x130" unit="VT">
+  <ins name="VAR_TEX_BUF_SINGLE" title="Fused varying-texturing" opcode="0x130" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_BUF_IMM_F32.v2.f32 followed by TEX, using both V and T units.
@@ -2536,7 +2563,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="VAR_TEX_BUF_GATHER" title="Fused varying-texturing" opcode="0x131" unit="VT">
+  <ins name="VAR_TEX_BUF_GATHER" title="Fused varying-texturing" opcode="0x131" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_BUF_IMM_F32.v2.f32 followed by TEX, using both V and T units.
@@ -2559,7 +2586,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="VAR_TEX_BUF_GRADIENT" title="Fused varying-texturing" opcode="0x132" unit="VT">
+  <ins name="VAR_TEX_BUF_GRADIENT" title="Fused varying-texturing" opcode="0x132" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_BUF_IMM_F32.v2.f32 followed by TEX, using both V and T units.
@@ -2582,7 +2609,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="VAR_TEX_BUF_DUAL" title="Fused varying-texturing" opcode="0x137" unit="VT">
+  <ins name="VAR_TEX_BUF_DUAL" title="Fused varying-texturing" opcode="0x137" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_BUF_IMM_F32.v2.f32 followed by TEX_DUAL, using both V and T units.
@@ -2604,7 +2631,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="VAR_TEX_SINGLE" title="Fused varying-texturing" opcode="0x138" unit="VT">
+  <ins name="VAR_TEX_SINGLE" title="Fused varying-texturing" opcode="0x138" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_IMM_F32.v2.f32 followed by TEX, using both V and T units.
@@ -2626,7 +2653,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="VAR_TEX_GATHER" title="Fused varying-texturing" opcode="0x139" unit="VT">
+  <ins name="VAR_TEX_GATHER" title="Fused varying-texturing" opcode="0x139" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_IMM_F32.v2.f32 followed by TEX, using both V and T units.
@@ -2649,7 +2676,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="VAR_TEX_GRADIENT" title="Fused varying-texturing" opcode="0x13A" unit="VT">
+  <ins name="VAR_TEX_GRADIENT" title="Fused varying-texturing" opcode="0x13A" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_IMM_F32.v2.f32 followed by TEX, using both V and T units.
@@ -2672,7 +2699,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="VAR_TEX_DUAL" title="Fused varying-texturing" opcode="0x13F" unit="VT">
+  <ins name="VAR_TEX_DUAL" title="Fused varying-texturing" opcode="0x13F" unused="true" unit="VT">
     <desc>
       Only works for FP32 varyings. Performance characteristics are similar
       to LD_VAR_IMM_F32.v2.f32 followed by TEX_DUAL, using both V and T units.
@@ -2694,7 +2721,7 @@
     <src>Varying offset</src>
   </ins>
 
-  <ins name="FMA_RSCALE.f32" title="Fused floating-point multiply add with exponent bias" dests="1" opcode="0x160" unit="FMA">
+  <ins name="FMA_RSCALE.f32" title="Fused floating-point multiply add with exponent bias" dests="1" opcode="0x160" unused="true" unit="FMA">
     <desc>
       First calculates $A \cdot B + C$ and then biases the exponent by D. Used in
       special transcendental function sequences. It should not be used for
@@ -2709,7 +2736,7 @@
     <src>D</src>
   </ins>
 
-  <ins name="FMA_RSCALE_N.f32" title="Fused floating-point multiply add with exponent bias and zero override" dests="1" opcode="0x161" unit="FMA">
+  <ins name="FMA_RSCALE_N.f32" title="Fused floating-point multiply add with exponent bias and zero override" dests="1" opcode="0x161" unused="true" unit="FMA">
     <desc>
       First calculates $A \cdot B + C$ and then biases the exponent by D. If $A
       = 0$ or $B = 0$, the multiply $A \cdot B$ is treated as zero even if an
@@ -2725,7 +2752,7 @@
     <src>D</src>
   </ins>
 
-  <ins name="FMA_RSCALE_LEFT.f32" title="Fused floating-point multiply add with exponent bias and asymmetric zero handling" dests="1" opcode="0x162" unit="FMA">
+  <ins name="FMA_RSCALE_LEFT.f32" title="Fused floating-point multiply add with exponent bias and asymmetric zero handling" dests="1" opcode="0x162" unused="true" unit="FMA">
     <desc>
       First calculates $A \cdot B + C$ and then biases the exponent by D. If $A
       = 0$ or $B = 0$, the multiply is treated as $A$ even if an
@@ -2741,7 +2768,7 @@
     <src>D</src>
   </ins>
 
-  <ins name="FMA_RSCALE_SCALE16.f32" title="Fused floating-point multiply add with 16-bit exponent bias" dests="1" opcode="0x163" unit="FMA">
+  <ins name="FMA_RSCALE_SCALE16.f32" title="Fused floating-point multiply add with 16-bit exponent bias" dests="1" opcode="0x163" unused="true" unit="FMA">
     <desc>
       First calculates $A \cdot B + C$ and then biases the exponent by D,
       interpreted as a 16-bit value. Used in special transcendental function

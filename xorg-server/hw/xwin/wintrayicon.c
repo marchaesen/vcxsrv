@@ -38,7 +38,10 @@
 #include "winprefs.h"
 #include "winclipboard/winclipboard.h"
 
+#include "dix/dix_priv.h"
+
 static NOTIFYICONDATA nid;
+
 /*
  * Initialize the tray icon
  */

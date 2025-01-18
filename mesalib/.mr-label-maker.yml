@@ -15,6 +15,7 @@ issues:
         'clc': 'OpenCL'
         'clover': 'clover'
         'crocus': 'crocus'
+        'd3d10umd': 'd3d10umd'
         'd3d12': 'd3d12'
         'docs': 'docs'
         'dozen': 'dozen'
@@ -27,6 +28,7 @@ issues:
         'freedreno/ir3': ['freedreno', 'ir3']
         'gallium': 'gallium'
         'gbm': 'gbm'
+        'gfxstream': 'gfxstream'
         'gitlab-ci': 'CI'
         'glsl': 'GLSL'
         'glvnd': 'GLVND'
@@ -57,6 +59,7 @@ issues:
         'nvc0': ['nouveau', 'nvc0']
         'nvk': 'NVK'
         'panfrost': 'panfrost'
+        'panvk': 'panvk'
         'pan/midgard': 'panfrost'
         'pvr': 'powervr'
         'r100': 'r100'
@@ -154,8 +157,20 @@ merge_requests:
         '^src/egl/': ['EGL']
         '^src/egl/drivers/wgl/': ['wgl']
         '^src/etnaviv/': ['etnaviv']
-        '^src/freedreno/': ['freedreno']
+        '^src/freedreno/afuc/': ['freedreno']
+        '^src/freedreno/common/': ['freedreno']
+        '^src/freedreno/computerator/': ['freedreno']
+        '^src/freedreno/decode/': ['freedreno']
+        '^src/freedreno/drm-shim/': ['freedreno']
+        '^src/freedreno/drm/': ['freedreno']
+        '^src/freedreno/ds/': ['freedreno']
+        '^src/freedreno/fdl/': ['freedreno']
+        '^src/freedreno/ir2/': ['freedreno']
         '^src/freedreno/ir3/': ['ir3']
+        '^src/freedreno/isa/': ['freedreno']
+        '^src/freedreno/perfcntrs/': ['freedreno']
+        '^src/freedreno/registers/': ['freedreno']
+        '^src/freedreno/rnn/': ['freedreno']
         '^src/freedreno/vulkan/': ['turnip']
         '^src/gallium/auxiliary/': ['gallium']
         '^src/gallium/auxiliary/nir/': ['NIR']
@@ -190,6 +205,7 @@ merge_requests:
         '^src/gallium/drivers/virgl/': ['virgl']
         '^src/gallium/drivers/zink/': ['zink']
         '^src/gallium/frontends/clover/': ['clover']
+        '^src/gallium/frontends/d3d10umd/': ['d3d10umd']
         '^src/gallium/frontends/dri/': ['gallium']
         '^src/gallium/frontends/glx/': ['GLX']
         '^src/gallium/frontends/hgl/': ['haiku']
@@ -205,6 +221,7 @@ merge_requests:
         # '^src/gallium/frontends/xa/': ['']
         '^src/gallium/include/': ['gallium']
         '^src/gallium/targets/': ['gallium']
+        '^src/gallium/targets/d3d10umd': ['d3d10umd']
         '^src/gallium/targets/opencl/': ['clover']
         '^src/gallium/targets/osmesa/': ['osmesa']
         '^src/gallium/targets/rusticl/': ['Rusticl']
@@ -231,6 +248,7 @@ merge_requests:
         '^src/gallium/winsys/vc4/': ['vc4']
         '^src/gallium/winsys/virgl/': ['virgl']
         '^src/gbm/': ['gbm']
+        '^src/gfxstream/': ['gfxstream']
         '^src/glx/': ['GLX']
         '^src/imagination/': ['powervr']
         '^src/intel/blorp/': ['blorp']
@@ -267,18 +285,21 @@ merge_requests:
         '^src/nouveau/codegen/': ['nouveau']
         '^src/nouveau/compiler/': ['NAK']
         '^src/nouveau/drm-shim/': ['nouveau']
+        '^src/nouveau/drm/': ['nouveau']
+        '^src/nouveau/headers/': ['NVK']
         '^src/nouveau/mme/': ['NVK']
         '^src/nouveau/nil/': ['NVK']
-        '^src/nouveau/nvidia-headers/': ['NVK']
         '^src/nouveau/vulkan/': ['NVK']
         '^src/nouveau/winsys/': ['NVK']
         '^src/panfrost/': ['panfrost']
+        '^src/panfrost/vulkan/': ['panvk']
         '^src/virtio/vulkan/': ['venus']
         '^src/virtio/venus-protocol/': ['venus']
         '^src/virtio/ci/': ['venus']
         '^src/util/': ['util']
         '^src/util/00-mesa-defaults.conf': ['drirc']
         '^src/vulkan/': ['vulkan']
+        '^src/vulkan/wsi/': ['wsi']
         '^VERSION$': ['maintainer-scripts']
 
         'Android': ['android']

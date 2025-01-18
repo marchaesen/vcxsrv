@@ -296,6 +296,14 @@ fui( float f )
    return fi.ui;
 }
 
+static inline uint64_t
+dui( double f )
+{
+   union di di;
+   di.d = f;
+   return di.ui;
+}
+
 static inline float
 uif(uint32_t ui)
 {
@@ -304,6 +312,13 @@ uif(uint32_t ui)
    return fi.f;
 }
 
+static inline double
+uid(uint64_t ui)
+{
+   union di di;
+   di.ui = ui;
+   return di.d;
+}
 
 /**
  * Convert uint8_t to float in [0, 1].

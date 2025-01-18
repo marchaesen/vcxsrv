@@ -1,24 +1,6 @@
 /*
- * Copyright (C) 2015-2018 Rob Clark <robclark@freedesktop.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright © 2015-2018 Rob Clark <robclark@freedesktop.org>
+ * SPDX-License-Identifier: MIT
  *
  * Authors:
  *    Rob Clark <robclark@freedesktop.org>
@@ -31,6 +13,7 @@
 #include "ir3_shader.h"
 #include "nir.h"
 #include "nir_intrinsics_indices.h"
+#include "util/u_math.h"
 
 struct ir3_context *
 ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader *shader,
@@ -83,7 +66,7 @@ ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader *shader,
     */
 
    ctx->s = nir_shader_clone(ctx, shader->nir);
-   ir3_nir_lower_variant(so, ctx->s);
+   ir3_nir_lower_variant(so, &shader->options.nir_options, ctx->s);
 
    bool progress = false;
    bool needs_late_alg = false;
@@ -120,9 +103,17 @@ ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader *shader,
    if ((so->type == MESA_SHADER_FRAGMENT) && compiler->has_fs_tex_prefetch)
       NIR_PASS_V(ctx->s, ir3_nir_lower_tex_prefetch);
 
-   NIR_PASS(progress, ctx->s, nir_convert_to_lcssa, true, true);
+   bool vectorized = false;
+   NIR_PASS(vectorized, ctx->s, nir_opt_vectorize, ir3_nir_vectorize_filter,
+            NULL);
 
-   NIR_PASS(progress, ctx->s, nir_lower_phis_to_scalar, true);
+   if (vectorized) {
+      NIR_PASS_V(ctx->s, nir_opt_undef);
+      NIR_PASS_V(ctx->s, nir_copy_prop);
+      NIR_PASS_V(ctx->s, nir_opt_dce);
+   }
+
+   NIR_PASS(progress, ctx->s, nir_convert_to_lcssa, true, true);
 
    /* This has to go at the absolute end to make sure that all SSA defs are
     * correctly marked.
@@ -154,7 +145,15 @@ ir3_context_init(struct ir3_compiler *compiler, struct ir3_shader *shader,
 
       unsigned instruction_count = 0;
       nir_foreach_block (block, fxn) {
-         instruction_count += exec_list_length(&block->instr_list);
+         nir_foreach_instr (instr, block) {
+            /* Vectorized ALU instructions expand to one scalar instruction per
+             * component.
+             */
+            if (instr->type == nir_instr_type_alu)
+               instruction_count += nir_instr_as_alu(instr)->def.num_components;
+            else
+               instruction_count++;
+         }
       }
 
       if (instruction_count < 50) {
@@ -672,4 +671,30 @@ ir3_create_array_store(struct ir3_context *ctx, struct ir3_array *arr, int n,
     * pass won't know this.. so keep all array stores:
     */
    array_insert(block, block->keeps, mov);
+}
+
+void
+ir3_lower_imm_offset(struct ir3_context *ctx, nir_intrinsic_instr *intr,
+                     nir_src *offset_src, unsigned imm_offset_bits,
+                     struct ir3_instruction **offset, unsigned *imm_offset)
+{
+   nir_const_value *nir_const_offset = nir_src_as_const_value(*offset_src);
+   int base = nir_intrinsic_base(intr);
+   unsigned imm_offset_bound = (1 << imm_offset_bits);
+   assert(base >= 0 && base < imm_offset_bound);
+
+   if (nir_const_offset) {
+      /* If both the offset and the base (immed offset) are constants, lower the
+       * offset to a multiple of the bound and the immed offset to the
+       * remainder. This ensures that the offset register can often be reused
+       * among multiple contiguous accesses.
+       */
+      uint32_t full_offset = base + nir_const_offset->u32;
+      *offset =
+         create_immed(ctx->block, ROUND_DOWN_TO(full_offset, imm_offset_bound));
+      *imm_offset = full_offset % imm_offset_bound;
+   } else {
+      *offset = ir3_get_src(ctx, offset_src)[0];
+      *imm_offset = base;
+   }
 }

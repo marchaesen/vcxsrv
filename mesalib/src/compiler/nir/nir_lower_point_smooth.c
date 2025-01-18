@@ -62,7 +62,7 @@ lower_point_smooth(nir_builder *b, nir_intrinsic_instr *intr,
    nir_def *coord = nir_load_point_coord_maybe_flipped(b);
 
    /* point_size = 1.0 / dFdx(gl_PointCoord.x); */
-   nir_def *point_size = nir_frcp(b, nir_fddx(b, nir_channel(b, coord, 0)));
+   nir_def *point_size = nir_frcp(b, nir_ddx(b, nir_channel(b, coord, 0)));
 
    /* radius = point_size * 0.5 */
    nir_def *radius = nir_fmul_imm(b, point_size, 0.5);

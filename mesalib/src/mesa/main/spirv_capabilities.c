@@ -69,7 +69,6 @@ _mesa_fill_supported_spirv_capabilities(struct spirv_capabilities *caps,
       .ImageQuery                         = true,
       .DerivativeControl                  = gl_exts->ARB_derivative_control,
       .InterpolationFunction              = gl_exts->ARB_gpu_shader5,
-      .TransformFeedback                  = true,
       .GeometryStreams                    = gl_exts->ARB_gpu_shader5,
       .StorageImageWriteWithoutFormat     = gl_exts->ARB_shader_image_load_store,
       .MultiViewport                      = gl_exts->ARB_viewport_array,
@@ -98,5 +97,22 @@ _mesa_fill_supported_spirv_capabilities(struct spirv_capabilities *caps,
       .TransformFeedback                  = gl_exts->ARB_transform_feedback3,
       .VariablePointers                   = spirv_exts->supported[SPV_KHR_variable_pointers],
       .IntegerFunctions2INTEL             = gl_exts->INTEL_shader_integer_functions2,
+
+      .GroupNonUniform                    = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_BASIC_BIT_KHR,
+      .GroupNonUniformArithmetic          = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR,
+      .GroupNonUniformBallot              = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR,
+      .GroupNonUniformClustered           = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_CLUSTERED_BIT_KHR,
+      .GroupNonUniformQuad                = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_QUAD_BIT_KHR,
+      .GroupNonUniformShuffle             = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR,
+      .GroupNonUniformShuffleRelative     = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR,
+      .GroupNonUniformVote                = consts->ShaderSubgroupSupportedFeatures &
+                                            GL_SUBGROUP_FEATURE_VOTE_BIT_KHR,
    };
 }

@@ -221,7 +221,7 @@ trace_video_codec_process_frame(struct pipe_video_codec *_codec,
     codec->process_frame(codec, source, process_properties);
 }
 
-static void
+static int
 trace_video_codec_end_frame(struct pipe_video_codec *_codec,
                     struct pipe_video_buffer *_target,
                     struct pipe_picture_desc *picture)
@@ -241,6 +241,7 @@ trace_video_codec_end_frame(struct pipe_video_codec *_codec,
     codec->end_frame(codec, target, picture);
     if (copied)
         FREE(picture);
+    return 0;
 }
 
 static void
@@ -275,40 +276,19 @@ trace_video_codec_get_feedback(struct pipe_video_codec *_codec,
 }
 
 static int
-trace_video_codec_get_decoder_fence(struct pipe_video_codec *_codec,
-                        struct pipe_fence_handle *fence,
-                        uint64_t timeout)
+trace_video_codec_fence_wait(struct pipe_video_codec *_codec,
+                             struct pipe_fence_handle *fence,
+                             uint64_t timeout)
 {
     struct trace_video_codec *tr_vcodec = trace_video_codec(_codec);
     struct pipe_video_codec *codec = tr_vcodec->video_codec;
 
-    trace_dump_call_begin("pipe_video_codec", "get_decoder_fence");
+    trace_dump_call_begin("pipe_video_codec", "fence_wait");
     trace_dump_arg(ptr, codec);
     trace_dump_arg(ptr, fence);
     trace_dump_arg(uint, timeout);
 
-    int ret = codec->get_decoder_fence(codec, fence, timeout);
-
-    trace_dump_ret(int, ret);
-    trace_dump_call_end();
-
-    return ret;
-}
-
-static int
-trace_video_codec_get_processor_fence(struct pipe_video_codec *_codec,
-                            struct pipe_fence_handle *fence,
-                            uint64_t timeout)
-{
-    struct trace_video_codec *tr_vcodec = trace_video_codec(_codec);
-    struct pipe_video_codec *codec = tr_vcodec->video_codec;
-
-    trace_dump_call_begin("pipe_video_codec", "get_processor_fence");
-    trace_dump_arg(ptr, codec);
-    trace_dump_arg(ptr, fence);
-    trace_dump_arg(uint, timeout);
-
-    int ret = codec->get_processor_fence(codec, fence, timeout);
+    int ret = codec->fence_wait(codec, fence, timeout);
 
     trace_dump_ret(int, ret);
     trace_dump_call_end();
@@ -368,8 +348,7 @@ trace_video_codec_create(struct trace_context *tr_ctx,
     TR_VC_INIT(end_frame);
     TR_VC_INIT(flush);
     TR_VC_INIT(get_feedback);
-    TR_VC_INIT(get_decoder_fence);
-    TR_VC_INIT(get_processor_fence);
+    TR_VC_INIT(fence_wait);
     TR_VC_INIT(update_decoder_target);
 
 #undef TR_VC_INIT

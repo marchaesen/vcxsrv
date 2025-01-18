@@ -30,18 +30,22 @@ load_frag_coord(nir_builder *b, nir_deref_instr *deref,
 {
    if (options->use_fragcoord_sysval) {
       nir_def *frag_coord = nir_load_frag_coord(b);
-      if (options->unscaled_input_attachment_ir3) {
+      if (options->unscaled_input_attachment_ir3 ||
+          options->unscaled_depth_stencil_ir3) {
          nir_variable *var = nir_deref_instr_get_variable(deref);
          unsigned base = var->data.index;
          nir_def *unscaled_frag_coord = nir_load_frag_coord_unscaled_ir3(b);
-         if (deref->deref_type == nir_deref_type_array) {
+         if (deref->deref_type == nir_deref_type_array &&
+             options->unscaled_input_attachment_ir3) {
             nir_def *unscaled =
                nir_i2b(b, nir_iand(b, nir_ishr(b, nir_imm_int(b, options->unscaled_input_attachment_ir3 >> base), deref->arr.index.ssa),
                                    nir_imm_int(b, 1)));
             frag_coord = nir_bcsel(b, unscaled, unscaled_frag_coord, frag_coord);
          } else {
             assert(deref->deref_type == nir_deref_type_var);
-            bool unscaled = (options->unscaled_input_attachment_ir3 >> base) & 1;
+            bool unscaled = base == NIR_VARIABLE_NO_INDEX ?
+               options->unscaled_depth_stencil_ir3 :
+               ((options->unscaled_input_attachment_ir3 >> base) & 1);
             frag_coord = unscaled ? unscaled_frag_coord : frag_coord;
          }
       }
@@ -215,7 +219,6 @@ nir_lower_input_attachments(nir_shader *shader,
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    return nir_shader_instructions_pass(shader, lower_input_attachments_instr,
-                                       nir_metadata_block_index |
-                                          nir_metadata_dominance,
+                                       nir_metadata_control_flow,
                                        (void *)options);
 }

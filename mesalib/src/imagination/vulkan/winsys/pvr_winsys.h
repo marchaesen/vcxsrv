@@ -267,7 +267,7 @@ struct pvr_winsys_transfer_cmd {
    /* Firmware stream buffer. This is the maximum possible size taking into
     * consideration all HW features, quirks and enhancements.
     */
-   uint8_t fw_stream[172];
+   uint8_t fw_stream[176];
    uint32_t fw_stream_len;
 
    struct pvr_winsys_transfer_cmd_flags {

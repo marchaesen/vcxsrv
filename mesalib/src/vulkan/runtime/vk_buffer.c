@@ -107,9 +107,14 @@ vk_common_GetBufferMemoryRequirements2(VkDevice _device,
    VK_FROM_HANDLE(vk_device, device, _device);
    VK_FROM_HANDLE(vk_buffer, buffer, pInfo->buffer);
 
+   VkBufferUsageFlags2CreateInfoKHR usage2_info = {
+      .sType = VK_STRUCTURE_TYPE_BUFFER_USAGE_FLAGS_2_CREATE_INFO_KHR,
+      .pNext = NULL,
+      .usage = buffer->usage,
+   };
    VkBufferCreateInfo pCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
+      .pNext = &usage2_info,
       .usage = buffer->usage,
       .size = buffer->size,
       .flags = buffer->create_flags,

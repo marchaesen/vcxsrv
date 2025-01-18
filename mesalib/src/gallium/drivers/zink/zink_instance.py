@@ -44,10 +44,8 @@ EXTENSIONS = [
         nonstandard=True),
     Extension("VK_KHR_surface"),
     Extension("VK_EXT_headless_surface"),
-    Extension("VK_KHR_wayland_surface",
-              conditions=["!display_dev"]),
-    Extension("VK_KHR_xcb_surface",
-              conditions=["!display_dev"]),
+    Extension("VK_KHR_wayland_surface"),
+    Extension("VK_KHR_xcb_surface"),
     Extension("VK_KHR_win32_surface"),
 ]
 
@@ -100,7 +98,7 @@ struct zink_instance_info {
 };
 
 bool
-zink_create_instance(struct zink_screen *screen, bool display_dev);
+zink_create_instance(struct zink_screen *screen);
 
 void
 zink_verify_instance_extensions(struct zink_screen *screen);
@@ -111,10 +109,10 @@ zink_verify_instance_extensions(struct zink_screen *screen);
 %for ext in extensions:
 %if registry.in_registry(ext.name):
 %for cmd in registry.get_registry_entry(ext.name).instance_commands:
-void zink_stub_${cmd.lstrip("vk")}(void);
+void VKAPI_PTR zink_stub_${cmd.lstrip("vk")}(void);
 %endfor
 %for cmd in registry.get_registry_entry(ext.name).pdevice_commands:
-void zink_stub_${cmd.lstrip("vk")}(void);
+void VKAPI_PTR zink_stub_${cmd.lstrip("vk")}(void);
 %endfor
 %endif
 %endfor
@@ -131,7 +129,7 @@ impl_code = """
 #include "zink_screen.h"
 
 bool
-zink_create_instance(struct zink_screen *screen, bool display_dev)
+zink_create_instance(struct zink_screen *screen)
 {
    struct zink_instance_info *instance_info = &screen->instance_info;
 
@@ -329,7 +327,7 @@ zink_verify_instance_extensions(struct zink_screen *screen)
 %if ext.platform_guard:
 #ifdef ${ext.platform_guard}
 %endif
-void
+void VKAPI_PTR
 zink_stub_${cmd.lstrip("vk")}()
 {
    mesa_loge("ZINK: ${cmd} is not loaded properly!");

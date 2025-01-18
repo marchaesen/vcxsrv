@@ -267,6 +267,9 @@ struct vk_device {
    struct hash_table *swapchain_private;
    mtx_t swapchain_name_mtx;
    struct hash_table *swapchain_name;
+
+   /* For VK_KHR_pipeline_binary */
+   bool disable_internal_cache;
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_device, base, VkDevice,

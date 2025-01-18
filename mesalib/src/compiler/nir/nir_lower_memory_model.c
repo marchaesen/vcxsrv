@@ -241,7 +241,7 @@ nir_lower_memory_model(nir_shader *shader)
       progress |= lower_make_available(cf_node, &modes);
 
    if (progress)
-      nir_metadata_preserve(impl, nir_metadata_block_index | nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    else
       nir_metadata_preserve(impl, nir_metadata_all);
 
