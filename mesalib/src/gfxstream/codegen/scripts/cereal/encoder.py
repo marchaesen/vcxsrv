@@ -40,7 +40,7 @@ encoder_impl_preamble ="""
 
 using namespace gfxstream::vk;
 
-using android::base::BumpPool;
+using gfxstream::aemu::BumpPool;
 
 #include "VkEncoder.cpp.inl"
 

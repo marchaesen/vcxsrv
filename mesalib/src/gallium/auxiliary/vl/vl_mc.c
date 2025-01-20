@@ -86,7 +86,7 @@ calc_line(struct pipe_screen *screen, struct ureg_program *shader)
 
    tmp = ureg_DECL_temporary(shader);
 
-   if (screen->get_param(screen, PIPE_CAP_FS_POSITION_IS_SYSVAL))
+   if (screen->caps.fs_position_is_sysval)
       pos = ureg_DECL_system_value(shader, TGSI_SEMANTIC_POSITION, 0);
    else
       pos = ureg_DECL_fs_input(shader, TGSI_SEMANTIC_POSITION, VS_O_VPOS,

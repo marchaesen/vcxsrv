@@ -494,12 +494,12 @@ clear_image_level_layers(struct vk_command_buffer *cmd,
          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
    }
 
-   if (image->aspects & VK_IMAGE_ASPECT_DEPTH_BIT) {
+   if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT) {
       vk_render.pDepthAttachment = &vk_att;
       meta_render.depth_attachment_format = format;
    }
 
-   if (image->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
+   if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
       vk_render.pStencilAttachment = &vk_att;
       meta_render.stencil_attachment_format = format;
    }

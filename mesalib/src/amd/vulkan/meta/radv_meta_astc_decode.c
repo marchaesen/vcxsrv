@@ -11,28 +11,6 @@
 #include "vk_common_entrypoints.h"
 #include "vk_format.h"
 
-VkResult
-radv_device_init_meta_astc_decode_state(struct radv_device *device, bool on_demand)
-{
-   const struct radv_physical_device *pdev = radv_device_physical(device);
-   struct radv_meta_state *state = &device->meta_state;
-
-   if (!pdev->emulate_astc)
-      return VK_SUCCESS;
-
-   return vk_texcompress_astc_init(&device->vk, &state->alloc, state->cache, &state->astc_decode);
-}
-
-void
-radv_device_finish_meta_astc_decode_state(struct radv_device *device)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   struct vk_texcompress_astc_state *astc = state->astc_decode;
-
-   if (astc)
-      vk_texcompress_astc_finish(&device->vk, &state->alloc, astc);
-}
-
 static void
 decode_astc(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_iview, struct radv_image_view *dst_iview,
             VkImageLayout layout, const VkOffset3D *offset, const VkExtent3D *extent)

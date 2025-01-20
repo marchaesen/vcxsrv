@@ -569,6 +569,9 @@ struct vtn_value {
    /* Valid when all the members of the value are undef. */
    bool is_undef_constant:1;
 
+   /* Marked as OpEntryPoint */
+   bool is_entrypoint:1;
+
    const char *name;
    struct vtn_decoration *decoration;
    struct vtn_type *type;

@@ -302,7 +302,7 @@ bufferobj_data(struct gl_context *ctx,
          return GL_TRUE;
       } else if (is_mapped) {
          return GL_TRUE; /* can't reallocate, nothing to do */
-      } else if (screen->get_param(screen, PIPE_CAP_INVALIDATE_BUFFER)) {
+      } else if (screen->caps.invalidate_buffer) {
          pipe->invalidate_resource(pipe, obj->buffer);
          return GL_TRUE;
       }
@@ -995,10 +995,11 @@ convert_clear_buffer_data(struct gl_context *ctx,
                           const GLvoid *data, const char *caller)
 {
    GLenum internalformatBase = _mesa_get_format_base_format(internalformat);
+   struct gl_pixelstore_attrib packing = {.Alignment = 1};
 
    if (_mesa_texstore(ctx, 1, internalformatBase, internalformat,
                       0, &clearValue, 1, 1, 1,
-                      format, type, data, &ctx->Unpack)) {
+                      format, type, data, &packing)) {
       return true;
    }
    else {
@@ -2179,7 +2180,7 @@ inlined_buffer_storage(GLenum target, GLuint buffer, GLsizeiptr size,
 
    if (mem) {
       if (!no_error) {
-         if (!ctx->Extensions.EXT_memory_object) {
+         if (!_mesa_has_EXT_memory_object(ctx)) {
             _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
             return;
          }

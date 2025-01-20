@@ -8,12 +8,16 @@
 #define MESA_CACHE_DB_MULTIPART_H
 
 #include "mesa_cache_db.h"
+#include "simple_mtx.h"
 
 struct mesa_cache_db_multipart {
-   struct mesa_cache_db *parts;
+   struct mesa_cache_db **parts;
    unsigned int num_parts;
    volatile unsigned int last_read_part;
    volatile unsigned int last_written_part;
+   const char *cache_path;
+   uint64_t max_cache_size;
+   simple_mtx_t lock;
 };
 
 bool

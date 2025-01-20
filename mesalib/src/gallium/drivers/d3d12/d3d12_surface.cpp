@@ -248,8 +248,8 @@ d3d12_create_surface(struct pipe_context *pctx,
    pipe_reference_init(&surface->base.reference, 1);
    surface->base.context = pctx;
    surface->base.format = tpl->format;
-   surface->base.width = u_minify(pres->width0, tpl->u.tex.level);
-   surface->base.height = u_minify(pres->height0, tpl->u.tex.level);
+   surface->base.width = static_cast<uint16_t>(u_minify(pres->width0, tpl->u.tex.level));
+   surface->base.height = static_cast<uint16_t>(u_minify(pres->height0, tpl->u.tex.level));
    surface->base.u.tex.level = tpl->u.tex.level;
    surface->base.u.tex.first_layer = tpl->u.tex.first_layer;
    surface->base.u.tex.last_layer = tpl->u.tex.last_layer;

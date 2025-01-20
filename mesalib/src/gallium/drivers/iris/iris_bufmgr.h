@@ -365,7 +365,7 @@ struct iris_bo {
  * integrated platforms without LLC.
  * Should only be used in BOs that will be written and read from CPU often.
  */
-#define BO_ALLOC_COHERENT        (1<<1)
+#define BO_ALLOC_CACHED_COHERENT (1<<1)
 /* Place BO only on smem. */
 #define BO_ALLOC_SMEM            (1<<2)
 /* BO can be sent to display. */
@@ -665,6 +665,7 @@ bool iris_bufmgr_use_global_vm_id(struct iris_bufmgr *bufmgr);
 struct intel_bind_timeline *iris_bufmgr_get_bind_timeline(struct iris_bufmgr *bufmgr);
 bool iris_bufmgr_compute_engine_supported(struct iris_bufmgr *bufmgr);
 uint64_t iris_bufmgr_get_dummy_aux_address(struct iris_bufmgr *bufmgr);
+struct iris_bo *iris_bufmgr_get_mem_fence_bo(struct iris_bufmgr *bufmgr);
 
 enum iris_madvice {
    IRIS_MADVICE_WILL_NEED = 0,

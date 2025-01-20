@@ -159,6 +159,7 @@ enum lut_dimension {
     LUT_DIM_9       = 9,
     LUT_DIM_17      = 17,
 };
+
 struct vpe_rgb {
     uint32_t red;
     uint32_t green;

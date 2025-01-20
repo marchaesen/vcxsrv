@@ -36,8 +36,8 @@ static void
 set_try_tlb_resolve(struct v3dv_device *device,
                     struct v3dv_render_pass_attachment *att)
 {
-   const struct v3dv_format *format = v3dv_X(device, get_format)(att->desc.format);
-   att->try_tlb_resolve = v3dv_X(device, format_supports_tlb_resolve)(format);
+   const struct v3dv_format *format = v3d_X((&device->devinfo), get_format)(att->desc.format);
+   att->try_tlb_resolve = v3d_X((&device->devinfo), format_supports_tlb_resolve)(format);
 }
 
 static void
@@ -333,13 +333,13 @@ get_granularity(struct v3dv_device *device,
    uint32_t max_internal_bpp = 0;
    uint32_t total_color_bpp = 0;
    for (int i = 0; i < count; i++) {
-      const struct v3dv_format *format = v3dv_X(device, get_format)(formats[i]);
+      const struct v3dv_format *format = v3d_X((&device->devinfo), get_format)(formats[i]);
       assert(format);
       /* We don't support rendering to YCbCr images */
       assert(format->plane_count == 1);
 
       uint32_t internal_type, internal_bpp;
-      v3dv_X(device, get_internal_type_bpp_for_output_format)
+      v3d_X((&device->devinfo), get_internal_type_bpp_for_output_format)
          (format->planes[0].rt_type, &internal_type, &internal_bpp);
 
       max_internal_bpp = MAX2(max_internal_bpp, internal_bpp);

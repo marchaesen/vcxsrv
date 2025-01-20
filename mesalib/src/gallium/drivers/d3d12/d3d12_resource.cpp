@@ -447,7 +447,7 @@ convert_planar_resource(struct d3d12_resource *res)
       plane_res->plane_slice = plane;
       plane_res->base.b.format = util_format_get_plane_format(res->base.b.format, plane);
       plane_res->base.b.width0 = util_format_get_plane_width(res->base.b.format, plane, res->base.b.width0);
-      plane_res->base.b.height0 = util_format_get_plane_height(res->base.b.format, plane, res->base.b.height0);
+      plane_res->base.b.height0 = static_cast<uint16_t>(util_format_get_plane_height(res->base.b.format, plane, res->base.b.height0));
 
 #if MESA_DEBUG
       struct d3d12_screen *screen = d3d12_screen(res->base.b.screen);
@@ -637,7 +637,7 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
       screen->dev->GetCopyableFootprints(&temp_desc, subresource, 1, 0, &placed_footprint, nullptr, nullptr, nullptr);
    } else {
       footprint->Format = incoming_res_desc.Format;
-      footprint->Width = incoming_res_desc.Width;
+      footprint->Width = static_cast<UINT>(incoming_res_desc.Width);
       footprint->Height = incoming_res_desc.Height;
       footprint->Depth = incoming_res_desc.DepthOrArraySize;
    }
@@ -647,8 +647,8 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
       debug_printf("d3d12: Importing resource too large\n");
       goto invalid;
    }
-   res->base.b.width0 = incoming_res_desc.Width;
-   res->base.b.height0 = incoming_res_desc.Height;
+   res->base.b.width0 = static_cast<uint32_t>(incoming_res_desc.Width);
+   res->base.b.height0 = static_cast<uint16_t>(incoming_res_desc.Height);
    res->base.b.depth0 = 1;
    res->base.b.array_size = 1;
 
@@ -671,14 +671,14 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
       break;
    case D3D12_RESOURCE_DIMENSION_TEXTURE3D:
       res->base.b.target = PIPE_TEXTURE_3D;
-      res->base.b.depth0 = footprint->Depth;
+      res->base.b.depth0 = static_cast<uint16_t>(footprint->Depth);
       break;
    default:
       unreachable("Invalid dimension");
       break;
    }
-   res->base.b.nr_samples = incoming_res_desc.SampleDesc.Count;
-   res->base.b.last_level = incoming_res_desc.MipLevels - 1;
+   res->base.b.nr_samples = static_cast<uint8_t>(incoming_res_desc.SampleDesc.Count);
+   res->base.b.last_level = static_cast<uint8_t>(incoming_res_desc.MipLevels - 1);
    res->base.b.usage = PIPE_USAGE_DEFAULT;
    res->base.b.bind |= PIPE_BIND_SHARED;
    if (incoming_res_desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
@@ -860,8 +860,8 @@ d3d12_resource_from_resource(struct pipe_screen *pscreen,
     }
     
     templ.format = d3d12_get_pipe_format(input_desc.Format);
-    templ.width0 = input_desc.Width;
-    templ.height0 = input_desc.Height;
+    templ.width0 = static_cast<uint32_t>(input_desc.Width);
+    templ.height0 = static_cast<uint16_t>(input_desc.Height);
     templ.depth0 = input_desc.DepthOrArraySize;
     templ.array_size = input_desc.DepthOrArraySize;
     templ.flags = 0;
@@ -904,10 +904,10 @@ static void d3d12_adjust_transfer_dimensions_for_plane(const struct d3d12_resour
    float height_multiplier = res->first_plane->height0 / (float) util_format_get_plane_height(res->overall_format, res->plane_slice, res->first_plane->height0);
    
    /* Normalize box back to overall dimensions (first plane)*/
-   ptrans->box.width = width_multiplier * original_box->width;
-   ptrans->box.height = height_multiplier * original_box->height;
-   ptrans->box.x = width_multiplier * original_box->x;
-   ptrans->box.y = height_multiplier * original_box->y;
+   ptrans->box.width = static_cast<int32_t>(width_multiplier * original_box->width);
+   ptrans->box.height = static_cast<int32_t>(height_multiplier * original_box->height);
+   ptrans->box.x = static_cast<int32_t>(width_multiplier * original_box->x);
+   ptrans->box.y = static_cast<int32_t>(height_multiplier * original_box->y);
 
    /* Now adjust dimensions to plane_slice*/
    ptrans->box.width = util_format_get_plane_width(res->overall_format, plane_slice, ptrans->box.width);
@@ -936,10 +936,10 @@ void d3d12_resource_get_planes_info(pipe_resource *pres,
       strides[plane_slice] = align(util_format_get_stride(cur_plane_resource->format, width),
                            D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
 
-      layer_strides[plane_slice] = align(util_format_get_2d_size(cur_plane_resource->format,
-                                                   strides[plane_slice],
-                                                   height),
-                                 D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+      layer_strides[plane_slice] = static_cast<unsigned>(align(static_cast<uint32_t>(util_format_get_2d_size(cur_plane_resource->format,
+                                                         strides[plane_slice],
+                                                         height)),
+                                                         D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT));
 
       offsets[plane_slice] = *staging_res_size;
       *staging_res_size += layer_strides[plane_slice];
@@ -1082,7 +1082,13 @@ d3d12_resource_from_memobj(struct pipe_screen *pscreen,
    struct winsys_handle whandle = {};
    whandle.type = WINSYS_HANDLE_TYPE_D3D12_RES;
    whandle.com_obj = memobj->res ? (void *) memobj->res : (void *) memobj->heap;
-   whandle.offset = offset;
+
+   if (offset > UINT32_MAX) {
+      debug_printf("d3d12: Offset too large for resource \n");
+      return NULL;
+   }
+
+   whandle.offset = static_cast<unsigned int>(offset);
    whandle.format = templ->format;
    whandle.modifier = memobj->res ? 0 : 1;
 
@@ -1392,8 +1398,8 @@ transfer_buf_to_buf(struct d3d12_context *ctx,
                                   width);
 }
 
-static unsigned
-linear_offset(int x, int y, int z, unsigned stride, unsigned layer_stride)
+static size_t
+linear_offset(int x, int y, int z, unsigned stride, size_t layer_stride)
 {
    return x +
           y * stride +
@@ -1401,7 +1407,7 @@ linear_offset(int x, int y, int z, unsigned stride, unsigned layer_stride)
 }
 
 static D3D12_RANGE
-linear_range(const struct pipe_box *box, unsigned stride, unsigned layer_stride)
+linear_range(const struct pipe_box *box, unsigned stride, size_t layer_stride)
 {
    D3D12_RANGE range;
 
@@ -1426,7 +1432,7 @@ synchronize(struct d3d12_context *ctx,
    /* Check whether that range contains valid data; if not, we might not need to sync */
    if (!(usage & PIPE_MAP_UNSYNCHRONIZED) &&
        usage & PIPE_MAP_WRITE &&
-       !util_ranges_intersect(&res->valid_buffer_range, range->Begin, range->End)) {
+       !util_ranges_intersect(&res->valid_buffer_range, static_cast<unsigned int>(range->Begin), static_cast<unsigned int>(range->End))) {
       usage |= PIPE_MAP_UNSYNCHRONIZED;
    }
 
@@ -1442,7 +1448,7 @@ synchronize(struct d3d12_context *ctx,
 
    if (usage & PIPE_MAP_WRITE)
       util_range_add(&res->base.b, &res->valid_buffer_range,
-                     range->Begin, range->End);
+                     static_cast<unsigned int>(range->Begin), static_cast<unsigned int>(range->End));
 
    return true;
 }
@@ -1509,19 +1515,19 @@ prepare_zs_layer_strides(struct d3d12_screen *screen,
 
    trans->base.b.stride = align(util_format_get_stride(res->base.b.format, width),
                                 D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-   trans->base.b.layer_stride = util_format_get_2d_size(res->base.b.format,
-                                                        trans->base.b.stride,
-                                                        height);
+   trans->base.b.layer_stride = static_cast<uintptr_t>(util_format_get_2d_size(res->base.b.format,
+                                                                               trans->base.b.stride,
+                                                                               height));
 
    if (copy_whole_resource) {
       trans->zs_cpu_copy_stride = align(util_format_get_stride(res->base.b.format, box->width),
                                         D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-      trans->zs_cpu_copy_layer_stride = util_format_get_2d_size(res->base.b.format,
-                                                                trans->base.b.stride,
-                                                                box->height);
+      trans->zs_cpu_copy_layer_stride = static_cast<unsigned int>(util_format_get_2d_size(res->base.b.format,
+                                                                                          trans->base.b.stride,
+                                                                                          box->height));
    } else {
       trans->zs_cpu_copy_stride = trans->base.b.stride;
-      trans->zs_cpu_copy_layer_stride = trans->base.b.layer_stride;
+      trans->zs_cpu_copy_layer_stride = static_cast<unsigned int>(trans->base.b.layer_stride);
    }
 }
 
@@ -1542,7 +1548,7 @@ read_zs_surface(struct d3d12_context *ctx, struct d3d12_resource *res,
    tmpl.bind = 0;
    tmpl.usage = PIPE_USAGE_STAGING;
    tmpl.flags = 0;
-   tmpl.width0 = trans->base.b.layer_stride;
+   tmpl.width0 = static_cast<uint32_t>(trans->base.b.layer_stride);
    tmpl.height0 = 1;
    tmpl.depth0 = 1;
    tmpl.array_size = 1;
@@ -1644,7 +1650,7 @@ write_zs_surface(struct pipe_context *pctx, struct d3d12_resource *res,
    tmpl.bind = 0;
    tmpl.usage = PIPE_USAGE_STAGING;
    tmpl.flags = 0;
-   tmpl.width0 = trans->base.b.layer_stride;
+   tmpl.width0 = static_cast<uint32_t>(trans->base.b.layer_stride);
    tmpl.height0 = 1;
    tmpl.depth0 = 1;
    tmpl.array_size = 1;
@@ -1747,9 +1753,9 @@ d3d12_transfer_map(struct pipe_context *pctx,
          ptrans->layer_stride = 0;
       } else {
          ptrans->stride = util_format_get_stride(pres->format, box->width);
-         ptrans->layer_stride = util_format_get_2d_size(pres->format,
-                                                        ptrans->stride,
-                                                        box->height);
+         ptrans->layer_stride = static_cast<uintptr_t>(util_format_get_2d_size(pres->format,
+                                                                               ptrans->stride,
+                                                                               box->height));
       }
 
       range = linear_range(box, ptrans->stride, ptrans->layer_stride);
@@ -1836,30 +1842,30 @@ d3d12_transfer_map(struct pipe_context *pctx,
    } else {
       ptrans->stride = align(util_format_get_stride(pres->format, box->width),
                               D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-      ptrans->layer_stride = util_format_get_2d_size(pres->format,
-                                                     ptrans->stride,
-                                                     box->height);
+      ptrans->layer_stride = static_cast<uintptr_t>(util_format_get_2d_size(pres->format,
+                                                                            ptrans->stride,
+                                                                            box->height));
 
       if (res->base.b.target != PIPE_TEXTURE_3D)
-         ptrans->layer_stride = align(ptrans->layer_stride,
-                                      D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+         ptrans->layer_stride = static_cast<uintptr_t>(align(static_cast<uint32_t>(ptrans->layer_stride),
+                                                             D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT));
 
       if (util_format_has_depth(util_format_description(pres->format)) &&
           screen->opts2.ProgrammableSamplePositionsTier == D3D12_PROGRAMMABLE_SAMPLE_POSITIONS_TIER_NOT_SUPPORTED) {
          trans->zs_cpu_copy_stride = ptrans->stride;
-         trans->zs_cpu_copy_layer_stride = ptrans->layer_stride;
+         trans->zs_cpu_copy_layer_stride = static_cast<unsigned int>(ptrans->layer_stride);
          
          ptrans->stride = align(util_format_get_stride(pres->format, pres->width0),
                                 D3D12_TEXTURE_DATA_PITCH_ALIGNMENT);
-         ptrans->layer_stride = util_format_get_2d_size(pres->format,
-                                                        ptrans->stride,
-                                                        pres->height0);
+         ptrans->layer_stride = static_cast<uintptr_t>(util_format_get_2d_size(pres->format,
+                                                                               ptrans->stride,
+                                                                               pres->height0));
 
          range.Begin = box->y * ptrans->stride +
             box->x * util_format_get_blocksize(pres->format);
       }
 
-      unsigned staging_res_size = ptrans->layer_stride * box->depth;
+      unsigned staging_res_size = static_cast<unsigned>(ptrans->layer_stride * box->depth);
       if (res->base.b.target == PIPE_BUFFER) {
          /* To properly support ARB_map_buffer_alignment, we need to return a pointer
           * that's appropriately offset from a 64-byte-aligned base address.

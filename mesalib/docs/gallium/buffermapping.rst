@@ -386,7 +386,7 @@ Buffer mapping conclusions
 * Non-blitting drivers must reallocate storage on ``glBufferData(NULL)`` so that
   the following ``glBufferSubData()`` won't stall. That ``glBufferData(NULL)``
   call will appear in the driver as an ``invalidate_resource()`` call if
-  ``PIPE_CAP_INVALIDATE_BUFFER`` is available. (If that flag is not set, then
+  ``pipe_caps.invalidate_buffer`` is available. (If that flag is not set, then
   mesa/st will create a new pipe_resource for you). Storage reallocation may be
   skipped if you for some reason know that the buffer is idle, in which case you
   can just empty the valid region.
@@ -409,7 +409,7 @@ Buffer mapping conclusions
 * Buffer binding points are not useful for tuning buffer placement (See all the
   ``PIPE_COPY_WRITE_BUFFER`` instances), you have to track the actual usage
   history of a GL BO name.  mesa/st does this for optimizing its state updates
-  on reallocation in the ``!PIPE_CAP_INVALIDATE_BUFFER`` case, and if you set
-  ``PIPE_CAP_INVALIDATE_BUFFER`` then you have to flag your own internal state
+  on reallocation in the ``!pipe_caps.invalidate_buffer`` case, and if you set
+  ``pipe_caps.invalidate_buffer`` then you have to flag your own internal state
   updates (VBO addresses, XFB addresses, texture buffer addresses, etc.) on
   reallocation based on usage history.

@@ -297,6 +297,7 @@ int main(int argc, char **argv)
     const struct BackendVtable *vt;
 
     dll_hijacking_protection();
+    enable_dit();
 
     /*
      * Initialise port and protocol to sensible defaults. (These
@@ -376,7 +377,7 @@ int main(int argc, char **argv)
             while (arg) {
                 if (cmdbuf->len > 0)
                     put_byte(cmdbuf, ' '); /* add space separator */
-                put_dataz(cmdbuf, cmdline_arg_to_str(arg));
+                put_dataz(cmdbuf, cmdline_arg_to_utf8(arg));
                 arg = arglist->args[arglistpos++];
             }
 

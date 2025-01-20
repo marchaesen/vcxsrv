@@ -23,1740 +23,1740 @@ namespace V2
 {
 const ADDR_SW_PATINFO GFX11_SW_256_D_PATINFO[] =
 {
-    {   1,    0,    0,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256_D
-    {   1,    0,    0,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256_D
-    {   1,    1,    0,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256_D
-    {   1,    2,    0,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256_D
-    {   1,    3,    0,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256_D
-    {   1,    4,    0,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256_D
+    {   1,    0,    0,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256_D @ Navi3x
+    {   1,    0,    0,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256_D @ Navi3x
+    {   1,    1,    0,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256_D @ Navi3x
+    {   1,    2,    0,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256_D @ Navi3x
+    {   1,    3,    0,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256_D @ Navi3x
+    {   1,    4,    0,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256_D @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_4K_D_PATINFO[] =
 {
-    {   1,    0,    1,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_D
-    {   1,    0,    1,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_D
-    {   1,    1,    2,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_D
-    {   1,    2,    3,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_D
-    {   1,    3,    4,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_D
-    {   1,    4,    5,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_D
+    {   1,    0,    1,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_D @ Navi3x
+    {   1,    0,    1,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_D @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_D @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_D @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_D @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_D @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_4K_D_X_PATINFO[] =
 {
-    {   1,    0,    1,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_D_X
-    {   1,    1,    2,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_D_X
-    {   1,    2,    3,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_D_X
-    {   1,    3,    4,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_D_X
-    {   1,    4,    5,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,    6,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,    7,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,    8,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,    9,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   10,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   11,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   12,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   13,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   14,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   15,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   16,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   17,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   18,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   19,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   20,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   21,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   22,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   23,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   24,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   25,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   26,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   27,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   28,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   29,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   30,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   31,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   32,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   33,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   34,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   35,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   36,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   37,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   38,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   39,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   40,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   41,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   42,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   43,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   44,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   45,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   46,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   47,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   48,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   49,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   50,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   51,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   52,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   53,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   54,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   55,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   56,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   57,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   58,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   59,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   60,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   61,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   62,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   63,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   64,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   65,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   51,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   52,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   53,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   54,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   55,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_D_X
-    {   3,    0,   56,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_D_X
-    {   3,    1,   57,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_D_X
-    {   3,    2,   58,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_D_X
-    {   3,    3,   59,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_D_X
-    {   3,    4,   60,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_D_X
+    {   1,    0,    1,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   1,    1,    2,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   1,    2,    3,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   1,    3,    4,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   1,    4,    5,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,    6,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,    7,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,    8,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,    9,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   10,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   11,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   12,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   13,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   14,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   15,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   16,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   17,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   18,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   19,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   20,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   21,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   22,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   23,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   24,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   25,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   26,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   27,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   28,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   29,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   30,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   31,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   32,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   33,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   34,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   35,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   36,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   37,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   38,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   39,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   40,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   41,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   42,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   43,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   44,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   45,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   46,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   47,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   48,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   49,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   50,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   51,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   52,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   53,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   54,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   55,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   56,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   57,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   58,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   59,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   60,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   61,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   62,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   63,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   64,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   65,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   51,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   52,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   53,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   54,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   55,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    0,   56,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    1,   57,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    2,   58,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    3,   59,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_D_X @ Navi3x
+    {   3,    4,   60,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_D_X @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_D_PATINFO[] =
 {
-    {   1,    0,    1,    1,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D
-    {   1,    0,    1,    1,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D
-    {   1,    1,    2,    2,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D
-    {   1,    2,    3,    3,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D
-    {   1,    3,    4,    4,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D
-    {   1,    4,    5,    5,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D
+    {   1,    0,    1,    1,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D @ Navi3x
+    {   1,    0,    1,    1,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_D_X_PATINFO[] =
 {
-    {   1,    0,    1,    1,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D_X
-    {   1,    1,    2,    2,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D_X
-    {   1,    2,    3,    3,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D_X
-    {   1,    3,    4,    4,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D_X
-    {   1,    4,    5,    5,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,    6,    1,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,    7,    2,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,    8,    3,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,    9,    4,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   10,    5,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   11,    1,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   12,    2,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   13,    3,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   14,    4,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   15,    5,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   16,    1,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   17,    2,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   18,    3,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   19,    4,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   20,    5,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   21,    1,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   22,    2,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   23,    3,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   24,    4,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   25,    5,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   26,    1,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   27,    2,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   28,    3,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   29,    4,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   30,    5,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   31,    1,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   32,    2,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   33,    3,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   34,    4,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   35,    5,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   36,    1,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   37,    2,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   38,    3,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   39,    4,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   40,    5,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   41,    1,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   42,    2,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   43,    3,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   44,    4,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   45,    5,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   66,    6,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   67,    7,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   68,    8,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   69,    9,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   70,   10,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   51,    1,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   52,    2,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   53,    3,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   54,    4,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   55,    5,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   71,    6,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   72,    7,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   73,    8,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   74,    9,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   75,   10,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   76,   11,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   77,   12,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   78,   13,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   79,   14,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   80,   15,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   81,    6,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   82,    7,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   83,    8,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   84,    9,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   85,   10,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D_X
-    {   3,    0,   86,   11,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D_X
-    {   3,    1,   87,   12,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D_X
-    {   3,    2,   88,   13,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D_X
-    {   3,    3,   89,   14,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D_X
-    {   3,    4,   90,   15,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D_X
+    {   1,    0,    1,    1,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,    6,    1,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,    7,    2,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,    8,    3,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,    9,    4,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   10,    5,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   11,    1,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   12,    2,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   13,    3,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   14,    4,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   15,    5,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   16,    1,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   17,    2,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   18,    3,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   19,    4,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   20,    5,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   21,    1,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   22,    2,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   23,    3,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   24,    4,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   25,    5,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   26,    1,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   27,    2,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   28,    3,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   29,    4,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   30,    5,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   31,    1,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   32,    2,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   33,    3,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   34,    4,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   35,    5,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   36,    1,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   37,    2,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   38,    3,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   39,    4,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   40,    5,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   41,    1,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   42,    2,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   43,    3,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   44,    4,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   45,    5,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   66,    6,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   67,    7,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   68,    8,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   69,    9,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   70,   10,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   51,    1,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   52,    2,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   53,    3,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   54,    4,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   55,    5,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   71,    6,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   72,    7,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   73,    8,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   74,    9,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   75,   10,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   76,   11,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   77,   12,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   78,   13,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   79,   14,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   80,   15,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   81,    6,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   82,    7,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   83,    8,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   84,    9,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   85,   10,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    0,   86,   11,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    1,   87,   12,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    2,   88,   13,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    3,   89,   14,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D_X @ Navi3x
+    {   3,    4,   90,   15,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D_X @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_D_T_PATINFO[] =
 {
-    {   1,    0,    1,    1,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D_T
-    {   1,    1,    2,    2,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D_T
-    {   1,    2,    3,    3,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D_T
-    {   1,    3,    4,    4,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D_T
-    {   1,    4,    5,    5,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,   91,    1,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,   92,    2,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,   93,    3,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,   94,    4,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,   95,    5,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,   96,    1,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,   97,    2,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,   98,    3,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,   99,    4,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  100,    5,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  101,    1,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  102,    2,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  103,    3,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  104,    4,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  105,    5,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,   96,    1,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,   97,    2,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,   98,    3,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,   99,    4,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  100,    5,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  101,    1,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  102,    2,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  103,    3,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  104,    4,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  105,    5,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  106,    1,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  107,    2,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  108,    3,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  109,    4,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  110,    5,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  101,    1,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  102,    2,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  103,    3,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  104,    4,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  105,    5,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  106,    1,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  107,    2,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  108,    3,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  109,    4,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  110,    5,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  111,   16,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  112,   17,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  113,   18,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  114,   19,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  115,   20,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  106,    1,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  107,    2,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  108,    3,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  109,    4,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  110,    5,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  111,   16,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  112,   17,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  113,   18,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  114,   19,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  115,   20,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,    1,   21,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,    2,   22,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,    3,   23,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,    4,   24,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,    5,   25,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,  111,   16,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,  112,   17,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,  113,   18,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,  114,   19,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,  115,   20,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D_T
-    {   2,    0,    1,   21,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D_T
-    {   2,    1,    2,   22,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D_T
-    {   2,    2,    3,   23,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D_T
-    {   2,    3,    4,   24,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D_T
-    {   2,    4,    5,   25,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D_T
+    {   1,    0,    1,    1,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   1,    1,    2,    2,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   1,    2,    3,    3,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   1,    3,    4,    4,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   1,    4,    5,    5,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,   91,    1,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,   92,    2,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,   93,    3,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,   94,    4,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,   95,    5,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,   96,    1,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,   97,    2,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,   98,    3,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,   99,    4,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  100,    5,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  101,    1,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  102,    2,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  103,    3,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  104,    4,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  105,    5,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,   96,    1,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,   97,    2,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,   98,    3,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,   99,    4,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  100,    5,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  101,    1,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  102,    2,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  103,    3,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  104,    4,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  105,    5,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  106,    1,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  107,    2,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  108,    3,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  109,    4,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  110,    5,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  101,    1,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  102,    2,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  103,    3,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  104,    4,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  105,    5,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  106,    1,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  107,    2,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  108,    3,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  109,    4,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  110,    5,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  111,   16,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  112,   17,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  113,   18,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  114,   19,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  115,   20,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  106,    1,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  107,    2,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  108,    3,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  109,    4,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  110,    5,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  111,   16,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  112,   17,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  113,   18,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  114,   19,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  115,   20,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,    1,   21,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,    2,   22,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,    3,   23,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,    4,   24,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,    5,   25,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,  111,   16,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,  112,   17,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,  113,   18,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,  114,   19,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,  115,   20,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    0,    1,   21,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    1,    2,   22,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    2,    3,   23,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    3,    4,   24,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D_T @ Navi3x
+    {   2,    4,    5,   25,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D_T @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_256K_D_X_PATINFO[] =
 {
-    {   1,    0,    1,    1,    1, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_D_X
-    {   1,    1,    2,    2,    2, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_D_X
-    {   1,    2,    3,    3,    3, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_D_X
-    {   1,    3,    4,    4,    4, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_D_X
-    {   1,    4,    5,    5,    5, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,    6,    1,    1, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,    7,    2,    2, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,    8,    3,    3, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,    9,    4,    4, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   10,    5,    5, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   11,    1,    1, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   12,    2,    2, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   13,    3,    3, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   14,    4,    4, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   15,    5,    5, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   16,    1,    1, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   17,    2,    2, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   18,    3,    3, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   19,    4,    4, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   20,    5,    5, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   21,    1,    1, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   22,    2,    2, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   23,    3,    3, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   24,    4,    4, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   25,    5,    5, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   26,    1,    1, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   27,    2,    2, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   28,    3,    3, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   29,    4,    4, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   30,    5,    5, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   31,    1,    1, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   32,    2,    2, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   33,    3,    3, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   34,    4,    4, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   35,    5,    5, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   36,    1,    1, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   37,    2,    2, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   38,    3,    3, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   39,    4,    4, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   40,    5,    5, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   41,    1,    1, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   42,    2,    2, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   43,    3,    3, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   44,    4,    4, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   45,    5,    5, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   66,    6,    1, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   67,    7,    2, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   68,    8,    3, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   69,    9,    4, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   70,   10,    5, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   51,    1,    1, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   52,    2,    2, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   53,    3,    3, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   54,    4,    4, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   55,    5,    5, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   71,    6,    1, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   72,    7,    2, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   73,    8,    3, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   74,    9,    4, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   75,   10,    5, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   76,   11,    1, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   77,   12,    2, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   78,   13,    3, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   79,   14,    4, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   80,   15,    5, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   81,    6,    1, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   82,    7,    2, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   83,    8,    3, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   84,    9,    4, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   85,   10,    5, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_D_X
-    {   3,    0,   86,   11,    1, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_D_X
-    {   3,    1,   87,   12,    2, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_D_X
-    {   3,    2,   88,   13,    3, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_D_X
-    {   3,    3,   89,   14,    4, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_D_X
-    {   3,    4,   90,   15,    5, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_D_X
+    {   1,    0,    1,    1,    1, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   1,    1,    2,    2,    2, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   1,    2,    3,    3,    3, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   1,    3,    4,    4,    4, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   1,    4,    5,    5,    5, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,    6,    1,    1, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,    7,    2,    2, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,    8,    3,    3, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,    9,    4,    4, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   10,    5,    5, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   11,    1,    1, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   12,    2,    2, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   13,    3,    3, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   14,    4,    4, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   15,    5,    5, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   16,    1,    1, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   17,    2,    2, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   18,    3,    3, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   19,    4,    4, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   20,    5,    5, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   21,    1,    1, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   22,    2,    2, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   23,    3,    3, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   24,    4,    4, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   25,    5,    5, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   26,    1,    1, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   27,    2,    2, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   28,    3,    3, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   29,    4,    4, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   30,    5,    5, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   31,    1,    1, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   32,    2,    2, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   33,    3,    3, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   34,    4,    4, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   35,    5,    5, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   36,    1,    1, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   37,    2,    2, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   38,    3,    3, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   39,    4,    4, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   40,    5,    5, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   41,    1,    1, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   42,    2,    2, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   43,    3,    3, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   44,    4,    4, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   45,    5,    5, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   66,    6,    1, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   67,    7,    2, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   68,    8,    3, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   69,    9,    4, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   70,   10,    5, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   51,    1,    1, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   52,    2,    2, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   53,    3,    3, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   54,    4,    4, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   55,    5,    5, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   71,    6,    1, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   72,    7,    2, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   73,    8,    3, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   74,    9,    4, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   75,   10,    5, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   76,   11,    1, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   77,   12,    2, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   78,   13,    3, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   79,   14,    4, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   80,   15,    5, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   81,    6,    1, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   82,    7,    2, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   83,    8,    3, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   84,    9,    4, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   85,   10,    5, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    0,   86,   11,    1, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    1,   87,   12,    2, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    2,   88,   13,    3, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    3,   89,   14,    4, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_D_X @ Navi3x
+    {   3,    4,   90,   15,    5, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_D_X @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_ZR_X_1xaa_PATINFO[] =
 {
-    {   2,    0,  116,   26,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   2,    1,  117,   22,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   2,    2,  118,   27,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   2,    3,  119,   28,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   2,    4,  120,   29,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  121,   30,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  122,   31,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  123,   32,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  124,   33,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  125,   34,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  126,   35,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  127,   36,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  128,   37,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  129,   38,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  130,   39,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  131,   40,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  132,   41,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  133,   42,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  134,   43,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  135,   44,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  136,   45,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  137,   46,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  138,   47,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  139,   48,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  140,   49,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  141,   40,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  142,   50,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  143,   51,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  144,   52,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  145,   53,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  146,   54,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  146,   55,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  146,   56,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  146,   57,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  146,   58,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  147,   59,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  148,   60,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  149,   61,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  150,   62,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  151,   63,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  152,   54,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  152,   64,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  152,   56,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  153,   57,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  153,   65,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  152,   66,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  152,   67,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  152,   68,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  153,   69,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  153,   70,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  154,   71,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  154,   72,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  154,   73,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  155,   74,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  156,   75,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  154,   76,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  154,   77,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  154,   78,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  155,   79,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  156,   80,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  154,   81,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  154,   82,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  154,   83,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  155,   84,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  156,   85,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  157,   86,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  157,   87,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  157,   88,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  158,   89,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  159,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    0,  157,   91,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    1,  157,   92,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    2,  157,   93,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    3,  158,   94,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa
-    {   3,    4,  159,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa
+    {   2,    0,  116,   26,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    1,  117,   22,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    2,  118,   27,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    3,  119,   28,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    4,  120,   29,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  121,   30,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  122,   31,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  123,   32,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  124,   33,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  125,   34,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  126,   35,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  127,   36,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  128,   37,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  129,   38,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  130,   39,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  131,   40,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  132,   41,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  133,   42,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  134,   43,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  135,   44,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  136,   45,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  137,   46,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  138,   47,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  139,   48,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  140,   49,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  141,   40,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  142,   50,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  143,   51,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  144,   52,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  145,   53,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  146,   54,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  146,   55,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  146,   56,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  146,   57,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  146,   58,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  147,   59,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  148,   60,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  149,   61,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  150,   62,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  151,   63,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  152,   54,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  152,   64,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  152,   56,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  153,   57,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  153,   65,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  152,   66,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  152,   67,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  152,   68,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  153,   69,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  153,   70,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  154,   71,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  154,   72,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  154,   73,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  155,   74,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  156,   75,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  154,   76,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  154,   77,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  154,   78,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  155,   79,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  156,   80,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  154,   81,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  154,   82,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  154,   83,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  155,   84,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  156,   85,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  157,   86,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  157,   87,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  157,   88,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  158,   89,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  159,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  157,   91,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  157,   92,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  157,   93,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  158,   94,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  159,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 1xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_ZR_X_2xaa_PATINFO[] =
 {
-    {   2,    5,  160,   96,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   2,    6,  118,   27,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   2,    7,  161,   97,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   2,    8,  119,   98,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   2,    9,  162,   99,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  163,  100,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  123,   32,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  123,  101,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  164,  102,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  125,  103,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  127,  104,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  128,   37,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  128,  105,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  165,  106,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  130,  107,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  132,  108,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  133,   51,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  133,  109,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  135,  110,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  135,  111,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  137,  112,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  138,   47,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  138,  113,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  139,  114,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  140,  115,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  142,  108,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  143,   51,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  143,  109,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  144,  116,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  145,  111,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  146,  117,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  146,  118,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  146,  119,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  166,  120,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  167,  121,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  148,  122,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  149,   61,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  149,  123,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  151,  124,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  168,  125,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  152,   55,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  152,   56,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  152,  126,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  153,  127,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  169,  127,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  152,   77,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  152,   78,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  152,  128,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  153,   80,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  169,   80,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  154,   72,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  154,   73,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  154,  129,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  156,  130,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  170,  130,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  154,   77,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  154,   78,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  154,  128,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  156,  131,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  170,  131,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  154,  132,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  154,   83,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  154,  133,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  156,  134,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  170,  134,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  157,  135,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  157,   88,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  157,  136,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  159,   90,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  171,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    5,  157,  137,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    6,  157,   93,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    7,  157,  138,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    8,  159,   95,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa
-    {   3,    9,  171,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa
+    {   2,    5,  160,   96,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    6,  118,   27,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    7,  161,   97,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    8,  119,   98,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    9,  162,   99,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  163,  100,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  123,   32,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  123,  101,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  164,  102,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  125,  103,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  127,  104,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  128,   37,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  128,  105,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  165,  106,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  130,  107,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  132,  108,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  133,   51,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  133,  109,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  135,  110,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  135,  111,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  137,  112,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  138,   47,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  138,  113,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  139,  114,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  140,  115,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  142,  108,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  143,   51,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  143,  109,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  144,  116,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  145,  111,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  146,  117,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  146,  118,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  146,  119,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  166,  120,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  167,  121,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  148,  122,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  149,   61,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  149,  123,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  151,  124,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  168,  125,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  152,   55,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  152,   56,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  152,  126,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  153,  127,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  169,  127,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  152,   77,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  152,   78,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  152,  128,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  153,   80,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  169,   80,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  154,   72,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  154,   73,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  154,  129,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  156,  130,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  170,  130,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  154,   77,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  154,   78,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  154,  128,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  156,  131,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  170,  131,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  154,  132,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  154,   83,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  154,  133,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  156,  134,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  170,  134,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  157,  135,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  157,   88,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  157,  136,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  159,   90,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  171,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  157,  137,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  157,   93,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  157,  138,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  159,   95,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  171,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 2xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_ZR_X_4xaa_PATINFO[] =
 {
-    {   2,   10,  118,   27,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   2,   11,  118,  139,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   2,   12,  118,  140,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   2,   13,  119,  141,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   2,   14,  120,  142,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  123,   32,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  172,  143,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  123,  144,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  124,  145,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  125,  146,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  128,   37,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  128,  147,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  128,  148,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  129,  149,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  130,  150,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  133,   42,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  133,  151,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  133,  152,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  134,  153,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  173,  154,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  138,   47,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  138,  155,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  138,  156,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  174,  157,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  175,  158,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  143,   51,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  143,  159,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  143,  160,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  145,  161,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  176,  162,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  146,   56,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  146,  163,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  146,  164,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  167,  165,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  177,  166,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  149,   61,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  149,  167,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  149,  168,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  178,  169,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  179,  170,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  152,   56,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  152,  163,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  152,  171,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  180,  171,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  181,  171,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  152,   68,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  152,  172,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  152,  173,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  180,  173,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  181,  173,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  154,   73,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  154,  174,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  154,  130,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  182,  130,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  183,  130,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  154,   78,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  154,  172,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  154,  131,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  182,  131,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  183,  131,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  154,   83,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  154,  133,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  154,  134,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  182,  134,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  183,  134,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  157,   88,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  157,  175,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  157,   90,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  184,   90,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  185,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   10,  157,   93,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   11,  157,  176,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   12,  157,   95,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   13,  184,   95,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa
-    {   3,   14,  185,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa
+    {   2,   10,  118,   27,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   11,  118,  139,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   12,  118,  140,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   13,  119,  141,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   14,  120,  142,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  123,   32,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  172,  143,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  123,  144,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  124,  145,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  125,  146,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  128,   37,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  128,  147,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  128,  148,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  129,  149,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  130,  150,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  133,   42,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  133,  151,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  133,  152,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  134,  153,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  173,  154,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  138,   47,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  138,  155,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  138,  156,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  174,  157,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  175,  158,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  143,   51,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  143,  159,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  143,  160,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  145,  161,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  176,  162,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  146,   56,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  146,  163,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  146,  164,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  167,  165,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  177,  166,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  149,   61,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  149,  167,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  149,  168,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  178,  169,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  179,  170,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  152,   56,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  152,  163,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  152,  171,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  180,  171,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  181,  171,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  152,   68,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  152,  172,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  152,  173,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  180,  173,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  181,  173,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  154,   73,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  154,  174,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  154,  130,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  182,  130,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  183,  130,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  154,   78,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  154,  172,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  154,  131,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  182,  131,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  183,  131,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  154,   83,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  154,  133,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  154,  134,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  182,  134,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  183,  134,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  157,   88,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  157,  175,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  157,   90,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  184,   90,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  185,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  157,   93,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  157,  176,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  157,   95,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  184,   95,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  185,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 4xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_ZR_X_8xaa_PATINFO[] =
 {
-    {   2,   15,  161,   97,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   2,   16,  118,  140,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  186,  177,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  187,  178,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  162,  179,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  123,  101,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  123,  144,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  188,  180,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  189,  181,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  190,  182,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  128,  105,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  128,  148,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  128,  183,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  165,  184,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  191,  185,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  133,  109,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  133,  186,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  133,  187,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  192,  188,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  193,  189,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  138,  113,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  138,  156,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  138,  190,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  194,  191,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  195,  192,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  143,  109,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  143,  160,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  143,  187,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  196,  193,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  197,  194,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  146,  126,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  146,  164,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  198,  195,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  199,  196,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  200,  197,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  149,  123,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  149,  168,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  149,  198,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  179,  170,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  201,  170,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  152,  126,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  152,  171,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  202,  199,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  181,  171,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  203,  171,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  152,  128,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  152,  173,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  202,  200,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  181,  173,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  203,  201,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  154,  129,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  154,  130,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  204,  202,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  183,  130,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  205,  130,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  154,  128,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  154,  131,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  206,  203,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  183,  131,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  205,  131,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  154,  133,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  154,  134,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  206,  204,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  183,  134,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  205,  134,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  157,  136,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  157,   90,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  207,  205,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  185,   90,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  208,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   15,  157,  138,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   16,  157,   95,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   17,  171,   95,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   18,  185,   95,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa
-    {   3,   19,  208,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa
+    {   2,   15,  161,   97,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   2,   16,  118,  140,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  186,  177,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  187,  178,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  162,  179,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  123,  101,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  123,  144,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  188,  180,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  189,  181,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  190,  182,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  128,  105,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  128,  148,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  128,  183,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  165,  184,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  191,  185,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  133,  109,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  133,  186,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  133,  187,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  192,  188,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  193,  189,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  138,  113,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  138,  156,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  138,  190,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  194,  191,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  195,  192,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  143,  109,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  143,  160,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  143,  187,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  196,  193,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  197,  194,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  146,  126,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  146,  164,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  198,  195,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  199,  196,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  200,  197,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  149,  123,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  149,  168,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  149,  198,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  179,  170,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  201,  170,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  152,  126,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  152,  171,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  202,  199,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  181,  171,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  203,  171,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  152,  128,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  152,  173,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  202,  200,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  181,  173,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  203,  201,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  154,  129,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  154,  130,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  204,  202,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  183,  130,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  205,  130,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  154,  128,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  154,  131,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  206,  203,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  183,  131,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  205,  131,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  154,  133,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  154,  134,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  206,  204,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  183,  134,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  205,  134,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  157,  136,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  157,   90,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  207,  205,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  185,   90,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  208,   90,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  157,  138,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  157,   95,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  171,   95,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  185,   95,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  208,   95,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_{Z,R}_X 8xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_256K_ZR_X_1xaa_PATINFO[] =
 {
-    {   2,    0,  116,   26,    6, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   2,    1,  117,   22,    2, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   2,    2,  118,   27,    7, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   2,    3,  119,   28,    4, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   2,    4,  120,   29,    8, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  121,   30,    6, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  122,   31,    9, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  123,   32,    7, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  124,   33,   10, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  126,   35,    6, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  127,   36,    9, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  128,   37,    7, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  129,   38,   10, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  131,  206,   11, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  132,  207,   12, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  133,  208,   13, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  134,  209,   14, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  135,  210,   15, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  136,  211,   16, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  137,   35,   17, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  138,  212,   18, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  139,  213,   19, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  140,  214,   20, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  141,  206,   11, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  142,  215,   21, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  143,  216,   13, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  144,  217,   22, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  145,  218,   15, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  146,  219,   23, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  146,  220,   24, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  146,  221,   25, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  146,  222,   26, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  146,  223,   27, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  147,  224,   28, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  148,  225,   29, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  149,  226,   30, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  150,  227,   31, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  151,  228,   32, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  152,  219,   23, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  152,  229,   33, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  152,  221,   25, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  153,  222,   34, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  153,  230,   27, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  152,  231,   23, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  152,  232,   33, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  152,  233,   25, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  153,  234,   34, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  153,  235,   35, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  154,  236,   36, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  154,  237,   37, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  154,  238,   38, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  155,  239,   39, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  155,  240,   40, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  154,  241,   23, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  154,  242,   24, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  154,  243,   25, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  155,  244,   41, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  155,  245,   42, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  154,   81,   23, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  154,   82,   24, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  154,   83,   25, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  155,  246,   43, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  155,  247,   44, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  157,  248,   45, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  157,  249,   46, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  157,  250,   47, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  209,  251,   48, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  209,  252,   49, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    0,  157,   91,   23, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    1,  157,   92,   33, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    2,  157,   93,   25, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    3,  209,  253,   43, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa
-    {   3,    4,  209,  254,   50, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa
+    {   2,    0,  116,   26,    6, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    1,  117,   22,    2, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    2,  118,   27,    7, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    3,  119,   28,    4, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   2,    4,  120,   29,    8, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  121,   30,    6, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  122,   31,    9, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  123,   32,    7, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  124,   33,   10, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  126,   35,    6, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  127,   36,    9, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  128,   37,    7, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  129,   38,   10, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  131,  206,   11, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  132,  207,   12, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  133,  208,   13, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  134,  209,   14, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  135,  210,   15, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  136,  211,   16, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  137,   35,   17, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  138,  212,   18, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  139,  213,   19, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  140,  214,   20, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  141,  206,   11, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  142,  215,   21, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  143,  216,   13, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  144,  217,   22, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  145,  218,   15, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  146,  219,   23, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  146,  220,   24, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  146,  221,   25, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  146,  222,   26, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  146,  223,   27, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  147,  224,   28, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  148,  225,   29, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  149,  226,   30, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  150,  227,   31, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  151,  228,   32, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  152,  219,   23, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  152,  229,   33, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  152,  221,   25, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  153,  222,   34, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  153,  230,   27, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  152,  231,   23, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  152,  232,   33, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  152,  233,   25, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  153,  234,   34, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  153,  235,   35, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  154,  236,   36, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  154,  237,   37, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  154,  238,   38, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  155,  239,   39, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  155,  240,   40, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  154,  241,   23, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  154,  242,   24, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  154,  243,   25, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  155,  244,   41, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  155,  245,   42, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  154,   81,   23, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  154,   82,   24, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  154,   83,   25, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  155,  246,   43, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  155,  247,   44, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  157,  248,   45, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  157,  249,   46, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  157,  250,   47, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  209,  251,   48, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  209,  252,   49, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    0,  157,   91,   23, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    1,  157,   92,   33, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    2,  157,   93,   25, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    3,  209,  253,   43, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+    {   3,    4,  209,  254,   50, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 1xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_256K_ZR_X_2xaa_PATINFO[] =
 {
-    {   2,    5,  160,   96,   51, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   2,    6,  118,   27,    7, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   2,    7,  210,  255,   52, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   2,    8,  120,   29,    8, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   2,    9,  211,  256,   53, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  163,  100,   51, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  123,   32,    7, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  212,  257,   52, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  213,  258,   53, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  127,  104,   51, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  128,   37,    7, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  129,  259,   52, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  214,  260,   53, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  132,  261,   54, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  133,  216,   13, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  134,  262,   55, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  135,  263,   15, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  215,  264,   56, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  137,  265,   16, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  138,  212,   18, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  139,  266,   18, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  140,  214,   20, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  216,  267,   20, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  142,  261,   54, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  143,  216,   13, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  144,  262,   55, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  145,  218,   15, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  217,  268,   56, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  146,  269,   57, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  146,  270,   25, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  146,  271,   41, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  146,  272,   58, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  146,  273,   59, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  148,  274,   60, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  149,  226,   30, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  218,  275,   61, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  151,  228,   32, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  219,  276,   62, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  152,  277,   57, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  152,  221,   25, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  152,  278,   41, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  153,  230,   27, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  153,  279,   63, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  152,  280,   57, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  152,  243,   25, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  152,  281,   41, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  153,  282,   64, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  153,  283,   65, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  154,  284,   37, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  154,  238,   38, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  154,  239,   66, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  155,  240,   40, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  155,  273,   67, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  154,  280,   57, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  154,  243,   25, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  154,  281,   41, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  155,  245,   42, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  155,  285,   68, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  154,   82,   24, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  154,   83,   25, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  154,  286,   43, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  155,  247,   44, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  155,  287,   69, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  157,  288,   70, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  157,  250,   47, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  157,  289,   71, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  158,  290,   72, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  158,  291,   73, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    5,  157,   92,   24, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    6,  157,   93,   25, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    7,  157,  292,   43, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    8,  158,  293,   50, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa
-    {   3,    9,  158,  294,   74, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa
+    {   2,    5,  160,   96,   51, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    6,  118,   27,    7, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    7,  210,  255,   52, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    8,  120,   29,    8, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   2,    9,  211,  256,   53, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  163,  100,   51, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  123,   32,    7, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  212,  257,   52, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  213,  258,   53, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  127,  104,   51, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  128,   37,    7, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  129,  259,   52, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  214,  260,   53, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  132,  261,   54, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  133,  216,   13, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  134,  262,   55, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  135,  263,   15, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  215,  264,   56, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  137,  265,   16, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  138,  212,   18, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  139,  266,   18, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  140,  214,   20, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  216,  267,   20, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  142,  261,   54, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  143,  216,   13, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  144,  262,   55, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  145,  218,   15, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  217,  268,   56, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  146,  269,   57, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  146,  270,   25, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  146,  271,   41, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  146,  272,   58, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  146,  273,   59, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  148,  274,   60, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  149,  226,   30, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  218,  275,   61, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  151,  228,   32, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  219,  276,   62, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  152,  277,   57, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  152,  221,   25, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  152,  278,   41, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  153,  230,   27, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  153,  279,   63, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  152,  280,   57, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  152,  243,   25, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  152,  281,   41, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  153,  282,   64, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  153,  283,   65, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  154,  284,   37, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  154,  238,   38, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  154,  239,   66, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  155,  240,   40, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  155,  273,   67, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  154,  280,   57, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  154,  243,   25, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  154,  281,   41, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  155,  245,   42, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  155,  285,   68, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  154,   82,   24, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  154,   83,   25, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  154,  286,   43, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  155,  247,   44, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  155,  287,   69, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  157,  288,   70, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  157,  250,   47, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  157,  289,   71, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  158,  290,   72, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  158,  291,   73, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    5,  157,   92,   24, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    6,  157,   93,   25, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    7,  157,  292,   43, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    8,  158,  293,   50, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
+    {   3,    9,  158,  294,   74, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 2xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_256K_ZR_X_4xaa_PATINFO[] =
 {
-    {   2,   10,  118,   27,    7, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   2,   11,  119,   28,    4, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   2,   12,  120,   29,    8, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   2,   13,  220,  295,   75, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   2,   14,  221,  296,   76, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  123,   32,    7, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  124,   33,   10, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  222,  297,   77, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  223,  298,   76, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  128,   37,    7, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  129,   38,   10, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  224,  299,   77, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  225,  300,   76, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  133,  208,   13, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  134,  209,   14, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  135,  210,   15, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  215,  301,   78, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  226,  302,   79, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  138,  212,   18, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  139,  213,   19, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  140,  214,   20, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  216,  299,   80, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  227,  303,   81, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  143,  216,   13, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  144,  217,   22, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  145,  218,   15, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  217,  304,   82, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  228,  305,   83, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  146,  221,   25, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  146,  222,   26, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  146,  223,   27, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  146,  306,   84, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  146,  307,   85, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  149,  226,   30, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  218,  227,   86, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  168,  228,   87, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  219,  301,   62, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  229,  308,   88, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  152,  221,   25, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  152,  222,   34, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  152,  230,   27, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  153,  306,   84, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  153,  309,   89, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  152,  233,   25, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  152,  234,   34, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  152,  235,   35, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  153,  310,   90, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  153,  311,   91, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  154,  238,   38, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  154,  239,   66, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  154,  240,   92, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  156,  312,   93, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  156,  313,   94, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  154,  243,   25, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  154,  281,   41, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  154,  314,   42, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  156,  315,   95, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  156,  316,   96, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  154,   83,   25, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  154,  286,   43, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  154,  317,   44, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  156,  318,   97, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  156,  319,   68, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  157,  250,   47, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  157,  289,   71, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  157,  320,   98, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  159,  321,   99, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  159,  322,  100, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   10,  157,   93,   25, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   11,  157,  292,   43, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   12,  157,  323,   50, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   13,  159,  324,   74, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa
-    {   3,   14,  159,  325,  101, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa
+    {   2,   10,  118,   27,    7, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   11,  119,   28,    4, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   12,  120,   29,    8, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   13,  220,  295,   75, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   2,   14,  221,  296,   76, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  123,   32,    7, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  124,   33,   10, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  222,  297,   77, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  223,  298,   76, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  128,   37,    7, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  129,   38,   10, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  224,  299,   77, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  225,  300,   76, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  133,  208,   13, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  134,  209,   14, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  135,  210,   15, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  215,  301,   78, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  226,  302,   79, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  138,  212,   18, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  139,  213,   19, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  140,  214,   20, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  216,  299,   80, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  227,  303,   81, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  143,  216,   13, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  144,  217,   22, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  145,  218,   15, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  217,  304,   82, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  228,  305,   83, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  146,  221,   25, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  146,  222,   26, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  146,  223,   27, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  146,  306,   84, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  146,  307,   85, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  149,  226,   30, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  218,  227,   86, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  168,  228,   87, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  219,  301,   62, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  229,  308,   88, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  152,  221,   25, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  152,  222,   34, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  152,  230,   27, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  153,  306,   84, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  153,  309,   89, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  152,  233,   25, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  152,  234,   34, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  152,  235,   35, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  153,  310,   90, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  153,  311,   91, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  154,  238,   38, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  154,  239,   66, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  154,  240,   92, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  156,  312,   93, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  156,  313,   94, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  154,  243,   25, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  154,  281,   41, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  154,  314,   42, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  156,  315,   95, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  156,  316,   96, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  154,   83,   25, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  154,  286,   43, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  154,  317,   44, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  156,  318,   97, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  156,  319,   68, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  157,  250,   47, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  157,  289,   71, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  157,  320,   98, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  159,  321,   99, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  159,  322,  100, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   10,  157,   93,   25, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   11,  157,  292,   43, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   12,  157,  323,   50, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   13,  159,  324,   74, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
+    {   3,   14,  159,  325,  101, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 4xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_256K_ZR_X_8xaa_PATINFO[] =
 {
-    {   2,   15,  210,  255,   52, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   2,   16,  120,   29,    8, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   2,   17,  211,  256,   53, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   2,   18,  221,  296,   76, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   2,   19,  230,  326,  102, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  212,  257,   52, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  213,  258,   53, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  223,  298,   76, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  231,  327,  103, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  129,  259,   52, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  214,  260,   53, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  225,  300,   76, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  232,  328,  103, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  134,  262,   55, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  135,  263,   15, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  215,  264,   56, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  226,  302,  104, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  233,  329,  105, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  139,  266,   18, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  140,  214,   20, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  216,  267,   20, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  227,  303,   81, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  234,  330,  106, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  144,  262,   55, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  145,  218,   15, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  217,  268,   56, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  228,  305,   83, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  235,  331,  107, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  146,  271,   41, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  146,  272,   58, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  146,  273,   59, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  236,  332,  108, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  237,  333,  109, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  218,  275,   61, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  168,  228,   87, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  238,  276,  110, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  239,  308,  111, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  239,  334,  112, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  152,  278,   41, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  152,  230,   27, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  152,  279,   63, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  240,  309,   89, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  241,  335,  113, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  152,  281,   41, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  152,  282,   64, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  152,  283,   65, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  240,  311,   91, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  241,  336,   89, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  154,  239,   66, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  154,  240,   92, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  154,  273,   63, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  242,  313,   94, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  243,  337,  114, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  154,  281,   41, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  154,  314,   42, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  154,  338,   68, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  242,  316,   96, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  243,  339,  115, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  154,  286,   43, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  154,  317,   44, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  154,  340,   68, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  242,  341,  116, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  243,  342,  115, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  157,  289,   71, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  157,  320,   98, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  157,  343,  117, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  244,  322,  100, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  245,  344,  118, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   15,  157,  292,   43, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   16,  157,  323,   50, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   17,  157,  345,  119, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   18,  244,  325,  101, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa
-    {   3,   19,  245,  346,  120, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa
+    {   2,   15,  210,  255,   52, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   2,   16,  120,   29,    8, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   2,   17,  211,  256,   53, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   2,   18,  221,  296,   76, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   2,   19,  230,  326,  102, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  212,  257,   52, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  125,   34,    8, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  213,  258,   53, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  223,  298,   76, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  231,  327,  103, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  129,  259,   52, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  130,   39,    8, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  214,  260,   53, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  225,  300,   76, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  232,  328,  103, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  134,  262,   55, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  135,  263,   15, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  215,  264,   56, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  226,  302,  104, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  233,  329,  105, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  139,  266,   18, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  140,  214,   20, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  216,  267,   20, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  227,  303,   81, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  234,  330,  106, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  144,  262,   55, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  145,  218,   15, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  217,  268,   56, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  228,  305,   83, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  235,  331,  107, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  146,  271,   41, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  146,  272,   58, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  146,  273,   59, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  236,  332,  108, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  237,  333,  109, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  218,  275,   61, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  168,  228,   87, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  238,  276,  110, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  239,  308,  111, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  239,  334,  112, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  152,  278,   41, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  152,  230,   27, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  152,  279,   63, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  240,  309,   89, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  241,  335,  113, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  152,  281,   41, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  152,  282,   64, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  152,  283,   65, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  240,  311,   91, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  241,  336,   89, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  154,  239,   66, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  154,  240,   92, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  154,  273,   63, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  242,  313,   94, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  243,  337,  114, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  154,  281,   41, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  154,  314,   42, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  154,  338,   68, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  242,  316,   96, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  243,  339,  115, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  154,  286,   43, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  154,  317,   44, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  154,  340,   68, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  242,  341,  116, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  243,  342,  115, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  157,  289,   71, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  157,  320,   98, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  157,  343,  117, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  244,  322,  100, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  245,  344,  118, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   15,  157,  292,   43, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   16,  157,  323,   50, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   17,  157,  345,  119, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   18,  244,  325,  101, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
+    {   3,   19,  245,  346,  120, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_{Z,R}_X 8xaa @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_4K_S3_PATINFO[] =
 {
-    {   1,   20,  246,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_S3
-    {   1,   20,  246,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_S3
-    {   1,   21,  247,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_S3
-    {   1,   22,  248,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_S3
-    {   1,   23,  249,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_S3
-    {   1,   24,  250,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_S3
+    {   1,   20,  246,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   20,  246,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_S3 @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_S3 @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_4K_S3_X_PATINFO[] =
 {
-    {   1,   20,  246,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_S3_X
-    {   1,   21,  247,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_S3_X
-    {   1,   22,  248,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_S3_X
-    {   1,   23,  249,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_S3_X
-    {   1,   24,  250,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  251,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  252,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  253,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  254,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  255,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  256,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  257,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  258,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  259,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  260,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  261,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  262,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  263,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  264,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  265,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  256,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  257,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  258,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  259,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  260,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  261,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  262,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  263,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  264,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  265,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  261,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  262,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  263,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  264,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  265,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_S3_X
-    {   3,   20,  266,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_S3_X
-    {   3,   21,  267,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_S3_X
-    {   3,   22,  268,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_S3_X
-    {   3,   23,  269,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_S3_X
-    {   3,   24,  270,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_S3_X
+    {   1,   20,  246,    0,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   1,   21,  247,    0,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   1,   22,  248,    0,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   1,   23,  249,    0,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   1,   24,  250,    0,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  251,    0,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  252,    0,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  253,    0,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  254,    0,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  255,    0,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  256,    0,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  257,    0,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  258,    0,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  259,    0,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  260,    0,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  261,    0,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  262,    0,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  263,    0,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  264,    0,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  265,    0,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  256,    0,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  257,    0,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  258,    0,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  259,    0,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  260,    0,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  261,    0,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  262,    0,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  263,    0,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  264,    0,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  265,    0,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  261,    0,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  262,    0,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  263,    0,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  264,    0,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  265,    0,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   20,  266,    0,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   21,  267,    0,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   22,  268,    0,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   23,  269,    0,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_4K_S3_X @ Navi3x
+    {   3,   24,  270,    0,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_4K_S3_X @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_S3_PATINFO[] =
 {
-    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_S3
-    {   1,   20,  246,  347,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_S3
-    {   1,   21,  247,  348,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_S3
-    {   1,   22,  248,  349,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_S3
-    {   1,   23,  249,  350,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_S3
-    {   1,   24,  250,  351,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_S3
+    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   20,  246,  347,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_S3 @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_S3 @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_S3_X_PATINFO[] =
 {
-    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_S3_X
-    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_S3_X
-    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_S3_X
-    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_S3_X
-    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  251,  347,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  252,  348,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  253,  349,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  254,  350,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  255,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  256,  347,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  257,  348,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  258,  349,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  259,  350,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  260,  351,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  261,  347,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  262,  348,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  263,  349,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  264,  350,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  265,  351,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  256,  347,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  257,  348,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  258,  349,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  259,  350,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  260,  351,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  261,  347,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  262,  348,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  263,  349,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  264,  350,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  265,  351,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  266,  347,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  267,  348,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  268,  349,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  269,  350,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  270,  351,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  261,  347,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  262,  348,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  263,  349,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  264,  350,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  265,  351,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  266,  347,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  267,  348,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  268,  349,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  269,  350,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  270,  351,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  271,  352,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  272,  353,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  273,  354,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  274,  355,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  275,  356,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  266,  347,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  267,  348,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  268,  349,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  269,  350,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  270,  351,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  271,  352,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  272,  353,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  273,  354,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  274,  355,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  275,  356,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  276,  357,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  277,  358,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  278,  359,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  279,  360,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  280,  361,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  271,  352,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  272,  353,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  273,  354,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  274,  355,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  275,  356,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_S3_X
-    {   3,   20,  276,  357,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_S3_X
-    {   3,   21,  277,  358,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_S3_X
-    {   3,   22,  278,  359,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_S3_X
-    {   3,   23,  279,  360,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_S3_X
-    {   3,   24,  280,  361,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_S3_X
+    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  251,  347,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  252,  348,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  253,  349,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  254,  350,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  255,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  256,  347,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  257,  348,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  258,  349,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  259,  350,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  260,  351,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  261,  347,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  262,  348,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  263,  349,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  264,  350,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  265,  351,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  256,  347,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  257,  348,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  258,  349,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  259,  350,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  260,  351,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  261,  347,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  262,  348,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  263,  349,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  264,  350,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  265,  351,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  266,  347,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  267,  348,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  268,  349,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  269,  350,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  270,  351,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  261,  347,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  262,  348,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  263,  349,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  264,  350,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  265,  351,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  266,  347,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  267,  348,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  268,  349,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  269,  350,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  270,  351,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  271,  352,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  272,  353,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  273,  354,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  274,  355,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  275,  356,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  266,  347,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  267,  348,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  268,  349,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  269,  350,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  270,  351,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  271,  352,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  272,  353,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  273,  354,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  274,  355,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  275,  356,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  276,  357,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  277,  358,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  278,  359,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  279,  360,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  280,  361,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  271,  352,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  272,  353,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  273,  354,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  274,  355,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  275,  356,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   20,  276,  357,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   21,  277,  358,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   22,  278,  359,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   23,  279,  360,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_S3_X @ Navi3x
+    {   3,   24,  280,  361,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_S3_X @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_S3_T_PATINFO[] =
 {
-    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_S3_T
-    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_S3_T
-    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_S3_T
-    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_S3_T
-    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  251,  347,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  252,  348,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  253,  349,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  254,  350,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  255,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  256,  347,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  257,  348,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  258,  349,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  259,  350,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  260,  351,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  281,  347,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  282,  348,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  283,  349,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  284,  350,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  285,  351,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  256,  347,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  257,  348,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  258,  349,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  259,  350,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  260,  351,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  281,  347,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  282,  348,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  283,  349,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  284,  350,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  285,  351,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  286,  347,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  287,  348,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  288,  349,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  289,  350,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  290,  351,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  281,  347,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  282,  348,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  283,  349,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  284,  350,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  285,  351,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  286,  347,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  287,  348,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  288,  349,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  289,  350,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  290,  351,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  291,  352,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  292,  353,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  293,  354,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  294,  355,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  295,  356,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  286,  347,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  287,  348,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  288,  349,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  289,  350,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  290,  351,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  291,  352,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  292,  353,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  293,  354,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  294,  355,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  295,  356,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  246,  362,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  247,  363,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  248,  364,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  249,  365,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  250,  366,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  291,  352,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  292,  353,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  293,  354,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  294,  355,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  295,  356,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_S3_T
-    {   3,   20,  246,  362,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_S3_T
-    {   3,   21,  247,  363,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_S3_T
-    {   3,   22,  248,  364,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_S3_T
-    {   3,   23,  249,  365,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_S3_T
-    {   3,   24,  250,  366,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_S3_T
+    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  251,  347,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  252,  348,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  253,  349,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  254,  350,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  255,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  256,  347,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  257,  348,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  258,  349,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  259,  350,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  260,  351,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  281,  347,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  282,  348,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  283,  349,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  284,  350,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  285,  351,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  256,  347,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  257,  348,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  258,  349,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  259,  350,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  260,  351,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  281,  347,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  282,  348,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  283,  349,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  284,  350,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  285,  351,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  286,  347,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  287,  348,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  288,  349,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  289,  350,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  290,  351,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  281,  347,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  282,  348,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  283,  349,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  284,  350,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  285,  351,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  286,  347,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  287,  348,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  288,  349,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  289,  350,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  290,  351,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  291,  352,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  292,  353,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  293,  354,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  294,  355,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  295,  356,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  286,  347,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  287,  348,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  288,  349,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  289,  350,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  290,  351,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  291,  352,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  292,  353,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  293,  354,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  294,  355,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  295,  356,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  246,  362,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  247,  363,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  248,  364,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  249,  365,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  250,  366,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  291,  352,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  292,  353,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  293,  354,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  294,  355,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  295,  356,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   20,  246,  362,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   21,  247,  363,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   22,  248,  364,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   23,  249,  365,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_S3_T @ Navi3x
+    {   3,   24,  250,  366,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_S3_T @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_256K_S3_X_PATINFO[] =
 {
-    {   1,   20,  246,  347,  121, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_S3_X
-    {   1,   21,  247,  348,  121, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_S3_X
-    {   1,   22,  248,  349,  122, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_S3_X
-    {   1,   23,  249,  350,  123, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_S3_X
-    {   1,   24,  250,  351,  123, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  251,  347,  121, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  252,  348,  121, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  253,  349,  122, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  254,  350,  123, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  255,  351,  123, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  256,  347,  121, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  257,  348,  121, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  258,  349,  122, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  259,  350,  123, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  260,  351,  123, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  261,  347,  121, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  262,  348,  121, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  263,  349,  122, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  264,  350,  123, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  265,  351,  123, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  256,  347,  121, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  257,  348,  121, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  258,  349,  122, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  259,  350,  123, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  260,  351,  123, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  261,  347,  121, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  262,  348,  121, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  263,  349,  122, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  264,  350,  123, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  265,  351,  123, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  266,  347,  121, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  267,  348,  121, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  268,  349,  122, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  269,  350,  123, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  270,  351,  123, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  261,  347,  121, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  262,  348,  121, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  263,  349,  122, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  264,  350,  123, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  265,  351,  123, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  266,  347,  121, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  267,  348,  121, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  268,  349,  122, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  269,  350,  123, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  270,  351,  123, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  271,  352,  121, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  272,  353,  121, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  273,  354,  122, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  274,  355,  123, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  275,  356,  123, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  266,  347,  121, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  267,  348,  121, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  268,  349,  122, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  269,  350,  123, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  270,  351,  123, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  271,  352,  121, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  272,  353,  121, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  273,  354,  122, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  274,  355,  123, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  275,  356,  123, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  276,  357,  121, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  277,  358,  121, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  278,  359,  122, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  279,  360,  123, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  280,  361,  123, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  271,  352,  121, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  272,  353,  121, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  273,  354,  122, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  274,  355,  123, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  275,  356,  123, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_S3_X
-    {   3,   20,  276,  357,  121, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_S3_X
-    {   3,   21,  277,  358,  121, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_S3_X
-    {   3,   22,  278,  359,  122, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_S3_X
-    {   3,   23,  279,  360,  123, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_S3_X
-    {   3,   24,  280,  361,  123, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_S3_X
+    {   1,   20,  246,  347,  121, } , // 1 pipes (1 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   1,   21,  247,  348,  121, } , // 1 pipes (1 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   1,   22,  248,  349,  122, } , // 1 pipes (1 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   1,   23,  249,  350,  123, } , // 1 pipes (1 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   1,   24,  250,  351,  123, } , // 1 pipes (1 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  251,  347,  121, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  252,  348,  121, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  253,  349,  122, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  254,  350,  123, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  255,  351,  123, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  256,  347,  121, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  257,  348,  121, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  258,  349,  122, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  259,  350,  123, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  260,  351,  123, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  261,  347,  121, } , // 8 pipes (2 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  262,  348,  121, } , // 8 pipes (2 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  263,  349,  122, } , // 8 pipes (2 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  264,  350,  123, } , // 8 pipes (2 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  265,  351,  123, } , // 8 pipes (2 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  256,  347,  121, } , // 4 pipes (4 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  257,  348,  121, } , // 4 pipes (4 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  258,  349,  122, } , // 4 pipes (4 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  259,  350,  123, } , // 4 pipes (4 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  260,  351,  123, } , // 4 pipes (4 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  261,  347,  121, } , // 8 pipes (4 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  262,  348,  121, } , // 8 pipes (4 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  263,  349,  122, } , // 8 pipes (4 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  264,  350,  123, } , // 8 pipes (4 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  265,  351,  123, } , // 8 pipes (4 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  266,  347,  121, } , // 16 pipes (4 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  267,  348,  121, } , // 16 pipes (4 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  268,  349,  122, } , // 16 pipes (4 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  269,  350,  123, } , // 16 pipes (4 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  270,  351,  123, } , // 16 pipes (4 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  261,  347,  121, } , // 8 pipes (8 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  262,  348,  121, } , // 8 pipes (8 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  263,  349,  122, } , // 8 pipes (8 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  264,  350,  123, } , // 8 pipes (8 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  265,  351,  123, } , // 8 pipes (8 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  266,  347,  121, } , // 16 pipes (8 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  267,  348,  121, } , // 16 pipes (8 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  268,  349,  122, } , // 16 pipes (8 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  269,  350,  123, } , // 16 pipes (8 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  270,  351,  123, } , // 16 pipes (8 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  271,  352,  121, } , // 32 pipes (8 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  272,  353,  121, } , // 32 pipes (8 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  273,  354,  122, } , // 32 pipes (8 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  274,  355,  123, } , // 32 pipes (8 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  275,  356,  123, } , // 32 pipes (8 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  266,  347,  121, } , // 16 pipes (16 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  267,  348,  121, } , // 16 pipes (16 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  268,  349,  122, } , // 16 pipes (16 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  269,  350,  123, } , // 16 pipes (16 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  270,  351,  123, } , // 16 pipes (16 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  271,  352,  121, } , // 32 pipes (16 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  272,  353,  121, } , // 32 pipes (16 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  273,  354,  122, } , // 32 pipes (16 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  274,  355,  123, } , // 32 pipes (16 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  275,  356,  123, } , // 32 pipes (16 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  276,  357,  121, } , // 64 pipes (16 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  277,  358,  121, } , // 64 pipes (16 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  278,  359,  122, } , // 64 pipes (16 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  279,  360,  123, } , // 64 pipes (16 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  280,  361,  123, } , // 64 pipes (16 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  271,  352,  121, } , // 32 pipes (32 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  272,  353,  121, } , // 32 pipes (32 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  273,  354,  122, } , // 32 pipes (32 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  274,  355,  123, } , // 32 pipes (32 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  275,  356,  123, } , // 32 pipes (32 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   20,  276,  357,  121, } , // 64 pipes (32 PKRs) 1 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   21,  277,  358,  121, } , // 64 pipes (32 PKRs) 2 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   22,  278,  359,  122, } , // 64 pipes (32 PKRs) 4 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   23,  279,  360,  123, } , // 64 pipes (32 PKRs) 8 bpe @ SW_256K_S3_X @ Navi3x
+    {   3,   24,  280,  361,  123, } , // 64 pipes (32 PKRs) 16 bpe @ SW_256K_S3_X @ Navi3x
 };
 
 const ADDR_SW_PATINFO GFX11_SW_64K_D3_X_PATINFO[] =
 {
-    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D3_X
-    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D3_X
-    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D3_X
-    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D3_X
-    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D3_X
-    {   2,   20,  296,  367,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D3_X
-    {   2,   21,  296,  368,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D3_X
-    {   2,   22,  297,  369,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D3_X
-    {   2,   23,  298,  351,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D3_X
-    {   3,   24,  299,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  300,  370,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  300,  371,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  301,  372,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  302,  373,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  303,  373,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  304,  370,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  304,  371,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  305,  372,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  306,  373,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  307,  373,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  308,  374,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  309,  375,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  310,  376,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  311,  377,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  312,  378,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  313,  379,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  314,  371,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  315,  372,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  316,  373,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  317,  373,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  318,  380,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  319,  371,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  320,  372,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  321,  373,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  322,  373,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  323,  381,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  323,  382,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  323,  383,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  324,  384,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  325,  384,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  326,  379,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  327,  371,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  328,  372,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  329,  373,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  330,  373,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  326,  385,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  331,  386,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  331,  387,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  332,  388,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  333,  388,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  334,  389,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  335,  390,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  336,  391,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  337,  392,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  338,  392,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  334,  393,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  335,  394,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  336,  395,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  337,  396,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  338,  396,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  334,  397,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  339,  398,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  339,  399,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  340,  400,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  341,  400,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  342,  401,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  343,  402,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  344,  403,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  345,  404,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  346,  404,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D3_X
-    {   3,   20,  342,  405,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D3_X
-    {   3,   21,  343,  406,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D3_X
-    {   3,   22,  344,  407,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D3_X
-    {   4,   23,  345,  408,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D3_X
-    {   4,   24,  346,  408,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D3_X
+    {   1,   20,  246,  347,    0, } , // 1 pipes (1 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   1,   21,  247,  348,    0, } , // 1 pipes (1 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   1,   22,  248,  349,    0, } , // 1 pipes (1 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   1,   23,  249,  350,    0, } , // 1 pipes (1 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   1,   24,  250,  351,    0, } , // 1 pipes (1 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   2,   20,  296,  367,    0, } , // 2 pipes (1-2 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   2,   21,  296,  368,    0, } , // 2 pipes (1-2 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   2,   22,  297,  369,    0, } , // 2 pipes (1-2 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   2,   23,  298,  351,    0, } , // 2 pipes (1-2 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   24,  299,  351,    0, } , // 2 pipes (1-2 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  300,  370,    0, } , // 4 pipes (1-2 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  300,  371,    0, } , // 4 pipes (1-2 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  301,  372,    0, } , // 4 pipes (1-2 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  302,  373,    0, } , // 4 pipes (1-2 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  303,  373,    0, } , // 4 pipes (1-2 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  304,  370,    0, } , // 8 pipes (2 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  304,  371,    0, } , // 8 pipes (2 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  305,  372,    0, } , // 8 pipes (2 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  306,  373,    0, } , // 8 pipes (2 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  307,  373,    0, } , // 8 pipes (2 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  308,  374,    0, } , // 4 pipes (4 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  309,  375,    0, } , // 4 pipes (4 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  310,  376,    0, } , // 4 pipes (4 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  311,  377,    0, } , // 4 pipes (4 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  312,  378,    0, } , // 4 pipes (4 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  313,  379,    0, } , // 8 pipes (4 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  314,  371,    0, } , // 8 pipes (4 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  315,  372,    0, } , // 8 pipes (4 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  316,  373,    0, } , // 8 pipes (4 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  317,  373,    0, } , // 8 pipes (4 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  318,  380,    0, } , // 16 pipes (4 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  319,  371,    0, } , // 16 pipes (4 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  320,  372,    0, } , // 16 pipes (4 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  321,  373,    0, } , // 16 pipes (4 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  322,  373,    0, } , // 16 pipes (4 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  323,  381,    0, } , // 8 pipes (8 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  323,  382,    0, } , // 8 pipes (8 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  323,  383,    0, } , // 8 pipes (8 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  324,  384,    0, } , // 8 pipes (8 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  325,  384,    0, } , // 8 pipes (8 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  326,  379,    0, } , // 16 pipes (8 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  327,  371,    0, } , // 16 pipes (8 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  328,  372,    0, } , // 16 pipes (8 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  329,  373,    0, } , // 16 pipes (8 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  330,  373,    0, } , // 16 pipes (8 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  326,  385,    0, } , // 32 pipes (8 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  331,  386,    0, } , // 32 pipes (8 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  331,  387,    0, } , // 32 pipes (8 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  332,  388,    0, } , // 32 pipes (8 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  333,  388,    0, } , // 32 pipes (8 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  334,  389,    0, } , // 16 pipes (16 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  335,  390,    0, } , // 16 pipes (16 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  336,  391,    0, } , // 16 pipes (16 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  337,  392,    0, } , // 16 pipes (16 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  338,  392,    0, } , // 16 pipes (16 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  334,  393,    0, } , // 32 pipes (16 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  335,  394,    0, } , // 32 pipes (16 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  336,  395,    0, } , // 32 pipes (16 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  337,  396,    0, } , // 32 pipes (16 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  338,  396,    0, } , // 32 pipes (16 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  334,  397,    0, } , // 64 pipes (16 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  339,  398,    0, } , // 64 pipes (16 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  339,  399,    0, } , // 64 pipes (16 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  340,  400,    0, } , // 64 pipes (16 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  341,  400,    0, } , // 64 pipes (16 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  342,  401,    0, } , // 32 pipes (32 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  343,  402,    0, } , // 32 pipes (32 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  344,  403,    0, } , // 32 pipes (32 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  345,  404,    0, } , // 32 pipes (32 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  346,  404,    0, } , // 32 pipes (32 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   20,  342,  405,    0, } , // 64 pipes (32 PKRs) 1 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   21,  343,  406,    0, } , // 64 pipes (32 PKRs) 2 bpe @ SW_64K_D3_X @ Navi3x
+    {   3,   22,  344,  407,    0, } , // 64 pipes (32 PKRs) 4 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   23,  345,  408,    0, } , // 64 pipes (32 PKRs) 8 bpe @ SW_64K_D3_X @ Navi3x
+    {   4,   24,  346,  408,    0, } , // 64 pipes (32 PKRs) 16 bpe @ SW_64K_D3_X @ Navi3x
 };
 
 
@@ -2683,254 +2683,254 @@ const UINT_64 GFX11_SW_PATTERN_NIBBLE4[][4] =
 
 const UINT_8 GFX11_DCC_64K_R_X_PATIDX[] =
 {
-       0, // 1 bpe ua @ SW_64K_{Z,R}_X 1xaa
-       1, // 2 bpe ua @ SW_64K_{Z,R}_X 1xaa
-       2, // 4 bpe ua @ SW_64K_{Z,R}_X 1xaa
-       3, // 8 bpe ua @ SW_64K_{Z,R}_X 1xaa
-       4, // 16 bpe ua @ SW_64K_{Z,R}_X 1xaa
-       0, // 1 pipes (1 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       1, // 1 pipes (1 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       2, // 1 pipes (1 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       3, // 1 pipes (1 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       4, // 1 pipes (1 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       5, // 2 pipes (1-2 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       6, // 2 pipes (1-2 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       7, // 2 pipes (1-2 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       8, // 2 pipes (1-2 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-       9, // 2 pipes (1-2 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      10, // 4 pipes (1-2 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      11, // 4 pipes (1-2 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      12, // 4 pipes (1-2 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      13, // 4 pipes (1-2 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      14, // 4 pipes (1-2 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      15, // 8 pipes (2 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      16, // 8 pipes (2 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      17, // 8 pipes (2 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      18, // 8 pipes (2 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      19, // 8 pipes (2 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      20, // 4 pipes (4 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      21, // 4 pipes (4 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      22, // 4 pipes (4 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      23, // 4 pipes (4 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      24, // 4 pipes (4 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      25, // 8 pipes (4 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      26, // 8 pipes (4 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      27, // 8 pipes (4 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      28, // 8 pipes (4 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      29, // 8 pipes (4 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      30, // 16 pipes (4 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      31, // 16 pipes (4 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      32, // 16 pipes (4 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      33, // 16 pipes (4 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      34, // 16 pipes (4 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      35, // 8 pipes (8 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      36, // 8 pipes (8 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      37, // 8 pipes (8 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      38, // 8 pipes (8 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      39, // 8 pipes (8 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      35, // 16 pipes (8 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      36, // 16 pipes (8 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      37, // 16 pipes (8 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      40, // 16 pipes (8 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      41, // 16 pipes (8 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      42, // 32 pipes (8 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      43, // 32 pipes (8 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      44, // 32 pipes (8 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      45, // 32 pipes (8 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      46, // 32 pipes (8 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      47, // 16 pipes (16 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      48, // 16 pipes (16 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      49, // 16 pipes (16 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      50, // 16 pipes (16 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      51, // 16 pipes (16 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      47, // 32 pipes (16 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      48, // 32 pipes (16 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      49, // 32 pipes (16 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      52, // 32 pipes (16 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      53, // 32 pipes (16 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      54, // 64 pipes (16 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      55, // 64 pipes (16 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      56, // 64 pipes (16 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      57, // 64 pipes (16 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      58, // 64 pipes (16 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      59, // 32 pipes (32 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      60, // 32 pipes (32 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      61, // 32 pipes (32 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      62, // 32 pipes (32 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      63, // 32 pipes (32 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      59, // 64 pipes (32 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      60, // 64 pipes (32 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      61, // 64 pipes (32 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      64, // 64 pipes (32 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa
-      65, // 64 pipes (32 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa
+       0, // 1 bpe ua @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       1, // 2 bpe ua @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       2, // 4 bpe ua @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       3, // 8 bpe ua @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       4, // 16 bpe ua @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       0, // 1 pipes (1 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       1, // 1 pipes (1 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       2, // 1 pipes (1 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       3, // 1 pipes (1 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       4, // 1 pipes (1 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       5, // 2 pipes (1-2 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       6, // 2 pipes (1-2 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       7, // 2 pipes (1-2 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       8, // 2 pipes (1-2 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+       9, // 2 pipes (1-2 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      10, // 4 pipes (1-2 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      11, // 4 pipes (1-2 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      12, // 4 pipes (1-2 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      13, // 4 pipes (1-2 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      14, // 4 pipes (1-2 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      15, // 8 pipes (2 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      16, // 8 pipes (2 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      17, // 8 pipes (2 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      18, // 8 pipes (2 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      19, // 8 pipes (2 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      20, // 4 pipes (4 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      21, // 4 pipes (4 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      22, // 4 pipes (4 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      23, // 4 pipes (4 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      24, // 4 pipes (4 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      25, // 8 pipes (4 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      26, // 8 pipes (4 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      27, // 8 pipes (4 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      28, // 8 pipes (4 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      29, // 8 pipes (4 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      30, // 16 pipes (4 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      31, // 16 pipes (4 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      32, // 16 pipes (4 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      33, // 16 pipes (4 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      34, // 16 pipes (4 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      35, // 8 pipes (8 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      36, // 8 pipes (8 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      37, // 8 pipes (8 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      38, // 8 pipes (8 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      39, // 8 pipes (8 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      35, // 16 pipes (8 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      36, // 16 pipes (8 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      37, // 16 pipes (8 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      40, // 16 pipes (8 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      41, // 16 pipes (8 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      42, // 32 pipes (8 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      43, // 32 pipes (8 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      44, // 32 pipes (8 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      45, // 32 pipes (8 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      46, // 32 pipes (8 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      47, // 16 pipes (16 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      48, // 16 pipes (16 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      49, // 16 pipes (16 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      50, // 16 pipes (16 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      51, // 16 pipes (16 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      47, // 32 pipes (16 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      48, // 32 pipes (16 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      49, // 32 pipes (16 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      52, // 32 pipes (16 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      53, // 32 pipes (16 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      54, // 64 pipes (16 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      55, // 64 pipes (16 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      56, // 64 pipes (16 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      57, // 64 pipes (16 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      58, // 64 pipes (16 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      59, // 32 pipes (32 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      60, // 32 pipes (32 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      61, // 32 pipes (32 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      62, // 32 pipes (32 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      63, // 32 pipes (32 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      59, // 64 pipes (32 PKRs) 1 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      60, // 64 pipes (32 PKRs) 2 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      61, // 64 pipes (32 PKRs) 4 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      64, // 64 pipes (32 PKRs) 8 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
+      65, // 64 pipes (32 PKRs) 16 bpe pa @ SW_64K_{Z,R}_X 1xaa @ Navi3x
 };
 
 const UINT_8 GFX11_DCC_256K_R_X_PATIDX[] =
 {
-       0, // 1 bpe ua @ SW_256K_{Z,R}_X 1xaa
-       1, // 2 bpe ua @ SW_256K_{Z,R}_X 1xaa
-       2, // 4 bpe ua @ SW_256K_{Z,R}_X 1xaa
-       3, // 8 bpe ua @ SW_256K_{Z,R}_X 1xaa
-       4, // 16 bpe ua @ SW_256K_{Z,R}_X 1xaa
-       0, // 1 pipes (1 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       1, // 1 pipes (1 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       2, // 1 pipes (1 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       3, // 1 pipes (1 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       4, // 1 pipes (1 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       5, // 2 pipes (1-2 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       6, // 2 pipes (1-2 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       7, // 2 pipes (1-2 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       8, // 2 pipes (1-2 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-       9, // 2 pipes (1-2 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      10, // 4 pipes (1-2 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      11, // 4 pipes (1-2 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      12, // 4 pipes (1-2 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      13, // 4 pipes (1-2 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      14, // 4 pipes (1-2 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      15, // 8 pipes (2 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      16, // 8 pipes (2 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      17, // 8 pipes (2 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      18, // 8 pipes (2 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      19, // 8 pipes (2 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      20, // 4 pipes (4 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      21, // 4 pipes (4 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      22, // 4 pipes (4 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      23, // 4 pipes (4 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      24, // 4 pipes (4 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      25, // 8 pipes (4 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      26, // 8 pipes (4 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      27, // 8 pipes (4 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      28, // 8 pipes (4 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      29, // 8 pipes (4 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      30, // 16 pipes (4 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      31, // 16 pipes (4 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      32, // 16 pipes (4 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      33, // 16 pipes (4 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      34, // 16 pipes (4 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      35, // 8 pipes (8 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      36, // 8 pipes (8 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      37, // 8 pipes (8 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      38, // 8 pipes (8 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      39, // 8 pipes (8 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      35, // 16 pipes (8 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      36, // 16 pipes (8 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      37, // 16 pipes (8 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      40, // 16 pipes (8 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      41, // 16 pipes (8 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      42, // 32 pipes (8 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      43, // 32 pipes (8 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      44, // 32 pipes (8 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      45, // 32 pipes (8 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      66, // 32 pipes (8 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      47, // 16 pipes (16 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      48, // 16 pipes (16 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      49, // 16 pipes (16 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      50, // 16 pipes (16 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      67, // 16 pipes (16 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      47, // 32 pipes (16 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      48, // 32 pipes (16 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      49, // 32 pipes (16 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      52, // 32 pipes (16 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      68, // 32 pipes (16 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      54, // 64 pipes (16 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      55, // 64 pipes (16 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      56, // 64 pipes (16 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      69, // 64 pipes (16 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      70, // 64 pipes (16 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      59, // 32 pipes (32 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      60, // 32 pipes (32 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      61, // 32 pipes (32 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      71, // 32 pipes (32 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      72, // 32 pipes (32 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      59, // 64 pipes (32 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      60, // 64 pipes (32 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      61, // 64 pipes (32 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      73, // 64 pipes (32 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa
-      74, // 64 pipes (32 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa
+       0, // 1 bpe ua @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       1, // 2 bpe ua @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       2, // 4 bpe ua @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       3, // 8 bpe ua @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       4, // 16 bpe ua @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       0, // 1 pipes (1 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       1, // 1 pipes (1 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       2, // 1 pipes (1 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       3, // 1 pipes (1 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       4, // 1 pipes (1 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       5, // 2 pipes (1-2 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       6, // 2 pipes (1-2 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       7, // 2 pipes (1-2 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       8, // 2 pipes (1-2 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+       9, // 2 pipes (1-2 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      10, // 4 pipes (1-2 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      11, // 4 pipes (1-2 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      12, // 4 pipes (1-2 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      13, // 4 pipes (1-2 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      14, // 4 pipes (1-2 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      15, // 8 pipes (2 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      16, // 8 pipes (2 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      17, // 8 pipes (2 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      18, // 8 pipes (2 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      19, // 8 pipes (2 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      20, // 4 pipes (4 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      21, // 4 pipes (4 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      22, // 4 pipes (4 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      23, // 4 pipes (4 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      24, // 4 pipes (4 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      25, // 8 pipes (4 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      26, // 8 pipes (4 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      27, // 8 pipes (4 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      28, // 8 pipes (4 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      29, // 8 pipes (4 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      30, // 16 pipes (4 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      31, // 16 pipes (4 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      32, // 16 pipes (4 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      33, // 16 pipes (4 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      34, // 16 pipes (4 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      35, // 8 pipes (8 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      36, // 8 pipes (8 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      37, // 8 pipes (8 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      38, // 8 pipes (8 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      39, // 8 pipes (8 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      35, // 16 pipes (8 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      36, // 16 pipes (8 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      37, // 16 pipes (8 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      40, // 16 pipes (8 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      41, // 16 pipes (8 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      42, // 32 pipes (8 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      43, // 32 pipes (8 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      44, // 32 pipes (8 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      45, // 32 pipes (8 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      66, // 32 pipes (8 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      47, // 16 pipes (16 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      48, // 16 pipes (16 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      49, // 16 pipes (16 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      50, // 16 pipes (16 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      67, // 16 pipes (16 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      47, // 32 pipes (16 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      48, // 32 pipes (16 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      49, // 32 pipes (16 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      52, // 32 pipes (16 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      68, // 32 pipes (16 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      54, // 64 pipes (16 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      55, // 64 pipes (16 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      56, // 64 pipes (16 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      69, // 64 pipes (16 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      70, // 64 pipes (16 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      59, // 32 pipes (32 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      60, // 32 pipes (32 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      61, // 32 pipes (32 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      71, // 32 pipes (32 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      72, // 32 pipes (32 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      59, // 64 pipes (32 PKRs) 1 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      60, // 64 pipes (32 PKRs) 2 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      61, // 64 pipes (32 PKRs) 4 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      73, // 64 pipes (32 PKRs) 8 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
+      74, // 64 pipes (32 PKRs) 16 bpe pa @ SW_256K_{Z,R}_X 1xaa @ Navi3x
 };
 
 const UINT_8 GFX11_HTILE_PATIDX[] =
 {
-       0, // 1xaa ua @ HTILE_64K
-       0, // 2xaa ua @ HTILE_64K
-       0, // 4xaa ua @ HTILE_64K
-       0, // 8xaa ua @ HTILE_64K
-       0, // 1 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K
-       0, // 1 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K
-       0, // 1 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K
-       0, // 1 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K
-       1, // 2 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K
-       1, // 2 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K
-       1, // 2 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K
-       1, // 2 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K
-       2, // 4 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K
-       2, // 4 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K
-       2, // 4 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K
-       2, // 4 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K
-       3, // 8 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K
-       3, // 8 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K
-       3, // 8 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K
-       3, // 8 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K
-       1, // 2 pipes (4 PKRs) 1xaa pa @ HTILE_64K
-       1, // 2 pipes (4 PKRs) 2xaa pa @ HTILE_64K
-       1, // 2 pipes (4 PKRs) 4xaa pa @ HTILE_64K
-       1, // 2 pipes (4 PKRs) 8xaa pa @ HTILE_64K
-       4, // 4 pipes (4 PKRs) 1xaa pa @ HTILE_64K
-       4, // 4 pipes (4 PKRs) 2xaa pa @ HTILE_64K
-       4, // 4 pipes (4 PKRs) 4xaa pa @ HTILE_64K
-       4, // 4 pipes (4 PKRs) 8xaa pa @ HTILE_64K
-       5, // 8 pipes (4 PKRs) 1xaa pa @ HTILE_64K
-       5, // 8 pipes (4 PKRs) 2xaa pa @ HTILE_64K
-       5, // 8 pipes (4 PKRs) 4xaa pa @ HTILE_64K
-       5, // 8 pipes (4 PKRs) 8xaa pa @ HTILE_64K
-       6, // 16 pipes (4 PKRs) 1xaa pa @ HTILE_64K
-       6, // 16 pipes (4 PKRs) 2xaa pa @ HTILE_64K
-       6, // 16 pipes (4 PKRs) 4xaa pa @ HTILE_64K
-       6, // 16 pipes (4 PKRs) 8xaa pa @ HTILE_64K
-       7, // 4 pipes (8 PKRs) 1xaa pa @ HTILE_64K
-       7, // 4 pipes (8 PKRs) 2xaa pa @ HTILE_64K
-       7, // 4 pipes (8 PKRs) 4xaa pa @ HTILE_64K
-       7, // 4 pipes (8 PKRs) 8xaa pa @ HTILE_64K
-       8, // 8 pipes (8 PKRs) 1xaa pa @ HTILE_64K
-       8, // 8 pipes (8 PKRs) 2xaa pa @ HTILE_64K
-       8, // 8 pipes (8 PKRs) 4xaa pa @ HTILE_64K
-       8, // 8 pipes (8 PKRs) 8xaa pa @ HTILE_64K
-       9, // 16 pipes (8 PKRs) 1xaa pa @ HTILE_64K
-       9, // 16 pipes (8 PKRs) 2xaa pa @ HTILE_64K
-       9, // 16 pipes (8 PKRs) 4xaa pa @ HTILE_64K
-       9, // 16 pipes (8 PKRs) 8xaa pa @ HTILE_64K
-      10, // 32 pipes (8 PKRs) 1xaa pa @ HTILE_64K
-      10, // 32 pipes (8 PKRs) 2xaa pa @ HTILE_64K
-      10, // 32 pipes (8 PKRs) 4xaa pa @ HTILE_64K
-      10, // 32 pipes (8 PKRs) 8xaa pa @ HTILE_64K
-      11, // 8 pipes (16 PKRs) 1xaa pa @ HTILE_64K
-      11, // 8 pipes (16 PKRs) 2xaa pa @ HTILE_64K
-      11, // 8 pipes (16 PKRs) 4xaa pa @ HTILE_64K
-      11, // 8 pipes (16 PKRs) 8xaa pa @ HTILE_64K
-      12, // 16 pipes (16 PKRs) 1xaa pa @ HTILE_64K
-      12, // 16 pipes (16 PKRs) 2xaa pa @ HTILE_64K
-      12, // 16 pipes (16 PKRs) 4xaa pa @ HTILE_64K
-      12, // 16 pipes (16 PKRs) 8xaa pa @ HTILE_64K
-      13, // 32 pipes (16 PKRs) 1xaa pa @ HTILE_64K
-      13, // 32 pipes (16 PKRs) 2xaa pa @ HTILE_64K
-      13, // 32 pipes (16 PKRs) 4xaa pa @ HTILE_64K
-      13, // 32 pipes (16 PKRs) 8xaa pa @ HTILE_64K
-      14, // 64 pipes (16 PKRs) 1xaa pa @ HTILE_64K
-      14, // 64 pipes (16 PKRs) 2xaa pa @ HTILE_64K
-      14, // 64 pipes (16 PKRs) 4xaa pa @ HTILE_64K
-      14, // 64 pipes (16 PKRs) 8xaa pa @ HTILE_64K
-      15, // 16 pipes (32 PKRs) 1xaa pa @ HTILE_64K
-      15, // 16 pipes (32 PKRs) 2xaa pa @ HTILE_64K
-      15, // 16 pipes (32 PKRs) 4xaa pa @ HTILE_64K
-      15, // 16 pipes (32 PKRs) 8xaa pa @ HTILE_64K
-      16, // 32 pipes (32 PKRs) 1xaa pa @ HTILE_64K
-      16, // 32 pipes (32 PKRs) 2xaa pa @ HTILE_64K
-      16, // 32 pipes (32 PKRs) 4xaa pa @ HTILE_64K
-      16, // 32 pipes (32 PKRs) 8xaa pa @ HTILE_64K
-      17, // 64 pipes (32 PKRs) 1xaa pa @ HTILE_64K
-      17, // 64 pipes (32 PKRs) 2xaa pa @ HTILE_64K
-      17, // 64 pipes (32 PKRs) 4xaa pa @ HTILE_64K
-      17, // 64 pipes (32 PKRs) 8xaa pa @ HTILE_64K
+       0, // 1xaa ua @ HTILE_64K @ Navi3x
+       0, // 2xaa ua @ HTILE_64K @ Navi3x
+       0, // 4xaa ua @ HTILE_64K @ Navi3x
+       0, // 8xaa ua @ HTILE_64K @ Navi3x
+       0, // 1 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       0, // 1 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       0, // 1 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       0, // 1 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       2, // 4 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       2, // 4 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       2, // 4 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       2, // 4 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       3, // 8 pipes (1-2 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       3, // 8 pipes (1-2 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       3, // 8 pipes (1-2 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       3, // 8 pipes (1-2 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (4 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (4 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (4 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       1, // 2 pipes (4 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       4, // 4 pipes (4 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       4, // 4 pipes (4 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       4, // 4 pipes (4 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       4, // 4 pipes (4 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       5, // 8 pipes (4 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       5, // 8 pipes (4 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       5, // 8 pipes (4 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       5, // 8 pipes (4 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       6, // 16 pipes (4 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       6, // 16 pipes (4 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       6, // 16 pipes (4 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       6, // 16 pipes (4 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       7, // 4 pipes (8 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       7, // 4 pipes (8 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       7, // 4 pipes (8 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       7, // 4 pipes (8 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       8, // 8 pipes (8 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       8, // 8 pipes (8 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       8, // 8 pipes (8 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       8, // 8 pipes (8 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+       9, // 16 pipes (8 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+       9, // 16 pipes (8 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+       9, // 16 pipes (8 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+       9, // 16 pipes (8 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      10, // 32 pipes (8 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      10, // 32 pipes (8 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      10, // 32 pipes (8 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      10, // 32 pipes (8 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      11, // 8 pipes (16 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      11, // 8 pipes (16 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      11, // 8 pipes (16 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      11, // 8 pipes (16 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      12, // 16 pipes (16 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      12, // 16 pipes (16 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      12, // 16 pipes (16 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      12, // 16 pipes (16 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      13, // 32 pipes (16 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      13, // 32 pipes (16 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      13, // 32 pipes (16 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      13, // 32 pipes (16 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      14, // 64 pipes (16 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      14, // 64 pipes (16 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      14, // 64 pipes (16 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      14, // 64 pipes (16 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      15, // 16 pipes (32 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      15, // 16 pipes (32 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      15, // 16 pipes (32 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      15, // 16 pipes (32 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      16, // 32 pipes (32 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      16, // 32 pipes (32 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      16, // 32 pipes (32 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      16, // 32 pipes (32 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
+      17, // 64 pipes (32 PKRs) 1xaa pa @ HTILE_64K @ Navi3x
+      17, // 64 pipes (32 PKRs) 2xaa pa @ HTILE_64K @ Navi3x
+      17, // 64 pipes (32 PKRs) 4xaa pa @ HTILE_64K @ Navi3x
+      17, // 64 pipes (32 PKRs) 8xaa pa @ HTILE_64K @ Navi3x
 };
 
 const UINT_64 GFX11_DCC_R_X_SW_PATTERN[][17] =

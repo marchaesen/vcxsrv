@@ -575,28 +575,28 @@ struct pvr_pds_ldst_control {
 /* Define a value we can use as a register number in the driver to denote that
  * the value is unused.
  */
-#define PVR_PDS_COMPUTE_INPUT_REG_UNUSED 0xFFFFFFFFU
+#define PVR_PDS_REG_UNUSED 0xFFFFFFFFU
 
 static inline void pvr_pds_compute_shader_program_init(
    struct pvr_pds_compute_shader_program *program)
 {
    *program = (struct pvr_pds_compute_shader_program){
       .local_input_regs = {
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
       },
       .work_group_input_regs = {
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
       },
       .global_input_regs = {
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
-         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
+         PVR_PDS_REG_UNUSED,
       },
-      .barrier_coefficient = PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+      .barrier_coefficient = PVR_PDS_REG_UNUSED,
    };
 }
 

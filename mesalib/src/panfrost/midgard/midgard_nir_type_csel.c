@@ -23,7 +23,7 @@ pass(nir_builder *b, nir_alu_instr *alu, void *data)
    }
 }
 
-void
+bool
 midgard_nir_type_csel(nir_shader *shader)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
@@ -33,8 +33,10 @@ midgard_nir_type_csel(nir_shader *shader)
       calloc(BITSET_WORDS(impl->ssa_alloc), sizeof(BITSET_WORD));
    nir_gather_types(impl, float_types, NULL);
 
-   nir_shader_alu_pass(shader, pass, nir_metadata_control_flow,
-                       float_types);
+   bool progress =
+      nir_shader_alu_pass(shader, pass, nir_metadata_control_flow, float_types);
 
    free(float_types);
+
+   return progress;
 }

@@ -167,6 +167,10 @@ struct iris_resource {
     * The screen the resource was originally created with, stored for refcounting.
     */
    struct pipe_screen *orig_screen;
+
+   /* width and height treated like x2 and y2 */
+   struct pipe_box damage;
+   bool use_damage;
 };
 
 /**

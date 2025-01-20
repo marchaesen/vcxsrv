@@ -830,7 +830,7 @@ util_clamped_uadd(unsigned a, unsigned b)
 static inline bool
 util_is_aligned(uintmax_t n, uintmax_t a)
 {
-   assert(a == (a & -a));
+   assert((a != 0) && ((a & (a - 1)) == 0));
    return (n & (a - 1)) == 0;
 }
 

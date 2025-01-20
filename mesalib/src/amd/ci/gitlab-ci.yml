@@ -2,12 +2,13 @@ include:
   - local: 'src/amd/ci/gitlab-ci-inc.yml'
 
 # Run five jobs in parallel each running 1/55th of the test suite
-radv-stoney-vkcts:x86_64:
+radv-stoney-vkcts:
   extends:
     - .lava-test-deqp:x86_64
     - .radv-stoney-test:x86_64
   parallel: 5
   variables:
+    DEQP_SUITE: radv-stoney
     DEQP_FRACTION: 18
 
 radv-stoney-angle:
@@ -28,9 +29,8 @@ radv-stoney-angle-full:
   parallel: 2
   variables:
     DEQP_SUITE: radv-stoney-angle-full
-    JOB_TIMEOUT: 60
 
-radeonsi-stoney-gl:x86_64:
+radeonsi-stoney-gl:
   extends:
     - .lava-test-deqp:x86_64
     - .radeonsi-stoney-test:x86_64
@@ -40,14 +40,14 @@ radeonsi-stoney-gl:x86_64:
     HWCI_START_WESTON: 1
     DEQP_FRACTION: 2
 
-radeonsi-stoney-gl:x86_64_full:
+radeonsi-stoney-gl-full:
   extends:
-    - radeonsi-stoney-gl:x86_64
+    - radeonsi-stoney-gl
     - .radeonsi-manual-rules
   variables:
     DEQP_FRACTION: 1
 
-radeonsi-stoney-traces:x86_64:
+radeonsi-stoney-traces:
   extends:
     - .lava-piglit-traces:x86_64
     - .radeonsi-stoney-test:x86_64
@@ -56,17 +56,17 @@ radeonsi-stoney-traces:x86_64:
     PIGLIT_TRACES_FILE: traces-amd.yml
     PIGLIT_REPLAY_EXTRA_ARGS: --keep-image
 
-radv-raven-vkcts:x86_64:
+radv-raven-vkcts:
   extends:
     - .lava-test-deqp:x86_64
     - .radv-raven-test:x86_64
     - .lava-asus-CM1400CXA-dalboz:x86_64
   parallel: 9
   variables:
-    DEQP_VER: vk
+    DEQP_SUITE: radv-raven
     DEQP_FRACTION: 6
 
-amd-raven-skqp:x86_64:
+amd-raven-skqp:
   extends:
     - .lava-test-deqp:x86_64
     - .amd-raven-test:x86_64
@@ -77,7 +77,7 @@ amd-raven-skqp:x86_64:
 
 # Disabled as it was using an older version of Wine, with most of the traces
 # being disabled due to being flaky.
-.radv-raven-traces:x86_64:
+.radv-raven-traces:
   extends:
     - .lava-piglit-traces:x86_64
     - .radv-raven-test:x86_64
@@ -88,7 +88,7 @@ amd-raven-skqp:x86_64:
     PIGLIT_REPLAY_DEVICE_NAME: "vk-${GPU_VERSION}"
     PIGLIT_TRACES_FILE: traces-amd.yml
 
-radv-raven-traces-restricted:x86_64:
+radv-raven-traces-restricted:
   extends:
     - .lava-piglit-traces:x86_64
     - .radv-raven-test:x86_64
@@ -102,25 +102,18 @@ radv-raven-traces-restricted:x86_64:
     PIGLIT_REPLAY_EXTRA_ARGS: --keep-image --minio_bucket=${S3_TRACIE_PRIVATE_BUCKET} --jwt-file=${S3_JWT_FILE}
     FDO_CI_CONCURRENT: 10
 
-radeonsi-raven-piglit-quick_gl:x86_64:
+radeonsi-raven-piglit:
   extends:
-    - .lava-piglit:x86_64
+    - .lava-test-deqp:x86_64
     - .radeonsi-raven-test:x86_64
     - .lava-lenovo-TPad-C13-Yoga-zork:x86_64
+  parallel: 2
   variables:
-    PIGLIT_PLATFORM: mixed_glx_egl
-    PIGLIT_PROFILES: quick_gl
+    DEQP_SUITE: radeonsi-raven
     HWCI_START_WESTON: 1
 
-radeonsi-raven-piglit-quick_shader:x86_64:
-  extends:
-    - radeonsi-raven-piglit-quick_gl:x86_64
-  variables:
-    PIGLIT_PROFILES: quick_shader
-    PIGLIT_FRACTION: 2
-
 # lower image opcodes to emulate CDNA compute devices
-radeonsi-raven-cdna-lower-image:x86_64:
+radeonsi-raven-cdna-lower-image:
   extends:
     - .lava-test-deqp:x86_64
     - .radeonsi-raven-test:x86_64
@@ -129,7 +122,7 @@ radeonsi-raven-cdna-lower-image:x86_64:
     DEQP_SUITE: radeonsi-raven-cdna
     GPU_VERSION: radeonsi-raven-cdna
 
-radeonsi-raven-va:x86_64:
+radeonsi-raven-va:
   extends:
     - .lava-test-deqp:x86_64
     - .radeonsi-raven-test:x86_64
@@ -150,12 +143,11 @@ radeonsi-raven-va:x86_64:
     # https://github.com/google/googletest/issues/3614 would probably help.
     GTEST_FRACTION: 2
 
-radeonsi-raven-va-full:x86_64:
+radeonsi-raven-va-full:
   extends:
-    - radeonsi-raven-va:x86_64
+    - radeonsi-raven-va
     - .radeonsi-vaapi-manual-rules
   variables:
-    JOB_TIMEOUT: 60
     GTEST_FRACTION: null
 
 ############### VKCTS tests ###############
@@ -286,16 +278,28 @@ vkcts-vangogh-valve:
     GPU_VERSION: radv-vangogh-aco
     RADV_PERFTEST: transfer_queue
 
-glcts-vangogh-valve:
+.glcts-vangogh-valve-common:
   extends:
     - .b2c-x86_64-test-gl
     - .b2c-deqp-test
     - .vangogh-test-valve
-    - .radeonsi-valve-manual-rules
-  timeout: 60m
   variables:
     GPU_VERSION: radeonsi-vangogh
     DEQP_SUITE: radeonsi-vangogh
+
+glcts-vangogh-valve:
+  extends:
+    - .glcts-vangogh-valve-common
+    - .radeonsi-valve-rules
+  timeout: 30m
+  variables:
+    DEQP_FRACTION: 4
+
+glcts-vangogh-full-valve:
+  extends:
+    - .glcts-vangogh-valve-common
+    - .radeonsi-valve-manual-rules
+  timeout: 90m
 
 vkcts-navi31-valve:
   parallel: 2

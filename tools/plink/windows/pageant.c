@@ -52,7 +52,7 @@ static char *putty_path;
 static bool restrict_putty_acl = false;
 
 /* CWD for "add key" file requester. */
-static filereq *keypath = NULL;
+static filereq_saved_dir *keypath = NULL;
 
 /* From MSDN: In the WM_SYSCOMMAND message, the four low-order bits of
  * wParam are used by Windows, and should be masked off, so we shouldn't
@@ -543,49 +543,21 @@ static void win_add_keyfile(Filename *filename, bool encrypted)
  */
 static void prompt_add_keyfile(bool encrypted)
 {
-    OPENFILENAME of;
-    char *filelist = snewn(8192, char);
+    if (!keypath)
+        keypath = filereq_saved_dir_new();
 
-    if (!keypath) keypath = filereq_new();
-    memset(&of, 0, sizeof(of));
-    of.hwndOwner = traywindow;
-    of.lpstrFilter = FILTER_KEY_FILES_C;
-    of.lpstrCustomFilter = NULL;
-    of.nFilterIndex = 1;
-    of.lpstrFile = filelist;
-    *filelist = '\0';
-    of.nMaxFile = 8192;
-    of.lpstrFileTitle = NULL;
-    of.lpstrTitle = "Select Private Key File";
-    of.Flags = OFN_ALLOWMULTISELECT | OFN_EXPLORER;
-    if (request_file(keypath, &of, true, false)) {
-        if (strlen(filelist) > of.nFileOffset) {
-            /* Only one filename returned? */
-            Filename *fn = filename_from_str(filelist);
-            win_add_keyfile(fn, encrypted);
-            filename_free(fn);
-        } else {
-            /* we are returned a bunch of strings, end to
-             * end. first string is the directory, the
-             * rest the filenames. terminated with an
-             * empty string.
-             */
-            char *dir = filelist;
-            char *filewalker = filelist + strlen(dir) + 1;
-            while (*filewalker != '\0') {
-                char *filename = dupcat(dir, "\\", filewalker);
-                Filename *fn = filename_from_str(filename);
-                win_add_keyfile(fn, encrypted);
-                filename_free(fn);
-                sfree(filename);
-                filewalker += strlen(filewalker) + 1;
-            }
-        }
+    struct request_multi_file_return *rmf = request_multi_file(
+        traywindow, "Select Private Key File", NULL, false,
+        keypath, true, FILTER_KEY_FILES);
+
+    if (rmf) {
+        for (size_t i = 0; i < rmf->nfilenames; i++)
+            win_add_keyfile(rmf->filenames[i], encrypted);
+        request_multi_file_free(rmf);
 
         keylist_update();
         pageant_forget_passphrases();
     }
-    sfree(filelist);
 }
 
 /*
@@ -1548,6 +1520,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     size_t nclkeys = 0, clkeysize = 0;
 
     dll_hijacking_protection();
+    enable_dit();
 
     hinst = inst;
 
@@ -1957,7 +1930,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
         DestroyMenu(systray_menu);
     }
 
-    if (keypath) filereq_free(keypath);
+    if (keypath)
+        filereq_saved_dir_free(keypath);
 
     if (openssh_config_file) {
         /*

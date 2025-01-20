@@ -13,7 +13,7 @@ agx_vma_heap(struct agx_device *dev, enum agx_va_flags flags)
 }
 
 struct agx_va *
-agx_va_alloc(struct agx_device *dev, uint32_t size_B, uint32_t align_B,
+agx_va_alloc(struct agx_device *dev, uint64_t size_B, uint64_t align_B,
              enum agx_va_flags flags, uint64_t fixed_va)
 {
    assert((fixed_va != 0) == !!(flags & AGX_VA_FIXED));

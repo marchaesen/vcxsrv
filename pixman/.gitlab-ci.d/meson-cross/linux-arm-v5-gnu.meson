@@ -1,8 +1,6 @@
 [binaries]
-c = ['gcc', '-DCI_HAS_ALL_MIPS_CPU_FEATURES']
+c = 'gcc'
 ar = 'ar'
 strip = 'strip'
 pkg-config = 'pkg-config'
-
-[project options]
-openmp = 'disabled'
+exe_wrapper = ['qemu-arm', '-cpu', 'arm1136']

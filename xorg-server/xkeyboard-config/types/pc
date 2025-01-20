@@ -4,7 +4,7 @@ default partial xkb_types "default" {
     // for a full implementation of
     // a PC-compatible keyboard.
 
-    virtual_modifiers  Alt, LevelThree;
+    virtual_modifiers  Alt, LevelThree, Super;
 
     type "PC_ALT_LEVEL2" {
 	modifiers = Alt;
@@ -15,9 +15,17 @@ default partial xkb_types "default" {
     };
 
     type "PC_SUPER_LEVEL2" {
-	modifiers = Mod4;
+	modifiers = Super;
 	map[None] = Level1;
-	map[Mod4] = Level2;
+	map[Super] = Level2;
+	level_name[Level1] = "Base";
+	level_name[Level2] = "Super";
+    };
+
+    type "PC_SHIFT_SUPER_LEVEL2" {
+	modifiers = Shift + Super;
+	map[None] = Level1;
+	map[Super + Shift] = Level2;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Super";
     };

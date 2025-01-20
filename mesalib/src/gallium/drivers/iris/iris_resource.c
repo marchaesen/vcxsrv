@@ -473,7 +473,7 @@ iris_resource_alloc_flags(const struct iris_screen *screen,
 
    switch (templ->usage) {
    case PIPE_USAGE_STAGING:
-      flags |= BO_ALLOC_SMEM | BO_ALLOC_COHERENT;
+      flags |= BO_ALLOC_SMEM | BO_ALLOC_CACHED_COHERENT;
       break;
    case PIPE_USAGE_STREAM:
       flags |= BO_ALLOC_SMEM;
@@ -490,7 +490,7 @@ iris_resource_alloc_flags(const struct iris_screen *screen,
 
    if (templ->flags & (PIPE_RESOURCE_FLAG_MAP_COHERENT |
                        PIPE_RESOURCE_FLAG_MAP_PERSISTENT))
-      flags |= BO_ALLOC_SMEM | BO_ALLOC_COHERENT;
+      flags |= BO_ALLOC_SMEM | BO_ALLOC_CACHED_COHERENT;
 
    if (screen->devinfo->verx10 >= 125 && screen->devinfo->has_local_mem &&
        isl_aux_usage_has_ccs(res->aux.usage)) {
@@ -545,7 +545,7 @@ static struct iris_resource *
 iris_alloc_resource(struct pipe_screen *pscreen,
                     const struct pipe_resource *templ)
 {
-   struct iris_resource *res = calloc(1, sizeof(struct iris_resource));
+   struct iris_resource *res = CALLOC_STRUCT(iris_resource);
    if (!res)
       return NULL;
 
@@ -1037,7 +1037,7 @@ iris_resource_image_is_pat_compressible(const struct iris_screen *screen,
       return false;
 
    if (flags & (BO_ALLOC_PROTECTED |
-                BO_ALLOC_COHERENT |
+                BO_ALLOC_CACHED_COHERENT |
                 BO_ALLOC_CPU_VISIBLE))
       return false;
 
@@ -1157,7 +1157,12 @@ iris_resource_create_for_image(struct pipe_screen *pscreen,
 
    /* Allocate space for the indirect clear color. */
    if (iris_get_aux_clear_color_state_size(screen, res) > 0) {
-      res->aux.clear_color_offset = align64(bo_size, 64);
+      /* Kernel expects a 4k alignment, otherwise the display rejects the
+       * surface.
+       */
+      const uint64_t clear_color_alignment =
+         (res->mod_info && res->mod_info->supports_clear_color) ? 4096 : 64;
+      res->aux.clear_color_offset = align64(bo_size, clear_color_alignment);
       bo_size = res->aux.clear_color_offset +
                 iris_get_aux_clear_color_state_size(screen, res);
    }
@@ -1878,6 +1883,9 @@ iris_resource_get_handle(struct pipe_screen *pscreen,
    }
 #endif
 
+   /* TODO: TILE64 modifier support in the KMD */
+   assert(res->surf.tiling != ISL_TILING_64);
+
    switch (whandle->type) {
    case WINSYS_HANDLE_TYPE_SHARED:
       iris_gem_set_tiling(bo, &res->surf);
@@ -2577,7 +2585,7 @@ iris_transfer_unmap(struct pipe_context *ctx, struct pipe_transfer *xfer)
  * The pipe->texture_subdata() driver hook.
  *
  * Mesa's state tracker takes this path whenever possible, even with
- * PIPE_CAP_TEXTURE_TRANSFER_MODES set.
+ * pipe_caps.texture_transfer_modes set.
  */
 static void
 iris_texture_subdata(struct pipe_context *ctx,

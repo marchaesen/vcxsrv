@@ -66,7 +66,7 @@ static void sp_blit(struct pipe_context *pipe,
    util_blitter_save_vertex_shader(sp->blitter, sp->vs);
    util_blitter_save_geometry_shader(sp->blitter, sp->gs);
    util_blitter_save_so_targets(sp->blitter, sp->num_so_targets,
-                     (struct pipe_stream_output_target**)sp->so_targets);
+                     (struct pipe_stream_output_target**)sp->so_targets, MESA_PRIM_UNKNOWN);
    util_blitter_save_rasterizer(sp->blitter, sp->rasterizer);
    util_blitter_save_viewport(sp->blitter, &sp->viewports[0]);
    util_blitter_save_scissor(sp->blitter, &sp->scissors[0]);

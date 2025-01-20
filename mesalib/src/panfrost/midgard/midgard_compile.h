@@ -97,15 +97,14 @@ static const nir_shader_compiler_options midgard_nir_options = {
    .has_fsub = true,
    .has_isub = true,
    .vectorize_io = true,
-   .use_interpolated_input_intrinsics = true,
 
-   .vertex_id_zero_based = true,
    .has_cs_global_id = true,
    .lower_cs_local_index_to_id = true,
    .max_unroll_iterations = 32,
    .force_indirect_unrolling =
       (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),
    .force_indirect_unrolling_sampler = true,
+   .support_indirect_inputs = (uint8_t)BITFIELD_MASK(PIPE_SHADER_TYPES),
 };
 
 #endif

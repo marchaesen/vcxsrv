@@ -59,7 +59,7 @@ void VulkanStreamGuest::loadStringInPlaceWithStreamPtr(char** forOutput, uint8_t
     uint32_t len;
     memcpy(&len, *streamPtr, sizeof(uint32_t));
     *streamPtr += sizeof(uint32_t);
-    android::base::Stream::fromBe32((uint8_t*)&len);
+    gfxstream::aemu::Stream::fromBe32((uint8_t*)&len);
 
     alloc((void**)forOutput, len + 1);
 
@@ -76,7 +76,7 @@ void VulkanStreamGuest::loadStringArrayInPlaceWithStreamPtr(char*** forOutput,
     uint32_t count;
     memcpy(&count, *streamPtr, sizeof(uint32_t));
     *streamPtr += sizeof(uint32_t);
-    android::base::Stream::fromBe32((uint8_t*)&count);
+    gfxstream::aemu::Stream::fromBe32((uint8_t*)&count);
     if (!count) {
         *forOutput = nullptr;
         return;

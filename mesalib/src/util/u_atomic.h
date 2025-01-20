@@ -166,17 +166,17 @@ __forceinline short _interlockedadd16(short volatile * _Addend, short _Value)
    ((void) p_atomic_fetch_add((_v), (_i)))
 
 #define p_atomic_add_return(_v, _i) (\
-   sizeof *(_v) == sizeof(char)    ? _interlockedadd8 ((char *)   (_v), (_i)) : \
-   sizeof *(_v) == sizeof(short)   ? _interlockedadd16((short *)  (_v), (_i)) : \
-   sizeof *(_v) == sizeof(long)    ? _interlockedadd  ((long *)   (_v), (_i)) : \
-   sizeof *(_v) == sizeof(__int64) ? _interlockedadd64((__int64 *)(_v), (_i)) : \
+   sizeof *(_v) == sizeof(char)    ? _interlockedadd8 ((char *)   (_v), (char) (_i)) : \
+   sizeof *(_v) == sizeof(short)   ? _interlockedadd16((short *)  (_v), (short) (_i)) : \
+   sizeof *(_v) == sizeof(long)    ? _interlockedadd  ((long *)   (_v), (long) (_i)) : \
+   sizeof *(_v) == sizeof(__int64) ? _interlockedadd64((__int64 *)(_v), (__int64) (_i)) : \
                                      (assert(!"should not get here"), 0))
 
 #define p_atomic_fetch_add(_v, _i) (\
-   sizeof *(_v) == sizeof(char)    ? _InterlockedExchangeAdd8 ((char *)   (_v), (_i)) : \
-   sizeof *(_v) == sizeof(short)   ? _InterlockedExchangeAdd16((short *)  (_v), (_i)) : \
-   sizeof *(_v) == sizeof(long)    ? _InterlockedExchangeAdd  ((long *)   (_v), (_i)) : \
-   sizeof *(_v) == sizeof(__int64) ? _interlockedexchangeadd64((__int64 *)(_v), (_i)) : \
+   sizeof *(_v) == sizeof(char)    ? _InterlockedExchangeAdd8 ((char *)   (_v), (char) (_i)) : \
+   sizeof *(_v) == sizeof(short)   ? _InterlockedExchangeAdd16((short *)  (_v), (short) (_i)) : \
+   sizeof *(_v) == sizeof(long)    ? _InterlockedExchangeAdd  ((long *)   (_v), (long) (_i)) : \
+   sizeof *(_v) == sizeof(__int64) ? _interlockedexchangeadd64((__int64 *)(_v), (__int64) (_i)) : \
                                      (assert(!"should not get here"), 0))
 
 #define p_atomic_cmpxchg(_v, _old, _new) (\

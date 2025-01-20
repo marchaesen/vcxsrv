@@ -73,22 +73,6 @@ tegra_screen_get_device_vendor(struct pipe_screen *pscreen)
 }
 
 static int
-tegra_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
-{
-   struct tegra_screen *screen = to_tegra_screen(pscreen);
-
-   return screen->gpu->get_param(screen->gpu, param);
-}
-
-static float
-tegra_screen_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
-{
-   struct tegra_screen *screen = to_tegra_screen(pscreen);
-
-   return screen->gpu->get_paramf(screen->gpu, param);
-}
-
-static int
 tegra_screen_get_shader_param(struct pipe_screen *pscreen, enum pipe_shader_type shader,
                               enum pipe_shader_cap param)
 {
@@ -605,8 +589,6 @@ tegra_screen_create(int fd)
    screen->base.get_vendor = tegra_screen_get_vendor;
    screen->base.get_device_vendor = tegra_screen_get_device_vendor;
    screen->base.get_screen_fd = tegra_screen_get_fd;
-   screen->base.get_param = tegra_screen_get_param;
-   screen->base.get_paramf = tegra_screen_get_paramf;
    screen->base.get_shader_param = tegra_screen_get_shader_param;
    screen->base.get_video_param = tegra_screen_get_video_param;
    screen->base.get_compute_param = tegra_screen_get_compute_param;
@@ -643,6 +625,8 @@ tegra_screen_create(int fd)
    screen->base.is_dmabuf_modifier_supported = tegra_screen_is_dmabuf_modifier_supported;
    screen->base.get_dmabuf_modifier_planes = tegra_screen_get_dmabuf_modifier_planes;
    screen->base.memobj_create_from_handle = tegra_screen_memobj_create_from_handle;
+
+   memcpy((void *)&screen->base.caps, &screen->gpu->caps, sizeof(screen->base.caps));
 
    return &screen->base;
 }

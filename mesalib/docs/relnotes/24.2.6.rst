@@ -1,0 +1,238 @@
+Mesa 24.2.6 Release Notes / 2024-10-30
+======================================
+
+Mesa 24.2.6 is a bug fix release which fixes bugs found since the 24.2.5 release.
+
+Mesa 24.2.6 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.2.6 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: 2b68c4a6f204c1999815a457299f81c41ba7bf48c4674b0b2d1d8864f41f3709  mesa-24.2.6.tar.xz
+    SHA512: 830a40d38200ff8b2a6bd949e1ac3bf4edc887a10d9aa92285007d138079e1fafb3568f658e777e7894e95b5ce75d2bd6836b0473fa70d32270005e482b1a2da  mesa-24.2.6.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- radv: wrong index value in radv_skip_graphics_pipeline_compile
+- Disk Cache DB file descriptors are not closed on exec
+- Shader cache takes too many fds
+- Shader cache takes too many fds
+- Disk Cache DB file descriptors are not closed on exec
+- radv: \`test_instruction_msad_dxil` from vkd3d-proton fails on hawaii
+- [vulkan-intel][regression] War Thunder causes GPU hang
+
+
+Changes
+-------
+
+Adam Jackson (1):
+
+- glx: Fix the GLX_EXT_swap_control_tear drawable attributes
+
+Alyssa Rosenzweig (1):
+
+- asahi: fix no16 flag
+
+Anil Hiranniah (1):
+
+- panfrost: Fix a memory leak in the CSF backend
+
+Chia-I Wu (1):
+
+- panvk: fix descriptor set layout hash
+
+Christian Gmeiner (1):
+
+- etnaviv: nir: Enforce stricter swizzle for virtual scalar x register
+
+Connor Abbott (3):
+
+- ir3: Increase compute const size on a7xx
+- freedreno: Add compute constlen quirk for X1-85
+- tu: Don't invalidate CS state for 3D blits
+
+Daniel Schürmann (2):
+
+- aco/spill: fix faulty assertions
+- aco: Respect addressible SGPR limit in VS prologs
+
+Danylo Piliaiev (1):
+
+- util/vma: Fix util_vma_heap_get_max_free_continuous_size calculation
+
+David Rosca (1):
+
+- frontends/va: Fix parsing leb128 when using more than 4 bytes
+
+Dmitry Osipenko (4):
+
+- util/mesa-db: Fix missing O_CLOEXEC
+- util/mesa-db-multipart: Open one cache part at a time
+- util/mesa-db: Open DB files during access time
+- util/mesa-db: Fix crash on compacting empty DB
+
+Eric Engestrom (6):
+
+- docs: add sha sum for 24.2.5
+- .pick_status.json: Update to 0bffe8ec053f2a43795515b0f9c64cf98b5bd8b7
+- .pick_status.json: Mark 1dc125338e19325b0926840303731ec00af83125 as denominated
+- .pick_status.json: Update to d5581b112452398e3e56ae0e9ab8f585b6374020
+- .pick_status.json: Update to 6775524c69c660a4585e3e5ed85f4d7b9129054f
+- .pick_status.json: Update to c245609b641ad914a931ad2b3fd930ed8d065e07
+
+Frank Binns (2):
+
+- pvr: fix image size calculation when mipLevels is 1
+- pvr: ensure stencil clear value fits TA_STATE_ISPA.sref field
+
+Georg Lehmann (2):
+
+- aco: fix 64bit extract_i8/extract_i16
+- radv: don't use v_mqsad_u32_u8 on gfx7
+
+Ian Romanick (1):
+
+- brw/copy: Don't remove instructions w/ conditional modifier
+
+Iliyan Dinev (1):
+
+- pvr: fix mipmap alignment for non-32bpp textures
+
+Iván Briano (1):
+
+- hasvk: fix non matching image/view format attachment resolve
+
+Job Noorman (1):
+
+- ir3: fix physical edges of predicated branches
+
+Jocelyn Falempe (3):
+
+- loader: Fix typo in __DRI_IMAGE_FORMAT_XBGR16161616 definition
+- gbm/dri: Use PIPE_FORMAT_* instead of using __DRI_IMAGE_*
+- gbm/dri: Fix color format for big endian.
+
+Jordan Justen (4):
+
+- intel/dev: Rework DEVINFO_HWCONFIG; add DEVINFO_HWCONFIG_KV macro
+- intel/dev: Simplify DEVINFO_HWCONFIG_KV by adding should_apply_hwconfig_item()
+- intel/dev: Allow specifying a version when to always use hwconfig
+- intel/dev: Use hwconfig for urb min/max entry values
+
+Karol Herbst (1):
+
+- radeonsi: move si_compute::global_buffers to si_context
+
+Lionel Landwerlin (3):
+
+- anv: use stage mask to deduce cs/pb-stall requirements
+- elk: Don't apply discard_if condition opt if it can change results
+- isl: fix range_B_tile end_tile_B value
+
+Lu Yao (1):
+
+- ac/radeonsi: compute htile for tile mode RADEON_SURF_MODE_1D on GFX6-8
+
+Luigi Santivetti (2):
+
+- pvr: fix calculation for textures z position fractional part
+- pvr: really free memory in subpass render init
+
+Matt Coster (2):
+
+- pvr: Fix ds subtile alignment NULL pointer dereference
+- pvr: Fix reordering of sub-cmds when performing ds subtile alignment
+
+Michel Dänzer (1):
+
+- util/mesa-db: Make mesa_db_lock robust against signals
+
+Mike Blumenkrantz (2):
+
+- va: fail context create if driver does not support video
+- vdpau: fail context create if driver does not support video
+
+Patrick Lerda (1):
+
+- r600: fix spec ext_packed_depth_stencil getteximage
+
+Paulo Zanoni (1):
+
+- anv/trtt: fix the creation of sparse buffers of size 2^32 on 32bit systems
+
+Pavel Ondračka (1):
+
+- nir/nir_group_loads: reduce chance of max_distance check overflow
+
+Pierre-Eric Pelloux-Prayer (3):
+
+- radeonsi/gfx12: fill missing dcc tiling info
+- radeonsi: fix radeon_canonicalize_bo_flags domain handling
+- ac/surface: fix determination of gfx12_enable_dcc
+
+Rhys Perry (3):
+
+- radv: fix output statistic for fragment shaders
+- nir: fix shfr constant folding with zero src2
+- nir/algebraic: fix shfr optimization with zero src2
+
+Rob Clark (3):
+
+- freedreno/ir3: Create UBO variables for driver-UBOs
+- nir/lower_amul: Fix ASAN error
+- freedreno/ir3: Do not propagate away a widening move
+
+Rohan Garg (1):
+
+- anv: Xe2+ doesn't need the special flush for sparse
+
+Samuel Pitoiset (4):
+
+- radv: fix initializing the HTILE buffer on transfer queue
+- radv: fix emitting NGG culling state for ESO
+- radv: fix considering NGG culling for depth-only rendering
+- radv: fix wrong index in radv_skip_graphics_pipeline_compile()
+
+Sviatoslav Peleshko (1):
+
+- intel/brw/gfx9: Implement WaClearArfDependenciesBeforeEot
+
+Tapani Pälli (2):
+
+- iris: implement VF_STATISTICS emit for Wa_16012775297
+- anv: implement VF_STATISTICS emit for Wa_16012775297
+
+Valentine Burley (1):
+
+- freedreno/devices: Unify magic_regs for A740 and A32
+
+Yao Zi (1):
+
+- panvk: Link with --build-id explicitly
+
+YaoBing Xiao (1):
+
+- vulkan/x11: use xcb_connection_has_error to check for failue
+
+Zan Dobersek (1):
+
+- zink: fix bo_export caching

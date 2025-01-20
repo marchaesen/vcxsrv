@@ -185,14 +185,6 @@ option(
 )
 
 option(
-  'opencl-spirv',
-  type : 'boolean',
-  value : false,
-  description : 'build gallium "clover" OpenCL frontend with SPIR-V ' +
-                'binary support.',
-)
-
-option(
   'static-libclc',
   type : 'array',
   value : [],
@@ -213,8 +205,8 @@ option(
   value : ['auto'],
   choices : ['auto', 'amd', 'broadcom', 'freedreno', 'intel', 'intel_hasvk',
              'panfrost', 'swrast', 'virtio', 'imagination-experimental',
-             'microsoft-experimental', 'nouveau', 'asahi',
-             'gfxstream-experimental', 'all'],
+             'microsoft-experimental', 'nouveau', 'asahi', 'gfxstream',
+             'all'],
   description : 'List of vulkan drivers to build. If this is set to auto ' +
                 'all drivers applicable to the target OS/architecture ' +
                 'will be built'
@@ -232,6 +224,12 @@ option(
                 'gallium and vulkan driver',
 )
 
+option(
+  'amdgpu-virtio',
+  type : 'boolean',
+  value : false,
+  description : 'use experimental virtio backend for radeonsi/radv',
+)
 option(
   'imagination-srv',
   type : 'boolean',
@@ -497,10 +495,8 @@ option(
 option(
   'selinux',
   type : 'boolean',
-  value : false,
-  description : 'Build an SELinux-aware Mesa.  This currently disables ' +
-                'execmem support at runtime unless SELinux is configured ' +
-                'with allow_execmem.'
+  deprecated : true,
+  description : 'Does nothing, left here for a while to avoid build breakages.',
 )
 
 option(
@@ -668,6 +664,13 @@ option(
 )
 
 option(
+  'intel-bvh-grl',
+  type : 'boolean',
+  value : false,
+  description : 'Build the BVH structure using GRL.'
+)
+
+option(
   'install-intel-clc',
   type : 'boolean',
   value : false,
@@ -745,4 +748,38 @@ option(
   choices : [
     'none', 'dri2'
   ],
+)
+
+option(
+  'mesa-clc',
+  type : 'combo',
+  value : 'auto',
+  choices : [
+    'enabled', 'system', 'auto'
+  ],
+  description : 'Build the mesa-clc compiler or use a system version.'
+)
+
+option(
+  'install-mesa-clc',
+  type : 'boolean',
+  value : false,
+  description : 'Install the mesa-clc compiler (if needed for cross builds).'
+)
+
+option(
+  'precomp-compiler',
+  type : 'combo',
+  value : 'auto',
+  choices : [
+    'enabled', 'system', 'auto'
+  ],
+  description : 'Build drivers internal shader compilers or use a system version'
+)
+
+option(
+  'install-precomp-compiler',
+  type : 'boolean',
+  value : false,
+  description : 'Install the drivers internal shader compilers (if needed for cross builds).'
 )

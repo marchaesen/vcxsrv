@@ -6,6 +6,9 @@
 # FEDORA_X86_64_BUILD_TAG
 
 set -e
+
+. .gitlab-ci/setup-test-env.sh
+
 set -o xtrace
 
 
@@ -48,7 +51,6 @@ DEPS=(
     "pkgconfig(libclc)"
     "pkgconfig(libelf)"
     "pkgconfig(libglvnd)"
-    "pkgconfig(libselinux)"
     "pkgconfig(libva)"
     "pkgconfig(pciaccess)"
     "pkgconfig(vdpau)"
@@ -75,6 +77,7 @@ DEPS=(
     python-unversioned-command
     python3-devel
     python3-mako
+    python3-packaging
     python3-ply
     python3-pycparser
     python3-yaml

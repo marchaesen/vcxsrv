@@ -180,16 +180,21 @@ def control(args):
         print(f"Device Name: {name}")
         print(f"Mesa Version: {mesa_version}")
 
+    msg = ':'
+    if args.region:
+        msg = f'{msg}region={args.region},'
     if args.cmd == 'capture':
         if args.filename is None:
             args.filename = ''
-        msg = ':capture=' + args.filename + ';'
+        msg = f'{msg}capture={args.filename};'
+        print("Sending message: \'%s\'" % msg)
         conn.send(bytearray(msg, 'utf-8'))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='MESA_screenshot control client')
     parser.add_argument('--info', action='store_true', help='Print info from socket')
     parser.add_argument('--socket', '-s', type=str, help='Path to socket')
+    parser.add_argument('--region', '-r', type=str, help='A bounded region, using percentages in the following syntax: \'startX%%/startY%%/endX%%/endY%%\', ex: \'0.20/0.20/0.75/0.75\'')
 
     commands = parser.add_subparsers(help='commands to run', dest='cmd')
     commands_parser = commands.add_parser('capture', help='capture [filename.png]')

@@ -47,8 +47,7 @@ cmd_desc_state_bind_sets(struct panvk_descriptor_state *desc_state,
       for (unsigned b = 0; b < set->layout->binding_count; b++) {
          VkDescriptorType type = set->layout->bindings[b].type;
 
-         if (type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-             type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+         if (!vk_descriptor_type_is_dynamic(type))
             continue;
 
          unsigned dyn_buf_idx = set->layout->bindings[b].desc_idx;
@@ -104,6 +103,8 @@ cmd_get_push_desc_set(struct vk_command_buffer *vk_cmdbuf,
 
    /* Pushing descriptors replaces whatever sets are bound */
    desc_state->sets[set_idx] = set;
+
+   BITSET_SET(desc_state->dirty_push_sets, set_idx);
    return set;
 }
 
@@ -115,8 +116,9 @@ panvk_per_arch(cmd_prepare_dyn_ssbos)(
    const struct panvk_shader *shader,
    struct panvk_shader_desc_state *shader_desc_state)
 {
-   if (!shader || !shader->desc_info.dyn_ssbos.count ||
-       shader_desc_state->dyn_ssbos)
+   shader_desc_state->dyn_ssbos = 0;
+
+   if (!shader || !shader->desc_info.dyn_ssbos.count)
       return VK_SUCCESS;
 
    struct panfrost_ptr ptr = panvk_cmd_alloc_dev_mem(
@@ -181,6 +183,9 @@ panvk_per_arch(cmd_prepare_shader_desc_tables)(
    const struct panvk_shader *shader,
    struct panvk_shader_desc_state *shader_desc_state)
 {
+   memset(shader_desc_state->tables, 0, sizeof(shader_desc_state->tables));
+   shader_desc_state->img_attrib_table = 0;
+
    if (!shader)
       return VK_SUCCESS;
 
@@ -192,7 +197,7 @@ panvk_per_arch(cmd_prepare_shader_desc_tables)(
       uint32_t desc_size =
          i == PANVK_BIFROST_DESC_TABLE_UBO ? 8 : PANVK_DESCRIPTOR_SIZE;
 
-      if (!desc_count || shader_desc_state->tables[i])
+      if (!desc_count)
          continue;
 
       struct panfrost_ptr ptr = panvk_cmd_alloc_dev_mem(
@@ -209,8 +214,6 @@ panvk_per_arch(cmd_prepare_shader_desc_tables)(
        * separately for vertex shaders. */
       if (i == PANVK_BIFROST_DESC_TABLE_IMG &&
           shader->info.stage != MESA_SHADER_VERTEX) {
-         assert(!shader_desc_state->img_attrib_table);
-
          ptr = panvk_cmd_alloc_desc_array(cmdbuf, desc_count, ATTRIBUTE);
          if (!ptr.gpu)
             return VK_ERROR_OUT_OF_DEVICE_MEMORY;
@@ -230,7 +233,8 @@ panvk_per_arch(cmd_prepare_shader_desc_tables)(
          return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
       /* Emit a dummy sampler if we have to. */
-      pan_pack(sampler.cpu, SAMPLER, _) {
+      pan_cast_and_pack(sampler.cpu, SAMPLER, cfg) {
+         cfg.clamp_integer_array_indices = false;
       }
 
       shader_desc_state->tables[PANVK_BIFROST_DESC_TABLE_SAMPLER] = sampler.gpu;
@@ -272,8 +276,10 @@ panvk_per_arch(cmd_prepare_shader_res_table)(
    const struct panvk_shader *shader,
    struct panvk_shader_desc_state *shader_desc_state)
 {
-   if (!shader || shader_desc_state->res_table)
+   if (!shader) {
+      shader_desc_state->res_table = 0;
       return VK_SUCCESS;
+   }
 
    uint32_t first_unused_set = util_last_bit(shader->desc_info.used_set_mask);
    uint32_t res_count = 1 + first_unused_set;
@@ -322,7 +328,8 @@ panvk_per_arch(cmd_prepare_push_descs)(struct panvk_cmd_buffer *cmdbuf,
       struct panvk_descriptor_set *push_set = desc_state->push_sets[i];
 
       if (!(used_set_mask & BITFIELD_BIT(i)) || !push_set ||
-          desc_state->sets[i] != push_set || push_set->descs.dev)
+          desc_state->sets[i] != push_set || push_set->descs.dev ||
+          !BITSET_TEST(desc_state->dirty_push_sets, i))
          continue;
 
       struct panfrost_ptr ptr = panvk_cmd_alloc_dev_mem(
@@ -334,6 +341,8 @@ panvk_per_arch(cmd_prepare_push_descs)(struct panvk_cmd_buffer *cmdbuf,
       memcpy(ptr.cpu, push_set->descs.host,
              push_set->desc_count * PANVK_DESCRIPTOR_SIZE);
       push_set->descs.dev = ptr.gpu;
+
+      BITSET_CLEAR(desc_state->dirty_push_sets, i);
    }
 
    return VK_SUCCESS;
@@ -351,16 +360,14 @@ panvk_per_arch(CmdBindDescriptorSets2KHR)(
       cmd_desc_state_bind_sets(&cmdbuf->state.gfx.desc_state,
                                pBindDescriptorSetsInfo);
 
-      memset(&cmdbuf->state.gfx.vs.desc, 0, sizeof(cmdbuf->state.gfx.vs.desc));
-      memset(&cmdbuf->state.gfx.fs.desc, 0, sizeof(cmdbuf->state.gfx.fs.desc));
+      gfx_state_set_dirty(cmdbuf, DESC_STATE);
    }
 
    if (pBindDescriptorSetsInfo->stageFlags & VK_SHADER_STAGE_COMPUTE_BIT) {
       cmd_desc_state_bind_sets(&cmdbuf->state.compute.desc_state,
                                pBindDescriptorSetsInfo);
 
-      memset(&cmdbuf->state.compute.cs.desc, 0,
-             sizeof(cmdbuf->state.compute.cs.desc));
+      compute_state_set_dirty(cmdbuf, DESC_STATE);
    }
 }
 
@@ -401,16 +408,14 @@ panvk_per_arch(CmdPushDescriptorSet2KHR)(
       push_desc_set_write(cmdbuf, &cmdbuf->state.gfx.desc_state,
                           pPushDescriptorSetInfo);
 
-      memset(&cmdbuf->state.gfx.vs.desc, 0, sizeof(cmdbuf->state.gfx.vs.desc));
-      memset(&cmdbuf->state.gfx.fs.desc, 0, sizeof(cmdbuf->state.gfx.fs.desc));
+      gfx_state_set_dirty(cmdbuf, DESC_STATE);
    }
 
    if (pPushDescriptorSetInfo->stageFlags & VK_SHADER_STAGE_COMPUTE_BIT) {
       push_desc_set_write(cmdbuf, &cmdbuf->state.compute.desc_state,
                           pPushDescriptorSetInfo);
 
-      memset(&cmdbuf->state.compute.cs.desc, 0,
-             sizeof(cmdbuf->state.compute.cs.desc));
+      compute_state_set_dirty(cmdbuf, DESC_STATE);
    }
 }
 
@@ -443,11 +448,8 @@ panvk_per_arch(CmdPushDescriptorSetWithTemplate2KHR)(
    push_set->descs.dev = 0;
    push_set->layout = NULL;
 
-   if (template->bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS) {
-      memset(&cmdbuf->state.gfx.vs.desc, 0, sizeof(cmdbuf->state.gfx.vs.desc));
-      memset(&cmdbuf->state.gfx.fs.desc, 0, sizeof(cmdbuf->state.gfx.fs.desc));
-   } else {
-      memset(&cmdbuf->state.compute.cs.desc, 0,
-             sizeof(cmdbuf->state.compute.cs.desc));
-   }
+   if (template->bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS)
+      gfx_state_set_dirty(cmdbuf, DESC_STATE);
+   else
+      compute_state_set_dirty(cmdbuf, DESC_STATE);
 }

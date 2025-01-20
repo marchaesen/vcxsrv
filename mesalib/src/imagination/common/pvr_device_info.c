@@ -60,6 +60,7 @@ int pvr_device_info_init(struct pvr_device_info *info, uint64_t bvnc)
    switch (bvnc) {
       CASE_PACKED_BVNC_DEVICE_INFO(4, 40, 2, 51);
       CASE_PACKED_BVNC_DEVICE_INFO(33, 15, 11, 3);
+      CASE_PACKED_BVNC_DEVICE_INFO(36, 53, 104, 796);
    }
 
 #undef CASE_PACKED_BVNC_DEVICE_INFO

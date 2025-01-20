@@ -21,6 +21,11 @@ struct hk_query_pool {
    struct agx_bo *bo;
    void *bo_map;
 
+   /* For timestamp queries, the kernel-assigned timestamp buffer handle. Unused
+    * for all other query types
+    */
+   uint32_t handle;
+
    unsigned oq_queries;
 };
 

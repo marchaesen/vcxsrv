@@ -45,6 +45,7 @@ enum radeon_bo_domain
   RADEON_DOMAIN_VRAM_GTT = RADEON_DOMAIN_VRAM | RADEON_DOMAIN_GTT,
   RADEON_DOMAIN_GDS = 8,
   RADEON_DOMAIN_OA = 16,
+  RADEON_DOMAIN_DOORBELL = 32,
 };
 
 enum radeon_bo_flag
@@ -64,6 +65,7 @@ enum radeon_bo_flag
   RADEON_FLAG_DISCARDABLE = (1 << 10),
   RADEON_FLAG_WINSYS_SLAB_BACKING = (1 << 11), /* only used by the winsys */
   RADEON_FLAG_GFX12_ALLOW_DCC = (1 << 12), /* allow DCC, VRAM only */
+  RADEON_FLAG_CLEAR_VRAM = (1 << 13),
 };
 
 static inline void
@@ -186,7 +188,12 @@ enum radeon_ctx_pstate
 #define RADEON_PRIO_SHADER_RINGS (1 << 22)
 #define RADEON_PRIO_SCRATCH_BUFFER (1 << 23)
 
-#define RADEON_ALL_PRIORITIES (RADEON_USAGE_READ - 1)
+#define RADEON_ALL_PRIORITIES    BITFIELD_MASK(24)
+
+/* When passed to radeon_winsys::buffer_wait, it disallows using the DRM ioctl for timeout=0
+ * queries because it can take ~1 ms to return, reducing FPS.
+ */
+#define RADEON_USAGE_DISALLOW_SLOW_REPLY (1 << 26)
 
 /* Upper bits of priorities are used by usage flags. */
 #define RADEON_USAGE_READ (1 << 27)
@@ -373,6 +380,13 @@ struct radeon_winsys {
     * The timeout of 0 will only return the status.
     * The timeout of OS_TIMEOUT_INFINITE will always wait until the buffer
     * is idle.
+    *
+    * usage is RADEON_USAGE_READ/WRITE.
+    *
+    * Checking whether a buffer is idle using timeout=0 can take 1 ms even if the DRM ioctl is
+    * used, reducing our FPS to several hundreds. To prevent that, set
+    * RADEON_USAGE_DISALLOW_SLOW_REPLY, which will return busy. This is a workaround for kernel
+    * inefficiency.
     */
    bool (*buffer_wait)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
                        uint64_t timeout, unsigned usage);
@@ -891,6 +905,10 @@ static void radeon_canonicalize_bo_flags(enum radeon_bo_domain *_domain,
       flags |= RADEON_FLAG_NO_SUBALLOC | RADEON_FLAG_NO_CPU_ACCESS;
       flags &= ~RADEON_FLAG_SPARSE;
       break;
+   case RADEON_DOMAIN_DOORBELL:
+      flags |= RADEON_FLAG_NO_SUBALLOC;
+      flags &= ~RADEON_FLAG_SPARSE;
+      break;
    }
 
    /* Sparse buffers must have NO_CPU_ACCESS set. */
@@ -913,7 +931,7 @@ static inline int radeon_get_heap_index(enum radeon_bo_domain domain, enum radeo
    /* These are unsupported flags. */
    /* RADEON_FLAG_DRIVER_INTERNAL is ignored. It doesn't affect allocators. */
    if (flags & (RADEON_FLAG_NO_SUBALLOC | RADEON_FLAG_SPARSE |
-                RADEON_FLAG_DISCARDABLE))
+                RADEON_FLAG_DISCARDABLE | RADEON_FLAG_CLEAR_VRAM))
       return -1;
 
    int heap = 0;
@@ -952,7 +970,7 @@ typedef struct pipe_screen *(*radeon_screen_create_t)(struct radeon_winsys *,
 /* These functions create the radeon_winsys instance for the corresponding kernel driver. */
 struct radeon_winsys *
 amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
-		     radeon_screen_create_t screen_create);
+		     radeon_screen_create_t screen_create, bool is_virtio);
 struct radeon_winsys *
 radeon_drm_winsys_create(int fd, const struct pipe_screen_config *config,
 			 radeon_screen_create_t screen_create);

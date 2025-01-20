@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -3834,7 +3834,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
                         }
 
                         // Select the biggest allowed block type
-                        minSizeBlk = Log2NonPow2(allowedBlockSet.value) + 1;
+                        minSizeBlk = Log2(allowedBlockSet.value) + 1;
 
                         if (minSizeBlk == static_cast<UINT_32>(AddrBlockMaxTiledType))
                         {
@@ -3960,7 +3960,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
                 // Determine swizzle mode now. Always select the "largest" swizzle mode for a given block type + swizzle
                 // type combination. For example, for AddrBlockThin64KB + ADDR_SW_S, select SW_64KB_S_X(25) if it's
                 // available, or otherwise select SW_64KB_S_T(17) if it's available, or otherwise select SW_64KB_S(9).
-                pOut->swizzleMode = static_cast<AddrSwizzleMode>(Log2NonPow2(allowedSwModeSet.value));
+                pOut->swizzleMode = static_cast<AddrSwizzleMode>(Log2(allowedSwModeSet.value));
             }
 
             returnCode = ADDR_OK;

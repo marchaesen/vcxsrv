@@ -207,7 +207,7 @@ cs_const_emit(struct fd_ringbuffer *ring, struct kernel *kernel,
    struct ir3_shader_variant *v = ir3_kernel->v;
 
    const struct ir3_const_state *const_state = ir3_const_state(v);
-   uint32_t base = const_state->offsets.immediate;
+   uint32_t base = const_state->allocs.max_const_offset_vec4;
    int size = DIV_ROUND_UP(const_state->immediates_count, 4);
 
    /* truncate size to avoid writing constants that shader

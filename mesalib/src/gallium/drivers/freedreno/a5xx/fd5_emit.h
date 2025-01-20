@@ -154,7 +154,7 @@ fd5_emit_render_cntl(struct fd_context *ctx, bool blit, bool binning) assert_dt
     * Other bits seem to depend on query state, like if samples-passed
     * query is active.
     */
-   bool samples_passed = (fd5_context(ctx)->samples_passed_queries > 0);
+   bool samples_passed = (ctx->occlusion_queries_active > 0);
    OUT_PKT4(ring, REG_A5XX_RB_RENDER_CNTL, 1);
    OUT_RING(ring, 0x00000000 | /* RB_RENDER_CNTL */
                      COND(binning, A5XX_RB_RENDER_CNTL_BINNING_PASS) |

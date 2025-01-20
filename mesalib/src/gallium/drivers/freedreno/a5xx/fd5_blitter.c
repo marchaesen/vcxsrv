@@ -108,7 +108,7 @@ can_do_blit(const struct pipe_blit_info *info)
        (info->src.resource->nr_samples > 1))
       return false;
 
-   if (info->scissor_enable)
+   if (info->scissor_enable || info->swizzle_enable)
       return false;
 
    if (info->window_rectangle_include)

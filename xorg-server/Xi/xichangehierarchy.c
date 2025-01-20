@@ -271,11 +271,13 @@ remove_master(ClientPtr client, xXIRemoveMasterInfo * r, int flags[MAXDEVICES])
         goto unwind;
 
     XTestptr = GetXTestDevice(ptr);
+    BUG_RETURN_VAL(XTestptr == NULL, BadDevice);
     rc = dixLookupDevice(&XTestptr, XTestptr->id, client, DixDestroyAccess);
     if (rc != Success)
         goto unwind;
 
     XTestkeybd = GetXTestDevice(keybd);
+    BUG_RETURN_VAL(XTestkeybd == NULL, BadDevice);
     rc = dixLookupDevice(&XTestkeybd, XTestkeybd->id, client, DixDestroyAccess);
     if (rc != Success)
         goto unwind;

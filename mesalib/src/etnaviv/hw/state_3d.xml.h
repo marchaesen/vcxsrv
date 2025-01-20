@@ -8,14 +8,14 @@ http://0x04.net/cgit/index.cgi/rules-ng-ng
 git clone git://0x04.net/rules-ng-ng
 
 The rules-ng-ng source files this header was generated from are:
-- state.xml     (  30526 bytes, from 2024-10-10 18:45:02)
-- common.xml    (  35664 bytes, from 2023-12-13 09:33:18)
-- common_3d.xml (  15069 bytes, from 2023-12-13 09:33:18)
-- state_hi.xml  (  35909 bytes, from 2024-06-21 11:31:54)
+- state.xml     (  30526 bytes, from 2024-12-16 16:01:37)
+- common.xml    (  35664 bytes, from 2024-12-05 12:09:36)
+- common_3d.xml (  15069 bytes, from 2024-12-05 12:09:36)
+- state_hi.xml  (  35909 bytes, from 2024-12-05 12:09:36)
 - copyright.xml (   1597 bytes, from 2020-10-28 12:56:03)
 - state_2d.xml  (  52271 bytes, from 2023-05-30 20:50:02)
-- state_3d.xml  (  89542 bytes, from 2024-10-10 18:45:02)
-- state_blt.xml (  14592 bytes, from 2023-12-13 09:33:18)
+- state_3d.xml  (  89504 bytes, from 2024-12-16 16:15:15)
+- state_blt.xml (  14592 bytes, from 2024-12-05 12:09:36)
 - state_vg.xml  (   5975 bytes, from 2020-10-28 12:56:03)
 
 Copyright (C) 2012-2024 by the following authors:
@@ -1877,8 +1877,8 @@ DEALINGS IN THE SOFTWARE.
 #define VIVS_NTE_HALTI3_UNK14C00__ESIZE				0x00000004
 #define VIVS_NTE_HALTI3_UNK14C00__LEN				0x00000010
 
-#define VIVS_NTE_DESCRIPTOR_UNK14C40				0x00014c40
-#define VIVS_NTE_DESCRIPTOR_UNK14C40_UNK0			0x00000001
+#define VIVS_NTE_DESCRIPTOR_CONTROL				0x00014c40
+#define VIVS_NTE_DESCRIPTOR_CONTROL_ENABLE			0x00000001
 
 #define VIVS_NTE_DESCRIPTOR_FLUSH				0x00014c44
 #define VIVS_NTE_DESCRIPTOR_FLUSH_UNK28__MASK			0xf0000000

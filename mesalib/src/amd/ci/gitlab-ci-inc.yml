@@ -13,7 +13,7 @@
         - src/amd/ci/$GPU_VERSION-fails.txt
         - src/amd/ci/$GPU_VERSION-flakes.txt
         - src/amd/ci/$GPU_VERSION-skips.txt
-        - src/amd/ci/$GPU_VERSION-merge-skips.txt
+        - src/amd/ci/$GPU_VERSION-slow-skips.txt
         - src/amd/ci/$VK_DRIVER-skips.txt
         - src/amd/ci/$GALLIUM_DRIVER-skips.txt
         - src/amd/ci/$DRIVER_NAME-skips.txt
@@ -22,6 +22,8 @@
         - src/amd/ci/$GPU_VERSION-vkd3d-flakes.txt
         - src/amd/ci/$GPU_VERSION-vkd3d-skips.txt
         - src/amd/common/**/*
+        - src/amd/common/nir/**/*
+        - src/amd/compiler/**/*
         - src/amd/llvm/**/*
         - src/amd/registers/**/*
       when: on_success
@@ -208,7 +210,6 @@
 # job prefixes: radeonsi (OpenGL), radv (Vulkan), amd (radeonsi+radv)
 .stoney-test:x86_64:
   variables:
-    DEQP_EXPECTED_RENDERER: STONEY
     FLAKES_CHANNEL: "#amd-ci"
 
 .radeonsi-stoney-test:x86_64:
@@ -227,7 +228,6 @@
     - .lava-hp-14-db0003na-grunt:x86_64
     - .radv-collabora-rules
   variables:
-    DEQP_VER: vk
     DRIVER_NAME: radv
     GPU_VERSION: radv-stoney-aco
 
@@ -406,7 +406,7 @@
     - .b2c-test-radv-vk
     - .b2c-deqp-test
   variables:
-    DEQP_VER: vk
+    DEQP_SUITE: radv-valve
 
 ############### vkd3d-proton
 .vkd3d-kabini-valve:

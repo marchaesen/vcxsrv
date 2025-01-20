@@ -19,12 +19,6 @@ struct radv_shader_info;
 
 struct radv_compute_pipeline {
    struct radv_pipeline base;
-
-   struct {
-      struct radeon_cmdbuf cs;
-      uint64_t va;
-      uint64_t size;
-   } indirect;
 };
 
 RADV_DECL_PIPELINE_DOWNCAST(compute, RADV_PIPELINE_COMPUTE)
@@ -47,7 +41,8 @@ void radv_compute_pipeline_init(struct radv_compute_pipeline *pipeline, const st
 
 struct radv_shader *radv_compile_cs(struct radv_device *device, struct vk_pipeline_cache *cache,
                                     struct radv_shader_stage *cs_stage, bool keep_executable_info,
-                                    bool keep_statistic_info, bool is_internal, struct radv_shader_binary **cs_binary);
+                                    bool keep_statistic_info, bool is_internal, bool skip_shaders_cache,
+                                    struct radv_shader_binary **cs_binary);
 
 VkResult radv_compute_pipeline_create(VkDevice _device, VkPipelineCache _cache,
                                       const VkComputePipelineCreateInfo *pCreateInfo,

@@ -228,7 +228,7 @@ ac_build_gfx6_fmask_descriptor(const enum amd_gfx_level gfx_level, const struct 
          const uint64_t cmask_va = state->va + surf->cmask_offset;
 
          desc[6] |= S_008F28_COMPRESSION_EN(1);
-         desc[7] |= cmask_va >> 8;
+         desc[7] |= (cmask_va >> 8) | surf->fmask_tile_swizzle;
       }
    }
 }
@@ -496,11 +496,15 @@ ac_build_gfx12_texture_descriptor(const struct radeon_info *info, const struct a
    const struct radeon_surf *surf = state->surf;
    const struct util_format_description *fmt_desc = util_format_description(state->format);
    const uint32_t img_format = ac_get_gfx10_img_format(info->gfx_level, state);
-   const uint32_t max_mip = state->num_samples > 1 ? util_logbase2(state->num_samples) : state->num_levels - 1;
    const uint32_t field_last_level = state->num_samples > 1 ? util_logbase2(state->num_samples) : state->last_level;
    const bool no_edge_clamp = state->num_levels > 1 && util_format_is_compressed(state->img_format) &&
                               !util_format_is_compressed(state->format);
    const uint32_t min_lod_clamped = util_unsigned_fixed(CLAMP(state->min_lod, 0, 15), 8);
+   const struct ac_surf_nbc_view *nbc_view = state->gfx9.nbc_view;
+
+   uint32_t max_mip = state->num_samples > 1 ? util_logbase2(state->num_samples) : state->num_levels - 1;
+   if (nbc_view && nbc_view->valid)
+      max_mip = nbc_view->num_levels - 1;
 
    desc[0] = 0;
    desc[1] = S_00A004_MAX_MIP_GFX12(max_mip) |
@@ -1263,18 +1267,28 @@ ac_init_gfx12_cb_surface(const struct radeon_info *info, const struct ac_cb_stat
                          struct ac_cb_surface *cb)
 {
    const struct radeon_surf *surf = state->surf;
+   uint32_t first_layer = state->first_layer;
+   uint32_t base_level = state->base_level;
+   uint32_t num_levels = state->num_levels;
+
+   if (state->gfx10.nbc_view) {
+      assert(state->gfx10.nbc_view->valid);
+      first_layer = 0;
+      base_level = state->gfx10.nbc_view->level;
+      num_levels = state->gfx10.nbc_view->num_levels;
+   }
 
    assert(!UTIL_ARCH_BIG_ENDIAN);
    cb->cb_color_info |= S_028EC0_FORMAT(cb_format);
-   cb->cb_color_view = S_028C64_SLICE_START(state->first_layer) |
+   cb->cb_color_view = S_028C64_SLICE_START(first_layer) |
                        S_028C64_SLICE_MAX(state->last_layer);
-   cb->cb_color_view2 = S_028C68_MIP_LEVEL(state->base_level);
+   cb->cb_color_view2 = S_028C68_MIP_LEVEL(base_level);
    cb->cb_color_attrib = S_028C6C_NUM_FRAGMENTS(util_logbase2(state->num_storage_samples)) |
                          S_028C6C_FORCE_DST_ALPHA_1(force_dst_alpha_1);
    cb->cb_color_attrib2 = S_028C78_MIP0_HEIGHT(state->height - 1) |
                           S_028C78_MIP0_WIDTH(width - 1);
    cb->cb_color_attrib3 = S_028C7C_MIP0_DEPTH(state->num_layers) |
-                          S_028C7C_MAX_MIP(state->num_levels - 1) |
+                          S_028C7C_MAX_MIP(num_levels - 1) |
                           S_028C7C_RESOURCE_TYPE(surf->u.gfx9.resource_type);
    cb->cb_dcc_control = S_028C70_MAX_UNCOMPRESSED_BLOCK_SIZE(1) | /* 256B */
                         S_028C70_MAX_COMPRESSED_BLOCK_SIZE(surf->u.gfx9.color.dcc.max_compressed_block_size) |
@@ -1409,7 +1423,7 @@ ac_set_mutable_cb_surface_fields(const struct radeon_info *info, const struct ac
          cb->cb_dcc_control |= S_028C78_DISABLE_CONSTANT_ENCODE_REG(1) |
                                S_028C78_FDCC_ENABLE(1);
 
-         if (info->family >= CHIP_GFX1103_R2) {
+         if (info->family >= CHIP_PHOENIX2) {
             cb->cb_dcc_control |= S_028C78_ENABLE_MAX_COMP_FRAG_OVERRIDE(1) |
                                   S_028C78_MAX_COMP_FRAGS(state->num_samples >= 4);
          }
@@ -1484,6 +1498,7 @@ ac_set_mutable_cb_surface_fields(const struct radeon_info *info, const struct ac
              * the texture block to read it.
              */
             cb->cb_color_info |= S_028C70_CMASK_ADDR_TYPE(2);
+            cb->cb_color_cmask |= surf->fmask_tile_swizzle;
          }
       }
    } else {

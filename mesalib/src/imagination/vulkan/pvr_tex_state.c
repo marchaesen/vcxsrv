@@ -90,7 +90,7 @@ pvr_pack_tex_state(struct pvr_device *device,
          switch (iview_type) {
          case VK_IMAGE_VIEW_TYPE_2D:
          case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-            word0.textype = PVRX(TEXSTATE_TEXTYPE_STRIDE);
+            word0.textype = ROGUE_TEXSTATE_TEXTYPE_STRIDE;
             break;
 
          default:
@@ -100,17 +100,17 @@ pvr_pack_tex_state(struct pvr_device *device,
          switch (iview_type) {
          case VK_IMAGE_VIEW_TYPE_1D:
          case VK_IMAGE_VIEW_TYPE_1D_ARRAY:
-            word0.textype = PVRX(TEXSTATE_TEXTYPE_1D);
+            word0.textype = ROGUE_TEXSTATE_TEXTYPE_1D;
             break;
 
          case VK_IMAGE_VIEW_TYPE_2D:
          case VK_IMAGE_VIEW_TYPE_2D_ARRAY:
-            word0.textype = PVRX(TEXSTATE_TEXTYPE_2D);
+            word0.textype = ROGUE_TEXSTATE_TEXTYPE_2D;
             break;
 
          case VK_IMAGE_VIEW_TYPE_CUBE:
          case VK_IMAGE_VIEW_TYPE_CUBE_ARRAY:
-            word0.textype = PVRX(TEXSTATE_TEXTYPE_CUBE);
+            word0.textype = ROGUE_TEXSTATE_TEXTYPE_CUBE;
             break;
 
          default:
@@ -119,7 +119,7 @@ pvr_pack_tex_state(struct pvr_device *device,
       } else if (mem_layout == PVR_MEMLAYOUT_3DTWIDDLED) {
          switch (iview_type) {
          case VK_IMAGE_VIEW_TYPE_3D:
-            word0.textype = PVRX(TEXSTATE_TEXTYPE_3D);
+            word0.textype = ROGUE_TEXSTATE_TEXTYPE_3D;
             break;
 
          default:
@@ -154,10 +154,10 @@ pvr_pack_tex_state(struct pvr_device *device,
              * Channel.
              */
             if (vk_format_has_alpha(info->format)) {
-               word0.twocomp_gamma = PVRX(TEXSTATE_TWOCOMP_GAMMA_R);
+               word0.twocomp_gamma = ROGUE_TEXSTATE_TWOCOMP_GAMMA_R;
             } else {
                /* Otherwise Enable Gamma for both the Channels. */
-               word0.twocomp_gamma = PVRX(TEXSTATE_TWOCOMP_GAMMA_RG);
+               word0.twocomp_gamma = ROGUE_TEXSTATE_TWOCOMP_GAMMA_RG;
 
                /* If Channel 0 happens to be the Alpha Channel, the
                 * ALPHA_MSB bit would not be set thereby disabling Gamma
@@ -165,7 +165,7 @@ pvr_pack_tex_state(struct pvr_device *device,
                 */
             }
          } else {
-            word0.gamma = PVRX(TEXSTATE_GAMMA_ON);
+            word0.gamma = ROGUE_TEXSTATE_GAMMA_ON;
          }
       }
 
@@ -200,7 +200,7 @@ pvr_pack_tex_state(struct pvr_device *device,
          if (PVR_HAS_FEATURE(dev_info, tpu_image_state_v2) &&
              vk_format_is_compressed(info->format))
             word1.tpu_image_state_v2_compression_mode =
-               PVRX(TEXSTATE_COMPRESSION_MODE_TPU);
+               ROGUE_TEXSTATE_COMPRESSION_MODE_TPU;
       }
    } else {
       pvr_csb_pack (&state[1], TEXSTATE_IMAGE_WORD1, word1) {
@@ -242,7 +242,7 @@ pvr_pack_tex_state(struct pvr_device *device,
          if (PVR_HAS_FEATURE(dev_info, tpu_image_state_v2) &&
              vk_format_is_compressed(info->format))
             word1.tpu_image_state_v2_compression_mode =
-               PVRX(TEXSTATE_COMPRESSION_MODE_TPU);
+               ROGUE_TEXSTATE_COMPRESSION_MODE_TPU;
       }
    }
 

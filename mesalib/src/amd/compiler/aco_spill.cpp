@@ -61,7 +61,7 @@ struct loop_info {
 struct use_info {
    uint32_t num_uses = 0;
    uint32_t last_use = 0;
-   float score() { return last_use / num_uses; }
+   float score() { return static_cast<float>(last_use) / static_cast<float>(num_uses); }
 };
 
 struct spill_ctx {
@@ -386,7 +386,7 @@ init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_idx)
 
       while (reg_pressure.exceeds(ctx.target_pressure)) {
          float score = 0;
-         Temp to_spill;
+         Temp to_spill = Temp();
          type = reg_pressure.vgpr > ctx.target_pressure.vgpr ? RegType::vgpr : RegType::sgpr;
          for (aco_ptr<Instruction>& phi : block->instructions) {
             if (!is_phi(phi))
@@ -400,7 +400,7 @@ init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_idx)
                score = ctx.ssa_infos[var.id()].score();
             }
          }
-         assert(score != 0.0);
+         assert(to_spill != Temp());
          ctx.add_to_spills(to_spill, ctx.spills_entry[block_idx]);
          spilled_registers += to_spill;
          reg_pressure -= to_spill;
@@ -539,7 +539,7 @@ init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_idx)
          }
          ++it;
       }
-      assert(score != 0.0);
+      assert(to_spill != Temp());
       ctx.add_to_spills(to_spill, ctx.spills_entry[block_idx]);
       partial_spills.erase(to_spill);
       spilled_registers += to_spill;
@@ -921,7 +921,7 @@ process_block(spill_ctx& ctx, unsigned block_idx, Block* block, RegisterDemand s
          /* if reg pressure is too high, spill variable with furthest next use */
          while ((new_demand - spilled_registers).exceeds(ctx.target_pressure)) {
             float score = 0.0;
-            Temp to_spill;
+            Temp to_spill = Temp();
             unsigned do_rematerialize = 0;
             unsigned avoid_respill = 0;
             RegType type = RegType::sgpr;
@@ -952,7 +952,7 @@ process_block(spill_ctx& ctx, unsigned block_idx, Block* block, RegisterDemand s
                   avoid_respill = loop_variable;
                }
             }
-            assert(score != 0.0);
+            assert(to_spill != Temp());
 
             if (avoid_respill) {
                /* This variable is spilled at the loop-header of the current loop.

@@ -112,7 +112,6 @@ struct radv_ps_epilog_key {
 
 struct radv_spirv_to_nir_options {
    uint32_t lower_view_index_to_zero : 1;
-   uint32_t fix_dual_src_mrt1_export : 1;
    uint32_t lower_view_index_to_device_index : 1;
 };
 
@@ -176,7 +175,9 @@ struct radv_graphics_pipeline_key {
 struct radv_nir_compiler_options {
    bool robust_buffer_access_llvm;
    bool dump_shader;
+   bool dump_ir;
    bool dump_preoptir;
+   bool record_asm;
    bool record_ir;
    bool record_stats;
    bool check_ir;
@@ -351,7 +352,7 @@ struct radv_shader_binary_legacy {
    uint32_t ir_size;
    uint32_t disasm_size;
    uint32_t stats_size;
-   uint32_t padding;
+   uint32_t debug_info_size;
 
    /* data has size of stats_size + code_size + ir_size + disasm_size + 2,
     * where the +2 is for 0 of the ir strings. */
@@ -451,6 +452,8 @@ struct radv_shader {
    char *disasm_string;
    char *ir_string;
    uint32_t *statistics;
+   struct ac_shader_debug_info *debug_info;
+   uint32_t debug_info_count;
 };
 
 struct radv_shader_part {
@@ -540,10 +543,12 @@ struct radv_shader_binary *radv_shader_nir_to_asm(struct radv_device *device, st
                                                   const struct radv_graphics_state_key *gfx_state,
                                                   bool keep_shader_info, bool keep_statistic_info);
 
-void radv_shader_generate_debug_info(struct radv_device *device, bool dump_shader, bool keep_shader_info,
-                                     struct radv_shader_binary *binary, struct radv_shader *shader,
-                                     struct nir_shader *const *shaders, int shader_count,
-                                     struct radv_shader_info *info);
+void radv_shader_dump_debug_info(struct radv_device *device, bool dump_shader, struct radv_shader_binary *binary,
+                                 struct radv_shader *shader, struct nir_shader *const *shaders, int shader_count,
+                                 struct radv_shader_info *info);
+
+struct radv_instance;
+char *radv_dump_nir_shaders(const struct radv_instance *instance, struct nir_shader *const *shaders, int shader_count);
 
 VkResult radv_shader_wait_for_upload(struct radv_device *device, uint64_t seq);
 
@@ -600,7 +605,7 @@ unsigned radv_compute_spi_ps_input(const struct radv_physical_device *pdev,
                                    const struct radv_graphics_state_key *gfx_state,
                                    const struct radv_shader_info *info);
 
-bool radv_can_dump_shader(struct radv_device *device, nir_shader *nir, bool meta_shader);
+bool radv_can_dump_shader(struct radv_device *device, nir_shader *nir);
 
 bool radv_can_dump_shader_stats(struct radv_device *device, nir_shader *nir);
 
@@ -659,14 +664,10 @@ get_tcs_input_vertex_stride(unsigned tcs_num_inputs)
    return stride;
 }
 
-uint32_t radv_get_tcs_num_patches(const struct radv_physical_device *pdev, unsigned tcs_num_input_vertices,
-                                  unsigned tcs_num_output_vertices, unsigned tcs_num_inputs,
-                                  unsigned tcs_num_lds_outputs, unsigned tcs_num_lds_patch_outputs,
-                                  unsigned tcs_num_vram_outputs, unsigned tcs_num_vram_patch_outputs);
-
-uint32_t radv_get_tess_lds_size(const struct radv_physical_device *pdev, uint32_t tcs_num_input_vertices,
-                                uint32_t tcs_num_output_vertices, uint32_t tcs_num_inputs, uint32_t tcs_num_patches,
-                                uint32_t tcs_num_lds_outputs, uint32_t tcs_num_lds_patch_outputs);
+void radv_get_tess_wg_info(const struct radv_physical_device *pdev, const struct shader_info *tcs_info,
+                           unsigned tcs_num_input_vertices, unsigned tcs_num_lds_inputs, unsigned tcs_num_vram_outputs,
+                           unsigned tcs_num_vram_patch_outputs, bool all_invocations_define_tess_levels,
+                           unsigned *num_patches_per_wg, unsigned *hw_lds_size);
 
 void radv_lower_ngg(struct radv_device *device, struct radv_shader_stage *ngg_stage,
                     const struct radv_graphics_state_key *gfx_state);

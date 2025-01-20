@@ -10,6 +10,7 @@
         - src/freedreno/ci/$GPU_VERSION-fails.txt
         - src/freedreno/ci/$GPU_VERSION-flakes.txt
         - src/freedreno/ci/$GPU_VERSION-skips.txt
+        - src/freedreno/ci/$GPU_VERSION-slow-skips.txt
         - src/freedreno/ci/$PIGLIT_TRACES_FILE
         - src/freedreno/ci/$GPU_VERSION-vkd3d-fails.txt
         - src/freedreno/ci/$GPU_VERSION-vkd3d-flakes.txt
@@ -31,43 +32,60 @@
         *freedreno_core_file_list
       when: manual
 
-
-# Two different farms (Google Freedreno and Collabora farm)
-.google-freedreno-rules:
-  stage: freedreno
+.freedreno-rules:
   rules:
-    - !reference [.test, rules]
-    - !reference [.freedreno-farm-rules, rules]
     - !reference [.freedreno-common-rules, rules]
     - !reference [.gl-rules, rules]
-    - changes: &freedreno_gl_file_list
+    - changes: &freedreno_file_list
         - src/freedreno/ir2/**/*
         - src/gallium/drivers/freedreno/**/*
         - src/gallium/winsys/freedreno/**/*
       when: on_success
+
+.freedreno-manual-rules:
+  rules:
+    - !reference [.freedreno-common-manual-rules, rules]
+    - !reference [.gl-manual-rules, rules]
+    - changes: *freedreno_file_list
+      when: manual
+
+.turnip-rules:
+  rules:
+    - !reference [.freedreno-common-rules, rules]
+    - !reference [.vulkan-rules, rules]
+    - changes: &turnip_file_list
+        - src/freedreno/vulkan/**/*
+      when: on_success
+
+.turnip-manual-rules:
+  rules:
+    - !reference [.freedreno-common-manual-rules, rules]
+    - !reference [.vulkan-manual-rules, rules]
+    - changes: *turnip_file_list
+      when: manual
+
+
+.google-freedreno-rules:
+  stage: freedreno
+  rules:
+    - !reference [.test, rules]
+    - !reference [.google-freedreno-farm-rules, rules]
+    - !reference [.freedreno-rules, rules]
 
 .collabora-freedreno-rules:
   stage: freedreno
   rules:
     - !reference [.test, rules]
     - !reference [.collabora-farm-rules, rules]
-    - !reference [.freedreno-common-rules, rules]
-    - !reference [.gl-rules, rules]
-    - changes:
-        *freedreno_gl_file_list
-      when: on_success
+    - !reference [.freedreno-rules, rules]
 
 .google-freedreno-manual-rules:
   stage: freedreno-postmerge
   extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
-    - !reference [.freedreno-farm-manual-rules, rules]
-    - !reference [.freedreno-common-manual-rules, rules]
-    - !reference [.gl-manual-rules, rules]
-    - changes:
-        *freedreno_gl_file_list
-      when: manual
+    - !reference [.google-freedreno-farm-manual-rules, rules]
+    - !reference [.freedreno-manual-rules, rules]
 
 .collabora-freedreno-manual-rules:
   stage: freedreno-postmerge
@@ -75,45 +93,30 @@
   rules:
     - !reference [.test, rules]
     - !reference [.collabora-farm-manual-rules, rules]
-    - !reference [.freedreno-common-manual-rules, rules]
-    - !reference [.gl-manual-rules, rules]
-    - changes:
-        *freedreno_gl_file_list
-      when: manual
+    - !reference [.freedreno-manual-rules, rules]
 
 
 .google-turnip-rules:
   stage: freedreno
   rules:
     - !reference [.test, rules]
-    - !reference [.freedreno-farm-rules, rules]
-    - !reference [.freedreno-common-rules, rules]
-    - !reference [.vulkan-rules, rules]
-    - changes: &freedreno_vulkan_file_list
-        - src/freedreno/vulkan/**/*
-      when: on_success
+    - !reference [.google-freedreno-farm-rules, rules]
+    - !reference [.turnip-rules, rules]
 
 .collabora-turnip-rules:
   stage: freedreno
   rules:
     - !reference [.test, rules]
     - !reference [.collabora-farm-rules, rules]
-    - !reference [.freedreno-common-rules, rules]
-    - !reference [.vulkan-rules, rules]
-    - changes: *freedreno_vulkan_file_list
-      when: on_success
+    - !reference [.turnip-rules, rules]
 
 .google-turnip-manual-rules:
   stage: freedreno-postmerge
   extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
-    - !reference [.freedreno-farm-manual-rules, rules]
-    - !reference [.freedreno-common-manual-rules, rules]
-    - !reference [.vulkan-manual-rules, rules]
-    - changes:
-        *freedreno_vulkan_file_list
-      when: manual
+    - !reference [.google-freedreno-farm-manual-rules, rules]
+    - !reference [.turnip-manual-rules, rules]
 
 .collabora-turnip-manual-rules:
   stage: freedreno-postmerge
@@ -121,11 +124,7 @@
   rules:
     - !reference [.test, rules]
     - !reference [.collabora-farm-manual-rules, rules]
-    - !reference [.freedreno-common-manual-rules, rules]
-    - !reference [.vulkan-manual-rules, rules]
-    - changes:
-        *freedreno_vulkan_file_list
-      when: manual
+    - !reference [.turnip-manual-rules, rules]
 
 # For piglit and skqp test jobs that run both GL and VK tests.
 .google-freedreno-turnip-rules:
@@ -156,17 +155,21 @@
     - !reference [.collabora-freedreno-manual-rules, rules]
     - !reference [.collabora-turnip-manual-rules, rules]
 
+.valve-freedreno-manual-rules:
+  stage: freedreno-postmerge
+  extends: .no-auto-retry
+  rules:
+    - !reference [.test, rules]
+    - !reference [.valve-farm-manual-rules, rules]
+    - !reference [.freedreno-manual-rules, rules]
+
 .valve-freedreno-turnip-manual-rules:
   stage: freedreno-postmerge
   extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
     - !reference [.valve-farm-manual-rules, rules]
-    - !reference [.freedreno-common-manual-rules, rules]
-    - !reference [.vulkan-manual-rules, rules]
-    - changes:
-        *freedreno_vulkan_file_list
-      when: manual
+    - !reference [.turnip-manual-rules, rules]
 
 .google-freedreno-rules-restricted:
   stage: freedreno
@@ -210,7 +213,7 @@
     JOB_PRIORITY: 40
     # Ensure that we are using the release build artifact
     LAVA_S3_ARTIFACT_NAME: mesa-arm64-default-release
-    S3_ARTIFACT_NAME: mesa-python-test
+    S3_ARTIFACT_NAME: mesa-python-ci-artifacts
   needs:
     - debian/x86_64_build
     - debian-arm64-release
@@ -232,9 +235,6 @@
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-sc7180-trogdor-kingoftown
     VK_DRIVER: freedreno
-    # force fixed kernel until 6.11 is switched officially
-    FORCE_KERNEL_TAG: "v6.11-rc7-mesa-c984"
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
 
 # Status: https://lava.collabora.dev/scheduler/device_type/sc7180-trogdor-lazor-limozeen
 .lava-sc7180-trogdor-lazor-limozeen:arm64:
@@ -251,9 +251,6 @@
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-sc7180-trogdor-lazor-limozeen
     VK_DRIVER: freedreno
-    # force fixed kernel until 6.11 is switched officially
-    FORCE_KERNEL_TAG: "v6.11-rc7-mesa-c984"
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
 
 # Status: https://lava.collabora.dev/scheduler/device_type/sm8350-hdk
 .lava-sm8350-hdk:arm64:
@@ -271,9 +268,6 @@
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-sm8350-hdk
     VK_DRIVER: freedreno
-    # force fixed kernel until 6.11 is switched officially
-    FORCE_KERNEL_TAG: "v6.11-rc7-mesa-c984"
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
 
 
 .google-freedreno-test:
@@ -286,20 +280,8 @@
     PIGLIT_PLATFORM: mixed_glx_egl
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 $BM_KERNEL_EXTRA_ARGS root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init $BM_KERNELARGS"
     FARM: google
-    # force fixed kernel until 6.11 is switched officially
-    FORCE_KERNEL_TAG: "v6.11-rc7-mesa-c984"
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
   script:
     - ./install/bare-metal/fastboot.sh
-
-.baremetal-deqp-test-freedreno-vk:
-  extends:
-    - .baremetal-deqp-test
-  variables:
-    DEQP_VER: vk
-    # Increase the hangcheck timer for our spilling tests which bump up against
-    # the .5s default.
-    FREEDRENO_HANGCHECK_MS: 2000
 
 .google-freedreno-test-traces:
   extends:
@@ -317,8 +299,8 @@
     - .google-freedreno-test
   variables:
     BM_KERNEL: Image.gz
-    BM_DTB: apq8016-sbc
-    DEVICE_TYPE: apq8016-sbc
+    BM_DTB: apq8016-sbc-usb-host
+    DEVICE_TYPE: apq8016-sbc-usb-host
     GPU_VERSION: freedreno-a307
   timeout: 20m
   tags:
@@ -370,10 +352,11 @@
     FDO_CI_CONCURRENT: 8
     RUNNER_FARM_LOCATION: mupuf
     B2C_KERNEL_URL: 'https://fs.mupuf.org/hdk8650/linux-6.8-hdk8650.gz'
-    B2C_INITRAMFS_URL: 'https://fs.mupuf.org/hdk8650/initramfs.linux_arm64.cpio.xz'
     B2C_DTB_URL: 'https://fs.mupuf.org/hdk8650/sm8650-hdk.dtb'
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
-    B2C_SESSION_REBOOT_REGEX: 'Sahara Open\r?$'
+    # FIXME: drop the hangcheck part when we move to linux 6.11+ as hang
+    # recovery should be more stable
+    B2C_SESSION_REBOOT_REGEX: 'Sahara Open\r?$|hangcheck detected'
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_SECONDS: 30
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_RETRIES: 3
     GPU_VERSION: freedreno-a750

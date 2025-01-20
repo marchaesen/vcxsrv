@@ -60,7 +60,7 @@
 #define VL_VA_DRIVER(ctx) ((vlVaDriver *)ctx->pDriverData)
 #define VL_VA_PSCREEN(ctx) (VL_VA_DRIVER(ctx)->vscreen->pscreen)
 
-#define VL_VA_MAX_IMAGE_FORMATS 21
+#define VL_VA_MAX_IMAGE_FORMATS 22
 #define VL_VA_ENC_GOP_COEFF 16
 
 #define UINT_TO_PTR(x) ((void*)(uintptr_t)(x))
@@ -126,6 +126,8 @@ VaFourccToPipeFormat(unsigned format)
       return PIPE_FORMAT_NV12;
    case VA_FOURCC('P','0','1','0'):
       return PIPE_FORMAT_P010;
+   case VA_FOURCC('P','0','1','2'):
+      return PIPE_FORMAT_P012;
    case VA_FOURCC('P','0','1','6'):
       return PIPE_FORMAT_P016;
    case VA_FOURCC('I','4','2','0'):
@@ -177,6 +179,8 @@ PipeFormatToVaFourcc(enum pipe_format p_format)
       return VA_FOURCC('N','V','1','2');
    case PIPE_FORMAT_P010:
       return VA_FOURCC('P','0','1','0');
+   case PIPE_FORMAT_P012:
+      return VA_FOURCC('P','0','1','2');
    case PIPE_FORMAT_P016:
       return VA_FOURCC('P','0','1','6');
    case PIPE_FORMAT_IYUV:
@@ -186,7 +190,7 @@ PipeFormatToVaFourcc(enum pipe_format p_format)
    case PIPE_FORMAT_UYVY:
       return VA_FOURCC('U','Y','V','Y');
    case PIPE_FORMAT_YUYV:
-      return VA_FOURCC('Y','U','Y','V');
+      return VA_FOURCC('Y','U','Y','2');
    case PIPE_FORMAT_B8G8R8A8_UNORM:
       return VA_FOURCC('B','G','R','A');
    case PIPE_FORMAT_R8G8B8A8_UNORM:
@@ -261,6 +265,12 @@ PipeToProfile(enum pipe_video_profile profile)
       return VAProfileVP9Profile2;
    case PIPE_VIDEO_PROFILE_AV1_MAIN:
       return VAProfileAV1Profile0;
+   case PIPE_VIDEO_PROFILE_AV1_PROFILE2:
+#if VA_CHECK_VERSION(1, 23, 0)
+      return VAProfileAV1Profile2;
+#else
+      return VAProfileNone;
+#endif
    case PIPE_VIDEO_PROFILE_MPEG4_AVC_EXTENDED:
    case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH422:
    case PIPE_VIDEO_PROFILE_MPEG4_AVC_HIGH444:
@@ -316,6 +326,10 @@ ProfileToPipe(VAProfile profile)
       return PIPE_VIDEO_PROFILE_VP9_PROFILE2;
    case VAProfileAV1Profile0:
       return PIPE_VIDEO_PROFILE_AV1_MAIN;
+#if VA_CHECK_VERSION(1, 23, 0)
+   case VAProfileAV1Profile2:
+      return PIPE_VIDEO_PROFILE_AV1_PROFILE2;
+#endif
    case VAProfileNone:
        return PIPE_VIDEO_PROFILE_UNKNOWN;
    default:
@@ -326,6 +340,7 @@ ProfileToPipe(VAProfile profile)
 typedef struct {
    struct vl_screen *vscreen;
    struct pipe_context *pipe;
+   struct pipe_context *pipe_gfx;
    struct handle_table *htab;
    struct vl_compositor compositor;
    struct vl_compositor_state cstate;
@@ -364,11 +379,12 @@ typedef struct {
    struct pipe_enc_feedback_metadata extended_metadata;
    struct pipe_video_buffer *derived_image_buffer;
    void *feedback;
-   VASurfaceID associated_encode_input_surf;
-   VAContextID ctx;
+   struct vlVaContext *ctx;
+   struct vlVaSurface *coded_surf;
+   struct pipe_fence_handle *fence;
 } vlVaBuffer;
 
-typedef struct {
+typedef struct vlVaContext {
    struct pipe_video_codec templat, *decoder;
    struct pipe_video_buffer *target;
    union {
@@ -397,12 +413,6 @@ typedef struct {
    } mpeg4;
 
    struct {
-      unsigned sampling_factor;
-      #define MJPEG_SAMPLING_FACTOR_NV12   (0x221111)
-      #define MJPEG_SAMPLING_FACTOR_YUY2   (0x221212)
-      #define MJPEG_SAMPLING_FACTOR_YUV422 (0x211111)
-      #define MJPEG_SAMPLING_FACTOR_YUV444 (0x111111)
-      #define MJPEG_SAMPLING_FACTOR_YUV400 (0x11)
       uint8_t slice_header[MAX_MJPEG_SLICE_HEADER_SIZE];
       unsigned int slice_header_size;
    } mjpeg;
@@ -410,13 +420,13 @@ typedef struct {
    struct vl_deint_filter *deint;
    vlVaBuffer *coded_buf;
    int target_id;
-   bool first_single_submitted;
    int gop_coeff;
    bool needs_begin_frame;
    void *blit_cs;
    int packed_header_type;
    bool packed_header_emulation_bytes;
    struct set *surfaces;
+   struct set *buffers;
    unsigned slice_data_offset;
    bool have_slice_params;
 
@@ -440,10 +450,6 @@ typedef struct vlVaSurface {
    struct util_dynarray subpics; /* vlVaSubpicture */
    vlVaContext *ctx;
    vlVaBuffer *coded_buf;
-   void *feedback;
-   unsigned int frame_num_cnt;
-   bool force_flushed;
-   struct pipe_video_buffer *obsolete_buf;
    bool full_range;
    struct pipe_fence_handle *fence;
    struct vlVaSurface *efc_surface; /* input surface for EFC */
@@ -568,6 +574,7 @@ VAStatus vlVaHandleSurfaceAllocate(vlVaDriver *drv, vlVaSurface *surface, struct
 struct pipe_video_buffer *vlVaGetSurfaceBuffer(vlVaDriver *drv, vlVaSurface *surface);
 void vlVaAddRawHeader(struct util_dynarray *headers, uint8_t type, uint32_t size, uint8_t *buf,
                       bool is_slice, uint32_t emulation_bytes_start);
+void vlVaGetBufferFeedback(vlVaBuffer *buf);
 void vlVaSetSurfaceContext(vlVaDriver *drv, vlVaSurface *surf, vlVaContext *context);
 void vlVaGetReferenceFrame(vlVaDriver *drv, VASurfaceID surface_id, struct pipe_video_buffer **ref_frame);
 void vlVaHandlePictureParameterBufferMPEG12(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf);

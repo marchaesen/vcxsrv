@@ -69,11 +69,11 @@ class Field(object):
 			raise parser.error("booleans should be 1 bit fields")
 		elif self.type == "float" and not (high - low == 31 or high - low == 15):
 			raise parser.error("floats should be 16 or 32 bit fields")
-		elif not self.type in builtin_types and not self.type in parser.enums:
+		elif self.type not in builtin_types and self.type not in parser.enums:
 			raise parser.error("unknown type '%s'" % self.type)
 
 	def ctype(self, var_name):
-		if self.type == None:
+		if self.type is None:
 			type = "uint32_t"
 			val = var_name
 		elif self.type == "boolean":
@@ -252,7 +252,7 @@ class Bitset(object):
 
 
 	def dump(self, is_deprecated, prefix=None):
-		if prefix == None:
+		if prefix is None:
 			prefix = self.name
 		for f in self.fields:
 			if f.name:
@@ -260,9 +260,9 @@ class Bitset(object):
 			else:
 				name = prefix
 
-			if not f.name and f.low == 0 and f.shr == 0 and not f.type in ["float", "fixed", "ufixed"]:
+			if not f.name and f.low == 0 and f.shr == 0 and f.type not in ["float", "fixed", "ufixed"]:
 				pass
-			elif f.type == "boolean" or (f.type == None and f.low == f.high):
+			elif f.type == "boolean" or (f.type is None and f.low == f.high):
 				tab_to("#define %s" % name, "0x%08x" % (1 << f.low))
 			else:
 				tab_to("#define %s__MASK" % name, "0x%08x" % mask(f.low, f.high))
@@ -511,7 +511,7 @@ class Parser(object):
 		return varset
 
 	def parse_variants(self, attrs):
-		if not "variants" in attrs:
+		if "variants" not in attrs:
 				return None
 		variant = attrs["variants"].split(",")[0]
 		if "-" in variant:

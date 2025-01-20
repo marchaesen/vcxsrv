@@ -496,21 +496,6 @@ static const char *noop_get_name(struct pipe_screen* pscreen)
    return "NOOP";
 }
 
-static int noop_get_param(struct pipe_screen* pscreen, enum pipe_cap param)
-{
-   struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
-
-   return screen->get_param(screen, param);
-}
-
-static float noop_get_paramf(struct pipe_screen* pscreen,
-                             enum pipe_capf param)
-{
-   struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
-
-   return screen->get_paramf(screen, param);
-}
-
 static int noop_get_shader_param(struct pipe_screen* pscreen,
                                  enum pipe_shader_type shader,
                                  enum pipe_shader_cap param)
@@ -602,7 +587,7 @@ static const void *noop_get_compiler_options(struct pipe_screen *pscreen,
    return screen->get_compiler_options(screen, ir, shader);
 }
 
-static char *noop_finalize_nir(struct pipe_screen *pscreen, void *nir)
+static char *noop_finalize_nir(struct pipe_screen *pscreen, struct nir_shader *nir)
 {
    struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
 
@@ -805,10 +790,8 @@ struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
    screen->get_name = noop_get_name;
    screen->get_vendor = noop_get_vendor;
    screen->get_device_vendor = noop_get_device_vendor;
-   screen->get_param = noop_get_param;
    screen->get_shader_param = noop_get_shader_param;
    screen->get_compute_param = noop_get_compute_param;
-   screen->get_paramf = noop_get_paramf;
    screen->is_format_supported = noop_is_format_supported;
    screen->context_create = noop_create_context;
    screen->resource_create = noop_resource_create;

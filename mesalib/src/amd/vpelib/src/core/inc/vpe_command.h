@@ -43,9 +43,7 @@ enum VPE_CMD_OPCODE {
     VPE_CMD_OPCODE_COND_EXE         = 0x9,
     VPE_CMD_OPCODE_ATOMIC           = 0xA,
     VPE_CMD_OPCODE_PLANE_FILL       = 0xB,
-#ifdef VPE_BUILD_1_1
     VPE_CMD_OPCODE_COLLABORATE_SYNC = 0xC,
-#endif
     VPE_CMD_OPCODE_TIMESTAMP        = 0xD,
 };
 

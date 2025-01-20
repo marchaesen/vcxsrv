@@ -325,6 +325,7 @@ int draw_tess_eval_shader_run(struct draw_tess_eval_shader *shader,
                               const struct tgsi_shader_info *input_info,
                               struct draw_vertex_info *output_verts,
                               struct draw_prim_info *output_prims,
+                              uint32_t **patch_lengths,
                               uint16_t **elts_out)
 {
    const float (*input)[4] = (const float (*)[4])input_verts->verts->data;
@@ -345,6 +346,10 @@ int draw_tess_eval_shader_run(struct draw_tess_eval_shader *shader,
    output_prims->flags = 0;
    output_prims->primitive_lengths = NULL;
    output_prims->primitive_count = 0;
+
+   if (patch_lengths) {
+      *patch_lengths = MALLOC(input_prim->primitive_count * sizeof(uint32_t));
+   }
 
    shader->input = input;
    shader->input_vertex_stride = input_stride;
@@ -382,7 +387,7 @@ int draw_tess_eval_shader_run(struct draw_tess_eval_shader *shader,
       elts = REALLOC(elts, elt_start * sizeof(uint16_t),
                      output_prims->count * sizeof(uint16_t));
 
-      for (unsigned i = 0; i < data.num_indices; i++)
+      for (uint32_t i = 0; i < data.num_indices; i++)
          elts[elt_start + i] = vert_start + data.indices[i];
 
       llvm_fetch_tes_input(shader, input_prim, i, num_input_vertices_per_patch);
@@ -396,10 +401,15 @@ int draw_tess_eval_shader_run(struct draw_tess_eval_shader *shader,
       }
 
       uint32_t prim_len = u_prim_vertex_count(output_prims->prim)->min;
-      output_prims->primitive_count += data.num_indices / prim_len;
+      uint32_t prims_per_patch = data.num_indices / prim_len;
+      output_prims->primitive_count += prims_per_patch;
+      if (patch_lengths) {
+         (*patch_lengths)[i] = prims_per_patch;
+      }
+
       output_prims->primitive_lengths = REALLOC(output_prims->primitive_lengths, prim_start * sizeof(uint32_t),
                                                 output_prims->primitive_count * sizeof(uint32_t));
-      for (unsigned i = prim_start; i < output_prims->primitive_count; i++) {
+      for (uint32_t i = prim_start; i < output_prims->primitive_count; i++) {
          output_prims->primitive_lengths[i] = prim_len;
       }
    }

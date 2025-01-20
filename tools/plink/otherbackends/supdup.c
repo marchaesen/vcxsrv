@@ -339,7 +339,7 @@ static void do_argsdone(Supdup *supdup, strbuf *outbuf, int c)
           that line.  If the cursor is at the bottom line, scroll
           up.
         */
-        put_fmt(outbuf, "\015\012");
+        put_fmt(outbuf, "\015\012\033[K");
         break;
 
       case TDNOP:

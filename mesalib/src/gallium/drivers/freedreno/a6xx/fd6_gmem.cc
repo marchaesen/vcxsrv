@@ -102,7 +102,7 @@ emit_mrt(struct fd_ringbuffer *ring, struct pipe_framebuffer_state *pfb,
 
       stride = fd_resource_pitch(rsc, psurf->u.tex.level);
       array_stride = fd_resource_layer_stride(rsc, psurf->u.tex.level);
-      swap = fd6_color_swap(pformat, (enum a6xx_tile_mode)rsc->layout.tile_mode);
+      swap = fd6_color_swap(pformat, (enum a6xx_tile_mode)rsc->layout.tile_mode, false);
 
       max_layer_index = psurf->u.tex.last_layer - psurf->u.tex.first_layer;
 
@@ -405,7 +405,7 @@ patch_fb_read_gmem(struct fd_batch *batch)
       /* always TILE6_2 mode in GMEM, which also means no swap: */
       uint32_t descriptor[FDL6_TEX_CONST_DWORDS] = {
             A6XX_TEX_CONST_0_FMT(fd6_texture_format(
-                  format, (enum a6xx_tile_mode)rsc->layout.tile_mode)) |
+                  format, (enum a6xx_tile_mode)rsc->layout.tile_mode, false)) |
             A6XX_TEX_CONST_0_SAMPLES(fd_msaa_samples(prsc->nr_samples)) |
             A6XX_TEX_CONST_0_SWAP(WZYX) |
             A6XX_TEX_CONST_0_TILE_MODE(TILE6_2) |
@@ -1401,7 +1401,8 @@ emit_blit(struct fd_batch *batch, struct fd_ringbuffer *ring, uint32_t base,
    uint32_t stride = fd_resource_pitch(rsc, psurf->u.tex.level);
    uint32_t array_stride = fd_resource_layer_stride(rsc, psurf->u.tex.level);
    enum a3xx_color_swap swap =
-         fd6_color_swap(pfmt, (enum a6xx_tile_mode)rsc->layout.tile_mode);
+         fd6_color_swap(pfmt, (enum a6xx_tile_mode)rsc->layout.tile_mode,
+                        false);
    enum a3xx_msaa_samples samples = fd_msaa_samples(rsc->b.b.nr_samples);
 
    OUT_REG(ring,
@@ -1475,7 +1476,7 @@ emit_subpass_clears(struct fd_batch *batch, struct fd_batch_subpass *subpass)
 
          // XXX I think RB_CLEAR_COLOR_DWn wants to take into account SWAP??
          union pipe_color_union swapped;
-         switch (fd6_color_swap(pfmt, TILE6_LINEAR)) {
+         switch (fd6_color_swap(pfmt, TILE6_LINEAR, false)) {
          case WZYX:
             swapped.ui[0] = color->ui[0];
             swapped.ui[1] = color->ui[1];

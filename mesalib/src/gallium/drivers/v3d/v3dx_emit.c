@@ -181,10 +181,9 @@ emit_varying_flags(struct v3d_job *job, uint32_t *flags,
                                               enum V3DX(Varying_Flags_Action) lower,
                                               enum V3DX(Varying_Flags_Action) higher))
 {
-        struct v3d_context *v3d = job->v3d;
         bool emitted_any = false;
 
-        for (int i = 0; i < ARRAY_SIZE(v3d->prog.fs->prog_data.fs->flat_shade_flags); i++) {
+        for (int i = 0; i < ARRAY_SIZE(job->v3d->prog.fs->prog_data.fs->flat_shade_flags); i++) {
                 if (!flags[i])
                         continue;
 

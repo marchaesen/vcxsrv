@@ -236,14 +236,27 @@ fixup_interpolation_instr(struct lower_io_state *state,
    nir_variable *input = entry->data;
    nir_deref_instr *input_root = nir_build_deref_var(b, input);
 
+   /* We can't reuse the original temporary because it contains the original
+    * value of the input that's used throughout the whole shader to replace
+    * the original load_deref, so we can't overwrite it. Create a new
+    * temporary that's only used for this interp_deref_at_* opcode.
+    */
+   char *var_name = ralloc_asprintf(NULL, "%s-interp", input->name);
+   nir_variable *var = nir_local_variable_create(b->impl, input->type, var_name);
+   ralloc_free(var_name);
+   nir_deref_instr *new_temp_root = nir_build_deref_var(b, var);
+
    /* Emit the interpolation instructions. */
-   emit_interp(b, interp_path.path + 1, temp_root, input_root, interp);
+   emit_interp(b, interp_path.path + 1, new_temp_root, input_root, interp);
 
    /* Now the temporary contains the interpolation results, and we can just
-    * load from it. We can reuse the original deref, since it points to the
-    * correct part of the temporary.
+    * load from it.
+    *
+    * Clone the original deref chain, but use the new temporary variable.
     */
-   nir_def *load = nir_load_deref(b, nir_src_as_deref(interp->src[0]));
+   nir_deref_instr *new_temp_leaf =
+      nir_clone_deref_instr(b, var, nir_src_as_deref(interp->src[0]));
+   nir_def *load = nir_load_deref(b, new_temp_leaf);
    nir_def_replace(&interp->def, load);
 
    nir_deref_path_finish(&interp_path);
@@ -323,9 +336,10 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
 {
    struct lower_io_state state;
 
-   if (shader->info.stage == MESA_SHADER_TESS_CTRL ||
-       shader->info.stage == MESA_SHADER_TASK ||
-       shader->info.stage == MESA_SHADER_MESH) {
+   if (shader->info.stage != MESA_SHADER_VERTEX &&
+       shader->info.stage != MESA_SHADER_TESS_EVAL &&
+       shader->info.stage != MESA_SHADER_GEOMETRY &&
+       shader->info.stage != MESA_SHADER_FRAGMENT) {
       nir_metadata_preserve(entrypoint, nir_metadata_all);
       return false;
    }

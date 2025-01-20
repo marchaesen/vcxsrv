@@ -29,24 +29,41 @@ panvk_GetBufferOpaqueCaptureAddress(VkDevice _device,
 }
 
 VKAPI_ATTR void VKAPI_CALL
-panvk_GetBufferMemoryRequirements2(VkDevice device,
-                                   const VkBufferMemoryRequirementsInfo2 *pInfo,
-                                   VkMemoryRequirements2 *pMemoryRequirements)
+panvk_GetDeviceBufferMemoryRequirements(VkDevice device,
+                                        const VkDeviceBufferMemoryRequirements *pInfo,
+                                        VkMemoryRequirements2 *pMemoryRequirements)
 {
-   VK_FROM_HANDLE(panvk_buffer, buffer, pInfo->buffer);
-
    const uint64_t align = 64;
-   const uint64_t size = align64(buffer->vk.size, align);
+   const uint64_t size = align64(pInfo->pCreateInfo->size, align);
 
    pMemoryRequirements->memoryRequirements.memoryTypeBits = 1;
    pMemoryRequirements->memoryRequirements.alignment = align;
    pMemoryRequirements->memoryRequirements.size = size;
+
+   vk_foreach_struct_const(ext, pMemoryRequirements->pNext) {
+      switch (ext->sType) {
+      case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS: {
+         VkMemoryDedicatedRequirements *dedicated = (void *)ext;
+         dedicated->requiresDedicatedAllocation = false;
+         dedicated->prefersDedicatedAllocation = dedicated->requiresDedicatedAllocation;
+         break;
+      }
+      default:
+         vk_debug_ignored_stype(ext->sType);
+         break;
+      }
+   }
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
-panvk_BindBufferMemory2(VkDevice device, uint32_t bindInfoCount,
+panvk_BindBufferMemory2(VkDevice _device, uint32_t bindInfoCount,
                         const VkBindBufferMemoryInfo *pBindInfos)
 {
+   VK_FROM_HANDLE(panvk_device, device, _device);
+   const struct panvk_physical_device *phys_dev =
+      to_panvk_physical_device(device->vk.physical);
+   const unsigned arch = pan_arch(phys_dev->kmod.props.gpu_prod_id);
+
    for (uint32_t i = 0; i < bindInfoCount; ++i) {
       VK_FROM_HANDLE(panvk_device_memory, mem, pBindInfos[i].memory);
       VK_FROM_HANDLE(panvk_buffer, buffer, pBindInfos[i].buffer);
@@ -64,7 +81,7 @@ panvk_BindBufferMemory2(VkDevice device, uint32_t bindInfoCount,
        *
        * Make sure this goes away as soon as we fixed indirect draws.
        */
-      if (buffer->vk.usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT) {
+      if (arch < 9 && (buffer->vk.usage & VK_BUFFER_USAGE_INDEX_BUFFER_BIT)) {
          VkDeviceSize offset = pBindInfos[i].memoryOffset;
          VkDeviceSize pgsize = getpagesize();
          off_t map_start = offset & ~(pgsize - 1);

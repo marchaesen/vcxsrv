@@ -125,13 +125,11 @@ ir_expression *expr(ir_expression_operation op, operand a, operand b, operand c)
 ir_expression *add(operand a, operand b);
 ir_expression *sub(operand a, operand b);
 ir_expression *mul(operand a, operand b);
-ir_expression *imul_high(operand a, operand b);
 ir_expression *div(operand a, operand b);
 ir_expression *carry(operand a, operand b);
 ir_expression *borrow(operand a, operand b);
 ir_expression *trunc(operand a);
 ir_expression *round_even(operand a);
-ir_expression *fract(operand a);
 ir_expression *dot(operand a, operand b);
 ir_expression *clamp(operand a, operand b, operand c);
 ir_expression *saturate(operand a);
@@ -140,7 +138,6 @@ ir_expression *neg(operand a);
 ir_expression *sin(operand a);
 ir_expression *cos(operand a);
 ir_expression *exp(operand a);
-ir_expression *rcp(operand a);
 ir_expression *rsq(operand a);
 ir_expression *sqrt(operand a);
 ir_expression *log(operand a);
@@ -151,7 +148,6 @@ ir_expression *equal(operand a, operand b);
 ir_expression *nequal(operand a, operand b);
 ir_expression *less(operand a, operand b);
 ir_expression *greater(operand a, operand b);
-ir_expression *lequal(operand a, operand b);
 ir_expression *gequal(operand a, operand b);
 
 ir_expression *logic_not(operand a);
@@ -161,7 +157,6 @@ ir_expression *logic_or(operand a, operand b);
 ir_expression *bit_not(operand a);
 ir_expression *bit_or(operand a, operand b);
 ir_expression *bit_and(operand a, operand b);
-ir_expression *bit_xor(operand a, operand b);
 ir_expression *lshift(operand a, operand b);
 ir_expression *rshift(operand a, operand b);
 
@@ -176,15 +171,11 @@ ir_expression *bitcast_u2f(operand a);
 ir_expression *i2u(operand a);
 ir_expression *u2i(operand a);
 ir_expression *b2i(operand a);
-ir_expression *i2b(operand a);
-ir_expression *f2b(operand a);
 ir_expression *b2f(operand a);
 
 ir_expression *f2f16(operand a);
 
 ir_expression *f2d(operand a);
-ir_expression *i2d(operand a);
-ir_expression *u2d(operand a);
 
 ir_expression *bitcast_d2i64(operand a);
 ir_expression *bitcast_d2u64(operand a);
@@ -211,17 +202,10 @@ ir_swizzle *swizzle(operand a, int swizzle, int components);
  */
 ir_swizzle *swizzle_for_size(operand a, unsigned components);
 
-ir_swizzle *swizzle_xxxx(operand a);
-ir_swizzle *swizzle_yyyy(operand a);
-ir_swizzle *swizzle_zzzz(operand a);
-ir_swizzle *swizzle_wwww(operand a);
 ir_swizzle *swizzle_x(operand a);
 ir_swizzle *swizzle_y(operand a);
 ir_swizzle *swizzle_z(operand a);
 ir_swizzle *swizzle_w(operand a);
-ir_swizzle *swizzle_xy(operand a);
-ir_swizzle *swizzle_xyz(operand a);
-ir_swizzle *swizzle_xyzw(operand a);
 
 ir_if *if_tree(operand condition,
                ir_instruction *then_branch);

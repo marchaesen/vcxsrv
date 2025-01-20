@@ -7,16 +7,15 @@ set -e
 
 ROOTFS=$1
 FIRMWARE_FILES=$2
-FIRMWARE=$(jq -s '.' $(echo "$FIRMWARE_FILES"))
 
-if [ -z "$FIRMWARE" ] || [ "$(echo "$FIRMWARE" | jq '. | length')" -eq 0 ]; then
-  echo "FIRMWARE is not set or is empty."
-  exit
+if [ -n "${FIRMWARE_FILES:-}" ]; then
+  FIRMWARE=$(jq -s '.' $(echo "$FIRMWARE_FILES"))
+else
+  FIRMWARE=""
 fi
 
 if ! echo "$FIRMWARE" | jq empty; then
   echo "FIRMWARE contains invalid JSON."
-  exit
 fi
 
 for item in $(echo "$FIRMWARE" | jq -c '.[]'); do

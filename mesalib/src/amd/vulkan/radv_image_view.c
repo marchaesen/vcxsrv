@@ -53,12 +53,12 @@ radv_set_mutable_tex_desc_fields(struct radv_device *device, struct radv_image *
                                  const struct legacy_surf_level *base_level_info, unsigned plane_id,
                                  unsigned base_level, unsigned first_level, unsigned block_width, bool is_stencil,
                                  bool is_storage_image, bool disable_compression, bool enable_write_compression,
-                                 uint32_t *state, const struct ac_surf_nbc_view *nbc_view)
+                                 uint32_t *state, const struct ac_surf_nbc_view *nbc_view, uint64_t offset)
 {
    struct radv_image_plane *plane = &image->planes[plane_id];
    const uint32_t bind_idx = image->disjoint ? plane_id : 0;
    struct radv_image_binding *binding = &image->bindings[bind_idx];
-   uint64_t gpu_address = binding->bo ? radv_image_get_va(image, bind_idx) : 0;
+   uint64_t gpu_address = binding->bo ? radv_image_get_va(image, bind_idx) + offset : 0;
    const struct radv_physical_device *pdev = radv_device_physical(device);
 
    const struct ac_mutable_tex_state ac_state = {
@@ -121,8 +121,13 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
 
    radv_compose_swizzle(desc, mapping, swizzle);
 
-   type = radv_tex_dim(image->vk.image_type, view_type, image->vk.array_layers, image->vk.samples, is_storage_image,
-                       pdev->info.gfx_level == GFX9);
+   if (create_2d_view_of_3d) {
+      assert(image->vk.image_type == VK_IMAGE_TYPE_3D);
+      type = V_008F1C_SQ_RSRC_IMG_3D;
+   } else {
+      type = radv_tex_dim(image->vk.image_type, view_type, image->vk.array_layers, image->vk.samples, is_storage_image,
+                          pdev->info.gfx_level == GFX9);
+   }
 
    if (type == V_008F1C_SQ_RSRC_IMG_1D_ARRAY) {
       height = 1;
@@ -134,8 +139,9 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
       depth = image->vk.array_layers / 6;
 
    if (create_2d_view_of_3d) {
-      assert(image->vk.image_type == VK_IMAGE_TYPE_3D && type == V_008F1C_SQ_RSRC_IMG_2D_ARRAY);
+      assert(type == V_008F1C_SQ_RSRC_IMG_3D);
 
+      depth = !is_storage_image ? depth : u_minify(depth, first_level);
       array_pitch = is_storage_image;
    } else if (sliced_3d) {
       assert(type == V_008F1C_SQ_RSRC_IMG_3D && is_storage_image);
@@ -225,6 +231,8 @@ gfx6_make_texture_descriptor(struct radv_device *device, struct radv_image *imag
    const struct radv_physical_device *pdev = radv_device_physical(device);
    const struct radv_instance *instance = radv_physical_device_instance(pdev);
    enum pipe_format format = radv_format_to_pipe_format(vk_format);
+   const bool create_2d_view_of_3d =
+      (image->vk.create_flags & VK_IMAGE_CREATE_2D_VIEW_COMPATIBLE_BIT_EXT) && view_type == VK_IMAGE_VIEW_TYPE_2D;
    const struct util_format_description *desc;
    enum pipe_swizzle swizzle[4];
    unsigned type;
@@ -242,8 +250,13 @@ gfx6_make_texture_descriptor(struct radv_device *device, struct radv_image *imag
 
    radv_compose_swizzle(desc, mapping, swizzle);
 
-   type = radv_tex_dim(image->vk.image_type, view_type, image->vk.array_layers, image->vk.samples, is_storage_image,
-                       pdev->info.gfx_level == GFX9);
+   if (pdev->info.gfx_level == GFX9 && create_2d_view_of_3d) {
+      assert(image->vk.image_type == VK_IMAGE_TYPE_3D);
+      type = V_008F1C_SQ_RSRC_IMG_3D;
+   } else {
+      type = radv_tex_dim(image->vk.image_type, view_type, image->vk.array_layers, image->vk.samples, is_storage_image,
+                          pdev->info.gfx_level == GFX9);
+   }
 
    if (type == V_008F1C_SQ_RSRC_IMG_1D_ARRAY) {
       height = 1;
@@ -337,10 +350,9 @@ compute_non_block_compressed_view(struct radv_device *device, const struct radv_
    const struct radv_physical_device *pdev = radv_device_physical(device);
    const struct radv_image *image = iview->image;
    const struct radeon_surf *surf = &image->planes[0].surface;
-   struct ac_addrlib *addrlib = device->ws->get_addrlib(device->ws);
    struct ac_surf_info surf_info = radv_get_ac_surf_info(device, image);
 
-   ac_surface_compute_nbc_view(addrlib, &pdev->info, surf, &surf_info, iview->vk.base_mip_level,
+   ac_surface_compute_nbc_view(pdev->addrlib, &pdev->info, surf, &surf_info, iview->vk.base_mip_level,
                                iview->vk.base_array_layer, nbc_view);
 }
 
@@ -359,6 +371,7 @@ radv_image_view_make_descriptor(struct radv_image_view *iview, struct radv_devic
    union radv_descriptor *descriptor;
    uint32_t hw_level = iview->vk.base_mip_level;
    bool force_zero_base_mip = false;
+   uint64_t offset = 0;
 
    if (is_storage_image) {
       descriptor = &iview->storage_descriptor;
@@ -382,6 +395,13 @@ radv_image_view_make_descriptor(struct radv_image_view *iview, struct radv_devic
 
          /* Clear the base array layer because addrlib adds it as part of the base addr offset. */
          first_layer = 0;
+      } else {
+         /* Video decode target uses custom height alignment. */
+         if (image->vk.usage & VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR) {
+            assert(image->planes[plane_id].surface.u.gfx9.swizzle_mode == 0);
+            offset += first_layer * image->planes[plane_id].surface.u.gfx9.surf_slice_size;
+            first_layer = 0;
+         }
       }
    } else {
       /* On GFX6-8, there are some cases where the view must use mip0 and minified image sizes:
@@ -409,6 +429,12 @@ radv_image_view_make_descriptor(struct radv_image_view *iview, struct radv_devic
          extent.height = image->vk.extent.height;
          extent.depth = image->vk.extent.depth;
       }
+
+      /* Video decode target uses custom height alignment. */
+      if (image->vk.usage & VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR) {
+         offset += first_layer * image->planes[plane_id].surface.u.legacy.level[0].slice_size_dw * 4;
+         first_layer = 0;
+      }
    }
 
    radv_make_texture_descriptor(
@@ -435,7 +461,7 @@ radv_image_view_make_descriptor(struct radv_image_view *iview, struct radv_devic
    radv_set_mutable_tex_desc_fields(device, image, base_level_info, plane_id,
                                     force_zero_base_mip ? iview->vk.base_mip_level : 0, iview->vk.base_mip_level, blk_w,
                                     is_stencil, is_storage_image, disable_compression, enable_write_compression,
-                                    descriptor->plane_descriptors[descriptor_plane_id], &iview->nbc_view);
+                                    descriptor->plane_descriptors[descriptor_plane_id], &iview->nbc_view, offset);
 }
 
 /**

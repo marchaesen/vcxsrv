@@ -53,7 +53,6 @@
 #include "compiler/glsl/builtin_functions.h"
 #include "compiler/glsl/glsl_parser_extras.h"
 #include "compiler/glsl/ir.h"
-#include "compiler/glsl/program.h"
 #include "program/program.h"
 #include "program/prog_print.h"
 #include "program/prog_parameter.h"
@@ -1276,6 +1275,60 @@ update_programs_in_pipeline(void *data, void *userData)
    }
 }
 
+static void
+capture_shader_program(struct gl_context *ctx,
+                       struct gl_shader_program *shProg)
+{
+#ifndef CUSTOM_SHADER_REPLACEMENT
+   /* Capture .shader_test files. */
+   const char *capture_path = _mesa_get_shader_capture_path();
+
+   if (shProg->Name != 0 && shProg->Name != ~0 && capture_path != NULL) {
+      /* Find an unused filename. */
+      FILE *file = NULL;
+      char *filename = NULL;
+
+      for (unsigned i = 0;; i++) {
+         if (i) {
+            filename = ralloc_asprintf(NULL, "%s/%u-%u.shader_test",
+                                       capture_path, shProg->Name, i);
+         } else {
+            filename = ralloc_asprintf(NULL, "%s/%u.shader_test",
+                                       capture_path, shProg->Name);
+         }
+         file = os_file_create_unique(filename, 0644);
+         if (file)
+            break;
+         /* If we are failing for another reason than "this filename already
+          * exists", we are likely to fail again with another filename, so
+          * let's just give up */
+         if (errno != EEXIST)
+            break;
+         ralloc_free(filename);
+      }
+
+      if (file) {
+         fprintf(file, "[require]\nGLSL%s >= %u.%02u\n",
+                 shProg->IsES ? " ES" : "", shProg->GLSL_Version / 100,
+                 shProg->GLSL_Version % 100);
+         if (shProg->SeparateShader)
+            fprintf(file, "GL_ARB_separate_shader_objects\nSSO ENABLED\n");
+         fprintf(file, "\n");
+
+         for (unsigned i = 0; i < shProg->NumShaders; i++) {
+            fprintf(file, "[%s shader]\n%s\n",
+                    _mesa_shader_stage_to_string(shProg->Shaders[i]->Stage),
+                    shProg->Shaders[i]->Source);
+         }
+         fclose(file);
+      } else {
+         _mesa_warning(ctx, "Failed to open %s", filename);
+      }
+
+      ralloc_free(filename);
+   }
+#endif
+}
 
 /**
  * Link a program's shaders.
@@ -1301,6 +1354,8 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
          return;
       }
    }
+
+   capture_shader_program(ctx, shProg);
 
    unsigned programs_in_use = 0;
    if (ctx->_Shader)
@@ -1344,53 +1399,6 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
       _mesa_HashWalk(&ctx->Pipeline.Objects, update_programs_in_pipeline,
                      &params);
    }
-
-#ifndef CUSTOM_SHADER_REPLACEMENT
-   /* Capture .shader_test files. */
-   const char *capture_path = _mesa_get_shader_capture_path();
-   if (shProg->Name != 0 && shProg->Name != ~0 && capture_path != NULL) {
-      /* Find an unused filename. */
-      FILE *file = NULL;
-      char *filename = NULL;
-      for (unsigned i = 0;; i++) {
-         if (i) {
-            filename = ralloc_asprintf(NULL, "%s/%u-%u.shader_test",
-                                       capture_path, shProg->Name, i);
-         } else {
-            filename = ralloc_asprintf(NULL, "%s/%u.shader_test",
-                                       capture_path, shProg->Name);
-         }
-         file = os_file_create_unique(filename, 0644);
-         if (file)
-            break;
-         /* If we are failing for another reason than "this filename already
-          * exists", we are likely to fail again with another filename, so
-          * let's just give up */
-         if (errno != EEXIST)
-            break;
-         ralloc_free(filename);
-      }
-      if (file) {
-         fprintf(file, "[require]\nGLSL%s >= %u.%02u\n",
-                 shProg->IsES ? " ES" : "", shProg->GLSL_Version / 100,
-                 shProg->GLSL_Version % 100);
-         if (shProg->SeparateShader)
-            fprintf(file, "GL_ARB_separate_shader_objects\nSSO ENABLED\n");
-         fprintf(file, "\n");
-
-         for (unsigned i = 0; i < shProg->NumShaders; i++) {
-            fprintf(file, "[%s shader]\n%s\n",
-                    _mesa_shader_stage_to_string(shProg->Shaders[i]->Stage),
-                    shProg->Shaders[i]->Source);
-         }
-         fclose(file);
-      } else {
-         _mesa_warning(ctx, "Failed to open %s", filename);
-      }
-
-      ralloc_free(filename);
-   }
-#endif
 
    if (shProg->data->LinkStatus == LINKING_FAILURE &&
        (ctx->_Shader->Flags & GLSL_REPORT_ERRORS)) {

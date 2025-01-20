@@ -182,7 +182,7 @@ parse_frames(const char *str)
    uint32_t range_delimit_count = 0;
    range_interval = 1;
    char *prev_delim = NULL;
-   char str_buf[256] = {0};
+   char str_buf[STANDARD_BUFFER_SIZE] = {0};
    char *str_buf_ptr;
    str_buf_ptr = str_buf;
    struct frame_list *list = (struct frame_list*)malloc(sizeof(struct frame_list));
@@ -263,6 +263,65 @@ parse_frames(const char *str)
    return list;
 }
 
+struct ImageRegion getRegionFromInput(const char *str) {
+   struct ImageRegion region;
+   region.useImageRegion = false;
+   region.startX = 0;
+   region.startY = 0;
+   region.endX = 1;
+   region.endY = 1;
+   /* Expected form is a tuple of four float entries, representing a percentage,
+      so need to attempt to convert the values to floating point type and ensure
+      the values are in the range 0.00 <= x <= 1.00.
+
+      An example of proper input would be:
+      "0.20/0.20/0.75/0.60"
+   */
+   if (strlen(str) == 0) {
+      LOG(ERROR, "Region input was empty!\n");
+      return region;
+   }
+   errno = 0;
+   float dimensions[] = {0, 0, 1, 1};
+   char *dup = strdup(str);
+   char *token = strtok(dup, "/");
+   char *endptr;
+   int i;
+   for (i = 0; i < 4; i++, token = strtok(NULL, "/")) {
+      if (!token) {
+         LOG(ERROR, "Four region entries were not detected!\n");
+         break;
+      }
+      dimensions[i] = strtof(token, &endptr);
+      if (errno || endptr == token) {
+         LOG(ERROR, "Found non-float in region description: %s\n", token, errno);
+         break;
+      }
+      if (dimensions[i] < 0 || 1 < dimensions[i] ) {
+         LOG(ERROR, "Found invalid region value, region value must be between 0 and 1: %f\n", dimensions[i]);
+         break;
+      }
+   }
+   if (i == 4) {
+      if (dimensions[0] < dimensions[2] && dimensions[1] < dimensions[3]) {
+         region.startX = dimensions[0];
+         region.startY = dimensions[1];
+         region.endX = dimensions[2];
+         region.endY = dimensions[3];
+         region.useImageRegion = true;
+      } else {
+         LOG(ERROR, "Region end values need to be greater than region start values!\n");
+      }
+   }
+   free(dup);
+   return region;
+}
+
+static struct ImageRegion parse_region(const char *str)
+{
+   return getRegionFromInput(str);
+}
+
 static bool
 parse_help(const char *str)
 {
@@ -300,13 +359,13 @@ parse_log_type(const char *str)
 static const char *
 parse_output_dir(const char *str)
 {
-   static char output_dir[256];
+   static char output_dir[LARGE_BUFFER_SIZE];
    strcpy(output_dir, str);
    uint32_t last_char_index = strlen(str)-1;
    // Ensure we're in bounds and the last character is '/'
    if (last_char_index > 0 &&
        str[last_char_index] != '/' &&
-       last_char_index < 254) {
+       last_char_index < LARGE_BUFFER_SIZE-1) {
       output_dir[last_char_index+1] = '/';
    }
    DIR *dir = opendir(output_dir);
@@ -370,13 +429,14 @@ parse_screenshot_env(struct screenshot_params *params,
 
    uint32_t num;
    const char *itr = env;
-   char key[256], value[256];
+   char key[STANDARD_BUFFER_SIZE], value[LARGE_BUFFER_SIZE];
 
    memset(params, 0, sizeof(*params));
 
    params->control    = "mesa_screenshot";
    params->frames     = NULL;
    params->output_dir = NULL;
+   params->region.useImageRegion = false;
 
    /* Loop once first until log options found (if they exist) */
    while ((num = parse_string(itr, key, value)) != 0) {

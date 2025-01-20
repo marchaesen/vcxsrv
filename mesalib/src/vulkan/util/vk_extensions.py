@@ -104,6 +104,9 @@ class VkVersion:
 
         return self.__int_ver() > other.__int_ver()
 
+    def __le__(self, other):
+        return not self.__gt__(other)
+
 # Sort the extension list the way we expect: KHR, then EXT, then vendors
 # alphabetically. For digits, read them as a whole number sort that.
 # eg.: VK_KHR_8bit_storage < VK_KHR_16bit_storage < VK_EXT_acquire_xlib_display
@@ -199,8 +202,10 @@ def get_all_required(xml, thing, api, beta):
         version = VkVersion(feature.attrib['number'])
         for t in feature.findall('./require/' + thing):
             name = t.attrib['name']
-            assert name not in things
-            things[name] = Requirements(core_version=version)
+            if name in things:
+                assert things[name].core_version <= version
+            else:
+                things[name] = Requirements(core_version=version)
 
     for extension in xml.findall('.extensions/extension'):
         ext = Extension.from_xml(extension)

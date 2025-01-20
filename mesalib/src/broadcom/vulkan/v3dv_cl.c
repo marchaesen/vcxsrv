@@ -97,7 +97,7 @@ cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, enum
 
    struct v3dv_bo *bo = v3dv_bo_alloc(cl->job->device, space, "CL", true);
    if (!bo) {
-      fprintf(stderr, "failed to allocate memory for command list\n");
+      mesa_loge("failed to allocate memory for command list\n");
       v3dv_flag_oom(NULL, cl->job);
       return false;
    }
@@ -106,7 +106,7 @@ cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, enum
 
    bool ok = v3dv_bo_map(cl->job->device, bo, bo->size);
    if (!ok) {
-      fprintf(stderr, "failed to map command list buffer\n");
+      mesa_loge("failed to map command list buffer\n");
       v3dv_flag_oom(NULL, cl->job);
       return false;
    }

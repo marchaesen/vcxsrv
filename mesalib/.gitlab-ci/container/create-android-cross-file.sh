@@ -18,7 +18,7 @@ cat > "$cross_file" <<EOF
 [binaries]
 ar = '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar'
 c = ['ccache', '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/${arch2}${sdk_version}-clang', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables']
-cpp = ['ccache', '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/${arch2}${sdk_version}-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-static-libstdc++']
+cpp = ['ccache', '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/${arch2}${sdk_version}-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '--start-no-unused-arguments', '-static-libstdc++', '--end-no-unused-arguments']
 c_ld = 'lld'
 cpp_ld = 'lld'
 strip = '$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip'

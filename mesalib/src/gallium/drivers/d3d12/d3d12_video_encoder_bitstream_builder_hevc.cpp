@@ -51,7 +51,7 @@ convert_profile12_to_stdprofile(D3D12_VIDEO_ENCODER_PROFILE_HEVC profile)
 void
 d3d12_video_bitstream_builder_hevc::init_profile_tier_level(HEVCProfileTierLevel *ptl,
                         uint8_t HEVCProfileIdc,
-                        uint8_t HEVCLevelIdc,
+                        uint32_t HEVCLevelIdc,
                         bool isHighTier)
 {
    memset(ptl, 0, sizeof(HEVCProfileTierLevel));
@@ -67,7 +67,7 @@ d3d12_video_bitstream_builder_hevc::init_profile_tier_level(HEVCProfileTierLevel
    ptl->general_interlaced_source_flag = 0;  // no
    ptl->general_non_packed_constraint_flag = 1; // no frame packing arrangement SEI messages
    ptl->general_frame_only_constraint_flag = 1;
-   ptl->general_level_idc = HEVCLevelIdc;
+   ptl->general_level_idc = static_cast<uint8_t>(HEVCLevelIdc);
 
    if (ptl->general_profile_idc == 4 /*MAIN444*/)
    {
@@ -476,14 +476,14 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
    m_latest_sps.strong_intra_smoothing_enabled_flag = 0;
 
    m_latest_sps.vui_parameters_present_flag = seqData.vui_parameters_present_flag;
-   m_latest_sps.vui.aspect_ratio_idc = seqData.aspect_ratio_idc;
+   m_latest_sps.vui.aspect_ratio_idc = static_cast<uint8_t>(seqData.aspect_ratio_idc);
    m_latest_sps.vui.sar_width = seqData.sar_width;
    m_latest_sps.vui.sar_height = seqData.sar_height;
-   m_latest_sps.vui.video_format = seqData.video_format;
+   m_latest_sps.vui.video_format = static_cast<uint8_t>(seqData.video_format);
    m_latest_sps.vui.video_full_range_flag = seqData.video_full_range_flag;
-   m_latest_sps.vui.colour_primaries = seqData.colour_primaries;
-   m_latest_sps.vui.transfer_characteristics = seqData.transfer_characteristics;
-   m_latest_sps.vui.matrix_coeffs = seqData.matrix_coefficients;
+   m_latest_sps.vui.colour_primaries = static_cast<uint8_t>(seqData.colour_primaries);
+   m_latest_sps.vui.transfer_characteristics = static_cast<uint8_t>(seqData.transfer_characteristics);
+   m_latest_sps.vui.matrix_coeffs = static_cast<uint8_t>(seqData.matrix_coefficients);
    m_latest_sps.vui.chroma_sample_loc_type_top_field = seqData.chroma_sample_loc_type_top_field;
    m_latest_sps.vui.chroma_sample_loc_type_bottom_field = seqData.chroma_sample_loc_type_bottom_field;
    m_latest_sps.vui.def_disp_win_left_offset = seqData.def_disp_win_left_offset;
@@ -516,7 +516,7 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
    m_latest_sps.vui.motion_vectors_over_pic_boundaries_flag = seqData.vui_flags.motion_vectors_over_pic_boundaries_flag;
    m_latest_sps.vui.restricted_ref_pic_lists_flag = seqData.vui_flags.restricted_ref_pic_lists_flag;
 
-   m_latest_sps.sps_extension_present_flag = seqData.sps_range_extension.sps_range_extension_flag; // Set sps_extension_present_flag if sps_range_extension_flag present
+   m_latest_sps.sps_extension_present_flag = static_cast<uint8_t>(seqData.sps_range_extension.sps_range_extension_flag); // Set sps_extension_present_flag if sps_range_extension_flag present
    if (m_latest_sps.sps_extension_present_flag)
    {
       m_latest_sps.sps_range_extension.sps_range_extension_flag = seqData.sps_range_extension.sps_range_extension_flag;

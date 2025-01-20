@@ -982,7 +982,8 @@ _mesa_initialize_context(struct gl_context *ctx,
                          bool no_error,
                          const struct gl_config *visual,
                          struct gl_context *share_list,
-                         const struct dd_function_table *driverFunctions)
+                         const struct dd_function_table *driverFunctions,
+                         const struct st_config_options *options)
 {
    struct gl_shared_state *shared;
    int i;
@@ -1038,7 +1039,7 @@ _mesa_initialize_context(struct gl_context *ctx,
    }
    else {
       /* allocate new, unshared state */
-      shared = _mesa_alloc_shared_state(ctx);
+      shared = _mesa_alloc_shared_state(ctx, options);
       if (!shared)
          return GL_FALSE;
    }

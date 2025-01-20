@@ -36,9 +36,11 @@
 
 #include "loader_dri_helper.h"
 #include "loader_dri3_helper.h"
+#include "pipe/p_screen.h"
 #include "util/macros.h"
 #include "util/simple_mtx.h"
 #include "drm-uapi/drm_fourcc.h"
+#include "dri_screen.h"
 #include "dri_util.h"
 
 /**
@@ -46,8 +48,8 @@
  */
 struct loader_dri3_blit_context {
    simple_mtx_t mtx;
-   __DRIcontext *ctx;
-   __DRIscreen *cur_screen;
+   struct dri_context *ctx;
+   struct dri_screen *cur_screen;
    const __DRIcoreExtension *core;
 };
 
@@ -149,7 +151,7 @@ dri3_get_red_mask_for_depth(struct loader_dri3_drawable *draw, int depth)
  * When the caller is done with the context (even if the context returned was
  * NULL), the caller must call loader_dri3_blit_context_put.
  */
-static __DRIcontext *
+static struct dri_context *
 loader_dri3_blit_context_get(struct loader_dri3_drawable *draw)
 {
    simple_mtx_lock(&blit_context.mtx);
@@ -195,11 +197,11 @@ loader_dri3_blit_context_put(void)
  */
 static bool
 loader_dri3_blit_image(struct loader_dri3_drawable *draw,
-                       __DRIimage *dst, __DRIimage *src,
+                       struct dri_image *dst, struct dri_image *src,
                        int dstx0, int dsty0, int width, int height,
                        int srcx0, int srcy0, int flush_flag)
 {
-   __DRIcontext *dri_context;
+   struct dri_context *dri_context;
    bool use_blit_context = false;
 
    dri_context = draw->vtable->get_dri_context(draw);
@@ -363,11 +365,11 @@ int
 loader_dri3_drawable_init(xcb_connection_t *conn,
                           xcb_drawable_t drawable,
                           enum loader_dri3_drawable_type type,
-                          __DRIscreen *dri_screen_render_gpu,
-                          __DRIscreen *dri_screen_display_gpu,
+                          struct dri_screen *dri_screen_render_gpu,
+                          struct dri_screen *dri_screen_display_gpu,
                           bool multiplanes_available,
                           bool prefer_back_buffer_reuse,
-                          const __DRIconfig *dri_config,
+                          const struct dri_config *dri_config,
                           const struct loader_dri3_vtable *vtable,
                           struct loader_dri3_drawable *draw)
 {
@@ -801,7 +803,7 @@ loader_dri3_flush(struct loader_dri3_drawable *draw,
                   enum __DRI2throttleReason throttle_reason)
 {
    /* NEED TO CHECK WHETHER CONTEXT IS NULL */
-   __DRIcontext *dri_context = draw->vtable->get_dri_context(draw);
+   struct dri_context *dri_context = draw->vtable->get_dri_context(draw);
 
    if (dri_context) {
       dri_flush(dri_context, draw->dri_drawable, flags, throttle_reason);
@@ -1355,7 +1357,7 @@ has_supported_modifier(struct loader_dri3_drawable *draw, unsigned int format,
 
 /** loader_dri3_alloc_render_buffer
  *
- * Use the driver createImage function to construct a __DRIimage, then
+ * Use the driver createImage function to construct a struct dri_image, then
  * get a file descriptor for that and create an X pixmap from that
  *
  * Allocate an xshmfence for synchronization
@@ -1365,7 +1367,7 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int fourcc,
                          int width, int height, int depth)
 {
    struct loader_dri3_buffer *buffer;
-   __DRIimage *pixmap_buffer = NULL, *linear_buffer_display_gpu = NULL;
+   struct dri_image *pixmap_buffer = NULL, *linear_buffer_display_gpu = NULL;
    int format = loader_fourcc_to_image_format(fourcc);
    xcb_pixmap_t pixmap;
    xcb_sync_fence_t sync_fence;
@@ -1401,7 +1403,7 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int fourcc,
 
    if (draw->dri_screen_render_gpu == draw->dri_screen_display_gpu) {
 #ifdef HAVE_X11_DRM
-      if (draw->multiplanes_available) {
+      if (draw->multiplanes_available && draw->dri_screen_render_gpu->base.screen->resource_create_with_modifiers) {
          xcb_dri3_get_supported_modifiers_cookie_t mod_cookie;
          xcb_dri3_get_supported_modifiers_reply_t *mod_reply;
          xcb_generic_error_t *error = NULL;
@@ -1518,7 +1520,7 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int fourcc,
       num_planes = 1;
 
    for (i = 0; i < num_planes; i++) {
-      __DRIimage *image = dri2_from_planar(pixmap_buffer, i, NULL);
+      struct dri_image *image = dri2_from_planar(pixmap_buffer, i, NULL);
 
       if (!image) {
          assert(i == 0);
@@ -1759,15 +1761,15 @@ dri3_update_drawable(struct loader_dri3_drawable *draw)
    return true;
 }
 
-__DRIimage *
+struct dri_image *
 loader_dri3_create_image(xcb_connection_t *c,
                          xcb_dri3_buffer_from_pixmap_reply_t *bp_reply,
                          unsigned int fourcc,
-                         __DRIscreen *dri_screen,
+                         struct dri_screen *dri_screen,
                          void *loaderPrivate)
 {
    int                                  *fds;
-   __DRIimage                           *image_planar, *ret;
+   struct dri_image                           *image_planar, *ret;
    int                                  stride, offset;
 
    /* Get an FD for the pixmap object
@@ -1777,7 +1779,7 @@ loader_dri3_create_image(xcb_connection_t *c,
    stride = bp_reply->stride;
    offset = 0;
 
-   /* createImageFromDmaBufs creates a wrapper __DRIimage structure which
+   /* createImageFromDmaBufs creates a wrapper struct dri_image structure which
     * can deal with multiple planes for things like Yuv images. So, once
     * we've gotten the planar wrapper, pull the single plane out of it and
     * discard the wrapper.
@@ -1806,14 +1808,14 @@ loader_dri3_create_image(xcb_connection_t *c,
 }
 
 #ifdef HAVE_X11_DRM
-__DRIimage *
+struct dri_image *
 loader_dri3_create_image_from_buffers(xcb_connection_t *c,
                                       xcb_dri3_buffers_from_pixmap_reply_t *bp_reply,
                                       unsigned int fourcc,
-                                      __DRIscreen *dri_screen,
+                                      struct dri_screen *dri_screen,
                                       void *loaderPrivate)
 {
-   __DRIimage                           *ret;
+   struct dri_image                           *ret;
    int                                  *fds;
    uint32_t                             *strides_in, *offsets_in;
    int                                   strides[4], offsets[4];
@@ -1848,12 +1850,12 @@ loader_dri3_create_image_from_buffers(xcb_connection_t *c,
 }
 #endif
 
-__DRIimage *
-loader_dri3_get_pixmap_buffer(xcb_connection_t *conn, xcb_drawable_t pixmap, __DRIscreen *screen,
+struct dri_image *
+loader_dri3_get_pixmap_buffer(xcb_connection_t *conn, xcb_drawable_t pixmap, struct dri_screen *screen,
                               unsigned fourcc, bool multiplanes_available,
                               int *width, int *height, void *loader_data)
 {
-   __DRIimage *image;
+   struct dri_image *image;
 #ifdef HAVE_X11_DRM
    if (multiplanes_available) {
       xcb_dri3_buffers_from_pixmap_cookie_t bps_cookie;
@@ -1892,10 +1894,10 @@ loader_dri3_get_pixmap_buffer(xcb_connection_t *conn, xcb_drawable_t pixmap, __D
 /** dri3_get_pixmap_buffer
  *
  * Get the DRM object for a pixmap from the X server and
- * wrap that with a __DRIimage structure using createImageFromDmaBufs
+ * wrap that with a struct dri_image structure using createImageFromDmaBufs
  */
 static struct loader_dri3_buffer *
-dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int fourcc,
+dri3_get_pixmap_buffer(struct dri_drawable *driDrawable, unsigned int fourcc,
                        enum loader_dri3_buffer_type buffer_type,
                        struct loader_dri3_drawable *draw)
 {
@@ -1907,7 +1909,7 @@ dri3_get_pixmap_buffer(__DRIdrawable *driDrawable, unsigned int fourcc,
    int                                  width;
    int                                  height;
    int                                  fence_fd;
-   __DRIscreen                          *cur_screen;
+   struct dri_screen                          *cur_screen;
 
    if (buffer)
       return buffer;
@@ -1972,7 +1974,7 @@ no_buffer:
  * Find a front or back buffer, allocating new ones as necessary
  */
 static struct loader_dri3_buffer *
-dri3_get_buffer(__DRIdrawable *driDrawable,
+dri3_get_buffer(struct dri_drawable *driDrawable,
                 unsigned int fourcc,
                 enum loader_dri3_buffer_type buffer_type,
                 struct loader_dri3_drawable *draw)
@@ -2103,7 +2105,7 @@ dri3_get_buffer(__DRIdrawable *driDrawable,
  * when the application changes which buffers it needs
  */
 static void
-dri3_free_buffers(__DRIdrawable *driDrawable,
+dri3_free_buffers(struct dri_drawable *driDrawable,
                   enum loader_dri3_buffer_type buffer_type,
                   struct loader_dri3_drawable *draw)
 {
@@ -2137,7 +2139,7 @@ dri3_free_buffers(__DRIdrawable *driDrawable,
  * as needed.
  */
 int
-loader_dri3_get_buffers(__DRIdrawable *driDrawable,
+loader_dri3_get_buffers(struct dri_drawable *driDrawable,
                         unsigned int format,
                         uint32_t *stamp,
                         void *loaderPrivate,
@@ -2280,12 +2282,12 @@ loader_dri3_swapbuffer_barrier(struct loader_dri3_drawable *draw)
 
 /**
  * Perform any cleanup associated with a close screen operation.
- * \param dri_screen[in,out] Pointer to __DRIscreen about to be closed.
+ * \param dri_screen[in,out] Pointer to struct dri_screen about to be closed.
  *
  * This function destroys the screen's cached swap context if any.
  */
 void
-loader_dri3_close_screen(__DRIscreen *dri_screen)
+loader_dri3_close_screen(struct dri_screen *dri_screen)
 {
    simple_mtx_lock(&blit_context.mtx);
    if (blit_context.ctx && blit_context.cur_screen == dri_screen) {

@@ -1,0 +1,44 @@
+# These fail randomly
+glx@glx_arb_sync_control@timing.*
+glx@glx-multithread-texture
+
+# This one will be Crash or Fail depending on the shader cache state
+spec@!opengl 1.0@rasterpos
+spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked
+spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked
+
+# Random: ../src/util/hash_table.c:311: hash_table_search: Assertion `!key_pointer_is_reserved(ht, key)' failed.
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
+
+# Random: error: nir_intrinsic_range(instr) != 0 (../src/compiler/nir/nir_validate.c:599)
+spec@arb_bindless_texture@compiler@samplers@arith-bound-sampler-texture2d.frag
+
+# Random
+# Mostly reported by "Some new flakes found:" and most of them never appear in the failures
+GTF-GL46.gtf30.GL3Tests.blend_minmax.blend_minmax_clamping
+GTF-GL46.gtf30.GL3Tests.blend_minmax.blend_minmax_draw
+
+KHR-GL46.ext_texture_shadow_lod.texture.samplercubearrayshadow_fragment
+KHR-GL46.ext_texture_shadow_lod.texturelod.samplercubearrayshadow_fragment
+KHR-GL46.ext_texture_shadow_lod.texturelod.samplercubeshadow_vertex
+KHR-GLES32.core.ext_texture_shadow_lod.texture.samplercubearrayshadow_fragment
+KHR-GLES32.core.ext_texture_shadow_lod.texturelod.samplercubearrayshadow_fragment
+
+dEQP-GLES2.functional.flush_finish.finish
+dEQP-GLES2.functional.flush_finish.finish_wait
+
+dEQP-GLES3.functional.occlusion_query.conservative_depth_write_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_write
+dEQP-GLES3.functional.occlusion_query.conservative_scissor_depth_write_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.conservative_stencil_clear
+dEQP-GLES3.functional.occlusion_query.depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.depth_clear_stencil_write
+dEQP-GLES3.functional.occlusion_query.depth_write_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.depth_write_depth_clear_stencil_write
+dEQP-GLES3.functional.occlusion_query.scissor_depth_clear_stencil_clear
+dEQP-GLES3.functional.occlusion_query.scissor_stencil_write
+
+dEQP-GLES3.functional.texture.shadow.2d_array.linear_mipmap_linear.greater_or_equal_depth24_stencil8
+dEQP-GLES3.functional.texture.shadow.2d_array.linear_mipmap_linear.less_depth_component32f
+dEQP-GLES3.functional.texture.shadow.cube.nearest_mipmap_linear.not_equal_depth_component32f

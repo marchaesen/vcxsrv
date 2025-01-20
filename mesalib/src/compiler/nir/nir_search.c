@@ -398,11 +398,19 @@ match_expression(const nir_algebraic_table *table, const nir_search_expression *
     * expression, we don't have the information right now to propagate that
     * swizzle through.  We can only properly propagate swizzles if the
     * instruction is vectorized.
+    *
+    * The only exception is swizzle_y, for which we have a special condition,
+    * so that we can do pack64_2x32_split(unpack(a).x, unpack(a).y) --> a.
     */
-   if (nir_op_infos[instr->op].output_size != 0) {
-      for (unsigned i = 0; i < num_components; i++) {
-         if (swizzle[i] != i)
-            return false;
+   if (expr->swizzle_y) {
+      if (num_components != 1 || swizzle[0] != 1)
+         return false;
+   } else {
+      if (nir_op_infos[instr->op].output_size != 0) {
+         for (unsigned i = 0; i < num_components; i++) {
+            if (swizzle[i] != i)
+               return false;
+         }
       }
    }
 

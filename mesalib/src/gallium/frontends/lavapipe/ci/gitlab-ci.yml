@@ -4,8 +4,9 @@ include:
 lavapipe:
   variables:
     DEQP_SUITE: lvp
+    GPU_VERSION: lvp
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
-    DEQP_FRACTION: 18
+    DEQP_FRACTION: 9
   stage: software-renderer
   extends:
     - .deqp-test
@@ -19,19 +20,14 @@ lavapipe-full:
   variables:
     DEQP_FRACTION: 1
 
-# this seems broken
-# https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/29068#note_2403558
-.lavapipe-vk-asan:
+lavapipe-vk-asan:
   extends:
     - .deqp-test
     - .lavapipe-test
   variables:
+    DEQP_SUITE: lvp-asan
     GPU_VERSION: lvp-asan
-    DEQP_FRACTION: 1000
-    # Skip dlclose so that we get good backtraces of the leaks.
-    # Don't batch the tests into caselists while we're leaky.
-    DEQP_RUNNER_OPTIONS: "--env LD_PRELOAD=libasan.so.8:libdlclose-skip.so"
-    DEQP_RUNNER_TESTS_PER_GROUP: 1
+    DEQP_FORCE_ASAN: 1
   needs:
     - debian/x86_64_test-vk
     - debian-testing-asan

@@ -150,6 +150,9 @@ emit_halti5_only_state(struct etna_context *ctx, int vs_output_count)
       /*01080*/ EMIT_STATE(PS_VARYING_NUM_COMPONENTS(0), ctx->shader_state.GL_VARYING_NUM_COMPONENTS[0]);
       /*01084*/ EMIT_STATE(PS_VARYING_NUM_COMPONENTS(1), ctx->shader_state.GL_VARYING_NUM_COMPONENTS[1]);
       /*03888*/ EMIT_STATE(GL_HALTI5_SH_SPECIALS, ctx->shader_state.GL_HALTI5_SH_SPECIALS);
+      for (int x = 0; x < ctx->shader_state.halti5_shader_attributes_states; ++x) {
+         /*038C0*/ EMIT_STATE(GL_HALTI5_SHADER_ATTRIBUTES(x), ctx->shader_state.GL_HALTI5_SHADER_ATTRIBUTES[x]);
+      }
    }
    if (unlikely(dirty & (ETNA_DIRTY_BLEND))) {
       for (int i = 1; i < ctx->framebuffer.num_rt; i++) {
@@ -201,7 +204,7 @@ emit_pre_halti5_state(struct etna_context *ctx)
       /*00838*/ EMIT_STATE(VS_START_PC, ctx->shader_state.VS_START_PC);
    }
    if (unlikely(dirty & (ETNA_DIRTY_SHADER))) {
-      for (int x = 0; x < VIVS_PA_SHADER_ATTRIBUTES__LEN; ++x) {
+      for (int x = 0; x < ctx->shader_state.pa_shader_attributes_states; ++x) {
          /*00A40*/ EMIT_STATE(PA_SHADER_ATTRIBUTES(x), ctx->shader_state.PA_SHADER_ATTRIBUTES[x]);
       }
    }
@@ -226,6 +229,8 @@ emit_pre_halti5_state(struct etna_context *ctx)
          /*03828*/ EMIT_STATE(GL_VARYING_COMPONENT_USE(x), ctx->shader_state.GL_VARYING_COMPONENT_USE[x]);
       }
       /*03834*/ EMIT_STATE(GL_VARYING_NUM_COMPONENTS2, ctx->shader_state.GL_VARYING_NUM_COMPONENTS[1]);
+      /*03838*/ EMIT_STATE(GL_VARYING_COMPONENT_USE2, ctx->shader_state.GL_VARYING_COMPONENT_USE[2]);
+      /*03854*/ EMIT_STATE(GL_VARYING_COMPONENT_USE3, ctx->shader_state.GL_VARYING_COMPONENT_USE[3]);
    }
    etna_coalesce_end(stream, &coalesce);
 }
@@ -430,11 +435,14 @@ etna_emit_state(struct etna_context *ctx)
       /*00C0C*/ EMIT_STATE_FIXP(SE_SCISSOR_BOTTOM, (ctx->clipping.maxy << 16) + ETNA_SE_SCISSOR_MARGIN_BOTTOM);
    }
    if (unlikely(dirty & (ETNA_DIRTY_RASTERIZER))) {
-      struct etna_rasterizer_state *rasterizer = etna_rasterizer_state(ctx->rasterizer);
+      /*00C10*/ EMIT_STATE(SE_DEPTH_SCALE, etna_rasterizer_state(ctx->rasterizer)->SE_DEPTH_SCALE);
 
-      /*00C10*/ EMIT_STATE(SE_DEPTH_SCALE, rasterizer->SE_DEPTH_SCALE);
-      /*00C14*/ EMIT_STATE(SE_DEPTH_BIAS, rasterizer->SE_DEPTH_BIAS);
-      /*00C18*/ EMIT_STATE(SE_CONFIG, rasterizer->SE_CONFIG);
+   }
+   if (unlikely(dirty & (ETNA_DIRTY_RASTERIZER | ETNA_DIRTY_FRAMEBUFFER))) {
+      /*00C14*/ EMIT_STATE(SE_DEPTH_BIAS, fui(etna_rasterizer_state(ctx->rasterizer)->offset_units * ctx->framebuffer.depth_mrd));
+   }
+   if (unlikely(dirty & (ETNA_DIRTY_RASTERIZER))) {
+      /*00C18*/ EMIT_STATE(SE_CONFIG, etna_rasterizer_state(ctx->rasterizer)->SE_CONFIG);
    }
    if (unlikely(dirty & (ETNA_DIRTY_SCISSOR_CLIP))) {
       /*00C20*/ EMIT_STATE_FIXP(SE_CLIP_RIGHT, (ctx->clipping.maxx << 16) + ETNA_SE_CLIP_MARGIN_RIGHT);

@@ -178,6 +178,7 @@ init_scene_texture(struct lp_scene_surface *ssurf, struct pipe_surface *psurf)
                                          psurf->u.tex.level,
                                          psurf->u.tex.first_layer,
                                          LP_TEX_USAGE_READ_WRITE);
+      assert(ssurf->map);
       ssurf->format_bytes = util_format_get_blocksize(psurf->format);
       ssurf->nr_samples = util_res_sample_count(psurf->texture);
    } else {

@@ -11,6 +11,7 @@
         - src/gallium/drivers/zink/ci/$GPU_VERSION-fails.txt
         - src/gallium/drivers/zink/ci/$GPU_VERSION-flakes.txt
         - src/gallium/drivers/zink/ci/$GPU_VERSION-skips.txt
+        - src/gallium/drivers/zink/ci/$GPU_VERSION-slow-skips.txt
         - src/gallium/drivers/zink/ci/$GPU_VERSION-validation-settings.txt
         - src/gallium/drivers/zink/ci/$PIGLIT_TRACES_FILE
       when: on_success
@@ -183,6 +184,21 @@
     - .anv-test
     - .zink-anv-rules
     - .zink-test
+  variables:
+    VK_DRIVER: intel
+    GPU_VERSION: zink-anv-tgl
+
+.zink-anv-tgl-trace-test:
+  extends:
+    - .lava-piglit-traces:x86_64
+    - .lava-acer-cp514-2h-1130g7-volteer:x86_64
+    - .anv-test
+    - .zink-anv-rules
+    - .zink-trace-test
+    # Add .lava-traces-base again to override .anv-test setting the
+    # HWCI_TEST_SCRIPT, but .lava-piglit-traces having to come first to get
+    # dependencies right.
+    - .lava-traces-base
   variables:
     VK_DRIVER: intel
     GPU_VERSION: zink-anv-tgl

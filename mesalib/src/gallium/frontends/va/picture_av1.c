@@ -153,6 +153,10 @@ void vlVaHandlePictureParameterBufferAV1(vlVaDriver *drv, vlVaContext *context, 
    context->desc.av1.picture_parameter.bit_depth_idx = av1->bit_depth_idx;
    context->desc.av1.picture_parameter.seq_info_fields.mono_chrome =
       av1->seq_info_fields.fields.mono_chrome;
+   context->desc.av1.picture_parameter.seq_info_fields.subsampling_x =
+      av1->seq_info_fields.fields.subsampling_x;
+   context->desc.av1.picture_parameter.seq_info_fields.subsampling_y =
+      av1->seq_info_fields.fields.subsampling_y;
 
    context->desc.av1.picture_parameter.pic_info_fields.showable_frame =
       av1->pic_info_fields.bits.showable_frame;

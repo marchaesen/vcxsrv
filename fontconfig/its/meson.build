@@ -3,4 +3,6 @@ gettext_files = [
   'fontconfig.loc',
 ]
 
-install_data(gettext_files, install_dir: join_paths(get_option('datadir'), 'gettext/its'))
+install_data(gettext_files,
+             install_dir: join_paths(get_option('datadir'), 'gettext/its'),
+             install_tag: 'devel')

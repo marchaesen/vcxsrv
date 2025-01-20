@@ -94,7 +94,7 @@ d3d12_video_decoder_prepare_current_frame_references_vp9(struct d3d12_video_deco
       d3d12_video_decoder_get_current_dxva_picparams<DXVA_PicParams_VP9>(pD3D12Dec)->ref_frame_map,
       pD3D12Dec->m_transitionsStorage);
 
-   pD3D12Dec->m_spDecodeCommandList->ResourceBarrier(pD3D12Dec->m_transitionsStorage.size(), pD3D12Dec->m_transitionsStorage.data());
+   pD3D12Dec->m_spDecodeCommandList->ResourceBarrier(static_cast<UINT>(pD3D12Dec->m_transitionsStorage.size()), pD3D12Dec->m_transitionsStorage.data());
 
    // Schedule reverse (back to common) transitions before command list closes for current frame
    for (auto BarrierDesc : pD3D12Dec->m_transitionsStorage) {
@@ -217,7 +217,7 @@ d3d12_video_decoder_prepare_dxva_slices_control_vp9(struct d3d12_video_decoder *
    debug_printf("[d3d12_video_decoder_vp9] Upper layer reported %d slices for this frame, parsing them below...\n",
                   picture_vp9->slice_parameter.slice_count);
 
-   uint64_t TotalSlicesDXVAArrayByteSize = picture_vp9->slice_parameter.slice_count * sizeof(DXVA_Slice_VPx_Short);
+   size_t TotalSlicesDXVAArrayByteSize = picture_vp9->slice_parameter.slice_count * sizeof(DXVA_Slice_VPx_Short);
    vecOutSliceControlBuffers.resize(TotalSlicesDXVAArrayByteSize);
 
    uint8_t* pData = vecOutSliceControlBuffers.data();
@@ -284,7 +284,7 @@ d3d12_video_decoder_dxva_picparams_from_pipe_picparams_vp9(
    memset(&dxvaStructure, 0, sizeof(dxvaStructure));   
 
    dxvaStructure.profile = pipe_vp9->picture_parameter.profile;
-   dxvaStructure.wFormatAndPictureInfoFlags = ((pipe_vp9->picture_parameter.pic_fields.frame_type != 0)   <<  0) |
+   dxvaStructure.wFormatAndPictureInfoFlags = static_cast<uint16_t>(((pipe_vp9->picture_parameter.pic_fields.frame_type != 0)   <<  0) |
                                     ((pipe_vp9->picture_parameter.pic_fields.show_frame != 0)             <<  1) |
                                     (pipe_vp9->picture_parameter.pic_fields.error_resilient_mode          <<  2) |
                                     (pipe_vp9->picture_parameter.pic_fields.subsampling_x                 <<  3) |
@@ -296,7 +296,7 @@ d3d12_video_decoder_dxva_picparams_from_pipe_picparams_vp9(
                                     (pipe_vp9->picture_parameter.pic_fields.frame_context_idx             <<  9) |
                                     (pipe_vp9->picture_parameter.pic_fields.reset_frame_context           << 11) |
                                     ((pipe_vp9->picture_parameter.pic_fields.allow_high_precision_mv)     << 13) |
-                                    (0                                                                    << 14);
+                                    (0                                                                    << 14));
 
    dxvaStructure.width  = pipe_vp9->picture_parameter.frame_width;
    dxvaStructure.height = pipe_vp9->picture_parameter.frame_height;
@@ -371,11 +371,11 @@ d3d12_video_decoder_dxva_picparams_from_pipe_picparams_vp9(
    dxvaStructure.uv_ac_delta_q = pipe_vp9->picture_parameter.uv_dc_delta_q;
 
    /* segmentation data */
-   dxvaStructure.stVP9Segments.wSegmentInfoFlags = (pipe_vp9->picture_parameter.pic_fields.segmentation_enabled   << 0) |
-                                       (pipe_vp9->picture_parameter.pic_fields.segmentation_update_map            << 1) |
-                                       (pipe_vp9->picture_parameter.pic_fields.segmentation_temporal_update       << 2) |
-                                       (pipe_vp9->picture_parameter.abs_delta                                     << 3) |
-                                       (0                                                                         << 4);
+   dxvaStructure.stVP9Segments.wSegmentInfoFlags = static_cast<uint8_t>((pipe_vp9->picture_parameter.pic_fields.segmentation_enabled   << 0) |
+                                                                        (pipe_vp9->picture_parameter.pic_fields.segmentation_update_map            << 1) |
+                                                                        (pipe_vp9->picture_parameter.pic_fields.segmentation_temporal_update       << 2) |
+                                                                        (pipe_vp9->picture_parameter.abs_delta                                     << 3) |
+                                                                        (0                                                                         << 4));
 
    for (uint32_t i = 0; i < 7; i++)
       dxvaStructure.stVP9Segments.tree_probs[i] = pipe_vp9->picture_parameter.mb_segment_tree_probs[i];
@@ -387,10 +387,10 @@ d3d12_video_decoder_dxva_picparams_from_pipe_picparams_vp9(
       memset(dxvaStructure.stVP9Segments.pred_probs, 255, sizeof(dxvaStructure.stVP9Segments.pred_probs));
 
    for (uint32_t i = 0; i < 8; i++) {
-      dxvaStructure.stVP9Segments.feature_mask[i] = (pipe_vp9->slice_parameter.seg_param[i].alt_quant_enabled              << 0) |
-                                          (pipe_vp9->slice_parameter.seg_param[i].alt_lf_enabled                           << 1) |
-                                          (pipe_vp9->slice_parameter.seg_param[i].segment_flags.segment_reference_enabled  << 2) |
-                                          (pipe_vp9->slice_parameter.seg_param[i].segment_flags.segment_reference_skipped  << 3);
+      dxvaStructure.stVP9Segments.feature_mask[i] = static_cast<uint8_t>((pipe_vp9->slice_parameter.seg_param[i].alt_quant_enabled              << 0) |
+                                                                         (pipe_vp9->slice_parameter.seg_param[i].alt_lf_enabled                           << 1) |
+                                                                         (pipe_vp9->slice_parameter.seg_param[i].segment_flags.segment_reference_enabled  << 2) |
+                                                                         (pipe_vp9->slice_parameter.seg_param[i].segment_flags.segment_reference_skipped  << 3));
 
       dxvaStructure.stVP9Segments.feature_data[i][0] = pipe_vp9->slice_parameter.seg_param[i].alt_quant;
       dxvaStructure.stVP9Segments.feature_data[i][1] = pipe_vp9->slice_parameter.seg_param[i].alt_lf;

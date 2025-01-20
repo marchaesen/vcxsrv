@@ -234,7 +234,7 @@ agx_pack_local_base(const agx_instr *I, agx_index index, unsigned *flags)
       return 0;
    } else if (index.type == AGX_INDEX_UNIFORM) {
       *flags = 1 | ((index.value >> 8) << 1);
-      return index.value & BITFIELD_MASK(7);
+      return index.value & BITFIELD_MASK(8);
    } else {
       assert_register_is_aligned(I, index);
       *flags = 0;
@@ -409,8 +409,10 @@ static void
 agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
 {
    struct agx_opcode_info info = agx_opcodes_info[I->op];
-   bool is_16 = agx_all_16(I) && info.encoding_16.exact;
-   struct agx_encoding encoding = is_16 ? info.encoding_16 : info.encoding;
+   struct agx_encoding encoding = info.encoding;
+
+   bool is_f16 = (I->op == AGX_OPCODE_HMUL || I->op == AGX_OPCODE_HFMA ||
+                  I->op == AGX_OPCODE_HADD);
 
    pack_assert_msg(I, encoding.exact, "invalid encoding");
 
@@ -450,12 +452,12 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
       unsigned src_extend = (src >> 10);
 
       /* Size bit always zero and so omitted for 16-bit */
-      if (is_16 && !is_cmpsel)
+      if (is_f16 && !is_cmpsel)
          pack_assert(I, (src_short & (1 << 9)) == 0);
 
       if (info.is_float || (I->op == AGX_OPCODE_FCMPSEL && !is_cmpsel)) {
          unsigned fmod = agx_pack_float_mod(I->src[s]);
-         unsigned fmod_offset = is_16 ? 9 : 10;
+         unsigned fmod_offset = is_f16 ? 9 : 10;
          src_short |= (fmod << fmod_offset);
       } else if (I->op == AGX_OPCODE_IMAD || I->op == AGX_OPCODE_IADD) {
          /* Force unsigned for immediates so uadd_sat works properly */
@@ -511,6 +513,9 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
 
    /* Determine length bit */
    unsigned length = encoding.length_short;
+   if (I->op == AGX_OPCODE_MOV_IMM && I->dest[0].size == AGX_SIZE_16)
+      length -= 2;
+
    uint64_t short_mask = BITFIELD64_MASK(8 * length);
    bool length_bit = (extend || (raw & ~short_mask));
 
@@ -551,7 +556,7 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
 
 static void
 agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
-               agx_instr *I, bool needs_g13x_coherency)
+               agx_instr *I, enum u_tristate needs_g13x_coherency)
 {
    switch (I->op) {
    case AGX_OPCODE_LD_TILE:
@@ -791,6 +796,16 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       unsigned R = agx_pack_atomic_dest(I, I->dest[0], &Rt);
       unsigned S = agx_pack_atomic_source(I, I->src[0]);
 
+      /* Due to a hardware quirk, there is a bit in the atomic instruction that
+       * differs based on the target GPU. So, if we're packing an atomic, the
+       * shader must be keyed to a particular GPU (either needs_g13x_coherency
+       * or not needs_g13x_coherency). Assert that here.
+       *
+       * needs_g13x_coherency == U_TRISTATE_UNSET is only allowed for shaders
+       * that do not use atomics and are therefore portable across devices.
+       */
+      assert(needs_g13x_coherency != U_TRISTATE_UNSET);
+
       uint64_t raw =
          agx_opcodes_info[I->op].encoding.exact |
          (((uint64_t)I->atomic_opc) << 6) | ((R & BITFIELD_MASK(6)) << 10) |
@@ -800,7 +815,7 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
          (((uint64_t)((O >> 4) & BITFIELD_MASK(4))) << 32) |
          (((uint64_t)((A >> 4) & BITFIELD_MASK(4))) << 36) |
          (((uint64_t)(R >> 6)) << 40) |
-         (needs_g13x_coherency ? BITFIELD64_BIT(45) : 0) |
+         (needs_g13x_coherency == U_TRISTATE_YES ? BITFIELD64_BIT(45) : 0) |
          (Rt ? BITFIELD64_BIT(47) : 0) | (((uint64_t)S) << 48) |
          (((uint64_t)(O >> 8)) << 56);
 

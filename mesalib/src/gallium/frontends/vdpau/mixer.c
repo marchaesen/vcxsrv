@@ -147,7 +147,7 @@ vlVdpVideoMixerCreate(VdpDevice device,
       goto no_params;
    }
 
-   max_size = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+   max_size = screen->caps.max_texture_2d_size;
    if (vmixer->video_width < 48 || vmixer->video_width > max_size) {
       VDPAU_MSG(VDPAU_WARN, "[VDPAU] 48 < %u < %u not valid for width\n",
                 vmixer->video_width, max_size);

@@ -51,6 +51,7 @@ radv_cs_emit_cp_dma(struct radv_device *device, struct radeon_cmdbuf *cs, bool p
                     uint64_t src_va, unsigned size, unsigned flags)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
+   const bool cp_dma_use_L2 = (flags & CP_DMA_USE_L2) && pdev->info.cp_dma_use_L2;
    uint32_t header = 0, command = 0;
 
    assert(size <= cp_dma_max_byte_count(pdev->info.gfx_level));
@@ -71,12 +72,12 @@ radv_cs_emit_cp_dma(struct radv_device *device, struct radeon_cmdbuf *cs, bool p
    /* Src and dst flags. */
    if (pdev->info.gfx_level >= GFX9 && !(flags & CP_DMA_CLEAR) && src_va == dst_va)
       header |= S_411_DST_SEL(V_411_NOWHERE); /* prefetch only */
-   else if (flags & CP_DMA_USE_L2)
+   else if (cp_dma_use_L2)
       header |= S_411_DST_SEL(V_411_DST_ADDR_TC_L2);
 
    if (flags & CP_DMA_CLEAR)
       header |= S_411_SRC_SEL(V_411_DATA);
-   else if (flags & CP_DMA_USE_L2)
+   else if (cp_dma_use_L2)
       header |= S_411_SRC_SEL(V_411_SRC_ADDR_TC_L2);
 
    if (pdev->info.gfx_level >= GFX7) {
@@ -88,7 +89,7 @@ radv_cs_emit_cp_dma(struct radv_device *device, struct radeon_cmdbuf *cs, bool p
       radeon_emit(cs, dst_va >> 32); /* DST_ADDR_HI [31:0] */
       radeon_emit(cs, command);
    } else {
-      assert(!(flags & CP_DMA_USE_L2));
+      assert(!cp_dma_use_L2);
       header |= S_411_SRC_ADDR_HI(src_va >> 32);
       radeon_emit(cs, PKT3(PKT3_CP_DMA, 4, predicating));
       radeon_emit(cs, src_va);                  /* SRC_ADDR_LO [31:0] */
@@ -289,6 +290,9 @@ radv_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uin
    }
    if (realign_size)
       radv_cp_dma_realign_engine(cmd_buffer, realign_size);
+
+   if (pdev->info.cp_sdma_ge_use_system_memory_scope)
+      cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_INV_L2;
 }
 
 void
@@ -329,6 +333,9 @@ radv_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64
       size -= byte_count;
       va += byte_count;
    }
+
+   if (pdev->info.cp_sdma_ge_use_system_memory_scope)
+      cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_INV_L2;
 }
 
 void

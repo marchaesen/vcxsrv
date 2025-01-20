@@ -208,6 +208,10 @@ panfrost_dev_query_props(const struct pan_kmod_dev *dev,
       props->timestamp_frequency = panfrost_query_raw(
          fd, DRM_PANFROST_PARAM_SYSTEM_TIMESTAMP_FREQUENCY, true, 0);
    }
+
+   /* Panfrost currently doesn't support priorities, assumes default priority as
+    * medium */
+   props->allowed_group_priorities_mask = PAN_KMOD_GROUP_ALLOW_PRIORITY_MEDIUM;
 }
 
 static uint32_t

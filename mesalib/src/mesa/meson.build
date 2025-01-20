@@ -338,6 +338,7 @@ files_libmesa = files(
   'state_tracker/st_nir_lower_fog.c',
   'state_tracker/st_nir_lower_position_invariant.c',
   'state_tracker/st_nir_lower_tex_src_plane.c',
+  'state_tracker/st_nir_unlower_io_to_vars.c',
   'state_tracker/st_pbo.c',
   'state_tracker/st_pbo_compute.c',
   'state_tracker/st_pbo.h',

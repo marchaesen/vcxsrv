@@ -44,20 +44,6 @@ static void radeon_enc_task_info(struct radeon_encoder *enc, bool need_feedback)
 
 static void radeon_enc_session_init(struct radeon_encoder *enc)
 {
-   if (u_reduce_video_profile(enc->base.profile) == PIPE_VIDEO_FORMAT_MPEG4_AVC) {
-      enc->enc_pic.session_init.encode_standard = RENCODE_ENCODE_STANDARD_H264;
-      enc->enc_pic.session_init.aligned_picture_width = align(enc->base.width, 16);
-   } else if (u_reduce_video_profile(enc->base.profile) == PIPE_VIDEO_FORMAT_HEVC) {
-      enc->enc_pic.session_init.encode_standard = RENCODE_ENCODE_STANDARD_HEVC;
-      enc->enc_pic.session_init.aligned_picture_width = align(enc->base.width, 64);
-   }
-   enc->enc_pic.session_init.aligned_picture_height = align(enc->base.height, 16);
-
-   enc->enc_pic.session_init.padding_width =
-      (enc->enc_pic.crop_left + enc->enc_pic.crop_right) * 2;
-   enc->enc_pic.session_init.padding_height =
-      (enc->enc_pic.crop_top + enc->enc_pic.crop_bottom) * 2;
-
    enc->enc_pic.session_init.display_remote = 0;
    enc->enc_pic.session_init.pre_encode_mode = enc->enc_pic.quality_modes.pre_encode_mode;
    enc->enc_pic.session_init.pre_encode_chroma_enabled = !!(enc->enc_pic.quality_modes.pre_encode_mode);
@@ -193,164 +179,153 @@ static void radeon_enc_quality_params(struct radeon_encoder *enc)
 
 unsigned int radeon_enc_write_sps(struct radeon_encoder *enc, uint8_t nal_byte, uint8_t *out)
 {
+   struct radeon_bitstream bs;
    struct radeon_enc_pic *pic = &enc->enc_pic;
    struct pipe_h264_enc_seq_param *sps = &pic->h264.desc->seq;
 
-   radeon_enc_reset(enc);
-   radeon_enc_set_output_buffer(enc, out);
-   radeon_enc_set_emulation_prevention(enc, false);
-   radeon_enc_code_fixed_bits(enc, 0x00000001, 32);
-   radeon_enc_code_fixed_bits(enc, nal_byte, 8);
-   radeon_enc_byte_align(enc);
-   radeon_enc_set_emulation_prevention(enc, true);
-   radeon_enc_code_fixed_bits(enc, pic->spec_misc.profile_idc, 8);
-   radeon_enc_code_fixed_bits(enc, sps->enc_constraint_set_flags, 6);
-   radeon_enc_code_fixed_bits(enc, 0x0, 2); /* reserved_zero_2bits */
-   radeon_enc_code_fixed_bits(enc, pic->spec_misc.level_idc, 8);
-   radeon_enc_code_ue(enc, 0x0); /* seq_parameter_set_id */
+   radeon_bs_reset(&bs, out, NULL);
+   radeon_bs_set_emulation_prevention(&bs, false);
+   radeon_bs_code_fixed_bits(&bs, 0x00000001, 32);
+   radeon_bs_code_fixed_bits(&bs, nal_byte, 8);
+   radeon_bs_set_emulation_prevention(&bs, true);
+   radeon_bs_code_fixed_bits(&bs, pic->spec_misc.profile_idc, 8);
+   radeon_bs_code_fixed_bits(&bs, sps->enc_constraint_set_flags, 6);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 2); /* reserved_zero_2bits */
+   radeon_bs_code_fixed_bits(&bs, pic->spec_misc.level_idc, 8);
+   radeon_bs_code_ue(&bs, 0x0); /* seq_parameter_set_id */
 
    if (pic->spec_misc.profile_idc == 100 || pic->spec_misc.profile_idc == 110 ||
        pic->spec_misc.profile_idc == 122 || pic->spec_misc.profile_idc == 244 ||
        pic->spec_misc.profile_idc == 44  || pic->spec_misc.profile_idc == 83 ||
        pic->spec_misc.profile_idc == 86  || pic->spec_misc.profile_idc == 118 ||
        pic->spec_misc.profile_idc == 128 || pic->spec_misc.profile_idc == 138) {
-      radeon_enc_code_ue(enc, 0x1); /* chroma_format_idc */
-      radeon_enc_code_ue(enc, 0x0); /* bit_depth_luma_minus8 */
-      radeon_enc_code_ue(enc, 0x0); /* bit_depth_chroma_minus8 */
-      radeon_enc_code_fixed_bits(enc, 0x0, 2); /* qpprime_y_zero_transform_bypass_flag + seq_scaling_matrix_present_flag */
+      radeon_bs_code_ue(&bs, 0x1); /* chroma_format_idc */
+      radeon_bs_code_ue(&bs, 0x0); /* bit_depth_luma_minus8 */
+      radeon_bs_code_ue(&bs, 0x0); /* bit_depth_chroma_minus8 */
+      radeon_bs_code_fixed_bits(&bs, 0x0, 2); /* qpprime_y_zero_transform_bypass_flag + seq_scaling_matrix_present_flag */
    }
 
-   radeon_enc_code_ue(enc, sps->log2_max_frame_num_minus4);
-   radeon_enc_code_ue(enc, sps->pic_order_cnt_type);
+   radeon_bs_code_ue(&bs, sps->log2_max_frame_num_minus4);
+   radeon_bs_code_ue(&bs, sps->pic_order_cnt_type);
 
    if (sps->pic_order_cnt_type == 0)
-      radeon_enc_code_ue(enc, sps->log2_max_pic_order_cnt_lsb_minus4);
+      radeon_bs_code_ue(&bs, sps->log2_max_pic_order_cnt_lsb_minus4);
 
-   radeon_enc_code_ue(enc, sps->max_num_ref_frames);
-   radeon_enc_code_fixed_bits(enc, sps->gaps_in_frame_num_value_allowed_flag, 1);
-   radeon_enc_code_ue(enc, (pic->session_init.aligned_picture_width / 16 - 1));
-   radeon_enc_code_ue(enc, (pic->session_init.aligned_picture_height / 16 - 1));
-   radeon_enc_code_fixed_bits(enc, 0x1, 1); /* frame_mbs_only_flag */
-   radeon_enc_code_fixed_bits(enc, 0x1, 1); /* direct_8x8_inference_flag */
+   radeon_bs_code_ue(&bs, sps->max_num_ref_frames);
+   radeon_bs_code_fixed_bits(&bs, sps->gaps_in_frame_num_value_allowed_flag, 1);
+   radeon_bs_code_ue(&bs, (pic->session_init.aligned_picture_width / 16 - 1));
+   radeon_bs_code_ue(&bs, (pic->session_init.aligned_picture_height / 16 - 1));
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1); /* frame_mbs_only_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1); /* direct_8x8_inference_flag */
 
-   radeon_enc_code_fixed_bits(enc, sps->enc_frame_cropping_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, sps->enc_frame_cropping_flag, 1);
    if (sps->enc_frame_cropping_flag) {
-      radeon_enc_code_ue(enc, sps->enc_frame_crop_left_offset);
-      radeon_enc_code_ue(enc, sps->enc_frame_crop_right_offset);
-      radeon_enc_code_ue(enc, sps->enc_frame_crop_top_offset);
-      radeon_enc_code_ue(enc, sps->enc_frame_crop_bottom_offset);
+      radeon_bs_code_ue(&bs, sps->enc_frame_crop_left_offset);
+      radeon_bs_code_ue(&bs, sps->enc_frame_crop_right_offset);
+      radeon_bs_code_ue(&bs, sps->enc_frame_crop_top_offset);
+      radeon_bs_code_ue(&bs, sps->enc_frame_crop_bottom_offset);
    }
 
-   radeon_enc_code_fixed_bits(enc, sps->vui_parameters_present_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, sps->vui_parameters_present_flag, 1);
    if (sps->vui_parameters_present_flag) {
-      radeon_enc_code_fixed_bits(enc, (sps->vui_flags.aspect_ratio_info_present_flag), 1);
+      radeon_bs_code_fixed_bits(&bs, (sps->vui_flags.aspect_ratio_info_present_flag), 1);
       if (sps->vui_flags.aspect_ratio_info_present_flag) {
-         radeon_enc_code_fixed_bits(enc, (sps->aspect_ratio_idc), 8);
+         radeon_bs_code_fixed_bits(&bs, (sps->aspect_ratio_idc), 8);
          if (sps->aspect_ratio_idc == PIPE_H2645_EXTENDED_SAR) {
-            radeon_enc_code_fixed_bits(enc, (sps->sar_width), 16);
-            radeon_enc_code_fixed_bits(enc, (sps->sar_height), 16);
+            radeon_bs_code_fixed_bits(&bs, (sps->sar_width), 16);
+            radeon_bs_code_fixed_bits(&bs, (sps->sar_height), 16);
          }
       }
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.overscan_info_present_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.overscan_info_present_flag, 1);
       if (sps->vui_flags.overscan_info_present_flag)
-         radeon_enc_code_fixed_bits(enc, sps->vui_flags.overscan_appropriate_flag, 1);
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.video_signal_type_present_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, sps->vui_flags.overscan_appropriate_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.video_signal_type_present_flag, 1);
       if (sps->vui_flags.video_signal_type_present_flag) {
-         radeon_enc_code_fixed_bits(enc, sps->video_format, 3);
-         radeon_enc_code_fixed_bits(enc, sps->video_full_range_flag, 1);
-         radeon_enc_code_fixed_bits(enc, sps->vui_flags.colour_description_present_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, sps->video_format, 3);
+         radeon_bs_code_fixed_bits(&bs, sps->video_full_range_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, sps->vui_flags.colour_description_present_flag, 1);
          if (sps->vui_flags.colour_description_present_flag) {
-            radeon_enc_code_fixed_bits(enc, sps->colour_primaries, 8);
-            radeon_enc_code_fixed_bits(enc, sps->transfer_characteristics, 8);
-            radeon_enc_code_fixed_bits(enc, sps->matrix_coefficients, 8);
+            radeon_bs_code_fixed_bits(&bs, sps->colour_primaries, 8);
+            radeon_bs_code_fixed_bits(&bs, sps->transfer_characteristics, 8);
+            radeon_bs_code_fixed_bits(&bs, sps->matrix_coefficients, 8);
          }
       }
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.chroma_loc_info_present_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.chroma_loc_info_present_flag, 1);
       if (sps->vui_flags.chroma_loc_info_present_flag) {
-         radeon_enc_code_ue(enc, sps->chroma_sample_loc_type_top_field);
-         radeon_enc_code_ue(enc, sps->chroma_sample_loc_type_bottom_field);
+         radeon_bs_code_ue(&bs, sps->chroma_sample_loc_type_top_field);
+         radeon_bs_code_ue(&bs, sps->chroma_sample_loc_type_bottom_field);
       }
-      radeon_enc_code_fixed_bits(enc, (sps->vui_flags.timing_info_present_flag), 1);
+      radeon_bs_code_fixed_bits(&bs, (sps->vui_flags.timing_info_present_flag), 1);
       if (sps->vui_flags.timing_info_present_flag) {
-         radeon_enc_code_fixed_bits(enc, (sps->num_units_in_tick), 32);
-         radeon_enc_code_fixed_bits(enc, (sps->time_scale), 32);
-         radeon_enc_code_fixed_bits(enc, (sps->vui_flags.fixed_frame_rate_flag), 1);
+         radeon_bs_code_fixed_bits(&bs, (sps->num_units_in_tick), 32);
+         radeon_bs_code_fixed_bits(&bs, (sps->time_scale), 32);
+         radeon_bs_code_fixed_bits(&bs, (sps->vui_flags.fixed_frame_rate_flag), 1);
       }
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.nal_hrd_parameters_present_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.nal_hrd_parameters_present_flag, 1);
       if (sps->vui_flags.nal_hrd_parameters_present_flag)
-         radeon_enc_hrd_parameters(enc, &sps->nal_hrd_parameters);
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.vcl_hrd_parameters_present_flag, 1);
+         radeon_bs_h264_hrd_parameters(&bs, &sps->nal_hrd_parameters);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.vcl_hrd_parameters_present_flag, 1);
       if (sps->vui_flags.vcl_hrd_parameters_present_flag)
-         radeon_enc_hrd_parameters(enc, &sps->vcl_hrd_parameters);
+         radeon_bs_h264_hrd_parameters(&bs, &sps->vcl_hrd_parameters);
       if (sps->vui_flags.nal_hrd_parameters_present_flag || sps->vui_flags.vcl_hrd_parameters_present_flag)
-         radeon_enc_code_fixed_bits(enc, sps->vui_flags.low_delay_hrd_flag, 1);
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.pic_struct_present_flag, 1);
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.bitstream_restriction_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, sps->vui_flags.low_delay_hrd_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.pic_struct_present_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.bitstream_restriction_flag, 1);
       if (sps->vui_flags.bitstream_restriction_flag) {
-         radeon_enc_code_fixed_bits(enc, 0x1, 1); /* motion_vectors_over_pic_boundaries_flag */
-         radeon_enc_code_ue(enc, 0x0); /* max_bytes_per_pic_denom */
-         radeon_enc_code_ue(enc, 0x0); /* max_bits_per_mb_denom */
-         radeon_enc_code_ue(enc, 16); /* log2_max_mv_length_horizontal */
-         radeon_enc_code_ue(enc, 16); /* log2_max_mv_length_vertical */
-         radeon_enc_code_ue(enc, sps->max_num_reorder_frames);
-         radeon_enc_code_ue(enc, sps->max_dec_frame_buffering);
+         radeon_bs_code_fixed_bits(&bs, 0x1, 1); /* motion_vectors_over_pic_boundaries_flag */
+         radeon_bs_code_ue(&bs, 0x0); /* max_bytes_per_pic_denom */
+         radeon_bs_code_ue(&bs, 0x0); /* max_bits_per_mb_denom */
+         radeon_bs_code_ue(&bs, 16); /* log2_max_mv_length_horizontal */
+         radeon_bs_code_ue(&bs, 16); /* log2_max_mv_length_vertical */
+         radeon_bs_code_ue(&bs, sps->max_num_reorder_frames);
+         radeon_bs_code_ue(&bs, sps->max_dec_frame_buffering);
       }
    }
 
-   radeon_enc_code_fixed_bits(enc, 0x1, 1);
-   radeon_enc_byte_align(enc);
-   radeon_enc_flush_headers(enc);
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1);
+   radeon_bs_byte_align(&bs);
 
-   return enc->bits_buf_pos;
+   return bs.bits_output / 8;
 }
 
 unsigned int radeon_enc_write_sps_hevc(struct radeon_encoder *enc, uint8_t *out)
 {
+   struct radeon_bitstream bs;
    struct radeon_enc_pic *pic = &enc->enc_pic;
    struct pipe_h265_enc_seq_param *sps = &pic->hevc.desc->seq;
    int i;
 
-   radeon_enc_reset(enc);
-   radeon_enc_set_output_buffer(enc, out);
-   radeon_enc_set_emulation_prevention(enc, false);
-   radeon_enc_code_fixed_bits(enc, 0x00000001, 32);
-   radeon_enc_code_fixed_bits(enc, 0x4201, 16);
-   radeon_enc_byte_align(enc);
-   radeon_enc_set_emulation_prevention(enc, true);
-   radeon_enc_code_fixed_bits(enc, 0x0, 4); /* sps_video_parameter_set_id */
-   radeon_enc_code_fixed_bits(enc, sps->sps_max_sub_layers_minus1, 3);
-   radeon_enc_code_fixed_bits(enc, sps->sps_temporal_id_nesting_flag, 1);
-   radeon_enc_hevc_profile_tier_level(enc, sps->sps_max_sub_layers_minus1, &sps->profile_tier_level);
-   radeon_enc_code_ue(enc, 0x0); /* sps_seq_parameter_set_id */
-   radeon_enc_code_ue(enc, sps->chroma_format_idc);
-   radeon_enc_code_ue(enc, pic->session_init.aligned_picture_width);
-   radeon_enc_code_ue(enc, pic->session_init.aligned_picture_height);
+   radeon_bs_reset(&bs, out, NULL);
+   radeon_bs_set_emulation_prevention(&bs, false);
+   radeon_bs_code_fixed_bits(&bs, 0x00000001, 32);
+   radeon_bs_code_fixed_bits(&bs, 0x4201, 16);
+   radeon_bs_set_emulation_prevention(&bs, true);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 4); /* sps_video_parameter_set_id */
+   radeon_bs_code_fixed_bits(&bs, sps->sps_max_sub_layers_minus1, 3);
+   radeon_bs_code_fixed_bits(&bs, sps->sps_temporal_id_nesting_flag, 1);
+   radeon_bs_hevc_profile_tier_level(&bs, sps->sps_max_sub_layers_minus1, &sps->profile_tier_level);
+   radeon_bs_code_ue(&bs, 0x0); /* sps_seq_parameter_set_id */
+   radeon_bs_code_ue(&bs, sps->chroma_format_idc);
+   radeon_bs_code_ue(&bs, pic->session_init.aligned_picture_width);
+   radeon_bs_code_ue(&bs, pic->session_init.aligned_picture_height);
 
+   radeon_bs_code_fixed_bits(&bs, sps->conformance_window_flag, 1);
    if (sps->conformance_window_flag) {
-      radeon_enc_code_fixed_bits(enc, 0x1, 1);
-      radeon_enc_code_ue(enc, sps->conf_win_left_offset);
-      radeon_enc_code_ue(enc, sps->conf_win_right_offset);
-      radeon_enc_code_ue(enc, sps->conf_win_top_offset);
-      radeon_enc_code_ue(enc, sps->conf_win_bottom_offset);
-   } else if (pic->session_init.padding_width  != 0 ||
-              pic->session_init.padding_height != 0) {
-      radeon_enc_code_fixed_bits(enc, 0x1, 1);
-      radeon_enc_code_ue(enc, 0);
-      radeon_enc_code_ue(enc, pic->session_init.padding_width / 2);
-      radeon_enc_code_ue(enc, 0);
-      radeon_enc_code_ue(enc, pic->session_init.padding_height / 2);
-   } else
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);
+      radeon_bs_code_ue(&bs, sps->conf_win_left_offset);
+      radeon_bs_code_ue(&bs, sps->conf_win_right_offset);
+      radeon_bs_code_ue(&bs, sps->conf_win_top_offset);
+      radeon_bs_code_ue(&bs, sps->conf_win_bottom_offset);
+   }
 
-   radeon_enc_code_ue(enc, sps->bit_depth_luma_minus8);
-   radeon_enc_code_ue(enc, sps->bit_depth_chroma_minus8);
-   radeon_enc_code_ue(enc, sps->log2_max_pic_order_cnt_lsb_minus4);
-   radeon_enc_code_fixed_bits(enc, sps->sps_sub_layer_ordering_info_present_flag, 1);
+   radeon_bs_code_ue(&bs, sps->bit_depth_luma_minus8);
+   radeon_bs_code_ue(&bs, sps->bit_depth_chroma_minus8);
+   radeon_bs_code_ue(&bs, sps->log2_max_pic_order_cnt_lsb_minus4);
+   radeon_bs_code_fixed_bits(&bs, sps->sps_sub_layer_ordering_info_present_flag, 1);
    i = sps->sps_sub_layer_ordering_info_present_flag ? 0 : sps->sps_max_sub_layers_minus1;
    for (; i <= sps->sps_max_sub_layers_minus1; i++) {
-      radeon_enc_code_ue(enc, sps->sps_max_dec_pic_buffering_minus1[i]);
-      radeon_enc_code_ue(enc, sps->sps_max_num_reorder_pics[i]);
-      radeon_enc_code_ue(enc, sps->sps_max_latency_increase_plus1[i]);
+      radeon_bs_code_ue(&bs, sps->sps_max_dec_pic_buffering_minus1[i]);
+      radeon_bs_code_ue(&bs, sps->sps_max_num_reorder_pics[i]);
+      radeon_bs_code_ue(&bs, sps->sps_max_latency_increase_plus1[i]);
    }
 
    unsigned log2_diff_max_min_luma_coding_block_size =
@@ -361,234 +336,228 @@ unsigned int radeon_enc_write_sps_hevc(struct radeon_encoder *enc, uint8_t *out)
    unsigned max_transform_hierarchy_depth_inter = log2_diff_max_min_luma_coding_block_size + 1;
    unsigned max_transform_hierarchy_depth_intra = max_transform_hierarchy_depth_inter;
 
-   radeon_enc_code_ue(enc, pic->hevc_spec_misc.log2_min_luma_coding_block_size_minus3);
-   radeon_enc_code_ue(enc, log2_diff_max_min_luma_coding_block_size);
-   radeon_enc_code_ue(enc, log2_min_transform_block_size_minus2);
-   radeon_enc_code_ue(enc, log2_diff_max_min_transform_block_size);
-   radeon_enc_code_ue(enc, max_transform_hierarchy_depth_inter);
-   radeon_enc_code_ue(enc, max_transform_hierarchy_depth_intra);
+   radeon_bs_code_ue(&bs, pic->hevc_spec_misc.log2_min_luma_coding_block_size_minus3);
+   radeon_bs_code_ue(&bs, log2_diff_max_min_luma_coding_block_size);
+   radeon_bs_code_ue(&bs, log2_min_transform_block_size_minus2);
+   radeon_bs_code_ue(&bs, log2_diff_max_min_transform_block_size);
+   radeon_bs_code_ue(&bs, max_transform_hierarchy_depth_inter);
+   radeon_bs_code_ue(&bs, max_transform_hierarchy_depth_intra);
 
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* scaling_list_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, !pic->hevc_spec_misc.amp_disabled, 1);
-   radeon_enc_code_fixed_bits(enc, !pic->hevc_deblock.disable_sao, 1);
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* pcm_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* scaling_list_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, !pic->hevc_spec_misc.amp_disabled, 1);
+   radeon_bs_code_fixed_bits(&bs, !pic->hevc_deblock.disable_sao, 1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* pcm_enabled_flag */
 
-   radeon_enc_code_ue(enc, sps->num_short_term_ref_pic_sets);
+   radeon_bs_code_ue(&bs, sps->num_short_term_ref_pic_sets);
    for (i = 0; i < sps->num_short_term_ref_pic_sets; i++)
-      radeon_enc_hevc_st_ref_pic_set(enc, i, sps->num_short_term_ref_pic_sets, sps->st_ref_pic_set);
+      radeon_bs_hevc_st_ref_pic_set(&bs, i, sps->num_short_term_ref_pic_sets, sps->st_ref_pic_set);
 
-   radeon_enc_code_fixed_bits(enc, sps->long_term_ref_pics_present_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, sps->long_term_ref_pics_present_flag, 1);
    if (sps->long_term_ref_pics_present_flag) {
-      radeon_enc_code_ue(enc, sps->num_long_term_ref_pics_sps);
+      radeon_bs_code_ue(&bs, sps->num_long_term_ref_pics_sps);
       for (i = 0; i < sps->num_long_term_ref_pics_sps; i++) {
-         radeon_enc_code_fixed_bits(enc, sps->lt_ref_pic_poc_lsb_sps[i], sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
-         radeon_enc_code_fixed_bits(enc, sps->used_by_curr_pic_lt_sps_flag[i], 1);
+         radeon_bs_code_fixed_bits(&bs, sps->lt_ref_pic_poc_lsb_sps[i], sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+         radeon_bs_code_fixed_bits(&bs, sps->used_by_curr_pic_lt_sps_flag[i], 1);
       }
    }
 
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* sps_temporal_mvp_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, pic->hevc_spec_misc.strong_intra_smoothing_enabled, 1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* sps_temporal_mvp_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, pic->hevc_spec_misc.strong_intra_smoothing_enabled, 1);
 
    /* VUI parameters present flag */
-   radeon_enc_code_fixed_bits(enc, (sps->vui_parameters_present_flag), 1);
+   radeon_bs_code_fixed_bits(&bs, (sps->vui_parameters_present_flag), 1);
    if (sps->vui_parameters_present_flag) {
       /* aspect ratio present flag */
-      radeon_enc_code_fixed_bits(enc, (sps->vui_flags.aspect_ratio_info_present_flag), 1);
+      radeon_bs_code_fixed_bits(&bs, (sps->vui_flags.aspect_ratio_info_present_flag), 1);
       if (sps->vui_flags.aspect_ratio_info_present_flag) {
-         radeon_enc_code_fixed_bits(enc, (sps->aspect_ratio_idc), 8);
+         radeon_bs_code_fixed_bits(&bs, (sps->aspect_ratio_idc), 8);
          if (sps->aspect_ratio_idc == PIPE_H2645_EXTENDED_SAR) {
-            radeon_enc_code_fixed_bits(enc, (sps->sar_width), 16);
-            radeon_enc_code_fixed_bits(enc, (sps->sar_height), 16);
+            radeon_bs_code_fixed_bits(&bs, (sps->sar_width), 16);
+            radeon_bs_code_fixed_bits(&bs, (sps->sar_height), 16);
          }
       }
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.overscan_info_present_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.overscan_info_present_flag, 1);
       if (sps->vui_flags.overscan_info_present_flag)
-         radeon_enc_code_fixed_bits(enc, sps->vui_flags.overscan_appropriate_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, sps->vui_flags.overscan_appropriate_flag, 1);
       /* video signal type present flag  */
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.video_signal_type_present_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.video_signal_type_present_flag, 1);
       if (sps->vui_flags.video_signal_type_present_flag) {
-         radeon_enc_code_fixed_bits(enc, sps->video_format, 3);
-         radeon_enc_code_fixed_bits(enc, sps->video_full_range_flag, 1);
-         radeon_enc_code_fixed_bits(enc, sps->vui_flags.colour_description_present_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, sps->video_format, 3);
+         radeon_bs_code_fixed_bits(&bs, sps->video_full_range_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, sps->vui_flags.colour_description_present_flag, 1);
          if (sps->vui_flags.colour_description_present_flag) {
-            radeon_enc_code_fixed_bits(enc, sps->colour_primaries, 8);
-            radeon_enc_code_fixed_bits(enc, sps->transfer_characteristics, 8);
-            radeon_enc_code_fixed_bits(enc, sps->matrix_coefficients, 8);
+            radeon_bs_code_fixed_bits(&bs, sps->colour_primaries, 8);
+            radeon_bs_code_fixed_bits(&bs, sps->transfer_characteristics, 8);
+            radeon_bs_code_fixed_bits(&bs, sps->matrix_coefficients, 8);
          }
       }
       /* chroma loc info present flag */
-      radeon_enc_code_fixed_bits(enc, sps->vui_flags.chroma_loc_info_present_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, sps->vui_flags.chroma_loc_info_present_flag, 1);
       if (sps->vui_flags.chroma_loc_info_present_flag) {
-         radeon_enc_code_ue(enc, sps->chroma_sample_loc_type_top_field);
-         radeon_enc_code_ue(enc, sps->chroma_sample_loc_type_bottom_field);
+         radeon_bs_code_ue(&bs, sps->chroma_sample_loc_type_top_field);
+         radeon_bs_code_ue(&bs, sps->chroma_sample_loc_type_bottom_field);
       }
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);  /* neutral chroma indication flag */
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);  /* field seq flag */
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);  /* frame field info present flag */
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);  /* default display windows flag */
+      radeon_bs_code_fixed_bits(&bs, 0x0, 1);  /* neutral chroma indication flag */
+      radeon_bs_code_fixed_bits(&bs, 0x0, 1);  /* field seq flag */
+      radeon_bs_code_fixed_bits(&bs, 0x0, 1);  /* frame field info present flag */
+      radeon_bs_code_fixed_bits(&bs, 0x0, 1);  /* default display windows flag */
       /* vui timing info present flag */
-      radeon_enc_code_fixed_bits(enc, (sps->vui_flags.timing_info_present_flag), 1);
+      radeon_bs_code_fixed_bits(&bs, (sps->vui_flags.timing_info_present_flag), 1);
       if (sps->vui_flags.timing_info_present_flag) {
-         radeon_enc_code_fixed_bits(enc, (sps->num_units_in_tick), 32);
-         radeon_enc_code_fixed_bits(enc, (sps->time_scale), 32);
-         radeon_enc_code_fixed_bits(enc, sps->vui_flags.poc_proportional_to_timing_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, (sps->num_units_in_tick), 32);
+         radeon_bs_code_fixed_bits(&bs, (sps->time_scale), 32);
+         radeon_bs_code_fixed_bits(&bs, sps->vui_flags.poc_proportional_to_timing_flag, 1);
          if (sps->vui_flags.poc_proportional_to_timing_flag)
-            radeon_enc_code_ue(enc, sps->num_ticks_poc_diff_one_minus1);
-         radeon_enc_code_fixed_bits(enc, sps->vui_flags.hrd_parameters_present_flag, 1);
+            radeon_bs_code_ue(&bs, sps->num_ticks_poc_diff_one_minus1);
+         radeon_bs_code_fixed_bits(&bs, sps->vui_flags.hrd_parameters_present_flag, 1);
          if (sps->vui_flags.hrd_parameters_present_flag)
-            radeon_enc_hevc_hrd_parameters(enc, 1, sps->sps_max_sub_layers_minus1, &sps->hrd_parameters);
+            radeon_bs_hevc_hrd_parameters(&bs, 1, sps->sps_max_sub_layers_minus1, &sps->hrd_parameters);
       }
-      radeon_enc_code_fixed_bits(enc, 0x0, 1);  /* bitstream restriction flag */
+      radeon_bs_code_fixed_bits(&bs, 0x0, 1);  /* bitstream restriction flag */
    }
-   radeon_enc_code_fixed_bits(enc, 0x0, 1);  /* sps extension present flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1);  /* sps extension present flag */
 
-   radeon_enc_code_fixed_bits(enc, 0x1, 1);
-   radeon_enc_byte_align(enc);
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1);
+   radeon_bs_byte_align(&bs);
 
-   radeon_enc_flush_headers(enc);
-   return enc->bits_buf_pos;
+   return bs.bits_output / 8;
 }
 
 unsigned int radeon_enc_write_pps(struct radeon_encoder *enc, uint8_t nal_byte, uint8_t *out)
 {
-   radeon_enc_reset(enc);
-   radeon_enc_set_output_buffer(enc, out);
-   radeon_enc_set_emulation_prevention(enc, false);
-   radeon_enc_code_fixed_bits(enc, 0x00000001, 32);
-   radeon_enc_code_fixed_bits(enc, nal_byte, 8);
-   radeon_enc_byte_align(enc);
-   radeon_enc_set_emulation_prevention(enc, true);
-   radeon_enc_code_ue(enc, 0x0); /* pic_parameter_set_id */
-   radeon_enc_code_ue(enc, 0x0); /* seq_parameter_set_id */
-   radeon_enc_code_fixed_bits(enc, (enc->enc_pic.spec_misc.cabac_enable ? 0x1 : 0x0), 1);
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* bottom_field_pic_order_in_frame_present_flag */
-   radeon_enc_code_ue(enc, 0x0); /* num_slice_groups_minus_1 */
-   radeon_enc_code_ue(enc, enc->enc_pic.h264.desc->pic_ctrl.num_ref_idx_l0_default_active_minus1);
-   radeon_enc_code_ue(enc, enc->enc_pic.h264.desc->pic_ctrl.num_ref_idx_l1_default_active_minus1);
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* weighted_pred_flag */
-   radeon_enc_code_fixed_bits(enc, 0x0, 2); /* weighted_bipred_idc */
-   radeon_enc_code_se(enc, 0x0); /* pic_init_qp_minus26 */
-   radeon_enc_code_se(enc, 0x0); /* pic_init_qs_minus26 */
-   radeon_enc_code_se(enc, enc->enc_pic.h264_deblock.cb_qp_offset); /* chroma_qp_index_offset */
-   radeon_enc_code_fixed_bits(enc, (enc->enc_pic.spec_misc.deblocking_filter_control_present_flag), 1);
-   radeon_enc_code_fixed_bits(enc, (enc->enc_pic.spec_misc.constrained_intra_pred_flag), 1);
-   radeon_enc_code_fixed_bits(enc, (enc->enc_pic.spec_misc.redundant_pic_cnt_present_flag), 1);
-   radeon_enc_code_fixed_bits(enc, (enc->enc_pic.spec_misc.transform_8x8_mode), 1);
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* pic_scaling_matrix_present_flag */
-   radeon_enc_code_se(enc, enc->enc_pic.h264_deblock.cr_qp_offset); /* second_chroma_qp_index_offset */
+   struct radeon_bitstream bs;
 
-   radeon_enc_code_fixed_bits(enc, 0x1, 1);
-   radeon_enc_byte_align(enc);
+   radeon_bs_reset(&bs, out, NULL);
+   radeon_bs_set_emulation_prevention(&bs, false);
+   radeon_bs_code_fixed_bits(&bs, 0x00000001, 32);
+   radeon_bs_code_fixed_bits(&bs, nal_byte, 8);
+   radeon_bs_set_emulation_prevention(&bs, true);
+   radeon_bs_code_ue(&bs, 0x0); /* pic_parameter_set_id */
+   radeon_bs_code_ue(&bs, 0x0); /* seq_parameter_set_id */
+   radeon_bs_code_fixed_bits(&bs, (enc->enc_pic.spec_misc.cabac_enable ? 0x1 : 0x0), 1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* bottom_field_pic_order_in_frame_present_flag */
+   radeon_bs_code_ue(&bs, 0x0); /* num_slice_groups_minus_1 */
+   radeon_bs_code_ue(&bs, enc->enc_pic.h264.desc->pic_ctrl.num_ref_idx_l0_default_active_minus1);
+   radeon_bs_code_ue(&bs, enc->enc_pic.h264.desc->pic_ctrl.num_ref_idx_l1_default_active_minus1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* weighted_pred_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 2); /* weighted_bipred_idc */
+   radeon_bs_code_se(&bs, 0x0); /* pic_init_qp_minus26 */
+   radeon_bs_code_se(&bs, 0x0); /* pic_init_qs_minus26 */
+   radeon_bs_code_se(&bs, enc->enc_pic.h264_deblock.cb_qp_offset); /* chroma_qp_index_offset */
+   radeon_bs_code_fixed_bits(&bs, (enc->enc_pic.spec_misc.deblocking_filter_control_present_flag), 1);
+   radeon_bs_code_fixed_bits(&bs, (enc->enc_pic.spec_misc.constrained_intra_pred_flag), 1);
+   radeon_bs_code_fixed_bits(&bs, (enc->enc_pic.spec_misc.redundant_pic_cnt_present_flag), 1);
+   radeon_bs_code_fixed_bits(&bs, (enc->enc_pic.spec_misc.transform_8x8_mode), 1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* pic_scaling_matrix_present_flag */
+   radeon_bs_code_se(&bs, enc->enc_pic.h264_deblock.cr_qp_offset); /* second_chroma_qp_index_offset */
 
-   radeon_enc_flush_headers(enc);
-   return enc->bits_buf_pos;
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1);
+   radeon_bs_byte_align(&bs);
+
+   return bs.bits_output / 8;
 }
 
 unsigned int radeon_enc_write_pps_hevc(struct radeon_encoder *enc, uint8_t *out)
 {
+   struct radeon_bitstream bs;
    struct pipe_h265_enc_pic_param *pps = &enc->enc_pic.hevc.desc->pic;
 
-   radeon_enc_reset(enc);
-   radeon_enc_set_output_buffer(enc, out);
-   radeon_enc_set_emulation_prevention(enc, false);
-   radeon_enc_code_fixed_bits(enc, 0x00000001, 32);
-   radeon_enc_code_fixed_bits(enc, 0x4401, 16);
-   radeon_enc_byte_align(enc);
-   radeon_enc_set_emulation_prevention(enc, true);
-   radeon_enc_code_ue(enc, 0x0); /* pps_pic_parameter_set_id */
-   radeon_enc_code_ue(enc, 0x0); /* pps_seq_parameter_set_id */
-   radeon_enc_code_fixed_bits(enc, 0x1, 1); /* dependent_slice_segments_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, pps->output_flag_present_flag, 1);
-   radeon_enc_code_fixed_bits(enc, 0x0, 3); /* num_extra_slice_header_bits */
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* sign_data_hiding_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, 0x1, 1); /* cabac_init_present_flag */
-   radeon_enc_code_ue(enc, pps->num_ref_idx_l0_default_active_minus1);
-   radeon_enc_code_ue(enc, pps->num_ref_idx_l1_default_active_minus1);
-   radeon_enc_code_se(enc, 0x0); /* init_qp_minus26 */
-   radeon_enc_code_fixed_bits(enc, enc->enc_pic.hevc_spec_misc.constrained_intra_pred_flag, 1);
-   radeon_enc_code_fixed_bits(enc, !enc->enc_pic.hevc_spec_misc.transform_skip_disabled, 1);
-   radeon_enc_code_fixed_bits(enc, enc->enc_pic.hevc_spec_misc.cu_qp_delta_enabled_flag, 1);
+   radeon_bs_reset(&bs, out, NULL);
+   radeon_bs_set_emulation_prevention(&bs, false);
+   radeon_bs_code_fixed_bits(&bs, 0x00000001, 32);
+   radeon_bs_code_fixed_bits(&bs, 0x4401, 16);
+   radeon_bs_set_emulation_prevention(&bs, true);
+   radeon_bs_code_ue(&bs, 0x0); /* pps_pic_parameter_set_id */
+   radeon_bs_code_ue(&bs, 0x0); /* pps_seq_parameter_set_id */
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1); /* dependent_slice_segments_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, pps->output_flag_present_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 3); /* num_extra_slice_header_bits */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* sign_data_hiding_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1); /* cabac_init_present_flag */
+   radeon_bs_code_ue(&bs, pps->num_ref_idx_l0_default_active_minus1);
+   radeon_bs_code_ue(&bs, pps->num_ref_idx_l1_default_active_minus1);
+   radeon_bs_code_se(&bs, 0x0); /* init_qp_minus26 */
+   radeon_bs_code_fixed_bits(&bs, enc->enc_pic.hevc_spec_misc.constrained_intra_pred_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, !enc->enc_pic.hevc_spec_misc.transform_skip_disabled, 1);
+   radeon_bs_code_fixed_bits(&bs, enc->enc_pic.hevc_spec_misc.cu_qp_delta_enabled_flag, 1);
    if (enc->enc_pic.hevc_spec_misc.cu_qp_delta_enabled_flag)
-      radeon_enc_code_ue(enc, 0); /* diff_cu_qp_delta_depth */
-   radeon_enc_code_se(enc, enc->enc_pic.hevc_deblock.cb_qp_offset);
-   radeon_enc_code_se(enc, enc->enc_pic.hevc_deblock.cr_qp_offset);
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* pps_slice_chroma_qp_offsets_present_flag */
-   radeon_enc_code_fixed_bits(enc, 0x0, 2); /* weighted_pred_flag + weighted_bipred_flag */
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* transquant_bypass_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* tiles_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* entropy_coding_sync_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, enc->enc_pic.hevc_deblock.loop_filter_across_slices_enabled, 1);
-   radeon_enc_code_fixed_bits(enc, 0x1, 1); /* deblocking_filter_control_present_flag */
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* deblocking_filter_override_enabled_flag */
-   radeon_enc_code_fixed_bits(enc, enc->enc_pic.hevc_deblock.deblocking_filter_disabled, 1);
+      radeon_bs_code_ue(&bs, 0); /* diff_cu_qp_delta_depth */
+   radeon_bs_code_se(&bs, enc->enc_pic.hevc_deblock.cb_qp_offset);
+   radeon_bs_code_se(&bs, enc->enc_pic.hevc_deblock.cr_qp_offset);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* pps_slice_chroma_qp_offsets_present_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 2); /* weighted_pred_flag + weighted_bipred_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* transquant_bypass_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* tiles_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* entropy_coding_sync_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, enc->enc_pic.hevc_deblock.loop_filter_across_slices_enabled, 1);
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1); /* deblocking_filter_control_present_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* deblocking_filter_override_enabled_flag */
+   radeon_bs_code_fixed_bits(&bs, enc->enc_pic.hevc_deblock.deblocking_filter_disabled, 1);
 
    if (!enc->enc_pic.hevc_deblock.deblocking_filter_disabled) {
-      radeon_enc_code_se(enc, enc->enc_pic.hevc_deblock.beta_offset_div2);
-      radeon_enc_code_se(enc, enc->enc_pic.hevc_deblock.tc_offset_div2);
+      radeon_bs_code_se(&bs, enc->enc_pic.hevc_deblock.beta_offset_div2);
+      radeon_bs_code_se(&bs, enc->enc_pic.hevc_deblock.tc_offset_div2);
    }
 
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* pps_scaling_list_data_present_flag */
-   radeon_enc_code_fixed_bits(enc, pps->lists_modification_present_flag, 1);
-   radeon_enc_code_ue(enc, pps->log2_parallel_merge_level_minus2);
-   radeon_enc_code_fixed_bits(enc, 0x0, 2);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* pps_scaling_list_data_present_flag */
+   radeon_bs_code_fixed_bits(&bs, pps->lists_modification_present_flag, 1);
+   radeon_bs_code_ue(&bs, pps->log2_parallel_merge_level_minus2);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 2);
 
-   radeon_enc_code_fixed_bits(enc, 0x1, 1);
-   radeon_enc_byte_align(enc);
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1);
+   radeon_bs_byte_align(&bs);
 
-   radeon_enc_flush_headers(enc);
-   return enc->bits_buf_pos;
+   return bs.bits_output / 8;
 }
 
 unsigned int radeon_enc_write_vps(struct radeon_encoder *enc, uint8_t *out)
 {
+   struct radeon_bitstream bs;
    struct pipe_h265_enc_vid_param *vps = &enc->enc_pic.hevc.desc->vid;
    int i;
 
-   radeon_enc_reset(enc);
-   radeon_enc_set_output_buffer(enc, out);
-   radeon_enc_set_emulation_prevention(enc, false);
-   radeon_enc_code_fixed_bits(enc, 0x00000001, 32);
-   radeon_enc_code_fixed_bits(enc, 0x4001, 16);
-   radeon_enc_byte_align(enc);
-   radeon_enc_set_emulation_prevention(enc, true);
-
-   radeon_enc_code_fixed_bits(enc, 0x0, 4); /* vps_video_parameter_set_id*/
-   radeon_enc_code_fixed_bits(enc, vps->vps_base_layer_internal_flag, 1);
-   radeon_enc_code_fixed_bits(enc, vps->vps_base_layer_available_flag, 1);
-   radeon_enc_code_fixed_bits(enc, 0x0, 6); /* vps_max_layers_minus1 */
-   radeon_enc_code_fixed_bits(enc, vps->vps_max_sub_layers_minus1, 3);
-   radeon_enc_code_fixed_bits(enc, vps->vps_temporal_id_nesting_flag, 1);
-   radeon_enc_code_fixed_bits(enc, 0xffff, 16); /* vps_reserved_0xffff_16bits */
-   radeon_enc_hevc_profile_tier_level(enc, vps->vps_max_sub_layers_minus1, &vps->profile_tier_level);
-   radeon_enc_code_fixed_bits(enc, vps->vps_sub_layer_ordering_info_present_flag, 1);
+   radeon_bs_reset(&bs, out, NULL);
+   radeon_bs_set_emulation_prevention(&bs, false);
+   radeon_bs_code_fixed_bits(&bs, 0x00000001, 32);
+   radeon_bs_code_fixed_bits(&bs, 0x4001, 16);
+   radeon_bs_set_emulation_prevention(&bs, true);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 4); /* vps_video_parameter_set_id*/
+   radeon_bs_code_fixed_bits(&bs, vps->vps_base_layer_internal_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, vps->vps_base_layer_available_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 6); /* vps_max_layers_minus1 */
+   radeon_bs_code_fixed_bits(&bs, vps->vps_max_sub_layers_minus1, 3);
+   radeon_bs_code_fixed_bits(&bs, vps->vps_temporal_id_nesting_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, 0xffff, 16); /* vps_reserved_0xffff_16bits */
+   radeon_bs_hevc_profile_tier_level(&bs, vps->vps_max_sub_layers_minus1, &vps->profile_tier_level);
+   radeon_bs_code_fixed_bits(&bs, vps->vps_sub_layer_ordering_info_present_flag, 1);
    i = vps->vps_sub_layer_ordering_info_present_flag ? 0 : vps->vps_max_sub_layers_minus1;
    for (; i <= vps->vps_max_sub_layers_minus1; i++) {
-      radeon_enc_code_ue(enc, vps->vps_max_dec_pic_buffering_minus1[i]);
-      radeon_enc_code_ue(enc, vps->vps_max_num_reorder_pics[i]);
-      radeon_enc_code_ue(enc, vps->vps_max_latency_increase_plus1[i]);
+      radeon_bs_code_ue(&bs, vps->vps_max_dec_pic_buffering_minus1[i]);
+      radeon_bs_code_ue(&bs, vps->vps_max_num_reorder_pics[i]);
+      radeon_bs_code_ue(&bs, vps->vps_max_latency_increase_plus1[i]);
    }
-   radeon_enc_code_fixed_bits(enc, 0x0, 6); /* vps_max_layer_id */
-   radeon_enc_code_ue(enc, 0x0); /* vps_num_layer_sets_minus1 */
-   radeon_enc_code_fixed_bits(enc, vps->vps_timing_info_present_flag, 1);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 6); /* vps_max_layer_id */
+   radeon_bs_code_ue(&bs, 0x0); /* vps_num_layer_sets_minus1 */
+   radeon_bs_code_fixed_bits(&bs, vps->vps_timing_info_present_flag, 1);
    if (vps->vps_timing_info_present_flag) {
-      radeon_enc_code_fixed_bits(enc, vps->vps_num_units_in_tick, 32);
-      radeon_enc_code_fixed_bits(enc, vps->vps_time_scale, 32);
-      radeon_enc_code_fixed_bits(enc, vps->vps_poc_proportional_to_timing_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, vps->vps_num_units_in_tick, 32);
+      radeon_bs_code_fixed_bits(&bs, vps->vps_time_scale, 32);
+      radeon_bs_code_fixed_bits(&bs, vps->vps_poc_proportional_to_timing_flag, 1);
       if (vps->vps_poc_proportional_to_timing_flag)
-         radeon_enc_code_ue(enc, vps->vps_num_ticks_poc_diff_one_minus1);
-      radeon_enc_code_ue(enc, 0x0); /* vps_num_hrd_parameters */
+         radeon_bs_code_ue(&bs, vps->vps_num_ticks_poc_diff_one_minus1);
+      radeon_bs_code_ue(&bs, 0x0); /* vps_num_hrd_parameters */
    }
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* vps_extension_flag */
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* vps_extension_flag */
 
-   radeon_enc_code_fixed_bits(enc, 0x1, 1);
-   radeon_enc_byte_align(enc);
+   radeon_bs_code_fixed_bits(&bs, 0x1, 1);
+   radeon_bs_byte_align(&bs);
 
-   radeon_enc_flush_headers(enc);
-   return enc->bits_buf_pos;
+   return bs.bits_output / 8;
 }
 
 static void radeon_enc_slice_header(struct radeon_encoder *enc)
 {
+   struct radeon_bitstream bs;
    struct pipe_h264_enc_seq_param *sps = &enc->enc_pic.h264.desc->seq;
    struct pipe_h264_enc_pic_control *pps = &enc->enc_pic.h264.desc->pic_ctrl;
    struct pipe_h264_enc_slice_param *slice = &enc->enc_pic.h264.desc->slice;
@@ -598,19 +567,20 @@ static void radeon_enc_slice_header(struct radeon_encoder *enc)
    unsigned int cdw_start = 0;
    unsigned int cdw_filled = 0;
    unsigned int bits_copied = 0;
+
    RADEON_ENC_BEGIN(enc->cmd.slice_header);
-   radeon_enc_reset(enc);
-   radeon_enc_set_emulation_prevention(enc, false);
+   radeon_bs_reset(&bs, NULL, &enc->cs);
+   radeon_bs_set_emulation_prevention(&bs, false);
 
    cdw_start = enc->cs.current.cdw;
-   radeon_enc_code_fixed_bits(enc, 0x0, 1); /* forbidden_zero_bit */
-   radeon_enc_code_fixed_bits(enc, pps->nal_ref_idc, 2);
-   radeon_enc_code_fixed_bits(enc, pps->nal_unit_type, 5);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* forbidden_zero_bit */
+   radeon_bs_code_fixed_bits(&bs, pps->nal_ref_idc, 2);
+   radeon_bs_code_fixed_bits(&bs, pps->nal_unit_type, 5);
 
-   radeon_enc_flush_headers(enc);
+   radeon_bs_flush_headers(&bs);
    instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-   num_bits[inst_index] = enc->bits_output - bits_copied;
-   bits_copied = enc->bits_output;
+   num_bits[inst_index] = bs.bits_output - bits_copied;
+   bits_copied = bs.bits_output;
    inst_index++;
 
    instruction[inst_index] = RENCODE_H264_HEADER_INSTRUCTION_FIRST_MB;
@@ -619,26 +589,26 @@ static void radeon_enc_slice_header(struct radeon_encoder *enc)
    switch (enc->enc_pic.picture_type) {
    case PIPE_H2645_ENC_PICTURE_TYPE_I:
    case PIPE_H2645_ENC_PICTURE_TYPE_IDR:
-      radeon_enc_code_fixed_bits(enc, 0x08, 7);
+      radeon_bs_code_fixed_bits(&bs, 0x08, 7);
       break;
    case PIPE_H2645_ENC_PICTURE_TYPE_P:
    case PIPE_H2645_ENC_PICTURE_TYPE_SKIP:
-      radeon_enc_code_fixed_bits(enc, 0x06, 5);
+      radeon_bs_code_fixed_bits(&bs, 0x06, 5);
       break;
    case PIPE_H2645_ENC_PICTURE_TYPE_B:
-      radeon_enc_code_fixed_bits(enc, 0x07, 5);
+      radeon_bs_code_fixed_bits(&bs, 0x07, 5);
       break;
    default:
-      radeon_enc_code_fixed_bits(enc, 0x08, 7);
+      radeon_bs_code_fixed_bits(&bs, 0x08, 7);
    }
 
-   radeon_enc_code_ue(enc, 0x0); /* pic_parameter_set_id */
-   radeon_enc_code_fixed_bits(enc, slice->frame_num, sps->log2_max_frame_num_minus4 + 4);
+   radeon_bs_code_ue(&bs, 0x0); /* pic_parameter_set_id */
+   radeon_bs_code_fixed_bits(&bs, slice->frame_num, sps->log2_max_frame_num_minus4 + 4);
 
    if (enc->enc_pic.h264_enc_params.input_picture_structure !=
        RENCODE_H264_PICTURE_STRUCTURE_FRAME) {
-      radeon_enc_code_fixed_bits(enc, 0x1, 1);
-      radeon_enc_code_fixed_bits(enc,
+      radeon_bs_code_fixed_bits(&bs, 0x1, 1);
+      radeon_bs_code_fixed_bits(&bs,
                                  enc->enc_pic.h264_enc_params.input_picture_structure ==
                                        RENCODE_H264_PICTURE_STRUCTURE_BOTTOM_FIELD
                                     ? 1
@@ -647,80 +617,80 @@ static void radeon_enc_slice_header(struct radeon_encoder *enc)
    }
 
    if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR)
-      radeon_enc_code_ue(enc, slice->idr_pic_id);
+      radeon_bs_code_ue(&bs, slice->idr_pic_id);
 
    if (sps->pic_order_cnt_type == 0)
-      radeon_enc_code_fixed_bits(enc, slice->pic_order_cnt_lsb, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+      radeon_bs_code_fixed_bits(&bs, slice->pic_order_cnt_lsb, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
 
    if (pps->redundant_pic_cnt_present_flag)
-      radeon_enc_code_ue(enc, slice->redundant_pic_cnt);
+      radeon_bs_code_ue(&bs, slice->redundant_pic_cnt);
 
    if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)
-      radeon_enc_code_fixed_bits(enc, 0x1, 1); /* direct_spatial_mv_pred_flag */
+      radeon_bs_code_fixed_bits(&bs, 0x1, 1); /* direct_spatial_mv_pred_flag */
 
    if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_P ||
        enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B) {
-      radeon_enc_code_fixed_bits(enc, slice->num_ref_idx_active_override_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, slice->num_ref_idx_active_override_flag, 1);
       if (slice->num_ref_idx_active_override_flag) {
-         radeon_enc_code_ue(enc, slice->num_ref_idx_l0_active_minus1);
+         radeon_bs_code_ue(&bs, slice->num_ref_idx_l0_active_minus1);
          if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)
-            radeon_enc_code_ue(enc, slice->num_ref_idx_l1_active_minus1);
+            radeon_bs_code_ue(&bs, slice->num_ref_idx_l1_active_minus1);
       }
-      radeon_enc_code_fixed_bits(enc, slice->ref_pic_list_modification_flag_l0, 1);
+      radeon_bs_code_fixed_bits(&bs, slice->ref_pic_list_modification_flag_l0, 1);
       if (slice->ref_pic_list_modification_flag_l0) {
          for (unsigned i = 0; i < slice->num_ref_list0_mod_operations; i++) {
             struct pipe_h264_ref_list_mod_entry *op =
                &slice->ref_list0_mod_operations[i];
-            radeon_enc_code_ue(enc, op->modification_of_pic_nums_idc);
+            radeon_bs_code_ue(&bs, op->modification_of_pic_nums_idc);
             if (op->modification_of_pic_nums_idc == 0 ||
                 op->modification_of_pic_nums_idc == 1)
-               radeon_enc_code_ue(enc, op->abs_diff_pic_num_minus1);
+               radeon_bs_code_ue(&bs, op->abs_diff_pic_num_minus1);
             else if (op->modification_of_pic_nums_idc == 2)
-               radeon_enc_code_ue(enc, op->long_term_pic_num);
+               radeon_bs_code_ue(&bs, op->long_term_pic_num);
          }
-         radeon_enc_code_ue(enc, 0x3); /* modification_of_pic_nums_idc */
+         radeon_bs_code_ue(&bs, 0x3); /* modification_of_pic_nums_idc */
       }
       if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B) {
-         radeon_enc_code_fixed_bits(enc, slice->ref_pic_list_modification_flag_l1, 1);
+         radeon_bs_code_fixed_bits(&bs, slice->ref_pic_list_modification_flag_l1, 1);
          if (slice->ref_pic_list_modification_flag_l1) {
             for (unsigned i = 0; i < slice->num_ref_list1_mod_operations; i++) {
                struct pipe_h264_ref_list_mod_entry *op =
                   &slice->ref_list1_mod_operations[i];
-               radeon_enc_code_ue(enc, op->modification_of_pic_nums_idc);
+               radeon_bs_code_ue(&bs, op->modification_of_pic_nums_idc);
                if (op->modification_of_pic_nums_idc == 0 ||
                    op->modification_of_pic_nums_idc == 1)
-                  radeon_enc_code_ue(enc, op->abs_diff_pic_num_minus1);
+                  radeon_bs_code_ue(&bs, op->abs_diff_pic_num_minus1);
                else if (op->modification_of_pic_nums_idc == 2)
-                  radeon_enc_code_ue(enc, op->long_term_pic_num);
+                  radeon_bs_code_ue(&bs, op->long_term_pic_num);
             }
-            radeon_enc_code_ue(enc, 0x3); /* modification_of_pic_nums_idc */
+            radeon_bs_code_ue(&bs, 0x3); /* modification_of_pic_nums_idc */
          }
       }
    }
 
    if (!enc->enc_pic.not_referenced) {
       if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR) {
-         radeon_enc_code_fixed_bits(enc, slice->no_output_of_prior_pics_flag, 1);
-         radeon_enc_code_fixed_bits(enc, slice->long_term_reference_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, slice->no_output_of_prior_pics_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, slice->long_term_reference_flag, 1);
       } else {
-         radeon_enc_code_fixed_bits(enc, slice->adaptive_ref_pic_marking_mode_flag, 1);
+         radeon_bs_code_fixed_bits(&bs, slice->adaptive_ref_pic_marking_mode_flag, 1);
          if (slice->adaptive_ref_pic_marking_mode_flag) {
             for (unsigned i = 0; i < slice->num_ref_pic_marking_operations; i++) {
                struct pipe_h264_ref_pic_marking_entry *op =
                   &slice->ref_pic_marking_operations[i];
-               radeon_enc_code_ue(enc, op->memory_management_control_operation);
+               radeon_bs_code_ue(&bs, op->memory_management_control_operation);
                if (op->memory_management_control_operation == 1 ||
                    op->memory_management_control_operation == 3)
-                  radeon_enc_code_ue(enc, op->difference_of_pic_nums_minus1);
+                  radeon_bs_code_ue(&bs, op->difference_of_pic_nums_minus1);
                if (op->memory_management_control_operation == 2)
-                  radeon_enc_code_ue(enc, op->long_term_pic_num);
+                  radeon_bs_code_ue(&bs, op->long_term_pic_num);
                if (op->memory_management_control_operation == 3 ||
                    op->memory_management_control_operation == 6)
-                  radeon_enc_code_ue(enc, op->long_term_frame_idx);
+                  radeon_bs_code_ue(&bs, op->long_term_frame_idx);
                if (op->memory_management_control_operation == 4)
-                  radeon_enc_code_ue(enc, op->max_long_term_frame_idx_plus1);
+                  radeon_bs_code_ue(&bs, op->max_long_term_frame_idx_plus1);
             }
-            radeon_enc_code_ue(enc, 0); /* memory_management_control_operation */
+            radeon_bs_code_ue(&bs, 0); /* memory_management_control_operation */
          }
       }
    }
@@ -728,29 +698,29 @@ static void radeon_enc_slice_header(struct radeon_encoder *enc)
    if ((enc->enc_pic.picture_type != PIPE_H2645_ENC_PICTURE_TYPE_IDR) &&
        (enc->enc_pic.picture_type != PIPE_H2645_ENC_PICTURE_TYPE_I) &&
        (enc->enc_pic.spec_misc.cabac_enable))
-      radeon_enc_code_ue(enc, enc->enc_pic.spec_misc.cabac_init_idc);
+      radeon_bs_code_ue(&bs, enc->enc_pic.spec_misc.cabac_init_idc);
 
-   radeon_enc_flush_headers(enc);
+   radeon_bs_flush_headers(&bs);
    instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-   num_bits[inst_index] = enc->bits_output - bits_copied;
-   bits_copied = enc->bits_output;
+   num_bits[inst_index] = bs.bits_output - bits_copied;
+   bits_copied = bs.bits_output;
    inst_index++;
 
    instruction[inst_index] = RENCODE_H264_HEADER_INSTRUCTION_SLICE_QP_DELTA;
    inst_index++;
 
    if (enc->enc_pic.spec_misc.deblocking_filter_control_present_flag) {
-      radeon_enc_code_ue(enc, enc->enc_pic.h264_deblock.disable_deblocking_filter_idc);
+      radeon_bs_code_ue(&bs, enc->enc_pic.h264_deblock.disable_deblocking_filter_idc);
       if (!enc->enc_pic.h264_deblock.disable_deblocking_filter_idc) {
-         radeon_enc_code_se(enc, enc->enc_pic.h264_deblock.alpha_c0_offset_div2);
-         radeon_enc_code_se(enc, enc->enc_pic.h264_deblock.beta_offset_div2);
+         radeon_bs_code_se(&bs, enc->enc_pic.h264_deblock.alpha_c0_offset_div2);
+         radeon_bs_code_se(&bs, enc->enc_pic.h264_deblock.beta_offset_div2);
       }
    }
 
-   radeon_enc_flush_headers(enc);
+   radeon_bs_flush_headers(&bs);
    instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-   num_bits[inst_index] = enc->bits_output - bits_copied;
-   bits_copied = enc->bits_output;
+   num_bits[inst_index] = bs.bits_output - bits_copied;
+   bits_copied = bs.bits_output;
    inst_index++;
 
    instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_END;
@@ -769,6 +739,7 @@ static void radeon_enc_slice_header(struct radeon_encoder *enc)
 
 static void radeon_enc_slice_header_hevc(struct radeon_encoder *enc)
 {
+   struct radeon_bitstream bs;
    struct pipe_h265_enc_seq_param *sps = &enc->enc_pic.hevc.desc->seq;
    struct pipe_h265_enc_pic_param *pps = &enc->enc_pic.hevc.desc->pic;
    struct pipe_h265_enc_slice_param *slice = &enc->enc_pic.hevc.desc->slice;
@@ -779,34 +750,35 @@ static void radeon_enc_slice_header_hevc(struct radeon_encoder *enc)
    unsigned int cdw_filled = 0;
    unsigned int bits_copied = 0;
    unsigned int num_pic_total_curr = 0;
+
    RADEON_ENC_BEGIN(enc->cmd.slice_header);
-   radeon_enc_reset(enc);
-   radeon_enc_set_emulation_prevention(enc, false);
+   radeon_bs_reset(&bs, NULL, &enc->cs);
+   radeon_bs_set_emulation_prevention(&bs, false);
 
    cdw_start = enc->cs.current.cdw;
-   radeon_enc_code_fixed_bits(enc, 0x0, 1);
-   radeon_enc_code_fixed_bits(enc, enc->enc_pic.nal_unit_type, 6);
-   radeon_enc_code_fixed_bits(enc, 0x0, 6);
-   radeon_enc_code_fixed_bits(enc, enc->enc_pic.temporal_id + 1, 3);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 1);
+   radeon_bs_code_fixed_bits(&bs, enc->enc_pic.nal_unit_type, 6);
+   radeon_bs_code_fixed_bits(&bs, 0x0, 6);
+   radeon_bs_code_fixed_bits(&bs, enc->enc_pic.temporal_id + 1, 3);
 
-   radeon_enc_flush_headers(enc);
+   radeon_bs_flush_headers(&bs);
    instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-   num_bits[inst_index] = enc->bits_output - bits_copied;
-   bits_copied = enc->bits_output;
+   num_bits[inst_index] = bs.bits_output - bits_copied;
+   bits_copied = bs.bits_output;
    inst_index++;
 
    instruction[inst_index] = RENCODE_HEVC_HEADER_INSTRUCTION_FIRST_SLICE;
    inst_index++;
 
    if ((enc->enc_pic.nal_unit_type >= 16) && (enc->enc_pic.nal_unit_type <= 23))
-      radeon_enc_code_fixed_bits(enc, slice->no_output_of_prior_pics_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, slice->no_output_of_prior_pics_flag, 1);
 
-   radeon_enc_code_ue(enc, 0x0); /* slice_pic_parameter_set_id */
+   radeon_bs_code_ue(&bs, 0x0); /* slice_pic_parameter_set_id */
 
-   radeon_enc_flush_headers(enc);
+   radeon_bs_flush_headers(&bs);
    instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-   num_bits[inst_index] = enc->bits_output - bits_copied;
-   bits_copied = enc->bits_output;
+   num_bits[inst_index] = bs.bits_output - bits_copied;
+   bits_copied = bs.bits_output;
    inst_index++;
 
    instruction[inst_index] = RENCODE_HEVC_HEADER_INSTRUCTION_SLICE_SEGMENT;
@@ -818,59 +790,59 @@ static void radeon_enc_slice_header_hevc(struct radeon_encoder *enc)
    switch (enc->enc_pic.picture_type) {
    case PIPE_H2645_ENC_PICTURE_TYPE_I:
    case PIPE_H2645_ENC_PICTURE_TYPE_IDR:
-      radeon_enc_code_ue(enc, 0x2);
+      radeon_bs_code_ue(&bs, 0x2);
       break;
    case PIPE_H2645_ENC_PICTURE_TYPE_P:
    case PIPE_H2645_ENC_PICTURE_TYPE_SKIP:
-      radeon_enc_code_ue(enc, 0x1);
+      radeon_bs_code_ue(&bs, 0x1);
       break;
    case PIPE_H2645_ENC_PICTURE_TYPE_B:
-      radeon_enc_code_ue(enc, 0x0);
+      radeon_bs_code_ue(&bs, 0x0);
       break;
    default:
-      radeon_enc_code_ue(enc, 0x1);
+      radeon_bs_code_ue(&bs, 0x1);
    }
 
    if (pps->output_flag_present_flag)
-      radeon_enc_code_fixed_bits(enc, slice->pic_output_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, slice->pic_output_flag, 1);
 
    if ((enc->enc_pic.nal_unit_type != 19) && (enc->enc_pic.nal_unit_type != 20)) {
-      radeon_enc_code_fixed_bits(enc, slice->slice_pic_order_cnt_lsb, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
-      radeon_enc_code_fixed_bits(enc, slice->short_term_ref_pic_set_sps_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, slice->slice_pic_order_cnt_lsb, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+      radeon_bs_code_fixed_bits(&bs, slice->short_term_ref_pic_set_sps_flag, 1);
       if (!slice->short_term_ref_pic_set_sps_flag) {
          num_pic_total_curr =
-            radeon_enc_hevc_st_ref_pic_set(enc, sps->num_short_term_ref_pic_sets,
-                                           sps->num_short_term_ref_pic_sets, sps->st_ref_pic_set);
+            radeon_bs_hevc_st_ref_pic_set(&bs, sps->num_short_term_ref_pic_sets,
+                                          sps->num_short_term_ref_pic_sets, sps->st_ref_pic_set);
       } else if (sps->num_short_term_ref_pic_sets > 1) {
-         radeon_enc_code_fixed_bits(enc, slice->short_term_ref_pic_set_idx,
+         radeon_bs_code_fixed_bits(&bs, slice->short_term_ref_pic_set_idx,
                                     util_logbase2_ceil(sps->num_short_term_ref_pic_sets));
       }
       if (sps->long_term_ref_pics_present_flag) {
          if (sps->num_long_term_ref_pics_sps > 0)
-            radeon_enc_code_ue(enc, slice->num_long_term_sps);
-         radeon_enc_code_ue(enc, slice->num_long_term_pics);
+            radeon_bs_code_ue(&bs, slice->num_long_term_sps);
+         radeon_bs_code_ue(&bs, slice->num_long_term_pics);
          for (unsigned i = 0; i < slice->num_long_term_sps + slice->num_long_term_pics; i++) {
             if (i < slice->num_long_term_sps) {
                if (sps->num_long_term_ref_pics_sps > 1)
-                  radeon_enc_code_fixed_bits(enc, slice->lt_idx_sps[i], util_logbase2_ceil(sps->num_long_term_ref_pics_sps));
+                  radeon_bs_code_fixed_bits(&bs, slice->lt_idx_sps[i], util_logbase2_ceil(sps->num_long_term_ref_pics_sps));
             } else {
-               radeon_enc_code_fixed_bits(enc, slice->poc_lsb_lt[i], sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
-               radeon_enc_code_fixed_bits(enc, slice->used_by_curr_pic_lt_flag[i], 1);
+               radeon_bs_code_fixed_bits(&bs, slice->poc_lsb_lt[i], sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
+               radeon_bs_code_fixed_bits(&bs, slice->used_by_curr_pic_lt_flag[i], 1);
                if (slice->used_by_curr_pic_lt_flag[i])
                   num_pic_total_curr++;
             }
-            radeon_enc_code_fixed_bits(enc, slice->delta_poc_msb_present_flag[i], 1);
+            radeon_bs_code_fixed_bits(&bs, slice->delta_poc_msb_present_flag[i], 1);
             if (slice->delta_poc_msb_present_flag[i])
-               radeon_enc_code_ue(enc, slice->delta_poc_msb_cycle_lt[i]);
+               radeon_bs_code_ue(&bs, slice->delta_poc_msb_cycle_lt[i]);
          }
       }
    }
 
    if (!enc->enc_pic.hevc_deblock.disable_sao) {
-      radeon_enc_flush_headers(enc);
+      radeon_bs_flush_headers(&bs);
       instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-      num_bits[inst_index] = enc->bits_output - bits_copied;
-      bits_copied = enc->bits_output;
+      num_bits[inst_index] = bs.bits_output - bits_copied;
+      bits_copied = bs.bits_output;
       inst_index++;
 
       instruction[inst_index] = RENCODE_HEVC_HEADER_INSTRUCTION_SAO_ENABLE;
@@ -879,37 +851,37 @@ static void radeon_enc_slice_header_hevc(struct radeon_encoder *enc)
 
    if ((enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_P) ||
        (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)) {
-      radeon_enc_code_fixed_bits(enc, slice->num_ref_idx_active_override_flag, 1);
+      radeon_bs_code_fixed_bits(&bs, slice->num_ref_idx_active_override_flag, 1);
       if (slice->num_ref_idx_active_override_flag) {
-         radeon_enc_code_ue(enc, slice->num_ref_idx_l0_active_minus1);
+         radeon_bs_code_ue(&bs, slice->num_ref_idx_l0_active_minus1);
          if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)
-            radeon_enc_code_ue(enc, slice->num_ref_idx_l1_active_minus1);
+            radeon_bs_code_ue(&bs, slice->num_ref_idx_l1_active_minus1);
       }
       if (pps->lists_modification_present_flag && num_pic_total_curr > 1) {
          unsigned num_bits = util_logbase2_ceil(num_pic_total_curr);
          unsigned num_ref_l0_minus1 = slice->num_ref_idx_active_override_flag ?
             slice->num_ref_idx_l0_active_minus1 : pps->num_ref_idx_l0_default_active_minus1;
-         radeon_enc_code_fixed_bits(enc, slice->ref_pic_lists_modification.ref_pic_list_modification_flag_l0, 1);
+         radeon_bs_code_fixed_bits(&bs, slice->ref_pic_lists_modification.ref_pic_list_modification_flag_l0, 1);
          for (unsigned i = 0; i <= num_ref_l0_minus1; i++)
-            radeon_enc_code_fixed_bits(enc, slice->ref_pic_lists_modification.list_entry_l0[i], num_bits);
+            radeon_bs_code_fixed_bits(&bs, slice->ref_pic_lists_modification.list_entry_l0[i], num_bits);
          if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B) {
             unsigned num_ref_l1_minus1 = slice->num_ref_idx_active_override_flag ?
                slice->num_ref_idx_l1_active_minus1 : pps->num_ref_idx_l1_default_active_minus1;
-            radeon_enc_code_fixed_bits(enc, slice->ref_pic_lists_modification.ref_pic_list_modification_flag_l1, 1);
+            radeon_bs_code_fixed_bits(&bs, slice->ref_pic_lists_modification.ref_pic_list_modification_flag_l1, 1);
             for (unsigned i = 0; i <= num_ref_l1_minus1; i++)
-               radeon_enc_code_fixed_bits(enc, slice->ref_pic_lists_modification.list_entry_l1[i], num_bits);
+               radeon_bs_code_fixed_bits(&bs, slice->ref_pic_lists_modification.list_entry_l1[i], num_bits);
          }
       }
       if (enc->enc_pic.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_B)
-         radeon_enc_code_fixed_bits(enc, 0x0, 1); /* mvd_l1_zero_flag */
-      radeon_enc_code_fixed_bits(enc, enc->enc_pic.hevc_spec_misc.cabac_init_flag, 1);
-      radeon_enc_code_ue(enc, 5 - slice->max_num_merge_cand);
+         radeon_bs_code_fixed_bits(&bs, 0x0, 1); /* mvd_l1_zero_flag */
+      radeon_bs_code_fixed_bits(&bs, enc->enc_pic.hevc_spec_misc.cabac_init_flag, 1);
+      radeon_bs_code_ue(&bs, 5 - slice->max_num_merge_cand);
    }
 
-   radeon_enc_flush_headers(enc);
+   radeon_bs_flush_headers(&bs);
    instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-   num_bits[inst_index] = enc->bits_output - bits_copied;
-   bits_copied = enc->bits_output;
+   num_bits[inst_index] = bs.bits_output - bits_copied;
+   bits_copied = bs.bits_output;
    inst_index++;
 
    instruction[inst_index] = RENCODE_HEVC_HEADER_INSTRUCTION_SLICE_QP_DELTA;
@@ -919,20 +891,20 @@ static void radeon_enc_slice_header_hevc(struct radeon_encoder *enc)
        (!enc->enc_pic.hevc_deblock.deblocking_filter_disabled ||
         !enc->enc_pic.hevc_deblock.disable_sao)) {
        if (!enc->enc_pic.hevc_deblock.disable_sao) {
-           radeon_enc_flush_headers(enc);
+           radeon_bs_flush_headers(&bs);
            instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-           num_bits[inst_index] = enc->bits_output - bits_copied;
-           bits_copied = enc->bits_output;
+           num_bits[inst_index] = bs.bits_output - bits_copied;
+           bits_copied = bs.bits_output;
            inst_index++;
 
            instruction[inst_index] = RENCODE_HEVC_HEADER_INSTRUCTION_LOOP_FILTER_ACROSS_SLICES_ENABLE;
            inst_index++;
        } else {
-           radeon_enc_code_fixed_bits(enc, enc->enc_pic.hevc_deblock.loop_filter_across_slices_enabled, 1);
-           radeon_enc_flush_headers(enc);
+           radeon_bs_code_fixed_bits(&bs, enc->enc_pic.hevc_deblock.loop_filter_across_slices_enabled, 1);
+           radeon_bs_flush_headers(&bs);
            instruction[inst_index] = RENCODE_HEADER_INSTRUCTION_COPY;
-           num_bits[inst_index] = enc->bits_output - bits_copied;
-           bits_copied = enc->bits_output;
+           num_bits[inst_index] = bs.bits_output - bits_copied;
+           bits_copied = bs.bits_output;
            inst_index++;
        }
    }
@@ -949,180 +921,6 @@ static void radeon_enc_slice_header_hevc(struct radeon_encoder *enc)
    }
 
    RADEON_ENC_END();
-}
-
-void radeon_enc_hrd_parameters(struct radeon_encoder *enc,
-                               struct pipe_h264_enc_hrd_params *hrd)
-{
-   radeon_enc_code_ue(enc, hrd->cpb_cnt_minus1);
-   radeon_enc_code_fixed_bits(enc, hrd->bit_rate_scale, 4);
-   radeon_enc_code_fixed_bits(enc, hrd->cpb_size_scale, 4);
-   for (unsigned i = 0; i <= hrd->cpb_cnt_minus1; i++) {
-      radeon_enc_code_ue(enc, hrd->bit_rate_value_minus1[i]);
-      radeon_enc_code_ue(enc, hrd->cpb_size_value_minus1[i]);
-      radeon_enc_code_fixed_bits(enc, hrd->cbr_flag[i], 1);
-   }
-   radeon_enc_code_fixed_bits(enc, hrd->initial_cpb_removal_delay_length_minus1, 5);
-   radeon_enc_code_fixed_bits(enc, hrd->cpb_removal_delay_length_minus1, 5);
-   radeon_enc_code_fixed_bits(enc, hrd->dpb_output_delay_length_minus1, 5);
-   radeon_enc_code_fixed_bits(enc, hrd->time_offset_length, 5);
-}
-
-static void radeon_enc_hevc_profile_tier(struct radeon_encoder *enc,
-                                         struct pipe_h265_profile_tier *pt)
-{
-   radeon_enc_code_fixed_bits(enc, pt->general_profile_space, 2);
-   radeon_enc_code_fixed_bits(enc, pt->general_tier_flag, 1);
-   radeon_enc_code_fixed_bits(enc, pt->general_profile_idc, 5);
-   radeon_enc_code_fixed_bits(enc, pt->general_profile_compatibility_flag, 32);
-   radeon_enc_code_fixed_bits(enc, pt->general_progressive_source_flag, 1);
-   radeon_enc_code_fixed_bits(enc, pt->general_interlaced_source_flag, 1);
-   radeon_enc_code_fixed_bits(enc, pt->general_non_packed_constraint_flag, 1);
-   radeon_enc_code_fixed_bits(enc, pt->general_frame_only_constraint_flag, 1);
-   /* general_reserved_zero_44bits */
-   radeon_enc_code_fixed_bits(enc, 0x0, 16);
-   radeon_enc_code_fixed_bits(enc, 0x0, 16);
-   radeon_enc_code_fixed_bits(enc, 0x0, 12);
-}
-
-void radeon_enc_hevc_profile_tier_level(struct radeon_encoder *enc,
-                                        unsigned int max_num_sub_layers_minus1,
-                                        struct pipe_h265_profile_tier_level *ptl)
-{
-   unsigned i;
-
-   radeon_enc_hevc_profile_tier(enc, &ptl->profile_tier);
-   radeon_enc_code_fixed_bits(enc, ptl->general_level_idc, 8);
-
-   for (i = 0; i < max_num_sub_layers_minus1; ++i) {
-      radeon_enc_code_fixed_bits(enc, ptl->sub_layer_profile_present_flag[i], 1);
-      radeon_enc_code_fixed_bits(enc, ptl->sub_layer_level_present_flag[i], 1);
-   }
-
-   if (max_num_sub_layers_minus1 > 0) {
-      for (i = max_num_sub_layers_minus1; i < 8; ++i)
-         radeon_enc_code_fixed_bits(enc, 0x0, 2); /* reserved_zero_2bits */
-   }
-
-   for (i = 0; i < max_num_sub_layers_minus1; ++i) {
-      if (ptl->sub_layer_profile_present_flag[i])
-         radeon_enc_hevc_profile_tier(enc, &ptl->sub_layer_profile_tier[i]);
-
-      if (ptl->sub_layer_level_present_flag[i])
-         radeon_enc_code_fixed_bits(enc, ptl->sub_layer_level_idc[i], 8);
-   }
-}
-
-static void radeon_enc_hevc_sub_layer_hrd_parameters(struct radeon_encoder *enc,
-                                                     unsigned int cpb_cnt,
-                                                     unsigned int sub_pic_hrd_params_present_flag,
-                                                     struct pipe_h265_enc_sublayer_hrd_params *hrd)
-{
-   for (unsigned i = 0; i < cpb_cnt; i++) {
-      radeon_enc_code_ue(enc, hrd->bit_rate_value_minus1[i]);
-      radeon_enc_code_ue(enc, hrd->cpb_size_value_minus1[i]);
-      if (sub_pic_hrd_params_present_flag) {
-         radeon_enc_code_ue(enc, hrd->cpb_size_du_value_minus1[i]);
-         radeon_enc_code_ue(enc, hrd->bit_rate_du_value_minus1[i]);
-      }
-      radeon_enc_code_fixed_bits(enc, hrd->cbr_flag[i], 1);
-   }
-}
-
-void radeon_enc_hevc_hrd_parameters(struct radeon_encoder *enc,
-                                    unsigned int common_inf_present_flag,
-                                    unsigned int max_sub_layers_minus1,
-                                    struct pipe_h265_enc_hrd_params *hrd)
-{
-   if (common_inf_present_flag) {
-      radeon_enc_code_fixed_bits(enc, hrd->nal_hrd_parameters_present_flag, 1);
-      radeon_enc_code_fixed_bits(enc, hrd->vcl_hrd_parameters_present_flag, 1);
-      if (hrd->nal_hrd_parameters_present_flag || hrd->vcl_hrd_parameters_present_flag) {
-         radeon_enc_code_fixed_bits(enc, hrd->sub_pic_hrd_params_present_flag, 1);
-         if (hrd->sub_pic_hrd_params_present_flag) {
-            radeon_enc_code_fixed_bits(enc, hrd->tick_divisor_minus2, 8);
-            radeon_enc_code_fixed_bits(enc, hrd->du_cpb_removal_delay_increment_length_minus1, 5);
-            radeon_enc_code_fixed_bits(enc, hrd->sub_pic_hrd_params_present_flag, 1);
-            radeon_enc_code_fixed_bits(enc, hrd->dpb_output_delay_du_length_minus1, 5);
-         }
-         radeon_enc_code_fixed_bits(enc, hrd->bit_rate_scale, 4);
-         radeon_enc_code_fixed_bits(enc, hrd->cpb_rate_scale, 4);
-         if (hrd->sub_pic_hrd_params_present_flag)
-            radeon_enc_code_fixed_bits(enc, hrd->cpb_size_du_scale, 4);
-         radeon_enc_code_fixed_bits(enc, hrd->initial_cpb_removal_delay_length_minus1, 5);
-         radeon_enc_code_fixed_bits(enc, hrd->au_cpb_removal_delay_length_minus1, 5);
-         radeon_enc_code_fixed_bits(enc, hrd->dpb_output_delay_length_minus1, 5);
-      }
-   }
-
-   for (unsigned i = 0; i <= max_sub_layers_minus1; i++) {
-      radeon_enc_code_fixed_bits(enc, hrd->fixed_pic_rate_general_flag[i], 1);
-      if (!hrd->fixed_pic_rate_general_flag[i])
-         radeon_enc_code_fixed_bits(enc, hrd->fixed_pic_rate_within_cvs_flag[i], 1);
-      if (hrd->fixed_pic_rate_within_cvs_flag[i])
-         radeon_enc_code_ue(enc, hrd->elemental_duration_in_tc_minus1[i]);
-      else
-         radeon_enc_code_fixed_bits(enc, hrd->low_delay_hrd_flag[i], 1);
-      if (!hrd->low_delay_hrd_flag[i])
-         radeon_enc_code_ue(enc, hrd->cpb_cnt_minus1[i]);
-      if (hrd->nal_hrd_parameters_present_flag) {
-         radeon_enc_hevc_sub_layer_hrd_parameters(enc,
-                                                  hrd->cpb_cnt_minus1[i] + 1,
-                                                  hrd->sub_pic_hrd_params_present_flag,
-                                                  &hrd->nal_hrd_parameters[i]);
-      }
-      if (hrd->vcl_hrd_parameters_present_flag) {
-         radeon_enc_hevc_sub_layer_hrd_parameters(enc,
-                                                  hrd->cpb_cnt_minus1[i] + 1,
-                                                  hrd->sub_pic_hrd_params_present_flag,
-                                                  &hrd->vlc_hrd_parameters[i]);
-      }
-   }
-}
-
-/* returns NumPicTotalCurr */
-unsigned int radeon_enc_hevc_st_ref_pic_set(struct radeon_encoder *enc,
-                                            unsigned int index,
-                                            unsigned int num_short_term_ref_pic_sets,
-                                            struct pipe_h265_st_ref_pic_set *st_rps)
-{
-   struct pipe_h265_st_ref_pic_set *ref_rps = NULL;
-   struct pipe_h265_st_ref_pic_set *rps = &st_rps[index];
-   unsigned i, num_pic_total_curr = 0;
-
-   if (index)
-      radeon_enc_code_fixed_bits(enc, rps->inter_ref_pic_set_prediction_flag, 1);
-
-   if (rps->inter_ref_pic_set_prediction_flag) {
-      if (index == num_short_term_ref_pic_sets)
-         radeon_enc_code_ue(enc, rps->delta_idx_minus1);
-      radeon_enc_code_fixed_bits(enc, rps->delta_rps_sign, 1);
-      radeon_enc_code_ue(enc, rps->abs_delta_rps_minus1);
-      ref_rps = st_rps + index +
-         (1 - 2 * rps->delta_rps_sign) * (st_rps->delta_idx_minus1 + 1);
-      for (i = 0; i <= (ref_rps->num_negative_pics + ref_rps->num_positive_pics); i++) {
-         radeon_enc_code_fixed_bits(enc, rps->used_by_curr_pic_flag[i], 1);
-         if (!rps->used_by_curr_pic_flag[i])
-            radeon_enc_code_fixed_bits(enc, rps->use_delta_flag[i], 1);
-      }
-   } else {
-      radeon_enc_code_ue(enc, rps->num_negative_pics);
-      radeon_enc_code_ue(enc, rps->num_positive_pics);
-      for (i = 0; i < rps->num_negative_pics; i++) {
-         radeon_enc_code_ue(enc, rps->delta_poc_s0_minus1[i]);
-         radeon_enc_code_fixed_bits(enc, rps->used_by_curr_pic_s0_flag[i], 1);
-         if (rps->used_by_curr_pic_s0_flag[i])
-            num_pic_total_curr++;
-      }
-      for (i = 0; i < st_rps->num_positive_pics; i++) {
-         radeon_enc_code_ue(enc, rps->delta_poc_s1_minus1[i]);
-         radeon_enc_code_fixed_bits(enc, rps->used_by_curr_pic_s1_flag[i], 1);
-         if (rps->used_by_curr_pic_s1_flag[i])
-            num_pic_total_curr++;
-      }
-   }
-
-   return num_pic_total_curr;
 }
 
 static void radeon_enc_ctx(struct radeon_encoder *enc)
@@ -1196,8 +994,8 @@ static void radeon_enc_intra_refresh(struct radeon_encoder *enc)
 
 static void radeon_enc_rc_per_pic(struct radeon_encoder *enc)
 {
-   fprintf(stderr, "Warning: Obsoleted rate control is being used due to outdated VCN firmware on system.\n");
-   fprintf(stderr, "Updating VCN firmware is highly recommended.\n");
+   debug_warn_once("Obsoleted rate control is being used due to outdated VCN firmware on system. "
+                   "Updating VCN firmware is highly recommended.");
    RADEON_ENC_BEGIN(enc->cmd.rc_per_pic);
    RADEON_ENC_CS(enc->enc_pic.rc_per_pic.qp_obs);
    RADEON_ENC_CS(enc->enc_pic.rc_per_pic.min_qp_app_obs);
@@ -1250,10 +1048,8 @@ static void radeon_enc_encode_params(struct radeon_encoder *enc)
       enc->enc_pic.enc_params.pic_type = RENCODE_PICTURE_TYPE_I;
    }
 
-   if (enc->luma->meta_offset) {
-      RVID_ERR("DCC surfaces not supported.\n");
-      assert(false);
-   }
+   if (enc->luma->meta_offset)
+      RADEON_ENC_ERR("DCC surfaces not supported.\n");
 
    enc->enc_pic.enc_params.input_pic_luma_pitch = enc->luma->u.gfx9.surf_pitch;
    enc->enc_pic.enc_params.input_pic_chroma_pitch = enc->chroma ?

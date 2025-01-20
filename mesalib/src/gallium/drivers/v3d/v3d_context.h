@@ -40,6 +40,7 @@
 #include "drm-uapi/v3d_drm.h"
 #include "v3d_screen.h"
 #include "broadcom/common/v3d_limits.h"
+#include "broadcom/common/v3d_util.h"
 
 #include "broadcom/simulator/v3d_simulator.h"
 #include "broadcom/compiler/v3d_compiler.h"
@@ -232,6 +233,7 @@ struct v3d_uncompiled_shader {
 struct v3d_compiled_shader {
         struct pipe_resource *resource;
         uint32_t offset;
+        uint32_t qpu_size;
 
         union {
                 struct v3d_prog_data *base;
@@ -427,11 +429,13 @@ struct v3d_job {
 
         /** @} */
         /** @{ Tile information, depending on MSAA and float color buffer. */
-        uint32_t draw_tiles_x; /** @< Number of tiles wide for framebuffer. */
-        uint32_t draw_tiles_y; /** @< Number of tiles high for framebuffer. */
+        struct {
+                uint32_t draw_x; /** @< Number of tiles wide for framebuffer. */
+                uint32_t draw_y; /** @< Number of tiles high for framebuffer. */
+                uint32_t width;  /** @< Width of a tile. */
+                uint32_t height; /** @< Height of a tile. */
+        } tile_desc;
 
-        uint32_t tile_width; /** @< Width of a tile. */
-        uint32_t tile_height; /** @< Height of a tile. */
         /** maximum internal_bpp of all color render targets. */
         uint32_t internal_bpp;
 
@@ -471,8 +475,16 @@ struct v3d_job {
         float clear_z;
         uint8_t clear_s;
 
+        /* If we found anything in the job that is not compatible with
+         * double-buffer mode
+         */
+        bool can_use_double_buffer;
+
         /* If TLB double-buffering is enabled for this job */
         bool double_buffer;
+
+        /* Tracks score for double-buffer mode heuristic */
+        struct v3d_double_buffer_score double_buffer_score;
 
         /**
          * Set if some drawing (triangles, blits, or just a glClear()) has
@@ -533,6 +545,13 @@ struct v3d_job {
          * the current job during active transform feedback.
          */
         uint32_t tf_draw_calls_queued;
+
+
+        /* A pointer to the location of the TILE_BINNING_MODE_CFG packet so we
+         * can rewrite it to enable double-buffer mode by the time we have
+         * enough info about the job to make that decision.
+         */
+        struct v3d_cl_out *bcl_tile_binning_mode_ptr;
 
         struct v3d_job_key key;
 };
@@ -746,16 +765,6 @@ void v3d_program_init(struct pipe_context *pctx);
 void v3d_program_fini(struct pipe_context *pctx);
 void v3d_query_init(struct pipe_context *pctx);
 
-static inline int
-v3d_ioctl(int fd, unsigned long request, void *arg)
-{
-#if USE_V3D_SIMULATOR
-        return v3d_simulator_ioctl(fd, request, arg);
-#else
-        return drmIoctl(fd, request, arg);
-#endif
-}
-
 static inline bool
 v3d_transform_feedback_enabled(struct v3d_context *v3d)
 {
@@ -869,22 +878,6 @@ void v3d_disk_cache_store(struct v3d_context *v3d,
                           uint64_t *qpu_insts,
                           uint32_t qpu_size);
 #endif /* ENABLE_SHADER_CACHE */
-
-/* Helper to call hw ver specific functions */
-#define v3d_X(devinfo, thing) ({                                \
-        __typeof(&v3d42_##thing) v3d_X_thing;                   \
-        switch (devinfo->ver) {                                 \
-        case 42:                                                \
-                v3d_X_thing = &v3d42_##thing;                   \
-                break;                                          \
-        case 71:                                                \
-                v3d_X_thing = &v3d71_##thing;                   \
-                break;                                          \
-        default:                                                \
-                unreachable("Unsupported hardware generation"); \
-        }                                                       \
-        v3d_X_thing;                                            \
-})
 
 #ifdef v3dX
 #  include "v3dx_context.h"

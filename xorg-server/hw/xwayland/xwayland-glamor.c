@@ -198,14 +198,17 @@ xwl_glamor_get_fence(struct xwl_screen *xwl_screen)
     return fence_fd;
 }
 
+/* Takes ownership of fence_fd, specifically eglCreateSyncKHR does */
 void
 xwl_glamor_wait_fence(struct xwl_screen *xwl_screen, int fence_fd)
 {
     EGLint attribs[3];
     EGLSyncKHR sync;
 
-    if (!xwl_screen->glamor)
+    if (!xwl_screen->glamor) {
+        close(fence_fd);
         return;
+    }
 
     xwl_glamor_egl_make_current(xwl_screen);
 

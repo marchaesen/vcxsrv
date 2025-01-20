@@ -87,7 +87,6 @@ spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
-spec@ext_framebuffer_multisample@blit-mismatched-formats,Fail
 spec@ext_framebuffer_multisample@clip-and-scissor-blit 2 msaa,Fail
 spec@ext_framebuffer_multisample@clip-and-scissor-blit 2 upsample,Fail
 spec@ext_framebuffer_multisample@clip-and-scissor-blit 4 msaa,Fail
@@ -122,10 +121,6 @@ spec@arb_shader_image_load_store@execution@image-array-out-of-bounds-access-stor
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
-
-spec@arb_tessellation_shader@execution@gs-primitiveid-instanced,Fail
-spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
-spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 
 spec@ext_transform_feedback@tessellation quads wireframe,Fail
 

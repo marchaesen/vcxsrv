@@ -135,9 +135,8 @@ make_nir_clear_vertex_shader(struct st_context *st, bool layered)
       VARYING_SLOT_LAYER
    };
 
-   return st_nir_make_passthrough_shader(st, shader_name, MESA_SHADER_VERTEX,
-                                         layered ? 2 : 1, inputs, outputs,
-                                         NULL, (1 << 1));
+   return st_nir_make_passthrough_vs(st, shader_name, layered ? 2 : 1, inputs,
+                                     outputs, (1 << 1));
 }
 
 
@@ -163,7 +162,7 @@ set_vertex_shader_layered(struct st_context *st)
 {
    struct pipe_context *pipe = st->pipe;
 
-   if (!st->screen->get_param(st->screen, PIPE_CAP_VS_INSTANCEID)) {
+   if (!st->screen->caps.vs_instanceid) {
       assert(!"Got layered clear, but VS instancing is unsupported");
       set_vertex_shader(st);
       return;
@@ -171,7 +170,7 @@ set_vertex_shader_layered(struct st_context *st)
 
    if (!st->clear.vs_layered) {
       bool vs_layer =
-         st->screen->get_param(st->screen, PIPE_CAP_VS_LAYER_VIEWPORT);
+         st->screen->caps.vs_layer_viewport;
       if (vs_layer) {
          st->clear.vs_layered = make_nir_clear_vertex_shader(st, true);
       } else {
@@ -283,7 +282,7 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
    st->util_velems.count = 1;
    cso_set_vertex_elements(cso, &st->util_velems);
 
-   cso_set_stream_outputs(cso, 0, NULL, NULL);
+   cso_set_stream_outputs(cso, 0, NULL, NULL, 0);
    cso_set_sample_mask(cso, ~0);
    cso_set_min_samples(cso, 1);
    st->clear.raster.multisample = st->state.fb_num_samples > 1;

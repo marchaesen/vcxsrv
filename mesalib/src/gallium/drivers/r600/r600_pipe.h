@@ -417,6 +417,7 @@ struct r600_fetch_shader {
 	unsigned			offset;
 	uint32_t                        buffer_mask;
 	unsigned                        strides[PIPE_MAX_ATTRIBS];
+	uint8_t				width_correction[PIPE_MAX_ATTRIBS];
 };
 
 struct r600_shader_state {

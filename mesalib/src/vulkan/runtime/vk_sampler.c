@@ -87,20 +87,9 @@ vk_sampler_border_color_value(const VkSamplerCreateInfo *pCreateInfo,
    }
 }
 
-void *
-vk_sampler_create(struct vk_device *device,
-                  const VkSamplerCreateInfo *pCreateInfo,
-                  const VkAllocationCallbacks *alloc,
-                  size_t size)
+void
+vk_sampler_init(const VkSamplerCreateInfo *pCreateInfo, struct vk_sampler *sampler)
 {
-   struct vk_sampler *sampler;
-
-   sampler = vk_object_zalloc(device, alloc, size, VK_OBJECT_TYPE_SAMPLER);
-   if (!sampler)
-      return NULL;
-
-   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
-
    sampler->format = VK_FORMAT_UNDEFINED;
    sampler->border_color = pCreateInfo->borderColor;
    sampler->reduction_mode = VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE;
@@ -156,6 +145,22 @@ vk_sampler_create(struct vk_device *device,
          break;
       }
    }
+}
+
+void *
+vk_sampler_create(struct vk_device *device,
+                  const VkSamplerCreateInfo *pCreateInfo,
+                  const VkAllocationCallbacks *alloc,
+                  size_t size)
+{
+   struct vk_sampler *sampler;
+
+   sampler = vk_object_zalloc(device, alloc, size, VK_OBJECT_TYPE_SAMPLER);
+   if (!sampler)
+      return NULL;
+
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+   vk_sampler_init(pCreateInfo, sampler);
 
    return sampler;
 }

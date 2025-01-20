@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2035 # FIXME glob
 # shellcheck disable=SC2086 # we want word splitting
+# shellcheck disable=SC1091 # paths only become valid at runtime
+
+. "${SCRIPTS_DIR}/setup-test-env.sh"
+
+section_start traces_prepare "traces: preparing test setup"
 
 set -ex
 
@@ -169,25 +174,44 @@ if [ -n "$PIGLIT_REPLAY_ANGLE_TAG" ]; then
   tar --zstd -xf ${FILE} -C replayer-db/angle/
 fi
 
-if ! eval $RUN_CMD;
-then
-    printf "%s\n" "Found $(cat /tmp/version.txt), expected $MESA_VERSION"
-fi
-
-./piglit summary aggregate "$RESULTS_DIR" -o junit.xml
-
 PIGLIT_RESULTS="${PIGLIT_RESULTS:-replay}"
 RESULTSFILE="$RESULTS_DIR/$PIGLIT_RESULTS.txt"
 mkdir -p .gitlab-ci/piglit
+
+uncollapsed_section_switch traces "traces: run traces"
+
+if ! eval $RUN_CMD;
+then
+    error "Found $(cat /tmp/version.txt), expected $MESA_VERSION"
+fi
+
+
+./piglit summary aggregate "$RESULTS_DIR" -o junit.xml
+
+{ set +x; } 2>/dev/null
 ./piglit summary console "$RESULTS_DIR"/results.json.bz2 \
     | tee ".gitlab-ci/piglit/$PIGLIT_RESULTS.txt.orig" \
     | head -n -1 | grep -v ": pass" \
     | sed '/^summary:/Q' \
     > $RESULTSFILE
 
+if [ -s $RESULTSFILE ]; then
+	error "Failures in traces:"
+	cat $RESULTSFILE
+	echo "Review the image changes and get the new checksums at: ${ARTIFACTS_BASE_URL}/results/summary/problems.html"
+	echo "If the new traces look correct to you, you can update the checksums"
+	echo "locally by running:"
+	echo "    ./bin/ci/update_traces_checksum.sh"
+	echo "and resubmit this merge request."
+fi
+
+section_switch test_post_process "traces: post-processing test results"
+
 __PREFIX="trace/$PIGLIT_REPLAY_DEVICE_NAME"
 __S3_PATH="$PIGLIT_REPLAY_ARTIFACTS_BASE_URL"
 __S3_TRACES_PREFIX="traces"
+
+set -x
 
 if [ "$PIGLIT_REPLAY_SUBCOMMAND" != "profile" ]; then
     quiet replay_s3_upload_images
@@ -196,6 +220,8 @@ fi
 
 if [ ! -s $RESULTSFILE ]; then
     rm -rf "${RESULTS_DIR:?}/${__PREFIX}"
+    { set +x; } 2>/dev/null
+    section_end test_post_process
     exit 0
 fi
 
@@ -207,7 +233,6 @@ find "$RESULTS_DIR"/summary -type f -name "*.html" -print0 \
 find "$RESULTS_DIR"/summary -type f -name "*.html" -print0 \
         | xargs -0 sed -i 's%<img src="file://%<img src="https://'"${PIGLIT_REPLAY_REFERENCE_IMAGES_BASE}"'/%g'
 
-echo "Failures in traces:"
-cat $RESULTSFILE
-error echo "Review the image changes and get the new checksums at: ${ARTIFACTS_BASE_URL}/results/summary/problems.html "
+section_end test_post_process
+
 exit 1

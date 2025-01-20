@@ -1212,6 +1212,7 @@ etna_compile_shader(struct etna_shader_variant *v)
          unsigned idx = var->data.driver_location;
          sf->reg[idx].reg = idx;
          sf->reg[idx].slot = var->data.location;
+         sf->reg[idx].interpolation = var->data.interpolation;
          sf->reg[idx].num_components = glsl_get_components(var->type);
          sf->num_reg = MAX2(sf->num_reg, idx+1);
       }
@@ -1221,6 +1222,12 @@ etna_compile_shader(struct etna_shader_variant *v)
          unsigned idx = var->data.driver_location;
          sf->reg[idx].reg = idx + 1;
          sf->reg[idx].slot = var->data.location;
+         if (var->data.interpolation == INTERP_MODE_NONE && v->key.flatshade &&
+             (var->data.location == VARYING_SLOT_COL0 ||
+              var->data.location == VARYING_SLOT_COL1)) {
+            var->data.interpolation = INTERP_MODE_FLAT;
+         }
+         sf->reg[idx].interpolation = var->data.interpolation;
          sf->reg[idx].num_components = glsl_get_components(var->type);
          sf->num_reg = MAX2(sf->num_reg, idx+1);
          count++;
@@ -1382,7 +1389,8 @@ etna_link_shader(struct etna_shader_link_info *info,
       const struct etna_shader_inout *fsio = &fs->infile.reg[idx];
       const struct etna_shader_inout *vsio = etna_shader_vs_lookup(vs, fsio);
       struct etna_varying *varying;
-      bool interpolate_always = true;
+      bool varying_is_color = fsio->slot == VARYING_SLOT_COL0 ||
+                              fsio->slot == VARYING_SLOT_COL1;
 
       assert(fsio->reg > 0 && fsio->reg <= ARRAY_SIZE(info->varyings));
 
@@ -1392,15 +1400,32 @@ etna_link_shader(struct etna_shader_link_info *info,
       varying = &info->varyings[fsio->reg - 1];
       varying->num_components = fsio->num_components;
 
-      if (!interpolate_always) /* colors affected by flat shading */
+      if (varying_is_color) /* colors affected by flat shading */
          varying->pa_attributes = 0x200;
       else /* texture coord or other bypasses flat shading */
          varying->pa_attributes = 0x2f1;
 
-      varying->use[0] = VARYING_COMPONENT_USE_UNUSED;
-      varying->use[1] = VARYING_COMPONENT_USE_UNUSED;
-      varying->use[2] = VARYING_COMPONENT_USE_UNUSED;
-      varying->use[3] = VARYING_COMPONENT_USE_UNUSED;
+      for (int i = 0; i < 4; i++) {
+         if (varying_is_color)
+            varying->use[i] = VARYING_COMPONENT_USE_COLOR;
+         else
+            varying->use[i] = VARYING_COMPONENT_USE_GENERIC;
+      }
+
+      switch (fsio->interpolation) {
+      case INTERP_MODE_NONE:
+      case INTERP_MODE_SMOOTH:
+         varying->semantic = VARYING_INTERPOLATION_MODE_SMOOTH;
+         break;
+      case INTERP_MODE_NOPERSPECTIVE:
+         varying->semantic = VARYING_INTERPOLATION_MODE_NONPERSPECTIVE;
+         break;
+      case INTERP_MODE_FLAT:
+         varying->semantic = VARYING_INTERPOLATION_MODE_FLAT;
+         break;
+      default:
+         unreachable("unsupported varying interpolation mode");
+      }
 
       /* point/tex coord is an input to the PS without matching VS output,
        * so it gets a varying slot without being assigned a VS register.

@@ -59,6 +59,7 @@ hk_device_init_meta(struct hk_device *dev)
 
    dev->meta.use_gs_for_layer = false;
    dev->meta.use_stencil_export = true;
+   dev->meta.use_rect_list_pipeline = true;
    dev->meta.cmd_bind_map_buffer = hk_cmd_bind_map_buffer;
    dev->meta.max_bind_map_buffer_size_B = 64 * 1024;
 
@@ -86,7 +87,7 @@ struct hk_meta_save {
    enum agx_visibility_mode occlusion;
    struct hk_push_descriptor_set push_desc0;
    VkQueryPipelineStatisticFlags pipeline_stats_flags;
-   uint8_t push[128];
+   uint8_t push[HK_MAX_PUSH_SIZE];
 };
 
 static void
@@ -444,7 +445,7 @@ static nir_shader *
 build_image_copy_shader(const struct vk_meta_image_copy_key *key)
 {
    nir_builder build =
-      nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "vk-meta-copy");
+      nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, NULL, "hk-meta-copy");
 
    nir_builder *b = &build;
    b->shader->info.workgroup_size[0] = TILE_WIDTH;

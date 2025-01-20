@@ -687,7 +687,7 @@
   <struct name="CS SET_EXCEPTION_HANDLER" size="2">
     <field name="Exception type" size="8" start="0" type="CS Exception type"/>
     <field name="Length" size="8" start="32" type="uint"/>
-    <field name="Address" size="8" start="32" type="uint"/>
+    <field name="Address" size="8" start="40" type="uint"/>
     <field name="Opcode" size="8" start="56" type="CS Opcode" default="SET_EXCEPTION_HANDLER"/>
   </struct>
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
+# shellcheck disable=SC1091 # paths only become valid at runtime
+
+. "${SCRIPTS_DIR}/setup-test-env.sh"
 
 set -ex
 

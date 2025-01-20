@@ -1,11 +1,123 @@
                               Fontconfig
              Font configuration and customization library
-                             Version 2.15
-                              2023-12-22
+                             Version 2.16
+                              2025-01-17
 
 
 Check INSTALL for compilation and installation instructions.
 Report bugs to https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new.
+
+2.16
+
+Akira TAGOH (69):
+      Publish docs to GitLab pages
+      doc: default index for fontconfig-devel to index.html
+      Update URLs for docs
+      doc: Fix a typo of the summary for FcFontSetSort
+      Clean up .uuid files with fc-cache -f too
+      Fix undesired unref of FcConfig on Win32
+      meson.build: Fix a typo in POT names
+      meson.build: Add missing --msgid-bugs-address
+      Sort out bitmap related config files
+      Add test cases for 70-no-bitmap-and-emoji.conf and 70-no-bitmap-except-emoji.conf
+      meson: Add missing checkup
+      Add a missing dependency for CI on FreeBSD
+      meson: try to figure out libintl dependency
+      ci: Fix a typo in build script
+      ci: Add config.log for artifacts
+      ci: Add missing dependencies
+      ci: Disable cache update
+      meson: Fix build fail with NLS enabled on BSD
+      meson: Add libxml2 support
+      ci: Add libxml2 build for meson
+      meson: Workaround an exception
+      ci: Workaround an error with libxml2 on Android
+      meson: Add iconv checkup for all platforms
+      Fix incompatible pointer type on MinGW
+      meson: Use c_shared_args to take care of --default-library=both on Win32
+      ci: Fix a typo
+      ci: disable iconv for MSVC
+      ci: build with expat on MSVC
+      doc: Use sans-serif instead of sans
+      Do not add merge commits into NEWS file
+      doc: Fix a typo
+      meson: Enable run-test.sh for non-Win32
+      test/wrapper-script.sh: don't add a path when executable already has a path name.
+      meson: Add missing the unit testing with json-c
+      test-conf: Fix compiler warnings
+      Fix test case for reproducible builds
+      ci: Use md5 if md5sum isn't available.
+      ci: normalize path to avoid miscalculation of cache name
+      ci: Add Fedora 40 and remove Fedora 38
+      More information when no writable cache directories
+      Fix a memory leak in _get_real_paths_from_prefix
+      Set FcTypeVoid if no valid types to convert
+      Add FcConfigSetFontSetFilter
+      Improve hinting detection for fonthashint object
+      Accept integer for pixelsize
+      Fix a memory leak in fc-list/fc-query/fc-scan
+      Add got.orth for Gothic language
+      Add cop.orth for Coptic language
+      Add foreign automake option to avoid an error on autotools bootstrap
+      ci: rebase ci-templates
+      ci: Add Fedora 41 and drop 39
+      ci: run check-merge-request on merge request pipelines only
+      ci: Add FreeBSD 14.1 and drop 13.2
+      ci: build mingw on f40 only
+      meson: Add install_tag for install targets
+      meson: Add docs into dist
+      meson: Add autotools files into dist
+      doc: generate fontconfig-devel.html as one big file
+      ci: Fix a fail on pages deployment
+      ci: Fix pages deployment again
+      fc-case: Correct the license header of fccase.h
+      Use proper postscriptname for named instance if any
+      Replace hardcoded path in man pages to url link
+      Allow comma as a delimiter in postscriptname and ignore it on matching
+      Deal with glob string properly
+      Another fix of glob string for Win32
+      ci: Enable meson dist
+      Fix misleading-indentation warning
+      Bump the libtool version
+
+Andreas Falkenhahn (1):
+      Do not prefix cache_base with a "/". Doing so will lead to FcStrBuildFilename() composing paths that contain double slashes, e.g. in FcDirCacheProcess(). If FcDirCacheBasenameMD5() returns a cache_base that is prefixed with a "/", the call to FcStrBuildFilename() in FcDirCacheProcess() will compose a path that contains double slashes and this double-slashed path will then be passed to FcDirCacheOpenFile(). This won't cause any harm on Linux because Linux just ignores multiple slashes in paths but on other operating systems multiple slashes in paths are not allowed so FcDirCacheOpenFile() will fail on those platforms because of the double slash in the path.
+
+Andrey Prokopyuk (2):
+      Fix qsort nullpointer issue
+      Fix FcSerialize null pointer usage
+
+Christoph Reiter (1):
+      meson: fix config relocation on Windows
+
+Dan Yeaw (1):
+      Fix invalid escape character \s
+
+Dominik Röttsches (6):
+      Remove redundant leaf assignment in fcfreetype.c
+      Move Mac OS image to an up-to-date Mac OS 15 Sequoia image on ARM
+      Update Windows image to gstreamer image from stable
+      Allow building Rust targets in CI
+      [Fontations] Build bindgen targets, basic Rust test
+      Refactor exclusive language logic into separate file
+
+Florian "sp1rit"​ (1):
+      meson: added default font dirs for android
+
+Kenny Levinsen (2):
+      Unlock on allocation failure in FcCacheInsert
+      Ensure config is locked during retry in FcConfigReference
+
+Ryan Schmidt (1):
+      Fix wording in README.md
+
+Sam James (2):
+      build: detect-and-use `-lm` for `fabs` in fcmatch
+      fontconfig: mark _FcPatternIter as may_alias
+
+Xavier Claessens (2):
+      Meson: Fix build with clang-cl by using cc.preprocess()
+      meson: Add missing dep on generated header
 
 2.15
 

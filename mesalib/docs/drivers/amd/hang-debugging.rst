@@ -31,6 +31,7 @@ there are a couple of files:
 
 * ``*.spv``: SPIR-V binaries of the pipeline that was bound when the hang
   occurred.
+* ``addr_binding_report.log``: VK_EXT_address_binding_report logs.
 * ``app_info.log``: ``VkApplicationInfo`` fields.
 * ``bo_history.log``: A list of every GPU memory allocation and deallocation.
   If the GPU hang was caused by a page fault, you can use
@@ -49,6 +50,10 @@ there are a couple of files:
 * ``umr_waves.log``: A list of waves that were active at the time of the hang,
   including register values.
 * ``vm_fault.log``: The page fault address if a page fault occurred.
+
+Note: By default, the backend IR (ACO or LLVM) and the disassembly should be
+dumped to ``pipeline.log``. But due to shaders caching, you might need
+``RADV_DEBUG=hang,nocache`` to get SPIR-V and NIR in the GPU hang report.
 
 Debugging Steam games
 ---------------------

@@ -32,17 +32,26 @@
  * location_frac, we'll need to lower to a single varying store that collects
  * all of the channels together. This is because the varying instruction on
  * Midgard and Bifrost is slot-based, writing out an entire vec4 slot at a time.
+ *
+ * NOTE: this expects all stores to be outside of control flow, and with
+ * constant offsets. It should be run after nir_lower_io_to_temporaries.
  */
 static bool
 lower_store_component(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
-   if (intr->intrinsic != nir_intrinsic_store_output)
+   if (intr->intrinsic != nir_intrinsic_store_output &&
+       intr->intrinsic != nir_intrinsic_store_per_view_output)
       return false;
 
    struct hash_table_u64 *slots = data;
    unsigned component = nir_intrinsic_component(intr);
    nir_src *slot_src = nir_get_io_offset_src(intr);
    uint64_t slot = nir_src_as_uint(*slot_src) + nir_intrinsic_base(intr);
+
+   if (intr->intrinsic == nir_intrinsic_store_per_view_output) {
+      uint64_t view_index = nir_src_as_uint(intr->src[1]);
+      slot |= view_index << 32;
+   }
 
    nir_intrinsic_instr *prev = _mesa_hash_table_u64_search(slots, slot);
    unsigned mask = (prev ? nir_intrinsic_write_mask(prev) : 0);

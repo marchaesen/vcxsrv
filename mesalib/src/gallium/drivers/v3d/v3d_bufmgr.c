@@ -150,29 +150,26 @@ v3d_bo_alloc(struct v3d_screen *screen, uint32_t size, const char *name)
         bo->name = name;
         bo->private = true;
 
- retry:
-        ;
-
-        bool cleared_and_retried = false;
         struct drm_v3d_create_bo create = {
                 .size = size
         };
 
+ retry:
         ret = v3d_ioctl(screen->fd, DRM_IOCTL_V3D_CREATE_BO, &create);
-        bo->handle = create.handle;
-        bo->offset = create.offset;
 
         if (ret != 0) {
-                if (!list_is_empty(&screen->bo_cache.time_list) &&
-                    !cleared_and_retried) {
-                        cleared_and_retried = true;
+                if (!list_is_empty(&screen->bo_cache.time_list)) {
                         v3d_bo_cache_free_all(&screen->bo_cache);
                         goto retry;
                 }
 
+                mesa_loge("Failed to allocate device memory for BO\n");
                 free(bo);
                 return NULL;
         }
+
+        bo->handle = create.handle;
+        bo->offset = create.offset;
 
         screen->bo_count++;
         screen->bo_size += bo->size;

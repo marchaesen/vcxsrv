@@ -98,6 +98,10 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
             /* Without GS header geometry shader is never invoked. */
             if (instr->input.sysval == SYSTEM_VALUE_GS_HEADER_IR3)
                continue;
+            if (instr->input.sysval == SYSTEM_VALUE_SAMPLE_MASK_IN &&
+                so->reads_shading_rate &&
+                ir->compiler->reading_shading_rate_requires_smask_quirk)
+               continue;
          }
 
          instr->flags |= IR3_INSTR_UNUSED;

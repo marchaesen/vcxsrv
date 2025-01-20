@@ -38,13 +38,14 @@
 #include "pvr_tex_state.h"
 #include "pvr_transfer_frag_store.h"
 #include "pvr_types.h"
-#include "pvr_uscgen.h"
+#include "usc/pvr_uscgen.h"
 #include "pvr_util.h"
 #include "pvr_winsys.h"
 #include "util/bitscan.h"
 #include "util/list.h"
 #include "util/macros.h"
 #include "util/u_math.h"
+#define XXH_INLINE_ALL
 #include "util/xxhash.h"
 #include "vk_format.h"
 #include "vk_log.h"
@@ -392,8 +393,8 @@ pvr_pbe_src_format_normal(VkFormat src_format,
          if (dont_force_pbe) {
             count = vk_format_get_blocksizebits(dst_format) / 32U;
          } else {
-            count =
-               pvr_vk_format_get_common_color_channel_count(src_format, dst_format);
+            count = pvr_vk_format_get_common_color_channel_count(src_format,
+                                                                 dst_format);
          }
 
          if (!src_signed && !dst_signed) {
@@ -487,7 +488,7 @@ pvr_pbe_src_format_normal(VkFormat src_format,
                count = vk_format_get_blocksizebits(dst_format) / 32U;
             } else {
                count = pvr_vk_format_get_common_color_channel_count(src_format,
-                                                                dst_format);
+                                                                    dst_format);
             }
 
             switch (count) {
@@ -582,18 +583,18 @@ static inline void pvr_setup_hwbg_object(const struct pvr_device_info *dev_info,
       reg.shader_addr = PVR_DEV_ADDR(state->pds_shader_task_offset);
       assert(pvr_dev_addr_is_aligned(
          reg.shader_addr,
-         PVRX(CR_PDS_BGRND0_BASE_SHADER_ADDR_ALIGNMENT)));
+         ROGUE_CR_PDS_BGRND0_BASE_SHADER_ADDR_ALIGNMENT));
       reg.texunicode_addr = PVR_DEV_ADDR(state->uni_tex_code_offset);
       assert(pvr_dev_addr_is_aligned(
          reg.texunicode_addr,
-         PVRX(CR_PDS_BGRND0_BASE_TEXUNICODE_ADDR_ALIGNMENT)));
+         ROGUE_CR_PDS_BGRND0_BASE_TEXUNICODE_ADDR_ALIGNMENT));
    }
 
    pvr_csb_pack (&regs->pds_bgnd1_base, CR_PDS_BGRND1_BASE, reg) {
       reg.texturedata_addr = PVR_DEV_ADDR(state->tex_state_data_offset);
       assert(pvr_dev_addr_is_aligned(
          reg.texturedata_addr,
-         PVRX(CR_PDS_BGRND1_BASE_TEXTUREDATA_ADDR_ALIGNMENT)));
+         ROGUE_CR_PDS_BGRND1_BASE_TEXTUREDATA_ADDR_ALIGNMENT));
    }
 
    /* BGRND 2 not needed, background object PDS doesn't use uniform program. */
@@ -601,24 +602,24 @@ static inline void pvr_setup_hwbg_object(const struct pvr_device_info *dev_info,
    pvr_csb_pack (&regs->pds_bgnd3_sizeinfo, CR_PDS_BGRND3_SIZEINFO, reg) {
       reg.usc_sharedsize =
          DIV_ROUND_UP(state->common_ptr,
-                      PVRX(CR_PDS_BGRND3_SIZEINFO_USC_SHAREDSIZE_UNIT_SIZE));
+                      ROGUE_CR_PDS_BGRND3_SIZEINFO_USC_SHAREDSIZE_UNIT_SIZE);
 
       assert(!(state->uniform_data_size &
-               (PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_UNIFORMSIZE_UNIT_SIZE) - 1)));
+               (ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_UNIFORMSIZE_UNIT_SIZE - 1)));
       reg.pds_uniformsize =
          state->uniform_data_size /
-         PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_UNIFORMSIZE_UNIT_SIZE);
+         ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_UNIFORMSIZE_UNIT_SIZE;
 
       assert(
          !(state->tex_state_data_size &
-           (PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE) - 1)));
+           (ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE - 1)));
       reg.pds_texturestatesize =
          state->tex_state_data_size /
-         PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE);
+         ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE;
 
       reg.pds_tempsize =
          DIV_ROUND_UP(state->pds_temps,
-                      PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_TEMPSIZE_UNIT_SIZE));
+                      ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_TEMPSIZE_UNIT_SIZE);
    }
 }
 
@@ -635,13 +636,13 @@ pvr_is_surface_aligned(pvr_dev_addr_t dev_addr, bool is_input, uint32_t bpp)
 
    if (is_input) {
       if ((dev_addr.addr &
-           (PVRX(TEXSTATE_STRIDE_IMAGE_WORD1_TEXADDR_ALIGNMENT) - 1U)) !=
+           (ROGUE_TEXSTATE_STRIDE_IMAGE_WORD1_TEXADDR_ALIGNMENT - 1U)) !=
           0ULL) {
          return false;
       }
    } else {
       if ((dev_addr.addr &
-           (PVRX(PBESTATE_STATE_WORD0_ADDRESS_LOW_ALIGNMENT) - 1U)) != 0ULL) {
+           (ROGUE_PBESTATE_STATE_WORD0_ADDRESS_LOW_ALIGNMENT - 1U)) != 0ULL) {
          return false;
       }
    }
@@ -980,14 +981,14 @@ static void pvr_pbe_setup_swizzle(const struct pvr_transfer_cmd *transfer_cmd,
               dst->vk_format == VK_FORMAT_R8G8B8A8_UNORM ||
               dst->vk_format == VK_FORMAT_A8B8G8R8_UNORM_PACK32)) {
             surf_params->source_format =
-               PVRX(PBESTATE_SOURCE_FORMAT_8_PER_CHANNEL);
+               ROGUE_PBESTATE_SOURCE_FORMAT_8_PER_CHANNEL;
          } else if (state->shader_props.layer_props.pbe_format ==
                     PVR_TRANSFER_PBE_PIXEL_SRC_F16_U8) {
             surf_params->source_format =
-               PVRX(PBESTATE_SOURCE_FORMAT_8_PER_CHANNEL);
+               ROGUE_PBESTATE_SOURCE_FORMAT_8_PER_CHANNEL;
          } else if (red_width <= 8U) {
             surf_params->source_format =
-               PVRX(PBESTATE_SOURCE_FORMAT_F16_PER_CHANNEL);
+               ROGUE_PBESTATE_SOURCE_FORMAT_F16_PER_CHANNEL;
          }
       } else if (red_width == 32U && !state->dont_force_pbe) {
          uint32_t count = 0U;
@@ -997,7 +998,7 @@ static void pvr_pbe_setup_swizzle(const struct pvr_transfer_cmd *transfer_cmd,
             uint32_t tmp;
 
             tmp = pvr_vk_format_get_common_color_channel_count(src_format,
-                                                           dst->vk_format);
+                                                               dst->vk_format);
 
             count = MAX2(count, tmp);
          }
@@ -1093,7 +1094,7 @@ static VkResult pvr_pbe_setup_emit(const struct pvr_transfer_cmd *transfer_cmd,
    pvr_pds_setup_doutu(&program.task_control,
                        addr.addr,
                        0U,
-                       PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE),
+                       ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE,
                        false);
 
    pvr_pds_set_sizes_pixel_event(&program, dev_info);
@@ -1124,11 +1125,11 @@ static VkResult pvr_pbe_setup_emit(const struct pvr_transfer_cmd *transfer_cmd,
       pvr_cmd_buffer_upload_pds(transfer_cmd->cmd_buffer,
                                 staging_buffer,
                                 program.data_size,
-                                PVRX(CR_EVENT_PIXEL_PDS_DATA_ADDR_ALIGNMENT),
+                                ROGUE_CR_EVENT_PIXEL_PDS_DATA_ADDR_ALIGNMENT,
                                 staging_buffer + program.data_size,
                                 program.code_size,
-                                PVRX(CR_EVENT_PIXEL_PDS_CODE_ADDR_ALIGNMENT),
-                                PVRX(CR_EVENT_PIXEL_PDS_DATA_ADDR_ALIGNMENT),
+                                ROGUE_CR_EVENT_PIXEL_PDS_CODE_ADDR_ALIGNMENT,
+                                ROGUE_CR_EVENT_PIXEL_PDS_DATA_ADDR_ALIGNMENT,
                                 &pds_upload);
    vk_free(&device->vk.alloc, staging_buffer);
    if (result != VK_SUCCESS)
@@ -1138,10 +1139,10 @@ static VkResult pvr_pbe_setup_emit(const struct pvr_transfer_cmd *transfer_cmd,
       reg.temp_stride = 0U;
       reg.const_size =
          DIV_ROUND_UP(program.data_size,
-                      PVRX(CR_EVENT_PIXEL_PDS_INFO_CONST_SIZE_UNIT_SIZE));
+                      ROGUE_CR_EVENT_PIXEL_PDS_INFO_CONST_SIZE_UNIT_SIZE);
       reg.usc_sr_size =
          DIV_ROUND_UP(rt_count * PVR_STATE_PBE_DWORDS,
-                      PVRX(CR_EVENT_PIXEL_PDS_INFO_USC_SR_SIZE_UNIT_SIZE));
+                      ROGUE_CR_EVENT_PIXEL_PDS_INFO_USC_SR_SIZE_UNIT_SIZE);
    }
 
    pvr_csb_pack (&regs->event_pixel_pds_data, CR_EVENT_PIXEL_PDS_DATA, reg) {
@@ -1232,7 +1233,7 @@ static VkResult pvr_pbe_setup(const struct pvr_transfer_cmd *transfer_cmd,
 
       if (PVR_HAS_FEATURE(dev_info, paired_tiles)) {
          if (pbe_regs[2U] &
-             (1ULL << PVRX(PBESTATE_REG_WORD2_PAIR_TILES_SHIFT))) {
+             (1ULL << ROGUE_PBESTATE_REG_WORD2_PAIR_TILES_SHIFT)) {
             if (transfer_cmd->dst.mem_layout == PVR_MEMLAYOUT_TWIDDLED)
                state->pair_tiles = PVR_PAIRED_TILES_Y;
             else
@@ -1484,28 +1485,28 @@ static VkResult pvr_sampler_state_for_surface(
    uint64_t sampler_state[2U] = { 0UL, 0UL };
 
    pvr_csb_pack (&sampler_state[0U], TEXSTATE_SAMPLER, reg) {
-      reg.anisoctl = PVRX(TEXSTATE_ANISOCTL_DISABLED);
-      reg.minlod = PVRX(TEXSTATE_CLAMP_MIN);
-      reg.maxlod = PVRX(TEXSTATE_CLAMP_MIN);
-      reg.dadjust = PVRX(TEXSTATE_DADJUST_MIN_UINT);
+      reg.anisoctl = ROGUE_TEXSTATE_ANISOCTL_DISABLED;
+      reg.minlod = ROGUE_TEXSTATE_CLAMP_MIN;
+      reg.maxlod = ROGUE_TEXSTATE_CLAMP_MIN;
+      reg.dadjust = ROGUE_TEXSTATE_DADJUST_MIN_UINT;
 
       if (filter == PVR_FILTER_DONTCARE || filter == PVR_FILTER_POINT) {
-         reg.minfilter = PVRX(TEXSTATE_FILTER_POINT);
-         reg.magfilter = PVRX(TEXSTATE_FILTER_POINT);
+         reg.minfilter = ROGUE_TEXSTATE_FILTER_POINT;
+         reg.magfilter = ROGUE_TEXSTATE_FILTER_POINT;
       } else if (filter == PVR_FILTER_LINEAR) {
-         reg.minfilter = PVRX(TEXSTATE_FILTER_LINEAR);
-         reg.magfilter = PVRX(TEXSTATE_FILTER_LINEAR);
+         reg.minfilter = ROGUE_TEXSTATE_FILTER_LINEAR;
+         reg.magfilter = ROGUE_TEXSTATE_FILTER_LINEAR;
       } else {
          assert(PVR_HAS_FEATURE(dev_info, tf_bicubic_filter));
-         reg.minfilter = PVRX(TEXSTATE_FILTER_BICUBIC);
-         reg.magfilter = PVRX(TEXSTATE_FILTER_BICUBIC);
+         reg.minfilter = ROGUE_TEXSTATE_FILTER_BICUBIC;
+         reg.magfilter = ROGUE_TEXSTATE_FILTER_BICUBIC;
       }
 
-      reg.addrmode_u = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
-      reg.addrmode_v = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
+      reg.addrmode_u = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
+      reg.addrmode_v = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
 
       if (surface->mem_layout == PVR_MEMLAYOUT_3DTWIDDLED)
-         reg.addrmode_w = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
+         reg.addrmode_w = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
    }
 
    assert(sampler < PVR_TRANSFER_MAX_IMAGES);
@@ -2100,7 +2101,7 @@ pvr_pds_unitex(const struct pvr_device_info *dev_info,
    pvr_pds_set_sizes_pixel_shader_sa_texture_data(program, dev_info);
    state->tex_state_data_size =
       ALIGN_POT(program->data_size,
-                PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE));
+                ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE);
 
    result =
       pvr_cmd_buffer_alloc_mem(transfer_cmd->cmd_buffer,
@@ -2240,13 +2241,13 @@ static VkResult pvr_pack_clear_color(VkFormat format,
    uint32_t pbe_pack_mode = pvr_get_pbe_packmode(format);
    const bool pbe_norm = pvr_vk_format_is_fully_normalized(format);
 
-   if (pbe_pack_mode == PVRX(PBESTATE_PACKMODE_INVALID))
+   if (pbe_pack_mode == ROGUE_PBESTATE_PACKMODE_INVALID)
       return vk_error(NULL, VK_ERROR_FORMAT_NOT_SUPPORTED);
 
    /* Set packed color based on PBE pack mode and PBE norm. */
    switch (pbe_pack_mode) {
-   case PVRX(PBESTATE_PACKMODE_U8U8U8U8):
-   case PVRX(PBESTATE_PACKMODE_A8R3G3B2):
+   case ROGUE_PBESTATE_PACKMODE_U8U8U8U8:
+   case ROGUE_PBESTATE_PACKMODE_A8R3G3B2:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 8) & 0xFFU;
          pkd_color[0] |= (pvr_float_to_ufixed(color[1].f, 8) & 0xFFU) << 8;
@@ -2260,9 +2261,9 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S8S8S8S8):
-   case PVRX(PBESTATE_PACKMODE_X8U8S8S8):
-   case PVRX(PBESTATE_PACKMODE_X8S8S8U8):
+   case ROGUE_PBESTATE_PACKMODE_S8S8S8S8:
+   case ROGUE_PBESTATE_PACKMODE_X8U8S8S8:
+   case ROGUE_PBESTATE_PACKMODE_X8S8S8U8:
       if (pbe_norm) {
          pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, false);
          pkd_color[0] |= (uint32_t)pvr_float_to_f16(color[1].f, false) << 16;
@@ -2276,7 +2277,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U16U16U16U16):
+   case ROGUE_PBESTATE_PACKMODE_U16U16U16U16:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 16) & 0xFFFFU;
          pkd_color[0] |= (pvr_float_to_ufixed(color[1].f, 16) & 0xFFFFU) << 16;
@@ -2290,7 +2291,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S16S16S16S16):
+   case ROGUE_PBESTATE_PACKMODE_S16S16S16S16:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_sfixed(color[0].f, 16) & 0xFFFFU;
          pkd_color[0] |= (pvr_float_to_sfixed(color[1].f, 16) & 0xFFFFU) << 16;
@@ -2304,14 +2305,14 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_A2_XRBIAS_U10U10U10):
-   case PVRX(PBESTATE_PACKMODE_ARGBV16_XR10):
-   case PVRX(PBESTATE_PACKMODE_F16F16F16F16):
-   case PVRX(PBESTATE_PACKMODE_A2R10B10G10):
-   case PVRX(PBESTATE_PACKMODE_A4R4G4B4):
-   case PVRX(PBESTATE_PACKMODE_A1R5G5B5):
-   case PVRX(PBESTATE_PACKMODE_R5G5B5A1):
-   case PVRX(PBESTATE_PACKMODE_R5G6B5):
+   case ROGUE_PBESTATE_PACKMODE_A2_XRBIAS_U10U10U10:
+   case ROGUE_PBESTATE_PACKMODE_ARGBV16_XR10:
+   case ROGUE_PBESTATE_PACKMODE_F16F16F16F16:
+   case ROGUE_PBESTATE_PACKMODE_A2R10B10G10:
+   case ROGUE_PBESTATE_PACKMODE_A4R4G4B4:
+   case ROGUE_PBESTATE_PACKMODE_A1R5G5B5:
+   case ROGUE_PBESTATE_PACKMODE_R5G5B5A1:
+   case ROGUE_PBESTATE_PACKMODE_R5G6B5:
       if (red_width > 0) {
          pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, false);
          pkd_color[0] |= (uint32_t)pvr_float_to_f16(color[1].f, false) << 16;
@@ -2323,25 +2324,25 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U32U32U32U32):
+   case ROGUE_PBESTATE_PACKMODE_U32U32U32U32:
       pkd_color[0] = color[0].ui;
       pkd_color[1] = color[1].ui;
       pkd_color[2] = color[2].ui;
       pkd_color[3] = color[3].ui;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S32S32S32S32):
+   case ROGUE_PBESTATE_PACKMODE_S32S32S32S32:
       pkd_color[0] = (uint32_t)color[0].i;
       pkd_color[1] = (uint32_t)color[1].i;
       pkd_color[2] = (uint32_t)color[2].i;
       pkd_color[3] = (uint32_t)color[3].i;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_F32F32F32F32):
+   case ROGUE_PBESTATE_PACKMODE_F32F32F32F32:
       memcpy(pkd_color, &color[0].f, 4U * sizeof(float));
       break;
 
-   case PVRX(PBESTATE_PACKMODE_R10B10G10A2):
+   case ROGUE_PBESTATE_PACKMODE_R10B10G10A2:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 10) & 0xFFU;
          pkd_color[0] |= (pvr_float_to_ufixed(color[1].f, 10) & 0xFFU) << 10;
@@ -2361,16 +2362,16 @@ static VkResult pvr_pack_clear_color(VkFormat format,
 
       break;
 
-   case PVRX(PBESTATE_PACKMODE_A2F10F10F10):
-   case PVRX(PBESTATE_PACKMODE_F10F10F10A2):
+   case ROGUE_PBESTATE_PACKMODE_A2F10F10F10:
+   case ROGUE_PBESTATE_PACKMODE_F10F10F10A2:
       pkd_color[0] = pvr_float_to_sfixed(color[0].f, 10) & 0xFFU;
       pkd_color[0] |= (pvr_float_to_sfixed(color[1].f, 10) & 0xFFU) << 10;
       pkd_color[0] |= (pvr_float_to_sfixed(color[2].f, 10) & 0xFFU) << 20;
       pkd_color[0] |= (pvr_float_to_sfixed(color[3].f, 2) & 0xFFU) << 30;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U8U8U8):
-   case PVRX(PBESTATE_PACKMODE_R5SG5SB6):
+   case ROGUE_PBESTATE_PACKMODE_U8U8U8:
+   case ROGUE_PBESTATE_PACKMODE_R5SG5SB6:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 8) & 0xFFU;
          pkd_color[0] |= (pvr_float_to_ufixed(color[1].f, 8) & 0xFFU) << 8;
@@ -2382,8 +2383,8 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S8S8S8):
-   case PVRX(PBESTATE_PACKMODE_B6G5SR5S):
+   case ROGUE_PBESTATE_PACKMODE_S8S8S8:
+   case ROGUE_PBESTATE_PACKMODE_B6G5SR5S:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_sfixed(color[0].f, 8) & 0xFFU;
          pkd_color[0] |= (pvr_float_to_sfixed(color[1].f, 8) & 0xFFU) << 8;
@@ -2395,7 +2396,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U16U16U16):
+   case ROGUE_PBESTATE_PACKMODE_U16U16U16:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 16) & 0xFFFFU;
          pkd_color[0] |= (pvr_float_to_ufixed(color[1].f, 16) & 0xFFFFU) << 16;
@@ -2407,7 +2408,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S16S16S16):
+   case ROGUE_PBESTATE_PACKMODE_S16S16S16:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_sfixed(color[0].f, 16) & 0xFFFFU;
          pkd_color[0] |= (pvr_float_to_sfixed(color[1].f, 16) & 0xFFFFU) << 16;
@@ -2419,37 +2420,37 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_F16F16F16):
-   case PVRX(PBESTATE_PACKMODE_F11F11F10):
-   case PVRX(PBESTATE_PACKMODE_F10F11F11):
-   case PVRX(PBESTATE_PACKMODE_SE9995):
+   case ROGUE_PBESTATE_PACKMODE_F16F16F16:
+   case ROGUE_PBESTATE_PACKMODE_F11F11F10:
+   case ROGUE_PBESTATE_PACKMODE_F10F11F11:
+   case ROGUE_PBESTATE_PACKMODE_SE9995:
       pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, true);
       pkd_color[0] |= (uint32_t)pvr_float_to_f16(color[1].f, true) << 16;
       pkd_color[1] = (uint32_t)pvr_float_to_f16(color[2].f, true);
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U32U32U32):
+   case ROGUE_PBESTATE_PACKMODE_U32U32U32:
       pkd_color[0] = color[0].ui;
       pkd_color[1] = color[1].ui;
       pkd_color[2] = color[2].ui;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S32S32S32):
+   case ROGUE_PBESTATE_PACKMODE_S32S32S32:
       pkd_color[0] = (uint32_t)color[0].i;
       pkd_color[1] = (uint32_t)color[1].i;
       pkd_color[2] = (uint32_t)color[2].i;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_X24G8X32):
-   case PVRX(PBESTATE_PACKMODE_U8X24):
+   case ROGUE_PBESTATE_PACKMODE_X24G8X32:
+   case ROGUE_PBESTATE_PACKMODE_U8X24:
       pkd_color[1] = (color[1].ui & 0xFFU) << 24;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_F32F32F32):
+   case ROGUE_PBESTATE_PACKMODE_F32F32F32:
       memcpy(pkd_color, &color[0].f, 3U * sizeof(float));
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U8U8):
+   case ROGUE_PBESTATE_PACKMODE_U8U8:
       if (pbe_norm) {
          pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, false);
          pkd_color[0] |= (uint32_t)pvr_float_to_f16(color[1].f, false) << 16;
@@ -2459,7 +2460,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S8S8):
+   case ROGUE_PBESTATE_PACKMODE_S8S8:
       if (pbe_norm) {
          pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, false);
          pkd_color[0] |= (uint32_t)pvr_float_to_f16(color[1].f, false) << 16;
@@ -2471,7 +2472,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U16U16):
+   case ROGUE_PBESTATE_PACKMODE_U16U16:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 16) & 0xFFFFU;
          pkd_color[0] |= (pvr_float_to_ufixed(color[1].f, 16) & 0xFFFFU) << 16;
@@ -2481,7 +2482,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S16S16):
+   case ROGUE_PBESTATE_PACKMODE_S16S16:
       if (pbe_norm) {
          pkd_color[0] = pvr_float_to_sfixed(color[0].f, 16) & 0xFFFFU;
          pkd_color[0] |= (pvr_float_to_sfixed(color[1].f, 16) & 0xFFFFU) << 16;
@@ -2491,37 +2492,37 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       }
       break;
 
-   case PVRX(PBESTATE_PACKMODE_F16F16):
+   case ROGUE_PBESTATE_PACKMODE_F16F16:
       pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, true);
       pkd_color[0] |= (uint32_t)pvr_float_to_f16(color[1].f, true) << 16;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U32U32):
+   case ROGUE_PBESTATE_PACKMODE_U32U32:
       pkd_color[0] = color[0].ui;
       pkd_color[1] = color[1].ui;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S32S32):
+   case ROGUE_PBESTATE_PACKMODE_S32S32:
       pkd_color[0] = (uint32_t)color[0].i;
       pkd_color[1] = (uint32_t)color[1].i;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_X24U8F32):
-   case PVRX(PBESTATE_PACKMODE_X24X8F32):
+   case ROGUE_PBESTATE_PACKMODE_X24U8F32:
+   case ROGUE_PBESTATE_PACKMODE_X24X8F32:
       memcpy(pkd_color, &color[0].f, 1U * sizeof(float));
       pkd_color[1] = color[1].ui & 0xFFU;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_F32F32):
+   case ROGUE_PBESTATE_PACKMODE_F32F32:
       memcpy(pkd_color, &color[0].f, 2U * sizeof(float));
       break;
 
-   case PVRX(PBESTATE_PACKMODE_ST8U24):
+   case ROGUE_PBESTATE_PACKMODE_ST8U24:
       pkd_color[0] = pvr_float_to_ufixed(color[0].f, 24) & 0xFFFFFFU;
       pkd_color[0] |= color[1].ui << 24;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U8):
+   case ROGUE_PBESTATE_PACKMODE_U8:
       if (format == VK_FORMAT_S8_UINT)
          pkd_color[0] = color[1].ui & 0xFFU;
       else if (pbe_norm)
@@ -2531,33 +2532,33 @@ static VkResult pvr_pack_clear_color(VkFormat format,
 
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S8):
+   case ROGUE_PBESTATE_PACKMODE_S8:
       if (pbe_norm)
          pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, false);
       else
          pkd_color[0] = color[0].ui & 0xFFU;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_U16):
+   case ROGUE_PBESTATE_PACKMODE_U16:
       if (pbe_norm)
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 16) & 0xFFFFU;
       else
          pkd_color[0] = color[0].ui & 0xFFFFU;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_S16):
+   case ROGUE_PBESTATE_PACKMODE_S16:
       if (pbe_norm)
          pkd_color[0] = pvr_float_to_sfixed(color[0].f, 16) & 0xFFFFU;
       else
          pkd_color[0] = color[0].ui & 0xFFFFU;
       break;
 
-   case PVRX(PBESTATE_PACKMODE_F16):
+   case ROGUE_PBESTATE_PACKMODE_F16:
       pkd_color[0] = (uint32_t)pvr_float_to_f16(color[0].f, true);
       break;
 
    /* U32 */
-   case PVRX(PBESTATE_PACKMODE_U32):
+   case ROGUE_PBESTATE_PACKMODE_U32:
       if (format == VK_FORMAT_X8_D24_UNORM_PACK32) {
          pkd_color[0] = pvr_float_to_ufixed(color[0].f, 24) & 0xFFFFFFU;
       } else if (format == VK_FORMAT_D24_UNORM_S8_UINT) {
@@ -2574,23 +2575,23 @@ static VkResult pvr_pack_clear_color(VkFormat format,
       break;
 
    /* U24ST8 */
-   case PVRX(PBESTATE_PACKMODE_U24ST8):
+   case ROGUE_PBESTATE_PACKMODE_U24ST8:
       pkd_color[1] = (color[1].ui & 0xFFU) << 24;
       pkd_color[1] |= pvr_float_to_ufixed(color[0].f, 24) & 0xFFFFFFU;
       break;
 
    /* S32 */
-   case PVRX(PBESTATE_PACKMODE_S32):
+   case ROGUE_PBESTATE_PACKMODE_S32:
       pkd_color[0] = (uint32_t)color[0].i;
       break;
 
    /* F32 */
-   case PVRX(PBESTATE_PACKMODE_F32):
+   case ROGUE_PBESTATE_PACKMODE_F32:
       memcpy(pkd_color, &color[0].f, sizeof(float));
       break;
 
    /* X8U24 */
-   case PVRX(PBESTATE_PACKMODE_X8U24):
+   case ROGUE_PBESTATE_PACKMODE_X8U24:
       pkd_color[0] = pvr_float_to_ufixed(color[0].f, 24) & 0xFFFFFFU;
       break;
 
@@ -2604,7 +2605,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
 static VkResult
 pvr_isp_scan_direction(struct pvr_transfer_cmd *transfer_cmd,
                        bool custom_mapping,
-                       enum PVRX(CR_DIR_TYPE) *const dir_type_out)
+                       enum ROGUE_CR_DIR_TYPE *const dir_type_out)
 {
    pvr_dev_addr_t dst_dev_addr = transfer_cmd->dst.dev_addr;
    bool backwards_in_x = false;
@@ -2651,14 +2652,14 @@ pvr_isp_scan_direction(struct pvr_transfer_cmd *transfer_cmd,
 
    if (backwards_in_x) {
       if (backwards_in_y)
-         *dir_type_out = PVRX(CR_DIR_TYPE_BR2TL);
+         *dir_type_out = ROGUE_CR_DIR_TYPE_BR2TL;
       else
-         *dir_type_out = PVRX(CR_DIR_TYPE_TR2BL);
+         *dir_type_out = ROGUE_CR_DIR_TYPE_TR2BL;
    } else {
       if (backwards_in_y)
-         *dir_type_out = PVRX(CR_DIR_TYPE_BL2TR);
+         *dir_type_out = ROGUE_CR_DIR_TYPE_BL2TR;
       else
-         *dir_type_out = PVRX(CR_DIR_TYPE_TL2BR);
+         *dir_type_out = ROGUE_CR_DIR_TYPE_TL2BR;
    }
 
    return VK_SUCCESS;
@@ -2856,10 +2857,6 @@ static VkResult pvr_3d_copy_blit_core(struct pvr_transfer_ctx *ctx,
       pvr_csb_pack (&regs->isp_bgobjvals, CR_ISP_BGOBJVALS, reg) {
          reg.enablebgtag = true;
       }
-
-      /* clang-format off */
-      pvr_csb_pack (&regs->isp_aa, CR_ISP_AA, reg);
-      /* clang-format on */
    } else {
       /* No shader. */
       state->pds_temps = 0U;
@@ -2886,7 +2883,7 @@ static VkResult pvr_3d_copy_blit_core(struct pvr_transfer_ctx *ctx,
    pvr_setup_hwbg_object(dev_info, state);
 
    pvr_csb_pack (&regs->isp_render, CR_ISP_RENDER, reg) {
-      reg.mode_type = PVRX(CR_ISP_RENDER_MODE_TYPE_FAST_SCALE);
+      reg.mode_type = ROGUE_CR_ISP_RENDER_MODE_TYPE_FAST_SCALE;
 
       result = pvr_isp_scan_direction(transfer_cmd,
                                       state->custom_mapping.pass_count,
@@ -2966,9 +2963,9 @@ pvr_pds_coeff_task(struct pvr_transfer_ctx *ctx,
                  PDSINST_DOUT_FIELDS_DOUTI_SRC,
                  reg) {
       if (sample_3d)
-         reg.size = PVRX(PDSINST_DOUTI_SIZE_3D);
+         reg.size = ROGUE_PDSINST_DOUTI_SIZE_3D;
       else
-         reg.size = PVRX(PDSINST_DOUTI_SIZE_2D);
+         reg.size = ROGUE_PDSINST_DOUTI_SIZE_2D;
 
       reg.perspective = false;
 
@@ -2983,7 +2980,7 @@ pvr_pds_coeff_task(struct pvr_transfer_ctx *ctx,
        * l1 U    <= offs 4
        * ...
        */
-      reg.shademodel = PVRX(PDSINST_DOUTI_SHADEMODEL_GOURUAD);
+      reg.shademodel = ROGUE_PDSINST_DOUTI_SHADEMODEL_GOURUAD;
       reg.f32_offset = 0U;
    }
 
@@ -3132,7 +3129,7 @@ pvr_isp_prim_block_tsp_vertex_block(const struct pvr_device_info *dev_info,
          [Z] = z_present ? 1.0f / (float)src->surface.depth : 0.0f,
       };
       float z_pos = (src->filter < PVR_FILTER_LINEAR)
-                       ? floor(src->surface.z_position + 0.5f)
+                       ? floor(src->surface.z_position) + 0.5f
                        : src->surface.z_position;
 
       pvr_tsp_floats(dev_info,
@@ -3228,25 +3225,25 @@ static void pvr_isp_prim_block_pds_state(const struct pvr_device_info *dev_info,
    pvr_csb_pack (cs_ptr, TA_STATE_PDS_SIZEINFO1, info1) {
       info1.pds_uniformsize =
          state->uniform_data_size /
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_UNIFORMSIZE_UNIT_SIZE);
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_UNIFORMSIZE_UNIT_SIZE;
 
       info1.pds_texturestatesize =
          state->tex_state_data_size /
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE);
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE;
 
       info1.pds_varyingsize =
          state->coeff_data_size /
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_VARYINGSIZE_UNIT_SIZE);
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_VARYINGSIZE_UNIT_SIZE;
 
       info1.usc_varyingsize =
          ALIGN_POT(state->usc_coeff_regs,
-                   PVRX(TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE)) /
-         PVRX(TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE);
+                   ROGUE_TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE) /
+         ROGUE_TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE;
 
       info1.pds_tempsize =
          ALIGN_POT(state->pds_temps,
-                   PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE)) /
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE);
+                   ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE) /
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE;
    }
    cs_ptr++;
 
@@ -3269,8 +3266,8 @@ static void pvr_isp_prim_block_pds_state(const struct pvr_device_info *dev_info,
    pvr_csb_pack (cs_ptr, TA_STATE_PDS_SIZEINFO2, info) {
       info.usc_sharedsize =
          ALIGN_POT(state->common_ptr,
-                   PVRX(TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE)) /
-         PVRX(TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE);
+                   ROGUE_TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE) /
+         ROGUE_TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE;
       info.pds_tri_merge_disable = !PVR_HAS_ERN(dev_info, 42307);
       info.pds_batchnum = 0U;
    }
@@ -3322,10 +3319,10 @@ static void pvr_isp_prim_block_isp_state(const struct pvr_device_info *dev_info,
    cs_ptr += pvr_cmd_length(TA_STATE_ISPCTL);
 
    pvr_csb_pack (cs_ptr, TA_STATE_ISPA, ispa) {
-      ispa.objtype = PVRX(TA_OBJTYPE_TRIANGLE);
-      ispa.passtype = read_bgnd ? PVRX(TA_PASSTYPE_TRANSLUCENT)
-                                : PVRX(TA_PASSTYPE_OPAQUE);
-      ispa.dcmpmode = PVRX(TA_CMPMODE_ALWAYS);
+      ispa.objtype = ROGUE_TA_OBJTYPE_TRIANGLE;
+      ispa.passtype = read_bgnd ? ROGUE_TA_PASSTYPE_TRANSLUCENT
+                                : ROGUE_TA_PASSTYPE_OPAQUE;
+      ispa.dcmpmode = ROGUE_TA_CMPMODE_ALWAYS;
       ispa.dwritedisable = true;
    }
    cs_ptr += pvr_cmd_length(TA_STATE_ISPA);
@@ -3346,14 +3343,14 @@ static void pvr_isp_prim_block_isp_state(const struct pvr_device_info *dev_info,
 
    /* ISP vertex compression. */
    pvr_csb_pack (cs_ptr, IPF_ISP_COMPRESSION_WORD_0, word0) {
-      word0.cf_isp_comp_fmt_x0 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word0.cf_isp_comp_fmt_x1 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word0.cf_isp_comp_fmt_x2 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word0.cf_isp_comp_fmt_y0 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word0.cf_isp_comp_fmt_y1 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word0.cf_isp_comp_fmt_y2 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word0.cf_isp_comp_fmt_z0 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word0.cf_isp_comp_fmt_z1 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
+      word0.cf_isp_comp_fmt_x0 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word0.cf_isp_comp_fmt_x1 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word0.cf_isp_comp_fmt_x2 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word0.cf_isp_comp_fmt_y0 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word0.cf_isp_comp_fmt_y1 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word0.cf_isp_comp_fmt_y2 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word0.cf_isp_comp_fmt_z0 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word0.cf_isp_comp_fmt_z1 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
    }
    cs_ptr += pvr_cmd_length(IPF_ISP_COMPRESSION_WORD_0);
 
@@ -3362,8 +3359,8 @@ static void pvr_isp_prim_block_isp_state(const struct pvr_device_info *dev_info,
       word1.vf_prim_id_pres = 0U;
       word1.vf_vertex_clipped = 0U;
       word1.vf_vertex_total = num_isp_vertices - 1U;
-      word1.cf_isp_comp_fmt_z3 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
-      word1.cf_isp_comp_fmt_z2 = PVRX(IPF_COMPRESSION_FORMAT_RAW_BYTE);
+      word1.cf_isp_comp_fmt_z3 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
+      word1.cf_isp_comp_fmt_z2 = ROGUE_IPF_COMPRESSION_FORMAT_RAW_BYTE;
    }
    cs_ptr += pvr_cmd_length(IPF_ISP_COMPRESSION_WORD_1);
 
@@ -3460,14 +3457,14 @@ pvr_int32_to_isp_xy_vtx(const struct pvr_device_info *dev_info,
                         uint32_t *word_out)
 {
    if (PVR_HAS_FEATURE(dev_info, simple_internal_parameter_format)) {
-      const uint32_t max_fractional = PVRX(IPF_ISP_VERTEX_XY_SIPF_FRAC_MAX_VAL);
-      const uint32_t max_integer = PVRX(IPF_ISP_VERTEX_XY_SIPF_INTEGER_MAX_VAL);
+      const uint32_t max_fractional = ROGUE_IPF_ISP_VERTEX_XY_SIPF_FRAC_MAX_VAL;
+      const uint32_t max_integer = ROGUE_IPF_ISP_VERTEX_XY_SIPF_INTEGER_MAX_VAL;
 
       uint32_t fractional;
       uint32_t integer;
 
       if (bias)
-         val += PVRX(IPF_ISP_VERTEX_XY_BIAS_VALUE_SIPF);
+         val += ROGUE_IPF_ISP_VERTEX_XY_BIAS_VALUE_SIPF;
 
       if (val < 0 || val > max_integer + 1) {
          mesa_loge("ISP vertex xy value out of range.");
@@ -3495,7 +3492,7 @@ pvr_int32_to_isp_xy_vtx(const struct pvr_device_info *dev_info,
       return VK_SUCCESS;
    }
 
-   val += PVRX(IPF_ISP_VERTEX_XY_BIAS_VALUE);
+   val += ROGUE_IPF_ISP_VERTEX_XY_BIAS_VALUE;
 
    if (((uint32_t)val & 0x7fff8000U) != 0U)
       return vk_error(NULL, VK_ERROR_UNKNOWN);
@@ -3597,7 +3594,7 @@ pvr_isp_prim_block_isp_vertices(const struct pvr_device_info *dev_info,
       cs_ptr++;
 
       pvr_csb_pack (cs_ptr, IPF_ISP_VERTEX_WORD_1, word1) {
-         word1.y0 = top >> PVRX(IPF_ISP_VERTEX_WORD_1_Y0_SHIFT);
+         word1.y0 = top >> ROGUE_IPF_ISP_VERTEX_WORD_1_Y0_SHIFT;
       }
       cs_ptr++;
 
@@ -3608,7 +3605,7 @@ pvr_isp_prim_block_isp_vertices(const struct pvr_device_info *dev_info,
       cs_ptr++;
 
       pvr_csb_pack (cs_ptr, IPF_ISP_VERTEX_WORD_3, word3) {
-         word3.x1 = right >> PVRX(IPF_ISP_VERTEX_WORD_3_X1_SHIFT);
+         word3.x1 = right >> ROGUE_IPF_ISP_VERTEX_WORD_3_X1_SHIFT;
          word3.y1 = top;
       }
       cs_ptr++;
@@ -3626,7 +3623,7 @@ pvr_isp_prim_block_isp_vertices(const struct pvr_device_info *dev_info,
       cs_ptr++;
 
       pvr_csb_pack (cs_ptr, IPF_ISP_VERTEX_WORD_1, word1) {
-         word1.y0 = bottom >> PVRX(IPF_ISP_VERTEX_WORD_1_Y0_SHIFT);
+         word1.y0 = bottom >> ROGUE_IPF_ISP_VERTEX_WORD_1_Y0_SHIFT;
       }
       cs_ptr++;
 
@@ -3637,7 +3634,7 @@ pvr_isp_prim_block_isp_vertices(const struct pvr_device_info *dev_info,
       cs_ptr++;
 
       pvr_csb_pack (cs_ptr, IPF_ISP_VERTEX_WORD_3, word3) {
-         word3.x1 = right >> PVRX(IPF_ISP_VERTEX_WORD_3_X1_SHIFT);
+         word3.x1 = right >> ROGUE_IPF_ISP_VERTEX_WORD_3_X1_SHIFT;
          word3.y1 = bottom;
       }
       cs_ptr++;
@@ -3861,7 +3858,7 @@ pvr_isp_primitive_block(const struct pvr_device_info *dev_info,
 static inline uint32_t
 pvr_transfer_prim_blocks_per_alloc(const struct pvr_device_info *dev_info)
 {
-   uint32_t ret = PVR_DW_TO_BYTES(PVRX(IPF_CONTROL_STREAM_SIZE_DWORDS));
+   uint32_t ret = PVR_DW_TO_BYTES(ROGUE_IPF_CONTROL_STREAM_SIZE_DWORDS);
 
    if (PVR_HAS_FEATURE(dev_info, simple_internal_parameter_format))
       return ret / sizeof(uint64_t) / 2U;
@@ -3910,7 +3907,7 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
 {
    const uint32_t max_mappings_per_pb = pvr_transfer_max_quads_per_pb(dev_info);
    bool fill_blit = (transfer_cmd->flags & PVR_TRANSFER_CMD_FLAGS_FILL) != 0U;
-   uint32_t free_ctrl_stream_words = PVRX(IPF_CONTROL_STREAM_SIZE_DWORDS);
+   uint32_t free_ctrl_stream_words = ROGUE_IPF_CONTROL_STREAM_SIZE_DWORDS;
    struct pvr_transfer_3d_state *const state = &prep_data->state;
    struct pvr_winsys_transfer_regs *const regs = &state->regs;
    struct pvr_transfer_pass *pass = NULL;
@@ -3988,7 +3985,7 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
    num_region_arrays =
       (num_prim_blks + (pvr_transfer_prim_blocks_per_alloc(dev_info) - 1U)) /
       pvr_transfer_prim_blocks_per_alloc(dev_info);
-   region_arrays_size = PVRX(IPF_CONTROL_STREAM_SIZE_DWORDS) *
+   region_arrays_size = ROGUE_IPF_CONTROL_STREAM_SIZE_DWORDS *
                         sizeof(uint32_t) * num_region_arrays;
    total_stream_size = region_arrays_size + prim_blk_size;
 
@@ -4231,7 +4228,7 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
                num_region_arrays++;
                next_region_array_vaddr.addr +=
                   num_region_arrays *
-                  PVR_DW_TO_BYTES(PVRX(IPF_CONTROL_STREAM_SIZE_DWORDS));
+                  PVR_DW_TO_BYTES(ROGUE_IPF_CONTROL_STREAM_SIZE_DWORDS);
 
                if (PVR_HAS_FEATURE(dev_info,
                                    simple_internal_parameter_format_v2)) {
@@ -4241,7 +4238,7 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
                                 IPF_CONTROL_STREAM_LINK_SIPF2,
                                 control_stream) {
                      control_stream.cs_ctrl_type =
-                        PVRX(IPF_CS_CTRL_TYPE_SIPF2_LINK);
+                        ROGUE_IPF_CS_CTRL_TYPE_SIPF2_LINK;
                      control_stream.cs_link.addr = next_region_array_vaddr.addr;
                   }
 
@@ -4252,15 +4249,15 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
                         pvr_cmd_length(IPF_CONTROL_STREAM_LINK_SIPF2)));
                } else {
                   pvr_csb_pack (cs_ptr, IPF_CONTROL_STREAM, control_stream) {
-                     control_stream.cs_type = PVRX(IPF_CS_TYPE_LINK);
+                     control_stream.cs_type = ROGUE_IPF_CS_TYPE_LINK;
                      control_stream.cs_link.addr = next_region_array_vaddr.addr;
                   }
                }
 
                cs_ptr =
                   (uint32_t *)pvr_bo_suballoc_get_map_addr(pvr_cs_bo) +
-                  num_region_arrays * PVRX(IPF_CONTROL_STREAM_SIZE_DWORDS);
-               free_ctrl_stream_words = PVRX(IPF_CONTROL_STREAM_SIZE_DWORDS);
+                  num_region_arrays * ROGUE_IPF_CONTROL_STREAM_SIZE_DWORDS;
+               free_ctrl_stream_words = ROGUE_IPF_CONTROL_STREAM_SIZE_DWORDS;
 
                was_linked = PVR_HAS_FEATURE(dev_info, ipf_creq_pf);
             }
@@ -4356,11 +4353,11 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
                free_ctrl_stream_words -= 2;
             } else {
                pvr_csb_pack (cs_ptr, IPF_PRIMITIVE_FORMAT, word) {
-                  word.cs_type = PVRX(IPF_CS_TYPE_PRIM);
+                  word.cs_type = ROGUE_IPF_CS_TYPE_PRIM;
                   word.cs_isp_state_read = true;
                   word.cs_isp_state_size = 2U;
                   word.cs_prim_total = 2U * num_mappings - 1U;
-                  word.cs_mask_fmt = PVRX(IPF_CS_MASK_FMT_FULL);
+                  word.cs_mask_fmt = ROGUE_IPF_CS_MASK_FMT_FULL;
                   word.cs_prim_base_pres = true;
                }
                cs_ptr += pvr_cmd_length(IPF_PRIMITIVE_FORMAT);
@@ -4408,7 +4405,7 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
       cs_ptr = (uint32_t *)cs_byte_ptr;
    } else {
       pvr_csb_pack (cs_ptr, IPF_CONTROL_STREAM, word) {
-         word.cs_type = PVRX(IPF_CS_TYPE_TERM);
+         word.cs_type = ROGUE_IPF_CS_TYPE_TERM;
       }
       cs_ptr += pvr_cmd_length(IPF_CONTROL_STREAM);
    }
@@ -4420,7 +4417,7 @@ static VkResult pvr_isp_ctrl_stream(const struct pvr_device_info *dev_info,
    }
 
    pvr_csb_pack (&regs->isp_render, CR_ISP_RENDER, reg) {
-      reg.mode_type = PVRX(CR_ISP_RENDER_MODE_TYPE_FAST_2D);
+      reg.mode_type = ROGUE_CR_ISP_RENDER_MODE_TYPE_FAST_2D;
    }
 
    if (PVR_HAS_FEATURE(dev_info, simple_internal_parameter_format_v2) &&
@@ -4578,7 +4575,7 @@ static inline bool pvr_is_pbe_stride_aligned(const uint32_t stride)
    if (stride == 1U)
       return true;
 
-   return ((stride & (PVRX(PBESTATE_REG_WORD0_LINESTRIDE_UNIT_SIZE) - 1U)) ==
+   return ((stride & (ROGUE_PBESTATE_REG_WORD0_LINESTRIDE_UNIT_SIZE - 1U)) ==
            0x0U);
 }
 
@@ -5600,7 +5597,7 @@ static bool pvr_validate_source_addr(pvr_dev_addr_t addr)
 {
    if (!pvr_dev_addr_is_aligned(
           addr,
-          PVRX(TEXSTATE_STRIDE_IMAGE_WORD1_TEXADDR_ALIGNMENT))) {
+          ROGUE_TEXSTATE_STRIDE_IMAGE_WORD1_TEXADDR_ALIGNMENT)) {
       return false;
    }
 
@@ -5649,7 +5646,7 @@ static bool pvr_3d_validate_addr(struct pvr_transfer_cmd *transfer_cmd)
    if (!pvr_supports_texel_unwind(transfer_cmd)) {
       return pvr_dev_addr_is_aligned(
          transfer_cmd->dst.dev_addr,
-         PVRX(PBESTATE_STATE_WORD0_ADDRESS_LOW_ALIGNMENT));
+         ROGUE_PBESTATE_STATE_WORD0_ADDRESS_LOW_ALIGNMENT);
    }
 
    return true;

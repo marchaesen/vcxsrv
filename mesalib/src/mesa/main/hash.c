@@ -45,7 +45,7 @@
  * Initialize a hash table.
  */
 void
-_mesa_InitHashTable(struct _mesa_HashTable *table)
+_mesa_InitHashTable(struct _mesa_HashTable *table, bool enable_reuse)
 {
    memset(table, 0, sizeof(*table));
    util_sparse_array_init(&table->array, sizeof(void*), 1024);
@@ -53,6 +53,7 @@ _mesa_InitHashTable(struct _mesa_HashTable *table)
    /* Mark ID = 0 as used, so that we don't return it. */
    util_idalloc_sparse_reserve(&table->id_alloc, 0);
    simple_mtx_init(&table->Mutex, mtx_plain);
+   table->alloc_via_idalloc = enable_reuse;
 }
 
 /**
@@ -84,14 +85,6 @@ _mesa_DeinitHashTable(struct _mesa_HashTable *table,
    util_idalloc_sparse_fini(&table->id_alloc);
    util_sparse_array_finish(&table->array);
    simple_mtx_destroy(&table->Mutex);
-}
-
-void
-_mesa_HashEnableNameReuse(struct _mesa_HashTable *table)
-{
-   _mesa_HashLockMutex(table);
-   table->alloc_via_idalloc = true;
-   _mesa_HashUnlockMutex(table);
 }
 
 /**

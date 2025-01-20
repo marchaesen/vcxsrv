@@ -56,6 +56,8 @@
 extern "C" {
 #endif
 
+struct nir_shader;
+
 /**
  * Implementation limits
  */
@@ -143,7 +145,7 @@ struct pipe_rasterizer_state
    unsigned rasterizer_discard:1;
 
    /**
-    * Exposed by PIPE_CAP_TILE_RASTER_ORDER.  When true,
+    * Exposed by pipe_caps.tile_raster_order.  When true,
     * tile_raster_order_increasing_* indicate the order that the rasterizer
     * should render tiles, to meet the requirements of
     * GL_MESA_tile_raster_order.
@@ -155,9 +157,9 @@ struct pipe_rasterizer_state
    /**
     * When false, depth clipping is disabled and the depth value will be
     * clamped later at the per-pixel level before depth testing.
-    * This depends on PIPE_CAP_DEPTH_CLIP_DISABLE.
+    * This depends on pipe_caps.depth_clip_disable.
     *
-    * If PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE is unsupported, depth_clip_near
+    * If pipe_caps.depth_clip_disable_separate is unsupported, depth_clip_near
     * is equal to depth_clip_far.
     */
    unsigned depth_clip_near:1;
@@ -165,7 +167,7 @@ struct pipe_rasterizer_state
 
    /**
     * When true, depth clamp is enabled.
-    * If PIPE_CAP_DEPTH_CLAMP_ENABLE is unsupported, this is always the inverse
+    * If pipe_caps.depth_clamp_enable is unsupported, this is always the inverse
     * of depth_clip_far.
     */
    unsigned depth_clamp:1;
@@ -181,7 +183,7 @@ struct pipe_rasterizer_state
    /**
     * When true do not scale offset_units and use same rules for unorm and
     * float depth buffers (D3D9). When false use GL/D3D1X behaviour.
-    * This depends on PIPE_CAP_POLYGON_OFFSET_UNITS_UNSCALED.
+    * This depends on pipe_caps.polygon_offset_units_unscaled.
     */
    unsigned offset_units_unscaled:1;
 
@@ -301,7 +303,7 @@ struct pipe_shader_state
    const struct tgsi_token *tokens;
    union {
       void *native;
-      void *nir;
+      struct nir_shader *nir;
    } ir;
    struct pipe_stream_output_info stream_output;
 };
@@ -916,6 +918,14 @@ struct pipe_blit_info
    bool scissor_enable;
    struct pipe_scissor_state scissor;
 
+   /* Swizzling during a blit typically forces a slower
+      path, so it should be used only when necessary. It's
+      there mainly to support blitting between different formats
+      when one of them has been emulated (e.g. GL_ALPHA emulated
+      by GL_RGBA) */
+   bool swizzle_enable; /**< swizzle is only applied if this is set */
+   uint8_t swizzle[4];  /**< map to be applied while blitting */
+
    /* Window rectangles can either be inclusive or exclusive. */
    bool window_rectangle_include;
    unsigned num_window_rectangles;
@@ -1049,6 +1059,10 @@ enum pipe_ml_operation_type {
    PIPE_ML_OPERATION_TYPE_ADD,
    PIPE_ML_OPERATION_TYPE_CONVOLUTION,
    PIPE_ML_OPERATION_TYPE_POOLING,
+   PIPE_ML_OPERATION_TYPE_CONCATENATION,
+   PIPE_ML_OPERATION_TYPE_SPLIT,
+   PIPE_ML_OPERATION_TYPE_PAD,
+   PIPE_ML_OPERATION_TYPE_FULLY_CONNECTED,
 };
 
 /**
@@ -1064,12 +1078,14 @@ struct pipe_ml_operation
    /**
     * Tensor used as input.
     */
-   struct pipe_tensor *input_tensor;
+   struct pipe_tensor **input_tensors;
+   unsigned input_count;
 
    /**
     * Tensor used as output.
     */
-   struct pipe_tensor *output_tensor;
+   struct pipe_tensor **output_tensors;
+   unsigned output_count;
 
    union {
       struct {
@@ -1077,6 +1093,7 @@ struct pipe_ml_operation
           * For convolutions, tensor containing the weights.
           */
          struct pipe_tensor *weight_tensor;
+
          /**
           * For convolutions, tensor containing the biases.
           */
@@ -1106,6 +1123,11 @@ struct pipe_ml_operation
           * Whether this is a depthwise convolution.
           */
          bool depthwise;
+
+         /**
+          * Whether this convolution has fused ReLU activation.
+          */
+         bool relu;
       } conv;
       struct {
          /**
@@ -1135,10 +1157,40 @@ struct pipe_ml_operation
       } pooling;
       struct {
          /**
-          * Additional input tensor, to be added to the other one.
+          * Left padding.
           */
-         struct pipe_tensor *input_tensor;
-      } add;
+         unsigned before_x;
+
+         /**
+          * Right padding.
+          */
+         unsigned after_x;
+
+         /**
+          * Top padding.
+          */
+         unsigned before_y;
+         /**
+          * Bottom padding.
+          */
+         unsigned after_y;
+      } pad;
+
+      struct {
+         /**
+          * Tensor containing the weights.
+          */
+         struct pipe_tensor *weight_tensor;
+         /**
+          * Tensor containing the biases.
+          */
+         struct pipe_tensor *bias_tensor;
+
+         /**
+          * Whether a ReLU activation should be applied to the output.
+          */
+         bool relu;
+      } fcon;
    };
 };
 

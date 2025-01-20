@@ -44,11 +44,6 @@ bool ir_rvalue::is_one() const
    return false;
 }
 
-bool ir_rvalue::is_negative_one() const
-{
-   return false;
-}
-
 /**
  * Modify the swizzle make to move one component to another
  *
@@ -657,16 +652,6 @@ depth_layout_string(ir_depth_layout layout)
       assert(0);
       return "";
    }
-}
-
-ir_expression_operation
-ir_expression::get_operator(const char *str)
-{
-   for (int op = 0; op <= int(ir_last_opcode); op++) {
-      if (strcmp(str, ir_expression_operation_strings[op]) == 0)
-	 return (ir_expression_operation) op;
-   }
-   return (ir_expression_operation) -1;
 }
 
 ir_variable *
@@ -1633,21 +1618,6 @@ ir_constant::is_one() const
    return is_value(1.0, 1);
 }
 
-bool
-ir_constant::is_negative_one() const
-{
-   return is_value(-1.0, -1);
-}
-
-bool
-ir_constant::is_uint16_constant() const
-{
-   if (!glsl_type_is_integer_32(type))
-      return false;
-
-   return value.u[0] < (1 << 16);
-}
-
 ir_loop::ir_loop()
    : ir_instruction(ir_type_loop)
 {
@@ -1770,18 +1740,6 @@ const char *ir_texture::opcode_string()
    assert((unsigned int) op < ARRAY_SIZE(tex_opcode_strs));
    return tex_opcode_strs[op];
 }
-
-ir_texture_opcode
-ir_texture::get_opcode(const char *str)
-{
-   const int count = sizeof(tex_opcode_strs) / sizeof(tex_opcode_strs[0]);
-   for (int op = 0; op < count; op++) {
-      if (strcmp(str, tex_opcode_strs[op]) == 0)
-	 return (ir_texture_opcode) op;
-   }
-   return (ir_texture_opcode) -1;
-}
-
 
 void
 ir_texture::set_sampler(ir_dereference *sampler, const glsl_type *type)
@@ -2093,13 +2051,6 @@ ir_variable::enable_extension_warning(const char *extension)
 
    assert(!"Should not get here.");
    this->data.warn_extension_index = 0;
-}
-
-const char *
-ir_variable::get_extension_warning() const
-{
-   return this->data.warn_extension_index == 0
-      ? NULL : warn_extension_table[this->data.warn_extension_index];
 }
 
 ir_function_signature::ir_function_signature(const glsl_type *return_type,

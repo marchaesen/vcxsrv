@@ -40,7 +40,7 @@
 .restricted-rules:
   rules:
     # If the triggerer has access to the restricted traces and if it is pre-merge
-    - if: '($GITLAB_USER_LOGIN !~ "/^(robclark|anholt|flto|cwabbott0|Danil|tomeu|okias|gallo|kwg|llanderwelin|zmike|vigneshraman)$/") &&
+    - if: '($GITLAB_USER_LOGIN !~ "/^(robclark|anholt|flto|cwabbott0|Danil|tomeu|okias|gallo|kwg|llanderwelin|zmike|vigneshraman|Valentine)$/") &&
            ($GITLAB_USER_LOGIN != "marge-bot" || $CI_COMMIT_BRANCH)'
       when: never
 
@@ -122,7 +122,7 @@
     LAVA_TAGS: "cbg-0"
     # Ensure that we are using the release build artifact
     LAVA_S3_ARTIFACT_NAME: mesa-${ARCH}-default-release
-    S3_ARTIFACT_NAME: mesa-python-test
+    S3_ARTIFACT_NAME: mesa-python-ci-artifacts
   # Reset dependencies in performance jobs to enforce the release build artifact
   dependencies: null
   # Don't run in parallel. It is okay to performance jobs to take a little

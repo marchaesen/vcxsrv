@@ -7,7 +7,7 @@ static ResourceTracker* sResourceTracker = nullptr;
 static uint32_t sFeatureBits = 0;
 static constexpr uint32_t kWatchdogBufferMax = 1'000;
 
-#if defined(__ANDROID__)
+#if DETECT_OS_ANDROID
 #include <cutils/properties.h>
 #endif
 
@@ -16,7 +16,7 @@ class VkEncoder::Impl {
     Impl(gfxstream::guest::IOStream* stream) : m_stream(stream), m_logEncodes(false) {
         if (!sResourceTracker) sResourceTracker = ResourceTracker::get();
         m_stream.incStreamRef();
-#if defined(__ANDROID__)
+#if DETECT_OS_ANDROID
         const char* emuVkLogEncodesPropName = "qemu.vk.log";
         char encodeProp[PROPERTY_VALUE_MAX];
         if (property_get(emuVkLogEncodesPropName, encodeProp, nullptr) > 0) {

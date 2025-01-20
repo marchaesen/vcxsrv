@@ -294,10 +294,6 @@ void pvr_hard_code_graphics_get_build_info(
              data->graphics.vert_shader_states[pipeline_n]
                 ->stage_state.pds_temps_count);
 
-      assert(data->graphics.build_infos[pipeline_n]->vert_common_data.coeffs ==
-             data->graphics.vert_shader_states[pipeline_n]
-                ->stage_state.coefficient_size);
-
       build_data->vs = data->graphics.build_infos[pipeline_n]->stage_data.vs;
       *common_build_data =
          data->graphics.build_infos[pipeline_n]->vert_common_data;
@@ -310,10 +306,6 @@ void pvr_hard_code_graphics_get_build_info(
       assert(data->graphics.build_infos[pipeline_n]->frag_common_data.temps ==
              data->graphics.frag_shader_states[pipeline_n]
                 ->stage_state.pds_temps_count);
-
-      assert(data->graphics.build_infos[pipeline_n]->frag_common_data.coeffs ==
-             data->graphics.frag_shader_states[pipeline_n]
-                ->stage_state.coefficient_size);
 
       build_data->fs = data->graphics.build_infos[pipeline_n]->stage_data.fs;
       *common_build_data =

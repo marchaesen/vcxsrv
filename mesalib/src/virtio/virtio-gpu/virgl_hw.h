@@ -405,7 +405,7 @@ enum virgl_formats {
    VIRGL_FORMAT_Y8_400_UNORM            = 322,
    VIRGL_FORMAT_Y8_U8_V8_444_UNORM      = 323,
    VIRGL_FORMAT_Y8_U8_V8_422_UNORM      = 324,
-   VIRGL_FORMAT_Y8_U8V8_422_UNORM       = 325,
+   VIRGL_FORMAT_NV16                    = 325, /* aka Y8_U8V8_422_UNORM */
    VIRGL_FORMAT_Y8_UNORM                = 326,
    VIRGL_FORMAT_YVYU                    = 327,
    VIRGL_FORMAT_Z16_UNORM_S8_UINT       = 328,
@@ -523,6 +523,18 @@ enum virgl_formats {
    VIRGL_FORMAT_Y410                    = 440,
    VIRGL_FORMAT_Y412                    = 441,
    VIRGL_FORMAT_Y416                    = 442,
+   VIRGL_FORMAT_NV15                    = 443,
+   VIRGL_FORMAT_NV20                    = 444,
+   VIRGL_FORMAT_Y8_U8_V8_440_UNORM      = 445,
+   VIRGL_FORMAT_R10_G10B10_420_UNORM    = 446,
+   VIRGL_FORMAT_R10_G10B10_422_UNORM    = 447,
+   VIRGL_FORMAT_X6G10_X6B10X6R10_420_UNORM = 448,
+   VIRGL_FORMAT_X4G12_X4B12X4R12_420_UNORM = 449,
+   VIRGL_FORMAT_X6R10_UNORM             = 450,
+   VIRGL_FORMAT_X6R10X6G10_UNORM        = 451,
+   VIRGL_FORMAT_X4R12_UNORM             = 452,
+   VIRGL_FORMAT_X4R12X4G12_UNORM        = 453,
+   VIRGL_FORMAT_R8_G8B8_422_UNORM       = 454,
    VIRGL_FORMAT_MAX /* = PIPE_FORMAT_COUNT */,
 
    /* Below formats must not be used in the guest. */
@@ -532,100 +544,101 @@ enum virgl_formats {
 };
 
 /* These are used by the capability_bits field in virgl_caps_v2. */
-#define VIRGL_CAP_NONE 0
-#define VIRGL_CAP_TGSI_INVARIANT       (1 << 0)
-#define VIRGL_CAP_TEXTURE_VIEW         (1 << 1)
-#define VIRGL_CAP_SET_MIN_SAMPLES      (1 << 2)
-#define VIRGL_CAP_COPY_IMAGE           (1 << 3)
-#define VIRGL_CAP_TGSI_PRECISE         (1 << 4)
-#define VIRGL_CAP_TXQS                 (1 << 5)
-#define VIRGL_CAP_MEMORY_BARRIER       (1 << 6)
-#define VIRGL_CAP_COMPUTE_SHADER       (1 << 7)
-#define VIRGL_CAP_FB_NO_ATTACH         (1 << 8)
-#define VIRGL_CAP_ROBUST_BUFFER_ACCESS (1 << 9)
-#define VIRGL_CAP_TGSI_FBFETCH         (1 << 10)
-#define VIRGL_CAP_SHADER_CLOCK         (1 << 11)
-#define VIRGL_CAP_TEXTURE_BARRIER      (1 << 12)
-#define VIRGL_CAP_TGSI_COMPONENTS      (1 << 13)
-#define VIRGL_CAP_GUEST_MAY_INIT_LOG   (1 << 14)
-#define VIRGL_CAP_SRGB_WRITE_CONTROL   (1 << 15)
-#define VIRGL_CAP_QBO                  (1 << 16)
-#define VIRGL_CAP_TRANSFER             (1 << 17)
-#define VIRGL_CAP_FBO_MIXED_COLOR_FORMATS  (1 << 18)
-#define VIRGL_CAP_HOST_IS_GLES         (1 << 19)
-#define VIRGL_CAP_BIND_COMMAND_ARGS    (1 << 20)
-#define VIRGL_CAP_MULTI_DRAW_INDIRECT  (1 << 21)
-#define VIRGL_CAP_INDIRECT_PARAMS      (1 << 22)
-#define VIRGL_CAP_TRANSFORM_FEEDBACK3  (1 << 23)
-#define VIRGL_CAP_3D_ASTC              (1 << 24)
-#define VIRGL_CAP_INDIRECT_INPUT_ADDR  (1 << 25)
-#define VIRGL_CAP_COPY_TRANSFER        (1 << 26)
-#define VIRGL_CAP_CLIP_HALFZ           (1 << 27)
-#define VIRGL_CAP_APP_TWEAK_SUPPORT    (1 << 28)
-#define VIRGL_CAP_BGRA_SRGB_IS_EMULATED (1 << 29)
-#define VIRGL_CAP_CLEAR_TEXTURE        (1 << 30)
+#define VIRGL_CAP_NONE 0u
+#define VIRGL_CAP_TGSI_INVARIANT       (1u << 0)
+#define VIRGL_CAP_TEXTURE_VIEW         (1u << 1)
+#define VIRGL_CAP_SET_MIN_SAMPLES      (1u << 2)
+#define VIRGL_CAP_COPY_IMAGE           (1u << 3)
+#define VIRGL_CAP_TGSI_PRECISE         (1u << 4)
+#define VIRGL_CAP_TXQS                 (1u << 5)
+#define VIRGL_CAP_MEMORY_BARRIER       (1u << 6)
+#define VIRGL_CAP_COMPUTE_SHADER       (1u << 7)
+#define VIRGL_CAP_FB_NO_ATTACH         (1u << 8)
+#define VIRGL_CAP_ROBUST_BUFFER_ACCESS (1u << 9)
+#define VIRGL_CAP_TGSI_FBFETCH         (1u << 10)
+#define VIRGL_CAP_SHADER_CLOCK         (1u << 11)
+#define VIRGL_CAP_TEXTURE_BARRIER      (1u << 12)
+#define VIRGL_CAP_TGSI_COMPONENTS      (1u << 13)
+#define VIRGL_CAP_GUEST_MAY_INIT_LOG   (1u << 14)
+#define VIRGL_CAP_SRGB_WRITE_CONTROL   (1u << 15)
+#define VIRGL_CAP_QBO                  (1u << 16)
+#define VIRGL_CAP_TRANSFER             (1u << 17)
+#define VIRGL_CAP_FBO_MIXED_COLOR_FORMATS  (1u << 18)
+#define VIRGL_CAP_HOST_IS_GLES         (1u << 19)
+#define VIRGL_CAP_BIND_COMMAND_ARGS    (1u << 20)
+#define VIRGL_CAP_MULTI_DRAW_INDIRECT  (1u << 21)
+#define VIRGL_CAP_INDIRECT_PARAMS      (1u << 22)
+#define VIRGL_CAP_TRANSFORM_FEEDBACK3  (1u << 23)
+#define VIRGL_CAP_3D_ASTC              (1u << 24)
+#define VIRGL_CAP_INDIRECT_INPUT_ADDR  (1u << 25)
+#define VIRGL_CAP_COPY_TRANSFER        (1u << 26)
+#define VIRGL_CAP_CLIP_HALFZ           (1u << 27)
+#define VIRGL_CAP_APP_TWEAK_SUPPORT    (1u << 28)
+#define VIRGL_CAP_BGRA_SRGB_IS_EMULATED (1u << 29)
+#define VIRGL_CAP_CLEAR_TEXTURE        (1u << 30)
 #define VIRGL_CAP_ARB_BUFFER_STORAGE   (1u << 31)
 
 // Legacy alias
 #define VIRGL_CAP_FAKE_FP64            VIRGL_CAP_HOST_IS_GLES
 
 /* These are used by the capability_bits_v2 field in virgl_caps_v2. */
-#define VIRGL_CAP_V2_BLEND_EQUATION       (1 << 0)
-#define VIRGL_CAP_V2_UNTYPED_RESOURCE     (1 << 1)
-#define VIRGL_CAP_V2_VIDEO_MEMORY         (1 << 2)
-#define VIRGL_CAP_V2_MEMINFO              (1 << 3)
-#define VIRGL_CAP_V2_STRING_MARKER        (1 << 4)
-#define VIRGL_CAP_V2_IMPLICIT_MSAA        (1 << 6)
-#define VIRGL_CAP_V2_COPY_TRANSFER_BOTH_DIRECTIONS (1 << 7)
-#define VIRGL_CAP_V2_SCANOUT_USES_GBM     (1 << 8)
-#define VIRGL_CAP_V2_SSO                  (1 << 9)
-#define VIRGL_CAP_V2_TEXTURE_SHADOW_LOD   (1 << 10)
-#define VIRGL_CAP_V2_VS_VERTEX_LAYER      (1 << 11)
-#define VIRGL_CAP_V2_VS_VIEWPORT_INDEX    (1 << 12)
-#define VIRGL_CAP_V2_PIPELINE_STATISTICS_QUERY (1 << 13)
-#define VIRGL_CAP_V2_DRAW_PARAMETERS      (1 << 14)
-#define VIRGL_CAP_V2_GROUP_VOTE           (1 << 15)
-#define VIRGL_CAP_V2_MIRROR_CLAMP_TO_EDGE (1 << 16)
-#define VIRGL_CAP_V2_MIRROR_CLAMP         (1 << 17)
+#define VIRGL_CAP_V2_BLEND_EQUATION       (1u << 0)
+#define VIRGL_CAP_V2_UNTYPED_RESOURCE     (1u << 1)
+#define VIRGL_CAP_V2_VIDEO_MEMORY         (1u << 2)
+#define VIRGL_CAP_V2_MEMINFO              (1u << 3)
+#define VIRGL_CAP_V2_STRING_MARKER        (1u << 4)
+#define VIRGL_CAP_V2_DIFFERENT_GPU        (1u << 5)
+#define VIRGL_CAP_V2_IMPLICIT_MSAA        (1u << 6)
+#define VIRGL_CAP_V2_COPY_TRANSFER_BOTH_DIRECTIONS (1u << 7)
+#define VIRGL_CAP_V2_SCANOUT_USES_GBM     (1u << 8)
+#define VIRGL_CAP_V2_SSO                  (1u << 9)
+#define VIRGL_CAP_V2_TEXTURE_SHADOW_LOD   (1u << 10)
+#define VIRGL_CAP_V2_VS_VERTEX_LAYER      (1u << 11)
+#define VIRGL_CAP_V2_VS_VIEWPORT_INDEX    (1u << 12)
+#define VIRGL_CAP_V2_PIPELINE_STATISTICS_QUERY (1u << 13)
+#define VIRGL_CAP_V2_DRAW_PARAMETERS      (1u << 14)
+#define VIRGL_CAP_V2_GROUP_VOTE           (1u << 15)
+#define VIRGL_CAP_V2_MIRROR_CLAMP_TO_EDGE (1u << 16)
+#define VIRGL_CAP_V2_MIRROR_CLAMP         (1u << 17)
 
 /* virgl bind flags - these are compatible with mesa 10.5 gallium.
  * but are fixed, no other should be passed to virgl either.
  */
-#define VIRGL_BIND_DEPTH_STENCIL (1 << 0)
-#define VIRGL_BIND_RENDER_TARGET (1 << 1)
-#define VIRGL_BIND_SAMPLER_VIEW  (1 << 3)
-#define VIRGL_BIND_VERTEX_BUFFER (1 << 4)
-#define VIRGL_BIND_INDEX_BUFFER  (1 << 5)
-#define VIRGL_BIND_CONSTANT_BUFFER (1 << 6)
-#define VIRGL_BIND_DISPLAY_TARGET (1 << 7)
-#define VIRGL_BIND_COMMAND_ARGS  (1 << 8)
-#define VIRGL_BIND_STREAM_OUTPUT (1 << 11)
-#define VIRGL_BIND_SHADER_BUFFER (1 << 14)
-#define VIRGL_BIND_QUERY_BUFFER  (1 << 15)
-#define VIRGL_BIND_CURSOR        (1 << 16)
-#define VIRGL_BIND_CUSTOM        (1 << 17)
-#define VIRGL_BIND_SCANOUT       (1 << 18)
+#define VIRGL_BIND_DEPTH_STENCIL (1u << 0)
+#define VIRGL_BIND_RENDER_TARGET (1u << 1)
+#define VIRGL_BIND_SAMPLER_VIEW  (1u << 3)
+#define VIRGL_BIND_VERTEX_BUFFER (1u << 4)
+#define VIRGL_BIND_INDEX_BUFFER  (1u << 5)
+#define VIRGL_BIND_CONSTANT_BUFFER (1u << 6)
+#define VIRGL_BIND_DISPLAY_TARGET (1u << 7)
+#define VIRGL_BIND_COMMAND_ARGS  (1u << 8)
+#define VIRGL_BIND_STREAM_OUTPUT (1u << 11)
+#define VIRGL_BIND_SHADER_BUFFER (1u << 14)
+#define VIRGL_BIND_QUERY_BUFFER  (1u << 15)
+#define VIRGL_BIND_CURSOR        (1u << 16)
+#define VIRGL_BIND_CUSTOM        (1u << 17)
+#define VIRGL_BIND_SCANOUT       (1u << 18)
 /* Used for buffers that are backed by guest storage and
  * are only read by the host.
  */
-#define VIRGL_BIND_STAGING       (1 << 19)
-#define VIRGL_BIND_SHARED        (1 << 20)
+#define VIRGL_BIND_STAGING       (1u << 19)
+#define VIRGL_BIND_SHARED        (1u << 20)
 
-#define VIRGL_BIND_PREFER_EMULATED_BGRA  (1 << 21)
+#define VIRGL_BIND_PREFER_EMULATED_BGRA  (1u << 21) /* non-functional */
 
-#define VIRGL_BIND_LINEAR (1 << 22)
+#define VIRGL_BIND_LINEAR (1u << 22)
 
-#define VIRGL_BIND_SHARED_SUBFLAGS (0xff << 24)
+#define VIRGL_BIND_SHARED_SUBFLAGS (0xffu << 24)
 
-#define VIRGL_BIND_MINIGBM_CAMERA_WRITE (1 << 24)
-#define VIRGL_BIND_MINIGBM_CAMERA_READ (1 << 25)
-#define VIRGL_BIND_MINIGBM_HW_VIDEO_DECODER (1 << 26)
-#define VIRGL_BIND_MINIGBM_HW_VIDEO_ENCODER (1 << 27)
-#define VIRGL_BIND_MINIGBM_SW_READ_OFTEN (1 << 28)
-#define VIRGL_BIND_MINIGBM_SW_READ_RARELY (1 << 29)
-#define VIRGL_BIND_MINIGBM_SW_WRITE_OFTEN (1 << 30)
-#define VIRGL_BIND_MINIGBM_SW_WRITE_RARELY (1 << 31)
-#define VIRGL_BIND_MINIGBM_PROTECTED (0xf << 28) // Mutually exclusive with SW_ flags
+#define VIRGL_BIND_MINIGBM_CAMERA_WRITE (1u << 24)
+#define VIRGL_BIND_MINIGBM_CAMERA_READ (1u << 25)
+#define VIRGL_BIND_MINIGBM_HW_VIDEO_DECODER (1u << 26)
+#define VIRGL_BIND_MINIGBM_HW_VIDEO_ENCODER (1u << 27)
+#define VIRGL_BIND_MINIGBM_SW_READ_OFTEN (1u << 28)
+#define VIRGL_BIND_MINIGBM_SW_READ_RARELY (1u << 29)
+#define VIRGL_BIND_MINIGBM_SW_WRITE_OFTEN (1u << 30)
+#define VIRGL_BIND_MINIGBM_SW_WRITE_RARELY (1u << 31)
+#define VIRGL_BIND_MINIGBM_PROTECTED (0xfu << 28) // Mutually exclusive with SW_ flags
 
 struct virgl_caps_bool_set1 {
         unsigned indep_blend_enable:1;
@@ -762,7 +775,10 @@ struct virgl_caps_v2 {
         uint32_t max_video_memory;
         char renderer[64];
         float max_anisotropy;
-        uint32_t max_shader_sampler_views;
+        // NOTE: this informs guest-side PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS,
+        // **NOT** GL_MAX_TEXTURE_IMAGE_UNITS!!!
+        // Guest-side driver has always used it as such.
+        uint32_t max_texture_samplers;
         struct virgl_supported_format_mask supported_multisample_formats;
         uint32_t max_const_buffer_size[6]; // PIPE_SHADER_TYPES
         uint32_t num_video_caps;
@@ -770,6 +786,7 @@ struct virgl_caps_v2 {
         uint32_t max_uniform_block_size;
         uint32_t max_tcs_outputs;
         uint32_t max_tes_outputs;
+        uint32_t max_shader_storage_blocks[6]; // PIPE_SHADER_TYPES
 };
 
 union virgl_caps {
@@ -798,7 +815,15 @@ enum virgl_ctx_errors {
         VIRGL_ERROR_CTX_ILLEGAL_FORMAT,
         VIRGL_ERROR_CTX_ILLEGAL_SAMPLER_VIEW_TARGET,
         VIRGL_ERROR_CTX_TRANSFER_IOV_BOUNDS,
-        VIRGL_ERROR_CTX_ILLEGAL_DUAL_SRC_BLEND
+        VIRGL_ERROR_CTX_ILLEGAL_DUAL_SRC_BLEND,
+        VIRGL_ERROR_CTX_UNSUPPORTED_FUNCTION,
+        VIRGL_ERROR_CTX_ILLEGAL_PROGRAM_PIPELINE,
+        VIRGL_ERROR_CTX_TOO_MANY_VERTEX_ATTRIBUTES,
+        VIRGL_ERROR_CTX_UNSUPPORTED_TEX_WRAP,
+        VIRGL_ERROR_CTX_CUBE_MAP_FACE_OUT_OF_RANGE,
+        VIRGL_ERROR_CTX_BLIT_AREA_OUT_OF_RANGE,
+        VIRGL_ERROR_CTX_SSBO_BINDING_RANGE,
+        VIRGL_ERROR_CTX_RESOURCE_OUT_OF_RANGE,
 };
 
 enum virgl_statistics_query_index {

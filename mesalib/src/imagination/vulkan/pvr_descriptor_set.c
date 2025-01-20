@@ -358,8 +358,7 @@ pvr_dump_in_memory_layout_sizes(const struct pvr_descriptor_set_layout *layout)
          const struct pvr_descriptor_set_layout_binding *const binding =
             &layout->bindings[i];
 
-         if (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-             binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+         if (vk_descriptor_type_is_dynamic(binding->type))
             continue;
 
          mesa_logd("|   %s %04u | %-26s[%3u] |",
@@ -374,8 +373,7 @@ pvr_dump_in_memory_layout_sizes(const struct pvr_descriptor_set_layout *layout)
          const struct pvr_descriptor_set_layout_binding *const binding =
             &layout->bindings[i];
 
-         if (binding->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-             binding->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+         if (!vk_descriptor_type_is_dynamic(binding->type))
             continue;
 
          mesa_logd("| * %s %04u | %-26s[%3u] |",
@@ -397,8 +395,7 @@ pvr_dump_in_memory_layout_sizes(const struct pvr_descriptor_set_layout *layout)
          const struct pvr_descriptor_set_layout_binding *const binding =
             &layout->bindings[i];
 
-         if (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-             binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+         if (vk_descriptor_type_is_dynamic(binding->type))
             continue;
 
          mesa_logd("|   %s %04u | %-26s[%3u] |",
@@ -413,8 +410,7 @@ pvr_dump_in_memory_layout_sizes(const struct pvr_descriptor_set_layout *layout)
          const struct pvr_descriptor_set_layout_binding *const binding =
             &layout->bindings[i];
 
-         if (binding->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-             binding->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+         if (!vk_descriptor_type_is_dynamic(binding->type))
             continue;
 
          mesa_logd("| * %s %04u | %-26s[%3u] |",
@@ -589,8 +585,7 @@ VkResult pvr_CreateDescriptorSetLayout(
           * Having them all in one place makes updating them easier when the
           * user updates the dynamic offsets.
           */
-         if (descriptor_type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-             descriptor_type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) {
+         if (!vk_descriptor_type_is_dynamic(descriptor_type)) {
             struct pvr_descriptor_size_info size_info;
 
             pvr_descriptor_size_info_init(device, descriptor_type, &size_info);
@@ -627,8 +622,7 @@ VkResult pvr_CreateDescriptorSetLayout(
          &layout->bindings[bind_num];
       const VkDescriptorType descriptor_type = internal_binding->type;
 
-      if (descriptor_type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-          descriptor_type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+      if (!vk_descriptor_type_is_dynamic(descriptor_type))
          continue;
 
       for (uint32_t stage = 0;
@@ -715,8 +709,7 @@ pvr_dump_in_register_layout_sizes(const struct pvr_device *device,
                if (!(binding->shader_stage_mask & BITFIELD_BIT(stage)))
                   continue;
 
-               if (binding->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-                   binding->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+               if (!vk_descriptor_type_is_dynamic(binding->type))
                   continue;
 
                mesa_logd("| +%04u | set = %u, binding = %03u | %-26s[%3u] |",
@@ -756,8 +749,7 @@ pvr_dump_in_register_layout_sizes(const struct pvr_device *device,
                if (!(binding->shader_stage_mask & BITFIELD_BIT(stage)))
                   continue;
 
-               if (binding->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-                   binding->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+               if (!vk_descriptor_type_is_dynamic(binding->type))
                   continue;
 
                mesa_logd("| +%04u | set = %u, binding = %03u | %-26s[%3u] |",
@@ -793,8 +785,7 @@ pvr_dump_in_register_layout_sizes(const struct pvr_device *device,
             if (!(binding->shader_stage_mask & BITFIELD_BIT(stage)))
                continue;
 
-            if (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-                binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+            if (vk_descriptor_type_is_dynamic(binding->type))
                continue;
 
             mesa_logd("| +%04u | set = %u, binding = %03u | %-26s[%3u] |",
@@ -828,8 +819,7 @@ pvr_dump_in_register_layout_sizes(const struct pvr_device *device,
             if (!(binding->shader_stage_mask & BITFIELD_BIT(stage)))
                continue;
 
-            if (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-                binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+            if (vk_descriptor_type_is_dynamic(binding->type))
                continue;
 
             mesa_logd("| +%04u | set = %u, binding = %03u | %-26s[%3u] |",
@@ -1344,8 +1334,7 @@ static void pvr_descriptor_update_buffer_info(
    struct pvr_descriptor_size_info size_info;
    bool is_dynamic;
 
-   is_dynamic = (binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) ||
-                (binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
+   is_dynamic = vk_descriptor_type_is_dynamic(binding->type);
 
    pvr_descriptor_size_info_init(device, binding->type, &size_info);
 
@@ -1683,7 +1672,7 @@ static void pvr_write_buffer_descriptor(const struct pvr_device_info *dev_info,
        * compiler change to allow us to skip the range check.
        */
       secondary[PVR_DESC_IMAGE_SECONDARY_OFFSET_WIDTH(dev_info)] =
-         (uint32_t)(bview->range / vk_format_get_blocksize(bview->format));
+         (uint32_t)(bview->vk.elements);
       secondary[PVR_DESC_IMAGE_SECONDARY_OFFSET_HEIGHT(dev_info)] = 1;
    }
 }
@@ -1956,8 +1945,7 @@ static void pvr_copy_descriptor_set(struct pvr_device *device,
     * set memory. They only exist in the set->descriptors list which we've
     * already updated above.
     */
-   if (src_binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-       src_binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) {
+   if (vk_descriptor_type_is_dynamic(src_binding->type)) {
       return;
    }
 

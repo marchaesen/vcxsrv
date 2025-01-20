@@ -147,8 +147,12 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
                shader->info.inputs_read_indirectly |= bitfield;
          }
 
-         if (cross_invocation && shader->info.stage == MESA_SHADER_TESS_CTRL)
-            shader->info.tess.tcs_cross_invocation_inputs_read |= bitfield;
+         if (shader->info.stage == MESA_SHADER_TESS_CTRL) {
+            if (cross_invocation)
+               shader->info.tess.tcs_cross_invocation_inputs_read |= bitfield;
+            else
+               shader->info.tess.tcs_same_invocation_inputs_read |= bitfield;
+         }
 
          if (shader->info.stage == MESA_SHADER_FRAGMENT) {
             shader->info.fs.uses_sample_qualifier |= var->data.sample;
@@ -213,11 +217,6 @@ mark_whole_variable(nir_shader *shader, nir_variable *var,
        (shader->info.stage == MESA_SHADER_MESH &&
         var->data.location == VARYING_SLOT_PRIMITIVE_INDICES &&
         !var->data.per_primitive)) {
-      assert(glsl_type_is_array(type));
-      type = glsl_get_array_element(type);
-   }
-
-   if (var->data.per_view) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -544,6 +543,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_input_vertex:
    case nir_intrinsic_load_interpolated_input:
    case nir_intrinsic_load_per_primitive_input:
+   case nir_intrinsic_load_attribute_pan:
       if (shader->info.stage == MESA_SHADER_TESS_EVAL &&
           instr->intrinsic == nir_intrinsic_load_input &&
           !is_patch_special) {
@@ -564,13 +564,17 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
       }
 
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
-          instr->intrinsic == nir_intrinsic_load_per_vertex_input &&
-          !src_is_invocation_id(nir_get_io_arrayed_index_src(instr)))
-         shader->info.tess.tcs_cross_invocation_inputs_read |= slot_mask;
+          instr->intrinsic == nir_intrinsic_load_per_vertex_input) {
+         if (src_is_invocation_id(nir_get_io_arrayed_index_src(instr)))
+            shader->info.tess.tcs_same_invocation_inputs_read |= slot_mask;
+         else
+            shader->info.tess.tcs_cross_invocation_inputs_read |= slot_mask;
+      }
       break;
 
    case nir_intrinsic_load_output:
    case nir_intrinsic_load_per_vertex_output:
+   case nir_intrinsic_load_per_view_output:
    case nir_intrinsic_load_per_primitive_output:
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
           instr->intrinsic == nir_intrinsic_load_output &&
@@ -606,6 +610,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
 
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_vertex_output:
+   case nir_intrinsic_store_per_view_output:
    case nir_intrinsic_store_per_primitive_output:
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
           instr->intrinsic == nir_intrinsic_store_output &&
@@ -659,11 +664,13 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_draw_id:
    case nir_intrinsic_load_invocation_id:
    case nir_intrinsic_load_frag_coord:
+   case nir_intrinsic_load_pixel_coord:
    case nir_intrinsic_load_frag_shading_rate:
    case nir_intrinsic_load_fully_covered:
    case nir_intrinsic_load_point_coord:
    case nir_intrinsic_load_line_coord:
    case nir_intrinsic_load_front_face:
+   case nir_intrinsic_load_front_face_fsign:
    case nir_intrinsic_load_sample_id:
    case nir_intrinsic_load_sample_pos:
    case nir_intrinsic_load_sample_pos_or_center:
@@ -1022,6 +1029,7 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
       shader->info.fs.needs_quad_helper_invocations = false;
    }
    if (shader->info.stage == MESA_SHADER_TESS_CTRL) {
+      shader->info.tess.tcs_same_invocation_inputs_read = 0;
       shader->info.tess.tcs_cross_invocation_inputs_read = 0;
       shader->info.tess.tcs_cross_invocation_outputs_read = 0;
    }

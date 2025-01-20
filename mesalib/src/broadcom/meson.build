@@ -70,8 +70,14 @@ libbroadcom_v3d = static_library(
   link_whole : v3d_libs + per_version_libs,
   link_with: [libv3d_neon],
   build_by_default : false,
-  dependencies: [dep_valgrind, dep_thread, idep_mesautil],
+  dependencies: [dep_valgrind, dep_thread, idep_mesautil, dep_libdrm],
 )
+
+subdir('perfcntrs')
+
+if with_perfetto and (with_datasources.contains('v3d') or with_datasources.contains('auto'))
+  subdir('ds')
+endif
 
 if with_broadcom_vk
   subdir('vulkan')

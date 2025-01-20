@@ -588,7 +588,7 @@ lima_pack_render_state(struct lima_context *ctx, const struct pipe_draw_info *in
    bool pixel_kill = true;
 
    /* do hw support RGBA independ blend?
-    * PIPE_CAP_INDEP_BLEND_ENABLE
+    * pipe_caps.indep_blend_enable
     *
     * how to handle the no cbuf only zbuf case?
     */

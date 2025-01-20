@@ -10,7 +10,6 @@ llvmpipe-piglit-rusticl:
     - debian/x86_64_test-gl
   variables:
     DEQP_SUITE: llvmpipe-rusticl
-    DEQP_RUNNER_OPTIONS: "--timeout 120.0"
     GPU_VERSION: llvmpipe-rusticl
 
 llvmpipe-traces:
@@ -57,7 +56,18 @@ llvmpipe-deqp-asan:
     # busy at the deqp-runner level, and we don't want to overload fd.o
     # shared runners
     LP_NUM_THREADS: 0
+    DEQP_FORCE_ASAN: 1
   extends: .llvmpipe-deqp-test
   needs:
     - debian/x86_64_test-gl
     - debian-testing-asan
+
+.android-llvmpipe:
+  extends:
+    - .test-android
+    - .llvmpipe-rules
+  variables:
+    ANDROID_GPU_MODE: guest_swiftshader
+    GPU_VERSION: llvmpipe
+    DEQP_SUITE: android-llvmpipe
+    # TODO: define DEQP_FRACTION?

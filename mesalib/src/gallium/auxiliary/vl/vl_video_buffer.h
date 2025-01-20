@@ -41,7 +41,6 @@
 struct vl_video_buffer
 {
    struct pipe_video_buffer base;
-   unsigned                 num_planes;
    struct pipe_resource     *resources[VL_NUM_COMPONENTS];
    struct pipe_sampler_view *sampler_view_planes[VL_NUM_COMPONENTS];
    struct pipe_sampler_view *sampler_view_components[VL_NUM_COMPONENTS];

@@ -3,12 +3,21 @@ dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_a
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_and_pos_x_neg_y_pos_z_and_neg_x_pos_y_neg_z
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_pos_x_and_neg_x_neg_y_pos_z_and_neg_x_pos_y_neg_z
 
+arm32-dEQP-GLES2.functional.shaders.random.texture.vertex.44
+arm32-dEQP-GLES2.functional.texture.mipmap.cube.generate.a8_nicest
+arm32-dEQP-GLES2.functional.texture.mipmap.cube.generate.l8_nicest
+arm32-dEQP-GLES2.functional.texture.mipmap.cube.generate.rgb565_nicest
+arm32-dEQP-GLES2.functional.texture.mipmap.cube.generate.rgb888_nicest
+arm32-dEQP-GLES2.functional.texture.mipmap.cube.generate.rgba4444_nicest
+arm32-dEQP-GLES2.functional.texture.mipmap.cube.generate.rgba5551_nicest
+
 glx@glx-multi-window-single-context
 glx@glx-visuals-stencil
 shaders@glsl-vs-loop
 shaders@glsl-vs-loop-nested
 spec@ext_framebuffer_blit@fbo-sys-blit
 spec@ext_framebuffer_blit@fbo-sys-sub-blit
+spec@ext_framebuffer_object@fbo-flushing-2
 spec@egl_chromium_sync_control@conformance
 
 # CMA allocations that may sometimes succeed
@@ -50,3 +59,9 @@ spec@arb_vertex_buffer_object@vbo-subdata-many drawrangeelements
 # Nightly run expectations update
 spec@glsl-1.20@execution@variable-indexing@fs-uniform-mat2-rd
 
+# started 2024-10-22, cause unclear
+dEQP-EGL.functional.sharing.gles2.multithread.random.programs.link.19
+dEQP-EGL.functional.sharing.gles2.multithread.random_egl_sync.programs.link.19
+
+# With linux kernel 6.13-rc4 uprev. broadcom job uses 6.6.47 kernel, so likely this is caused with recent mesa
+dEQP-GLES2.functional.texture.mipmap.cube.generate.la88_fastest

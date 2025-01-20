@@ -161,7 +161,7 @@ void r600_test_dma(struct r600_common_screen *rscreen)
 	unsigned i, iterations, num_partial_copies, max_tex_side;
 	unsigned num_pass = 0, num_fail = 0;
 
-	max_tex_side = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+	max_tex_side = screen->caps.max_texture_2d_size;
 
 	/* Max 128 MB allowed for both textures. */
 	max_alloc_size = 128 * 1024 * 1024;

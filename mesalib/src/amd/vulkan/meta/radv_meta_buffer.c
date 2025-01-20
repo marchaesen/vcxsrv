@@ -37,8 +37,9 @@ struct fill_constants {
 };
 
 static VkResult
-create_fill_pipeline(struct radv_device *device)
+get_fill_pipeline(struct radv_device *device, VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
+   const char *key_data = "radv-fill-buffer";
    VkResult result;
 
    const VkPushConstantRange pc_range = {
@@ -46,36 +47,38 @@ create_fill_pipeline(struct radv_device *device)
       .size = sizeof(struct fill_constants),
    };
 
-   result = radv_meta_create_pipeline_layout(device, NULL, 1, &pc_range, &device->meta_state.buffer.fill_p_layout);
+   result = vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, NULL, &pc_range, key_data,
+                                        strlen(key_data), layout_out);
    if (result != VK_SUCCESS)
       return result;
 
-   nir_shader *cs = build_buffer_fill_shader(device);
-
-   result = radv_meta_create_compute_pipeline(device, cs, device->meta_state.buffer.fill_p_layout,
-                                              &device->meta_state.buffer.fill_pipeline);
-
-   ralloc_free(cs);
-   return result;
-}
-
-static VkResult
-get_fill_pipeline(struct radv_device *device, VkPipeline *pipeline_out)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   VkResult result = VK_SUCCESS;
-
-   mtx_lock(&state->mtx);
-   if (!state->buffer.fill_pipeline) {
-      result = create_fill_pipeline(device);
-      if (result != VK_SUCCESS)
-         goto fail;
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, key_data, strlen(key_data));
+   if (pipeline_from_cache != VK_NULL_HANDLE) {
+      *pipeline_out = pipeline_from_cache;
+      return VK_SUCCESS;
    }
 
-   *pipeline_out = state->buffer.fill_pipeline;
+   nir_shader *cs = build_buffer_fill_shader(device);
 
-fail:
-   mtx_unlock(&state->mtx);
+   const VkPipelineShaderStageCreateInfo stage_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = vk_shader_module_handle_from_nir(cs),
+      .pName = "main",
+      .pSpecializationInfo = NULL,
+   };
+
+   const VkComputePipelineCreateInfo pipeline_info = {
+      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      .stage = stage_info,
+      .flags = 0,
+      .layout = *layout_out,
+   };
+
+   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, key_data,
+                                            strlen(key_data), pipeline_out);
+
+   ralloc_free(cs);
    return result;
 }
 
@@ -109,8 +112,9 @@ struct copy_constants {
 };
 
 static VkResult
-create_copy_pipeline(struct radv_device *device)
+get_copy_pipeline(struct radv_device *device, VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
+   const char *key_data = "radv-copy-buffer";
    VkResult result;
 
    const VkPushConstantRange pc_range = {
@@ -118,67 +122,39 @@ create_copy_pipeline(struct radv_device *device)
       .size = sizeof(struct copy_constants),
    };
 
-   result = radv_meta_create_pipeline_layout(device, NULL, 1, &pc_range, &device->meta_state.buffer.copy_p_layout);
+   result = vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, NULL, &pc_range, key_data,
+                                        strlen(key_data), layout_out);
    if (result != VK_SUCCESS)
       return result;
+
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, key_data, strlen(key_data));
+   if (pipeline_from_cache != VK_NULL_HANDLE) {
+      *pipeline_out = pipeline_from_cache;
+      return VK_SUCCESS;
+   }
 
    nir_shader *cs = build_buffer_copy_shader(device);
 
-   result = radv_meta_create_compute_pipeline(device, cs, device->meta_state.buffer.copy_p_layout,
-                                              &device->meta_state.buffer.copy_pipeline);
+   const VkPipelineShaderStageCreateInfo stage_info = {
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+      .module = vk_shader_module_handle_from_nir(cs),
+      .pName = "main",
+      .pSpecializationInfo = NULL,
+   };
+
+   const VkComputePipelineCreateInfo pipeline_info = {
+      .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      .stage = stage_info,
+      .flags = 0,
+      .layout = *layout_out,
+   };
+
+   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, key_data,
+                                            strlen(key_data), pipeline_out);
 
    ralloc_free(cs);
    return result;
-}
-
-static VkResult
-get_copy_pipeline(struct radv_device *device, VkPipeline *pipeline_out)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   VkResult result = VK_SUCCESS;
-
-   mtx_lock(&state->mtx);
-   if (!state->buffer.copy_pipeline) {
-      result = create_copy_pipeline(device);
-      if (result != VK_SUCCESS)
-         goto fail;
-   }
-
-   *pipeline_out = state->buffer.copy_pipeline;
-
-fail:
-   mtx_unlock(&state->mtx);
-   return result;
-}
-
-VkResult
-radv_device_init_meta_buffer_state(struct radv_device *device, bool on_demand)
-{
-   VkResult result;
-
-   if (on_demand)
-      return VK_SUCCESS;
-
-   result = create_fill_pipeline(device);
-   if (result != VK_SUCCESS)
-      return result;
-
-   result = create_copy_pipeline(device);
-   if (result != VK_SUCCESS)
-      return result;
-
-   return result;
-}
-
-void
-radv_device_finish_meta_buffer_state(struct radv_device *device)
-{
-   struct radv_meta_state *state = &device->meta_state;
-
-   radv_DestroyPipeline(radv_device_to_handle(device), state->buffer.copy_pipeline, &state->alloc);
-   radv_DestroyPipeline(radv_device_to_handle(device), state->buffer.fill_pipeline, &state->alloc);
-   radv_DestroyPipelineLayout(radv_device_to_handle(device), state->buffer.copy_p_layout, &state->alloc);
-   radv_DestroyPipelineLayout(radv_device_to_handle(device), state->buffer.fill_p_layout, &state->alloc);
 }
 
 static void
@@ -186,10 +162,11 @@ fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t siz
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_meta_saved_state saved_state;
+   VkPipelineLayout layout;
    VkPipeline pipeline;
    VkResult result;
 
-   result = get_fill_pipeline(device, &pipeline);
+   result = get_fill_pipeline(device, &pipeline, &layout);
    if (result != VK_SUCCESS) {
       vk_command_buffer_set_error(&cmd_buffer->vk, result);
       return;
@@ -207,8 +184,8 @@ fill_buffer_shader(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t siz
       .data = data,
    };
 
-   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.buffer.fill_p_layout,
-                              VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(fill_consts), &fill_consts);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                              sizeof(fill_consts), &fill_consts);
 
    radv_unaligned_dispatch(cmd_buffer, DIV_ROUND_UP(size, 16), 1, 1);
 
@@ -220,10 +197,11 @@ copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_meta_saved_state saved_state;
+   VkPipelineLayout layout;
    VkPipeline pipeline;
    VkResult result;
 
-   result = get_copy_pipeline(device, &pipeline);
+   result = get_copy_pipeline(device, &pipeline, &layout);
    if (result != VK_SUCCESS) {
       vk_command_buffer_set_error(&cmd_buffer->vk, result);
       return;
@@ -241,8 +219,8 @@ copy_buffer_shader(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t
       .max_offset = size - 16,
    };
 
-   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.buffer.copy_p_layout,
-                              VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(copy_consts), &copy_consts);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                              sizeof(copy_consts), &copy_consts);
 
    radv_unaligned_dispatch(cmd_buffer, DIV_ROUND_UP(size, 16), 1, 1);
 
@@ -286,9 +264,9 @@ radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *im
    } else if (use_compute) {
       fill_buffer_shader(cmd_buffer, va, size, value);
 
-      flush_bits =
-         RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
-         radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_ACCESS_2_SHADER_WRITE_BIT, image);
+      flush_bits = RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE |
+                   radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+                                         VK_ACCESS_2_SHADER_WRITE_BIT, image, NULL);
    } else if (size)
       radv_cp_dma_clear_buffer(cmd_buffer, va, size, value);
 

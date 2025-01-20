@@ -182,13 +182,10 @@ void ac_build_optimization_barrier(struct ac_llvm_context *ctx, LLVMValueRef *pg
 LLVMValueRef ac_build_shader_clock(struct ac_llvm_context *ctx, mesa_scope scope);
 
 LLVMValueRef ac_build_ballot(struct ac_llvm_context *ctx, LLVMValueRef value);
-LLVMValueRef ac_get_i1_sgpr_mask(struct ac_llvm_context *ctx, LLVMValueRef value);
 
 LLVMValueRef ac_build_vote_all(struct ac_llvm_context *ctx, LLVMValueRef value);
 
 LLVMValueRef ac_build_vote_any(struct ac_llvm_context *ctx, LLVMValueRef value);
-
-LLVMValueRef ac_build_vote_eq(struct ac_llvm_context *ctx, LLVMValueRef value);
 
 LLVMValueRef ac_build_varying_gather_values(struct ac_llvm_context *ctx, LLVMValueRef *values,
                                             unsigned value_count, unsigned component);
@@ -209,18 +206,7 @@ LLVMValueRef ac_build_expand(struct ac_llvm_context *ctx, LLVMValueRef value,
 
 LLVMValueRef ac_build_expand_to_vec4(struct ac_llvm_context *ctx, LLVMValueRef value,
                                      unsigned num_channels);
-LLVMValueRef ac_build_round(struct ac_llvm_context *ctx, LLVMValueRef value);
-
 LLVMValueRef ac_build_fdiv(struct ac_llvm_context *ctx, LLVMValueRef num, LLVMValueRef den);
-
-LLVMValueRef ac_build_fast_udiv(struct ac_llvm_context *ctx, LLVMValueRef num,
-                                LLVMValueRef multiplier, LLVMValueRef pre_shift,
-                                LLVMValueRef post_shift, LLVMValueRef increment);
-LLVMValueRef ac_build_fast_udiv_nuw(struct ac_llvm_context *ctx, LLVMValueRef num,
-                                    LLVMValueRef multiplier, LLVMValueRef pre_shift,
-                                    LLVMValueRef post_shift, LLVMValueRef increment);
-LLVMValueRef ac_build_fast_udiv_u31_d_not_one(struct ac_llvm_context *ctx, LLVMValueRef num,
-                                              LLVMValueRef multiplier, LLVMValueRef post_shift);
 
 LLVMValueRef ac_build_fs_interp(struct ac_llvm_context *ctx, LLVMValueRef llvm_chan,
                                 LLVMValueRef attr_number, LLVMValueRef params, LLVMValueRef i,
@@ -234,26 +220,15 @@ LLVMValueRef ac_build_fs_interp_mov(struct ac_llvm_context *ctx, unsigned parame
                                     LLVMValueRef llvm_chan, LLVMValueRef attr_number,
                                     LLVMValueRef params);
 
-LLVMValueRef ac_build_gep_ptr(struct ac_llvm_context *ctx, LLVMTypeRef type, LLVMValueRef base_ptr,
-                              LLVMValueRef index);
-
-LLVMValueRef ac_build_pointer_add(struct ac_llvm_context *ctx, LLVMTypeRef type, LLVMValueRef ptr,
-                                  LLVMValueRef index);
-
-LLVMTypeRef ac_build_gep0_type(LLVMTypeRef pointee_type, LLVMValueRef index);
 LLVMValueRef ac_build_gep0(struct ac_llvm_context *ctx, struct ac_llvm_pointer ptr, LLVMValueRef index);
 
 void ac_build_indexed_store(struct ac_llvm_context *ctx, struct ac_llvm_pointer ptr, LLVMValueRef index,
                             LLVMValueRef value);
 
-LLVMValueRef ac_build_load(struct ac_llvm_context *ctx, struct ac_llvm_pointer ptr, LLVMValueRef index);
 LLVMValueRef ac_build_load_invariant(struct ac_llvm_context *ctx, struct ac_llvm_pointer ptr,
                                      LLVMValueRef index);
 LLVMValueRef ac_build_load_to_sgpr(struct ac_llvm_context *ctx, struct ac_llvm_pointer ptr,
                                    LLVMValueRef index);
-
-LLVMValueRef ac_build_load_to_sgpr_uint_wraparound(struct ac_llvm_context *ctx, struct ac_llvm_pointer ptr,
-                                                   LLVMValueRef index);
 
 void ac_build_buffer_store_dword(struct ac_llvm_context *ctx, LLVMValueRef rsrc, LLVMValueRef vdata,
                                  LLVMValueRef vindex, LLVMValueRef voffset, LLVMValueRef soffset,
@@ -395,7 +370,6 @@ struct ac_image_args {
 };
 
 LLVMValueRef ac_build_image_opcode(struct ac_llvm_context *ctx, struct ac_image_args *a);
-LLVMValueRef ac_build_image_get_sample_count(struct ac_llvm_context *ctx, LLVMValueRef rsrc);
 LLVMValueRef ac_build_cvt_pkrtz_f16(struct ac_llvm_context *ctx, LLVMValueRef args[2]);
 LLVMValueRef ac_build_cvt_pknorm_i16(struct ac_llvm_context *ctx, LLVMValueRef args[2]);
 LLVMValueRef ac_build_cvt_pknorm_u16(struct ac_llvm_context *ctx, LLVMValueRef args[2]);
@@ -433,8 +407,6 @@ LLVMValueRef ac_build_sudot_4x8(struct ac_llvm_context *ctx, LLVMValueRef s0, LL
 void ac_init_exec_full_mask(struct ac_llvm_context *ctx);
 
 void ac_declare_lds_as_pointer(struct ac_llvm_context *ac);
-LLVMValueRef ac_lds_load(struct ac_llvm_context *ctx, LLVMValueRef dw_addr);
-void ac_lds_store(struct ac_llvm_context *ctx, LLVMValueRef dw_addr, LLVMValueRef value);
 
 LLVMValueRef ac_find_lsb(struct ac_llvm_context *ctx, LLVMTypeRef dst_type, LLVMValueRef src0);
 
@@ -449,11 +421,7 @@ void ac_build_endif(struct ac_llvm_context *ctx, int lable_id);
 void ac_build_endloop(struct ac_llvm_context *ctx, int lable_id);
 void ac_build_ifcc(struct ac_llvm_context *ctx, LLVMValueRef cond, int label_id);
 
-LLVMValueRef ac_build_alloca(struct ac_llvm_context *ac, LLVMTypeRef type, const char *name);
 LLVMValueRef ac_build_alloca_undef(struct ac_llvm_context *ac, LLVMTypeRef type, const char *name);
-LLVMValueRef ac_build_alloca_init(struct ac_llvm_context *ac, LLVMValueRef val, const char *name);
-
-LLVMValueRef ac_cast_ptr(struct ac_llvm_context *ctx, LLVMValueRef ptr, LLVMTypeRef type);
 
 LLVMValueRef ac_trim_vector(struct ac_llvm_context *ctx, LLVMValueRef value, unsigned count);
 
@@ -461,9 +429,6 @@ LLVMValueRef ac_unpack_param(struct ac_llvm_context *ctx, LLVMValueRef param, un
                              unsigned bitwidth);
 
 LLVMValueRef ac_build_ds_swizzle(struct ac_llvm_context *ctx, LLVMValueRef src, unsigned mask);
-
-LLVMValueRef ac_build_readlane_no_opt_barrier(struct ac_llvm_context *ctx, LLVMValueRef src,
-                                              LLVMValueRef lane);
 
 LLVMValueRef ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef lane);
 
@@ -483,7 +448,8 @@ LLVMValueRef ac_build_reduce(struct ac_llvm_context *ctx, LLVMValueRef src, nir_
                              unsigned cluster_size);
 
 LLVMValueRef ac_build_quad_swizzle(struct ac_llvm_context *ctx, LLVMValueRef src, unsigned lane0,
-                                   unsigned lane1, unsigned lane2, unsigned lane3);
+                                   unsigned lane1, unsigned lane2, unsigned lane3,
+                                   bool use_wqm);
 
 LLVMValueRef ac_build_shuffle(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef index);
 
@@ -493,8 +459,6 @@ LLVMValueRef ac_build_frexp_mant(struct ac_llvm_context *ctx, LLVMValueRef src0,
 
 LLVMValueRef ac_build_canonicalize(struct ac_llvm_context *ctx, LLVMValueRef src0,
                                    unsigned bitsize);
-
-LLVMValueRef ac_build_ddxy_interp(struct ac_llvm_context *ctx, LLVMValueRef interp_ij);
 
 LLVMValueRef ac_build_load_helper_invocation(struct ac_llvm_context *ctx);
 
@@ -551,7 +515,6 @@ enum ac_llvm_calling_convention
 struct ac_llvm_pointer ac_build_main(const struct ac_shader_args *args, struct ac_llvm_context *ctx,
                                      enum ac_llvm_calling_convention convention, const char *name,
                                      LLVMTypeRef ret_type, LLVMModuleRef module);
-void ac_build_s_endpgm(struct ac_llvm_context *ctx);
 
 LLVMValueRef ac_build_is_inf_or_nan(struct ac_llvm_context *ctx, LLVMValueRef a);
 

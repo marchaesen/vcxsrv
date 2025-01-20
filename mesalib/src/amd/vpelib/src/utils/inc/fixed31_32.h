@@ -543,6 +543,8 @@ static inline struct fixed31_32 vpe_fixpt_truncate(struct fixed31_32 arg, unsign
 unsigned int vpe_to_fixed_point(
     unsigned int decimalBits, double value, unsigned int mask, double d_pix);
 
+unsigned long long vpe_double_to_fixed_point(
+    double x, unsigned long long decimal_bits, unsigned long long fractional_bits, bool clamp);
 #ifdef __cplusplus
 }
 #endif

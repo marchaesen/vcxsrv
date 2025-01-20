@@ -4,42 +4,64 @@
 output_host_path = meson.current_build_dir() + '/host/vulkan/cereal'
 guest_enc_path = meson.current_build_dir()
 
-gfxstream_guest_vk_autogen = custom_target(
-    'gfxstream_guest_vk_autogen',
-    output : [
-      'VkEncoder.h',
-      'goldfish_vk_counting_guest.h',
-      'goldfish_vk_deepcopy_guest.h',
-      'goldfish_vk_marshaling_guest.h',
-      'goldfish_vk_extension_structs_guest.h',
-      'goldfish_vk_reserved_marshaling_guest.h',
-      'goldfish_vk_transform_guest.h',
-      'goldfish_vk_counting_guest.cpp',
-      'goldfish_vk_deepcopy_guest.cpp',
-      'goldfish_vk_extension_structs_guest.cpp',
-      'goldfish_vk_marshaling_guest.cpp',
-      'goldfish_vk_reserved_marshaling_guest.cpp',
-      'goldfish_vk_transform_guest.cpp',
-      'VkEncoder.cpp',
-      'func_table.cpp',
-    ],
-    env: {'GFXSTREAM_NO_CLANG_FMT': '1', 'CEREAL_VARIANT' : 'guest',
-          'GFXSTREAM_GUEST_ENCODER_DIR': guest_enc_path},
-    input: [genvk, vk_api_xml, vk_gfxstream_xml],
-    command: [prog_python, '@INPUT0@', '-registry', '@INPUT1@', '-registryGfxstream', '@INPUT2@',
-              'cereal', '-o', output_host_path],
-)
+if build_machine.system() != 'android'
+  gfxstream_guest_vk_autogen = custom_target(
+      'gfxstream_guest_vk_autogen',
+      output : [
+        'VkEncoder.h',
+        'goldfish_vk_counting_guest.h',
+        'goldfish_vk_deepcopy_guest.h',
+        'goldfish_vk_marshaling_guest.h',
+        'goldfish_vk_extension_structs_guest.h',
+        'goldfish_vk_reserved_marshaling_guest.h',
+        'goldfish_vk_transform_guest.h',
+        'goldfish_vk_counting_guest.cpp',
+        'goldfish_vk_deepcopy_guest.cpp',
+        'goldfish_vk_extension_structs_guest.cpp',
+        'goldfish_vk_marshaling_guest.cpp',
+        'goldfish_vk_reserved_marshaling_guest.cpp',
+        'goldfish_vk_transform_guest.cpp',
+        'VkEncoder.cpp',
+        'func_table.cpp',
+      ],
+      env: {'GFXSTREAM_NO_CLANG_FMT': '1', 'CEREAL_VARIANT' : 'guest',
+            'GFXSTREAM_GUEST_ENCODER_DIR': guest_enc_path},
+      input: [genvk, vk_api_xml, vk_gfxstream_xml],
+      command: [prog_python, '@INPUT0@', '-registry', '@INPUT1@', '-registryGfxstream', '@INPUT2@',
+                'cereal', '-o', output_host_path],
+  )
 
-vulkan_gfxstream_h = custom_target(
-    'vulkan_gfxstream_header',
-    output : [
-      'vulkan_gfxstream.h',
-    ],
-    env: {'GFXSTREAM_NO_CLANG_FMT': '1', 'CEREAL_VARIANT' : 'guest'},
-    input: [genvk, vk_gfxstream_xml],
-    command: [prog_python, '@INPUT0@', '-registry', '@INPUT1@', 'vulkan_gfxstream.h',
-              '-o', guest_enc_path],
-)
+  vulkan_gfxstream_h = custom_target(
+      'vulkan_gfxstream_header',
+      output : [
+        'vulkan_gfxstream.h',
+      ],
+      env: {'GFXSTREAM_NO_CLANG_FMT': '1', 'CEREAL_VARIANT' : 'guest'},
+      input: [genvk, vk_gfxstream_xml],
+      command: [prog_python, '@INPUT0@', '-registry', '@INPUT1@', 'vulkan_gfxstream.h',
+                '-o', guest_enc_path],
+      )
+else
+  gfxstream_guest_vk_autogen = files(
+        'VkEncoder.h',
+        'goldfish_vk_counting_guest.h',
+        'goldfish_vk_deepcopy_guest.h',
+        'goldfish_vk_marshaling_guest.h',
+        'goldfish_vk_extension_structs_guest.h',
+        'goldfish_vk_reserved_marshaling_guest.h',
+        'goldfish_vk_transform_guest.h',
+        'goldfish_vk_counting_guest.cpp',
+        'goldfish_vk_deepcopy_guest.cpp',
+        'goldfish_vk_extension_structs_guest.cpp',
+        'goldfish_vk_marshaling_guest.cpp',
+        'goldfish_vk_reserved_marshaling_guest.cpp',
+        'goldfish_vk_transform_guest.cpp',
+        'VkEncoder.cpp',
+        'func_table.cpp'
+  )
+
+  vulkan_gfxstream_h = files('vulkan_gfxstream.h')
+endif
 
 gfxstream_vk_entrypoints = custom_target(
   'gfxstream_vk_entrypoints',

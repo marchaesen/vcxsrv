@@ -462,10 +462,13 @@ draw_vbos(struct fd_context *ctx, const struct pipe_draw_info *info,
          draw_emit_xfb(ring, &draw0, info, indirect);
       } else {
          const struct ir3_const_state *const_state = ir3_const_state(emit.vs);
-         uint32_t dst_offset_dp = const_state->offsets.driver_param;
+         uint32_t dst_offset_dp =
+            const_state->allocs.consts[IR3_CONST_ALLOC_DRIVER_PARAMS].offset_vec4;
 
          /* If unused, pass 0 for DST_OFF: */
-         if (dst_offset_dp > emit.vs->constlen)
+         if (!ir3_const_can_upload(&const_state->allocs,
+                                   IR3_CONST_ALLOC_DRIVER_PARAMS,
+                                   emit.vs->constlen))
             dst_offset_dp = 0;
 
          draw_emit_indirect<DRAW>(ctx, ring, &draw0, info, indirect, index_offset, dst_offset_dp);

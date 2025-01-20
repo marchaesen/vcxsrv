@@ -253,7 +253,7 @@ create_new_io_vars(nir_shader *shader, nir_variable_mode mode,
             }
 
             const unsigned num_components =
-               glsl_get_components(glsl_without_array(var->type));
+               glsl_get_vector_elements(glsl_without_array(var->type));
             if (!num_components) {
                assert(frac == 0);
                frac++;

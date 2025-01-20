@@ -58,9 +58,9 @@ struct si_shader_args {
     * # 5 bits
     *   [12:16] = the number of input vertices per patch - 1, max = 31 (TCS only)
     * # 6 bits
-    *   [17:22] = the number of LS outputs, max = 63
+    *   [17:22] = the number of LS outputs in LDS, max = 63
     * # 6 bits
-    *   [23:28] = the number of HS per-vertex outputs, max = 63
+    *   [23:28] = the number of HS per-vertex outputs in memory, max = 63
     * # 2 bits
     *   [29:30] = TES output primitive type
     * # 1 bit
@@ -92,23 +92,13 @@ typedef struct nir_shader nir_shader;
 /* si_shader.c */
 bool si_is_multi_part_shader(struct si_shader *shader);
 bool si_is_merged_shader(struct si_shader *shader);
-void si_add_arg_checked(struct ac_shader_args *args, enum ac_arg_regfile file, unsigned registers,
-                        enum ac_arg_type type, struct ac_arg *arg, unsigned idx);
-void si_init_shader_args(struct si_shader *shader, struct si_shader_args *args);
 unsigned si_get_max_workgroup_size(const struct si_shader *shader);
-struct nir_shader *si_get_nir_shader(struct si_shader *shader, struct si_shader_args *args,
-                                     bool *free_nir, uint64_t tcs_vgpr_only_inputs,
-                                     ac_nir_gs_output_info *output_info);
-bool si_need_ps_prolog(const union si_shader_part_key *key);
-void si_get_ps_prolog_key(struct si_shader *shader, union si_shader_part_key *key);
-void si_get_ps_epilog_key(struct si_shader *shader, union si_shader_part_key *key);
 enum ac_hw_stage si_select_hw_stage(const gl_shader_stage stage, const union si_shader_key *const key,
                                     const enum amd_gfx_level gfx_level);
 nir_shader *si_get_prev_stage_nir_shader(struct si_shader *shader,
                                          struct si_shader *prev_shader,
                                          struct si_shader_args *args,
                                          bool *free_nir);
-unsigned si_get_tcs_out_patch_stride(const struct si_shader_info *info);
 void si_get_ps_prolog_args(struct si_shader_args *args,
                            const union si_shader_part_key *key);
 void si_get_ps_epilog_args(struct si_shader_args *args,
@@ -118,10 +108,12 @@ void si_get_ps_epilog_args(struct si_shader_args *args,
                            struct ac_arg *sample_mask);
 
 /* gfx10_shader_ngg.c */
-unsigned gfx10_ngg_get_vertices_per_prim(struct si_shader *shader);
 bool gfx10_ngg_export_prim_early(struct si_shader *shader);
 unsigned gfx10_ngg_get_scratch_dw_size(struct si_shader *shader);
 bool gfx10_ngg_calculate_subgroup_info(struct si_shader *shader);
+
+struct nir_def;
+typedef struct nir_def nir_def;
 
 /* si_nir_lower_abi.c */
 nir_def *si_nir_load_internal_binding(nir_builder *b, struct si_shader_args *args,

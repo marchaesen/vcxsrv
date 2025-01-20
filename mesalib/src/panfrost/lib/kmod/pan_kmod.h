@@ -617,8 +617,11 @@ pan_kmod_bo_mmap(struct pan_kmod_bo *bo, off_t bo_offset, size_t size, int prot,
 
    host_addr = os_mmap(host_addr, size, prot, flags, bo->dev->fd,
                        mmap_offset + bo_offset);
-   if (host_addr == MAP_FAILED)
-      mesa_loge("mmap() failed (err=%d)", errno);
+   if (host_addr == MAP_FAILED) {
+      mesa_loge("mmap(..., size=%zu, prot=%d, flags=0x%x) failed: %s",
+                size, prot, flags, strerror(errno));
+      return NULL;
+   }
 
    return host_addr;
 }

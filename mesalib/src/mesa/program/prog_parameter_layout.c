@@ -197,7 +197,7 @@ _mesa_layout_parameters(struct asm_parser_state *state)
 
          if (inst->SrcReg[i].Base.RelAddr ||
              inst->SrcReg[i].Base.File <= PROGRAM_OUTPUT ||
-             inst->SrcReg[i].Base.File >= PROGRAM_WRITE_ONLY ||
+             inst->SrcReg[i].Base.File >= PROGRAM_ADDRESS ||
              p->Type != PROGRAM_CONSTANT)
             continue;
 
@@ -234,7 +234,7 @@ _mesa_layout_parameters(struct asm_parser_state *state)
 
          if (inst->SrcReg[i].Base.RelAddr ||
              inst->SrcReg[i].Base.File <= PROGRAM_OUTPUT ||
-             inst->SrcReg[i].Base.File >= PROGRAM_WRITE_ONLY ||
+             inst->SrcReg[i].Base.File >= PROGRAM_ADDRESS ||
              p->Type != PROGRAM_STATE_VAR)
             continue;
 
@@ -271,7 +271,7 @@ _mesa_layout_parameters(struct asm_parser_state *state)
 
          if (inst->SrcReg[i].Base.RelAddr ||
              inst->SrcReg[i].Base.File <= PROGRAM_OUTPUT ||
-             inst->SrcReg[i].Base.File >= PROGRAM_WRITE_ONLY ||
+             inst->SrcReg[i].Base.File >= PROGRAM_ADDRESS ||
              p->Type != PROGRAM_STATE_VAR)
             continue;
 

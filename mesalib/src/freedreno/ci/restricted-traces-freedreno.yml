@@ -19,7 +19,7 @@ traces:
       checksum: 8ab8fa893171d6b21cf8af2d6d4e1f17
   AmnesiaTDD/Amnesia-f700-v2.trace:
     freedreno-a630:
-      checksum: d65b15a48cc7488020a1d4ae3d5dd583
+      checksum: 26f6493537a2228a392b001c6e5a9cfe
   Antichamber/antichamber-f240-v2.trace:
     freedreno-a630:
       checksum: 2df47f6dffc78e01ba94ff6600e54bfa
@@ -39,25 +39,25 @@ traces:
       checksum: cd01820de77063f0397f26d6cd747d1c
   TheRavenRemastered/Raven-f10900-v2.trace:
     freedreno-a630:
-      checksum: 1dbb16cb6a61f166c0a8d0db6e88a63d
+      checksum: c9fdace50bcf6ca9b739d5bb7b4720ac
   PenumbraOverture/penumbra-ov-s0-2-864-f1500-v2.trace:
     freedreno-a630:
       checksum: a3cc3e461c15d0469d258c5c6dcd6cbb
   hollow-knight/HollowKnight-trim--f2020-v20201203-v2.trace:
     freedreno-a630:
-      checksum: e72925568412a8ebdbac68c929972a55
+      checksum: 6020da5ac6e5b7d410984dee52e5d36c
   Superhot/superhot-f8100-v2.trace:
     freedreno-a630:
       checksum: 21a4901a1e4fc1664ddd314c956625ea
   overcooked2/Overcooked2-trim--f3301-v20201203-v2.trace:
     freedreno-a630:
-      checksum: 358c723a5f1807fafea2d68bcd32040e
+      checksum: 837456fa4fdd382fc120df03e7bee2eb
   Osmos/Osmos-f2660-v2.trace:
     freedreno-a630:
       checksum: cea8067f4538fd73e3505f58f0b7044e
   ksp/KSP-trim--f4800-v20201203-v2.trace:
     freedreno-a630:
-      checksum: 2f60f3514e1717e26b03ed3b685a0ad8
+      checksum: 37007359e6b16f0d07ebd48e3ff49f2d
   Witcher2/witcher2-s0-1970-f2038-v2.trace:
     freedreno-a630:
       label: [skip, broken]

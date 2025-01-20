@@ -24,6 +24,7 @@
 #include "vk_physical_device.h"
 
 #include "vk_common_entrypoints.h"
+#include "vk_device.h"
 #include "vk_util.h"
 
 VkResult
@@ -279,6 +280,33 @@ vk_common_GetPhysicalDeviceSparseImageFormatProperties(VkPhysicalDevice physical
       pProperties[i] = props2[i].properties;
 
    STACK_ARRAY_FINISH(props2);
+}
+
+/* VK_KHR_calibrated_timestamps */
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_GetPhysicalDeviceCalibrateableTimeDomainsKHR(
+   VkPhysicalDevice physicalDevice, uint32_t *pTimeDomainCount,
+   VkTimeDomainKHR *pTimeDomains)
+{
+   VK_OUTARRAY_MAKE_TYPED(VkTimeDomainKHR, out, pTimeDomains, pTimeDomainCount);
+
+   vk_outarray_append_typed(VkTimeDomainKHR, &out, p)
+      *p = VK_TIME_DOMAIN_DEVICE_KHR;
+
+   const VkTimeDomainKHR host_time_domains[] = {
+      VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR,
+      VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR,
+   };
+   for (uint32_t i = 0; i < ARRAY_SIZE(host_time_domains); i++) {
+      const VkTimeDomainKHR domain = host_time_domains[i];
+      uint64_t ts;
+      if (vk_device_get_timestamp(NULL, domain, &ts) == VK_SUCCESS) {
+         vk_outarray_append_typed(VkTimeDomainKHR, &out, p)
+            *p = domain;
+      }
+   }
+
+   return vk_outarray_status(&out);
 }
 
 /* VK_EXT_tooling_info */

@@ -13,8 +13,6 @@ spec@glsl-1.10@execution@built-in-functions@fs-op-selection-bool-bvec3-bvec3
 spec@oes_draw_elements_base_vertex@oes_draw_elements_base_vertex-drawelements
 shaders@glsl-fs-bug25902
 shaders@glsl-lod-bias
-spec@glsl-1.20@execution@glsl-fs-frontfacing-not
-spec@glsl-1.10@execution@fs-frontfacing-ternary-neg-1.0-1.0
 spec@oes_texture_float@oes_texture_float
 spec@ext_direct_state_access@textures*
 
@@ -23,3 +21,14 @@ spec@ati_fragment_shader@ati_fragment_shader-render-textargets
 
 spec@ati_fragment_shader@ati_fragment_shader-render-notexture
 spec@ext_texture_compression_s3tc@s3tc-errors_gles2
+
+# Uninitialized reads in FS, https://gitlab.freedesktop.org/mesa/mesa/-/issues/12047
+spec@glsl-1.10@execution@fs-frontfacing-ternary-neg-1.0-1.0
+spec@glsl-1.10@execution@fs-frontfacing-ternary-vec4-neg-1.0-1.0
+spec@glsl-1.20@execution@glsl-fs-frontfacing-not
+
+spec@nv_texture_env_combine4@nv_texture_env_combine4-combine
+
+# uprev Piglit in Mesa
+spec@glsl-1.10@execution@built-in-functions@fs-op-div-mat2-mat2
+

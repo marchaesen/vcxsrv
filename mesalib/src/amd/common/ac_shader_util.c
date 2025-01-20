@@ -14,208 +14,41 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Set NIR options shared by ACO, LLVM, RADV, and radeonsi. */
-void ac_set_nir_options(struct radeon_info *info, bool use_llvm,
-                        nir_shader_compiler_options *options)
-{
-   /*        |---------------------------------- Performance & Availability --------------------------------|
-    *        |MAD/MAC/MADAK/MADMK|MAD_LEGACY|MAC_LEGACY|    FMA     |FMAC/FMAAK/FMAMK|FMA_LEGACY|PK_FMA_F16,|Best choice
-    * Arch   |    F32,F16,F64    | F32,F16  | F32,F16  |F32,F16,F64 |    F32,F16     |   F32    |PK_FMAC_F16|F16,F32,F64
-    * ------------------------------------------------------------------------------------------------------------------
-    * gfx6,7 |     1 , - , -     |  1 , -   |  1 , -   |1/4, - ,1/16|     - , -      |    -     |   - , -   | - ,MAD,FMA
-    * gfx8   |     1 , 1 , -     |  1 , -   |  - , -   |1/4, 1 ,1/16|     - , -      |    -     |   - , -   |MAD,MAD,FMA
-    * gfx9   |     1 ,1|0, -     |  1 , -   |  - , -   | 1 , 1 ,1/16|    0|1, -      |    -     |   2 , -   |FMA,MAD,FMA
-    * gfx10  |     1 , - , -     |  1 , -   |  1 , -   | 1 , 1 ,1/16|     1 , 1      |    -     |   2 , 2   |FMA,MAD,FMA
-    * gfx10.3|     - , - , -     |  - , -   |  - , -   | 1 , 1 ,1/16|     1 , 1      |    1     |   2 , 2   |  all FMA
-    * gfx11  |     - , - , -     |  - , -   |  - , -   | 2 , 2 ,1/16|     2 , 2      |    2     |   2 , 2   |  all FMA
-    *
-    * Tahiti, Hawaii, Carrizo, Vega20: FMA_F32 is full rate, FMA_F64 is 1/4
-    * gfx9 supports MAD_F16 only on Vega10, Raven, Raven2, Renoir.
-    * gfx9 supports FMAC_F32 only on Vega20, but doesn't support FMAAK and FMAMK.
-    *
-    * gfx8 prefers MAD for F16 because of MAC/MADAK/MADMK.
-    * gfx9 and newer prefer FMA for F16 because of the packed instruction.
-    * gfx10 and older prefer MAD for F32 because of the legacy instruction.
-    */
-
-   memset(options, 0, sizeof(*options));
-   options->vertex_id_zero_based = true;
-   options->lower_scmp = true;
-   options->lower_flrp16 = true;
-   options->lower_flrp32 = true;
-   options->lower_flrp64 = true;
-   options->lower_device_index_to_zero = true;
-   options->lower_fdiv = true;
-   options->lower_fmod = true;
-   options->lower_ineg = true;
-   options->lower_bitfield_insert = true;
-   options->lower_bitfield_extract = true;
-   options->lower_pack_snorm_4x8 = true;
-   options->lower_pack_unorm_4x8 = true;
-   options->lower_pack_half_2x16 = true;
-   options->lower_pack_64_2x32 = true;
-   options->lower_pack_64_4x16 = true;
-   options->lower_pack_32_2x16 = true;
-   options->lower_unpack_snorm_2x16 = true;
-   options->lower_unpack_snorm_4x8 = true;
-   options->lower_unpack_unorm_2x16 = true;
-   options->lower_unpack_unorm_4x8 = true;
-   options->lower_unpack_half_2x16 = true;
-   options->lower_fpow = true;
-   options->lower_mul_2x32_64 = true;
-   options->lower_iadd_sat = info->gfx_level <= GFX8;
-   options->lower_hadd = true;
-   options->lower_mul_32x16 = true;
-   options->has_bfe = true;
-   options->has_bfm = true;
-   options->has_bitfield_select = true;
-   options->has_fneo_fcmpu = true;
-   options->has_ford_funord = true;
-   options->has_fsub = true;
-   options->has_isub = true;
-   options->has_sdot_4x8 = info->has_accelerated_dot_product;
-   options->has_sudot_4x8 = info->has_accelerated_dot_product && info->gfx_level >= GFX11;
-   options->has_udot_4x8 = info->has_accelerated_dot_product;
-   options->has_sdot_4x8_sat = info->has_accelerated_dot_product;
-   options->has_sudot_4x8_sat = info->has_accelerated_dot_product && info->gfx_level >= GFX11;
-   options->has_udot_4x8_sat = info->has_accelerated_dot_product;
-   options->has_dot_2x16 = info->has_accelerated_dot_product && info->gfx_level < GFX11;
-   options->has_find_msb_rev = true;
-   options->has_pack_32_4x8 = true;
-   options->has_pack_half_2x16_rtz = true;
-   options->has_bit_test = !use_llvm;
-   options->has_fmulz = true;
-   options->has_msad = true;
-   options->has_shfr32 = true;
-   options->use_interpolated_input_intrinsics = true;
-   options->lower_int64_options = nir_lower_imul64 | nir_lower_imul_high64 | nir_lower_imul_2x32_64 | nir_lower_divmod64 |
-                                  nir_lower_minmax64 | nir_lower_iabs64 | nir_lower_iadd_sat64 | nir_lower_conv64;
-   options->divergence_analysis_options = nir_divergence_view_index_uniform;
-   options->optimize_quad_vote_to_reduce = !use_llvm;
-   options->lower_fisnormal = true;
-   options->support_16bit_alu = info->gfx_level >= GFX8;
-   options->vectorize_vec2_16bit = info->has_packed_math_16bit;
-   options->discard_is_demote = true;
-   options->io_options = nir_io_has_flexible_input_interpolation_except_flat |
-                         (info->gfx_level >= GFX8 ? nir_io_16bit_input_output_support : 0) |
-                         nir_io_prefer_scalar_fs_inputs |
-                         nir_io_mix_convergent_flat_with_interpolated |
-                         nir_io_vectorizer_ignores_types;
-   options->scalarize_ddx = true;
-   options->skip_lower_packing_ops =
-      BITFIELD_BIT(nir_lower_packing_op_unpack_64_2x32) |
-      BITFIELD_BIT(nir_lower_packing_op_unpack_64_4x16) |
-      BITFIELD_BIT(nir_lower_packing_op_unpack_32_2x16) |
-      BITFIELD_BIT(nir_lower_packing_op_pack_32_4x8) |
-      BITFIELD_BIT(nir_lower_packing_op_unpack_32_4x8);
-}
-
-bool
-ac_nir_mem_vectorize_callback(unsigned align_mul, unsigned align_offset, unsigned bit_size,
-                              unsigned num_components, unsigned hole_size, nir_intrinsic_instr *low,
-                              nir_intrinsic_instr *high, void *data)
-{
-   if (num_components > 4 || hole_size)
-      return false;
-
-   bool is_scratch = false;
-   switch (low->intrinsic) {
-   case nir_intrinsic_load_stack:
-   case nir_intrinsic_load_scratch:
-   case nir_intrinsic_store_stack:
-   case nir_intrinsic_store_scratch:
-      is_scratch = true;
-      break;
-   default:
-      break;
-   }
-
-   /* >128 bit loads are split except with SMEM. On GFX6-8, >32 bit scratch loads are split. */
-   enum amd_gfx_level gfx_level = *(enum amd_gfx_level *)data;
-   if (bit_size * num_components > (is_scratch && gfx_level <= GFX8 ? 32 : 128))
-      return false;
-
-   uint32_t align;
-   if (align_offset)
-      align = 1 << (ffs(align_offset) - 1);
-   else
-      align = align_mul;
-
-   switch (low->intrinsic) {
-   case nir_intrinsic_load_global:
-   case nir_intrinsic_load_global_constant:
-   case nir_intrinsic_store_global:
-   case nir_intrinsic_store_ssbo:
-   case nir_intrinsic_load_ssbo:
-   case nir_intrinsic_load_ubo:
-   case nir_intrinsic_load_push_constant:
-   case nir_intrinsic_load_stack:
-   case nir_intrinsic_load_scratch:
-   case nir_intrinsic_store_stack:
-   case nir_intrinsic_store_scratch: {
-      unsigned max_components;
-      if (align % 4 == 0)
-         max_components = NIR_MAX_VEC_COMPONENTS;
-      else if (align % 2 == 0)
-         max_components = 16u / bit_size;
-      else
-         max_components = 8u / bit_size;
-      return (align % (bit_size / 8u)) == 0 && num_components <= max_components;
-   }
-   case nir_intrinsic_load_deref:
-   case nir_intrinsic_store_deref:
-      assert(nir_deref_mode_is(nir_src_as_deref(low->src[0]), nir_var_mem_shared));
-      FALLTHROUGH;
-   case nir_intrinsic_load_shared:
-   case nir_intrinsic_store_shared:
-      if (bit_size * num_components == 96) { /* 96 bit loads require 128 bit alignment and are split otherwise */
-         return align % 16 == 0;
-      } else if (bit_size == 16 && (align % 4)) {
-         /* AMD hardware can't do 2-byte aligned f16vec2 loads, but they are useful for ALU
-          * vectorization, because our vectorizer requires the scalar IR to already contain vectors.
-          */
-         return (align % 2 == 0) && num_components <= 2;
-      } else {
-         if (num_components == 3) {
-            /* AMD hardware can't do 3-component loads except for 96-bit loads, handled above. */
-            return false;
-         }
-         unsigned req = bit_size * num_components;
-         if (req == 64 || req == 128) /* 64-bit and 128-bit loads can use ds_read2_b{32,64} */
-            req /= 2u;
-         return align % (req / 8u) == 0;
-      }
-   default:
-      return false;
-   }
-   return false;
-}
-
 unsigned ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil, bool writes_samplemask,
                                     bool writes_mrt0_alpha)
 {
-   /* If writes_mrt0_alpha is true, one other flag must be true too. */
-   assert(!writes_mrt0_alpha || writes_z || writes_stencil || writes_samplemask);
-
-   if (writes_z || writes_mrt0_alpha) {
-      /* Z needs 32 bits. */
-      if (writes_samplemask || writes_mrt0_alpha)
+   /* RGBA = (Z, stencil, samplemask, mrt0_alpha).
+    * Both stencil and sample mask need only 16 bits.
+    */
+   if (writes_mrt0_alpha) {
+      if (writes_stencil || writes_samplemask)
          return V_028710_SPI_SHADER_32_ABGR;
-      else if (writes_stencil)
-         return V_028710_SPI_SHADER_32_GR;
       else
-         return V_028710_SPI_SHADER_32_R;
-   } else if (writes_stencil || writes_samplemask) {
-      /* Both stencil and sample mask need only 16 bits. */
-      return V_028710_SPI_SHADER_UINT16_ABGR;
-   } else {
-      return V_028710_SPI_SHADER_ZERO;
+         return V_028710_SPI_SHADER_32_AR;
    }
+
+   if (writes_samplemask) {
+      if (writes_z)
+         return V_028710_SPI_SHADER_32_ABGR;
+      else
+         return V_028710_SPI_SHADER_UINT16_ABGR;
+   }
+
+   if (writes_stencil)
+      return V_028710_SPI_SHADER_32_GR;
+   else if (writes_z)
+      return V_028710_SPI_SHADER_32_R;
+   else
+      return V_028710_SPI_SHADER_ZERO;
 }
 
 unsigned ac_get_cb_shader_mask(unsigned spi_shader_col_format)
 {
    unsigned i, cb_shader_mask = 0;
+
+   /* If the format is ~0, it means we want a full mask. */
+   if (spi_shader_col_format == ~0)
+      return ~0;
 
    for (i = 0; i < 8; i++) {
       switch ((spi_shader_col_format >> (i * 4)) & 0xf) {
@@ -555,30 +388,6 @@ unsigned ac_get_tbuffer_format(enum amd_gfx_level gfx_level, unsigned dfmt, unsi
    } else {
       return dfmt | (nfmt << 4);
    }
-}
-
-static const struct ac_data_format_info data_format_table[] = {
-   [V_008F0C_BUF_DATA_FORMAT_INVALID] = {0, 4, 0, V_008F0C_BUF_DATA_FORMAT_INVALID},
-   [V_008F0C_BUF_DATA_FORMAT_8] = {1, 1, 1, V_008F0C_BUF_DATA_FORMAT_8},
-   [V_008F0C_BUF_DATA_FORMAT_16] = {2, 1, 2, V_008F0C_BUF_DATA_FORMAT_16},
-   [V_008F0C_BUF_DATA_FORMAT_8_8] = {2, 2, 1, V_008F0C_BUF_DATA_FORMAT_8},
-   [V_008F0C_BUF_DATA_FORMAT_32] = {4, 1, 4, V_008F0C_BUF_DATA_FORMAT_32},
-   [V_008F0C_BUF_DATA_FORMAT_16_16] = {4, 2, 2, V_008F0C_BUF_DATA_FORMAT_16},
-   [V_008F0C_BUF_DATA_FORMAT_10_11_11] = {4, 3, 0, V_008F0C_BUF_DATA_FORMAT_10_11_11},
-   [V_008F0C_BUF_DATA_FORMAT_11_11_10] = {4, 3, 0, V_008F0C_BUF_DATA_FORMAT_11_11_10},
-   [V_008F0C_BUF_DATA_FORMAT_10_10_10_2] = {4, 4, 0, V_008F0C_BUF_DATA_FORMAT_10_10_10_2},
-   [V_008F0C_BUF_DATA_FORMAT_2_10_10_10] = {4, 4, 0, V_008F0C_BUF_DATA_FORMAT_2_10_10_10},
-   [V_008F0C_BUF_DATA_FORMAT_8_8_8_8] = {4, 4, 1, V_008F0C_BUF_DATA_FORMAT_8},
-   [V_008F0C_BUF_DATA_FORMAT_32_32] = {8, 2, 4, V_008F0C_BUF_DATA_FORMAT_32},
-   [V_008F0C_BUF_DATA_FORMAT_16_16_16_16] = {8, 4, 2, V_008F0C_BUF_DATA_FORMAT_16},
-   [V_008F0C_BUF_DATA_FORMAT_32_32_32] = {12, 3, 4, V_008F0C_BUF_DATA_FORMAT_32},
-   [V_008F0C_BUF_DATA_FORMAT_32_32_32_32] = {16, 4, 4, V_008F0C_BUF_DATA_FORMAT_32},
-};
-
-const struct ac_data_format_info *ac_get_data_format_info(unsigned dfmt)
-{
-   assert(dfmt < ARRAY_SIZE(data_format_table));
-   return &data_format_table[dfmt];
 }
 
 #define DUP2(v) v, v
@@ -1181,8 +990,10 @@ uint32_t ac_compute_num_tess_patches(const struct radeon_info *info, uint32_t nu
     * use LDS for the inputs and outputs.
     */
    if (lds_per_patch) {
-      ASSERTED const unsigned max_lds_size = info->gfx_level >= GFX9 ? 64 * 1024 : 32 * 1024; /* hw limit */
-      const unsigned target_lds_size = max_lds_size / 2; /* target at least 2 workgroups per CU */
+      const unsigned max_lds_size = (info->gfx_level >= GFX9 ? 64 * 1024 : 32 * 1024); /* hw limit */
+      /* Target at least 2 workgroups per CU. */
+      const unsigned target_lds_size = max_lds_size / 2 -
+                                       (info->gfx_level >= GFX11 ? AC_HS_MSG_VOTE_LDS_BYTES : 0);
       num_patches = MIN2(num_patches, target_lds_size / lds_per_patch);
       assert(num_patches * lds_per_patch <= max_lds_size);
    }
@@ -1206,16 +1017,6 @@ uint32_t ac_compute_num_tess_patches(const struct radeon_info *info, uint32_t nu
    }
 
    return num_patches;
-}
-
-uint32_t
-ac_compute_tess_lds_size(const struct radeon_info *info, uint32_t lds_per_patch, uint32_t num_patches)
-{
-   const unsigned lds_size = lds_per_patch * num_patches;
-
-   assert(lds_size <= (info->gfx_level >= GFX9 ? 65536 : 32768));
-
-   return align(lds_size, info->lds_encode_granularity) / info->lds_encode_granularity;
 }
 
 uint32_t ac_apply_cu_en(uint32_t value, uint32_t clear_mask, unsigned value_shift,
@@ -1285,42 +1086,9 @@ void ac_get_scratch_tmpring_size(const struct radeon_info *info,
                    S_0286E8_WAVESIZE(*max_seen_bytes_per_wave >> size_shift);
 }
 
-/* Get chip-agnostic memory instruction access flags (as opposed to chip-specific GLC/DLC/SLC)
- * from a NIR memory intrinsic.
- */
-enum gl_access_qualifier ac_get_mem_access_flags(const nir_intrinsic_instr *instr)
-{
-   enum gl_access_qualifier access =
-      nir_intrinsic_has_access(instr) ? nir_intrinsic_access(instr) : 0;
-
-   /* Determine ACCESS_MAY_STORE_SUBDWORD. (for the GFX6 TC L1 bug workaround) */
-   if (!nir_intrinsic_infos[instr->intrinsic].has_dest) {
-      switch (instr->intrinsic) {
-      case nir_intrinsic_bindless_image_store:
-         access |= ACCESS_MAY_STORE_SUBDWORD;
-         break;
-
-      case nir_intrinsic_store_ssbo:
-      case nir_intrinsic_store_buffer_amd:
-      case nir_intrinsic_store_global:
-      case nir_intrinsic_store_global_amd:
-         if (access & ACCESS_USES_FORMAT_AMD ||
-             (nir_intrinsic_has_align_offset(instr) && nir_intrinsic_align(instr) % 4 != 0) ||
-             ((instr->src[0].ssa->bit_size / 8) * instr->src[0].ssa->num_components) % 4 != 0)
-            access |= ACCESS_MAY_STORE_SUBDWORD;
-         break;
-
-      default:
-         unreachable("unexpected store instruction");
-      }
-   }
-
-   return access;
-}
-
 /* Convert chip-agnostic memory access flags into hw-specific cache flags.
  *
- * "access" must be a result of ac_get_mem_access_flags() with the appropriate ACCESS_TYPE_*
+ * "access" must be a result of ac_nir_get_mem_access_flags() with the appropriate ACCESS_TYPE_*
  * flags set.
  */
 union ac_hw_cache_flags ac_get_hw_cache_flags(enum amd_gfx_level gfx_level,

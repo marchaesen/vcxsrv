@@ -92,14 +92,6 @@ void ac_add_attr_alignment(LLVMValueRef val, uint64_t bytes)
    A->addAttr(Attribute::getWithAlignment(A->getContext(), Align(bytes)));
 }
 
-bool ac_is_sgpr_param(LLVMValueRef arg)
-{
-   Argument *A = unwrap<Argument>(arg);
-   AttributeList AS = A->getParent()->getAttributes();
-   unsigned ArgNo = A->getArgNo();
-   return AS.hasParamAttr(ArgNo, Attribute::InReg);
-}
-
 LLVMModuleRef ac_create_module(LLVMTargetMachineRef tm, LLVMContextRef ctx)
 {
    TargetMachine *TM = reinterpret_cast<TargetMachine *>(tm);
@@ -182,11 +174,6 @@ struct raw_memory_ostream : public raw_pwrite_stream {
    ~raw_memory_ostream()
    {
       free(buffer);
-   }
-
-   void clear()
-   {
-      written = 0;
    }
 
    void take(char *&out_buffer, size_t &out_size)

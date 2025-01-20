@@ -1,0 +1,11 @@
+BasedOnStyle: InheritParentConfig
+
+# clang-format is not enabled by default for this subdirectory. This file
+# is only here for reference. Uncommenting this will enable it for git:
+#DisableFormat: false
+
+AlignOperands: Align
+AlignTrailingComments: true
+AlwaysBreakAfterReturnType: None
+ColumnLimit: 100
+SpaceAfterTemplateKeyword: false

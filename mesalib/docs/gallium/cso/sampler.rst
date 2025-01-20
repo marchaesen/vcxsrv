@@ -102,7 +102,7 @@ border_color
     Color union used for texel coordinates that are outside the [0,width-1],
     [0, height-1] or [0, depth-1] ranges. Interpreted according to sampler
     view format, unless the driver reports
-    PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK, in which case special care has to be
+    pipe_caps.texture_border_color_quirk, in which case special care has to be
     taken (see description of the cap).
 max_anisotropy
     Maximum anisotropy ratio to use when sampling from textures.  For example,

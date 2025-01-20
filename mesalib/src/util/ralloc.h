@@ -483,6 +483,16 @@ bool ralloc_asprintf_append (char **str, const char *fmt, ...)
 bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
 /// @}
 
+/**
+ * Estimate the memory usage in bytes of a ralloc context, recursively including
+ * all of its child counts. This is only available in debug builds as release
+ * builds do not track size information. It is providing as a aid for debugging
+ * memory bloat.
+ */
+#ifndef NDEBUG
+size_t ralloc_total_size(const void *ptr);
+#endif
+
 typedef struct gc_ctx gc_ctx;
 
 /**
@@ -559,6 +569,13 @@ public:                                                                  \
 #define DECLARE_LINEAR_ALLOC_CXX_OPERATORS_TEMPLATE(TYPE, ALLOC_FUNC)    \
 public:                                                                  \
    static void* operator new(size_t size, linear_ctx *ctx)               \
+   {                                                                     \
+      void *p = ALLOC_FUNC(ctx, size);                                   \
+      assert(p != NULL);                                                 \
+      static_assert(HAS_TRIVIAL_DESTRUCTOR(TYPE));                       \
+      return p;                                                          \
+   }                                                                     \
+   static void* operator new[](size_t size, linear_ctx *ctx)             \
    {                                                                     \
       void *p = ALLOC_FUNC(ctx, size);                                   \
       assert(p != NULL);                                                 \

@@ -686,7 +686,7 @@ anything to queries currently gathering data).
 As opposed to manually drawing a textured quad, this lets the pipe driver choose
 the optimal method for blitting (like using a special 2D engine), and usually
 offers, for example, accelerated stencil-only copies even where
-PIPE_CAP_SHADER_STENCIL_EXPORT is not available.
+pipe_caps.shader_stencil_export is not available.
 
 
 Transfers
@@ -780,7 +780,7 @@ content unchanged. Similarly, calling this function to uncommit an already
 uncommitted memory region is allowed.
 
 For buffers, the given box must be aligned to multiples of
-``PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE``. As an exception to this rule, if the size
+``pipe_caps.sparse_buffer_page_size``. As an exception to this rule, if the size
 of the buffer is not a multiple of the page size, changing the commit state of
 the last (partial) page requires a box that ends at the end of the buffer
 (i.e., box->x + box->width == buffer->width0).
@@ -901,7 +901,7 @@ only one size is reported through ``PIPE_COMPUTE_CAP_SUBGROUP_SIZES`` or
 Mipmap generation
 ^^^^^^^^^^^^^^^^^
 
-If PIPE_CAP_GENERATE_MIPMAP is true, ``generate_mipmap`` can be used
+If pipe_caps.generate_mipmap is true, ``generate_mipmap`` can be used
 to generate mipmaps for the specified texture resource.
 It replaces texel image levels base_level+1 through
 last_level for layers range from first_layer through last_layer.
@@ -927,7 +927,7 @@ notifications are single-shot, i.e. subsequent calls to
 Bindless
 ^^^^^^^^
 
-If PIPE_CAP_BINDLESS_TEXTURE is TRUE, the following ``pipe_context`` functions
+If pipe_caps.bindless_texture is TRUE, the following ``pipe_context`` functions
 are used to create/delete bindless handles, and to make them resident in the
 current context when they are going to be used by shaders.
 

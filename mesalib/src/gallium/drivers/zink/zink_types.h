@@ -753,6 +753,7 @@ struct zink_shader_info {
    bool have_sparse;
    bool have_vulkan_memory_model;
    bool have_workgroup_memory_explicit_layout;
+   bool broken_arbitary_type_const;
    struct {
       uint8_t flush_denorms:3; // 16, 32, 64
       uint8_t preserve_denorms:3; // 16, 32, 64
@@ -1479,6 +1480,7 @@ struct zink_screen {
    bool have_D24_UNORM_S8_UINT;
    bool have_D32_SFLOAT_S8_UINT;
    bool have_triangle_fans;
+   bool have_dynamic_state_vertex_input_binding_stride;
    bool need_decompose_attrs;
    bool need_2D_zs;
    bool need_2D_sparse;
@@ -1534,6 +1536,7 @@ struct zink_screen {
       bool needs_zs_shader_swizzle;
       bool needs_sanitised_layer;
       bool io_opt;
+      bool broken_const;
    } driver_compiler_workarounds;
    struct {
       bool broken_l4a4;

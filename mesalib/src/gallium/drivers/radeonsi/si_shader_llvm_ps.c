@@ -73,7 +73,7 @@ static void interp_fs_color(struct si_shader_context *ctx, unsigned input_index,
       if (semantic_index == 1 && colors_read_mask & 0xf)
          back_attr_offset += 1;
 
-      is_face_positive = LLVMBuildICmp(ctx->ac.builder, LLVMIntNE, face, ctx->ac.i32_0, "");
+      is_face_positive = LLVMBuildFCmp(ctx->ac.builder, LLVMRealOLT, ctx->ac.f32_0, face, "");
 
       for (chan = 0; chan < 4; chan++) {
          LLVMValueRef front, back;
@@ -600,10 +600,8 @@ void si_llvm_build_ps_prolog(struct si_shader_context *ctx, union si_shader_part
       LLVMValueRef prim_mask = ac_get_arg(&ctx->ac, args->ac.prim_mask);
 
       LLVMValueRef face = NULL;
-      if (key->ps_prolog.states.color_two_side) {
+      if (key->ps_prolog.states.color_two_side)
          face = ac_get_arg(&ctx->ac, args->ac.front_face);
-         face = ac_to_integer(&ctx->ac, face);
-      }
 
       LLVMValueRef color[4];
       interp_fs_color(ctx, key->ps_prolog.color_attr_index[i], i, key->ps_prolog.num_interp_inputs,
@@ -679,6 +677,7 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
 
    /* Prepare color. */
    unsigned colors_written = key->ps_epilog.colors_written;
+   LLVMValueRef mrtz_alpha = NULL;
 
    while (colors_written) {
       int write_i = u_bit_scan(&colors_written);
@@ -691,24 +690,24 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
       for (i = 0; i < 4; i++)
          color[write_i][i] = ac_llvm_extract_elem(&ctx->ac, arg, i);
 
+      if (key->ps_epilog.states.alpha_to_coverage_via_mrtz && write_i == 0)
+         mrtz_alpha = color[0][3];
+
       si_llvm_build_clamp_alpha_test(ctx, color[write_i], write_i);
    }
-
-   LLVMValueRef mrtz_alpha =
-      key->ps_epilog.states.alpha_to_coverage_via_mrtz ? color[0][3] : NULL;
+   bool writes_z = key->ps_epilog.writes_z && !key->ps_epilog.states.kill_z;
+   bool writes_stencil = key->ps_epilog.writes_stencil && !key->ps_epilog.states.kill_stencil;
+   bool writes_samplemask = key->ps_epilog.writes_samplemask && !key->ps_epilog.states.kill_samplemask;
 
    /* Prepare the mrtz export. */
-   if (key->ps_epilog.writes_z ||
-       key->ps_epilog.writes_stencil ||
-       key->ps_epilog.writes_samplemask ||
-       mrtz_alpha) {
+   if (writes_z || writes_stencil || writes_samplemask || mrtz_alpha) {
       LLVMValueRef depth = NULL, stencil = NULL, samplemask = NULL;
 
-      if (key->ps_epilog.writes_z)
+      if (writes_z)
          depth = ac_get_arg(&ctx->ac, depth_arg);
-      if (key->ps_epilog.writes_stencil)
+      if (writes_stencil)
          stencil = ac_get_arg(&ctx->ac, stencil_arg);
-      if (key->ps_epilog.writes_samplemask)
+      if (writes_samplemask)
          samplemask = ac_get_arg(&ctx->ac, samplemask_arg);
 
       ac_export_mrt_z(&ctx->ac, depth, stencil, samplemask, mrtz_alpha, false,

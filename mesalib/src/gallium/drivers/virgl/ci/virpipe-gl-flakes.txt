@@ -38,7 +38,6 @@ spec@ati_fragment_shader@ati_fragment_shader-error04-endshader
 spec@ati_fragment_shader@ati_fragment_shader-error05-passes
 spec@ati_fragment_shader@ati_fragment_shader-error06-regswizzle
 
-spec@arb_fragment_layer_viewport@layer-gs-writes-in-range
 spec@arb_fragment_layer_viewport@viewport-gs-writes-in-range
 spec@oes_viewport_array@viewport-gs-writes-in-range
 
@@ -55,5 +54,4 @@ spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic@glView
 
 # uprev Piglit in Mesa
 spec@ext_texture_array@fbo-depth-array stencil-clear
-spec@nv_primitive_restart@primitive-restart-draw-mode-quad_strip
 

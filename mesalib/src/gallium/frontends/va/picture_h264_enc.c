@@ -37,7 +37,7 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    VAEncPictureParameterBufferH264 *h264;
    vlVaBuffer *coded_buf;
    vlVaSurface *surf;
-   unsigned i;
+   unsigned i, j;
 
    h264 = buf->data;
    if (h264->pic_fields.bits.idr_pic_flag == 1)
@@ -52,6 +52,30 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    else if (context->desc.h264enc.frame_num == 1)
       context->desc.h264enc.i_remain--;
 
+   /* Evict unused surfaces */
+   for (i = 0; i < context->desc.h264enc.dpb_size; i++) {
+      struct pipe_h264_enc_dpb_entry *dpb = &context->desc.h264enc.dpb[i];
+      if (!dpb->id || dpb->id == h264->CurrPic.picture_id)
+         continue;
+      for (j = 0; j < ARRAY_SIZE(h264->ReferenceFrames); j++) {
+         if (h264->ReferenceFrames[j].picture_id == dpb->id) {
+            dpb->evict = false;
+            break;
+         }
+      }
+      if (j == ARRAY_SIZE(h264->ReferenceFrames)) {
+         if (dpb->evict) {
+            surf = handle_table_get(drv->htab, dpb->id);
+            assert(surf);
+            surf->is_dpb = false;
+            surf->buffer = NULL;
+            /* Keep the buffer for reuse later */
+            dpb->id = 0;
+         }
+         dpb->evict = !dpb->evict;
+      }
+   }
+
    surf = handle_table_get(drv->htab, h264->CurrPic.picture_id);
    if (!surf)
       return VA_STATUS_ERROR_INVALID_PARAMETER;
@@ -61,17 +85,32 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
          assert(surf->is_dpb);
          break;
       }
-      if (!context->desc.h264enc.dpb[i].id) {
-         assert(!surf->is_dpb);
+      if (!surf->is_dpb && !context->desc.h264enc.dpb[i].id) {
          surf->is_dpb = true;
          if (surf->buffer) {
             surf->buffer->destroy(surf->buffer);
             surf->buffer = NULL;
          }
-         if (context->decoder && context->decoder->create_dpb_buffer)
-            surf->buffer = context->decoder->create_dpb_buffer(context->decoder, &context->desc.base, &surf->templat);
+         if (context->decoder->create_dpb_buffer) {
+            struct pipe_video_buffer *buffer = context->desc.h264enc.dpb[i].buffer;
+            if (!buffer) {
+               /* Find unused buffer */
+               for (j = 0; j < context->desc.h264enc.dpb_size; j++) {
+                  struct pipe_h264_enc_dpb_entry *dpb = &context->desc.h264enc.dpb[j];
+                  if (!dpb->id && dpb->buffer) {
+                     buffer = dpb->buffer;
+                     dpb->buffer = NULL;
+                     break;
+                  }
+               }
+            }
+            if (!buffer)
+               buffer = context->decoder->create_dpb_buffer(context->decoder, &context->desc.base, &surf->templat);
+            surf->buffer = buffer;
+         }
          vlVaSetSurfaceContext(drv, surf, context);
-         context->desc.h264enc.dpb_size++;
+         if (i == context->desc.h264enc.dpb_size)
+            context->desc.h264enc.dpb_size++;
          break;
       }
    }
@@ -83,6 +122,7 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    context->desc.h264enc.dpb[i].pic_order_cnt = h264->CurrPic.TopFieldOrderCnt;
    context->desc.h264enc.dpb[i].is_ltr = h264->CurrPic.flags & VA_PICTURE_H264_LONG_TERM_REFERENCE;
    context->desc.h264enc.dpb[i].buffer = surf->buffer;
+   context->desc.h264enc.dpb[i].evict = false;
 
    context->desc.h264enc.p_remain = context->desc.h264enc.gop_size - context->desc.h264enc.gop_cnt - context->desc.h264enc.i_remain;
 
@@ -181,20 +221,26 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
       context->desc.h264enc.num_ref_idx_l1_active_minus1 = h264->num_ref_idx_l1_active_minus1;
    }
 
-   for (int i = 0; i < 32; i++) {
-      if (h264->RefPicList0[i].picture_id != VA_INVALID_ID) {
-         context->desc.h264enc.ref_list0[i] = vlVaDpbIndex(context, h264->RefPicList0[i].picture_id);
-               context->desc.h264enc.ref_idx_l0_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
-                                 UINT_TO_PTR(h264->RefPicList0[i].picture_id + 1)));
-               context->desc.h264enc.l0_is_long_term[i] = h264->RefPicList0[i].flags &
-		       					  VA_PICTURE_H264_LONG_TERM_REFERENCE;
-      }
-      if (h264->RefPicList1[i].picture_id != VA_INVALID_ID && h264->slice_type == 1) {
-         context->desc.h264enc.ref_list1[i] = vlVaDpbIndex(context, h264->RefPicList1[i].picture_id);
+   if (h264->slice_type != PIPE_H264_SLICE_TYPE_I && h264->slice_type != PIPE_H264_SLICE_TYPE_SI) {
+      for (int i = 0; i < 32; i++) {
+         if (h264->RefPicList0[i].picture_id != VA_INVALID_ID) {
+            context->desc.h264enc.ref_list0[i] = vlVaDpbIndex(context, h264->RefPicList0[i].picture_id);
+            if (context->desc.h264enc.ref_list0[i] == PIPE_H2645_LIST_REF_INVALID_ENTRY)
+               return VA_STATUS_ERROR_INVALID_PARAMETER;
+
+            context->desc.h264enc.ref_idx_l0_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
+                                    UINT_TO_PTR(h264->RefPicList0[i].picture_id + 1)));
+            context->desc.h264enc.l0_is_long_term[i] = h264->RefPicList0[i].flags & VA_PICTURE_H264_LONG_TERM_REFERENCE;
+         }
+         if (h264->RefPicList1[i].picture_id != VA_INVALID_ID && h264->slice_type == PIPE_H264_SLICE_TYPE_B) {
+            context->desc.h264enc.ref_list1[i] = vlVaDpbIndex(context, h264->RefPicList1[i].picture_id);
+            if (context->desc.h264enc.ref_list1[i] == PIPE_H2645_LIST_REF_INVALID_ENTRY)
+               return VA_STATUS_ERROR_INVALID_PARAMETER;
+
             context->desc.h264enc.ref_idx_l1_list[i] = PTR_TO_UINT(util_hash_table_get(context->desc.h264enc.frame_idx,
-               			 UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
-            context->desc.h264enc.l1_is_long_term[i] = h264->RefPicList1[i].flags &
-		    				       VA_PICTURE_H264_LONG_TERM_REFERENCE;
+                                    UINT_TO_PTR(h264->RefPicList1[i].picture_id + 1)));
+            context->desc.h264enc.l1_is_long_term[i] = h264->RefPicList1[i].flags & VA_PICTURE_H264_LONG_TERM_REFERENCE;
+         }
       }
    }
 
@@ -215,6 +261,8 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
    } else {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_SKIP;
    }
+
+   context->desc.h264enc.dpb[context->desc.h264enc.dpb_curr_pic].picture_type = context->desc.h264enc.picture_type;
 
    context->desc.h264enc.pic_ctrl.enc_cabac_init_idc = h264->cabac_init_idc;
    context->desc.h264enc.dbk.disable_deblocking_filter_idc = h264->disable_deblocking_filter_idc;

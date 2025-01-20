@@ -11,7 +11,7 @@ VARIABLE = ~0
 
 class Opcode(object):
    def __init__(self, name, dests, srcs, imms, is_float, can_eliminate,
-                can_reorder, schedule_class, encoding_16, encoding_32):
+                can_reorder, schedule_class, encoding):
       self.name = name
       self.dests = dests if dests != VARIABLE else 0
       self.srcs = srcs if srcs != VARIABLE else 0
@@ -22,8 +22,7 @@ class Opcode(object):
       self.can_eliminate = can_eliminate
       self.can_reorder = can_reorder
       self.schedule_class = schedule_class
-      self.encoding_16 = encoding_16
-      self.encoding_32 = encoding_32
+      self.encoding = encoding
 
 class Immediate(object):
    def __init__(self, name, ctype):
@@ -46,14 +45,12 @@ class Encoding(object):
       if self.extensible:
          assert(length_long == length_short + (4 if length_short > 8 else 2))
 
-def op(name, encoding_32, dests = 1, srcs = 0, imms = [], is_float = False,
-        can_eliminate = True, can_reorder = True, encoding_16 = None,
-        schedule_class = "none"):
-   encoding_16 = Encoding(encoding_16) if encoding_16 is not None else None
-   encoding_32 = Encoding(encoding_32) if encoding_32 is not None else None
+def op(name, encoding, dests = 1, srcs = 0, imms = [], is_float = False,
+        can_eliminate = True, can_reorder = True, schedule_class = "none"):
+   encoding = Encoding(encoding) if encoding is not None else None
 
    opcodes[name] = Opcode(name, dests, srcs, imms, is_float, can_eliminate,
-                          can_reorder, schedule_class,  encoding_16, encoding_32)
+                          can_reorder, schedule_class,  encoding)
 
 def immediate(name, ctype = "uint32_t"):
    imm = Immediate(name, ctype)
@@ -222,54 +219,62 @@ iunop("popcount",  0b10)
 iunop("ffs",       0b11)
 
 op("fadd",
-      encoding_16 = (0x26, 0x3F, 4, 6),
-      encoding_32 = (0x2A, 0x3F, 4, 6),
+      encoding = (0x2A, 0x3F, 4, 6),
       srcs = 2, is_float = True)
 
-op("fma",
-      encoding_16 = (0x36, 0x3F, 6, 8),
-      encoding_32 = (0x3A, 0x3F, 6, 8),
+op("ffma",
+      encoding = (0x3A, 0x3F, 6, 8),
       srcs = 3, is_float = True)
 
 op("fmul",
-      encoding_16 = (0x16, 0x3F, 4, 6),
-      encoding_32 = (0x1A, 0x3F, 4, 6),
+      encoding = (0x1A, 0x3F, 4, 6),
+      srcs = 2, is_float = True)
+
+op("hadd",
+      encoding = (0x26, 0x3F, 4, 6),
+      srcs = 2, is_float = True)
+
+op("hfma",
+      encoding = (0x36, 0x3F, 6, 8),
+      srcs = 3, is_float = True)
+
+op("hmul",
+      encoding = (0x16, 0x3F, 4, 6),
       srcs = 2, is_float = True)
 
 op("mov_imm",
-      encoding_32 = (0x62, 0xFF, 6, 8),
-      encoding_16 = (0x62, 0xFF, 4, 6),
+      encoding = (0x62, 0xFF, 6, 8),
       imms = [IMM])
 
 op("iadd",
-      encoding_32 = (0x0E, 0x3F | L, 8, _),
+      encoding = (0x0E, 0x3F | L, 8, _),
       srcs = 2, imms = [SHIFT])
 
 op("imad",
-      encoding_32 = (0x1E, 0x3F | L, 8, _),
+      encoding = (0x1E, 0x3F | L, 8, _),
       srcs = 3, imms = [SHIFT])
 
 op("bfi",
-      encoding_32 = (0x2E, 0x7F | (0x3 << 26), 8, _),
+      encoding = (0x2E, 0x7F | (0x3 << 26), 8, _),
       srcs = 3, imms = [BFI_MASK])
 
 op("bfeil",
-      encoding_32 = (0x2E | L, 0x7F | L | (0x3 << 26), 8, _),
+      encoding = (0x2E | L, 0x7F | L | (0x3 << 26), 8, _),
       srcs = 3, imms = [BFI_MASK])
 
 op("extr",
-      encoding_32 = (0x2E | (0x1 << 26), 0x7F | L | (0x3 << 26), 8, _),
+      encoding = (0x2E | (0x1 << 26), 0x7F | L | (0x3 << 26), 8, _),
       srcs = 3, imms = [BFI_MASK])
 
 op("asr",
-      encoding_32 = (0x2E | L | (0x1 << 26), 0x7F | L | (0x3 << 26), 8, _),
+      encoding = (0x2E | L | (0x1 << 26), 0x7F | L | (0x3 << 26), 8, _),
       srcs = 2)
 
 def subgroup_op(name, opc):
     exact      = 0b01101111 | L | (opc << 29)
     exact_mask = 0b11111111 | L | (0x3 << 29)
 
-    op(name, encoding_32 = (exact, exact_mask, 6, _), srcs = 1, imms = [SIMD_OP])
+    op(name, encoding = (exact, exact_mask, 6, _), srcs = 1, imms = [SIMD_OP])
 
 subgroup_op("quad_reduce", 0x0)
 subgroup_op("simd_reduce", 0x1)
@@ -279,7 +284,7 @@ subgroup_op("simd_prefix", 0x3)
 for window, w_bit in [('quad_', 0), ('', 1)]:
     for s, shuffle in enumerate(['', '_xor', '_up', '_down']):
         op(f"{window}shuffle{shuffle}",
-            encoding_32 = (0b01101111 | (w_bit << 26) | (s << 38),
+            encoding = (0b01101111 | (w_bit << 26) | (s << 38),
                            0xFF | L | (1 << 47) | (3 << 38) | (3 << 26), 6, _),
             srcs = 2)
 
@@ -288,15 +293,15 @@ for window, w_bit in [('quad_', 0), ('', 1)]:
 
     for T, T_bit, cond in [('f', 0, FCOND), ('i', 1, ICOND)]:
         op(f"{T}cmp_{window}ballot",
-           encoding_32 = (0b0100010 | (T_bit << 4) | (w_bit << 48), 0, 8, _),
+           encoding = (0b0100010 | (T_bit << 4) | (w_bit << 48), 0, 8, _),
            srcs = 2, imms = [cond, INVERT_COND])
 
 op("icmpsel",
-      encoding_32 = (0x12, 0x7F, 8, 10),
+      encoding = (0x12, 0x7F, 8, 10),
       srcs = 4, imms = [ICOND])
 
 op("fcmpsel",
-      encoding_32 = (0x02, 0x7F, 8, 10),
+      encoding = (0x02, 0x7F, 8, 10),
       srcs = 4, imms = [FCOND])
 
 # Pseudo-instructions for compares returning 1/0
@@ -307,56 +312,56 @@ op("fcmp", _, srcs = 2, imms = [FCOND, INVERT_COND])
 # registers), texture, sampler, shadow/offset
 # TODO: anything else?
 op("texture_sample",
-      encoding_32 = (0x31, 0x7F, 8, 10), # XXX WRONG SIZE
+      encoding = (0x31, 0x7F, 8, 10), # XXX WRONG SIZE
       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET, SHADOW,
                         QUERY_LOD, GATHER])
 for memory, can_reorder in [("texture", True), ("image", False)]:
     coherency = [COHERENT] if not can_reorder else []
-    op(f"{memory}_load", encoding_32 = (0x71, 0x7F, 8, 10), # XXX WRONG SIZE
+    op(f"{memory}_load", encoding = (0x71, 0x7F, 8, 10), # XXX WRONG SIZE
        srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET] + coherency,
        can_reorder = can_reorder,
        schedule_class = "none" if can_reorder else "load")
 
 # sources are base, index
 op("device_load",
-      encoding_32 = (0x05, 0x7F, 6, 8),
+      encoding = (0x05, 0x7F, 6, 8),
       srcs = 2, imms = [FORMAT, MASK, SHIFT, SCOREBOARD, COHERENT], can_reorder = False,
       schedule_class = "load")
 
 # sources are base (relative to workgroup memory), index
 op("local_load",
-      encoding_32 = (0b1101001, 0, 6, 8),
+      encoding = (0b1101001, 0, 6, 8),
       srcs = 2, imms = [FORMAT, MASK], can_reorder = False,
       schedule_class = "load")
 
 # sources are value, base, index
 # TODO: Consider permitting the short form
 op("device_store",
-      encoding_32 = (0x45 | (1 << 47), 0, 8, _),
+      encoding = (0x45 | (1 << 47), 0, 8, _),
       dests = 0, srcs = 3, imms = [FORMAT, MASK, SHIFT, SCOREBOARD, COHERENT], can_eliminate = False,
       schedule_class = "store")
 
 # sources are value, base, index
 op("local_store",
-      encoding_32 = (0b0101001, 0, 6, 8),
+      encoding = (0b0101001, 0, 6, 8),
       dests = 0, srcs = 3, imms = [FORMAT, MASK],
       can_eliminate=False, schedule_class = "store")
 
 # sources are value, index
 # TODO: Consider permitting the short form
 op("uniform_store",
-      encoding_32 = ((0b111 << 27) | 0b1000101 | (1 << 47), 0, 8, _),
+      encoding = ((0b111 << 27) | 0b1000101 | (1 << 47), 0, 8, _),
       dests = 0, srcs = 2, imms = [MASK], can_eliminate = False)
 
 # sources are value, base, index
 op("atomic",
-      encoding_32 = (0x15 | (1 << 26) | (1 << 31) | (5 << 44), 0x3F | (1 << 26) | (1 << 31) | (5 << 44), 8, _),
+      encoding = (0x15 | (1 << 26) | (1 << 31) | (5 << 44), 0x3F | (1 << 26) | (1 << 31) | (5 << 44), 8, _),
       dests = 1, srcs = 3, imms = [ATOMIC_OPC, SCOREBOARD],
       can_eliminate = False, schedule_class = "atomic")
 
 # XXX: stop hardcoding the long form
 op("local_atomic",
-      encoding_32 = (0x19 | (1 << 15) | (1 << 36) | (1 << 47), 0x3F | (1 << 36) | (1 << 47), 10, _),
+      encoding = (0x19 | (1 << 15) | (1 << 36) | (1 << 47), 0x3F | (1 << 36) | (1 << 47), 10, _),
       dests = 1, srcs = 3, imms = [ATOMIC_OPC], schedule_class = "atomic",
       can_eliminate = False)
 
@@ -477,25 +482,26 @@ op("stack_unmap", (0x00075, (1 << 24) - 1, 8, _), dests = 1, srcs = 0, can_elimi
 op("stack_map",   (0x10075, (1 << 24) - 1, 8, _), dests = 0, srcs = 1, can_eliminate = False, can_reorder = False, imms = [IMM])
 
 op("stack_adjust",
-      encoding_32 = (0x10100b5, (1 << 26) - 1, 8, _),
+      encoding = (0x10100b5, (1 << 26) - 1, 8, _),
       dests = 0, srcs = 0, can_eliminate = False, can_reorder = False,
       imms = [STACK_SIZE], schedule_class = "store")
 
 # source is offset
 op("stack_load",
-      encoding_32 = (0x35, (1 << 20) - 1, 6, 8),
+      encoding = (0x35, (1 << 20) - 1, 6, 8),
       srcs = 1, imms = [FORMAT, MASK, SCOREBOARD], can_reorder = False,
       schedule_class = "load")
 
 # sources are value and offset
 op("stack_store",
-      encoding_32 = (0xb5, (1 << 20) - 1, 6, 8),
+      encoding = (0xb5, (1 << 20) - 1, 6, 8),
       dests = 0, srcs = 2, imms = [FORMAT, MASK, SCOREBOARD],
       can_eliminate=False, schedule_class = "store")
 
 # Convenient aliases.
 op("mov", _, srcs = 1)
 op("not", _, srcs = 1)
+op("signext", _, srcs = 1)
 
 op("collect", _, srcs = VARIABLE)
 op("split", _, srcs = 1, dests = VARIABLE)

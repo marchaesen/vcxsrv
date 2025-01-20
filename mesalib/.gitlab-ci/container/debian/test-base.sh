@@ -6,7 +6,12 @@
 # DEBIAN_BASE_TAG
 
 set -e
+
+. .gitlab-ci/setup-test-env.sh
+
 set -o xtrace
+
+uncollapsed_section_start debian_setup "Base Debian system setup"
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -77,6 +82,7 @@ DEPS=(
     liblz4-1
     libpng16-16
     libpython3.11
+    libubsan1
     libvulkan1
     libwayland-client0
     libwayland-server0
@@ -114,21 +120,25 @@ apt-get install -y --no-install-recommends "${EPHEMERAL[@]}"
 
 . .gitlab-ci/container/container_pre_build.sh
 
-############### Download prebuilt kernel
-
-if [ "$DEBIAN_ARCH" = amd64 ]; then
-  export KERNEL_IMAGE_NAME=bzImage
-
-  mkdir -p /lava-files/
-  . .gitlab-ci/container/download-prebuilt-kernel.sh
-fi
-
 # Needed for ci-fairy, this revision is able to upload files to MinIO
 # and doesn't depend on git
 pip3 install --break-system-packages git+http://gitlab.freedesktop.org/freedesktop/ci-templates@ffe4d1b10aab7534489f0c4bbc4c5899df17d3f2
 
 # Needed for manipulation with traces yaml files.
 pip3 install --break-system-packages yq
+
+section_end debian_setup
+
+############### Download prebuilt kernel
+
+if [ "$DEBIAN_ARCH" = amd64 ]; then
+  uncollapsed_section_switch kernel "Downloading kernel"
+  export KERNEL_IMAGE_NAME=bzImage
+  mkdir -p /lava-files/
+  . .gitlab-ci/container/download-prebuilt-kernel.sh
+fi
+
+############### Build mold
 
 . .gitlab-ci/container/build-mold.sh
 
@@ -144,17 +154,26 @@ pip3 install --break-system-packages yq
 
 . .gitlab-ci/container/build-wayland.sh
 
-############### Build Crosvm
+############### Install Rust toolchain
 
 . .gitlab-ci/container/build-rust.sh
+
+############### Build Crosvm
+
 . .gitlab-ci/container/build-crosvm.sh
 
 ############### Build dEQP runner
+
 . .gitlab-ci/container/build-deqp-runner.sh
 
+############### Uninstall the build software
+
+uncollapsed_section_switch debian_cleanup "Cleaning up base Debian system"
 
 apt-get purge -y "${EPHEMERAL[@]}"
 
 rm -rf /root/.rustup
 
 . .gitlab-ci/container/container_post_build.sh
+
+section_end debian_cleanup

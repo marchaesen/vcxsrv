@@ -96,6 +96,12 @@ occlusion_resume(struct fd_acc_query *aq, struct fd_batch *batch)
       );
    }
 
+   ctx->occlusion_queries_active++;
+
+   /* Just directly bash the gen specific LRZ dirty bit, since we don't
+    * need to re-emit any other LRZ related state:
+    */
+   ctx->gen_dirty |= FD6_GROUP_LRZ;
 }
 
 template <chip CHIP>
@@ -170,6 +176,14 @@ occlusion_pause(struct fd_acc_query *aq, struct fd_batch *batch) assert_dt
          EV_DST_RAM_CP_EVENT_WRITE7_1(query_sample(aq, start)),
       );
    }
+
+   assert(ctx->occlusion_queries_active > 0);
+   ctx->occlusion_queries_active--;
+
+   /* Just directly bash the gen specific LRZ dirty bit, since we don't
+    * need to re-emit any other LRZ related state:
+    */
+   ctx->gen_dirty |= FD6_GROUP_LRZ;
 }
 
 static void
@@ -299,6 +313,7 @@ template <chip CHIP>
 static void
 record_timestamp(struct fd_ringbuffer *ring, struct fd_bo *bo, unsigned offset)
 {
+   fd_ringbuffer_attach_bo(ring, bo);
    fd6_record_ts<CHIP>(ring, bo, offset, 0, 0);
 }
 
@@ -388,18 +403,15 @@ FD_DEFINE_CAST(fd_acc_query_sample, fd6_pipeline_stats_sample);
  *   ----------------------------+--------------------------------------------+----------------
  *   IA_VERTICES                 | INPUT_ASSEMBLY_VERTICES                    | RBBM_PRIMCTR_0
  *   IA_PRIMITIVES               | INPUT_ASSEMBLY_PRIMITIVES                  | RBBM_PRIMCTR_1
- *   VS_INVOCATIONS              | VERTEX_SHADER_INVOCATIONS                  | RBBM_PRIMCTR_0
+ *   VS_INVOCATIONS              | VERTEX_SHADER_INVOCATIONS                  | RBBM_PRIMCTR_2
  *   GS_INVOCATIONS              | GEOMETRY_SHADER_INVOCATIONS                | RBBM_PRIMCTR_5
  *   GS_PRIMITIVES               | GEOMETRY_SHADER_PRIMITIVES                 | RBBM_PRIMCTR_6
  *   C_INVOCATIONS               | CLIPPING_INVOCATIONS                       | RBBM_PRIMCTR_7
  *   C_PRIMITIVES                | CLIPPING_PRIMITIVES                        | RBBM_PRIMCTR_8
  *   PS_INVOCATIONS              | FRAGMENT_SHADER_INVOCATIONS                | RBBM_PRIMCTR_9
- *   HS_INVOCATIONS              | TESSELLATION_CONTROL_SHADER_PATCHES        | RBBM_PRIMCTR_2
+ *   HS_INVOCATIONS              | TESSELLATION_CONTROL_SHADER_PATCHES        | RBBM_PRIMCTR_3
  *   DS_INVOCATIONS              | TESSELLATION_EVALUATION_SHADER_INVOCATIONS | RBBM_PRIMCTR_4
  *   CS_INVOCATIONS              | COMPUTE_SHADER_INVOCATIONS                 | RBBM_PRIMCTR_10
- *
- * Note that "Vertices corresponding to incomplete primitives may contribute to the count.",
- * in our case they do not, so IA_VERTICES and VS_INVOCATIONS are the same thing.
  */
 
 enum stats_type {
@@ -439,13 +451,13 @@ stats_counter_index(struct fd_acc_query *aq)
    switch (aq->base.index) {
    case PIPE_STAT_QUERY_IA_VERTICES:    return 0;
    case PIPE_STAT_QUERY_IA_PRIMITIVES:  return 1;
-   case PIPE_STAT_QUERY_VS_INVOCATIONS: return 0;
+   case PIPE_STAT_QUERY_VS_INVOCATIONS: return 2;
    case PIPE_STAT_QUERY_GS_INVOCATIONS: return 5;
    case PIPE_STAT_QUERY_GS_PRIMITIVES:  return 6;
    case PIPE_STAT_QUERY_C_INVOCATIONS:  return 7;
    case PIPE_STAT_QUERY_C_PRIMITIVES:   return 8;
    case PIPE_STAT_QUERY_PS_INVOCATIONS: return 9;
-   case PIPE_STAT_QUERY_HS_INVOCATIONS: return 2;
+   case PIPE_STAT_QUERY_HS_INVOCATIONS: return 3;
    case PIPE_STAT_QUERY_DS_INVOCATIONS: return 4;
    case PIPE_STAT_QUERY_CS_INVOCATIONS: return 10;
    default:
@@ -458,10 +470,10 @@ log_pipeline_stats(struct fd6_pipeline_stats_sample *ps, unsigned idx)
 {
 #ifdef DEBUG_COUNTERS
    const char *labels[] = {
-      "VS_INVOCATIONS",
+      "IA_VERTICES",
       "IA_PRIMITIVES",
+      "VS_INVOCATIONS",
       "HS_INVOCATIONS",
-      "??",
       "DS_INVOCATIONS",
       "GS_INVOCATIONS",
       "GS_PRIMITIVES",

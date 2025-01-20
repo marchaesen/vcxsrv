@@ -51,6 +51,7 @@ iris_init_screen_measure(struct iris_screen *screen)
    struct intel_measure_device *measure_device = &screen->measure;
 
    memset(measure_device, 0, sizeof(*measure_device));
+   measure_device->type = INTEL_MEASURE_DEVICE_OGL;
    intel_measure_init(measure_device);
    measure_device->release_batch = &measure_batch_free;
    struct intel_measure_config *config = measure_device->config;

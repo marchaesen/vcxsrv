@@ -622,9 +622,9 @@ blend_funcs[] = {
 
 
 const struct lp_type blend_types[] = {
-   /* float, fixed,  sign,  norm, width, len */
-   {   true, false,  true, false,    32,   4 }, /* f32 x 4 */
-   {  false, false, false,  true,     8,  16 }, /* u8n x 16 */
+   /* float, fixed,  sign,  norm, sz preserve, nan preserve, width, len */
+   {   true, false,  true, false, false,       false,        32,   4 }, /* f32 x 4 */
+   {  false, false, false,  true, false,       false,         8,  16 }, /* u8n x 16 */
 };
 
 

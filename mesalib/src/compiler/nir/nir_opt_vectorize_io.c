@@ -520,9 +520,11 @@ nir_opt_vectorize_io(nir_shader *shader, nir_variable_mode modes)
 
             case nir_intrinsic_load_output:
             case nir_intrinsic_load_per_vertex_output:
+            case nir_intrinsic_load_per_view_output:
             case nir_intrinsic_load_per_primitive_output:
             case nir_intrinsic_store_output:
             case nir_intrinsic_store_per_vertex_output:
+            case nir_intrinsic_store_per_view_output:
             case nir_intrinsic_store_per_primitive_output:
                if (!(modes & nir_var_shader_out))
                   continue;

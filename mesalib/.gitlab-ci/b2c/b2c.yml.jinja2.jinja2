@@ -59,10 +59,13 @@ deployment:
               {% for volume in volumes %}
               b2c.volume={{ volume }}
               {% endfor %}
-              b2c.service="--privileged --tls-verify=false --pid=host docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/telegraf:latest" b2c.hostname=dut-{{ '{{' }} machine.full_name }}
-              b2c.container="-v {{ '{{' }} job_bucket }}-results:{{ working_dir }} -w {{ working_dir }} {% for mount_volume in mount_volumes %} -v {{ mount_volume }}{% endfor %} --tls-verify=false docker://{{ local_container }} {{ container_cmd }}"
+              b2c.run_service="--privileged --tls-verify=false --pid=host docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/telegraf:latest" b2c.hostname=dut-{{ '{{' }} machine.full_name }}
+              b2c.run="-ti --tls-verify=false docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/machine-registration:latest check"
+              b2c.run="-v {{ '{{' }} job_bucket }}-results:{{ working_dir }} -w {{ working_dir }} {% for mount_volume in mount_volumes %} -v {{ mount_volume }}{% endfor %} --tls-verify=false docker://{{ local_container }} {{ container_cmd | replace('"', '\\\"') }}"
     kernel:
+{% if kernel_url %}
       url: '{{ kernel_url }}'
+{% endif %}
 
       # NOTE: b2c.cache_device should not be here, but this works around
       # a limitation of b2c which will be removed in the next release
@@ -75,10 +78,12 @@ deployment:
         {{ kernel_cmdline_extras }}
         {% endif %}
 
+{% if initramfs_url %}
     initramfs:
       url: '{{ initramfs_url }}'
+{% endif %}
 
-{% if dtb_url is defined %}
+{% if dtb_url %}
     dtb:
       url: '{{ dtb_url }}'
 {% endif %}

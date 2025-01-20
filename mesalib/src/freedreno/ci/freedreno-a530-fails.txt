@@ -79,7 +79,6 @@ glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
-glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero,Fail
 glx@glx_arb_sync_control@waitformsc,Fail
 
@@ -119,8 +118,6 @@ spec@arb_draw_indirect@gl_vertexid used with gldrawelementsindirect,Fail
 spec@arb_enhanced_layouts@linker@component-layout@intrastage-vs,Fail
 spec@arb_enhanced_layouts@linker@component-layout@vs-to-fs,Fail
 spec@arb_map_buffer_alignment@arb_map_buffer_alignment-map-invalidate-range,Fail
-spec@arb_map_buffer_range@map_invalidate_buffer_bit offset=0,Fail
-spec@arb_map_buffer_range@map_invalidate_range_bit offset=0,Fail
 spec@arb_occlusion_query@occlusion_query_order,Fail
 spec@arb_point_sprite@arb_point_sprite-interactions 1.0,Fail
 spec@arb_separate_shader_objects@400 combinations by location,Fail
@@ -252,6 +249,9 @@ spec@arb_uniform_buffer_object@execution@shared-array-struct-array-struct,Fail
 spec@arb_uniform_buffer_object@execution@std140-array-struct-array-struct,Fail
 
 # uprev Piglit in Mesa
+spec@arb_framebuffer_object@execution@msaa-alpha-to-coverage_alpha-to-one,Fail
+spec@arb_framebuffer_object@execution@msaa-alpha-to-coverage_alpha-to-one_write-z,Fail
+spec@arb_framebuffer_object@execution@msaa-alpha-to-one,Fail
 spec@glsl-1.40@uniform_buffer@two-stages,Fail
 spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int16,Fail
 spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int8,Fail
@@ -286,18 +286,9 @@ spec@khr_texture_compression_astc@miptree-gles srgb-sd,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-sd@sRGB skip decode,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
-spec@arb_vertex_buffer_object@vbo-subdata-many drawarrays,Fail
-spec@arb_vertex_buffer_object@vbo-subdata-many drawelements,Fail
-spec@arb_vertex_buffer_object@vbo-subdata-many drawrangeelements,Fail
-spec@arb_uniform_buffer_object@rendering,Fail
-spec@arb_uniform_buffer_object@rendering-dsa,Fail
-spec@arb_uniform_buffer_object@rendering-dsa-offset,Fail
-spec@arb_uniform_buffer_object@rendering-offset,Fail
-spec@!opengl 1.0@gl-1.0-ortho-pos,Fail
 
 # Regressions since ???:
 spec@!opengl 1.1@copyteximage 1d,Fail
-spec@arb_shader_atomic_counters@respecify-buffer,Fail
 spec@arb_timer_query@timestamp-get,Fail
 
 # glcts uprev

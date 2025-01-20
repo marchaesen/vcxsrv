@@ -310,6 +310,16 @@ panvk_per_arch(queue_init)(struct panvk_device *device,
                            struct panvk_queue *queue, int idx,
                            const VkDeviceQueueCreateInfo *create_info)
 {
+   ASSERTED const VkDeviceQueueGlobalPriorityCreateInfoKHR *priority_info =
+      vk_find_struct_const(create_info->pNext,
+                           DEVICE_QUEUE_GLOBAL_PRIORITY_CREATE_INFO_KHR);
+   ASSERTED const VkQueueGlobalPriorityKHR priority =
+      priority_info ? priority_info->globalPriority
+                    : VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR;
+
+   /* XXX: Panfrost kernel module doesn't support priorities so far */
+   assert(priority == VK_QUEUE_GLOBAL_PRIORITY_MEDIUM_KHR);
+
    VkResult result = vk_queue_init(&queue->vk, &device->vk, create_info, idx);
    if (result != VK_SUCCESS)
       return result;
@@ -330,6 +340,9 @@ panvk_per_arch(QueueWaitIdle)(VkQueue _queue)
 {
    VK_FROM_HANDLE(panvk_queue, queue, _queue);
    struct panvk_device *dev = to_panvk_device(queue->vk.base.device);
+
+   /* we need to use vk_common_QueueWaitIdle if we ever go threaded */
+   assert(queue->vk.submit.mode != VK_QUEUE_SUBMIT_MODE_THREADED);
 
    if (vk_device_is_lost(&dev->vk))
       return VK_ERROR_DEVICE_LOST;

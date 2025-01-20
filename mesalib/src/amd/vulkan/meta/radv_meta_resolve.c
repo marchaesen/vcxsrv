@@ -29,175 +29,121 @@ build_nir_fs(struct radv_device *dev)
 }
 
 static VkResult
-create_pipeline(struct radv_device *device, VkFormat format, VkPipeline *pipeline)
+get_pipeline(struct radv_device *device, unsigned fs_key, VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
+   const VkFormat format = radv_fs_key_format_exemplars[fs_key];
+   char key_data[64];
    VkResult result;
-   VkDevice device_h = radv_device_to_handle(device);
 
-   if (!device->meta_state.resolve.p_layout) {
-      result = radv_meta_create_pipeline_layout(device, NULL, 0, NULL, &device->meta_state.resolve.p_layout);
-      if (result != VK_SUCCESS)
-         return result;
-   }
+   snprintf(key_data, sizeof(key_data), "radv-resolve-hw-%d", fs_key);
+
+   result = radv_meta_get_noop_pipeline_layout(device, layout_out);
+   if (result != VK_SUCCESS)
+      return result;
 
    nir_shader *vs_module = radv_meta_build_nir_vs_generate_vertices(device);
    nir_shader *fs_module = build_nir_fs(device);
 
-   VkFormat color_formats[2] = {format, format};
-   const VkPipelineRenderingCreateInfo rendering_create_info = {
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-      .colorAttachmentCount = 2,
-      .pColorAttachmentFormats = color_formats,
+   const VkGraphicsPipelineCreateInfoRADV radv_info = {
+      .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO_RADV,
+      .custom_blend_mode = V_028808_CB_RESOLVE,
    };
 
-   result = radv_graphics_pipeline_create(
-      device_h, device->meta_state.cache,
-      &(VkGraphicsPipelineCreateInfo){
-         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-         .pNext = &rendering_create_info,
-         .stageCount = 2,
-         .pStages =
-            (VkPipelineShaderStageCreateInfo[]){
-               {
-                  .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                  .stage = VK_SHADER_STAGE_VERTEX_BIT,
-                  .module = vk_shader_module_handle_from_nir(vs_module),
-                  .pName = "main",
-               },
-               {
-                  .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                  .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-                  .module = vk_shader_module_handle_from_nir(fs_module),
-                  .pName = "main",
-               },
+   const VkGraphicsPipelineCreateInfo pipeline_create_info = {
+      .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+      .pNext = &radv_info,
+      .stageCount = 2,
+      .pStages =
+         (VkPipelineShaderStageCreateInfo[]){
+            {
+               .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+               .stage = VK_SHADER_STAGE_VERTEX_BIT,
+               .module = vk_shader_module_handle_from_nir(vs_module),
+               .pName = "main",
             },
-         .pVertexInputState =
-            &(VkPipelineVertexInputStateCreateInfo){
-               .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-               .vertexBindingDescriptionCount = 0,
-               .vertexAttributeDescriptionCount = 0,
+            {
+               .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+               .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+               .module = vk_shader_module_handle_from_nir(fs_module),
+               .pName = "main",
             },
-         .pInputAssemblyState =
-            &(VkPipelineInputAssemblyStateCreateInfo){
-               .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-               .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP,
-               .primitiveRestartEnable = false,
-            },
-         .pViewportState =
-            &(VkPipelineViewportStateCreateInfo){
-               .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-               .viewportCount = 1,
-               .scissorCount = 1,
-            },
-         .pRasterizationState =
-            &(VkPipelineRasterizationStateCreateInfo){
-               .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-               .depthClampEnable = false,
-               .rasterizerDiscardEnable = false,
-               .polygonMode = VK_POLYGON_MODE_FILL,
-               .cullMode = VK_CULL_MODE_NONE,
-               .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            },
-         .pMultisampleState =
-            &(VkPipelineMultisampleStateCreateInfo){
-               .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-               .rasterizationSamples = 1,
-               .sampleShadingEnable = false,
-               .pSampleMask = NULL,
-               .alphaToCoverageEnable = false,
-               .alphaToOneEnable = false,
-            },
-         .pColorBlendState =
-            &(VkPipelineColorBlendStateCreateInfo){
-               .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-               .logicOpEnable = false,
-               .attachmentCount = 2,
-               .pAttachments =
-                  (VkPipelineColorBlendAttachmentState[]){
-                     {
-                        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
-                     },
-                     {
-                        .colorWriteMask = 0,
-
-                     }},
-            },
-         .pDynamicState =
-            &(VkPipelineDynamicStateCreateInfo){
-               .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-               .dynamicStateCount = 2,
-               .pDynamicStates =
-                  (VkDynamicState[]){
-                     VK_DYNAMIC_STATE_VIEWPORT,
-                     VK_DYNAMIC_STATE_SCISSOR,
+         },
+      .pVertexInputState =
+         &(VkPipelineVertexInputStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            .vertexBindingDescriptionCount = 0,
+            .vertexAttributeDescriptionCount = 0,
+         },
+      .pInputAssemblyState =
+         &(VkPipelineInputAssemblyStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+            .topology = VK_PRIMITIVE_TOPOLOGY_META_RECT_LIST_MESA,
+            .primitiveRestartEnable = false,
+         },
+      .pViewportState =
+         &(VkPipelineViewportStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            .viewportCount = 1,
+            .scissorCount = 1,
+         },
+      .pRasterizationState =
+         &(VkPipelineRasterizationStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            .depthClampEnable = false,
+            .rasterizerDiscardEnable = false,
+            .polygonMode = VK_POLYGON_MODE_FILL,
+            .cullMode = VK_CULL_MODE_NONE,
+            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+         },
+      .pMultisampleState =
+         &(VkPipelineMultisampleStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            .rasterizationSamples = 1,
+            .sampleShadingEnable = false,
+            .pSampleMask = NULL,
+            .alphaToCoverageEnable = false,
+            .alphaToOneEnable = false,
+         },
+      .pColorBlendState =
+         &(VkPipelineColorBlendStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+            .logicOpEnable = false,
+            .attachmentCount = 2,
+            .pAttachments =
+               (VkPipelineColorBlendAttachmentState[]){
+                  {
+                     .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                                       VK_COLOR_COMPONENT_A_BIT,
                   },
-            },
-         .layout = device->meta_state.resolve.p_layout,
-         .renderPass = VK_NULL_HANDLE,
-         .subpass = 0,
-      },
-      &(struct radv_graphics_pipeline_create_info){
-         .use_rectlist = true,
-         .custom_blend_mode = V_028808_CB_RESOLVE,
-      },
-      &device->meta_state.alloc, pipeline);
+                  {
+                     .colorWriteMask = 0,
+
+                  }},
+         },
+      .pDynamicState =
+         &(VkPipelineDynamicStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+            .dynamicStateCount = 2,
+            .pDynamicStates =
+               (VkDynamicState[]){
+                  VK_DYNAMIC_STATE_VIEWPORT,
+                  VK_DYNAMIC_STATE_SCISSOR,
+               },
+         },
+      .layout = *layout_out,
+   };
+
+   struct vk_meta_rendering_info render = {
+      .color_attachment_count = 2,
+      .color_attachment_formats = {format, format},
+   };
+
+   result = vk_meta_create_graphics_pipeline(&device->vk, &device->meta_state.device, &pipeline_create_info, &render,
+                                             key_data, strlen(key_data), pipeline_out);
 
    ralloc_free(vs_module);
    ralloc_free(fs_module);
    return result;
-}
-
-static VkResult
-get_pipeline(struct radv_device *device, unsigned fs_key, VkPipeline *pipeline_out)
-{
-   struct radv_meta_state *state = &device->meta_state;
-   VkResult result = VK_SUCCESS;
-
-   mtx_lock(&state->mtx);
-   if (!state->resolve.pipeline[fs_key]) {
-      result = create_pipeline(device, radv_fs_key_format_exemplars[fs_key], &state->resolve.pipeline[fs_key]);
-      if (result != VK_SUCCESS)
-         goto fail;
-   }
-
-   *pipeline_out = state->resolve.pipeline[fs_key];
-
-fail:
-   mtx_unlock(&state->mtx);
-   return result;
-}
-
-void
-radv_device_finish_meta_resolve_state(struct radv_device *device)
-{
-   struct radv_meta_state *state = &device->meta_state;
-
-   for (uint32_t j = 0; j < NUM_META_FS_KEYS; j++) {
-      radv_DestroyPipeline(radv_device_to_handle(device), state->resolve.pipeline[j], &state->alloc);
-   }
-   radv_DestroyPipelineLayout(radv_device_to_handle(device), state->resolve.p_layout, &state->alloc);
-}
-
-VkResult
-radv_device_init_meta_resolve_state(struct radv_device *device, bool on_demand)
-{
-   if (on_demand)
-      return VK_SUCCESS;
-
-   VkResult res = VK_SUCCESS;
-   struct radv_meta_state *state = &device->meta_state;
-
-   for (uint32_t i = 0; i < NUM_META_FS_KEYS; ++i) {
-      VkFormat format = radv_fs_key_format_exemplars[i];
-      unsigned fs_key = radv_format_meta_fs_key(device, format);
-
-      res = create_pipeline(device, format, &state->resolve.pipeline[fs_key]);
-      if (res != VK_SUCCESS)
-          return res;
-   }
-
-   return res;
 }
 
 static void
@@ -207,25 +153,26 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *src_im
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
    unsigned fs_key = radv_format_meta_fs_key(device, vk_format);
+   VkPipelineLayout layout;
    VkPipeline pipeline;
    VkResult result;
 
-   result = get_pipeline(device, fs_key, &pipeline);
+   result = get_pipeline(device, fs_key, &pipeline, &layout);
    if (result != VK_SUCCESS) {
       vk_command_buffer_set_error(&cmd_buffer->vk, result);
       return;
    }
 
    cmd_buffer->state.flush_bits |= radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, src_image) |
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, src_image, NULL) |
                                    radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                                                         VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT, src_image);
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT, src_image, NULL);
 
    radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
    radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
    cmd_buffer->state.flush_bits |= radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, dst_image);
+                                                         VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, dst_image, NULL);
 }
 
 enum radv_resolve_method {

@@ -128,10 +128,12 @@ lower_clip_plane_store_io(nir_builder *b, nir_intrinsic_instr *intr,
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_primitive_output:
    case nir_intrinsic_store_per_vertex_output:
+   case nir_intrinsic_store_per_view_output:
       break;
    default:
       return false;
    }
+
    nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
    if (sem.location != VARYING_SLOT_CLIP_DIST0 &&
        sem.location != VARYING_SLOT_CLIP_DIST1)
@@ -139,26 +141,30 @@ lower_clip_plane_store_io(nir_builder *b, nir_intrinsic_instr *intr,
 
    b->cursor = nir_before_instr(&intr->instr);
    nir_src *src_offset = nir_get_io_offset_src(intr);
-   int wrmask = nir_intrinsic_write_mask(intr);
-   int c = nir_intrinsic_component(intr);
+   unsigned wrmask = nir_intrinsic_write_mask(intr);
+   unsigned base_index = (sem.location == VARYING_SLOT_CLIP_DIST1 ? 4 : 0) +
+                         nir_intrinsic_component(intr);
    nir_def *zero = nir_imm_int(b, 0);
+
    if (nir_src_is_const(*src_offset)) {
-      int i = sem.location == VARYING_SLOT_CLIP_DIST1 ? 4 : 0;
-      i += nir_src_as_const_value(*src_offset)->u32 * 4;
-      i += c;
-      nir_def *val;
-      if (wrmask & 0x1) {
-         if (clip_plane_enable & BITFIELD_BIT(i))
-            return false;
-         val = zero;
-      } else
-         val = nir_undef(b, 1, 32);
-      nir_src_rewrite(&intr->src[0], val);
+      base_index += nir_src_as_uint(*src_offset) * 4;
+
+      u_foreach_bit(bit, wrmask) {
+         if (!(clip_plane_enable & BITFIELD_BIT(base_index + bit))) {
+            nir_def *vec = nir_vector_insert_imm(b, intr->src[0].ssa, zero, bit);
+            nir_src_rewrite(&intr->src[0], vec);
+         }
+      }
    } else {
-      nir_def *first = clip_plane_enable & BITFIELD_BIT(c) ? intr->src[0].ssa : zero;
-      nir_def *second = clip_plane_enable & BITFIELD_BIT(c + 4) ? intr->src[0].ssa : zero;
-      nir_def *val = nir_bcsel(b, nir_ieq_imm(b, src_offset->ssa, 0), first, second);
-      nir_src_rewrite(&intr->src[0], val);
+      u_foreach_bit(bit, wrmask) {
+         unsigned index = base_index + bit;
+         nir_def *chan = nir_channel(b, intr->src[0].ssa, bit);
+         nir_def *dist0 = clip_plane_enable & BITFIELD_BIT(index) ? chan : zero;
+         nir_def *dist1 = clip_plane_enable & BITFIELD_BIT(index + 4) ? chan : zero;
+         chan = nir_bcsel(b, nir_ieq_imm(b, src_offset->ssa, 0), dist0, dist1);
+         nir_def *vec = nir_vector_insert_imm(b, intr->src[0].ssa, chan, bit);
+         nir_src_rewrite(&intr->src[0], vec);
+      }
    }
    return true;
 }

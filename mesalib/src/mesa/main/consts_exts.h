@@ -344,8 +344,6 @@ struct gl_shader_compiler_options
     * \name Forms of indirect addressing the driver cannot do.
     */
    /*@{*/
-   GLboolean EmitNoIndirectInput;   /**< No indirect addressing of inputs */
-   GLboolean EmitNoIndirectOutput;  /**< No indirect addressing of outputs */
    GLboolean EmitNoIndirectTemp;    /**< No indirect addressing of temps */
    GLboolean EmitNoIndirectUniform; /**< No indirect addressing of constants */
    /*@}*/
@@ -669,11 +667,6 @@ struct gl_constants
    GLchar GLSLZeroInit;
 
    /**
-    * Force GL names reuse. Needed by SPECviewperf13.
-    */
-   GLboolean ForceGLNamesReuse;
-
-   /**
     * Treat integer textures using GL_LINEAR filters as GL_NEAREST.
     */
    GLboolean ForceIntegerTexNearest;
@@ -949,8 +942,6 @@ struct gl_constants
    bool PackedDriverUniformStorage;
 
    bool HasFBFetch;
-
-   bool CombinedClipCullDistanceArrays;
 
    bool PointSizeFixed;
 

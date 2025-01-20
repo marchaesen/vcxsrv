@@ -138,7 +138,7 @@ static const struct pvr_format pvr_format_table[] = {
    /* VK_FORMAT_A2B10G10R10_UNORM_PACK32 = 64. */
    FORMAT(A2B10G10R10_UNORM_PACK32, A2R10B10G10, A2R10B10G10, F16),
    /* VK_FORMAT_A2B10G10R10_UINT_PACK32 = 68. */
-   FORMAT(A2B10G10R10_UINT_PACK32, A2R10B10G10, U32, UINT32),
+   FORMAT(A2B10G10R10_UINT_PACK32, A2R10B10G10, U32, U1010102),
    /* VK_FORMAT_R16_UNORM = 70. */
    FORMAT(R16_UNORM, U16, U16, U16),
    /* VK_FORMAT_R16_SNORM = 71. */
@@ -232,9 +232,9 @@ static const struct pvr_format pvr_format_table[] = {
 #undef FORMAT_COMPRESSED
 
 #define FORMAT(tex_fmt, pipe_fmt_int, pipe_fmt_float) \
-   [PVRX(TEXSTATE_FORMAT_##tex_fmt)] = {                    \
+   [ROGUE_TEXSTATE_FORMAT_##tex_fmt] = {                    \
       .desc = {                                             \
-         .tex_format = PVRX(TEXSTATE_FORMAT_##tex_fmt),     \
+         .tex_format = ROGUE_TEXSTATE_FORMAT_##tex_fmt,     \
          .pipe_format_int = PIPE_FORMAT_##pipe_fmt_int,     \
          .pipe_format_float = PIPE_FORMAT_##pipe_fmt_float, \
       },                                                    \
@@ -284,11 +284,11 @@ static const struct pvr_tex_format_table_entry {
 #undef FORMAT
 
 #define FORMAT(tex_fmt, pipe_fmt, tex_fmt_simple) \
-   [PVRX(TEXSTATE_FORMAT_COMPRESSED_##tex_fmt)] = {                   \
+   [ROGUE_TEXSTATE_FORMAT_COMPRESSED_##tex_fmt] = {                   \
       .desc = {                                                       \
-         .tex_format = PVRX(TEXSTATE_FORMAT_COMPRESSED_##tex_fmt),    \
+         .tex_format = ROGUE_TEXSTATE_FORMAT_COMPRESSED_##tex_fmt,    \
          .pipe_format = PIPE_FORMAT_##pipe_fmt,                       \
-         .tex_format_simple = PVRX(TEXSTATE_FORMAT_##tex_fmt_simple), \
+         .tex_format_simple = ROGUE_TEXSTATE_FORMAT_##tex_fmt_simple, \
       },                                                              \
       .present = true,                                                \
    }
@@ -335,7 +335,7 @@ pvr_get_tex_format_description(const uint32_t tex_format)
       return &pvr_tex_format_table[tex_format].desc;
 
    mesa_logd("Tex format %s (%d) not supported\n",
-             PVRX(TEXSTATE_FORMAT_to_str)(tex_format),
+             ROGUE_TEXSTATE_FORMAT_to_str(tex_format),
              tex_format);
 
    return NULL;
@@ -368,7 +368,7 @@ pvr_get_tex_format_compressed_description(uint32_t tex_format)
       return &pvr_tex_format_compressed_table[tex_format].desc;
 
    mesa_logd("Compressed tex format %s (%d) not supported\n",
-             PVRX(TEXSTATE_FORMAT_COMPRESSED_to_str)(tex_format),
+             ROGUE_TEXSTATE_FORMAT_COMPRESSED_to_str(tex_format),
              tex_format);
 
    return NULL;
@@ -397,7 +397,7 @@ uint32_t pvr_get_tex_format_aspect(VkFormat vk_format,
       return pvr_format->tex_format;
    }
 
-   return PVRX(TEXSTATE_FORMAT_INVALID);
+   return ROGUE_TEXSTATE_FORMAT_INVALID;
 }
 
 uint32_t pvr_get_pbe_packmode(VkFormat vk_format)
@@ -423,10 +423,6 @@ uint32_t pvr_get_pbe_accum_format_size_in_bytes(VkFormat vk_format)
    enum pvr_pbe_accum_format pbe_accum_format;
    uint32_t nr_components;
 
-   /* FIXME: Can we encode this in the format table somehow? */
-   if (vk_format == VK_FORMAT_A2B10G10R10_UINT_PACK32)
-      return 4;
-
    pbe_accum_format = pvr_get_pbe_accum_format(vk_format);
    nr_components = vk_format_get_nr_components(vk_format);
 
@@ -449,9 +445,12 @@ uint32_t pvr_get_pbe_accum_format_size_in_bytes(VkFormat vk_format)
    case PVR_PBE_ACCUM_FORMAT_SINT32:
    case PVR_PBE_ACCUM_FORMAT_UINT32_MEDP:
    case PVR_PBE_ACCUM_FORMAT_SINT32_MEDP:
-   case PVR_PBE_ACCUM_FORMAT_U1010102:
    case PVR_PBE_ACCUM_FORMAT_U24:
       return nr_components * 4;
+
+   case PVR_PBE_ACCUM_FORMAT_U1010102:
+      assert(nr_components == 4);
+      return 4;
 
    default:
       unreachable("Unknown pbe accum format. Implementation error");
@@ -560,18 +559,17 @@ void pvr_get_hw_clear_color(
       COPY_4V(packed_val.i16, value.int32);
       break;
 
+   case PVR_PBE_ACCUM_FORMAT_U1010102:
+      /* The PBE can't handle swizzled 1010102 UINT. */
+      packed_val.u32[0] = pvr_pack_a2x10y10z10_uint(
+         value.uint32,
+         vk_format == VK_FORMAT_A2B10G10R10_UINT_PACK32);
+      break;
+
    case PVR_PBE_ACCUM_FORMAT_F32:
       COPY_4V(packed_val.u32, value.uint32);
       break;
    case PVR_PBE_ACCUM_FORMAT_UINT32:
-      /* The PBE can't pack 1010102 UINT. */
-      if (vk_format == VK_FORMAT_A2B10G10R10_UINT_PACK32) {
-         packed_val.u32[0] = pvr_pack_a2x10y10z10_uint(value.uint32, true);
-         break;
-      } else if (vk_format == VK_FORMAT_A2R10G10B10_UINT_PACK32) {
-         packed_val.u32[0] = pvr_pack_a2x10y10z10_uint(value.uint32, false);
-         break;
-      }
       COPY_4V(packed_val.u32, value.uint32);
       break;
    case PVR_PBE_ACCUM_FORMAT_SINT32:
@@ -908,7 +906,7 @@ pvr_get_image_format_properties(struct pvr_physical_device *pdevice,
       pImageFormatProperties->maxExtent.depth = PVR_MAX_TEXTURE_EXTENT_Z;
    } else {
       const uint32_t max_texture_extent_xy =
-         PVRX(TEXSTATE_IMAGE_WORD0_WIDTH_MAX_SIZE) + 1U;
+         ROGUE_TEXSTATE_IMAGE_WORD0_WIDTH_MAX_SIZE + 1U;
 
       pImageFormatProperties->maxExtent.width = max_texture_extent_xy;
       pImageFormatProperties->maxExtent.height = max_texture_extent_xy;

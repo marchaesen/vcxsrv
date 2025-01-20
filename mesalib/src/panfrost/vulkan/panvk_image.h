@@ -10,6 +10,8 @@
 
 #include "pan_texture.h"
 
+#define PANVK_MAX_PLANES 3
+
 struct panvk_image {
    struct vk_image vk;
 
@@ -18,10 +20,26 @@ struct panvk_image {
     */
    struct pan_kmod_bo *bo;
 
-   struct pan_image pimage;
+   uint8_t plane_count;
+   struct pan_image planes[PANVK_MAX_PLANES];
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_image, vk.base, VkImage,
                                VK_OBJECT_TYPE_IMAGE)
+
+static inline unsigned
+panvk_plane_index(VkFormat format, VkImageAspectFlags aspect_mask)
+{
+   switch (aspect_mask) {
+   default:
+      return 0;
+   case VK_IMAGE_ASPECT_PLANE_1_BIT:
+      return 1;
+   case VK_IMAGE_ASPECT_PLANE_2_BIT:
+      return 2;
+   case VK_IMAGE_ASPECT_STENCIL_BIT:
+      return format == VK_FORMAT_D32_SFLOAT_S8_UINT;
+   }
+}
 
 #endif

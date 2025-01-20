@@ -547,9 +547,6 @@ generate_compute(struct llvmpipe_context *lp,
                                                   variant->jit_resources_type,
                                                   params.resources_ptr);
          params.image = image;
-         params.aniso_filter_table = lp_jit_resources_aniso_filter_table(gallivm,
-                                                                         variant->jit_resources_type,
-                                                                         params.resources_ptr);
 
          lp_build_nir_soa_func(gallivm, shader->base.ir.nir,
                                func->impl,
@@ -741,9 +738,25 @@ generate_compute(struct llvmpipe_context *lp,
       LLVMValueRef block_x_size_vec = lp_build_broadcast_scalar(&bld, block_x_size_arg);
       LLVMValueRef block_y_size_vec = lp_build_broadcast_scalar(&bld, block_y_size_arg);
 
-      system_values.thread_id[0] = LLVMBuildURem(gallivm->builder, invocation_index, block_x_size_vec, "");
-      system_values.thread_id[1] = LLVMBuildUDiv(gallivm->builder, invocation_index, block_x_size_vec, "");
-      system_values.thread_id[1] = LLVMBuildURem(gallivm->builder, system_values.thread_id[1], block_y_size_vec, "");
+      if (nir->info.derivative_group == DERIVATIVE_GROUP_QUADS) {
+         /* x = (invocation_index / 4 * 2 + invocation_index % 2) % block_width */
+         LLVMValueRef quad_x = LLVMBuildAnd(builder, invocation_index, lp_build_const_int_vec(gallivm, bld.type, ~3u), "");
+         quad_x = LLVMBuildUDiv(builder, quad_x, lp_build_const_int_vec(gallivm, bld.type, 2), "");
+         LLVMValueRef quad_sub_x = LLVMBuildURem(builder, invocation_index, lp_build_const_int_vec(gallivm, bld.type, 2), "");
+         system_values.thread_id[0] = LLVMBuildAdd(builder, quad_x, quad_sub_x, "");
+         system_values.thread_id[0] = LLVMBuildURem(builder, system_values.thread_id[0], block_x_size_vec, "");
+         /* y = (invocation_index / block_width / 2 * 2 + (invocation_index / 2) % 2) % block_height */
+         LLVMValueRef quad_y = LLVMBuildUDiv(builder, invocation_index, block_x_size_vec, "");
+         quad_y = LLVMBuildAnd(builder, quad_y, lp_build_const_int_vec(gallivm, bld.type, ~1u), "");
+         LLVMValueRef quad_sub_y = LLVMBuildUDiv(builder, invocation_index, lp_build_const_int_vec(gallivm, bld.type, 2), "");
+         quad_sub_y = LLVMBuildURem(builder, quad_sub_y, lp_build_const_int_vec(gallivm, bld.type, 2), "");
+         system_values.thread_id[1] = LLVMBuildAdd(builder, quad_y, quad_sub_y, "");
+         system_values.thread_id[1] = LLVMBuildURem(builder, system_values.thread_id[1], block_y_size_vec, "");
+      } else {
+         system_values.thread_id[0] = LLVMBuildURem(gallivm->builder, invocation_index, block_x_size_vec, "");
+         system_values.thread_id[1] = LLVMBuildUDiv(gallivm->builder, invocation_index, block_x_size_vec, "");
+         system_values.thread_id[1] = LLVMBuildURem(gallivm->builder, system_values.thread_id[1], block_y_size_vec, "");
+      }
       system_values.thread_id[2] = LLVMBuildUDiv(gallivm->builder, invocation_index, block_x_size_vec, "");
       system_values.thread_id[2] = LLVMBuildUDiv(gallivm->builder, system_values.thread_id[2], block_y_size_vec, "");
 
@@ -821,9 +834,6 @@ generate_compute(struct llvmpipe_context *lp,
       params.payload_ptr = payload_ptr;
       params.coro = &coro_info;
       params.kernel_args = kernel_args_ptr;
-      params.aniso_filter_table = lp_jit_resources_aniso_filter_table(gallivm,
-                                                                      variant->jit_resources_type,
-                                                                      resources_ptr);
       params.mesh_iface = &mesh_iface.base;
 
       params.current_func = NULL;
@@ -934,14 +944,6 @@ llvmpipe_create_compute_state(struct pipe_context *pipe,
 
    if (templ->ir_type == PIPE_SHADER_IR_TGSI) {
       shader->base.ir.nir = tgsi_to_nir(templ->prog, pipe->screen, false);
-   } else if (templ->ir_type == PIPE_SHADER_IR_NIR_SERIALIZED) {
-      struct blob_reader reader;
-      const struct pipe_binary_program_header *hdr = templ->prog;
-
-      blob_reader_init(&reader, hdr->blob, hdr->num_bytes);
-      shader->base.ir.nir = nir_deserialize(NULL, pipe->screen->get_compiler_options(pipe->screen, PIPE_SHADER_IR_NIR, PIPE_SHADER_COMPUTE), &reader);
-
-      pipe->screen->finalize_nir(pipe->screen, shader->base.ir.nir);
    } else if (templ->ir_type == PIPE_SHADER_IR_NIR) {
       shader->base.ir.nir = (struct nir_shader *)templ->prog;
    }
@@ -1476,7 +1478,6 @@ lp_csctx_set_sampler_state(struct lp_cs_context *csctx,
          jit_sam->min_lod = sampler->min_lod;
          jit_sam->max_lod = sampler->max_lod;
          jit_sam->lod_bias = sampler->lod_bias;
-         jit_sam->max_aniso = sampler->max_anisotropy;
          COPY_4V(jit_sam->border_color, sampler->border_color.f);
       }
    }
@@ -1621,7 +1622,6 @@ llvmpipe_cs_update_derived(struct llvmpipe_context *llvmpipe, const void *input)
                               llvmpipe->images[PIPE_SHADER_COMPUTE]);
 
    struct lp_cs_context *csctx = llvmpipe->csctx;
-   csctx->cs.current.jit_resources.aniso_filter_table = lp_build_sample_aniso_filter_table();
    if (input) {
       csctx->input = input;
       csctx->cs.current.jit_context.kernel_args = input;
@@ -2294,9 +2294,6 @@ llvmpipe_task_update_derived(struct llvmpipe_context *llvmpipe)
       lp_csctx_set_cs_images(llvmpipe->task_ctx,
                               ARRAY_SIZE(llvmpipe->images[PIPE_SHADER_TASK]),
                               llvmpipe->images[PIPE_SHADER_TASK]);
-
-   struct lp_cs_context *csctx = llvmpipe->task_ctx;
-   csctx->cs.current.jit_resources.aniso_filter_table = lp_build_sample_aniso_filter_table();
 }
 
 void
@@ -2330,7 +2327,4 @@ llvmpipe_mesh_update_derived(struct llvmpipe_context *llvmpipe)
       lp_csctx_set_cs_images(llvmpipe->mesh_ctx,
                               ARRAY_SIZE(llvmpipe->images[PIPE_SHADER_MESH]),
                               llvmpipe->images[PIPE_SHADER_MESH]);
-
-   struct lp_cs_context *csctx = llvmpipe->mesh_ctx;
-   csctx->cs.current.jit_resources.aniso_filter_table = lp_build_sample_aniso_filter_table();
 }

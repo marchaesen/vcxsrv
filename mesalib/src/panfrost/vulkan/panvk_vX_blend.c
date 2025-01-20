@@ -15,6 +15,7 @@
 #include "pan_shader.h"
 
 #include "panvk_blend.h"
+#include "panvk_cmd_buffer.h"
 #include "panvk_device.h"
 #include "panvk_shader.h"
 
@@ -36,12 +37,9 @@ lower_load_blend_const(nir_builder *b, nir_instr *instr, UNUSED void *data)
 
    b->cursor = nir_before_instr(instr);
 
-   unsigned offset = offsetof(struct panvk_graphics_sysvals, blend.constants);
+   /* Blend constants are always passed through FAU words 0:3. */
    nir_def *blend_consts = nir_load_push_constant(
-      b, intr->def.num_components, intr->def.bit_size, nir_imm_int(b, 0),
-      /* Push constants are placed first, and then come the sysvals. */
-      .base = offset + 256,
-      .range = intr->def.num_components * intr->def.bit_size / 8);
+      b, intr->def.num_components, intr->def.bit_size, nir_imm_int(b, 0));
 
    nir_def_rewrite_uses(&intr->def, blend_consts);
    return true;
@@ -51,7 +49,7 @@ static VkResult
 get_blend_shader(struct panvk_device *dev,
                  const struct pan_blend_state *state,
                  nir_alu_type src0_type, nir_alu_type src1_type,
-                 unsigned rt, mali_ptr *shader_addr)
+                 unsigned rt, uint64_t *shader_addr)
 {
    struct panvk_physical_device *pdev =
       to_panvk_physical_device(dev->vk.physical);
@@ -85,8 +83,8 @@ get_blend_shader(struct panvk_device *dev,
    nir_shader *nir =
       GENX(pan_blend_create_shader)(state, src0_type, src1_type, rt);
 
-   NIR_PASS_V(nir, nir_shader_instructions_pass, lower_load_blend_const,
-              nir_metadata_control_flow, NULL);
+   NIR_PASS(_, nir, nir_shader_instructions_pass, lower_load_blend_const,
+            nir_metadata_control_flow, NULL);
 
    /* Compile the NIR shader */
    struct panfrost_compile_inputs inputs = {
@@ -105,7 +103,7 @@ get_blend_shader(struct panvk_device *dev,
 
    enum pipe_format rt_formats[8] = {0};
    rt_formats[rt] = key.info.format;
-   NIR_PASS_V(nir, GENX(pan_inline_rt_conversion), rt_formats);
+   NIR_PASS(_, nir, GENX(pan_inline_rt_conversion), rt_formats);
 
    VkResult result =
       panvk_per_arch(create_internal_shader)(dev, nir, &inputs, &shader);
@@ -126,9 +124,9 @@ out:
 }
 
 static void
-emit_blend_desc(const struct pan_shader_info *fs_info, mali_ptr fs_code,
+emit_blend_desc(const struct pan_shader_info *fs_info, uint64_t fs_code,
                 const struct pan_blend_state *state, unsigned rt_idx,
-                mali_ptr blend_shader, uint16_t constant,
+                uint64_t blend_shader, uint16_t constant,
                 struct mali_blend_packed *bd)
 {
    const struct pan_blend_rt_state *rt = &state->rts[rt_idx];
@@ -298,13 +296,20 @@ blend_needs_shader(const struct pan_blend_state *state, unsigned rt_idx,
 }
 
 VkResult
-panvk_per_arch(blend_emit_descs)(
-   struct panvk_device *dev, const struct vk_dynamic_graphics_state *dyns,
-   const VkFormat *color_attachment_formats, uint8_t *color_attachment_samples,
-   const struct pan_shader_info *fs_info, mali_ptr fs_code,
-   struct mali_blend_packed *bds, struct panvk_blend_info *blend_info)
+panvk_per_arch(blend_emit_descs)(struct panvk_cmd_buffer *cmdbuf,
+                                 struct mali_blend_packed *bds)
 {
+   struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
+   const struct vk_dynamic_graphics_state *dyns =
+      &cmdbuf->vk.dynamic_graphics_state;
    const struct vk_color_blend_state *cb = &dyns->cb;
+   const struct panvk_shader *fs = cmdbuf->state.gfx.fs.shader;
+   const struct pan_shader_info *fs_info = fs ? &fs->info : NULL;
+   uint64_t fs_code = panvk_shader_get_dev_addr(fs);
+   const struct panvk_rendering_state *render = &cmdbuf->state.gfx.render;
+   const VkFormat *color_attachment_formats = render->color_attachments.fmts;
+   const uint8_t *color_attachment_samples = render->color_attachments.samples;
+   struct panvk_blend_info *blend_info = &cmdbuf->state.gfx.cb.info;
    struct pan_blend_state bs = {
       .alpha_to_one = dyns->ms.alpha_to_one_enable,
       .logicop_enable = cb->logic_op_enable,
@@ -318,7 +323,7 @@ panvk_per_arch(blend_emit_descs)(
             cb->blend_constants[3],
          },
    };
-   mali_ptr blend_shaders[8] = {};
+   uint64_t blend_shaders[8] = {};
    /* All bits set to one encodes unused fixed-function blend constant. */
    unsigned ff_blend_constant = ~0;
 
@@ -403,6 +408,9 @@ panvk_per_arch(blend_emit_descs)(
       emit_blend_desc(fs_info, fs_code, &bs, i, blend_shaders[i],
                       ff_blend_constant, &bds[i]);
    }
+
+   if (blend_info->shader_loads_blend_const)
+      gfx_state_set_dirty(cmdbuf, FS_PUSH_UNIFORMS);
 
    return VK_SUCCESS;
 }

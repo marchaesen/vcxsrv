@@ -51,6 +51,7 @@
 
 #if !defined( GPUVIS_TRACE_UTILS_DISABLE )
 
+#include <inttypes.h>
 #include <time.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -218,7 +219,7 @@ static inline void gpuvis_trace_block_finalize( uint64_t m_t0, const char *str )
     if ( dt > 11000 )
         dt -= 11000;
 
-    gpuvis_trace_printf( "%s (lduration=-%lu)", str, dt );
+    gpuvis_trace_printf( "%s (lduration=-%" PRIu64 ")", str, dt );
 }
 
 static inline void gpuvis_trace_block_begin( struct GpuvisTraceBlock* block, const char *str )
@@ -426,7 +427,7 @@ static void flush_hot_func_calls()
                 uint64_t offset = t0 - y.second.tfirst;
                 uint64_t duration = y.second.tlast - y.second.tfirst;
 
-                gpuvis_trace_printf( "%s calls:%u (lduration=%lu tid=%d offset=-%lu)\n",
+                gpuvis_trace_printf( "%s calls:%u (lduration=%" PRIu64 " tid=%d offset=-%" PRIu64 ")\n",
                                      func, y.second.count, duration, tid, offset );
             }
         }
@@ -451,7 +452,7 @@ GPUVIS_EXTERN void gpuvis_count_hot_func_calls_internal_( const char *func )
     }
     else if ( t0 - y.tlast >= 3 * 1000000 ) // 3ms
     {
-        gpuvis_trace_printf( "%s calls:%u (lduration=%lu offset=-%lu)\n",
+        gpuvis_trace_printf( "%s calls:%u (lduration=%" PRIu64 " offset=-%" PRIu64 ")\n",
                              func, y.count, y.tlast - y.tfirst, t0 - y.tfirst );
 
         y.count = 1;

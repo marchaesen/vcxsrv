@@ -53,4 +53,3 @@ spec@egl_chromium_sync_control@conformance
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test
 spec@egl_khr_gl_colorspace@linear
 spec@glsl-1.30@execution@texelfetch fs sampler3d 1x129x9-98x129x9
-

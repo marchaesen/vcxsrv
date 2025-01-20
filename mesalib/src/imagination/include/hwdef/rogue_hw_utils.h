@@ -347,4 +347,124 @@ __rogue_get_param_vf_max(const struct pvr_device_info *dev_info)
 #define rogue_get_param_vf_max_x(dev_info) __rogue_get_param_vf_max(dev_info)
 #define rogue_get_param_vf_max_y(dev_info) __rogue_get_param_vf_max(dev_info)
 
+static inline uint32_t
+rogue_get_max_total_instances(const struct pvr_device_info *dev_info)
+{
+   const uint32_t usc_slots = PVR_GET_FEATURE_VALUE(dev_info, usc_slots, 0U);
+   assert(usc_slots);
+
+   return usc_slots * ROGUE_MAX_INSTANCES_PER_TASK;
+}
+
+static inline uint32_t rogue_get_unified_store_size_per_instance(
+   const struct pvr_device_info *dev_info)
+{
+   const uint32_t unified_store_depth =
+      PVR_GET_FEATURE_VALUE(dev_info, unified_store_depth, 0U);
+   assert(unified_store_depth);
+
+   return unified_store_depth * ROGUE_USC_NUM_UNIFIED_STORE_BANKS;
+}
+
+static inline uint32_t
+rogue_get_min_attr_in_usrm_lines(const struct pvr_device_info *dev_info)
+{
+   const uint32_t unified_store_size_per_instance =
+      rogue_get_unified_store_size_per_instance(dev_info);
+   assert(unified_store_size_per_instance);
+
+   return (unified_store_size_per_instance /
+           ROGUE_USRM_LINE_SIZE_PER_INSTANCE) -
+          ROGUE_RESERVED_USRM_LINES;
+}
+
+static inline uint32_t
+rogue_get_parallel_instances(const struct pvr_device_info *dev_info)
+{
+   return ROGUE_MAX_INSTANCES_PER_TASK / 2;
+}
+
+static inline uint32_t rogue_get_unified_store_temps_per_instance(
+   const struct pvr_device_info *dev_info)
+{
+   return rogue_get_min_attr_in_usrm_lines(dev_info) *
+          ROGUE_USRM_LINE_SIZE_PER_INSTANCE;
+}
+
+static inline uint32_t
+rogue_get_unified_store_total_temps(const struct pvr_device_info *dev_info)
+{
+   return rogue_get_unified_store_temps_per_instance(dev_info) *
+          rogue_get_parallel_instances(dev_info);
+}
+
+static inline uint32_t
+rogue_get_instance_groups_per_slot(const struct pvr_device_info *dev_info)
+{
+   return ROGUE_MAX_INSTANCES_PER_TASK / rogue_get_parallel_instances(dev_info);
+}
+
+static inline uint32_t
+rogue_get_optimal_temps(const struct pvr_device_info *dev_info)
+{
+   const uint32_t usc_slots = PVR_GET_FEATURE_VALUE(dev_info, usc_slots, 0U);
+   assert(usc_slots);
+
+   uint32_t max_temps_full_slot_use =
+      rogue_get_unified_store_temps_per_instance(dev_info) /
+      (rogue_get_instance_groups_per_slot(dev_info) * usc_slots);
+
+   max_temps_full_slot_use &= ~(ROGUE_PDS_US_TEMP_ALLOCATION_GRANULARITY - 1);
+
+   return MAX2(max_temps_full_slot_use, 24U);
+}
+
+static inline uint32_t rogue_get_temps(const struct pvr_device_info *dev_info)
+{
+   uint32_t temps = rogue_get_unified_store_temps_per_instance(dev_info) / 2;
+
+   return MIN2(temps, 248U);
+}
+
+static inline uint32_t
+rogue_max_wg_temps(const struct pvr_device_info *dev_info,
+                   unsigned temps,
+                   unsigned wg_size,
+                   bool has_barrier)
+{
+   assert(wg_size <= rogue_get_max_total_instances(dev_info));
+   if (!wg_size)
+      return rogue_get_compute_max_work_group_size(dev_info);
+
+   if (wg_size > ROGUE_MAX_INSTANCES_PER_TASK && has_barrier) {
+      /* Number of slots allocated for each workgroup. */
+      unsigned slots_per_wg =
+         DIV_ROUND_UP(wg_size, ROGUE_MAX_INSTANCES_PER_TASK);
+
+      /* Lines of USRM lines available for each slot
+       * (+1 for fragmentation / coarse checking).
+       */
+      unsigned lines_per_slot =
+         rogue_get_min_attr_in_usrm_lines(dev_info) / (slots_per_wg + 1);
+
+      unsigned max_allocs;
+      if (lines_per_slot != 0) {
+         /* Convert lines to USRM allocs. */
+         max_allocs = lines_per_slot * ROGUE_USRM_LINE_SIZE;
+      } else {
+         max_allocs = (rogue_get_min_attr_in_usrm_lines(dev_info) *
+                       ROGUE_USRM_LINE_SIZE) /
+                      (slots_per_wg + 1);
+      }
+
+      /* Convert USRM allocs to temporary registers. */
+      unsigned max_temps_for_barrier =
+         max_allocs * ROGUE_USRM_GRANULARITY_IN_REGISTERS;
+
+      /* Clamp to provided limit */
+      temps = MIN2(temps, max_temps_for_barrier);
+   }
+
+   return temps;
+}
 #endif /* ROGUE_HW_UTILS_H */

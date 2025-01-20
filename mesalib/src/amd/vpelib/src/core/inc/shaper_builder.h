@@ -25,6 +25,7 @@
 #pragma once
 #include "vpe_types.h"
 #include "hw_shared.h"
+#include "color.h"
 #include <math.h>
 
 #define ARRAY_SIZE(arr)   (sizeof(arr) / sizeof((arr)[0]))
@@ -36,5 +37,6 @@ struct vpe_shaper_setup_in {
     bool   use_const_hdr_mult;
 };
 
-enum vpe_status vpe_build_shaper(
-    const struct vpe_shaper_setup_in *shaper_in, struct pwl_params *shaper_out);
+enum vpe_status vpe_build_shaper(const struct vpe_shaper_setup_in *shaper_in,
+    enum color_transfer_func shaper_tf, struct fixed31_32 pq_norm_gain,
+    struct pwl_params *shaper_out);

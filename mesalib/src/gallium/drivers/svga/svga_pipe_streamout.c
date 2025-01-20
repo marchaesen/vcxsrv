@@ -398,7 +398,8 @@ static void
 svga_set_stream_output_targets(struct pipe_context *pipe,
                                unsigned num_targets,
                                struct pipe_stream_output_target **targets,
-                               const unsigned *offsets)
+                               const unsigned *offsets,
+                               enum mesa_prim output_prim)
 {
    struct svga_context *svga = svga_context(pipe);
    struct SVGA3dSoTarget soBindings[SVGA3D_DX_MAX_SOTARGETS];

@@ -1,0 +1,33 @@
+[flake8]
+exclude = .venv*,
+
+# PEP 8 Style Guide limits line length to 79 characters
+max-line-length = 159
+
+ignore =
+    # continuation line under-indented for hanging indent
+    E121
+    # continuation line over-indented for hanging indent
+    E126,
+    # continuation line under-indented for visual indent
+    E128,
+    # whitespace before ':'
+    E203,
+    # missing whitespace around arithmetic operator
+    E226,
+    # missing whitespace after ','
+    E231,
+     # expected 2 blank lines, found 1
+    E302,
+    # too many blank lines
+    E303,
+    # imported but unused
+    F401,
+    # f-string is missing placeholders
+    F541,
+    # local variable assigned to but never used
+    F841,
+    # line break before binary operator
+    W503,
+    #  line break after binary operator
+    W504,

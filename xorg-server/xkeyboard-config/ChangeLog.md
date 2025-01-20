@@ -1,4 +1,7 @@
-xkeyboard-config [2.43](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-2.43) - 2024-10-01
+xkeyboard-config [2.43] - 2024-10-01
+====================================
+
+[2.43]: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-2.43
 
 ## Models
 
@@ -94,8 +97,10 @@ xkeyboard-config [2.43](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboar
   Improved version detection and corresponding error messages. ([#465](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/issues/465))
 
 
-xkeyboard-config [2.42](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-2.42) - 2024-06-07
-===================================================================================================================================
+xkeyboard-config [2.42] - 2024-06-07
+====================================
+
+[2.42]: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-2.42
 
 ## Models
 
@@ -148,6 +153,5 @@ xkeyboard-config [2.42](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboar
 Older versions
 ==============
 
-Unfortunately there is no detailed changelog for recent versions. Please see
-[`ChangeLog.old`](ChangeLog.old) for versions up to `1.8` (2010) or use the
+Unfortunately there is no detailed changelog for older versions. Please use the
 [git log](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/commits/master).

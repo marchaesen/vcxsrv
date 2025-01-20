@@ -1,0 +1,7 @@
+[[piglit]]
+piglit_folder = "/piglit"
+profile = "cl"
+process_isolation = true
+skips = ["install/freedreno-a6xx-skips.txt"]
+  [piglit.env]
+  RUSTICL_ENABLE = "msm"

@@ -39,7 +39,7 @@ from vk_extensions import filter_api, get_all_required
 # These have hand-typed implementations in vk_cmd_enqueue.c
 MANUAL_COMMANDS = [
     # This script doesn't know how to copy arrays in structs in arrays
-    'CmdPushDescriptorSetKHR',
+    'CmdPushDescriptorSet',
 
     # The size of the elements is specified in a stride param
     'CmdDrawMultiEXT',
@@ -53,10 +53,10 @@ MANUAL_COMMANDS = [
     'CmdBuildAccelerationStructuresKHR',
 
     # pData's size cannot be calculated from the xml
-    'CmdPushDescriptorSetWithTemplate2KHR',
-    'CmdPushDescriptorSetWithTemplateKHR',
-    'CmdPushConstants2KHR',
-    'CmdPushDescriptorSet2KHR',
+    'CmdPushDescriptorSetWithTemplate2',
+    'CmdPushDescriptorSetWithTemplate',
+    'CmdPushConstants2',
+    'CmdPushDescriptorSet2',
 
     # VkDispatchGraphCountInfoAMDX::infos is an array of
     # VkDispatchGraphInfoAMDX, but the xml specifies that it is a

@@ -61,7 +61,6 @@
 		dri_server_wait_sync;
 		dri_set_blob_cache_funcs;
 		dri_get_pipe_screen;
-		dri_get_screen_param;
 		dri3*;
 		loader_dri3*;
 		dri_create_drawable;

@@ -294,10 +294,12 @@ vc4_resource_destroy(struct pipe_screen *pscreen,
 static uint64_t
 vc4_resource_modifier(struct vc4_resource *rsc)
 {
-        if (rsc->tiled)
+        if (rsc->tiled) {
+                assert(rsc->slices[0].tiling == VC4_TILING_FORMAT_T);
                 return DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED;
-        else
+        } else {
                 return DRM_FORMAT_MOD_LINEAR;
+        }
 }
 
 static bool
@@ -376,7 +378,8 @@ vc4_resource_get_param(struct pipe_screen *pscreen,
 }
 
 static void
-vc4_setup_slices(struct vc4_resource *rsc, const char *caller)
+vc4_setup_slices(struct vc4_resource *rsc, const char *caller,
+                 bool force_format_t)
 {
         struct pipe_resource *prsc = &rsc->base;
         uint32_t width = prsc->width0;
@@ -414,7 +417,8 @@ vc4_setup_slices(struct vc4_resource *rsc, const char *caller)
                                 level_width = align(level_width, utile_w);
                         }
                 } else {
-                        if (vc4_size_is_lt(level_width, level_height,
+                        if (!force_format_t &&
+                            vc4_size_is_lt(level_width, level_height,
                                            rsc->cpp)) {
                                 slice->tiling = VC4_TILING_FORMAT_LT;
                                 level_width = align(level_width, utile_w);
@@ -527,7 +531,6 @@ vc4_resource_create_with_modifiers(struct pipe_screen *pscreen,
         struct vc4_screen *screen = vc4_screen(pscreen);
         struct vc4_resource *rsc = vc4_resource_setup(pscreen, tmpl);
         struct pipe_resource *prsc = &rsc->base;
-        bool linear_ok = drm_find_modifier(DRM_FORMAT_MOD_LINEAR, modifiers, count);
         /* Use a tiled layout if we can, for better 3D performance. */
         bool should_tile = true;
 
@@ -565,13 +568,12 @@ vc4_resource_create_with_modifiers(struct pipe_screen *pscreen,
 
         /* No user-specified modifier; determine our own. */
         if (count == 1 && modifiers[0] == DRM_FORMAT_MOD_INVALID) {
-                linear_ok = true;
                 rsc->tiled = should_tile;
         } else if (should_tile &&
                    drm_find_modifier(DRM_FORMAT_MOD_BROADCOM_VC4_T_TILED,
                                  modifiers, count)) {
                 rsc->tiled = true;
-        } else if (linear_ok) {
+        } else if (drm_find_modifier(DRM_FORMAT_MOD_LINEAR, modifiers, count)) {
                 rsc->tiled = false;
         } else {
                 fprintf(stderr, "Unsupported modifier requested\n");
@@ -581,7 +583,7 @@ vc4_resource_create_with_modifiers(struct pipe_screen *pscreen,
         if (tmpl->target != PIPE_BUFFER)
                 rsc->vc4_format = get_resource_texture_format(prsc);
 
-        vc4_setup_slices(rsc, "create");
+        vc4_setup_slices(rsc, "create", tmpl->bind & PIPE_BIND_SHARED);
         if (!vc4_resource_bo_alloc(rsc))
                 goto fail;
 
@@ -696,7 +698,7 @@ vc4_resource_from_handle(struct pipe_screen *pscreen,
         }
 
         rsc->vc4_format = get_resource_texture_format(prsc);
-        vc4_setup_slices(rsc, "import");
+        vc4_setup_slices(rsc, "import", true);
 
         if (whandle->offset != 0) {
                 if (rsc->tiled) {
@@ -1027,11 +1029,60 @@ vc4_dump_surface(struct pipe_surface *psurf)
 }
 
 static void
-vc4_flush_resource(struct pipe_context *pctx, struct pipe_resource *resource)
+vc4_flush_resource(struct pipe_context *pctx, struct pipe_resource *prsc)
 {
         /* All calls to flush_resource are followed by a flush of the context,
-         * so there's nothing to do.
+         * so there's nothing to do. Still, if the resource is going to be
+         * shared and it is tiled, only T format is valid, so we need to
+         * convert it.
          */
+        struct vc4_resource *rsc = vc4_resource(prsc);
+        struct vc4_screen *screen = vc4_screen(prsc->screen);
+        if (rsc->tiled &&
+            (rsc->slices[0].tiling != VC4_TILING_FORMAT_T ||
+            !screen->has_tiling_ioctl)) {
+                /* Shared resources must be not mipmapped */
+                assert(prsc->last_level == 0);
+                /* Shared resources must not be multisampled */
+                assert(prsc->nr_samples <= 1);
+
+                struct pipe_resource ptmpl = *prsc;
+                ptmpl.bind |= PIPE_BIND_SHARED;
+                struct vc4_resource *new_rsc =
+                        vc4_resource(pctx->screen->resource_create(pctx->screen,
+                                                                   &ptmpl));
+                assert(new_rsc);
+
+                struct pipe_blit_info blit = { 0 };
+                u_box_3d(0, 0, 0,
+                         prsc->width0, prsc->height0, prsc->depth0,
+                         &blit.dst.box);
+                blit.src.box = blit.dst.box;
+                blit.dst.resource = &new_rsc->base;
+                blit.dst.format = new_rsc->base.format;
+                blit.dst.level = 0;
+                blit.src.resource = prsc;
+                blit.src.format = prsc->format;
+                blit.src.level = 0;
+                blit.mask = util_format_get_mask(blit.src.format);
+                blit.filter = PIPE_TEX_FILTER_NEAREST;
+
+                vc4_blit(pctx, &blit);
+
+                rsc->base.bind = new_rsc->base.bind;
+                /* Swap the BOs */
+                struct vc4_bo *old_bo = rsc->bo;
+                rsc->bo = new_rsc->bo;
+                new_rsc->bo = old_bo;
+
+                /* Copy the affected fields */
+                rsc->slices[0] = new_rsc->slices[0];
+                rsc->cube_map_stride = new_rsc->cube_map_stride;
+                rsc->tiled = new_rsc->tiled;
+
+                struct pipe_resource *new_prsc = (struct pipe_resource *)&new_rsc;
+                pipe_resource_reference(&new_prsc, NULL);
+        }
 }
 
 void

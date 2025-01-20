@@ -385,9 +385,6 @@ nir_builder_instr_insert(nir_builder *build, nir_instr *instr)
 {
    nir_instr_insert(build->cursor, instr);
 
-   if (build->update_divergence)
-      nir_update_instr_divergence(build->shader, instr);
-
    /* Move the cursor forward. */
    build->cursor = nir_after_instr(instr);
 }
@@ -400,9 +397,6 @@ nir_builder_instr_insert_at_top(nir_builder *build, nir_instr *instr)
                        nir_cursors_equal(build->cursor, top);
 
    nir_instr_insert(top, instr);
-
-   if (build->update_divergence)
-      nir_update_instr_divergence(build->shader, instr);
 
    if (at_top)
       build->cursor = nir_after_instr(instr);

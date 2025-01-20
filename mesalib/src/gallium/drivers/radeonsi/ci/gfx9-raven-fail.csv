@@ -5,7 +5,6 @@ glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
-glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
 glx@glx_ext_import_context@free context,Fail
 glx@glx_ext_import_context@get context id,Fail
 glx@glx_ext_import_context@get current display,Fail
@@ -26,7 +25,6 @@ spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,F
 spec@egl_chromium_sync_control@conformance,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
 spec@egl_ext_protected_content@conformance,Fail
-spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency ffs,Fail
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency other,Fail
@@ -53,12 +51,6 @@ KHR-GL46.geometry_shader.rendering.rendering.triangles_with_adjacency_input_tria
 KHR-GL46.shader_ballot_tests.ShaderBallotFunctionRead,Fail
 KHR-GL46.shader_ballot_tests.ShaderBallotBitmasks,Fail
 KHR-GL46.sparse_buffer_tests.BufferStorageTest,Fail
-KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment,Fail
-KHR-GL46.sparse_texture2_tests.SparseTexture2Lookup,Crash
-KHR-GL46.sparse_texture2_tests.StandardPageSizesTestCase,Fail
-KHR-GL46.sparse_texture2_tests.UncommittedRegionsAccess,Fail
-KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor,Fail
-KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupResidency,Fail
 
 # These are GLCTS bugs. See: https://gitlab.freedesktop.org/mesa/mesa/-/issues/10361
 GTF-GL46.gtf31.GL3Tests.uniform_buffer_object.uniform_buffer_object_accessing_info_for_block_with_an_instance_array,Fail

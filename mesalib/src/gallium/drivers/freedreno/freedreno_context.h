@@ -319,6 +319,8 @@ struct fd_context {
     */
    bool active_queries dt;
 
+   uint32_t occlusion_queries_active dt;
+
    /* shaders used by clear, and gmem->mem blits: */
    struct fd_program_stateobj solid_prog; // TODO move to screen?
    struct fd_program_stateobj solid_layered_prog;

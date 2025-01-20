@@ -50,7 +50,7 @@ from The Open Group.
  */
 
 #define CI_GET_ROWZERO_CHAR_INFO_2D(fs,col,def,cs) \
-{ \
+do { \
     cs = def; \
     if (fs->min_byte1 == 0 && \
 	col >= fs->min_byte2 && col <= fs->max_byte2) { \
@@ -61,7 +61,7 @@ from The Open Group.
 	    if (CI_NONEXISTCHAR(cs)) cs = def; \
 	} \
     } \
-}
+} while (0)
 
 
 /*

@@ -304,7 +304,7 @@ struct vs_build_ctx
 static inline unsigned
 get_texcoord_sn(struct pipe_screen *screen)
 {
-    if (screen->get_param(screen, PIPE_CAP_TGSI_TEXCOORD))
+    if (screen->caps.tgsi_texcoord)
         return TGSI_SEMANTIC_TEXCOORD;
     return TGSI_SEMANTIC_GENERIC;
 }
@@ -1552,8 +1552,7 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
     if (key->fog_mode) {
         struct ureg_dst rFog = ureg_writemask(ps.rTmp, TGSI_WRITEMASK_X);
         struct ureg_src vPos;
-        if (device->screen->get_param(device->screen,
-                                      PIPE_CAP_FS_POSITION_IS_SYSVAL)) {
+        if (device->screen->caps.fs_position_is_sysval) {
             vPos = ureg_DECL_system_value(ureg, TGSI_SEMANTIC_POSITION, 0);
         } else {
             vPos = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_POSITION, 0,

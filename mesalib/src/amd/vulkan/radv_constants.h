@@ -12,6 +12,9 @@
 #define RADV_CONSTANTS_H
 
 #define ATI_VENDOR_ID 0x1002
+#ifdef HAVE_AMDGPU_VIRTIO
+#define VIRTGPU_PCI_VENDOR_ID 0x1af4
+#endif
 
 #define MAX_VBS                        32
 #define MAX_VERTEX_ATTRIBS             32

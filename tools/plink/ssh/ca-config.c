@@ -453,9 +453,10 @@ void setup_ca_config_box(struct controlbox *b)
                      P(st), P(NULL));
     c->column = 0;
     st->ca_pubkey_edit = c;
-    c = ctrl_filesel(s, "Read from file", NO_SHORTCUT, NULL, false,
-                     "Select public key file of certification authority",
-                     HELPCTX(ssh_kex_cert), ca_pubkey_file_handler, P(st));
+    c = ctrl_filesel(
+        s, "Read from file", NO_SHORTCUT, FILTER_ALL_FILES, false,
+        "Select public key file of certification authority",
+        HELPCTX(ssh_kex_cert), ca_pubkey_file_handler, P(st));
     c->fileselect.just_button = true;
     c->align_next_to = st->ca_pubkey_edit;
     c->column = 1;

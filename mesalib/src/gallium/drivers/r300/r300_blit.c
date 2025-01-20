@@ -687,6 +687,7 @@ static bool r300_is_simple_msaa_resolve(const struct pipe_blit_info *info)
            info->dst.resource->format == info->dst.format &&
            info->src.resource->format == info->src.format &&
            !info->scissor_enable &&
+           !info->swizzle_enable &&
            info->mask == PIPE_MASK_RGBA &&
            dst_width == info->src.resource->width0 &&
            dst_height == info->src.resource->height0 &&

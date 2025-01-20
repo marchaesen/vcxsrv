@@ -32,9 +32,10 @@
 
 /* Don't use <ctype.h> here because it is locale dependent. */
 
-#define set_toupper(ch) \
+#define set_toupper(ch) do {  \
   if (ch >= 'a' && ch <= 'z') \
-    ch = (unsigned char) (ch - 'a' + 'A');
+    ch = (unsigned char) (ch - 'a' + 'A'); \
+} while (0)
 
 /* Compares two ISO 8859-1 strings, ignoring case of ASCII letters.
    Like strcasecmp in an ASCII locale. */

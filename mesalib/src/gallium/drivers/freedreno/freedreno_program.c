@@ -148,7 +148,7 @@ texcoord_semantic(struct pipe_context *pctx)
 {
    struct pipe_screen *pscreen = pctx->screen;
 
-   if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_TEXCOORD)) {
+   if (pscreen->caps.tgsi_texcoord) {
       return TGSI_SEMANTIC_TEXCOORD;
    } else {
       return TGSI_SEMANTIC_GENERIC;

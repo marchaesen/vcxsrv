@@ -1707,5 +1707,10 @@
 #define glInternalInvalidateFramebufferAncillaryMESA() CALL_InternalInvalidateFramebufferAncillaryMESA(GET_DISPATCH(), ())
 #define glDrawElementsPacked(a1, a2, a3, a4) CALL_DrawElementsPacked(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glDrawElementsUserBufPacked(a1) CALL_DrawElementsUserBufPacked(GET_DISPATCH(), (a1))
+#define glTexStorageAttribs2DEXT(a1, a2, a3, a4, a5, a6) CALL_TexStorageAttribs2DEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
+#define glTexStorageAttribs3DEXT(a1, a2, a3, a4, a5, a6, a7) CALL_TexStorageAttribs3DEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
+#define glFramebufferTextureMultiviewOVR(a1, a2, a3, a4, a5, a6) CALL_FramebufferTextureMultiviewOVR(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
+#define glNamedFramebufferTextureMultiviewOVR(a1, a2, a3, a4, a5, a6) CALL_NamedFramebufferTextureMultiviewOVR(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
+#define glFramebufferTextureMultisampleMultiviewOVR(a1, a2, a3, a4, a5, a6, a7) CALL_FramebufferTextureMultisampleMultiviewOVR(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

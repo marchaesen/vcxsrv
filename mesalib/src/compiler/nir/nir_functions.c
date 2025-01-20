@@ -37,6 +37,16 @@ nir_function_can_inline(nir_function *function)
    bool can_inline = true;
    if (!function->should_inline) {
       if (function->impl) {
+         nir_foreach_block(block, function->impl) {
+            nir_foreach_instr(instr, block) {
+               if (instr->type != nir_instr_type_intrinsic)
+                  continue;
+               nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+               if (intr->intrinsic == nir_intrinsic_barrier)
+                  return true;
+            }
+         }
+
          if (function->impl->num_blocks > 2)
             can_inline = false;
          if (function->impl->ssa_alloc > 45)

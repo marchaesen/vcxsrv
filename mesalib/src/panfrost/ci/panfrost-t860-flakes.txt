@@ -1,1 +1,8 @@
 dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_rgba4_depth_component16
+
+# First seen in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/69489085 and https://gitlab.freedesktop.org/mesa/mesa/-/jobs/69488933
+x11-dEQP-EGL.functional.sharing.gles2.multithread.random_egl_sync.textures.texsubimage2d.14
+x11-dEQP-EGL.functional.sharing.gles2.multithread.simple_egl_server_sync.textures.copyteximage2d_copytexsubimage2d_render
+x11-dEQP-EGL.functional.sharing.gles2.multithread.simple_egl_sync.textures.copyteximage2d_texsubimage2d_render
+x11-dEQP-EGL.functional.sharing.gles2.multithread.random_egl_server_sync.images.copyteximage2d.17
+x11-dEQP-EGL.functional.sharing.gles2.multithread.simple_egl_sync.images.texture_source.copyteximage2d_render

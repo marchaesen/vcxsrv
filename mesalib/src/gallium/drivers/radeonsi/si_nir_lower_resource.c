@@ -67,10 +67,10 @@ static nir_def *load_ubo_desc(nir_builder *b, nir_def *index,
 
    nir_def *addr = ac_nir_load_arg(b, &s->args->ac, s->args->const_and_shader_buffers);
 
-   if (sel->info.base.num_ubos == 1 && sel->info.base.num_ssbos == 0)
+   if (b->shader->info.num_ubos == 1 && b->shader->info.num_ssbos == 0)
       return load_ubo_desc_fast_path(b, addr, sel);
 
-   index = clamp_index(b, index, sel->info.base.num_ubos);
+   index = clamp_index(b, index, b->shader->info.num_ubos);
    index = nir_iadd_imm(b, index, SI_NUM_SHADER_BUFFERS);
 
    nir_def *offset = nir_ishl_imm(b, index, 4);
@@ -90,7 +90,7 @@ static nir_def *load_ssbo_desc(nir_builder *b, nir_src *index,
    }
 
    nir_def *addr = ac_nir_load_arg(b, &s->args->ac, s->args->const_and_shader_buffers);
-   nir_def *slot = clamp_index(b, index->ssa, sel->info.base.num_ssbos);
+   nir_def *slot = clamp_index(b, index->ssa, b->shader->info.num_ssbos);
    slot = nir_isub_imm(b, SI_NUM_SHADER_BUFFERS - 1, slot);
 
    nir_def *offset = nir_ishl_imm(b, slot, 4);
@@ -219,7 +219,7 @@ static nir_def *load_deref_image_desc(nir_builder *b, nir_deref_instr *deref,
 {
    unsigned const_index;
    nir_def *dynamic_index;
-   nir_def *index = deref_to_index(b, deref, s->shader->selector->info.base.num_images,
+   nir_def *index = deref_to_index(b, deref, b->shader->info.num_images,
                                        &dynamic_index, &const_index);
 
    nir_def *desc;

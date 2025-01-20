@@ -41,6 +41,7 @@ struct st_context;
 #define DEBUG_WIREFRAME       BITFIELD_BIT(4)
 #define DEBUG_GREMEDY         BITFIELD_BIT(5)
 #define DEBUG_NOREADPIXCACHE  BITFIELD_BIT(6)
+#define DEBUG_PRINT_XFB       BITFIELD_BIT(7)
 
 extern int ST_DEBUG;
 

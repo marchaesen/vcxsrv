@@ -93,7 +93,7 @@ svga_define_rasterizer_object(struct svga_context *svga,
    const unsigned cull_mode = translate_cull_mode(rast->templ.cull_face);
    const int depth_bias = rast->templ.offset_units;
    const float slope_scaled_depth_bias = rast->templ.offset_scale;
-   /* PIPE_CAP_POLYGON_OFFSET_CLAMP not supported: */
+   /* pipe_caps.polygon_offset_clamp not supported: */
    const float depth_bias_clamp = 0.0;
    const float line_width = rast->templ.line_width > 0.0f ?
       rast->templ.line_width : 1.0f;

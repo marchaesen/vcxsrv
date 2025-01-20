@@ -184,7 +184,7 @@ vc4_nir_lower_vertex_attr(struct vc4_compile *c, nir_builder *b,
          * be reordered, the actual reads will be generated at the top of the
          * shader by ntq_setup_inputs().
          */
-        nir_def *vpm_reads[4];
+        nir_def *vpm_reads[4] = { 0 };
         for (int i = 0; i < align(attr_size, 4) / 4; i++)
                 vpm_reads[i] = nir_load_input(b, 1, 32, nir_imm_int(b, 0),
                                               .base = nir_intrinsic_base(intr),

@@ -495,8 +495,6 @@ compile_sample_function(struct llvmpipe_context *ctx, struct lp_static_texture_s
    gallivm->texture_descriptor = LLVMGetParam(function, arg_index++);
    gallivm->sampler_descriptor = LLVMGetParam(function, arg_index++);
 
-   LLVMValueRef aniso_filter_table = LLVMGetParam(function, arg_index++);
-
    LLVMValueRef coords[5];
    for (unsigned i = 0; i < 4; i++)
       coords[i] = LLVMGetParam(function, arg_index++);
@@ -528,7 +526,7 @@ compile_sample_function(struct llvmpipe_context *ctx, struct lp_static_texture_s
    if (supported) {
       lp_build_sample_soa_code(gallivm, texture, sampler, lp_build_sampler_soa_dynamic_state(sampler_soa),
                                type, sample_key, 0, 0, cs.jit_resources_type, NULL, cs.jit_cs_thread_data_type,
-                               NULL, coords, offsets, NULL, lod, ms_index, aniso_filter_table, texel_out);
+                               NULL, coords, offsets, NULL, lod, ms_index, texel_out);
    } else {
       lp_build_sample_nop(gallivm, lp_build_texel_type(type, util_format_description(texture->format)), coords, texel_out);
    }

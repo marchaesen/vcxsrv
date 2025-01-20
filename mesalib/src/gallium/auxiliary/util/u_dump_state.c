@@ -1018,6 +1018,8 @@ void util_dump_box(FILE *stream, const struct pipe_box *box)
 void util_dump_blit_info(FILE *stream, const struct pipe_blit_info *info)
 {
    char mask[7];
+   unsigned s;
+   static const char *swiz = "RGBA01";
 
    if (!info) {
       util_dump_null(stream);
@@ -1064,6 +1066,16 @@ void util_dump_blit_info(FILE *stream, const struct pipe_blit_info *info)
    util_dump_member(stream, bool, info, scissor_enable);
    util_dump_member_begin(stream, "scissor");
    util_dump_scissor_state(stream, &info->scissor);
+   util_dump_member_end(stream);
+
+   util_dump_member(stream, bool, info, swizzle_enable);
+
+   for (unsigned i = 0; i < 4; i++) {
+      s = (unsigned)info->swizzle[i];
+      mask[i] = s < 6 ? swiz[s] : '?';
+   }
+   util_dump_member_begin(stream, "swizzle");
+   util_dump_string(stream, mask);
    util_dump_member_end(stream);
 
    util_dump_member(stream, bool, info, render_condition_enable);

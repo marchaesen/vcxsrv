@@ -42,10 +42,12 @@
 #include "syncobj.h"
 #include "texobj.h"
 #include "texturebindless.h"
+#include "pipe/p_screen.h"
 
 #include "util/hash_table.h"
 #include "util/set.h"
 #include "util/u_memory.h"
+#include "util/u_process.h"
 
 static void
 free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared);
@@ -60,7 +62,8 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared);
  * failure.
  */
 struct gl_shared_state *
-_mesa_alloc_shared_state(struct gl_context *ctx)
+_mesa_alloc_shared_state(struct gl_context *ctx,
+                         const struct st_config_options *options)
 {
    struct gl_shared_state *shared;
    GLuint i;
@@ -71,26 +74,41 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
 
    simple_mtx_init(&shared->Mutex, mtx_plain);
 
-   _mesa_InitHashTable(&shared->DisplayList);
-   _mesa_InitHashTable(&shared->TexObjects);
-   _mesa_InitHashTable(&shared->Programs);
+   const char *driver_name = ctx->screen->get_name(ctx->screen);
+   bool is_virgl_guest = !strcmp(driver_name, "virgl");
+   const char *process_name = util_get_process_name();
+   bool is_virgl_host = strstr(process_name, "qemu-system") == process_name ||
+                        strstr(process_name, "crosvm") ||
+                        strstr(process_name, "virgl_test_server");
+
+   /* Enable GL name reuse for all drivers by default except virgl, which
+    * is hopelessly broken.
+    *
+    * To disable it, set reuse_gl_names=0 in the environment.
+    */
+   if (!is_virgl_guest && !is_virgl_host)
+      shared->ReuseGLNames = options->reuse_gl_names != 0;
+
+   _mesa_InitHashTable(&shared->DisplayList, shared->ReuseGLNames);
+   _mesa_InitHashTable(&shared->TexObjects, shared->ReuseGLNames);
+   _mesa_InitHashTable(&shared->Programs, shared->ReuseGLNames);
 
    shared->DefaultVertexProgram =
       ctx->Driver.NewProgram(ctx, MESA_SHADER_VERTEX, 0, true);
    shared->DefaultFragmentProgram =
       ctx->Driver.NewProgram(ctx, MESA_SHADER_FRAGMENT, 0, true);
 
-   _mesa_InitHashTable(&shared->ATIShaders);
+   _mesa_InitHashTable(&shared->ATIShaders, shared->ReuseGLNames);
    shared->DefaultFragmentShader = _mesa_new_ati_fragment_shader(ctx, 0);
 
-   _mesa_InitHashTable(&shared->ShaderObjects);
+   _mesa_InitHashTable(&shared->ShaderObjects, shared->ReuseGLNames);
 
-   _mesa_InitHashTable(&shared->BufferObjects);
+   _mesa_InitHashTable(&shared->BufferObjects, shared->ReuseGLNames);
    shared->ZombieBufferObjects = _mesa_set_create(NULL, _mesa_hash_pointer,
                                                   _mesa_key_pointer_equal);
 
    /* GL_ARB_sampler_objects */
-   _mesa_InitHashTable(&shared->SamplerObjects);
+   _mesa_InitHashTable(&shared->SamplerObjects, shared->ReuseGLNames);
 
    /* GL_ARB_bindless_texture */
    _mesa_init_shared_handles(shared);
@@ -132,14 +150,14 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    simple_mtx_init(&shared->TexMutex, mtx_plain);
    shared->TextureStateStamp = 0;
 
-   _mesa_InitHashTable(&shared->FrameBuffers);
-   _mesa_InitHashTable(&shared->RenderBuffers);
+   _mesa_InitHashTable(&shared->FrameBuffers, shared->ReuseGLNames);
+   _mesa_InitHashTable(&shared->RenderBuffers, shared->ReuseGLNames);
 
    shared->SyncObjects = _mesa_set_create(NULL, _mesa_hash_pointer,
                                           _mesa_key_pointer_equal);
 
-   _mesa_InitHashTable(&shared->MemoryObjects);
-   _mesa_InitHashTable(&shared->SemaphoreObjects);
+   _mesa_InitHashTable(&shared->MemoryObjects, shared->ReuseGLNames);
+   _mesa_InitHashTable(&shared->SemaphoreObjects, shared->ReuseGLNames);
 
    shared->GLThread.NoLockDuration = ONE_SECOND_IN_NS;
 

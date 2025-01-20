@@ -109,7 +109,7 @@ macro_rules! offset_of {
 // See https://github.com/rust-lang/rust/issues/96284
 #[must_use]
 #[inline]
-pub const fn is_aligned<T>(ptr: *const T) -> bool
+pub fn is_aligned<T>(ptr: *const T) -> bool
 where
     T: Sized,
 {
@@ -121,7 +121,7 @@ where
 // See https://github.com/rust-lang/rust/issues/95228
 #[must_use]
 #[inline(always)]
-pub const fn addr<T>(ptr: *const T) -> usize {
+pub fn addr<T>(ptr: *const T) -> usize {
     // The libcore implementations of `addr` and `expose_addr` suggest that, while both transmuting
     // and casting to usize will give you the address of a ptr in the end, they are not identical
     // in their side-effects.
@@ -129,8 +129,8 @@ pub const fn addr<T>(ptr: *const T) -> usize {
     // aggressively around it.
     // Let's trust the libcore devs over clippy on whether a transmute also exposes a ptr.
     #[allow(clippy::transmutes_expressible_as_ptr_casts)]
-    // SAFETY: Pointer-to-integer transmutes are valid (if you are okay with losing the
-    // provenance).
+    // SAFETY: Pointer-to-integer transmutes are valid outside of const contexts (if you are okay
+    // with losing the provenance).
     unsafe {
         mem::transmute(ptr.cast::<()>())
     }

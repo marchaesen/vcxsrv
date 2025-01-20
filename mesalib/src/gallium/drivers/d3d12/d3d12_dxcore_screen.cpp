@@ -149,7 +149,12 @@ dxcore_get_memory_info(struct d3d12_screen *screen, struct d3d12_memory_info *ou
    DXCoreAdapterMemoryBudgetNodeSegmentGroup nonlocal_node_segment = { 0, DXCoreSegmentGroup::NonLocal };
    dxcore_screen->adapter->QueryState(DXCoreAdapterState::AdapterMemoryBudget, &local_node_segment, &local_info);
    dxcore_screen->adapter->QueryState(DXCoreAdapterState::AdapterMemoryBudget, &nonlocal_node_segment, &nonlocal_info);
+
+   output->budget_local = local_info.budget;
+   output->budget_nonlocal = nonlocal_info.budget;
    output->budget = local_info.budget + nonlocal_info.budget;
+   output->usage_local = local_info.currentUsage;
+   output->usage_nonlocal = nonlocal_info.currentUsage;
    output->usage = local_info.currentUsage + nonlocal_info.currentUsage;
 }
 
@@ -213,7 +218,8 @@ d3d12_init_dxcore_screen(struct d3d12_screen *dscreen)
    screen->base.device_id = hardware_ids.deviceID;
    screen->base.subsys_id = hardware_ids.subSysID;
    screen->base.revision = hardware_ids.revision;
-   screen->base.memory_size_megabytes = (dedicated_video_memory + dedicated_system_memory + shared_system_memory) >> 20;
+   screen->base.memory_device_size_megabytes = dedicated_video_memory >> 20;
+   screen->base.memory_system_size_megabytes = (dedicated_system_memory + shared_system_memory) >> 20;
    screen->base.base.get_name = dxcore_get_name;
    screen->base.get_memory_info = dxcore_get_memory_info;
 

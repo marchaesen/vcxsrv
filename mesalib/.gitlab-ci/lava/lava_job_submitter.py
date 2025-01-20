@@ -15,10 +15,10 @@ import pathlib
 import sys
 import time
 from collections import defaultdict
-from dataclasses import dataclass, fields
-from datetime import datetime, timedelta, timezone
-from os import environ, getenv, path
-from typing import Any, Optional
+from dataclasses import dataclass, field, fields
+from datetime import datetime, timedelta, UTC
+from os import environ, getenv
+from typing import Any, Optional, Self
 
 import fire
 from lavacli.utils import flow_yaml as lava_yaml
@@ -91,7 +91,7 @@ CI_JOB_STARTED_AT_RAW = getenv("CI_JOB_STARTED_AT", "")
 CI_JOB_STARTED_AT: datetime = (
     datetime.fromisoformat(CI_JOB_STARTED_AT_RAW)
     if CI_JOB_STARTED_AT_RAW
-    else datetime.now(timezone.utc)
+    else datetime.now(tz=UTC)
 )
 
 
@@ -103,19 +103,21 @@ def raise_exception_from_metadata(metadata: dict, job_id: int) -> None:
     if "result" not in metadata or metadata["result"] != "fail":
         return
     if "error_type" in metadata:
-        error_type = metadata["error_type"]
-        if error_type == "Infrastructure":
-            raise MesaCIRetriableException(
-                f"LAVA job {job_id} failed with Infrastructure Error. Retry."
-            )
+        error_type: str = metadata["error_type"]
+        error_msg: str = metadata.get("error_msg", "")
+        full_err_msg: str = error_type if not error_msg else f"{error_type}: {error_msg}"
         if error_type == "Job":
             # This happens when LAVA assumes that the job cannot terminate or
             # with mal-formed job definitions. As we are always validating the
             # jobs, only the former is probable to happen. E.g.: When some LAVA
             # action timed out more times than expected in job definition.
             raise MesaCIRetriableException(
-                f"LAVA job {job_id} failed with JobError "
+                f"LAVA job {job_id} failed with {full_err_msg}. Retry."
                 "(possible LAVA timeout misconfiguration/bug). Retry."
+            )
+        if error_type:
+            raise MesaCIRetriableException(
+                f"LAVA job {job_id} failed with error type: {full_err_msg}. Retry."
             )
     if "case" in metadata and metadata["case"] == "validate":
         raise MesaCIRetriableException(
@@ -136,36 +138,6 @@ def raise_lava_error(job) -> None:
     job.status = "fail"
 
 
-def show_final_job_data(job, colour=f"{CONSOLE_LOG['BOLD']}{CONSOLE_LOG['FG_GREEN']}"):
-    with GitlabSection(
-        "job_data",
-        "LAVA job info",
-        type=LogSectionType.LAVA_POST_PROCESSING,
-        start_collapsed=True,
-        colour=colour,
-    ):
-        wait_post_processing_retries: int = WAIT_FOR_LAVA_POST_PROCESSING_RETRIES
-        while not job.is_post_processed() and wait_post_processing_retries > 0:
-            # Wait a little until LAVA finishes processing metadata
-            time.sleep(WAIT_FOR_LAVA_POST_PROCESSING_SEC)
-            wait_post_processing_retries -= 1
-
-        if not job.is_post_processed():
-            waited_for_sec: int = (
-                WAIT_FOR_LAVA_POST_PROCESSING_RETRIES
-                * WAIT_FOR_LAVA_POST_PROCESSING_SEC
-            )
-            print_log(
-                f"Waited for {waited_for_sec} seconds "
-                "for LAVA to post-process the job, it haven't finished yet. "
-                "Dumping it's info anyway"
-            )
-
-        details: dict[str, str] = job.show()
-        for field, value in details.items():
-            print(f"{field:<15}: {value}")
-        job.refresh_log()
-
 
 def fetch_logs(job, max_idle_time, log_follower) -> None:
     is_job_hanging(job, max_idle_time)
@@ -181,14 +153,13 @@ def fetch_logs(job, max_idle_time, log_follower) -> None:
 def is_job_hanging(job, max_idle_time):
     # Poll to check for new logs, assuming that a prolonged period of
     # silence means that the device has died and we should try it again
-    if datetime.now() - job.last_log_time > max_idle_time:
+    if datetime.now(tz=UTC) - job.last_log_time > max_idle_time:
         max_idle_time_min = max_idle_time.total_seconds() / 60
 
         raise MesaCITimeoutError(
-            f"{CONSOLE_LOG['BOLD']}"
-            f"{CONSOLE_LOG['FG_YELLOW']}"
-            f"LAVA job {job.job_id} does not respond for {max_idle_time_min} "
-            "minutes. Retry."
+            f"{CONSOLE_LOG['FG_BOLD_YELLOW']}"
+            f"LAVA job {job.job_id} unresponsive for {max_idle_time_min} "
+            "minutes; retrying the job."
             f"{CONSOLE_LOG['RESET']}",
             timeout_duration=max_idle_time,
         )
@@ -236,14 +207,13 @@ def wait_for_job_get_started(job, attempt_no):
     print_log(f"Waiting for job {job.job_id} to start.")
     while not job.is_started():
         current_job_duration_sec: int = int(
-            (datetime.now(timezone.utc) - CI_JOB_STARTED_AT).total_seconds()
+            (datetime.now(tz=UTC) - CI_JOB_STARTED_AT).total_seconds()
         )
         remaining_time_sec: int = max(0, CI_JOB_TIMEOUT_SEC - current_job_duration_sec)
         if remaining_time_sec < EXPECTED_JOB_DURATION_SEC:
             job.cancel()
             raise MesaCIFatalException(
-                f"{CONSOLE_LOG['BOLD']}"
-                f"{CONSOLE_LOG['FG_YELLOW']}"
+                f"{CONSOLE_LOG['FG_BOLD_YELLOW']}"
                 f"Job {job.job_id} only has {remaining_time_sec} seconds "
                 "remaining to run, but it is expected to take at least "
                 f"{EXPECTED_JOB_DURATION_SEC} seconds."
@@ -254,15 +224,21 @@ def wait_for_job_get_started(job, attempt_no):
     print_log(f"Job {job.job_id} started.")
 
 
-def bootstrap_log_follower() -> LogFollower:
-    gl = GitlabSection(
-        id="lava_boot",
-        header="LAVA boot",
+def bootstrap_log_follower(main_test_case, timestamp_relative_to) -> LogFollower:
+    start_section = GitlabSection(
+        id="dut_boot",
+        header="Booting hardware device",
         type=LogSectionType.LAVA_BOOT,
         start_collapsed=True,
+        suppress_end=True, # init-stage2 prints the end for us
+        timestamp_relative_to=timestamp_relative_to,
     )
-    print(gl.start())
-    return LogFollower(starting_section=gl)
+    print(start_section.start())
+    return LogFollower(
+        starting_section=start_section,
+        main_test_case=main_test_case,
+        timestamp_relative_to=timestamp_relative_to
+    )
 
 
 def follow_job_execution(job, log_follower):
@@ -295,23 +271,46 @@ def structural_log_phases(job, log_follower):
     job.log["dut_job_phases"] = phases
 
 
-def print_job_final_status(job):
+def print_job_final_status(job, timestamp_relative_to):
+    job.refresh_log()
     if job.status == "running":
         job.status = "hung"
 
-    color = LAVAJob.COLOR_STATUS_MAP.get(job.status, CONSOLE_LOG["FG_RED"])
-    print_log(
-        f"{color}"
-        f"LAVA Job finished with status: {job.status}"
-        f"{CONSOLE_LOG['RESET']}"
-    )
+    colour = LAVAJob.COLOR_STATUS_MAP.get(job.status, CONSOLE_LOG["FG_RED"])
+    with GitlabSection(
+        "job_data",
+        f"Hardware job info for {job.status} job",
+        type=LogSectionType.LAVA_POST_PROCESSING,
+        start_collapsed=True,
+        colour=colour,
+        timestamp_relative_to=timestamp_relative_to,
+    ):
+        wait_post_processing_retries: int = WAIT_FOR_LAVA_POST_PROCESSING_RETRIES
+        while not job.is_post_processed() and wait_post_processing_retries > 0:
+            # Wait a little until LAVA finishes processing metadata
+            time.sleep(WAIT_FOR_LAVA_POST_PROCESSING_SEC)
+            wait_post_processing_retries -= 1
 
-    job.refresh_log()
-    show_final_job_data(job, colour=f"{CONSOLE_LOG['BOLD']}{color}")
+        if not job.is_post_processed():
+            waited_for_sec: int = (
+                WAIT_FOR_LAVA_POST_PROCESSING_RETRIES
+                * WAIT_FOR_LAVA_POST_PROCESSING_SEC
+            )
+            print_log(
+                "Timed out waiting for LAVA post-processing after "
+                f"{waited_for_sec} seconds. Printing incomplete information "
+                "anyway."
+            )
+
+        details: dict[str, str] = job.show()
+        for field, value in details.items():
+            print(f"{field:<15}: {value}")
+        job.refresh_log()
 
 
 def execute_job_with_retries(
-    proxy, job_definition, retry_count, jobs_log
+    proxy, job_definition, retry_count, jobs_log, main_test_case,
+    timestamp_relative_to
 ) -> Optional[LAVAJob]:
     last_failed_job = None
     for attempt_no in range(1, retry_count + 2):
@@ -322,10 +321,20 @@ def execute_job_with_retries(
         job = LAVAJob(proxy, job_definition, job_log)
         STRUCTURAL_LOG["dut_attempt_counter"] = attempt_no
         try:
-            job_log["submitter_start_time"] = datetime.now().isoformat()
+            job_log["submitter_start_time"] = datetime.now(tz=UTC).isoformat()
             submit_job(job)
-            wait_for_job_get_started(job, attempt_no)
-            log_follower: LogFollower = bootstrap_log_follower()
+            queue_section = GitlabSection(
+                id="dut_queue",
+                header="Waiting for hardware device to become available",
+                type=LogSectionType.LAVA_QUEUE,
+                start_collapsed=False,
+                timestamp_relative_to=timestamp_relative_to
+            )
+            with queue_section as section:
+                wait_for_job_get_started(job, attempt_no)
+            log_follower: LogFollower = bootstrap_log_follower(
+                main_test_case, timestamp_relative_to
+            )
             follow_job_execution(job, log_follower)
             return job
 
@@ -333,10 +342,10 @@ def execute_job_with_retries(
             job.handle_exception(exception)
 
         finally:
-            print_job_final_status(job)
+            print_job_final_status(job, timestamp_relative_to)
             # If LAVA takes too long to post process the job, the submitter
             # gives up and proceeds.
-            job_log["submitter_end_time"] = datetime.now().isoformat()
+            job_log["submitter_end_time"] = datetime.now(tz=UTC).isoformat()
             last_failed_job = job
             print_log(
                 f"{CONSOLE_LOG['BOLD']}"
@@ -349,11 +358,14 @@ def execute_job_with_retries(
     return last_failed_job
 
 
-def retriable_follow_job(proxy, job_definition) -> LAVAJob:
+def retriable_follow_job(
+    proxy, job_definition, main_test_case, timestamp_relative_to
+) -> LAVAJob:
     number_of_retries = NUMBER_OF_RETRIES_TIMEOUT_DETECTION
 
     last_attempted_job = execute_job_with_retries(
-        proxy, job_definition, number_of_retries, STRUCTURAL_LOG["dut_jobs"]
+        proxy, job_definition, number_of_retries, STRUCTURAL_LOG["dut_jobs"],
+        main_test_case, timestamp_relative_to
     )
 
     if last_attempted_job.exception is not None:
@@ -386,11 +398,9 @@ class PathResolver:
 @dataclass
 class LAVAJobSubmitter(PathResolver):
     boot_method: str
-    ci_project_dir: str
     device_type: str
     farm: str
     job_timeout_min: int  # The job timeout in minutes
-    build_url: str = None
     dtb_filename: str = None
     dump_yaml: bool = False  # Whether to dump the YAML payload to stdout
     first_stage_init: str = None
@@ -399,28 +409,67 @@ class LAVAJobSubmitter(PathResolver):
     kernel_image_type: str = ""
     kernel_url_prefix: str = None
     kernel_external: str = None
-    lava_tags: str = ""  # Comma-separated LAVA tags for the job
+    lava_tags: str | tuple[str, ...] = ()  # Comma-separated LAVA tags for the job
     mesa_job_name: str = "mesa_ci_job"
     pipeline_info: str = ""
-    rootfs_url_prefix: str = None
+    rootfs_url: str = None
     validate_only: bool = False  # Whether to only validate the job, not execute it
     visibility_group: str = None  # Only affects LAVA farm maintainers
-    job_rootfs_overlay_url: str = None
     structured_log_file: pathlib.Path = None  # Log file path with structured LAVA log
     ssh_client_image: str = None  # x86_64 SSH client image to follow the job's output
     project_name: str = None  # Project name to be used in the job name
+    starting_section: str = None # GitLab section used to start
+    job_submitted_at: [str | datetime] = None
     __structured_log_context = contextlib.nullcontext()  # Structured Logger context
+    _overlays: dict = field(default_factory=dict, init=False)
 
-    def __post_init__(self) -> None:
+    def __post_init__(self) -> Self:
         super().__post_init__()
         # Remove mesa job names with spaces, which breaks the lava-test-case command
         self.mesa_job_name = self.mesa_job_name.split(" ")[0]
 
-        if not self.structured_log_file:
-            return
+        if self.structured_log_file:
+            self.__structured_log_context = StructuredLoggerWrapper(self).logger_context()
 
-        self.__structured_log_context = StructuredLoggerWrapper(self).logger_context()
+        if self.job_submitted_at:
+            self.job_submitted_at = datetime.fromisoformat(self.job_submitted_at)
         self.proxy = setup_lava_proxy()
+
+        return self
+
+    def append_overlay(
+        self, compression: str, name: str, path: str, url: str, format: str = "tar"
+    ) -> Self:
+        """
+        Append an overlay to the LAVA job definition.
+
+        Args:
+            compression (str): The compression type of the overlay (e.g., "gz", "xz").
+            name (str): The name of the overlay.
+            path (str): The path where the overlay should be applied.
+            url (str): The URL from where the overlay can be downloaded.
+            format (str, optional): The format of the overlay (default is "tar").
+
+        Returns:
+            Self: The instance of LAVAJobSubmitter with the overlay appended.
+        """
+        self._overlays[name] = {
+            "compression": compression,
+            "format": format,
+            "path": path,
+            "url": url,
+        }
+        return self
+
+    def print(self) -> Self:
+        """
+        Prints the dictionary representation of the instance and returns the instance itself.
+
+        Returns:
+            Self: The instance of the class.
+        """
+        print(self.__dict__)
+        return self
 
     def __prepare_submission(self) -> str:
         # Overwrite the timeout for the testcases with the value offered by the
@@ -440,7 +489,6 @@ class LAVAJobSubmitter(PathResolver):
         validation_job = LAVAJob(self.proxy, job_definition)
         if errors := validation_job.validate():
             fatal_err(f"Error in LAVA job definition: {errors}")
-        print_log("LAVA job definition validated successfully")
 
         return job_definition
 
@@ -470,10 +518,24 @@ class LAVAJobSubmitter(PathResolver):
         if self.validate_only:
             return
 
+        if self.starting_section:
+            gl = GitlabSection(
+                id=self.starting_section,
+                header="Preparing to submit job for scheduling",
+                type=LogSectionType.LAVA_SUBMIT,
+                start_collapsed=True,
+                timestamp_relative_to=self.job_submitted_at,
+            )
+            gl.start()
+            print(gl.end())
+
         with self.__structured_log_context:
             last_attempt_job = None
             try:
-                last_attempt_job = retriable_follow_job(self.proxy, job_definition)
+                last_attempt_job = retriable_follow_job(
+                    self.proxy, job_definition,
+                    f'{self.project_name}_{self.mesa_job_name}',
+                    self.job_submitted_at)
 
             except MesaCIRetryError as retry_exception:
                 last_attempt_job = retry_exception.last_job
@@ -485,17 +547,7 @@ class LAVAJobSubmitter(PathResolver):
             finally:
                 self.finish_script(last_attempt_job)
 
-    def print_log_artifact_url(self):
-        relative_log_path = self.structured_log_file.relative_to(pathlib.Path.cwd())
-        full_path = f"$ARTIFACTS_BASE_URL/{relative_log_path}"
-        artifact_url = path.expandvars(full_path)
-
-        print_log(f"Structural Logging data available at: {artifact_url}")
-
     def finish_script(self, last_attempt_job):
-        if self.is_under_ci() and self.structured_log_file:
-            self.print_log_artifact_url()
-
         if not last_attempt_job:
             # No job was run, something bad happened
             STRUCTURAL_LOG["job_combined_status"] = "script_crash"
@@ -558,11 +610,5 @@ if __name__ == "__main__":
     # more buffering
     sys.stdout.reconfigure(line_buffering=True)
     sys.stderr.reconfigure(line_buffering=True)
-    # LAVA farm is giving datetime in UTC timezone, let's set it locally for the
-    # script run.
-    # Setting environ here will not affect the system time, as the os.environ
-    # lifetime follows the script one.
-    environ["TZ"] = "UTC"
-    time.tzset()
 
     fire.Fire(LAVAJobSubmitter)

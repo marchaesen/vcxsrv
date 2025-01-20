@@ -60,21 +60,30 @@ lower_load_pointcoord(lower_pntc_ytransform_state *state,
    nir_builder *b = &state->b;
    b->cursor = nir_after_instr(&intr->instr);
 
+   unsigned y_swizzle = 1;
+
+   if (nir_intrinsic_has_component(intr)) {
+      unsigned component = nir_intrinsic_component(intr);
+
+      assert(component <= 1);
+      assert(component + intr->num_components <= 2);
+      if (component + intr->num_components == 1)
+         return; /* only gl_PointCoord.x is loaded */
+
+      y_swizzle -= component;
+   }
+
    nir_def *pntc = &intr->def;
    nir_def *transform = get_pntc_transform(state);
-   nir_def *y = nir_channel(b, pntc, 1);
-   /* The offset is 1 if we're flipping, 0 otherwise. */
-   nir_def *offset = nir_channel(b, transform, 1);
-   /* Flip the sign of y if we're flipping. */
-   nir_def *scaled = nir_fmul(b, y, nir_channel(b, transform, 0));
+   nir_def *flipped_y = nir_ffma(b, nir_channel(b, pntc, y_swizzle),
+                                 /* Flip the sign of y if we're flipping. */
+                                 nir_channel(b, transform, 0),
+                                 /* The offset is 1 if we're flipping, 0 otherwise. */
+                                 nir_channel(b, transform, 1));
 
    /* Reassemble the vector. */
-   nir_def *flipped_pntc = nir_vec2(b,
-                                    nir_channel(b, pntc, 0),
-                                    nir_fadd(b, offset, scaled));
-
-   nir_def_rewrite_uses_after(&intr->def, flipped_pntc,
-                              flipped_pntc->parent_instr);
+   pntc = nir_vector_insert_imm(b, pntc, flipped_y, y_swizzle);
+   nir_def_rewrite_uses_after(&intr->def, pntc, pntc->parent_instr);
 }
 
 static void
@@ -95,6 +104,10 @@ lower_pntc_ytransform_block(lower_pntc_ytransform_state *state,
                lower_load_pointcoord(state, intr);
             }
          }
+
+         if (intr->intrinsic == nir_intrinsic_load_interpolated_input &&
+             nir_intrinsic_io_semantics(intr).location == VARYING_SLOT_PNTC)
+            lower_load_pointcoord(state, intr);
       }
    }
 }

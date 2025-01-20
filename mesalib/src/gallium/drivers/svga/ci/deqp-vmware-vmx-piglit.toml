@@ -1,0 +1,7 @@
+[[piglit]]
+piglit_folder = "/piglit"
+profile = "gpu"
+fraction = 2
+process_isolation = true
+  [piglit.env]
+  PIGLIT_PLATFORM = "mixed_glx_egl"

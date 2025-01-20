@@ -85,7 +85,7 @@ typedef struct _XkbInfoRec {
         (((d)->flags&XlibDisplayNoXkb) || \
          ((!(d)->xkb_info || (!(d)->xkb_info->desc)) && !_XkbLoadDpy(d)))
 
-#define _XkbCheckPendingRefresh(d,xi) { \
+#define _XkbCheckPendingRefresh(d,xi) do { \
     if ((xi)->flags&XkbXlibNewKeyboard) \
         _XkbReloadDpy((d)); \
     else if ((xi)->flags&XkbMapPending) { \
@@ -95,7 +95,7 @@ typedef struct _XkbInfoRec {
             UnlockDisplay((d)); \
         } \
     } \
-}
+} while (0)
 
 #define _XkbNeedModmap(i)    ((!(i)->desc->map)||(!(i)->desc->map->modmap))
 

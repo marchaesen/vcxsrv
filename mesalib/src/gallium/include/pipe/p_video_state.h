@@ -42,7 +42,7 @@ extern "C" {
 #endif
 
 #define PIPE_H264_MAX_NUM_LIST_REF    32
-#define PIPE_H264_MAX_DPB_SIZE        33
+#define PIPE_H264_MAX_DPB_SIZE        17
 #define PIPE_H265_MAX_NUM_LIST_REF    15
 #define PIPE_H265_MAX_DPB_SIZE        16
 #define PIPE_H265_MAX_SLICES          128
@@ -54,12 +54,10 @@ extern "C" {
 #define PIPE_DEFAULT_INTRA_IDR_PERIOD 30
 #define PIPE_H2645_EXTENDED_SAR       255
 #define PIPE_ENC_ROI_REGION_NUM_MAX   32
-#define PIPE_DEFAULT_DECODER_FEEDBACK_TIMEOUT_NS 1000000000
 #define PIPE_H2645_LIST_REF_INVALID_ENTRY 0xff
 #define PIPE_H265_MAX_LONG_TERM_REF_PICS_SPS 32
 #define PIPE_H265_MAX_LONG_TERM_PICS 16
 #define PIPE_H265_MAX_DELTA_POC 48
-#define PIPE_H265_MAX_DPB_SIZE 16
 #define PIPE_H265_MAX_NUM_LIST_REF 15
 #define PIPE_H265_MAX_ST_REF_PIC_SETS 65
 #define PIPE_H265_MAX_SUB_LAYERS 7
@@ -346,6 +344,7 @@ struct pipe_vc1_picture_desc
    uint32_t slice_count;
    uint8_t picture_type;
    uint8_t frame_coding_mode;
+   uint8_t is_first_field;
    uint8_t postprocflag;
    uint8_t pulldown;
    uint8_t interlace;
@@ -762,6 +761,8 @@ struct pipe_h264_enc_dpb_entry
    uint32_t temporal_id;
    bool is_ltr;
    struct pipe_video_buffer *buffer;
+   bool evict;
+   enum pipe_h2645_enc_picture_type picture_type;
 };
 
 struct pipe_h264_enc_picture_desc
@@ -1163,6 +1164,7 @@ struct pipe_h265_enc_dpb_entry
    uint32_t temporal_id;
    bool is_ltr;
    struct pipe_video_buffer *buffer;
+   bool evict;
 };
 
 struct pipe_h265_enc_picture_desc
@@ -1291,6 +1293,8 @@ struct pipe_av1_enc_seq_param
       uint32_t force_integer_mv:2;
       uint32_t initial_display_delay_present_flag:1;
       uint32_t choose_integer_mv:1;
+      uint32_t still_picture:1;
+      uint32_t reduced_still_picture_header:1;
    } seq_bits;
 
    /* timing info params */
@@ -1378,8 +1382,8 @@ struct pipe_av1_enc_picture_desc
    uint16_t frame_width_sb;
    uint16_t frame_height_sb;
    uint16_t upscaled_width;
-   uint16_t render_width;
-   uint16_t render_height;
+   uint16_t render_width_minus_1;
+   uint16_t render_height_minus_1;
    uint32_t interpolation_filter;
    uint8_t tx_mode;
    uint8_t compound_reference_mode;
@@ -1622,6 +1626,7 @@ struct pipe_mjpeg_picture_desc
       uint16_t crop_y;
       uint16_t crop_width;
       uint16_t crop_height;
+      uint32_t sampling_factor;
    } picture_parameter;
 
    struct
@@ -1788,6 +1793,8 @@ struct pipe_av1_picture_desc
          uint32_t mono_chrome:1;
          uint32_t ref_frame_mvs:1;
          uint32_t film_grain_params_present:1;
+         uint32_t subsampling_x:1;
+         uint32_t subsampling_y:1;
       } seq_info_fields;
 
       uint32_t current_frame_id;
@@ -1974,6 +1981,14 @@ struct pipe_vpp_desc
    enum pipe_video_vpp_color_standard_type out_colors_standard;
    enum pipe_video_vpp_color_range out_color_range;
    enum pipe_video_vpp_chroma_siting out_chroma_siting;
+
+   enum pipe_video_vpp_color_primaries in_color_primaries;
+   enum pipe_video_vpp_transfer_characteristic in_transfer_characteristics;
+   enum pipe_video_vpp_matrix_coefficients in_matrix_coefficients;
+
+   enum pipe_video_vpp_color_primaries out_color_primaries;
+   enum pipe_video_vpp_transfer_characteristic out_transfer_characteristics;
+   enum pipe_video_vpp_matrix_coefficients out_matrix_coefficients;
 };
 
 

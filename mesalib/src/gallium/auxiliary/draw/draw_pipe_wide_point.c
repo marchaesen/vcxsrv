@@ -328,7 +328,7 @@ struct draw_stage *draw_wide_point_stage(struct draw_context *draw)
       goto fail;
 
    wide->sprite_coord_semantic =
-      draw->pipe->screen->get_param(draw->pipe->screen, PIPE_CAP_TGSI_TEXCOORD)
+      draw->pipe->screen->caps.tgsi_texcoord
       ?
       TGSI_SEMANTIC_TEXCOORD : TGSI_SEMANTIC_GENERIC;
 

@@ -9,6 +9,7 @@
 
 #include "amdgpu_cs.h"
 
+#include "util/os_drm.h"
 #include "util/os_file.h"
 #include "util/os_misc.h"
 #include "util/u_cpu_detect.h"
@@ -38,10 +39,6 @@ static bool do_winsys_init(struct amdgpu_winsys *aws,
    if (!ac_query_gpu_info(fd, aws->dev, &aws->info, false))
       goto fail;
 
-   /* TODO: Enable this once the kernel handles it efficiently. */
-   if (aws->info.has_dedicated_vram)
-      aws->info.has_local_buffers = false;
-
    aws->addrlib = ac_addrlib_create(&aws->info, &aws->info.max_alignment);
    if (!aws->addrlib) {
       fprintf(stderr, "amdgpu: Cannot create addrlib.\n");
@@ -59,11 +56,19 @@ static bool do_winsys_init(struct amdgpu_winsys *aws,
                       strstr(debug_get_option("AMD_DEBUG", ""), "sqtt") != NULL;
    aws->zero_all_vram_allocs = strstr(debug_get_option("R600_DEBUG", ""), "zerovram") != NULL ||
                               driQueryOptionb(config->options, "radeonsi_zerovram");
+   aws->info.use_userq = debug_get_bool_option("AMD_USERQ", false);
+
+   for (unsigned i = 0; i < ARRAY_SIZE(aws->queues); i++)
+      simple_mtx_init(&aws->queues[i].userq.lock, mtx_plain);
+
+   /* TODO: Enable this once the kernel handles it efficiently. */
+   if (aws->info.has_dedicated_vram && !aws->info.use_userq)
+      aws->info.has_local_buffers = false;
 
    return true;
 
 fail:
-   amdgpu_device_deinitialize(aws->dev);
+   ac_drm_device_deinitialize(aws->dev);
    aws->dev = NULL;
    return false;
 }
@@ -71,11 +76,14 @@ fail:
 static void do_winsys_deinit(struct amdgpu_winsys *aws)
 {
    if (aws->reserve_vmid)
-      amdgpu_vm_unreserve_vmid(aws->dev, 0);
+      ac_drm_vm_unreserve_vmid(aws->dev, 0);
 
    for (unsigned i = 0; i < ARRAY_SIZE(aws->queues); i++) {
       for (unsigned j = 0; j < ARRAY_SIZE(aws->queues[i].fences); j++)
          amdgpu_fence_reference(&aws->queues[i].fences[j], NULL);
+
+      amdgpu_userq_deinit(aws, &aws->queues[i].userq);
+      simple_mtx_destroy(&aws->queues[i].userq.lock);
 
       amdgpu_ctx_reference(&aws->queues[i].last_ctx, NULL);
    }
@@ -83,7 +91,6 @@ static void do_winsys_deinit(struct amdgpu_winsys *aws)
    if (util_queue_is_initialized(&aws->cs_queue))
       util_queue_destroy(&aws->cs_queue);
 
-   simple_mtx_destroy(&aws->bo_fence_lock);
    if (aws->bo_slabs.groups)
       pb_slabs_deinit(&aws->bo_slabs);
    pb_cache_deinit(&aws->bo_cache);
@@ -95,7 +102,10 @@ static void do_winsys_deinit(struct amdgpu_winsys *aws)
    simple_mtx_destroy(&aws->bo_export_table_lock);
 
    ac_addrlib_destroy(aws->addrlib);
-   amdgpu_device_deinitialize(aws->dev);
+   ac_drm_device_deinitialize(aws->dev);
+   ac_drm_cs_destroy_syncobj(aws->fd, aws->vm_timeline_syncobj);
+   simple_mtx_destroy(&aws->bo_fence_lock);
+
    FREE(aws);
 }
 
@@ -126,10 +136,12 @@ static void amdgpu_winsys_destroy_locked(struct radeon_winsys *rws, bool locked)
    if (!locked)
       simple_mtx_unlock(&dev_tab_mutex);
 
+   if (sws->fd != aws->fd)
+      close(sws->fd);
+
    if (destroy)
       do_winsys_deinit(aws);
 
-   close(sws->fd);
    FREE(rws);
 }
 
@@ -156,7 +168,7 @@ static uint64_t amdgpu_query_value(struct radeon_winsys *rws,
                                    enum radeon_value_id value)
 {
    struct amdgpu_winsys *aws = amdgpu_winsys(rws);
-   struct amdgpu_heap_info heap;
+   struct amdgpu_heap_info heap = {0};
    uint64_t retval = 0;
 
    switch (value) {
@@ -177,7 +189,7 @@ static uint64_t amdgpu_query_value(struct radeon_winsys *rws,
    case RADEON_NUM_MAPPED_BUFFERS:
       return aws->num_mapped_buffers;
    case RADEON_TIMESTAMP:
-      amdgpu_query_info(aws->dev, AMDGPU_INFO_TIMESTAMP, 8, &retval);
+      ac_drm_query_info(aws->dev, AMDGPU_INFO_TIMESTAMP, 8, &retval);
       return retval;
    case RADEON_NUM_GFX_IBS:
       return aws->num_gfx_IBs;
@@ -188,32 +200,32 @@ static uint64_t amdgpu_query_value(struct radeon_winsys *rws,
    case RADEON_GFX_IB_SIZE_COUNTER:
       return aws->gfx_ib_size_counter;
    case RADEON_NUM_BYTES_MOVED:
-      amdgpu_query_info(aws->dev, AMDGPU_INFO_NUM_BYTES_MOVED, 8, &retval);
+      ac_drm_query_info(aws->dev, AMDGPU_INFO_NUM_BYTES_MOVED, 8, &retval);
       return retval;
    case RADEON_NUM_EVICTIONS:
-      amdgpu_query_info(aws->dev, AMDGPU_INFO_NUM_EVICTIONS, 8, &retval);
+      ac_drm_query_info(aws->dev, AMDGPU_INFO_NUM_EVICTIONS, 8, &retval);
       return retval;
    case RADEON_NUM_VRAM_CPU_PAGE_FAULTS:
-      amdgpu_query_info(aws->dev, AMDGPU_INFO_NUM_VRAM_CPU_PAGE_FAULTS, 8, &retval);
+      ac_drm_query_info(aws->dev, AMDGPU_INFO_NUM_VRAM_CPU_PAGE_FAULTS, 8, &retval);
       return retval;
    case RADEON_VRAM_USAGE:
-      amdgpu_query_heap_info(aws->dev, AMDGPU_GEM_DOMAIN_VRAM, 0, &heap);
+      ac_drm_query_heap_info(aws->dev, AMDGPU_GEM_DOMAIN_VRAM, 0, &heap);
       return heap.heap_usage;
    case RADEON_VRAM_VIS_USAGE:
-      amdgpu_query_heap_info(aws->dev, AMDGPU_GEM_DOMAIN_VRAM,
+      ac_drm_query_heap_info(aws->dev, AMDGPU_GEM_DOMAIN_VRAM,
                              AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED, &heap);
       return heap.heap_usage;
    case RADEON_GTT_USAGE:
-      amdgpu_query_heap_info(aws->dev, AMDGPU_GEM_DOMAIN_GTT, 0, &heap);
+      ac_drm_query_heap_info(aws->dev, AMDGPU_GEM_DOMAIN_GTT, 0, &heap);
       return heap.heap_usage;
    case RADEON_GPU_TEMPERATURE:
-      amdgpu_query_sensor_info(aws->dev, AMDGPU_INFO_SENSOR_GPU_TEMP, 4, &retval);
+      ac_drm_query_sensor_info(aws->dev, AMDGPU_INFO_SENSOR_GPU_TEMP, 4, &retval);
       return retval;
    case RADEON_CURRENT_SCLK:
-      amdgpu_query_sensor_info(aws->dev, AMDGPU_INFO_SENSOR_GFX_SCLK, 4, &retval);
+      ac_drm_query_sensor_info(aws->dev, AMDGPU_INFO_SENSOR_GFX_SCLK, 4, &retval);
       return retval;
    case RADEON_CURRENT_MCLK:
-      amdgpu_query_sensor_info(aws->dev, AMDGPU_INFO_SENSOR_GFX_MCLK, 4, &retval);
+      ac_drm_query_sensor_info(aws->dev, AMDGPU_INFO_SENSOR_GFX_MCLK, 4, &retval);
       return retval;
    case RADEON_CS_THREAD_TIME:
       return util_queue_get_thread_time_nano(&aws->cs_queue, 0);
@@ -227,7 +239,7 @@ static bool amdgpu_read_registers(struct radeon_winsys *rws,
 {
    struct amdgpu_winsys *aws = amdgpu_winsys(rws);
 
-   return amdgpu_read_mm_registers(aws->dev, reg_offset / 4, num_registers,
+   return ac_drm_read_mm_registers(aws->dev, reg_offset / 4, num_registers,
                                    0xffffffff, 0, out) == 0;
 }
 
@@ -262,7 +274,7 @@ static bool amdgpu_winsys_unref(struct radeon_winsys *rws)
 
       hash_table_foreach(sws->kms_handles, entry) {
          args.handle = (uintptr_t)entry->data;
-         drmIoctl(sws->fd, DRM_IOCTL_GEM_CLOSE, &args);
+         drm_ioctl(sws->fd, DRM_IOCTL_GEM_CLOSE, &args);
       }
       _mesa_hash_table_destroy(sws->kms_handles, NULL);
    }
@@ -325,7 +337,7 @@ amdgpu_cs_set_pstate(struct radeon_cmdbuf *rcs, enum radeon_ctx_pstate pstate)
       return false;
 
    uint32_t amdgpu_pstate = radeon_to_amdgpu_pstate(pstate);
-   return amdgpu_cs_ctx_stable_pstate(cs->ctx->ctx,
+   return ac_drm_cs_ctx_stable_pstate(cs->aws->dev, cs->ctx->ctx_handle,
       AMDGPU_CTX_OP_SET_STABLE_PSTATE, amdgpu_pstate, NULL) == 0;
 }
 
@@ -361,11 +373,11 @@ amdgpu_drm_winsys_get_fd(struct radeon_winsys *rws)
 
 PUBLIC struct radeon_winsys *
 amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
-		     radeon_screen_create_t screen_create)
+		     radeon_screen_create_t screen_create, bool is_virtio)
 {
    struct amdgpu_screen_winsys *sws;
    struct amdgpu_winsys *aws;
-   amdgpu_device_handle dev;
+   ac_drm_device *dev;
    uint32_t drm_major, drm_minor;
    int r;
 
@@ -374,7 +386,7 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
       return NULL;
 
    pipe_reference_init(&sws->reference, 1);
-   sws->fd = os_dupfd_cloexec(fd);
+   sws->fd = -1;
 
    /* Look up the winsys from the dev table. */
    simple_mtx_lock(&dev_tab_mutex);
@@ -383,9 +395,10 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
 
    /* Initialize the amdgpu device. This should always return the same pointer
     * for the same fd. */
-   r = amdgpu_device_initialize(sws->fd, &drm_major, &drm_minor, &dev);
+   r = ac_drm_device_initialize(fd, is_virtio, &drm_major, &drm_minor, &dev);
    if (r) {
-      fprintf(stderr, "amdgpu: amdgpu_device_initialize failed.\n");
+      fprintf(stderr, "amdgpu: amd%s_device_initialize failed.\n",
+         is_virtio ? "vgpu" : "gpu");
       goto fail;
    }
 
@@ -398,12 +411,11 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
        * This function is returning an existing winsys instance, which
        * has its own device handle.
        */
-      amdgpu_device_deinitialize(dev);
+      ac_drm_device_deinitialize((void*)dev);
 
       simple_mtx_lock(&aws->sws_list_lock);
       for (sws_iter = aws->sws_list; sws_iter; sws_iter = sws_iter->next) {
-         if (are_file_descriptions_equal(sws_iter->fd, sws->fd)) {
-            close(sws->fd);
+         if (are_file_descriptions_equal(sws_iter->fd, fd)) {
             FREE(sws);
             sws = sws_iter;
             pipe_reference(NULL, &sws->reference);
@@ -426,27 +438,29 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
          goto fail;
 
       aws->dev = dev;
+
       /* The device fd might be different from the one we passed because of
        * libdrm_amdgpu device dedup logic. This can happen if radv is initialized
        * first.
        * Get the correct fd or the buffer sharing will not work (see #3424).
        */
-      int device_fd = amdgpu_device_get_fd(dev);
-      if (!are_file_descriptions_equal(device_fd, fd)) {
+      aws->fd = ac_drm_device_get_fd(dev);
+      if (!are_file_descriptions_equal(aws->fd, fd)) {
          sws->kms_handles = _mesa_hash_table_create(NULL, kms_handle_hash,
                                                    kms_handle_equals);
          if (!sws->kms_handles)
             goto fail;
-         /* We could avoid storing the fd and use amdgpu_device_get_fd() where
-          * we need it but we'd have to use os_same_file_description() to
-          * compare the fds.
-          */
-         aws->fd = device_fd;
       } else {
-         aws->fd = sws->fd;
+         sws->fd = aws->fd;
       }
       aws->info.drm_major = drm_major;
       aws->info.drm_minor = drm_minor;
+
+      if (ac_drm_cs_create_syncobj(aws->fd, &aws->vm_timeline_syncobj))
+         goto fail_alloc;
+      simple_mtx_init(&aws->vm_ioctl_lock, mtx_plain);
+
+      aws->info.is_virtio = is_virtio;
 
       /* Only aws and buffer functions are used. */
       aws->dummy_sws.aws = aws;
@@ -505,7 +519,7 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
       _mesa_hash_table_insert(dev_tab, dev, aws);
 
       if (aws->reserve_vmid) {
-         r = amdgpu_vm_reserve_vmid(dev, 0);
+         r = ac_drm_vm_reserve_vmid(aws->dev, 0);
          if (r) {
             amdgpu_winsys_destroy_locked(&sws->base, true);
             simple_mtx_unlock(&dev_tab_mutex);
@@ -513,6 +527,9 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
          }
       }
    }
+
+   if (sws->fd < 0)
+      sws->fd = os_dupfd_cloexec(fd);
 
    sws->aws = aws;
 
@@ -562,7 +579,6 @@ fail_alloc:
 fail:
    if (sws->kms_handles)
       _mesa_hash_table_destroy(sws->kms_handles, NULL);
-   close(sws->fd);
    FREE(sws);
    simple_mtx_unlock(&dev_tab_mutex);
    return NULL;

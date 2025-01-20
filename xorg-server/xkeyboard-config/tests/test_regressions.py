@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import os
 import re
+from dataclasses import dataclass
 from functools import reduce
 from pathlib import Path
-from typing import Optional
+from typing import Iterable, Optional
 
 import pytest
 import xkbcommon
@@ -71,11 +72,37 @@ def check_keycode(key: str) -> bool:
     return bool(KEYCODE_PATTERN.match(key))
 
 
+@dataclass
 class Keymap:
     """Public test methods"""
 
-    def __init__(self, state: xkbcommon.State):
+    Alt: int
+    Meta: int
+    Super: int
+    Level3: int
+    Level5: int
+
+    has_vmod_queries: bool
+
+    def __init__(
+        self,
+        keymap: xkbcommon.ForeignKeymap,
+        state: xkbcommon.State,
+        has_vmod_queries: bool,
+    ):
         self._state = state
+        self._keymap = keymap
+        mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "Alt")
+        self.Alt = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
+        mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "Meta")
+        self.Meta = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
+        mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "Super")
+        self.Super = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
+        mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "LevelThree")
+        self.Level3 = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
+        mod = xkbcommon.xkb_keymap_mod_get_index(keymap, "LevelFive")
+        self.Level5 = (1 << mod) if mod != xkbcommon.XKB_MOD_INVALID else 0
+        self.has_vmod_queries = has_vmod_queries
 
     def press(self, key: str) -> xkbcommon.Result:
         """Update the state by pressing a key"""
@@ -116,6 +143,16 @@ class Keymap:
         assert all(map(check_keycode, keys)), "keys must be a [2-4]-character keycodes"
         return _KeyDown(self, *keys)
 
+    def mask_from_names(self, names: Iterable[str]) -> ModifierMask:
+        return xkbcommon.xkb_keymap_get_mod_mask_from_names(self._keymap, names)
+
+    def full_mask(self, mask: ModifierMask) -> ModifierMask:
+        return (
+            xkbcommon.xkb_keymap_get_usual_mod_mapping(self._keymap, mask)
+            if self.has_vmod_queries
+            else mask
+        )
+
 
 # NOTE: Abusing Python’s context manager to enable nice test syntax
 class _KeyDown:
@@ -146,6 +183,11 @@ def xkb_base():
         return Path(path)
     else:
         raise ValueError("XKB_CONFIG_ROOT environment variable is not defined")
+
+
+@pytest.fixture(scope="session")
+def has_vmod_queries(xkb_base: Path) -> bool:
+    return xkbcommon.has_vmod_queries(xkb_base)
 
 
 # The following fixtures enable them to have default values (i.e. None).
@@ -179,6 +221,7 @@ def options(request: pytest.FixtureRequest):
 @pytest.fixture
 def keymap(
     xkb_base: Path,
+    has_vmod_queries: bool,
     rules: Optional[str],
     model: Optional[str],
     layout: Optional[str],
@@ -195,7 +238,7 @@ def keymap(
         options=options,
     ) as km:
         with xkbcommon.ForeignState(km) as state:
-            yield Keymap(state)
+            yield Keymap(km, state, has_vmod_queries)
 
 
 # Documented example
@@ -262,7 +305,8 @@ class TestExample:
             assert r.keysym == "ISO_Level3_Shift"
             r = keymap.tap_and_check("AC01", "AE", level=4)
             # We can also check (real) modifiers directly
-            assert r.active_mods == Shift | Mod5 == r.consumed_mods
+            Level3 = keymap.Level3 if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Shift | Mod5 | Level3 == r.consumed_mods
 
 
 ###############################################################################
@@ -278,10 +322,11 @@ class TestIssue382:
         """Both RALT and LWIN are LevelThree modifiers"""
         with keymap.key_down(mod_key):
             r = keymap.tap_and_check("AD01", "adiaeresis", level=3)
-            assert r.active_mods == Mod5 == r.consumed_mods
+            Level3 = keymap.Level3 if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Mod5 | Level3 == r.consumed_mods
             with keymap.key_down("LFSH"):
                 r = keymap.tap_and_check("AD01", "Adiaeresis", level=4)
-                assert r.active_mods == Shift | Mod5 == r.consumed_mods
+                assert r.active_mods == Shift | Mod5 | Level3 == r.consumed_mods
 
     def test_ShiftAlt(self, keymap: Keymap):
         """LALT+LFSH works as if there was no option"""
@@ -289,7 +334,9 @@ class TestIssue382:
         assert r.active_mods == NoModifier
         with keymap.key_down("LFSH", "LALT"):
             r = keymap.tap_and_check("AC10", "colon", level=2)
-            assert r.active_mods == Shift | Mod1
+            Alt = keymap.Alt if keymap.has_vmod_queries else NoModifier
+            Meta = keymap.Meta if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Shift | Mod1 | Alt | Meta
             assert r.consumed_mods == Shift
 
 
@@ -320,10 +367,11 @@ class TestIssues90And346:
         keysyms: tuple[str],
     ):
         """LWIN/LALT + SPCE is a group switch on multiple groups"""
+        mods = keymap.full_mask(mod)
         for group, keysym in enumerate(keysyms, start=1):
             print(group, keysym)
             keymap.tap_and_check(key, keysym, group=group)
-            self.switch_group(keymap, mod_key, mod, group % len(keysyms) + 1)
+            self.switch_group(keymap, mod_key, mods, group % len(keysyms) + 1)
         # Check the group wraps
         keymap.tap_and_check(key, keysyms[0], group=1)
 
@@ -347,13 +395,14 @@ class TestIssues90And346:
 class TestIssue383:
     def test_group_switch(self, keymap: Keymap, mod_key: str, mod: ModifierMask):
         """LWIN + SPCE is a group switch on both groups"""
+        mods = keymap.full_mask(mod)
         # Start with us layout
         self.check_keysyms(keymap, 1, "AC01", "a", "combining_acute")
         # Switch to ru layout
-        self.switch_group(keymap, mod_key, mod, 2)
+        self.switch_group(keymap, mod_key, mods, 2)
         self.check_keysyms(keymap, 2, "AC01", "Cyrillic_ef", "combining_acute")
         # Switch back to us layout
-        self.switch_group(keymap, mod_key, mod, 1)
+        self.switch_group(keymap, mod_key, mods, 1)
         self.check_keysyms(keymap, 1, "AC01", "a", "combining_acute")
 
     @staticmethod
@@ -373,4 +422,5 @@ class TestIssue383:
         with keymap.key_down("RALT") as r:
             assert r.group == 1  # only defined on first group
             r = keymap.tap_and_check(key, typo_keysym, group=group, level=3)
-            assert r.active_mods == Mod5 == r.consumed_mods
+            Level3 = keymap.Level3 if keymap.has_vmod_queries else NoModifier
+            assert r.active_mods == Mod5 | Level3 == r.consumed_mods

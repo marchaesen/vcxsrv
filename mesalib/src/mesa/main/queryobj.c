@@ -90,7 +90,7 @@ target_to_index(const struct gl_query_object *q)
        q->Target == GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB)
       return q->Stream;
 
-   /* Drivers with PIPE_CAP_QUERY_PIPELINE_STATISTICS_SINGLE = 0 ignore the
+   /* Drivers with pipe_caps.query_pipeline_statistics_single = 0 ignore the
     * index param so it should be useless; but radeonsi needs it in some cases,
     * so pass the correct value.
     */
@@ -1342,10 +1342,10 @@ _mesa_init_queryobj(struct gl_context *ctx)
 {
    struct pipe_screen *screen = ctx->pipe->screen;
 
-   _mesa_InitHashTable(&ctx->Query.QueryObjects);
+   _mesa_InitHashTable(&ctx->Query.QueryObjects, ctx->Shared->ReuseGLNames);
    ctx->Query.CurrentOcclusionObject = NULL;
 
-   if (screen->get_param(screen, PIPE_CAP_OCCLUSION_QUERY))
+   if (screen->caps.occlusion_query)
       ctx->Const.QueryCounterBits.SamplesPassed = 64;
    else
       ctx->Const.QueryCounterBits.SamplesPassed = 0;
@@ -1355,8 +1355,8 @@ _mesa_init_queryobj(struct gl_context *ctx)
    ctx->Const.QueryCounterBits.PrimitivesGenerated = 64;
    ctx->Const.QueryCounterBits.PrimitivesWritten = 64;
 
-   if (screen->get_param(screen, PIPE_CAP_QUERY_PIPELINE_STATISTICS) ||
-       screen->get_param(screen, PIPE_CAP_QUERY_PIPELINE_STATISTICS_SINGLE)) {
+   if (screen->caps.query_pipeline_statistics ||
+       screen->caps.query_pipeline_statistics_single) {
       ctx->Const.QueryCounterBits.VerticesSubmitted = 64;
       ctx->Const.QueryCounterBits.PrimitivesSubmitted = 64;
       ctx->Const.QueryCounterBits.VsInvocations = 64;

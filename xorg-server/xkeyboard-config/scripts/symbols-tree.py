@@ -5,22 +5,24 @@
 # This file is formatted with Python Black
 
 import argparse
-import pathlib
 import dataclasses
+import os
+from pathlib import Path
+
 from pyparsing import (
-    Word,
-    Literal,
-    LineEnd,
-    OneOrMore,
-    oneOf,
-    Or,
     And,
+    LineEnd,
+    Literal,
+    OneOrMore,
+    Optional,
+    Or,
+    ParseException,
     QuotedString,
     Regex,
-    cppStyleComment,
+    Word,
     alphanums,
-    Optional,
-    ParseException,
+    cppStyleComment,
+    oneOf,
 )
 
 xkb_basedir = None
@@ -28,7 +30,7 @@ xkb_basedir = None
 
 @dataclasses.dataclass
 class XkbSymbols:
-    file: pathlib.Path  # Path to the file this section came from
+    file: Path  # Path to the file this section came from
     name: str
     includes: list[str] = dataclasses.field(default_factory=list)
 
@@ -51,12 +53,12 @@ class XkbLoader:
 
     _instance = None
 
-    def __init__(self, xkb_basedir):
+    def __init__(self, xkb_basedir: Path):
         self.xkb_basedir = xkb_basedir
-        self.loaded = {}
+        self.loaded: dict[Path, list[XkbSymbols]] = {}
 
     @classmethod
-    def create(cls, xkb_basedir):
+    def create(cls, xkb_basedir: Path):
         assert cls._instance is None
         cls._instance = XkbLoader(xkb_basedir)
 
@@ -66,10 +68,10 @@ class XkbLoader:
         return cls._instance
 
     @classmethod
-    def load_symbols(cls, file):
+    def load_symbols(cls, file: Path):
         return cls.instance().load_symbols_file(file)
 
-    def load_symbols_file(self, file) -> list[XkbSymbols]:
+    def load_symbols_file(self, file: Path) -> list[XkbSymbols]:
         file = self.xkb_basedir / file
         try:
             return self.loaded[file]
@@ -136,7 +138,9 @@ def lit(string):
     return Literal(string).suppress()
 
 
-def print_section(s: XkbSymbols, filter_section: str | None = None, indent=0):
+def print_section(
+    root: Path, s: XkbSymbols, filter_section: str | None = None, indent=0
+):
     if filter_section and s.name != filter_section:
         return
 
@@ -149,7 +153,7 @@ def print_section(s: XkbSymbols, filter_section: str | None = None, indent=0):
     prefix = ""
     if indent > 0:
         prefix = " " * (indent - 2) + "|-> "
-    print(f"{prefix}{s.layout}({s.name})")
+    print(f"{prefix}{s.file.relative_to(root)}({s.name})")
     for include in s.includes:
         result = grammar.parseString(include)
         # Should really find the "default" section but for this script
@@ -158,12 +162,16 @@ def print_section(s: XkbSymbols, filter_section: str | None = None, indent=0):
 
         include_sections = XkbLoader.load_symbols(layout)
         for include_section in include_sections:
-            print_section(include_section, filter_section=variant, indent=indent + 4)
+            print_section(
+                root, include_section, filter_section=variant, indent=indent + 4
+            )
 
 
-def list_sections(sections: list[XkbSymbols], filter_section: str | None = None):
+def list_sections(
+    root: Path, sections: list[XkbSymbols], filter_section: str | None = None
+):
     for section in sections:
-        print_section(section, filter_section)
+        print_section(root, section, filter_section)
 
 
 if __name__ == "__main__":
@@ -178,23 +186,38 @@ if __name__ == "__main__":
             """
     )
     parser.add_argument(
+        "--xkb-root",
+        type=Path,
+        help="The XKB root directory",
+    )
+    parser.add_argument(
         "file",
         metavar="file-or-directory",
-        type=pathlib.Path,
+        type=Path,
         help="The XKB symbols file or directory",
     )
     parser.add_argument(
         "section", type=str, default=None, nargs="?", help="The section (optional)"
     )
     ns = parser.parse_args()
+    if ns.xkb_root is not None:
+        ns.file = ns.xkb_root / "symbols" / ns.file
 
     if ns.file.is_dir():
-        xkb_basedir = ns.file.resolve()
-        files = sorted([f for f in ns.file.iterdir() if not f.is_dir()])
+        if ns.xkb_root is None:
+            xkb_basedir: Path = ns.file.resolve()
+        else:
+            xkb_basedir = (ns.xkb_root / "symbols").resolve()
+        files: list[Path] = sorted(
+            Path(d) / f for d, _, fs in os.walk(ns.file.resolve()) for f in fs
+        )
     else:
-        # Note: this requires that the file given on the cmdline is not one of
-        # the sun_vdr/de or others inside a subdirectory. meh.
-        xkb_basedir = ns.file.parent.resolve()
+        if ns.xkb_root is None:
+            # Note: this requires that the file given on the cmdline is not one of
+            # the sun_vdr/de or others inside a subdirectory. meh.
+            xkb_basedir = ns.file.parent.resolve()
+        else:
+            xkb_basedir = (ns.xkb_root / "symbols").resolve()
         files = [ns.file]
 
     XkbLoader.create(xkb_basedir)
@@ -203,7 +226,7 @@ if __name__ == "__main__":
         for file in files:
             try:
                 sections = XkbLoader.load_symbols(file.resolve())
-                list_sections(sections, filter_section=ns.section)
+                list_sections(xkb_basedir, sections, filter_section=ns.section)
             except XkbLoader.XkbParserException:
                 pass
     except KeyboardInterrupt:

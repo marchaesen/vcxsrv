@@ -74,8 +74,8 @@ vlVaGetDisplayAttributes(VADriverContextP ctx, VADisplayAttribute *attr_list, in
       switch (attr_list->type) {
 #if VA_CHECK_VERSION(1, 15, 0)
       case VADisplayPCIID: {
-         uint32_t vendor_id = pscreen->get_param(pscreen, PIPE_CAP_VENDOR_ID);
-         uint32_t device_id = pscreen->get_param(pscreen, PIPE_CAP_DEVICE_ID);
+         uint32_t vendor_id = pscreen->caps.vendor_id;
+         uint32_t device_id = pscreen->caps.device_id;
          attr_list->min_value = attr_list->max_value = attr_list->value = (vendor_id << 16) | (device_id & 0xFFFF);
          attr_list->flags = VA_DISPLAY_ATTRIB_GETTABLE;
          break;

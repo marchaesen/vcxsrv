@@ -6,6 +6,6 @@ root = true
 [*]
 tab_width = 8
 
-[meson.build,meson_options.txt]
+[meson.build,meson.options]
 indent_style = space
 indent_size = 2

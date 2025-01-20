@@ -374,6 +374,9 @@ ir3_collect_info(struct ir3_shader_variant *v)
                int n = MIN2(mem_delay, 1 + instr->repeat + instr->nop);
                mem_delay -= n;
             }
+         } else {
+            unsigned instrs_count = 1 + instr->repeat + instr->nop;
+            info->preamble_instrs_count += instrs_count;
          }
 
          if (instr->opc == OPC_SHPE)
@@ -680,7 +683,20 @@ ir3_build_instr(struct ir3_builder *builder, opc_t opc, int ndst, int nsrc)
 {
    struct ir3_instruction *instr =
       ir3_instr_create_at(builder->cursor, opc, ndst, nsrc);
-   builder->cursor = ir3_after_instr(instr);
+
+   /* During instruction selection, instructions are sometimes emitted to blocks
+    * other than the current one. For example, to predecessor blocks for phi
+    * sources or to the first block for inputs. For those cases, a new builder
+    * is created to emit at the end of the target block. However, if the target
+    * block happens to be the same as the current block, the main builder would
+    * not be updated to point past the new instructions. Therefore, don't update
+    * the cursor when it points to the end of a block to ensure that new
+    * instructions will always be added at the end.
+    */
+   if (builder->cursor.option != IR3_CURSOR_AFTER_BLOCK) {
+      builder->cursor = ir3_after_instr(instr);
+   }
+
    return instr;
 }
 
@@ -1288,7 +1304,7 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
       break;
    case 3:
       valid_flags =
-         ir3_cat3_absneg(instr->opc) | IR3_REG_RELATIV | IR3_REG_SHARED;
+         ir3_cat3_absneg(instr->opc, n) | IR3_REG_RELATIV | IR3_REG_SHARED;
 
       switch (instr->opc) {
       case OPC_SHRM:
@@ -1296,10 +1312,23 @@ ir3_valid_flags(struct ir3_instruction *instr, unsigned n, unsigned flags)
       case OPC_SHRG:
       case OPC_SHLG:
       case OPC_ANDG: {
-         valid_flags |= IR3_REG_IMMED;
+         if (n != 1) {
+            valid_flags |= IR3_REG_IMMED;
+         }
+
          /* Can be RELATIV+CONST but not CONST: */
          if (flags & IR3_REG_RELATIV)
             valid_flags |= IR3_REG_CONST;
+
+         if (!(instr->dsts[0]->flags & IR3_REG_SHARED) && n < 2) {
+            /* Of the first two sources, only one can be shared. */
+            unsigned m = n ^ 1;
+
+            if ((flags & IR3_REG_SHARED) &&
+                (instr->srcs[m]->flags & IR3_REG_SHARED)) {
+               return false;
+            }
+         }
          break;
       }
       case OPC_WMM:
@@ -1477,6 +1506,13 @@ ir3_valid_immediate(struct ir3_instruction *instr, int32_t immed)
          /* most cat6 src immediates can only encode 8 bits: */
          return !(immed & ~0xff);
       }
+   }
+
+   /* The alternative cat3 encoding used for sh[lr][gm]/andg uses 12 bit
+    * immediates that won't be sign-extended.
+    */
+   if (is_cat3_alt(instr->opc)) {
+      return !(immed & ~0xfff);
    }
 
    /* Other than cat1 (mov) we can only encode up to 10 bits, sign-extended: */

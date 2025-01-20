@@ -74,10 +74,11 @@ struct si_state_rasterizer {
    float line_width;
    float max_point_size;
    unsigned ngg_cull_flags_tris : 16;
-   unsigned ngg_cull_flags_tris_y_inverted : 16;
    unsigned ngg_cull_flags_lines : 16;
    unsigned sprite_coord_enable : 8;
    unsigned clip_plane_enable : 8;
+   bool ngg_cull_front : 1;
+   bool ngg_cull_back : 1;
    unsigned half_pixel_center : 1;
    unsigned flatshade : 1;
    unsigned flatshade_first : 1;
@@ -130,6 +131,7 @@ struct si_state_dsa {
    unsigned spi_shader_user_data_ps_alpha_ref;
    unsigned db_stencil_read_mask;
    unsigned db_stencil_write_mask;
+   unsigned db_render_override;     /* only gfx12 */
 
    /* 0 = without stencil buffer, 1 = when both Z and S buffers are present */
    struct si_dsa_order_invariance order_invariance[2];
@@ -369,6 +371,7 @@ enum si_tracked_reg
    SI_TRACKED_VGT_GS_VERT_ITEMSIZE_3,        /* GFX6-10 (GFX11+ can reuse this slot) */
 
    SI_TRACKED_SPI_VS_OUT_CONFIG,             /* GFX6-11 */
+   SI_TRACKED_DB_RENDER_OVERRIDE = SI_TRACKED_SPI_VS_OUT_CONFIG, /* GFX12+ (slot reused) */
    SI_TRACKED_VGT_PRIMITIVEID_EN,            /* GFX6-11 */
    SI_TRACKED_CB_DCC_CONTROL,                /* GFX8-11 */
    SI_TRACKED_DB_STENCIL_READ_MASK,          /* GFX12+ */
@@ -676,11 +679,13 @@ int si_shader_select(struct pipe_context *ctx, struct si_shader_ctx_state *state
 void si_vs_key_update_inputs(struct si_context *sctx);
 void si_update_ps_inputs_read_or_disabled(struct si_context *sctx);
 void si_update_vrs_flat_shading(struct si_context *sctx);
-unsigned si_get_input_prim(const struct si_shader_selector *gs, const union si_shader_key *key);
+unsigned si_get_input_prim(const struct si_shader_selector *gs, const union si_shader_key *key,
+                           bool return_unknown);
+unsigned si_get_num_vertices_per_output_prim(struct si_shader *shader);
 bool si_update_ngg(struct si_context *sctx);
 void si_vs_ps_key_update_rast_prim_smooth_stipple(struct si_context *sctx);
 void si_ps_key_update_framebuffer(struct si_context *sctx);
-void si_ps_key_update_framebuffer_blend_rasterizer(struct si_context *sctx);
+void si_ps_key_update_framebuffer_blend_dsa_rasterizer(struct si_context *sctx);
 void si_ps_key_update_rasterizer(struct si_context *sctx);
 void si_ps_key_update_dsa(struct si_context *sctx);
 void si_ps_key_update_sample_shading(struct si_context *sctx);

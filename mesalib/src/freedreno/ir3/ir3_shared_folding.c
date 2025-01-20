@@ -46,7 +46,8 @@ try_shared_folding(struct ir3_instruction *mov, void *mem_ctx)
       for (unsigned i = 0; i < block->predecessors_count; i++) {
          struct ir3_block *pred = block->predecessors[i];
          if (src->srcs[i]->def) {
-            struct ir3_instruction *pred_mov = ir3_instr_create(pred, OPC_MOV, 1, 1);
+            struct ir3_instruction *pred_mov =
+               ir3_instr_create_at(ir3_before_terminator(pred), OPC_MOV, 1, 1);
             __ssa_dst(pred_mov)->flags |= (src->srcs[i]->flags & IR3_REG_HALF);
             unsigned src_flags = IR3_REG_SSA | IR3_REG_SHARED |
                (src->srcs[i]->flags & IR3_REG_HALF);
@@ -72,6 +73,12 @@ try_shared_folding(struct ir3_instruction *mov, void *mem_ctx)
          return false;
    } else if (src->opc == OPC_LDC) {
       src->flags &= ~IR3_INSTR_U;
+   } else if (src->opc == OPC_MOV) {
+      /* This catches cases like:
+       * cov.f32f16 sssa_1, c0.x
+       * mov.u16u16 ssa_2, sssa_1
+       * The cov can directly write to a non-shared reg.
+       */
    } else {
       return false;
    }
@@ -89,12 +96,10 @@ try_shared_folding(struct ir3_instruction *mov, void *mem_ctx)
          continue;
 
       if (!shared_mov) {
-         shared_mov = ir3_MOV(src->block, src, mov->cat1.src_type);
+         struct ir3_builder build =
+            ir3_builder_at(ir3_after_instr_and_phis(src));
+         shared_mov = ir3_MOV(&build, src, mov->cat1.src_type);
          shared_mov->dsts[0]->flags |= IR3_REG_SHARED;
-         if (src->opc == OPC_META_PHI)
-            ir3_instr_move_after_phis(shared_mov, src->block);
-         else
-            ir3_instr_move_after(shared_mov, src);
          shared_mov->uses = _mesa_pointer_set_create(mem_ctx);
       }
 

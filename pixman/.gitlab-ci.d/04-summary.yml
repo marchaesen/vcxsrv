@@ -15,15 +15,11 @@ summary:
       optional: true
     - job: test:linux-amd64
       optional: true
-    - job: test:linux-arm-v5
-      optional: true
     - job: test:linux-arm-v7
       optional: true
     - job: test:linux-arm64-v8
       optional: true
-    - job: test:linux-mips64el
-      optional: true
-    - job: test:linux-mipsel
+    - job: test:linux-mips64le
       optional: true
     - job: test:linux-ppc64le
       optional: true
@@ -43,9 +39,10 @@ summary:
         --txt --print-summary
   coverage: '/^TOTAL.*\s+(\d+\%)$/'
   artifacts:
+    when: always
     reports:
       coverage_report:
         coverage_format: cobertura
         path: ${COVERAGE_SUMMARY_DIR}/coverage.xml
     paths:
-      - ${COVERAGE_SUMMARY_DIR}/
+      - ${COVERAGE_BASE_DIR}/

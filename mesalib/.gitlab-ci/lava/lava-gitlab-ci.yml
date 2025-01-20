@@ -18,7 +18,7 @@ variables:
     JOB_ROOTFS_OVERLAY_PATH: "${JOB_ARTIFACTS_BASE}/job-rootfs-overlay.tar.gz"
     JOB_RESULTS_PATH: "${JOB_ARTIFACTS_BASE}/results.tar.zst"
     LAVA_S3_ARTIFACT_NAME: "mesa-${ARCH}-default-debugoptimized"
-    S3_ARTIFACT_NAME: "mesa-python-test"
+    S3_ARTIFACT_NAME: "mesa-python-ci-artifacts"
     S3_RESULTS_UPLOAD: "${JOB_ARTIFACTS_BASE}"
     PIGLIT_NO_WINDOW: 1
     VISIBILITY_GROUP: "Collabora+fdo"
@@ -39,14 +39,14 @@ variables:
   tags:
     - $RUNNER_TAG
   after_script:
-    - curl -L --retry 4 -f --retry-all-errors --retry-delay 60 -s "https://${JOB_RESULTS_PATH}" | tar --zstd -x
+    - curl -L --retry 4 -f --retry-all-errors --retry-delay 60 -s "https://${JOB_RESULTS_PATH}" | tar --warning=no-timestamp --zstd -x
   needs:
     - !reference [.required-for-hardware-jobs, needs]
     - job: alpine/x86_64_lava_ssh_client
       artifacts: false
     - job: debian/x86_64_pyutils
       artifacts: false
-    - job: python-test
+    - job: python-artifacts
       artifacts: false
 
 .lava-test:arm32:
@@ -156,13 +156,3 @@ variables:
     - .lava-test:arm64
     - .lava-piglit
     - .lava-traces-base
-
-.lava-piglit:x86_64:
-  extends:
-    - .lava-test:x86_64
-    - .lava-piglit
-
-.lava-piglit:arm64:
-  extends:
-    - .lava-test:arm64
-    - .lava-piglit

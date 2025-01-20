@@ -52,7 +52,8 @@ agx_stream_output_target_destroy(struct pipe_context *pctx,
 static void
 agx_set_stream_output_targets(struct pipe_context *pctx, unsigned num_targets,
                               struct pipe_stream_output_target **targets,
-                              const unsigned *offsets)
+                              const unsigned *offsets,
+                              enum mesa_prim output_prim)
 {
    struct agx_context *ctx = agx_context(pctx);
    struct agx_streamout *so = &ctx->streamout;

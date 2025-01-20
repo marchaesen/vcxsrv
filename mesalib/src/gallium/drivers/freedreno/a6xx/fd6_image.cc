@@ -72,7 +72,6 @@ fd6_image_descriptor(struct fd_context *ctx, const struct pipe_image_view *buf,
          .type = fdl_type_from_pipe_target(buf->resource->target),
          .chroma_offsets = {FDL_CHROMA_LOCATION_COSITED_EVEN,
                             FDL_CHROMA_LOCATION_COSITED_EVEN},
-         .ubwc_fc_mutable = false,
       };
 
       /* fdl6_view makes the storage descriptor treat cubes like a 2D array (so

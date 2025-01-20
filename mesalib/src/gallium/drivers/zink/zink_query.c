@@ -11,6 +11,7 @@
 #include "util/u_memory.h"
 
 #define NUM_QUERIES 500
+#define NOWAIT_CHECK_THRESHOLD 10 //prevent spinning
 
 #define ZINK_QUERY_RENDER_PASSES (PIPE_QUERY_DRIVER_SPECIFIC + 0)
 
@@ -77,8 +78,10 @@ struct zink_query {
    bool has_draws; /* have_gs and have_xfb are valid for idx=curr_query */
 
    struct zink_batch_usage *batch_uses; //batch that the query was started in
+   unsigned result_check_counter; //incremented for nowait checks
 
    struct list_head buffers;
+   unsigned buffer_count;
    union {
       struct zink_query_buffer *curr_qbo;
       struct pipe_fence_handle *fence; //PIPE_QUERY_GPU_FINISHED
@@ -373,6 +376,7 @@ qbo_append(struct pipe_screen *screen, struct zink_query *query)
          goto fail;
    }
    list_addtail(&qbo->list, &query->buffers);
+   query->buffer_count++;
 
    return true;
 fail:
@@ -658,7 +662,7 @@ get_query_result(struct pipe_context *pctx,
    unsigned flags = PIPE_MAP_READ;
 
    if (!wait)
-      flags |= PIPE_MAP_DONTBLOCK;
+      flags |= ZINK_MAP_QBO;
    if (query->base.flushed)
       /* this is not a context-safe operation; ensure map doesn't use slab alloc */
       flags |= PIPE_MAP_THREAD_SAFE;
@@ -1111,17 +1115,18 @@ zink_get_query_result(struct pipe_context *pctx,
 {
    struct zink_query *query = (void*)q;
    struct zink_context *ctx = zink_context(pctx);
+   struct zink_screen *screen = zink_screen(pctx->screen);
 
    if (query->type == PIPE_QUERY_TIMESTAMP_DISJOINT) {
-      result->timestamp_disjoint.frequency = zink_screen(pctx->screen)->info.props.limits.timestampPeriod * 1000000.0;
+      result->timestamp_disjoint.frequency = screen->info.props.limits.timestampPeriod * 1000000.0;
       result->timestamp_disjoint.disjoint = false;
       return true;
    }
 
    if (query->type == PIPE_QUERY_GPU_FINISHED) {
-      struct pipe_screen *screen = pctx->screen;
+      struct pipe_screen *pscreen = pctx->screen;
 
-      result->b = screen->fence_finish(screen, query->base.flushed ? NULL : pctx,
+      result->b = pscreen->fence_finish(pscreen, query->base.flushed ? NULL : pctx,
                                         query->fence, wait ? OS_TIMEOUT_INFINITE : 0);
       return result->b;
    }
@@ -1141,6 +1146,25 @@ zink_get_query_result(struct pipe_context *pctx,
       if (!threaded_query(q)->flushed)
          pctx->flush(pctx, NULL, 0);
       if (!wait)
+         return false;
+   }
+
+   /* TODO: if syncobj/semaphore waits ever get faster delete all this */
+   if (!wait && !zink_screen_usage_check_completion_fast(screen, query->batch_uses)) {
+      if (query->result_check_counter++ < NOWAIT_CHECK_THRESHOLD)
+         return false;
+      /* simple queries can use the "fast" path which (probably) avoids directly accessing a syncobj */
+      if (query->buffer_count == 1 && get_num_results(query) == 1 && query->type != PIPE_QUERY_TIME_ELAPSED) {
+         struct zink_query_start *start = util_dynarray_top_ptr(&query->starts, struct zink_query_start);
+         unsigned query_id = start->vkq[0]->query_id;
+         VkResult ret = VKCTX(GetQueryPoolResults)(screen->dev, start->vkq[0]->pool->query_pool, query_id, 1,
+                                 sizeof(result->u64), &result->u64, 0, VK_QUERY_RESULT_64_BIT);
+         if (is_time_query(query))
+            timestamp_to_nanoseconds(screen, &result->u64);
+         return ret == VK_SUCCESS;
+      }
+      /* other queries have to check the syncobj */
+      if (!zink_screen_usage_check_completion(screen, query->batch_uses))
          return false;
    }
 

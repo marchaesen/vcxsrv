@@ -905,70 +905,32 @@ static void si_fast_clear(struct si_context *sctx, unsigned *buffers,
 
       /* Transition from TC-incompatible to TC-compatible HTILE if requested. */
       if (zstex->enable_tc_compatible_htile_next_clear) {
-          /* If both depth and stencil are present, they must be cleared together. */
-         if ((*buffers & PIPE_CLEAR_DEPTHSTENCIL) == PIPE_CLEAR_DEPTHSTENCIL ||
-             (*buffers & PIPE_CLEAR_DEPTH && (!zstex->surface.has_stencil ||
-                                              zstex->htile_stencil_disabled))) {
-            /* The conversion from TC-incompatible to TC-compatible can only be done in one clear. */
-            assert(zstex->buffer.b.b.last_level == 0);
-            assert(!zstex->tc_compatible_htile);
+         assert(zstex->buffer.b.b.last_level == 0);
+         assert(!zstex->tc_compatible_htile);
 
-            /* Enable TC-compatible HTILE. */
-            zstex->enable_tc_compatible_htile_next_clear = false;
-            zstex->tc_compatible_htile = true;
+         /* Decompress both depth and stencil. TC-compatible HTILE uses slightly different
+          * compression, so we must decompress before we change it.
+          *
+          * The clear isn't just memset. It still reads HTILE and decides what to do based on that.
+          * We need to decompress fully, so that HTILE doesn't contain any compression flags.
+          */
+         si_decompress_subresource(&sctx->b, zsbuf->texture, PIPE_MASK_ZS, 0, 0,
+                                   util_max_layer(zsbuf->texture, 0), false);
 
-            /* Update the framebuffer state to reflect the change. */
-            sctx->framebuffer.DB_has_shader_readable_metadata = true;
-            sctx->framebuffer.dirty_zsbuf = true;
-            si_mark_atom_dirty(sctx, &sctx->atoms.s.framebuffer);
+         /* Enable TC-compatible HTILE. */
+         zstex->enable_tc_compatible_htile_next_clear = false;
+         zstex->tc_compatible_htile = true;
 
-            /* Update all sampler views and shader images in all contexts. */
-            p_atomic_inc(&sctx->screen->dirty_tex_counter);
+         /* Update the framebuffer state to reflect the change. */
+         sctx->framebuffer.DB_has_shader_readable_metadata = true;
+         sctx->framebuffer.dirty_zsbuf = true;
+         si_mark_atom_dirty(sctx, &sctx->atoms.s.framebuffer);
 
-            /* Perform the clear here if possible, else clear to uncompressed. */
-            uint32_t clear_value;
+         /* Update all sampler views and shader images in all contexts. */
+         p_atomic_inc(&sctx->screen->dirty_tex_counter);
+      }
 
-            if (zstex->htile_stencil_disabled || !zstex->surface.has_stencil) {
-               if (si_can_fast_clear_depth(zstex, level, depth, *buffers)) {
-                  /* Z-only clear. */
-                  clear_value = si_get_htile_clear_value(zstex, depth);
-                  *buffers &= ~PIPE_CLEAR_DEPTH;
-                  zstex->depth_cleared_level_mask_once |= BITFIELD_BIT(level);
-                  zstex->depth_cleared_level_mask |= BITFIELD_BIT(level);
-                  update_db_depth_clear = true;
-               }
-            } else if ((*buffers & PIPE_CLEAR_DEPTHSTENCIL) == PIPE_CLEAR_DEPTHSTENCIL) {
-               if (si_can_fast_clear_depth(zstex, level, depth, *buffers) &&
-                   si_can_fast_clear_stencil(zstex, level, stencil, *buffers)) {
-                  /* Combined Z+S clear. */
-                  clear_value = si_get_htile_clear_value(zstex, depth);
-                  *buffers &= ~PIPE_CLEAR_DEPTHSTENCIL;
-                  zstex->depth_cleared_level_mask_once |= BITFIELD_BIT(level);
-                  zstex->depth_cleared_level_mask |= BITFIELD_BIT(level);
-                  zstex->stencil_cleared_level_mask_once |= BITFIELD_BIT(level);
-                  update_db_depth_clear = true;
-                  update_db_stencil_clear = true;
-               }
-            }
-
-            if (!update_db_depth_clear) {
-               /* Clear to uncompressed, so that it doesn't contain values incompatible
-                * with the new TC-compatible HTILE setting.
-                *
-                * 0xfffff30f = uncompressed Z + S
-                * 0xfffc000f = uncompressed Z only
-                */
-               clear_value = !zstex->htile_stencil_disabled ? 0xfffff30f : 0xfffc000f;
-            }
-
-            zstex->need_flush_after_depth_decompression = sctx->gfx_level == GFX10_3;
-
-            assert(num_clears < ARRAY_SIZE(info));
-            si_init_buffer_clear(&info[num_clears++], &zstex->buffer.b.b,
-                                 zstex->surface.meta_offset, zstex->surface.meta_size, clear_value);
-            clear_types |= SI_CLEAR_TYPE_HTILE;
-         }
-      } else if (num_clears || !fb_too_small) {
+      if (num_clears || !fb_too_small) {
          /* This is where the HTILE buffer clear is done.
           *
           * If there is no clear scheduled and the framebuffer size is too small, we should use

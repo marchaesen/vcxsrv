@@ -5,6 +5,7 @@ use mesa_rust_util::ptr::ThreadSafeCPtr;
 use mesa_rust_util::string::c_string_to_string;
 
 use std::collections::HashMap;
+use std::ffi::CStr;
 use std::{env, ptr};
 
 #[derive(PartialEq)]
@@ -25,8 +26,12 @@ impl PipeLoaderDevice {
         PipeScreen::new(self, s)
     }
 
-    pub fn driver_name(&self) -> String {
-        c_string_to_string(unsafe { self.ldev.as_ref() }.driver_name)
+    pub fn driver_name(&self) -> &CStr {
+        // SAFETY: ldev is a valid memory allocation
+        let ldev = unsafe { self.ldev.as_ref() };
+
+        // SAFETY: The driver name is a valid C string pointer
+        unsafe { CStr::from_ptr(ldev.driver_name) }
     }
 
     pub fn device_type(&self) -> pipe_loader_device_type {

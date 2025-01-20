@@ -48,3 +48,10 @@ dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail.basic
 # Some reconvergence tests are very slow.
 dEQP-VK.reconvergence.(subgroup|workgroup)_uniform_control_flow_(ballot|elect).compute.nesting4.*
 dEQP-VK.reconvergence.maximal.compute.nesting4.7.38
+
+# This test can cause random GPU hangs for very weird reasons, needs to be
+# investigated.
+dEQP-VK.api.command_buffers.many_indirect_disps_on_secondary
+
+# RADV bug
+dEQP-VK.dgc.ext.misc.properties.maxIndirectSequenceCount

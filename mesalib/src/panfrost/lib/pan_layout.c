@@ -35,6 +35,12 @@
  * AFRC is only used if explicitely asked for (only for RGB formats).
  */
 uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT] = {
+   DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_32x8 |
+                           AFBC_FORMAT_MOD_SPARSE | AFBC_FORMAT_MOD_SPLIT),
+   DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_32x8 |
+                           AFBC_FORMAT_MOD_SPARSE | AFBC_FORMAT_MOD_SPLIT |
+                           AFBC_FORMAT_MOD_YTR),
+
    DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
                            AFBC_FORMAT_MOD_TILED | AFBC_FORMAT_MOD_SC |
                            AFBC_FORMAT_MOD_SPARSE | AFBC_FORMAT_MOD_YTR),
@@ -92,6 +98,26 @@ panfrost_afbc_superblock_size(uint64_t modifier)
    assert(index < ARRAY_SIZE(afbc_superblock_sizes));
 
    return afbc_superblock_sizes[index];
+}
+
+/*
+ * Given an AFBC modifier, return the render size.
+ */
+struct pan_block_size
+panfrost_afbc_renderblock_size(uint64_t modifier)
+{
+   unsigned index = (modifier & AFBC_FORMAT_MOD_BLOCK_SIZE_MASK);
+
+   assert(drm_is_afbc(modifier));
+   assert(index < ARRAY_SIZE(afbc_superblock_sizes));
+
+   struct pan_block_size blk_size = afbc_superblock_sizes[index];
+
+  /* The GPU needs to render 16x16 tiles. For wide tiles, that means we
+   * have to extend the render region to have a height of 16 pixels.
+   */
+   blk_size.height = ALIGN_POT(blk_size.height, 16);
+   return blk_size;
 }
 
 /*
@@ -258,6 +284,19 @@ panfrost_block_size(uint64_t modifier, enum pipe_format format)
       return (struct pan_block_size){1, 1};
 }
 
+/* For non-AFBC and non-wide AFBC, the render block size matches
+ * the block size, but for wide AFBC, the GPU wants the block height
+ * to be 16 pixels high.
+ */
+struct pan_block_size
+panfrost_renderblock_size(uint64_t modifier, enum pipe_format format)
+{
+   if (!drm_is_afbc(modifier))
+      return panfrost_block_size(modifier, format);
+
+   return panfrost_afbc_renderblock_size(modifier);
+}
+
 /*
  * Determine the tile size used by AFBC. This tiles superblocks themselves.
  * Current GPUs support either 8x8 tiling or no tiling (1x1)
@@ -312,9 +351,15 @@ pan_slice_align(uint64_t modifier)
  * are required on all current GPUs.
  */
 uint32_t
-pan_afbc_body_align(uint64_t modifier)
+pan_afbc_body_align(unsigned arch, uint64_t modifier)
 {
-   return (modifier & AFBC_FORMAT_MOD_TILED) ? 4096 : 64;
+   if (modifier & AFBC_FORMAT_MOD_TILED)
+      return 4096;
+
+   if (arch >= 6)
+      return 128;
+
+   return 64;
 }
 
 static inline unsigned
@@ -335,26 +380,40 @@ format_minimum_alignment(unsigned arch, enum pipe_format format, uint64_t mod)
    case PIPE_FORMAT_G8_B8R8_420_UNORM:
    case PIPE_FORMAT_R8_G8_B8_420_UNORM:
    case PIPE_FORMAT_R8_B8_G8_420_UNORM:
+   case PIPE_FORMAT_R8_G8B8_422_UNORM:
+   case PIPE_FORMAT_R8_B8G8_422_UNORM:
       return 16;
+   /* the 10 bit formats have even looser alignment */
+   case PIPE_FORMAT_R10_G10B10_420_UNORM:
+   case PIPE_FORMAT_R10_G10B10_422_UNORM:
+      return 1;
    default:
       return 64;
    }
 }
 
-/* Computes sizes for checksumming, which is 8 bytes per 16x16 tile.
+/*
+ * Computes sizes for checksumming, which is 8 bytes per 16x16 tile.
  * Checksumming is believed to be a CRC variant (CRC64 based on the size?).
- * This feature is also known as "transaction elimination". */
+ * This feature is also known as "transaction elimination".
+ * CRC values are prefetched by 32x32 regions so size needs to be aligned.
+ */
 
-#define CHECKSUM_TILE_WIDTH     16
-#define CHECKSUM_TILE_HEIGHT    16
-#define CHECKSUM_BYTES_PER_TILE 8
+#define CHECKSUM_TILE_WIDTH        16
+#define CHECKSUM_TILE_HEIGHT       16
+#define CHECKSUM_REGION_SIZE       32
+#define CHECKSUM_X_TILE_PER_REGION (CHECKSUM_REGION_SIZE / CHECKSUM_TILE_WIDTH)
+#define CHECKSUM_Y_TILE_PER_REGION (CHECKSUM_REGION_SIZE / CHECKSUM_TILE_HEIGHT)
+#define CHECKSUM_BYTES_PER_TILE    8
 
 unsigned
 panfrost_compute_checksum_size(struct pan_image_slice_layout *slice,
                                unsigned width, unsigned height)
 {
-   unsigned tile_count_x = DIV_ROUND_UP(width, CHECKSUM_TILE_WIDTH);
-   unsigned tile_count_y = DIV_ROUND_UP(height, CHECKSUM_TILE_HEIGHT);
+   unsigned tile_count_x =
+      CHECKSUM_X_TILE_PER_REGION * DIV_ROUND_UP(width, CHECKSUM_REGION_SIZE);
+   unsigned tile_count_y =
+      CHECKSUM_Y_TILE_PER_REGION * DIV_ROUND_UP(height, CHECKSUM_REGION_SIZE);
 
    slice->crc.stride = tile_count_x * CHECKSUM_BYTES_PER_TILE;
 
@@ -378,7 +437,7 @@ panfrost_get_legacy_stride(const struct pan_image_layout *layout,
 {
    unsigned row_stride = layout->slices[level].row_stride;
    struct pan_block_size block_size =
-      panfrost_block_size(layout->modifier, layout->format);
+      panfrost_renderblock_size(layout->modifier, layout->format);
 
    if (drm_is_afbc(layout->modifier)) {
       unsigned width = u_minify(layout->width, level);
@@ -401,7 +460,8 @@ unsigned
 panfrost_from_legacy_stride(unsigned legacy_stride, enum pipe_format format,
                             uint64_t modifier)
 {
-   struct pan_block_size block_size = panfrost_block_size(modifier, format);
+   struct pan_block_size block_size =
+      panfrost_renderblock_size(modifier, format);
 
    if (drm_is_afbc(modifier)) {
       unsigned width = legacy_stride / util_format_get_blocksize(format);
@@ -477,7 +537,9 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
    bool linear = layout->modifier == DRM_FORMAT_MOD_LINEAR;
    bool is_3d = layout->dim == MALI_TEXTURE_DIMENSION_3D;
 
-   unsigned offset = explicit_layout ? explicit_layout->offset : 0;
+   uint64_t offset = explicit_layout ? explicit_layout->offset : 0;
+   struct pan_block_size renderblk_size =
+      panfrost_renderblock_size(layout->modifier, layout->format);
    struct pan_block_size block_size =
       panfrost_block_size(layout->modifier, layout->format);
 
@@ -485,8 +547,8 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
    unsigned height = layout->height;
    unsigned depth = layout->depth;
 
-   unsigned align_w = block_size.width;
-   unsigned align_h = block_size.height;
+   unsigned align_w = renderblk_size.width;
+   unsigned align_h = renderblk_size.height;
 
    /* For tiled AFBC, align to tiles of superblocks (this can be large) */
    if (afbc) {
@@ -535,8 +597,8 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
          row_stride = ALIGN_POT(row_stride, 64);
       }
 
-      unsigned slice_one_size =
-         row_stride * (effective_height / block_size.height);
+      uint64_t slice_one_size =
+         (uint64_t)row_stride * (effective_height / block_size.height);
 
       /* Compute AFBC sizes if necessary */
       if (afbc) {
@@ -546,8 +608,8 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
          slice->afbc.nr_blocks =
             slice->afbc.stride * (effective_height / block_size.height);
          slice->afbc.header_size =
-            ALIGN_POT(slice->row_stride * (effective_height / align_h),
-                      pan_afbc_body_align(layout->modifier));
+            ALIGN_POT(slice->afbc.nr_blocks * AFBC_HEADER_BYTES_PER_TILE,
+                      pan_afbc_body_align(arch, layout->modifier));
 
          if (explicit_layout &&
              explicit_layout->row_stride < slice->row_stride) {
@@ -575,7 +637,7 @@ pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
          slice->row_stride = row_stride;
       }
 
-      unsigned slice_full_size = slice_one_size * depth * layout->nr_samples;
+      uint64_t slice_full_size = slice_one_size * depth * layout->nr_samples;
 
       slice->surface_stride = slice_one_size;
 
@@ -613,7 +675,17 @@ void
 pan_iview_get_surface(const struct pan_image_view *iview, unsigned level,
                       unsigned layer, unsigned sample, struct pan_surface *surf)
 {
-   const struct pan_image *image = pan_image_view_get_plane(iview, 0);
+   const struct util_format_description *fdesc =
+      util_format_description(iview->format);
+
+
+   /* In case of multiplanar depth/stencil, the stencil is always on
+    * plane 1. Combined depth/stencil only has one plane, so depth
+    * will be on plane 0 in either case.
+    */
+   const struct pan_image *image = util_format_has_stencil(fdesc)
+      ? pan_image_view_get_s_plane(iview)
+      : pan_image_view_get_plane(iview, 0);
 
    level += iview->first_level;
    assert(level < image->layout.nr_slices);
@@ -622,7 +694,7 @@ pan_iview_get_surface(const struct pan_image_view *iview, unsigned level,
 
    bool is_3d = image->layout.dim == MALI_TEXTURE_DIMENSION_3D;
    const struct pan_image_slice_layout *slice = &image->layout.slices[level];
-   mali_ptr base = image->data.base + image->data.offset;
+   uint64_t base = image->data.base + image->data.offset;
 
    if (drm_is_afbc(image->layout.modifier)) {
       assert(!sample);

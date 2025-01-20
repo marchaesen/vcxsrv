@@ -79,8 +79,6 @@ static inline void loader_platform_thread_delete_mutex(loader_platform_thread_mu
 static int globalLockInitialized = 0;
 static loader_platform_thread_mutex globalLock;
 
-uint32_t MAX_PATH_SIZE = 512;
-
 /* Mapped from VkInstace/VkPhysicalDevice */
 struct instance_data {
    struct vk_instance_dispatch_table vtable;
@@ -94,6 +92,9 @@ struct instance_data {
 
    /* Enabling switch for taking screenshot */
    bool screenshot_enabled;
+
+   /* Region switch for enabling region use on a per-frame basis */
+   bool region_enabled;
 
    /* Enabling switch for socket communications */
    bool socket_enabled;
@@ -146,6 +147,7 @@ struct swapchain_data {
    VkFormat format;
 
    VkImage image;
+   uint32_t imageListSize;
 };
 
 static struct hash_table_u64 *vk_object_to_data = NULL;
@@ -182,6 +184,33 @@ static void unmap_object(uint64_t obj)
    simple_mtx_lock(&vk_object_to_data_mutex);
    _mesa_hash_table_u64_remove(vk_object_to_data, obj);
    simple_mtx_unlock(&vk_object_to_data_mutex);
+}
+
+void map_images(swapchain_data *data, VkImage *imageList, uint32_t size) {
+   data->imageListSize = size;
+   VkImage *image;
+   image = (VkImage *)malloc(sizeof(VkImage) * size);
+   for (uint32_t index = 0; index < size; index++) {
+      image[index] = imageList[index];
+      map_object(HKEY(index), &image[index]);
+   }
+}
+
+void select_image_from_map(swapchain_data *data, uint32_t index) {
+   data->image = *(FIND(VkImage, index));
+}
+
+void unmap_images(swapchain_data *data) {
+   VkImage *image, *first;
+   first = nullptr;
+   for (uint32_t index = 0; index < data->imageListSize; index++) {
+      image = FIND(VkImage, index);
+      if (!first)
+         first = image;
+      unmap_object(HKEY(index));
+   }
+   free(first);
+   data->imageListSize = 0;
 }
 
 #define VK_CHECK(expr) \
@@ -361,6 +390,7 @@ static struct swapchain_data *new_swapchain_data(VkSwapchainKHR swapchain,
 
 static void destroy_swapchain_data(struct swapchain_data *data)
 {
+   unmap_images(data);
    unmap_object(HKEY(data->swapchain));
    ralloc_free(data);
 }
@@ -377,6 +407,9 @@ static void parse_command(struct instance_data *instance_data,
       } else {
          instance_data->filename = NULL;
       }
+   } else if (!strncmp(cmd, "region", cmdlen)) {
+      instance_data->params.region = getRegionFromInput(param);
+      instance_data->region_enabled = instance_data->params.region.useImageRegion;
    }
 }
 
@@ -408,13 +441,19 @@ static void process_char(struct instance_data *instance_data, char c)
       reading_cmd = true;
       reading_param = false;
       break;
+   case ',':
    case ';':
       if (!reading_cmd)
          break;
       cmd[cmdpos++] = '\0';
       param[parampos++] = '\0';
       parse_command(instance_data, cmd, cmdpos, param, parampos);
-      reading_cmd = false;
+      if (c == ';') {
+         reading_cmd = false;
+      } else {
+         cmdpos = 0;
+         parampos = 0;
+      }
       reading_param = false;
       break;
    case '=':
@@ -595,11 +634,14 @@ static VkResult screenshot_GetSwapchainImagesKHR(
    VkResult result = vtable->GetSwapchainImagesKHR(device, swapchain, pCount, pSwapchainImages);
 
    loader_platform_thread_lock_mutex(&globalLock);
+   LOG(DEBUG, "Swapchain size: %d\n", *pCount);
+   if (swapchain_data->imageListSize > 0)
+      unmap_images(swapchain_data);
    if (result == VK_SUCCESS) {
-      // Save only the first image from the first swapchain
+      // Save the images produced from the swapchain in a hash table
       if (*pCount > 0) {
             if(pSwapchainImages){
-               swapchain_data->image = pSwapchainImages[0];
+               map_images(swapchain_data, pSwapchainImages, *pCount);
          }
       }
    }
@@ -712,61 +754,50 @@ struct ThreadSaveData {
 void *writePNG(void *data) {
    struct ThreadSaveData *threadData = (struct ThreadSaveData*)data;
    FILE *file;
-   size_t length = sizeof(char[MAX_PATH_SIZE]);
+   size_t length = sizeof(char[LARGE_BUFFER_SIZE+STANDARD_BUFFER_SIZE]);
    const char *tmpStr = ".tmp";
    char *filename    = (char *)malloc(length);
    char *tmpFilename = (char *)malloc(length + 4); // Allow for ".tmp"
+   VkResult res;
+   png_byte *row_pointer;
+   png_infop info;
+   png_struct* png;
+   uint64_t rowPitch = threadData->srLayout.rowPitch;
+   uint64_t start_time, end_time;
+   const int RGB_NUM_CHANNELS = 3;
+   int localHeight = threadData->height;
+   int localWidth = threadData->width;
+   int matrixSize = localHeight * rowPitch;
+   bool checks_failed = true;
    memcpy(filename, threadData->filename, length);
    memcpy(tmpFilename, threadData->filename, length);
    strcat(tmpFilename, tmpStr);
    file = fopen(tmpFilename, "wb"); //create file for output
    if (!file) {
       LOG(ERROR, "Failed to open output file, '%s', error(%d): %s\n", tmpFilename, errno, strerror(errno));
-      pthread_cond_signal(&ptCondition);
-      return nullptr;
+      goto cleanup;
    }
-   VkResult res;
-   png_byte **row_pointer;
-   threadData->pFramebuffer += threadData->srLayout.offset;
-   png_infop info;
-   int localHeight = threadData->height;
-   int localWidth = threadData->width;
-   bool checks_failed = false;
    // TODO: Look into runtime version mismatch issue with some VK workloads
-   png_struct* png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); //create structure for write PNG_LIBPNG_VER_STRING
+   png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL); //create structure for write PNG_LIBPNG_VER_STRING
    if (!png) {
       LOG(ERROR, "Create write struct failed. VER_STRING=%s\n", PNG_LIBPNG_VER_STRING);
-      checks_failed = true;
-   } else {
-      info = png_create_info_struct(png);
-      if (!info) {
-         LOG(ERROR, "Create info struct failed\n");
-         checks_failed = true;
-      } else if (setjmp(png_jmpbuf(png))) {
-         LOG(ERROR, "setjmp() failed\n");
-         png_destroy_write_struct(&png, &info);
-         checks_failed = true;
-      }
+      goto cleanup;
    }
-   if (checks_failed) {
-      fclose(file);
-      pthread_cond_signal(&ptCondition);
-      return nullptr;
+   info = png_create_info_struct(png);
+   if (!info) {
+      LOG(ERROR, "Create info struct failed\n");
+      goto cleanup;
+   }
+   if (setjmp(png_jmpbuf(png))) {
+      LOG(ERROR, "setjmp() failed\n");
+      goto cleanup;
    }
    threadData->device_data->vtable.WaitForFences(threadData->device_data->device, 1, &threadData->fence, VK_TRUE, UINT64_MAX);
-   auto start_time = get_time();
-   const int RGB_NUM_CHANNELS = 3;
-   row_pointer = (png_byte **)malloc(sizeof(png_byte *) * localHeight);
-   for (int y = 0; y < localHeight; y++) {
-      int char_counter = 0;
-      row_pointer[y] = (png_byte *)malloc(sizeof(png_byte) * RGB_NUM_CHANNELS * localWidth);
-      for (int x = 0; x < localWidth * RGB_NUM_CHANNELS; x += RGB_NUM_CHANNELS) {
-         memcpy(&row_pointer[y][x], &threadData->pFramebuffer[char_counter], RGB_NUM_CHANNELS * sizeof(png_byte));
-         char_counter += RGB_NUM_CHANNELS;
-      }
-      threadData->pFramebuffer += threadData->srLayout.rowPitch;
-   }
-   auto end_time = get_time();
+   threadData->pFramebuffer += threadData->srLayout.offset;
+   start_time = get_time();
+   row_pointer = (png_byte *)malloc(sizeof(png_byte) * matrixSize);
+   memcpy(row_pointer, threadData->pFramebuffer, matrixSize);
+   end_time = get_time();
    print_time_difference(start_time, end_time);
    // We've created all local copies of data,
    // so let's signal main thread to continue
@@ -789,10 +820,11 @@ void *writePNG(void *data) {
    png_set_compression_mem_level(png, 9);
    png_set_compression_buffer_size(png, 65536);
    png_write_info(png, info);         // Write png image information to file
-   png_write_image(png, row_pointer); // Actually write image
+   for (int y = 0; y < matrixSize; y+=rowPitch) {
+      png_write_row(png, &row_pointer[y]);
+   }
    png_write_end(png, NULL);          // End image writing
    free(row_pointer);
-   fclose(file);
 
    // Rename file, indicating completion, client should be
    // checking for the final file exists.
@@ -800,10 +832,17 @@ void *writePNG(void *data) {
       LOG(ERROR, "Could not rename from '%s' to '%s'\n", tmpFilename, filename);
    else
       LOG(INFO, "Successfully renamed from '%s' to '%s'\n", tmpFilename, filename);
-
-   if(filename)
+   checks_failed = false;
+cleanup:
+   if (checks_failed)
+      pthread_cond_signal(&ptCondition);
+   if (info)
+      png_destroy_write_struct(&png, &info);
+   if (file)
+      fclose(file);
+   if (filename)
       free(filename);
-   if(tmpFilename)
+   if (tmpFilename)
       free(tmpFilename);
    return nullptr;
 }
@@ -825,6 +864,26 @@ static bool write_image(
    uint32_t const height = swapchain_data->imageExtent.height;
    VkFormat const format = swapchain_data->format;
 
+   uint32_t newWidth = width;
+   uint32_t newHeight = height;
+   uint32_t regionStartX = 0;
+   uint32_t regionStartY = 0;
+   uint32_t regionEndX = width;
+   uint32_t regionEndY = height;
+   if (instance_data->region_enabled) {
+      regionStartX = int(instance_data->params.region.startX * width);
+      regionStartY = int(instance_data->params.region.startY * height);
+      regionEndX = int(instance_data->params.region.endX * width);
+      regionEndY = int(instance_data->params.region.endY * height);
+      newWidth = regionEndX - regionStartX;
+      newHeight = regionEndY - regionStartY;
+      LOG(DEBUG, "Using region: startX = %.0f% (%d), startY = %.0f% (%d), endX = %.0f% (%d), endY = %.0f% (%d)\n",
+          instance_data->params.region.startX*100, regionStartX,
+          instance_data->params.region.startY*100, regionStartY,
+          instance_data->params.region.endX*100, regionEndX,
+          instance_data->params.region.endY*100, regionEndY);
+   }
+
    queue_data* queue_data = device_data->graphic_queue;
    VkQueue queue = queue_data->queue;
 
@@ -840,7 +899,7 @@ static bool write_image(
    /* If origin and destination formats are the same, no need to convert */
    bool copyOnly = false;
    bool needs_2_steps = false;
-   if (destination_format == format) {
+   if (destination_format == format && not instance_data->region_enabled) {
       copyOnly = true;
       LOG(DEBUG, "Only copying since the src/dest formats are the same\n");
    } else {
@@ -864,7 +923,7 @@ static bool write_image(
       0,
       VK_IMAGE_TYPE_2D,
       destination_format,
-      {width, height, 1},
+      {newWidth, newHeight, 1},
       1,
       1,
       VK_SAMPLE_COUNT_1_BIT,
@@ -999,7 +1058,7 @@ static bool write_image(
       {0, 0, 0},
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
       {0, 0, 0},
-      {width, height, 1}
+      {newWidth, newHeight, 1}
    };
 
    if (copyOnly) {
@@ -1011,15 +1070,18 @@ static bool write_image(
       imageBlitRegion.srcSubresource.baseArrayLayer = 0;
       imageBlitRegion.srcSubresource.layerCount = 1;
       imageBlitRegion.srcSubresource.mipLevel = 0;
-      imageBlitRegion.srcOffsets[1].x = width;
-      imageBlitRegion.srcOffsets[1].y = height;
+      imageBlitRegion.srcOffsets[0].x = regionStartX;
+      imageBlitRegion.srcOffsets[0].y = regionStartY;
+      imageBlitRegion.srcOffsets[0].z = 1;
+      imageBlitRegion.srcOffsets[1].x = regionEndX;
+      imageBlitRegion.srcOffsets[1].y = regionEndY;
       imageBlitRegion.srcOffsets[1].z = 1;
       imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
       imageBlitRegion.dstSubresource.baseArrayLayer = 0;
       imageBlitRegion.dstSubresource.layerCount = 1;
       imageBlitRegion.dstSubresource.mipLevel = 0;
-      imageBlitRegion.dstOffsets[1].x = width;
-      imageBlitRegion.dstOffsets[1].y = height;
+      imageBlitRegion.dstOffsets[1].x = newWidth;
+      imageBlitRegion.dstOffsets[1].y = newHeight;
       imageBlitRegion.dstOffsets[1].z = 1;
 
       device_data->vtable.CmdBlitImage(data.commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, data.image2,
@@ -1045,7 +1107,7 @@ static bool write_image(
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &img_copy);
          generalMemoryBarrier.image = data.image3;
       }
-    }
+   }
 
    // The destination needs to be transitioned from the optimal copy format to
    // the format we can read with the CPU.
@@ -1091,7 +1153,7 @@ static bool write_image(
    // Thread off I/O operations
    pthread_t ioThread;
    pthread_mutex_lock(&ptLock); // Grab lock, we need to wait until thread has copied values of pointers
-   struct ThreadSaveData threadData = {device_data, filename, pFramebuffer, srLayout, copyDone, width, height};
+   struct ThreadSaveData threadData = {device_data, filename, pFramebuffer, srLayout, copyDone, newWidth, newHeight};
 
    // Write the data to a PNG file.
    pthread_create(&ioThread, NULL, writePNG, (void *)&threadData);
@@ -1122,7 +1184,7 @@ static VkResult screenshot_QueuePresentKHR(
       struct swapchain_data *swapchain_data = FIND(struct swapchain_data, swapchain);
 
       /* Run initial setup with client */
-      if(instance_data->params.enabled[SCREENSHOT_PARAM_ENABLED_comms] && instance_data->socket_fd < 0) {
+      if (instance_data->params.enabled[SCREENSHOT_PARAM_ENABLED_comms] && instance_data->socket_fd < 0) {
          int ret = os_socket_listen_abstract(instance_data->params.control, 1);
          if (ret >= 0) {
             os_socket_block(ret, false);
@@ -1133,11 +1195,11 @@ static VkResult screenshot_QueuePresentKHR(
       }
 
       if (instance_data->socket_fd >= 0) {
-         /* Check for input from client */
+         /* Check client commands first */
          control_client_check(device_data);
          process_control_socket(instance_data);
       } else if (instance_data->params.frames) {
-         /* Else check if the frame number is within the given frame list */
+         /* Else check parameters from env variables */
          if (instance_data->params.frames->size > 0) {
             struct frame_list *list = instance_data->params.frames;
             struct frame_node *prev = nullptr;
@@ -1155,8 +1217,11 @@ static VkResult screenshot_QueuePresentKHR(
                   break;
                }
             }
-         } else if(instance_data->params.frames->all_frames) {
+         } else if (instance_data->params.frames->all_frames) {
             instance_data->screenshot_enabled = true;
+         }
+         if (instance_data->params.region.useImageRegion) {
+            instance_data->region_enabled = true;
          }
       }
 
@@ -1166,8 +1231,8 @@ static VkResult screenshot_QueuePresentKHR(
          uint32_t path_size_used = 0;
          const char *SUFFIX = ".png";
          const char *TEMP_DIR = "/tmp/";
-         char full_path[MAX_PATH_SIZE];  // Let's increase to 512 to account for large files/paths
-         char filename[256] = "";
+         char full_path[LARGE_BUFFER_SIZE+STANDARD_BUFFER_SIZE] = "";
+         char filename[STANDARD_BUFFER_SIZE] = "";
          char frame_counter_str[11];
          bool rename_file = true;
          itoa(frame_counter, frame_counter_str);
@@ -1195,7 +1260,7 @@ static VkResult screenshot_QueuePresentKHR(
             strcat(filename, SUFFIX);
          }
          path_size_used += strlen(filename);
-         if(path_size_used <= MAX_PATH_SIZE) {
+         if(path_size_used <= LARGE_BUFFER_SIZE+STANDARD_BUFFER_SIZE) {
             strcat(full_path, filename);
             pSemaphoreWaitBeforePresent = pPresentInfo->pWaitSemaphores;
             semaphoreWaitBeforePresentCount = pPresentInfo->waitSemaphoreCount;
@@ -1214,12 +1279,13 @@ static VkResult screenshot_QueuePresentKHR(
                present_info.waitSemaphoreCount = 1;
             }
          } else {
-            LOG(DEBUG, "Cancelling screenshot due to excessive filepath size (max %u characters)\n", MAX_PATH_SIZE);
+            LOG(DEBUG, "Cancelling screenshot due to excessive filepath size (max %u characters)\n", LARGE_BUFFER_SIZE);
          }
       }
    }
    frame_counter++;
    instance_data->screenshot_enabled = false;
+   instance_data->region_enabled = false;
    loader_platform_thread_unlock_mutex(&globalLock);
    VkResult chain_result = queue_data->device->vtable.QueuePresentKHR(queue, &present_info);
    if (pPresentInfo->pResults)
@@ -1235,6 +1301,32 @@ static VkResult screenshot_QueuePresentKHR(
       device_data->vtable.DestroyFence(device_data->device, copyDone, nullptr);
       copyDone = VK_NULL_HANDLE;
    }
+   return result;
+}
+
+static VkResult screenshot_AcquireNextImageKHR(
+    VkDevice                                    device,
+    VkSwapchainKHR                              swapchain,
+    uint64_t                                    timeout,
+    VkSemaphore                                 semaphore,
+    VkFence                                     fence,
+    uint32_t*                                   pImageIndex)
+{
+   struct swapchain_data *swapchain_data =
+      FIND(struct swapchain_data, swapchain);
+   struct device_data *device_data = swapchain_data->device;
+
+   VkResult result = device_data->vtable.AcquireNextImageKHR(device, swapchain, timeout,
+                                                             semaphore, fence, pImageIndex);
+   loader_platform_thread_lock_mutex(&globalLock);
+
+   if (result == VK_SUCCESS) {
+      // Use the index given by AcquireNextImageKHR() to obtain the image we intend to copy.
+      if(pImageIndex){
+         select_image_from_map(swapchain_data, *pImageIndex);
+      }
+   }
+   loader_platform_thread_unlock_mutex(&globalLock);
    return result;
 }
 
@@ -1355,6 +1447,7 @@ static const struct {
    ADD_HOOK(GetSwapchainImagesKHR),
    ADD_HOOK(DestroySwapchainKHR),
    ADD_HOOK(QueuePresentKHR),
+   ADD_HOOK(AcquireNextImageKHR),
 
    ADD_HOOK(CreateDevice),
    ADD_HOOK(DestroyDevice),

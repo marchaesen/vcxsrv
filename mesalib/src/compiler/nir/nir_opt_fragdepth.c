@@ -31,8 +31,8 @@
  * this value to gl_FragDepth, the store instruction is removed.
  */
 
-static bool
-ssa_def_is_source_depth(nir_def *def)
+bool
+nir_def_is_frag_coord_z(nir_def *def)
 {
    nir_scalar scalar = nir_scalar_resolved(def, 0);
    nir_instr *instr = scalar.def->parent_instr;
@@ -93,7 +93,7 @@ nir_opt_fragdepth(nir_shader *shader)
             /* This isn't the only write: give up on this optimization */
             goto end;
          } else {
-            if (ssa_def_is_source_depth(intrin->src[data_src].ssa)) {
+            if (nir_def_is_frag_coord_z(intrin->src[data_src].ssa)) {
                /* We're writing gl_FragCoord.z in gl_FragDepth: remember
                 * intrin so we can try to remove it later. */
                store_intrin = intrin;

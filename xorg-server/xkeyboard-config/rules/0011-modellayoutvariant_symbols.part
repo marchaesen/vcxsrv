@@ -1,2 +1,0 @@
-! model		layout		variant		=	symbols
-  *		$sun_custom	$sun_var	=	pc+sun_vndr/%l%(v)

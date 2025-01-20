@@ -735,7 +735,7 @@ eventToDeviceEvent(DeviceEvent *ev, xEvent **xi)
 
     ptr += xde->buttons_len * 4;
     axisval = (FP3232 *) (ptr + xde->valuators_len * 4);
-    for (i = 0; i < sizeof(ev->valuators.mask) * 8; i++) {
+    for (i = 0; i < MAX_VALUATORS; i++) {
         if (BitIsOn(ev->valuators.mask, i)) {
             SetBit(ptr, i);
             *axisval = double_to_fp3232(ev->valuators.data[i]);
@@ -802,7 +802,7 @@ eventToRawEvent(RawDeviceEvent *ev, xEvent **xi)
     ptr = (char *) &raw[1];
     axisval = (FP3232 *) (ptr + raw->valuators_len * 4);
     axisval_raw = axisval + nvals;
-    for (i = 0; i < sizeof(ev->valuators.mask) * 8; i++) {
+    for (i = 0; i < MAX_VALUATORS; i++) {
         if (BitIsOn(ev->valuators.mask, i)) {
             SetBit(ptr, i);
             *axisval = double_to_fp3232(ev->valuators.data[i]);

@@ -116,6 +116,9 @@ try_fold_load_store(nir_builder *b,
    if (off_src->ssa->bit_size != 32)
       return false;
 
+   if (off_const > max)
+      return false;
+
    if (!nir_src_is_const(*off_src)) {
       uint32_t add_offset = 0;
       nir_scalar val = { .def = off_src->ssa, .comp = 0 };
@@ -125,7 +128,7 @@ try_fold_load_store(nir_builder *b,
       off_const += add_offset;
       b->cursor = nir_before_instr(&intrin->instr);
       replace_src = nir_channel(b, val.def, val.comp);
-   } else if (nir_src_as_uint(*off_src) && off_const + nir_src_as_uint(*off_src) <= max) {
+   } else if (nir_src_as_uint(*off_src) && nir_src_as_uint(*off_src) <= max - off_const) {
       off_const += nir_src_as_uint(*off_src);
       b->cursor = nir_before_instr(&intrin->instr);
       replace_src = nir_imm_zero(b, off_src->ssa->num_components, off_src->ssa->bit_size);
@@ -198,6 +201,9 @@ process_instr(nir_builder *b, nir_instr *instr, void *s)
       return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->uniform_max));
    case nir_intrinsic_load_ubo_vec4:
       return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->ubo_vec4_max));
+   case nir_intrinsic_shared_atomic:
+   case nir_intrinsic_shared_atomic_swap:
+      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->shared_atomic_max));
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_shared_ir3:
       return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->shared_max));

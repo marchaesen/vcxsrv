@@ -843,11 +843,11 @@ no_matching_function_error(const char *name,
                            exec_list *actual_parameters,
                            _mesa_glsl_parse_state *state)
 {
-   gl_shader *sh = _mesa_glsl_get_builtin_function_shader();
+   struct glsl_symbol_table *symb = _mesa_glsl_get_builtin_function_symbols();
 
    if (!function_exists(state, state->symbols, name)
        && (!state->uses_builtin_functions
-           || !function_exists(state, sh->symbols, name))) {
+           || !function_exists(state, symb, name))) {
       _mesa_glsl_error(loc, state, "no function with name '%s'", name);
    } else {
       char *str = prototype_string(NULL, name, actual_parameters);
@@ -861,8 +861,7 @@ no_matching_function_error(const char *name,
                                 state->symbols->get_function(name));
 
       if (state->uses_builtin_functions) {
-         print_function_prototypes(state, loc,
-                                   sh->symbols->get_function(name));
+         print_function_prototypes(state, loc, symb->get_function(name));
       }
    }
 }

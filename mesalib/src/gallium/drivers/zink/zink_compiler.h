@@ -79,7 +79,7 @@ void
 zink_shader_init(struct zink_screen *screen, struct zink_shader *zs);
 
 char *
-zink_shader_finalize(struct pipe_screen *pscreen, void *nirptr);
+zink_shader_finalize(struct pipe_screen *pscreen, struct nir_shader *nir);
 
 void
 zink_shader_free(struct zink_screen *screen, struct zink_shader *shader);

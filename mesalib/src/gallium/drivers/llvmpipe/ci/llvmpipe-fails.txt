@@ -40,7 +40,6 @@ spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled back back2,Fail
 spec@!opengl 2.0@vertex-program-two-side enabled back back2@vs and fs,Fail
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
-spec@arb_enhanced_layouts@execution@component-layout@vs-fs-array-dvec3,Fail
 spec@arb_post_depth_coverage@arb_post_depth_coverage-multisampling,Fail
 
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
@@ -78,7 +77,6 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode ful
 
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_textureSize,Fail
 
-spec@arb_tessellation_shader@execution@gs-primitiveid-instanced,Fail
 spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
 

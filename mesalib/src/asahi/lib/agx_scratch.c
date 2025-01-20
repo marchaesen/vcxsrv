@@ -4,13 +4,9 @@
  */
 
 #include "agx_scratch.h"
-#include "asahi/compiler/agx_compile.h"
-#include "shaders/helper.h"
-#include "util/u_hexdump.h"
+#include "libagx/helper.h"
 #include "agx_bo.h"
 #include "libagx_shaders.h"
-#include "nir.h"
-#include "nir_builder_opcodes.h"
 
 #define AGX_ADDR_SHIFT        8
 #define AGX_THREADS_PER_GROUP 32
@@ -28,21 +24,6 @@ struct spill_size {
    uint32_t log4_bsize;
    uint32_t count;
 };
-
-struct agx_bo *
-agx_build_helper(struct agx_device *dev)
-{
-   struct agx_bo *bo = agx_bo_create(
-      dev, sizeof(libagx_g13_helper), 0,
-      AGX_BO_READONLY | AGX_BO_EXEC | AGX_BO_LOW_VA, "Helper shader");
-   assert(bo);
-   memcpy(bo->map, libagx_g13_helper, sizeof(libagx_g13_helper));
-
-   if (dev->debug & AGX_DBG_SCRATCH)
-      fprintf(stderr, "Helper: 0x%" PRIx64 "\n", bo->va->addr);
-
-   return bo;
-}
 
 static struct spill_size
 agx_scratch_get_spill_size(unsigned dwords)
@@ -132,13 +113,14 @@ agx_scratch_realloc(struct agx_scratch *scratch)
 #endif
    scratch->buf = agx_bo_create(scratch->dev, total_alloc, block_size_bytes,
                                 flags, "Scratch");
-   memset(scratch->buf->map, 0, blocks_off);
+   void *map = agx_bo_map(scratch->buf);
+   memset(map, 0, blocks_off);
 
-   struct agx_helper_header *hdr = scratch->buf->map;
+   struct agx_helper_header *hdr = map;
    scratch->header = hdr;
 
    uint64_t blocklist_gpu = scratch->buf->va->addr + blocklist_off;
-   struct agx_helper_block *blocklist_cpu = scratch->buf->map + blocklist_off;
+   struct agx_helper_block *blocklist_cpu = map + blocklist_off;
 
 #ifdef SCRATCH_DEBUG
    scratch->blocklist = blocklist_cpu;
@@ -289,10 +271,7 @@ agx_scratch_init(struct agx_device *dev, struct agx_scratch *scratch)
 #ifdef SCRATCH_DEBUG_CORES
    scratch->num_cores = SCRATCH_DEBUG_CORES;
 #else
-   scratch->num_cores = 0;
-   for (unsigned cl = 0; cl < dev->params.num_clusters_total; cl++) {
-      scratch->num_cores += util_bitcount(dev->params.core_masks[cl]);
-   }
+   scratch->num_cores = agx_get_num_cores(dev);
 #endif
 }
 

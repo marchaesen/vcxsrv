@@ -387,7 +387,7 @@ static VkResult pvr_rt_vheap_rtc_data_init(struct pvr_device *device,
    if (layers > 1) {
       uint64_t rtc_entries;
 
-      vheap_size = ALIGN_POT(vheap_size, PVRX(CR_TA_RTC_ADDR_BASE_ALIGNMENT));
+      vheap_size = ALIGN_POT(vheap_size, ROGUE_CR_TA_RTC_ADDR_BASE_ALIGNMENT);
 
       rtc_entries = ROGUE_NUM_TEAC + ROGUE_NUM_TE + ROGUE_NUM_VCE;
       if (PVR_HAS_QUIRK(&device->pdevice->dev_info, 48545))
@@ -398,8 +398,8 @@ static VkResult pvr_rt_vheap_rtc_data_init(struct pvr_device *device,
       rtc_size = 0;
    }
 
-   alignment = MAX2(PVRX(CR_PM_VHEAP_TABLE_BASE_ADDR_ALIGNMENT),
-                    PVRX(CR_TA_RTC_ADDR_BASE_ALIGNMENT));
+   alignment = MAX2(ROGUE_CR_PM_VHEAP_TABLE_BASE_ADDR_ALIGNMENT,
+                    ROGUE_CR_TA_RTC_ADDR_BASE_ALIGNMENT);
 
    result = pvr_bo_alloc(device,
                          device->heaps.general_heap,
@@ -492,7 +492,7 @@ static VkResult pvr_rt_tpc_data_init(struct pvr_device *device,
    return pvr_bo_alloc(device,
                        device->heaps.general_heap,
                        tpc_size,
-                       PVRX(CR_TE_TPC_ADDR_BASE_ALIGNMENT),
+                       ROGUE_CR_TE_TPC_ADDR_BASE_ALIGNMENT,
                        PVR_BO_ALLOC_FLAG_GPU_UNCACHED,
                        &rt_dataset->tpc_bo);
 }
@@ -566,12 +566,12 @@ static void pvr_rt_get_region_headers_stride_size(
 
    if (PVR_HAS_FEATURE(dev_info, simple_internal_parameter_format)) {
       rgn_headers_size =
-         ALIGN_POT(rgn_headers_size, PVRX(CR_TE_PSGREGION_ADDR_BASE_ALIGNMENT));
+         ALIGN_POT(rgn_headers_size, ROGUE_CR_TE_PSGREGION_ADDR_BASE_ALIGNMENT);
    }
 
    if (layers > 1) {
       rgn_headers_size =
-         ALIGN_POT(rgn_headers_size, PVRX(CR_TE_PSG_REGION_STRIDE_UNIT_SIZE));
+         ALIGN_POT(rgn_headers_size, ROGUE_CR_TE_PSG_REGION_STRIDE_UNIT_SIZE);
    }
 
    *stride_out = rgn_headers_size;
@@ -602,13 +602,13 @@ pvr_rt_mta_mlist_data_init(struct pvr_device *device,
     * N is number of RT datas.
     */
    rt_datas_mta_size = ALIGN_POT(mta_size * num_rt_datas,
-                                 PVRX(CR_PM_MLIST0_BASE_ADDR_ALIGNMENT));
+                                 ROGUE_CR_PM_MLIST0_BASE_ADDR_ALIGNMENT);
    rt_datas_mlist_size = mlist_size * num_rt_datas;
 
    result = pvr_bo_alloc(device,
                          device->heaps.general_heap,
                          rt_datas_mta_size + rt_datas_mlist_size,
-                         PVRX(CR_PM_MTILE_ARRAY_BASE_ADDR_ALIGNMENT),
+                         ROGUE_CR_PM_MTILE_ARRAY_BASE_ADDR_ALIGNMENT,
                          PVR_BO_ALLOC_FLAG_GPU_UNCACHED,
                          &rt_dataset->mta_mlist_bo);
    if (result != VK_SUCCESS)
@@ -671,7 +671,7 @@ pvr_rt_rgn_headers_data_init(struct pvr_device *device,
    result = pvr_bo_alloc(device,
                          device->heaps.rgn_hdr_heap,
                          rgn_headers_size * num_rt_datas,
-                         PVRX(CR_TE_PSGREGION_ADDR_BASE_ALIGNMENT),
+                         ROGUE_CR_TE_PSGREGION_ADDR_BASE_ALIGNMENT,
                          PVR_BO_ALLOC_FLAG_GPU_UNCACHED,
                          &rt_dataset->rgn_headers_bo);
    if (result != VK_SUCCESS)
@@ -966,7 +966,7 @@ static void pvr_geom_state_stream_init(struct pvr_render_ctx *ctx,
       value.completeonterminate = job->geometry_terminate;
 
       value.region_stride = job->rt_dataset->rgn_headers_stride /
-                            PVRX(CR_TE_PSG_REGION_STRIDE_UNIT_SIZE);
+                            ROGUE_CR_TE_PSG_REGION_STRIDE_UNIT_SIZE;
 
       value.forcenewstate = PVR_HAS_QUIRK(dev_info, 52942);
    }
@@ -982,7 +982,7 @@ static void pvr_geom_state_stream_init(struct pvr_render_ctx *ctx,
 
       value.usc_common_size =
          DIV_ROUND_UP(shared_registers_size,
-                      PVRX(VDMCTRL_PDS_STATE0_USC_COMMON_SIZE_UNIT_SIZE));
+                      ROGUE_VDMCTRL_PDS_STATE0_USC_COMMON_SIZE_UNIT_SIZE);
    }
    stream_ptr += pvr_cmd_length(VDMCTRL_PDS_STATE0);
 
@@ -1029,7 +1029,7 @@ pvr_geom_state_stream_ext_init(struct pvr_render_ctx *ctx,
       }
    }
 
-   if ((*header0_ptr & PVRX(KMD_STREAM_EXTHDR_DATA_MASK)) != 0) {
+   if ((*header0_ptr & ROGUE_KMD_STREAM_EXTHDR_DATA_MASK) != 0) {
       state->fw_stream_len =
          (uint8_t *)ext_stream_ptr - (uint8_t *)state->fw_stream;
       assert(state->fw_stream_len <= ARRAY_SIZE(state->fw_stream));
@@ -1092,7 +1092,7 @@ static inline uint32_t pvr_frag_km_stream_pds_eot_data_addr_offset(
    offset += pvr_cmd_length(CR_TPU_BORDER_COLOUR_TABLE_PDM);
    offset += ROGUE_NUM_CR_PDS_BGRND_WORDS * DWORDS_PER_U64;
    offset += ROGUE_NUM_CR_PDS_BGRND_WORDS * DWORDS_PER_U64;
-   offset += PVRX(KMD_STREAM_USC_CLEAR_REGISTER_COUNT) *
+   offset += ROGUE_KMD_STREAM_USC_CLEAR_REGISTER_COUNT *
              pvr_cmd_length(CR_USC_CLEAR_REGISTER);
    offset += pvr_cmd_length(CR_USC_PIXEL_OUTPUT_CTRL);
    offset += pvr_cmd_length(CR_ISP_BGOBJDEPTH);
@@ -1118,10 +1118,10 @@ static void pvr_frag_state_stream_init(struct pvr_render_ctx *ctx,
    const struct pvr_device_runtime_info *dev_runtime_info =
       &pdevice->dev_runtime_info;
    const struct pvr_device_info *dev_info = &pdevice->dev_info;
-   const enum PVRX(CR_ISP_AA_MODE_TYPE)
-      isp_aa_mode = pvr_cr_isp_aa_mode_type(job->samples);
+   const enum ROGUE_CR_ISP_AA_MODE_TYPE isp_aa_mode =
+      pvr_cr_isp_aa_mode_type(job->samples);
 
-   enum PVRX(CR_ZLS_FORMAT_TYPE) zload_format = PVRX(CR_ZLS_FORMAT_TYPE_F32Z);
+   enum ROGUE_CR_ZLS_FORMAT_TYPE zload_format = ROGUE_CR_ZLS_FORMAT_TYPE_F32Z;
    uint32_t *stream_ptr = (uint32_t *)state->fw_stream;
    uint32_t *stream_len_ptr = stream_ptr;
    uint32_t pixel_ctl;
@@ -1236,8 +1236,8 @@ static void pvr_frag_state_stream_init(struct pvr_render_ctx *ctx,
        * values.
        */
       pvr_csb_pack ((uint64_t *)stream_ptr, CR_FB_CDC_ZLS, value) {
-         value.fbdc_depth_fmt = PVRX(TEXSTATE_FORMAT_F32);
-         value.fbdc_stencil_fmt = PVRX(TEXSTATE_FORMAT_U8);
+         value.fbdc_depth_fmt = ROGUE_TEXSTATE_FORMAT_F32;
+         value.fbdc_stencil_fmt = ROGUE_TEXSTATE_FORMAT_U8;
       }
       stream_ptr += pvr_cmd_length(CR_FB_CDC_ZLS);
    }
@@ -1284,9 +1284,9 @@ static void pvr_frag_state_stream_init(struct pvr_render_ctx *ctx,
 
    memset(stream_ptr,
           0,
-          PVRX(KMD_STREAM_USC_CLEAR_REGISTER_COUNT) *
+          ROGUE_KMD_STREAM_USC_CLEAR_REGISTER_COUNT *
              PVR_DW_TO_BYTES(pvr_cmd_length(CR_USC_CLEAR_REGISTER)));
-   stream_ptr += PVRX(KMD_STREAM_USC_CLEAR_REGISTER_COUNT) *
+   stream_ptr += ROGUE_KMD_STREAM_USC_CLEAR_REGISTER_COUNT *
                  pvr_cmd_length(CR_USC_CLEAR_REGISTER);
 
    *stream_ptr = pixel_ctl;
@@ -1300,15 +1300,15 @@ static void pvr_frag_state_stream_init(struct pvr_render_ctx *ctx,
        *  - job->depth_clear_value is set to a sensible default in that case.
        */
       switch (zload_format) {
-      case PVRX(CR_ZLS_FORMAT_TYPE_F32Z):
+      case ROGUE_CR_ZLS_FORMAT_TYPE_F32Z:
          value.value = fui(depth_clear);
          break;
 
-      case PVRX(CR_ZLS_FORMAT_TYPE_16BITINT):
+      case ROGUE_CR_ZLS_FORMAT_TYPE_16BITINT:
          value.value = _mesa_float_to_unorm(depth_clear, 16);
          break;
 
-      case PVRX(CR_ZLS_FORMAT_TYPE_24BITINT):
+      case ROGUE_CR_ZLS_FORMAT_TYPE_24BITINT:
          value.value = _mesa_float_to_unorm(depth_clear, 24);
          break;
 
@@ -1353,11 +1353,11 @@ static void pvr_frag_state_stream_init(struct pvr_render_ctx *ctx,
    pvr_csb_pack (stream_ptr, CR_EVENT_PIXEL_PDS_INFO, value) {
       value.const_size =
          DIV_ROUND_UP(ctx->device->pixel_event_data_size_in_dwords,
-                      PVRX(CR_EVENT_PIXEL_PDS_INFO_CONST_SIZE_UNIT_SIZE));
+                      ROGUE_CR_EVENT_PIXEL_PDS_INFO_CONST_SIZE_UNIT_SIZE);
       value.temp_stride = 0;
       value.usc_sr_size =
          DIV_ROUND_UP(PVR_STATE_PBE_DWORDS,
-                      PVRX(CR_EVENT_PIXEL_PDS_INFO_USC_SR_SIZE_UNIT_SIZE));
+                      ROGUE_CR_EVENT_PIXEL_PDS_INFO_USC_SR_SIZE_UNIT_SIZE);
    }
    stream_ptr += pvr_cmd_length(CR_EVENT_PIXEL_PDS_INFO);
 
@@ -1376,7 +1376,7 @@ static void pvr_frag_state_stream_init(struct pvr_render_ctx *ctx,
           */
          if (PVR_HAS_FEATURE(dev_info, slc_mcu_cache_controls) &&
              dev_runtime_info->num_phantoms > 1 && job->frag_uses_atomic_ops) {
-            value.phantom_0 = PVRX(KMD_STREAM_PIXEL_PHANTOM_STATE_ENABLED);
+            value.phantom_0 = ROGUE_KMD_STREAM_PIXEL_PHANTOM_STATE_ENABLED;
          }
       }
       stream_ptr += pvr_cmd_length(KMD_STREAM_PIXEL_PHANTOM);
@@ -1475,7 +1475,7 @@ pvr_frag_state_stream_ext_init(struct pvr_render_ctx *ctx,
       }
    }
 
-   if ((*header0_ptr & PVRX(KMD_STREAM_EXTHDR_DATA_MASK)) != 0) {
+   if ((*header0_ptr & ROGUE_KMD_STREAM_EXTHDR_DATA_MASK) != 0) {
       state->fw_stream_len =
          (uint8_t *)ext_stream_ptr - (uint8_t *)state->fw_stream;
       assert(state->fw_stream_len <= ARRAY_SIZE(state->fw_stream));
@@ -1493,6 +1493,7 @@ pvr_frag_state_flags_init(const struct pvr_render_job *const job,
       .use_single_core = job->frag_uses_atomic_ops,
       .get_vis_results = job->get_vis_results,
       .has_spm_scratch_buffer = job->requires_spm_scratch_buffer,
+      .disable_pixel_merging = job->disable_pixel_merging,
    };
 }
 

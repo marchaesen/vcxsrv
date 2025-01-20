@@ -343,14 +343,33 @@ hit_is_opaque(nir_builder *b, nir_def *sbt_offset_and_flags, const struct radv_r
 }
 
 static nir_def *
-create_bvh_descriptor(nir_builder *b)
+create_bvh_descriptor(nir_builder *b, const struct radv_physical_device *pdev, struct radv_ray_flags *ray_flags)
 {
    /* We create a BVH descriptor that covers the entire memory range. That way we can always
     * use the same descriptor, which avoids divergence when different rays hit different
     * instances at the cost of having to use 64-bit node ids. */
    const uint64_t bvh_size = 1ull << 42;
-   return nir_imm_ivec4(b, 0, 1u << 31 /* Enable box sorting */, (bvh_size - 1) & 0xFFFFFFFFu,
-                        ((bvh_size - 1) >> 32) | (1u << 24 /* Return IJ for triangles */) | (1u << 31));
+   nir_def *desc = nir_imm_ivec4(b, 0, 1u << 31 /* Enable box sorting */, (bvh_size - 1) & 0xFFFFFFFFu,
+                                 ((bvh_size - 1) >> 32) | (1u << 24 /* Return IJ for triangles */) | (1u << 31));
+
+   if (pdev->info.gfx_level >= GFX11) {
+      /* Instead of the default box sorting (closest point), use largest for terminate_on_first_hit rays and midpoint
+       * for closest hit; this makes it more likely that the ray traversal will visit fewer nodes. */
+      const uint32_t box_sort_largest = 1;
+      const uint32_t box_sort_midpoint = 2;
+
+      /* Only use largest/midpoint sorting when all invocations have the same ray flags, otherwise
+       * fall back to the default closest point. */
+      nir_def *box_sort = nir_imm_int(b, 1u << 31);
+      box_sort = nir_bcsel(b, nir_vote_any(b, 1, ray_flags->terminate_on_first_hit), box_sort,
+                           nir_imm_int(b, (box_sort_midpoint << 21) | (1u << 31)));
+      box_sort = nir_bcsel(b, nir_vote_all(b, 1, ray_flags->terminate_on_first_hit),
+                           nir_imm_int(b, (box_sort_largest << 21) | (1u << 31)), box_sort);
+
+      desc = nir_vector_insert(b, desc, box_sort, nir_imm_int(b, 1));
+   }
+
+   return desc;
 }
 
 static void
@@ -467,9 +486,6 @@ radv_build_ray_traversal(struct radv_device *device, nir_builder *b, const struc
    nir_variable *incomplete = nir_local_variable_create(b->impl, glsl_bool_type(), "incomplete");
    nir_store_var(b, incomplete, nir_imm_true(b), 0x1);
 
-   nir_def *desc = create_bvh_descriptor(b);
-   nir_def *vec3ones = nir_imm_vec3(b, 1.0, 1.0, 1.0);
-
    struct radv_ray_flags ray_flags = {
       .force_opaque = radv_test_flag(b, args, SpvRayFlagsOpaqueKHRMask, true),
       .force_not_opaque = radv_test_flag(b, args, SpvRayFlagsNoOpaqueKHRMask, true),
@@ -481,6 +497,10 @@ radv_build_ray_traversal(struct radv_device *device, nir_builder *b, const struc
       .no_skip_triangles = radv_test_flag(b, args, SpvRayFlagsSkipTrianglesKHRMask, false),
       .no_skip_aabbs = radv_test_flag(b, args, SpvRayFlagsSkipAABBsKHRMask, false),
    };
+
+   nir_def *desc = create_bvh_descriptor(b, pdev, &ray_flags);
+   nir_def *vec3ones = nir_imm_vec3(b, 1.0, 1.0, 1.0);
+
    nir_push_loop(b);
    {
       nir_push_if(b, nir_ieq_imm(b, nir_load_deref(b, args->vars.current_node), RADV_BVH_INVALID_NODE));

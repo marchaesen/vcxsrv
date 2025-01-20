@@ -56,6 +56,7 @@ radv_shader_destroy(struct vk_device *_device, struct vk_pipeline_cache_object *
    free(shader->disasm_string);
    free(shader->ir_string);
    free(shader->statistics);
+   free(shader->debug_info);
 
    vk_pipeline_cache_object_finish(&shader->base);
    free(shader);
@@ -316,7 +317,7 @@ radv_report_pso_cache_stats(struct radv_device *device, const struct radv_pipeli
    fprintf(
       stderr,
       "radv: PSO cache stats: gfx (hits=%d, misses=%d), gfx_lib (hits=%d, misses=%d), compute (hits=%d, misses=%d), rt "
-      "(hits=%d, misses=%d)\nt",
+      "(hits=%d, misses=%d)\n",
       device->pso_cache_stats[RADV_PIPELINE_GRAPHICS].hits, device->pso_cache_stats[RADV_PIPELINE_GRAPHICS].misses,
       device->pso_cache_stats[RADV_PIPELINE_GRAPHICS_LIB].hits,
       device->pso_cache_stats[RADV_PIPELINE_GRAPHICS_LIB].misses, device->pso_cache_stats[RADV_PIPELINE_COMPUTE].hits,

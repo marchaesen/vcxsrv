@@ -2,7 +2,7 @@
 # goes with the PuTTY test binary 'testsc'. For build instructions see
 # the comment at the top of testsc.c.
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.7...3.28)
 
 project(sclog LANGUAGES C)
 

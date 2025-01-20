@@ -139,6 +139,9 @@ zink_get_gfx_pipeline(struct zink_context *ctx,
          state->final_hash ^= state->vertex_hash;
       /* even if dynamic stride is available, it may not be usable with the current pipeline */
       if (DYNAMIC_STATE != ZINK_NO_DYNAMIC_STATE)
+#if defined(MVK_VERSION)
+         if (screen->have_dynamic_state_vertex_input_binding_stride)
+#endif
          uses_dynamic_stride = check_vertex_strides(ctx);
       if (!uses_dynamic_stride) {
          uint32_t hash = 0;

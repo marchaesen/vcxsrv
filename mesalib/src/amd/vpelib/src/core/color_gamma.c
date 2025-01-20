@@ -123,12 +123,15 @@ void vpe_compute_pq(struct fixed31_32 in_x, struct fixed31_32 *out_y)
     struct fixed31_32 l_pow_m1;
     struct fixed31_32 base;
 
+    // Power function will fail if < this value
+    struct fixed31_32 min = {0x000000000000000010};
+
     if (vpe_fixpt_le(vpe_fixpt_one, in_x)) {
         *out_y = vpe_fixpt_one;
         return;
     }
 
-    if (vpe_fixpt_lt(in_x, vpe_fixpt_zero))
+    if (vpe_fixpt_lt(in_x, min))
         in_x = vpe_fixpt_zero;
 
     l_pow_m1 = vpe_fixpt_pow(in_x, m1);
@@ -449,7 +452,6 @@ static bool build_regamma(struct vpe_priv *vpe_priv, uint32_t hw_points_num,
 
     i = 0;
     while (i <= hw_points_num) {
-        /* TODO use y vs r,g,b */
         rgb->r = vpe_fixpt_mul(coord_x->x, x_scale);
         rgb->r = translate_from_linear_space_ex(rgb->r, coeff, 0, cal_buffer);
         rgb->r = vpe_fixpt_mul(rgb->r, y_scale);

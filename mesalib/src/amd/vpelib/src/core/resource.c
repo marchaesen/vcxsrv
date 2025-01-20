@@ -27,13 +27,9 @@
 #include "vpe_version.h"
 #include "common.h"
 
-#ifdef VPE_BUILD_1_0
 #include "vpe10_resource.h"
-#endif
 
-#ifdef VPE_BUILD_1_1
 #include "vpe11_resource.h"
-#endif
 
 static const struct vpe_debug_options debug_defaults = {
     .flags                   = {0},
@@ -86,18 +82,14 @@ enum vpe_ip_level vpe_resource_parse_ip_version(
 {
     enum vpe_ip_level ip_level = VPE_IP_LEVEL_UNKNOWN;
     switch (VPE_VERSION(major, minor, rev_id)) {
-#ifdef VPE_BUILD_1_0
     case VPE_VERSION(6, 1, 0):
     case VPE_VERSION(6, 1, 3):
         ip_level = VPE_IP_LEVEL_1_0;
         break;
-#endif
-#ifdef VPE_BUILD_1_1
     case VPE_VERSION(6, 1, 1):
     case VPE_VERSION(6, 1, 2):
         ip_level = VPE_IP_LEVEL_1_1;
         break;
-#endif
     default:
         ip_level = VPE_IP_LEVEL_UNKNOWN;
         break;
@@ -110,16 +102,12 @@ enum vpe_status vpe_construct_resource(
 {
     enum vpe_status status = VPE_STATUS_OK;
     switch (level) {
-#ifdef VPE_BUILD_1_0
     case VPE_IP_LEVEL_1_0:
         status = vpe10_construct_resource(vpe_priv, res);
         break;
-#endif
-#ifdef VPE_BUILD_1_1
     case VPE_IP_LEVEL_1_1:
         status = vpe11_construct_resource(vpe_priv, res);
         break;
-#endif
     default:
         status = VPE_STATUS_NOT_SUPPORTED;
         vpe_log("invalid ip level: %d", (int)level);
@@ -137,16 +125,12 @@ enum vpe_status vpe_construct_resource(
 void vpe_destroy_resource(struct vpe_priv *vpe_priv, struct resource *res)
 {
     switch (vpe_priv->pub.level) {
-#ifdef VPE_BUILD_1_0
     case VPE_IP_LEVEL_1_0:
         vpe10_destroy_resource(vpe_priv, res);
         break;
-#endif
-#ifdef VPE_BUILD_1_1
     case VPE_IP_LEVEL_1_1:
         vpe11_destroy_resource(vpe_priv, res);
         break;
-#endif
     default:
         break;
     }
@@ -805,3 +789,10 @@ void vpe_backend_config_callback(
     vpe_priv->vpe_desc_writer.add_config_desc(
         &vpe_priv->vpe_desc_writer, cfg_base_gpu, false, (uint8_t)vpe_priv->config_writer.buf->tmz);
 }
+
+bool vpe_rec_is_equal(struct vpe_rect rec1, struct vpe_rect rec2)
+{
+    return (rec1.x == rec2.x && rec1.y == rec2.y && rec1.width == rec2.width &&
+            rec1.height == rec2.height);
+}
+

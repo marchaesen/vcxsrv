@@ -353,9 +353,6 @@ enum {
 #define lp_jit_cs_context_images(_gallivm, _type, _ptr) \
    lp_build_struct_get_ptr2(_gallivm, _type, _ptr, LP_JIT_CS_CTX_IMAGES, "images")
 
-#define lp_jit_cs_context_aniso_filter_table(_gallivm, _type, _ptr) \
-   lp_build_struct_get2(_gallivm, _type, _ptr, LP_JIT_CS_CTX_ANISO_FILTER_TABLE, "aniso_filter_table")
-
 #define lp_jit_cs_context_kernel_args(_gallivm, _type, _ptr) \
    lp_build_struct_get2(_gallivm, _type, _ptr, LP_JIT_CS_CTX_KERNEL_ARGS, "kernel_args")
 

@@ -834,3 +834,13 @@ wayland-dEQP-EGL.functional.wide_color.window_fp16_colorspace_scrgb_linear
 wayland-dEQP-EGL.functional.wide_color.window_fp16_default_colorspace
 
 glx@glx-visuals-stencil -pixmap
+glx@glx-multithread-clearbuffer
+
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat4-dmat4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-double-dmat4
+spec@glsl-4.00@execution@built-in-functions@vs-inverse-dmat4
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat4-double
+spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-index-wr
+
+# Fails in the pre-merge job and passes in the nightly
+KHR-GL46.shader_viewport_layer_array.ShaderViewportIndexTestCase

@@ -1,7 +1,7 @@
 project('fontconfig', 'c',
-  version: '2.15.0',
-  meson_version : '>= 1.3.0',
-  default_options: [ 'buildtype=debugoptimized'],
+  version: '2.16.0',
+  meson_version : '>= 1.6.0',
+  default_options: [ 'buildtype=debugoptimized', ]
 )
 
 fs = import('fs')
@@ -73,8 +73,15 @@ if xmltype == ''
   xmltype = xml_dep.name()
 endif
 
+fontations = get_option('fontations')
+if (fontations.enabled())
+  conf.set('ENABLE_FONTATIONS', 1)
+  add_languages(['rust'], native: false, required : true)
+endif
+
 pkgmod = import('pkgconfig')
 python3 = import('python').find_installation()
+pytest = find_program('pytest', required: false)
 
 check_headers = [
   ['dirent.h'],
@@ -484,6 +491,10 @@ subdir('fc-case')
 subdir('fc-lang')
 subdir('src')
 
+if get_option('fontations').enabled()
+  subdir('fc-fontations')
+endif
+
 if not get_option('tools').disabled()
   subdir('fc-cache')
   subdir('fc-cat')
@@ -519,11 +530,12 @@ configure_file(output: 'fonts.conf',
                input: 'fonts.conf.in',
                configuration: fonts_conf,
                install_dir: fc_baseconfigdir,
-               install: true)
+               install: true,
+               install_tag: 'runtime')
 
 install_data('fonts.dtd',
-             install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'xml/fontconfig')
-            )
+             install_dir: join_paths(get_option('prefix'), get_option('datadir'), 'xml/fontconfig'),
+             install_tag: 'runtime')
 
 fc_headers = [
   'fontconfig/fontconfig.h',
@@ -532,6 +544,11 @@ fc_headers = [
 ]
 
 install_headers(fc_headers, subdir: meson.project_name())
+
+if not meson.is_subproject()
+  meson.add_dist_script('build-aux/meson-dist-docs.py')
+  meson.add_dist_script('build-aux/meson-dist-autotools.py')
+endif
 
 # Summary
 doc_targets = get_variable('doc_targets', [])
@@ -543,6 +560,7 @@ summary({
   'Tools': not get_option('tools').disabled(),
   'iconv': found_iconv == 1,
   'XML backend': xmltype,
+  'Fontations support' : fontations
 }, section: 'General', bool_yn: true, list_sep: ', ')
 summary({
   'Hinting': preferred_hinting,

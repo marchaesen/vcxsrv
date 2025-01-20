@@ -31,15 +31,19 @@ class Layout:
 
     layout: str
     variant: str
+    model: str
+    symbols_prefix: str
 
     @classmethod
-    def parse(cls, layout: str, variant: str = ""):
+    def parse(
+        cls, layout: str, variant: str = "", model: str = "*", symbols_prefix: str = ""
+    ):
         # parse a layout(variant) string
         if match := cls.PATTERN.match(layout):
-            assert not variant
+            assert not variant, variant
             layout = match.group("layout")
             variant = match.group("variant")
-        return cls(layout, variant)
+        return cls(layout, variant, model, symbols_prefix)
 
     def __str__(self):
         if self.variant:
@@ -53,6 +57,15 @@ class Layout:
         """
         if not isinstance(other, self.__class__):
             return NotImplemented
+        elif self.model != other.model:
+            if (self.model == "*") ^ (other.model == "*"):
+                return other.model == "*"
+            else:
+                return self.model < other.model
+        elif (self.layout == "*") ^ (other.layout == "*"):
+            return other.layout == "*"
+        elif self.layout.startswith("$") ^ other.layout.startswith("$"):
+            return other.layout.startswith("$")
         elif self.layout == other.layout:
             if self.variant == other.variant:
                 return False
@@ -68,7 +81,9 @@ class Layout:
             return self.layout < other.layout
 
     @classmethod
-    def read_file(cls, path: str) -> Generator[tuple[Layout, Layout], None, None]:
+    def read_file(
+        cls, path: str, vendor: bool = False
+    ) -> Generator[tuple[Layout, Layout], None, None]:
         """Returns a list of two-layout tuples [(layout1, layout2), ...]"""
 
         with open(path, "rt", encoding="utf-8") as fd:
@@ -78,7 +93,12 @@ class Layout:
                 # Split on whitespaces
                 groups = tuple(line.split())
                 length = len(groups)
-                if length == 2:
+                if vendor:
+                    if length != 4:
+                        raise ValueError(f"Invalid line: {line}")
+                    l1 = Layout.parse(groups[2], model=groups[0])
+                    l2 = Layout.parse(groups[3], symbols_prefix=groups[1])
+                elif length == 2:
                     l1 = Layout.parse(groups[0])
                     l2 = Layout.parse(groups[1])
                 elif length == 4:
@@ -95,6 +115,7 @@ def write_rules(
     number: int,
     expect_variant: bool,
     write_header: bool,
+    vendor: bool,
 ):
     index = f"[{number}]" if number > 0 else ""
     if write_header:
@@ -108,7 +129,6 @@ def write_rules(
     #   pc+layout(variant)
     # This part is only executed for the variantMappings.lst
 
-    base = "pc" if number <= 1 else ""
     suffix = "" if number <= 1 else ":{}".format(number)
 
     for l1, l2 in mappings:
@@ -120,9 +140,15 @@ def write_rules(
             second_layout = l2.layout
         else:
             second_layout = str(l2) if l2.variant else f"{l2.layout}%(v{index})"
+        second_layout = second_layout.replace("[%i]", index)
+        if number <= 1:
+            base = l2.symbols_prefix or "pc"
+        else:
+            base = ""
+        model = l1.model if l1.model != "*" else "*\t"
         dest.write(
-            "  *		{}{}	=	{}+{}{}\n".format(
-                l1.layout, variant, base, second_layout, suffix
+            "  {}	{}{}	=	{}+{}{}\n".format(
+                model, l1.layout, variant, base, second_layout, suffix
             )
         )
 
@@ -198,12 +224,25 @@ def check_mapping(symbols: bool, mapping: tuple[Layout, Layout]) -> bool:
 
 
 def run(
-    dest: str, files, dry_run: bool, symbols: bool, expect_variant: bool, number: int
+    dest: str,
+    files,
+    dry_run: bool,
+    vendor: bool,
+    symbols: bool,
+    expect_variant: bool,
+    number: int,
 ):
-    check = functools.partial(check_mapping, symbols)
+    # FIXME
+    if vendor:
+
+        def check(_):
+            return True
+    else:
+        check = functools.partial(check_mapping, symbols)
     # Read all files and sort their entry on the aliased layout
+    parse_file = functools.partial(Layout.read_file, vendor=vendor)
     mappings = sorted(
-        filter(check, itertools.chain.from_iterable(map(Layout.read_file, files))),
+        filter(check, itertools.chain.from_iterable(map(parse_file, files))),
         key=lambda ls: ls[0],
     )
     if symbols:
@@ -213,7 +252,7 @@ def run(
         if dest == "-":
             fd = sys.stdout
         with fd or open(ns.dest, "w") as fd:
-            write_rules(fd, mappings, number, expect_variant, True)
+            write_rules(fd, mappings, number, expect_variant, True, vendor)
 
 
 if __name__ == "__main__":
@@ -222,9 +261,10 @@ if __name__ == "__main__":
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--has-variant", action="store_true")
     parser.add_argument("--symbols", action="store_true", help="Write symbols files")
+    parser.add_argument("--vendor", action="store_true", help="Parse vendor files")
 
     parser.add_argument("dest", type=str)
     parser.add_argument("files", nargs="+", type=str)
     ns = parser.parse_args()
 
-    run(ns.dest, ns.files, ns.dry_run, ns.symbols, ns.has_variant, ns.number)
+    run(ns.dest, ns.files, ns.dry_run, ns.vendor, ns.symbols, ns.has_variant, ns.number)

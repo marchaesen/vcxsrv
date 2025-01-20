@@ -746,6 +746,7 @@ bool si_compute_blit(struct si_context *sctx, const struct pipe_blit_info *info,
    if (info->dst_sample != 0 ||
        info->alpha_blend ||
        info->num_window_rectangles ||
+       info->swizzle_enable ||
        info->scissor_enable)
       return false;
 

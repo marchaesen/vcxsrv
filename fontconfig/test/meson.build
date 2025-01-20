@@ -26,6 +26,7 @@ if host_machine.system() != 'windows'
   endif
 endif
 
+
 foreach test_data : tests
   fname = test_data[0]
   opts = test_data.length() > 1 ? test_data[1] : {}
@@ -43,6 +44,11 @@ foreach test_data : tests
   test(test_name, exe, timeout: 600)
 endforeach
 
+if get_option('fontations').enabled()
+  rust = import('rust')
+  rust.test('fc_fontations_tests', fc_fontations)
+endif
+
 fs = import('fs')
 
 if host_machine.system() != 'windows'
@@ -55,6 +61,13 @@ if host_machine.system() != 'windows'
   endif
 
   test('run_test_sh', find_program('run-test.sh'), timeout: 600, env: ['srcdir=@0@'.format(meson.current_source_dir()), 'builddir=@0@'.format(meson.current_build_dir()), 'EXEEXT=@0@'.format(conf.get('EXEEXT')), 'VERBOSE=1'])
+
+  if pytest.found()
+    test('pytest', pytest, args: ['--tap'],
+         workdir: meson.current_source_dir(),
+         env: ['builddir=@0@'.format(meson.current_build_dir())],
+         protocol: 'tap')
+  endif
 endif
 
 if jsonc_dep.found()

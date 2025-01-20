@@ -317,7 +317,7 @@ gmem_stateobj_init(struct fd_screen *screen, struct gmem_key *key)
 
 #if MESA_DEBUG
    tpp_x = debug_get_num_option("TPP_X", tpp_x);
-   tpp_y = debug_get_num_option("TPP_Y", tpp_x);
+   tpp_y = debug_get_num_option("TPP_Y", tpp_y);
 #endif
 
    gmem->maxpw = tpp_x;

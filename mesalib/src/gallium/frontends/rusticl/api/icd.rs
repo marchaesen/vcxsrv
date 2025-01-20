@@ -438,29 +438,31 @@ macro_rules! impl_cl_type_trait {
 // We need those functions exported
 
 #[no_mangle]
-extern "C" fn clGetPlatformInfo(
+unsafe extern "C" fn clGetPlatformInfo(
     platform: cl_platform_id,
     param_name: cl_platform_info,
     param_value_size: usize,
     param_value: *mut ::std::ffi::c_void,
     param_value_size_ret: *mut usize,
 ) -> cl_int {
-    platform::clGetPlatformInfo(
-        platform,
-        param_name,
-        param_value_size,
-        param_value,
-        param_value_size_ret,
-    )
+    unsafe {
+        platform::clGetPlatformInfo(
+            platform,
+            param_name,
+            param_value_size,
+            param_value,
+            param_value_size_ret,
+        )
+    }
 }
 
 #[no_mangle]
-extern "C" fn clIcdGetPlatformIDsKHR(
+unsafe extern "C" fn clIcdGetPlatformIDsKHR(
     num_entries: cl_uint,
     platforms: *mut cl_platform_id,
     num_platforms: *mut cl_uint,
 ) -> cl_int {
-    clGetPlatformIDs(num_entries, platforms, num_platforms)
+    unsafe { clGetPlatformIDs(num_entries, platforms, num_platforms) }
 }
 
 macro_rules! cl_ext_func {
@@ -483,40 +485,40 @@ extern "C" fn clGetExtensionFunctionAddress(
         "clCreateCommandQueueWithPropertiesKHR" => cl_ext_func!(clCreateCommandQueueWithProperties: clCreateCommandQueueWithPropertiesKHR_fn),
 
         // cl_khr_icd
-        "clGetPlatformInfo" => cl_ext_func!(clGetPlatformInfo: cl_api_clGetPlatformInfo),
+        "clGetPlatformInfo" => cl_ext_func!(clGetPlatformInfo: clGetPlatformInfo_fn),
         "clIcdGetPlatformIDsKHR" => cl_ext_func!(clIcdGetPlatformIDsKHR: clIcdGetPlatformIDsKHR_fn),
 
         // cl_khr_il_program
         "clCreateProgramWithILKHR" => cl_ext_func!(clCreateProgramWithIL: clCreateProgramWithILKHR_fn),
 
         // cl_khr_gl_sharing
-        "clCreateFromGLBuffer" => cl_ext_func!(clCreateFromGLBuffer: cl_api_clCreateFromGLBuffer),
-        "clCreateFromGLRenderbuffer" => cl_ext_func!(clCreateFromGLRenderbuffer: cl_api_clCreateFromGLRenderbuffer),
-        "clCreateFromGLTexture" => cl_ext_func!(clCreateFromGLTexture: cl_api_clCreateFromGLTexture),
-        "clCreateFromGLTexture2D" => cl_ext_func!(clCreateFromGLTexture2D: cl_api_clCreateFromGLTexture2D),
-        "clCreateFromGLTexture3D" => cl_ext_func!(clCreateFromGLTexture3D: cl_api_clCreateFromGLTexture3D),
-        "clEnqueueAcquireGLObjects" => cl_ext_func!(clEnqueueAcquireGLObjects: cl_api_clEnqueueAcquireGLObjects),
-        "clEnqueueReleaseGLObjects" => cl_ext_func!(clEnqueueReleaseGLObjects: cl_api_clEnqueueReleaseGLObjects),
-        "clGetGLContextInfoKHR" => cl_ext_func!(clGetGLContextInfoKHR: cl_api_clGetGLContextInfoKHR),
-        "clGetGLObjectInfo" => cl_ext_func!(clGetGLObjectInfo: cl_api_clGetGLObjectInfo),
-        "clGetGLTextureInfo" => cl_ext_func!(clGetGLTextureInfo: cl_api_clGetGLTextureInfo),
+        "clCreateFromGLBuffer" => cl_ext_func!(clCreateFromGLBuffer: clCreateFromGLBuffer_fn),
+        "clCreateFromGLRenderbuffer" => cl_ext_func!(clCreateFromGLRenderbuffer: clCreateFromGLRenderbuffer_fn),
+        "clCreateFromGLTexture" => cl_ext_func!(clCreateFromGLTexture: clCreateFromGLTexture_fn),
+        "clCreateFromGLTexture2D" => cl_ext_func!(clCreateFromGLTexture2D: clCreateFromGLTexture2D_fn),
+        "clCreateFromGLTexture3D" => cl_ext_func!(clCreateFromGLTexture3D: clCreateFromGLTexture3D_fn),
+        "clEnqueueAcquireGLObjects" => cl_ext_func!(clEnqueueAcquireGLObjects: clEnqueueAcquireGLObjects_fn),
+        "clEnqueueReleaseGLObjects" => cl_ext_func!(clEnqueueReleaseGLObjects: clEnqueueReleaseGLObjects_fn),
+        "clGetGLContextInfoKHR" => cl_ext_func!(clGetGLContextInfoKHR: clGetGLContextInfoKHR_fn),
+        "clGetGLObjectInfo" => cl_ext_func!(clGetGLObjectInfo: clGetGLObjectInfo_fn),
+        "clGetGLTextureInfo" => cl_ext_func!(clGetGLTextureInfo: clGetGLTextureInfo_fn),
 
         // cl_khr_suggested_local_work_size
         "clGetKernelSuggestedLocalWorkSizeKHR" => cl_ext_func!(clGetKernelSuggestedLocalWorkSizeKHR: clGetKernelSuggestedLocalWorkSizeKHR_fn),
 
         // cl_arm_shared_virtual_memory
-        "clEnqueueSVMFreeARM" => cl_ext_func!(clEnqueueSVMFreeARM: cl_api_clEnqueueSVMFree),
-        "clEnqueueSVMMapARM" => cl_ext_func!(clEnqueueSVMMapARM: cl_api_clEnqueueSVMMap),
-        "clEnqueueSVMMemcpyARM" => cl_ext_func!(clEnqueueSVMMemcpyARM: cl_api_clEnqueueSVMMemcpy),
-        "clEnqueueSVMMemFillARM" => cl_ext_func!(clEnqueueSVMMemFillARM: cl_api_clEnqueueSVMMemFill),
-        "clEnqueueSVMUnmapARM" => cl_ext_func!(clEnqueueSVMUnmapARM: cl_api_clEnqueueSVMUnmap),
-        "clSetKernelArgSVMPointerARM" => cl_ext_func!(clSetKernelArgSVMPointer: cl_api_clSetKernelArgSVMPointer),
-        "clSetKernelExecInfoARM" => cl_ext_func!(clSetKernelExecInfo: cl_api_clSetKernelExecInfo),
-        "clSVMAllocARM" => cl_ext_func!(clSVMAlloc: cl_api_clSVMAlloc),
-        "clSVMFreeARM" => cl_ext_func!(clSVMFree: cl_api_clSVMFree),
+        "clEnqueueSVMFreeARM" => cl_ext_func!(clEnqueueSVMFreeARM: clEnqueueSVMFreeARM_fn),
+        "clEnqueueSVMMapARM" => cl_ext_func!(clEnqueueSVMMapARM: clEnqueueSVMMapARM_fn),
+        "clEnqueueSVMMemcpyARM" => cl_ext_func!(clEnqueueSVMMemcpyARM: clEnqueueSVMMemcpyARM_fn),
+        "clEnqueueSVMMemFillARM" => cl_ext_func!(clEnqueueSVMMemFillARM: clEnqueueSVMMemFillARM_fn),
+        "clEnqueueSVMUnmapARM" => cl_ext_func!(clEnqueueSVMUnmapARM: clEnqueueSVMUnmapARM_fn),
+        "clSetKernelArgSVMPointerARM" => cl_ext_func!(clSetKernelArgSVMPointer: clSetKernelArgSVMPointerARM_fn),
+        "clSetKernelExecInfoARM" => cl_ext_func!(clSetKernelExecInfo: clSetKernelExecInfoARM_fn),
+        "clSVMAllocARM" => cl_ext_func!(clSVMAlloc: clSVMAllocARM_fn),
+        "clSVMFreeARM" => cl_ext_func!(clSVMFree: clSVMFreeARM_fn),
 
         // DPCPP bug https://github.com/intel/llvm/issues/9964
-        "clSetProgramSpecializationConstant" => cl_ext_func!(clSetProgramSpecializationConstant: cl_api_clSetProgramSpecializationConstant),
+        "clSetProgramSpecializationConstant" => cl_ext_func!(clSetProgramSpecializationConstant: clSetProgramSpecializationConstant_fn),
 
         _ => ptr::null_mut(),
     }
@@ -571,7 +573,7 @@ extern "C" fn clSVMFree(context: cl_context, svm_pointer: *mut ::std::os::raw::c
     svm_free(context, svm_pointer as usize).ok();
 }
 
-extern "C" fn clGetKernelSubGroupInfo(
+unsafe extern "C" fn clGetKernelSubGroupInfo(
     kernel: cl_kernel,
     device: cl_device_id,
     param_name: cl_kernel_sub_group_info,
@@ -581,13 +583,15 @@ extern "C" fn clGetKernelSubGroupInfo(
     param_value: *mut ::std::os::raw::c_void,
     param_value_size_ret: *mut usize,
 ) -> cl_int {
-    match kernel.get_info_obj(
-        (device, input_value_size, input_value, param_value_size),
-        param_name,
-        param_value_size,
-        param_value,
-        param_value_size_ret,
-    ) {
+    match unsafe {
+        kernel.get_info_obj(
+            (device, input_value_size, input_value, param_value_size),
+            param_name,
+            param_value_size,
+            param_value,
+            param_value_size_ret,
+        )
+    } {
         Ok(_) => CL_SUCCESS as cl_int,
         Err(e) => e,
     }

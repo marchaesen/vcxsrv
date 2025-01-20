@@ -92,20 +92,20 @@ _XomGenericTextPerCharExtents(
 	}
 
 	if (is_xchar2b) {
-	    CI_GET_DEFAULT_INFO_2D(font, def)
+	    CI_GET_DEFAULT_INFO_2D(font, def);
 	    xchar2b_ptr = xchar2b_buf;
 	} else {
-	    CI_GET_DEFAULT_INFO_1D(font, def)
+	    CI_GET_DEFAULT_INFO_1D(font, def);
 	    xchar_ptr = (char *) xchar2b_buf;
 	}
 
 	while (buf_len-- > 0) {
 	    if (is_xchar2b) {
 		CI_GET_CHAR_INFO_2D(font, xchar2b_ptr->byte1,
-				    xchar2b_ptr->byte2, def, cs)
+				    xchar2b_ptr->byte2, def, cs);
 		xchar2b_ptr++;
 	    } else {
-		CI_GET_CHAR_INFO_1D(font, *xchar_ptr, def, cs)
+		CI_GET_CHAR_INFO_1D(font, *xchar_ptr, def, cs);
 		xchar_ptr++;
 	    }
 	    if (cs == NULL)

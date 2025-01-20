@@ -64,6 +64,7 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intr, nir_shader *shader)
       loc = out->data.location;
       break;
    case nir_intrinsic_store_output:
+   case nir_intrinsic_store_per_view_output:
       loc = nir_intrinsic_io_semantics(intr).location;
       break;
    default:

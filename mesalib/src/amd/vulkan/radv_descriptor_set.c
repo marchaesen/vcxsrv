@@ -245,7 +245,7 @@ radv_CreateDescriptorSetLayout(VkDevice _device, const VkDescriptorSetLayoutCrea
          switch (binding->descriptorType) {
          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-            assert(!(pCreateInfo->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
+            assert(!(pCreateInfo->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT));
             set_layout->binding[b].dynamic_offset_count = 1;
             set_layout->dynamic_shader_stages |= binding->stageFlags;
             if (binding->stageFlags & RADV_RT_STAGE_BITS)
@@ -1007,7 +1007,7 @@ radv_AllocateDescriptorSets(VkDevice _device, const VkDescriptorSetAllocateInfo 
             variable_count = &zero;
       }
 
-      assert(!(layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
+      assert(!(layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT));
 
       result = radv_descriptor_set_create(device, pool, layout, variable_count, &set);
       if (result != VK_SUCCESS)
@@ -1299,7 +1299,7 @@ radv_update_descriptor_sets_impl(struct radv_device *device, struct radv_cmd_buf
          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: {
             unsigned idx = writeset->dstArrayElement + j;
             idx += binding_layout->dynamic_offset_offset;
-            assert(!(set->header.layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
+            assert(!(set->header.layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT));
             write_dynamic_buffer_descriptor(device, set->header.dynamic_descriptors + idx, buffer_list,
                                             writeset->pBufferInfo + j);
             break;
@@ -1393,9 +1393,7 @@ radv_update_descriptor_sets_impl(struct radv_device *device, struct radv_cmd_buf
       size_t copy_size = MIN2(src_binding_layout->size, dst_binding_layout->size);
 
       for (j = 0; j < copyset->descriptorCount; ++j) {
-         switch (src_binding_layout->type) {
-         case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-         case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: {
+         if (vk_descriptor_type_is_dynamic(src_binding_layout->type)) {
             unsigned src_idx = copyset->srcArrayElement + j;
             unsigned dst_idx = copyset->dstArrayElement + j;
             struct radv_descriptor_range *src_range, *dst_range;
@@ -1405,11 +1403,9 @@ radv_update_descriptor_sets_impl(struct radv_device *device, struct radv_cmd_buf
             src_range = src_set->header.dynamic_descriptors + src_idx;
             dst_range = dst_set->header.dynamic_descriptors + dst_idx;
             *dst_range = *src_range;
-            break;
-         }
-         default:
+         } else
             memcpy(dst_ptr, src_ptr, copy_size);
-         }
+
          src_ptr += src_binding_layout->size / 4;
          dst_ptr += dst_binding_layout->size / 4;
 
@@ -1497,14 +1493,11 @@ radv_CreateDescriptorUpdateTemplate(VkDevice _device, const VkDescriptorUpdateTe
 
       /* dst_offset is an offset into dynamic_descriptors when the descriptor
          is dynamic, and an offset into mapped_ptr otherwise */
-      switch (entry->descriptorType) {
-      case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+      if (vk_descriptor_type_is_dynamic(entry->descriptorType)) {
          assert(pCreateInfo->templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET);
          dst_offset = binding_layout->dynamic_offset_offset + entry->dstArrayElement;
          dst_stride = 0; /* Not used */
-         break;
-      default:
+      } else {
          switch (entry->descriptorType) {
          case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
          case VK_DESCRIPTOR_TYPE_SAMPLER:
@@ -1524,7 +1517,6 @@ radv_CreateDescriptorUpdateTemplate(VkDevice _device, const VkDescriptorUpdateTe
             dst_offset += binding_layout->size * entry->dstArrayElement / 4;
 
          dst_stride = binding_layout->size / 4;
-         break;
       }
 
       templ->entry[i] = (struct radv_descriptor_update_template_entry){
@@ -1582,7 +1574,7 @@ radv_update_descriptor_set_with_template_impl(struct radv_device *device, struct
          case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: {
             const unsigned idx = templ->entry[i].dst_offset + j;
-            assert(!(set->header.layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
+            assert(!(set->header.layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT));
             write_dynamic_buffer_descriptor(device, set->header.dynamic_descriptors + idx, buffer_list,
                                             (struct VkDescriptorBufferInfo *)pSrc);
             break;
@@ -1653,27 +1645,6 @@ radv_UpdateDescriptorSetWithTemplate(VkDevice _device, VkDescriptorSet descripto
    VK_FROM_HANDLE(radv_descriptor_set, set, descriptorSet);
 
    radv_update_descriptor_set_with_template_impl(device, NULL, set, descriptorUpdateTemplate, pData);
-}
-
-VKAPI_ATTR void VKAPI_CALL
-radv_GetDescriptorSetLayoutHostMappingInfoVALVE(VkDevice _device,
-                                                const VkDescriptorSetBindingReferenceVALVE *pBindingReference,
-                                                VkDescriptorSetLayoutHostMappingInfoVALVE *pHostMapping)
-{
-   struct radv_descriptor_set_layout *set_layout =
-      radv_descriptor_set_layout_from_handle(pBindingReference->descriptorSetLayout);
-
-   const struct radv_descriptor_set_binding_layout *binding_layout = set_layout->binding + pBindingReference->binding;
-
-   pHostMapping->descriptorOffset = binding_layout->offset;
-   pHostMapping->descriptorSize = binding_layout->size;
-}
-
-VKAPI_ATTR void VKAPI_CALL
-radv_GetDescriptorSetHostMappingVALVE(VkDevice _device, VkDescriptorSet descriptorSet, void **ppData)
-{
-   VK_FROM_HANDLE(radv_descriptor_set, set, descriptorSet);
-   *ppData = set->header.mapped_ptr;
 }
 
 /* VK_EXT_descriptor_buffer */

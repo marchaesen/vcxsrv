@@ -35,7 +35,7 @@ Patch formatting
 
       mesa: Add support for querying GL_VERTEX_ATTRIB_ARRAY_LONG
 
-      gallium: add PIPE_CAP_DEVICE_RESET_STATUS_QUERY
+      gallium: add pipe_caps.device_reset_status_query
 
       i965: Fix missing type in local variable declaration.
 

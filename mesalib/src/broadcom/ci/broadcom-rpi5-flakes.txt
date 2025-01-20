@@ -1,3 +1,4 @@
+fast_color_clear@fcc-front-buffer-distraction
 glx@glx-multi-context-front
 glx@glx-swap-singlebuffer
 glx@glx-visuals-depth
@@ -14,30 +15,30 @@ spec@amd_performance_monitor@api
 spec@amd_performance_monitor@api@test_counter_string_small_buffer
 spec@amd_performance_monitor@vc4
 spec@arb_occlusion_query@occlusion_query_order
+spec@arb_texture_buffer_object@formats \(fs- arb\)
+spec@arb_texture_buffer_object@formats \(vs- arb\)
 spec@arb_texture_buffer_object@formats \(vs- arb\)@GL_ALPHA16F_ARB
 spec@arb_texture_buffer_object@formats \(vs- arb\)@GL_ALPHA32F_ARB
 spec@ext_framebuffer_blit@fbo-blit-check-limits
 spec@ext_framebuffer_blit@fbo-sys-blit
 spec@ext_framebuffer_blit@fbo-sys-sub-blit
 
+dEQP-VK.api.image_clearing.core.clear_depth_stencil_image.2d.remaining_array_layers_twostep.d24_unorm_s8_uint_33x128
+dEQP-VK.api.image_clearing.core.clear_depth_stencil_image.2d.remaining_array_layers_twostep.d24_unorm_s8_uint_64x11
 dEQP-VK.draw.dynamic_rendering.primary_cmd_buff.multiple_interpolation.structured.no_sample_decoration.4_samples
-dEQP-VK.draw.dynamic_rendering.primary_cmd_buff.multiple_interpolation.structured.no_sample_decoration.4_samples
-dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1024
 dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1024
 dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1048576
 dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.8192
 dEQP-VK.memory_model.message_passing.ext.u32.coherent.atomic_fence.atomicwrite.queuefamily.payload_local.image.guard_local.image.frag
-dEQP-VK.memory_model.message_passing.ext.u32.coherent.atomic_fence.atomicwrite.subgroup.payload_local.image.guard_local.buffer.frag
 dEQP-VK.memory_model.message_passing.ext.u32.coherent.atomic_fence.atomicwrite.subgroup.payload_local.image.guard_local.buffer.frag
 dEQP-VK.memory_model.message_passing.ext.u32.noncoherent.fence_fence.atomicwrite.device.payload_local.image.guard_local.buffer.frag
 dEQP-VK.memory_model.message_passing.ext.u32.noncoherent.fence_fence.atomicwrite.queuefamily.payload_local.image.guard_local.image.frag
 dEQP-VK.pipeline.monolithic.image.suballocation.sampling_type.combined.view_type.1d_array.format.r8_unorm.count_1.size.443x1_array_of_6
 dEQP-VK.spirv_assembly.type.scalar.i8.shift_left_logical_shift16_tesse
 dEQP-VK.ssbo.phys.layout.3_level_unsized_array.scalar.column_major_mat4x3_comp_access
+dEQP-VK.synchronization2.basic.timeline_semaphore.one_queue
 dEQP-VK.synchronization2.cross_instance.suballocated.write_blit_image_read_image_tess_eval.image_128x128_r32g32b32a32_sfloat_binary_semaphore_fence_fd
 dEQP-VK.texture.shadow.cube.linear.less_d24_unorm_s8_uint
 
-# uprev Piglit in Mesa
-fast_color_clear@fcc-front-buffer-distraction
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4
-
+# Flaky when running them in parallel, reliable otherwise
+dEQP-VK.synchronization2?.implicit.timeline_semaphore.write_(copy_buffer|ssbo_vertex)_read_(copy_buffer|ssbo_vertex).buffer_16384.*

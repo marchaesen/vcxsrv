@@ -496,7 +496,7 @@ enum pipe_flush_flags
 #define PIPE_BIND_SHARED      (1 << 20) /* get_texture_handle ??? */
 #define PIPE_BIND_LINEAR      (1 << 21)
 #define PIPE_BIND_PROTECTED   (1 << 22) /* Resource will be protected/encrypted */
-#define PIPE_BIND_SAMPLER_REDUCTION_MINMAX (1 << 23) /* PIPE_CAP_SAMPLER_REDUCTION_MINMAX */
+#define PIPE_BIND_SAMPLER_REDUCTION_MINMAX (1 << 23) /* pipe_caps.sampler_reduction_minmax */
 /* Resource is the DRI_PRIME blit destination. Only set on on the render GPU. */
 #define PIPE_BIND_PRIME_BLIT_DST (1 << 24)
 #define PIPE_BIND_USE_FRONT_RENDERING (1 << 25) /* Resource may be used for frontbuffer rendering */
@@ -694,303 +694,6 @@ enum pipe_conservative_raster_mode
 #define PIPE_SHADER_SUBGROUP_FEATURE_QUAD             (1 << 7)
 #define PIPE_SHADER_SUBGROUP_NUM_FEATURES             8
 
-/**
- * Implementation capabilities/limits which are queried through
- * pipe_screen::get_param()
- */
-enum pipe_cap
-{
-   PIPE_CAP_GRAPHICS,
-   PIPE_CAP_NPOT_TEXTURES,
-   PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS,
-   PIPE_CAP_ANISOTROPIC_FILTER,
-   PIPE_CAP_MAX_RENDER_TARGETS,
-   PIPE_CAP_OCCLUSION_QUERY,
-   PIPE_CAP_QUERY_TIME_ELAPSED,
-   PIPE_CAP_TEXTURE_SHADOW_MAP,
-   PIPE_CAP_TEXTURE_SWIZZLE,
-   PIPE_CAP_MAX_TEXTURE_2D_SIZE,
-   PIPE_CAP_MAX_TEXTURE_3D_LEVELS,
-   PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS,
-   PIPE_CAP_TEXTURE_MIRROR_CLAMP,
-   PIPE_CAP_BLEND_EQUATION_SEPARATE,
-   PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS,
-   PIPE_CAP_PRIMITIVE_RESTART,
-   /** subset of PRIMITIVE_RESTART where the restart index is always the fixed
-    * maximum value for the index type
-    */
-   PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX,
-   /** blend enables and write masks per rendertarget */
-   PIPE_CAP_INDEP_BLEND_ENABLE,
-   /** different blend funcs per rendertarget */
-   PIPE_CAP_INDEP_BLEND_FUNC,
-   PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS,
-   PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT,
-   PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT,
-   PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER,
-   PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER,
-   PIPE_CAP_DEPTH_CLIP_DISABLE,
-   PIPE_CAP_DEPTH_CLIP_DISABLE_SEPARATE,
-   PIPE_CAP_DEPTH_CLAMP_ENABLE,
-   PIPE_CAP_SHADER_STENCIL_EXPORT,
-   PIPE_CAP_VS_INSTANCEID,
-   PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR,
-   PIPE_CAP_FRAGMENT_COLOR_CLAMPED,
-   PIPE_CAP_MIXED_COLORBUFFER_FORMATS,
-   PIPE_CAP_SEAMLESS_CUBE_MAP,
-   PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE,
-   PIPE_CAP_MIN_TEXEL_OFFSET,
-   PIPE_CAP_MAX_TEXEL_OFFSET,
-   PIPE_CAP_CONDITIONAL_RENDER,
-   PIPE_CAP_TEXTURE_BARRIER,
-   PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS,
-   PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS,
-   PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME,
-   PIPE_CAP_TGSI_CAN_COMPACT_CONSTANTS,
-   PIPE_CAP_VERTEX_COLOR_UNCLAMPED,
-   PIPE_CAP_VERTEX_COLOR_CLAMPED,
-   PIPE_CAP_GLSL_FEATURE_LEVEL,
-   PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY,
-   PIPE_CAP_ESSL_FEATURE_LEVEL,
-   PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION,
-   PIPE_CAP_USER_VERTEX_BUFFERS,
-   PIPE_CAP_VERTEX_INPUT_ALIGNMENT,
-   PIPE_CAP_COMPUTE,
-   PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT,
-   PIPE_CAP_START_INSTANCE,
-   PIPE_CAP_QUERY_TIMESTAMP,
-   PIPE_CAP_TIMER_RESOLUTION,
-   PIPE_CAP_TEXTURE_MULTISAMPLE,
-   PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT,
-   PIPE_CAP_CUBE_MAP_ARRAY,
-   PIPE_CAP_TEXTURE_BUFFER_OBJECTS,
-   PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT,
-   PIPE_CAP_BUFFER_SAMPLER_VIEW_RGBA_ONLY,
-   PIPE_CAP_TGSI_TEXCOORD,
-   PIPE_CAP_LINEAR_IMAGE_PITCH_ALIGNMENT,
-   PIPE_CAP_LINEAR_IMAGE_BASE_ADDRESS_ALIGNMENT,
-   PIPE_CAP_TEXTURE_TRANSFER_MODES,
-   PIPE_CAP_QUERY_PIPELINE_STATISTICS,
-   PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK,
-   PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT,
-   PIPE_CAP_MAX_VIEWPORTS,
-   PIPE_CAP_ENDIANNESS,
-   PIPE_CAP_MIXED_FRAMEBUFFER_SIZES,
-   PIPE_CAP_VS_LAYER_VIEWPORT,
-   PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES,
-   PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS,
-   PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS,
-   PIPE_CAP_TEXTURE_GATHER_SM5,
-   PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT,
-   PIPE_CAP_FAKE_SW_MSAA,
-   PIPE_CAP_TEXTURE_QUERY_LOD,
-   PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET,
-   PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET,
-   PIPE_CAP_SAMPLE_SHADING,
-   PIPE_CAP_TEXTURE_GATHER_OFFSETS,
-   PIPE_CAP_VS_WINDOW_SPACE_POSITION,
-   PIPE_CAP_MAX_VERTEX_STREAMS,
-   PIPE_CAP_DRAW_INDIRECT,
-   PIPE_CAP_FS_FINE_DERIVATIVE,
-   PIPE_CAP_VENDOR_ID,
-   PIPE_CAP_DEVICE_ID,
-   PIPE_CAP_ACCELERATED,
-   PIPE_CAP_VIDEO_MEMORY,
-   PIPE_CAP_UMA,
-   PIPE_CAP_CONDITIONAL_RENDER_INVERTED,
-   PIPE_CAP_MAX_VERTEX_ATTRIB_STRIDE,
-   PIPE_CAP_SAMPLER_VIEW_TARGET,
-   PIPE_CAP_CLIP_HALFZ,
-   PIPE_CAP_POLYGON_OFFSET_CLAMP,
-   PIPE_CAP_MULTISAMPLE_Z_RESOLVE,
-   PIPE_CAP_RESOURCE_FROM_USER_MEMORY,
-   PIPE_CAP_RESOURCE_FROM_USER_MEMORY_COMPUTE_ONLY,
-   PIPE_CAP_DEVICE_RESET_STATUS_QUERY,
-   PIPE_CAP_MAX_SHADER_PATCH_VARYINGS,
-   PIPE_CAP_TEXTURE_FLOAT_LINEAR,
-   PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR,
-   PIPE_CAP_DEPTH_BOUNDS_TEST,
-   PIPE_CAP_TEXTURE_QUERY_SAMPLES,
-   PIPE_CAP_FORCE_PERSAMPLE_INTERP,
-   PIPE_CAP_SHAREABLE_SHADERS,
-   PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS,
-   PIPE_CAP_CLEAR_SCISSORED,
-   PIPE_CAP_DRAW_PARAMETERS,
-   PIPE_CAP_SHADER_PACK_HALF_FLOAT,
-   PIPE_CAP_MULTI_DRAW_INDIRECT,
-   PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS,
-   PIPE_CAP_MULTI_DRAW_INDIRECT_PARTIAL_STRIDE,
-   PIPE_CAP_FS_POSITION_IS_SYSVAL,
-   PIPE_CAP_FS_POINT_IS_SYSVAL,
-   PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL,
-   PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT,
-   PIPE_CAP_INVALIDATE_BUFFER,
-   PIPE_CAP_GENERATE_MIPMAP,
-   PIPE_CAP_STRING_MARKER,
-   PIPE_CAP_SURFACE_REINTERPRET_BLOCKS,
-   PIPE_CAP_QUERY_BUFFER_OBJECT,
-   PIPE_CAP_QUERY_MEMORY_INFO,
-   PIPE_CAP_PCI_GROUP,
-   PIPE_CAP_PCI_BUS,
-   PIPE_CAP_PCI_DEVICE,
-   PIPE_CAP_PCI_FUNCTION,
-   PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT,
-   PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR,
-   PIPE_CAP_CULL_DISTANCE,
-   PIPE_CAP_CULL_DISTANCE_NOCOMBINE,
-   PIPE_CAP_SHADER_GROUP_VOTE,
-   PIPE_CAP_MAX_WINDOW_RECTANGLES,
-   PIPE_CAP_POLYGON_OFFSET_UNITS_UNSCALED,
-   PIPE_CAP_VIEWPORT_SUBPIXEL_BITS,
-   PIPE_CAP_RASTERIZER_SUBPIXEL_BITS,
-   PIPE_CAP_MIXED_COLOR_DEPTH_BITS,
-   PIPE_CAP_SHADER_ARRAY_COMPONENTS,
-   PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS,
-   PIPE_CAP_NATIVE_FENCE_FD,
-   PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS,
-   PIPE_CAP_FBFETCH,
-   PIPE_CAP_LEGACY_MATH_RULES,
-   PIPE_CAP_FP16,
-   PIPE_CAP_DOUBLES,
-   PIPE_CAP_INT64,
-   PIPE_CAP_TGSI_TEX_TXF_LZ,
-   PIPE_CAP_SHADER_CLOCK,
-   PIPE_CAP_POLYGON_MODE_FILL_RECTANGLE,
-   PIPE_CAP_SPARSE_BUFFER_PAGE_SIZE,
-   PIPE_CAP_SHADER_BALLOT,
-   PIPE_CAP_TES_LAYER_VIEWPORT,
-   PIPE_CAP_CAN_BIND_CONST_BUFFER_AS_VERTEX,
-   PIPE_CAP_ALLOW_MAPPED_BUFFERS_DURING_EXECUTION,
-   PIPE_CAP_POST_DEPTH_COVERAGE,
-   PIPE_CAP_BINDLESS_TEXTURE,
-   PIPE_CAP_NIR_SAMPLERS_AS_DEREF,
-   PIPE_CAP_QUERY_SO_OVERFLOW,
-   PIPE_CAP_MEMOBJ,
-   PIPE_CAP_LOAD_CONSTBUF,
-   PIPE_CAP_TILE_RASTER_ORDER,
-   PIPE_CAP_MAX_COMBINED_SHADER_OUTPUT_RESOURCES,
-   PIPE_CAP_FRAMEBUFFER_MSAA_CONSTRAINTS,
-   PIPE_CAP_SIGNED_VERTEX_BUFFER_OFFSET,
-   PIPE_CAP_CONTEXT_PRIORITY_MASK,
-   PIPE_CAP_FENCE_SIGNAL,
-   PIPE_CAP_CONSTBUF0_FLAGS,
-   PIPE_CAP_PACKED_UNIFORMS,
-   PIPE_CAP_CONSERVATIVE_RASTER_POST_SNAP_TRIANGLES,
-   PIPE_CAP_CONSERVATIVE_RASTER_POST_SNAP_POINTS_LINES,
-   PIPE_CAP_CONSERVATIVE_RASTER_PRE_SNAP_TRIANGLES,
-   PIPE_CAP_CONSERVATIVE_RASTER_PRE_SNAP_POINTS_LINES,
-   PIPE_CAP_MAX_CONSERVATIVE_RASTER_SUBPIXEL_PRECISION_BIAS,
-   PIPE_CAP_CONSERVATIVE_RASTER_POST_DEPTH_COVERAGE,
-   PIPE_CAP_CONSERVATIVE_RASTER_INNER_COVERAGE,
-   PIPE_CAP_PROGRAMMABLE_SAMPLE_LOCATIONS,
-   PIPE_CAP_MAX_GS_INVOCATIONS,
-   PIPE_CAP_MAX_SHADER_BUFFER_SIZE_UINT,
-   PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE,
-   PIPE_CAP_MAX_COMBINED_SHADER_BUFFERS,
-   PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTERS,
-   PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTER_BUFFERS,
-   PIPE_CAP_MAX_TEXTURE_UPLOAD_MEMORY_BUDGET,
-   PIPE_CAP_MAX_VERTEX_ELEMENT_SRC_OFFSET,
-   PIPE_CAP_SURFACE_SAMPLE_COUNT,
-   PIPE_CAP_IMAGE_ATOMIC_FLOAT_ADD,
-   PIPE_CAP_QUERY_PIPELINE_STATISTICS_SINGLE,
-   PIPE_CAP_DEST_SURFACE_SRGB_CONTROL,
-   PIPE_CAP_MAX_VARYINGS,
-   PIPE_CAP_COMPUTE_GRID_INFO_LAST_BLOCK,
-   PIPE_CAP_COMPUTE_SHADER_DERIVATIVES,
-   PIPE_CAP_IMAGE_LOAD_FORMATTED,
-   PIPE_CAP_IMAGE_STORE_FORMATTED,
-   PIPE_CAP_THROTTLE,
-   PIPE_CAP_DMABUF,
-   PIPE_CAP_CL_GL_SHARING,
-   PIPE_CAP_PREFER_COMPUTE_FOR_MULTIMEDIA,
-   PIPE_CAP_FRAGMENT_SHADER_INTERLOCK,
-   PIPE_CAP_FBFETCH_COHERENT,
-   PIPE_CAP_ATOMIC_FLOAT_MINMAX,
-   PIPE_CAP_TGSI_DIV,
-   PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD,
-   PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES,
-   PIPE_CAP_TEXTURE_SHADOW_LOD,
-   PIPE_CAP_SHADER_SAMPLES_IDENTICAL,
-   PIPE_CAP_IMAGE_ATOMIC_INC_WRAP,
-   PIPE_CAP_PREFER_IMM_ARRAYS_AS_CONSTBUF,
-   PIPE_CAP_GL_SPIRV,
-   PIPE_CAP_GL_SPIRV_VARIABLE_POINTERS,
-   PIPE_CAP_DEMOTE_TO_HELPER_INVOCATION,
-   PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE,
-   PIPE_CAP_FLATSHADE,
-   PIPE_CAP_ALPHA_TEST,
-   PIPE_CAP_POINT_SIZE_FIXED,
-   PIPE_CAP_TWO_SIDED_COLOR,
-   PIPE_CAP_CLIP_PLANES,
-   PIPE_CAP_MAX_VERTEX_BUFFERS,
-   PIPE_CAP_OPENCL_INTEGER_FUNCTIONS,
-   PIPE_CAP_INTEGER_MULTIPLY_32X16,
-   /* Turn draw, dispatch, blit into NOOP */
-   PIPE_CAP_FRONTEND_NOOP,
-   PIPE_CAP_NIR_IMAGES_AS_DEREF,
-   PIPE_CAP_PACKED_STREAM_OUTPUT,
-   PIPE_CAP_VIEWPORT_TRANSFORM_LOWERED,
-   PIPE_CAP_PSIZ_CLAMPED,
-   PIPE_CAP_GL_BEGIN_END_BUFFER_SIZE,
-   PIPE_CAP_VIEWPORT_SWIZZLE,
-   PIPE_CAP_SYSTEM_SVM,
-   PIPE_CAP_VIEWPORT_MASK,
-   PIPE_CAP_ALPHA_TO_COVERAGE_DITHER_CONTROL,
-   PIPE_CAP_MAP_UNSYNCHRONIZED_THREAD_SAFE,
-   PIPE_CAP_GLSL_ZERO_INIT,
-   PIPE_CAP_BLEND_EQUATION_ADVANCED,
-   PIPE_CAP_NIR_ATOMICS_AS_DEREF,
-   PIPE_CAP_NO_CLIP_ON_COPY_TEX,
-   PIPE_CAP_MAX_TEXTURE_MB,
-   PIPE_CAP_SHADER_ATOMIC_INT64,
-   /** For EGL_EXT_protected_surface */
-   PIPE_CAP_DEVICE_PROTECTED_SURFACE,
-   PIPE_CAP_PREFER_REAL_BUFFER_IN_CONSTBUF0,
-   PIPE_CAP_GL_CLAMP,
-   PIPE_CAP_TEXRECT,
-   PIPE_CAP_SAMPLER_REDUCTION_MINMAX,
-   PIPE_CAP_SAMPLER_REDUCTION_MINMAX_ARB,
-   PIPE_CAP_ALLOW_DYNAMIC_VAO_FASTPATH,
-   PIPE_CAP_EMULATE_NONFIXED_PRIMITIVE_RESTART,
-   PIPE_CAP_SUPPORTED_PRIM_MODES,
-   PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART,
-   PIPE_CAP_PREFER_BACK_BUFFER_REUSE,
-   PIPE_CAP_DRAW_VERTEX_STATE,
-   PIPE_CAP_PREFER_POT_ALIGNED_VARYINGS,
-   PIPE_CAP_MAX_SPARSE_TEXTURE_SIZE,
-   PIPE_CAP_MAX_SPARSE_3D_TEXTURE_SIZE,
-   PIPE_CAP_MAX_SPARSE_ARRAY_TEXTURE_LAYERS,
-   PIPE_CAP_SPARSE_TEXTURE_FULL_ARRAY_CUBE_MIPMAPS,
-   PIPE_CAP_QUERY_SPARSE_TEXTURE_RESIDENCY,
-   PIPE_CAP_CLAMP_SPARSE_TEXTURE_LOD,
-   PIPE_CAP_ALLOW_DRAW_OUT_OF_ORDER,
-   PIPE_CAP_MAX_CONSTANT_BUFFER_SIZE_UINT,
-   PIPE_CAP_HARDWARE_GL_SELECT,
-   PIPE_CAP_DITHERING,
-   PIPE_CAP_FBFETCH_ZS,
-   PIPE_CAP_TIMELINE_SEMAPHORE_IMPORT,
-   PIPE_CAP_QUERY_TIMESTAMP_BITS,
-   /** For EGL_EXT_protected_content */
-   PIPE_CAP_DEVICE_PROTECTED_CONTEXT,
-   PIPE_CAP_ALLOW_GLTHREAD_BUFFER_SUBDATA_OPT,
-   PIPE_CAP_NULL_TEXTURES,
-   PIPE_CAP_ASTC_VOID_EXTENTS_NEED_DENORM_FLUSH,
-   PIPE_CAP_VALIDATE_ALL_DIRTY_STATES,
-   PIPE_CAP_HAS_CONST_BW,
-   PIPE_CAP_PERFORMANCE_MONITOR,
-   PIPE_CAP_TEXTURE_SAMPLER_INDEPENDENT,
-   PIPE_CAP_ASTC_DECODE_MODE,
-   /** For GL_KHR_shader_subgroup */
-   PIPE_CAP_SHADER_SUBGROUP_SIZE,
-   PIPE_CAP_SHADER_SUBGROUP_SUPPORTED_STAGES,
-   PIPE_CAP_SHADER_SUBGROUP_SUPPORTED_FEATURES,
-   PIPE_CAP_SHADER_SUBGROUP_QUAD_ALL_STAGES,
-   PIPE_CAP_MULTIVIEW,
-   PIPE_CAP_LAST,
-   /* XXX do not add caps after PIPE_CAP_LAST! */
-};
-
 enum pipe_point_size_lower_mode {
    PIPE_POINT_SIZE_LOWER_ALWAYS,
    PIPE_POINT_SIZE_LOWER_NEVER,
@@ -1004,7 +707,7 @@ enum pipe_texture_transfer_mode {
 };
 
 /**
- * Possible bits for PIPE_CAP_CONTEXT_PRIORITY_MASK param, which should
+ * Possible bits for pipe_caps.context_priority_mask param, which should
  * return a bitmask of the supported priorities.  If the driver does not
  * support prioritized contexts, it can return 0.
  *
@@ -1033,29 +736,6 @@ enum pipe_endian
 #endif
 };
 
-/**
- * Implementation limits which are queried through
- * pipe_screen::get_paramf()
- */
-enum pipe_capf
-{
-   PIPE_CAPF_MIN_LINE_WIDTH,
-   PIPE_CAPF_MIN_LINE_WIDTH_AA,
-   PIPE_CAPF_MAX_LINE_WIDTH,
-   PIPE_CAPF_MAX_LINE_WIDTH_AA,
-   PIPE_CAPF_LINE_WIDTH_GRANULARITY,
-   PIPE_CAPF_MIN_POINT_SIZE,
-   PIPE_CAPF_MIN_POINT_SIZE_AA,
-   PIPE_CAPF_MAX_POINT_SIZE,
-   PIPE_CAPF_MAX_POINT_SIZE_AA,
-   PIPE_CAPF_POINT_SIZE_GRANULARITY,
-   PIPE_CAPF_MAX_TEXTURE_ANISOTROPY,
-   PIPE_CAPF_MAX_TEXTURE_LOD_BIAS,
-   PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE,
-   PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE,
-   PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY,
-};
-
 /** Shader caps not specific to any single stage */
 enum pipe_shader_cap
 {
@@ -1071,8 +751,6 @@ enum pipe_shader_cap
    PIPE_SHADER_CAP_MAX_TEMPS,
    /* boolean caps */
    PIPE_SHADER_CAP_CONT_SUPPORTED,
-   PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR,
-   PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR,
    PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR,
    PIPE_SHADER_CAP_INDIRECT_CONST_ADDR,
    PIPE_SHADER_CAP_SUBROUTINES, /* BGNSUB, ENDSUB, CAL, RET */
@@ -1110,7 +788,6 @@ enum pipe_shader_ir
    PIPE_SHADER_IR_TGSI = 0,
    PIPE_SHADER_IR_NATIVE,
    PIPE_SHADER_IR_NIR,
-   PIPE_SHADER_IR_NIR_SERIALIZED,
 };
 
 /**
@@ -1136,6 +813,308 @@ enum pipe_compute_cap
    PIPE_COMPUTE_CAP_IMAGES_SUPPORTED,
    PIPE_COMPUTE_CAP_SUBGROUP_SIZES,
    PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK,
+};
+
+struct pipe_caps {
+   bool graphics;
+   bool npot_textures;
+   bool anisotropic_filter;
+   bool occlusion_query;
+   bool query_time_elapsed;
+   bool texture_shadow_map;
+   bool texture_swizzle;
+   bool texture_mirror_clamp;
+   bool blend_equation_separate;
+   bool primitive_restart;
+   bool primitive_restart_fixed_index;
+   bool indep_blend_enable;
+   bool indep_blend_func;
+   bool fs_coord_origin_upper_left;
+   bool fs_coord_origin_lower_left;
+   bool fs_coord_pixel_center_half_integer;
+   bool fs_coord_pixel_center_integer;
+   bool depth_clip_disable;
+   bool depth_clip_disable_separate;
+   bool depth_clamp_enable;
+   bool shader_stencil_export;
+   bool vs_instanceid;
+   bool vertex_element_instance_divisor;
+   bool fragment_color_clamped;
+   bool mixed_colorbuffer_formats;
+   bool seamless_cube_map;
+   bool seamless_cube_map_per_texture;
+   bool conditional_render;
+   bool texture_barrier;
+   bool stream_output_pause_resume;
+   bool tgsi_can_compact_constants;
+   bool vertex_color_unclamped;
+   bool vertex_color_clamped;
+   bool quads_follow_provoking_vertex_convention;
+   bool user_vertex_buffers;
+   bool compute;
+   bool start_instance;
+   bool query_timestamp;
+   bool texture_multisample;
+   bool cube_map_array;
+   bool texture_buffer_objects;
+   bool buffer_sampler_view_rgba_only;
+   bool tgsi_texcoord;
+   bool query_pipeline_statistics;
+   bool mixed_framebuffer_sizes;
+   bool vs_layer_viewport;
+   bool texture_gather_sm5;
+   bool buffer_map_persistent_coherent;
+   bool fake_sw_msaa;
+   bool texture_query_lod;
+   bool sample_shading;
+   bool texture_gather_offsets;
+   bool vs_window_space_position;
+   bool draw_indirect;
+   bool fs_fine_derivative;
+   bool uma;
+   bool conditional_render_inverted;
+   bool sampler_view_target;
+   bool clip_halfz;
+   bool polygon_offset_clamp;
+   bool multisample_z_resolve;
+   bool resource_from_user_memory;
+   bool resource_from_user_memory_compute_only;
+   bool device_reset_status_query;
+   bool texture_float_linear;
+   bool texture_half_float_linear;
+   bool depth_bounds_test;
+   bool texture_query_samples;
+   bool force_persample_interp;
+   bool shareable_shaders;
+   bool copy_between_compressed_and_plain_formats;
+   bool clear_scissored;
+   bool draw_parameters;
+   bool shader_pack_half_float;
+   bool multi_draw_indirect;
+   bool multi_draw_indirect_params;
+   bool multi_draw_indirect_partial_stride;
+   bool fs_position_is_sysval;
+   bool fs_point_is_sysval;
+   bool fs_face_is_integer_sysval;
+   bool invalidate_buffer;
+   bool generate_mipmap;
+   bool string_marker;
+   bool surface_reinterpret_blocks;
+   bool query_buffer_object;
+   bool query_memory_info;
+   bool framebuffer_no_attachment;
+   bool robust_buffer_access_behavior;
+   bool cull_distance;
+   bool shader_group_vote;
+   bool polygon_offset_units_unscaled;
+   bool shader_array_components;
+   bool stream_output_interleave_buffers;
+   bool native_fence_fd;
+   bool glsl_tess_levels_as_inputs;
+   bool legacy_math_rules;
+   bool fp16;
+   bool doubles;
+   bool int64;
+   bool tgsi_tex_txf_lz;
+   bool shader_clock;
+   bool polygon_mode_fill_rectangle;
+   bool shader_ballot;
+   bool tes_layer_viewport;
+   bool can_bind_const_buffer_as_vertex;
+   bool allow_mapped_buffers_during_execution;
+   bool post_depth_coverage;
+   bool bindless_texture;
+   bool nir_samplers_as_deref;
+   bool query_so_overflow;
+   bool memobj;
+   bool load_constbuf;
+   bool tile_raster_order;
+   bool signed_vertex_buffer_offset;
+   bool fence_signal;
+   bool packed_uniforms;
+   bool conservative_raster_post_snap_triangles;
+   bool conservative_raster_post_snap_points_lines;
+   bool conservative_raster_pre_snap_triangles;
+   bool conservative_raster_pre_snap_points_lines;
+   bool conservative_raster_post_depth_coverage;
+   bool conservative_raster_inner_coverage;
+   bool programmable_sample_locations;
+   bool texture_mirror_clamp_to_edge;
+   bool surface_sample_count;
+   bool image_atomic_float_add;
+   bool query_pipeline_statistics_single;
+   bool dest_surface_srgb_control;
+   bool compute_grid_info_last_block;
+   bool compute_shader_derivatives;
+   bool image_load_formatted;
+   bool image_store_formatted;
+   bool throttle;
+   bool cl_gl_sharing;
+   bool prefer_compute_for_multimedia;
+   bool fragment_shader_interlock;
+   bool fbfetch_coherent;
+   bool atomic_float_minmax;
+   bool tgsi_div;
+   bool fragment_shader_texture_lod;
+   bool fragment_shader_derivatives;
+   bool texture_shadow_lod;
+   bool shader_samples_identical;
+   bool image_atomic_inc_wrap;
+   bool prefer_imm_arrays_as_constbuf;
+   bool gl_spirv;
+   bool gl_spirv_variable_pointers;
+   bool demote_to_helper_invocation;
+   bool tgsi_tg4_component_in_swizzle;
+   bool flatshade;
+   bool alpha_test;
+   bool two_sided_color;
+   bool opencl_integer_functions;
+   bool integer_multiply_32x16;
+   bool frontend_noop;
+   bool nir_images_as_deref;
+   bool packed_stream_output;
+   bool viewport_transform_lowered;
+   bool psiz_clamped;
+   bool viewport_swizzle;
+   bool system_svm;
+   bool viewport_mask;
+   bool alpha_to_coverage_dither_control;
+   bool map_unsynchronized_thread_safe;
+   bool blend_equation_advanced;
+   bool nir_atomics_as_deref;
+   bool no_clip_on_copy_tex;
+   bool shader_atomic_int64;
+   bool device_protected_surface;
+   bool prefer_real_buffer_in_constbuf0;
+   bool gl_clamp;
+   bool texrect;
+   bool sampler_reduction_minmax;
+   bool sampler_reduction_minmax_arb;
+   bool allow_dynamic_vao_fastpath;
+   bool emulate_nonfixed_primitive_restart;
+   bool prefer_back_buffer_reuse;
+   bool draw_vertex_state;
+   bool prefer_pot_aligned_varyings;
+   bool sparse_texture_full_array_cube_mipmaps;
+   bool query_sparse_texture_residency;
+   bool clamp_sparse_texture_lod;
+   bool allow_draw_out_of_order;
+   bool hardware_gl_select;
+   bool dithering;
+   bool fbfetch_zs;
+   bool timeline_semaphore_import;
+   bool device_protected_context;
+   bool allow_glthread_buffer_subdata_opt;
+   bool null_textures;
+   bool astc_void_extents_need_denorm_flush;
+   bool validate_all_dirty_states;
+   bool has_const_bw;
+   bool performance_monitor;
+   bool texture_sampler_independent;
+   bool astc_decode_mode;
+   bool shader_subgroup_quad_all_stages;
+   bool call_finalize_nir_in_linker;
+
+   int accelerated;
+   int min_texel_offset;
+   int max_texel_offset;
+   int min_texture_gather_offset;
+   int max_texture_gather_offset;
+
+   unsigned max_dual_source_render_targets;
+   unsigned max_render_targets;
+   unsigned max_texture_2d_size;
+   unsigned max_texture_3d_levels;
+   unsigned max_texture_cube_levels;
+   unsigned max_stream_output_buffers;
+   unsigned max_texture_array_layers;
+   unsigned max_stream_output_separate_components;
+   unsigned max_stream_output_interleaved_components;
+   unsigned glsl_feature_level;
+   unsigned glsl_feature_level_compatibility;
+   unsigned essl_feature_level;
+   unsigned constant_buffer_offset_alignment;
+   unsigned timer_resolution;
+   unsigned min_map_buffer_alignment;
+   unsigned texture_buffer_offset_alignment;
+   unsigned linear_image_pitch_alignment;
+   unsigned linear_image_base_address_alignment;
+   /* pipe_texture_transfer_mode */
+   unsigned texture_transfer_modes;
+   /* pipe_quirk_texture_border_color_swizzle */
+   unsigned texture_border_color_quirk;
+   unsigned max_texel_buffer_elements;
+   unsigned max_viewports;
+   unsigned max_geometry_output_vertices;
+   unsigned max_geometry_total_output_components;
+   unsigned max_texture_gather_components;
+   unsigned max_vertex_streams;
+   unsigned vendor_id;
+   unsigned device_id;
+   unsigned video_memory;
+   unsigned max_vertex_attrib_stride;
+   unsigned max_shader_patch_varyings;
+   unsigned shader_buffer_offset_alignment;
+   unsigned pci_group;
+   unsigned pci_bus;
+   unsigned pci_device;
+   unsigned pci_function;
+   unsigned max_window_rectangles;
+   unsigned viewport_subpixel_bits;
+   unsigned rasterizer_subpixel_bits;
+   unsigned mixed_color_depth_bits;
+   unsigned fbfetch;
+   unsigned sparse_buffer_page_size;
+   unsigned max_combined_shader_output_resources;
+   unsigned framebuffer_msaa_constraints;
+   unsigned context_priority_mask;
+   unsigned constbuf0_flags;
+   unsigned max_conservative_raster_subpixel_precision_bias;
+   unsigned max_gs_invocations;
+   unsigned max_shader_buffer_size;
+   unsigned max_combined_shader_buffers;
+   unsigned max_combined_hw_atomic_counters;
+   unsigned max_combined_hw_atomic_counter_buffers;
+   unsigned max_texture_upload_memory_budget;
+   unsigned max_vertex_element_src_offset;
+   unsigned max_varyings;
+   unsigned dmabuf;
+   unsigned clip_planes;
+   unsigned max_vertex_buffers;
+   unsigned gl_begin_end_buffer_size;
+   unsigned glsl_zero_init;
+   unsigned max_texture_mb;
+   unsigned supported_prim_modes;
+   unsigned supported_prim_modes_with_restart;
+   unsigned max_sparse_texture_size;
+   unsigned max_sparse_3d_texture_size;
+   unsigned max_sparse_array_texture_layers;
+   unsigned max_constant_buffer_size;
+   unsigned query_timestamp_bits;
+   unsigned shader_subgroup_size;
+   unsigned shader_subgroup_supported_stages;
+   unsigned shader_subgroup_supported_features;
+   unsigned multiview;
+
+   enum pipe_vertex_input_alignment vertex_input_alignment;
+   enum pipe_endian endianness;
+   enum pipe_point_size_lower_mode point_size_fixed;
+
+   float min_line_width;
+   float min_line_width_aa;
+   float max_line_width;
+   float max_line_width_aa;
+   float line_width_granularity;
+   float min_point_size;
+   float min_point_size_aa;
+   float max_point_size;
+   float max_point_size_aa;
+   float point_size_granularity;
+   float max_texture_anisotropy;
+   float max_texture_lod_bias;
+   float min_conservative_raster_dilate;
+   float max_conservative_raster_dilate;
+   float conservative_raster_dilate_granularity;
 };
 
 /**

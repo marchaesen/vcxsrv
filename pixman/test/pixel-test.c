@@ -2974,6 +2974,9 @@ done:
     pixman_image_unref (src);
     pixman_image_unref (dest);
 
+    if (have_mask)
+        pixman_image_unref (mask);
+
     return result;
 }
 

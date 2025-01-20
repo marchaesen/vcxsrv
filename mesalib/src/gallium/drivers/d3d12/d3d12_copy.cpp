@@ -270,7 +270,7 @@ create_staging_resource(struct d3d12_context *ctx,
 
    templ.format = src->base.b.format;
    templ.width0 = copy_src.width;
-   templ.height0 = copy_src.height;
+   templ.height0 = static_cast<uint16_t>(copy_src.height);
    templ.depth0 = copy_src.depth;
    templ.array_size = 1;
    templ.nr_samples = src->base.b.nr_samples;
@@ -346,7 +346,7 @@ d3d12_resource_copy_region(struct pipe_context *pctx,
 
    dst_box.x = dstx;
    dst_box.y = dsty;
-   dst_box.z = dstz;
+   dst_box.z = static_cast<int16_t>(dstz);
    dst_box.width = psrc_box->width;
    dst_box.height = psrc_box->height;
 

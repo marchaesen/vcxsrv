@@ -480,7 +480,7 @@ XRenderCompositeText8 (Display			    *dpy,
 	{
 	    int this_chars = nchars > MAX_8 ? MAX_8 : nchars;
 
-	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt))
+	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt));
 	    elt->len = (CARD8) this_chars;
 	    elt->deltax = (INT16) xDst;
 	    elt->deltay = (INT16) yDst;
@@ -594,7 +594,7 @@ XRenderCompositeText16 (Display			    *dpy,
 	    int this_chars = nchars > MAX_16 ? MAX_16 : nchars;
 	    int this_bytes = this_chars * 2;
 
-	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt))
+	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt));
 	    elt->len = (CARD8) this_chars;
 	    elt->deltax = (INT16) xDst;
 	    elt->deltay = (INT16) yDst;
@@ -703,7 +703,7 @@ XRenderCompositeText32 (Display			    *dpy,
 	{
 	    int this_chars = nchars > MAX_32 ? MAX_32 : nchars;
 	    int this_bytes = this_chars * 4;
-	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt))
+	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt));
 	    elt->len = (CARD8) this_chars;
 	    elt->deltax = (INT16) xDst;
 	    elt->deltay = (INT16) yDst;

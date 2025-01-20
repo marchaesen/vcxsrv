@@ -780,7 +780,7 @@ fields_missing = {
   },
   'gfx11': {
     "VGT_DRAW_PAYLOAD_CNTL": [["EN_VRS_RATE", 6, 6]],
-    # Only GFX1103_R2:
+    # Only Phoenix2:
     "CB_COLOR0_FDCC_CONTROL": [["DISABLE_OVERRIDE_INCONSISTENT_KEYS", 25, 25],
                                ["ENABLE_MAX_COMP_FRAG_OVERRIDE", 26, 26],
                                ["MAX_COMP_FRAGS", 27, 29]],

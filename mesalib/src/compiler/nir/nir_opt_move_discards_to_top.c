@@ -21,28 +21,28 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/u_dynarray.h"
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_control_flow.h"
-#include "nir_worklist.h"
 
-static bool
-nir_texop_implies_derivative(nir_texop op)
-{
-   return op == nir_texop_tex ||
-          op == nir_texop_txb ||
-          op == nir_texop_lod;
-}
-#define MOVE_INSTR_FLAG            1
-#define STOP_PROCESSING_INSTR_FLAG 2
+#define MAX_DISCARDS               254
+#define MOVE_INSTR_FLAG(i)         ((i) + 1)
+#define STOP_PROCESSING_INSTR_FLAG 255
+
+struct move_discard_state {
+   struct util_dynarray worklist;
+   unsigned discard_id;
+};
 
 /** Check recursively if the source can be moved to the top of the shader.
  *  Sets instr->pass_flags to MOVE_INSTR_FLAG and adds the instr
  *  to the given worklist
  */
 static bool
-can_move_src(nir_src *src, void *worklist)
+add_src_to_worklist(nir_src *src, void *state_)
 {
+   struct move_discard_state *state = state_;
    nir_instr *instr = src->ssa->parent_instr;
    if (instr->pass_flags)
       return true;
@@ -56,23 +56,40 @@ can_move_src(nir_src *src, void *worklist)
 
    if (instr->type == nir_instr_type_intrinsic) {
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-      if (intrin->intrinsic == nir_intrinsic_load_deref) {
-         nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-         if (!nir_deref_mode_is_one_of(deref, nir_var_read_only_modes))
+      switch (intrin->intrinsic) {
+      /* Increasing the set of active invocations is safe for these intrinsics, which is
+       * all that moving it to the top does. This is because the read from inactive
+       * invocations is undefined.
+       */
+      case nir_intrinsic_quad_swizzle_amd:
+         /* If FI=0, then these intrinsics return 0 for inactive invocations. */
+         if (!nir_intrinsic_fetch_inactive(intrin))
             return false;
-      } else if (!(nir_intrinsic_infos[intrin->intrinsic].flags &
-                   NIR_INTRINSIC_CAN_REORDER)) {
-         return false;
+         FALLTHROUGH;
+      case nir_intrinsic_ddx:
+      case nir_intrinsic_ddy:
+      case nir_intrinsic_ddx_fine:
+      case nir_intrinsic_ddy_fine:
+      case nir_intrinsic_ddx_coarse:
+      case nir_intrinsic_ddy_coarse:
+      case nir_intrinsic_quad_broadcast:
+      case nir_intrinsic_quad_swap_horizontal:
+      case nir_intrinsic_quad_swap_vertical:
+      case nir_intrinsic_quad_swap_diagonal:
+         break;
+      default:
+         if (!nir_intrinsic_can_reorder(intrin))
+            return false;
+         break;
       }
    }
 
-   /* set pass_flags and remember the instruction for potential cleanup */
-   instr->pass_flags = MOVE_INSTR_FLAG;
-   nir_instr_worklist_push_tail(worklist, instr);
+   /* Set pass_flags and remember the instruction to add it's own sources and for potential
+    * cleanup.
+    */
+   instr->pass_flags = MOVE_INSTR_FLAG(state->discard_id);
+   util_dynarray_append(&state->worklist, nir_instr *, instr);
 
-   if (!nir_foreach_src(instr, can_move_src, worklist)) {
-      return false;
-   }
    return true;
 }
 
@@ -85,43 +102,136 @@ can_move_src(nir_src *src, void *worklist)
  * Demote are handled the same way, except that they can still be moved up
  * when implicit derivatives are used.
  */
-static bool
-try_move_discard(nir_intrinsic_instr *discard)
+static void
+try_move_discard(nir_intrinsic_instr *discard, unsigned *next_discard_id)
 {
    /* We require the discard to be in the top level of control flow.  We
     * could, in theory, move discards that are inside ifs or loops but that
     * would be a lot more work.
     */
    if (discard->instr.block->cf_node.parent->type != nir_cf_node_function)
-      return false;
+      return;
+
+   if (*next_discard_id == MAX_DISCARDS)
+      return;
+
+   discard->instr.pass_flags = MOVE_INSTR_FLAG(*next_discard_id);
 
    /* Build the set of all instructions discard depends on to be able to
     * clear the flags in case the discard cannot be moved.
     */
-   nir_instr_worklist *work = nir_instr_worklist_create();
-   if (!work)
-      return false;
-   discard->instr.pass_flags = MOVE_INSTR_FLAG;
+   nir_instr *work_[64];
+   struct move_discard_state state;
+   state.discard_id = *next_discard_id;
+   util_dynarray_init_from_stack(&state.worklist, work_, sizeof(work_));
+   util_dynarray_append(&state.worklist, nir_instr *, &discard->instr);
 
-   bool can_move_discard = can_move_src(&discard->src[0], work);
-   if (!can_move_discard) {
-      /* Moving the discard is impossible: clear the flags */
-      discard->instr.pass_flags = 0;
-      nir_foreach_instr_in_worklist(instr, work)
-         instr->pass_flags = 0;
+   unsigned next = 0;
+   bool can_move_discard = true;
+   while (next < util_dynarray_num_elements(&state.worklist, nir_instr *) && can_move_discard) {
+      nir_instr *instr = *util_dynarray_element(&state.worklist, nir_instr *, next);
+      next++;
+      /* Instead of removing instructions from the worklist, we keep them so that the
+       * flags can be cleared if we fail.
+       */
+      can_move_discard = nir_foreach_src(instr, add_src_to_worklist, &state.worklist);
    }
 
-   nir_instr_worklist_destroy(work);
+   if (!can_move_discard) {
+      /* Moving the discard is impossible: clear the flags */
+      util_dynarray_foreach(&state.worklist, nir_instr *, instr)
+         (*instr)->pass_flags = 0;
+   } else {
+      (*next_discard_id)++;
+   }
 
-   return can_move_discard;
+   util_dynarray_fini(&state.worklist);
+}
+
+enum intrinsic_discard_info {
+   can_move_after_demote = 1 << 0,
+   can_move_after_terminate = 1 << 1,
+};
+
+static enum intrinsic_discard_info
+can_move_intrinsic_after_discard(nir_intrinsic_instr *intrin)
+{
+   if (nir_intrinsic_can_reorder(intrin))
+      return can_move_after_demote | can_move_after_terminate;
+
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_quad_broadcast:
+   case nir_intrinsic_quad_swap_horizontal:
+   case nir_intrinsic_quad_swap_vertical:
+   case nir_intrinsic_quad_swap_diagonal:
+   case nir_intrinsic_quad_vote_all:
+   case nir_intrinsic_quad_vote_any:
+   case nir_intrinsic_quad_swizzle_amd:
+   case nir_intrinsic_ddx:
+   case nir_intrinsic_ddx_fine:
+   case nir_intrinsic_ddx_coarse:
+   case nir_intrinsic_ddy:
+   case nir_intrinsic_ddy_fine:
+   case nir_intrinsic_ddy_coarse:
+      return can_move_after_demote;
+   case nir_intrinsic_is_helper_invocation:
+   case nir_intrinsic_load_helper_invocation:
+      return can_move_after_terminate;
+   case nir_intrinsic_load_param:
+   case nir_intrinsic_load_deref:
+   case nir_intrinsic_decl_reg:
+   case nir_intrinsic_load_reg:
+   case nir_intrinsic_load_reg_indirect:
+   case nir_intrinsic_as_uniform:
+   case nir_intrinsic_inverse_ballot:
+   case nir_intrinsic_write_invocation_amd:
+   case nir_intrinsic_mbcnt_amd:
+   case nir_intrinsic_atomic_counter_read:
+   case nir_intrinsic_atomic_counter_read_deref:
+   case nir_intrinsic_image_deref_load:
+   case nir_intrinsic_image_load:
+   case nir_intrinsic_bindless_image_load:
+   case nir_intrinsic_image_deref_sparse_load:
+   case nir_intrinsic_image_sparse_load:
+   case nir_intrinsic_bindless_image_sparse_load:
+   case nir_intrinsic_image_deref_samples_identical:
+   case nir_intrinsic_image_samples_identical:
+   case nir_intrinsic_bindless_image_samples_identical:
+   case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_output:
+   case nir_intrinsic_load_shared:
+   case nir_intrinsic_load_global:
+   case nir_intrinsic_load_global_2x32:
+   case nir_intrinsic_load_scratch:
+   case nir_intrinsic_load_stack:
+   case nir_intrinsic_load_buffer_amd:
+   case nir_intrinsic_load_typed_buffer_amd:
+   case nir_intrinsic_load_global_amd:
+   case nir_intrinsic_load_shared2_amd:
+      return can_move_after_demote | can_move_after_terminate;
+   case nir_intrinsic_store_deref:
+      if (!nir_deref_mode_is_in_set(nir_src_as_deref(intrin->src[0]),
+                                    nir_var_shader_temp | nir_var_function_temp)) {
+         break;
+      }
+      FALLTHROUGH;
+   case nir_intrinsic_store_reg:
+   case nir_intrinsic_store_reg_indirect:
+   case nir_intrinsic_store_scratch:
+      return can_move_after_demote | can_move_after_terminate;
+   default:
+      break;
+   }
+
+   return 0;
 }
 
 static bool
 opt_move_discards_to_top_impl(nir_function_impl *impl)
 {
    bool progress = false;
-   bool consider_discards = true;
-   bool moved = false;
+   bool consider_terminates = true;
+   unsigned next_discard_id = 0;
 
    /* Walk through the instructions and look for a discard that we can move
     * to the top of the program.  If we hit any operation along the way that
@@ -149,65 +259,34 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
 
          case nir_instr_type_tex: {
             nir_tex_instr *tex = nir_instr_as_tex(instr);
-            if (nir_texop_implies_derivative(tex->op))
-               consider_discards = false;
+            if (nir_tex_instr_has_implicit_derivative(tex))
+               consider_terminates = false;
             continue;
          }
 
          case nir_instr_type_intrinsic: {
             nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-            if (nir_intrinsic_writes_external_memory(intrin)) {
-               instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
-               goto break_all;
-            }
             switch (intrin->intrinsic) {
-            case nir_intrinsic_quad_broadcast:
-            case nir_intrinsic_quad_swap_horizontal:
-            case nir_intrinsic_quad_swap_vertical:
-            case nir_intrinsic_quad_swap_diagonal:
-            case nir_intrinsic_quad_vote_all:
-            case nir_intrinsic_quad_vote_any:
-            case nir_intrinsic_quad_swizzle_amd:
-            case nir_intrinsic_ddx:
-            case nir_intrinsic_ddx_fine:
-            case nir_intrinsic_ddx_coarse:
-            case nir_intrinsic_ddy:
-            case nir_intrinsic_ddy_fine:
-            case nir_intrinsic_ddy_coarse:
-               consider_discards = false;
-               break;
-            case nir_intrinsic_vote_any:
-            case nir_intrinsic_vote_all:
-            case nir_intrinsic_vote_feq:
-            case nir_intrinsic_vote_ieq:
-            case nir_intrinsic_ballot:
-            case nir_intrinsic_first_invocation:
-            case nir_intrinsic_read_invocation:
-            case nir_intrinsic_read_first_invocation:
-            case nir_intrinsic_elect:
-            case nir_intrinsic_reduce:
-            case nir_intrinsic_inclusive_scan:
-            case nir_intrinsic_exclusive_scan:
-            case nir_intrinsic_shuffle:
-            case nir_intrinsic_shuffle_xor:
-            case nir_intrinsic_shuffle_up:
-            case nir_intrinsic_shuffle_down:
-            case nir_intrinsic_rotate:
-            case nir_intrinsic_masked_swizzle_amd:
-               instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
-               goto break_all;
             case nir_intrinsic_terminate_if:
-               if (!consider_discards) {
+               if (!consider_terminates) {
                   /* assume that a shader either uses terminate or demote, but not both */
                   instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
                   goto break_all;
                }
             FALLTHROUGH;
             case nir_intrinsic_demote_if:
-               moved = moved || try_move_discard(intrin);
+               try_move_discard(intrin, &next_discard_id);
                break;
-            default:
+            default: {
+               enum intrinsic_discard_info info = can_move_intrinsic_after_discard(intrin);
+               if (!(info & can_move_after_demote)) {
+                  instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
+                  goto break_all;
+               } else if (!(info & can_move_after_terminate)) {
+                  consider_terminates = false;
+               }
                break;
+            }
             }
             continue;
          }
@@ -229,26 +308,51 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
    }
 break_all:
 
-   if (moved) {
-      /* Walk the list of instructions and move the discard/demote and
-       * everything it depends on to the top.  We walk the instruction list
-       * here because it ensures that everything stays in its original order.
-       * This provides stability for the algorithm and ensures that we don't
-       * accidentally get dependencies out-of-order.
-       */
-      nir_cursor cursor = nir_before_impl(impl);
-      nir_foreach_block(block, impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->pass_flags == STOP_PROCESSING_INSTR_FLAG)
-               return progress;
-            if (instr->pass_flags == MOVE_INSTR_FLAG) {
-               progress |= nir_instr_move(cursor, instr);
-               cursor = nir_after_instr(instr);
-            }
+   if (next_discard_id == 0)
+      return false;
+
+   /* Walk the list of instructions and move the discard/demote and
+    * everything it depends on to the top.  We walk the instruction list
+    * here because it ensures that everything stays in its original order.
+    * This provides stability for the algorithm and ensures that we don't
+    * accidentally get dependencies out-of-order.
+    */
+   BITSET_DECLARE(cursors_valid, MAX_DISCARDS) = { 1u };
+   nir_cursor cursors_[32];
+   struct util_dynarray cursors;
+   util_dynarray_init_from_stack(&cursors, cursors_, sizeof(cursors_));
+   if (!util_dynarray_resize(&cursors, nir_cursor, next_discard_id))
+      return false;
+
+   *util_dynarray_element(&cursors, nir_cursor, 0) = nir_before_impl(impl);
+
+   nir_foreach_block(block, impl) {
+      bool stop = false;
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->pass_flags == 0)
+            continue;
+
+         if (instr->pass_flags == STOP_PROCESSING_INSTR_FLAG) {
+            stop = true;
+            break;
          }
+
+         unsigned index = instr->pass_flags - 1;
+         nir_cursor *cursor = util_dynarray_element(&cursors, nir_cursor, index);
+         if (!BITSET_TEST(cursors_valid, index)) {
+            unsigned prev_idx = BITSET_LAST_BIT_BEFORE(cursors_valid, index) - 1;
+            *cursor = *util_dynarray_element(&cursors, nir_cursor, prev_idx);
+            BITSET_SET(cursors_valid, index);
+         }
+
+         progress |= nir_instr_move(*cursor, instr);
+         *cursor = nir_after_instr(instr);
       }
+      if (stop)
+         break;
    }
 
+   util_dynarray_fini(&cursors);
    return progress;
 }
 

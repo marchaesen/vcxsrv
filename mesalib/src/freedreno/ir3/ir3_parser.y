@@ -70,7 +70,12 @@ static struct ir3_instruction    *instr;   /* current instruction */
 static unsigned ip; /* current instruction pointer */
 static struct hash_table *labels;
 
+static bool is_in_fullnop_section;
+static bool is_in_fullsync_section;
+
 void *ir3_parser_dead_ctx;
+
+char* current_line;
 
 static struct {
 	unsigned flags;
@@ -108,6 +113,21 @@ static struct ir3_instruction * new_instr(opc_t opc)
 	instr->nop = iflags.nop;
 	instr->line = ir3_yyget_lineno();
 	iflags.flags = iflags.repeat = iflags.nop = 0;
+
+	if (is_in_fullnop_section) {
+		struct ir3_instruction *nop =
+			ir3_instr_create_at(ir3_before_instr(instr), OPC_NOP, 0, 0);
+		nop->repeat = 5;
+		ip++;
+	}
+
+	if (is_in_fullsync_section) {
+		struct ir3_instruction *nop =
+			ir3_instr_create_at(ir3_before_instr(instr), OPC_NOP, 0, 0);
+		nop->flags = IR3_INSTR_SS | IR3_INSTR_SY;
+		ip++;
+	}
+
 	ip++;
 	return instr;
 }
@@ -148,6 +168,9 @@ static type_t parse_type(const char **type)
 	} else if (!strncmp("u8_32", *type, 5)) {
 		*type += 5;
 		return TYPE_U8_32;
+	} else if (!strncmp("u64", *type, 3)) {
+		*type += 3;
+		return TYPE_ATOMIC_U64;
 	} else {
 		assert(0);  /* shouldn't get here */
 		return ~0;
@@ -202,16 +225,19 @@ static void fixup_cat5_s2en(void)
 	 * is first, rather than last.  So we have to detect this case and
 	 * fix things up.
 	 */
-	struct ir3_register *s2en_src = instr->srcs[instr->srcs_count - 1];
+
+	uint32_t s2en_off = instr->srcs_count - 1;
+	if (instr->flags & IR3_INSTR_A1EN)
+		s2en_off = instr->srcs_count - 2;
+
+	struct ir3_register *s2en_src = instr->srcs[s2en_off];
 
 	if (instr->flags & IR3_INSTR_B)
 		assert(!(s2en_src->flags & IR3_REG_HALF));
 	else
 		assert(s2en_src->flags & IR3_REG_HALF);
 
-	for (int i = 0; i < instr->srcs_count - 1; i++) {
-		instr->srcs[i+1] = instr->srcs[i];
-	}
+	memmove(instr->srcs + 1, instr->srcs, s2en_off * sizeof(instr->srcs[0]));
 	instr->srcs[0] = s2en_src;
 }
 
@@ -291,7 +317,7 @@ int yyparse(void);
 
 static void yyerror(const char *error)
 {
-	fprintf(stderr, "error at line %d: %s\n", ir3_yyget_lineno(), error);
+	fprintf(stderr, "error at line %d: %s\n%s\n", ir3_yyget_lineno(), error, current_line);
 }
 
 struct ir3 * ir3_parse(struct ir3_shader_variant *v,
@@ -304,6 +330,10 @@ struct ir3 * ir3_parse(struct ir3_shader_variant *v,
 #endif
 	info = k;
 	variant = v;
+
+	is_in_fullnop_section = false;
+	is_in_fullsync_section = false;
+
 	if (yyparse() || !resolve_labels()) {
 		ir3_destroy(variant->ir);
 		variant->ir = NULL;
@@ -359,7 +389,12 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_A_OUT
 %token <tok> T_A_TEX
 %token <tok> T_A_PVTMEM
+%token <tok> T_A_LOCALMEM
 %token <tok> T_A_EARLYPREAMBLE
+%token <tok> T_A_FULLNOPSTART
+%token <tok> T_A_FULLNOPEND
+%token <tok> T_A_FULLSYNCSTART
+%token <tok> T_A_FULLSYNCEND
 /* todo, re-add @sampler/@uniform/@varying if needed someday */
 
 /* src register flags */
@@ -673,6 +708,7 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %token <tok> T_TYPE_S32
 %token <tok> T_TYPE_U8
 %token <tok> T_TYPE_U8_32
+%token <tok> T_TYPE_U64
 
 %token <tok> T_UNTYPED
 %token <tok> T_TYPED
@@ -726,7 +762,7 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %type <num> integer offset uoffset
 %type <num> flut_immed
 %type <flt> float
-%type <reg> src dst const cat0_src1 cat0_src2
+%type <reg> dst const src_gpr src_a0 src_a1 src_p0 cat0_src1 cat0_src2
 %type <tok> cat1_opc
 %type <tok> cat2_opc_1src cat2_opc_2src_cnd cat2_opc_2src
 %type <tok> cat3_opc
@@ -757,6 +793,7 @@ header:            localsize_header
 |                  out_header
 |                  tex_header
 |                  pvtmem_header
+|                  localmem_header
 |                  earlypreamble_header
 
 const_val:         T_FLOAT   { $$ = fui($1); }
@@ -829,6 +866,8 @@ branchstack_header: T_A_BRANCHSTACK const_val { variant->branchstack = $2; }
 
 pvtmem_header: T_A_PVTMEM const_val { variant->pvtmem_size = $2; }
 
+localmem_header: T_A_LOCALMEM const_val { variant->shared_size = $2; }
+
 earlypreamble_header: T_A_EARLYPREAMBLE { variant->early_preamble = 1; }
 
 /* Stubs for now */
@@ -842,6 +881,11 @@ tex_header:        T_A_TEX '(' T_REGISTER ')'
                        T_IDENTIFIER '=' integer ',' /* tex */
                        T_IDENTIFIER '=' integer ',' /* wrmask */
                        T_IDENTIFIER '=' integer     /* cmd */ { }
+
+fullnop_start_section: T_A_FULLNOPSTART { is_in_fullnop_section = true; }
+fullnop_end_section: T_A_FULLNOPEND { is_in_fullnop_section = false; }
+fullsync_start_section: T_A_FULLSYNCSTART { is_in_fullsync_section = true; }
+fullsync_end_section: T_A_FULLSYNCEND { is_in_fullsync_section = false; }
 
 iflag:             T_SY   { iflags.flags |= IR3_INSTR_SY; }
 |                  T_SS   { iflags.flags |= IR3_INSTR_SS; }
@@ -869,6 +913,10 @@ instr:             iflags cat0_instr
 |                  raw_instr
 |                  meta_print
 |                  label
+|                  fullnop_start_section
+|                  fullnop_end_section
+|                  fullsync_start_section
+|                  fullsync_end_section
 
 label:             T_IDENTIFIER ':' { new_label($1); }
 
@@ -1140,9 +1188,9 @@ cat5_flags:
 cat5_samp:         T_SAMP         { instr->cat5.samp = $1; }
 cat5_tex:          T_TEX          { instr->cat5.tex = $1; }
 cat5_type:         '(' type ')'   { instr->cat5.type = $2; }
-cat5_a1:           src_reg        { instr->flags |= IR3_INSTR_A1EN; }
+cat5_a1:           src_a1         { instr->flags |= IR3_INSTR_A1EN; }
 
-cat5_samp_tex:     src_reg
+cat5_samp_tex:     src_gpr
 |                  cat5_samp ',' cat5_tex
 |                  cat5_samp
 |                  cat5_tex
@@ -1150,15 +1198,16 @@ cat5_samp_tex:     src_reg
 cat5_samp_tex_all: cat5_samp_tex
 |                  cat5_samp ',' cat5_a1
 |                  cat5_tex ',' cat5_a1
+|                  src_gpr ',' cat5_a1
 
-cat5_instr:        cat5_opc_dsxypp cat5_flags dst_reg ',' src_reg
-|                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' cat5_samp_tex_all
-|                  cat5_opc cat5_flags cat5_type dst_reg ',' src_reg ',' cat5_samp_tex_all
+cat5_instr:        cat5_opc_dsxypp cat5_flags dst_reg ',' src_gpr
+|                  cat5_opc cat5_flags cat5_type dst_reg ',' src_gpr ',' src_gpr ',' cat5_samp_tex_all
+|                  cat5_opc cat5_flags cat5_type dst_reg ',' src_gpr ',' cat5_samp_tex_all
 |                  cat5_opc cat5_flags cat5_type dst_reg ',' cat5_samp_tex
 |                  cat5_opc cat5_flags cat5_type dst_reg
-|                  cat5_opc_isam cat5_flags cat5_type dst_reg ',' src_reg ',' src_reg ',' cat5_samp_tex_all
-|                  cat5_opc_isam cat5_flags cat5_type dst_reg ',' src_reg ',' cat5_samp_tex_all
-|                  cat5_opc_isam '.' 'v' cat5_flags cat5_type dst_reg ',' src_reg src_uoffset ',' cat5_samp_tex_all { instr->flags |= IR3_INSTR_V; }
+|                  cat5_opc_isam cat5_flags cat5_type dst_reg ',' src_gpr ',' src_gpr ',' cat5_samp_tex_all
+|                  cat5_opc_isam cat5_flags cat5_type dst_reg ',' src_gpr ',' cat5_samp_tex_all
+|                  cat5_opc_isam '.' 'v' cat5_flags cat5_type dst_reg ',' src_gpr src_uoffset ',' cat5_samp_tex_all { instr->flags |= IR3_INSTR_V; }
 |                  T_OP_TCINV { new_instr(OPC_TCINV); }
 
 cat6_typed:        '.' T_UNTYPED  { instr->cat6.typed = 0; }
@@ -1481,10 +1530,15 @@ meta_print: meta_print_start meta_print_regs {
 	}
 }
 
-src:               T_REGISTER     { $$ = new_src($1, 0); }
-|                  T_A0           { $$ = new_src((61 << 3), IR3_REG_HALF); }
-|                  T_A1           { $$ = new_src((61 << 3) + 1, IR3_REG_HALF); }
-|                  T_P0           { $$ = new_src((62 << 3) + $1, IR3_REG_PREDICATE); }
+src_gpr:           T_REGISTER     { $$ = new_src($1, 0); }
+src_a0:            T_A0           { $$ = new_src((61 << 3), IR3_REG_HALF); }
+src_a1:            T_A1           { $$ = new_src((61 << 3) + 1, IR3_REG_HALF); }
+src_p0:            T_P0           { $$ = new_src((62 << 3) + $1, IR3_REG_PREDICATE); }
+
+src:               src_gpr
+|                  src_a0
+|                  src_a1
+|                  src_p0
 
 dst:               T_REGISTER     { $$ = new_dst($1, 0); }
 |                  T_A0           { $$ = new_dst((61 << 3), IR3_REG_HALF); }
@@ -1615,3 +1669,4 @@ type:              T_TYPE_F16   { $$ = TYPE_F16;   }
 |                  T_TYPE_S32   { $$ = TYPE_S32;   }
 |                  T_TYPE_U8    { $$ = TYPE_U8;    }
 |                  T_TYPE_U8_32 { $$ = TYPE_U8_32; }
+|                  T_TYPE_U64   { $$ = TYPE_ATOMIC_U64;  }

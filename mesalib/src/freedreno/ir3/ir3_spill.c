@@ -127,6 +127,7 @@ static void
 add_base_reg(struct ra_spill_ctx *ctx, struct ir3 *ir)
 {
    struct ir3_block *start = ir3_start_block(ir);
+   struct ir3_builder build = ir3_builder_at(ir3_after_block(start));
 
    /* We need to stick it after any meta instructions which need to be first. */
    struct ir3_instruction *after = NULL;
@@ -138,7 +139,7 @@ add_base_reg(struct ra_spill_ctx *ctx, struct ir3 *ir)
       }
    }
 
-   struct ir3_instruction *mov = create_immed(start, 0);
+   struct ir3_instruction *mov = create_immed(&build, 0);
 
    if (after)
       ir3_instr_move_before(mov, after);

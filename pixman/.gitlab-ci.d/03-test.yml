@@ -9,14 +9,7 @@
 # better in CI to indicate what is actually being tested.
 #
 # Some emulated targets are really slow or cannot be run in multithreaded mode
-# (e.g., arm:v5), thus it's required to increase the timeout for them.
-#
-# Some jobs have `--gcov-ignore-parse-errors`, and `MESON_TESTTHREADS=1`
-# specified. It prevents gcovr failing in case of negative counter warning for
-# platforms which don't support atomic profile update. Because of that, some
-# results might be not 100% correct but, still, it's better to include them in
-# the final coverage report, as it's not really important how many times given
-# line is hit, but that it's hit at all.
+# (mipsel, arm-v5). Thus coverage reporting is disabled for them.
 
 variables:
   # Used in summary stage as well.
@@ -28,25 +21,11 @@ include:
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-386
-      toolchain: [gnu]
+      toolchain: [gnu]  # TODO LLVM issue: https://gitlab.freedesktop.org/pixman/pixman/-/issues/106
       pixman_disable:
         - "sse2 ssse3"  # Testing "mmx"
         - "mmx ssse3"  # Testing "sse2"
         - "mmx sse2"  # Testing "ssse3"
-  # TODO: Merge up after resolving
-  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/106
-  - local: .gitlab-ci.d/templates/test.yml
-    inputs:
-      target: linux-386
-      toolchain: [llvm]
-      pixman_disable:
-        # Same as above.
-        - "sse2 ssse3"
-        - "mmx ssse3"
-        - "mmx sse2"
-      job_name_suffix: ":failing"
-      allow_failure: true
-      retry: 0
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-amd64
@@ -57,95 +36,61 @@ include:
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-arm-v5
-      toolchain: [gnu]
+      toolchain: [gnu]  # TODO: https://gitlab.freedesktop.org/pixman/pixman/-/issues/107
       qemu_cpu: [arm1136]
       pixman_disable: ["arm-neon"] # Test only arm-simd.
       timeout: 3h
       test_timeout_multiplier: 40
-      meson_testthreads: 1
-      gcovr_flags: --gcov-ignore-parse-errors
-  # TODO: Merge up after resolving
-  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/107
-  - local: .gitlab-ci.d/templates/test.yml
-    inputs:
-      target: linux-arm-v5
-      toolchain: [llvm]
-      qemu_cpu: [arm1136]
-      pixman_disable: ["arm-neon"] # Test only arm-simd.
-      timeout: 3h
-      test_timeout_multiplier: 40
-      meson_testthreads: 1
-      job_name_suffix: ":failing"
-      allow_failure: true
-      retry: 0
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-arm-v7
+      toolchain: [gnu]  # TODO: https://gitlab.freedesktop.org/pixman/pixman/-/issues/113
       qemu_cpu: [max]
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-arm64-v8
-      qemu_cpu: [max]
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-mips
       toolchain: [gnu]  # TODO: Add llvm once the build is fixed.
       qemu_cpu: [74Kf]
+      job_name_prefix: "."
       job_name_suffix: ":failing"
       allow_failure: true  # Some tests seem to fail.
       retry: 0
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
-      target: linux-mips64el
-      toolchain: [gnu]
+      target: linux-mips64le
+      toolchain: [gnu]  # TODO: https://gitlab.freedesktop.org/pixman/pixman/-/issues/108
       qemu_cpu: [Loongson-3A4000]
-  # TODO: Merge up after resolving
-  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/108
-  - local: .gitlab-ci.d/templates/test.yml
-    inputs:
-      target: linux-mips64el
-      toolchain: [llvm]
-      qemu_cpu: [Loongson-3A4000]
-      job_name_suffix: ":failing"
-      allow_failure: true
-      retry: 0
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-mipsel
       toolchain: [gnu]  # TODO: Add llvm once the build is fixed.
       qemu_cpu: [74Kf]
       timeout: 2h
-      meson_testthreads: 1
-      gcovr_flags: --gcov-ignore-parse-errors
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-ppc
       qemu_cpu: [g4]
-      job_name_suffix: ":failing"
-      allow_failure: true  # SIGILL for some tests
-      retry: 0
+      timeout: 2h
+      test_timeout_multiplier: 30
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-ppc64
-      qemu_cpu: [ppc64]
-      job_name_suffix: ":failing"
-      allow_failure: true  # SIGSEGV for some tests
-      retry: 0
+      qemu_cpu: [power9]
+      timeout: 2h
+      test_timeout_multiplier: 30
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-ppc64le
-      toolchain: [gnu]
       qemu_cpu: [power10]
-  # TODO: Merge up after resolving
-  # https://gitlab.freedesktop.org/pixman/pixman/-/issues/109
-  - local: .gitlab-ci.d/templates/test.yml
-    inputs:
-      target: linux-ppc64le
-      toolchain: [llvm]
-      qemu_cpu: [power10]
-      job_name_suffix: ":failing"
-      allow_failure: true
-      retry: 0
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-riscv64
@@ -177,4 +122,5 @@ include:
     inputs:
       target: windows-arm64-v8
       toolchain: [llvm]
-      qemu_cpu: [max]
+      runner_tag: kvm-aarch64
+      docker_job: docker:kvm-aarch64

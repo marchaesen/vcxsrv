@@ -49,7 +49,7 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    assert(location < 64);
 
    const struct glsl_type *type = var->type;
-   if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
+   if (nir_is_arrayed_io(var, stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -337,7 +337,7 @@ get_unmoveable_components_masks(nir_shader *shader,
           var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
-         if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
+         if (nir_is_arrayed_io(var, stage)) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -438,7 +438,7 @@ remap_slots_and_components(nir_shader *shader, nir_variable_mode mode,
           var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
-         if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
+         if (nir_is_arrayed_io(var, stage)) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -578,7 +578,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
             continue;
 
          const struct glsl_type *type = var->type;
-         if (nir_is_arrayed_io(var, producer->info.stage) || var->data.per_view) {
+         if (nir_is_arrayed_io(var, producer->info.stage)) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -641,8 +641,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
 
          if (!vc_info->initialised) {
             const struct glsl_type *type = in_var->type;
-            if (nir_is_arrayed_io(in_var, consumer->info.stage) ||
-                in_var->data.per_view) {
+            if (nir_is_arrayed_io(in_var, consumer->info.stage)) {
                assert(glsl_type_is_array(type));
                type = glsl_get_array_element(type);
             }
@@ -654,7 +653,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
             vc_info->is_32bit = glsl_type_is_32bit(type);
             vc_info->is_patch = in_var->data.patch;
             vc_info->is_per_primitive = in_var->data.per_primitive;
-            vc_info->is_mediump = !producer->options->linker_ignore_precision &&
+            vc_info->is_mediump = !(producer->options->io_options & nir_io_mediump_is_32bit) &&
                                   (in_var->data.precision == GLSL_PRECISION_MEDIUM ||
                                    in_var->data.precision == GLSL_PRECISION_LOW);
             vc_info->is_intra_stage_only = false;
@@ -720,7 +719,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
                vc_info->is_32bit = glsl_type_is_32bit(type);
                vc_info->is_patch = out_var->data.patch;
                vc_info->is_per_primitive = out_var->data.per_primitive;
-               vc_info->is_mediump = !producer->options->linker_ignore_precision &&
+               vc_info->is_mediump = !(producer->options->io_options & nir_io_mediump_is_32bit) &&
                                      (out_var->data.precision == GLSL_PRECISION_MEDIUM ||
                                       out_var->data.precision == GLSL_PRECISION_LOW);
                vc_info->is_intra_stage_only = true;
@@ -1202,9 +1201,18 @@ nir_clone_deref_instr(nir_builder *b, nir_variable *var,
     */
    switch (deref->deref_type) {
    case nir_deref_type_array: {
-      nir_load_const_instr *index =
-         nir_instr_as_load_const(deref->arr.index.ssa->parent_instr);
-      return nir_build_deref_array_imm(b, parent, index->value->i64);
+      if (b->shader ==
+          nir_cf_node_get_function(&deref->instr.block->cf_node)->function->shader) {
+         /* Cloning within the same shader. */
+         return nir_build_deref_array(b, parent, deref->arr.index.ssa);
+      } else {
+         /* Cloning to a different shader. The index must be constant because
+          * we don't implement cloning the index SSA here.
+          */
+         nir_load_const_instr *index =
+            nir_instr_as_load_const(deref->arr.index.ssa->parent_instr);
+         return nir_build_deref_array_imm(b, parent, index->value->i64);
+      }
    }
    case nir_deref_type_ptr_as_array: {
       nir_load_const_instr *index =
@@ -1400,22 +1408,11 @@ nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer)
       }
 
       nir_scalar uni_scalar;
-      if (is_direct_uniform_load(ssa, &uni_scalar)) {
-         if (consumer->options->lower_varying_from_uniform) {
-            progress |= replace_varying_input_by_uniform_load(consumer, intr,
-                                                              &uni_scalar);
-            continue;
-         } else {
-            nir_variable *in_var = get_matching_input_var(consumer, out_var);
-            /* The varying is loaded from same uniform, so no need to do any
-             * interpolation. Mark it as flat explicitly.
-             */
-            if (!consumer->options->no_integers &&
-                in_var && in_var->data.interpolation <= INTERP_MODE_NOPERSPECTIVE) {
-               in_var->data.interpolation = INTERP_MODE_FLAT;
-               out_var->data.interpolation = INTERP_MODE_FLAT;
-            }
-         }
+      if (consumer->options->max_varying_expression_cost >= 2 &&
+          is_direct_uniform_load(ssa, &uni_scalar)) {
+         progress |= replace_varying_input_by_uniform_load(consumer, intr,
+                                                           &uni_scalar);
+         continue;
       }
 
       struct hash_entry *entry = _mesa_hash_table_search(varying_values, ssa);
@@ -1541,18 +1538,17 @@ nir_assign_io_var_locations(nir_shader *shader, nir_variable_mode mode,
             last_partial = false;
          }
 
-         /* per-view variables have an extra array dimension, which is ignored
-          * when counting user-facing slots (var->data.location), but *not*
-          * with driver slots (var->data.driver_location). That is, each user
-          * slot maps to multiple driver slots.
-          */
-         driver_size = glsl_count_attribute_slots(type, false);
-         if (var->data.per_view) {
-            assert(glsl_type_is_array(type));
-            var_size =
-               glsl_count_attribute_slots(glsl_get_array_element(type), false);
+         var_size = glsl_count_attribute_slots(type, false);
+         if (var->data.per_view &&
+             shader->options->per_view_unique_driver_locations) {
+            /* per-view variables have an extra array dimension, which is
+             * ignored when counting user-facing slots (var->data.location),
+             * but *not* with driver slots (var->data.driver_location). That
+             * is, each user slot maps to multiple driver slots. */
+            const struct glsl_type *array_type = var->type;
+            driver_size = glsl_count_attribute_slots(array_type, false);
          } else {
-            var_size = driver_size;
+            driver_size = var_size;
          }
       }
 

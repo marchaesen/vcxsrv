@@ -655,6 +655,11 @@ pixman_implementation_t *
 _pixman_implementation_create_vmx (pixman_implementation_t *fallback);
 #endif
 
+#ifdef USE_RVV
+pixman_implementation_t *
+_pixman_implementation_create_rvv (pixman_implementation_t *fallback);
+#endif
+
 pixman_bool_t
 _pixman_implementation_disabled (const char *name);
 
@@ -669,6 +674,9 @@ _pixman_ppc_get_implementations (pixman_implementation_t *imp);
 
 pixman_implementation_t *
 _pixman_mips_get_implementations (pixman_implementation_t *imp);
+
+pixman_implementation_t *
+_pixman_riscv_get_implementations (pixman_implementation_t *imp);
 
 pixman_implementation_t *
 _pixman_choose_implementation (void);
@@ -820,7 +828,25 @@ get_implementation (void)
  * of the ABI.
  */
 PIXMAN_EXPORT pixman_implementation_t *
+_pixman_internal_only_get_reference_implementation (void);
+
+/* This function is exported for the sake of the test suite and not part
+ * of the ABI.
+ */
+PIXMAN_EXPORT pixman_implementation_t *
 _pixman_internal_only_get_implementation (void);
+
+/* This function is exported for the sake of the test suite and not part
+ * of the ABI.
+ */
+PIXMAN_EXPORT pixman_fast_path_t *
+_pixman_implementation_get_reference_fast_path (void);
+
+/* This function is exported for the sake of the test suite and not part
+ * of the ABI.
+ */
+PIXMAN_EXPORT int
+_pixman_implementation_get_reference_fast_path_size ();
 
 /* Memory allocation helpers */
 void *

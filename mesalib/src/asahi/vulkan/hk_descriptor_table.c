@@ -30,7 +30,7 @@ hk_descriptor_table_grow_locked(struct hk_device *dev,
                        "Failed to allocate the descriptor table");
    }
 
-   void *new_map = new_bo->map;
+   void *new_map = agx_bo_map(new_bo);
 
    assert(table->bo == NULL && "not yet implemented sparse binding");
    table->bo = new_bo;

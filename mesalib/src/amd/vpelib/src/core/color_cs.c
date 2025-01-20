@@ -142,7 +142,7 @@ static void color_adjustments_to_fixed_point(const struct vpe_color_adjustments 
     const int         hw_contrast_max = 200;
     const int         hw_bright_min   = -1000;
     const int         hw_bright_max   = 1000;
-    const int         hw_bright_cap   = 460;
+    const int         hw_bright_cap   = 500;
     int               hw_val          = 0;
 
     if (icsc) {
@@ -163,7 +163,7 @@ static void color_adjustments_to_fixed_point(const struct vpe_color_adjustments 
             hw_val = -hw_bright_cap;
         }
 
-        *grph_bright = vpe_fixpt_from_fraction(hw_val, 1000);
+        *grph_bright = vpe_fixpt_from_fraction(hw_val, 2550); //shader normalizes this value to the pixel range
 
         *grph_cont = vpe_fixpt_from_fraction(
             get_hw_value_from_sw_value(vpe_adjust->contrast.current, vpe_adjust->contrast.min,
@@ -622,9 +622,9 @@ static void calculate_yuv_matrix(struct vpe_color_adjustments *vpe_adjust,
     for (i = 0; i < 12; i++) {
         initialMatrix[i] = vpe_convfix31_32(input_cs->regval[i]); // convert from s.2.13 to s.31.32
     }
+
     color_adjustments_to_fixed_point(
         vpe_adjust, ovl, &grph_cont, &grph_sat, &grph_bright, &sin_grph_hue, &cos_grph_hue);
-    grph_bright = vpe_fixpt_sub(grph_bright, lumaOffset);
 
     multiplier  = vpe_fixpt_mul(grph_cont, grph_sat); // contSat
 

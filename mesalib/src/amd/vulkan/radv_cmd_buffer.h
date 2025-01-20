@@ -92,12 +92,14 @@ enum radv_cmd_dirty_bits {
    RADV_CMD_DIRTY_DB_SHADER_CONTROL = 1ull << 8,
    RADV_CMD_DIRTY_STREAMOUT_ENABLE = 1ull << 9,
    RADV_CMD_DIRTY_GRAPHICS_SHADERS = 1ull << 10,
-   RADV_CMD_DIRTY_COLOR_OUTPUT = 1ull << 11,
+   RADV_CMD_DIRTY_FRAGMENT_OUTPUT = 1ull << 11,
    RADV_CMD_DIRTY_FBFETCH_OUTPUT = 1ull << 12,
    RADV_CMD_DIRTY_FS_STATE = 1ull << 13,
    RADV_CMD_DIRTY_NGG_STATE = 1ull << 14,
    RADV_CMD_DIRTY_TASK_STATE = 1ull << 15,
-   RADV_CMD_DIRTY_ALL = (1ull << 16) - 1,
+   RADV_CMD_DIRTY_DEPTH_STENCIL_STATE = 1ull << 16,
+   RADV_CMD_DIRTY_RASTER_STATE = 1ull << 17,
+   RADV_CMD_DIRTY_ALL = (1ull << 18) - 1,
 
    RADV_CMD_DIRTY_SHADER_QUERY = RADV_CMD_DIRTY_NGG_STATE | RADV_CMD_DIRTY_TASK_STATE,
 };
@@ -246,14 +248,34 @@ enum radv_tracked_reg {
    RADV_TRACKED_DB_SHADER_CONTROL,
    RADV_TRACKED_DB_VRS_OVERRIDE_CNTL,
 
+   /* 2 consecutive registers */
+   RADV_TRACKED_DB_DEPTH_BOUNDS_MIN,
+   RADV_TRACKED_DB_DEPTH_BOUNDS_MAX,
+
+   /* 2 consecutive registers */
+   RADV_TRACKED_DB_STENCILREFMASK,    /* GFX6-11.5 */
+   RADV_TRACKED_DB_STENCILREFMASK_BF, /* GFX6-11.5 */
+
+   /* 2 consecutive registers */
+   RADV_TRACKED_DB_STENCIL_READ_MASK,  /* GFX12 */
+   RADV_TRACKED_DB_STENCIL_WRITE_MASK, /* GFX12 */
+
+   RADV_TRACKED_DB_DEPTH_CONTROL,
+   RADV_TRACKED_DB_STENCIL_CONTROL,
+   RADV_TRACKED_DB_STENCIL_REF, /* GFX12 */
+
    RADV_TRACKED_GE_MAX_OUTPUT_PER_SUBGROUP,
    RADV_TRACKED_GE_NGG_SUBGRP_CNTL,
 
+   RADV_TRACKED_PA_CL_CLIP_CNTL,
    RADV_TRACKED_PA_CL_VRS_CNTL,
    RADV_TRACKED_PA_CL_VS_OUT_CNTL,
 
    RADV_TRACKED_PA_SC_BINNER_CNTL_0,
    RADV_TRACKED_PA_SC_SHADER_CONTROL,
+   RADV_TRACKED_PA_SC_LINE_CNTL,
+   RADV_TRACKED_PA_SC_LINE_STIPPLE,
+   RADV_TRACKED_PA_SC_LINE_STIPPLE_RESET, /* GFX12 */
 
    /* 2 consecutive registers */
    RADV_TRACKED_SPI_PS_INPUT_ENA,
@@ -300,6 +322,9 @@ enum radv_tracked_reg {
    RADV_TRACKED_VGT_REUSE_OFF,
    RADV_TRACKED_VGT_SHADER_STAGES_EN,
    RADV_TRACKED_VGT_VERTEX_REUSE_BLOCK_CNTL,
+
+   RADV_TRACKED_PA_SU_LINE_CNTL,
+   RADV_TRACKED_PA_SU_SC_MODE_CNTL,
 
    RADV_NUM_ALL_TRACKED_REGS,
 };
@@ -350,12 +375,12 @@ struct radv_cmd_state {
    unsigned active_occlusion_queries;
    bool perfect_occlusion_queries_enabled;
    unsigned active_pipeline_queries;
-   unsigned active_pipeline_gds_queries;
+   unsigned active_emulated_pipeline_queries;
    unsigned active_pipeline_ace_queries; /* Task shader invocations query */
    unsigned active_prims_gen_queries;
    unsigned active_prims_xfb_queries;
-   unsigned active_prims_gen_gds_queries;
-   unsigned active_prims_xfb_gds_queries;
+   unsigned active_emulated_prims_gen_queries;
+   unsigned active_emulated_prims_xfb_queries;
    uint32_t trace_id;
    uint32_t last_ia_multi_vgt_param;
    uint32_t last_ge_cntl;
@@ -434,6 +459,7 @@ struct radv_cmd_state {
    unsigned tess_lds_size;
 
    unsigned spi_shader_col_format;
+   unsigned spi_shader_z_format;
    unsigned cb_shader_mask;
 
    struct radv_multisample_state ms;
@@ -520,7 +546,6 @@ struct radv_cmd_buffer {
    bool gds_needed;    /* for GFX10 streamout and NGG GS queries */
    bool gds_oa_needed; /* for GFX10 streamout */
    bool sample_positions_needed;
-   bool has_indirect_pipeline_binds;
 
    uint64_t gfx9_fence_va;
    uint32_t gfx9_fence_idx;
@@ -713,10 +738,12 @@ void radv_update_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer, const 
 unsigned radv_instance_rate_prolog_index(unsigned num_attributes, uint32_t instance_rate_inputs);
 
 enum radv_cmd_flush_bits radv_src_access_flush(struct radv_cmd_buffer *cmd_buffer, VkPipelineStageFlags2 src_stages,
-                                               VkAccessFlags2 src_flags, const struct radv_image *image);
+                                               VkAccessFlags2 src_flags, const struct radv_image *image,
+                                               const VkImageSubresourceRange *range);
 
 enum radv_cmd_flush_bits radv_dst_access_flush(struct radv_cmd_buffer *cmd_buffer, VkPipelineStageFlags2 dst_stages,
-                                               VkAccessFlags2 dst_flags, const struct radv_image *image);
+                                               VkAccessFlags2 dst_flags, const struct radv_image *image,
+                                               const VkImageSubresourceRange *range);
 
 struct radv_resolve_barrier {
    VkPipelineStageFlags2 src_stage_mask;

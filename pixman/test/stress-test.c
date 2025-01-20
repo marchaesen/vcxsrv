@@ -422,6 +422,8 @@ create_random_bits_image (alpha_preference_t alpha_preference)
     pixman_image_set_accessors (image, read_func, write_func);
     pixman_image_set_filter (image, filter, coefficients, n_coefficients);
 
+    free (coefficients);
+
     return image;
 }
 

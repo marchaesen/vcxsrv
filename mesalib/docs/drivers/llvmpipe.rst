@@ -83,32 +83,45 @@ To build everything on Linux invoke meson as:
    meson -D glx=xlib -D gallium-drivers=swrast
    ninja
 
-To build on Android requires the additional step of building LLVM
+Building for Android
+--------------------
+
+To build for Android requires the additional step of building LLVM
 for Android using the NDK. Before following the steps in
 :doc:`Android's documentation <../android>` you must build a version
 of LLVM that targets the NDK with all the required libraries for
-llvmpipe, and then create a wrap file so the meson knows where to
+llvmpipe, and then create a wrap file so that meson knows where to
 find the LLVM libraries. It can be a bit tricky to get LLVM to build
-properly using the Android NDK, so the below cmake command can be
+properly using the Android NDK, so the script below can be
 used as a reference to configure LLVM to build with the NDK for x86.
-You need to set the ``ANDROID_NDK_ROOT`` and ``INSTALL_PREFIX``
-environment variable appropriately.
+You need to set the ``ANDROID_NDK_ROOT``, ``ANDROID_SDK_VERSION`` and
+``LLVML_INSTALL_PREFIX`` environment variables appropriately.
 
 .. code-block:: sh
 
-   cmake ../llvm-project-18.1.1.src/llvm \
+   #!/bin/bash
+
+   set -e
+   set -u
+
+   # Early check for required env variables, relies on `set -u`
+   : "$ANDROID_NDK_ROOT"
+   : "$ANDROID_SDK_VERSION"
+   : "$LLVM_INSTALL_PREFIX"
+
+   cmake -GNinja -S llvm -B build/ \
       -DCMAKE_TOOLCHAIN_FILE=${ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake \
       -DANDROID_ABI=x86_64 \
-      -DANDROID_PLATFORM=android-23 \
+      -DANDROID_PLATFORM=android-${ANDROID_SDK_VERSION} \
       -DANDROID_NDK=${ANDROID_NDK_ROOT} \
       -DCMAKE_ANDROID_ARCH_ABI=x86_64 \
       -DCMAKE_ANDROID_NDK=${ANDROID_NDK_ROOT} \
       -DCMAKE_BUILD_TYPE=MinSizeRel \
       -DCMAKE_SYSTEM_NAME=Android \
-      -DCMAKE_SYSTEM_VERSION=23 \
-      -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} \
-      -DCMAKE_CXX_FLAGS='-march=x86-64 --target=x86_64-linux-android23 -fno-rtti' \
-      -DLLVM_HOST_TRIPLE=x86_64-linux-android23 \
+      -DCMAKE_SYSTEM_VERSION=${ANDROID_SDK_VERSION} \
+      -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX} \
+      -DCMAKE_CXX_FLAGS="-march=x86-64 --target=x86_64-linux-android${ANDROID_SDK_VERSION} -fno-rtti" \
+      -DLLVM_HOST_TRIPLE=x86_64-linux-android${ANDROID_SDK_VERSION} \
       -DLLVM_TARGETS_TO_BUILD=X86 \
       -DLLVM_BUILD_LLVM_DYLIB=OFF \
       -DLLVM_BUILD_TESTS=OFF \
@@ -120,36 +133,56 @@ environment variable appropriately.
       -DLLVM_NATIVE_TOOL_DIR=${ANDROID_NDK_ROOT}toolchains/llvm/prebuilt/linux-x86_64/bin \
       -DLLVM_ENABLE_PIC=False
 
-   make -j$(nproc) install
-
+   ninja -C build/ install
 
 You will also need to create a wrap file, so that meson is able
 to find the LLVM libraries built with the NDK. The process for this
-is described in :doc:`meson documentation <../meson>`. For example a
-file like this would work ``subprojects/llvm/meson.build`` where
-``INSTALL_PREFIX`` is replaced with the path LLVM was installed to.
+is described in :doc:`meson documentation <../meson>`.
 
-.. code-block::
+For example the following script will create the
+``subprojects/llvm/meson.build`` wrap file, after setting ``LLVM_INSTALL_PREFIX``
+to the path where LLVM was installed to.
 
+The list of libraries passed in `dep_llvm` below should match what it was
+produced by the LLVM build from above.
+
+.. code-block:: sh
+
+   #!/usr/bin/env bash
+
+   set -exu
+
+   # Early check for required env variables, relies on `set -u`
+   : "$LLVM_INSTALL_PREFIX"
+
+   if [ ! -d "$LLVM_INSTALL_PREFIX" ]; then
+     echo "Cannot find an LLVM build in $LLVM_INSTALL_PREFIX" 1>&2
+     exit 1
+   fi
+
+   mkdir -p subprojects/llvm
+
+   cat << EOF > subprojects/llvm/meson.build
    project('llvm', ['cpp'])
 
    cpp = meson.get_compiler('cpp')
 
    _deps = []
-   _search = join_paths('$INSTALL_PREFIX', 'lib')
+   _search = join_paths('$LLVM_INSTALL_PREFIX', 'lib')
 
-   foreach d: ['libLLVMAggressiveInstCombine', 'libLLVMAnalysis', 'libLLVMAsmParser', 'libLLVMAsmPrinter', 'libLLVMBinaryFormat', 'libLLVMBitReader', 'libLLVMBitstreamReader', 'libLLVMBitWriter', 'libLLVMCFGuard', 'libLLVMCFIVerify', 'libLLVMCodeGen', 'libLLVMCodeGenTypes', 'libLLVMCore', 'libLLVMCoroutines', 'libLLVMCoverage', 'libLLVMDebugInfoBTF', 'libLLVMDebugInfoCodeView', 'libLLVMDebuginfod', 'libLLVMDebugInfoDWARF', 'libLLVMDebugInfoGSYM', 'libLLVMDebugInfoLogicalView', 'libLLVMDebugInfoMSF', 'libLLVMDebugInfoPDB', 'libLLVMDemangle', 'libLLVMDiff', 'libLLVMDlltoolDriver', 'libLLVMDWARFLinker', 'libLLVMDWARFLinkerClassic', 'libLLVMDWARFLinkerParallel', 'libLLVMDWP', 'libLLVMExecutionEngine', 'libLLVMExegesis', 'libLLVMExegesisX86', 'libLLVMExtensions', 'libLLVMFileCheck', 'libLLVMFrontendDriver', 'libLLVMFrontendHLSL', 'libLLVMFrontendOffloading', 'libLLVMFrontendOpenACC', 'libLLVMFrontendOpenMP', 'libLLVMFuzzerCLI', 'libLLVMFuzzMutate', 'libLLVMGlobalISel', 'libLLVMHipStdPar', 'libLLVMInstCombine', 'libLLVMInstrumentation', 'libLLVMInterfaceStub', 'libLLVMInterpreter', 'libLLVMipo', 'libLLVMIRPrinter', 'libLLVMIRReader', 'libLLVMJITLink', 'libLLVMLibDriver', 'libLLVMLineEditor', 'libLLVMLinker', 'libLLVMLTO', 'libLLVMMC', 'libLLVMMCA', 'libLLVMMCDisassembler', 'libLLVMMCJIT', 'libLLVMMCParser', 'libLLVMMIRParser', 'libLLVMObjCARCOpts', 'libLLVMObjCopy', 'libLLVMObject', 'libLLVMObjectYAML', 'libLLVMOption', 'libLLVMOrcDebugging', 'libLLVMOrcJIT', 'libLLVMOrcShared', 'libLLVMOrcTargetProcess', 'libLLVMPasses', 'libLLVMProfileData', 'libLLVMRemarks', 'libLLVMRuntimeDyld', 'libLLVMScalarOpts', 'libLLVMSelectionDAG', 'libLLVMSupport', 'libLLVMSymbolize', 'libLLVMTableGen', 'libLLVMTableGenCommon', 'libLLVMTableGenGlobalISel', 'libLLVMTarget', 'libLLVMTargetParser', 'libLLVMTextAPI', 'libLLVMTextAPIBinaryReader', 'libLLVMTransformUtils', 'libLLVMVectorize', 'libLLVMWindowsDriver', 'libLLVMWindowsManifest', 'libLLVMX86AsmParser', 'libLLVMX86CodeGen', 'libLLVMX86Desc', 'libLLVMX86Disassembler', 'libLLVMX86Info', 'libLLVMX86TargetMCA', 'libLLVMXRay']
+   foreach d: ['libLLVMAggressiveInstCombine', 'libLLVMAnalysis', 'libLLVMAsmParser', 'libLLVMAsmPrinter', 'libLLVMBinaryFormat', 'libLLVMBitReader', 'libLLVMBitstreamReader', 'libLLVMBitWriter', 'libLLVMCFGuard', 'libLLVMCFIVerify', 'libLLVMCodeGen', 'libLLVMCodeGenTypes', 'libLLVMCore', 'libLLVMCoroutines', 'libLLVMCoverage', 'libLLVMDebugInfoBTF', 'libLLVMDebugInfoCodeView', 'libLLVMDebuginfod', 'libLLVMDebugInfoDWARF', 'libLLVMDebugInfoGSYM', 'libLLVMDebugInfoLogicalView', 'libLLVMDebugInfoMSF', 'libLLVMDebugInfoPDB', 'libLLVMDemangle', 'libLLVMDiff', 'libLLVMDlltoolDriver', 'libLLVMDWARFLinker', 'libLLVMDWARFLinkerClassic', 'libLLVMDWARFLinkerParallel', 'libLLVMDWP', 'libLLVMExecutionEngine', 'libLLVMExegesis', 'libLLVMExegesisX86', 'libLLVMExtensions', 'libLLVMFileCheck', 'libLLVMFrontendDriver', 'libLLVMFrontendHLSL', 'libLLVMFrontendOffloading', 'libLLVMFrontendOpenACC', 'libLLVMFrontendOpenMP', 'libLLVMFuzzerCLI', 'libLLVMFuzzMutate', 'libLLVMGlobalISel', 'libLLVMHipStdPar', 'libLLVMInstCombine', 'libLLVMInstrumentation', 'libLLVMInterfaceStub', 'libLLVMInterpreter', 'libLLVMipo', 'libLLVMIRPrinter', 'libLLVMIRReader', 'libLLVMJITLink', 'libLLVMLibDriver', 'libLLVMLineEditor', 'libLLVMLinker', 'libLLVMLTO', 'libLLVMMC', 'libLLVMMCA', 'libLLVMMCDisassembler', 'libLLVMMCJIT', 'libLLVMMCParser', 'libLLVMMIRParser', 'libLLVMObjCARCOpts', 'libLLVMObjCopy', 'libLLVMObject', 'libLLVMObjectYAML', 'libLLVMOption', 'libLLVMOrcDebugging', 'libLLVMOrcJIT', 'libLLVMOrcShared', 'libLLVMOrcTargetProcess', 'libLLVMPasses', 'libLLVMProfileData', 'libLLVMRemarks', 'libLLVMRuntimeDyld', 'libLLVMScalarOpts', 'libLLVMSelectionDAG', 'libLLVMSupport', 'libLLVMSymbolize', 'libLLVMTableGen', 'libLLVMTableGenCommon', 'libLLVMTarget', 'libLLVMTargetParser', 'libLLVMTextAPI', 'libLLVMTextAPIBinaryReader', 'libLLVMTransformUtils', 'libLLVMVectorize', 'libLLVMWindowsDriver', 'libLLVMWindowsManifest', 'libLLVMX86AsmParser', 'libLLVMX86CodeGen', 'libLLVMX86Desc', 'libLLVMX86Disassembler', 'libLLVMX86Info', 'libLLVMX86TargetMCA', 'libLLVMXRay']
      _deps += cpp.find_library(d, dirs : _search)
    endforeach
 
    dep_llvm = declare_dependency(
-     include_directories : include_directories('$INSTALL_PREFIX/include'),
+     include_directories : include_directories('$LLVM_INSTALL_PREFIX/include'),
      dependencies : _deps,
-     version : '6.0.0',
+     version : '$(sed -n -e 's/^#define LLVM_VERSION_STRING "\([^"]*\)".*/\1/p' "${LLVM_INSTALL_PREFIX}/include/llvm/Config/llvm-config.h" )',
    )
 
    has_rtti = false
-   irbuilder_h = files('$INSTALL_PREFIX/include/llvm/IR/IRBuilder.h')
+   irbuilder_h = files('$LLVM_INSTALL_PREFIX/include/llvm/IR/IRBuilder.h')
+   EOF
 
 Afterwards you can continue following the instructors to build mesa
 on :doc:`Android <../android>` and follow the steps to add the driver
@@ -237,7 +270,7 @@ Linux perf integration
 ~~~~~~~~~~~~~~~~~~~~~~
 
 On Linux, it is possible to have symbol resolution of JIT code with
-`Linux perf <https://perf.wiki.kernel.org/>`__:
+`Linux perf <https://perfwiki.github.io/main/>`__:
 
 ::
 

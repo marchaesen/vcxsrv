@@ -96,9 +96,10 @@ static const nir_shader_compiler_options ir3_base_options = {
    .lower_unpack_unorm_4x8 = true,
    .lower_unpack_unorm_2x16 = true,
    .lower_pack_split = true,
-   .use_interpolated_input_intrinsics = true,
    .lower_to_scalar = true,
    .has_imul24 = true,
+   .has_icsel_eqz32 = true,
+   .has_icsel_eqz16 = true,
    .has_fsub = true,
    .has_isub = true,
    .force_indirect_unrolling_sampler = true,
@@ -108,11 +109,18 @@ static const nir_shader_compiler_options ir3_base_options = {
    .lower_cs_local_index_to_id = true,
    .lower_wpos_pntc = true,
 
+   .lower_hadd = true,
+   .lower_hadd64 = true,
+   .lower_fisnormal = true,
+
    .lower_int64_options = (nir_lower_int64_options)~0,
    .lower_doubles_options = (nir_lower_doubles_options)~0,
 
    .divergence_analysis_options = nir_divergence_uniform_load_tears,
    .scalarize_ddx = true,
+
+   .per_view_unique_driver_locations = true,
+   .compact_view_index = true,
 };
 
 struct ir3_compiler *
@@ -175,11 +183,12 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
       /* Compute shaders don't share a const file with the FS. Instead they
        * have their own file, which is smaller than the FS one. On a7xx the size
-       * was doubled.
+       * was doubled, although this doesn't work on X1-85.
        *
        * TODO: is this true on earlier gen's?
        */
-      compiler->max_const_compute = compiler->gen >= 7 ? 512 : 256;
+      compiler->max_const_compute =
+         (compiler->gen >= 7 && !dev_info->a7xx.compute_constlen_quirk) ? 512 : 256;
 
       /* TODO: implement clip+cull distances on earlier gen's */
       compiler->has_clip_cull = true;
@@ -212,6 +221,8 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->bitops_can_write_predicates = true;
       compiler->has_branch_and_or = true;
       compiler->has_predication = true;
+      compiler->predtf_nop_quirk = dev_info->a6xx.predtf_nop_quirk;
+      compiler->prede_nop_quirk = dev_info->a6xx.prede_nop_quirk;
       compiler->has_scalar_alu = dev_info->a6xx.has_scalar_alu;
       compiler->has_isam_v = dev_info->a6xx.has_isam_v;
       compiler->has_ssbo_imm_offsets = dev_info->a6xx.has_ssbo_imm_offsets;
@@ -219,6 +230,8 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->has_early_preamble = dev_info->a6xx.has_early_preamble;
       compiler->has_rpt_bary_f = true;
       compiler->has_shfl = true;
+      compiler->reading_shading_rate_requires_smask_quirk =
+         dev_info->a7xx.reading_shading_rate_requires_smask_quirk;
    } else {
       compiler->max_const_pipeline = 512;
       compiler->max_const_geom = 512;
@@ -279,6 +292,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
    compiler->bool_type = (compiler->gen >= 5) ? TYPE_U16 : TYPE_U32;
    compiler->has_shared_regfile = compiler->gen >= 5;
+   compiler->has_bitwise_triops = compiler->gen >= 5;
 
    /* The driver can't request this unless preambles are supported. */
    if (options->push_ubo_with_preamble)
@@ -286,6 +300,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
    /* Set up nir shader compiler options, using device-specific overrides of our base settings. */
    compiler->nir_options = ir3_base_options;
+   compiler->nir_options.has_iadd3 = dev_info->a6xx.has_sad;
 
    if (compiler->gen >= 6) {
       compiler->nir_options.vectorize_io = true,
@@ -319,6 +334,9 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
     */
    if (compiler->gen >= 5 && !(ir3_shader_debug & IR3_DBG_NOFP16))
       compiler->nir_options.support_16bit_alu = true;
+
+   compiler->nir_options.support_indirect_inputs = (uint8_t)BITFIELD_MASK(PIPE_SHADER_TYPES);
+   compiler->nir_options.support_indirect_outputs = (uint8_t)BITFIELD_MASK(PIPE_SHADER_TYPES);
 
    if (!options->disable_cache)
       ir3_disk_cache_init(compiler);

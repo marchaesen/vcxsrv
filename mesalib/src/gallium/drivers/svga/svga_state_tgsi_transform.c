@@ -223,7 +223,7 @@ emulate_point_sprite(struct svga_context *svga,
    int aa_point_coord_index = -1;
    struct pipe_screen *screen = svga->pipe.screen;
    bool has_texcoord_semantic =
-      screen->get_param(screen, PIPE_CAP_TGSI_TEXCOORD);
+      screen->caps.tgsi_texcoord;
 
    assert(tokens != NULL);
 

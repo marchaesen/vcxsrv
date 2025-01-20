@@ -16,8 +16,7 @@ libconnection_manager = static_library(
    cpp_args: gfxstream_guest_args,
    include_directories: [inc_connection_manager, inc_guest_iostream,
                          inc_guest_iostream, inc_goldfish_address_space,
-                         inc_platform_virtgpu, inc_src],
-   link_with: [lib_guest_iostream, lib_goldfish_address_space,
-               libplatform_virtgpu],
-   dependencies: drm_dep
+                         inc_platform_virtgpu, inc_src, inc_aemu],
+   link_with: [lib_goldfish_address_space, libplatform_virtgpu],
+   dependencies: dep_libdrm
 )

@@ -9,10 +9,6 @@
 #include <inttypes.h>
 #include <stddef.h>
 
-#ifdef __Fuchsia__
-#include <fidl/fuchsia.hardware.goldfish/cpp/wire.h>
-#endif
-
 #include "address_space.h"
 
 class GoldfishAddressSpaceBlock;
@@ -33,15 +29,7 @@ private:
     void close();
     address_space_handle_t release();
     static void closeHandle(address_space_handle_t handle);
-
-#ifdef __Fuchsia__
-    ::fidl::WireSyncClient<fuchsia_hardware_goldfish::AddressSpaceDevice>
-        m_device;
-    ::fidl::WireSyncClient<fuchsia_hardware_goldfish::AddressSpaceChildDriver>
-        m_child_driver;
-#else // __Fuchsia__
     address_space_handle_t m_handle;
-#endif // !__Fuchsia__
 
     friend class GoldfishAddressSpaceBlock;
     friend class GoldfishAddressSpaceHostMemoryAllocator;
@@ -69,14 +57,7 @@ private:
     void destroy();
     GoldfishAddressSpaceBlock &operator=(const GoldfishAddressSpaceBlock &);
 
-#ifdef __Fuchsia__
-    ::fidl::WireSyncClient<fuchsia_hardware_goldfish::AddressSpaceChildDriver>*
-        m_driver;
-    uint32_t  m_vmo;
-#else // __Fuchsia__
     address_space_handle_t m_handle;
-#endif // !__Fuchsia__
-
     void     *m_mmaped_ptr;
     uint64_t  m_phys_addr;
     uint64_t  m_host_addr;

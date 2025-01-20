@@ -247,12 +247,11 @@ void pvr_csb_dump(const struct pvr_csb *csb,
                   uint32_t frame_num,
                   uint32_t job_num);
 
-#define PVRX(x) ROGUE_##x
-#define pvr_cmd_length(x) PVRX(x##_length)
-#define pvr_cmd_header(x) PVRX(x##_header)
-#define pvr_cmd_pack(x) PVRX(x##_pack)
-#define pvr_cmd_unpack(x) PVRX(x##_unpack)
-#define pvr_cmd_enum_to_str(x) PVRX(x##_to_str)
+#define pvr_cmd_length(x) ROGUE_##x##_length
+#define pvr_cmd_header(x) ROGUE_##x##_header
+#define pvr_cmd_pack(x) ROGUE_##x##_pack
+#define pvr_cmd_unpack(x) ROGUE_##x##_unpack
+#define pvr_cmd_enum_to_str(x) ROGUE_##x##_to_str
 
 /**
  * \brief Merges dwords0 and dwords1 arrays and stores the result into the
@@ -285,7 +284,7 @@ void pvr_csb_dump(const struct pvr_csb *csb,
  *                     information before it's packed.
  */
 #define pvr_csb_emit(csb, cmd, name)                               \
-   for (struct PVRX(cmd)                                           \
+   for (struct ROGUE_##cmd                                         \
            name = { pvr_cmd_header(cmd) },                         \
            *_dst = pvr_csb_alloc_dwords(csb, pvr_cmd_length(cmd)); \
         __builtin_expect(_dst != NULL, 1);                         \
@@ -332,8 +331,8 @@ void pvr_csb_dump(const struct pvr_csb *csb,
  *                     state information before it's packed.
  */
 #define pvr_csb_pack(_dst, cmd, name)                           \
-   for (struct PVRX(cmd) name = { pvr_cmd_header(cmd) },        \
-                         *_loop_terminate = &name;              \
+   for (struct ROGUE_##cmd name = { pvr_cmd_header(cmd) },      \
+                           *_loop_terminate = &name;            \
         __builtin_expect(_loop_terminate != NULL, 1);           \
         ({                                                      \
            STATIC_ASSERT(sizeof(*(_dst)) ==                     \
@@ -353,7 +352,7 @@ void pvr_csb_dump(const struct pvr_csb *csb,
  */
 #define pvr_csb_unpack(_src, cmd)                                             \
    ({                                                                         \
-      struct PVRX(cmd) _name;                                                 \
+      struct ROGUE_##cmd _name;                                               \
       STATIC_ASSERT(sizeof(*(_src)) == PVR_DW_TO_BYTES(pvr_cmd_length(cmd))); \
       pvr_cmd_unpack(cmd)((_src), &_name);                                    \
       _name;                                                                  \

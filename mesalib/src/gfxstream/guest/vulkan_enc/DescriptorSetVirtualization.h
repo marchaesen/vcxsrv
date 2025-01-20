@@ -9,8 +9,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "aemu/base/containers/EntityManager.h"
-
 namespace gfxstream {
 namespace vk {
 

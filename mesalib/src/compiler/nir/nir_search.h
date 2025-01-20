@@ -148,6 +148,9 @@ typedef struct {
    /** Replacement does not preserve infinities. */
    bool ninf : 1;
 
+   /** Whether the use of the instruction should have swizzle.y. */
+   bool swizzle_y : 1;
+
    /* One of nir_op or nir_search_op */
    uint16_t opcode : 13;
 

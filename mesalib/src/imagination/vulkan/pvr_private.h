@@ -38,6 +38,8 @@
 
 #include "compiler/shader_enums.h"
 #include "hwdef/rogue_hw_defs.h"
+#include "pco/pco.h"
+#include "pco/pco_data.h"
 #include "pvr_border.h"
 #include "pvr_clear.h"
 #include "pvr_common.h"
@@ -48,7 +50,7 @@
 #include "pvr_job_render.h"
 #include "pvr_limits.h"
 #include "pvr_pds.h"
-#include "pvr_shader_factory.h"
+#include "usc/programs/pvr_shader_factory.h"
 #include "pvr_spm.h"
 #include "pvr_types.h"
 #include "pvr_winsys.h"
@@ -61,6 +63,7 @@
 #include "util/u_dynarray.h"
 #include "util/u_math.h"
 #include "vk_buffer.h"
+#include "vk_buffer_view.h"
 #include "vk_command_buffer.h"
 #include "vk_device.h"
 #include "vk_enum_to_str.h"
@@ -111,6 +114,7 @@ struct pvr_physical_device {
    struct wsi_device wsi_device;
 
    struct rogue_compiler *compiler;
+   pco_ctx *pco_ctx;
 };
 
 struct pvr_instance {
@@ -344,10 +348,7 @@ struct pvr_image_view {
 };
 
 struct pvr_buffer_view {
-   struct vk_object_base base;
-
-   uint64_t range;
-   VkFormat format;
+   struct vk_buffer_view vk;
 
    /* Prepacked Texture dword 0 and 1. It will be copied to the descriptor
     * during pvr_UpdateDescriptorSets().
@@ -402,7 +403,7 @@ struct pvr_transfer_cmd_source {
    /* In the case of a simple 1:1 copy, this setting does not affect the output
     * but will affect performance. Use clamp to edge when possible.
     */
-   /* This is of type enum PVRX(TEXSTATE_ADDRMODE). */
+   /* This is of type enum ROGUE_TEXSTATE_ADDRMODE. */
    int addr_mode;
 
    /* Source filtering method. */
@@ -556,8 +557,6 @@ struct pvr_sub_cmd_event {
       } wait;
 
       struct pvr_sub_cmd_event_barrier {
-         bool in_render_pass;
-
          /* Stages to wait for. */
          uint32_t wait_for_stage_mask;
          /* Stages to wait at. */
@@ -612,7 +611,7 @@ struct pvr_ppp_state {
 
    struct {
       /* TODO: Can we get rid of the "control" field? */
-      struct PVRX(TA_STATE_ISPCTL) control_struct;
+      struct ROGUE_TA_STATE_ISPCTL control_struct;
       uint32_t control;
 
       uint32_t front_a;
@@ -699,7 +698,7 @@ struct pvr_cmd_buffer_state {
 
    struct pvr_ppp_state ppp_state;
 
-   struct PVRX(TA_STATE_HEADER) emit_header;
+   struct ROGUE_TA_STATE_HEADER emit_header;
 
    struct pvr_vertex_binding vertex_bindings[PVR_MAX_VERTEX_INPUT_BINDINGS];
 
@@ -853,26 +852,7 @@ struct pvr_pds_attrib_program {
 };
 
 struct pvr_pipeline_stage_state {
-   uint32_t const_shared_reg_count;
-   uint32_t const_shared_reg_offset;
    uint32_t pds_temps_count;
-
-   uint32_t coefficient_size;
-
-   /* True if this shader uses any atomic operations. */
-   bool uses_atomic_ops;
-
-   /* True if this shader uses both texture reads and texture writes. */
-   bool uses_texture_rw;
-
-   /* Only used for compute stage. */
-   bool uses_barrier;
-
-   /* True if this shader has side effects */
-   bool has_side_effects;
-
-   /* True if this shader is simply a nop.end. */
-   bool empty_program;
 };
 
 struct pvr_compute_shader_state {
@@ -893,10 +873,6 @@ struct pvr_compute_shader_state {
 struct pvr_vertex_shader_state {
    /* Pointer to a buffer object that contains the shader binary. */
    struct pvr_suballoc_bo *bo;
-   uint32_t entry_offset;
-
-   /* 2 since we only need STATE_VARYING{0,1} state words. */
-   uint32_t varying[2];
 
    struct pvr_pds_attrib_program
       pds_attrib_programs[PVR_PDS_VERTEX_ATTRIB_PROGRAM_COUNT];
@@ -904,20 +880,17 @@ struct pvr_vertex_shader_state {
    struct pvr_pipeline_stage_state stage_state;
    /* FIXME: Move this into stage_state? */
    struct pvr_stage_allocation_descriptor_state descriptor_state;
-   uint32_t vertex_input_size;
-   uint32_t vertex_output_size;
-   uint32_t user_clip_planes_mask;
 };
 
 struct pvr_fragment_shader_state {
    /* Pointer to a buffer object that contains the shader binary. */
    struct pvr_suballoc_bo *bo;
-   uint32_t entry_offset;
 
    struct pvr_pipeline_stage_state stage_state;
    /* FIXME: Move this into stage_state? */
    struct pvr_stage_allocation_descriptor_state descriptor_state;
-   enum PVRX(TA_PASSTYPE) pass_type;
+   enum ROGUE_TA_PASSTYPE pass_type;
+   enum ROGUE_PDSINST_DOUTU_SAMPLE_RATE sample_rate;
 
    struct pvr_pds_upload pds_coeff_program;
    struct pvr_pds_upload pds_fragment_program;
@@ -930,6 +903,8 @@ struct pvr_pipeline {
 
    /* Saved information from pCreateInfo. */
    struct pvr_pipeline_layout *layout;
+
+   VkPipelineCreateFlags2KHR pipeline_flags;
 };
 
 struct pvr_compute_pipeline {
@@ -965,7 +940,10 @@ struct pvr_graphics_pipeline {
    struct vk_dynamic_graphics_state dynamic_state;
 
    /* Derived and other state */
-   size_t stage_indices[MESA_SHADER_FRAGMENT + 1];
+   size_t stage_indices[MESA_SHADER_STAGES];
+
+   pco_data vs_data;
+   pco_data fs_data;
 
    struct {
       struct pvr_vertex_shader_state vertex;
@@ -1377,14 +1355,21 @@ pvr_cmd_buffer_set_error_unwarned(struct pvr_cmd_buffer *cmd_buffer,
    return error;
 }
 
+enum pvr_msaa_mode {
+   PVR_MSAA_MODE_UNDEF = 0, /* explicitly treat 0 as undefined */
+   /* One task for all samples. */
+   PVR_MSAA_MODE_PIXEL,
+   /* For on-edge pixels only: separate tasks for each sample. */
+   PVR_MSAA_MODE_SELECTIVE,
+   /* For all pixels: separate tasks for each sample. */
+   PVR_MSAA_MODE_FULL,
+};
+
 VkResult pvr_pds_fragment_program_create_and_upload(
    struct pvr_device *device,
    const VkAllocationCallbacks *allocator,
-   const struct pvr_suballoc_bo *fragment_shader_bo,
-   uint32_t fragment_temp_count,
-   enum rogue_msaa_mode msaa_mode,
-   bool has_phase_rate_change,
-   struct pvr_pds_upload *const pds_upload_out);
+   pco_shader *fs,
+   struct pvr_fragment_shader_state *fragment_state);
 
 VkResult pvr_pds_unitex_state_program_create_and_upload(
    struct pvr_device *device,
@@ -1485,7 +1470,7 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(pvr_image_view,
                                VkImageView,
                                VK_OBJECT_TYPE_IMAGE_VIEW)
 VK_DEFINE_NONDISP_HANDLE_CASTS(pvr_buffer_view,
-                               base,
+                               vk.base,
                                VkBufferView,
                                VK_OBJECT_TYPE_BUFFER_VIEW)
 VK_DEFINE_NONDISP_HANDLE_CASTS(pvr_descriptor_set_layout,

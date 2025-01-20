@@ -1852,6 +1852,17 @@ struct gl_transform_feedback_object
    GLboolean EverBound; /**< Has this object been bound? */
 
    /**
+    * Primitive mode from glBeginTransformFeedback.
+    *
+    * The spec doesn't list the primitive mode as part of transform feedback
+    * objects, but it has to be because when transform feedback is resumed,
+    * all draws must be validated against the primitive type that transform
+    * feedback began with instead of whatever last transform feedback object
+    * happened to be used.
+    */
+   GLenum16 Mode;
+
+   /**
     * GLES: if Active is true, remaining number of primitives which can be
     * rendered without overflow.  This is necessary to track because GLES
     * requires us to generate INVALID_OPERATION if a call to glDrawArrays or
@@ -2380,6 +2391,9 @@ struct gl_shared_state
    simple_mtx_t Mutex;		   /**< for thread safety */
    GLint RefCount;			   /**< Reference count */
    bool DisplayListsAffectGLThread;
+
+   /* Whether the next glGen returns the lowest unused GL ID. */
+   bool ReuseGLNames;
 
    struct _mesa_HashTable DisplayList;	   /**< Display lists hash table */
    struct _mesa_HashTable TexObjects;	   /**< Texture objects hash table */

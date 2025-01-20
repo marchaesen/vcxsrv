@@ -19,8 +19,10 @@ struct radv_amdgpu_winsys_bo_log {
    uint64_t va;
    uint64_t size;
    uint64_t timestamp; /* CPU timestamp */
+   uint64_t mapped_va;
    uint8_t is_virtual : 1;
    uint8_t destroyed : 1;
+   uint8_t virtual_mapping : 1;
 };
 
 struct radv_amdgpu_map_range {
@@ -39,7 +41,7 @@ struct radv_amdgpu_winsys_bo {
    union {
       /* physical bo */
       struct {
-         amdgpu_bo_handle bo;
+         ac_drm_bo bo;
          uint32_t bo_handle;
 
          void *cpu_map;

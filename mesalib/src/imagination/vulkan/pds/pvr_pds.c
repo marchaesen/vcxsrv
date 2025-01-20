@@ -1822,13 +1822,13 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       program->cond_render_pred_temp = cond_render_pred_temp;
    }
 
-   if ((program->barrier_coefficient != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
+   if ((program->barrier_coefficient != PVR_PDS_REG_UNUSED) ||
        (program->clear_pds_barrier) ||
        (program->kick_usc && program->conditional_render)) {
       zero_constant64 = pvr_pds_get_constants(&next_constant, 2, &data_size);
    }
 
-   if (program->barrier_coefficient != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+   if (program->barrier_coefficient != PVR_PDS_REG_UNUSED) {
       barrier_ctrl_word = pvr_pds_get_constants(&next_constant, 1, &data_size);
       if (PVR_HAS_QUIRK(dev_info, 51210)) {
          barrier_ctrl_word2 =
@@ -1836,20 +1836,20 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       }
    }
 
-   if (program->work_group_input_regs[0] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED ||
-       program->work_group_input_regs[1] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+   if (program->work_group_input_regs[0] != PVR_PDS_REG_UNUSED ||
+       program->work_group_input_regs[1] != PVR_PDS_REG_UNUSED) {
       work_group_id_ctrl_words[0] =
          pvr_pds_get_constants(&next_constant, 1, &data_size);
    }
 
-   if (program->work_group_input_regs[2] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+   if (program->work_group_input_regs[2] != PVR_PDS_REG_UNUSED) {
       work_group_id_ctrl_words[1] =
          pvr_pds_get_constants(&next_constant, 1, &data_size);
    }
 
-   if ((program->local_input_regs[0] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
-       (program->local_input_regs[1] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
-       (program->local_input_regs[2] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED)) {
+   if ((program->local_input_regs[0] != PVR_PDS_REG_UNUSED) ||
+       (program->local_input_regs[1] != PVR_PDS_REG_UNUSED) ||
+       (program->local_input_regs[2] != PVR_PDS_REG_UNUSED)) {
       local_id_ctrl_word = pvr_pds_get_constants(&next_constant, 1, &data_size);
    }
 
@@ -1857,7 +1857,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       for (uint32_t workgroup_component = 0; workgroup_component < 3;
            workgroup_component++) {
          if (program->work_group_input_regs[workgroup_component] !=
-             PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+             PVR_PDS_REG_UNUSED) {
             program
                ->base_workgroup_constant_offset_in_dwords[workgroup_component] =
                pvr_pds_get_constants(&next_constant, 1, &data_size);
@@ -1883,7 +1883,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
             program->usc_task_control_coeff_update.src0); /* 64-bit Src0 */
       }
 
-      if ((program->barrier_coefficient != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
+      if ((program->barrier_coefficient != PVR_PDS_REG_UNUSED) ||
           (program->clear_pds_barrier) ||
           (program->kick_usc && program->conditional_render)) {
          pvr_pds_write_wide_constant(buffer, zero_constant64, 0); /* 64-bit
@@ -1891,7 +1891,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
                                                                    */
       }
 
-      if (program->barrier_coefficient != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+      if (program->barrier_coefficient != PVR_PDS_REG_UNUSED) {
          if (PVR_HAS_QUIRK(dev_info, 51210)) {
             /* Write the constant for the coefficient register write. */
             doutw = pvr_pds_encode_doutw_src1(
@@ -1913,12 +1913,9 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
          /* Check whether the barrier is going to be the last DOUTW done by
           * the coefficient sync task.
           */
-         if ((program->work_group_input_regs[0] ==
-              PVR_PDS_COMPUTE_INPUT_REG_UNUSED) &&
-             (program->work_group_input_regs[1] ==
-              PVR_PDS_COMPUTE_INPUT_REG_UNUSED) &&
-             (program->work_group_input_regs[2] ==
-              PVR_PDS_COMPUTE_INPUT_REG_UNUSED)) {
+         if ((program->work_group_input_regs[0] == PVR_PDS_REG_UNUSED) &&
+             (program->work_group_input_regs[1] == PVR_PDS_REG_UNUSED) &&
+             (program->work_group_input_regs[2] == PVR_PDS_REG_UNUSED)) {
             doutw |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTW_SRC1_LAST_EN;
          }
 
@@ -1926,10 +1923,8 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       }
 
       /* If we want work-group id X, see if we also want work-group id Y. */
-      if (program->work_group_input_regs[0] !=
-             PVR_PDS_COMPUTE_INPUT_REG_UNUSED &&
-          program->work_group_input_regs[1] !=
-             PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+      if (program->work_group_input_regs[0] != PVR_PDS_REG_UNUSED &&
+          program->work_group_input_regs[1] != PVR_PDS_REG_UNUSED) {
          /* Make sure we are going to DOUTW them into adjacent registers
           * otherwise we can't do it in one.
           */
@@ -1945,17 +1940,14 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
 
          /* If we don't want the Z work-group id then this is the last one.
           */
-         if (program->work_group_input_regs[2] ==
-             PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+         if (program->work_group_input_regs[2] == PVR_PDS_REG_UNUSED)
             doutw |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTW_SRC1_LAST_EN;
-         }
 
          pvr_pds_write_constant32(buffer, work_group_id_ctrl_words[0], doutw);
       }
       /* If we only want one of X or Y then handle them separately. */
       else {
-         if (program->work_group_input_regs[0] !=
-             PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+         if (program->work_group_input_regs[0] != PVR_PDS_REG_UNUSED) {
             doutw = pvr_pds_encode_doutw_src1(
                program->work_group_input_regs[0],
                PVR_PDS_DOUTW_LOWER32,
@@ -1966,16 +1958,13 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
             /* If we don't want the Z work-group id then this is the last
              * one.
              */
-            if (program->work_group_input_regs[2] ==
-                PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+            if (program->work_group_input_regs[2] == PVR_PDS_REG_UNUSED)
                doutw |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTW_SRC1_LAST_EN;
-            }
 
             pvr_pds_write_constant32(buffer,
                                      work_group_id_ctrl_words[0],
                                      doutw);
-         } else if (program->work_group_input_regs[1] !=
-                    PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+         } else if (program->work_group_input_regs[1] != PVR_PDS_REG_UNUSED) {
             doutw = pvr_pds_encode_doutw_src1(
                program->work_group_input_regs[1],
                PVR_PDS_DOUTW_UPPER32,
@@ -1986,10 +1975,8 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
             /* If we don't want the Z work-group id then this is the last
              * one.
              */
-            if (program->work_group_input_regs[2] ==
-                PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+            if (program->work_group_input_regs[2] == PVR_PDS_REG_UNUSED)
                doutw |= PVR_ROGUE_PDSINST_DOUT_FIELDS_DOUTW_SRC1_LAST_EN;
-            }
 
             pvr_pds_write_constant32(buffer,
                                      work_group_id_ctrl_words[0],
@@ -1998,8 +1985,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       }
 
       /* Handle work-group id Z. */
-      if (program->work_group_input_regs[2] !=
-          PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+      if (program->work_group_input_regs[2] != PVR_PDS_REG_UNUSED) {
          doutw = pvr_pds_encode_doutw_src1(
             program->work_group_input_regs[2],
             PVR_PDS_DOUTW_UPPER32,
@@ -2012,24 +1998,22 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       }
 
       /* Handle the local IDs. */
-      if ((program->local_input_regs[1] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
-          (program->local_input_regs[2] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED)) {
+      if ((program->local_input_regs[1] != PVR_PDS_REG_UNUSED) ||
+          (program->local_input_regs[2] != PVR_PDS_REG_UNUSED)) {
          uint32_t dest_reg;
 
          /* If we want local id Y and Z make sure the compiler wants them in
           * the same register.
           */
          if (!program->flattened_work_groups) {
-            if ((program->local_input_regs[1] !=
-                 PVR_PDS_COMPUTE_INPUT_REG_UNUSED) &&
-                (program->local_input_regs[2] !=
-                 PVR_PDS_COMPUTE_INPUT_REG_UNUSED)) {
+            if ((program->local_input_regs[1] != PVR_PDS_REG_UNUSED) &&
+                (program->local_input_regs[2] != PVR_PDS_REG_UNUSED)) {
                assert(program->local_input_regs[1] ==
                       program->local_input_regs[2]);
             }
          }
 
-         if (program->local_input_regs[1] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED)
+         if (program->local_input_regs[1] != PVR_PDS_REG_UNUSED)
             dest_reg = program->local_input_regs[1];
          else
             dest_reg = program->local_input_regs[2];
@@ -2037,7 +2021,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
          /* If we want local id X and (Y or Z) then we can do that in a
           * single 64-bit DOUTW.
           */
-         if (program->local_input_regs[0] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+         if (program->local_input_regs[0] != PVR_PDS_REG_UNUSED) {
             assert(dest_reg == (program->local_input_regs[0] + 1));
 
             doutw = pvr_pds_encode_doutw_src1(
@@ -2068,8 +2052,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       }
       /* If we don't want Y or Z then just DMA in X in a single 32-bit DOUTW.
        */
-      else if (program->local_input_regs[0] !=
-               PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+      else if (program->local_input_regs[0] != PVR_PDS_REG_UNUSED) {
          doutw = pvr_pds_encode_doutw_src1(
             program->local_input_regs[0],
             PVR_PDS_DOUTW_LOWER32,
@@ -2107,7 +2090,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
                             program->coeff_update_task_branch_size /* ADDR */));
 
       /* Do we need to initialize the barrier coefficient? */
-      if (program->barrier_coefficient != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+      if (program->barrier_coefficient != PVR_PDS_REG_UNUSED) {
          if (PVR_HAS_QUIRK(dev_info, 51210)) {
             /* Initialize the second barrier coefficient registers to zero.
              */
@@ -2128,8 +2111,9 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
          for (uint32_t workgroup_component = 0; workgroup_component < 3;
               workgroup_component++) {
             if (program->work_group_input_regs[workgroup_component] ==
-                PVR_PDS_COMPUTE_INPUT_REG_UNUSED)
+                PVR_PDS_REG_UNUSED) {
                continue;
+            }
 
             APPEND(pvr_pds_inst_encode_add32(
                /* cc */ 0x0,
@@ -2150,18 +2134,14 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       /* If we are going to put the work-group IDs in coefficients then we
        * just need to do the DOUTWs.
        */
-      if ((program->work_group_input_regs[0] !=
-           PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
-          (program->work_group_input_regs[1] !=
-           PVR_PDS_COMPUTE_INPUT_REG_UNUSED)) {
+      if ((program->work_group_input_regs[0] != PVR_PDS_REG_UNUSED) ||
+          (program->work_group_input_regs[1] != PVR_PDS_REG_UNUSED)) {
          uint32_t dest_reg;
 
-         if (program->work_group_input_regs[0] !=
-             PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+         if (program->work_group_input_regs[0] != PVR_PDS_REG_UNUSED)
             dest_reg = PVR_PDS_TEMPS_BLOCK_BASE + PVR_PDS_CDM_WORK_GROUP_ID_X;
-         } else {
+         else
             dest_reg = PVR_PDS_TEMPS_BLOCK_BASE + PVR_PDS_CDM_WORK_GROUP_ID_Y;
-         }
 
          APPEND(pvr_pds_encode_doutw64(0, /* cc */
                                        0, /* END */
@@ -2170,8 +2150,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
                                        dest_reg >> 1)); /* SRC0 */
       }
 
-      if (program->work_group_input_regs[2] !=
-          PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+      if (program->work_group_input_regs[2] != PVR_PDS_REG_UNUSED) {
          APPEND(pvr_pds_encode_doutw64(
             0, /* cc */
             0, /* END */
@@ -2197,30 +2176,28 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
       /* DOUTW in the local IDs. */
 
       /* If we want X and Y or Z, we only need one DOUTW. */
-      if ((program->local_input_regs[0] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) &&
-          ((program->local_input_regs[1] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
-           (program->local_input_regs[2] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED))) {
+      if ((program->local_input_regs[0] != PVR_PDS_REG_UNUSED) &&
+          ((program->local_input_regs[1] != PVR_PDS_REG_UNUSED) ||
+           (program->local_input_regs[2] != PVR_PDS_REG_UNUSED))) {
          local_input_register =
             PVR_PDS_TEMPS_BLOCK_BASE + PVR_PDS_CDM_LOCAL_ID_X;
       } else {
          /* If we just want X. */
-         if (program->local_input_regs[0] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+         if (program->local_input_regs[0] != PVR_PDS_REG_UNUSED) {
             local_input_register =
                PVR_PDS_TEMPS_BLOCK_BASE + PVR_PDS_CDM_LOCAL_ID_X;
          }
          /* If we just want Y or Z. */
-         else if (program->local_input_regs[1] !=
-                     PVR_PDS_COMPUTE_INPUT_REG_UNUSED ||
-                  program->local_input_regs[2] !=
-                     PVR_PDS_COMPUTE_INPUT_REG_UNUSED) {
+         else if (program->local_input_regs[1] != PVR_PDS_REG_UNUSED ||
+                  program->local_input_regs[2] != PVR_PDS_REG_UNUSED) {
             local_input_register =
                PVR_PDS_TEMPS_BLOCK_BASE + PVR_PDS_CDM_LOCAL_ID_YZ;
          }
       }
 
-      if ((program->local_input_regs[0] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
-          (program->local_input_regs[1] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED) ||
-          (program->local_input_regs[2] != PVR_PDS_COMPUTE_INPUT_REG_UNUSED)) {
+      if ((program->local_input_regs[0] != PVR_PDS_REG_UNUSED) ||
+          (program->local_input_regs[1] != PVR_PDS_REG_UNUSED) ||
+          (program->local_input_regs[2] != PVR_PDS_REG_UNUSED)) {
          APPEND(pvr_pds_encode_doutw64(0, /* cc */
                                        0, /* END */
                                        local_id_ctrl_word, /* SRC1 */

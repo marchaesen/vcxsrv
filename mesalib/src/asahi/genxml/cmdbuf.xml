@@ -174,7 +174,7 @@
     <value name="Varying" value="0"/>
     <value name="Fragcoord Z" value="1"/>
     <value name="Point coord" value="2"/>
-    <value name="Primitive ID" value="3"/> 
+    <value name="Primitive ID" value="3"/>
     <!-- Vec2 only -->
     <value name="Barycentric coord" value="5"/>
   </enum>
@@ -205,7 +205,7 @@
   </enum>
 
   <struct name="PBE" size="24">
-    <field name="Dimension" size="4" start="0" type="Texture dimension" default="2D"/>
+    <field name="Dimension" size="4" start="0" type="Texture dimension"/>
     <field name="Layout" size="2" start="4" type="Layout"/>
     <field name="Channels" size="7" start="6" type="Channels"/>
     <field name="Type" size="3" start="13" type="Texture Type"/>
@@ -216,8 +216,8 @@
     <field name="Width" size="14" start="24" type="uint" modifier="minus(1)"/>
     <field name="Height" size="14" start="38" type="uint" modifier="minus(1)"/>
     <field name="Unk 52" size="1" start="52" type="bool"/>
-    <field name="Rotate 90" size="1" start="53" type="bool" default="false"/>
-    <field name="Flip vertical" size="1" start="54" type="bool" default="false"/>
+    <field name="Rotate 90" size="1" start="53" type="bool"/>
+    <field name="Flip vertical" size="1" start="54" type="bool"/>
     <field name="Samples" size="1" start="56" type="Sample Count"/>
     <field name="Unk mipmapped" size="1" start="58" type="bool"/>
     <field name="Compressed 1" size="1" start="59" type="bool"/>
@@ -227,7 +227,7 @@
     <!-- If layout is not linear. Layers must be zero unless rendering to an
     array texture (with a layered framebuffer) -->
     <field name="Levels" size="4" start="104" type="uint" modifier="minus(1)"/>
-    <field name="Layers" size="14" start="108" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Layers" size="14" start="108" type="uint" modifier="minus(1)"/>
     <field name="Page-aligned layers" size="1" start="124" type="bool"/>
 
     <!-- Should writes to this image convert to sRGB?
@@ -246,7 +246,7 @@
     <field name="Acceleration buffer" size="64" start="128" type="address" modifier="shr(4)"/>
 
     <!-- If layout is linear, stride has the minus 1 encoded -->
-    <field name="Depth (linear)" size="11" start="128" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Depth (linear)" size="11" start="128" type="uint" modifier="minus(1)"/>
     <field name="Layer stride (linear)" size="27" start="139" type="uint" modifier="shr(7)"/>
 
     <!-- If neither, for software use to accelerate atomics and multisampled
@@ -255,8 +255,8 @@
     -->
     <field name="Level offset (sw)" size="27" start="128" type="uint" modifier="shr(7)"/>
     <field name="Aligned width MSAA (sw)" size="15" start="128" type="uint"/>
-    <field name="Tile width (sw)" size="3" start="155" type="uint" modifier="log2" default="1"/>
-    <field name="Tile height (sw)" size="3" start="158" type="uint" modifier="log2" default="1"/>
+    <field name="Tile width (sw)" size="3" start="155" type="uint" modifier="log2"/>
+    <field name="Tile height (sw)" size="3" start="158" type="uint" modifier="log2"/>
     <field name="Layer stride (sw)" size="27" start="161" type="uint" modifier="shr(7)"/>
     <field name="Sample count log2 (sw)" size="2" start="188" type="uint"/>
     <field name="Buffer offset (sw)" size="32" start="128" type="uint"/>
@@ -271,8 +271,8 @@
     <field name="Swizzle G" size="3" start="19" type="Channel"/>
     <field name="Swizzle B" size="3" start="22" type="Channel"/>
     <field name="Swizzle A" size="3" start="25" type="Channel"/>
-    <field name="Width" size="14" start="28" type="uint" modifier="minus(1)" default="1"/>
-    <field name="Height" size="14" start="42" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Width" size="14" start="28" type="uint" modifier="minus(1)"/>
+    <field name="Height" size="14" start="42" type="uint" modifier="minus(1)"/>
     <field name="First level" size="4" start="56" type="uint"/>
     <field name="Last level" size="4" start="60" type="uint"/>
     <field name="Samples" size="1" start="64" type="Sample Count"/>
@@ -289,7 +289,7 @@
     <field name="sRGB 2-channel" size="1" start="109" type="bool"/>
     <field name="Stride" size="18" start="110" type="hex" modifier="shr(4)"/>
     <!-- Note that 3D/arrays cannot be linear. -->
-    <field name="Depth" size="14" start="110" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Depth" size="14" start="110" type="uint" modifier="minus(1)"/>
     <field name="Page-aligned layers" size="1" start="126" type="bool"/>
 
     <!-- Read the next word (set for compression or linear 2D arrays) -->
@@ -299,7 +299,7 @@
     <field name="Acceleration buffer" size="64" start="128" type="address" modifier="shr(4)"/>
 
     <!-- If layout is linear, stride has the minus 1 encoded -->
-    <field name="Depth (linear)" size="11" start="128" type="uint" modifier="minus(1)" default="1"/>
+    <field name="Depth (linear)" size="11" start="128" type="uint" modifier="minus(1)"/>
     <field name="Layer stride (linear)" size="27" start="139" type="uint" modifier="shr(7)"/>
 
     <!-- Buffer texture metadata  -->
@@ -336,9 +336,9 @@
   </enum>
 
   <struct name="Sampler" size="8">
-    <field name="Minimum LOD" size="10" start="0" type="lod" default="0.0"/>
-    <field name="Maximum LOD" size="10" start="10" type="lod" default="INFINITY"/>
-    <field name="Maximum anisotropy" size="3" start="20" type="uint" default="1" modifier="log2"/>
+    <field name="Minimum LOD" size="10" start="0" type="lod"/>
+    <field name="Maximum LOD" size="10" start="10" type="lod"/>
+    <field name="Maximum anisotropy" size="3" start="20" type="uint" modifier="log2"/>
     <field name="Magnify" size="2" start="23" type="Filter"/>
     <field name="Minify" size="2" start="25" type="Filter"/>
     <field name="Mip filter" size="2" start="27" type="Mip filter"/>
@@ -387,7 +387,7 @@
   </enum>
 
   <struct name="Counts" size="4">
-    <field name="Unknown 0" size="1" start="0" type="hex" default="0"/>
+    <field name="Unknown 0" size="1" start="0" type="hex"/>
     <field name="Uniform register count" size="3" start="1" type="uint" modifier="groups(64)"/>
     <field name="Texture state register count" size="5" start="4" type="uint" modifier="groups(8)"/>
     <field name="Sampler state register count" size="3" start="9" type="Sampler states"/>
@@ -411,7 +411,7 @@
     <field name="Depth bias/scissor" size="1" start="8" type="bool"/>
     <field name="Region clip" size="1" start="10" type="bool"/>
     <field name="Viewport" size="1" start="11" type="bool"/>
-    <field name="Viewport count" size="4" start="12" type="uint" default="1" modifier="minus(1)"/>
+    <field name="Viewport count" size="4" start="12" type="uint" modifier="minus(1)"/>
     <field name="W clamp" size="1" start="16" type="bool"/>
     <field name="Output select" size="1" start="17" type="bool"/>
     <field name="Varying counts 32" size="1" start="18" type="bool"/>
@@ -469,11 +469,11 @@
 
   <struct name="Fragment face 2" size="4">
     <!-- If either disable is zeroed, depth is written -->
-    <field name="Disable depth write" size="1" start="21" type="bool" default="true"/>
+    <field name="Disable depth write" size="1" start="21" type="bool"/>
     <!-- If depth written from FS -->
-    <field name="Conservative depth" size="2" start="22" type="Conservative depth" default="Unchanged"/>
+    <field name="Conservative depth" size="2" start="22" type="Conservative depth"/>
     <!-- Both depth functions must pass -->
-    <field name="Depth function" size="3" start="24" type="ZS Func" default="Always"/>
+    <field name="Depth function" size="3" start="24" type="ZS Func"/>
     <field name="Object type" size="4" start="28" type="Object Type"/>
   </struct>
 
@@ -491,12 +491,10 @@
     <value name="Translucent" value="1"/>
     <value name="Punch through" value="2"/>
     <value name="Translucent punch through" value="3"/>
-    <!-- See PASSTYPE in rogue_ppp.xml if more values are observed on AGX...
-         Translucent punch through seems notably different though? -->
   </enum>
 
   <struct name="Fragment control" size="4">
-    <field name="Unk 1" size="1" start="9" type="bool" default="true"/>
+    <field name="Unk 1" size="1" start="9" type="bool" exact="true"/>
     <field name="Visibility mode" size="2" start="14" type="Visibility Mode"/>
     <field name="Scissor enable" size="1" start="16" type="bool"/>
     <field name="Depth bias enable" size="1" start="17" type="bool"/>
@@ -539,7 +537,7 @@
   </struct>
 
   <struct name="Cull 2" size="4">
-    <field name="Unknown 5" size="1" start="5" type="bool" default="true"/>
+    <field name="Clamp W" size="1" start="5" type="bool"/>
     <field name="Draw clipped edges" size="1" start="9" type="bool"/>
     <field name="Needs Primitive ID" size="1" start="12" type="bool"/>
     <field name="Rasterizer discard" size="1" start="17" type="bool"/>
@@ -575,9 +573,7 @@
     <field name="Varyings" size="1" start="16" type="bool"/>
     <field name="Point size" size="1" start="18" type="bool"/>
     <!-- For layered rendering, enable both and write the 2x16-bit tuple from
-    the vertex shader (layer, (viewport << u) + (u & layer)). So far unclear
-    what u is supposed to be. If u=0, this simplifies to the expected (layer,
-        viewport) at least. -->
+      the vertex shader (layer, viewport). -->
     <field name="Viewport target" size="1" start="19" type="bool"/>
     <field name="Render target" size="1" start="20" type="bool"/>
     <field name="Frag coord Z" size="1" start="21" type="bool"/>
@@ -599,7 +595,7 @@
   </struct>
 
   <struct name="Fragment Shader Word 0" size="4">
-    <field name="Unknown 0" size="1" start="0" type="hex" default="0"/>
+    <field name="Unknown 0" size="1" start="0" type="hex"/>
     <field name="Uniform register count" size="3" start="1" type="uint" modifier="groups(64)"/>
     <field name="Texture state register count" size="5" start="4" type="uint" modifier="groups(8)"/>
     <field name="Sampler state register count" size="3" start="9" type="Sampler states"/>
@@ -638,21 +634,21 @@
   </enum>
 
   <struct name="USC Uniform" size="8">
-    <field name="Tag" size="8" start="0:0" type="USC Control" default="Uniform"/>
+    <field name="Tag" size="8" start="0:0" type="USC Control" exact="Uniform"/>
     <field name="Start (halfs)" size="8" start="0:8" type="uint"/>
     <field name="Size (halfs)" size="6" start="0:20" type="uint" modifier="groups(1)"/>
     <field name="Buffer" size="38" start="0:26" type="address" modifier="shr(2)"/>
   </struct>
 
   <struct name="USC Uniform High" size="8">
-    <field name="Tag" size="8" start="0:0" type="USC Control" default="Uniform High"/>
+    <field name="Tag" size="8" start="0:0" type="USC Control" exact="Uniform High"/>
     <field name="Start (halfs)" size="8" start="0:8" type="uint"/>
     <field name="Size (halfs)" size="6" start="0:20" type="uint" modifier="groups(1)"/>
     <field name="Buffer" size="38" start="0:26" type="address" modifier="shr(2)"/>
   </struct>
 
   <struct name="USC Texture" size="8">
-    <field name="Tag" size="8" start="0:0" type="USC Control" default="Texture"/>
+    <field name="Tag" size="8" start="0:0" type="USC Control" exact="Texture"/>
     <field name="Start" size="8" start="0:8" type="uint"/>
     <!-- Exact split is unknown. Count is at least 5 bits. Less than 8 bits. -->
     <field name="Count" size="7" start="0:20" type="uint"/>
@@ -660,7 +656,7 @@
   </struct>
 
   <struct name="USC Sampler" size="8">
-    <field name="Tag" size="8" start="0:0" type="USC Control" default="Sampler"/>
+    <field name="Tag" size="8" start="0:0" type="USC Control" exact="Sampler"/>
     <field name="Start" size="8" start="0:8" type="uint"/>
     <field name="Count" size="7" start="0:20" type="uint"/>
     <!-- Exact split is unknown. -->
@@ -675,52 +671,50 @@
   </enum>
 
   <struct name="USC Shared" size="4">
-    <field name="Tag" size="8" start="0" type="USC Control" default="Shared"/>
+    <field name="Tag" size="8" start="0" type="USC Control" exact="Shared"/>
     <field name="Uses shared memory" size="1" start="8" type="bool"/>
     <field name="Layout" size="6" start="10" type="Shared layout"/>
-    <field name="Sample count" size="2" start="16" type="uint" default="1" modifier="log2"/>
+    <field name="Sample count" size="2" start="16" type="uint" modifier="log2"/>
     <field name="Sample stride in 8 bytes" size="4" start="20" type="uint"/>
     <field name="Bytes per threadgroup" size="8" start="24" type="uint" modifier="groups(256)"/>
   </struct>
 
   <struct name="USC Shader" size="6">
-    <field name="Tag" size="8" start="0" type="USC Control" default="Shader"/>
+    <field name="Tag" size="8" start="0" type="USC Control" exact="Shader"/>
     <field name="Loads varyings" size="1" start="8" type="bool"/>
     <!-- Seen set for pixel rate fragment shaders? -->
-    <field name="Unk 1" size="1" start="9" type="bool" default="0"/>
-    <field name="Unk 2" size="6" start="10" type="uint" default="3"/>
+    <field name="Unk 1" size="1" start="9" type="bool"/>
+    <field name="Unk 2" size="6" start="10" type="uint"/>
     <field name="Code" size="32" start="16" type="address"/>
   </struct>
 
   <struct name="USC Registers" size="4">
-    <field name="Tag" size="8" start="0" type="USC Control" default="Registers"/>
+    <field name="Tag" size="8" start="0" type="USC Control" exact="Registers"/>
     <field name="Register count" size="5" start="8" type="uint" modifier="groups(8)"/>
-    <field name="Unk 1" size="1" start="13" type="bool" default="false"/>
-    <field name="Spill size" size="4" start="18" type="hex" default="0"/>
-    <field name="Unk 4" size="8" start="24" type="hex" default="0x1"/>
+    <field name="Unk 1" size="1" start="13" type="bool"/>
+    <field name="Spill size" size="4" start="18" type="hex"/>
+    <field name="Unk 4" size="8" start="24" type="hex"/>
   </struct>
 
   <struct name="USC No Preshader" size="2">
-    <field name="Tag" size="8" start="0" type="USC Control" default="No preshader"/>
+    <field name="Tag" size="8" start="0" type="USC Control" exact="No preshader"/>
   </struct>
 
   <struct name="USC Preshader" size="8">
-    <field name="Tag" size="8" start="0" type="USC Control" default="Preshader"/>
-    <field name="Unk" size="24" start="8" type="hex" default="0xc08000"/>
+    <field name="Tag" size="8" start="0" type="USC Control" exact="Preshader"/>
+    <field name="Unk" size="24" start="8" type="hex" exact="0xc08000"/>
     <field name="Code" size="32" start="32" type="address"/>
   </struct>
 
   <struct name="USC Fragment Properties" size="4">
-    <field name="Tag" size="8" start="0" type="USC Control" default="Fragment properties"/>
-    <!-- Guess. Set if the shader does not write the sample mask (including by
-        discard_fragment) -->
+    <field name="Tag" size="8" start="0" type="USC Control" exact="Fragment properties"/>
     <field name="Early-z testing" size="1" start="8" type="bool"/>
-    <field name="Unk 2" size="1" start="9" type="bool" default="true"/>
+    <field name="Unk 2" size="1" start="9" type="bool"/>
     <field name="Unconditional discard 1" size="1" start="10" type="bool"/>
     <field name="Unconditional discard 2" size="1" start="11" type="bool"/>
-    <field name="Unk 3" size="4" start="12" type="hex" default="0xf"/>
-    <field name="Unk 4" size="8" start="16" type="hex" default="0"/> <!-- TODO: determine relation, see docs/table.py -->
-    <field name="Unk 5" size="8" start="24" type="hex" default="0x01"/>
+    <field name="Unk 3" size="4" start="12" type="hex"/>
+    <field name="Unk 4" size="8" start="16" type="hex"/> <!-- TODO: determine relation, see docs/table.py -->
+    <field name="Unk 5" size="8" start="24" type="hex"/>
   </struct>
   <!-- USC commands end -->
 
@@ -738,22 +732,22 @@
   <struct name="PPP State" size="8">
     <field name="Pointer (hi)" size="8" start="0" type="hex"/>
     <field name="Size (words)" size="8" start="8" type="uint"/>
-    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="PPP State Update"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" exact="PPP State Update"/>
     <field name="Pointer (lo)" size="32" start="32" type="address"/>
   </struct>
 
   <struct name="VDM Barrier">
-    <field name="USC cache inval" size="1" start="3" type="bool" default="false"/>
-    <field name="Unk 4" size="1" start="4" type="bool" default="false"/>
-    <field name="Unk 5" size="1" start="5" type="bool" default="false"/>
-    <field name="Unk 6" size="1" start="6" type="bool" default="false"/>
-    <field name="Unk 8" size="1" start="8" type="bool" default="false"/>
-    <field name="Unk 11" size="1" start="11" type="bool" default="false"/>
-    <field name="Unk 20" size="1" start="20" type="bool" default="false"/>
-    <field name="Unk 24" size="1" start="24" type="bool" default="false"/>
-    <field name="Unk 26" size="1" start="26" type="bool" default="false"/>
-    <field name="Returns" size="1" start="27" type="bool" default="false"/>
-    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Barrier"/>
+    <field name="USC cache inval" size="1" start="3" type="bool"/>
+    <field name="Unk 4" size="1" start="4" type="bool"/>
+    <field name="Unk 5" size="1" start="5" type="bool"/>
+    <field name="Unk 6" size="1" start="6" type="bool"/>
+    <field name="Unk 8" size="1" start="8" type="bool"/>
+    <field name="Unk 11" size="1" start="11" type="bool"/>
+    <field name="Unk 20" size="1" start="20" type="bool"/>
+    <field name="Unk 24" size="1" start="24" type="bool"/>
+    <field name="Unk 26" size="1" start="26" type="bool"/>
+    <field name="Returns" size="1" start="27" type="bool"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" exact="Barrier"/>
   </struct>
 
   <enum name="Index size">
@@ -770,7 +764,7 @@
     <field name="Tessellation present" size="1" start="4" type="bool"/>
     <field name="Vertex unknown present" size="1" start="5" type="bool"/>
     <field name="Tessellation scale present" size="1" start="7" type="bool"/>
-    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="VDM State Update"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" exact="VDM State Update"/>
   </struct>
 
   <struct name="VDM State Restart Index" size="4">
@@ -778,7 +772,7 @@
   </struct>
 
   <struct name="VDM State Vertex Shader Word 0" size="4">
-    <field name="Unknown 0" size="1" start="0" type="hex" default="0"/>
+    <field name="Unknown 0" size="1" start="0" type="hex"/>
     <field name="Uniform register count" size="3" start="1" type="uint" modifier="groups(64)"/>
     <field name="Texture state register count" size="5" start="4" type="uint" modifier="groups(8)"/>
     <field name="Sampler state register count" size="3" start="9" type="Sampler states"/>
@@ -791,8 +785,8 @@
   </struct>
 
   <struct name="VDM State Vertex Outputs" size="4">
-    <field name="Output count 1" size="8" start="0" type="uint" default="0"/>
-    <field name="Output count 2" size="8" start="8" type="uint" default="0"/>
+    <field name="Output count 1" size="8" start="0" type="uint"/>
+    <field name="Output count 2" size="8" start="8" type="uint"/>
   </struct>
 
   <enum name="VDM Vertex">
@@ -826,13 +820,9 @@
   </enum>
 
   <struct name="VDM State Tessellation" size="4">
-    <field name="Unknown" size="17" start="0" type="hex"/> <!-- 0 -->
+    <field name="Unknown" size="17" start="0" type="hex"/>
     <field name="Step function" size="2" start="17" type="Step function"/>
-    <!-- Not yet hardware tested, firm guess from stuffing values -->
     <field name="Factor type" size="1" start="19" type="Factor type"/>
-    <!-- XXX: Possibly unknown 3 is part of the patch type, with points &
-    isolines also supported? would be a natural encoding. Needs testing to see
-    if implemeneted in hw. -->
     <field name="Patch type" size="1" start="20" type="Patch type"/>
     <field name="Unknown 3" size="2" start="21" type="hex"/> <!-- 1 -->
 
@@ -874,7 +864,7 @@
     <!-- 1 word, unknown purpose -->
     <field name="Unk 2 present" size="1" start="27" type="bool"/>
 
-    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Index List"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" exact="Index List"/>
   </struct>
 
   <struct name="Index List: Buffer lo" size="4">
@@ -911,7 +901,7 @@
   <struct name="VDM Stream Link" size="8">
     <field name="Target hi" size="8" start="0" type="hex"/>
     <field name="With return" size="1" start="28" type="bool"/>
-    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Stream Link"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" exact="Stream Link"/>
     <field name="Target lo" size="32" start="32" type="hex"/>
   </struct>
 
@@ -941,7 +931,7 @@
     <field name="Factor buffer size present" size="1" start="28" type="bool"/>
 
     <field name="Unknown 1" size="1" start="28" type="hex"/> <!-- 1 -->
-    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Tessellate"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" exact="Tessellate"/>
   </struct>
 
   <struct name="VDM Tessellate: Factor buffer" size="4">
@@ -983,7 +973,7 @@
   </struct>
 
   <struct name="VDM Stream Terminate" size="32">
-    <field name="Block Type" size="3" start="29" type="VDM Block Type" default="Stream Terminate"/>
+    <field name="Block Type" size="3" start="29" type="VDM Block Type" exact="Stream Terminate"/>
   </struct>
 
   <!-- VDM commands end -->
@@ -994,6 +984,7 @@
     <value name="Stream Link" value="1"/>
     <value name="Stream Terminate" value="2"/>
     <value name="Barrier" value="3"/>
+    <value name="Stream Return" value="4"/>
   </enum>
 
   <enum name="CDM Mode">
@@ -1017,7 +1008,7 @@
     <field name="Sampler state register count" size="3" start="9" type="Sampler states"/>
     <field name="Preshader register count" size="4" start="12" type="uint" modifier="groups(16)"/>
     <field name="Mode" size="2" start="27" type="CDM Mode"/>
-    <field name="Block Type" size="3" start="29" type="CDM Block Type" default="Launch"/>
+    <field name="Block Type" size="3" start="29" type="CDM Block Type" exact="Launch"/>
   </struct>
 
   <struct name="CDM Launch Word 1" size="4">
@@ -1025,7 +1016,7 @@
   </struct>
 
   <struct name="CDM Unk G14X" size="8">
-    <field name="Unknown 30" size="1" start="1:30" type="bool" default="true"/>
+    <field name="Unknown 30" size="1" start="1:30" type="bool" exact="true"/>
   </struct>
 
   <struct name="CDM Indirect" size="8">
@@ -1046,41 +1037,46 @@
   </struct>
 
   <struct name="CDM Barrier" size="4">
-    <field name="Unk 0" size="1" start="0" type="bool" default="false"/>
-    <field name="Unk 1" size="1" start="1" type="bool" default="false"/>
-    <field name="Unk 2" size="1" start="2" type="bool" default="false"/>
-    <field name="USC cache inval" size="1" start="3" type="bool" default="false"/>
-    <field name="Unk 4" size="1" start="4" type="bool" default="false"/>
-    <field name="Unk 5" size="1" start="5" type="bool" default="false"/>
-    <field name="Unk 6" size="1" start="6" type="bool" default="false"/>
-    <field name="Unk 7" size="1" start="7" type="bool" default="false"/>
-    <field name="Unk 8" size="1" start="8" type="bool" default="false"/>
-    <field name="Unk 9" size="1" start="9" type="bool" default="false"/>
-    <field name="Unk 10" size="1" start="10" type="bool" default="false"/>
-    <field name="Unk 11" size="1" start="11" type="bool" default="false"/>
-    <field name="Unk 12" size="1" start="12" type="bool" default="false"/>
-    <field name="Unk 13" size="1" start="13" type="bool" default="false"/>
-    <field name="Unk 14" size="1" start="14" type="bool" default="false"/>
-    <field name="Unk 15" size="1" start="15" type="bool" default="false"/>
-    <field name="Unk 16" size="1" start="16" type="bool" default="false"/>
-    <field name="Unk 17" size="1" start="17" type="bool" default="false"/>
-    <field name="Unk 18" size="1" start="18" type="bool" default="false"/>
-    <field name="Unk 19" size="1" start="19" type="bool" default="false"/>
-    <field name="Unk 20" size="1" start="20" type="bool" default="false"/>
-    <field name="Unk 24" size="1" start="24" type="bool" default="false"/>
-    <field name="Unk 26" size="1" start="26" type="bool" default="false"/>
-    <field name="Returns" size="1" start="27" type="bool" default="false"/>
-    <field name="Block Type" size="3" start="29" type="CDM Block Type" default="Barrier"/>
+    <field name="Unk 0" size="1" start="0" type="bool"/>
+    <field name="Unk 1" size="1" start="1" type="bool"/>
+    <field name="Unk 2" size="1" start="2" type="bool"/>
+    <field name="USC cache inval" size="1" start="3" type="bool"/>
+    <field name="Unk 4" size="1" start="4" type="bool"/>
+    <field name="Unk 5" size="1" start="5" type="bool"/>
+    <field name="Unk 6" size="1" start="6" type="bool"/>
+    <field name="Unk 7" size="1" start="7" type="bool"/>
+    <field name="Unk 8" size="1" start="8" type="bool"/>
+    <field name="Unk 9" size="1" start="9" type="bool"/>
+    <field name="Unk 10" size="1" start="10" type="bool"/>
+    <field name="Unk 11" size="1" start="11" type="bool"/>
+    <field name="Unk 12" size="1" start="12" type="bool"/>
+    <field name="Unk 13" size="1" start="13" type="bool"/>
+    <field name="Unk 14" size="1" start="14" type="bool"/>
+    <field name="Unk 15" size="1" start="15" type="bool"/>
+    <field name="Unk 16" size="1" start="16" type="bool"/>
+    <field name="Unk 17" size="1" start="17" type="bool"/>
+    <field name="Unk 18" size="1" start="18" type="bool"/>
+    <field name="Unk 19" size="1" start="19" type="bool"/>
+    <field name="Unk 20" size="1" start="20" type="bool"/>
+    <field name="Unk 24" size="1" start="24" type="bool"/>
+    <field name="Unk 26" size="1" start="26" type="bool"/>
+    <field name="Returns" size="1" start="27" type="bool"/>
+    <field name="Block Type" size="3" start="29" type="CDM Block Type" exact="Barrier"/>
   </struct>
 
   <struct name="CDM Stream Link" size="8">
     <field name="Target hi" size="8" start="0" type="hex"/>
-    <field name="Block Type" size="3" start="29" type="CDM Block Type" default="Stream Link"/>
+    <field name="With return" size="1" start="28" type="bool"/>
+    <field name="Block Type" size="3" start="29" type="CDM Block Type" exact="Stream Link"/>
     <field name="Target lo" size="32" start="32" type="hex"/>
   </struct>
 
   <struct name="CDM Stream Terminate" size="8">
-    <field name="Block Type" size="3" start="29" type="CDM Block Type" default="Stream Terminate"/>
+    <field name="Block Type" size="3" start="29" type="CDM Block Type" exact="Stream Terminate"/>
+  </struct>
+
+  <struct name="CDM Stream Return" size="8">
+    <field name="Block Type" size="3" start="29" type="CDM Block Type" exact="Stream Return"/>
   </struct>
   <!-- CDM commands end -->
 
@@ -1093,11 +1089,11 @@
   </enum>
 
   <struct name="IOGPU Attachment" size="24">
-    <field name="Unk 0" start="0:0" size="16" default="0x100" type="hex"/>
+    <field name="Unk 0" start="0:0" size="16" type="hex"/>
     <field name="Address" start="0:16" size="48" type="address"/>
     <field name="Type" start="2:16" size="16" type="IOGPU Attachment Type"/>
     <field name="Size" start="3:9" size="32" type="uint"/>
-    <field name="Unk 3" start="4:16" size="4" type="hex" default="0xC"/>
+    <field name="Unk 3" start="4:16" size="4" type="hex"/>
     <!-- Percent of total attachment space used for this attachment, expressed
          in a decimal percentage [0, 100] <field name="Percent" start="5:16" -->
     <field name="Percent" start="5:16" size="16" type="uint"/>
@@ -1127,20 +1123,20 @@
     <field name="S Resolve" start="58" size="1" type="bool"/>
   </struct>
 
-  <struct name="IOGPU Header" size="64">
-    <field name="Unk 0" start="0:0" size="32" default="0x10000" type="hex"/>
+  <struct name="IOGPU Header" size="64" os="darwin">
+    <field name="Unk 0" start="0:0" size="32" type="hex"/>
     <field name="Total size" start="1:0" size="32" type="uint"/>
     <!-- 0x7 in 11.x -->
-    <field name="Unk 2" start="2:0" size="32" default="0x4" type="hex"/>
+    <field name="Unk 2" start="2:0" size="32" type="hex"/>
     <field name="Attachment length" start="9:0" size="32" type="uint"/>
     <field name="Attachment offset" start="10:0" size="32" type="uint"/>
     <field name="Unknown offset" start="11:0" size="32" type="uint"/>
-    <field name="Unk 4" start="12:0" size="32" default="0x30" type="hex"/>
-    <field name="Unk 5" start="13:0" size="32" default="0x01" type="hex"/>
+    <field name="Unk 4" start="12:0" size="32" type="hex"/>
+    <field name="Unk 5" start="13:0" size="32" type="hex"/>
     <field name="Encoder" start="14:0" size="64" type="address"/>
   </struct>
 
-  <struct name="Spill Buffer Histogram" size="60">
+  <struct name="Spill Buffer Histogram" size="60" os="darwin">
     <field name="Bin 0" start="0:0" size="4" type="uint"/>
     <field name="Bin 1" start="1:0" size="4" type="uint"/>
     <field name="Bin 2" start="2:0" size="4" type="uint"/>
@@ -1158,61 +1154,61 @@
     <field name="Bin 14" start="14:0" size="4" type="uint"/>
   </struct>
 
-  <struct name="IOGPU Compute" size="384">
+  <struct name="IOGPU Compute" size="384" os="darwin">
     <field name="Deflake 1" start="20:0" size="64" type="address"/>
     <field name="Terminate of encoder" start="22:0" size="64" type="address"/>
     <field name="Deflake 2" start="26:0" size="64" type="address"/>
     <field name="Deflake 3" start="28:0" size="64" type="address"/>
     <field name="Deflake 4" start="30:0" size="64" type="address"/>
     <field name="Deflake 5" start="32:0" size="64" type="address"/>
-    <field name="Unk 34" start="34:0" size="32" default="1" type="hex"/>
+    <field name="Unk 34" start="34:0" size="32" type="hex"/>
     <field name="Unk address" start="36:0" size="64" type="address"/>
-    <field name="Unk 40" start="40:0" size="32" default="0x1c" type="hex"/>
+    <field name="Unk 40" start="40:0" size="32" type="hex"/>
     <field name="Encoder ID" start="41:0" size="32" type="hex"/>
-    <field name="Unk 44" start="44:0" size="32" default="0xffffffff" type="hex"/>
+    <field name="Unk 44" start="44:0" size="32" type="hex"/>
     <field name="Context switch program" start="48:0" size="32" type="address"/>
 
     <!-- An enum that's purely macOS defined UAPI. Doesn't matter for us.
     More info at https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/21062#note_1754715 -->
-    <field name="Context switch block size" start="56:0" size="4" default="2" type="hex"/>
+    <field name="Context switch block size" start="56:0" size="4" type="hex"/>
     <field name="Spilling unk 1" start="57:3" size="1" type="bool"/>
     <!-- Depends on grid size, as well as other factors. TODO: Decode. -->
-    <field name="Number of context switch buffers" start="58:0" size="32" default="1" type="uint"/>
+    <field name="Number of context switch buffers" start="58:0" size="32" type="uint"/>
     <field name="Spill Buffer Histogram" start="60:0" size="480" type="Spill Buffer Histogram"/>
     <!-- Lina's guess at the meaning -->
-    <field name="Enable context switching" start="75:16" size="1" default="true" type="bool"/>
-    <field name="Unk 94" start="94:0" size="32" default="0xffffffff" type="hex"/>
-    <field name="Unk 95" start="95:0" size="32" default="0xffffffff" type="hex"/>
+    <field name="Enable context switching" start="75:16" size="1" type="bool"/>
+    <field name="Unk 94" start="94:0" size="32" type="hex"/>
+    <field name="Unk 95" start="95:0" size="32" type="hex"/>
   </struct>
 
-  <struct name="IOGPU Graphics" size="1920">
+  <struct name="IOGPU Graphics" size="1920" os="darwin">
     <!-- if either deflake address is null, rendering gets flaky for high
          geometry counts -->
     <field name="Deflake 1" start="22:0" size="64" type="address"/>
     <field name="Deflake 2" start="24:0" size="64" type="address"/>
-    <field name="Unk 54" start="38:0" size="32" default="0x6b0003" type="hex"/>
-    <field name="Unk 55" start="39:0" size="32" default="0x3a0012" type="hex"/>
-    <field name="Unk 56" start="40:0" size="32" default="0x1" type="hex"/>
+    <field name="Unk 54" start="38:0" size="32" type="hex"/>
+    <field name="Unk 55" start="39:0" size="32" type="hex"/>
+    <field name="Unk 56" start="40:0" size="32" type="hex"/>
     <field name="Deflake 3" start="94:0" size="64" type="address"/>
-    <field name="Unk 112" start="96:0" size="32" default="0x1" type="hex"/>
-    <field name="Unk 114" start="98:0" size="32" default="0x1c" type="hex"/>
+    <field name="Unk 112" start="96:0" size="32" type="hex"/>
+    <field name="Unk 114" start="98:0" size="32" type="hex"/>
     <field name="Memoryless render targets used" start="100:0" size="1" type="bool"/>
     <field name="OpenGL depth clipping" start="100:24" size="1" type="bool"/>
-    <field name="Unk 118" start="102:0" size="32" default="0xffffffff" type="hex"/>
-    <field name="Unk 119" start="103:0" size="32" default="0xffffffff" type="hex"/>
-    <field name="Unk 120" start="104:0" size="32" default="0xffffffff" type="hex"/>
+    <field name="Unk 118" start="102:0" size="32" type="hex"/>
+    <field name="Unk 119" start="103:0" size="32" type="hex"/>
+    <field name="Unk 120" start="104:0" size="32" type="hex"/>
 
     <field name="Clear pipeline bind" start="146:0" size="32" type="hex"/>
-    <field name="Clear pipeline unk" start="148:0" size="4" default="4" type="hex"/>
+    <field name="Clear pipeline unk" start="148:0" size="4" type="hex"/>
     <field name="Clear pipeline" start="148:4" size="28" type="address" modifier="shr(4)"/>
     <field name="Store pipeline bind" start="154:0" size="32" type="hex"/>
-    <field name="Store pipeline unk" start="156:0" size="4" default="4" type="hex"/>
+    <field name="Store pipeline unk" start="156:0" size="4" type="hex"/>
     <field name="Store pipeline" start="156:4" size="28" type="address" modifier="shr(4)"/>
     <field name="Scissor array" start="158:0" size="64" type="address"/>
     <field name="Depth bias array" start="160:0" size="64" type="address"/>
     <field name="ZLS control" start="164:0" size="32" type="ZLS Control"/>
-    <field name="Depth width" start="170:0" size="15" type="uint" default="1" modifier="minus(1)"/>
-    <field name="Depth height" start="170:15" size="15" type="uint" default="1" modifier="minus(1)"/>
+    <field name="Depth width" start="170:0" size="15" type="uint" modifier="minus(1)"/>
+    <field name="Depth height" start="170:15" size="15" type="uint" modifier="minus(1)"/>
     <field name="Depth buffer 1" start="172:7" size="33" type="address" modifier="shr(7)"/>
     <!-- Normally 0, 0x38001 with layered -->
     <field name="Depth unknown 1" start="176:0" size="32" type="hex"/>
@@ -1230,8 +1226,8 @@
     <field name="Stencil unknown 2" start="206:0" size="32" type="hex"/>
     <field name="Stencil acceleration buffer 2" start="208:7" size="33" type="address" modifier="shr(7)"/>
     <!-- Proportional to tile width * tile height * sample count -->
-    <field name="Unk 212" start="212:0" size="32" default="0x4" type="hex"/>
-    <field name="Unk 214" start="214:0" size="16" default="0xc000" type="hex"/>
+    <field name="Unk 212" start="212:0" size="32" type="hex"/>
+    <field name="Unk 214" start="214:0" size="16" type="hex"/>
     <field name="Z16 Unorm attachment 1" start="214:18" size="1" type="bool"/>
     <field name="Width 1" start="216:0" size="32" type="uint"/>
     <field name="Height 1" start="217:0" size="32" type="uint"/>
@@ -1244,20 +1240,20 @@
     <!-- Encoded like the depth attachment -->
     <field name="Depth clear value" start="276:0" size="32" type="hex"/>
     <field name="Stencil clear value" start="277:0" size="8" type="uint"/>
-    <field name="Unk 277" start="277:8" size="8" type="hex" default="3"/>
+    <field name="Unk 277" start="277:8" size="8" type="hex"/>
     <field name="Set when reloading Z or S 1" start="279:8" size="1" type="bool"/>
     <field name="Set when frag shader spills" start="279:24" size="1" type="bool"/>
     <field name="Set when reloading Z or S 2" start="280:24" size="1" type="bool"/>
     <field name="Z16 Unorm attachment 2" start="281:8" size="1" type="bool"/>
-    <field name="Unk 282" start="282:0" size="32" type="hex" default="0xffffffff"/>
-    <field name="Unk 283" start="283:0" size="32" type="hex" default="0xffffffff"/>
-    <field name="Unk 284" start="284:0" size="32" type="hex" default="0xffffffff"/>
+    <field name="Unk 282" start="282:0" size="32" type="hex"/>
+    <field name="Unk 283" start="283:0" size="32" type="hex"/>
+    <field name="Unk 284" start="284:0" size="32" type="hex"/>
     <field name="Visibility result buffer" start="286:0" size="64" type="address"/>
     <field name="Partial reload pipeline bind" start="296:0" size="32" type="hex"/>
-    <field name="Partial reload pipeline unk" start="298:0" size="4" default="4" type="hex"/>
+    <field name="Partial reload pipeline unk" start="298:0" size="4" type="hex"/>
     <field name="Partial reload pipeline" start="298:4" size="28" type="address" modifier="shr(4)"/>
     <field name="Partial store pipeline bind" start="304:0" size="32" type="hex"/>
-    <field name="Partial store pipeline unk" start="306:0" size="4" default="4" type="hex"/>
+    <field name="Partial store pipeline unk" start="306:0" size="4" type="hex"/>
     <field name="Partial store pipeline" start="306:4" size="28" type="address" modifier="shr(4)"/>
 
     <!-- New in 12.x -->
@@ -1267,42 +1263,42 @@
     <field name="Stencil acceleration buffer 3" start="346:0" size="64" type="address"/>
     <!-- maybe only set when doing a depth clear? -->
     <!-- 0x1000000 bit set with memoryless render targets? -->
-    <field name="Unk 352" start="352:0" size="32" default="0x1" type="hex"/>
-    <field name="Unk 360" start="360:0" size="32" default="0x1c" type="hex"/>
+    <field name="Unk 352" start="352:0" size="32" type="hex"/>
+    <field name="Unk 360" start="360:0" size="32" type="hex"/>
     <field name="Encoder ID" start="362:0" size="32" type="hex"/>
     <!-- top bit maybe only set with a depth clear? -->
-    <field name="Unk 365" start="365:0" size="64" default="0x1ffffffff" type="hex"/>
+    <field name="Unk 365" start="365:0" size="64" type="hex"/>
     <field name="Unknown buffer" start="370:0" size="64" type="address"/>
     <field name="Width 2" start="382:0" size="32" type="uint"/>
     <field name="Height 2" start="383:0" size="32" type="uint"/>
-    <field name="Sample count" start="384:0" size="32" default="1" type="uint"/>
+    <field name="Sample count" start="384:0" size="32" type="uint"/>
 
     <!-- Divided by 16 and rounded -->
-    <field name="Sample 0 X" start="385:0" size="5" default="8" type="uint"/>
-    <field name="Sample 0 Y" start="386:0" size="5" default="8" type="uint"/>
-    <field name="Sample 1 X" start="387:0" size="5" default="0" type="uint"/>
-    <field name="Sample 1 Y" start="388:0" size="5" default="0" type="uint"/>
-    <field name="Sample 2 X" start="389:0" size="5" default="0" type="uint"/>
-    <field name="Sample 2 Y" start="390:0" size="5" default="0" type="uint"/>
-    <field name="Sample 3 X" start="391:0" size="5" default="0" type="uint"/>
-    <field name="Sample 3 Y" start="392:0" size="5" default="0" type="uint"/>
+    <field name="Sample 0 X" start="385:0" size="5" type="uint"/>
+    <field name="Sample 0 Y" start="386:0" size="5" type="uint"/>
+    <field name="Sample 1 X" start="387:0" size="5" type="uint"/>
+    <field name="Sample 1 Y" start="388:0" size="5" type="uint"/>
+    <field name="Sample 2 X" start="389:0" size="5" type="uint"/>
+    <field name="Sample 2 Y" start="390:0" size="5" type="uint"/>
+    <field name="Sample 3 X" start="391:0" size="5" type="uint"/>
+    <field name="Sample 3 Y" start="392:0" size="5" type="uint"/>
 
     <!-- if tile size 32x32: max(tib allocation, 8) rounded to POT
          if tile size 32x16: that, halved
          -->
-    <field name="Unk 49:0" start="401:0" size="32" default="8" type="uint"/>
-    <field name="Tile width" start="402:0" size="32" default="32" type="uint"/>
-    <field name="Tile height" start="403:0" size="32" default="32" type="uint"/>
+    <field name="Unk 49:0" start="401:0" size="32" type="uint"/>
+    <field name="Tile width" start="402:0" size="32" type="uint"/>
+    <field name="Tile height" start="403:0" size="32" type="uint"/>
     <!-- Number of framebuffer layers when rendering to a layered framebuffer (1
         otherwise). This affects tiling calculations. It also affects how many
     times the background program and end-of-tile programs are executed. The
     layer index is available in sr2. -->
-    <field name="Framebuffer layers" start="404:0" size="32" default="1" type="uint"/>
-    <field name="Unk 56:0" start="408:0" size="32" default="0" type="uint"/>
-    <field name="Unk 70:0" start="410:0" size="32" default="1" type="uint"/>
+    <field name="Framebuffer layers" start="404:0" size="32" type="uint"/>
+    <field name="Unk 56:0" start="408:0" size="32" type="uint"/>
+    <field name="Unk 70:0" start="410:0" size="32" type="uint"/>
   </struct>
 
-  <struct name="IOGPU Attachment Count" size="16">
+  <struct name="IOGPU Attachment Count" size="16" os="darwin">
     <field name="Count" start="3:0" size="32" type="uint"/>
   </struct>
 

@@ -196,6 +196,8 @@ lvp_compile_ray_tracing_stages(struct lvp_pipeline *pipeline,
          ralloc_free(nir);
          return result;
       }
+      if (pipeline->layout)
+         pipeline->shaders[nir->info.stage].push_constant_size = pipeline->layout->push_constant_size;
    }
 
    if (!create_info->pLibraryInfo)

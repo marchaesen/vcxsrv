@@ -43,11 +43,10 @@ bool st_nir_lower_wpos_ytransform(struct nir_shader *nir,
                                   struct gl_program *prog,
                                   struct pipe_screen *pscreen);
 
-char *st_finalize_nir(struct st_context *st, struct gl_program *prog,
-                      struct gl_shader_program *shader_program,
-                      struct nir_shader *nir, bool finalize_by_driver,
-                      bool is_before_variants,
-                      bool is_draw_shader);
+void st_finalize_nir(struct st_context *st, struct gl_program *prog,
+                     struct gl_shader_program *shader_program,
+                     struct nir_shader *nir, bool is_before_variants,
+                     bool is_draw_shader);
 
 void st_nir_assign_vs_in_locations(struct nir_shader *nir);
 void st_nir_assign_varying_locations(struct st_context *st,
@@ -60,21 +59,19 @@ void st_nir_lower_uniforms(struct st_context *st, struct nir_shader *nir);
 
 void
 st_nir_finish_builtin_nir(struct st_context *st, struct nir_shader *nir);
-struct pipe_shader_state *
+void *
 st_nir_finish_builtin_shader(struct st_context *st,
                              struct nir_shader *nir);
 
-struct pipe_shader_state *
-st_nir_make_passthrough_shader(struct st_context *st,
-                               const char *shader_name,
-                               gl_shader_stage stage,
-                               unsigned num_vars,
-                               const unsigned *input_locations,
-                               const gl_varying_slot *output_locations,
-                               unsigned *interpolation_modes,
-                               unsigned sysval_mask);
+void *
+st_nir_make_passthrough_vs(struct st_context *st,
+                           const char *shader_name,
+                           unsigned num_vars,
+                           const unsigned *input_locations,
+                           const gl_varying_slot *output_locations,
+                           unsigned sysval_mask);
 
-struct pipe_shader_state *
+void *
 st_nir_make_clearcolor_shader(struct st_context *st);
 
 struct nir_variable *
@@ -86,6 +83,8 @@ bool st_nir_lower_fog(struct nir_shader *s, enum gl_fog_mode fog_mode,
                       struct gl_program_parameter_list *paramList);
 bool st_nir_lower_position_invariant(struct nir_shader *s, bool aos,
                                      struct gl_program_parameter_list *paramList);
+
+bool st_nir_unlower_io_to_vars(struct nir_shader *nir);
 
 #ifdef __cplusplus
 }

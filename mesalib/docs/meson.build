@@ -11,12 +11,18 @@ assert Version(hawkmoth.__version__) >= Version("0.16.0")
   error_message: 'hawkmoth >= 0.16.0 required'
 )
 
+sphinx_args = []
+if get_option('werror')
+  sphinx_args += '-W'
+endif
+
 html_docs = custom_target(
   'html',
   depfile: 'docs.d',
   depend_files: files('conf.py'),
   command: [sphinx, '-b', 'html', '-q',
             '-Ddepfile=@DEPFILE@',
+            sphinx_args,
             meson.current_source_dir(), '@OUTPUT@'],
   output: 'html',
   build_by_default: get_option('html-docs').enabled(),

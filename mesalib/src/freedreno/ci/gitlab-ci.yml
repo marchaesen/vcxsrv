@@ -89,7 +89,7 @@ a618-vk:
     DEQP_SUITE: freedreno-a618-vk
     FLAKES_CHANNEL: "#freedreno-ci"
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
-    DEQP_FRACTION: 4
+    DEQP_FRACTION: 2
 
 a618-vk-full:
   extends:
@@ -97,13 +97,13 @@ a618-vk-full:
     - .collabora-turnip-manual-rules
   # We use a longer timeout to keep the parallel down so that we don't lock up
   # too many runners for a long time when a dev is trying out at full VK status.
-  timeout: 4h
+  timeout: 2h
   parallel: 3
   variables:
     # ran into OOM with VK-GL-CTS 1.2.8.0 at 6
     FDO_CI_CONCURRENT: 4
     DEQP_SUITE: freedreno-a618-vk-full
-    JOB_TIMEOUT: 180
+    DEQP_FRACTION: 1
 
 a618-gl:
   extends:
@@ -119,6 +119,7 @@ a618-gl-full:
   extends:
     - a618-gl
     - .collabora-freedreno-manual-rules
+  timeout: 65m
   variables:
     DEQP_FRACTION: 1
 
@@ -130,7 +131,6 @@ a618-egl:
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
     - .collabora-freedreno-rules
   variables:
-    DEQP_VER: egl
     FLAKES_CHANNEL: "#freedreno-ci"
     HWCI_START_XORG: 1
     HWCI_START_WESTON: 1
@@ -171,7 +171,20 @@ a618-piglit-full:
     DEQP_SUITE: freedreno-a618-piglit-full
     FLAKES_CHANNEL: "#freedreno-ci"
     HWCI_START_WESTON: 1
-    JOB_TIMEOUT: 60
+
+a618-piglit-cl:
+  extends:
+    - .lava-test-deqp:arm64
+    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    - .collabora-freedreno-rules
+  rules:
+    - !reference [.collabora-freedreno-rules, rules]
+    - !reference [.rusticl-rules, rules]
+  variables:
+    DEQP_SUITE: freedreno-a618-piglit-cl
+    FLAKES_CHANNEL: "#freedreno-ci"
+    HWCI_START_WESTON: 1
+    PIGLIT_PROFILES: cl
 
 a618-traces:
   extends:
@@ -205,6 +218,19 @@ a618-traces-performance:
     - !reference [a618-traces, needs]
     - !reference [.piglit-performance:arm64, needs]
 
+a660-piglit-cl:
+  extends:
+    - .lava-test-deqp:arm64
+    - .lava-sm8350-hdk:arm64
+    - .collabora-freedreno-rules
+  rules:
+    - !reference [.collabora-freedreno-rules, rules]
+    - !reference [.rusticl-rules, rules]
+  variables:
+    DEQP_SUITE: freedreno-a660-piglit-cl
+    HWCI_START_WESTON: 1
+    PIGLIT_PROFILES: cl
+
 a660-gl:
   extends:
     - .lava-test-deqp:arm64
@@ -229,10 +255,10 @@ a660-vk-full:
     - a660-vk
     - .collabora-turnip-manual-rules
   parallel: 3
-  timeout: 3h
+  timeout: 2h
   variables:
     DEQP_SUITE: freedreno-a660-vk-full
-    JOB_TIMEOUT: 180
+    DEQP_FRACTION: 1
 
 # X11 takes over the screen, wayland is run headless.
 a630-gl:
@@ -251,16 +277,26 @@ a630-gles-asan:
     - .a630-test
     - .baremetal-arm64-asan-test
   variables:
-    DEQP_VER: gles31
-    DEQP_FRACTION: 100
-    DEQP_EXPECTED_RENDERER: FD630
+    DEQP_SUITE: freedreno-a630-gles-asan
     FDO_CI_CONCURRENT: 2 # We get OOMkills if we go too wide with asan enabled
-    GPU_VERSION: freedreno-a630-asan
+
+a630-gles-asan-full:
+  # Like in a630-vk-full, we use a longer timeout (here 1h) to not use the
+  # parallel feature, while using the DUT for usually 40-50 minutes. This job,
+  # together with the other a630 jobs, uses 4 of the 6 devices available.
+  timeout: 1h
+  extends:
+    - a630-gles-asan
+    - .a630-full
+    - .google-freedreno-manual-rules
+  variables:
+    DEQP_SUITE: freedreno-a630-gles-asan-full
+    TEST_PHASE_TIMEOUT_MINUTES: 55
 
 a630-vk:
   extends:
     - .a630-test
-    - .baremetal-deqp-test-freedreno-vk
+    - .baremetal-deqp-test
     - .google-turnip-rules
   variables:
     DEQP_SUITE: freedreno-a630-vk
@@ -270,7 +306,7 @@ a630-vk-full:
   # don't lock up too many runners for a long time when a dev is testing full VK
   # status.  The full runs are restricted to just 2 runners to keep from
   # blocking up normal merges, so going more parallel doesn't make any sense.
-  timeout: 3h
+  timeout: 2h
   extends:
     - a630-vk
     - .a630-full
@@ -278,18 +314,17 @@ a630-vk-full:
   parallel: 2
   variables:
     DEQP_SUITE: freedreno-a630-vk-full
-    TEST_PHASE_TIMEOUT_MINUTES: 175
+    TEST_PHASE_TIMEOUT_MINUTES: 115
 
 a630-vk-asan:
   extends:
     - .a630-test
-    - .baremetal-deqp-test-freedreno-vk
+    - .baremetal-deqp-test
     - .baremetal-arm64-asan-test
     - .google-turnip-rules
   variables:
     DEQP_SUITE: freedreno-a630-vk-asan
     FDO_CI_CONCURRENT: 2 # We get OOMkills if we go too wide with asan enabled
-    GPU_VERSION: freedreno-a630-asan
 
 a630-piglit:
   extends:
@@ -353,15 +388,42 @@ a630-traces-performance:
     GIT_STRATEGY: none
     HWCI_FREQ_MAX: "true"
 
+a750-gl:
+  extends:
+    - .b2c-arm64-test-gl
+    - .a750-mupuf
+    - .valve-freedreno-manual-rules
+  timeout: 30m  # base runtime 11min total, 8min of testing
+  variables:
+    B2C_TIMEOUT_BOOT_MINUTES: 22
+    B2C_TIMEOUT_OVERALL_MINUTES: 25
+    HWCI_TEST_SCRIPT: install/deqp-runner.sh
+    DEQP_SUITE: freedreno-a750
+
+a750-piglit-cl:
+  extends:
+    - .b2c-arm64-test-gl
+    - .a750-mupuf
+    - .valve-freedreno-manual-rules
+  rules:
+    - !reference [.valve-freedreno-manual-rules, rules]
+    - !reference [.rusticl-rules, rules]
+  variables:
+    DEQP_SUITE: freedreno-a750-piglit-cl
+    HWCI_START_WESTON: 1
+    PIGLIT_PROFILES: cl
+    HWCI_TEST_SCRIPT: ./install/deqp-runner.sh
+    VK_DRIVER: freedreno
+
 a750-vk:
   extends:
     - .b2c-freedreno-vk-test
     - .a750-mupuf
     - .valve-freedreno-turnip-manual-rules
-  timeout: 60m  # base runtime 36min total, 34min of testing
+  timeout: 75m  # base runtime 54min total, 51min of testing
   variables:
-    B2C_TIMEOUT_BOOT_MINUTES: 52
-    B2C_TIMEOUT_OVERALL_MINUTES: 55
+    B2C_TIMEOUT_BOOT_MINUTES: 65
+    B2C_TIMEOUT_OVERALL_MINUTES: 70
     DEQP_SUITE: freedreno-a750-vk
     HWCI_TEST_SCRIPT: ./install/deqp-runner.sh
 

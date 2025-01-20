@@ -278,9 +278,13 @@ check_instr(wait_ctx& ctx, wait_imm& wait, Instruction* instr)
 
          wait_imm reg_imm = it->second.imm;
 
-         /* Vector Memory reads and writes return in the order they were issued */
+         /* Vector Memory reads and writes decrease the counter in the order they were issued.
+          * Before GFX12, they also write VGPRs in order if they're of the same type.
+          * TODO: We can do this for GFX12 and different types for GFX11 if we know that the two
+          * VMEM loads do not write the same lanes. Since GFX11, we track VMEM operations on the
+          * linear CFG, so this is difficult */
          uint8_t vmem_type = get_vmem_type(ctx.gfx_level, instr);
-         if (vmem_type) {
+         if (vmem_type && ctx.gfx_level < GFX12) {
             wait_event event = get_vmem_event(ctx, instr, vmem_type);
             wait_type type = (wait_type)(ffs(ctx.info->get_counters_for_event(event)) - 1);
             if ((it->second.events & ctx.info->events[type]) == event &&
@@ -315,9 +319,9 @@ perform_barrier(wait_ctx& ctx, wait_imm& imm, memory_sync_info sync, unsigned se
          if (bar_scope_lds <= subgroup_scope)
             events &= ~event_lds;
 
-         /* in non-WGP, the L1 (L0 on GFX10+) cache keeps all memory operations
+         /* Until GFX12, in non-WGP, the L1 (L0 on GFX10+) cache keeps all memory operations
           * in-order for the same workgroup */
-         if (!ctx.program->wgp_mode && sync.scope <= scope_workgroup)
+         if (ctx.gfx_level < GFX12 && !ctx.program->wgp_mode && sync.scope <= scope_workgroup)
             events &= ~(event_vmem | event_vmem_store | event_smem);
 
          if (events)
@@ -342,6 +346,15 @@ kill(wait_imm& imm, Instruction* instr, wait_ctx& ctx, memory_sync_info sync_inf
        * waitcnt states are inserted before jumping to the PS epilog.
        */
       force_waitcnt(ctx, imm);
+   }
+
+   /* sendmsg(dealloc_vgprs) releases scratch, so this isn't safe if there is a in-progress
+    * scratch store.
+    */
+   if (ctx.gfx_level >= GFX11 && instr->opcode == aco_opcode::s_sendmsg &&
+       instr->salu().imm == sendmsg_dealloc_vgprs) {
+      imm.combine(ctx.barrier_imm[ffs(storage_scratch) - 1]);
+      imm.combine(ctx.barrier_imm[ffs(storage_vgpr_spill) - 1]);
    }
 
    /* Make sure POPS coherent memory accesses have reached the L2 cache before letting the
@@ -448,7 +461,11 @@ update_barrier_imm(wait_ctx& ctx, uint8_t counters, wait_event event, memory_syn
    for (unsigned i = 0; i < storage_count; i++) {
       wait_imm& bar = ctx.barrier_imm[i];
       uint16_t& bar_ev = ctx.barrier_events[i];
-      if (sync.storage & (1 << i) && !(sync.semantics & semantic_private)) {
+
+      /* We re-use barrier_imm/barrier_events to wait for all scratch stores to finish. */
+      bool ignore_private = i == (ffs(storage_scratch) - 1) || i == (ffs(storage_vgpr_spill) - 1);
+
+      if (sync.storage & (1 << i) && (!(sync.semantics & semantic_private) || ignore_private)) {
          bar_ev |= event;
          u_foreach_bit (j, counters)
             bar[j] = 0;
@@ -545,7 +562,8 @@ insert_wait_entry(wait_ctx& ctx, Definition def, wait_event event, uint8_t vmem_
    /* We can't safely write to unwritten destination VGPR lanes with DS/VMEM on GFX11 without
     * waiting for the load to finish.
     */
-   uint32_t ds_vmem_events = event_lds | event_gds | event_vmem | event_flat;
+   uint32_t ds_vmem_events =
+      event_lds | event_gds | event_vmem | event_vmem_sample | event_vmem_bvh | event_flat;
    bool force_linear = ctx.gfx_level >= GFX11 && (event & ds_vmem_events);
 
    insert_wait_entry(ctx, def.physReg(), def.regClass(), event, true, vmem_types, force_linear);
@@ -666,43 +684,7 @@ void
 emit_waitcnt(wait_ctx& ctx, std::vector<aco_ptr<Instruction>>& instructions, wait_imm& imm)
 {
    Builder bld(ctx.program, &instructions);
-
-   if (ctx.gfx_level >= GFX12) {
-      if (imm.vm != wait_imm::unset_counter && imm.lgkm != wait_imm::unset_counter) {
-         bld.sopp(aco_opcode::s_wait_loadcnt_dscnt, (imm.vm << 8) | imm.lgkm);
-         imm.vm = wait_imm::unset_counter;
-         imm.lgkm = wait_imm::unset_counter;
-      }
-
-      if (imm.vs != wait_imm::unset_counter && imm.lgkm != wait_imm::unset_counter) {
-         bld.sopp(aco_opcode::s_wait_storecnt_dscnt, (imm.vs << 8) | imm.lgkm);
-         imm.vs = wait_imm::unset_counter;
-         imm.lgkm = wait_imm::unset_counter;
-      }
-
-      aco_opcode op[wait_type_num];
-      op[wait_type_exp] = aco_opcode::s_wait_expcnt;
-      op[wait_type_lgkm] = aco_opcode::s_wait_dscnt;
-      op[wait_type_vm] = aco_opcode::s_wait_loadcnt;
-      op[wait_type_vs] = aco_opcode::s_wait_storecnt;
-      op[wait_type_sample] = aco_opcode::s_wait_samplecnt;
-      op[wait_type_bvh] = aco_opcode::s_wait_bvhcnt;
-      op[wait_type_km] = aco_opcode::s_wait_kmcnt;
-
-      for (unsigned i = 0; i < wait_type_num; i++) {
-         if (imm[i] != wait_imm::unset_counter)
-            bld.sopp(op[i], imm[i]);
-      }
-   } else {
-      if (imm.vs != wait_imm::unset_counter) {
-         assert(ctx.gfx_level >= GFX10);
-         bld.sopk(aco_opcode::s_waitcnt_vscnt, Operand(sgpr_null, s1), imm.vs);
-         imm.vs = wait_imm::unset_counter;
-      }
-      if (!imm.empty())
-         bld.sopp(aco_opcode::s_waitcnt, imm.pack(ctx.gfx_level));
-   }
-   imm = wait_imm();
+   imm.build_waitcnt(bld);
 }
 
 bool

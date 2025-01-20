@@ -341,6 +341,7 @@ struct pvr_winsys_render_submit_info {
          bool use_single_core : 1;
          bool get_vis_results : 1;
          bool has_spm_scratch_buffer : 1;
+         bool disable_pixel_merging : 1;
       } flags;
 
       struct vk_sync *wait;

@@ -546,7 +546,6 @@ lp_jit_sampler_from_pipe(struct lp_jit_sampler *jit, const struct pipe_sampler_s
    jit->min_lod = sampler->min_lod;
    jit->max_lod = sampler->max_lod;
    jit->lod_bias = sampler->lod_bias;
-   jit->max_aniso = sampler->max_anisotropy;
    COPY_4V(jit->border_color, sampler->border_color.f);
 }
 

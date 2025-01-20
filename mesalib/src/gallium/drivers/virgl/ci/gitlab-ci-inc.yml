@@ -2,7 +2,7 @@
   stage: layered-backends
   rules:
     - !reference [.test, rules]
-    - if: $FORCE_KERNEL_TAG != null
+    - if: $EXTERNAL_KERNEL_TAG != null
       when: never
     - !reference [.gl-rules, rules]
     - !reference [.llvmpipe-rules, rules]
@@ -39,7 +39,7 @@
   variables:
     JOB_PRIORITY: 40
     LAVA_S3_ARTIFACT_NAME: mesa-x86_64-default-release
-    S3_ARTIFACT_NAME: mesa-python-test
+    S3_ARTIFACT_NAME: mesa-python-ci-artifacts
   needs:
     - kernel+rootfs_x86_64
     - debian-release
@@ -70,7 +70,7 @@
 .virgl-iris-test:
   extends:
     - .lava-piglit-traces:x86_64
-    - .lava-acer-cp514-2h-1160g7-volteer:x86_64
+    - .lava-acer-cp514-2h-1130g7-volteer:x86_64
   variables:
     HWCI_KERNEL_MODULES: vhost_vsock
     HWCI_KVM: "true"

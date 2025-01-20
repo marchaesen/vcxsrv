@@ -5,6 +5,8 @@ This directory contains fragments for the future [Changelog](../ChangeLog.md) fi
 ## Introduction
 
 We use <code>[towncrier]</code> to produce useful, summarized news files.
+The idea is to add revelant fragments in each MR, so that we can generate
+a user-friendly changelog automatically.
 
 There are 5 sections types:
 
@@ -42,11 +44,13 @@ Guidelines for the fragment files:
 
 - Use the [Markdown] markup.
 - Use past tense, e.g. “Fixed a segfault”.
-- Look at the previous releases [NEWS](../NEWS.md) file for further examples.
+- Look at the previous releases [ChangeLog](../ChangeLog.md) file for further examples.
 
 [Markdown]: https://daringfireball.net/projects/markdown/
 
 ## Build the changelog
+
+Note: this step is optional for contributors.
 
 Install <code>[towncrier]</code> from Pypi:
 
@@ -56,9 +60,24 @@ python3 -m pip install towncrier
 
 Then build the changelog:
 
-```bash
-# Only check the result. Useful after adding a new fragment.
-towncrier build --draft --version 1.8.0
-# Write the changelog & delete the news fragments
-towncrier build --yes --version 1.8.0
-```
+<dl>
+  <dt>Only check the result</dt>
+  <dd>
+  Useful after adding a new fragment.
+
+  ```bash
+  towncrier build --draft --version 2.99
+  ```
+  </dd>
+  <dt>Write the changelog & delete the news fragments</dt>
+  <dd>
+
+  **⚠️ Warning: For maintainers only! ⚠️**
+  This step must be done just before release.
+
+  ```bash
+  towncrier build --yes --version 2.99
+  ```
+  </dd>
+</dl>
+

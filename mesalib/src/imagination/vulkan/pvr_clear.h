@@ -92,8 +92,8 @@ struct pvr_static_clear_ppp_template {
     * These are initialized and can be modified as needed before emitting them.
     */
    struct {
-      struct PVRX(TA_STATE_ISPCTL) ispctl;
-      struct PVRX(TA_STATE_ISPA) ispa;
+      struct ROGUE_TA_STATE_ISPCTL ispctl;
+      struct ROGUE_TA_STATE_ISPA ispa;
 
       /* In case the template requires_pds_state this needs to be a valid
        * pointer to a pre-packed PDS state before emitting.
@@ -103,10 +103,10 @@ struct pvr_static_clear_ppp_template {
        */
       const uint32_t (*pds_state)[PVR_STATIC_CLEAR_PDS_STATE_COUNT];
 
-      struct PVRX(TA_REGION_CLIP0) region_clip0;
-      struct PVRX(TA_REGION_CLIP1) region_clip1;
+      struct ROGUE_TA_REGION_CLIP0 region_clip0;
+      struct ROGUE_TA_REGION_CLIP1 region_clip1;
 
-      struct PVRX(TA_OUTPUT_SEL) output_sel;
+      struct ROGUE_TA_OUTPUT_SEL output_sel;
    } config;
 };
 

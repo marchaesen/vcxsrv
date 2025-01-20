@@ -201,26 +201,18 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
       pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_TESS_CTRL,
                                      PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0;
 
-   ctx->has_stream_out =
-      pipe->screen->get_param(pipe->screen,
-                              PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS) != 0;
+   ctx->has_stream_out = pipe->screen->caps.max_stream_output_buffers != 0;
 
-   ctx->has_stencil_export =
-         pipe->screen->get_param(pipe->screen,
-                                 PIPE_CAP_SHADER_STENCIL_EXPORT);
+   ctx->has_stencil_export = pipe->screen->caps.shader_stencil_export;
 
    ctx->has_texture_multisample =
-      pipe->screen->get_param(pipe->screen, PIPE_CAP_TEXTURE_MULTISAMPLE);
+      pipe->screen->caps.texture_multisample;
 
-   ctx->has_tex_lz = pipe->screen->get_param(pipe->screen,
-                                             PIPE_CAP_TGSI_TEX_TXF_LZ);
-   ctx->has_txf_txq = pipe->screen->get_param(pipe->screen,
-                                              PIPE_CAP_GLSL_FEATURE_LEVEL) >= 130;
-   ctx->has_sample_shading = pipe->screen->get_param(pipe->screen,
-                                                     PIPE_CAP_SAMPLE_SHADING);
-   ctx->cube_as_2darray = pipe->screen->get_param(pipe->screen,
-                                                  PIPE_CAP_SAMPLER_VIEW_TARGET);
-   ctx->has_texrect = pipe->screen->get_param(pipe->screen, PIPE_CAP_TEXRECT);
+   ctx->has_tex_lz = pipe->screen->caps.tgsi_tex_txf_lz;
+   ctx->has_txf_txq = pipe->screen->caps.glsl_feature_level >= 130;
+   ctx->has_sample_shading = pipe->screen->caps.sample_shading;
+   ctx->cube_as_2darray = pipe->screen->caps.sampler_view_target;
+   ctx->has_texrect = pipe->screen->caps.texrect;
 
    /* blend state objects */
    memset(&blend, 0, sizeof(blend));
@@ -344,8 +336,8 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    }
 
    ctx->has_layered =
-      pipe->screen->get_param(pipe->screen, PIPE_CAP_VS_INSTANCEID) &&
-      pipe->screen->get_param(pipe->screen, PIPE_CAP_VS_LAYER_VIEWPORT);
+      pipe->screen->caps.vs_instanceid &&
+      pipe->screen->caps.vs_layer_viewport;
 
    /* set invariant vertex coordinates */
    for (i = 0; i < 4; i++) {
@@ -681,7 +673,8 @@ void util_blitter_restore_vertex_states(struct blitter_context *blitter)
          offsets[i] = (unsigned)-1;
       pipe->set_stream_output_targets(pipe,
                                       ctx->base.saved_num_so_targets,
-                                      ctx->base.saved_so_targets, offsets);
+                                      ctx->base.saved_so_targets, offsets,
+                                      ctx->base.saved_so_output_prim);
 
       for (i = 0; i < ctx->base.saved_num_so_targets; i++)
          pipe_so_target_reference(&ctx->base.saved_so_targets[i], NULL);
@@ -1272,10 +1265,8 @@ void util_blitter_cache_all_shaders(struct blitter_context *blitter)
    bool has_arraytex, has_cubearraytex;
 
    max_samples = ctx->has_texture_multisample ? 2 : 1;
-   has_arraytex = screen->get_param(screen,
-                                    PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS) != 0;
-   has_cubearraytex = screen->get_param(screen,
-                                    PIPE_CAP_CUBE_MAP_ARRAY) != 0;
+   has_arraytex = screen->caps.max_texture_array_layers != 0;
+   has_cubearraytex = screen->caps.cube_map_array;
 
    /* It only matters if i <= 1 or > 1. */
    for (samples = 1; samples <= max_samples; samples++) {
@@ -1391,7 +1382,7 @@ static void blitter_set_common_draw_rect_state(struct blitter_context_priv *ctx,
       pipe->bind_tes_state(pipe, NULL);
    }
    if (ctx->has_stream_out)
-      pipe->set_stream_output_targets(pipe, 0, NULL, NULL);
+      pipe->set_stream_output_targets(pipe, 0, NULL, NULL, 0);
 }
 
 static void blitter_draw(struct blitter_context_priv *ctx,
@@ -2254,6 +2245,7 @@ util_blitter_blit(struct blitter_context *blitter,
    struct pipe_context *pipe = ctx->base.pipe;
    struct pipe_surface *dst_view, dst_templ;
    struct pipe_sampler_view src_templ, *src_view;
+   const uint8_t *swizzle = info->swizzle_enable ? info->swizzle : NULL;
 
    /* Initialize the surface. */
    util_blitter_default_dst_texture(&dst_templ, dst, info->dst.level,
@@ -2264,6 +2256,12 @@ util_blitter_blit(struct blitter_context *blitter,
    /* Initialize the sampler view. */
    util_blitter_default_src_texture(blitter, &src_templ, src, info->src.level);
    src_templ.format = info->src.format;
+   if (swizzle) {
+      src_templ.swizzle_r = swizzle[0];
+      src_templ.swizzle_g = swizzle[1];
+      src_templ.swizzle_b = swizzle[2];
+      src_templ.swizzle_a = swizzle[3];
+   }
    src_view = pipe->create_sampler_view(pipe, src, &src_templ);
 
    /* Copy. */
@@ -2654,7 +2652,7 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
    pipe->bind_rasterizer_state(pipe, ctx->rs_discard_state);
 
    so_target = pipe->create_stream_output_target(pipe, dst, offset, size);
-   pipe->set_stream_output_targets(pipe, 1, &so_target, offsets);
+   pipe->set_stream_output_targets(pipe, 1, &so_target, offsets, MESA_PRIM_POINTS);
 
    util_draw_arrays(pipe, MESA_PRIM_POINTS, 0, size / 4);
 

@@ -36,8 +36,6 @@
 extern "C" {
 #endif
 
-struct __DRIextensionRec;
-
 /* Helpers to figure out driver and device name, eg. from pci-id, etc. */
 
 int

@@ -36,11 +36,10 @@ extern "C" {
 
 struct gl_context;
 struct gl_constants;
+struct gl_shader;
 struct gl_shader_program;
 
-nir_shader *glsl_to_nir(const struct gl_constants *consts,
-                        struct exec_list **ir, shader_info *si,
-                        gl_shader_stage stage,
+nir_shader *glsl_to_nir(struct gl_shader *shader,
                         const nir_shader_compiler_options *options,
                         const uint8_t *src_blake3);
 

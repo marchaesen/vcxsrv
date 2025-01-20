@@ -83,6 +83,10 @@ lower(agx_builder *b, agx_instr *I)
    case AGX_OPCODE_NOT:
       return agx_bitop_to(b, I->dest[0], I->src[0], agx_zero(), AGX_BITOP_NOT);
 
+   /* We can sign-extend with an add */
+   case AGX_OPCODE_SIGNEXT:
+      return agx_iadd_to(b, I->dest[0], I->src[0], agx_zero(), 0);
+
    /* Unfused comparisons are fused with a 0/1 select */
    case AGX_OPCODE_ICMP:
       return agx_icmpsel_to(b, I->dest[0], I->src[0], I->src[1],

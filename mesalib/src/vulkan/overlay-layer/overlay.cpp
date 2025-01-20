@@ -56,8 +56,6 @@ struct instance_data {
    struct overlay_params params;
    bool pipeline_statistics_enabled;
 
-   bool first_line_printed;
-
    int control_client;
 
    /* Dumping of frame stats to a file has been enabled. */
@@ -67,6 +65,8 @@ struct instance_data {
    bool capture_started;
 
    int socket;
+
+   FILE *output_file_fd;
 };
 
 struct frame_stat {
@@ -345,10 +345,16 @@ static struct instance_data *new_instance_data(VkInstance instance)
 
 static void destroy_instance_data(struct instance_data *data)
 {
-   if (data->params.output_file)
-      fclose(data->params.output_file);
    if (data->socket >= 0)
       os_socket_close(data->socket);
+   if (data->params.output_file) {
+      free((void*)data->params.output_file);
+      data->params.output_file = NULL;
+   }
+   if (data->params.control) {
+      free((void*)data->params.control);
+      data->params.control = NULL;
+   }
    unmap_object(HKEY(data->instance));
    ralloc_free(data);
 }
@@ -472,6 +478,20 @@ static void destroy_device_data(struct device_data *data)
    ralloc_free(data);
 }
 
+static const char *param_unit(enum overlay_param_enabled param)
+{
+   switch (param) {
+   case OVERLAY_PARAM_ENABLED_frame_timing:
+   case OVERLAY_PARAM_ENABLED_acquire_timing:
+   case OVERLAY_PARAM_ENABLED_present_timing:
+      return "(us)";
+   case OVERLAY_PARAM_ENABLED_gpu_timing:
+      return "(ns)";
+   default:
+      return "";
+   }
+}
+
 /**/
 static struct command_buffer_data *new_command_buffer_data(VkCommandBuffer cmd_buffer,
                                                            VkCommandBufferLevel level,
@@ -510,6 +530,29 @@ static struct swapchain_data *new_swapchain_data(VkSwapchainKHR swapchain,
    data->window_size = ImVec2(instance_data->params.width, instance_data->params.height);
    list_inithead(&data->draws);
    map_object(HKEY(data->swapchain), data);
+
+   /* Open output file on swapchain creation */
+   assert(instance_data->output_file_fd == NULL);
+   instance_data->output_file_fd =
+      fopen(instance_data->params.output_file, "w+");
+
+   if (instance_data->output_file_fd) {
+      bool first_column = true;
+#define OVERLAY_PARAM_BOOL(name) \
+      if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_##name]) { \
+         fprintf(instance_data->output_file_fd, \
+               "%s%s%s", first_column ? "" : ", ", #name, \
+               param_unit(OVERLAY_PARAM_ENABLED_##name)); \
+         first_column = false; \
+      }
+#define OVERLAY_PARAM_CUSTOM(name)
+      OVERLAY_PARAMS
+#undef OVERLAY_PARAM_BOOL
+#undef OVERLAY_PARAM_CUSTOM
+      fprintf(instance_data->output_file_fd, "\n");
+   } else
+      fprintf(stderr, "ERROR opening output file: %s\n", strerror(errno));
+
    return data;
 }
 
@@ -565,20 +608,6 @@ struct overlay_draw *get_overlay_draw(struct swapchain_data *data)
    list_addtail(&draw->link, &data->draws);
 
    return draw;
-}
-
-static const char *param_unit(enum overlay_param_enabled param)
-{
-   switch (param) {
-   case OVERLAY_PARAM_ENABLED_frame_timing:
-   case OVERLAY_PARAM_ENABLED_acquire_timing:
-   case OVERLAY_PARAM_ENABLED_present_timing:
-      return "(us)";
-   case OVERLAY_PARAM_ENABLED_gpu_timing:
-      return "(ns)";
-   default:
-      return "";
-   }
 }
 
 static void parse_command(struct instance_data *instance_data,
@@ -833,39 +862,20 @@ static void snapshot_swapchain_frame(struct swapchain_data *data)
           elapsed >= instance_data->params.fps_sampling_period) {
          data->fps = 1000000.0f * data->n_frames_since_update / elapsed;
          if (instance_data->capture_started) {
-            if (!instance_data->first_line_printed) {
-               bool first_column = true;
-
-               instance_data->first_line_printed = true;
-
-#define OVERLAY_PARAM_BOOL(name) \
-               if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_##name]) { \
-                  fprintf(instance_data->params.output_file, \
-                          "%s%s%s", first_column ? "" : ", ", #name, \
-                          param_unit(OVERLAY_PARAM_ENABLED_##name)); \
-                  first_column = false; \
-               }
-#define OVERLAY_PARAM_CUSTOM(name)
-               OVERLAY_PARAMS
-#undef OVERLAY_PARAM_BOOL
-#undef OVERLAY_PARAM_CUSTOM
-               fprintf(instance_data->params.output_file, "\n");
-            }
-
             for (int s = 0; s < OVERLAY_PARAM_ENABLED_MAX; s++) {
                if (!instance_data->params.enabled[s])
                   continue;
                if (s == OVERLAY_PARAM_ENABLED_fps) {
-                  fprintf(instance_data->params.output_file,
+                  fprintf(instance_data->output_file_fd,
                           "%s%.2f", s == 0 ? "" : ", ", data->fps);
                } else {
-                  fprintf(instance_data->params.output_file,
+                  fprintf(instance_data->output_file_fd,
                           "%s%" PRIu64, s == 0 ? "" : ", ",
                           data->accumulated_stats.stats[s]);
                }
             }
-            fprintf(instance_data->params.output_file, "\n");
-            fflush(instance_data->params.output_file);
+            fprintf(instance_data->output_file_fd, "\n");
+            fflush(instance_data->output_file_fd);
          }
 
          memset(&data->accumulated_stats, 0, sizeof(data->accumulated_stats));
@@ -1891,10 +1901,16 @@ static void overlay_DestroySwapchainKHR(
     VkSwapchainKHR                              swapchain,
     const VkAllocationCallbacks*                pAllocator)
 {
+   struct device_data *device_data = FIND(struct device_data, device);
+   struct instance_data *instance_data = device_data->instance;
    if (swapchain == VK_NULL_HANDLE) {
-      struct device_data *device_data = FIND(struct device_data, device);
       device_data->vtable.DestroySwapchainKHR(device, swapchain, pAllocator);
       return;
+   }
+
+   if (instance_data->output_file_fd) {
+      fclose(instance_data->output_file_fd);
+      instance_data->output_file_fd = NULL;
    }
 
    struct swapchain_data *swapchain_data =
@@ -2646,7 +2662,7 @@ static VkResult overlay_CreateInstance(
     * capturing fps data right away.
     */
    instance_data->capture_enabled =
-      instance_data->params.output_file && instance_data->params.control == NULL;
+      instance_data->output_file_fd && instance_data->params.control == NULL;
    instance_data->capture_started = instance_data->capture_enabled;
 
    for (int i = OVERLAY_PARAM_ENABLED_vertices;

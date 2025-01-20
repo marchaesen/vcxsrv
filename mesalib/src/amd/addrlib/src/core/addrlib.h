@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -215,6 +215,73 @@ enum ShaderEngineTileSizeConfig
 };
 
 /**
+************************************************************************************************************************
+* @brief Bit setting for swizzle pattern
+************************************************************************************************************************
+*/
+union ADDR_BIT_SETTING
+{
+    struct
+    {
+        UINT_16 x;
+        UINT_16 y;
+        UINT_16 z;
+        UINT_16 s;
+    };
+    UINT_64 value;
+};
+
+/**
+************************************************************************************************************************
+*   InitBit
+*
+*   @brief
+*       Initialize bit setting value via a return value
+************************************************************************************************************************
+*/
+#define InitBit(c, index) (1ull << ((c << 4) + index))
+
+const UINT_64 X0  = InitBit(0,  0);
+const UINT_64 X1  = InitBit(0,  1);
+const UINT_64 X2  = InitBit(0,  2);
+const UINT_64 X3  = InitBit(0,  3);
+const UINT_64 X4  = InitBit(0,  4);
+const UINT_64 X5  = InitBit(0,  5);
+const UINT_64 X6  = InitBit(0,  6);
+const UINT_64 X7  = InitBit(0,  7);
+const UINT_64 X8  = InitBit(0,  8);
+const UINT_64 X9  = InitBit(0,  9);
+const UINT_64 X10 = InitBit(0, 10);
+const UINT_64 X11 = InitBit(0, 11);
+
+const UINT_64 Y0  = InitBit(1,  0);
+const UINT_64 Y1  = InitBit(1,  1);
+const UINT_64 Y2  = InitBit(1,  2);
+const UINT_64 Y3  = InitBit(1,  3);
+const UINT_64 Y4  = InitBit(1,  4);
+const UINT_64 Y5  = InitBit(1,  5);
+const UINT_64 Y6  = InitBit(1,  6);
+const UINT_64 Y7  = InitBit(1,  7);
+const UINT_64 Y8  = InitBit(1,  8);
+const UINT_64 Y9  = InitBit(1,  9);
+const UINT_64 Y10 = InitBit(1, 10);
+const UINT_64 Y11 = InitBit(1, 11);
+
+const UINT_64 Z0  = InitBit(2,  0);
+const UINT_64 Z1  = InitBit(2,  1);
+const UINT_64 Z2  = InitBit(2,  2);
+const UINT_64 Z3  = InitBit(2,  3);
+const UINT_64 Z4  = InitBit(2,  4);
+const UINT_64 Z5  = InitBit(2,  5);
+const UINT_64 Z6  = InitBit(2,  6);
+const UINT_64 Z7  = InitBit(2,  7);
+const UINT_64 Z8  = InitBit(2,  8);
+
+const UINT_64 S0  = InitBit(3,  0);
+const UINT_64 S1  = InitBit(3,  1);
+const UINT_64 S2  = InitBit(3,  2);
+
+/**
 ****************************************************************************************************
 * @brief This class contains asic independent address lib functionalities
 ****************************************************************************************************
@@ -234,6 +301,9 @@ public:
     }
 
     static Lib* GetLib(ADDR_HANDLE hLib);
+    
+    /// Returns which version of addrlib functions should be used.
+    virtual UINT_32 GetInterfaceVersion() const = 0;
 
     /// Returns AddrLib version (from compiled binary instead include file)
     UINT_32 GetVersion()
@@ -262,6 +332,15 @@ public:
     ADDR_E_RETURNCODE GetMaxMetaAlignments(ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut) const;
 
     UINT_32 GetBpe(AddrFormat format) const;
+
+
+    static UINT_32 ComputeOffsetFromSwizzlePattern(
+        const UINT_64* pPattern,
+        UINT_32        numBits,
+        UINT_32        x,
+        UINT_32        y,
+        UINT_32        z,
+        UINT_32        s);
 
 protected:
     Lib();  // Constructor is protected

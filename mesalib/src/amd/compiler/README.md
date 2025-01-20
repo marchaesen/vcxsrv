@@ -37,7 +37,7 @@ ACO deals with divergent control flow by maintaining two control flow graphs (CF
 
 The instruction selection is based around the divergence analysis and works in 3 passes on the NIR shader.
 
-1. The divergence analysis pass calculates for each SSA definition if its value is guaranteed to be uniform across all threads of the workgroup.
+1. The divergence analysis pass calculates for each SSA definition if its value is guaranteed to be uniform across all threads of the wave (subgroup).
 2. We determine the register class for each SSA definition.
 3. Actual instruction selection. The advanced divergence analysis allows for better usage of the scalar unit, scalar memory loads and the scalar register file.
 
@@ -50,6 +50,23 @@ We have two types of instructions:
 Each instruction can have operands (temporaries that it reads), and definitions (temporaries that it writes).
 Temporaries can be fixed to a specific register, or just specify a register class (either a single register, or a vector of several registers).
 
+#### Repair SSA
+
+This repairs SSA in the case of mismatches between the logical and linear CFG, where the definition of a linear temporary logically dominate its users but not linearly. This is followed by lower_phis to lower the phis created by this pass.
+
+Instruction selection might create mismatches between the logical CFG (the input NIR's CFG) and the linear CFG in the following situations:
+- We add a break at the end of a loop in case it has no active invocations (an empty exec can prevent any logical breaks from being taken). This creates a linear edge but no logical edge, and SGPR uses outside the loop can require a phi.
+- We add an empty exec skip over a block. This is a branch which skips most contents of a sequence of instructions if exec is empty. To avoid critical edges, the inside of the construct logically dominates the merge but not linearly.
+- An SGPR is defined in one side of a divergent IF but it used in or after the merge block. If the other side of the IF ends in a branch, a phi is not necessary according to the logical CFG, but it is for the linear CFG. However, `sanitize_cf_list()` should already resolve this before translation from NIR for additional reasons.
+
+#### Lower Phis
+
+After instructions selection, some phi instructions need further lowering. This includes booleans which are represented as scalar values. Because the scalar ALU doesn't respect the execution mask, divergent boolean phis need to be lowered to SALU shuffle code. This pass also inserts the necessary code in order to fix phis with subdword access and repairs phis in case of mismatches between logical and linear CFG.
+
+#### Lower Subdword
+
+For GFX6 and GFX7, this pass already lowers subdword pseudo instructions.
+
 #### Value Numbering
 
 The value numbering pass is necessary for two reasons: the lack of descriptor load representation in NIR,
@@ -60,6 +77,7 @@ This pass does dominator-tree value numbering.
 
 In this phase, simpler instructions are combined into more complex instructions (like the different versions of multiply-add as well as neg, abs, clamp, and output modifiers) and constants are inlined, moves are eliminated, etc.
 Exactly which optimizations are performed depends on the hardware for which the shader is being compiled.
+After this, repair_ssa needs to be run again in case it moves a SGPR use to a different block.
 
 #### Setup of reduction temporaries
 
@@ -88,14 +106,26 @@ Scheduling is another NP-complete problem where basically all known heuristics s
 
 The register allocator works on SSA (as opposed to LLVM's which works on virtual registers). The SSA properties guarantee that there are always as many registers available as needed. The problem is that some instructions require a vector of neighboring registers to be available, but the free regs might be scattered. In this case, the register allocator inserts shuffle code (moving some temporaries to other registers) to make space for the variable. The assumption is that it is (almost) always better to have a few more moves than to sacrifice a wave. The RA does SSA-reconstruction on the fly, which makes its runtime linear.
 
+#### Optimization (post-RA)
+
+Optimizations which depend on register assignment (like branching on VCCZ) are performed.
+
 #### SSA Elimination
 
 The next step is a pass out of SSA by inserting parallelcopies at the end of blocks to match the phi nodes' semantics.
+
+#### Jump Threading
+
+This pass aims to eliminate empty or unnecessary basic blocks. As this introduces critical edges, it can only be performed after SSA elimination.
 
 #### Lower to HW instructions
 
 Most pseudo instructions are lowered to actual machine instructions.
 These are mostly parallel copy instructions created by instruction selection or register allocation and spill/reload code.
+
+#### VOPD Scheduling
+
+This pass makes use of the VOPD instruction encoding on GFX11+. When using wave32 mode, this pass works on a partial dependency graph in order to combine two VALU instructions each into one VOPD instruction.
 
 #### ILP Scheduling
 
@@ -110,6 +140,10 @@ This means that we need to insert `s_waitcnt` instructions (and its variants) so
 
 Some instructions require wait states or other instructions to resolve hazards which are not handled by the hardware.
 This pass makes sure that no known hazards occur.
+
+#### Insert delay_alu and form clauses
+
+These passes introduce optional instructions which provide performance hints to the hardware. `s_delay_alu` is available on GFX11+ and describes ALU dependencies in order to allow the hardware to execute instructions from a different wave in the meantime. `s_clause` is avilable on GFX10+ with the purpose to complete an entire set of memory instructions before switching to a different wave.
 
 #### Emit program - Assembler
 
@@ -158,6 +192,16 @@ it's just some "glue code" that we need for outputs to play nicely.
 
 On GFX10/NGG this limitation no longer exists, because NGG can export directly to the PC.
 
+##### Notes about the attribute ring
+
+Starting with GFX11, the parameter cache is replaced by the attribute ring,
+which is a discardable ring buffer located in VRAM.
+The outputs of the last pre-rasterization stage (VS, TES, GS or MS) are stored here.
+
+The attribute ring is designed to utilize the Infinity Cache.
+Store instructions are arranged so that each instruction writes a full cache line,
+so the GPU will never actually have to write any of that to VRAM.
+
 ##### Notes about merged shaders
 
 The merged stages on GFX9 (and GFX10/legacy) are: LSHS and ESGS. On GFX10/NGG the ESGS is merged with HW VS into NGG.
@@ -203,6 +247,8 @@ So, think about these as two independent shader programs slapped together.
 
  * HW GS and VS stages are now merged, and NGG can export directly to PC
  * GS copy shaders are no longer needed
+ * On GFX10.3+, per-primitive attributes (parameters) are also supported
+ * On GFX11+, parameter exports are replaced by attribute ring stores
 
 | GFX10/NGG HW stages:    | LSHS      | NGG                | PS | ACO terminology |
 | -----------------------:|:----------|:-------------------|:---|:----------------|
@@ -216,7 +262,7 @@ So, think about these as two independent shader programs slapped together.
 GFX10.3+:
 
 * TS will run as a CS and stores its output payload to VRAM
-* MS runs on NGG, loads its inputs from VRAM and stores outputs to LDS, then PC
+* MS runs on NGG, loads its inputs from VRAM and stores outputs to LDS, then PC (or attribute ring)
 * Pixel Shaders work the same way as before
 
 | GFX10.3+ HW stages      | CS    | NGG   | PS | ACO terminology |
@@ -298,3 +344,9 @@ Here are some good practices we learned while debugging visual corruption and ha
       Typical issues might be a wrong instruction format leading to a wrong opcode or an sgpr used for vgpr field.
 5. Comparing to the LLVM backend:
    * If everything else didn't help, we probably just do something wrong. The LLVM backend is quite mature, so its output might help find differences, but this can be a long road.
+6. Investigating regressions in shaders:
+   * If you know that something used to work and are sure it's a shader problem,
+     use `RADV_DEBUG=shaders` to print both the correct and incorrect version of the shader.
+     You can further filter by shader stage and compilation stage, eg. `RADV_DEBUG=ps,nir,asm`
+   * Copy the printed shaders into a diff viewer, eg. Meld, to quickly find what changed
+     between the two versions.

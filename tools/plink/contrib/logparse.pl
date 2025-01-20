@@ -172,6 +172,16 @@ my %packets = (
         my ($direction, $seq, $data) = @_;
         print "\n";
     },
+#define SSH2_MSG_KEX_HYBRID_INIT                    30    /* 0x1e */
+    'SSH2_MSG_KEX_HYBRID_INIT' => sub {
+        my ($direction, $seq, $data) = @_;
+        print "\n";
+    },
+#define SSH2_MSG_KEX_HYBRID_REPLY                   31    /* 0x1f */
+    'SSH2_MSG_KEX_HYBRID_REPLY' => sub {
+        my ($direction, $seq, $data) = @_;
+        print "\n";
+    },
 #define SSH2_MSG_USERAUTH_REQUEST                 50    /* 0x32 */
     'SSH2_MSG_USERAUTH_REQUEST' => sub {
         my ($direction, $seq, $data) = @_;
@@ -657,6 +667,16 @@ my %verbose_packet_dump_functions = (
         # curve is. So the best we can do is just dump the raw data.
         printf "  client public value: %s\n", (unpack "H*", $cpv);
     },
+    'SSH2_MSG_KEX_HYBRID_INIT' => sub {
+        my ($data) = @_;
+        my ($cpv) = &parse("s", $data);
+        # Hybrid post-quantum + classical KEX is even more confusing,
+        # since two separate pieces of data are glomphed together into
+        # this string without any obvious dividing line. The best we
+        # can sensibly do is to announce that in the log.
+        printf "  client PQ encryption key + public ECDH value: %s\n",
+            (unpack "H*", $cpv);
+    },
     'SSH2_MSG_KEXDH_REPLY' => sub {
         my ($data) = @_;
         my ($hostkeyblob, $f, $sigblob) = &parse("sms", $data);
@@ -701,6 +721,26 @@ my %verbose_packet_dump_functions = (
             printf "    $key: $value\n";
         }
         printf "  server public value: %s\n", (unpack "H*", $spv);
+        printf "  signature:\n";
+        my @signature = &parse_signature($sigblob, $hktype);
+        while (@signature) {
+            my ($key, $value) = splice @signature, 0, 2;
+            printf "    $key: $value\n";
+        }
+    },
+    'SSH2_MSG_KEX_HYBRID_REPLY' => sub {
+        my ($data) = @_;
+        my ($hostkeyblob, $spv, $sigblob) = &parse("sss", $data);
+        my ($hktype, @hostkey) = &parse_public_key($hostkeyblob);
+        printf "  host key: %s\n", $hktype;
+        while (@hostkey) {
+            my ($key, $value) = splice @hostkey, 0, 2;
+            printf "    $key: $value\n";
+        }
+        # Similarly to HYBRID_INIT, warn the reader that this string
+        # contains two separate things glomphed together
+        printf "  server PQ KEM ciphertext + public ECDH value: %s\n",
+            (unpack "H*", $spv);
         printf "  signature:\n";
         my @signature = &parse_signature($sigblob, $hktype);
         while (@signature) {

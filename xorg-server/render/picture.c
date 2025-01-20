@@ -25,6 +25,7 @@
 #include <dix-config.h>
 
 #include "dix/colormap_priv.h"
+#include "os/osdep.h"
 
 #include "misc.h"
 #include "scrnintstr.h"
@@ -427,6 +428,9 @@ PictureInitIndexedFormat(ScreenPtr pScreen, PictFormatPtr format)
     }
     else {
         VisualPtr pVisual = PictureFindVisual(pScreen, format->index.vid);
+
+        if (pVisual == NULL)
+            return FALSE;
 
         if (CreateColormap(FakeClientID(0), pScreen, pVisual,
                            &format->index.pColormap, AllocNone, 0)

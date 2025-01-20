@@ -94,7 +94,7 @@ FcComparePostScript (const FcValue *v1, const FcValue *v2, FcValue *bestValue)
 	*v1_string != ' ' && *v2_string != ' ')
 	return 1.0;
 
-    n = FcStrMatchIgnoreCaseAndDelims (v1_string, v2_string, (const FcChar8 *)" -");
+    n = FcStrMatchIgnoreCaseAndDelims (v1_string, v2_string, (const FcChar8 *)" -,");
     len1 = strlen ((const char *)v1_string);
     len2 = strlen ((const char *)v2_string);
     mlen = FC_MAX (len1, len2);

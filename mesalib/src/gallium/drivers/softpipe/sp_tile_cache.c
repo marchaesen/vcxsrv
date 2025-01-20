@@ -94,8 +94,7 @@ sp_create_tile_cache( struct pipe_context *pipe )
    uint pos;
 
    /* sanity checking: max sure MAX_WIDTH/HEIGHT >= largest texture image */
-   assert(MAX_WIDTH >= pipe->screen->get_param(pipe->screen,
-                                               PIPE_CAP_MAX_TEXTURE_2D_SIZE));
+   assert(MAX_WIDTH >= pipe->screen->caps.max_texture_2d_size);
 
    STATIC_ASSERT(sizeof(union tile_address) == 4);
 

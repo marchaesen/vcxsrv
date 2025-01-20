@@ -32,6 +32,7 @@ CSRCS =			\
 	pixman-timer.c			\
 	pixman-trap.c			\
 	pixman-utils.c			\
+	pixman-riscv.c			\
 	$(NULL)
 
 ## mmx code

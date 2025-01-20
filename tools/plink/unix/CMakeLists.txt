@@ -147,6 +147,7 @@ if(GTK_FOUND)
     ${CMAKE_SOURCE_DIR}/stubs/no-gss.c
     ${CMAKE_SOURCE_DIR}/stubs/no-ca-config.c
     ${CMAKE_SOURCE_DIR}/stubs/no-console.c
+    ${CMAKE_SOURCE_DIR}/stubs/no-dit.c
     ${CMAKE_SOURCE_DIR}/proxy/nosshproxy.c
     pty.c)
   be_list(pterm pterm)
@@ -163,6 +164,7 @@ if(GTK_FOUND)
       ${CMAKE_SOURCE_DIR}/stubs/no-gss.c
       ${CMAKE_SOURCE_DIR}/stubs/no-ca-config.c
       ${CMAKE_SOURCE_DIR}/stubs/no-console.c
+      ${CMAKE_SOURCE_DIR}/stubs/no-dit.c
       ${CMAKE_SOURCE_DIR}/proxy/nosshproxy.c
       pty.c)
     be_list(ptermapp pterm)
@@ -204,6 +206,7 @@ if(GTK_FOUND)
     ${CMAKE_SOURCE_DIR}/stubs/no-ca-config.c
     ${CMAKE_SOURCE_DIR}/stubs/no-console.c
     ${CMAKE_SOURCE_DIR}/stubs/no-rand.c
+    ${CMAKE_SOURCE_DIR}/stubs/no-dit.c
     ${CMAKE_SOURCE_DIR}/proxy/nocproxy.c
     ${CMAKE_SOURCE_DIR}/proxy/nosshproxy.c)
   be_list(puttytel PuTTYtel SERIAL OTHERBACKENDS)

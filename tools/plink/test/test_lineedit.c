@@ -527,6 +527,65 @@ static void test_edit(Mock *mk, bool echo)
     EXPECT(mk, specials, 1, SS_EOF, 0);
     reset(mk);
 
+    /* ^M with the special flag is the Return key, and sends the line */
+    ldisc_send(mk->ldisc, "abc", 3, false);
+    EXPECT(mk, backend, PTRLEN_LITERAL(""));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc"));
+    ldisc_send(mk->ldisc, "\x0D", -1, true);
+    EXPECT(mk, backend, PTRLEN_LITERAL("abc\x0D\x0A"));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc\x0D\x0A"));
+    reset(mk);
+
+    /* In non-LE_CRLF_NEWLINE mode, either of ^M or ^J without the
+     * special flag also sends the line */
+    conf_set_int(mk->conf, CONF_protocol, PROT_SSH);
+    ldisc_configure(mk->ldisc, mk->conf);
+    ldisc_send(mk->ldisc, "abc", 3, false);
+    EXPECT(mk, backend, PTRLEN_LITERAL(""));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc"));
+    ldisc_send(mk->ldisc, "\x0D", 1, true);
+    EXPECT(mk, backend, PTRLEN_LITERAL("abc\x0D"));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc\x0D\x0A"));
+    reset(mk);
+    ldisc_send(mk->ldisc, "abc", 3, false);
+    EXPECT(mk, backend, PTRLEN_LITERAL(""));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc"));
+    ldisc_send(mk->ldisc, "\x0A", 1, true);
+    EXPECT(mk, backend, PTRLEN_LITERAL("abc\x0D"));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc\x0D\x0A"));
+    reset(mk);
+
+    /* In LE_CRLF_NEWLINE mode, non-special ^J is just literal */
+    conf_set_int(mk->conf, CONF_protocol, PROT_RAW);
+    ldisc_configure(mk->ldisc, mk->conf);
+    ldisc_send(mk->ldisc, "abc", 3, false);
+    EXPECT(mk, backend, PTRLEN_LITERAL(""));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc"));
+    ldisc_send(mk->ldisc, "\x0A", 1, true);
+    EXPECT(mk, backend, PTRLEN_LITERAL(""));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc^J"));
+    /* So when we press Return it's sent */
+    ldisc_send(mk->ldisc, "\x0D", -1, true);
+    EXPECT(mk, backend, PTRLEN_LITERAL("abc\x0A\x0D\x0A"));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc^J\x0D\x0A"));
+    reset(mk);
+
+    /* In LE_CRLF_NEWLINE mode, non-special ^M is literal, but if
+     * followed with ^J, they combine into a Return */
+    conf_set_int(mk->conf, CONF_protocol, PROT_RAW);
+    ldisc_configure(mk->ldisc, mk->conf);
+    ldisc_send(mk->ldisc, "abc", 3, false);
+    EXPECT(mk, backend, PTRLEN_LITERAL(""));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc"));
+    ldisc_send(mk->ldisc, "\x0D", 1, true);
+    EXPECT(mk, backend, PTRLEN_LITERAL(""));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc^M"));
+    /* So when we press Return it's sent */
+    ldisc_send(mk->ldisc, "\x0A", 1, true);
+    EXPECT(mk, backend, PTRLEN_LITERAL("abc\x0D\x0A"));
+    EXPECT_TERMINAL(mk, PTRLEN_LITERAL("abc^M\x08 \x08\x08 \x08\x0D\x0A"));
+    reset(mk);
+
     /* ^R redraws the current line, after printing "^R" at the end of
      * the previous attempt to make it clear that that's what
      * happened */

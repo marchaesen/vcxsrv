@@ -778,6 +778,16 @@
     <value desc="Set bottom bit">aor1</value>
   </enum>
 
+  <enum name="NaN mode">
+    <desc>
+      Flush specific NaN values in FLUSH.f32 and FLUSH.v2f16. flush_nan flushes
+      all NaN values to zero. quiet_nan flushes signaling NaNs to quiet NaNs.
+    </desc>
+    <value desc="None">none</value>
+    <value desc="Flush NaN">flush_nan</value>
+    <value desc="Quiet NaN">quiet_nan</value>
+  </enum>
+
   <!-- note that the `unused="true"` annotation here just means that this
        particular entry is unused by the compiler. This may be because the
        instruction isn't generated yet, but it may also be because there
@@ -1691,6 +1701,21 @@
     <subgroup/>
   </ins>
 
+  <group name = "FLUSH" title="Flush floats" dests="1" opcode="0x98" unit="CVT">
+    <ins name="FLUSH.f32" opcode2="0"/>
+    <ins name="FLUSH.v2f16" opcode2="1"/>
+    <desc>
+      Flush special float values. The ftz modifier flushes subnormal values to
+      zero. The flush_inf modifier flushes +inf to the maximum finite value, and
+      -inf to the minimum finite value. nan_mode may flush either all NaN values
+      to zero or signaling NaNs to quiet NaNs depending on the mode.
+    </desc>
+    <va_mod name="nan_mode" start="8" size="2"/>
+    <va_mod name="ftz" start="10" size="1"/>
+    <va_mod name="flush_inf" start="11" size="1"/>
+    <src float="true" absneg="true" swizzle="true"/>
+  </group>
+
   <group name="FREXP" title="Fraction/exponent extract" dests="1" opcode="0x99" unused="true" unit="CVT">
     <ins name="FREXPM.f32" opcode2="0"/>
     <ins name="FREXPM.v2f16" opcode2="1"/>
@@ -2515,6 +2540,30 @@
     <sr read="true" flags="false"/>
     <src size="64">Image to read from</src>
     <src pseudo="true">Dummy source for IR</src>
+    <immediate name="sr_count" size="4" pseudo="true"/>
+  </ins>
+
+  <ins name="TEX_GRADIENT" title="Texture gradient" opcode="0x12A" message="tex" unit="T">
+    <desc>Texture sample with explicit gradient.</desc>
+    <slot/>
+    <skip/>
+    <register_type/>
+    <register_width/>
+    <write_mask/>
+    <dimension/>
+    <wide_indices/>
+    <force_delta_enable/>
+    <lod_bias_disable/>
+    <lod_clamp_disable/>
+    <derivative_enable/>
+
+    <sr_count/>
+    <sr_write_count/>
+
+    <sr write="true" flags="false"/>
+    <sr read="true" flags="false"/>
+    <src size="64">Image to read from</src>
+    <src pseudo="true">Dummy for IR</src>
     <immediate name="sr_count" size="4" pseudo="true"/>
   </ins>
 

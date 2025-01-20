@@ -23,7 +23,6 @@
 #include "api/util.hpp"
 #include "core/program.hpp"
 #include "core/platform.hpp"
-#include "spirv/invocation.hpp"
 #include "util/u_debug.h"
 
 #include <limits>
@@ -80,22 +79,7 @@ namespace {
                             const cl_version opencl_version,
                             const context::notify_action &notify) {
 
-      enum program::il_type il_type = program::il_type::none;
-
-#ifdef HAVE_CLOVER_SPIRV
-      if (spirv::is_binary_spirv(il)) {
-         std::string log;
-         if (!spirv::is_valid_spirv(il, opencl_version, log)) {
-            if (notify) {
-               notify(log.c_str());
-            }
-            throw error(CL_INVALID_VALUE);
-         }
-         il_type = program::il_type::spirv;
-      }
-#endif
-
-      return il_type;
+      return program::il_type::none;
    }
 }
 

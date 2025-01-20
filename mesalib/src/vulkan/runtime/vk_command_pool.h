@@ -54,7 +54,7 @@ struct vk_command_pool {
    struct list_head command_buffers;
 
    /** List of freed command buffers for trimming. */
-   struct list_head free_command_buffers;
+   struct list_head free_command_buffers[2];
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(vk_command_pool, base, VkCommandPool,

@@ -101,7 +101,7 @@ simple_mtx_destroy(ASSERTED simple_mtx_t *mtx)
 static inline void
 simple_mtx_lock(simple_mtx_t *mtx)
 {
-   uint32_t c;
+   int64_t c;
 
    c = p_atomic_cmpxchg(&mtx->val, 0, 1);
 
@@ -122,7 +122,7 @@ simple_mtx_lock(simple_mtx_t *mtx)
 static inline void
 simple_mtx_unlock(simple_mtx_t *mtx)
 {
-   uint32_t c;
+   int64_t c;
 
    HG(ANNOTATE_RWLOCK_RELEASED(mtx, 1));
 

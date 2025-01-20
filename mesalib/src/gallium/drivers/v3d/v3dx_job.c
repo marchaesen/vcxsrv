@@ -29,6 +29,7 @@
 
 #include "v3d_context.h"
 #include "broadcom/cle/v3dx_pack.h"
+#include "broadcom/common/v3d_util.h"
 
 void v3dX(bcl_epilogue)(struct v3d_context *v3d, struct v3d_job *job)
 {
@@ -67,4 +68,29 @@ void v3dX(bcl_epilogue)(struct v3d_context *v3d, struct v3d_job *job)
                  * the HW for hasn't been validated
                  */
                 cl_emit(&job->bcl, FLUSH, flush);
+}
+
+void
+v3dX(job_emit_enable_double_buffer)(struct v3d_job *job)
+{
+        assert(job->bcl_tile_binning_mode_ptr);
+        struct cl_packet_struct(TILE_BINNING_MODE_CFG) config = {
+                cl_packet_header(TILE_BINNING_MODE_CFG),
+        };
+
+        config.width_in_pixels = job->draw_width;
+        config.height_in_pixels = job->draw_height;
+#if V3D_VERSION == 42
+        config.number_of_render_targets = MAX2(job->nr_cbufs, 1);
+        config.multisample_mode_4x = job->msaa;
+        config.double_buffer_in_non_ms_mode = job->double_buffer;
+        config.maximum_bpp_of_all_render_targets = job->internal_bpp;
+#endif
+#if V3D_VERSION >= 71
+        config.log2_tile_width = log2_tile_size(job->tile_desc.width);
+        config.log2_tile_height = log2_tile_size(job->tile_desc.height);
+#endif
+
+        uint8_t *rewrite_addr = (uint8_t *)job->bcl_tile_binning_mode_ptr;
+        cl_packet_pack(TILE_BINNING_MODE_CFG)(NULL, rewrite_addr, &config);
 }

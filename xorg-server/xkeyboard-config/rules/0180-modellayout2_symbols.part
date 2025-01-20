@@ -1,0 +1,4 @@
+! model		layout[2]	=	symbols
+ $applealu	$macvendorlayouts	=	+macintosh_vndr/%l[2]:2
+ $sun		$sun_custom	=	+sun_vndr/%l[2]:2
+  *		*		=	+%l[2]%(v[2]):2

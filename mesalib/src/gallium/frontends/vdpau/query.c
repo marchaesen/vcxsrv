@@ -88,7 +88,7 @@ vlVdpVideoSurfaceQueryCapabilities(VdpDevice device, VdpChromaType surface_chrom
 
    /* XXX: Current limits */
    *is_supported = true;
-   max_2d_texture_size = pscreen->get_param(pscreen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+   max_2d_texture_size = pscreen->caps.max_texture_2d_size;
    mtx_unlock(&dev->mutex);
    if (!max_2d_texture_size)
       return VDP_STATUS_RESOURCES;
@@ -260,8 +260,7 @@ vlVdpOutputSurfaceQueryCapabilities(VdpDevice device, VdpRGBAFormat surface_rgba
       PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET
    );
    if (*is_supported) {
-      uint32_t max_2d_texture_size = pscreen->get_param(
-         pscreen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+      uint32_t max_2d_texture_size = pscreen->caps.max_texture_2d_size;
 
       if (!max_2d_texture_size) {
          mtx_unlock(&dev->mutex);
@@ -460,8 +459,7 @@ vlVdpBitmapSurfaceQueryCapabilities(VdpDevice device, VdpRGBAFormat surface_rgba
       PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET
    );
    if (*is_supported) {
-      uint32_t max_2d_texture_size = pscreen->get_param(
-         pscreen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+      uint32_t max_2d_texture_size = pscreen->caps.max_texture_2d_size;
 
       if (!max_2d_texture_size) {
          mtx_unlock(&dev->mutex);

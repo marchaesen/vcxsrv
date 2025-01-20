@@ -225,6 +225,7 @@ struct xcb_connection_t {
 
 void _xcb_conn_shutdown(xcb_connection_t *c, int err);
 
+XCB_CONST_FUNCTION
 xcb_connection_t *_xcb_conn_ret_error(int err);
 
 int _xcb_conn_wait(xcb_connection_t *c, pthread_cond_t *cond, struct iovec **vector, int *count);

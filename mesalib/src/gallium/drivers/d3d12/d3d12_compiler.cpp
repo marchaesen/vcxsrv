@@ -111,7 +111,7 @@ compile_nir(struct d3d12_context *ctx, struct d3d12_shader_selector *sel,
    if (key->samples_int_textures)
       NIR_PASS_V(nir, dxil_lower_sample_to_txf_for_integer_tex,
                  key->n_texture_states, key->tex_wrap_states, key->swizzle_state,
-                 screen->base.get_paramf(&screen->base, PIPE_CAPF_MAX_TEXTURE_LOD_BIAS));
+                 screen->base.caps.max_texture_lod_bias);
 
    if (key->stage == PIPE_SHADER_VERTEX && key->vs.needs_format_emulation)
       dxil_nir_lower_vs_vertex_conversion(nir, key->vs.format_conversion);
@@ -800,8 +800,8 @@ d3d12_shader_key_hash(const d3d12_shader_key *key)
 
    hash = (uint32_t)key->stage;
 
-   hash += key->next_varying_inputs;
-   hash += key->prev_varying_outputs;
+   hash += static_cast<uint32_t>(key->next_varying_inputs);
+   hash += static_cast<uint32_t>(key->prev_varying_outputs);
    hash += key->common_all;
    if (key->next_has_frac_inputs)
       hash = _mesa_hash_data_with_seed(key->next_varying_frac_inputs, sizeof(d3d12_shader_selector::varying_frac_inputs), hash);
@@ -814,7 +814,7 @@ d3d12_shader_key_hash(const d3d12_shader_key *key)
        * hashing for now until this is shown to be worthwhile. */
        break;
    case PIPE_SHADER_GEOMETRY:
-      hash += key->gs.all;
+      hash += static_cast<uint32_t>(key->gs.all);
       break;
    case PIPE_SHADER_FRAGMENT:
       hash += key->fs.all;
@@ -823,7 +823,7 @@ d3d12_shader_key_hash(const d3d12_shader_key *key)
       hash = _mesa_hash_data_with_seed(&key->cs, sizeof(key->cs), hash);
       break;
    case PIPE_SHADER_TESS_CTRL:
-      hash += key->hs.all;
+      hash += static_cast<uint32_t>(key->hs.all);
       break;
    case PIPE_SHADER_TESS_EVAL:
       hash += key->ds.tcs_vertices_out;
@@ -1049,7 +1049,7 @@ d3d12_fill_shader_key(struct d3d12_selection_context *sel_ctx,
    }
 
    key->n_images = sel_ctx->ctx->num_image_views[stage];
-   for (int i = 0; i < key->n_images; ++i) {
+   for (unsigned i = 0; i < key->n_images; ++i) {
       key->image_format_conversion[i].emulated_format = sel_ctx->ctx->image_view_emulation_formats[stage][i];
       if (key->image_format_conversion[i].emulated_format != PIPE_FORMAT_NONE)
          key->image_format_conversion[i].view_format = sel_ctx->ctx->image_views[stage][i].format;
@@ -1142,9 +1142,9 @@ select_shader_variant(struct d3d12_selection_context *sel_ctx, d3d12_shader_sele
    }
 
    if (key.stage == PIPE_SHADER_COMPUTE && sel->workgroup_size_variable) {
-      new_nir_variant->info.workgroup_size[0] = key.cs.workgroup_size[0];
-      new_nir_variant->info.workgroup_size[1] = key.cs.workgroup_size[1];
-      new_nir_variant->info.workgroup_size[2] = key.cs.workgroup_size[2];
+      new_nir_variant->info.workgroup_size[0] = static_cast<uint16_t>(key.cs.workgroup_size[0]);
+      new_nir_variant->info.workgroup_size[1] = static_cast<uint16_t>(key.cs.workgroup_size[1]);
+      new_nir_variant->info.workgroup_size[2] = static_cast<uint16_t>(key.cs.workgroup_size[2]);
    }
 
    if (new_nir_variant->info.stage == MESA_SHADER_TESS_CTRL) {
@@ -1155,7 +1155,7 @@ select_shader_variant(struct d3d12_selection_context *sel_ctx, d3d12_shader_sele
 
       NIR_PASS_V(new_nir_variant, dxil_nir_set_tcs_patches_in, key.hs.patch_vertices_in);
    } else if (new_nir_variant->info.stage == MESA_SHADER_TESS_EVAL) {
-      new_nir_variant->info.tess.tcs_vertices_out = key.ds.tcs_vertices_out;
+      new_nir_variant->info.tess.tcs_vertices_out = static_cast<uint8_t>(key.ds.tcs_vertices_out);
    }
 
    {
@@ -1296,7 +1296,7 @@ update_so_info(struct pipe_stream_output_info *so_info,
    unsigned slot = 0;
 
    while (outputs_written)
-      reverse_map[slot++] = u_bit_scan64(&outputs_written);
+      reverse_map[slot++] = static_cast<uint8_t>(u_bit_scan64(&outputs_written));
 
    for (unsigned i = 0; i < so_info->num_outputs; i++) {
       struct pipe_stream_output *output = &so_info->output[i];

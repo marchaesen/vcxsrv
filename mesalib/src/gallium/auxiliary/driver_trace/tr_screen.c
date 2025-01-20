@@ -152,29 +152,6 @@ trace_screen_get_disk_shader_cache(struct pipe_screen *_screen)
 
 
 static int
-trace_screen_get_param(struct pipe_screen *_screen,
-                       enum pipe_cap param)
-{
-   struct trace_screen *tr_scr = trace_screen(_screen);
-   struct pipe_screen *screen = tr_scr->screen;
-   int result;
-
-   trace_dump_call_begin("pipe_screen", "get_param");
-
-   trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(pipe_cap, param);
-
-   result = screen->get_param(screen, param);
-
-   trace_dump_ret(int, result);
-
-   trace_dump_call_end();
-
-   return result;
-}
-
-
-static int
 trace_screen_get_shader_param(struct pipe_screen *_screen,
                               enum pipe_shader_type shader,
                               enum pipe_shader_cap param)
@@ -192,29 +169,6 @@ trace_screen_get_shader_param(struct pipe_screen *_screen,
    result = screen->get_shader_param(screen, shader, param);
 
    trace_dump_ret(int, result);
-
-   trace_dump_call_end();
-
-   return result;
-}
-
-
-static float
-trace_screen_get_paramf(struct pipe_screen *_screen,
-                        enum pipe_capf param)
-{
-   struct trace_screen *tr_scr = trace_screen(_screen);
-   struct pipe_screen *screen = tr_scr->screen;
-   float result;
-
-   trace_dump_call_begin("pipe_screen", "get_paramf");
-
-   trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(pipe_capf, param);
-
-   result = screen->get_paramf(screen, param);
-
-   trace_dump_ret(float, result);
 
    trace_dump_call_end();
 
@@ -1180,7 +1134,7 @@ trace_screen_get_timestamp(struct pipe_screen *_screen)
 }
 
 static char *
-trace_screen_finalize_nir(struct pipe_screen *_screen, void *nir)
+trace_screen_finalize_nir(struct pipe_screen *_screen, struct nir_shader *nir)
 {
    struct pipe_screen *screen = trace_screen(_screen)->screen;
 
@@ -1547,9 +1501,7 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.get_device_vendor = trace_screen_get_device_vendor;
    SCR_INIT(get_compiler_options);
    SCR_INIT(get_disk_shader_cache);
-   tr_scr->base.get_param = trace_screen_get_param;
    tr_scr->base.get_shader_param = trace_screen_get_shader_param;
-   tr_scr->base.get_paramf = trace_screen_get_paramf;
    tr_scr->base.get_compute_param = trace_screen_get_compute_param;
    SCR_INIT(get_video_param);
    tr_scr->base.is_format_supported = trace_screen_is_format_supported;

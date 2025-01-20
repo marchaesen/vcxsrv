@@ -401,7 +401,8 @@
                 "VK_EXT_attachment_feedback_loop_layout": 1,
                 "VK_EXT_attachment_feedback_loop_dynamic_state": 1,
                 "VK_KHR_maintenance6": 1,
-                "VK_KHR_maintenance7": 1
+                "VK_KHR_maintenance7": 1,
+                "VK_KHR_maintenance8": 1
             },
             "features": {
                 "VkPhysicalDeviceExtendedDynamicStateFeaturesEXT": {
@@ -443,6 +444,9 @@
                 },
                 "VkPhysicalDeviceMaintenance7FeaturesKHR": {
                     "maintenance7": true
+                },
+                "VkPhysicalDeviceMaintenance8FeaturesKHR": {
+                    "maintenance8": true
                 }
             },
             "properties": {

@@ -60,6 +60,7 @@ SOFTWARE.
 #include "dix/exevents_priv.h"
 #include "dix/input_priv.h"
 #include "dix/ptrveloc_priv.h"
+#include "os/osdep.h"
 #include "xkb/xkbsrv_priv.h"
 
 #include "misc.h"
@@ -2019,16 +2020,6 @@ NoteLedState(DeviceIntPtr keybd, int led, Bool on)
         ctrl->leds |= ((Leds) 1 << (led - 1));
     else
         ctrl->leds &= ~((Leds) 1 << (led - 1));
-}
-
-int
-Ones(unsigned long mask)
-{                               /* HACKMEM 169 */
-    unsigned long y;
-
-    y = (mask >> 1) & 033333333333;
-    y = mask - y - ((y >> 1) & 033333333333);
-    return (((y + (y >> 3)) & 030707070707) % 077);
 }
 
 static int

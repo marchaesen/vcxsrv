@@ -81,14 +81,16 @@ struct draw_geometry_shader {
 
    unsigned max_output_vertices;
    unsigned primitive_boundary;
-   unsigned input_primitive;
-   unsigned output_primitive;
+   enum mesa_prim input_primitive;
+   enum mesa_prim output_primitive;
    unsigned vertex_size;
 
    struct draw_vertex_stream stream[TGSI_MAX_VERTEX_STREAMS];
    unsigned num_vertex_streams;
 
    unsigned in_prim_idx;
+   unsigned tess_prim_idx;
+   const uint32_t *next_patch_length;
    unsigned input_vertex_stride;
    unsigned fetched_prim_count;
    const float (*input)[4];
@@ -142,8 +144,9 @@ draw_geometry_shader_run(struct draw_geometry_shader *shader,
                          const struct draw_vertex_info *input_verts,
                          const struct draw_prim_info *input_prim,
                          const struct tgsi_shader_info *input_info,
+                         uint32_t *const *patch_lengths,
                          struct draw_vertex_info *output_verts,
-                         struct draw_prim_info *output_prims );
+                         struct draw_prim_info *output_prims);
 
 void
 draw_geometry_shader_prepare(struct draw_geometry_shader *shader,

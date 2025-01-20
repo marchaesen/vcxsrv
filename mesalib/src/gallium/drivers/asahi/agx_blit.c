@@ -8,8 +8,8 @@
  */
 
 #include <stdint.h>
+#include "asahi/compiler/agx_nir_texture.h"
 #include "asahi/layout/layout.h"
-#include "asahi/lib/agx_nir_passes.h"
 #include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_format_convert.h"
 #include "gallium/auxiliary/util/u_blitter.h"
@@ -235,7 +235,7 @@ asahi_compute_blit_supported(const struct pipe_blit_info *info)
    return (info->src.box.depth == info->dst.box.depth) && !info->alpha_blend &&
           !info->num_window_rectangles && !info->sample0_only &&
           !info->scissor_enable && !info->window_rectangle_include &&
-          info->src.resource->nr_samples <= 1 &&
+          !info->swizzle_enable && info->src.resource->nr_samples <= 1 &&
           info->dst.resource->nr_samples <= 1 &&
           !util_format_is_depth_and_stencil(info->src.format) &&
           !util_format_is_depth_and_stencil(info->dst.format) &&
@@ -465,11 +465,8 @@ asahi_compute_blit(struct pipe_context *ctx, const struct pipe_blit_info *info,
 
 void
 agx_blitter_save(struct agx_context *ctx, struct blitter_context *blitter,
-                 bool render_cond)
+                 enum asahi_blitter_op op)
 {
-   util_blitter_save_vertex_buffers(blitter, ctx->vertex_buffers,
-                                    util_last_bit(ctx->vb_mask));
-   util_blitter_save_vertex_elements(blitter, ctx->attributes);
    util_blitter_save_vertex_shader(blitter,
                                    ctx->stage[PIPE_SHADER_VERTEX].shader);
    util_blitter_save_tessctrl_shader(blitter,
@@ -478,29 +475,45 @@ agx_blitter_save(struct agx_context *ctx, struct blitter_context *blitter,
                                      ctx->stage[PIPE_SHADER_TESS_EVAL].shader);
    util_blitter_save_geometry_shader(blitter,
                                      ctx->stage[PIPE_SHADER_GEOMETRY].shader);
+   util_blitter_save_so_targets(blitter, ctx->streamout.num_targets,
+                                ctx->streamout.targets, MESA_PRIM_UNKNOWN);
+   util_blitter_save_vertex_buffers(blitter, ctx->vertex_buffers,
+                                    util_last_bit(ctx->vb_mask));
+   util_blitter_save_vertex_elements(blitter, ctx->attributes);
    util_blitter_save_rasterizer(blitter, ctx->rast);
    util_blitter_save_viewport(blitter, &ctx->viewport[0]);
-   util_blitter_save_scissor(blitter, &ctx->scissor[0]);
-   util_blitter_save_fragment_shader(blitter,
-                                     ctx->stage[PIPE_SHADER_FRAGMENT].shader);
-   util_blitter_save_blend(blitter, ctx->blend);
-   util_blitter_save_depth_stencil_alpha(blitter, ctx->zs);
-   util_blitter_save_stencil_ref(blitter, &ctx->stencil_ref);
-   util_blitter_save_so_targets(blitter, ctx->streamout.num_targets,
-                                ctx->streamout.targets);
-   util_blitter_save_sample_mask(blitter, ctx->sample_mask, 0);
 
-   util_blitter_save_framebuffer(blitter, &ctx->framebuffer);
-   util_blitter_save_fragment_sampler_states(
-      blitter, ctx->stage[PIPE_SHADER_FRAGMENT].sampler_count,
-      (void **)(ctx->stage[PIPE_SHADER_FRAGMENT].samplers));
-   util_blitter_save_fragment_sampler_views(
-      blitter, ctx->stage[PIPE_SHADER_FRAGMENT].texture_count,
-      (struct pipe_sampler_view **)ctx->stage[PIPE_SHADER_FRAGMENT].textures);
-   util_blitter_save_fragment_constant_buffer_slot(
-      blitter, ctx->stage[PIPE_SHADER_FRAGMENT].cb);
+   if (op & ASAHI_SAVE_FRAGMENT_STATE) {
+      util_blitter_save_blend(blitter, ctx->blend);
+      util_blitter_save_depth_stencil_alpha(blitter, ctx->zs);
+      util_blitter_save_stencil_ref(blitter, &ctx->stencil_ref);
+      util_blitter_save_sample_mask(blitter, ctx->sample_mask, 0);
 
-   if (!render_cond) {
+      util_blitter_save_scissor(blitter, &ctx->scissor[0]);
+      util_blitter_save_fragment_shader(
+         blitter, ctx->stage[PIPE_SHADER_FRAGMENT].shader);
+
+      if (op & ASAHI_SAVE_FRAGMENT_CONSTANT) {
+         util_blitter_save_fragment_constant_buffer_slot(
+            blitter, ctx->stage[PIPE_SHADER_FRAGMENT].cb);
+      }
+   }
+
+   if (op & ASAHI_SAVE_FRAMEBUFFER) {
+      util_blitter_save_framebuffer(blitter, &ctx->framebuffer);
+   }
+
+   if (op & ASAHI_SAVE_TEXTURES) {
+      util_blitter_save_fragment_sampler_states(
+         blitter, ctx->stage[PIPE_SHADER_FRAGMENT].sampler_count,
+         (void **)(ctx->stage[PIPE_SHADER_FRAGMENT].samplers));
+
+      util_blitter_save_fragment_sampler_views(
+         blitter, ctx->stage[PIPE_SHADER_FRAGMENT].texture_count,
+         (struct pipe_sampler_view **)ctx->stage[PIPE_SHADER_FRAGMENT].textures);
+   }
+
+   if (!(op & ASAHI_DISABLE_RENDER_COND)) {
       util_blitter_save_render_condition(blitter,
                                          (struct pipe_query *)ctx->cond_query,
                                          ctx->cond_cond, ctx->cond_mode);
@@ -539,7 +552,10 @@ agx_blit(struct pipe_context *pipe, const struct pipe_blit_info *info)
    /* Handle self-blits */
    agx_flush_writer(ctx, agx_resource(info->dst.resource), "Blit");
 
-   agx_blitter_save(ctx, ctx->blitter, info->render_condition_enable);
+   agx_blitter_save(
+      ctx, ctx->blitter,
+      ASAHI_BLIT |
+         (info->render_condition_enable ? 0 : ASAHI_DISABLE_RENDER_COND));
    util_blitter_blit(ctx->blitter, info, NULL);
 }
 
@@ -581,6 +597,7 @@ try_copy_via_blit(struct pipe_context *pctx, struct pipe_resource *dst,
       .mask = util_format_get_mask(src->format),
       .filter = PIPE_TEX_FILTER_NEAREST,
       .scissor_enable = 0,
+      .swizzle_enable = 0,
    };
 
    /* snorm formats don't round trip, so don't use them for copies */

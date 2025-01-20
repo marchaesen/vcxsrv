@@ -5,6 +5,7 @@
 
 #include "tu_device.h"
 #include "tu_entrypoints.h"
+#include "tu_queue.h"
 #include "tu_rmv.h"
 #include "vk_common_entrypoints.h"
 #include "wsi_common_entrypoints.h"

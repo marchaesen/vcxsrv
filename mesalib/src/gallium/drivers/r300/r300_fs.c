@@ -255,7 +255,10 @@ static void r300_emit_fs_code_to_buffer(
                                code->int_constant_count * 2;
 
         NEW_CB(shader->cb_code, shader->cb_code_size);
-        OUT_CB_REG(R500_US_CONFIG, R500_ZERO_TIMES_ANYTHING_EQUALS_ZERO);
+        if (r300->screen->options.ieeemath)
+            OUT_CB_REG(R500_US_CONFIG, R500_ZERO_TIMES_ANYTHING_EQUALS_ZERO_DEFAULT);
+        else
+            OUT_CB_REG(R500_US_CONFIG, R500_ZERO_TIMES_ANYTHING_EQUALS_ZERO_LEGACY);
         OUT_CB_REG(R500_US_PIXSIZE, code->max_temp_idx);
         OUT_CB_REG(R500_US_FC_CTRL, code->us_fc_ctrl);
         for(i = 0; i < code->int_constant_count; i++){

@@ -93,6 +93,8 @@ gl_nir_opts(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_phi_precision);
       NIR_PASS(progress, nir, nir_opt_algebraic);
       NIR_PASS(progress, nir, nir_opt_constant_folding);
+      NIR_PASS(progress, nir, nir_io_add_const_offset_to_base,
+               nir_var_shader_in | nir_var_shader_out);
 
       if (!nir->info.flrp_lowered) {
          unsigned lower_flrp =
@@ -1412,7 +1414,7 @@ prelink_lowering(const struct gl_constants *consts,
       struct gl_program *prog = shader->Program;
 
       /* NIR drivers that support tess shaders and compact arrays need to use
-      * GLSLTessLevelsAsInputs / PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS. The NIR
+      * GLSLTessLevelsAsInputs / pipe_caps.glsl_tess_levels_as_inputs. The NIR
       * linker doesn't support linking these as compat arrays of sysvals.
       */
       assert(consts->GLSLTessLevelsAsInputs || !options->compact_arrays ||
@@ -1468,7 +1470,8 @@ prelink_lowering(const struct gl_constants *consts,
        * - shader_info::clip_distance_array_size
        * - shader_info::cull_distance_array_size
        */
-      if (consts->CombinedClipCullDistanceArrays)
+      if (!(nir->options->io_options &
+            nir_io_separate_clip_cull_distance_arrays))
          NIR_PASS(_, nir, nir_lower_clip_cull_distance_arrays);
    }
 
@@ -1480,6 +1483,22 @@ get_varying_nir_var_mask(nir_shader *nir)
 {
    return (nir->info.stage != MESA_SHADER_VERTEX ? nir_var_shader_in : 0) |
           (nir->info.stage != MESA_SHADER_FRAGMENT ? nir_var_shader_out : 0);
+}
+
+static nir_opt_varyings_progress
+optimize_varyings(nir_shader *producer, nir_shader *consumer, bool spirv,
+                  unsigned max_uniform_comps, unsigned max_ubos)
+{
+   nir_opt_varyings_progress progress =
+      nir_opt_varyings(producer, consumer, spirv, max_uniform_comps,
+                       max_ubos);
+
+   if (progress & nir_progress_producer)
+      gl_nir_opts(producer);
+   if (progress & nir_progress_consumer)
+      gl_nir_opts(consumer);
+
+   return progress;
 }
 
 /**
@@ -1495,6 +1514,7 @@ gl_nir_lower_optimize_varyings(const struct gl_constants *consts,
    unsigned num_shaders = 0;
    unsigned max_ubos = UINT_MAX;
    unsigned max_uniform_comps = UINT_MAX;
+   bool optimize_io = !debug_get_bool_option("MESA_GLSL_DISABLE_IO_OPT", false);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
@@ -1507,23 +1527,20 @@ gl_nir_lower_optimize_varyings(const struct gl_constants *consts,
       if (nir->info.stage == MESA_SHADER_COMPUTE)
          return;
 
-      if (!(nir->options->io_options & nir_io_glsl_lower_derefs) ||
-          !(nir->options->io_options & nir_io_glsl_opt_varyings))
-         return;
-
       shaders[num_shaders] = nir;
       max_uniform_comps = MIN2(max_uniform_comps,
                                consts->Program[i].MaxUniformComponents);
       max_ubos = MIN2(max_ubos, consts->Program[i].MaxUniformBlocks);
       num_shaders++;
+      optimize_io &= !(nir->options->io_options & nir_io_dont_optimize);
    }
 
    /* Lower IO derefs to load and store intrinsics. */
-   for (unsigned i = 0; i < num_shaders; i++) {
-      nir_shader *nir = shaders[i];
+   for (unsigned i = 0; i < num_shaders; i++)
+      nir_lower_io_passes(shaders[i], true);
 
-      nir_lower_io_passes(nir, true);
-   }
+   if (!optimize_io)
+      return;
 
    /* There is nothing to optimize for only 1 shader. */
    if (num_shaders == 1) {
@@ -1567,36 +1584,17 @@ gl_nir_lower_optimize_varyings(const struct gl_constants *consts,
     */
    unsigned highest_changed_producer = 0;
    for (unsigned i = 0; i < num_shaders - 1; i++) {
-      nir_shader *producer = shaders[i];
-      nir_shader *consumer = shaders[i + 1];
-
-      nir_opt_varyings_progress progress =
-         nir_opt_varyings(producer, consumer, spirv, max_uniform_comps,
-                          max_ubos);
-
-      if (progress & nir_progress_producer) {
-         gl_nir_opts(producer);
+      if (optimize_varyings(shaders[i], shaders[i + 1], spirv,
+                            max_uniform_comps, max_ubos) & nir_progress_producer)
          highest_changed_producer = i;
-      }
-      if (progress & nir_progress_consumer)
-         gl_nir_opts(consumer);
    }
 
    /* Optimize varyings from the highest changed producer to the first
     * shader.
     */
    for (unsigned i = highest_changed_producer; i > 0; i--) {
-      nir_shader *producer = shaders[i - 1];
-      nir_shader *consumer = shaders[i];
-
-      nir_opt_varyings_progress progress =
-         nir_opt_varyings(producer, consumer, spirv, max_uniform_comps,
-                          max_ubos);
-
-      if (progress & nir_progress_producer)
-         gl_nir_opts(producer);
-      if (progress & nir_progress_consumer)
-         gl_nir_opts(consumer);
+      optimize_varyings(shaders[i - 1], shaders[i], spirv, max_uniform_comps,
+                        max_ubos);
    }
 
    /* Final cleanups. */
@@ -2884,7 +2882,8 @@ link_intrastage_shaders(void *mem_ctx,
 
    /* Set the linked source BLAKE3. */
    if (num_shaders == 1) {
-      memcpy(linked->linked_source_blake3, shader_list[0]->compiled_source_blake3,
+      memcpy(linked->Program->nir->info.source_blake3,
+             shader_list[0]->compiled_source_blake3,
              BLAKE3_OUT_LEN);
    } else {
       struct mesa_blake3 blake3_ctx;
@@ -2897,7 +2896,7 @@ link_intrastage_shaders(void *mem_ctx,
          _mesa_blake3_update(&blake3_ctx, shader_list[i]->compiled_source_blake3,
                              BLAKE3_OUT_LEN);
       }
-      _mesa_blake3_final(&blake3_ctx, linked->linked_source_blake3);
+      _mesa_blake3_final(&blake3_ctx, linked->Program->nir->info.source_blake3);
    }
 
    return linked;

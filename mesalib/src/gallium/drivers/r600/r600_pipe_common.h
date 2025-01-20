@@ -704,7 +704,8 @@ void r600_streamout_buffers_dirty(struct r600_common_context *rctx);
 void r600_set_streamout_targets(struct pipe_context *ctx,
 				unsigned num_targets,
 				struct pipe_stream_output_target **targets,
-				const unsigned *offset);
+				const unsigned *offset,
+                                enum mesa_prim output_prim);
 void r600_emit_streamout_end(struct r600_common_context *rctx);
 void r600_update_prims_generated_query_state(struct r600_common_context *rctx,
 					     unsigned type, int diff);

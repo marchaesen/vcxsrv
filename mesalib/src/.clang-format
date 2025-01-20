@@ -153,6 +153,9 @@ ForEachMacros:
 
   - nir_foreach_function_impl
 
+  - nir_foreach_entrypoint
+  - nir_foreach_entrypoint_safe
+
   - nir_foreach_block_unstructured
   - nir_foreach_block_unstructured_safe
 
@@ -162,6 +165,9 @@ ForEachMacros:
   - nir_foreach_block_reverse
   - nir_foreach_block_reverse_safe
   - nir_foreach_block_safe
+
+  - nir_precomp_foreach_arg
+  - nir_precomp_foreach_variant_param
 
 # egl
   - egl_relax

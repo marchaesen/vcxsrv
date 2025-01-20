@@ -21,6 +21,7 @@
 #include "pipe/p_state.h"
 
 #include "svga_winsys.h"
+#include "svga_surface.h"
 #include "pipebuffer/pb_buffer_fenced.h"
 #include "util/u_thread.h"
 #include <sys/types.h>
@@ -80,6 +81,8 @@ struct vmw_winsys_screen
 
    struct pb_fence_ops *fence_ops;
 
+   struct svga_winsys_context *swc;
+
 #ifdef VMX86_STATS
    /*
     * mksGuestStats TLS array; length must be power of two
@@ -102,6 +105,7 @@ struct vmw_winsys_screen
 
    bool force_coherent;
    bool cache_maps;
+   bool userspace_surface;
 };
 
 
@@ -109,6 +113,14 @@ static inline struct vmw_winsys_screen *
 vmw_winsys_screen(struct svga_winsys_screen *base)
 {
    return (struct vmw_winsys_screen *)base;
+}
+
+static inline bool
+vmw_has_userspace_surface(struct vmw_winsys_screen *vws)
+{
+   if (!vws->base.have_gb_objects || !vws->base.have_vgpu10)
+      return false;
+   return vws->userspace_surface;
 }
 
 /*  */

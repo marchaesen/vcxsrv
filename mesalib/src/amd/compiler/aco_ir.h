@@ -15,6 +15,7 @@
 
 #include "ac_binary.h"
 #include "ac_hw_stage.h"
+#include "ac_shader_debug_info.h"
 #include "ac_shader_util.h"
 #include "amd_family.h"
 #include <algorithm>
@@ -182,6 +183,7 @@ enum wait_type {
 };
 
 struct Instruction;
+class Builder;
 
 struct wait_imm {
    static const uint8_t unset_counter = 0xff;
@@ -208,6 +210,8 @@ struct wait_imm {
    bool empty() const;
 
    void print(FILE* output) const;
+
+   void build_waitcnt(Builder& bld);
 
    uint8_t& operator[](size_t i)
    {
@@ -420,8 +424,10 @@ static constexpr PhysReg flat_scr_lo{102}; /* GFX8-GFX9, encoded differently on 
 static constexpr PhysReg flat_scr_hi{103}; /* GFX8-GFX9, encoded differently on GFX6-7 */
 static constexpr PhysReg vcc{106};
 static constexpr PhysReg vcc_hi{107};
-static constexpr PhysReg tba{108}; /* GFX6-GFX8 */
-static constexpr PhysReg tma{110}; /* GFX6-GFX8 */
+static constexpr PhysReg tba_lo{108}; /* GFX6-GFX8 */
+static constexpr PhysReg tba_hi{109}; /* GFX6-GFX8 */
+static constexpr PhysReg tma_lo{110}; /* GFX6-GFX8 */
+static constexpr PhysReg tma_hi{111}; /* GFX6-GFX8 */
 static constexpr PhysReg ttmp0{112};
 static constexpr PhysReg ttmp1{113};
 static constexpr PhysReg ttmp2{114};
@@ -452,9 +458,10 @@ static constexpr PhysReg scc{253};
 class Operand final {
 public:
    constexpr Operand()
-       : reg_(PhysReg{128}), isTemp_(false), isFixed_(true), isConstant_(false), isKill_(false),
-         isUndef_(true), isFirstKill_(false), constSize(0), isLateKill_(false), isClobbered_(false),
-         isCopyKill_(false), is16bit_(false), is24bit_(false), signext(false)
+       : reg_(PhysReg{128}), isTemp_(false), isFixed_(true), isPrecolored_(false),
+         isConstant_(false), isKill_(false), isUndef_(true), isFirstKill_(false),
+         isLateKill_(false), isClobbered_(false), isCopyKill_(false), is16bit_(false),
+         is24bit_(false), signext(false), constSize(0)
    {}
 
    explicit Operand(Temp r) noexcept
@@ -472,7 +479,7 @@ public:
       assert(r.id()); /* Don't allow fixing an undef to a register */
       data_.temp = r;
       isTemp_ = true;
-      setFixed(reg);
+      setPrecolored(reg);
    };
 
    /* 8-bit constant */
@@ -734,6 +741,13 @@ public:
       reg_ = reg;
    }
 
+   constexpr bool isPrecolored() const noexcept { return isPrecolored_; }
+   constexpr void setPrecolored(PhysReg reg) noexcept
+   {
+      setFixed(reg);
+      isPrecolored_ = isFixed_;
+   }
+
    constexpr bool isConstant() const noexcept { return isConstant_; }
 
    constexpr bool isLiteral() const noexcept { return isConstant() && reg_ == 255; }
@@ -842,20 +856,23 @@ public:
 
    constexpr bool operator==(Operand other) const noexcept
    {
-      if (other.size() != size())
+      if (other.bytes() != bytes())
          return false;
       if (isFixed() != other.isFixed() || isKillBeforeDef() != other.isKillBeforeDef())
          return false;
-      if (isFixed() && other.isFixed() && physReg() != other.physReg())
+      if (isFixed() && physReg() != other.physReg())
          return false;
-      if (isLiteral())
-         return other.isLiteral() && other.constantValue() == constantValue();
-      else if (isConstant())
-         return other.isConstant() && other.physReg() == physReg();
+      if (hasRegClass() && (!other.hasRegClass() || other.regClass() != regClass()))
+         return false;
+
+      if (isConstant())
+         return other.isConstant() && other.constantValue64() == constantValue64();
       else if (isUndefined())
-         return other.isUndefined() && other.regClass() == regClass();
-      else
+         return other.isUndefined();
+      else if (isTemp())
          return other.isTemp() && other.getTemp() == getTemp();
+      else
+         return true;
    }
 
    constexpr bool operator!=(Operand other) const noexcept { return !operator==(other); }
@@ -879,17 +896,18 @@ private:
       struct {
          uint8_t isTemp_ : 1;
          uint8_t isFixed_ : 1;
+         uint8_t isPrecolored_ : 1;
          uint8_t isConstant_ : 1;
          uint8_t isKill_ : 1;
          uint8_t isUndef_ : 1;
          uint8_t isFirstKill_ : 1;
-         uint8_t constSize : 2;
          uint8_t isLateKill_ : 1;
          uint8_t isClobbered_ : 1;
          uint8_t isCopyKill_ : 1;
          uint8_t is16bit_ : 1;
          uint8_t is24bit_ : 1;
          uint8_t signext : 1;
+         uint8_t constSize : 2;
       };
       /* can't initialize bit-fields in c++11, so work around using a union */
       uint16_t control_ = 0;
@@ -905,12 +923,12 @@ private:
 class Definition final {
 public:
    constexpr Definition()
-       : temp(Temp(0, s1)), reg_(0), isFixed_(0), isKill_(0), isPrecise_(0), isInfPreserve_(0),
-         isNaNPreserve_(0), isSZPreserve_(0), isNUW_(0), isNoCSE_(0)
+       : temp(Temp(0, s1)), reg_(0), isFixed_(0), isPrecolored_(0), isKill_(0), isPrecise_(0),
+         isInfPreserve_(0), isNaNPreserve_(0), isSZPreserve_(0), isNUW_(0), isNoCSE_(0)
    {}
    explicit Definition(Temp tmp) noexcept : temp(tmp) {}
    explicit Definition(PhysReg reg, RegClass type) noexcept : temp(Temp(0, type)) { setFixed(reg); }
-   explicit Definition(Temp tmp, PhysReg reg) noexcept : temp(tmp) { setFixed(reg); }
+   explicit Definition(Temp tmp, PhysReg reg) noexcept : temp(tmp) { setPrecolored(reg); }
 
    constexpr bool isTemp() const noexcept { return tempId() > 0; }
 
@@ -936,6 +954,13 @@ public:
    {
       isFixed_ = 1;
       reg_ = reg;
+   }
+
+   constexpr bool isPrecolored() const noexcept { return isPrecolored_; }
+   constexpr void setPrecolored(PhysReg reg) noexcept
+   {
+      setFixed(reg);
+      isPrecolored_ = isFixed_;
    }
 
    constexpr void setKill(bool flag) noexcept { isKill_ = flag; }
@@ -973,6 +998,7 @@ private:
    union {
       struct {
          uint8_t isFixed_ : 1;
+         uint8_t isPrecolored_ : 1;
          uint8_t isKill_ : 1;
          uint8_t isPrecise_ : 1;
          uint8_t isInfPreserve_ : 1;
@@ -982,7 +1008,7 @@ private:
          uint8_t isNoCSE_ : 1;
       };
       /* can't initialize bit-fields in c++11, so work around using a union */
-      uint8_t control_ = 0;
+      uint16_t control_ = 0;
    };
 };
 
@@ -1686,8 +1712,7 @@ struct Export_instruction : public Instruction {
 static_assert(sizeof(Export_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
 
 struct Pseudo_instruction : public Instruction {
-   PhysReg scratch_sgpr; /* might not be valid if it's not needed */
-   bool tmp_in_scc;
+   PhysReg scratch_sgpr;   /* might not be valid if it's not needed */
    bool needs_scratch_reg; /* if scratch_sgpr/scc can be written, initialized by RA. */
 };
 static_assert(sizeof(Pseudo_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
@@ -1961,10 +1986,6 @@ struct Block {
    uint16_t divergent_if_logical_depth = 0;
    uint16_t uniform_if_depth = 0;
 
-   /* this information is needed for predecessors to blocks with phis when
-    * moving out of ssa */
-   bool scc_live_out = false;
-
    Block() : index(0) {}
 };
 
@@ -2106,6 +2127,8 @@ public:
    bool is_prolog = false;
    bool is_epilog = false;
 
+   std::vector<ac_shader_debug_info> debug_info;
+
    std::vector<uint8_t> constant_data;
    Temp private_segment_buffer;
    Temp scratch_offset;
@@ -2131,6 +2154,8 @@ public:
 
    /* For shader part with previous shader part that has lds access. */
    bool pending_lds_access = false;
+
+   bool should_repair_ssa = false;
 
    struct {
       monotonic_buffer_resource memory;
@@ -2195,8 +2220,7 @@ void init_program(Program* program, Stage stage, const struct aco_shader_info* i
 void select_program(Program* program, unsigned shader_count, struct nir_shader* const* shaders,
                     ac_shader_config* config, const struct aco_compiler_options* options,
                     const struct aco_shader_info* info, const struct ac_shader_args* args);
-void select_trap_handler_shader(Program* program, struct nir_shader* shader,
-                                ac_shader_config* config,
+void select_trap_handler_shader(Program* program, ac_shader_config* config,
                                 const struct aco_compiler_options* options,
                                 const struct aco_shader_info* info,
                                 const struct ac_shader_args* args);
@@ -2216,6 +2240,7 @@ void select_ps_prolog(Program* program, void* pinfo, ac_shader_config* config,
                       const struct aco_compiler_options* options,
                       const struct aco_shader_info* info, const struct ac_shader_args* args);
 
+bool repair_ssa(Program* program);
 void lower_phis(Program* program);
 void lower_subdword(Program* program);
 void calc_min_waves(Program* program);
@@ -2227,11 +2252,13 @@ void insert_exec_mask(Program* program);
 void value_numbering(Program* program);
 void optimize(Program* program);
 void optimize_postRA(Program* program);
+void lower_branches(Program* program);
 void setup_reduce_temp(Program* program);
 void lower_to_cssa(Program* program);
 void register_allocation(Program* program, ra_test_policy = {});
 void reindex_ssa(Program* program);
 void ssa_elimination(Program* program);
+void jump_threading(Program* program);
 void lower_to_hw_instr(Program* program);
 void schedule_program(Program* program);
 void schedule_ilp(Program* program);

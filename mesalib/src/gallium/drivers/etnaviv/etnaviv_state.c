@@ -286,7 +286,7 @@ etna_set_framebuffer_state(struct pipe_context *pctx,
       static_assert((VIVS_PS_OUTPUT_REG2_SATURATE_RT4 << 0) == VIVS_PS_OUTPUT_REG2_SATURATE_RT4, "VIVS_PS_OUTPUT_REG2_SATURATE_RT4");
       static_assert((VIVS_PS_OUTPUT_REG2_SATURATE_RT4 << 8) == VIVS_PS_OUTPUT_REG2_SATURATE_RT5, "VIVS_PS_OUTPUT_REG2_SATURATE_RT5");
       static_assert((VIVS_PS_OUTPUT_REG2_SATURATE_RT4 << 16) == VIVS_PS_OUTPUT_REG2_SATURATE_RT6, "VIVS_PS_OUTPUT_REG2_SATURATE_RT6");
-      static_assert((VIVS_PS_OUTPUT_REG2_SATURATE_RT4 << 24) == VIVS_PS_OUTPUT_REG2_SATURATE_RT7, "VIVS_PS_OUTPUT_REG2_SATURATE_RT7");
+      static_assert(((uint32_t)VIVS_PS_OUTPUT_REG2_SATURATE_RT4 << 24) == VIVS_PS_OUTPUT_REG2_SATURATE_RT7, "VIVS_PS_OUTPUT_REG2_SATURATE_RT7");
 
       if (rt < 4)
          cs->PS_CONTROL |= COND(util_format_is_unorm(cbuf->base.format), VIVS_PS_CONTROL_SATURATE_RT0 << rt);
@@ -352,6 +352,8 @@ etna_set_framebuffer_state(struct pipe_context *pctx,
       if (depth_bits == 16)
          target_16bpp = true;
 
+      cs->depth_mrd = util_get_depth_format_mrd(util_format_description(zsbuf->base.format));
+
       cs->PE_DEPTH_CONFIG =
          depth_format |
          COND(depth_supertiled, VIVS_PE_DEPTH_CONFIG_SUPER_TILED) |
@@ -397,6 +399,7 @@ etna_set_framebuffer_state(struct pipe_context *pctx,
 
       nr_samples_depth = zsbuf->base.texture->nr_samples;
    } else {
+      cs->depth_mrd = 0.0f;
       cs->PE_DEPTH_CONFIG = VIVS_PE_DEPTH_CONFIG_DEPTH_MODE_NONE;
       cs->PE_DEPTH_ADDR.bo = NULL;
       cs->PE_DEPTH_STRIDE = 0;
@@ -544,6 +547,13 @@ etna_set_vertex_buffers(struct pipe_context *pctx, unsigned num_buffers,
                                 true);
    so->count = util_last_bit(so->enabled_mask);
 
+   if (!num_buffers) {
+      so->count = 1;
+      so->cvb[0].FE_VERTEX_STREAM_BASE_ADDR.bo = ctx->screen->dummy_bo;
+      so->cvb[0].FE_VERTEX_STREAM_BASE_ADDR.offset = 0;
+      so->cvb[0].FE_VERTEX_STREAM_BASE_ADDR.flags = ETNA_RELOC_READ;
+   }
+
    for (unsigned idx = 0; idx < num_buffers; ++idx) {
       struct compiled_set_vertex_buffer *cs = &so->cvb[idx];
       struct pipe_vertex_buffer *vbi = &so->vb[idx];
@@ -632,6 +642,18 @@ etna_vertex_elements_state_create(struct pipe_context *pctx,
    /* XXX could minimize number of consecutive stretches here by sorting, and
     * permuting the inputs in shader or does Mesa do this already? */
 
+   if (!num_elements) {
+      /* There's no way to disable all elements on the hardware, so we need to
+       * plug in a dummy element and vertex buffer (stride = 0, so only fetches
+       * first location). */
+      static const struct pipe_vertex_element dummy_element = {
+         .src_format = PIPE_FORMAT_R8G8B8A8_UNORM,
+      };
+
+      elements = &dummy_element;
+      num_elements = 1;
+   }
+
    cs->num_elements = num_elements;
 
    unsigned start_offset = 0; /* start of current consecutive stretch */
@@ -647,7 +669,7 @@ etna_vertex_elements_state_create(struct pipe_context *pctx,
       if (nonconsecutive)
          start_offset = elements[idx].src_offset;
 
-      /* guaranteed by PIPE_CAP_MAX_VERTEX_BUFFERS */
+      /* guaranteed by pipe_caps.max_vertex_buffers */
       assert(buffer_idx < screen->info->gpu.stream_count);
 
       /* maximum vertex size is 256 bytes */
@@ -723,7 +745,8 @@ etna_vertex_elements_state_bind(struct pipe_context *pctx, void *ve)
 static void
 etna_set_stream_output_targets(struct pipe_context *pctx,
       unsigned num_targets, struct pipe_stream_output_target **targets,
-      const unsigned *offsets)
+      const unsigned *offsets,
+      enum mesa_prim output_prim)
 {
    /* stub */
 }

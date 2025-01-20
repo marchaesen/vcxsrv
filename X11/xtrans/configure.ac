@@ -21,7 +21,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xtrans], [1.5.1],
+AC_INIT([xtrans], [1.5.2],
         [https://gitlab.freedesktop.org/xorg/lib/libxtrans/-/issues], [xtrans])
 AC_CONFIG_SRCDIR([Makefile.am])
 

@@ -217,9 +217,9 @@ GetCaps(D3D10DDI_HADAPTER hAdapter,
 /*
  * ----------------------------------------------------------------------
  *
- * OpenAdapter10 --
+ * OpenAdapter10_2 --
  *
- *    The OpenAdapter10 function creates a graphics adapter object
+ *    The OpenAdapter10_2 function creates a graphics adapter object
  *    that is referenced in subsequent calls.
  *
  * ----------------------------------------------------------------------

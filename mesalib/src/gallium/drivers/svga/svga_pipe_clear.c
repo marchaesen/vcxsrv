@@ -31,7 +31,7 @@ begin_blit(struct svga_context *svga)
    util_blitter_save_tessctrl_shader(svga->blitter, svga->curr.tcs);
    util_blitter_save_tesseval_shader(svga->blitter, svga->curr.tes);
    util_blitter_save_so_targets(svga->blitter, svga->num_so_targets,
-                     (struct pipe_stream_output_target**)svga->so_targets);
+                     (struct pipe_stream_output_target**)svga->so_targets, MESA_PRIM_UNKNOWN);
    util_blitter_save_rasterizer(svga->blitter, (void*)svga->curr.rast);
    util_blitter_save_viewport(svga->blitter, &svga->curr.viewport[0]);
    util_blitter_save_scissor(svga->blitter, &svga->curr.scissor[0]);

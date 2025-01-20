@@ -490,7 +490,6 @@ VkResult validateAndApplyVirtualDescriptorSetAllocation(
             "IDs remaining. The count for maxSets was %u and used was %u\n",
             __func__, pAllocateInfo->descriptorSetCount, (uint32_t)allocInfo->freePoolIds.size(),
             allocInfo->maxSets, allocInfo->usedSets);
-        abort();
     }
 
     for (uint32_t i = 0; i < pAllocateInfo->descriptorSetCount; ++i) {

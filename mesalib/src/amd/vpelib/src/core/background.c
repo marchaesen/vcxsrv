@@ -25,7 +25,6 @@
 #include "background.h"
 #include "common.h"
 #include "vpe_priv.h"
-#include "color_bg.h"
 
 void vpe_create_bg_segments(
     struct vpe_priv *vpe_priv, struct vpe_rect *gaps, uint16_t gaps_cnt, enum vpe_cmd_ops ops)
@@ -128,6 +127,10 @@ void vpe_full_bg_gaps(struct vpe_rect *gaps, const struct vpe_rect *target_rect,
     int32_t  last_covered;
     uint32_t gap_width, gap_remainder;
 
+    if (max_gaps == 0) {
+        VPE_ASSERT(0);
+        return;
+    }
     last_covered  = target_rect->x;
     gap_width     = target_rect->width / max_gaps;
     gap_remainder = target_rect->width % max_gaps;
@@ -149,19 +152,20 @@ void vpe_full_bg_gaps(struct vpe_rect *gaps, const struct vpe_rect *target_rect,
 uint16_t vpe_find_bg_gaps(struct vpe_priv *vpe_priv, const struct vpe_rect *target_rect,
     struct vpe_rect *gaps, uint16_t max_gaps)
 {
-    uint16_t         num_gaps = 0;
-    uint16_t         num_segs;
-    struct vpe_rect *dst_viewport_rect;
-    bool             full_bg       = false;
-    const uint32_t   max_seg_width = vpe_priv->pub.caps->plane_caps.max_viewport_width;
-#ifdef VPE_BUILD_1_1
-    const uint16_t num_multiple = vpe_priv->vpe_num_instance ? vpe_priv->vpe_num_instance : 1;
-#else
-    const uint16_t num_multiple = 1;
-#endif
+    uint16_t            num_gaps = 0;
+    uint16_t            num_segs;
+    struct vpe_rect    *dst_viewport_rect;
+    bool                full_bg       = false;
+    const uint32_t      max_seg_width = vpe_priv->pub.caps->plane_caps.max_viewport_width;
+    const uint16_t      num_multiple  = vpe_priv->vpe_num_instance ? vpe_priv->vpe_num_instance : 1;
+    struct stream_ctx*  ctx           = &vpe_priv->stream_ctx[0];
 
-    num_segs          = vpe_priv->stream_ctx[0].num_segments;
-    dst_viewport_rect = &(vpe_priv->stream_ctx[0].segment_ctx[0].scaler_data.dst_viewport);
+    num_segs          = ctx->num_segments;
+    dst_viewport_rect = &(ctx->segment_ctx[0].scaler_data.dst_viewport);
+
+    if (ctx->stream_type == VPE_STREAM_TYPE_BG_GEN) {
+        goto full_bg;
+    }
 
     if (target_rect->x < dst_viewport_rect->x) {
 
@@ -173,7 +177,7 @@ uint16_t vpe_find_bg_gaps(struct vpe_priv *vpe_priv, const struct vpe_rect *targ
         gaps[0].width  = (uint32_t)(dst_viewport_rect->x - target_rect->x);
         gaps[0].height = target_rect->height;
         num_gaps++;
-        if (gaps[0].width > max_seg_width) {
+        if (gaps[0].width > max_seg_width || (num_gaps % num_multiple > 0)) {
             if (!vpe_priv->resource.split_bg_gap(
                     gaps, target_rect, max_seg_width, max_gaps, &num_gaps, num_multiple)) {
                 goto full_bg;
@@ -181,7 +185,7 @@ uint16_t vpe_find_bg_gaps(struct vpe_priv *vpe_priv, const struct vpe_rect *targ
         }
     }
     dst_viewport_rect =
-        &(vpe_priv->stream_ctx[0].segment_ctx[num_segs - 1].scaler_data.dst_viewport);
+        &(ctx->segment_ctx[num_segs - 1].scaler_data.dst_viewport);
 
     if (target_rect->x + (int32_t)target_rect->width >
         dst_viewport_rect->x + (int32_t)dst_viewport_rect->width) {
@@ -197,7 +201,7 @@ uint16_t vpe_find_bg_gaps(struct vpe_priv *vpe_priv, const struct vpe_rect *targ
                        (dst_viewport_rect->x + (int32_t)dst_viewport_rect->width));
         gaps[num_gaps].height = target_rect->height;
         num_gaps++;
-        if (gaps[num_gaps - 1].width > max_seg_width) {
+        if (gaps[num_gaps - 1].width > max_seg_width || (num_gaps % num_multiple > 0)) {
             if (!vpe_priv->resource.split_bg_gap(
                     gaps, target_rect, max_seg_width, max_gaps, &num_gaps, num_multiple)) {
                 goto full_bg;

@@ -141,7 +141,7 @@ d3d12_video_bitstream_builder_av1::write_temporal_delimiter_obu(std::vector<uint
       headerBitstream.resize(startByteOffset + c_DefaultBitstreamBufSize);
 
    d3d12_video_encoder_bitstream bitstream_full_obu;
-   bitstream_full_obu.setup_bitstream(headerBitstream.size(), headerBitstream.data(), startByteOffset);
+   bitstream_full_obu.setup_bitstream(static_cast<uint32_t>(headerBitstream.size()), headerBitstream.data(), startByteOffset);
 
    {
       // temporal_delimiter_obu() has empty payload as per AV1 codec spec
@@ -177,12 +177,12 @@ d3d12_video_bitstream_builder_av1::write_sequence_header(const av1_seq_header_t 
       headerBitstream.resize(startByteOffset + c_DefaultBitstreamBufSize);
 
    d3d12_video_encoder_bitstream bitstream_full_obu;
-   bitstream_full_obu.setup_bitstream(headerBitstream.size(), headerBitstream.data(), startByteOffset);
+   bitstream_full_obu.setup_bitstream(static_cast<uint32_t>(headerBitstream.size()), headerBitstream.data(), startByteOffset);
 
    // to handle variable length we first write the content
    // and later the obu header and concatenate both bitstreams
    d3d12_video_encoder_bitstream bitstream_seq;
-   bitstream_seq.create_bitstream(c_DefaultBitstreamBufSize);
+   bitstream_seq.create_bitstream(static_cast<uint32_t>(c_DefaultBitstreamBufSize));
 
    {
       // Write the data
@@ -448,11 +448,11 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
 
          unsigned minLog2TileCols = tile_log2(maxTileWidthSb, pPicHdr->tile_info.tile_support_caps.MinTileCols);
          unsigned maxLog2TileCols = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MaxTileCols);
-         unsigned log2TileCols = tile_log2(1, pPicHdr->tile_info.tile_partition.ColCount);
+         unsigned log2TileCols = tile_log2(1, static_cast<unsigned>(pPicHdr->tile_info.tile_partition.ColCount));
 
          unsigned minLog2TileRows = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MinTileRows);
          unsigned maxLog2TileRows = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MaxTileRows);
-         unsigned log2TileRows = tile_log2(1, pPicHdr->tile_info.tile_partition.RowCount);
+         unsigned log2TileRows = tile_log2(1, static_cast<unsigned>(pPicHdr->tile_info.tile_partition.RowCount));
 
          pBit->put_bits(1, pPicHdr->tile_info.uniform_tile_spacing_flag);   // uniform_tile_spacing_flag
 
@@ -470,9 +470,9 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
             unsigned widestTileSb = 0;
             unsigned widthSb = pPicHdr->frame_width_sb;
             for (unsigned i = 0; i < pPicHdr->tile_info.tile_partition.ColCount; i++) {
-               sizeSb = pPicHdr->tile_info.tile_partition.ColWidths[i];
+               sizeSb = static_cast<unsigned>(pPicHdr->tile_info.tile_partition.ColWidths[i]);
                unsigned maxWidth = std::min(widthSb, maxTileWidthSb);
-               pBit->put_ns_bits(maxWidth, sizeSb - 1);   // width_in_sbs_minus_1
+               pBit->put_ns_bits(static_cast<uint16_t>(maxWidth), sizeSb - 1);   // width_in_sbs_minus_1
                widestTileSb = std::max(sizeSb, widestTileSb);
                widthSb -= sizeSb;
             }
@@ -480,16 +480,16 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
             unsigned maxTileHeightSb = std::max(maxTileAreaSb / widestTileSb, 1u);
             unsigned heightSb = pPicHdr->frame_height_sb;
             for (unsigned i = 0; i < pPicHdr->tile_info.tile_partition.RowCount; i++) {
-               sizeSb = pPicHdr->tile_info.tile_partition.RowHeights[i];
+               sizeSb = static_cast<unsigned int>(pPicHdr->tile_info.tile_partition.RowHeights[i]);
                unsigned maxHeight = std::min(heightSb, maxTileHeightSb);
-               pBit->put_ns_bits(maxHeight, sizeSb - 1);   // height_in_sbs_minus_1
+               pBit->put_ns_bits(static_cast<uint16_t>(maxHeight), sizeSb - 1);   // height_in_sbs_minus_1
                heightSb -= sizeSb;
             }
          }
 
          if (log2TileCols > 0 || log2TileRows > 0) {
             pBit->put_bits(log2TileRows + log2TileCols,
-                           pPicHdr->tile_info.tile_partition.ContextUpdateTileId);   // f(TileRowsLog2 + TileColsLog2)
+                           static_cast<uint32_t>(pPicHdr->tile_info.tile_partition.ContextUpdateTileId));   // f(TileRowsLog2 + TileColsLog2)
             pBit->put_bits(2, pPicHdr->tile_info.tile_support_caps.TileSizeBytesMinus1);   // tile_size_bytes_minus_1
                                                                                            // f(2)
          }
@@ -497,8 +497,8 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
 
       // quantization_params()
       {
-         pBit->put_bits(8, pPicHdr->quantization_params.BaseQIndex);   // base_q_idx
-         write_delta_q_value(pBit, pPicHdr->quantization_params.YDCDeltaQ);
+         pBit->put_bits(8, static_cast<uint32_t>(pPicHdr->quantization_params.BaseQIndex));   // base_q_idx
+         write_delta_q_value(pBit, static_cast<int32_t>(pPicHdr->quantization_params.YDCDeltaQ));
 
          bool diff_uv_delta = false;
          if (pPicHdr->quantization_params.UDCDeltaQ != pPicHdr->quantization_params.VDCDeltaQ ||
@@ -511,20 +511,20 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
          if (pSeqHdr->color_config.separate_uv_delta_q)
             pBit->put_bits(1, diff_uv_delta);
 
-         write_delta_q_value(pBit, pPicHdr->quantization_params.UDCDeltaQ);
-         write_delta_q_value(pBit, pPicHdr->quantization_params.UACDeltaQ);
+         write_delta_q_value(pBit, static_cast<int32_t>(pPicHdr->quantization_params.UDCDeltaQ));
+         write_delta_q_value(pBit, static_cast<int32_t>(pPicHdr->quantization_params.UACDeltaQ));
 
          if (diff_uv_delta) {
-            write_delta_q_value(pBit, pPicHdr->quantization_params.VDCDeltaQ);
-            write_delta_q_value(pBit, pPicHdr->quantization_params.VACDeltaQ);
+            write_delta_q_value(pBit, static_cast<int32_t>(pPicHdr->quantization_params.VDCDeltaQ));
+            write_delta_q_value(pBit, static_cast<int32_t>(pPicHdr->quantization_params.VACDeltaQ));
          }
 
-         pBit->put_bits(1, pPicHdr->quantization_params.UsingQMatrix);   // using_qmatrix
+         pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->quantization_params.UsingQMatrix));   // using_qmatrix
          if (pPicHdr->quantization_params.UsingQMatrix) {
-            pBit->put_bits(4, pPicHdr->quantization_params.QMY);   // qm_y
-            pBit->put_bits(4, pPicHdr->quantization_params.QMU);   // qm_u
+            pBit->put_bits(4, static_cast<uint32_t>(pPicHdr->quantization_params.QMY));   // qm_y
+            pBit->put_bits(4, static_cast<uint32_t>(pPicHdr->quantization_params.QMU));   // qm_u
             if (pSeqHdr->color_config.separate_uv_delta_q)
-               pBit->put_bits(4, pPicHdr->quantization_params.QMV);   // qm_v
+               pBit->put_bits(4, static_cast<uint32_t>(pPicHdr->quantization_params.QMV));   // qm_v
          }
       }
 
@@ -533,10 +533,10 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
          pBit->put_bits(1, pPicHdr->segmentation_enabled);   // segmentation_enabled
          if (pPicHdr->segmentation_enabled) {
             if (pPicHdr->primary_ref_frame != 7 /*PRIMARY_REF_NONE*/) {
-               pBit->put_bits(1, pPicHdr->segmentation_config.UpdateMap);   // segmentation_update_map f(1)
+               pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->segmentation_config.UpdateMap));   // segmentation_update_map f(1)
                if (pPicHdr->segmentation_config.UpdateMap == 1)
-                  pBit->put_bits(1, pPicHdr->segmentation_config.TemporalUpdate);   // segmentation_temporal_update f(1)
-               pBit->put_bits(1, pPicHdr->segmentation_config.UpdateData);          // segmentation_update_data f(1)
+                  pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->segmentation_config.TemporalUpdate));   // segmentation_temporal_update f(1)
+               pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->segmentation_config.UpdateData));          // segmentation_update_data f(1)
             }
 
             if (pPicHdr->segmentation_config.UpdateData == 1) {
@@ -553,12 +553,12 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
                         int bitsToRead = av1_segmentation_feature_bits[j];
                         if (av1_segmentation_feature_signed[j] == 1) {
                            pBit->put_su_bits(
-                              1 + bitsToRead,
-                              pPicHdr->segmentation_config.SegmentsData[i].FeatureValue[j]);   // su(1+bitsToRead)
+                              static_cast<uint16_t>(1 + bitsToRead),
+                              static_cast<int32_t>(pPicHdr->segmentation_config.SegmentsData[i].FeatureValue[j]));   // su(1+bitsToRead)
                         } else {
                            pBit->put_bits(
                               bitsToRead,
-                              pPicHdr->segmentation_config.SegmentsData[i].FeatureValue[j]);   // f(bitsToRead)
+                              static_cast<int32_t>(pPicHdr->segmentation_config.SegmentsData[i].FeatureValue[j]));   // f(bitsToRead)
                         }
                      }
                   }
@@ -571,16 +571,16 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
       // combined with delta_lf_params()
       {
          if (pPicHdr->quantization_params.BaseQIndex)
-            pBit->put_bits(1, pPicHdr->delta_q_params.DeltaQPresent);   // delta_q_present
+            pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->delta_q_params.DeltaQPresent));   // delta_q_present
          if (pPicHdr->delta_q_params.DeltaQPresent) {
-            pBit->put_bits(2, pPicHdr->delta_q_params.DeltaQRes);   // delta_q_res
+            pBit->put_bits(2, static_cast<uint32_t>(pPicHdr->delta_q_params.DeltaQRes));   // delta_q_res
 
             // delta_lf_params()
             if (!pPicHdr->allow_intrabc) {
-               pBit->put_bits(1, pPicHdr->delta_lf_params.DeltaLFPresent);   // delta_lf_present
+               pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->delta_lf_params.DeltaLFPresent));   // delta_lf_present
                if (pPicHdr->delta_lf_params.DeltaLFPresent) {
-                  pBit->put_bits(2, pPicHdr->delta_lf_params.DeltaLFRes);     // delta_lf_res
-                  pBit->put_bits(1, pPicHdr->delta_lf_params.DeltaLFMulti);   // delta_lf_multi
+                  pBit->put_bits(2, static_cast<uint32_t>(pPicHdr->delta_lf_params.DeltaLFRes));     // delta_lf_res
+                  pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->delta_lf_params.DeltaLFMulti));   // delta_lf_multi
                }
             }
          }
@@ -591,36 +591,36 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
       // loop_filter_params()
       {
          if (!(CodedLossless || pPicHdr->allow_intrabc)) {
-            pBit->put_bits(6, pPicHdr->loop_filter_params.LoopFilterLevel[0]);   // loop_filter_level[0]
-            pBit->put_bits(6, pPicHdr->loop_filter_params.LoopFilterLevel[1]);   // loop_filter_level[1]
+            pBit->put_bits(6, static_cast<uint32_t>(pPicHdr->loop_filter_params.LoopFilterLevel[0]));   // loop_filter_level[0]
+            pBit->put_bits(6, static_cast<uint32_t>(pPicHdr->loop_filter_params.LoopFilterLevel[1]));   // loop_filter_level[1]
 
             if (pPicHdr->loop_filter_params.LoopFilterLevel[0] || pPicHdr->loop_filter_params.LoopFilterLevel[1]) {
-               pBit->put_bits(6, pPicHdr->loop_filter_params.LoopFilterLevelU);   // loop_filter_level[2]
-               pBit->put_bits(6, pPicHdr->loop_filter_params.LoopFilterLevelV);   // loop_filter_level[3]
+               pBit->put_bits(6, static_cast<uint32_t>(pPicHdr->loop_filter_params.LoopFilterLevelU));   // loop_filter_level[2]
+               pBit->put_bits(6, static_cast<uint32_t>(pPicHdr->loop_filter_params.LoopFilterLevelV));   // loop_filter_level[3]
             }
 
-            pBit->put_bits(3, pPicHdr->loop_filter_params.LoopFilterSharpnessLevel);   // loop_filter_sharpness
-            pBit->put_bits(1, pPicHdr->loop_filter_params.LoopFilterDeltaEnabled);     // loop_filter_delta_enabled
+            pBit->put_bits(3, static_cast<uint32_t>(pPicHdr->loop_filter_params.LoopFilterSharpnessLevel));   // loop_filter_sharpness
+            pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->loop_filter_params.LoopFilterDeltaEnabled));     // loop_filter_delta_enabled
 
             if (pPicHdr->loop_filter_params.LoopFilterDeltaEnabled) {
                bool loop_filter_delta_update =
                   (pPicHdr->loop_filter_params.UpdateRefDelta || pPicHdr->loop_filter_params.UpdateModeDelta);
-               pBit->put_bits(1, loop_filter_delta_update);   // loop_filter_delta_update
+               pBit->put_bits(1, static_cast<uint32_t>(loop_filter_delta_update));   // loop_filter_delta_update
                if (loop_filter_delta_update) {
                   constexpr uint8_t TOTAL_REFS_PER_FRAME = 8;   // From AV1 spec
                   static_assert(ARRAY_SIZE(pPicHdr->loop_filter_params.RefDeltas) == TOTAL_REFS_PER_FRAME);
                   for (uint8_t i = 0; i < TOTAL_REFS_PER_FRAME; i++) {
-                     pBit->put_bits(1, pPicHdr->loop_filter_params.UpdateRefDelta);   // loop_filter_delta_update
+                     pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->loop_filter_params.UpdateRefDelta));   // loop_filter_delta_update
                      if (pPicHdr->loop_filter_params.UpdateRefDelta) {
-                        pBit->put_su_bits(7, pPicHdr->loop_filter_params.RefDeltas[i]);   // loop_filter_ref_deltas[i]
+                        pBit->put_su_bits(7, static_cast<int32_t>(pPicHdr->loop_filter_params.RefDeltas[i]));   // loop_filter_ref_deltas[i]
                      }
                   }
 
                   static_assert(ARRAY_SIZE(pPicHdr->loop_filter_params.ModeDeltas) == 2);   // From AV1 spec
                   for (uint8_t i = 0; i < 2; i++) {
-                     pBit->put_bits(1, pPicHdr->loop_filter_params.UpdateModeDelta);   // update_mode_delta
+                     pBit->put_bits(1, static_cast<uint32_t>(pPicHdr->loop_filter_params.UpdateModeDelta));   // update_mode_delta
                      if (pPicHdr->loop_filter_params.UpdateModeDelta) {
-                        pBit->put_su_bits(7, pPicHdr->loop_filter_params.ModeDeltas[i]);   // loop_filter_mode_deltas[i]
+                        pBit->put_su_bits(7, static_cast<int32_t>(pPicHdr->loop_filter_params.ModeDeltas[i]));   // loop_filter_mode_deltas[i]
                      }
                   }
                }
@@ -632,14 +632,14 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
       {
          if (!(!pSeqHdr->enable_cdef || CodedLossless || pPicHdr->allow_intrabc)) {
             uint16_t num_planes = 3;                                     // mono_chrome not supported
-            pBit->put_bits(2, pPicHdr->cdef_params.CdefDampingMinus3);   // cdef_damping_minus_3
-            pBit->put_bits(2, pPicHdr->cdef_params.CdefBits);            // cdef_bits
+            pBit->put_bits(2, static_cast<uint32_t>(pPicHdr->cdef_params.CdefDampingMinus3));   // cdef_damping_minus_3
+            pBit->put_bits(2, static_cast<uint32_t>(pPicHdr->cdef_params.CdefBits));            // cdef_bits
             for (uint16_t i = 0; i < (1 << pPicHdr->cdef_params.CdefBits); ++i) {
-               pBit->put_bits(4, pPicHdr->cdef_params.CdefYPriStrength[i]);   // cdef_y_pri_strength[i]
-               pBit->put_bits(2, pPicHdr->cdef_params.CdefYSecStrength[i]);   // cdef_y_sec_strength[i]
+               pBit->put_bits(4, static_cast<uint32_t>(pPicHdr->cdef_params.CdefYPriStrength[i]));   // cdef_y_pri_strength[i]
+               pBit->put_bits(2, static_cast<uint32_t>(pPicHdr->cdef_params.CdefYSecStrength[i]));   // cdef_y_sec_strength[i]
                if (num_planes > 1) {
-                  pBit->put_bits(4, pPicHdr->cdef_params.CdefUVPriStrength[i]);   // cdef_uv_pri_strength[i]
-                  pBit->put_bits(2, pPicHdr->cdef_params.CdefUVSecStrength[i]);   // cdef_uv_sec_strength[i]
+                  pBit->put_bits(4, static_cast<uint32_t>(pPicHdr->cdef_params.CdefUVPriStrength[i]));   // cdef_uv_pri_strength[i]
+                  pBit->put_bits(2, static_cast<uint32_t>(pPicHdr->cdef_params.CdefUVSecStrength[i]));   // cdef_uv_sec_strength[i]
                }
             }
          }
@@ -699,22 +699,22 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
                if (get_relative_dist(refHint,
                                      pPicHdr->order_hint,
                                      pSeqHdr->order_hint_bits_minus1 + 1,
-                                     pSeqHdr->enable_order_hint) < 0) {
+                                     static_cast<uint8_t>(pSeqHdr->enable_order_hint) < 0)) {
                   if (forwardIdx < 0 || get_relative_dist(refHint,
                                                           forwardHint,
                                                           pSeqHdr->order_hint_bits_minus1 + 1,
-                                                          pSeqHdr->enable_order_hint) > 0) {
+                                                          static_cast<uint8_t>(pSeqHdr->enable_order_hint)) > 0) {
                      forwardIdx = i;
                      forwardHint = refHint;
                   }
                } else if (get_relative_dist(refHint,
                                             pPicHdr->order_hint,
                                             pSeqHdr->order_hint_bits_minus1 + 1,
-                                            pSeqHdr->enable_order_hint) > 0) {
+                                            static_cast<uint8_t>(pSeqHdr->enable_order_hint)) > 0) {
                   if (backwardIdx < 0 || get_relative_dist(refHint,
                                                            backwardHint,
                                                            pSeqHdr->order_hint_bits_minus1 + 1,
-                                                           pSeqHdr->enable_order_hint) < 0) {
+                                                           static_cast<uint8_t>(pSeqHdr->enable_order_hint) < 0)) {
                      backwardIdx = i;
                      backwardHint = refHint;
                   }
@@ -732,11 +732,11 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
                   if (get_relative_dist(refHint,
                                         forwardHint,
                                         pSeqHdr->order_hint_bits_minus1 + 1,
-                                        pSeqHdr->enable_order_hint) < 0) {
+                                        static_cast<uint8_t>(pSeqHdr->enable_order_hint)) < 0) {
                      if (secondForwardIdx < 0 || get_relative_dist(refHint,
                                                                    secondForwardHint,
                                                                    pSeqHdr->order_hint_bits_minus1 + 1,
-                                                                   pSeqHdr->enable_order_hint) > 0) {
+                                                                   static_cast<uint8_t>(pSeqHdr->enable_order_hint)) > 0) {
                         secondForwardIdx = i;
                         secondForwardHint = refHint;
                      }
@@ -796,12 +796,12 @@ d3d12_video_bitstream_builder_av1::write_frame_header(const av1_seq_header_t *pS
       headerBitstream.resize(startByteOffset + c_DefaultBitstreamBufSize);
 
    d3d12_video_encoder_bitstream bitstream_full_obu;
-   bitstream_full_obu.setup_bitstream(headerBitstream.size(), headerBitstream.data(), startByteOffset);
+   bitstream_full_obu.setup_bitstream(static_cast<uint32_t>(headerBitstream.size()), headerBitstream.data(), startByteOffset);
 
    // to handle variable length we first write the content
    // and later the obu header and concatenate both bitstreams
    d3d12_video_encoder_bitstream bitstream_pic;
-   bitstream_pic.create_bitstream(c_DefaultBitstreamBufSize);
+   bitstream_pic.create_bitstream(static_cast<uint32_t>(c_DefaultBitstreamBufSize));
 
    {
       // Write frame_header_obu()
@@ -864,13 +864,13 @@ d3d12_video_bitstream_builder_av1::calculate_tile_group_obu_size(
 {
    size_t tile_group_obu_size_bits = 0;
 
-   uint8_t NumTiles = TilesPartition.ColCount * TilesPartition.RowCount;
+   uint8_t NumTiles = static_cast<uint8_t>(TilesPartition.ColCount * TilesPartition.RowCount);
    if (NumTiles > 1)
       tile_group_obu_size_bits++;   // tile_start_and_end_present_flag	f(1)
 
    bool tile_start_and_end_present_flag = !(tileGroup.tg_start == 0 && (tileGroup.tg_end == (NumTiles - 1)));
    if (!(NumTiles == 1 || !tile_start_and_end_present_flag)) {
-      uint8_t tileBits = tile_log2(1, TilesPartition.ColCount) + tile_log2(1, TilesPartition.RowCount);
+      uint8_t tileBits = static_cast<uint8_t>(tile_log2(1, static_cast<uint32_t>(TilesPartition.ColCount)) + tile_log2(1, static_cast<uint32_t>(TilesPartition.RowCount)));
       tile_group_obu_size_bits += tileBits;   // tg_start	f(tileBits)
       tile_group_obu_size_bits += tileBits;   // tg_end	   f(tileBits)
    }
@@ -905,7 +905,7 @@ d3d12_video_bitstream_builder_av1::write_obu_tile_group_header(size_t tile_group
       headerBitstream.resize(startByteOffset + c_DefaultBitstreamBufSize);
 
    d3d12_video_encoder_bitstream bitstream_full_obu;
-   bitstream_full_obu.setup_bitstream(headerBitstream.size(), headerBitstream.data(), startByteOffset);
+   bitstream_full_obu.setup_bitstream(static_cast<uint32_t>(headerBitstream.size()), headerBitstream.data(), startByteOffset);
 
    // Write the obu_header
    constexpr uint32_t obu_extension_flag = 0;

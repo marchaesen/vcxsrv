@@ -1,4 +1,21 @@
 GTF-GL46.gtf40.GL3Tests.transform_feedback2.transform_feedback2_two_buffers,Fail
+KHR-GL46.texture_lod_basic.lod_selection,Fail
+KHR-GLES3.texture_lod_basic.lod_selection,Fail
+dEQP-GLES2.functional.texture.mipmap.cube.projected.nearest_linear,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_mag_reverse_src_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_dst_y,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_x,Fail
+dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_reverse_src_y,Fail
 dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 
 GTF-GL46.gtf30.GL3Tests.sgis_texture_lod.sgis_texture_lod_basic_lod_selection,Fail
@@ -21,7 +38,6 @@ glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-texture,Fail
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
-glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 spec@arb_texture_rectangle@fbo-blit rect,Fail
 spec@egl_chromium_sync_control@conformance,Fail
@@ -84,27 +100,6 @@ spec@arb_internalformat_query2@all internalformat_<x>_type pname checks@GL_INTER
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2' on GL_PROGRAM_INPUT,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
-spec@arb_query_buffer_object@coherency,Fail
-spec@arb_query_buffer_object@coherency@index-buffer-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@coherency@indirect-dispatch-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TESS_CONTROL_SHADER_PATCHES,Fail
-spec@arb_query_buffer_object@qbo,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC-GL_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC-GL_UNSIGNED_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC-GL_UNSIGNED_INT64_ARB,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_AFTER-GL_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_BEFORE-GL_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_BEFORE-GL_UNSIGNED_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_BEFORE-GL_UNSIGNED_INT64_ARB,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC-GL_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC-GL_UNSIGNED_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC-GL_UNSIGNED_INT64_ARB,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT,Fail
-spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT64_ARB,Fail
 spec@arb_sample_locations@test,Fail
 spec@arb_sample_locations@test@MSAA: 1- X: 0- Y: 0- Grid: false,Fail
 spec@arb_sample_locations@test@MSAA: 1- X: 0- Y: 0- Grid: true,Fail
@@ -435,7 +430,6 @@ spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 2,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 4,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 2,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 4,Fail
-spec@ext_framebuffer_multisample@blit-mismatched-formats,Fail
 spec@ext_framebuffer_multisample@draw-buffers-alpha-to-coverage 2,Fail
 spec@ext_framebuffer_multisample@draw-buffers-alpha-to-coverage 4,Fail
 spec@ext_framebuffer_multisample@enable-flag,Fail
@@ -476,8 +470,6 @@ spec@glsl-1.50@built-in constants@gl_MaxFragmentInputComponents,Fail
 spec@glsl-1.50@execution@geometry@point-size-out,Fail
 spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_strip_adjacency other,Crash
 spec@glsl-1.50@execution@interface-blocks-complex-vs-fs,Fail
-spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
-spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@redeclare-pervertex-out-subset-gs,Fail
 spec@glsl-1.50@execution@variable-indexing@gs-output-array-vec4-index-wr,Fail
 spec@glsl-3.30@built-in constants,Fail

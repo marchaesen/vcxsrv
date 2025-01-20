@@ -350,6 +350,20 @@ init_shmem(struct virtgpu_device *vgdev)
    return 0;
 }
 
+static uint64_t
+get_param(int fd, uint64_t param)
+{
+   /* val must be zeroed because kernel only writes the lower 32 bits */
+   uint64_t val = 0;
+   struct drm_virtgpu_getparam args = {
+      .param = param,
+      .value = (uintptr_t)&val,
+   };
+
+   const int ret = virtgpu_ioctl(fd, VIRTGPU_GETPARAM, &args);
+   return ret ? 0 : val;
+}
+
 struct vdrm_device * vdrm_virtgpu_connect(int fd, uint32_t context_type);
 
 struct vdrm_device *
@@ -394,6 +408,13 @@ vdrm_virtgpu_connect(int fd, uint32_t context_type)
    vdev = &vgdev->base;
    vdev->caps = caps;
    vdev->funcs = &funcs;
+
+   /* Cross-device feature is optional.  It enables sharing dma-bufs
+    * with other virtio devices, like virtio-wl or virtio-video used
+    * by ChromeOS VMs.  Qemu doesn't support cross-device sharing.
+    */
+   if (get_param(fd, VIRTGPU_PARAM_CROSS_DEVICE))
+      vdev->supports_cross_device = true;
 
    return vdev;
 }

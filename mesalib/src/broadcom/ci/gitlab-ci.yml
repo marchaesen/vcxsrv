@@ -43,6 +43,18 @@ vc4-rpi3-gl-asan:arm64:
     DEQP_SUITE: broadcom-rpi3-asan
     DEQP_FRACTION: 10
 
+vc4-rpi3-gl-ubsan:arm64:
+  extends:
+    - .igalia-bcm2837-rpi-3-b
+    - .broadcom-ubsan-test:arm64
+    - .vc4-manual-rules
+  variables:
+    # UBSan is quite slow, so restrict to 1 job
+    FDO_CI_CONCURRENT: 1
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SUITE: broadcom-rpi3-ubsan
+    DEQP_FRACTION: 10
+
 v3d-rpi4-gl:arm64:
   extends:
     - .igalia-bcm2711-rpi-4
@@ -72,7 +84,7 @@ v3d-rpi4-rusticl:arm64:
     - .igalia-bcm2711-rpi-4
     - .broadcom-test:arm64
     - .v3d-rusticl-manual-rules
-  timeout: 30m  # base run time = 17min test, 19min total
+  timeout: 40m  # base run time = 25min test, 32min total
   variables:
     DEQP_SUITE: v3d-rusticl
 
@@ -109,6 +121,18 @@ v3d-rpi4-gl-asan:arm64:
     FDO_CI_CONCURRENT: 1
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     DEQP_SUITE: broadcom-rpi4-asan
+    DEQP_FRACTION: 30
+
+v3d-rpi4-gl-ubsan:arm64:
+  extends:
+    - .igalia-bcm2711-rpi-4
+    - .broadcom-ubsan-test:arm64
+    - .v3d-manual-rules
+  variables:
+    # UBSan is quite slow, so restrict to 1 job
+    FDO_CI_CONCURRENT: 1
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SUITE: broadcom-rpi4-ubsan
     DEQP_FRACTION: 30
 
 v3dv-rpi4-vk:arm64:
@@ -148,6 +172,18 @@ v3dv-rpi4-vk-asan:arm64:
     FDO_CI_CONCURRENT: 1
     HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
     DEQP_SUITE: broadcom-rpi4-vk-asan
+    DEQP_FRACTION: 200
+
+v3dv-rpi4-vk-ubsan:arm64:
+  extends:
+    - .igalia-bcm2711-rpi-4
+    - .broadcom-ubsan-test:arm64
+    - .v3dv-manual-rules
+  variables:
+    # UBSan is quite slow, so restrict to 1 job
+    FDO_CI_CONCURRENT: 1
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_SUITE: broadcom-rpi4-vk-ubsan
     DEQP_FRACTION: 200
 
 v3d-rpi5-gl:arm64:

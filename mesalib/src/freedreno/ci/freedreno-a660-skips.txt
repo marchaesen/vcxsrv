@@ -7,4 +7,9 @@ KHR-GL46.texture_swizzle.smoke
 KHR-GL46.gpu_shader_fp64.builtin.inverse_dmat4
 
 # 300s timeout
+dEQP-VK.spirv_assembly.instruction.compute.spirv_ids_abuse.lots_ids
 dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_frag
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_geom
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tessc
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tesse
+dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_vert

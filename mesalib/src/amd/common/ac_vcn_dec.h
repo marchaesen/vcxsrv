@@ -73,6 +73,7 @@
 #define RDECODE_CMD_BITSTREAM_BUFFER                        0x00000100
 #define RDECODE_CMD_IT_SCALING_TABLE_BUFFER                 0x00000204
 #define RDECODE_CMD_CONTEXT_BUFFER                          0x00000206
+#define RDECODE_CMD_WRITE_MEMORY                            0x00000800
 
 #define RDECODE_MSG_CREATE                                  0x00000000
 #define RDECODE_MSG_DECODE                                  0x00000001
@@ -125,6 +126,11 @@
 #define RDECODE_64KB_D_X                                    0x0000001A
 /* for VCN5 */
 #define RDECODE_VCN5_256B_D                                 0x00000001
+
+#define RDECODE_TILE_LINEAR                                 0x00000000
+#define RDECODE_TILE_8X4                                    0x00000001
+#define RDECODE_TILE_8X8                                    0x00000002
+#define RDECODE_TILE_32AS8                                  0x00000003
 
 #define RDECODE_MESSAGE_NOT_SUPPORTED                       0x00000000
 #define RDECODE_MESSAGE_CREATE                              0x00000001
@@ -1181,6 +1187,8 @@ struct jpeg_params {
    unsigned dt_luma_top_offset;
    unsigned dt_chroma_top_offset;
    unsigned dt_chromav_top_offset;
+   unsigned dt_addr_mode;
+   unsigned dt_swizzle_mode;
    uint16_t crop_x;
    uint16_t crop_y;
    uint16_t crop_width;
@@ -1192,15 +1200,17 @@ struct jpeg_params {
 #define RDECODE_VCN1_GPCOM_VCPU_DATA1 0x20714
 #define RDECODE_VCN1_ENGINE_CNTL      0x20718
 
-#define RDECODE_VCN2_GPCOM_VCPU_CMD   (0x503 << 2)
-#define RDECODE_VCN2_GPCOM_VCPU_DATA0 (0x504 << 2)
-#define RDECODE_VCN2_GPCOM_VCPU_DATA1 (0x505 << 2)
-#define RDECODE_VCN2_ENGINE_CNTL      (0x506 << 2)
+#define RDECODE_VCN2_GPCOM_VCPU_CMD       (0x503 << 2)
+#define RDECODE_VCN2_GPCOM_VCPU_DATA0     (0x504 << 2)
+#define RDECODE_VCN2_GPCOM_VCPU_DATA1     (0x505 << 2)
+#define RDECODE_VCN2_GPCOM_VCPU_DATA2     (0x54C << 2)
+#define RDECODE_VCN2_ENGINE_CNTL          (0x506 << 2)
 
-#define RDECODE_VCN2_5_GPCOM_VCPU_CMD   0x3c
-#define RDECODE_VCN2_5_GPCOM_VCPU_DATA0 0x40
-#define RDECODE_VCN2_5_GPCOM_VCPU_DATA1 0x44
-#define RDECODE_VCN2_5_ENGINE_CNTL      0x9b4
+#define RDECODE_VCN2_5_GPCOM_VCPU_CMD       0x3c
+#define RDECODE_VCN2_5_GPCOM_VCPU_DATA0     0x40
+#define RDECODE_VCN2_5_GPCOM_VCPU_DATA1     0x44
+#define RDECODE_VCN2_5_GPCOM_VCPU_DATA2     0x1A0
+#define RDECODE_VCN2_5_ENGINE_CNTL          0x9b4
 
 #define RDECODE_SESSION_CONTEXT_SIZE (128 * 1024)
 

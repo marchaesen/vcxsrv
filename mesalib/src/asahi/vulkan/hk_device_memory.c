@@ -49,6 +49,79 @@ hk_memory_type_flags(const VkMemoryType *type,
    return flags;
 }
 
+static void
+hk_add_ext_bo_locked(struct hk_device *dev, struct agx_bo *bo)
+{
+   uint32_t id = bo->vbo_res_id;
+
+   unsigned count = util_dynarray_num_elements(&dev->external_bos.list,
+                                               struct asahi_ccmd_submit_res);
+
+   for (unsigned i = 0; i < count; i++) {
+      struct asahi_ccmd_submit_res *p = util_dynarray_element(
+         &dev->external_bos.list, struct asahi_ccmd_submit_res, i);
+
+      if (p->res_id == id) {
+         ++*util_dynarray_element(&dev->external_bos.counts, unsigned, i);
+         return;
+      }
+   }
+
+   struct asahi_ccmd_submit_res res = {
+      .res_id = id,
+      .flags = ASAHI_EXTRES_READ | ASAHI_EXTRES_WRITE,
+   };
+   util_dynarray_append(&dev->external_bos.list, struct asahi_ccmd_submit_res,
+                        res);
+   util_dynarray_append(&dev->external_bos.counts, unsigned, 1);
+}
+
+static void
+hk_add_ext_bo(struct hk_device *dev, struct agx_bo *bo)
+{
+   if (dev->dev.is_virtio) {
+      u_rwlock_wrlock(&dev->external_bos.lock);
+      hk_add_ext_bo_locked(dev, bo);
+      u_rwlock_wrunlock(&dev->external_bos.lock);
+   }
+}
+
+static void
+hk_remove_ext_bo_locked(struct hk_device *dev, struct agx_bo *bo)
+{
+   uint32_t id = bo->vbo_res_id;
+   unsigned count = util_dynarray_num_elements(&dev->external_bos.list,
+                                               struct asahi_ccmd_submit_res);
+
+   for (unsigned i = 0; i < count; i++) {
+      struct asahi_ccmd_submit_res *p = util_dynarray_element(
+         &dev->external_bos.list, struct asahi_ccmd_submit_res, i);
+
+      if (p->res_id == id) {
+         unsigned *ctr =
+            util_dynarray_element(&dev->external_bos.counts, unsigned, i);
+         if (!--*ctr) {
+            *ctr = util_dynarray_pop(&dev->external_bos.counts, unsigned);
+            *p = util_dynarray_pop(&dev->external_bos.list,
+                                   struct asahi_ccmd_submit_res);
+         }
+         return;
+      }
+   }
+
+   unreachable("BO not found");
+}
+
+static void
+hk_remove_ext_bo(struct hk_device *dev, struct agx_bo *bo)
+{
+   if (dev->dev.is_virtio) {
+      u_rwlock_wrlock(&dev->external_bos.lock);
+      hk_remove_ext_bo_locked(dev, bo);
+      u_rwlock_wrunlock(&dev->external_bos.lock);
+   }
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 hk_GetMemoryFdPropertiesKHR(VkDevice device,
                             VkExternalMemoryHandleTypeFlagBits handleType,
@@ -146,6 +219,9 @@ hk_AllocateMemory(VkDevice device, const VkMemoryAllocateInfo *pAllocateInfo,
       }
    }
 
+   if (mem->bo->flags & (AGX_BO_SHAREABLE | AGX_BO_SHARED))
+      hk_add_ext_bo(dev, mem->bo);
+
    if (fd_info && fd_info->handleType) {
       /* From the Vulkan spec:
        *
@@ -189,6 +265,9 @@ hk_FreeMemory(VkDevice device, VkDeviceMemory _mem,
    const VkMemoryType *type = &pdev->mem_types[mem->vk.memory_type_index];
    struct hk_memory_heap *heap = &pdev->mem_heaps[type->heapIndex];
    p_atomic_add(&heap->used, -((int64_t)mem->bo->size));
+
+   if (mem->bo->flags & (AGX_BO_SHAREABLE | AGX_BO_SHARED))
+      hk_remove_ext_bo(dev, mem->bo);
 
    agx_bo_unreference(&dev->dev, mem->bo);
 
@@ -243,7 +322,7 @@ hk_MapMemory2KHR(VkDevice device, const VkMemoryMapInfoKHR *pMemoryMapInfo,
                        "Memory object already mapped.");
    }
 
-   mem->map = mem->bo->map;
+   mem->map = agx_bo_map(mem->bo);
    *ppData = mem->map + offset;
 
    return VK_SUCCESS;

@@ -12,6 +12,7 @@
 #include "util/set.h"
 #include "util/u_drm.h"
 #include "util/u_inlines.h"
+#include "util/u_resource.h"
 #include "util/u_sample_positions.h"
 #include "util/u_string.h"
 #include "util/u_surface.h"
@@ -417,7 +418,6 @@ fd_try_shadow_resource(struct fd_context *ctx, struct fd_resource *rsc,
     * should empty/destroy rsc->batches hashset)
     */
    fd_bc_invalidate_resource(rsc, false);
-   rebind_resource(rsc);
 
    fd_screen_lock(ctx->screen);
 
@@ -458,6 +458,8 @@ fd_try_shadow_resource(struct fd_context *ctx, struct fd_resource *rsc,
    SWAP(rsc->track, shadow->track);
 
    fd_screen_unlock(ctx->screen);
+
+   rebind_resource(rsc);
 
    struct pipe_blit_info blit = {};
    blit.dst.resource = prsc;
@@ -740,8 +742,8 @@ invalidate_resource(struct fd_resource *rsc, unsigned usage) assert_dt
    unsigned op = translate_usage(usage);
 
    if (needs_flush || resource_busy(rsc, op)) {
-      rebind_resource(rsc);
       realloc_bo(rsc, fd_bo_size(rsc->bo));
+      rebind_resource(rsc);
    } else {
       util_range_set_empty(&rsc->valid_buffer_range);
    }
@@ -1132,6 +1134,39 @@ fd_resource_get_handle(struct pipe_screen *pscreen, struct pipe_context *pctx,
    }
 
    return ret;
+}
+
+static bool
+fd_resource_get_param(struct pipe_screen *pscreen,
+                       struct pipe_context *pctx, struct pipe_resource *prsc,
+                       unsigned plane, unsigned layer, unsigned level,
+                       enum pipe_resource_param param,
+                       unsigned usage, uint64_t *value)
+{
+   struct fd_resource *rsc = fd_resource(util_resource_at_index(prsc, plane));
+
+   switch (param) {
+   case PIPE_RESOURCE_PARAM_STRIDE:
+      *value = fd_resource_pitch(rsc, 0);
+      return true;
+   case PIPE_RESOURCE_PARAM_OFFSET:
+      if (fd_resource_ubwc_enabled(rsc, level)) {
+         if (plane > 0)
+            debug_warning("Unsupported offset query!\n");
+         *value = fd_resource_ubwc_offset(rsc, level, layer);
+      } else {
+         *value = fd_resource_offset(rsc, level, layer);
+      }
+      return true;
+   case PIPE_RESOURCE_PARAM_MODIFIER:
+      *value = fd_resource_modifier(rsc);
+      return true;
+   case PIPE_RESOURCE_PARAM_NPLANES:
+      *value = util_resource_num(prsc);
+      return true;
+   default:
+      return false;
+   }
 }
 
 /* special case to resize query buf after allocated.. */
@@ -1739,6 +1774,7 @@ fd_resource_screen_init(struct pipe_screen *pscreen)
    pscreen->resource_create_with_modifiers = fd_resource_create_with_modifiers;
    pscreen->resource_from_handle = fd_resource_from_handle;
    pscreen->resource_get_handle = fd_resource_get_handle;
+   pscreen->resource_get_param = fd_resource_get_param;
    pscreen->resource_destroy = u_transfer_helper_resource_destroy;
 
    pscreen->transfer_helper =

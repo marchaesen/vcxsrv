@@ -20,7 +20,7 @@ if (!$?) {
 Write-Host "Building DirectX-Headers"
 $dxheaders_build = New-Item -ItemType Directory -Path ".\deps\DirectX-Headers" -Name "build"
 Push-Location -Path $dxheaders_build.FullName
-meson .. --backend=ninja -Dprefix="$depsInstallPath" --buildtype=release -Db_vscrt=mt && `
+meson setup .. --backend=ninja -Dprefix="$depsInstallPath" --buildtype=release -Db_vscrt=mt && `
 ninja -j32 install
 $buildstatus = $?
 Pop-Location
@@ -45,7 +45,7 @@ robocopy deps/zlib/zlib-1.3.1 deps/zlib /E
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Path deps/zlib/zlib-1.3.1
 $zlib_build = New-Item -ItemType Directory -Path ".\deps\zlib" -Name "build"
 Push-Location -Path $zlib_build.FullName
-meson .. --backend=ninja -Dprefix="$depsInstallPath" --default-library=static --buildtype=release -Db_vscrt=mt && `
+meson setup .. --backend=ninja -Dprefix="$depsInstallPath" --default-library=static --buildtype=release -Db_vscrt=mt && `
 ninja -j32 install
 $buildstatus = $?
 Pop-Location

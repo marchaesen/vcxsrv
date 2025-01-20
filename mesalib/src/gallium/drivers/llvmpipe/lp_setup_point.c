@@ -115,11 +115,12 @@ texcoord_coef(struct lp_setup_context *setup,
 
    assert(i < 4);
 
+   const float pixel_offset = setup->multisample ? 0.0 : setup->pixel_offset;
    if (i == 0) {
       float dadx = FIXED_ONE / (float)info->dx12;
       float dady =  0.0f;
-      float x0 = info->v0[0][0] - setup->pixel_offset;
-      float y0 = info->v0[0][1] - setup->pixel_offset;
+      float x0 = info->v0[0][0] - pixel_offset;
+      float y0 = info->v0[0][1] - pixel_offset;
 
       info->dadx[slot][0] = dadx;
       info->dady[slot][0] = dady;
@@ -133,8 +134,8 @@ texcoord_coef(struct lp_setup_context *setup,
    } else if (i == 1) {
       float dadx = 0.0f;
       float dady = FIXED_ONE / (float)info->dx12;
-      float x0 = info->v0[0][0] - setup->pixel_offset;
-      float y0 = info->v0[0][1] - setup->pixel_offset;
+      float x0 = info->v0[0][0] - pixel_offset;
+      float y0 = info->v0[0][1] - pixel_offset;
 
       if (sprite_coord_origin == PIPE_SPRITE_COORD_LOWER_LEFT) {
          dady = -dady;
@@ -630,5 +631,3 @@ lp_setup_choose_point(struct lp_setup_context *setup)
       setup->point = lp_setup_point;
    }
 }
-
-

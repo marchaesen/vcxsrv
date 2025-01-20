@@ -268,7 +268,7 @@ def emit_dispatch_call(api, cgen):
 
 
 def emit_global_state_wrapped_call(api, cgen, context=False):
-    customParams = ["pool", "(VkCommandBuffer)(boxed_dispatchHandle)"] + \
+    customParams = ["pool", "nullptr", "(VkCommandBuffer)(boxed_dispatchHandle)"] + \
         list(map(lambda p: p.paramName, api.parameters[1:]))
     if context:
         customParams += ["context"];

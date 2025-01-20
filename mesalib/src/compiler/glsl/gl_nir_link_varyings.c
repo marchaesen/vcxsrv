@@ -77,7 +77,7 @@ static const struct glsl_type *
 get_varying_type(const nir_variable *var, gl_shader_stage stage)
 {
    const struct glsl_type *type = var->type;
-   if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
+   if (nir_is_arrayed_io(var, stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -3387,7 +3387,7 @@ set_variable_io_mask(BITSET_WORD *bits, nir_variable *var, gl_shader_stage stage
    assert(var->data.location >= VARYING_SLOT_VAR0);
 
    const struct glsl_type *type = var->type;
-   if (nir_is_arrayed_io(var, stage) || var->data.per_view) {
+   if (nir_is_arrayed_io(var, stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -3536,7 +3536,7 @@ remove_unused_io_vars(nir_shader *producer, nir_shader *consumer,
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
 
          const struct glsl_type *type = var->type;
-         if (nir_is_arrayed_io(var, shader->info.stage) || var->data.per_view) {
+         if (nir_is_arrayed_io(var, shader->info.stage)) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -3606,7 +3606,7 @@ remove_unused_varyings(nir_shader *producer, nir_shader *consumer,
          continue;
 
       const struct glsl_type *type = var->type;
-      if (nir_is_arrayed_io(var, producer->info.stage) || var->data.per_view) {
+      if (nir_is_arrayed_io(var, producer->info.stage)) {
          assert(glsl_type_is_array(type));
          type = glsl_get_array_element(type);
       }
@@ -3622,7 +3622,7 @@ remove_unused_varyings(nir_shader *producer, nir_shader *consumer,
          continue;
 
       const struct glsl_type *type = var->type;
-      if (nir_is_arrayed_io(var, consumer->info.stage) || var->data.per_view) {
+      if (nir_is_arrayed_io(var, consumer->info.stage)) {
          assert(glsl_type_is_array(type));
          type = glsl_get_array_element(type);
       }

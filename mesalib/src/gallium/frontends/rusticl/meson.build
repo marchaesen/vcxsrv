@@ -25,6 +25,8 @@ libmesa_rust_files = files(
   'mesa/pipe/fence.rs',
   'mesa/pipe/screen.rs',
   'mesa/pipe/transfer.rs',
+  'mesa/util.rs',
+  'mesa/util/disk_cache.rs',
 )
 
 rusticl_proc_macros_files = files(
@@ -101,7 +103,6 @@ rusticl_gen_args = [
 
 rusticl_bindgen_args = [
   '--no-convert-floats',
-  '--use-array-pointers-in-arguments',
   '--default-enum-style', 'rust',
   '--with-derive-partialeq',
   '--with-derive-eq',
@@ -260,6 +261,10 @@ rusticl_mesa_bindings = rust.bindgen(
   ],
   args : [
     rusticl_bindgen_args,
+
+    # we want that for mesa
+    '--use-array-pointers-in-arguments',
+
     # mesa utils
     '--allowlist-function',     'blob_.*',
     '--allowlist-function',     'disk_cache_.*',

@@ -92,6 +92,21 @@ bool platform_sha512_neon_available(void)
 #endif
 }
 
+bool platform_dit_available(void)
+{
+#if defined HWCAP_DIT
+    return getauxval(AT_HWCAP) & HWCAP_DIT;
+#elif defined HWCAP2_DIT
+    return getauxval(AT_HWCAP2) & HWCAP2_DIT;
+#elif defined __APPLE__
+    SysctlResult res = test_sysctl_flag("hw.optional.arm.FEAT_DIT");
+    /* As above, treat 'missing' as enabled */
+    return res != SYSCTL_OFF;
+#else
+    return false;
+#endif
+}
+
 #else /* defined __arm__ || defined __aarch64__ */
 
 /*

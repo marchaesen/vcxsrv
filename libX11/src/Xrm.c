@@ -1183,12 +1183,12 @@ static void GetDatabase(
 	if (c == '#') { /* Directive */
 	    /* remove extra whitespace */
 	    only_pcs = True;
-	    while (is_space(bits = next_char(c, str))) {};
+	    while (is_space(bits = next_char(c, str))) {}
 	    /* only "include" directive is currently defined */
 	    if (!strncmp(str, "include", 7)) {
 		str += (7-1);
 		/* remove extra whitespace */
-		while (is_space(bits = next_char(c, str))) {};
+		while (is_space(bits = next_char(c, str))) {}
 		/* must have a starting " */
 		if (c == '"') {
 		    _Xconst char *fname = str+1;

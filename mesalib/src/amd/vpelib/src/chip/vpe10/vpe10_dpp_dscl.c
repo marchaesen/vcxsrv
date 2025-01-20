@@ -49,7 +49,6 @@ static bool dpp1_dscl_is_video_subsampled(const enum vpe_surface_pixel_format fo
 enum vpe10_dscl_mode_sel vpe10_dpp_dscl_get_dscl_mode(const struct scaler_data *data)
 {
 
-    // TODO Check if bypass bit enabled
     const long long one = vpe_fixpt_one.value;
 
     if (data->ratios.horz.value == one && data->ratios.vert.value == one &&

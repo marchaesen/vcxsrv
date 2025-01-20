@@ -1714,6 +1714,11 @@ struct _glapi_table
    void (GLAPIENTRYP InternalInvalidateFramebufferAncillaryMESA)(void); /* 1670 */
    void (GLAPIENTRYP DrawElementsPacked)(GLenum mode, GLenum type, GLushort count, GLushort indices); /* 1671 */
    void (GLAPIENTRYP DrawElementsUserBufPacked)(const GLvoid *cmd); /* 1672 */
+   void (GLAPIENTRYP TexStorageAttribs2DEXT)(GLenum target, GLsizei levels, GLenum internalFormat, GLsizei width, GLsizei height, const GLint *attrib_list); /* 1673 */
+   void (GLAPIENTRYP TexStorageAttribs3DEXT)(GLenum target, GLsizei levels, GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth, const GLint *attrib_list); /* 1674 */
+   void (GLAPIENTRYP FramebufferTextureMultiviewOVR)(GLenum target, GLenum attachment, GLuint texture, GLint level, GLint baseviewindex, GLsizei numviews); /* 1675 */
+   void (GLAPIENTRYP NamedFramebufferTextureMultiviewOVR)(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint baseviewindex, GLsizei numviews); /* 1676 */
+   void (GLAPIENTRYP FramebufferTextureMultisampleMultiviewOVR)(GLenum target, GLenum attachment, GLuint texture, GLint level, GLsizei samples, GLint baseviewindex, GLsizei numviews); /* 1677 */
 };
 
 #ifdef __cplusplus

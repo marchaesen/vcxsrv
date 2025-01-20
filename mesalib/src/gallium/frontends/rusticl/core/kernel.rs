@@ -22,23 +22,35 @@ use spirv::SpirvKernelInfo;
 use std::cmp;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::ffi::CStr;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::ops::Index;
+use std::ops::Not;
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
+use std::sync::Weak;
 
-// ugh, we are not allowed to take refs, so...
+// According to the CL spec we are not allowed to let any cl_kernel object hold any references on
+// its arguments as this might make it unfeasible for applications to free the backing memory of
+// memory objects allocated with `CL_USE_HOST_PTR`.
+//
+// However those arguments might temporarily get referenced by event objects, so we'll use Weak in
+// order to upgrade the reference when needed. It's also safer to use Weak over raw pointers,
+// because it makes it impossible to run into use-after-free issues.
+//
+// Technically we also need to do it for samplers, but there it's kinda pointless to take a weak
+// reference as samplers don't have the same host_ptr or any similar problems as cl_mem objects.
 #[derive(Clone)]
 pub enum KernelArgValue {
     None,
-    Buffer(Arc<Buffer>),
+    Buffer(Weak<Buffer>),
     Constant(Vec<u8>),
-    Image(Arc<Image>),
+    Image(Weak<Image>),
     LocalMem(usize),
     Sampler(Arc<Sampler>),
 }
@@ -58,8 +70,10 @@ pub enum KernelArgType {
 
 impl KernelArgType {
     fn deserialize(blob: &mut blob_reader) -> Option<Self> {
-        Some(match unsafe { blob_read_uint8(blob) } {
+        // SAFETY: we get 0 on an overrun, but we verify that later and act accordingly.
+        let res = match unsafe { blob_read_uint8(blob) } {
             0 => {
+                // SAFETY: same here
                 let size = unsafe { blob_read_uint16(blob) };
                 KernelArgType::Constant(size)
             }
@@ -71,7 +85,9 @@ impl KernelArgType {
             6 => KernelArgType::MemConstant,
             7 => KernelArgType::MemLocal,
             _ => return None,
-        })
+        };
+
+        blob.overrun.not().then_some(res)
     }
 
     fn serialize(&self, blob: &mut blob) {
@@ -192,24 +208,24 @@ impl KernelArg {
     }
 
     fn deserialize(blob: &mut blob_reader) -> Option<Vec<Self>> {
-        unsafe {
-            let len = blob_read_uint16(blob) as usize;
-            let mut res = Vec::with_capacity(len);
+        // SAFETY: we check the overrun status, blob_read returns 0 in such a case.
+        let len = unsafe { blob_read_uint16(blob) } as usize;
+        let mut res = Vec::with_capacity(len);
 
-            for _ in 0..len {
-                let spirv = spirv::SPIRVKernelArg::deserialize(blob)?;
-                let dead = blob_read_uint8(blob) != 0;
-                let kind = KernelArgType::deserialize(blob)?;
+        for _ in 0..len {
+            let spirv = spirv::SPIRVKernelArg::deserialize(blob)?;
+            // SAFETY: we check the overrun status
+            let dead = unsafe { blob_read_uint8(blob) } != 0;
+            let kind = KernelArgType::deserialize(blob)?;
 
-                res.push(Self {
-                    spirv: spirv,
-                    kind: kind,
-                    dead: dead,
-                });
-            }
-
-            Some(res)
+            res.push(Self {
+                spirv: spirv,
+                kind: kind,
+                dead: dead,
+            });
         }
+
+        blob.overrun.not().then_some(res)
     }
 }
 
@@ -424,7 +440,7 @@ struct NirKernelBuild {
     compiled_args: Vec<CompiledKernelArg>,
 }
 
-// SAFETY: `CSOWrapper` is only safe to use if the device supports `PIPE_CAP_SHAREABLE_SHADERS` and
+// SAFETY: `CSOWrapper` is only safe to use if the device supports `pipe_caps.shareable_shaders` and
 //         we make sure to set `nir_or_cso` to `KernelDevStateVariant::Cso` only if that's the case.
 unsafe impl Send for NirKernelBuild {}
 unsafe impl Sync for NirKernelBuild {}
@@ -648,6 +664,7 @@ fn compile_nir_to_args(
     let printf_opts = nir_lower_printf_options {
         ptr_bit_size: 0,
         use_printf_base_identifier: false,
+        hash_format_strings: false,
         max_buffer_size: dev.printf_buffer_size() as u32,
     };
     nir_pass!(nir, nir_lower_printf, &printf_opts);
@@ -781,7 +798,7 @@ fn compile_nir_variant(
                        var_loc: &mut usize,
                        kind: CompiledKernelArgType,
                        glsl_type: *const glsl_type,
-                       name: &str| {
+                       name| {
         *var_loc = compiled_args.len();
         compiled_args.push(CompiledKernelArg {
             kind: kind,
@@ -803,7 +820,7 @@ fn compile_nir_variant(
             &mut lower_state.base_global_invoc_id_loc,
             CompiledKernelArgType::GlobalWorkOffsets,
             unsafe { glsl_vector_type(address_bits_base_type, 3) },
-            "base_global_invocation_id",
+            c"base_global_invocation_id",
         )
     }
 
@@ -813,7 +830,7 @@ fn compile_nir_variant(
             &mut lower_state.global_size_loc,
             CompiledKernelArgType::GlobalWorkSize,
             unsafe { glsl_vector_type(address_bits_base_type, 3) },
-            "global_size",
+            c"global_size",
         )
     }
 
@@ -824,7 +841,7 @@ fn compile_nir_variant(
             &mut lower_state.base_workgroup_id_loc,
             CompiledKernelArgType::WorkGroupOffsets,
             unsafe { glsl_vector_type(address_bits_base_type, 3) },
-            "base_workgroup_id",
+            c"base_workgroup_id",
         );
     }
 
@@ -834,7 +851,7 @@ fn compile_nir_variant(
             &mut lower_state.num_workgroups_loc,
             CompiledKernelArgType::NumWorkgroups,
             unsafe { glsl_vector_type(glsl_base_type::GLSL_TYPE_UINT, 3) },
-            "num_workgroups",
+            c"num_workgroups",
         );
     }
 
@@ -844,7 +861,7 @@ fn compile_nir_variant(
             &mut lower_state.const_buf_loc,
             CompiledKernelArgType::ConstantBuffer,
             address_bits_ptr_type,
-            "constant_buffer_addr",
+            c"constant_buffer_addr",
         );
     }
     if nir.has_printf() {
@@ -853,7 +870,7 @@ fn compile_nir_variant(
             &mut lower_state.printf_buf_loc,
             CompiledKernelArgType::PrintfBuffer,
             address_bits_ptr_type,
-            "printf_buffer_addr",
+            c"printf_buffer_addr",
         );
     }
 
@@ -865,7 +882,7 @@ fn compile_nir_variant(
             &mut lower_state.format_arr_loc,
             CompiledKernelArgType::FormatArray,
             unsafe { glsl_array_type(glsl_int16_t_type(), count as u32, 2) },
-            "image_formats",
+            c"image_formats",
         );
 
         add_var(
@@ -873,7 +890,7 @@ fn compile_nir_variant(
             &mut lower_state.order_arr_loc,
             CompiledKernelArgType::OrderArray,
             unsafe { glsl_array_type(glsl_int16_t_type(), count as u32, 2) },
-            "image_orders",
+            c"image_orders",
         );
     }
 
@@ -883,7 +900,7 @@ fn compile_nir_variant(
             &mut lower_state.work_dim_loc,
             CompiledKernelArgType::WorkDim,
             unsafe { glsl_uint8_t_type() },
-            "work_dim",
+            c"work_dim",
         );
     }
 
@@ -939,7 +956,7 @@ fn compile_nir_variant(
         shared_address_format,
     );
 
-    if nir_options.lower_int64_options.0 != 0 {
+    if nir_options.lower_int64_options.0 != 0 && !nir_options.late_lower_int64 {
         nir_pass!(nir, nir_lower_int64);
     }
 
@@ -1080,18 +1097,16 @@ impl SPIRVToNirResult {
         let args = KernelArg::deserialize(&mut reader)?;
         let default_build = CompilationResult::deserialize(&mut reader, d)?;
 
+        // SAFETY: on overrun this returns 0
         let optimized = match unsafe { blob_read_uint8(&mut reader) } {
             0 => None,
             _ => Some(CompilationResult::deserialize(&mut reader, d)?),
         };
 
-        Some(SPIRVToNirResult::new(
-            d,
-            kernel_info,
-            args,
-            default_build,
-            optimized,
-        ))
+        reader
+            .overrun
+            .not()
+            .then(|| SPIRVToNirResult::new(d, kernel_info, args, default_build, optimized))
     }
 
     // we can't use Self here as the nir shader might be compiled to a cso already and we can't
@@ -1268,6 +1283,31 @@ impl Kernel {
         let arg_values = self.arg_values().clone();
         let nir_kernel_builds = Arc::clone(&self.builds[q.device]);
 
+        let mut buffer_arcs = HashMap::new();
+        let mut image_arcs = HashMap::new();
+
+        // need to preprocess buffer and image arguments so we hold a strong reference until the
+        // event was processed.
+        for arg in arg_values.iter() {
+            match arg {
+                Some(KernelArgValue::Buffer(buffer)) => {
+                    buffer_arcs.insert(
+                        // we use the ptr as the key, and also cast it to usize so we don't need to
+                        // deal with Send + Sync here.
+                        buffer.as_ptr() as usize,
+                        buffer.upgrade().ok_or(CL_INVALID_KERNEL_ARGS)?,
+                    );
+                }
+                Some(KernelArgValue::Image(image)) => {
+                    image_arcs.insert(
+                        image.as_ptr() as usize,
+                        image.upgrade().ok_or(CL_INVALID_KERNEL_ARGS)?,
+                    );
+                }
+                _ => {}
+            }
+        }
+
         // operations we want to report errors to the clients
         let mut block = create_kernel_arr::<u32>(block, 1)?;
         let mut grid = create_kernel_arr::<usize>(grid, 1)?;
@@ -1291,7 +1331,8 @@ impl Kernel {
                 && grid[0] <= hw_max_grid[0]
                 && grid[1] <= hw_max_grid[1]
                 && grid[2] <= hw_max_grid[2]
-                && block == kernel_info.work_group_size_hint
+                && (kernel_info.work_group_size_hint == [0; 3]
+                    || block == kernel_info.work_group_size_hint)
             {
                 NirKernelVariant::Optimized
             } else {
@@ -1388,46 +1429,28 @@ impl Kernel {
                         match value {
                             KernelArgValue::Constant(c) => input.extend_from_slice(c),
                             KernelArgValue::Buffer(buffer) => {
-                                let res = buffer.get_res_of_dev(q.device)?;
-                                add_global(q, &mut input, &mut resource_info, res, buffer.offset);
-                            }
-                            KernelArgValue::Image(image) => {
-                                let res = image.get_res_of_dev(q.device)?;
-
-                                // If resource is a buffer, the image was created from a buffer. Use
-                                // strides and dimensions of the image then.
-                                let app_img_info = if res.as_ref().is_buffer()
-                                    && image.mem_type == CL_MEM_OBJECT_IMAGE2D
+                                let buffer = &buffer_arcs[&(buffer.as_ptr() as usize)];
+                                let rw = if api_arg.spirv.address_qualifier
+                                    == clc_kernel_arg_address_qualifier::CLC_KERNEL_ARG_ADDRESS_CONSTANT
                                 {
-                                    Some(AppImgInfo::new(
-                                        image.image_desc.row_pitch()?
-                                            / image.image_elem_size as u32,
-                                        image.image_desc.width()?,
-                                        image.image_desc.height()?,
-                                    ))
+                                    RWFlags::RD
                                 } else {
-                                    None
+                                    RWFlags::RW
                                 };
 
-                                let format = image.pipe_format;
+                                let res = buffer.get_res_for_access(ctx, rw)?;
+                                add_global(q, &mut input, &mut resource_info, res, buffer.offset());
+                            }
+                            KernelArgValue::Image(image) => {
+                                let image = &image_arcs[&(image.as_ptr() as usize)];
                                 let (formats, orders) = if api_arg.kind == KernelArgType::Image {
-                                    iviews.push(res.pipe_image_view(
-                                        format,
-                                        false,
-                                        image.pipe_image_host_access(),
-                                        app_img_info.as_ref(),
-                                    ));
+                                    iviews.push(image.image_view(ctx, false)?);
                                     (&mut img_formats, &mut img_orders)
                                 } else if api_arg.kind == KernelArgType::RWImage {
-                                    iviews.push(res.pipe_image_view(
-                                        format,
-                                        true,
-                                        image.pipe_image_host_access(),
-                                        app_img_info.as_ref(),
-                                    ));
+                                    iviews.push(image.image_view(ctx, true)?);
                                     (&mut img_formats, &mut img_orders)
                                 } else {
-                                    sviews.push((res.clone(), format, app_img_info));
+                                    sviews.push(image.sampler_view(ctx)?);
                                     (&mut tex_formats, &mut tex_orders)
                                 };
 
@@ -1512,10 +1535,6 @@ impl Kernel {
             // subtract the shader local_size as we only request something on top of that.
             variable_local_size -= static_local_size;
 
-            let mut sviews: Vec<_> = sviews
-                .iter()
-                .map(|(s, f, aii)| ctx.create_sampler_view(s, *f, aii.as_ref()))
-                .collect();
             let samplers: Vec<_> = samplers
                 .iter()
                 .map(|s| ctx.create_sampler_state(s))
@@ -1537,9 +1556,10 @@ impl Kernel {
                 }
             };
 
+            let sviews_len = sviews.len();
             ctx.bind_compute_state(cso.cso_ptr);
             ctx.bind_sampler_states(&samplers);
-            ctx.set_sampler_views(&mut sviews);
+            ctx.set_sampler_views(sviews);
             ctx.set_shader_images(&iviews);
             ctx.set_global_binding(resources.as_slice(), &mut globals);
 
@@ -1579,7 +1599,7 @@ impl Kernel {
 
             ctx.clear_global_binding(globals.len() as u32);
             ctx.clear_shader_images(iviews.len() as u32);
-            ctx.clear_sampler_views(sviews.len() as u32);
+            ctx.clear_sampler_views(sviews_len as u32);
             ctx.clear_sampler_states(samplers.len() as u32);
 
             ctx.bind_compute_state(ptr::null_mut());
@@ -1587,7 +1607,6 @@ impl Kernel {
             ctx.memory_barrier(PIPE_BARRIER_GLOBAL_BUFFER);
 
             samplers.iter().for_each(|s| ctx.delete_sampler_state(*s));
-            sviews.iter().for_each(|v| ctx.sampler_view_destroy(*v));
 
             if let Some(printf_buf) = &printf_buf {
                 let tx = ctx
@@ -1688,12 +1707,14 @@ impl Kernel {
         self.kernel_info.subgroup_size
     }
 
-    pub fn arg_name(&self, idx: cl_uint) -> &String {
-        &self.kernel_info.args[idx as usize].spirv.name
+    pub fn arg_name(&self, idx: cl_uint) -> Option<&CStr> {
+        let name = &self.kernel_info.args[idx as usize].spirv.name;
+        name.is_empty().not().then_some(name)
     }
 
-    pub fn arg_type_name(&self, idx: cl_uint) -> &String {
-        &self.kernel_info.args[idx as usize].spirv.type_name
+    pub fn arg_type_name(&self, idx: cl_uint) -> Option<&CStr> {
+        let type_name = &self.kernel_info.args[idx as usize].spirv.type_name;
+        type_name.is_empty().not().then_some(type_name)
     }
 
     pub fn priv_mem_size(&self, dev: &Device) -> cl_ulong {
@@ -1709,9 +1730,22 @@ impl Kernel {
     }
 
     pub fn local_mem_size(&self, dev: &Device) -> cl_ulong {
-        // TODO include args
+        // TODO: take alignment into account?
         // this is purely informational so it shouldn't even matter
-        self.builds.get(dev).unwrap()[NirKernelVariant::Default].shared_size as cl_ulong
+        let local =
+            self.builds.get(dev).unwrap()[NirKernelVariant::Default].shared_size as cl_ulong;
+        let args: cl_ulong = self
+            .arg_values()
+            .iter()
+            .map(|arg| match arg {
+                Some(KernelArgValue::LocalMem(val)) => *val as cl_ulong,
+                // If the local memory size, for any pointer argument to the kernel declared with
+                // the __local address qualifier, is not specified, its size is assumed to be 0.
+                _ => 0,
+            })
+            .sum();
+
+        local + args
     }
 
     pub fn has_svm_devs(&self) -> bool {

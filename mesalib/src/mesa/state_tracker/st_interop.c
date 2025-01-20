@@ -48,14 +48,14 @@ st_interop_query_device_info(struct st_context *st,
 
    /* PCI values are obsolete on version >= 4 of the interface */
    if (out->version < 4) {
-      out->pci_segment_group = screen->get_param(screen, PIPE_CAP_PCI_GROUP);
-      out->pci_bus = screen->get_param(screen, PIPE_CAP_PCI_BUS);
-      out->pci_device = screen->get_param(screen, PIPE_CAP_PCI_DEVICE);
-      out->pci_function = screen->get_param(screen, PIPE_CAP_PCI_FUNCTION);
+      out->pci_segment_group = screen->caps.pci_group;
+      out->pci_bus = screen->caps.pci_bus;
+      out->pci_device = screen->caps.pci_device;
+      out->pci_function = screen->caps.pci_function;
    }
 
-   out->vendor_id = screen->get_param(screen, PIPE_CAP_VENDOR_ID);
-   out->device_id = screen->get_param(screen, PIPE_CAP_DEVICE_ID);
+   out->vendor_id = screen->caps.vendor_id;
+   out->device_id = screen->caps.device_id;
 
    if (out->version > 1 && screen->interop_query_device_info)
       out->driver_data_size = screen->interop_query_device_info(screen,

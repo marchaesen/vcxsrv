@@ -46,6 +46,7 @@
 #include "pvr_srv_sync_prim.h"
 #include "pvr_types.h"
 #include "pvr_winsys.h"
+#include "util/compiler.h"
 #include "util/log.h"
 #include "util/macros.h"
 #include "util/u_math.h"
@@ -682,7 +683,7 @@ static void pvr_srv_geometry_cmd_ext_stream_load(
       (const uint32_t *)((uint8_t *)stream + ext_stream_offset);
    struct rogue_fwif_ta_regs *const regs = &cmd->regs;
 
-   struct PVRX(KMD_STREAM_EXTHDR_GEOM0) header0;
+   struct ROGUE_KMD_STREAM_EXTHDR_GEOM0 header0;
 
    header0 = pvr_csb_unpack(ext_stream_ptr, KMD_STREAM_EXTHDR_GEOM0);
    ext_stream_ptr += pvr_cmd_length(KMD_STREAM_EXTHDR_GEOM0);
@@ -865,7 +866,7 @@ static void pvr_srv_fragment_cmd_ext_stream_load(
       (const uint32_t *)((uint8_t *)stream + ext_stream_offset);
    struct rogue_fwif_3d_regs *const regs = &cmd->regs;
 
-   struct PVRX(KMD_STREAM_EXTHDR_FRAG0) header0;
+   struct ROGUE_KMD_STREAM_EXTHDR_FRAG0 header0;
 
    header0 = pvr_csb_unpack(ext_stream_ptr, KMD_STREAM_EXTHDR_FRAG0);
    ext_stream_ptr += pvr_cmd_length(KMD_STREAM_EXTHDR_FRAG0);
@@ -921,6 +922,9 @@ pvr_srv_fragment_cmd_init(struct rogue_fwif_cmd_3d *cmd,
 
    if (state->flags.has_spm_scratch_buffer)
       cmd->flags |= ROGUE_FWIF_RENDERFLAGS_SPMSCRATCHBUFFER;
+
+   if (state->flags.disable_pixel_merging)
+      cmd->flags |= ROGUE_FWIF_RENDERFLAGS_DISABLE_PIXELMERGE;
 }
 
 VkResult pvr_srv_winsys_render_submit(

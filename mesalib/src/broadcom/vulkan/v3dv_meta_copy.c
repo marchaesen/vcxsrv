@@ -449,7 +449,7 @@ copy_image_to_buffer_tlb(struct v3dv_cmd_buffer *cmd_buffer,
    }
 
    uint32_t internal_type, internal_bpp;
-   v3dv_X(cmd_buffer->device, get_internal_type_bpp_for_image_aspects)
+   v3d_X((&cmd_buffer->device->devinfo), get_internal_type_bpp_for_image_aspects)
       (fb_format, region->imageSubresource.aspectMask,
        &internal_type, &internal_bpp);
 
@@ -480,11 +480,11 @@ copy_image_to_buffer_tlb(struct v3dv_cmd_buffer *cmd_buffer,
                         false);
 
    struct v3dv_meta_framebuffer framebuffer;
-   v3dv_X(job->device, meta_framebuffer_init)(&framebuffer, fb_format,
+   v3d_X((&job->device->devinfo), meta_framebuffer_init)(&framebuffer, fb_format,
                                               internal_type, &job->frame_tiling);
 
-   v3dv_X(job->device, job_emit_binning_flush)(job);
-   v3dv_X(job->device, meta_emit_copy_image_to_buffer_rcl)
+   v3d_X((&job->device->devinfo), job_emit_binning_flush)(job);
+   v3d_X((&job->device->devinfo), meta_emit_copy_image_to_buffer_rcl)
       (job, buffer, image, &framebuffer, region);
 
    v3dv_cmd_buffer_finish_job(cmd_buffer);
@@ -1260,7 +1260,7 @@ copy_image_tfu(struct v3dv_cmd_buffer *cmd_buffer,
       const struct v3d_resource_slice *src_slice =
          &src->planes[src_plane].slices[src_mip_level];
 
-      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)(
+      v3d_X((&cmd_buffer->device->devinfo), meta_emit_tfu_job)(
          cmd_buffer,
          dst->planes[dst_plane].mem->bo->handle,
          dst_offset,
@@ -1328,7 +1328,7 @@ copy_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
           region->dstSubresource.aspectMask ==
           region->srcSubresource.aspectMask);
    uint32_t internal_type, internal_bpp;
-   v3dv_X(cmd_buffer->device, get_internal_type_bpp_for_image_aspects)
+   v3d_X((&cmd_buffer->device->devinfo), get_internal_type_bpp_for_image_aspects)
       (fb_format, region->dstSubresource.aspectMask,
        &internal_type, &internal_bpp);
 
@@ -1371,11 +1371,11 @@ copy_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
                         src->vk.samples > VK_SAMPLE_COUNT_1_BIT);
 
    struct v3dv_meta_framebuffer framebuffer;
-   v3dv_X(job->device, meta_framebuffer_init)(&framebuffer, fb_format,
+   v3d_X((&job->device->devinfo), meta_framebuffer_init)(&framebuffer, fb_format,
                                               internal_type, &job->frame_tiling);
 
-   v3dv_X(job->device, job_emit_binning_flush)(job);
-   v3dv_X(job->device, meta_emit_copy_image_rcl)(job, dst, src, &framebuffer, region);
+   v3d_X((&job->device->devinfo), job_emit_binning_flush)(job);
+   v3d_X((&job->device->devinfo), meta_emit_copy_image_rcl)(job, dst, src, &framebuffer, region);
 
    v3dv_cmd_buffer_finish_job(cmd_buffer);
 
@@ -1506,7 +1506,6 @@ copy_image_blit(struct v3dv_cmd_buffer *cmd_buffer,
        */
       assert(src->planes[src_plane].cpp == dst->planes[dst_plane].cpp);
 
-      format = VK_FORMAT_R32G32_UINT;
       switch (src->planes[src_plane].cpp) {
       case 16:
          format = VK_FORMAT_R32G32B32A32_UINT;
@@ -1538,7 +1537,7 @@ copy_image_blit(struct v3dv_cmd_buffer *cmd_buffer,
       if (format == VK_FORMAT_UNDEFINED)
          return false;
 
-      const struct v3dv_format *f = v3dv_X(cmd_buffer->device, get_format)(format);
+      const struct v3dv_format *f = v3d_X((&cmd_buffer->device->devinfo), get_format)(format);
       assert(f->plane_count < 2);
       if (!f->plane_count || f->planes[0].tex_type == TEXTURE_DATA_FORMAT_NO)
          return false;
@@ -1754,7 +1753,7 @@ v3dv_CmdCopyBuffer2(VkCommandBuffer commandBuffer,
    cmd_buffer->state.is_transfer = true;
 
    for (uint32_t i = 0; i < pCopyBufferInfo->regionCount; i++) {
-      v3dv_X(cmd_buffer->device, meta_copy_buffer)
+      v3d_X((&cmd_buffer->device->devinfo), meta_copy_buffer)
          (cmd_buffer,
           dst_buffer->mem->bo, dst_buffer->mem_offset,
           src_buffer->mem->bo, src_buffer->mem_offset,
@@ -1787,13 +1786,13 @@ v3dv_CmdUpdateBuffer(VkCommandBuffer commandBuffer,
    struct v3dv_bo *src_bo =
       v3dv_bo_alloc(cmd_buffer->device, dataSize, "vkCmdUpdateBuffer", true);
    if (!src_bo) {
-      fprintf(stderr, "Failed to allocate BO for vkCmdUpdateBuffer.\n");
+      mesa_loge("Failed to allocate BO for vkCmdUpdateBuffer.\n");
       return;
    }
 
    bool ok = v3dv_bo_map(cmd_buffer->device, src_bo, src_bo->size);
    if (!ok) {
-      fprintf(stderr, "Failed to map BO for vkCmdUpdateBuffer.\n");
+      mesa_loge("Failed to map BO for vkCmdUpdateBuffer.\n");
       return;
    }
 
@@ -1810,7 +1809,7 @@ v3dv_CmdUpdateBuffer(VkCommandBuffer commandBuffer,
       .size = dataSize,
    };
    struct v3dv_job *copy_job =
-      v3dv_X(cmd_buffer->device, meta_copy_buffer)
+      v3d_X((&cmd_buffer->device->devinfo), meta_copy_buffer)
       (cmd_buffer, dst_buffer->mem->bo, dst_buffer->mem_offset,
        src_bo, 0, &region);
 
@@ -1846,7 +1845,7 @@ v3dv_CmdFillBuffer(VkCommandBuffer commandBuffer,
       size -= size % 4;
    }
 
-   v3dv_X(cmd_buffer->device, meta_fill_buffer)
+   v3d_X((&cmd_buffer->device->devinfo), meta_fill_buffer)
       (cmd_buffer, bo, dstOffset, size, data);
 
    cmd_buffer->state.is_transfer = false;
@@ -1963,7 +1962,7 @@ copy_buffer_to_image_tfu(struct v3dv_cmd_buffer *cmd_buffer,
       const uint32_t dst_offset =
          dst_bo->offset + v3dv_layer_offset(image, mip_level, layer, plane);
 
-      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)(
+      v3d_X((&cmd_buffer->device->devinfo), meta_emit_tfu_job)(
              cmd_buffer,
              dst_bo->handle,
              dst_offset,
@@ -2024,7 +2023,7 @@ copy_buffer_to_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
    }
 
    uint32_t internal_type, internal_bpp;
-   v3dv_X(cmd_buffer->device, get_internal_type_bpp_for_image_aspects)
+   v3d_X((&cmd_buffer->device->devinfo), get_internal_type_bpp_for_image_aspects)
       (fb_format, region->imageSubresource.aspectMask,
        &internal_type, &internal_bpp);
 
@@ -2055,11 +2054,11 @@ copy_buffer_to_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
                         false);
 
    struct v3dv_meta_framebuffer framebuffer;
-   v3dv_X(job->device, meta_framebuffer_init)(&framebuffer, fb_format,
+   v3d_X((&job->device->devinfo), meta_framebuffer_init)(&framebuffer, fb_format,
                                               internal_type, &job->frame_tiling);
 
-   v3dv_X(job->device, job_emit_binning_flush)(job);
-   v3dv_X(job->device, meta_emit_copy_buffer_to_image_rcl)
+   v3d_X((&job->device->devinfo), job_emit_binning_flush)(job);
+   v3d_X((&job->device->devinfo), meta_emit_copy_buffer_to_image_rcl)
       (job, image, buffer, &framebuffer, region);
 
    v3dv_cmd_buffer_finish_job(cmd_buffer);
@@ -3500,7 +3499,7 @@ blit_tfu(struct v3dv_cmd_buffer *cmd_buffer,
       const struct v3d_resource_slice *dst_slice = &dst->planes[0].slices[dst_mip_level];
       const struct v3d_resource_slice *src_slice = &src->planes[0].slices[src_mip_level];
 
-      v3dv_X(cmd_buffer->device, meta_emit_tfu_job)(
+      v3d_X((&cmd_buffer->device->devinfo), meta_emit_tfu_job)(
          cmd_buffer,
          dst->planes[0].mem->bo->handle,
          dst_offset,
@@ -4875,7 +4874,7 @@ resolve_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
       return false;
    }
 
-   if (!v3dv_X(cmd_buffer->device, format_supports_tlb_resolve)(src->format))
+   if (!v3d_X((&cmd_buffer->device->devinfo), format_supports_tlb_resolve)(src->format))
       return false;
 
    const VkFormat fb_format = src->vk.format;
@@ -4902,7 +4901,7 @@ resolve_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
    const uint32_t height = DIV_ROUND_UP(region->extent.height, block_h);
 
    uint32_t internal_type, internal_bpp;
-   v3dv_X(cmd_buffer->device, get_internal_type_bpp_for_image_aspects)
+   v3d_X((&cmd_buffer->device->devinfo), get_internal_type_bpp_for_image_aspects)
       (fb_format, region->srcSubresource.aspectMask,
        &internal_type, &internal_bpp);
 
@@ -4911,11 +4910,11 @@ resolve_image_tlb(struct v3dv_cmd_buffer *cmd_buffer,
                         true);
 
    struct v3dv_meta_framebuffer framebuffer;
-   v3dv_X(job->device, meta_framebuffer_init)(&framebuffer, fb_format,
+   v3d_X((&job->device->devinfo), meta_framebuffer_init)(&framebuffer, fb_format,
                                               internal_type, &job->frame_tiling);
 
-   v3dv_X(job->device, job_emit_binning_flush)(job);
-   v3dv_X(job->device, meta_emit_resolve_image_rcl)(job, dst, src,
+   v3d_X((&job->device->devinfo), job_emit_binning_flush)(job);
+   v3d_X((&job->device->devinfo), meta_emit_resolve_image_rcl)(job, dst, src,
                                                     &framebuffer, region);
 
    v3dv_cmd_buffer_finish_job(cmd_buffer);

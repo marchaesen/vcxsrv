@@ -143,6 +143,11 @@ uInformation(const char * /* s */ , ...
 
 #define strncasecmp _strnicmp
 
+#if defined(_MSC_VER)
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#endif
+
 #define	NullString	((char *)NULL)
 
 #define	uStringText(s)		((s)==NullString?"<NullString>":(s))

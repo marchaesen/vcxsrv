@@ -164,7 +164,7 @@ opt_non_uniform_tex_access(nir_tex_instr *tex)
       case nir_tex_src_texture_offset:
       case nir_tex_src_texture_handle:
       case nir_tex_src_texture_deref:
-         if (tex->texture_non_uniform && !tex->src[i].src.ssa->divergent) {
+         if (tex->texture_non_uniform && !nir_src_is_divergent(&tex->src[i].src)) {
             tex->texture_non_uniform = false;
             progress = true;
          }
@@ -173,7 +173,7 @@ opt_non_uniform_tex_access(nir_tex_instr *tex)
       case nir_tex_src_sampler_offset:
       case nir_tex_src_sampler_handle:
       case nir_tex_src_sampler_deref:
-         if (tex->sampler_non_uniform && !tex->src[i].src.ssa->divergent) {
+         if (tex->sampler_non_uniform && !nir_src_is_divergent(&tex->src[i].src)) {
             tex->sampler_non_uniform = false;
             progress = true;
          }
@@ -193,7 +193,7 @@ opt_non_uniform_access_intrin(nir_intrinsic_instr *intrin, unsigned handle_src)
    if (!has_non_uniform_access_intrin(intrin))
       return false;
 
-   if (intrin->src[handle_src].ssa->divergent)
+   if (nir_src_is_divergent(&intrin->src[handle_src]))
       return false;
 
    nir_intrinsic_set_access(intrin, nir_intrinsic_access(intrin) & ~ACCESS_NON_UNIFORM);
@@ -231,14 +231,11 @@ nir_opt_non_uniform_access_instr(nir_builder *b, nir_instr *instr, UNUSED void *
 bool
 nir_opt_non_uniform_access(nir_shader *shader)
 {
-   NIR_PASS(_, shader, nir_convert_to_lcssa, true, true);
    nir_divergence_analysis(shader);
 
    bool progress = nir_shader_instructions_pass(shader,
                                                 nir_opt_non_uniform_access_instr,
                                                 nir_metadata_all, NULL);
-
-   NIR_PASS(_, shader, nir_opt_remove_phis); /* cleanup LCSSA phis */
 
    return progress;
 }

@@ -4,6 +4,8 @@
  * string is dynamically allocated; caller must free.
  */
 
+#include <wchar.h>
+
 #include "putty.h"
 
 char *GetDlgItemText_alloc(HWND hwnd, int id)
@@ -27,7 +29,7 @@ wchar_t *GetDlgItemTextW_alloc(HWND hwnd, int id)
     do {
         sgrowarray_nm(ret, size, size);
         GetDlgItemTextW(hwnd, id, ret, size);
-    } while (!memchr(ret, '\0', size-1));
+    } while (!wmemchr(ret, L'\0', size-1));
 
     return ret;
 }

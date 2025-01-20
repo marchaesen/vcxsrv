@@ -48,7 +48,7 @@ struct d3d12_descriptor_heap {
    ID3D12Device *dev;
    ID3D12DescriptorHeap *heap;
    uint32_t desc_size;
-   uint64_t cpu_base;
+   size_t cpu_base;
    uint64_t gpu_base;
    uint32_t size;
    uint32_t next;
@@ -157,7 +157,7 @@ d3d12_descriptor_heap_alloc_handle(struct d3d12_descriptor_heap *heap,
 void
 d3d12_descriptor_handle_free(struct d3d12_descriptor_handle *handle)
 {
-   const uint32_t index = handle->cpu_handle.ptr - handle->heap->cpu_base;
+   const uint32_t index = static_cast<uint32_t>(handle->cpu_handle.ptr - handle->heap->cpu_base);
    if (index + handle->heap->desc_size == handle->heap->next) {
       handle->heap->next = index;
    } else {

@@ -49,6 +49,7 @@ spec@arb_program_interface_query@arb_program_interface_query-getprogramresourcei
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
 spec@arb_sample_shading@arb_sample_shading-builtin-gl-sample-mask-mrt-alpha-to-coverage,Fail
 spec@arb_seamless_cube_map@arb_seamless_cubemap,Fail
+spec@arb_separate_shader_objects@rendezvous by location (5 stages),Crash
 spec@arb_shader_atomic_counters@semantics,Fail
 spec@arb_shader_atomic_counters@semantics@Tessellation control shader atomic built-in semantics,Fail
 spec@arb_texture_cube_map_array@arb_texture_cube_map_array-sampler-cube-array-shadow,Fail
@@ -413,5 +414,5 @@ wgl@wgl-multi-context-single-window,Fail
 # but still seems to be failing.
 spec@arb_vertex_program@arb_vertex_program-property-bindings,Fail
 
-# SPIR-V tests
-spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams-without-invocations spirv,Crash
+# This tests NaNs in a GLSL version where NaNs are undefined
+shaders@glsl-fs-fogscale@vs and fs,Fail

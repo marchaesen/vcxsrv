@@ -930,6 +930,7 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
 {
     void *tmp = NULL;
     int i;
+    int gap;
     XkbKeyTypePtr stype = NULL, dtype = NULL;
 
     /* client map */
@@ -959,14 +960,19 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
         }
         dst->map->num_syms = src->map->num_syms;
         dst->map->size_syms = src->map->size_syms;
+        gap = MAP_LENGTH - (src->max_key_code + 1);
 
         if (src->map->key_sym_map) {
-            if (src->max_key_code != dst->max_key_code) {
+            if (!dst->map->key_sym_map) {
                 tmp = reallocarray(dst->map->key_sym_map,
-                                   src->max_key_code + 1, sizeof(XkbSymMapRec));
+                                   MAP_LENGTH, sizeof(XkbSymMapRec));
                 if (!tmp)
                     return FALSE;
                 dst->map->key_sym_map = tmp;
+            }
+            if (gap > 0) {
+                memset((char *) &dst->map->key_sym_map[gap], 0,
+                       gap * sizeof(XkbSymMapRec));
             }
             memcpy(dst->map->key_sym_map, src->map->key_sym_map,
                    (src->max_key_code + 1) * sizeof(XkbSymMapRec));
@@ -1138,11 +1144,14 @@ _XkbCopyClientMap(XkbDescPtr src, XkbDescPtr dst)
         }
 
         if (src->map->modmap) {
-            if (src->max_key_code != dst->max_key_code) {
-                tmp = realloc(dst->map->modmap, src->max_key_code + 1);
+            if (!dst->map->modmap) {
+                tmp = realloc(dst->map->modmap, MAP_LENGTH);
                 if (!tmp)
                     return FALSE;
                 dst->map->modmap = tmp;
+            }
+            if (gap > 0) {
+                memset(dst->map->modmap + gap, 0, gap);
             }
             memcpy(dst->map->modmap, src->map->modmap, src->max_key_code + 1);
         }
@@ -1163,6 +1172,7 @@ static Bool
 _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
 {
     void *tmp = NULL;
+    int gap;
 
     /* server map */
     if (src->server) {
@@ -1173,13 +1183,16 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
             dst->server = tmp;
         }
 
+        gap = MAP_LENGTH - (src->max_key_code + 1);
         if (src->server->explicit) {
-            if (src->max_key_code != dst->max_key_code) {
-                tmp = realloc(dst->server->explicit, src->max_key_code + 1);
+            if (!dst->server->explicit) {
+                tmp = realloc(dst->server->explicit, MAP_LENGTH);
                 if (!tmp)
                     return FALSE;
                 dst->server->explicit = tmp;
             }
+            if (gap > 0)
+                memset(dst->server->explicit + gap, 0, gap);
             memcpy(dst->server->explicit, src->server->explicit,
                    src->max_key_code + 1);
         }
@@ -1207,13 +1220,15 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
         dst->server->num_acts = src->server->num_acts;
 
         if (src->server->key_acts) {
-            if (src->max_key_code != dst->max_key_code) {
+            if (!dst->server->key_acts) {
                 tmp = reallocarray(dst->server->key_acts,
-                                   src->max_key_code + 1, sizeof(unsigned short));
+                                   MAP_LENGTH, sizeof(unsigned short));
                 if (!tmp)
                     return FALSE;
                 dst->server->key_acts = tmp;
             }
+            if (gap > 0)
+                memset((char *) &dst->server->key_acts[gap], 0, gap * sizeof(unsigned short));
             memcpy(dst->server->key_acts, src->server->key_acts,
                    (src->max_key_code + 1) * sizeof(unsigned short));
         }
@@ -1223,13 +1238,15 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
         }
 
         if (src->server->behaviors) {
-            if (src->max_key_code != dst->max_key_code) {
+            if (!dst->server->behaviors) {
                 tmp = reallocarray(dst->server->behaviors,
-                                   src->max_key_code + 1, sizeof(XkbBehavior));
+                                   MAP_LENGTH, sizeof(XkbBehavior));
                 if (!tmp)
                     return FALSE;
                 dst->server->behaviors = tmp;
             }
+            if (gap > 0)
+                memset((char *) &dst->server->behaviors[gap], 0, gap * sizeof(XkbBehavior));
             memcpy(dst->server->behaviors, src->server->behaviors,
                    (src->max_key_code + 1) * sizeof(XkbBehavior));
         }
@@ -1241,13 +1258,15 @@ _XkbCopyServerMap(XkbDescPtr src, XkbDescPtr dst)
         memcpy(dst->server->vmods, src->server->vmods, XkbNumVirtualMods);
 
         if (src->server->vmodmap) {
-            if (src->max_key_code != dst->max_key_code) {
+            if (!dst->server->vmodmap) {
                 tmp = reallocarray(dst->server->vmodmap,
-                                   src->max_key_code + 1, sizeof(unsigned short));
+                                   MAP_LENGTH, sizeof(unsigned short));
                 if (!tmp)
                     return FALSE;
                 dst->server->vmodmap = tmp;
             }
+            if (gap > 0)
+                memset((char *) &dst->server->vmodmap[gap], 0, gap * sizeof(unsigned short));
             memcpy(dst->server->vmodmap, src->server->vmodmap,
                    (src->max_key_code + 1) * sizeof(unsigned short));
         }
@@ -1268,6 +1287,7 @@ static Bool
 _XkbCopyNames(XkbDescPtr src, XkbDescPtr dst)
 {
     void *tmp = NULL;
+    int gap;
 
     /* names */
     if (src->names) {
@@ -1277,14 +1297,17 @@ _XkbCopyNames(XkbDescPtr src, XkbDescPtr dst)
                 return FALSE;
         }
 
+        gap = MAP_LENGTH - (src->max_key_code + 1);
         if (src->names->keys) {
-            if (src->max_key_code != dst->max_key_code) {
-                tmp = reallocarray(dst->names->keys, src->max_key_code + 1,
+            if (!dst->names->keys) {
+                tmp = reallocarray(dst->names->keys, MAP_LENGTH,
                                    sizeof(XkbKeyNameRec));
                 if (!tmp)
                     return FALSE;
                 dst->names->keys = tmp;
             }
+            if (gap > 0)
+                memset((char *) &dst->names->keys[gap], 0, gap * sizeof(XkbKeyNameRec));
             memcpy(dst->names->keys, src->names->keys,
                    (src->max_key_code + 1) * sizeof(XkbKeyNameRec));
         }

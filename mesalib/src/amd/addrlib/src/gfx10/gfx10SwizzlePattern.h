@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -3720,6 +3720,7 @@ const ADDR_SW_PATINFO GFX10_SW_VAR_Z_X_8xaa_RBPLUS_PATINFO[] =
     {   3,   26,  346,  364,  123, } , // 64 pipes (32 PKRs) 8 bpe @ SW_VAR_Z_X 8xaa @ RbPlus
     {   3,   27,  344,  365,  124, } , // 64 pipes (32 PKRs) 16 bpe @ SW_VAR_Z_X 8xaa @ RbPlus
 };
+
 
 const UINT_64 GFX10_SW_PATTERN_NIBBLE01[][8] =
 {

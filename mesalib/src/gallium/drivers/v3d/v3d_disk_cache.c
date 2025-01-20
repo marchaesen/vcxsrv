@@ -169,6 +169,8 @@ v3d_disk_cache_retrieve(struct v3d_context *v3d,
         u_upload_data(v3d->state_uploader, 0, qpu_size, 8,
                       qpu_insts, &shader->offset, &shader->resource);
 
+        shader->qpu_size = qpu_size;
+
         free(buffer);
 
         return shader;

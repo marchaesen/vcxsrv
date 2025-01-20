@@ -20,6 +20,11 @@ project(
 if host_machine.system() == 'darwin'
   add_languages('objc', native : false)
   add_project_arguments('-fobjc-arc', language : 'objc')
+  libname_suffix = 'dylib'
+elif host_machine.system() == 'windows'
+  libname_suffix = 'dll'
+else
+  libname_suffix = 'so'
 endif
 
 cc = meson.get_compiler('c')
@@ -173,6 +178,8 @@ if with_swrast
   warning('`gallium-drivers=swrast` is a deprecated alias for `gallium-drivers=softpipe,llvmpipe` and will be removed in version 25.0')
 endif
 
+with_amdgpu_virtio = get_option('amdgpu-virtio')
+
 with_gallium_radeonsi = gallium_drivers.contains('radeonsi')
 with_gallium_r300 = gallium_drivers.contains('r300')
 with_gallium_r600 = gallium_drivers.contains('r600')
@@ -242,7 +249,7 @@ elif _vulkan_drivers.contains('all')
    _vulkan_drivers = ['amd', 'intel', 'intel_hasvk', 'swrast',
                       'freedreno', 'panfrost', 'virtio', 'broadcom',
                       'imagination-experimental', 'microsoft-experimental',
-                      'nouveau', 'asahi', 'gfxstream-experimental']
+                      'nouveau', 'asahi', 'gfxstream']
 endif
 
 with_intel_vk = _vulkan_drivers.contains('intel')
@@ -258,7 +265,7 @@ with_imagination_srv = get_option('imagination-srv')
 with_microsoft_vk = _vulkan_drivers.contains('microsoft-experimental')
 with_nouveau_vk = _vulkan_drivers.contains('nouveau')
 with_asahi_vk = _vulkan_drivers.contains('asahi')
-with_gfxstream_vk = _vulkan_drivers.contains('gfxstream-experimental')
+with_gfxstream_vk = _vulkan_drivers.contains('gfxstream')
 with_any_vk = _vulkan_drivers.length() != 0
 
 if with_any_vk and host_machine.system() == 'windows' and meson.version().version_compare('< 1.3')
@@ -298,9 +305,10 @@ with_any_broadcom = [
   with_broadcom_vk,
 ].contains(true)
 
-if get_option('intel-clc') != 'system'
+if get_option('intel-clc') != 'system' and get_option('precomp-compiler') != 'system'
   # Require intel-clc with Anv & Iris (for internal shaders)
   with_intel_clc = get_option('intel-clc') == 'enabled' or \
+                   get_option('precomp-compiler') == 'enabled' or \
                    with_intel_vk or with_gallium_iris
 else
   with_intel_clc = false
@@ -310,6 +318,10 @@ with_intel_vk_rt = get_option('intel-rt') \
   .disable_auto_if(not with_intel_vk) \
   .disable_if(host_machine.cpu_family() != 'x86_64', error_message : 'Intel Ray Tracing is only supported on x86_64') \
   .allowed()
+
+if with_intel_vk_rt
+  with_intel_bvh_grl = get_option('intel-bvh-grl')
+endif
 
 with_any_intel = [
   with_gallium_crocus,
@@ -492,6 +504,7 @@ if with_platform_android and get_option('platform-sdk-version') >= 29
   # ELF TLS, even when building targeting newer API levels.  Make it actually do
   # ELF TLS instead.
   c_cpp_args += '-fno-emulated-tls'
+  add_project_link_arguments('-Wl,-plugin-opt=-emulated-tls=0', language: ['c', 'cpp'])
 endif
 
 # -mtls-dialect=gnu2 speeds up non-initial-exec TLS significantly but requires
@@ -581,7 +594,7 @@ if with_dri
 endif
 
 dep_dxheaders = null_dep
-if with_gallium_d3d12 or with_microsoft_clc or with_microsoft_vk
+if with_gallium_d3d12 or with_microsoft_clc or with_microsoft_vk or with_gfxstream_vk and host_machine.system() == 'windows'
   dep_dxheaders = dependency('directx-headers', required : false)
   if not dep_dxheaders.found()
     dep_dxheaders = dependency('DirectX-Headers',
@@ -626,8 +639,12 @@ endif
 
 # GLSL has interesting version output and Meson doesn't parse it correctly as of
 # Meson 1.4.0
-prog_glslang = find_program('glslangValidator', native : true,
-                            required : with_vulkan_overlay_layer or with_aco_tests or with_amd_vk or with_intel_vk)
+prog_glslang = find_program(
+  'glslangValidator',
+  native : true,
+  required : with_vulkan_overlay_layer or with_aco_tests or with_amd_vk or with_intel_vk or with_swrast_vk
+)
+
 if prog_glslang.found()
   # Check if glslang has depfile support. Support was added in 11.3.0, but
   # Windows path support was broken until 11.9.0.
@@ -783,8 +800,8 @@ if with_gallium_rusticl or with_nouveau_vk or with_tools.contains('etnaviv')
   rustc = meson.get_compiler('rust')
   rust = import('rust')
 
-  if rustc.version().version_compare('< 1.76')
-    error('Mesa requires Rust 1.76.0 or newer')
+  if rustc.version().version_compare('< 1.78')
+    error('Mesa requires Rust 1.78.0 or newer')
   endif
 
   bindgen_version = find_program('bindgen').version()
@@ -801,8 +818,13 @@ if with_gallium_rusticl or with_nouveau_vk or with_tools.contains('etnaviv')
   endif
 endif
 
-with_clover_spirv = with_gallium_clover and get_option('opencl-spirv')
-with_clc = with_microsoft_clc or with_intel_clc or with_gallium_asahi or with_asahi_vk or with_gallium_rusticl or with_clover_spirv
+if get_option('precomp-compiler') != 'system'
+  with_drivers_clc = get_option('precomp-compiler') == 'enabled'
+else
+  with_drivers_clc = false
+endif
+
+with_clc = get_option('mesa-clc') != 'auto' or with_microsoft_clc or with_intel_clc or with_drivers_clc or with_gallium_asahi or with_asahi_vk or with_gallium_rusticl
 
 dep_clc = null_dep
 if with_gallium_clover or with_clc
@@ -858,6 +880,7 @@ if with_libbacktrace
 endif
 
 if with_platform_android
+  dep_android_ui = null_dep
   dep_android_mapper4 = null_dep
   if not with_android_stub
     dep_android = [
@@ -874,6 +897,9 @@ if with_platform_android
     endif
     if get_option('platform-sdk-version') >= 30
       dep_android_mapper4 = dependency('android.hardware.graphics.mapper', version : '>= 4.0', required : false)
+    endif
+    if get_option('platform-sdk-version') >= 35
+      dep_android_ui = dependency('ui', required : false)
     endif
   endif
   pre_args += '-DANDROID_API_LEVEL=' + get_option('platform-sdk-version').to_string()
@@ -892,7 +918,9 @@ if get_option('allow-kcmp') \
   pre_args += '-DALLOW_KCMP'
 endif
 
-prog_python = import('python').find_installation('python3')
+# On Windows, a venv has no versioned aliased to 'python'.
+prog_python = find_program('python3', 'python', version : '>= 3.8')
+
 has_mako = run_command(
   prog_python, '-c',
   '''
@@ -1623,18 +1651,15 @@ endif
 # even if driver foo requires 2.4.0 and driver bar requires 2.4.3, if foo and
 # bar are both on use 2.4.3 for both of them
 dep_libdrm_amdgpu = null_dep
-dep_libdrm_radeon = null_dep
 dep_libdrm_intel = null_dep
 
 _drm_amdgpu_ver = '2.4.121'
-_drm_radeon_ver = '2.4.71'
 _drm_intel_ver = '2.4.75'
 _drm_ver = '2.4.109'
 
 _libdrm_checks = [
   ['intel', with_gallium_i915],
   ['amdgpu', (with_amd_vk and not with_platform_windows) or with_gallium_radeonsi],
-  ['radeon', (with_gallium_radeonsi or with_gallium_r300 or with_gallium_r600)],
 ]
 
 # Loop over the enables versions and get the highest libdrm requirement for all
@@ -1812,7 +1837,7 @@ pre_args += '-DDRAW_LLVM_AVAILABLE=@0@'.format((with_llvm and draw_with_llvm).to
 pre_args += '-DAMD_LLVM_AVAILABLE=@0@'.format(amd_with_llvm.to_int())
 pre_args += '-DGALLIVM_USE_ORCJIT=@0@'.format((with_llvm and llvm_with_orcjit).to_int())
 
-if with_clover_spirv or with_clc
+if with_clc
   chosen_llvm_version_array = dep_llvm.version().split('.')
   chosen_llvm_version_major = chosen_llvm_version_array[0].to_int()
   chosen_llvm_version_minor = chosen_llvm_version_array[1].to_int()
@@ -1842,8 +1867,8 @@ endif
 
 dep_spirv_tools = dependency(
   'SPIRV-Tools',
-  required : with_clover_spirv or with_clc,
-  version : '>= 2018.0'
+  required : with_clc,
+  version : '>= 2022.1'
 )
 if dep_spirv_tools.found()
   pre_args += '-DHAVE_SPIRV_TOOLS'
@@ -1982,12 +2007,6 @@ else
   prog_flex_cpp = prog_flex
 endif
 
-dep_selinux = null_dep
-if get_option('selinux')
-  dep_selinux = dependency('libselinux')
-  pre_args += '-DMESA_SELINUX'
-endif
-
 _libunwind = get_option('libunwind') \
   .require(not with_platform_android, error_message : 'Android requires the use of the backtrace library, not libunwind')
 if host_machine.system() == 'darwin'
@@ -2020,7 +2039,7 @@ if with_platform_wayland
   else
     wl_scanner_arg = 'code'
   endif
-  dep_wl_protocols = dependency('wayland-protocols', version : '>= 1.34')
+  dep_wl_protocols = dependency('wayland-protocols', version : '>= 1.38', default_options: [ 'tests=false' ])
   dep_wayland_client = dependency('wayland-client', version : '>=1.18')
   dep_wayland_server = dependency('wayland-server', version : '>=1.18')
   if with_egl
@@ -2042,6 +2061,15 @@ if with_platform_wayland
   endif
 endif
 
+# Even if we find OpenMP, Gitlab CI fails to link with gcc/i386 and clang/anyarch.
+dep_openmp = null_dep
+if host_machine.cpu_family() == 'x86_64' and cc.get_id() == 'gcc'
+  dep_openmp = dependency('openmp', required : false)
+  if dep_openmp.found()
+    pre_args += ['-DHAVE_OPENMP']
+  endif
+endif
+
 dep_x11 = null_dep
 dep_xext = null_dep
 dep_xfixes = null_dep
@@ -2054,7 +2082,6 @@ dep_xcb_dri3 = null_dep
 dep_dri2proto = null_dep
 dep_glproto = null_dep
 dep_xxf86vm = null_dep
-dep_xcb_dri3 = null_dep
 dep_xcb_present = null_dep
 dep_xcb_sync = null_dep
 dep_xcb_xfixes = null_dep
@@ -2062,15 +2089,16 @@ dep_xshmfence = null_dep
 dep_xcb_xrandr = null_dep
 dep_xcb_shm = null_dep
 dep_xlib_xrandr = null_dep
-dep_openmp = null_dep
 
-# Even if we find OpenMP, Gitlab CI fails to link with gcc/i386 and clang/anyarch.
-if host_machine.cpu_family() == 'x86_64' and cc.get_id() == 'gcc'
-  dep_openmp = dependency('openmp', required : false)
-  if dep_openmp.found()
-    pre_args += ['-DHAVE_OPENMP']
-  endif
-endif
+dep_dri2proto_version = '>= 2.8'
+dep_glproto_version = '>= 1.4.14'
+dep_xcb_dri2_version = '>= 1.8'
+dep_xcb_dri3_version = '>= 1.13'
+dep_xcb_glx_version = '>= 1.8.1'
+dep_xcb_present_version = '>= 1.13'
+dep_xfixes_version = '>= 2.0'
+dep_xlib_xrandr_version = '>= 1.3'
+dep_xshmfence_version = '>= 1.1'
 
 with_dri3_explicit_sync = false
 with_xcb_keysyms = false
@@ -2083,8 +2111,8 @@ if with_platform_x11
   elif with_glx == 'dri'
     dep_x11 = dependency('x11')
     dep_xext = dependency('xext')
-    dep_xfixes = dependency('xfixes', version : '>= 2.0')
-    dep_xcb_glx = dependency('xcb-glx', version : '>= 1.8.1')
+    dep_xfixes = dependency('xfixes', version : dep_xfixes_version)
+    dep_xcb_glx = dependency('xcb-glx', version : dep_xcb_glx_version)
     dep_xcb_shm = dependency('xcb-shm')
   elif with_gallium_rusticl
     # needed for GL sharing extension
@@ -2099,31 +2127,31 @@ if with_platform_x11
       pre_args += '-DXCB_KEYSYMS_AVAILABLE'
     endif
     dep_x11_xcb = dependency('x11-xcb')
-    dep_xcb_dri2 = dependency('xcb-dri2', version : '>= 1.8', required : with_x11_dri2)
+    dep_xcb_dri2 = dependency('xcb-dri2', version : dep_xcb_dri2_version, required : with_x11_dri2)
     if with_dri_platform == 'drm' and not dep_libdrm.found()
       error('libdrm required for gallium video statetrackers when using x11')
     endif
   endif
   if with_dri_platform == 'drm'
-    dep_xcb_dri2 = dependency('xcb-dri2', version : '>= 1.8', required : with_x11_dri2)
+    dep_xcb_dri2 = dependency('xcb-dri2', version : dep_xcb_dri2_version, required : with_x11_dri2)
 
-    dep_xcb_dri3 = dependency('xcb-dri3', version : '>= 1.13')
-    dep_xcb_present = dependency('xcb-present', version : '>= 1.13')
+    dep_xcb_dri3 = dependency('xcb-dri3', version : dep_xcb_dri3_version)
+    dep_xcb_present = dependency('xcb-present', version : dep_xcb_present_version)
     if (dep_xcb_dri3.version().version_compare('>= 1.17') and
         dep_xcb_present.version().version_compare('>= 1.17'))
       with_dri3_explicit_sync = true
     endif
     dep_xcb_shm = dependency('xcb-shm')
     dep_xcb_sync = dependency('xcb-sync')
-    dep_xshmfence = dependency('xshmfence', version : '>= 1.1')
+    dep_xshmfence = dependency('xshmfence', version : dep_xshmfence_version)
     pre_args += '-DHAVE_X11_DRM'
   endif
   if with_glx == 'dri' or with_glx == 'xlib'
-    dep_glproto = dependency('glproto', version : '>= 1.4.14')
+    dep_glproto = dependency('glproto', version : dep_glproto_version)
   endif
   if with_glx == 'dri'
     if with_dri_platform == 'drm'
-      dep_dri2proto = dependency('dri2proto', version : '>= 2.8')
+      dep_dri2proto = dependency('dri2proto', version : dep_dri2proto_version)
       if with_glx_direct
         dep_xxf86vm = dependency('xxf86vm')
       endif
@@ -2135,11 +2163,17 @@ if with_platform_x11
       with_gallium_vdpau or with_gallium_xa)
     dep_xcb_xfixes = dependency('xcb-xfixes')
   endif
+  if with_any_vk
+    dep_xcb_dri3 = dependency('xcb-dri3', version : dep_xcb_dri3_version)
+    dep_xcb_present = dependency('xcb-present', version : dep_xcb_present_version)
+    dep_xcb_shm = dependency('xcb-shm')
+    dep_xshmfence = dependency('xshmfence', version : dep_xshmfence_version)
+  endif
   if with_xlib_lease or with_any_vk
     dep_xcb_xrandr = dependency('xcb-randr')
   endif
   if with_xlib_lease
-    dep_xlib_xrandr = dependency('xrandr', version : '>= 1.3')
+    dep_xlib_xrandr = dependency('xrandr', version : dep_xlib_xrandr_version)
   endif
 endif
 

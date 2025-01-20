@@ -590,7 +590,8 @@ static void
 dd_context_set_stream_output_targets(struct pipe_context *_pipe,
                                      unsigned num_targets,
                                      struct pipe_stream_output_target **tgs,
-                                     const unsigned *offsets)
+                                     const unsigned *offsets,
+                                     enum mesa_prim output_prim)
 {
    struct dd_context *dctx = dd_context(_pipe);
    struct pipe_context *pipe = dctx->pipe;
@@ -599,7 +600,7 @@ dd_context_set_stream_output_targets(struct pipe_context *_pipe,
    dstate->num_so_targets = num_targets;
    safe_memcpy(dstate->so_targets, tgs, sizeof(*tgs) * num_targets);
    safe_memcpy(dstate->so_offsets, offsets, sizeof(*offsets) * num_targets);
-   pipe->set_stream_output_targets(pipe, num_targets, tgs, offsets);
+   pipe->set_stream_output_targets(pipe, num_targets, tgs, offsets, output_prim);
 }
 
 

@@ -63,6 +63,7 @@ opt_shrink_store_instr(nir_builder *b, nir_intrinsic_instr *instr, bool shrink_i
    switch (instr->intrinsic) {
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_vertex_output:
+   case nir_intrinsic_store_per_view_output:
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_store_shared:
    case nir_intrinsic_store_global:

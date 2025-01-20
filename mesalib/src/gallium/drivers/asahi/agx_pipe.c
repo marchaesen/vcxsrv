@@ -43,6 +43,7 @@
 #include "util/u_upload_mgr.h"
 #include "util/xmlconfig.h"
 #include "agx_bg_eot.h"
+#include "agx_bo.h"
 #include "agx_device.h"
 #include "agx_disk_cache.h"
 #include "agx_fence.h"
@@ -114,7 +115,7 @@ agx_resource_debug(struct agx_resource *res, const char *msg)
 
    agx_msg(
       "%s%s %dx%dx%d %dL %d/%dM %dS M:%llx %s %s%s S:0x%llx LS:0x%llx CS:0x%llx "
-      "Base=0x%llx Size=0x%llx Meta=0x%llx/0x%llx (%s) %s%s%s%s%s%sfd:%d(%d) @ %p\n",
+      "Base=0x%llx Size=0x%llx Meta=0x%llx/0x%llx (%s) %s%s%s%s%s%sfd:%d(%d) B:%x @ %p\n",
       msg ?: "", util_format_short_name(res->base.format), res->base.width0,
       res->base.height0, res->base.depth0, res->base.array_size,
       res->base.last_level, res->layout.levels, res->layout.sample_count_sa,
@@ -135,7 +136,7 @@ agx_resource_debug(struct agx_resource *res, const char *msg)
       res->bo->flags & AGX_BO_WRITEBACK ? "WB " : "",
       res->bo->flags & AGX_BO_SHAREABLE ? "SA " : "",
       res->bo->flags & AGX_BO_READONLY ? "RO " : "", res->bo->prime_fd, ino,
-      res);
+      res->base.bind, res);
 }
 
 static void
@@ -196,6 +197,8 @@ agx_resource_from_handle(struct pipe_screen *pscreen,
 
    pipe_reference_init(&prsc->reference, 1);
    prsc->screen = pscreen;
+
+   prsc->bind |= PIPE_BIND_SHARED;
 
    rsc->bo = agx_bo_import(dev, whandle->handle);
    /* Sometimes an import can fail e.g. on an invalid buffer fd, out of
@@ -689,7 +692,7 @@ agx_shadow(struct agx_context *ctx, struct agx_resource *rsrc, bool needs_copy)
                      (old->flags & AGX_BO_WRITEBACK) ? "cached" : "uncached");
       agx_resource_debug(rsrc, "Shadowed: ");
 
-      memcpy(new_->map, old->map, size);
+      memcpy(agx_bo_map(new_), agx_bo_map(old), size);
    }
 
    /* Swap the pointers, dropping a reference */
@@ -752,7 +755,7 @@ agx_prepare_for_map(struct agx_context *ctx, struct agx_resource *rsrc,
 
    /* Everything after this needs the context, which is not safe for
     * unsynchronized transfers when we claim
-    * PIPE_CAP_MAP_UNSYNCHRONIZED_THREAD_SAFE.
+    * pipe_caps.map_unsynchronized_thread_safe.
     */
    assert(!(usage & PIPE_MAP_UNSYNCHRONIZED));
 
@@ -912,7 +915,6 @@ agx_transfer_map(struct pipe_context *pctx, struct pipe_resource *resource,
 {
    struct agx_context *ctx = agx_context(pctx);
    struct agx_resource *rsrc = agx_resource(resource);
-   struct agx_device *dev = agx_device(ctx->base.screen);
 
    /* Can't map tiled/compressed directly */
    if ((usage & PIPE_MAP_DIRECTLY) && rsrc->modifier != DRM_FORMAT_MOD_LINEAR)
@@ -976,11 +978,8 @@ agx_transfer_map(struct pipe_context *pctx, struct pipe_resource *resource,
          agx_sync_writer(ctx, staging, "GPU read staging blit");
       }
 
-      dev->ops.bo_mmap(dev, staging->bo);
-      return staging->bo->map;
+      return agx_bo_map(staging->bo);
    }
-
-   dev->ops.bo_mmap(dev, rsrc->bo);
 
    if (ail_is_level_twiddled_uncompressed(&rsrc->layout, level)) {
       /* Should never happen for buffers, and it's not safe */
@@ -1022,7 +1021,7 @@ agx_transfer_map(struct pipe_context *pctx, struct pipe_resource *resource,
       uint32_t offset =
          ail_get_linear_pixel_B(&rsrc->layout, level, box->x, box->y, box->z);
 
-      return ((uint8_t *)rsrc->bo->map) + offset;
+      return ((uint8_t *)agx_bo_map(rsrc->bo)) + offset;
    }
 }
 
@@ -1085,7 +1084,7 @@ agx_clear(struct pipe_context *pctx, unsigned buffers,
    unsigned fastclear = buffers & ~(batch->draw | batch->load);
    unsigned slowclear = buffers & ~fastclear;
 
-   assert(scissor_state == NULL && "we don't support PIPE_CAP_CLEAR_SCISSORED");
+   assert(scissor_state == NULL && "we don't support pipe_caps.clear_scissored");
 
    /* Fast clears configure the batch */
    for (unsigned rt = 0; rt < PIPE_MAX_COLOR_BUFS; ++rt) {
@@ -1110,7 +1109,7 @@ agx_clear(struct pipe_context *pctx, unsigned buffers,
 
    /* Slow clears draw a fullscreen rectangle */
    if (slowclear) {
-      agx_blitter_save(ctx, ctx->blitter, false /* render cond */);
+      agx_blitter_save(ctx, ctx->blitter, ASAHI_CLEAR);
       util_blitter_clear(
          ctx->blitter, ctx->framebuffer.width, ctx->framebuffer.height,
          util_framebuffer_get_num_layers(&ctx->framebuffer), slowclear, color,
@@ -1517,12 +1516,12 @@ agx_cmdbuf(struct agx_device *dev, struct drm_asahi_cmd_render *c,
       c->flags |= ASAHI_RENDER_VERTEX_SPILLS;
       c->vertex_helper_arg = batch->ctx->scratch_vs.buf->va->addr;
       c->vertex_helper_cfg = batch->vs_preamble_scratch << 16;
-      c->vertex_helper_program = dev->helper->va->addr | 1;
+      c->vertex_helper_program = agx_helper_program(&batch->ctx->bg_eot);
    }
    if (batch->fs_scratch) {
       c->fragment_helper_arg = batch->ctx->scratch_fs.buf->va->addr;
       c->fragment_helper_cfg = batch->fs_preamble_scratch << 16;
-      c->fragment_helper_program = dev->helper->va->addr | 1;
+      c->fragment_helper_program = agx_helper_program(&batch->ctx->bg_eot);
    }
 }
 
@@ -1619,8 +1618,9 @@ agx_flush_compute(struct agx_context *ctx, struct agx_batch *batch,
    *cmdbuf = (struct drm_asahi_cmd_compute){
       .flags = 0,
       .encoder_ptr = batch->cdm.bo->va->addr,
-      .encoder_end = batch->cdm.bo->va->addr +
-                     (batch->cdm.current - (uint8_t *)batch->cdm.bo->map),
+      .encoder_end =
+         batch->cdm.bo->va->addr +
+         (batch->cdm.current - (uint8_t *)agx_bo_map(batch->cdm.bo)),
       .usc_base = dev->shader_base,
       .helper_arg = 0,
       .helper_cfg = 0,
@@ -1644,7 +1644,7 @@ agx_flush_compute(struct agx_context *ctx, struct agx_batch *batch,
       cmdbuf->helper_arg = ctx->scratch_cs.buf->va->addr;
       cmdbuf->helper_cfg = batch->cs_preamble_scratch << 16;
       // cmdbuf->helper_cfg |= 0x40;
-      cmdbuf->helper_program = dev->helper->va->addr | 1;
+      cmdbuf->helper_program = agx_helper_program(&batch->ctx->bg_eot);
    }
 }
 
@@ -1854,6 +1854,8 @@ agx_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
       priority = 2;
    else if (flags & PIPE_CONTEXT_PRIORITY_HIGH)
       priority = 1;
+   else if (flags & PIPE_CONTEXT_PRIORITY_REALTIME)
+      priority = 0;
 
    ctx->queue_id = agx_create_command_queue(agx_device(screen),
                                             DRM_ASAHI_QUEUE_CAP_RENDER |
@@ -1963,293 +1965,6 @@ agx_query_memory_info(struct pipe_screen *pscreen,
 }
 
 static int
-agx_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
-{
-   struct agx_device *dev = agx_device(pscreen);
-
-   switch (param) {
-   case PIPE_CAP_CLIP_HALFZ:
-   case PIPE_CAP_NPOT_TEXTURES:
-   case PIPE_CAP_SHADER_STENCIL_EXPORT:
-   case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
-   case PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD:
-   case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
-   case PIPE_CAP_DEPTH_CLIP_DISABLE:
-   case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
-   case PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES:
-   case PIPE_CAP_FRAMEBUFFER_NO_ATTACHMENT:
-   case PIPE_CAP_SHADER_PACK_HALF_FLOAT:
-   case PIPE_CAP_FS_FINE_DERIVATIVE:
-   case PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS:
-   case PIPE_CAP_DOUBLES:
-      return 1;
-
-   case PIPE_CAP_MAX_RENDER_TARGETS:
-   case PIPE_CAP_FBFETCH:
-   case PIPE_CAP_FBFETCH_COHERENT:
-      return 8;
-   case PIPE_CAP_MAX_DUAL_SOURCE_RENDER_TARGETS:
-      return 1;
-
-   case PIPE_CAP_OCCLUSION_QUERY:
-   case PIPE_CAP_QUERY_TIMESTAMP:
-   case PIPE_CAP_QUERY_TIME_ELAPSED:
-   case PIPE_CAP_QUERY_SO_OVERFLOW:
-   case PIPE_CAP_QUERY_MEMORY_INFO:
-   case PIPE_CAP_PRIMITIVE_RESTART:
-   case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
-   case PIPE_CAP_ANISOTROPIC_FILTER:
-   case PIPE_CAP_NATIVE_FENCE_FD:
-   case PIPE_CAP_TEXTURE_BARRIER:
-      return true;
-
-   case PIPE_CAP_TIMER_RESOLUTION:
-      /* Timer resolution is the length of a single tick in nanos */
-      return agx_gpu_time_to_ns(dev, 1);
-
-   case PIPE_CAP_SAMPLER_VIEW_TARGET:
-   case PIPE_CAP_TEXTURE_SWIZZLE:
-   case PIPE_CAP_BLEND_EQUATION_SEPARATE:
-   case PIPE_CAP_INDEP_BLEND_ENABLE:
-   case PIPE_CAP_INDEP_BLEND_FUNC:
-   case PIPE_CAP_ACCELERATED:
-   case PIPE_CAP_UMA:
-   case PIPE_CAP_TEXTURE_FLOAT_LINEAR:
-   case PIPE_CAP_TEXTURE_HALF_FLOAT_LINEAR:
-   case PIPE_CAP_TEXTURE_MIRROR_CLAMP_TO_EDGE:
-   case PIPE_CAP_SHADER_ARRAY_COMPONENTS:
-   case PIPE_CAP_PACKED_UNIFORMS:
-   case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
-   case PIPE_CAP_VS_INSTANCEID:
-   case PIPE_CAP_VERTEX_ELEMENT_INSTANCE_DIVISOR:
-   case PIPE_CAP_CONDITIONAL_RENDER:
-   case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
-   case PIPE_CAP_SEAMLESS_CUBE_MAP:
-   case PIPE_CAP_LOAD_CONSTBUF:
-   case PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE:
-   case PIPE_CAP_TEXTURE_BUFFER_OBJECTS:
-   case PIPE_CAP_NULL_TEXTURES:
-   case PIPE_CAP_TEXTURE_MULTISAMPLE:
-   case PIPE_CAP_IMAGE_LOAD_FORMATTED:
-   case PIPE_CAP_IMAGE_STORE_FORMATTED:
-   case PIPE_CAP_COMPUTE:
-   case PIPE_CAP_INT64:
-   case PIPE_CAP_SAMPLE_SHADING:
-   case PIPE_CAP_START_INSTANCE:
-   case PIPE_CAP_DRAW_PARAMETERS:
-   case PIPE_CAP_MULTI_DRAW_INDIRECT:
-   case PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS:
-   case PIPE_CAP_CULL_DISTANCE:
-   case PIPE_CAP_GL_SPIRV:
-   case PIPE_CAP_POLYGON_OFFSET_CLAMP:
-      return 1;
-   case PIPE_CAP_SURFACE_SAMPLE_COUNT:
-      /* TODO: MSRTT */
-      return 0;
-
-   case PIPE_CAP_CUBE_MAP_ARRAY:
-      return 1;
-
-   case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
-      return 1;
-
-   case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
-      return PIPE_MAX_SO_BUFFERS;
-
-   case PIPE_CAP_MAX_STREAM_OUTPUT_SEPARATE_COMPONENTS:
-   case PIPE_CAP_MAX_STREAM_OUTPUT_INTERLEAVED_COMPONENTS:
-      return PIPE_MAX_SO_OUTPUTS;
-
-   case PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME:
-   case PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS:
-      return 1;
-
-   case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
-      return 2048;
-
-   case PIPE_CAP_GLSL_FEATURE_LEVEL:
-   case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
-      return 460;
-   case PIPE_CAP_ESSL_FEATURE_LEVEL:
-      return 320;
-
-   /* Settings from iris, may need tuning */
-   case PIPE_CAP_MAX_VERTEX_STREAMS:
-      return 4;
-   case PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES:
-      return 256;
-   case PIPE_CAP_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS:
-      return 1024;
-   case PIPE_CAP_MAX_GS_INVOCATIONS:
-      return 32;
-   case PIPE_CAP_CONSTANT_BUFFER_OFFSET_ALIGNMENT:
-      return 16;
-
-   case PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT:
-      return AGX_TEXTURE_BUFFER_MAX_SIZE;
-
-   case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
-      return 64;
-
-   case PIPE_CAP_VERTEX_INPUT_ALIGNMENT:
-      return PIPE_VERTEX_INPUT_ALIGNMENT_ELEMENT;
-
-   case PIPE_CAP_QUERY_PIPELINE_STATISTICS_SINGLE:
-      return true;
-
-   case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      return 16384;
-   case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      /* Max 16384x16384 */
-      return 15;
-   case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
-      /* Max 2048x2048x2048 */
-      return 12;
-
-   case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
-   case PIPE_CAP_TGSI_TEXCOORD:
-   case PIPE_CAP_FS_FACE_IS_INTEGER_SYSVAL:
-   case PIPE_CAP_FS_POSITION_IS_SYSVAL:
-      return true;
-   case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
-   case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
-   case PIPE_CAP_FS_POINT_IS_SYSVAL:
-      return false;
-
-   case PIPE_CAP_MAX_VERTEX_ELEMENT_SRC_OFFSET:
-      return 0xffff;
-
-   case PIPE_CAP_TEXTURE_TRANSFER_MODES:
-      return PIPE_TEXTURE_TRANSFER_BLIT;
-
-   case PIPE_CAP_ENDIANNESS:
-      return PIPE_ENDIAN_LITTLE;
-
-   case PIPE_CAP_SHADER_GROUP_VOTE:
-   case PIPE_CAP_SHADER_BALLOT:
-      return true;
-
-   case PIPE_CAP_MAX_TEXTURE_GATHER_COMPONENTS:
-      return 4;
-   case PIPE_CAP_MIN_TEXTURE_GATHER_OFFSET:
-      return -8;
-   case PIPE_CAP_MAX_TEXTURE_GATHER_OFFSET:
-      return 7;
-   case PIPE_CAP_DRAW_INDIRECT:
-   case PIPE_CAP_TEXTURE_QUERY_SAMPLES:
-   case PIPE_CAP_TEXTURE_QUERY_LOD:
-   case PIPE_CAP_TEXTURE_SHADOW_LOD:
-      return true;
-
-   case PIPE_CAP_MAX_VIEWPORTS:
-      return AGX_MAX_VIEWPORTS;
-
-   case PIPE_CAP_VIDEO_MEMORY: {
-      uint64_t system_memory;
-
-      if (!os_get_total_physical_memory(&system_memory))
-         return 0;
-
-      return (int)(system_memory >> 20);
-   }
-
-   case PIPE_CAP_DEVICE_RESET_STATUS_QUERY:
-   case PIPE_CAP_ROBUST_BUFFER_ACCESS_BEHAVIOR:
-      return true;
-
-   case PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT:
-      return 4;
-
-   case PIPE_CAP_MAX_SHADER_PATCH_VARYINGS:
-      return 32;
-   case PIPE_CAP_MAX_VARYINGS:
-      /* TODO: Probably should bump to 32? */
-      return 16;
-
-   case PIPE_CAP_FLATSHADE:
-   case PIPE_CAP_TWO_SIDED_COLOR:
-   case PIPE_CAP_ALPHA_TEST:
-   case PIPE_CAP_CLIP_PLANES:
-   case PIPE_CAP_NIR_IMAGES_AS_DEREF:
-      return 0;
-
-   case PIPE_CAP_QUERY_BUFFER_OBJECT:
-      return true;
-
-   case PIPE_CAP_TEXTURE_BORDER_COLOR_QUIRK:
-      return PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
-
-   case PIPE_CAP_SUPPORTED_PRIM_MODES:
-   case PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART:
-      return BITFIELD_BIT(MESA_PRIM_POINTS) | BITFIELD_BIT(MESA_PRIM_LINES) |
-             BITFIELD_BIT(MESA_PRIM_LINE_STRIP) |
-             BITFIELD_BIT(MESA_PRIM_LINE_LOOP) |
-             BITFIELD_BIT(MESA_PRIM_TRIANGLES) |
-             BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP) |
-             BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN) |
-             BITFIELD_BIT(MESA_PRIM_LINES_ADJACENCY) |
-             BITFIELD_BIT(MESA_PRIM_LINE_STRIP_ADJACENCY) |
-             BITFIELD_BIT(MESA_PRIM_TRIANGLES_ADJACENCY) |
-             BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP_ADJACENCY) |
-             BITFIELD_BIT(MESA_PRIM_PATCHES);
-
-   case PIPE_CAP_MAP_UNSYNCHRONIZED_THREAD_SAFE:
-      return 1;
-
-   case PIPE_CAP_VS_LAYER_VIEWPORT:
-   case PIPE_CAP_TES_LAYER_VIEWPORT:
-      return true;
-
-   case PIPE_CAP_CONTEXT_PRIORITY_MASK:
-      return PIPE_CONTEXT_PRIORITY_LOW | PIPE_CONTEXT_PRIORITY_MEDIUM |
-             PIPE_CONTEXT_PRIORITY_HIGH;
-
-   default:
-      return u_pipe_screen_get_param_defaults(pscreen, param);
-   }
-}
-
-static float
-agx_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
-{
-   switch (param) {
-   case PIPE_CAPF_MIN_LINE_WIDTH:
-   case PIPE_CAPF_MIN_LINE_WIDTH_AA:
-   case PIPE_CAPF_MIN_POINT_SIZE:
-   case PIPE_CAPF_MIN_POINT_SIZE_AA:
-      return 1;
-
-   case PIPE_CAPF_POINT_SIZE_GRANULARITY:
-   case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
-      return 0.1;
-
-   case PIPE_CAPF_MAX_LINE_WIDTH:
-   case PIPE_CAPF_MAX_LINE_WIDTH_AA:
-      return 16.0; /* Off-by-one fixed point 4:4 encoding */
-
-   case PIPE_CAPF_MAX_POINT_SIZE:
-   case PIPE_CAPF_MAX_POINT_SIZE_AA:
-      return 511.95f;
-
-   case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
-      return 16.0;
-
-   case PIPE_CAPF_MAX_TEXTURE_LOD_BIAS:
-      return 16.0; /* arbitrary */
-
-   case PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE:
-   case PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY:
-      return 0.0f;
-
-   default:
-      debug_printf("Unexpected PIPE_CAPF %d query\n", param);
-      return 0.0;
-   }
-}
-
-static int
 agx_get_shader_param(struct pipe_screen *pscreen, enum pipe_shader_type shader,
                      enum pipe_shader_cap param)
 {
@@ -2306,8 +2021,6 @@ agx_get_shader_param(struct pipe_screen *pscreen, enum pipe_shader_type shader,
    case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
       return 0;
 
-   case PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
    case PIPE_SHADER_CAP_INTEGERS:
@@ -2368,6 +2081,8 @@ static int
 agx_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
                       enum pipe_compute_cap param, void *ret)
 {
+   struct agx_device *dev = agx_device(pscreen);
+
 #define RET(x)                                                                 \
    do {                                                                        \
       if (ret)                                                                 \
@@ -2414,10 +2129,10 @@ agx_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
       RET((uint64_t[]){4096});
 
    case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-      RET((uint32_t[]){800 /* MHz -- TODO */});
+      RET((uint32_t[]){dev->params.max_frequency_khz / 1000});
 
    case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
-      RET((uint32_t[]){4 /* TODO */});
+      RET((uint32_t[]){agx_get_num_cores(dev)});
 
    case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
       RET((uint32_t[]){1});
@@ -2433,6 +2148,217 @@ agx_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
    }
 
    return 0;
+}
+
+static void
+agx_init_screen_caps(struct pipe_screen *pscreen)
+{
+   struct pipe_caps *caps = (struct pipe_caps *)&pscreen->caps;
+
+   u_init_pipe_screen_caps(pscreen, 1);
+
+   caps->clip_halfz = true;
+   caps->npot_textures = true;
+   caps->shader_stencil_export = true;
+   caps->mixed_color_depth_bits = true;
+   caps->fragment_shader_texture_lod = true;
+   caps->vertex_color_unclamped = true;
+   caps->depth_clip_disable = true;
+   caps->mixed_framebuffer_sizes = true;
+   caps->fragment_shader_derivatives = true;
+   caps->framebuffer_no_attachment = true;
+   caps->shader_pack_half_float = true;
+   caps->fs_fine_derivative = true;
+   caps->glsl_tess_levels_as_inputs = true;
+   caps->doubles = true;
+
+   caps->max_render_targets =
+   caps->fbfetch = 8;
+   caps->fbfetch_coherent = true;
+
+   caps->max_dual_source_render_targets = 1;
+
+   caps->occlusion_query = true;
+   caps->query_timestamp = true;
+   caps->query_time_elapsed = true;
+   caps->query_so_overflow = true;
+   caps->query_memory_info = true;
+   caps->primitive_restart = true;
+   caps->primitive_restart_fixed_index = true;
+   caps->anisotropic_filter = true;
+   caps->native_fence_fd = true;
+   caps->texture_barrier = true;
+
+   /* Timer resolution is the length of a single tick in nanos */
+   caps->timer_resolution = agx_gpu_time_to_ns(agx_device(pscreen), 1);
+
+   caps->sampler_view_target = true;
+   caps->texture_swizzle = true;
+   caps->blend_equation_separate = true;
+   caps->indep_blend_enable = true;
+   caps->indep_blend_func = true;
+   caps->uma = true;
+   caps->texture_float_linear = true;
+   caps->texture_half_float_linear = true;
+   caps->texture_mirror_clamp_to_edge = true;
+   caps->shader_array_components = true;
+   caps->packed_uniforms = true;
+   caps->quads_follow_provoking_vertex_convention = true;
+   caps->vs_instanceid = true;
+   caps->vertex_element_instance_divisor = true;
+   caps->conditional_render = true;
+   caps->conditional_render_inverted = true;
+   caps->seamless_cube_map = true;
+   caps->load_constbuf = true;
+   caps->seamless_cube_map_per_texture = true;
+   caps->texture_buffer_objects = true;
+   caps->null_textures = true;
+   caps->texture_multisample = true;
+   caps->image_load_formatted = true;
+   caps->image_store_formatted = true;
+   caps->compute = true;
+   caps->int64 = true;
+   caps->sample_shading = true;
+   caps->start_instance = true;
+   caps->draw_parameters = true;
+   caps->multi_draw_indirect = true;
+   caps->multi_draw_indirect_params = true;
+   caps->cull_distance = true;
+   caps->gl_spirv = true;
+   caps->polygon_offset_clamp = true;
+
+   /* TODO: MSRTT */
+   caps->surface_sample_count = false;
+
+   caps->cube_map_array = true;
+
+   caps->copy_between_compressed_and_plain_formats = true;
+
+   caps->max_stream_output_buffers = PIPE_MAX_SO_BUFFERS;
+
+   caps->max_stream_output_separate_components =
+   caps->max_stream_output_interleaved_components = PIPE_MAX_SO_OUTPUTS;
+
+   caps->stream_output_pause_resume = true;
+   caps->stream_output_interleave_buffers = true;
+
+   caps->max_texture_array_layers = 2048;
+
+   caps->glsl_feature_level =
+   caps->glsl_feature_level_compatibility = 460;
+   caps->essl_feature_level = 320;
+
+   /* Settings from iris, may need tuning */
+   caps->max_vertex_streams = 4;
+   caps->max_geometry_output_vertices = 256;
+   caps->max_geometry_total_output_components = 1024;
+   caps->max_gs_invocations = 32;
+   caps->constant_buffer_offset_alignment = 16;
+
+   caps->max_texel_buffer_elements = AGX_TEXTURE_BUFFER_MAX_SIZE;
+
+   caps->texture_buffer_offset_alignment = 64;
+
+   caps->vertex_input_alignment = PIPE_VERTEX_INPUT_ALIGNMENT_ELEMENT;
+
+   caps->query_pipeline_statistics_single = true;
+
+   caps->max_texture_2d_size = 16384;
+   caps->max_texture_cube_levels = 15; /* Max 16384x16384 */
+   caps->max_texture_3d_levels = 12; /* Max 2048x2048x2048 */
+
+   caps->fs_coord_origin_upper_left = true;
+   caps->fs_coord_pixel_center_integer = true;
+   caps->tgsi_texcoord = true;
+   caps->fs_face_is_integer_sysval = true;
+   caps->fs_position_is_sysval = true;
+
+   caps->fs_coord_origin_lower_left = false;
+   caps->fs_coord_pixel_center_half_integer = false;
+   caps->fs_point_is_sysval = false;
+
+   caps->max_vertex_element_src_offset = 0xffff;
+
+   caps->texture_transfer_modes = PIPE_TEXTURE_TRANSFER_BLIT;
+
+   caps->endianness = PIPE_ENDIAN_LITTLE;
+
+   caps->shader_group_vote = true;
+   caps->shader_ballot = true;
+
+   caps->max_texture_gather_components = 4;
+   caps->min_texture_gather_offset = -8;
+   caps->max_texture_gather_offset = 7;
+   caps->draw_indirect = true;
+   caps->texture_query_samples = true;
+   caps->texture_query_lod = true;
+   caps->texture_shadow_lod = true;
+
+   caps->max_viewports = AGX_MAX_VIEWPORTS;
+
+   uint64_t system_memory;
+   caps->video_memory = os_get_total_physical_memory(&system_memory) ?
+      (system_memory >> 20) : 0;
+
+   caps->device_reset_status_query = true;
+   caps->robust_buffer_access_behavior = true;
+
+   caps->shader_buffer_offset_alignment = 4;
+
+   caps->max_shader_patch_varyings = 32;
+   /* TODO: Probably should bump to 32? */
+   caps->max_varyings = 16;
+
+   caps->flatshade = false;
+   caps->two_sided_color = false;
+   caps->alpha_test = false;
+   caps->clip_planes = 0;
+   caps->nir_images_as_deref = false;
+
+   caps->query_buffer_object = true;
+
+   caps->texture_border_color_quirk = PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
+
+   caps->supported_prim_modes =
+   caps->supported_prim_modes_with_restart =
+      BITFIELD_BIT(MESA_PRIM_POINTS) | BITFIELD_BIT(MESA_PRIM_LINES) |
+      BITFIELD_BIT(MESA_PRIM_LINE_STRIP) |
+      BITFIELD_BIT(MESA_PRIM_LINE_LOOP) |
+      BITFIELD_BIT(MESA_PRIM_TRIANGLES) |
+      BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP) |
+      BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN) |
+      BITFIELD_BIT(MESA_PRIM_LINES_ADJACENCY) |
+      BITFIELD_BIT(MESA_PRIM_LINE_STRIP_ADJACENCY) |
+      BITFIELD_BIT(MESA_PRIM_TRIANGLES_ADJACENCY) |
+      BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP_ADJACENCY) |
+      BITFIELD_BIT(MESA_PRIM_PATCHES);
+
+   caps->map_unsynchronized_thread_safe = true;
+
+   caps->vs_layer_viewport = true;
+   caps->tes_layer_viewport = true;
+
+   caps->context_priority_mask =
+      PIPE_CONTEXT_PRIORITY_LOW | PIPE_CONTEXT_PRIORITY_MEDIUM |
+      PIPE_CONTEXT_PRIORITY_HIGH | PIPE_CONTEXT_PRIORITY_REALTIME;
+
+   caps->min_line_width =
+   caps->min_line_width_aa =
+   caps->min_point_size =
+   caps->min_point_size_aa = 1;
+
+   caps->point_size_granularity =
+   caps->line_width_granularity = 0.1;
+
+   caps->max_line_width =
+   caps->max_line_width_aa = 16.0; /* Off-by-one fixed point 4:4 encoding */
+
+   caps->max_point_size =
+   caps->max_point_size_aa = 511.95f;
+
+   caps->max_texture_anisotropy = 16.0;
+
+   caps->max_texture_lod_bias = 16.0; /* arbitrary */
 }
 
 static bool
@@ -2562,6 +2488,7 @@ agx_destroy_screen(struct pipe_screen *pscreen)
    if (screen->dev.ro)
       screen->dev.ro->destroy(screen->dev.ro);
 
+   agx_bo_unreference(&screen->dev, screen->rodata);
    u_transfer_helper_destroy(pscreen->transfer_helper);
    agx_close_device(&screen->dev);
    disk_cache_destroy(screen->disk_cache);
@@ -2641,7 +2568,8 @@ agx_get_cl_cts_version(struct pipe_screen *pscreen)
 {
    struct agx_device *dev = agx_device(pscreen);
 
-   /* https://www.khronos.org/conformance/adopters/conformant-products/opencl#submission_433 */
+   /* https://www.khronos.org/conformance/adopters/conformant-products/opencl#submission_433
+    */
    if (dev->params.gpu_generation < 15)
       return "v2024-08-08-00";
 
@@ -2672,10 +2600,6 @@ agx_screen_create(int fd, struct renderonly *ro,
    driParseConfigFiles(config->options, config->options_info, 0, "asahi", NULL,
                        NULL, NULL, 0, NULL, 0);
 
-   /* Forward no16 flag from driconf */
-   if (driQueryOptionb(config->options, "no_fp16"))
-      agx_screen->dev.debug |= AGX_DBG_NO16;
-
    agx_screen->dev.fd = fd;
    agx_screen->dev.ro = ro;
    u_rwlock_init(&agx_screen->destroy_lock);
@@ -2685,6 +2609,12 @@ agx_screen_create(int fd, struct renderonly *ro,
       ralloc_free(agx_screen);
       return NULL;
    }
+
+   /* Forward no16 flag from driconf. This must happen after opening the device,
+    * since agx_open_device sets debug.
+    */
+   if (driQueryOptionb(config->options, "no_fp16"))
+      agx_screen->dev.debug |= AGX_DBG_NO16;
 
    int ret =
       drmSyncobjCreate(agx_device(screen)->fd, 0, &agx_screen->flush_syncobj);
@@ -2697,10 +2627,8 @@ agx_screen_create(int fd, struct renderonly *ro,
    screen->get_name = agx_get_name;
    screen->get_vendor = agx_get_vendor;
    screen->get_device_vendor = agx_get_device_vendor;
-   screen->get_param = agx_get_param;
    screen->get_shader_param = agx_get_shader_param;
    screen->get_compute_param = agx_get_compute_param;
-   screen->get_paramf = agx_get_paramf;
    screen->get_device_uuid = agx_screen_get_device_uuid;
    screen->get_driver_uuid = agx_screen_get_driver_uuid;
    screen->is_format_supported = agx_is_format_supported;
@@ -2727,7 +2655,25 @@ agx_screen_create(int fd, struct renderonly *ro,
       U_TRANSFER_HELPER_SEPARATE_Z32S8 | U_TRANSFER_HELPER_SEPARATE_STENCIL |
          U_TRANSFER_HELPER_MSAA_MAP | U_TRANSFER_HELPER_Z24_IN_Z32F);
 
+   agx_init_screen_caps(screen);
+
    agx_disk_cache_init(agx_screen);
+
+   /* TODO: Refactor readonly data? */
+   {
+      struct agx_bo *bo =
+         agx_bo_create(&agx_screen->dev, 16384, 0, 0, "Rodata");
+
+      agx_pack_txf_sampler((struct agx_sampler_packed *)agx_bo_map(bo));
+
+      agx_pack(&agx_screen->dev.txf_sampler, USC_SAMPLER, cfg) {
+         cfg.start = 0;
+         cfg.count = 1;
+         cfg.buffer = bo->va->addr;
+      }
+
+      agx_screen->rodata = bo;
+   }
 
    return screen;
 }

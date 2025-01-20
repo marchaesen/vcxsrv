@@ -101,7 +101,8 @@ void cso_set_vertex_buffers(struct cso_context *ctx,
 void cso_set_stream_outputs(struct cso_context *ctx,
                             unsigned num_targets,
                             struct pipe_stream_output_target **targets,
-                            const unsigned *offsets);
+                            const unsigned *offsets,
+                            enum mesa_prim output_prim);
 
 
 enum cso_unbind_flags {

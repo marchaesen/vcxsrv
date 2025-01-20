@@ -87,7 +87,7 @@ util_queue_fence_destroy(struct util_queue_fence *fence)
 static inline void
 util_queue_fence_signal(struct util_queue_fence *fence)
 {
-   uint32_t val = p_atomic_xchg(&fence->val, 0);
+   uint32_t val = (uint32_t)p_atomic_xchg(&fence->val, 0);
 
    assert(val != 0);
 
@@ -107,7 +107,7 @@ util_queue_fence_reset(struct util_queue_fence *fence)
 #ifdef NDEBUG
    fence->val = 1;
 #else
-   uint32_t v = p_atomic_xchg(&fence->val, 1);
+   uint32_t v = (uint32_t)p_atomic_xchg(&fence->val, 1);
    assert(v == 0);
 #endif
 }

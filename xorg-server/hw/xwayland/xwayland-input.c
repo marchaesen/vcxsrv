@@ -57,6 +57,7 @@
 #include "pointer-gestures-unstable-v1-client-protocol.h"
 #include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
 #include "keyboard-shortcuts-inhibit-unstable-v1-client-protocol.h"
+#include "xdg-system-bell-v1-client-protocol.h"
 
 #define SCROLL_AXIS_HORIZ 2
 #define SCROLL_AXIS_VERT 3
@@ -3091,6 +3092,15 @@ init_keyboard_shortcuts_inhibit(struct xwl_screen *xwl_screen,
                           1);
 }
 
+static void
+init_system_bell(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version)
+{
+     xwl_screen->system_bell =
+         wl_registry_bind(xwl_screen->registry, id,
+                          &xdg_system_bell_v1_interface,
+                          1);
+}
+
 /* The compositor may send us wl_seat and its capabilities before sending e.g.
    relative_pointer_manager or pointer_gesture interfaces. This would result in
    devices being created in capabilities handler, but listeners not, because
@@ -3142,6 +3152,8 @@ input_handler(void *data, struct wl_registry *registry, uint32_t id,
         init_keyboard_grab(xwl_screen, id, version);
     } else if (strcmp(interface, zwp_keyboard_shortcuts_inhibit_manager_v1_interface.name) == 0) {
         init_keyboard_shortcuts_inhibit(xwl_screen, id, version);
+    } else if (strcmp(interface, xdg_system_bell_v1_interface.name) == 0) {
+        init_system_bell(xwl_screen, id, version);
     }
 }
 
@@ -3164,6 +3176,28 @@ ProcessInputEvents(void)
 void
 DDXRingBell(int volume, int pitch, int duration)
 {
+    ScreenPtr screen = screenInfo.screens[0];
+    struct xwl_screen *xwl_screen;
+    struct xwl_seat *xwl_seat;
+
+    xwl_screen = xwl_screen_get(screen);
+    if (!xwl_screen->system_bell)
+        return;
+
+    xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
+        if (!xwl_seat->keyboard)
+            continue;
+
+        if (!xwl_seat->keyboard->coreEvents)
+            continue;
+
+        if (!xwl_seat->keyboard_focus)
+            continue;
+
+        DebugF("XWAYLAND: Ringing the bell\n");
+        xdg_system_bell_v1_ring (xwl_screen->system_bell, xwl_seat->keyboard_focus);
+        return;
+    }
 }
 
 static Bool

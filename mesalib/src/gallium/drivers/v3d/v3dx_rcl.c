@@ -493,7 +493,7 @@ do_double_initial_tile_clear(const struct v3d_job *job)
          * clear for double buffer mode is required.
          */
         return job->double_buffer &&
-               (job->draw_tiles_x > 1 || job->draw_tiles_y > 1);
+               (job->tile_desc.draw_x > 1 || job->tile_desc.draw_y > 1);
 }
 
 static void
@@ -505,7 +505,7 @@ emit_render_layer(struct v3d_job *job, uint32_t layer)
          * core's tile list here.
          */
         uint32_t tile_alloc_offset =
-                layer * job->draw_tiles_x * job->draw_tiles_y * 64;
+                layer * job->tile_desc.draw_x * job->tile_desc.draw_y * 64;
         cl_emit(&job->rcl, MULTICORE_RENDERING_TILE_LIST_SET_BASE, list) {
                 list.address = cl_address(job->tile_alloc, tile_alloc_offset);
         }
@@ -516,9 +516,9 @@ emit_render_layer(struct v3d_job *job, uint32_t layer)
 
                 /* Size up our supertiles until we get under the limit. */
                 for (;;) {
-                        frame_w_in_supertiles = DIV_ROUND_UP(job->draw_tiles_x,
+                        frame_w_in_supertiles = DIV_ROUND_UP(job->tile_desc.draw_x,
                                                              supertile_w);
-                        frame_h_in_supertiles = DIV_ROUND_UP(job->draw_tiles_y,
+                        frame_h_in_supertiles = DIV_ROUND_UP(job->tile_desc.draw_y,
                                                              supertile_h);
                         if (frame_w_in_supertiles *
                                 frame_h_in_supertiles < max_supertiles) {
@@ -532,8 +532,8 @@ emit_render_layer(struct v3d_job *job, uint32_t layer)
                 }
 
                 config.number_of_bin_tile_lists = 1;
-                config.total_frame_width_in_tiles = job->draw_tiles_x;
-                config.total_frame_height_in_tiles = job->draw_tiles_y;
+                config.total_frame_width_in_tiles = job->tile_desc.draw_x;
+                config.total_frame_height_in_tiles = job->tile_desc.draw_y;
 
                 config.supertile_width_in_tiles = supertile_w;
                 config.supertile_height_in_tiles = supertile_h;
@@ -589,8 +589,8 @@ emit_render_layer(struct v3d_job *job, uint32_t layer)
          * improve X11 performance, but we should use Morton order
          * otherwise to improve cache locality.
          */
-        uint32_t supertile_w_in_pixels = job->tile_width * supertile_w;
-        uint32_t supertile_h_in_pixels = job->tile_height * supertile_h;
+        uint32_t supertile_w_in_pixels = job->tile_desc.width * supertile_w;
+        uint32_t supertile_h_in_pixels = job->tile_desc.height * supertile_h;
         uint32_t min_x_supertile = job->draw_min_x / supertile_w_in_pixels;
         uint32_t min_y_supertile = job->draw_min_y / supertile_h_in_pixels;
 
@@ -679,8 +679,8 @@ v3dX(emit_rcl)(struct v3d_job *job)
                 config.maximum_bpp_of_all_render_targets = job->internal_bpp;
 #endif
 #if V3D_VERSION >= 71
-                config.log2_tile_width = log2_tile_size(job->tile_width);
-                config.log2_tile_height = log2_tile_size(job->tile_height);
+                config.log2_tile_width = log2_tile_size(job->tile_desc.width);
+                config.log2_tile_height = log2_tile_size(job->tile_desc.height);
 
                 /* FIXME: ideallly we would like next assert on the packet header (as is
                  * general, so also applies to GL). We would need to expand
@@ -774,12 +774,12 @@ v3dX(emit_rcl)(struct v3d_job *job)
                         v3d_setup_render_target(job, i, &rt.internal_bpp,
                                                 &rt.internal_type_and_clamping);
                         rt.stride =
-                                v3d_compute_rt_row_row_stride_128_bits(job->tile_width,
+                                v3d_compute_rt_row_row_stride_128_bits(job->tile_desc.width,
                                                                        v3d_internal_bpp_words(rt.internal_bpp));
                         rt.base_address = base_addr;
                         rt.render_target_number = i;
 
-                        base_addr += (job->tile_height * rt.stride) / 8;
+                        base_addr += (job->tile_desc.height * rt.stride) / 8;
                 }
 
                 if (surf->internal_bpp >= V3D_INTERNAL_BPP_64) {

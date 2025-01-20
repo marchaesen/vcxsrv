@@ -553,15 +553,17 @@ ir3_nir_lower_const_global_loads(nir_shader *nir, struct ir3_shader_variant *v)
       return false;
 
    unsigned max_upload;
+   uint32_t global_offset = 0;
    if (v->binning_pass) {
-      max_upload = const_state->global_size * 16;
-   } else {
-      struct ir3_const_state worst_case_const_state = {
-         .preamble_size = const_state->preamble_size,
-      };
-      ir3_setup_const_state(nir, v, &worst_case_const_state);
       max_upload =
-         ir3_const_state_get_free_space(v, &worst_case_const_state) * 16;
+         const_state->allocs.consts[IR3_CONST_ALLOC_GLOBAL].size_vec4 * 16;
+      global_offset =
+         const_state->allocs.consts[IR3_CONST_ALLOC_GLOBAL].offset_vec4 * 16;
+   } else {
+      const struct ir3_const_state *const_state = ir3_const_state(v);
+      global_offset = const_state->allocs.max_const_offset_vec4 * 16;
+      max_upload =
+         ir3_const_state_get_free_space(v, const_state, 1) * 16;
    }
 
    struct ir3_ubo_analysis_state state = {};
@@ -581,7 +583,6 @@ ir3_nir_lower_const_global_loads(nir_shader *nir, struct ir3_shader_variant *v)
       }
    }
 
-   uint32_t global_offset = v->shader_options.num_reserved_user_consts * 16;
    assign_offsets(&state, global_offset, max_upload);
 
    bool progress = copy_global_to_uniform(nir, &state);
@@ -612,8 +613,10 @@ ir3_nir_lower_const_global_loads(nir_shader *nir, struct ir3_shader_variant *v)
       }
    }
 
-   if (!v->binning_pass)
-      ir3_const_state_mut(v)->global_size = DIV_ROUND_UP(state.size, 16);
+   if (!v->binning_pass) {
+      ir3_const_alloc(&ir3_const_state_mut(v)->allocs, IR3_CONST_ALLOC_GLOBAL,
+                      DIV_ROUND_UP(state.size, 16), 1);
+   }
 
    return progress;
 }
@@ -625,19 +628,25 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader_variant *v)
    struct ir3_ubo_analysis_state *state = &const_state->ubo_state;
    struct ir3_compiler *compiler = v->compiler;
 
+   if (compiler->gen < 6 && const_state->num_ubos > 0) {
+      uint32_t ptrs_vec4 =
+         align(const_state->num_ubos * ir3_pointer_size(compiler), 4) / 4;
+      ir3_const_reserve_space(&const_state->allocs, IR3_CONST_ALLOC_UBO_PTRS,
+                              ptrs_vec4, 1);
+   }
+
+   uint32_t align_vec4 = compiler->load_shader_consts_via_preamble
+                            ? 1
+                            : compiler->const_upload_unit;
+
    /* Limit our uploads to the amount of constant buffer space available in
     * the hardware, minus what the shader compiler may need for various
     * driver params.  We do this UBO-to-push-constant before the real
-    * allocation of the driver params' const space, because UBO pointers can
+    * allocation of the UBO pointers' const space, because UBO pointers can
     * be driver params but this pass usually eliminatings them.
     */
-   struct ir3_const_state worst_case_const_state = {
-      .preamble_size = const_state->preamble_size,
-      .global_size = const_state->global_size,
-   };
-   ir3_setup_const_state(nir, v, &worst_case_const_state);
    const uint32_t max_upload =
-      ir3_const_state_get_free_space(v, &worst_case_const_state) * 16;
+      ir3_const_state_get_free_space(v, const_state, align_vec4) * 16;
 
    memset(state, 0, sizeof(*state));
 
@@ -660,9 +669,13 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader_variant *v)
       }
    }
 
-   uint32_t ubo_offset = v->shader_options.num_reserved_user_consts * 16 +
-      const_state->global_size * 16;
+   uint32_t ubo_offset = align(const_state->allocs.max_const_offset_vec4, align_vec4) * 16;
    assign_offsets(state, ubo_offset, max_upload);
+
+   uint32_t upload_vec4 = state->size / 16;
+   if (upload_vec4 > 0)
+      ir3_const_alloc(&ir3_const_state_mut(v)->allocs,
+                      IR3_CONST_ALLOC_UBO_RANGES, upload_vec4, align_vec4);
 }
 
 bool
@@ -708,6 +721,22 @@ ir3_nir_lower_ubo_loads(nir_shader *nir, struct ir3_shader_variant *v)
     */
    if (nir->info.first_ubo_is_default_ubo && !push_ubos && !has_preamble)
       nir->info.num_ubos = num_ubos;
+
+
+   if (!v->binning_pass) {
+      ir3_const_state_mut(v)->num_ubos = num_ubos;
+
+      if (compiler->gen < 6)
+         ir3_const_free_reserved_space(&ir3_const_state_mut(v)->allocs,
+                                       IR3_CONST_ALLOC_UBO_PTRS);
+
+      if (compiler->gen < 6 && const_state->num_ubos > 0) {
+         uint32_t upload_ptrs_vec4 =
+            align(const_state->num_ubos * ir3_pointer_size(compiler), 4) / 4;
+         ir3_const_alloc(&ir3_const_state_mut(v)->allocs,
+                         IR3_CONST_ALLOC_UBO_PTRS, upload_ptrs_vec4, 1);
+      }
+   }
 
    if (compiler->has_preamble && push_ubos)
       progress |= copy_ubo_to_uniform(
@@ -853,6 +882,9 @@ ir3_nir_lower_load_constant(nir_shader *nir, struct ir3_shader_variant *v)
                compiler->const_upload_unit * 4 * sizeof(uint32_t));
       v->constant_data = rzalloc_size(v, v->constant_data_size);
       memcpy(v->constant_data, nir->constant_data, nir->constant_data_size);
+
+      const struct ir3_const_state *const_state = ir3_const_state(v);
+      ir3_update_driver_ubo(nir, &const_state->consts_ubo, "$consts");
    }
 
    return progress;

@@ -62,19 +62,16 @@ static nir_def *
 load_input(nir_builder *b, nir_intrinsic_instr *intr, int location)
 {
    nir_def *load;
-   nir_io_semantics sem = {.location = location, .num_slots = 1};
    int c = nir_intrinsic_component(intr);
    nir_def *zero = nir_imm_int(b, 0);
    if (intr->intrinsic == nir_intrinsic_load_input)
       load = nir_load_input(b, intr->def.num_components, intr->def.bit_size, zero,
-                            .dest_type = nir_type_float32,
-                            .io_semantics = sem,
+                            .io_semantics.location = location,
                             .component = c);
    else
       load = nir_load_interpolated_input(b, intr->def.num_components, intr->def.bit_size,
                                          intr->src[0].ssa, zero,
-                                         .dest_type = nir_type_float32,
-                                         .io_semantics = sem,
+                                         .io_semantics.location = location,
                                          .component = c);
    return load;
 }
@@ -163,8 +160,10 @@ nir_lower_two_sided_color_instr(nir_builder *b, nir_instr *instr, void *data)
       face = nir_load_front_face(b, 1);
    else {
       if (b->shader->info.io_lowered) {
-         nir_io_semantics sem = {.location = VARYING_SLOT_FACE, .num_slots = 1};
-         face = nir_load_input(b, 1, 1, nir_imm_int(b, 0), .base = 0, .dest_type = nir_type_bool, .io_semantics = sem);
+         face = nir_load_input(b, 1, 32, nir_imm_int(b, 0), .base = 0,
+                               .dest_type = nir_type_bool32,
+                               .io_semantics.location = VARYING_SLOT_FACE);
+         face = nir_b2b1(b, face);
       } else {
          nir_variable *var = nir_get_variable_with_location(b->shader, nir_var_shader_in,
                                                             VARYING_SLOT_FACE, glsl_bool_type());

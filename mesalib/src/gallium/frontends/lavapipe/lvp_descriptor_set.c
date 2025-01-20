@@ -128,8 +128,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateDescriptorSetLayout(
       set_layout->binding[b].uniform_block_offset = 0;
       set_layout->binding[b].uniform_block_size = 0;
 
-      if (binding->descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-          binding->descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) {
+      if (vk_descriptor_type_is_dynamic(binding->descriptorType)) {
          set_layout->binding[b].dynamic_index = dynamic_offset_count;
          dynamic_offset_count += binding->descriptorCount;
       }
@@ -232,7 +231,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreatePipelineLayout(
 }
 
 static struct pipe_resource *
-get_buffer_resource(struct pipe_context *ctx, const VkDescriptorAddressInfoEXT *bda)
+get_buffer_resource(struct pipe_context *ctx, VkDeviceAddress address, size_t range)
 {
    struct pipe_screen *pscreen = ctx->screen;
    struct pipe_resource templ = {0};
@@ -240,7 +239,7 @@ get_buffer_resource(struct pipe_context *ctx, const VkDescriptorAddressInfoEXT *
    templ.screen = pscreen;
    templ.target = PIPE_BUFFER;
    templ.format = PIPE_FORMAT_R8_UNORM;
-   templ.width0 = bda->range;
+   templ.width0 = range;
    templ.height0 = 1;
    templ.depth0 = 1;
    templ.array_size = 1;
@@ -250,10 +249,10 @@ get_buffer_resource(struct pipe_context *ctx, const VkDescriptorAddressInfoEXT *
 
    uint64_t size;
    struct pipe_resource *pres = pscreen->resource_create_unbacked(pscreen, &templ, &size);
-   assert(size == bda->range);
+   assert(size == range);
 
    struct llvmpipe_memory_allocation alloc = {
-      .cpu_addr = (void *)(uintptr_t)bda->address,
+      .cpu_addr = (void *)(uintptr_t)address,
    };
 
    pscreen->resource_bind_backing(pscreen, pres, (void *)&alloc, 0, 0, 0);
@@ -261,11 +260,11 @@ get_buffer_resource(struct pipe_context *ctx, const VkDescriptorAddressInfoEXT *
 }
 
 static struct lp_texture_handle
-get_texture_handle_bda(struct lvp_device *device, const VkDescriptorAddressInfoEXT *bda, enum pipe_format format)
+get_texture_handle_bda(struct lvp_device *device, VkDeviceAddress address, size_t range, enum pipe_format format)
 {
    struct pipe_context *ctx = device->queue.ctx;
 
-   struct pipe_resource *pres = get_buffer_resource(ctx, bda);
+   struct pipe_resource *pres = get_buffer_resource(ctx, address, range);
 
    struct pipe_sampler_view templ;
    memset(&templ, 0, sizeof(templ));
@@ -275,7 +274,7 @@ get_texture_handle_bda(struct lvp_device *device, const VkDescriptorAddressInfoE
    templ.swizzle_b = PIPE_SWIZZLE_Z;
    templ.swizzle_a = PIPE_SWIZZLE_W;
    templ.format = format;
-   templ.u.buf.size = bda->range;
+   templ.u.buf.size = range;
    templ.texture = pres;
    templ.context = ctx;
    struct pipe_sampler_view *view = ctx->create_sampler_view(ctx, pres, &templ);
@@ -294,15 +293,15 @@ get_texture_handle_bda(struct lvp_device *device, const VkDescriptorAddressInfoE
 }
 
 static struct lp_texture_handle
-get_image_handle_bda(struct lvp_device *device, const VkDescriptorAddressInfoEXT *bda, enum pipe_format format)
+get_image_handle_bda(struct lvp_device *device, VkDeviceAddress address, size_t range, enum pipe_format format)
 {
    struct pipe_context *ctx = device->queue.ctx;
 
-   struct pipe_resource *pres = get_buffer_resource(ctx, bda);
+   struct pipe_resource *pres = get_buffer_resource(ctx, address, range);
    struct pipe_image_view view = {0};
    view.resource = pres;
    view.format = format;
-   view.u.buf.size = bda->range;
+   view.u.buf.size = range;
 
    simple_mtx_lock(&device->queue.lock);
 
@@ -1110,7 +1109,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
       if (bda && bda->address) {
          enum pipe_format pformat = vk_format_to_pipe_format(bda->format);
          lp_jit_texture_buffer_from_bda(&desc->texture, (void*)(uintptr_t)bda->address, bda->range, pformat);
-         desc->functions = get_texture_handle_bda(device, bda, pformat).functions;
+         desc->functions = get_texture_handle_bda(device, bda->address, bda->range, pformat).functions;
       } else {
          desc->functions = device->null_texture_handle->functions;
          desc->texture.sampler_index = 0;
@@ -1122,7 +1121,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
       if (bda && bda->address) {
          enum pipe_format pformat = vk_format_to_pipe_format(bda->format);
          lp_jit_image_buffer_from_bda(&desc->image, (void *)(uintptr_t)bda->address, bda->range, pformat);
-         desc->functions = get_image_handle_bda(device, bda, pformat).functions;
+         desc->functions = get_image_handle_bda(device, bda->address, bda->range, pformat).functions;
       } else {
          desc->functions = device->null_image_handle->functions;
       }

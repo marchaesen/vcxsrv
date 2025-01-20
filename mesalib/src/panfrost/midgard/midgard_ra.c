@@ -1251,10 +1251,8 @@ mir_ra(compiler_context *ctx)
       mir_squeeze_index(ctx);
       mir_invalidate_liveness(ctx);
 
-      if (l) {
+      if (l)
          lcra_free(l);
-         l = NULL;
-      }
 
       l = allocate_registers(ctx, &spilled);
    } while (spilled && ((iter_count--) > 0));

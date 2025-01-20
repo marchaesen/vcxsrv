@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
 
+uncollapsed_section_start bindgen "Building bindgen"
+
 BINDGEN_VER=0.65.1
 CBINDGEN_VER=0.26.0
 
@@ -18,3 +20,4 @@ RUSTFLAGS='-L native=/usr/local/lib' cargo install \
   -j ${FDO_CI_CONCURRENT:-4} \
   --root /usr/local
 
+section_end bindgen

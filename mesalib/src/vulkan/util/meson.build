@@ -110,7 +110,7 @@ vk_struct_type_cast = custom_target(
 
 vk_extensions = custom_target(
   'vk_extensions',
-  input : ['vk_extensions_gen.py', vk_api_xml],
+  input : [vk_extensions_gen, vk_api_xml],
   output : ['vk_extensions.c', 'vk_extensions.h'],
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@',

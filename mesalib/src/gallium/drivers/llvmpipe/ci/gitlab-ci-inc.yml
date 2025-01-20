@@ -2,7 +2,7 @@
   stage: software-renderer
   rules:
     - !reference [.test, rules]
-    - if: $FORCE_KERNEL_TAG != null
+    - if: $EXTERNAL_KERNEL_TAG != null
       when: never
     - !reference [.gl-rules, rules]
     - changes: &llvmpipe_file_list

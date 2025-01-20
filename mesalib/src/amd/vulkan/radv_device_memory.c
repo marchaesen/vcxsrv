@@ -152,7 +152,7 @@ radv_alloc_memory(struct radv_device *device, const VkMemoryAllocateInfo *pAlloc
    } else if (import_info) {
       assert(import_info->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT ||
              import_info->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
-      result = device->ws->buffer_from_fd(device->ws, import_info->fd, priority, &mem->bo, NULL);
+      result = radv_bo_from_fd(device, import_info->fd, priority, mem, NULL);
       if (result != VK_SUCCESS) {
          goto fail;
       } else {
@@ -177,8 +177,7 @@ radv_alloc_memory(struct radv_device *device, const VkMemoryAllocateInfo *pAlloc
       }
    } else if (host_ptr_info) {
       assert(host_ptr_info->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT);
-      result = device->ws->buffer_from_ptr(device->ws, host_ptr_info->pHostPointer, pAllocateInfo->allocationSize,
-                                           priority, &mem->bo);
+      result = radv_bo_from_ptr(device, host_ptr_info->pHostPointer, pAllocateInfo->allocationSize, priority, mem);
       if (result != VK_SUCCESS) {
          goto fail;
       } else {
@@ -283,7 +282,7 @@ radv_FreeMemory(VkDevice _device, VkDeviceMemory _mem, const VkAllocationCallbac
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
-radv_MapMemory2KHR(VkDevice _device, const VkMemoryMapInfoKHR *pMemoryMapInfo, void **ppData)
+radv_MapMemory2(VkDevice _device, const VkMemoryMapInfo *pMemoryMapInfo, void **ppData)
 {
    VK_FROM_HANDLE(radv_device, device, _device);
    VK_FROM_HANDLE(radv_device_memory, mem, pMemoryMapInfo->memory);
@@ -314,7 +313,7 @@ radv_MapMemory2KHR(VkDevice _device, const VkMemoryMapInfoKHR *pMemoryMapInfo, v
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
-radv_UnmapMemory2KHR(VkDevice _device, const VkMemoryUnmapInfoKHR *pMemoryUnmapInfo)
+radv_UnmapMemory2(VkDevice _device, const VkMemoryUnmapInfo *pMemoryUnmapInfo)
 {
    VK_FROM_HANDLE(radv_device, device, _device);
    VK_FROM_HANDLE(radv_device_memory, mem, pMemoryUnmapInfo->memory);

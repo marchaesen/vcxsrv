@@ -138,12 +138,12 @@ dri_loader_get_cap(struct dri_screen *screen, enum dri_loader_cap cap)
  *                          16-bit color to have 16-bit depth.
  *
  * \returns
- * Pointer to any array of pointers to the \c __DRIconfig structures created
+ * Pointer to any array of pointers to the \c struct dri_config structures created
  * for the specified formats.  If there is an error, \c NULL is returned.
  * Currently the only cause of failure is a bad parameter (i.e., unsupported
  * \c format).
  */
-static __DRIconfig **
+static struct dri_config **
 driCreateConfigs(enum pipe_format format,
                  enum pipe_format *zs_formats, unsigned num_zs_formats,
                  const bool *db_modes, unsigned num_db_modes,
@@ -153,7 +153,7 @@ driCreateConfigs(enum pipe_format format,
    uint32_t masks[4];
    int shifts[4];
    int color_bits[4];
-   __DRIconfig **configs, **c;
+   struct dri_config **configs, **c;
    struct gl_config *modes;
    unsigned i, j, k, h;
    unsigned num_modes;
@@ -269,10 +269,10 @@ driCreateConfigs(enum pipe_format format,
     return configs;
 }
 
-static __DRIconfig **
-driConcatConfigs(__DRIconfig **a, __DRIconfig **b)
+static struct dri_config **
+driConcatConfigs(struct dri_config **a, struct dri_config **b)
 {
-    __DRIconfig **all;
+    struct dri_config **all;
     int i, j, index;
 
     if (a == NULL || a[0] == NULL)
@@ -302,7 +302,7 @@ driConcatConfigs(__DRIconfig **a, __DRIconfig **b)
 }
 
 
-static const __DRIconfig **
+static const struct dri_config **
 dri_fill_in_modes(struct dri_screen *screen)
 {
    /* The 32-bit RGBA format must not precede the 32-bit BGRA format.
@@ -311,13 +311,13 @@ dri_fill_in_modes(struct dri_screen *screen)
     * resulting in swapped color channels.
     *
     * The problem, as of 2017-05-30:
-    * When matching a GLXFBConfig to a __DRIconfig, GLX ignores the channel
-    * order and chooses the first __DRIconfig with the expected channel
-    * sizes. Specifically, GLX compares the GLXFBConfig's and __DRIconfig's
+    * When matching a GLXFBConfig to a struct dri_config, GLX ignores the channel
+    * order and chooses the first struct dri_config with the expected channel
+    * sizes. Specifically, GLX compares the GLXFBConfig's and struct dri_config's
     * __DRI_ATTRIB_{CHANNEL}_SIZE but ignores __DRI_ATTRIB_{CHANNEL}_MASK.
     *
     * EGL does not suffer from this problem. It correctly compares the
-    * channel masks when matching EGLConfig to __DRIconfig.
+    * channel masks when matching EGLConfig to struct dri_config.
     */
    static const enum pipe_format pipe_formats[] = {
       PIPE_FORMAT_B10G10R10A2_UNORM,
@@ -340,7 +340,7 @@ dri_fill_in_modes(struct dri_screen *screen)
       PIPE_FORMAT_B4G4R4A4_UNORM,
       PIPE_FORMAT_R4G4B4A4_UNORM,
    };
-   __DRIconfig **configs = NULL;
+   struct dri_config **configs = NULL;
    enum pipe_format zs_formats[5];
    unsigned num_zs_formats = 0;
    unsigned i;
@@ -383,11 +383,11 @@ dri_fill_in_modes(struct dri_screen *screen)
 #undef HAS_ZS
 
    mixed_color_depth =
-      p_screen->get_param(p_screen, PIPE_CAP_MIXED_COLOR_DEPTH_BITS);
+      p_screen->caps.mixed_color_depth_bits;
 
    /* Add configs. */
    for (unsigned f = 0; f < ARRAY_SIZE(pipe_formats); f++) {
-      __DRIconfig **new_configs = NULL;
+      struct dri_config **new_configs = NULL;
       unsigned num_msaa_modes = 0; /* includes a single-sample mode */
       uint8_t msaa_modes[MSAA_VISUAL_MAX_SAMPLES];
 
@@ -457,7 +457,7 @@ dri_fill_in_modes(struct dri_screen *screen)
       return NULL;
    }
 
-   return (const __DRIconfig **)configs;
+   return (const struct dri_config **)configs;
 }
 
 /**
@@ -507,7 +507,7 @@ dri_get_egl_image(struct pipe_frontend_screen *fscreen,
 {
    struct dri_screen *screen = (struct dri_screen *)fscreen;
    const __DRIimageLookupExtension *loader = screen->dri2.image;
-   __DRIimage *img = NULL;
+   struct dri_image *img = NULL;
    const struct dri2_format_mapping *map;
 
    img = loader->lookupEGLImageValidated(egl_image, screen->loaderPrivate);
@@ -618,7 +618,7 @@ dri_set_background_context(struct st_context *st,
       hud_add_queue_for_monitoring(ctx->hud, queue_info);
 }
 
-const __DRIconfig **
+const struct dri_config **
 dri_init_screen(struct dri_screen *screen,
                 struct pipe_screen *pscreen,
                 bool has_multibuffer)
@@ -629,7 +629,7 @@ dri_init_screen(struct dri_screen *screen,
    screen->base.set_background_context = dri_set_background_context;
    screen->base.validate_egl_image = dri_validate_egl_image;
 
-   if (pscreen->get_param(pscreen, PIPE_CAP_NPOT_TEXTURES))
+   if (pscreen->caps.npot_textures)
       screen->target = PIPE_TEXTURE_2D;
    else
       screen->target = PIPE_TEXTURE_RECT;
@@ -644,15 +644,15 @@ dri_init_screen(struct dri_screen *screen,
                          &screen->max_gl_es1_version,
                          &screen->max_gl_es2_version);
 
-   screen->throttle = pscreen->get_param(pscreen, PIPE_CAP_THROTTLE);
-   if (pscreen->get_param(pscreen, PIPE_CAP_DEVICE_PROTECTED_CONTEXT))
+   screen->throttle = pscreen->caps.throttle;
+   if (pscreen->caps.device_protected_context)
       screen->has_protected_context = true;
-   screen->has_reset_status_query = pscreen->get_param(pscreen, PIPE_CAP_DEVICE_RESET_STATUS_QUERY);
+   screen->has_reset_status_query = pscreen->caps.device_reset_status_query;
 
 
 #ifdef HAVE_LIBDRM
    if (has_multibuffer) {
-      int dmabuf_caps = pscreen->get_param(pscreen, PIPE_CAP_DMABUF);
+      int dmabuf_caps = pscreen->caps.dmabuf;
       if (dmabuf_caps & DRM_PRIME_CAP_IMPORT)
          screen->dmabuf_import = true;
       if (screen->dmabuf_import && dmabuf_caps & DRM_PRIME_CAP_EXPORT)

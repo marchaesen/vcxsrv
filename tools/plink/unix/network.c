@@ -279,7 +279,7 @@ SockAddr *sk_nonamelookup(const char *host)
 #ifndef NO_IPV6
     addr->ais = NULL;
 #else
-    ret->addresses = NULL;
+    addr->addresses = NULL;
 #endif
     addr->refcount = 1;
     return addr;
@@ -907,7 +907,7 @@ Socket *sk_newlistener(const char *srcaddr, int port, Plug *plug,
         u.sin.sin_addr.s_addr = inet_addr(srcaddr);
         if (u.sin.sin_addr.s_addr != (in_addr_t)(-1)) {
             /* Override localhost_only with specified listen addr. */
-            ret->localhost_only = ipv4_is_loopback(u.sin.sin_addr);
+            s->localhost_only = ipv4_is_loopback(u.sin.sin_addr);
         }
         addr = &u;
         addrlen = sizeof(u.sin);
@@ -1641,8 +1641,8 @@ SockAddr *platform_get_x11_unix_address(const char *sockpath, int displaynum)
 #ifndef NO_IPV6
     addr->ais = NULL;
 #else
-    ret->addresses = NULL;
-    ret->naddresses = 0;
+    addr->addresses = NULL;
+    addr->naddresses = 0;
 #endif
     addr->refcount = 1;
     return addr;
@@ -1666,8 +1666,8 @@ SockAddr *unix_sock_addr(const char *path)
 #ifndef NO_IPV6
     addr->ais = NULL;
 #else
-    ret->addresses = NULL;
-    ret->naddresses = 0;
+    addr->addresses = NULL;
+    addr->naddresses = 0;
 #endif
     addr->refcount = 1;
     return addr;

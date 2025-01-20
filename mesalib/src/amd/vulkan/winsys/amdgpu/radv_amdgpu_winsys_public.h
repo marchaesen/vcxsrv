@@ -13,7 +13,7 @@
 #define RADV_AMDGPU_WINSYS_PUBLIC_H
 
 struct radeon_winsys *radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags,
-                                                bool reserve_vmid);
+                                                bool reserve_vmid, bool is_virtio);
 
 struct radeon_winsys *radv_dummy_winsys_create(void);
 

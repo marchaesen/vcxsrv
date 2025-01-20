@@ -402,7 +402,7 @@ v3d_uncompiled_shader_create(struct pipe_context *pctx,
 
         NIR_PASS(_, s, nir_lower_frexp);
 
-        /* Since we can't expose PIPE_CAP_PACKED_UNIFORMS the state tracker
+        /* Since we can't expose pipe_caps.packed_uniforms the state tracker
          * will produce uniform intrinsics with offsets in vec4 units but
          * our compiler expects to work in units of bytes.
          */
@@ -496,13 +496,13 @@ v3d_get_compiled_shader(struct v3d_context *v3d,
 
                 int program_id = uncompiled->program_id;
                 uint64_t *qpu_insts;
-                uint32_t shader_size;
 
                 qpu_insts = v3d_compile(v3d->screen->compiler, key,
                                         &shader->prog_data.base, s,
                                         v3d_shader_debug_output,
                                         v3d,
-                                        program_id, variant_id, &shader_size);
+                                        program_id, variant_id,
+                                        &shader->qpu_size);
 
                 /* qpu_insts being NULL can happen if the register allocation
                  * failed. At this point we can't really trigger an OpenGL API
@@ -513,14 +513,14 @@ v3d_get_compiled_shader(struct v3d_context *v3d,
                 assert(qpu_insts);
                 ralloc_steal(shader, shader->prog_data.base);
 
-                if (shader_size) {
-                        u_upload_data(v3d->state_uploader, 0, shader_size, 8,
+                if (shader->qpu_size) {
+                        u_upload_data(v3d->state_uploader, 0, shader->qpu_size, 8,
                                       qpu_insts, &shader->offset, &shader->resource);
                 }
 
 #ifdef ENABLE_SHADER_CACHE
                 v3d_disk_cache_store(v3d, key, uncompiled,
-                                     shader, qpu_insts, shader_size);
+                                     shader, qpu_insts, shader->qpu_size);
 #endif
 
                 free(qpu_insts);
@@ -649,6 +649,7 @@ v3d_update_compiled_fs(struct v3d_context *v3d, uint8_t prim_mode)
                             V3D_DIRTY_BLEND |
                             V3D_DIRTY_FRAMEBUFFER |
                             V3D_DIRTY_ZSA |
+                            V3D_DIRTY_OQ |
                             V3D_DIRTY_RASTERIZER |
                             V3D_DIRTY_SAMPLE_STATE |
                             V3D_DIRTY_FRAGTEX |
@@ -677,6 +678,10 @@ v3d_update_compiled_fs(struct v3d_context *v3d, uint8_t prim_mode)
         }
 
         key->swap_color_rb = v3d->swap_color_rb;
+        key->can_earlyz_with_discard = s->info.fs.uses_discard &&
+                (!v3d->zsa || !job->zsbuf || !v3d->zsa->base.depth_enabled ||
+                 !v3d->zsa->base.depth_writemask) &&
+                !(v3d->active_queries && v3d->current_oq);
 
         for (int i = 0; i < v3d->framebuffer.nr_cbufs; i++) {
                 struct pipe_surface *cbuf = v3d->framebuffer.cbufs[i];

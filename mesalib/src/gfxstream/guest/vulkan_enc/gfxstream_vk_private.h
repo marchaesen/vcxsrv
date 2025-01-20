@@ -57,6 +57,8 @@
 #include "vk_semaphore.h"
 #include "vulkan/wsi/wsi_common.h"
 
+#define GFXSTREAM_DEFAULT_ALIGN 8
+
 struct gfxstream_vk_instance {
     struct vk_instance vk;
     uint32_t api_version;

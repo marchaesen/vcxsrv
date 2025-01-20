@@ -198,6 +198,26 @@ ei_math1(struct r300_vertex_program_code *vp, unsigned int hw_opcode,
 }
 
 static void
+ei_math1_select(struct r300_vertex_program_code *vp,
+                unsigned math_mode,
+                unsigned hw_opcode_ieee,
+                unsigned hw_opcode_dx,
+                unsigned hw_opcode_ff,
+                struct rc_sub_instruction *vpi,
+                unsigned int *inst)
+{
+   unsigned hw_opcode;
+   switch (math_mode) {
+   case RC_MATH_IEEE: hw_opcode = hw_opcode_ieee; break;
+   case RC_MATH_DX: hw_opcode = hw_opcode_dx; break;
+   case RC_MATH_FF: hw_opcode = hw_opcode_ff; break;
+   default:
+      unreachable();
+   }
+   ei_math1(vp, hw_opcode, vpi, inst);
+}
+
+static void
 ei_cmp(struct r300_vertex_program_code *vp, struct rc_sub_instruction *vpi, unsigned int *inst)
 {
    inst[0] = PVS_OP_DST_OPERAND(VE_COND_MUX_GTE, 0, 0, t_dst_index(vp, &vpi->DstReg),
@@ -407,7 +427,8 @@ translate_vertex_program(struct radeon_compiler *c, void *user)
          ei_vector1(compiler->code, VE_FRACTION, vpi, inst);
          break;
       case RC_OPCODE_LG2:
-         ei_math1(compiler->code, ME_LOG_BASE2_FULL_DX, vpi, inst);
+         ei_math1_select(compiler->code, compiler->Base.math_rules, ME_LOG_BASE2_IEEE,
+                         ME_LOG_BASE2_FULL_DX, ME_LOG_BASE2_FULL_DX, vpi, inst);
          break;
       case RC_OPCODE_LIT:
          ei_lit(compiler->code, vpi, inst);
@@ -434,10 +455,12 @@ translate_vertex_program(struct radeon_compiler *c, void *user)
          ei_pow(compiler->code, vpi, inst);
          break;
       case RC_OPCODE_RCP:
-         ei_math1(compiler->code, ME_RECIP_DX, vpi, inst);
+         ei_math1_select(compiler->code, compiler->Base.math_rules, ME_RECIP_IEEE,
+                         ME_RECIP_DX, ME_RECIP_FF, vpi, inst);
          break;
       case RC_OPCODE_RSQ:
-         ei_math1(compiler->code, ME_RECIP_SQRT_DX, vpi, inst);
+         ei_math1_select(compiler->code, compiler->Base.math_rules, ME_RECIP_SQRT_IEEE,
+                         ME_RECIP_SQRT_DX, ME_RECIP_SQRT_FF, vpi, inst);
          break;
       case RC_OPCODE_SEQ:
          ei_vector2(compiler->code, VE_SET_EQUAL, vpi, inst);

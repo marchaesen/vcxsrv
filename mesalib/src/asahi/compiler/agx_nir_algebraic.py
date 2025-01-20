@@ -114,7 +114,10 @@ opt_selects = [
 
 # When the ior/iand is used multiple times, we can instead fuse the other way.
 opt_selects.extend([
+        (('iand', ('inot', 'a@1'), b), ('bcsel', a, False, b)),
         (('iand', 'a@1', b), ('bcsel', a, b, False)),
+
+        (('ior', ('inot', 'a@1'), b), ('bcsel', a, b, True)),
         (('ior', 'a@1', b), ('bcsel', a, True, b)),
 ])
 
@@ -173,6 +176,10 @@ for s in range(1, 5):
         (imad(a, b, ('ishl(is_used_once)', c, s)), ('imadshl_agx', a, b, c, s)),
         (imsub(a, b, ('ishl(is_used_once)', c, s)), ('imsubshl_agx', a, b, c, s)),
 
+        # The above but after the below shift lowering
+        (imad(a, b, ('imadshl_agx(is_used_once)', 0, 1, c, s)), ('imadshl_agx', a, b, c, s)),
+        (imsub(a, b, ('imadshl_agx(is_used_once)', 0, 1, c, s)), ('imsubshl_agx', a, b, c, s)),
+
         # a + (a << s) = a + a * (1 << s) = a * (1 + (1 << s))
         (('imul', a, 1 + (1 << s)), iaddshl(a, a, s)),
 
@@ -186,10 +193,124 @@ for s in range(1, 5):
         (('ishl', a, s), iaddshl(0, a, s)),
     ]
 
+# If the above rules failed, we have a large constant shift on the IC unit.
+# Might as well fuse an add to form an imad, if we're on the IC anyway.
+fuse_imad += [
+    (('iadd', a, ('ishl(is_used_once)', b, '#c')), imad(b, ('ishl', 1, c), a)),
+]
+
 # Discard lowering generates this pattern, clean it up
 ixor_bcsel = [
    (('ixor', ('bcsel', a, '#b', '#c'), '#d'),
     ('bcsel', a, ('ixor', b, d), ('ixor', c, d))),
+]
+
+# The main NIR optimizer works on imul, not iadd. We need just enough patterns
+# for amul to let us fuse lea.
+cleanup_amul = [
+   # Neither operation overflows so we can keep the amul.
+   (('amul', ('amul', a, '#b'), '#c'), ('amul', a, ('imul', b, c))),
+
+   # Result of u2u64 has zero in upper half, so the shift doesn't overflow, so
+   # neither multiplication overflows.
+   (('amul', ('ishl', ('u2u64', 'a@32'), '#b(is_ult_32)'), '#c'),
+    ('amul', ('u2u64', a), ('ishl', c, b))),
+]
+
+fuse_lea = []
+
+# Handle 64-bit address arithmetic (OpenCL)
+for s in range(1, 5):
+    pot = 1 << s
+
+    fuse_lea += [
+        # A + (#b + c) 2^s = (A + c 2^s) + #b 2^s
+        (('iadd', 'a@64', ('amul', pot, ('iadd', '#b(is_upper_half_zero)', ('u2u64', 'c@32')))),
+         ('ulea_agx', ('ulea_agx', a, c, s), ('u2u32', b), s)),
+
+        # A + (B + c) 2^s = (A + B 2^s) + c 2^s
+        (('iadd', 'a@64', ('amul', ('iadd', 'b@64', ('i2i64', 'c@32')), pot)),
+         ('ilea_agx', ('iadd', a, ('ishl', b, s)), c, s)),
+
+        # A + 2^s (B + (C + d)) = (A + (B + C)2^s) + d 2^s
+        (('iadd', 'a@64', ('amul', ('iadd', 'b@64',
+                                   ('iadd', 'c@64', ('u2u64', 'd@32'))), pot)),
+         ('ulea_agx', ('iadd', a, ('ishl', ('iadd', b, c), s)), d, s)),
+    ]
+
+    for sgn in ["u", "i"]:
+        upconv = f'{sgn}2{sgn}64'
+        lea = f'{sgn}lea_agx'
+
+        fuse_lea += [
+            # Basic pattern match
+            (('iadd', 'a@64', ('amul', (upconv, 'b@32'), pot)), (lea, a, b, s)),
+            (('iadd', 'a@64', ('ishl', (upconv, 'b@32'), s)), (lea, a, b, s)),
+        ]
+
+# Handle relaxed 32-bit address arithmetic (OpenGL, Vulkan)
+for s_ in range(1, 5):
+    # Iterate backwards
+    s = 5 - s_
+
+    v = 1 << s
+    is_mult = f'(is_unsigned_multiple_of_{v})'
+
+    fuse_lea += [
+        # A + b * s = A + B * s with relaxed multiply
+        (('iadd', 'a@64', ('u2u64', ('amul', 'b@32', v))),
+         ('ulea_agx', a, b, s)),
+
+        # A + (b * c 2^s) = A + (b * c) 2^s with relaxed multiply
+        (('iadd', 'a@64', ('u2u64', ('amul', 'b@32', f'#c{is_mult}'))),
+         ('ulea_agx', a, ('imul', b, ('ushr', c, s)), s)),
+
+        # A + (b 2^s + c d 2^s) = A + (b + cd) 2^s with relaxation.
+        #
+        # amul is bounded by the buffer size by definition, and both the GL & VK
+        # limit UBOs and SSBOs to INT32_MAX bytes. Therefore, amul has no signed
+        # wrap.
+        #
+        # Further, because we are zero-extending the 32-bit result, the 32-bit
+        # sum must be nonnegative -- if it were negative, it would represent an
+        # offset above INT32_MAX which would be invalid given the amul and
+        # max buffer size. Thus with signed math
+        #
+        #   0 <= b 2^s + cd 2^s < INT32_MAX
+        #
+        # ..and hence
+        #
+        #   0 <= b + cd < INT32_MAX
+        #
+        # Those bounds together with distributivity mean that
+        #
+        #   (b 2^s + cd 2^s) mod 2^32 = 2^s ((b + cd) mod 2^32)
+        #
+        # ...which is exactly what we need to factor out the shift.
+        (('iadd', 'a@64', ('u2u64', ('iadd', f'#b{is_mult}',
+                                     ('amul', 'c@32', f'#d{is_mult}')))),
+         ('ulea_agx', a, ('iadd', ('ishr', b, s),
+                                  ('amul', 'c@32', ('ishr', d, s))), s)),
+    ]
+
+# 8-bit rules are lowest precedence since we really like to fuse shifts
+fuse_lea += [
+    (('iadd', a, ('u2u64', 'b@32')), ('ulea_agx', a, b, 0)),
+    (('iadd', a, ('i2i64', 'b@32')), ('ilea_agx', a, b, 0)),
+
+    (('iadd', a, ('iadd', ('u2u64', 'b@32'), c)),
+     ('ulea_agx', ('iadd', a, c), b, 0)),
+    (('iadd', a, ('iadd', ('i2i64', 'b@32'), c)),
+     ('ilea_agx', ('iadd', a, c), b, 0)),
+]
+
+# After lowering address arithmetic, the various address arithmetic opcodes are
+# no longer useful. Lower them to regular arithmetic to let nir_opt_algebraic
+# take over.
+lower_lea = [
+    (('amul', a, b), ('imul', a, b)),
+    (('ulea_agx', a, b, c), ('iadd', a, ('ishl', ('u2u64', b), c))),
+    (('ilea_agx', a, b, c), ('iadd', a, ('ishl', ('i2i64', b), c))),
 ]
 
 def main():
@@ -203,6 +324,10 @@ def run():
     import nir_algebraic  # pylint: disable=import-error
 
     print('#include "agx_nir.h"')
+
+    print(nir_algebraic.AlgebraicPass("agx_nir_cleanup_amul", cleanup_amul).render())
+    print(nir_algebraic.AlgebraicPass("agx_nir_fuse_lea", fuse_lea).render())
+    print(nir_algebraic.AlgebraicPass("agx_nir_lower_lea", lower_lea).render())
 
     print(nir_algebraic.AlgebraicPass("agx_nir_lower_algebraic_late",
                                       lower_sm5_shift + lower_pack +

@@ -310,7 +310,7 @@ void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
    caps->attrib_element_unaligned = 1;
 
    /* pipe cap removes capabilities */
-   switch (screen->get_param(screen, PIPE_CAP_VERTEX_INPUT_ALIGNMENT)) {
+   switch (screen->caps.vertex_input_alignment) {
    case PIPE_VERTEX_INPUT_ALIGNMENT_4BYTE:
       caps->attrib_4byte_unaligned = 0;
       break;
@@ -322,20 +322,20 @@ void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
    }
 
    caps->user_vertex_buffers =
-      screen->get_param(screen, PIPE_CAP_USER_VERTEX_BUFFERS);
+      screen->caps.user_vertex_buffers;
    caps->max_vertex_buffers =
-      screen->get_param(screen, PIPE_CAP_MAX_VERTEX_BUFFERS);
+      screen->caps.max_vertex_buffers;
 
-   if (screen->get_param(screen, PIPE_CAP_PRIMITIVE_RESTART) ||
-       screen->get_param(screen, PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX)) {
-      caps->rewrite_restart_index = screen->get_param(screen, PIPE_CAP_EMULATE_NONFIXED_PRIMITIVE_RESTART);
-      caps->supported_restart_modes = screen->get_param(screen, PIPE_CAP_SUPPORTED_PRIM_MODES_WITH_RESTART);
+   if (screen->caps.primitive_restart ||
+       screen->caps.primitive_restart_fixed_index) {
+      caps->rewrite_restart_index = screen->caps.emulate_nonfixed_primitive_restart;
+      caps->supported_restart_modes = screen->caps.supported_prim_modes_with_restart;
       caps->supported_restart_modes |= BITFIELD_BIT(MESA_PRIM_PATCHES);
       if (caps->supported_restart_modes != BITFIELD_MASK(MESA_PRIM_COUNT))
          caps->fallback_always = true;
       caps->fallback_always |= caps->rewrite_restart_index;
    }
-   caps->supported_prim_modes = screen->get_param(screen, PIPE_CAP_SUPPORTED_PRIM_MODES);
+   caps->supported_prim_modes = screen->caps.supported_prim_modes;
    if (caps->supported_prim_modes != BITFIELD_MASK(MESA_PRIM_COUNT))
       caps->fallback_always = true;
 
@@ -375,8 +375,7 @@ u_vbuf_create(struct pipe_context *pipe, struct u_vbuf_caps *caps)
    mgr->allowed_vb_mask = u_bit_consecutive(0, mgr->caps.max_vertex_buffers);
 
    mgr->has_signed_vb_offset =
-      pipe->screen->get_param(pipe->screen,
-                              PIPE_CAP_SIGNED_VERTEX_BUFFER_OFFSET);
+      pipe->screen->caps.signed_vertex_buffer_offset;
 
    cso_cache_init(&mgr->cso_cache, pipe);
    cso_cache_set_delete_cso_callback(&mgr->cso_cache,

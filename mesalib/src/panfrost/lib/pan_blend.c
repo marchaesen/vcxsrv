@@ -458,15 +458,13 @@ pan_blend_to_fixed_function_equation(const struct pan_blend_equation equation,
 uint32_t
 pan_pack_blend(const struct pan_blend_equation equation)
 {
-   STATIC_ASSERT(sizeof(uint32_t) == MALI_BLEND_EQUATION_LENGTH);
-
-   uint32_t out = 0;
+   struct mali_blend_equation_packed out;
 
    pan_pack(&out, BLEND_EQUATION, cfg) {
       pan_blend_to_fixed_function_equation(equation, &cfg);
    }
 
-   return out;
+   return out.opaque[0];
 }
 
 DERIVE_HASH_TABLE(pan_blend_shader_key);
@@ -713,7 +711,7 @@ GENX(pan_blend_create_shader)(const struct pan_blend_state *state,
 
    b.shader->info.io_lowered = true;
 
-   NIR_PASS_V(b.shader, nir_lower_blend, &options);
+   NIR_PASS(_, b.shader, nir_lower_blend, &options);
 
    return b.shader;
 }
@@ -724,7 +722,7 @@ GENX(pan_blend_get_internal_desc)(enum pipe_format fmt, unsigned rt,
                                   unsigned force_size, bool dithered)
 {
    const struct util_format_description *desc = util_format_description(fmt);
-   uint64_t res;
+   struct mali_internal_blend_packed res;
 
    pan_pack(&res, INTERNAL_BLEND, cfg) {
       cfg.mode = MALI_BLEND_MODE_OPAQUE;
@@ -771,7 +769,7 @@ GENX(pan_blend_get_internal_desc)(enum pipe_format fmt, unsigned rt,
          GENX(panfrost_dithered_format_from_pipe_format)(fmt, dithered);
    }
 
-   return res;
+   return res.opaque[0] | ((uint64_t)res.opaque[1] << 32);
 }
 
 static bool
@@ -884,11 +882,11 @@ GENX(pan_blend_get_shader_locked)(struct pan_blend_shader_cache *cache,
    pan_shader_preprocess(nir, inputs.gpu_id);
 
 #if PAN_ARCH >= 6
-   NIR_PASS_V(nir, GENX(pan_inline_rt_conversion), rt_formats);
+   NIR_PASS(_, nir, GENX(pan_inline_rt_conversion), rt_formats);
 #else
-   NIR_PASS_V(nir, pan_lower_framebuffer, rt_formats,
-              pan_raw_format_mask_midgard(rt_formats), MAX2(key.nr_samples, 1),
-              cache->gpu_id < 0x700);
+   NIR_PASS(_, nir, pan_lower_framebuffer, rt_formats,
+            pan_raw_format_mask_midgard(rt_formats), MAX2(key.nr_samples, 1),
+            cache->gpu_id < 0x700);
 #endif
 
    GENX(pan_shader_compile)(nir, &inputs, &variant->binary, &info);

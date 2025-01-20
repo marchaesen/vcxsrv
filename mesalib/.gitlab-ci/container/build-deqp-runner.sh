@@ -9,6 +9,8 @@
 
 set -uex
 
+uncollapsed_section_start deqp-runner "Building deqp-runner"
+
 DEQP_RUNNER_VERSION=0.20.2
 
 commits_to_backport=(
@@ -94,3 +96,5 @@ popd
 if [ -z "${DEQP_RUNNER_GIT_TAG:-}${DEQP_RUNNER_GIT_REV:-}" ]; then
     rm -f /usr/local/bin/igt-runner
 fi
+
+section_end deqp-runner

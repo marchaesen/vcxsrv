@@ -134,7 +134,7 @@ lower_tex_src_plane(nir_builder *b, nir_instr *instr, void *data)
       BITSET_SET(state->shader->info.textures_used, u_v_samp);
       BITSET_SET(state->shader->info.samplers_used, u_v_samp);
 
-      /* For drivers using PIPE_CAP_NIR_SAMPLERS_AS_DEREF, we need
+      /* For drivers using pipe_caps.nir_samplers_as_deref, we need
        * to reference the correct sampler nir variable.
        */
       int samp_index = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);

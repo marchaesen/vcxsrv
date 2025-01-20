@@ -32,7 +32,7 @@ hk_CreateEvent(VkDevice device, const VkEventCreateInfo *pCreateInfo,
     */
    event->bo =
       agx_bo_create(&dev->dev, HK_EVENT_MEM_SIZE, 0, AGX_BO_WRITEBACK, "Event");
-   event->status = event->bo->map;
+   event->status = agx_bo_map(event->bo);
    event->addr = event->bo->va->addr;
 
    *event->status = VK_EVENT_RESET;

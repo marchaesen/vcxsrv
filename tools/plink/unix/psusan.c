@@ -348,6 +348,8 @@ int main(int argc, char **argv)
 
     Conf *conf = make_ssh_server_conf();
 
+    enable_dit();
+
     memset(&ssc, 0, sizeof(ssc));
 
     ssc.application_name = "PSUSAN";

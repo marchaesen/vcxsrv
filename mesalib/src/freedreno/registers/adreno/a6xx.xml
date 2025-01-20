@@ -2633,27 +2633,27 @@ to upconvert to 32b float internally?
 	    vertices in, number of primnitives assembled etc.
 	-->
 
-	<reg32 offset="0x0540" name="RBBM_PRIMCTR_0_LO"/>  <!-- vs vertices in -->
+	<reg32 offset="0x0540" name="RBBM_PRIMCTR_0_LO"/>  <!-- IA_VERTICES -->
 	<reg32 offset="0x0541" name="RBBM_PRIMCTR_0_HI"/>
-	<reg32 offset="0x0542" name="RBBM_PRIMCTR_1_LO"/>  <!-- vs primitives out -->
+	<reg32 offset="0x0542" name="RBBM_PRIMCTR_1_LO"/>  <!-- IA_PRIMITIVES -->
 	<reg32 offset="0x0543" name="RBBM_PRIMCTR_1_HI"/>
-	<reg32 offset="0x0544" name="RBBM_PRIMCTR_2_LO"/>  <!-- hs vertices in -->
+	<reg32 offset="0x0544" name="RBBM_PRIMCTR_2_LO"/>  <!-- VS_INVOCATIONS -->
 	<reg32 offset="0x0545" name="RBBM_PRIMCTR_2_HI"/>
-	<reg32 offset="0x0546" name="RBBM_PRIMCTR_3_LO"/>  <!-- hs patches out -->
+	<reg32 offset="0x0546" name="RBBM_PRIMCTR_3_LO"/>  <!-- HS_INVOCATIONS -->
 	<reg32 offset="0x0547" name="RBBM_PRIMCTR_3_HI"/>
-	<reg32 offset="0x0548" name="RBBM_PRIMCTR_4_LO"/>  <!-- dss vertices in -->
+	<reg32 offset="0x0548" name="RBBM_PRIMCTR_4_LO"/>  <!-- DS_INVOCATIONS -->
 	<reg32 offset="0x0549" name="RBBM_PRIMCTR_4_HI"/>
-	<reg32 offset="0x054a" name="RBBM_PRIMCTR_5_LO"/>  <!-- ds primitives out -->
+	<reg32 offset="0x054a" name="RBBM_PRIMCTR_5_LO"/>  <!-- GS_INVOCATIONS -->
 	<reg32 offset="0x054b" name="RBBM_PRIMCTR_5_HI"/>
-	<reg32 offset="0x054c" name="RBBM_PRIMCTR_6_LO"/>  <!-- gs primitives in -->
+	<reg32 offset="0x054c" name="RBBM_PRIMCTR_6_LO"/>  <!-- GS_PRIMITIVES -->
 	<reg32 offset="0x054d" name="RBBM_PRIMCTR_6_HI"/>
-	<reg32 offset="0x054e" name="RBBM_PRIMCTR_7_LO"/>  <!-- gs primitives out -->
+	<reg32 offset="0x054e" name="RBBM_PRIMCTR_7_LO"/>  <!-- C_INVOCATIONS -->
 	<reg32 offset="0x054f" name="RBBM_PRIMCTR_7_HI"/>
-	<reg32 offset="0x0550" name="RBBM_PRIMCTR_8_LO"/>  <!-- gs primitives out -->
+	<reg32 offset="0x0550" name="RBBM_PRIMCTR_8_LO"/>  <!-- C_PRIMITIVES -->
 	<reg32 offset="0x0551" name="RBBM_PRIMCTR_8_HI"/>
-	<reg32 offset="0x0552" name="RBBM_PRIMCTR_9_LO"/>  <!-- raster primitives in -->
+	<reg32 offset="0x0552" name="RBBM_PRIMCTR_9_LO"/>  <!-- PS_INVOCATIONS -->
 	<reg32 offset="0x0553" name="RBBM_PRIMCTR_9_HI"/>
-	<reg32 offset="0x0554" name="RBBM_PRIMCTR_10_LO"/>
+	<reg32 offset="0x0554" name="RBBM_PRIMCTR_10_LO"/> <!-- CS_INVOCATIONS -->
 	<reg32 offset="0x0555" name="RBBM_PRIMCTR_10_HI"/>
 
 	<reg32 offset="0xF400" name="RBBM_SECVID_TRUST_CNTL"/>
@@ -3300,13 +3300,36 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x80f0" name="GRAS_SC_WINDOW_SCISSOR_TL" type="a6xx_reg_xy" usage="rp_blit"/>
 	<reg32 offset="0x80f1" name="GRAS_SC_WINDOW_SCISSOR_BR" type="a6xx_reg_xy" usage="rp_blit"/>
 
-	<!-- 0x80f4 - 0x80fa are used for VK_KHR_fragment_shading_rate -->
-	<reg64 offset="0x80f4" name="GRAS_UNKNOWN_80F4" variants="A7XX-" usage="cmd"/>
-	<reg64 offset="0x80f5" name="GRAS_UNKNOWN_80F5" variants="A7XX-" usage="cmd"/>
-	<reg64 offset="0x80f6" name="GRAS_UNKNOWN_80F6" variants="A7XX-" usage="cmd"/>
-	<reg64 offset="0x80f8" name="GRAS_UNKNOWN_80F8" variants="A7XX-" usage="cmd"/>
-	<reg64 offset="0x80f9" name="GRAS_UNKNOWN_80F9" variants="A7XX-" usage="cmd"/>
-	<reg64 offset="0x80fa" name="GRAS_UNKNOWN_80FA" variants="A7XX-" usage="cmd"/>
+	<enum name="a6xx_fsr_combiner">
+		<value value="0" name="FSR_COMBINER_OP_KEEP"/>
+		<value value="1" name="FSR_COMBINER_OP_REPLACE"/>
+		<value value="2" name="FSR_COMBINER_OP_MIN"/>
+		<value value="3" name="FSR_COMBINER_OP_MAX"/>
+		<value value="4" name="FSR_COMBINER_OP_MUL"/>
+	</enum>
+
+	<reg32 offset="0x80f4" name="GRAS_FSR_CONFIG" variants="A7XX-" usage="rp_blit">
+		<bitfield name="PIPELINE_FSR_ENABLE" pos="0" type="boolean"/>
+		<bitfield name="FRAG_SIZE_X" low="1" high="2" type="uint"/>
+		<bitfield name="FRAG_SIZE_Y" low="3" high="4" type="uint"/>
+		<bitfield name="COMBINER_OP_1" low="5" high="7" type="a6xx_fsr_combiner"/>
+		<bitfield name="COMBINER_OP_2" low="8" high="10" type="a6xx_fsr_combiner"/>
+		<bitfield name="ATTACHMENT_FSR_ENABLE" pos="13" type="boolean"/>
+		<bitfield name="PRIMITIVE_FSR_ENABLE" pos="20" type="boolean"/>
+	</reg32>
+	<reg32 offset="0x80f5" name="GRAS_FSR_BUFFER_DESC" variants="A7XX-" usage="rp_blit">
+		<bitfield name="LAYERED" pos="0" type="boolean"/>
+		<bitfield name="TILE_MODE" low="1" high="2" type="a6xx_tile_mode"/>
+	</reg32>
+	<reg32 offset="0x80f6" name="GRAS_FSR_BUFFER_SIZE" variants="A7XX-" usage="rp_blit">
+		<bitfield name="WIDTH" low="0" high="15" type="uint"/>
+		<bitfield name="HEIGHT" low="16" high="31" type="uint"/>
+	</reg32>
+	<reg64 offset="0x80f8" name="GRAS_FSR_BUFFER_BASE" variants="A7XX-" type="waddress" usage="rp_blit"/>
+	<reg32 offset="0x80fa" name="GRAS_FSR_BUFFER_PITCH" variants="A7XX-" usage="rp_blit">
+		<bitfield name="PITCH" shr="6" low="0" high="7" type="uint"/>
+		<bitfield name="ARRAY_PITCH" shr="6" low="10" high="28" type="uint"/>
+	</reg32>
 
 	<enum name="a6xx_lrz_dir_status">
 		<value value="0x1" name="LRZ_DIR_LE"/>
@@ -3875,8 +3898,8 @@ to upconvert to 32b float internally?
 		<!--
 			a618 GLES: color render target number being resolved for CCU_RESOLVE, 0x8 for depth, 0x9 for separate stencil.
 			a618 VK: 0x8 for depth CCU_RESOLVE, 0x9 for separate stencil, 0 otherwise.
-
-			We believe this is related to concurrent resolves
+			a7xx VK: 0x8 for depth, 0x9 for separate stencil, 0x0 to 0x7 used for concurrent resolves of color render
+			targets inside a given resolve group.
 		 -->
 		<bitfield name="BUFFER_ID" low="12" high="15"/>
 	</reg32>
@@ -3919,7 +3942,13 @@ to upconvert to 32b float internally?
 		<bitfield name="PITCH" low="0" high="10" shr="6" type="uint"/>
 		<bitfield name="ARRAY_PITCH" low="11" high="23" shr="7" type="uint"/>
 	</reg32>
-	<reg32 offset="0x88f4" name="RB_UNKNOWN_88F4" low="0" high="2"/>
+
+	<reg32 offset="0x88f4" name="RB_FSR_CONFIG" usage="rp_blit">
+		<bitfield name="UNK2" pos="2" type="boolean"/>
+		<bitfield name="PIPELINE_FSR_ENABLE" pos="4" type="boolean"/>
+		<bitfield name="ATTACHMENT_FSR_ENABLE" pos="5" type="boolean"/>
+		<bitfield name="PRIMITIVE_FSR_ENABLE" pos="18" type="boolean"/>
+	</reg32>
 	<!-- Connected to VK_EXT_fragment_density_map? -->
 	<reg32 offset="0x88f5" name="RB_UNKNOWN_88F5" variants="A7XX-"/>
 	<!-- 0x88f6-0x88ff invalid -->
@@ -4041,9 +4070,20 @@ to upconvert to 32b float internally?
 		<bitfield name="COLOR_OFFSET" low="23" high="31" shr="12" type="hex"/>
 		<!--TODO: valid mask 0xfffffc1f -->
 	</reg32>
+	<enum name="a7xx_concurrent_resolve_mode">
+		<value value="0x0" name="CONCURRENT_RESOLVE_MODE_DISABLED"/>
+		<value value="0x1" name="CONCURRENT_RESOLVE_MODE_1"/>
+		<value value="0x2" name="CONCURRENT_RESOLVE_MODE_2"/>
+	</enum>
+	<enum name="a7xx_concurrent_unresolve_mode">
+		<value value="0x0" name="CONCURRENT_UNRESOLVE_MODE_DISABLED"/>
+		<value value="0x1" name="CONCURRENT_UNRESOLVE_MODE_PARTIAL"/>
+		<value value="0x3" name="CONCURRENT_UNRESOLVE_MODE_FULL"/>
+	</enum>
 	<reg32 offset="0x8e07" name="RB_CCU_CNTL" usage="cmd" variants="A7XX-">
 		<bitfield name="GMEM_FAST_CLEAR_DISABLE" pos="0" type="boolean"/>
-		<bitfield name="CONCURRENT_RESOLVE" pos="2" type="boolean"/>
+		<bitfield name="CONCURRENT_RESOLVE_MODE" low="2" high="3" type="a7xx_concurrent_resolve_mode"/>
+		<bitfield name="CONCURRENT_UNRESOLVE_MODE" low="5" high="6" type="a7xx_concurrent_unresolve_mode"/>
 		<!-- rest of the bits were moved to RB_CCU_CNTL2 -->
 	</reg32>
 	<reg32 offset="0x8e08" name="RB_NC_MODE_CNTL">
@@ -5494,8 +5534,11 @@ to upconvert to 32b float internally?
 		<bitfield name="DITHER_MODE_MRT7" low="14" high="15" type="adreno_rb_dither_mode"/>
 	</reg32>
 
-	<!-- Used in VK_KHR_fragment_shading_rate -->
-	<reg32 offset="0xa9ad" name="HLSQ_UNKNOWN_A9AD" variants="A7XX-" usage="cmd"/>
+	<reg32 offset="0xa9ad" name="SP_FSR_CONFIG" variants="A7XX-" usage="rp_blit">
+		<bitfield name="PIPELINE_FSR_ENABLE" pos="0" type="boolean"/>
+		<bitfield name="ATTACHMENT_FSR_ENABLE" pos="1" type="boolean"/>
+		<bitfield name="PRIMITIVE_FSR_ENABLE" pos="3" type="boolean"/>
+	</reg32>
 
 	<reg32 offset="0xa9ae" name="HLSQ_UNKNOWN_A9AE" variants="A7XX-" usage="rp_blit">
 		<bitfield name="SYSVAL_REGS_COUNT" low="0" high="7" type="uint"/>

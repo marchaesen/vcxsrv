@@ -15,7 +15,7 @@ libfreedreno_layout = static_library(
   include_directories : [inc_freedreno, inc_include, inc_src],
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
-  dependencies : [idep_nir_headers, idep_mesautil],
+  dependencies : [idep_nir_headers, idep_mesautil, idep_libfreedreno_common],
   build_by_default : false,
 )
 
@@ -30,7 +30,7 @@ foreach major : ['5', '6']
         freedreno_xml_header_files,
       ],
       link_with: libfreedreno_layout,
-      dependencies : idep_mesautil,
+      dependencies : [idep_mesautil, idep_libfreedreno_common],
       include_directories: [
         inc_include,
         inc_src,

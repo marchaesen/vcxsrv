@@ -38,7 +38,7 @@ struct etna_rasterizer_state {
    uint32_t PA_POINT_SIZE;
    uint32_t PA_SYSTEM_MODE;
    uint32_t SE_DEPTH_SCALE;
-   uint32_t SE_DEPTH_BIAS;
+   float offset_units;
    uint32_t SE_CONFIG;
    bool point_size_per_vertex;
    bool scissor;

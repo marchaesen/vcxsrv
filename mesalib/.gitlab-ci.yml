@@ -33,43 +33,34 @@ workflow:
     # merge pipeline
     - if: &is-merge-attempt $GITLAB_USER_LOGIN == "marge-bot" && $CI_PIPELINE_SOURCE == "merge_request_event"
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
         MESA_CI_PERFORMANCE_ENABLED: 1
         VALVE_INFRA_VANGOGH_JOB_PRIORITY: ""  # Empty tags are ignored by gitlab
+        JOB_PRIORITY: 75
         # fast-fail in merge pipelines: stop early if we get this many unexpected fails/crashes
         DEQP_RUNNER_MAX_FAILS: 40
-        # Flag to advertise the CI scripts if we are in a merge pipeline
-        IS_MERGE_PIPELINE: 1
     # post-merge pipeline
     - if: &is-post-merge $GITLAB_USER_LOGIN == "marge-bot" && $CI_PIPELINE_SOURCE == "push"
+    # Pre-merge pipeline
+    - if: &is-pre-merge $CI_PIPELINE_SOURCE == "merge_request_event"
+    # Push to a branch on a fork
+    - if: &is-fork-push $CI_PROJECT_NAMESPACE != "mesa" && $CI_PIPELINE_SOURCE == "push"
     # nightly pipeline
     - if: &is-scheduled-pipeline $CI_PIPELINE_SOURCE == "schedule"
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
-        JOB_PRIORITY: 50
-        VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
+        JOB_PRIORITY: 45
+        # (some) nightly builds perform LTO, so they take much longer than the
+        # short timeout allowed in other pipelines.
+        # Note: 0 = infinity = gitlab's job `timeout:` applies, which is 1h
+        BUILD_JOB_TIMEOUT_OVERRIDE: 0
     # pipeline for direct pushes that bypassed the CI
     - if: &is-direct-push $CI_PROJECT_NAMESPACE == "mesa" && $CI_PIPELINE_SOURCE == "push" && $GITLAB_USER_LOGIN != "marge-bot"
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
-        JOB_PRIORITY: 40
-        VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
-    # pre-merge or fork pipeline
-    - if: $FORCE_KERNEL_TAG != null
-      variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
-        JOB_PRIORITY: 50
-        VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
-    - if: $FORCE_KERNEL_TAG == null
-      variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
-        JOB_PRIORITY: 50
-        VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
+        JOB_PRIORITY: 70
 
 
 variables:
   FDO_UPSTREAM_REPO: mesa/mesa
-  MESA_TEMPLATES_COMMIT: &ci-templates-commit d5aa3941aa03c2f716595116354fb81eb8012acb
+  MESA_TEMPLATES_COMMIT: &ci-templates-commit e195d80f35b45cc73668be3767b923fd76c70ed5
   CI_PRE_CLONE_SCRIPT: |-
           set -o xtrace
           wget -q -O download-git-cache.sh ${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/download-git-cache.sh
@@ -77,7 +68,12 @@ variables:
           rm download-git-cache.sh
           set +o xtrace
   S3_JWT_FILE: /s3_jwt
+  S3_JWT_FILE_SCRIPT: |-
+      echo -n '${S3_JWT}' > '${S3_JWT_FILE}' &&
+      unset CI_JOB_JWT S3_JWT  # Unsetting vulnerable env variables
   S3_HOST: s3.freedesktop.org
+  # This bucket is used to fetch ANDROID prebuilts and images
+  S3_ANDROID_BUCKET: mesa-rootfs
   # This bucket is used to fetch the kernel image
   S3_KERNEL_BUCKET: mesa-rootfs
   # Bucket for git cache
@@ -101,33 +97,32 @@ variables:
   ARTIFACTS_BASE_URL: https://${CI_PROJECT_ROOT_NAMESPACE}.${CI_PAGES_DOMAIN}/-/${CI_PROJECT_NAME}/-/jobs/${CI_JOB_ID}/artifacts
   # Python scripts for structured logger
   PYTHONPATH: "$PYTHONPATH:$CI_PROJECT_DIR/install"
-  # Drop once deqp-runner is upgraded to > 0.18.0
+  # No point in continuing once the device is lost
   MESA_VK_ABORT_ON_DEVICE_LOSS: 1
   # Avoid the wall of "Unsupported SPIR-V capability" warnings in CI job log, hiding away useful output
   MESA_SPIRV_LOG_LEVEL: error
+  # Default priority for non-merge pipelines
+  VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
+  JOB_PRIORITY: 50
 
 default:
   id_tokens:
     S3_JWT:
       aud: https://s3.freedesktop.org
   before_script:
+    - |
+      if [ -z "${KERNEL_IMAGE_BASE:-}" ]; then
+        export KERNEL_IMAGE_BASE="https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${EXTERNAL_KERNEL_TAG:-$KERNEL_TAG}"
+      fi
     - >
       export SCRIPTS_DIR=$(mktemp -d) &&
       curl -L -s --retry 4 -f --retry-all-errors --retry-delay 60 -O --output-dir "${SCRIPTS_DIR}" "${CI_PROJECT_URL}/-/raw/${CI_COMMIT_SHA}/.gitlab-ci/setup-test-env.sh" &&
-      . ${SCRIPTS_DIR}/setup-test-env.sh &&
-      echo -n "${S3_JWT}" > "${S3_JWT_FILE}" &&
-      unset CI_JOB_JWT S3_JWT  # Unsetting vulnerable env variables
+      . ${SCRIPTS_DIR}/setup-test-env.sh
+    - eval "$S3_JWT_FILE_SCRIPT"
 
   after_script:
     # Work around https://gitlab.com/gitlab-org/gitlab/-/issues/20338
     - find -name '*.log' -exec mv {} {}.txt \;
-
-    - >
-      set +x
-
-      test -e "${S3_JWT_FILE}" &&
-      export S3_JWT="$(<${S3_JWT_FILE})" &&
-      rm "${S3_JWT_FILE}"
 
   # Retry when job fails. Failed jobs can be found in the Mesa CI Daily Reports:
   # https://gitlab.freedesktop.org/mesa/mesa/-/issues/?sort=created_date&state=opened&label_name%5B%5D=CI%20daily
@@ -194,15 +189,6 @@ include:
   - local: 'src/**/ci/gitlab-ci.yml'
 
 
-# YAML anchors for rule conditions
-# --------------------------------
-.rules-anchors:
-  # Pre-merge pipeline
-  - &is-pre-merge '$CI_PIPELINE_SOURCE == "merge_request_event"'
-  # Push to a branch on a fork
-  - &is-fork-push '$CI_PROJECT_NAMESPACE != "mesa" && $CI_PIPELINE_SOURCE == "push"'
-
-
 # Rules applied to every job in the pipeline
 .common-rules:
   rules:
@@ -230,6 +216,7 @@ include:
         - bin/git_sha1_gen.py
         - bin/install_megadrivers.py
         - bin/symbols-check.py
+        - bin/ci/**/*
         # GitLab CI
         - .gitlab-ci.yml
         - .gitlab-ci/**/*

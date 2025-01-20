@@ -248,7 +248,6 @@ FirstCmp(const void *p1, const void *p2)
 /*
  *	DESCRIPTION
  *		Compares the color names of XcmsColorTuples.
- *		This routine is public to allow access from qsort???.
  *
  *	RETURNS
  *		0 if equal;

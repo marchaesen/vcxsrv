@@ -485,6 +485,8 @@ dd_dump_blit(struct dd_draw_state *dstate, struct pipe_blit_info *info, FILE *f)
    DUMP_M_ADDR(scissor_state, info, scissor);
    DUMP_M(uint, info, render_condition_enable);
 
+   DUMP_M(uint, info, swizzle_enable);
+
    if (info->render_condition_enable)
       dd_dump_render_condition(dstate, f);
 }

@@ -57,7 +57,7 @@
     - .incorporate-templates-commit
   variables:
     FDO_REPO_SUFFIX: $CI_JOB_NAME
-    FDO_DISTRIBUTION_EXEC: 'bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
+    FDO_DISTRIBUTION_EXEC: 'bash .gitlab-ci/container/container_job_trampoline.sh "${CI_JOB_NAME}"'
     # no need to pull the whole repo to build the container image
     GIT_STRATEGY: none
 
@@ -154,16 +154,23 @@ debian/s390x_build:
     - debian/s390x_build
 
 # Android NDK cross-build image
+.android-variables:
+  variables:
+    ANDROID_SDK_VERSION: 33
+    ANDROID_NDK: android-ndk-r25b
+    ANDROID_LLVM_VERSION: llvmorg-18.1.8
+    ANDROID_LLVM_ARTIFACT_NAME: android-x86_64-llvm-20241219
+
 debian/android_build:
   extends:
+    - .android-variables
     - .use-debian/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &debian-android_build ${DEBIAN_BUILD_TAG}
-    ANDROID_SDK_VERSION: 33
-    ANDROID_NDK: android-ndk-r25b
 
 .use-debian/android_build:
   extends:
+    - .android-variables
     - .set-image-base-tag
   variables:
     MESA_BASE_TAG: *debian-x86_64_build-base
@@ -246,10 +253,11 @@ debian/x86_64_test-vk:
 
 # Debian based x86_64 test image for Android
 .debian/x86_64_test-android:
-  extends: .use-debian/x86_64_test-base
+  extends:
+    - .android-variables
+    - .use-debian/x86_64_test-base
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_test-android ${DEBIAN_TEST_ANDROID_TAG}
-    ANDROID_NDK: android-ndk-r25b
 
 .use-debian/x86_64_test-android:
   extends:
@@ -267,10 +275,6 @@ debian/x86_64_pyutils:
     - .debian-container
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_pyutils "${DEBIAN_PYUTILS_TAG}"
-  rules:
-    # python-test requires this job
-    - !reference [python-test, rules]
-    - !reference [.container, rules]
 
 .use-debian/x86_64_pyutils:
   extends:
@@ -360,7 +364,7 @@ alpine/x86_64_build:
     - .alpine/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &alpine-x86_64_build ${ALPINE_X86_64_BUILD_TAG}
-    LLVM_VERSION: &alpine-llvm_version 18
+    LLVM_VERSION: &alpine-llvm_version 19
   rules:
     # Note: the next three lines must remain in that order, so that the rules
     # in `linkcheck-docs` catch nightly pipelines before the rules in `pages`
@@ -393,7 +397,7 @@ fedora/x86_64_build:
     - .fdo.container-build@fedora
     - .container
   variables:
-    FDO_DISTRIBUTION_VERSION: 38
+    FDO_DISTRIBUTION_VERSION: 41
     MESA_IMAGE_TAG: &fedora-x86_64_build ${FEDORA_X86_64_BUILD_TAG}
 
 .use-fedora/x86_64_build:

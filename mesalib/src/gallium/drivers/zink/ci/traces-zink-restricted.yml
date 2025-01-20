@@ -61,6 +61,12 @@ traces:
   TheRavenRemastered/Raven-f10900-v2.trace:
     gl-zink-anv-tgl:
       checksum: 64243ccd048cbbfc0649e8f3c5b5cdb3
+      label: [skip, broken]
+      text: |
+        MESA: error: zink: DEVICE LOST!
+        Raven: ../src/gallium/drivers/zink/zink_context.c:4126: zink_wait_on_batch: Assertion `batch_id' failed.
+        apitrace: warning: caught signal 6
+        457165: error: caught an unhandled exception
   TombRaider2013/TombRaider-f1430-v2.trace:
     gl-zink-anv-tgl:
       label: [crash]

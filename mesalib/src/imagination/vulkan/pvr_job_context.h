@@ -28,7 +28,7 @@
 #include "pvr_private.h"
 #include "pvr_transfer_frag_store.h"
 #include "pvr_types.h"
-#include "pvr_uscgen.h"
+#include "usc/pvr_uscgen.h"
 #include "pvr_winsys.h"
 
 /* Support PDS code/data loading/storing to the 'B' shared register state

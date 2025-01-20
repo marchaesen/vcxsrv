@@ -41,11 +41,8 @@ struct st_translate {
 
    nir_def *temps[MAX_PROGRAM_TEMPS];
 
-   nir_variable *fragcolor;
    nir_variable *constants;
    nir_variable *samplers[MAX_TEXTURE_UNITS];
-
-   nir_def *inputs[VARYING_SLOT_MAX];
 
    unsigned current_pass;
 
@@ -113,15 +110,15 @@ apply_swizzle(struct st_translate *t,
 static nir_def *
 load_input(struct st_translate *t, gl_varying_slot slot)
 {
-   if (!t->inputs[slot]) {
-      nir_variable *var = nir_create_variable_with_location(t->b->shader, nir_var_shader_in, slot,
-                                                            glsl_vec4_type());
-      var->data.interpolation = INTERP_MODE_NONE;
+   nir_def *baryc = nir_load_barycentric_pixel(t->b, 32);
 
-      t->inputs[slot] = nir_load_var(t->b, var);
+   if (slot != VARYING_SLOT_COL0 && slot != VARYING_SLOT_COL1) {
+      nir_intrinsic_set_interp_mode(nir_instr_as_intrinsic(baryc->parent_instr),
+                                    INTERP_MODE_SMOOTH);
    }
 
-   return t->inputs[slot];
+   return nir_load_interpolated_input(t->b, 4, 32, baryc, nir_imm_int(t->b, 0),
+                                      .io_semantics.location = slot);
 }
 
 static nir_def *
@@ -447,9 +444,7 @@ st_translate_atifs_program(struct ati_fragment_shader *atifs,
    nir_shader *s = t->b->shader;
    s->info.name = ralloc_asprintf(s, "ATIFS%d", program->Id);
    s->info.internal = false;
-
-   t->fragcolor = nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                                    FRAG_RESULT_COLOR, glsl_vec4_type());
+   s->info.io_lowered = true;
 
    st_atifs_setup_uniforms(t, program);
 
@@ -466,8 +461,10 @@ st_translate_atifs_program(struct ati_fragment_shader *atifs,
       }
    }
 
-   if (t->regs_written[atifs->NumPasses-1][0])
-      nir_store_var(t->b, t->fragcolor, t->temps[0], 0xf);
+   if (t->regs_written[atifs->NumPasses-1][0]) {
+      nir_store_output(t->b, t->temps[0], nir_imm_int(t->b, 0),
+                       .io_semantics.location = FRAG_RESULT_COLOR);
+   }
 
    return b.shader;
 }

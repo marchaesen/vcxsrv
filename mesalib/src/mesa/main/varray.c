@@ -4169,7 +4169,7 @@ _mesa_init_varray(struct gl_context *ctx)
    _mesa_set_draw_vao(ctx, ctx->Array.VAO);
    ctx->Array.ActiveTexture = 0;   /* GL_ARB_multitexture */
 
-   _mesa_InitHashTable(&ctx->Array.Objects);
+   _mesa_InitHashTable(&ctx->Array.Objects, ctx->Shared->ReuseGLNames);
 }
 
 

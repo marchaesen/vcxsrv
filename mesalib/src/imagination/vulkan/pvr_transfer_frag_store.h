@@ -28,7 +28,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "pvr_device_info.h"
-#include "pvr_uscgen.h"
+#include "usc/pvr_uscgen.h"
 #include "pvr_types.h"
 #include "util/hash_table.h"
 

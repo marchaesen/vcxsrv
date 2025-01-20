@@ -30,7 +30,8 @@
 #if PAN_ARCH <= 9
 
 static void
-pandecode_primitive(struct pandecode_context *ctx, const void *p)
+pandecode_primitive(struct pandecode_context *ctx,
+                    const struct mali_primitive_packed *p)
 {
    pan_unpack(p, PRIMITIVE, primitive);
    DUMP_UNPACKED(ctx, PRIMITIVE, primitive, "Primitive:\n");
@@ -61,7 +62,7 @@ pandecode_primitive(struct pandecode_context *ctx, const void *p)
 
 #if PAN_ARCH <= 7
 static void
-pandecode_attributes(struct pandecode_context *ctx, mali_ptr addr, int count,
+pandecode_attributes(struct pandecode_context *ctx, uint64_t addr, int count,
                      bool varying, enum mali_job_type job_type)
 {
    char *prefix = varying ? "Varying" : "Attribute";
@@ -75,14 +76,14 @@ pandecode_attributes(struct pandecode_context *ctx, mali_ptr addr, int count,
    MAP_ADDR(ctx, ATTRIBUTE_BUFFER, addr, cl);
 
    for (int i = 0; i < count; ++i) {
-      pan_unpack(cl + i * pan_size(ATTRIBUTE_BUFFER), ATTRIBUTE_BUFFER, temp);
+      pan_unpack(&cl[i], ATTRIBUTE_BUFFER, temp);
       DUMP_UNPACKED(ctx, ATTRIBUTE_BUFFER, temp, "%s:\n", prefix);
 
       switch (temp.type) {
       case MALI_ATTRIBUTE_TYPE_1D_NPOT_DIVISOR_WRITE_REDUCTION:
       case MALI_ATTRIBUTE_TYPE_1D_NPOT_DIVISOR: {
-         pan_unpack(cl + (i + 1) * pan_size(ATTRIBUTE_BUFFER),
-                    ATTRIBUTE_BUFFER_CONTINUATION_NPOT, temp2);
+         pan_cast_and_unpack(&cl[i + 1], ATTRIBUTE_BUFFER_CONTINUATION_NPOT,
+                             temp2);
          pan_print(ctx->dump_stream, ATTRIBUTE_BUFFER_CONTINUATION_NPOT, temp2,
                    (ctx->indent + 1) * 2);
          i++;
@@ -90,8 +91,8 @@ pandecode_attributes(struct pandecode_context *ctx, mali_ptr addr, int count,
       }
       case MALI_ATTRIBUTE_TYPE_3D_LINEAR:
       case MALI_ATTRIBUTE_TYPE_3D_INTERLEAVED: {
-         pan_unpack(cl + (i + 1) * pan_size(ATTRIBUTE_BUFFER_CONTINUATION_3D),
-                    ATTRIBUTE_BUFFER_CONTINUATION_3D, temp2);
+         pan_cast_and_unpack(&cl[i + 1], ATTRIBUTE_BUFFER_CONTINUATION_3D,
+                             temp2);
          pan_print(ctx->dump_stream, ATTRIBUTE_BUFFER_CONTINUATION_3D, temp2,
                    (ctx->indent + 1) * 2);
          i++;
@@ -106,7 +107,7 @@ pandecode_attributes(struct pandecode_context *ctx, mali_ptr addr, int count,
 
 static unsigned
 pandecode_attribute_meta(struct pandecode_context *ctx, int count,
-                         mali_ptr attribute, bool varying)
+                         uint64_t attribute, bool varying)
 {
    unsigned max = 0;
 
@@ -123,8 +124,8 @@ pandecode_attribute_meta(struct pandecode_context *ctx, int count,
 }
 
 /* return bits [lo, hi) of word */
-static u32
-bits(u32 word, u32 lo, u32 hi)
+static uint32_t
+bits(uint32_t word, uint32_t lo, uint32_t hi)
 {
    if (hi - lo >= 32)
       return word; // avoid undefined behavior with the shift
@@ -136,7 +137,8 @@ bits(u32 word, u32 lo, u32 hi)
 }
 
 static void
-pandecode_invocation(struct pandecode_context *ctx, const void *i)
+pandecode_invocation(struct pandecode_context *ctx,
+                     const struct mali_invocation_packed *i)
 {
    /* Decode invocation_count. See the comment before the definition of
     * invocation_count for an explanation.
@@ -170,7 +172,7 @@ pandecode_invocation(struct pandecode_context *ctx, const void *i)
 }
 
 static void
-pandecode_textures(struct pandecode_context *ctx, mali_ptr textures,
+pandecode_textures(struct pandecode_context *ctx, uint64_t textures,
                    unsigned texture_count)
 {
    if (!textures)
@@ -186,10 +188,10 @@ pandecode_textures(struct pandecode_context *ctx, mali_ptr textures,
    for (unsigned tex = 0; tex < texture_count; ++tex)
       GENX(pandecode_texture)(ctx, cl + pan_size(TEXTURE) * tex, tex);
 #else
-   mali_ptr *PANDECODE_PTR_VAR(ctx, u, textures);
+   uint64_t *PANDECODE_PTR_VAR(ctx, u, textures);
 
    for (int tex = 0; tex < texture_count; ++tex) {
-      mali_ptr *PANDECODE_PTR_VAR(ctx, u, textures + tex * sizeof(mali_ptr));
+      uint64_t *PANDECODE_PTR_VAR(ctx, u, textures + tex * sizeof(uint64_t));
       char *a = pointer_as_memory_reference(ctx, *u);
       pandecode_log(ctx, "%s,\n", a);
       free(a);
@@ -197,7 +199,7 @@ pandecode_textures(struct pandecode_context *ctx, mali_ptr textures,
 
    /* Now, finally, descend down into the texture descriptor */
    for (unsigned tex = 0; tex < texture_count; ++tex) {
-      mali_ptr *PANDECODE_PTR_VAR(ctx, u, textures + tex * sizeof(mali_ptr));
+      uint64_t *PANDECODE_PTR_VAR(ctx, u, textures + tex * sizeof(uint64_t));
       GENX(pandecode_texture)(ctx, *u, tex);
    }
 #endif
@@ -206,7 +208,7 @@ pandecode_textures(struct pandecode_context *ctx, mali_ptr textures,
 }
 
 static void
-pandecode_samplers(struct pandecode_context *ctx, mali_ptr samplers,
+pandecode_samplers(struct pandecode_context *ctx, uint64_t samplers,
                    unsigned sampler_count)
 {
    pandecode_log(ctx, "Samplers %" PRIx64 ":\n", samplers);
@@ -221,13 +223,13 @@ pandecode_samplers(struct pandecode_context *ctx, mali_ptr samplers,
 }
 
 static void
-pandecode_uniform_buffers(struct pandecode_context *ctx, mali_ptr pubufs,
+pandecode_uniform_buffers(struct pandecode_context *ctx, uint64_t pubufs,
                           int ubufs_count)
 {
    uint64_t *PANDECODE_PTR_VAR(ctx, ubufs, pubufs);
 
    for (int i = 0; i < ubufs_count; i++) {
-      mali_ptr addr = (ubufs[i] >> 10) << 2;
+      uint64_t addr = (ubufs[i] >> 10) << 2;
       unsigned size = addr ? (((ubufs[i] & ((1 << 10) - 1)) + 1) * 16) : 0;
 
       pandecode_validate_buffer(ctx, addr, size);
@@ -241,7 +243,7 @@ pandecode_uniform_buffers(struct pandecode_context *ctx, mali_ptr pubufs,
 }
 
 static void
-pandecode_uniforms(struct pandecode_context *ctx, mali_ptr uniforms,
+pandecode_uniforms(struct pandecode_context *ctx, uint64_t uniforms,
                    unsigned uniform_count)
 {
    pandecode_validate_buffer(ctx, uniforms, uniform_count * 16);
@@ -269,7 +271,8 @@ GENX(pandecode_dcd)(struct pandecode_context *ctx, const struct MALI_DRAW *p,
       /* On v5 only, the actual framebuffer pointer is tagged with extra
        * metadata that we validate but do not print.
        */
-      pan_unpack(&p->fbd, FRAMEBUFFER_POINTER, ptr);
+      const uint64_t *fbd = &p->fbd;
+      pan_cast_and_unpack(fbd, FRAMEBUFFER_POINTER, ptr);
 
       if (!ptr.type || ptr.zs_crc_extension_present ||
           ptr.render_target_count != 1) {
@@ -288,7 +291,7 @@ GENX(pandecode_dcd)(struct pandecode_context *ctx, const struct MALI_DRAW *p,
    int texture_count = 0, sampler_count = 0;
 
    if (p->state) {
-      uint32_t *cl =
+      struct mali_renderer_state_packed *cl =
          pandecode_fetch_gpu_mem(ctx, p->state, pan_size(RENDERER_STATE));
 
       pan_unpack(cl, RENDERER_STATE, state);
@@ -319,7 +322,7 @@ GENX(pandecode_dcd)(struct pandecode_context *ctx, const struct MALI_DRAW *p,
 #endif
 
 #if PAN_ARCH == 4
-      mali_ptr shader = state.blend_shader & ~0xF;
+      uint64_t shader = state.blend_shader & ~0xF;
       if (state.multisample_misc.blend_shader && shader)
          pandecode_shader_disassemble(ctx, shader, gpu_id);
 #endif
@@ -336,7 +339,7 @@ GENX(pandecode_dcd)(struct pandecode_context *ctx, const struct MALI_DRAW *p,
          void *blend_base = ((void *)cl) + pan_size(RENDERER_STATE);
 
          for (unsigned i = 0; i < fbd_info.rt_count; i++) {
-            mali_ptr shader =
+            uint64_t shader =
                GENX(pandecode_blend)(ctx, blend_base, i, state.shader.shader);
             if (shader & ~0xF)
                pandecode_shader_disassemble(ctx, shader, gpu_id);
@@ -400,7 +403,7 @@ GENX(pandecode_dcd)(struct pandecode_context *ctx, const struct MALI_DRAW *p,
 static void
 pandecode_vertex_compute_geometry_job(struct pandecode_context *ctx,
                                       const struct MALI_JOB_HEADER *h,
-                                      mali_ptr job, unsigned gpu_id)
+                                      uint64_t job, unsigned gpu_id)
 {
    struct mali_compute_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
    pan_section_unpack(p, COMPUTE_JOB, DRAW, draw);
@@ -417,7 +420,7 @@ pandecode_vertex_compute_geometry_job(struct pandecode_context *ctx,
 #endif
 
 static void
-pandecode_write_value_job(struct pandecode_context *ctx, mali_ptr job)
+pandecode_write_value_job(struct pandecode_context *ctx, uint64_t job)
 {
    struct mali_write_value_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
    pan_section_unpack(p, WRITE_VALUE_JOB, PAYLOAD, u);
@@ -426,7 +429,7 @@ pandecode_write_value_job(struct pandecode_context *ctx, mali_ptr job)
 }
 
 static void
-pandecode_cache_flush_job(struct pandecode_context *ctx, mali_ptr job)
+pandecode_cache_flush_job(struct pandecode_context *ctx, uint64_t job)
 {
    struct mali_cache_flush_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
    pan_section_unpack(p, CACHE_FLUSH_JOB, PAYLOAD, u);
@@ -436,7 +439,7 @@ pandecode_cache_flush_job(struct pandecode_context *ctx, mali_ptr job)
 
 static void
 pandecode_tiler_job(struct pandecode_context *ctx,
-                    const struct MALI_JOB_HEADER *h, mali_ptr job,
+                    const struct MALI_JOB_HEADER *h, uint64_t job,
                     unsigned gpu_id)
 {
    struct mali_tiler_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
@@ -473,7 +476,7 @@ pandecode_tiler_job(struct pandecode_context *ctx,
 }
 
 static void
-pandecode_fragment_job(struct pandecode_context *ctx, mali_ptr job,
+pandecode_fragment_job(struct pandecode_context *ctx, uint64_t job,
                        unsigned gpu_id)
 {
    struct mali_fragment_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
@@ -485,7 +488,8 @@ pandecode_fragment_job(struct pandecode_context *ctx, mali_ptr job,
    /* On v5 and newer, the actual framebuffer pointer is tagged with extra
     * metadata that we need to disregard.
     */
-   pan_unpack(&s.framebuffer, FRAMEBUFFER_POINTER, ptr);
+   const uint64_t *framebuffer_packed_raw = &s.framebuffer;
+   pan_cast_and_unpack(framebuffer_packed_raw, FRAMEBUFFER_POINTER, ptr);
    fbd_pointer = ptr.pointer;
 #else
    /* On v4, the framebuffer pointer is untagged. */
@@ -510,7 +514,7 @@ pandecode_fragment_job(struct pandecode_context *ctx, mali_ptr job,
 #if PAN_ARCH == 6 || PAN_ARCH == 7
 static void
 pandecode_indexed_vertex_job(struct pandecode_context *ctx,
-                             const struct MALI_JOB_HEADER *h, mali_ptr job,
+                             const struct MALI_JOB_HEADER *h, uint64_t job,
                              unsigned gpu_id)
 {
    struct mali_indexed_vertex_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
@@ -544,7 +548,7 @@ pandecode_indexed_vertex_job(struct pandecode_context *ctx,
 
 #if PAN_ARCH == 9
 static void
-pandecode_malloc_vertex_job(struct pandecode_context *ctx, mali_ptr job,
+pandecode_malloc_vertex_job(struct pandecode_context *ctx, uint64_t job,
                             unsigned gpu_id)
 {
    struct mali_malloc_vertex_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
@@ -577,7 +581,7 @@ pandecode_malloc_vertex_job(struct pandecode_context *ctx, mali_ptr job,
 }
 
 static void
-pandecode_compute_job(struct pandecode_context *ctx, mali_ptr job,
+pandecode_compute_job(struct pandecode_context *ctx, uint64_t job,
                       unsigned gpu_id)
 {
    struct mali_compute_job_packed *PANDECODE_PTR_VAR(ctx, p, job);
@@ -593,7 +597,7 @@ pandecode_compute_job(struct pandecode_context *ctx, mali_ptr job,
  * GPU using the job manager.
  */
 void
-GENX(pandecode_jc)(struct pandecode_context *ctx, mali_ptr jc_gpu_va,
+GENX(pandecode_jc)(struct pandecode_context *ctx, uint64_t jc_gpu_va,
                    unsigned gpu_id)
 {
    pandecode_dump_file_open(ctx);
@@ -601,7 +605,7 @@ GENX(pandecode_jc)(struct pandecode_context *ctx, mali_ptr jc_gpu_va,
    struct set *va_set = _mesa_pointer_set_create(NULL);
    struct set_entry *entry = NULL;
 
-   mali_ptr next_job = 0;
+   uint64_t next_job = 0;
 
    do {
       struct mali_job_header_packed *hdr =
@@ -674,9 +678,9 @@ GENX(pandecode_jc)(struct pandecode_context *ctx, mali_ptr jc_gpu_va,
 
 void
 GENX(pandecode_abort_on_fault)(struct pandecode_context *ctx,
-                               mali_ptr jc_gpu_va)
+                               uint64_t jc_gpu_va)
 {
-   mali_ptr next_job = 0;
+   uint64_t next_job = 0;
 
    do {
       pan_unpack(PANDECODE_PTR(ctx, jc_gpu_va, struct mali_job_header_packed),

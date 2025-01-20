@@ -32,6 +32,39 @@
 #define TOKEN(t) (ir3_yylval.tok = t)
 extern YYSTYPE ir3_yylval;
 extern void *ir3_parser_dead_ctx;
+extern char *current_line;
+
+const char *input_buffer = NULL;
+size_t input_buffer_len = 256;
+
+/**
+ * Return up to max_size chars from the current input_buffer.  Reads a new
+ * line into the input_buffer if it is currently empty.
+ */
+static size_t yy_input(char *buf, size_t max_size)
+{
+  if (!input_buffer)
+    current_line = malloc(input_buffer_len);
+
+  if (!input_buffer || !strlen(input_buffer)) {
+    if (getline(&current_line, &input_buffer_len, ir3_yyin) < 0) {
+      if (ferror(ir3_yyin))
+        fprintf(stderr, "Could not read input:\n");
+    } else {
+      input_buffer = current_line;
+    }
+  }
+
+  size_t to_copy = MIN2(max_size, strlen(input_buffer));
+  memcpy(buf, input_buffer, to_copy);
+  input_buffer += to_copy;
+
+  return to_copy;
+}
+
+#define YY_INPUT(buf, result, max_size) \
+  result = yy_input(buf, max_size);
+
 
 void ir3_yyset_input(FILE *f);
 
@@ -39,6 +72,8 @@ void ir3_yyset_input(FILE *f)
 {
 	YY_FLUSH_BUFFER;
 	ir3_yyin = f;
+	if (input_buffer)
+		input_buffer = "";
 }
 
 static int parse_wrmask(const char *src)
@@ -108,7 +143,12 @@ static int parse_reg(const char *str)
 "@out"                            return TOKEN(T_A_OUT);
 "@tex"                            return TOKEN(T_A_TEX);
 "@pvtmem"                         return TOKEN(T_A_PVTMEM);
+"@localmem"                       return TOKEN(T_A_LOCALMEM);
 "@earlypreamble"                  return TOKEN(T_A_EARLYPREAMBLE);
+"@fullnopstart"                   return TOKEN(T_A_FULLNOPSTART);
+"@fullnopend"                     return TOKEN(T_A_FULLNOPEND);
+"@fullsyncstart"                  return TOKEN(T_A_FULLSYNCSTART);
+"@fullsyncend"                    return TOKEN(T_A_FULLSYNCEND);
 "(sy)"                            return TOKEN(T_SY);
 "(ss)"                            return TOKEN(T_SS);
 "(absneg)"                        return TOKEN(T_ABSNEG);
@@ -180,8 +220,7 @@ static int parse_reg(const char *str)
 "gat"                             return TOKEN(T_OP_GAT);
 "sct"                             return TOKEN(T_OP_SCT);
 
-("f16"|"f32"|"u16"|"u32"|"s16"|"s32"|"u8"|"u8_32"){2} ir3_yylval.str = yytext; return T_CAT1_TYPE_TYPE;
-
+("f16"|"f32"|"u16"|"u32"|"s16"|"s32"|"u8"|"u8_32"|"u64"){2} ir3_yylval.str = yytext; return T_CAT1_TYPE_TYPE;
                                   /* category 2: */
 "add.f"                           return TOKEN(T_OP_ADD_F);
 "min.f"                           return TOKEN(T_OP_MIN_F);
@@ -409,6 +448,7 @@ static int parse_reg(const char *str)
 "s32"                             return TOKEN(T_TYPE_S32);
 "u8"                              return TOKEN(T_TYPE_U8);
 "u8_32"                           return TOKEN(T_TYPE_U8_32);
+"u64"                             return TOKEN(T_TYPE_U64);
 
 "untyped"                         return TOKEN(T_UNTYPED);
 "typed"                           return TOKEN(T_TYPED);

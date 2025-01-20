@@ -6,8 +6,12 @@ start_string = "<!-- towncrier release notes start -->\n"
 all_bullets = true
 single_file = true
 orphan_prefix = "+"
-underlines = ["=", "-", ""]
-title_format = "{name} [{version}](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-{version}) - {project_date}"
+title_format = """\
+{name} [{version}] - {project_date}
+====================================
+
+[{version}]: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-{version}\
+"""
 issue_format = "[#{issue}](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/issues/{issue})"
 
 # Sections configuration

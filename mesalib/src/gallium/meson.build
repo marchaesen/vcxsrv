@@ -8,13 +8,20 @@ foreach d : [[with_gallium_r300 or with_gallium_radeonsi or with_gallium_r600, '
              [with_gallium_radeonsi, 'amdgpu_winsys_create'],
              [with_gallium_nouveau, 'nouveau_drm_screen_create'],
              [with_gallium_freedreno, 'fd_drm_screen_create_renderonly'],
-             [amd_with_llvm and with_gallium_radeonsi, 'ac_init_shared_llvm_once']]
+             [amd_with_llvm and with_gallium_radeonsi, 'ac_init_shared_llvm_once'],
+             [with_gallium_vdpau, 'vdp_imp_device_create_x11']]
   if d[0]
     sym_config.set(d[1], d[1] + ';')
   else
     sym_config.set(d[1], '')
   endif
 endforeach
+
+if with_gallium_va
+  sym_config.set('va_driver_init', '__vaDriverInit_*_*;')
+else
+  sym_config.set('va_driver_init', '')
+endif
 
 inc_gallium_drivers = include_directories('drivers')
 inc_gallium_winsys = include_directories('winsys')

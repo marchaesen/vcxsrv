@@ -1,7 +1,7 @@
 # vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
 
 # see https://docs.gitlab.com/ee/ci/yaml/#includefile
-.templates_sha: &template_sha b61a03cabbf308e81289f7aaaf0b5a80a34ffb99
+.templates_sha: &template_sha e195d80f35b45cc73668be3767b923fd76c70ed5
 
 
 include:
@@ -47,7 +47,7 @@ variables:
   FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2024-08-30.1'
+  FDO_DISTRIBUTION_TAG: '2024-11-19.1'
 
   BUILDDIR: '_build'
   # installation directory must be inside $CI_PROJECT_DIR to allow for artifact caching
@@ -213,7 +213,8 @@ xkbcommon build:
         -Dxkb-config-root="$INSTDIR/share/X11/xkb" \
         -Dxkb-config-extra-path="$INSTDIR/share/X11/xkb" \
         -Dprefix="$XKBCOMMON_INST_DIR" \
-        -Dlibdir="lib"
+        -Dlibdir="lib" \
+        --buildtype=release
     - meson compile -C "$BUILDDIR"
     - meson install -C "$BUILDDIR"
     # We want also the test script. It requires "xkbcli-compile-keymap".
@@ -333,12 +334,31 @@ layout_tests:
     # For debugging: check if executable is working and output its XKB_CONFIG_ROOT
     - xkbcli-compile-keymap --layout pc --verbose > /dev/null
     - >
-      xkeyboard-config-test --verbose \
+      xkeyboard-config-test --verbose --short \
           "$INSTDIR/share/X11/xkb/rules/evdev.xml" \
           >  $INSTDIR/keymaps-success.yaml \
           2> $INSTDIR/keymaps-failed.yaml
     - >
-      xkeyboard-config-test --verbose \
+      xkeyboard-config-test --verbose --short \
+          "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" \
+          >>  $INSTDIR/keymaps-success.yaml \
+          2>> $INSTDIR/keymaps-failed.yaml
+    # Test a few models with vendor-specific layouts
+    - >
+      xkeyboard-config-test --model=applealu_iso --layout=gb --option="" --verbose --short \
+          "$INSTDIR/share/X11/xkb/rules/evdev.xml" \
+          "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" \
+          >>  $INSTDIR/keymaps-success.yaml \
+          2>> $INSTDIR/keymaps-failed.yaml
+    - >
+      xkeyboard-config-test --model=applealu_jis --layout=jp --option="" --verbose --short \
+          "$INSTDIR/share/X11/xkb/rules/evdev.xml" \
+          "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" \
+          >>  $INSTDIR/keymaps-success.yaml \
+          2>> $INSTDIR/keymaps-failed.yaml
+    - >
+      xkeyboard-config-test --model=olpc --layout=gb --option="" --verbose --short \
+          "$INSTDIR/share/X11/xkb/rules/evdev.xml" \
           "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" \
           >>  $INSTDIR/keymaps-success.yaml \
           2>> $INSTDIR/keymaps-failed.yaml

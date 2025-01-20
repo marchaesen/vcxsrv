@@ -45,7 +45,7 @@ bool do_dead_code(exec_list *instructions);
 bool do_dead_code_local(exec_list *instructions);
 bool do_dead_code_unlinked(exec_list *instructions);
 bool opt_flip_matrices(exec_list *instructions);
-bool do_lower_jumps(exec_list *instructions, bool pull_out_jumps = true, bool lower_sub_return = true, bool lower_main_return = false, bool lower_continue = false);
+bool do_lower_jumps(exec_list *instructions, bool pull_out_jumps = true, bool lower_continue = false);
 bool do_if_simplification(exec_list *instructions);
 bool opt_flatten_nested_if_blocks(exec_list *instructions);
 bool do_mat_op_to_vec(exec_list *instructions);
@@ -53,7 +53,7 @@ bool do_minmax_prune(exec_list *instructions);
 bool do_tree_grafting(exec_list *instructions);
 bool do_vec_index_to_cond_assign(exec_list *instructions);
 bool lower_instructions(exec_list *instructions,
-                        bool have_gpu_shader5);
+                        bool force_abs_sqrt, bool have_gpu_shader5);
 bool lower_packing_builtins(exec_list *instructions,
                             bool has_shading_language_packing,
                             bool has_gpu_shader5,

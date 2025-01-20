@@ -25,6 +25,8 @@
 #include "shaper_builder.h"
 #include "custom_fp16.h"
 #include "fixed31_32.h"
+#include "color.h"
+#include "color_gamma.h"
 
 struct shaper_setup_out {
     int exp_begin_raw;
@@ -34,6 +36,29 @@ struct shaper_setup_out {
     int end_base_fixed_0_14;
 };
 
+static unsigned int vpe_computer_shaper_pq_14u(double x, struct fixed31_32 normalized_factor)
+{
+    unsigned          output_fixpt_14u = 0x3fff;
+    struct fixed31_32 x_fixpt          = vpe_fixpt_one;
+    struct fixed31_32 output_fixpt;
+
+    if (x < 1.0) {
+        // Convert double -> fixpt31_32
+        x_fixpt.value =
+            vpe_double_to_fixed_point(x, (unsigned long long)0, (unsigned long long)32, true);
+
+        // Linear -> PQ
+        vpe_compute_pq(x_fixpt, &output_fixpt);
+
+        // PQ -> Normalized PQ
+        output_fixpt = vpe_fixpt_div(output_fixpt, normalized_factor);
+
+        // fixpt31_32 -> fixpt14u
+        output_fixpt_14u = vpe_fixpt_clamp_u0d14(output_fixpt);
+    }
+
+    return output_fixpt_14u; // Max 14u Value
+}
 static bool calculate_shaper_properties_const_hdr_mult(
     const struct vpe_shaper_setup_in *shaper_in, struct shaper_setup_out *shaper_out)
 {
@@ -150,8 +175,9 @@ release:
     return num_segments;
 }
 
-enum vpe_status vpe_build_shaper(
-    const struct vpe_shaper_setup_in *shaper_in, struct pwl_params *shaper)
+enum vpe_status vpe_build_shaper(const struct vpe_shaper_setup_in *shaper_in,
+    enum color_transfer_func shaper_tf, struct fixed31_32 pq_norm_gain,
+    struct pwl_params *shaper_out)
 {
     enum vpe_status ret = VPE_STATUS_ERROR;
 
@@ -173,6 +199,17 @@ enum vpe_status vpe_build_shaper(
     double       d_norm  = mask;
     double       divider = shaper_in->shaper_in_max;
 
+    unsigned int output_fixpt_14u;
+
+    struct fixed31_32 normalized_factor = vpe_fixpt_one;
+
+    if (shaper_tf == TRANSFER_FUNC_NORMALIZED_PQ) {
+        struct fixed31_32 normalized_gain = vpe_fixpt_one;
+
+        normalized_gain = vpe_fixpt_div_int(pq_norm_gain, HDR_PEAK_WHITE);
+        vpe_compute_pq(normalized_gain, &normalized_factor);
+    }
+
     if (shaper_in->use_const_hdr_mult &&
         !calculate_shaper_properties_const_hdr_mult(shaper_in, &shaper_params))
         goto release;
@@ -188,50 +225,68 @@ enum vpe_status vpe_build_shaper(
 
     for (i = 0; i < num_exp; i++) {
         segments_current                         = 1 << arr_regions[i];
-        shaper->arr_curve_points[i].segments_num = arr_regions[i];
-        shaper->arr_curve_points[i].offset       = segments_offset;
+        shaper_out->arr_curve_points[i].segments_num = arr_regions[i];
+        shaper_out->arr_curve_points[i].offset       = segments_offset;
         segments_offset                          = segments_offset + segments_current;
         if (!vpe_from_1_6_12_to_double(false, exp, 0, &x))
             goto release;
         x /= divider;
-        shaper->rgb_resulted[lut_counter].red_reg =
-            vpe_to_fixed_point(decimalBits, x, mask, d_norm);
-        shaper->rgb_resulted[lut_counter].green_reg = shaper->rgb_resulted[lut_counter].red_reg;
-        shaper->rgb_resulted[lut_counter].blue_reg  = shaper->rgb_resulted[lut_counter].red_reg;
-
         delta_segments = x / segments_current;
-        lut_counter++;
-        for (j = 0; j < segments_current - 1; j++) {
+
+        for (j = 0; j < segments_current; j++) {
+            switch (shaper_tf) {
+            case TRANSFER_FUNC_NORMALIZED_PQ:
+                if (i > 2) {
+                    output_fixpt_14u = vpe_computer_shaper_pq_14u(x, normalized_factor);
+                } else {
+                    output_fixpt_14u = vpe_to_fixed_point(decimalBits, x, mask, d_norm);
+                }
+                break;
+            case TRANSFER_FUNC_LINEAR:
+            default:
+                output_fixpt_14u = vpe_to_fixed_point(decimalBits, x, mask, d_norm);
+                break;
+            }
+            shaper_out->rgb_resulted[lut_counter].red_reg = output_fixpt_14u;
+            shaper_out->rgb_resulted[lut_counter].green_reg =
+                shaper_out->rgb_resulted[lut_counter].red_reg;
+            shaper_out->rgb_resulted[lut_counter].blue_reg =
+                shaper_out->rgb_resulted[lut_counter].red_reg;
+
             x += delta_segments;
-            shaper->rgb_resulted[lut_counter].red_reg =
-                vpe_to_fixed_point(decimalBits, x, mask, d_norm);
-            shaper->rgb_resulted[lut_counter].green_reg = shaper->rgb_resulted[lut_counter].red_reg;
-            shaper->rgb_resulted[lut_counter].blue_reg  = shaper->rgb_resulted[lut_counter].red_reg;
             lut_counter++;
         }
         exp++;
     }
 
-    shaper->corner_points[0].red.custom_float_x   = shaper_params.begin_custom_1_6_12;
-    shaper->corner_points[0].green.custom_float_x = shaper->corner_points[0].red.custom_float_x;
-    shaper->corner_points[0].blue.custom_float_x  = shaper->corner_points[0].red.custom_float_x;
+    shaper_out->corner_points[0].red.custom_float_x = shaper_params.begin_custom_1_6_12;
+    shaper_out->corner_points[0].green.custom_float_x =
+        shaper_out->corner_points[0].red.custom_float_x;
+    shaper_out->corner_points[0].blue.custom_float_x =
+        shaper_out->corner_points[0].red.custom_float_x;
 
-    shaper->corner_points[1].red.custom_float_x   = shaper_params.end_custom_0_6_10;
-    shaper->corner_points[1].green.custom_float_x = shaper->corner_points[1].red.custom_float_x;
-    shaper->corner_points[1].blue.custom_float_x  = shaper->corner_points[1].red.custom_float_x;
+    shaper_out->corner_points[1].red.custom_float_x = shaper_params.end_custom_0_6_10;
+    shaper_out->corner_points[1].green.custom_float_x =
+        shaper_out->corner_points[1].red.custom_float_x;
+    shaper_out->corner_points[1].blue.custom_float_x =
+        shaper_out->corner_points[1].red.custom_float_x;
 
-    shaper->corner_points[1].red.custom_float_y   = shaper_params.end_base_fixed_0_14;
-    shaper->corner_points[1].green.custom_float_y = shaper->corner_points[1].red.custom_float_y;
-    shaper->corner_points[1].blue.custom_float_y  = shaper->corner_points[1].red.custom_float_y;
+    shaper_out->corner_points[1].red.custom_float_y = shaper_params.end_base_fixed_0_14;
+    shaper_out->corner_points[1].green.custom_float_y =
+        shaper_out->corner_points[1].red.custom_float_y;
+    shaper_out->corner_points[1].blue.custom_float_y =
+        shaper_out->corner_points[1].red.custom_float_y;
 
     for (i = 1; i < num_points; i++) {
-        shaper->rgb_resulted[i - 1].delta_red_reg =
-            shaper->rgb_resulted[i].red_reg - shaper->rgb_resulted[i - 1].red_reg;
-        shaper->rgb_resulted[i - 1].delta_green_reg = shaper->rgb_resulted[i - 1].delta_red_reg;
-        shaper->rgb_resulted[i - 1].delta_blue_reg  = shaper->rgb_resulted[i - 1].delta_red_reg;
+        shaper_out->rgb_resulted[i - 1].delta_red_reg =
+            shaper_out->rgb_resulted[i].red_reg - shaper_out->rgb_resulted[i - 1].red_reg;
+        shaper_out->rgb_resulted[i - 1].delta_green_reg =
+            shaper_out->rgb_resulted[i - 1].delta_red_reg;
+        shaper_out->rgb_resulted[i - 1].delta_blue_reg =
+            shaper_out->rgb_resulted[i - 1].delta_red_reg;
     }
 
-    shaper->hw_points_num = num_points;
+    shaper_out->hw_points_num = num_points;
     ret                   = VPE_STATUS_OK;
 
 release:

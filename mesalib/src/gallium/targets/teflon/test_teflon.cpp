@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <cstdio>
 #include <fcntl.h>
 #include <filesystem>
 #include <fstream>
@@ -13,14 +14,17 @@
 #include "tensorflow/lite/c/c_api.h"
 #include "test_executor.h"
 
-#define TEST_CONV2D      1
-#define TEST_DEPTHWISE   1
-#define TEST_ADD         1
-#define TEST_MOBILENETV1 1
-#define TEST_MOBILEDET   1
+#define TEST_CONV2D           1
+#define TEST_DEPTHWISE        1
+#define TEST_ADD              1
+#define TEST_FULLY_CONNECTED  1
+#define TEST_MOBILENETV1      1
+#define TEST_MOBILEDET        1
+#define TEST_YOLOX            1
 
 #define TOLERANCE       2
 #define MODEL_TOLERANCE 8
+#define YOLOX_TOLERANCE 38
 #define QUANT_TOLERANCE 2
 
 std::vector<bool> is_signed{false}; /* TODO: Support INT8? */
@@ -32,31 +36,8 @@ std::vector<int> dw_channels{1, 32, 120, 128, 256};
 std::vector<int> dw_weight_size{3, 5};
 std::vector<int> weight_size{1, 3, 5};
 std::vector<int> input_size{3, 5, 8, 80, 112};
-
-static bool
-cache_is_enabled(void)
-{
-   return getenv("TEFLON_ENABLE_CACHE");
-}
-
-static bool
-read_into(const char *path, std::vector<uint8_t> &buf)
-{
-   FILE *f = fopen(path, "rb");
-   if (f == NULL)
-      return false;
-
-   fseek(f, 0, SEEK_END);
-   long fsize = ftell(f);
-   fseek(f, 0, SEEK_SET);
-
-   buf.resize(fsize);
-   fread(buf.data(), fsize, 1, f);
-
-   fclose(f);
-
-   return true;
-}
+std::vector<int> fc_channels{23, 46, 128, 256, 512};
+std::vector<int> fc_size{128, 1280, 25088, 62720};
 
 static void
 set_seed(unsigned seed)
@@ -66,89 +47,103 @@ set_seed(unsigned seed)
 }
 
 static void
-test_model(std::vector<uint8_t> buf, std::string cache_dir, unsigned tolerance)
+test_model(void *buf, size_t buf_size, std::string cache_dir, unsigned tolerance)
 {
-   std::vector<std::vector<uint8_t>> input;
-   std::vector<std::vector<uint8_t>> cpu_output;
-   std::ostringstream input_cache;
-   input_cache << cache_dir << "/"
-               << "input.data";
+   void **input = NULL;
+   size_t num_inputs;
+   void **cpu_output;
+   size_t *output_sizes;
+   TfLiteType *output_types;
+   size_t num_outputs;
+   void **npu_output;
 
-   std::ostringstream output_cache;
-   output_cache << cache_dir << "/"
-               << "output.data";
-
-   TfLiteModel *model = TfLiteModelCreate(buf.data(), buf.size());
+   TfLiteModel *model = TfLiteModelCreate(buf, buf_size);
    assert(model);
 
-   if (cache_is_enabled()) {
-      input.resize(1);
-      bool ret = read_into(input_cache.str().c_str(), input[0]);
+   run_model(model, EXECUTOR_CPU, &input, &num_inputs, &cpu_output, &output_sizes, &output_types, &num_outputs, cache_dir);
+   run_model(model, EXECUTOR_NPU, &input, &num_inputs, &npu_output, &output_sizes, &output_types, &num_outputs, cache_dir);
 
-      if (ret) {
-         cpu_output.resize(1);
-         ret = read_into(output_cache.str().c_str(), cpu_output[0]);
-      }
-   }
+   for (size_t i = 0; i < num_outputs; i++) {
+      for (size_t j = 0; j < output_sizes[i]; j++) {
+         switch (output_types[i]) {
+            case kTfLiteFloat32: {
+               float *cpu = ((float**)cpu_output)[i];
+               float *npu = ((float**)npu_output)[i];
+               if (abs(cpu[j] - npu[j]) > tolerance) {
+                  std::cout << "CPU: ";
+                  for (int k = 0; k < std::min(int(output_sizes[i]), 24); k++)
+                     std::cout << std::setfill('0') << std::setw(6) << cpu[k] << " ";
+                  std::cout << "\n";
+                  std::cout << "NPU: ";
+                  for (int k = 0; k < std::min(int(output_sizes[i]), 24); k++)
+                     std::cout << std::setfill('0') << std::setw(6) << npu[k] << " ";
+                  std::cout << "\n";
 
-   if (cpu_output.size() == 0 || cpu_output[0].size() == 0) {
-      input.resize(0);
-      cpu_output.resize(0);
+                  FAIL() << "Output at " << j << " from the NPU (" << std::setfill('0') << std::setw(2) << npu[j] << ") doesn't match that from the CPU (" << std::setfill('0') << std::setw(2) << cpu[j] << ").";
+               }
+               break;
+            }
+            default: {
+               uint8_t *cpu = ((uint8_t**)cpu_output)[i];
+               uint8_t *npu = ((uint8_t**)npu_output)[i];
+               if (abs(cpu[j] - npu[j]) > tolerance) {
+                  std::cout << "CPU: ";
+                  for (int k = 0; k < std::min(int(output_sizes[i]), 24); k++)
+                     std::cout << std::setfill('0') << std::setw(2) << std::hex << int(cpu[k]) << " ";
+                  std::cout << "\n";
+                  std::cout << "NPU: ";
+                  for (int k = 0; k < std::min(int(output_sizes[i]), 24); k++)
+                     std::cout << std::setfill('0') << std::setw(2) << std::hex << int(npu[k]) << " ";
+                  std::cout << "\n";
 
-      cpu_output = run_model(model, EXECUTOR_CPU, input);
-
-      if (cache_is_enabled()) {
-         std::ofstream file(input_cache.str().c_str(), std::ios::out | std::ios::binary);
-         file.write(reinterpret_cast<const char *>(input[0].data()), input[0].size());
-         file.close();
-
-         file = std::ofstream(output_cache.str().c_str(), std::ios::out | std::ios::binary);
-         file.write(reinterpret_cast<const char *>(cpu_output[0].data()), cpu_output[0].size());
-         file.close();
-      }
-   }
-
-   std::vector<std::vector<uint8_t>> npu_output = run_model(model, EXECUTOR_NPU, input);
-
-   EXPECT_EQ(cpu_output.size(), npu_output.size()) << "Array sizes differ.";
-   for (size_t i = 0; i < cpu_output.size(); i++) {
-      EXPECT_EQ(cpu_output[i].size(), npu_output[i].size()) << "Array sizes differ (" << i << ").";
-
-      for (size_t j = 0; j < cpu_output[i].size(); j++) {
-         if (abs(cpu_output[i][j] - npu_output[i][j]) > tolerance) {
-            std::cout << "CPU: ";
-            for (int k = 0; k < std::min(int(cpu_output[i].size()), 24); k++)
-               std::cout << std::setfill('0') << std::setw(2) << std::hex << int(cpu_output[i][k]) << " ";
-            std::cout << "\n";
-            std::cout << "NPU: ";
-            for (int k = 0; k < std::min(int(npu_output[i].size()), 24); k++)
-               std::cout << std::setfill('0') << std::setw(2) << std::hex << int(npu_output[i][k]) << " ";
-            std::cout << "\n";
-
-            FAIL() << "Output at " << j << " from the NPU (" << std::setfill('0') << std::setw(2) << std::hex << int(npu_output[i][j]) << ") doesn't match that from the CPU (" << std::setfill('0') << std::setw(2) << std::hex << int(cpu_output[i][j]) << ").";
+                  FAIL() << "Output at " << j << " from the NPU (" << std::setfill('0') << std::setw(2) << std::hex << int(npu[j]) << ") doesn't match that from the CPU (" << std::setfill('0') << std::setw(2) << std::hex << int(cpu[j]) << ").";
+               }
+               break;
+            }
          }
       }
    }
+
+   for (size_t i = 0; i < num_inputs; i++)
+      free(input[i]);
+   free(input);
+
+   for (size_t i = 0; i < num_outputs; i++)
+      free(cpu_output[i]);
+   free(cpu_output);
+
+   for (size_t i = 0; i < num_outputs; i++)
+      free(npu_output[i]);
+   free(npu_output);
+
+   free(output_sizes);
+   free(output_types);
 
    TfLiteModelDelete(model);
 }
 
 static void
-test_model_file(std::string file_name)
+test_model_file(std::string file_name, unsigned tolerance, bool use_cache)
 {
+   std::ostringstream cache_dir;
+
+   if (use_cache)
+      cache_dir << "/var/cache/teflon_tests/" << std::filesystem::path(file_name).stem().c_str();
+
    set_seed(4);
 
    std::ifstream model_file(file_name, std::ios::binary);
    std::vector<uint8_t> buffer((std::istreambuf_iterator<char>(model_file)),
                                std::istreambuf_iterator<char>());
-   test_model(buffer, "", MODEL_TOLERANCE);
+   test_model(buffer.data(), buffer.size(), cache_dir.str(), tolerance);
 }
 
 void
 test_conv(int input_size, int weight_size, int input_channels, int output_channels,
           int stride, bool padding_same, bool is_signed, bool depthwise, int seed)
 {
-   std::vector<uint8_t> buf;
+   void *buf = NULL;
+   size_t buf_size;
    std::ostringstream cache_dir, model_cache;
    cache_dir << "/var/cache/teflon_tests/" << input_size << "_" << weight_size << "_" << input_channels << "_" << output_channels << "_" << stride << "_" << padding_same << "_" << is_signed << "_" << depthwise << "_" << seed;
    model_cache << cache_dir.str() << "/"
@@ -161,27 +156,29 @@ test_conv(int input_size, int weight_size, int input_channels, int output_channe
 
    if (cache_is_enabled()) {
       if (access(model_cache.str().c_str(), F_OK) == 0) {
-         read_into(model_cache.str().c_str(), buf);
+         buf = read_buf(model_cache.str().c_str(), &buf_size);
       }
    }
 
-   if (buf.size() == 0) {
+   if (buf == 0) {
       buf = conv2d_generate_model(input_size, weight_size,
                                   input_channels, output_channels,
                                   stride, padding_same, is_signed,
-                                  depthwise);
+                                  depthwise,
+                                  &buf_size);
 
       if (cache_is_enabled()) {
          if (access(cache_dir.str().c_str(), F_OK) != 0) {
             ASSERT_TRUE(std::filesystem::create_directories(cache_dir.str().c_str()));
          }
          std::ofstream file(model_cache.str().c_str(), std::ios::out | std::ios::binary);
-         file.write(reinterpret_cast<const char *>(buf.data()), buf.size());
+         file.write(reinterpret_cast<const char *>(buf), buf_size);
          file.close();
       }
    }
 
-   test_model(buf, cache_dir.str(), TOLERANCE);
+   test_model(buf, buf_size, cache_dir.str(), TOLERANCE);
+   free(buf);
 }
 
 void
@@ -189,7 +186,8 @@ test_add(int input_size, int weight_size, int input_channels, int output_channel
          int stride, bool padding_same, bool is_signed, bool depthwise, int seed,
          unsigned tolerance)
 {
-   std::vector<uint8_t> buf;
+   void *buf = NULL;
+   size_t buf_size;
    std::ostringstream cache_dir, model_cache;
    cache_dir << "/var/cache/teflon_tests/"
              << "add_" << input_size << "_" << weight_size << "_" << input_channels << "_" << output_channels << "_" << stride << "_" << padding_same << "_" << is_signed << "_" << depthwise << "_" << seed;
@@ -203,27 +201,64 @@ test_add(int input_size, int weight_size, int input_channels, int output_channel
 
    if (cache_is_enabled()) {
       if (access(model_cache.str().c_str(), F_OK) == 0) {
-         read_into(model_cache.str().c_str(), buf);
+         buf = read_buf(model_cache.str().c_str(), &buf_size);
       }
    }
 
-   if (buf.size() == 0) {
+   if (buf == 0) {
       buf = add_generate_model(input_size, weight_size,
                                input_channels, output_channels,
                                stride, padding_same, is_signed,
-                               depthwise);
+                               depthwise,
+                               &buf_size);
 
       if (cache_is_enabled()) {
          if (access(cache_dir.str().c_str(), F_OK) != 0) {
             ASSERT_TRUE(std::filesystem::create_directories(cache_dir.str().c_str()));
          }
          std::ofstream file(model_cache.str().c_str(), std::ios::out | std::ios::binary);
-         file.write(reinterpret_cast<const char *>(buf.data()), buf.size());
+         file.write(reinterpret_cast<const char *>(buf), buf_size);
          file.close();
       }
    }
 
-   test_model(buf, cache_dir.str(), tolerance);
+   test_model(buf, buf_size, cache_dir.str(), tolerance);
+   free(buf);
+}
+
+void
+test_fully_connected(int input_size, int output_channels, bool is_signed, int seed)
+{
+   void *buf = NULL;
+   size_t buf_size;
+   std::ostringstream cache_dir, model_cache;
+   cache_dir << "/var/cache/teflon_tests/fc_" << input_size << "_" << output_channels << "_" << is_signed << "_" << seed;
+   model_cache << cache_dir.str() << "/"
+               << "model.tflite";
+
+   set_seed(seed);
+
+   if (cache_is_enabled()) {
+      if (access(model_cache.str().c_str(), F_OK) == 0) {
+         buf = read_buf(model_cache.str().c_str(), &buf_size);
+      }
+   }
+
+   if (buf == 0) {
+      buf = fully_connected_generate_model(input_size, output_channels, is_signed, &buf_size);
+
+      if (cache_is_enabled()) {
+         if (access(cache_dir.str().c_str(), F_OK) != 0) {
+            ASSERT_TRUE(std::filesystem::create_directories(cache_dir.str().c_str()));
+         }
+         std::ofstream file(model_cache.str().c_str(), std::ios::out | std::ios::binary);
+         file.write(reinterpret_cast<const char *>(buf), buf_size);
+         file.close();
+      }
+   }
+
+   test_model(buf, buf_size, cache_dir.str(), TOLERANCE);
+   free(buf);
 }
 
 #if TEST_CONV2D
@@ -386,6 +421,41 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif
 
+#if TEST_FULLY_CONNECTED
+
+class FullyConnected : public testing::TestWithParam<std::tuple<bool, int, int>> {};
+
+TEST_P(FullyConnected, Op)
+{
+   test_fully_connected(
+             std::get<2>(GetParam()),
+             std::get<1>(GetParam()),
+             std::get<0>(GetParam()),
+             4);
+}
+
+static inline std::string
+FullyConnectedTestCaseName(
+   const testing::TestParamInfo<std::tuple<bool, int, int>> &info)
+{
+   std::string name = "";
+
+   name += "input_size_" + std::to_string(std::get<2>(info.param));
+   name += "_output_channels_" + std::to_string(std::get<1>(info.param));
+   name += "_is_signed_" + std::to_string(std::get<0>(info.param));
+
+   return name;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+   , FullyConnected,
+   ::testing::Combine(::testing::ValuesIn(is_signed),
+                      ::testing::ValuesIn(output_channels),
+                      ::testing::ValuesIn(fc_size)),
+   FullyConnectedTestCaseName);
+
+#endif
+
 #if TEST_MOBILENETV1
 
 class MobileNetV1 : public ::testing::Test {};
@@ -398,16 +468,16 @@ TEST(MobileNetV1, Whole)
    assert(getenv("TEFLON_TEST_DATA"));
    file_path << getenv("TEFLON_TEST_DATA") << "/mobilenet_v1_1.0_224_quant.tflite";
 
-   test_model_file(file_path.str());
+   test_model_file(file_path.str(), MODEL_TOLERANCE, true);
 }
 
 TEST_P(MobileNetV1Param, Op)
 {
    std::ostringstream file_path;
    assert(getenv("TEFLON_TEST_DATA"));
-   file_path << getenv("TEFLON_TEST_DATA") << "/mb" << GetParam() << ".tflite";
+   file_path << getenv("TEFLON_TEST_DATA") << "/mb-" << std::setfill('0') << std::setw(3) << GetParam() << ".tflite";
 
-   test_model_file(file_path.str());
+   test_model_file(file_path.str(), MODEL_TOLERANCE, true);
 }
 
 static inline std::string
@@ -415,16 +485,18 @@ MobileNetV1TestCaseName(
    const testing::TestParamInfo<int> &info)
 {
    std::string name = "";
+   std::string param = std::to_string(info.param);
 
    name += "mb";
-   name += std::to_string(info.param);
+   name += std::string(3 - param.length(), '0');
+   name += param;
 
    return name;
 }
 
 INSTANTIATE_TEST_SUITE_P(
    , MobileNetV1Param,
-   ::testing::Range(0, 28),
+   ::testing::Range(0, 31),
    MobileNetV1TestCaseName);
 
 #endif
@@ -441,16 +513,16 @@ TEST(MobileDet, Whole)
    assert(getenv("TEFLON_TEST_DATA"));
    file_path << getenv("TEFLON_TEST_DATA") << "/ssdlite_mobiledet_coco_qat_postprocess.tflite";
 
-   test_model_file(file_path.str());
+   test_model_file(file_path.str(), MODEL_TOLERANCE, true);
 }
 
 TEST_P(MobileDetParam, Op)
 {
    std::ostringstream file_path;
    assert(getenv("TEFLON_TEST_DATA"));
-   file_path << getenv("TEFLON_TEST_DATA") << "/mobiledet" << GetParam() << ".tflite";
+   file_path << getenv("TEFLON_TEST_DATA") << "/mobiledet-" << std::setfill('0') << std::setw(3) << GetParam() << ".tflite";
 
-   test_model_file(file_path.str());
+   test_model_file(file_path.str(), MODEL_TOLERANCE, true);
 }
 
 static inline std::string
@@ -458,17 +530,64 @@ MobileDetTestCaseName(
    const testing::TestParamInfo<int> &info)
 {
    std::string name = "";
+   std::string param = std::to_string(info.param);
 
    name += "mobiledet";
-   name += std::to_string(info.param);
+   name += std::string(3 - param.length(), '0');
+   name += param;
 
    return name;
 }
 
 INSTANTIATE_TEST_SUITE_P(
    , MobileDetParam,
-   ::testing::Range(0, 121),
+   ::testing::Range(0, 124),
    MobileDetTestCaseName);
+
+#endif
+
+#if TEST_YOLOX
+
+class YoloX : public ::testing::Test {};
+
+class YoloXParam : public testing::TestWithParam<int> {};
+
+TEST(YoloX, Whole)
+{
+   std::ostringstream file_path;
+   assert(getenv("TEFLON_TEST_DATA"));
+   file_path << getenv("TEFLON_TEST_DATA") << "/yolox.tflite";
+
+   test_model_file(file_path.str(), YOLOX_TOLERANCE, true);
+}
+
+TEST_P(YoloXParam, Op)
+{
+   std::ostringstream file_path;
+   assert(getenv("TEFLON_TEST_DATA"));
+   file_path << getenv("TEFLON_TEST_DATA") << "/yolox-" << std::setfill('0') << std::setw(3) << GetParam() << ".tflite";
+
+   test_model_file(file_path.str(), MODEL_TOLERANCE, true);
+}
+
+static inline std::string
+YoloXTestCaseName(
+   const testing::TestParamInfo<int> &info)
+{
+   std::string name = "";
+   std::string param = std::to_string(info.param);
+
+   name += "yolox";
+   name += std::string(3 - param.length(), '0');
+   name += param;
+
+   return name;
+}
+
+INSTANTIATE_TEST_SUITE_P(
+   , YoloXParam,
+   ::testing::Range(0, 128),
+   YoloXTestCaseName);
 
 #endif
 
@@ -476,7 +595,8 @@ int
 main(int argc, char **argv)
 {
    if (argc > 1 && !strcmp(argv[1], "generate_model")) {
-      std::vector<uint8_t> buf;
+      void *buf = NULL;
+      size_t buf_size;
 
       assert(argc == 11);
 
@@ -498,15 +618,15 @@ main(int argc, char **argv)
       buf = conv2d_generate_model(input_size, weight_size,
                                   input_channels, output_channels,
                                   stride, padding_same, is_signed,
-                                  depthwise);
+                                  depthwise, &buf_size);
 
       int fd = open("model.tflite", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-      write(fd, buf.data(), buf.size());
+      write(fd, buf, buf_size);
       close(fd);
 
       return 0;
    } else if (argc > 1 && !strcmp(argv[1], "run_model")) {
-      test_model_file(std::string(argv[2]));
+      test_model_file(std::string(argv[2]), MODEL_TOLERANCE, false);
    } else {
       testing::InitGoogleTest(&argc, argv);
       return RUN_ALL_TESTS();

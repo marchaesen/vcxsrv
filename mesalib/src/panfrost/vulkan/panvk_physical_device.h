@@ -13,6 +13,7 @@
 
 #include "vk_physical_device.h"
 #include "vk_sync.h"
+#include "vk_sync_timeline.h"
 #include "vk_util.h"
 #include "wsi_common.h"
 
@@ -47,7 +48,8 @@ struct panvk_physical_device {
    uint8_t cache_uuid[VK_UUID_SIZE];
 
    struct vk_sync_type drm_syncobj_type;
-   const struct vk_sync_type *sync_types[2];
+   struct vk_sync_timeline_type sync_timeline_type;
+   const struct vk_sync_type *sync_types[3];
 
    struct wsi_device wsi_device;
 };
@@ -59,16 +61,6 @@ static inline struct panvk_physical_device *
 to_panvk_physical_device(struct vk_physical_device *phys_dev)
 {
    return container_of(phys_dev, struct panvk_physical_device, vk);
-}
-
-static inline uint32_t
-panvk_get_vk_version()
-{
-   const uint32_t version_override = vk_get_version_override();
-   if (version_override)
-      return version_override;
-
-   return VK_MAKE_API_VERSION(0, 1, 0, VK_HEADER_VERSION);
 }
 
 VkResult panvk_physical_device_init(struct panvk_physical_device *device,

@@ -1181,6 +1181,22 @@ vmw_ioctl_init(struct vmw_winsys_screen *vws)
       size = SVGA_FIFO_3D_CAPS_SIZE * sizeof(uint32_t);
    }
 
+   /* Userspace surfaces are only supported on guest-backed hardware */
+   vws->userspace_surface = false;
+   getenv_val = getenv("VMW_SVGA_USERSPACE_SURFACE");
+   if (getenv_val && atoi(getenv_val)) {
+      assert(vws->base.have_gb_objects);
+      assert(vws->base.have_vgpu10);
+      memset(&gp_arg, 0, sizeof(gp_arg));
+      gp_arg.param = DRM_VMW_PARAM_USER_SRF;
+      ret = drmCommandWriteRead(vws->ioctl.drm_fd, DRM_VMW_GET_PARAM, &gp_arg,
+                                sizeof(gp_arg));
+      if (!ret && gp_arg.value == true) {
+         vws->userspace_surface = true;
+         debug_printf("Using userspace managed surfaces\n");
+      }
+   }
+
    debug_printf("VGPU10 interface is %s.\n",
                 vws->base.have_vgpu10 ? "on" : "off");
 

@@ -4,28 +4,31 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "asahi_clc.h"
 #include "asahi/compiler/agx_compile.h"
-#include "compiler/clc/clc.h"
+#include "asahi/compiler/agx_nir.h"
 #include "compiler/glsl_types.h"
 #include "compiler/spirv/nir_spirv.h"
-#include "compiler/spirv/spirv_info.h"
-#include "util/build_id.h"
-#include "util/disk_cache.h"
-#include "util/macros.h"
-#include "util/mesa-sha1.h"
-#include "util/u_dynarray.h"
 #include "nir.h"
 #include "nir_builder.h"
-#include "nir_serialize.h"
+#include "nir_builder_opcodes.h"
+#include "nir_intrinsics.h"
+#include "nir_precompiled.h"
+#include "shader_enums.h"
 
 #include <fcntl.h>
-#include <getopt.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "util/u_math.h"
+#include "util/macros.h"
 #include <sys/mman.h>
+
+const char *targets[] = {"g13g", "g13x"};
+
+#define foreach_target(target)                                                 \
+   for (const char **target = &targets[0];                                     \
+        target < &targets[ARRAY_SIZE(targets)]; ++target)
 
 static const struct spirv_to_nir_options spirv_options = {
    .environment = NIR_SPIRV_OPENCL,
@@ -34,110 +37,8 @@ static const struct spirv_to_nir_options spirv_options = {
    .temp_addr_format = nir_address_format_62bit_generic,
    .constant_addr_format = nir_address_format_64bit_global,
    .create_library = true,
+   .printf = true,
 };
-
-static bool
-lower_builtins(nir_builder *b, nir_instr *instr, void *data)
-{
-   if (instr->type != nir_instr_type_call)
-      return false;
-
-   nir_call_instr *call = nir_instr_as_call(instr);
-   nir_function *func = call->callee;
-
-   if (strcmp(func->name, "nir_interleave_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_store_deref(
-         b, nir_src_as_deref(call->params[0]),
-         nir_interleave_agx(b, call->params[1].ssa, call->params[2].ssa), 1);
-
-      return true;
-   } else if (strcmp(func->name, "nir_doorbell_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_doorbell_agx(b, call->params[0].ssa);
-      return true;
-   } else if (strcmp(func->name, "nir_stack_map_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_stack_map_agx(b, call->params[0].ssa, call->params[1].ssa);
-      return true;
-   } else if (strcmp(func->name, "nir_stack_unmap_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_store_deref(b, nir_src_as_deref(call->params[0]),
-                      nir_stack_unmap_agx(b, call->params[1].ssa), 1);
-      return true;
-   } else if (strcmp(func->name, "nir_load_core_id_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_store_deref(b, nir_src_as_deref(call->params[0]),
-                      nir_load_core_id_agx(b), 1);
-      return true;
-   } else if (strcmp(func->name, "nir_load_helper_op_id_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_store_deref(b, nir_src_as_deref(call->params[0]),
-                      nir_load_helper_op_id_agx(b, 1, 32), 1);
-      return true;
-   } else if (strcmp(func->name, "nir_load_helper_arg_lo_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_store_deref(b, nir_src_as_deref(call->params[0]),
-                      nir_load_helper_arg_lo_agx(b, 1, 32), 1);
-      return true;
-   } else if (strcmp(func->name, "nir_load_helper_arg_hi_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_store_deref(b, nir_src_as_deref(call->params[0]),
-                      nir_load_helper_arg_hi_agx(b, 1, 32), 1);
-      return true;
-   } else if (strcmp(func->name, "ballot") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_store_deref(b, nir_src_as_deref(call->params[0]),
-                      nir_ballot(b, 1, 32, call->params[1].ssa), 1);
-      return true;
-   } else if (strcmp(func->name, "nir_fence_helper_exit_agx") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-      nir_fence_helper_exit_agx(b);
-      return true;
-   } else if (strcmp(func->name, "nir_bindless_image_load_array") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-
-      nir_def *texel = nir_bindless_image_load(
-         b, 4, 32, call->params[1].ssa, call->params[2].ssa, nir_imm_int(b, 0),
-         nir_imm_int(b, 0), .image_array = true,
-         .image_dim = GLSL_SAMPLER_DIM_2D, .dest_type = nir_type_uint32,
-         .access = ACCESS_IN_BOUNDS_AGX);
-
-      nir_store_deref(b, nir_src_as_deref(call->params[0]), texel, 0xf);
-      return true;
-   } else if (strcmp(func->name, "nir_bindless_image_store_array") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-
-      nir_bindless_image_store(
-         b, call->params[0].ssa, call->params[1].ssa, nir_imm_int(b, 0),
-         call->params[2].ssa, nir_imm_int(b, 0), .image_array = true,
-         .image_dim = GLSL_SAMPLER_DIM_2D, .src_type = nir_type_uint32,
-         .access = ACCESS_NON_READABLE);
-      return true;
-   } else if (strcmp(func->name, "nir_bindless_image_load_ms_array") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-
-      nir_def *texel = nir_bindless_image_load(
-         b, 4, 32, call->params[1].ssa, call->params[2].ssa,
-         call->params[3].ssa, nir_imm_int(b, 0), .image_array = true,
-         .image_dim = GLSL_SAMPLER_DIM_MS, .dest_type = nir_type_uint32,
-         .access = ACCESS_IN_BOUNDS_AGX);
-
-      nir_store_deref(b, nir_src_as_deref(call->params[0]), texel, 0xf);
-      return true;
-   } else if (strcmp(func->name, "nir_bindless_image_store_ms_array") == 0) {
-      b->cursor = nir_instr_remove(&call->instr);
-
-      nir_bindless_image_store(
-         b, call->params[0].ssa, call->params[1].ssa, call->params[2].ssa,
-         call->params[3].ssa, nir_imm_int(b, 0), .image_array = true,
-         .image_dim = GLSL_SAMPLER_DIM_MS, .src_type = nir_type_uint32,
-         .access = ACCESS_NON_READABLE);
-      return true;
-   }
-
-   return false;
-}
 
 /* Standard optimization loop */
 static void
@@ -147,6 +48,8 @@ optimize(nir_shader *nir)
    do {
       progress = false;
 
+      NIR_PASS(progress, nir, nir_split_var_copies);
+      NIR_PASS(progress, nir, nir_split_struct_vars, nir_var_function_temp);
       NIR_PASS(progress, nir, nir_lower_var_copies);
       NIR_PASS(progress, nir, nir_lower_vars_to_ssa);
 
@@ -169,8 +72,6 @@ optimize(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_shrink_vectors, true);
       NIR_PASS(progress, nir, nir_opt_loop_unroll);
 
-      NIR_PASS(progress, nir, nir_split_var_copies);
-      NIR_PASS(progress, nir, nir_split_struct_vars, nir_var_function_temp);
    } while (progress);
 }
 
@@ -187,8 +88,18 @@ compile(void *memctx, const uint32_t *spirv, size_t spirv_size)
    nir_validate_ssa_dominance(nir, "after spirv_to_nir");
    ralloc_steal(memctx, nir);
 
+   nir_fixup_is_exported(nir);
+
    NIR_PASS(_, nir, nir_lower_system_values);
-   nir_shader_instructions_pass(nir, lower_builtins, nir_metadata_none, NULL);
+   NIR_PASS(_, nir, nir_lower_calls_to_builtins);
+
+   nir_lower_compute_system_values_options cs = {.global_id_is_32bit = true};
+   NIR_PASS(_, nir, nir_lower_compute_system_values, &cs);
+
+   NIR_PASS(_, nir, nir_lower_printf,
+            &(const struct nir_lower_printf_options){
+               .hash_format_strings = true,
+            });
 
    /* We have to lower away local constant initializers right before we
     * inline functions.  That way they get properly initialized at the top
@@ -200,6 +111,9 @@ compile(void *memctx, const uint32_t *spirv, size_t spirv_size)
    nir_remove_non_exported(nir);
    NIR_PASS(_, nir, nir_copy_prop);
    NIR_PASS(_, nir, nir_opt_deref);
+
+   /* We can't deal with constant data, get rid of it */
+   nir_lower_constant_to_temp(nir);
 
    /* We can go ahead and lower the rest of the constant initializers.  We do
     * this here so that nir_remove_dead_variables and split_per_member_structs
@@ -235,13 +149,7 @@ compile(void *memctx, const uint32_t *spirv, size_t spirv_size)
             nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
                nir_var_mem_global | nir_var_mem_constant,
             glsl_get_cl_type_size_align);
-   if (nir->constant_data_size > 0) {
-      assert(nir->constant_data == NULL);
-      nir->constant_data = rzalloc_size(nir, nir->constant_data_size);
-      nir_gather_explicit_io_initializers(nir, nir->constant_data,
-                                          nir->constant_data_size,
-                                          nir_var_mem_constant);
-   }
+   assert(nir->constant_data_size == 0);
 
    NIR_PASS(_, nir, nir_lower_memcpy);
 
@@ -259,318 +167,205 @@ compile(void *memctx, const uint32_t *spirv, size_t spirv_size)
    NIR_PASS(_, nir, nir_opt_if, 0);
    NIR_PASS(_, nir, nir_opt_idiv_const, 16);
 
+   NIR_PASS(_, nir, agx_nir_lower_texture_early, false /* support_lod_bias */);
+   NIR_PASS(_, nir, agx_nir_lower_texture);
+   NIR_PASS(_, nir, agx_nir_lower_multisampled_image_store);
+
    optimize(nir);
 
    return nir;
 }
 
-/* Shader functions */
-#define SPIR_V_MAGIC_NUMBER 0x07230203
-
 static void
-msg_callback(void *priv, const char *msg)
+print_shader(FILE *fp, const char *name, const char *suffix, uint32_t variant,
+             struct agx_shader_part *p)
 {
-   (void)priv;
-   fprintf(stderr, "%s", msg);
+   struct agx_precompiled_kernel_info info = agx_compact_kernel_info(&p->info);
+   size_t sz_B = sizeof(info) + p->info.binary_size;
+   size_t sz_el = DIV_ROUND_UP(sz_B, 4);
+   uint32_t *mem = calloc(sz_el, 4);
+
+   memcpy(mem, &info, sizeof(info));
+   memcpy((uint8_t *)mem + sizeof(info), p->binary, p->info.binary_size);
+
+   nir_precomp_print_blob(fp, name, suffix, variant, mem, sz_B, true);
+   free(mem);
 }
 
-static void
-print_u32_data(FILE *fp, const char *prefix, const char *arr_name,
-               const uint32_t *data, size_t len)
+static bool
+gather_atomic_info(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
-   fprintf(fp, "static const uint32_t %s_%s[] = {", prefix, arr_name);
-   for (unsigned i = 0; i < (len / 4); i++) {
-      if (i % 4 == 0)
-         fprintf(fp, "\n   ");
+   bool *any = data;
 
-      fprintf(fp, " 0x%08" PRIx32 ",", data[i]);
+   switch (intr->intrinsic) {
+   case nir_intrinsic_global_atomic:
+   case nir_intrinsic_global_atomic_agx:
+   case nir_intrinsic_deref_atomic:
+   case nir_intrinsic_global_atomic_swap:
+   case nir_intrinsic_global_atomic_swap_agx:
+   case nir_intrinsic_deref_atomic_swap:
+      *any = true;
+      return false;
+   default:
+      return false;
    }
-
-   if (len % 4) {
-      const uint8_t *data_u8 = (const uint8_t *)data;
-      uint32_t last = 0;
-      unsigned last_offs = ROUND_DOWN_TO(len, 4);
-      for (unsigned i = 0; i < len % 4; ++i) {
-         last |= (uint32_t)data_u8[last_offs + i] << (i * 8);
-      }
-
-      fprintf(fp, " 0x%08" PRIx32 ",", last);
-   }
-
-   fprintf(fp, "\n};\n");
 }
 
-static void
-print_usage(char *exec_name, FILE *f)
+/* G13X variants are only compiled when atomics are used */
+static const char *
+remap_variant(nir_function *func, unsigned variant, const char *target)
 {
-   fprintf(
-      f,
-      "Usage: %s [options] -- [clang args]\n"
-      "Options:\n"
-      "  -h  --help              Print this help.\n"
-      "      --prefix <prefix>   Prefix for variable names in generated C code.\n"
-      "  -o, --out <filename>    Specify the output filename.\n"
-      "  -i, --in <filename>     Specify one input filename. Accepted multiple times.\n"
-      "  -s, --spv <filename>    Specify the output filename for spirv.\n"
-      "  -v, --verbose           Print more information during compilation.\n",
-      exec_name);
+   bool has_atomic = func->pass_flags & BITFIELD_BIT(variant);
+
+   if (!has_atomic && !strcmp(target, "g13x"))
+      return "g13g";
+   else
+      return target;
 }
 
-#define OPT_PREFIX 1000
-
-static uint32_t
-get_module_spirv_version(const uint32_t *spirv, size_t size)
+static nir_def *
+load_kernel_input(nir_builder *b, unsigned num_components, unsigned bit_size,
+                  unsigned offset_B)
 {
-   assert(size >= 8);
-   assert(spirv[0] == SPIR_V_MAGIC_NUMBER);
-   return spirv[1];
-}
-
-static void
-set_module_spirv_version(uint32_t *spirv, size_t size, uint32_t version)
-{
-   assert(size >= 8);
-   assert(spirv[0] == SPIR_V_MAGIC_NUMBER);
-   spirv[1] = version;
+   assert((offset_B & 1) == 0 && "half-aligned");
+   return nir_load_preamble(b, num_components, bit_size, .base = offset_B / 2);
 }
 
 int
 main(int argc, char **argv)
 {
-   static struct option long_options[] = {
-      {"help", no_argument, 0, 'h'},
-      {"prefix", required_argument, 0, OPT_PREFIX},
-      {"in", required_argument, 0, 'i'},
-      {"out", required_argument, 0, 'o'},
-      {"spv", required_argument, 0, 's'},
-      {"verbose", no_argument, 0, 'v'},
-      {0, 0, 0, 0},
-   };
+   if (argc != 4) {
+      fprintf(stderr, "Usage: %s [input spir-v] [output header] [output C]\n",
+              argv[0]);
+      return 1;
+   }
 
-   char *outfile = NULL, *spv_outfile = NULL, *prefix = NULL;
-   struct util_dynarray clang_args;
-   struct util_dynarray input_files;
-   struct util_dynarray spirv_objs;
-   struct util_dynarray spirv_ptr_objs;
+   const char *infile = argv[1];
+   const char *outh_file = argv[2];
+   const char *outc_file = argv[3];
 
    void *mem_ctx = ralloc_context(NULL);
 
-   util_dynarray_init(&clang_args, mem_ctx);
-   util_dynarray_init(&input_files, mem_ctx);
-   util_dynarray_init(&spirv_objs, mem_ctx);
-   util_dynarray_init(&spirv_ptr_objs, mem_ctx);
-
-   int ch;
-   while ((ch = getopt_long(argc, argv, "he:p:s:i:o:v", long_options, NULL)) !=
-          -1) {
-      switch (ch) {
-      case 'h':
-         print_usage(argv[0], stdout);
-         return 0;
-      case 'o':
-         outfile = optarg;
-         break;
-      case 'i':
-         util_dynarray_append(&input_files, char *, optarg);
-         break;
-      case 's':
-         spv_outfile = optarg;
-         break;
-      case OPT_PREFIX:
-         prefix = optarg;
-         break;
-      default:
-         fprintf(stderr, "Unrecognized option \"%s\".\n", optarg);
-         print_usage(argv[0], stderr);
-         return 1;
-      }
-   }
-
-   for (int i = optind; i < argc; i++) {
-      util_dynarray_append(&clang_args, char *, argv[i]);
-   }
-
-   if (util_dynarray_num_elements(&input_files, char *) == 0) {
-      fprintf(stderr, "No input file(s).\n");
-      print_usage(argv[0], stderr);
-      return -1;
-   }
-
-   if (prefix == NULL) {
-      fprintf(stderr, "No prefix specified.\n");
-      print_usage(argv[0], stderr);
-      return -1;
-   }
-
-   struct clc_logger logger = {
-      .error = msg_callback,
-      .warning = msg_callback,
-   };
-
-   util_dynarray_foreach(&input_files, char *, infile) {
-      int fd = open(*infile, O_RDONLY);
-      if (fd < 0) {
-         fprintf(stderr, "Failed to open %s\n", *infile);
-         ralloc_free(mem_ctx);
-         return 1;
-      }
-
-      off_t len = lseek(fd, 0, SEEK_END);
-      const void *map = mmap(NULL, len, PROT_READ, MAP_PRIVATE, fd, 0);
-      close(fd);
-      if (map == MAP_FAILED) {
-         fprintf(stderr, "Failed to mmap the file: errno=%d, %s\n", errno,
-                 strerror(errno));
-         ralloc_free(mem_ctx);
-         return 1;
-      }
-
-      const char *allowed_spirv_extensions[] = {
-         "SPV_EXT_shader_atomic_float_add",
-         "SPV_EXT_shader_atomic_float_min_max",
-         "SPV_KHR_float_controls",
-         "SPV_INTEL_subgroups",
-         NULL,
-      };
-
-      struct clc_compile_args clc_args = {
-         .source =
-            {
-               .name = *infile,
-               .value = map,
-            },
-         .features =
-            {
-               .fp16 = true,
-               .intel_subgroups = true,
-               .subgroups = true,
-               .subgroups_ifp = true,
-            },
-         .args = util_dynarray_begin(&clang_args),
-         .num_args = util_dynarray_num_elements(&clang_args, char *),
-         .allowed_spirv_extensions = allowed_spirv_extensions,
-      };
-
-      struct clc_binary *spirv_out =
-         util_dynarray_grow(&spirv_objs, struct clc_binary, 1);
-
-      if (!clc_compile_c_to_spirv(&clc_args, &logger, spirv_out)) {
-         ralloc_free(mem_ctx);
-         return 1;
-      }
-   }
-
-   util_dynarray_foreach(&spirv_objs, struct clc_binary, p) {
-      util_dynarray_append(&spirv_ptr_objs, struct clc_binary *, p);
-   }
-
-   /* The SPIRV-Tools linker started checking that all modules have the same
-    * version. But SPIRV-LLVM-Translator picks the lower required version for
-    * each module it compiles. So we have to iterate over all of them and set
-    * the max found to make SPIRV-Tools link our modules.
-    *
-    * TODO: This is not the correct thing to do. We need SPIRV-LLVM-Translator
-    *       to pick a given SPIRV version given to it and have all the modules
-    *       at that version. We should remove this hack when this issue is
-    *       fixed :
-    *       https://github.com/KhronosGroup/SPIRV-LLVM-Translator/issues/1445
-    */
-   uint32_t max_spirv_version = 0;
-   util_dynarray_foreach(&spirv_ptr_objs, struct clc_binary *, module) {
-      max_spirv_version =
-         MAX2(max_spirv_version,
-              get_module_spirv_version((*module)->data, (*module)->size));
-   }
-
-   assert(max_spirv_version > 0);
-   util_dynarray_foreach(&spirv_ptr_objs, struct clc_binary *, module) {
-      set_module_spirv_version((*module)->data, (*module)->size,
-                               max_spirv_version);
-   }
-
-   struct clc_linker_args link_args = {
-      .in_objs = util_dynarray_begin(&spirv_ptr_objs),
-      .num_in_objs =
-         util_dynarray_num_elements(&spirv_ptr_objs, struct clc_binary *),
-      .create_library = true,
-   };
-   struct clc_binary final_spirv;
-   if (!clc_link_spirv(&link_args, &logger, &final_spirv)) {
+   int fd = open(infile, O_RDONLY);
+   if (fd < 0) {
+      fprintf(stderr, "Failed to open %s\n", infile);
       ralloc_free(mem_ctx);
       return 1;
    }
 
-   if (spv_outfile) {
-      FILE *fp = fopen(spv_outfile, "w");
-      fwrite(final_spirv.data, final_spirv.size, 1, fp);
-      fclose(fp);
+   off_t spirv_len = lseek(fd, 0, SEEK_END);
+   const void *spirv_map = mmap(NULL, spirv_len, PROT_READ, MAP_PRIVATE, fd, 0);
+   close(fd);
+   if (spirv_map == MAP_FAILED) {
+      fprintf(stderr, "Failed to mmap the file: errno=%d, %s\n", errno,
+              strerror(errno));
+      ralloc_free(mem_ctx);
+      return 1;
    }
 
-   FILE *fp = stdout;
-   if (outfile != NULL)
-      fp = fopen(outfile, "w");
-
+   FILE *fp_h = fopen(outh_file, "w");
+   FILE *fp_c = fopen(outc_file, "w");
    glsl_type_singleton_init_or_ref();
 
-   fprintf(fp, "/*\n");
-   fprintf(fp, " * Copyright The Asahi Linux Contributors\n");
-   fprintf(fp, " * SPDX-License-Identifier: MIT\n");
-   fprintf(fp, " *\n");
-   fprintf(fp, " * Autogenerated file, do not edit\n");
-   fprintf(fp, " */\n");
-   fprintf(fp, " #include <stdint.h>\n");
+   nir_precomp_print_header(fp_c, fp_h, "The Asahi Linux Contributors",
+                            "libagx_shaders.h");
 
-   /* Compile SPIR-V to NIR */
-   nir_shader *nir = compile(mem_ctx, final_spirv.data, final_spirv.size);
+   nir_shader *nir = compile(mem_ctx, spirv_map, spirv_len);
 
-   {
-      nir_builder b = nir_builder_init_simple_shader(
-         MESA_SHADER_COMPUTE, &agx_nir_options, "Helper shader");
+   /* load_preamble works at 16-bit granularity */
+   struct nir_precomp_opts opt = {.arg_align_B = 2};
 
-      nir_function *func =
-         nir_shader_get_function_for_name(nir, "libagx_helper");
+   nir_foreach_entrypoint(libfunc, nir) {
+      libfunc->pass_flags = 0;
+      struct nir_precomp_layout layout =
+         nir_precomp_derive_layout(&opt, libfunc);
+      unsigned nr_vars = nir_precomp_nr_variants(libfunc);
 
-      nir_call(&b, nir_function_clone(b.shader, func));
+      nir_precomp_print_layout_struct(fp_h, &opt, libfunc);
 
-      struct agx_shader_part compiled;
-      struct agx_shader_key key = {
-         .libagx = nir,
-         .is_helper = true,
-      };
+      for (unsigned v = 0; v < nr_vars; ++v) {
+         nir_shader *s = nir_precompiled_build_variant(
+            libfunc, v, &agx_nir_options, &opt, load_kernel_input);
 
-      agx_preprocess_nir(b.shader, nir);
-      agx_compile_shader_nir(b.shader, &key, NULL, &compiled);
+         agx_link_libagx(s, nir);
 
-      print_u32_data(fp, "libagx_g13", "helper", compiled.binary,
-                     compiled.binary_size);
-      free(compiled.binary);
-      ralloc_free(b.shader);
+         NIR_PASS(_, s, nir_lower_vars_to_explicit_types, nir_var_mem_shared,
+                  glsl_get_cl_type_size_align);
 
-      /* Remove the NIR function, it's compiled, we don't need it at runtime */
-      exec_node_remove(&func->node);
+         NIR_PASS(_, s, nir_lower_explicit_io, nir_var_mem_shared,
+                  nir_address_format_62bit_generic);
+
+         /* Unroll loops before lowering indirects */
+         bool progress = false;
+         do {
+            progress = false;
+            NIR_PASS(progress, s, nir_opt_loop);
+         } while (progress);
+
+         agx_preprocess_nir(s, NULL);
+
+         bool has_atomic = false;
+         nir_shader_intrinsics_pass(s, gather_atomic_info, nir_metadata_all,
+                                    &has_atomic);
+         if (has_atomic) {
+            libfunc->pass_flags |= BITFIELD_BIT(v);
+         }
+
+         foreach_target(target)
+         {
+            /* Skip unused variants */
+            if (strcmp(*target, remap_variant(libfunc, v, *target)))
+               continue;
+
+            struct agx_shader_part compiled;
+            bool is_helper = !strcmp(libfunc->name, "libagx_helper");
+            struct agx_shader_key key = {
+               .libagx = nir,
+               .promote_constants = !is_helper,
+               .reserved_preamble = layout.size_B / 2,
+               .is_helper = is_helper,
+            };
+
+            if (has_atomic) {
+               key.dev.needs_g13x_coherency =
+                  u_tristate_make(!strcmp(*target, "g13x"));
+            }
+
+            nir_shader *clone = nir_shader_clone(NULL, s);
+            agx_compile_shader_nir(clone, &key, NULL, &compiled);
+            print_shader(fp_c, libfunc->name, *target, v, &compiled);
+            free(compiled.binary);
+            ralloc_free(clone);
+
+            assert(compiled.info.scratch_size == 0 &&
+                   "internal shaders do not spill");
+
+            assert(compiled.info.preamble_scratch_size == 0 &&
+                   "internal shader preambles do not spill");
+         }
+
+         ralloc_free(s);
+      }
    }
 
-   spirv_library_to_nir_builder(fp, final_spirv.data, final_spirv.size / 4,
-                                &spirv_options);
+   nir_precomp_print_program_enum(fp_h, nir, "libagx");
+   nir_precomp_print_dispatch_macros(fp_h, &opt, nir);
 
-   /* Serialize NIR for embedding */
-   struct blob blob;
-   blob_init(&blob);
-   nir_serialize(&blob, nir, false /* strip */);
-   print_u32_data(fp, prefix, "nir", (const uint32_t *)blob.data, blob.size);
-   blob_finish(&blob);
+   /* For each target, generate a table mapping programs to binaries */
+   foreach_target(target)
+   {
+      nir_precomp_print_extern_binary_map(fp_h, "libagx", *target);
+      nir_precomp_print_binary_map(fp_c, nir, "libagx", *target, remap_variant);
+   }
+
+   /* Remove the NIR functions we compiled to binaries to save memory */
+   nir_remove_entrypoints(nir);
+
+   nir_precomp_print_nir(fp_c, fp_h, nir, "libagx", "nir");
 
    glsl_type_singleton_decref();
-
-   if (fp != stdout)
-      fclose(fp);
-
-   util_dynarray_foreach(&spirv_objs, struct clc_binary, p) {
-      clc_free_spirv(p);
-   }
-
-   clc_free_spirv(&final_spirv);
+   fclose(fp_c);
+   fclose(fp_h);
    ralloc_free(mem_ctx);
-
    return 0;
 }

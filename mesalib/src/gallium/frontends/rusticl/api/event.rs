@@ -10,20 +10,19 @@ use rusticl_proc_macros::cl_entrypoint;
 use rusticl_proc_macros::cl_info_entrypoint;
 
 use std::collections::HashSet;
-use std::mem::MaybeUninit;
 use std::ptr;
 use std::sync::Arc;
 
 #[cl_info_entrypoint(clGetEventInfo)]
-impl CLInfo<cl_event_info> for cl_event {
-    fn query(&self, q: cl_event_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
+unsafe impl CLInfo<cl_event_info> for cl_event {
+    fn query(&self, q: cl_event_info, v: CLInfoValue) -> CLResult<CLInfoRes> {
         let event = Event::ref_from_raw(*self)?;
-        Ok(match *q {
-            CL_EVENT_COMMAND_EXECUTION_STATUS => cl_prop::<cl_int>(event.status()),
+        match *q {
+            CL_EVENT_COMMAND_EXECUTION_STATUS => v.write::<cl_int>(event.status()),
             CL_EVENT_CONTEXT => {
                 // Note we use as_ptr here which doesn't increase the reference count.
                 let ptr = Arc::as_ptr(&event.context);
-                cl_prop::<cl_context>(cl_context::from_ptr(ptr))
+                v.write::<cl_context>(cl_context::from_ptr(ptr))
             }
             CL_EVENT_COMMAND_QUEUE => {
                 let ptr = match event.queue.as_ref() {
@@ -31,33 +30,33 @@ impl CLInfo<cl_event_info> for cl_event {
                     Some(queue) => Arc::as_ptr(queue),
                     None => ptr::null_mut(),
                 };
-                cl_prop::<cl_command_queue>(cl_command_queue::from_ptr(ptr))
+                v.write::<cl_command_queue>(cl_command_queue::from_ptr(ptr))
             }
-            CL_EVENT_REFERENCE_COUNT => cl_prop::<cl_uint>(Event::refcnt(*self)?),
-            CL_EVENT_COMMAND_TYPE => cl_prop::<cl_command_type>(event.cmd_type),
-            _ => return Err(CL_INVALID_VALUE),
-        })
+            CL_EVENT_REFERENCE_COUNT => v.write::<cl_uint>(Event::refcnt(*self)?),
+            CL_EVENT_COMMAND_TYPE => v.write::<cl_command_type>(event.cmd_type),
+            _ => Err(CL_INVALID_VALUE),
+        }
     }
 }
 
 #[cl_info_entrypoint(clGetEventProfilingInfo)]
-impl CLInfo<cl_profiling_info> for cl_event {
-    fn query(&self, q: cl_profiling_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
+unsafe impl CLInfo<cl_profiling_info> for cl_event {
+    fn query(&self, q: cl_profiling_info, v: CLInfoValue) -> CLResult<CLInfoRes> {
         let event = Event::ref_from_raw(*self)?;
         if event.cmd_type == CL_COMMAND_USER {
             // CL_PROFILING_INFO_NOT_AVAILABLE [...] if event is a user event object.
             return Err(CL_PROFILING_INFO_NOT_AVAILABLE);
         }
 
-        Ok(match *q {
-            CL_PROFILING_COMMAND_QUEUED => cl_prop::<cl_ulong>(event.get_time(EventTimes::Queued)),
-            CL_PROFILING_COMMAND_SUBMIT => cl_prop::<cl_ulong>(event.get_time(EventTimes::Submit)),
-            CL_PROFILING_COMMAND_START => cl_prop::<cl_ulong>(event.get_time(EventTimes::Start)),
-            CL_PROFILING_COMMAND_END => cl_prop::<cl_ulong>(event.get_time(EventTimes::End)),
+        match *q {
+            CL_PROFILING_COMMAND_QUEUED => v.write::<cl_ulong>(event.get_time(EventTimes::Queued)),
+            CL_PROFILING_COMMAND_SUBMIT => v.write::<cl_ulong>(event.get_time(EventTimes::Submit)),
+            CL_PROFILING_COMMAND_START => v.write::<cl_ulong>(event.get_time(EventTimes::Start)),
+            CL_PROFILING_COMMAND_END => v.write::<cl_ulong>(event.get_time(EventTimes::End)),
             // For now, we treat Complete the same as End
-            CL_PROFILING_COMMAND_COMPLETE => cl_prop::<cl_ulong>(event.get_time(EventTimes::End)),
-            _ => return Err(CL_INVALID_VALUE),
-        })
+            CL_PROFILING_COMMAND_COMPLETE => v.write::<cl_ulong>(event.get_time(EventTimes::End)),
+            _ => Err(CL_INVALID_VALUE),
+        }
     }
 }
 

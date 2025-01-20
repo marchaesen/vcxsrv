@@ -85,6 +85,10 @@ test_composite (const composite_info_t *info)
 			    0, 0,
 			    info->dest_x, info->dest_y,
 			    info->width, info->height);
+    free (src->bits.bits);
+    free (dest->bits.bits);
+    pixman_image_unref (src);
+    pixman_image_unref (dest);
 }
 
 

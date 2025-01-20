@@ -67,6 +67,14 @@ struct cs_load_store_tracker {
    uint8_t sb_slot;
 };
 
+/**
+ * This is used to determine which registers as been written to (a.k.a. used
+ * as an instruction's destination).
+ */
+struct cs_dirty_tracker {
+   BITSET_DECLARE(regs, 256);
+};
+
 enum cs_reg_perm {
    CS_REG_NO_ACCESS = 0,
    CS_REG_RD = BITFIELD_BIT(1),
@@ -90,6 +98,9 @@ struct cs_builder_conf {
 
    /* Optional load/store tracker. */
    struct cs_load_store_tracker *ls_tracker;
+
+   /* Optional dirty registers tracker. */
+   struct cs_dirty_tracker *dirty_tracker;
 
    /* Optional register access checker. */
    reg_perm_cb_t reg_perm;
@@ -169,6 +180,7 @@ struct cs_builder {
       struct cs_block *stack;
       struct util_dynarray instrs;
       struct cs_if_else pending_if;
+      unsigned last_load_ip_target;
    } blocks;
 
    /* Move immediate instruction at the end of the last CS chunk that needs to
@@ -290,14 +302,17 @@ cs_to_reg_tuple(struct cs_index idx, ASSERTED unsigned expected_size)
 }
 
 static inline unsigned
-cs_src_tuple(struct cs_builder *b, struct cs_index src, ASSERTED unsigned count)
+cs_src_tuple(struct cs_builder *b, struct cs_index src, ASSERTED unsigned count,
+             uint16_t mask)
 {
    unsigned reg = cs_to_reg_tuple(src, count);
 
    if (unlikely(b->conf.reg_perm)) {
       for (unsigned i = reg; i < reg + count; i++) {
-         assert((b->conf.reg_perm(b, i) & CS_REG_RD) ||
-                !"Trying to read a restricted register");
+         if (mask & BITFIELD_BIT(i - reg)) {
+            assert((b->conf.reg_perm(b, i) & CS_REG_RD) ||
+                   !"Trying to read a restricted register");
+         }
       }
    }
 
@@ -305,7 +320,8 @@ cs_src_tuple(struct cs_builder *b, struct cs_index src, ASSERTED unsigned count)
 
    if (unlikely(ls_tracker)) {
       for (unsigned i = reg; i < reg + count; i++) {
-         if (BITSET_TEST(ls_tracker->pending_loads, i))
+         if ((mask & BITFIELD_BIT(i - reg)) &&
+             BITSET_TEST(ls_tracker->pending_loads, i))
             assert(!"register used as a source before flushing loads\n");
       }
    }
@@ -316,24 +332,27 @@ cs_src_tuple(struct cs_builder *b, struct cs_index src, ASSERTED unsigned count)
 static inline unsigned
 cs_src32(struct cs_builder *b, struct cs_index src)
 {
-   return cs_src_tuple(b, src, 1);
+   return cs_src_tuple(b, src, 1, BITFIELD_MASK(1));
 }
 
 static inline unsigned
 cs_src64(struct cs_builder *b, struct cs_index src)
 {
-   return cs_src_tuple(b, src, 2);
+   return cs_src_tuple(b, src, 2, BITFIELD_MASK(2));
 }
 
 static inline unsigned
-cs_dst_tuple(struct cs_builder *b, struct cs_index dst, ASSERTED unsigned count)
+cs_dst_tuple(struct cs_builder *b, struct cs_index dst, ASSERTED unsigned count,
+             uint16_t mask)
 {
    unsigned reg = cs_to_reg_tuple(dst, count);
 
    if (unlikely(b->conf.reg_perm)) {
       for (unsigned i = reg; i < reg + count; i++) {
-         assert((b->conf.reg_perm(b, i) & CS_REG_WR) ||
-                !"Trying to write a restricted register");
+         if (mask & BITFIELD_BIT(i - reg)) {
+            assert((b->conf.reg_perm(b, i) & CS_REG_WR) ||
+                   !"Trying to write a restricted register");
+         }
       }
    }
 
@@ -341,9 +360,17 @@ cs_dst_tuple(struct cs_builder *b, struct cs_index dst, ASSERTED unsigned count)
 
    if (unlikely(ls_tracker)) {
       for (unsigned i = reg; i < reg + count; i++) {
-         if (BITSET_TEST(ls_tracker->pending_stores, i))
+         if ((mask & BITFIELD_BIT(i - reg)) &&
+             BITSET_TEST(ls_tracker->pending_stores, i))
             assert(
                !"register reused as a destination before flushing stores\n");
+      }
+   }
+
+   if (unlikely(b->conf.dirty_tracker)) {
+      for (unsigned i = reg; i < reg + count; i++) {
+         if (mask & BITFIELD_BIT(i - reg))
+            BITSET_SET(b->conf.dirty_tracker->regs, i);
       }
    }
 
@@ -353,13 +380,13 @@ cs_dst_tuple(struct cs_builder *b, struct cs_index dst, ASSERTED unsigned count)
 static inline unsigned
 cs_dst32(struct cs_builder *b, struct cs_index dst)
 {
-   return cs_dst_tuple(b, dst, 1);
+   return cs_dst_tuple(b, dst, 1, BITFIELD_MASK(1));
 }
 
 static inline unsigned
 cs_dst64(struct cs_builder *b, struct cs_index dst)
 {
-   return cs_dst_tuple(b, dst, 2);
+   return cs_dst_tuple(b, dst, 2, BITFIELD_MASK(2));
 }
 
 static inline struct cs_index
@@ -423,20 +450,18 @@ cs_cur_block(struct cs_builder *b)
 
 #define JUMP_SEQ_INSTR_COUNT 4
 
-static inline void *
-cs_alloc_ins_block(struct cs_builder *b, uint32_t num_instrs)
+static inline bool
+cs_reserve_instrs(struct cs_builder *b, uint32_t num_instrs)
 {
    /* Don't call this function with num_instrs=0. */
    assert(num_instrs > 0);
+   assert(cs_cur_block(b) == NULL);
 
    /* If an allocation failure happened before, we just discard all following
     * instructions.
     */
    if (unlikely(!cs_is_valid(b)))
-      return &b->discard_instr_slot;
-
-   if (cs_cur_block(b))
-      return util_dynarray_grow(&b->blocks.instrs, uint64_t, num_instrs);
+      return false;
 
    /* Lazy root chunk allocation. */
    if (unlikely(!b->root_chunk.buffer.cpu)) {
@@ -444,7 +469,7 @@ cs_alloc_ins_block(struct cs_builder *b, uint32_t num_instrs)
       b->cur_chunk.buffer = b->root_chunk.buffer;
       if (!b->cur_chunk.buffer.cpu) {
          b->invalid = true;
-         return &b->discard_instr_slot;
+         return false;
       }
    }
 
@@ -463,19 +488,21 @@ cs_alloc_ins_block(struct cs_builder *b, uint32_t num_instrs)
       /* Allocation failure, from now on, all new instructions will be
        * discarded.
        */
-      if (unlikely(!b->cur_chunk.buffer.cpu))
-         return &b->discard_instr_slot;
+      if (unlikely(!newbuf.cpu)) {
+         b->invalid = true;
+         return false;
+      }
 
       uint64_t *ptr = b->cur_chunk.buffer.cpu + (b->cur_chunk.pos++);
 
-      pan_pack(ptr, CS_MOVE, I) {
+      pan_cast_and_pack(ptr, CS_MOVE, I) {
          I.destination = cs_overflow_address_reg(b);
          I.immediate = newbuf.gpu;
       }
 
       ptr = b->cur_chunk.buffer.cpu + (b->cur_chunk.pos++);
 
-      pan_pack(ptr, CS_MOVE32, I) {
+      pan_cast_and_pack(ptr, CS_MOVE32, I) {
          I.destination = cs_overflow_length_reg(b);
       }
 
@@ -484,7 +511,7 @@ cs_alloc_ins_block(struct cs_builder *b, uint32_t num_instrs)
 
       ptr = b->cur_chunk.buffer.cpu + (b->cur_chunk.pos++);
 
-      pan_pack(ptr, CS_JUMP, I) {
+      pan_cast_and_pack(ptr, CS_JUMP, I) {
          I.length = cs_overflow_length_reg(b);
          I.address = cs_overflow_address_reg(b);
       }
@@ -497,6 +524,18 @@ cs_alloc_ins_block(struct cs_builder *b, uint32_t num_instrs)
       b->cur_chunk.buffer = newbuf;
       b->cur_chunk.pos = 0;
    }
+
+   return true;
+}
+
+static inline void *
+cs_alloc_ins_block(struct cs_builder *b, uint32_t num_instrs)
+{
+   if (cs_cur_block(b))
+      return util_dynarray_grow(&b->blocks.instrs, uint64_t, num_instrs);
+
+   if (!cs_reserve_instrs(b, num_instrs))
+      return NULL;
 
    assert(b->cur_chunk.size + num_instrs - 1 < b->cur_chunk.buffer.capacity);
    uint32_t pos = b->cur_chunk.pos;
@@ -515,10 +554,39 @@ cs_flush_block_instrs(struct cs_builder *b)
    if (!num_instrs)
       return;
 
+   /* If LOAD_IP is the last instruction in the block, we reserve one more
+    * slot to make sure the next instruction won't point to a CS chunk linking
+    * sequence. */
+   if (unlikely(b->blocks.last_load_ip_target >= num_instrs)) {
+      if (!cs_reserve_instrs(b, num_instrs + 1))
+         return;
+   }
+
    void *buffer = cs_alloc_ins_block(b, num_instrs);
 
-   if (likely(cs_is_valid(b)))
+   if (likely(buffer != NULL)) {
+      /* If we have a LOAD_IP chain, we need to patch each LOAD_IP
+       * instruction before we copy the block to the final memory
+       * region. */
+      while (unlikely(b->blocks.last_load_ip_target)) {
+         uint64_t *instr = util_dynarray_element(
+            &b->blocks.instrs, uint64_t, b->blocks.last_load_ip_target - 1);
+         unsigned prev_load_ip_target = *instr & BITFIELD_MASK(32);
+         uint64_t ip =
+            b->cur_chunk.buffer.gpu +
+            ((b->cur_chunk.pos - num_instrs + b->blocks.last_load_ip_target) *
+             sizeof(uint64_t));
+
+         /* Drop the prev_load_ip_target value and replace it by the final
+	  * IP. */
+         *instr &= ~BITFIELD64_MASK(32);
+         *instr |= ip;
+
+         b->blocks.last_load_ip_target = prev_load_ip_target;
+      }
+
       memcpy(buffer, b->blocks.instrs.data, b->blocks.instrs.size);
+   }
 
    util_dynarray_clear(&b->blocks.instrs);
 }
@@ -576,6 +644,7 @@ cs_flush_pending_if(struct cs_builder *b)
 
    cs_set_label(b, &b->blocks.pending_if.end_label);
    b->blocks.stack = b->blocks.pending_if.block.next;
+   cs_flush_block_instrs(b);
 }
 
 static inline void *
@@ -584,9 +653,8 @@ cs_alloc_ins(struct cs_builder *b)
    /* If an instruction is emitted after an if_end(), it flushes the pending if,
     * causing further cs_else_start() instructions to be invalid. */
    cs_flush_pending_if(b);
-   cs_flush_block_instrs(b);
 
-   return cs_alloc_ins_block(b, 1);
+   return cs_alloc_ins_block(b, 1) ?: &b->discard_instr_slot;
 }
 
 /* Call this when you are done building a command stream and want to prepare
@@ -599,7 +667,6 @@ cs_finish(struct cs_builder *b)
       return;
 
    cs_flush_pending_if(b);
-   cs_flush_block_instrs(b);
    cs_wrap_chunk(b);
 
    /* This prevents adding instructions after that point. */
@@ -613,7 +680,7 @@ cs_finish(struct cs_builder *b)
  * to be separated out being pan_pack can evaluate its argument multiple times,
  * yet cs_alloc has side effects.
  */
-#define cs_emit(b, T, cfg) pan_pack(cs_alloc_ins(b), CS_##T, cfg)
+#define cs_emit(b, T, cfg) pan_cast_and_pack(cs_alloc_ins(b), CS_##T, cfg)
 
 /* Asynchronous operations take a mask of scoreboard slots to wait on
  * before executing the instruction, and signal a scoreboard slot when
@@ -711,6 +778,29 @@ cs_move48_to(struct cs_builder *b, struct cs_index dest, uint64_t imm)
 }
 
 static inline void
+cs_load_ip_to(struct cs_builder *b, struct cs_index dest)
+{
+   /* If a load_ip instruction is emitted after an if_end(), it flushes the
+    * pending if, causing further cs_else_start() instructions to be invalid.
+    */
+   cs_flush_pending_if(b);
+
+   if (likely(cs_cur_block(b) == NULL)) {
+      if (!cs_reserve_instrs(b, 2))
+         return;
+
+      /* We make IP point to the instruction right after our MOVE. */
+      uint64_t ip =
+         b->cur_chunk.buffer.gpu + (sizeof(uint64_t) * (b->cur_chunk.pos + 1));
+      cs_move48_to(b, dest, ip);
+   } else {
+      cs_move48_to(b, dest, b->blocks.last_load_ip_target);
+      b->blocks.last_load_ip_target =
+         util_dynarray_num_elements(&b->blocks.instrs, uint64_t);
+   }
+}
+
+static inline void
 cs_block_start(struct cs_builder *b, struct cs_block *block)
 {
    cs_flush_pending_if(b);
@@ -782,7 +872,7 @@ cs_branch_label(struct cs_builder *b, struct cs_label *label,
       cs_emit(b, BRANCH, I) {
          I.offset = offset;
          I.condition = cond;
-         I.value = cs_src32(b, val);
+         I.value = cond != MALI_CS_CONDITION_ALWAYS ? cs_src32(b, val) : 0;
       }
    }
 }
@@ -931,7 +1021,6 @@ cs_loop_conditional_continue(struct cs_builder *b, struct cs_loop *loop,
                              enum mali_cs_condition cond, struct cs_index val)
 {
    cs_flush_pending_if(b);
-   assert(cs_cur_block(b) == &loop->block);
    cs_branch_label(b, &loop->start, cond, val);
    cs_loop_diverge_ls_update(b, loop);
 }
@@ -941,7 +1030,6 @@ cs_loop_conditional_break(struct cs_builder *b, struct cs_loop *loop,
                           enum mali_cs_condition cond, struct cs_index val)
 {
    cs_flush_pending_if(b);
-   assert(cs_cur_block(b) == &loop->block);
    cs_branch_label(b, &loop->end, cond, val);
    cs_loop_diverge_ls_update(b, loop);
 }
@@ -1179,7 +1267,7 @@ cs_load_to(struct cs_builder *b, struct cs_index dest, struct cs_index address,
            unsigned mask, int offset)
 {
    unsigned count = util_last_bit(mask);
-   unsigned base_reg = cs_dst_tuple(b, dest, count);
+   unsigned base_reg = cs_dst_tuple(b, dest, count, mask);
 
    cs_emit(b, LOAD_MULTIPLE, I) {
       I.base_register = base_reg;
@@ -1215,7 +1303,7 @@ cs_store(struct cs_builder *b, struct cs_index data, struct cs_index address,
          unsigned mask, int offset)
 {
    unsigned count = util_last_bit(mask);
-   unsigned base_reg = cs_src_tuple(b, data, count);
+   unsigned base_reg = cs_src_tuple(b, data, count, mask);
 
    cs_emit(b, STORE_MULTIPLE, I) {
       I.base_register = base_reg;
@@ -1314,7 +1402,7 @@ enum cs_res_id {
 };
 
 static inline void
-cs_req_res(struct cs_builder *b, u32 res_mask)
+cs_req_res(struct cs_builder *b, uint32_t res_mask)
 {
    cs_emit(b, REQ_RESOURCE, I) {
       I.compute = res_mask & CS_COMPUTE_RES;
@@ -1480,7 +1568,8 @@ cs_trace_point(struct cs_builder *b, struct cs_index regs,
                struct cs_async_op async)
 {
    cs_emit(b, TRACE_POINT, I) {
-      I.base_register = cs_src_tuple(b, regs, regs.size);
+      I.base_register =
+         cs_src_tuple(b, regs, regs.size, BITFIELD_MASK(regs.size));
       I.register_count = regs.size;
       cs_apply_async(I, async);
    }
@@ -1631,3 +1720,341 @@ cs_match_end(struct cs_builder *b, struct cs_match *match)
            false;                                                              \
         });                                                                    \
         !__default_defined; __default_defined = true)
+
+static inline void
+cs_nop(struct cs_builder *b)
+{
+   cs_emit(b, NOP, I) {};
+}
+
+struct cs_exception_handler_ctx {
+   struct cs_index ctx_reg;
+   unsigned dump_addr_offset;
+   uint8_t ls_sb_slot;
+};
+
+struct cs_exception_handler {
+   struct cs_block block;
+   struct cs_dirty_tracker dirty;
+   struct cs_exception_handler_ctx ctx;
+   unsigned dump_size;
+   uint64_t address;
+   uint32_t length;
+};
+
+static inline struct cs_exception_handler *
+cs_exception_handler_start(struct cs_builder *b,
+                           struct cs_exception_handler *handler,
+                           struct cs_exception_handler_ctx ctx)
+{
+   assert(cs_cur_block(b) == NULL);
+   assert(b->conf.dirty_tracker == NULL);
+
+   *handler = (struct cs_exception_handler){
+      .ctx = ctx,
+   };
+
+   cs_block_start(b, &handler->block);
+
+   b->conf.dirty_tracker = &handler->dirty;
+
+   return handler;
+}
+
+#define SAVE_RESTORE_MAX_OPS (256 / 16)
+
+static inline void
+cs_exception_handler_end(struct cs_builder *b,
+                         struct cs_exception_handler *handler)
+{
+   struct cs_index ranges[SAVE_RESTORE_MAX_OPS];
+   uint16_t masks[SAVE_RESTORE_MAX_OPS];
+   unsigned num_ranges = 0;
+   uint32_t num_instrs =
+      util_dynarray_num_elements(&b->blocks.instrs, uint64_t);
+   struct cs_index addr_reg = {
+      .type = CS_INDEX_REGISTER,
+      .size = 2,
+      .reg = b->conf.nr_registers - 2,
+   };
+
+   /* Manual cs_block_end() without an instruction flush. We do that to insert
+    * the preamble without having to move memory in b->blocks.instrs. The flush
+    * will be done after the preamble has been emitted. */
+   assert(cs_cur_block(b) == &handler->block);
+   assert(handler->block.next == NULL);
+   b->blocks.stack = NULL;
+
+   if (!num_instrs)
+      return;
+
+   /* Try to minimize number of load/store by grouping them */
+   unsigned nregs = b->conf.nr_registers - b->conf.nr_kernel_registers;
+   unsigned pos, last = 0;
+
+   BITSET_FOREACH_SET(pos, handler->dirty.regs, nregs) {
+      unsigned range = MIN2(nregs - pos, 16);
+      unsigned word = BITSET_BITWORD(pos);
+      unsigned bit = pos % BITSET_WORDBITS;
+      unsigned remaining_bits = BITSET_WORDBITS - bit;
+
+      if (pos < last)
+         continue;
+
+      masks[num_ranges] = handler->dirty.regs[word] >> bit;
+      if (remaining_bits < range)
+         masks[num_ranges] |= handler->dirty.regs[word + 1] << remaining_bits;
+      masks[num_ranges] &= BITFIELD_MASK(range);
+
+      ranges[num_ranges] =
+         cs_reg_tuple(b, pos, util_last_bit(masks[num_ranges]));
+      num_ranges++;
+      last = pos + range;
+   }
+
+   handler->dump_size = BITSET_COUNT(handler->dirty.regs) * sizeof(uint32_t);
+
+   /* Make sure the current chunk is able to accommodate the block
+    * instructions as well as the preamble and postamble.
+    * Adding 4 instructions (2x wait_slot and the move for the address) as
+    * the move might actually be translated to two MOVE32 instructions. */
+   num_instrs += (num_ranges * 2) + 4;
+
+   /* Align things on a cache-line in case the buffer contains more than one
+    * exception handler (64 bytes = 8 instructions). */
+   uint32_t padded_num_instrs = ALIGN_POT(num_instrs, 8);
+
+   if (!cs_reserve_instrs(b, padded_num_instrs))
+      return;
+
+   handler->address =
+      b->cur_chunk.buffer.gpu + (b->cur_chunk.pos * sizeof(uint64_t));
+
+   /* Preamble: backup modified registers */
+   if (num_ranges > 0) {
+      unsigned offset = 0;
+
+      cs_load64_to(b, addr_reg, handler->ctx.ctx_reg,
+                   handler->ctx.dump_addr_offset);
+      cs_wait_slot(b, handler->ctx.ls_sb_slot, false);
+
+      for (unsigned i = 0; i < num_ranges; ++i) {
+         unsigned reg_count = util_bitcount(masks[i]);
+
+         cs_store(b, ranges[i], addr_reg, masks[i], offset);
+         offset += reg_count * 4;
+      }
+
+      cs_wait_slot(b, handler->ctx.ls_sb_slot, false);
+   }
+
+   /* Now that the preamble is emitted, we can flush the instructions we have in
+    * our exception handler block. */
+   cs_flush_block_instrs(b);
+
+   /* Postamble: restore modified registers */
+   if (num_ranges > 0) {
+      unsigned offset = 0;
+
+      cs_load64_to(b, addr_reg, handler->ctx.ctx_reg,
+                   handler->ctx.dump_addr_offset);
+      cs_wait_slot(b, handler->ctx.ls_sb_slot, false);
+
+      for (unsigned i = 0; i < num_ranges; ++i) {
+         unsigned reg_count = util_bitcount(masks[i]);
+
+         cs_load_to(b, ranges[i], addr_reg, masks[i], offset);
+         offset += reg_count * 4;
+      }
+
+      cs_wait_slot(b, handler->ctx.ls_sb_slot, false);
+   }
+
+   /* Fill the rest of the buffer with NOPs. */
+   for (; num_instrs < padded_num_instrs; num_instrs++)
+      cs_nop(b);
+
+   handler->length = padded_num_instrs;
+}
+
+#define cs_exception_handler_def(__b, __handler, __ctx)                        \
+   for (struct cs_exception_handler *__ehandler =                              \
+           cs_exception_handler_start(__b, __handler, __ctx);                  \
+        __ehandler != NULL;                                                    \
+        cs_exception_handler_end(__b, __handler), __ehandler = NULL)
+
+struct cs_tracing_ctx {
+   bool enabled;
+   struct cs_index ctx_reg;
+   unsigned tracebuf_addr_offset;
+   uint8_t ls_sb_slot;
+};
+
+static inline void
+cs_trace_preamble(struct cs_builder *b, const struct cs_tracing_ctx *ctx,
+                  struct cs_index scratch_regs, unsigned trace_size)
+{
+   assert(trace_size > 0 && ALIGN_POT(trace_size, 64) == trace_size &&
+          trace_size < INT16_MAX);
+   assert(scratch_regs.size >= 4 && !(scratch_regs.reg & 1));
+
+   struct cs_index tracebuf_addr = cs_reg64(b, scratch_regs.reg);
+
+   /* We always update the tracebuf position first, so we can easily detect OOB
+    * access. Use cs_trace_field_offset() to get an offset taking this
+    * pre-increment into account. */
+   cs_load64_to(b, tracebuf_addr, ctx->ctx_reg, ctx->tracebuf_addr_offset);
+   cs_wait_slot(b, ctx->ls_sb_slot, false);
+   cs_add64(b, tracebuf_addr, tracebuf_addr, trace_size);
+   cs_store64(b, tracebuf_addr, ctx->ctx_reg, ctx->tracebuf_addr_offset);
+   cs_wait_slot(b, ctx->ls_sb_slot, false);
+}
+
+#define cs_trace_field_offset(__type, __field)                                 \
+   (int16_t)(offsetof(struct cs_##__type##_trace, __field) -                   \
+             sizeof(struct cs_##__type##_trace))
+
+struct cs_run_fragment_trace {
+   uint64_t ip;
+   uint32_t sr[7];
+} __attribute__((aligned(64)));
+
+static inline void
+cs_trace_run_fragment(struct cs_builder *b, const struct cs_tracing_ctx *ctx,
+                      struct cs_index scratch_regs, bool enable_tem,
+                      enum mali_tile_render_order tile_order, bool progress_inc)
+{
+   if (likely(!ctx->enabled)) {
+      cs_run_fragment(b, enable_tem, tile_order, progress_inc);
+      return;
+   }
+
+   struct cs_index tracebuf_addr = cs_reg64(b, scratch_regs.reg);
+   struct cs_index data = cs_reg64(b, scratch_regs.reg + 2);
+
+   cs_trace_preamble(b, ctx, scratch_regs,
+                     sizeof(struct cs_run_fragment_trace));
+
+   /* cs_run_xx() must immediately follow cs_load_ip_to() otherwise the IP
+    * won't point to the right instruction. */
+   cs_load_ip_to(b, data);
+   cs_run_fragment(b, enable_tem, tile_order, progress_inc);
+   cs_store64(b, data, tracebuf_addr, cs_trace_field_offset(run_fragment, ip));
+
+   cs_store(b, cs_reg_tuple(b, 40, 7), tracebuf_addr, BITFIELD_MASK(7),
+            cs_trace_field_offset(run_fragment, sr));
+   cs_wait_slot(b, ctx->ls_sb_slot, false);
+}
+
+struct cs_run_idvs_trace {
+   uint64_t ip;
+   uint32_t draw_id;
+   uint32_t pad;
+   uint32_t sr[61];
+} __attribute__((aligned(64)));
+
+static inline void
+cs_trace_run_idvs(struct cs_builder *b, const struct cs_tracing_ctx *ctx,
+                  struct cs_index scratch_regs, uint32_t flags_override,
+                  bool progress_inc, bool malloc_enable,
+                  struct cs_shader_res_sel varying_sel,
+                  struct cs_shader_res_sel frag_sel, struct cs_index draw_id)
+{
+   if (likely(!ctx->enabled)) {
+      cs_run_idvs(b, flags_override, progress_inc, malloc_enable, varying_sel,
+                  frag_sel, draw_id);
+      return;
+   }
+
+   struct cs_index tracebuf_addr = cs_reg64(b, scratch_regs.reg);
+   struct cs_index data = cs_reg64(b, scratch_regs.reg + 2);
+
+   cs_trace_preamble(b, ctx, scratch_regs,
+                     sizeof(struct cs_run_idvs_trace));
+
+   /* cs_run_xx() must immediately follow cs_load_ip_to() otherwise the IP
+    * won't point to the right instruction. */
+   cs_load_ip_to(b, data);
+   cs_run_idvs(b, flags_override, progress_inc, malloc_enable, varying_sel,
+               frag_sel, draw_id);
+   cs_store64(b, data, tracebuf_addr, cs_trace_field_offset(run_idvs, ip));
+
+   if (draw_id.type != CS_INDEX_UNDEF)
+      cs_store32(b, draw_id, tracebuf_addr,
+                 cs_trace_field_offset(run_idvs, draw_id));
+
+   for (unsigned i = 0; i < 48; i += 16)
+      cs_store(b, cs_reg_tuple(b, i, 16), tracebuf_addr, BITFIELD_MASK(16),
+               cs_trace_field_offset(run_idvs, sr[i]));
+   cs_store(b, cs_reg_tuple(b, 48, 13), tracebuf_addr, BITFIELD_MASK(13),
+            cs_trace_field_offset(run_idvs, sr[48]));
+   cs_wait_slot(b, ctx->ls_sb_slot, false);
+}
+
+struct cs_run_compute_trace {
+   uint64_t ip;
+   uint32_t sr[40];
+} __attribute__((aligned(64)));
+
+static inline void
+cs_trace_run_compute(struct cs_builder *b, const struct cs_tracing_ctx *ctx,
+                     struct cs_index scratch_regs, unsigned task_increment,
+                     enum mali_task_axis task_axis, bool progress_inc,
+                     struct cs_shader_res_sel res_sel)
+{
+   if (likely(!ctx->enabled)) {
+      cs_run_compute(b, task_increment, task_axis, progress_inc, res_sel);
+      return;
+   }
+
+   struct cs_index tracebuf_addr = cs_reg64(b, scratch_regs.reg);
+   struct cs_index data = cs_reg64(b, scratch_regs.reg + 2);
+
+   cs_trace_preamble(b, ctx, scratch_regs,
+                     sizeof(struct cs_run_compute_trace));
+
+   /* cs_run_xx() must immediately follow cs_load_ip_to() otherwise the IP
+    * won't point to the right instruction. */
+   cs_load_ip_to(b, data);
+   cs_run_compute(b, task_increment, task_axis, progress_inc, res_sel);
+   cs_store64(b, data, tracebuf_addr, cs_trace_field_offset(run_compute, ip));
+
+   for (unsigned i = 0; i < 32; i += 16)
+      cs_store(b, cs_reg_tuple(b, i, 16), tracebuf_addr, BITFIELD_MASK(16),
+               cs_trace_field_offset(run_compute, sr[i]));
+   cs_store(b, cs_reg_tuple(b, 32, 8), tracebuf_addr, BITFIELD_MASK(8),
+            cs_trace_field_offset(run_compute, sr[32]));
+   cs_wait_slot(b, ctx->ls_sb_slot, false);
+}
+
+static inline void
+cs_trace_run_compute_indirect(struct cs_builder *b,
+                              const struct cs_tracing_ctx *ctx,
+                              struct cs_index scratch_regs,
+                              unsigned wg_per_task, bool progress_inc,
+                              struct cs_shader_res_sel res_sel)
+{
+   if (likely(!ctx->enabled)) {
+      cs_run_compute_indirect(b, wg_per_task, progress_inc, res_sel);
+      return;
+   }
+
+   struct cs_index tracebuf_addr = cs_reg64(b, scratch_regs.reg);
+   struct cs_index data = cs_reg64(b, scratch_regs.reg + 2);
+
+   cs_trace_preamble(b, ctx, scratch_regs,
+                     sizeof(struct cs_run_compute_trace));
+
+   /* cs_run_xx() must immediately follow cs_load_ip_to() otherwise the IP
+    * won't point to the right instruction. */
+   cs_load_ip_to(b, data);
+   cs_run_compute_indirect(b, wg_per_task, progress_inc, res_sel);
+   cs_store64(b, data, tracebuf_addr, cs_trace_field_offset(run_compute, ip));
+
+   for (unsigned i = 0; i < 32; i += 16)
+      cs_store(b, cs_reg_tuple(b, i, 16), tracebuf_addr, BITFIELD_MASK(16),
+               cs_trace_field_offset(run_compute, sr[i]));
+   cs_store(b, cs_reg_tuple(b, 32, 8), tracebuf_addr, BITFIELD_MASK(8),
+            cs_trace_field_offset(run_compute, sr[32]));
+   cs_wait_slot(b, ctx->ls_sb_slot, false);
+}

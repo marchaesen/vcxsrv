@@ -258,13 +258,27 @@ get_write_mask(const nir_intrinsic_instr *intrin)
    return nir_component_mask(intrin->src[info->value_src].ssa->num_components);
 }
 
+static nir_op
+get_effective_alu_op(nir_scalar scalar)
+{
+   nir_op op = nir_scalar_alu_op(scalar);
+
+   /* amul can always be replaced by imul and we pattern match on the more
+    * general opcode, so return imul for amul.
+    */
+   if (op == nir_op_amul)
+      return nir_op_imul;
+   else
+      return op;
+}
+
 /* If "def" is from an alu instruction with the opcode "op" and one of it's
  * sources is a constant, update "def" to be the non-constant source, fill "c"
  * with the constant and return true. */
 static bool
 parse_alu(nir_scalar *def, nir_op op, uint64_t *c)
 {
-   if (!nir_scalar_is_alu(*def) || nir_scalar_alu_op(*def) != op)
+   if (!nir_scalar_is_alu(*def) || get_effective_alu_op(*def) != op)
       return false;
 
    nir_scalar src0 = nir_scalar_chase_alu_src(*def, 0);
@@ -655,8 +669,7 @@ new_bitsize_acceptable(struct vectorize_ctx *ctx, unsigned new_bit_size,
 
    unsigned low_size = low->intrin->num_components * get_bit_size(low) / 8;
    /* The hole size can be less than 0 if low and high instructions overlap. */
-   unsigned hole_size =
-      MAX2(high->offset_signed - (low->offset_signed + low_size), 0);
+   int64_t hole_size = high->offset_signed - (low->offset_signed + low_size);
 
    if (!ctx->options->callback(low->align_mul,
                                low->align_offset,
@@ -1326,13 +1339,14 @@ vectorize_sorted_entries(struct vectorize_ctx *ctx, nir_function_impl *impl,
          struct entry *second = low->index < high->index ? high : low;
 
          uint64_t diff = high->offset_signed - low->offset_signed;
-         /* Allow overfetching by 4 bytes, which can be rejected
-          * by the callback if needed.
+         /* Allow overfetching by 28 bytes, which can be rejected by the
+          * callback if needed.  Driver callbacks will likely want to
+          * restrict this to a smaller value, say 4 bytes (or none).
           */
          unsigned max_hole =
             first->is_store ||
             (ctx->options->has_shared2_amd &&
-             get_variable_mode(first) == nir_var_mem_shared) ? 0 : 4;
+             get_variable_mode(first) == nir_var_mem_shared) ? 0 : 28;
          unsigned low_size = get_bit_size(low) / 8u * low->num_components;
          bool separate = diff > max_hole + low_size;
 

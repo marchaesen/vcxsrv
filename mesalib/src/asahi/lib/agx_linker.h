@@ -62,6 +62,9 @@ struct agx_vs_prolog_key {
    /* If !hw and the draw call is indexed, the index size */
    uint8_t sw_index_size_B;
 
+   /* Adjacency primitive to emulate */
+   enum mesa_prim adjacency;
+
    /* Robustness settings for the vertex fetch */
    struct agx_robustness robustness;
 };

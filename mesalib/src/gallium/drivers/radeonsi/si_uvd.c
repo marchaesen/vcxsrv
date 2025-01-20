@@ -28,6 +28,9 @@ struct pipe_video_buffer *si_video_buffer_create(struct pipe_context *pipe,
    int modifiers_count = 0;
    uint64_t mod = DRM_FORMAT_MOD_LINEAR;
 
+   if (tmpl->bind & (PIPE_BIND_VIDEO_DECODE_DPB | PIPE_BIND_VIDEO_ENCODE_DPB))
+      return vl_video_buffer_create_as_resource(pipe, &vidbuf, NULL, 0);
+
    /* To get tiled buffers, users need to explicitly provide a list of
     * modifiers. */
    vidbuf.bind |= PIPE_BIND_LINEAR;

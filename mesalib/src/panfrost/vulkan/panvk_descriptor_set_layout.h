@@ -13,18 +13,24 @@
 #include <stdint.h>
 
 #include "vk_descriptor_set_layout.h"
+#include "vk_util.h"
 
 #include "util/mesa-blake3.h"
 
 #include "genxml/gen_macros.h"
 
 #define PANVK_DESCRIPTOR_SIZE       32
-#define MAX_SETS                    (PAN_ARCH <= 7 ? 4 : 15)
 #define MAX_DYNAMIC_UNIFORM_BUFFERS 16
 #define MAX_DYNAMIC_STORAGE_BUFFERS 8
 #define MAX_PUSH_DESCS              32
 #define MAX_DYNAMIC_BUFFERS                                                    \
    (MAX_DYNAMIC_UNIFORM_BUFFERS + MAX_DYNAMIC_STORAGE_BUFFERS)
+
+#if PAN_ARCH <= 7
+#define MAX_SETS 4
+#else
+#define MAX_SETS 15
+#endif
 
 struct panvk_descriptor_set_binding_layout {
    VkDescriptorType type;
@@ -37,7 +43,6 @@ struct panvk_descriptor_set_binding_layout {
 struct panvk_descriptor_set_layout {
    struct vk_descriptor_set_layout vk;
    VkDescriptorSetLayoutCreateFlagBits flags;
-   blake3_hash hash;
    unsigned desc_count;
    unsigned dyn_buf_count;
 
@@ -74,8 +79,7 @@ panvk_get_desc_index(const struct panvk_descriptor_set_binding_layout *layout,
            (type == VK_DESCRIPTOR_TYPE_SAMPLER ||
             type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)));
 
-   assert(layout->type != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC &&
-          layout->type != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
+   assert(!vk_descriptor_type_is_dynamic(layout->type));
 
    uint32_t desc_idx =
       layout->desc_idx + elem * panvk_get_desc_stride(layout->type);

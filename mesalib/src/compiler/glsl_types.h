@@ -232,19 +232,6 @@ glsl_signed_base_type_of(enum glsl_base_type type)
    }
 }
 
-enum glsl_sampler_dim {
-   GLSL_SAMPLER_DIM_1D = 0,
-   GLSL_SAMPLER_DIM_2D,
-   GLSL_SAMPLER_DIM_3D,
-   GLSL_SAMPLER_DIM_CUBE,
-   GLSL_SAMPLER_DIM_RECT,
-   GLSL_SAMPLER_DIM_BUF,
-   GLSL_SAMPLER_DIM_EXTERNAL,
-   GLSL_SAMPLER_DIM_MS,
-   GLSL_SAMPLER_DIM_SUBPASS, /* for vulkan input attachments */
-   GLSL_SAMPLER_DIM_SUBPASS_MS, /* for multisampled vulkan input attachments */
-};
-
 int
 glsl_get_sampler_dim_coordinate_components(enum glsl_sampler_dim dim);
 
@@ -551,7 +538,7 @@ glsl_type_is_struct_or_ifc(const glsl_type *t)
 static inline bool
 glsl_type_is_packed(const glsl_type *t)
 {
-   return t->packed;
+   return (t->packed != 0);
 }
 
 static inline bool
@@ -629,12 +616,6 @@ glsl_type_is_float_16_32_64(const glsl_type *t)
 }
 
 static inline bool
-glsl_type_is_float_32_64(const glsl_type *t)
-{
-   return glsl_type_is_float(t) || glsl_type_is_double(t);
-}
-
-static inline bool
 glsl_type_is_int_16_32_64(const glsl_type *t)
 {
    return t->base_type == GLSL_TYPE_INT16 ||
@@ -699,14 +680,14 @@ static inline bool
 glsl_matrix_type_is_row_major(const glsl_type *t)
 {
    assert((glsl_type_is_matrix(t) && t->explicit_stride) || glsl_type_is_interface(t));
-   return t->interface_row_major;
+   return (t->interface_row_major != 0);
 }
 
 static inline bool
 glsl_sampler_type_is_shadow(const glsl_type *t)
 {
    assert(glsl_type_is_sampler(t));
-   return t->sampler_shadow;
+   return (t->sampler_shadow != 0);
 }
 
 static inline bool
@@ -715,14 +696,14 @@ glsl_sampler_type_is_array(const glsl_type *t)
    assert(glsl_type_is_sampler(t) ||
           glsl_type_is_texture(t) ||
           glsl_type_is_image(t));
-   return t->sampler_array;
+   return (t->sampler_array != 0);
 }
 
 static inline bool
 glsl_struct_type_is_packed(const glsl_type *t)
 {
    assert(glsl_type_is_struct(t));
-   return t->packed;
+   return (t->packed != 0);
 }
 
 /**
@@ -1155,7 +1136,7 @@ glsl_texture_type_to_sampler(const glsl_type *t, bool is_shadow)
 {
    assert(glsl_type_is_texture(t));
    return glsl_sampler_type((enum glsl_sampler_dim)t->sampler_dimensionality,
-                            is_shadow, t->sampler_array,
+                            is_shadow, (t->sampler_array != 0),
                             (enum glsl_base_type)t->sampled_type);
 }
 
@@ -1164,7 +1145,7 @@ glsl_sampler_type_to_texture(const glsl_type *t)
 {
    assert(glsl_type_is_sampler(t) && !glsl_type_is_bare_sampler(t));
    return glsl_texture_type((enum glsl_sampler_dim)t->sampler_dimensionality,
-                            t->sampler_array,
+                            (t->sampler_array != 0),
                             (enum glsl_base_type)t->sampled_type);
 }
 
@@ -1185,7 +1166,7 @@ unsigned glsl_type_get_image_count(const glsl_type *t);
  *
  * This is the underlying recursive type_size function for
  * count_attribute_slots() (vertex inputs and varyings) but also for
- * gallium's !PIPE_CAP_PACKED_UNIFORMS case.
+ * gallium's !pipe_caps.packed_uniforms case.
  */
 unsigned glsl_count_vec4_slots(const glsl_type *t, bool is_gl_vertex_input, bool is_bindless);
 
@@ -1193,7 +1174,7 @@ unsigned glsl_count_vec4_slots(const glsl_type *t, bool is_gl_vertex_input, bool
  * Calculate the number of vec4 slots required to hold this type.
  *
  * This is the underlying recursive type_size function for
- * gallium's PIPE_CAP_PACKED_UNIFORMS case.
+ * gallium's pipe_caps.packed_uniforms case.
  */
 unsigned glsl_count_dword_slots(const glsl_type *t, bool is_bindless);
 
@@ -1343,10 +1324,10 @@ glsl_get_explicit_interface_type(const glsl_type *t, bool supports_std430)
 {
    enum glsl_interface_packing packing = glsl_get_internal_ifc_packing(t, supports_std430);
    if (packing == GLSL_INTERFACE_PACKING_STD140) {
-      return glsl_get_explicit_std140_type(t, t->interface_row_major);
+      return glsl_get_explicit_std140_type(t, (t->interface_row_major != 0));
    } else {
       assert(packing == GLSL_INTERFACE_PACKING_STD430);
-      return glsl_get_explicit_std430_type(t, t->interface_row_major);
+      return glsl_get_explicit_std430_type(t, (t->interface_row_major != 0));
    }
 }
 
@@ -1354,6 +1335,7 @@ void glsl_size_align_handle_array_and_structs(const glsl_type *type,
                                               glsl_type_size_align_func size_align,
                                               unsigned *size, unsigned *align);
 void glsl_get_natural_size_align_bytes(const glsl_type *t, unsigned *size, unsigned *align);
+void glsl_get_word_size_align_bytes(const glsl_type *type, unsigned *size, unsigned *align);
 void glsl_get_vec4_size_align_bytes(const glsl_type *type, unsigned *size, unsigned *align);
 
 #ifdef __cplusplus

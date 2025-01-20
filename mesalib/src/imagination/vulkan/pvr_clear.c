@@ -29,8 +29,8 @@
 #include "pvr_hardcode.h"
 #include "pvr_pds.h"
 #include "pvr_private.h"
-#include "pvr_shader_factory.h"
-#include "pvr_static_shaders.h"
+#include "usc/programs/pvr_shader_factory.h"
+#include "usc/programs/pvr_static_shaders.h"
 #include "pvr_types.h"
 #include "vk_alloc.h"
 #include "vk_log.h"
@@ -50,7 +50,7 @@ static void pvr_device_setup_graphics_static_clear_ppp_base(
 
    pvr_csb_pack (&base->ppp_ctrl, TA_STATE_PPP_CTRL, ppp_ctrl) {
       ppp_ctrl.pretransform = true;
-      ppp_ctrl.cullmode = PVRX(TA_CULLMODE_NO_CULLING);
+      ppp_ctrl.cullmode = ROGUE_TA_CULLMODE_NO_CULLING;
    }
 
    /* clang-format off */
@@ -89,7 +89,7 @@ static void pvr_device_setup_graphics_static_clear_ppp_templates(
       }
 
 #define CS_HEADER(cs)    \
-   (struct PVRX(cs))     \
+   (struct ROGUE_##cs)   \
    {                     \
       pvr_cmd_header(cs) \
    }
@@ -99,21 +99,21 @@ static void pvr_device_setup_graphics_static_clear_ppp_templates(
       template->config.ispctl.bpres = true;
 
       template->config.ispa = CS_HEADER(TA_STATE_ISPA);
-      template->config.ispa.objtype = PVRX(TA_OBJTYPE_TRIANGLE);
-      template->config.ispa.passtype = PVRX(TA_PASSTYPE_TRANSLUCENT);
+      template->config.ispa.objtype = ROGUE_TA_OBJTYPE_TRIANGLE;
+      template->config.ispa.passtype = ROGUE_TA_PASSTYPE_TRANSLUCENT;
       template->config.ispa.dwritedisable = !has_depth;
-      template->config.ispa.dcmpmode = (i == 0) ? PVRX(TA_CMPMODE_NEVER)
-                                                : PVRX(TA_CMPMODE_ALWAYS);
+      template->config.ispa.dcmpmode = (i == 0) ? ROGUE_TA_CMPMODE_NEVER
+                                                : ROGUE_TA_CMPMODE_ALWAYS;
       template->config.ispa.sref =
-         has_stencil ? PVRX(TA_STATE_ISPA_SREF_SIZE_MAX) : 0;
+         has_stencil ? ROGUE_TA_STATE_ISPA_SREF_SIZE_MAX : 0;
 
       pvr_csb_pack (&template->ispb, TA_STATE_ISPB, ispb) {
-         ispb.scmpmode = PVRX(TA_CMPMODE_ALWAYS);
-         ispb.sop1 = PVRX(TA_ISPB_STENCILOP_KEEP);
-         ispb.sop2 = PVRX(TA_ISPB_STENCILOP_KEEP);
+         ispb.scmpmode = ROGUE_TA_CMPMODE_ALWAYS;
+         ispb.sop1 = ROGUE_TA_ISPB_STENCILOP_KEEP;
+         ispb.sop2 = ROGUE_TA_ISPB_STENCILOP_KEEP;
 
-         ispb.sop3 = has_stencil ? PVRX(TA_ISPB_STENCILOP_REPLACE)
-                                 : PVRX(TA_ISPB_STENCILOP_KEEP);
+         ispb.sop3 = has_stencil ? ROGUE_TA_ISPB_STENCILOP_REPLACE
+                                 : ROGUE_TA_ISPB_STENCILOP_KEEP;
 
          ispb.swmask = has_stencil ? 0xFF : 0;
       }
@@ -121,13 +121,13 @@ static void pvr_device_setup_graphics_static_clear_ppp_templates(
       template->config.pds_state = NULL;
 
       template->config.region_clip0 = CS_HEADER(TA_REGION_CLIP0);
-      template->config.region_clip0.mode = PVRX(TA_REGION_CLIP_MODE_OUTSIDE);
+      template->config.region_clip0.mode = ROGUE_TA_REGION_CLIP_MODE_OUTSIDE;
       template->config.region_clip0.left = 0;
-      template->config.region_clip0.right = PVRX(TA_REGION_CLIP_MAX);
+      template->config.region_clip0.right = ROGUE_TA_REGION_CLIP_MAX;
 
       template->config.region_clip1 = CS_HEADER(TA_REGION_CLIP1);
       template->config.region_clip1.top = 0;
-      template->config.region_clip1.bottom = PVRX(TA_REGION_CLIP_MAX);
+      template->config.region_clip1.bottom = ROGUE_TA_REGION_CLIP_MAX;
 
       template->config.output_sel = CS_HEADER(TA_OUTPUT_SEL);
       template->config.output_sel.vtxsize = 4;
@@ -238,8 +238,8 @@ static VkResult
 pvr_device_init_clear_attachment_programs(struct pvr_device *device)
 {
    const uint32_t pds_prog_alignment =
-      MAX2(PVRX(TA_STATE_PDS_TEXUNICODEBASE_ADDR_ALIGNMENT),
-           PVRX(TA_STATE_PDS_SHADERBASE_ADDR_ALIGNMENT));
+      MAX2(ROGUE_TA_STATE_PDS_TEXUNICODEBASE_ADDR_ALIGNMENT,
+           ROGUE_TA_STATE_PDS_SHADERBASE_ADDR_ALIGNMENT);
    struct pvr_device_static_clear_state *clear_state =
       &device->static_clear_state;
    const struct pvr_device_info *dev_info = &device->pdevice->dev_info;
@@ -342,7 +342,7 @@ pvr_device_init_clear_attachment_programs(struct pvr_device *device)
       pvr_pds_setup_doutu(&pixel_shader_pds_program.usc_task_control,
                           usc_upload_offset + usc_program_offsets[offset_idx],
                           clear_attachment_collection[i].info->temps_required,
-                          PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE),
+                          ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE,
                           false);
 
       pvr_pds_set_sizes_pixel_shader(&pixel_shader_pds_program);
@@ -403,7 +403,7 @@ pvr_device_init_clear_attachment_programs(struct pvr_device *device)
       pvr_pds_setup_doutu(&pixel_shader_pds_program.usc_task_control,
                           usc_upload_offset + usc_program_offsets[offset_idx],
                           clear_attachment_collection[i].info->temps_required,
-                          PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE),
+                          ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE,
                           false);
 
       pvr_pds_generate_pixel_shader_program(
@@ -666,7 +666,7 @@ void pvr_pds_clear_vertex_shader_program_init_base(
    pvr_pds_setup_doutu(&program->usc_task_control,
                        usc_shader_bo->dev_addr.addr,
                        0,
-                       PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE),
+                       ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE,
                        false);
 }
 
@@ -875,7 +875,7 @@ void pvr_pack_clear_vdm_state(const struct pvr_device_info *const dev_info,
 {
    const uint32_t vs_output_size =
       DIV_ROUND_UP(vs_output_size_in_bytes,
-                   PVRX(VDMCTRL_VDM_STATE4_VS_OUTPUT_SIZE_UNIT_SIZE));
+                   ROGUE_VDMCTRL_VDM_STATE4_VS_OUTPUT_SIZE_UNIT_SIZE);
    const bool needs_instance_count =
       !PVR_HAS_FEATURE(dev_info, gs_rta_support) && layer_count > 1;
    uint32_t *stream = state_buffer;
@@ -898,8 +898,8 @@ void pvr_pack_clear_vdm_state(const struct pvr_device_info *const dev_info,
       state0.vs_other_present = true;
       state0.cam_size = cam_size;
       state0.uvs_scratch_size_select =
-         PVRX(VDMCTRL_UVS_SCRATCH_SIZE_SELECT_FIVE);
-      state0.flatshade_control = PVRX(VDMCTRL_FLATSHADE_CONTROL_VERTEX_0);
+         ROGUE_VDMCTRL_UVS_SCRATCH_SIZE_SELECT_FIVE;
+      state0.flatshade_control = ROGUE_VDMCTRL_FLATSHADE_CONTROL_VERTEX_0;
    }
    stream += pvr_cmd_length(VDMCTRL_VDM_STATE0);
 
@@ -925,13 +925,13 @@ void pvr_pack_clear_vdm_state(const struct pvr_device_info *const dev_info,
        */
       state5.vs_usc_unified_size =
          DIV_ROUND_UP(PVR_CLEAR_VERTEX_COORDINATES * sizeof(uint32_t),
-                      PVRX(VDMCTRL_VDM_STATE5_VS_USC_UNIFIED_SIZE_UNIT_SIZE));
+                      ROGUE_VDMCTRL_VDM_STATE5_VS_USC_UNIFIED_SIZE_UNIT_SIZE);
       state5.vs_pds_temp_size =
          DIV_ROUND_UP(temps,
-                      PVRX(VDMCTRL_VDM_STATE5_VS_PDS_TEMP_SIZE_UNIT_SIZE));
+                      ROGUE_VDMCTRL_VDM_STATE5_VS_PDS_TEMP_SIZE_UNIT_SIZE);
       state5.vs_pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(program->data_size),
-                      PVRX(VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE));
+                      ROGUE_VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE);
    }
    stream += pvr_cmd_length(VDMCTRL_VDM_STATE5);
 
@@ -945,7 +945,7 @@ void pvr_pack_clear_vdm_state(const struct pvr_device_info *const dev_info,
       index_list0.index_count_present = true;
       index_list0.index_instance_count_present = needs_instance_count;
       index_list0.primitive_topology =
-         PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_STRIP);
+         ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_STRIP;
    }
    stream += pvr_cmd_length(VDMCTRL_INDEX_LIST0);
 

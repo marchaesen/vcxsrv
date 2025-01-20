@@ -74,6 +74,18 @@ bool vpe_is_32bit_packed_rgb(enum vpe_surface_pixel_format format)
     }
 }
 
+bool vpe_is_8bit(enum vpe_surface_pixel_format format) {
+    return vpe_is_rgb8(format) ||
+           vpe_is_yuv420_8(format) ||
+    vpe_is_yuv444_8(format);
+}
+
+bool vpe_is_10bit(enum vpe_surface_pixel_format format) {
+    return vpe_is_rgb10(format) ||
+           vpe_is_yuv420_10(format) ||
+    vpe_is_yuv444_10(format);
+}
+
 bool vpe_is_rgb8(enum vpe_surface_pixel_format format)
 {
     switch (format) {
@@ -178,10 +190,22 @@ bool vpe_is_yuv444_10(enum vpe_surface_pixel_format format)
         return false;
     }
 }
-
 bool vpe_is_yuv444(enum vpe_surface_pixel_format format)
 {
-    return (vpe_is_yuv444_8(format) || vpe_is_yuv444_10(format));
+    return (vpe_is_yuv444_8(format) ||
+            vpe_is_yuv444_10(format));
+}
+
+bool vpe_is_yuv8(enum vpe_surface_pixel_format format)
+{
+    return (vpe_is_yuv420_8(format) ||
+            vpe_is_yuv444_8(format));
+}
+
+bool vpe_is_yuv10(enum vpe_surface_pixel_format format)
+{
+    return (vpe_is_yuv420_10(format) ||
+            vpe_is_yuv444_10(format));
 }
 
 bool vpe_is_yuv(enum vpe_surface_pixel_format format)
@@ -531,8 +555,6 @@ enum vpe_status vpe_check_input_support(struct vpe *vpe, const struct vpe_stream
         return VPE_STATUS_COLOR_SPACE_VALUE_NOT_SUPPORTED;
     }
 
-    // TODO: Add support
-    // adjustments
     if (surface_info->cs.primaries == VPE_PRIMARIES_BT2020 &&
         surface_info->cs.encoding == VPE_PIXEL_ENCODING_RGB && use_adj) {
         // for BT2020 + RGB input with adjustments, it is expected not working.
@@ -599,6 +621,10 @@ enum vpe_status vpe_check_tone_map_support(
         }
     }
 
+    if (is_3D_lut_enabled && stream->tm_params.lut_dim != LUT_DIM_9 &&
+        stream->tm_params.lut_dim != LUT_DIM_17) { /* only support 9/17 cube */
+        status = VPE_STATUS_BAD_TONE_MAP_PARAMS;
+    }
     return status;
 }
 

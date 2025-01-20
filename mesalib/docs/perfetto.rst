@@ -43,6 +43,9 @@ The exact supported features vary per driver:
    * - Panfrost
      - ``gpu.counters.panfrost``
      -
+   * - V3D
+     - ``gpu.counters.v3d``
+     -
 
 Run
 ---

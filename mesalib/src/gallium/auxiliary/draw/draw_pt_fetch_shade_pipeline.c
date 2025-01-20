@@ -289,6 +289,7 @@ fetch_pipeline_generic(struct draw_pt_middle_end *middle,
                                vert_info,
                                prim_info,
                                &vshader->info,
+                               NULL,
                                gs_vert_info,
                                gs_prim_info);
 

@@ -84,8 +84,20 @@ st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
          continue;
 
       switch (format) {
+      case PIPE_FORMAT_NV16:
+         if (stObj->pt->format == PIPE_FORMAT_R8_G8B8_422_UNORM) {
+            key.lower_yuv |= (1 << unit);
+            break;
+         }
+         FALLTHROUGH;
       case PIPE_FORMAT_NV12:
          if (stObj->pt->format == PIPE_FORMAT_R8_G8B8_420_UNORM) {
+            key.lower_yuv |= (1 << unit);
+            break;
+         }
+         FALLTHROUGH;
+      case PIPE_FORMAT_NV15:
+         if (stObj->pt->format == PIPE_FORMAT_R10_G10B10_420_UNORM) {
             key.lower_yuv |= (1 << unit);
             break;
          }
@@ -103,6 +115,12 @@ st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
          }
          key.lower_nv21 |= (1 << unit);
          break;
+      case PIPE_FORMAT_NV20:
+         if (stObj->pt->format == PIPE_FORMAT_R10_G10B10_422_UNORM) {
+            key.lower_yuv |= (1 << unit);
+            break;
+         }
+         FALLTHROUGH;
       case PIPE_FORMAT_IYUV:
          if (stObj->pt->format == PIPE_FORMAT_R8_G8_B8_420_UNORM ||
              stObj->pt->format == PIPE_FORMAT_R8_B8_G8_420_UNORM) {
@@ -214,7 +232,7 @@ struct st_fp_variant_key
 
    struct st_external_sampler_key external;
 
-   /* bitmask of sampler units; PIPE_CAP_GL_CLAMP */
+   /* bitmask of sampler units; pipe_caps.gl_clamp */
    uint32_t gl_clamp[3];
 
    /* bitmask of shadow samplers with depth textures in them for ARB programs; */
@@ -277,7 +295,7 @@ struct st_common_variant_key
     */
    bool is_draw_shader;
 
-   /* bitmask of sampler units; PIPE_CAP_GL_CLAMP */
+   /* bitmask of sampler units; pipe_caps.gl_clamp */
    uint32_t gl_clamp[3];
 };
 
@@ -358,7 +376,7 @@ st_serialize_base_nir(struct gl_program *prog, struct nir_shader *nir);
 extern void
 st_finalize_program(struct st_context *st, struct gl_program *prog);
 
-struct pipe_shader_state *
+void *
 st_create_nir_shader(struct st_context *st, struct pipe_shader_state *state);
 
 GLboolean st_program_string_notify(struct gl_context *ctx,

@@ -4,61 +4,246 @@ use crate::core::event::*;
 use crate::core::queue::*;
 
 use mesa_rust_util::properties::Properties;
-use mesa_rust_util::ptr::CheckedPtr;
 use rusticl_opencl_gen::*;
 
-use std::cmp;
 use std::convert::TryInto;
-use std::ffi::CStr;
-use std::ffi::CString;
-use std::mem::{size_of, MaybeUninit};
+use std::ffi::{c_void, CStr};
+use std::iter::zip;
+use std::mem::MaybeUninit;
 use std::ops::BitAnd;
-use std::slice;
 use std::sync::Arc;
+use std::{cmp, mem};
 
-pub trait CLInfo<I> {
-    fn query(&self, q: I, vals: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>>;
+// TODO: use MaybeUninit::copy_from_slice once stable
+pub fn maybe_uninit_copy_from_slice<T>(this: &mut [MaybeUninit<T>], src: &[T])
+where
+    T: Copy,
+{
+    // Assert this so we stick as close as possible to MaybeUninit::copy_from_slices behavior.
+    debug_assert_eq!(this.len(), src.len());
 
-    fn get_info(
+    for (dest, val) in zip(this, src) {
+        *dest = MaybeUninit::new(*val);
+    }
+}
+
+// TODO: use MaybeUninit::slice_assume_init_ref once stable
+pub const unsafe fn slice_assume_init_ref<T>(slice: &[MaybeUninit<T>]) -> &[T] {
+    // SAFETY: casting `slice` to a `*const [T]` is safe since the caller guarantees that
+    // `slice` is initialized, and `MaybeUninit` is guaranteed to have the same layout as `T`.
+    // The pointer obtained is valid since it refers to memory owned by `slice` which is a
+    // reference and thus guaranteed to be valid for reads.
+    unsafe { &*(slice as *const [_] as *const [T]) }
+}
+
+/// Token to make sure that ClInfoValue::write is called
+pub struct CLInfoRes {
+    _private: (),
+}
+
+/// A helper class to simplify implementing so called "info" APIs in OpenCL, e.g. `clGetDeviceInfo`.
+///
+/// Those APIs generally operate on opaque memory buffers and needs to be interpreted according to
+/// the specific query being made. The generic parameter to the input and write functions should
+/// always be explicitly specified.
+pub struct CLInfoValue<'a> {
+    param_value: Option<&'a mut [MaybeUninit<u8>]>,
+    param_value_size_ret: Option<&'a mut MaybeUninit<usize>>,
+}
+
+impl CLInfoValue<'_> {
+    /// # Safety
+    /// `param_value` and `param_value_size_ret` need to be valid memory allocations or null.
+    /// If `param_value` is not null it needs to point to an allocation of at least
+    /// `param_value_size` bytes.
+    unsafe fn new(
+        param_value_size: usize,
+        param_value: *mut c_void,
+        param_value_size_ret: *mut usize,
+    ) -> CLResult<Self> {
+        let param_value_size_ret: *mut MaybeUninit<usize> = param_value_size_ret.cast();
+        let param_value = if !param_value.is_null() {
+            Some(unsafe { cl_slice::from_raw_parts_mut(param_value.cast(), param_value_size)? })
+        } else {
+            None
+        };
+
+        Ok(Self {
+            param_value: param_value,
+            param_value_size_ret: unsafe { param_value_size_ret.as_mut() },
+        })
+    }
+
+    fn finish() -> CLInfoRes {
+        CLInfoRes { _private: () }
+    }
+
+    /// Used to read from the application provided data.
+    pub fn input<T>(&self) -> CLResult<&[MaybeUninit<T>]> {
+        if let Some(param_value) = &self.param_value {
+            let count = param_value.len() / mem::size_of::<T>();
+            unsafe { cl_slice::from_raw_parts(param_value.as_ptr().cast(), count) }
+        } else {
+            Ok(&[])
+        }
+    }
+
+    /// Writes the passed in value according to the generic. It is important to pass in the same
+    /// or compatible type as stated in the OpenCL specification.
+    ///
+    /// It also verifies that if a buffer was provided by the application it's big enough to hold
+    /// `t` and returns `Err(CL_INVALID_VALUE)` otherwise.
+    ///
+    /// Type specific details:
+    ///  - Compatible with C arrays are `T` (if only one element is to be returned), `Vec<T>` or `&[T]`
+    ///    types.
+    ///  - Compatible with C strings are all basic Rust string types.
+    ///  - `bool`s are automatically converted to `cl_bool`.
+    ///  - For queries which can return no data, `Option<T>` can be used.
+    ///  - For C property arrays (0-terminated arrays of `T`) the
+    ///    [mesa_rust_util::properties::Properties] type can be used.
+    ///
+    /// All types implementing [CLProp] are supported.
+    pub fn write<T: CLProp>(self, t: T) -> CLResult<CLInfoRes> {
+        let count = t.count();
+        let bytes = count * mem::size_of::<T::Output>();
+
+        // param_value is a pointer to memory where the appropriate result being queried is
+        // returned. If param_value is NULL, it is ignored.
+        if let Some(param_value) = self.param_value {
+            // CL_INVALID_VALUE [...] if size in bytes specified by param_value_size is < size of
+            // return type as specified in the Context Attributes table and param_value is not a
+            // NULL value.
+            if param_value.len() < bytes {
+                return Err(CL_INVALID_VALUE);
+            }
+
+            // SAFETY: Casting between types wrapped with MaybeUninit is fine, because it's up to
+            //         the caller to decide if it sound to read from it. Also the count passed in is
+            //         just the type adjusted size of the `param_value` slice.
+            let out =
+                unsafe { cl_slice::from_raw_parts_mut(param_value.as_mut_ptr().cast(), count)? };
+
+            t.write_to(out);
+        }
+
+        // param_value_size_ret returns the actual size in bytes of data being queried by
+        // param_name. If param_value_size_ret is NULL, it is ignored.
+        if let Some(param_value_size_ret) = self.param_value_size_ret {
+            param_value_size_ret.write(bytes);
+        }
+
+        Ok(Self::finish())
+    }
+
+    /// Returns the size of the buffer to the application it needs to provide in order to
+    /// successfully execute the query.
+    ///
+    /// Some queries simply provide pointers where the implementation needs to write data to, e.g.
+    /// `CL_PROGRAM_BINARIES`. In that case it's meaningless to write back the same pointers. This
+    /// function can be used to skip those writes.
+    pub fn write_len_only<T: CLProp>(self, len: usize) -> CLResult<CLInfoRes> {
+        let bytes = len * mem::size_of::<T::Output>();
+
+        // param_value_size_ret returns the actual size in bytes of data being queried by
+        // param_name. If param_value_size_ret is NULL, it is ignored.
+        if let Some(param_value_size_ret) = self.param_value_size_ret {
+            param_value_size_ret.write(bytes);
+        }
+
+        Ok(Self::finish())
+    }
+
+    /// Similar to `write` with the only difference that instead of a precomputed value, this can
+    /// take an iterator instead.
+    ///
+    /// This is useful when the data to be returned isn't cheap to compute or not already available.
+    ///
+    /// When the application only asks for the size of the result, the iterator isn't advanced at
+    /// all, only its length is used.
+    pub fn write_iter<T: CLProp<Output = T> + Copy>(
+        self,
+        iter: impl ExactSizeIterator<Item = T>,
+    ) -> CLResult<CLInfoRes> {
+        let count = iter.len();
+        let bytes = count * mem::size_of::<T::Output>();
+
+        // param_value is a pointer to memory where the appropriate result being queried is
+        // returned. If param_value is NULL, it is ignored.
+        if let Some(param_value) = self.param_value {
+            // CL_INVALID_VALUE [...] if size in bytes specified by param_value_size is < size of
+            // return type as specified in the Context Attributes table and param_value is not a
+            // NULL value.
+            if param_value.len() < bytes {
+                return Err(CL_INVALID_VALUE);
+            }
+
+            let out =
+                unsafe { cl_slice::from_raw_parts_mut(param_value.as_mut_ptr().cast(), count)? };
+
+            for (item, out) in zip(iter, out.iter_mut()) {
+                *out = item;
+            }
+        }
+
+        // param_value_size_ret returns the actual size in bytes of data being queried by
+        // param_name. If param_value_size_ret is NULL, it is ignored.
+        if let Some(param_value_size_ret) = self.param_value_size_ret {
+            param_value_size_ret.write(bytes);
+        }
+
+        Ok(Self::finish())
+    }
+}
+
+/// # Safety
+///
+/// This trait helps implementing various OpenCL Query APIs, however care have to be taken that the
+/// `query` implementation implements the corresponding query according to the OpenCL specification.
+///
+/// Queries which don't have a size known at compile time are expected to be called twice:
+///  1. To ask the implementation of how much data will be returned. The application uses this
+///     to allocate enough memory to be passed into the next call.
+///  2. To actually execute the query.
+///
+/// This trait abstracts this pattern properly away to make it easier to implement it.
+///
+/// [CLInfoValue] contains helper functions to read and write data behind opaque buffers, the
+/// applications using those OpenCL queries expect the implementation to behave accordingly.
+///
+/// It is advised to explicitly specify the types of [CLInfoValue::input] and the various write
+/// helpers.
+pub unsafe trait CLInfo<I> {
+    fn query(&self, q: I, v: CLInfoValue) -> CLResult<CLInfoRes>;
+
+    /// # Safety
+    ///
+    /// Same requirements from [CLInfoValue::new] apply.
+    unsafe fn get_info(
         &self,
         param_name: I,
         param_value_size: usize,
         param_value: *mut ::std::os::raw::c_void,
         param_value_size_ret: *mut usize,
     ) -> CLResult<()> {
-        let arr = if !param_value.is_null() && param_value_size != 0 {
-            unsafe { slice::from_raw_parts(param_value.cast(), param_value_size) }
-        } else {
-            &[]
-        };
-
-        let d = self.query(param_name, arr)?;
-        let size: usize = d.len();
-
-        // CL_INVALID_VALUE [...] if size in bytes specified by param_value_size is < size of return
-        // type as specified in the Context Attributes table and param_value is not a NULL value.
-        if param_value_size < size && !param_value.is_null() {
-            return Err(CL_INVALID_VALUE);
-        }
-
-        // param_value_size_ret returns the actual size in bytes of data being queried by param_name.
-        // If param_value_size_ret is NULL, it is ignored.
-        param_value_size_ret.write_checked(size);
-
-        // param_value is a pointer to memory where the appropriate result being queried is returned.
-        // If param_value is NULL, it is ignored.
-        unsafe {
-            param_value.copy_checked(d.as_ptr().cast(), size);
-        }
-
+        // SAFETY: It's up to the caller as this function is marked unsafe.
+        let value =
+            unsafe { CLInfoValue::new(param_value_size, param_value, param_value_size_ret)? };
+        self.query(param_name, value)?;
         Ok(())
     }
 }
 
-pub trait CLInfoObj<I, O> {
-    fn query(&self, o: O, q: I) -> CLResult<Vec<MaybeUninit<u8>>>;
+/// # Safety
+///
+/// See [CLInfo]
+pub unsafe trait CLInfoObj<I, O> {
+    fn query(&self, o: O, q: I, v: CLInfoValue) -> CLResult<CLInfoRes>;
 
-    fn get_info_obj(
+    /// # Safety
+    ///
+    /// Same requirements from [CLInfoValue::new] apply.
+    unsafe fn get_info_obj(
         &self,
         obj: O,
         param_name: I,
@@ -66,39 +251,36 @@ pub trait CLInfoObj<I, O> {
         param_value: *mut ::std::os::raw::c_void,
         param_value_size_ret: *mut usize,
     ) -> CLResult<()> {
-        let d = self.query(obj, param_name)?;
-        let size: usize = d.len();
-
-        // CL_INVALID_VALUE [...] if size in bytes specified by param_value_size is < size of return
-        // type as specified in the Context Attributes table and param_value is not a NULL value.
-        if param_value_size < size && !param_value.is_null() {
-            return Err(CL_INVALID_VALUE);
-        }
-
-        // param_value_size_ret returns the actual size in bytes of data being queried by param_name.
-        // If param_value_size_ret is NULL, it is ignored.
-        param_value_size_ret.write_checked(size);
-
-        // param_value is a pointer to memory where the appropriate result being queried is returned.
-        // If param_value is NULL, it is ignored.
-        unsafe {
-            param_value.copy_checked(d.as_ptr().cast(), size);
-        }
-
+        // SAFETY: It's up to the caller as this function is marked unsafe.
+        let value =
+            unsafe { CLInfoValue::new(param_value_size, param_value, param_value_size_ret)? };
+        self.query(obj, param_name, value)?;
         Ok(())
     }
 }
 
+/// Trait to be implemented for the [CLInfo] and [CLInfoObj].
 pub trait CLProp {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>>;
+    type Output: CLProp + Copy;
+
+    /// Returns the amount of `Self::Output` returned.
+    fn count(&self) -> usize;
+
+    /// Called to write the value into the `out` buffer.
+    fn write_to(&self, out: &mut [MaybeUninit<Self::Output>]);
 }
 
 macro_rules! cl_prop_for_type {
     ($ty: ty) => {
         impl CLProp for $ty {
-            fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-                unsafe { slice::from_raw_parts(std::ptr::from_ref(self).cast(), size_of::<Self>()) }
-                    .to_vec()
+            type Output = Self;
+
+            fn count(&self) -> usize {
+                1
+            }
+
+            fn write_to(&self, out: &mut [MaybeUninit<Self>]) {
+                out[0].write(*self);
             }
         }
     };
@@ -119,116 +301,135 @@ cl_prop_for_type!(cl_image_format);
 cl_prop_for_type!(cl_name_version);
 
 impl CLProp for bool {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        cl_prop::<cl_bool>(if *self { CL_TRUE } else { CL_FALSE })
+    type Output = cl_bool;
+
+    fn count(&self) -> usize {
+        1
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<cl_bool>]) {
+        if *self { CL_TRUE } else { CL_FALSE }.write_to(out);
     }
 }
 
 impl CLProp for &str {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        to_maybeuninit_vec(
-            CString::new(*self)
-                .unwrap_or_default()
-                .into_bytes_with_nul(),
-        )
+    type Output = u8;
+
+    fn count(&self) -> usize {
+        // we need one additional byte for the nul terminator
+        self.len() + 1
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<u8>]) {
+        let bytes = self.as_bytes();
+
+        maybe_uninit_copy_from_slice(&mut out[0..bytes.len()], bytes);
+        out[bytes.len()].write(b'\0');
     }
 }
 
 impl CLProp for &CStr {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        to_maybeuninit_vec(self.to_bytes_with_nul().to_vec())
+    type Output = u8;
+
+    fn count(&self) -> usize {
+        self.to_bytes_with_nul().len()
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<u8>]) {
+        self.to_bytes_with_nul().write_to(out);
     }
 }
 
 impl<T> CLProp for Vec<T>
 where
-    T: CLProp,
+    T: CLProp + Copy,
 {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        let mut res: Vec<MaybeUninit<u8>> = Vec::new();
-        for i in self {
-            res.append(&mut i.cl_vec())
-        }
-        res
+    type Output = T;
+
+    fn count(&self) -> usize {
+        self.len()
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<T>]) {
+        self.as_slice().write_to(out);
     }
 }
 
-impl<T> CLProp for &T
+impl<T> CLProp for &[T]
 where
-    T: CLProp,
+    T: CLProp + Copy,
 {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        T::cl_vec(self)
-    }
-}
+    type Output = T;
 
-impl<T> CLProp for [T]
-where
-    T: CLProp,
-{
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        let mut res: Vec<MaybeUninit<u8>> = Vec::new();
-        for i in self {
-            res.append(&mut i.cl_vec())
-        }
-        res
+    fn count(&self) -> usize {
+        self.len()
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<T>]) {
+        maybe_uninit_copy_from_slice(&mut out[0..self.len()], self);
     }
 }
 
 impl<T, const I: usize> CLProp for [T; I]
 where
-    T: CLProp,
+    T: CLProp + Copy,
 {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        let mut res: Vec<MaybeUninit<u8>> = Vec::new();
-        for i in self {
-            res.append(&mut i.cl_vec())
-        }
-        res
-    }
-}
+    type Output = Self;
 
-impl<T> CLProp for *const T {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        (*self as usize).cl_vec()
+    fn count(&self) -> usize {
+        1
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<Self>]) {
+        out[0].write(*self);
     }
 }
 
 impl<T> CLProp for *mut T {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        (*self as usize).cl_vec()
+    type Output = Self;
+
+    fn count(&self) -> usize {
+        1
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<Self>]) {
+        out[0].write(*self);
     }
 }
 
-impl<T> CLProp for Properties<T>
+impl<T> CLProp for &Properties<T>
 where
-    T: CLProp + Default,
+    T: CLProp + Copy + Default,
 {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        let mut res: Vec<MaybeUninit<u8>> = Vec::new();
-        for (k, v) in &self.props {
-            res.append(&mut k.cl_vec());
-            res.append(&mut v.cl_vec());
-        }
-        res.append(&mut T::default().cl_vec());
-        res
+    type Output = T;
+
+    fn count(&self) -> usize {
+        self.raw_data().count()
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<T>]) {
+        self.raw_data().write_to(out);
     }
 }
 
 impl<T> CLProp for Option<T>
 where
-    T: CLProp,
+    T: CLProp + Copy,
 {
-    fn cl_vec(&self) -> Vec<MaybeUninit<u8>> {
-        self.as_ref().map_or(Vec::new(), |v| v.cl_vec())
-    }
-}
+    type Output = T::Output;
 
-pub fn cl_prop<T>(v: T) -> Vec<MaybeUninit<u8>>
-where
-    T: CLProp + Sized,
-{
-    v.cl_vec()
+    fn count(&self) -> usize {
+        match self {
+            Some(val) => val.count(),
+            None => 0,
+        }
+    }
+
+    fn write_to(&self, out: &mut [MaybeUninit<T::Output>]) {
+        if let Some(val) = self {
+            val.write_to(out);
+        };
+    }
 }
 
 const CL_DEVICE_TYPES: u32 = CL_DEVICE_TYPE_ACCELERATOR
@@ -280,11 +481,6 @@ pub fn event_list_from_cl(
     }
 
     Ok(res)
-}
-
-pub fn to_maybeuninit_vec<T: Copy>(v: Vec<T>) -> Vec<MaybeUninit<T>> {
-    // In my tests the compiler was smart enough to turn this into a noop
-    v.into_iter().map(MaybeUninit::new).collect()
 }
 
 pub fn checked_compare(a: usize, o: cmp::Ordering, b: u64) -> bool {

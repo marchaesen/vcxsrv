@@ -59,13 +59,12 @@ static void
 write_shader(struct blob *blob, const struct agx_compiled_shader *binary,
              bool is_root_gs)
 {
-   blob_write_uint32(blob, binary->b.binary_size);
+   blob_write_bytes(blob, &binary->b.info, sizeof(binary->b.info));
 
-   if (binary->b.binary_size) {
-      blob_write_bytes(blob, binary->b.binary, binary->b.binary_size);
+   if (binary->b.info.binary_size) {
+      blob_write_bytes(blob, binary->b.binary, binary->b.info.binary_size);
    }
 
-   blob_write_bytes(blob, &binary->b.info, sizeof(binary->b.info));
    blob_write_bytes(blob, &binary->uvs, sizeof(binary->uvs));
    blob_write_bytes(blob, &binary->attrib_components_read,
                     sizeof(binary->attrib_components_read));
@@ -97,27 +96,27 @@ read_shader(struct agx_screen *screen, struct blob_reader *blob,
    binary->stage = uncompiled->type;
    binary->so = uncompiled;
 
-   size_t size = blob_read_uint32(blob);
+   blob_copy_bytes(blob, &binary->b.info, sizeof(binary->b.info));
+   size_t size = binary->b.info.binary_size;
 
    if (uncompiled->type == PIPE_SHADER_VERTEX ||
        uncompiled->type == PIPE_SHADER_TESS_EVAL ||
        uncompiled->type == PIPE_SHADER_FRAGMENT) {
-      binary->b.binary_size = size;
-      binary->b.binary = malloc(binary->b.binary_size);
-      blob_copy_bytes(blob, binary->b.binary, binary->b.binary_size);
+
+      binary->b.binary = malloc(size);
+      blob_copy_bytes(blob, binary->b.binary, size);
 
       if (size) {
          binary->bo = agx_bo_create(&screen->dev, size, 0,
                                     AGX_BO_EXEC | AGX_BO_LOW_VA, "Executable");
-         memcpy(binary->bo->map, binary->b.binary, size);
+         memcpy(agx_bo_map(binary->bo), binary->b.binary, size);
       }
    } else if (size) {
       binary->bo = agx_bo_create(&screen->dev, size, 0,
                                  AGX_BO_EXEC | AGX_BO_LOW_VA, "Executable");
-      blob_copy_bytes(blob, binary->bo->map, size);
+      blob_copy_bytes(blob, agx_bo_map(binary->bo), size);
    }
 
-   blob_copy_bytes(blob, &binary->b.info, sizeof(binary->b.info));
    blob_copy_bytes(blob, &binary->uvs, sizeof(binary->uvs));
    blob_copy_bytes(blob, &binary->attrib_components_read,
                    sizeof(binary->attrib_components_read));

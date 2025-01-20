@@ -27,8 +27,6 @@
 #include "vpe_priv.h"
 #include "vpe10_command.h"
 #include "vpe10_cmd_builder.h"
-#include "vpe10_vpe_desc_writer.h"
-#include "reg_helper.h"
 
 /***** Internal helpers *****/
 static void get_np_and_subop(struct vpe_priv *vpe_priv, struct vpe_cmd_info *cmd_info,  struct plane_desc_header *header);

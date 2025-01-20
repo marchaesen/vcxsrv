@@ -73,7 +73,7 @@ fd5_screen_is_format_supported(struct pipe_screen *pscreen,
    }
 
    if (usage & PIPE_BIND_SHADER_IMAGE) {
-      if (sample_count > 1)
+      if (sample_count > 0)
          return false;
    }
 

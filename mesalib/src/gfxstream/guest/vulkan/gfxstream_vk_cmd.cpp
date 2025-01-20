@@ -16,7 +16,7 @@ VkResult gfxstream_vk_CreateCommandPool(VkDevice device, const VkCommandPoolCrea
     VkResult result = (VkResult)0;
     struct gfxstream_vk_command_pool* gfxstream_pCommandPool =
         (gfxstream_vk_command_pool*)vk_zalloc2(&gfxstream_device->vk.alloc, pAllocator,
-                                               sizeof(gfxstream_vk_command_pool), 8,
+                                               sizeof(gfxstream_vk_command_pool), GFXSTREAM_DEFAULT_ALIGN,
                                                VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     result = gfxstream_pCommandPool ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
     if (VK_SUCCESS == result) {
@@ -86,7 +86,7 @@ VkResult vk_command_buffer_createOp(struct vk_command_pool* commandPool, VkComma
     struct gfxstream_vk_command_buffer* gfxstream_commandBuffer =
         (struct gfxstream_vk_command_buffer*)vk_zalloc(&commandPool->alloc,
                                                        sizeof(struct gfxstream_vk_command_buffer),
-                                                       8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+                                                       GFXSTREAM_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     if (gfxstream_commandBuffer) {
         result =
             vk_command_buffer_init(commandPool, &gfxstream_commandBuffer->vk,

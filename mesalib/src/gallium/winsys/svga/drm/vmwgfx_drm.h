@@ -78,6 +78,9 @@ extern "C" {
  *
  * DRM_VMW_PARAM_DEVICE_ID
  * PCI ID of the underlying SVGA device.
+ *
+ * DRM_VMW_PARAM_USER_SRF
+ * Userspace managed surface support is enabled.
  */
 
 #define DRM_VMW_PARAM_NUM_STREAMS      0
@@ -98,6 +101,7 @@ extern "C" {
 #define DRM_VMW_PARAM_SM5              15
 #define DRM_VMW_PARAM_GL43             16
 #define DRM_VMW_PARAM_DEVICE_ID        17
+#define DRM_VMW_PARAM_USER_SRF         18
 
 /**
  * enum drm_vmw_handle_type - handle type for ref ioctls

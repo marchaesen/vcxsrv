@@ -761,7 +761,9 @@ r600_lower_and_optimize_nir(nir_shader *sh,
               nir_lower_io,
               io_modes,
               r600_glsl_type_size,
-              nir_lower_io_lower_64bit_to_32);
+              (nir_lower_io_options)
+              (nir_lower_io_lower_64bit_to_32 |
+               nir_lower_io_use_interpolated_input_intrinsics));
 
    if (sh->info.stage == MESA_SHADER_FRAGMENT)
       NIR_PASS_V(sh, r600_lower_fs_pos_input);

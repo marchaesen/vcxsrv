@@ -72,6 +72,10 @@ void vpe10_get_bufs_req(struct vpe_priv *vpe_priv, struct vpe_bufs_req *req);
 
 enum vpe_status vpe10_check_mirror_rotation_support(const struct vpe_stream *stream);
 
+enum vpe_status vpe10_update_blnd_gamma(struct vpe_priv *vpe_priv,
+    const struct vpe_build_param *param, const struct vpe_stream *stream,
+    struct transfer_func *blnd_tf);
+
 struct opp *vpe10_opp_create(struct vpe_priv *vpe_priv, int inst);
 
 struct mpc *vpe10_mpc_create(struct vpe_priv *vpe_priv, int inst);

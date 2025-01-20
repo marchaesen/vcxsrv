@@ -28,7 +28,6 @@
 
 #include <time.h>
 #include "util/list.h"
-#include "panfrost-job.h"
 
 #include "pan_pool.h"
 
@@ -136,7 +135,7 @@ void panfrost_bo_reference(struct panfrost_bo *bo);
 void panfrost_bo_unreference(struct panfrost_bo *bo);
 struct panfrost_bo *panfrost_bo_create(struct panfrost_device *dev, size_t size,
                                        uint32_t flags, const char *label);
-void panfrost_bo_mmap(struct panfrost_bo *bo);
+int panfrost_bo_mmap(struct panfrost_bo *bo);
 struct panfrost_bo *panfrost_bo_import(struct panfrost_device *dev, int fd);
 int panfrost_bo_export(struct panfrost_bo *bo);
 void panfrost_bo_cache_evict_all(struct panfrost_device *dev);

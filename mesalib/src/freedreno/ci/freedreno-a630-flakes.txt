@@ -129,10 +129,6 @@ spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
 # Flaky since around 2021-03-22.  First appeared on an innocent mingw branch.
 spec@arb_depth_texture@fbo-clear-formats
 
-# Flaky since 2021-12-02, during piglit uprev with commit
-# 0ef03f824d1833a853d1a20b4be121089bb9246c
-spec@arb_draw_indirect@arb_draw_indirect-transform-feedback
-
 # Flaky since around 2021-05-21, the day after a piglit uprev reshuffled us.
 # *** gpu fault: ttbr0=000000001c941000 iova=000000010066a000 dir=READ type=TRANSLATION source=TP|VFD (0,0,0,1)
 spec@arb_map_buffer_range@map_invalidate_buffer_bit offset=0
@@ -172,7 +168,6 @@ spec@!opengl 1.1@masked-clear
 spec@!opengl 1.1@texsubimage
 spec@!opengl 3.0@gl30basic
 spec@arb_texture_multisample@texelfetch fs sampler2dms 4 1x71-501x71
-spec@egl 1.4@eglcreatepbuffersurface and then glclear
 spec@egl_nok_texture_from_pixmap@basic
 spec@ext_framebuffer_blit@fbo-sys-blit
 spec@ext_framebuffer_blit@fbo-sys-sub-blit
@@ -208,7 +203,6 @@ KHR-GL46.shader_image_load_store.basic-allTargets-atomic
 gmem-unaligned-dEQP-VK.renderpass.suballocation.load_store_op_none.depthstencil_d32_sfloat_s8_uint_load_op_depth_load_stencil_none_store_op_depth_store_stencil_none_stencil_write_off
 
 KHR-GL46.buffer_storage.map_persistent_dispatch
-KHR-GL46.buffer_storage.map_persistent_flush
 KHR-GL46.compute_shader.atomic-case1
 KHR-GL46.compute_shader.pipeline-gen-draw-commands
 KHR-GL46.compute_shader.resource-uniform
@@ -335,9 +329,9 @@ spec@glsl-4.20@execution@conversion@frag-conversion-implicit-mat4-dmat4-zero-sig
 # Random flakes, unkown when they started appearing
 dEQP-EGL.functional.color_clears.multi_thread.gles2.rgb888_pbuffer
 wayland-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer
+dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer
 
 # glcts update
-wayland-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer
 KHR-GL46.draw_indirect.basic-drawElements-xfbPaused
 KHR-GL46.draw_indirect.basic-drawArrays-xfbPaused
 KHR-GL46.texture_cube_map_array.sampling
@@ -346,3 +340,35 @@ KHR-GL46.gpu_shader_fp64.builtin.smoothstep_against_scalar_dvec2
 KHR-GL46.packed_pixels.varied_rectangle.rgba8i
 KHR-GL46.texture_view.view_classes
 KHR-GL46.draw_indirect.basic-mode-drawArrays-lines_adjacency
+
+# first noticed 2024-10-22
+KHR-GL46.sample_variables.mask.rgba32f.samples_4.mask_5
+
+# Appeared after decreasing the fraction
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.bind2.sampler_mutable.tess_ctrl.descriptor_array.2d_array_base_slice
+dEQP-VK.pipeline.monolithic.sampler.separate_stencil_usage.view_type.cube_array.format.d32_sfloat_s8_uint.mipmap.nearest.lod.select_bias_2_1
+dEQP-VK.pipeline.pipeline_library.interface_matching.decoration_mismatch.out_none_in_flat_member_of_array_of_structures_vert_out_geom_in_frag
+dEQP-VK.spirv_assembly.instruction.graphics.image_sampler.imagesample.sampled_image.pass_image_and_sampler_to_function.depth_property.non_depth.shader_tesse
+dEQP-VK.spirv_assembly.instruction.graphics.image_sampler.imagefetch.combined_image_sampler_separate_variables.optypeimage_mismatch.rgba32ui.depth_property.depth.shader_geom
+dEQP-VK.synchronization2.op.single_queue.barrier.write_ssbo_tess_control_read_copy_buffer_to_image.buffer_16384
+dEQP-VK.synchronization2.op.single_queue.timeline_semaphore.write_copy_image_read_copy_image_to_buffer.image_128x128_r8_unorm
+dEQP-VK.spirv_assembly.type.vec2.u32.ugreaterthanequal_vert
+dEQP-VK.tessellation.invariance.inner_triangle_set.quads_fractional_even_spacing
+dEQP-VK.tessellation.invariance.outer_edge_division.triangles_equal_spacing
+asan-dEQP-VK.graphicsfuzz.cov-function-infinite-loop-always-return
+gmem-dEQP-VK.spirv_assembly.instruction.graphics.float16.arithmetic_4.faceforward_tesse
+gmem-dEQP-VK.synchronization2.op.single_queue.binary_semaphore.write_ssbo_tess_control_read_ubo_compute_indirect.buffer_16384_specialized_access_flag
+
+# With linux kernel 6.13-rc4 uprev
+dEQP-EGL.functional.sharing.gles2.multithread.simple_egl_server_sync.images.texture_source.texsubimage2d_render
+KHR-GL46.compute_shader.build-separable
+KHR-GL46.direct_state_access.renderbuffers_storage_multisample
+KHR-GL46.gpu_shader5.texture_gather_offset_depth_repeat
+KHR-GL46.shader_multisample_interpolation.render.interpolate_at_centroid_check.rgba32f.samples_4
+KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_MaxPatchVertices_Position_PointSize_primitive_mode_quads_vertex_ordering__vertex_spacing__point_mode_disabled
+KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_MaxPatchVertices_Position_PointSize_primitive_mode_quads_vertex_ordering__vertex_spacing_fractional_even_spacing_point_mode_enabled
+gmem-dEQP-VK.spirv_assembly.type.vec4.u32.bit_field_insert_offset64_count32_geom
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat3-dmat3
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat4x2-dmat4x2
+wayland-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_even_clear
+wayland-dEQP-EGL.functional.image.modify.tex_rgb5_a1_renderbuffer_clear_color

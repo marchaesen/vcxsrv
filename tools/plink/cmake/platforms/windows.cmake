@@ -53,6 +53,7 @@ define_negation(NO_HTMLHELP HAVE_HTMLHELP_H)
 check_include_files("winsock2.h;afunix.h" HAVE_AFUNIX_H)
 
 check_symbol_exists(strtoumax "inttypes.h" HAVE_STRTOUMAX)
+check_symbol_exists(wmemchr "wchar.h" HAVE_WMEMCHR)
 check_symbol_exists(AddDllDirectory "windows.h" HAVE_ADDDLLDIRECTORY)
 check_symbol_exists(SetDefaultDllDirectories "windows.h"
   HAVE_SETDEFAULTDLLDIRECTORIES)
@@ -101,14 +102,12 @@ endif()
 
 if(WINELIB)
   enable_language(RC)
-  set(LFLAG_MANIFEST_NO "")
 elseif(CMAKE_C_COMPILER_ID MATCHES "MSVC" OR
        CMAKE_C_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
   set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} /nologo /C1252")
-  set(LFLAG_MANIFEST_NO "/manifest:no")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /manifest:no")
 else()
   set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} -c1252")
-  set(LFLAG_MANIFEST_NO "")
 endif()
 
 if(STRICT)

@@ -239,6 +239,7 @@ enum
    DBG_TMZ,
    DBG_SQTT,
    DBG_USE_ACO,
+   DBG_USE_LLVM,
 
    DBG_COUNT
 };
@@ -382,6 +383,7 @@ struct si_texture {
    bool can_sample_z : 1;
    bool can_sample_s : 1;
    bool need_flush_after_depth_decompression: 1;
+   bool force_disable_hiz_his : 1;
 
    /* We need to track DCC dirtiness, because st/dri usually calls
     * flush_resource twice per frame (not a bug) and we don't wanna
@@ -531,6 +533,10 @@ struct si_screen {
    bool always_allow_dcc_stores;
    bool use_aco;
 
+   /* Force a single shader to use ACO, debug usage. */
+   bool force_shader_use_aco;
+   blake3_hash use_aco_shader_blake;
+
    struct {
 #define OPT_BOOL(name, dflt, description) bool name : 1;
 #define OPT_INT(name, dflt, description) int name;
@@ -546,8 +552,6 @@ struct si_screen {
 
    /* Texture filter settings. */
    int force_aniso; /* -1 = disabled */
-
-   unsigned max_texel_buffer_elements;
 
    /* Auxiliary context. Used to initialize resources and upload shaders. */
    union {
@@ -671,9 +675,6 @@ struct si_compute {
 
    unsigned ir_type;
    unsigned input_size;
-
-   int max_global_buffers;
-   struct pipe_resource **global_buffers;
 };
 
 struct si_sampler_view {
@@ -752,7 +753,7 @@ struct si_framebuffer {
 
 enum si_quant_mode
 {
-   /* This is the list we want to support. */
+   /* The small prim precision computation depends on the enum values to be like this. */
    SI_QUANT_MODE_16_8_FIXED_POINT_1_256TH,
    SI_QUANT_MODE_14_10_FIXED_POINT_1_1024TH,
    SI_QUANT_MODE_12_12_FIXED_POINT_1_4096TH,
@@ -778,12 +779,14 @@ struct si_streamout_target {
    struct si_resource *buf_filled_size;
    unsigned buf_filled_size_offset;
    unsigned buf_filled_size_draw_count_offset;
-   bool buf_filled_size_valid;
+   bool buf_filled_size_valid; /* only for legacy streamout */
 
-   unsigned stride_in_dw;
+   unsigned stride;
 };
 
 struct si_streamout {
+   enum mesa_prim output_prim;
+   uint8_t num_verts_per_prim;
    bool begin_emitted;
 
    unsigned enabled_mask;
@@ -1068,7 +1071,6 @@ struct si_context {
          struct si_shader_ctx_state gs;
          struct si_shader_ctx_state ps;
       } shader;
-      /* indexed access using pipe_shader_type (not by MESA_SHADER_*) */
       struct si_shader_ctx_state shaders[SI_NUM_GRAPHICS_SHADERS];
    };
    struct si_cs_shader_state cs_shader_state;
@@ -1108,6 +1110,10 @@ struct si_context {
    struct si_images images[SI_NUM_SHADERS];
    bool bo_list_add_all_resident_resources;
    bool bo_list_add_all_compute_resources;
+
+   /* tracked buffers for OpenCL */
+   int max_global_buffers;
+   struct pipe_resource **global_buffers;
 
    /* other shader resources */
    struct pipe_constant_buffer null_const_buf; /* used for set_constant_buffer(NULL) on GFX7 */
@@ -1595,6 +1601,7 @@ struct pipe_fence_handle *si_create_fence(struct pipe_context *ctx,
 
 /* si_get.c */
 void si_init_screen_get_functions(struct si_screen *sscreen);
+void si_init_screen_caps(struct si_screen *sscreen);
 
 bool si_sdma_copy_image(struct si_context *ctx, struct si_texture *dst, struct si_texture *src);
 
@@ -2019,19 +2026,9 @@ static inline bool util_prim_is_lines(unsigned prim)
    return ((1 << prim) & UTIL_ALL_PRIM_LINE_MODES) != 0;
 }
 
-static inline bool util_prim_is_points_or_lines(unsigned prim)
-{
-   return ((1 << prim) & (UTIL_ALL_PRIM_LINE_MODES | (1 << MESA_PRIM_POINTS))) != 0;
-}
-
 static inline bool util_rast_prim_is_triangles(unsigned prim)
 {
    return ((1 << prim) & UTIL_ALL_PRIM_TRIANGLE_MODES) != 0;
-}
-
-static inline bool util_rast_prim_is_lines_or_triangles(unsigned prim)
-{
-   return ((1 << prim) & (UTIL_ALL_PRIM_LINE_MODES | UTIL_ALL_PRIM_TRIANGLE_MODES)) != 0;
 }
 
 static inline void si_need_gfx_cs_space(struct si_context *ctx, unsigned num_draws)
@@ -2173,6 +2170,20 @@ si_update_ngg_sgpr_state_out_prim(struct si_context *sctx, struct si_shader *hw_
 {
    if (ngg && hw_vs && hw_vs->uses_gs_state_outprim)
       SET_FIELD(sctx->current_gs_state, GS_STATE_OUTPRIM, sctx->gs_out_prim);
+}
+
+static inline void
+si_update_ngg_cull_face_state(struct si_context *sctx)
+{
+   struct si_state_rasterizer *rs = sctx->queued.named.rasterizer;
+
+   if (sctx->viewport0_y_inverted) {
+      SET_FIELD(sctx->current_gs_state, GS_STATE_CULL_FACE_FRONT, rs->ngg_cull_back);
+      SET_FIELD(sctx->current_gs_state, GS_STATE_CULL_FACE_BACK, rs->ngg_cull_front);
+   } else {
+      SET_FIELD(sctx->current_gs_state, GS_STATE_CULL_FACE_FRONT, rs->ngg_cull_front);
+      SET_FIELD(sctx->current_gs_state, GS_STATE_CULL_FACE_BACK, rs->ngg_cull_back);
+   }
 }
 
 /* Set the primitive type seen by the rasterizer. GS and tessellation affect this.

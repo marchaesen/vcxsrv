@@ -47,6 +47,18 @@ should_recycle_command_buffers(struct vk_device *device)
    return true;
 }
 
+static void
+destroy_free_command_buffers(struct vk_command_pool *pool)
+{
+   for (uint32_t i = 0; i < ARRAY_SIZE(pool->free_command_buffers); i++) {
+      list_for_each_entry_safe(struct vk_command_buffer, cmd_buffer,
+                               &pool->free_command_buffers[i], pool_link) {
+         cmd_buffer->ops->destroy(cmd_buffer);
+      }
+      assert(list_is_empty(&pool->free_command_buffers[i]));
+   }
+}
+
 VkResult MUST_CHECK
 vk_command_pool_init(struct vk_device *device,
                      struct vk_command_pool *pool,
@@ -63,7 +75,9 @@ vk_command_pool_init(struct vk_device *device,
    pool->command_buffer_ops = device->command_buffer_ops;
    pool->recycle_command_buffers = should_recycle_command_buffers(device);
    list_inithead(&pool->command_buffers);
-   list_inithead(&pool->free_command_buffers);
+
+   for (uint32_t i = 0; i < ARRAY_SIZE(pool->free_command_buffers); i++)
+      list_inithead(&pool->free_command_buffers[i]);
 
    return VK_SUCCESS;
 }
@@ -77,11 +91,7 @@ vk_command_pool_finish(struct vk_command_pool *pool)
    }
    assert(list_is_empty(&pool->command_buffers));
 
-   list_for_each_entry_safe(struct vk_command_buffer, cmd_buffer,
-                            &pool->free_command_buffers, pool_link) {
-      cmd_buffer->ops->destroy(cmd_buffer);
-   }
-   assert(list_is_empty(&pool->free_command_buffers));
+   destroy_free_command_buffers(pool);
 
    vk_object_base_finish(&pool->base);
 }
@@ -167,20 +177,21 @@ vk_command_buffer_recycle_or_destroy(struct vk_command_pool *pool,
       vk_command_buffer_recycle(cmd_buffer);
 
       list_del(&cmd_buffer->pool_link);
-      list_add(&cmd_buffer->pool_link, &pool->free_command_buffers);
+      list_add(&cmd_buffer->pool_link, &pool->free_command_buffers[cmd_buffer->level]);
    } else {
       cmd_buffer->ops->destroy(cmd_buffer);
    }
 }
 
 static struct vk_command_buffer *
-vk_command_pool_find_free(struct vk_command_pool *pool)
+vk_command_pool_find_free(struct vk_command_pool *pool,
+                          VkCommandBufferLevel level)
 {
-   if (list_is_empty(&pool->free_command_buffers))
+   if (list_is_empty(&pool->free_command_buffers[level]))
       return NULL;
 
    struct vk_command_buffer *cmd_buffer =
-      list_first_entry(&pool->free_command_buffers,
+      list_first_entry(&pool->free_command_buffers[level],
                        struct vk_command_buffer, pool_link);
 
    list_del(&cmd_buffer->pool_link);
@@ -201,7 +212,8 @@ vk_common_AllocateCommandBuffers(VkDevice device,
    assert(device == vk_device_to_handle(pool->base.device));
 
    for (i = 0; i < pAllocateInfo->commandBufferCount; i++) {
-      struct vk_command_buffer *cmd_buffer = vk_command_pool_find_free(pool);
+      struct vk_command_buffer *cmd_buffer =
+         vk_command_pool_find_free(pool, pAllocateInfo->level);
       if (cmd_buffer == NULL) {
          result = pool->command_buffer_ops->create(pool, pAllocateInfo->level, &cmd_buffer);
          if (unlikely(result != VK_SUCCESS))
@@ -248,11 +260,7 @@ void
 vk_command_pool_trim(struct vk_command_pool *pool,
                      VkCommandPoolTrimFlags flags)
 {
-   list_for_each_entry_safe(struct vk_command_buffer, cmd_buffer,
-                            &pool->free_command_buffers, pool_link) {
-      cmd_buffer->ops->destroy(cmd_buffer);
-   }
-   assert(list_is_empty(&pool->free_command_buffers));
+   destroy_free_command_buffers(pool);
 }
 
 VKAPI_ATTR void VKAPI_CALL

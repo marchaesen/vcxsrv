@@ -363,25 +363,25 @@ xkb_symbols "aplx" {
 // APL language support for the Dyalog keyboard.
 // Dyalog Ltd sell this keyboard with APL engravings. The current model is
 // engraved on a Cherry G80. Base languages for US, UK and DK are availible.
+// See the current keymap: https://dfns.dyalog.com/n_keyboards.htm
 
-// Geoff Streeter, Dyalog Ltd. 2007-09-03
-// geoff@dyalog.com
-// extended for APL special actions 2008-09-09
-// add variant 2010-11-26
-// made BKSL and LTGT keys the same to remove a compatibility issue with the UK physical keyboard
-// add key (quad equals) 2013-03-12
-// add currency 2014-05-23
-// add parallel 2014-05-23
-// add circle jot 2014-05-23
-// add t diaeresis 2014-05-23
-// add del diaerisis 2014-05-23
-// add quad query 2014-05-23
-// add dagger 2014-05-23
-// correct spelling of key name LTGT→LSGT 2016-05-26
-// add enclose underbar 2017-02-27
-// add alpha underbar 2019-03-22
-// add omega underbar 2019-03-22
-// change all "partial hidden" to "hidden partial" - seems to be a compiler change
+// 2007-09-03 Geoff Streeter, Dyalog Ltd. <geoff@dyalog.com>
+// 2008-09-09 extended for APL special actions
+// 2010-11-26 add variant
+// 2013-03-12 made BKSL and LTGT keys the same to remove a compatibility issue with the UK physical keyboard
+// 2013-03-12 add key (quad equals)
+// 2014-05-23 add currency
+// 2014-05-23 add parallel
+// 2014-05-23 add circle jot
+// 2014-05-23 add t diaeresis
+// 2014-05-23 add del diaerisis
+// 2014-05-23 add quad query
+// 2014-05-23 add dagger
+// 2016-05-26 correct spelling of key name LTGT→LSGT
+// 2017-02-27 add enclose underbar
+// 2019-03-22 add alpha underbar
+// 2019-03-22 add omega underbar
+// 2020-06-22 change all "partial hidden" to "hidden partial" - seems to be a compiler change
 
 // The intention is that this keyboard layout overlays a base keyboard that provides
 // the alphabet and similar. If this keyboard is placed as the 2nd layout then it can
@@ -397,7 +397,7 @@ xkb_symbols "dyalog_base" {
 // ┃       ┃ ⍰   │ ⍹   │ ⍷   │ ⌾   │ ⍨   │     │     │ ⍸   │ ⍥   │ ⍣   │ ⍞   │ ⍬   ┃       ┃
 // ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │ →   ┃       ┃
 // ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
-// ┃        ┃ ⍶   │     │     │     │ ⍢   │     │ ⍤   │ ⌸   │ ⌷   │ ≡   │ ≢   │ ⊣   ┃      ┃
+// ┃        ┃ ⍶   │     │     │ ⍛   │ ⍢   │     │ ⍤   │ ⌸   │ ⌷   │ ≡   │ ≢   │ ⊣   ┃      ┃
 // ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │ ⍎   │ ⍕   │ ⊢   ┃      ┃
 // ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
 // ┃       ┃  ⊣  │ ⊆   │     │     │     │ ⍭   │ ⍡   │ ∥   │ ⍪   │ ⍙   │ ⍠   ┃             ┃
@@ -421,7 +421,7 @@ xkb_symbols "dyalog_base" {
 	key <AC01> { [ U237a,		U2376	] };	// alpha, alpha underbar
 	key <AC02> { [ U2308			] };	// left ceiling
 	key <AC03> { [ U230a			] };	// left floor
-	key <AC04> { [ underscore		] };	// low line
+	key <AC04> { [ underscore,	U235b	] };	// low line, jot underbar
 	key <AC05> { [ U2207,		U2362	] };	// nabla, del diaerisis
 	key <AC06> { [ U2206			] };	// increment
 	key <AC07> { [ U2218,		U2364	] };	// ring operator, jot diaeresis
@@ -646,7 +646,7 @@ xkb_symbols "level3" {
  key <AC01> { [ NoSymbol,	NoSymbol,	U237a,		U2376	] };	// alpha, alpha underbar
  key <AC02> { [ NoSymbol,	NoSymbol,	U2308			] };	// left ceiling
  key <AC03> { [ NoSymbol,	NoSymbol,	U230a			] };	// left floor
- key <AC04> { [ NoSymbol,	NoSymbol,	underscore		] };	// low line
+ key <AC04> { [ NoSymbol,	NoSymbol,	underscore,	U235b	] };	// low line, jot underbar
  key <AC05> { [ NoSymbol,	NoSymbol,	U2207,		U2362	] };	// nabla, del diaerisis
  key <AC06> { [ NoSymbol,	NoSymbol,	U2206			] };	// increment
  key <AC07> { [ NoSymbol,	NoSymbol,	U2218,		U2364	] };	// ring operator, jot diaeresis

@@ -1,6 +1,6 @@
 [[deqp]]
-deqp = "/deqp/modules/gles2/deqp-gles2"
-caselists = ["/deqp/mustpass/gles2-main.txt"]
+deqp = "/deqp-gles/modules/gles2/deqp-gles2"
+caselists = ["/deqp-gles/mustpass/gles2-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -12,8 +12,8 @@ version_check = "GL ES 3.2.*git"
 renderer_check = "virgl"
 
 [[deqp]]
-deqp = "/deqp/modules/gles3/deqp-gles3"
-caselists = ["/deqp/mustpass/gles3-main.txt"]
+deqp = "/deqp-gles/modules/gles3/deqp-gles3"
+caselists = ["/deqp-gles/mustpass/gles3-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -24,8 +24,8 @@ deqp_args = [
 timeout = 180.0
 
 [[deqp]]
-deqp = "/deqp/modules/gles31/deqp-gles31"
-caselists = ["/deqp/mustpass/gles31-main.txt"]
+deqp = "/deqp-gles/modules/gles31/deqp-gles31"
+caselists = ["/deqp-gles/mustpass/gles31-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -36,10 +36,10 @@ deqp_args = [
 timeout = 180.0
 
 [[deqp]]
-deqp = "/deqp/external/openglcts/modules/glcts"
+deqp = "/deqp-gl/external/openglcts/modules/glcts"
 caselists = [
-    "/deqp/mustpass/gl43-main.txt",
-    "/deqp/mustpass/gl43-khr-single.txt",
+    "/deqp-gl/mustpass/gl43-main.txt",
+    "/deqp-gl/mustpass/gl43-khr-single.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256",

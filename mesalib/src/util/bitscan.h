@@ -367,7 +367,7 @@ util_bitcount64(uint64_t n)
 #ifdef HAVE___BUILTIN_POPCOUNTLL
    return __builtin_popcountll(n);
 #else
-   return util_bitcount(n) + util_bitcount(n >> 32);
+   return util_bitcount((unsigned)n) + util_bitcount((unsigned)(n >> 32));
 #endif
 }
 

@@ -3,6 +3,8 @@
 
 set -ex
 
+uncollapsed_section_start kdl "Building kdl"
+
 KDL_REVISION="cbbe5fd54505fd03ee34f35bfd16794f0c30074f"
 KDL_CHECKOUT_DIR="/tmp/ci-kdl.git"
 
@@ -26,3 +28,5 @@ popd
 )
 
 rm -rf ${KDL_CHECKOUT_DIR}
+
+section_end kdl

@@ -526,7 +526,7 @@ spec@!opengl 1.1@depthstencil-default_fb-readpixels-float-and-ushort samples=2,F
 spec@!opengl 1.1@depthstencil-default_fb-readpixels-float-and-ushort samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-readpixels-float-and-ushort samples=6,Fail
 spec@!opengl 1.1@draw-pixel-with-texture,Fail
-spec@!opengl 1.1@getteximage-formats,Crash
+spec@!opengl 1.1@getteximage-formats,Fail
 spec@!opengl 1.1@getteximage-simple,Fail
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_line_loop,Fail
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_polygon,Fail
@@ -545,9 +545,8 @@ spec@!opengl 1.1@linestipple@Line loop,Fail
 spec@!opengl 1.1@linestipple@Line strip,Fail
 spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
 spec@!opengl 1.1@read-front samples=6,Fail
-spec@!opengl 1.1@sized-texture-format-channels,Crash
 spec@!opengl 1.1@texgen,Fail
-spec@!opengl 1.1@texsubimage,Crash
+spec@!opengl 1.1@texsubimage,Fail
 spec@!opengl 1.1@texwrap formats bordercolor,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB12- swizzled- border color only,Fail
@@ -589,7 +588,6 @@ spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
 
 spec@arb_clear_texture@arb_clear_texture-float,Fail
-spec@arb_clear_texture@arb_clear_texture-supported-formats,Fail
 
 spec@arb_color_buffer_float@gl_rgba16f-render-sanity,Fail
 spec@arb_color_buffer_float@gl_rgba16f-render-sanity-fog,Fail
@@ -615,10 +613,6 @@ spec@arb_framebuffer_object@fbo-luminance-alpha,Fail
 spec@arb_framebuffer_object@fbo-mipmap-copypix,Fail
 spec@arb_framebuffer_object@same-attachment-tex2d-depth_stencil,Fail
 
-spec@arb_internalformat_query2@all internalformat_<x>_size pname checks,Crash
-spec@arb_internalformat_query2@all internalformat_<x>_type pname checks,Crash
-spec@arb_internalformat_query2@max dimensions related pname checks,Crash
-
 spec@arb_occlusion_query@occlusion_query_meta_fragments,Fail
 spec@arb_occlusion_query@occlusion_query_meta_no_fragments,Fail
 spec@arb_occlusion_query@occlusion_query_meta_save,Fail
@@ -627,7 +621,6 @@ spec@arb_occlusion_query@occlusion_query_order,Fail
 spec@arb_pixel_buffer_object@cubemap npot pbo,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small,Fail
 spec@arb_pixel_buffer_object@pbo-getteximage,Fail
-spec@arb_pixel_buffer_object@texsubimage pbo,Crash
 
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 
@@ -754,30 +747,14 @@ spec@ext_framebuffer_object@fbo-alphatest-formats@GL_RGBA12,Fail
 spec@ext_framebuffer_object@fbo-alphatest-formats@GL_RGBA16,Fail
 spec@ext_framebuffer_object@fbo-depth-sample-compare,Fail
 spec@ext_framebuffer_object@fbo-fragcoord2,Fail
-spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Crash
-spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Crash
+spec@ext_framebuffer_object@getteximage-formats init-by-clear-and-render,Fail
+spec@ext_framebuffer_object@getteximage-formats init-by-rendering,Fail
 
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
 
 spec@ext_occlusion_query_boolean@any-samples,Fail
 
 spec@ext_packed_depth_stencil@depth_stencil texture,Fail
-
-spec@ext_texture_compression_latc@fbo-generatemipmap-formats,Crash
-spec@ext_texture_compression_latc@fbo-generatemipmap-formats-signed,Crash
-spec@ext_texture_compression_latc@texwrap formats,Crash
-spec@ext_texture_compression_latc@texwrap formats bordercolor,Crash
-spec@ext_texture_compression_latc@texwrap formats bordercolor-swizzled,Crash
-
-spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_red_rgtc1_ext,Crash
-spec@ext_texture_compression_rgtc@compressedteximage gl_compressed_signed_red_rgtc1_ext,Crash
-spec@ext_texture_compression_rgtc@fbo-generatemipmap-formats,Crash
-spec@ext_texture_compression_rgtc@fbo-generatemipmap-formats-signed,Crash
-spec@ext_texture_compression_rgtc@rgtc-teximage-01,Crash
-spec@ext_texture_compression_rgtc@rgtc-teximage-02,Fail
-spec@ext_texture_compression_rgtc@texwrap formats,Crash
-spec@ext_texture_compression_rgtc@texwrap formats bordercolor,Crash
-spec@ext_texture_compression_rgtc@texwrap formats bordercolor-swizzled,Crash
 
 spec@ext_texture_compression_s3tc@s3tc-errors,Fail
 spec@ext_texture_compression_s3tc@s3tc-errors_gles2,Fail
@@ -1075,17 +1052,6 @@ spec@glsl-1.10@execution@temp-array-indexing@glsl-vs-vec4-indexing-temp-src-in-l
 spec@glsl-1.10@execution@temp-array-indexing@glsl-vs-vec4-indexing-temp-src-in-nested-loop-combined,Fail
 spec@glsl-1.10@execution@temp-array-indexing@glsl-vs-vec4-indexing-temp-src-in-nested-loop-inner,Fail
 spec@glsl-1.10@execution@temp-array-indexing@glsl-vs-vec4-indexing-temp-src-in-nested-loop-outer,Fail
-spec@glsl-1.10@execution@variable-indexing@fs-varying-array-mat3-index-col-rd,Fail
-spec@glsl-1.10@execution@variable-indexing@fs-varying-array-mat3-index-col-row-rd,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-col-rd,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-col-row-rd,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-index-col-rd,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-index-col-row-rd,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-index-col-row-wr,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-index-col-wr,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-index-rd,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-index-row-wr,Fail
-spec@glsl-1.10@execution@variable-indexing@vs-varying-array-mat3-index-wr,Fail
 spec@glsl-1.10@execution@varying-packing@simple float array,Fail
 spec@glsl-1.10@execution@varying-packing@simple float separate,Fail
 spec@glsl-1.10@execution@varying-packing@simple mat2 array,Fail
@@ -1154,6 +1120,12 @@ spec@glsl-1.20@execution@fs-nan-builtin-max,Fail
 spec@glsl-1.20@execution@fs-nan-builtin-min,Fail
 spec@glsl-1.20@execution@vs-nan-builtin-min,Fail
 spec@glsl-1.20@execution@vs-nan-builtin-max,Fail
+
+# piglit bug, requires GLSL >= 1.20 but specifies #version 130
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-1,Fail
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-2,Fail
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-3,Fail
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-4,Fail
 
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture() 1d,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture() 2d,Fail
@@ -1268,7 +1240,6 @@ spec@glsl-1.20@execution@built-in-functions@fs-op-mult-mat4x3-float,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-mult-mat4x3-mat2x4,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-mult-mat4x3-mat3x4,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-mult-mat4x3-mat4,Fail
-spec@glsl-1.20@execution@built-in-functions@fs-op-mult-mat4x3-vec4,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-mult-vec2-mat3x2,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-mult-vec2-mat4x2,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-mult-vec3-mat2x3,Fail
@@ -1290,15 +1261,6 @@ spec@glsl-1.20@execution@glsl-fs-frontfacing,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:texture() 1dshadow,Fail
 spec@glsl-1.20@execution@tex-miplevel-selection gl2:textureproj(bias) 2dshadow,Fail
 spec@glsl-1.20@execution@uniform-initializer@fs-mat4-array,Fail
-spec@glsl-1.20@execution@variable-indexing@fs-varying-array-mat3-index-col-rd,Fail
-spec@glsl-1.20@execution@variable-indexing@fs-varying-array-mat3-index-col-row-rd,Fail
-spec@glsl-1.20@execution@variable-indexing@vs-varying-array-mat3-index-col-rd,Fail
-spec@glsl-1.20@execution@variable-indexing@vs-varying-array-mat3-index-col-row-rd,Fail
-spec@glsl-1.20@execution@variable-indexing@vs-varying-array-mat3-index-col-row-wr,Fail
-spec@glsl-1.20@execution@variable-indexing@vs-varying-array-mat3-index-col-wr,Fail
-spec@glsl-1.20@execution@variable-indexing@vs-varying-array-mat3-index-row-rd,Fail
-spec@glsl-1.20@execution@variable-indexing@vs-varying-array-mat3-index-row-wr,Fail
-spec@glsl-1.20@execution@variable-indexing@vs-varying-array-mat3-index-wr,Fail
 
 spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 

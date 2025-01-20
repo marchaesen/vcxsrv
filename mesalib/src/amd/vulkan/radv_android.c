@@ -637,7 +637,7 @@ radv_import_ahb_memory(struct radv_device *device, struct radv_device_memory *me
       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 
    uint64_t alloc_size = 0;
-   VkResult result = device->ws->buffer_from_fd(device->ws, dma_buf, priority, &mem->bo, &alloc_size);
+   VkResult result = radv_bo_from_fd(device, dma_buf, priority, mem, &alloc_size);
    if (result != VK_SUCCESS)
       return result;
 

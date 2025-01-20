@@ -467,7 +467,8 @@ create_parallel_copy(struct ir3_block *block)
       assert(j == phi_count);
 
       struct ir3_instruction *pcopy =
-         ir3_instr_create(block, OPC_META_PARALLEL_COPY, phi_count, phi_count);
+         ir3_instr_create_at(ir3_before_terminator(block),
+                             OPC_META_PARALLEL_COPY, phi_count, phi_count);
 
       for (j = 0; j < phi_count; j++) {
          struct ir3_register *reg = __ssa_dst(pcopy);

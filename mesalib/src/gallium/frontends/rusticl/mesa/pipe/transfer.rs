@@ -7,7 +7,6 @@ use std::ptr;
 
 pub struct PipeTransfer<'a> {
     pipe: *mut pipe_transfer,
-    res: *mut pipe_resource,
     ptr: *mut c_void,
     is_buffer: bool,
     ctx: &'a PipeContext,
@@ -16,14 +15,16 @@ pub struct PipeTransfer<'a> {
 // SAFETY: Transfers are safe to send between threads
 unsafe impl Send for PipeTransfer<'_> {}
 
-impl<'a> Drop for PipeTransfer<'a> {
+impl Drop for PipeTransfer<'_> {
     fn drop(&mut self) {
+        // we need to copy the pointer here as the driver frees the pipe_transfer object.
+        let mut res = unsafe { (*self.pipe).resource };
         if self.is_buffer {
             self.ctx.buffer_unmap(self.pipe);
         } else {
             self.ctx.texture_unmap(self.pipe);
         }
-        unsafe { pipe_resource_reference(&mut self.res, ptr::null_mut()) };
+        unsafe { pipe_resource_reference(&mut res, ptr::null_mut()) };
     }
 }
 
@@ -34,12 +35,10 @@ impl<'a> PipeTransfer<'a> {
         pipe: *mut pipe_transfer,
         ptr: *mut c_void,
     ) -> Self {
-        let mut res: *mut pipe_resource = ptr::null_mut();
-        unsafe { pipe_resource_reference(&mut res, (*pipe).resource) }
+        unsafe { pipe_resource_reference(&mut ptr::null_mut(), (*pipe).resource) }
 
         Self {
             pipe: pipe,
-            res: res,
             ptr: ptr,
             is_buffer: is_buffer,
             ctx: ctx,

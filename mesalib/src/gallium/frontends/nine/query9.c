@@ -21,18 +21,17 @@ d3dquerytype_to_pipe_query(struct pipe_screen *screen, D3DQUERYTYPE type)
     case D3DQUERYTYPE_EVENT:
         return PIPE_QUERY_GPU_FINISHED;
     case D3DQUERYTYPE_OCCLUSION:
-        return screen->get_param(screen, PIPE_CAP_OCCLUSION_QUERY) ?
+        return screen->caps.occlusion_query ?
                PIPE_QUERY_OCCLUSION_COUNTER : PIPE_QUERY_TYPES;
     case D3DQUERYTYPE_TIMESTAMP:
-        return screen->get_param(screen, PIPE_CAP_QUERY_TIMESTAMP) ?
+        return screen->caps.query_timestamp ?
                PIPE_QUERY_TIMESTAMP : PIPE_QUERY_TYPES;
     case D3DQUERYTYPE_TIMESTAMPDISJOINT:
     case D3DQUERYTYPE_TIMESTAMPFREQ:
-        return screen->get_param(screen, PIPE_CAP_QUERY_TIMESTAMP) ?
+        return screen->caps.query_timestamp ?
                PIPE_QUERY_TIMESTAMP_DISJOINT : PIPE_QUERY_TYPES;
     case D3DQUERYTYPE_VERTEXSTATS:
-        return screen->get_param(screen,
-                                 PIPE_CAP_QUERY_PIPELINE_STATISTICS) ?
+        return screen->caps.query_pipeline_statistics ?
                PIPE_QUERY_PIPELINE_STATISTICS : PIPE_QUERY_TYPES;
     default:
         return PIPE_QUERY_TYPES; /* Query not supported */

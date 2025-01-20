@@ -390,7 +390,7 @@ insn("p_end_wqm")
 insn("p_discard_if")
 insn("p_demote_to_helper")
 insn("p_is_helper")
-insn("p_exit_early_if")
+insn("p_exit_early_if_not")
 
 # simulates proper bpermute behavior using v_readlane_b32
 # definitions: result VGPR, temp EXEC, clobbered VCC
@@ -438,6 +438,8 @@ insn("p_dual_src_export_gfx11")
 insn("p_end_with_regs")
 
 insn("p_shader_cycles_hi_lo_hi")
+
+insn("p_debug_info")
 
 # SOP2 instructions: 2 scalar inputs, 1 scalar output (+optional scc)
 SOP2 = {
@@ -683,7 +685,7 @@ SOPC = {
    ("s_bitcmp0_b64",    dst(SCC), src(2, 1), op(0x0e)),
    ("s_bitcmp1_b64",    dst(SCC), src(2, 1), op(0x0f)),
    ("s_setvskip",       dst(), src(1, 1), op(0x10, gfx10=-1)),
-   ("s_set_gpr_idx_on", dst(M0), src(1, 1, M0), op(gfx8=0x11, gfx10=-1)),
+   ("s_set_gpr_idx_on", dst(M0), src(1, 1), op(gfx8=0x11, gfx10=-1)),
    ("s_cmp_eq_u64",     dst(SCC), src(2, 2), op(gfx8=0x12, gfx11=0x10)),
    ("s_cmp_lg_u64",     dst(SCC), src(2, 2), op(gfx8=0x13, gfx11=0x11)),
    ("s_cmp_lt_f32",     dst(SCC), src(1, 1), op(gfx11=0x41), InstrClass.SFPU),

@@ -230,7 +230,7 @@ hgl_create_st_framebuffer(struct hgl_display *display, struct st_visual* visual,
 	buffer->screen = display->fscreen->screen;
 	buffer->winsysContext = winsysContext;
 
-	if (buffer->screen->get_param(buffer->screen, PIPE_CAP_NPOT_TEXTURES))
+	if (buffer->screen->caps.npot_textures)
 		buffer->target = PIPE_TEXTURE_2D;
 	else
 		buffer->target = PIPE_TEXTURE_RECT;

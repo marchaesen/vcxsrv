@@ -26,7 +26,7 @@ use std::thread::JoinHandle;
 pub struct QueueContext {
     // need to use ManuallyDrop so we can recycle the context without cloning
     ctx: ManuallyDrop<PipeContext>,
-    dev: &'static Device,
+    pub dev: &'static Device,
     use_stream: bool,
 }
 
@@ -86,9 +86,9 @@ pub struct Queue {
     pub context: Arc<Context>,
     pub device: &'static Device,
     pub props: cl_command_queue_properties,
-    pub props_v2: Option<Properties<cl_queue_properties>>,
+    pub props_v2: Properties<cl_queue_properties>,
     state: Mutex<QueueState>,
-    _thrd: JoinHandle<()>,
+    thrd: JoinHandle<()>,
 }
 
 impl_cl_type_trait!(cl_command_queue, Queue, CL_INVALID_COMMAND_QUEUE);
@@ -105,7 +105,7 @@ impl Queue {
         context: Arc<Context>,
         device: &'static Device,
         props: cl_command_queue_properties,
-        props_v2: Option<Properties<cl_queue_properties>>,
+        props_v2: Properties<cl_queue_properties>,
     ) -> CLResult<Arc<Queue>> {
         // we assume that memory allocation is the only possible failure. Any other failure reason
         // should be detected earlier (e.g.: checking for CAPs).
@@ -122,7 +122,7 @@ impl Queue {
                 last: Weak::new(),
                 chan_in: tx_q,
             }),
-            _thrd: thread::Builder::new()
+            thrd: thread::Builder::new()
                 .name("rusticl queue thread".into())
                 .spawn(move || {
                     // Track the error of all executed events. This is only needed for in-order
@@ -248,6 +248,10 @@ impl Queue {
             last.upgrade().map(|e| e.wait());
         }
         Ok(())
+    }
+
+    pub fn is_dead(&self) -> bool {
+        self.thrd.is_finished()
     }
 
     pub fn is_profiling_enabled(&self) -> bool {

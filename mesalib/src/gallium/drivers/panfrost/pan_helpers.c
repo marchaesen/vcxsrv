@@ -88,7 +88,7 @@ panfrost_analyze_sysvals(struct panfrost_compiled_shader *ss)
  * good for the duration of the draw (transient), could last longer. Bounds are
  * not calculated.
  */
-mali_ptr
+uint64_t
 panfrost_get_index_buffer(struct panfrost_batch *batch,
                           const struct pipe_draw_info *info,
                           const struct pipe_draw_start_count_bias *draw)
@@ -117,7 +117,7 @@ panfrost_get_index_buffer(struct panfrost_batch *batch,
  * these operations together because there are natural optimizations which
  * require them to be together. */
 
-mali_ptr
+uint64_t
 panfrost_get_index_buffer_bounded(struct panfrost_batch *batch,
                                   const struct pipe_draw_info *info,
                                   const struct pipe_draw_start_count_bias *draw,

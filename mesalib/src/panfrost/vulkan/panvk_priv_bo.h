@@ -11,8 +11,6 @@
 #include "util/list.h"
 #include "util/u_atomic.h"
 
-#include "panfrost-job.h"
-
 struct panvk_kmod_bo;
 
 /* Used for internal object allocation. */
@@ -22,7 +20,7 @@ struct panvk_priv_bo {
    struct panvk_device *dev;
    struct pan_kmod_bo *bo;
    struct {
-      mali_ptr dev;
+      uint64_t dev;
       void *host;
    } addr;
 };

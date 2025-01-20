@@ -352,7 +352,9 @@ NIR_FILES = \
         nir/nir_opt_fragdepth.c \
 	nir/nir_gather_types.c \
 	nir_opt_varyings.c \
-	nir/nir_use_dominance.c
+	nir/nir_use_dominance.c \
+	nir/nir_fixup_is_exported.c \
+	nir/nir_opt_vectorize_io.c
 
 SPIRV_GENERATED_FILES = \
 	spirv/spirv_info.c \
@@ -377,4 +379,5 @@ SPIRV_FILES = \
 	spirv/vtn_private.h \
 	spirv/vtn_structured_cfg.c \
 	spirv/vtn_subgroup.c \
-	spirv/vtn_variables.c
+	spirv/vtn_variables.c \
+	spirv/vtn_debug.c

@@ -70,7 +70,10 @@ static const struct pvr_device_features pvr_device_features_36_V_104_796 = {
    .has_tpu_dm_global_registers = true,
    .has_tpu_extended_integer_lookup = true,
    .has_tpu_image_state_v2 = true,
+   .has_unified_store_depth = true,
    .has_usc_f16sop_u8 = true,
+   .has_usc_itrsmp = true,
+   .has_usc_itrsmp_enhanced = true,
    .has_usc_min_output_registers_per_pix = true,
    .has_usc_pixel_partition_mask = true,
    .has_usc_slots = true,
@@ -96,6 +99,7 @@ static const struct pvr_device_features pvr_device_features_36_V_104_796 = {
    .slc_cache_line_size_bits = 512U,
    .tile_size_x = 16U,
    .tile_size_y = 16U,
+   .unified_store_depth = 256U,
    .usc_min_output_registers_per_pix = 2U,
    .usc_slots = 64U,
    .uvs_banks = 8U,
@@ -105,6 +109,9 @@ static const struct pvr_device_features pvr_device_features_36_V_104_796 = {
    .xpu_max_slaves = 3U,
 
    .has_s8xe = true,
+   .has_usc_itr_parallel_instances = true,
+
+   .usc_itr_parallel_instances = 16U,
 };
 
 static const struct pvr_device_enhancements

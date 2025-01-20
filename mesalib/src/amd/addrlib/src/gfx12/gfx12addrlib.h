@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2023 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -161,6 +161,16 @@ private:
     void SanityCheckSurfSize(
         const ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT*   pIn,
         const ADDR3_COMPUTE_SURFACE_INFO_OUTPUT*         pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlCopyMemToSurface(
+        const ADDR3_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR3_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const override;
+
+    virtual ADDR_E_RETURNCODE HwlCopySurfaceToMem(
+        const ADDR3_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR3_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const override;
 
     UINT_32           m_numSwizzleBits;
 

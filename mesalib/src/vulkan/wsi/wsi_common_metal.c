@@ -503,7 +503,7 @@ wsi_metal_finish_wsi(struct wsi_device *wsi_device,
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
-vkCreateMetalSurfaceEXT(
+wsi_CreateMetalSurfaceEXT(
    VkInstance _instance,
    const VkMetalSurfaceCreateInfoEXT* pCreateInfo,
    const VkAllocationCallbacks* pAllocator,

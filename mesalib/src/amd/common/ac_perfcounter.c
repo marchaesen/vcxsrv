@@ -1151,7 +1151,7 @@ bool ac_init_block_names(const struct radeon_info *info,
       }
    }
 
-   block->selector_name_stride = block->group_name_stride + 4;
+   block->selector_name_stride = block->group_name_stride + 5;
    block->selector_names =
       MALLOC(block->num_groups * block->b->selectors * block->selector_name_stride);
    if (!block->selector_names)
@@ -1161,7 +1161,7 @@ bool ac_init_block_names(const struct radeon_info *info,
    p = block->selector_names;
    for (i = 0; i < block->num_groups; ++i) {
       for (j = 0; j < block->b->selectors; ++j) {
-         sprintf(p, "%s_%03d", groupname, j);
+         sprintf(p, "%s_%04d", groupname, j);
          p += block->selector_name_stride;
       }
       groupname += block->group_name_stride;

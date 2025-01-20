@@ -75,9 +75,9 @@ bool radv_sqtt_init(struct radv_device *device);
 
 void radv_sqtt_finish(struct radv_device *device);
 
-bool radv_begin_sqtt(struct radv_queue *queue);
+void radv_sqtt_start_capturing(struct radv_queue *queue);
 
-bool radv_end_sqtt(struct radv_queue *queue);
+bool radv_sqtt_stop_capturing(struct radv_queue *queue);
 
 bool radv_get_sqtt_trace(struct radv_queue *queue, struct ac_sqtt_trace *sqtt_trace);
 

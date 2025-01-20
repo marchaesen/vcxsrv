@@ -78,7 +78,7 @@ struct vn_physical_device {
     */
    uint32_t wa_min_fb_align;
 
-   enum VkDriverId renderer_driver_id;
+   VkDriverId renderer_driver_id;
 
    VkQueueFamilyProperties2 *queue_family_properties;
    uint32_t queue_family_count;

@@ -403,7 +403,7 @@ isolate_phi_nodes_block(nir_shader *shader, nir_block *block, void *dead_ctx)
          entry->dest_is_reg = false;
          nir_def_init(&pcopy->instr, &entry->dest.def,
                       phi->def.num_components, phi->def.bit_size);
-         entry->dest.def.divergent = nir_src_is_divergent(src->src);
+         entry->dest.def.divergent = nir_src_is_divergent(&src->src);
 
          /* We're adding a source to a live instruction so we need to use
           * nir_instr_init_src()

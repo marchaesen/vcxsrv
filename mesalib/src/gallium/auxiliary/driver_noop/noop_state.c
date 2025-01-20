@@ -281,7 +281,8 @@ static void noop_stream_output_target_destroy(struct pipe_context *ctx,
 static void noop_set_stream_output_targets(struct pipe_context *ctx,
                                            unsigned num_targets,
                                            struct pipe_stream_output_target **targets,
-                                           const unsigned *offsets)
+                                           const unsigned *offsets,
+                                           enum mesa_prim output_prim)
 {
 }
 

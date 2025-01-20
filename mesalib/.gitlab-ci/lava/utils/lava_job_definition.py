@@ -62,17 +62,19 @@ class LAVAJobDefinition:
         """
         args = self.job_submitter
         nfsrootfs = {
-            "url": f"{args.rootfs_url_prefix}/lava-rootfs.tar.zst",
+            "url": f"{args.rootfs_url}",
             "compression": "zstd",
+            "format": "tar",
+            "overlays": args._overlays,
         }
         values = self.generate_metadata()
 
         init_stage1_steps = self.init_stage1_steps()
-        artifact_download_steps = self.artifact_download_steps()
+        jwt_steps = self.jwt_steps()
 
         deploy_actions = []
         boot_action = []
-        test_actions = uart_test_actions(args, init_stage1_steps, artifact_download_steps)
+        test_actions = uart_test_actions(args, init_stage1_steps, jwt_steps)
 
         if args.boot_method == "fastboot":
             deploy_actions = fastboot_deploy_actions(self, nfsrootfs)
@@ -94,7 +96,7 @@ class LAVAJobDefinition:
             wrap_boot_action(boot_action)
             test_actions = (
                 generate_dut_test(args, init_stage1_steps),
-                generate_docker_test(args, artifact_download_steps),
+                generate_docker_test(args, jwt_steps),
             )
 
         values["actions"] = [
@@ -118,6 +120,22 @@ class LAVAJobDefinition:
         yaml.width = 4096
         yaml.dump(self.generate_lava_yaml_payload(), job_stream)
         return job_stream.getvalue()
+
+    def consume_lava_tags_args(self, values: dict[str, Any]):
+        # python-fire parses --lava-tags without arguments as True
+        if isinstance(self.job_submitter.lava_tags, tuple):
+            values["tags"] = self.job_submitter.lava_tags
+        # python-fire parses "tag-1,tag2" as str and "tag1,tag2" as tuple
+        # even if the -- --separator is something other than '-'
+        elif isinstance(self.job_submitter.lava_tags, str):
+            # Split string tags by comma, removing any trailing commas
+            values["tags"] = self.job_submitter.lava_tags.rstrip(",").split(",")
+        # Ensure tags are always a list of non-empty strings
+        if "tags" in values:
+            values["tags"] = [tag for tag in values["tags"] if tag]
+        # Remove empty tags
+        if "tags" in values and not values["tags"]:
+            del values["tags"]
 
     def generate_metadata(self) -> dict[str, Any]:
         # General metadata and permissions
@@ -148,8 +166,7 @@ class LAVAJobDefinition:
             },
         }
 
-        if self.job_submitter.lava_tags:
-            values["tags"] = self.job_submitter.lava_tags.split(",")
+        self.consume_lava_tags_args(values)
 
         # QEMU lava jobs mandate proper arch value in the context
         if self.job_submitter.boot_method == "qemu-nfs":
@@ -173,39 +190,33 @@ class LAVAJobDefinition:
                 "compression": "zstd"
             }
 
-    def artifact_download_steps(self):
+    def jwt_steps(self):
         """
         This function is responsible for setting up the SSH server in the DUT and to
         export the first boot environment to a file.
         """
-        # Putting JWT pre-processing and mesa download, within init-stage1.sh file,
-        # as we do with non-SSH version.
-        download_steps = [
-            "set -ex",
-            "curl -L --retry 4 -f --retry-all-errors --retry-delay 60 "
-            f"{self.job_submitter.job_rootfs_overlay_url} | tar -xz -C /",
-            f"mkdir -p {self.job_submitter.ci_project_dir}",
-            f"curl -L --retry 4 -f --retry-all-errors --retry-delay 60 {self.job_submitter.build_url} | "
-            f"tar --zstd -x -C {self.job_submitter.ci_project_dir}",
+        # Pre-process the JWT
+        jwt_steps = [
+            "set -e",
         ]
 
         # If the JWT file is provided, we will use it to authenticate with the cloud
         # storage provider and will hide it from the job output in Gitlab.
         if self.job_submitter.jwt_file:
             with open(self.job_submitter.jwt_file) as jwt_file:
-                download_steps += [
+                jwt_steps += [
                     "set +x  # HIDE_START",
                     f'echo -n "{jwt_file.read()}" > "{self.job_submitter.jwt_file}"',
                     "set -x  # HIDE_END",
                     f'echo "export S3_JWT_FILE={self.job_submitter.jwt_file}" >> /set-job-env-vars.sh',
                 ]
         else:
-            download_steps += [
+            jwt_steps += [
                 "echo Could not find jwt file, disabling S3 requests...",
                 "sed -i '/S3_RESULTS_UPLOAD/d' /set-job-env-vars.sh",
             ]
 
-        return download_steps
+        return jwt_steps
 
     def init_stage1_steps(self) -> list[str]:
         run_steps = []
@@ -231,5 +242,7 @@ class LAVAJobDefinition:
                 + "https://github.com/allahjasif1990/hdk888-firmware/raw/main/a660_zap.mbn "
                 + '-o "/lib/firmware/qcom/sm8350/a660_zap.mbn"'
             )
+
+        run_steps.append("export CURRENT_SECTION=dut_boot")
 
         return run_steps

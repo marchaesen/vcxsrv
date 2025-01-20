@@ -24,7 +24,7 @@
 #ifndef BULITIN_FUNCTIONS_H
 #define BULITIN_FUNCTIONS_H
 
-struct gl_shader;
+struct glsl_symbol_table;
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,8 +48,8 @@ extern bool
 _mesa_glsl_has_builtin_function(_mesa_glsl_parse_state *state,
                                 const char *name);
 
-extern gl_shader *
-_mesa_glsl_get_builtin_function_shader(void);
+extern glsl_symbol_table *
+_mesa_glsl_get_builtin_function_symbols(void);
 
 extern ir_function_signature *
 _mesa_get_main_function_signature(glsl_symbol_table *symbols);

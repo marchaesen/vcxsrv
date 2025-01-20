@@ -764,7 +764,6 @@ spec@!opengl 1.1@clipflat@glDrawElements(GL_TRIANGLE_STRIP)- glFrontFace(GL_CW)-
 spec@!opengl 1.1@clipflat@glDrawElements(GL_TRIANGLE_STRIP)- glFrontFace(GL_CW)- glPolygonMode(GL_LINE)- quadrant: right top PV: FIRST,Fail
 spec@arb_clear_texture@arb_clear_texture-3d,Fail
 spec@arb_clear_texture@arb_clear_texture-sized-formats,Fail
-spec@arb_clear_texture@arb_clear_texture-supported-formats,Fail
 spec@glsl-1.10@execution@glsl-fs-inline-explosion,Crash
 spec@glsl-1.10@execution@glsl-vs-inline-explosion,Crash
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
@@ -1228,8 +1227,21 @@ asan-KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_
 asan-dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_clamp_non_square,Fail
 asan-dEQP-GLES2.functional.texture.wrap.clamp_clamp_nearest_npot_etc1,Fail
 
+# Already known failures
+ubsan-KHR-GLES2.core.internalformat.texture2d.depth_component_unsigned_int_depth_component16,Fail
+ubsan-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
+ubsan-dEQP-GLES2.functional.texture.mipmap.2d.basic.nearest_linear_clamp_non_square,Fail
+ubsan-dEQP-GLES2.functional.texture.wrap.clamp_clamp_nearest_npot_etc1,Fail
+
 asan-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_mirror_non_square,Fail
 arm32-dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_clamp_non_square,Fail
 dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_mirror_non_square,Fail
 dEQP-GLES2.functional.texture.mipmap.2d.basic.linear_linear_clamp_non_square,Fail
+
+# uprev Piglit in Mesa
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-1,Fail
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-3,Fail
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-2,Fail
+spec@glsl-1.20@execution@vs-loop-uint-induction-var-4,Fail
+

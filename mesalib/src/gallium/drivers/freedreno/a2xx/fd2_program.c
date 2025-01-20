@@ -84,7 +84,8 @@ fd2_fp_state_create(struct pipe_context *pctx,
                 : tgsi_to_nir(cso->tokens, pctx->screen, false);
 
    NIR_PASS_V(so->nir, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
-              ir2_glsl_type_size, (nir_lower_io_options)0);
+              ir2_glsl_type_size,
+              nir_lower_io_use_interpolated_input_intrinsics);
 
    if (ir2_optimize_nir(so->nir, true))
       goto fail;

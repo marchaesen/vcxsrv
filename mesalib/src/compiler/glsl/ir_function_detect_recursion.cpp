@@ -123,7 +123,6 @@
 #include "ir.h"
 #include "glsl_parser_extras.h"
 #include "util/hash_table.h"
-#include "program.h"
 
 namespace {
 

@@ -297,6 +297,7 @@ int xcb_poll_for_reply64(xcb_connection_t *c, uint64_t request, void **reply, xc
  * @param replylen The size of the reply.
  * @return Pointer to the location where received file descriptors are stored.
  */
+XCB_CONST_FUNCTION
 int *xcb_get_reply_fds(xcb_connection_t *c, void *reply, size_t replylen);
 
 
@@ -306,6 +307,7 @@ int *xcb_get_reply_fds(xcb_connection_t *c, void *reply, size_t replylen);
  * @param mask The mask to check
  * @return The number of set bits in the mask
  */
+XCB_CONST_FUNCTION
 int xcb_popcount(uint32_t mask);
 
 /**
@@ -313,6 +315,7 @@ int xcb_popcount(uint32_t mask);
  * @param len The length of the array
  * @return The sum of all entries in the array.
  */
+XCB_PURE_FUNCTION
 int xcb_sumof(uint8_t *list, int len);
 
 #ifdef __cplusplus

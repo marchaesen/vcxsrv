@@ -94,6 +94,9 @@ static void pvr_drm_winsys_destroy(struct pvr_winsys *ws)
              &destroy_vm_context_args,
              VK_ERROR_UNKNOWN);
 
+   util_sparse_array_finish(&drm_ws->bo_map);
+   u_rwlock_destroy(&drm_ws->dmabuf_bo_lock);
+
    vk_free(ws->alloc, drm_ws);
 }
 
@@ -667,6 +670,7 @@ VkResult pvr_drm_winsys_create(const int render_fd,
 
    struct pvr_drm_winsys *drm_ws;
    VkResult result;
+   int err;
 
    drm_ws =
       vk_zalloc(alloc, sizeof(*drm_ws), 8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
@@ -687,9 +691,19 @@ VkResult pvr_drm_winsys_create(const int render_fd,
    drm_ws->base.sync_types[0] = &drm_ws->base.syncobj_type;
    drm_ws->base.sync_types[1] = NULL;
 
+   err = u_rwlock_init(&drm_ws->dmabuf_bo_lock);
+   if (err) {
+      result = vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
+      goto err_vk_free_drm_ws;
+   }
+
+   util_sparse_array_init(&drm_ws->bo_map,
+                          sizeof(struct pvr_drm_winsys_bo),
+                          512);
+
    result = pvr_drm_get_gpu_info(drm_ws, &gpu_info);
    if (result != VK_SUCCESS)
-      goto err_vk_free_drm_ws;
+      goto err_util_sparse_array_finish_bo_map;
 
    drm_ws->bvnc = gpu_info.gpu_id;
 
@@ -743,6 +757,10 @@ err_pvr_destroy_vm_context:
              DRM_IOCTL_PVR_DESTROY_VM_CONTEXT,
              &destroy_vm_context_args,
              VK_ERROR_UNKNOWN);
+
+err_util_sparse_array_finish_bo_map:
+   util_sparse_array_finish(&drm_ws->bo_map);
+   u_rwlock_destroy(&drm_ws->dmabuf_bo_lock);
 
 err_vk_free_drm_ws:
    vk_free(alloc, drm_ws);

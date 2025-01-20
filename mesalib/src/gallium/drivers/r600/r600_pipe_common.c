@@ -773,37 +773,6 @@ static const char* r600_get_name(struct pipe_screen* pscreen)
 	return rscreen->renderer_string;
 }
 
-static float r600_get_paramf(struct pipe_screen* pscreen,
-			     enum pipe_capf param)
-{
-	switch (param) {
-	case PIPE_CAPF_MIN_LINE_WIDTH:
-	case PIPE_CAPF_MIN_LINE_WIDTH_AA:
-	case PIPE_CAPF_MIN_POINT_SIZE:
-	case PIPE_CAPF_MIN_POINT_SIZE_AA:
-		return 1;
-
-	case PIPE_CAPF_POINT_SIZE_GRANULARITY:
-	case PIPE_CAPF_LINE_WIDTH_GRANULARITY:
-		return 0.1;
-
-	case PIPE_CAPF_MAX_LINE_WIDTH:
-	case PIPE_CAPF_MAX_LINE_WIDTH_AA:
-	case PIPE_CAPF_MAX_POINT_SIZE:
-	case PIPE_CAPF_MAX_POINT_SIZE_AA:
-         return 8191.0f;
-	case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
-		return 16.0f;
-	case PIPE_CAPF_MAX_TEXTURE_LOD_BIAS:
-		return 16.0f;
-    case PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE:
-    case PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE:
-    case PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY:
-        return 0.0f;
-	}
-	return 0.0f;
-}
-
 static int r600_get_video_param(struct pipe_screen *screen,
 				enum pipe_video_profile profile,
 				enum pipe_video_entrypoint entrypoint,
@@ -1266,7 +1235,6 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 	rscreen->b.get_disk_shader_cache = r600_get_disk_shader_cache;
 	rscreen->b.get_compute_param = r600_get_compute_param;
 	rscreen->b.get_screen_fd = r600_get_screen_fd;
-	rscreen->b.get_paramf = r600_get_paramf;
 	rscreen->b.get_timestamp = r600_get_timestamp;
 	rscreen->b.get_compiler_options = r600_get_compiler_options;
 	rscreen->b.fence_finish = r600_fence_finish;
@@ -1385,7 +1353,6 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		.has_umad24 = true,
 		.has_umul24 = true,
 		.has_fmulz = true,
-		.use_interpolated_input_intrinsics = true,
 		.has_fsub = true,
 		.has_isub = true,
 		.has_find_msb_rev = true,
@@ -1397,13 +1364,13 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		.lower_ufind_msb = true,
 		.lower_to_scalar = true,
 		.lower_to_scalar_filter = r600_lower_to_scalar_instr_filter,
-		.linker_ignore_precision = true,
 		.lower_fpow = true,
 		.lower_int64_options = ~0,
 		.lower_cs_local_index_to_id = true,
 		.lower_uniforms_to_ubo = true,
 		.lower_image_offset_to_range_base = 1,
 		.vectorize_tess_levels = 1,
+		.io_options = nir_io_mediump_is_32bit,
 	};
 
 	rscreen->nir_options = nir_options;
@@ -1439,6 +1406,8 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 
         rscreen->nir_options_fs = rscreen->nir_options;
 	rscreen->nir_options_fs.lower_all_io_to_temps = true;
+	rscreen->nir_options.support_indirect_inputs = (uint8_t)BITFIELD_MASK(PIPE_SHADER_TYPES);
+	rscreen->nir_options.support_indirect_outputs = (uint8_t)BITFIELD_MASK(PIPE_SHADER_TYPES);
 
 	return true;
 }

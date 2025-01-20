@@ -241,7 +241,7 @@ pan_shader_prepare_bifrost_rsd(const struct pan_shader_info *info,
 
 static inline void
 pan_shader_prepare_rsd(const struct pan_shader_info *shader_info,
-                       mali_ptr shader_ptr, struct MALI_RENDERER_STATE *rsd)
+                       uint64_t shader_ptr, struct MALI_RENDERER_STATE *rsd)
 {
 #if PAN_ARCH <= 5
    shader_ptr |= shader_info->midgard.first_tag;

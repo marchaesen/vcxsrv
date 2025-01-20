@@ -14,6 +14,10 @@
 
 #define RC_DBG_LOG (1 << 0)
 
+#define RC_MATH_DX        0x00
+#define RC_MATH_IEEE      0x01
+#define RC_MATH_FF        0x02
+
 struct rc_swizzle_caps;
 
 enum rc_program_type { RC_VERTEX_PROGRAM, RC_FRAGMENT_PROGRAM, RC_NUM_PROGRAM_TYPES };
@@ -44,6 +48,9 @@ struct radeon_compiler {
 
    /* Whether to remove unused constants and empty holes in constant space. */
    unsigned remove_unused_constants : 1;
+
+   /* Math compatibility mode, for some PVS opcodes and for multiply by zero rules on R5xx */
+   unsigned math_rules : 2;
 
    /**
     * Variables used internally, not be touched by callers

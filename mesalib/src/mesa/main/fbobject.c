@@ -1190,7 +1190,7 @@ do_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
    GLuint i;
    enum pipe_format first_format = PIPE_FORMAT_NONE;
    bool mixed_formats =
-         screen->get_param(screen, PIPE_CAP_MIXED_COLORBUFFER_FORMATS) != 0;
+         screen->caps.mixed_colorbuffer_formats != 0;
 
    if (depth->Type && stencil->Type && depth->Type != stencil->Type) {
       fbo_invalid("Different Depth/Stencil buffer formats");

@@ -773,7 +773,7 @@ lvp_CopyMemoryToImageEXT(VkDevice _device, const VkCopyMemoryToImageInfoEXT *pCo
       case PIPE_TEXTURE_1D_ARRAY:
          /* these use layer */
          box.z = copy->imageSubresource.baseArrayLayer;
-         box.depth = copy->imageSubresource.layerCount;
+         box.depth = vk_image_subresource_layer_count(&image->vk, &copy->imageSubresource);
          break;
       case PIPE_TEXTURE_3D:
          /* this uses depth */
@@ -818,7 +818,7 @@ lvp_CopyImageToMemoryEXT(VkDevice _device, const VkCopyImageToMemoryInfoEXT *pCo
       case PIPE_TEXTURE_1D_ARRAY:
          /* these use layer */
          box.z = copy->imageSubresource.baseArrayLayer;
-         box.depth = copy->imageSubresource.layerCount;
+         box.depth = vk_image_subresource_layer_count(&image->vk, &copy->imageSubresource);
          break;
       case PIPE_TEXTURE_3D:
          /* this uses depth */
@@ -868,7 +868,7 @@ lvp_CopyImageToImageEXT(VkDevice _device, const VkCopyImageToImageInfoEXT *pCopy
          src_box.depth = pCopyImageToImageInfo->pRegions[i].extent.depth;
          src_box.z = pCopyImageToImageInfo->pRegions[i].srcOffset.z;
       } else {
-         src_box.depth = pCopyImageToImageInfo->pRegions[i].srcSubresource.layerCount;
+         src_box.depth = vk_image_subresource_layer_count(&src_image->vk, &pCopyImageToImageInfo->pRegions[i].srcSubresource);
          src_box.z = pCopyImageToImageInfo->pRegions[i].srcSubresource.baseArrayLayer;
       }
 

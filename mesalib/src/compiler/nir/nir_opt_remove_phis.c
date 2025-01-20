@@ -56,16 +56,17 @@ phi_srcs_equal(nir_def *a, nir_def *b)
 }
 
 static bool
-can_rematerialize_phi_src(nir_block *block, nir_def *def)
+src_dominates_block(nir_src *src, void *state)
+{
+   nir_block *block = state;
+   return nir_block_dominates(src->ssa->parent_instr->block, block);
+}
+
+static bool
+can_rematerialize_phi_src(nir_block *imm_dom, nir_def *def)
 {
    if (def->parent_instr->type == nir_instr_type_alu) {
-      /* Restrict alu to movs. */
-      nir_alu_instr *alu = nir_instr_as_alu(def->parent_instr);
-      if (alu->op != nir_op_mov)
-         return false;
-      if (!nir_block_dominates(alu->src[0].src.ssa->parent_instr->block, block->imm_dom))
-         return false;
-      return true;
+      return nir_foreach_src(def->parent_instr, src_dominates_block, imm_dom);
    } else if (def->parent_instr->type == nir_instr_type_load_const) {
       return true;
    }
@@ -119,7 +120,7 @@ remove_phis_block(nir_block *block, nir_builder *b)
          if (def == NULL) {
             def = src->src.ssa;
             if (!nir_block_dominates(def->parent_instr->block, block->imm_dom)) {
-               if (!can_rematerialize_phi_src(block, def)) {
+               if (!can_rematerialize_phi_src(block->imm_dom, def)) {
                   srcs_same = false;
                   break;
                }
@@ -139,7 +140,7 @@ remove_phis_block(nir_block *block, nir_builder *b)
          b->cursor = nir_after_phis(block);
          def = nir_undef(b, phi->def.num_components, phi->def.bit_size);
       } else if (needs_remat) {
-         b->cursor = nir_after_phis(block);
+         b->cursor = nir_after_block_before_jump(block->imm_dom);
          nir_instr *remat = nir_instr_clone(b->shader, def->parent_instr);
          nir_builder_instr_insert(b, remat);
          def = nir_instr_def(remat);

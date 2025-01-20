@@ -1469,6 +1469,8 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                         uint32_t mask = bit_size == 16 ? 0xffff : 0xff;
                         result = vir_AND(c, src[0], vir_uniform_ui(c, mask));
                         result = sign_extend(c, result, bit_size, 32);
+                } else {
+                        result = src[0];
                 }
                 result = vir_ITOF(c, result);
                 vir_set_pack(c->defs[result.index], V3D_QPU_PACK_L);
@@ -1481,6 +1483,8 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
                 if (bit_size < 32) {
                         uint32_t mask = bit_size == 16 ? 0xffff : 0xff;
                         result = vir_AND(c, src[0], vir_uniform_ui(c, mask));
+                } else {
+                        result = src[0];
                 }
                 result = vir_UTOF(c, result);
                 vir_set_pack(c->defs[result.index], V3D_QPU_PACK_L);
@@ -1973,11 +1977,12 @@ emit_frag_end(struct v3d_compile *c)
          */
         if (c->output_position_index == -1 &&
             !(c->s->info.num_images || c->s->info.num_ssbos) &&
-            !c->s->info.fs.uses_discard &&
             !c->fs_key->sample_alpha_to_coverage &&
             c->output_sample_mask_index == -1 &&
             has_any_tlb_color_write) {
-                c->s->info.fs.early_fragment_tests = true;
+                c->s->info.fs.early_fragment_tests =
+                        !c->s->info.fs.uses_discard ||
+                        c->fs_key->can_earlyz_with_discard;
         }
 
         /* By default, Z buffer writes are implicit using the Z values produced
@@ -2084,12 +2089,12 @@ static bool
 mem_vectorize_callback(unsigned align_mul, unsigned align_offset,
                        unsigned bit_size,
                        unsigned num_components,
-                       unsigned hole_size,
+                       int64_t hole_size,
                        nir_intrinsic_instr *low,
                        nir_intrinsic_instr *high,
                        void *data)
 {
-        if (hole_size || !nir_num_components_valid(num_components))
+        if (hole_size > 0 || !nir_num_components_valid(num_components))
                 return false;
 
         /* TMU general access only supports 32-bit vectors */
@@ -2767,7 +2772,7 @@ ntq_emit_load_input(struct v3d_compile *c, nir_intrinsic_instr *instr)
 {
         /* XXX: Use ldvpmv (uniform offset) or ldvpmd (non-uniform offset).
          *
-         * Right now the driver sets PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR even
+         * Right now the driver sets support_indirect_inputs even
          * if we don't support non-uniform offsets because we also set the
          * lower_all_io_to_temps option in the NIR compiler. This ensures that
          * any indirect indexing on in/out variables is turned into indirect
@@ -2900,7 +2905,7 @@ emit_store_output_gs(struct v3d_compile *c, nir_intrinsic_instr *instr)
          */
          bool is_uniform_offset =
                  !vir_in_nonuniform_control_flow(c) &&
-                 !nir_src_is_divergent(instr->src[1]);
+                 !nir_src_is_divergent(&instr->src[1]);
          vir_VPM_WRITE_indirect(c, val, offset, is_uniform_offset);
 
         if (vir_in_nonuniform_control_flow(c)) {
@@ -2928,7 +2933,7 @@ emit_store_output_vs(struct v3d_compile *c, nir_intrinsic_instr *instr)
                                              vir_uniform_ui(c, base));
                 bool is_uniform_offset =
                         !vir_in_nonuniform_control_flow(c) &&
-                        !nir_src_is_divergent(instr->src[1]);
+                        !nir_src_is_divergent(&instr->src[1]);
                 vir_VPM_WRITE_indirect(c, val, offset, is_uniform_offset);
         }
 }
@@ -3154,7 +3159,7 @@ ntq_emit_load_unifa(struct v3d_compile *c, nir_intrinsic_instr *instr)
 
         /* We can only use unifa if the offset is uniform */
         nir_src offset = is_uniform ? instr->src[0] : instr->src[1];
-        if (nir_src_is_divergent(offset))
+        if (nir_src_is_divergent(&offset))
                 return false;
 
         /* Emitting loads from unifa may not be safe under non-uniform control
@@ -4370,7 +4375,7 @@ ntq_emit_if(struct v3d_compile *c, nir_if *nif)
         bool was_in_control_flow = c->in_control_flow;
         c->in_control_flow = true;
         if (!vir_in_nonuniform_control_flow(c) &&
-            !nir_src_is_divergent(nif->condition)) {
+            !nir_src_is_divergent(&nif->condition)) {
                 ntq_emit_uniform_if(c, nif);
         } else {
                 ntq_emit_nonuniform_if(c, nif);
@@ -4589,7 +4594,7 @@ ntq_emit_loop(struct v3d_compile *c, nir_loop *loop)
         struct qblock *save_loop_cont_block = c->loop_cont_block;
         struct qblock *save_loop_break_block = c->loop_break_block;
 
-        if (vir_in_nonuniform_control_flow(c) || loop->divergent) {
+        if (vir_in_nonuniform_control_flow(c) || nir_loop_is_divergent(loop)) {
                 ntq_emit_nonuniform_loop(c, loop);
         } else {
                 ntq_emit_uniform_loop(c, loop);

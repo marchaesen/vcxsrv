@@ -1266,6 +1266,9 @@ emit_v_mov_b16(Builder& bld, Definition dst, Operand op)
    Instruction* instr = bld.vop1(aco_opcode::v_mov_b16, dst, op);
    instr->valu().opsel[0] = op.physReg().byte() == 2;
    instr->valu().opsel[3] = dst.physReg().byte() == 2;
+
+   if (op.physReg().reg() < 256 && instr->valu().opsel[0])
+      instr->format = asVOP3(instr->format);
 }
 
 void
@@ -1563,9 +1566,15 @@ do_pack_2x16(lower_context* ctx, Builder& bld, Definition def, Operand lo, Opera
       return;
    }
 
+   /* v_pack_b32_f16 can be used for bit exact copies if:
+    * - fp16 input denorms are enabled, otherwise they get flushed to zero
+    * - signalling input NaNs are kept, which is the case with IEEE_MODE=0
+    *   GFX12+ always quiets signalling NaNs, IEEE_MODE was removed
+    */
    bool can_use_pack = (ctx->block->fp_mode.denorm16_64 & fp_denorm_keep_in) &&
                        (ctx->program->gfx_level >= GFX10 ||
-                        (ctx->program->gfx_level >= GFX9 && !lo.isLiteral() && !hi.isLiteral()));
+                        (ctx->program->gfx_level >= GFX9 && !lo.isLiteral() && !hi.isLiteral())) &&
+                       ctx->program->gfx_level < GFX12;
 
    if (can_use_pack) {
       Instruction* instr = bld.vop3(aco_opcode::v_pack_b32_f16, def, lo, hi);
@@ -1711,7 +1720,7 @@ handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context* ctx,
       if (it->second.def.physReg() == scc)
          writes_scc = true;
 
-      assert(!pi->tmp_in_scc || !(it->second.def.physReg() == pi->scratch_sgpr));
+      assert(!pi->needs_scratch_reg || it->second.def.physReg() != pi->scratch_sgpr);
 
       /* if src and dst reg are the same, remove operation */
       if (it->first == it->second.op.physReg()) {
@@ -1753,7 +1762,7 @@ handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context* ctx,
    }
 
    /* first, handle paths in the location transfer graph */
-   bool preserve_scc = pi->tmp_in_scc && !writes_scc;
+   bool preserve_scc = pi->needs_scratch_reg && pi->scratch_sgpr != scc && !writes_scc;
    bool skip_partial_copies = true;
    for (auto it = copy_map.begin();;) {
       if (copy_map.empty()) {
@@ -1936,8 +1945,11 @@ handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context* ctx,
          continue;
       }
 
-      if (preserve_scc && it->second.def.getTemp().type() == RegType::sgpr)
-         assert(!(it->second.def.physReg() == pi->scratch_sgpr));
+      if (it->second.def.getTemp().type() == RegType::sgpr) {
+         assert(it->second.def.physReg() != pi->scratch_sgpr);
+         assert(pi->needs_scratch_reg);
+         assert(!preserve_scc || pi->scratch_sgpr != scc);
+      }
 
       /* to resolve the cycle, we have to swap the src reg with the dst reg */
       copy_operation swap = it->second;
@@ -2053,23 +2065,24 @@ handle_operands_linear_vgpr(std::map<PhysReg, copy_operation>& copy_map, lower_c
    std::map<PhysReg, copy_operation> second_map(copy_map);
    handle_operands(second_map, ctx, gfx_level, pi);
 
-   bool tmp_in_scc = pi->tmp_in_scc;
-   if (tmp_in_scc) {
-      bld.sop1(aco_opcode::s_mov_b32, Definition(pi->scratch_sgpr, s1), Operand(scc, s1));
-      pi->tmp_in_scc = false;
+   assert(pi->needs_scratch_reg);
+   PhysReg scratch_sgpr = pi->scratch_sgpr;
+   if (scratch_sgpr != scc) {
+      bld.sop1(aco_opcode::s_mov_b32, Definition(scratch_sgpr, s1), Operand(scc, s1));
+      pi->scratch_sgpr = scc;
    }
    bld.sop1(Builder::s_not, Definition(exec, bld.lm), Definition(scc, s1), Operand(exec, bld.lm));
 
    handle_operands(copy_map, ctx, gfx_level, pi);
 
    bld.sop1(Builder::s_not, Definition(exec, bld.lm), Definition(scc, s1), Operand(exec, bld.lm));
-   if (tmp_in_scc) {
-      bld.sopc(aco_opcode::s_cmp_lg_i32, Definition(scc, s1), Operand(pi->scratch_sgpr, s1),
+   if (scratch_sgpr != scc) {
+      bld.sopc(aco_opcode::s_cmp_lg_i32, Definition(scc, s1), Operand(scratch_sgpr, s1),
                Operand::zero());
-      pi->tmp_in_scc = true;
+      pi->scratch_sgpr = scratch_sgpr;
    }
 
-   ctx->program->statistics[aco_statistic_copies] += tmp_in_scc ? 4 : 2;
+   ctx->program->statistics[aco_statistic_copies] += scratch_sgpr == scc ? 2 : 4;
 }
 
 void
@@ -2246,7 +2259,8 @@ lower_to_hw_instr(Program* program)
          }
 
          aco_ptr<Instruction> mov;
-         if (instr->isPseudo() && instr->opcode != aco_opcode::p_unit_test) {
+         if (instr->isPseudo() && instr->opcode != aco_opcode::p_unit_test &&
+             instr->opcode != aco_opcode::p_debug_info) {
             Pseudo_instruction* pi = &instr->pseudo();
 
             switch (instr->opcode) {
@@ -2329,9 +2343,9 @@ lower_to_hw_instr(Program* program)
                   handle_operands(copy_operations, &ctx, program->gfx_level, pi);
                break;
             }
-            case aco_opcode::p_exit_early_if: {
+            case aco_opcode::p_exit_early_if_not: {
                /* don't bother with an early exit near the end of the program */
-               if ((block->instructions.size() - 1 - instr_idx) <= 4 &&
+               if ((block->instructions.size() - 1 - instr_idx) <= 5 &&
                    block->instructions.back()->opcode == aco_opcode::s_endpgm) {
                   unsigned null_exp_dest =
                      program->gfx_level >= GFX11 ? V_008DFC_SQ_EXP_MRT : V_008DFC_SQ_EXP_NULL;
@@ -2349,6 +2363,9 @@ lower_to_hw_instr(Program* program)
                      else if (instr2->opcode == aco_opcode::p_parallelcopy &&
                               instr2->definitions[0].isFixed() &&
                               instr2->definitions[0].physReg() == exec)
+                        continue;
+                     else if (instr2->opcode == aco_opcode::s_sendmsg &&
+                              instr2->salu().imm == sendmsg_dealloc_vgprs)
                         continue;
 
                      ignore_early_exit = false;
@@ -2373,6 +2390,12 @@ lower_to_hw_instr(Program* program)
                   }
                   block = &program->blocks[block_idx];
 
+                  /* sendmsg(dealloc_vgprs) releases scratch, so it isn't safe if there is an
+                   * in-progress scratch store. */
+                  wait_imm wait;
+                  if (should_dealloc_vgprs && uses_scratch(program))
+                     wait.vs = 0;
+
                   bld.reset(discard_block);
                   if (program->has_pops_overlapped_waves_wait &&
                       (program->gfx_level >= GFX11 || discard_sends_pops_done)) {
@@ -2381,15 +2404,15 @@ lower_to_hw_instr(Program* program)
                       * waitcnt insertion doesn't work in a discard early exit block.
                       */
                      if (program->gfx_level >= GFX10)
-                        bld.sopk(aco_opcode::s_waitcnt_vscnt, Operand(sgpr_null, s1), 0);
-                     wait_imm pops_exit_wait_imm;
-                     pops_exit_wait_imm.vm = 0;
+                        wait.vs = 0;
+                     wait.vm = 0;
                      if (program->has_smem_buffer_or_global_loads)
-                        pops_exit_wait_imm.lgkm = 0;
-                     bld.sopp(aco_opcode::s_waitcnt, pops_exit_wait_imm.pack(program->gfx_level));
+                        wait.lgkm = 0;
+                     wait.build_waitcnt(bld);
                   }
                   if (discard_sends_pops_done)
                      bld.sopp(aco_opcode::s_sendmsg, sendmsg_ordered_ps_done);
+
                   unsigned target = V_008DFC_SQ_EXP_NULL;
                   if (program->gfx_level >= GFX11)
                      target =
@@ -2397,17 +2420,21 @@ lower_to_hw_instr(Program* program)
                   if (program->stage == fragment_fs)
                      bld.exp(aco_opcode::exp, Operand(v1), Operand(v1), Operand(v1), Operand(v1), 0,
                              target, false, true, true);
-                  if (should_dealloc_vgprs) {
-                     bld.sopp(aco_opcode::s_nop, 0);
+
+                  wait.build_waitcnt(bld);
+                  if (should_dealloc_vgprs)
                      bld.sopp(aco_opcode::s_sendmsg, sendmsg_dealloc_vgprs);
-                  }
+
                   bld.sopp(aco_opcode::s_endpgm);
 
                   bld.reset(&ctx.instructions);
                }
 
-               assert(instr->operands[0].physReg() == scc);
-               bld.sopp(aco_opcode::s_cbranch_scc0, instr->operands[0], discard_block->index);
+               assert(instr->operands[0].physReg() == scc || instr->operands[0].physReg() == exec);
+               if (instr->operands[0].physReg() == scc)
+                  bld.sopp(aco_opcode::s_cbranch_scc0, discard_block->index);
+               else
+                  bld.sopp(aco_opcode::s_cbranch_execz, discard_block->index);
 
                discard_block->linear_preds.push_back(block->index);
                block->linear_succs.push_back(discard_block->index);
@@ -2534,7 +2561,11 @@ lower_to_hw_instr(Program* program)
                      bld.sop2(signext ? aco_opcode::s_bfe_i32 : aco_opcode::s_bfe_u32, dst,
                               instr->definitions[1], op, Operand::c32((bits << 16) | offset));
                   }
-               } else if (dst.regClass() == v1 && op.physReg().byte() == 0) {
+               } else if (dst.regClass() == v1) {
+                  if (op.physReg().byte()) {
+                     offset += op.physReg().byte() * 8;
+                     op = Operand(PhysReg(op.physReg().reg()), v1);
+                  }
                   assert(op.physReg().byte() == 0 && dst.physReg().byte() == 0);
                   if (offset == (32 - bits) && op.regClass() != s1) {
                      bld.vop2(signext ? aco_opcode::v_ashrrev_i32 : aco_opcode::v_lshrrev_b32, dst,
@@ -2555,7 +2586,7 @@ lower_to_hw_instr(Program* program)
 
                      uint8_t swiz[4] = {4, 5, 6, 7};
                      swiz[dst.physReg().byte()] = op_vgpr_byte;
-                     if (bits == 16)
+                     if (bits == 16 && dst.bytes() >= 2)
                         swiz[dst.physReg().byte() + 1] = op_vgpr_byte + 1;
                      for (unsigned i = bits / 8; i < dst.bytes(); i++) {
                         uint8_t ext = bperm_0;
@@ -2818,140 +2849,6 @@ lower_to_hw_instr(Program* program)
             }
             default: break;
             }
-         } else if (instr->isBranch()) {
-            Pseudo_branch_instruction* branch = &instr->branch();
-            const uint32_t target = branch->target[0];
-            const bool uniform_branch = !((branch->opcode == aco_opcode::p_cbranch_z ||
-                                           branch->opcode == aco_opcode::p_cbranch_nz) &&
-                                          branch->operands[0].physReg() == exec);
-
-            if (branch->never_taken) {
-               assert(!uniform_branch);
-               continue;
-            }
-
-            /* Check if the branch instruction can be removed.
-             * This is beneficial when executing the next block with an empty exec mask
-             * is faster than the branch instruction itself.
-             *
-             * Override this judgement when:
-             * - The application prefers to remove control flow
-             * - The compiler stack knows that it's a divergent branch always taken
-             */
-            const bool prefer_remove = branch->rarely_taken;
-            bool can_remove = block->index < target;
-            unsigned num_scalar = 0;
-            unsigned num_vector = 0;
-
-            /* Check the instructions between branch and target */
-            for (unsigned i = block->index + 1; i < branch->target[0]; i++) {
-               /* Uniform conditional branches must not be ignored if they
-                * are about to jump over actual instructions */
-               if (uniform_branch && !program->blocks[i].instructions.empty())
-                  can_remove = false;
-
-               if (!can_remove)
-                  break;
-
-               for (aco_ptr<Instruction>& inst : program->blocks[i].instructions) {
-                  if (inst->isSOPP()) {
-                     if (instr_info.classes[(int)inst->opcode] == instr_class::branch) {
-                        /* Discard early exits and loop breaks and continues should work fine with
-                         * an empty exec mask.
-                         */
-                        bool is_break_continue =
-                           program->blocks[i].kind & (block_kind_break | block_kind_continue);
-                        bool discard_early_exit =
-                           program->blocks[inst->salu().imm].kind & block_kind_discard_early_exit;
-                        if ((inst->opcode != aco_opcode::s_cbranch_scc0 &&
-                             inst->opcode != aco_opcode::s_cbranch_scc1) ||
-                            (!discard_early_exit && !is_break_continue))
-                           can_remove = false;
-                     } else {
-                        can_remove = false;
-                     }
-                  } else if (inst->isSALU()) {
-                     num_scalar++;
-                  } else if (inst->isVALU() || inst->isVINTRP()) {
-                     if (instr->opcode == aco_opcode::v_writelane_b32 ||
-                         instr->opcode == aco_opcode::v_writelane_b32_e64) {
-                        /* writelane ignores exec, writing inactive lanes results in UB. */
-                        can_remove = false;
-                     }
-                     num_vector++;
-                     /* VALU which writes SGPRs are always executed on GFX10+ */
-                     if (ctx.program->gfx_level >= GFX10) {
-                        for (Definition& def : inst->definitions) {
-                           if (def.regClass().type() == RegType::sgpr)
-                              num_scalar++;
-                        }
-                     }
-                  } else if (inst->isEXP() || inst->isSMEM() || inst->isBarrier()) {
-                     /* Export instructions with exec=0 can hang some GFX10+ (unclear on old GPUs),
-                      * SMEM might be an invalid access, and barriers are probably expensive. */
-                     can_remove = false;
-                  } else if (inst->isVMEM() || inst->isFlatLike() || inst->isDS() ||
-                             inst->isLDSDIR()) {
-                     // TODO: GFX6-9 can use vskip
-                     can_remove = prefer_remove;
-                  } else {
-                     can_remove = false;
-                     assert(false && "Pseudo instructions should be lowered by this point.");
-                  }
-
-                  if (!prefer_remove) {
-                     /* Under these conditions, we shouldn't remove the branch.
-                      * Don't care about the estimated cycles when the shader prefers flattening.
-                      */
-                     unsigned est_cycles;
-                     if (ctx.program->gfx_level >= GFX10)
-                        est_cycles = num_scalar * 2 + num_vector;
-                     else
-                        est_cycles = num_scalar * 4 + num_vector * 4;
-
-                     if (est_cycles > 16)
-                        can_remove = false;
-                  }
-
-                  if (!can_remove)
-                     break;
-               }
-            }
-
-            if (can_remove)
-               continue;
-
-            /* emit branch instruction */
-            switch (instr->opcode) {
-            case aco_opcode::p_branch:
-               assert(block->linear_succs[0] == target);
-               bld.sopp(aco_opcode::s_branch, branch->definitions[0], target);
-               break;
-            case aco_opcode::p_cbranch_nz:
-               assert(block->linear_succs[1] == target);
-               if (branch->operands[0].physReg() == exec)
-                  bld.sopp(aco_opcode::s_cbranch_execnz, branch->definitions[0], target);
-               else if (branch->operands[0].physReg() == vcc)
-                  bld.sopp(aco_opcode::s_cbranch_vccnz, branch->definitions[0], target);
-               else {
-                  assert(branch->operands[0].physReg() == scc);
-                  bld.sopp(aco_opcode::s_cbranch_scc1, branch->definitions[0], target);
-               }
-               break;
-            case aco_opcode::p_cbranch_z:
-               assert(block->linear_succs[1] == target);
-               if (branch->operands[0].physReg() == exec)
-                  bld.sopp(aco_opcode::s_cbranch_execz, branch->definitions[0], target);
-               else if (branch->operands[0].physReg() == vcc)
-                  bld.sopp(aco_opcode::s_cbranch_vccz, branch->definitions[0], target);
-               else {
-                  assert(branch->operands[0].physReg() == scc);
-                  bld.sopp(aco_opcode::s_cbranch_scc0, branch->definitions[0], target);
-               }
-               break;
-            default: unreachable("Unknown Pseudo branch instruction!");
-            }
-
          } else if (instr->isReduction()) {
             Pseudo_reduction_instruction& reduce = instr->reduction();
             emit_reduction(&ctx, reduce.opcode, reduce.reduce_op, reduce.cluster_size,
@@ -3019,7 +2916,7 @@ lower_to_hw_instr(Program* program)
       block->instructions = std::move(ctx.instructions);
    }
 
-   /* If block with p_end_with_regs is not the last block (i.e. p_exit_early_if may append exit
+   /* If block with p_end_with_regs is not the last block (i.e. p_exit_early_if_not may append exit
     * block at last), create an exit block for it to branch to.
     */
    int last_block_index = program->blocks.size() - 1;

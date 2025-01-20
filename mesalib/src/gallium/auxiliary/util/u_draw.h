@@ -47,6 +47,17 @@ util_draw_init_info(struct pipe_draw_info *info)
    info->max_index = 0xffffffff;
 }
 
+static inline void
+util_draw_init_info_with_mode(struct pipe_draw_info *info,
+                              enum mesa_prim mode)
+{
+   util_draw_init_info(info);
+#if defined(__GNUC__) /* See conditional definition of struct pipe_draw_info */
+   info->mode = mode;
+#else
+   info->mode = (uint8_t)mode;
+#endif
+}
 
 static inline void
 util_draw_arrays(struct pipe_context *pipe,
@@ -57,8 +68,7 @@ util_draw_arrays(struct pipe_context *pipe,
    struct pipe_draw_info info;
    struct pipe_draw_start_count_bias draw;
 
-   util_draw_init_info(&info);
-   info.mode = mode;
+   util_draw_init_info_with_mode(&info, mode);
    info.min_index = start;
    info.max_index = start + count - 1;
 
@@ -80,11 +90,10 @@ util_draw_elements(struct pipe_context *pipe,
    struct pipe_draw_info info;
    struct pipe_draw_start_count_bias draw;
 
-   util_draw_init_info(&info);
+   util_draw_init_info_with_mode(&info, mode);
    info.index.user = indices;
    info.has_user_indices = true;
-   info.index_size = index_size;
-   info.mode = mode;
+   info.index_size = (uint16_t)index_size;
    draw.index_bias = index_bias;
 
    draw.start = start;
@@ -104,8 +113,7 @@ util_draw_arrays_instanced(struct pipe_context *pipe,
    struct pipe_draw_info info;
    struct pipe_draw_start_count_bias draw;
 
-   util_draw_init_info(&info);
-   info.mode = mode;
+   util_draw_init_info_with_mode(&info, mode);
    info.start_instance = start_instance;
    info.instance_count = instance_count;
    info.index_bounds_valid = true;
@@ -133,11 +141,10 @@ util_draw_elements_instanced(struct pipe_context *pipe,
    struct pipe_draw_info info;
    struct pipe_draw_start_count_bias draw;
 
-   util_draw_init_info(&info);
+   util_draw_init_info_with_mode(&info, mode);
    info.index.user = indices;
    info.has_user_indices = true;
-   info.index_size = index_size;
-   info.mode = mode;
+   info.index_size = (uint16_t)index_size;
    draw.index_bias = index_bias;
    info.start_instance = start_instance;
    info.instance_count = instance_count;

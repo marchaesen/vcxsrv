@@ -67,6 +67,7 @@ struct u_transfer_helper;
 struct pipe_screen;
 struct util_queue_fence;
 struct pipe_video_buffer;
+struct nir_shader;
 
 typedef struct pipe_vertex_state *
    (*pipe_create_vertex_state_func)(struct pipe_screen *screen,
@@ -89,6 +90,8 @@ typedef void (*pipe_driver_thread_func)(void *job, void *gdata, int thread_index
 struct pipe_screen {
    int refcnt;
    void *winsys_priv;
+
+   const struct pipe_caps caps;
 
    /**
     * Get the fd associated with the screen
@@ -131,20 +134,8 @@ struct pipe_screen {
    const char *(*get_cl_cts_version)(struct pipe_screen *);
 
    /**
-    * Query an integer-valued capability/parameter/limit
-    * \param param  one of PIPE_CAP_x
-    */
-   int (*get_param)(struct pipe_screen *, enum pipe_cap param);
-
-   /**
-    * Query a float-valued capability/parameter/limit
-    * \param param  one of PIPE_CAP_x
-    */
-   float (*get_paramf)(struct pipe_screen *, enum pipe_capf param);
-
-   /**
     * Query a per-shader-stage integer-valued capability/parameter/limit
-    * \param param  one of PIPE_CAP_x
+    * \param param  one of pipe_caps.x
     */
    int (*get_shader_param)(struct pipe_screen *, enum pipe_shader_type shader,
                            enum pipe_shader_cap param);
@@ -175,7 +166,7 @@ struct pipe_screen {
 
    /**
     * Get the sample pixel grid's size. This function requires
-    * PIPE_CAP_PROGRAMMABLE_SAMPLE_LOCATIONS to be callable.
+    * pipe_caps.programmable_sample_locations to be callable.
     *
     * \param sample_count - total number of samples
     * \param out_width - the width of the pixel grid
@@ -640,7 +631,7 @@ struct pipe_screen {
     * The driver may return a non-NULL string to trigger GLSL link failure
     * and logging of that message in the GLSL linker log.
     */
-   char *(*finalize_nir)(struct pipe_screen *screen, void *nir);
+   char *(*finalize_nir)(struct pipe_screen *screen, struct nir_shader *nir);
 
    /*Separated memory/resource allocations interfaces for Vulkan */
 

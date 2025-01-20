@@ -14,9 +14,7 @@ foreach ver : pixel_format_versions
   libpanfrost_pixel_format += static_library(
     'pan-format-v' + ver,
     ['pan_format.c', pan_packers],
-    include_directories : [
-      inc_src, inc_include, inc_panfrost_hw, inc_panfrost_hw
-    ],
+    include_directories : [inc_src, inc_include],
     c_args : ['-DPAN_ARCH=' + ver],
     gnu_symbol_visibility : 'hidden',
     dependencies : [deps_for_libpanfrost, dep_valgrind],
@@ -34,7 +32,7 @@ foreach ver : ['4', '5', '6', '7', '9', '10']
       'pan_shader.c',
       'pan_texture.c',
     ],
-    include_directories : [inc_include, inc_src, inc_panfrost_hw],
+    include_directories : [inc_include, inc_src],
     c_args : ['-DPAN_ARCH=' + ver],
     gnu_symbol_visibility : 'hidden',
     dependencies : [deps_for_libpanfrost, idep_nir],
@@ -45,7 +43,7 @@ foreach ver : ['7']
   libpanfrost_per_arch += static_library(
     'pan-arch-indirect-v' + ver,
     'pan_indirect_dispatch.c',
-    include_directories : [inc_include, inc_src, inc_panfrost_hw],
+    include_directories : [inc_include, inc_src],
     c_args : ['-DPAN_ARCH=' + ver],
     gnu_symbol_visibility : 'hidden',
     dependencies : [deps_for_libpanfrost, idep_nir],
@@ -72,7 +70,7 @@ libpanfrost_lib_files = files(
 libpanfrost_lib = static_library(
   'panfrost_lib',
   [libpanfrost_lib_files, pan_packers],
-  include_directories : [inc_include, inc_src, inc_panfrost_hw],
+  include_directories : [inc_include, inc_src],
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
   dependencies: [dep_libdrm, idep_nir, idep_mesautil],
@@ -82,7 +80,7 @@ libpanfrost_lib = static_library(
 
 libpanfrost_dep = declare_dependency(
   link_with: [libpanfrost_lib, libpanfrost_decode, libpanfrost_midgard, libpanfrost_bifrost, libpanfrost_pixel_format, libpanfrost_per_arch],
-  include_directories: [inc_include, inc_src, inc_panfrost_hw, inc_panfrost],
+  include_directories: [inc_include, inc_src, inc_panfrost],
   dependencies: [deps_for_libpanfrost, libpankmod_dep, idep_nir],
 )
 

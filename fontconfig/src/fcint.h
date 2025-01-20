@@ -799,6 +799,12 @@ FcCharSetPromote (FcValuePromotionBuffer *vbuf);
 FcPrivate void
 FcLangCharSetPopulate (void);
 
+FcPrivate FcBool
+FcLangIsExclusive (const FcChar8  *lang);
+
+FcPrivate const FcChar8*
+FcLangIsExclusiveFromOs2 (unsigned long os2ulUnicodeRange1, unsigned long os2ulUnicodeRange2);
+
 FcPrivate FcCharSetFreezer *
 FcCharSetFreezerCreate (void);
 

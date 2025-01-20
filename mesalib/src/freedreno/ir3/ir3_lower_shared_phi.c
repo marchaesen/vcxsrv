@@ -41,7 +41,8 @@ lower_phi(void *ctx, struct ir3_instruction *phi)
    for (unsigned i = 0; i < block->predecessors_count; i++) {
       struct ir3_block *pred = block->predecessors[i];
       if (phi->srcs[i]->def) {
-         struct ir3_instruction *pred_mov = ir3_instr_create(pred, OPC_MOV, 1, 1);
+         struct ir3_instruction *pred_mov =
+            ir3_instr_create_at(ir3_before_terminator(pred), OPC_MOV, 1, 1);
          pred_mov->uses = _mesa_pointer_set_create(ctx);
          __ssa_dst(pred_mov)->flags |= (phi->srcs[i]->flags & IR3_REG_HALF);
          unsigned src_flags = IR3_REG_SSA | IR3_REG_SHARED |
@@ -60,12 +61,11 @@ lower_phi(void *ctx, struct ir3_instruction *phi)
 
    phi->dsts[0]->flags &= ~IR3_REG_SHARED;
 
-   struct ir3_instruction *shared_mov =
-      ir3_MOV(block, phi,
-              (phi->dsts[0]->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32);
+   struct ir3_builder build = ir3_builder_at(ir3_after_phis(block));
+   struct ir3_instruction *shared_mov = ir3_MOV(
+      &build, phi, (phi->dsts[0]->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32);
    shared_mov->uses = _mesa_pointer_set_create(ctx);
    shared_mov->dsts[0]->flags |= IR3_REG_SHARED;
-   ir3_instr_move_after_phis(shared_mov, block);
 
    foreach_ssa_use (use, phi) {
       for (unsigned i = 0; i < use->srcs_count; i++) {

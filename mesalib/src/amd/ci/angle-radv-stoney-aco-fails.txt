@@ -92,3 +92,6 @@ dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.no_rebind_rbo_bgra_depth_c
 
 # new with ANGLE 2024-10-17
 KHR-GLES31.core.texture_buffer.texture_buffer_max_size,Fail
+KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreCS,Fail
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra,Fail

@@ -114,6 +114,7 @@ bi_count_write_registers(const bi_instr *ins, unsigned d)
 
       case BI_OPCODE_TEX_SINGLE:
       case BI_OPCODE_TEX_FETCH:
+      case BI_OPCODE_TEX_GRADIENT:
       case BI_OPCODE_TEX_GATHER: {
          unsigned chans = util_bitcount(ins->write_mask);
 

@@ -197,7 +197,7 @@ lower_emit_vertex(nir_intrinsic_instr *instr, nir_builder *b, struct lower_state
          for (unsigned j = 0; j < state->num_point_coords; ++j) {
             unsigned num_channels = glsl_get_components(state->point_coord_out[j]->type);
             unsigned mask = (1 << num_channels) - 1;
-            nir_store_var(b, state->point_coord_out[j], nir_channels(b, point_coord, mask), mask);
+            nir_store_var(b, state->point_coord_out[j], nir_channels(b, point_coord, (nir_component_mask_t)mask), (nir_component_mask_t)mask);
          }
 
          /* EmitVertex */
@@ -302,8 +302,8 @@ d3d12_lower_point_sprite(nir_shader *shader,
 
    util_dynarray_fini(&state.output_writes);
    shader->info.gs.output_primitive = MESA_PRIM_TRIANGLE_STRIP;
-   shader->info.gs.vertices_out = shader->info.gs.vertices_out * 4 /
-      util_bitcount(shader->info.gs.active_stream_mask);
+   shader->info.gs.vertices_out = (uint16_t) (shader->info.gs.vertices_out * 4 /
+      util_bitcount(shader->info.gs.active_stream_mask));
    shader->info.gs.active_stream_mask = 1;
 
    return progress;

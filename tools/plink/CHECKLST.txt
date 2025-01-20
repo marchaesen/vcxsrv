@@ -133,7 +133,9 @@ Making a release candidate build
        + on at least a reasonably current stable Linux distro, and
          also try Debian sid
        + test-build with all of GTK 1, 2 and 3
-       + test-build with -DNOT_X_WINDOWS
+       + test-build with -DNOT_X_WINDOWS (compile flag)
+       + test-build with -DPUTTY_GSSAPI=OFF (cmake flag)
+       + test-build with -DPUTTY_IPV6=OFF (cmake flag)
     * test that the Windows source builds with Visual Studio (just in
       case there's an unguarded clangism that would prevent it)
     * quick check of the outlying network protocols (Telnet, SUPDUP

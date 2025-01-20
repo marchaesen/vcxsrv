@@ -33,8 +33,6 @@ agx_disassemble(void *_code, size_t maxlen, FILE *fp)
 
 FILE *agxdecode_dump_stream;
 
-#define MAX_MAPPINGS 4096
-
 struct agxdecode_ctx {
    struct util_dynarray mmap_array;
    uint64_t shader_base;
@@ -113,7 +111,7 @@ __agxdecode_fetch_gpu_mem(struct agxdecode_ctx *ctx, const struct agx_bo *mem,
       assert(0);
    }
 
-   memcpy(buf, mem->map + gpu_va - mem->va->addr, size);
+   memcpy(buf, mem->_map + gpu_va - mem->va->addr, size);
 
    return size;
 }
@@ -274,7 +272,7 @@ agxdecode_usc(struct agxdecode_ctx *ctx, const uint8_t *map,
 {
    enum agx_sampler_states *sampler_states = data;
    enum agx_usc_control type = map[0];
-   uint8_t buf[8192];
+   uint8_t buf[3072];
 
    bool extended_samplers =
       (sampler_states != NULL) &&
@@ -569,12 +567,17 @@ agxdecode_cdm(struct agxdecode_ctx *ctx, const uint8_t *map, uint64_t *link,
       agx_unpack(agxdecode_dump_stream, map, CDM_STREAM_LINK, hdr);
       DUMP_UNPACKED(CDM_STREAM_LINK, hdr, "Stream Link\n");
       *link = hdr.target_lo | (((uint64_t)hdr.target_hi) << 32);
-      return STATE_LINK;
+      return hdr.with_return ? STATE_CALL : STATE_LINK;
    }
 
    case AGX_CDM_BLOCK_TYPE_STREAM_TERMINATE: {
       DUMP_CL(CDM_STREAM_TERMINATE, map, "Stream Terminate");
       return STATE_DONE;
+   }
+
+   case AGX_CDM_BLOCK_TYPE_STREAM_RETURN: {
+      DUMP_CL(CDM_STREAM_RETURN, map, "Stream Return");
+      return STATE_RET;
    }
 
    case AGX_CDM_BLOCK_TYPE_BARRIER: {
@@ -739,6 +742,7 @@ agxdecode_vdm(struct agxdecode_ctx *ctx, const uint8_t *map, uint64_t *link,
    }
 }
 
+#if __APPLE__
 static void
 agxdecode_cs(struct agxdecode_ctx *ctx, uint32_t *cmdbuf, uint64_t encoder,
              bool verbose, decoder_params *params)
@@ -794,6 +798,7 @@ agxdecode_gfx(struct agxdecode_ctx *ctx, uint32_t *cmdbuf, uint64_t encoder,
                          params, NULL);
    }
 }
+#endif
 
 static void
 agxdecode_sampler_heap(struct agxdecode_ctx *ctx, uint64_t heap, unsigned count)
@@ -843,6 +848,18 @@ agxdecode_image_heap(struct agxdecode_ctx *ctx, uint64_t heap,
    }
 
    free(map);
+}
+
+static void
+agxdecode_helper(struct agxdecode_ctx *ctx, const char *prefix, uint64_t helper)
+{
+   if (helper & 1) {
+      fprintf(agxdecode_dump_stream, "%s helper program:\n", prefix);
+      uint8_t buf[1024];
+      agx_disassemble(
+         buf, agxdecode_fetch_gpu_array(ctx, decode_usc(ctx, helper & ~1), buf),
+         agxdecode_dump_stream);
+   }
 }
 
 void
@@ -924,6 +941,9 @@ agxdecode_drm_cmd_render(struct agxdecode_ctx *ctx,
       DUMP_FIELD((&fragment_attachments[i]), "0x%llx", size);
       DUMP_FIELD((&fragment_attachments[i]), "0x%llx", pointer);
    }
+
+   agxdecode_helper(ctx, "Vertex", c->vertex_helper_program);
+   agxdecode_helper(ctx, "Fragment", c->fragment_helper_program);
 }
 
 void
@@ -941,15 +961,7 @@ agxdecode_drm_cmd_compute(struct agxdecode_ctx *ctx,
    DUMP_FIELD(c, "0x%x", cmd_id);
 
    agxdecode_sampler_heap(ctx, c->sampler_array, c->sampler_count);
-
-   if (c->helper_program & 1) {
-      fprintf(agxdecode_dump_stream, "Helper program:\n");
-      uint8_t buf[1024];
-      agx_disassemble(buf,
-                      agxdecode_fetch_gpu_array(
-                         ctx, decode_usc(ctx, c->helper_program & ~1), buf),
-                      agxdecode_dump_stream);
-   }
+   agxdecode_helper(ctx, "Compute", c->helper_program);
 }
 
 static void

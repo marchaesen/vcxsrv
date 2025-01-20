@@ -38,8 +38,9 @@
 #define RADEON_VCN_IB_COMMON_OP_WRITEMEMORY                           (0x33000001)
 
 struct rvcn_sq_var {
-   unsigned int *ib_total_size_in_dw;
-   unsigned int *ib_checksum;
+   unsigned int *signature_ib_checksum;
+   unsigned int *signature_ib_total_size_in_dw;
+   unsigned int *engine_ib_size_of_packages;
 };
 
 struct rvcn_cmn_engine_ib_package {

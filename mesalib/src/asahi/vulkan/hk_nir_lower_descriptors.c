@@ -6,8 +6,7 @@
  */
 #include "pipe/p_defines.h"
 #include "vulkan/vulkan_core.h"
-#include "agx_nir_passes.h"
-#include "agx_pack.h"
+#include "agx_nir_texture.h"
 #include "hk_cmd_buffer.h"
 #include "hk_descriptor_set.h"
 #include "hk_descriptor_set_layout.h"
@@ -16,7 +15,6 @@
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_builder_opcodes.h"
-#include "nir_deref.h"
 #include "nir_intrinsics.h"
 #include "nir_intrinsics_indices.h"
 #include "shader_enums.h"
@@ -494,6 +492,21 @@ lower_uvs_index(nir_builder *b, nir_intrinsic_instr *intrin, void *data)
        * TODO: Optimize case where we *know* the query is present?
        */
       nir_def *present = nir_ine_imm(b, nir_iand_imm(b, flags, bit), 0);
+
+      /* Sometimes we insert a GS internally, it should not contribute to GS
+       * statistics. This is not strictly needed for Vulkan but vkd3d-proton
+       * tests it and we should avoid the surprising behaviour.
+       */
+      if (query == PIPE_STAT_QUERY_GS_INVOCATIONS ||
+          query == PIPE_STAT_QUERY_GS_PRIMITIVES) {
+
+         unsigned api_gs_offset = hk_root_descriptor_offset(draw.api_gs);
+         nir_def *api_gs =
+            load_root(b, 1, 16, nir_imm_int(b, api_gs_offset), 4);
+
+         present = nir_iand(b, present, nir_ine_imm(b, api_gs, 0));
+      }
+
       addr = nir_bcsel(b, present, addr, nir_imm_int64(b, 0));
 
       nir_def_rewrite_uses(&intrin->def, addr);

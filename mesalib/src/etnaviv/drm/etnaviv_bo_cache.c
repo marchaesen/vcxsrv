@@ -76,7 +76,7 @@ void etna_bo_cache_cleanup(struct etna_bo_cache *cache, time_t time)
 		struct etna_bo *bo;
 
 		while (!list_is_empty(&bucket->list)) {
-			bo = list_entry(bucket->list.next, struct etna_bo, list);
+			bo = list_first_entry(&bucket->list, struct etna_bo, list);
 
 			/* keep things in cache for at least 1 second: */
 			if (time && ((time - bo->free_time) <= 1))
@@ -124,7 +124,7 @@ static struct etna_bo *find_in_bucket(struct etna_bo_bucket *bucket, uint32_t fl
 
 		/* check if the first BO with matching flags is idle */
 		if (etna_bo_is_idle(bo)) {
-			list_delinit(&bo->list);
+			list_del(&bo->list);
 			goto out_unlock;
 		}
 
@@ -185,6 +185,7 @@ int etna_bo_cache_free(struct etna_bo_cache *cache, struct etna_bo *bo)
 
 		bo->free_time = time.tv_sec;
 		VG_BO_RELEASE(bo);
+		assert(!list_is_linked(&bo->list));
 		list_addtail(&bo->list, &bucket->list);
 		etna_bo_cache_cleanup(cache, time.tv_sec);
 

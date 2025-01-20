@@ -7,7 +7,6 @@ glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
-glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.1@line-smooth-stipple,Fail
@@ -19,7 +18,6 @@ spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,F
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
 spec@egl_chromium_sync_control@conformance,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
-spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@glsl-es-3.00@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@glsl-es-3.00@execution@built-in-functions@vs-packhalf2x16,Fail
@@ -32,13 +30,6 @@ spec@khr_texture_compression_astc@miptree-gles srgb-fp@sRGB decode full precisio
 # glcts failures
 GTF-GL46.gtf30.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_multisample,Fail
 GTF-GL46.gtf32.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_32_multisample,Fail
-KHR-GL46.sparse_texture2_tests.SparseTexture2Allocation,Fail
-KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment,Fail
-KHR-GL46.sparse_texture2_tests.StandardPageSizesTestCase,Fail
-KHR-GL46.sparse_texture2_tests.UncommittedRegionsAccess,Fail
-KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor,Fail
-KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupResidency,Fail
-KHR-GL46.tessellation_shader.tessellation_shader_tessellation.max_in_out_attributes,Crash
 
 # These are GLCTS bugs. See: https://gitlab.freedesktop.org/mesa/mesa/-/issues/10361
 GTF-GL46.gtf31.GL3Tests.uniform_buffer_object.uniform_buffer_object_accessing_info_for_block_with_an_instance_array,Fail
@@ -47,5 +38,3 @@ GTF-GL46.gtf31.GL3Tests.uniform_buffer_object.uniform_buffer_object_getactiveuni
 # escts failures
 KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreCS,Fail
 KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreVS,Fail
-KHR-GLES31.core.tessellation_shader.tessellation_shader_tessellation.max_in_out_attributes,Crash
-KHR-GLES32.core.tessellation_shader.tessellation_shader_tessellation.max_in_out_attributes,Crash

@@ -28,6 +28,8 @@
 #include <sstream>
 #include <mutex>
 
+#include "util/ralloc.h"
+#include "util/set.h"
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/IR/DiagnosticPrinter.h>
 #include <llvm/IR/DiagnosticInfo.h>
@@ -50,11 +52,16 @@
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Frontend/TextDiagnosticBuffer.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
+#include <clang/Frontend/Utils.h>
 #include <clang/Basic/TargetInfo.h>
 
 #include <spirv-tools/libspirv.hpp>
 #include <spirv-tools/linker.hpp>
 #include <spirv-tools/optimizer.hpp>
+
+#if LLVM_VERSION_MAJOR >= 20
+#include <llvm/Support/VirtualFileSystem.h>
+#endif
 
 #include "util/macros.h"
 #include "glsl_types.h"
@@ -776,7 +783,8 @@ clc_free_kernels_info(const struct clc_kernel_info *kernels,
 static std::unique_ptr<::llvm::Module>
 clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
                            const struct clc_compile_args *args,
-                           const struct clc_logger *logger)
+                           const struct clc_logger *logger,
+                           struct set *dependencies)
 {
    static_assert(std::has_unique_object_representations<clc_optional_features>(),
                  "no padding allowed inside clc_optional_features");
@@ -785,6 +793,11 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
    raw_string_ostream diag_log_stream { diag_log_str };
 
    std::unique_ptr<clang::CompilerInstance> c { new clang::CompilerInstance };
+   std::shared_ptr<clang::DependencyCollector> dep;
+   if (dependencies != nullptr) {
+      dep = std::make_shared<clang::DependencyCollector>();
+      c->addDependencyCollector(dep);
+   }
 
    clang::DiagnosticsEngine diag {
       new clang::DiagnosticIDs,
@@ -841,7 +854,11 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
    // http://www.llvm.org/bugs/show_bug.cgi?id=19735
    c->getDiagnosticOpts().ShowCarets = false;
 
-   c->createDiagnostics(new clang::TextDiagnosticPrinter(
+   c->createDiagnostics(
+#if LLVM_VERSION_MAJOR >= 20
+                   *llvm::vfs::getRealFileSystem(),
+#endif
+                   new clang::TextDiagnosticPrinter(
                            diag_log_stream,
                            &c->getDiagnosticOpts()));
 
@@ -984,6 +1001,9 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
       if (args->features.subgroups_shuffle_relative) {
          c->getPreprocessorOpts().addMacroDef("cl_khr_subgroup_shuffle_relative=1");
       }
+      if (args->features.subgroups_ballot) {
+         c->getPreprocessorOpts().addMacroDef("cl_khr_subgroup_ballot=1");
+      }
    }
    if (args->features.subgroups_ifp) {
       assert(args->features.subgroups);
@@ -1028,6 +1048,12 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
       clc_error(logger, "%sError executing LLVM compilation action.\n",
                 diag_log_str.c_str());
       return {};
+   }
+
+   if (dependencies != nullptr) {
+      for (auto dep : dep->getDependencies()) {
+         _mesa_set_add(dependencies, ralloc_strdup(dependencies, dep.c_str()));
+      }
    }
 
    auto mod = act.takeModule();
@@ -1151,7 +1177,8 @@ llvm_mod_to_spirv(std::unique_ptr<::llvm::Module> mod,
 int
 clc_c_to_spir(const struct clc_compile_args *args,
               const struct clc_logger *logger,
-              struct clc_binary *out_spir)
+              struct clc_binary *out_spir,
+              struct set *dependencies)
 {
    clc_initialize_llvm();
 
@@ -1159,7 +1186,7 @@ clc_c_to_spir(const struct clc_compile_args *args,
    llvm_ctx.setDiagnosticHandlerCallBack(llvm_log_handler,
                                          const_cast<clc_logger *>(logger));
 
-   auto mod = clc_compile_to_llvm_module(llvm_ctx, args, logger);
+   auto mod = clc_compile_to_llvm_module(llvm_ctx, args, logger, dependencies);
    if (!mod)
       return -1;
 
@@ -1177,7 +1204,8 @@ clc_c_to_spir(const struct clc_compile_args *args,
 int
 clc_c_to_spirv(const struct clc_compile_args *args,
                const struct clc_logger *logger,
-               struct clc_binary *out_spirv)
+               struct clc_binary *out_spirv,
+               struct set *dependencies)
 {
    clc_initialize_llvm();
 
@@ -1185,9 +1213,10 @@ clc_c_to_spirv(const struct clc_compile_args *args,
    llvm_ctx.setDiagnosticHandlerCallBack(llvm_log_handler,
                                          const_cast<clc_logger *>(logger));
 
-   auto mod = clc_compile_to_llvm_module(llvm_ctx, args, logger);
+   auto mod = clc_compile_to_llvm_module(llvm_ctx, args, logger, dependencies);
    if (!mod)
       return -1;
+
    return llvm_mod_to_spirv(std::move(mod), llvm_ctx, args, logger, out_spirv);
 }
 

@@ -73,6 +73,14 @@ struct term_utf8_decode {
 
 struct term_userpass_state;
 
+typedef enum {
+    OSCLIKE_OSC,
+    OSCLIKE_OSC_W,
+    OSCLIKE_APC,
+    OSCLIKE_SOS,
+    OSCLIKE_PM,
+} OscType;
+
 struct terminal_tag {
 
     int compatibility_level;
@@ -183,10 +191,9 @@ struct terminal_tag {
 #define ANSI_QUE(x)     ANSI(x,1)
 
 #define OSC_STR_MAX 2048
-    bool osc_is_apc;
+    OscType osc_type;
     int osc_strlen;
     char osc_string[OSC_STR_MAX + 1];
-    bool osc_w;
 
     char id_string[1024];
 
@@ -595,8 +602,8 @@ void lineedit_send_line(TermLineEditor *le);
     X(LE_INTERRUPT)           /* pass SS_IP back to client on ^C */ \
     X(LE_SUSPEND)             /* pass SS_SUSP back to client on ^Z */ \
     X(LE_ABORT)               /* pass SS_ABORT back to client on ^\ */ \
-    X(LE_EOF_ALWAYS)          /* pass SS_EOF to client on *any* ^Z
-                               * (X(not)just if the line buffer is empty) */ \
+    X(LE_EOF_ALWAYS)          /* pass SS_EOF to client on *any* ^D \
+                               * (not just if the line buffer is empty) */ \
     X(LE_ESC_ERASES)          /* make ESC erase the line, as well as ^U */ \
     X(LE_CRLF_NEWLINE)        /* interpret manual ^M^J the same as Return */ \
     /* end of list */

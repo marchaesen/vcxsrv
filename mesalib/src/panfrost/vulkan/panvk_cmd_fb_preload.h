@@ -8,6 +8,7 @@
 
 #include "panvk_cmd_buffer.h"
 
-VkResult panvk_per_arch(cmd_fb_preload)(struct panvk_cmd_buffer *cmdbuf);
+VkResult panvk_per_arch(cmd_fb_preload)(struct panvk_cmd_buffer *cmdbuf,
+                                        struct pan_fb_info *fbinfo);
 
 #endif

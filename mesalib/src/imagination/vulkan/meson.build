@@ -43,6 +43,7 @@ pvr_files = files(
   'pvr_job_context.c',
   'pvr_job_render.c',
   'pvr_job_transfer.c',
+  'pvr_nir.c',
   'pvr_pass.c',
   'pvr_pipeline.c',
   'pvr_transfer_frag_store.c',
@@ -60,8 +61,6 @@ pvr_files = files(
 )
 
 pvr_includes = [
-  include_directories('usc/programs'),
-  include_directories('usc'),
   include_directories('winsys'),
   libpowervr_pds_includes,
 ]
@@ -108,13 +107,14 @@ libvulkan_powervr_mesa = shared_library(
   ],
   link_with : [
     libpowervr_common,
+    libpowervr_compiler,
     libpowervr_pds,
     libpowervr_rogue,
     libvulkan_wsi,
   ],
   dependencies : [
     pvr_deps,
-    idep_nir,
+    idep_nir_headers,
   ],
   c_args : pvr_flags,
   link_args : [

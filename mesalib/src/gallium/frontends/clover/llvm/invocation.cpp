@@ -31,10 +31,6 @@
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Transforms/IPO/Internalize.h>
 #include <llvm-c/Target.h>
-#ifdef HAVE_CLOVER_SPIRV
-#include <LLVMSPIRVLib/LLVMSPIRVLib.h>
-#endif
-
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Transforms/PassBuilder.h>
 #include <llvm/Support/CBindingWrapping.h>
@@ -43,6 +39,10 @@
 #include <clang/Frontend/TextDiagnosticBuffer.h>
 #include <clang/Frontend/TextDiagnosticPrinter.h>
 #include <clang/Basic/TargetInfo.h>
+
+#if LLVM_VERSION_MAJOR >= 20
+#include <llvm/Support/VirtualFileSystem.h>
+#endif
 
 // We need to include internal headers last, because the internal headers
 // include CL headers which have #define's like:
@@ -58,9 +58,6 @@
 #include "llvm/invocation.hpp"
 #include "llvm/metadata.hpp"
 #include "llvm/util.hpp"
-#ifdef HAVE_CLOVER_SPIRV
-#include "spirv/invocation.hpp"
-#endif
 #include "util/algorithm.hpp"
 
 
@@ -312,7 +309,11 @@ namespace {
                                 ::llvm::Triple(target.triple),
                                 get_language_version(opts, device_clc_version));
 
-      c->createDiagnostics(new clang::TextDiagnosticPrinter(
+      c->createDiagnostics(
+#if LLVM_VERSION_MAJOR >= 20
+                           *llvm::vfs::getRealFileSystem(),
+#endif
+                           new clang::TextDiagnosticPrinter(
                               *new raw_string_ostream(r_log),
                               &c->getDiagnosticOpts(), true));
 
@@ -407,30 +408,6 @@ namespace {
 
       return act.takeModule();
    }
-
-#ifdef HAVE_CLOVER_SPIRV
-   SPIRV::TranslatorOpts
-   get_spirv_translator_options(const device &dev) {
-      const auto supported_versions = clover::spirv::supported_versions();
-      const auto max_supported = clover::spirv::to_spirv_version_encoding(supported_versions.back().version);
-      const auto maximum_spirv_version =
-         std::min(static_cast<SPIRV::VersionNumber>(max_supported),
-                  SPIRV::VersionNumber::MaximumVersion);
-
-      SPIRV::TranslatorOpts::ExtensionsStatusMap spirv_extensions;
-      for (auto &ext : clover::spirv::supported_extensions()) {
-         #define EXT(X) if (ext == #X) spirv_extensions.insert({ SPIRV::ExtensionID::X, true });
-         #include <LLVMSPIRVLib/LLVMSPIRVExtensions.inc>
-         #undef EXT
-      }
-
-      auto translator_opts = SPIRV::TranslatorOpts(maximum_spirv_version, spirv_extensions);
-#if LLVM_VERSION_MAJOR >= 13
-      translator_opts.setPreserveOCLKernelArgTypeMetadataThroughString(true);
-#endif
-      return translator_opts;
-   }
-#endif
 }
 
 binary
@@ -574,48 +551,3 @@ clover::llvm::link_program(const std::vector<binary> &binaries,
       unreachable("Unsupported IR.");
    }
 }
-
-#ifdef HAVE_CLOVER_SPIRV
-binary
-clover::llvm::compile_to_spirv(const std::string &source,
-                               const header_map &headers,
-                               const device &dev,
-                               const std::string &opts,
-                               std::string &r_log) {
-   if (has_flag(debug::clc))
-      debug::log(".cl", "// Options: " + opts + '\n' + source);
-
-   auto ctx = create_context(r_log);
-   const std::string target = dev.address_bits() == 32u ?
-      "-spir-unknown-unknown" :
-      "-spir64-unknown-unknown";
-   auto c = create_compiler_instance(dev, target,
-                                     tokenize(opts + " -O0 -fgnu89-inline input.cl"), r_log);
-   auto mod = compile(*ctx, *c, "input.cl", source, headers, dev, opts, false,
-                      r_log);
-
-   if (has_flag(debug::llvm))
-      debug::log(".ll", print_module_bitcode(*mod));
-
-   const auto spirv_options = get_spirv_translator_options(dev);
-
-   std::string error_msg;
-   std::ostringstream os;
-   if (!::llvm::writeSpirv(mod.get(), spirv_options, os, error_msg)) {
-      r_log += "Translation from LLVM IR to SPIR-V failed: " + error_msg + ".\n";
-      throw error(CL_INVALID_VALUE);
-   }
-
-   const std::string osContent = os.str();
-   std::string binary(osContent.begin(), osContent.end());
-   if (binary.empty()) {
-      r_log += "Failed to retrieve SPIR-V binary.\n";
-      throw error(CL_INVALID_VALUE);
-   }
-
-   if (has_flag(debug::spirv))
-      debug::log(".spvasm", spirv::print_module(binary, dev.device_version()));
-
-   return spirv::compile_program(binary, dev, r_log);
-}
-#endif

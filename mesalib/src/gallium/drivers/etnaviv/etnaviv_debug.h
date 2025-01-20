@@ -64,6 +64,7 @@ enum etna_dbg {
    ETNA_DBG_SHARED_TS       = BITFIELD_BIT(27), /* Enable TS sharing */
    ETNA_DBG_NPU_PARALLEL    = BITFIELD_BIT(28), /* Enable parallelism inside NPU batches (unsafe) */
    ETNA_DBG_NPU_NO_BATCHING = BITFIELD_BIT(29), /* Disable batching NPU jobs */
+   ETNA_DBG_NO_TEXDESC      = BITFIELD_BIT(30), /* Disable texture descriptor */
 };
 
 extern int etna_mesa_debug; /* set in etnaviv_screen.c from ETNA_MESA_DEBUG */

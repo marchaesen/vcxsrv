@@ -8,10 +8,6 @@ stages:
   - summary
 
 variables:
-  # Make it possible to change RUNNER_TAG from GitLab variables. The default
-  # `kvm` tag has been tested with FDO infrastructure.
-  RUNNER_TAG: kvm
-
   # Docker image global configuration.
   DOCKER_TAG: latest
   DOCKER_IMAGE_NAME: registry.freedesktop.org/pixman/pixman/pixman:${DOCKER_TAG}
@@ -20,7 +16,7 @@ variables:
   LOAD_TARGET_ENV: source .gitlab-ci.d/01-docker/target-env/${TARGET}.env
 
   # Enable/disable specific targets for code and platform coverage targets.
-  ACTIVE_TARGET_PATTERN: '/linux-386|linux-amd64|linux-arm-v5|linux-arm-v7|linux-arm64-v8|linux-mips|linux-mips64el|linux-mipsel|linux-ppc|linux-ppc64|linux-ppc64le|linux-riscv64|windows-686|windows-amd64|windows-arm64-v8/i'
+  ACTIVE_TARGET_PATTERN: '/linux-386|linux-amd64|linux-arm-v5|linux-arm-v7|linux-arm64-v8|linux-mips|linux-mips64le|linux-mipsel|linux-ppc|linux-ppc64|linux-ppc64le|linux-riscv64|windows-686|windows-amd64|windows-arm64-v8/i'
 
 workflow:
   rules:
@@ -45,9 +41,13 @@ workflow:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_TAG
 
+  auto_cancel:
+    on_new_commit: conservative
+    on_job_failure: all
+
 default:
   tags:
-    - $RUNNER_TAG
+    - kvm
 
   # Retry in case the runner is misconfigured for multi-arch builds or some
   # random unexpected runner error occurs (it happened during testing).

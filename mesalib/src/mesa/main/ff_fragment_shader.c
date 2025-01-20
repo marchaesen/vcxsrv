@@ -387,16 +387,18 @@ load_state_var(struct texenv_fragment_program *p,
 }
 
 static nir_def *
-load_input(struct texenv_fragment_program *p, gl_varying_slot slot,
-           const struct glsl_type *type)
+load_input(struct texenv_fragment_program *p, gl_varying_slot slot)
 {
-   nir_variable *var =
-      nir_get_variable_with_location(p->b->shader,
-                                     nir_var_shader_in,
-                                     slot,
-                                     type);
-   var->data.interpolation = INTERP_MODE_NONE;
-   return nir_load_var(p->b, var);
+   nir_def *baryc = nir_load_barycentric_pixel(p->b, 32);
+
+   if (slot != VARYING_SLOT_COL0 && slot != VARYING_SLOT_COL1) {
+      nir_intrinsic_set_interp_mode(nir_instr_as_intrinsic(baryc->parent_instr),
+                                    INTERP_MODE_SMOOTH);
+   }
+
+   return nir_load_interpolated_input(p->b, 4, 32, baryc,
+                                      nir_imm_int(p->b, 0),
+                                      .io_semantics.location = slot);
 }
 
 static nir_def *
@@ -411,7 +413,7 @@ static nir_def *
 get_gl_Color(struct texenv_fragment_program *p)
 {
    if (p->state->inputs_available & VARYING_BIT_COL0) {
-      return load_input(p, VARYING_SLOT_COL0, glsl_vec4_type());
+      return load_input(p, VARYING_SLOT_COL0);
    } else {
       return get_current_attrib(p, VERT_ATTRIB_COLOR0);
    }
@@ -752,9 +754,7 @@ load_texture(struct texenv_fragment_program *p, GLuint unit)
    if (!(p->state->inputs_available & (VARYING_BIT_TEX0 << unit))) {
       texcoord = get_current_attrib(p, VERT_ATTRIB_TEX0 + unit);
    } else {
-      texcoord = load_input(p,
-         VARYING_SLOT_TEX0 + unit,
-         glsl_vec4_type());
+      texcoord = load_input(p, VARYING_SLOT_TEX0 + unit);
    }
 
    if (!p->state->unit[unit].enabled) {
@@ -906,7 +906,7 @@ emit_instructions(struct texenv_fragment_program *p)
 
       nir_def *secondary;
       if (p->state->inputs_available & VARYING_BIT_COL1)
-         secondary = load_input(p, VARYING_SLOT_COL1, glsl_vec4_type());
+         secondary = load_input(p, VARYING_SLOT_COL1);
       else
          secondary = get_current_attrib(p, VERT_ATTRIB_COLOR1);
 
@@ -915,18 +915,8 @@ emit_instructions(struct texenv_fragment_program *p)
       cf = nir_fadd(p->b, spec_result, secondary);
    }
 
-   const char *name =
-      gl_frag_result_name(FRAG_RESULT_COLOR);
-   nir_variable *var =
-      nir_variable_create(p->b->shader, nir_var_shader_out,
-                          glsl_vec4_type(), name);
-
-   var->data.location = FRAG_RESULT_COLOR;
-   var->data.driver_location = p->b->shader->num_outputs++;
-
-   p->b->shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_COLOR);
-
-   nir_store_var(p->b, var, cf, 0xf);
+   nir_store_output(p->b, cf, nir_imm_int(p->b, 0),
+                    .io_semantics.location = FRAG_RESULT_COLOR);
 }
 
 /**
@@ -954,6 +944,7 @@ create_new_program(struct state_key *key,
 
    s->info.separate_shader = true;
    s->info.subgroup_size = SUBGROUP_SIZE_UNIFORM;
+   s->info.io_lowered = true;
 
    p.b = &b;
 

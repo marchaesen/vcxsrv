@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
+# shellcheck disable=SC1091 # paths only become valid at runtime
+
+. "${SCRIPTS_DIR}/setup-test-env.sh"
 
 set -ex
 
@@ -75,8 +78,8 @@ if [ -e "$INSTALL/$GPU_VERSION-skips.txt" ]; then
     PIGLIT_SKIPS="$PIGLIT_SKIPS $INSTALL/$GPU_VERSION-skips.txt"
 fi
 
-if [ -e "$INSTALL/$GPU_VERSION-merge-skips.txt" ] && [ -n "${IS_MERGE_PIPELINE:-}" ]; then
-    PIGLIT_SKIPS="$PIGLIT_SKIPS $INSTALL/$GPU_VERSION-merge-skips.txt"
+if [ -e "$INSTALL/$GPU_VERSION-slow-skips.txt" ] && [[ $CI_JOB_NAME != *full* ]]; then
+    PIGLIT_SKIPS="$PIGLIT_SKIPS $INSTALL/$GPU_VERSION-slow-skips.txt"
 fi
 
 if [ "$PIGLIT_PLATFORM" != "gbm" ] ; then
@@ -128,6 +131,6 @@ fi
 # Compress results.csv to save on bandwidth during the upload of artifacts to
 # GitLab. This reduces a full piglit run to 550 KB, down from 6 MB, and takes
 # 55ms on my Ryzen 5950X (with or without parallelism).
-zstd --rm -T0 -8qc $RESULTS_DIR/results.csv -o $RESULTS_DIR/results.csv.zst
+zstd --quiet --rm --threads ${FDO_CI_CONCURRENT:-0} -8 $RESULTS_DIR/results.csv -o $RESULTS_DIR/results.csv.zst
 
 exit $PIGLIT_EXITCODE

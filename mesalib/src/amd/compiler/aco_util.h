@@ -18,6 +18,7 @@
 #include <functional>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -793,7 +794,7 @@ template <typename T> struct bit_reference {
 
    constexpr bit_reference& operator&=(bool val)
    {
-      storage &= T(val) << bit;
+      storage &= ~(T(!val) << bit);
       return *this;
    }
 
@@ -1046,6 +1047,7 @@ template <typename T, unsigned offset, unsigned size>
 using bitfield_array64 = bitfield_array<T, offset, size, uint64_t>;
 
 using bitarray8 = bitfield_array<uint8_t, 0, 8, uint8_t>;
+using bitarray32 = bitfield_array<uint32_t, 0, 32, uint32_t>;
 
 /*
  * Resizable array optimized for small lengths. If it's smaller than Size, the elements will be
@@ -1053,7 +1055,8 @@ using bitarray8 = bitfield_array<uint8_t, 0, 8, uint8_t>;
  */
 template <typename T, uint32_t Size> class small_vec {
 public:
-   static_assert(std::is_trivial<T>::value);
+   /* We could support destructors with some effort, but currently there's no use case. */
+   static_assert(std::is_trivially_destructible<T>::value);
 
    using value_type = T;
    using pointer = value_type*;
@@ -1068,8 +1071,8 @@ public:
    using difference_type = std::ptrdiff_t;
 
    constexpr small_vec() = default;
-   constexpr small_vec(const small_vec&) = delete;
-   constexpr small_vec(small_vec&& other) { *this = std::move(other); }
+   constexpr small_vec(const small_vec& other) { *this = other; }
+   constexpr small_vec(small_vec&& other) noexcept { *this = std::move(other); }
 
    ~small_vec()
    {
@@ -1077,20 +1080,39 @@ public:
          free(data);
    }
 
-   constexpr small_vec& operator=(const small_vec&) = delete;
-   constexpr small_vec& operator=(small_vec&& other)
+   constexpr small_vec& operator=(const small_vec& other)
    {
+      if (&other == this)
+         return *this;
       clear();
-      void* ptr = this;
-      memcpy(ptr, &other, sizeof(*this));
+      reserve(other.capacity);
+      length = other.length;
+      std::uninitialized_copy(other.begin(), other.end(), begin());
+      return *this;
+   }
+
+   constexpr small_vec& operator=(small_vec&& other) noexcept
+   {
+      if (&other == this)
+         return *this;
+      clear();
+      length = other.length;
+      capacity = other.capacity;
+      if (capacity > Size)
+         data = other.data;
+      else
+         std::uninitialized_move(other.begin(), other.end(), begin());
       other.length = 0;
       other.capacity = Size;
       return *this;
    }
 
-   constexpr iterator begin() noexcept { return capacity > Size ? data : inline_data; }
+   constexpr iterator begin() noexcept { return capacity > Size ? data : (T*)inline_data; }
 
-   constexpr const_iterator begin() const noexcept { return capacity > Size ? data : inline_data; }
+   constexpr const_iterator begin() const noexcept
+   {
+      return capacity > Size ? data : (T*)inline_data;
+   }
 
    constexpr iterator end() noexcept { return std::next(begin(), length); }
 
@@ -1173,13 +1195,18 @@ public:
    constexpr void reserve(size_type n)
    {
       if (n > capacity) {
-         if (capacity > Size) {
-            data = (T*)realloc(data, sizeof(T) * n);
-         } else {
-            T* ptr = (T*)malloc(sizeof(T) * n);
-            memcpy(ptr, inline_data, sizeof(T) * length);
-            data = ptr;
+         if constexpr (std::is_trivial<T>::value) {
+            if (capacity > Size) {
+               data = (T*)realloc(data, sizeof(T) * n);
+               capacity = n;
+               return;
+            }
          }
+         T* ptr = (T*)malloc(sizeof(T) * n);
+         std::uninitialized_move(begin(), end(), ptr);
+         if (capacity > Size)
+            free(data);
+         data = ptr;
          capacity = n;
       }
    }
@@ -1189,7 +1216,7 @@ public:
       if (length == capacity)
          reserve(2 * capacity);
 
-      *std::next(begin(), length++) = val;
+      new (std::next(begin(), length++)) T(val);
    }
 
    template <typename... Args> constexpr void emplace_back(Args... args) noexcept
@@ -1197,7 +1224,43 @@ public:
       if (length == capacity)
          reserve(2 * capacity);
 
-      *std::next(begin(), length++) = T(args...);
+      new (std::next(begin(), length++)) T(args...);
+   }
+
+   constexpr void insert(const_iterator it, const value_type& val) noexcept
+   {
+      size_t idx = it - begin();
+      assert(idx <= size());
+
+      if (length == capacity)
+         reserve(2 * capacity);
+
+      if (idx == length) {
+         new (end()) T(val);
+      } else {
+         /* We can't do this one as part of move_backward because end() is uninitialized. */
+         new (end()) T(std::move(*(end() - 1)));
+         std::move_backward(std::next(begin(), idx), std::prev(end(), 1), end());
+         *std::next(begin(), idx) = val;
+      }
+      length++;
+   }
+
+   constexpr void erase(const_iterator it) noexcept
+   {
+      std::move(iterator(it) + 1, end(), iterator(it));
+      length--;
+   }
+
+   constexpr void resize(uint32_t new_size) noexcept
+   {
+      if (new_size > capacity)
+         reserve(new_size);
+
+      for (uint32_t i = length; i < new_size; i++)
+         new (std::next(begin(), i)) T();
+
+      length = new_size;
    }
 
    constexpr void clear() noexcept
@@ -1224,7 +1287,7 @@ private:
    uint32_t capacity = Size;
    union {
       T* data = NULL;
-      T inline_data[Size];
+      alignas(T) uint8_t inline_data[sizeof(T) * Size];
    };
 };
 

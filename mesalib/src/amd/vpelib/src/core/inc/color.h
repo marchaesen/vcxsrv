@@ -58,6 +58,13 @@ enum color_depth {
     COLOR_DEPTH_COUNT
 };
 
+enum color_range_type {
+    COLOR_RANGE_FULL,
+    COLOR_RANGE_LIMITED_8BPC,
+    COLOR_RANGE_LIMITED_10BPC,
+    COLOR_RANGE_LIMITED_16BPC
+};
+
 enum color_transfer_func {
     TRANSFER_FUNC_UNKNOWN,
     TRANSFER_FUNC_SRGB,
@@ -269,16 +276,31 @@ enum vpe_status vpe_color_update_whitepoint(
     const struct vpe_priv *vpe_priv, const struct vpe_build_param *param);
 
 enum vpe_status vpe_color_tm_update_hdr_mult(uint16_t shaper_in_exp_max, uint32_t peak_white,
-    struct fixed31_32 *hdr_multiplier, bool enable_3dlut);
+    struct fixed31_32 *hdr_multiplier, bool enable_3dlut, bool is_fp16);
+
+enum vpe_status vpe_color_build_shaper_cs(const struct vpe_tonemap_params *tm_params,
+    struct vpe_surface_info *surface_info, struct vpe_color_space *tm_out_cs);
 
 enum vpe_status vpe_color_update_shaper(const struct vpe_priv *vpe_priv, uint16_t shaper_in_exp_max,
-    struct transfer_func *shaper_func, bool enable_3dlut);
+    struct stream_ctx *stream_ctx, enum color_transfer_func tf_in_3dlut, bool enable_3dlut);
 
 enum vpe_status vpe_color_build_tm_cs(const struct vpe_tonemap_params *tm_params,
-    struct vpe_surface_info surface_info, struct vpe_color_space *vcs);
+    const struct vpe_surface_info *surface_info, struct vpe_color_space *vcs);
 
 enum vpe_status vpe_color_update_3dlut(
     struct vpe_priv *vpe_priv, struct stream_ctx *stream_ctx, bool enable_3dlut);
+
+bool vpe_color_update_regamma_tf(struct vpe_priv *vpe_priv,
+    enum color_transfer_func output_transfer_function, struct fixed31_32 x_scale,
+    struct fixed31_32 y_scale, struct fixed31_32 y_bias, bool can_bypass,
+    struct transfer_func *output_tf);
+
+bool vpe_color_update_degamma_tf(struct vpe_priv *vpe_priv, enum color_transfer_func color_input_tf,
+    struct fixed31_32 x_scale, struct fixed31_32 y_scale, struct fixed31_32 y_bias, bool can_bypass,
+    struct transfer_func *input_tf);
+
+enum color_range_type vpe_get_range_type(
+    enum color_space color_space, enum vpe_surface_pixel_format format);
 
 #ifdef __cplusplus
 }

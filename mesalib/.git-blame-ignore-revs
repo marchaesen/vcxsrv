@@ -65,3 +65,6 @@ c7bf3b69ebc8f2252dbf724a4de638e6bb2ac402
 
 # ir3: Reformat source with clang-format
 177138d8cb0b4f6a42ef0a1f8593e14d79f17c54
+
+# ir3: reformat after refactoring in previous commit
+8ae5b27ee0331a739d14b42e67586784d6840388

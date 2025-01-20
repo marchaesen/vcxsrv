@@ -73,7 +73,6 @@ vl_video_buffer_plane_order(enum pipe_format format)
 {
    switch(format) {
    case PIPE_FORMAT_YV12:
-   case PIPE_FORMAT_IYUV:
       return const_resource_plane_order_YVU;
 
    case PIPE_FORMAT_NV12:
@@ -91,10 +90,14 @@ vl_video_buffer_plane_order(enum pipe_format format)
    case PIPE_FORMAT_YUYV:
    case PIPE_FORMAT_UYVY:
    case PIPE_FORMAT_P010:
+   case PIPE_FORMAT_P012:
    case PIPE_FORMAT_P016:
+   case PIPE_FORMAT_Y8_400_UNORM:
+   case PIPE_FORMAT_IYUV:
       return const_resource_plane_order_YUV;
 
    default:
+      assert(0);
       return NULL;
    }
 }
@@ -120,6 +123,9 @@ vl_video_buffer_is_format_supported(struct pipe_screen *screen,
    enum pipe_format resource_formats[VL_NUM_COMPONENTS];
    unsigned i;
 
+   if (entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING && format == PIPE_FORMAT_R8_G8_B8_UNORM)
+      return false;
+
    vl_get_video_buffer_formats(screen, format, resource_formats);
 
    for (i = 0; i < VL_NUM_COMPONENTS; ++i) {
@@ -143,7 +149,7 @@ vl_video_buffer_is_format_supported(struct pipe_screen *screen,
 unsigned
 vl_video_buffer_max_size(struct pipe_screen *screen)
 {
-   return screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+   return screen->caps.max_texture_2d_size;
 }
 
 void
@@ -285,7 +291,7 @@ vl_video_buffer_sampler_view_components(struct pipe_video_buffer *buffer)
    struct pipe_context *pipe;
    enum pipe_format sampler_format[VL_NUM_COMPONENTS];
    const unsigned *plane_order;
-   unsigned i, j, component;
+   unsigned i, j, component, num_planes;
 
    assert(buf);
 
@@ -293,8 +299,9 @@ vl_video_buffer_sampler_view_components(struct pipe_video_buffer *buffer)
 
    vl_get_video_buffer_formats(pipe->screen, buf->base.buffer_format, sampler_format);
    plane_order = vl_video_buffer_plane_order(buf->base.buffer_format);
+   num_planes = util_format_get_num_planes(buf->base.buffer_format);
 
-   for (component = 0, i = 0; i < buf->num_planes; ++i ) {
+   for (component = 0, i = 0; i < num_planes; ++i) {
       struct pipe_resource *res = buf->resources[plane_order[i]];
       const struct util_format_description *desc = util_format_description(res->format);
       unsigned nr_components = util_format_get_nr_components(res->format);
@@ -320,7 +327,6 @@ vl_video_buffer_sampler_view_components(struct pipe_video_buffer *buffer)
             goto error;
       }
    }
-   assert(component == VL_NUM_COMPONENTS);
 
    return buf->sampler_view_components;
 
@@ -473,11 +479,13 @@ vl_video_buffer_create_ex2(struct pipe_context *pipe,
                            struct pipe_resource *resources[VL_NUM_COMPONENTS])
 {
    struct vl_video_buffer *buffer;
-   unsigned i;
+   unsigned i, num_planes;
 
    buffer = CALLOC_STRUCT(vl_video_buffer);
    if (!buffer)
       return NULL;
+
+   num_planes = util_format_get_num_planes(tmpl->buffer_format);
 
    buffer->base = *tmpl;
    buffer->base.context = pipe;
@@ -486,12 +494,14 @@ vl_video_buffer_create_ex2(struct pipe_context *pipe,
    buffer->base.get_sampler_view_planes = vl_video_buffer_sampler_view_planes;
    buffer->base.get_sampler_view_components = vl_video_buffer_sampler_view_components;
    buffer->base.get_surfaces = vl_video_buffer_surfaces;
-   buffer->num_planes = 0;
 
-   for (i = 0; i < VL_NUM_COMPONENTS; ++i) {
+   for (i = 0; i < num_planes; ++i)
       buffer->resources[i] = resources[i];
-      if (resources[i])
-         buffer->num_planes++;
+
+   /* Ignore auxiliary planes. */
+   for (; i < VL_NUM_COMPONENTS; ++i) {
+      struct pipe_resource *res = resources[i];
+      pipe_resource_reference(&res, NULL);
    }
 
    return &buffer->base;

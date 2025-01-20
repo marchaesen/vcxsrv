@@ -210,8 +210,8 @@ pipe_radeonsi_create_screen(int fd, const struct pipe_screen_config *config)
 const driOptionDescription radeonsi_driconf[] = {
       #include "radeonsi/driinfo_radeonsi.h"
 };
-DRM_DRIVER_DESCRIPTOR(radeonsi, radeonsi_driconf, ARRAY_SIZE(radeonsi_driconf))
-
+DRM_DRIVER_DESCRIPTOR(radeonsi, radeonsi_driconf, ARRAY_SIZE(radeonsi_driconf),
+                      .probe_nctx = si_virtgpu_probe_nctx)
 #else
 DRM_DRIVER_DESCRIPTOR_STUB(radeonsi)
 #endif

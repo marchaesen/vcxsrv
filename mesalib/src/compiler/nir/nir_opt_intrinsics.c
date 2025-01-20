@@ -23,6 +23,7 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_search_helpers.h"
 
 /**
  * \file nir_opt_intrinsics.c
@@ -87,6 +88,22 @@ try_opt_bcsel_of_shuffle(nir_builder *b, nir_alu_instr *alu,
    nir_def *shuffle = nir_shuffle(b, data1, index);
 
    return shuffle;
+}
+
+/* load_front_face ? a : -a -> load_front_face_sign * a */
+static nir_def *
+try_opt_front_face_fsign(nir_builder *b, nir_alu_instr *alu)
+{
+   if (alu->def.bit_size != 32 ||
+       !nir_src_as_intrinsic(alu->src[0].src) ||
+       nir_src_as_intrinsic(alu->src[0].src)->intrinsic != nir_intrinsic_load_front_face ||
+       !is_only_used_as_float(alu) ||
+       !nir_alu_srcs_negative_equal_typed(alu, alu, 1, 2, nir_type_float))
+      return NULL;
+
+   nir_def *src = nir_ssa_for_alu_src(b, alu, 1);
+
+   return nir_fmul(b, nir_load_front_face_fsign(b), src);
 }
 
 static bool
@@ -222,6 +239,8 @@ opt_intrinsics_alu(nir_builder *b, nir_alu_instr *alu,
    switch (alu->op) {
    case nir_op_bcsel:
       replacement = try_opt_bcsel_of_shuffle(b, alu, block_has_discard);
+      if (!replacement && options->optimize_load_front_face_fsign)
+         replacement = try_opt_front_face_fsign(b, alu);
       break;
    case nir_op_iand:
    case nir_op_ior:
@@ -319,24 +338,37 @@ opt_intrinsics_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
          if (nir_src_parent_instr(use_src)->type == nir_instr_type_alu) {
             nir_alu_instr *alu = nir_instr_as_alu(nir_src_parent_instr(use_src));
 
-            if (alu->op == nir_op_ieq ||
-                alu->op == nir_op_ine) {
-               /* Check for 0 in either operand. */
-               nir_const_value *const_val =
-                  nir_src_as_const_value(alu->src[0].src);
-               if (!const_val)
-                  const_val = nir_src_as_const_value(alu->src[1].src);
-               if (!const_val || const_val->i32 != 0)
-                  continue;
+            if ((alu->op != nir_op_ieq && alu->op != nir_op_ine) || alu->def.num_components != 1)
+               continue;
 
-               nir_def *new_expr = nir_load_helper_invocation(b, 1);
+            nir_alu_src *alu_src = list_entry(use_src, nir_alu_src, src);
+            unsigned src_index = alu_src - alu->src;
+            nir_scalar other = nir_scalar_chase_alu_src(nir_get_scalar(&alu->def, 0), !src_index);
 
-               if (alu->op == nir_op_ine)
-                  new_expr = nir_inot(b, new_expr);
+            if (!nir_scalar_is_const(other) || nir_scalar_as_uint(other))
+               continue;
 
-               nir_def_replace(&alu->def, new_expr);
-               progress = true;
-            }
+            nir_cf_node *cf_node = &intrin->instr.block->cf_node;
+            while (cf_node->parent)
+               cf_node = cf_node->parent;
+
+            nir_function_impl *func_impl = nir_cf_node_as_function(cf_node);
+
+            /* We need to insert load_helper before any demote,
+             * which is only possible in the entry point function
+             */
+            if (func_impl != nir_shader_get_entrypoint(b->shader))
+               break;
+
+            b->cursor = nir_before_impl(func_impl);
+
+            nir_def *new_expr = nir_load_helper_invocation(b, 1);
+
+            if (alu->op == nir_op_ine)
+               new_expr = nir_inot(b, new_expr);
+
+            nir_def_replace(&alu->def, new_expr);
+            progress = true;
          }
       }
       return progress;

@@ -8,6 +8,7 @@
 #include "ac_nir.h"
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_deref.h"
 #include "radv_constants.h"
 #include "radv_nir.h"
 #include "radv_shader.h"
@@ -405,4 +406,60 @@ radv_nir_lower_vs_inputs(nir_shader *shader, const struct radv_shader_stage *vs_
    };
 
    return nir_shader_intrinsics_pass(shader, lower_vs_input_instr, nir_metadata_control_flow, &state);
+}
+
+static void
+type_size_vec4(const struct glsl_type *type, unsigned *size, unsigned *align)
+{
+   *size = glsl_count_attribute_slots(type, false);
+   *align = 1;
+}
+
+static bool
+opt_vs_input_to_const(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
+{
+   const struct radv_graphics_state_key *gfx_state = state;
+
+   if (intrin->intrinsic != nir_intrinsic_load_deref)
+      return false;
+
+   nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+   if (!nir_deref_mode_is(deref, nir_var_shader_in) || nir_deref_instr_has_indirect(deref))
+      return false;
+
+   const nir_variable *var = nir_deref_instr_get_variable(deref);
+   const unsigned location =
+      var->data.location + nir_deref_instr_get_const_offset(deref, &type_size_vec4) - VERT_ATTRIB_GENERIC0;
+   const bool is_integer = glsl_base_type_is_integer(glsl_get_base_type(deref->type));
+   const unsigned bit_size = intrin->def.bit_size;
+   const unsigned component = var->data.location_frac >> (bit_size == 64 ? 1 : 0);
+
+   const enum pipe_format attrib_format = gfx_state->vi.vertex_attribute_formats[location];
+   const struct util_format_description *f = util_format_description(attrib_format);
+
+   b->cursor = nir_after_instr(&intrin->instr);
+
+   nir_def *res = &intrin->def;
+   for (unsigned i = 0; i < intrin->def.num_components; i++) {
+      const unsigned c = i + component;
+      if (f->swizzle[c] >= f->nr_channels) {
+         /* Handle input loads that are larger than their format. */
+         nir_def *channel = oob_input_load_value(b, c, bit_size, !is_integer);
+         res = nir_vector_insert_imm(b, res, channel, i);
+      }
+   }
+
+   if (res != &intrin->def) {
+      nir_def_rewrite_uses_after(&intrin->def, res, res->parent_instr);
+      return true;
+   } else {
+      return false;
+   }
+}
+
+bool
+radv_nir_optimize_vs_inputs_to_const(nir_shader *shader, const struct radv_graphics_state_key *gfx_state)
+{
+   assert(shader->info.stage == MESA_SHADER_VERTEX);
+   return nir_shader_intrinsics_pass(shader, opt_vs_input_to_const, nir_metadata_control_flow, (void *)gfx_state);
 }

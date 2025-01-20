@@ -224,7 +224,8 @@ static Sockettrans2dev Sockettrans2devtab[] = {
 static int TRANS(SocketINETClose) (XtransConnInfo ciptr);
 #endif
 
-#if (defined(TCPCONN) && defined(TRANS_SERVER)) || defined(TRANS_REOPEN)
+#if (defined(TCPCONN) && defined(TRANS_SERVER)) || defined(TRANS_REOPEN) || \
+    !defined(IPv6)
 static int
 is_numeric (const char *str)
 {
@@ -321,7 +322,7 @@ TRANS(SocketINETGetAddr) (XtransConnInfo ciptr)
     void *socknamePtr;
     SOCKLEN_T namelen;
 
-    prmsg (3,"SocketINETGetAddr(%p)\n", ciptr);
+    prmsg (3,"SocketINETGetAddr(%p)\n", (void *) ciptr);
 
 #if defined(IPv6) && defined(AF_INET6)
     namelen = sizeof(socknamev6);
@@ -791,7 +792,7 @@ TRANS(SocketINETGetPeerAddr) (XtransConnInfo ciptr)
 
     bzero(socknamePtr, namelen);
 
-    prmsg (3,"SocketINETGetPeerAddr(%p)\n", ciptr);
+    prmsg (3,"SocketINETGetPeerAddr(%p)\n", (void *) ciptr);
 
     if (getpeername (ciptr->fd, (struct sockaddr *) socknamePtr,
 		     (void *)&namelen) < 0)
@@ -1010,7 +1011,7 @@ static XtransConnInfo
 TRANS(SocketOpenCOTSClientBase) (const char *transname, const char *protocol,
 			   const char *host, const char *port, int previndex)
 {
-    XtransConnInfo	ciptr;
+    XtransConnInfo	ciptr = NULL;
     int			i = previndex;
 
     prmsg (2, "SocketOpenCOTSClient(%s,%s,%s)\n",
@@ -1059,7 +1060,7 @@ TRANS(SocketOpenCOTSServer) (Xtransport *thistrans, const char *protocol,
 			     const char *host, const char *port)
 
 {
-    XtransConnInfo	ciptr;
+    XtransConnInfo	ciptr = NULL;
     int	i = -1;
 
     prmsg (2,"SocketOpenCOTSServer(%s,%s,%s)\n", protocol, host, port);
@@ -1217,7 +1218,7 @@ TRANS(SocketCreateListener) (XtransConnInfo ciptr,
     int	fd = ciptr->fd;
     int	retry;
 
-    prmsg (3, "SocketCreateListener(%p,%d)\n", ciptr, fd);
+    prmsg (3, "SocketCreateListener(%p,%d)\n", (void *) ciptr, fd);
 
     if (Sockettrans2devtab[ciptr->index].family == AF_INET
 #if defined(IPv6) && defined(AF_INET6)
@@ -1540,7 +1541,7 @@ TRANS(SocketUNIXResetListener) (XtransConnInfo ciptr)
     abstract = ciptr->transptr->flags & TRANS_ABSTRACT;
 #endif
 
-    prmsg (3, "SocketUNIXResetListener(%p,%d)\n", ciptr, ciptr->fd);
+    prmsg (3, "SocketUNIXResetListener(%p,%d)\n", (void *) ciptr, ciptr->fd);
 
     if (!abstract && (
 	stat (unsock->sun_path, &statb) == -1 ||
@@ -1618,7 +1619,7 @@ TRANS(SocketINETAccept) (XtransConnInfo ciptr, int *status)
 #endif
     SOCKLEN_T		namelen = sizeof(sockname);
 
-    prmsg (2, "SocketINETAccept(%p,%d)\n", ciptr, ciptr->fd);
+    prmsg (2, "SocketINETAccept(%p,%d)\n", (void *) ciptr, ciptr->fd);
 
     if ((newciptr = calloc (1, sizeof(struct _XtransConnInfo))) == NULL)
     {
@@ -1693,7 +1694,7 @@ TRANS(SocketUNIXAccept) (XtransConnInfo ciptr, int *status)
     struct sockaddr_un	sockname;
     SOCKLEN_T 		namelen = sizeof sockname;
 
-    prmsg (2, "SocketUNIXAccept(%p,%d)\n", ciptr, ciptr->fd);
+    prmsg (2, "SocketUNIXAccept(%p,%d)\n", (void *) ciptr, ciptr->fd);
 
     if ((newciptr = calloc (1, sizeof(struct _XtransConnInfo))) == NULL)
     {
@@ -2428,7 +2429,7 @@ TRANS(SocketBytesReadable) (XtransConnInfo ciptr, BytesReadable_t *pend)
 
 {
     prmsg (2,"SocketBytesReadable(%p,%d,%p)\n",
-	ciptr, ciptr->fd, pend);
+	(void *) ciptr, ciptr->fd, (void *) pend);
 #ifdef WIN32
     {
 	int ret = ioctlsocket ((SOCKET) ciptr->fd, FIONREAD, (u_long *) pend);
@@ -2551,7 +2552,7 @@ static int
 TRANS(SocketRead) (XtransConnInfo ciptr, char *buf, int size)
 
 {
-    prmsg (2,"SocketRead(%d,%p,%d)\n", ciptr->fd, buf, size);
+    prmsg (2,"SocketRead(%d,%p,%d)\n", ciptr->fd, (void *) buf, size);
 
 #if defined(WIN32)
     {
@@ -2605,7 +2606,7 @@ static int
 TRANS(SocketReadv) (XtransConnInfo ciptr, struct iovec *buf, int size)
 
 {
-    prmsg (2,"SocketReadv(%d,%p,%d)\n", ciptr->fd, buf, size);
+    prmsg (2,"SocketReadv(%d,%p,%d)\n", ciptr->fd, (void *) buf, size);
 
 #if XTRANS_SEND_FDS
     {
@@ -2646,7 +2647,7 @@ static int
 TRANS(SocketWritev) (XtransConnInfo ciptr, struct iovec *buf, int size)
 
 {
-    prmsg (2,"SocketWritev(%d,%p,%d)\n", ciptr->fd, buf, size);
+    prmsg (2,"SocketWritev(%d,%p,%d)\n", ciptr->fd, (void *) buf, size);
 
 #if XTRANS_SEND_FDS
     if (ciptr->send_fds)
@@ -2688,10 +2689,10 @@ TRANS(SocketWritev) (XtransConnInfo ciptr, struct iovec *buf, int size)
 
 
 static int
-TRANS(SocketWrite) (XtransConnInfo ciptr, char *buf, int size)
+TRANS(SocketWrite) (XtransConnInfo ciptr, const char *buf, int size)
 
 {
-    prmsg (2,"SocketWrite(%d,%p,%d)\n", ciptr->fd, buf, size);
+    prmsg (2,"SocketWrite(%d,%p,%d)\n", ciptr->fd, (const void *) buf, size);
 
 #if defined(WIN32)
     {
@@ -2707,7 +2708,7 @@ TRANS(SocketWrite) (XtransConnInfo ciptr, char *buf, int size)
     {
         struct iovec            iov;
 
-        iov.iov_base = buf;
+        iov.iov_base = (void *) buf;
         iov.iov_len = size;
         return TRANS(SocketWritev)(ciptr, &iov, 1);
     }
@@ -2720,7 +2721,7 @@ static int
 TRANS(SocketDisconnect) (XtransConnInfo ciptr)
 
 {
-    prmsg (2,"SocketDisconnect(%p,%d)\n", ciptr, ciptr->fd);
+    prmsg (2,"SocketDisconnect(%p,%d)\n", (void *) ciptr, ciptr->fd);
 
 #ifdef WIN32
     {
@@ -2739,7 +2740,7 @@ static int
 TRANS(SocketINETClose) (XtransConnInfo ciptr)
 
 {
-    prmsg (2,"SocketINETClose(%p,%d)\n", ciptr, ciptr->fd);
+    prmsg (2,"SocketINETClose(%p,%d)\n", (void *) ciptr, ciptr->fd);
 
 #ifdef WIN32
     {
@@ -2766,7 +2767,7 @@ TRANS(SocketUNIXClose) (XtransConnInfo ciptr)
     struct sockaddr_un	*sockname = (struct sockaddr_un *) ciptr->addr;
     int ret;
 
-    prmsg (2,"SocketUNIXClose(%p,%d)\n", ciptr, ciptr->fd);
+    prmsg (2,"SocketUNIXClose(%p,%d)\n", (void *) ciptr, ciptr->fd);
 
 #if XTRANS_SEND_FDS
     cleanupFds(ciptr);
@@ -2797,7 +2798,7 @@ TRANS(SocketUNIXCloseForCloning) (XtransConnInfo ciptr)
     int ret;
 
     prmsg (2,"SocketUNIXCloseForCloning(%p,%d)\n",
-	ciptr, ciptr->fd);
+	(void *) ciptr, ciptr->fd);
 
 #if XTRANS_SEND_FDS
     cleanupFds(ciptr);
@@ -2821,7 +2822,7 @@ static const char* tcp_nolisten[] = {
 };
 # endif
 
-Xtransport	TRANS(SocketTCPFuncs) = {
+static Xtransport	TRANS(SocketTCPFuncs) = {
 	/* Socket Interface */
 	"tcp",
         TRANS_ALIAS,
@@ -2856,7 +2857,7 @@ Xtransport	TRANS(SocketTCPFuncs) = {
 	TRANS(SocketINETClose),
 	};
 
-Xtransport	TRANS(SocketINETFuncs) = {
+static Xtransport	TRANS(SocketINETFuncs) = {
 	/* Socket Interface */
 	"inet",
 	0,
@@ -2892,7 +2893,7 @@ Xtransport	TRANS(SocketINETFuncs) = {
 	};
 
 #if defined(IPv6) && defined(AF_INET6)
-Xtransport     TRANS(SocketINET6Funcs) = {
+static Xtransport     TRANS(SocketINET6Funcs) = {
 	/* Socket Interface */
 	"inet6",
 	0,
@@ -2968,7 +2969,7 @@ Xtransport	TRANS(SocketHyperVFuncs) = {
 
 #ifdef UNIXCONN
 #if !defined(LOCALCONN)
-Xtransport	TRANS(SocketLocalFuncs) = {
+static Xtransport	TRANS(SocketLocalFuncs) = {
 	/* Socket Interface */
 	"local",
 #ifdef HAVE_ABSTRACT_SOCKETS
@@ -3015,7 +3016,7 @@ static const char* unix_nolisten[] = { "local" , NULL };
 #  endif
 # endif
 
-Xtransport	TRANS(SocketUNIXFuncs) = {
+static Xtransport	TRANS(SocketUNIXFuncs) = {
 	/* Socket Interface */
 	"unix",
 #if !defined(LOCALCONN) && !defined(HAVE_ABSTRACT_SOCKETS)

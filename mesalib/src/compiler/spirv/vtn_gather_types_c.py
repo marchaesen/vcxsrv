@@ -52,6 +52,8 @@ def find_result_types(spirv):
         elif res_arg_idx >= 0:
             untyped_insts = [
                 'OpString',
+                'OpConstantStringAMDX',
+                'OpSpecConstantStringAMDX',
                 'OpExtInstImport',
                 'OpDecorationGroup',
                 'OpLabel',

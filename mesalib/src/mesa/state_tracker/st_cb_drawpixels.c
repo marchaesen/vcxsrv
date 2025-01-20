@@ -105,12 +105,17 @@
 #define USE_DRAWPIXELS_CACHE 1
 
 static nir_def *
-sample_via_nir(nir_builder *b, nir_variable *texcoord,
-               const char *name, int sampler, enum glsl_base_type base_type,
+sample_via_nir(nir_builder *b,  const char *name, int sampler,
                nir_alu_type alu_type)
 {
+   nir_def *baryc = nir_load_barycentric_pixel(b, 32,
+                                               .interp_mode = INTERP_MODE_SMOOTH);
+   nir_def *texcoord =
+      nir_load_interpolated_input(b, 2, 32, baryc, nir_imm_int(b, 0),
+                                  .io_semantics.location = VARYING_SLOT_TEX0);
    const struct glsl_type *sampler2D =
-      glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false, base_type);
+      glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false,
+                        nir_get_glsl_base_type_for_nir_type(alu_type));
 
    nir_variable *var =
       nir_variable_create(b->shader, nir_var_uniform, sampler2D, name);
@@ -128,10 +133,7 @@ sample_via_nir(nir_builder *b, nir_variable *texcoord,
                                      &deref->def);
    tex->src[1] = nir_tex_src_for_ssa(nir_tex_src_sampler_deref,
                                      &deref->def);
-   tex->src[2] =
-      nir_tex_src_for_ssa(nir_tex_src_coord,
-                          nir_trim_vector(b, nir_load_var(b, texcoord),
-                                             tex->coord_components));
+   tex->src[2] = nir_tex_src_for_ssa(nir_tex_src_coord, texcoord);
 
    nir_def_init(&tex->instr, &tex->def, 4, 32);
    nir_builder_instr_insert(b, &tex->instr);
@@ -150,34 +152,27 @@ make_drawpix_z_stencil_program_nir(struct st_context *st,
                                                   "drawpixels %s%s",
                                                   write_depth ? "Z" : "",
                                                   write_stencil ? "S" : "");
-
-   nir_variable *texcoord =
-      nir_create_variable_with_location(b.shader, nir_var_shader_in,
-                                        VARYING_SLOT_TEX0, glsl_vec_type(2));
+   b.shader->info.io_lowered = true;
 
    if (write_depth) {
-      nir_variable *out =
-         nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                           FRAG_RESULT_DEPTH, glsl_float_type());
-      nir_def *depth = sample_via_nir(&b, texcoord, "depth", 0,
-                                          GLSL_TYPE_FLOAT, nir_type_float32);
-      nir_store_var(&b, out, depth, 0x1);
+      nir_def *depth = sample_via_nir(&b, "depth", 0, nir_type_float32);
+      nir_store_output(&b, nir_channel(&b, depth, 0), nir_imm_int(&b, 0),
+                       .io_semantics.location = FRAG_RESULT_DEPTH);
 
       /* Also copy color */
-      nir_copy_var(&b,
-                   nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                                     FRAG_RESULT_COLOR, glsl_vec4_type()),
-                   nir_create_variable_with_location(b.shader, nir_var_shader_in,
-                                                     VARYING_SLOT_COL0, glsl_vec4_type()));
+      nir_def *baryc = nir_load_barycentric_pixel(&b, 32);
+      nir_def *color = nir_load_interpolated_input(&b, 4, 32, baryc,
+                                                   nir_imm_int(&b, 0),
+                                                   .io_semantics.location = VARYING_SLOT_COL0);
+      nir_store_output(&b, color, nir_imm_int(&b, 0),
+                       .io_semantics.location = FRAG_RESULT_COLOR);
    }
 
    if (write_stencil) {
-      nir_variable *out =
-         nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                           FRAG_RESULT_STENCIL, glsl_uint_type());
-      nir_def *stencil = sample_via_nir(&b, texcoord, "stencil", 1,
-                                            GLSL_TYPE_UINT, nir_type_uint32);
-      nir_store_var(&b, out, stencil, 0x1);
+      nir_def *stencil = sample_via_nir(&b, "stencil", 1, nir_type_uint32);
+      nir_store_output(&b, nir_channel(&b, stencil, 0), nir_imm_int(&b, 0),
+                       .src_type = nir_type_int32,
+                       .io_semantics.location = FRAG_RESULT_STENCIL);
    }
 
    return st_nir_finish_builtin_shader(st, b.shader);
@@ -192,21 +187,11 @@ make_drawpix_zs_to_color_program_nir(struct st_context *st,
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT, options,
                                                   "copypixels ZStoC");
-
-   nir_variable *texcoord =
-      nir_create_variable_with_location(b.shader, nir_var_shader_in,
-                                        VARYING_SLOT_TEX0, glsl_vec_type(2));
+   b.shader->info.io_lowered = true;
 
    /* Sample depth and stencil */
-   nir_def *depth = sample_via_nir(&b, texcoord, "depth", 0,
-                                       GLSL_TYPE_FLOAT, nir_type_float32);
-   nir_def *stencil = sample_via_nir(&b, texcoord, "stencil", 1,
-                                         GLSL_TYPE_UINT, nir_type_uint32);
-
-   /* Create the variable to store the output color */
-   nir_variable *color_out =
-      nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                        FRAG_RESULT_COLOR, glsl_vec_type(4));
+   nir_def *depth = sample_via_nir(&b, "depth", 0, nir_type_float32);
+   nir_def *stencil = sample_via_nir(&b, "stencil", 1, nir_type_uint32);
 
    nir_def *shifted_depth = nir_fmul(&b,nir_f2f64(&b, depth), nir_imm_double(&b,0xffffff));
    nir_def *int_depth = nir_f2u32(&b,shifted_depth);
@@ -225,14 +210,14 @@ make_drawpix_zs_to_color_program_nir(struct st_context *st,
 
    nir_def *unpacked_ds = nir_vec4(&b, ds_comp[0], ds_comp[1], ds_comp[2], ds_comp[3]);
 
-   if (rgba) {
-      nir_store_var(&b, color_out, unpacked_ds, 0xf);
-   }
-   else {
+   if (!rgba) {
+      /* ZS -> BGRA blit */
       unsigned zyxw[4] = { 2, 1, 0, 3 };
-      nir_def *swizzled_ds= nir_swizzle(&b, unpacked_ds, zyxw, 4);
-      nir_store_var(&b, color_out, swizzled_ds, 0xf);
+      unpacked_ds = nir_swizzle(&b, unpacked_ds, zyxw, 4);
    }
+
+   nir_store_output(&b, unpacked_ds, nir_imm_int(&b, 0),
+                    .io_semantics.location = FRAG_RESULT_COLOR);
 
    return st_nir_finish_builtin_shader(st, b.shader);
 }
@@ -317,9 +302,7 @@ st_make_passthrough_vertex_shader(struct st_context *st)
       { VARYING_SLOT_POS,  VARYING_SLOT_COL0,    VARYING_SLOT_TEX0 };
 
    st->passthrough_vs =
-      st_nir_make_passthrough_shader(st, "drawpixels VS",
-                                     MESA_SHADER_VERTEX, 3,
-                                     inputs, outputs, NULL, 0);
+      st_nir_make_passthrough_vs(st, "drawpixels VS", 3, inputs, outputs, 0);
 }
 
 
@@ -747,8 +730,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    /* XXX if DrawPixels image is larger than max texture size, break
     * it up into chunks.
     */
-   maxSize = st->screen->get_param(st->screen,
-                                   PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+   maxSize = st->screen->caps.max_texture_2d_size;
    assert(width <= maxSize);
    assert(height <= maxSize);
 
@@ -889,7 +871,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
 
    st->util_velems.count = 3;
    cso_set_vertex_elements(cso, &st->util_velems);
-   cso_set_stream_outputs(cso, 0, NULL, NULL);
+   cso_set_stream_outputs(cso, 0, NULL, NULL, 0);
 
    /* Compute Gallium window coords (y=0=top) with pixel zoom.
     * Recall that these coords are transformed by the current
@@ -1182,8 +1164,7 @@ static void
 clamp_size(struct st_context *st, GLsizei *width, GLsizei *height,
            struct gl_pixelstore_attrib *unpack)
 {
-   const int maxSize = st->screen->get_param(st->screen,
-                                             PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+   const int maxSize = st->screen->caps.max_texture_2d_size;
 
    if (*width > maxSize) {
       if (unpack->RowLength == 0)

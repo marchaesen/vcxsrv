@@ -209,7 +209,7 @@ panfrost_device_kmod_version_minor(const struct panfrost_device *dev)
    return dev->kmod.dev->driver.version.minor;
 }
 
-void panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev);
+int panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev);
 
 void panfrost_close_device(struct panfrost_device *dev);
 

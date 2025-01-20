@@ -1,0 +1,10 @@
+[package]
+name = "fc-fontations-bindgen"
+version = "0.1.0"
+links = "fontconfig"
+
+[lib]
+path = "../build/fc-fontations/fontconfig.rs"
+
+[dependencies]
+libc = "0.2"

@@ -9,6 +9,48 @@
 # Rules definitions
 ################################################################################
 
+.template-required: &template-required
+  name: "Require using a template"
+  conditions:
+    labels:
+      - "bugbot::template-required"
+  actions:
+    remove_labels:
+      - "bugbot::template-required"
+    comment: |
+      Hi {{author}}! Thanks for filing this issue/merge request. In order to process your
+      request more efficiently, please edit it and choose the appropriate template in the
+      list above your text, then fill in the required information.
+
+.insufficient-motivation: &insufficient-motivation
+  name: "Require better motivation"
+  conditions:
+    labels:
+      - "bugbot::insufficient-motivation"
+  actions:
+    remove_labels:
+      - "bugbot::insufficient-motivation"
+    comment: |
+      Hi {{author}}! Thanks for filing this issue/merge request. We do not have sufficient
+      information about the *current* user base of the feature you propose. Please provide
+      neutral and accessible *evidences*[^1] (if possible in English), that this feature is
+      sufficiently popular in order to be shipped as part of the default xkeyboard-config
+      keymaps.
+
+      Features added to the distribution means we have to maintain these features for years
+      and decades into the future and we avoid having to do so for features that we expect
+      have a tiny number of users.
+
+      Note that comparing the new feature to one already included in xkeyboard-config is
+      *not* a sufficient motivation: the focus must be on the *current* user-base of *your*
+      proposal.
+
+      [^1]: Such as: an active community.
+
+      You may also install it locally instead; we have
+      [instructions for Xorg](https://who-t.blogspot.com/2021/02/a-pre-supplied-custom-keyboard-layout.html)
+      and [instructions for Wayland](https://xkbcommon.github.io/libxkbcommon/doc/current/md_doc_user_configuration.html).
+
 .too-exotic: &too-exotic
   name: "Close as too exotic"
   conditions:
@@ -18,11 +60,11 @@
     remove_labels:
       - "bugbot::too-exotic"
     comment: |
-      Hi. Thanks for filing this issue/merge request. We think this keyboard layout is too exotic
-      to be shipped as part of the default xkeyboard-config keymaps. Layouts added to
-      the distribution means we have to maintain these layouts for years and decades into
-      the future and we avoid having to do so for layouts that we expect have a tiny number of
-      users.
+      Hi {{author}}! Thanks for filing this issue/merge request. We think this keyboard
+      feature is too exotic to be shipped as part of the default xkeyboard-config keymaps.
+      Features added to the distribution means we have to maintain these features for years
+      and decades into the future and we avoid having to do so for features that
+      we expect have a tiny number of users.
 
       As a general rule, we will add layouts that are part of official standards but not
       experimental layouts. If this is the case here, please re-open with a comment.
@@ -39,7 +81,11 @@
 resource_rules:
   issues:
     rules:
+      - *template-required
+      - *insufficient-motivation
       - *too-exotic
   merge_requests:
     rules:
+      - *template-required
+      - *insufficient-motivation
       - *too-exotic

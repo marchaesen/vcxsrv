@@ -25,6 +25,7 @@
 #pragma once
 
 #include "vpe_types.h"
+#include "hw_shared.h"
 
 #if defined(LITTLEENDIAN_CPU)
 #elif defined(BIGENDIAN_CPU)

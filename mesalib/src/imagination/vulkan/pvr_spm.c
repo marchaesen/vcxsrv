@@ -37,12 +37,12 @@
 #include "pvr_job_common.h"
 #include "pvr_pds.h"
 #include "pvr_private.h"
-#include "pvr_shader_factory.h"
+#include "usc/programs/pvr_shader_factory.h"
 #include "pvr_spm.h"
-#include "pvr_static_shaders.h"
+#include "usc/programs/pvr_static_shaders.h"
 #include "pvr_tex_state.h"
 #include "pvr_types.h"
-#include "pvr_uscgen.h"
+#include "usc/pvr_uscgen.h"
 #include "util/bitscan.h"
 #include "util/macros.h"
 #include "util/simple_mtx.h"
@@ -110,7 +110,7 @@ pvr_spm_scratch_buffer_calc_required_size(const struct pvr_render_pass *pass,
       (uint64_t)pass->max_sample_count * nr_output_regs * nr_tile_buffers;
 
    buffer_size = ALIGN_POT((uint64_t)framebuffer_width,
-                           PVRX(CR_PBE_WORD0_MRT0_LINESTRIDE_ALIGNMENT));
+                           ROGUE_CR_PBE_WORD0_MRT0_LINESTRIDE_ALIGNMENT);
    buffer_size *=
       (uint64_t)framebuffer_height * PVR_DW_TO_BYTES(dwords_per_pixel);
 
@@ -358,16 +358,16 @@ VkResult pvr_device_init_spm_load_state(struct pvr_device *device)
       const pvr_dev_addr_t usc_program_dev_addr =
          PVR_DEV_ADDR_OFFSET(usc_bo->dev_addr, usc_aligned_offsets[i]);
       struct pvr_pds_kickusc_program pds_kick_program = { 0 };
-      enum PVRX(PDSINST_DOUTU_SAMPLE_RATE) sample_rate;
+      enum ROGUE_PDSINST_DOUTU_SAMPLE_RATE sample_rate;
 
       pvr_pds_generate_pixel_shader_sa_code_segment(
          &pds_texture_program,
          (uint32_t *)(mem_ptr + pds_texture_aligned_offsets[i]));
 
       if (spm_load_collection[i].info->msaa_sample_count > 1)
-         sample_rate = PVRX(PDSINST_DOUTU_SAMPLE_RATE_FULL);
+         sample_rate = ROGUE_PDSINST_DOUTU_SAMPLE_RATE_FULL;
       else
-         sample_rate = PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE);
+         sample_rate = ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE;
 
       pvr_pds_setup_doutu(&pds_kick_program.usc_task_control,
                           usc_program_dev_addr.addr,
@@ -405,18 +405,18 @@ void pvr_device_finish_spm_load_state(struct pvr_device *device)
    pvr_bo_suballoc_free(device->spm_load_state.usc_programs);
 }
 
-static inline enum PVRX(PBESTATE_PACKMODE)
-   pvr_spm_get_pbe_packmode(uint32_t dword_count)
+static inline enum ROGUE_PBESTATE_PACKMODE
+pvr_spm_get_pbe_packmode(uint32_t dword_count)
 {
    switch (dword_count) {
    case 1:
-      return PVRX(PBESTATE_PACKMODE_U32);
+      return ROGUE_PBESTATE_PACKMODE_U32;
    case 2:
-      return PVRX(PBESTATE_PACKMODE_U32U32);
+      return ROGUE_PBESTATE_PACKMODE_U32U32;
    case 3:
-      return PVRX(PBESTATE_PACKMODE_U32U32U32);
+      return ROGUE_PBESTATE_PACKMODE_U32U32U32;
    case 4:
-      return PVRX(PBESTATE_PACKMODE_U32U32U32U32);
+      return ROGUE_PBESTATE_PACKMODE_U32U32U32U32;
    default:
       unreachable("Unsupported dword_count");
    }
@@ -444,7 +444,7 @@ static uint64_t pvr_spm_setup_pbe_state(
 {
    const uint32_t stride =
       ALIGN_POT(framebuffer_size->width,
-                PVRX(PBESTATE_REG_WORD0_LINESTRIDE_UNIT_SIZE));
+                ROGUE_PBESTATE_REG_WORD0_LINESTRIDE_UNIT_SIZE);
 
    const struct pvr_pbe_surf_params surface_params = {
       .swizzle = {
@@ -454,7 +454,7 @@ static uint64_t pvr_spm_setup_pbe_state(
          [3] = PIPE_SWIZZLE_W,
       },
       .pbe_packmode = pvr_spm_get_pbe_packmode(dword_count),
-      .source_format = PVRX(PBESTATE_SOURCE_FORMAT_8_PER_CHANNEL),
+      .source_format = ROGUE_PBESTATE_SOURCE_FORMAT_8_PER_CHANNEL,
       .addr = scratch_buffer_addr,
       .mem_layout = PVR_MEMLAYOUT_LINEAR,
       .stride = stride,
@@ -576,7 +576,7 @@ static VkResult pvr_pds_pixel_event_program_create_and_upload(
    pvr_pds_setup_doutu(&program.task_control,
                        usc_eot_program->dev_addr.addr,
                        usc_temp_count,
-                       PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE),
+                       ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE,
                        false);
 
    staging_buffer =
@@ -815,7 +815,7 @@ static VkResult pvr_spm_setup_texture_state_words(
    };
    const uint64_t aligned_fb_width =
       ALIGN_POT(framebuffer_size.width,
-                PVRX(CR_PBE_WORD0_MRT0_LINESTRIDE_ALIGNMENT));
+                ROGUE_CR_PBE_WORD0_MRT0_LINESTRIDE_ALIGNMENT);
    const uint64_t fb_area = aligned_fb_width * framebuffer_size.height;
    const uint8_t *format_swizzle;
    VkResult result;
@@ -855,7 +855,7 @@ static VkResult pvr_pds_bgnd_program_create_and_upload(
    pvr_csb_pack (&texture_program.texture_dma_control[0],
                  PDSINST_DOUT_FIELDS_DOUTD_SRC1,
                  doutd_src1) {
-      doutd_src1.dest = PVRX(PDSINST_DOUTD_DEST_COMMON_STORE);
+      doutd_src1.dest = ROGUE_PDSINST_DOUTD_DEST_COMMON_STORE;
       doutd_src1.bsize = const_shared_regs;
    }
 
@@ -980,13 +980,13 @@ pvr_spm_init_bgobj_state(struct pvr_device *device,
 
    pvr_csb_pack (&descriptor->data.sampler_word, TEXSTATE_SAMPLER, sampler) {
       sampler.non_normalized_coords = true;
-      sampler.addrmode_v = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
-      sampler.addrmode_u = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
-      sampler.minfilter = PVRX(TEXSTATE_FILTER_POINT);
-      sampler.magfilter = PVRX(TEXSTATE_FILTER_POINT);
-      sampler.maxlod = PVRX(TEXSTATE_CLAMP_MIN);
-      sampler.minlod = PVRX(TEXSTATE_CLAMP_MIN);
-      sampler.dadjust = PVRX(TEXSTATE_DADJUST_ZERO_UINT);
+      sampler.addrmode_v = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
+      sampler.addrmode_u = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
+      sampler.minfilter = ROGUE_TEXSTATE_FILTER_POINT;
+      sampler.magfilter = ROGUE_TEXSTATE_FILTER_POINT;
+      sampler.maxlod = ROGUE_TEXSTATE_CLAMP_MIN;
+      sampler.minlod = ROGUE_TEXSTATE_CLAMP_MIN;
+      sampler.dadjust = ROGUE_TEXSTATE_DADJUST_ZERO_UINT;
    }
 
    /* Even if we might have 8 output regs we can only pack and write 4 dwords
@@ -1062,13 +1062,13 @@ pvr_spm_init_bgobj_state(struct pvr_device *device,
       /* clang-format on */
       value.usc_sharedsize =
          DIV_ROUND_UP(info->const_shared_regs,
-                      PVRX(CR_PDS_BGRND3_SIZEINFO_USC_SHAREDSIZE_UNIT_SIZE));
+                      ROGUE_CR_PDS_BGRND3_SIZEINFO_USC_SHAREDSIZE_UNIT_SIZE);
       value.pds_texturestatesize = DIV_ROUND_UP(
          pds_texture_data_upload.data_size,
-         PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE));
+         ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE);
       value.pds_tempsize =
          DIV_ROUND_UP(load_program_state->pds_texture_program_temps_count,
-                      PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_TEMPSIZE_UNIT_SIZE));
+                      ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_TEMPSIZE_UNIT_SIZE);
    }
 
    return VK_SUCCESS;

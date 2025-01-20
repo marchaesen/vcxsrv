@@ -35,7 +35,7 @@ static LLVMValueRef si_nir_load_tcs_varyings(struct ac_shader_abi *abi, LLVMType
 void si_llvm_tcs_build_end(struct si_shader_context *ctx)
 {
    if (ctx->screen->info.gfx_level >= GFX9) {
-      ac_build_endif(&ctx->ac, ctx->merged_wrap_if_label);
+      ac_build_endif(&ctx->ac, SI_MERGED_WRAP_IF_LABEL);
    }
 }
 
@@ -49,7 +49,7 @@ void si_llvm_ls_build_end(struct si_shader_context *ctx)
       return;
 
    if (!ctx->shader->is_monolithic)
-      ac_build_endif(&ctx->ac, ctx->merged_wrap_if_label);
+      ac_build_endif(&ctx->ac, SI_MERGED_WRAP_IF_LABEL);
 
    LLVMValueRef ret = ctx->return_value;
 
@@ -58,7 +58,9 @@ void si_llvm_ls_build_end(struct si_shader_context *ctx)
    ret = si_insert_input_ret(ctx, ret, ctx->args->ac.tess_offchip_offset, 2);
    ret = si_insert_input_ret(ctx, ret, ctx->args->ac.merged_wave_info, 3);
    ret = si_insert_input_ret(ctx, ret, ctx->args->ac.tcs_factor_offset, 4);
-   if (ctx->screen->info.gfx_level <= GFX10_3)
+   if (ctx->screen->info.gfx_level >= GFX11)
+      ret = si_insert_input_ret(ctx, ret, ctx->args->ac.tcs_wave_id, 5);
+   else
       ret = si_insert_input_ret(ctx, ret, ctx->args->ac.scratch_offset, 5);
 
    ret = si_insert_input_ptr(ctx, ret, ctx->args->internal_bindings, 8 + SI_SGPR_INTERNAL_BINDINGS);
@@ -85,7 +87,7 @@ void si_llvm_ls_build_end(struct si_shader_context *ctx)
          unsigned semantic = info->output_semantic[i];
          int param = si_shader_io_get_unique_index(semantic);
 
-         if (!(info->outputs_written_before_tes_gs & BITFIELD64_BIT(param)))
+         if (!(info->ls_es_outputs_written & BITFIELD64_BIT(param)))
             continue;
 
          for (unsigned chan = 0; chan < 4; chan++) {

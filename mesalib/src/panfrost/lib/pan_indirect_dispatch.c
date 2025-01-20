@@ -36,8 +36,7 @@
 #define get_input_field(b, name)                                               \
    nir_load_push_constant(                                                     \
       b, 1, sizeof(((struct pan_indirect_dispatch_info *)0)->name) * 8,        \
-      nir_imm_int(b, 0),                                                       \
-      .base = offsetof(struct pan_indirect_dispatch_info, name))
+      nir_imm_int(b, offsetof(struct pan_indirect_dispatch_info, name)))
 
 static void
 pan_indirect_dispatch_init(struct pan_indirect_dispatch_meta *meta)
@@ -137,11 +136,11 @@ pan_indirect_dispatch_init(struct pan_indirect_dispatch_meta *meta)
    struct panfrost_ptr tsd =
       pan_pool_alloc_desc(meta->desc_pool, LOCAL_STORAGE);
 
-   pan_pack(rsd.cpu, RENDERER_STATE, cfg) {
+   pan_cast_and_pack(rsd.cpu, RENDERER_STATE, cfg) {
       pan_shader_prepare_rsd(&shader_info, bin.gpu, &cfg);
    }
 
-   pan_pack(tsd.cpu, LOCAL_STORAGE, ls) {
+   pan_cast_and_pack(tsd.cpu, LOCAL_STORAGE, ls) {
       ls.wls_instances = MALI_LOCAL_STORAGE_NO_WORKGROUP_MEM;
    };
 

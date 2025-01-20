@@ -25,6 +25,29 @@
 #include "nir_builder.h"
 #include "nir_builtin_builder.h"
 
+typedef struct {
+   bool set_barycentrics;
+   nir_intrinsic_instr *found_baryc;
+} lower_point_smooth_state;
+
+static nir_intrinsic_instr *
+find_any_used_barycentrics(nir_function_impl *impl)
+{
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block) {
+         if (instr->type == nir_instr_type_intrinsic) {
+            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+            if (intr->intrinsic == nir_intrinsic_load_barycentric_pixel ||
+                intr->intrinsic == nir_intrinsic_load_barycentric_centroid ||
+                intr->intrinsic == nir_intrinsic_load_barycentric_sample)
+               return intr;
+         }
+      }
+   }
+
+   return NULL;
+}
+
 /**
  * This NIR lowers pass for point smoothing by modifying the alpha value of
  * fragment outputs using the distance from the center of the point.
@@ -32,9 +55,10 @@
  */
 
 static bool
-lower_point_smooth(nir_builder *b, nir_intrinsic_instr *intr,
-                   UNUSED void *_state)
+lower_point_smooth(nir_builder *b, nir_intrinsic_instr *intr, void *state)
 {
+   lower_point_smooth_state *s = (lower_point_smooth_state *)state;
+
    if (intr->intrinsic != nir_intrinsic_store_output &&
        intr->intrinsic != nir_intrinsic_store_deref)
       return false;
@@ -59,14 +83,37 @@ lower_point_smooth(nir_builder *b, nir_intrinsic_instr *intr,
 
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_def *coord = nir_load_point_coord_maybe_flipped(b);
+   /* Determine the barycentric coordinates. */
+   nir_def *baryc;
+
+   if (s->set_barycentrics) {
+      baryc = nir_load_barycentric_pixel(b, 32,
+                                         .interp_mode = INTERP_MODE_SMOOTH);
+
+      /* Since point interpolation mostly doesn't care about which barycentrics
+       * are used, use any that are used by the shader. This is an optimization
+       * for hw that is faster if only one set of barycentrics is used.
+       */
+      if (s->found_baryc) {
+         nir_intrinsic_instr *baryc_intr =
+            nir_instr_as_intrinsic(baryc->parent_instr);
+
+         /* Overwrite the intrinsic we just created. */
+         baryc_intr->intrinsic = s->found_baryc->intrinsic;
+         nir_intrinsic_set_interp_mode(baryc_intr,
+                                       nir_intrinsic_interp_mode(s->found_baryc));
+      }
+   } else {
+      baryc = nir_undef(b, 2, 32);
+   }
+
+   nir_def *coord = nir_load_point_coord_maybe_flipped(b, baryc);
 
    /* point_size = 1.0 / dFdx(gl_PointCoord.x); */
    nir_def *point_size = nir_frcp(b, nir_ddx(b, nir_channel(b, coord, 0)));
 
    /* radius = point_size * 0.5 */
    nir_def *radius = nir_fmul_imm(b, point_size, 0.5);
-   ;
 
    /**
     * Compute the distance of point from centre
@@ -92,12 +139,19 @@ lower_point_smooth(nir_builder *b, nir_intrinsic_instr *intr,
 }
 
 bool
-nir_lower_point_smooth(nir_shader *shader)
+nir_lower_point_smooth(nir_shader *shader, bool set_barycentrics)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+
+   lower_point_smooth_state state = {
+      .set_barycentrics = set_barycentrics,
+      .found_baryc = set_barycentrics ? find_any_used_barycentrics(impl) : NULL,
+   };
+
    return nir_shader_intrinsics_pass(shader, lower_point_smooth,
                                        nir_metadata_loop_analysis |
                                           nir_metadata_block_index |
                                           nir_metadata_dominance,
-                                       NULL);
+                                       &state);
 }

@@ -612,6 +612,8 @@ int main(int argc, char **argv)
     int exitcode;
     char *ret;
 
+    enable_dit(); /* maybe overkill, but we _are_ handling a secret */
+
     gtk_init(&argc, &argv);
 
     if (argc != 2) {

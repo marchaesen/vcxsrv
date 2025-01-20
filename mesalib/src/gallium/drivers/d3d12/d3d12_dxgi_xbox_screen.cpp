@@ -104,11 +104,11 @@ d3d12_init_dxgi_screen(struct d3d12_screen *dscreen)
    screen->base.device_id = adapter_desc.DeviceId;
    screen->base.subsys_id = adapter_desc.SubSysId;
    screen->base.revision = adapter_desc.Revision;
+   screen->base.memory_device_size_megabytes = adapter_desc.DedicatedVideoMemory >> 20;
    // Note: memory sizes in bytes, but stored in size_t, so may be capped at 4GB.
    // In that case, adding before conversion to MB can easily overflow.
-   screen->base.memory_size_megabytes = (adapter_desc.DedicatedVideoMemory >> 20) +
-      (adapter_desc.DedicatedSystemMemory >> 20) +
-      (adapter_desc.SharedSystemMemory >> 20);
+   screen->base.memory_system_size_megabytes =
+      (adapter_desc.DedicatedSystemMemory >> 20) + (adapter_desc.SharedSystemMemory >> 20);
    wcsncpy(screen->description, adapter_desc.Description, ARRAY_SIZE(screen->description));
    screen->base.base.get_name = dxgi_get_name;
    screen->base.get_memory_info = dxgi_get_memory_info;

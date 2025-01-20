@@ -63,6 +63,10 @@ SOFTWARE.
 #include <X11/Xmd.h>
 #include <X11/Xdefs.h>
 
+#ifndef __has_builtin
+# define __has_builtin(x) 0     /* Compatibility with older compilers */
+#endif
+
 /* If EAGAIN and EWOULDBLOCK are distinct errno values, then we check errno
  * for both EAGAIN and EWOULDBLOCK, because some supposedly POSIX
  * systems are broken and return EWOULDBLOCK when they should return EAGAIN
@@ -219,5 +223,24 @@ extern int limitNoFile;
 extern Bool CoreDump;
 extern Bool NoListenAll;
 extern Bool AllowByteSwappedClients;
+
+#if __has_builtin(__builtin_popcountl)
+# define Ones __builtin_popcountl
+#else
+/*
+ * Count the number of bits set to 1 in a 32-bit word.
+ * Algorithm from MIT AI Lab Memo 239: "HAKMEM", ITEM 169.
+ * https://dspace.mit.edu/handle/1721.1/6086
+ */
+static inline int
+Ones(unsigned long mask)
+{
+    unsigned long y;
+
+    y = (mask >> 1) & 033333333333;
+    y = mask - y - ((y >> 1) & 033333333333);
+    return (((y + (y >> 3)) & 030707070707) % 077);
+}
+#endif
 
 #endif                          /* _OSDEP_H_ */

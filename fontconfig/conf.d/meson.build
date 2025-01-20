@@ -70,12 +70,14 @@ conf_links = [
   '90-synthetic.conf',
 ]
 
-install_data(conf_files, install_dir: fc_templatedir)
+install_data(conf_files,
+             install_dir: fc_templatedir,
+             install_tag: 'runtime')
 
 meson.add_install_script('link_confs.py', fc_templatedir,
-  fc_configdir,
-  conf_links,
-)
+                         fc_configdir,
+                         conf_links,
+                         install_tag: 'runtime')
 
 # 35-lang-normalize.conf
 orths = []
@@ -90,7 +92,8 @@ custom_target('35-lang-normalize.conf',
   output: '35-lang-normalize.conf',
   command: [find_program('write-35-lang-normalize-conf.py'), ','.join(orths), '@OUTPUT@'],
   install_dir: fc_templatedir,
-  install: true)
+  install: true,
+  install_tag: 'runtime')
 
 # README
 readme_cdata = configuration_data()
@@ -99,4 +102,5 @@ configure_file(output: 'README',
   input: 'README.in',
   configuration: readme_cdata,
   install_dir: fc_configdir,
-  install: true)
+  install: true,
+  install_tag: 'runtime')

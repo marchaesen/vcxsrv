@@ -3,31 +3,31 @@
 #include "dri_util.h"
 
 int64_t
-kopperSwapBuffers(__DRIdrawable *dPriv, uint32_t flush_flags)
+kopperSwapBuffers(struct dri_drawable *dPriv, uint32_t flush_flags)
 {
    return 0;
 }
 
 int64_t
-kopperSwapBuffersWithDamage(__DRIdrawable *dPriv, uint32_t flush_flags, int nrects, const int *rects)
+kopperSwapBuffersWithDamage(struct dri_drawable *dPriv, uint32_t flush_flags, int nrects, const int *rects)
 {
    return 0;
 }
 
 void
-kopperSetSwapInterval(__DRIdrawable *dPriv, int interval)
+kopperSetSwapInterval(struct dri_drawable *dPriv, int interval)
 {
 }
 
 int
-kopperQueryBufferAge(__DRIdrawable *dPriv)
+kopperQueryBufferAge(struct dri_drawable *dPriv)
 {
    return 0;
 }
 
-const __DRIconfig **
+const struct dri_config **
 kopper_init_screen(struct dri_screen *screen, bool driver_name_is_inferred);
-const __DRIconfig **
+const struct dri_config **
 kopper_init_screen(struct dri_screen *screen, bool driver_name_is_inferred)
 {
    return NULL;

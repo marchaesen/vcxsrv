@@ -44,7 +44,8 @@ replace_physical_pred(struct ir3_block *block, struct ir3_block *old_pred,
 static void
 mov_immed(struct ir3_register *dst, struct ir3_block *block, unsigned immed)
 {
-   struct ir3_instruction *mov = ir3_instr_create(block, OPC_MOV, 1, 1);
+   struct ir3_instruction *mov =
+      ir3_instr_create_at(ir3_before_terminator(block), OPC_MOV, 1, 1);
    struct ir3_register *mov_dst = ir3_dst_create(mov, dst->num, dst->flags);
    mov_dst->wrmask = dst->wrmask;
    struct ir3_register *src = ir3_src_create(
@@ -59,7 +60,8 @@ static void
 mov_reg(struct ir3_block *block, struct ir3_register *dst,
         struct ir3_register *src)
 {
-   struct ir3_instruction *mov = ir3_instr_create(block, OPC_MOV, 1, 1);
+   struct ir3_instruction *mov =
+      ir3_instr_create_at(ir3_before_terminator(block), OPC_MOV, 1, 1);
 
    struct ir3_register *mov_dst =
       ir3_dst_create(mov, dst->num, dst->flags & (IR3_REG_HALF | IR3_REG_SHARED));
@@ -77,8 +79,9 @@ static void
 binop(struct ir3_block *block, opc_t opc, struct ir3_register *dst,
       struct ir3_register *src0, struct ir3_register *src1)
 {
-   struct ir3_instruction *instr = ir3_instr_create(block, opc, 1, 2);
-   
+   struct ir3_instruction *instr =
+      ir3_instr_create_at(ir3_before_terminator(block), opc, 1, 2);
+
    unsigned flags = dst->flags & IR3_REG_HALF;
    struct ir3_register *instr_dst = ir3_dst_create(instr, dst->num, flags);
    struct ir3_register *instr_src0 = ir3_src_create(instr, src0->num, flags);
@@ -95,8 +98,9 @@ triop(struct ir3_block *block, opc_t opc, struct ir3_register *dst,
       struct ir3_register *src0, struct ir3_register *src1,
       struct ir3_register *src2)
 {
-   struct ir3_instruction *instr = ir3_instr_create(block, opc, 1, 3);
-   
+   struct ir3_instruction *instr =
+      ir3_instr_create_at(ir3_before_terminator(block), opc, 1, 3);
+
    unsigned flags = dst->flags & IR3_REG_HALF;
    struct ir3_register *instr_dst = ir3_dst_create(instr, dst->num, flags);
    struct ir3_register *instr_src0 = ir3_src_create(instr, src0->num, flags);
@@ -201,7 +205,8 @@ link_blocks(struct ir3_block *pred, struct ir3_block *succ, unsigned index)
 static void
 link_blocks_jump(struct ir3_block *pred, struct ir3_block *succ)
 {
-   ir3_JUMP(pred);
+   struct ir3_builder build = ir3_builder_at(ir3_after_block(pred));
+   ir3_JUMP(&build);
    link_blocks(pred, succ, 0);
 }
 
@@ -211,7 +216,8 @@ link_blocks_branch(struct ir3_block *pred, struct ir3_block *target,
                    struct ir3_instruction *condition)
 {
    unsigned nsrc = condition ? 1 : 0;
-   struct ir3_instruction *branch = ir3_instr_create(pred, opc, 0, nsrc);
+   struct ir3_instruction *branch =
+      ir3_instr_create_at(ir3_after_block(pred), opc, 0, nsrc);
    branch->flags |= flags;
 
    if (condition) {
@@ -253,6 +259,7 @@ lower_instr(struct ir3 *ir, struct ir3_block **block, struct ir3_instruction *in
    case OPC_ALL_MACRO:
    case OPC_ELECT_MACRO:
    case OPC_READ_COND_MACRO:
+   case OPC_READ_GETLAST_MACRO:
    case OPC_SCAN_MACRO:
    case OPC_SCAN_CLUSTERS_MACRO:
       break;
@@ -439,6 +446,11 @@ lower_instr(struct ir3 *ir, struct ir3_block **block, struct ir3_instruction *in
          branch_opc = OPC_GETONE;
          branch_flags = instr->flags & IR3_INSTR_NEEDS_HELPERS;
          break;
+      case OPC_READ_GETLAST_MACRO:
+         after_block->reconvergence_point = true;
+         branch_opc = OPC_GETLAST;
+         branch_flags = instr->flags & IR3_INSTR_NEEDS_HELPERS;
+         break;
       default:
          unreachable("bad opcode");
       }
@@ -456,20 +468,25 @@ lower_instr(struct ir3 *ir, struct ir3_block **block, struct ir3_instruction *in
          break;
 
       case OPC_BALLOT_MACRO: {
-         unsigned comp_count = util_last_bit(instr->dsts[0]->wrmask);
-         struct ir3_instruction *movmsk =
-            ir3_instr_create(then_block, OPC_MOVMSK, 1, 0);
-         ir3_dst_create(movmsk, instr->dsts[0]->num, instr->dsts[0]->flags);
+         unsigned wrmask = instr->dsts[0]->wrmask;
+         unsigned comp_count = util_last_bit(wrmask);
+         struct ir3_instruction *movmsk = ir3_instr_create_at(
+            ir3_before_terminator(then_block), OPC_MOVMSK, 1, 0);
+         struct ir3_register *dst =
+            ir3_dst_create(movmsk, instr->dsts[0]->num, instr->dsts[0]->flags);
+         dst->wrmask = wrmask;
          movmsk->repeat = comp_count - 1;
          break;
       }
 
+      case OPC_READ_GETLAST_MACRO:
       case OPC_READ_COND_MACRO: {
-         struct ir3_instruction *mov =
-            ir3_instr_create(then_block, OPC_MOV, 1, 1);
+         struct ir3_instruction *mov = ir3_instr_create_at(
+            ir3_before_terminator(then_block), OPC_MOV, 1, 1);
          ir3_dst_create(mov, instr->dsts[0]->num, instr->dsts[0]->flags);
          struct ir3_register *new_src = ir3_src_create(mov, 0, 0);
-         *new_src = *instr->srcs[1];
+         unsigned idx = instr->opc == OPC_READ_COND_MACRO ? 1 : 0;
+         *new_src = *instr->srcs[idx];
          mov->cat1.dst_type = TYPE_U32;
          mov->cat1.src_type =
             (new_src->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32;
@@ -546,9 +563,73 @@ filter_scan_reduce(const nir_instr *instr, const void *data)
    }
 }
 
+typedef nir_def *(*reduce_cluster)(nir_builder *, nir_op, nir_def *);
+
+/* Execute `reduce` for each cluster in the subgroup with only the invocations
+ * in the current cluster active.
+ */
+static nir_def *
+foreach_cluster(nir_builder *b, nir_op op, nir_def *inclusive,
+                unsigned cluster_size, reduce_cluster reduce)
+{
+   nir_def *id = nir_load_subgroup_invocation(b);
+   nir_def *cluster_size_imm = nir_imm_int(b, cluster_size);
+
+   /* cur_cluster_end = cluster_size;
+    * while (true) {
+    *    if (gl_SubgroupInvocationID < cur_cluster_end) {
+    *       cluster_val = reduce(inclusive);
+    *       break;
+    *    }
+    *
+    *    cur_cluster_end += cluster_size;
+    * }
+    */
+   nir_variable *cur_cluster_end_var =
+      nir_local_variable_create(b->impl, glsl_uint_type(), "cur_cluster_end");
+   nir_store_var(b, cur_cluster_end_var, cluster_size_imm, 1);
+   nir_variable *cluster_val_var = nir_local_variable_create(
+      b->impl, glsl_type_for_def(inclusive), "cluster_val");
+
+   nir_loop *loop = nir_push_loop(b);
+   {
+      nir_def *cur_cluster_end = nir_load_var(b, cur_cluster_end_var);
+      nir_def *in_cur_cluster = nir_ult(b, id, cur_cluster_end);
+
+      nir_if *nif = nir_push_if(b, in_cur_cluster);
+      {
+         nir_def *reduced = reduce(b, op, inclusive);
+         nir_store_var(b, cluster_val_var, reduced, 1);
+         nir_jump(b, nir_jump_break);
+      }
+      nir_pop_if(b, nif);
+
+      nir_def *next_cluster_end =
+         nir_iadd(b, cur_cluster_end, cluster_size_imm);
+      nir_store_var(b, cur_cluster_end_var, next_cluster_end, 1);
+   }
+   nir_pop_loop(b, loop);
+
+   return nir_load_var(b, cluster_val_var);
+}
+
+static nir_def *
+read_last(nir_builder *b, nir_op op, nir_def *val)
+{
+   return nir_read_getlast_ir3(b, val);
+}
+
+static nir_def *
+reduce_clusters(nir_builder *b, nir_op op, nir_def *val)
+{
+   return nir_reduce_clusters_ir3(b, val, .reduction_op = op);
+}
+
 static nir_def *
 lower_scan_reduce(struct nir_builder *b, nir_instr *instr, void *data)
 {
+   struct ir3_shader_variant *v = data;
+
    nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
    unsigned bit_size = intrin->def.bit_size;
    assert(bit_size < 64);
@@ -558,10 +639,30 @@ lower_scan_reduce(struct nir_builder *b, nir_instr *instr, void *data)
    nir_def *ident = nir_build_imm(b, 1, bit_size, &ident_val);
    nir_def *inclusive = intrin->src[0].ssa;
    nir_def *exclusive = ident;
+   unsigned cluster_size = nir_intrinsic_has_cluster_size(intrin)
+                              ? nir_intrinsic_cluster_size(intrin)
+                              : 0;
+   bool clustered = cluster_size != 0;
+   unsigned subgroup_size, max_subgroup_size;
+   ir3_shader_get_subgroup_size(v->compiler, &v->shader_options, v->type,
+                                &subgroup_size, &max_subgroup_size);
 
-   for (unsigned cluster_size = 2; cluster_size <= 8; cluster_size *= 2) {
+   if (subgroup_size == 0) {
+      subgroup_size = max_subgroup_size;
+   }
+
+   /* Should have been lowered by nir_lower_subgroups. */
+   assert(cluster_size != 1);
+
+   /* Only clustered reduce operations are supported. */
+   assert(intrin->intrinsic == nir_intrinsic_reduce || !clustered);
+
+   unsigned max_brcst_cluster_size = clustered ? MIN2(cluster_size, 8) : 8;
+
+   for (unsigned brcst_cluster_size = 2;
+        brcst_cluster_size <= max_brcst_cluster_size; brcst_cluster_size *= 2) {
       nir_def *brcst = nir_brcst_active_ir3(b, ident, inclusive,
-                                            .cluster_size = cluster_size);
+                                            .cluster_size = brcst_cluster_size);
       inclusive = nir_build_alu2(b, op, inclusive, brcst);
 
       if (intrin->intrinsic == nir_intrinsic_exclusive_scan)
@@ -570,7 +671,24 @@ lower_scan_reduce(struct nir_builder *b, nir_instr *instr, void *data)
 
    switch (intrin->intrinsic) {
    case nir_intrinsic_reduce:
-      return nir_reduce_clusters_ir3(b, inclusive, .reduction_op = op);
+      if (!clustered || cluster_size >= subgroup_size) {
+         /* The normal (non-clustered) path does a full reduction of all brcst
+          * clusters.
+          */
+         return nir_reduce_clusters_ir3(b, inclusive, .reduction_op = op);
+      } else if (cluster_size <= 8) {
+         /* After the brcsts have been executed, each brcst cluster has its
+          * reduction in its last fiber. So if the cluster size is at most the
+          * maximum brcst cluster size (8) we can simply iterate the clusters
+          * and read the value from their last fibers.
+          */
+         return foreach_cluster(b, op, inclusive, cluster_size, read_last);
+      } else {
+         /* For larger clusters, we do a normal reduction for every cluster.
+          */
+         return foreach_cluster(b, op, inclusive, cluster_size,
+                                reduce_clusters);
+      }
    case nir_intrinsic_inclusive_scan:
       return nir_inclusive_scan_clusters_ir3(b, inclusive, .reduction_op = op);
    case nir_intrinsic_exclusive_scan:
@@ -588,19 +706,28 @@ ir3_nir_opt_subgroups(nir_shader *nir, struct ir3_shader_variant *v)
       return false;
 
    return nir_shader_lower_instructions(nir, filter_scan_reduce,
-                                        lower_scan_reduce, NULL);
+                                        lower_scan_reduce, v);
 }
 
-static bool
-filter_64b_scan_reduce(const nir_instr *instr, const void *data)
+bool
+ir3_nir_lower_subgroups_filter(const nir_instr *instr, const void *data)
 {
    if (instr->type != nir_instr_type_intrinsic)
       return false;
 
    nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
+   const struct ir3_compiler *compiler = data;
+
    switch (intrin->intrinsic) {
    case nir_intrinsic_reduce:
+      if (nir_intrinsic_cluster_size(intrin) == 1) {
+         return true;
+      }
+      if (nir_intrinsic_cluster_size(intrin) > 0 && !compiler->has_getfiberid) {
+         return true;
+      }
+      FALLTHROUGH;
    case nir_intrinsic_inclusive_scan:
    case nir_intrinsic_exclusive_scan:
       switch (nir_intrinsic_reduction_op(intrin)) {
@@ -609,90 +736,16 @@ filter_64b_scan_reduce(const nir_instr *instr, const void *data)
       case nir_op_imax:
       case nir_op_umin:
       case nir_op_umax:
-         return intrin->def.bit_size == 64;
+         if (intrin->def.bit_size == 64) {
+            return true;
+         }
+         FALLTHROUGH;
       default:
-         /* Will be handled by nir_lower_int64. */
-         return false;
+         return intrin->def.num_components > 1;
       }
    default:
-      return false;
+      return true;
    }
-}
-
-/* The existing scan/reduce macros (OPC_SCAN_MACRO/OPC_SCAN_CLUSTERS_MACRO) hard
- * code the reduction operations in ir3. Adding support for 64b operations will
- * blow up these already complicated macros. Implement a simple scan loop in NIR
- * for the few (hopefully rare) cases where the generic passes cannot lower the
- * reduction to 32b.
- *
- * inclusive = exclusive = ident;
- * while (true) {
- *    exclusive = inclusive;
- *    inclusive = inclusive OP subgroupBroadcastFirst(inclusive_in);
- *    if (elect()) {
- *       break;
- *    }
- * }
- * reduce = subgroupBroadcast(inclusive,
- *                            subgroupBallotFindMSB(subgroupBallot(true)));
- */
-static nir_def *
-lower_64b_scan_reduce(struct nir_builder *b, nir_instr *instr, void *data)
-{
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-   assert(intrin->def.num_components == 1);
-
-   unsigned bit_size = intrin->def.bit_size;
-   nir_op op = nir_intrinsic_reduction_op(intrin);
-
-   nir_const_value ident_val = nir_alu_binop_identity(op, bit_size);
-   nir_def *ident = nir_build_imm(b, 1, bit_size, &ident_val);
-   nir_def *inclusive_in = intrin->src[0].ssa;
-
-   const glsl_type *var_type = glsl_type_for_def(inclusive_in);
-   nir_variable *inclusive_var =
-      nir_local_variable_create(b->impl, var_type, "inclusive");
-   nir_variable *exclusive_var =
-      nir_local_variable_create(b->impl, var_type, "exclusive");
-   nir_store_var(b, inclusive_var, ident, 1);
-   nir_store_var(b, exclusive_var, ident, 1);
-
-   nir_loop *loop = nir_push_loop(b);
-   {
-      nir_def *inclusive = nir_load_var(b, inclusive_var);
-      nir_store_var(b, exclusive_var, inclusive, 1);
-
-      nir_def *inclusive_in_next = nir_read_first_invocation(b, inclusive_in);
-      nir_def *inclusive_next =
-         nir_build_alu2(b, op, inclusive, inclusive_in_next);
-      nir_store_var(b, inclusive_var, inclusive_next, 1);
-
-      nir_break_if(b, nir_elect(b, 1));
-   }
-   nir_pop_loop(b, loop);
-
-   switch (intrin->intrinsic) {
-   case nir_intrinsic_reduce: {
-      nir_def *active_invocations = nir_ballot(b, 4, 32, nir_imm_true(b));
-      nir_def *last_active_invocation =
-         nir_ballot_find_msb(b, 32, active_invocations);
-      return nir_read_invocation(b, nir_load_var(b, inclusive_var),
-                                 last_active_invocation);
-   }
-   case nir_intrinsic_inclusive_scan:
-      return nir_load_var(b, inclusive_var);
-   case nir_intrinsic_exclusive_scan:
-      return nir_load_var(b, exclusive_var);
-   default:
-      unreachable("filtered intrinsic");
-   }
-}
-
-bool
-ir3_nir_lower_64b_subgroups(nir_shader *nir)
-{
-   return nir_shader_lower_instructions(nir, filter_64b_scan_reduce,
-                                        lower_64b_scan_reduce, NULL);
 }
 
 static bool
@@ -820,7 +873,6 @@ ir3_nir_lower_shuffle(nir_shader *nir, struct ir3_shader *shader)
       return false;
    }
 
-   nir_convert_to_lcssa(nir, true, true);
    nir_divergence_analysis(nir);
    return nir_shader_lower_instructions(nir, filter_shuffle, lower_shuffle,
                                         NULL);

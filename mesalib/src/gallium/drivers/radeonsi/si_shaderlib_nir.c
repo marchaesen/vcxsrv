@@ -15,7 +15,7 @@
 
 void *si_create_shader_state(struct si_context *sctx, nir_shader *nir)
 {
-   sctx->b.screen->finalize_nir(sctx->b.screen, (void*)nir);
+   sctx->b.screen->finalize_nir(sctx->b.screen, nir);
    return pipe_shader_from_nir(&sctx->b, nir);
 }
 
@@ -328,33 +328,36 @@ void *si_get_blitter_vs(struct si_context *sctx, enum blitter_attrib_type type, 
    /* Tell the shader to load VS inputs from SGPRs: */
    b.shader->info.vs.blit_sgprs_amd = vs_blit_property;
    b.shader->info.vs.window_space_position = true;
+   b.shader->info.io_lowered = true;
 
-   const struct glsl_type *vec4 = glsl_vec4_type();
-
-   nir_copy_var(&b,
-                nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                                  VARYING_SLOT_POS, vec4),
-                nir_create_variable_with_location(b.shader, nir_var_shader_in,
-                                                  VERT_ATTRIB_GENERIC0, vec4));
+   nir_def *pos = nir_load_input(&b, 4, 32, nir_imm_int(&b, 0),
+                                 .dest_type = nir_type_float32,
+                                 .io_semantics.num_slots = 1,
+                                 .io_semantics.location = VERT_ATTRIB_GENERIC0);
+   nir_store_output(&b, pos, nir_imm_int(&b, 0),
+                    .src_type = nir_type_float32,
+                    .io_semantics.num_slots = 1,
+                    .io_semantics.location = VARYING_SLOT_POS);
 
    if (type != UTIL_BLITTER_ATTRIB_NONE) {
-      nir_copy_var(&b,
-                   nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                                     VARYING_SLOT_VAR0, vec4),
-                   nir_create_variable_with_location(b.shader, nir_var_shader_in,
-                                                     VERT_ATTRIB_GENERIC1, vec4));
+      nir_def *attr = nir_load_input(&b, 4, 32, nir_imm_int(&b, 0),
+                                     .dest_type = nir_type_float32,
+                                     .io_semantics.num_slots = 1,
+                                     .io_semantics.location = VERT_ATTRIB_GENERIC1);
+      nir_store_output(&b, attr, nir_imm_int(&b, 0),
+                       .src_type = nir_type_float32,
+                       .io_semantics.num_slots = 1,
+                       .io_semantics.location = VARYING_SLOT_VAR0);
    }
 
    if (num_layers > 1) {
-      nir_variable *out_layer =
-         nir_create_variable_with_location(b.shader, nir_var_shader_out,
-                                           VARYING_SLOT_LAYER, glsl_int_type());
-      out_layer->data.interpolation = INTERP_MODE_NONE;
-
-      nir_copy_var(&b, out_layer,
-                   nir_create_variable_with_location(b.shader, nir_var_system_value,
-                                                     SYSTEM_VALUE_INSTANCE_ID, glsl_int_type()));
+      nir_store_output(&b, nir_load_instance_id(&b), nir_imm_int(&b, 0),
+                       .src_type = nir_type_float32,
+                       .io_semantics.num_slots = 1,
+                       .io_semantics.location = VARYING_SLOT_LAYER);
    }
+
+   NIR_PASS(_, b.shader, nir_recompute_io_bases, nir_var_shader_in | nir_var_shader_out);
 
    *vs = si_create_shader_state(sctx, b.shader);
    return *vs;

@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <inttypes.h>
 #include "util/u_debug.h"
 
 #include "svga_resource.h"
@@ -49,6 +50,22 @@ svga_resource_from_handle(struct pipe_screen * screen,
       return NULL;
    else
       return svga_texture_from_handle(screen, template, whandle);
+}
+
+
+static struct pipe_resource *
+svga_resource_create_with_modifiers(struct pipe_screen *screen,
+                                    const struct pipe_resource *templat,
+                                    const uint64_t *modifiers, int count)
+{
+   /* Not sure, but it seems there's no format modifiers
+    * to deal with here.
+    */
+   if (count > 0 && modifiers != NULL && modifiers[0] != 0) {
+      debug_printf("vmware: unexpected format modifier 0x%" PRIx64 "\n",
+                   modifiers[0]);
+   }
+   return svga_resource_create(screen, templat);
 }
 
 
@@ -121,6 +138,7 @@ void
 svga_init_screen_resource_functions(struct svga_screen *is)
 {
    is->screen.resource_create = svga_resource_create;
+   is->screen.resource_create_with_modifiers = svga_resource_create_with_modifiers;
    is->screen.resource_from_handle = svga_resource_from_handle;
    is->screen.resource_get_handle = svga_resource_get_handle;
    is->screen.resource_destroy = svga_resource_destroy;

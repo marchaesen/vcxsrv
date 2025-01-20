@@ -48,7 +48,7 @@
 #include "pvr_private.h"
 #include "pvr_tex_state.h"
 #include "pvr_types.h"
-#include "pvr_uscgen.h"
+#include "usc/pvr_uscgen.h"
 #include "pvr_winsys.h"
 #include "util/bitscan.h"
 #include "util/bitset.h"
@@ -78,14 +78,14 @@ struct pvr_compute_kernel_info {
    uint32_t usc_unified_size;
    uint32_t pds_temp_size;
    uint32_t pds_data_size;
-   enum PVRX(CDMCTRL_USC_TARGET) usc_target;
+   enum ROGUE_CDMCTRL_USC_TARGET usc_target;
    bool is_fence;
    uint32_t pds_data_offset;
    uint32_t pds_code_offset;
-   enum PVRX(CDMCTRL_SD_TYPE) sd_type;
+   enum ROGUE_CDMCTRL_SD_TYPE sd_type;
    bool usc_common_shared;
-   uint32_t local_size[PVR_WORKGROUP_DIMENSIONS];
    uint32_t global_size[PVR_WORKGROUP_DIMENSIONS];
+   uint32_t local_size[PVR_WORKGROUP_DIMENSIONS];
    uint32_t max_instances;
 };
 
@@ -526,7 +526,7 @@ static VkResult pvr_sub_cmd_gfx_per_job_fragment_programs_create_and_upload(
    pvr_pds_setup_doutu(&pixel_event_program.task_control,
                        usc_eot_program->dev_addr.addr,
                        usc_temp_count,
-                       PVRX(PDSINST_DOUTU_SAMPLE_RATE_INSTANCE),
+                       ROGUE_PDSINST_DOUTU_SAMPLE_RATE_INSTANCE,
                        false);
 
    /* TODO: We could skip allocating this and generate directly into the device
@@ -645,11 +645,11 @@ static VkResult pvr_setup_texture_state_words(
                  TEXSTATE_SAMPLER,
                  sampler) {
       sampler.non_normalized_coords = true;
-      sampler.addrmode_v = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
-      sampler.addrmode_u = PVRX(TEXSTATE_ADDRMODE_CLAMP_TO_EDGE);
-      sampler.minfilter = PVRX(TEXSTATE_FILTER_POINT);
-      sampler.magfilter = PVRX(TEXSTATE_FILTER_POINT);
-      sampler.dadjust = PVRX(TEXSTATE_DADJUST_ZERO_UINT);
+      sampler.addrmode_v = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
+      sampler.addrmode_u = ROGUE_TEXSTATE_ADDRMODE_CLAMP_TO_EDGE;
+      sampler.minfilter = ROGUE_TEXSTATE_FILTER_POINT;
+      sampler.magfilter = ROGUE_TEXSTATE_FILTER_POINT;
+      sampler.dadjust = ROGUE_TEXSTATE_DADJUST_ZERO_UINT;
    }
 
    return VK_SUCCESS;
@@ -815,7 +815,7 @@ static VkResult pvr_load_op_pds_data_create_and_upload(
    pvr_csb_pack (&program.texture_dma_control[0],
                  PDSINST_DOUT_FIELDS_DOUTD_SRC1,
                  value) {
-      value.dest = PVRX(PDSINST_DOUTD_DEST_COMMON_STORE);
+      value.dest = ROGUE_PDSINST_DOUTD_DEST_COMMON_STORE;
       value.a0 = load_op->shareds_dest_offset;
       value.bsize = load_op->shareds_count;
    }
@@ -892,13 +892,13 @@ static void pvr_pds_bgnd_pack_state(
    pvr_csb_pack (&pds_reg_values[2], CR_PDS_BGRND3_SIZEINFO, value) {
       value.usc_sharedsize =
          DIV_ROUND_UP(load_op->const_shareds_count,
-                      PVRX(CR_PDS_BGRND3_SIZEINFO_USC_SHAREDSIZE_UNIT_SIZE));
+                      ROGUE_CR_PDS_BGRND3_SIZEINFO_USC_SHAREDSIZE_UNIT_SIZE);
       value.pds_texturestatesize = DIV_ROUND_UP(
          load_op_program->data_size,
-         PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE));
+         ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_TEXTURESTATESIZE_UNIT_SIZE);
       value.pds_tempsize =
          DIV_ROUND_UP(load_op->temps_count,
-                      PVRX(CR_PDS_BGRND3_SIZEINFO_PDS_TEMPSIZE_UNIT_SIZE));
+                      ROGUE_CR_PDS_BGRND3_SIZEINFO_PDS_TEMPSIZE_UNIT_SIZE);
    }
 }
 
@@ -963,7 +963,8 @@ static void pvr_setup_pbe_state(
                                     &surface_params.source_format,
                                     &surface_params.gamma);
 
-   surface_params.is_normalized = pvr_vk_format_is_fully_normalized(iview->vk.format);
+   surface_params.is_normalized =
+      pvr_vk_format_is_fully_normalized(iview->vk.format);
    surface_params.pbe_packmode = pvr_get_pbe_packmode(iview->vk.format);
    surface_params.nr_components = vk_format_get_nr_components(iview->vk.format);
 
@@ -1167,6 +1168,7 @@ pvr_sub_cmd_gfx_align_ds_subtiles(struct pvr_cmd_buffer *const cmd_buffer,
     */
    assert(list_last_entry(&cmd_buffer->sub_cmds, struct pvr_sub_cmd, link) ==
           prev_sub_cmd);
+   assert(prev_sub_cmd == cmd_buffer->state.current_sub_cmd);
 
    if (!pvr_ds_attachment_requires_zls(ds))
       return VK_SUCCESS;
@@ -1221,12 +1223,16 @@ pvr_sub_cmd_gfx_align_ds_subtiles(struct pvr_cmd_buffer *const cmd_buffer,
    };
 
    if (ds->load.d || ds->load.s) {
+      struct pvr_sub_cmd *new_sub_cmd;
+
       cmd_buffer->state.current_sub_cmd = NULL;
 
       result =
          pvr_cmd_buffer_start_sub_cmd(cmd_buffer, PVR_SUB_CMD_TYPE_TRANSFER);
       if (result != VK_SUCCESS)
          return result;
+
+      new_sub_cmd = cmd_buffer->state.current_sub_cmd;
 
       result = pvr_copy_image_to_buffer_region_format(cmd_buffer,
                                                       ds_image,
@@ -1237,7 +1243,7 @@ pvr_sub_cmd_gfx_align_ds_subtiles(struct pvr_cmd_buffer *const cmd_buffer,
       if (result != VK_SUCCESS)
          return result;
 
-      cmd_buffer->state.current_sub_cmd->transfer.serialize_with_frag = true;
+      new_sub_cmd->transfer.serialize_with_frag = true;
 
       result = pvr_cmd_buffer_end_sub_cmd(cmd_buffer);
       if (result != VK_SUCCESS)
@@ -1245,9 +1251,11 @@ pvr_sub_cmd_gfx_align_ds_subtiles(struct pvr_cmd_buffer *const cmd_buffer,
 
       /* Now we have to fiddle with cmd_buffer to place this transfer command
        * *before* the target gfx subcommand.
+       *
+       * Note the doc for list_move_to() is subtly wrong - item is placed
+       * directly *after* loc in the list, not "in front of".
        */
-      list_move_to(&cmd_buffer->state.current_sub_cmd->link,
-                   &prev_sub_cmd->link);
+      list_move_to(&new_sub_cmd->link, prev_sub_cmd->link.prev);
 
       cmd_buffer->state.current_sub_cmd = prev_sub_cmd;
    }
@@ -1573,16 +1581,16 @@ static VkResult pvr_sub_cmd_gfx_job_init(const struct pvr_device_info *dev_info,
 
          switch (ds_iview->vk.format) {
          case VK_FORMAT_D16_UNORM:
-            job->ds.zls_format = PVRX(CR_ZLS_FORMAT_TYPE_16BITINT);
+            job->ds.zls_format = ROGUE_CR_ZLS_FORMAT_TYPE_16BITINT;
             break;
 
          case VK_FORMAT_S8_UINT:
          case VK_FORMAT_D32_SFLOAT:
-            job->ds.zls_format = PVRX(CR_ZLS_FORMAT_TYPE_F32Z);
+            job->ds.zls_format = ROGUE_CR_ZLS_FORMAT_TYPE_F32Z;
             break;
 
          case VK_FORMAT_D24_UNORM_S8_UINT:
-            job->ds.zls_format = PVRX(CR_ZLS_FORMAT_TYPE_24BITINT);
+            job->ds.zls_format = ROGUE_CR_ZLS_FORMAT_TYPE_24BITINT;
             break;
 
          default:
@@ -1732,6 +1740,9 @@ static VkResult pvr_sub_cmd_gfx_job_init(const struct pvr_device_info *dev_info,
    job->run_frag = true;
    job->geometry_terminate = true;
 
+   /* TODO: Enable pixel merging when it's safe to do. */
+   job->disable_pixel_merging = true;
+
    return VK_SUCCESS;
 }
 
@@ -1747,7 +1758,7 @@ pvr_sub_cmd_compute_job_init(const struct pvr_physical_device *pdevice,
 }
 
 #define PIXEL_ALLOCATION_SIZE_MAX_IN_BLOCKS \
-   (1024 / PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE))
+   (1024 / ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE)
 
 static uint32_t
 pvr_compute_flat_slot_size(const struct pvr_physical_device *pdevice,
@@ -1763,7 +1774,7 @@ pvr_compute_flat_slot_size(const struct pvr_physical_device *pdevice,
       dev_runtime_info->cdm_max_local_mem_size_regs;
    uint32_t localstore_chunks_count =
       DIV_ROUND_UP(PVR_DW_TO_BYTES(coeff_regs_count),
-                   PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE));
+                   ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE);
 
    /* Ensure that we cannot have more workgroups in a slot than the available
     * number of coefficients allow us to have.
@@ -1797,7 +1808,7 @@ pvr_compute_flat_slot_size(const struct pvr_physical_device *pdevice,
           */
          uint32_t max_common_store_blocks =
             DIV_ROUND_UP(max_avail_coeff_regs * 4U,
-                         PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE));
+                         ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE);
 
          /* (coefficient_memory_pool_size) - (7 * pixel_allocation_size_max)
           */
@@ -1947,15 +1958,15 @@ pvr_compute_generate_idfwdf(struct pvr_cmd_buffer *cmd_buffer,
                             struct pvr_sub_cmd_compute *const sub_cmd)
 {
    struct pvr_cmd_buffer_state *state = &cmd_buffer->state;
-   bool *const is_sw_barier_required =
+   bool *const is_sw_barrier_required =
       &state->current_sub_cmd->compute.pds_sw_barrier_requires_clearing;
    const struct pvr_physical_device *pdevice = cmd_buffer->device->pdevice;
    struct pvr_csb *csb = &sub_cmd->control_stream;
    const struct pvr_pds_upload *program;
 
    if (PVR_NEED_SW_COMPUTE_PDS_BARRIER(&pdevice->dev_info) &&
-       *is_sw_barier_required) {
-      *is_sw_barier_required = false;
+       *is_sw_barrier_required) {
+      *is_sw_barrier_required = false;
       program = &cmd_buffer->device->idfwdf_state.sw_compute_barrier_pds;
    } else {
       program = &cmd_buffer->device->idfwdf_state.pds;
@@ -1966,16 +1977,16 @@ pvr_compute_generate_idfwdf(struct pvr_cmd_buffer *cmd_buffer,
       .global_offsets_present = false,
       .usc_common_size = DIV_ROUND_UP(
          PVR_DW_TO_BYTES(cmd_buffer->device->idfwdf_state.usc_shareds),
-         PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE)),
+         ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE),
       .usc_unified_size = 0U,
       .pds_temp_size = 0U,
       .pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(program->data_size),
-                      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE)),
-      .usc_target = PVRX(CDMCTRL_USC_TARGET_ALL),
+                      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE),
+      .usc_target = ROGUE_CDMCTRL_USC_TARGET_ALL,
       .is_fence = false,
       .pds_data_offset = program->data_offset,
-      .sd_type = PVRX(CDMCTRL_SD_TYPE_USC),
+      .sd_type = ROGUE_CDMCTRL_SD_TYPE_USC,
       .usc_common_shared = true,
       .pds_code_offset = program->code_offset,
       .global_size = { 1U, 1U, 1U },
@@ -2010,11 +2021,11 @@ void pvr_compute_generate_fence(struct pvr_cmd_buffer *cmd_buffer,
       .pds_temp_size = 0U,
       .pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(program->data_size),
-                      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE)),
-      .usc_target = PVRX(CDMCTRL_USC_TARGET_ANY),
+                      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE),
+      .usc_target = ROGUE_CDMCTRL_USC_TARGET_ANY,
       .is_fence = true,
       .pds_data_offset = program->data_offset,
-      .sd_type = PVRX(CDMCTRL_SD_TYPE_PDS),
+      .sd_type = ROGUE_CDMCTRL_SD_TYPE_PDS,
       .usc_common_shared = deallocate_shareds,
       .pds_code_offset = program->code_offset,
       .global_size = { 1U, 1U, 1U },
@@ -2260,7 +2271,7 @@ void pvr_reset_graphics_dirty_state(struct pvr_cmd_buffer *const cmd_buffer,
        * phase.
        */
 
-      cmd_buffer->state.emit_header = (struct PVRX(TA_STATE_HEADER)){
+      cmd_buffer->state.emit_header = (struct ROGUE_TA_STATE_HEADER){
          .pres_stream_out_size = true,
          .pres_ppp_ctrl = true,
          .pres_varying_word2 = true,
@@ -2275,7 +2286,7 @@ void pvr_reset_graphics_dirty_state(struct pvr_cmd_buffer *const cmd_buffer,
          .pres_ispctl = true,
       };
    } else {
-      struct PVRX(TA_STATE_HEADER) *const emit_header =
+      struct ROGUE_TA_STATE_HEADER *const emit_header =
          &cmd_buffer->state.emit_header;
 
       emit_header->pres_ppp_ctrl = true;
@@ -3124,11 +3135,11 @@ static VkResult pvr_cs_write_load_op(struct pvr_cmd_buffer *cmd_buffer,
 
       sizeinfo1.pds_texturestatesize = DIV_ROUND_UP(
          shareds_update_program.data_size,
-         PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE));
+         ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEXTURESTATESIZE_UNIT_SIZE);
 
       sizeinfo1.pds_tempsize =
          DIV_ROUND_UP(load_op->temps_count,
-                      PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE));
+                      ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE);
    }
 
    pvr_csb_pack (&pds_state[PVR_STATIC_CLEAR_PPP_PDS_TYPE_SIZEINFO2],
@@ -3136,7 +3147,7 @@ static VkResult pvr_cs_write_load_op(struct pvr_cmd_buffer *cmd_buffer,
                  sizeinfo2) {
       sizeinfo2.usc_sharedsize =
          DIV_ROUND_UP(load_op->const_shareds_count,
-                      PVRX(TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE));
+                      ROGUE_TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE);
    }
 
    /* Dummy coefficient loading program. */
@@ -3355,9 +3366,11 @@ pvr_setup_vertex_buffers(struct pvr_cmd_buffer *cmd_buffer,
       case PVR_PDS_CONST_MAP_ENTRY_TYPE_DOUTU_ADDRESS: {
          const struct pvr_const_map_entry_doutu_address *const doutu_addr =
             (struct pvr_const_map_entry_doutu_address *)entries;
+
+         const pco_data *const vs_data = &state->gfx_pipeline->vs_data;
          const pvr_dev_addr_t exec_addr =
             PVR_DEV_ADDR_OFFSET(vertex_state->bo->dev_addr,
-                                vertex_state->entry_offset);
+                                vs_data->common.entry_offset);
          uint64_t addr = 0ULL;
 
          pvr_set_usc_execution_address64(&addr, exec_addr.addr);
@@ -3763,8 +3776,7 @@ static uint16_t pvr_get_dynamic_descriptor_primary_offset(
    struct pvr_descriptor_size_info size_info;
    uint32_t offset;
 
-   assert(binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-          binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
+   assert(vk_descriptor_type_is_dynamic(binding->type));
    assert(desc_idx < binding->descriptor_count);
 
    pvr_descriptor_size_info_init(device, binding->type, &size_info);
@@ -3793,8 +3805,7 @@ static uint16_t pvr_get_dynamic_descriptor_secondary_offset(
    struct pvr_descriptor_size_info size_info;
    uint32_t offset;
 
-   assert(binding->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC ||
-          binding->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC);
+   assert(vk_descriptor_type_is_dynamic(binding->type));
    assert(desc_idx < binding->descriptor_count);
 
    pvr_descriptor_size_info_init(device, binding->type, &size_info);
@@ -4299,16 +4310,16 @@ static void pvr_compute_update_shared(struct pvr_cmd_buffer *cmd_buffer,
 
    info = (struct pvr_compute_kernel_info){
       .indirect_buffer_addr = PVR_DEV_ADDR_INVALID,
-      .sd_type = PVRX(CDMCTRL_SD_TYPE_NONE),
+      .sd_type = ROGUE_CDMCTRL_SD_TYPE_NONE,
 
-      .usc_target = PVRX(CDMCTRL_USC_TARGET_ALL),
+      .usc_target = ROGUE_CDMCTRL_USC_TARGET_ALL,
       .usc_common_shared = true,
       .usc_common_size =
          DIV_ROUND_UP(const_shared_regs,
-                      PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE),
 
-      .local_size = { 1, 1, 1 },
       .global_size = { 1, 1, 1 },
+      .local_size = { 1, 1, 1 },
    };
 
    /* Sometimes we don't have a secondary program if there were no constants to
@@ -4323,7 +4334,7 @@ static void pvr_compute_update_shared(struct pvr_cmd_buffer *cmd_buffer,
       info.pds_data_offset = state->pds_compute_descriptor_data_offset;
       info.pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(pds_data_size_in_dwords),
-                      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE));
+                      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE);
 
       /* Check that we have upload the code section. */
       assert(pipeline->descriptor_state.pds_code.code_size);
@@ -4334,7 +4345,7 @@ static void pvr_compute_update_shared(struct pvr_cmd_buffer *cmd_buffer,
       info.pds_data_offset = program->data_offset;
       info.pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(program->data_size),
-                      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE));
+                      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE);
       info.pds_code_offset = program->code_offset;
    }
 
@@ -4368,17 +4379,17 @@ void pvr_compute_update_shared_private(
       .indirect_buffer_addr = PVR_DEV_ADDR_INVALID,
       .usc_common_size =
          DIV_ROUND_UP(const_shared_regs,
-                      PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE),
       .pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(pipeline->pds_shared_update_data_size_dw),
-                      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE)),
-      .usc_target = PVRX(CDMCTRL_USC_TARGET_ALL),
+                      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE),
+      .usc_target = ROGUE_CDMCTRL_USC_TARGET_ALL,
       .pds_data_offset = pipeline->pds_shared_update_data_offset,
       .pds_code_offset = pipeline->pds_shared_update_code_offset,
-      .sd_type = PVRX(CDMCTRL_SD_TYPE_NONE),
+      .sd_type = ROGUE_CDMCTRL_SD_TYPE_NONE,
       .usc_common_shared = true,
-      .local_size = { 1, 1, 1 },
       .global_size = { 1, 1, 1 },
+      .local_size = { 1, 1, 1 },
    };
 
    /* We don't need to pad the workgroup size. */
@@ -4401,7 +4412,7 @@ pvr_compute_flat_pad_workgroup_size(const struct pvr_physical_device *pdevice,
       dev_runtime_info->cdm_max_local_mem_size_regs;
    uint32_t coeff_regs_count_aligned =
       ALIGN_POT(coeff_regs_count,
-                PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE) >> 2U);
+                ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE >> 2U);
 
    /* If the work group size is > ROGUE_MAX_INSTANCES_PER_TASK. We now *always*
     * pad the work group size to the next multiple of
@@ -4434,22 +4445,22 @@ void pvr_compute_update_kernel_private(
 
    struct pvr_compute_kernel_info info = {
       .indirect_buffer_addr = PVR_DEV_ADDR_INVALID,
-      .usc_target = PVRX(CDMCTRL_USC_TARGET_ANY),
+      .usc_target = ROGUE_CDMCTRL_USC_TARGET_ANY,
       .pds_temp_size =
          DIV_ROUND_UP(pipeline->pds_temps_used << 2U,
-                      PVRX(CDMCTRL_KERNEL0_PDS_TEMP_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_PDS_TEMP_SIZE_UNIT_SIZE),
 
       .pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(pipeline->pds_data_size_dw),
-                      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE),
       .pds_data_offset = pipeline->pds_data_offset,
       .pds_code_offset = pipeline->pds_code_offset,
 
-      .sd_type = PVRX(CDMCTRL_SD_TYPE_NONE),
+      .sd_type = ROGUE_CDMCTRL_SD_TYPE_NONE,
 
       .usc_unified_size =
          DIV_ROUND_UP(pipeline->unified_store_regs_count << 2U,
-                      PVRX(CDMCTRL_KERNEL0_USC_UNIFIED_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_USC_UNIFIED_SIZE_UNIT_SIZE),
 
       /* clang-format off */
       .global_size = {
@@ -4475,7 +4486,7 @@ void pvr_compute_update_kernel_private(
 
    info.usc_common_size =
       DIV_ROUND_UP(PVR_DW_TO_BYTES(coeff_regs),
-                   PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE));
+                   ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE);
 
    /* Use a whole slot per workgroup. */
    work_size = MAX2(work_size, ROGUE_MAX_INSTANCES_PER_TASK);
@@ -4483,7 +4494,7 @@ void pvr_compute_update_kernel_private(
    coeff_regs += pipeline->const_shared_regs_count;
 
    if (pipeline->const_shared_regs_count > 0)
-      info.sd_type = PVRX(CDMCTRL_SD_TYPE_USC);
+      info.sd_type = ROGUE_CDMCTRL_SD_TYPE_USC;
 
    work_size =
       pvr_compute_flat_pad_workgroup_size(pdevice, work_size, coeff_regs);
@@ -4519,22 +4530,22 @@ static void pvr_compute_update_kernel(
 
    struct pvr_compute_kernel_info info = {
       .indirect_buffer_addr = indirect_addr,
-      .usc_target = PVRX(CDMCTRL_USC_TARGET_ANY),
+      .usc_target = ROGUE_CDMCTRL_USC_TARGET_ANY,
       .pds_temp_size =
          DIV_ROUND_UP(program_info->temps_required << 2U,
-                      PVRX(CDMCTRL_KERNEL0_PDS_TEMP_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_PDS_TEMP_SIZE_UNIT_SIZE),
 
       .pds_data_size =
          DIV_ROUND_UP(PVR_DW_TO_BYTES(program_info->data_size_in_dwords),
-                      PVRX(CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_PDS_DATA_SIZE_UNIT_SIZE),
       .pds_data_offset = pipeline->primary_program.data_offset,
       .pds_code_offset = pipeline->primary_program.code_offset,
 
-      .sd_type = PVRX(CDMCTRL_SD_TYPE_NONE),
+      .sd_type = ROGUE_CDMCTRL_SD_TYPE_NONE,
 
       .usc_unified_size =
          DIV_ROUND_UP(shader_state->input_register_count << 2U,
-                      PVRX(CDMCTRL_KERNEL0_USC_UNIFIED_SIZE_UNIT_SIZE)),
+                      ROGUE_CDMCTRL_KERNEL0_USC_UNIFIED_SIZE_UNIT_SIZE),
 
       /* clang-format off */
       .global_size = {
@@ -4558,7 +4569,7 @@ static void pvr_compute_update_kernel(
 
    info.usc_common_size =
       DIV_ROUND_UP(PVR_DW_TO_BYTES(coeff_regs),
-                   PVRX(CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE));
+                   ROGUE_CDMCTRL_KERNEL0_USC_COMMON_SIZE_UNIT_SIZE);
 
    /* Use a whole slot per workgroup. */
    work_size = MAX2(work_size, ROGUE_MAX_INSTANCES_PER_TASK);
@@ -4566,7 +4577,7 @@ static void pvr_compute_update_kernel(
    coeff_regs += shader_state->const_shared_reg_count;
 
    if (shader_state->const_shared_reg_count > 0)
-      info.sd_type = PVRX(CDMCTRL_SD_TYPE_USC);
+      info.sd_type = ROGUE_CDMCTRL_SD_TYPE_USC;
 
    work_size =
       pvr_compute_flat_pad_workgroup_size(pdevice, work_size, coeff_regs);
@@ -4758,19 +4769,10 @@ pvr_update_draw_state(struct pvr_cmd_buffer_state *const state,
 static uint32_t pvr_calc_shared_regs_count(
    const struct pvr_graphics_pipeline *const gfx_pipeline)
 {
-   const struct pvr_pipeline_stage_state *const vertex_state =
-      &gfx_pipeline->shader_state.vertex.stage_state;
-
-   uint32_t shared_regs = vertex_state->const_shared_reg_count +
-                          vertex_state->const_shared_reg_offset;
+   uint32_t shared_regs = gfx_pipeline->vs_data.common.shareds;
 
    if (gfx_pipeline->shader_state.fragment.bo) {
-      const struct pvr_pipeline_stage_state *const fragment_state =
-         &gfx_pipeline->shader_state.fragment.stage_state;
-
-      uint32_t fragment_regs = fragment_state->const_shared_reg_count +
-                               fragment_state->const_shared_reg_offset;
-
+      uint32_t fragment_regs = gfx_pipeline->fs_data.common.shareds;
       shared_regs = MAX2(shared_regs, fragment_regs);
    }
 
@@ -4786,8 +4788,7 @@ pvr_emit_dirty_pds_state(const struct pvr_cmd_buffer *const cmd_buffer,
    const struct pvr_stage_allocation_descriptor_state
       *const vertex_descriptor_state =
          &state->gfx_pipeline->shader_state.vertex.descriptor_state;
-   const struct pvr_pipeline_stage_state *const vertex_stage_state =
-      &state->gfx_pipeline->shader_state.vertex.stage_state;
+   const pco_data *const vs_data = &state->gfx_pipeline->vs_data;
    struct pvr_csb *const csb = &sub_cmd->control_stream;
 
    if (!vertex_descriptor_state->pds_info.code_size_in_dwords)
@@ -4796,20 +4797,20 @@ pvr_emit_dirty_pds_state(const struct pvr_cmd_buffer *const cmd_buffer,
    pvr_csb_set_relocation_mark(csb);
 
    pvr_csb_emit (csb, VDMCTRL_PDS_STATE0, state0) {
-      state0.usc_target = PVRX(VDMCTRL_USC_TARGET_ALL);
+      state0.usc_target = ROGUE_VDMCTRL_USC_TARGET_ALL;
 
       state0.usc_common_size =
-         DIV_ROUND_UP(vertex_stage_state->const_shared_reg_count << 2,
-                      PVRX(VDMCTRL_PDS_STATE0_USC_COMMON_SIZE_UNIT_SIZE));
+         DIV_ROUND_UP(vs_data->common.shareds,
+                      ROGUE_VDMCTRL_PDS_STATE0_USC_COMMON_SIZE_UNIT_SIZE);
 
       state0.pds_data_size = DIV_ROUND_UP(
          PVR_DW_TO_BYTES(vertex_descriptor_state->pds_info.data_size_in_dwords),
-         PVRX(VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE));
+         ROGUE_VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE);
    }
 
    pvr_csb_emit (csb, VDMCTRL_PDS_STATE1, state1) {
       state1.pds_data_addr = PVR_DEV_ADDR(pds_vertex_descriptor_data_offset);
-      state1.sd_type = PVRX(VDMCTRL_SD_TYPE_NONE);
+      state1.sd_type = ROGUE_VDMCTRL_SD_TYPE_NONE;
    }
 
    pvr_csb_emit (csb, VDMCTRL_PDS_STATE2, state2) {
@@ -4824,21 +4825,33 @@ static void pvr_setup_output_select(struct pvr_cmd_buffer *const cmd_buffer)
 {
    const struct pvr_graphics_pipeline *const gfx_pipeline =
       cmd_buffer->state.gfx_pipeline;
-   const struct pvr_vertex_shader_state *const vertex_state =
-      &gfx_pipeline->shader_state.vertex;
    struct vk_dynamic_graphics_state *const dynamic_state =
       &cmd_buffer->vk.dynamic_graphics_state;
-   struct PVRX(TA_STATE_HEADER) *const header = &cmd_buffer->state.emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &cmd_buffer->state.emit_header;
    struct pvr_ppp_state *const ppp_state = &cmd_buffer->state.ppp_state;
+   const pco_data *const vs_data = &gfx_pipeline->vs_data;
+   const pco_data *const fs_data = &gfx_pipeline->fs_data;
    uint32_t output_selects;
+   uint32_t varying[2];
 
-   /* TODO: Handle vertex and fragment shader state flags. */
+   const pco_range *varyings = vs_data->vs.varyings;
+
+   const bool has_point_size = dynamic_state->ia.primitive_topology ==
+                                  VK_PRIMITIVE_TOPOLOGY_POINT_LIST &&
+                               varyings[VARYING_SLOT_PSIZ].count > 0;
+
+   const bool has_viewport = varyings[VARYING_SLOT_VIEWPORT].count > 0;
+
+   const bool has_layer = varyings[VARYING_SLOT_LAYER].count > 0;
 
    pvr_csb_pack (&output_selects, TA_OUTPUT_SEL, state) {
-      state.rhw_pres = true;
-      state.vtxsize = DIV_ROUND_UP(vertex_state->vertex_output_size, 4U);
-      state.psprite_size_pres = (dynamic_state->ia.primitive_topology ==
-                                 VK_PRIMITIVE_TOPOLOGY_POINT_LIST);
+      state.rhw_pres = fs_data->fs.uses.w;
+      state.tsp_unclamped_z_pres = fs_data->fs.uses.z;
+
+      state.vtxsize = vs_data->vs.vtxouts;
+      state.psprite_size_pres = has_point_size;
+      state.vpt_tgt_pres = has_viewport;
+      state.render_tgt_pres = has_layer;
    }
 
    if (ppp_state->output_selects != output_selects) {
@@ -4846,22 +4859,34 @@ static void pvr_setup_output_select(struct pvr_cmd_buffer *const cmd_buffer)
       header->pres_outselects = true;
    }
 
-   if (ppp_state->varying_word[0] != vertex_state->varying[0]) {
-      ppp_state->varying_word[0] = vertex_state->varying[0];
+   pvr_csb_pack (&varying[0], TA_STATE_VARYING0, varying0) {
+      varying0.f32_linear = vs_data->vs.f32_smooth;
+      varying0.f32_flat = vs_data->vs.f32_flat;
+      varying0.f32_npc = vs_data->vs.f32_npc;
+   }
+
+   if (ppp_state->varying_word[0] != varying[0]) {
+      ppp_state->varying_word[0] = varying[0];
       header->pres_varying_word0 = true;
    }
 
-   if (ppp_state->varying_word[1] != vertex_state->varying[1]) {
-      ppp_state->varying_word[1] = vertex_state->varying[1];
+   pvr_csb_pack (&varying[1], TA_STATE_VARYING1, varying1) {
+      varying1.f16_linear = vs_data->vs.f16_smooth;
+      varying1.f16_flat = vs_data->vs.f16_flat;
+      varying1.f16_npc = vs_data->vs.f16_npc;
+   }
+
+   if (ppp_state->varying_word[1] != varying[1]) {
+      ppp_state->varying_word[1] = varying[1];
       header->pres_varying_word1 = true;
    }
 }
 
 static void
 pvr_setup_isp_faces_and_control(struct pvr_cmd_buffer *const cmd_buffer,
-                                struct PVRX(TA_STATE_ISPA) *const ispa_out)
+                                struct ROGUE_TA_STATE_ISPA *const ispa_out)
 {
-   struct PVRX(TA_STATE_HEADER) *const header = &cmd_buffer->state.emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &cmd_buffer->state.emit_header;
    const struct pvr_fragment_shader_state *const fragment_shader_state =
       &cmd_buffer->state.gfx_pipeline->shader_state.fragment;
    const struct pvr_render_pass_info *const pass_info =
@@ -4879,8 +4904,8 @@ pvr_setup_isp_faces_and_control(struct pvr_cmd_buffer *const cmd_buffer,
          ? &pass_info->pass->attachments[depth_stencil_attachment_idx]
          : NULL;
 
-   const enum PVRX(TA_OBJTYPE)
-      obj_type = pvr_ta_objtype(dynamic_state->ia.primitive_topology);
+   const enum ROGUE_TA_OBJTYPE obj_type =
+      pvr_ta_objtype(dynamic_state->ia.primitive_topology);
 
    const VkImageAspectFlags ds_aspects =
       (!rasterizer_discard && attachment)
@@ -4915,7 +4940,7 @@ pvr_setup_isp_faces_and_control(struct pvr_cmd_buffer *const cmd_buffer,
     */
    line_width = (!!line_width) * (line_width - 1);
 
-   line_width = MIN2(line_width, PVRX(TA_STATE_ISPA_POINTLINEWIDTH_SIZE_MAX));
+   line_width = MIN2(line_width, ROGUE_TA_STATE_ISPA_POINTLINEWIDTH_SIZE_MAX);
 
    /* TODO: Part of the logic in this function is duplicated in another part
     * of the code. E.g. the dcmpmode, and sop1/2/3. Could we do this earlier?
@@ -4942,10 +4967,10 @@ pvr_setup_isp_faces_and_control(struct pvr_cmd_buffer *const cmd_buffer,
     * If not, rename the variable.
     */
    pvr_csb_pack (&ispb_stencil_off, TA_STATE_ISPB, ispb) {
-      ispb.sop3 = PVRX(TA_ISPB_STENCILOP_KEEP);
-      ispb.sop2 = PVRX(TA_ISPB_STENCILOP_KEEP);
-      ispb.sop1 = PVRX(TA_ISPB_STENCILOP_KEEP);
-      ispb.scmpmode = PVRX(TA_CMPMODE_ALWAYS);
+      ispb.sop3 = ROGUE_TA_ISPB_STENCILOP_KEEP;
+      ispb.sop2 = ROGUE_TA_ISPB_STENCILOP_KEEP;
+      ispb.sop1 = ROGUE_TA_ISPB_STENCILOP_KEEP;
+      ispb.scmpmode = ROGUE_TA_CMPMODE_ALWAYS;
    }
 
    /* FIXME: This logic should be redone and improved. Can we also get rid of
@@ -5049,7 +5074,7 @@ pvr_setup_isp_faces_and_control(struct pvr_cmd_buffer *const cmd_buffer,
 
       ispctl.dbenable = !rasterizer_discard &&
                         dynamic_state->rs.depth_bias.enable &&
-                        obj_type == PVRX(TA_OBJTYPE_TRIANGLE);
+                        obj_type == ROGUE_TA_OBJTYPE_TRIANGLE;
       if (!rasterizer_discard && cmd_buffer->state.vis_test_enabled) {
          ispctl.vistest = true;
          ispctl.visreg = cmd_buffer->state.vis_reg;
@@ -5229,11 +5254,11 @@ pvr_get_geom_region_clip_align_size(struct pvr_device_info *const dev_info)
 static void
 pvr_setup_isp_depth_bias_scissor_state(struct pvr_cmd_buffer *const cmd_buffer)
 {
-   struct PVRX(TA_STATE_HEADER) *const header = &cmd_buffer->state.emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &cmd_buffer->state.emit_header;
    struct pvr_ppp_state *const ppp_state = &cmd_buffer->state.ppp_state;
    struct vk_dynamic_graphics_state *const dynamic_state =
       &cmd_buffer->vk.dynamic_graphics_state;
-   const struct PVRX(TA_STATE_ISPCTL) *const ispctl =
+   const struct ROGUE_TA_STATE_ISPCTL *const ispctl =
       &ppp_state->isp.control_struct;
    struct pvr_device_info *const dev_info =
       &cmd_buffer->device->pdevice->dev_info;
@@ -5246,8 +5271,8 @@ pvr_setup_isp_depth_bias_scissor_state(struct pvr_cmd_buffer *const cmd_buffer)
          .constant_factor = pvr_calculate_final_depth_bias_contant_factor(
             dev_info,
             cmd_buffer->state.depth_format,
-            dynamic_state->rs.depth_bias.constant),
-         .slope_factor = dynamic_state->rs.depth_bias.slope,
+            dynamic_state->rs.depth_bias.constant_factor),
+         .slope_factor = dynamic_state->rs.depth_bias.slope_factor,
          .clamp = dynamic_state->rs.depth_bias.clamp,
       };
 
@@ -5333,7 +5358,7 @@ pvr_setup_isp_depth_bias_scissor_state(struct pvr_cmd_buffer *const cmd_buffer)
       pvr_csb_pack (&ppp_state->region_clipping.word0, TA_REGION_CLIP0, word0) {
          word0.right = right;
          word0.left = left;
-         word0.mode = PVRX(TA_REGION_CLIP_MODE_OUTSIDE);
+         word0.mode = ROGUE_TA_REGION_CLIP_MODE_OUTSIDE;
       }
 
       pvr_csb_pack (&ppp_state->region_clipping.word1, TA_REGION_CLIP1, word1) {
@@ -5356,9 +5381,9 @@ pvr_setup_isp_depth_bias_scissor_state(struct pvr_cmd_buffer *const cmd_buffer)
 
 static void
 pvr_setup_triangle_merging_flag(struct pvr_cmd_buffer *const cmd_buffer,
-                                struct PVRX(TA_STATE_ISPA) * ispa)
+                                struct ROGUE_TA_STATE_ISPA *ispa)
 {
-   struct PVRX(TA_STATE_HEADER) *const header = &cmd_buffer->state.emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &cmd_buffer->state.emit_header;
    struct pvr_ppp_state *const ppp_state = &cmd_buffer->state.ppp_state;
    uint32_t merge_word;
    uint32_t mask;
@@ -5367,9 +5392,9 @@ pvr_setup_triangle_merging_flag(struct pvr_cmd_buffer *const cmd_buffer,
       /* Disable for lines or punch-through or for DWD and depth compare
        * always.
        */
-      if (ispa->objtype == PVRX(TA_OBJTYPE_LINE) ||
-          ispa->passtype == PVRX(TA_PASSTYPE_PUNCH_THROUGH) ||
-          (ispa->dwritedisable && ispa->dcmpmode == PVRX(TA_CMPMODE_ALWAYS))) {
+      if (ispa->objtype == ROGUE_TA_OBJTYPE_LINE ||
+          ispa->passtype == ROGUE_TA_PASSTYPE_PUNCH_THROUGH ||
+          (ispa->dwritedisable && ispa->dcmpmode == ROGUE_TA_CMPMODE_ALWAYS)) {
          size_info.pds_tri_merge_disable = true;
       }
    }
@@ -5391,46 +5416,47 @@ pvr_setup_fragment_state_pointers(struct pvr_cmd_buffer *const cmd_buffer,
                                   struct pvr_sub_cmd_gfx *const sub_cmd)
 {
    struct pvr_cmd_buffer_state *const state = &cmd_buffer->state;
+   const pco_data *const fs_data = &state->gfx_pipeline->fs_data;
 
-   const struct pvr_fragment_shader_state *const fragment =
+   const struct pvr_fragment_shader_state *const fragment_shader_state =
       &state->gfx_pipeline->shader_state.fragment;
    const struct pvr_stage_allocation_descriptor_state *descriptor_shader_state =
-      &fragment->descriptor_state;
+      &fragment_shader_state->descriptor_state;
    const struct pvr_pipeline_stage_state *fragment_state =
-      &fragment->stage_state;
+      &fragment_shader_state->stage_state;
    const struct pvr_pds_upload *pds_coeff_program =
-      &fragment->pds_coeff_program;
+      &fragment_shader_state->pds_coeff_program;
 
    const struct pvr_physical_device *pdevice = cmd_buffer->device->pdevice;
-   struct PVRX(TA_STATE_HEADER) *const header = &state->emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &state->emit_header;
    struct pvr_ppp_state *const ppp_state = &state->ppp_state;
 
    const uint32_t pds_uniform_size =
       DIV_ROUND_UP(descriptor_shader_state->pds_info.data_size_in_dwords,
-                   PVRX(TA_STATE_PDS_SIZEINFO1_PDS_UNIFORMSIZE_UNIT_SIZE));
+                   ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_UNIFORMSIZE_UNIT_SIZE);
 
    const uint32_t pds_varying_state_size =
       DIV_ROUND_UP(pds_coeff_program->data_size,
-                   PVRX(TA_STATE_PDS_SIZEINFO1_PDS_VARYINGSIZE_UNIT_SIZE));
+                   ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_VARYINGSIZE_UNIT_SIZE);
 
    const uint32_t usc_varying_size =
-      DIV_ROUND_UP(fragment_state->coefficient_size,
-                   PVRX(TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE));
+      DIV_ROUND_UP(fs_data->common.coeffs,
+                   ROGUE_TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE);
 
    const uint32_t pds_temp_size =
       DIV_ROUND_UP(fragment_state->pds_temps_count,
-                   PVRX(TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE));
+                   ROGUE_TA_STATE_PDS_SIZEINFO1_PDS_TEMPSIZE_UNIT_SIZE);
 
    const uint32_t usc_shared_size =
-      DIV_ROUND_UP(fragment_state->const_shared_reg_count,
-                   PVRX(TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE));
+      DIV_ROUND_UP(fs_data->common.shareds,
+                   ROGUE_TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE);
 
    const uint32_t max_tiles_in_flight =
       pvr_calc_fscommon_size_and_tiles_in_flight(
          &pdevice->dev_info,
          &pdevice->dev_runtime_info,
          usc_shared_size *
-            PVRX(TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE),
+            ROGUE_TA_STATE_PDS_SIZEINFO2_USC_SHAREDSIZE_UNIT_SIZE,
          1);
    uint32_t size_info_mask;
    uint32_t size_info2;
@@ -5442,7 +5468,7 @@ pvr_setup_fragment_state_pointers(struct pvr_cmd_buffer *const cmd_buffer,
                  TA_STATE_PDS_SHADERBASE,
                  shader_base) {
       const struct pvr_pds_upload *const pds_upload =
-         &fragment->pds_fragment_program;
+         &fragment_shader_state->pds_fragment_program;
 
       shader_base.addr = PVR_DEV_ADDR(pds_upload->data_offset);
    }
@@ -5503,7 +5529,7 @@ pvr_setup_fragment_state_pointers(struct pvr_cmd_buffer *const cmd_buffer,
 static void pvr_setup_viewport(struct pvr_cmd_buffer *const cmd_buffer)
 {
    struct pvr_cmd_buffer_state *const state = &cmd_buffer->state;
-   struct PVRX(TA_STATE_HEADER) *const header = &state->emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &state->emit_header;
    struct vk_dynamic_graphics_state *const dynamic_state =
       &cmd_buffer->vk.dynamic_graphics_state;
    struct pvr_ppp_state *const ppp_state = &state->ppp_state;
@@ -5556,7 +5582,7 @@ static void pvr_setup_ppp_control(struct pvr_cmd_buffer *const cmd_buffer)
       &cmd_buffer->vk.dynamic_graphics_state;
    const VkPrimitiveTopology topology = dynamic_state->ia.primitive_topology;
    struct pvr_cmd_buffer_state *const state = &cmd_buffer->state;
-   struct PVRX(TA_STATE_HEADER) *const header = &state->emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &state->emit_header;
    struct pvr_ppp_state *const ppp_state = &state->ppp_state;
    uint32_t ppp_control;
 
@@ -5565,14 +5591,14 @@ static void pvr_setup_ppp_control(struct pvr_cmd_buffer *const cmd_buffer)
       control.wclampen = true;
 
       if (topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN)
-         control.flatshade_vtx = PVRX(TA_FLATSHADE_VTX_VERTEX_1);
+         control.flatshade_vtx = ROGUE_TA_FLATSHADE_VTX_VERTEX_1;
       else
-         control.flatshade_vtx = PVRX(TA_FLATSHADE_VTX_VERTEX_0);
+         control.flatshade_vtx = ROGUE_TA_FLATSHADE_VTX_VERTEX_0;
 
       if (dynamic_state->rs.depth_clamp_enable)
-         control.clip_mode = PVRX(TA_CLIP_MODE_NO_FRONT_OR_REAR);
+         control.clip_mode = ROGUE_TA_CLIP_MODE_NO_FRONT_OR_REAR;
       else
-         control.clip_mode = PVRX(TA_CLIP_MODE_FRONT_REAR);
+         control.clip_mode = ROGUE_TA_CLIP_MODE_FRONT_REAR;
 
       /* +--- FrontIsCCW?
        * | +--- Cull Front?
@@ -5587,16 +5613,16 @@ static void pvr_setup_ppp_control(struct pvr_cmd_buffer *const cmd_buffer)
       case VK_CULL_MODE_FRONT_BIT:
          if ((dynamic_state->rs.front_face == VK_FRONT_FACE_COUNTER_CLOCKWISE) ^
              (dynamic_state->rs.cull_mode == VK_CULL_MODE_FRONT_BIT)) {
-            control.cullmode = PVRX(TA_CULLMODE_CULL_CW);
+            control.cullmode = ROGUE_TA_CULLMODE_CULL_CW;
          } else {
-            control.cullmode = PVRX(TA_CULLMODE_CULL_CCW);
+            control.cullmode = ROGUE_TA_CULLMODE_CULL_CCW;
          }
 
          break;
 
       case VK_CULL_MODE_FRONT_AND_BACK:
       case VK_CULL_MODE_NONE:
-         control.cullmode = PVRX(TA_CULLMODE_NO_CULLING);
+         control.cullmode = ROGUE_TA_CULLMODE_NO_CULLING;
          break;
 
       default:
@@ -5630,7 +5656,7 @@ static VkResult pvr_emit_ppp_state(struct pvr_cmd_buffer *const cmd_buffer,
 {
    const bool deferred_secondary = pvr_cmd_uses_deferred_cs_cmds(cmd_buffer);
    struct pvr_cmd_buffer_state *const state = &cmd_buffer->state;
-   struct PVRX(TA_STATE_HEADER) *const header = &state->emit_header;
+   struct ROGUE_TA_STATE_HEADER *const header = &state->emit_header;
    struct pvr_csb *const control_stream = &sub_cmd->control_stream;
    struct pvr_ppp_state *const ppp_state = &state->ppp_state;
    uint32_t ppp_state_words[PVR_MAX_PPP_STATE_DWORDS];
@@ -5642,7 +5668,7 @@ static VkResult pvr_emit_ppp_state(struct pvr_cmd_buffer *const cmd_buffer,
    VkResult result;
 
 #if !defined(NDEBUG)
-   struct PVRX(TA_STATE_HEADER) emit_mask = *header;
+   struct ROGUE_TA_STATE_HEADER emit_mask = *header;
    uint32_t packed_emit_mask;
 
    static_assert(pvr_cmd_length(TA_STATE_HEADER) == 1,
@@ -5917,7 +5943,7 @@ static VkResult pvr_emit_ppp_state(struct pvr_cmd_buffer *const cmd_buffer,
                            cmd);
    }
 
-   state->emit_header = (struct PVRX(TA_STATE_HEADER)){ 0 };
+   state->emit_header = (struct ROGUE_TA_STATE_HEADER){ 0 };
 
    return VK_SUCCESS;
 }
@@ -5928,7 +5954,7 @@ pvr_ppp_state_update_required(const struct pvr_cmd_buffer *cmd_buffer)
    const BITSET_WORD *const dynamic_dirty =
       cmd_buffer->vk.dynamic_graphics_state.dirty;
    const struct pvr_cmd_buffer_state *const state = &cmd_buffer->state;
-   const struct PVRX(TA_STATE_HEADER) *const header = &state->emit_header;
+   const struct ROGUE_TA_STATE_HEADER *const header = &state->emit_header;
 
    /* For push constants we only need to worry if they are updated for the
     * fragment stage since we're only updating the pds programs used in the
@@ -5979,7 +6005,7 @@ pvr_emit_dirty_ppp_state(struct pvr_cmd_buffer *const cmd_buffer,
       return VK_SUCCESS;
 
    if (state->dirty.gfx_pipeline_binding) {
-      struct PVRX(TA_STATE_ISPA) ispa;
+      struct ROGUE_TA_STATE_ISPA ispa;
 
       pvr_setup_output_select(cmd_buffer);
       pvr_setup_isp_faces_and_control(cmd_buffer, &ispa);
@@ -5998,7 +6024,8 @@ pvr_emit_dirty_ppp_state(struct pvr_cmd_buffer *const cmd_buffer,
 
    if (!dynamic_state->rs.rasterizer_discard_enable &&
        state->dirty.fragment_descriptors &&
-       state->gfx_pipeline->shader_state.fragment.bo) {
+       state->gfx_pipeline->shader_state.fragment.bo &&
+       !state->gfx_pipeline->fs_data.common.uses.empty) {
       pvr_setup_fragment_state_pointers(cmd_buffer, sub_cmd);
    }
 
@@ -6110,27 +6137,21 @@ static void pvr_emit_dirty_vdm_state(struct pvr_cmd_buffer *const cmd_buffer,
       &cmd_buffer->device->pdevice->dev_info;
    ASSERTED const uint32_t max_user_vertex_output_components =
       pvr_get_max_user_vertex_output_components(dev_info);
-   struct PVRX(VDMCTRL_VDM_STATE0)
-      header = { pvr_cmd_header(VDMCTRL_VDM_STATE0) };
+   struct ROGUE_VDMCTRL_VDM_STATE0 header = { pvr_cmd_header(
+      VDMCTRL_VDM_STATE0) };
    struct vk_dynamic_graphics_state *const dynamic_state =
       &cmd_buffer->vk.dynamic_graphics_state;
    const struct pvr_cmd_buffer_state *const state = &cmd_buffer->state;
-   const struct pvr_vertex_shader_state *const vertex_shader_state =
-      &state->gfx_pipeline->shader_state.vertex;
+   const pco_data *const vs_data = &state->gfx_pipeline->vs_data;
    struct pvr_csb *const csb = &sub_cmd->control_stream;
-   uint32_t vs_output_size;
    uint32_t max_instances;
    uint32_t cam_size;
 
    /* CAM Calculations and HW state take vertex size aligned to DWORDS. */
-   vs_output_size =
-      DIV_ROUND_UP(vertex_shader_state->vertex_output_size,
-                   PVRX(VDMCTRL_VDM_STATE4_VS_OUTPUT_SIZE_UNIT_SIZE));
-
-   assert(vs_output_size <= max_user_vertex_output_components);
+   assert(vs_data->vs.vtxouts <= max_user_vertex_output_components);
 
    pvr_calculate_vertex_cam_size(dev_info,
-                                 vs_output_size,
+                                 vs_data->vs.vtxouts,
                                  true,
                                  &cam_size,
                                  &max_instances);
@@ -6147,11 +6168,11 @@ static void pvr_emit_dirty_vdm_state(struct pvr_cmd_buffer *const cmd_buffer,
 
       switch (dynamic_state->ia.primitive_topology) {
       case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
-         state0.flatshade_control = PVRX(VDMCTRL_FLATSHADE_CONTROL_VERTEX_1);
+         state0.flatshade_control = ROGUE_VDMCTRL_FLATSHADE_CONTROL_VERTEX_1;
          break;
 
       default:
-         state0.flatshade_control = PVRX(VDMCTRL_FLATSHADE_CONTROL_VERTEX_0);
+         state0.flatshade_control = ROGUE_VDMCTRL_FLATSHADE_CONTROL_VERTEX_0;
          break;
       }
 
@@ -6178,7 +6199,7 @@ static void pvr_emit_dirty_vdm_state(struct pvr_cmd_buffer *const cmd_buffer,
        * always emitted to the UVB.
        */
       state0.uvs_scratch_size_select =
-         PVRX(VDMCTRL_UVS_SCRATCH_SIZE_SELECT_FIVE);
+         ROGUE_VDMCTRL_UVS_SCRATCH_SIZE_SELECT_FIVE;
 
       header = state0;
    }
@@ -6198,8 +6219,8 @@ static void pvr_emit_dirty_vdm_state(struct pvr_cmd_buffer *const cmd_buffer,
    }
 
    if (header.vs_other_present) {
-      const uint32_t usc_unified_store_size_in_bytes =
-         vertex_shader_state->vertex_input_size << 2;
+      const uint32_t usc_unified_store_size_in_bytes = vs_data->common.vtxins
+                                                       << 2;
 
       pvr_csb_emit (csb, VDMCTRL_VDM_STATE3, state3) {
          state3.vs_pds_code_base_addr =
@@ -6207,7 +6228,7 @@ static void pvr_emit_dirty_vdm_state(struct pvr_cmd_buffer *const cmd_buffer,
       }
 
       pvr_csb_emit (csb, VDMCTRL_VDM_STATE4, state4) {
-         state4.vs_output_size = vs_output_size;
+         state4.vs_output_size = vs_data->vs.vtxouts;
       }
 
       pvr_csb_emit (csb, VDMCTRL_VDM_STATE5, state5) {
@@ -6215,13 +6236,13 @@ static void pvr_emit_dirty_vdm_state(struct pvr_cmd_buffer *const cmd_buffer,
          state5.vs_usc_common_size = 0U;
          state5.vs_usc_unified_size = DIV_ROUND_UP(
             usc_unified_store_size_in_bytes,
-            PVRX(VDMCTRL_VDM_STATE5_VS_USC_UNIFIED_SIZE_UNIT_SIZE));
+            ROGUE_VDMCTRL_VDM_STATE5_VS_USC_UNIFIED_SIZE_UNIT_SIZE);
          state5.vs_pds_temp_size =
             DIV_ROUND_UP(state->pds_shader.info->temps_required << 2,
-                         PVRX(VDMCTRL_VDM_STATE5_VS_PDS_TEMP_SIZE_UNIT_SIZE));
+                         ROGUE_VDMCTRL_VDM_STATE5_VS_PDS_TEMP_SIZE_UNIT_SIZE);
          state5.vs_pds_data_size = DIV_ROUND_UP(
             PVR_DW_TO_BYTES(state->pds_shader.info->data_size_in_dwords),
-            PVRX(VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE));
+            ROGUE_VDMCTRL_VDM_STATE5_VS_PDS_DATA_SIZE_UNIT_SIZE);
       }
    }
 
@@ -6234,12 +6255,7 @@ static VkResult pvr_validate_draw_state(struct pvr_cmd_buffer *cmd_buffer)
    struct vk_dynamic_graphics_state *const dynamic_state =
       &cmd_buffer->vk.dynamic_graphics_state;
    const struct pvr_graphics_pipeline *const gfx_pipeline = state->gfx_pipeline;
-   const struct pvr_pipeline_stage_state *const fragment_state =
-      &gfx_pipeline->shader_state.fragment.stage_state;
-   const struct pvr_pipeline_stage_state *const vertex_state =
-      &gfx_pipeline->shader_state.vertex.stage_state;
-   const struct pvr_pipeline_layout *const pipeline_layout =
-      gfx_pipeline->base.layout;
+   const pco_data *const fs_data = &gfx_pipeline->fs_data;
    struct pvr_sub_cmd_gfx *sub_cmd;
    bool fstencil_writemask_zero;
    bool bstencil_writemask_zero;
@@ -6272,18 +6288,18 @@ static VkResult pvr_validate_draw_state(struct pvr_cmd_buffer *cmd_buffer)
    if (PVR_HAS_FEATURE(&cmd_buffer->device->pdevice->dev_info,
                        compute_overlap)) {
       uint32_t coefficient_size =
-         DIV_ROUND_UP(fragment_state->coefficient_size,
-                      PVRX(TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE));
+         DIV_ROUND_UP(fs_data->common.coeffs,
+                      ROGUE_TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_UNIT_SIZE);
 
       if (coefficient_size >
-          PVRX(TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_MAX_SIZE))
+          ROGUE_TA_STATE_PDS_SIZEINFO1_USC_VARYINGSIZE_MAX_SIZE)
          sub_cmd->disable_compute_overlap = true;
    }
 
-   sub_cmd->frag_uses_atomic_ops |= fragment_state->uses_atomic_ops;
-   sub_cmd->frag_has_side_effects |= fragment_state->has_side_effects;
-   sub_cmd->frag_uses_texture_rw |= fragment_state->uses_texture_rw;
-   sub_cmd->vertex_uses_texture_rw |= vertex_state->uses_texture_rw;
+   sub_cmd->frag_uses_atomic_ops |= fs_data->common.uses.atomics;
+   sub_cmd->frag_has_side_effects |= fs_data->common.uses.side_effects;
+   sub_cmd->frag_uses_texture_rw |= false;
+   sub_cmd->vertex_uses_texture_rw |= false;
 
    sub_cmd->job.get_vis_results = state->vis_test_enabled;
 
@@ -6345,13 +6361,13 @@ static VkResult pvr_validate_draw_state(struct pvr_cmd_buffer *cmd_buffer)
    state->dirty.fragment_descriptors = state->dirty.vertex_descriptors;
 
    /* Account for dirty descriptor set. */
-   state->dirty.vertex_descriptors |=
-      state->dirty.gfx_desc_dirty &&
-      pipeline_layout
-         ->per_stage_descriptor_masks[PVR_STAGE_ALLOCATION_VERTEX_GEOMETRY];
-   state->dirty.fragment_descriptors |=
-      state->dirty.gfx_desc_dirty &&
-      pipeline_layout->per_stage_descriptor_masks[PVR_STAGE_ALLOCATION_FRAGMENT];
+   /* TODO: It could be the case that there are no descriptors for a specific
+    * stage, or that the update descriptors aren't active for a particular
+    * stage. In such cases we could avoid regenerating the descriptor PDS
+    * program.
+    */
+   state->dirty.vertex_descriptors |= state->dirty.gfx_desc_dirty;
+   state->dirty.fragment_descriptors |= state->dirty.gfx_desc_dirty;
 
    if (BITSET_TEST(dynamic_state->dirty, MESA_VK_DYNAMIC_CB_BLEND_CONSTANTS))
       state->dirty.fragment_descriptors = true;
@@ -6416,27 +6432,27 @@ static uint32_t pvr_get_hw_primitive_topology(VkPrimitiveTopology topology)
 {
    switch (topology) {
    case VK_PRIMITIVE_TOPOLOGY_POINT_LIST:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_POINT_LIST);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_POINT_LIST;
    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_LIST);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_LIST;
    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_STRIP);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_STRIP;
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_LIST);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_LIST;
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_STRIP);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_STRIP;
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_FAN);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_FAN;
    case VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_LIST_ADJ);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_LIST_ADJ;
    case VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_STRIP_ADJ);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_LINE_STRIP_ADJ;
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_LIST_ADJ);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_LIST_ADJ;
    case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_STRIP_ADJ);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_STRIP_ADJ;
    case VK_PRIMITIVE_TOPOLOGY_PATCH_LIST:
-      return PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_PATCH_LIST);
+      return ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_PATCH_LIST;
    default:
       unreachable("Undefined primitive topology");
    }
@@ -6451,7 +6467,7 @@ pvr_write_draw_indirect_vdm_stream(struct pvr_cmd_buffer *cmd_buffer,
                                    struct pvr_csb *const csb,
                                    pvr_dev_addr_t idx_buffer_addr,
                                    uint32_t idx_stride,
-                                   struct PVRX(VDMCTRL_INDEX_LIST0) * list_hdr,
+                                   struct ROGUE_VDMCTRL_INDEX_LIST0 *list_hdr,
                                    struct pvr_buffer *buffer,
                                    VkDeviceSize offset,
                                    uint32_t count,
@@ -6543,15 +6559,15 @@ pvr_write_draw_indirect_vdm_stream(struct pvr_cmd_buffer *cmd_buffer,
       pvr_csb_set_relocation_mark(csb);
 
       pvr_csb_emit (csb, VDMCTRL_PDS_STATE0, state0) {
-         state0.usc_target = PVRX(VDMCTRL_USC_TARGET_ANY);
+         state0.usc_target = ROGUE_VDMCTRL_USC_TARGET_ANY;
 
          state0.pds_temp_size =
             DIV_ROUND_UP(PVR_DW_TO_BYTES(pds_prog.program.temp_size_aligned),
-                         PVRX(VDMCTRL_PDS_STATE0_PDS_TEMP_SIZE_UNIT_SIZE));
+                         ROGUE_VDMCTRL_PDS_STATE0_PDS_TEMP_SIZE_UNIT_SIZE);
 
          state0.pds_data_size =
             DIV_ROUND_UP(PVR_DW_TO_BYTES(pds_prog.program.data_size_aligned),
-                         PVRX(VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE));
+                         ROGUE_VDMCTRL_PDS_STATE0_PDS_DATA_SIZE_UNIT_SIZE);
       }
 
       pvr_csb_emit (csb, VDMCTRL_PDS_STATE1, state1) {
@@ -6561,8 +6577,8 @@ pvr_write_draw_indirect_vdm_stream(struct pvr_cmd_buffer *cmd_buffer,
             cmd_buffer->device->heaps.pds_heap->base_addr.addr;
 
          state1.pds_data_addr = PVR_DEV_ADDR(data_offset);
-         state1.sd_type = PVRX(VDMCTRL_SD_TYPE_PDS);
-         state1.sd_next_type = PVRX(VDMCTRL_SD_TYPE_NONE);
+         state1.sd_type = ROGUE_VDMCTRL_SD_TYPE_PDS;
+         state1.sd_next_type = ROGUE_VDMCTRL_SD_TYPE_NONE;
       }
 
       pvr_csb_emit (csb, VDMCTRL_PDS_STATE2, state2) {
@@ -6584,7 +6600,7 @@ pvr_write_draw_indirect_vdm_stream(struct pvr_cmd_buffer *cmd_buffer,
        * before they are ready.
        */
       pvr_csb_emit (csb, VDMCTRL_INDEX_LIST0, list0) {
-         list0.primitive_topology = PVRX(VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_LIST);
+         list0.primitive_topology = ROGUE_VDMCTRL_PRIMITIVE_TOPOLOGY_TRI_LIST;
       }
 
       pvr_csb_clear_relocation_mark(csb);
@@ -6646,10 +6662,10 @@ static void pvr_emit_vdm_index_list(struct pvr_cmd_buffer *cmd_buffer,
                                     uint32_t stride)
 {
    struct pvr_cmd_buffer_state *state = &cmd_buffer->state;
-   const bool vertex_shader_has_side_effects =
-      state->gfx_pipeline->shader_state.vertex.stage_state.has_side_effects;
-   struct PVRX(VDMCTRL_INDEX_LIST0)
-      list_hdr = { pvr_cmd_header(VDMCTRL_INDEX_LIST0) };
+
+   const pco_data *const vs_data = &state->gfx_pipeline->vs_data;
+   struct ROGUE_VDMCTRL_INDEX_LIST0 list_hdr = { pvr_cmd_header(
+      VDMCTRL_INDEX_LIST0) };
    pvr_dev_addr_t index_buffer_addr = PVR_DEV_ADDR_INVALID;
    struct pvr_csb *const csb = &sub_cmd->control_stream;
    unsigned int index_stride = 0;
@@ -6685,7 +6701,7 @@ static void pvr_emit_vdm_index_list(struct pvr_cmd_buffer *cmd_buffer,
    list_hdr.degen_cull_enable =
       PVR_HAS_FEATURE(&cmd_buffer->device->pdevice->dev_info,
                       vdm_degenerate_culling) &&
-      !vertex_shader_has_side_effects;
+      !vs_data->common.uses.side_effects;
 
    if (state->draw_state.draw_indirect) {
       assert(buffer);
@@ -7508,7 +7524,7 @@ void pvr_CmdNextSubpass2(VkCommandBuffer commandBuffer,
    /* If hw_subpass_load_op is valid then pvr_write_load_op_control_stream
     * has already done a full-screen transparent object.
     */
-   if (rp_info->isp_userpass == PVRX(CR_ISP_CTL_UPASS_START_SIZE_MAX) &&
+   if (rp_info->isp_userpass == ROGUE_CR_ISP_CTL_UPASS_START_SIZE_MAX &&
        !hw_subpass_load_op) {
       pvr_insert_transparent_obj(cmd_buffer, &state->current_sub_cmd->gfx);
    }
@@ -7642,7 +7658,6 @@ pvr_cmd_buffer_insert_mid_frag_barrier_event(struct pvr_cmd_buffer *cmd_buffer,
    cmd_buffer->state.current_sub_cmd->event = (struct pvr_sub_cmd_event){
       .type = PVR_EVENT_TYPE_BARRIER,
       .barrier = {
-         .in_render_pass = true,
          .wait_for_stage_mask = src_stage_mask,
          .wait_at_stage_mask = dst_stage_mask,
       },
@@ -7697,6 +7712,7 @@ void pvr_CmdPipelineBarrier2(VkCommandBuffer commandBuffer,
    uint32_t src_stage_mask;
    uint32_t dst_stage_mask;
    bool is_barrier_needed;
+   VkResult result;
 
    PVR_CHECK_COMMAND_BUFFER_BUILDING_STATE(cmd_buffer);
 
@@ -7749,9 +7765,9 @@ void pvr_CmdPipelineBarrier2(VkCommandBuffer commandBuffer,
 
       switch (src_stage_mask) {
       case PVR_PIPELINE_STAGE_FRAG_BIT:
-         is_barrier_needed = !render_pass;
+         is_barrier_needed = false;
 
-         if (is_barrier_needed)
+         if (!render_pass)
             break;
 
          assert(current_sub_cmd->type == PVR_SUB_CMD_TYPE_GRAPHICS);
@@ -7806,23 +7822,18 @@ void pvr_CmdPipelineBarrier2(VkCommandBuffer commandBuffer,
                                        pDependencyInfo->pImageMemoryBarriers);
 
    if (is_stencil_store_load_needed) {
-      VkResult result;
-
+      assert(render_pass);
       result = pvr_cmd_buffer_insert_mid_frag_barrier_event(cmd_buffer,
                                                             src_stage_mask,
                                                             dst_stage_mask);
       if (result != VK_SUCCESS)
          mesa_loge("Failed to insert mid frag barrier event.");
-   } else {
-      if (is_barrier_needed) {
-         VkResult result;
-
-         result = pvr_cmd_buffer_insert_barrier_event(cmd_buffer,
-                                                      src_stage_mask,
-                                                      dst_stage_mask);
-         if (result != VK_SUCCESS)
-            mesa_loge("Failed to insert pipeline barrier event.");
-      }
+   } else if (is_barrier_needed) {
+      result = pvr_cmd_buffer_insert_barrier_event(cmd_buffer,
+                                                   src_stage_mask,
+                                                   dst_stage_mask);
+      if (result != VK_SUCCESS)
+         mesa_loge("Failed to insert pipeline barrier event.");
    }
 }
 
@@ -7946,9 +7957,9 @@ void pvr_CmdWaitEvents2(VkCommandBuffer commandBuffer,
 }
 
 void pvr_CmdWriteTimestamp2(VkCommandBuffer commandBuffer,
-                               VkPipelineStageFlags2 stage,
-                               VkQueryPool queryPool,
-                               uint32_t query)
+                            VkPipelineStageFlags2 stage,
+                            VkQueryPool queryPool,
+                            uint32_t query)
 {
    unreachable("Timestamp queries are not supported.");
 }

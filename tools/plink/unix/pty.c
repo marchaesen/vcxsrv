@@ -1138,8 +1138,6 @@ Backend *pty_backend_create(
                 char *x_display_env_var = dupprintf("DISPLAY=%s", x_display);
                 putenv(x_display_env_var);
                 /* As above, we don't free this. */
-            } else {
-                unsetenv("DISPLAY");
             }
         }
 #endif

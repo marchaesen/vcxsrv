@@ -59,7 +59,7 @@ dri2_yuv_dma_buf_supported(struct dri_screen *screen,
 bool
 dri2_validate_egl_image(struct dri_screen *screen, void *handle);
 void
-dri_image_fence_sync(struct dri_context *ctx, __DRIimage *img);
+dri_image_fence_sync(struct dri_context *ctx, struct dri_image *img);
 #endif
 
 /* vim: set sw=3 ts=8 sts=3 expandtab: */

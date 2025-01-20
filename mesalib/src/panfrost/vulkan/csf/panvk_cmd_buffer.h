@@ -15,15 +15,19 @@
 #include "genxml/cs_builder.h"
 
 #include "panvk_cmd_desc_state.h"
+#include "panvk_cmd_dispatch.h"
+#include "panvk_cmd_draw.h"
 #include "panvk_cmd_push_constant.h"
 #include "panvk_queue.h"
 
 #include "vk_command_buffer.h"
 
 #include "util/list.h"
+#include "util/perf/u_trace.h"
 
 #define MAX_VBS 16
 #define MAX_RTS 8
+#define MAX_LAYERS_PER_TILER_DESC 8
 
 struct panvk_cs_sync32 {
    uint32_t seqno;
@@ -43,9 +47,48 @@ struct panvk_cs_desc_ringbuf {
    uint32_t pad;
 };
 
+enum panvk_incremental_rendering_pass {
+   PANVK_IR_FIRST_PASS,
+   PANVK_IR_MIDDLE_PASS,
+   PANVK_IR_LAST_PASS,
+   PANVK_IR_PASS_COUNT
+};
+
+static inline uint32_t
+get_tiler_oom_handler_idx(bool has_zs_ext, uint32_t rt_count)
+{
+   assert(rt_count >= 1 && rt_count <= MAX_RTS);
+   uint32_t idx = has_zs_ext * MAX_RTS + (rt_count - 1);
+   assert(idx < 2 * MAX_RTS);
+   return idx;
+}
+
+static inline uint32_t
+get_fbd_size(bool has_zs_ext, uint32_t rt_count)
+{
+   assert(rt_count >= 1 && rt_count <= MAX_RTS);
+   uint32_t fbd_size = pan_size(FRAMEBUFFER);
+   if (has_zs_ext)
+      fbd_size += pan_size(ZS_CRC_EXTENSION);
+   fbd_size += pan_size(RENDER_TARGET) * rt_count;
+   return fbd_size;
+}
+
 /* 512k of render descriptors that can be used when
  * VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT is set on the command buffer. */
 #define RENDER_DESC_RINGBUF_SIZE (512 * 1024)
+
+/* Helper defines to get specific fields in the tiler_oom_ctx. */
+#define TILER_OOM_CTX_FIELD_OFFSET(_name)                                      \
+   offsetof(struct panvk_cs_subqueue_context, tiler_oom_ctx._name)
+#define TILER_OOM_CTX_FBDPTR_OFFSET(_pass)                                     \
+   (TILER_OOM_CTX_FIELD_OFFSET(fbds) +                                         \
+    (PANVK_IR_##_pass##_PASS * sizeof(uint64_t)))
+
+struct panvk_cs_occlusion_query {
+   uint64_t next;
+   uint64_t syncobj;
+};
 
 struct panvk_cs_subqueue_context {
    uint64_t syncobjs;
@@ -55,8 +98,21 @@ struct panvk_cs_subqueue_context {
       struct panvk_cs_desc_ringbuf desc_ringbuf;
       uint64_t tiler_heap;
       uint64_t geom_buf;
+      uint64_t oq_chain;
    } render;
-   uint64_t debug_syncobjs;
+   struct {
+      uint32_t counter;
+      uint64_t fbds[PANVK_IR_PASS_COUNT];
+      uint32_t td_count;
+      uint32_t layer_count;
+      uint64_t reg_dump_addr;
+   } tiler_oom_ctx;
+   struct {
+      uint64_t syncobjs;
+      struct {
+         uint64_t cs;
+      } tracebuf;
+   } debug;
 } __attribute__((aligned(64)));
 
 struct panvk_cache_flush_info {
@@ -91,6 +147,8 @@ enum panvk_sb_ids {
 #define SB_ID(nm)       PANVK_SB_##nm
 #define SB_ITER(x)      (PANVK_SB_ITER_START + (x))
 #define SB_WAIT_ITER(x) BITFIELD_BIT(PANVK_SB_ITER_START + (x))
+#define SB_ALL_ITERS_MASK                                                      \
+   BITFIELD_RANGE(PANVK_SB_ITER_START, PANVK_SB_ITER_COUNT)
 #define SB_ALL_MASK     BITFIELD_MASK(8)
 
 static inline uint32_t
@@ -104,8 +162,12 @@ enum panvk_cs_regs {
    PANVK_CS_REG_RUN_IDVS_SR_START = 0,
    PANVK_CS_REG_RUN_IDVS_SR_END = 60,
 
-   /* RUN_FRAGMENT staging regs. */
-   PANVK_CS_REG_RUN_FRAGMENT_SR_START = 40,
+   /* RUN_FRAGMENT staging regs.
+    * SW ABI:
+    * - r38:39 contain the pointer to the first tiler descriptor. This is
+    *   needed to gather completed heap chunks after a run_fragment.
+    */
+   PANVK_CS_REG_RUN_FRAGMENT_SR_START = 38,
    PANVK_CS_REG_RUN_FRAGMENT_SR_END = 46,
 
    /* RUN_COMPUTE staging regs. */
@@ -125,11 +187,13 @@ enum panvk_cs_regs {
    PANVK_CS_REG_SUBQUEUE_CTX_END = 91,
 };
 
+#define CS_REG_SCRATCH_COUNT                                                   \
+   (PANVK_CS_REG_SCRATCH_END - PANVK_CS_REG_SCRATCH_START + 1)
+
 static inline struct cs_index
 cs_scratch_reg_tuple(struct cs_builder *b, unsigned start, unsigned count)
 {
-   assert(PANVK_CS_REG_SCRATCH_START + start + count - 1 <=
-          PANVK_CS_REG_SCRATCH_END);
+   assert(start + count <= CS_REG_SCRATCH_COUNT);
    return cs_reg_tuple(b, PANVK_CS_REG_SCRATCH_START + start, count);
 }
 
@@ -199,6 +263,8 @@ struct panvk_cs_state {
    /* Sync point relative to the beginning of the command buffer.
     * Needs to be offset with the subqueue sync point. */
    int32_t relative_sync_point;
+
+   struct cs_tracing_ctx tracing;
 };
 
 static inline struct panvk_cs_reg_upd_context *
@@ -298,109 +364,14 @@ panvk_cs_reg_whitelist(frag_ctx, PANVK_CS_REG_RANGE(RUN_FRAGMENT_SR));
 panvk_cs_reg_whitelist(vt_ctx, PANVK_CS_REG_RANGE(RUN_IDVS_SR));
 #define cs_update_vt_ctx(__b) panvk_cs_reg_upd_ctx(__b, vt_ctx)
 
+panvk_cs_reg_whitelist(cmdbuf_regs, {PANVK_CS_REG_RUN_IDVS_SR_START,
+                                     PANVK_CS_REG_SCRATCH_END});
+#define cs_update_cmdbuf_regs(__b) panvk_cs_reg_upd_ctx(__b, cmdbuf_regs)
+
 struct panvk_tls_state {
    struct panfrost_ptr desc;
    struct pan_tls_info info;
    unsigned max_wg_count;
-};
-
-struct panvk_cmd_compute_state {
-   struct panvk_descriptor_state desc_state;
-   const struct panvk_shader *shader;
-   struct panvk_compute_sysvals sysvals;
-   mali_ptr push_uniforms;
-   struct {
-      struct panvk_shader_desc_state desc;
-   } cs;
-};
-
-struct panvk_attrib_buf {
-   mali_ptr address;
-   unsigned size;
-};
-
-struct panvk_resolve_attachment {
-   VkResolveModeFlagBits mode;
-   struct panvk_image_view *dst_iview;
-};
-
-struct panvk_cmd_graphics_state {
-   struct panvk_descriptor_state desc_state;
-
-   struct {
-      struct vk_vertex_input_state vi;
-      struct vk_sample_locations_state sl;
-   } dynamic;
-
-   struct panvk_graphics_sysvals sysvals;
-
-   struct panvk_shader_link link;
-   bool linked;
-
-   struct {
-      const struct panvk_shader *shader;
-      struct panvk_shader_desc_state desc;
-      mali_ptr spd;
-   } fs;
-
-   struct {
-      const struct panvk_shader *shader;
-      struct panvk_shader_desc_state desc;
-      struct {
-         mali_ptr pos, var;
-      } spds;
-   } vs;
-
-   struct {
-      struct panvk_attrib_buf bufs[MAX_VBS];
-      unsigned count;
-      bool dirty;
-   } vb;
-
-   /* Index buffer */
-   struct {
-      struct panvk_buffer *buffer;
-      uint64_t offset;
-      uint8_t index_size;
-      uint32_t first_vertex, base_vertex, base_instance;
-      bool dirty;
-   } ib;
-
-   struct {
-      struct panvk_blend_info info;
-   } cb;
-
-   struct {
-      VkRenderingFlags flags;
-      uint32_t layer_count;
-
-      enum vk_rp_attachment_flags bound_attachments;
-      struct {
-         struct panvk_image_view *iviews[MAX_RTS];
-         VkFormat fmts[MAX_RTS];
-         uint8_t samples[MAX_RTS];
-         struct panvk_resolve_attachment resolve[MAX_RTS];
-      } color_attachments;
-
-      struct pan_image_view zs_pview;
-
-      struct {
-         struct panvk_image_view *iview;
-         struct panvk_resolve_attachment resolve;
-      } z_attachment, s_attachment;
-
-      struct {
-         struct pan_fb_info info;
-         bool crc_valid[MAX_RTS];
-      } fb;
-
-      struct panfrost_ptr fbds;
-      mali_ptr tiler;
-      bool dirty;
-   } render;
-
-   mali_ptr push_uniforms;
-   mali_ptr tsd;
 };
 
 struct panvk_cmd_buffer {
@@ -412,6 +383,10 @@ struct panvk_cmd_buffer {
    struct list_head push_sets;
 
    uint32_t flush_id;
+
+   struct {
+      struct u_trace uts[PANVK_SUBQUEUE_COUNT];
+   } utrace;
 
    struct {
       struct panvk_cmd_graphics_state gfx;
@@ -458,5 +433,12 @@ void panvk_per_arch(cs_pick_iter_sb)(struct panvk_cmd_buffer *cmdbuf,
 void panvk_per_arch(get_cs_deps)(struct panvk_cmd_buffer *cmdbuf,
                                  const VkDependencyInfo *in,
                                  struct panvk_cs_deps *out);
+
+VkResult panvk_per_arch(cmd_prepare_exec_cmd_for_draws)(
+   struct panvk_cmd_buffer *primary, struct panvk_cmd_buffer *secondary);
+
+void panvk_per_arch(cmd_inherit_render_state)(
+   struct panvk_cmd_buffer *cmdbuf,
+   const VkCommandBufferBeginInfo *pBeginInfo);
 
 #endif /* PANVK_CMD_BUFFER_H */

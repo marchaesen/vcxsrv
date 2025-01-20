@@ -35,7 +35,7 @@ libgallium_nine = shared_library(
   link_depends : gallium_nine_link_depends,
   link_with : gallium_nine_link_with,
   dependencies : [
-    dep_selinux, dep_libdrm, dep_llvm, dep_thread,
+    dep_libdrm, dep_llvm, dep_thread,
     idep_xmlconfig, idep_mesautil, idep_nir,
     driver_asahi,
     driver_v3d,

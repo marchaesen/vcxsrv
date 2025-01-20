@@ -24,7 +24,6 @@ Beware: Most Direct3D games are 32-bit, and thus need a 32-bit version of Mesa.
 
    $ meson configure \
          -D gallium-nine=true \
-         -D dri3=enabled \
          ...
 
 Paths

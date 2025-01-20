@@ -63,7 +63,9 @@ static const struct pvr_device_features pvr_device_features_4_V_2_51 = {
    .has_tpu_array_textures = true,
    .has_tpu_extended_integer_lookup = true,
    .has_tpu_image_state_v2 = true,
+   .has_unified_store_depth = true,
    .has_usc_f16sop_u8 = true,
+   .has_usc_itrsmp = true,
    .has_usc_min_output_registers_per_pix = true,
    .has_usc_slots = true,
    .has_uvs_banks = true,
@@ -87,6 +89,7 @@ static const struct pvr_device_features pvr_device_features_4_V_2_51 = {
    .slc_cache_line_size_bits = 512U,
    .tile_size_x = 32U,
    .tile_size_y = 32U,
+   .unified_store_depth = 256U,
    .usc_min_output_registers_per_pix = 2U,
    .usc_slots = 32U,
    .uvs_banks = 8U,
@@ -95,6 +98,9 @@ static const struct pvr_device_features pvr_device_features_4_V_2_51 = {
    .vdm_cam_size = 256U,
 
    .has_requires_fb_cdc_zls_setup = true,
+   .has_usc_itr_parallel_instances = true,
+
+   .usc_itr_parallel_instances = 8U,
 };
 
 static const struct pvr_device_enhancements pvr_device_enhancements_4_40_2_51 = {

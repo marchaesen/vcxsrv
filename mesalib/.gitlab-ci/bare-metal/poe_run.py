@@ -35,7 +35,7 @@ class PoERun:
         self.powerup = args.powerup
         self.powerdown = args.powerdown
         self.ser = SerialBuffer(
-            args.dev, "results/serial-output.txt", "")
+            args.dev, "results/serial-output.txt", ": ")
         self.boot_timeout = boot_timeout
         self.test_timeout = test_timeout
         self.logger = logger

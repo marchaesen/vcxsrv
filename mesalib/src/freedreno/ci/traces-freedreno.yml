@@ -24,9 +24,9 @@ traces:
       checksum: 8f5929c82e7d990e8c3d2bea14688224
       label: [skip, slow]
     freedreno-a530:
-      checksum: f7e6f426d7b9c82742f00baed830797f
+      checksum: e3370ce93f56703e0c827a36dca2256d
     freedreno-a618:
-      checksum: 6aef509acd1257cc56612141e24dc11c
+      checksum: eaedce6c69165b08a63a57b9c9901230
     freedreno-a630:
       checksum: 6aef509acd1257cc56612141e24dc11c
       label: [skip, flakes]
@@ -70,11 +70,11 @@ traces:
       label: [skip, broken, slow]
       text: Broken minimap rendering since around !14643
     freedreno-a530:
-      checksum: a00c5007c26daab3eccb778e68fb2730
+      checksum: b0a10ed261fdfeba76de4de5c2bd0aae
     freedreno-a618:
-      checksum: 339dce29ae08569652438116829510c7
+      checksum: 747fa9a4e47bbb37c24c3376a3f8255b
     freedreno-a630:
-      checksum: 339dce29ae08569652438116829510c7
+      checksum: 747fa9a4e47bbb37c24c3376a3f8255b
     zink-a618:
       label: [skip, slow]
       checksum: ade41e6fe932552914c678155149babb
@@ -106,10 +106,10 @@ traces:
       label: [unsupported]
     freedreno-a618:
       label: [skip, flakes]
-      checksum: 50d4bd01756ffe70aee5f8401f7a6ce4
+      checksum: 17c6a6dd333514b125cc18282ce24ba8
       text: https://gitlab.freedesktop.org/mesa/mesa/-/issues/8337
     freedreno-a630:
-      checksum: 50d4bd01756ffe70aee5f8401f7a6ce4
+      checksum: 17c6a6dd333514b125cc18282ce24ba8
     zink-a618:
       label: [skip, flakes]
       checksum: 59e37d2dca80caedd9494114d64c676c
@@ -174,9 +174,9 @@ traces:
       label: [skip, slow]
       text: 2 minute runtime on db820c
     freedreno-a618:
-      checksum: c846e0721b7e7576e523eab6d3129e9c
+      checksum: e0b4cb968d2653a568f0ea5eeee4d39a
     freedreno-a630:
-      checksum: c846e0721b7e7576e523eab6d3129e9c
+      checksum: e0b4cb968d2653a568f0ea5eeee4d39a
     zink-a618:
       label: [skip, timeout]
     zink-a630:
@@ -193,9 +193,9 @@ traces:
     freedreno-a530:
       label: [skip, flakes]
     freedreno-a618:
-      checksum: c8608d54cc6298476a2b60686d152dbc
+      checksum: 1b9a79f0088a3ddb5723f217d37cee74
     freedreno-a630:
-      checksum: c8608d54cc6298476a2b60686d152dbc
+      checksum: 1b9a79f0088a3ddb5723f217d37cee74
     zink-a618:
       checksum: e4e5415f7a81a6bd14b7ff8f67083cbf
     zink-a630:
@@ -285,14 +285,14 @@ traces:
 
   gputest/pixmark-julia-fp32-v2.trace:
     freedreno-a306:
-      checksum: ee803b33c871fbaf1b74aca98b83da5b
+      checksum: 650e670be449771ff192faff3af56e74
     freedreno-a530:
-      checksum: a1cb377d17340a7b03147a8661665345
+      checksum: 591ed55990423caad0a7e5da6bc3b441
     freedreno-a618:
       label: [no-perf]
-      checksum: f83f7ad4b147607e2a7de65a48f8ed4d
+      checksum: 95bbb55cc2d59dc9523120f49a2adf5d
     freedreno-a630:
-      checksum: f83f7ad4b147607e2a7de65a48f8ed4d
+      checksum: 95bbb55cc2d59dc9523120f49a2adf5d
     zink-a618:
       checksum: f83f7ad4b147607e2a7de65a48f8ed4d
     zink-a630:

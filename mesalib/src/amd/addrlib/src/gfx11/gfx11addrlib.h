@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2007-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -35,7 +35,7 @@ struct Gfx11ChipSettings
     struct
     {
         UINT_32 isGfx1150           :  1;
-        UINT_32 isGfx1103           :  1;
+        UINT_32 isPhoenix           :  1;
         UINT_32 reserved1           : 30;
 
         // Misc configuration bits
@@ -300,6 +300,16 @@ protected:
         const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
 
+    virtual ADDR_E_RETURNCODE HwlCopyMemToSurface(
+        const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const;
+
+    virtual ADDR_E_RETURNCODE HwlCopySurfaceToMem(
+        const ADDR2_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR2_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const;
+
     virtual UINT_32 HwlComputeMaxBaseAlignments() const;
 
     virtual UINT_32 HwlComputeMaxMetaBaseAlignments() const;
@@ -327,14 +337,6 @@ private:
     ADDR_E_RETURNCODE ComputeSurfaceAddrFromCoordMicroTiled(
         const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
-
-    UINT_32 ComputeOffsetFromSwizzlePattern(
-        const UINT_64* pPattern,
-        UINT_32        numBits,
-        UINT_32        x,
-        UINT_32        y,
-        UINT_32        z,
-        UINT_32        s) const;
 
     UINT_32 ComputeOffsetFromEquation(
         const ADDR_EQUATION* pEq,
@@ -373,7 +375,7 @@ private:
 
     VOID GetSwizzlePatternFromPatternInfo(
         const ADDR_SW_PATINFO* pPatInfo,
-        ADDR_BIT_SETTING       (&pSwizzle)[20]) const
+        ADDR_BIT_SETTING       (&pSwizzle)[ADDR_MAX_EQUATION_BIT]) const
     {
         memcpy(pSwizzle,
                GFX11_SW_PATTERN_NIBBLE01[pPatInfo->nibble01Idx],

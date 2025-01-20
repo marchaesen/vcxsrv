@@ -176,6 +176,7 @@ struct radeon_info {
    uint32_t tcc_cache_line_size;
    bool tcc_rb_non_coherent; /* whether L2 inv is needed for render->texture transitions */
    bool cp_sdma_ge_use_system_memory_scope;
+   bool cp_dma_use_L2;
    unsigned pc_lines;
    uint32_t lds_size_per_workgroup;
    uint32_t lds_alloc_granularity;
@@ -218,6 +219,7 @@ struct radeon_info {
    uint32_t drm_patchlevel;
    uint32_t max_submitted_ibs[AMD_NUM_IP_TYPES];
    bool is_amdgpu;
+   bool is_virtio;
    bool has_userptr;
    bool has_syncobj;
    bool has_timeline_syncobj;
@@ -234,7 +236,9 @@ struct radeon_info {
    /* Whether SR-IOV is enabled or amdgpu.mcbp=1 was set on the kernel command line. */
    bool register_shadowing_required;
    bool has_tmz_support;
+   bool has_trap_handler_support;
    bool kernel_has_modifiers;
+   bool use_userq;
 
    /* If the kernel driver uses CU reservation for high priority compute on gfx10+, it programs
     * a global CU mask in the hw that is AND'ed with CU_EN register fields set by userspace.

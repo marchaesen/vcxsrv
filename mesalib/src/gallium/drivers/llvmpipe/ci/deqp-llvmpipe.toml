@@ -1,6 +1,6 @@
 [[deqp]]
-deqp = "/deqp/modules/gles2/deqp-gles2"
-caselists = ["/deqp/mustpass/gles2-main.txt"]
+deqp = "/deqp-gles/modules/gles2/deqp-gles2"
+caselists = ["/deqp-gles/mustpass/gles2-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -12,8 +12,8 @@ version_check = "GL ES 3.2.*git"
 renderer_check = "llvmpipe"
 
 [[deqp]]
-deqp = "/deqp/modules/gles3/deqp-gles3"
-caselists = ["/deqp/mustpass/gles3-main.txt"]
+deqp = "/deqp-gles/modules/gles3/deqp-gles3"
+caselists = ["/deqp-gles/mustpass/gles3-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -23,8 +23,8 @@ deqp_args = [
 ]
 
 [[deqp]]
-deqp = "/deqp/modules/gles31/deqp-gles31"
-caselists = ["/deqp/mustpass/gles31-main.txt"]
+deqp = "/deqp-gles/modules/gles31/deqp-gles31"
+caselists = ["/deqp-gles/mustpass/gles31-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -38,11 +38,11 @@ deqp_args = [
   NIR_DEBUG="clone,serialize"
 
 [[deqp]]
-deqp = "/deqp/external/openglcts/modules/glcts"
+deqp = "/deqp-gles/external/openglcts/modules/glcts"
 caselists = [
-    "/deqp/mustpass/gles2-khr-main.txt",
-    "/deqp/mustpass/gles3-khr-main.txt",
-    "/deqp/mustpass/gles31-khr-main.txt",
+    "/deqp-gles/mustpass/gles2-khr-main.txt",
+    "/deqp-gles/mustpass/gles3-khr-main.txt",
+    "/deqp-gles/mustpass/gles31-khr-main.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256",
@@ -56,10 +56,10 @@ deqp_args = [
 # version, so we only need to run one test list (unlike dEQP-GLES,
 # where the test sets are separate).
 [[deqp]]
-deqp = "/deqp/external/openglcts/modules/glcts"
+deqp = "/deqp-gl/external/openglcts/modules/glcts"
 caselists = [
-    "/deqp/mustpass/gl45-main.txt",
-    "/deqp/mustpass/gl45-khr-single.txt",
+    "/deqp-gl/mustpass/gl45-main.txt",
+    "/deqp-gl/mustpass/gl45-khr-single.txt",
 ]
 deqp_args = [
     "--deqp-surface-width=256",
@@ -70,8 +70,8 @@ deqp_args = [
 ]
 
 [[deqp]]
-deqp = "/deqp/modules/egl/deqp-egl-x11"
-caselists = ["/deqp/mustpass/egl-main.txt"]
+deqp = "/deqp-gles/modules/egl/deqp-egl-x11"
+caselists = ["/deqp-gles/mustpass/egl-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -81,8 +81,8 @@ deqp_args = [
 ]
 
 [[deqp]]
-deqp = "/deqp/modules/egl/deqp-egl-wayland"
-caselists = ["/deqp/mustpass/egl-main.txt"]
+deqp = "/deqp-gles/modules/egl/deqp-egl-wayland"
+caselists = ["/deqp-gles/mustpass/egl-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",

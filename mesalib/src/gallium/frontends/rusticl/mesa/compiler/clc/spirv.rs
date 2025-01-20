@@ -7,14 +7,16 @@ use mesa_rust_gen::*;
 use mesa_rust_util::serialize::*;
 use mesa_rust_util::string::*;
 
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::fmt::Debug;
+use std::ops::Not;
 use std::os::raw::c_char;
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 
-const INPUT_STR: *const c_char = b"input.cl\0".as_ptr().cast();
+const INPUT_STR: &CStr = c"input.cl";
 
 pub enum SpecConstant {
     None,
@@ -31,8 +33,8 @@ unsafe impl Sync for SPIRVBin {}
 
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct SPIRVKernelArg {
-    pub name: String,
-    pub type_name: String,
+    pub name: CString,
+    pub type_name: CString,
     pub access_qualifier: clc_kernel_arg_access_qualifier,
     pub address_qualifier: clc_kernel_arg_address_qualifier,
     pub type_qualifier: clc_kernel_arg_type_qualifier,
@@ -43,7 +45,7 @@ pub struct CLCHeader<'a> {
     pub source: &'a CString,
 }
 
-impl<'a> Debug for CLCHeader<'a> {
+impl Debug for CLCHeader<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.name.to_string_lossy();
         let source = self.source.to_string_lossy();
@@ -92,7 +94,7 @@ impl SPIRVBin {
         headers: &[CLCHeader],
         cache: &Option<DiskCache>,
         features: clc_optional_features,
-        spirv_extensions: &[CString],
+        spirv_extensions: &[&CStr],
         address_bits: u32,
     ) -> (Option<Self>, String) {
         let mut hash_key = None;
@@ -140,7 +142,7 @@ impl SPIRVBin {
             headers: c_headers.as_ptr(),
             num_headers: c_headers.len() as u32,
             source: clc_named_value {
-                name: INPUT_STR,
+                name: INPUT_STR.as_ptr(),
                 value: source.as_ptr(),
             },
             args: c_args.as_ptr(),
@@ -155,7 +157,7 @@ impl SPIRVBin {
         let logger = create_clc_logger(&mut msgs);
         let mut out = clc_binary::default();
 
-        let res = unsafe { clc_compile_c_to_spirv(&args, &logger, &mut out) };
+        let res = unsafe { clc_compile_c_to_spirv(&args, &logger, &mut out, ptr::null_mut()) };
 
         let res = if res {
             let spirv = SPIRVBin {
@@ -251,8 +253,19 @@ impl SPIRVBin {
                 unsafe { slice::from_raw_parts(info.args, info.num_args) }
                     .iter()
                     .map(|a| SPIRVKernelArg {
-                        name: c_string_to_string(a.name),
-                        type_name: c_string_to_string(a.type_name),
+                        // SAFETY: we have a valid C string pointer here
+                        name: a
+                            .name
+                            .is_null()
+                            .not()
+                            .then(|| unsafe { CStr::from_ptr(a.name) }.to_owned())
+                            .unwrap_or_default(),
+                        type_name: a
+                            .type_name
+                            .is_null()
+                            .not()
+                            .then(|| unsafe { CStr::from_ptr(a.type_name) }.to_owned())
+                            .unwrap_or_default(),
                         access_qualifier: clc_kernel_arg_access_qualifier(a.access_qualifier),
                         address_qualifier: a.address_qualifier,
                         type_qualifier: clc_kernel_arg_type_qualifier(a.type_qualifier),
@@ -448,18 +461,12 @@ impl Drop for SPIRVBin {
 
 impl SPIRVKernelArg {
     pub fn serialize(&self, blob: &mut blob) {
-        let name_arr = self.name.as_bytes();
-        let type_name_arr = self.type_name.as_bytes();
-
         unsafe {
             blob_write_uint32(blob, self.access_qualifier.0);
             blob_write_uint32(blob, self.type_qualifier.0);
 
-            blob_write_uint16(blob, name_arr.len() as u16);
-            blob_write_uint16(blob, type_name_arr.len() as u16);
-
-            blob_write_bytes(blob, name_arr.as_ptr().cast(), name_arr.len());
-            blob_write_bytes(blob, type_name_arr.as_ptr().cast(), type_name_arr.len());
+            blob_write_string(blob, self.name.as_ptr());
+            blob_write_string(blob, self.type_name.as_ptr());
 
             blob_write_uint8(blob, self.address_qualifier as u8);
         }
@@ -470,11 +477,8 @@ impl SPIRVKernelArg {
             let access_qualifier = blob_read_uint32(blob);
             let type_qualifier = blob_read_uint32(blob);
 
-            let name_len = blob_read_uint16(blob) as usize;
-            let type_len = blob_read_uint16(blob) as usize;
-
-            let name = slice::from_raw_parts(blob_read_bytes(blob, name_len).cast(), name_len);
-            let type_name = slice::from_raw_parts(blob_read_bytes(blob, type_len).cast(), type_len);
+            let name = blob_read_string(blob);
+            let type_name = blob_read_string(blob);
 
             let address_qualifier = match blob_read_uint8(blob) {
                 0 => clc_kernel_arg_address_qualifier::CLC_KERNEL_ARG_ADDRESS_PRIVATE,
@@ -484,9 +488,12 @@ impl SPIRVKernelArg {
                 _ => return None,
             };
 
-            Some(Self {
-                name: String::from_utf8_unchecked(name.to_owned()),
-                type_name: String::from_utf8_unchecked(type_name.to_owned()),
+            // check overrun to ensure nothing went wrong
+            blob.overrun.not().then(|| Self {
+                // SAFETY: blob_read_string checks for a valid nul character already and sets the
+                //         blob to overrun state if none was found.
+                name: CStr::from_ptr(name).to_owned(),
+                type_name: CStr::from_ptr(type_name).to_owned(),
                 access_qualifier: clc_kernel_arg_access_qualifier(access_qualifier),
                 address_qualifier: address_qualifier,
                 type_qualifier: clc_kernel_arg_type_qualifier(type_qualifier),

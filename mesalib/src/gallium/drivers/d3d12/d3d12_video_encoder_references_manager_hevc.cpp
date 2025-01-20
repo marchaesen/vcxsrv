@@ -37,7 +37,7 @@ d3d12_video_encoder_references_manager_hevc::get_current_frame_picture_control_d
    assert((codecAllocation.DataSize == sizeof(D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC)) ||
           (codecAllocation.DataSize == sizeof(D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC1)));
    memcpy(codecAllocation.pHEVCPicData1, &m_curFrameState, codecAllocation.DataSize);
-   memset((uint8_t *)(& codecAllocation.pHEVCPicData1) + codecAllocation.DataSize, 0, sizeof(m_curFrameState) - codecAllocation.DataSize);
+   memset((uint8_t *)(codecAllocation.pHEVCPicData1) + codecAllocation.DataSize, 0, sizeof(m_curFrameState) - codecAllocation.DataSize);
    return true;
 }
 
@@ -54,7 +54,7 @@ d3d12_video_encoder_references_manager_hevc::get_current_reference_frames()
    // and return references information for inter frames (eg.P/B) and I frame that doesn't flush DPB
 
    if (m_curFrameState.FrameType != D3D12_VIDEO_ENCODER_FRAME_TYPE_HEVC_IDR_FRAME) {
-      retVal.NumTexture2Ds = m_CurrentFrameReferencesData.ReferenceTextures.pResources.size();
+      retVal.NumTexture2Ds = static_cast<UINT>(m_CurrentFrameReferencesData.ReferenceTextures.pResources.size());
       retVal.ppTexture2Ds = m_CurrentFrameReferencesData.ReferenceTextures.pResources.data();
 
       // D3D12 Encode expects null subresources for AoT
@@ -336,7 +336,7 @@ d3d12_video_encoder_references_manager_hevc::begin_frame(D3D12_VIDEO_ENCODER_PIC
 
       // Set DPB descriptors
       m_curFrameState.ReferenceFramesReconPictureDescriptorsCount =
-         m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.size();
+         static_cast<UINT>(m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.size());
       m_curFrameState.pReferenceFramesReconPictureDescriptors =
          m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.data();
 

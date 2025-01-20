@@ -43,13 +43,13 @@ if ($setver) {
     &transform("LATEST.VER", sub { s/^\d+\.\d+$/$version/ });
     our $transforming = 0;
     &transform("doc/pscp.but", sub {
-        if (/^\\c.*>pscp$/) { $transforming = 1; $_ .= $pscp_transcript; }
+        if (/^\\c.*>pscp -h$/) { $transforming = 1; $_ .= $pscp_transcript; }
         elsif (!/^\\c/) { $transforming = 0; }
         elsif ($transforming) { $_=""; }
     });
     $transforming = 0;
     &transform("doc/plink.but", sub {
-        if (/^\\c.*>plink$/) { $transforming = 1; $_ .= $plink_transcript; }
+        if (/^\\c.*>plink --help$/) { $transforming = 1; $_ .= $plink_transcript; }
         elsif (!/^\\c/) { $transforming = 0; }
         elsif ($transforming) { $_=""; }
     });

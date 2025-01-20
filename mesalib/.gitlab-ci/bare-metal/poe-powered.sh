@@ -71,6 +71,8 @@ if [ -z "$BM_CMDLINE" ]; then
   exit 1
 fi
 
+section_start prepare_rootfs "Preparing rootfs components"
+
 set -ex
 
 date +'%F %T'
@@ -102,7 +104,7 @@ if [ -f "${BM_BOOTFS}" ]; then
 fi
 
 # If BM_KERNEL and BM_DTS is present
-if [ -n "${FORCE_KERNEL_TAG}" ]; then
+if [ -n "${EXTERNAL_KERNEL_TAG}" ]; then
   if [ -z "${BM_KERNEL}" ] || [ -z "${BM_DTB}" ]; then
     echo "This machine cannot be tested with external kernel since BM_KERNEL or BM_DTB missing!"
     exit 1
@@ -120,7 +122,7 @@ date +'%F %T'
 
 # Install kernel modules (it could be either in /lib/modules or
 # /usr/lib/modules, but we want to install in the latter)
-if [ -n "${FORCE_KERNEL_TAG}" ]; then
+if [ -n "${EXTERNAL_KERNEL_TAG}" ]; then
   tar --keep-directory-symlink --zstd -xf modules.tar.zst -C /nfs/
   rm modules.tar.zst &
 elif [ -n "${BM_BOOTFS}" ]; then
@@ -134,7 +136,7 @@ fi
 date +'%F %T'
 
 # Install kernel image + bootloader files
-if [ -n "${FORCE_KERNEL_TAG}" ] || [ -z "$BM_BOOTFS" ]; then
+if [ -n "${EXTERNAL_KERNEL_TAG}" ] || [ -z "$BM_BOOTFS" ]; then
   mv "${BM_KERNEL}" "${BM_DTB}.dtb" /tftp/
 else  # BM_BOOTFS
   rsync -aL --delete $BM_BOOTFS/boot/ /tftp/
@@ -181,6 +183,8 @@ if [ -n "$BM_BOOTCONFIG" ]; then
   printf "$BM_BOOTCONFIG" >> /tftp/config.txt
 fi
 
+section_end prepare_rootfs
+
 set +e
 STRUCTURED_LOG_FILE=results/job_detail.json
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --update dut_job_type "${DEVICE_TYPE}"
@@ -188,6 +192,7 @@ python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --update farm "${FAR
 ATTEMPTS=3
 first_attempt=True
 while [ $((ATTEMPTS--)) -gt 0 ]; do
+  section_start dut_boot "Booting hardware device ..."
   python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --create-dut-job dut_name "${CI_RUNNER_DESCRIPTION}"
   # Update subtime time to CI_JOB_STARTED_AT only for the first run
   if [ "$first_attempt" = "True" ]; then
@@ -204,13 +209,17 @@ while [ $((ATTEMPTS--)) -gt 0 ]; do
   ret=$?
 
   if [ $ret -eq 2 ]; then
-    echo "Did not detect boot sequence, retrying..."
     python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --close-dut-job
     first_attempt=False
+    error "Device failed to boot; will retry"
   else
+    # We're no longer in dut_boot by this point
+    unset CURRENT_SECTION
     ATTEMPTS=0
   fi
 done
+
+section_start dut_cleanup "Cleaning up after job"
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --close-dut-job
 python3 $CI_INSTALL/custom_logger.py ${STRUCTURED_LOG_FILE} --close
 set -e
@@ -220,10 +229,8 @@ date +'%F %T'
 # Bring artifacts back from the NFS dir to the build dir where gitlab-runner
 # will look for them.
 cp -Rp /nfs/results/. results/
-if [ -f "${STRUCTURED_LOG_FILE}" ]; then
-  echo "Structured log file is available at ${ARTIFACTS_BASE_URL}/results/${STRUCTURED_LOG_FILE}"
-fi
 
 date +'%F %T'
+section_end dut_cleanup
 
 exit $ret

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "common/freedreno_dev_info.h"
+
 struct testcase {
    enum pipe_format format;
 
@@ -28,4 +30,4 @@ struct testcase {
    } layout;
 };
 
-bool fdl_test_layout(const struct testcase *testcase, int gpu_id);
+bool fdl_test_layout(const struct testcase *testcase, const struct fd_dev_id *dev_id);

@@ -135,7 +135,10 @@ struct schedule_state {
    long max_tex_group;
    unsigned PrevBlockHasTex : 1;
    unsigned PrevBlockHasKil : 1;
+   /* Number of TEX in the current block */
    unsigned TEXCount;
+   /* Total number of TEX in the whole program.*/
+   unsigned totalTEXCount;
    unsigned Opt : 1;
 };
 
@@ -1079,7 +1082,12 @@ emit_instruction(struct schedule_state *s, struct rc_instruction *before)
 #endif
 
    for (tex_ptr = s->ReadyTEX; tex_ptr; tex_ptr = tex_ptr->NextReady) {
-      if (tex_ptr->Instruction->U.I.Opcode == RC_OPCODE_KIL) {
+      /* In general we want to emit KIL ASAP, however KIL does count into
+       * the indirection limit, so for R300/R400 we only do this if we
+       * are sure we can fit in there.
+       */
+      if (tex_ptr->Instruction->U.I.Opcode == RC_OPCODE_KIL &&
+          (s->C->is_r500 || s->totalTEXCount <= 3)) {
          emit_all_tex(s, before);
          s->PrevBlockHasKil = 1;
          return;
@@ -1308,6 +1316,19 @@ rc_pair_schedule(struct radeon_compiler *cc, void *user)
       s.CalcScore = calc_score_r300;
    }
    s.max_tex_group = debug_get_num_option("RADEON_TEX_GROUP", 8);
+
+   /* First go over and count all TEX. */
+   while (inst != &c->Base.Program.Instructions) {
+      if (inst->Type == RC_INSTRUCTION_NORMAL) {
+         const struct rc_opcode_info *info = rc_get_opcode_info(inst->U.I.Opcode);
+         if (info->HasTexture) {
+            s.totalTEXCount++;
+         }
+      }
+      inst = inst->Next;
+   }
+
+   inst = c->Base.Program.Instructions.Next;
    while (inst != &c->Base.Program.Instructions) {
       struct rc_instruction *first;
 

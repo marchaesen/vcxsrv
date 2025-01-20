@@ -119,7 +119,7 @@ class d3d12_video_bitstream_builder_hevc : public d3d12_video_bitstream_builder_
    HevcSeqParameterSet m_active_sps = {};
    HevcPicParameterSet m_active_pps = {};
 
-   void init_profile_tier_level(HEVCProfileTierLevel *ptl, uint8_t HEVCProfileIdc, uint8_t HEVCLevelIdc, bool isHighTier);
+   void init_profile_tier_level(HEVCProfileTierLevel *ptl, uint8_t HEVCProfileIdc, uint32_t HEVCLevelIdc, bool isHighTier);
 };
 
 #endif

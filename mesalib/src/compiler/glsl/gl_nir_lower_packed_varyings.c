@@ -222,7 +222,7 @@ lower_packed_varying_needs_lowering(nir_shader *shader, nir_variable *var,
       return false;
 
    const struct glsl_type *type = var->type;
-   if (nir_is_arrayed_io(var, shader->info.stage) || var->data.per_view) {
+   if (nir_is_arrayed_io(var, shader->info.stage)) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }

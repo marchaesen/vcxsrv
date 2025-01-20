@@ -518,7 +518,8 @@ void si_query_buffer_reset(struct si_context *sctx, struct si_query_buffer *buff
 
    /* Discard even the oldest buffer if it can't be mapped without a stall. */
    if (si_cs_is_buffer_referenced(sctx, buffer->buf->buf, RADEON_USAGE_READWRITE) ||
-       !sctx->ws->buffer_wait(sctx->ws, buffer->buf->buf, 0, RADEON_USAGE_READWRITE)) {
+       !sctx->ws->buffer_wait(sctx->ws, buffer->buf->buf, 0,
+                              RADEON_USAGE_READWRITE | RADEON_USAGE_DISALLOW_SLOW_REPLY)) {
       si_resource_reference(&buffer->buf, NULL);
    }
 }
@@ -838,7 +839,7 @@ static void si_query_hw_do_emit_start(struct si_context *sctx, struct si_query_h
          struct pipe_shader_buffer sbuf;
          sbuf.buffer = &buffer->b.b;
          sbuf.buffer_offset = query->buffer.results_end;
-         sbuf.buffer_size = buffer->bo_size;
+         sbuf.buffer_size = buffer->bo_size - sbuf.buffer_offset;
          si_set_internal_shader_buffer(sctx, SI_GS_QUERY_EMULATED_COUNTERS_BUF, &sbuf);
          SET_FIELD(sctx->current_gs_state, GS_STATE_PIPELINE_STATS_EMU, 1);
 

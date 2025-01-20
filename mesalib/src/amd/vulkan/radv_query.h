@@ -24,7 +24,7 @@ struct radv_query_pool {
    uint32_t availability_offset;
    uint64_t size;
    char *ptr;
-   bool uses_gds; /* For NGG GS on GFX10+ */
+   bool uses_emulated_queries;
    bool uses_ace; /* For task shader invocations on GFX10.3+ */
 };
 

@@ -264,6 +264,10 @@ FUNC(void, ssh_hash_update, ARG(val_hash, h), ARG(val_string_ptrlen, data))
 
 FUNC(opt_val_hash, blake2b_new_general, ARG(uint, hashlen))
 
+FUNC(val_shakexof, shake128_xof_from_input, ARG(val_string_ptrlen, input))
+FUNC(val_shakexof, shake256_xof_from_input, ARG(val_string_ptrlen, input))
+FUNC_WRAPPED(val_string, shake_xof_read, ARG(val_shakexof, xof), ARG(uint, size))
+
 /*
  * The ssh2_mac abstraction. Note the optional ssh_cipher parameter
  * to ssh2_mac_new. Also, again, I've invented an ssh2_mac_update so
@@ -400,6 +404,36 @@ FUNC_WRAPPED(int16_list, ntru_encrypt, ARG(int16_list, plaintext),
              ARG(int16_list, pubkey), ARG(uint, p), ARG(uint, q))
 FUNC_WRAPPED(int16_list, ntru_decrypt, ARG(int16_list, ciphertext),
              ARG(val_ntrukeypair, keypair))
+
+/*
+ * ML-KEM and its subroutines.
+ */
+FUNC(void, mlkem_keygen,
+     ARG(out_val_string_binarysink, ek), ARG(out_val_string_binarysink, dk),
+     ARG(mlkem_params, params))
+FUNC_WRAPPED(void, mlkem_keygen_internal,
+             ARG(out_val_string_binarysink, ek),
+             ARG(out_val_string_binarysink, dk),
+             ARG(mlkem_params, params),
+             ARG(val_string_ptrlen, d), ARG(val_string_ptrlen, z))
+FUNC_WRAPPED(void, mlkem_keygen_rho_sigma,
+             ARG(out_val_string_binarysink, ek),
+             ARG(out_val_string_binarysink, dk),
+             ARG(mlkem_params, params), ARG(val_string_ptrlen, rho),
+             ARG(val_string_ptrlen, sigma), ARG(val_string_ptrlen, z))
+FUNC(boolean, mlkem_encaps,
+     ARG(out_val_string_binarysink, ciphertext),
+     ARG(out_val_string_binarysink, k),
+     ARG(mlkem_params, params),
+     ARG(val_string_ptrlen, ek))
+FUNC_WRAPPED(boolean, mlkem_encaps_internal,
+             ARG(out_val_string_binarysink, ciphertext),
+             ARG(out_val_string_binarysink, k),
+             ARG(mlkem_params, params),
+             ARG(val_string_ptrlen, ek), ARG(val_string_ptrlen, m))
+FUNC(boolean, mlkem_decaps, ARG(out_val_string_binarysink, k),
+     ARG(mlkem_params, params), ARG(val_string_ptrlen, dk),
+     ARG(val_string_ptrlen, ciphertext))
 
 /*
  * RSA key exchange, and also the BinarySource get function

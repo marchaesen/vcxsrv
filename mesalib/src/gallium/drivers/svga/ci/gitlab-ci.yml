@@ -22,20 +22,20 @@ include:
 vmware-vmx-piglit:x86_64:
   stage: layered-backends
   extends:
-    - .lava-piglit:x86_64
+    - .lava-test-deqp:x86_64
     - .vmware-rules
   timeout: 30m
+  parallel: 2
   variables:
     VISIBILITY_GROUP: "mesa-ci"
     GALLIUM_DRIVER: svga
     GPU_VERSION: svga
-    PIGLIT_PLATFORM: mixed_glx_egl
-    PIGLIT_PROFILES: gpu
-    PIGLIT_FRACTION: 2
+    DEQP_SUITE: vmware-vmx-piglit
     HWCI_START_WESTON: 1
     RUNNER_TAG: mesa-ci-x86-64-lava-vmware
     DEVICE_TYPE: x86
     BOOT_METHOD: ipxe
     KERNEL_REPO: "blu/linux"
-    FORCE_KERNEL_TAG: "a49175f6c"
-    KERNEL_IMAGE_BASE: "https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${FORCE_KERNEL_TAG}"
+    EXTERNAL_KERNEL_TAG: "5651a4c8b"
+    KERNEL_IMAGE_BASE: "https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${EXTERNAL_KERNEL_TAG}"
+    FDO_CI_CONCURRENT: 1

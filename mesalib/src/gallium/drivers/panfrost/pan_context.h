@@ -256,7 +256,7 @@ struct pan_linkage {
    struct panfrost_bo *bo;
 
    /* Uploaded attribute descriptors */
-   mali_ptr producer, consumer;
+   uint64_t producer, consumer;
 
    /* Varyings buffers required */
    uint32_t present;
@@ -356,17 +356,20 @@ struct panfrost_fs_key {
    bool line_smooth;
 };
 
+struct panfrost_vs_key {
+   /* We have a special "transform feedback" vertex program derived from a
+    * vertex shader. If is_xfb is set on a vertex shader, this is a transform
+    * feedback shader, else it is a regular vertex shader. */
+   bool is_xfb;
+
+   /* Bit mask of varyings in the linked FS that use noperspective
+    * interpolation, starting at VARYING_SLOT_VAR0 */
+   uint32_t noperspective_varyings;
+};
+
 struct panfrost_shader_key {
    union {
-      /* Vertex shaders do not use shader keys. However, we have a
-       * special "transform feedback" vertex program derived from a
-       * vertex shader. If vs_is_xfb is set on a vertex shader, this
-       * is a transform feedback shader, else it is a regular
-       * (unkeyed) vertex shader.
-       */
-      bool vs_is_xfb;
-
-      /* Fragment shaders use regular shader keys */
+      struct panfrost_vs_key vs;
       struct panfrost_fs_key fs;
    };
 };
@@ -422,6 +425,10 @@ struct panfrost_uncompiled_shader {
     * shaders for desktop GL.
     */
    uint32_t fixed_varying_mask;
+
+   /* On fragments shaders, bit mask of varyings using noprespective
+    * interpolation, starting at VARYING_SLOT_VAR0 */
+   uint32_t noperspective_varyings;
 
    /* If gl_FragColor was lowered, we need to optimize the stores later */
    bool fragcolor_lowered;
@@ -511,12 +518,12 @@ void panfrost_update_shader_variant(struct panfrost_context *ctx,
 
 void panfrost_analyze_sysvals(struct panfrost_compiled_shader *ss);
 
-mali_ptr
+uint64_t
 panfrost_get_index_buffer(struct panfrost_batch *batch,
                           const struct pipe_draw_info *info,
                           const struct pipe_draw_start_count_bias *draw);
 
-mali_ptr
+uint64_t
 panfrost_get_index_buffer_bounded(struct panfrost_batch *batch,
                                   const struct pipe_draw_info *info,
                                   const struct pipe_draw_start_count_bias *draw,
@@ -524,7 +531,7 @@ panfrost_get_index_buffer_bounded(struct panfrost_batch *batch,
 
 /* Instancing */
 
-mali_ptr panfrost_vertex_buffer_address(struct panfrost_context *ctx,
+uint64_t panfrost_vertex_buffer_address(struct panfrost_context *ctx,
                                         unsigned i);
 
 void panfrost_shader_context_init(struct pipe_context *pctx);

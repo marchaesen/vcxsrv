@@ -34,6 +34,17 @@ ir3_nir_branch_and_or_not_c = custom_target(
   depend_files : nir_algebraic_depends,
 )
 
+ir3_nir_triop_bitwise_c = custom_target(
+  'ir3_nir_triop_bitwise.c',
+  input : 'ir3_nir_triop_bitwise.py',
+  output : 'ir3_nir_triop_bitwise.c',
+  command : [
+    prog_python, '@INPUT@', '-p', dir_compiler_nir,
+  ],
+  capture : true,
+  depend_files : nir_algebraic_depends,
+)
+
 ir3_parser = custom_target(
   'ir3_parser.[ch]',
   input: 'ir3_parser.y',
@@ -92,6 +103,7 @@ libfreedreno_ir3_files = files(
   'ir3_nir_lower_load_barycentric_at_sample.c',
   'ir3_nir_lower_load_barycentric_at_offset.c',
   'ir3_nir_lower_push_consts_to_preamble.c',
+  'ir3_nir_lower_shading_rate.c',
   'ir3_nir_lower_io_offsets.c',
   'ir3_nir_lower_tess.c',
   'ir3_nir_lower_tex_prefetch.c',
@@ -119,7 +131,7 @@ libfreedreno_ir3_files = files(
 
 libfreedreno_ir3 = static_library(
   'freedreno_ir3',
-  [libfreedreno_ir3_files, ir3_nir_trig_c, ir3_nir_imul_c, ir3_nir_branch_and_or_not_c, ir3_parser[0], ir3_parser[1], ir3_lexer],
+  [libfreedreno_ir3_files, ir3_nir_trig_c, ir3_nir_imul_c, ir3_nir_branch_and_or_not_c, ir3_nir_triop_bitwise_c, ir3_parser[0], ir3_parser[1], ir3_lexer],
   include_directories : [inc_freedreno, inc_include, inc_src],
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',

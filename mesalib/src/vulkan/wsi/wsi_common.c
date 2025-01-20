@@ -55,6 +55,7 @@ static const struct debug_control debug_control[] = {
    { "noshm",        WSI_DEBUG_NOSHM },
    { "linear",       WSI_DEBUG_LINEAR },
    { "dxgi",         WSI_DEBUG_DXGI },
+   { "nowlts",       WSI_DEBUG_NOWLTS },
    { NULL, },
 };
 
@@ -86,6 +87,7 @@ wsi_device_init(struct wsi_device *wsi,
    wsi->sw = device_options->sw_device || (WSI_DEBUG & WSI_DEBUG_SW);
    wsi->wants_linear = (WSI_DEBUG & WSI_DEBUG_LINEAR) != 0;
    wsi->x11.extra_xwayland_image = device_options->extra_xwayland_image;
+   wsi->wayland.disable_timestamps = (WSI_DEBUG & WSI_DEBUG_NOWLTS) != 0;
 #define WSI_GET_CB(func) \
    PFN_vk##func func = (PFN_vk##func)proc_addr(pdevice, "vk" #func)
    WSI_GET_CB(GetPhysicalDeviceExternalSemaphoreProperties);
@@ -532,7 +534,7 @@ fail:
       return supported;
 }
 
-enum VkPresentModeKHR
+VkPresentModeKHR
 wsi_swapchain_get_present_mode(struct wsi_device *wsi,
                                const VkSwapchainCreateInfoKHR *pCreateInfo)
 {

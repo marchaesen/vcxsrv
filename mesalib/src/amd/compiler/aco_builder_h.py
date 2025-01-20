@@ -365,7 +365,7 @@ public:
           assert(tmp.type() == RegType::sgpr && tmp.bytes() <= 8);
        % endif
        Operand op(tmp);
-       op.setFixed(aco::${fixed});
+       op.setPrecolored(aco::${fixed});
        return op;
    }
 
@@ -374,7 +374,7 @@ public:
           //vcc_hi and exec_hi can still be used in wave32
           assert(def.regClass().type() == RegType::sgpr && def.bytes() <= 8);
        % endif
-       def.setFixed(aco::${fixed});
+       def.setPrecolored(aco::${fixed});
        return def;
    }
 
@@ -555,7 +555,7 @@ formats = [("pseudo", [Format.PSEUDO], list(itertools.product(range(5), range(6)
            ("sop1", [Format.SOP1], [(0, 1), (1, 0), (1, 1), (2, 1), (3, 2)]),
            ("sop2", [Format.SOP2], itertools.product([1, 2], [2, 3])),
            ("sopk", [Format.SOPK], itertools.product([0, 1, 2], [0, 1])),
-           ("sopp", [Format.SOPP], itertools.product([0, 1], [0, 1])),
+           ("sopp", [Format.SOPP], [(0, 0), (0, 1)]),
            ("sopc", [Format.SOPC], [(1, 2)]),
            ("smem", [Format.SMEM], [(0, 4), (0, 3), (1, 0), (1, 3), (1, 2), (1, 1), (0, 0)]),
            ("ds", [Format.DS], [(1, 0), (1, 1), (1, 2), (1, 3), (0, 3), (0, 4)]),
@@ -564,10 +564,10 @@ formats = [("pseudo", [Format.PSEUDO], list(itertools.product(range(5), range(6)
            ("mtbuf", [Format.MTBUF], [(0, 4), (1, 3)]),
            ("mimg", [Format.MIMG], itertools.product([0, 1], [3, 4, 5, 6, 7])),
            ("exp", [Format.EXP], [(0, 4), (0, 5)]),
-           ("branch", [Format.PSEUDO_BRANCH], itertools.product([1], [0, 1])),
+           ("branch", [Format.PSEUDO_BRANCH], [(0, 0), (0, 1)]),
            ("barrier", [Format.PSEUDO_BARRIER], [(0, 0)]),
            ("reduction", [Format.PSEUDO_REDUCTION], [(3, 3)]),
-           ("vop1", [Format.VOP1], [(0, 0), (1, 1), (2, 2)]),
+           ("vop1", [Format.VOP1], [(0, 0), (1, 1), (1, 2), (2, 2)]),
            ("vop1_sdwa", [Format.VOP1, Format.SDWA], [(1, 1)]),
            ("vop2", [Format.VOP2], itertools.product([1, 2], [2, 3])),
            ("vop2_sdwa", [Format.VOP2, Format.SDWA], itertools.product([1, 2], [2, 3])),

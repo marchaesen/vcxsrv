@@ -24,6 +24,11 @@ spec:
         most reliable and uniform (so disable for cross environments).
       type: boolean
       default: true
+    job_name_prefix:
+      description:
+        Additional prefix for the job name. Can be used to disable a job with a
+        "." prefix.
+      default: ""
     job_name_suffix:
       description:
         Additional suffix for the job name. Can be used to prevent job
@@ -41,15 +46,23 @@ spec:
         `allow_failure`.
       type: number
       default: 1
+    runner_tag:
+      description: GitLab runner tag for this job.
+      default: kvm
+    docker_job:
+      description: Docker image build job name.
+      default: docker:kvm
 ---
 
-"build:$[[ inputs.target ]]$[[ inputs.job_name_suffix ]]":
+"$[[ inputs.job_name_prefix ]]build:$[[ inputs.target ]]$[[ inputs.job_name_suffix ]]":
   extends: .target:all
+  tags:
+    - $[[ inputs.runner_tag | expand_vars ]]
   stage: build
   allow_failure: $[[ inputs.allow_failure ]]
   retry: $[[ inputs.retry ]]
   needs:
-    - job: docker
+    - job: $[[ inputs.docker_job | expand_vars ]]
       optional: true
       parallel:
         matrix:
@@ -65,11 +78,14 @@ spec:
       if [ "$[[ inputs.enable_gnu_coverage ]]" == "true" ] && [ "${TOOLCHAIN}" == "gnu" ]; then
         COV_C_ARGS=-fprofile-update=atomic
         COV_MESON_BUILD_ARGS=-Db_coverage=true
+        mkdir -p ${BUILD_DIR}
+        touch ${BUILD_DIR}/.coverage-enable
       fi
     - meson setup ${BUILD_DIR}
         --cross-file .gitlab-ci.d/meson-cross/${TARGET}-${TOOLCHAIN}.meson
         -Dc_args="${COV_C_ARGS}" ${COV_MESON_BUILD_ARGS}
     - meson compile -C ${BUILD_DIR}
   artifacts:
+    when: always
     paths:
       - ${BUILD_DIR}/

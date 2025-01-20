@@ -44,11 +44,12 @@ tu6_format_color_supported(enum pipe_format format)
 }
 
 struct tu_native_format
-tu6_format_color(enum pipe_format format, enum a6xx_tile_mode tile_mode)
+tu6_format_color(enum pipe_format format, enum a6xx_tile_mode tile_mode,
+                 bool is_mutable)
 {
    struct tu_native_format fmt = {
       .fmt = fd6_color_format(format, tile_mode),
-      .swap = fd6_color_swap(format, tile_mode),
+      .swap = fd6_color_swap(format, tile_mode, is_mutable),
    };
    assert(fmt.fmt != FMT6_NONE);
    return fmt;
@@ -57,15 +58,16 @@ tu6_format_color(enum pipe_format format, enum a6xx_tile_mode tile_mode)
 static bool
 tu6_format_texture_supported(enum pipe_format format)
 {
-   return fd6_texture_format(format, TILE6_LINEAR) != FMT6_NONE;
+   return fd6_texture_format(format, TILE6_LINEAR, false) != FMT6_NONE;
 }
 
 struct tu_native_format
-tu6_format_texture(enum pipe_format format, enum a6xx_tile_mode tile_mode)
+tu6_format_texture(enum pipe_format format, enum a6xx_tile_mode tile_mode,
+                   bool is_mutable)
 {
    struct tu_native_format fmt = {
-      .fmt = fd6_texture_format(format, tile_mode),
-      .swap = fd6_texture_swap(format, tile_mode),
+      .fmt = fd6_texture_format(format, tile_mode, is_mutable),
+      .swap = fd6_texture_swap(format, tile_mode, is_mutable),
    };
    assert(fmt.fmt != FMT6_NONE);
    return fmt;
@@ -265,6 +267,9 @@ tu_physical_device_get_format_properties(
    if (vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT)
       linear = 0;
 
+   if (vk_format == VK_FORMAT_R8_UINT)
+      optimal |= VK_FORMAT_FEATURE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+
 end:
    out_properties->linearTilingFeatures = linear;
    out_properties->optimalTilingFeatures = optimal;
@@ -317,7 +322,7 @@ tu_GetPhysicalDeviceFormatProperties2(
       if (pFormatProperties->formatProperties.optimalTilingFeatures &&
           tiling_possible(format) &&
           ubwc_possible(NULL, format, VK_IMAGE_TYPE_2D, 0, 0,
-                        physical_device->info, VK_SAMPLE_COUNT_1_BIT,
+                        physical_device->info, VK_SAMPLE_COUNT_1_BIT, 1,
                         false)) {
          vk_outarray_append_typed(VkDrmFormatModifierPropertiesEXT, &out, mod_props) {
             mod_props->drmFormatModifier = DRM_FORMAT_MOD_QCOM_COMPRESSED;
@@ -395,7 +400,7 @@ tu_get_image_format_properties(
 
          if (!ubwc_possible(NULL, info->format, info->type, info->usage,
                             info->usage, physical_device->info, sampleCounts,
-                            false)) {
+                            1, false)) {
             return VK_ERROR_FORMAT_NOT_SUPPORTED;
          }
 
@@ -456,10 +461,11 @@ tu_get_image_format_properties(
        !(info->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) &&
        !(info->usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
       sampleCounts |= VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT;
-      /* note: most operations support 8 samples (GMEM render/resolve do at least)
-       * but some do not (which ones?), just disable 8 samples completely,
-       * (no 8x msaa matches the blob driver behavior)
-       */
+
+      /* a7xx supports 8x MSAA except for 128-bit formats. */
+      if (physical_device->info->chip >= A7XX &&
+          vk_format_get_blocksizebits(info->format) <= 64)
+         sampleCounts |= VK_SAMPLE_COUNT_8_BIT;
    }
 
    /* From the Vulkan 1.3.206 spec:
@@ -509,6 +515,14 @@ tu_get_image_format_properties(
       if (!(format_feature_flags &
             (VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
              VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT))) {
+         return tu_image_unsupported_format(pImageFormatProperties);
+      }
+   }
+
+   if (image_usage &
+       VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR) {
+      if (!(format_feature_flags &
+            VK_FORMAT_FEATURE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR)) {
          return tu_image_unsupported_format(pImageFormatProperties);
       }
    }
@@ -753,11 +767,11 @@ tu_GetPhysicalDeviceImageFormatProperties2(
           * format, we'd hit the force_linear_tile fallback.
           */
          (fd6_color_swap(vk_format_to_pipe_format(base_info->format),
-                                                  TILE6_LINEAR) == WZYX &&
+                                                  TILE6_LINEAR, false) == WZYX &&
          !ubwc_possible(NULL, base_info->format, base_info->type,
                         (base_info->usage & ~VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT),
                         (base_info->usage & ~VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT),
-                        physical_device->info, VK_SAMPLE_COUNT_1_BIT,
+                        physical_device->info, VK_SAMPLE_COUNT_1_BIT, 1,
                         physical_device->info->a6xx.has_z24uint_s8uint));
    }
 

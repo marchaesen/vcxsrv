@@ -26,3 +26,23 @@ venus-lavapipe-full:
   timeout: 3h
   variables:
     DEQP_FRACTION: 6  # 1 would take 12h so this is as close as we can get
+
+.android-venus-lavapipe:
+  extends:
+    - .test-android
+    - .venus-manual-rules
+  variables:
+    ANDROID_GPU_MODE: venus
+    GPU_VERSION: venus
+    DEQP_SUITE: android-venus
+    # TODO: define DEQP_FRACTION?
+
+.android-venus-angle-lavapipe:
+  extends:
+    - .test-android
+    - .venus-manual-rules
+  variables:
+    ANDROID_GPU_MODE: venus_guest_angle
+    GPU_VERSION: venus
+    DEQP_SUITE: android-venus-angle
+    # TODO: define DEQP_FRACTION?

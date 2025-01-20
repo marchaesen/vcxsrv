@@ -29,6 +29,8 @@ DELAYED_DECODER_DELETE_DICT_ENTRIES = [
     "vkDestroyShaderModule",
 ]
 
+SNAPSHOT_API_CALL_INFO_VARNAME = "snapshotApiCallInfo"
+
 global_state_prefix = "m_state->on_"
 
 decoder_decl_preamble = """
@@ -77,7 +79,8 @@ public:
              m_boxedHandleUnwrapAndDeleteMapping(m_state),
              m_boxedHandleUnwrapAndDeletePreserveBoxedMapping(m_state),
              m_prevSeqno(std::nullopt),
-             m_queueSubmitWithCommandsEnabled(m_state->getFeatures().VulkanQueueSubmitWithCommands.enabled) {}
+             m_queueSubmitWithCommandsEnabled(m_state->getFeatures().VulkanQueueSubmitWithCommands.enabled),
+             m_snapshotsEnabled(m_state->snapshotsEnabled()) {}
     %s* stream() { return &m_vkStream; }
     VulkanMemReadingStream* readStream() { return &m_vkMemReadingStream; }
 
@@ -103,6 +106,7 @@ private:
     BoxedHandleUnwrapAndDeletePreserveBoxedMapping m_boxedHandleUnwrapAndDeletePreserveBoxedMapping;
     std::optional<uint32_t> m_prevSeqno;
     bool m_queueSubmitWithCommandsEnabled = false;
+    const bool m_snapshotsEnabled = false;
 };
 
 VkDecoder::VkDecoder() :
@@ -358,7 +362,7 @@ def emit_global_state_wrapped_call(api, cgen, context):
         print("Error: Cannot generate a global state wrapped call that is also a delayed delete (yet)");
         raise
 
-    customParams = ["&m_pool"] + list(map(lambda p: p.paramName, api.parameters))
+    customParams = ["&m_pool", SNAPSHOT_API_CALL_INFO_VARNAME] + list(map(lambda p: p.paramName, api.parameters))
     if context:
         customParams += ["context"]
     cgen.vkApiCall(api, customPrefix=global_state_prefix, \
@@ -460,14 +464,11 @@ def emit_seqno_incr(api, cgen):
     cgen.stmt("if (m_queueSubmitWithCommandsEnabled) seqnoPtr->fetch_add(1, std::memory_order_seq_cst)")
 
 def emit_snapshot(typeInfo, api, cgen):
-
-    cgen.stmt("%s->setReadPos((uintptr_t)(*readStreamPtrPtr) - (uintptr_t)snapshotTraceBegin)" % READ_STREAM)
-    cgen.stmt("size_t snapshotTraceBytes = %s->endTrace()" % READ_STREAM)
-
     additionalParams = [ \
-        makeVulkanTypeSimple(True, "uint8_t", 1, "snapshotTraceBegin"),
-        makeVulkanTypeSimple(False, "size_t", 0, "snapshotTraceBytes"),
         makeVulkanTypeSimple(False, "android::base::BumpPool", 1, "&m_pool"),
+        makeVulkanTypeSimple(True, "VkSnapshotApiCallInfo", 1, SNAPSHOT_API_CALL_INFO_VARNAME),
+        makeVulkanTypeSimple(True, "uint8_t", 1, "packet"),
+        makeVulkanTypeSimple(False, "size_t", 0, "packetLen"),
     ]
 
     retTypeName = api.getRetTypeExpr()
@@ -491,7 +492,7 @@ def emit_snapshot(typeInfo, api, cgen):
         api.withCustomReturnType(makeVulkanTypeSimple(False, "void", 0, "void")). \
             withCustomParameters(customParams)
 
-    cgen.beginIf("m_state->snapshotsEnabled()")
+    cgen.beginIf("m_snapshotsEnabled")
     cgen.vkApiCall(apiForSnapshot, customPrefix="m_state->snapshot()->")
     cgen.endIf()
 
@@ -642,10 +643,16 @@ custom_decodes = {
     "vkBindBufferMemory2KHR" : emit_global_state_wrapped_decoding,
 
     "vkCreateDevice" : emit_global_state_wrapped_decoding,
-    "vkGetDeviceQueue" : emit_global_state_wrapped_decoding,
     "vkDestroyDevice" : emit_global_state_wrapped_decoding,
 
+    "vkGetDeviceQueue" : emit_global_state_wrapped_decoding,
     "vkGetDeviceQueue2" : emit_global_state_wrapped_decoding,
+
+    "vkGetPhysicalDeviceQueueFamilyProperties" : emit_global_state_wrapped_decoding,
+    "vkGetPhysicalDeviceQueueFamilyProperties2" : emit_global_state_wrapped_decoding,
+
+    "vkQueueBindSparse" : emit_global_state_wrapped_decoding,
+    "vkQueuePresentKHR" : emit_global_state_wrapped_decoding,
 
     "vkBindImageMemory" : emit_global_state_wrapped_decoding,
     "vkBindImageMemory2" : emit_global_state_wrapped_decoding,
@@ -684,6 +691,7 @@ custom_decodes = {
     "vkDestroyShaderModule": emit_global_state_wrapped_decoding,
     "vkCreatePipelineCache": emit_global_state_wrapped_decoding,
     "vkDestroyPipelineCache": emit_global_state_wrapped_decoding,
+    "vkCreateComputePipelines": emit_global_state_wrapped_decoding,
     "vkCreateGraphicsPipelines": emit_global_state_wrapped_decoding,
     "vkDestroyPipeline": emit_global_state_wrapped_decoding,
 
@@ -833,6 +841,7 @@ size_t VkDecoder::Impl::decode(void* buf, size_t len, IOStream* ioStream,
         self.cgen.line("while (end - ptr >= 8)")
         self.cgen.beginBlock() # while loop
 
+        self.cgen.stmt("const uint8_t* packet = (const uint8_t *)ptr")
         self.cgen.stmt("uint32_t opcode = *(uint32_t *)ptr")
         self.cgen.stmt("uint32_t packetLen = *(uint32_t *)(ptr + 4)")
         self.cgen.line("""
@@ -850,7 +859,6 @@ size_t VkDecoder::Impl::decode(void* buf, size_t len, IOStream* ioStream,
         self.cgen.stmt("VulkanMemReadingStream* %s = readStream()" % READ_STREAM)
         self.cgen.stmt("%s->setBuf((uint8_t*)(ptr + 8))" % READ_STREAM)
         self.cgen.stmt("uint8_t* readStreamPtr = %s->getBuf(); uint8_t** readStreamPtrPtr = &readStreamPtr" % READ_STREAM)
-        self.cgen.stmt("uint8_t* snapshotTraceBegin = %s->beginTrace()" % READ_STREAM)
         self.cgen.stmt("%s->setHandleMapping(&m_boxedHandleUnwrapMapping)" % READ_STREAM)
         self.cgen.line("""
         std::unique_ptr<EventHangMetadata::HangAnnotations> executionData =
@@ -910,6 +918,13 @@ size_t VkDecoder::Impl::decode(void* buf, size_t len, IOStream* ioStream,
         """)
 
         self.cgen.line("""
+        VkSnapshotApiCallInfo* %s = nullptr;
+        if (m_snapshotsEnabled) {
+            %s = m_state->snapshot()->createApiCallInfo();
+        }
+        """ % (SNAPSHOT_API_CALL_INFO_VARNAME, SNAPSHOT_API_CALL_INFO_VARNAME))
+
+        self.cgen.line("""
         gfx_logger.recordCommandExecution();
         """)
 
@@ -949,13 +964,26 @@ size_t VkDecoder::Impl::decode(void* buf, size_t len, IOStream* ioStream,
     def onEnd(self,):
         self.cgen.line("default:")
         self.cgen.beginBlock()
+        self.cgen.line("""
+        if (m_snapshotsEnabled) {
+            m_state->snapshot()->destroyApiCallInfoIfUnused(%s);
+        }
+        """ % (SNAPSHOT_API_CALL_INFO_VARNAME))
+
         self.cgen.stmt("m_pool.freeAll()")
         self.cgen.stmt("return ptr - (unsigned char *)buf")
         self.cgen.endBlock()
 
         self.cgen.endBlock() # switch stmt
 
+        self.cgen.line("""
+        if (m_snapshotsEnabled) {
+            m_state->snapshot()->destroyApiCallInfoIfUnused(%s);
+        }
+        """ % (SNAPSHOT_API_CALL_INFO_VARNAME))
+
         self.cgen.stmt("ptr += packetLen")
+        self.cgen.stmt("vkStream->clearPool()")
         self.cgen.endBlock() # while loop
 
         self.cgen.beginIf("m_forSnapshotLoad")

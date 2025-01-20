@@ -68,6 +68,9 @@ struct agx_bo {
    /* Used to link the BO to the BO cache LRU list. */
    struct list_head lru_link;
 
+   /* Convenience */
+   struct agx_device *dev;
+
    /* The time this BO was used last, so we can evict stale BOs. */
    time_t last_used;
 
@@ -78,7 +81,9 @@ struct agx_bo {
 
    /* Mapping */
    struct agx_va *va;
-   void *map;
+
+   /* Suffixed to force agx_bo_map access */
+   void *_map;
 
    /* Process-local index */
    uint32_t handle;
@@ -118,7 +123,7 @@ agx_bo_writer(uint32_t queue, uint32_t syncobj)
    return (((uint64_t)queue) << 32) | syncobj;
 }
 
-struct agx_bo *agx_bo_create(struct agx_device *dev, unsigned size,
+struct agx_bo *agx_bo_create(struct agx_device *dev, size_t size,
                              unsigned align, enum agx_bo_flags flags,
                              const char *label);
 

@@ -1,7 +1,7 @@
 /*
 ************************************************************************************************************************
 *
-*  Copyright (C) 2023 Advanced Micro Devices, Inc.  All rights reserved.
+*  Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights reserved.
 *  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
@@ -28,6 +28,7 @@ constexpr UINT_32 Size256  = 256u;
 constexpr UINT_32 Size4K   = 4 * 1024;
 constexpr UINT_32 Size64K  = 64 * 1024;
 constexpr UINT_32 Size256K = 256 * 1024;
+constexpr UINT_32 Addr3MaxMipLevels = 16; // Max Mip Levels across all addr3 chips
 
 struct ADDR3_COORD
 {
@@ -44,23 +45,6 @@ struct ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT
 {
     const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pSurfInfo;
     void*                                   pvAddrParams;
-};
-
-/**
-************************************************************************************************************************
-* @brief Bit setting for swizzle pattern
-************************************************************************************************************************
-*/
-union ADDR_BIT_SETTING
-{
-    struct
-    {
-        UINT_16 x;
-        UINT_16 y;
-        UINT_16 z;
-        UINT_16 s;
-    };
-    UINT_64 value;
 };
 
 /**
@@ -110,53 +94,6 @@ struct ADDR_SW_PATINFO
 
 /**
 ************************************************************************************************************************
-*   InitBit
-*
-*   @brief
-*       Initialize bit setting value via a return value
-************************************************************************************************************************
-*/
-#define InitBit(c, index) (1ull << ((c << 4) + index))
-
-const UINT_64 X0  = InitBit(0,  0);
-const UINT_64 X1  = InitBit(0,  1);
-const UINT_64 X2  = InitBit(0,  2);
-const UINT_64 X3  = InitBit(0,  3);
-const UINT_64 X4  = InitBit(0,  4);
-const UINT_64 X5  = InitBit(0,  5);
-const UINT_64 X6  = InitBit(0,  6);
-const UINT_64 X7  = InitBit(0,  7);
-const UINT_64 X8  = InitBit(0,  8);
-
-const UINT_64 Y0  = InitBit(1,  0);
-const UINT_64 Y1  = InitBit(1,  1);
-const UINT_64 Y2  = InitBit(1,  2);
-const UINT_64 Y3  = InitBit(1,  3);
-const UINT_64 Y4  = InitBit(1,  4);
-const UINT_64 Y5  = InitBit(1,  5);
-const UINT_64 Y6  = InitBit(1,  6);
-const UINT_64 Y7  = InitBit(1,  7);
-const UINT_64 Y8  = InitBit(1,  8);
-
-const UINT_64 Z0  = InitBit(2,  0);
-const UINT_64 Z1  = InitBit(2,  1);
-const UINT_64 Z2  = InitBit(2,  2);
-const UINT_64 Z3  = InitBit(2,  3);
-const UINT_64 Z4  = InitBit(2,  4);
-const UINT_64 Z5  = InitBit(2,  5);
-
-const UINT_64 S0  = InitBit(3,  0);
-const UINT_64 S1  = InitBit(3,  1);
-const UINT_64 S2  = InitBit(3,  2);
-
-/**
-************************************************************************************************************************
-* @brief Bit setting for swizzle pattern
-************************************************************************************************************************
-*/
-
-/**
-************************************************************************************************************************
 * @brief This class contains asic independent address lib functionalities
 ************************************************************************************************************************
 */
@@ -167,6 +104,11 @@ public:
 
     static Lib* GetLib(
         ADDR_HANDLE hLib);
+
+    virtual UINT_32 GetInterfaceVersion() const
+    {
+        return 3;
+    }
 
     //
     // Interface stubs
@@ -184,6 +126,16 @@ public:
     ADDR_E_RETURNCODE ComputeSurfaceAddrFromCoord(
         const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
+
+    ADDR_E_RETURNCODE CopyMemToSurface(
+        const ADDR3_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR3_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const;
+
+    ADDR_E_RETURNCODE CopySurfaceToMem(
+        const ADDR3_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR3_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                             regionCount) const;
 
     // Misc
     ADDR_E_RETURNCODE ComputePipeBankXor(
@@ -212,18 +164,16 @@ protected:
     SwizzleModeFlags m_swizzleModeTable[ADDR3_MAX_TYPE];  ///< Swizzle mode table
 
     // Number of unique MSAA sample rates (1/2/4/8)
-    static const UINT_32 MaxMsaaRateLog2     = 4;
-    // Max number of bpp (8bpp/16bpp/32bpp/64bpp/128bpp)
-    static const UINT_32 MaxElementBytesLog2 = 5;
+    static const UINT_32 MaxNumMsaaRates     = 4;
 
     // Number of equation entries in the table
     UINT_32              m_numEquations;
 
     // Swizzle equation lookup table according to swizzle mode, MSAA sample rate and bpp. This does not include linear.
-    UINT_32              m_equationLookupTable[ADDR3_MAX_TYPE - 1][MaxMsaaRateLog2][MaxElementBytesLog2];
+    UINT_32              m_equationLookupTable[ADDR3_MAX_TYPE - 1][MaxNumMsaaRates][MaxElementBytesLog2];
 
     // Block dimension lookup table according to swizzle mode, MSAA sample rate and bpp. This includes linear.
-    ADDR_EXTENT3D        m_blockDimensionTable[ADDR3_MAX_TYPE][MaxMsaaRateLog2][MaxElementBytesLog2];
+    ADDR_EXTENT3D        m_blockDimensionTable[ADDR3_MAX_TYPE][MaxNumMsaaRates][MaxElementBytesLog2];
 
     virtual ADDR_E_RETURNCODE HwlComputeStereoInfo(
         const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn,
@@ -333,7 +283,7 @@ protected:
 
     // The max alignment is tied to the swizzle mode and since the largest swizzle mode is 256kb, so the maximal
     // alignment is also 256kb.
-    virtual UINT_32 HwlComputeMaxBaseAlignments() const  { return Size256K; }
+    virtual UINT_32 HwlComputeMaxBaseAlignments() const { return Size256K; }
 
     virtual ADDR_E_RETURNCODE HwlGetPossibleSwizzleModes(
         const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT*   pIn,
@@ -357,6 +307,24 @@ protected:
         return ADDR_NOTSUPPORTED;
     }
 
+    virtual ADDR_E_RETURNCODE HwlCopyMemToSurface(
+        const ADDR3_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR3_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                            regionCount) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
+    virtual ADDR_E_RETURNCODE HwlCopySurfaceToMem(
+        const ADDR3_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR3_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                            regionCount) const
+    {
+        ADDR_NOT_IMPLEMENTED();
+        return ADDR_NOTSUPPORTED;
+    }
+
     virtual ADDR_E_RETURNCODE HwlComputePipeBankXor(
         const ADDR3_COMPUTE_PIPEBANKXOR_INPUT* pIn,
         ADDR3_COMPUTE_PIPEBANKXOR_OUTPUT*      pOut) const
@@ -372,6 +340,12 @@ protected:
     ADDR_EXTENT3D GetMipTailDim(
         const ADDR3_COMPUTE_SURFACE_INFO_PARAMS_INPUT* pIn,
         const ADDR_EXTENT3D&                           blockDims) const;
+
+    ADDR_E_RETURNCODE CopyLinearSurface(
+        const ADDR3_COPY_MEMSURFACE_INPUT*  pIn,
+        const ADDR3_COPY_MEMSURFACE_REGION* pRegions,
+        UINT_32                            regionCount,
+        bool                                surfaceIsDst) const;
 
     ADDR_E_RETURNCODE ComputeSurfaceAddrFromCoordLinear(
         const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
@@ -456,6 +430,8 @@ protected:
         const ADDR_EXTENT3D&                           blockDims) const = 0;
 
     virtual BOOL_32 HwlValidateNonSwModeParams(const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT* pIn) const = 0;
+
+    ADDR_E_RETURNCODE ComputeSurfaceInfoSanityCheck(const ADDR3_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
 private:
     // Disallow the copy constructor
