@@ -2394,7 +2394,7 @@ static void
 radv_pipeline_retain_shaders(struct radv_retained_shaders *retained_shaders, struct radv_shader_stage *stages)
 {
    for (unsigned s = 0; s < MESA_VULKAN_SHADER_STAGES; s++) {
-      if (!stages[s].entrypoint)
+      if (stages[s].stage == MESA_SHADER_NONE)
          continue;
 
       int64_t stage_start = os_time_get_nano();
@@ -2596,7 +2596,7 @@ radv_graphics_shaders_compile(struct radv_device *device, struct vk_pipeline_cac
    const struct radv_instance *instance = radv_physical_device_instance(pdev);
    const bool nir_cache = instance->perftest_flags & RADV_PERFTEST_NIR_CACHE;
    for (unsigned s = 0; s < MESA_VULKAN_SHADER_STAGES; s++) {
-      if (!stages[s].entrypoint)
+      if (stages[s].stage == MESA_SHADER_NONE)
          continue;
 
       int64_t stage_start = os_time_get_nano();
@@ -2879,7 +2879,7 @@ radv_generate_graphics_pipeline_state(struct radv_device *device, const VkGraphi
       }
 
       for (unsigned i = 0; i < MESA_VULKAN_SHADER_STAGES; i++) {
-         gfx_state->stages[i].entrypoint = NULL;
+         gfx_state->stages[i].stage = MESA_SHADER_NONE;
          gfx_state->stages[i].nir = NULL;
          gfx_state->stages[i].spirv.size = 0;
          gfx_state->stages[i].next_stage = MESA_SHADER_NONE;
@@ -2917,7 +2917,7 @@ radv_graphics_pipeline_hash(const struct radv_device *device, const struct radv_
    for (unsigned s = 0; s < MESA_VULKAN_SHADER_STAGES; s++) {
       const struct radv_shader_stage *stage = &gfx_state->stages[s];
 
-      if (!stage->entrypoint)
+      if (stage->stage == MESA_SHADER_NONE)
          continue;
 
       _mesa_sha1_update(&ctx, stage->shader_sha1, sizeof(stage->shader_sha1));
@@ -2966,7 +2966,7 @@ radv_graphics_pipeline_compile(struct radv_graphics_pipeline *pipeline, const Vk
    } else if (retain_shaders) {
       assert(pipeline->base.create_flags & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR);
       for (uint32_t i = 0; i < MESA_VULKAN_SHADER_STAGES; i++) {
-         if (stages[i].entrypoint && !stages[i].spirv.size) {
+         if (stages[i].stage != MESA_SHADER_NONE && !stages[i].spirv.size) {
             skip_shaders_cache = true;
             break;
          }

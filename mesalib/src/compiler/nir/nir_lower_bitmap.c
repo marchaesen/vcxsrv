@@ -58,17 +58,10 @@ lower_bitmap(nir_shader *shader, nir_builder *b,
    nir_tex_instr *tex;
    nir_def *cond;
 
-   if (shader->info.io_lowered) {
-      nir_def *baryc =
+   nir_def *baryc =
          nir_load_barycentric_pixel(b, 32, .interp_mode = INTERP_MODE_SMOOTH);
-      texcoord = nir_load_interpolated_input(b, 4, 32, baryc, nir_imm_int(b, 0),
-                                             .io_semantics.location = VARYING_SLOT_TEX0);
-   } else {
-      nir_variable *var =
-         nir_get_variable_with_location(shader, nir_var_shader_in,
-                                        VARYING_SLOT_TEX0, glsl_vec4_type());
-      texcoord = nir_load_var(b, var);
-   }
+   texcoord = nir_load_interpolated_input(b, 4, 32, baryc, nir_imm_int(b, 0),
+                                          .io_semantics.location = VARYING_SLOT_TEX0);
 
    const struct glsl_type *sampler2D =
       glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false, GLSL_TYPE_FLOAT);
@@ -121,6 +114,7 @@ nir_lower_bitmap(nir_shader *shader,
                  const nir_lower_bitmap_options *options)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+   assert(shader->info.io_lowered);
 
    lower_bitmap_impl(nir_shader_get_entrypoint(shader), options);
    return true;

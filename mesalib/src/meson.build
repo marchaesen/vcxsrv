@@ -111,11 +111,17 @@ endif
 if with_gallium_or_lvp
   subdir('gallium')
 endif
-if with_gallium and with_tests
-  # This has to be here since it requires libgallium, and subdir cannot
-  # contain ..
-  subdir('mesa/main/tests')
-  if with_shared_glapi
+# These require libgallium (shared_glapi_lib)
+if with_gallium and (with_glx != 'disabled' or with_egl)
+  if with_gles1 and not with_glvnd
+    subdir('mapi/es1api')
+  endif
+  if with_gles2 and not with_glvnd
+    subdir('mapi/es2api')
+  endif
+  if with_tests and with_shared_glapi
+    subdir('mapi/shared-glapi/tests')
+    subdir('mesa/main/tests')
     subdir('mesa/state_tracker/tests')
   endif
 endif

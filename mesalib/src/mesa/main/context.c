@@ -117,7 +117,6 @@
 #include "queryobj.h"
 #include "syncobj.h"
 #include "rastpos.h"
-#include "remap.h"
 #include "scissor.h"
 #include "shared.h"
 #include "shaderobj.h"
@@ -230,8 +229,6 @@ one_time_init(const char *extensions_override)
     * unecessary creation/destruction of glsl types.
     */
    glsl_type_singleton_init_or_ref();
-
-   _mesa_init_remap_table();
 }
 
 /**
@@ -854,7 +851,7 @@ _mesa_alloc_dispatch_table(bool glthread)
     * Mesa we do this to accommodate different versions of libGL and various
     * DRI drivers.
     */
-   int numEntries = MAX2(_glapi_get_dispatch_table_size(), _gloffset_COUNT);
+   int numEntries = MAX2(_mesa_glapi_get_dispatch_table_size(), _gloffset_COUNT);
 
    struct _glapi_table *table = _mesa_new_nop_table(numEntries, glthread);
 
@@ -1494,7 +1491,7 @@ _mesa_make_current( struct gl_context *newCtx,
    }
 
    if (!newCtx) {
-      _glapi_set_dispatch(NULL);  /* none current */
+      _mesa_glapi_set_dispatch(NULL);  /* none current */
       /* We need old ctx to correctly release Draw/ReadBuffer
        * and avoid a surface leak in st_renderbuffer_delete.
        * Therefore, first drop buffers then set new ctx to NULL.
@@ -1503,13 +1500,13 @@ _mesa_make_current( struct gl_context *newCtx,
          _mesa_reference_framebuffer(&curCtx->WinSysDrawBuffer, NULL);
          _mesa_reference_framebuffer(&curCtx->WinSysReadBuffer, NULL);
       }
-      _glapi_set_context(NULL);
+      _mesa_glapi_set_context(NULL);
       assert(_mesa_get_current_context() == NULL);
    }
    else {
-      _glapi_set_context((void *) newCtx);
+      _mesa_glapi_set_context((void *) newCtx);
       assert(_mesa_get_current_context() == newCtx);
-      _glapi_set_dispatch(newCtx->GLApi);
+      _mesa_glapi_set_dispatch(newCtx->GLApi);
 
       if (drawBuffer && readBuffer) {
          assert(_mesa_is_winsys_fbo(drawBuffer));
@@ -1598,14 +1595,14 @@ _mesa_share_state(struct gl_context *ctx, struct gl_context *ctxToShare)
 /**
  * \return pointer to the current GL context for this thread.
  *
- * Calls _glapi_get_context(). This isn't the fastest way to get the current
+ * Calls _mesa_glapi_get_context(). This isn't the fastest way to get the current
  * context.  If you need speed, see the #GET_CURRENT_CONTEXT macro in
  * context.h.
  */
 struct gl_context *
 _mesa_get_current_context( void )
 {
-   return (struct gl_context *) _glapi_get_context();
+   return (struct gl_context *) _mesa_glapi_get_context();
 }
 
 /*@}*/

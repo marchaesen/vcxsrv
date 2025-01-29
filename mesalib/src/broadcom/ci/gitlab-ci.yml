@@ -233,7 +233,6 @@ v3d-rpi5-traces:arm64:
     PIGLIT_REPLAY_DEVICE_NAME: "broadcom-rpi5"
     PIGLIT_RESULTS: "broadcom-rpi5-replay"
 
-
 v3dv-rpi5-vk:arm64:
   extends:
     - .igalia-bcm2712-rpi-5
@@ -256,7 +255,7 @@ v3dv-rpi5-vk-full:arm64:
     - igalia-rpi5
     - igalia-fullrun
   parallel: null
-  timeout: 2h
+  timeout: 2h 30m
   variables:
     # Keep 10 minutes for boot + setup + uploading the artifacts at the end
     TEST_SETUP_AND_UPLOAD_MARGIN_MINUTES: 10

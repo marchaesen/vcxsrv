@@ -948,9 +948,8 @@ struct _glapi_table * __glXNewIndirectAPI( void )
     _glapi_proc *table;
     unsigned entries;
     unsigned i;
-    int o;
 
-    entries = _glapi_get_dispatch_table_size();
+    entries = _mesa_glapi_get_dispatch_table_size();
     table = malloc(entries * sizeof(_glapi_proc));
     if (table == NULL)
         return NULL;
@@ -985,13 +984,7 @@ struct _glapi_table * __glXNewIndirectAPI( void )
                         print(preamble)
                         preamble = None
 
-                    if func.is_abi():
-                        print('    table[{offset}] = (_glapi_proc) __indirect_gl{name};'.format(name = func.name, offset = func.offset))
-                    else:
-                        print('    o = _glapi_get_proc_offset("gl{0}");'.format(func.name))
-                        print('    assert(o > 0);')
-                        print('    table[o] = (_glapi_proc) __indirect_gl{0};'.format(func.name))
-
+                    print('    table[{offset}] = (_glapi_proc) __indirect_gl{name};'.format(name = func.name, offset = func.offset))
         return
 
 

@@ -39,6 +39,7 @@ struct from_ssa_state {
    bool phi_webs_only;
    struct hash_table *merge_node_table;
    nir_instr *instr;
+   bool consider_divergence;
    bool progress;
 };
 
@@ -157,7 +158,7 @@ get_merge_node(nir_def *def, struct from_ssa_state *state)
    merge_set *set = rzalloc(state->dead_ctx, merge_set);
    exec_list_make_empty(&set->nodes);
    set->size = 1;
-   set->divergent = def->divergent;
+   set->divergent = state->consider_divergence && def->divergent;
 
    merge_node *node = ralloc(state->dead_ctx, merge_node);
    node->set = set;
@@ -374,7 +375,7 @@ get_parallel_copy_at_end_of_block(nir_block *block)
  * time because of potential back-edges in the CFG.
  */
 static bool
-isolate_phi_nodes_block(nir_shader *shader, nir_block *block, void *dead_ctx)
+isolate_phi_nodes_block(nir_shader *shader, nir_block *block, struct from_ssa_state *state)
 {
    /* If we don't have any phis, then there's nothing for us to do. */
    nir_phi_instr *last_phi = nir_block_last_phi_instr(block);
@@ -397,13 +398,13 @@ isolate_phi_nodes_block(nir_shader *shader, nir_block *block, void *dead_ctx)
             get_parallel_copy_at_end_of_block(src->pred);
          assert(pcopy);
 
-         nir_parallel_copy_entry *entry = rzalloc(dead_ctx,
+         nir_parallel_copy_entry *entry = rzalloc(state->dead_ctx,
                                                   nir_parallel_copy_entry);
 
          entry->dest_is_reg = false;
          nir_def_init(&pcopy->instr, &entry->dest.def,
                       phi->def.num_components, phi->def.bit_size);
-         entry->dest.def.divergent = nir_src_is_divergent(&src->src);
+         entry->dest.def.divergent = state->consider_divergence && nir_src_is_divergent(&src->src);
 
          /* We're adding a source to a live instruction so we need to use
           * nir_instr_init_src()
@@ -416,13 +417,13 @@ isolate_phi_nodes_block(nir_shader *shader, nir_block *block, void *dead_ctx)
          nir_src_rewrite(&src->src, &entry->dest.def);
       }
 
-      nir_parallel_copy_entry *entry = rzalloc(dead_ctx,
+      nir_parallel_copy_entry *entry = rzalloc(state->dead_ctx,
                                                nir_parallel_copy_entry);
 
       entry->dest_is_reg = false;
       nir_def_init(&block_pcopy->instr, &entry->dest.def,
                    phi->def.num_components, phi->def.bit_size);
-      entry->dest.def.divergent = phi->def.divergent;
+      entry->dest.def.divergent = state->consider_divergence && phi->def.divergent;
 
       nir_def_rewrite_uses(&phi->def, &entry->dest.def);
 
@@ -806,14 +807,14 @@ copy_value_is_divergent(struct copy_value v)
 }
 
 static void
-copy_values(nir_builder *b, struct copy_value dest, struct copy_value src)
+copy_values(struct from_ssa_state *state, struct copy_value dest, struct copy_value src)
 {
-   nir_def *val = src.is_reg ? nir_load_reg(b, src.ssa) : src.ssa;
+   nir_def *val = src.is_reg ? nir_load_reg(&state->builder, src.ssa) : src.ssa;
 
-   assert(!copy_value_is_divergent(src) || copy_value_is_divergent(dest));
+   assert(!state->consider_divergence || !copy_value_is_divergent(src) || copy_value_is_divergent(dest));
 
    assert(dest.is_reg);
-   nir_store_reg(b, val, dest.ssa);
+   nir_store_reg(&state->builder, val, dest.ssa);
 }
 
 static void
@@ -924,7 +925,7 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
       while (ready_idx >= 0) {
          int b = ready[ready_idx--];
          int a = pred[b];
-         copy_values(&state->builder, values[b], values[loc[a]]);
+         copy_values(state, values[b], values[loc[a]]);
 
          /* b has been filled, mark it as not needing to be copied */
          pred[b] = -1;
@@ -934,8 +935,8 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
           * divergent), then we can't guarantee we won't need the convergent
           * version of it again.
           */
-         if (copy_value_is_divergent(values[a]) ==
-             copy_value_is_divergent(values[b])) {
+         if (!state->consider_divergence ||
+             copy_value_is_divergent(values[a]) == copy_value_is_divergent(values[b])) {
             /* If a needs to be filled... */
             if (pred[a] != -1) {
                /* If any other copies want a they can find it at b */
@@ -984,13 +985,14 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
       } else {
          reg = decl_reg_for_ssa_def(&state->builder, values[b].ssa);
       }
-      set_reg_divergent(reg, copy_value_is_divergent(values[b]));
+      if (state->consider_divergence)
+         set_reg_divergent(reg, copy_value_is_divergent(values[b]));
 
       values[num_vals] = (struct copy_value){
          .is_reg = true,
          .ssa = reg,
       };
-      copy_values(&state->builder, values[num_vals], values[b]);
+      copy_values(state, values[num_vals], values[b]);
       loc[b] = num_vals;
       ready[++ready_idx] = b;
       num_vals++;
@@ -1029,7 +1031,7 @@ resolve_parallel_copies_block(nir_block *block, struct from_ssa_state *state)
 
 static bool
 nir_convert_from_ssa_impl(nir_function_impl *impl,
-                          bool phi_webs_only)
+                          bool phi_webs_only, bool consider_divergence)
 {
    nir_shader *shader = impl->function->shader;
 
@@ -1039,6 +1041,7 @@ nir_convert_from_ssa_impl(nir_function_impl *impl,
    state.dead_ctx = ralloc_context(NULL);
    state.phi_webs_only = phi_webs_only;
    state.merge_node_table = _mesa_pointer_hash_table_create(NULL);
+   state.consider_divergence = consider_divergence;
    state.progress = false;
    exec_list_make_empty(&state.dead_instrs);
 
@@ -1047,7 +1050,7 @@ nir_convert_from_ssa_impl(nir_function_impl *impl,
    }
 
    nir_foreach_block(block, impl) {
-      isolate_phi_nodes_block(shader, block, state.dead_ctx);
+      isolate_phi_nodes_block(shader, block, &state);
    }
 
    /* Mark metadata as dirty before we ask for liveness analysis */
@@ -1082,12 +1085,12 @@ nir_convert_from_ssa_impl(nir_function_impl *impl,
 
 bool
 nir_convert_from_ssa(nir_shader *shader,
-                     bool phi_webs_only)
+                     bool phi_webs_only, bool consider_divergence)
 {
    bool progress = false;
 
    nir_foreach_function_impl(impl, shader) {
-      progress |= nir_convert_from_ssa_impl(impl, phi_webs_only);
+      progress |= nir_convert_from_ssa_impl(impl, phi_webs_only, consider_divergence);
    }
 
    return progress;

@@ -328,6 +328,11 @@ vl_video_buffer_sampler_view_components(struct pipe_video_buffer *buffer)
       }
    }
 
+   assert(component != 0);
+
+   for (i = component; i < VL_NUM_COMPONENTS; ++i)
+      pipe_sampler_view_reference(&buf->sampler_view_components[i], buf->sampler_view_components[component - 1]);
+
    return buf->sampler_view_components;
 
 error:

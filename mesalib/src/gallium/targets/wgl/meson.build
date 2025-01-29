@@ -31,3 +31,5 @@ libgallium_wgl = shared_library(
   install : true,
 )
 libgallium_wgl_build_dir = meson.current_build_dir()
+
+shared_glapi_lib = libgallium_wgl

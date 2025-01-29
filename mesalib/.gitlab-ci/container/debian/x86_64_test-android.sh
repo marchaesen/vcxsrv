@@ -40,7 +40,7 @@ apt-get install -y --no-remove --no-install-recommends \
 ############### Downloading NDK for native builds for the guest ...
 
 # Fetch the NDK and extract just the toolchain we want.
-ndk=$ANDROID_NDK
+ndk="android-ndk-${ANDROID_NDK_VERSION}"
 curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
   -o "$ndk.zip" "https://dl.google.com/android/repository/$ndk-linux.zip"
 unzip -d / "$ndk.zip"
@@ -60,22 +60,22 @@ rm -rf /root/.rustup
 
 DEQP_API=tools \
 DEQP_TARGET="android" \
-EXTRA_CMAKE_ARGS="-DDEQP_ANDROID_EXE=ON -DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=28" \
+EXTRA_CMAKE_ARGS="-DDEQP_ANDROID_EXE=ON -DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=$ANDROID_SDK_VERSION" \
 . .gitlab-ci/container/build-deqp.sh
 
 DEQP_API=GL \
 DEQP_TARGET="android" \
-EXTRA_CMAKE_ARGS="-DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=28" \
+EXTRA_CMAKE_ARGS="-DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=$ANDROID_SDK_VERSION" \
 . .gitlab-ci/container/build-deqp.sh
 
 DEQP_API=GLES \
 DEQP_TARGET="android" \
-EXTRA_CMAKE_ARGS="-DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=28" \
+EXTRA_CMAKE_ARGS="-DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=$ANDROID_SDK_VERSION" \
 . .gitlab-ci/container/build-deqp.sh
 
 DEQP_API=VK \
 DEQP_TARGET="android" \
-EXTRA_CMAKE_ARGS="-DDEQP_ANDROID_EXE=ON -DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=28" \
+EXTRA_CMAKE_ARGS="-DDEQP_ANDROID_EXE=ON -DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=$ANDROID_SDK_VERSION" \
 . .gitlab-ci/container/build-deqp.sh
 
 rm -rf /VK-GL-CTS
@@ -84,7 +84,7 @@ rm -rf /VK-GL-CTS
 
 CUTTLEFISH_PROJECT_PATH=ao2/aosp-manifest
 CUTTLEFISH_BUILD_VERSION_TAGS=mesa-venus
-CUTTLEFISH_BUILD_NUMBER=20241108.001
+CUTTLEFISH_BUILD_NUMBER=20250115.001
 
 mkdir /cuttlefish
 pushd /cuttlefish
@@ -125,7 +125,7 @@ git checkout FETCH_HEAD
 
 ./tools/buildutils/build_packages.sh
 
-apt-get install -y ./cuttlefish-base_*.deb ./cuttlefish-user_*.deb
+apt-get install -y --allow-downgrades ./cuttlefish-base_*.deb ./cuttlefish-user_*.deb
 
 popd
 rm -rf android-cuttlefish

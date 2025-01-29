@@ -989,6 +989,44 @@ SOFTWARE.
 	<pattern low="54" high="58">11010</pattern>  <!-- OPC -->
 </bitset>
 
+<bitset name="ray_intersection" extends="#instruction-cat6">
+	<doc>
+		Instruction for intersecting a ray. Unlike other instructions,
+		this supports an arbitrary pointer as the descriptor address.
+		SRC1 is a 64-bit pointer to the acceleration structure
+		descriptor.
+	</doc>
+	<display>
+		{SY}{JP}{NAME} {DST}, [{SRC1}], {SRC2}, {SRC3}, {SRC4}
+	</display>
+	<gen min="700"/>
+
+	<pattern low="54" high="58">01110</pattern>  <!-- OPC -->
+
+	<pattern pos="0">1</pattern>
+	<field low="1" high="8" name="SRC2" type="#reg-gpr"/>
+
+	<pattern low="9" high="12">xxxx</pattern>
+
+	<field pos="13" name="SRC1_CONST" type="bool"/>
+	<field low="14" high="21" name="SRC1" type="#cat6-src-const-or-gpr">
+		<param name="SRC1_CONST" as="SRC_CONST"/>
+	</field>
+
+	<pattern low="22" high="23">xx</pattern>
+
+	<field low="24" high="31" name="SRC3" type="#reg-gpr"/>
+	<field low="32" high="39" name="DST" type="#reg-gpr"/>
+	<pattern pos="40">x</pattern>
+	<field low="41" high="48" name="SRC4" type="#reg-gpr"/>
+
+	<pattern low="49" high="53">xxxxx</pattern>
+
+	<encode>
+		<map name="SRC1_CONST">!!(src->srcs[0]->flags &amp; IR3_REG_CONST)</map>
+	</encode>
+</bitset>
+
 <!--
 	New a6xx+ encodings for potentially bindless image/ssbo:
  -->
@@ -1156,7 +1194,7 @@ SOFTWARE.
 	<pattern low="52" high="53">1x</pattern>
 </bitset>
 
-<bitset name="resinfo.b" extends="#instruction-cat6-a6xx">
+<bitset name="#instruction-cat6-a6xx-ibo-1src" extends="#instruction-cat6-a6xx">
 	<doc>
 		RESourceINFO - returns image/ssbo dimensions (3 components)
 	</doc>
@@ -1170,7 +1208,6 @@ SOFTWARE.
 	<pattern pos="0"           >0</pattern>
 	<field   low="9"  high="10" name="D_MINUS_ONE" type="uint"/>
 	<field   pos="11"           name="TYPED" type="#cat6-typed"/>
-	<pattern low="14" high="19">001111</pattern>   <!-- OPC -->
 	<pattern low="20" high="23">0110</pattern>
 	<pattern low="24" high="31">xxxxxxxx</pattern>    <!-- SRC2 -->
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
@@ -1186,6 +1223,20 @@ SOFTWARE.
 		<map name="SSBO">src->srcs[0]</map>
 		<map name="SRC1">src->srcs[1]</map>
 	</encode>
+</bitset>
+
+<bitset name="resinfo.b" extends="#instruction-cat6-a6xx-ibo-1src">
+	<doc>
+		RESourceINFO - returns image/ssbo dimensions (3 components)
+	</doc>
+	<pattern low="14" high="19">001111</pattern>   <!-- OPC -->
+</bitset>
+
+<bitset name="resbase" extends="#instruction-cat6-a6xx-ibo-1src">
+	<doc>
+		RESourceBASE - returns the address of the bindless descriptor
+	</doc>
+	<pattern low="14" high="19">001100</pattern>   <!-- OPC -->
 </bitset>
 
 <bitset name="#instruction-cat6-a6xx-ibo-base" extends="#instruction-cat6-a6xx-base">

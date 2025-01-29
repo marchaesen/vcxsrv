@@ -569,7 +569,8 @@ layout		{
                       || yyextra->ARB_shading_language_420pack_enable
                       || yyextra->ARB_compute_shader_enable
                       || yyextra->ARB_tessellation_shader_enable
-                      || yyextra->EXT_shader_framebuffer_fetch_non_coherent_enable) {
+                      || yyextra->EXT_shader_framebuffer_fetch_non_coherent_enable
+                      || yyextra->OVR_multiview_enable) {
 		      return LAYOUT_TOK;
 		   } else {
 		      return classify_identifier(yyextra, yytext, yyleng, yylval);

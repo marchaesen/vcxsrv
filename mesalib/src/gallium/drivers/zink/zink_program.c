@@ -741,6 +741,16 @@ zink_gfx_program_update_optimal(struct zink_context *ctx)
                 (!(zink_debug & ZINK_DEBUG_NOOPT) || !ZINK_SHADER_KEY_OPTIMAL_IS_DEFAULT(ctx->gfx_pipeline_state.optimal_key) || must_replace)) {
                prog = replace_separable_prog(ctx, entry, prog);
             }
+         } else if (must_replace) {
+            /* this is a non-separable, incompatible prog which needs replacement */
+            struct zink_gfx_program *real = zink_create_gfx_program(ctx, ctx->gfx_stages, ctx->gfx_pipeline_state.dyn_state2.vertices_per_patch, ctx->gfx_hash);
+            generate_gfx_program_modules_optimal(ctx, screen, real, &ctx->gfx_pipeline_state);
+            entry->data = real;
+            entry->key = real->shaders;
+            real->base.removed = false;
+            prog->base.removed = true;
+            zink_gfx_program_reference(screen, &prog, NULL);
+            prog = real;
          }
          update_gfx_program_optimal(ctx, prog);
       } else {
@@ -1263,7 +1273,7 @@ create_gfx_program_separable(struct zink_context *ctx, struct zink_shader **stag
 
    prog->is_separable = true;
    prog->gfx_hash = ctx->gfx_hash;
-   prog->base.uses_shobj = screen->info.have_EXT_shader_object;
+   prog->base.uses_shobj = screen->info.have_EXT_shader_object && !stages[MESA_SHADER_VERTEX]->info.view_mask && !BITSET_TEST(stages[MESA_SHADER_FRAGMENT]->info.system_values_read, SYSTEM_VALUE_SAMPLE_MASK_IN);
 
    prog->stages_remaining = prog->stages_present = ctx->shader_stages;
    memcpy(prog->shaders, stages, sizeof(prog->shaders));
@@ -1905,7 +1915,10 @@ bind_last_vertex_stage(struct zink_context *ctx, gl_shader_stage stage, struct z
             memset(&ctx->gfx_pipeline_state.shader_keys.key[MESA_SHADER_VERTEX].key.vs_base, 0, sizeof(struct zink_vs_key_base));
          }
       }
+      ctx->last_vertex_stage_dirty = true;
+   }
 
+   if (ctx->last_vertex_stage != prev_shader) {
       unsigned num_viewports = ctx->vp_state.num_viewports;
       struct zink_screen *screen = zink_screen(ctx->base.screen);
       /* number of enabled viewports is based on whether last vertex stage writes viewport index */
@@ -1923,7 +1936,6 @@ bind_last_vertex_stage(struct zink_context *ctx, gl_shader_stage stage, struct z
             ctx->gfx_pipeline_state.dirty = true;
          ctx->gfx_pipeline_state.dyn_state1.num_viewports = ctx->vp_state.num_viewports;
       }
-      ctx->last_vertex_stage_dirty = true;
    }
 }
 
@@ -2245,7 +2257,7 @@ zink_link_gfx_shader(struct pipe_context *pctx, void **shaders)
       VKSCR(DestroyPipeline)(screen->dev, pipeline, NULL);
    } else {
       if (zink_screen(pctx->screen)->info.have_EXT_shader_object)
-         prog->base.uses_shobj = !BITSET_TEST(zshaders[MESA_SHADER_FRAGMENT]->info.system_values_read, SYSTEM_VALUE_SAMPLE_MASK_IN);
+         prog->base.uses_shobj = !zshaders[MESA_SHADER_VERTEX]->info.view_mask && !BITSET_TEST(zshaders[MESA_SHADER_FRAGMENT]->info.system_values_read, SYSTEM_VALUE_SAMPLE_MASK_IN);
       if (zink_debug & ZINK_DEBUG_NOBGC)
          gfx_program_precompile_job(prog, pctx->screen, 0);
       else
@@ -2501,6 +2513,9 @@ void
 zink_set_primitive_emulation_keys(struct zink_context *ctx)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
+   if (!screen->info.feats.features.geometryShader)
+      return;
+
    bool lower_line_stipple = false, lower_line_smooth = false;
    unsigned lower_pv_mode = 0;
    if (!screen->optimal_keys) {

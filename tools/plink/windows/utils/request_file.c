@@ -235,13 +235,13 @@ Filename *request_file(
         char namebuf[MAX_PATH];
         if (do_filereq_a(
                 hwnd, title, initial, dir, save, filter,
-                NULL, namebuf, sizeof(namebuf)))
+                NULL, namebuf, lenof(namebuf)))
             filename = filename_from_str(namebuf);
     } else {
         wchar_t namebuf[MAX_PATH];
         if (do_filereq_w(
                 hwnd, title, initial, dir, save, filter,
-                NULL, namebuf, sizeof(namebuf)))
+                NULL, namebuf, lenof(namebuf)))
             filename = filename_from_wstr(namebuf);
     }
 
@@ -349,14 +349,14 @@ struct request_multi_file_return *request_multi_file(
         char namebuf[MAX_PATH * MULTI_FACTOR];
         if (do_filereq_a(
                 hwnd, title, initial, dir, save, filter,
-                &first_filename_offset, namebuf, sizeof(namebuf)))
+                &first_filename_offset, namebuf, lenof(namebuf)))
             rmf = request_multi_file_populate_a(
                 namebuf, first_filename_offset);
     } else {
         wchar_t namebuf[MAX_PATH * MULTI_FACTOR];
         if (do_filereq_w(
                 hwnd, title, initial, dir, save, filter,
-                &first_filename_offset, namebuf, sizeof(namebuf)))
+                &first_filename_offset, namebuf, lenof(namebuf)))
             rmf = request_multi_file_populate_w(
                 namebuf, first_filename_offset);
     }

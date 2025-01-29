@@ -531,6 +531,10 @@ va_pack_alu(const bi_instr *I)
       hex |= ((uint64_t)I->texture_index) << 20;
       break;
 
+   case BI_OPCODE_WMASK:
+      hex |= ((uint64_t)I->subgroup) << 36;
+      break;
+
    case BI_OPCODE_ZS_EMIT:
       if (I->stencil)
          hex |= (1 << 24);

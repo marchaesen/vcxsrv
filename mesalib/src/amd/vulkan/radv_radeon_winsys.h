@@ -145,6 +145,14 @@ struct radeon_bo_metadata {
          bool dcc_independent_128b_blocks;
          unsigned dcc_max_compressed_block_size;
       } gfx9;
+
+      struct {
+         unsigned swizzle_mode : 3;
+         unsigned dcc_max_compressed_block : 3;
+         unsigned dcc_data_format : 6;
+         unsigned dcc_number_type : 3;
+         bool scanout;
+      } gfx12;
    } u;
 
    /* Additional metadata associated with the buffer, in bytes.

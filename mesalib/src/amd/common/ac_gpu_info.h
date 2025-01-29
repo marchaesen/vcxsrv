@@ -157,6 +157,7 @@ struct radeon_info {
    bool use_display_dcc_unaligned;
    /* Allocate both aligned and unaligned DCC and use the retile blit. */
    bool use_display_dcc_with_retile_blit;
+   bool gfx12_supports_display_dcc;
 
    /* Memory info. */
    uint32_t pte_fragment_size;
@@ -315,6 +316,11 @@ struct radeon_info {
       uint32_t csa_alignment;
    } fw_based_mcbp;
    bool has_fw_based_shadowing;
+
+   /* Device supports hardware-accelerated raytracing using
+    * image_bvh*_intersect_ray instructions
+    */
+   bool has_image_bvh_intersect_ray;
 };
 
 bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,

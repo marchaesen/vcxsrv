@@ -409,15 +409,16 @@ panfrost_batch_create_bo(struct panfrost_batch *batch, size_t size,
 
    bo = panfrost_bo_create(pan_device(batch->ctx->base.screen), size,
                            create_flags, label);
-   assert(bo);
-   panfrost_batch_add_bo(batch, bo, stage);
+   if (bo) {
+      panfrost_batch_add_bo(batch, bo, stage);
 
-   /* panfrost_batch_add_bo() has retained a reference and
-    * panfrost_bo_create() initialize the refcnt to 1, so let's
-    * unreference the BO here so it gets released when the batch is
-    * destroyed (unless it's retained by someone else in the meantime).
-    */
-   panfrost_bo_unreference(bo);
+      /* panfrost_batch_add_bo() has retained a reference and
+       * panfrost_bo_create() initialize the refcnt to 1, so let's
+       * unreference the BO here so it gets released when the batch is
+       * destroyed (unless it's retained by someone else in the meantime).
+       */
+      panfrost_bo_unreference(bo);
+   }
    return bo;
 }
 
@@ -436,7 +437,8 @@ panfrost_batch_get_scratchpad(struct panfrost_batch *batch,
          panfrost_batch_create_bo(batch, size, PAN_BO_INVISIBLE,
                                   PIPE_SHADER_VERTEX, "Thread local storage");
 
-      panfrost_batch_add_bo(batch, batch->scratchpad, PIPE_SHADER_FRAGMENT);
+      if (batch->scratchpad)
+         panfrost_batch_add_bo(batch, batch->scratchpad, PIPE_SHADER_FRAGMENT);
    }
 
    return batch->scratchpad;

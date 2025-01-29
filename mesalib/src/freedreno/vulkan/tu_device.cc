@@ -30,6 +30,7 @@
 #include "freedreno/common/freedreno_uuid.h"
 #include "freedreno/common/freedreno_stompable_regs.h"
 
+#include "tu_acceleration_structure.h"
 #include "tu_clear_blit.h"
 #include "tu_cmd_buffer.h"
 #include "tu_cs.h"
@@ -143,9 +144,19 @@ static void
 get_device_extensions(const struct tu_physical_device *device,
                       struct vk_device_extension_table *ext)
 {
+   /* device->has_raytracing contains the value of the SW fuse. If the
+    * device doesn't have a fuse (i.e. a740), we have to ignore it because
+    * kgsl returns false. If it does have a fuse, enable raytracing if the
+    * fuse is set and we have ray_intersection.
+    */
+   bool has_raytracing =
+      device->info->a7xx.has_ray_intersection &&
+      (!device->info->a7xx.has_sw_fuse || device->has_raytracing);
+
    *ext = (struct vk_device_extension_table) { .table = {
       .KHR_8bit_storage = device->info->a7xx.storage_8bit,
       .KHR_16bit_storage = device->info->a6xx.storage_16bit,
+      .KHR_acceleration_structure = has_raytracing,
       .KHR_bind_memory2 = true,
       .KHR_buffer_device_address = true,
       .KHR_calibrated_timestamps = device->info->a7xx.has_persistent_counter,
@@ -153,6 +164,7 @@ get_device_extensions(const struct tu_physical_device *device,
       .KHR_copy_commands2 = true,
       .KHR_create_renderpass2 = true,
       .KHR_dedicated_allocation = true,
+      .KHR_deferred_host_operations = true,
       .KHR_depth_stencil_resolve = true,
       .KHR_descriptor_update_template = true,
       .KHR_device_group = true,
@@ -201,6 +213,8 @@ get_device_extensions(const struct tu_physical_device *device,
                            wsi_common_vk_instance_supports_present_wait(&device->instance->vk)),
 #endif
       .KHR_push_descriptor = true,
+      .KHR_ray_query = has_raytracing,
+      .KHR_ray_tracing_maintenance1 = has_raytracing,
       .KHR_relaxed_block_layout = true,
       .KHR_sampler_mirror_clamp_to_edge = true,
       .KHR_sampler_ycbcr_conversion = true,
@@ -240,6 +254,7 @@ get_device_extensions(const struct tu_physical_device *device,
       .EXT_calibrated_timestamps = device->info->a7xx.has_persistent_counter,
       .EXT_color_write_enable = true,
       .EXT_conditional_rendering = true,
+      .EXT_conservative_rasterization = device->info->chip >= 7,
       .EXT_custom_border_color = true,
       .EXT_depth_clamp_zero_one = true,
       .EXT_depth_clip_control = true,
@@ -466,6 +481,11 @@ tu_get_features(struct tu_physical_device *pdevice,
    /* Vulkan 1.4 */
    features->pushDescriptor = true;
 
+   /* VK_KHR_acceleration_structure */
+   features->accelerationStructure = true;
+   features->accelerationStructureCaptureReplay = pdevice->has_set_iova;
+   features->descriptorBindingAccelerationStructureUpdateAfterBind = true;
+
    /* VK_KHR_compute_shader_derivatives */
    features->computeDerivativeGroupQuads = pdevice->info->chip >= 7;
    features->computeDerivativeGroupLinear = pdevice->info->chip >= 7;
@@ -590,8 +610,10 @@ tu_get_features(struct tu_physical_device *pdevice,
    features->extendedDynamicState3AlphaToOneEnable = true;
    features->extendedDynamicState3DepthClipNegativeOneToOne = true;
    features->extendedDynamicState3RasterizationStream = true;
-   features->extendedDynamicState3ConservativeRasterizationMode = false;
-   features->extendedDynamicState3ExtraPrimitiveOverestimationSize = false;
+   features->extendedDynamicState3ConservativeRasterizationMode =
+      pdevice->vk.supported_extensions.EXT_conservative_rasterization;
+   features->extendedDynamicState3ExtraPrimitiveOverestimationSize =
+      pdevice->vk.supported_extensions.EXT_conservative_rasterization;
    features->extendedDynamicState3LineRasterizationMode = true;
    features->extendedDynamicState3LineStippleEnable = false;
    features->extendedDynamicState3ProvokingVertexMode = true;
@@ -677,6 +699,12 @@ tu_get_features(struct tu_physical_device *pdevice,
    features->rasterizationOrderColorAttachmentAccess = true;
    features->rasterizationOrderDepthAttachmentAccess = true;
    features->rasterizationOrderStencilAttachmentAccess = true;
+
+   /* VK_KHR_ray_query */
+   features->rayQuery = true;
+
+   /* VK_KHR_ray_tracing_maintenance1 */
+   features->rayTracingMaintenance1 = true;
 
    /* VK_EXT_robustness2 */
    features->robustBufferAccess2 = true;
@@ -928,7 +956,7 @@ tu_get_properties(struct tu_physical_device *pdevice,
    props->maxImageDimension3D = (1 << 11);
    props->maxImageDimensionCube = (1 << 14);
    props->maxImageArrayLayers = (1 << 11);
-   props->maxTexelBufferElements = 128 * 1024 * 1024;
+   props->maxTexelBufferElements = MAX_TEXEL_ELEMENTS;
    props->maxUniformBufferRange = MAX_UNIFORM_BUFFER_RANGE;
    props->maxStorageBufferRange = MAX_STORAGE_BUFFER_RANGE;
    props->maxPushConstantsSize = MAX_PUSH_CONSTANTS_SIZE;
@@ -1097,7 +1125,7 @@ tu_get_properties(struct tu_physical_device *pdevice,
    props->fragmentShadingRateWithSampleMask = true;
    /* Has wrong gl_SampleMaskIn[0] values with VK_EXT_post_depth_coverage used. */
    props->fragmentShadingRateWithShaderSampleMask = false;
-   props->fragmentShadingRateWithConservativeRasterization = false;
+   props->fragmentShadingRateWithConservativeRasterization = true;
    props->fragmentShadingRateWithFragmentShaderInterlock = false;
    props->fragmentShadingRateWithCustomSampleLocations = true;
    props->fragmentShadingRateStrictMultiplyCombiner = true;
@@ -1219,6 +1247,7 @@ tu_get_properties(struct tu_physical_device *pdevice,
       COND(pdevice->info->a7xx.storage_8bit, 1));
    props->robustStorageBufferDescriptorSize =
       props->storageBufferDescriptorSize;
+   props->accelerationStructureDescriptorSize = 4 * A6XX_TEX_CONST_DWORDS;
    props->inputAttachmentDescriptorSize = A6XX_TEX_CONST_DWORDS * 4;
    props->maxSamplerDescriptorBufferRange = ~0ull;
    props->maxResourceDescriptorBufferRange = ~0ull;
@@ -1304,6 +1333,27 @@ tu_get_properties(struct tu_physical_device *pdevice,
 
       memcpy(props->optimalTilingLayoutUUID, sha1, VK_UUID_SIZE);
    }
+
+   /* VK_KHR_acceleration_structure */
+   props->maxGeometryCount = (1 << 24) - 1;
+   props->maxInstanceCount = (1 << 24) - 1;
+   props->maxPrimitiveCount = (1 << 29) - 1;
+   props->maxPerStageDescriptorAccelerationStructures = max_descriptor_set_size;
+   props->maxPerStageDescriptorUpdateAfterBindAccelerationStructures = max_descriptor_set_size;
+   props->maxDescriptorSetAccelerationStructures = max_descriptor_set_size;
+   props->maxDescriptorSetUpdateAfterBindAccelerationStructures = max_descriptor_set_size;
+   props->minAccelerationStructureScratchOffsetAlignment = 128;
+
+   /* VK_EXT_conservative_rasterization */
+   props->primitiveOverestimationSize = 0.5 + 1 / 256.;
+   props->maxExtraPrimitiveOverestimationSize = 0.5;
+   props->extraPrimitiveOverestimationSizeGranularity = 0.5;
+   props->primitiveUnderestimation = false;
+   props->conservativePointAndLineRasterization = false;
+   props->degenerateTrianglesRasterized = true;
+   props->degenerateLinesRasterized = false;
+   props->fullyCoveredFragmentShaderInputVariable = false;
+   props->conservativeRasterizationPostDepthCoverage = false;
 }
 
 static const struct vk_pipeline_cache_object_ops *const cache_import_ops[] = {
@@ -1326,13 +1376,25 @@ tu_physical_device_init(struct tu_physical_device *device,
                                device->dev_id.chip_id, device->dev_id.gpu_id);
    }
 
+   const struct fd_dev_info info = fd_dev_info(&device->dev_id);
+   assert(info.chip);
+
+   /* Print a suffix if raytracing is disabled by the SW fuse, in an attempt
+    * to avoid confusion when apps don't work.
+    */
+   bool raytracing_disabled = info.a7xx.has_sw_fuse &&
+      !device->has_raytracing;
+   const char *rt_suffix = raytracing_disabled ? " (raytracing disabled)" : "";
+
    if (strncmp(fd_name, "FD", 2) == 0) {
       device->name = vk_asprintf(&instance->vk.alloc,
                                  VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE,
-                                 "Turnip Adreno (TM) %s", &fd_name[2]);
+                                 "Turnip Adreno (TM) %s%s", &fd_name[2],
+                                 rt_suffix);
    } else {
-      device->name = vk_strdup(&instance->vk.alloc, fd_name,
-                               VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
+      device->name = vk_asprintf(&instance->vk.alloc,
+                                 VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE,
+                                 "%s%s", fd_name, rt_suffix);
 
    }
    if (!device->name) {
@@ -1340,12 +1402,6 @@ tu_physical_device_init(struct tu_physical_device *device,
                                "device name alloc fail");
    }
 
-   const struct fd_dev_info info = fd_dev_info(&device->dev_id);
-   if (!info.chip) {
-      result = vk_startup_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
-                                 "device %s is unsupported", device->name);
-      goto fail_free_name;
-   }
    switch (fd_dev_gen(&device->dev_id)) {
    case 6:
    case 7: {
@@ -2302,7 +2358,7 @@ tu_init_cmdbuf_start_a725_quirk(struct tu_device *device)
                   HLSQ_CS_NDRANGE_4(A7XX, .globaloff_y = 0),
                   HLSQ_CS_NDRANGE_5(A7XX, .globalsize_z = 1),
                   HLSQ_CS_NDRANGE_6(A7XX, .globaloff_z = 0));
-   tu_cs_emit_regs(&sub_cs, A7XX_HLSQ_CS_LOCAL_SIZE(
+   tu_cs_emit_regs(&sub_cs, A7XX_HLSQ_CS_LAST_LOCAL_SIZE(
             .localsizex = 255,
             .localsizey = 0,
             .localsizez = 0));
@@ -2410,6 +2466,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
    }
 
    device->vk.command_buffer_ops = &tu_cmd_buffer_ops;
+   device->vk.as_build_ops = &tu_as_build_ops;
    device->vk.check_status = tu_device_check_status;
    device->vk.get_timestamp = tu_device_get_timestamp;
 
@@ -2469,6 +2526,14 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       }
    }
 
+   result = vk_meta_device_init(&device->vk, &device->meta);
+   if (result != VK_SUCCESS)
+      goto fail_queues;
+
+   util_sparse_array_init(&device->accel_struct_ranges, sizeof(VkDeviceSize), 256);
+
+   mtx_init(&device->radix_sort_mutex, mtx_plain);
+
    {
       struct ir3_compiler_options ir3_options = {
          .push_ubo_with_preamble = true,
@@ -2486,7 +2551,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       result = vk_startup_errorf(physical_device->instance,
                                  VK_ERROR_INITIALIZATION_FAILED,
                                  "failed to initialize ir3 compiler");
-      goto fail_queues;
+      goto fail_compiler;
    }
 
    /* Initialize sparse array for refcounting imported BOs */
@@ -2544,6 +2609,15 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
    global = (struct tu6_global *)device->global_bo->map;
    device->global_bo_map = global;
    tu_init_clear_blit_shaders(device);
+
+   if (device->vk.enabled_features.accelerationStructure &&
+       device->vk.enabled_features.nullDescriptor) {
+      result = tu_init_null_accel_struct(device);
+      if (result != VK_SUCCESS) {
+         vk_startup_errorf(device->instance, result, "null acceleration struct");
+         goto fail_null_accel_struct;
+      }
+   }
 
    result = tu_init_empty_shaders(device);
    if (result != VK_SUCCESS) {
@@ -2707,6 +2781,11 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       fd_rd_output_init(&device->rd_output, output_name);
    }
 
+   device->vk.cmd_dispatch_unaligned = tu_dispatch_unaligned;
+   device->vk.write_buffer_cp = tu_write_buffer_cp;
+   device->vk.flush_buffer_write_cp = tu_flush_buffer_write_cp;
+   device->vk.cmd_fill_buffer_addr = tu_cmd_fill_buffer_addr;
+
    *pDevice = tu_device_to_handle(device);
    return VK_SUCCESS;
 
@@ -2723,6 +2802,9 @@ fail_pipeline_cache:
 fail_dynamic_rendering:
    tu_destroy_empty_shaders(device);
 fail_empty_shaders:
+   if (device->null_accel_struct_bo)
+      tu_bo_finish(device, device->null_accel_struct_bo);
+fail_null_accel_struct:
    tu_destroy_clear_blit_shaders(device);
 fail_global_bo_map:
    TU_RMV(resource_destroy, device, device->global_bo);
@@ -2730,12 +2812,15 @@ fail_global_bo_map:
    vk_free(&device->vk.alloc, device->submit_bo_list);
    util_dynarray_fini(&device->dump_bo_list);
 fail_global_bo:
-   ir3_compiler_destroy(device->compiler);
-   util_sparse_array_finish(&device->bo_map);
    if (physical_device->has_set_iova)
       util_vma_heap_finish(&device->vma);
 fail_free_zombie_vma:
+   util_sparse_array_finish(&device->bo_map);
    u_vector_finish(&device->zombie_vmas);
+   ir3_compiler_destroy(device->compiler);
+fail_compiler:
+   util_sparse_array_finish(&device->accel_struct_ranges);
+   vk_meta_device_finish(&device->vk, &device->meta);
 fail_queues:
    for (unsigned i = 0; i < TU_MAX_QUEUE_FAMILIES; i++) {
       for (unsigned q = 0; q < device->queue_count[i]; q++)
@@ -2785,6 +2870,10 @@ tu_DestroyDevice(VkDevice _device, const VkAllocationCallbacks *pAllocator)
 
    tu_destroy_dynamic_rendering(device);
 
+   vk_meta_device_finish(&device->vk, &device->meta);
+
+   util_sparse_array_finish(&device->accel_struct_ranges);
+
    ir3_compiler_destroy(device->compiler);
 
    vk_pipeline_cache_destroy(device->mem_cache, &device->vk.alloc);
@@ -2812,6 +2901,9 @@ tu_DestroyDevice(VkDevice _device, const VkAllocationCallbacks *pAllocator)
    tu_bo_suballocator_finish(&device->kgsl_profiling_suballoc);
 
    tu_bo_finish(device, device->global_bo);
+
+   if (device->null_accel_struct_bo)
+      tu_bo_finish(device, device->null_accel_struct_bo);
 
    for (unsigned i = 0; i < TU_MAX_QUEUE_FAMILIES; i++) {
       for (unsigned q = 0; q < device->queue_count[i]; q++)

@@ -93,7 +93,7 @@ panvk_per_arch(SetEvent)(VkDevice _device, VkEvent _event)
     * is already in signaled state. This won't be a problem because the spec
     * mandates that the event will have been set before the vkCmdWaitEvents
     * command executes.
-    * https://www.khronos.org/registry/vulkan/specs/1.2/html/chap6.html#commandbuffers-submission-progress
+    * https://docs.vulkan.org/spec/latest/chapters/cmdbuffers.html#commandbuffers-submission-progress
     */
    if (drmIoctl(device->vk.drm_fd, DRM_IOCTL_SYNCOBJ_SIGNAL, &objs))
       return VK_ERROR_DEVICE_LOST;

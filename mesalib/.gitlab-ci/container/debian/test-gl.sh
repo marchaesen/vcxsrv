@@ -10,7 +10,7 @@ set -o xtrace
 uncollapsed_section_start debian_setup "Base Debian system setup"
 
 export DEBIAN_FRONTEND=noninteractive
-export LLVM_VERSION="${LLVM_VERSION:=15}"
+: "${LLVM_VERSION:?llvm version not set!}"
 
 apt-get install -y libelogind0  # this interfere with systemd deps, install separately
 

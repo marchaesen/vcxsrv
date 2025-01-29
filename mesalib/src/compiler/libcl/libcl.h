@@ -201,6 +201,8 @@ util_logbase2_ceil(uint32_t n)
 #define DIV_ROUND_UP(A, B)      (((A) + (B) - 1) / (B))
 #define CLAMP(X, MIN, MAX)      ((X) > (MIN) ? ((X) > (MAX) ? (MAX) : (X)) : (MIN))
 #define ALIGN_POT(x, pot_align) (((x) + (pot_align) - 1) & ~((pot_align) - 1))
+#define MAX2( A, B )   ( (A)>(B) ? (A) : (B) )
+#define MIN2( A, B )   ( (A)<(B) ? (A) : (B) )
 
 static inline uint32_t
 fui(float f)

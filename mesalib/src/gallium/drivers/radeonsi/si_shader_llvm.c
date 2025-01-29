@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "ac_debug.h"
 #include "ac_nir.h"
 #include "ac_nir_to_llvm.h"
 #include "ac_rtld.h"
@@ -529,7 +530,7 @@ static LLVMValueRef si_llvm_load_sampler_desc(struct ac_shader_abi *abi, LLVMVal
 }
 
 static bool si_llvm_translate_nir(struct si_shader_context *ctx, struct si_shader *shader,
-                                  struct nir_shader *nir, bool free_nir)
+                                  struct nir_shader *nir)
 {
    struct si_shader_selector *sel = shader->selector;
    const struct si_shader_info *info = &sel->info;
@@ -764,18 +765,33 @@ static bool si_llvm_translate_nir(struct si_shader_context *ctx, struct si_shade
    }
 
    si_llvm_build_ret(ctx, ctx->return_value);
-
-   if (free_nir)
-      ralloc_free(nir);
    return true;
 }
 
+static void assert_registers_equal(struct si_screen *sscreen, unsigned reg, unsigned nir_value,
+                                   unsigned llvm_value, bool allow_zero)
+{
+   if (nir_value != llvm_value) {
+      fprintf(stderr, "Error: Unexpected non-matching shader config:\n");
+      fprintf(stderr, "From NIR:\n");
+      ac_dump_reg(stderr, sscreen->info.gfx_level, sscreen->info.family, reg, nir_value, ~0);
+      fprintf(stderr, "From LLVM:\n");
+      ac_dump_reg(stderr, sscreen->info.gfx_level, sscreen->info.family, reg, llvm_value, ~0);
+   }
+   if (0)
+      printf("nir_value = 0x%x, llvm_value = 0x%x\n", nir_value, llvm_value);
+   assert(nir_value || allow_zero);
+   assert(llvm_value || allow_zero);
+   assert(nir_value == llvm_value);
+}
+
 bool si_llvm_compile_shader(struct si_screen *sscreen, struct ac_llvm_compiler *compiler,
-                            struct si_shader *shader, struct si_shader_args *args,
-                            struct util_debug_callback *debug, struct nir_shader *nir)
+                            struct si_shader *shader, struct si_linked_shaders *linked,
+                            struct util_debug_callback *debug)
 {
    struct si_shader_selector *sel = shader->selector;
    struct si_shader_context ctx;
+   nir_shader *nir = linked->consumer.nir;
    enum ac_float_mode float_mode = nir->info.stage == MESA_SHADER_KERNEL ?
                                        AC_FLOAT_MODE_DEFAULT : AC_FLOAT_MODE_DEFAULT_OPENGL;
    bool exports_color_null = false;
@@ -792,26 +808,22 @@ bool si_llvm_compile_shader(struct si_screen *sscreen, struct ac_llvm_compiler *
 
    si_llvm_context_init(&ctx, sscreen, compiler, shader->wave_size, exports_color_null, exports_mrtz,
                         float_mode);
-   ctx.args = args;
+   ctx.args = &linked->consumer.args;
 
-   if (!si_llvm_translate_nir(&ctx, shader, nir, false)) {
+   if (!si_llvm_translate_nir(&ctx, shader, nir)) {
       si_llvm_dispose(&ctx);
       return false;
    }
 
    /* For merged shader stage. */
-   if (shader->is_monolithic && sscreen->info.gfx_level >= GFX9 &&
-       (nir->info.stage == MESA_SHADER_TESS_CTRL || nir->info.stage == MESA_SHADER_GEOMETRY)) {
+   if (linked->producer.nir) {
       /* LS or ES shader. */
-      struct si_shader prev_shader = {};
-
-      bool free_nir;
-      nir_shader *prev_nir = si_get_prev_stage_nir_shader(shader, &prev_shader, ctx.args, &free_nir);
+      ctx.args = &linked->producer.args;
 
       struct ac_llvm_pointer parts[2];
       parts[1] = ctx.main_fn;
 
-      if (!si_llvm_translate_nir(&ctx, &prev_shader, prev_nir, free_nir)) {
+      if (!si_llvm_translate_nir(&ctx, linked->producer.shader, linked->producer.nir)) {
          si_llvm_dispose(&ctx);
          return false;
       }
@@ -832,14 +844,23 @@ bool si_llvm_compile_shader(struct si_screen *sscreen, struct ac_llvm_compiler *
    assert(LLVMGetTypeKind(LLVMTypeOf(LLVMGetParam(ctx.main_fn.value, 0))) == LLVMPointerTypeKind);
 
    /* Compile to bytecode. */
-   if (!si_compile_llvm(sscreen, &shader->binary, &shader->config, compiler, &ctx.ac, debug,
-                        nir->info.stage, si_get_shader_name(shader))) {
-      si_llvm_dispose(&ctx);
+   struct ac_shader_config config = {0};
+
+   bool success = si_compile_llvm(sscreen, &shader->binary, &config, compiler, &ctx.ac, debug,
+                                  nir->info.stage, si_get_shader_name(shader));
+   si_llvm_dispose(&ctx);
+   if (!success) {
       fprintf(stderr, "LLVM failed to compile shader\n");
       return false;
    }
 
-   si_llvm_dispose(&ctx);
+   if (nir->info.stage == MESA_SHADER_FRAGMENT) {
+      assert_registers_equal(sscreen, R_0286CC_SPI_PS_INPUT_ENA, shader->config.spi_ps_input_ena,
+                             config.spi_ps_input_ena, !shader->is_monolithic);
+      assert_registers_equal(sscreen, R_0286D0_SPI_PS_INPUT_ADDR, shader->config.spi_ps_input_addr,
+                             config.spi_ps_input_addr, false);
+   }
+   shader->config = config;
    return true;
 }
 
@@ -905,8 +926,11 @@ bool si_llvm_build_shader_part(struct si_screen *sscreen, gl_shader_stage stage,
    /* Compile. */
    si_llvm_optimize_module(&ctx);
 
-   bool ret = si_compile_llvm(sscreen, &result->binary, &result->config, compiler,
+   struct ac_shader_config config = {0};
+   bool ret = si_compile_llvm(sscreen, &result->binary, &config, compiler,
                               &ctx.ac, debug, ctx.stage, name);
+   result->num_vgprs = config.num_vgprs;
+   result->num_sgprs = config.num_sgprs;
 
    si_llvm_dispose(&ctx);
    return ret;

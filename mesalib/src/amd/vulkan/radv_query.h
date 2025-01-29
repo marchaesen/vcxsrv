@@ -26,6 +26,7 @@ struct radv_query_pool {
    char *ptr;
    bool uses_emulated_queries;
    bool uses_ace; /* For task shader invocations on GFX10.3+ */
+   bool uses_shader_query_buf; /* For generated/written primitives on GFX12+ */
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(radv_query_pool, vk.base, VkQueryPool, VK_OBJECT_TYPE_QUERY_POOL)

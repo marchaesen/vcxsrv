@@ -131,7 +131,13 @@ static const char *__xtransname = "_XTrans";
  * This structure needs to be independent of the socket/TLI interface used.
  */
 
-#if defined(IPv6) && defined(AF_INET6)
+/* Temporary workaround for consumers whose configure scripts were
+   generated with pre-1.6 versions of xtrans.m4 */
+#if defined(IPv6) && !defined(HAVE_STRUCT_SOCKADDR_STORAGE)
+#define HAVE_STRUCT_SOCKADDR_STORAGE
+#endif
+
+#ifdef HAVE_STRUCT_SOCKADDR_STORAGE
 typedef struct sockaddr_storage Xtransaddr;
 #else
 #define XTRANS_MAX_ADDR_LEN	128	/* large enough to hold sun_path */

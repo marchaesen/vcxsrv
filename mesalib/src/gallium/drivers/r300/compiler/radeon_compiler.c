@@ -229,21 +229,31 @@ void
 rc_transform_fragment_wpos(struct radeon_compiler *c, unsigned wpos, unsigned new_input,
                            int full_vtransform)
 {
-   unsigned tempregi = rc_find_free_temporary(c);
-   struct rc_instruction *inst_rcp;
-   struct rc_instruction *inst_mul;
-   struct rc_instruction *inst_mad;
-   struct rc_instruction *inst;
+   struct rc_instruction *inst_rcp, *inst_mul, *inst_mad, *inst_mov, *inst;
 
    c->Program.InputsRead &= ~(1U << wpos);
    c->Program.InputsRead |= 1U << new_input;
 
+   /* Figure out what channels we actually need. */
+   unsigned usemask = 0;
+   for (inst = c->Program.Instructions.Next; inst != &c->Program.Instructions; inst = inst->Next) {
+      const struct rc_opcode_info *opcode = rc_get_opcode_info(inst->U.I.Opcode);
+      unsigned i;
+
+      for (i = 0; i < opcode->NumSrcRegs; i++) {
+         if (inst->U.I.SrcReg[i].File == RC_FILE_INPUT && inst->U.I.SrcReg[i].Index == wpos)
+            usemask |= rc_swizzle_to_writemask(inst->U.I.SrcReg[i].Swizzle);
+      }
+   }
+
    /* perspective divide */
    inst_rcp = rc_insert_new_instruction(c, &c->Program.Instructions);
    inst_rcp->U.I.Opcode = RC_OPCODE_RCP;
+   /* Make sure there is no temp reusing, some later passes will depend on the SSA-like form. */
+   unsigned temp_reg_rcp = rc_find_free_temporary(c);
 
    inst_rcp->U.I.DstReg.File = RC_FILE_TEMPORARY;
-   inst_rcp->U.I.DstReg.Index = tempregi;
+   inst_rcp->U.I.DstReg.Index = temp_reg_rcp;
    inst_rcp->U.I.DstReg.WriteMask = RC_MASK_W;
 
    inst_rcp->U.I.SrcReg[0].File = RC_FILE_INPUT;
@@ -252,28 +262,30 @@ rc_transform_fragment_wpos(struct radeon_compiler *c, unsigned wpos, unsigned ne
 
    inst_mul = rc_insert_new_instruction(c, inst_rcp);
    inst_mul->U.I.Opcode = RC_OPCODE_MUL;
+   unsigned temp_reg_mul = rc_find_free_temporary(c);
 
    inst_mul->U.I.DstReg.File = RC_FILE_TEMPORARY;
-   inst_mul->U.I.DstReg.Index = tempregi;
+   inst_mul->U.I.DstReg.Index = temp_reg_mul;
    inst_mul->U.I.DstReg.WriteMask = RC_MASK_XYZ;
 
    inst_mul->U.I.SrcReg[0].File = RC_FILE_INPUT;
    inst_mul->U.I.SrcReg[0].Index = new_input;
 
    inst_mul->U.I.SrcReg[1].File = RC_FILE_TEMPORARY;
-   inst_mul->U.I.SrcReg[1].Index = tempregi;
+   inst_mul->U.I.SrcReg[1].Index = temp_reg_rcp;
    inst_mul->U.I.SrcReg[1].Swizzle = RC_SWIZZLE_WWWW;
 
    /* viewport transformation */
    inst_mad = rc_insert_new_instruction(c, inst_mul);
    inst_mad->U.I.Opcode = RC_OPCODE_MAD;
+   unsigned temp_reg_mad = rc_find_free_temporary(c);
 
    inst_mad->U.I.DstReg.File = RC_FILE_TEMPORARY;
-   inst_mad->U.I.DstReg.Index = tempregi;
+   inst_mad->U.I.DstReg.Index = temp_reg_mad;
    inst_mad->U.I.DstReg.WriteMask = RC_MASK_XYZ;
 
    inst_mad->U.I.SrcReg[0].File = RC_FILE_TEMPORARY;
-   inst_mad->U.I.SrcReg[0].Index = tempregi;
+   inst_mad->U.I.SrcReg[0].Index = temp_reg_mul;
    inst_mad->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_XYZ0;
 
    inst_mad->U.I.SrcReg[1].File = RC_FILE_CONSTANT;
@@ -281,6 +293,19 @@ rc_transform_fragment_wpos(struct radeon_compiler *c, unsigned wpos, unsigned ne
 
    inst_mad->U.I.SrcReg[2].File = RC_FILE_CONSTANT;
    inst_mad->U.I.SrcReg[2].Swizzle = RC_SWIZZLE_XYZ0;
+
+   if (usemask & RC_MASK_W) {
+      inst_mov = rc_insert_new_instruction(c, inst_mad);
+      inst_mov->U.I.Opcode = RC_OPCODE_MOV;
+
+      inst_mov->U.I.DstReg.File = RC_FILE_TEMPORARY;
+      inst_mov->U.I.DstReg.Index = temp_reg_mad;
+      inst_mov->U.I.DstReg.WriteMask = RC_MASK_W;
+
+      inst_mov->U.I.SrcReg[0].File = RC_FILE_TEMPORARY;
+      inst_mov->U.I.SrcReg[0].Index = temp_reg_rcp;
+      inst_mov->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_WWWW;
+   }
 
    if (full_vtransform) {
       inst_mad->U.I.SrcReg[1].Index =
@@ -299,7 +324,7 @@ rc_transform_fragment_wpos(struct radeon_compiler *c, unsigned wpos, unsigned ne
       for (i = 0; i < opcode->NumSrcRegs; i++) {
          if (inst->U.I.SrcReg[i].File == RC_FILE_INPUT && inst->U.I.SrcReg[i].Index == wpos) {
             inst->U.I.SrcReg[i].File = RC_FILE_TEMPORARY;
-            inst->U.I.SrcReg[i].Index = tempregi;
+            inst->U.I.SrcReg[i].Index = temp_reg_mad;
          }
       }
    }

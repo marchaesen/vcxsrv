@@ -971,6 +971,11 @@ validate_call_instr(nir_call_instr *instr, validate_state *state)
 {
    validate_assert(state, instr->num_params == instr->callee->num_params);
 
+   if (instr->indirect_callee.ssa) {
+      validate_assert(state, !instr->callee->impl);
+      validate_src(&instr->indirect_callee, state);
+   }
+
    for (unsigned i = 0; i < instr->num_params; i++) {
       validate_sized_src(&instr->params[i], state,
                          instr->callee->params[i].bit_size,
@@ -1603,7 +1608,7 @@ validate_ssa_dominance(nir_function_impl *impl, validate_state *state)
 {
    nir_metadata_require(impl, nir_metadata_dominance);
 
-   nir_foreach_block(block, impl) {
+   nir_foreach_block_unstructured(block, impl) {
       state->block = block;
       nir_foreach_instr(instr, block) {
          state->instr = instr;
@@ -1620,6 +1625,292 @@ validate_ssa_dominance(nir_function_impl *impl, validate_state *state)
          nir_foreach_def(instr, validate_ssa_def_dominance, state);
       }
    }
+}
+
+static void
+validate_block_index(nir_function_impl *impl, validate_state *state)
+{
+   unsigned index = 0;
+   nir_foreach_block_unstructured(block, impl) {
+      state->block = block;
+      validate_assert(state, block->index == index);
+      index++;
+   }
+   state->block = NULL;
+   validate_assert(state, impl->num_blocks == index);
+   validate_assert(state, impl->end_block->index == impl->num_blocks);
+}
+
+static void
+validate_instr_index(nir_function_impl *impl, validate_state *state)
+{
+   int index = -1;
+   nir_foreach_block(block, impl) {
+      state->block = block;
+
+      validate_assert(state, (int)block->start_ip > index);
+      index = block->start_ip;
+
+      nir_foreach_instr(instr, block) {
+         state->instr = instr;
+         validate_assert(state, instr->index > index);
+         index = instr->index;
+      }
+      state->instr = NULL;
+
+      validate_assert(state, block->end_ip > index);
+      index = block->end_ip;
+   }
+   state->block = NULL;
+}
+
+typedef struct {
+   uint32_t index;
+   unsigned num_dom_children;
+   struct nir_block **dom_children;
+   struct set *dom_frontier;
+   uint32_t dom_pre_index, dom_post_index;
+} block_dom_metadata;
+
+static void
+validate_dominance(nir_function_impl *impl, validate_state *state)
+{
+   nir_metadata valid_metadata = impl->valid_metadata;
+
+   /* Preserve dominance */
+   block_dom_metadata *blocks = ralloc_array(state->mem_ctx, block_dom_metadata,
+                                             state->blocks->size);
+   set_foreach(state->blocks, entry) {
+      nir_block *block = (nir_block *)entry->key;
+      block_dom_metadata *md = &blocks[entry - state->blocks->table];
+      md->index = block->index;
+      md->num_dom_children = block->num_dom_children;
+      md->dom_pre_index = block->dom_pre_index;
+      md->dom_post_index = block->dom_post_index;
+      md->dom_children = block->dom_children;
+      md->dom_frontier = block->dom_frontier;
+
+      block->dom_children = NULL;
+      block->dom_frontier = _mesa_pointer_set_create(block);
+   }
+
+   /* Call metadata passes and compare it against the preserved metadata and call SSA dominance
+    * validation. Dominance requires block indices, but we should ignore the current ones, since
+    * we don't trust them.
+    */
+   impl->valid_metadata &= ~(nir_metadata_block_index | nir_metadata_dominance);
+   nir_metadata_require(impl, nir_metadata_block_index | nir_metadata_dominance);
+   assert(impl->valid_metadata == (valid_metadata | nir_metadata_block_index | nir_metadata_dominance));
+
+   if (valid_metadata & nir_metadata_dominance) {
+      set_foreach(state->blocks, entry) {
+         nir_block *block = (nir_block *)entry->key;
+         block_dom_metadata *md = &blocks[entry - state->blocks->table];
+         state->block = (nir_block *)block;
+
+         validate_assert(state, block->num_dom_children == md->num_dom_children);
+         validate_assert(state, block->dom_pre_index == md->dom_pre_index);
+         validate_assert(state, block->dom_post_index == md->dom_post_index);
+
+         if (block->num_dom_children == md->num_dom_children && block->num_dom_children) {
+            validate_assert(state, !memcmp(block->dom_children, md->dom_children,
+                                           block->num_dom_children * sizeof(md->dom_children[0])));
+         }
+
+         validate_assert(state, block->dom_frontier->entries == md->dom_frontier->entries);
+         set_foreach(block->dom_frontier, entry) {
+            validate_assert(state, _mesa_set_search_pre_hashed(md->dom_frontier,
+                                                               entry->hash, entry->key));
+         }
+      }
+      state->block = NULL;
+   }
+
+   memset(state->ssa_defs_found, 0, BITSET_WORDS(impl->ssa_alloc) * sizeof(BITSET_WORD));
+   validate_ssa_dominance(impl, state);
+
+   /* Restore the old dominance metadata */
+   set_foreach(state->blocks, entry) {
+      nir_block *block = (nir_block *)entry->key;
+      block_dom_metadata *md = &blocks[entry - state->blocks->table];
+
+      ralloc_free(block->dom_children);
+      ralloc_free(block->dom_frontier);
+
+      block->index = md->index;
+      block->num_dom_children = md->num_dom_children;
+      block->dom_pre_index = md->dom_pre_index;
+      block->dom_post_index = md->dom_post_index;
+      block->dom_children = md->dom_children;
+      block->dom_frontier = md->dom_frontier;
+   }
+
+   ralloc_free(blocks);
+   impl->valid_metadata = valid_metadata;
+}
+
+typedef struct {
+   BITSET_WORD *live_in;
+   BITSET_WORD *live_out;
+} block_liveness_metadata;
+
+static void
+validate_live_defs(nir_function_impl *impl, validate_state *state)
+{
+   nir_metadata valid_metadata = impl->valid_metadata;
+
+   /* Preserve live defs */
+   block_liveness_metadata *blocks = ralloc_array(state->mem_ctx, block_liveness_metadata,
+                                                  state->blocks->size);
+   set_foreach(state->blocks, entry) {
+      nir_block *block = (nir_block *)entry->key;
+      block_liveness_metadata *md = &blocks[entry - state->blocks->table];
+      md->live_in = block->live_in;
+      md->live_out = block->live_out;
+
+      block->live_in = NULL;
+      block->live_out = NULL;
+   }
+
+   /* Call metadata passes and compare it against the preserved metadata */
+   impl->valid_metadata &= ~nir_metadata_live_defs;
+   nir_metadata_require(impl, nir_metadata_live_defs);
+   assert(impl->valid_metadata == valid_metadata);
+
+   set_foreach(state->blocks, entry) {
+      nir_block *block = (nir_block *)entry->key;
+      block_liveness_metadata *md = &blocks[entry - state->blocks->table];
+      state->block = (nir_block *)block;
+
+      if (block == impl->end_block)
+         continue;
+
+      size_t bitset_words = BITSET_WORDS(impl->ssa_alloc);
+      if (bitset_words) {
+         validate_assert(state, !memcmp(md->live_in, block->live_in,
+                                        sizeof(BITSET_WORD) * bitset_words));
+         validate_assert(state, !memcmp(md->live_out, block->live_out,
+                                        sizeof(BITSET_WORD) * bitset_words));
+      }
+   }
+   state->block = NULL;
+
+   /* Restore the old live defs metadata */
+   set_foreach(state->blocks, entry) {
+      nir_block *block = (nir_block *)entry->key;
+      block_liveness_metadata *md = &blocks[entry - state->blocks->table];
+
+      ralloc_free(block->live_in);
+      ralloc_free(block->live_out);
+
+      block->live_in = md->live_in;
+      block->live_out = md->live_out;
+   }
+
+   ralloc_free(blocks);
+}
+
+static bool
+are_loop_terminators_equal(const nir_loop_terminator *a, const nir_loop_terminator *b)
+{
+   if (!a || !b)
+      return !a && !b;
+
+   return a->nif == b->nif &&
+          a->conditional_instr == b->conditional_instr &&
+          a->break_block == b->break_block &&
+          a->continue_from_block == b->continue_from_block &&
+          a->continue_from_then == b->continue_from_then &&
+          a->induction_rhs == b->induction_rhs &&
+          a->exact_trip_count_unknown == b->exact_trip_count_unknown;
+}
+
+static void
+validate_loop_info(nir_function_impl *impl, validate_state *state)
+{
+   nir_metadata valid_metadata = impl->valid_metadata;
+
+   /* Preserve loop info */
+   struct hash_table *loops = _mesa_pointer_hash_table_create(state->mem_ctx);
+   set_foreach(state->blocks, entry) {
+      nir_block *block = (nir_block *)entry->key;
+      if (block->cf_node.parent->type == nir_cf_node_loop &&
+          nir_cf_node_is_first(&block->cf_node)) {
+         nir_loop *loop = nir_cf_node_as_loop(block->cf_node.parent);
+         _mesa_hash_table_insert(loops, loop, loop->info);
+         loop->info = NULL;
+      }
+   }
+
+   /* Call metadata passes and compare it against the preserved metadata */
+   impl->valid_metadata &= ~nir_metadata_loop_analysis;
+   nir_metadata_require(impl, nir_metadata_loop_analysis, impl->loop_analysis_indirect_mask,
+                        impl->loop_analysis_force_unroll_sampler_indirect);
+   assert(impl->valid_metadata == valid_metadata);
+
+   hash_table_foreach(loops, entry) {
+      const nir_loop *loop = entry->key;
+      const nir_loop_info *md = entry->data;
+
+      validate_assert(state, loop->info->instr_cost == md->instr_cost);
+      validate_assert(state, loop->info->has_soft_fp64 == md->has_soft_fp64);
+      validate_assert(state, loop->info->guessed_trip_count == md->guessed_trip_count);
+      validate_assert(state, loop->info->max_trip_count == md->max_trip_count);
+      validate_assert(state, loop->info->exact_trip_count_known == md->exact_trip_count_known);
+      validate_assert(state, loop->info->force_unroll == md->force_unroll);
+      validate_assert(state, loop->info->complex_loop == md->complex_loop);
+
+      validate_assert(state, are_loop_terminators_equal(loop->info->limiting_terminator,
+                                                        md->limiting_terminator));
+
+      validate_assert(state, list_length(&loop->info->loop_terminator_list) ==
+                                list_length(&md->loop_terminator_list));
+      list_pair_for_each_entry(nir_loop_terminator, a, b, &loop->info->loop_terminator_list,
+                               &md->loop_terminator_list, loop_terminator_link) {
+         validate_assert(state, are_loop_terminators_equal(a, b));
+      }
+
+      validate_assert(state, loop->info->num_induction_vars == md->num_induction_vars);
+      for (unsigned i = 0; i < MIN2(loop->info->num_induction_vars, md->num_induction_vars); i++) {
+         nir_loop_induction_variable *a = &loop->info->induction_vars[i];
+         nir_loop_induction_variable *b = &md->induction_vars[i];
+         validate_assert(state, a->def == b->def);
+         validate_assert(state, a->init_src == b->init_src);
+         validate_assert(state, a->update_src == b->update_src);
+      }
+   }
+
+   /* Restore the old loop info */
+   hash_table_foreach(loops, entry) {
+      nir_loop *loop = (nir_loop *)entry->key;
+      nir_loop_info *md = entry->data;
+
+      ralloc_free(loop->info);
+      loop->info = md;
+   }
+}
+
+static void
+validate_metadata_and_ssa_dominance(nir_function_impl *impl, validate_state *state)
+{
+   /* We should preserve and restore metadata when necessary, so that passes do not accidentally
+    * depend on nir_validate_shader().
+    */
+
+   if (impl->valid_metadata & nir_metadata_block_index)
+      validate_block_index(impl, state);
+
+   if (impl->valid_metadata & nir_metadata_instr_index)
+      validate_instr_index(impl, state);
+
+   /* This validates both metadata and SSA dominance. */
+   validate_dominance(impl, state);
+
+   if (impl->valid_metadata & nir_metadata_live_defs)
+      validate_live_defs(impl, state);
+
+   if (impl->valid_metadata & nir_metadata_loop_analysis)
+      validate_loop_info(impl, state);
 }
 
 static void
@@ -1667,15 +1958,9 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
     */
    validate_assert(state, state->nr_tagged_srcs == 0);
 
-   static int validate_dominance = -1;
-   if (validate_dominance < 0) {
-      validate_dominance =
-         NIR_DEBUG(VALIDATE_SSA_DOMINANCE);
-   }
-   if (validate_dominance) {
-      memset(state->ssa_defs_found, 0, BITSET_WORDS(impl->ssa_alloc) * sizeof(BITSET_WORD));
-      validate_ssa_dominance(impl, state);
-   }
+   /* Metadata validation assumes a valid NIR shader. */
+   if (_mesa_hash_table_num_entries(state->errors) == 0)
+      validate_metadata_and_ssa_dominance(impl, state);
 }
 
 static void

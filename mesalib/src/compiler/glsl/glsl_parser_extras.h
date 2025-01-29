@@ -1015,6 +1015,9 @@ struct _mesa_glsl_parse_state {
     * so we can check totals aren't too large.
     */
    unsigned clip_dist_size, cull_dist_size;
+
+   /* for OVR_multiview */
+   uint32_t view_mask;
 };
 
 # define YYLLOC_DEFAULT(Current, Rhs, N)                        \

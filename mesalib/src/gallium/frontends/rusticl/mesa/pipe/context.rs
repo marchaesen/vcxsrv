@@ -41,7 +41,7 @@ impl PipeContext {
     pub(super) fn new(context: *mut pipe_context, screen: &Arc<PipeScreen>) -> Option<Self> {
         let s = Self {
             pipe: NonNull::new(context)?,
-            screen: screen.clone(),
+            screen: Arc::clone(screen),
         };
 
         if !has_required_cbs(unsafe { s.pipe.as_ref() }) {

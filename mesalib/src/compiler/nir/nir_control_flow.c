@@ -939,6 +939,7 @@ nir_sort_unstructured_blocks(nir_function_impl *impl)
       assert(blocks[i].index == 0);
       assert(blocks[i].block == NULL);
    }
+   impl->num_blocks = count;
 
    foreach_list_typed_safe(nir_cf_node, node, node, &dead_blocks)
       cleanup_cf_node(node, impl);

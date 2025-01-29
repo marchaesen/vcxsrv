@@ -113,13 +113,13 @@ radv_recompute_fs_input_bases_callback(UNUSED nir_builder *b, nir_intrinsic_inst
 bool
 radv_recompute_fs_input_bases(nir_shader *nir)
 {
-   const uint64_t always_per_vertex =
-      nir->info.inputs_read & ~nir->info.per_primitive_inputs & ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT);
+   const uint64_t always_per_vertex = nir->info.inputs_read & ~nir->info.per_primitive_inputs &
+                                      ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT | VARYING_BIT_LAYER);
 
    const uint64_t potentially_per_primitive = nir->info.inputs_read & (VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT);
 
-   const uint64_t always_per_primitive =
-      nir->info.inputs_read & nir->info.per_primitive_inputs & ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT);
+   const uint64_t always_per_primitive = nir->info.inputs_read & nir->info.per_primitive_inputs &
+                                         ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT | VARYING_BIT_LAYER);
 
    radv_recompute_fs_input_bases_state s = {
       .always_per_vertex = always_per_vertex,

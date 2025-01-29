@@ -706,6 +706,25 @@ panfrost_resource_set_damage_region(struct pipe_screen *screen,
    }
 }
 
+static bool
+panfrost_can_create_resource(struct pipe_screen *screen,
+                             const struct pipe_resource *template)
+{
+   struct panfrost_resource tmp;
+   tmp.base = *template;
+
+   panfrost_resource_setup(screen, &tmp, DRM_FORMAT_MOD_INVALID, template->format);
+
+   uint64_t system_memory;
+   if (!os_get_total_physical_memory(&system_memory))
+      return false;
+
+   /* Limit maximum texture size to a quarter of the system memory, to avoid
+    * allocating huge textures on systems with little memory.
+    */
+   return tmp.image.layout.data_size <= system_memory / 4;
+}
+
 struct pipe_resource *
 panfrost_resource_create_with_modifier(struct pipe_screen *screen,
                                        const struct pipe_resource *template,
@@ -1567,7 +1586,7 @@ panfrost_should_linear_convert(struct panfrost_context *ctx,
    }
 }
 
-struct panfrost_bo *
+static struct panfrost_bo *
 panfrost_get_afbc_superblock_sizes(struct panfrost_context *ctx,
                                    struct panfrost_resource *rsrc,
                                    unsigned first_level, unsigned last_level,
@@ -1586,10 +1605,12 @@ panfrost_get_afbc_superblock_sizes(struct panfrost_context *ctx,
       metadata_size += sz;
    }
 
+   bo = panfrost_bo_create(dev, metadata_size, 0, "AFBC superblock sizes");
+   if (!bo)
+      return NULL;
+
    panfrost_flush_batches_accessing_rsrc(ctx, rsrc, "AFBC before size flush");
    batch = panfrost_get_fresh_batch_for_fbo(ctx, "AFBC superblock sizes");
-   bo = panfrost_bo_create(dev, metadata_size, 0, "AFBC superblock sizes");
-   assert(bo);
 
    for (int level = first_level; level <= last_level; ++level) {
       unsigned offset = out_offsets[level - first_level];
@@ -1629,6 +1650,12 @@ panfrost_pack_afbc(struct panfrost_context *ctx,
 
    metadata_bo = panfrost_get_afbc_superblock_sizes(ctx, prsrc, 0, last_level,
                                                     metadata_offsets);
+
+   if (!metadata_bo) {
+      mesa_loge("panfrost_pack_afbc: failed to get afbc superblock sizes");
+      return;
+   }
+
    panfrost_bo_wait(metadata_bo, INT64_MAX, false);
 
    for (unsigned level = 0; level <= last_level; ++level) {
@@ -1694,7 +1721,13 @@ panfrost_pack_afbc(struct panfrost_context *ctx,
 
    struct panfrost_bo *dst =
       panfrost_bo_create(dev, new_size, 0, "AFBC compact texture");
-   assert(dst);
+
+   if (!dst) {
+      mesa_loge("panfrost_pack_afbc: failed to get afbc superblock sizes");
+      panfrost_bo_unreference(metadata_bo);
+      return;
+   }
+
    struct panfrost_batch *batch =
       panfrost_get_fresh_batch_for_fbo(ctx, "AFBC compaction");
 
@@ -1782,14 +1815,11 @@ panfrost_ptr_unmap(struct pipe_context *pctx, struct pipe_transfer *transfer)
             if (panfrost_should_linear_convert(ctx, prsrc, transfer)) {
                panfrost_resource_setup(screen, prsrc, DRM_FORMAT_MOD_LINEAR,
                                        prsrc->image.layout.format);
-               if (prsrc->image.layout.data_size > panfrost_bo_size(bo)) {
-                  const char *label = bo->label;
-                  panfrost_bo_unreference(bo);
-                  bo = prsrc->bo = panfrost_bo_create(
-                     dev, prsrc->image.layout.data_size, 0, label);
-                  prsrc->image.data.base = prsrc->bo->ptr.gpu;
-                  assert(bo);
-               }
+
+               /* converting the resource from tiled to linear and back
+                * shouldn't increase memory usage...
+                */
+               assert(prsrc->image.layout.data_size <= panfrost_bo_size(bo));
 
                util_copy_rect(
                   bo->ptr.cpu + prsrc->image.layout.slices[0].offset,
@@ -1937,6 +1967,7 @@ static const struct u_transfer_vtbl transfer_vtbl = {
 void
 panfrost_resource_screen_init(struct pipe_screen *pscreen)
 {
+   pscreen->can_create_resource = panfrost_can_create_resource;
    pscreen->resource_create_with_modifiers =
       panfrost_resource_create_with_modifiers;
    pscreen->resource_create = u_transfer_helper_resource_create;

@@ -46,7 +46,6 @@ include:
   - local: .gitlab-ci.d/templates/test.yml
     inputs:
       target: linux-arm-v7
-      toolchain: [gnu]  # TODO: https://gitlab.freedesktop.org/pixman/pixman/-/issues/113
       qemu_cpu: [max]
       runner_tag: kvm-aarch64
       docker_job: docker:kvm-aarch64

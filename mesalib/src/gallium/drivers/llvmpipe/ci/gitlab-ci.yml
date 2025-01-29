@@ -67,7 +67,7 @@ llvmpipe-deqp-asan:
     - .test-android
     - .llvmpipe-rules
   variables:
-    ANDROID_GPU_MODE: guest_swiftshader
+    ANDROID_GPU_MODE: mesa_swrast
     GPU_VERSION: llvmpipe
     DEQP_SUITE: android-llvmpipe
     # TODO: define DEQP_FRACTION?

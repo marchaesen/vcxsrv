@@ -373,7 +373,6 @@
 
   <enum name="Pixel Kill">
     <value name="Force Early" value="0"/>
-    <value name="Strong Early" value="1"/>
     <value name="Weak Early" value="2"/>
     <value name="Force Late" value="3"/>
   </enum>
@@ -482,8 +481,8 @@
     <field name="Stride" size="32" start="4:0" type="uint"/>
 
     <!-- Vertex packet buffer only -->
-    <field name="Packet stride" size="16" start="4:0" type="uint" modifier="shr(6)"/>
-    <field name="Attribute stride" size="16" start="4:16" type="uint"/>
+    <field name="Attribute stride" size="16" start="4:0" type="uint"/>
+    <field name="Packet stride" size="16" start="4:16" type="uint"/>
 
     <field name="Divisor D" size="32" start="5:0" type="uint"/>
   </struct>

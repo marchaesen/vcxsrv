@@ -714,7 +714,7 @@ etna_emit_state(struct etna_context *ctx)
 
       if (screen->specs.has_unified_uniforms) {
          etna_set_state(stream, VIVS_VS_UNIFORM_BASE, 0);
-         etna_set_state(stream, VIVS_PS_UNIFORM_BASE, screen->specs.max_vs_uniforms);
+         etna_set_state(stream, VIVS_PS_UNIFORM_BASE, ctx->shader.vs->uniforms.count / 4);
       }
 
       if (do_uniform_flush)

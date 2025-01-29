@@ -824,3 +824,30 @@ ac_nir_pack_ngg_prim_exp_arg(nir_builder *b, unsigned num_vertices_per_primitive
 
    return arg;
 }
+
+void
+ac_nir_clamp_vertex_color_outputs(nir_builder *b, ac_nir_prerast_out *out)
+{
+   /* Clamp color outputs. */
+   if (!(b->shader->info.outputs_written & (VARYING_BIT_COL0 | VARYING_BIT_COL1 |
+                                            VARYING_BIT_BFC0 | VARYING_BIT_BFC1)))
+      return;
+
+   nir_def *color_channels[16] = {0};
+
+   nir_if *if_clamp = nir_push_if(b, nir_load_clamp_vertex_color_amd(b));
+   {
+      for (unsigned i = 0; i < 16; i++) {
+         const unsigned slot = (i / 8 ? VARYING_SLOT_BFC0 : VARYING_SLOT_COL0) + (i % 8) / 4;
+         if (out->outputs[slot][i % 4])
+            color_channels[i] = nir_fsat(b, out->outputs[slot][i % 4]);
+      }
+   }
+   nir_pop_if(b, if_clamp);
+   for (unsigned i = 0; i < 16; i++) {
+      if (color_channels[i]) {
+         const unsigned slot = (i / 8 ? VARYING_SLOT_BFC0 : VARYING_SLOT_COL0) + (i % 8) / 4;
+         out->outputs[slot][i % 4] = nir_if_phi(b, color_channels[i], out->outputs[slot][i % 4]);
+      }
+   }
+}

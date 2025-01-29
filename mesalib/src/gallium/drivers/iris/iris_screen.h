@@ -159,7 +159,7 @@ struct iris_vtable {
    void (*lost_genx_state)(struct iris_context *ice, struct iris_batch *batch);
    void (*disable_rhwo_optimization)(struct iris_batch *batch, bool disable);
 
-   nir_shader *(*load_shader_lib)(struct iris_screen *screen, void *mem_ctx);
+   const uint32_t *(*load_shader_lib_spv)(uint32_t *out_size);
    unsigned (*call_generation_shader)(struct iris_screen *screen, nir_builder *b);
 };
 

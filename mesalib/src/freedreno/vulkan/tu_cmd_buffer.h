@@ -148,6 +148,8 @@ enum tu_cmd_access_mask {
     */
    TU_ACCESS_CCHE_READ = 1 << 16,
 
+   TU_ACCESS_RTU_READ = 1 << 17,
+
    TU_ACCESS_READ =
       TU_ACCESS_UCHE_READ |
       TU_ACCESS_CCU_COLOR_READ |
@@ -212,6 +214,7 @@ enum tu_cmd_flush_bits {
     * as it isn't necessary. Therefore, it's not included in ALL_FLUSH.
     */
    TU_CMD_FLAG_BLIT_CACHE_CLEAN = 1 << 11,
+   TU_CMD_FLAG_RTU_INVALIDATE = 1 << 12,
 
    TU_CMD_FLAG_ALL_CLEAN =
       TU_CMD_FLAG_CCU_CLEAN_DEPTH |
@@ -234,7 +237,8 @@ enum tu_cmd_flush_bits {
        * in case there was another command before the current command buffer
        * that it needs to wait for.
        */
-      TU_CMD_FLAG_WAIT_FOR_ME,
+      TU_CMD_FLAG_WAIT_FOR_ME |
+      TU_CMD_FLAG_RTU_INVALIDATE,
 };
 
 /* Changing the CCU from sysmem mode to gmem mode or vice-versa is pretty
@@ -315,6 +319,7 @@ struct tu_render_pass_state
    uint32_t drawcall_bandwidth_per_sample_sum;
 
    const char *lrz_disable_reason;
+   uint32_t lrz_disabled_at_draw;
 };
 
 /* These are the states of the suspend/resume state machine. In addition to
@@ -682,6 +687,18 @@ tu_restore_suspended_pass(struct tu_cmd_buffer *cmd,
 
 template <chip CHIP>
 void tu_cmd_render(struct tu_cmd_buffer *cmd);
+
+void tu_dispatch_unaligned(VkCommandBuffer commandBuffer,
+                           uint32_t x, uint32_t y, uint32_t z);
+
+void tu_dispatch_unaligned_indirect(VkCommandBuffer commandBuffer,
+                                    VkDeviceAddress size_addr);
+
+void tu_write_buffer_cp(VkCommandBuffer commandBuffer,
+                        VkDeviceAddress addr,
+                        void *data, uint32_t size);
+
+void tu_flush_buffer_write_cp(VkCommandBuffer commandBuffer);
 
 enum fd_gpu_event : uint32_t;
 

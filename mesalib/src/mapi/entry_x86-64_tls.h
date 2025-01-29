@@ -51,7 +51,7 @@ __asm__(".text\n"
 
 #define STUB_ASM_CODE(slot)                              \
    ENDBR                                                 \
-   "movq _glapi_tls_Dispatch@GOTTPOFF(%rip), %rax\n\t"  \
+   "movq _mesa_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax\n\t"  \
    "movq %fs:(%rax), %r11\n\t"                           \
    "jmp *(8 * " slot ")(%r11)"
 
@@ -59,7 +59,7 @@ __asm__(".text\n"
 
 #define STUB_ASM_CODE(slot)                              \
    ENDBR                                                 \
-   "movq _glapi_tls_Dispatch@GOTTPOFF(%rip), %rax\n\t"  \
+   "movq _mesa_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax\n\t"  \
    "movl %fs:(%rax), %r11d\n\t"                          \
    "movl 4*" slot "(%r11d), %r11d\n\t"                   \
    "jmp *%r11"

@@ -6,7 +6,7 @@ skips = ["install/freedreno-a6xx-skips.txt"]
 fraction = 400
 renderer_check = "Turnip Adreno .* 630"
 prefix = "asan-"
-tests_per_group = 500
+tests_per_group = 3500
 
 # Force the spiller on one test so we see its memory usage.
 [[deqp]]

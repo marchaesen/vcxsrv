@@ -465,7 +465,7 @@ pan_merge_empty_fs(struct mali_renderer_state_packed *rsd)
       cfg.properties.shader_modifies_coverage = true;
       cfg.properties.allow_forward_pixel_to_kill = true;
       cfg.properties.allow_forward_pixel_to_be_killed = true;
-      cfg.properties.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+      cfg.properties.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
 
       /* Alpha isn't written so these are vacuous */
       cfg.multisample_misc.overdraw_alpha0 = true;
@@ -1561,6 +1561,10 @@ panfrost_emit_shared_memory(struct panfrost_batch *batch,
    if (ss->info.tls_size) {
       struct panfrost_bo *bo = panfrost_batch_get_scratchpad(
          batch, ss->info.tls_size, dev->thread_tls_alloc, dev->core_id_range);
+
+      if (!bo)
+         return 0;
+
       info.tls.ptr = bo->ptr.gpu;
    }
 
@@ -1569,6 +1573,9 @@ panfrost_emit_shared_memory(struct panfrost_batch *batch,
                       dev->core_id_range;
 
       struct panfrost_bo *bo = panfrost_batch_get_shared_memory(batch, size, 1);
+
+      if (!bo)
+         return 0;
 
       info.wls.ptr = bo->ptr.gpu;
    }
@@ -2635,6 +2642,28 @@ panfrost_emit_varying_descriptor(struct panfrost_batch *batch,
 }
 #endif
 
+static struct pan_tls_info
+get_tls_info(struct panfrost_device *dev, struct panfrost_batch *batch)
+{
+   struct panfrost_bo *tls_bo = NULL;
+   if (batch->stack_size) {
+      tls_bo = panfrost_batch_get_scratchpad(batch, batch->stack_size,
+                                             dev->thread_tls_alloc,
+                                             dev->core_id_range);
+      if (!tls_bo)
+         mesa_loge("failed to allocate scratch-pad memory for stack");
+   }
+
+   return (struct pan_tls_info) {
+      .tls =
+         {
+            .ptr = tls_bo ? tls_bo->ptr.gpu : 0,
+            .size = batch->stack_size,
+         },
+   };
+}
+
+
 static void
 emit_tls(struct panfrost_batch *batch)
 {
@@ -2644,18 +2673,7 @@ emit_tls(struct panfrost_batch *batch)
    if (PAN_ARCH <= 5 && batch->framebuffer.gpu)
       return;
 
-   struct panfrost_bo *tls_bo =
-      batch->stack_size ? panfrost_batch_get_scratchpad(
-                             batch, batch->stack_size, dev->thread_tls_alloc,
-                             dev->core_id_range)
-                        : NULL;
-   struct pan_tls_info tls = {
-      .tls =
-         {
-            .ptr = tls_bo ? tls_bo->ptr.gpu : 0,
-            .size = batch->stack_size,
-         },
-   };
+   struct pan_tls_info tls = get_tls_info(dev, batch);
 
    assert(batch->tls.cpu);
    GENX(pan_emit_tls)(&tls, batch->tls.cpu);
@@ -2665,18 +2683,8 @@ static void
 emit_fbd(struct panfrost_batch *batch, struct pan_fb_info *fb)
 {
    struct panfrost_device *dev = pan_device(batch->ctx->base.screen);
-   struct panfrost_bo *tls_bo =
-      batch->stack_size ? panfrost_batch_get_scratchpad(
-                             batch, batch->stack_size, dev->thread_tls_alloc,
-                             dev->core_id_range)
-                        : NULL;
-   struct pan_tls_info tls = {
-      .tls =
-         {
-            .ptr = tls_bo ? tls_bo->ptr.gpu : 0,
-            .size = batch->stack_size,
-         },
-   };
+
+   struct pan_tls_info tls = get_tls_info(dev, batch);
 
 #if PAN_ARCH >= 6
    fb->sample_positions =
@@ -3996,6 +4004,12 @@ batch_get_polygon_list(struct panfrost_batch *batch)
       batch->polygon_list_bo = panfrost_batch_create_bo(
          batch, size, init_polygon_list ? 0 : PAN_BO_INVISIBLE,
          PIPE_SHADER_VERTEX, "Polygon list");
+
+      if (!batch->polygon_list_bo) {
+         mesa_loge("failed to allocate memory for polygon-list");
+         return 0;
+      }
+
       batch->tiler_ctx.midgard.polygon_list = batch->polygon_list_bo->ptr.gpu;
       panfrost_batch_add_bo(batch, batch->polygon_list_bo,
                             PIPE_SHADER_FRAGMENT);
@@ -4030,8 +4044,9 @@ init_polygon_list(struct panfrost_batch *batch)
 {
 #if PAN_ARCH <= 5
    uint64_t polygon_list = batch_get_polygon_list(batch);
-   pan_jc_initialize_tiler(&batch->pool.base, &batch->jm.jobs.vtc_jc,
-                           polygon_list);
+   if (polygon_list)
+      pan_jc_initialize_tiler(&batch->pool.base, &batch->jm.jobs.vtc_jc,
+                              polygon_list);
 #endif
 }
 

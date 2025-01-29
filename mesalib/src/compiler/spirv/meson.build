@@ -77,14 +77,11 @@ spirv2nir = executable(
   install : with_tools.contains('nir'),
 )
 
-if get_option('mesa-clc') == 'system'
-  prog_vtn_bindgen = find_program('vtn_bindgen', native : true)
-# Due to the cross build issues in current meson, we only build vtn_bindgen when
-# building drivers that need it or mesa-clc is explictly required.
-#
-# XXX: Build by default once https://github.com/mesonbuild/meson/pull/12022
-# ships.
-elif get_option('mesa-clc') != 'auto' or with_gallium_asahi or with_asahi_vk
+if get_option('mesa-clc') != 'system' and (with_gallium_asahi or \
+                                           with_asahi_vk or \
+                                           with_intel_vk or \
+                                           with_gallium_iris or \
+                                           get_option('install-mesa-clc'))
    prog_vtn_bindgen = executable(
      'vtn_bindgen',
      ['vtn_bindgen.c'],

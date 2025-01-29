@@ -88,9 +88,9 @@ static void
 init_glapi_relocs( void )
 {
     static const unsigned int template[] = {
-	0x05000000, /* sethi %hi(_glapi_tls_Dispatch), %g2 */
+	0x05000000, /* sethi %hi(_mesa_glapi_tls_Dispatch), %g2 */
 	0x8730e00a, /* srl %g3, 10, %g3 */
-	0x8410a000, /* or %g2, %lo(_glapi_tls_Dispatch), %g2 */
+	0x8410a000, /* or %g2, %lo(_mesa_glapi_tls_Dispatch), %g2 */
 #ifdef __arch64__
 	0xc259c002, /* ldx [%g7 + %g2], %g1 */
 	0xc2584003, /* ldx [%g1 + %g3], %g1 */

@@ -78,7 +78,6 @@ void bifrost_compile_shader_nir(nir_shader *nir,
       .lower_usub_borrow = true,                                               \
                                                                                \
       .has_isub = true,                                                        \
-      .vectorize_io = true,                                                    \
       .vectorize_vec2_16bit = true,                                            \
       .fuse_ffma16 = true,                                                     \
       .fuse_ffma32 = true,                                                     \

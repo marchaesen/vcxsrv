@@ -49,7 +49,7 @@ static const char *
 bir_fau_name(unsigned fau_idx)
 {
     const char *names[] = {
-            "zero", "lane-id", "wrap-id", "core-id", "fb-extent",
+            "zero", "lane-id", "warp-id", "core-id", "fb-extent",
             "atest-param", "sample-pos", "reserved",
             "blend_descriptor_0", "blend_descriptor_1",
             "blend_descriptor_2", "blend_descriptor_3",

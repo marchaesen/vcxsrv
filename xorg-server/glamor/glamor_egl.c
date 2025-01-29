@@ -520,6 +520,31 @@ glamor_egl_fd_name_from_pixmap(ScreenPtr screen,
     return fd;
 }
 
+static bool
+gbm_format_for_depth(CARD8 depth, uint32_t *format)
+{
+    switch (depth) {
+    case 15:
+        *format = GBM_FORMAT_ARGB1555;
+        return true;
+    case 16:
+        *format = GBM_FORMAT_RGB565;
+        return true;
+    case 24:
+        *format = GBM_FORMAT_XRGB8888;
+        return true;
+    case 30:
+        *format = GBM_FORMAT_ARGB2101010;
+        return true;
+    case 32:
+        *format = GBM_FORMAT_ARGB8888;
+        return true;
+    default:
+        ErrorF("unexpected depth: %d\n", depth);
+        return false;
+    }
+}
+
 Bool
 glamor_back_pixmap_from_fd(PixmapPtr pixmap,
                            int fd,
@@ -536,17 +561,14 @@ glamor_back_pixmap_from_fd(PixmapPtr pixmap,
 
     glamor_egl = glamor_egl_get_screen_private(scrn);
 
-    if (bpp != 32 || !(depth == 24 || depth == 32 || depth == 30) || width == 0 || height == 0)
+    if (!gbm_format_for_depth(depth, &import_data.format) ||
+        width == 0 || height == 0)
         return FALSE;
 
     import_data.fd = fd;
     import_data.width = width;
     import_data.height = height;
     import_data.stride = stride;
-    if (depth == 30)
-        import_data.format = GBM_FORMAT_ARGB2101010;
-    else
-        import_data.format = GBM_FORMAT_ARGB8888;
     bo = gbm_bo_import(glamor_egl->gbm, GBM_BO_IMPORT_FD, &import_data, 0);
     if (!bo)
         return FALSE;
@@ -556,25 +578,6 @@ glamor_back_pixmap_from_fd(PixmapPtr pixmap,
     ret = glamor_egl_create_textured_pixmap_from_gbm_bo(pixmap, bo, FALSE);
     gbm_bo_destroy(bo);
     return ret;
-}
-
-static uint32_t
-gbm_format_for_depth(CARD8 depth)
-{
-    switch (depth) {
-    case 15:
-        return GBM_FORMAT_ARGB1555;
-    case 16:
-        return GBM_FORMAT_RGB565;
-    case 24:
-        return GBM_FORMAT_XRGB8888;
-    case 30:
-        return GBM_FORMAT_ARGB2101010;
-    default:
-        ErrorF("unexpected depth: %d\n", depth);
-    case 32:
-        return GBM_FORMAT_ARGB8888;
-    }
 }
 
 PixmapPtr
@@ -599,6 +602,10 @@ glamor_pixmap_from_fds(ScreenPtr screen,
         struct gbm_import_fd_modifier_data import_data = { 0 };
         struct gbm_bo *bo;
 
+        if (!gbm_format_for_depth(depth, &import_data.format) ||
+            width == 0 || height == 0)
+            goto error;
+
         import_data.width = width;
         import_data.height = height;
         import_data.num_fds = num_fds;
@@ -608,7 +615,6 @@ glamor_pixmap_from_fds(ScreenPtr screen,
             import_data.strides[i] = strides[i];
             import_data.offsets[i] = offsets[i];
         }
-        import_data.format = gbm_format_for_depth(depth);
         bo = gbm_bo_import(glamor_egl->gbm, GBM_BO_IMPORT_FD_MODIFIER, &import_data, 0);
         if (bo) {
             screen->ModifyPixmapHeader(pixmap, width, height, 0, 0, strides[0], NULL);
@@ -624,6 +630,7 @@ glamor_pixmap_from_fds(ScreenPtr screen,
         }
     }
 
+error:
     if (ret == FALSE) {
         screen->DestroyPixmap(pixmap);
         return NULL;

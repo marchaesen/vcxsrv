@@ -2244,6 +2244,22 @@ nir_build_call(nir_builder *build, nir_function *func, size_t count,
 }
 
 static inline void
+nir_build_indirect_call(nir_builder *build, nir_function *func, nir_def *callee,
+                        size_t count, nir_def **args)
+{
+   assert(count == func->num_params && "parameter count must match");
+   assert(!func->impl && "cannot call directly defined functions indirectly");
+   nir_call_instr *call = nir_call_instr_create(build->shader, func);
+
+   for (unsigned i = 0; i < func->num_params; ++i) {
+      call->params[i] = nir_src_for_ssa(args[i]);
+   }
+   call->indirect_callee = nir_src_for_ssa(callee);
+
+   nir_builder_instr_insert(build, &call->instr);
+}
+
+static inline void
 nir_discard(nir_builder *build)
 {
    if (build->shader->options->discard_is_demote)
@@ -2274,6 +2290,12 @@ nir_build_string(nir_builder *build, const char *value);
    do {                                                    \
       nir_def *args[] = { __VA_ARGS__ };                   \
       nir_build_call(build, func, ARRAY_SIZE(args), args); \
+   } while (0)
+
+#define nir_call_indirect(build, func, callee, ...)                           \
+   do {                                                                       \
+      nir_def *_args[] = { __VA_ARGS__ };                                     \
+      nir_build_indirect_call(build, func, callee, ARRAY_SIZE(_args), _args); \
    } while (0)
 
 nir_def *

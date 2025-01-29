@@ -390,9 +390,18 @@ AuthAudit(ClientPtr client, Bool letin,
             strlcpy(addr, "local host", sizeof(addr));
             break;
 #if defined(TCPCONN)
-        case AF_INET:
-            snprintf(addr, sizeof(addr), "IP %s",
-                     inet_ntoa(((struct sockaddr_in *) saddr)->sin_addr));
+        case AF_INET:{
+#if defined(HAVE_INET_NTOP)
+            char ipaddr[INET_ADDRSTRLEN];
+
+            inet_ntop(AF_INET, &((struct sockaddr_in *) saddr)->sin_addr,
+                      ipaddr, sizeof(ipaddr));
+#else
+            const char *ipaddr =
+                inet_ntoa(((struct sockaddr_in *) saddr)->sin_addr);
+#endif
+            snprintf(addr, sizeof(addr), "IP %s", ipaddr);
+        }
             break;
 #if defined(IPv6)
         case AF_INET6:{

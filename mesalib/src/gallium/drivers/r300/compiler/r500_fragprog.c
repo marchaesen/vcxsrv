@@ -158,6 +158,12 @@ r500_swizzle_is_native(rc_opcode opcode, struct rc_src_register reg)
       if (reg.Abs)
          return 0;
 
+      /* Texture coordinates can be only read from temporary file,
+       * input is just a temporary with varying in it.
+       */
+      if (reg.File != RC_FILE_TEMPORARY && reg.File != RC_FILE_INPUT)
+         return 0;
+
       if (opcode == RC_OPCODE_KIL && (reg.Swizzle != RC_SWIZZLE_XYZW || reg.Negate != RC_MASK_NONE))
          return 0;
 

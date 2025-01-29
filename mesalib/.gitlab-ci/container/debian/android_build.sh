@@ -20,7 +20,7 @@ EPHEMERAL=(
 apt-get install -y --no-remove "${EPHEMERAL[@]}"
 
 # Fetch the NDK and extract just the toolchain we want.
-ndk=$ANDROID_NDK
+ndk="android-ndk-${ANDROID_NDK_VERSION}"
 curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
   -o $ndk.zip https://dl.google.com/android/repository/$ndk-linux.zip
 unzip -d / $ndk.zip "$ndk/source.properties" "$ndk/build/cmake/*" "$ndk/toolchains/llvm/*"

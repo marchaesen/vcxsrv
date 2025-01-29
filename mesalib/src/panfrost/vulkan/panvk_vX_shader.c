@@ -650,6 +650,17 @@ panvk_lower_nir(struct panvk_device *dev, nir_shader *nir,
    }
 #endif
 
+   /* Lower input intrinsics for fragment shaders early to get the max
+    * number of varying loads, as this number is required during descriptor
+    * lowering for v9+. */
+   if (stage == MESA_SHADER_FRAGMENT) {
+      nir_assign_io_var_locations(nir, nir_var_shader_in, &nir->num_inputs,
+                                  stage);
+#if PAN_ARCH >= 9
+      shader->desc_info.max_varying_loads = nir->num_inputs;
+#endif
+   }
+
    panvk_per_arch(nir_lower_descriptors)(nir, dev, rs, set_layout_count,
                                          set_layouts, shader);
 
@@ -706,7 +717,8 @@ panvk_lower_nir(struct panvk_device *dev, nir_shader *nir,
                 var->data.location <= VERT_ATTRIB_GENERIC15);
          var->data.driver_location = var->data.location - VERT_ATTRIB_GENERIC0;
       }
-   } else {
+   } else if (stage != MESA_SHADER_FRAGMENT) {
+      /* Input varyings in fragment shader have been lowered early. */
       nir_assign_io_var_locations(nir, nir_var_shader_in, &nir->num_inputs,
                                   stage);
    }
@@ -1050,6 +1062,12 @@ panvk_compile_shader(struct panvk_device *dev,
    panvk_lower_nir(dev, nir, info->set_layout_count, info->set_layouts,
                    info->robustness, noperspective_varyings, &inputs, shader);
 
+#if PAN_ARCH >= 9
+   if (info->stage == MESA_SHADER_FRAGMENT)
+      /* Use LD_VAR_BUF[_IMM] for varyings if possible. */
+      inputs.valhall.use_ld_var_buf = panvk_use_ld_var_buf(shader);
+#endif
+
    result = panvk_compile_nir(dev, nir, info->flags, &inputs, shader);
 
    /* We need to update info.push.count because it's used to initialize the
@@ -1097,9 +1115,6 @@ panvk_compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
                                     pAllocator,
                                     &shaders_out[i]);
 
-      /* Clean up NIR for the current shader */
-      ralloc_free(infos[i].nir);
-
       if (result != VK_SUCCESS)
          goto err_cleanup;
 
@@ -1112,6 +1127,9 @@ panvk_compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
          use_static_noperspective = true;
          noperspective_varyings = shader->info.varyings.noperspective;
       }
+
+      /* Clean up NIR for the current shader */
+      ralloc_free(infos[i].nir);
    }
 
    /* TODO: If we get multiple shaders here, we can perform part of the link
@@ -1121,11 +1139,11 @@ panvk_compile_shaders(struct vk_device *vk_dev, uint32_t shader_count,
 
 err_cleanup:
    /* Clean up all the shaders before this point */
-   for (uint32_t j = 0; j < i; j++)
+   for (int32_t j = shader_count - 1; j > i; j--)
       panvk_shader_destroy(&dev->vk, shaders_out[j], pAllocator);
 
-   /* Clean up all the NIR after this point */
-   for (uint32_t j = i + 1; j < shader_count; j++)
+   /* Clean up all the NIR from this point */
+   for (int32_t j = i; j >= 0; j--)
       ralloc_free(infos[j].nir);
 
    /* Memset the output array */

@@ -35,34 +35,50 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer, VkQueryType qu
                               bool uses_emulated_queries);
 
 static void
-gfx10_copy_shader_query(struct radeon_cmdbuf *cs, uint32_t offset, uint64_t va)
+gfx10_copy_shader_query(struct radeon_cmdbuf *cs, uint32_t src_sel, uint64_t src_va, uint64_t dst_va)
 {
    radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
-   radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_GDS) | COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) | COPY_DATA_WR_CONFIRM);
-   radeon_emit(cs, offset);
-   radeon_emit(cs, 0);
-   radeon_emit(cs, va);
-   radeon_emit(cs, va >> 32);
+   radeon_emit(cs, COPY_DATA_SRC_SEL(src_sel) | COPY_DATA_DST_SEL(COPY_DATA_DST_MEM) | COPY_DATA_WR_CONFIRM);
+   radeon_emit(cs, src_va);
+   radeon_emit(cs, src_va >> 32);
+   radeon_emit(cs, dst_va);
+   radeon_emit(cs, dst_va >> 32);
 }
 
 static void
-gfx10_copy_shader_query_gfx(struct radv_cmd_buffer *cmd_buffer, uint32_t offset, uint64_t va)
+gfx10_copy_shader_query_gfx(struct radv_cmd_buffer *cmd_buffer, bool use_gds, uint32_t src_offset, uint64_t dst_va)
 {
-   /* Make sure GDS is idle before copying the value. */
-   cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_PS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_L2;
+   uint32_t src_sel;
+   uint64_t src_va;
+
+   if (use_gds) {
+      /* Make sure GDS is idle before copying the value. */
+      cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_PS_PARTIAL_FLUSH;
+
+      src_sel = COPY_DATA_GDS;
+      src_va = src_offset;
+   } else {
+      /* Make sure GE is idle before copying the value. */
+      cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_VS_PARTIAL_FLUSH;
+
+      src_sel = COPY_DATA_SRC_MEM;
+      src_va = cmd_buffer->state.shader_query_buf_va + src_offset - RADV_SHADER_QUERY_PRIM_GEN_OFFSET(0);
+   }
+
+   cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_INV_L2;
    radv_emit_cache_flush(cmd_buffer);
 
-   gfx10_copy_shader_query(cmd_buffer->cs, offset, va);
+   gfx10_copy_shader_query(cmd_buffer->cs, src_sel, src_va, dst_va);
 }
 
 static void
-gfx10_copy_shader_query_ace(struct radv_cmd_buffer *cmd_buffer, uint32_t offset, uint64_t va)
+gfx10_copy_shader_query_ace(struct radv_cmd_buffer *cmd_buffer, uint32_t src_offset, uint64_t src_va)
 {
    /* Make sure GDS is idle before copying the value. */
    cmd_buffer->gang.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_L2;
    radv_gang_cache_flush(cmd_buffer);
 
-   gfx10_copy_shader_query(cmd_buffer->gang.cs, offset, va);
+   gfx10_copy_shader_query(cmd_buffer->gang.cs, COPY_DATA_GDS, src_offset, src_va);
 }
 
 static void
@@ -638,14 +654,14 @@ radv_begin_pipeline_stat_query(struct radv_cmd_buffer *cmd_buffer, struct radv_q
          const unsigned pipelinestat_block_size = radv_get_pipelinestat_query_size(device);
          const uint64_t prim_va = va + pipelinestat_block_size * 2;
 
-         gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, prim_va);
+         gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, prim_va);
       }
 
       if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT) {
          uint32_t mesh_invoc_offset =
             radv_get_pipelinestat_query_offset(VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT);
 
-         gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_MS_INVOCATION_OFFSET, va + mesh_invoc_offset);
+         gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_MS_INVOCATION_OFFSET, va + mesh_invoc_offset);
       }
 
       /* Record that the command buffer needs GDS. */
@@ -720,14 +736,14 @@ radv_end_pipeline_stat_query(struct radv_cmd_buffer *cmd_buffer, struct radv_que
       if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT) {
          const uint64_t prim_va = va + pipelinestat_block_size + 8;
 
-         gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, prim_va);
+         gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_GS_PRIM_EMIT_OFFSET, prim_va);
       }
 
       if (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT) {
          uint32_t mesh_invoc_offset =
             radv_get_pipelinestat_query_offset(VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT);
 
-         gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_MS_INVOCATION_OFFSET, va + mesh_invoc_offset);
+         gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_MS_INVOCATION_OFFSET, va + mesh_invoc_offset);
       }
 
       cmd_buffer->state.active_emulated_pipeline_queries--;
@@ -962,6 +978,28 @@ emit_sample_streamout(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint32_t 
 }
 
 static void
+radv_alloc_shader_query_buf(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   unsigned offset;
+   void *ptr;
+
+   assert(pdev->info.gfx_level >= GFX12);
+
+   if (cmd_buffer->state.shader_query_buf_va)
+      return;
+
+   if (!radv_cmd_buffer_upload_alloc_aligned(cmd_buffer, RADV_SHADER_QUERY_BUF_SIZE, 64, &offset, &ptr))
+      return;
+
+   memset(ptr, 0, RADV_SHADER_QUERY_BUF_SIZE);
+
+   cmd_buffer->state.shader_query_buf_va = radv_buffer_get_va(cmd_buffer->upload.upload_bo);
+   cmd_buffer->state.shader_query_buf_va += offset;
+}
+
+static void
 radv_begin_tfb_query(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint32_t index)
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
@@ -969,16 +1007,18 @@ radv_begin_tfb_query(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint32_t i
    struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
    if (pdev->use_ngg_streamout) {
+      const bool uses_gds = pdev->info.gfx_level < GFX12;
+
       /* generated prim counter */
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va);
+      gfx10_copy_shader_query_gfx(cmd_buffer, uses_gds, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va);
       radv_cs_write_data_imm(cs, V_370_ME, va + 4, 0x80000000);
 
       /* written prim counter */
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_XFB_OFFSET(index), va + 8);
+      gfx10_copy_shader_query_gfx(cmd_buffer, uses_gds, RADV_SHADER_QUERY_PRIM_XFB_OFFSET(index), va + 8);
       radv_cs_write_data_imm(cs, V_370_ME, va + 12, 0x80000000);
 
       /* Record that the command buffer needs GDS. */
-      cmd_buffer->gds_needed = true;
+      cmd_buffer->gds_needed |= uses_gds;
 
       if (!cmd_buffer->state.active_emulated_prims_xfb_queries)
          cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
@@ -1001,12 +1041,14 @@ radv_end_tfb_query(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint32_t ind
    struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
    if (pdev->use_ngg_streamout) {
+      const bool uses_gds = pdev->info.gfx_level < GFX12;
+
       /* generated prim counter */
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 16);
+      gfx10_copy_shader_query_gfx(cmd_buffer, uses_gds, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 16);
       radv_cs_write_data_imm(cs, V_370_ME, va + 20, 0x80000000);
 
       /* written prim counter */
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_XFB_OFFSET(index), va + 24);
+      gfx10_copy_shader_query_gfx(cmd_buffer, uses_gds, RADV_SHADER_QUERY_PRIM_XFB_OFFSET(index), va + 24);
       radv_cs_write_data_imm(cs, V_370_ME, va + 28, 0x80000000);
 
       cmd_buffer->state.active_emulated_prims_xfb_queries--;
@@ -1340,12 +1382,14 @@ radv_begin_pg_query(struct radv_cmd_buffer *cmd_buffer, struct radv_query_pool *
    struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
    if (pdev->info.gfx_level >= GFX11) {
+      const bool uses_gds = pdev->info.gfx_level < GFX12;
+
       /* On GFX11+, primitives generated query are always emulated. */
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va);
+      gfx10_copy_shader_query_gfx(cmd_buffer, uses_gds, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va);
       radv_cs_write_data_imm(cs, V_370_ME, va + 4, 0x80000000);
 
       /* Record that the command buffer needs GDS. */
-      cmd_buffer->gds_needed = true;
+      cmd_buffer->gds_needed |= uses_gds;
 
       if (!cmd_buffer->state.active_emulated_prims_gen_queries)
          cmd_buffer->state.dirty |= RADV_CMD_DIRTY_SHADER_QUERY;
@@ -1368,7 +1412,7 @@ radv_begin_pg_query(struct radv_cmd_buffer *cmd_buffer, struct radv_query_pool *
 
       if (pool->uses_emulated_queries) {
          /* generated prim counter */
-         gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 32);
+         gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 32);
          radv_cs_write_data_imm(cs, V_370_ME, va + 36, 0x80000000);
 
          /* Record that the command buffer needs GDS. */
@@ -1392,8 +1436,10 @@ radv_end_pg_query(struct radv_cmd_buffer *cmd_buffer, struct radv_query_pool *po
    struct radeon_cmdbuf *cs = cmd_buffer->cs;
 
    if (pdev->info.gfx_level >= GFX11) {
+      const bool uses_gds = pdev->info.gfx_level < GFX12;
+
       /* On GFX11+, primitives generated query are always emulated. */
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 16);
+      gfx10_copy_shader_query_gfx(cmd_buffer, uses_gds, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 16);
       radv_cs_write_data_imm(cs, V_370_ME, va + 20, 0x80000000);
 
       cmd_buffer->state.active_emulated_prims_gen_queries--;
@@ -1417,7 +1463,7 @@ radv_end_pg_query(struct radv_cmd_buffer *cmd_buffer, struct radv_query_pool *po
 
       if (pool->uses_emulated_queries) {
          /* generated prim counter */
-         gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 40);
+         gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_PRIM_GEN_OFFSET(index), va + 40);
          radv_cs_write_data_imm(cs, V_370_ME, va + 44, 0x80000000);
 
          cmd_buffer->state.active_emulated_prims_gen_queries--;
@@ -1597,7 +1643,7 @@ radv_begin_ms_prim_query(struct radv_cmd_buffer *cmd_buffer, uint64_t va)
       radeon_emit(cs, va);
       radeon_emit(cs, va >> 32);
    } else {
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_MS_PRIM_GEN_OFFSET, va);
+      gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_MS_PRIM_GEN_OFFSET, va);
       radv_cs_write_data_imm(cs, V_370_ME, va + 4, 0x80000000);
 
       /* Record that the command buffer needs GDS. */
@@ -1636,7 +1682,7 @@ radv_end_ms_prim_query(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t
       radv_cs_emit_write_event_eop(cs, pdev->info.gfx_level, cmd_buffer->qf, V_028A90_BOTTOM_OF_PIPE_TS, 0,
                                    EOP_DST_SEL_MEM, EOP_DATA_SEL_VALUE_32BIT, avail_va, 1, cmd_buffer->gfx9_eop_bug_va);
    } else {
-      gfx10_copy_shader_query_gfx(cmd_buffer, RADV_SHADER_QUERY_MS_PRIM_GEN_OFFSET, va + 8);
+      gfx10_copy_shader_query_gfx(cmd_buffer, true, RADV_SHADER_QUERY_MS_PRIM_GEN_OFFSET, va + 8);
       radv_cs_write_data_imm(cs, V_370_ME, va + 12, 0x80000000);
 
       cmd_buffer->state.active_emulated_prims_gen_queries--;
@@ -1952,6 +1998,10 @@ radv_create_query_pool(struct radv_device *device, const VkQueryPoolCreateInfo *
 
    /* The number of task shader invocations needs to be queried on ACE. */
    pool->uses_ace = (pool->vk.pipeline_statistics & VK_QUERY_PIPELINE_STATISTIC_TASK_SHADER_INVOCATIONS_BIT_EXT);
+
+   pool->uses_shader_query_buf =
+      pdev->info.gfx_level >= GFX12 && (pool->vk.query_type == VK_QUERY_TYPE_PRIMITIVES_GENERATED_EXT ||
+                                        pool->vk.query_type == VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT);
 
    switch (pCreateInfo->queryType) {
    case VK_QUERY_TYPE_OCCLUSION:
@@ -2700,6 +2750,9 @@ radv_CmdBeginQueryIndexedEXT(VkCommandBuffer commandBuffer, VkQueryPool queryPoo
 
       radv_cs_add_buffer(device->ws, cmd_buffer->gang.cs, pool->bo);
    }
+
+   if (pool->uses_shader_query_buf)
+      radv_alloc_shader_query_buf(cmd_buffer);
 
    emit_begin_query(cmd_buffer, pool, va, pool->vk.query_type, flags, index);
 }

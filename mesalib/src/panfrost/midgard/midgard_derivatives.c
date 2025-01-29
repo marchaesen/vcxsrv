@@ -123,7 +123,7 @@ midgard_emit_derivatives(compiler_context *ctx, nir_intrinsic_instr *instr)
    };
 
    ins.dest = nir_def_index_with_mask(&instr->def, &ins.mask);
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 void
@@ -161,7 +161,7 @@ midgard_lower_derivatives(compiler_context *ctx, midgard_block *block)
       dup.swizzle[1][1] = dup.swizzle[1][2] = dup.swizzle[1][3] = COMPONENT_W;
 
       /* Insert the new instruction */
-      mir_insert_instruction_before(ctx, mir_next_op(ins), dup);
+      mir_insert_instruction_before(ctx, mir_next_op(ins), &dup);
 
       /* We'll need both instructions to write to the same index, so
        * rewrite to use a register */

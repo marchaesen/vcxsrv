@@ -179,6 +179,9 @@ ac_nir_pack_ngg_prim_exp_arg(nir_builder *b, unsigned num_vertices_per_primitive
                              nir_def *vertex_indices[3], nir_def *is_null_prim,
                              enum amd_gfx_level gfx_level);
 
+void
+ac_nir_clamp_vertex_color_outputs(nir_builder *b, ac_nir_prerast_out *out);
+
 #ifdef __cplusplus
 }
 #endif

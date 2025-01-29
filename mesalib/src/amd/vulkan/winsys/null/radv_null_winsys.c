@@ -140,6 +140,8 @@ radv_null_winsys_query_info(struct radeon_winsys *rws, struct radeon_info *gpu_i
    gpu_info->has_accelerated_dot_product =
       gpu_info->family == CHIP_VEGA20 || (gpu_info->family >= CHIP_MI100 && gpu_info->family != CHIP_NAVI10);
 
+   gpu_info->has_image_bvh_intersect_ray = gpu_info->gfx_level >= GFX10_3;
+
    gpu_info->address32_hi = gpu_info->gfx_level >= GFX9 ? 0xffff8000u : 0x0;
 
    gpu_info->has_rbplus = gpu_info->family == CHIP_STONEY || gpu_info->gfx_level >= GFX9;

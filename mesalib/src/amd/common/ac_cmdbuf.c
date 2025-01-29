@@ -593,6 +593,7 @@ gfx12_init_graphics_preamble_state(const struct ac_preamble_state *state,
    ac_pm4_set_reg(pm4, R_00B2CC_SPI_SHADER_USER_ACCUM_ESGS_1, 0);
    ac_pm4_set_reg(pm4, R_00B2D0_SPI_SHADER_USER_ACCUM_ESGS_2, 0);
    ac_pm4_set_reg(pm4, R_00B2D4_SPI_SHADER_USER_ACCUM_ESGS_3, 0);
+   ac_pm4_set_reg(pm4, R_00B2B8_SPI_SHADER_GS_MESHLET_CTRL, 0);
 
    /* Shader registers - HS */
    ac_pm4_set_reg(pm4, R_00B418_SPI_SHADER_PGM_HI_LS,

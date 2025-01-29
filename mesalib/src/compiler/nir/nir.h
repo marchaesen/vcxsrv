@@ -73,7 +73,6 @@ extern bool nir_debug_print_shader[MESA_SHADER_KERNEL + 1];
 #define NIR_DEBUG_CLONE                  (1u << 0)
 #define NIR_DEBUG_SERIALIZE              (1u << 1)
 #define NIR_DEBUG_NOVALIDATE             (1u << 2)
-#define NIR_DEBUG_VALIDATE_SSA_DOMINANCE (1u << 3)
 #define NIR_DEBUG_TGSI                   (1u << 4)
 #define NIR_DEBUG_PRINT_VS               (1u << 5)
 #define NIR_DEBUG_PRINT_TCS              (1u << 6)
@@ -1872,6 +1871,10 @@ typedef struct {
    nir_instr instr;
 
    struct nir_function *callee;
+   /* If this function call is indirect, the function pointer to call.
+    * Otherwise, null initialized.
+    */
+   nir_src indirect_callee;
 
    unsigned num_params;
    nir_src params[];
@@ -3423,6 +3426,8 @@ typedef struct {
    bool structured;
 
    nir_metadata valid_metadata;
+   nir_variable_mode loop_analysis_indirect_mask;
+   bool loop_analysis_force_unroll_sampler_indirect;
 } nir_function_impl;
 
 #define nir_foreach_function_temp_variable(var, impl) \
@@ -3579,12 +3584,27 @@ typedef struct {
    uint8_t num_components;
    uint8_t bit_size;
 
-   /* True if this paramater is actually the function return variable */
+   /* True if this parameter is a deref used for returning values */
    bool is_return;
 
    bool implicit_conversion_prohibited;
 
+   /* True if this parameter is not divergent. This is inverted to make
+    * parameters divergent by default unless explicitly specified
+    * otherwise.
+    */
+   bool is_uniform;
+
    nir_variable_mode mode;
+
+   /* Drivers may optionally stash flags here describing the parameter.
+    * For example, this might encode whether the driver expects the value
+    * to be uniform or divergent, if the driver handles divergent parameters
+    * differently from uniform ones.
+    *
+    * NIR will preserve this value but does not interpret it in any way.
+    */
+   uint32_t driver_attributes;
 
    /* The type of the function param */
    const struct glsl_type *type;
@@ -3610,6 +3630,14 @@ typedef struct nir_function {
     * nir_function_set_impl to maintain IR invariants.
     */
    nir_function_impl *impl;
+
+   /* Drivers may optionally stash flags here describing the function call.
+    * For example, this might encode the ABI used for the call if a driver
+    * supports multiple ABIs.
+    *
+    * NIR will preserve this value but does not interpret it in any way.
+    */
+   uint32_t driver_attributes;
 
    bool is_entrypoint;
    /* from SPIR-V linkage, only for libraries */
@@ -3985,8 +4013,8 @@ typedef struct nir_shader_compiler_options {
    bool lower_insert_byte;
    bool lower_insert_word;
 
+   /* TODO: this flag is potentially useless, remove? */
    bool lower_all_io_to_temps;
-   bool lower_all_io_to_elements;
 
    /* Indicates that the driver only has zero-based vertex id */
    bool vertex_id_zero_based;
@@ -4097,11 +4125,6 @@ typedef struct nir_shader_compiler_options {
     */
    bool lower_mul_32x16;
 
-   /**
-    * Should IO be re-vectorized?  Some scalar ISAs still operate on vec4's
-    * for IO purposes and would prefer loads/stores be vectorized.
-    */
-   bool vectorize_io;
    bool vectorize_tess_levels;
    bool lower_to_scalar;
    nir_instr_filter_cb lower_to_scalar_filter;
@@ -5074,6 +5097,9 @@ void nir_instr_init_src(nir_instr *instr, nir_src *src, nir_def *def);
 void nir_instr_clear_src(nir_instr *instr, nir_src *src);
 
 void nir_instr_move_src(nir_instr *dest_instr, nir_src *dest, nir_src *src);
+
+/** Returns true if first comes before second in a block. */
+bool nir_instr_is_before(nir_instr *first, nir_instr *second);
 
 void nir_def_init(nir_instr *instr, nir_def *def,
                   unsigned num_components, unsigned bit_size);
@@ -6070,6 +6096,7 @@ bool nir_clear_shared_memory(nir_shader *shader,
                              const unsigned chunk_size);
 
 bool nir_move_vec_src_uses_to_dest(nir_shader *shader, bool skip_const_srcs);
+bool nir_move_output_stores_to_end(nir_shader *nir);
 bool nir_lower_vec_to_regs(nir_shader *shader, nir_instr_writemask_filter_cb cb,
                            const void *_data);
 bool nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
@@ -6475,7 +6502,8 @@ bool
 nir_lower_tex_shadow(nir_shader *s,
                      unsigned n_states,
                      enum compare_func *compare_func,
-                     nir_lower_tex_shadow_swizzle *tex_swizzles);
+                     nir_lower_tex_shadow_swizzle *tex_swizzles,
+                     bool is_fixed_point_format);
 
 typedef struct nir_lower_image_options {
    /**
@@ -6764,6 +6792,7 @@ void nir_loop_analyze_impl(nir_function_impl *impl,
                            nir_variable_mode indirect_mask,
                            bool force_unroll_sampler_indirect);
 
+/* This requires both nir_metadata_live_defs and nir_metadata_instr_index. */
 bool nir_defs_interfere(nir_def *a, nir_def *b);
 
 bool nir_repair_ssa_impl(nir_function_impl *impl);
@@ -6775,7 +6804,6 @@ void nir_divergence_analysis_impl(nir_function_impl *impl, nir_divergence_option
 void nir_divergence_analysis(nir_shader *shader);
 void nir_vertex_divergence_analysis(nir_shader *shader);
 bool nir_has_divergent_loop(nir_shader *shader);
-void nir_clear_divergence_info(nir_shader *nir);
 
 void
 nir_rewrite_uses_to_load_reg(struct nir_builder *b, nir_def *old,
@@ -6784,9 +6812,11 @@ nir_rewrite_uses_to_load_reg(struct nir_builder *b, nir_def *old,
 /* If phi_webs_only is true, only convert SSA values involved in phi nodes to
  * registers.  If false, convert all values (even those not involved in a phi
  * node) to registers.
+ * If consider_divergence is true, this pass will use divergence information
+ * in order to not coalesce copies from uniform to divergent registers.
  */
 bool nir_convert_from_ssa(nir_shader *shader,
-                          bool phi_webs_only);
+                          bool phi_webs_only, bool consider_divergence);
 
 bool nir_lower_phis_to_regs_block(nir_block *block);
 bool nir_lower_ssa_defs_to_regs_block(nir_block *block);
@@ -6845,6 +6875,8 @@ bool nir_opt_combine_barriers(nir_shader *shader,
                               nir_combine_barrier_cb combine_cb,
                               void *data);
 bool nir_opt_barrier_modes(nir_shader *shader);
+
+bool nir_minimize_call_live_states(nir_shader *shader);
 
 bool nir_opt_combine_stores(nir_shader *shader, nir_variable_mode modes);
 
@@ -6983,10 +7015,6 @@ bool nir_opt_ray_queries(nir_shader *shader);
 bool nir_opt_ray_query_ranges(nir_shader *shader);
 
 void nir_sweep(nir_shader *shader);
-
-void nir_remap_dual_slot_attributes(nir_shader *shader,
-                                    uint64_t *dual_slot_inputs);
-uint64_t nir_get_single_slot_attribs_mask(uint64_t attribs, uint64_t dual_slot);
 
 nir_intrinsic_op nir_intrinsic_from_system_value(gl_system_value val);
 gl_system_value nir_system_value_from_intrinsic(nir_intrinsic_op intrin);

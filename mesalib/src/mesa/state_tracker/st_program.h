@@ -360,9 +360,6 @@ extern void
 st_destroy_program_variants(struct st_context *st);
 
 extern void
-st_finalize_nir_before_variants(struct nir_shader *nir);
-
-extern void
 st_prepare_vertex_program(struct gl_program *stvp);
 
 extern void

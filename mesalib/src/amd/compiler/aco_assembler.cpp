@@ -37,6 +37,7 @@ struct asm_context {
    std::map<unsigned, constaddr_info> resumeaddrs;
    std::vector<struct aco_symbol>* symbols;
    uint32_t loop_header = -1u;
+   uint32_t loop_exit = 0u;
    const int16_t* opcode;
    // TODO: keep track of branch instructions referring blocks
    // and, when emitting the block, correct the offset in instr
@@ -1675,13 +1676,14 @@ fix_constaddrs(asm_context& ctx, std::vector<uint32_t>& out)
 void
 align_block(asm_context& ctx, std::vector<uint32_t>& code, Block& block)
 {
-   /* Blocks with block_kind_loop_exit might be eliminated after jump threading, so we instead find
-    * loop exits using loop_nest_depth.
-    */
-   if (ctx.loop_header != -1u && !block.linear_preds.empty() &&
+   /* Align the previous loop. */
+   if (ctx.loop_header != -1u &&
        block.loop_nest_depth < ctx.program->blocks[ctx.loop_header].loop_nest_depth) {
+      assert(ctx.loop_exit != -1u);
       Block& loop_header = ctx.program->blocks[ctx.loop_header];
+      Block& loop_exit = ctx.program->blocks[ctx.loop_exit];
       ctx.loop_header = -1u;
+      ctx.loop_exit = -1u;
       std::vector<uint32_t> nops;
 
       const unsigned loop_num_cl = DIV_ROUND_UP(block.offset - loop_header.offset, 16);
@@ -1700,9 +1702,14 @@ align_block(asm_context& ctx, std::vector<uint32_t>& code, Block& block)
          emit_instruction(ctx, nops, instr);
          insert_code(ctx, code, loop_header.offset, nops.size(), nops.data());
 
-         /* Change prefetch mode back to default (0x3). */
-         bld.reset(&block.instructions, block.instructions.begin());
-         bld.sopp(aco_opcode::s_inst_prefetch, 0x3);
+         /* Change prefetch mode back to default (0x3) at the loop exit. */
+         bld.reset(&loop_exit.instructions, loop_exit.instructions.begin());
+         instr = bld.sopp(aco_opcode::s_inst_prefetch, 0x3);
+         if (ctx.loop_exit < block.index) {
+            nops.clear();
+            emit_instruction(ctx, nops, instr);
+            insert_code(ctx, code, loop_exit.offset, nops.size(), nops.data());
+         }
       }
 
       const unsigned loop_start_cl = loop_header.offset >> 4;
@@ -1726,8 +1733,22 @@ align_block(asm_context& ctx, std::vector<uint32_t>& code, Block& block)
        * to not break the alignment of inner loops by handling outer loops.
        * Also ignore loops without back-edge.
        */
-      if (block.linear_preds.size() > 1)
+      if (block.linear_preds.size() > 1) {
          ctx.loop_header = block.index;
+         ctx.loop_exit = -1u;
+      }
+   }
+
+   /* Blocks with block_kind_loop_exit might be eliminated after jump threading,
+    * so we instead find loop exits using the successors when in loop_nest_depth.
+    * This works, because control flow always re-converges after loops.
+    */
+   if (ctx.loop_header != -1u && ctx.loop_exit == -1u) {
+      for (uint32_t succ_idx : block.linear_succs) {
+         Block& succ = ctx.program->blocks[succ_idx];
+         if (succ.loop_nest_depth < ctx.program->blocks[ctx.loop_header].loop_nest_depth)
+            ctx.loop_exit = succ_idx;
+      }
    }
 
    /* align resume shaders with cache line */

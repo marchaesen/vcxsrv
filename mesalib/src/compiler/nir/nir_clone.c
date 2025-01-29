@@ -719,6 +719,7 @@ nir_function_clone(nir_shader *ns, const nir_function *fxn)
    nfxn->should_inline = fxn->should_inline;
    nfxn->dont_inline = fxn->dont_inline;
    nfxn->is_subroutine = fxn->is_subroutine;
+   nfxn->driver_attributes = fxn->driver_attributes;
    nfxn->is_tmp_globals_wrapper = fxn->is_tmp_globals_wrapper;
    nfxn->num_subroutine_types = fxn->num_subroutine_types;
    nfxn->subroutine_index = fxn->subroutine_index;

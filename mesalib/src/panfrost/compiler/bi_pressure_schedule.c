@@ -85,6 +85,8 @@ create_dag(bi_context *ctx, bi_block *block, void *memctx)
       bi_foreach_dest(I, d)
          last_write[I->dest[d].value] = node;
 
+      add_dep(node, preload);
+
       switch (bi_opcode_props[I->op].message) {
       case BIFROST_MESSAGE_LOAD:
          /* Regular memory loads needs to be serialized against
@@ -146,21 +148,22 @@ create_dag(bi_context *ctx, bi_block *block, void *memctx)
          break;
       }
 
-      add_dep(node, preload);
-
       if (I->op == BI_OPCODE_DISCARD_F32) {
          /* Serialize against ATEST */
          add_dep(node, coverage);
          coverage = node;
-
-         /* Also serialize against memory and barriers */
+      }
+      if (I->op == BI_OPCODE_DISCARD_F32 ||
+          I->op == BI_OPCODE_MEMORY_BARRIER) {
+         /* Serialize against memory operations and barriers */
          add_dep(node, memory_load);
          add_dep(node, memory_store);
          memory_load = node;
          memory_store = node;
-      } else if ((I->op == BI_OPCODE_PHI) ||
-                 (I->op == BI_OPCODE_MOV_I32 &&
-                  I->src[0].type == BI_INDEX_REGISTER)) {
+      }
+      if ((I->op == BI_OPCODE_PHI) ||
+          (I->op == BI_OPCODE_MOV_I32 &&
+           I->src[0].type == BI_INDEX_REGISTER)) {
          preload = node;
       }
    }

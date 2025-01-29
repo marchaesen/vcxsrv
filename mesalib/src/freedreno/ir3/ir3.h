@@ -59,6 +59,7 @@ struct ir3_info {
    bool double_threadsize;
    bool multi_dword_ldp_stp;
    bool early_preamble;
+   bool uses_ray_intersection;
 
    /* number of sync bits: */
    uint16_t ss, sy;
@@ -155,6 +156,31 @@ typedef enum ir3_register_flags {
 
    /* Predicate register (p0.c). Cannot be combined with half or shared. */
    IR3_REG_PREDICATE = BIT(19),
+
+   /* Render target dst. Only used by alias.rt. */
+   IR3_REG_RT = BIT(20),
+
+   /* Register that is initialized using alias.tex (or will be once the
+    * alias.tex instructions are inserted). Before alias.tex is inserted, alias
+    * registers may contain things that are normally not allowed by the owning
+    * instruction (e.g., consts or immediates) because they will be replaced by
+    * GPRs later.
+    * Note that if wrmask > 1, this will be set if any of the registers is an
+    * alias, even though not all of them may be. We currently have no way to
+    * tell which ones are actual aliases.
+    */
+   IR3_REG_ALIAS = BIT(21),
+
+   /* Alias registers allow us to allocate non-consecutive registers and remap
+    * them to consecutive ones using alias.tex. We implement this by adding the
+    * sources of collects directly to the sources of their users. This way, RA
+    * treats them as scalar registers and we can remap them to consecutive
+    * registers afterwards. This flag is used to keep track of the scalar
+    * sources that should be remapped together. Every source of such an "alias
+    * group" will have the IR3_REG_ALIAS set, while the first one will also have
+    * IR3_REG_FIRST_ALIAS set.
+    */
+   IR3_REG_FIRST_ALIAS = BIT(22),
 } ir3_register_flags;
 
 struct ir3_register {
@@ -257,8 +283,8 @@ typedef enum {
 
 typedef enum {
    ALIAS_TEX = 0,
-   ALIAS_RT = 3,
-   ALIAS_MEM = 4,
+   ALIAS_RT = 1,
+   ALIAS_MEM = 2,
 } ir3_alias_scope;
 
 typedef enum {
@@ -434,6 +460,8 @@ struct ir3_instruction {
          unsigned g : 1; /* global */
 
          ir3_alias_scope alias_scope;
+         unsigned alias_table_size_minus_one;
+         bool alias_type_float;
       } cat7;
       /* for meta-instructions, just used to hold extra data
        * before instruction scheduling, etc
@@ -760,6 +788,8 @@ ir3_end_block(struct ir3 *ir)
    return list_last_entry(&ir->block_list, struct ir3_block, node);
 }
 
+struct ir3_instruction *ir3_find_end(struct ir3 *ir);
+
 struct ir3_instruction *ir3_block_get_terminator(struct ir3_block *block);
 
 struct ir3_instruction *ir3_block_take_terminator(struct ir3_block *block);
@@ -782,6 +812,17 @@ ir3_after_preamble(struct ir3 *ir)
    else
       return block;
 }
+
+static inline bool
+ir3_has_preamble(struct ir3 *ir)
+{
+   return ir3_start_block(ir) != ir3_after_preamble(ir);
+}
+
+struct ir3_instruction *ir3_find_shpe(struct ir3 *ir);
+
+/* Create an empty preamble and return shpe. */
+struct ir3_instruction *ir3_create_empty_preamble(struct ir3 *ir);
 
 void ir3_block_add_predecessor(struct ir3_block *block, struct ir3_block *pred);
 void ir3_block_link_physical(struct ir3_block *pred, struct ir3_block *succ);
@@ -1142,7 +1183,7 @@ is_mem(struct ir3_instruction *instr)
 static inline bool
 is_barrier(struct ir3_instruction *instr)
 {
-   return (opc_cat(instr->opc) == 7);
+   return (opc_cat(instr->opc) == 7) && instr->opc != OPC_ALIAS;
 }
 
 static inline bool
@@ -1192,6 +1233,7 @@ is_load(struct ir3_instruction *instr)
    case OPC_L2G:
    case OPC_LDLW:
    case OPC_LDLV:
+   case OPC_RAY_INTERSECTION:
       /* probably some others too.. */
       return true;
    case OPC_LDC:
@@ -1411,8 +1453,10 @@ dest_regs(struct ir3_instruction *instr)
 static inline bool
 is_reg_gpr(const struct ir3_register *reg)
 {
-   if (reg->flags & (IR3_REG_CONST | IR3_REG_IMMED | IR3_REG_PREDICATE))
+   if (reg->flags &
+       (IR3_REG_CONST | IR3_REG_IMMED | IR3_REG_PREDICATE | IR3_REG_RT)) {
       return false;
+   }
    if (reg_num(reg) == REG_A0)
       return false;
    if (!(reg->flags & (IR3_REG_SSA | IR3_REG_RELATIV)) &&
@@ -1899,6 +1943,44 @@ ir3_try_swap_signedness(opc_t opc, bool *can_swap)
    foreach_src (__srcreg, __instr)                                             \
       if (__filter(__srcreg))
 
+/* Is this either the first src in an alias group (see IR3_REG_FIRST_ALIAS) or a
+ * normal src.
+ */
+static inline bool
+ir3_src_is_first_in_group(struct ir3_register *src)
+{
+   return (src->flags & IR3_REG_FIRST_ALIAS) || !(src->flags & IR3_REG_ALIAS);
+}
+
+/* Iterator for an instruction's sources taking alias groups into account.
+ * __src_n will hold the original source index (i.e., the index before expanding
+ * collects to alias groups) while __alias_n the index within the current
+ * group. Thus, the actual source index is __src_n + __alias_n.
+ */
+#define foreach_src_with_alias_n(__srcreg, __src_n, __alias_n, __instr)        \
+   for (unsigned __src_n = -1, __alias_n = -1, __e = 0; !__e; __e = 1)         \
+      foreach_src (__srcreg, __instr)                                          \
+         if (__src_n += ir3_src_is_first_in_group(__srcreg) ? 1 : 0,           \
+             __alias_n =                                                       \
+                ir3_src_is_first_in_group(__srcreg) ? 0 : __alias_n + 1,       \
+             true)
+
+/* Iterator for all the sources in the alias group (see IR3_REG_FIRST_ALIAS)
+ * starting at source index __start. __alias_n is the offset of the source
+ * from the start of the alias group.
+ */
+#define foreach_src_in_alias_group_n(__alias, __alias_n, __instr, __start)     \
+   for (struct ir3_register *__alias = __instr->srcs[__start];                 \
+        __alias && (__alias->flags & IR3_REG_FIRST_ALIAS); __alias = NULL)     \
+      for (unsigned __i = __start, __alias_n = 0;                              \
+           __i < __instr->srcs_count &&                                        \
+           (__i == __start || !ir3_src_is_first_in_group(__instr->srcs[__i])); \
+           __i++, __alias_n++)                                                 \
+         if ((__alias = __instr->srcs[__i]))
+
+#define foreach_src_in_alias_group(__alias, __instr, __start)                  \
+   foreach_src_in_alias_group_n (__alias, __alias_n, __instr, __start)
+
 /* iterator for an instructions's destinations (reg), also returns dst #: */
 #define foreach_dst_n(__dstreg, __n, __instr)                                  \
    if ((__instr)->dsts_count)                                                  \
@@ -2036,6 +2118,8 @@ struct log_stream;
 void ir3_print_instr_stream(struct log_stream *stream, struct ir3_instruction *instr);
 
 /* delay calculation: */
+unsigned ir3_src_read_delay(struct ir3_compiler *compiler,
+                            struct ir3_instruction *instr, unsigned src_n);
 int ir3_delayslots(struct ir3_compiler *compiler,
                    struct ir3_instruction *assigner,
                    struct ir3_instruction *consumer, unsigned n, bool soft);
@@ -2082,6 +2166,12 @@ needs_ss(const struct ir3_compiler *compiler, struct ir3_instruction *producer,
       return false;
 
    return is_ss_producer(producer);
+}
+
+static inline bool
+supports_ss(struct ir3_instruction *instr)
+{
+   return opc_cat(instr->opc) < 5 || instr->opc == OPC_ALIAS;
 }
 
 /* The soft delay for approximating the cost of (ss). */
@@ -2182,6 +2272,9 @@ is_war_hazard_producer(struct ir3_instruction *instr)
 bool ir3_cleanup_rpt(struct ir3 *ir, struct ir3_shader_variant *v);
 bool ir3_merge_rpt(struct ir3 *ir, struct ir3_shader_variant *v);
 bool ir3_opt_predicates(struct ir3 *ir, struct ir3_shader_variant *v);
+bool ir3_create_alias_tex_regs(struct ir3 *ir);
+bool ir3_insert_alias_tex(struct ir3 *ir);
+bool ir3_create_alias_rt(struct ir3 *ir, struct ir3_shader_variant *v);
 
 /* unreachable block elimination: */
 bool ir3_remove_unreachable(struct ir3 *ir);
@@ -3031,6 +3124,7 @@ INSTR4(ATOMIC_S_OR)
 INSTR4(ATOMIC_S_XOR)
 #endif
 INSTR4NODST(LDG_K)
+INSTR5(RAY_INTERSECTION)
 
 /* cat7 instructions: */
 INSTR0(BAR)

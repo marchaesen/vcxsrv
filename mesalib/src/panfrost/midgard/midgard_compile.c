@@ -92,7 +92,10 @@ schedule_barrier(compiler_context *ctx)
 /* Helpers to generate midgard_instruction's using macro magic, since every
  * driver seems to do it that way */
 
-#define EMIT(op, ...) emit_mir_instruction(ctx, v_##op(__VA_ARGS__));
+#define EMIT(op, ...) do {                                                     \
+   struct midgard_instruction ins = v_##op(__VA_ARGS__);                       \
+   emit_mir_instruction(ctx, &ins);                                            \
+} while(0)
 
 #define M_LOAD_STORE(name, store, T)                                           \
    static midgard_instruction m_##name(unsigned ssa, unsigned address)         \
@@ -536,7 +539,7 @@ optimise_nir(nir_shader *nir, unsigned quirks, bool is_blend)
    NIR_PASS(_, nir, nir_opt_move, move_all);
 
    /* Take us out of SSA */
-   NIR_PASS(progress, nir, nir_convert_from_ssa, true);
+   NIR_PASS(progress, nir, nir_convert_from_ssa, true, false);
 
    /* We are a vector architecture; write combine where possible */
    NIR_PASS(progress, nir, nir_move_vec_src_uses_to_dest, false);
@@ -597,7 +600,7 @@ emit_explicit_constant(compiler_context *ctx, unsigned node)
       midgard_instruction ins =
          v_mov(SSA_FIXED_REGISTER(REGISTER_CONSTANT), node);
       attach_constants(ctx, &ins, constant_value, node + 1);
-      emit_mir_instruction(ctx, ins);
+      emit_mir_instruction(ctx, &ins);
    }
 }
 
@@ -1033,7 +1036,7 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
       ins.is_pack = true;
    }
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 #undef ALU_CASE
@@ -1114,7 +1117,7 @@ emit_ubo_read(compiler_context *ctx, nir_instr *instr, unsigned dest,
 
    midgard_pack_ubo_index_imm(&ins.load_store, index);
 
-   return emit_mir_instruction(ctx, ins);
+   return emit_mir_instruction(ctx, &ins);
 }
 
 /* Globals are like UBOs if you squint. And shared memory is like globals if
@@ -1211,7 +1214,7 @@ emit_global(compiler_context *ctx, nir_instr *instr, bool is_read,
          ins.swizzle[0][i] = first_component;
    }
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 static midgard_load_store_op
@@ -1290,7 +1293,7 @@ emit_atomic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
    mir_set_intr_mask(&instr->instr, &ins, true);
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 static void
@@ -1361,7 +1364,7 @@ emit_varying_read(compiler_context *ctx, unsigned dest, unsigned offset,
                                                         : midgard_op_ld_vary_16;
    }
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 static midgard_instruction
@@ -1419,7 +1422,7 @@ emit_image_op(compiler_context *ctx, nir_intrinsic_instr *instr)
    } else
       ins.load_store.index_reg = REGISTER_LDST_ZERO;
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 
    return ins;
 }
@@ -1450,7 +1453,7 @@ emit_attr_read(compiler_context *ctx, unsigned dest, unsigned offset,
       break;
    }
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 static unsigned
@@ -1513,7 +1516,7 @@ emit_fragment_store(compiler_context *ctx, unsigned src, unsigned src_z,
    }
 
    /* Emit the branch */
-   br = emit_mir_instruction(ctx, ins);
+   br = emit_mir_instruction(ctx, &ins);
    schedule_barrier(ctx);
    ctx->writeout_branch[rt][sample_iter] = br;
 
@@ -1531,7 +1534,7 @@ emit_compute_builtin(compiler_context *ctx, nir_intrinsic_instr *instr)
    ins.mask = mask_of(3);
    ins.swizzle[0][3] = COMPONENT_X; /* xyzx */
    ins.load_store.arg_reg = compute_builtin_arg(instr->intrinsic);
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 static unsigned
@@ -1568,7 +1571,7 @@ emit_special(compiler_context *ctx, nir_intrinsic_instr *instr, unsigned idx)
    for (int i = 0; i < 4; ++i)
       ld.swizzle[0][i] = COMPONENT_X;
 
-   emit_mir_instruction(ctx, ld);
+   emit_mir_instruction(ctx, &ld);
 }
 
 static void
@@ -1581,7 +1584,7 @@ emit_control_barrier(compiler_context *ctx)
       .op = midgard_tex_op_barrier,
    };
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 static uint8_t
@@ -1626,7 +1629,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
       ins.dest_type = ins.src_types[1] = nir_type_uint | instr->def.bit_size;
 
       ins.mask = BITFIELD_MASK(instr->def.num_components);
-      emit_mir_instruction(ctx, ins);
+      emit_mir_instruction(ctx, &ins);
       break;
    }
 
@@ -1641,7 +1644,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
          discard.src_types[0] = nir_type_uint32;
       }
 
-      emit_mir_instruction(ctx, discard);
+      emit_mir_instruction(ctx, &discard);
       schedule_barrier(ctx);
 
       break;
@@ -1720,8 +1723,10 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
          if (*input == ~0)
             *input = reg;
-         else
-            emit_mir_instruction(ctx, v_mov(*input, reg));
+         else {
+            struct midgard_instruction ins = v_mov(*input, reg);
+            emit_mir_instruction(ctx, &ins);
+         }
       } else if (ctx->stage == MESA_SHADER_VERTEX) {
          emit_attr_read(ctx, reg, offset, nr_comp, t);
       } else {
@@ -1768,7 +1773,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
          ld.load_store.index_reg = REGISTER_LDST_ZERO;
       }
 
-      emit_mir_instruction(ctx, ld);
+      emit_mir_instruction(ctx, &ld);
       break;
    }
 
@@ -1799,7 +1804,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
          ld.load_store.index_reg = REGISTER_LDST_ZERO;
       }
 
-      emit_mir_instruction(ctx, ld);
+      emit_mir_instruction(ctx, &ld);
       break;
    }
 
@@ -1843,7 +1848,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
             unsigned out = make_compiler_temp(ctx);
 
             midgard_instruction ins = v_mov(reg_2, out);
-            emit_mir_instruction(ctx, ins);
+            emit_mir_instruction(ctx, &ins);
 
             ctx->blend_src1 = out;
          }
@@ -1908,7 +1913,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                src_component++;
          }
 
-         emit_mir_instruction(ctx, st);
+         emit_mir_instruction(ctx, &st);
       } else {
          unreachable("Unknown store");
       }
@@ -2137,7 +2142,7 @@ set_tex_coord(compiler_context *ctx, nir_tex_instr *instr,
       ld.mask = 0x3; /* xy */
       ld.load_store.bitsize_toggle = true;
       ld.swizzle[1][3] = COMPONENT_X;
-      emit_mir_instruction(ctx, ld);
+      emit_mir_instruction(ctx, &ld);
 
       /* We packed cube coordiates (X,Y,Z) into (X,Y), update the
        * written mask accordingly and decrement the number of
@@ -2172,7 +2177,7 @@ set_tex_coord(compiler_context *ctx, nir_tex_instr *instr,
       mov.mask = 1 << COMPONENT_Z;
       written_mask |= 1 << COMPONENT_Z;
       ins->swizzle[1][COMPONENT_Z] = COMPONENT_Z;
-      emit_mir_instruction(ctx, mov);
+      emit_mir_instruction(ctx, &mov);
    }
 
    /* Texelfetch coordinates uses all four elements (xyz/index) regardless
@@ -2188,7 +2193,7 @@ set_tex_coord(compiler_context *ctx, nir_tex_instr *instr,
          v_mov(SSA_FIXED_REGISTER(REGISTER_CONSTANT), ins->src[1]);
       mov.has_constants = true;
       mov.mask = (written_mask | write_mask) ^ 0xF;
-      emit_mir_instruction(ctx, mov);
+      emit_mir_instruction(ctx, &mov);
       for (unsigned c = 0; c < MIR_VEC_COMPONENTS; c++) {
          if (mov.mask & (1 << c))
             ins->swizzle[1][c] = c;
@@ -2212,7 +2217,7 @@ set_tex_coord(compiler_context *ctx, nir_tex_instr *instr,
       }
 
       mov.mask = write_mask;
-      emit_mir_instruction(ctx, mov);
+      emit_mir_instruction(ctx, &mov);
    }
 }
 
@@ -2308,7 +2313,7 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
       }
    }
 
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 }
 
 static void
@@ -2343,7 +2348,7 @@ emit_jump(compiler_context *ctx, nir_jump_instr *instr)
       struct midgard_instruction br = v_branch(false, false);
       br.branch.target_type = TARGET_BREAK;
       br.branch.target_break = ctx->current_loop_depth;
-      emit_mir_instruction(ctx, br);
+      emit_mir_instruction(ctx, &br);
       break;
    }
 
@@ -2442,9 +2447,9 @@ inline_alu_constants(compiler_context *ctx, midgard_block *block)
                &block->base.instructions, midgard_instruction, link);
 
             if (alu == first) {
-               mir_insert_instruction_before(ctx, alu, ins);
+               mir_insert_instruction_before(ctx, alu, &ins);
             } else {
-               mir_insert_instruction_before(ctx, mir_prev_op(alu), ins);
+               mir_insert_instruction_before(ctx, mir_prev_op(alu), &ins);
             }
          }
       }
@@ -2452,7 +2457,7 @@ inline_alu_constants(compiler_context *ctx, midgard_block *block)
 }
 
 unsigned
-max_bitsize_for_alu(midgard_instruction *ins)
+max_bitsize_for_alu(const midgard_instruction *ins)
 {
    unsigned max_bitsize = 0;
    for (int i = 0; i < MIR_SRC_COUNT; i++) {
@@ -2688,7 +2693,7 @@ emit_fragment_epilogue(compiler_context *ctx, unsigned rt, unsigned sample_iter)
    ins.branch.target_block = ctx->block_count - 1;
    ins.constants.u32[0] = br->constants.u32[0];
    memcpy(&ins.src_types, &br->src_types, sizeof(ins.src_types));
-   emit_mir_instruction(ctx, ins);
+   emit_mir_instruction(ctx, &ins);
 
    ctx->current_block->epilogue = true;
    schedule_barrier(ctx);
@@ -2804,7 +2809,7 @@ emit_loop(struct compiler_context *ctx, nir_loop *nloop)
    /* Branch back to loop back */
    struct midgard_instruction br_back = v_branch(false, false);
    br_back.branch.target_block = start_idx;
-   emit_mir_instruction(ctx, br_back);
+   emit_mir_instruction(ctx, &br_back);
 
    /* Mark down that branch in the graph. */
    pan_block_add_successor(&start_block->base, &loop_block->base);
@@ -2942,7 +2947,7 @@ mir_add_writeout_loops(compiler_context *ctx)
             midgard_instruction uncond = v_branch(false, false);
             uncond.branch.target_block = popped;
             uncond.branch.target_type = TARGET_GOTO;
-            emit_mir_instruction(ctx, uncond);
+            emit_mir_instruction(ctx, &uncond);
             pan_block_add_successor(&ctx->current_block->base,
                                     &(mir_get_block(ctx, popped)->base));
             schedule_barrier(ctx);
@@ -3003,7 +3008,7 @@ midgard_compile_shader_nir(nir_shader *nir,
          struct midgard_instruction wait = v_branch(false, false);
          wait.branch.target_type = TARGET_TILEBUF_WAIT;
 
-         emit_mir_instruction(ctx, wait);
+         emit_mir_instruction(ctx, &wait);
 
          ++ctx->instruction_count;
       }

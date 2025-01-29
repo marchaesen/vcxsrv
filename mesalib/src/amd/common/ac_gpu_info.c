@@ -1423,6 +1423,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       }
    }
 
+   /* The kernel code translating tiling flags into a modifier was wrong
+    * until .58.
+    */
+   info->gfx12_supports_display_dcc = info->gfx_level >= GFX12 && info->drm_minor >= 58;
+
    info->has_stable_pstate = info->drm_minor >= 45;
 
    if (info->gfx_level >= GFX12) {
@@ -1690,6 +1695,8 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->has_set_context_pairs_packed = true;
       info->has_set_sh_pairs_packed = info->register_shadowing_required;
    }
+
+   info->has_image_bvh_intersect_ray = info->gfx_level >= GFX10_3;
 
    set_custom_cu_en_mask(info);
 

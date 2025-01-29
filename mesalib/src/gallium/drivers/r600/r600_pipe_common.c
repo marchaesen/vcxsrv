@@ -1349,7 +1349,6 @@ bool r600_common_screen_init(struct r600_common_screen *rscreen,
 		 */
 		.max_unroll_iterations = 255,
 		.lower_interpolate_at = true,
-		.vectorize_io = true,
 		.has_umad24 = true,
 		.has_umul24 = true,
 		.has_fmulz = true,

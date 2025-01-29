@@ -348,22 +348,21 @@ load_state_mat4(struct tnl_program *p, nir_def *out[4],
 }
 
 static nir_def *
-load_input(struct tnl_program *p, gl_vert_attrib attr,
-           const struct glsl_type *type)
+load_input(struct tnl_program *p, gl_vert_attrib attr, unsigned num_components)
 {
    if (p->state->varying_vp_inputs & VERT_BIT(attr)) {
-      nir_variable *var = nir_get_variable_with_location(p->b->shader, nir_var_shader_in,
-                                                         attr, type);
-      p->b->shader->info.inputs_read |= (uint64_t)VERT_BIT(attr);
-      return nir_load_var(p->b, var);
-   } else
-      return load_state_var(p, STATE_CURRENT_ATTRIB, attr, 0, 0, type);
+      return nir_load_input(p->b, num_components, 32, nir_imm_int(p->b, 0),
+                            .io_semantics.location = attr);
+   } else {
+      return load_state_var(p, STATE_CURRENT_ATTRIB, attr, 0, 0,
+                            glsl_vector_type(GLSL_TYPE_FLOAT, num_components));
+   }
 }
 
 static nir_def *
 load_input_vec4(struct tnl_program *p, gl_vert_attrib attr)
 {
-   return load_input(p, attr, glsl_vec4_type());
+   return load_input(p, attr, 4);
 }
 
 static nir_variable *
@@ -377,12 +376,13 @@ register_output(struct tnl_program *p, gl_varying_slot slot,
 }
 
 static void
-store_output_vec4_masked(struct tnl_program *p, gl_varying_slot slot,
-                         nir_def *value, unsigned mask)
+store_output_vec4_masked(struct tnl_program *p, gl_varying_slot slot, nir_def *value,
+                         unsigned writemask)
 {
-   assert(mask <= 0xf);
-   nir_variable *var = register_output(p, slot, glsl_vec4_type());
-   nir_store_var(p->b, var, value, mask);
+   assert(writemask <= 0xf);
+   nir_store_output(p->b, value, nir_imm_int(p->b, 0),
+                    .write_mask = writemask,
+                    .io_semantics.location = slot);
 }
 
 static void
@@ -396,8 +396,7 @@ static void
 store_output_float(struct tnl_program *p, gl_varying_slot slot,
                    nir_def *value)
 {
-   nir_variable *var = register_output(p, slot, glsl_float_type());
-   nir_store_var(p->b, var, value, 0x1);
+   store_output_vec4_masked(p, slot, value, 0x1);
 }
 
 
@@ -499,13 +498,9 @@ get_transformed_normal(struct tnl_program *p)
        !p->state->need_eye_coords &&
        !p->state->normalize &&
        !(p->state->need_eye_coords == p->state->rescale_normals)) {
-      p->transformed_normal =
-         load_input(p, VERT_ATTRIB_NORMAL,
-                    glsl_vector_type(GLSL_TYPE_FLOAT, 3));
+      p->transformed_normal = load_input(p, VERT_ATTRIB_NORMAL, 3);
    } else if (!p->transformed_normal) {
-      nir_def *normal =
-         load_input(p, VERT_ATTRIB_NORMAL,
-                    glsl_vector_type(GLSL_TYPE_FLOAT, 3));
+      nir_def *normal = load_input(p, VERT_ATTRIB_NORMAL, 3);
 
       if (p->state->need_eye_coords) {
          nir_def *mvinv[4];
@@ -1062,7 +1057,7 @@ static void build_fog( struct tnl_program *p )
       fog = nir_fabs(p->b, get_eye_position_z(p));
       break;
    case FDM_FROM_ARRAY:
-      fog = load_input(p, VERT_ATTRIB_FOG, glsl_float_type());
+      fog = load_input(p, VERT_ATTRIB_FOG, 1);
       break;
    default:
       unreachable("Bad fog mode in build_fog()");
@@ -1271,8 +1266,7 @@ static void build_atten_pointsize( struct tnl_program *p )
  */
 static void build_array_pointsize( struct tnl_program *p )
 {
-   nir_def *val = load_input(p, VERT_ATTRIB_POINT_SIZE,
-                                 glsl_float_type());
+   nir_def *val = load_input(p, VERT_ATTRIB_POINT_SIZE, 1);
    store_output_float(p, VARYING_SLOT_PSIZ, val);
 }
 
@@ -1335,6 +1329,7 @@ create_new_program( const struct state_key *key,
    nir_shader *s = b.shader;
 
    s->info.separate_shader = true;
+   s->info.io_lowered = true;
 
    p.b = &b;
 

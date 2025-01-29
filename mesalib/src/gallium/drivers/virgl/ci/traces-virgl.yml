@@ -18,16 +18,16 @@ traces:
       checksum: b697edce7776f1afe294a7e80dfc013e
   0ad/0ad-v2.trace:
     gl-virgl:
-      checksum: 350e0cf64d124ba98d90106f61775eb4
+      checksum: b1dba715dcf3bee6bfef2cb69e0d3fbc
   gputest/gimark-v2.trace:
     gl-virgl:
       label: [crash]
   gputest/pixmark-julia-fp32-v2.trace:
     gl-virgl:
-      checksum: 8b3584b1dd8f1d1bb63205564bd78e4e
+      checksum: a6b4ead13ef5f1d64c132a1467e0045f
   gputest/pixmark-julia-fp64-v2.trace:
     gl-virgl:
-      checksum: 73ccaff82ea764057fb0f93f0024cf84
+      checksum: 291a08ab346339538916e7816a57fcaf
   gputest/pixmark-volplosion-v2.trace:
     gl-virgl:
       checksum: aef0b32ce99a3b25d35304ca08032833
@@ -51,7 +51,7 @@ traces:
       checksum: eab0801aadeae87ce31aa0d4ff55e8f8
   humus/RaytracedShadows-v2.trace:
     gl-virgl:
-      checksum: df074a376fd3e7abc4dffdd191db8f4b
+      checksum: 298e49b697e9141294ecbc6283729d86
   humus/VolumetricFogging2-v2.trace:
     gl-virgl:
       checksum: 2eb71553403ad8e0171abc9dc25e5bc1
@@ -78,7 +78,7 @@ traces:
       label: [crash]
   paraview/pv-waveletvolume-v2.trace:
     gl-virgl:
-      checksum: 7e0fc4f2f8c635e571793ed8fa705f85
+      checksum: d4b2183b435dcbe6234e0677d9440281
   supertuxkart/supertuxkart-mansion-egl-gles-v2.trace:
     gl-virgl:
       checksum: 4ac8b872bfa701632d76801a3f77c5db
@@ -90,13 +90,13 @@ traces:
       checksum: e4c43c6183b7852a0dafef1fe26b1dda
   valve/counterstrike-source-v2.trace:
     gl-virgl:
-      checksum: f8e5b19142007be14ce6d18d25ef329d
+      checksum: e6aacedf9dfafeff77d8414323f6c517
   valve/half-life-2-v2.trace:
     gl-virgl:
-      checksum: 6099a13f48bf090ee1d768f98208da70
+      checksum: 5042b30d91a955ab131e2baf2eed0a2b
   valve/portal-2-v2.trace:
     gl-virgl:
-      checksum: 7489a8412ee2bca45431d208e0006a3e
+      checksum: 258a8821d4b33ccbc06083788a083798
   supertuxkart/supertuxkart-antediluvian-abyss.rdc:
     gl-virgl:
       label: [crash]

@@ -79,6 +79,7 @@ tu6_load_state_size(struct tu_pipeline *pipeline,
          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
          case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
          case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+         case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
             /* IBO-backed resources only need one packet for all graphics stages */
             if (stage_count)
                count += 1;
@@ -174,7 +175,8 @@ tu6_emit_load_state(struct tu_device *device,
             FALLTHROUGH;
          case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
          case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-         case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: {
+         case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+         case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: {
             unsigned mul = binding->size / (A6XX_TEX_CONST_DWORDS * 4);
             /* IBO-backed resources only need one packet for all graphics stages */
             if (stages & ~VK_SHADER_STAGE_COMPUTE_BIT) {
@@ -2239,6 +2241,9 @@ tu_emit_program_state(struct tu_cs *sub_cs,
           push_consts->type == IR3_PUSH_CONSTS_SHARED_PREAMBLE) {
          prog->shared_consts = *push_consts;
       }
+
+      if (variants[i]->info.uses_ray_intersection)
+         prog->uses_ray_intersection = true;
    }
 
    unsigned dynamic_descriptor_offset = 0;
@@ -2632,6 +2637,7 @@ tu6_emit_viewport_fdm(struct tu_cs *cs, struct tu_cmd_buffer *cmd,
    unsigned size = TU_CALLX(cmd->device, tu6_viewport_size)(cmd->device, &state.vp, &state.rs);
    tu_cs_begin_sub_stream(&cmd->sub_cs, size, cs);
    tu_create_fdm_bin_patchpoint(cmd, cs, size, fdm_apply_viewports, state);
+   cmd->state.rp.shared_viewport |= !cmd->state.per_view_viewport;
 }
 
 static const enum mesa_vk_dynamic_graphics_state tu_scissor_state[] = {
@@ -3088,6 +3094,8 @@ static const enum mesa_vk_dynamic_graphics_state tu_rast_state[] = {
    MESA_VK_DYNAMIC_RS_RASTERIZATION_STREAM,
    MESA_VK_DYNAMIC_VP_DEPTH_CLIP_NEGATIVE_ONE_TO_ONE,
    MESA_VK_DYNAMIC_RS_LINE_WIDTH,
+   MESA_VK_DYNAMIC_RS_CONSERVATIVE_MODE,
+   MESA_VK_DYNAMIC_RS_EXTRA_PRIMITIVE_OVERESTIMATION_SIZE,
 };
 
 template <chip CHIP>
@@ -3101,7 +3109,7 @@ tu6_rast_size(struct tu_device *dev,
    if (CHIP == A6XX) {
       return 15 + (dev->physical_device->info->a6xx.has_legacy_pipeline_shading_rate ? 8 : 0);
    } else {
-      return 17;
+      return 25;
    }
 }
 
@@ -3162,6 +3170,37 @@ tu6_emit_rast(struct tu_cs *cs,
       tu_cs_emit_regs(cs, A7XX_PC_RASTER_CNTL_V2(
          .stream = rs->rasterization_stream,
          .discard = rs->rasterizer_discard_enable));
+
+      bool conservative_ras_en =
+         rs->conservative_mode ==
+         VK_CONSERVATIVE_RASTERIZATION_MODE_OVERESTIMATE_EXT;
+
+      tu_cs_emit_regs(cs, RB_RENDER_CNTL(CHIP,
+            .raster_mode = TYPE_TILED,
+            .raster_direction = LR_TB,
+            .conservativerasen = conservative_ras_en));
+      tu_cs_emit_regs(cs, A7XX_GRAS_SU_RENDER_CNTL());
+      tu_cs_emit_regs(cs,
+                      A6XX_PC_DGEN_SU_CONSERVATIVE_RAS_CNTL(conservative_ras_en));
+
+      /* There are only two conservative rasterization modes:
+       * - shift_amount = 0 (NO_SHIFT) - normal rasterization
+       * - shift_amount = 1 (HALF_PIXEL_SHIFT) - overestimate by half a pixel
+       *   plus the rasterization grid size (1/256)
+       * - shift_amount = 2 (FULL_PIXEL_SHIFT) - overestimate by another half
+       *   a pixel
+       *
+       * We expose a max of 0.5 and a granularity of 0.5, so the app should
+       * only give us 0 or 0.5 which correspond to HALF_PIXEL_SHIFT and
+       * FULL_PIXEL_SHIFT respectively. If they give us anything else just
+       * assume they meant 0.5 as the most conservative choice.
+       */
+      enum a6xx_shift_amount shift_amount = conservative_ras_en ?
+         (rs->extra_primitive_overestimation_size != 0. ?
+            FULL_PIXEL_SHIFT : HALF_PIXEL_SHIFT) : NO_SHIFT;
+      tu_cs_emit_regs(cs, A6XX_GRAS_SU_CONSERVATIVE_RAS_CNTL(
+            .conservativerasen = conservative_ras_en,
+            .shiftamount = shift_amount));
    }
 
    /* move to hw ctx init? */
@@ -3780,9 +3819,8 @@ tu_emit_draw_state(struct tu_cmd_buffer *cmd)
               cmd->vk.dynamic_graphics_state.ms.alpha_to_coverage_enable,
               cmd->vk.dynamic_graphics_state.ms.alpha_to_one_enable,
               cmd->vk.dynamic_graphics_state.ms.sample_mask);
-   if (EMIT_STATE(blend_lrz) ||
-       ((cmd->state.dirty & TU_CMD_DIRTY_SUBPASS) &&
-        !cmd->state.pipeline_blend_lrz)) {
+   if (!cmd->state.pipeline_blend_lrz &&
+       (EMIT_STATE(blend_lrz) || (cmd->state.dirty & TU_CMD_DIRTY_SUBPASS))) {
       bool blend_reads_dest = tu6_calc_blend_lrz(&cmd->vk.dynamic_graphics_state.cb,
                                                  &cmd->state.vk_rp);
       if (blend_reads_dest != cmd->state.blend_reads_dest) {
@@ -3790,9 +3828,8 @@ tu_emit_draw_state(struct tu_cmd_buffer *cmd)
          cmd->state.dirty |= TU_CMD_DIRTY_LRZ;
       }
    }
-   if (EMIT_STATE(bandwidth) ||
-       ((cmd->state.dirty & TU_CMD_DIRTY_SUBPASS) &&
-        !cmd->state.pipeline_bandwidth))
+   if (!cmd->state.pipeline_bandwidth &&
+       (EMIT_STATE(bandwidth) || (cmd->state.dirty & TU_CMD_DIRTY_SUBPASS)))
       tu_calc_bandwidth(&cmd->state.bandwidth, &cmd->vk.dynamic_graphics_state.cb,
                         &cmd->state.vk_rp);
    DRAW_STATE(blend_constants, VK_DYNAMIC_STATE_BLEND_CONSTANTS,

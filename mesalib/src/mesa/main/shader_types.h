@@ -233,6 +233,9 @@ struct gl_shader
    /** Global xfb_stride out qualifier if any */
    GLuint TransformFeedbackBufferStride[MAX_FEEDBACK_BUFFERS];
 
+   /* for OVR_multiview */
+   uint32_t view_mask;
+
    struct gl_shader_info info;
 
    /* ARB_gl_spirv related data */

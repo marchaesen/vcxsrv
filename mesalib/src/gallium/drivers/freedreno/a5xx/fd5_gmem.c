@@ -155,7 +155,7 @@ emit_zs(struct fd_ringbuffer *ring, struct pipe_surface *zsbuf,
       if (rsc->lrz) {
          OUT_PKT4(ring, REG_A5XX_GRAS_LRZ_BUFFER_BASE_LO, 3);
          OUT_RELOC(ring, rsc->lrz, 0x1000, 0, 0);
-         OUT_RING(ring, A5XX_GRAS_LRZ_BUFFER_PITCH(rsc->lrz_pitch));
+         OUT_RING(ring, A5XX_GRAS_LRZ_BUFFER_PITCH(rsc->lrz_layout.lrz_pitch));
 
          OUT_PKT4(ring, REG_A5XX_GRAS_LRZ_FAST_CLEAR_BUFFER_BASE_LO, 2);
          OUT_RELOC(ring, rsc->lrz, 0, 0, 0);

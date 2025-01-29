@@ -165,3 +165,7 @@ spec@ext_framebuffer_multisample@interpolation 8 non-centroid-disabled,Fail
 
 # Regression noticed in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/891104
 spec@arb_viewport_array@display-list,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/12495
+spec@arb_framebuffer_object@execution@msaa-alpha-to-coverage_alpha-to-one,Fail
+spec@arb_framebuffer_object@execution@msaa-alpha-to-coverage_alpha-to-one_write-z,Fail

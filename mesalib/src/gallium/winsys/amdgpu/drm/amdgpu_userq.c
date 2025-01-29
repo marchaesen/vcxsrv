@@ -38,6 +38,7 @@ amdgpu_userq_ring_init(struct amdgpu_winsys *aws, struct amdgpu_userq *userq)
    userq->user_fence_va = amdgpu_bo_get_va(userq->gtt_bo) + AMDGPU_USERQ_RING_SIZE;
    *userq->user_fence_ptr = 0;
    *userq->wptr_bo_map = 0;
+   userq->next_wptr = 0;
 
    userq->rptr_bo = amdgpu_bo_create(aws, aws->info.gart_page_size, 256, RADEON_DOMAIN_VRAM,
                                      RADEON_FLAG_CLEAR_VRAM | RADEON_FLAG_GL2_BYPASS |

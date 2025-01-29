@@ -69,6 +69,7 @@ typedef struct {
    unsigned n_states;
    enum compare_func *compare_func;
    nir_lower_tex_shadow_swizzle *tex_swizzles;
+   bool is_fixed_point_format;
 } sampler_state;
 
 static nir_def *
@@ -106,6 +107,9 @@ nir_lower_tex_shadow_impl(nir_builder *b, nir_instr *instr, void *options)
    if (proj_index >= 0)
       cmp = nir_fmul(b, cmp, nir_frcp(b, tex->src[proj_index].src.ssa));
 
+   if (state->is_fixed_point_format)
+      cmp = nir_fsat(b, cmp);
+
    nir_def *result =
       nir_compare_func(b,
                        sampler_binding < state->n_states ? state->compare_func[sampler_binding] : COMPARE_FUNC_ALWAYS,
@@ -142,9 +146,10 @@ bool
 nir_lower_tex_shadow(nir_shader *s,
                      unsigned n_states,
                      enum compare_func *compare_func,
-                     nir_lower_tex_shadow_swizzle *tex_swizzles)
+                     nir_lower_tex_shadow_swizzle *tex_swizzles,
+                     bool is_fixed_point_format)
 {
-   sampler_state state = { n_states, compare_func, tex_swizzles };
+   sampler_state state = { n_states, compare_func, tex_swizzles, is_fixed_point_format };
 
    bool result =
       nir_shader_lower_instructions(s,

@@ -104,26 +104,6 @@ spec@arb_shading_language_packing@execution@built-in-functions@vs-unpackunorm2x1
 spec@ext_gpu_shader4@execution@open-coded-bitfieldreverse,Fail
 spec@glsl-1.10@execution@temp-array-indexing@glsl-fs-giant-temp-array,Fail
 spec@glsl-1.10@execution@temp-array-indexing@glsl-vs-giant-temp-array,Fail
-spec@glsl-1.10@execution@varying-packing@simple int array,Fail
-spec@glsl-1.10@execution@varying-packing@simple int arrays_of_arrays,Fail
-spec@glsl-1.10@execution@varying-packing@simple int separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec2 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec2 arrays_of_arrays,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec2 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec3 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec3 arrays_of_arrays,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec3 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec4 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple uint array,Fail
-spec@glsl-1.10@execution@varying-packing@simple uint arrays_of_arrays,Fail
-spec@glsl-1.10@execution@varying-packing@simple uint separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec2 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec2 arrays_of_arrays,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec2 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec3 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec3 arrays_of_arrays,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec3 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec4 separate,Fail
 spec@glsl-1.30@execution@fs-large-local-array,Fail
 spec@glsl-1.30@execution@fs-large-local-array-vec2,Fail
 spec@glsl-1.30@execution@fs-large-local-array-vec3,Fail
@@ -151,9 +131,8 @@ spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-smooth-
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-visuals-depth -pixmap,Crash
-glx@glx-visuals-stencil -pixmap,Crash
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
+glx@glx-visuals-depth -pixmap,Fail
+glx@glx-visuals-stencil -pixmap,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 shaders@point-vertex-id divisor,Crash
 shaders@point-vertex-id gl_instanceid,Crash
@@ -349,7 +328,6 @@ spec@arb_transform_feedback2@change objects while paused (gles3),Fail
 spec@arb_transform_feedback3@gl_nextbuffer-gl_nextbuffer,Fail
 spec@arb_transform_feedback_instanced@draw-auto instanced,Fail
 spec@arb_uniform_buffer_object@rendering-array,Fail
-spec@arb_uniform_buffer_object@execution@std140-array-struct-array-struct,Fail
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_chromium_sync_control@conformance,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
@@ -452,8 +430,6 @@ spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unro
 spec@glsl-1.10@execution@varying-packing@simple float array,Fail
 spec@glsl-1.10@execution@varying-packing@simple float arrays_of_arrays,Fail
 spec@glsl-1.10@execution@varying-packing@simple float separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec4 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple ivec4 arrays_of_arrays,Fail
 spec@glsl-1.10@execution@varying-packing@simple mat2 array,Fail
 spec@glsl-1.10@execution@varying-packing@simple mat2 arrays_of_arrays,Fail
 spec@glsl-1.10@execution@varying-packing@simple mat2 separate,Fail
@@ -481,8 +457,6 @@ spec@glsl-1.10@execution@varying-packing@simple mat4x2 separate,Fail
 spec@glsl-1.10@execution@varying-packing@simple mat4x3 array,Fail
 spec@glsl-1.10@execution@varying-packing@simple mat4x3 arrays_of_arrays,Fail
 spec@glsl-1.10@execution@varying-packing@simple mat4x3 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec4 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple uvec4 arrays_of_arrays,Fail
 spec@glsl-1.10@execution@varying-packing@simple vec2 array,Fail
 spec@glsl-1.10@execution@varying-packing@simple vec2 arrays_of_arrays,Fail
 spec@glsl-1.10@execution@varying-packing@simple vec2 separate,Fail
@@ -835,7 +809,6 @@ spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_
 spec@glsl-1.40@uniform_buffer@two-stages,Fail
 
 # new failures since 2023/02/08 (CTS uprevs, regressions etc.)
-shaders@glsl-max-varyings >max_varying_components,Fail
 spec@!opengl 1.1@line-smooth-stipple,Fail
 spec@!opengl 1.1@teximage-colors gl_alpha16@Exact upload-download of GL_ALPHA16,Fail
 spec@!opengl 1.1@texwrap 1d,Fail

@@ -258,9 +258,8 @@ pan_preload_emit_rsd(const struct pan_preload_shader_data *preload_shader,
          cfg.properties.zs_update_operation = MALI_PIXEL_KILL_FORCE_LATE;
          cfg.properties.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_LATE;
       } else {
-         /* Skipping ATEST requires forcing Z/S */
-         cfg.properties.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
-         cfg.properties.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
+         cfg.properties.zs_update_operation = MALI_PIXEL_KILL_WEAK_EARLY;
+         cfg.properties.pixel_kill_operation = MALI_PIXEL_KILL_WEAK_EARLY;
       }
 
       /* However, while shaders writing Z/S can normally be killed, on v6
@@ -587,7 +586,6 @@ pan_preload_get_shader(struct pan_fb_preload_cache *cache,
 
    struct panfrost_compile_inputs inputs = {
       .gpu_id = cache->gpu_id,
-      .is_blit = true,
       .no_idvs = true,
    };
    struct util_dynarray binary;
@@ -1189,9 +1187,8 @@ pan_preload_emit_dcd(struct pan_fb_preload_cache *cache, struct pan_pool *pool,
          cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_LATE;
          cfg.blend_count = 0;
       } else {
-         /* Skipping ATEST requires forcing Z/S */
-         cfg.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
-         cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
+         cfg.zs_update_operation = MALI_PIXEL_KILL_WEAK_EARLY;
+         cfg.pixel_kill_operation = MALI_PIXEL_KILL_WEAK_EARLY;
 
          cfg.blend = blend.gpu;
          cfg.blend_count = bd_count;

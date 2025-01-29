@@ -1699,7 +1699,7 @@ VkResult ResourceTracker::on_vkEnumerateInstanceExtensionProperties(
 
     // Spec:
     //
-    // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkEnumerateInstanceExtensionProperties.html
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkEnumerateInstanceExtensionProperties.html
     //
     // If pProperties is NULL, then the number of extensions properties
     // available is returned in pPropertyCount. Otherwise, pPropertyCount
@@ -1923,14 +1923,14 @@ VkResult ResourceTracker::on_vkEnumerateDeviceExtensionProperties(
 
     // Spec:
     //
-    // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkEnumerateDeviceExtensionProperties.html
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkEnumerateDeviceExtensionProperties.html
     //
     // pPropertyCount is a pointer to an integer related to the number of
     // extension properties available or queried, and is treated in the
     // same fashion as the
     // vkEnumerateInstanceExtensionProperties::pPropertyCount parameter.
     //
-    // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkEnumerateInstanceExtensionProperties.html
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkEnumerateInstanceExtensionProperties.html
     //
     // If pProperties is NULL, then the number of extensions properties
     // available is returned in pPropertyCount. Otherwise, pPropertyCount
@@ -1985,7 +1985,7 @@ VkResult ResourceTracker::on_vkEnumeratePhysicalDevices(void* context, VkResult,
     // even if the guest did not ask for it
     // - Serve the guest query according to the spec:
     //
-    // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkEnumeratePhysicalDevices.html
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkEnumeratePhysicalDevices.html
 
     auto it = info_VkInstance.find(instance);
 
@@ -2028,7 +2028,7 @@ VkResult ResourceTracker::on_vkEnumeratePhysicalDevices(void* context, VkResult,
 
     // Serve the guest query according to the spec.
     //
-    // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkEnumeratePhysicalDevices.html
+    // https://registry.khronos.org/vulkan/specs/latest/man/html/vkEnumeratePhysicalDevices.html
     //
     // If pPhysicalDevices is NULL, then the number of physical devices
     // available is returned in pPhysicalDeviceCount. Otherwise,
@@ -5716,7 +5716,7 @@ void ResourceTracker::on_vkDestroySemaphore(void* context, VkDevice device, VkSe
     enc->vkDestroySemaphore(device, semaphore, pAllocator, true /* do lock */);
 }
 
-// https://www.khronos.org/registry/vulkan/specs/1.0-extensions/html/vkspec.html#vkGetSemaphoreFdKHR
+// https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#vkGetSemaphoreFdKHR
 // Each call to vkGetSemaphoreFdKHR must create a new file descriptor and transfer ownership
 // of it to the application. To avoid leaking resources, the application must release ownership
 // of the file descriptor when it is no longer needed.

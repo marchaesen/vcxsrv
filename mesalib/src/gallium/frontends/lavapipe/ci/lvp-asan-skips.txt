@@ -12,3 +12,6 @@ dEQP-VK.ssbo.phys.layout.unsized_struct_array.per_block_buffer.*_instance_array_
 
 # https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/5117
 dEQP-VK.image.host_image_copy.*
+
+# Leaky in VKCTS 1.4.1.1
+dEQP-VK.video.*

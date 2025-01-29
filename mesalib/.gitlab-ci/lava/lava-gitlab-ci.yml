@@ -22,6 +22,8 @@ variables:
     S3_RESULTS_UPLOAD: "${JOB_ARTIFACTS_BASE}"
     PIGLIT_NO_WINDOW: 1
     VISIBILITY_GROUP: "Collabora+fdo"
+    STORAGE_MAINLINE_HOST_PATH: "${BASE_SYSTEM_HOST_PREFIX}/${FDO_UPSTREAM_REPO}/${DATA_STORAGE_PATH}"
+    STORAGE_FORK_HOST_PATH: "${BASE_SYSTEM_HOST_PREFIX}/${CI_PROJECT_PATH}/${DATA_STORAGE_PATH}"
   before_script:
     - !reference [.download_s3, before_script]
   script:
@@ -156,3 +158,13 @@ variables:
     - .lava-test:arm64
     - .lava-piglit
     - .lava-traces-base
+
+.lava-fluster:
+  variables:
+    FLUSTER_RESULTS: "${GPU_VERSION}-${FLUSTER_CODEC}"
+    HWCI_TEST_SCRIPT: "/install/fluster/fluster-runner.sh"
+
+.lava-fluster:x86_64:
+  extends:
+    - .lava-fluster
+

@@ -764,7 +764,7 @@ loader_bind_extensions(void *data,
       if (strcmp(match->name, __DRI_MESA) == 0) {
          const __DRImesaCoreExtension *mesa = (const __DRImesaCoreExtension *)*field;
          if (strcmp(mesa->version_string, MESA_INTERFACE_VERSION_STRING) != 0) {
-            log_(_LOADER_FATAL, "DRI driver not from this Mesa build ('%s' vs '%s')\n",
+            log_(_LOADER_FATAL, "libgallium not from this Mesa build (libgallium: '%s', loader: '%s')\n",
                  mesa->version_string, MESA_INTERFACE_VERSION_STRING);
             ret = false;
          }

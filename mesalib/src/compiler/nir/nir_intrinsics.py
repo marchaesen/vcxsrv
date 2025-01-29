@@ -1355,6 +1355,20 @@ intrinsic("ssbo_atomic_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1,
 intrinsic("ssbo_atomic_swap_ir3",  src_comp=[1, 1, 1, 1, 1], dest_comp=1,
           indices=[ACCESS, ATOMIC_OP])
 
+# IR3-specific intrinsic for UAVs, which are like SSBOs but with a source
+# for which "record" to access as well as the offset within the record, instead
+# of just an offset. The record stride is part of the descriptor.
+# Currently this is just used for the ray-tracing TLAS descriptor, where a
+# normal SSBO wouldn't have enough range.
+load("uav_ir3", [1, 2],
+     indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE])
+
+# IR3 intrinsic for "ray_intersection" instruction.
+# The input and output arguments are the same as the instruction.
+# See https://gitlab.freedesktop.org/freedreno/freedreno/-/wikis/a7xx-ray-tracing
+intrinsic("ray_intersection_ir3", src_comp=[2, 1, 8, 1], dest_comp=5,
+          flags=[CAN_REORDER, CAN_ELIMINATE])
+
 # System values for freedreno geometry shaders.
 system_value("vs_primitive_stride_ir3", 1)
 system_value("vs_vertex_stride_ir3", 1)
@@ -1768,7 +1782,7 @@ intrinsic("load_scalar_arg_amd", dest_comp=0, bit_sizes=[32],
           indices=[BASE, ARG_UPPER_BOUND_U32_AMD],
           flags=[CAN_ELIMINATE, CAN_REORDER])
 intrinsic("load_vector_arg_amd", dest_comp=0, bit_sizes=[32],
-          indices=[BASE, ARG_UPPER_BOUND_U32_AMD, FLAGS],
+          indices=[BASE, ARG_UPPER_BOUND_U32_AMD],
           flags=[CAN_ELIMINATE, CAN_REORDER])
 store("scalar_arg_amd", [], [BASE])
 store("vector_arg_amd", [], [BASE])
@@ -1806,6 +1820,9 @@ system_value("num_vertices_per_primitive_amd", 1)
 # Load streamout buffer desc
 # BASE = buffer index
 intrinsic("load_streamout_buffer_amd", dest_comp=4, indices=[BASE], bit_sizes=[32], flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# Polygon stipple buffer descriptor
+system_value("polygon_stipple_buffer_amd", 4)
 
 # An ID for each workgroup ordered by primitve sequence
 system_value("ordered_id_amd", 1)
@@ -1900,6 +1917,11 @@ intrinsic("sleep_amd", indices=[BASE])
 
 # s_nop BASE (sleep for BASE+1 cycles, BASE must be in [0, 15]).
 intrinsic("nop_amd", indices=[BASE])
+
+# Return the FMASK descriptor of color buffer 0.
+system_value("fbfetch_image_fmask_desc_amd", 8)
+# Return the image descriptor of color buffer 0.
+system_value("fbfetch_image_desc_amd", 8)
 
 system_value("ray_tracing_stack_base_lvp", 1)
 

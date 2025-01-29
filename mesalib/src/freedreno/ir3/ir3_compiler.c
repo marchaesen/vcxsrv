@@ -34,6 +34,8 @@ static const struct debug_named_value shader_debug_options[] = {
    {"noearlypreamble", IR3_DBG_NOEARLYPREAMBLE, "Disable early preambles"},
    {"nodescprefetch", IR3_DBG_NODESCPREFETCH, "Disable descriptor prefetch optimization"},
    {"expandrpt",  IR3_DBG_EXPANDRPT,  "Expand rptN instructions"},
+   {"noaliastex", IR3_DBG_NOALIASTEX, "Don't use alias.tex"},
+   {"noaliasrt",  IR3_DBG_NOALIASRT,  "Don't use alias.rt"},
 #if MESA_DEBUG
    /* MESA_DEBUG-only options: */
    {"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
@@ -157,6 +159,10 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    compiler->bitops_can_write_predicates = false;
    compiler->has_branch_and_or = false;
    compiler->has_rpt_bary_f = false;
+   compiler->has_alias_tex = false;
+   compiler->delay_slots.alu_to_alu = 3;
+   compiler->delay_slots.non_alu = 6;
+   compiler->delay_slots.cat3_src2_read = 2;
 
    if (compiler->gen >= 6) {
       compiler->samgq_workaround = true;
@@ -232,6 +238,14 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
       compiler->has_shfl = true;
       compiler->reading_shading_rate_requires_smask_quirk =
          dev_info->a7xx.reading_shading_rate_requires_smask_quirk;
+      compiler->has_alias_rt = dev_info->a7xx.has_alias_rt;
+
+      if (compiler->gen >= 7) {
+         compiler->has_alias_tex = true;
+         compiler->delay_slots.alu_to_alu = 2;
+         compiler->delay_slots.non_alu = 5;
+         compiler->delay_slots.cat3_src2_read = 1;
+      }
    } else {
       compiler->max_const_pipeline = 512;
       compiler->max_const_geom = 512;
@@ -303,7 +317,6 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    compiler->nir_options.has_iadd3 = dev_info->a6xx.has_sad;
 
    if (compiler->gen >= 6) {
-      compiler->nir_options.vectorize_io = true,
       compiler->nir_options.force_indirect_unrolling = nir_var_all,
       compiler->nir_options.lower_device_index_to_zero = true;
 

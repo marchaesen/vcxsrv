@@ -42,7 +42,7 @@ khronos_validation.log_filename = stdout
 # locations the variable it decorates consumes must be less than or equal to the
 # value for the matching {ExecutionModel} defined in Shader Input and Output
 # Locations
-# (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-RuntimeSpirv-Location-06272)
+# (https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#VUID-RuntimeSpirv-Location-06272)
 
 # KHR-GL46.gpu_shader_fp64.builtin.roundeven_dvec4:
 # [ VUID-VkGraphicsPipelineCreateInfo-renderPass-06590 ] Object 0: handle =
@@ -75,7 +75,7 @@ khronos_validation.log_filename = stdout
 # result of this command, then the image view's format must match the numeric
 # format from the Sampled Type operand of the OpTypeImage as described in the
 # SPIR-V Sampled Type column of the Interpretation of Numeric Format table
-# (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-vkCmdDrawMultiIndexedEXT-format-07753)
+# (https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#VUID-vkCmdDrawMultiIndexedEXT-format-07753)
 
 # KHR-Single-GL46.enhanced_layouts.varying_locations:
 # [ UNASSIGNED-CoreValidation-Shader-InterfaceTypeMismatch ] Object 0: handle =
@@ -98,7 +98,7 @@ khronos_validation.log_filename = stdout
 #	}
 # The Vulkan spec states: Any user-defined variables between the OpEntryPoint
 # of two shader stages must have the same type and width for each Component
-# (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-RuntimeSpirv-OpEntryPoint-07754)
+# (https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#VUID-RuntimeSpirv-OpEntryPoint-07754)
 
 # KHR-Single-GL46.enhanced_layouts.xfb_struct_explicit_location
 # [ VUID-VkShaderModuleCreateInfo-pCode-01379 ]
@@ -115,7 +115,7 @@ khronos_validation.log_filename = stdout
 # and declared with Input as its {StorageClass} for the subsequent shader stage,
 # must have all Location slots and Component words declared in the preceding shader stage's
 # OpEntryPoint with Output as the {StorageClass}
-# (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-RuntimeSpirv-OpEntryPoint-08743)
+# (https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#VUID-RuntimeSpirv-OpEntryPoint-08743)
 #
 # VVL bug https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/5735
 

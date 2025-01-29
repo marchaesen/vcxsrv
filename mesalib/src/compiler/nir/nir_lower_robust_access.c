@@ -221,5 +221,5 @@ nir_lower_robust_access(nir_shader *s, nir_intrin_filter_cb filter,
                         const void *data)
 {
    struct pass_opts opt = { .filter = filter, .data = data };
-   return nir_shader_intrinsics_pass(s, lower, nir_metadata_control_flow, &opt);
+   return nir_shader_intrinsics_pass(s, lower, nir_metadata_none, &opt);
 }

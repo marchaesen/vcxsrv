@@ -605,8 +605,6 @@ struct pipe_screen *r600_screen_create(struct radeon_winsys *ws,
 		rscreen->b.b.is_format_supported = r600_is_format_supported;
 	}
 
-	r600_init_screen_caps(rscreen);
-
 	rscreen->b.debug_flags |= debug_get_flags_option("R600_DEBUG", r600_debug_options, 0);
 	if (debug_get_bool_option("R600_DEBUG_COMPUTE", false))
 		rscreen->b.debug_flags |= DBG_COMPUTE;
@@ -626,6 +624,8 @@ struct pipe_screen *r600_screen_create(struct radeon_winsys *ws,
 	rscreen->b.has_streamout = true;
 
 	rscreen->has_msaa = true;
+
+	r600_init_screen_caps(rscreen);
 
 	/* MSAA support. */
 	switch (rscreen->b.gfx_level) {

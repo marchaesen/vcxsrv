@@ -402,6 +402,8 @@ fdl6_view_init(struct fdl6_view *view, const struct fdl_layout **layouts,
       tile_mode == TILE6_LINEAR && args->base_miplevel != layout->mip_levels - 1;
 
    view->ubwc_enabled = ubwc_enabled;
+   view->is_mutable = layout->is_mutable;
+   view->color_swap = color_swap;
 
    view->RB_MRT_BUF_INFO =
       A6XX_RB_MRT_BUF_INFO_COLOR_TILE_MODE(tile_mode) |

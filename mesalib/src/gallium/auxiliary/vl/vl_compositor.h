@@ -68,6 +68,13 @@ enum vl_compositor_rotation
    VL_COMPOSITOR_ROTATE_270
 };
 
+enum vl_compositor_mirror
+{
+   VL_COMPOSITOR_MIRROR_NONE,
+   VL_COMPOSITOR_MIRROR_HORIZONTAL,
+   VL_COMPOSITOR_MIRROR_VERTICAL
+};
+
 /* chroma sample location */
 enum vl_compositor_chroma_location
 {
@@ -107,6 +114,7 @@ struct vl_compositor_layer
    struct vertex2f zw;
    struct vertex4f colors[4];
    enum vl_compositor_rotation rotate;
+   enum vl_compositor_mirror mirror;
 };
 
 struct vl_compositor_state
@@ -312,6 +320,14 @@ void
 vl_compositor_set_layer_rotation(struct vl_compositor_state *state,
                                  unsigned layer,
                                  enum vl_compositor_rotation rotate);
+
+/**
+ * set the layer mirror
+ */
+void
+vl_compositor_set_layer_mirror(struct vl_compositor_state *state,
+                               unsigned layer,
+                               enum vl_compositor_mirror mirror);
 
 /**
  * deinterlace yuv buffer with full abilities

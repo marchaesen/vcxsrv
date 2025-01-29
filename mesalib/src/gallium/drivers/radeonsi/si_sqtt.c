@@ -21,6 +21,7 @@ si_emit_spi_config_cntl(struct si_context *sctx,
 
 static bool si_sqtt_init_bo(struct si_context *sctx)
 {
+   const uint32_t align_shift = ac_sqtt_get_buffer_align_shift(&sctx->screen->info);
    unsigned max_se = sctx->screen->info.max_se;
    struct radeon_winsys *ws = sctx->ws;
    uint64_t size;
@@ -29,11 +30,11 @@ static bool si_sqtt_init_bo(struct si_context *sctx)
     * size as early as possible so that we do all the allocation & addressing
     * correctly. */
    sctx->sqtt->buffer_size =
-      align64(sctx->sqtt->buffer_size, 1u << SQTT_BUFFER_ALIGN_SHIFT);
+      align64(sctx->sqtt->buffer_size, 1ull << align_shift);
 
    /* Compute total size of the thread trace BO for all SEs. */
    size = align64(sizeof(struct ac_sqtt_data_info) * max_se,
-                  1 << SQTT_BUFFER_ALIGN_SHIFT);
+                  1ull << align_shift);
    size += sctx->sqtt->buffer_size * (uint64_t)max_se;
 
    sctx->sqtt->bo =

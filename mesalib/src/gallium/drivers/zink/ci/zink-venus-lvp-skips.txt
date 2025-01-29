@@ -45,3 +45,6 @@ spec@arb_texture_rg@fbo-blending-formats
 
 #these need format conversions that gallium doesn't implement yet
 spec@arb_texture_buffer_object@formats.*arb.*
+
+# Timeout
+KHR-Single-GL46.arrays_of_arrays_gl.SizedDeclarationsPrimitive

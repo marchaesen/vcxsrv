@@ -863,7 +863,7 @@ _mesa_Begin(GLenum mode)
          ctx->Dispatch.Current = ctx->Dispatch.Exec;
    } else if (ctx->GLApi == ctx->Dispatch.OutsideBeginEnd) {
       ctx->GLApi = ctx->Dispatch.Current = ctx->Dispatch.Exec;
-      _glapi_set_dispatch(ctx->GLApi);
+      _mesa_glapi_set_dispatch(ctx->GLApi);
    } else {
       assert(ctx->GLApi == ctx->Dispatch.Save);
    }
@@ -926,7 +926,7 @@ _mesa_End(void)
    } else if (ctx->GLApi == ctx->Dispatch.BeginEnd ||
               ctx->GLApi == ctx->Dispatch.HWSelectModeBeginEnd) {
       ctx->GLApi = ctx->Dispatch.Current = ctx->Dispatch.Exec;
-      _glapi_set_dispatch(ctx->GLApi);
+      _mesa_glapi_set_dispatch(ctx->GLApi);
    }
 
    if (exec->vtx.prim_count > 0) {
@@ -1262,7 +1262,7 @@ _es_Materialf(GLenum face, GLenum pname, GLfloat param)
 void
 vbo_init_dispatch_hw_select_begin_end(struct gl_context *ctx)
 {
-   int numEntries = MAX2(_gloffset_COUNT, _glapi_get_dispatch_table_size());
+   int numEntries = MAX2(_gloffset_COUNT, _mesa_glapi_get_dispatch_table_size());
    memcpy(ctx->Dispatch.HWSelectModeBeginEnd, ctx->Dispatch.BeginEnd, numEntries * sizeof(_glapi_proc));
 
 #undef NAME

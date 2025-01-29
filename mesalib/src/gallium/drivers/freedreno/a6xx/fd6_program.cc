@@ -1111,6 +1111,7 @@ emit_fs_inputs(struct fd_ringbuffer *ring, const struct program_builder *b)
    OUT_RING(ring, COND(sample_shading, A6XX_GRAS_SAMPLE_CNTL_PER_SAMP_MODE));
 }
 
+template<chip CHIP>
 static void
 emit_fs_outputs(struct fd_ringbuffer *ring, const struct program_builder *b)
 {
@@ -1129,12 +1130,28 @@ emit_fs_outputs(struct fd_ringbuffer *ring, const struct program_builder *b)
 
    int output_reg_count = 0;
    uint32_t fragdata_regid[8];
+   uint32_t fragdata_aliased_components = 0;
 
    for (uint32_t i = 0; i < ARRAY_SIZE(fragdata_regid); i++) {
       unsigned slot = fs->color0_mrt ? FRAG_RESULT_COLOR : FRAG_RESULT_DATA0 + i;
-      fragdata_regid[i] = ir3_find_output_regid(fs, slot);
-      if (VALIDREG(fragdata_regid[i]))
+      int output_idx = ir3_find_output(fs, (gl_varying_slot)slot);
+
+      if (output_idx < 0) {
+         fragdata_regid[i] = INVALID_REG;
+         continue;
+      }
+
+      const struct ir3_shader_output *fragdata = &fs->outputs[output_idx];
+      fragdata_regid[i] = ir3_get_output_regid(fragdata);
+
+      if (VALIDREG(fragdata_regid[i]) || fragdata->aliased_components) {
+         /* An invalid reg is only allowed if all components are aliased. */
+         assert(
+            VALIDREG(fragdata_regid[i] || fragdata->aliased_components == 0xf));
+
          output_reg_count = i + 1;
+         fragdata_aliased_components |= fragdata->aliased_components << (i * 4);
+      }
    }
 
    OUT_PKT4(ring, REG_A6XX_SP_FS_OUTPUT_CNTL0, 1);
@@ -1149,9 +1166,20 @@ emit_fs_outputs(struct fd_ringbuffer *ring, const struct program_builder *b)
                      COND(fragdata_regid[i] & HALF_REG_ID,
                              A6XX_SP_FS_OUTPUT_REG_HALF_PRECISION));
 
-      if (VALIDREG(fragdata_regid[i])) {
+      if (VALIDREG(fragdata_regid[i]) ||
+          (fragdata_aliased_components & (0xf << (i * 4)))) {
          b->state->mrt_components |= 0xf << (i * 4);
       }
+   }
+
+   if (CHIP >= A7XX) {
+      OUT_REG(
+         ring,
+         A7XX_SP_PS_ALIASED_COMPONENTS_CONTROL(
+               .enabled = fragdata_aliased_components != 0),
+         A7XX_SP_PS_ALIASED_COMPONENTS(.dword = fragdata_aliased_components));
+   } else {
+      assert(fragdata_aliased_components == 0);
    }
 }
 
@@ -1175,7 +1203,7 @@ setup_stateobj(struct fd_ringbuffer *ring, const struct program_builder *b)
    emit_vpc<CHIP>(ring, b);
 
    emit_fs_inputs<CHIP>(ring, b);
-   emit_fs_outputs(ring, b);
+   emit_fs_outputs<CHIP>(ring, b);
 
    if (b->hs) {
       uint32_t patch_control_points = b->key->patch_vertices;

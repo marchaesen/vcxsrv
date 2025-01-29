@@ -97,7 +97,3 @@ program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float16,
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float2,Fail
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float4,Fail
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float8,Fail
-
-# VK 1.4 regression, should be fixed in the next vkcts uprev
-dEQP-VK.api.version_check.version,Fail
-dEQP-VK.info.device_properties,Fail

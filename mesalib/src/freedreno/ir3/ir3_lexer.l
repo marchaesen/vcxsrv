@@ -96,6 +96,9 @@ static int parse_reg(const char *str)
 		num++;
 	}
 	str++;
+	if (str[0] == 't') {
+		str++;
+	}
 	num += strtol(str, (char **)&str, 10) << 3;
 	switch (str[1]) {
 	case 'x': num += 0; break;
@@ -170,6 +173,7 @@ static int parse_reg(const char *str)
 
 [h]?"r"[0-9]+"."[xyzw]            ir3_yylval.num = parse_reg(yytext); return T_REGISTER;
 [h]?"c"[0-9]+"."[xyzw]            ir3_yylval.num = parse_reg(yytext); return T_CONSTANT;
+"rt"[0-7]"."[xyzw]                ir3_yylval.num = parse_reg(yytext); return T_RT;
 "a0.x"                            return T_A0;
 "a1.x"                            return T_A1;
 "p0."[xyzw]                       ir3_yylval.num = parse_reg(yytext); return T_P0;
@@ -363,6 +367,7 @@ static int parse_reg(const char *str)
 "stlw"                            return TOKEN(T_OP_STLW);
 "resfmt"                          return TOKEN(T_OP_RESFMT);
 "resinfo"                         return TOKEN(T_OP_RESINFO);
+"resbase"                         return TOKEN(T_OP_RESBASE);
 "atomic.add"                      return TOKEN(T_OP_ATOMIC_ADD);
 "atomic.sub"                      return TOKEN(T_OP_ATOMIC_SUB);
 "atomic.xchg"                     return TOKEN(T_OP_ATOMIC_XCHG);
@@ -423,7 +428,7 @@ static int parse_reg(const char *str)
 "stsc"                            return TOKEN(T_OP_STSC);
 "shfl"                            return TOKEN(T_OP_SHFL);
 
-("b16"|"b32"){1} ir3_yylval.str = yytext; return T_INSTR_TYPE;
+"ray_intersection"                return TOKEN(T_OP_RAY_INTERSECTION);
 
                                   /* category 7: */
 "bar"                             return TOKEN(T_OP_BAR);
@@ -449,6 +454,8 @@ static int parse_reg(const char *str)
 "u8"                              return TOKEN(T_TYPE_U8);
 "u8_32"                           return TOKEN(T_TYPE_U8_32);
 "u64"                             return TOKEN(T_TYPE_U64);
+"b16"                             return TOKEN(T_TYPE_B16);
+"b32"                             return TOKEN(T_TYPE_B32);
 
 "untyped"                         return TOKEN(T_UNTYPED);
 "typed"                           return TOKEN(T_TYPED);

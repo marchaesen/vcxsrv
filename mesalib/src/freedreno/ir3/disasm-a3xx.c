@@ -328,6 +328,7 @@ static const struct opc_info {
    OPC(6, OPC_STLW,         stlw),
    OPC(6, OPC_RESFMT,       resfmt),
    OPC(6, OPC_RESINFO,      resinfo),
+   OPC(6, OPC_RESBASE,      resbase),
    OPC(6, OPC_ATOMIC_ADD,     atomic.add),
    OPC(6, OPC_ATOMIC_SUB,     atomic.sub),
    OPC(6, OPC_ATOMIC_XCHG,    atomic.xchg),
@@ -389,6 +390,7 @@ static const struct opc_info {
    OPC(6, OPC_LDC_K,        ldc.k),
    OPC(6, OPC_LDG_K,        ldg.k),
    OPC(6, OPC_SHFL,         shfl),
+   OPC(6, OPC_RAY_INTERSECTION,  ray_intersection),
 
    OPC(6, OPC_SPILL_MACRO,  spill.macro),
    OPC(6, OPC_RELOAD_MACRO, reload.macro),
@@ -397,6 +399,7 @@ static const struct opc_info {
    OPC(7, OPC_FENCE,        fence),
    OPC(7, OPC_LOCK,         lock),
    OPC(7, OPC_UNLOCK,       unlock),
+   OPC(7, OPC_ALIAS,        alias),
 /* clang-format on */
 #undef OPC
 };

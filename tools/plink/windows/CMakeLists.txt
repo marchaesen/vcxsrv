@@ -42,9 +42,6 @@ add_sources_from_current_dir(utils
 if(NOT HAVE_STRTOUMAX)
   add_sources_from_current_dir(utils utils/strtoumax.c)
 endif()
-if(NOT HAVE_WMEMCHR)
-  add_sources_from_current_dir(utils utils/wmemchr.c)
-endif()
 add_sources_from_current_dir(eventloop
   cliloop.c handle-wait.c)
 add_sources_from_current_dir(console

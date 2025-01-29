@@ -982,7 +982,7 @@ mir_schedule_comparison(compiler_context *ctx,
    mov.mask = vector ? 0xF : 0x1;
    memcpy(mov.swizzle[1], swizzle, sizeof(mov.swizzle[1]));
 
-   return mir_insert_instruction_before(ctx, user, mov);
+   return mir_insert_instruction_before(ctx, user, &mov);
 }
 
 /* Most generally, we need instructions writing to r31 in the appropriate
@@ -1555,7 +1555,7 @@ mir_lower_ldst(compiler_context *ctx)
          for (unsigned c = 0; c < NIR_MAX_VEC_COMPONENTS; ++c)
             mov.swizzle[1][c] = I->swizzle[s][0];
 
-         mir_insert_instruction_before(ctx, I, mov);
+         mir_insert_instruction_before(ctx, I, &mov);
          I->src[s] = mov.dest;
          I->swizzle[s][0] = 0;
       }
@@ -1590,7 +1590,7 @@ mir_lower_blend_input(compiler_context *ctx)
          midgard_instruction mov = v_mov(src, temp);
          mov.mask = 0xF;
          mov.dest_type = nir_type_uint32;
-         mir_insert_instruction_before(ctx, I, mov);
+         mir_insert_instruction_before(ctx, I, &mov);
          I->src[s] = mov.dest;
       }
    }

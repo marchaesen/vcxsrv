@@ -209,6 +209,10 @@ panfrost_get_blend(struct panfrost_batch *batch, unsigned rti,
    if (!(*bo)) {
       *bo = panfrost_batch_create_bo(batch, 4096, PAN_BO_EXECUTE,
                                      PIPE_SHADER_FRAGMENT, "Blend shader");
+      if (!(*bo)) {
+         mesa_loge("failed to allocate blend-shader");
+         return 0;
+      }
    }
 
    struct panfrost_compiled_shader *ss = ctx->prog[PIPE_SHADER_FRAGMENT];

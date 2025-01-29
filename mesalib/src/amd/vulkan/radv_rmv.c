@@ -663,16 +663,7 @@ radv_rmv_log_command_buffer_bo_create(struct radv_device *device, struct radeon_
 void
 radv_rmv_log_command_buffer_bo_destroy(struct radv_device *device, struct radeon_winsys_bo *bo)
 {
-   if (!device->vk.memory_trace_data.is_enabled)
-      return;
-
-   simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
-   struct vk_rmv_resource_destroy_token destroy_token = {0};
-   destroy_token.resource_id = vk_rmv_get_resource_id_locked(&device->vk, (uint64_t)(uintptr_t)bo);
-
-   vk_rmv_emit_token(&device->vk.memory_trace_data, VK_RMV_TOKEN_TYPE_RESOURCE_DESTROY, &destroy_token);
-   vk_rmv_destroy_resource_id_locked(&device->vk, (uint64_t)(uintptr_t)bo);
-   simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
+   radv_rmv_log_resource_destroy(device, (uint64_t)(uintptr_t)bo);
    vk_rmv_log_cpu_map(&device->vk, bo->va, true);
 }
 
@@ -709,16 +700,7 @@ radv_rmv_log_border_color_palette_create(struct radv_device *device, struct rade
 void
 radv_rmv_log_border_color_palette_destroy(struct radv_device *device, struct radeon_winsys_bo *bo)
 {
-   if (!device->vk.memory_trace_data.is_enabled)
-      return;
-
-   simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
-   struct vk_rmv_resource_destroy_token token = {0};
-   /* same resource id as the create token */
-   token.resource_id = vk_rmv_get_resource_id_locked(&device->vk, (uint64_t)(uintptr_t)bo);
-
-   vk_rmv_emit_token(&device->vk.memory_trace_data, VK_RMV_TOKEN_TYPE_RESOURCE_DESTROY, &token);
-   simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
+   radv_rmv_log_resource_destroy(device, (uint64_t)(uintptr_t)bo);
    vk_rmv_log_cpu_map(&device->vk, bo->va, true);
 }
 

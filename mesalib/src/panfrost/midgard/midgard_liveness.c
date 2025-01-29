@@ -25,7 +25,8 @@
 #include "compiler.h"
 
 void
-mir_liveness_ins_update(uint16_t *live, midgard_instruction *ins, unsigned max)
+mir_liveness_ins_update(uint16_t *live, const midgard_instruction *ins,
+                        unsigned max)
 {
    /* live_in[s] = GEN[s] + (live_out[s] - KILL[s]) */
 
@@ -76,8 +77,8 @@ mir_invalidate_liveness(compiler_context *ctx)
 }
 
 bool
-mir_is_live_after(compiler_context *ctx, midgard_block *block,
-                  midgard_instruction *start, int src)
+mir_is_live_after(compiler_context *ctx, const midgard_block *block,
+                  const midgard_instruction *start, int src)
 {
    mir_compute_liveness(ctx);
 

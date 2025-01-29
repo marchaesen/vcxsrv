@@ -2440,7 +2440,7 @@ overwrite:
       // This is a known limitation of MoltenVK.
       // See https://github.com/KhronosGroup/MoltenVK/blob/master/Docs/MoltenVK_Runtime_UserGuide.md#known-moltenvk-limitations
 
-       || screen->instance_info.have_MVK_moltenvk
+       || screen->instance_info->have_MVK_moltenvk
 #endif
       ) {
       VkDeviceSize size = box->width;
@@ -3230,7 +3230,7 @@ zink_screen_resource_init(struct pipe_screen *pscreen)
    if (screen->info.have_EXT_external_memory_host) {
       pscreen->resource_from_user_memory = zink_resource_from_user_memory;
    }
-   if (screen->instance_info.have_KHR_external_memory_capabilities) {
+   if (screen->instance_info->have_KHR_external_memory_capabilities) {
       pscreen->memobj_create_from_handle = zink_memobj_create_from_handle;
       pscreen->memobj_destroy = zink_memobj_destroy;
       pscreen->resource_from_memobj = zink_resource_from_memobj;

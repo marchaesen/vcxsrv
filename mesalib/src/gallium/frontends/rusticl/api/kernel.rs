@@ -338,7 +338,7 @@ fn create_kernels_in_program(
             unsafe {
                 kernels
                     .add(num_kernels as usize)
-                    .write(Kernel::new(name.clone(), p.clone(), &build).into_cl());
+                    .write(Kernel::new(name.clone(), Arc::clone(&p), &build).into_cl());
             }
         }
         num_kernels += 1;

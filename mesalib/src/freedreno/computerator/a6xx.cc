@@ -499,9 +499,9 @@ a6xx_emit_grid(struct kernel *kernel, uint32_t grid[3],
                     .localsizez = local_size[2] - 1,
                  ));
    if (CHIP == A7XX) {
-      OUT_REG(ring, A7XX_HLSQ_CS_LOCAL_SIZE(.localsizex = local_size[0] - 1,
-                                            .localsizey = local_size[1] - 1,
-                                            .localsizez = local_size[2] - 1, ));
+      OUT_REG(ring, A7XX_HLSQ_CS_LAST_LOCAL_SIZE(.localsizex = local_size[0] - 1,
+                                                 .localsizey = local_size[1] - 1,
+                                                 .localsizez = local_size[2] - 1, ));
    }
 
    OUT_REG(ring, HLSQ_CS_NDRANGE_1(CHIP,

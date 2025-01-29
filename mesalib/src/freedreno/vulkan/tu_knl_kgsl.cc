@@ -13,6 +13,7 @@
 #include <sys/mman.h>
 #include <linux/dma-heap.h>
 
+#define __user
 #include "msm_kgsl.h"
 #include "ion/ion.h"
 #include "ion/ion_4.19.h"
@@ -1381,6 +1382,17 @@ static const struct tu_knl kgsl_knl_funcs = {
       .queue_wait_fence = kgsl_queue_wait_fence,
 };
 
+static bool
+tu_kgsl_get_raytracing(int fd)
+{
+   uint32_t value;
+   int ret = get_kgsl_prop(fd, KGSL_PROP_IS_RAYTRACING_ENABLED, &value, sizeof(value));
+   if (ret)
+      return false;
+
+   return value;
+}
+
 VkResult
 tu_knl_kgsl_load(struct tu_instance *instance, int fd)
 {
@@ -1456,6 +1468,8 @@ tu_knl_kgsl_load(struct tu_instance *instance, int fd)
    device->dev_id.chip_id = info.chip_id;
    device->gmem_size = debug_get_num_option("TU_GMEM", info.gmem_sizebytes);
    device->gmem_base = gmem_iova;
+
+   device->has_raytracing = tu_kgsl_get_raytracing(fd);
 
    device->submitqueue_priority_count = 1;
    

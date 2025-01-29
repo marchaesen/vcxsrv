@@ -103,4 +103,3 @@ dEQP-GLES31.functional.copy_image.mixed.viewclass_64_bits_mixed.rg32f_r11_eac.te
 dEQP-GLES31.functional.draw_indirect.compute_interop.large.drawelements_separate_grid_100x100_drawcount_200
 dEQP-GLES31.functional.draw_indirect.compute_interop.large.drawelements_separate_grid_1200x1200_drawcount_1
 spec@arb_compute_shader@zero-dispatch-size
-spec@arb_fragment_layer_viewport@layer-gs-writes-in-range

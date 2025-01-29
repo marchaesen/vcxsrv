@@ -215,7 +215,6 @@ static void si_destroy_context(struct pipe_context *context)
    pipe_resource_reference(&sctx->esgs_ring, NULL);
    pipe_resource_reference(&sctx->gsvs_ring, NULL);
    pipe_resource_reference(&sctx->null_const_buf.buffer, NULL);
-   pipe_resource_reference(&sctx->sample_pos_buffer, NULL);
    si_resource_reference(&sctx->border_color_buffer, NULL);
    free(sctx->border_color_table);
    si_resource_reference(&sctx->scratch_buffer, NULL);
@@ -517,7 +516,13 @@ static struct pipe_context *si_create_context(struct pipe_screen *screen, unsign
       return NULL;
    }
 
-   sctx->has_graphics = sscreen->info.gfx_level == GFX6 || !(flags & PIPE_CONTEXT_COMPUTE_ONLY);
+   sctx->has_graphics = sscreen->info.gfx_level == GFX6 ||
+                        /* Compute queues hang on Raven and derivatives, see:
+                         * https://gitlab.freedesktop.org/mesa/mesa/-/issues/12310 */
+                        ((sscreen->info.family == CHIP_RAVEN ||
+                          sscreen->info.family == CHIP_RAVEN2) &&
+                         !sscreen->info.has_dedicated_vram) ||
+                        !(flags & PIPE_CONTEXT_COMPUTE_ONLY);
 
    if (flags & PIPE_CONTEXT_DEBUG)
       sscreen->record_llvm_ir = true; /* racy but not critical */
@@ -773,7 +778,6 @@ static struct pipe_context *si_create_context(struct pipe_screen *screen, unsign
       si_set_internal_const_buffer(sctx, SI_VS_CONST_INSTANCE_DIVISORS, &sctx->null_const_buf);
       si_set_internal_const_buffer(sctx, SI_VS_CONST_CLIP_PLANES, &sctx->null_const_buf);
       si_set_internal_const_buffer(sctx, SI_PS_CONST_POLY_STIPPLE, &sctx->null_const_buf);
-      si_set_internal_const_buffer(sctx, SI_PS_CONST_SAMPLE_POSITIONS, &sctx->null_const_buf);
    }
 
    /* Bindless handles. */

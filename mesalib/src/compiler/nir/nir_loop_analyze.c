@@ -23,6 +23,7 @@
 
 #include "nir_loop_analyze.h"
 #include "util/bitset.h"
+#include "util/sparse_array.h"
 #include "nir.h"
 #include "nir_constant_expressions.h"
 
@@ -69,7 +70,7 @@ typedef struct {
    nir_loop *loop;
 
    /* Loop_variable for all ssa_defs in function */
-   nir_loop_variable *loop_vars;
+   struct util_sparse_array loop_vars;
    BITSET_WORD *loop_vars_init;
 
    /* A list of the loop_vars to analyze */
@@ -83,7 +84,7 @@ typedef struct {
 static nir_loop_variable *
 get_loop_var(nir_def *value, loop_info_state *state)
 {
-   nir_loop_variable *var = &(state->loop_vars[value->index]);
+   nir_loop_variable *var = util_sparse_array_get(&state->loop_vars, value->index);
 
    if (!BITSET_TEST(state->loop_vars_init, value->index)) {
       var->in_loop = false;
@@ -1554,8 +1555,7 @@ initialize_loop_info_state(nir_loop *loop, void *mem_ctx,
                            nir_function_impl *impl)
 {
    loop_info_state *state = rzalloc(mem_ctx, loop_info_state);
-   state->loop_vars = ralloc_array(mem_ctx, nir_loop_variable,
-                                   impl->ssa_alloc);
+   util_sparse_array_init(&state->loop_vars, sizeof(nir_loop_variable), 128);
    state->loop_vars_init = rzalloc_array(mem_ctx, BITSET_WORD,
                                          BITSET_WORDS(impl->ssa_alloc));
    state->loop = loop;
@@ -1609,6 +1609,7 @@ process_loops(nir_cf_node *cf_node, nir_variable_mode indirect_mask,
 
    get_loop_info(state, impl);
 
+   util_sparse_array_finish(&state->loop_vars);
    ralloc_free(mem_ctx);
 }
 
@@ -1617,7 +1618,9 @@ nir_loop_analyze_impl(nir_function_impl *impl,
                       nir_variable_mode indirect_mask,
                       bool force_unroll_sampler_indirect)
 {
-   nir_index_ssa_defs(impl);
    foreach_list_typed(nir_cf_node, node, node, &impl->body)
       process_loops(node, indirect_mask, force_unroll_sampler_indirect);
+
+   impl->loop_analysis_indirect_mask = indirect_mask;
+   impl->loop_analysis_force_unroll_sampler_indirect = force_unroll_sampler_indirect;
 }

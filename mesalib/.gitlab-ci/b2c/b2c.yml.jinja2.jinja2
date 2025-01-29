@@ -2,7 +2,7 @@ version: 1
 
 # Rules to match for a machine to qualify
 target:
-  id: '{{ ci_runner_id }}'
+  id: '{{ ci_runner_description }}'
 
 timeouts:
 
@@ -27,6 +27,12 @@ timeouts:
     retries: 0
     # no retries possible here
 
+  watchdogs:
+    boot:
+      minutes: {{ timeout_boot_wd_minutes | default(0, true) }}
+      seconds: {{ timeout_boot_wd_seconds | default(0, true) }}
+      retries: {{ timeout_boot_wd_retries | default(0, true) }}
+
 console_patterns:
     session_end:
         regex: >-
@@ -43,6 +49,20 @@ console_patterns:
     job_warn:
         regex: >-
           {{ job_warn_regex }}
+{% endif %}
+
+{% if boot_wd_start_regex and boot_wd_stop_regex %}
+    watchdogs:
+        boot:
+            start:
+              regex: >-
+                {{ boot_wd_start_regex }}
+            reset:
+              regex: >-
+                {{ boot_wd_reset_regex | default(boot_wd_start_regex, true) }}
+            stop:
+              regex: >-
+                {{ boot_wd_stop_regex }}
 {% endif %}
 
 # Environment to deploy
@@ -78,12 +98,22 @@ deployment:
         {{ kernel_cmdline_extras }}
         {% endif %}
 
-{% if initramfs_url %}
+{% if initramfs_url or firmware_url %}
     initramfs:
-      url: '{{ initramfs_url }}'
+{% if firmware_url %}
+      - url: '{{ firmware_url }}'
+{% endif %}
+{% if initramfs_url %}
+      - url: '{{ initramfs_url }}'
+{% endif %}
 {% endif %}
 
 {% if dtb_url %}
     dtb:
       url: '{{ dtb_url }}'
+{% if dtb_match %}
+      format:
+        archive:
+          match: "{{ dtb_match }}"
+{% endif %}
 {% endif %}

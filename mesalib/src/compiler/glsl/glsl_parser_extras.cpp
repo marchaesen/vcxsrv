@@ -2095,6 +2095,7 @@ set_shader_inout_layout(struct gl_shader *shader,
       break;
    }
 
+   shader->view_mask = state->view_mask;
    shader->bindless_sampler = state->bindless_sampler_specified;
    shader->bindless_image = state->bindless_image_specified;
    shader->bound_sampler = state->bound_sampler_specified;

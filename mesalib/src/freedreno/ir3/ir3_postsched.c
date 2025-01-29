@@ -475,7 +475,6 @@ calculate_deps(struct ir3_postsched_deps_state *state,
             add_reg_dep(state, node, reg, reg->array.base + j, i, -1);
          }
       } else {
-         assert(reg->wrmask >= 1);
          u_foreach_bit (b, reg->wrmask) {
             add_reg_dep(state, node, reg, reg->num + b, i, -1);
          }
@@ -487,6 +486,8 @@ calculate_deps(struct ir3_postsched_deps_state *state,
     */
    foreach_dst_n (reg, i, node->instr) {
       if (reg->wrmask == 0)
+         continue;
+      if (reg->flags & IR3_REG_RT)
          continue;
       if (reg->flags & IR3_REG_RELATIV) {
          /* mark the entire array as written: */

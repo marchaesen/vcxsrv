@@ -7,12 +7,13 @@ set -e
 
 set -o xtrace
 
-export LLVM_VERSION="${LLVM_VERSION:=15}"
+: "${LLVM_VERSION:?llvm version not set}"
 
-apt-get -y install ca-certificates
+apt-get -y install ca-certificates curl gnupg2
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list.d/*
 echo "deb [trusted=yes] https://gitlab.freedesktop.org/gfx-ci/ci-deb-repo/-/raw/${PKG_REPO_REV}/ ${FDO_DISTRIBUTION_VERSION%-*} main" | tee /etc/apt/sources.list.d/gfx-ci_.list
-apt-get update
+
+. .gitlab-ci/container/debian/maybe-add-llvm-repo.sh
 
 # Ephemeral packages (installed for this script and removed again at the end)
 EPHEMERAL=(
@@ -80,6 +81,8 @@ DEPS=(
     zlib1g-dev
     zstd
 )
+
+apt-get update
 
 apt-get -y install "${DEPS[@]}" "${EPHEMERAL[@]}"
 

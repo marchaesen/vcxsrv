@@ -39,7 +39,7 @@ dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_14
 dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_15
 
 # Those cases seem to usually timeout.
-dEQP-VK.binding_model.descriptor_buffer.multiple.*buffers32_sets1
+dEQP-VK.binding_model.descriptor_buffer.*.multiple.*buffers32_sets1
 
 # These cases are slow.
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_.*

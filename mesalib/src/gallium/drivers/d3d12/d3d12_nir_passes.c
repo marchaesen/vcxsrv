@@ -609,7 +609,7 @@ d3d12_lower_primitive_id(nir_shader *shader)
    primitive_id_var->data.interpolation = INTERP_MODE_FLAT;
 
    nir_foreach_block(block, impl) {
-      b.cursor = nir_before_block(block);
+      b.cursor = nir_before_block_after_phis(block);
       primitive_id = nir_load_primitive_id(&b);
 
       nir_foreach_instr_safe(instr, block) {

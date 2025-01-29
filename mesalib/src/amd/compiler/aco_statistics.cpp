@@ -142,7 +142,12 @@ is_dual_issue_capable(const Program& program, const Instruction& instr)
       }
       return false;
    }
-   default: return false;
+   default:
+      if (instr.isVINTERP_INREG())
+         return program.gfx_level >= GFX11_5;
+      if (instr.isVOPC() && instr_info.classes[(int)instr.opcode] == instr_class::valu32)
+         return program.gfx_level == GFX11_5;
+      return false;
    }
 }
 

@@ -52,6 +52,7 @@ struct ir3_legalize_state {
    regmask_t needs_ss_or_sy_scalar_war;
    regmask_t needs_sy;
    bool needs_ss_for_const;
+   bool needs_sy_for_const;
 
    /* Each of these arrays contains the cycle when the corresponding register
     * becomes "ready" i.e. does not require any more nops. There is a special
@@ -125,6 +126,7 @@ apply_sy(struct ir3_instruction *instr,
    regmask_init(&state->needs_sy, mergedregs);
    regmask_init(&state->needs_ss_or_sy_war, mergedregs);
    regmask_init(&state->needs_ss_or_sy_scalar_war, mergedregs);
+   state->needs_sy_for_const = false;
 }
 
 static bool
@@ -176,7 +178,8 @@ get_ready_slot(struct ir3_legalize_state *state,
 }
 
 static unsigned
-delay_calc(struct ir3_legalize_state *state,
+delay_calc(struct ir3_legalize_ctx *ctx,
+           struct ir3_legalize_state *state,
            struct ir3_instruction *instr,
            unsigned cycle)
 {
@@ -191,19 +194,7 @@ delay_calc(struct ir3_legalize_state *state,
 
       unsigned elems = post_ra_reg_elems(src);
       unsigned num = post_ra_reg_num(src);
-      unsigned src_cycle = cycle;
-
-      /* gat and swz have scalar sources and each source is read in a
-       * subsequent cycle.
-       */
-      if (instr->opc == OPC_GAT || instr->opc == OPC_SWZ)
-         src_cycle += n;
-
-      /* cat3 instructions consume their last source two cycles later, so they
-       * only need a delay of 1.
-       */
-      if ((is_mad(instr->opc) || is_madsh(instr->opc)) && n == 2)
-         src_cycle += 2;
+      unsigned src_cycle = cycle + ir3_src_read_delay(ctx->compiler, instr, n);
 
       for (unsigned elem = 0; elem < elems; elem++, num++) {
          unsigned ready_cycle =
@@ -222,7 +213,8 @@ delay_calc(struct ir3_legalize_state *state,
 }
 
 static void
-delay_update(struct ir3_legalize_state *state,
+delay_update(struct ir3_legalize_ctx *ctx,
+             struct ir3_legalize_state *state,
              struct ir3_instruction *instr,
              unsigned cycle,
              bool mergedregs)
@@ -231,6 +223,9 @@ delay_update(struct ir3_legalize_state *state,
       return;
 
    foreach_dst_n (dst, n, instr) {
+      if (dst->flags & IR3_REG_RT)
+         continue;
+
       unsigned elems = post_ra_reg_elems(dst);
       unsigned num = post_ra_reg_num(dst);
       unsigned dst_cycle = cycle;
@@ -271,11 +266,13 @@ delay_update(struct ir3_legalize_state *state,
                   reset_ready_slot = true;
                } else if ((dst->flags & IR3_REG_PREDICATE) ||
                           reg_num(dst) == REG_A0) {
-                  delay = 6;
+                  delay = ctx->compiler->delay_slots.non_alu;
                   if (!matching_size)
                      continue;
                } else {
-                  delay = (consumer_alu && matching_size) ? 3 : 6;
+                  delay = (consumer_alu && matching_size)
+                             ? ctx->compiler->delay_slots.alu_to_alu
+                             : ctx->compiler->delay_slots.non_alu;
                }
 
                if (!matching_size) {
@@ -356,6 +353,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
                  &pstate->needs_ss_or_sy_war);
       regmask_or(&state->needs_sy, &state->needs_sy, &pstate->needs_sy);
       state->needs_ss_for_const |= pstate->needs_ss_for_const;
+      state->needs_sy_for_const |= pstate->needs_sy_for_const;
 
       /* Our nop state is the max of the predecessor blocks */
       for (unsigned i = 0; i < ARRAY_SIZE(state->pred_ready); i++)
@@ -514,6 +512,9 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
                apply_ss(n, state, mergedregs);
                last_input_needs_ss = false;
             }
+            if (state->needs_sy_for_const) {
+               apply_sy(n, state, mergedregs);
+            }
          } else if (reg_is_addr1(reg) && block->in_early_preamble) {
             if (regmask_get(&state->needs_ss, reg)) {
                apply_ss(n, state, mergedregs);
@@ -523,6 +524,8 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
       }
 
       foreach_dst (reg, n) {
+         if (reg->flags & IR3_REG_RT)
+            continue;
          if (needs_ss_war(state, reg, n_is_scalar_alu)) {
             apply_ss(n, state, mergedregs);
             last_input_needs_ss = false;
@@ -540,7 +543,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
        * clever if we were aware of this during scheduling, but
        * this should be a pretty rare case:
        */
-      if ((n->flags & IR3_INSTR_SS) && (opc_cat(n->opc) >= 5)) {
+      if ((n->flags & IR3_INSTR_SS) && !supports_ss(n)) {
          struct ir3_instruction *nop;
          nop = ir3_NOP(&build);
          nop->flags |= IR3_INSTR_SS;
@@ -549,7 +552,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
          cycle++;
       }
 
-      unsigned delay = delay_calc(state, n, cycle);
+      unsigned delay = delay_calc(ctx, state, n, cycle);
 
       /* NOTE: I think the nopN encoding works for a5xx and
        * probably a4xx, but not a3xx.  So far only tested on
@@ -639,8 +642,10 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
          } else {
             regmask_set(&state->needs_ss, n->dsts[0]);
          }
-      } else if (n->opc == OPC_PUSH_CONSTS_LOAD_MACRO) {
+      } else if (n->opc == OPC_PUSH_CONSTS_LOAD_MACRO || n->opc == OPC_STC) {
          state->needs_ss_for_const = true;
+      } else if (n->opc == OPC_LDC_K) {
+         state->needs_sy_for_const = true;
       }
 
       if (is_ssbo(n->opc) || is_global_a3xx_atomic(n->opc) ||
@@ -695,10 +700,10 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
       if (count)
          cycle += 1;
 
-      delay_update(state, n, cycle, mergedregs);
+      delay_update(ctx, state, n, cycle, mergedregs);
 
       if (count)
-         cycle += n->repeat;
+         cycle += n->repeat + n->nop;
 
       if (ctx->early_input_release && is_input(n)) {
          last_input_needs_ss |= (n->opc == OPC_LDLV);
@@ -1854,6 +1859,7 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
       progress |= expand_dummy_dests(block);
    }
 
+   ir3_insert_alias_tex(ir);
    ir3_count_instructions(ir);
    resolve_jumps(ir);
 

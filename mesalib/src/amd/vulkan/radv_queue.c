@@ -711,6 +711,10 @@ radv_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs, bool is_
       ac_pm4_set_reg(pm4, R_00B844_COMPUTE_TMA_HI, tma_va >> 40);
    }
 
+   if (pdev->info.gfx_level >= GFX12)
+      ac_pm4_set_reg(pm4, R_00B8BC_COMPUTE_DISPATCH_INTERLEAVE,
+                     S_00B8BC_INTERLEAVE_1D(preamble_state.gfx11.compute_dispatch_interleave));
+
    ac_pm4_finalize(pm4);
 
    radeon_emit_array(cs, pm4->pm4, pm4->ndw);

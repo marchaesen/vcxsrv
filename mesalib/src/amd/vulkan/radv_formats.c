@@ -674,8 +674,14 @@ radv_list_drm_format_modifiers(struct radv_physical_device *pdev, VkFormat forma
       if (!features)
          continue;
 
-      unsigned planes =
-         vk_format_get_plane_count(format) + ac_modifier_has_dcc(mods[i]) + ac_modifier_has_dcc_retile(mods[i]);
+      unsigned planes = vk_format_get_plane_count(format);
+
+      if (pdev->info.gfx_level < GFX12) {
+         /* DCC is transparent to the userspace driver on GFX12 so it doesn't
+          * need additional planes.
+          */
+         planes += ac_modifier_has_dcc(mods[i]) + ac_modifier_has_dcc_retile(mods[i]);
+      }
 
       vk_outarray_append_typed(VkDrmFormatModifierPropertiesEXT, &out, out_props)
       {
@@ -725,8 +731,14 @@ radv_list_drm_format_modifiers_2(struct radv_physical_device *pdev, VkFormat for
       if (!features)
          continue;
 
-      unsigned planes =
-         vk_format_get_plane_count(format) + ac_modifier_has_dcc(mods[i]) + ac_modifier_has_dcc_retile(mods[i]);
+      unsigned planes = vk_format_get_plane_count(format);
+
+      if (pdev->info.gfx_level < GFX12) {
+         /* DCC is transparent to the userspace driver on GFX12 so it doesn't
+          * need additional planes.
+          */
+         planes += ac_modifier_has_dcc(mods[i]) + ac_modifier_has_dcc_retile(mods[i]);
+      }
 
       vk_outarray_append_typed(VkDrmFormatModifierProperties2EXT, &out, out_props)
       {

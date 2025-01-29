@@ -7,8 +7,8 @@ set -exu
 : "${CI_PROJECT_PATH:=}"
 
 # Early check for required env variables, relies on `set -u`
+: "$ANDROID_NDK_VERSION"
 : "$ANDROID_SDK_VERSION"
-: "$ANDROID_NDK"
 : "$ANDROID_LLVM_VERSION"
 : "$ANDROID_LLVM_ARTIFACT_NAME"
 : "$S3_JWT_FILE"
@@ -43,6 +43,7 @@ EPHEMERAL=(
 apt-get update
 apt-get install -y --no-install-recommends --no-remove "${EPHEMERAL[@]}"
 
+ANDROID_NDK="android-ndk-${ANDROID_NDK_VERSION}"
 ANDROID_NDK_ROOT="/${ANDROID_NDK}"
 if [ ! -d "$ANDROID_NDK_ROOT" ];
 then

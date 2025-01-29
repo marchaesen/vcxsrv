@@ -33,3 +33,8 @@ shaderInt16 on panvk
 shaderInt64 on panvk
 imageCubeArray on panvk
 VK_KHR_depth_clamp_zero_one on RADV
+VK_KHR_maintenance8 on radv
+VK_KHR_shader_subgroup_rotate on panvk/v10+
+Vulkan 1.1 on panvk/v10+
+VK_EXT_subgroup_size_control on panvk/v10+
+initial GFX12 (RDNA4) support on RADV

@@ -69,15 +69,6 @@ ac_nir_create_gs_copy_shader(const nir_shader *gs_nir,
                nir_load_buffer_amd(&b, 1, 32, gsvs_ring, vtx_offset, zero, zero,
                                    .base = offset,
                                    .access = ACCESS_COHERENT | ACCESS_NON_TEMPORAL);
-
-            /* clamp legacy color output */
-            if (i == VARYING_SLOT_COL0 || i == VARYING_SLOT_COL1 ||
-                i == VARYING_SLOT_BFC0 || i == VARYING_SLOT_BFC1) {
-               nir_def *color = out.outputs[i][j];
-               nir_def *clamp = nir_load_clamp_vertex_color_amd(&b);
-               out.outputs[i][j] = nir_bcsel(&b, clamp, nir_fsat(&b, color), color);
-            }
-
             offset += gs_nir->info.gs.vertices_out * 16 * 4;
          }
       }
@@ -116,6 +107,9 @@ ac_nir_create_gs_copy_shader(const nir_shader *gs_nir,
 
       if (stream_id)
          ac_nir_emit_legacy_streamout(&b, stream, info, &out);
+
+      /* This should be after streamout and before exports. */
+      ac_nir_clamp_vertex_color_outputs(&b, &out);
 
       if (stream == 0) {
          uint64_t export_outputs = b.shader->info.outputs_written | VARYING_BIT_POS;

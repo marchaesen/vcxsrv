@@ -6,6 +6,10 @@
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
 # KERNEL_ROOTFS_TAG
+# If you need to update the fluster vectors cache without updating the fluster revision,
+# you can update the FLUSTER_VECTORS_VERSION tag in .gitlab-ci/image-tags.yml.
+# When changing FLUSTER_REVISION, KERNEL_ROOTFS_TAG needs to be updated as well to rebuild
+# the rootfs.
 
 set -e
 
@@ -14,8 +18,9 @@ set -e
 set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
-export LLVM_VERSION="${LLVM_VERSION:=15}"
+: "${LLVM_VERSION:?llvm version not set!}"
 export FIRMWARE_FILES="${FIRMWARE_FILES}"
+export SKIP_UPDATE_FLUSTER_VECTORS=0
 
 check_minio()
 {
@@ -27,8 +32,21 @@ check_minio()
     fi
 }
 
+check_fluster()
+{
+    S3_PATH_FLUSTER="${S3_HOST}/${S3_KERNEL_BUCKET}/$1/${DATA_STORAGE_PATH}/fluster/${FLUSTER_VECTORS_VERSION}"
+    if curl -L --retry 4 -f --retry-delay 60 -s -X HEAD \
+      "https://${S3_PATH_FLUSTER}/done"; then
+        echo "Fluster vectors are up-to-date, skip downloading them."
+        export SKIP_UPDATE_FLUSTER_VECTORS=1
+    fi
+}
+
 check_minio "${FDO_UPSTREAM_REPO}"
 check_minio "${CI_PROJECT_PATH}"
+
+check_fluster "${FDO_UPSTREAM_REPO}"
+check_fluster "${CI_PROJECT_PATH}"
 
 . .gitlab-ci/container/container_pre_build.sh
 
@@ -165,6 +183,8 @@ CONTAINER_EPHEMERAL=(
 
 echo "deb [trusted=yes] https://gitlab.freedesktop.org/gfx-ci/ci-deb-repo/-/raw/${PKG_REPO_REV}/ ${FDO_DISTRIBUTION_VERSION%-*} main" | tee /etc/apt/sources.list.d/gfx-ci_.list
 
+. .gitlab-ci/container/debian/maybe-add-llvm-repo.sh
+
 apt-get update
 apt-get install -y --no-remove \
 		   -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' \
@@ -197,6 +217,7 @@ PKG_MESA_DEP=(
 )
 PKG_DEP=(
   libpng16-16
+  libva-wayland2
   libwaffle-1-0
   libpython3.11 python3 python3-lxml python3-mako python3-numpy python3-packaging python3-pil python3-renderdoc python3-requests python3-simplejson python3-yaml # Python
   sntp
@@ -213,6 +234,7 @@ PKG_DEP=(
 [ "$DEBIAN_ARCH" = "amd64" ] && PKG_ARCH=(
   firmware-amd-graphics
   firmware-misc-nonfree
+  gstreamer1.0-plugins-bad gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly gstreamer1.0-tools gstreamer1.0-vaapi libgstreamer1.0-0 # Fluster
   libgl1 libglu1-mesa
   inetutils-syslogd iptables libcap2
   libfontconfig1
@@ -246,7 +268,8 @@ mmdebstrap \
     bookworm \
     "$ROOTFS/" \
     "http://deb.debian.org/debian" \
-    "deb [trusted=yes] https://gitlab.freedesktop.org/gfx-ci/ci-deb-repo/-/raw/${PKG_REPO_REV}/ ${FDO_DISTRIBUTION_VERSION%-*} main"
+    "deb [trusted=yes] https://gitlab.freedesktop.org/gfx-ci/ci-deb-repo/-/raw/${PKG_REPO_REV}/ ${FDO_DISTRIBUTION_VERSION%-*} main" \
+    "${LLVM_APT_REPO:-}"
 
 ############### Install mold
 . .gitlab-ci/container/build-mold.sh
@@ -365,6 +388,13 @@ fi
 ############### Build ci-kdl
 . .gitlab-ci/container/build-kdl.sh
 mv /ci-kdl $ROOTFS/
+
+############### Install fluster
+if [[ ${DEBIAN_ARCH} = "amd64" ]]; then
+    section_start fluster "Install fluster"
+    . .gitlab-ci/container/build-fluster.sh
+    section_end fluster
+fi
 
 ############### Build local stuff for use by igt and kernel testing, which
 ############### will reuse most of our container build process from a specific

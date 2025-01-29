@@ -272,12 +272,16 @@ handlePictureParameterBuffer(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *
       if (!context->target)
          return VA_STATUS_ERROR_INVALID_CONTEXT;
 
+      mtx_lock(&context->mutex);
+
       if (format == PIPE_VIDEO_FORMAT_MPEG4_AVC)
          context->templat.level = u_get_h264_level(context->templat.width,
             context->templat.height, &context->templat.max_references);
 
       context->decoder = drv->pipe->create_video_codec(drv->pipe,
          &context->templat);
+
+      mtx_unlock(&context->mutex);
 
       if (!context->decoder)
          return VA_STATUS_ERROR_ALLOCATION_FAILED;
@@ -409,6 +413,7 @@ handleVASliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
    static const uint8_t start_code_h265[] = { 0x00, 0x00, 0x01 };
    static const uint8_t start_code_vc1_frame[] = { 0x00, 0x00, 0x01, 0x0d };
    static const uint8_t start_code_vc1_field[] = { 0x00, 0x00, 0x01, 0x0c };
+   static const uint8_t start_code_vc1_slice[] = { 0x00, 0x00, 0x01, 0x0b };
    static const uint8_t eoi_jpeg[] = { 0xff, 0xd9 };
 
    if (!context->decoder)
@@ -446,8 +451,13 @@ handleVASliceDataBufferType(vlVaContext *context, vlVaBuffer *buf)
             break;
 
          if (context->decoder->profile == PIPE_VIDEO_PROFILE_VC1_ADVANCED) {
-            const uint8_t *start_code =
-               context->desc.vc1.is_first_field ? start_code_vc1_frame : start_code_vc1_field;
+            const uint8_t *start_code;
+            if (context->slice_data_offset)
+               start_code = start_code_vc1_slice;
+            else if (context->desc.vc1.is_first_field)
+               start_code = start_code_vc1_frame;
+            else
+               start_code = start_code_vc1_field;
             context->bs.buffers[context->bs.num_buffers] = (void *const)start_code;
             context->bs.sizes[context->bs.num_buffers++] = sizeof(start_code_vc1_frame);
          }

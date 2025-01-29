@@ -16,6 +16,7 @@
 #include "util/u_transfer_helper.h"
 
 #include "freedreno/fdl/freedreno_layout.h"
+#include "freedreno/fdl/freedreno_lrz_layout.h"
 #include "freedreno_batch.h"
 #include "freedreno_util.h"
 
@@ -139,18 +140,10 @@ struct fd_resource {
     */
    bool needs_ubwc_clear : 1;
 
-   /*
-    * LRZ
-    *
-    * TODO lrz width/height/pitch should probably also move to
-    * fdl_layout
-    */
+   /* LRZ */
+   struct fdl_lrz_layout lrz_layout;
    bool lrz_valid : 1;
    enum fd_lrz_direction lrz_direction : 2;
-   uint16_t lrz_width; // for lrz clear, does this differ from lrz_pitch?
-   uint16_t lrz_height;
-   uint16_t lrz_pitch;
-   uint32_t lrz_fc_offset;
    struct fd_bo *lrz;
 };
 

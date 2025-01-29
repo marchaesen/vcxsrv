@@ -185,7 +185,9 @@ enum
    GFX9_GS_NUM_USER_SGPR,
 
    /* PS only */
-   SI_SGPR_ALPHA_REF = SI_NUM_RESOURCE_SGPRS,
+   SI_SGPR_SAMPLE_LOCS0 = SI_NUM_RESOURCE_SGPRS,
+   SI_SGPR_SAMPLE_LOCS1,
+   SI_SGPR_ALPHA_REF,
    SI_PS_NUM_USER_SGPR,
 
    /* The value has to be 12, because the hw requires that descriptors
@@ -200,7 +202,9 @@ enum
    SI_NUM_RESOURCE_PARAMS = 4,
 
    /* PS only parameters */
-   SI_PARAM_ALPHA_REF = SI_NUM_RESOURCE_PARAMS,
+   SI_PARAM_SAMPLE_LOCS0 = SI_NUM_RESOURCE_PARAMS,
+   SI_PARAM_SAMPLE_LOCS1,
+   SI_PARAM_ALPHA_REF,
    SI_PARAM_PRIM_MASK,
    SI_PARAM_PERSP_SAMPLE,
    SI_PARAM_PERSP_CENTER,
@@ -449,14 +453,18 @@ enum si_color_output_type {
    SI_TYPE_UINT16,
 };
 
-union si_input_info {
+union si_ps_input_info {
    struct {
       uint8_t semantic;
       uint8_t interpolate;
       uint8_t fp16_lo_hi_valid;
-      uint8_t usage_mask;
    };
    uint32_t _unused; /* this just forces 4-byte alignment */
+};
+
+struct si_vs_tcs_input_info {
+   uint8_t semantic;
+   uint8_t usage_mask;
 };
 
 struct si_shader_info {
@@ -466,7 +474,7 @@ struct si_shader_info {
 
    uint8_t num_inputs;
    uint8_t num_outputs;
-   union si_input_info input[PIPE_MAX_SHADER_INPUTS];
+   struct si_vs_tcs_input_info input[PIPE_MAX_SHADER_INPUTS];
    uint8_t output_semantic[PIPE_MAX_SHADER_OUTPUTS];
    uint8_t output_usagemask[PIPE_MAX_SHADER_OUTPUTS];
    uint8_t output_streams[PIPE_MAX_SHADER_OUTPUTS];
@@ -504,7 +512,6 @@ struct si_shader_info {
    unsigned colors_written_4bit;
 
    int constbuf0_num_slots;
-   uint num_memory_stores;
    uint8_t color_attr_index[2];
    uint8_t color_interpolate[2];
    uint8_t color_interpolate_loc[2];
@@ -531,6 +538,7 @@ struct si_shader_info {
    bool uses_linear_center;
    bool uses_linear_centroid;
    bool uses_linear_sample;
+   bool uses_interp_at_offset;
    bool uses_interp_at_sample;
    bool uses_instanceid;
    bool uses_base_vertex;
@@ -555,8 +563,6 @@ struct si_shader_info {
    bool uses_bindless_images;
    bool uses_indirect_descriptor;
    bool has_divergent_loop;
-   bool uses_sampleid;
-   bool uses_layer_id;
    bool has_non_uniform_tex_access;
    bool has_shadow_comparison;
 
@@ -580,7 +586,6 @@ struct si_shader_info {
 
    /* frag coord and sample pos per component read mask. */
    uint8_t reads_frag_coord_mask;
-   uint8_t reads_sample_pos_mask;
 };
 
 /* A shader selector is a gallium CSO and contains shader variants and
@@ -671,7 +676,9 @@ struct si_ps_prolog_bits {
    unsigned force_linear_center_interp : 1;
    unsigned bc_optimize_for_persp : 1;
    unsigned bc_optimize_for_linear : 1;
-   unsigned samplemask_log_ps_iter : 3;
+   unsigned samplemask_log_ps_iter : 2;
+   unsigned get_frag_coord_from_pixel_coord : 1;
+   unsigned force_samplemask_to_helper_invocation : 1;
 };
 
 /* Common PS bits between the shader key and the epilog key. */
@@ -679,7 +686,6 @@ struct si_ps_epilog_bits {
    unsigned spi_shader_col_format;
    unsigned color_is_int8 : 8;
    unsigned color_is_int10 : 8;
-   unsigned last_cbuf : 3;
    unsigned alpha_func : 3;
    unsigned alpha_to_one : 1;
    unsigned alpha_to_coverage_via_mrtz : 1;  /* gfx11+ or alpha_to_one */
@@ -700,7 +706,8 @@ union si_shader_part_key {
       /* Color interpolation and two-side color selection. */
       unsigned colors_read : 8;       /* color input components read */
       unsigned num_interp_inputs : 5; /* BCOLOR is at this location */
-      unsigned num_fragcoord_components : 3;
+      unsigned fragcoord_usage_mask : 4;
+      unsigned pixel_center_integer : 1;
       unsigned wqm : 1;
       char color_attr_index[2];
       signed char color_interp_vgpr_index[2]; /* -1 == constant */
@@ -712,6 +719,7 @@ union si_shader_part_key {
       unsigned uses_discard : 1;
       unsigned colors_written : 8;
       unsigned color_types : 16;
+      unsigned writes_all_cbufs : 1;
       unsigned writes_z : 1;
       unsigned writes_stencil : 1;
       unsigned writes_samplemask : 1;
@@ -817,6 +825,7 @@ struct si_shader_key_ps {
 
    /* Flags for monolithic compilation only. */
    struct {
+      unsigned force_mono : 1;
       unsigned poly_line_smoothing : 1;
       unsigned point_smoothing : 1;
       unsigned interpolate_at_sample_force_center : 1;
@@ -858,14 +867,13 @@ union si_shader_key {
 struct si_shader_binary_info {
    uint8_t vs_output_param_offset[NUM_TOTAL_VARYING_SLOTS];
    uint32_t vs_output_ps_input_cntl[NUM_TOTAL_VARYING_SLOTS];
-   union si_input_info ps_inputs[SI_NUM_INTERP];
+   union si_ps_input_info ps_inputs[SI_NUM_INTERP];
    uint8_t num_ps_inputs;
    uint8_t ps_colors_read;
    uint8_t num_input_sgprs;
    uint8_t num_input_vgprs;
    bool uses_vmem_load_other; /* all other VMEM loads and atomics with return */
    bool uses_vmem_sampler_or_bvh;
-   uint8_t num_fragcoord_components;
    bool uses_instanceid;
    uint8_t nr_pos_exports;
    uint8_t nr_param_exports;
@@ -1014,7 +1022,6 @@ struct si_shader {
       struct {
          unsigned spi_ps_input_ena;
          unsigned spi_ps_input_addr;
-         unsigned spi_baryc_cntl;
          unsigned spi_ps_in_control;
          unsigned spi_shader_z_format;
          unsigned spi_shader_col_format;
@@ -1040,13 +1047,13 @@ struct si_shader_part {
    struct si_shader_part *next;
    union si_shader_part_key key;
    struct si_shader_binary binary;
-   struct ac_shader_config config;
+   unsigned num_vgprs;
+   unsigned num_sgprs;
 };
 
 /* si_shader.c */
 struct ac_rtld_binary;
 
-void si_update_shader_binary_info(struct si_shader *shader, struct nir_shader *nir);
 bool si_compile_shader(struct si_screen *sscreen, struct ac_llvm_compiler *compiler,
                        struct si_shader *shader, struct util_debug_callback *debug);
 bool si_create_shader_variant(struct si_screen *sscreen, struct ac_llvm_compiler *compiler,
@@ -1073,13 +1080,13 @@ unsigned si_get_shader_binary_size(struct si_screen *screen, struct si_shader *s
 
 /* si_shader_info.c */
 void si_nir_scan_shader(struct si_screen *sscreen, struct nir_shader *nir,
-                        struct si_shader_info *info);
+                        struct si_shader_info *info, bool colors_lowered);
 
 /* si_shader_nir.c */
 void si_lower_mediump_io(struct nir_shader *nir);
 
 bool si_alu_to_scalar_packed_math_filter(const struct nir_instr *instr, const void *data);
-void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first);
+void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool has_array_temps);
 void si_nir_late_opts(struct nir_shader *nir);
 char *si_finalize_nir(struct pipe_screen *screen, struct nir_shader *nir);
 

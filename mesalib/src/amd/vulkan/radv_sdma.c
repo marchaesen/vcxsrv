@@ -226,21 +226,18 @@ radv_sdma_get_tiled_info_dword(const struct radv_device *const device, const str
    const uint32_t bpe = radv_sdma_get_bpe(image, subresource.aspectMask);
    const uint32_t element_size = util_logbase2(bpe);
    const uint32_t swizzle_mode = surf->has_stencil ? surf->u.gfx9.zs.stencil_swizzle_mode : surf->u.gfx9.swizzle_mode;
+   const enum gfx9_resource_type dimension = radv_sdma_surface_resource_type(device, surf);
    uint32_t info = element_size | swizzle_mode << 3;
    const enum sdma_version ver = pdev->info.sdma_ip_version;
+   const uint32_t mip_max = MAX2(image->vk.mip_levels, 1);
+   const uint32_t mip_id = subresource.mipLevel;
 
-   if (ver < SDMA_7_0) {
-      const enum gfx9_resource_type dimension = radv_sdma_surface_resource_type(device, surf);
-      info |= dimension << 9;
-   }
-
-   if (ver >= SDMA_5_0) {
-      const uint32_t mip_max = MAX2(image->vk.mip_levels, 1);
-      const uint32_t mip_id = subresource.mipLevel;
-
-      return info | (mip_max - 1) << 16 | mip_id << 20;
+   if (ver >= SDMA_7_0) {
+      return info | (mip_max - 1) << 16 | mip_id << 24;
+   } else if (ver >= SDMA_5_0) {
+      return info | dimension << 9 | (mip_max - 1) << 16 | mip_id << 20;
    } else if (ver >= SDMA_4_0) {
-      return info | surf->u.gfx9.epitch << 16;
+      return info | dimension << 9 | surf->u.gfx9.epitch << 16;
    } else {
       unreachable("unsupported SDMA version");
    }
@@ -428,6 +425,7 @@ radv_sdma_emit_copy_linear_sub_window(const struct radv_device *device, struct r
     * We currently use the smallest limits (from SDMA v2.4).
     */
 
+   const struct radv_physical_device *pdev = radv_device_physical(device);
    const VkOffset3D src_off = radv_sdma_pixel_offset_to_blocks(src->offset, src->blk_w, src->blk_h);
    const VkOffset3D dst_off = radv_sdma_pixel_offset_to_blocks(dst->offset, dst->blk_w, dst->blk_h);
    const VkExtent3D ext = radv_sdma_pixel_extent_to_blocks(pix_extent, src->blk_w, src->blk_h);
@@ -435,6 +433,7 @@ radv_sdma_emit_copy_linear_sub_window(const struct radv_device *device, struct r
    const unsigned dst_pitch = radv_sdma_pixels_to_blocks(dst->pitch, dst->blk_w);
    const unsigned src_slice_pitch = radv_sdma_pixel_area_to_blocks(src->slice_pitch, src->blk_w, src->blk_h);
    const unsigned dst_slice_pitch = radv_sdma_pixel_area_to_blocks(dst->slice_pitch, dst->blk_w, dst->blk_h);
+   const enum sdma_version ver = pdev->info.sdma_ip_version;
 
    assert(src->bpp == dst->bpp);
    assert(util_is_power_of_two_nonzero(src->bpp));
@@ -448,12 +447,12 @@ radv_sdma_emit_copy_linear_sub_window(const struct radv_device *device, struct r
    radeon_emit(cs, src->va);
    radeon_emit(cs, src->va >> 32);
    radeon_emit(cs, src_off.x | src_off.y << 16);
-   radeon_emit(cs, src_off.z | (src_pitch - 1) << 13);
+   radeon_emit(cs, src_off.z | (src_pitch - 1) << (ver >= SDMA_7_0 ? 16 : 13));
    radeon_emit(cs, src_slice_pitch - 1);
    radeon_emit(cs, dst->va);
    radeon_emit(cs, dst->va >> 32);
    radeon_emit(cs, dst_off.x | dst_off.y << 16);
-   radeon_emit(cs, dst_off.z | (dst_pitch - 1) << 13);
+   radeon_emit(cs, dst_off.z | (dst_pitch - 1) << (ver >= SDMA_7_0 ? 16 : 13));
    radeon_emit(cs, dst_slice_pitch - 1);
    radeon_emit(cs, (ext.width - 1) | (ext.height - 1) << 16);
    radeon_emit(cs, (ext.depth - 1));

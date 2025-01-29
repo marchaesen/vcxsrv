@@ -3138,7 +3138,12 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0x8099" name="GRAS_SU_CONSERVATIVE_RAS_CNTL" usage="cmd">
 		<bitfield name="CONSERVATIVERASEN" pos="0" type="boolean"/>
-		<bitfield name="SHIFTAMOUNT" low="1" high="2"/>
+		<enum name="a6xx_shift_amount">
+			<value value="0" name="NO_SHIFT"/>
+			<value value="1" name="HALF_PIXEL_SHIFT"/>
+			<value value="2" name="FULL_PIXEL_SHIFT"/>
+		</enum>
+		<bitfield name="SHIFTAMOUNT" low="1" high="2" type="a6xx_shift_amount"/>
 		<bitfield name="INNERCONSERVATIVERASEN" pos="3" type="boolean"/>
 		<bitfield name="UNK4" low="4" high="5"/>
 	</reg32>
@@ -3381,9 +3386,8 @@ to upconvert to 32b float internally?
 	</reg32>
 	<reg64 offset="0x8103" name="GRAS_LRZ_BUFFER_BASE" align="256" type="waddress" usage="rp_blit"/>
 	<reg32 offset="0x8105" name="GRAS_LRZ_BUFFER_PITCH" usage="rp_blit">
-		<!-- TODO: fix the shr fields -->
 		<bitfield name="PITCH" low="0" high="7" shr="5" type="uint"/>
-		<bitfield name="ARRAY_PITCH" low="10" high="28" shr="4" type="uint"/>
+		<bitfield name="ARRAY_PITCH" low="10" high="28" shr="8" type="uint"/>
 	</reg32>
 
 	<!--
@@ -5101,6 +5105,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa9a7" name="SP_FS_TEX_COUNT" low="0" high="7" type="uint" usage="rp_blit"/>
 	<reg32 offset="0xa9a8" name="SP_UNKNOWN_A9A8" low="0" high="16" usage="cmd"/> <!-- always 0x0 ? -->
 	<reg32 offset="0xa9a9" name="SP_FS_PVT_MEM_HW_STACK_OFFSET" type="a6xx_sp_xs_pvt_mem_hw_stack_offset" usage="rp_blit"/>
+	<reg32 offset="0xa9ab" name="SP_FS_UNKNOWN_A9AB" variants="A7XX-" usage="cmd"/>
 
 	<!-- TODO: unknown bool register at 0xa9aa, likely same as 0xa8c0-0xa8c3 but for FS -->
 
@@ -5723,8 +5728,8 @@ to upconvert to 32b float internally?
 		<bitfield name="WGTILEHEIGHT" low="26" high="31"/>
 	</reg32>
 
-	<reg32 offset="0xa9df" name="HLSQ_CS_LOCAL_SIZE" variants="A7XX-" usage="cmd">
-		<!-- localsize is value minus one: -->
+	<reg32 offset="0xa9df" name="HLSQ_CS_LAST_LOCAL_SIZE" variants="A7XX-" usage="cmd">
+		<!-- The size of the last workgroup. localsize is value minus one: -->
 		<bitfield name="LOCALSIZEX" low="2" high="11" type="uint"/>
 		<bitfield name="LOCALSIZEY" low="12" high="21" type="uint"/>
 		<bitfield name="LOCALSIZEZ" low="22" high="31" type="uint"/>

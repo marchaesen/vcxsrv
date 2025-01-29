@@ -5,3 +5,54 @@ DisableFormat: false
 AlignConsecutiveBitFields: true
 ColumnLimit: 80
 BreakStringLiterals: false
+
+ForEachMacros:
+  - ir2_foreach_instr
+  - ir2_foreach_live_reg
+  - ir2_foreach_avail
+  - ir2_foreach_src
+  - foreach_batch
+  - perf_time
+  - perf_time_ctx
+  - foreach_sched_node
+  - foreach_src
+  - foreach_src_n
+  - foreach_src_if
+  - foreach_src_with_alias_n
+  - foreach_src_in_alias_group_n
+  - foreach_src_in_alias_group
+  - foreach_dst
+  - foreach_dst_n
+  - foreach_dst_if
+  - ra_foreach_dst
+  - ra_foreach_src
+  - ra_foreach_src_rev
+  - foreach_ssa_use
+  - foreach_ssa_srcp_n
+  - foreach_ssa_srcp
+  - foreach_ssa_src_n
+  - foreach_ssa_src
+  - foreach_input_n
+  - foreach_input
+  - foreach_instr
+  - foreach_instr_rev
+  - foreach_instr_safe
+  - foreach_instr_from
+  - foreach_instr_from_safe
+  - foreach_block
+  - foreach_block_safe
+  - foreach_block_rev
+  - foreach_array
+  - foreach_array_safe
+  - foreach_interval
+  - foreach_interval_safe
+  - foreach_interval_rev
+  - foreach_interval_rev_safe
+  - foreach_line_in_section
+  - foreach_submit
+  - foreach_submit_safe
+  - foreach_instr_rpt
+  - foreach_instr_rpt_excl
+  - foreach_instr_rpt_excl_safe
+  - foreach_bo
+  - foreach_bo_safe

@@ -51,17 +51,8 @@ static bool
 lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
    struct alpha_test_state *state = data;
-   nir_variable *out = NULL;
 
    switch (intr->intrinsic) {
-   case nir_intrinsic_store_deref:
-      out = nir_intrinsic_get_var(intr, 0);
-      if (out->data.mode != nir_var_shader_out)
-         return false;
-
-      if (!is_color_output(out->data.location))
-         return false;
-      break;
    case nir_intrinsic_store_output:
       if (!is_color_output(nir_intrinsic_io_semantics(intr).location))
          return false;
@@ -75,8 +66,6 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    nir_def *alpha;
    if (state->alpha_to_one)
       alpha = nir_imm_float(b, 1.0);
-   else if (intr->intrinsic == nir_intrinsic_store_deref)
-      alpha = nir_channel(b, intr->src[1].ssa, 3);
    else
       alpha = nir_channel(b, intr->src[0].ssa, 3);
 
@@ -96,6 +85,7 @@ nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                      bool alpha_to_one,
                      const gl_state_index16 *alpha_ref_state_tokens)
 {
+   assert(shader->info.io_lowered);
    struct alpha_test_state state = {
       .alpha_ref_state_tokens = alpha_ref_state_tokens,
       .alpha_to_one = alpha_to_one,

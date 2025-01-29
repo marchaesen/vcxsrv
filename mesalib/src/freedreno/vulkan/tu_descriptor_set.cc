@@ -26,6 +26,7 @@
 #include "util/mesa-sha1.h"
 #include "vk_descriptors.h"
 #include "vk_util.h"
+#include "vk_acceleration_structure.h"
 
 #include "tu_buffer.h"
 #include "tu_buffer_view.h"
@@ -33,6 +34,7 @@
 #include "tu_image.h"
 #include "tu_formats.h"
 #include "tu_rmv.h"
+#include "bvh/tu_build_interface.h"
 
 static inline uint8_t *
 pool_base(struct tu_descriptor_pool *pool)
@@ -67,6 +69,7 @@ descriptor_size(struct tu_device *dev,
          COND(dev->physical_device->info->a7xx.storage_8bit, 1));
    case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK:
       return binding->descriptorCount;
+   case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
    default:
       return A6XX_TEX_CONST_DWORDS * 4;
    }
@@ -1156,6 +1159,27 @@ write_sampler_descriptor(uint32_t *dst, VkSampler _sampler)
    memcpy(dst, sampler->descriptor, sizeof(sampler->descriptor));
 }
 
+static void
+write_accel_struct(uint32_t *dst, uint64_t va, uint64_t size)
+{
+   dst[0] = A6XX_TEX_CONST_0_TILE_MODE(TILE6_LINEAR) | A6XX_TEX_CONST_0_FMT(FMT6_32_UINT);
+
+   /* The overall range of the entire AS may be more than the max range, but
+    * the SSBO is only used to access the instance descriptors and header.
+    * Make sure that we don't specify a too-large range.
+    */
+   dst[1] = MAX2(DIV_ROUND_UP(size, AS_RECORD_SIZE), MAX_TEXEL_ELEMENTS);
+   dst[2] =
+      A6XX_TEX_CONST_2_STRUCTSIZETEXELS(AS_RECORD_SIZE / 4) |
+      A6XX_TEX_CONST_2_STARTOFFSETTEXELS(0) |
+      A6XX_TEX_CONST_2_TYPE(A6XX_TEX_BUFFER);
+   dst[3] = 0;
+   dst[4] = A6XX_TEX_CONST_4_BASE_LO(va);
+   dst[5] = A6XX_TEX_CONST_5_BASE_HI(va >> 32);
+   for (int j = 6; j < A6XX_TEX_CONST_DWORDS; j++)
+      dst[j] = 0;
+}
+
 /* note: this is used with immutable samplers in push descriptors */
 static void
 write_sampler_push(uint32_t *dst, const struct tu_sampler *sampler)
@@ -1203,6 +1227,18 @@ tu_GetDescriptorEXT(
    case VK_DESCRIPTOR_TYPE_SAMPLER:
       write_sampler_descriptor(dest, *pDescriptorInfo->data.pSampler);
       break;
+   case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: {
+      if (pDescriptorInfo->data.accelerationStructure == 0) {
+         write_accel_struct(dest, device->null_accel_struct_bo->iova,
+                            device->null_accel_struct_bo->size);
+      } else {
+         VkDeviceSize size = *(VkDeviceSize *)
+            util_sparse_array_get(&device->accel_struct_ranges,
+                                  pDescriptorInfo->data.accelerationStructure);
+         write_accel_struct(dest, pDescriptorInfo->data.accelerationStructure, size);
+      }
+      break;
+   }
    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
       write_image_descriptor(dest, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
                              pDescriptorInfo->data.pInputAttachmentImage);
@@ -1235,6 +1271,8 @@ tu_update_descriptor_sets(const struct tu_device *device,
          ptr = set->mapped_ptr;
          ptr += binding_layout->offset / 4;
       }
+
+      const VkWriteDescriptorSetAccelerationStructureKHR *accel_structs = NULL;
 
       /* for immutable samplers with push descriptors: */
       const bool copy_immutable_samplers =
@@ -1279,6 +1317,9 @@ tu_update_descriptor_sets(const struct tu_device *device,
          } while (remaining > 0);
 
          continue;
+      } else if (writeset->descriptorType ==
+                 VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR) {
+         accel_structs = vk_find_struct_const(writeset->pNext, WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
       }
 
       ptr += binding_layout->size / 4 * writeset->dstArrayElement;
@@ -1316,6 +1357,18 @@ tu_update_descriptor_sets(const struct tu_device *device,
             else if (copy_immutable_samplers)
                write_sampler_push(ptr, &samplers[writeset->dstArrayElement + j]);
             break;
+         case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: {
+            VK_FROM_HANDLE(vk_acceleration_structure, accel_struct, accel_structs->pAccelerationStructures[j]);
+            if (accel_struct) {
+               write_accel_struct(ptr,
+                                  vk_acceleration_structure_get_va(accel_struct),
+                                  accel_struct->size);
+            } else {
+               write_accel_struct(ptr, device->null_accel_struct_bo->iova,
+                                  device->null_accel_struct_bo->size);
+            }
+            break;
+         }
          default:
             unreachable("unimplemented descriptor type");
             break;
@@ -1646,6 +1699,18 @@ tu_update_descriptor_set_with_template(
             else if (samplers)
                write_sampler_push(ptr, &samplers[j]);
             break;
+         case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: {
+            VK_FROM_HANDLE(vk_acceleration_structure, accel_struct, *(const VkAccelerationStructureKHR *)src);
+            if (accel_struct) {
+               write_accel_struct(ptr,
+                                  vk_acceleration_structure_get_va(accel_struct),
+                                  accel_struct->size);
+            } else {
+               write_accel_struct(ptr, device->null_accel_struct_bo->iova,
+                                  device->null_accel_struct_bo->size);
+            }
+            break;
+         }
          default:
             unreachable("unimplemented descriptor type");
             break;

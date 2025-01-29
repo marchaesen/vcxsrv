@@ -400,6 +400,15 @@ struct panvk_cmd_buffer {
 VK_DEFINE_HANDLE_CASTS(panvk_cmd_buffer, vk.base, VkCommandBuffer,
                        VK_OBJECT_TYPE_COMMAND_BUFFER)
 
+static bool
+inherits_render_ctx(struct panvk_cmd_buffer *cmdbuf)
+{
+   return (cmdbuf->vk.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
+           (cmdbuf->flags &
+            VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT)) ||
+          (cmdbuf->state.gfx.render.flags & VK_RENDERING_RESUMING_BIT);
+}
+
 static inline struct cs_builder *
 panvk_get_cs_builder(struct panvk_cmd_buffer *cmdbuf, uint32_t subqueue)
 {

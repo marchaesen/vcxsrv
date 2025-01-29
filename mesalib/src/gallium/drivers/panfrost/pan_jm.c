@@ -425,16 +425,10 @@ jm_emit_tiler_desc(struct panfrost_batch *batch)
 
    t = pan_pool_alloc_desc(&batch->pool.base, TILER_CONTEXT);
    pan_cast_and_pack(t.cpu, TILER_CONTEXT, tiler) {
-      /* TODO: Select hierarchy mask more effectively */
-      tiler.hierarchy_mask = (max_levels >= 8) ? 0xFF : 0x28;
-
-      /* For large framebuffers, disable the smallest bin size to
-       * avoid pathological tiler memory usage. Required to avoid OOM
-       * on dEQP-GLES31.functional.fbo.no_attachments.maximums.all on
-       * Mali-G57.
-       */
-      if (MAX2(batch->key.width, batch->key.height) >= 4096)
-         tiler.hierarchy_mask &= ~1;
+      tiler.hierarchy_mask =
+         pan_select_tiler_hierarchy_mask(batch->key.width,
+                                         batch->key.height,
+                                         dev->tiler_features.max_levels);
 
       tiler.fb_width = batch->key.width;
       tiler.fb_height = batch->key.height;

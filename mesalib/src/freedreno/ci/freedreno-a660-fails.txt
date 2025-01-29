@@ -15,6 +15,10 @@ KHR-GL46.texture_lod_bias.texture_lod_bias_all,Fail
 dEQP-VK.dynamic_rendering.primary_cmd_buff.local_read.input_attachments_without_mapping,Fail
 dEQP-VK.dynamic_rendering.primary_cmd_buff.local_read.max_input_attachments,Fail
 
+# New fails in 1.4.1.1
+gmem-dEQP-VK.dynamic_rendering.primary_cmd_buff.local_read.input_attachments_without_mapping,Fail
+gmem-dEQP-VK.spirv_assembly.instruction.graphics.16bit_storage.uniform_32struct_to_16struct.uniform_geom,Fail
+
 # OpenCL tests below
 #
 ## rusticl-core issues:
@@ -76,3 +80,6 @@ program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float16,
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float2,Fail
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float4,Fail
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float8,Fail
+
+# (file=input,line=0,column=0,index=0): Unresolved external reference to "_Z21convert_char4_sat_rteDv4_i".
+program@execute@vector-conversion,Fail

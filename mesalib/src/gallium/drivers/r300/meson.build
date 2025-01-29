@@ -95,8 +95,6 @@ files_r300 = files(
   'compiler/radeon_regalloc.h',
   'compiler/radeon_remove_constants.c',
   'compiler/radeon_remove_constants.h',
-  'compiler/radeon_rename_regs.c',
-  'compiler/radeon_rename_regs.h',
   'compiler/radeon_swizzle.h',
   'compiler/radeon_variable.c',
   'compiler/radeon_variable.h',

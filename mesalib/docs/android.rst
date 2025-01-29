@@ -26,8 +26,8 @@ Then, create your Meson cross file to use it, something like this
 
     [binaries]
     ar = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar'
-    c = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang']
-    cpp = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '--start-no-unused-arguments', '-static-libstdc++', '--end-no-unused-arguments']
+    c = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang']
+    cpp = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '--start-no-unused-arguments', '-static-libstdc++', '--end-no-unused-arguments']
     c_ld = 'lld'
     cpp_ld = 'lld'
     strip = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-strip'
@@ -50,7 +50,7 @@ one cross-compiling the turnip driver for a stock Pixel phone)
     meson setup build-android-aarch64 \
         --cross-file android-aarch64 \
 	-Dplatforms=android \
-	-Dplatform-sdk-version=26 \
+	-Dplatform-sdk-version=34 \
 	-Dandroid-stub=true \
 	-Dgallium-drivers= \
 	-Dvulkan-drivers=freedreno \

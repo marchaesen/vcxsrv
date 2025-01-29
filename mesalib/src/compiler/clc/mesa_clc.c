@@ -28,11 +28,10 @@ print_usage(char *exec_name, FILE *f)
 {
    fprintf(
       f,
-      "Usage: %s [options] -- [clang args]\n"
+      "Usage: %s [options] [input files] -- [clang args]\n"
       "Options:\n"
       "  -h  --help              Print this help.\n"
       "  -o, --out <filename>    Specify the output filename.\n"
-      "  -i, --in <filename>     Specify one input filename. Accepted multiple times.\n"
       "  -v, --verbose           Print more information during compilation.\n",
       exec_name);
 }
@@ -94,9 +93,6 @@ main(int argc, char **argv)
       case 'd':
          depfile = optarg;
          break;
-      case 'i':
-         util_dynarray_append(&input_files, char *, optarg);
-         break;
       default:
          fprintf(stderr, "Unrecognized option \"%s\".\n", optarg);
          print_usage(argv[0], stderr);
@@ -105,8 +101,17 @@ main(int argc, char **argv)
    }
 
    for (int i = optind; i < argc; i++) {
-      util_dynarray_append(&clang_args, char *, argv[i]);
+      char *arg = argv[i];
+      bool option = arg[0] == '-';
+
+      util_dynarray_append(option ? &clang_args : &input_files, char *, arg);
    }
+
+   /* Set the OpenCL standard to CL 2.0, this enables everything at a frontend
+    * level. See comment below about driver support.
+    */
+   util_dynarray_append(&clang_args, char *, "-cl-std=cl2.0");
+   util_dynarray_append(&clang_args, char *, "-D__OPENCL_VERSION__=200");
 
    if (util_dynarray_num_elements(&input_files, char *) == 0) {
       fprintf(stderr, "No input file(s).\n");

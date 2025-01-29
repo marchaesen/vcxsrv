@@ -152,7 +152,6 @@ vk_spirv_to_nir(struct vk_device *device,
 
    assert(nir->info.stage == stage);
    nir_validate_shader(nir, "after spirv_to_nir");
-   nir_validate_ssa_dominance(nir, "after spirv_to_nir");
    if (mem_ctx != NULL)
       ralloc_steal(mem_ctx, nir);
 

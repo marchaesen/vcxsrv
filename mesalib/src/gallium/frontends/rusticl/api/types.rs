@@ -6,6 +6,7 @@ use crate::core::memory::MemBase;
 use crate::core::program::Program;
 use crate::core::queue::Queue;
 
+use mesa_rust_util::conversion::*;
 use rusticl_opencl_gen::*;
 
 use std::borrow::Borrow;
@@ -341,9 +342,9 @@ where
         let vec: Result<Vec<T>, _> = self
             .vals
             .iter()
-            .map(|v| T::try_from(*v).map_err(|_| CL_OUT_OF_HOST_MEMORY))
+            .map(|v| T::try_from_with_err(*v, CL_OUT_OF_HOST_MEMORY))
             .collect();
-        vec?.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)
+        vec?.try_into_with_err(CL_OUT_OF_HOST_MEMORY)
     }
 }
 

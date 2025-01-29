@@ -107,6 +107,8 @@ nir_foreach_src(nir_instr *instr, nir_foreach_src_cb cb, void *state)
    }
    case nir_instr_type_call: {
       nir_call_instr *call = nir_instr_as_call(instr);
+      if (call->indirect_callee.ssa && !_nir_visit_src(&call->indirect_callee, cb, state))
+         return false;
       for (unsigned i = 0; i < call->num_params; i++) {
          if (!_nir_visit_src(&call->params[i], cb, state))
             return false;

@@ -1565,6 +1565,9 @@ trace_screen_create(struct pipe_screen *screen)
 
    tr_scr->trace_tc = debug_get_bool_option("GALLIUM_TRACE_TC", false);
 
+   /* copy all caps */
+   *(struct pipe_caps *)&tr_scr->base.caps = screen->caps;
+
    return &tr_scr->base;
 
 error2:

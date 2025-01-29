@@ -575,7 +575,7 @@ xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
 	<value name="IN_PREEMPT" value="0x0f" variants="A6XX-"/>
 
 	<!-- TODO do these exist on A5xx? -->
-	<value name="CP_SCRATCH_WRITE" value="0x4c" variants="A6XX"/>
+	<value name="CP_SCRATCH_WRITE" value="0x4c" variants="A6XX-"/>
 	<value name="CP_REG_TO_MEM_OFFSET_MEM" value="0x74" variants="A6XX-"/>
 	<value name="CP_REG_TO_MEM_OFFSET_REG" value="0x72" variants="A6XX-"/>
 	<value name="CP_WAIT_MEM_GTE" value="0x14" variants="A6XX"/>
@@ -1209,6 +1209,9 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</doc>
 	<reg32 offset="0" name="0">
 		<bitfield name="DST_REG" low="0" high="17" type="hex"/>
+		<bitfield name="DST_SCRATCH" pos="19" type="boolean" varset="chip" variants="A7XX-"/>
+		<!-- skip implied CP_WAIT_FOR_IDLE + CP_WAIT_FOR_ME -->
+		<bitfield name="SKIP_WAIT_FOR_ME" pos="23" type="boolean" varset="chip" variants="A7XX-"/>
 		<bitfield name="ROTATE" low="24" high="28" type="uint"/>
 		<bitfield name="SRC1_ADD" pos="29" type="boolean"/>
 		<bitfield name="SRC1_IS_REG" pos="30" type="boolean"/>
@@ -1359,6 +1362,8 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<bitfield name="SCRATCH" low="20" high="22" type="uint"/>
 		<!-- number of registers/dwords copied is CNT + 1. -->
 		<bitfield name="CNT" low="24" high="26" type="uint"/>
+		<!-- skip implied CP_WAIT_FOR_IDLE + CP_WAIT_FOR_ME -->
+		<bitfield name="SKIP_WAIT_FOR_ME" pos="27" type="boolean" varset="chip" variants="A7XX-"/>
 	</reg32>
 </domain>
 
@@ -1816,6 +1821,30 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<bitfield name="USES_GMEM" pos="4" type="boolean" varset="set_marker_mode" variants="SET_RENDER_MODE"/>
 
 		<bitfield name="IFPC_MODE" pos="0" type="a6xx_ifpc_mode" varset="set_marker_mode" variants="SET_IFPC_MODE"/>
+
+		<!--
+			CP_SET_MARKER is used with these bits to create a
+			critical section around a workaround for ray tracing.
+			The workaround happens after BVH building, and appears
+			to invalidate the RTU's BVH node cache. It makes sure
+			that only one of BR/BV/LPAC is executing the
+			workaround at a time, and no draws using RT on BV/LPAC
+			are executing while the workaround is executed on BR (or
+			vice versa, that no draws on BV/BR using RT are executed
+			while the workaround executes on LPAC), by
+			hooking subsequent CP_EVENT_WRITE/CP_DRAW_*/CP_EXEC_CS.
+			The blob usage is:
+
+			CP_SET_MARKER(RT_WA_START)
+			... workaround here ...
+			CP_SET_MARKER(RT_WA_END)
+			...
+			CP_SET_MARKER(SHADER_USES_RT)
+			CP_DRAW_INDX(...) or CP_EXEC_CS(...)
+		-->
+		<bitfield name="SHADER_USES_RT" pos="9" type="boolean" variants="A7XX-"/>
+		<bitfield name="RT_WA_START" pos="10" type="boolean" variants="A7XX-"/>
+		<bitfield name="RT_WA_END" pos="11" type="boolean" variants="A7XX-"/>
 	</reg32>
 </domain>
 

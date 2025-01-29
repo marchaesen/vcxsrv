@@ -69,7 +69,7 @@ xe_gem_create(struct iris_bufmgr *bufmgr,
 
    const struct intel_device_info *devinfo = iris_bufmgr_get_device_info(bufmgr);
    const struct intel_device_info_pat_entry *pat_entry;
-   pat_entry = iris_heap_to_pat_entry(devinfo, heap_flags);
+   pat_entry = iris_heap_to_pat_entry(devinfo, heap_flags, alloc_flags & BO_ALLOC_SCANOUT);
    switch (pat_entry->mmap) {
    case INTEL_DEVICE_INFO_MMAP_MODE_WC:
       gem_create.cpu_caching = DRM_XE_GEM_CPU_CACHING_WC;
@@ -146,7 +146,7 @@ xe_gem_vm_bind_op(struct iris_bo *bo, uint32_t op)
       .bind.range = range,
       .bind.addr = intel_48b_address(bo->address),
       .bind.op = op,
-      .bind.pat_index = iris_heap_to_pat_entry(devinfo, bo->real.heap)->index,
+      .bind.pat_index = iris_heap_to_pat_entry(devinfo, bo->real.heap, bo->real.scanout)->index,
       .bind.flags = flags,
    };
 

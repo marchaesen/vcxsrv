@@ -1197,7 +1197,7 @@ impl Kernel {
         let builds = prog_build
             .builds
             .iter()
-            .filter_map(|(&dev, b)| b.kernels.get(&name).map(|k| (dev, k.clone())))
+            .filter_map(|(&dev, b)| b.kernels.get(&name).map(|k| (dev, Arc::clone(k))))
             .collect();
 
         let values = vec![None; kernel_info.args.len()];
@@ -1801,11 +1801,11 @@ impl Clone for Kernel {
     fn clone(&self) -> Self {
         Self {
             base: CLObjectBase::new(RusticlTypes::Kernel),
-            prog: self.prog.clone(),
+            prog: Arc::clone(&self.prog),
             name: self.name.clone(),
             values: Mutex::new(self.arg_values().clone()),
             builds: self.builds.clone(),
-            kernel_info: self.kernel_info.clone(),
+            kernel_info: Arc::clone(&self.kernel_info),
         }
     }
 }

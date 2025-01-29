@@ -1125,8 +1125,12 @@ select_shader_variant(struct d3d12_selection_context *sel_ctx, d3d12_shader_sele
       STATIC_ASSERT(sizeof(dxil_texture_swizzle_state) ==
                     sizeof(nir_lower_tex_shadow_swizzle));
 
-      NIR_PASS_V(new_nir_variant, nir_lower_tex_shadow, key.n_texture_states,
-                 key.sampler_compare_funcs, (nir_lower_tex_shadow_swizzle *)key.swizzle_state);
+      NIR_PASS_V(new_nir_variant,
+                 nir_lower_tex_shadow,
+                 key.n_texture_states,
+                 key.sampler_compare_funcs,
+                 (nir_lower_tex_shadow_swizzle *) key.swizzle_state,
+                 false);
    }
 
    if (key.stage == PIPE_SHADER_FRAGMENT) {

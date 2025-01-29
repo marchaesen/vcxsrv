@@ -1281,3 +1281,72 @@ vk_acceleration_struct_vtx_format_supported(VkFormat format)
       return false;
    }
 }
+
+/* Stubs of optional functions for drivers that don't implment them. */
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdBuildAccelerationStructuresIndirectKHR(VkCommandBuffer commandBuffer,
+                                                    uint32_t infoCount,
+                                                    const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
+                                                    const VkDeviceAddress *pIndirectDeviceAddresses,
+                                                    const uint32_t *pIndirectStrides,
+                                                    const uint32_t *const *ppMaxPrimitiveCounts)
+{
+   unreachable("Unimplemented");
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_WriteAccelerationStructuresPropertiesKHR(VkDevice _device, uint32_t accelerationStructureCount,
+                                                   const VkAccelerationStructureKHR *pAccelerationStructures,
+                                                   VkQueryType queryType,
+                                                   size_t dataSize,
+                                                   void *pData,
+                                                   size_t stride)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   unreachable("Unimplemented");
+   return vk_error(device, VK_ERROR_FEATURE_NOT_PRESENT);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_BuildAccelerationStructuresKHR(VkDevice _device,
+                                         VkDeferredOperationKHR deferredOperation,
+                                         uint32_t infoCount,
+                                         const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
+                                         const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   unreachable("Unimplemented");
+   return vk_error(device, VK_ERROR_FEATURE_NOT_PRESENT);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_CopyAccelerationStructureKHR(VkDevice _device,
+                                       VkDeferredOperationKHR deferredOperation,
+                                       const VkCopyAccelerationStructureInfoKHR *pInfo)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   unreachable("Unimplemented");
+   return vk_error(device, VK_ERROR_FEATURE_NOT_PRESENT);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_CopyMemoryToAccelerationStructureKHR(VkDevice _device,
+                                               VkDeferredOperationKHR deferredOperation,
+                                               const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   unreachable("Unimplemented");
+   return vk_error(device, VK_ERROR_FEATURE_NOT_PRESENT);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_CopyAccelerationStructureToMemoryKHR(VkDevice _device,
+                                               VkDeferredOperationKHR deferredOperation,
+                                               const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+   unreachable("Unimplemented");
+   return vk_error(device, VK_ERROR_FEATURE_NOT_PRESENT);
+}
+

@@ -1665,11 +1665,10 @@ radv_GetMemoryFdKHR(VkDevice _device, const VkMemoryGetFdInfoKHR *pGetFdInfo, in
     * tiling is VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT, but we set it anyway for foreign consumers.
     */
    if (memory->image) {
-      struct radeon_bo_metadata metadata;
+      struct radv_image *image = memory->image;
 
       assert(memory->image->bindings[0].offset == 0);
-      radv_init_metadata(device, memory->image, &metadata);
-      device->ws->buffer_set_metadata(device->ws, memory->bo, &metadata);
+      radv_image_bo_set_metadata(device, image, memory->bo);
    }
 
    bool ret = device->ws->buffer_get_fd(device->ws, memory->bo, pFD);

@@ -78,8 +78,8 @@ The problem with this simple implementation is the large amount of
 overhead that it adds to every GL function call.
 
 In a multithreaded environment, a naive implementation of
-``GET_DISPATCH()`` involves a call to ``_glapi_get_dispatch()`` or
-``_glapi_tls_Dispatch``.
+``GET_DISPATCH()`` involves a call to ``_mesa_glapi_get_dispatch()`` or
+``_mesa_glapi_tls_Dispatch``.
 
 3. Optimizations
 ----------------
@@ -96,11 +96,11 @@ Starting with the 2.4.20 Linux kernel, each thread is allocated an area
 of per-thread, global storage. Variables can be put in this area using
 some extensions to GCC that called ``ELF TLS``. By storing the dispatch table
 pointer in this area, the expensive call to ``pthread_getspecific`` and
-the test of ``_glapi_Dispatch`` can be avoided. As we don't support for
+the test of ``_mesa_glapi_Dispatch`` can be avoided. As we don't support for
 Linux kernel earlier than 2.4.20, so we can always using ``ELF TLS``.
 
 The dispatch table pointer is stored in a new variable called
-``_glapi_tls_Dispatch``. A new variable name is used so that a single
+``_mesa_glapi_tls_Dispatch``. A new variable name is used so that a single
 libGL can implement both interfaces. This allows the libGL to operate
 with direct rendering drivers that use either interface. Once the
 pointer is properly declared, ``GET_DISPACH`` becomes a simple variable
@@ -109,9 +109,9 @@ reference.
 .. code-block:: c
    :caption: TLS ``GET_DISPATCH`` Implementation
 
-   extern __THREAD_INITIAL_EXEC struct _glapi_table *_glapi_tls_Dispatch;
+   extern __THREAD_INITIAL_EXEC struct _glapi_table *_mesa_glapi_tls_Dispatch;
 
-   #define GET_DISPATCH() _glapi_tls_Dispatch
+   #define GET_DISPATCH() _mesa_glapi_tls_Dispatch
 
 3.2. Assembly Language Dispatch Stubs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -129,11 +129,11 @@ The biggest hurdle to creating assembly stubs is handling the various
 ways that the dispatch table pointer can be accessed. There are four
 different methods that can be used:
 
-#. Using ``_glapi_Dispatch`` directly in builds for non-multithreaded
+#. Using ``_mesa_glapi_Dispatch`` directly in builds for non-multithreaded
    environments.
-#. Using ``_glapi_Dispatch`` and ``_glapi_get_dispatch`` in
+#. Using ``_mesa_glapi_Dispatch`` and ``_mesa_glapi_get_dispatch`` in
    multithreaded environments.
-#. Using ``_glapi_tls_Dispatch`` directly in TLS enabled multithreaded
+#. Using ``_mesa_glapi_tls_Dispatch`` directly in TLS enabled multithreaded
    environments.
 
 People wishing to implement assembly stubs for new platforms should

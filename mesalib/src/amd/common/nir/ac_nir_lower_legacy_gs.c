@@ -204,14 +204,9 @@ lower_legacy_gs_end_primitive_with_counter(nir_builder *b, nir_intrinsic_instr *
 }
 
 static bool
-lower_legacy_gs_intrinsic(nir_builder *b, nir_instr *instr, void *state)
+lower_legacy_gs_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
 {
    lower_legacy_gs_state *s = (lower_legacy_gs_state *) state;
-
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
    if (intrin->intrinsic == nir_intrinsic_store_output)
       return lower_legacy_gs_store_output(b, intrin, s);
@@ -251,8 +246,8 @@ ac_nir_lower_legacy_gs(nir_shader *nir,
       break;
    }
 
-   nir_shader_instructions_pass(nir, lower_legacy_gs_intrinsic,
-                                nir_metadata_control_flow, &s);
+   nir_shader_intrinsics_pass(nir, lower_legacy_gs_intrinsic,
+                              nir_metadata_control_flow, &s);
 
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 

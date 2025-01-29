@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #if FD_REPLAY_KGSL
+#define __user
 #include "../vulkan/msm_kgsl.h"
 #elif FD_REPLAY_MSM
 #include <xf86drm.h>

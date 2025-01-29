@@ -1959,7 +1959,7 @@ write_function(write_ctx *ctx, const nir_function *fxn)
       flags |= 0x1;
    if (fxn->is_preamble)
       flags |= 0x2;
-   if (fxn->name)
+   if (fxn->name && !ctx->strip)
       flags |= 0x4;
    if (fxn->impl)
       flags |= 0x8;
@@ -1974,7 +1974,7 @@ write_function(write_ctx *ctx, const nir_function *fxn)
    if (fxn->workgroup_size[0] || fxn->workgroup_size[1] || fxn->workgroup_size[2])
       flags |= 0x100;
    blob_write_uint32(ctx->blob, flags);
-   if (fxn->name)
+   if (fxn->name && !ctx->strip)
       blob_write_string(ctx->blob, fxn->name);
 
    if (flags & 0x100) {
@@ -1982,6 +1982,8 @@ write_function(write_ctx *ctx, const nir_function *fxn)
       blob_write_uint32(ctx->blob, fxn->workgroup_size[1]);
       blob_write_uint32(ctx->blob, fxn->workgroup_size[2]);
    }
+
+   blob_write_uint32(ctx->blob, fxn->driver_attributes);
 
    blob_write_uint32(ctx->blob, fxn->subroutine_index);
    blob_write_uint32(ctx->blob, fxn->num_subroutine_types);
@@ -2001,12 +2003,17 @@ write_function(write_ctx *ctx, const nir_function *fxn)
       if (has_name)
          val |= 0x10000;
 
+      if (fxn->params[i].is_return)
+         val |= (1u << 17);
+      if (fxn->params[i].is_uniform)
+         val |= (1u << 18);
       blob_write_uint32(ctx->blob, val);
       if (has_name)
          blob_write_string(ctx->blob, fxn->params[i].name);
 
       encode_type_to_blob(ctx->blob, fxn->params[i].type);
       blob_write_uint32(ctx->blob, encode_deref_modes(fxn->params[i].mode));
+      blob_write_uint32(ctx->blob, fxn->params[i].driver_attributes);
    }
 
    /* At first glance, it looks like we should write the function_impl here.
@@ -2032,6 +2039,7 @@ read_function(read_ctx *ctx)
       fxn->workgroup_size[2] = blob_read_uint32(ctx->blob);
    }
 
+   fxn->driver_attributes = blob_read_uint32(ctx->blob);
    fxn->subroutine_index = blob_read_uint32(ctx->blob);
    fxn->num_subroutine_types = blob_read_uint32(ctx->blob);
    for (unsigned i = 0; i < fxn->num_subroutine_types; i++) {
@@ -2050,8 +2058,11 @@ read_function(read_ctx *ctx)
 
       fxn->params[i].num_components = val & 0xff;
       fxn->params[i].bit_size = (val >> 8) & 0xff;
+      fxn->params[i].is_return = val & (1u << 16);
+      fxn->params[i].is_uniform = val & (1u << 17);
       fxn->params[i].type = decode_type_from_blob(ctx->blob);
       fxn->params[i].mode = decode_deref_modes(blob_read_uint32(ctx->blob));
+      fxn->params[i].driver_attributes = blob_read_uint32(ctx->blob);
    }
 
    fxn->is_entrypoint = flags & 0x1;

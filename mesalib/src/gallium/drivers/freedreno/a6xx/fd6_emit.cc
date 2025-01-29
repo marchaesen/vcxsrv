@@ -1038,6 +1038,8 @@ fd6_emit_static_regs(struct fd_context *ctx, struct fd_ringbuffer *ring)
    OUT_PKT4(ring, REG_A6XX_SP_PS_TP_BORDER_COLOR_BASE_ADDR, 2);
    OUT_RELOC(ring, bcolor_mem, 0, 0, 0);
 
+   OUT_REG(ring, A6XX_PC_DGEN_SU_CONSERVATIVE_RAS_CNTL());
+
    /* These regs are blocked (CP_PROTECT) on a6xx: */
    if (CHIP >= A7XX) {
       OUT_REG(ring,

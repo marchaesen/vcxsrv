@@ -11,6 +11,7 @@
 #define TU_IMAGE_H
 
 #include "tu_common.h"
+#include "fdl/freedreno_lrz_layout.h"
 
 #define TU_MAX_PLANE_COUNT 3
 
@@ -41,11 +42,7 @@ struct tu_image
    /* For fragment density map */
    void *map;
 
-   uint32_t lrz_height;
-   uint32_t lrz_pitch;
-   uint32_t lrz_offset;
-   uint32_t lrz_fc_offset;
-   bool has_lrz_fc;
+   struct fdl_lrz_layout lrz_layout;
 
    bool ubwc_enabled;
    bool force_linear_tile;

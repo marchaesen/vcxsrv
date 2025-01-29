@@ -127,7 +127,7 @@ radeonsi-raven-va:
     - .lava-test-deqp:x86_64
     - .radeonsi-raven-test:x86_64
     - .radeonsi-vaapi-rules
-    - .lava-asus-CM1400CXA-dalboz:x86_64
+    - .lava-hp-x360-14a-cb0001xx-zork:x86_64
   variables:
     HWCI_TEST_SCRIPT: "/install/gtest-runner.sh"
     # While the tests don't need Xorg, it's an easy way to keep DRM open so we don't
@@ -138,17 +138,18 @@ radeonsi-raven-va:
     # allocated if we run at the normal 4 threads.
     # https://github.com/intel/libva-utils/issues/248
     FDO_CI_CONCURRENT: 1
-    # A whole run would be about 25 minutes currently.  Fixing
-    # https://github.com/intel/libva-utils/issues/247 and
-    # https://github.com/google/googletest/issues/3614 would probably help.
-    GTEST_FRACTION: 2
 
-radeonsi-raven-va-full:
+radeonsi-raven-vaapi-fluster:
   extends:
     - radeonsi-raven-va
-    - .radeonsi-vaapi-manual-rules
+    - .radeonsi-raven-vaapi-fluster
+  timeout: 30m
+  parallel: 6
   variables:
-    GTEST_FRACTION: null
+    FLUSTER_CODECS: VP9 H.264 H.265
+    # FIXME: Downloading the vectors can take about 4-5 minutes
+    DEVICE_HANGING_TIMEOUT_SEC: 1200
+
 
 ############### VKCTS tests ###############
 

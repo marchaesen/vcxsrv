@@ -12,7 +12,6 @@ glx@glx_arb_create_context@invalid flag,Fail
 
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth,Crash
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 
 glx@glx_ext_import_context@free context,Fail

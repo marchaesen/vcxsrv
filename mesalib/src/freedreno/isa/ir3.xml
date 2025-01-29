@@ -68,6 +68,7 @@ TODO:
 		<map name="SRC1">src->srcs[0]</map>
 		<map name="SRC2">src->srcs[1]</map>
 		<map name="SRC3">src->srcs[2]</map>
+		<map name="SRC4">src->srcs[3]</map>
 		<map name="REPEAT">src->repeat</map>
 		<map name="SS">!!(src->flags &amp; IR3_INSTR_SS)</map>
 		<map name="JP">!!(src->flags &amp; IR3_INSTR_JP)</map>

@@ -64,8 +64,8 @@ impl Event {
     ) -> Arc<Event> {
         Arc::new(Self {
             base: CLObjectBase::new(RusticlTypes::Event),
-            context: queue.context.clone(),
-            queue: Some(queue.clone()),
+            context: Arc::clone(&queue.context),
+            queue: Some(Arc::clone(queue)),
             cmd_type: cmd_type,
             deps: deps,
             state: Mutex::new(EventMutState {

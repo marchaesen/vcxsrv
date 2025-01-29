@@ -318,7 +318,7 @@ bool radv_image_use_dcc_predication(const struct radv_device *device, const stru
 void radv_compose_swizzle(const struct util_format_description *desc, const VkComponentMapping *mapping,
                           enum pipe_swizzle swizzle[4]);
 
-void radv_init_metadata(struct radv_device *device, struct radv_image *image, struct radeon_bo_metadata *metadata);
+void radv_image_bo_set_metadata(struct radv_device *device, struct radv_image *image, struct radeon_winsys_bo *bo);
 
 void radv_image_override_offset_stride(struct radv_device *device, struct radv_image *image, uint64_t offset,
                                        uint32_t stride);

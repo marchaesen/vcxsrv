@@ -42,7 +42,8 @@ etna_nir_lower_texture(nir_shader *s, struct etna_shader_key *key)
    if (key->has_sample_tex_compare)
       NIR_PASS(progress, s, nir_lower_tex_shadow, key->num_texture_states,
                                                   key->tex_compare_func,
-                                                  key->tex_swizzle);
+                                                  key->tex_swizzle,
+                                                  true);
 
    NIR_PASS(progress, s, nir_shader_instructions_pass, lower_txs,
          nir_metadata_control_flow, NULL);

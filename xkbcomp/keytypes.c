@@ -609,7 +609,7 @@ AddMapEntry(XkbDescPtr xkb,
                   MapEntryTxt(type, xkb, new), TypeTxt(type));
             ACTION("Using %d, ignoring %d\n", use, ignore);
         }
-        else if (warningLevel > 9)
+        else if (report && warningLevel > 9)
         {
             WARN("Multiple occurrences of map[%s]= %d in %s\n",
                   MapEntryTxt(type, xkb, new), new->level + 1, TypeTxt(type));

@@ -104,6 +104,7 @@ variables:
   # Default priority for non-merge pipelines
   VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
   JOB_PRIORITY: 50
+  DATA_STORAGE_PATH: data_storage
 
 default:
   id_tokens:
@@ -257,7 +258,7 @@ include:
 
 .ci-deqp-artifacts:
   artifacts:
-    name: "mesa_${CI_JOB_NAME}"
+    name: "{CI_PROJECT_NAME}_${CI_JOB_NAME}"
     when: always
     untracked: false
     paths:

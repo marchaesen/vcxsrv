@@ -13,10 +13,8 @@ export LD_LIBRARY_PATH=/cuttlefish/lib64:${CI_PROJECT_DIR}/install/lib:$LD_LIBRA
 export EGL_PLATFORM=surfaceless
 
 # Pick up a vulkan driver
-#
-# TODO: the vulkan driver should probably be controlled by a variable in the
-# .test-android job or in derived jobs
-export VK_DRIVER_FILES=${CI_PROJECT_DIR}/install/share/vulkan/icd.d/
+ARCH=$(uname -m)
+export VK_DRIVER_FILES=${CI_PROJECT_DIR}/install/share/vulkan/icd.d/${VK_DRIVER:-}_icd.$ARCH.json
 
 syslogd
 
@@ -108,9 +106,20 @@ mkdir /mesa-android
 tar -C /mesa-android -xvf ${S3_ANDROID_ARTIFACT_NAME}.tar.zst
 rm "${S3_ANDROID_ARTIFACT_NAME}.tar.zst" &
 
-$ADB push /mesa-android/install/all-skips.txt /data/deqp
-$ADB push "/mesa-android/install/$GPU_VERSION-flakes.txt" /data/deqp
-$ADB push "/mesa-android/install/deqp-$DEQP_SUITE.toml" /data/deqp
+INSTALL="/mesa-android/install"
+
+$ADB push "$INSTALL/all-skips.txt" /data/deqp
+$ADB push "$INSTALL/angle-skips.txt" /data/deqp
+if [ -e "$INSTALL/$GPU_VERSION-flakes.txt" ]; then
+  $ADB push "$INSTALL/$GPU_VERSION-flakes.txt" /data/deqp
+fi
+if [ -e "$INSTALL/$GPU_VERSION-fails.txt" ]; then
+  $ADB push "$INSTALL/$GPU_VERSION-fails.txt" /data/deqp
+fi
+if [ -e "$INSTALL/$GPU_VERSION-skips.txt" ]; then
+  $ADB push "$INSTALL/$GPU_VERSION-skips.txt" /data/deqp
+fi
+$ADB push "$INSTALL/deqp-$DEQP_SUITE.toml" /data/deqp
 
 # remove 32 bits libs from /vendor/lib
 
@@ -128,14 +137,13 @@ $ADB shell rm -f /vendor/lib/hw/vulkan.*
 
 # replace on /vendor/lib64
 
-$ADB push /mesa-android/install/lib/libgallium_dri.so /vendor/lib64/libgallium_dri.so
-$ADB push /mesa-android/install/lib/libglapi.so /vendor/lib64/libglapi.so
-$ADB push /mesa-android/install/lib/libEGL.so /vendor/lib64/egl/libEGL_mesa.so
-$ADB push /mesa-android/install/lib/libGLESv1_CM.so /vendor/lib64/egl/libGLESv1_CM_mesa.so
-$ADB push /mesa-android/install/lib/libGLESv2.so /vendor/lib64/egl/libGLESv2_mesa.so
+$ADB push "$INSTALL/lib/libgallium_dri.so" /vendor/lib64/libgallium_dri.so
+$ADB push "$INSTALL/lib/libEGL.so" /vendor/lib64/egl/libEGL_mesa.so
+$ADB push "$INSTALL/lib/libGLESv1_CM.so" /vendor/lib64/egl/libGLESv1_CM_mesa.so
+$ADB push "$INSTALL/lib/libGLESv2.so" /vendor/lib64/egl/libGLESv2_mesa.so
 
-$ADB push /mesa-android/install/lib/libvulkan_lvp.so /vendor/lib64/hw/vulkan.lvp.so
-$ADB push /mesa-android/install/lib/libvulkan_virtio.so /vendor/lib64/hw/vulkan.virtio.so
+$ADB push "$INSTALL/lib/libvulkan_lvp.so" /vendor/lib64/hw/vulkan.lvp.so
+$ADB push "$INSTALL/lib/libvulkan_virtio.so" /vendor/lib64/hw/vulkan.virtio.so
 
 $ADB shell rm -f /vendor/lib64/egl/libEGL_emulation.so
 $ADB shell rm -f /vendor/lib64/egl/libGLESv1_CM_emulation.so
@@ -152,10 +160,26 @@ $ADB shell start
 # Check what GLES implementation Surfaceflinger is using after copying the new mesa libraries
 while [ "$($ADB shell dumpsys SurfaceFlinger | grep GLES:)" = "" ] ; do sleep 1; done
 MESA_RUNTIME_VERSION="$($ADB shell dumpsys SurfaceFlinger | grep GLES:)"
-MESA_BUILD_VERSION=$(cat /mesa-android/install/VERSION)
+MESA_BUILD_VERSION=$(cat "$INSTALL/VERSION")
 if ! printf "%s" "$MESA_RUNTIME_VERSION" | grep "${MESA_BUILD_VERSION}$"; then
     echo "Fatal: Android is loading a wrong version of the Mesa3D libs: ${MESA_RUNTIME_VERSION}" 1>&2
     exit 1
+fi
+
+BASELINE=""
+if [ -e "$INSTALL/$GPU_VERSION-fails.txt" ]; then
+    BASELINE="--baseline /data/deqp/$GPU_VERSION-fails.txt"
+fi
+
+# Default to an empty known flakes file if it doesn't exist.
+$ADB shell "touch /data/deqp/$GPU_VERSION-flakes.txt"
+
+if [ -e "$INSTALL/$GPU_VERSION-skips.txt" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS /data/deqp/$GPU_VERSION-skips.txt"
+fi
+
+if [ -n "$USE_ANGLE" ]; then
+    DEQP_SKIPS="$DEQP_SKIPS /data/deqp/angle-skips.txt"
 fi
 
 AOSP_RESULTS=/data/deqp/results
@@ -174,13 +198,38 @@ $ADB shell "mkdir ${AOSP_RESULTS}; cd ${AOSP_RESULTS}/..; \
     --shader-cache-dir /data/local/tmp \
     --fraction-start ${CI_NODE_INDEX:-1} \
     --fraction $(( CI_NODE_TOTAL * ${DEQP_FRACTION:-1})) \
-    --jobs ${FDO_CI_CONCURRENT:-4}"
+    --jobs ${FDO_CI_CONCURRENT:-4} \
+    $BASELINE \
+    ${DEQP_RUNNER_MAX_FAILS:+--max-fails \"$DEQP_RUNNER_MAX_FAILS\"} \
+    "
 
 EXIT_CODE=$?
 set -e
 section_switch cuttlefish_results "cuttlefish: gathering the results"
 
-$ADB pull $AOSP_RESULTS $RESULTS_DIR
+$ADB pull "$AOSP_RESULTS/." "$RESULTS_DIR"
+
+# Remove all but the first 50 individual XML files uploaded as artifacts, to
+# save fd.o space when you break everything.
+find $RESULTS_DIR -name \*.xml | \
+    sort -n |
+    sed -n '1,+49!p' | \
+    xargs rm -f
+
+# If any QPA XMLs are there, then include the XSL/CSS in our artifacts.
+find $RESULTS_DIR -name \*.xml \
+    -exec cp /deqp-tools/testlog.css /deqp-tools/testlog.xsl "$RESULTS_DIR/" ";" \
+    -quit
+
+$ADB shell "cd ${AOSP_RESULTS}/..; \
+./deqp-runner junit \
+   --testsuite dEQP \
+   --results $AOSP_RESULTS/failures.csv \
+   --output $AOSP_RESULTS/junit.xml \
+   --limit 50 \
+   --template \"See $ARTIFACTS_BASE_URL/results/{{testcase}}.xml\""
+
+$ADB pull "$AOSP_RESULTS/junit.xml" "$RESULTS_DIR"
 
 section_end cuttlefish_results
 exit $EXIT_CODE

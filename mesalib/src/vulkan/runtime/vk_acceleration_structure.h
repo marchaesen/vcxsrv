@@ -28,6 +28,8 @@
 #include "vk_object.h"
 #include "radix_sort/radix_sort_vk.h"
 
+#include "bvh/vk_bvh.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

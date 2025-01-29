@@ -240,7 +240,7 @@ if test "x$USE_THREAD_SAFETY_CONSTRUCTOR" = "xyes"; then
 else
     # This should be kept in sync with libxcb
     case $host_os in
-    linux*|darwin*|solaris*) ;;
+    linux*|darwin*|solaris*|dragonfly*|freebsd*|netbsd*) ;;
          *) X11_REQUIRES="$X11_REQUIRES pthread-stubs" ;;
     esac
 fi

@@ -1,0 +1,33 @@
+{
+   "file_format_version": "1.0.0",
+   "layer": {
+      "name": "VK_LAYER_MESA_vram_report_limit",
+      "type": "GLOBAL",
+      "library_path": "libVkLayer_MESA_vram_report_limit.so",
+      "api_version": "1.4.303",
+      "implementation_version": "1",
+      "description": "Limit reported VRAM",
+      "features": {
+         "settings": [
+            {
+               "key": "VK_VRAM_REPORT_LIMIT_DEVICE_ID",
+               "label": "VkPhysicalDevice ID",
+               "description":
+                  "vendorID:deviceID identifying the VkPhysicalDevice for which to apply the VRAM adjustments.",
+               "type": "string"
+            },
+            {
+               "key": "VK_VRAM_REPORT_LIMIT_HEAP_SIZE",
+               "label": "Heap Size in MiB",
+               "description":
+                  "Static size in MiB to advertise for all device heaps for the selected physical devices. If 0, report the original size.",
+               "type": "integer"
+            }
+         ]
+      },
+      "functions": {
+         "vkNegotiateLoaderLayerInterfaceVersion":
+            "vkNegotiateLoaderLayerInterfaceVersion"
+      }
+   }
+}

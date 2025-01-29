@@ -88,4 +88,10 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
 void
 tu_choose_gmem_layout(struct tu_cmd_buffer *cmd);
 
+void
+tu_cmd_fill_buffer_addr(VkCommandBuffer commandBuffer,
+                        VkDeviceAddress dstAddr,
+                        VkDeviceSize fillSize,
+                        uint32_t data);
+
 #endif /* TU_CLEAR_BLIT_H */

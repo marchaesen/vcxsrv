@@ -605,11 +605,9 @@ enum ac_image_dim ac_get_image_dim(enum amd_gfx_level gfx_level, enum glsl_sampl
    return dim;
 }
 
-unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
-                                  uint8_t *num_fragcoord_components)
+unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config)
 {
    unsigned num_input_vgprs = 0;
-   unsigned fragcoord_components = 0;
 
    if (G_0286CC_PERSP_SAMPLE_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 2;
@@ -627,22 +625,14 @@ unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
       num_input_vgprs += 2;
    if (G_0286CC_LINE_STIPPLE_TEX_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
-   if (G_0286CC_POS_X_FLOAT_ENA(config->spi_ps_input_addr)) {
+   if (G_0286CC_POS_X_FLOAT_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
-      fragcoord_components++;
-   }
-   if (G_0286CC_POS_Y_FLOAT_ENA(config->spi_ps_input_addr)) {
+   if (G_0286CC_POS_Y_FLOAT_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
-      fragcoord_components++;
-   }
-   if (G_0286CC_POS_Z_FLOAT_ENA(config->spi_ps_input_addr)) {
+   if (G_0286CC_POS_Z_FLOAT_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
-      fragcoord_components++;
-   }
-   if (G_0286CC_POS_W_FLOAT_ENA(config->spi_ps_input_addr)) {
+   if (G_0286CC_POS_W_FLOAT_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
-      fragcoord_components++;
-   }
    if (G_0286CC_FRONT_FACE_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
    if (G_0286CC_ANCILLARY_ENA(config->spi_ps_input_addr))
@@ -651,9 +641,6 @@ unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
       num_input_vgprs += 1;
    if (G_0286CC_POS_FIXED_PT_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
-
-   if (num_fragcoord_components)
-      *num_fragcoord_components = fragcoord_components;
 
    return num_input_vgprs;
 }
@@ -664,11 +651,10 @@ uint16_t ac_get_ps_iter_mask(unsigned ps_iter_samples)
     * processing.
     */
    switch (ps_iter_samples) {
-   case 1: return 0xffff;
-   case 2: return 0x5555;
-   case 4: return 0x1111;
-   case 8: return 0x0101;
-   case 16: return 0x0001;
+   case 1: return 0xff;
+   case 2: return 0x55;
+   case 4: return 0x11;
+   case 8: return 0x01;
    default:
       unreachable("invalid sample count");
    }

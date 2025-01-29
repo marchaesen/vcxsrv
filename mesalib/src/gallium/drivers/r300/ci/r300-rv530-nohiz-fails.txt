@@ -739,7 +739,6 @@ spec@glsl-1.10@execution@interpolation@interpolation-none-other-smooth-vertex,Fa
 # HW limitation (SM3 256 loop iters)
 spec@glsl-1.10@execution@loops@glsl-fs-loop-300,Fail
 spec@glsl-1.10@execution@loops@glsl-vs-loop-300,Fail
-
 spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unroll,Fail
 
 # HW limitation (no support for gl_ClipVertex)

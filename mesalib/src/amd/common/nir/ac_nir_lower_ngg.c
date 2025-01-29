@@ -595,14 +595,9 @@ add_clipdist_bit(nir_builder *b, nir_def *dist, unsigned index, nir_variable *ma
 }
 
 static bool
-remove_culling_shader_output(nir_builder *b, nir_instr *instr, void *state)
+remove_culling_shader_output(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
 {
    lower_ngg_nogs_state *s = (lower_ngg_nogs_state *) state;
-
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
    /* These are not allowed in VS / TES */
    assert(intrin->intrinsic != nir_intrinsic_store_per_vertex_output &&
@@ -612,7 +607,7 @@ remove_culling_shader_output(nir_builder *b, nir_instr *instr, void *state)
    if (intrin->intrinsic != nir_intrinsic_store_output)
       return false;
 
-   b->cursor = nir_before_instr(instr);
+   b->cursor = nir_before_instr(&intrin->instr);
 
    /* no indirect output */
    assert(nir_src_is_const(intrin->src[1]) && nir_src_as_uint(intrin->src[1]) == 0);
@@ -649,15 +644,15 @@ remove_culling_shader_output(nir_builder *b, nir_instr *instr, void *state)
    }
 
    /* Remove all output stores */
-   nir_instr_remove(instr);
+   nir_instr_remove(&intrin->instr);
    return true;
 }
 
 static void
 remove_culling_shader_outputs(nir_shader *culling_shader, lower_ngg_nogs_state *s)
 {
-   nir_shader_instructions_pass(culling_shader, remove_culling_shader_output,
-                                nir_metadata_control_flow, s);
+   nir_shader_intrinsics_pass(culling_shader, remove_culling_shader_output,
+                              nir_metadata_control_flow, s);
 
    /* Remove dead code resulting from the deleted outputs. */
    bool progress;
@@ -697,14 +692,9 @@ rewrite_uses_to_var(nir_builder *b, nir_def *old_def, nir_variable *replacement_
 }
 
 static bool
-remove_extra_pos_output(nir_builder *b, nir_instr *instr, void *state)
+remove_extra_pos_output(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
 {
    lower_ngg_nogs_state *s = (lower_ngg_nogs_state *) state;
-
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
    /* These are not allowed in VS / TES */
    assert(intrin->intrinsic != nir_intrinsic_store_per_vertex_output &&
@@ -718,7 +708,7 @@ remove_extra_pos_output(nir_builder *b, nir_instr *instr, void *state)
    if (io_sem.location != VARYING_SLOT_POS)
       return false;
 
-   b->cursor = nir_before_instr(instr);
+   b->cursor = nir_before_instr(&intrin->instr);
 
    /* In case other outputs use what we calculated for pos,
     * try to avoid calculating it again by rewriting the usages
@@ -727,7 +717,7 @@ remove_extra_pos_output(nir_builder *b, nir_instr *instr, void *state)
    nir_def *store_val = intrin->src[0].ssa;
    unsigned store_pos_component = nir_intrinsic_component(intrin);
 
-   nir_instr_remove(instr);
+   nir_instr_remove(&intrin->instr);
 
    if (store_val->parent_instr->type == nir_instr_type_alu) {
       nir_alu_instr *alu = nir_instr_as_alu(store_val->parent_instr);
@@ -767,9 +757,8 @@ remove_extra_pos_output(nir_builder *b, nir_instr *instr, void *state)
 static void
 remove_extra_pos_outputs(nir_shader *shader, lower_ngg_nogs_state *s)
 {
-   nir_shader_instructions_pass(shader, remove_extra_pos_output,
-                                nir_metadata_control_flow,
-                                s);
+   nir_shader_intrinsics_pass(shader, remove_extra_pos_output,
+                              nir_metadata_control_flow, s);
 }
 
 static bool
@@ -2646,6 +2635,9 @@ ac_nir_lower_ngg_nogs(nir_shader *shader, const ac_nir_lower_ngg_options *option
    ngg_nogs_gather_outputs(b, &if_es_thread->then_list, &state);
    b->cursor = nir_after_cf_list(&if_es_thread->then_list);
 
+   /* This should be after streamout and before exports. */
+   ac_nir_clamp_vertex_color_outputs(b, &state.out);
+
    if (state.has_user_edgeflags)
       ngg_nogs_store_edgeflag_to_lds(b, &state);
 
@@ -3004,14 +2996,9 @@ lower_ngg_gs_set_vertex_and_primitive_count(nir_builder *b, nir_intrinsic_instr 
 }
 
 static bool
-lower_ngg_gs_intrinsic(nir_builder *b, nir_instr *instr, void *state)
+lower_ngg_gs_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
 {
    lower_ngg_gs_state *s = (lower_ngg_gs_state *) state;
-
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
    if (intrin->intrinsic == nir_intrinsic_store_output)
       return lower_ngg_gs_store_output(b, intrin, s);
@@ -3028,7 +3015,7 @@ lower_ngg_gs_intrinsic(nir_builder *b, nir_instr *instr, void *state)
 static void
 lower_ngg_gs_intrinsics(nir_shader *shader, lower_ngg_gs_state *s)
 {
-   nir_shader_instructions_pass(shader, lower_ngg_gs_intrinsic, nir_metadata_none, s);
+   nir_shader_intrinsics_pass(shader, lower_ngg_gs_intrinsic, nir_metadata_none, s);
 }
 
 static void
@@ -3139,6 +3126,9 @@ ngg_gs_export_vertices(nir_builder *b, nir_def *max_num_out_vtx, nir_def *tid_in
          }
       }
    }
+
+   /* This should be after streamout and before exports. */
+   ac_nir_clamp_vertex_color_outputs(b, &s->out);
 
    uint64_t export_outputs = b->shader->info.outputs_written | VARYING_BIT_POS;
    if (s->options->kill_pointsize)

@@ -362,6 +362,7 @@ etna_blit_clear_color_rs(struct pipe_context *pctx, unsigned idx,
       etna_submit_rs_state(ctx, &surf->ts_clear_command);
 
       etna_resource_level_ts_mark_valid(surf->level);
+      etna_resource_level_mark_unflushed(surf->level);
       ctx->dirty |= ETNA_DIRTY_TS;
    } else { /* Queue normal RS clear for non-TS surfaces */
       /* If clear color changed or no valid command yet (re-)generate
@@ -424,6 +425,7 @@ etna_blit_clear_zs_rs(struct pipe_context *pctx, struct pipe_surface *dst,
       etna_submit_rs_state(ctx, &surf->ts_clear_command);
 
       etna_resource_level_ts_mark_valid(surf->level);
+      etna_resource_level_mark_unflushed(surf->level);
       ctx->dirty |= ETNA_DIRTY_TS;
    } else { /* Queue normal RS clear for non-TS surfaces */
       /* If the level has valid TS state we need to flush it, as the regular

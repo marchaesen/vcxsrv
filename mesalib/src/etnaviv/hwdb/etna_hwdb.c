@@ -17,7 +17,18 @@
 bool
 etna_query_feature_db(struct etna_core_info *info)
 {
-   gcsFEATURE_DATABASE *db = gcQueryFeatureDB(info->model, info->revision, info->product_id,
+   uint32_t model = info->model;
+   uint32_t revision = info->revision;
+
+   /* More confusion due to NXP calling the GC3000 in the i.MX6QP a GC2000+:
+    * the kernel already fixes this up to the real model and revision, but
+    * to match the HWDB entry we must revert this fixup for the lookup. */
+   if (model == 0x3000 && revision == 0x5450) {
+      model = 0x2000;
+      revision = 0xffff5450;
+   }
+
+   gcsFEATURE_DATABASE *db = gcQueryFeatureDB(model, revision, info->product_id,
                                               info->eco_id, info->customer_id);
 
    if (!db)

@@ -1461,7 +1461,7 @@ struct zink_screen {
    uint64_t mapped_vram;
 
    VkInstance instance;
-   struct zink_instance_info instance_info;
+   const struct zink_instance_info *instance_info;
 
    struct hash_table *debug_mem_sizes;
    simple_mtx_t debug_mem_lock;

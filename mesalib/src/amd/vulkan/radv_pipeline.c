@@ -462,11 +462,6 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
          NIR_PASS_V(stage->nir, ac_nir_lower_legacy_gs, false, false, &gs_out_info);
       }
    } else if (stage->stage == MESA_SHADER_FRAGMENT) {
-      ac_nir_lower_ps_early_options early_options = {
-         .alpha_func = COMPARE_FUNC_ALWAYS,
-         .spi_shader_col_format_hint = ~0,
-      };
-
       ac_nir_lower_ps_late_options late_options = {
          .gfx_level = gfx_level,
          .family = pdev->info.family,
@@ -488,7 +483,7 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
          late_options.enable_mrt_output_nan_fixup =
             gfx_state->ps.epilog.enable_mrt_output_nan_fixup && !stage->nir->info.internal;
          /* Need to filter out unwritten color slots. */
-         early_options.spi_shader_col_format_hint = late_options.spi_shader_col_format =
+         late_options.spi_shader_col_format =
             gfx_state->ps.epilog.spi_shader_col_format & stage->info.ps.colors_written;
          late_options.alpha_to_one = gfx_state->ps.epilog.alpha_to_one;
       }
@@ -499,11 +494,10 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
           * ac_nir_lower_ps() require this field to reflect whether alpha via mrtz is really
           * present.
           */
-         early_options.keep_alpha_for_mrtz = late_options.alpha_to_coverage_via_mrtz = stage->info.ps.writes_mrt0_alpha;
+         late_options.alpha_to_coverage_via_mrtz = stage->info.ps.writes_mrt0_alpha;
       }
 
-      NIR_PASS_V(stage->nir, ac_nir_lower_ps_early, &early_options);
-      NIR_PASS_V(stage->nir, ac_nir_lower_ps_late, &late_options);
+      NIR_PASS(_, stage->nir, ac_nir_lower_ps_late, &late_options);
    }
 
    if (radv_shader_should_clear_lds(device, stage->nir)) {

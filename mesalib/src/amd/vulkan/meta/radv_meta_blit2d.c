@@ -162,6 +162,14 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
       else if (src_img)
          src_aspect_mask = src_img->aspect_mask;
 
+      /* Adjust the aspect for color to depth/stencil image copies. */
+      if (src_img) {
+         if (vk_format_is_color(src_img->image->vk.format) && vk_format_is_depth_or_stencil(dst->image->vk.format)) {
+            assert(src_img->aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT);
+            src_aspect_mask = src_img->aspect_mask;
+         }
+      }
+
       struct radv_image_view dst_iview;
       create_iview(cmd_buffer, dst, &dst_iview, depth_format, aspect_mask);
 
@@ -233,8 +241,9 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
                                  vertex_push_constants);
 
       struct blit2d_src_temps src_temps;
-      blit2d_bind_src(cmd_buffer, layout, src_img, src_buf, &src_temps, src_type, depth_format, src_aspect_mask,
-                      log2_samples);
+      blit2d_bind_src(cmd_buffer, layout, src_img, src_buf, &src_temps, src_type,
+                      (src_aspect_mask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) ? depth_format : 0,
+                      src_aspect_mask, log2_samples);
 
       radv_CmdBeginRendering(radv_cmd_buffer_to_handle(cmd_buffer), &rendering_info);
 

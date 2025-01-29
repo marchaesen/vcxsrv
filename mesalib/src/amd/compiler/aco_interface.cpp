@@ -173,10 +173,8 @@ aco_postprocess_shader(const struct aco_compiler_options* options,
       validate(program.get());
    }
 
-   ssa_elimination(program.get());
-   jump_threading(program.get());
-
    /* Lower to HW Instructions */
+   ssa_elimination(program.get());
    lower_to_hw_instr(program.get());
    lower_branches(program.get());
    validate(program.get());
@@ -448,7 +446,8 @@ aco_get_codegen_flags()
    init();
    /* Exclude flags which don't affect code generation. */
    uint64_t exclude =
-      DEBUG_VALIDATE_IR | DEBUG_VALIDATE_RA | DEBUG_PERF_INFO | DEBUG_LIVE_INFO;
+      DEBUG_VALIDATE_IR | DEBUG_VALIDATE_RA | DEBUG_PERF_INFO | DEBUG_LIVE_INFO |
+      DEBUG_NO_VALIDATE_IR | DEBUG_VALIDATE_LIVE_VARS;
    return debug_flags & ~exclude;
 }
 

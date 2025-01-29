@@ -9,11 +9,6 @@ KHR-GL46.sparse_texture2_tests.UncommittedRegionsAccess,Fail
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor,Fail
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupResidency,Fail
 
-KHR-Single-GL46.subgroups.builtin_var.framebuffer.subgroupsize_geometry,Fail
-KHR-Single-GL46.subgroups.builtin_var.framebuffer.subgroupsize_tess_control,Fail
-KHR-Single-GL46.subgroups.builtin_var.framebuffer.subgroupsize_tess_eval,Fail
-KHR-Single-GL46.subgroups.builtin_var.framebuffer.subgroupsize_vertex,Fail
-
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail

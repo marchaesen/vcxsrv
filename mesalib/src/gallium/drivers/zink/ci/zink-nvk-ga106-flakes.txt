@@ -198,3 +198,7 @@ KHR-GL46.constant_expressions.basic_pow_float_compute
 KHR-GL46.constant_expressions.basic_sin_float_compute
 KHR-GL46.constant_expressions.basic_sin_vec3_geometry
 KHR-GL46.constant_expressions.basic_sin_vec3_tess_eval
+
+KHR-GL46.texture_swizzle.functional_format_idx_63_target_idx_3
+KHR-GL46.texture_swizzle.functional_format_idx_66_target_idx_1
+spec@arb_texture_view@rendering-levels

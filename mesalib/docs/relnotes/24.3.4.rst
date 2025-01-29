@@ -1,0 +1,210 @@
+Mesa 24.3.4 Release Notes / 2025-01-22
+======================================
+
+Mesa 24.3.4 is a bug fix release which fixes bugs found since the 24.3.3 release.
+
+Mesa 24.3.4 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.3.4 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA checksums
+-------------
+
+::
+
+    SHA256: e641ae27191d387599219694560d221b7feaa91c900bcec46bf444218ed66025  mesa-24.3.4.tar.xz
+    SHA512: 9c23cd86fda4cf0289c5a78b08ceea8b01e5b141d86ee3e659fa46e62ff9586ff92a4984d2a340b5bf209c4c7f3414bf99f3ced19feee8fb39ef99fe572dbd55  mesa-24.3.4.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- 32-bit: error: format ‘%lx’ expects argument of type
+- regression;bisected;FTBFS: commit b13e2a495e9e3da56add7d852ca01b2cd7eef52d breaks x86_32 mesa build
+- [anv] Visual corruption in Cyberpunk on LNL and BMG
+- [anv] Borderlands 3 visual corruption on BMG
+- [ANV] LNL triangle corruption on clothing in HogwartsLegacy-trace-dx12-1080p-ultra
+- Intel: Dark graphical glitches on cars and characters on Disney Speedstorm
+- Regression in VA-API decoding
+- glxext.c: error: 'struct glx_screen' has no member named 'frontend_screen'
+- Segmentation fault resetting a query pool used to get BLAS properties
+- radv: warning that "radv is not a conformant Vulkan implementation" on Navi 32
+- [anv][UHD630] DXVK 2.5 - 2.5.2 with DXVK_HUD=compiler or DXVK_HUD=fps freezes the game or the entire system (Works without compiler/fps HUD, DXVK 2.4.1 works fine)
+- Licenses seems incomplete/misleading
+- anv: Symbol clash in intel_batch_decoder build when expat not available
+- d3d12 vaapi: thread safety issues
+- anv: Missing textures and glitches in It Takes Two (game)
+- Black screen bug that only affects AMD
+- Failure to correctly decode H.264, possibly specific to use of array output view
+
+
+Changes
+-------
+
+Alyssa Rosenzweig (1):
+
+- nir/lower_robust_access: fix robustness with atomic swap
+
+Boris Brezillon (1):
+
+- panfrost: Fix instanced draws when attributes have a non-zero divisor
+
+Brian Paul (2):
+
+- svga: add svga_resource_create_with_modifiers() function
+- svga: fix printing 64-bit value for 32-bit build
+
+Caio Oliveira (1):
+
+- intel/brw: Add missing bits in 3-src SWSB encoding for Xe2+
+
+Christian Gmeiner (2):
+
+- etnaviv: isa: Support src2 for texld
+- etnaviv: isa: Support src2 for texldb and texldl
+
+David Heidelberg (6):
+
+- docs: remove deprecated component list and licenses
+- docs: Clarify project name and include Mesa3D
+- docs: move license(s) to licenses directory
+- c11: use SPDX-License-Identifier header
+- licenses: add missing licenses
+- drm-uapi: update licenses statement
+
+David Rosca (7):
+
+- radv/video: Fix DPB tier2 surface params
+- radv/video: Use correct array index for decode target and DPB images
+- radv: Fix sampling from image layers of video decode target
+- frontends/va: Get buffer feedback with locked mutex in MapBuffer
+- gallium/vl: Create sampler state also when gfx is not supported
+- frontends/va: Only report surface alignment when non-zero
+- frontends/va: Set csc matrix in PutSurface
+
+Dylan Baker (12):
+
+- docs: Add SHA sums to 24.3.3 release notes
+- .pick_status.json: Update to 5f30bc62fe962d4fc78633d44e1020a713c2f9bc
+- .pick_status.json: Mark eac8f1d4602cb1e44793b959c5680c92c9854be7 as denominated
+- .pick_status.json: Update to 70fa598696c6fe2db6e6370a91443a3cb9449db3
+- .pick_status.json: Update to 1a41743764159eccc245328ddba4a11cf0592e7d
+- .pick_status.json: Mark c3e7384bbb2cfc56aed6244949d896db233d35f3 as denominated
+- .pick_status.json: Mark 3b6f0ce03271aaca4058b99c75a4dfb0ce6d4770 as denominated
+- .pick_status.json: Mark ab640df1c2fbf77965022b7507f656d378b49a4e as denominated
+- .pick_status.json: Mark bd1a042046491de79194a375ac9a26ee4f52816c as denominated
+- .pick_status.json: Update to b016f218fbce4c01827a4bf613912b40f646e1df
+- .pick_status.json: Mark 5549cb921d1917835f2fb6c1f25449641dab039d as denominated
+- .pick_status.json: Update to 1278d5286ccb47d8b55234946fc6c856cad3b909
+
+Hyunjun Ko (3):
+
+- anv: handle negative value of slot index for h265 decoding.
+- anv/video: Fix to return supported video format correctly.
+- anv: change bool to VkResult
+
+Icenowy Zheng (1):
+
+- zink: do not set transform feedback bits when not available
+
+José Roberto de Souza (1):
+
+- anv: Allow larger SLM sizes for task and mesh shader
+
+Karol Herbst (4):
+
+- rusticl/queue: add a life check to prevent applications dead locking
+- rusticl: stop using system headers for CL and GL
+- rusticl/kernel: take set kernel arguments into account for CL_KERNEL_LOCAL_MEM_SIZE
+- rusticl/kernel: fix image_size of 1D buffer images
+
+Konstantin Seurer (1):
+
+- lavapipe: Check the pool type in handle_reset_query_pool
+
+Lionel Landwerlin (4):
+
+- anv: ensure null-rt bit in compiler isn't used when there is ds attachment
+- intel: fix generation shader on Gfx9
+- brw: fix coarse_z computation on Xe2+
+- anv: use the correct MOCS for depth destinations
+
+Lucas Stach (1):
+
+- etnaviv: isa: fix typo in SRC2_USE map
+
+Lukas Lipp (1):
+
+- wsi: Fix wrong function name for lvp wsi metal surface
+
+Marek Olšák (3):
+
+- glsl: fix corruption due to blake3 hash not being set for nir_opt_undef
+- radeonsi: fix a perf regression due to slow reply from GEM_WAIT_IDLE for timeout=0
+- radeonsi: add si_screen::use_aco to shader cache key to fix shader cache failures
+
+Matt Turner (1):
+
+- intel/decoder: Avoid duplicate symbols when expat is not available
+
+Mel Henning (2):
+
+- nak: Add ShaderModel::hw_reserved_gprs()
+- nak: Add gpr_limit_from_local_size
+
+Mike Blumenkrantz (4):
+
+- mesa: use default params for clearbuffer functions
+- glsl: make gl_ViewID_OVR visible to all shader stages
+- glsl: enable OVR_multiview if OVR_multiview2 is enabled
+- lavapipe: fix bitmask type for sampler updating
+
+Patrick Lerda (1):
+
+- winsys/radeon: fix radeon_winsys_bo_from_handle() related race condition
+
+Qiang Yu (1):
+
+- radeonsi: fix unigine heaven crash when use aco on gfx8/9
+
+Rhys Perry (2):
+
+- aco/util: fix bit_reference::operator&=
+- aco: use VOP3 v_mov_b16 if necessary
+
+Rob Clark (1):
+
+- freedreno/a6xx: Fix timestamp emit
+
+Samuel Pitoiset (4):
+
+- radv: fix adding the BO to cmdbuf list when emitting buffer markers
+- radv: disable logic op for float/srgb formats
+- radv: disable GFX12+ support
+- radv: mark AMD CDNA as unsupported
+
+Timur Kristóf (1):
+
+- radv: Only print "testing use only" message on GFX12+.
+
+Vinson Lee (1):
+
+- intel/elk: Fix assert with side effect
+
+duncan.hopkins (2):
+
+- glx: Guard some of the bind_extensions() code with the same conditions as \`glx_screen`s `frontend_screen` member.
+- glx: Add back in \`applegl_create_display()` so the OpenGL.framework, on MacOS, pointer get setup.

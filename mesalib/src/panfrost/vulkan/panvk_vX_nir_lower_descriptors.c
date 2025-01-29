@@ -61,6 +61,7 @@ struct panvk_shader_desc_info {
    uint32_t dummy_sampler_handle;
    uint32_t dyn_bufs_start;
    struct panvk_shader_desc_map dyn_bufs;
+   uint32_t num_varying_attr_descs;
 #endif
 };
 
@@ -1025,8 +1026,22 @@ create_copy_table(nir_shader *nir, struct lower_desc_ctx *ctx)
    for (uint32_t i = 0; i < PANVK_BIFROST_DESC_TABLE_COUNT; i++)
       copy_count += desc_info->others[i].count;
 #else
-   /* Dummy sampler comes after the vertex attributes. */
-   uint32_t dummy_sampler_idx = nir->info.stage == MESA_SHADER_VERTEX ? 16 : 0;
+   uint32_t dummy_sampler_idx;
+   switch (nir->info.stage) {
+   case MESA_SHADER_VERTEX:
+      /* Dummy sampler comes after the vertex attributes. */
+      dummy_sampler_idx = 16;
+      break;
+   case MESA_SHADER_FRAGMENT:
+      /* Dummy sampler comes after the varyings. */
+      dummy_sampler_idx = desc_info->num_varying_attr_descs;
+      break;
+   case MESA_SHADER_COMPUTE:
+      dummy_sampler_idx = 0;
+      break;
+   default:
+      unreachable("unexpected stage");
+   }
    desc_info->dummy_sampler_handle = pan_res_handle(0, dummy_sampler_idx);
 
    copy_count = desc_info->dyn_bufs.count + desc_info->dyn_bufs.count;
@@ -1216,7 +1231,7 @@ panvk_per_arch(nir_lower_descriptors)(
             VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DISABLED_EXT ||
          rs->images != VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DISABLED_EXT,
    };
-   bool progress;
+   bool progress = false;
 
 #if PAN_ARCH <= 7
    ctx.ubo_addr_format = nir_address_format_32bit_index_offset;
@@ -1242,6 +1257,15 @@ panvk_per_arch(nir_lower_descriptors)(
    if (!progress)
       goto out;
 
+#if PAN_ARCH >= 9
+   ctx.desc_info.num_varying_attr_descs = 0;
+   /* We require Attribute Descriptors if we cannot use LD_VAR_BUF[_IMM] for
+    * varyings. */
+   if (shader->info.stage == MESA_SHADER_FRAGMENT &&
+       !panvk_use_ld_var_buf(shader))
+      ctx.desc_info.num_varying_attr_descs =
+         shader->desc_info.max_varying_loads;
+#endif
    create_copy_table(nir, &ctx);
    upload_shader_desc_info(dev, shader, &ctx.desc_info);
 

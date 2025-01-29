@@ -51,9 +51,9 @@ struct etna_ts_sw_meta {
       uint32_t comp_format;
       uint64_t clear_value;
       uint32_t seqno;
-      uint32_t flush_seqno;
       uint8_t valid;
-      uint8_t pad[3];
+      uint8_t flushed;
+      uint8_t pad[6];
    } v0;
 };
 
@@ -71,6 +71,7 @@ struct etna_resource_level {
    uint32_t ts_size;
    uint64_t clear_value; /* clear value of resource level (mainly for TS) */
    bool ts_valid;
+   bool ts_flushed;
    uint8_t ts_mode;
    int8_t ts_compress_fmt; /* COLOR_COMPRESSION_FORMAT_* (-1 = disable) */
 
@@ -81,7 +82,6 @@ struct etna_resource_level {
    struct util_dynarray *patch_offsets;
 
    uint32_t seqno;
-   uint32_t flush_seqno;
 };
 
 /* returns TRUE if a is newer than b */
@@ -133,7 +133,7 @@ etna_resource_level_ts_mark_invalid(struct etna_resource_level *lvl)
       lvl->ts_valid = false;
 }
 
-/* returns TRUE if a is older than b */
+/* returns TRUE if lvl has valid, unflushed TS data */
 static inline bool
 etna_resource_level_needs_flush(struct etna_resource_level *lvl)
 {
@@ -141,18 +141,27 @@ etna_resource_level_needs_flush(struct etna_resource_level *lvl)
       return false;
 
    if (unlikely(lvl->ts_meta))
-      return ((int)(lvl->ts_meta->v0.seqno - lvl->ts_meta->v0.flush_seqno) > 0);
+      return !lvl->ts_meta->v0.flushed;
    else
-      return ((int)(lvl->seqno - lvl->flush_seqno) > 0);
+      return !lvl->ts_flushed;
 }
 
 static inline void
 etna_resource_level_mark_flushed(struct etna_resource_level *lvl)
 {
    if (unlikely(lvl->ts_meta))
-      lvl->ts_meta->v0.flush_seqno = lvl->ts_meta->v0.seqno;
+      lvl->ts_meta->v0.flushed = 1;
    else
-      lvl->flush_seqno = lvl->seqno;
+      lvl->ts_flushed = true;
+}
+
+static inline void
+etna_resource_level_mark_unflushed(struct etna_resource_level *lvl)
+{
+   if (unlikely(lvl->ts_meta))
+      lvl->ts_meta->v0.flushed = 0;
+   else
+      lvl->ts_flushed = false;
 }
 
 static inline void

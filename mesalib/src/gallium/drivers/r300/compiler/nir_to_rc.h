@@ -11,7 +11,9 @@
 
 struct nir_shader;
 struct pipe_screen;
+struct r300_fragment_program_external_state;
 
-const void *nir_to_rc(struct nir_shader *s, struct pipe_screen *screen);
+const void *nir_to_rc(struct nir_shader *s, struct pipe_screen *screen,
+                      struct r300_fragment_program_external_state state);
 
 #endif /* NIR_TO_RC_H */

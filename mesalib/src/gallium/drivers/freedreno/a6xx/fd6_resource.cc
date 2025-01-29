@@ -236,50 +236,12 @@ static void
 setup_lrz(struct fd_resource *rsc)
 {
    struct fd_screen *screen = fd_screen(rsc->b.b.screen);
-   struct fdl_layout *layout = &rsc->layout;
-   unsigned width = layout->width0;
-   unsigned height = layout->height0;
+   uint32_t nr_layers = 1;
+   fdl6_lrz_layout_init<CHIP>(&rsc->lrz_layout, &rsc->layout, screen->info, 0,
+                              nr_layers);
 
-   /* LRZ buffer is super-sampled: */
-   switch (layout->nr_samples) {
-   case 4:
-      width *= 2;
-      FALLTHROUGH;
-   case 2:
-      height *= 2;
-   }
-
-   unsigned lrz_pitch = align(DIV_ROUND_UP(width, 8), 32);
-   unsigned lrz_height = align(DIV_ROUND_UP(height, 8), 32);
-
-   rsc->lrz_height = lrz_height;
-   rsc->lrz_width = lrz_pitch;
-   rsc->lrz_pitch = lrz_pitch;
-
-   unsigned lrz_size = lrz_pitch * lrz_height * sizeof(uint16_t);
-
-   unsigned nblocksx = DIV_ROUND_UP(DIV_ROUND_UP(width, 8), 16);
-   unsigned nblocksy = DIV_ROUND_UP(DIV_ROUND_UP(height, 8), 4);
-
-   /* Fast-clear buffer is 1bit/block */
-   unsigned lrz_fc_size = DIV_ROUND_UP(nblocksx * nblocksy, 8);
-
-   /* Fast-clear buffer cannot be larger than 512 bytes on A6XX and 1024 bytes
-    * on A7XX (HW limitation)
-    */
-   bool has_lrz_fc = screen->info->a6xx.enable_lrz_fast_clear &&
-                     lrz_fc_size <= fd_lrzfc_layout<CHIP>::FC_SIZE &&
-                     !FD_DBG(NOLRZFC);
-
-   /* Allocate a LRZ fast-clear buffer even if we aren't using FC, if the
-    * hw is re-using this buffer for direction tracking
-    */
-   if (has_lrz_fc || screen->info->a6xx.has_lrz_dir_tracking) {
-      rsc->lrz_fc_offset = lrz_size;
-      lrz_size += sizeof(fd_lrzfc_layout<CHIP>);
-   }
-
-   rsc->lrz = fd_bo_new(screen->dev, lrz_size, FD_BO_NOMAP, "lrz");
+   rsc->lrz = fd_bo_new(screen->dev, rsc->lrz_layout.lrz_total_size,
+                        FD_BO_NOMAP, "lrz");
 }
 
 template <chip CHIP>

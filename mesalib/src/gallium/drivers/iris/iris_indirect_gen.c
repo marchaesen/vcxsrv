@@ -44,19 +44,26 @@
 #include "libintel_shaders.h"
 
 #if GFX_VERx10 == 80
-# include "intel_gfx8_shaders_code.h"
+# include "intel_gfx80_shaders_spv.h"
+# include "intel_gfx80_shaders_binding.h"
 #elif GFX_VERx10 == 90
-# include "intel_gfx9_shaders_code.h"
+# include "intel_gfx90_shaders_spv.h"
+# include "intel_gfx90_shaders_binding.h"
 #elif GFX_VERx10 == 110
-# include "intel_gfx11_shaders_code.h"
+# include "intel_gfx110_shaders_spv.h"
+# include "intel_gfx110_shaders_binding.h"
 #elif GFX_VERx10 == 120
-# include "intel_gfx12_shaders_code.h"
+# include "intel_gfx120_shaders_spv.h"
+# include "intel_gfx120_shaders_binding.h"
 #elif GFX_VERx10 == 125
-# include "intel_gfx125_shaders_code.h"
+# include "intel_gfx125_shaders_spv.h"
+# include "intel_gfx125_shaders_binding.h"
 #elif GFX_VERx10 == 200
-# include "intel_gfx20_shaders_code.h"
+# include "intel_gfx200_shaders_spv.h"
+# include "intel_gfx200_shaders_binding.h"
 #elif GFX_VERx10 == 300
-# include "intel_gfx30_shaders_code.h"
+# include "intel_gfx300_shaders_spv.h"
+# include "intel_gfx300_shaders_binding.h"
 #else
 # error "Unsupported generation"
 #endif
@@ -75,20 +82,11 @@ load_fragment_index(nir_builder *b)
                    nir_channel(b, pos_in, 0));
 }
 
-static nir_shader *
-load_shader_lib(struct iris_screen *screen, void *mem_ctx)
+static const uint32_t *
+load_shader_lib_spv(uint32_t *out_size)
 {
-   const nir_shader_compiler_options *nir_options =
-#if GFX_VER >= 9
-      screen->brw->nir_options[MESA_SHADER_KERNEL];
-#else
-      screen->elk->nir_options[MESA_SHADER_KERNEL];
-#endif
-
-   struct blob_reader blob;
-   blob_reader_init(&blob, (void *)genX(intel_shaders_nir),
-                    sizeof(genX(intel_shaders_nir)));
-   return nir_deserialize(mem_ctx, nir_options, &blob);
+   *out_size = sizeof(genX(shaders_spv));
+   return genX(shaders_spv);
 }
 
 static unsigned
@@ -114,7 +112,7 @@ iris_call_generation_shader(struct iris_screen *screen, nir_builder *b)
 void
 genX(init_screen_gen_state)(struct iris_screen *screen)
 {
-   screen->vtbl.load_shader_lib = load_shader_lib;
+   screen->vtbl.load_shader_lib_spv = load_shader_lib_spv;
    screen->vtbl.call_generation_shader = iris_call_generation_shader;
 }
 

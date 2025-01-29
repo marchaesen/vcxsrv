@@ -143,42 +143,32 @@ si_aco_build_shader_binary(void **data, const struct ac_shader_config *config,
 }
 
 bool
-si_aco_compile_shader(struct si_shader *shader,
-                      struct si_shader_args *args,
-                      struct nir_shader *nir,
+si_aco_compile_shader(struct si_shader *shader, struct si_linked_shaders *linked,
                       struct util_debug_callback *debug)
 {
    const struct si_shader_selector *sel = shader->selector;
+   nir_shader *nir = linked->consumer.nir;
 
    struct aco_compiler_options options = {0};
    si_fill_aco_options(sel->screen, nir->info.stage, &options, debug);
 
    struct aco_shader_info info = {0};
-   si_fill_aco_shader_info(shader, &info, args);
+   si_fill_aco_shader_info(shader, &info, &linked->consumer.args);
 
+   const struct ac_shader_args *args = &linked->consumer.args.ac;
    nir_shader *shaders[2];
    unsigned num_shaders = 0;
 
-   bool free_nir = false;
-   struct si_shader prev_shader = {};
-   struct si_shader_args prev_args;
-
    /* For merged shader stage. */
-   if (shader->is_monolithic && sel->screen->info.gfx_level >= GFX9 &&
-       (nir->info.stage == MESA_SHADER_TESS_CTRL || nir->info.stage == MESA_SHADER_GEOMETRY)) {
-      shaders[num_shaders++] =
-         si_get_prev_stage_nir_shader(shader, &prev_shader, &prev_args, &free_nir);
-
-      args = &prev_args;
+   if (linked->producer.nir) {
+      shaders[num_shaders++] = linked->producer.nir;
+      args = &linked->producer.args.ac;
    }
 
    shaders[num_shaders++] = nir;
 
-   aco_compile_shader(&options, &info, num_shaders, shaders, &args->ac,
+   aco_compile_shader(&options, &info, num_shaders, shaders, args,
                       si_aco_build_shader_binary, (void **)shader);
-
-   if (free_nir)
-      ralloc_free(shaders[0]);
 
    return true;
 }
@@ -253,8 +243,8 @@ si_aco_build_shader_part_binary(void** priv_ptr, uint32_t num_sgprs, uint32_t nu
       result->binary.disasm_size = disasm_size;
    }
 
-   result->config.num_sgprs = num_sgprs;
-   result->config.num_vgprs = num_vgprs;
+   result->num_sgprs = num_sgprs;
+   result->num_vgprs = num_vgprs;
 }
 
 static bool
@@ -278,6 +268,9 @@ si_aco_build_ps_prolog(struct aco_compiler_options *options,
       .force_linear_center_interp = key->ps_prolog.states.force_linear_center_interp,
 
       .samplemask_log_ps_iter = key->ps_prolog.states.samplemask_log_ps_iter,
+      .get_frag_coord_from_pixel_coord = key->ps_prolog.states.get_frag_coord_from_pixel_coord,
+      .pixel_center_integer = key->ps_prolog.pixel_center_integer,
+      .force_samplemask_to_helper_invocation = key->ps_prolog.states.force_samplemask_to_helper_invocation,
       .num_interp_inputs = key->ps_prolog.num_interp_inputs,
       .colors_read = key->ps_prolog.colors_read,
       .color_interp_vgpr_index[0] = key->ps_prolog.color_interp_vgpr_index[0],
@@ -309,7 +302,7 @@ si_aco_build_ps_epilog(struct aco_compiler_options *options,
       .spi_shader_col_format = key->ps_epilog.states.spi_shader_col_format,
       .color_is_int8 = key->ps_epilog.states.color_is_int8,
       .color_is_int10 = key->ps_epilog.states.color_is_int10,
-      .broadcast_last_cbuf = key->ps_epilog.states.last_cbuf,
+      .writes_all_cbufs = key->ps_epilog.writes_all_cbufs,
       .alpha_func = key->ps_epilog.states.alpha_func,
       .alpha_to_one = key->ps_epilog.states.alpha_to_one,
       .alpha_to_coverage_via_mrtz = key->ps_epilog.states.alpha_to_coverage_via_mrtz,

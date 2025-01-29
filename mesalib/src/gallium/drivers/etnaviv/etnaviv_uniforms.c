@@ -118,6 +118,9 @@ etna_uniforms_write(const struct etna_context *ctx,
    bool frag = (sobj == ctx->shader.fs);
    uint32_t base = frag ? screen->specs.ps_uniforms_offset : screen->specs.vs_uniforms_offset;
 
+   if (screen->specs.has_unified_uniforms && frag)
+      base += ctx->shader.vs->uniforms.count * 4;
+
    if (!uinfo->count)
       return;
 

@@ -411,7 +411,6 @@ spec@glsl-1.10@execution@interpolation@interpolation-none-other-flat-vertex,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-other-smooth-vertex,Fail
 spec@glsl-1.10@execution@samplers@glsl-fs-shadow1d-07,Fail
 spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-07,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-clamp-z,Fail
 spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unroll,Fail
 spec@glsl-1.20@execution@built-in-functions@vs-op-mult,Fail
 spec@glsl-1.20@execution@clipping@fixed-clip-enables,Fail

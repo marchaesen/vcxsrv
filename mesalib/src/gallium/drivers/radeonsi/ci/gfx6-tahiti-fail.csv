@@ -1,4 +1,3 @@
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 glx@glx-multi-window-single-context,Fail
@@ -144,8 +143,6 @@ spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA2- swizzled- border
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA4- swizzled- border color only,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGBA8- swizzled- border color only,Fail
 
-GTF-GL46.gtf30.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_multisample,Fail
-GTF-GL46.gtf32.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_32_multisample,Fail
 GTF-GL46.gtf32.GL3Tests.packed_pixels.packed_pixels,Fail
 GTF-GL46.gtf32.GL3Tests.packed_pixels.packed_pixels_pbo,Fail
 GTF-GL46.gtf32.GL3Tests.packed_pixels.packed_pixels_pixelstore,Fail

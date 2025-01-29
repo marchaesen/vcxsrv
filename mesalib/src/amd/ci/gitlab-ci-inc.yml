@@ -205,6 +205,19 @@
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-lenovo-TPad-C13-Yoga-zork
 
+# Status: https://lava.collabora.dev/scheduler/device_type/hp-x360-14a-cb0001xx-zork
+.lava-hp-x360-14a-cb0001xx-zork:x86_64:
+  variables:
+    BOOT_METHOD: depthcharge
+    DEVICE_TYPE: hp-x360-14a-cb0001xx-zork
+    DTB: ""
+    FARM: collabora
+    FDO_CI_CONCURRENT: 4
+    HWCI_FREQ_MAX: "true"
+    HWCI_KERNEL_MODULES: amdgpu
+    KERNEL_IMAGE_TYPE: ""
+    RUNNER_TAG: mesa-ci-x86-64-lava-hp-x360-14a-cb0001xx-zork
+
 
 ############### LAVA
 # job prefixes: radeonsi (OpenGL), radv (Vulkan), amd (radeonsi+radv)
@@ -417,3 +430,16 @@
     - .radv-valve-manual-rules
   variables:
     GPU_VERSION: radv-kabini
+
+############### Fluster tests ###############
+.radeonsi-raven-vaapi-fluster:
+  extends:
+    - .lava-fluster:x86_64
+  rules:
+    - !reference [.radeonsi-vaapi-rules, rules]
+    - changes:
+      - .gitlab-ci/fluster/*
+      - src/amd/ci/$GPU_VERSION-fluster-fails.txt
+      - src/amd/ci/$GPU_VERSION-fluster-flakes.txt
+      - src/amd/ci/$GPU_VERSION-fluster-skips.txt
+      when: on_success

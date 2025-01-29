@@ -53,6 +53,7 @@
 #include "vl_video_buffer.h"
 #include "vl_vertex_buffers.h"
 #include "vl_deint_filter.h"
+#include "vl_deint_filter_cs.h"
 
 enum VS_OUTPUT
 {
@@ -269,6 +270,9 @@ vl_deint_filter_init(struct vl_deint_filter *filter, struct pipe_context *pipe,
    filter->video_width = video_width;
    filter->video_height = video_height;
 
+   if (pipe->screen->caps.prefer_compute_for_multimedia)
+      return vl_deint_filter_cs_init(filter);
+
    /* TODO: handle other than 4:2:0 subsampling */
    memset(&templ, 0, sizeof(templ));
    templ.buffer_format = pipe->screen->get_video_param
@@ -407,6 +411,11 @@ vl_deint_filter_cleanup(struct vl_deint_filter *filter)
 {
    assert(filter);
 
+   if (filter->pipe->screen->caps.prefer_compute_for_multimedia) {
+      vl_deint_filter_cs_cleanup(filter);
+      return;
+   }
+
    filter->pipe->delete_sampler_state(filter->pipe, filter->sampler[0]);
    filter->pipe->delete_blend_state(filter->pipe, filter->blend[0]);
    filter->pipe->delete_blend_state(filter->pipe, filter->blend[1]);
@@ -468,6 +477,11 @@ vl_deint_filter_render(struct vl_deint_filter *filter,
    unsigned j;
 
    assert(filter && prevprev && prev && cur && next && field <= 1);
+
+   if (filter->pipe->screen->caps.prefer_compute_for_multimedia) {
+      vl_deint_filter_cs_render(filter, prevprev, prev, cur, next, field);
+      return;
+   }
 
    /* set up destination and source */
    dst_surfaces = filter->video_buffer->get_surfaces(filter->video_buffer);

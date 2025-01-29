@@ -108,10 +108,19 @@ radv_filter_minmax_enabled(const struct radv_physical_device *pdev)
    return !(pdev->info.family == CHIP_TAHITI || pdev->info.family == CHIP_VERDE);
 }
 
+static bool
+radv_cooperative_matrix_enabled(const struct radv_physical_device *pdev)
+{
+   if (pdev->info.gfx_level == GFX12)
+      return false; /* TODO */
+
+   return pdev->info.gfx_level >= GFX11 && !pdev->use_llvm;
+}
+
 bool
 radv_enable_rt(const struct radv_physical_device *pdev)
 {
-   if (pdev->info.gfx_level < GFX10_3 && !radv_emulate_rt(pdev))
+   if (!pdev->info.has_image_bvh_intersect_ray && !radv_emulate_rt(pdev))
       return false;
 
    if (pdev->use_llvm)
@@ -536,7 +545,7 @@ radv_physical_device_get_supported_extensions(const struct radv_physical_device 
       .KHR_acceleration_structure = radv_enable_rt(pdev),
       .KHR_calibrated_timestamps = radv_calibrated_timestamps_enabled(pdev),
       .KHR_compute_shader_derivatives = true,
-      .KHR_cooperative_matrix = pdev->info.gfx_level >= GFX11 && !pdev->use_llvm,
+      .KHR_cooperative_matrix = radv_cooperative_matrix_enabled(pdev),
       .KHR_bind_memory2 = true,
       .KHR_buffer_device_address = true,
       .KHR_copy_commands2 = true,
@@ -577,6 +586,7 @@ radv_physical_device_get_supported_extensions(const struct radv_physical_device 
       .KHR_maintenance5 = true,
       .KHR_maintenance6 = true,
       .KHR_maintenance7 = true,
+      .KHR_maintenance8 = true,
       .KHR_map_memory2 = true,
       .KHR_multiview = true,
       .KHR_performance_query = radv_perf_query_supported(pdev),
@@ -1242,8 +1252,8 @@ radv_physical_device_get_features(const struct radv_physical_device *pdev, struc
       .maintenance5 = true,
 
       /* VK_KHR_cooperative_matrix */
-      .cooperativeMatrix = pdev->info.gfx_level >= GFX11 && !pdev->use_llvm,
-      .cooperativeMatrixRobustBufferAccess = pdev->info.gfx_level >= GFX11 && !pdev->use_llvm,
+      .cooperativeMatrix = radv_cooperative_matrix_enabled(pdev),
+      .cooperativeMatrixRobustBufferAccess = radv_cooperative_matrix_enabled(pdev),
 
       /* VK_EXT_image_compression_control */
       .imageCompressionControl = true,
@@ -1315,6 +1325,9 @@ radv_physical_device_get_features(const struct radv_physical_device *pdev, struc
       /* VK_EXT_device_generated_commands */
       .deviceGeneratedCommands = true,
       .dynamicGeneratedPipelineLayout = true,
+
+      /* VK_KHR_maintenance8 */
+      .maintenance8 = true,
    };
 }
 

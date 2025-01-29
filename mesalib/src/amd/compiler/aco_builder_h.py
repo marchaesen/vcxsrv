@@ -196,6 +196,7 @@ public:
       s_wqm = (unsigned) aco_opcode::s_wqm_b64,
       s_and_saveexec = (unsigned) aco_opcode::s_and_saveexec_b64,
       s_or_saveexec = (unsigned) aco_opcode::s_or_saveexec_b64,
+      s_andn2_wrexec = (unsigned) aco_opcode::s_andn2_wrexec_b64,
       s_xnor = (unsigned) aco_opcode::s_xnor_b64,
       s_xor = (unsigned) aco_opcode::s_xor_b64,
       s_bcnt1_i32 = (unsigned) aco_opcode::s_bcnt1_i32_b64,
@@ -339,6 +340,8 @@ public:
          return aco_opcode::s_and_saveexec_b32;
       case s_or_saveexec:
          return aco_opcode::s_or_saveexec_b32;
+      case s_andn2_wrexec:
+         return aco_opcode::s_andn2_wrexec_b32;
       case s_xnor:
          return aco_opcode::s_xnor_b32;
       case s_xor:

@@ -1,0 +1,502 @@
+/*
+ * Copyright © 2022 Friedrich Vock
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#version 460
+
+#extension GL_GOOGLE_include_directive : require
+
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int32 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : require
+#extension GL_EXT_scalar_block_layout : require
+#extension GL_EXT_buffer_reference : require
+#extension GL_EXT_buffer_reference2 : require
+#extension GL_KHR_memory_scope_semantics : require
+
+layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+#include "tu_build_helpers.h"
+#include "tu_build_interface.h"
+
+layout(push_constant) uniform CONSTS {
+   encode_args args;
+};
+
+void set_parent(uint32_t child, uint32_t parent)
+{
+   uint64_t addr = args.output_bvh - child * 4 - 4;
+   DEREF(REF(uint32_t)(addr)) = parent;
+}
+
+/* This encoder struct is designed to encode a compressed node without keeping
+ * all the data live at once, making sure register pressure isn't too high.
+ */
+
+struct tu_encoder {
+   uint32_t cur_value;
+   uint word_offset;
+   uint bit_offset;
+   REF(tu_compressed_node) node;
+};
+
+void encode_init(out tu_encoder encoder, REF(tu_compressed_node) node)
+{
+   encoder.cur_value = 0;
+   encoder.word_offset = 0;
+   encoder.bit_offset = 0;
+   encoder.node = node;
+}
+
+void encode(inout tu_encoder encoder, uint32_t val, uint bits)
+{
+   encoder.cur_value |= val << encoder.bit_offset;
+   if (encoder.bit_offset + bits >= 32) {
+      DEREF(encoder.node).data[encoder.word_offset] = encoder.cur_value;
+      encoder.cur_value = val >> (32 - encoder.bit_offset);
+      encoder.word_offset++;
+      encoder.bit_offset = encoder.bit_offset + bits - 32;
+   } else {
+      encoder.bit_offset += bits;
+   }
+}
+
+void encode_skip(inout tu_encoder encoder, uint bits)
+{
+   if (encoder.bit_offset + bits >= 32) {
+      DEREF(encoder.node).data[encoder.word_offset] = encoder.cur_value;
+      encoder.word_offset++;
+      encoder.bit_offset = encoder.bit_offset + bits - 32;
+   } else {
+      encoder.bit_offset += bits;
+   }
+}
+
+void encode_finalize(tu_encoder encoder)
+{
+   DEREF(encoder.node).data[encoder.word_offset] = encoder.cur_value;
+}
+
+void
+encode_leaf_node(uint32_t type, uint64_t src_node, uint64_t dst_node, uint64_t dst_instances, REF(tu_accel_struct_header) dst_header)
+{
+   float coords[3][3];
+   uint32_t id;
+   uint32_t geometry_id;
+   uint32_t type_flags = TU_NODE_TYPE_LEAF;
+
+   switch (type) {
+   case vk_ir_node_triangle: {
+      vk_ir_triangle_node src = DEREF(REF(vk_ir_triangle_node)(src_node));
+
+      coords = src.coords;
+      uint32_t geometry_id_and_flags = src.geometry_id_and_flags;
+      if ((geometry_id_and_flags & VK_GEOMETRY_OPAQUE) != 0) {
+         atomicAnd(DEREF(dst_header).instance_flags, ~TU_INSTANCE_ALL_NONOPAQUE);
+      } else {
+         type_flags |= TU_NODE_TYPE_NONOPAQUE;
+         atomicAnd(DEREF(dst_header).instance_flags, ~TU_INSTANCE_ALL_OPAQUE);
+      }
+      geometry_id = geometry_id_and_flags & 0xffffff;
+      id = src.triangle_id;
+      break;
+   }
+   case vk_ir_node_aabb: {
+      vk_ir_aabb_node src = DEREF(REF(vk_ir_aabb_node)(src_node));
+      vk_aabb aabb = src.base.aabb;
+      coords[0][0] = aabb.min[0];
+      coords[0][1] = aabb.min[1];
+      coords[0][2] = aabb.min[2];
+      coords[1][0] = aabb.max[0];
+      coords[1][1] = aabb.max[1];
+      coords[1][2] = aabb.max[2];
+
+      type_flags |= TU_NODE_TYPE_AABB;
+
+      if ((src.geometry_id_and_flags & VK_GEOMETRY_OPAQUE) != 0) {
+         atomicAnd(DEREF(dst_header).instance_flags, ~TU_INSTANCE_ALL_NONOPAQUE);
+      } else {
+         type_flags |= TU_NODE_TYPE_NONOPAQUE;
+         atomicAnd(DEREF(dst_header).instance_flags, ~TU_INSTANCE_ALL_OPAQUE);
+      }
+      geometry_id = src.geometry_id_and_flags & 0xffffff;
+      id = src.primitive_id;
+      break;
+   }
+   case vk_ir_node_instance: {
+      vk_ir_instance_node src = DEREF(REF(vk_ir_instance_node)(src_node));
+
+      id = src.instance_id;
+      geometry_id = 0;
+      REF(tu_instance_descriptor) dst_instance = REF(tu_instance_descriptor)(dst_instances + SIZEOF(tu_instance_descriptor) * id);
+
+      REF(tu_accel_struct_header) blas_header = REF(tu_accel_struct_header)(src.base_ptr);
+      uint64_t bvh_ptr = DEREF(blas_header).bvh_ptr;
+      uint32_t bvh_offset = uint32_t(bvh_ptr - src.base_ptr);
+
+      uint32_t sbt_offset_and_flags = src.sbt_offset_and_flags;
+      uint32_t custom_instance_and_mask = src.custom_instance_and_mask;
+      DEREF(dst_instance).bvh_ptr = bvh_ptr;
+      DEREF(dst_instance).custom_instance_index = custom_instance_and_mask & 0xffffffu;
+      DEREF(dst_instance).sbt_offset_and_flags = sbt_offset_and_flags;
+      DEREF(dst_instance).bvh_offset = bvh_offset;
+
+      mat4 transform = mat4(src.otw_matrix);
+
+      mat4 inv_transform = transpose(inverse(transpose(transform)));
+      DEREF(dst_instance).wto_matrix = mat3x4(inv_transform);
+      DEREF(dst_instance).otw_matrix = mat3x4(transform);
+
+      vk_aabb aabb = src.base.aabb;
+      coords[0][0] = aabb.min[0];
+      coords[0][1] = aabb.min[1];
+      coords[0][2] = aabb.min[2];
+      coords[1][0] = aabb.max[0];
+      coords[1][1] = aabb.max[1];
+      coords[1][2] = aabb.max[2];
+      
+      type_flags |= TU_NODE_TYPE_TLAS;
+
+      uint32_t instance_flags = DEREF(blas_header).instance_flags;
+
+      /* Apply VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR and
+       * VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR to correct the
+       * ALL_OPAQUE/ALL_NONOPAQUE flags.
+       */
+      if (((sbt_offset_and_flags >> 24) & (VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR |
+                                           VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR)) != 0) {
+         instance_flags &= ~(VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR |
+                             VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR);
+         instance_flags |= (sbt_offset_and_flags >> 24) & (VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR |
+                                                           VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR);
+      }
+      uint32_t cull_mask_and_flags = ((custom_instance_and_mask >> 16) & 0xff00) | instance_flags;
+
+      coords[2][0] = uintBitsToFloat(cull_mask_and_flags);
+      break;
+   }
+   }
+
+   REF(tu_leaf_node) dst = REF(tu_leaf_node)(dst_node);
+   DEREF(dst).coords = coords;
+   DEREF(dst).id = id;
+   DEREF(dst).geometry_id = geometry_id;
+   DEREF(dst).type_flags = type_flags;
+}
+
+/* Truncate to bfloat16 while rounding down. bfloat16 is used to store the bases.
+ */
+
+u16vec3 to_bfloat_round_down(vec3 coord)
+{
+   u32vec3 icoord = floatBitsToUint(coord);
+   return u16vec3(mix(icoord >> 16, (icoord + 0xffff) >> 16, notEqual(icoord & u32vec3(0x80000000), u32vec3(0))));
+}
+
+/* Approximate subtraction while rounding up. Return a result greater than or
+ * equal to the infinitely-precise result. This just uses the native
+ * subtraction and then shifts one ULP towards infinity. Because the result is
+ * further rounded, it should usually be good enough while being faster than
+ * emulated floating-point math.
+ *
+ * We assume here that the result is always nonnegative, because it's only used
+ * to subtract away the base.
+ */
+
+vec3 subtract_round_up_approx(vec3 a, vec3 b)
+{
+   vec3 f = a - b;
+   u32vec3 i = floatBitsToUint(f);
+
+   i++;
+
+   /* Handle infinity/zero special cases */
+   i = mix(i, floatBitsToUint(f), isinf(f));
+   i = mix(i, floatBitsToUint(f), equal(f, vec3(0)));
+
+   return uintBitsToFloat(i);
+}
+
+vec3 subtract_round_down_approx(vec3 a, vec3 b)
+{
+   vec3 f = a - b;
+   u32vec3 i = floatBitsToUint(f);
+
+   i--;
+
+   /* Handle infinity/zero special cases */
+   i = mix(i, floatBitsToUint(f), isinf(f));
+   i = mix(i, floatBitsToUint(f), equal(f, vec3(0)));
+
+   return uintBitsToFloat(i);
+}
+
+u32vec3 extract_mantissa(vec3 f)
+{
+   return mix((floatBitsToUint(f) & 0x7fffff) | 0x800000, u32vec3(0), equal(f, vec3(0)));
+}
+
+void
+encode_internal_node(uint32_t children[8], uint32_t children_offset, uint child_count,
+                     vec3 min_offset, vec3 max_offset, uint32_t bvh_offset)
+{
+   REF(tu_internal_node) dst_node = REF(tu_internal_node)(OFFSET(args.output_bvh, SIZEOF(tu_internal_node) * bvh_offset));
+
+   DEREF(dst_node).id = children_offset;
+
+   u16vec3 base_bfloat = to_bfloat_round_down(min_offset);
+   vec3 base_float = uintBitsToFloat(u32vec3(base_bfloat) << 16);
+   DEREF(dst_node).bases[0] = base_bfloat.x;
+   DEREF(dst_node).bases[1] = base_bfloat.y;
+   DEREF(dst_node).bases[2] = base_bfloat.z;
+
+   vec3 children_max = subtract_round_up_approx(max_offset, base_float);
+
+   /* The largest child offset will be encoded in 8 bits, including the
+    * explicit leading 1. We need to downcast to this precision while rounding
+    * up to catch cases where the exponent is increased by rounding up, then
+    * extract the exponent. Because children_max is always nonnegative, we can 
+    * do the downcast with "(floatBitsToUint(children_max) + 0xffff) >> 16",
+    * and then we further shift to get the rounded exponent.
+    */
+   u16vec3 exponents = u16vec3((floatBitsToUint(children_max) + 0xffff) >> 23);
+   u8vec3 exponents_u8 = u8vec3(exponents);
+   DEREF(dst_node).exponents[0] = exponents_u8.x;
+   DEREF(dst_node).exponents[1] = exponents_u8.y;
+   DEREF(dst_node).exponents[2] = exponents_u8.z;
+
+   for (uint32_t i = 0; i < child_count; i++) {
+      uint32_t offset = ir_id_to_offset(children[i]);
+
+      vk_aabb child_aabb =
+         DEREF(REF(vk_ir_node)OFFSET(args.intermediate_bvh, offset)).aabb;
+
+      /* Note: because we subtract from the minimum, we should never have a
+       * negative value here.
+       */
+      vec3 child_min = subtract_round_down_approx(child_aabb.min, base_float);
+      vec3 child_max = subtract_round_up_approx(child_aabb.max, base_float);
+      
+      u16vec3 child_min_exponents = u16vec3(floatBitsToUint(child_min) >> 23);
+      u16vec3 child_max_exponents = u16vec3(floatBitsToUint(child_max) >> 23);
+
+      u16vec3 child_min_shift = u16vec3(16) + exponents - child_min_exponents;
+      /* Divide the mantissa by 2**child_min_shift, rounding down */
+      u8vec3 child_min_mantissas =
+         mix(u8vec3(extract_mantissa(child_min) >> child_min_shift), u8vec3(0),
+		       greaterThanEqual(child_min_shift, u16vec3(32)));
+      u16vec3 child_max_shift = u16vec3(16) + exponents - child_max_exponents;
+      /* Divide the mantissa by 2**child_max_shift, rounding up */
+      u8vec3 child_max_mantissas =
+         mix(u8vec3((extract_mantissa(child_max) + ((u32vec3(1u) << u32vec3(child_max_shift)) - 1)) >> child_max_shift),
+             u8vec3(notEqual(extract_mantissa(child_max), u32vec3(0))),
+             greaterThanEqual(child_max_shift, u16vec3(32)));
+
+      DEREF(dst_node).mantissas[i][0][0] = child_min_mantissas.x;
+      DEREF(dst_node).mantissas[i][0][1] = child_min_mantissas.y;
+      DEREF(dst_node).mantissas[i][0][2] = child_min_mantissas.z;
+      DEREF(dst_node).mantissas[i][1][0] = child_max_mantissas.x;
+      DEREF(dst_node).mantissas[i][1][1] = child_max_mantissas.y;
+      DEREF(dst_node).mantissas[i][1][2] = child_max_mantissas.z;
+   }
+
+   for (uint32_t i = child_count; i < 8; i++) {
+      DEREF(dst_node).mantissas[i][0][0] = uint8_t(0xff);
+      DEREF(dst_node).mantissas[i][0][1] = uint8_t(0xff);
+      DEREF(dst_node).mantissas[i][0][2] = uint8_t(0xff);
+      DEREF(dst_node).mantissas[i][1][0] = uint8_t(0);
+      DEREF(dst_node).mantissas[i][1][1] = uint8_t(0);
+      DEREF(dst_node).mantissas[i][1][2] = uint8_t(0);
+   }
+
+   DEREF(dst_node).child_count = uint8_t(child_count);
+   DEREF(dst_node).type_flags = uint16_t(args.geometry_type == VK_GEOMETRY_TYPE_INSTANCES_KHR ? (TU_NODE_TYPE_TLAS >> 16) : 0);
+}
+
+void
+main()
+{
+   /* Revert the order so we start at the root */
+   uint32_t global_id = DEREF(args.header).ir_internal_node_count - 1 - gl_GlobalInvocationID.x;
+
+   uint32_t intermediate_leaf_node_size;
+   switch (args.geometry_type) {
+   case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
+      intermediate_leaf_node_size = SIZEOF(vk_ir_triangle_node);
+      break;
+   case VK_GEOMETRY_TYPE_AABBS_KHR:
+      intermediate_leaf_node_size = SIZEOF(vk_ir_aabb_node);
+      break;
+   default: /* instances */
+      intermediate_leaf_node_size = SIZEOF(vk_ir_instance_node);
+      break;
+   }
+
+   uint32_t intermediate_leaf_nodes_size = args.leaf_node_count * intermediate_leaf_node_size;
+
+   REF(vk_ir_box_node) intermediate_internal_nodes =
+      REF(vk_ir_box_node)OFFSET(args.intermediate_bvh, intermediate_leaf_nodes_size);
+   REF(vk_ir_box_node) src_node = INDEX(vk_ir_box_node, intermediate_internal_nodes, global_id);
+   vk_ir_box_node src = DEREF(src_node);
+
+   uint64_t dst_instances = args.output_bvh - args.output_bvh_offset + SIZEOF(tu_accel_struct_header);
+
+   bool is_root_node = global_id == DEREF(args.header).ir_internal_node_count - 1;
+
+   REF(tu_accel_struct_header) header = REF(tu_accel_struct_header)(args.output_bvh - args.output_bvh_offset);
+
+   if (is_root_node) {
+      DEREF(header).instance_flags =
+         (args.geometry_type == VK_GEOMETRY_TYPE_AABBS_KHR ? TU_INSTANCE_ALL_AABB : 0) |
+         /* These will be removed when processing leaf nodes */
+         TU_INSTANCE_ALL_NONOPAQUE | TU_INSTANCE_ALL_OPAQUE;
+      DEREF(args.header).dst_node_offset = 1;
+   }
+
+   for (;;) {
+      /* Make changes to the current node's BVH offset value visible. */
+      memoryBarrier(gl_ScopeDevice, gl_StorageSemanticsBuffer,
+                    gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
+
+      uint32_t bvh_offset = is_root_node ? 0 : DEREF(src_node).bvh_offset;
+      if (bvh_offset == VK_UNKNOWN_BVH_OFFSET)
+         continue;
+
+      if (bvh_offset == VK_NULL_BVH_OFFSET)
+         break;
+
+      uint32_t found_child_count = 0;
+      uint32_t children[8] = {VK_BVH_INVALID_NODE, VK_BVH_INVALID_NODE,
+                              VK_BVH_INVALID_NODE, VK_BVH_INVALID_NODE,
+                              VK_BVH_INVALID_NODE, VK_BVH_INVALID_NODE,
+                              VK_BVH_INVALID_NODE, VK_BVH_INVALID_NODE};
+
+      for (uint32_t i = 0; i < 2; ++i)
+         if (src.children[i] != VK_BVH_INVALID_NODE)
+            children[found_child_count++] = src.children[i];
+
+      while (found_child_count < 8) {
+         int32_t collapsed_child_index = -1;
+         float largest_surface_area = -INFINITY;
+
+         for (int32_t i = 0; i < found_child_count; ++i) {
+            if (ir_id_to_type(children[i]) != vk_ir_node_internal)
+               continue;
+
+            vk_aabb bounds =
+               DEREF(REF(vk_ir_node)OFFSET(args.intermediate_bvh,
+                                           ir_id_to_offset(children[i]))).aabb;
+
+            float surface_area = aabb_surface_area(bounds);
+            if (surface_area > largest_surface_area) {
+               largest_surface_area = surface_area;
+               collapsed_child_index = i;
+            }
+         }
+
+         if (collapsed_child_index != -1) {
+            REF(vk_ir_box_node) child_node =
+               REF(vk_ir_box_node)OFFSET(args.intermediate_bvh,
+                                        ir_id_to_offset(children[collapsed_child_index]));
+            uint32_t grandchildren[2] = DEREF(child_node).children;
+            uint32_t valid_grandchild_count = 0;
+
+            if (grandchildren[1] != VK_BVH_INVALID_NODE)
+               ++valid_grandchild_count;
+
+            if (grandchildren[0] != VK_BVH_INVALID_NODE)
+               ++valid_grandchild_count;
+            else
+               grandchildren[0] = grandchildren[1];
+
+            if (valid_grandchild_count > 1)
+               children[found_child_count++] = grandchildren[1];
+
+            if (valid_grandchild_count > 0)
+               children[collapsed_child_index] = grandchildren[0];
+            else {
+               found_child_count--;
+               children[collapsed_child_index] = children[found_child_count];
+            }
+
+            DEREF(child_node).bvh_offset = VK_NULL_BVH_OFFSET;
+         } else
+            break;
+      }
+
+      /* If there is only one child, collapse the current node by setting the
+       * child's offset to this node's offset. Otherwise, use an atomic to
+       * allocate contiguous space for all of the children.
+       */
+      uint32_t children_offset = bvh_offset;
+      if (found_child_count > 1) {
+         children_offset = atomicAdd(DEREF(args.header).dst_node_offset, found_child_count);
+      }
+
+      vec3 min_offset = vec3(INFINITY);
+      vec3 max_offset = vec3(-INFINITY);
+      for (uint32_t i = 0; i < found_child_count; ++i) {
+         uint32_t type = ir_id_to_type(children[i]);
+         uint32_t offset = ir_id_to_offset(children[i]);
+         uint32_t dst_offset;
+
+         dst_offset = children_offset + i;
+
+         if (type == vk_ir_node_internal) {
+            REF(vk_ir_box_node) child_node = REF(vk_ir_box_node)OFFSET(args.intermediate_bvh, offset);
+            DEREF(child_node).bvh_offset = dst_offset;
+         } else {
+            encode_leaf_node(type, args.intermediate_bvh + offset,
+                             args.output_bvh + SIZEOF(tu_internal_node) * dst_offset, dst_instances,
+                             header);
+         }
+
+         vk_aabb child_aabb =
+            DEREF(REF(vk_ir_node)OFFSET(args.intermediate_bvh, offset)).aabb;
+
+         min_offset = min(min_offset, child_aabb.min);
+         max_offset = max(max_offset, child_aabb.max);
+
+         if (found_child_count > 1) {
+            set_parent(dst_offset, bvh_offset);
+         }
+      }
+
+      /* Make changes to the children's BVH offset value available to the other invocations. */
+      memoryBarrier(gl_ScopeDevice, gl_StorageSemanticsBuffer,
+                    gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
+
+      if (found_child_count > 1 || found_child_count == 0)
+         encode_internal_node(children, children_offset, found_child_count, min_offset, max_offset, bvh_offset);
+
+      break;
+   }
+
+   if (is_root_node) {
+      DEREF(header).aabb = src.base.aabb;
+      DEREF(header).bvh_ptr = args.output_bvh;
+
+      set_parent(0, VK_BVH_INVALID_NODE);
+   }
+}

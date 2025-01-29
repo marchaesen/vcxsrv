@@ -16,6 +16,7 @@ use mesa_rust::pipe::resource::*;
 use mesa_rust::pipe::screen::ResourceType;
 use mesa_rust::pipe::transfer::*;
 use mesa_rust_gen::*;
+use mesa_rust_util::conversion::*;
 use mesa_rust_util::properties::Properties;
 use mesa_rust_util::ptr::AllocSize;
 use mesa_rust_util::ptr::TrackedPointers;
@@ -689,8 +690,7 @@ impl CLImageDescInfo for cl_image_desc {
 
     fn row_pitch(&self) -> CLResult<u32> {
         self.image_row_pitch
-            .try_into()
-            .map_err(|_| CL_OUT_OF_HOST_MEMORY)
+            .try_into_with_err(CL_OUT_OF_HOST_MEMORY)
     }
 
     fn slice_pitch(&self) -> usize {
@@ -698,15 +698,11 @@ impl CLImageDescInfo for cl_image_desc {
     }
 
     fn width(&self) -> CLResult<u32> {
-        self.image_width
-            .try_into()
-            .map_err(|_| CL_OUT_OF_HOST_MEMORY)
+        self.image_width.try_into_with_err(CL_OUT_OF_HOST_MEMORY)
     }
 
     fn height(&self) -> CLResult<u32> {
-        self.image_height
-            .try_into()
-            .map_err(|_| CL_OUT_OF_HOST_MEMORY)
+        self.image_height.try_into_with_err(CL_OUT_OF_HOST_MEMORY)
     }
 }
 
@@ -808,7 +804,7 @@ impl MemBase {
         Arc::new(Buffer {
             base: Self {
                 base: CLObjectBase::new(RusticlTypes::Buffer),
-                context: parent.context.clone(),
+                context: Arc::clone(&parent.context),
                 mem_type: CL_MEM_OBJECT_BUFFER,
                 flags: flags,
                 size: size,
@@ -967,8 +963,8 @@ impl MemBase {
             shadow
                 .iter()
                 .map(|(k, v)| {
-                    let gl_res = imported_gl_tex.get(k).unwrap().clone();
-                    res_map.insert(v.clone(), gl_res);
+                    let gl_res = Arc::clone(imported_gl_tex.get(k).unwrap());
+                    res_map.insert(Arc::clone(v), gl_res);
                 })
                 .for_each(drop);
 
@@ -1186,11 +1182,7 @@ impl Buffer {
             [size, 1, 1].into(),
             CL_MEM_OBJECT_BUFFER,
         )?;
-        let dst_origin: [u32; 3] = [
-            dst_offset.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
-            0,
-            0,
-        ];
+        let dst_origin: [u32; 3] = [dst_offset.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?, 0, 0];
 
         ctx.resource_copy_region(src_res, dst_res, &dst_origin, &bx);
         Ok(())
@@ -1265,8 +1257,8 @@ impl Buffer {
         ctx.clear_buffer(
             res,
             pattern,
-            offset.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
-            size.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+            offset.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?,
+            size.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?,
         );
         Ok(())
     }
@@ -1406,8 +1398,8 @@ impl Buffer {
 
         ctx.buffer_map(
             r,
-            offset.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
-            size.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+            offset.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?,
+            size.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?,
             rw,
         )
         .ok_or(CL_OUT_OF_RESOURCES)
@@ -1440,9 +1432,9 @@ impl Buffer {
 
         ctx.buffer_subdata(
             r,
-            offset.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+            offset.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?,
             ptr,
-            size.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+            size.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?,
         );
         Ok(())
     }
@@ -1946,9 +1938,7 @@ impl Image {
                 res,
                 &bx,
                 src,
-                src_row_pitch
-                    .try_into()
-                    .map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+                src_row_pitch.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?,
                 src_slice_pitch,
             );
         }
@@ -1971,7 +1961,7 @@ impl Image {
             res.pipe_sampler_view_template_2d_buffer(self.pipe_format, &self.buffer_2d_info()?)
         } else if res.is_buffer() {
             // we need to pass in the size of the buffer, not the width.
-            let size = self.size.try_into().map_err(|_| CL_OUT_OF_RESOURCES)?;
+            let size = self.size.try_into_with_err(CL_OUT_OF_RESOURCES)?;
             res.pipe_sampler_view_template_1d_buffer(self.pipe_format, size)
         } else {
             res.pipe_sampler_view_template()
@@ -1992,7 +1982,7 @@ impl Image {
                 &self.buffer_2d_info()?,
             ))
         } else if res.is_buffer() {
-            let size = self.size.try_into().map_err(|_| CL_OUT_OF_RESOURCES)?;
+            let size = self.size.try_into_with_err(CL_OUT_OF_RESOURCES)?;
             Ok(res.pipe_image_view_1d_buffer(
                 self.pipe_format,
                 read_write,

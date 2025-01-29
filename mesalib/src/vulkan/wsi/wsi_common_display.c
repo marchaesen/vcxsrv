@@ -1963,6 +1963,27 @@ _wsi_display_queue_next(struct wsi_swapchain *drv_chain)
                wsi_display_debug("failed to hide cursor err %d %s\n", ret, strerror(-ret));
             }
 
+            /* unset some properties another drm master might've set
+             * which can mess up the image
+             */
+            drmModeObjectPropertiesPtr properties =
+               drmModeObjectGetProperties(wsi->fd,
+                                          connector->crtc_id,
+                                          DRM_MODE_OBJECT_CRTC);
+            for (uint32_t i = 0; i < properties->count_props; i++) {
+               drmModePropertyPtr prop =
+                  drmModeGetProperty(wsi->fd, properties->props[i]);
+               if (strcmp(prop->name, "GAMMA_LUT") == 0 ||
+                   strcmp(prop->name, "CTM") == 0 ||
+                   strcmp(prop->name, "DEGAMMA_LUT") == 0) {
+                  drmModeObjectSetProperty(wsi->fd, connector->crtc_id,
+                                           DRM_MODE_OBJECT_CRTC,
+                                           properties->props[i], 0);
+               }
+               drmModeFreeProperty(prop);
+            }
+            drmModeFreeObjectProperties(properties);
+
             /* Assume that the mode set is synchronous and that any
              * previous image is now idle.
              */

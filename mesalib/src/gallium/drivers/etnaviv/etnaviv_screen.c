@@ -761,8 +761,13 @@ etna_determine_uniform_limits(struct etna_screen *screen)
     * gcmCONFIGUREUNIFORMS in the Vivante kernel driver file
     * drivers/mxc/gpu-viv/hal/kernel/inc/gc_hal_base.h.
     */
-   if (screen->info->model == chipModel_GC2000 &&
-       (screen->info->revision == 0x5118 || screen->info->revision == 0x5140)) {
+   if (screen->info->halti >= 1) {
+      /* with halti1 we use unified constant mode */
+      screen->specs.max_vs_uniforms = screen->specs.max_ps_uniforms =
+            MIN2(512, screen->info->gpu.num_constants - 64);
+   } else if (screen->info->model == chipModel_GC2000 &&
+              (screen->info->revision == 0x5118 ||
+               screen->info->revision == 0x5140)) {
       screen->specs.max_vs_uniforms = 256;
       screen->specs.max_ps_uniforms = 64;
    } else if (screen->info->gpu.num_constants == 320) {
@@ -907,17 +912,13 @@ etna_get_specs(struct etna_screen *screen)
    if (screen->info->halti >= 5) {
       screen->specs.has_unified_uniforms = true;
       screen->specs.vs_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS_MIRROR(0);
-      screen->specs.ps_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS(screen->specs.max_vs_uniforms*4);
+      screen->specs.ps_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS(0);
    } else if (screen->info->halti >= 1) {
       /* unified uniform memory on GC3000 - HALTI1 feature bit is just a guess
       */
       screen->specs.has_unified_uniforms = true;
       screen->specs.vs_uniforms_offset = VIVS_SH_UNIFORMS(0);
-      /* hardcode PS uniforms to start after end of VS uniforms -
-       * for more flexibility this offset could be variable based on the
-       * shader.
-       */
-      screen->specs.ps_uniforms_offset = VIVS_SH_UNIFORMS(screen->specs.max_vs_uniforms*4);
+      screen->specs.ps_uniforms_offset = VIVS_SH_UNIFORMS(0);
    } else {
       screen->specs.has_unified_uniforms = false;
       screen->specs.vs_uniforms_offset = VIVS_VS_UNIFORMS(0);

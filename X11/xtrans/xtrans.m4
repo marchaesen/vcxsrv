@@ -1,5 +1,5 @@
 dnl
-dnl Copyright (c) 2005, Oracle and/or its affiliates.
+dnl Copyright (c) 2005, 2025, Oracle and/or its affiliates.
 dnl
 dnl Permission is hereby granted, free of charge, to any person obtaining a
 dnl copy of this software and associated documentation files (the "Software"),
@@ -33,10 +33,12 @@ AC_DEFUN([XTRANS_TCP_FLAGS],[
  fi
 
  # Needs to come after above checks for libsocket & libnsl for SVR4 systems
+ AC_CHECK_FUNCS([getaddrinfo inet_ntop])
+
  AC_ARG_ENABLE(ipv6,
 	AS_HELP_STRING([--enable-ipv6],[Enable IPv6 support]),
 	[IPV6CONN=$enableval],
-	[AC_CHECK_FUNC(getaddrinfo,[IPV6CONN=yes],[IPV6CONN=no])])
+	[IPV6CONN=$ac_cv_func_getaddrinfo])
  AC_MSG_CHECKING([if IPv6 support should be built])
  if test "$IPV6CONN" = "yes"; then
 	AC_DEFINE(IPv6,1,[Support IPv6 for TCP connections])
@@ -53,9 +55,11 @@ AC_DEFUN([XTRANS_TCP_FLAGS],[
  ])
 
  # POSIX.1g changed the type of pointer passed to getsockname/getpeername/etc.
- AC_CHECK_TYPES([socklen_t], [], [], [
+ # and added a type defined to be large enough to hold any sockaddr format.
+ AC_CHECK_TYPES([socklen_t, struct sockaddr_storage], [], [], [
 AC_INCLUDES_DEFAULT
-#include <sys/socket.h>])
+#include <sys/socket.h>
+ ])
 
  # XPG4v2/UNIX95 added msg_control - check to see if we need to define
  # _XOPEN_SOURCE to get it (such as on Solaris)

@@ -139,6 +139,21 @@ DEBUG_GET_ONCE_FLAGS_OPTION(zink_descriptor_mode, "ZINK_DESCRIPTORS", zink_descr
 
 enum zink_descriptor_mode zink_descriptor_mode;
 
+struct zink_device {
+   unsigned refcount;
+   VkPhysicalDevice pdev;
+   VkDevice dev;
+   struct zink_device_info *info;
+};
+
+static simple_mtx_t device_lock = SIMPLE_MTX_INITIALIZER;
+static struct set device_table;
+
+static simple_mtx_t instance_lock = SIMPLE_MTX_INITIALIZER;
+static struct zink_instance_info instance_info;
+static unsigned instance_refcount;
+static VkInstance instance;
+
 static const char *
 zink_get_vendor(struct pipe_screen *pscreen)
 {
@@ -793,14 +808,14 @@ zink_init_screen_caps(struct zink_screen *screen)
    caps->fbfetch_coherent = screen->info.have_EXT_rasterization_order_attachment_access;
 
    caps->memobj =
-      screen->instance_info.have_KHR_external_memory_capabilities &&
+      screen->instance_info->have_KHR_external_memory_capabilities &&
       (screen->info.have_KHR_external_memory_fd ||
        screen->info.have_KHR_external_memory_win32);
    caps->fence_signal =
       screen->info.have_KHR_external_semaphore_fd ||
       screen->info.have_KHR_external_semaphore_win32;
    caps->native_fence_fd =
-      screen->instance_info.have_KHR_external_semaphore_capabilities &&
+      screen->instance_info->have_KHR_external_semaphore_capabilities &&
       screen->info.have_KHR_external_semaphore_fd;
    caps->resource_from_user_memory = screen->info.have_EXT_external_memory_host;
 
@@ -1175,7 +1190,7 @@ zink_init_screen_caps(struct zink_screen *screen)
 
    caps->post_depth_coverage = screen->info.have_EXT_post_depth_coverage;
 
-   caps->string_marker = screen->instance_info.have_EXT_debug_utils;
+   caps->string_marker = screen->instance_info->have_EXT_debug_utils;
 
    caps->min_line_width =
    caps->min_line_width_aa =
@@ -1550,11 +1565,31 @@ zink_destroy_screen(struct pipe_screen *pscreen)
    if (screen->bindless_layout)
       VKSCR(DestroyDescriptorSetLayout)(screen->dev, screen->bindless_layout, NULL);
 
-   if (screen->dev)
-      VKSCR(DestroyDevice)(screen->dev, NULL);
+   if (screen->dev) {
+      simple_mtx_lock(&device_lock);
+      set_foreach(&device_table, entry) {
+         struct zink_device *zdev = (void*)entry->key;
+         if (zdev->pdev == screen->pdev) {
+            zdev->refcount--;
+            if (!zdev->refcount) {
+               VKSCR(DestroyDevice)(zdev->dev, NULL);
+               _mesa_set_remove(&device_table, entry);
+               free(zdev);
+               break;
+            }
+         }
+      }
+      if (!device_table.entries) {
+         ralloc_free(device_table.table);
+         device_table.table = NULL;
+      }
+      simple_mtx_unlock(&device_lock);
+   }
 
-   if (screen->instance)
-      VKSCR(DestroyInstance)(screen->instance, NULL);
+   simple_mtx_lock(&instance_lock);
+   if (screen->instance && --instance_refcount == 0)
+      VKSCR(DestroyInstance)(instance, NULL);
+   simple_mtx_unlock(&instance_lock);
 
    util_idalloc_mt_fini(&screen->buffer_ids);
 
@@ -1705,7 +1740,7 @@ choose_pdev(struct zink_screen *screen, int64_t dev_major, int64_t dev_minor, ui
    screen->info.device_version = screen->info.props.apiVersion;
 
    /* runtime version is the lesser of the instance version and device version */
-   screen->vk_version = MIN2(screen->info.device_version, screen->instance_info.loader_version);
+   screen->vk_version = MIN2(screen->info.device_version, screen->instance_info->loader_version);
 
    /* calculate SPIR-V version based on VK version */
    if (screen->vk_version >= VK_MAKE_VERSION(1, 3, 0))
@@ -2008,7 +2043,7 @@ zink_internal_setup_moltenvk(struct zink_screen *screen)
    // disable unless we can get MoltenVK to confirm it is supported
    screen->have_dynamic_state_vertex_input_binding_stride = false;
 
-   if (!screen->instance_info.have_MVK_moltenvk)
+   if (!screen->instance_info->have_MVK_moltenvk)
       return true;
 
    GET_PROC_ADDR_INSTANCE_LOCAL(screen, screen->instance, GetMoltenVKConfigurationMVK);
@@ -2648,10 +2683,40 @@ hack_it_up:
 }
 
 static VkDevice
-zink_create_logical_device(struct zink_screen *screen)
+get_device(struct zink_screen *screen, VkDeviceCreateInfo *dci)
 {
    VkDevice dev = VK_NULL_HANDLE;
 
+   simple_mtx_lock(&device_lock);
+
+   if (!device_table.table)
+      _mesa_set_init(&device_table, NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+
+   set_foreach(&device_table, entry) {
+      struct zink_device *zdev = (void*)entry->key;
+      if (zdev->pdev != screen->pdev)
+         continue;
+      zdev->refcount++;
+      simple_mtx_unlock(&device_lock);
+      return zdev->dev;
+   }
+
+   VkResult result = VKSCR(CreateDevice)(screen->pdev, dci, NULL, &dev);
+   if (result != VK_SUCCESS)
+      mesa_loge("ZINK: vkCreateDevice failed (%s)", vk_Result_to_str(result));
+
+   struct zink_device *zdev = malloc(sizeof(struct zink_device));
+   zdev->refcount = 1;
+   zdev->pdev = screen->pdev;
+   zdev->dev = dev;
+   _mesa_set_add(&device_table, zdev);
+   simple_mtx_unlock(&device_lock);
+   return dev;
+}
+
+static VkDevice
+zink_create_logical_device(struct zink_screen *screen)
+{
    VkDeviceQueueCreateInfo qci[2] = {0};
    uint32_t queues[3] = {
       screen->gfx_queue,
@@ -2685,11 +2750,7 @@ zink_create_logical_device(struct zink_screen *screen)
    dci.ppEnabledExtensionNames = screen->info.extensions;
    dci.enabledExtensionCount = screen->info.num_extensions;
 
-   VkResult result = VKSCR(CreateDevice)(screen->pdev, &dci, NULL, &dev);
-   if (result != VK_SUCCESS)
-      mesa_loge("ZINK: vkCreateDevice failed (%s)", vk_Result_to_str(result));
-   
-   return dev;
+   return get_device(screen, &dci);
 }
 
 static void
@@ -2757,6 +2818,7 @@ init_driver_workarounds(struct zink_screen *screen)
    case VK_DRIVER_ID_MESA_TURNIP:
    case VK_DRIVER_ID_MESA_V3DV:
    case VK_DRIVER_ID_MESA_PANVK:
+   case VK_DRIVER_ID_MESA_NVK:
       screen->driver_workarounds.implicit_sync = false;
       break;
    default:
@@ -3257,7 +3319,6 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       goto fail;
    }
 
-   screen->instance_info.loader_version = zink_get_loader_version(screen);
    if (config) {
       driParseConfigFiles(config->options, config->options_info, 0, "zink",
                           NULL, NULL, NULL, 0, NULL, 0);
@@ -3267,12 +3328,22 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       screen->driconf.zink_shader_object_enable = driQueryOptionb(config->options, "zink_shader_object_enable");
    }
 
-   if (!zink_create_instance(screen))
-      goto fail;
+   simple_mtx_lock(&instance_lock);
+   if (++instance_refcount == 1) {
+      instance_info.loader_version = zink_get_loader_version(screen);
+      instance = zink_create_instance(screen, &instance_info);
+      if (!instance)
+         goto fail;
+   } else {
+      assert(instance);
+   }
+   screen->instance = instance;
+   screen->instance_info = &instance_info;
+   simple_mtx_unlock(&instance_lock);
 
    if (zink_debug & ZINK_DEBUG_VALIDATION) {
-      if (!screen->instance_info.have_layer_KHRONOS_validation &&
-          !screen->instance_info.have_layer_LUNARG_standard_validation) {
+      if (!screen->instance_info->have_layer_KHRONOS_validation &&
+          !screen->instance_info->have_layer_LUNARG_standard_validation) {
          if (!screen->driver_name_is_inferred)
             mesa_loge("Failed to load validation layer");
          goto fail;
@@ -3288,7 +3359,7 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
 
    zink_verify_instance_extensions(screen);
 
-   if (screen->instance_info.have_EXT_debug_utils &&
+   if (screen->instance_info->have_EXT_debug_utils &&
       (zink_debug & ZINK_DEBUG_VALIDATION) && !create_debug(screen)) {
       if (!screen->driver_name_is_inferred)
          debug_printf("ZINK: failed to setup debug utils\n");
@@ -3437,7 +3508,7 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
    util_live_shader_cache_init(&screen->shaders, zink_create_gfx_shader_state, zink_delete_shader_state);
 
    screen->base.get_name = zink_get_name;
-   if (screen->instance_info.have_KHR_external_memory_capabilities) {
+   if (screen->instance_info->have_KHR_external_memory_capabilities) {
       screen->base.get_device_uuid = zink_get_device_uuid;
       screen->base.get_driver_uuid = zink_get_driver_uuid;
    }
@@ -3649,7 +3720,7 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
    init_optimal_keys(screen);
 
    screen->screen_id = p_atomic_inc_return(&num_screens);
-   zink_tracing = screen->instance_info.have_EXT_debug_utils &&
+   zink_tracing = screen->instance_info->have_EXT_debug_utils &&
                   (u_trace_is_enabled(U_TRACE_TYPE_PERFETTO) || u_trace_is_enabled(U_TRACE_TYPE_MARKERS));
 
    screen->frame_marker_emitted = zink_screen_debug_marker_begin(screen, "frame");

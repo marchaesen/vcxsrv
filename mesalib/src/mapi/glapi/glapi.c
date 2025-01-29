@@ -29,11 +29,11 @@
 #include "u_current.h"
 
 /*
- * _glapi_Dispatch, _glapi_Context
- * _glapi_tls_Dispatch, _glapi_tls_Context,
- * _glapi_set_context, _glapi_get_context,
+ * _mesa_glapi_Dispatch, _glapi_Context
+ * _mesa_glapi_tls_Dispatch, _mesa_glapi_tls_Context,
+ * _mesa_glapi_set_context, _mesa_glapi_get_context,
  * _glapi_destroy_multithread, _glapi_check_multithread
- * _glapi_set_dispatch, and _glapi_get_dispatch
+ * _mesa_glapi_set_dispatch, and _mesa_glapi_get_dispatch
  * are defined in u_current.c.
  */
 

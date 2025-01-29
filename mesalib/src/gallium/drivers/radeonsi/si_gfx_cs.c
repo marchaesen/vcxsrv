@@ -309,7 +309,6 @@ void si_set_tracked_regs_to_clear_state(struct si_context *ctx)
 
    ctx->tracked_regs.reg_value[SI_TRACKED_SPI_SHADER_Z_FORMAT] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_SPI_SHADER_COL_FORMAT] = 0;
-   ctx->tracked_regs.reg_value[SI_TRACKED_SPI_BARYC_CNTL] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_SPI_PS_INPUT_ENA] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_SPI_PS_INPUT_ADDR] = 0;
 

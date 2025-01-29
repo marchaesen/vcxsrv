@@ -272,10 +272,10 @@ emit_lrz(struct fd_batch *batch, struct fd_batch_subpass *subpass)
    struct fd_resource *zsbuf = fd_resource(pfb->zsbuf->texture);
    OUT_REG(ring,
       A6XX_GRAS_LRZ_BUFFER_BASE(.bo = subpass->lrz),
-      A6XX_GRAS_LRZ_BUFFER_PITCH(.pitch = zsbuf->lrz_pitch),
+      A6XX_GRAS_LRZ_BUFFER_PITCH(.pitch = zsbuf->lrz_layout.lrz_pitch),
       A6XX_GRAS_LRZ_FAST_CLEAR_BUFFER_BASE(
-         .bo = zsbuf->lrz_fc_offset ? subpass->lrz : NULL,
-         .bo_offset = zsbuf->lrz_fc_offset
+         .bo = zsbuf->lrz_layout.lrz_fc_size ? subpass->lrz : NULL,
+         .bo_offset = zsbuf->lrz_layout.lrz_fc_offset
       ),
    );
    fd_ringbuffer_attach_bo(ring, subpass->lrz);

@@ -887,7 +887,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
         char hname[1024], *hnameptr;
         unsigned int len;
 
-#if defined(IPv6)
+#if defined(HAVE_GETADDRINFO)
         struct addrinfo hints, *ai = NULL;
 #else
         struct hostent *host;
@@ -898,7 +898,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
 #endif
 
         gethostname(hname, 1024);
-#if defined(IPv6)
+#if defined(HAVE_GETADDRINFO)
         memset(&hints, 0, sizeof(hints));
         hints.ai_flags = AI_CANONNAME;
         if (getaddrinfo(hname, NULL, &hints, &ai) == 0) {
@@ -928,7 +928,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
         p += sizeof(AUTHORIZATION_NAME);
         memcpy(p, hnameptr, len);
         p += len;
-#if defined(IPv6)
+#if defined(HAVE_GETADDRINFO)
         if (ai) {
             freeaddrinfo(ai);
         }

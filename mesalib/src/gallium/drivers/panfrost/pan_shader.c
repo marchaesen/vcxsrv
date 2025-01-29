@@ -132,6 +132,10 @@ panfrost_shader_compile(struct panfrost_screen *screen, const nir_shader *ir,
       .gpu_id = panfrost_device_gpu_id(dev),
    };
 
+   if (dev->arch >= 9)
+      /* Use LD_VAR_BUF for varying lookups. */
+      inputs.valhall.use_ld_var_buf = true;
+
    /* Lower this early so the backends don't have to worry about it */
    if (s->info.stage == MESA_SHADER_FRAGMENT) {
       inputs.fixed_varying_mask = key->fs.fixed_varying_mask;

@@ -140,6 +140,17 @@ etna_link_shaders(struct etna_context *ctx, struct compiled_shader_state *cs,
                       link.varyings[idx].pa_attributes);
    }
 
+   if (ctx->screen->specs.has_unified_uniforms) {
+      /* check if combined shader constants fit into unified const memory */
+      if ((vs->uniforms.count + fs->uniforms.count) / 4 >
+          ctx->screen->info->gpu.num_constants) {
+         DBG("Number of combined uniforms (%d) exceeds maximum %d",
+             (vs->uniforms.count + fs->uniforms.count) / 4,
+             ctx->screen->info->gpu.num_constants);
+         return false;
+      }
+   }
+
    /* set last_varying_2x flag if the last varying has 1 or 2 components */
    bool last_varying_2x = false;
    if (link.num_varyings > 0 && link.varyings[link.num_varyings - 1].num_components <= 2)

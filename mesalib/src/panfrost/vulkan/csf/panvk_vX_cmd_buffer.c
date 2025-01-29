@@ -404,7 +404,7 @@ collect_cs_deps(struct panvk_cmd_buffer *cmdbuf,
    add_execution_dependency(wait_masks, src_stages, dst_stages);
 
    /* within a render pass */
-   if (cmdbuf->state.gfx.render.tiler) {
+   if (cmdbuf->state.gfx.render.tiler || inherits_render_ctx(cmdbuf)) {
       if (should_split_render_pass(wait_masks, src_access, dst_access)) {
          deps->needs_draw_flush = true;
       } else {

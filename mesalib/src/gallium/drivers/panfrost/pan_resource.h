@@ -179,10 +179,6 @@ panfrost_resource_create_with_modifier(struct pipe_screen *screen,
                                        const struct pipe_resource *template,
                                        uint64_t modifier);
 
-struct panfrost_bo *panfrost_get_afbc_superblock_sizes(
-   struct panfrost_context *ctx, struct panfrost_resource *rsrc,
-   unsigned first_level, unsigned last_level, unsigned *out_offsets);
-
 bool panfrost_should_pack_afbc(struct panfrost_device *dev,
                                const struct panfrost_resource *rsrc);
 

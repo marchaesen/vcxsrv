@@ -55,7 +55,7 @@ static uint8_t si_vectorize_callback(const nir_instr *instr, const void *data)
    }
 }
 
-void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
+void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool has_array_temps)
 {
    bool use_aco = sscreen->use_aco || nir->info.use_aco_amd;
    bool progress;
@@ -70,7 +70,7 @@ void si_nir_opts(struct si_screen *sscreen, struct nir_shader *nir, bool first)
                nir->options->lower_to_scalar_filter, (void *)use_aco);
       NIR_PASS(progress, nir, nir_lower_phis_to_scalar, false);
 
-      if (first) {
+      if (has_array_temps) {
          NIR_PASS(progress, nir, nir_split_array_vars, nir_var_function_temp);
          NIR_PASS(lower_alu_to_scalar, nir, nir_shrink_vec_array_vars, nir_var_function_temp);
          NIR_PASS(progress, nir, nir_opt_find_array_copies);

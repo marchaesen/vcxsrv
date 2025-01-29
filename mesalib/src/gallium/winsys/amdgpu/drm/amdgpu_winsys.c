@@ -126,7 +126,8 @@ static void amdgpu_winsys_destroy_locked(struct radeon_winsys *rws, bool locked)
 
    destroy = pipe_reference(&aws->reference, NULL);
    if (destroy && dev_tab) {
-      _mesa_hash_table_remove_key(dev_tab, aws->dev);
+      _mesa_hash_table_remove_key(dev_tab,
+                                  (void *)ac_drm_device_get_cookie(aws->dev));
       if (_mesa_hash_table_num_entries(dev_tab) == 0) {
          _mesa_hash_table_destroy(dev_tab, NULL);
          dev_tab = NULL;
@@ -403,7 +404,7 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
    }
 
    /* Lookup a winsys if we have already created one for this device. */
-   aws = util_hash_table_get(dev_tab, dev);
+   aws = util_hash_table_get(dev_tab, (void *)ac_drm_device_get_cookie(dev));
    if (aws) {
       struct amdgpu_screen_winsys *sws_iter;
 
@@ -516,7 +517,7 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
          return NULL;
       }
 
-      _mesa_hash_table_insert(dev_tab, dev, aws);
+      _mesa_hash_table_insert(dev_tab, (void *)ac_drm_device_get_cookie(dev), aws);
 
       if (aws->reserve_vmid) {
          r = ac_drm_vm_reserve_vmid(aws->dev, 0);

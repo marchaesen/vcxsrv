@@ -135,7 +135,6 @@ struct rc_program {
     * actually used very often. */
    uint32_t InputsRead;
    uint32_t OutputsWritten;
-   uint32_t ShadowSamplers; /**< Texture units used for shadow sampling. */
 
    struct rc_constant_list Constants;
 };

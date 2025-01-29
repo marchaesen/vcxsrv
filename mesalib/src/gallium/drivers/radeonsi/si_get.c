@@ -470,18 +470,27 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
          }
          else
             return 0;
-      case PIPE_VIDEO_CAP_ENC_SURFACE_ALIGNMENT:
-           if (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN ||
-               profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10) {
-            union pipe_enc_cap_surface_alignment attrib;
-            attrib.value = 0;
 
-            attrib.bits.log2_width_alignment = RADEON_ENC_HEVC_SURFACE_LOG2_WIDTH_ALIGNMENT;
-            attrib.bits.log2_height_alignment = RADEON_ENC_HEVC_SURFACE_LOG2_HEIGHT_ALIGNMENT;
-            return attrib.value;
+      case PIPE_VIDEO_CAP_ENC_SURFACE_ALIGNMENT: {
+         union pipe_enc_cap_surface_alignment attrib = {0};
+         if (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN ||
+             profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10) {
+            /* 64 x 16 */
+            attrib.bits.log2_width_alignment = 6;
+            attrib.bits.log2_height_alignment = 4;
+         } else if (profile == PIPE_VIDEO_PROFILE_AV1_MAIN) {
+            if (sscreen->info.vcn_ip_version < VCN_5_0_0) {
+               /* 64 x 16 */
+               attrib.bits.log2_width_alignment = 6;
+               attrib.bits.log2_height_alignment = 4;
+            } else {
+               /* 8 x 2 */
+               attrib.bits.log2_width_alignment = 3;
+               attrib.bits.log2_height_alignment = 1;
+            }
          }
-         else
-            return 0;
+         return attrib.value;
+      }
 
       case PIPE_VIDEO_CAP_ENC_RATE_CONTROL_QVBR:
          if (sscreen->info.vcn_ip_version >= VCN_3_0_0 &&
@@ -556,6 +565,8 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
       case PIPE_VIDEO_FORMAT_VP9:
          return sscreen->info.vcn_ip_version >= VCN_1_0_0;
       case PIPE_VIDEO_FORMAT_AV1:
+         if (profile == PIPE_VIDEO_PROFILE_AV1_PROFILE2)
+            return sscreen->info.vcn_ip_version >= VCN_5_0_0 || sscreen->info.vcn_ip_version == VCN_4_0_0;
          return sscreen->info.vcn_ip_version >= VCN_3_0_0 && sscreen->info.vcn_ip_version != VCN_3_0_33;
       default:
          return false;
@@ -699,12 +710,9 @@ static bool si_vid_is_format_supported(struct pipe_screen *screen, enum pipe_for
       return (format == PIPE_FORMAT_P010) || (format == PIPE_FORMAT_P016) ||
              (format == PIPE_FORMAT_NV12);
 
-   if (profile == PIPE_VIDEO_PROFILE_AV1_PROFILE2 && entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
-      if (sscreen->info.vcn_ip_version < VCN_5_0_0 && sscreen->info.vcn_ip_version != VCN_4_0_0)
-         return false;
+   if (profile == PIPE_VIDEO_PROFILE_AV1_PROFILE2 && entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM)
       return (format == PIPE_FORMAT_P010) || (format == PIPE_FORMAT_P016) ||
              (format == PIPE_FORMAT_P012) || (format == PIPE_FORMAT_NV12);
-   }
 
    /* JPEG supports YUV400 and YUV444 */
    if (profile == PIPE_VIDEO_PROFILE_JPEG_BASELINE) {

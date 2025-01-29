@@ -26,7 +26,7 @@ impl PipeFence {
     pub fn new(fence: *mut pipe_fence_handle, screen: &Arc<PipeScreen>) -> Self {
         Self {
             fence: fence,
-            screen: screen.clone(),
+            screen: Arc::clone(screen),
         }
     }
 

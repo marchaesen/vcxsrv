@@ -484,47 +484,6 @@ gl_nir_can_add_pointsize_to_program(const struct gl_constants *consts,
    return num_components + needed_components <= max_components;
 }
 
-static void
-gl_nir_link_opts(nir_shader *producer, nir_shader *consumer)
-{
-   MESA_TRACE_FUNC();
-
-   if (producer->options->lower_to_scalar) {
-      NIR_PASS(_, producer, nir_lower_io_to_scalar_early, nir_var_shader_out);
-      NIR_PASS(_, consumer, nir_lower_io_to_scalar_early, nir_var_shader_in);
-   }
-
-   nir_lower_io_arrays_to_elements(producer, consumer);
-
-   gl_nir_opts(producer);
-   gl_nir_opts(consumer);
-
-   if (nir_link_opt_varyings(producer, consumer))
-      gl_nir_opts(consumer);
-
-   NIR_PASS(_, producer, nir_remove_dead_variables, nir_var_shader_out, NULL);
-   NIR_PASS(_, consumer, nir_remove_dead_variables, nir_var_shader_in, NULL);
-
-   if (nir_remove_unused_varyings(producer, consumer)) {
-      NIR_PASS(_, producer, nir_lower_global_vars_to_local);
-      NIR_PASS(_, consumer, nir_lower_global_vars_to_local);
-
-      gl_nir_opts(producer);
-      gl_nir_opts(consumer);
-
-      /* Optimizations can cause varyings to become unused.
-       * nir_compact_varyings() depends on all dead varyings being removed so
-       * we need to call nir_remove_dead_variables() again here.
-       */
-      NIR_PASS(_, producer, nir_remove_dead_variables, nir_var_shader_out,
-                 NULL);
-      NIR_PASS(_, consumer, nir_remove_dead_variables, nir_var_shader_in,
-                 NULL);
-   }
-
-   nir_link_varying_precision(producer, consumer);
-}
-
 static bool
 can_remove_var(nir_variable *var, UNUSED void *data)
 {
@@ -1355,18 +1314,11 @@ preprocess_shader(const struct gl_constants *consts,
        (nir->info.outputs_written & (VARYING_BIT_CLIP_DIST0 | VARYING_BIT_CLIP_DIST1)))
       NIR_PASS(_, nir, gl_nir_zero_initialize_clip_distance);
 
-   if (options->lower_all_io_to_temps ||
-       nir->info.stage == MESA_SHADER_VERTEX ||
-       nir->info.stage == MESA_SHADER_GEOMETRY) {
-      NIR_PASS(_, nir, nir_lower_io_to_temporaries,
-                 nir_shader_get_entrypoint(nir),
-                 true, true);
-   } else if (nir->info.stage == MESA_SHADER_TESS_EVAL ||
-              nir->info.stage == MESA_SHADER_FRAGMENT) {
-      NIR_PASS(_, nir, nir_lower_io_to_temporaries,
-                 nir_shader_get_entrypoint(nir),
-                 true, false);
-   }
+   NIR_PASS(_, nir, nir_lower_io_to_temporaries,
+            nir_shader_get_entrypoint(nir), true,
+            options->lower_all_io_to_temps ||
+            nir->info.stage == MESA_SHADER_VERTEX ||
+            nir->info.stage == MESA_SHADER_GEOMETRY);
 
    NIR_PASS(_, nir, nir_lower_global_vars_to_local);
    NIR_PASS(_, nir, nir_split_var_copies);
@@ -1643,18 +1595,6 @@ gl_nir_link_spirv(const struct gl_constants *consts,
 
    gl_nir_link_assign_xfb_resources(consts, prog);
    gl_nir_lower_optimize_varyings(consts, prog, true);
-
-   if (!linked_shader[0]->Program->nir->info.io_lowered) {
-      /* Linking the stages in the opposite order (from fragment to vertex)
-       * ensures that inter-shader outputs written to in an earlier stage
-       * are eliminated if they are (transitively) not used in a later
-       * stage.
-       */
-      for (int i = num_shaders - 2; i >= 0; i--) {
-         gl_nir_link_opts(linked_shader[i]->Program->nir,
-                          linked_shader[i + 1]->Program->nir);
-      }
-   }
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = prog->_LinkedShaders[i];
@@ -2722,6 +2662,7 @@ link_intrastage_shaders(void *mem_ctx,
 {
    bool arb_fragment_coord_conventions_enable = false;
    bool KHR_shader_subgroup_basic_enable = false;
+   unsigned view_mask = 0;
 
    /* Check that global variables defined in multiple shaders are consistent.
     */
@@ -2736,6 +2677,17 @@ link_intrastage_shaders(void *mem_ctx,
          arb_fragment_coord_conventions_enable = true;
       if (shader_list[i]->KHR_shader_subgroup_basic_enable)
          KHR_shader_subgroup_basic_enable = true;
+
+      if (shader_list[i]->view_mask != 0) {
+         if (view_mask != 0 && shader_list[i]->view_mask != view_mask) {
+            linker_error(prog, "vertex shader defined with "
+                         "conflicting num_views (%d and %d)\n",
+                         ffs(view_mask) - 1, ffs(shader_list[i]->view_mask) - 1);
+            return NULL;
+         }
+
+         view_mask = shader_list[i]->view_mask;
+      }
    }
 
    if (!prog->data->LinkStatus)
@@ -2833,6 +2785,7 @@ link_intrastage_shaders(void *mem_ctx,
 
    link_layer_viewport_relative_qualifier(prog, gl_prog, shader_list, num_shaders);
 
+   gl_prog->nir->info.view_mask = view_mask;
    gl_prog->nir->info.subgroup_size = KHR_shader_subgroup_basic_enable ?
       SUBGROUP_SIZE_API_CONSTANT : SUBGROUP_SIZE_UNIFORM;
 
@@ -4006,18 +3959,6 @@ gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
 
    if (prog->data->LinkStatus == LINKING_FAILURE)
       goto done;
-
-   if (!linked_shader[0]->Program->nir->info.io_lowered) {
-      /* Linking the stages in the opposite order (from fragment to vertex)
-       * ensures that inter-shader outputs written to in an earlier stage
-       * are eliminated if they are (transitively) not used in a later
-       * stage.
-       */
-      for (int i = num_linked_shaders - 2; i >= 0; i--) {
-         gl_nir_link_opts(linked_shader[i]->Program->nir,
-                          linked_shader[i + 1]->Program->nir);
-      }
-   }
 
    /* Tidy up any left overs from the linking process for single shaders.
     * For example varying arrays that get packed may have dead elements that

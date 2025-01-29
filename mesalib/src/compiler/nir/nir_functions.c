@@ -204,7 +204,10 @@ static bool inline_functions_pass(nir_builder *b,
       return false;
 
    nir_call_instr *call = nir_instr_as_call(instr);
-   assert(call->callee->impl);
+   if (!call->callee->impl)
+      return false;
+
+   assert(!call->indirect_callee.ssa);
 
    if (b->shader->options->driver_functions &&
        b->shader->info.stage == MESA_SHADER_KERNEL) {

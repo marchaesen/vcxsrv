@@ -280,10 +280,8 @@ lower_wpos_ytransform_instr(nir_builder *b, nir_intrinsic_instr *intr,
    case nir_intrinsic_load_deref: {
       nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
       nir_variable *var = nir_deref_instr_get_variable(deref);
-      if ((var->data.mode == nir_var_shader_in &&
-           var->data.location == VARYING_SLOT_POS) ||
-          (var->data.mode == nir_var_system_value &&
-           var->data.location == SYSTEM_VALUE_FRAG_COORD)) {
+      if (var->data.mode == nir_var_system_value &&
+          var->data.location == SYSTEM_VALUE_FRAG_COORD) {
          /* gl_FragCoord should not have array/struct derefs: */
          return lower_fragcoord(state, intr);
       } else if (var->data.mode == nir_var_system_value &&
@@ -319,6 +317,8 @@ bool
 nir_lower_wpos_ytransform(nir_shader *shader,
                           const nir_lower_wpos_ytransform_options *options)
 {
+   assert(shader->info.io_lowered);
+
    lower_wpos_ytransform_state state = {
       .options = options,
    };

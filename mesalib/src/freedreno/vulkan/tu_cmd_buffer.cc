@@ -165,6 +165,30 @@ tu_emit_vsc(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
    cmd->vsc_initialized = true;
 }
 
+/* This workaround, copied from the blob, seems to ensure that the BVH node
+ * cache is invalidated so that we don't read stale values when multiple BVHs
+ * share the same address.
+ */
+static void
+tu_emit_rt_workaround(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
+{
+   tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
+   tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_RT_WA_START);
+
+   tu_cs_emit_regs(cs, A7XX_SP_CS_UNKNOWN_A9BE(.dword = 0x10000));
+   tu_cs_emit_regs(cs, A7XX_SP_FS_UNKNOWN_A9AB(.dword = 0x10000));
+   tu_emit_event_write<A7XX>(cmd, cs, FD_DUMMY_EVENT);
+   tu_cs_emit_regs(cs, A7XX_SP_CS_UNKNOWN_A9BE(.dword = 0));
+   tu_cs_emit_regs(cs, A7XX_SP_FS_UNKNOWN_A9AB(.dword = 0));
+   tu_emit_event_write<A7XX>(cmd, cs, FD_DUMMY_EVENT);
+   tu_emit_event_write<A7XX>(cmd, cs, FD_DUMMY_EVENT);
+   tu_emit_event_write<A7XX>(cmd, cs, FD_DUMMY_EVENT);
+   tu_emit_event_write<A7XX>(cmd, cs, FD_DUMMY_EVENT);
+
+   tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
+   tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_RT_WA_END);
+}
+
 template <chip CHIP>
 static void
 tu6_emit_flushes(struct tu_cmd_buffer *cmd_buffer,
@@ -216,6 +240,9 @@ tu6_emit_flushes(struct tu_cmd_buffer *cmd_buffer,
        /* Invalidating UCHE seems to also invalidate CCHE */
        !(flushes & TU_CMD_FLAG_CACHE_INVALIDATE))
       tu_cs_emit_pkt7(cs, CP_CCHE_INVALIDATE, 0);
+   if (CHIP >= A7XX && (flushes & TU_CMD_FLAG_RTU_INVALIDATE) &&
+       cmd_buffer->device->physical_device->info->a7xx.has_rt_workaround)
+      tu_emit_rt_workaround(cmd_buffer, cs);
    if (flushes & TU_CMD_FLAG_WAIT_MEM_WRITES)
       tu_cs_emit_pkt7(cs, CP_WAIT_MEM_WRITES, 0);
    if (flushes & TU_CMD_FLAG_WAIT_FOR_IDLE)
@@ -670,10 +697,6 @@ tu6_emit_render_cntl<A7XX>(struct tu_cmd_buffer *cmd,
                      struct tu_cs *cs,
                      bool binning)
 {
-   tu_cs_emit_regs(
-      cs, RB_RENDER_CNTL(A7XX, .binning = binning, .raster_mode = TYPE_TILED,
-                              .raster_direction = LR_TB));
-   tu_cs_emit_regs(cs, A7XX_GRAS_SU_RENDER_CNTL(.binning = binning));
 }
 
 static void
@@ -1412,9 +1435,11 @@ tu6_init_static_regs(struct tu_device *dev, struct tu_cs *cs)
 
    tu_cs_emit_write_reg(cs, REG_A6XX_SP_UNKNOWN_B183, 0);
 
-   tu_cs_emit_write_reg(cs, REG_A6XX_GRAS_SU_CONSERVATIVE_RAS_CNTL, 0);
    tu_cs_emit_write_reg(cs, REG_A6XX_GRAS_UNKNOWN_80AF, 0);
    if (CHIP == A6XX) {
+      tu_cs_emit_write_reg(cs, REG_A6XX_GRAS_SU_CONSERVATIVE_RAS_CNTL, 0);
+      tu_cs_emit_regs(cs, A6XX_PC_DGEN_SU_CONSERVATIVE_RAS_CNTL());
+
       tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9210, 0);
       tu_cs_emit_write_reg(cs, REG_A6XX_VPC_UNKNOWN_9211, 0);
    }
@@ -1907,7 +1932,9 @@ tu_emit_input_attachments(struct tu_cmd_buffer *cmd,
          continue;
 
       /* patched for gmem */
-      dst[0] &= ~(A6XX_TEX_CONST_0_SWAP__MASK | A6XX_TEX_CONST_0_TILE_MODE__MASK);
+      dst[0] &= ~A6XX_TEX_CONST_0_TILE_MODE__MASK;
+      if (!iview->view.is_mutable)
+         dst[0] &= ~A6XX_TEX_CONST_0_SWAP__MASK;
       dst[0] |= A6XX_TEX_CONST_0_TILE_MODE(TILE6_2);
       dst[2] =
          A6XX_TEX_CONST_2_TYPE(A6XX_TEX_2D) |
@@ -2027,14 +2054,16 @@ tu_trace_end_render_pass(struct tu_cmd_buffer *cmd, bool gmem)
    if (cmd->state.lrz.image_view) {
       struct tu_image *image = cmd->state.lrz.image_view->image;
       addr.bo = image->bo;
-      addr.offset = (image->iova - image->bo->iova) + image->lrz_fc_offset +
+      addr.offset = (image->iova - image->bo->iova) +
+                    image->lrz_layout.lrz_fc_offset +
                     offsetof(fd_lrzfc_layout<CHIP>, dir_track);
    }
 
    trace_end_render_pass(&cmd->trace, &cmd->cs, gmem,
                          cmd->state.rp.drawcall_count,
                          avg_per_sample_bandwidth, cmd->state.lrz.valid,
-                         cmd->state.rp.lrz_disable_reason, addr);
+                         cmd->state.rp.lrz_disable_reason,
+                         cmd->state.rp.lrz_disabled_at_draw, addr);
 }
 
 static void
@@ -2514,7 +2543,9 @@ tu_cmd_buffer_destroy(struct vk_command_buffer *vk_cmd_buffer)
    }
 
    ralloc_free(cmd_buffer->patchpoints_ctx);
+   ralloc_free(cmd_buffer->pre_chain.patchpoints_ctx);
    util_dynarray_fini(&cmd_buffer->fdm_bin_patchpoints);
+   util_dynarray_fini(&cmd_buffer->pre_chain.fdm_bin_patchpoints);
 
    vk_command_buffer_finish(&cmd_buffer->vk);
    vk_free2(&cmd_buffer->device->vk.alloc, &cmd_buffer->vk.pool->alloc,
@@ -2562,8 +2593,11 @@ tu_reset_cmd_buffer(struct vk_command_buffer *vk_cmd_buffer,
    cmd_buffer->prev_fsr_is_null = false;
 
    ralloc_free(cmd_buffer->patchpoints_ctx);
+   ralloc_free(cmd_buffer->pre_chain.patchpoints_ctx);
    cmd_buffer->patchpoints_ctx = NULL;
+   cmd_buffer->pre_chain.patchpoints_ctx = NULL;
    util_dynarray_clear(&cmd_buffer->fdm_bin_patchpoints);
+   util_dynarray_clear(&cmd_buffer->pre_chain.fdm_bin_patchpoints);
 }
 
 const struct vk_command_buffer_ops tu_cmd_buffer_ops = {
@@ -3858,6 +3892,12 @@ tu_flush_for_access(struct tu_cache_state *cache,
       flush_bits |= TU_CMD_FLAG_BLIT_CACHE_CLEAN;
    }
 
+   /* Nothing writes through the RTU cache so there's no point trying to
+    * optimize this. Just always invalidate.
+    */
+   if (dst_mask & TU_ACCESS_RTU_READ)
+      flush_bits |= TU_CMD_FLAG_RTU_INVALIDATE;
+
 #undef DST_INCOHERENT_FLUSH
 
    cache->flush_bits |= flush_bits;
@@ -3958,12 +3998,31 @@ vk2tu_access(VkAccessFlags2 flags, VkPipelineStageFlags2 stages, bool image_only
                        VK_ACCESS_2_SHADER_READ_BIT |
                        VK_ACCESS_2_SHADER_SAMPLED_READ_BIT |
                        VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
-                       VK_ACCESS_2_SHADER_BINDING_TABLE_READ_BIT_KHR,
+                       VK_ACCESS_2_SHADER_BINDING_TABLE_READ_BIT_KHR |
+                       VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR,
                        VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT |
                        VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT |
                        VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT |
+                       VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR |
+                       VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR |
                        SHADER_STAGES))
        mask |= TU_ACCESS_UCHE_READ | TU_ACCESS_CCHE_READ;
+
+   if (gfx_read_access(flags, stages,
+                       VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR,
+                       SHADER_STAGES))
+       mask |= TU_ACCESS_UCHE_READ | TU_ACCESS_CCHE_READ | TU_ACCESS_RTU_READ;
+
+   /* Reading the AS for copying involves doing CmdDispatchIndirect with the
+    * copy size as a parameter, so it's read by the CP as well as a shader.
+    */
+   if (gfx_read_access(flags, stages,
+                       VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR,
+                       VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR |
+                       VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR))
+       mask |= TU_ACCESS_SYSMEM_READ | TU_ACCESS_UCHE_READ |
+          TU_ACCESS_CCHE_READ;
+
 
    if (gfx_read_access(flags, stages,
                        VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT,
@@ -3984,6 +4043,11 @@ vk2tu_access(VkAccessFlags2 flags, VkPipelineStageFlags2 stages, bool image_only
                         VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT |
                         SHADER_STAGES))
        mask |= TU_ACCESS_UCHE_WRITE;
+
+   if (gfx_write_access(flags, stages,
+                        VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+                        VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR))
+       mask |= TU_ACCESS_UCHE_WRITE | TU_ACCESS_CP_WRITE;
 
    /* When using GMEM, the CCU is always flushed automatically to GMEM, and
     * then GMEM is flushed to sysmem. Furthermore, we already had to flush any
@@ -4202,8 +4266,11 @@ tu_render_pass_state_merge(struct tu_render_pass_state *dst,
    dst->drawcall_count += src->drawcall_count;
    dst->drawcall_bandwidth_per_sample_sum +=
       src->drawcall_bandwidth_per_sample_sum;
-   if (!dst->lrz_disable_reason)
+   if (!dst->lrz_disable_reason && src->lrz_disable_reason) {
       dst->lrz_disable_reason = src->lrz_disable_reason;
+      dst->lrz_disabled_at_draw =
+         dst->drawcall_count + src->lrz_disabled_at_draw;
+   }
 }
 
 void
@@ -4323,6 +4390,9 @@ tu_CmdExecuteCommands(VkCommandBuffer commandBuffer,
       if (secondary->usage_flags &
           VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT) {
          assert(tu_cs_is_empty(&secondary->cs));
+
+         TU_CALLX(cmd->device, tu_lrz_flush_valid_during_renderpass)
+            (cmd, &cmd->draw_cs);
 
          result = tu_cs_add_entries(&cmd->draw_cs, &secondary->draw_cs);
          if (result != VK_SUCCESS) {
@@ -5808,6 +5878,12 @@ tu6_draw_common(struct tu_cmd_buffer *cmd,
                tess_params->output_lower_left));
    }
 
+   if (cmd->device->physical_device->info->a7xx.has_rt_workaround &&
+       cmd->state.program.uses_ray_intersection) {
+      tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
+      tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_SHADER_USES_RT);
+   }
+
    /* Early exit if there is nothing to emit, saves CPU cycles */
    uint32_t dirty = cmd->state.dirty;
    if (!dynamic_draw_state_dirty && !(dirty & ~TU_CMD_DIRTY_COMPUTE_DESC_SETS))
@@ -6478,8 +6554,7 @@ struct tu_dispatch_info
    /**
     * Indirect compute parameters resource.
     */
-   struct tu_buffer *indirect;
-   uint64_t indirect_offset;
+   VkDeviceAddress indirect;
 };
 
 static inline struct ir3_driver_params_cs
@@ -6524,7 +6599,7 @@ tu_emit_compute_driver_params(struct tu_cmd_buffer *cmd,
          return;
 
       bool direct_indirect_load =
-         !(info->indirect_offset & 0xf) &&
+         !(info->indirect & 0xf) &&
          !(info->indirect && num_consts > IR3_DP_CS(base_group_x));
 
       uint64_t iova = 0;
@@ -6545,13 +6620,13 @@ tu_emit_compute_driver_params(struct tu_cmd_buffer *cmd,
          memcpy(consts.map, &driver_params, num_consts * sizeof(uint32_t));
          iova = consts.iova;
       } else if (direct_indirect_load) {
-         iova = info->indirect->iova + info->indirect_offset;
+         iova = info->indirect;
       } else {
          /* Vulkan guarantees only 4 byte alignment for indirect_offset.
           * However, CP_LOAD_STATE.EXT_SRC_ADDR needs 16 byte alignment.
           */
 
-         uint64_t indirect_iova = info->indirect->iova + info->indirect_offset;
+         uint64_t indirect_iova = info->indirect;
 
          /* Wait for any previous uses to finish. */
          tu_cs_emit_wfi(cs);
@@ -6626,20 +6701,18 @@ tu_emit_compute_driver_params(struct tu_cmd_buffer *cmd,
          tu_cs_emit(cs, 0);
          tu_cs_emit(cs, 0);
          tu_cs_emit_array(cs, (uint32_t *)&driver_params, num_consts);
-      } else if (!(info->indirect_offset & 0xf)) {
+      } else if (!(info->indirect & 0xf)) {
          tu_cs_emit_pkt7(cs, tu6_stage2opcode(type), 3);
          tu_cs_emit(cs, CP_LOAD_STATE6_0_DST_OFF(offset) |
                      CP_LOAD_STATE6_0_STATE_TYPE(ST6_CONSTANTS) |
                      CP_LOAD_STATE6_0_STATE_SRC(SS6_INDIRECT) |
                      CP_LOAD_STATE6_0_STATE_BLOCK(tu6_stage2shadersb(type)) |
                      CP_LOAD_STATE6_0_NUM_UNIT(1));
-         tu_cs_emit_qw(cs, info->indirect->iova + info->indirect_offset);
+         tu_cs_emit_qw(cs, info->indirect);
       } else {
          /* Vulkan guarantees only 4 byte alignment for indirect_offset.
           * However, CP_LOAD_STATE.EXT_SRC_ADDR needs 16 byte alignment.
           */
-
-         uint64_t indirect_iova = info->indirect->iova + info->indirect_offset;
 
          /* Wait for any previous uses to finish. */
          tu_cs_emit_wfi(cs);
@@ -6648,7 +6721,7 @@ tu_emit_compute_driver_params(struct tu_cmd_buffer *cmd,
             tu_cs_emit_pkt7(cs, CP_MEM_TO_MEM, 5);
             tu_cs_emit(cs, 0);
             tu_cs_emit_qw(cs, global_iova_arr(cmd, cs_indirect_xyz, i));
-            tu_cs_emit_qw(cs, indirect_iova + i * 4);
+            tu_cs_emit_qw(cs, info->indirect + i * 4);
          }
 
          tu_cs_emit_pkt7(cs, CP_WAIT_MEM_WRITES, 0);
@@ -6756,51 +6829,211 @@ tu_dispatch(struct tu_cmd_buffer *cmd,
 
    const uint16_t *local_size = shader->variant->local_size;
    const uint32_t *num_groups = info->blocks;
-   tu_cs_emit_regs(cs,
-                   HLSQ_CS_NDRANGE_0(CHIP, .kerneldim = 3,
-                                           .localsizex = local_size[0] - 1,
-                                           .localsizey = local_size[1] - 1,
-                                           .localsizez = local_size[2] - 1),
-                   HLSQ_CS_NDRANGE_1(CHIP, .globalsize_x = local_size[0] * num_groups[0]),
-                   HLSQ_CS_NDRANGE_2(CHIP, .globaloff_x = 0),
-                   HLSQ_CS_NDRANGE_3(CHIP, .globalsize_y = local_size[1] * num_groups[1]),
-                   HLSQ_CS_NDRANGE_4(CHIP, .globaloff_y = 0),
-                   HLSQ_CS_NDRANGE_5(CHIP, .globalsize_z = local_size[2] * num_groups[2]),
-                   HLSQ_CS_NDRANGE_6(CHIP, .globaloff_z = 0));
 
-   tu_cs_emit_regs(cs,
-                   HLSQ_CS_KERNEL_GROUP_X(CHIP, 1),
-                   HLSQ_CS_KERNEL_GROUP_Y(CHIP, 1),
-                   HLSQ_CS_KERNEL_GROUP_Z(CHIP, 1));
+   if (info->unaligned) {
+      assert(CHIP >= A7XX);
+
+      if (info->indirect) {
+         /* This path is tailored for BVH building and currently only supports
+          * 1-dimensional dispatches with a power-of-two local size. We use
+          * CP_RUN_OPENCL instead of CP_EXEC_CS in order to dynamically set
+          * HLSQ_CS_KERNEL_GROUP_X, which is usually set implicitly by the
+          * packet, to the number of workgroups. The registers for Y and Z
+          * dimensions should be unused because we set the kernel dimension to
+          * 1.
+          */
+         assert(local_size[1] == 1 && local_size[2] == 1);
+         assert(util_is_power_of_two_nonzero(local_size[0]));
+
+         tu_cs_emit_regs(cs,
+                         HLSQ_CS_NDRANGE_0(CHIP, .kerneldim = 1,
+                                                 .localsizex = local_size[0] - 1));
+
+         tu_cs_emit_regs(cs, HLSQ_CS_NDRANGE_2(CHIP, .globaloff_x = 0));
+
+         /* This does:
+          * - waits for pending cache flushes to finish
+          * - CP_WAIT_FOR_ME
+          *
+          * In a sequence of indirect dispatches this shouldn't wait for the
+          * previous dispatches to finish.
+          */
+         tu_cs_emit_pkt7(cs, CP_MEM_TO_REG, 3);
+         tu_cs_emit(cs, CP_MEM_TO_REG_0_REG(REG_A7XX_HLSQ_CS_NDRANGE_1));
+         tu_cs_emit_qw(cs, info->indirect);
+
+         tu_cs_emit_pkt7(cs, CP_SCRATCH_WRITE, 2);
+         tu_cs_emit(cs, CP_SCRATCH_WRITE_0_SCRATCH(0));
+         tu_cs_emit(cs, ~0u);
+
+         /* CP_REG_RMW and CP_REG_TO_SCRATCH implicitly do a CP_WAIT_FOR_IDLE
+          * *and* CP_WAIT_FOR_ME, which is a full pipeline stall that we don't
+          * want, so manually wait for the CP_MEM_TO_REG write to land and
+          * then skip waiting below with SKIP_WAIT_FOR_ME.
+          */
+         tu_cs_emit_pkt7(cs, CP_WAIT_FOR_ME, 0);
+
+         /* scratch0 = ((scratch0 & CS_NDRANGE_1) + -1
+          *          = ((~0 & CS_NDRANGE_1) + -1
+          *          =  CS_NDRANGE_1 - 1
+          */ 
+         tu_cs_emit_pkt7(cs, CP_REG_RMW, 3);
+         tu_cs_emit(cs,
+                    CP_REG_RMW_0_DST_REG(0) |
+                    CP_REG_RMW_0_DST_SCRATCH |
+                    CP_REG_RMW_0_SKIP_WAIT_FOR_ME |
+                    CP_REG_RMW_0_SRC0_IS_REG |
+                    CP_REG_RMW_0_SRC1_ADD);
+         tu_cs_emit(cs, REG_A7XX_HLSQ_CS_NDRANGE_1); /* SRC0 */
+         tu_cs_emit(cs, -1); /* SRC1 */
+
+         /* scratch0 = ((scratch0 & (local_size - 1)) rot 2
+          *          = ((scratch0 & (local_size - 1)) << 2
+          */ 
+         tu_cs_emit_pkt7(cs, CP_REG_RMW, 3);
+         tu_cs_emit(cs,
+                    CP_REG_RMW_0_DST_REG(0) |
+                    CP_REG_RMW_0_DST_SCRATCH |
+                    CP_REG_RMW_0_SKIP_WAIT_FOR_ME |
+                    CP_REG_RMW_0_ROTATE(A7XX_HLSQ_CS_LAST_LOCAL_SIZE_LOCALSIZEX__SHIFT));
+         tu_cs_emit(cs, local_size[0] - 1); /* SRC0 */
+         tu_cs_emit(cs, 0); /* SRC1 */
+
+         /* write scratch0 to HLSQ_CS_LAST_LOCAL_SIZE */
+         tu_cs_emit_pkt7(cs, CP_SCRATCH_TO_REG, 1);
+         tu_cs_emit(cs,
+                    CP_SCRATCH_TO_REG_0_REG(REG_A7XX_HLSQ_CS_LAST_LOCAL_SIZE) |
+                    CP_SCRATCH_TO_REG_0_SCRATCH(0));
+
+         tu_cs_emit_pkt7(cs, CP_SCRATCH_WRITE, 2);
+         tu_cs_emit(cs, CP_SCRATCH_WRITE_0_SCRATCH(0));
+         tu_cs_emit(cs, ~0u);
+
+         /* scratch0 = (scratch0 & CS_NDRANGE_1) + local_size - 1
+          *          = (~0u & CS_NDRANGE_1) + local_size - 1
+          *          = CS_NDRANGE_1 + local_size - 1
+          */
+         tu_cs_emit_pkt7(cs, CP_REG_RMW, 3);
+         tu_cs_emit(cs,
+                    CP_REG_RMW_0_DST_REG(0) |
+                    CP_REG_RMW_0_DST_SCRATCH |
+                    CP_REG_RMW_0_SKIP_WAIT_FOR_ME |
+                    CP_REG_RMW_0_SRC0_IS_REG |
+                    CP_REG_RMW_0_SRC1_ADD);
+         tu_cs_emit(cs, REG_A7XX_HLSQ_CS_NDRANGE_1); /* SRC0 */
+         tu_cs_emit(cs, local_size[0] - 1); /* SRC1 */
+
+         unsigned local_size_log2 = util_logbase2(local_size[0]);
+
+         /* scratch0 = (scratch0 & (~(local_size - 1)) rot (32 - log2(local_size))
+          *          = scratch0 >> log2(local_size)
+          *          = scratch0 / local_size
+          *          = (CS_NDRANGE_1 + local_size - 1) / local_size
+          */
+         tu_cs_emit_pkt7(cs, CP_REG_RMW, 3);
+         tu_cs_emit(cs,
+                    CP_REG_RMW_0_DST_REG(0) |
+                    CP_REG_RMW_0_DST_SCRATCH |
+                    CP_REG_RMW_0_SKIP_WAIT_FOR_ME |
+                    CP_REG_RMW_0_ROTATE(32 - local_size_log2));
+         tu_cs_emit(cs, ~(local_size[0] - 1)); /* SRC0 */
+         tu_cs_emit(cs, 0); /* SRC1 */
+
+         /* write scratch0 to HLSQ_CS_KERNEL_GROUP_X */
+         tu_cs_emit_pkt7(cs, CP_SCRATCH_TO_REG, 1);
+         tu_cs_emit(cs,
+                    CP_SCRATCH_TO_REG_0_REG(REG_A7XX_HLSQ_CS_KERNEL_GROUP_X) |
+                    CP_SCRATCH_TO_REG_0_SCRATCH(0));
+      } else {
+         tu_cs_emit_regs(cs,
+                         HLSQ_CS_NDRANGE_0(CHIP, .kerneldim = 3,
+                                                 .localsizex = local_size[0] - 1,
+                                                 .localsizey = local_size[1] - 1,
+                                                 .localsizez = local_size[2] - 1),
+                         HLSQ_CS_NDRANGE_1(CHIP, .globalsize_x = num_groups[0]),
+                         HLSQ_CS_NDRANGE_2(CHIP, .globaloff_x = 0),
+                         HLSQ_CS_NDRANGE_3(CHIP, .globalsize_y = num_groups[1]),
+                         HLSQ_CS_NDRANGE_4(CHIP, .globaloff_y = 0),
+                         HLSQ_CS_NDRANGE_5(CHIP, .globalsize_z = num_groups[2]),
+                         HLSQ_CS_NDRANGE_6(CHIP, .globaloff_z = 0));
+         uint32_t last_local_size[3];
+         for (unsigned i = 0; i < 3; i++)
+            last_local_size[i] = ((num_groups[i] - 1) % local_size[i]) + 1;
+         tu_cs_emit_regs(cs,
+                         A7XX_HLSQ_CS_LAST_LOCAL_SIZE(.localsizex = last_local_size[0] - 1,
+                                                      .localsizey = last_local_size[1] - 1,
+                                                      .localsizez = last_local_size[2] - 1));
+      }
+   } else {
+      tu_cs_emit_regs(cs,
+                      HLSQ_CS_NDRANGE_0(CHIP, .kerneldim = 3,
+                                              .localsizex = local_size[0] - 1,
+                                              .localsizey = local_size[1] - 1,
+                                              .localsizez = local_size[2] - 1),
+                      HLSQ_CS_NDRANGE_1(CHIP, .globalsize_x = local_size[0] * num_groups[0]),
+                      HLSQ_CS_NDRANGE_2(CHIP, .globaloff_x = 0),
+                      HLSQ_CS_NDRANGE_3(CHIP, .globalsize_y = local_size[1] * num_groups[1]),
+                      HLSQ_CS_NDRANGE_4(CHIP, .globaloff_y = 0),
+                      HLSQ_CS_NDRANGE_5(CHIP, .globalsize_z = local_size[2] * num_groups[2]),
+                      HLSQ_CS_NDRANGE_6(CHIP, .globaloff_z = 0));
+      if (CHIP >= A7XX) {
+         tu_cs_emit_regs(cs,
+                         A7XX_HLSQ_CS_LAST_LOCAL_SIZE(.localsizex = local_size[0] - 1,
+                                                      .localsizey = local_size[1] - 1,
+                                                      .localsizez = local_size[2] - 1));
+      }
+   }
+
+   if (cmd->device->physical_device->info->a7xx.has_rt_workaround &&
+       shader->variant->info.uses_ray_intersection) {
+      tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
+      tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_SHADER_USES_RT);
+   }
 
    if (info->indirect) {
-      uint64_t iova = info->indirect->iova + info->indirect_offset;
+      trace_start_compute_indirect(&cmd->trace, cs, info->unaligned);
 
-      trace_start_compute_indirect(&cmd->trace, cs);
+      if (info->unaligned) {
+         tu_cs_emit_pkt7(cs, CP_RUN_OPENCL, 1);
+         tu_cs_emit(cs, 0x00000000);
+      } else {
+         tu_cs_emit_pkt7(cs, CP_EXEC_CS_INDIRECT, 4);
+         tu_cs_emit(cs, 0x00000000);
+         tu_cs_emit_qw(cs, info->indirect);
+         tu_cs_emit(cs,
+                    A5XX_CP_EXEC_CS_INDIRECT_3_LOCALSIZEX(local_size[0] - 1) |
+                    A5XX_CP_EXEC_CS_INDIRECT_3_LOCALSIZEY(local_size[1] - 1) |
+                    A5XX_CP_EXEC_CS_INDIRECT_3_LOCALSIZEZ(local_size[2] - 1));
 
-      tu_cs_emit_pkt7(cs, CP_EXEC_CS_INDIRECT, 4);
-      tu_cs_emit(cs, 0x00000000);
-      tu_cs_emit_qw(cs, iova);
-      tu_cs_emit(cs,
-                 A5XX_CP_EXEC_CS_INDIRECT_3_LOCALSIZEX(local_size[0] - 1) |
-                 A5XX_CP_EXEC_CS_INDIRECT_3_LOCALSIZEY(local_size[1] - 1) |
-                 A5XX_CP_EXEC_CS_INDIRECT_3_LOCALSIZEZ(local_size[2] - 1));
+      }
 
       trace_end_compute_indirect(&cmd->trace, cs,
                                  (struct u_trace_address) {
-                                    .bo = info->indirect->bo,
-                                    .offset = info->indirect_offset,
+                                    .bo = NULL,
+                                    .offset = info->indirect,
                                  });
    } else {
-      trace_start_compute(&cmd->trace, cs, info->indirect != NULL,
-                          local_size[0], local_size[1], local_size[2],
-                          info->blocks[0], info->blocks[1], info->blocks[2]);
+      trace_start_compute(&cmd->trace, cs, info->indirect != 0,
+                          info->unaligned, local_size[0], local_size[1],
+                          local_size[2], info->blocks[0], info->blocks[1],
+                          info->blocks[2]);
 
-      tu_cs_emit_pkt7(cs, CP_EXEC_CS, 4);
-      tu_cs_emit(cs, 0x00000000);
-      tu_cs_emit(cs, CP_EXEC_CS_1_NGROUPS_X(info->blocks[0]));
-      tu_cs_emit(cs, CP_EXEC_CS_2_NGROUPS_Y(info->blocks[1]));
-      tu_cs_emit(cs, CP_EXEC_CS_3_NGROUPS_Z(info->blocks[2]));
+      if (info->unaligned) {
+         tu_cs_emit_pkt7(cs, CP_EXEC_CS, 4);
+         tu_cs_emit(cs, 0x00000000);
+         tu_cs_emit(cs, CP_EXEC_CS_1_NGROUPS_X(DIV_ROUND_UP(info->blocks[0],
+                                                            local_size[0])));
+         tu_cs_emit(cs, CP_EXEC_CS_2_NGROUPS_Y(DIV_ROUND_UP(info->blocks[1],
+                                                            local_size[1])));
+         tu_cs_emit(cs, CP_EXEC_CS_3_NGROUPS_Z(DIV_ROUND_UP(info->blocks[2],
+                                                            local_size[2])));
+      } else {
+         tu_cs_emit_pkt7(cs, CP_EXEC_CS, 4);
+         tu_cs_emit(cs, 0x00000000);
+         tu_cs_emit(cs, CP_EXEC_CS_1_NGROUPS_X(info->blocks[0]));
+         tu_cs_emit(cs, CP_EXEC_CS_2_NGROUPS_Y(info->blocks[1]));
+         tu_cs_emit(cs, CP_EXEC_CS_3_NGROUPS_Z(info->blocks[2]));
+      }
 
       trace_end_compute(&cmd->trace, cs);
    }
@@ -6850,12 +7083,38 @@ tu_CmdDispatchIndirect(VkCommandBuffer commandBuffer,
    VK_FROM_HANDLE(tu_buffer, buffer, _buffer);
    struct tu_dispatch_info info = {};
 
-   info.indirect = buffer;
-   info.indirect_offset = offset;
+   info.indirect = buffer->iova + offset;
 
    tu_dispatch<CHIP>(cmd_buffer, &info);
 }
 TU_GENX(tu_CmdDispatchIndirect);
+
+void
+tu_dispatch_unaligned(VkCommandBuffer commandBuffer,
+                      uint32_t x, uint32_t y, uint32_t z)
+{
+   VK_FROM_HANDLE(tu_cmd_buffer, cmd_buffer, commandBuffer);
+   struct tu_dispatch_info info = {};
+
+   info.unaligned = true;
+   info.blocks[0] = x;
+   info.blocks[1] = y;
+   info.blocks[2] = z;
+   TU_CALLX(cmd_buffer->device, tu_dispatch)(cmd_buffer, &info);
+}
+
+void
+tu_dispatch_unaligned_indirect(VkCommandBuffer commandBuffer,
+                               VkDeviceAddress size_addr)
+{
+   VK_FROM_HANDLE(tu_cmd_buffer, cmd_buffer, commandBuffer);
+   struct tu_dispatch_info info = {};
+
+   info.unaligned = true;
+   info.indirect = size_addr;
+
+   TU_CALLX(cmd_buffer->device, tu_dispatch)(cmd_buffer, &info);
+}
 
 VKAPI_ATTR void VKAPI_CALL
 tu_CmdEndRenderPass2(VkCommandBuffer commandBuffer,
@@ -6886,8 +7145,14 @@ tu_CmdEndRendering(VkCommandBuffer commandBuffer)
 {
    VK_FROM_HANDLE(tu_cmd_buffer, cmd_buffer, commandBuffer);
 
-   if (cmd_buffer->state.suspending)
+   if (cmd_buffer->state.suspending) {
       cmd_buffer->state.suspended_pass.lrz = cmd_buffer->state.lrz;
+      /* We cannot pass LRZ state to next resuming renderpass, so we have to
+       * force disable it here.
+       */
+      TU_CALLX(cmd_buffer->device, tu_lrz_flush_valid_during_renderpass)
+         (cmd_buffer, &cmd_buffer->draw_cs);
+   }
 
    if (!cmd_buffer->state.suspending) {
       tu_cs_end(&cmd_buffer->draw_cs);
@@ -7260,3 +7525,29 @@ tu_CmdWriteBufferMarker2AMD(VkCommandBuffer commandBuffer,
    tu_flush_for_access(cache, TU_ACCESS_CP_WRITE, TU_ACCESS_NONE);
 }
 TU_GENX(tu_CmdWriteBufferMarker2AMD);
+
+void
+tu_write_buffer_cp(VkCommandBuffer commandBuffer,
+                   VkDeviceAddress addr,
+                   void *data, uint32_t size)
+{
+   VK_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
+
+   TU_CALLX(cmd->device, tu_emit_cache_flush)(cmd);
+
+   struct tu_cs *cs = &cmd->cs;
+
+   tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 2 + size / 4);
+   tu_cs_emit_qw(cs, addr);
+   tu_cs_emit_array(cs, (uint32_t *)data, size / 4);
+}
+
+void
+tu_flush_buffer_write_cp(VkCommandBuffer commandBuffer)
+{
+   VK_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
+
+   struct tu_cache_state *cache = &cmd->state.cache;
+   tu_flush_for_access(cache, TU_ACCESS_CP_WRITE, (enum tu_cmd_access_mask)0);
+}
+

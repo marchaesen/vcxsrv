@@ -36,7 +36,6 @@ dEQP-GLES3.functional.shaders.matrix.inverse.dynamic.mediump_mat4_float_vertex,F
 
 glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-texture,Fail
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 spec@arb_texture_rectangle@fbo-blit rect,Fail

@@ -1905,7 +1905,14 @@ print_call_instr(nir_call_instr *instr, print_state *state)
 
    print_no_dest_padding(state);
 
+   bool indirect = instr->indirect_callee.ssa;
+
    fprintf(fp, "call %s ", instr->callee->name);
+   if (indirect) {
+      fprintf(fp, "(indirect ");
+      print_src(&instr->indirect_callee, state, nir_type_invalid);
+      fprintf(fp, ") ");
+   }
 
    for (unsigned i = 0; i < instr->num_params; i++) {
       if (i != 0)

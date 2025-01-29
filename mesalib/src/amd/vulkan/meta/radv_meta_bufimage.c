@@ -1340,7 +1340,15 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
          src_aspect_mask = src->aspect_mask;
       }
 
-      create_iview(cmd_buffer, src, &src_view, depth_format, src_aspect_mask);
+      /* Adjust the aspect for color to depth/stencil image copies. */
+      if (vk_format_is_color(src->image->vk.format) && vk_format_is_depth_or_stencil(dst->image->vk.format)) {
+         assert(src->aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT);
+         src_aspect_mask = src->aspect_mask;
+      }
+
+      create_iview(cmd_buffer, src, &src_view,
+                   (src_aspect_mask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) ? depth_format : 0,
+                   src_aspect_mask);
       create_iview(cmd_buffer, dst, &dst_view, depth_format, dst_aspect_mask);
 
       radv_meta_push_descriptor_set(

@@ -299,6 +299,19 @@ virtio_device_get_suspend_count(struct tu_device *dev, uint64_t *suspend_count)
    return ret;
 }
 
+
+static bool
+tu_drm_get_raytracing(struct vdrm_device *vdrm)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(vdrm, MSM_PARAM_RAYTRACING, &value);
+   if (ret)
+      return false;
+
+   return value;
+}
+
+
 static VkResult
 virtio_device_check_status(struct tu_device *device)
 {
@@ -1146,6 +1159,9 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
    uint32_t bank_swizzle_levels = tu_drm_get_ubwc_swizzle(vdrm);
    enum fdl_macrotile_mode macrotile_mode = tu_drm_get_macrotile_mode(vdrm);
 
+   /* TODO add a cap for this */
+   bool has_raytracing = tu_drm_get_raytracing(vdrm);
+
    vdrm_device_close(vdrm);
 
    mesa_logd("wire_format_version: %u", caps.wire_format_version);
@@ -1213,6 +1229,8 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
    device->has_cached_coherent_memory = caps.u.msm.has_cached_coherent;
 
    device->submitqueue_priority_count = caps.u.msm.priorities;
+
+   device->has_raytracing = has_raytracing;
 
    device->syncobj_type = vk_drm_syncobj_get_type(fd);
    /* we don't support DRM_CAP_SYNCOBJ_TIMELINE, but drm-shim does */

@@ -13204,7 +13204,7 @@ _mesa_NewList(GLuint name, GLenum mode)
    vbo_save_NewList(ctx, name, mode);
 
    ctx->Dispatch.Current = ctx->Dispatch.Save;
-   _glapi_set_dispatch(ctx->Dispatch.Current);
+   _mesa_glapi_set_dispatch(ctx->Dispatch.Current);
    if (!ctx->GLThread.enabled) {
       ctx->GLApi = ctx->Dispatch.Current;
    }
@@ -13416,7 +13416,7 @@ _mesa_EndList(void)
    ctx->CompileFlag = GL_FALSE;
 
    ctx->Dispatch.Current = ctx->Dispatch.Exec;
-   _glapi_set_dispatch(ctx->Dispatch.Current);
+   _mesa_glapi_set_dispatch(ctx->Dispatch.Current);
    if (!ctx->GLThread.enabled) {
       ctx->GLApi = ctx->Dispatch.Current;
    }
@@ -13608,7 +13608,7 @@ void
 _mesa_init_dispatch_save(const struct gl_context *ctx)
 {
    struct _glapi_table *table = ctx->Dispatch.Save;
-   int numEntries = MAX2(_gloffset_COUNT, _glapi_get_dispatch_table_size());
+   int numEntries = MAX2(_gloffset_COUNT, _mesa_glapi_get_dispatch_table_size());
 
    /* Initially populate the dispatch table with the contents of the
     * normal-execution dispatch table.  This lets us skip populating functions

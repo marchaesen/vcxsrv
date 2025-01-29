@@ -400,8 +400,10 @@ MergeKeyGroups(SymbolsInfo * info,
         if (resultActs != NULL)
         {
             XkbAction *fromAct, *toAct;
-            fromAct = (from->acts[group] ? &from->acts[group][i] : NULL);
-            toAct = (into->acts[group] ? &into->acts[group][i] : NULL);
+            fromAct = ((from->acts[group] && i < from->numLevels[group])
+                    ? &from->acts[group][i] : NULL);
+            toAct = ((into->acts[group] && i < into->numLevels[group])
+                  ? &into->acts[group][i] : NULL);
             if (((fromAct == NULL) || (fromAct->type == XkbSA_NoAction))
                 && (toAct != NULL))
             {

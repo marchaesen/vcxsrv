@@ -645,7 +645,7 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *aws,
       }
    }
 
-   if (flags & RADEON_FLAG_GFX12_ALLOW_DCC)
+   if (flags & RADEON_FLAG_GFX12_ALLOW_DCC && !aws->info.family_overridden)
       request.flags |= AMDGPU_GEM_CREATE_GFX12_DCC;
 
    /* Set AMDGPU_GEM_CREATE_VIRTIO_SHARED if the driver didn't disable buffer sharing. */
