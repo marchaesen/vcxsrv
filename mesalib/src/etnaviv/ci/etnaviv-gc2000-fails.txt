@@ -115,12 +115,6 @@ dEQP-GLES2.functional.fragment_ops.random.97,Fail
 dEQP-GLES2.functional.fragment_ops.random.98,Fail
 dEQP-GLES2.functional.fragment_ops.random.9,Fail
 dEQP-GLES2.functional.rasterization.limits.points,Fail
-dEQP-GLES2.functional.shaders.random.basic_expression.combined.12,Fail
-dEQP-GLES2.functional.shaders.random.basic_expression.combined.30,Fail
-dEQP-GLES2.functional.shaders.random.basic_expression.combined.63,Fail
-dEQP-GLES2.functional.shaders.random.basic_expression.combined.66,Fail
-dEQP-GLES2.functional.shaders.random.conditionals.combined.14,Fail
-dEQP-GLES2.functional.shaders.random.conditionals.combined.48,Fail
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_clamp,Fail
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_mirror,Fail
 dEQP-GLES2.functional.texture.vertex.cube.filtering.nearest_mipmap_linear_linear_repeat,Fail
@@ -141,7 +135,6 @@ shaders@glsl-uniform-interstage-limits@subdivide 5,Timeout
 
 # Expects that some format/internal_format combinations should be supported when they currently aren't.
 spec@arb_clear_texture@arb_clear_texture-sized-formats,Fail
-spec@arb_clear_texture@arb_clear_texture-supported-formats,Fail
 spec@arb_depth_texture@depth-level-clamp,Fail
 spec@arb_depth_texture@fbo-depth-gl_depth_component16-tex1d,Fail
 spec@arb_depth_texture@texwrap formats bordercolor,Fail
@@ -272,8 +265,6 @@ spec@ext_direct_state_access@textures,Crash
 
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 
-spec@ext_framebuffer_object@fbo-blending-formats,Fail
-spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB10,Fail
 spec@ext_framebuffer_object@fbo-copyteximage,Fail
 spec@ext_framebuffer_object@fbo-copyteximage-simple,Fail
 spec@ext_framebuffer_object@fbo-cubemap,Fail
@@ -391,20 +382,12 @@ spec@glsl-1.10@execution@glsl-1.10-built-in-uniform-state,Fail
 spec@glsl-1.10@execution@glsl-fs-convolution-2,Fail
 spec@glsl-1.10@execution@glsl-fs-uniform-array-7,Fail
 spec@glsl-1.10@execution@glsl-vs-large-uniform-array,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backsecondarycolor-flat-fixed,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backsecondarycolor-flat-none,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backsecondarycolor-flat-vertex,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backsecondarycolor-smooth-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backcolor-flat-fixed,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backcolor-flat-none,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backcolor-flat-vertex,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_backcolor-smooth-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontcolor-flat-fixed,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontcolor-flat-none,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontcolor-flat-vertex,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontcolor-smooth-vertex,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontsecondarycolor-flat-fixed,Fail
-spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontsecondarycolor-flat-none,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontsecondarycolor-flat-vertex,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-gl_frontsecondarycolor-smooth-vertex,Fail
 spec@glsl-1.10@execution@interpolation@interpolation-none-other-flat-vertex,Fail
@@ -429,7 +412,6 @@ spec@glsl-1.20@execution@fs-vec4-const-array-indirect-access-256-elements,Fail
 spec@glsl-1.20@execution@out-parameter-indexing@fs-inout-index-two-level,Fail
 spec@glsl-1.20@execution@vs-nan-builtin-max,Fail
 spec@glsl-1.20@execution@vs-nan-builtin-min,Fail
-spec@glsl-es-1.00@execution@glsl-no-vertex-attribs,Fail
 spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 spec@khr_texture_compression_astc@basic-gles,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb,Fail
@@ -450,7 +432,6 @@ spec@sgis_generate_mipmap@gen-nonzero-unit,Crash
 
 spec@!opengl 1.0@gl-1.0-blend-func,Fail
 
-spec@!opengl 1.0@gl-1.0-drawbuffer-modes,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag-const,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag-quads,Fail
@@ -595,7 +576,6 @@ spec@!opengl 1.2@texwrap 3d proj bordercolor@GL_RGBA8- projected- border color o
 spec@!opengl 1.2@tex-skipped-unit,Crash
 
 spec@!opengl 1.2@two-sided-lighting-separate-specular,Fail
-spec@!opengl 1.3@gl-1.3-texture-env,Fail
 spec@!opengl 1.3@tex3d-depth1,Fail
 spec@!opengl 1.3@tex-border-1,Fail
 
@@ -650,3 +630,33 @@ spec@arb_texture_cube_map@copyteximage cube samples=4,Fail
 
 spec@arb_texture_rectangle@copyteximage rect samples=2,Fail
 spec@arb_texture_rectangle@copyteximage rect samples=4,Fail
+
+# Added on 2025-01-30
+dEQP-GLES2.functional.polygon_offset.default_enable,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_float_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_int_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_ivec2_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_ivec3_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_ivec4_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_vec2_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_vec3_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.selection.highp_vec4_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.sequence.no_side_effects.highp_bool_vec2_fragment,Fail
+dEQP-GLES2.functional.shaders.operator.sequence.side_effects.highp_bool_vec2_fragment,Fail
+spec@!opengl 1.0@gl-1.0-dlist-materials,Fail
+spec@!opengl 1.0@gl-1.0-spot-light,Fail
+spec@!opengl 1.1@dlist-color-material,Fail
+spec@!opengl 1.1@draw-arrays-colormaterial,Fail
+spec@!opengl 1.1@gl-1.1-color-material-array,Fail
+spec@!opengl 1.1@infinite-spot-light,Fail
+spec@!opengl 1.2@draw-elements-vs-inputs,Fail
+spec@!opengl 1.2@gl-1.2-rescale-normal,Fail
+spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
+spec@!opengl 1.5@normal3b3s-invariance-byte,Fail
+spec@arb_draw_buffers@fbo-mrt-alphatest,Fail
+spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 2,Fail
+spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 4,Fail
+spec@glsl-1.10@execution@variable-indexing@fs-input-array-float-index-rd,Fail
+spec@glsl-1.10@execution@variable-indexing@fs-input-array-vec2-index-rd,Fail
+spec@glsl-1.10@execution@variable-indexing@fs-input-array-vec3-index-rd,Fail
+spec@glsl-1.10@execution@variable-indexing@fs-input-array-vec4-index-rd,Fail

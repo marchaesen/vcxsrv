@@ -96,10 +96,10 @@ get_clear_pipeline_layout(struct vk_device *device,
                           struct vk_meta_device *meta,
                           VkPipelineLayout *layout_out)
 {
-   const char key[] = "vk-meta-clear-pipeline-layout";
+   enum vk_meta_object_key_type key = VK_META_OBJECT_KEY_CLEAR;
 
    VkPipelineLayout from_cache =
-      vk_meta_lookup_pipeline_layout(meta, key, sizeof(key));
+      vk_meta_lookup_pipeline_layout(meta, &key, sizeof(key));
    if (from_cache != VK_NULL_HANDLE) {
       *layout_out = from_cache;
       return VK_SUCCESS;
@@ -118,7 +118,7 @@ get_clear_pipeline_layout(struct vk_device *device,
    };
 
    return vk_meta_create_pipeline_layout(device, meta, &info,
-                                         key, sizeof(key), layout_out);
+                                         &key, sizeof(key), layout_out);
 }
 
 static VkResult
@@ -209,7 +209,7 @@ vk_meta_clear_attachments(struct vk_command_buffer *cmd,
 
    struct vk_meta_clear_key key;
    memset(&key, 0, sizeof(key));
-   key.key_type = VK_META_OBJECT_KEY_CLEAR_PIPELINE;
+   key.key_type = VK_META_OBJECT_KEY_CLEAR;
    vk_meta_rendering_info_copy(&key.render, render);
 
    struct vk_meta_clear_push_data push = {0};

@@ -48,12 +48,12 @@ SOFTWARE.
 
 #include "xvdisp.h"
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
 
 unsigned long XvXRTPort;
-#endif
+#endif /* XINERAMA */
 
 static int
 SWriteQueryExtensionReply(ClientPtr client, xvQueryExtensionReply * rep)
@@ -1116,20 +1116,10 @@ ProcXvDispatch(ClientPtr client)
 /* Swapped Procs */
 
 static int _X_COLD
-SProcXvQueryExtension(ClientPtr client)
-{
-    REQUEST(xvQueryExtensionReq);
-    REQUEST_SIZE_MATCH(xvQueryExtensionReq);
-    swaps(&stuff->length);
-    return XvProcVector[xv_QueryExtension] (client);
-}
-
-static int _X_COLD
 SProcXvQueryAdaptors(ClientPtr client)
 {
     REQUEST(xvQueryAdaptorsReq);
     REQUEST_SIZE_MATCH(xvQueryAdaptorsReq);
-    swaps(&stuff->length);
     swapl(&stuff->window);
     return XvProcVector[xv_QueryAdaptors] (client);
 }
@@ -1139,7 +1129,6 @@ SProcXvQueryEncodings(ClientPtr client)
 {
     REQUEST(xvQueryEncodingsReq);
     REQUEST_SIZE_MATCH(xvQueryEncodingsReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     return XvProcVector[xv_QueryEncodings] (client);
 }
@@ -1149,7 +1138,6 @@ SProcXvGrabPort(ClientPtr client)
 {
     REQUEST(xvGrabPortReq);
     REQUEST_SIZE_MATCH(xvGrabPortReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->time);
     return XvProcVector[xv_GrabPort] (client);
@@ -1160,7 +1148,6 @@ SProcXvUngrabPort(ClientPtr client)
 {
     REQUEST(xvUngrabPortReq);
     REQUEST_SIZE_MATCH(xvUngrabPortReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->time);
     return XvProcVector[xv_UngrabPort] (client);
@@ -1171,7 +1158,6 @@ SProcXvPutVideo(ClientPtr client)
 {
     REQUEST(xvPutVideoReq);
     REQUEST_SIZE_MATCH(xvPutVideoReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
@@ -1191,7 +1177,6 @@ SProcXvPutStill(ClientPtr client)
 {
     REQUEST(xvPutStillReq);
     REQUEST_SIZE_MATCH(xvPutStillReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
@@ -1211,7 +1196,6 @@ SProcXvGetVideo(ClientPtr client)
 {
     REQUEST(xvGetVideoReq);
     REQUEST_SIZE_MATCH(xvGetVideoReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
@@ -1231,7 +1215,6 @@ SProcXvGetStill(ClientPtr client)
 {
     REQUEST(xvGetStillReq);
     REQUEST_SIZE_MATCH(xvGetStillReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
@@ -1251,7 +1234,6 @@ SProcXvPutImage(ClientPtr client)
 {
     REQUEST(xvPutImageReq);
     REQUEST_AT_LEAST_SIZE(xvPutImageReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
@@ -1275,7 +1257,6 @@ SProcXvShmPutImage(ClientPtr client)
 {
     REQUEST(xvShmPutImageReq);
     REQUEST_SIZE_MATCH(xvShmPutImageReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->drawable);
     swapl(&stuff->gc);
@@ -1303,7 +1284,6 @@ SProcXvSelectVideoNotify(ClientPtr client)
 {
     REQUEST(xvSelectVideoNotifyReq);
     REQUEST_SIZE_MATCH(xvSelectVideoNotifyReq);
-    swaps(&stuff->length);
     swapl(&stuff->drawable);
     return XvProcVector[xv_SelectVideoNotify] (client);
 }
@@ -1313,7 +1293,6 @@ SProcXvSelectPortNotify(ClientPtr client)
 {
     REQUEST(xvSelectPortNotifyReq);
     REQUEST_SIZE_MATCH(xvSelectPortNotifyReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     return XvProcVector[xv_SelectPortNotify] (client);
 }
@@ -1323,7 +1302,6 @@ SProcXvStopVideo(ClientPtr client)
 {
     REQUEST(xvStopVideoReq);
     REQUEST_SIZE_MATCH(xvStopVideoReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->drawable);
     return XvProcVector[xv_StopVideo] (client);
@@ -1334,7 +1312,6 @@ SProcXvSetPortAttribute(ClientPtr client)
 {
     REQUEST(xvSetPortAttributeReq);
     REQUEST_SIZE_MATCH(xvSetPortAttributeReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->attribute);
     swapl(&stuff->value);
@@ -1346,7 +1323,6 @@ SProcXvGetPortAttribute(ClientPtr client)
 {
     REQUEST(xvGetPortAttributeReq);
     REQUEST_SIZE_MATCH(xvGetPortAttributeReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->attribute);
     return XvProcVector[xv_GetPortAttribute] (client);
@@ -1357,7 +1333,6 @@ SProcXvQueryBestSize(ClientPtr client)
 {
     REQUEST(xvQueryBestSizeReq);
     REQUEST_SIZE_MATCH(xvQueryBestSizeReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swaps(&stuff->vid_w);
     swaps(&stuff->vid_h);
@@ -1371,7 +1346,6 @@ SProcXvQueryPortAttributes(ClientPtr client)
 {
     REQUEST(xvQueryPortAttributesReq);
     REQUEST_SIZE_MATCH(xvQueryPortAttributesReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     return XvProcVector[xv_QueryPortAttributes] (client);
 }
@@ -1381,7 +1355,6 @@ SProcXvQueryImageAttributes(ClientPtr client)
 {
     REQUEST(xvQueryImageAttributesReq);
     REQUEST_SIZE_MATCH(xvQueryImageAttributesReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     swapl(&stuff->id);
     swaps(&stuff->width);
@@ -1394,13 +1367,12 @@ SProcXvListImageFormats(ClientPtr client)
 {
     REQUEST(xvListImageFormatsReq);
     REQUEST_SIZE_MATCH(xvListImageFormatsReq);
-    swaps(&stuff->length);
     swapl(&stuff->port);
     return XvProcVector[xv_ListImageFormats] (client);
 }
 
 static int (*SXvProcVector[xvNumRequests]) (ClientPtr) = {
-SProcXvQueryExtension,
+        ProcXvQueryExtension,
         SProcXvQueryAdaptors,
         SProcXvQueryEncodings,
         SProcXvGrabPort,
@@ -1433,7 +1405,7 @@ SProcXvDispatch(ClientPtr client)
     return SXvProcVector[stuff->data] (client);
 }
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 static int
 XineramaXvStopVideo(ClientPtr client)
 {
@@ -1541,7 +1513,7 @@ XineramaXvShmPutImage(ClientPtr client)
 }
 #else
 #define XineramaXvShmPutImage ProcXvShmPutImage
-#endif
+#endif /* MITSHM */
 
 static int
 XineramaXvPutImage(ClientPtr client)
@@ -1796,17 +1768,17 @@ XineramifyXv(void)
     XvProcVector[xv_PutImage] = XineramaXvPutImage;
     XvProcVector[xv_ShmPutImage] = XineramaXvShmPutImage;
 }
-#endif                          /* PANORAMIX */
+#endif /* XINERAMA */
 
 void
 XvResetProcVector(void)
 {
-#ifdef PANORAMIX
+#ifdef XINERAMA
     XvProcVector[xv_PutVideo] = ProcXvPutVideo;
     XvProcVector[xv_PutStill] = ProcXvPutStill;
     XvProcVector[xv_StopVideo] = ProcXvStopVideo;
     XvProcVector[xv_SetPortAttribute] = ProcXvSetPortAttribute;
     XvProcVector[xv_PutImage] = ProcXvPutImage;
     XvProcVector[xv_ShmPutImage] = ProcXvShmPutImage;
-#endif
+#endif /* XINERAMA */
 }

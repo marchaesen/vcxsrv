@@ -68,7 +68,7 @@ struct panvk_shader_desc_info {
 struct lower_desc_ctx {
    const struct panvk_descriptor_set_layout *set_layouts[MAX_SETS];
    struct panvk_shader_desc_info desc_info;
-   struct hash_table *ht;
+   struct hash_table_u64 *ht;
    bool add_bounds_checks;
    nir_address_format ubo_addr_format;
    nir_address_format ssbo_addr_format;
@@ -105,46 +105,29 @@ get_binding_layout(uint32_t set, uint32_t binding,
    return &get_set_layout(set, ctx)->bindings[binding];
 }
 
-#define DELETED_KEY (void *)(uintptr_t)1
-
 struct desc_id {
-   uint32_t set;
-   uint32_t binding;
-   uint32_t subdesc;
-};
-
-static void *
-desc_id_to_key(struct desc_id id)
-{
-   assert(id.set <= BITFIELD_MASK(4));
-   assert(id.subdesc <= BITFIELD_MASK(1));
-   assert(id.binding <= BITFIELD_MASK(27));
-
-   uint32_t handle = (id.set << 28) | (id.subdesc << 27) | id.binding;
-   assert(handle < UINT32_MAX - 2);
-   return (void *)(uintptr_t)(handle + 2);
-}
-
-static struct desc_id
-key_to_desc_id(const void *key)
-{
-   uint32_t handle = (uintptr_t)key - 2;
-
-   return (struct desc_id){
-      .set = handle >> 28,
-      .subdesc = (handle & BITFIELD_BIT(27)) ? 1 : 0,
-      .binding = handle & BITFIELD_MASK(27),
+   union {
+      struct {
+         uint32_t binding;
+         uint32_t set : 4;
+         uint32_t subdesc : 3;
+         uint32_t pad : 25;
+      };
+      uint64_t ht_key;
    };
-}
+};
 
 #if PAN_ARCH <= 7
 static enum panvk_bifrost_desc_table_type
-desc_type_to_table_type(VkDescriptorType type, unsigned subdesc_idx)
+desc_type_to_table_type(
+   const struct panvk_descriptor_set_binding_layout *binding_layout,
+   unsigned subdesc_idx)
 {
-   switch (type) {
+   switch (binding_layout->type) {
    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      return subdesc_idx == 1 ? PANVK_BIFROST_DESC_TABLE_SAMPLER
-                              : PANVK_BIFROST_DESC_TABLE_TEXTURE;
+      return subdesc_idx >= MAX2(1, binding_layout->textures_per_desc)
+         ? PANVK_BIFROST_DESC_TABLE_SAMPLER
+         : PANVK_BIFROST_DESC_TABLE_TEXTURE;
    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
@@ -163,27 +146,15 @@ desc_type_to_table_type(VkDescriptorType type, unsigned subdesc_idx)
 #endif
 
 static uint32_t
-get_subdesc_idx(const struct panvk_descriptor_set_binding_layout *bind_layout,
-                VkDescriptorType subdesc_type)
-{
-   if (bind_layout->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
-      assert(subdesc_type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
-             subdesc_type == VK_DESCRIPTOR_TYPE_SAMPLER);
-      return subdesc_type == VK_DESCRIPTOR_TYPE_SAMPLER ? 1 : 0;
-   }
-
-   return 0;
-}
-
-static uint32_t
-shader_desc_idx(uint32_t set, uint32_t binding, VkDescriptorType subdesc_type,
+shader_desc_idx(uint32_t set, uint32_t binding,
+                struct panvk_subdesc_info subdesc,
                 const struct lower_desc_ctx *ctx)
 {
    const struct panvk_descriptor_set_layout *set_layout =
       get_set_layout(set, ctx);
    const struct panvk_descriptor_set_binding_layout *bind_layout =
       &set_layout->bindings[binding];
-   uint32_t subdesc_idx = get_subdesc_idx(bind_layout, subdesc_type);
+   uint32_t subdesc_idx = get_subdesc_idx(bind_layout, subdesc);
 
    /* On Valhall, all non-dynamic descriptors are accessed directly through
     * their set. The vertex attribute table always comes first, so we always
@@ -200,13 +171,12 @@ shader_desc_idx(uint32_t set, uint32_t binding, VkDescriptorType subdesc_type,
       .subdesc = subdesc_idx,
       .binding = binding,
    };
-   struct hash_entry *he =
-      _mesa_hash_table_search(ctx->ht, desc_id_to_key(src));
+   uint32_t *entry =
+      _mesa_hash_table_u64_search(ctx->ht, src.ht_key);
 
-   assert(he);
+   assert(entry);
 
    const struct panvk_shader_desc_map *map;
-   uint32_t *entry = he->data;
 
 #if PAN_ARCH <= 7
    if (bind_layout->type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC) {
@@ -214,7 +184,7 @@ shader_desc_idx(uint32_t set, uint32_t binding, VkDescriptorType subdesc_type,
    } else if (bind_layout->type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC) {
       map = &ctx->desc_info.dyn_ssbos;
    } else {
-      uint32_t table = desc_type_to_table_type(bind_layout->type, src.subdesc);
+      uint32_t table = desc_type_to_table_type(bind_layout, src.subdesc);
 
       assert(table < PANVK_BIFROST_DESC_TABLE_COUNT);
       map = &ctx->desc_info.others[table];
@@ -321,7 +291,7 @@ build_res_index(nir_builder *b, uint32_t set, uint32_t binding,
       &set_layout->bindings[binding];
    uint32_t array_size = bind_layout->desc_count;
    nir_address_format addr_fmt = addr_format_for_type(bind_layout->type, ctx);
-   uint32_t desc_idx = shader_desc_idx(set, binding, bind_layout->type, ctx);
+   uint32_t desc_idx = shader_desc_idx(set, binding, NO_SUBDESC, ctx);
 
    switch (addr_fmt) {
 #if PAN_ARCH <= 7
@@ -545,13 +515,20 @@ load_resource_deref_desc(nir_builder *b, nir_deref_instr *deref,
       get_set_layout(set, ctx);
    const struct panvk_descriptor_set_binding_layout *bind_layout =
       &set_layout->bindings[binding];
-   unsigned subdesc_idx = get_subdesc_idx(bind_layout, subdesc_type);
+   struct panvk_subdesc_info subdesc =
+      subdesc_type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
+         ? get_tex_subdesc_info(bind_layout->type, 0)
+         : subdesc_type == VK_DESCRIPTOR_TYPE_SAMPLER
+            ? get_sampler_subdesc_info(bind_layout->type, 0)
+            : NO_SUBDESC;
+
+   unsigned subdesc_idx = get_subdesc_idx(bind_layout, subdesc);
 
    assert(index_ssa == NULL || index_imm == 0);
    if (index_ssa == NULL)
       index_ssa = nir_imm_int(b, index_imm);
 
-   unsigned desc_stride = panvk_get_desc_stride(bind_layout->type);
+   unsigned desc_stride = panvk_get_desc_stride(bind_layout);
    nir_def *set_offset =
       nir_imul_imm(b,
                    nir_iadd_imm(b, nir_imul_imm(b, index_ssa, desc_stride),
@@ -698,12 +675,24 @@ load_img_samples(nir_builder *b, nir_deref_instr *deref,
 }
 
 static uint32_t
-get_desc_array_stride(const struct panvk_descriptor_set_binding_layout *layout)
+get_desc_array_stride(const struct panvk_descriptor_set_binding_layout *layout,
+                      VkDescriptorType type)
 {
+   if (PAN_ARCH >= 9)
+      return panvk_get_desc_stride(layout);
+
    /* On Bifrost, descriptors are copied from the sets to the final
-    * descriptor tables which are per-type, making the stride one in
-    * this context. */
-   return PAN_ARCH >= 9 ? panvk_get_desc_stride(layout->type) : 1;
+    * descriptor tables which are per-type. For combined image-sampler,
+    * the stride is {textures/samplers}_per_desc in this context;
+    * otherwise the stride is one. */
+   switch(type) {
+   case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+      return layout->textures_per_desc;
+   case VK_DESCRIPTOR_TYPE_SAMPLER:
+      return layout->samplers_per_desc;
+   default:
+      return 1;
+   }
 }
 
 static bool
@@ -743,9 +732,14 @@ lower_tex(nir_builder *b, nir_tex_instr *tex, const struct lower_desc_ctx *ctx)
       return true;
    }
 
+   uint32_t plane = 0;
    int sampler_src_idx =
       nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
    if (sampler_src_idx >= 0) {
+      nir_def *plane_ssa = nir_steal_tex_src(tex, nir_tex_src_plane);
+      plane =
+         plane_ssa ? nir_src_as_uint(nir_src_for_ssa(plane_ssa)) : 0;
+
       nir_deref_instr *deref = nir_src_as_deref(tex->src[sampler_src_idx].src);
       nir_tex_instr_remove_src(tex, sampler_src_idx);
 
@@ -757,10 +751,12 @@ lower_tex(nir_builder *b, nir_tex_instr *tex, const struct lower_desc_ctx *ctx)
          get_set_layout(set, ctx);
       const struct panvk_descriptor_set_binding_layout *bind_layout =
          &set_layout->bindings[binding];
-      uint32_t desc_stride = get_desc_array_stride(bind_layout);
+      struct panvk_subdesc_info subdesc =
+         get_sampler_subdesc_info(bind_layout->type, plane);
+      uint32_t desc_stride = get_desc_array_stride(bind_layout, subdesc.type);
 
       tex->sampler_index =
-         shader_desc_idx(set, binding, VK_DESCRIPTOR_TYPE_SAMPLER, ctx) +
+         shader_desc_idx(set, binding, subdesc, ctx) +
          index_imm * desc_stride;
 
       if (index_ssa != NULL) {
@@ -788,10 +784,12 @@ lower_tex(nir_builder *b, nir_tex_instr *tex, const struct lower_desc_ctx *ctx)
          get_set_layout(set, ctx);
       const struct panvk_descriptor_set_binding_layout *bind_layout =
          &set_layout->bindings[binding];
-      uint32_t desc_stride = get_desc_array_stride(bind_layout);
+      struct panvk_subdesc_info subdesc =
+         get_tex_subdesc_info(bind_layout->type,  plane);
+      uint32_t desc_stride = get_desc_array_stride(bind_layout, subdesc.type);
 
       tex->texture_index =
-         shader_desc_idx(set, binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ctx) +
+         shader_desc_idx(set, binding, subdesc, ctx) +
          index_imm * desc_stride;
 
       if (index_ssa != NULL) {
@@ -819,7 +817,7 @@ get_img_index(nir_builder *b, nir_deref_instr *deref,
           bind_layout->type == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER ||
           bind_layout->type == VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER);
 
-   unsigned img_offset = shader_desc_idx(set, binding, bind_layout->type, ctx);
+   unsigned img_offset = shader_desc_idx(set, binding, NO_SUBDESC, ctx);
 
    if (index_ssa == NULL) {
       return nir_imm_int(b, img_offset + index_imm);
@@ -900,15 +898,17 @@ lower_descriptors_instr(nir_builder *b, nir_instr *instr, void *data)
 
 static void
 record_binding(struct lower_desc_ctx *ctx, unsigned set, unsigned binding,
-               VkDescriptorType subdesc_type, uint32_t max_idx)
+               struct panvk_subdesc_info subdesc, uint32_t max_idx)
 {
    const struct panvk_descriptor_set_layout *set_layout = ctx->set_layouts[set];
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set_layout->bindings[binding];
-   uint32_t subdesc_idx = get_subdesc_idx(binding_layout, subdesc_type);
-   uint32_t desc_stride = panvk_get_desc_stride(binding_layout->type);
+   uint32_t subdesc_idx = get_subdesc_idx(binding_layout, subdesc);
+   uint32_t desc_stride = panvk_get_desc_stride(binding_layout);
+   uint32_t max_desc_stride = MAX2(
+      binding_layout->samplers_per_desc + binding_layout->textures_per_desc, 1);
 
-   assert(desc_stride == 1 || desc_stride == 2);
+   assert(desc_stride >= 1 && desc_stride <= max_desc_stride);
    ctx->desc_info.used_set_mask |= BITFIELD_BIT(set);
 
    /* On valhall, we only record dynamic bindings, others are accessed directly
@@ -923,29 +923,24 @@ record_binding(struct lower_desc_ctx *ctx, unsigned set, unsigned binding,
       return;
 
    assert(subdesc_idx < desc_stride);
-   assert(!(binding & BITFIELD_BIT(27)));
 
    struct desc_id src = {
       .set = set,
       .subdesc = subdesc_idx,
       .binding = binding,
    };
-   const void *key = desc_id_to_key(src);
-   struct hash_entry *he = _mesa_hash_table_search(ctx->ht, key);
-   uint32_t old_desc_count = 0;
+   uint32_t *entry = _mesa_hash_table_u64_search(ctx->ht, src.ht_key);
+   uint32_t old_desc_count = (uintptr_t)entry;
    uint32_t new_desc_count =
       max_idx == UINT32_MAX ? binding_layout->desc_count : max_idx + 1;
 
    assert(new_desc_count <= binding_layout->desc_count);
 
-   if (!he)
-      he = _mesa_hash_table_insert(ctx->ht, key,
-                                   (void *)(uintptr_t)new_desc_count);
-   else
-      old_desc_count = (uintptr_t)he->data;
-
    if (old_desc_count >= new_desc_count)
       return;
+
+   _mesa_hash_table_u64_insert(ctx->ht, src.ht_key,
+                               (void *)(uintptr_t)new_desc_count);
 
    uint32_t desc_count_diff = new_desc_count - old_desc_count;
 
@@ -957,7 +952,7 @@ record_binding(struct lower_desc_ctx *ctx, unsigned set, unsigned binding,
       ctx->desc_info.dyn_ssbos.count += desc_count_diff;
    } else {
       uint32_t table =
-         desc_type_to_table_type(binding_layout->type, subdesc_idx);
+         desc_type_to_table_type(binding_layout, subdesc_idx);
 
       assert(table < PANVK_BIFROST_DESC_TABLE_COUNT);
       ctx->desc_info.others[table].count += desc_count_diff;
@@ -965,8 +960,6 @@ record_binding(struct lower_desc_ctx *ctx, unsigned set, unsigned binding,
 #else
    ctx->desc_info.dyn_bufs.count += desc_count_diff;
 #endif
-
-   he->data = (void *)(uintptr_t)new_desc_count;
 }
 
 static uint32_t *
@@ -979,7 +972,7 @@ fill_copy_descs_for_binding(struct lower_desc_ctx *ctx, unsigned set,
    const struct panvk_descriptor_set_layout *set_layout = ctx->set_layouts[set];
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set_layout->bindings[binding];
-   uint32_t desc_stride = panvk_get_desc_stride(binding_layout->type);
+   uint32_t desc_stride = panvk_get_desc_stride(binding_layout);
    uint32_t *first_entry = NULL;
 
    assert(desc_count <= binding_layout->desc_count);
@@ -997,7 +990,7 @@ fill_copy_descs_for_binding(struct lower_desc_ctx *ctx, unsigned set,
          map = &ctx->desc_info.dyn_ssbos;
       } else {
          uint32_t dst_table =
-            desc_type_to_table_type(binding_layout->type, subdesc_idx);
+            desc_type_to_table_type(binding_layout, subdesc_idx);
 
          assert(dst_table < PANVK_BIFROST_DESC_TABLE_COUNT);
          map = &ctx->desc_info.others[dst_table];
@@ -1074,16 +1067,19 @@ create_copy_table(nir_shader *nir, struct lower_desc_ctx *ctx)
    assert(desc_info->dyn_bufs.map);
 #endif
 
-   hash_table_foreach(ctx->ht, he) {
+   hash_table_u64_foreach(ctx->ht, he) {
       /* We use the upper binding bit to encode the subdesc index. */
-      uint32_t desc_count = (uintptr_t)he->data;
-      struct desc_id src = key_to_desc_id(he->key);
+      uint32_t desc_count = (uintptr_t)he.data;
+      struct desc_id src = {
+         .ht_key = he.key,
+      };
 
       /* Until now, we were just using the hash table to track descriptors
        * count, but after that point, it's a <set,binding> -> <table_index>
        * map. */
-      he->data = fill_copy_descs_for_binding(ctx, src.set, src.binding,
-                                             src.subdesc, desc_count);
+      void *new_data = fill_copy_descs_for_binding(ctx, src.set, src.binding,
+                                                   src.subdesc, desc_count);
+      _mesa_hash_table_u64_replace(ctx->ht, &he, new_data);
    }
 }
 
@@ -1094,17 +1090,28 @@ collect_tex_desc_access(nir_builder *b, nir_tex_instr *tex,
                         struct lower_desc_ctx *ctx)
 {
    bool recorded = false;
+   uint32_t plane = 0;
    int sampler_src_idx =
       nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
    if (sampler_src_idx >= 0) {
+      int plane_src_idx = nir_tex_instr_src_index(tex, nir_tex_src_plane);
+      if (plane_src_idx >= 0)
+         plane = nir_src_as_uint(tex->src[plane_src_idx].src);
+
       nir_deref_instr *deref = nir_src_as_deref(tex->src[sampler_src_idx].src);
 
       uint32_t set, binding, index_imm, max_idx;
       nir_def *index_ssa;
       get_resource_deref_binding(deref, &set, &binding, &index_imm, &index_ssa,
                                  &max_idx);
+      const struct panvk_descriptor_set_layout *set_layout =
+         ctx->set_layouts[set];
+      const struct panvk_descriptor_set_binding_layout *binding_layout =
+         &set_layout->bindings[binding];
+      struct panvk_subdesc_info subdesc =
+         get_sampler_subdesc_info(binding_layout->type, plane);
 
-      record_binding(ctx, set, binding, VK_DESCRIPTOR_TYPE_SAMPLER, max_idx);
+      record_binding(ctx, set, binding, subdesc, max_idx);
       recorded = true;
    }
 
@@ -1116,9 +1123,14 @@ collect_tex_desc_access(nir_builder *b, nir_tex_instr *tex,
       nir_def *index_ssa;
       get_resource_deref_binding(deref, &set, &binding, &index_imm, &index_ssa,
                                  &max_idx);
+      const struct panvk_descriptor_set_layout *set_layout =
+         ctx->set_layouts[set];
+      const struct panvk_descriptor_set_binding_layout *binding_layout =
+         &set_layout->bindings[binding];
+      struct panvk_subdesc_info subdesc =
+         get_tex_subdesc_info(binding_layout->type, plane);
 
-      record_binding(ctx, set, binding, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                     max_idx);
+      record_binding(ctx, set, binding, subdesc, max_idx);
       recorded = true;
    }
 
@@ -1138,7 +1150,7 @@ collect_intr_desc_access(nir_builder *b, nir_intrinsic_instr *intrin,
 
       /* TODO: walk the reindex chain from load_vulkan_descriptor() to try and
        * guess the max index. */
-      record_binding(ctx, set, binding, ~0, UINT32_MAX);
+      record_binding(ctx, set, binding, NO_SUBDESC, UINT32_MAX);
       return true;
    }
 
@@ -1154,7 +1166,7 @@ collect_intr_desc_access(nir_builder *b, nir_intrinsic_instr *intrin,
 
       get_resource_deref_binding(deref, &set, &binding, &index_imm, &index_ssa,
                                  &max_idx);
-      record_binding(ctx, set, binding, ~0, max_idx);
+      record_binding(ctx, set, binding, NO_SUBDESC, max_idx);
       return true;
    }
    default:
@@ -1244,10 +1256,8 @@ panvk_per_arch(nir_lower_descriptors)(
    ctx.ssbo_addr_format = nir_address_format_vec2_index_32bit_offset;
 #endif
 
-   ctx.ht = _mesa_hash_table_create_u32_keys(NULL);
+   ctx.ht = _mesa_hash_table_u64_create(NULL);
    assert(ctx.ht);
-
-   _mesa_hash_table_set_deleted_key(ctx.ht, DELETED_KEY);
 
    for (uint32_t i = 0; i < set_layout_count; i++)
       ctx.set_layouts[i] = to_panvk_descriptor_set_layout(set_layouts[i]);
@@ -1273,5 +1283,5 @@ panvk_per_arch(nir_lower_descriptors)(
             lower_descriptors_instr, nir_metadata_control_flow, &ctx);
 
 out:
-   _mesa_hash_table_destroy(ctx.ht, NULL);
+   _mesa_hash_table_u64_destroy(ctx.ht);
 }

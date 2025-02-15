@@ -80,6 +80,16 @@ typedef uint64_t zx_koid_t;
 #include "gfxstream/guest/goldfish_sync.h"
 #endif
 
+#define vk_filter_struct(__start, __sType) { \
+    auto* curr = reinterpret_cast<VkBaseOutStructure*>(__start); \
+    while (curr != nullptr) { \
+        if (curr->pNext != nullptr && curr->pNext->sType == VK_STRUCTURE_TYPE_##__sType) { \
+            curr->pNext = curr->pNext->pNext; \
+        } \
+        curr = curr->pNext; \
+    } \
+} \
+
 // This should be ABI identical with the variant in ResourceTracker.h
 struct GfxStreamVkFeatureInfo {
     bool hasDirectMem;

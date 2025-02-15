@@ -1664,11 +1664,10 @@ hk_get_prolog_epilog_locked(struct hk_device *dev, struct hk_internal_key *key,
    builder(&b, key->key);
 
    if (preprocess_nir)
-      agx_preprocess_nir(b.shader, dev->dev.libagx);
+      agx_preprocess_nir(b.shader);
 
    struct agx_shader_key backend_key = {
       .dev = agx_gather_device_key(&dev->dev),
-      .libagx = dev->dev.libagx,
       .secondary = true,
       .no_stop = !stop,
    };

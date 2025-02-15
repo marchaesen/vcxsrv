@@ -21,7 +21,7 @@ variables:
     REPO_URL_XORGPROTO:   'https://gitlab.freedesktop.org/xorg/proto/xorgproto.git'
     XORG_DEBIAN_VERSION:  'bullseye-slim'
     XORG_DEBIAN_EXEC:     'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/debian-install.sh'
-    XORG_DEBIAN_TAG:      '2024-11-14-wayland-protocols-1-38'
+    XORG_DEBIAN_TAG:      '2025-02-10-intel'
     XORG_FREEBSD_VERSION: '14.0'
     XORG_FREEBSD_EXEC:    ''
     XORG_FREEBSD_TAG:     '2024-06-10.0'
@@ -262,6 +262,8 @@ xf86-driver-build-test:
               SHA: xf86-video-amdgpu-23.0.0
             - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-ati
               SHA: xf86-video-ati-22.0.0
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-intel
+              SHA: e6a4c4740c15ace9dd79dc7c18955f2eb413a6a5 # no release yet
             - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-qxl
               SHA: master
             - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-vesa
@@ -276,7 +278,7 @@ xf86-driver-build-test:
         - git clone "$REPO" "$DRIVER"
         - git -C "$DRIVER" checkout "$SHA"
         - |
-          if [[ -e "$DRIVER/meson.build" ]]; then
+          if [[ -e "$DRIVER/meson.build" ]] && [[ "$DRIVER" != "xf86-video-intel" ]]; then
             .gitlab-ci/meson-build.sh -C "$DRIVER" --skip-test
           else
              pushd "$DRIVER" || exit 1

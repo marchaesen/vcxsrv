@@ -141,7 +141,7 @@ emit_blend_desc(const struct pan_shader_info *fs_info, uint64_t fs_code,
       cfg.srgb = util_format_is_srgb(rt->format);
       cfg.load_destination = pan_blend_reads_dest(rt->equation);
       cfg.round_to_fb_precision = true;
-      cfg.constant = constant;
+      cfg.blend_constant = constant;
 
       if (blend_shader) {
          /* Blend and fragment shaders must be in the same 4G region. */

@@ -47,18 +47,11 @@ traces:
     freedreno-a530:
       checksum: 102a09ce76092436173fd09a6a2bd941
     freedreno-a618:
-      label: [skip, flakes]
       checksum: e0e18dcc50ab2e23cead650d64469178
-      text: "intermittent segfault https://mesa.pages.freedesktop.org/-/mesa/-/jobs/39893593/artifacts/results/summary/results/trace@freedreno-a618@valve@portal-2-v2.trace.html"
     freedreno-a630:
       checksum: e0e18dcc50ab2e23cead650d64469178
     zink-a618:
       checksum: b589b5d9ddd3026cbde08f0abe840ea7
-      label: [skip, broken]
-      text: |
-        Multiple subsequent errors:
-          MESA: error: zink: couldn't allocate memory: heap=<heap> size=<size>
-        Resulting in a segfault
     zink-a630:
       label: [skip, flakes]
       checksum: b589b5d9ddd3026cbde08f0abe840ea7
@@ -105,15 +98,13 @@ traces:
     freedreno-a530:
       label: [unsupported]
     freedreno-a618:
-      label: [skip, flakes]
       checksum: 17c6a6dd333514b125cc18282ce24ba8
-      text: https://gitlab.freedesktop.org/mesa/mesa/-/issues/8337
     freedreno-a630:
       checksum: 17c6a6dd333514b125cc18282ce24ba8
     zink-a618:
       label: [skip, flakes]
-      checksum: 59e37d2dca80caedd9494114d64c676c
-      text: https://gitlab.freedesktop.org/mesa/mesa/-/issues/8337
+      checksum: 96f7f231042f892c7d11c91defd7ecc1
+      text: May time out
     zink-a630:
       label: [skip]
       checksum: be297e672aaaf2351de71686d47f59eb

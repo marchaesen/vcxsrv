@@ -41,6 +41,15 @@
    if (cache->base.client_visible)                                             \
       vk_logw(VK_LOG_OBJS(cache), __VA_ARGS__)
 
+static struct disk_cache *
+get_disk_cache(const struct vk_pipeline_cache *cache)
+{
+   if (cache->disk_cache)
+      return cache->disk_cache;
+
+   return cache->base.device->physical->disk_cache;
+}
+
 static bool
 vk_raw_data_cache_object_serialize(struct vk_pipeline_cache_object *object,
                                    struct blob *blob)
@@ -356,7 +365,7 @@ vk_pipeline_cache_lookup_object(struct vk_pipeline_cache *cache,
    }
 
    if (object == NULL) {
-      struct disk_cache *disk_cache = cache->base.device->physical->disk_cache;
+      struct disk_cache *disk_cache = get_disk_cache(cache);
       if (!cache->skip_disk_cache && disk_cache && cache->object_cache) {
          cache_key cache_key;
          disk_cache_compute_key(disk_cache, key_data, key_size, cache_key);
@@ -425,7 +434,7 @@ vk_pipeline_cache_add_object(struct vk_pipeline_cache *cache,
        * either.  Better try and add it.
        */
 
-      struct disk_cache *disk_cache = cache->base.device->physical->disk_cache;
+      struct disk_cache *disk_cache = get_disk_cache(cache);
       if (!cache->skip_disk_cache && object->ops->serialize && disk_cache) {
          struct blob blob;
          blob_init(&blob);
@@ -451,7 +460,7 @@ vk_pipeline_cache_create_and_insert_object(struct vk_pipeline_cache *cache,
                                            const void *data, size_t data_size,
                                            const struct vk_pipeline_cache_object_ops *ops)
 {
-   struct disk_cache *disk_cache = cache->base.device->physical->disk_cache;
+   struct disk_cache *disk_cache = get_disk_cache(cache);
    if (!cache->skip_disk_cache && disk_cache) {
       cache_key cache_key;
       disk_cache_compute_key(disk_cache, key_data, key_size, cache_key);
@@ -627,6 +636,7 @@ vk_pipeline_cache_create(struct vk_device *device,
    cache->skip_disk_cache = true;
 #else
    cache->skip_disk_cache = info->skip_disk_cache;
+   cache->disk_cache = info->disk_cache;
 #endif
 
    struct VkPhysicalDeviceProperties pdevice_props;

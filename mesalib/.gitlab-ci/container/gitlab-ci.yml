@@ -297,6 +297,33 @@ debian/x86_64_test-base:
   needs:
     - debian/x86_64_test-base
 
+# Debian based ARMv7/armhf test image base
+debian/arm32_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .debian-container
+    - .firmware_arm32
+  variables:
+    MESA_IMAGE_TAG: &debian-arm32_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
+    LLVM_VERSION: *debian-arm64-llvm
+    FDO_DISTRIBUTION_PLATFORM: "linux/arm/v7"
+
+.use-debian/arm32_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .fdo.container-build@debian
+    - .debian-container-version
+    - .use-base-image
+  variables:
+    MESA_BASE_IMAGE: ${DEBIAN_ARM32_TEST_BASE_IMAGE}
+    MESA_BASE_TAG: *debian-arm32_test-base
+    LLVM_VERSION: *debian-arm64-llvm
+    FDO_DISTRIBUTION_PLATFORM: "linux/arm/v7"
+  needs:
+    - debian/arm32_test-base
+
 # Debian based aarch64 test image base
 debian/arm64_test-base:
   tags:
@@ -354,7 +381,7 @@ debian/x86_64_test-vk:
     - debian/x86_64_test-vk
 
 # Debian based x86_64 test image for Android
-.debian/x86_64_test-android:
+debian/x86_64_test-android:
   extends:
     - .android-variables
     - .use-debian/x86_64_test-base
@@ -388,6 +415,46 @@ debian/x86_64_pyutils:
     MESA_IMAGE_TAG: *debian-x86_64_pyutils
   needs:
     - debian/x86_64_pyutils
+
+# Debian based ARMv7/armhf test image for GL
+debian/arm32_test-gl:
+  tags:
+    - aarch64
+  extends: .use-debian/arm32_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm32_test-gl ${DEBIAN_TEST_GL_TAG}
+
+.use-debian/arm32_test-gl:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm32_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM32_TEST_IMAGE_GL_PATH}
+    MESA_IMAGE_TAG: *debian-arm32_test-gl
+  needs:
+    - debian/arm32_test-gl
+
+# Debian based ARMv7/armhf test image for VK
+debian/arm32_test-vk:
+  tags:
+    - aarch64
+  extends: .use-debian/arm32_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm32_test-vk ${DEBIAN_TEST_VK_TAG}
+
+.use-debian/arm32_test-vk:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm32_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM32_TEST_IMAGE_VK_PATH}
+    MESA_IMAGE_TAG: *debian-arm32_test-vk
+  needs:
+    - debian/arm32_test-vk
 
 # Debian based aarch64 test image for GL
 debian/arm64_test-gl:
@@ -435,6 +502,7 @@ debian/arm64_test-vk:
 .firmware_x86_64:
   variables:
     FIRMWARE_FILES: |
+      .gitlab-ci/firmware/i915/adlp-fw.json
       .gitlab-ci/firmware/i915/mtl-fw.json
 
 .firmware_arm64:

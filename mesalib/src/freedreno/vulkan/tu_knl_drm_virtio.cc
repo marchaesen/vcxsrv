@@ -267,6 +267,8 @@ tu_drm_get_highest_bank_bit(struct vdrm_device *vdrm)
 static enum fdl_macrotile_mode
 tu_drm_get_macrotile_mode(struct vdrm_device *vdrm)
 {
+   if (vdrm->caps.u.msm.macrotile_mode)
+      return (enum fdl_macrotile_mode)vdrm->caps.u.msm.macrotile_mode;
    uint64_t value;
    int ret = tu_drm_get_param(vdrm, MSM_PARAM_MACROTILE_MODE, &value);
    if (ret)
@@ -278,6 +280,8 @@ tu_drm_get_macrotile_mode(struct vdrm_device *vdrm)
 static uint32_t
 tu_drm_get_ubwc_swizzle(struct vdrm_device *vdrm)
 {
+   if (vdrm->caps.u.msm.ubwc_swizzle)
+      return (uint32_t)vdrm->caps.u.msm.ubwc_swizzle;
    uint64_t value;
    int ret = tu_drm_get_param(vdrm, MSM_PARAM_UBWC_SWIZZLE, &value);
    if (ret)
@@ -299,10 +303,19 @@ virtio_device_get_suspend_count(struct tu_device *dev, uint64_t *suspend_count)
    return ret;
 }
 
+static bool
+opt_cap_bool(uint32_t val)
+{
+   if (val == VIRTGPU_CAP_BOOL_TRUE)  return true;
+   if (val == VIRTGPU_CAP_BOOL_FALSE) return false;
+   unreachable("invalid val");
+}
 
 static bool
 tu_drm_get_raytracing(struct vdrm_device *vdrm)
 {
+   if (vdrm->caps.u.msm.has_raytracing)
+      return opt_cap_bool(vdrm->caps.u.msm.has_raytracing);
    uint64_t value;
    int ret = tu_drm_get_param(vdrm, MSM_PARAM_RAYTRACING, &value);
    if (ret)
@@ -357,6 +370,8 @@ virtio_submitqueue_close(struct tu_device *dev, uint32_t queue_id)
 static bool
 virtio_has_preemption(struct vdrm_device *vdrm)
 {
+   if (vdrm->caps.u.msm.has_preemption)
+      return opt_cap_bool(vdrm->caps.u.msm.has_preemption);
    struct drm_msm_submitqueue req = {
       .flags = MSM_SUBMITQUEUE_ALLOW_PREEMPT,
       .prio = vdrm->caps.u.msm.priorities / 2,
@@ -1145,9 +1160,6 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
 
    caps = vdrm->caps;
 
-   /* TODO add something to virgl_renderer_capset_drm to avoid round-trip to
-    * host if virglrenderer is new enough.
-    */
    bool has_preemption = virtio_has_preemption(vdrm);
 
    /* If virglrenderer is too old, we may need another round-trip to get this.
@@ -1155,11 +1167,9 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
    if (caps.u.msm.highest_bank_bit == 0)
       caps.u.msm.highest_bank_bit = tu_drm_get_highest_bank_bit(vdrm);
 
-   /* TODO add these to the caps struct */
    uint32_t bank_swizzle_levels = tu_drm_get_ubwc_swizzle(vdrm);
    enum fdl_macrotile_mode macrotile_mode = tu_drm_get_macrotile_mode(vdrm);
 
-   /* TODO add a cap for this */
    bool has_raytracing = tu_drm_get_raytracing(vdrm);
 
    vdrm_device_close(vdrm);
@@ -1177,6 +1187,11 @@ tu_knl_drm_virtio_load(struct tu_instance *instance,
    mesa_logd("chip_id:             0x%0" PRIx64, caps.u.msm.chip_id);
    mesa_logd("max_freq:            %u", caps.u.msm.max_freq);
    mesa_logd("highest_bank_bit:    %u", caps.u.msm.highest_bank_bit);
+   mesa_logd("ubwc_swizzle:        0x%" PRIx64, caps.u.msm.ubwc_swizzle);
+   mesa_logd("macrotile_mode:      %" PRIu64, caps.u.msm.macrotile_mode);
+   mesa_logd("has_raytracing:      %x", caps.u.msm.has_raytracing);
+   mesa_logd("has_preemption:      %d", caps.u.msm.has_preemption);
+   mesa_logd("uche_trap_base:      0x%" PRIx64, caps.u.msm.uche_trap_base);
 
    if (caps.wire_format_version != 2) {
       return vk_startup_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,

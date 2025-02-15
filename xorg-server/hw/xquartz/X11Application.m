@@ -1101,7 +1101,7 @@ handle_mouse:
             else
                 DarwinSendTabletEvents(darwinTabletCurrent, ProximityOut, 0,
                                        location.x, location.y, pressure,
-                                       tilt.x, tilt.y);
+                                       tilt.x, -tilt.y);
             return;
         }
 
@@ -1115,7 +1115,7 @@ handle_mouse:
             if (needsProximityIn) {
                 DarwinSendTabletEvents(darwinTabletCurrent, ProximityIn, 0,
                                        location.x, location.y, pressure,
-                                       tilt.x, tilt.y);
+                                       tilt.x, -tilt.y);
 
                 needsProximityIn = NO;
             }
@@ -1157,7 +1157,7 @@ handle_mouse:
         } else {
             DarwinSendTabletEvents(pDev, ev_type, ev_button,
                                    location.x, location.y, pressure,
-                                   tilt.x, tilt.y);
+                                   tilt.x, -tilt.y);
         }
 
         break;
@@ -1184,7 +1184,7 @@ handle_mouse:
         else
             DarwinSendTabletEvents(darwinTabletCurrent, ProximityOut, 0,
                                    location.x, location.y, pressure,
-                                   tilt.x, tilt.y);
+                                   tilt.x, -tilt.y);
         break;
 
     case NSScrollWheel:

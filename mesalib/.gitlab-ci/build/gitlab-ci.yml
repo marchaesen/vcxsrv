@@ -16,11 +16,12 @@
   # We don't want to download any previous job's artifacts
   dependencies: []
   artifacts:
-    name: "{CI_PROJECT_NAME}_${CI_JOB_NAME}"
+    name: "${CI_PROJECT_NAME}_${CI_JOB_NAME}"
     when: always
     paths:
       - _build/meson-logs/*.txt
       - _build/meson-logs/strace
+      - _build/.ninja_log
       - artifacts
 
 # Just Linux
@@ -71,6 +72,8 @@
     optional: true
   - job: debian-testing-asan
     optional: true
+  - job: debian-testing-ubsan
+    optional: true
   - job: debian-build-testing
     optional: true
   - job: debian-arm32
@@ -80,6 +83,8 @@
   - job: debian-arm64
     optional: true
   - job: debian-arm64-asan
+    optional: true
+  - job: debian-android
     optional: true
   # Windows runners don't have more than one build right now, so there is
   # no need to wait on the "first one" to be done.
@@ -98,23 +103,23 @@ debian-testing:
     BUILD_JOB_TIMEOUT: 30m
     UNWIND: "enabled"
     DRI_LOADERS: >
-      -D glx=dri
-      -D gbm=enabled
       -D egl=enabled
+      -D gbm=enabled
       -D glvnd=disabled
+      -D glx=dri
       -D platforms=x11,wayland
     GALLIUM_ST: >
-      -D gallium-nine=true
-      -D gallium-va=enabled
+      -D gallium-nine=false
       -D gallium-rusticl=true
-    GALLIUM_DRIVERS: "llvmpipe,softpipe,virgl,radeonsi,zink,crocus,iris,i915,r300,svga"
-    VULKAN_DRIVERS: "swrast,amd,intel,intel_hasvk,virtio,nouveau"
+      -D gallium-va=enabled
+    GALLIUM_DRIVERS: "llvmpipe,softpipe,virgl,radeonsi,zink,iris,svga"
+    VULKAN_DRIVERS: "swrast,amd,intel,virtio"
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
+      -D intel-elk=false
       -D spirv-to-dxil=true
-      -D valgrind=disabled
-      -D perfetto=true
       -D tools=drm-shim
+      -D valgrind=disabled
     S3_ARTIFACT_NAME: mesa-x86_64-default-${BUILDTYPE}
     RUN_MESON_TESTS: "false" # debian-build-testing already runs these
   script:
@@ -136,12 +141,12 @@ debian-testing-asan:
       -Wno-error=stringop-truncation
     EXTRA_OPTION: >
       -D b_sanitize=address
-      -D valgrind=disabled
-      -D tools=dlclose-skip
-      -D mesa-clc=system
       -D gallium-va=false
       -D gallium-nine=false
       -D gallium-rusticl=false
+      -D mesa-clc=system
+      -D tools=dlclose-skip
+      -D valgrind=disabled
     S3_ARTIFACT_NAME: ""
     ARTIFACTS_DEBUG_SYMBOLS: 1
     RUN_MESON_TESTS: "false" # just too slow
@@ -154,12 +159,12 @@ debian-testing-asan:
       -D gallium-rusticl=false
       -D gallium-nine=false
       -D gallium-drivers=
-      -D vulkan-drivers=
-      -D video-codecs=
       -D glx=disabled
-      -D platforms=
-      -D mesa-clc=enabled
       -D install-mesa-clc=true
+      -D mesa-clc=enabled
+      -D platforms=
+      -D video-codecs=
+      -D vulkan-drivers=
 
 debian-testing-msan:
   # https://github.com/google/sanitizers/wiki/MemorySanitizerLibcxxHowTo
@@ -174,6 +179,7 @@ debian-testing-msan:
       -D b_sanitize=memory
       -D b_lundef=false
       -D mesa-clc=system
+      -D precomp-compiler=system
     S3_ARTIFACT_NAME: ""
     ARTIFACTS_DEBUG_SYMBOLS: 1
     # Don't run all the tests yet:
@@ -183,19 +189,21 @@ debian-testing-msan:
     GALLIUM_DRIVERS: "freedreno,iris,nouveau,r300,r600,llvmpipe,softpipe,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12,crocus"
     VULKAN_DRIVERS: intel,amd,broadcom,virtio
     RUN_MESON_TESTS: "false" # just too slow
-    # Do a host build for mesa-clc (msan complains about uninitialized
+    # Do a host build for mesa-clc and precomp-compiler (msan complains about uninitialized
     # values in the LLVM libs)
     HOST_BUILD_OPTIONS: >
       -D build-tests=false
       -D enable-glcpp-tests=false
       -D gallium-opencl=disabled
-      -D gallium-drivers=
+      -D gallium-drivers=panfrost
       -D vulkan-drivers=
       -D video-codecs=
       -D glx=disabled
       -D platforms=
       -D mesa-clc=enabled
       -D install-mesa-clc=true
+      -D precomp-compiler=enabled
+      -D install-precomp-compiler=true
 
 debian-testing-ubsan:
   extends:
@@ -237,7 +245,6 @@ debian-build-testing:
   extends: .meson-build
   stage: build-for-tests
   variables:
-    BUILDTYPE: debug
     UNWIND: "enabled"
     DRI_LOADERS: >
       -D glx=dri
@@ -250,14 +257,16 @@ debian-build-testing:
       -D gallium-vdpau=enabled
       -D gallium-va=enabled
       -D gallium-xa=enabled
-      -D gallium-nine=false
+      -D gallium-nine=true
       -D gallium-rusticl=false
-    GALLIUM_DRIVERS: "iris,nouveau,r300,r600,freedreno,llvmpipe,softpipe,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12,asahi,crocus"
-    VULKAN_DRIVERS: swrast
+    GALLIUM_DRIVERS: "i915,iris,nouveau,r300,r600,freedreno,llvmpipe,softpipe,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12,asahi,crocus"
+    VULKAN_DRIVERS: "intel_hasvk,imagination-experimental,microsoft-experimental,nouveau,swrast"
+    BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
       -D spirv-to-dxil=true
       -D osmesa=true
       -D tools=drm-shim,etnaviv,freedreno,glsl,intel,intel-ui,nir,nouveau,lima,panfrost,asahi
+      -D perfetto=true
     S3_ARTIFACT_NAME: debian-build-testing
   script:
     - *meson-build
@@ -319,13 +328,14 @@ debian-release:
       -D gallium-nine=false
       -D gallium-rusticl=false
       -D llvm=enabled
-    GALLIUM_DRIVERS: "i915,iris,nouveau,freedreno,r300,svga,llvmpipe,softpipe,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12,crocus"
-    VULKAN_DRIVERS: "amd,imagination-experimental,microsoft-experimental"
+    GALLIUM_DRIVERS: "i915,iris,nouveau,r300,freedreno,llvmpipe,softpipe,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,d3d12,asahi,crocus"
+    VULKAN_DRIVERS: "swrast,intel_hasvk,imagination-experimental,microsoft-experimental"
     EXTRA_OPTION: >
       -D spirv-to-dxil=true
       -D osmesa=true
       -D tools=all
       -D mesa-clc=enabled
+      -D precomp-compiler=enabled
       -D intel-rt=enabled
       -D imagination-srv=true
     BUILDTYPE: "release"
@@ -427,9 +437,9 @@ debian-android:
     - .meson-cross
     - .use-debian/android_build
     - .ci-deqp-artifacts
+  stage: build-for-tests
   needs:
     - !reference [.use-debian/android_build, needs]
-    - !reference [.build-for-tests-jobs]
   variables:
     BUILDTYPE: debug
     UNWIND: "disabled"
@@ -458,6 +468,7 @@ debian-android:
       -D valgrind=disabled
       -D android-libbacktrace=disabled
       -D mesa-clc=system
+      -D precomp-compiler=system
     GALLIUM_ST: >
       -D gallium-vdpau=disabled
       -D gallium-va=disabled
@@ -469,13 +480,15 @@ debian-android:
       -D build-tests=false
       -D enable-glcpp-tests=false
       -D gallium-opencl=disabled
-      -D gallium-drivers=
+      -D gallium-drivers=panfrost
       -D vulkan-drivers=
       -D video-codecs=
       -D glx=disabled
       -D platforms=
       -D mesa-clc=enabled
       -D install-mesa-clc=true
+      -D precomp-compiler=enabled
+      -D install-precomp-compiler=true
     ARTIFACTS_DEBUG_SYMBOLS: 1
     S3_ARTIFACT_NAME: mesa-x86_64-android-${BUILDTYPE}
   script:
@@ -517,7 +530,7 @@ debian-android:
   needs:
     - debian/arm64_build
   variables:
-    VULKAN_DRIVERS: asahi,freedreno,broadcom
+    VULKAN_DRIVERS: "asahi,broadcom,freedreno"
     GALLIUM_DRIVERS: "etnaviv,freedreno,lima,nouveau,panfrost,llvmpipe,softpipe,tegra,v3d,vc4,zink"
     BUILDTYPE: "debugoptimized"
   tags:
@@ -533,12 +546,27 @@ debian-arm32:
     DRI_LOADERS:
       -D glvnd=disabled
     # remove asahi & llvmpipe from the .meson-arm list because here we have llvm=disabled
-    VULKAN_DRIVERS: freedreno,broadcom
+    VULKAN_DRIVERS: "broadcom,freedreno"
     GALLIUM_DRIVERS: "etnaviv,freedreno,lima,nouveau,panfrost,softpipe,tegra,v3d,vc4,zink"
     EXTRA_OPTION: >
       -D llvm=disabled
       -D valgrind=disabled
       -D gallium-rusticl=false
+      -D mesa-clc=system
+      -D precomp-compiler=system
+    HOST_BUILD_OPTIONS: >
+      -D build-tests=false
+      -D enable-glcpp-tests=false
+      -D gallium-opencl=disabled
+      -D gallium-drivers=panfrost
+      -D vulkan-drivers=
+      -D video-codecs=
+      -D glx=disabled
+      -D platforms=
+      -D mesa-clc=enabled
+      -D install-mesa-clc=true
+      -D precomp-compiler=enabled
+      -D install-precomp-compiler=true
     S3_ARTIFACT_NAME: mesa-arm32-default-${BUILDTYPE}
     # The strip command segfaults, failing to strip the binary and leaving
     # tempfiles in our artifacts.
@@ -576,13 +604,13 @@ debian-arm64:
     C_ARGS: >
       -Wno-error=array-bounds
       -Wno-error=stringop-truncation
-    VULKAN_DRIVERS: "asahi,freedreno,broadcom,panfrost,imagination-experimental"
+    GALLIUM_DRIVERS: "etnaviv,freedreno,lima,panfrost,v3d,vc4,zink"
+    VULKAN_DRIVERS: "broadcom,freedreno,panfrost"
     DRI_LOADERS:
       -D glvnd=disabled
     EXTRA_OPTION: >
       -D valgrind=disabled
       -D imagination-srv=true
-      -D perfetto=true
       -D freedreno-kmds=msm,virtio
       -D teflon=true
     GALLIUM_ST:
@@ -600,7 +628,7 @@ debian-arm64-asan:
   variables:
     BUILD_JOB_TIMEOUT: 30m
     VULKAN_DRIVERS: "broadcom,freedreno"
-    GALLIUM_DRIVERS: "vc4,v3d,freedreno"
+    GALLIUM_DRIVERS: "freedreno,vc4,v3d"
     DRI_LOADERS:
       -D glvnd=disabled
     EXTRA_OPTION: >
@@ -644,11 +672,12 @@ debian-arm64-build-test:
     - !reference [.meson-arm, needs]
     - !reference [.build-for-tests-jobs]
   variables:
-    VULKAN_DRIVERS: "amd,nouveau"
+    VULKAN_DRIVERS: "amd,asahi,imagination-experimental,nouveau"
     DRI_LOADERS:
       -D glvnd=disabled
     EXTRA_OPTION: >
-      -Dtools=panfrost,imagination
+      -D tools=panfrost,imagination
+      -D perfetto=true
 
 debian-arm64-release:
   extends:
@@ -737,6 +766,7 @@ debian-clang:
       -D vulkan-layers=device-select,overlay
       -D build-aco-tests=true
       -D mesa-clc=enabled
+      -D precomp-compiler=enabled
       -D intel-rt=enabled
       -D imagination-srv=true
       -D teflon=true
@@ -877,8 +907,8 @@ debian-ppc64el:
   variables:
     BUILDTYPE: debug
     CROSS: ppc64el
-    GALLIUM_DRIVERS: "nouveau,radeonsi,llvmpipe,softpipe,virgl,zink"
-    VULKAN_DRIVERS: "amd,swrast"
+    GALLIUM_DRIVERS: "nouveau,llvmpipe,softpipe,virgl,zink"
+    VULKAN_DRIVERS: "swrast"
     DRI_LOADERS:
       -D glvnd=disabled
 

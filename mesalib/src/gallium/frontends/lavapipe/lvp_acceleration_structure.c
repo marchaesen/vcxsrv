@@ -6,8 +6,550 @@
 #include "lvp_acceleration_structure.h"
 #include "lvp_entrypoints.h"
 
-#include "util/format/format_utils.h"
-#include "util/half_float.h"
+#include "radix_sort/radix_sort_u64.h"
+#include "bvh/vk_bvh.h"
+
+struct radix_sort_vk_target_config lvp_radix_sort_config = {
+   .keyval_dwords = 2,
+   .init = {
+      .workgroup_size_log2 = 4,
+   },
+   .fill = {
+      .workgroup_size_log2 = 4,
+      .block_rows = 4,
+   },
+   .histogram = {
+      .workgroup_size_log2 = 7,
+      .subgroup_size_log2 = 3,
+      .block_rows = 16,
+   },
+   .prefix = {
+      .workgroup_size_log2 = 8,
+      .subgroup_size_log2 = 3,
+   },
+   .scatter = {
+      .workgroup_size_log2 = 7,
+      .subgroup_size_log2 = 3,
+      .block_rows = 8,
+   },
+   .nonsequential_dispatch = true,
+};
+
+static void
+lvp_init_radix_sort(struct lvp_device *device)
+{
+   simple_mtx_lock(&device->radix_sort_lock);
+   if (device->radix_sort) {
+      simple_mtx_unlock(&device->radix_sort_lock);
+      return;
+   }
+
+   device->radix_sort =
+      vk_create_radix_sort_u64(lvp_device_to_handle(device),
+                               &device->vk.alloc, VK_NULL_HANDLE,
+                               lvp_radix_sort_config);
+
+   device->accel_struct_args.radix_sort = device->radix_sort;
+
+   simple_mtx_unlock(&device->radix_sort_lock);
+}
+
+static void
+lvp_write_buffer_cp(VkCommandBuffer cmdbuf, VkDeviceAddress addr,
+                    void *data, uint32_t size)
+{
+   VK_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, cmdbuf);
+
+   struct vk_cmd_queue_entry *entry =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct vk_cmd_queue_entry),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry)
+      return;
+
+   entry->type = LVP_CMD_WRITE_BUFFER_CP;
+
+   struct lvp_cmd_write_buffer_cp *cmd =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct lvp_cmd_write_buffer_cp) + size,
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry) {
+      vk_free(cmd_buffer->vk.cmd_queue.alloc, entry);
+      return;
+   }
+
+   cmd->addr = addr;
+   cmd->data = cmd + 1;
+   cmd->size = size;
+
+   memcpy(cmd->data, data, size);
+
+   entry->driver_data = cmd;
+
+   list_addtail(&entry->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
+}
+
+static void
+lvp_flush_buffer_write_cp(VkCommandBuffer cmdbuf)
+{
+}
+
+static void
+lvp_cmd_dispatch_unaligned(VkCommandBuffer cmdbuf, uint32_t invocations_x,
+                           uint32_t invocations_y, uint32_t invocations_z)
+{
+   VK_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, cmdbuf);
+
+   struct vk_cmd_queue_entry *entry =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct vk_cmd_queue_entry),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry)
+      return;
+
+   entry->type = LVP_CMD_DISPATCH_UNALIGNED;
+
+   entry->u.dispatch.group_count_x = invocations_x;
+   entry->u.dispatch.group_count_y = invocations_y;
+   entry->u.dispatch.group_count_z = invocations_z;
+
+   list_addtail(&entry->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
+}
+
+static void
+lvp_cmd_fill_buffer_addr(VkCommandBuffer cmdbuf, VkDeviceAddress addr,
+                         VkDeviceSize size, uint32_t data)
+{
+   VK_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, cmdbuf);
+
+   struct vk_cmd_queue_entry *entry =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct vk_cmd_queue_entry),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry)
+      return;
+
+   entry->type = LVP_CMD_FILL_BUFFER_ADDR;
+
+   struct lvp_cmd_fill_buffer_addr *cmd =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct lvp_cmd_write_buffer_cp),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry) {
+      vk_free(cmd_buffer->vk.cmd_queue.alloc, entry);
+      return;
+   }
+
+   cmd->addr = addr;
+   cmd->size = size;
+   cmd->data = data;
+
+   entry->driver_data = cmd;
+
+   list_addtail(&entry->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
+}
+
+static void
+lvp_enqueue_encode_as(VkCommandBuffer commandBuffer,
+                      const VkAccelerationStructureBuildGeometryInfoKHR *build_info,
+                      const VkAccelerationStructureBuildRangeInfoKHR *build_range_infos,
+                      VkDeviceAddress intermediate_as_addr,
+                      VkDeviceAddress intermediate_header_addr,
+                      uint32_t leaf_count,
+                      uint32_t key,
+                      struct vk_acceleration_structure *dst)
+{
+   VK_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+
+   struct vk_cmd_queue_entry *entry =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct vk_cmd_queue_entry),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry)
+      return;
+
+   entry->type = LVP_CMD_ENCODE_AS;
+
+   struct lvp_cmd_encode_as *cmd =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct lvp_cmd_encode_as),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry) {
+      vk_free(cmd_buffer->vk.cmd_queue.alloc, entry);
+      return;
+   }
+
+   cmd->dst = dst;
+   cmd->intermediate_as_addr = intermediate_as_addr;
+   cmd->intermediate_header_addr = intermediate_header_addr;
+   cmd->leaf_count = leaf_count;
+   cmd->geometry_type = vk_get_as_geometry_type(build_info);
+
+   entry->driver_data = cmd;
+
+   list_addtail(&entry->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
+}
+
+static uint32_t
+ir_id_to_offset(uint32_t id)
+{
+   return id & (~3u);
+}
+
+static uint32_t
+lvp_pack_sbt_offset_and_flags(uint32_t sbt_offset, VkGeometryInstanceFlagsKHR flags)
+{
+   uint32_t ret = sbt_offset;
+   if (flags & VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR)
+      ret |= LVP_INSTANCE_FORCE_OPAQUE;
+   if (!(flags & VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR))
+      ret |= LVP_INSTANCE_NO_FORCE_NOT_OPAQUE;
+   if (flags & VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR)
+      ret |= LVP_INSTANCE_TRIANGLE_FACING_CULL_DISABLE;
+   if (flags & VK_GEOMETRY_INSTANCE_TRIANGLE_FLIP_FACING_BIT_KHR)
+      ret |= LVP_INSTANCE_TRIANGLE_FLIP_FACING;
+   return ret;
+}
+
+static void
+lvp_select_subtrees_to_flatten(const struct vk_ir_header *header, const struct vk_ir_box_node *ir_box_nodes,
+                               const uint32_t *node_depth, const uint32_t *child_counts, uint32_t root_offset,
+                               uint32_t index, struct util_dynarray *subtrees, uint32_t *max_subtree_size)
+{
+   uint32_t depth = node_depth[header->ir_internal_node_count - index - 1];
+   uint32_t available_depth = 23 - depth;
+   uint32_t allowed_child_count = 1 << available_depth;
+   uint32_t child_count = child_counts[index];
+   bool flatten = child_count > allowed_child_count;
+
+   const struct vk_ir_box_node *node = ir_box_nodes + index;
+
+   bool has_internal_child = false;
+   for (uint32_t child_index = 0; child_index < 2; child_index++) {
+      if (node->children[child_index] == VK_BVH_INVALID_NODE)
+         continue;
+
+      uint32_t ir_child_offset = ir_id_to_offset(node->children[child_index]);
+      if (ir_child_offset < root_offset)
+         continue;
+
+      if (!flatten) {
+         uint32_t src_index = (ir_child_offset - root_offset) / sizeof(struct vk_ir_box_node);
+         lvp_select_subtrees_to_flatten(header, ir_box_nodes, node_depth, child_counts, root_offset,
+                                        src_index, subtrees, max_subtree_size);
+      }
+
+      has_internal_child = true;
+   }
+
+   if (flatten && has_internal_child) {
+      util_dynarray_append(subtrees, uint32_t, index);
+      *max_subtree_size = MAX2(*max_subtree_size, child_count);
+      return;
+   }
+}
+
+static void
+lvp_gather_subtree(const uint8_t *output, uint32_t offset, uint32_t *leaf_nodes,
+                   vk_aabb *leaf_bounds, uint32_t *leaf_node_count, uint32_t *internal_nodes,
+                   uint32_t *internal_node_count)
+{
+   const struct lvp_bvh_box_node *node = (void *)(output + offset);
+
+   for (uint32_t child_index = 0; child_index < 2; child_index++) {
+      if (node->children[child_index] == VK_BVH_INVALID_NODE)
+         continue;
+
+      uint32_t type = node->children[child_index] & 3;
+      if (type == lvp_bvh_node_internal) {
+         internal_nodes[*internal_node_count] = node->children[child_index];
+         (*internal_node_count)++;
+
+         uint32_t ir_child_offset = ir_id_to_offset(node->children[child_index]);
+         lvp_gather_subtree(output, ir_child_offset, leaf_nodes, leaf_bounds,
+                            leaf_node_count, internal_nodes, internal_node_count);
+      } else {
+         leaf_nodes[*leaf_node_count] = node->children[child_index];
+         leaf_bounds[*leaf_node_count] = node->bounds[child_index];
+         (*leaf_node_count)++;
+      }
+   }
+}
+
+static uint32_t
+lvp_rebuild_subtree(const uint8_t *output, uint32_t *leaf_nodes, vk_aabb *leaf_bounds,
+                    uint32_t *internal_nodes, uint32_t leaf_node_count, 
+                    uint32_t *internal_node_index)
+{
+   uint32_t child_nodes[2];
+   vk_aabb child_leaf_bounds[2];
+
+   if (leaf_node_count < 2)
+      return leaf_nodes[0];
+
+   uint32_t node_id = internal_nodes[*internal_node_index];
+   (*internal_node_index)++;
+
+   uint32_t split_index = leaf_node_count / 2;
+
+   child_leaf_bounds[0] = leaf_bounds[0];
+   child_nodes[0] = lvp_rebuild_subtree(output, leaf_nodes, leaf_bounds, internal_nodes, split_index, internal_node_index);
+
+   child_leaf_bounds[1] = leaf_bounds[split_index];
+   child_nodes[1] = lvp_rebuild_subtree(output, leaf_nodes + split_index, leaf_bounds + split_index, internal_nodes,
+                                        leaf_node_count - split_index, internal_node_index);
+
+   struct lvp_bvh_box_node *node = (void *)(output + ir_id_to_offset(node_id));
+
+   for (uint32_t i = 0; i < 2; i++) {
+      node->children[i] = child_nodes[i];
+
+      uint32_t type = child_nodes[i] & 3;
+      if (type == lvp_bvh_node_internal) {
+         const struct lvp_bvh_box_node *child_node =
+            (void *)(output + ir_id_to_offset(child_nodes[i]));
+         node->bounds[i].min.x = MIN2(child_node->bounds[0].min.x, child_node->bounds[1].min.x);
+         node->bounds[i].min.y = MIN2(child_node->bounds[0].min.y, child_node->bounds[1].min.y);
+         node->bounds[i].min.z = MIN2(child_node->bounds[0].min.z, child_node->bounds[1].min.z);
+         node->bounds[i].max.x = MAX2(child_node->bounds[0].max.x, child_node->bounds[1].max.x);
+         node->bounds[i].max.y = MAX2(child_node->bounds[0].max.y, child_node->bounds[1].max.y);
+         node->bounds[i].max.z = MAX2(child_node->bounds[0].max.z, child_node->bounds[1].max.z);
+      } else {
+         node->bounds[i] = child_leaf_bounds[i];
+      }
+   }
+
+   return node_id;
+}
+
+static void
+lvp_flatten_as(const struct vk_ir_header *header, const struct vk_ir_box_node *ir_box_nodes,
+               uint32_t root_offset, const uint32_t *node_depth, uint8_t *output)
+{
+   struct util_dynarray subtrees = { 0 };
+   uint32_t *child_counts = NULL;
+   uint32_t *leaf_nodes = NULL;
+   vk_aabb *leaf_bounds = NULL;
+   uint32_t *internal_nodes = NULL;
+
+   child_counts = calloc(header->ir_internal_node_count, sizeof(uint32_t));
+   if (!child_counts)
+      goto ret;
+
+   /* Iterate over the internal nodes in bottom-up order and
+    * compute the the number child leafs for each internal node.
+    */
+   for (uint32_t i = 0; i < header->ir_internal_node_count; i++) {
+      const struct vk_ir_box_node *ir_box = ir_box_nodes + i;
+      for (uint32_t child_index = 0; child_index < 2; child_index++) {
+         if (ir_box->children[child_index] == VK_BVH_INVALID_NODE)
+            continue;
+
+         uint32_t ir_child_offset = ir_id_to_offset(ir_box->children[child_index]);
+         if (ir_child_offset < root_offset) {
+            child_counts[i]++;
+         } else {
+            uint32_t src_index = (ir_child_offset - root_offset) / sizeof(struct vk_ir_box_node);
+            child_counts[i] += child_counts[src_index];
+         }
+      }
+   }
+
+   /* Select the subtrees that have to be rebuilt in order to
+    * limit the BVH to a supported depth.
+    */
+   util_dynarray_init(&subtrees, NULL);
+   uint32_t max_subtree_size = 0;
+   lvp_select_subtrees_to_flatten(header, ir_box_nodes, node_depth, child_counts,
+                                  root_offset, header->ir_internal_node_count - 1,
+                                  &subtrees, &max_subtree_size);
+
+   leaf_nodes = calloc(max_subtree_size, sizeof(uint32_t));
+   leaf_bounds = calloc(max_subtree_size, sizeof(vk_aabb));
+   internal_nodes = calloc(max_subtree_size, sizeof(uint32_t));
+   if (!leaf_nodes || !leaf_bounds || !internal_nodes)
+      goto ret;
+
+   util_dynarray_foreach(&subtrees, uint32_t, root_index) {
+      uint32_t offset = sizeof(struct lvp_bvh_header) +
+         (header->ir_internal_node_count - 1 - *root_index) * sizeof(struct lvp_bvh_box_node);
+
+      internal_nodes[0] = offset | lvp_bvh_node_internal;
+
+      uint32_t leaf_node_count = 0;
+      uint32_t internal_node_count = 1;
+      lvp_gather_subtree(output, offset, leaf_nodes, leaf_bounds, &leaf_node_count, internal_nodes, &internal_node_count);
+
+      uint32_t internal_node_index = 0;
+      lvp_rebuild_subtree(output, leaf_nodes, leaf_bounds, internal_nodes, leaf_node_count, &internal_node_index);
+   }
+
+ret:
+   util_dynarray_fini(&subtrees);
+   free(child_counts);
+   free(leaf_nodes);
+   free(leaf_bounds);
+   free(internal_nodes);
+}
+
+static void
+lvp_get_leaf_node_size(VkGeometryTypeKHR geometry_type, uint32_t *ir_leaf_node_size,
+                       uint32_t *output_leaf_node_size)
+{
+   switch (geometry_type) {
+   case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
+      *ir_leaf_node_size = sizeof(struct vk_ir_triangle_node);
+      *output_leaf_node_size = sizeof(struct lvp_bvh_triangle_node);
+      break;
+   case VK_GEOMETRY_TYPE_AABBS_KHR:
+      *ir_leaf_node_size = sizeof(struct vk_ir_aabb_node);
+      *output_leaf_node_size = sizeof(struct lvp_bvh_aabb_node);
+      break;
+   case VK_GEOMETRY_TYPE_INSTANCES_KHR:
+      *ir_leaf_node_size = sizeof(struct vk_ir_instance_node);
+      *output_leaf_node_size = sizeof(struct lvp_bvh_instance_node);
+      break;
+   default:
+      break;
+   }
+}
+
+void
+lvp_encode_as(struct vk_acceleration_structure *dst, VkDeviceAddress intermediate_as_addr,
+              VkDeviceAddress intermediate_header_addr, uint32_t leaf_count,
+              VkGeometryTypeKHR geometry_type)
+{
+   const struct vk_ir_header *header = (const void *)(uintptr_t)intermediate_header_addr;
+   const uint8_t *ir_bvh = (const void *)(uintptr_t)intermediate_as_addr;
+
+   uint8_t *output = (void *)(uintptr_t)vk_acceleration_structure_get_va(dst);
+   struct lvp_bvh_header *output_header = (void *)output;
+
+   uint32_t ir_leaf_node_size = 0;
+   uint32_t output_leaf_node_size = 0;
+   lvp_get_leaf_node_size(geometry_type, &ir_leaf_node_size, &output_leaf_node_size);
+
+   uint32_t root_offset = leaf_count * ir_leaf_node_size;
+   const struct vk_ir_box_node *ir_box_nodes = (const void *)(ir_bvh + root_offset);
+
+   output_header->bounds = ir_box_nodes[header->ir_internal_node_count - 1].base.aabb;
+
+   if (geometry_type == VK_GEOMETRY_TYPE_INSTANCES_KHR)
+      output_header->instance_count = leaf_count;
+   else
+      output_header->instance_count = 0;
+
+   output_header->leaf_nodes_offset = sizeof(struct lvp_bvh_header) + header->ir_internal_node_count * sizeof(struct lvp_bvh_box_node);
+
+   output_header->serialization_size = sizeof(struct lvp_accel_struct_serialization_header) +
+                                       sizeof(uint64_t) * output_header->instance_count + dst->size;
+
+   for (uint32_t i = 0; i < header->active_leaf_count; i++) {
+      const void *ir_leaf = ir_bvh + i * ir_leaf_node_size;
+      void *output_leaf = output + output_header->leaf_nodes_offset + i * output_leaf_node_size;
+      switch (geometry_type) {
+      case VK_GEOMETRY_TYPE_TRIANGLES_KHR: {
+         const struct vk_ir_triangle_node *ir_triangle = ir_leaf;
+         struct lvp_bvh_triangle_node *output_triangle = output_leaf;
+         memcpy(output_triangle->coords, ir_triangle->coords, sizeof(output_triangle->coords));
+         output_triangle->primitive_id = ir_triangle->triangle_id;
+         output_triangle->geometry_id_and_flags = ir_triangle->geometry_id_and_flags;
+         break;
+      }
+      case VK_GEOMETRY_TYPE_AABBS_KHR: {
+         const struct vk_ir_aabb_node *ir_aabb = ir_leaf;
+         struct lvp_bvh_aabb_node *output_aabb = output_leaf;
+         output_aabb->bounds = ir_aabb->base.aabb;
+         output_aabb->primitive_id = ir_aabb->primitive_id;
+         output_aabb->geometry_id_and_flags = ir_aabb->geometry_id_and_flags;
+         break;
+      }
+      case VK_GEOMETRY_TYPE_INSTANCES_KHR: {
+         const struct vk_ir_instance_node *ir_instance = ir_leaf;
+         struct lvp_bvh_instance_node *output_instance = output_leaf;
+         output_instance->bvh_ptr = ir_instance->base_ptr;
+         output_instance->custom_instance_and_mask = ir_instance->custom_instance_and_mask;
+         output_instance->sbt_offset_and_flags =
+            lvp_pack_sbt_offset_and_flags(ir_instance->sbt_offset_and_flags & 0xFFFFFF,
+                                          ir_instance->sbt_offset_and_flags >> 24);
+         output_instance->instance_id = ir_instance->instance_id;
+         output_instance->otw_matrix = ir_instance->otw_matrix;
+
+         float transform[16], inv_transform[16];
+         memcpy(transform, &ir_instance->otw_matrix.values, sizeof(ir_instance->otw_matrix.values));
+         transform[12] = transform[13] = transform[14] = 0.0f;
+         transform[15] = 1.0f;
+
+         util_invert_mat4x4(inv_transform, transform);
+         memcpy(output_instance->wto_matrix.values, inv_transform, sizeof(output_instance->wto_matrix.values));
+
+         break;
+      }
+      default:
+         break;
+      }
+   }
+
+   uint32_t *node_depth = calloc(header->ir_internal_node_count, sizeof(uint32_t));
+   if (!node_depth)
+      return;
+
+   uint32_t max_node_depth = 0;
+
+   for (uint32_t i = 0; i < header->ir_internal_node_count; i++) {
+      const struct vk_ir_box_node *ir_box = ir_box_nodes + (header->ir_internal_node_count - i - 1);
+      struct lvp_bvh_box_node *output_box =
+         (void *)(output + sizeof(struct lvp_bvh_header) + i * sizeof(struct lvp_bvh_box_node));
+
+      for (uint32_t child_index = 0; child_index < 2; child_index++) {
+         if (ir_box->children[child_index] == VK_BVH_INVALID_NODE) {
+            output_box->bounds[child_index] = (struct vk_aabb){
+               .min.x = NAN,
+               .min.y = NAN,
+               .min.z = NAN,
+               .max.x = NAN,
+               .max.y = NAN,
+               .max.z = NAN,
+            };
+            output_box->children[child_index] = LVP_BVH_INVALID_NODE;
+            continue;
+         }
+
+         uint32_t ir_child_offset = ir_id_to_offset(ir_box->children[child_index]);
+         const struct vk_ir_node *ir_child = (const void *)(ir_bvh + ir_child_offset);
+
+         output_box->bounds[child_index] = ir_child->aabb;
+
+         if (ir_child_offset < root_offset) {
+            output_box->children[child_index] =
+               output_header->leaf_nodes_offset + (ir_child_offset / ir_leaf_node_size) * output_leaf_node_size;
+            switch (geometry_type) {
+            case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
+               output_box->children[child_index] |= lvp_bvh_node_triangle;
+               break;
+            case VK_GEOMETRY_TYPE_AABBS_KHR:
+               output_box->children[child_index] |= lvp_bvh_node_aabb;
+               break;
+            case VK_GEOMETRY_TYPE_INSTANCES_KHR:
+               output_box->children[child_index] |= lvp_bvh_node_instance;
+               break;
+            default:
+               break;
+            }
+         } else {
+            uint32_t src_index = (ir_child_offset - root_offset) / sizeof(struct vk_ir_box_node);
+            uint32_t dst_index = header->ir_internal_node_count - src_index - 1;
+            output_box->children[child_index] =
+               sizeof(struct lvp_bvh_header) + dst_index * sizeof(struct lvp_bvh_box_node);
+            output_box->children[child_index] |= lvp_bvh_node_internal;
+
+            node_depth[dst_index] = node_depth[i] + 1;
+            max_node_depth = MAX2(max_node_depth, node_depth[dst_index]);
+         }
+      }
+   }
+
+   /* The BVH exceeds the maximum depth supported by the traversal stack, 
+    * flatten the offending parts of the tree.
+    */
+   if (max_node_depth >= 24)
+      lvp_flatten_as(header, ir_box_nodes, root_offset, node_depth, output);
+
+   free(node_depth);
+}
 
 static_assert(sizeof(struct lvp_bvh_triangle_node) % 8 == 0, "lvp_bvh_triangle_node is not padded");
 static_assert(sizeof(struct lvp_bvh_aabb_node) % 8 == 0, "lvp_bvh_aabb_node is not padded");
@@ -20,43 +562,12 @@ lvp_GetAccelerationStructureBuildSizesKHR(
    const VkAccelerationStructureBuildGeometryInfoKHR *pBuildInfo,
    const uint32_t *pMaxPrimitiveCounts, VkAccelerationStructureBuildSizesInfoKHR *pSizeInfo)
 {
-   pSizeInfo->buildScratchSize = 64;
-   pSizeInfo->updateScratchSize = 64;
+   VK_FROM_HANDLE(lvp_device, device, _device);
 
-   uint32_t leaf_count = 0;
-   for (uint32_t i = 0; i < pBuildInfo->geometryCount; i++)
-      leaf_count += pMaxPrimitiveCounts[i];
+   lvp_init_radix_sort(device);
 
-   uint32_t internal_count = MAX2(leaf_count, 2) - 1;
-
-   VkGeometryTypeKHR geometry_type = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-   if (pBuildInfo->geometryCount) {
-      if (pBuildInfo->pGeometries)
-         geometry_type = pBuildInfo->pGeometries[0].geometryType;
-      else
-         geometry_type = pBuildInfo->ppGeometries[0]->geometryType;
-   }
-
-   uint32_t leaf_size;
-   switch (geometry_type) {
-   case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
-      leaf_size = sizeof(struct lvp_bvh_triangle_node);
-      break;
-   case VK_GEOMETRY_TYPE_AABBS_KHR:
-      leaf_size = sizeof(struct lvp_bvh_aabb_node);
-      break;
-   case VK_GEOMETRY_TYPE_INSTANCES_KHR:
-      leaf_size = sizeof(struct lvp_bvh_instance_node);
-      break;
-   default:
-      unreachable("Unknown VkGeometryTypeKHR");
-   }
-
-   uint32_t bvh_size = sizeof(struct lvp_bvh_header);
-   bvh_size += leaf_count * leaf_size;
-   bvh_size += internal_count * sizeof(struct lvp_bvh_box_node);
-
-   pSizeInfo->accelerationStructureSize = bvh_size;
+   vk_get_as_build_sizes(_device, buildType, pBuildInfo, pMaxPrimitiveCounts,
+                         pSizeInfo, &device->accel_struct_args);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -115,497 +626,114 @@ lvp_CopyAccelerationStructureToMemoryKHR(VkDevice _device, VkDeferredOperationKH
    return VK_ERROR_FEATURE_NOT_PRESENT;
 }
 
-static uint32_t
-lvp_pack_geometry_id_and_flags(uint32_t geometry_id, uint32_t flags)
+static VkDeviceSize
+lvp_get_as_size(VkDevice device,
+                const VkAccelerationStructureBuildGeometryInfoKHR *build_info,
+                uint32_t leaf_count)
 {
-   uint32_t geometry_id_and_flags = geometry_id;
-   if (flags & VK_GEOMETRY_OPAQUE_BIT_KHR)
-      geometry_id_and_flags |= LVP_GEOMETRY_OPAQUE;
+   uint32_t internal_node_count = MAX2(leaf_count, 2) - 1;
+   uint32_t nodes_size = internal_node_count * sizeof(struct lvp_bvh_box_node);
 
-   return geometry_id_and_flags;
+   uint32_t ir_leaf_node_size = 0;
+   uint32_t output_leaf_node_size = 0;
+   lvp_get_leaf_node_size(vk_get_as_geometry_type(build_info), &ir_leaf_node_size, &output_leaf_node_size);
+
+   nodes_size += leaf_count * output_leaf_node_size;
+
+   return sizeof(struct lvp_bvh_header) + nodes_size;
 }
 
 static uint32_t
-lvp_pack_sbt_offset_and_flags(uint32_t sbt_offset, VkGeometryInstanceFlagsKHR flags)
+lvp_get_encode_key(VkAccelerationStructureTypeKHR type,
+                   VkBuildAccelerationStructureFlagBitsKHR flags)
 {
-   uint32_t ret = sbt_offset;
-   if (flags & VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR)
-      ret |= LVP_INSTANCE_FORCE_OPAQUE;
-   if (!(flags & VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR))
-      ret |= LVP_INSTANCE_NO_FORCE_NOT_OPAQUE;
-   if (flags & VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR)
-      ret |= LVP_INSTANCE_TRIANGLE_FACING_CULL_DISABLE;
-   if (flags & VK_GEOMETRY_INSTANCE_TRIANGLE_FLIP_FACING_BIT_KHR)
-      ret |= LVP_INSTANCE_TRIANGLE_FLIP_FACING;
-   return ret;
+   return 0;
 }
 
-struct lvp_build_internal_ctx {
-   uint8_t *dst;
-   uint32_t dst_offset;
+static VkResult
+lvp_encode_bind_pipeline(VkCommandBuffer cmd_buffer,
+                         uint32_t key)
+{
+   return VK_SUCCESS;
+}
 
-   void *leaf_nodes;
-   uint32_t leaf_nodes_offset;
-   uint32_t leaf_node_type;
-   uint32_t leaf_node_size;
+const struct vk_acceleration_structure_build_ops accel_struct_ops = {
+   .get_as_size = lvp_get_as_size,
+   .get_encode_key[0] = lvp_get_encode_key,
+   .encode_bind_pipeline[0] = lvp_encode_bind_pipeline,
+   .encode_as[0] = lvp_enqueue_encode_as,
 };
 
-static uint32_t
-lvp_build_internal_node(struct lvp_build_internal_ctx *ctx, uint32_t first_leaf, uint32_t last_leaf)
+VkResult
+lvp_device_init_accel_struct_state(struct lvp_device *device)
 {
-   uint32_t dst_offset = ctx->dst_offset;
-   ctx->dst_offset += sizeof(struct lvp_bvh_box_node);
+   device->accel_struct_args.subgroup_size = lp_native_vector_width / 32;
 
-   uint32_t node_id = dst_offset | lvp_bvh_node_internal;
+   device->vk.as_build_ops = &accel_struct_ops;
+   device->vk.write_buffer_cp = lvp_write_buffer_cp;
+   device->vk.flush_buffer_write_cp = lvp_flush_buffer_write_cp;
+   device->vk.cmd_dispatch_unaligned = lvp_cmd_dispatch_unaligned;
+   device->vk.cmd_fill_buffer_addr = lvp_cmd_fill_buffer_addr;
 
-   struct lvp_bvh_box_node *node = (void *)(ctx->dst + dst_offset);
+   simple_mtx_init(&device->radix_sort_lock, mtx_plain);
 
-   uint32_t split = (first_leaf + last_leaf) / 2;
-
-   if (first_leaf < split)
-      node->children[0] = lvp_build_internal_node(ctx, first_leaf, split);
-   else
-      node->children[0] =
-         (ctx->leaf_nodes_offset + (first_leaf * ctx->leaf_node_size)) | ctx->leaf_node_type;
-
-   if (first_leaf < last_leaf) {
-      if (split + 1 < last_leaf)
-         node->children[1] = lvp_build_internal_node(ctx, split + 1, last_leaf);
-      else
-         node->children[1] =
-            (ctx->leaf_nodes_offset + (last_leaf * ctx->leaf_node_size)) | ctx->leaf_node_type;
-   } else {
-      node->children[1] = LVP_BVH_INVALID_NODE;
-   }
-
-   for (uint32_t i = 0; i < 2; i++) {
-      struct lvp_aabb *aabb = &node->bounds[i];
-
-      if (node->children[i] == LVP_BVH_INVALID_NODE) {
-         aabb->min.x = INFINITY;
-         aabb->min.y = INFINITY;
-         aabb->min.z = INFINITY;
-         aabb->max.x = -INFINITY;
-         aabb->max.y = -INFINITY;
-         aabb->max.z = -INFINITY;
-         continue;
-      }
-
-      uint32_t child_offset = node->children[i] & (~3u);
-      uint32_t child_type = node->children[i] & 3u;
-      void *child_node = (void *)(ctx->dst + child_offset);
-
-      switch (child_type) {
-      case lvp_bvh_node_triangle: {
-         struct lvp_bvh_triangle_node *triangle = child_node;
-
-         aabb->min.x = MIN3(triangle->coords[0][0], triangle->coords[1][0], triangle->coords[2][0]);
-         aabb->min.y = MIN3(triangle->coords[0][1], triangle->coords[1][1], triangle->coords[2][1]);
-         aabb->min.z = MIN3(triangle->coords[0][2], triangle->coords[1][2], triangle->coords[2][2]);
-
-         aabb->max.x = MAX3(triangle->coords[0][0], triangle->coords[1][0], triangle->coords[2][0]);
-         aabb->max.y = MAX3(triangle->coords[0][1], triangle->coords[1][1], triangle->coords[2][1]);
-         aabb->max.z = MAX3(triangle->coords[0][2], triangle->coords[1][2], triangle->coords[2][2]);
-
-         break;
-      }
-      case lvp_bvh_node_internal: {
-         struct lvp_bvh_box_node *box = child_node;
-
-         aabb->min.x = MIN2(box->bounds[0].min.x, box->bounds[1].min.x);
-         aabb->min.y = MIN2(box->bounds[0].min.y, box->bounds[1].min.y);
-         aabb->min.z = MIN2(box->bounds[0].min.z, box->bounds[1].min.z);
-
-         aabb->max.x = MAX2(box->bounds[0].max.x, box->bounds[1].max.x);
-         aabb->max.y = MAX2(box->bounds[0].max.y, box->bounds[1].max.y);
-         aabb->max.z = MAX2(box->bounds[0].max.z, box->bounds[1].max.z);
-
-         break;
-      }
-      case lvp_bvh_node_instance: {
-         struct lvp_bvh_instance_node *instance = child_node;
-         struct lvp_bvh_header *instance_header = (void *)(uintptr_t)instance->bvh_ptr;
-
-         float bounds[2][3];
-
-         float header_bounds[2][3];
-         memcpy(header_bounds, &instance_header->bounds, sizeof(struct lvp_aabb));
-
-         for (unsigned j = 0; j < 3; ++j) {
-            bounds[0][j] = instance->otw_matrix.values[j][3];
-            bounds[1][j] = instance->otw_matrix.values[j][3];
-            for (unsigned k = 0; k < 3; ++k) {
-               bounds[0][j] += MIN2(instance->otw_matrix.values[j][k] * header_bounds[0][k],
-                                    instance->otw_matrix.values[j][k] * header_bounds[1][k]);
-               bounds[1][j] += MAX2(instance->otw_matrix.values[j][k] * header_bounds[0][k],
-                                    instance->otw_matrix.values[j][k] * header_bounds[1][k]);
-            }
-         }
-
-         memcpy(aabb, bounds, sizeof(struct lvp_aabb));
-
-         break;
-      }
-      case lvp_bvh_node_aabb: {
-         struct lvp_bvh_aabb_node *aabb_node = child_node;
-
-         memcpy(aabb, &aabb_node->bounds, sizeof(struct lvp_aabb));
-
-         break;
-      }
-      default:
-         unreachable("Invalid node type");
-      }
-   }
-
-   return node_id;
+   return VK_SUCCESS;
 }
 
 void
-lvp_build_acceleration_structure(VkAccelerationStructureBuildGeometryInfoKHR *info,
-                                 const VkAccelerationStructureBuildRangeInfoKHR *ranges)
+lvp_device_finish_accel_struct_state(struct lvp_device *device)
 {
-   VK_FROM_HANDLE(vk_acceleration_structure, accel_struct, info->dstAccelerationStructure);
-   void *dst = (void *)(uintptr_t)vk_acceleration_structure_get_va(accel_struct);
+   simple_mtx_destroy(&device->radix_sort_lock);
 
-   memset(dst, 0, accel_struct->size);
+   if (device->radix_sort)
+      radix_sort_vk_destroy(device->radix_sort, lvp_device_to_handle(device), &device->vk.alloc);
+}
 
-   struct lvp_bvh_header *header = dst;
-   header->instance_count = 0;
+static void
+lvp_enqueue_save_state(VkCommandBuffer cmdbuf)
+{
+   VK_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, cmdbuf);
 
-   struct lvp_bvh_box_node *root = (void *)((uint8_t *)dst + sizeof(struct lvp_bvh_header));
-
-   uint32_t leaf_count = 0;
-   for (unsigned i = 0; i < info->geometryCount; i++)
-      leaf_count += ranges[i].primitiveCount;
-
-   if (!leaf_count) {
-      for (uint32_t i = 0; i < 2; i++) {
-         root->bounds[i].min.x = INFINITY;
-         root->bounds[i].min.y = INFINITY;
-         root->bounds[i].min.z = INFINITY;
-         root->bounds[i].max.x = -INFINITY;
-         root->bounds[i].max.y = -INFINITY;
-         root->bounds[i].max.z = -INFINITY;
-      }
+   struct vk_cmd_queue_entry *entry =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct vk_cmd_queue_entry),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry)
       return;
-   }
 
-   uint32_t internal_count = MAX2(leaf_count, 2) - 1;
+   entry->type = LVP_CMD_SAVE_STATE;
 
-   uint32_t primitive_index = 0;
+   list_addtail(&entry->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
+}
 
-   header->leaf_nodes_offset =
-      sizeof(struct lvp_bvh_header) + sizeof(struct lvp_bvh_box_node) * internal_count;
-   void *leaf_nodes = (void *)((uint8_t *)dst + header->leaf_nodes_offset);
+static void
+lvp_enqueue_restore_state(VkCommandBuffer cmdbuf)
+{
+   VK_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, cmdbuf);
 
-   for (unsigned i = 0; i < info->geometryCount; i++) {
-      const VkAccelerationStructureGeometryKHR *geom =
-         info->pGeometries ? &info->pGeometries[i] : info->ppGeometries[i];
+   struct vk_cmd_queue_entry *entry =
+      vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(struct vk_cmd_queue_entry),
+                8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!entry)
+      return;
 
-      const VkAccelerationStructureBuildRangeInfoKHR *range = &ranges[i];
+   entry->type = LVP_CMD_RESTORE_STATE;
 
-      uint32_t geometry_id_and_flags = lvp_pack_geometry_id_and_flags(i, geom->flags);
+   list_addtail(&entry->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
+}
 
-      switch (geom->geometryType) {
-      case VK_GEOMETRY_TYPE_TRIANGLES_KHR: {
-         assert(info->type == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+VKAPI_ATTR void VKAPI_CALL
+lvp_CmdBuildAccelerationStructuresKHR(VkCommandBuffer commandBuffer, uint32_t infoCount,
+                                      const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
+                                      const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos)
+{
+   VK_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
 
-         const uint8_t *vertex_data_base = geom->geometry.triangles.vertexData.hostAddress;
-         vertex_data_base += range->firstVertex * geom->geometry.triangles.vertexStride;
+   lvp_init_radix_sort(cmd_buffer->device);
 
-         const uint8_t *index_data = geom->geometry.triangles.indexData.hostAddress;
+   lvp_enqueue_save_state(commandBuffer);
 
-         if (geom->geometry.triangles.indexType == VK_INDEX_TYPE_NONE_KHR)
-            vertex_data_base += range->primitiveOffset;
-         else
-            index_data += range->primitiveOffset;
+   vk_cmd_build_acceleration_structures(commandBuffer, &cmd_buffer->device->vk, &cmd_buffer->device->meta,
+                                        infoCount, pInfos, ppBuildRangeInfos, &cmd_buffer->device->accel_struct_args);
 
-         VkTransformMatrixKHR transform_matrix = {
-            .matrix =
-               {
-                  {1.0, 0.0, 0.0, 0.0},
-                  {0.0, 1.0, 0.0, 0.0},
-                  {0.0, 0.0, 1.0, 0.0},
-               },
-         };
-
-         const uint8_t *transform = geom->geometry.triangles.transformData.hostAddress;
-         if (transform) {
-            transform += range->transformOffset;
-            transform_matrix = *(VkTransformMatrixKHR *)transform;
-         }
-
-         VkDeviceSize stride = geom->geometry.triangles.vertexStride;
-         VkFormat vertex_format = geom->geometry.triangles.vertexFormat;
-         VkIndexType index_type = geom->geometry.triangles.indexType;
-
-         for (uint32_t j = 0; j < range->primitiveCount; j++) {
-            struct lvp_bvh_triangle_node *node = leaf_nodes;
-            node += primitive_index;
-
-            node->primitive_id = j;
-            node->geometry_id_and_flags = geometry_id_and_flags;
-
-            for (uint32_t v = 0; v < 3; v++) {
-               uint32_t index = range->firstVertex;
-               switch (index_type) {
-               case VK_INDEX_TYPE_NONE_KHR:
-                  index += j * 3 + v;
-                  break;
-               case VK_INDEX_TYPE_UINT8_EXT:
-                  index += *(const uint8_t *)index_data;
-                  index_data += 1;
-                  break;
-               case VK_INDEX_TYPE_UINT16:
-                  index += *(const uint16_t *)index_data;
-                  index_data += 2;
-                  break;
-               case VK_INDEX_TYPE_UINT32:
-                  index += *(const uint32_t *)index_data;
-                  index_data += 4;
-                  break;
-               case VK_INDEX_TYPE_MAX_ENUM:
-                  unreachable("Unhandled VK_INDEX_TYPE_MAX_ENUM");
-                  break;
-               }
-
-               const uint8_t *vertex_data = vertex_data_base + index * stride;
-               float coords[4];
-               switch (vertex_format) {
-               case VK_FORMAT_R32G32_SFLOAT:
-                  coords[0] = *(const float *)(vertex_data + 0);
-                  coords[1] = *(const float *)(vertex_data + 4);
-                  coords[2] = 0.0f;
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R32G32B32_SFLOAT:
-                  coords[0] = *(const float *)(vertex_data + 0);
-                  coords[1] = *(const float *)(vertex_data + 4);
-                  coords[2] = *(const float *)(vertex_data + 8);
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R32G32B32A32_SFLOAT:
-                  coords[0] = *(const float *)(vertex_data + 0);
-                  coords[1] = *(const float *)(vertex_data + 4);
-                  coords[2] = *(const float *)(vertex_data + 8);
-                  coords[3] = *(const float *)(vertex_data + 12);
-                  break;
-               case VK_FORMAT_R16G16_SFLOAT:
-                  coords[0] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 0));
-                  coords[1] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 2));
-                  coords[2] = 0.0f;
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R16G16B16_SFLOAT:
-                  coords[0] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 0));
-                  coords[1] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 2));
-                  coords[2] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 4));
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R16G16B16A16_SFLOAT:
-                  coords[0] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 0));
-                  coords[1] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 2));
-                  coords[2] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 4));
-                  coords[3] = _mesa_half_to_float(*(const uint16_t *)(vertex_data + 6));
-                  break;
-               case VK_FORMAT_R16G16_SNORM:
-                  coords[0] = _mesa_snorm_to_float(*(const int16_t *)(vertex_data + 0), 16);
-                  coords[1] = _mesa_snorm_to_float(*(const int16_t *)(vertex_data + 2), 16);
-                  coords[2] = 0.0f;
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R16G16_UNORM:
-                  coords[0] = _mesa_unorm_to_float(*(const uint16_t *)(vertex_data + 0), 16);
-                  coords[1] = _mesa_unorm_to_float(*(const uint16_t *)(vertex_data + 2), 16);
-                  coords[2] = 0.0f;
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R16G16B16A16_SNORM:
-                  coords[0] = _mesa_snorm_to_float(*(const int16_t *)(vertex_data + 0), 16);
-                  coords[1] = _mesa_snorm_to_float(*(const int16_t *)(vertex_data + 2), 16);
-                  coords[2] = _mesa_snorm_to_float(*(const int16_t *)(vertex_data + 4), 16);
-                  coords[3] = _mesa_snorm_to_float(*(const int16_t *)(vertex_data + 6), 16);
-                  break;
-               case VK_FORMAT_R16G16B16A16_UNORM:
-                  coords[0] = _mesa_unorm_to_float(*(const uint16_t *)(vertex_data + 0), 16);
-                  coords[1] = _mesa_unorm_to_float(*(const uint16_t *)(vertex_data + 2), 16);
-                  coords[2] = _mesa_unorm_to_float(*(const uint16_t *)(vertex_data + 4), 16);
-                  coords[3] = _mesa_unorm_to_float(*(const uint16_t *)(vertex_data + 6), 16);
-                  break;
-               case VK_FORMAT_R8G8_SNORM:
-                  coords[0] = _mesa_snorm_to_float(*(const int8_t *)(vertex_data + 0), 8);
-                  coords[1] = _mesa_snorm_to_float(*(const int8_t *)(vertex_data + 1), 8);
-                  coords[2] = 0.0f;
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R8G8_UNORM:
-                  coords[0] = _mesa_unorm_to_float(*(const uint8_t *)(vertex_data + 0), 8);
-                  coords[1] = _mesa_unorm_to_float(*(const uint8_t *)(vertex_data + 1), 8);
-                  coords[2] = 0.0f;
-                  coords[3] = 1.0f;
-                  break;
-               case VK_FORMAT_R8G8B8A8_SNORM:
-                  coords[0] = _mesa_snorm_to_float(*(const int8_t *)(vertex_data + 0), 8);
-                  coords[1] = _mesa_snorm_to_float(*(const int8_t *)(vertex_data + 1), 8);
-                  coords[2] = _mesa_snorm_to_float(*(const int8_t *)(vertex_data + 2), 8);
-                  coords[3] = _mesa_snorm_to_float(*(const int8_t *)(vertex_data + 3), 8);
-                  break;
-               case VK_FORMAT_R8G8B8A8_UNORM:
-                  coords[0] = _mesa_unorm_to_float(*(const uint8_t *)(vertex_data + 0), 8);
-                  coords[1] = _mesa_unorm_to_float(*(const uint8_t *)(vertex_data + 1), 8);
-                  coords[2] = _mesa_unorm_to_float(*(const uint8_t *)(vertex_data + 2), 8);
-                  coords[3] = _mesa_unorm_to_float(*(const uint8_t *)(vertex_data + 3), 8);
-                  break;
-               case VK_FORMAT_A2B10G10R10_UNORM_PACK32: {
-                  uint32_t val = *(const uint32_t *)vertex_data;
-                  coords[0] = _mesa_unorm_to_float((val >> 0) & 0x3FF, 10);
-                  coords[1] = _mesa_unorm_to_float((val >> 10) & 0x3FF, 10);
-                  coords[2] = _mesa_unorm_to_float((val >> 20) & 0x3FF, 10);
-                  coords[3] = _mesa_unorm_to_float((val >> 30) & 0x3, 2);
-               } break;
-               default:
-                  unreachable("Unhandled vertex format in BVH build");
-               }
-
-               for (unsigned comp = 0; comp < 3; comp++) {
-                  float r = 0;
-                  for (unsigned col = 0; col < 4; col++)
-                     r += transform_matrix.matrix[comp][col] * coords[col];
-
-                  node->coords[v][comp] = r;
-               }
-            }
-
-            primitive_index++;
-         }
-
-         break;
-      }
-      case VK_GEOMETRY_TYPE_AABBS_KHR: {
-         assert(info->type == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
-
-         const uint8_t *data = geom->geometry.aabbs.data.hostAddress;
-         data += range->primitiveOffset;
-
-         VkDeviceSize stride = geom->geometry.aabbs.stride;
-
-         for (uint32_t j = 0; j < range->primitiveCount; j++) {
-            struct lvp_bvh_aabb_node *node = leaf_nodes;
-            node += primitive_index;
-
-            node->primitive_id = j;
-            node->geometry_id_and_flags = geometry_id_and_flags;
-
-            const VkAabbPositionsKHR *aabb = (const VkAabbPositionsKHR *)(data + j * stride);
-            node->bounds.min.x = aabb->minX;
-            node->bounds.min.y = aabb->minY;
-            node->bounds.min.z = aabb->minZ;
-            node->bounds.max.x = aabb->maxX;
-            node->bounds.max.y = aabb->maxY;
-            node->bounds.max.z = aabb->maxZ;
-
-            primitive_index++;
-         }
-
-         break;
-      }
-      case VK_GEOMETRY_TYPE_INSTANCES_KHR: {
-         assert(info->type == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR);
-
-         const uint8_t *data = geom->geometry.instances.data.hostAddress;
-         data += range->primitiveOffset;
-
-         for (uint32_t j = 0; j < range->primitiveCount; j++) {
-            struct lvp_bvh_instance_node *node = leaf_nodes;
-            node += primitive_index;
-
-            const VkAccelerationStructureInstanceKHR *instance =
-               geom->geometry.instances.arrayOfPointers
-                  ? (((const VkAccelerationStructureInstanceKHR *const *)data)[j])
-                  : &((const VkAccelerationStructureInstanceKHR *)data)[j];
-            if (!instance->accelerationStructureReference)
-               continue;
-
-            node->bvh_ptr = instance->accelerationStructureReference;
-
-            float transform[16], inv_transform[16];
-            memcpy(transform, &instance->transform.matrix, sizeof(instance->transform.matrix));
-            transform[12] = transform[13] = transform[14] = 0.0f;
-            transform[15] = 1.0f;
-
-            util_invert_mat4x4(inv_transform, transform);
-            memcpy(node->wto_matrix.values, inv_transform, sizeof(node->wto_matrix.values));
-
-            node->custom_instance_and_mask = instance->instanceCustomIndex | (instance->mask << 24);
-            node->sbt_offset_and_flags = lvp_pack_sbt_offset_and_flags(
-               instance->instanceShaderBindingTableRecordOffset, instance->flags);
-            node->instance_id = j;
-
-            memcpy(node->otw_matrix.values, instance->transform.matrix,
-                   sizeof(node->otw_matrix.values));
-
-            primitive_index++;
-            header->instance_count++;
-         }
-
-         break;
-      }
-      default:
-         unreachable("Unknown geometryType");
-      }
-   }
-
-   leaf_count = primitive_index;
-
-   struct lvp_build_internal_ctx internal_ctx = {
-      .dst = dst,
-      .dst_offset = sizeof(struct lvp_bvh_header),
-
-      .leaf_nodes = leaf_nodes,
-      .leaf_nodes_offset = header->leaf_nodes_offset,
-   };
-
-   VkGeometryTypeKHR geometry_type = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-   if (info->geometryCount) {
-      if (info->pGeometries)
-         geometry_type = info->pGeometries[0].geometryType;
-      else
-         geometry_type = info->ppGeometries[0]->geometryType;
-   }
-
-   switch (geometry_type) {
-   case VK_GEOMETRY_TYPE_TRIANGLES_KHR:
-      internal_ctx.leaf_node_type = lvp_bvh_node_triangle;
-      internal_ctx.leaf_node_size = sizeof(struct lvp_bvh_triangle_node);
-      break;
-   case VK_GEOMETRY_TYPE_AABBS_KHR:
-      internal_ctx.leaf_node_type = lvp_bvh_node_aabb;
-      internal_ctx.leaf_node_size = sizeof(struct lvp_bvh_aabb_node);
-      break;
-   case VK_GEOMETRY_TYPE_INSTANCES_KHR:
-      internal_ctx.leaf_node_type = lvp_bvh_node_instance;
-      internal_ctx.leaf_node_size = sizeof(struct lvp_bvh_instance_node);
-      break;
-   default:
-      unreachable("Unknown VkGeometryTypeKHR");
-   }
-
-   if (leaf_count) {
-      lvp_build_internal_node(&internal_ctx, 0, leaf_count - 1);
-   } else {
-      root->children[0] = LVP_BVH_INVALID_NODE;
-      root->children[1] = LVP_BVH_INVALID_NODE;
-   }
-
-   header->bounds.min.x = MIN2(root->bounds[0].min.x, root->bounds[1].min.x);
-   header->bounds.min.y = MIN2(root->bounds[0].min.y, root->bounds[1].min.y);
-   header->bounds.min.z = MIN2(root->bounds[0].min.z, root->bounds[1].min.z);
-
-   header->bounds.max.x = MAX2(root->bounds[0].max.x, root->bounds[1].max.x);
-   header->bounds.max.y = MAX2(root->bounds[0].max.y, root->bounds[1].max.y);
-   header->bounds.max.z = MAX2(root->bounds[0].max.z, root->bounds[1].max.z);
-
-   header->serialization_size = sizeof(struct lvp_accel_struct_serialization_header) +
-                                sizeof(uint64_t) * header->instance_count + accel_struct->size;
+   lvp_enqueue_restore_state(commandBuffer);
 }

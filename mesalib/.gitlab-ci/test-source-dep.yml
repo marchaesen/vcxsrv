@@ -55,7 +55,7 @@
         - .gitlab-ci/**/*
         - include/**/*
         - meson.build
-        - meson_options.txt
+        - meson.options
         - build-support/**/*
         - subprojects/**/*
         - .gitattributes

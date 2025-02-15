@@ -187,7 +187,7 @@ setup_render_state(struct gl_context *ctx,
                      clamp_frag_color;
    key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
-   fpv = st_get_fp_variant(st, fp, &key);
+   fpv = st_get_fp_variant(st, fp, &key, false, NULL);
 
    /* As an optimization, Mesa's fragment programs will sometimes get the
     * primary color from a statevar/constant rather than a varying variable.

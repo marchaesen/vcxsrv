@@ -43,10 +43,12 @@
 #include "util/u_memory.h"
 #include "util/u_prim.h"
 #include "util/u_prim_restart.h"
+#include "util/u_printf.h"
 #include "util/u_surface.h"
 #include "util/u_upload_mgr.h"
 #include "util/u_vbuf.h"
 
+#include "clc/panfrost_compile.h"
 #include "compiler/nir/nir_serialize.h"
 #include "util/pan_lower_framebuffer.h"
 #include "decode.h"
@@ -564,6 +566,9 @@ panfrost_destroy(struct pipe_context *pipe)
    struct panfrost_device *dev = pan_device(pipe->screen);
 
    pan_screen(pipe->screen)->vtbl.context_cleanup(panfrost);
+
+   u_printf_destroy(&panfrost->printf.ctx);
+   panfrost_bo_unreference(panfrost->printf.bo);
 
    if (panfrost->writers)
       _mesa_hash_table_destroy(panfrost->writers, NULL);
@@ -1121,6 +1126,14 @@ panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
    ctx->in_sync_fd = -1;
    ret = drmSyncobjCreate(panfrost_device_fd(dev), 0, &ctx->in_sync_obj);
    assert(!ret);
+
+   ctx->printf.bo =
+      panfrost_bo_create(dev, LIBPAN_PRINTF_BUFFER_SIZE, 0, "Printf Buffer");
+
+   if (ctx->printf.bo == NULL)
+      goto failed;
+
+   u_printf_init(&ctx->printf.ctx, ctx->printf.bo, ctx->printf.bo->ptr.cpu);
 
    ret = pan_screen(screen)->vtbl.context_init(ctx);
 

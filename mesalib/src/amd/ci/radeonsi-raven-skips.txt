@@ -36,21 +36,3 @@ spec@ext_external_objects_fd@memory-object-api-errors
 spec@ext_external_objects@vk-vert-buf-reuse
 
 spec@glsl-1.30@execution@texelfetch fs sampler2d 1x281-501x281
-
-
-# creates too many 8192x8192 or 10240x10240 surfaces, times out
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/151
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/152
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/1120
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/1121
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/1290
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/1291
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/2310
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/2311
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/2990
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/2991
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/3160
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesWithConfigAttribs/3161
-
-# times out, maybe for the same reason as above
-CreateSurfaces/VAAPICreateSurfaces.CreateSurfacesNoConfigAttrib/152

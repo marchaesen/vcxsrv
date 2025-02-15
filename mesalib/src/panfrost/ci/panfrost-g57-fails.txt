@@ -173,7 +173,6 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-unsupported_format,Fail
-spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_transform_feedback2@draw-auto,Fail
 spec@ext_transform_feedback@builtin-varyings gl_clipdistance,Fail
 spec@ext_transform_feedback@change-size base-shrink,Fail

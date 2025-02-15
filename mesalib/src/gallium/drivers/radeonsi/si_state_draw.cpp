@@ -2071,7 +2071,7 @@ static void si_draw(struct pipe_context *ctx,
    else if (GFX_VERSION < GFX12)
       gfx11_decompress_textures(sctx, u_bit_consecutive(0, SI_NUM_GRAPHICS_SHADERS));
 
-   si_need_gfx_cs_space(sctx, num_draws);
+   si_need_gfx_cs_space(sctx, num_draws, ALT_HIZ_LOGIC ? 8 : 0);
 
    if (u_trace_perfetto_active(&sctx->ds.trace_context))
       trace_si_begin_draw(&sctx->trace);

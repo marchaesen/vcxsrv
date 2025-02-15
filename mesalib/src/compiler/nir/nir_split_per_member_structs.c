@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "nir.h"
 #include "nir_deref.h"
+#include "nir_builder.h"
 
 static nir_variable *
 find_var_member(struct nir_variable *var, unsigned member,

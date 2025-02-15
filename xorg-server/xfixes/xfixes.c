@@ -48,6 +48,8 @@
 #include "protocol-versions.h"
 #include "extinit_priv.h"
 
+Bool noXFixesExtension = FALSE;
+
 static unsigned char XFixesReqCode;
 int XFixesEventBase;
 int XFixesErrorBase;
@@ -164,7 +166,6 @@ SProcXFixesQueryVersion(ClientPtr client)
     REQUEST(xXFixesQueryVersionReq);
     REQUEST_SIZE_MATCH(xXFixesQueryVersionReq);
 
-    swaps(&stuff->length);
     swapl(&stuff->majorVersion);
     swapl(&stuff->minorVersion);
     return (*ProcXFixesVector[stuff->xfixesReqType]) (client);
@@ -252,7 +253,7 @@ XFixesExtensionInit(void)
     }
 }
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 
 int (*PanoramiXSaveXFixesVector[XFixesNumberRequests]) (ClientPtr);
 
@@ -282,4 +283,4 @@ PanoramiXFixesReset(void)
         ProcXFixesVector[i] = PanoramiXSaveXFixesVector[i];
 }
 
-#endif
+#endif /* XINERAMA */

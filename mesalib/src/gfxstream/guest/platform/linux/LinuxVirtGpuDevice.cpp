@@ -9,6 +9,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <xf86drm.h>
+#include <sys/stat.h>
 
 #include <cerrno>
 #include <cstring>
@@ -20,6 +21,16 @@
 #include "util/log.h"
 #include "virtgpu_gfxstream_protocol.h"
 
+#ifdef MAJOR_IN_MKDEV
+#include <sys/mkdev.h>
+#endif
+#ifdef MAJOR_IN_SYSMACROS
+#include <sys/sysmacros.h>
+#endif
+
+#define VIRTGPU_PCI_VENDOR_ID 0x1af4
+#define VIRTGPU_PCI_DEVICE_ID 0x1050
+
 #define VIRTGPU_PARAM_CREATE_FENCE_PASSING 9  /* Fence passing */
 #define VIRTGPU_PARAM_CREATE_GUEST_HANDLE 10  /* Host OS handle can be created from guest memory. */
 
@@ -27,6 +38,85 @@
     (struct VirtGpuParam) { x, #x, 0 }
 
 static inline uint32_t align_up(uint32_t n, uint32_t a) { return ((n + a - 1) / a) * a; }
+
+int
+LinuxVirtGpuDevice::openDevice(const drmDevicePtr dev)
+{
+    bool supported_bus = false;
+
+    switch (dev->bustype) {
+    case DRM_BUS_PCI:
+        if (dev->deviceinfo.pci->vendor_id == VIRTGPU_PCI_VENDOR_ID &&
+            dev->deviceinfo.pci->device_id == VIRTGPU_PCI_DEVICE_ID)
+            supported_bus = true;
+        break;
+    case DRM_BUS_PLATFORM:
+        supported_bus = true;
+        break;
+    default:
+        break;
+    }
+
+    if (!supported_bus || !(dev->available_nodes & (1 << DRM_NODE_RENDER))) {
+        const char *name = "unknown";
+        for (uint32_t i = 0; i < DRM_NODE_MAX; i++) {
+            if (dev->available_nodes & (1 << i)) {
+                name = dev->nodes[i];
+                break;
+            }
+        }
+        mesa_logd("skipping DRM device %s", name);
+        return -1;
+    }
+
+    const char *primary_path = dev->nodes[DRM_NODE_PRIMARY];
+    const char *node_path = dev->nodes[DRM_NODE_RENDER];
+
+    int fd = open(node_path, O_RDWR | O_CLOEXEC);
+    if (fd < 0) {
+        mesa_logd("failed to open %s", node_path);
+        return -1;
+    }
+
+    drmVersionPtr version = drmGetVersion(fd);
+    if (!version || strcmp(version->name, "virtio_gpu") ||
+        version->version_major != 0) {
+        if (version) {
+            mesa_logd("unknown DRM driver %s version %d",
+                    version->name, version->version_major);
+        } else {
+            mesa_logd("failed to get DRM driver version");
+        }
+        if (version)
+            drmFreeVersion(version);
+        close(fd);
+        return -1;
+    }
+
+    struct stat st;
+    if (stat(primary_path, &st) == 0) {
+        mHasPrimary = true;
+        mPrimaryMajor = major(st.st_rdev);
+        mPrimaryMinor = minor(st.st_rdev);
+    } else {
+        mHasPrimary = false;
+        mPrimaryMajor = 0;
+        mPrimaryMinor = 0;
+    }
+    stat(node_path, &st);
+    mRenderMajor = major(st.st_rdev);
+    mRenderMinor = minor(st.st_rdev);
+
+    mBusType = dev->bustype;
+    if (dev->bustype == DRM_BUS_PCI)
+        mPciBusInfo = *dev->businfo.pci;
+
+    drmFreeVersion(version);
+
+    mesa_logd("using DRM device %s", node_path);
+
+    return fd;
+}
 
 LinuxVirtGpuDevice::LinuxVirtGpuDevice(enum VirtGpuCapset capset, int32_t descriptor)
     : VirtGpuDevice(capset) {
@@ -52,11 +142,27 @@ LinuxVirtGpuDevice::LinuxVirtGpuDevice(enum VirtGpuCapset capset, int32_t descri
 #endif
 
     if (descriptor < 0) {
-        mDeviceHandle = static_cast<int64_t>(drmOpenRender(128));
-        if (mDeviceHandle < 0) {
-            mesa_loge("Failed to open rendernode: %s", strerror(errno));
+        drmDevicePtr devs[8];
+        int count = drmGetDevices2(0, devs, ARRAY_SIZE(devs));
+        if (count < 0) {
+            mesa_loge("failed to enumerate DRM devices");
             return;
         }
+
+        int fd = -1;
+        for (int i = 0; i < count; i++) {
+            fd = openDevice(devs[i]);
+            if (fd >= 0) break;
+        }
+
+        drmFreeDevices(devs, count);
+
+        if (fd < 0) {
+            mesa_loge("Failed to open the virtio_gpu device.");
+            return;
+        }
+
+        mDeviceHandle = static_cast<int64_t>(fd);
     } else {
         mDeviceHandle = dup(descriptor);
         if (mDeviceHandle < 0) {
@@ -249,4 +355,27 @@ int LinuxVirtGpuDevice::execBuffer(struct VirtGpuExecBuffer& execbuffer,
 
 VirtGpuDevice* osCreateVirtGpuDevice(enum VirtGpuCapset capset, int32_t descriptor) {
     return new LinuxVirtGpuDevice(capset, descriptor);
+}
+
+bool LinuxVirtGpuDevice::getDrmInfo(VirtGpuDrmInfo* drmInfo) {
+    drmInfo->hasPrimary = mHasPrimary;
+    drmInfo->hasRender = true;
+    drmInfo->primaryMajor = mPrimaryMajor;
+    drmInfo->primaryMinor = mPrimaryMinor;
+    drmInfo->renderMajor = mRenderMajor;
+    drmInfo->renderMinor = mRenderMinor;
+    return true;
+}
+
+bool LinuxVirtGpuDevice::getPciBusInfo(VirtGpuPciBusInfo* pciBusInfo) {
+    if (mBusType != DRM_BUS_PCI) {
+        return false;
+    }
+
+    pciBusInfo->domain = mPciBusInfo.domain;
+    pciBusInfo->bus = mPciBusInfo.bus;
+    pciBusInfo->device = mPciBusInfo.dev;
+    pciBusInfo->function = mPciBusInfo.func;
+
+    return true;
 }

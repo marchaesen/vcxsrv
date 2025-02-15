@@ -33,6 +33,7 @@
 #include "../compiler/nir_to_dxil.h"
 
 #include "util/u_debug.h"
+#include "util/u_printf.h"
 #include <util/u_math.h>
 #include "spirv/nir_spirv.h"
 #include "spirv/spirv_info.h"
@@ -1097,7 +1098,7 @@ clc_spirv_to_dxil(struct clc_libclc *lib,
    const struct dxil_nir_lower_loads_stores_options loads_stores_options = {
       .use_16bit_ssbo = false,
    };
-   
+
    /* Now that function-declared local vars have been sized, append args */
    for (unsigned i = 0; i < out_dxil->kernel->num_args; i++) {
       if (out_dxil->kernel->args[i].address_qualifier != CLC_KERNEL_ARG_ADDRESS_LOCAL)

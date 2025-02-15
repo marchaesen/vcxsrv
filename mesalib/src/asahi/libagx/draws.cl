@@ -16,7 +16,7 @@ libagx_predicate_indirect(global uint32_t *out, constant uint32_t *in,
                           constant uint32_t *draw_count, uint32_t stride_el,
                           uint indexed__2)
 {
-   uint draw = get_global_id(0);
+   uint draw = cl_global_id.x;
    uint words = indexed__2 ? 5 : 4;
    bool enabled = draw < *draw_count;
    out += draw * words;

@@ -919,7 +919,7 @@ static void si_query_hw_emit_start(struct si_context *sctx, struct si_query_hw *
    si_update_prims_generated_query_state(sctx, query->b.type, 1);
    si_update_hw_pipeline_stats(sctx, query->b.type, 1);
 
-   si_need_gfx_cs_space(sctx, 0);
+   si_need_gfx_cs_space(sctx, 0, 0);
 
    va = query->buffer.buf->gpu_address + query->buffer.results_end;
    si_query_hw_do_emit_start(sctx, query, query->buffer.buf, va);
@@ -1015,7 +1015,7 @@ static void si_query_hw_emit_stop(struct si_context *sctx, struct si_query_hw *q
 
    /* The queries which need begin already called this in begin_query. */
    if (query->flags & SI_QUERY_HW_FLAG_NO_START) {
-      si_need_gfx_cs_space(sctx, 0);
+      si_need_gfx_cs_space(sctx, 0, 0);
       if (!si_query_buffer_alloc(sctx, &query->buffer, si_query_hw_prepare_buffer,
                                  query->result_size))
          return;
@@ -1728,7 +1728,7 @@ void si_resume_queries(struct si_context *sctx)
    struct si_query *query;
 
    /* Check CS space here. Resuming must not be interrupted by flushes. */
-   si_need_gfx_cs_space(sctx, 0);
+   si_need_gfx_cs_space(sctx, 0, 0);
 
    LIST_FOR_EACH_ENTRY (query, &sctx->active_queries, active_list)
       query->ops->resume(sctx, query);

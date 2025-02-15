@@ -33,10 +33,19 @@ lima_nir_duplicate_load_const(nir_builder *b, nir_load_const_instr *load)
 
    nir_foreach_use_safe(use_src, &load->def) {
       nir_load_const_instr *dupl;
+      nir_instr *instr = nir_src_parent_instr(use_src);
+      nir_alu_instr *alu = NULL;
+      if (instr->type == nir_instr_type_alu)
+         alu = nir_instr_as_alu(instr);
 
-      if (last_parent_instr != nir_src_parent_instr(use_src)) {
+      /* Always clone consts for FFMA sources as well, since it will translate
+       * into 2 PPIR ops and each may need its own const. Redundant consts
+       * will be dropped by PPIR later
+       */
+      if (last_parent_instr != instr ||
+          (alu && alu->op == nir_op_ffma)) {
          /* if ssa use, clone for the target block */
-         b->cursor = nir_before_instr(nir_src_parent_instr(use_src));
+         b->cursor = nir_before_instr(instr);
 
          dupl = nir_load_const_instr_create(b->shader, load->def.num_components,
                                             load->def.bit_size);

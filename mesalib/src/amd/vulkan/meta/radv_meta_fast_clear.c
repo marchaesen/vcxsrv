@@ -7,8 +7,8 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#include "nir/radv_meta_nir.h"
 #include "radv_meta.h"
-#include "sid.h"
 
 enum radv_color_op {
    FAST_CLEAR_ELIMINATE,
@@ -16,47 +16,10 @@ enum radv_color_op {
    DCC_DECOMPRESS,
 };
 
-static nir_shader *
-build_dcc_decompress_compute_shader(struct radv_device *dev)
-{
-   const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_2D, false, GLSL_TYPE_FLOAT);
-
-   nir_builder b = radv_meta_init_shader(dev, MESA_SHADER_COMPUTE, "dcc_decompress_compute");
-
-   /* We need at least 16/16/1 to cover an entire DCC block in a single workgroup. */
-   b.shader->info.workgroup_size[0] = 16;
-   b.shader->info.workgroup_size[1] = 16;
-   nir_variable *input_img = nir_variable_create(b.shader, nir_var_image, img_type, "in_img");
-   input_img->data.descriptor_set = 0;
-   input_img->data.binding = 0;
-
-   nir_variable *output_img = nir_variable_create(b.shader, nir_var_image, img_type, "out_img");
-   output_img->data.descriptor_set = 0;
-   output_img->data.binding = 1;
-
-   nir_def *global_id = get_global_ids(&b, 2);
-   nir_def *img_coord = nir_vec4(&b, nir_channel(&b, global_id, 0), nir_channel(&b, global_id, 1), nir_undef(&b, 1, 32),
-                                 nir_undef(&b, 1, 32));
-
-   nir_def *data = nir_image_deref_load(&b, 4, 32, &nir_build_deref_var(&b, input_img)->def, img_coord,
-                                        nir_undef(&b, 1, 32), nir_imm_int(&b, 0), .image_dim = GLSL_SAMPLER_DIM_2D);
-
-   /* We need a SCOPE_DEVICE memory_scope because ACO will avoid
-    * creating a vmcnt(0) because it expects the L1 cache to keep memory
-    * operations in-order for the same workgroup. The vmcnt(0) seems
-    * necessary however. */
-   nir_barrier(&b, .execution_scope = SCOPE_WORKGROUP, .memory_scope = SCOPE_DEVICE,
-               .memory_semantics = NIR_MEMORY_ACQ_REL, .memory_modes = nir_var_mem_ssbo);
-
-   nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->def, img_coord, nir_undef(&b, 1, 32), data,
-                         nir_imm_int(&b, 0), .image_dim = GLSL_SAMPLER_DIM_2D);
-   return b.shader;
-}
-
 static VkResult
 get_dcc_decompress_compute_pipeline(struct radv_device *device, VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
-   const char *key_data = "radv-dcc-decompress-cs";
+   enum radv_meta_object_key_type key = RADV_META_OBJECT_KEY_DCC_DECOMPRESS;
    VkResult result;
 
    const VkDescriptorSetLayoutBinding bindings[] = {
@@ -81,18 +44,18 @@ get_dcc_decompress_compute_pipeline(struct radv_device *device, VkPipeline *pipe
       .pBindings = bindings,
    };
 
-   result = vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, NULL, key_data,
-                                        strlen(key_data), layout_out);
+   result = vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, NULL, &key, sizeof(key),
+                                        layout_out);
    if (result != VK_SUCCESS)
       return result;
 
-   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, key_data, strlen(key_data));
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, &key, sizeof(key));
    if (pipeline_from_cache != VK_NULL_HANDLE) {
       *pipeline_out = pipeline_from_cache;
       return VK_SUCCESS;
    }
 
-   nir_shader *cs = build_dcc_decompress_compute_shader(device);
+   nir_shader *cs = radv_meta_nir_build_dcc_decompress_compute_shader(device);
 
    const VkPipelineShaderStageCreateInfo stage_info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -109,8 +72,8 @@ get_dcc_decompress_compute_pipeline(struct radv_device *device, VkPipeline *pipe
       .layout = *layout_out,
    };
 
-   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, key_data,
-                                            strlen(key_data), pipeline_out);
+   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, &key, sizeof(key),
+                                            pipeline_out);
 
    ralloc_free(cs);
    return result;
@@ -120,23 +83,33 @@ static VkResult
 get_pipeline(struct radv_device *device, enum radv_color_op op, VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
-   char key_data[64];
+   enum radv_meta_object_key_type key = 0;
    VkResult result;
 
-   snprintf(key_data, sizeof(key_data), "radv-color-op-%d", op);
+   switch (op) {
+   case FAST_CLEAR_ELIMINATE:
+      key = RADV_META_OBJECT_KEY_FAST_CLEAR_ELIMINATE;
+      break;
+   case FMASK_DECOMPRESS:
+      key = RADV_META_OBJECT_KEY_FMASK_DECOMPRESS;
+      break;
+   case DCC_DECOMPRESS:
+      key = RADV_META_OBJECT_KEY_DCC_DECOMPRESS;
+      break;
+   }
 
    result = radv_meta_get_noop_pipeline_layout(device, layout_out);
    if (result != VK_SUCCESS)
       return result;
 
-   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, key_data, strlen(key_data));
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, &key, sizeof(key));
    if (pipeline_from_cache != VK_NULL_HANDLE) {
       *pipeline_out = pipeline_from_cache;
       return VK_SUCCESS;
    }
 
-   nir_shader *vs_module = radv_meta_build_nir_vs_generate_vertices(device);
-   nir_shader *fs_module = radv_meta_build_nir_fs_noop(device);
+   nir_shader *vs_module = radv_meta_nir_build_vs_generate_vertices(device);
+   nir_shader *fs_module = radv_meta_nir_build_fs_noop(device);
 
    VkGraphicsPipelineCreateInfoRADV radv_info = {
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO_RADV,
@@ -244,7 +217,7 @@ get_pipeline(struct radv_device *device, enum radv_color_op op, VkPipeline *pipe
    };
 
    result = vk_meta_create_graphics_pipeline(&device->vk, &device->meta_state.device, &pipeline_create_info, &render,
-                                             key_data, strlen(key_data), pipeline_out);
+                                             &key, sizeof(key), pipeline_out);
 
    ralloc_free(vs_module);
    ralloc_free(fs_module);

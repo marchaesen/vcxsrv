@@ -134,168 +134,101 @@ get_aperture_size(int fd)
    return aperture.aper_size;
 }
 
-static int
-crocus_get_shader_param(struct pipe_screen *pscreen,
-                        enum pipe_shader_type p_stage,
-                        enum pipe_shader_cap param)
+static void
+crocus_init_shader_caps(struct crocus_screen *screen)
 {
-   gl_shader_stage stage = stage_from_pipe(p_stage);
-   struct crocus_screen *screen = (struct crocus_screen *)pscreen;
    const struct intel_device_info *devinfo = &screen->devinfo;
 
-   if (p_stage == PIPE_SHADER_MESH ||
-       p_stage == PIPE_SHADER_TASK)
-      return 0;
+   for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+      struct pipe_shader_caps *caps =
+         (struct pipe_shader_caps *)&screen->base.shader_caps[i];
 
-   if (devinfo->ver < 6 &&
-       p_stage != PIPE_SHADER_VERTEX &&
-       p_stage != PIPE_SHADER_FRAGMENT)
-      return 0;
+      if (devinfo->ver < 6 &&
+          i != PIPE_SHADER_VERTEX &&
+          i != PIPE_SHADER_FRAGMENT)
+         continue;
 
-   if (devinfo->ver == 6 &&
-       p_stage != PIPE_SHADER_VERTEX &&
-       p_stage != PIPE_SHADER_FRAGMENT &&
-       p_stage != PIPE_SHADER_GEOMETRY)
-      return 0;
+      if (devinfo->ver == 6 &&
+          i != PIPE_SHADER_VERTEX &&
+          i != PIPE_SHADER_FRAGMENT &&
+          i != PIPE_SHADER_GEOMETRY)
+         continue;
 
-   /* this is probably not totally correct.. but it's a start: */
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-      return stage == MESA_SHADER_FRAGMENT ? 1024 : 16384;
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-      return stage == MESA_SHADER_FRAGMENT ? 1024 : 0;
+      caps->max_instructions = i == MESA_SHADER_FRAGMENT ? 1024 : 16384;
+      caps->max_alu_instructions =
+      caps->max_tex_instructions =
+      caps->max_tex_indirections = i == MESA_SHADER_FRAGMENT ? 1024 : 0;
 
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return UINT_MAX;
+      caps->max_control_flow_depth = UINT_MAX;
 
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      if (stage == MESA_SHADER_VERTEX ||
-          stage == MESA_SHADER_GEOMETRY)
-         return 16; /* Gen7 vec4 geom backend */
-      return 32;
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
-      return 32;
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      return 16 * 1024 * sizeof(float);
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return devinfo->ver >= 6 ? 16 : 1;
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
-   case PIPE_SHADER_CAP_CONT_SUPPORTED:
-      return 0;
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
+      /* Gen7 vec4 geom backend */
+      caps->max_inputs = i == MESA_SHADER_VERTEX || i == MESA_SHADER_GEOMETRY ? 16 : 32;
+      caps->max_outputs = 32;
+      caps->max_const_buffer0_size = 16 * 1024 * sizeof(float);
+      caps->max_const_buffers = devinfo->ver >= 6 ? 16 : 1;
+      caps->max_temps = 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
+
       /* Lie about these to avoid st/mesa's GLSL IR lowering of indirects,
        * which we don't want.  Our compiler backend will check elk_compiler's
        * options and call nir_lower_indirect_derefs appropriately anyway.
        */
-      return true;
-   case PIPE_SHADER_CAP_SUBROUTINES:
-      return 0;
-   case PIPE_SHADER_CAP_INTEGERS:
-      return 1;
-   case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_FP16:
-      return 0;
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-      return (devinfo->verx10 >= 75) ? CROCUS_MAX_TEXTURE_SAMPLERS : 16;
-   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
+      caps->indirect_temp_addr = true;
+      caps->indirect_const_addr = true;
+
+      caps->integers = true;
+      caps->max_texture_samplers =
+      caps->max_sampler_views =
+         (devinfo->verx10 >= 75) ? CROCUS_MAX_TEXTURE_SAMPLERS : 16;
+
       if (devinfo->ver >= 7 &&
-          (p_stage == PIPE_SHADER_FRAGMENT ||
-           p_stage == PIPE_SHADER_COMPUTE))
-         return CROCUS_MAX_TEXTURE_SAMPLERS;
-      return 0;
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-      return devinfo->ver >= 7 ? (CROCUS_MAX_ABOS + CROCUS_MAX_SSBOS) : 0;
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-      return 0;
-   case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      return 1 << PIPE_SHADER_IR_NIR;
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-   case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-   case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-   case PIPE_SHADER_CAP_INT16:
-   case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-   case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-      return 0;
-   default:
-      unreachable("unknown shader param");
+          (i == PIPE_SHADER_FRAGMENT || i == PIPE_SHADER_COMPUTE))
+         caps->max_shader_images = CROCUS_MAX_TEXTURE_SAMPLERS;
+
+      caps->max_shader_buffers =
+         devinfo->ver >= 7 ? (CROCUS_MAX_ABOS + CROCUS_MAX_SSBOS) : 0;
+
+      caps->supported_irs = 1 << PIPE_SHADER_IR_NIR;
    }
 }
 
-static int
-crocus_get_compute_param(struct pipe_screen *pscreen,
-                         enum pipe_shader_ir ir_type,
-                         enum pipe_compute_cap param,
-                         void *ret)
+static void
+crocus_init_compute_caps(struct crocus_screen *screen)
 {
-   struct crocus_screen *screen = (struct crocus_screen *)pscreen;
+   struct pipe_compute_caps *caps =
+      (struct pipe_compute_caps *)&screen->base.compute_caps;
    const struct intel_device_info *devinfo = &screen->devinfo;
+
+   if (devinfo->ver < 7)
+      return;
 
    const uint32_t max_invocations = 32 * devinfo->max_cs_workgroup_threads;
 
-   if (devinfo->ver < 7)
-      return 0;
-#define RET(x) do {                  \
-   if (ret)                          \
-      memcpy(ret, x, sizeof(x));     \
-   return sizeof(x);                 \
-} while (0)
+   caps->address_bits = 32;
 
-   switch (param) {
-   case PIPE_COMPUTE_CAP_ADDRESS_BITS:
-      RET((uint32_t []){ 32 });
+   snprintf(caps->ir_target, sizeof(caps->ir_target), "gen");
 
-   case PIPE_COMPUTE_CAP_IR_TARGET:
-      if (ret)
-         strcpy(ret, "gen");
-      return 4;
+   caps->grid_dimension = 3;
 
-   case PIPE_COMPUTE_CAP_GRID_DIMENSION:
-      RET((uint64_t []) { 3 });
+   caps->max_grid_size[0] =
+   caps->max_grid_size[1] =
+   caps->max_grid_size[2] = 65535;
 
-   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
-      RET(((uint64_t []) { 65535, 65535, 65535 }));
+   /* MaxComputeWorkGroupSize[0..2] */
+   caps->max_block_size[0] =
+   caps->max_block_size[1] =
+   caps->max_block_size[2] = max_invocations;
 
-   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
-      /* MaxComputeWorkGroupSize[0..2] */
-      RET(((uint64_t []) {max_invocations, max_invocations, max_invocations}));
+   /* MaxComputeWorkGroupInvocations */
+   caps->max_threads_per_block = max_invocations;
 
-   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-      /* MaxComputeWorkGroupInvocations */
-      RET((uint64_t []) { max_invocations });
+   /* MaxComputeSharedMemorySize */
+   caps->max_local_size = 64 * 1024;
 
-   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-      /* MaxComputeSharedMemorySize */
-      RET((uint64_t []) { 64 * 1024 });
+   caps->images_supported = true;
 
-   case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-      RET((uint32_t []) { 1 });
+   caps->subgroup_sizes = ELK_SUBGROUP_SIZE;
 
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
-      RET((uint32_t []) { ELK_SUBGROUP_SIZE });
-
-   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-      RET((uint64_t []) { max_invocations });
-
-   case PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-   case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
-   case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
-
-      // XXX: I think these are for Clover...
-      return 0;
-
-   default:
-      unreachable("unknown compute param");
-   }
+   caps->max_variable_threads_per_block = max_invocations;
 }
 
 static void
@@ -713,8 +646,6 @@ crocus_screen_create(int fd, const struct pipe_screen_config *config)
    pscreen->get_vendor = crocus_get_vendor;
    pscreen->get_device_vendor = crocus_get_device_vendor;
    pscreen->get_screen_fd = crocus_screen_get_fd;
-   pscreen->get_shader_param = crocus_get_shader_param;
-   pscreen->get_compute_param = crocus_get_compute_param;
    pscreen->get_compiler_options = crocus_get_compiler_options;
    pscreen->get_device_uuid = crocus_get_device_uuid;
    pscreen->get_driver_uuid = crocus_get_driver_uuid;
@@ -726,6 +657,8 @@ crocus_screen_create(int fd, const struct pipe_screen_config *config)
    pscreen->get_driver_query_group_info = crocus_get_monitor_group_info;
    pscreen->get_driver_query_info = crocus_get_monitor_info;
 
+   crocus_init_shader_caps(screen);
+   crocus_init_compute_caps(screen);
    crocus_init_screen_caps(screen);
 
    genX_call(&screen->devinfo, crocus_init_screen_state, screen);

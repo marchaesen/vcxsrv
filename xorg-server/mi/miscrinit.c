@@ -34,7 +34,6 @@ from The Open Group.
 
 #include "servermd.h"
 #include "misc.h"
-#include "mi.h"
 #include "scrnintstr.h"
 #include "pixmapstr.h"
 #include "dix.h"
@@ -59,6 +58,8 @@ typedef struct {
     int xsize;
     int ysize;
 } miScreenInitParmsRec, *miScreenInitParmsPtr;
+
+#define DEFAULTZEROLINEBIAS (OCTANT2 | OCTANT3 | OCTANT4 | OCTANT5)
 
 /* this plugs into pScreen->ModifyPixmapHeader */
 Bool
@@ -124,7 +125,8 @@ miModifyPixmapHeader(PixmapPtr pPixmap, int width, int height, int depth,
 static Bool
 miCloseScreen(ScreenPtr pScreen)
 {
-    return ((*pScreen->DestroyPixmap) ((PixmapPtr) pScreen->devPrivate));
+    dixDestroyPixmap((PixmapPtr) pScreen->devPrivate, 0);
+    return TRUE;
 }
 
 static Bool

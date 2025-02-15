@@ -32,7 +32,7 @@ bool vl_codec_supported(struct pipe_screen *screen,
                         enum pipe_video_profile profile,
                         bool encode)
 {
-   static_assert(PIPE_VIDEO_PROFILE_MAX == 27, "Update table below when adding new video profiles");
+   static_assert(PIPE_VIDEO_PROFILE_MAX == 30, "Update table below when adding new video profiles");
    if (profile == PIPE_VIDEO_PROFILE_AV1_MAIN ||
        profile == PIPE_VIDEO_PROFILE_AV1_PROFILE2) {
       if (encode) {

@@ -34,6 +34,8 @@
 #include "compint.h"
 #endif
 
+Bool noResExtension = FALSE;
+
 /** @brief Holds fragments of responses for ConstructClientIds.
  *
  *  note: there is no consideration for data alignment */
@@ -1078,7 +1080,6 @@ static int _X_COLD
 SProcResDispatch (ClientPtr client)
 {
     REQUEST(xReq);
-    swaps(&stuff->length);
 
     switch (stuff->data) {
     case X_XResQueryVersion:

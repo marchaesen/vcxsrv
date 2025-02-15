@@ -21,7 +21,7 @@
 
 # Build system - Meson
 meson.build @dbaker @eric
-/meson_options.txt @dbaker @eric
+/meson.options @dbaker @eric
 /docs/meson.rst @dbaker @eric
 
 # Build system - Android

@@ -8,3 +8,4 @@ Description: The fontenc Library
 Version: @PACKAGE_VERSION@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lfontenc
+Requires.private: @Z_REQUIRES@

@@ -25,6 +25,7 @@
 #include "vk_nir.h"
 
 #include "compiler/nir/nir_xfb_info.h"
+#include "compiler/nir/nir.h"
 #include "compiler/spirv/nir_spirv.h"
 #include "vk_device.h"
 #include "vk_log.h"

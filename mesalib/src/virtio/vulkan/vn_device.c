@@ -40,7 +40,8 @@ static VkResult
 vn_queue_init(struct vn_device *dev,
               struct vn_queue *queue,
               const VkDeviceQueueCreateInfo *queue_info,
-              uint32_t queue_index)
+              uint32_t queue_index,
+              struct vn_queue *shared_queue)
 {
    VkResult result =
       vn_queue_base_init(&queue->base, &dev->base, queue_info, queue_index);
@@ -48,6 +49,16 @@ vn_queue_init(struct vn_device *dev,
       return result;
 
    vn_cached_storage_init(&queue->storage, &dev->base.base.alloc);
+
+   if (dev->physical_device->emulate_second_queue ==
+          queue_info->queueFamilyIndex &&
+       shared_queue != NULL) {
+      assert(queue_index > 0);
+      queue->emulated = true;
+      queue->base.id = shared_queue->base.id;
+      queue->ring_idx = shared_queue->ring_idx;
+      return VK_SUCCESS;
+   }
 
    const int ring_idx = vn_instance_acquire_ring_idx(dev->instance);
    if (ring_idx < 0) {
@@ -92,13 +103,15 @@ vn_device_init_queues(struct vn_device *dev,
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
    count = 0;
+   struct vn_queue *shared_queue = NULL;
    for (uint32_t i = 0; i < create_info->queueCreateInfoCount; i++) {
       VkResult result;
 
       const VkDeviceQueueCreateInfo *queue_info =
          &create_info->pQueueCreateInfos[i];
       for (uint32_t j = 0; j < queue_info->queueCount; j++) {
-         result = vn_queue_init(dev, &queues[count], queue_info, j);
+         result =
+            vn_queue_init(dev, &queues[count], queue_info, j, shared_queue);
          if (result != VK_SUCCESS) {
             for (uint32_t k = 0; k < count; k++)
                vn_queue_fini(&queues[k]);
@@ -107,7 +120,7 @@ vn_device_init_queues(struct vn_device *dev,
             return result;
          }
 
-         count++;
+         shared_queue = &queues[count++];
       }
    }
 
@@ -333,6 +346,15 @@ vn_device_fix_create_info(const struct vn_device *dev,
       extra_exts[extra_count++] = VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME;
    }
 
+   /* see vn_cmd_set_external_acquire_unmodified */
+   if (VN_PRESENT_SRC_INTERNAL_LAYOUT != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
+       physical_dev->renderer_extensions
+          .EXT_external_memory_acquire_unmodified &&
+       !app_exts->EXT_external_memory_acquire_unmodified && has_wsi) {
+      extra_exts[extra_count++] =
+         VK_EXT_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXTENSION_NAME;
+   }
+
    if (app_exts->EXT_device_memory_report) {
       /* see vn_physical_device_get_native_extensions */
       block_exts[block_count++] = VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME;
@@ -461,8 +483,25 @@ vn_device_init(struct vn_device *dev,
    if (group && group->physicalDeviceCount)
       dev->device_mask = (1 << group->physicalDeviceCount) - 1;
 
+   VkDeviceCreateInfo final_create_info = *create_info;
+   STACK_ARRAY(VkDeviceQueueCreateInfo, queue_infos,
+               create_info->queueCreateInfoCount);
+   for (uint32_t i = 0; i < create_info->queueCreateInfoCount; i++) {
+      const VkDeviceQueueCreateInfo *queue_info =
+         &create_info->pQueueCreateInfos[i];
+      if (queue_info->queueFamilyIndex ==
+             physical_dev->emulate_second_queue &&
+          queue_info->queueCount == 2) {
+         typed_memcpy(queue_infos, create_info->pQueueCreateInfos,
+                      create_info->queueCreateInfoCount);
+         final_create_info.pQueueCreateInfos = queue_infos;
+         queue_infos[i].queueCount = 1;
+         break;
+      }
+   }
    result = vn_call_vkCreateDevice(dev->primary_ring, physical_dev_handle,
-                                   create_info, NULL, &dev_handle);
+                                   &final_create_info, NULL, &dev_handle);
+   STACK_ARRAY_FINISH(queue_infos);
 
    /* free the fixed extensions here since no longer needed below */
    if (create_info == &local_create_info)
@@ -603,7 +642,8 @@ vn_DestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
     * are still bound to the queues in the renderer.
     */
    for (uint32_t i = 0; i < dev->queue_count; i++) {
-      vn_instance_release_ring_idx(dev->instance, dev->queues[i].ring_idx);
+      if (!dev->queues[i].emulated)
+         vn_instance_release_ring_idx(dev->instance, dev->queues[i].ring_idx);
    }
 
    vk_free(alloc, dev->queues);

@@ -113,17 +113,22 @@ prepare_tex_descs(struct panvk_image_view *view)
    if (pview.format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT)
       pview.format = PIPE_FORMAT_Z32_FLOAT;
 
+   uint32_t plane_count = vk_format_get_plane_count(view->vk.format);
+   uint32_t tex_payload_size =
+      GENX(panfrost_estimate_texture_payload_size)(&pview);
+
    struct panvk_pool_alloc_info alloc_info = {
 #if PAN_ARCH == 6
       .alignment = pan_alignment(SURFACE_WITH_STRIDE),
 #elif PAN_ARCH == 7
-      .alignment = pan_alignment(MULTIPLANAR_SURFACE),
+      .alignment = (plane_count > 1)
+                      ? pan_alignment(MULTIPLANAR_SURFACE)
+                      : pan_alignment(SURFACE_WITH_STRIDE),
 #else
-      .alignment = pan_alignment(PLANE),
+      .alignment = pan_alignment(PLANE) * (plane_count > 1 ? 2 : 1),
 #endif
 
-      .size = GENX(panfrost_estimate_texture_payload_size)(&pview) *
-              (can_preload_other_aspect ? 2 : 1),
+      .size = tex_payload_size * (can_preload_other_aspect ? 2 : plane_count),
    };
 
    view->mem = panvk_pool_alloc_mem(&dev->mempools.rw, alloc_info);
@@ -135,7 +140,25 @@ prepare_tex_descs(struct panvk_image_view *view)
       .cpu = panvk_priv_mem_host_addr(view->mem),
    };
 
-   GENX(panfrost_new_texture)(&pview, &view->descs.tex, &ptr);
+   if (plane_count > 1) {
+      memset(pview.planes, 0, sizeof(pview.planes));
+
+      for (uint32_t plane = 0; plane < plane_count; plane++) {
+         VkFormat plane_format =
+            vk_format_get_plane_format(view->vk.view_format, plane);
+
+         /* We need a per-plane pview. */
+         pview.planes[0] = view->pview.planes[plane];
+         pview.format = vk_format_to_pipe_format(plane_format);
+
+         GENX(panfrost_new_texture)(&pview, &view->descs.tex[plane], &ptr);
+
+         ptr.cpu += tex_payload_size;
+         ptr.gpu += tex_payload_size;
+      }
+   } else {
+      GENX(panfrost_new_texture)(&pview, &view->descs.tex[0], &ptr);
+   }
 
    if (!can_preload_other_aspect)
       return VK_SUCCESS;
@@ -158,10 +181,10 @@ prepare_tex_descs(struct panvk_image_view *view)
       assert(!"Invalid format");
    }
 
-   ptr.cpu += alloc_info.size / 2;
-   ptr.gpu += alloc_info.size / 2;
+   ptr.cpu += tex_payload_size;
+   ptr.gpu += tex_payload_size;
 
-   GENX(panfrost_new_texture)(&pview, &view->descs.other_aspect_tex, &ptr);
+   GENX(panfrost_new_texture)(&pview, &view->descs.zs.other_aspect_tex, &ptr);
    return VK_SUCCESS;
 }
 
@@ -256,7 +279,10 @@ panvk_per_arch(CreateImageView)(VkDevice _device,
       .dim = panvk_view_type_to_mali_tex_dim(view->vk.view_type),
       .nr_samples = image->vk.samples,
       .first_level = view->vk.base_mip_level,
-      .last_level = view->vk.base_mip_level + view->vk.level_count - 1,
+      /* MIPmapping in YUV formats is not supported by the HW. */
+      .last_level = vk_format_get_ycbcr_info(view->vk.format)
+         ? view->vk.base_mip_level
+         : view->vk.base_mip_level + view->vk.level_count - 1,
       .first_layer = view->vk.base_array_layer,
       .last_layer = view->vk.base_array_layer + view->vk.layer_count - 1,
    };
@@ -265,7 +291,15 @@ panvk_per_arch(CreateImageView)(VkDevice _device,
    u_foreach_bit(aspect_bit, view->vk.aspects) {
       uint8_t image_plane =
          panvk_plane_index(image->vk.format, 1u << aspect_bit);
-      view->pview.planes[image_plane] = &image->planes[image_plane];
+
+      /* Place the view plane at index 0 for single-plane views of multiplane
+       * formats. Does not apply to YCbCr views of multiplane images since
+       * view->vk.aspects for those will contain the full set of plane aspects.
+       */
+      uint8_t view_plane = (view->vk.aspects == VK_IMAGE_ASPECT_PLANE_1_BIT ||
+                            view->vk.aspects == VK_IMAGE_ASPECT_PLANE_2_BIT) ?
+                           0 : image_plane;
+      view->pview.planes[view_plane] = &image->planes[image_plane];
    }
 
    /* Depth/stencil are viewed as color for copies. */

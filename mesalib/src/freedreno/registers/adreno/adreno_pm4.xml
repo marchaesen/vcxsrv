@@ -1132,39 +1132,93 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</reg32>
 </domain>
 
+<enum name="a7xx_abs_mask_mode">
+	<value name="ABS_MASK" value="0x1"/>
+	<value name="NO_ABS_MASK" value="0x0"/>
+</enum>
+
 <domain name="CP_SET_BIN_DATA5" width="32">
 	<reg32 offset="0" name="0">
+		<bitfield name="VSC_MASK" low="0" high="15" type="hex">
+			<doc>
+				A mask of bins, starting at VSC_N, whose
+				visibility is OR'd together. A value of 0 is
+				interpreted as 1 (i.e. just use VSC_N for
+				visbility) for backwards compatibility. Only
+				exists on a7xx.
+			</doc>
+		</bitfield>
 		<!-- equiv to PC_VSTREAM_CONTROL.SIZE on a3xx/a4xx: -->
 		<bitfield name="VSC_SIZE" low="16" high="21" type="uint"/>
 		<!-- equiv to PC_VSTREAM_CONTROL.N on a3xx/a4xx: -->
 		<bitfield name="VSC_N" low="22" high="26" type="uint"/>
+		<bitfield name="ABS_MASK" pos="28" type="a7xx_abs_mask_mode" addvariant="yes">
+			<doc>
+				If this field is 1, VSC_MASK and VSC_N are
+				ignored and instead a new ordinal immediately
+				after specifies the full 32-bit mask of bins
+				to use. The mask is "absolute" instead of
+				relative to VSC_N.
+			</doc>
+		</bitfield>
 	</reg32>
-	<!-- BIN_DATA_ADDR -> VSC_PIPE[p].DATA_ADDRESS -->
-	<reg32 offset="1" name="1">
-		<bitfield name="BIN_DATA_ADDR_LO" low="0" high="31" type="hex"/>
-	</reg32>
-	<reg32 offset="2" name="2">
-		<bitfield name="BIN_DATA_ADDR_HI" low="0" high="31" type="hex"/>
-	</reg32>
-	<!-- BIN_SIZE_ADDRESS -> VSC_SIZE_ADDRESS + (p * 4)-->
-	<reg32 offset="3" name="3">
-		<bitfield name="BIN_SIZE_ADDRESS_LO" low="0" high="31"/>
-	</reg32>
-	<reg32 offset="4" name="4">
-		<bitfield name="BIN_SIZE_ADDRESS_HI" low="0" high="31"/>
-	</reg32>
-	<!-- new on a6xx, where BIN_DATA_ADDR is the DRAW_STRM: -->
-	<reg32 offset="5" name="5">
-		<bitfield name="BIN_PRIM_STRM_LO" low="0" high="31"/>
-	</reg32>
-	<reg32 offset="6" name="6">
-		<bitfield name="BIN_PRIM_STRM_HI" low="0" high="31"/>
-	</reg32>
-	<!--
-		a7xx adds a few more addresses to the end of the pkt
-	 -->
-	<reg64 offset="7" name="7"/>
-	<reg64 offset="9" name="9"/>
+	<stripe varset="a7xx_abs_mask_mode" variants="NO_ABS_MASK">
+		<!-- BIN_DATA_ADDR -> VSC_PIPE[p].DATA_ADDRESS -->
+		<reg32 offset="1" name="1">
+			<bitfield name="BIN_DATA_ADDR_LO" low="0" high="31" type="hex"/>
+		</reg32>
+		<reg32 offset="2" name="2">
+			<bitfield name="BIN_DATA_ADDR_HI" low="0" high="31" type="hex"/>
+		</reg32>
+		<!-- BIN_SIZE_ADDRESS -> VSC_SIZE_ADDRESS + (p * 4)-->
+		<reg32 offset="3" name="3">
+			<bitfield name="BIN_SIZE_ADDRESS_LO" low="0" high="31"/>
+		</reg32>
+		<reg32 offset="4" name="4">
+			<bitfield name="BIN_SIZE_ADDRESS_HI" low="0" high="31"/>
+		</reg32>
+		<!-- new on a6xx, where BIN_DATA_ADDR is the DRAW_STRM: -->
+		<reg32 offset="5" name="5">
+			<bitfield name="BIN_PRIM_STRM_LO" low="0" high="31"/>
+		</reg32>
+		<reg32 offset="6" name="6">
+			<bitfield name="BIN_PRIM_STRM_HI" low="0" high="31"/>
+		</reg32>
+		<!--
+			a7xx adds a few more addresses to the end of the pkt
+		 -->
+		<reg64 offset="7" name="7"/>
+		<reg64 offset="9" name="9"/>
+	</stripe>
+	<stripe varset="a7xx_abs_mask_mode" variants="ABS_MASK">
+		<reg32 offset="1" name="ABS_MASK"/>
+		<!-- BIN_DATA_ADDR -> VSC_PIPE[p].DATA_ADDRESS -->
+		<reg32 offset="2" name="2">
+			<bitfield name="BIN_DATA_ADDR_LO" low="0" high="31" type="hex"/>
+		</reg32>
+		<reg32 offset="3" name="3">
+			<bitfield name="BIN_DATA_ADDR_HI" low="0" high="31" type="hex"/>
+		</reg32>
+		<!-- BIN_SIZE_ADDRESS -> VSC_SIZE_ADDRESS + (p * 4)-->
+		<reg32 offset="4" name="4">
+			<bitfield name="BIN_SIZE_ADDRESS_LO" low="0" high="31"/>
+		</reg32>
+		<reg32 offset="5" name="5">
+			<bitfield name="BIN_SIZE_ADDRESS_HI" low="0" high="31"/>
+		</reg32>
+		<!-- new on a6xx, where BIN_DATA_ADDR is the DRAW_STRM: -->
+		<reg32 offset="6" name="6">
+			<bitfield name="BIN_PRIM_STRM_LO" low="0" high="31"/>
+		</reg32>
+		<reg32 offset="7" name="7">
+			<bitfield name="BIN_PRIM_STRM_HI" low="0" high="31"/>
+		</reg32>
+		<!--
+			a7xx adds a few more addresses to the end of the pkt
+		 -->
+		<reg64 offset="8" name="8"/>
+		<reg64 offset="10" name="10"/>
+	</stripe>
 </domain>
 
 <domain name="CP_SET_BIN_DATA5_OFFSET" width="32">
@@ -1175,23 +1229,42 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
                 stream is recorded.
 	</doc>
 	<reg32 offset="0" name="0">
+		<bitfield name="VSC_MASK" low="0" high="15" type="hex"/>
 		<!-- equiv to PC_VSTREAM_CONTROL.SIZE on a3xx/a4xx: -->
 		<bitfield name="VSC_SIZE" low="16" high="21" type="uint"/>
 		<!-- equiv to PC_VSTREAM_CONTROL.N on a3xx/a4xx: -->
 		<bitfield name="VSC_N" low="22" high="26" type="uint"/>
+		<bitfield name="ABS_MASK" pos="28" type="a7xx_abs_mask_mode" addvariant="yes"/>
 	</reg32>
-	<!-- BIN_DATA_ADDR -> VSC_PIPE[p].DATA_ADDRESS -->
-	<reg32 offset="1" name="1">
-		<bitfield name="BIN_DATA_OFFSET" low="0" high="31" type="uint"/>
-	</reg32>
-	<!-- BIN_SIZE_ADDRESS -> VSC_SIZE_ADDRESS + (p * 4)-->
-	<reg32 offset="2" name="2">
-		<bitfield name="BIN_SIZE_OFFSET" low="0" high="31" type="uint"/>
-	</reg32>
-	<!-- BIN_DATA2_ADDR -> VSC_PIPE[p].DATA2_ADDRESS -->
-	<reg32 offset="3" name="3">
-		<bitfield name="BIN_DATA2_OFFSET" low="0" high="31" type="uint"/>
-	</reg32>
+	<stripe varset="a7xx_abs_mask_mode" variants="NO_ABS_MASK">
+		<!-- BIN_DATA_ADDR -> VSC_PIPE[p].DATA_ADDRESS -->
+		<reg32 offset="1" name="1">
+			<bitfield name="BIN_DATA_OFFSET" low="0" high="31" type="uint"/>
+		</reg32>
+		<!-- BIN_SIZE_ADDRESS -> VSC_SIZE_ADDRESS + (p * 4)-->
+		<reg32 offset="2" name="2">
+			<bitfield name="BIN_SIZE_OFFSET" low="0" high="31" type="uint"/>
+		</reg32>
+		<!-- BIN_DATA2_ADDR -> VSC_PIPE[p].DATA2_ADDRESS -->
+		<reg32 offset="3" name="3">
+			<bitfield name="BIN_DATA2_OFFSET" low="0" high="31" type="uint"/>
+		</reg32>
+	</stripe>
+	<stripe varset="a7xx_abs_mask_mode" variants="ABS_MASK">
+		<reg32 offset="1" name="ABS_MASK"/>
+		<!-- BIN_DATA_ADDR -> VSC_PIPE[p].DATA_ADDRESS -->
+		<reg32 offset="2" name="2">
+			<bitfield name="BIN_DATA_OFFSET" low="0" high="31" type="uint"/>
+		</reg32>
+		<!-- BIN_SIZE_ADDRESS -> VSC_SIZE_ADDRESS + (p * 4)-->
+		<reg32 offset="3" name="3">
+			<bitfield name="BIN_SIZE_OFFSET" low="0" high="31" type="uint"/>
+		</reg32>
+		<!-- BIN_DATA2_ADDR -> VSC_PIPE[p].DATA2_ADDRESS -->
+		<reg32 offset="4" name="4">
+			<bitfield name="BIN_DATA2_OFFSET" low="0" high="31" type="uint"/>
+		</reg32>
+	</stripe>
 </domain>
 
 <domain name="CP_REG_RMW" width="32">

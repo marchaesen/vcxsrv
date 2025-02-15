@@ -54,24 +54,6 @@ EPHEMERAL=(
 )
 
 DEPS=(
-    clinfo
-    iptables
-    kmod
-    "libclang-common-${LLVM_VERSION}-dev"
-    "libclang-cpp${LLVM_VERSION}"
-    libcap2
-    libegl1
-    libepoxy0
-    libfdt1
-    libxcb-shm0
-    ocl-icd-libopencl1
-    python3-lxml
-    python3-renderdoc
-    python3-simplejson
-    spirv-tools
-    sysvinit-core
-    weston
-    xwayland
 )
 
 apt-get update
@@ -117,10 +99,6 @@ DEQP_TARGET=surfaceless \
 . .gitlab-ci/container/build-deqp.sh
 
 rm -rf /VK-GL-CTS
-
-############### Build apitrace
-
-. .gitlab-ci/container/build-apitrace.sh
 
 ############### Build validation layer for zink
 

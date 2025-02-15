@@ -305,6 +305,11 @@ static bool resolve_labels(void)
 	return true;
 }
 
+static unsigned cat6_type_shift()
+{
+	return util_logbase2(type_size(instr->cat6.type) / 8);
+}
+
 #ifdef YYDEBUG
 int yydebug;
 #endif
@@ -319,6 +324,15 @@ static void yyerror(const char *error)
 {
 	fprintf(stderr, "error at line %d: %s\n%s\n", ir3_yyget_lineno(), error, current_line);
 }
+
+/* Needs to be a macro to use YYERROR */
+#define illegal_syntax_from(gen_from, error)              \
+	do {                                              \
+		if (variant->compiler->gen >= gen_from) { \
+			yyerror(error);                   \
+			YYERROR;                          \
+		}                                         \
+	} while (0)
 
 struct ir3 * ir3_parse(struct ir3_shader_variant *v,
 		struct ir3_kernel_info *k, FILE *f)
@@ -773,7 +787,7 @@ static void print_token(FILE *file, int type, YYSTYPE value)
 %type <tok> cat4_opc
 %type <tok> cat5_opc cat5_samp cat5_tex cat5_type
 %type <type> type
-%type <unum> const_val
+%type <unum> const_val cat6_src_shift
 
 %error-verbose
 
@@ -1231,25 +1245,36 @@ cat6_dst_offset:   offset    { instr->cat6.dst_offset = $1; }
 
 cat6_immed:        integer   { instr->cat6.iim_val = $1; }
 
-cat6_a6xx_global_address_pt3:
-                   '<' '<' integer offset '<' '<' integer {
-                        assert($7 == 2);
-                        new_src(0, IR3_REG_IMMED)->uim_val = $3 - 2;
-                        new_src(0, IR3_REG_IMMED)->uim_val = $4;
-                   }
-|                  '+' cat6_reg_or_immed {
-                        // Dummy src to smooth the difference between a6xx and a7xx
-                        new_src(0, IR3_REG_IMMED)->uim_val = 0;
-                   }
+cat6_src_shift: '<' '<' integer {$$ = $3;}
+|                               {$$ = 0;}
 
 cat6_a6xx_global_address_pt2:
-                   '(' src offset ')' '<' '<' integer {
-                        assert($7 == 2);
-                        new_src(0, IR3_REG_IMMED)->uim_val = 0;
-                        new_src(0, IR3_REG_IMMED)->uim_val = $3;
+                   '(' '(' '(' src cat6_src_shift ')' offset ')' '<' '<' integer ')' {
+                        illegal_syntax_from(7, "pre-a7xx global offset syntax");
+                        new_src(0, IR3_REG_IMMED)->uim_val = $5;
+                        new_src(0, IR3_REG_IMMED)->uim_val = $7;
                    }
-
-|                  src cat6_a6xx_global_address_pt3
+|                  '(' '(' src cat6_src_shift offset ')' '<' '<' integer ')' {
+                        illegal_syntax_from(7, "pre-a7xx global offset syntax");
+                        new_src(0, IR3_REG_IMMED)->uim_val = $4;
+                        new_src(0, IR3_REG_IMMED)->uim_val = $5;
+                   }
+|                  '(' src cat6_src_shift ')' {
+                        illegal_syntax_from(7, "pre-a7xx global offset syntax");
+                        // The shift contains the implicit type shift, subtract it.
+                        new_src(0, IR3_REG_IMMED)->uim_val = $3 - cat6_type_shift();
+                        new_src(0, IR3_REG_IMMED)->uim_val = 0;
+                   }
+|                  src offset {
+                        if (variant->compiler->gen < 7) {
+                            new_src(0, IR3_REG_IMMED)->uim_val = 0;
+                            new_src(0, IR3_REG_IMMED)->uim_val = $2;
+                        } else {
+                            new_src(0, IR3_REG_IMMED)->uim_val = $2;
+                            // Dummy src to smooth the difference between a6xx and a7xx
+                            new_src(0, IR3_REG_IMMED)->uim_val = 0;
+                        }
+                   }
 
 cat6_a6xx_global_address:
                    src_reg_or_const '+' cat6_a6xx_global_address_pt2

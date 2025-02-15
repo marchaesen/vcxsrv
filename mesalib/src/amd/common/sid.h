@@ -389,6 +389,14 @@
 
 #define SDMA_NOP_PAD SDMA_PACKET(SDMA_OPCODE_NOP, 0, 0) /* header-only version */
 
+/* SDMA DCC tilings for GFX12+ */
+#define SDMA_DCC_DATA_FORMAT(x) ((x) & 0x3f)
+#define SDMA_DCC_NUM_TYPE(x)    (((x) & 0x7) << 9)
+#define SDMA_DCC_READ_CM(x)     (((x) & 0x3) << 16) /* 0: bypass DCC, 2: decompress reads if PTE.D */
+#define SDMA_DCC_WRITE_CM(x)    (((x) & 0x3) << 18) /* 0: bypass DCC, 1: write compressed if PTE.D, 2: write uncompressed if PTE.D */
+#define SDMA_DCC_MAX_COM(x)     (((x) & 0x3) << 24)
+#define SDMA_DCC_MAX_UCOM(x)    (((x) & 0x1) << 26) /* 1: max uncompressed block size 256B */
+
 enum amd_cmp_class_flags
 {
    S_NAN = 1 << 0,       // Signaling NaN

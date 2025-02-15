@@ -36,7 +36,7 @@
     - !reference [.test, rules]
     - !reference [.no_scheduled_pipelines-rules, rules]
     # Old copy of .core-rules, missing:
-    #   - meson_options.txt
+    #   - meson.options
     #   - build-support/**/*
     #   - subprojects/**/*
     #   - src/*

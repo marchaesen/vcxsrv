@@ -24,7 +24,7 @@
 #ifndef TGSI_TO_NIR_H
 #define TGSI_TO_NIR_H
 
-#include "compiler/nir/nir.h"
+#include "compiler/nir/nir_defines.h"
 #include "pipe/p_screen.h"
 
 #ifdef __cplusplus

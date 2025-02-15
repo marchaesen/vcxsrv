@@ -198,9 +198,9 @@ traces:
 
   neverball/neverball-v2.trace:
     broadcom-rpi4:
-      checksum: 4f4b4b6f37c124fdda6a9efcad577257
+      checksum: c8e8ee352bdb303e4ed144b69272575e
     broadcom-rpi5:
-      checksum: 174394638c6f774948e7aac91c12f84d
+      checksum: 56a0adb0efdf799f269da2d734a6817c
 
   nheko/nheko-colors.trace:
     broadcom-rpi4:

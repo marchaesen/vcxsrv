@@ -742,6 +742,25 @@ emit_degenerate_lit(nir_builder *b,
    return nir_vector_insert_imm(b, tmp, nir_slt(b, zero, dots_x), 2);
 }
 
+/* Emits the store to a color output before lighting is computed. If there are
+ * no lights, we can store the full vec4 and be done.  Otherwise, we store the
+ * alpha to the output .w channel, and reduce the color to a vec3 for the
+ * following RGB computation of the lit color.
+ */
+static void
+store_output_pre_lighting(struct tnl_program *p, int nr_lights, nir_def **value,
+                          gl_varying_slot slot)
+{
+   if (*value) {
+      if (nr_lights == 0) {
+         store_output_vec4(p, slot, *value);
+      } else {
+         uint32_t a[4] = {3, 3, 3, 3};
+         store_output_vec4_masked(p, slot, nir_swizzle(p->b, *value, a, 4), 0x8);
+         *value = nir_channels(p->b, *value, 0xf);
+      }
+   }
+}
 
 /* Need to add some addtional parameters to allow lighting in object
  * space - STATE_SPOT_DIRECTION and STATE_HALF_VECTOR implicitly assume eye
@@ -801,18 +820,10 @@ static void build_lighting( struct tnl_program *p )
          _bfc1 = nir_imm_vec4(p->b, 0.0f, 0.0f, 0.0f, 1.0f);
    }
 
-   /* If no lights, still need to emit the scenecolor.
-    */
-   store_output_vec4(p, VARYING_SLOT_COL0, _col0);
-
-   if (separate)
-      store_output_vec4(p, VARYING_SLOT_COL1, _col1);
-
-   if (twoside)
-      store_output_vec4(p, VARYING_SLOT_BFC0, _bfc0);
-
-   if (twoside && separate)
-      store_output_vec4(p, VARYING_SLOT_BFC1, _bfc1);
+   store_output_pre_lighting(p, nr_lights, &_col0, VARYING_SLOT_COL0);
+   store_output_pre_lighting(p, nr_lights, &_col1, VARYING_SLOT_COL1);
+   store_output_pre_lighting(p, nr_lights, &_bfc0, VARYING_SLOT_BFC0);
+   store_output_pre_lighting(p, nr_lights, &_bfc1, VARYING_SLOT_BFC1);
 
    if (nr_lights == 0)
       return;

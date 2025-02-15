@@ -58,7 +58,7 @@ static bool instance_extension_table_initialized = false;
 static struct vk_instance_extension_table gfxstream_vk_instance_extensions_supported = {};
 
 // Provided by Mesa components only; never encoded/decoded through gfxstream
-static const char* const kMesaOnlyInstanceExtension[] = {
+static const char* const kGuestOnlyInstanceExtension[] = {
     VK_KHR_SURFACE_EXTENSION_NAME,
 #if defined(GFXSTREAM_VK_WAYLAND)
     VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
@@ -69,7 +69,7 @@ static const char* const kMesaOnlyInstanceExtension[] = {
     VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 };
 
-static const char* const kMesaOnlyDeviceExtensions[] = {
+static const char* const kGuestOnlyDeviceExtensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
@@ -108,15 +108,15 @@ static VkResult SetupInstanceForProcess(void) {
     return VK_SUCCESS;
 }
 
-static bool isMesaOnlyInstanceExtension(const char* name) {
-    for (auto mesaExt : kMesaOnlyInstanceExtension) {
+static bool isGuestOnlyInstanceExtension(const char* name) {
+    for (auto mesaExt : kGuestOnlyInstanceExtension) {
         if (!strncmp(mesaExt, name, VK_MAX_EXTENSION_NAME_SIZE)) return true;
     }
     return false;
 }
 
-static bool isMesaOnlyDeviceExtension(const char* name) {
-    for (auto mesaExt : kMesaOnlyDeviceExtensions) {
+static bool isGuestOnlyDeviceExtension(const char* name) {
+    for (auto mesaExt : kGuestOnlyDeviceExtensions) {
         if (!strncmp(mesaExt, name, VK_MAX_EXTENSION_NAME_SIZE)) return true;
     }
     return false;
@@ -128,7 +128,7 @@ static std::vector<const char*> filteredInstanceExtensionNames(uint32_t count,
     std::vector<const char*> retList;
     for (uint32_t i = 0; i < count; ++i) {
         auto extName = extNames[i];
-        if (!isMesaOnlyInstanceExtension(extName)) {
+        if (!isGuestOnlyInstanceExtension(extName)) {
             retList.push_back(extName);
         }
     }
@@ -140,7 +140,7 @@ static std::vector<const char*> filteredDeviceExtensionNames(uint32_t count,
     std::vector<const char*> retList;
     for (uint32_t i = 0; i < count; ++i) {
         auto extName = extNames[i];
-        if (!isMesaOnlyDeviceExtension(extName)) {
+        if (!isGuestOnlyDeviceExtension(extName)) {
             retList.push_back(extName);
         }
     }
@@ -173,7 +173,7 @@ static void get_device_extensions(VkPhysicalDevice physDevInternal,
             }
             // device extensions from Mesa
             for (uint32_t j = 0; j < VK_DEVICE_EXTENSION_COUNT; j++) {
-                if (isMesaOnlyDeviceExtension(vk_device_extensions[j].extensionName)) {
+                if (isGuestOnlyDeviceExtension(vk_device_extensions[j].extensionName)) {
                     deviceExts->extensions[j] = true;
                     break;
                 }
@@ -295,7 +295,7 @@ static struct vk_instance_extension_table* get_instance_extensions() {
                     }
                     // instance extensions from Mesa
                     for (uint32_t j = 0; j < VK_INSTANCE_EXTENSION_COUNT; j++) {
-                        if (isMesaOnlyInstanceExtension(vk_instance_extensions[j].extensionName)) {
+                        if (isGuestOnlyInstanceExtension(vk_instance_extensions[j].extensionName)) {
                             gfxstream_vk_instance_extensions_supported.extensions[j] = true;
                         }
                     }
@@ -331,25 +331,21 @@ VkResult gfxstream_vk_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
             vk_free(pAllocator, instance);
             return vk_error(NULL, result);
         }
-        uint32_t initialEnabledExtensionCount = pCreateInfo->enabledExtensionCount;
-        const char* const* initialPpEnabledExtensionNames = pCreateInfo->ppEnabledExtensionNames;
+
+        // Full local copy of pCreateInfo
+        VkInstanceCreateInfo localCreateInfo = *pCreateInfo;
         std::vector<const char*> filteredExts = filteredInstanceExtensionNames(
-            pCreateInfo->enabledExtensionCount, pCreateInfo->ppEnabledExtensionNames);
-        // Temporarily modify createInfo for the encoder call
-        VkInstanceCreateInfo* mutableCreateInfo = (VkInstanceCreateInfo*)pCreateInfo;
-        mutableCreateInfo->enabledExtensionCount = static_cast<uint32_t>(filteredExts.size());
-        mutableCreateInfo->ppEnabledExtensionNames = filteredExts.data();
+            localCreateInfo.enabledExtensionCount, localCreateInfo.ppEnabledExtensionNames);
+        localCreateInfo.enabledExtensionCount = static_cast<uint32_t>(filteredExts.size());
+        localCreateInfo.ppEnabledExtensionNames = filteredExts.data();
 
         auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
-        result = vkEnc->vkCreateInstance(pCreateInfo, nullptr, &instance->internal_object,
+        result = vkEnc->vkCreateInstance(&localCreateInfo, nullptr, &instance->internal_object,
                                          true /* do lock */);
         if (VK_SUCCESS != result) {
             vk_free(pAllocator, instance);
             return vk_error(NULL, result);
         }
-        // Revert the createInfo the user-set data
-        mutableCreateInfo->enabledExtensionCount = initialEnabledExtensionCount;
-        mutableCreateInfo->ppEnabledExtensionNames = initialPpEnabledExtensionNames;
     }
 
     struct vk_instance_dispatch_table dispatch_table;
@@ -368,9 +364,10 @@ VkResult gfxstream_vk_CreateInstance(const VkInstanceCreateInfo* pCreateInfo,
         return vk_error(NULL, result);
     }
 
+    // Note: Do not support try_create_for_drm. virtio_gpu DRM device opened in
+    // init_renderer above, which can still enumerate multiple physical devices on the host.
     instance->vk.physical_devices.enumerate = gfxstream_vk_enumerate_devices;
     instance->vk.physical_devices.destroy = gfxstream_vk_destroy_physical_device;
-    // TODO: instance->vk.physical_devices.try_create_for_drm (?)
 
     *pInstance = gfxstream_vk_instance_to_handle(instance);
     return VK_SUCCESS;
@@ -445,11 +442,11 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
      * and associated bugs. Mesa VK runtime also checks this, so we have to filter out before
      * reaches it.
      */
-    VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT* swapchainMaintenance1Features =
+    VkPhysicalDeviceSwapchainMaintenance1FeaturesEXT* mutableSwapchainMaintenance1Features =
         vk_find_struct(const_cast<VkDeviceCreateInfo*>(pCreateInfo),
                        PHYSICAL_DEVICE_SWAPCHAIN_MAINTENANCE_1_FEATURES_EXT);
-    if (swapchainMaintenance1Features) {
-        swapchainMaintenance1Features->swapchainMaintenance1 = VK_FALSE;
+    if (mutableSwapchainMaintenance1Features) {
+        mutableSwapchainMaintenance1Features->swapchainMaintenance1 = VK_FALSE;
     }
 
     const VkAllocationCallbacks* pMesaAllocator =
@@ -458,19 +455,17 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
         pMesaAllocator, sizeof(struct gfxstream_vk_device), GFXSTREAM_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     result = gfxstream_device ? VK_SUCCESS : VK_ERROR_OUT_OF_HOST_MEMORY;
     if (VK_SUCCESS == result) {
-        uint32_t initialEnabledExtensionCount = pCreateInfo->enabledExtensionCount;
-        const char* const* initialPpEnabledExtensionNames = pCreateInfo->ppEnabledExtensionNames;
+        // Full local copy of pCreateInfo
+        VkDeviceCreateInfo localCreateInfo = *pCreateInfo;
+
         std::vector<const char*> filteredExts = filteredDeviceExtensionNames(
-            pCreateInfo->enabledExtensionCount, pCreateInfo->ppEnabledExtensionNames);
-        // Temporarily modify createInfo for the encoder call
-        VkDeviceCreateInfo* mutableCreateInfo = (VkDeviceCreateInfo*)pCreateInfo;
-        mutableCreateInfo->enabledExtensionCount = static_cast<uint32_t>(filteredExts.size());
-        mutableCreateInfo->ppEnabledExtensionNames = filteredExts.data();
+            localCreateInfo.enabledExtensionCount, localCreateInfo.ppEnabledExtensionNames);
+        localCreateInfo.enabledExtensionCount = static_cast<uint32_t>(filteredExts.size());
+        localCreateInfo.ppEnabledExtensionNames = filteredExts.data();
 
         /* pNext = VkPhysicalDeviceGroupProperties */
         std::vector<VkPhysicalDevice> initialPhysicalDeviceList;
-        VkPhysicalDeviceGroupProperties* mutablePhysicalDeviceGroupProperties = vk_find_struct(
-            const_cast<VkDeviceCreateInfo*>(pCreateInfo), PHYSICAL_DEVICE_GROUP_PROPERTIES);
+        VkPhysicalDeviceGroupProperties* mutablePhysicalDeviceGroupProperties = vk_find_struct(&localCreateInfo, PHYSICAL_DEVICE_GROUP_PROPERTIES);
         if (mutablePhysicalDeviceGroupProperties) {
             // Temporarily modify the VkPhysicalDeviceGroupProperties structure to use translated
             // VkPhysicalDevice references for the encoder call
@@ -486,12 +481,10 @@ VkResult gfxstream_vk_CreateDevice(VkPhysicalDevice physicalDevice,
         }
 
         auto vkEnc = gfxstream::vk::ResourceTracker::getThreadLocalEncoder();
-        result = vkEnc->vkCreateDevice(gfxstream_physicalDevice->internal_object, pCreateInfo,
+        result = vkEnc->vkCreateDevice(gfxstream_physicalDevice->internal_object, &localCreateInfo,
                                        pAllocator, &gfxstream_device->internal_object,
                                        true /* do lock */);
-        // Revert the createInfo the user-set data
-        mutableCreateInfo->enabledExtensionCount = initialEnabledExtensionCount;
-        mutableCreateInfo->ppEnabledExtensionNames = initialPpEnabledExtensionNames;
+
         if (mutablePhysicalDeviceGroupProperties) {
             // Revert the physicalDevice list in VkPhysicalDeviceGroupProperties to the user-set
             // data

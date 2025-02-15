@@ -353,7 +353,7 @@ libagx_increment_ia_restart(global uint32_t *ia_vertices,
                             uint32_t restart_index, uint32_t index_size_B,
                             enum mesa_prim prim)
 {
-   uint tid = get_global_id(0);
+   uint tid = cl_global_id.x;
    unsigned count = draw[0];
    local uint scratch;
 
@@ -468,7 +468,7 @@ libagx_unroll_restart(global struct agx_geometry_state *heap,
 {
    uint32_t index_size_B = 1 << index_size_log2__3;
    enum mesa_prim mode = libagx_uncompact_prim(mode__11);
-   uint tid = get_local_id(0);
+   uint tid = cl_local_id.x;
    uint count = in_draw[0];
 
    local uintptr_t out_ptr;
@@ -716,7 +716,7 @@ KERNEL(1024)
 _libagx_prefix_sum(global uint *buffer, uint len, uint words, uint word)
 {
    local uint scratch[32];
-   uint tid = get_local_id(0);
+   uint tid = cl_local_id.x;
 
    /* Main loop: complete workgroups processing 1024 values at once */
    uint i, count = 0;
@@ -748,7 +748,7 @@ KERNEL(1024)
 libagx_prefix_sum_geom(constant struct agx_geometry_params *p)
 {
    _libagx_prefix_sum(p->count_buffer, p->input_primitives,
-                      p->count_buffer_stride / 4, get_group_id(0));
+                      p->count_buffer_stride / 4, cl_group_id.x);
 }
 
 KERNEL(1024)
@@ -760,7 +760,7 @@ libagx_prefix_sum_tess(global struct libagx_tess_args *p)
     * index buffer now. Elect a thread for the allocation.
     */
    barrier(CLK_LOCAL_MEM_FENCE);
-   if (get_local_id(0) != 0)
+   if (cl_local_id.x != 0)
       return;
 
    /* The last element of an inclusive prefix sum is the total sum */

@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <string.h>
 
+#include "config/hotplug_priv.h"
+
 /* Linux platform device support */
 #include "xf86_OSproc.h"
 
@@ -18,7 +20,6 @@
 #include "xf86platformBus.h"
 #include "xf86Bus.h"
 
-#include "hotplug.h"
 #include "systemd-logind.h"
 
 static Bool
@@ -60,7 +61,7 @@ get_drm_info(struct OdevAttributes *attribs, char *path, int delayed_index)
 
     v = drmGetVersion(fd);
     if (!v) {
-        xf86Msg(X_ERROR, "%s: failed to query DRM version\n", path);
+        LogMessageVerb(X_ERROR, 1, "%s: failed to query DRM version\n", path);
         goto out;
     }
 

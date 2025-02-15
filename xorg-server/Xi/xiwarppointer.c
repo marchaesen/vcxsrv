@@ -38,6 +38,7 @@
 
 #include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
+#include "mi/mipointer_priv.h"
 
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window structure  */
@@ -60,7 +61,6 @@ SProcXIWarpPointer(ClientPtr client)
     REQUEST(xXIWarpPointerReq);
     REQUEST_SIZE_MATCH(xXIWarpPointerReq);
 
-    swaps(&stuff->length);
     swapl(&stuff->src_win);
     swapl(&stuff->dst_win);
     swapl(&stuff->src_x);

@@ -346,7 +346,7 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap, Bool modifiers_ok)
         xf86DrvMsg(scrn->scrnIndex, X_ERROR,
                    "Failed to make %dx%dx%dbpp pixmap from GBM bo\n",
                    width, height, pixmap->drawable.bitsPerPixel);
-        screen->DestroyPixmap(exported);
+        dixDestroyPixmap(exported, 0);
         gbm_bo_destroy(bo);
         return FALSE;
     }
@@ -367,7 +367,7 @@ glamor_make_pixmap_exportable(PixmapPtr pixmap, Bool modifiers_ok)
     /* Swap the devKind into the original pixmap, reflecting the bo's stride */
     screen->ModifyPixmapHeader(pixmap, 0, 0, 0, 0, exported->devKind, NULL);
 
-    screen->DestroyPixmap(exported);
+    dixDestroyPixmap(exported, 0);
 
     return TRUE;
 }
@@ -632,7 +632,7 @@ glamor_pixmap_from_fds(ScreenPtr screen,
 
 error:
     if (ret == FALSE) {
-        screen->DestroyPixmap(pixmap);
+        dixDestroyPixmap(pixmap, 0);
         return NULL;
     }
     return pixmap;
@@ -654,7 +654,7 @@ glamor_pixmap_from_fd(ScreenPtr screen,
                                      stride, depth, bpp);
 
     if (ret == FALSE) {
-        screen->DestroyPixmap(pixmap);
+        dixDestroyPixmap(pixmap, 0);
         return NULL;
     }
     return pixmap;
@@ -764,7 +764,7 @@ glamor_egl_destroy_pixmap(PixmapPtr pixmap)
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     struct glamor_egl_screen_private *glamor_egl =
         glamor_egl_get_screen_private(scrn);
-    Bool ret;
+    Bool ret = TRUE;
 
     if (pixmap->refcnt == 1) {
         struct glamor_pixmap_private *pixmap_priv =
@@ -775,7 +775,8 @@ glamor_egl_destroy_pixmap(PixmapPtr pixmap)
     }
 
     screen->DestroyPixmap = glamor_egl->saved_destroy_pixmap;
-    ret = screen->DestroyPixmap(pixmap);
+    if (screen->DestroyPixmap)
+        ret = screen->DestroyPixmap(pixmap);
     glamor_egl->saved_destroy_pixmap = screen->DestroyPixmap;
     screen->DestroyPixmap = glamor_egl_destroy_pixmap;
 

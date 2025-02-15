@@ -527,7 +527,8 @@ if not get_option('doc').disabled()
   subdir('doc')
 endif
 
-configure_file(output: 'config.h', configuration: conf)
+configure_file(output: 'meson-config.h', configuration: conf)
+configure_file(input: 'meson-config.h.in', output: 'config.h', copy: true)
 
 configure_file(output: 'fonts.conf',
                input: 'fonts.conf.in',

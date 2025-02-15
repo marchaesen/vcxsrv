@@ -9,6 +9,7 @@
 #include "util/mesa-sha1.h"
 #include "sid.h"
 #include "nir.h"
+#include "nir_tcs_info.h"
 #include "nir_xfb_info.h"
 #include "aco_interface.h"
 #include "ac_nir.h"
@@ -308,7 +309,7 @@ static void scan_instruction(const struct nir_shader *nir, struct si_shader_info
             info->uses_indirect_descriptor = true;
       }
 
-      info->has_non_uniform_tex_access =
+      info->has_non_uniform_tex_access |=
          tex->texture_non_uniform || tex->sampler_non_uniform;
 
       info->has_shadow_comparison |= tex->is_shadow;
@@ -483,11 +484,12 @@ static void scan_instruction(const struct nir_shader *nir, struct si_shader_info
 void si_nir_scan_shader(struct si_screen *sscreen, struct nir_shader *nir,
                         struct si_shader_info *info, bool colors_lowered)
 {
-   bool force_use_aco = false;
-   if (sscreen->force_shader_use_aco) {
-      if (!memcmp(sscreen->use_aco_shader_blake, nir->info.source_blake3,
-                  sizeof(sscreen->use_aco_shader_blake))) {
+   bool force_use_aco = sscreen->use_aco_shader_type == nir->info.stage;
+   for (unsigned i = 0; i < sscreen->num_use_aco_shader_blakes; i++) {
+      if (!memcmp(sscreen->use_aco_shader_blakes[i], nir->info.source_blake3,
+                  sizeof(blake3_hash))) {
          force_use_aco = true;
+         break;
       }
    }
 

@@ -132,72 +132,33 @@ vc4_has_feature(struct vc4_screen *screen, uint32_t feature)
         return p.value;
 }
 
-static int
-vc4_screen_get_shader_param(struct pipe_screen *pscreen,
-                            enum pipe_shader_type shader,
-                            enum pipe_shader_cap param)
+static void
+vc4_init_shader_caps(struct vc4_screen *screen)
 {
-        if (shader != PIPE_SHADER_VERTEX &&
-            shader != PIPE_SHADER_FRAGMENT) {
-                return 0;
+        for (unsigned i = 0; i <= PIPE_SHADER_FRAGMENT; i++) {
+                struct pipe_shader_caps *caps =
+                        (struct pipe_shader_caps *)&screen->base.shader_caps[i];
+
+                if (i != PIPE_SHADER_VERTEX && i != PIPE_SHADER_FRAGMENT)
+                        continue;
+
+                caps->max_instructions =
+                caps->max_alu_instructions =
+                caps->max_tex_instructions =
+                caps->max_tex_indirections = 16384;
+
+                caps->max_control_flow_depth = screen->has_control_flow;
+                caps->max_inputs = 8;
+                caps->max_outputs = i == PIPE_SHADER_FRAGMENT ? 1 : 8;
+                caps->max_temps = 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
+                caps->max_const_buffer0_size = 16 * 1024 * sizeof(float);
+                caps->max_const_buffers = 1;
+                caps->indirect_const_addr = true;
+                caps->integers = true;
+                caps->max_texture_samplers =
+                caps->max_sampler_views = VC4_MAX_TEXTURE_SAMPLERS;
+                caps->supported_irs = 1 << PIPE_SHADER_IR_NIR;
         }
-
-        /* this is probably not totally correct.. but it's a start: */
-        switch (param) {
-        case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-                return 16384;
-
-        case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-                return vc4_screen(pscreen)->has_control_flow;
-
-        case PIPE_SHADER_CAP_MAX_INPUTS:
-                return 8;
-        case PIPE_SHADER_CAP_MAX_OUTPUTS:
-                return shader == PIPE_SHADER_FRAGMENT ? 1 : 8;
-        case PIPE_SHADER_CAP_MAX_TEMPS:
-                return 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-                return 16 * 1024 * sizeof(float);
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-                return 1;
-        case PIPE_SHADER_CAP_CONT_SUPPORTED:
-                return 0;
-        case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-                return 0;
-        case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-                return 1;
-        case PIPE_SHADER_CAP_SUBROUTINES:
-                return 0;
-        case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-                return 0;
-        case PIPE_SHADER_CAP_INTEGERS:
-                return 1;
-        case PIPE_SHADER_CAP_INT64_ATOMICS:
-        case PIPE_SHADER_CAP_FP16:
-        case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-        case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-        case PIPE_SHADER_CAP_INT16:
-        case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-        case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-                return 0;
-        case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-        case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-                return VC4_MAX_TEXTURE_SAMPLERS;
-        case PIPE_SHADER_CAP_SUPPORTED_IRS:
-                return 1 << PIPE_SHADER_IR_NIR;
-        case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-        case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-                return 0;
-        default:
-                fprintf(stderr, "unknown shader param %d\n", param);
-                return 0;
-        }
-        return 0;
 }
 
 static void
@@ -511,7 +472,6 @@ vc4_screen_create(int fd, const struct pipe_screen_config *config,
 
         pscreen->destroy = vc4_screen_destroy;
         pscreen->get_screen_fd = vc4_screen_get_fd;
-        pscreen->get_shader_param = vc4_screen_get_shader_param;
         pscreen->context_create = vc4_context_create;
         pscreen->is_format_supported = vc4_screen_is_format_supported;
 
@@ -573,6 +533,7 @@ vc4_screen_create(int fd, const struct pipe_screen_config *config,
                              BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP) |
                              BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN);
 
+        vc4_init_shader_caps(screen);
         vc4_init_screen_caps(screen);
 
         return pscreen;

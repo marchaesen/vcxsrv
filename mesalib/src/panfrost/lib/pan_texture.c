@@ -423,14 +423,15 @@ panfrost_emit_plane(const struct pan_image_view *iview,
    bool afbc = drm_is_afbc(layout->modifier);
    bool afrc = drm_is_afrc(layout->modifier);
    // TODO: this isn't technically guaranteed to be YUV, but it is in practice.
-   bool is_3_planar_yuv = desc->layout == UTIL_FORMAT_LAYOUT_PLANAR3;
+   bool is_chroma_2p =
+      desc->layout == UTIL_FORMAT_LAYOUT_PLANAR3 && plane_index > 0;
 
    pan_cast_and_pack(*payload, PLANE, cfg) {
       cfg.pointer = pointer;
       cfg.row_stride = row_stride;
       cfg.size = layout->data_size - layout->slices[level].offset;
 
-      if (is_3_planar_yuv) {
+      if (is_chroma_2p) {
          cfg.two_plane_yuv_chroma.secondary_pointer =
             sections[plane_index + 1].pointer;
       } else if (!panfrost_format_is_yuv(layout->format)) {
@@ -489,8 +490,8 @@ panfrost_emit_plane(const struct pan_image_view *iview,
             GENX(pan_afrc_format)(finfo, layout->modifier, plane_index);
 #endif
       } else {
-         cfg.plane_type = is_3_planar_yuv ? MALI_PLANE_TYPE_CHROMA_2P
-                                          : MALI_PLANE_TYPE_GENERIC;
+         cfg.plane_type =
+            is_chroma_2p ? MALI_PLANE_TYPE_CHROMA_2P : MALI_PLANE_TYPE_GENERIC;
          cfg.clump_format = panfrost_clump_format(iview->format);
       }
 

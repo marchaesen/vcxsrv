@@ -105,8 +105,6 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #pragma clang diagnostic ignored "-Wformat-nonliteral"
 #endif
 
-void (*OsVendorVErrorFProc) (const char *, va_list args) = NULL;
-
 /* Default logging parameters. */
 #define DEFAULT_LOG_VERBOSITY		0
 #define DEFAULT_LOG_FILE_VERBOSITY	3
@@ -302,7 +300,7 @@ LogClose(enum ExitCode error)
 {
     if (logFile) {
         int msgtype = (error == EXIT_NO_ERROR) ? X_INFO : X_ERROR;
-        LogMessageVerbSigSafe(msgtype, -1,
+        LogMessageVerb(msgtype, -1,
                 "Server terminated %s (%d). Closing log file.\n",
                 (error == EXIT_NO_ERROR) ? "successfully" : "with error",
                 error);
@@ -550,19 +548,6 @@ vpnprintf(char *string, int size_in, const char *f, va_list args)
     return s_idx;
 }
 
-static int
-pnprintf(char *string, int size, const char *f, ...)
-{
-    int rc;
-    va_list args;
-
-    va_start(args, f);
-    rc = vpnprintf(string, size, f, args);
-    va_end(args);
-
-    return rc;
-}
-
 /* This function does the actual log message writes. It must be signal safe.
  * When attempting to call non-signal-safe functions, guard them with a check
  * of the inSignalContext global variable. */
@@ -665,40 +650,49 @@ LogMessageTypeVerbString(MessageType type, int verb)
     }
 }
 
+#define LOG_MSG_BUF_SIZE 1024
+
+static ssize_t prepMsgHdr(MessageType type, int verb, char *buf)
+{
+    const char *type_str = LogMessageTypeVerbString(type, verb);
+    if (!type_str)
+        return -1;
+
+    size_t prefixLen = strlen_sigsafe(type_str);
+    if (prefixLen) {
+        memcpy(buf, type_str, prefixLen + 1); // rely on buffer being big enough
+        buf[prefixLen] = ' ';
+        prefixLen++;
+    }
+    buf[prefixLen] = 0;
+    return prefixLen;
+}
+
+static inline void writeLog(int verb, char *buf, int len)
+{
+    /* Force '\n' at end of truncated line */
+    if (LOG_MSG_BUF_SIZE  - len == 1)
+        buf[len - 1] = '\n';
+
+    LogSWrite(verb, buf, len, (buf[len - 1] == '\n'));
+}
+
+/* signal safe */
 void
 LogVMessageVerb(MessageType type, int verb, const char *format, va_list args)
 {
-    const char *type_str;
-    char buf[1024];
-    const size_t size = sizeof(buf);
-    Bool newline;
-    size_t len = 0;
+    char buf[LOG_MSG_BUF_SIZE];
 
-    if (inSignalContext) {
-        LogVMessageVerbSigSafe(type, verb, format, args);
-        return;
-    }
-
-    type_str = LogMessageTypeVerbString(type, verb);
-    if (!type_str)
+    size_t len = prepMsgHdr(type, verb, buf);
+    if (len == -1)
         return;
 
-    /* if type_str is not "", prepend it and ' ', to message */
-    if (type_str[0] != '\0')
-        len += Xscnprintf(&buf[len], size - len, "%s ", type_str);
+    len += vpnprintf(&buf[len], sizeof(buf) - len, format, args);
 
-    if (size - len > 1)
-        len += Xvscnprintf(&buf[len], size - len, format, args);
-
-    /* Force '\n' at end of truncated line */
-    if (size - len == 1)
-        buf[len - 1] = '\n';
-
-    newline = (buf[len - 1] == '\n');
-    LogSWrite(verb, buf, len, newline);
+    writeLog(verb, buf, len);
 }
 
-/* Log message with verbosity level specified. */
+/* Log message with verbosity level specified. -- signal safe */
 void
 LogMessageVerb(MessageType type, int verb, const char *format, ...)
 {
@@ -720,86 +714,23 @@ LogMessage(MessageType type, const char *format, ...)
     va_end(ap);
 }
 
-/* Log a message using only signal safe functions. */
-void
-LogMessageVerbSigSafe(MessageType type, int verb, const char *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    LogVMessageVerbSigSafe(type, verb, format, ap);
-    va_end(ap);
-}
-
-void
-LogVMessageVerbSigSafe(MessageType type, int verb, const char *format, va_list args)
-{
-    const char *type_str;
-    char buf[1024];
-    int len;
-    Bool newline;
-
-    type_str = LogMessageTypeVerbString(type, verb);
-    if (!type_str)
-        return;
-
-    /* if type_str is not "", prepend it and ' ', to message */
-    if (type_str[0] != '\0') {
-        LogSWrite(verb, type_str, strlen_sigsafe(type_str), FALSE);
-        LogSWrite(verb, " ", 1, FALSE);
-    }
-
-    len = vpnprintf(buf, sizeof(buf), format, args);
-
-    /* Force '\n' at end of truncated line */
-    if (sizeof(buf) - len == 1)
-        buf[len - 1] = '\n';
-
-    newline = (len > 0 && buf[len - 1] == '\n');
-    LogSWrite(verb, buf, len, newline);
-}
-
 void
 LogVHdrMessageVerb(MessageType type, int verb, const char *msg_format,
                    va_list msg_args, const char *hdr_format, va_list hdr_args)
 {
-    const char *type_str;
-    char buf[1024];
-    const size_t size = sizeof(buf);
-    Bool newline;
-    size_t len = 0;
-    int (*vprintf_func)(char *, int, const char* _X_RESTRICT_KYWD f, va_list args)
-            _X_ATTRIBUTE_PRINTF(3, 0);
-    int (*printf_func)(char *, int, const char* _X_RESTRICT_KYWD f, ...)
-            _X_ATTRIBUTE_PRINTF(3, 4);
+    char buf[LOG_MSG_BUF_SIZE];
 
-    type_str = LogMessageTypeVerbString(type, verb);
-    if (!type_str)
+    size_t len = prepMsgHdr(type, verb, buf);
+    if (len == -1)
         return;
 
-    if (inSignalContext) {
-        vprintf_func = vpnprintf;
-        printf_func = pnprintf;
-    } else {
-        vprintf_func = Xvscnprintf;
-        printf_func = Xscnprintf;
-    }
+    if (hdr_format && sizeof(buf) - len > 1)
+        len += vpnprintf(&buf[len], sizeof(buf) - len, hdr_format, hdr_args);
 
-    /* if type_str is not "", prepend it and ' ', to message */
-    if (type_str[0] != '\0')
-        len += printf_func(&buf[len], size - len, "%s ", type_str);
+    if (msg_format && sizeof(buf) - len > 1)
+        len += vpnprintf(&buf[len], sizeof(buf) - len, msg_format, msg_args);
 
-    if (hdr_format && size - len > 1)
-        len += vprintf_func(&buf[len], size - len, hdr_format, hdr_args);
-
-    if (msg_format && size - len > 1)
-        len += vprintf_func(&buf[len], size - len, msg_format, msg_args);
-
-    /* Force '\n' at end of truncated line */
-    if (size - len == 1)
-        buf[len - 1] = '\n';
-
-    newline = (buf[len - 1] == '\n');
-    LogSWrite(verb, buf, len, newline);
+    writeLog(verb, buf, len);
 }
 
 void
@@ -811,37 +742,6 @@ LogHdrMessageVerb(MessageType type, int verb, const char *msg_format,
     va_start(hdr_args, hdr_format);
     LogVHdrMessageVerb(type, verb, msg_format, msg_args, hdr_format, hdr_args);
     va_end(hdr_args);
-}
-
-void
-LogHdrMessage(MessageType type, const char *msg_format, va_list msg_args,
-              const char *hdr_format, ...)
-{
-    va_list hdr_args;
-
-    va_start(hdr_args, hdr_format);
-    LogVHdrMessageVerb(type, 1, msg_format, msg_args, hdr_format, hdr_args);
-    va_end(hdr_args);
-}
-
-void
-AbortServer(void)
-    _X_NORETURN;
-
-void
-AbortServer(void)
-{
-#ifdef XF86BIGFONT
-    XF86BigfontCleanup();
-#endif
-    CloseWellKnownConnections();
-    OsCleanup(TRUE);
-    AbortDevices();
-    ddxGiveUp(EXIT_ERR_ABORT);
-    fflush(stderr);
-    if (CoreDump)
-        OsAbort();
-    exit(1);
 }
 
 #define AUDIT_PREFIX "AUDIT: %s: %ld: "
@@ -953,9 +853,9 @@ FatalError(const char *f, ...)
     static Bool beenhere = FALSE;
 
     if (beenhere)
-        ErrorFSigSafe("\nFatalError re-entered, aborting\n");
+        ErrorF("\nFatalError re-entered, aborting\n");
     else
-        ErrorFSigSafe("\nFatal server error:\n");
+        ErrorF("\nFatal server error:\n");
 
     va_start(args, f);
 
@@ -972,9 +872,9 @@ FatalError(const char *f, ...)
         va_end(apple_args);
     }
 #endif
-    VErrorFSigSafe(f, args);
+    LogVMessageVerb(X_NONE, -1, f, args);
     va_end(args);
-    ErrorFSigSafe("\n");
+    ErrorF("\n");
     if (!beenhere)
         OsVendorFatalError(f, args2);
     va_end(args2);
@@ -987,37 +887,12 @@ FatalError(const char *f, ...)
  /*NOTREACHED*/}
 
 void
-VErrorF(const char *f, va_list args)
-{
-    if (OsVendorVErrorFProc)
-        OsVendorVErrorFProc(f, args);
-    else
-        LogVMessageVerb(X_NONE, -1, f, args);
-}
-
-void
 ErrorF(const char *f, ...)
 {
     va_list args;
 
     va_start(args, f);
-    VErrorF(f, args);
-    va_end(args);
-}
-
-void
-VErrorFSigSafe(const char *f, va_list args)
-{
-    LogVMessageVerbSigSafe(X_ERROR, -1, f, args);
-}
-
-void
-ErrorFSigSafe(const char *f, ...)
-{
-    va_list args;
-
-    va_start(args, f);
-    VErrorFSigSafe(f, args);
+    LogVMessageVerb(X_NONE, -1, f, args);
     va_end(args);
 }
 

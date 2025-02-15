@@ -150,8 +150,7 @@ struct radv_vertex_binding {
 };
 
 struct radv_streamout_binding {
-   struct radv_buffer *buffer;
-   VkDeviceSize offset;
+   uint64_t va;
    VkDeviceSize size;
 };
 
@@ -786,10 +785,9 @@ struct radv_dispatch_info {
    bool ordered;
 
    /**
-    * Indirect compute parameters resource.
+    * Indirect compute parameters VA.
     */
-   struct radeon_winsys_bo *indirect;
-   uint64_t va;
+   uint64_t indirect_va;
 };
 
 void radv_compute_dispatch(struct radv_cmd_buffer *cmd_buffer, const struct radv_dispatch_info *info);

@@ -67,11 +67,6 @@ typedef struct _miDash *miDashPtr;
 
 /* miarc.c */
 
-extern _X_EXPORT void miWideArc(DrawablePtr pDraw,
-                                GCPtr pGC,
-                                int narcs,
-                                xArc * parcs);
-
 extern _X_EXPORT void miPolyArc(DrawablePtr /*pDraw */ ,
                                 GCPtr /*pGC */ ,
                                 int /*narcs */ ,
@@ -113,70 +108,11 @@ miDoCopy(DrawablePtr pSrcDrawable,
          int xOut,
          int yOut, miCopyProc copyProc, Pixel bitplane, void *closure);
 
-/* micursor.c */
-
-extern _X_EXPORT void miRecolorCursor(DeviceIntPtr /* pDev */ ,
-                                      ScreenPtr /*pScr */ ,
-                                      CursorPtr /*pCurs */ ,
-                                      Bool      /*displayed */
-    );
-
-/* midash.c */
-
-extern _X_EXPORT void miStepDash(int /*dist */ ,
-                                 int * /*pDashIndex */ ,
-                                 unsigned char * /*pDash */ ,
-                                 int /*numInDashList */ ,
-                                 int *  /*pDashOffset */
-    );
-
 /* mieq.c */
 
 #ifndef INPUT_H
 typedef struct _DeviceRec *DevicePtr;
 #endif
-
-extern _X_EXPORT Bool mieqInit(void
-    );
-
-extern _X_EXPORT void mieqFini(void);
-
-extern _X_EXPORT void mieqEnqueue(DeviceIntPtr /*pDev */ ,
-                                  InternalEvent *       /*e */
-    );
-
-extern _X_EXPORT void mieqSwitchScreen(DeviceIntPtr /* pDev */ ,
-                                       ScreenPtr /*pScreen */ ,
-                                       Bool     /*set_dequeue_screen */
-    );
-
-extern _X_EXPORT void mieqProcessDeviceEvent(DeviceIntPtr /* dev */ ,
-                                             InternalEvent * /* event */ ,
-                                             ScreenPtr  /* screen */
-    );
-
-extern _X_EXPORT void mieqProcessInputEvents(void
-    );
-
-extern _X_EXPORT void mieqAddCallbackOnDrained(CallbackProcPtr callback,
-                                               void *param);
-
-extern _X_EXPORT void mieqRemoveCallbackOnDrained(CallbackProcPtr callback,
-                                                  void *param);
-
-extern DeviceIntPtr CopyGetMasterEvent(DeviceIntPtr /* sdev */ ,
-                                       InternalEvent * /* original */ ,
-                                       InternalEvent *  /* copy */
-    );
-
-/**
- * Custom input event handler. If you need to process input events in some
- * other way than the default path, register an input event handler for the
- * given internal event type.
- */
-typedef void (*mieqHandler) (int screen, InternalEvent *event,
-                             DeviceIntPtr dev);
-void _X_EXPORT mieqSetHandler(int event, mieqHandler handler);
 
 /* miexpose.c */
 
@@ -189,20 +125,6 @@ extern _X_EXPORT RegionPtr miHandleExposures(DrawablePtr /*pSrcDrawable */ ,
                                              int /*height */ ,
                                              int /*dstx */ ,
                                              int /*dsty */
-    );
-
-extern _X_EXPORT void miSendExposures(WindowPtr /*pWin */ ,
-                                      RegionPtr /*pRgn */ ,
-                                      int /*dx */ ,
-                                      int       /*dy */
-    );
-
-extern _X_EXPORT void miWindowExposures(WindowPtr /*pWin */ ,
-                                        RegionPtr /*prgn */);
-
-extern _X_EXPORT void miPaintWindow(WindowPtr /*pWin */ ,
-                                    RegionPtr /*prgn */ ,
-                                    int /*what */
     );
 
 extern _X_EXPORT void miClearDrawable(DrawablePtr /*pDraw */ ,
@@ -310,11 +232,6 @@ extern _X_EXPORT void miPushPixels(GCPtr /*pGC */ ,
     );
 
 /* miscrinit.c */
-
-extern _X_EXPORT void
-miSourceValidate(DrawablePtr pDrawable, int x, int y, int w, int h,
-                 unsigned int subWindowMode);
-
 extern _X_EXPORT Bool miModifyPixmapHeader(PixmapPtr pPixmap,
                                            int width,
                                            int height,
@@ -322,9 +239,6 @@ extern _X_EXPORT Bool miModifyPixmapHeader(PixmapPtr pPixmap,
                                            int bitsPerPixel,
                                            int devKind,
                                            void *pPixData
-    );
-
-extern _X_EXPORT Bool miCreateScreenResources(ScreenPtr /*pScreen */
     );
 
 extern _X_EXPORT Bool miScreenInit(ScreenPtr pScreen,
@@ -343,18 +257,6 @@ extern _X_EXPORT Bool miScreenInit(ScreenPtr pScreen,
     );
 
 /* mivaltree.c */
-
-extern _X_EXPORT int miShapedWindowIn(RegionPtr /*universe */ ,
-                                      RegionPtr /*bounding */ ,
-                                      BoxPtr /*rect */ ,
-                                      int /*x */ ,
-                                      int       /*y */
-    );
-
-extern _X_EXPORT int miValidateTree(WindowPtr /*pParent */ ,
-                                    WindowPtr /*pChild */ ,
-                                    VTKind      /*kind */
-    );
 
 extern _X_EXPORT void miWideLine(DrawablePtr /*pDrawable */ ,
                                  GCPtr /*pGC */ ,
@@ -375,62 +277,6 @@ extern _X_EXPORT void miPolylines(DrawablePtr pDrawable,
                                   int mode,
                                   int npt,
                                   DDXPointPtr pPts);
-
-/* miwindow.c */
-
-extern _X_EXPORT void miClearToBackground(WindowPtr /*pWin */ ,
-                                          int /*x */ ,
-                                          int /*y */ ,
-                                          int /*w */ ,
-                                          int /*h */ ,
-                                          Bool  /*generateExposures */
-    );
-
-extern _X_EXPORT void miMarkWindow(WindowPtr    /*pWin */
-    );
-
-extern _X_EXPORT Bool miMarkOverlappedWindows(WindowPtr /*pWin */ ,
-                                              WindowPtr /*pFirst */ ,
-                                              WindowPtr *       /*ppLayerWin */
-    );
-
-extern _X_EXPORT void miHandleValidateExposures(WindowPtr       /*pWin */
-    );
-
-extern _X_EXPORT void miMoveWindow(WindowPtr /*pWin */ ,
-                                   int /*x */ ,
-                                   int /*y */ ,
-                                   WindowPtr /*pNextSib */ ,
-                                   VTKind       /*kind */
-    );
-
-extern _X_EXPORT void miResizeWindow(WindowPtr /*pWin */ ,
-                                     int /*x */ ,
-                                     int /*y */ ,
-                                     unsigned int /*w */ ,
-                                     unsigned int /*h */ ,
-                                     WindowPtr    /*pSib */
-    );
-
-extern _X_EXPORT WindowPtr miGetLayerWindow(WindowPtr   /*pWin */
-    );
-
-extern _X_EXPORT void miSetShape(WindowPtr /*pWin */ ,
-                                 int    /*kind */
-    );
-
-extern _X_EXPORT void miChangeBorderWidth(WindowPtr /*pWin */ ,
-                                          unsigned int  /*width */
-    );
-
-extern _X_EXPORT void miMarkUnrealizedWindow(WindowPtr /*pChild */ ,
-                                             WindowPtr /*pWin */ ,
-                                             Bool       /*fromConfigure */
-    );
-
-extern _X_EXPORT WindowPtr miSpriteTrace(SpritePtr pSprite, int x, int y);
-
-extern _X_EXPORT WindowPtr miXYToWindow(ScreenPtr pScreen, SpritePtr pSprite, int x, int y);
 
 /* mizerarc.c */
 

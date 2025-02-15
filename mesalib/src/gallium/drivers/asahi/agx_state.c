@@ -1530,7 +1530,6 @@ agx_compile_nir(struct agx_device *dev, nir_shader *nir,
 
    struct agx_shader_key key = {
       .dev = agx_gather_device_key(dev),
-      .libagx = dev->libagx,
       .has_scratch = !secondary,
       .promote_constants = true,
       .no_stop = !terminal,
@@ -1610,7 +1609,7 @@ agx_compile_variant(struct agx_device *dev, struct pipe_context *pctx,
       struct asahi_vs_shader_key *key = &key_->vs;
 
       if (nir->info.vs.tes_agx) {
-         NIR_PASS(_, nir, agx_nir_lower_tes, dev->libagx, key->hw);
+         NIR_PASS(_, nir, agx_nir_lower_tes, key->hw);
       } else {
          NIR_PASS(_, nir, agx_nir_lower_vs_input_to_prolog,
                   attrib_components_read);
@@ -1626,7 +1625,7 @@ agx_compile_variant(struct agx_device *dev, struct pipe_context *pctx,
          NIR_PASS(_, nir, agx_nir_lower_cull_distance_vs);
          NIR_PASS(_, nir, agx_nir_lower_uvs, &uvs);
       } else {
-         NIR_PASS(_, nir, agx_nir_lower_vs_before_gs, dev->libagx);
+         NIR_PASS(_, nir, agx_nir_lower_vs_before_gs);
 
          /* Turn into a compute shader now that we're free of vertexisms */
          nir->info.stage = MESA_SHADER_COMPUTE;
@@ -1635,12 +1634,12 @@ agx_compile_variant(struct agx_device *dev, struct pipe_context *pctx,
          outputs = nir->info.outputs_written;
       }
    } else if (nir->info.stage == MESA_SHADER_TESS_CTRL) {
-      NIR_PASS_V(nir, agx_nir_lower_tcs, dev->libagx);
+      NIR_PASS_V(nir, agx_nir_lower_tcs);
    } else if (nir->info.stage == MESA_SHADER_GEOMETRY) {
       struct asahi_gs_shader_key *key = &key_->gs;
 
-      NIR_PASS(_, nir, agx_nir_lower_gs, dev->libagx, key->rasterizer_discard,
-               &gs_count, &gs_copy, &pre_gs, &gs_out_prim, &gs_out_count_words);
+      NIR_PASS(_, nir, agx_nir_lower_gs, key->rasterizer_discard, &gs_count,
+               &gs_copy, &pre_gs, &gs_out_prim, &gs_out_count_words);
    } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
       struct asahi_fs_shader_key *key = &key_->fs;
 
@@ -1899,7 +1898,7 @@ agx_shader_initialize(struct agx_device *dev, struct agx_uncompiled_shader *so,
    NIR_PASS(_, nir, agx_nir_lower_texture);
    NIR_PASS(_, nir, nir_lower_ssbo, NULL);
 
-   agx_preprocess_nir(nir, dev->libagx);
+   agx_preprocess_nir(nir);
 
    if (nir->info.stage == MESA_SHADER_FRAGMENT &&
        (nir->info.inputs_read & VARYING_BITS_TEX_ANY)) {
@@ -2653,18 +2652,7 @@ agx_build_meta_shader_internal(struct agx_context *ctx,
 
    struct agx_device *dev = agx_device(ctx->base.screen);
    if (!prolog) {
-      /* We need to link libagx and assign shared before preprocessing, matching
-       * what the driver would otherwise produce.
-       */
-      agx_link_libagx(b.shader, dev->libagx);
-
-      NIR_PASS(_, b.shader, nir_lower_vars_to_explicit_types,
-               nir_var_mem_shared, glsl_get_cl_type_size_align);
-
-      NIR_PASS(_, b.shader, nir_lower_explicit_io, nir_var_mem_shared,
-               nir_address_format_62bit_generic);
-
-      agx_preprocess_nir(b.shader, NULL);
+      agx_preprocess_nir(b.shader);
       NIR_PASS(_, b.shader, agx_nir_lower_texture);
       NIR_PASS(_, b.shader, agx_nir_lower_multisampled_image_store);
    }

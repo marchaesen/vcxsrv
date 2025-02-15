@@ -348,7 +348,6 @@ visit_intrinsic(nir_intrinsic_instr *instr, struct divergence_state *state)
    case nir_intrinsic_load_polygon_stipple_buffer_amd:
    case nir_intrinsic_load_printf_buffer_address:
    case nir_intrinsic_load_printf_buffer_size:
-   case nir_intrinsic_load_printf_base_identifier:
    case nir_intrinsic_load_core_id_agx:
    case nir_intrinsic_load_samples_log2_agx:
    case nir_intrinsic_load_active_subgroup_count_agx:
@@ -1110,7 +1109,6 @@ instr_is_loop_invariant(nir_instr *instr, struct divergence_state *state)
    switch (instr->type) {
    case nir_instr_type_load_const:
    case nir_instr_type_undef:
-   case nir_instr_type_debug_info:
    case nir_instr_type_jump:
       return true;
    case nir_instr_type_intrinsic:
@@ -1146,8 +1144,6 @@ update_instr_divergence(nir_instr *instr, struct divergence_state *state)
       return visit_def(&nir_instr_as_undef(instr)->def, state);
    case nir_instr_type_deref:
       return visit_deref(state->shader, nir_instr_as_deref(instr), state);
-   case nir_instr_type_debug_info:
-      return false;
    case nir_instr_type_call:
       return false;
    case nir_instr_type_jump:
@@ -1452,16 +1448,17 @@ nir_divergence_analysis_impl(nir_function_impl *impl, nir_divergence_options opt
 
    visit_cf_list(&impl->body, &state);
 
-   nir_metadata_preserve(impl, nir_metadata_all);
+   /* Unless this pass is called with shader->options->divergence_analysis_options,
+    * it invalidates nir_metadata_divergence.
+    */
+   nir_metadata_preserve(impl, ~nir_metadata_divergence);
 }
 
 void
 nir_divergence_analysis(nir_shader *shader)
 {
-   shader->info.divergence_analysis_run = true;
    nir_foreach_function_impl(impl, shader) {
-      nir_divergence_analysis_impl(impl,
-                                   shader->options->divergence_analysis_options);
+      nir_metadata_require(impl, nir_metadata_divergence);
    }
 }
 
@@ -1472,8 +1469,6 @@ nir_divergence_analysis(nir_shader *shader)
 void
 nir_vertex_divergence_analysis(nir_shader *shader)
 {
-   shader->info.divergence_analysis_run = false;
-
    struct divergence_state state = {
       .stage = shader->info.stage,
       .shader = shader,
@@ -1488,7 +1483,7 @@ nir_vertex_divergence_analysis(nir_shader *shader)
       nir_metadata_require(impl, nir_metadata_block_index);
       state.impl = impl;
       visit_cf_list(&impl->body, &state);
-      nir_metadata_preserve(impl, nir_metadata_all);
+      nir_metadata_preserve(impl, nir_metadata_all & ~nir_metadata_divergence);
    }
 }
 

@@ -22,6 +22,9 @@
 #include "fd6_screen.h"
 #include "fd6_texture.h"
 
+#define XXH_INLINE_ALL
+#include "util/xxhash.h"
+
 static void fd6_texture_state_destroy(struct fd6_texture_state *state);
 
 static void

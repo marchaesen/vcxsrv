@@ -2727,12 +2727,14 @@ radv_graphics_shaders_compile(struct radv_device *device, struct vk_pipeline_cac
    }
 
    if (stages[MESA_SHADER_FRAGMENT].nir) {
-      radv_nir_lower_poly_line_smooth(stages[MESA_SHADER_FRAGMENT].nir, gfx_state);
+      bool update_info = false;
+      if (gfx_state->dynamic_line_rast_mode)
+         NIR_PASS(update_info, stages[MESA_SHADER_FRAGMENT].nir, nir_lower_poly_line_smooth,
+                  RADV_NUM_SMOOTH_AA_SAMPLES);
 
       if (!gfx_state->ps.has_epilog)
          radv_nir_remap_color_attachment(stages[MESA_SHADER_FRAGMENT].nir, gfx_state);
 
-      bool update_info = false;
       NIR_PASS(update_info, stages[MESA_SHADER_FRAGMENT].nir, nir_opt_frag_coord_to_pixel_coord);
       if (update_info)
          nir_shader_gather_info(stages[MESA_SHADER_FRAGMENT].nir,

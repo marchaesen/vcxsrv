@@ -31,8 +31,6 @@ spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 
-spec@ext_packed_float@query-rgba-signed-components,Fail
-
 spec@glsl-1.10@execution@glsl-fs-inline-explosion,Crash
 spec@glsl-1.10@execution@glsl-vs-inline-explosion,Crash
 spec@glsl-1.10@execution@loops@glsl-fs-unroll-explosion,Crash

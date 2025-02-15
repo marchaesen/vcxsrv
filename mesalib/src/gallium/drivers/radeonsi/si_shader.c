@@ -10,6 +10,7 @@
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_serialize.h"
+#include "nir_tcs_info.h"
 #include "nir_xfb_info.h"
 #include "si_pipe.h"
 #include "si_shader_internal.h"
@@ -20,14 +21,7 @@
 #include "util/ralloc.h"
 #include "util/u_upload_mgr.h"
 
-#if LLVM_AVAILABLE
-#include <llvm/Config/llvm-config.h> /* for LLVM_VERSION_MAJOR */
-#else
-#define LLVM_VERSION_MAJOR 0
-#endif
-
 static const char scratch_rsrc_dword0_symbol[] = "SCRATCH_RSRC_DWORD0";
-
 static const char scratch_rsrc_dword1_symbol[] = "SCRATCH_RSRC_DWORD1";
 
 static void si_dump_shader_key(const struct si_shader *shader, FILE *f);
@@ -1815,8 +1809,7 @@ static void si_lower_ngg(struct si_shader *shader, nir_shader *nir)
       sel->info.culldist_mask;
 
    ac_nir_lower_ngg_options options = {
-      .family = sel->screen->info.family,
-      .gfx_level = sel->screen->info.gfx_level,
+      .hw_info = &sel->screen->info,
       .max_workgroup_size = si_get_max_workgroup_size(shader),
       .wave_size = shader->wave_size,
       .can_cull = si_shader_culling_enabled(shader),
@@ -2508,7 +2501,6 @@ static void run_late_optimization_and_lowering_passes(struct si_nir_shader_ctx *
                .lower_quad_broadcast_dynamic_to_const = sel->screen->info.gfx_level <= GFX7,
                .lower_shuffle_to_swizzle_amd = true,
                .lower_ballot_bit_count_to_mbcnt_amd = true,
-               .lower_inverse_ballot = !nir->info.use_aco_amd && LLVM_VERSION_MAJOR < 17,
                .lower_boolean_reduce = nir->info.use_aco_amd,
                .lower_boolean_shuffle = true,
             });

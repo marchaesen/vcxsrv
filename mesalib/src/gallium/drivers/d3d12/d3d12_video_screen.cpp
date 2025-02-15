@@ -960,6 +960,9 @@ d3d12_has_video_encode_support(struct pipe_screen *pscreen,
       case PIPE_VIDEO_PROFILE_HEVC_MAIN:
       case PIPE_VIDEO_PROFILE_HEVC_MAIN_10:
       case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN10_444:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN_422:
+      case PIPE_VIDEO_PROFILE_HEVC_MAIN10_422:
       {
          D3D12_VIDEO_ENCODER_PROFILE_DESC profDesc = {};
          D3D12_VIDEO_ENCODER_PROFILE_HEVC profHEVC =
@@ -2135,7 +2138,12 @@ is_d3d12_video_allowed_format(enum pipe_format format, enum pipe_video_entrypoin
    if (entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
       return ((format == PIPE_FORMAT_NV12) || (format == PIPE_FORMAT_P010));
    } else if (entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
-      return ((format == PIPE_FORMAT_NV12) || (format == PIPE_FORMAT_P010) || (format == PIPE_FORMAT_AYUV));
+      return ((format == PIPE_FORMAT_NV12) ||
+              (format == PIPE_FORMAT_P010) ||
+              (format == PIPE_FORMAT_AYUV) ||
+              (format == PIPE_FORMAT_YUYV /*maps to DXGI_FORMAT_YUY2*/) ||
+              (format == PIPE_FORMAT_Y210) ||
+              (format == PIPE_FORMAT_Y410));
    } else if (entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING) {
       return (format == PIPE_FORMAT_NV12) || (format == PIPE_FORMAT_P010)
          || (format == PIPE_FORMAT_R8G8B8A8_UNORM) || (format == PIPE_FORMAT_R8G8B8A8_UINT)

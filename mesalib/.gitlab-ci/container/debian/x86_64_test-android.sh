@@ -46,6 +46,12 @@ curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
 unzip -d / "$ndk.zip"
 rm "$ndk.zip"
 
+############### Build ANGLE
+
+ANGLE_TARGET=android \
+DEBIAN_ARCH=amd64 \
+. .gitlab-ci/container/build-angle.sh
+
 ############### Build dEQP runner
 
 export ANDROID_NDK_HOME=/$ndk
@@ -56,16 +62,11 @@ export RUST_TARGET=x86_64-linux-android
 rm -rf /root/.cargo
 rm -rf /root/.rustup
 
-############### Build dEQP GL
+############### Build dEQP
 
 DEQP_API=tools \
 DEQP_TARGET="android" \
 EXTRA_CMAKE_ARGS="-DDEQP_ANDROID_EXE=ON -DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=$ANDROID_SDK_VERSION" \
-. .gitlab-ci/container/build-deqp.sh
-
-DEQP_API=GL \
-DEQP_TARGET="android" \
-EXTRA_CMAKE_ARGS="-DDEQP_TARGET_TOOLCHAIN=ndk-modern -DANDROID_NDK_PATH=/$ndk -DANDROID_ABI=x86_64 -DDE_ANDROID_API=$ANDROID_SDK_VERSION" \
 . .gitlab-ci/container/build-deqp.sh
 
 DEQP_API=GLES \
@@ -81,6 +82,8 @@ EXTRA_CMAKE_ARGS="-DDEQP_ANDROID_EXE=ON -DDEQP_TARGET_TOOLCHAIN=ndk-modern -DAND
 rm -rf /VK-GL-CTS
 
 ############### Downloading Cuttlefish resources ...
+
+uncollapsed_section_start cuttlefish "Downloading, building and installing Cuttlefish"
 
 CUTTLEFISH_PROJECT_PATH=ao2/aosp-manifest
 CUTTLEFISH_BUILD_VERSION_TAGS=mesa-venus
@@ -126,6 +129,8 @@ git checkout FETCH_HEAD
 ./tools/buildutils/build_packages.sh
 
 apt-get install -y --allow-downgrades ./cuttlefish-base_*.deb ./cuttlefish-user_*.deb
+
+section_end cuttlefish
 
 popd
 rm -rf android-cuttlefish

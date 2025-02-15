@@ -49,6 +49,7 @@ enum radeon_bo_flag { /* bitfield */
                       RADEON_FLAG_ZERO_VRAM = (1 << 10),
                       RADEON_FLAG_REPLAYABLE = (1 << 11),
                       RADEON_FLAG_DISCARDABLE = (1 << 12),
+                      RADEON_FLAG_GFX12_ALLOW_DCC = (1 << 13),
 };
 
 enum radeon_ctx_priority {
@@ -151,6 +152,7 @@ struct radeon_bo_metadata {
          unsigned dcc_max_compressed_block : 3;
          unsigned dcc_data_format : 6;
          unsigned dcc_number_type : 3;
+         bool dcc_write_compress_disable;
          bool scanout;
       } gfx12;
    } u;
@@ -173,6 +175,7 @@ struct radeon_winsys_bo {
    bool vram_no_cpu_access;
    /* buffer is added to the BO list of all submissions */
    bool use_global_list;
+   bool gfx12_allow_dcc;
    enum radeon_bo_domain initial_domain;
 };
 

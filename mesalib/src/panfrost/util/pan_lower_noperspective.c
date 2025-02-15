@@ -182,7 +182,10 @@ lower_noperspective_vs(nir_builder *b, nir_intrinsic_instr *intrin,
       is_noperspective_output(b, sem.location, state->noperspective_outputs);
 
    nir_def *old_value = intrin->src[0].ssa;
-   nir_def *noperspective_value = nir_fmul(b, old_value, state->pos_w);
+   nir_def *pos_w = state->pos_w;
+   if (old_value->bit_size == 16)
+      pos_w = nir_f2f16(b, pos_w);
+   nir_def *noperspective_value = nir_fmul(b, old_value, pos_w);
    nir_def *new_value =
       nir_bcsel(b, is_noperspective, noperspective_value, old_value);
 
@@ -205,6 +208,8 @@ lower_noperspective_fs(nir_builder *b, nir_intrinsic_instr *intrin,
 
    nir_def *bary = intrin->src[0].ssa;
    nir_def *fragcoord_w = nir_load_frag_coord_zw_pan(b, bary, .component = 3);
+   if (intrin->def.bit_size == 16)
+      fragcoord_w = nir_f2f16(b, fragcoord_w);
 
    nir_def *new_value = nir_fmul(b, &intrin->def, fragcoord_w);
    nir_def_rewrite_uses_after(&intrin->def, new_value, new_value->parent_instr);

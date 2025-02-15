@@ -179,7 +179,7 @@ radv_sdma_get_buf_surf(const struct radv_buffer *const buffer, const struct radv
    const uint32_t bpe = radv_sdma_get_bpe(image, region->imageSubresource.aspectMask);
 
    const struct radv_sdma_surf info = {
-      .va = radv_buffer_get_va(buffer->bo) + buffer->offset + region->bufferOffset,
+      .va = buffer->addr + region->bufferOffset,
       .pitch = pitch,
       .slice_pitch = slice_pitch,
       .bpp = bpe,
@@ -331,7 +331,7 @@ radv_sdma_emit_nop(const struct radv_device *device, struct radeon_cmdbuf *cs)
 }
 
 void
-radv_sdma_copy_buffer(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t src_va, uint64_t dst_va,
+radv_sdma_copy_memory(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t src_va, uint64_t dst_va,
                       uint64_t size)
 {
    if (size == 0)
@@ -376,7 +376,7 @@ radv_sdma_copy_buffer(const struct radv_device *device, struct radeon_cmdbuf *cs
 }
 
 void
-radv_sdma_fill_buffer(const struct radv_device *device, struct radeon_cmdbuf *cs, const uint64_t va,
+radv_sdma_fill_memory(const struct radv_device *device, struct radeon_cmdbuf *cs, const uint64_t va,
                       const uint64_t size, const uint32_t value)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
@@ -664,7 +664,7 @@ radv_sdma_copy_buffer_image_unaligned(const struct radv_device *device, struct r
             const uint64_t buf_va =
                buf->va + slice * buf_slice_pitch_blocks * img.bpp + (row + r) * buf_pitch_blocks * img.bpp;
             const uint64_t tmp_va = tmp.va + r * info.aligned_row_pitch * img.bpp;
-            radv_sdma_copy_buffer(device, cs, to_image ? buf_va : tmp_va, to_image ? tmp_va : buf_va,
+            radv_sdma_copy_memory(device, cs, to_image ? buf_va : tmp_va, to_image ? tmp_va : buf_va,
                                   info.extent_horizontal_blocks * img.bpp);
          }
 

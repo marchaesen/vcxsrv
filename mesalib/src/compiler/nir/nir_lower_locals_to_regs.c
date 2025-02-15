@@ -26,6 +26,9 @@
 #include "nir_builder_opcodes.h"
 #include "nir_intrinsics_indices.h"
 
+#define XXH_INLINE_ALL
+#include "util/xxhash.h"
+
 struct locals_to_regs_state {
    nir_builder builder;
 

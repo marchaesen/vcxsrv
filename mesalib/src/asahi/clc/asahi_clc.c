@@ -286,7 +286,17 @@ main(int argc, char **argv)
          nir_shader *s = nir_precompiled_build_variant(
             libfunc, v, &agx_nir_options, &opt, load_kernel_input);
 
-         agx_link_libagx(s, nir);
+         nir_link_shader_functions(s, nir);
+         NIR_PASS(_, s, nir_inline_functions);
+         nir_remove_non_entrypoints(s);
+         NIR_PASS(_, s, nir_opt_deref);
+         NIR_PASS(_, s, nir_lower_vars_to_ssa);
+         NIR_PASS(_, s, nir_remove_dead_derefs);
+         NIR_PASS(_, s, nir_remove_dead_variables,
+                  nir_var_function_temp | nir_var_shader_temp, NULL);
+         NIR_PASS(_, s, nir_lower_vars_to_explicit_types,
+                  nir_var_shader_temp | nir_var_function_temp,
+                  glsl_get_cl_type_size_align);
 
          NIR_PASS(_, s, nir_lower_vars_to_explicit_types, nir_var_mem_shared,
                   glsl_get_cl_type_size_align);
@@ -301,7 +311,14 @@ main(int argc, char **argv)
             NIR_PASS(progress, s, nir_opt_loop);
          } while (progress);
 
-         agx_preprocess_nir(s, NULL);
+         agx_preprocess_nir(s);
+
+         NIR_PASS(_, s, nir_opt_deref);
+         NIR_PASS(_, s, nir_lower_vars_to_ssa);
+         NIR_PASS(_, s, nir_lower_explicit_io,
+                  nir_var_shader_temp | nir_var_function_temp |
+                     nir_var_mem_shared | nir_var_mem_global,
+                  nir_address_format_62bit_generic);
 
          bool has_atomic = false;
          nir_shader_intrinsics_pass(s, gather_atomic_info, nir_metadata_all,
@@ -319,7 +336,6 @@ main(int argc, char **argv)
             struct agx_shader_part compiled;
             bool is_helper = !strcmp(libfunc->name, "libagx_helper");
             struct agx_shader_key key = {
-               .libagx = nir,
                .promote_constants = !is_helper,
                .reserved_preamble = layout.size_B / 2,
                .is_helper = is_helper,
@@ -356,11 +372,6 @@ main(int argc, char **argv)
       nir_precomp_print_extern_binary_map(fp_h, "libagx", *target);
       nir_precomp_print_binary_map(fp_c, nir, "libagx", *target, remap_variant);
    }
-
-   /* Remove the NIR functions we compiled to binaries to save memory */
-   nir_remove_entrypoints(nir);
-
-   nir_precomp_print_nir(fp_c, fp_h, nir, "libagx", "nir");
 
    glsl_type_singleton_decref();
    fclose(fp_c);

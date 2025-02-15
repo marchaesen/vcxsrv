@@ -35,6 +35,27 @@
 # - gt_act_freq_mhz (the actual GPU freq)
 # - gt_cur_freq_mhz (the last requested freq)
 #
+# Intel later switched to per-tile sysfs interfaces, which is what the Xe DRM
+# driver exlusively uses, and the capabilites are now located under the
+# following directory for the first tile:
+#
+# /sys/class/drm/card<n>/device/tile0/gt0/freq0/<freq_info>
+#
+# Where <n> is the DRM card index and <freq_info> one of the following:
+#
+# - max_freq (enforced maximum freq)
+# - min_freq (enforced minimum freq)
+#
+# The hardware capabilities can be accessed via:
+#
+# - rp0_freq (supported maximum freq)
+# - rpn_freq (supported minimum freq)
+# - rpe_freq (most efficient freq)
+#
+# The current frequency can be read from:
+# - act_freq (the actual GPU freq)
+# - cur_freq (the last requested freq)
+#
 # Also note that in addition to GPU management, the script offers the
 # possibility to adjust CPU operating frequencies. However, this is currently
 # limited to just setting the maximum scaling frequency as percentage of the
@@ -50,10 +71,25 @@
 # Constants
 #
 
+# Check if any /sys/class/drm/cardX/device/tile0 directory exists to detect Xe
+USE_XE=0
+for i in $(seq 0 15); do
+    if [ -d "/sys/class/drm/card$i/device/tile0" ]; then
+        USE_XE=1
+        break
+    fi
+done
+
 # GPU
-DRM_FREQ_SYSFS_PATTERN="/sys/class/drm/card%d/gt_%s_freq_mhz"
-ENF_FREQ_INFO="max min boost"
-CAP_FREQ_INFO="RP0 RPn RP1"
+if [ "$USE_XE" -eq 1 ]; then
+    DRM_FREQ_SYSFS_PATTERN="/sys/class/drm/card%d/device/tile0/gt0/freq0/%s_freq"
+    ENF_FREQ_INFO="max min"
+    CAP_FREQ_INFO="rp0 rpn rpe"
+else
+    DRM_FREQ_SYSFS_PATTERN="/sys/class/drm/card%d/gt_%s_freq_mhz"
+    ENF_FREQ_INFO="max min boost"
+    CAP_FREQ_INFO="RP0 RPn RP1"
+fi
 ACT_FREQ_INFO="act cur"
 THROTT_DETECT_SLEEP_SEC=2
 THROTT_DETECT_PID_FILE_PATH=/tmp/thrott-detect.pid
@@ -112,7 +148,11 @@ identify_intel_gpu() {
         }
 
         path=$(print_freq_sysfs_path "" ${i})
-        path=${path%/*}/device/vendor
+        if [ "$USE_XE" -eq 1 ]; then
+            path=${path%/*/*/*/*/*}/device/vendor
+        else
+            path=${path%/*}/device/vendor
+        fi
 
         [ -r "${path}" ] && read vendor < "${path}" && \
             [ "${vendor}" = "0x8086" ] && INTEL_DRM_CARD_INDEX=$i && return 0
@@ -197,13 +237,13 @@ compute_freq_set() {
 
     case "$1" in
     +)
-        val=${FREQ_RP0}
+        val=$(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f1)}")  # FREQ_rp0 or FREQ_RP0
         ;;
     -)
-        val=${FREQ_RPn}
+        val=$(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f2)}")  # FREQ_rpn or FREQ_RPn
         ;;
     *%)
-        val=$((${1%?} * FREQ_RP0 / 100))
+        val=$((${1%?} * $(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f1)}") / 100))
         # Adjust freq to comply with 50 MHz increments
         val=$((val / 50 * 50))
         ;;
@@ -232,15 +272,17 @@ set_freq_max() {
 
     read_freq_info n min || return $?
 
-    [ ${SET_MAX_FREQ} -gt ${FREQ_RP0} ] && {
+    # FREQ_rp0 or FREQ_RP0
+    [ ${SET_MAX_FREQ} -gt $(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f1)}") ] && {
         log ERROR "Cannot set GPU max freq (%s) to be greater than hw max freq (%s)" \
-            "${SET_MAX_FREQ}" "${FREQ_RP0}"
+            "${SET_MAX_FREQ}" "$(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f1)}")"
         return 1
     }
 
-    [ ${SET_MAX_FREQ} -lt ${FREQ_RPn} ] && {
+    # FREQ_rpn or FREQ_RPn
+    [ ${SET_MAX_FREQ} -lt $(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f2)}") ] && {
         log ERROR "Cannot set GPU max freq (%s) to be less than hw min freq (%s)" \
-            "${SET_MIN_FREQ}" "${FREQ_RPn}"
+            "${SET_MIN_FREQ}" "$(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f2)}")"
         return 1
     }
 
@@ -252,11 +294,20 @@ set_freq_max() {
 
     [ -z "${DRY_RUN}" ] || return 0
 
-    if ! printf "%s" ${SET_MAX_FREQ} | tee $(print_freq_sysfs_path max) \
-        $(print_freq_sysfs_path boost) > /dev/null;
+    # Write to max freq path
+    if ! printf "%s" ${SET_MAX_FREQ} | tee $(print_freq_sysfs_path max) > /dev/null;
     then
         log ERROR "Failed to set GPU max frequency"
         return 1
+    fi
+
+    # Only write to boost if the sysfs file exists, as it's removed in Xe
+    if [ -e "$(print_freq_sysfs_path boost)" ]; then
+        if ! printf "%s" ${SET_MAX_FREQ} | tee $(print_freq_sysfs_path boost) > /dev/null;
+        then
+            log ERROR "Failed to set GPU boost frequency"
+            return 1
+        fi
     fi
 }
 
@@ -274,9 +325,9 @@ set_freq_min() {
         return 1
     }
 
-    [ ${SET_MIN_FREQ} -lt ${FREQ_RPn} ] && {
+    [ ${SET_MIN_FREQ} -lt $(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f2)}") ] && {
         log ERROR "Cannot set GPU min freq (%s) to be less than hw min freq (%s)" \
-            "${SET_MIN_FREQ}" "${FREQ_RPn}"
+            "${SET_MIN_FREQ}" "$(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f2)}")"
         return 1
     }
 
@@ -294,7 +345,7 @@ set_freq_min() {
 #
 set_freq() {
     # Get hw max & min frequencies
-    read_freq_info n RP0 RPn || return $?
+    read_freq_info n $(echo $CAP_FREQ_INFO | cut -d' ' -f1,2) || return $? # RP0 RPn
 
     [ -z "${SET_MAX_FREQ}" ] || {
         SET_MAX_FREQ=$(compute_freq_set "${SET_MAX_FREQ}")
@@ -397,7 +448,7 @@ detect_throttling() {
         }
 
         (
-            read_freq_info n RPn || exit $?
+            read_freq_info n $(echo $CAP_FREQ_INFO | cut -d' ' -f2) || return $? # RPn
 
             while true; do
                 sleep ${THROTT_DETECT_SLEEP_SEC}
@@ -406,13 +457,13 @@ detect_throttling() {
                 #
                 # The throttling seems to occur when act freq goes below min.
                 # However, it's necessary to exclude the idle states, where
-                # act freq normally reaches RPn and cur goes below min.
+                # act freq normally reaches rpn and cur goes below min.
                 #
                 [ ${FREQ_act} -lt ${FREQ_min} ] && \
-                [ ${FREQ_act} -gt ${FREQ_RPn} ] && \
+                [ ${FREQ_act} -gt $(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f2)}") ] && \
                 [ ${FREQ_cur} -ge ${FREQ_min} ] && \
-                    printf "GPU throttling detected: act=%s min=%s cur=%s RPn=%s\n" \
-                    ${FREQ_act} ${FREQ_min} ${FREQ_cur} ${FREQ_RPn}
+                    printf "GPU throttling detected: act=%s min=%s cur=%s rpn=%s\n" \
+                    ${FREQ_act} ${FREQ_min} ${FREQ_cur} $(eval "echo \${FREQ_$(echo $CAP_FREQ_INFO | cut -d' ' -f2)}")
             done
         ) &
 

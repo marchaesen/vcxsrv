@@ -195,6 +195,7 @@ class VulkanMarshalingCodegen(VulkanTypeIterator):
             checkName = "check_%s" % vulkanType.paramName
             self.cgen.stmt("%s %s" % (
                 self.cgen.makeCTypeDecl(vulkanType, useParamName = False), checkName))
+            self.cgen.stmt("(void)%s" % checkName)
             checkAccess = checkName
             addrExpr = "&" + checkAccess
             sizeExpr = self.cgen.sizeofExpr(vulkanType)

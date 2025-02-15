@@ -762,7 +762,8 @@ get_stream_output_info_from_nir(nir_shader *nir,
 static struct st_common_variant *
 st_create_common_variant(struct st_context *st,
                          struct gl_program *prog,
-                         const struct st_common_variant_key *key)
+                         const struct st_common_variant_key *key,
+                         bool report_compile_error, char **error)
 {
    MESA_TRACE_FUNC();
 
@@ -834,12 +835,6 @@ st_create_common_variant(struct st_context *st,
        * are still counted as enabled IO, which breaks things.
        */
       NIR_PASS(_, state.ir.nir, nir_opt_dce);
-
-      /* vc4, vc5 require this. */
-      if (state.ir.nir->info.stage == MESA_SHADER_VERTEX ||
-          state.ir.nir->info.stage == MESA_SHADER_TESS_EVAL)
-         NIR_PASS(_, state.ir.nir, nir_move_output_stores_to_end);
-
       NIR_PASS(_, state.ir.nir, st_nir_unlower_io_to_vars);
 
       if (state.ir.nir->info.stage == MESA_SHADER_TESS_CTRL &&
@@ -879,6 +874,13 @@ st_create_common_variant(struct st_context *st,
    else
       v->base.driver_shader = st_create_nir_shader(st, &state);
 
+   if (report_compile_error && state.error_message) {
+      *error = state.error_message;
+      return NULL;
+   }
+
+   if (error)
+      *error = NULL;
    return v;
 }
 
@@ -904,7 +906,8 @@ st_add_variant(struct st_variant **list, struct st_variant *v)
 struct st_common_variant *
 st_get_common_variant(struct st_context *st,
                       struct gl_program *prog,
-                      const struct st_common_variant_key *key)
+                      const struct st_common_variant_key *key,
+                      bool report_compile_error, char **error)
 {
    struct st_common_variant *v;
 
@@ -930,7 +933,7 @@ st_get_common_variant(struct st_context *st,
       }
 
       /* create now */
-      v = st_create_common_variant(st, prog, key);
+      v = st_create_common_variant(st, prog, key, report_compile_error, error);
       if (v) {
          v->base.st = key->st;
 
@@ -1013,7 +1016,8 @@ st_translate_fragment_program(struct st_context *st,
 static struct st_fp_variant *
 st_create_fp_variant(struct st_context *st,
                      struct gl_program *fp,
-                     const struct st_fp_variant_key *key)
+                     const struct st_fp_variant_key *key,
+                     bool report_compile_error, char **error)
 {
    struct st_fp_variant *variant = CALLOC_STRUCT(st_fp_variant);
    struct pipe_shader_state state = {0};
@@ -1037,6 +1041,7 @@ st_create_fp_variant(struct st_context *st,
     */
    state.ir.nir = get_nir_shader(st, fp, false);
    state.type = PIPE_SHADER_IR_NIR;
+   state.report_compile_error = report_compile_error;
 
    bool finalize = false;
 
@@ -1233,8 +1238,14 @@ st_create_fp_variant(struct st_context *st,
    }
 
    variant->base.driver_shader = st_create_nir_shader(st, &state);
-   variant->key = *key;
+   if (report_compile_error && state.error_message) {
+      *error = state.error_message;
+      return NULL;
+   }
 
+   variant->key = *key;
+   if (error)
+      *error = NULL;
    return variant;
 }
 
@@ -1244,7 +1255,8 @@ st_create_fp_variant(struct st_context *st,
 struct st_fp_variant *
 st_get_fp_variant(struct st_context *st,
                   struct gl_program *fp,
-                  const struct st_fp_variant_key *key)
+                  const struct st_fp_variant_key *key,
+                  bool report_compile_error, char **error)
 {
    struct st_fp_variant *fpv;
 
@@ -1278,7 +1290,7 @@ st_get_fp_variant(struct st_context *st,
                           "depth_textures=", key->depth_textures);
       }
 
-      fpv = st_create_fp_variant(st, fp, key);
+      fpv = st_create_fp_variant(st, fp, key, report_compile_error, error);
       if (fpv) {
          fpv->base.st = key->st;
 
@@ -1397,10 +1409,13 @@ st_destroy_program_variants(struct st_context *st)
 /**
  * Compile one shader variant.
  */
-static void
+static char *
 st_precompile_shader_variant(struct st_context *st,
-                             struct gl_program *prog)
+                             struct gl_program *prog,
+                             bool report_compile_error)
 {
+   char *error = NULL;
+
    switch (prog->Target) {
    case GL_VERTEX_PROGRAM_ARB:
    case GL_TESS_CONTROL_PROGRAM_NV:
@@ -1421,8 +1436,8 @@ st_precompile_shader_variant(struct st_context *st,
       }
 
       key.st = st->has_shareable_shaders ? NULL : st;
-      st_get_common_variant(st, prog, &key);
-      break;
+      st_get_common_variant(st, prog, &key, report_compile_error, &error);
+      return error;
    }
 
    case GL_FRAGMENT_PROGRAM_ARB: {
@@ -1443,12 +1458,12 @@ st_precompile_shader_variant(struct st_context *st,
       if (!prog->shader_program)
          key.depth_textures = prog->ShadowSamplers;
 
-      st_get_fp_variant(st, prog, &key);
-      break;
+      st_get_fp_variant(st, prog, &key, report_compile_error, &error);
+      return error;
    }
 
    default:
-      assert(0);
+      unreachable("invalid shader stage");
    }
 }
 
@@ -1480,8 +1495,9 @@ st_serialize_base_nir(struct gl_program *prog, nir_shader *nir)
    }
 }
 
-void
-st_finalize_program(struct st_context *st, struct gl_program *prog)
+char *
+st_finalize_program(struct st_context *st, struct gl_program *prog,
+                    bool report_compile_error)
 {
    struct gl_context *ctx = st->ctx;
    bool is_bound = false;
@@ -1522,7 +1538,7 @@ st_finalize_program(struct st_context *st, struct gl_program *prog)
    }
 
    /* Always create the default variant of the program. */
-   st_precompile_shader_variant(st, prog);
+   return st_precompile_shader_variant(st, prog, report_compile_error);
 }
 
 /**
@@ -1555,6 +1571,6 @@ st_program_string_notify( struct gl_context *ctx,
       }
    }
 
-   st_finalize_program(st, prog);
+   st_finalize_program(st, prog, false);
    return GL_TRUE;
 }

@@ -76,7 +76,7 @@ set_vsock_context || { echo "Could not generate crosvm vsock CID" >&2; exit 1; }
 # Securely pass the current variables to the crosvm environment
 echo "Variables passed through:"
 SCRIPTS_DIR=$(readlink -en "${0%/*}")
-${SCRIPTS_DIR}/common/generate-env.sh | tee ${VM_TEMP_DIR}/crosvm-env.sh
+${SCRIPTS_DIR}/common/export-gitlab-job-env-for-dut.sh | tee ${VM_TEMP_DIR}/crosvm-env.sh
 cp ${SCRIPTS_DIR}/setup-test-env.sh ${VM_TEMP_DIR}/setup-test-env.sh
 
 # Set the crosvm-script as the arguments of the current script

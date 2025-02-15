@@ -1282,7 +1282,8 @@ wsi_wl_surface_get_capabilities2(VkIcdSurfaceBase *surface,
       switch (ext->sType) {
       case VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR: {
          VkSurfaceProtectedCapabilitiesKHR *protected = (void *)ext;
-         protected->supportsProtected = VK_FALSE;
+         protected->supportsProtected =
+            wsi_device->supports_protected[VK_ICD_WSI_PLATFORM_WAYLAND];
          break;
       }
 

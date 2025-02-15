@@ -650,6 +650,10 @@ export_ps_outputs(nir_builder *b, lower_ps_state *s)
    }
 
    if (s->exp_num) {
+      /* Move exports to the end to avoid mixing alu and exports. */
+      for (unsigned i = 0; i < s->exp_num; i++)
+         nir_instr_move(nir_after_impl(b->impl), &s->exp[i]->instr);
+
       if (s->options->dual_src_blend_swizzle) {
          emit_ps_dual_src_blend_swizzle(b, s, first_color_export);
          /* Skip last export flag setting because they have been replaced by

@@ -8,6 +8,7 @@
 #include "ac_nir.h"
 #include "ac_nir_to_llvm.h"
 #include "ac_rtld.h"
+#include "nir.h"
 #include "si_pipe.h"
 #include "si_shader_internal.h"
 #include "si_shader_llvm.h"

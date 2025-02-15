@@ -38,6 +38,7 @@
 #include "vk_util.h"
 
 #include "nir_serialize.h"
+#include "nir.h"
 
 #include "util/mesa-sha1.h"
 

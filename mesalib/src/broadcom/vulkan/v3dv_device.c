@@ -1481,8 +1481,6 @@ static void
 try_display_device(struct v3dv_instance *instance, const char *path,
                    int32_t *fd)
 {
-   bool khr_display = instance->vk.enabled_extensions.KHR_display ||
-      instance->vk.enabled_extensions.EXT_acquire_drm_display;
    *fd = open(path, O_RDWR | O_CLOEXEC);
    if (*fd < 0) {
       mesa_loge("Opening %s failed: %s\n", path, strerror(errno));
@@ -1493,13 +1491,10 @@ try_display_device(struct v3dv_instance *instance, const char *path,
    if (!drmIsKMS(*fd))
       goto fail;
 
-   /* If using VK_KHR_display, we require the fd to have a connected output.
-    * We need to use this strategy because Raspberry Pi 5 can load different
-    * drivers for different types of connectors and the one with a connected
-    * output may not be vc4, which unlike Raspberry Pi 4, doesn't drive the
-    * DSI output for example.
+   /* Note that VK_EXT_acquire_drm_display requires KHR_display so there is
+    * no need to check for it explicitly here.
     */
-   if (!khr_display) {
+   if (!instance->vk.enabled_extensions.KHR_display) {
       if (instance->vk.enabled_extensions.KHR_xcb_surface ||
           instance->vk.enabled_extensions.KHR_xlib_surface ||
           instance->vk.enabled_extensions.KHR_wayland_surface)
@@ -1508,7 +1503,21 @@ try_display_device(struct v3dv_instance *instance, const char *path,
          goto fail;
    }
 
-   /* If the display device isn't the DRM master, we can't get its resources */
+   /* When using VK_EXT_acquire_drm_display, the user is expected to get
+    * the master fd and provide it to the driver through vkAcquireDrmDisplayEXT.
+    * Therefore, the fd we open here won't be master.
+    */
+   if (instance->vk.enabled_extensions.EXT_acquire_drm_display)
+      return;
+
+   /* If using VK_KHR_display, we require the fd to have a connected output.
+    * We need to use this strategy because Raspberry Pi 5 can load different
+    * drivers for different types of connectors and the one with a connected
+    * output may not be vc4, which unlike Raspberry Pi 4, doesn't drive the
+    * DSI output for example.
+    *
+    * If the display device isn't the DRM master, we can't get its resources.
+    */
    if (!drmIsMaster(*fd))
       goto fail;
 

@@ -1564,7 +1564,7 @@ cmdstream[0]: 1023 dwords
 			{ DWORDS = 11 }
 0000000001d919e0:		0000: 70c70002 10000000 0000000b
 		opcode: CP_SET_BIN_DATA5 (2f) (8 dwords)
-			{ VSC_SIZE = 1 | VSC_N = 0 }
+			{ ABS_MASK = NO_ABS_MASK | VSC_SIZE = 1 | VSC_N = 0 | VSC_MASK = 0 }
 			{ BIN_DATA_ADDR_LO = 0x1d5d000 }
 			{ BIN_DATA_ADDR_HI = 0 }
 			{ BIN_SIZE_ADDRESS_LO = 0x1d65800 }
@@ -6881,7 +6881,7 @@ cmdstream[0]: 1023 dwords
 			{ DWORDS = 11 }
 0000000001d91bac:		0000: 70c70002 10000000 0000000b
 		opcode: CP_SET_BIN_DATA5 (2f) (8 dwords)
-			{ VSC_SIZE = 1 | VSC_N = 0 }
+			{ ABS_MASK = NO_ABS_MASK | VSC_SIZE = 1 | VSC_N = 0 | VSC_MASK = 0 }
 			{ BIN_DATA_ADDR_LO = 0x1d5d440 }
 			{ BIN_DATA_ADDR_HI = 0 }
 			{ BIN_SIZE_ADDRESS_LO = 0x1d65804 }
@@ -7050,7 +7050,7 @@ cmdstream[0]: 1023 dwords
 			{ DWORDS = 11 }
 0000000001d91d78:		0000: 70c70002 10000000 0000000b
 		opcode: CP_SET_BIN_DATA5 (2f) (8 dwords)
-			{ VSC_SIZE = 1 | VSC_N = 0 }
+			{ ABS_MASK = NO_ABS_MASK | VSC_SIZE = 1 | VSC_N = 0 | VSC_MASK = 0 }
 			{ BIN_DATA_ADDR_LO = 0x1d5d880 }
 			{ BIN_DATA_ADDR_HI = 0 }
 			{ BIN_SIZE_ADDRESS_LO = 0x1d65808 }
@@ -7219,7 +7219,7 @@ cmdstream[0]: 1023 dwords
 			{ DWORDS = 11 }
 0000000001d91f44:		0000: 70c70002 10000000 0000000b
 		opcode: CP_SET_BIN_DATA5 (2f) (8 dwords)
-			{ VSC_SIZE = 1 | VSC_N = 0 }
+			{ ABS_MASK = NO_ABS_MASK | VSC_SIZE = 1 | VSC_N = 0 | VSC_MASK = 0 }
 			{ BIN_DATA_ADDR_LO = 0x1d5dcc0 }
 			{ BIN_DATA_ADDR_HI = 0 }
 			{ BIN_SIZE_ADDRESS_LO = 0x1d6580c }

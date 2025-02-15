@@ -54,7 +54,7 @@ SOFTWARE.
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
 #endif
-#ifdef HAVE_BACKTRACE
+#if defined(HAVE_BACKTRACE) && defined(HAVE_EXECINFO_H)
 #include <execinfo.h>
 #endif
 
@@ -119,10 +119,8 @@ OsSigHandler(int signo)
     if (signo == SIGNAL_FOR_RTLD_ERROR) {
         const char *dlerr = dlerror();
 
-        if (dlerr) {
-            LogMessageVerbSigSafe(X_ERROR, 1,
-                                  "Dynamic loader error: %s\n", dlerr);
-        }
+        if (dlerr)
+            LogMessageVerb(X_ERROR, 1, "Dynamic loader error: %s\n", dlerr);
     }
 #endif                          /* RTLD_DI_SETSIGNAL */
 
@@ -138,8 +136,8 @@ OsSigHandler(int signo)
 
 #ifdef SA_SIGINFO
     if (sip->si_code == SI_USER) {
-        ErrorFSigSafe("Received signal %u sent by process %u, uid %u\n", signo,
-                     sip->si_pid, sip->si_uid);
+        ErrorF("Received signal %u sent by process %u, uid %u\n", signo,
+               sip->si_pid, sip->si_uid);
     }
     else {
         switch (signo) {
@@ -147,7 +145,7 @@ OsSigHandler(int signo)
         case SIGBUS:
         case SIGILL:
         case SIGFPE:
-            ErrorFSigSafe("%s at address %p\n", strsignal(signo), sip->si_addr);
+            ErrorF("%s at address %p\n", strsignal(signo), sip->si_addr);
         }
     }
 #endif
@@ -204,7 +202,7 @@ OsInit(void)
         if (!server_poll)
             FatalError("failed to allocate poll structure");
 
-#ifdef HAVE_BACKTRACE
+#if defined(HAVE_BACKTRACE) && defined(HAVE_EXECINFO_H)
         /*
          * initialize the backtracer, since the ctor calls dlopen(), which
          * calls malloc(), which isn't signal-safe.

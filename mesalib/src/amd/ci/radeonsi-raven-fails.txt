@@ -1,10 +1,7 @@
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
-glx@glx-visuals-depth -pixmap,Fail
-glx@glx-visuals-stencil -pixmap,Fail
 glx@glx-swap-event_async,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx_arb_create_context_no_error@no error,Fail
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail

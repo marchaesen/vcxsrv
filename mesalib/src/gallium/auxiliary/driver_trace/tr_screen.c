@@ -151,57 +151,6 @@ trace_screen_get_disk_shader_cache(struct pipe_screen *_screen)
 
 
 static int
-trace_screen_get_shader_param(struct pipe_screen *_screen,
-                              enum pipe_shader_type shader,
-                              enum pipe_shader_cap param)
-{
-   struct trace_screen *tr_scr = trace_screen(_screen);
-   struct pipe_screen *screen = tr_scr->screen;
-   int result;
-
-   trace_dump_call_begin("pipe_screen", "get_shader_param");
-
-   trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(pipe_shader_type, shader);
-   trace_dump_arg_enum(pipe_shader_cap, param);
-
-   result = screen->get_shader_param(screen, shader, param);
-
-   trace_dump_ret(int, result);
-
-   trace_dump_call_end();
-
-   return result;
-}
-
-
-static int
-trace_screen_get_compute_param(struct pipe_screen *_screen,
-                               enum pipe_shader_ir ir_type,
-                               enum pipe_compute_cap param,
-                               void *data)
-{
-   struct trace_screen *tr_scr = trace_screen(_screen);
-   struct pipe_screen *screen = tr_scr->screen;
-   int result;
-
-   trace_dump_call_begin("pipe_screen", "get_compute_param");
-
-   trace_dump_arg(ptr, screen);
-   trace_dump_arg_enum(pipe_shader_ir, ir_type);
-   trace_dump_arg_enum(pipe_compute_cap, param);
-   trace_dump_arg(ptr, data);
-
-   result = screen->get_compute_param(screen, ir_type, param, data);
-
-   trace_dump_ret(int, result);
-
-   trace_dump_call_end();
-
-   return result;
-}
-
-static int
 trace_screen_get_video_param(struct pipe_screen *_screen,
                              enum pipe_video_profile profile,
                              enum pipe_video_entrypoint entrypoint,
@@ -1500,8 +1449,6 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.get_device_vendor = trace_screen_get_device_vendor;
    SCR_INIT(get_compiler_options);
    SCR_INIT(get_disk_shader_cache);
-   tr_scr->base.get_shader_param = trace_screen_get_shader_param;
-   tr_scr->base.get_compute_param = trace_screen_get_compute_param;
    SCR_INIT(get_video_param);
    tr_scr->base.is_format_supported = trace_screen_is_format_supported;
    SCR_INIT(is_video_format_supported);
@@ -1567,6 +1514,8 @@ trace_screen_create(struct pipe_screen *screen)
 
    /* copy all caps */
    *(struct pipe_caps *)&tr_scr->base.caps = screen->caps;
+   *(struct pipe_compute_caps *)&tr_scr->base.compute_caps = screen->compute_caps;
+   memcpy((void *)tr_scr->base.shader_caps, screen->shader_caps, sizeof(screen->shader_caps));
 
    return &tr_scr->base;
 

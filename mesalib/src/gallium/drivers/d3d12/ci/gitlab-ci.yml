@@ -23,7 +23,7 @@
     - . _install/piglit_run.ps1
   artifacts:
     when: on_failure
-    name: "{CI_PROJECT_NAME}_${CI_JOB_NAME}"
+    name: "${CI_PROJECT_NAME}_${CI_JOB_NAME}"
     paths:
       - logs/
   variables:

@@ -21,7 +21,8 @@ bool gfx10_ngg_export_prim_early(struct si_shader *shader)
    assert(shader->key.ge.as_ngg && !shader->key.ge.as_es);
 
    return sel->stage != MESA_SHADER_GEOMETRY &&
-          !gfx10_ngg_writes_user_edgeflags(shader);
+          !gfx10_ngg_writes_user_edgeflags(shader) &&
+          sel->screen->info.gfx_level < GFX11;
 }
 
 static void clamp_gsprims_to_esverts(unsigned *max_gsprims, unsigned max_esverts,

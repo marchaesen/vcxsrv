@@ -123,7 +123,6 @@ $ADB push "$INSTALL/deqp-$DEQP_SUITE.toml" /data/deqp
 
 # remove 32 bits libs from /vendor/lib
 
-$ADB shell rm -f /vendor/lib/libglapi.so
 $ADB shell rm -f /vendor/lib/egl/libGLES_mesa.so
 
 $ADB shell rm -f /vendor/lib/egl/libEGL_angle.so
@@ -149,6 +148,17 @@ $ADB shell rm -f /vendor/lib64/egl/libEGL_emulation.so
 $ADB shell rm -f /vendor/lib64/egl/libGLESv1_CM_emulation.so
 $ADB shell rm -f /vendor/lib64/egl/libGLESv2_emulation.so
 
+# Remove built-in ANGLE, we'll supply our own if needed
+$ADB shell rm -f /vendor/lib64/egl/libEGL_angle.so
+$ADB shell rm -f /vendor/lib64/egl/libGLESv1_CM_angle.so
+$ADB shell rm -f /vendor/lib64/egl/libGLESv2_angle.so
+
+if [ -n "$USE_ANGLE" ]; then
+  $ADB push /angle/libEGL_angle.so /vendor/lib64/egl/libEGL_angle.so
+  $ADB push /angle/libGLESv1_CM_angle.so /vendor/lib64/egl/libGLESv1_CM_angle.so
+  $ADB push /angle/libGLESv2_angle.so /vendor/lib64/egl/libGLESv2_angle.so
+fi
+
 # Check what GLES implementation Surfaceflinger is using before copying the new mesa libraries
 while [ "$($ADB shell dumpsys SurfaceFlinger | grep GLES:)" = "" ] ; do sleep 1; done
 $ADB shell dumpsys SurfaceFlinger | grep GLES
@@ -160,10 +170,19 @@ $ADB shell start
 # Check what GLES implementation Surfaceflinger is using after copying the new mesa libraries
 while [ "$($ADB shell dumpsys SurfaceFlinger | grep GLES:)" = "" ] ; do sleep 1; done
 MESA_RUNTIME_VERSION="$($ADB shell dumpsys SurfaceFlinger | grep GLES:)"
-MESA_BUILD_VERSION=$(cat "$INSTALL/VERSION")
-if ! printf "%s" "$MESA_RUNTIME_VERSION" | grep "${MESA_BUILD_VERSION}$"; then
-    echo "Fatal: Android is loading a wrong version of the Mesa3D libs: ${MESA_RUNTIME_VERSION}" 1>&2
+
+if [ "$USE_ANGLE" = 1 ]; then
+  ANGLE_HASH=$(head -c 12 /angle/version)
+  if ! printf "%s" "$MESA_RUNTIME_VERSION" | grep --quiet "${ANGLE_HASH}"; then
+    echo "Fatal: Android is loading a wrong version of the ANGLE libs: ${ANGLE_HASH}" 1>&2
     exit 1
+  fi
+else
+  MESA_BUILD_VERSION=$(cat "$INSTALL/VERSION")
+  if ! printf "%s" "$MESA_RUNTIME_VERSION" | grep --quiet "${MESA_BUILD_VERSION}$"; then
+     echo "Fatal: Android is loading a wrong version of the Mesa3D libs: ${MESA_RUNTIME_VERSION}" 1>&2
+     exit 1
+  fi
 fi
 
 BASELINE=""

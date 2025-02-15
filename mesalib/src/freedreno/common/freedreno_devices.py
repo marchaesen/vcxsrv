@@ -866,6 +866,7 @@ a7xx_base = A6XXProps(
         prede_nop_quirk = True,
         predtf_nop_quirk = True,
         has_sad = True,
+        has_bin_mask = True,
     )
 
 a7xx_gen1 = A7XXProps(
@@ -912,7 +913,8 @@ a7xx_gen3 = A7XXProps(
         has_ray_intersection = True,
         has_sw_fuse = True,
         has_rt_workaround = True,
-        has_alias_rt=True,
+        has_alias_rt = True,
+        has_abs_bin_mask = True,
     )
 
 a730_magic_regs = dict(

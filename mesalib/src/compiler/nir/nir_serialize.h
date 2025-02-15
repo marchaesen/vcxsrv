@@ -25,7 +25,8 @@
 #define _NIR_SERIALIZE_H
 
 #include "util/blob.h"
-#include "nir.h"
+#include "nir_defines.h"
+#include "nir_shader_compiler_options.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,6 +36,14 @@ void nir_serialize(struct blob *blob, const nir_shader *nir, bool strip);
 nir_shader *nir_deserialize(void *mem_ctx,
                             const struct nir_shader_compiler_options *options,
                             struct blob_reader *blob);
+
+void
+nir_serialize_function(struct blob *blob, const nir_function *fxn);
+
+nir_function *
+nir_deserialize_function(void *mem_ctx,
+                         const struct nir_shader_compiler_options *options,
+                         struct blob_reader *blob);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -63,6 +63,8 @@ Update-SessionEnvironment
 
 Start-Process -NoNewWindow -Wait git -ArgumentList 'config --global core.autocrlf false'
 
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+
 Write-Host "Upgrading pip at:"
 Get-Date
 python -m pip install --upgrade pip --progress-bar off

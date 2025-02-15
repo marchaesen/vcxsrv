@@ -11,6 +11,7 @@ KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor_texture_1d_arr
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor_texture_1d_array_rg8_snorm
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor_texture_3d_r32f
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor_texture_3d_r8ui
+KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor_texture_3d_rgba32i
 KHR-GL46.sparse_texture_tests.SparseTextureCommitment_texture_3d_rgba16_snorm
 KHR-GL46.texture_buffer.texture_buffer_max_size
 KHR-GL46.texture_swizzle.functional_format_idx_63_target_idx_4
@@ -84,6 +85,7 @@ spec@arb_copy_image@arb_copy_image-targets gl_texture_cube_map_array 32 32 18 gl
 spec@arb_fragment_program_shadow@tex-shadow2dnotdepth
 spec@arb_get_texture_sub_image@arb_get_texture_sub_image-get
 spec@arb_gpu_shader5@execution@sampler_array_indexing@vs-nonuniform-control-flow
+spec@arb_gpu_shader5@execution@ubo_array_indexing@vs-nonuniform-control-flow
 spec@arb_pixel_buffer_object@pbo-drawpixels
 spec@arb_pixel_buffer_object@texsubimage pbo
 spec@arb_pixel_buffer_object@texsubimage-unpack pbo

@@ -532,7 +532,7 @@
     <field name="Enable" size="1" start="0:9" type="bool" default="true"/>
     <field name="sRGB" size="1" start="0:10" type="bool" default="false"/>
     <field name="Round to FB precision" size="1" start="0:11" type="bool" default="false"/>
-    <field name="Constant" size="16" start="0:16" type="uint"/>
+    <field name="Blend Constant" size="16" start="0:16" type="uint"/>
     <field name="Equation" size="32" start="1:0" type="Blend Equation"/>
     <field name="Internal" size="64" start="2:0" type="Internal Blend"/>
   </struct>
@@ -1231,7 +1231,7 @@
   </aggregate>
 
   <struct name="Primitive Size">
-    <field name="Constant" size="32" start="0:0" type="float"/>
+    <field name="Fixed Sized" size="32" start="0:0" type="float"/>
     <field name="Size Array" size="64" start="0:0" type="uint"/>
   </struct>
 

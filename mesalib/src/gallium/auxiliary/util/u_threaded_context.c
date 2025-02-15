@@ -5303,17 +5303,13 @@ threaded_context_create(struct pipe_context *pipe,
    /* If you have different limits in each shader stage, set the maximum. */
    struct pipe_screen *screen = pipe->screen;;
    tc->max_const_buffers =
-      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                               PIPE_SHADER_CAP_MAX_CONST_BUFFERS);
+      screen->shader_caps[PIPE_SHADER_FRAGMENT].max_const_buffers;
    tc->max_shader_buffers =
-      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                               PIPE_SHADER_CAP_MAX_SHADER_BUFFERS);
+      screen->shader_caps[PIPE_SHADER_FRAGMENT].max_shader_buffers;
    tc->max_images =
-      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                               PIPE_SHADER_CAP_MAX_SHADER_IMAGES);
+      screen->shader_caps[PIPE_SHADER_FRAGMENT].max_shader_images;
    tc->max_samplers =
-      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                               PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS);
+      screen->shader_caps[PIPE_SHADER_FRAGMENT].max_texture_samplers;
 
    tc->base.set_context_param = tc_set_context_param; /* always set this */
 

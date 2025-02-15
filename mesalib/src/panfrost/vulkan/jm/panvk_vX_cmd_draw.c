@@ -251,6 +251,7 @@ panvk_draw_prepare_fs_rsd(struct panvk_cmd_buffer *cmdbuf,
 
    pan_pack(rsd, RENDERER_STATE, cfg) {
       bool alpha_to_coverage = dyns->ms.alpha_to_coverage_enable;
+      bool msaa = dyns->ms.rasterization_samples > 1;
 
       if (fs) {
          pan_shader_prepare_rsd(fs_info, fs_code, &cfg);
@@ -282,7 +283,8 @@ panvk_draw_prepare_fs_rsd(struct panvk_cmd_buffer *cmdbuf,
 
          cfg.properties.pixel_kill_operation = earlyzs.kill;
          cfg.properties.zs_update_operation = earlyzs.update;
-         cfg.multisample_misc.evaluate_per_sample = fs->info.fs.sample_shading;
+         cfg.multisample_misc.evaluate_per_sample =
+            (fs->info.fs.sample_shading && msaa);
       } else {
          cfg.properties.depth_source = MALI_DEPTH_SOURCE_FIXED_FUNCTION;
          cfg.properties.allow_forward_pixel_to_kill = true;
@@ -290,7 +292,6 @@ panvk_draw_prepare_fs_rsd(struct panvk_cmd_buffer *cmdbuf,
          cfg.properties.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
       }
 
-      bool msaa = dyns->ms.rasterization_samples > 1;
       cfg.multisample_misc.multisample_enable = msaa;
       cfg.multisample_misc.sample_mask =
          msaa ? dyns->ms.sample_mask : UINT16_MAX;
@@ -312,8 +313,6 @@ panvk_draw_prepare_fs_rsd(struct panvk_cmd_buffer *cmdbuf,
       cfg.stencil_mask_misc.alpha_test_compare_function = MALI_FUNC_ALWAYS;
       cfg.stencil_mask_misc.front_facing_depth_bias = rs->depth_bias.enable;
       cfg.stencil_mask_misc.back_facing_depth_bias = rs->depth_bias.enable;
-      cfg.stencil_mask_misc.single_sampled_lines =
-         dyns->ms.rasterization_samples <= 1;
 
       cfg.depth_units = rs->depth_bias.constant_factor;
       cfg.depth_factor = rs->depth_bias.slope_factor;
@@ -864,7 +863,7 @@ panvk_emit_tiler_primitive_size(struct panvk_cmd_buffer *cmdbuf,
       if (writes_point_size) {
          cfg.size_array = draw->psiz;
       } else {
-         cfg.constant = draw->line_width;
+         cfg.fixed_sized = draw->line_width;
       }
    }
 }

@@ -47,12 +47,17 @@ controllers paired with Mali GPUs. If your board with a Panfrost supported GPU
 has a display controller with mainline Linux support not supported by kmsro,
 it's easy to add support, see the commit ``cff7de4bb597e9`` as an example.
 
-LLVM is *not* required by Panfrost's compilers. LLVM support in Mesa can
-safely be disabled for most OpenGL ES users with Panfrost.
-
 Build like ``meson . build/ -Dvulkan-drivers=panfrost
--Dgallium-drivers=panfrost -Dllvm=disabled`` for a build directory
+-Dgallium-drivers=panfrost`` for a build directory
 ``build``.
+
+LLVM is required by Panfrost's compilers at build time.
+
+In case of cross compilation without LLVM,
+you can build and install the required tools on the host (with LLVM installed) with
+``meson . build-host/ -Dvulkan-drivers=panfrost -Dgallium-drivers=panfrost
+-Dmesa-clc=enabled -Dinstall-mesa-clc=true -Dprecomp-compiler=enabled -Dinstall-precomp-compiler=true``
+and then use ``-Dmesa-clc=system -Dprecomp-compiler=system`` on the cross compile side.
 
 For general information on building Mesa, read :doc:`the install documentation
 <../install>`.

@@ -64,20 +64,6 @@ SOFTWARE.
 
 /***********************************************************************
  *
- * This procedure changes the button mapping.
- *
- */
-
-int _X_COLD
-SProcXSetDeviceButtonMapping(ClientPtr client)
-{
-    REQUEST(xSetDeviceButtonMappingReq);
-    swaps(&stuff->length);
-    return (ProcXSetDeviceButtonMapping(client));
-}
-
-/***********************************************************************
- *
  * This procedure lists the input devices available to the server.
  *
  */
@@ -92,7 +78,7 @@ ProcXSetDeviceButtonMapping(ClientPtr client)
     REQUEST(xSetDeviceButtonMappingReq);
     REQUEST_AT_LEAST_SIZE(xSetDeviceButtonMappingReq);
 
-    if (stuff->length !=
+    if (client->req_len !=
         bytes_to_int32(sizeof(xSetDeviceButtonMappingReq) + stuff->map_length))
         return BadLength;
 

@@ -5,6 +5,7 @@
 
 #include "nir_to_rc.h"
 #include "compiler/nir/nir.h"
+#include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_deref.h"
 #include "compiler/nir/nir_legacy.h"
 #include "compiler/nir/nir_worklist.h"
@@ -1815,7 +1816,7 @@ ntr_no_indirects_mask(nir_shader *s, struct pipe_screen *screen)
    unsigned pipe_stage = pipe_shader_type_from_mesa(s->info.stage);
    unsigned indirect_mask = nir_var_shader_in | nir_var_shader_out;
 
-   if (!screen->get_shader_param(screen, pipe_stage, PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR)) {
+   if (!screen->shader_caps[pipe_stage].indirect_temp_addr) {
       indirect_mask |= nir_var_function_temp;
    }
 
@@ -1988,7 +1989,7 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen,
     * ureg->supports_any_inout_decl_range, the TGSI input decls will be split to
     * elements by ureg, and so dynamically indexing them would be invalid.
     * Ideally we would set that ureg flag based on
-    * PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE, but can't due to mesa/st
+    * pipe_shader_caps.tgsi_any_inout_decl_range, but can't due to mesa/st
     * splitting NIR VS outputs to elements even if the FS doesn't get the
     * corresponding splitting, and virgl depends on TGSI across link boundaries
     * having matching declarations.

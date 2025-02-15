@@ -5,6 +5,7 @@ srcs_dix = [
     'cursor.c',
     'devices.c',
     'dispatch.c',
+    'display.c',
     'dixfonts.c',
     'main.c',
     'dixutils.c',
@@ -18,7 +19,6 @@ srcs_dix = [
     'globals.c',
     'glyphcurs.c',
     'grabs.c',
-    'initatoms.c',
     'inpututils.c',
     'pixmap.c',
     'privates.c',
@@ -35,6 +35,13 @@ srcs_dix = [
     'window.c',
 ]
 
+atom_generator = generator(
+    find_program('generate-atoms'),
+    output: '@BASENAME@.c',
+    arguments : ['@INPUT@', '@OUTPUT@'])
+
+builtinatoms_src = atom_generator.process('BuiltInAtoms')
+
 dtrace_src = []
 if with_dtrace
     dtrace_object = generator(dtrace,
@@ -48,7 +55,7 @@ endif
 dtrace_dep = declare_dependency(sources: [dtrace_src, dtrace_hdr])
 
 libxserver_dix = static_library('libxserver_dix',
-    srcs_dix,
+    [ srcs_dix, builtinatoms_src ],
     include_directories: inc,
     dependencies: [ dtrace_dep, common_dep, ]
 )

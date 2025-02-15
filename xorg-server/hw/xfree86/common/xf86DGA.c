@@ -50,6 +50,7 @@
 #include "dix/dix_priv.h"
 #include "dix/eventconvert.h"
 #include "dix/exevents_priv.h"
+#include "mi/mi_priv.h"
 
 #include "xf86.h"
 #include "xf86str.h"
@@ -67,7 +68,6 @@
 #include "exglobals.h"
 #include "eventstr.h"
 #include "xf86Extensions.h"
-#include "mi.h"
 #include "misc.h"
 #include "dixstruct.h"
 #include "dixevents.h"
@@ -176,11 +176,11 @@ DGAInit(ScreenPtr pScreen, DGAFunctionPtr funcs, DGAModePtr modes, int num)
     for (i = 0; i < num; i++)
         modes[i].num = i + 1;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
     if (!noPanoramiXExtension)
         for (i = 0; i < num; i++)
             modes[i].flags &= ~DGA_PIXMAP_AVAILABLE;
-#endif
+#endif /* XINERAMA */
 
     return TRUE;
 }
@@ -225,11 +225,11 @@ DGAReInitModes(ScreenPtr pScreen, DGAModePtr modes, int num)
     for (i = 0; i < num; i++)
         modes[i].num = i + 1;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
     if (!noPanoramiXExtension)
         for (i = 0; i < num; i++)
             modes[i].flags &= ~DGA_PIXMAP_AVAILABLE;
-#endif
+#endif /* XINERAMA */
 
     return TRUE;
 }
@@ -370,7 +370,7 @@ xf86SetDGAMode(ScrnInfoPtr pScrn, int num, DGADevicePtr devRet)
                 if (oldPix->drawable.id)
                     FreeResource(oldPix->drawable.id, X11_RESTYPE_NONE);
                 else
-                    (*pScreen->DestroyPixmap) (oldPix);
+                    dixDestroyPixmap(oldPix, 0);
             }
             free(pScreenPriv->current);
             pScreenPriv->current = NULL;
@@ -432,7 +432,7 @@ xf86SetDGAMode(ScrnInfoPtr pScrn, int num, DGADevicePtr devRet)
             if (oldPix->drawable.id)
                 FreeResource(oldPix->drawable.id, X11_RESTYPE_NONE);
             else
-                (*pScreen->DestroyPixmap) (oldPix);
+                dixDestroyPixmap(oldPix, 0);
         }
         free(pScreenPriv->current);
         pScreenPriv->current = NULL;

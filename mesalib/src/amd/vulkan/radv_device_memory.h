@@ -35,10 +35,6 @@ struct radv_device_memory {
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(radv_device_memory, base, VkDeviceMemory, VK_OBJECT_TYPE_DEVICE_MEMORY)
 
-void radv_device_memory_init(struct radv_device_memory *mem, struct radv_device *device, struct radeon_winsys_bo *bo);
-
-void radv_device_memory_finish(struct radv_device_memory *mem);
-
 void radv_free_memory(struct radv_device *device, const VkAllocationCallbacks *pAllocator,
                       struct radv_device_memory *mem);
 

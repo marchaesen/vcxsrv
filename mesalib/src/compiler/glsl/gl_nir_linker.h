@@ -26,8 +26,9 @@
 
 #include <stdbool.h>
 
-#include "nir.h"
+#include "nir_defines.h"
 #include "util/glheader.h"
+#include "util/set.h"
 #include "main/menums.h"
 
 #ifdef __cplusplus

@@ -200,110 +200,82 @@ fd_query_memory_info(struct pipe_screen *pscreen,
    info->avail_device_memory = mem;
 }
 
-static int
-fd_screen_get_shader_param(struct pipe_screen *pscreen,
-                           enum pipe_shader_type shader,
-                           enum pipe_shader_cap param)
+static void
+fd_init_shader_caps(struct fd_screen *screen)
 {
-   struct fd_screen *screen = fd_screen(pscreen);
+   for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+      struct pipe_shader_caps *caps =
+         (struct pipe_shader_caps *)&screen->base.shader_caps[i];
 
-   switch (shader) {
-   case PIPE_SHADER_FRAGMENT:
-   case PIPE_SHADER_VERTEX:
-      break;
-   case PIPE_SHADER_TESS_CTRL:
-   case PIPE_SHADER_TESS_EVAL:
-   case PIPE_SHADER_GEOMETRY:
-      if (is_a6xx(screen))
+      switch (i) {
+      case PIPE_SHADER_TESS_CTRL:
+      case PIPE_SHADER_TESS_EVAL:
+      case PIPE_SHADER_GEOMETRY:
+         if (!is_a6xx(screen))
+            continue;
          break;
-      return 0;
-   case PIPE_SHADER_COMPUTE:
-      if (has_compute(screen))
+      case PIPE_SHADER_COMPUTE:
+         if (!has_compute(screen))
+            continue;
          break;
-      return 0;
-   case PIPE_SHADER_TASK:
-   case PIPE_SHADER_MESH:
-      return 0;
-   default:
-      mesa_loge("unknown shader type %d", shader);
-      return 0;
-   }
+      default:
+         break;
+      }
 
-   /* this is probably not totally correct.. but it's a start: */
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-      return 16384;
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return 8; /* XXX */
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      if (shader == PIPE_SHADER_GEOMETRY && is_a6xx(screen))
-         return 16;
-      return is_a6xx(screen) ?
-         (screen->info->a6xx.vs_max_inputs_count) : 16;
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
-      return is_a6xx(screen) ? 32 : 16;
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 64; /* Max native temporaries. */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
+      caps->max_instructions =
+      caps->max_alu_instructions =
+      caps->max_tex_instructions =
+      caps->max_tex_indirections = 16384;
+
+      caps->max_control_flow_depth = 8; /* XXX */
+
+      caps->max_inputs = is_a6xx(screen) && i != PIPE_SHADER_GEOMETRY ?
+         screen->info->a6xx.vs_max_inputs_count : 16;
+
+      caps->max_outputs = is_a6xx(screen) ? 32 : 16;
+
+      caps->max_temps = 64; /* Max native temporaries. */
+
       /* NOTE: seems to be limit for a3xx is actually 512 but
        * split between VS and FS.  Use lower limit of 256 to
        * avoid getting into impossible situations:
        */
-      return ((is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) ||
-               is_a6xx(screen))
-                 ? 4096
-                 : 64) *
-             sizeof(float[4]);
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return is_ir3(screen) ? 16 : 1;
-   case PIPE_SHADER_CAP_CONT_SUPPORTED:
-      return 1;
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
+      caps->max_const_buffer0_size =
+         (is_a3xx(screen) || is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen) ? 4096 : 64) * sizeof(float[4]);
+
+      caps->max_const_buffers = is_ir3(screen) ? 16 : 1;
+
+      caps->cont_supported = true;
+
       /* a2xx compiler doesn't handle indirect: */
-      return is_ir3(screen) ? 1 : 0;
-   case PIPE_SHADER_CAP_SUBROUTINES:
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-      return 0;
-   case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-      return 1;
-   case PIPE_SHADER_CAP_INTEGERS:
-      return is_ir3(screen) ? 1 : 0;
-   case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-   case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-   case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-      return 0;
-   case PIPE_SHADER_CAP_INT16:
-   case PIPE_SHADER_CAP_FP16:
-      return (
+      caps->indirect_temp_addr =
+      caps->indirect_const_addr = is_ir3(screen);
+
+      caps->tgsi_sqrt_supported = true;
+
+      caps->integers = is_ir3(screen);
+
+      caps->int16 =
+      caps->fp16 =
          (is_a5xx(screen) || is_a6xx(screen)) &&
-         (shader == PIPE_SHADER_COMPUTE || shader == PIPE_SHADER_FRAGMENT) &&
-         !FD_DBG(NOFP16));
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-      return 16;
-   case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      return (1 << PIPE_SHADER_IR_NIR) |
-             /* tgsi_to_nir doesn't support all stages: */
-             COND((shader == PIPE_SHADER_VERTEX) ||
-                  (shader == PIPE_SHADER_FRAGMENT) ||
-                  (shader == PIPE_SHADER_COMPUTE),
-                  (1 << PIPE_SHADER_IR_TGSI));
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
+         (i == PIPE_SHADER_COMPUTE || i == PIPE_SHADER_FRAGMENT) &&
+         !FD_DBG(NOFP16);
+
+      caps->max_texture_samplers =
+      caps->max_sampler_views = 16;
+
+      caps->supported_irs =
+         (1 << PIPE_SHADER_IR_NIR) |
+         /* tgsi_to_nir doesn't support all stages: */
+         COND(i == PIPE_SHADER_VERTEX ||
+              i == PIPE_SHADER_FRAGMENT ||
+              i == PIPE_SHADER_COMPUTE,
+              1 << PIPE_SHADER_IR_TGSI);
+
       if (is_a6xx(screen)) {
-         if (param == PIPE_SHADER_CAP_MAX_SHADER_BUFFERS) {
-            return IR3_BINDLESS_SSBO_COUNT;
-         } else {
-            return IR3_BINDLESS_IMAGE_COUNT;
-         }
-      } else if (is_a4xx(screen) || is_a5xx(screen) || is_a6xx(screen)) {
+         caps->max_shader_buffers = IR3_BINDLESS_SSBO_COUNT;
+         caps->max_shader_images = IR3_BINDLESS_IMAGE_COUNT;
+      } else if (is_a4xx(screen) || is_a5xx(screen)) {
          /* a5xx (and a4xx for that matter) has one state-block
           * for compute-shader SSBO's and another that is shared
           * by VS/HS/DS/GS/FS..  so to simplify things for now
@@ -326,98 +298,59 @@ fd_screen_get_shader_param(struct pipe_screen *pscreen,
           * but images also need texture state for read access
           * (isam/isam.3d)
           */
-         switch (shader) {
-         case PIPE_SHADER_FRAGMENT:
-         case PIPE_SHADER_COMPUTE:
-            return 24;
-         default:
-            return 0;
+         if (i == PIPE_SHADER_FRAGMENT || i == PIPE_SHADER_COMPUTE) {
+            caps->max_shader_buffers =
+            caps->max_shader_images = 24;
          }
       }
-      return 0;
    }
-   mesa_loge("unknown shader param %d", param);
-   return 0;
 }
 
-/* TODO depending on how much the limits differ for a3xx/a4xx, maybe move this
- * into per-generation backend?
- */
-static int
-fd_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
-                     enum pipe_compute_cap param, void *ret)
+static void
+fd_init_compute_caps(struct fd_screen *screen)
 {
-   struct fd_screen *screen = fd_screen(pscreen);
-   const char *const ir = "ir3";
+   struct pipe_compute_caps *caps =
+      (struct pipe_compute_caps *)&screen->base.compute_caps;
 
    if (!has_compute(screen))
-      return 0;
+      return;
 
    struct ir3_compiler *compiler = screen->compiler;
 
-#define RET(x)                                                                 \
-   do {                                                                        \
-      if (ret)                                                                 \
-         memcpy(ret, x, sizeof(x));                                            \
-      return sizeof(x);                                                        \
-   } while (0)
+   caps->address_bits = screen->gen >= 5 ? 64 : 32;
 
-   switch (param) {
-   case PIPE_COMPUTE_CAP_ADDRESS_BITS:
-      if (screen->gen >= 5)
-         RET((uint32_t[]){64});
-      RET((uint32_t[]){32});
+   snprintf(caps->ir_target, sizeof(caps->ir_target), "ir3");
 
-   case PIPE_COMPUTE_CAP_IR_TARGET:
-      if (ret)
-         sprintf(ret, "%s", ir);
-      return strlen(ir) * sizeof(char);
+   caps->grid_dimension = 3;
 
-   case PIPE_COMPUTE_CAP_GRID_DIMENSION:
-      RET((uint64_t[]){3});
+   caps->max_grid_size[0] =
+   caps->max_grid_size[1] =
+   caps->max_grid_size[2] = 65535;
 
-   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
-      RET(((uint64_t[]){65535, 65535, 65535}));
+   caps->max_block_size[0] = 1024;
+   caps->max_block_size[1] = 1024;
+   caps->max_block_size[2] = 64;
 
-   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
-      RET(((uint64_t[]){1024, 1024, 64}));
+   caps->max_threads_per_block = 1024;
 
-   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-      RET((uint64_t[]){1024});
+   caps->max_global_size = screen->ram_size;
 
-   case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE:
-      RET((uint64_t[]){screen->ram_size});
+   caps->max_local_size = screen->info->cs_shared_mem_size;
 
-   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-      RET((uint64_t[]){screen->info->cs_shared_mem_size});
+   caps->max_private_size =
+   caps->max_input_size = 4096;
 
-   case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
-      RET((uint64_t[]){4096});
+   caps->max_mem_alloc_size = screen->ram_size;
 
-   case PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE:
-      RET((uint64_t[]){screen->ram_size});
+   caps->max_clock_frequency = screen->max_freq / 1000000;
 
-   case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-      RET((uint32_t[]){screen->max_freq / 1000000});
+   caps->max_compute_units = 9999; // TODO
 
-   case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
-      RET((uint32_t[]){9999}); // TODO
+   caps->images_supported = true;
 
-   case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-      RET((uint32_t[]){1});
+   caps->subgroup_sizes = 32; // TODO
 
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
-      RET((uint32_t[]){32}); // TODO
-
-   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
-      RET((uint32_t[]){0}); // TODO
-
-   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-      RET((uint64_t[]){ compiler->max_variable_workgroup_size });
-   }
-
-   return 0;
+   caps->max_variable_threads_per_block = compiler->max_variable_workgroup_size;
 }
 
 static void
@@ -619,8 +552,7 @@ fd_init_screen_caps(struct fd_screen *screen)
        * the frontend clip-plane lowering.  So we handle this in the backend
        *
        */
-      screen->base.get_shader_param(&screen->base, PIPE_SHADER_GEOMETRY,
-                                    PIPE_SHADER_CAP_MAX_INSTRUCTIONS) ? 1 :
+      screen->base.shader_caps[PIPE_SHADER_GEOMETRY].max_instructions ? 1 :
       /* On a3xx, there is HW support for GL user clip planes that
        * occasionally has to fall back to shader key-based lowering to clip
        * distances in the VS, and we don't support clip distances so that is
@@ -1085,8 +1017,6 @@ fd_screen_create(int fd,
    pscreen->destroy = fd_screen_destroy;
    pscreen->get_screen_fd = fd_screen_get_fd;
    pscreen->query_memory_info = fd_query_memory_info;
-   pscreen->get_shader_param = fd_screen_get_shader_param;
-   pscreen->get_compute_param = fd_get_compute_param;
    pscreen->get_compiler_options = fd_get_compiler_options;
    pscreen->get_disk_shader_cache = fd_get_disk_shader_cache;
 
@@ -1113,6 +1043,8 @@ fd_screen_create(int fd,
    pscreen->get_device_uuid = fd_screen_get_device_uuid;
    pscreen->get_driver_uuid = fd_screen_get_driver_uuid;
 
+   fd_init_shader_caps(screen);
+   fd_init_compute_caps(screen);
    fd_init_screen_caps(screen);
 
    slab_create_parent(&screen->transfer_pool, sizeof(struct fd_transfer), 16);

@@ -98,7 +98,7 @@ rs_prefix(RS_PREFIX_ARGS)
     //
     // Downsweep 0
     //
-    [[unroll]] for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
+    for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
     {
       const uint32_t h = RS_PREFIX_LOAD(ii * RS_WORKGROUP_SIZE);
 
@@ -167,7 +167,7 @@ rs_prefix(RS_PREFIX_ARGS)
         //
         // Scan 0 and Downsweep 1
         //
-        [[unroll]] for (uint32_t ii = 0; ii < RS_S0_PASSES; ii++)  // 32 invocations
+        for (uint32_t ii = 0; ii < RS_S0_PASSES; ii++)  // 32 invocations
         {
           const uint32_t idx0 = (ii * RS_WORKGROUP_SIZE) + gl_LocalInvocationID.x;
           const uint32_t idx1 = (ii * RS_WORKGROUP_SUBGROUPS) + gl_SubgroupID;
@@ -214,7 +214,7 @@ rs_prefix(RS_PREFIX_ARGS)
       }
       else
       {
-        [[unroll]] for (uint32_t ii = 0; ii < RS_S0_PASSES; ii++)  // 64 invocations
+        for (uint32_t ii = 0; ii < RS_S0_PASSES; ii++)  // 64 invocations
         {
           const uint32_t idx0 = (ii * RS_WORKGROUP_SIZE) + gl_LocalInvocationID.x;
           const uint32_t idx1 = (ii * RS_WORKGROUP_SUBGROUPS) + gl_SubgroupID;
@@ -245,7 +245,7 @@ rs_prefix(RS_PREFIX_ARGS)
       }
       else 
       {
-        [[unroll]] for (uint32_t ii = 0; ii < RS_S1_PASSES; ii++)  // 16 invocations
+        for (uint32_t ii = 0; ii < RS_S1_PASSES; ii++)  // 16 invocations
         {
           const uint32_t idx1 = (ii * RS_WORKGROUP_SIZE) + gl_LocalInvocationID.x;
           const uint32_t idx2 = (ii * RS_WORKGROUP_SUBGROUPS) + gl_SubgroupID;
@@ -295,7 +295,7 @@ rs_prefix(RS_PREFIX_ARGS)
     }
     else if (RS_SUBGROUP_SIZE >= 16)
     {
-      [[unroll]] for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
+      for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
       {
         const uint32_t idx0 = (ii * RS_WORKGROUP_SUBGROUPS) + gl_SubgroupID;
 
@@ -311,7 +311,7 @@ rs_prefix(RS_PREFIX_ARGS)
     }
     else if (RS_SUBGROUP_SIZE == 8)
     {
-      [[unroll]] for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
+      for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
       {
         const uint32_t idx0 = (ii * RS_WORKGROUP_SUBGROUPS) + gl_SubgroupID;
         const uint32_t idx1 = idx0 / RS_SUBGROUP_SIZE;
@@ -329,7 +329,7 @@ rs_prefix(RS_PREFIX_ARGS)
     }
     else if (RS_SUBGROUP_SIZE == 4)
     {
-      [[unroll]] for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
+      for (uint32_t ii = 0; ii < RS_H_COMPONENTS; ii++)
       {
         const uint32_t idx0 = (ii * RS_WORKGROUP_SUBGROUPS) + gl_SubgroupID;
         const uint32_t idx1 = idx0 / RS_SUBGROUP_SIZE;

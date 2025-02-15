@@ -873,21 +873,33 @@ disk_cache_write_item_to_disk(struct disk_cache_put_job *dc_job,
 
 /* Determine path for cache based on the first defined name as follows:
  *
- *   $MESA_SHADER_CACHE_DIR
- *   $XDG_CACHE_HOME/mesa_shader_cache
- *   $HOME/.cache/mesa_shader_cache
- *   <pwd.pw_dir>/.cache/mesa_shader_cache
+ *   $MESA_SHADER_CACHE_DIR/mesa_shader_cache*
+ *   $XDG_CACHE_HOME/mesa_shader_cache*
+ *   $HOME/.cache/mesa_shader_cache*
+ *   <pwd.pw_dir>/.cache/mesa_shader_cache*
+ *
+ * The directory 'mesa_shader_cache*' is named depending of cache type:
+ *  - For DISK_CACHE_MULTI_FILE: mesa_shader_cache
+ *  - For DISK_CACHE_SINGLE_FILE: mesa_shader_cache_sf
+ *  - For DISK_CACHE_DATABASE: mesa_shader_cache_db
  */
 char *
 disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
                               const char *driver_id,
+                              const char *cache_dir_name_custom,
                               enum disk_cache_type cache_type)
 {
-   char *cache_dir_name = CACHE_DIR_NAME;
-   if (cache_type == DISK_CACHE_SINGLE_FILE)
-      cache_dir_name = CACHE_DIR_NAME_SF;
-   else if (cache_type == DISK_CACHE_DATABASE)
-      cache_dir_name = CACHE_DIR_NAME_DB;
+   char *cache_dir_name;
+
+   if (cache_dir_name_custom) {
+      cache_dir_name = (char *)cache_dir_name_custom;
+   } else {
+      cache_dir_name = CACHE_DIR_NAME;
+      if (cache_type == DISK_CACHE_SINGLE_FILE)
+         cache_dir_name = CACHE_DIR_NAME_SF;
+      else if (cache_type == DISK_CACHE_DATABASE)
+         cache_dir_name = CACHE_DIR_NAME_DB;
+   }
 
    char *path = secure_getenv("MESA_SHADER_CACHE_DIR");
 
@@ -1231,7 +1243,7 @@ void
 disk_cache_delete_old_cache(void)
 {
    void *ctx = ralloc_context(NULL);
-   char *dirname = disk_cache_generate_cache_dir(ctx, NULL, NULL, DISK_CACHE_MULTI_FILE);
+   char *dirname = disk_cache_generate_cache_dir(ctx, NULL, NULL, NULL, DISK_CACHE_MULTI_FILE);
    if (!dirname)
       goto finish;
 

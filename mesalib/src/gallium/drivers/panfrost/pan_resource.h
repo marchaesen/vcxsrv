@@ -53,6 +53,10 @@ struct panfrost_resource {
 
    struct panfrost_resource *separate_stencil;
 
+   /* image created when detiling a resource whose
+      constant modifier we cannot change */
+   struct panfrost_resource *shadow_image;
+
    struct util_range valid_buffer_range;
 
    /* Description of the resource layout */

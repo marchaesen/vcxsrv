@@ -120,10 +120,7 @@ idep_mesaclc = declare_dependency(
   link_args : _idep_mesaclc_link_args,
 )
 
-if get_option('mesa-clc') != 'system' and (with_gallium_asahi or \
-                                           with_asahi_vk or \
-                                           with_intel_vk or \
-                                           with_gallium_iris or \
+if get_option('mesa-clc') != 'system' and (with_driver_using_cl or \
                                            get_option('install-mesa-clc'))
   prog_mesa_clc = executable(
     'mesa_clc',

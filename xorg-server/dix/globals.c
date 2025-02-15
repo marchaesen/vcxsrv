@@ -116,7 +116,5 @@ TimeStamp currentTime;
 int defaultColorVisualClass = -1;
 int monitorResolution = 0;
 
-const char *display;
-int displayfd = -1;
 Bool explicit_display = FALSE;
 char *ConnectionInfo;

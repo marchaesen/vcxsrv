@@ -32,7 +32,7 @@
 #include <X11/X.h>
 #include "xf86.h"
 #include "xf86Priv.h"
-#include "xf86Xinput.h"
+#include "xf86Xinput_priv.h"
 #include "xf86_OSproc.h"
 
 int (*xf86PMGetEventFromOs) (int fd, pmEvent * events, int num) = NULL;
@@ -208,7 +208,7 @@ xf86HandlePMEvents(int fd, void *data)
                 const char *str = NULL;
                 int verb = eventName(events[i], &str);
 
-                xf86MsgVerb(X_INFO, verb, "PM Event received: %s\n", str);
+                LogMessageVerb(X_INFO, verb, "PM Event received: %s\n", str);
                 DoApmEvent(events[i], FALSE);
                 switch (xf86PMConfirmEventToOs(fd, events[i])) {
                 case PM_WAIT:

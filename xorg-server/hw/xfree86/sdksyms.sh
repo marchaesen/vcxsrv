@@ -146,6 +146,9 @@ cat > sdksyms.c << EOF
 # include "xf86sbusBus.h"
 #endif
 
+// needed for various graphics drivers
+#include "dgaproc.h"
+#include "xf86MatchDrivers.h"
 
 /* hw/xfree86/ramdac/Makefile.am */
 #include "xf86Cursor.h"
@@ -200,7 +203,6 @@ cat > sdksyms.c << EOF
 #include "mizerarc.h"
 #include "micoord.h"
 #include "mistruct.h"
-#include "mioverlay.h"
 
 
 /* randr/Makefile.am */
@@ -271,7 +273,6 @@ cat > sdksyms.c << EOF
 #include "window.h"
 #include "windowstr.h"
 #include "xace.h"
-#include "xkbfile.h"
 #include "xkbsrv.h"
 #include "xkbstr.h"
 #include "xkbrules.h"

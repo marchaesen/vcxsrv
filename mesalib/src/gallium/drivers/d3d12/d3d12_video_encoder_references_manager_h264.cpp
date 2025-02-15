@@ -61,10 +61,7 @@ d3d12_video_encoder_references_manager_h264::get_current_reference_frames()
       retVal.ppTexture2Ds = m_CurrentFrameReferencesData.ReferenceTextures.pResources.data();
 
       // D3D12 Encode expects null subresources for AoT
-      bool isAoT = (std::all_of(m_CurrentFrameReferencesData.ReferenceTextures.pSubresources.begin(),
-                                m_CurrentFrameReferencesData.ReferenceTextures.pSubresources.end(),
-                                [](UINT i) { return i == 0; }));
-      retVal.pSubresources = isAoT ? nullptr : m_CurrentFrameReferencesData.ReferenceTextures.pSubresources.data();
+      retVal.pSubresources = m_fArrayOfTextures ? nullptr : m_CurrentFrameReferencesData.ReferenceTextures.pSubresources.data();
    }
 
    return retVal;
@@ -127,7 +124,7 @@ d3d12_video_encoder_references_manager_h264::print_l0_l1_lists()
       }
 
       debug_printf("[D3D12 Video Encoder Picture Manager H264] L0 list (%d entries) for frame with POC %d - frame_num "
-                   "(%d) is: \n %s \n",
+                   "(%d) is: \n%s \n",
                    m_curFrameState.List0ReferenceFramesCount,
                    m_curFrameState.PictureOrderCountNumber,
                    m_curFrameState.FrameDecodingOrderNumber,
@@ -147,7 +144,7 @@ d3d12_video_encoder_references_manager_h264::print_l0_l1_lists()
       }
       debug_printf("[D3D12 Video Encoder Picture Manager H264] L0 modification list (%d entries) for frame with POC %d "
                    "- frame_num "
-                   "(%d) temporal_id (%d) is: \n %s \n",
+                   "(%d) temporal_id (%d) is: \n%s \n",
                    m_curFrameState.List0RefPicModificationsCount,
                    m_curFrameState.PictureOrderCountNumber,
                    m_curFrameState.FrameDecodingOrderNumber,
@@ -169,7 +166,7 @@ d3d12_video_encoder_references_manager_h264::print_l0_l1_lists()
       }
 
       debug_printf("[D3D12 Video Encoder Picture Manager H264] L1 list (%d entries) for frame with POC %d - frame_num "
-                   "(%d) is: \n %s \n",
+                   "(%d) is: \n%s \n",
                    m_curFrameState.List1ReferenceFramesCount,
                    m_curFrameState.PictureOrderCountNumber,
                    m_curFrameState.FrameDecodingOrderNumber,
@@ -190,7 +187,7 @@ d3d12_video_encoder_references_manager_h264::print_l0_l1_lists()
 
       debug_printf("[D3D12 Video Encoder Picture Manager H264] L1 modification list (%d entries) for frame with POC %d "
                    "- frame_num "
-                   "(%d) temporal_id (%d) is: \n %s \n",
+                   "(%d) temporal_id (%d) is: \n%s \n",
                    m_curFrameState.List1RefPicModificationsCount,
                    m_curFrameState.PictureOrderCountNumber,
                    m_curFrameState.FrameDecodingOrderNumber,
@@ -216,10 +213,16 @@ d3d12_video_encoder_references_manager_h264::print_dpb()
             dpbContents += " - CURRENT FRAME RECON PIC ";
          }
 
+         dpbContents += " - IsLongTermReference: ";
+         dpbContents += std::to_string(dpbDesc.IsLongTermReference);
+         dpbContents += " - LongTermPictureIdx: ";
+         dpbContents += std::to_string(dpbDesc.LongTermPictureIdx);
          dpbContents += " - POC: ";
          dpbContents += std::to_string(dpbDesc.PictureOrderCountNumber);
          dpbContents += " - FrameDecodingOrderNumber: ";
          dpbContents += std::to_string(dpbDesc.FrameDecodingOrderNumber);
+         dpbContents += " - TemporalLayerIndex: ";
+         dpbContents += std::to_string(dpbDesc.TemporalLayerIndex);
          dpbContents += " - DPBStorageIdx: ";
          dpbContents += std::to_string(dpbDesc.ReconstructedPictureResourceIndex);
          dpbContents += " - DPBStorageResourcePtr: ";
@@ -236,7 +239,7 @@ d3d12_video_encoder_references_manager_h264::print_dpb()
       }
 
       debug_printf("[D3D12 Video Encoder Picture Manager H264] DPB has %d frames - DPB references for frame with POC "
-                   "%d (frame_num: %d) are: \n %s \n",
+                   "%d (frame_num: %d) are: \n%s \n",
                    static_cast<UINT>(m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.size()),
                    m_curFrameState.PictureOrderCountNumber,
                    m_curFrameState.FrameDecodingOrderNumber,
@@ -291,6 +294,7 @@ d3d12_video_encoder_references_manager_h264::begin_frame(D3D12_VIDEO_ENCODER_PIC
    m_CurrentFrameReferencesData.ReferenceTextures.pResources.resize(h264Pic->dpb_size);
    m_CurrentFrameReferencesData.ReferenceTextures.pSubresources.resize(h264Pic->dpb_size);
    m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.resize(h264Pic->dpb_size);
+   m_CurrentFrameReferencesData.ReconstructedPicTexture = { NULL, 0u };
    for (uint8_t i = 0; i < h264Pic->dpb_size; i++) {
       //
       // Set entry DPB members

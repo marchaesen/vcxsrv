@@ -233,7 +233,7 @@ v3d-rpi5-traces:arm64:
     PIGLIT_REPLAY_DEVICE_NAME: "broadcom-rpi5"
     PIGLIT_RESULTS: "broadcom-rpi5-replay"
 
-v3dv-rpi5-vk:arm64:
+.v3dv-rpi5-vk:arm64:
   extends:
     - .igalia-bcm2712-rpi-5
     - .broadcom-test:arm64
@@ -248,7 +248,7 @@ v3dv-rpi5-vk:arm64:
 
 v3dv-rpi5-vk-full:arm64:
   extends:
-    - v3dv-rpi5-vk:arm64
+    - .v3dv-rpi5-vk:arm64
     - .broadcom-test-full:arm64
     - .v3dv-manual-rules
   tags:

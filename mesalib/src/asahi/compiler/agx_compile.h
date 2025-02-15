@@ -258,9 +258,6 @@ struct agx_shader_key {
    /* Number of reserved preamble slots at the start */
    unsigned reserved_preamble;
 
-   /* Library routines to link against */
-   const nir_shader *libagx;
-
    /* Whether scratch memory is available in the given shader stage */
    bool has_scratch;
 
@@ -294,8 +291,7 @@ struct agx_shader_key {
 struct agx_interp_info agx_gather_interp_info(nir_shader *nir);
 uint64_t agx_gather_texcoords(nir_shader *nir);
 
-void agx_link_libagx(nir_shader *nir, const nir_shader *libagx);
-void agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx);
+void agx_preprocess_nir(nir_shader *nir);
 bool agx_nir_lower_discard_zs_emit(nir_shader *s);
 bool agx_nir_lower_sample_mask(nir_shader *s);
 bool agx_nir_lower_interpolation(nir_shader *s);

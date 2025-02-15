@@ -79,6 +79,14 @@ SOFTWARE.
 	<!-- TODO pull more fields up to this level, when they are common across sub-encodings -->
 </bitset>
 
+<expr name="#cat6-type-shift">
+	{TYPE} >= 6 ? 0 /* u8 */ : ({TYPE_HALF} ? 1 : 2);
+</expr>
+
+<expr name="#cat6-full-shift">
+	{TYPE_SHIFT} + {SRC2_SHIFT}
+</expr>
+
 <bitset name="#instruction-cat6-ldg" extends="#instruction-cat6-a3xx">
 	<pattern pos="0"           >1</pattern>
 	<field   low="14" high="21" name="SRC1" type="#cat6-src-const-or-gpr">
@@ -117,35 +125,64 @@ SOFTWARE.
 <bitset name="ldg.a" extends="#instruction-cat6-ldg">
 	<doc>
 		LoaD Global
+
+		The 64b base address is stored in SRC1 (least significant bits)
+		and SRC1+1 (most significant bits).
+
+		An offset is added to the base address that is calculated as
+		follows:
+			((SRC2&lt;&lt;SRC2_SHIFT) + OFF)&lt;&lt;TYPE_SHIFT
+
+		TYPE_SHIFT is implicitly given by the TYPE field; it ensures
+		that the offset is in units of the type. Note that non
+		type-aligned accesses are still supported if SRC1 is not
+		aligned.
+
+		Note that although SRC2 is 32b, the calculation above does not
+		cause any 32b overflows: it behaves as if all values are
+		zero-extended to 64b first.
 	</doc>
 
 	<gen min="600" max="699"/>
 
 	<display>
-		{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+({SRC2}{OFF})&lt;&lt;{SRC2_BYTE_SHIFT}], {SIZE}
+		{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+((({SRC2}&lt;&lt;{SRC2_SHIFT}){OFF})&lt;&lt;{TYPE_SHIFT})], {SIZE}
 	</display>
 
 	<override>
 		<display>
-			{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+{SRC2}&lt;&lt;{SRC2_BYTE_SHIFT}{OFF}&lt;&lt;2], {SIZE}
+			{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+{SRC2}{OFF}], {SIZE}
 		</display>
-		<expr>{SRC2_ADD_DWORD_SHIFT} > 0</expr>
+		<expr>{TYPE_SHIFT} == 0</expr>
+	</override>
+
+	<override>
+		<display>
+			{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+({SRC2}&lt;&lt;{FULL_SHIFT})], {SIZE}
+		</display>
+		<expr>{OFF} == 0</expr>
+	</override>
+
+	<override>
+		<display>
+			{SY}{JP}{NAME}.{TYPE} {TYPE_HALF}{DST}, g[{SRC1}+(({SRC2}{OFF})&lt;&lt;{TYPE_SHIFT})], {SIZE}
+		</display>
+		<expr>{SRC2_SHIFT} == 0</expr>
 	</override>
 
 	<field   low="1"  high="8"  name="SRC2"  type="#reg-gpr"/>
 	<field   low="9"  high="10" name="OFF" type="uoffset"/>
 	<assert  pos="11"          >0</assert>
-	<field   low="12" high="13" name="SRC2_ADD_DWORD_SHIFT" type="uint"/>
+	<field   low="12" high="13" name="SRC2_SHIFT" type="uint"/>
 	<pattern pos="22"          >1</pattern> <!-- Reg offset ldg form -->
 	<pattern low="41" high="48">xxxxxxxx</pattern>
 
-	<derived name="SRC2_BYTE_SHIFT" width="3" type="uint">
-		<expr>{SRC2_ADD_DWORD_SHIFT} + 2</expr>
-	</derived>
+	<derived name="TYPE_SHIFT" type="uint" expr="#cat6-type-shift"/>
+	<derived name="FULL_SHIFT" type="uint" expr="#cat6-full-shift"/>
 
 	<encode>
 		<map name="SRC2">src->srcs[1]</map>
-		<map name="SRC2_ADD_DWORD_SHIFT">extract_reg_uim(src->srcs[2])</map>
+		<map name="SRC2_SHIFT">extract_reg_uim(src->srcs[2])</map>
 		<map name="OFF">extract_reg_uim(src->srcs[3])</map>
 		<map name="SIZE">extract_reg_uim(src->srcs[4])</map>
 	</encode>
@@ -260,28 +297,43 @@ SOFTWARE.
 <bitset name="stg.a" extends="#instruction-cat6-stg">
 	<doc>
 		STore Global
+
+		See the doc of ldg.a for how the address is calculated.
 	</doc>
 
 	<gen min="600" max="699"/>
 
 	<display>
-		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+({SRC2}{OFF})&lt;&lt;{DST_BYTE_SHIFT}], {TYPE_HALF}{SRC3}, {SIZE}
+		{SY}{JP}{NAME}.{TYPE} g[{SRC1}+((({SRC2}&lt;&lt;{SRC2_SHIFT}){OFF})&lt;&lt;{TYPE_SHIFT})], {TYPE_HALF}{SRC3}, {SIZE}
 	</display>
 
 	<override>
 		<display>
-			{SY}{JP}{NAME}.{TYPE} g[{SRC1}+{SRC2}&lt;&lt;{DST_BYTE_SHIFT}{OFF}&lt;&lt;2], {TYPE_HALF}{SRC3}, {SIZE}
+			{SY}{JP}{NAME}.{TYPE} g[{SRC1}+{SRC2}{OFF}], {TYPE_HALF}{SRC3}, {SIZE}
 		</display>
-		<expr>{SRC2_ADD_DWORD_SHIFT} > 0</expr>
+		<expr>{TYPE_SHIFT} == 0</expr>
 	</override>
 
-	<derived name="DST_BYTE_SHIFT" width="3" type="uint">
-		<expr>{SRC2_ADD_DWORD_SHIFT} + 2</expr>
-	</derived>
+	<override>
+		<display>
+			{SY}{JP}{NAME}.{TYPE} g[{SRC1}+({SRC2}&lt;&lt;{FULL_SHIFT})], {TYPE_HALF}{SRC3}, {SIZE}
+		</display>
+		<expr>{OFF} == 0</expr>
+	</override>
+
+	<override>
+		<display>
+			{SY}{JP}{NAME}.{TYPE} g[{SRC1}+(({SRC2}{OFF})&lt;&lt;{TYPE_SHIFT})], {TYPE_HALF}{SRC3}, {SIZE}
+		</display>
+		<expr>{SRC2_SHIFT} == 0</expr>
+	</override>
+
+	<derived name="TYPE_SHIFT" type="uint" expr="#cat6-type-shift"/>
+	<derived name="FULL_SHIFT" type="uint" expr="#cat6-full-shift"/>
 
 	<field   low="9"  high="10" name="OFF" type="uoffset"/>
 	<assert  pos="11"          >0</assert>
-	<field   low="12" high="13" name="SRC2_ADD_DWORD_SHIFT" type="uint"/>
+	<field   low="12" high="13" name="SRC2_SHIFT" type="uint"/>
 	<pattern low="14" high="21">xxxxxxxx</pattern>
 	<pattern low="22" high="23">1x</pattern>
 	<field   low="32" high="39" name="SRC2" type="#reg-gpr"/>
@@ -289,7 +341,7 @@ SOFTWARE.
 
 	<encode>
 		<map name="SRC2">src->srcs[1]</map>
-		<map name="SRC2_ADD_DWORD_SHIFT">extract_reg_uim(src->srcs[2])</map>
+		<map name="SRC2_SHIFT">extract_reg_uim(src->srcs[2])</map>
 		<map name="OFF">extract_reg_uim(src->srcs[3])</map>
 		<map name="SRC3">src->srcs[4]</map>
 		<map name="SIZE">extract_reg_uim(src->srcs[5])</map>

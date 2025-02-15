@@ -13,8 +13,6 @@
 
 #include "util/mesa-sha1.h"
 
-#include "nir.h"
-
 #include "vk_pipeline.h"
 #include "vk_pipeline_cache.h"
 
@@ -26,6 +24,8 @@ struct radv_shader_stage;
 struct radv_pipeline_layout;
 struct radv_graphics_state_key;
 struct radv_shader_layout;
+struct nir_shader;
+typedef struct nir_shader nir_shader;
 
 enum radv_pipeline_type {
    RADV_PIPELINE_GRAPHICS,

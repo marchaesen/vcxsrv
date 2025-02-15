@@ -52,8 +52,26 @@ class Source:
 
 
 VK_ANDROID_NATIVE_BUFFER_TEMPLATE = """\
-/* MESA: A hack to avoid #ifdefs in driver code. */
-#ifdef __ANDROID__
+/*
+ * MESA: buffer_handle_t is defined by all Mesa builds, even if
+ * one is building for a non-Android target.  This avoids unnecessary
+ * conditionals in driver code.
+ *
+ * We don't need to define buffer_handle_t locally when (__ANDROID__)
+ * or ANDROID are set.  Here's the distinction between the two:
+ *
+ * - AOSP always defines ANDROID, since it just means one is using the
+ *   AOSP tree. It means the build environment is Android, roughly.
+ * - __ANDROID__ is defined by the toolchain.  This typically means the
+ *   build target is Android.
+ *
+ * If the build environment is Android, AOSP can provide common Android
+ * headers, such as <cutils/native_handle.h>.  This allows one to build
+ * and test certain aspects of Android window system code, on the host
+ * system rather the build target.
+ */
+
+#if defined(__ANDROID__) || defined(ANDROID)
 
 #include <cutils/native_handle.h>
 #if ANDROID_API_LEVEL < 28
@@ -172,11 +190,12 @@ SOURCES = [
     {
         'api': 'spirv',
         'sources': [
-            Source('src/compiler/spirv/spirv.h',                    'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/spirv.h'),
-            Source('src/compiler/spirv/spirv.core.grammar.json',    'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/spirv.core.grammar.json'),
-            Source('src/compiler/spirv/OpenCL.std.h',               'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/OpenCL.std.h'),
-            Source('src/compiler/spirv/GLSL.std.450.h',             'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/GLSL.std.450.h'),
-            Source('src/compiler/spirv/GLSL.ext.AMD.h',             'https://github.com/KhronosGroup/glslang/raw/main/SPIRV/GLSL.ext.AMD.h'),  # FIXME: is this the canonical source?
+            Source('src/compiler/spirv/NonSemanticShaderDebugInfo100.h', 'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/NonSemanticShaderDebugInfo100.h'),
+            Source('src/compiler/spirv/spirv.h',                         'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/spirv.h'),
+            Source('src/compiler/spirv/spirv.core.grammar.json',         'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/spirv.core.grammar.json'),
+            Source('src/compiler/spirv/OpenCL.std.h',                    'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/OpenCL.std.h'),
+            Source('src/compiler/spirv/GLSL.std.450.h',                  'https://github.com/KhronosGroup/SPIRV-Headers/raw/main/include/spirv/unified1/GLSL.std.450.h'),
+            Source('src/compiler/spirv/GLSL.ext.AMD.h',                  'https://github.com/KhronosGroup/glslang/raw/main/SPIRV/GLSL.ext.AMD.h'),  # FIXME: is this the canonical source?
         ],
     },
 

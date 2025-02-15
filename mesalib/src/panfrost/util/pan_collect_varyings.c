@@ -48,6 +48,7 @@ varying_format(nir_alu_type t, unsigned ncomps)
       VARYING_FORMAT(float, 32, FLOAT, 32),
       VARYING_FORMAT(uint, 32, UINT, 32),
       VARYING_FORMAT(float, 16, FLOAT, 16),
+      VARYING_FORMAT(uint, 16, UINT, 16),
    };
 #undef VARYING_FORMAT
 
@@ -68,6 +69,7 @@ struct slot_info {
 };
 
 struct walk_varyings_data {
+   enum pan_mediump_vary mediump;
    struct pan_shader_info *info;
    struct slot_info *slots;
 };
@@ -84,6 +86,7 @@ walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
 
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
    unsigned count;
+   unsigned size;
 
    /* Only consider intrinsics that access varyings */
    switch (intr->intrinsic) {
@@ -92,6 +95,7 @@ walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
          return false;
 
       count = nir_src_num_components(intr->src[0]);
+      size = nir_alu_type_get_type_size(nir_intrinsic_src_type(intr));
       break;
 
    case nir_intrinsic_load_input:
@@ -100,6 +104,7 @@ walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
          return false;
 
       count = intr->def.num_components;
+      size = intr->def.bit_size;
       break;
 
    default:
@@ -121,18 +126,24 @@ walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
     * fragment shader instead.
     */
    bool flat = intr->intrinsic != nir_intrinsic_load_interpolated_input;
-   bool auto32 = !info->quirk_no_auto32;
+   bool auto32 = !info->quirk_no_auto32 && size == 32;
    nir_alu_type type = (flat && auto32) ? nir_type_uint : nir_type_float;
 
-   /* Demote interpolated float varyings to fp16 where possible. We do not
-    * demote flat varyings, including integer varyings, due to various
-    * issues with the Midgard hardware behaviour and TGSI shaders, as well
-    * as having no demonstrable benefit in practice.
-    */
-   if (type == nir_type_float && sem.medium_precision)
-      type |= 16;
-   else
-      type |= 32;
+   if (sem.medium_precision) {
+      /* Demote interpolated float varyings to fp16 where possible. We do not
+       * demote flat varyings, including integer varyings, due to various
+       * issues with the Midgard hardware behaviour and TGSI shaders, as well
+       * as having no demonstrable benefit in practice.
+       */
+      if (wv_data->mediump == PAN_MEDIUMP_VARY_SMOOTH_16BIT)
+         size = type == nir_type_float ? 16 : 32;
+
+      if (wv_data->mediump == PAN_MEDIUMP_VARY_32BIT)
+         size = 32;
+   }
+
+   assert(size == 32 || size == 16);
+   type |= size;
 
    /* Count currently contains the number of components accessed by this
     * intrinsics. However, we may be accessing a fractional location,
@@ -197,14 +208,15 @@ pan_nir_collect_noperspective_varyings_fs(nir_shader *s)
 }
 
 void
-pan_nir_collect_varyings(nir_shader *s, struct pan_shader_info *info)
+pan_nir_collect_varyings(nir_shader *s, struct pan_shader_info *info,
+                         enum pan_mediump_vary mediump)
 {
    if (s->info.stage != MESA_SHADER_VERTEX &&
        s->info.stage != MESA_SHADER_FRAGMENT)
       return;
 
    struct slot_info slots[64] = {0};
-   struct walk_varyings_data wv_data = {info, slots};
+   struct walk_varyings_data wv_data = {mediump, info, slots};
    nir_shader_instructions_pass(s, walk_varyings, nir_metadata_all, &wv_data);
 
    struct pan_shader_varying *varyings = (s->info.stage == MESA_SHADER_VERTEX)

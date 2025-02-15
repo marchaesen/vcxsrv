@@ -153,13 +153,11 @@ static inline void uname(struct utsname *uts) {
 
 const char *Win32TempDir(void);
 
-int System(const char *cmdline);
 static inline void Fclose(void *f) { fclose(f); }
 static inline void *Fopen(const char *a, const char *b) { return fopen(a,b); }
 
 #else /* WIN32 */
 
-int System(const char *);
 void *Popen(const char *, const char *);
 void *Fopen(const char *, const char *);
 int Fclose(void *f);
@@ -176,10 +174,6 @@ int os_move_fd(int fd);
    depending on whether multithreading is used */
 int xthread_sigmask(int how, const sigset_t *set, sigset_t *oldest);
 
-/* callback for DDX specific error printing, if any (may be NULL) */
-extern void (*OsVendorVErrorFProc) (const char *, va_list args)
-    _X_ATTRIBUTE_PRINTF(1, 0);
-
 typedef void (*OsSigHandlerPtr) (int sig);
 
 /* install signal handler */
@@ -193,6 +187,7 @@ void OsBlockSignals(void);
 void OsReleaseSignals(void);
 void OsResetSignals(void);
 void OsAbort(void) _X_NORETURN;
+void AbortServer(void) _X_NORETURN;
 
 void MakeClientGrabPervious(ClientPtr client);
 void MakeClientGrabImpervious(ClientPtr client);

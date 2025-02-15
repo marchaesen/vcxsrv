@@ -9,6 +9,7 @@
 
 #include "bvh/bvh.h"
 #include "meta/radv_meta.h"
+#include "nir/radv_meta_nir.h"
 #include "nir/radv_nir.h"
 #include "nir/radv_nir_rt_common.h"
 #include "ac_nir.h"
@@ -1699,7 +1700,7 @@ radv_build_traversal_shader(struct radv_device *device, struct radv_ray_tracing_
 
    /* Create the traversal shader as an intersection shader to prevent validation failures due to
     * invalid variable modes.*/
-   nir_builder b = radv_meta_init_shader(device, MESA_SHADER_INTERSECTION, "rt_traversal");
+   nir_builder b = radv_meta_nir_init_shader(device, MESA_SHADER_INTERSECTION, "rt_traversal");
    b.shader->info.internal = false;
    b.shader->info.workgroup_size[0] = 8;
    b.shader->info.workgroup_size[1] = pdev->rt_wave_size == 64 ? 8 : 4;

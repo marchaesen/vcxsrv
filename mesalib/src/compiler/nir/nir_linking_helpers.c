@@ -1074,6 +1074,9 @@ replace_varying_input_by_constant_load(nir_shader *shader,
       }
    }
 
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
+
    return progress;
 }
 
@@ -1119,6 +1122,9 @@ replace_duplicate_input(nir_shader *shader, nir_variable *input_var,
          progress = true;
       }
    }
+
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
 
    return progress;
 }
@@ -1284,6 +1290,9 @@ replace_varying_input_by_uniform_load(nir_shader *shader,
          progress = true;
       }
    }
+
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
 
    return progress;
 }

@@ -68,10 +68,6 @@ typedef void *drmDevicePtr;
 #include "vk_sync.h"
 #include "vk_sync_dummy.h"
 
-#if AMD_LLVM_AVAILABLE
-#include "ac_llvm_util.h"
-#endif
-
 #include "ac_descriptors.h"
 #include "ac_formats.h"
 

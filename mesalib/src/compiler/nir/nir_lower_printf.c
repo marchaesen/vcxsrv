@@ -69,11 +69,7 @@ lower_printf_intrin(nir_builder *b, nir_intrinsic_instr *prntf, void *_options)
    }
 
    nir_def *fmt_str_id = prntf->src[0].ssa;
-   if (options->use_printf_base_identifier) {
-      fmt_str_id = nir_iadd(b,
-                            nir_load_printf_base_identifier(b),
-                            fmt_str_id);
-   } else if (options->hash_format_strings) {
+   if (options->hash_format_strings) {
       /* Rather than store the index of the format string, instead store the
        * hash of the format string itself. This is invariant across shaders
        * which may be more convenient.
@@ -206,21 +202,9 @@ nir_lower_printf_buffer(nir_shader *nir, uint64_t address, uint32_t size)
 }
 
 void
-nir_printf_fmt(nir_builder *b,
-               bool use_printf_base_identifier,
-               unsigned ptr_bit_size,
-               const char *fmt, ...)
+nir_printf_fmt(nir_builder *b, unsigned ptr_bit_size, const char *fmt, ...)
 {
-   b->shader->printf_info_count++;
-   b->shader->printf_info = reralloc(b->shader,
-                                     b->shader->printf_info,
-                                     u_printf_info,
-                                     b->shader->printf_info_count);
-
-   u_printf_info *info =
-      &b->shader->printf_info[b->shader->printf_info_count - 1];
-
-   *info = (u_printf_info) {
+   u_printf_info info = {
       .strings = ralloc_strdup(b->shader, fmt),
       .string_size = strlen(fmt) + 1,
    };
@@ -253,11 +237,10 @@ nir_printf_fmt(nir_builder *b,
       ASSERTED nir_def *def = va_arg(ap, nir_def*);
       assert(def->bit_size / 8 == arg_size);
 
-      info->num_args++;
-      info->arg_sizes = reralloc(b->shader,
-                                 info->arg_sizes,
-                                 unsigned, info->num_args);
-      info->arg_sizes[info->num_args - 1] = arg_size;
+      info.num_args++;
+      info.arg_sizes = reralloc(b->shader, info.arg_sizes, unsigned,
+                                info.num_args);
+      info.arg_sizes[info.num_args - 1] = arg_size;
 
       args_size += arg_size;
    }
@@ -272,20 +255,13 @@ nir_printf_fmt(nir_builder *b,
                         .atomic_op = nir_atomic_op_iadd);
 
    uint32_t total_size = sizeof(uint32_t); /* identifier */
-   for (unsigned a = 0; a < info->num_args; a++)
-      total_size += info->arg_sizes[a];
+   for (unsigned a = 0; a < info.num_args; a++)
+      total_size += info.arg_sizes[a];
 
    nir_push_if(b, nir_ilt(b, nir_iadd_imm(b, buffer_offset, total_size),
                              nir_load_printf_buffer_size(b)));
    {
-      /* Identifier */
-      nir_def *identifier =
-         use_printf_base_identifier ?
-         nir_iadd_imm(b,
-                      nir_load_printf_base_identifier(b),
-                      b->shader->printf_info_count) :
-         nir_imm_int(b, b->shader->printf_info_count);
-
+      nir_def *identifier = nir_imm_int(b, u_printf_hash(&info));
       nir_def *store_addr =
          nir_iadd(b, buffer_addr, nir_u2uN(b, buffer_offset, buffer_addr->bit_size));
       nir_store_global(b, store_addr, 4, identifier, 0x1);
@@ -293,15 +269,27 @@ nir_printf_fmt(nir_builder *b,
       /* Arguments */
       va_start(ap, fmt);
       unsigned store_offset = sizeof(uint32_t);
-      for (unsigned a = 0; a < info->num_args; a++) {
+      for (unsigned a = 0; a < info.num_args; a++) {
          nir_def *def = va_arg(ap, nir_def*);
 
          nir_store_global(b, nir_iadd_imm(b, store_addr, store_offset),
                           4, def, 0x1);
 
-         store_offset += info->arg_sizes[a];
+         store_offset += info.arg_sizes[a];
       }
       va_end(ap);
    }
    nir_pop_if(b, NULL);
+
+   /* Add the format string to the printf singleton, registering the hash for
+    * the driver. This isn't actually correct, because the shader may be cached
+    * and reused in the future but the singleton will die along with the logical
+    * device. However, nir_printf_fmt is a debugging aid used in conjunction
+    * with directly modifying the Mesa code, there are never uses of
+    * nir_printf_fmt checked into the tree. Rebuilding Mesa invalidates the disk
+    * cache anyway, so this will more or less do what we want without requiring
+    * lots of extra plumbing to soften this edge case. And disabling the disk
+    * cache while debugging compiler issues is a good practice anyway.
+    */
+   u_printf_singleton_add(&info, 1);
 }

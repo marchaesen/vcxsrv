@@ -60,9 +60,12 @@ lower_scratch_to_var(nir_builder *b, nir_intrinsic_instr *intr, void *data)
       nir_def *index = nir_udiv_aligned_4(b, intr->src[1].ssa);
       nir_def *value = intr->src[0].ssa;
 
+      index = nir_u2uN(b, index, nir_get_ptr_bitsize(b->shader));
       nir_store_array_var(b, scratch, index, value, nir_component_mask(1));
    } else if (intr->intrinsic == nir_intrinsic_load_scratch) {
       nir_def *index = nir_udiv_aligned_4(b, intr->src[0].ssa);
+
+      index = nir_u2uN(b, index, nir_get_ptr_bitsize(b->shader));
       nir_def_rewrite_uses(&intr->def, nir_load_array_var(b, scratch, index));
    } else {
       return false;
@@ -90,13 +93,26 @@ nir_lower_scratch_to_var(nir_shader *nir)
    NIR_PASS(_, nir, nir_lower_mem_access_bit_sizes, &lower_mem_access_options);
 
    /* Then, back scratch by an array of words and turn all scratch access into
-    * array access.
+    * array access. We do this per-function, treating scratch as a
+    * function-local stack. This is correct for single-function shaders (the
+    * fully-inlined graphics case) and for collections of single-function
+    * shaders (the vtn_bindgen2 case). It is sketchy for drivers supporting true
+    * function calls, but before we can support that properly, we need to fix
+    * NIR's definition of scratch to instead be stack. So this is what we need
+    * for now, and hopefully this whole pass can be deleted someday.
     */
-   nir_function_impl *entry = nir_shader_get_entrypoint(nir);
-   const glsl_type *type_ = glsl_array_type(glsl_uint_type(), words, 1);
-   nir_variable *var = nir_local_variable_create(entry, type_, "scratch");
-   nir_shader_intrinsics_pass(nir, lower_scratch_to_var,
-                              nir_metadata_control_flow, var);
+   nir_foreach_function_impl(impl, nir) {
+      const glsl_type *type_ = glsl_array_type(glsl_uint_type(), words, 1);
+      nir_variable *var = nir_local_variable_create(impl, type_, "scratch");
+      nir_function_intrinsics_pass(impl, lower_scratch_to_var,
+                                   nir_metadata_control_flow, var);
+   }
+
+   /* After lowering, we've eliminated all scratch in the shader. Really, this
+    * should be per-function. Again, scratch is ill-defined in NIR for
+    * multi-function and we need deeper fixes to NIR. This whole pass is a
+    * bandage.
+    */
    nir->scratch_size = 0;
 
    /* Now clean up the mess we made */

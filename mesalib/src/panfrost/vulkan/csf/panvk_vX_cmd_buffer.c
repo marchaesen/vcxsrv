@@ -171,7 +171,7 @@ finish_cs(struct panvk_cmd_buffer *cmdbuf, uint32_t subqueue)
     * simple with this all-or-nothing approach. */
    if ((instance->debug_flags & PANVK_DEBUG_CS) &&
        cmdbuf->vk.level != VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
-       !(cmdbuf->state.gfx.render.flags & VK_RENDERING_SUSPENDING_BIT)) {
+       !cmdbuf->state.gfx.render.suspended) {
       cs_update_cmdbuf_regs(b) {
          /* Poison all cmdbuf registers to make sure we don't inherit state from
           * a previously executed cmdbuf. */
@@ -934,8 +934,8 @@ panvk_per_arch(CmdExecuteCommands)(VkCommandBuffer commandBuffer,
       /* We need to propagate the suspending state of the secondary command
        * buffer if we want to avoid poisoning the reg file when the secondary
        * command buffer suspended the render pass. */
-      if (secondary->state.gfx.render.flags & VK_RENDERING_SUSPENDING_BIT)
-         primary->state.gfx.render.flags = secondary->state.gfx.render.flags;
+      primary->state.gfx.render.suspended =
+         secondary->state.gfx.render.suspended;
 
       /* If the render context we passed to the secondary command buffer got
        * invalidated, reset the FB/tiler descs and treat things as if we

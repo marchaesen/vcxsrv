@@ -111,15 +111,16 @@ xe_gem_vm_bind_op(struct iris_bo *bo, uint32_t op)
    const struct intel_device_info *devinfo = iris_bufmgr_get_device_info(bufmgr);
    uint32_t handle = op == DRM_XE_VM_BIND_OP_UNMAP ? 0 : bo->gem_handle;
    struct drm_xe_sync xe_sync = {
-      .handle = intel_bind_timeline_get_syncobj(bind_timeline),
       .type = DRM_XE_SYNC_TYPE_TIMELINE_SYNCOBJ,
       .flags = DRM_XE_SYNC_FLAG_SIGNAL,
+      .addr = 0, /* init union to 0 before setting .handle */
    };
    uint64_t range, obj_offset = 0;
    uint32_t flags = 0;
    int ret, fd;
 
    fd = iris_bufmgr_get_fd(bufmgr);
+   xe_sync.handle = intel_bind_timeline_get_syncobj(bind_timeline);
 
    if (iris_bo_is_imported(bo))
       range = bo->size;

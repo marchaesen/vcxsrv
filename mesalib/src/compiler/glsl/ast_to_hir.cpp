@@ -4011,14 +4011,16 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
    /* Layout qualifiers for gl_FragDepth, which are enabled by extension
     * AMD_conservative_depth.
     */
-   if (qual->flags.q.depth_type
-       && !state->is_version(420, 0)
-       && !state->AMD_conservative_depth_enable
-       && !state->ARB_conservative_depth_enable) {
+   if (qual->flags.q.depth_type &&
+       ((!state->is_version(420, 0) &&
+         !state->AMD_conservative_depth_enable &&
+         !state->ARB_conservative_depth_enable) &&
+       (!state->is_version(0, 300) &&
+        !state->EXT_conservative_depth_enable))) {
        _mesa_glsl_error(loc, state,
                         "extension GL_AMD_conservative_depth or "
-                        "GL_ARB_conservative_depth must be enabled "
-                        "to use depth layout qualifiers");
+                        "GL_ARB_conservative_depth or GL_EXT_conservative_depth"
+                        "must be enabled to use depth layout qualifiers");
    } else if (qual->flags.q.depth_type
               && strcmp(var->name, "gl_FragDepth") != 0) {
        _mesa_glsl_error(loc, state,
@@ -4525,7 +4527,8 @@ get_variable_being_redeclared(ir_variable **var_ptr, YYLTYPE loc,
       /* Layout qualifiers for gl_FragDepth. */
    } else if ((state->is_version(420, 0) ||
                state->AMD_conservative_depth_enable ||
-               state->ARB_conservative_depth_enable)
+               state->ARB_conservative_depth_enable ||
+               state->EXT_conservative_depth_enable)
               && strcmp(var->name, "gl_FragDepth") == 0) {
 
       /** From the AMD_conservative_depth spec:

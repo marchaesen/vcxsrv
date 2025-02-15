@@ -11,6 +11,7 @@
 #include "util/memstream.h"
 
 #include "ac_gpu_info.h"
+#include "nir.h"
 #include <array>
 #include <iostream>
 #include <vector>

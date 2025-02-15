@@ -447,7 +447,49 @@ VkResult panvk_per_arch(cmd_prepare_exec_cmd_for_draws)(
    struct panvk_cmd_buffer *primary, struct panvk_cmd_buffer *secondary);
 
 void panvk_per_arch(cmd_inherit_render_state)(
-   struct panvk_cmd_buffer *cmdbuf,
-   const VkCommandBufferBeginInfo *pBeginInfo);
+   struct panvk_cmd_buffer *cmdbuf, const VkCommandBufferBeginInfo *pBeginInfo);
+
+static inline void
+panvk_per_arch(calculate_task_axis_and_increment)(
+   const struct panvk_shader *shader, struct panvk_physical_device *phys_dev,
+   unsigned *task_axis, unsigned *task_increment)
+{
+   /* Pick the task_axis and task_increment to maximize thread
+    * utilization. */
+   unsigned threads_per_wg =
+      shader->local_size.x * shader->local_size.y * shader->local_size.z;
+   unsigned max_thread_cnt = panfrost_compute_max_thread_count(
+      &phys_dev->kmod.props, shader->info.work_reg_count);
+   unsigned threads_per_task = threads_per_wg;
+   unsigned local_size[3] = {
+      shader->local_size.x,
+      shader->local_size.y,
+      shader->local_size.z,
+   };
+
+   for (unsigned i = 0; i < 3; i++) {
+      if (threads_per_task * local_size[i] >= max_thread_cnt) {
+         /* We reached out thread limit, stop at the current axis and
+          * calculate the increment so it doesn't exceed the per-core
+          * thread capacity.
+          */
+         *task_increment = max_thread_cnt / threads_per_task;
+         break;
+      } else if (*task_axis == MALI_TASK_AXIS_Z) {
+         /* We reached the Z axis, and there's still room to stuff more
+          * threads. Pick the current axis grid size as our increment
+          * as there's no point using something bigger.
+          */
+         *task_increment = local_size[i];
+         break;
+      }
+
+      threads_per_task *= local_size[i];
+      (*task_axis)++;
+   }
+
+   assert(*task_axis <= MALI_TASK_AXIS_Z);
+   assert(*task_increment > 0);
+}
 
 #endif /* PANVK_CMD_BUFFER_H */

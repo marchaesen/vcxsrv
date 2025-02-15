@@ -2173,8 +2173,7 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
    agx_index coords = agx_null(), bindless = agx_immediate(0),
              texture = agx_immediate(instr->texture_index),
              sampler = agx_immediate(0), lod = agx_immediate(0),
-             compare = agx_null(), packed_offset = agx_null(),
-             min_lod = agx_null();
+             compare = agx_null(), packed_offset = agx_null();
 
    bool lod_is_zero = true;
 
@@ -2197,9 +2196,9 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
                        nir_src_as_uint(instr->src[i].src) == 0;
          break;
 
-      case nir_tex_src_min_lod:
-         assert(index.size == AGX_SIZE_16);
-         min_lod = index;
+      case nir_tex_src_lod_bias_min_agx:
+         assert(index.size == AGX_SIZE_32);
+         lod = index;
          break;
 
       case nir_tex_src_comparator:
@@ -2217,6 +2216,10 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
       case nir_tex_src_texture_handle:
          texture =
             agx_translate_bindless_handle(b, &instr->src[i].src, &bindless);
+         break;
+
+      case nir_tex_src_min_lod:
+         assert(instr->op == nir_texop_txd && "other cases lowered");
          break;
 
       case nir_tex_src_ddx: {
@@ -2264,16 +2267,19 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
       }
    }
 
-   enum agx_lod_mode lod_mode = agx_lod_mode_for_nir(
-      instr->op, nir_tex_instr_src_index(instr, nir_tex_src_bias) >= 0,
-      nir_tex_instr_src_index(instr, nir_tex_src_min_lod) >= 0, lod_is_zero);
+   bool has_min_lod =
+      nir_tex_instr_src_index(instr, nir_tex_src_lod_bias_min_agx) >= 0 ||
+      nir_tex_instr_src_index(instr, nir_tex_src_min_lod) >= 0;
+
+   bool has_bias = (has_min_lod && instr->op != nir_texop_txd) ||
+                   (nir_tex_instr_src_index(instr, nir_tex_src_bias) >= 0);
+
+   enum agx_lod_mode lod_mode =
+      agx_lod_mode_for_nir(instr->op, has_bias, has_min_lod, lod_is_zero);
 
    if (lod_mode == AGX_LOD_MODE_AUTO_LOD) {
       /* Ignored logically but asserted 0 */
       lod = agx_immediate(0);
-   } else if (lod_mode == AGX_LOD_MODE_AUTO_LOD_BIAS_MIN) {
-      /* Combine min with lod */
-      lod = agx_vec2(b, lod, min_lod);
    }
 
    agx_index dst = agx_def_index(&instr->def);
@@ -3620,22 +3626,6 @@ agx_compile_function_nir(nir_shader *nir, nir_function_impl *impl,
    return offset;
 }
 
-void
-agx_link_libagx(nir_shader *nir, const nir_shader *libagx)
-{
-   nir_link_shader_functions(nir, libagx);
-   NIR_PASS(_, nir, nir_inline_functions);
-   nir_remove_non_entrypoints(nir);
-   NIR_PASS(_, nir, nir_opt_deref);
-   NIR_PASS(_, nir, nir_lower_vars_to_ssa);
-   NIR_PASS(_, nir, nir_remove_dead_derefs);
-   NIR_PASS(_, nir, nir_remove_dead_variables,
-            nir_var_function_temp | nir_var_shader_temp, NULL);
-   NIR_PASS(_, nir, nir_lower_vars_to_explicit_types,
-            nir_var_shader_temp | nir_var_function_temp,
-            glsl_get_cl_type_size_align);
-}
-
 /*
  * The hardware frcp instruction is sometimes off by 1 ULP. For correctly
  * rounded frcp, a refinement step is required. This routine has been
@@ -3687,7 +3677,7 @@ agx_nir_lower_fdiv(nir_builder *b, nir_alu_instr *alu, void *_)
 
 /* Preprocess NIR independent of shader state */
 void
-agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx)
+agx_preprocess_nir(nir_shader *nir)
 {
    NIR_PASS(_, nir, nir_lower_vars_to_ssa);
 
@@ -3705,8 +3695,6 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx)
 
    /* Clean up deref gunk after lowering I/O */
    NIR_PASS(_, nir, nir_opt_dce);
-
-   agx_link_libagx(nir, libagx);
 
    /* Runs before we lower away idiv, to work at all. But runs after lowering
     * textures, since the cube map array lowering generates division by 6.
@@ -3779,21 +3767,8 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
    NIR_PASS(_, nir, nir_lower_printf_buffer, LIBAGX_PRINTF_BUFFER_ADDRESS,
             LIBAGX_PRINTF_BUFFER_SIZE - 8);
 
-   bool needs_libagx = true /* TODO: Optimize */;
-
    NIR_PASS(_, nir, nir_lower_frag_coord_to_pixel_coord);
    NIR_PASS(_, nir, nir_lower_vars_to_ssa);
-
-   if (needs_libagx) {
-      agx_link_libagx(nir, key->libagx);
-
-      NIR_PASS(_, nir, nir_opt_deref);
-      NIR_PASS(_, nir, nir_lower_vars_to_ssa);
-      NIR_PASS(_, nir, nir_lower_explicit_io,
-               nir_var_shader_temp | nir_var_function_temp |
-                  nir_var_mem_shared | nir_var_mem_global,
-               nir_address_format_62bit_generic);
-   }
 
    /* Late sysval lowering creates large loads. Load lowering creates unpacks */
    nir_lower_mem_access_bit_sizes_options lower_mem_access_options = {

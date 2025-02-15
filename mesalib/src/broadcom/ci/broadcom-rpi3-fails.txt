@@ -97,7 +97,6 @@ spec@khr_texture_compression_astc@basic-gl,Fail
 
 glx@glx-make-current,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx_arb_create_context_no_error@no error,Fail
 
 # piglit: error: Test timed out.
 glx@glx_arb_sync_control@waitformsc,Fail

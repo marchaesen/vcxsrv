@@ -285,6 +285,12 @@ iris_destroy_context(struct pipe_context *ctx)
       unreachable("Unknown hardware generation"); \
    }
 
+#ifndef INTEL_USE_ELK
+static inline void gfx8_init_state(struct iris_context *ice) { unreachable("no elk support"); }
+static inline void gfx8_init_blorp(struct iris_context *ice) { unreachable("no elk support"); }
+static inline void gfx8_init_query(struct iris_context *ice) { unreachable("no elk support"); }
+#endif
+
 /**
  * Create a context.
  *

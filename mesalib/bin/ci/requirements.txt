@@ -9,7 +9,7 @@ fire==0.5.0
 flake8==7.*
 gql==3.*
 kaleido==0.2.*
-lavacli==1.5.2
+lavacli==2.2.0
 pandas==2.*
 plotly==5.*
 python-dateutil==2.*

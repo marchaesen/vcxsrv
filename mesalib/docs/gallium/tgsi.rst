@@ -1060,7 +1060,7 @@ XXX doesn't look like most of the opcodes really belong here.
 Integer ISA
 ^^^^^^^^^^^^^^^^^^^^^^^^
 These opcodes are used for integer operations.
-Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
+Support for these opcodes indicated by pipe_shader_caps.integers (all of them?)
 
 
 .. opcode:: I2F - Signed Integer To Float

@@ -1065,7 +1065,8 @@ static bool amdgpu_cs_check_space(struct radeon_cmdbuf *rcs, unsigned dw)
    struct amdgpu_cs *cs = amdgpu_cs(rcs);
    struct amdgpu_ib *main_ib = &cs->main_ib;
 
-   assert(rcs->current.cdw <= rcs->current.max_dw);
+   if (rcs->current.cdw > rcs->current.max_dw)
+      return false;
 
    unsigned projected_size_dw = rcs->prev_dw + rcs->current.cdw + dw;
 
@@ -2112,7 +2113,11 @@ static int amdgpu_cs_flush(struct radeon_cmdbuf *rcs,
    }
 
    if (rcs->current.cdw > rcs->current.max_dw) {
-      fprintf(stderr, "amdgpu: command stream overflowed\n");
+      amdgpu_ctx_set_sw_reset_status(
+         (struct radeon_winsys_ctx*)cs->ctx, PIPE_UNKNOWN_CONTEXT_RESET,
+         "amdgpu: command stream overflowed (current: %d, max: %d)\n",
+         rcs->current.cdw, rcs->current.max_dw);
+      return -1;
    }
 
    /* If the CS is not empty or overflowed.... */

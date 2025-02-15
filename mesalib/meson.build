@@ -230,7 +230,7 @@ if _vulkan_drivers.contains('auto')
     if host_machine.cpu_family().startswith('x86')
       _vulkan_drivers = ['amd', 'intel', 'intel_hasvk', 'nouveau', 'swrast']
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
-      _vulkan_drivers = ['swrast', 'intel']
+      _vulkan_drivers = ['swrast', 'intel', 'panfrost', 'freedreno']
     elif ['mips', 'mips64', 'ppc', 'ppc64', 'riscv32', 'riscv64'].contains(host_machine.cpu_family())
       _vulkan_drivers = ['amd', 'swrast']
     elif ['loongarch64'].contains(host_machine.cpu_family())
@@ -525,6 +525,8 @@ if not have_mtls_dialect
   # cross-compiling, but because this is just an optimization we can skip it
   if meson.is_cross_build() and not meson.can_run_host_binaries()
     warning('cannot auto-detect -mtls-dialect when cross-compiling, using compiler default')
+  elif host_machine.system() == 'freebsd'
+    warning('cannot use -mtls-dialect for FreeBSD, using compiler default')
   else
     # The way to specify the TLSDESC dialect is architecture-specific.
     # We probe both because there is not a fallback guaranteed to work for all
@@ -828,17 +830,21 @@ else
   with_drivers_clc = false
 endif
 
+with_driver_using_cl = [
+  with_gallium_iris, with_intel_vk,
+  with_gallium_asahi, with_asahi_vk,
+  with_gallium_panfrost, with_panfrost_vk,
+].contains(true)
+
 if get_option('mesa-clc') == 'system'
   prog_mesa_clc = find_program('mesa_clc', native : true)
-  prog_vtn_bindgen = find_program('vtn_bindgen', native : true)
+  prog_vtn_bindgen2 = find_program('vtn_bindgen2', native : true)
   # Even with mesa-clc already built, rusticl still needs clc.
   with_clc = with_gallium_rusticl
 else
   with_clc = get_option('mesa-clc') != 'auto' or \
-             with_microsoft_clc or with_drivers_clc or \
-             with_gallium_iris or with_intel_vk or \
-             with_gallium_asahi or with_asahi_vk or \
-             with_gallium_rusticl
+             with_microsoft_clc or with_gallium_rusticl or \
+             with_drivers_clc or with_driver_using_cl
 endif
 
 dep_clc = null_dep
@@ -1098,6 +1104,7 @@ if cc.get_argument_syntax() == 'msvc'
     '/we4024',  # Error when passing different type of parameter
     '/we4189',  # 'identifier' : local variable is initialized but not referenced
     '/Zc:__cplusplus', #Set __cplusplus macro to match the /std:c++<version> on the command line
+    '/Zc:preprocessor', # Use the standards-conforming preprocessor
   ]
   c_args += cc.get_supported_arguments(_trial)
   cpp_args += cpp.get_supported_arguments(_trial)
@@ -1762,7 +1769,9 @@ amd_with_llvm = get_option('amd-use-llvm')
 llvm_has_mcjit = host_machine.cpu_family() in ['aarch64', 'arm', 'ppc', 'ppc64', 's390x', 'x86', 'x86_64']
 llvm_with_orcjit = get_option('llvm-orcjit') or not llvm_has_mcjit
 
-if with_amd_vk or with_gallium_radeonsi or with_clc or llvm_with_orcjit
+if with_amd_vk or with_gallium_radeonsi
+  _llvm_version = '>= 18.0.0'
+elif with_clc or llvm_with_orcjit
   _llvm_version = '>= 15.0.0'
 elif with_gallium_clover
   _llvm_version = '>= 11.0.0'
@@ -1883,7 +1892,7 @@ endif
 dep_spirv_tools = dependency(
   'SPIRV-Tools',
   required : with_clc,
-  version : '>= 2022.1'
+  version : '>= 2024.1'
 )
 if dep_spirv_tools.found()
   pre_args += '-DHAVE_SPIRV_TOOLS'

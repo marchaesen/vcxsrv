@@ -98,9 +98,9 @@ exaCreatePixmap_driver(ScreenPtr pScreen, int w, int h, int depth,
     }
 
     if (!pExaPixmap->driverPriv) {
-        swap(pExaScr, pScreen, DestroyPixmap);
-        pScreen->DestroyPixmap(pPixmap);
-        swap(pExaScr, pScreen, DestroyPixmap);
+        // don't need to protect from calling our own (wrapped) DestroyPixmap
+        // handler, because it can deal with half-initialized state
+        dixDestroyPixmap(pPixmap, 0);
         return NULL;
     }
 
@@ -191,10 +191,12 @@ exaDestroyPixmap_driver(PixmapPtr pPixmap)
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
 
     ExaScreenPriv(pScreen);
-    Bool ret;
+    Bool ret = TRUE;
 
     if (pPixmap->refcnt == 1) {
         ExaPixmapPriv(pPixmap);
+        if (!pExaPixmap) // we're called on an error path
+            goto out;
 
         exaDestroyPixmap(pPixmap);
 
@@ -203,8 +205,10 @@ exaDestroyPixmap_driver(PixmapPtr pPixmap)
         pExaPixmap->driverPriv = NULL;
     }
 
+out:
+    // restore original (screen driver's) DestroyPixmap() handler and call it
     swap(pExaScr, pScreen, DestroyPixmap);
-    ret = pScreen->DestroyPixmap(pPixmap);
+    dixDestroyPixmap(pPixmap, 0);
     swap(pExaScr, pScreen, DestroyPixmap);
 
     return ret;

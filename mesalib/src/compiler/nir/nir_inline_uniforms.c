@@ -40,6 +40,7 @@
  * (uniforms must be lowered to load_ubo before calling this)
  */
 
+#include "util/hash_table.h"
 #include "nir_builder.h"
 #include "nir_loop_analyze.h"
 
@@ -182,42 +183,40 @@ is_induction_variable(const nir_src *src, int component, nir_loop_info *info,
    assert(component < src->ssa->num_components);
 
    /* Return true for induction variable (ie. i in for loop) */
-   for (int i = 0; i < info->num_induction_vars; i++) {
-      nir_loop_induction_variable *var = info->induction_vars + i;
-      if (var->def == src->ssa) {
-         /* Induction variable should have constant initial value (ie. i = 0),
-          * constant update value (ie. i++) and constant end condition
-          * (ie. i < 10), so that we know the exact loop count for unrolling
-          * the loop.
-          *
-          * Add uniforms need to be inlined for this induction variable's
-          * initial and update value to be constant, for example:
-          *
-          *     for (i = init; i < count; i += step)
-          *
-          * We collect uniform "init" and "step" here.
-          */
-         if (var->init_src) {
-            if (!nir_collect_src_uniforms(var->init_src, component,
-                                          uni_offsets, num_offsets,
-                                          max_num_bo, max_offset))
-               return false;
-         }
+   struct hash_entry *entry = _mesa_hash_table_search(info->induction_vars, src->ssa);
+   if (!entry)
+      return false;
 
-         if (var->update_src) {
-            nir_alu_src *alu_src = var->update_src;
-            if (!nir_collect_src_uniforms(&alu_src->src,
-                                          alu_src->swizzle[component],
-                                          uni_offsets, num_offsets,
-                                          max_num_bo, max_offset))
-               return false;
-         }
-
-         return true;
-      }
+   nir_loop_induction_variable *var = entry->data;
+   /* Induction variable should have constant initial value (ie. i = 0),
+    * constant update value (ie. i++) and constant end condition
+    * (ie. i < 10), so that we know the exact loop count for unrolling
+    * the loop.
+    *
+    * Add uniforms need to be inlined for this induction variable's
+    * initial and update value to be constant, for example:
+    *
+    *     for (i = init; i < count; i += step)
+    *
+    * We collect uniform "init" and "step" here.
+    */
+   if (var->init_src) {
+      if (!nir_collect_src_uniforms(var->init_src, component,
+                                    uni_offsets, num_offsets,
+                                    max_num_bo, max_offset))
+         return false;
    }
 
-   return false;
+   if (var->update_src) {
+      nir_alu_src *alu_src = var->update_src;
+      if (!nir_collect_src_uniforms(&alu_src->src,
+                                    alu_src->swizzle[component],
+                                    uni_offsets, num_offsets,
+                                    max_num_bo, max_offset))
+         return false;
+   }
+
+   return true;
 }
 
 void

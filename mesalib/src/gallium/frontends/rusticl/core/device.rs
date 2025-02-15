@@ -68,10 +68,8 @@ impl DeviceCaps {
         let cap_timestamp = screen.caps().query_timestamp;
         let timer_resolution = screen.caps().timer_resolution;
 
-        let max_write_images =
-            Self::shader_param(screen, pipe_shader_cap::PIPE_SHADER_CAP_MAX_SHADER_IMAGES) as u32;
-        let max_read_images =
-            Self::shader_param(screen, pipe_shader_cap::PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS) as u32;
+        let max_write_images = Self::shader_caps(screen).max_shader_images;
+        let max_read_images = Self::shader_caps(screen).max_sampler_views;
         let image_2d_size = screen.caps().max_texture_2d_size;
 
         let has_images = screen.caps().texture_sampler_independent &&
@@ -94,8 +92,8 @@ impl DeviceCaps {
         }
     }
 
-    fn shader_param(screen: &PipeScreen, cap: pipe_shader_cap) -> i32 {
-        screen.shader_param(pipe_shader_type::PIPE_SHADER_COMPUTE, cap)
+    fn shader_caps(screen: &PipeScreen) -> &pipe_shader_caps {
+        screen.shader_caps(pipe_shader_type::PIPE_SHADER_COMPUTE)
     }
 }
 
@@ -405,10 +403,10 @@ impl Device {
 
     fn check_valid(screen: &PipeScreen) -> bool {
         if !screen.caps().compute
-            || screen.shader_param(
-                pipe_shader_type::PIPE_SHADER_COMPUTE,
-                pipe_shader_cap::PIPE_SHADER_CAP_SUPPORTED_IRS,
-            ) & (1 << (pipe_shader_ir::PIPE_SHADER_IR_NIR as i32))
+            || screen
+                .shader_caps(pipe_shader_type::PIPE_SHADER_COMPUTE)
+                .supported_irs
+                & (1 << (pipe_shader_ir::PIPE_SHADER_IR_NIR as i32))
                 == 0
         {
             return false;
@@ -416,10 +414,9 @@ impl Device {
 
         // CL_DEVICE_MAX_PARAMETER_SIZE
         // For this minimum value, only a maximum of 128 arguments can be passed to a kernel
-        if (screen.shader_param(
-            pipe_shader_type::PIPE_SHADER_COMPUTE,
-            pipe_shader_cap::PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE,
-        ) as u32)
+        if screen
+            .shader_caps(pipe_shader_type::PIPE_SHADER_COMPUTE)
+            .max_const_buffer0_size
             < 128
         {
             return false;
@@ -644,6 +641,11 @@ impl Device {
         add_spirv(c"SPV_KHR_integer_dot_product");
         add_spirv(c"SPV_KHR_no_integer_wrap_decoration");
 
+        if self.linkonce_supported() {
+            add_ext(1, 0, 0, "cl_khr_spirv_linkonce_odr");
+            add_spirv(c"SPV_KHR_linkonce_odr");
+        }
+
         if self.fp16_supported() {
             add_ext(1, 0, 0, "cl_khr_fp16");
         }
@@ -717,9 +719,9 @@ impl Device {
         self.spirv_extensions = spirv_exts;
     }
 
-    fn shader_param(&self, cap: pipe_shader_cap) -> i32 {
+    fn shader_caps(&self) -> &pipe_shader_caps {
         self.screen
-            .shader_param(pipe_shader_type::PIPE_SHADER_COMPUTE, cap)
+            .shader_caps(pipe_shader_type::PIPE_SHADER_COMPUTE)
     }
 
     pub fn all() -> Vec<Device> {
@@ -759,8 +761,7 @@ impl Device {
     }
 
     pub fn address_bits(&self) -> cl_uint {
-        self.screen
-            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_ADDRESS_BITS)
+        self.screen.compute_caps().address_bits
     }
 
     pub fn const_max_size(&self) -> cl_ulong {
@@ -779,7 +780,7 @@ impl Device {
     }
 
     pub fn const_max_count(&self) -> cl_uint {
-        self.shader_param(pipe_shader_cap::PIPE_SHADER_CAP_MAX_CONST_BUFFERS) as cl_uint
+        self.shader_caps().max_const_buffers
     }
 
     fn set_device_type(&mut self) {
@@ -808,12 +809,38 @@ impl Device {
         };
     }
 
+    pub fn linkonce_supported(&self) -> bool {
+        let version = unsafe {
+            match CStr::from_ptr(clc_spirv_tools_version()).to_str() {
+                Ok(v) => v,
+                Err(_) => return false,
+            }
+        };
+
+        // check format and compare to "v2025.1"
+        if !version.starts_with('v') {
+            return false;
+        }
+
+        let version = &version[1..];
+        if let Some((year_str, minor_version_str)) = version.split_once('.') {
+            let year = year_str.parse::<u32>();
+            let minor_version = minor_version_str.parse::<u32>();
+
+            if year_str.len() == 4 && year.is_ok() && minor_version.is_ok() {
+                return version >= "2025.1";
+            }
+        }
+
+        false
+    }
+
     pub fn fp16_supported(&self) -> bool {
         if !Platform::features().fp16 {
             return false;
         }
 
-        self.shader_param(pipe_shader_cap::PIPE_SHADER_CAP_FP16) != 0
+        self.shader_caps().fp16
     }
 
     pub fn fp64_supported(&self) -> bool {
@@ -893,8 +920,7 @@ impl Device {
             };
             memory * 1024
         } else {
-            self.screen
-                .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE)
+            self.screen.compute_caps().max_global_size
         }
     }
 
@@ -963,69 +989,49 @@ impl Device {
     }
 
     pub fn local_mem_size(&self) -> cl_ulong {
-        self.screen
-            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE)
+        self.screen.compute_caps().max_local_size as cl_ulong
     }
 
     pub fn max_block_sizes(&self) -> Vec<usize> {
-        let v: Vec<u64> = self
-            .screen
-            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE);
+        let v: [u32; 3] = self.screen.compute_caps().max_block_size;
         v.into_iter().map(|v| v as usize).collect()
     }
 
-    pub fn max_grid_size(&self) -> Vec<u64> {
-        let v: Vec<u64> = self
-            .screen
-            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_GRID_SIZE);
-
+    pub fn max_grid_size(&self) -> Vec<usize> {
+        let v: [u32; 3] = self.screen.compute_caps().max_grid_size;
         v.into_iter()
             .map(|a| min(a, Platform::dbg().max_grid_size))
+            .map(|v| v as usize)
             .collect()
     }
 
     pub fn max_clock_freq(&self) -> cl_uint {
-        self.screen
-            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY)
+        self.screen.compute_caps().max_clock_frequency
     }
 
     pub fn max_compute_units(&self) -> cl_uint {
-        self.screen
-            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS)
+        self.screen.compute_caps().max_compute_units
     }
 
     pub fn max_grid_dimensions(&self) -> cl_uint {
-        ComputeParam::<u64>::compute_param(
-            self.screen.as_ref(),
-            pipe_compute_cap::PIPE_COMPUTE_CAP_GRID_DIMENSION,
-        ) as cl_uint
+        self.screen.compute_caps().grid_dimension
     }
 
     pub fn max_mem_alloc(&self) -> cl_ulong {
         // TODO: at the moment gallium doesn't support bigger buffers
-        min(
-            self.screen
-                .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE),
-            0x80000000,
-        )
+        min(self.screen.compute_caps().max_mem_alloc_size, 0x80000000)
     }
 
     pub fn max_samplers(&self) -> cl_uint {
-        self.shader_param(pipe_shader_cap::PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS) as cl_uint
+        self.shader_caps().max_texture_samplers
     }
 
     pub fn max_threads_per_block(&self) -> usize {
-        ComputeParam::<u64>::compute_param(
-            self.screen.as_ref(),
-            pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK,
-        ) as usize
+        self.screen.compute_caps().max_threads_per_block as usize
     }
 
     pub fn param_max_size(&self) -> usize {
-        min(
-            self.shader_param(pipe_shader_cap::PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE) as u32,
-            4 * 1024,
-        ) as usize
+        min(self.shader_caps().max_const_buffer0_size, 4 * 1024) as usize
     }
 
     pub fn printf_buffer_size(&self) -> usize {
@@ -1071,10 +1077,7 @@ impl Device {
     }
 
     pub fn subgroup_sizes(&self) -> Vec<usize> {
-        let subgroup_size = ComputeParam::<u32>::compute_param(
-            self.screen.as_ref(),
-            pipe_compute_cap::PIPE_COMPUTE_CAP_SUBGROUP_SIZES,
-        );
+        let subgroup_size = self.screen.compute_caps().subgroup_sizes;
 
         SetBitIndices::from_msb(subgroup_size)
             .map(|bit| 1 << bit)
@@ -1082,10 +1085,7 @@ impl Device {
     }
 
     pub fn max_subgroups(&self) -> u32 {
-        ComputeParam::<u32>::compute_param(
-            self.screen.as_ref(),
-            pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_SUBGROUPS,
-        )
+        self.screen.compute_caps().max_subgroups
     }
 
     pub fn subgroups_supported(&self) -> bool {

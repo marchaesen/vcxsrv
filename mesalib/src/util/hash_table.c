@@ -1006,3 +1006,21 @@ _mesa_hash_table_u64_next_entry(struct hash_table_u64 *ht,
       ._entry = next,
    };
 }
+
+/* Updates the data of a u64 hash_table entry inside a
+ * hash_table_u64_foreach() loop
+ */
+void
+_mesa_hash_table_u64_replace(struct hash_table_u64 *ht,
+                             const struct hash_entry_u64 *ent,
+                             void *new_data)
+{
+   if (ent->_entry) {
+      ent->_entry->data = new_data;
+   } else if (ent->key == FREED_KEY_VALUE) {
+      ht->freed_key_data = new_data;
+   } else {
+      assert(ent->key == DELETED_KEY_VALUE);
+      ht->deleted_key_data = new_data;
+   }
+}

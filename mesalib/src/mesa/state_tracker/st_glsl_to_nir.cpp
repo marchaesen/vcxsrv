@@ -589,7 +589,13 @@ st_link_glsl_to_nir(struct gl_context *ctx,
       st_store_nir_in_disk_cache(st, prog);
 
       st_release_variants(st, prog);
-      st_finalize_program(st, prog);
+      char *error = st_finalize_program(st, prog, true);
+
+      if (error) {
+         linker_error(shader_program, error);
+         free(error);
+         return false;
+      }
    }
 
    struct pipe_context *pctx = st_context(ctx)->pipe;

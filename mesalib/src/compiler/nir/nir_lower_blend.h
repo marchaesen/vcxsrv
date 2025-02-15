@@ -25,7 +25,7 @@
 #ifndef NIR_BLEND_H
 #define NIR_BLEND_H
 
-#include "compiler/nir/nir.h"
+#include "compiler/nir/nir_defines.h"
 #include "util/blend.h"
 #include "util/format/u_formats.h"
 

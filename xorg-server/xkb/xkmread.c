@@ -27,14 +27,16 @@
 #include <dix-config.h>
 
 #include <stdio.h>
-
 #include <X11/Xos.h>
 #include <X11/Xfuncs.h>
-
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
 #include <X11/extensions/XKMformat.h>
+
+#include "xkb/xkbfile_priv.h"
+#include "xkb/xkbfmisc_priv.h"
+
 #include "misc.h"
 #include "inputstr.h"
 #include "xkbstr.h"

@@ -367,7 +367,6 @@ init_context(isel_context* ctx, nir_shader* shader)
    uint32_t options =
       shader->options->divergence_analysis_options | nir_divergence_ignore_undef_if_phi_srcs;
    nir_divergence_analysis_impl(impl, (nir_divergence_options)options);
-   shader->info.divergence_analysis_run = true;
 
    apply_nuw_to_offsets(ctx, impl);
    ac_nir_flag_smem_for_loads(shader, ctx->program->gfx_level, false, true);

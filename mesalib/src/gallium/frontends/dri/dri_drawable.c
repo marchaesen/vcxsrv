@@ -212,6 +212,9 @@ dri_destroy_drawable(struct dri_drawable *drawable)
    /* Notify the st manager that this drawable is no longer valid */
    st_api_destroy_drawable(&drawable->base);
 
+   if (screen->type == DRI_SCREEN_KOPPER)
+      kopper_destroy_drawable(drawable);
+
    FREE(drawable->damage_rects);
    FREE(drawable);
 }

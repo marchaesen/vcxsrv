@@ -641,6 +641,8 @@ optimizations.extend([
    # 'a<<c' to be CSE'd.  It also helps architectures that have an ISHLADD
    # instruction or a constant offset field for in load / store instructions.
    (('ishl', ('iadd', a, '#b'), '#c'), ('iadd', ('ishl', a, c), ('ishl', b, c))),
+   (('ishl', ('iadd(is_used_once)', ('iadd', a, '#b'), c), '#d'),
+    ('iadd', ('ishl', ('iadd', a, c), d), ('ishl', b, d))),
 
    # (a + #b) * #c => (a * #c) + (#b * #c)
    (('imul', ('iadd(is_used_once)', a, '#b'), '#c'), ('iadd', ('imul', a, c), ('imul', b, c))),

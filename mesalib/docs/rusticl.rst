@@ -55,7 +55,7 @@ The minimum versions to build Rusticl are:
 -  Clang: 15.0.0
    Updating clang requires a rebuilt of mesa and rusticl if and only if the value of
    ``CLANG_RESOURCE_DIR`` changes. It is defined through ``clang/Config/config.h``.
--  SPIRV-Tools: any version (recommended: v2022.3)
+-  SPIRV-Tools: any version (recommended: v2025.1)
 
 Afterwards you only need to add ``-Dgallium-rusticl=true -Dllvm=enabled
 -Drust_std=2021`` to your build options.

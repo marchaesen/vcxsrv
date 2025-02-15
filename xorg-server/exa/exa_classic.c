@@ -96,9 +96,9 @@ exaCreatePixmap_classic(ScreenPtr pScreen, int w, int h, int depth,
     pExaPixmap->fb_size = pExaPixmap->fb_pitch * h;
 
     if (pExaPixmap->fb_pitch > 131071) {
-        swap(pExaScr, pScreen, DestroyPixmap);
-        pScreen->DestroyPixmap(pPixmap);
-        swap(pExaScr, pScreen, DestroyPixmap);
+        // don't need to protect from calling our own (wrapped) DestroyPixmap
+        // handler, because it can deal with half-initialized state
+        dixDestroyPixmap(pPixmap, 0);
         return NULL;
     }
 
@@ -108,9 +108,9 @@ exaCreatePixmap_classic(ScreenPtr pScreen, int w, int h, int depth,
                                        pScreen, pPixmap);
 
     if (pExaPixmap->pDamage == NULL) {
-        swap(pExaScr, pScreen, DestroyPixmap);
-        pScreen->DestroyPixmap(pPixmap);
-        swap(pExaScr, pScreen, DestroyPixmap);
+        // don't need to protect from calling our own (wrapped) DestroyPixmap
+        // handler, because it can deal with half-initialized state
+        dixDestroyPixmap(pPixmap, 0);
         return NULL;
     }
 
@@ -212,10 +212,12 @@ exaDestroyPixmap_classic(PixmapPtr pPixmap)
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
 
     ExaScreenPriv(pScreen);
-    Bool ret;
+    Bool ret = TRUE;
 
     if (pPixmap->refcnt == 1) {
         ExaPixmapPriv(pPixmap);
+        if (!pExaPixmap) // we're called on an error path
+            goto out;
 
         exaDestroyPixmap(pPixmap);
 
@@ -233,8 +235,10 @@ exaDestroyPixmap_classic(PixmapPtr pPixmap)
         RegionUninit(&pExaPixmap->validFB);
     }
 
+out:
+    // restore original (screen driver's) DestroyPixmap() handler and call it
     swap(pExaScr, pScreen, DestroyPixmap);
-    ret = pScreen->DestroyPixmap(pPixmap);
+    dixDestroyPixmap(pPixmap, 0);
     swap(pExaScr, pScreen, DestroyPixmap);
 
     return ret;

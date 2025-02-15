@@ -560,6 +560,7 @@ layout		{
 		      || yyextra->KHR_blend_equation_advanced_enable
 		      || yyextra->AMD_conservative_depth_enable
 		      || yyextra->ARB_conservative_depth_enable
+		      || yyextra->EXT_conservative_depth_enable
 		      || yyextra->ARB_explicit_attrib_location_enable
 		      || yyextra->ARB_explicit_uniform_location_enable
                       || yyextra->ARB_post_depth_coverage_enable

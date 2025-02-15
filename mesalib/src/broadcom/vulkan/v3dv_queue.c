@@ -1171,13 +1171,39 @@ handle_csd_job(struct v3dv_queue *queue,
    return VK_SUCCESS;
 }
 
+static void
+queue_apply_barrier_state(struct v3dv_job *job,
+                          struct v3dv_barrier_state *barrier)
+{
+   if (!v3dv_job_apply_barrier_state(job, barrier))
+      return;
+
+   if (job->type != V3DV_JOB_TYPE_GPU_CL)
+      return;
+
+   if (job->serialize &&
+       (barrier->bcl_buffer_access || barrier->bcl_image_access)) {
+      job->needs_bcl_sync = true;
+      barrier->bcl_buffer_access = barrier->bcl_image_access = 0;
+   }
+}
+
 static VkResult
 queue_handle_job(struct v3dv_queue *queue,
                  struct v3dv_job *job,
                  uint32_t counter_pass_idx,
+                 struct v3dv_barrier_state *barrier,
                  struct v3dv_submit_sync_info *sync_info,
                  bool signal_syncs)
 {
+   if (barrier)
+      queue_apply_barrier_state(job, barrier);
+
+   if (unlikely(V3D_DBG(SYNC))) {
+      job->serialize = V3DV_BARRIER_ALL;
+      job->needs_bcl_sync = job->type == V3DV_JOB_TYPE_GPU_CL;
+   }
+
    switch (job->type) {
    case V3DV_JOB_TYPE_GPU_CL:
       return handle_cl_job(queue, job, counter_pass_idx, sync_info, signal_syncs);
@@ -1235,7 +1261,7 @@ queue_submit_noop_job(struct v3dv_queue *queue,
    }
 
    assert(queue->noop_job);
-   return queue_handle_job(queue, queue->noop_job, counter_pass_idx,
+   return queue_handle_job(queue, queue->noop_job, counter_pass_idx, NULL,
                            sync_info, signal_syncs);
 }
 
@@ -1257,6 +1283,7 @@ v3dv_queue_driver_submit(struct vk_queue *vk_queue,
    for (int i = 0; i < V3DV_QUEUE_COUNT; i++)
       queue->last_job_syncs.first[i] = true;
 
+   struct v3dv_barrier_state pending_barrier = { 0 };
    struct v3dv_job *first_suspend_job = NULL;
    struct v3dv_job *current_suspend_job = NULL;
    for (uint32_t i = 0; i < submit->command_buffer_count; i++) {
@@ -1294,7 +1321,7 @@ v3dv_queue_driver_submit(struct vk_queue *vk_queue,
                                           first_suspend_job : job;
             result =
                queue_handle_job(queue, submit_job, submit->perf_pass_index,
-                                &sync_info, false);
+                                &pending_barrier, &sync_info, false);
 
             if (result != VK_SUCCESS)
                return result;
@@ -1303,17 +1330,10 @@ v3dv_queue_driver_submit(struct vk_queue *vk_queue,
          }
       }
 
-      /* If the command buffer ends with a barrier we need to consume it now.
-       *
-       * FIXME: this will drain all hw queues. Instead, we could use the pending
-       * barrier state to limit the queues we serialize against.
+      /* If the command buffer ends with a barrier, save the pending barrier
+       * state so we can apply it on the next command buffer.
        */
-      if (cmd_buffer->state.barrier.dst_mask) {
-         result = queue_submit_noop_job(queue, submit->perf_pass_index,
-                                        &sync_info, false);
-         if (result != VK_SUCCESS)
-            return result;
-      }
+      v3dv_merge_barrier_state(&pending_barrier, &cmd_buffer->state.barrier);
    }
 
    assert(!first_suspend_job);

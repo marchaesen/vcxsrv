@@ -1,5 +1,3 @@
-/* DO NOT EDIT - This file generated automatically by glX_proto_recv.py (from Mesa) script */
-
 /*
  * (C) Copyright IBM Corporation 2005
  * All Rights Reserved.
@@ -24,14 +22,16 @@
  * OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+#include <dix-config.h>
 
 #include <inttypes.h>
+
 #include "glxserver.h"
 #include "indirect_size.h"
 #include "indirect_size_get.h"
 #include "indirect_dispatch.h"
-#include "glxbyteorder.h"
 #include "indirect_util.h"
+#include "misc.h"
 #include "singlesize.h"
 
 #define __GLX_PAD(x)  (((x) + 3) & ~3)

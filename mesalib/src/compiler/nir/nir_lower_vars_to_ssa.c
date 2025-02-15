@@ -600,6 +600,16 @@ deref_vec_component(nir_deref_instr *deref)
    }
 }
 
+static ALWAYS_INLINE void
+nir_def_set_name(nir_shader *shader, nir_def *def, char *name)
+{
+   if (!name || likely(!shader->has_debug_info))
+      return;
+
+   nir_instr_debug_info *debug_info = nir_instr_get_debug_info(def->parent_instr);
+   debug_info->variable_name = name;
+}
+
 /* Performs variable renaming
  *
  * This algorithm is very similar to the one outlined in "Efficiently
@@ -638,6 +648,8 @@ rename_variables(struct lower_variables_state *state)
             nir_def *val =
                nir_phi_builder_value_get_block_def(node->pb_value, block);
 
+            nir_def_set_name(state->shader, val, nir_deref_instr_get_variable(deref)->name);
+
             /* As tempting as it is to just rewrite the uses of our load
              * instruction with the value we got out of the phi builder, we
              * can't do that without risking messing ourselves up.  In
@@ -657,6 +669,8 @@ rename_variables(struct lower_variables_state *state)
             b.cursor = nir_before_instr(&intrin->instr);
             val = nir_mov(&b, val);
 
+            nir_def_set_name(state->shader, val, nir_deref_instr_get_variable(deref)->name);
+
             assert(val->bit_size == intrin->def.bit_size);
 
             nir_def *comp = deref_vec_component(deref);
@@ -666,6 +680,8 @@ rename_variables(struct lower_variables_state *state)
                assert(intrin->def.num_components == 1);
                b.cursor = nir_before_instr(&intrin->instr);
                val = nir_vector_extract(&b, val, comp);
+
+               nir_def_set_name(state->shader, val, nir_deref_instr_get_variable(deref)->name);
             }
 
             nir_def_replace(&intrin->def, val);
@@ -688,6 +704,8 @@ rename_variables(struct lower_variables_state *state)
 
             if (!node->lower_to_ssa)
                continue;
+
+            nir_def_set_name(state->shader, value, nir_deref_instr_get_variable(deref)->name);
 
             assert(intrin->num_components ==
                    glsl_get_vector_elements(deref->type));
@@ -730,6 +748,8 @@ rename_variables(struct lower_variables_state *state)
                }
                new_def = nir_vec_scalars(&b, srcs, intrin->num_components);
             }
+
+            nir_def_set_name(state->shader, new_def, nir_deref_instr_get_variable(deref)->name);
 
             nir_phi_builder_value_set_block_def(node->pb_value, block, new_def);
             nir_instr_remove(&intrin->instr);

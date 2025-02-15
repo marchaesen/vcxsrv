@@ -35,6 +35,7 @@ extern "C" {
 #define mesa_blake3 blake3_hasher
 #define BLAKE3_OUT_LEN32 (BLAKE3_OUT_LEN / 4)
 #define BLAKE3_HEX_LEN (2 * BLAKE3_OUT_LEN + 1)
+#define BLAKE3_PRINTED_LEN (BLAKE3_OUT_LEN32 * 12 - 2)
 
 typedef uint8_t blake3_hash[BLAKE3_OUT_LEN];
 

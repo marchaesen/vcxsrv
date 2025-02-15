@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 inc_panfrost = include_directories([
-   '.', 'shared', 'midgard', 'compiler', 'lib'
+   '.', 'shared', 'midgard', 'compiler', 'lib', 'libpan',
 ])
 
 compile_args_panfrost = [
@@ -17,6 +17,8 @@ subdir('compiler')
 
 if with_gallium_panfrost or with_panfrost_vk
    subdir('lib')
+   subdir('clc')
+   subdir('libpan')
    subdir('perf')
 endif
 

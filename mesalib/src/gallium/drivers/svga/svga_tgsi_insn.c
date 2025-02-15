@@ -2915,7 +2915,7 @@ svga_emit_instruction(struct svga_shader_emitter *emit,
       return emit_scalar_op1( emit, SVGA3DOP_RCP, insn );
 
    case TGSI_OPCODE_CONT:
-      /* not expected (we return PIPE_SHADER_CAP_CONT_SUPPORTED = 0) */
+      /* not expected (we return pipe_shader_caps.cont_supported = 0) */
       return false;
 
    case TGSI_OPCODE_RET:

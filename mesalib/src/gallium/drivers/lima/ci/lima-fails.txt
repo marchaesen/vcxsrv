@@ -402,7 +402,6 @@ spec@glsl-1.20@execution@built-in-functions@fs-op-div-mat2x4-mat2x4,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-div-mat3x2-mat3x2,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-div-mat3x4-mat3x4,Fail
 spec@glsl-1.20@execution@built-in-functions@fs-op-div-mat4x3-mat4x3,Fail
-spec@glsl-1.20@execution@built-in-functions@fs-op-mult-mat4x3-mat3x4,Fail
 spec@glsl-1.20@execution@clipping@fixed-clip-enables,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-const-reject,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-different-from-position,Fail

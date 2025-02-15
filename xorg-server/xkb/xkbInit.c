@@ -48,7 +48,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "property.h"
 #include "scrnintstr.h"
 #include "xkbgeom.h"
-#include "xkbfile.h"
 
 #define	CREATE_ATOM(s)	MakeAtom(s,sizeof(s)-1,1)
 

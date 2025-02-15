@@ -91,6 +91,7 @@ traces:
   valve/counterstrike-source-v2.trace:
     gl-virgl:
       checksum: e6aacedf9dfafeff77d8414323f6c517
+      label: [skip, flakes]
   valve/half-life-2-v2.trace:
     gl-virgl:
       checksum: 5042b30d91a955ab131e2baf2eed0a2b

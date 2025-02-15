@@ -46,6 +46,9 @@ The exact supported features vary per driver:
    * - V3D
      - ``gpu.counters.v3d``
      -
+   * - V3DV
+     - ``gpu.counters.v3d``
+     -
 
 Run
 ---
@@ -116,8 +119,10 @@ Perfetto is enabled.  They use ``mesa.default`` and ``mesa.slow`` categories.
 Currently, only EGL and the following drivers have have CPU tracepoints.
 
 - Freedreno
+- Turnip
 - V3D
 - VC4
+- V3DV
 
 Vulkan data sources
 ~~~~~~~~~~~~~~~~~~~
@@ -206,6 +211,17 @@ To run the producer, follow these two simple steps:
    .. code-block:: sh
 
       ./build/pps-producer
+
+V3D / V3DV
+----------
+
+As we can only have one performance monitor active at a given time, we can only monitor
+32 performance counters. There is a need to define the performance counters of interest
+for pps_producer using the environment variable ``V3D_DS_COUNTER``.
+
+.. code-block:: sh
+
+   V3D_DS_COUNTER=cycle-count,CLE-bin-thread-active-cycles,CLE-render-thread-active-cycles,QPU-total-uniform-cache-hit ./src/tool/pps/pps-producer
 
 Troubleshooting
 ---------------

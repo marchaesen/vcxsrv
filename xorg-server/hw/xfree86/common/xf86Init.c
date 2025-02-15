@@ -48,10 +48,14 @@
 #include <X11/Xmd.h>
 #include <X11/Xproto.h>
 #include <X11/Xatom.h>
+#include <X11/extensions/XI.h>
+#include <X11/extensions/XIproto.h>
 
 #include "config/dbus-core.h"
+#include "config/hotplug_priv.h"
 #include "dix/input_priv.h"
 #include "dix/screenint_priv.h"
+#include "mi/mi_priv.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
@@ -59,10 +63,11 @@
 #include "servermd.h"
 #include "windowstr.h"
 #include "scrnintstr.h"
-#include "mi.h"
 #include "systemd-logind.h"
+#include "xf86VGAarbiter_priv.h"
 #include "loaderProcs.h"
 
+#include "xf86Module_priv.h"
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86Config.h"
@@ -71,8 +76,6 @@
 #include "xf86cmap.h"
 #include "xorgVersion.h"
 #include "mipointer.h"
-#include <X11/extensions/XI.h>
-#include <X11/extensions/XIproto.h>
 #include "xf86Extensions.h"
 #include "xf86DDC.h"
 #include "xf86Xinput.h"
@@ -96,7 +99,6 @@
 #include <linux/major.h>
 #include <sys/sysmacros.h>
 #endif
-#include <hotplug.h>
 
 void (*xf86OSPMClose) (void) = NULL;
 static Bool xorgHWOpenConsole = FALSE;
@@ -307,7 +309,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 
             t = time(NULL);
             ct = ctime(&t);
-            xf86MsgVerb(xf86LogFileFrom, 0, "Log file: \"%s\", Time: %s",
+            LogMessageVerb(xf86LogFileFrom, 0, "Log file: \"%s\", Time: %s",
                         xf86LogFile, ct);
         }
 
@@ -317,7 +319,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
             case CONFIG_OK:
                 break;
             case CONFIG_PARSE_ERROR:
-                xf86Msg(X_ERROR, "Error parsing the config file\n");
+                LogMessageVerb(X_ERROR, 1, "Error parsing the config file\n");
                 return;
             case CONFIG_NOFILE:
                 autoconfig = TRUE;
@@ -349,7 +351,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
 
         if (autoconfig) {
             if (!xf86AutoConfig()) {
-                xf86Msg(X_ERROR, "Auto configuration failed\n");
+                LogMessageVerb(X_ERROR, 1, "Auto configuration failed\n");
                 return;
             }
         }
@@ -372,7 +374,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         configured_device = xf86ConfigLayout.screens->screen->device;
         if ((!configured_device) || (!configured_device->driver)) {
             if (!autoConfigDevice(configured_device)) {
-                xf86Msg(X_ERROR, "Automatic driver configuration failed\n");
+                LogMessageVerb(X_ERROR, 1, "Automatic driver configuration failed\n");
                 return;
             }
         }
@@ -402,7 +404,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
          */
 
         if (xf86NumDrivers == 0) {
-            xf86Msg(X_ERROR, "No drivers available.\n");
+            LogMessageVerb(X_ERROR, 1, "No drivers available.\n");
             return;
         }
 
@@ -500,8 +502,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
          */
 
         if (xf86NumScreens == 0) {
-            xf86Msg(X_ERROR,
-                    "Screen(s) found, but none have a usable configuration.\n");
+            LogMessageVerb(X_ERROR, 1,
+                           "Screen(s) found, but none have a usable configuration.\n");
             return;
         }
 
@@ -578,7 +580,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
         if (xf86OSPMClose)
             xf86OSPMClose();
         if ((xf86OSPMClose = xf86OSPMOpen()) != NULL)
-            xf86MsgVerb(X_INFO, 3, "APM registered successfully\n");
+            LogMessageVerb(X_INFO, 3, "APM registered successfully\n");
 
         /* Make sure full I/O access is enabled */
         if (xorgHWAccess)
@@ -856,12 +858,12 @@ ddxGiveUp(enum ExitCode error)
 void
 OsVendorFatalError(const char *f, va_list args)
 {
-    ErrorFSigSafe("\nPlease consult the " XVENDORNAME " support \n\t at "
-                 __VENDORDWEBSUPPORT__ "\n for help. \n");
+    ErrorF("\nPlease consult the " XVENDORNAME " support \n\t at "
+           __VENDORDWEBSUPPORT__ "\n for help. \n");
     if (xf86LogFile && xf86LogFileWasOpened)
-        ErrorFSigSafe("Please also check the log file at \"%s\" for additional "
-                     "information.\n", xf86LogFile);
-    ErrorFSigSafe("\n");
+        ErrorF("Please also check the log file at \"%s\" for additional "
+               "information.\n", xf86LogFile);
+    ErrorF("\n");
 }
 
 void

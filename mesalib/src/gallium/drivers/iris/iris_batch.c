@@ -49,7 +49,9 @@
 #include "common/intel_aux_map.h"
 #include "intel/common/intel_gem.h"
 #include "intel/compiler/brw_compiler.h"
+#ifdef INTEL_USE_ELK
 #include "intel/compiler/elk/elk_compiler.h"
+#endif
 #include "intel/ds/intel_tracepoints.h"
 #include "util/hash_table.h"
 #include "util/u_debug.h"
@@ -239,11 +241,15 @@ iris_init_batch(struct iris_context *ice,
                                          stderr, decode_flags, NULL,
                                          decode_get_bo, decode_get_state_size, batch);
       } else {
+#ifdef INTEL_USE_ELK
          assert(screen->elk);
          intel_batch_decode_ctx_init_elk(&batch->decoder, &screen->elk->isa,
                                          screen->devinfo,
                                          stderr, decode_flags, NULL,
                                          decode_get_bo, decode_get_state_size, batch);
+#else
+         unreachable("no elk support");
+#endif
       }
       batch->decoder.dynamic_base = IRIS_MEMZONE_DYNAMIC_START;
       batch->decoder.instruction_base = IRIS_MEMZONE_SHADER_START;

@@ -26,55 +26,41 @@
 
 /**
  * This NIR lowers pass for polygon and line smoothing by modifying the alpha
- * value of fragment outputs using the sample coverage mask.
+ * value of the first fragment output using the sample coverage mask.
  */
 
 static bool
-lower_polylinesmooth(nir_builder *b, nir_instr *instr, void *data)
+lower_polylinesmooth(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
    unsigned *num_smooth_aa_sample = data;
-
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
    if (intr->intrinsic != nir_intrinsic_store_output)
       return false;
 
    int location = nir_intrinsic_io_semantics(intr).location;
-   if ((location != FRAG_RESULT_COLOR && location < FRAG_RESULT_DATA0) ||
-       nir_intrinsic_src_type(intr) != nir_type_float32)
+   int alpha_comp = 3 - nir_intrinsic_component(intr);
+   if ((location != FRAG_RESULT_COLOR && location != FRAG_RESULT_DATA0) ||
+       nir_alu_type_get_base_type(nir_intrinsic_src_type(intr)) != nir_type_float ||
+       !(nir_intrinsic_write_mask(intr) & BITFIELD_BIT(alpha_comp)))
       return false;
-
-   assert(intr->num_components == 4);
 
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_def *res1, *res2;
+   nir_def *coverage = nir_load_sample_mask_in(b);
 
-   nir_if *if_enabled = nir_push_if(b, nir_load_poly_line_smooth_enabled(b));
-   {
-      nir_def *coverage = nir_load_sample_mask_in(b);
+   /* coverage = (coverage) / num_smooth_aa_sample */
+   coverage = nir_bit_count(b, coverage);
+   coverage = nir_u2fN(b, coverage, intr->src[0].ssa->bit_size);
+   coverage = nir_fmul_imm(b, coverage, 1.0 / *num_smooth_aa_sample);
 
-      /* coverage = (coverage) / SI_NUM_SMOOTH_AA_SAMPLES */
-      coverage = nir_bit_count(b, coverage);
-      coverage = nir_u2f32(b, coverage);
-      coverage = nir_fmul_imm(b, coverage, 1.0 / *num_smooth_aa_sample);
+   nir_def *smooth_enabled = nir_load_poly_line_smooth_enabled(b);
+   nir_def *alpha = nir_channel(b, intr->src[0].ssa, alpha_comp);
+   nir_def *smooth_alpha = nir_fmul(b, alpha, coverage);
+   nir_def *new_alpha = nir_bcsel(b, smooth_enabled, smooth_alpha, alpha);
 
-      /* Write out the fragment color*vec4(1, 1, 1, alpha) */
-      nir_def *one = nir_imm_float(b, 1.0f);
-      res1 = nir_fmul(b, nir_vec4(b, one, one, one, coverage), intr->src[0].ssa);
-   }
-   nir_push_else(b, if_enabled);
-   {
-      res2 = intr->src[0].ssa;
-   }
-   nir_pop_if(b, if_enabled);
+   nir_def *new_src = nir_vector_insert_imm(b, intr->src[0].ssa, new_alpha, alpha_comp);
 
-   nir_def *new_dest = nir_if_phi(b, res1, res2);
-
-   nir_src_rewrite(&intr->src[0], new_dest);
+   nir_src_rewrite(&intr->src[0], new_src);
    return true;
 }
 
@@ -82,6 +68,7 @@ bool
 nir_lower_poly_line_smooth(nir_shader *shader, unsigned num_smooth_aa_sample)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
-   return nir_shader_instructions_pass(shader, lower_polylinesmooth, 0,
-                                       &num_smooth_aa_sample);
+   return nir_shader_intrinsics_pass(shader, lower_polylinesmooth,
+                                     nir_metadata_control_flow,
+                                     &num_smooth_aa_sample);
 }

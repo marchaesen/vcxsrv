@@ -254,11 +254,7 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    VAStatus status;
    struct pipe_screen *screen;
    struct pipe_resource *buf_resources[VL_NUM_COMPONENTS];
-   int w;
-   int h;
    int i;
-   unsigned stride = 0;
-   unsigned offset = 0;
 
    if (!ctx)
       return VA_STATUS_ERROR_INVALID_CONTEXT;
@@ -316,9 +312,7 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
    img->height = surf->templat.height;
    img->num_palette_entries = 0;
    img->entry_bytes = 0;
-   /* Image data size is computed using internal dimensions. */
-   w = align(surf->buffer->width, 2);
-   h = align(surf->buffer->height, 2);
+   img->num_planes = util_format_get_num_planes(surf->buffer->buffer_format);
 
    for (i = 0; i < ARRAY_SIZE(formats); ++i) {
       if (img->format.fourcc == formats[i].fourcc) {
@@ -327,75 +321,38 @@ vlVaDeriveImage(VADriverContextP ctx, VASurfaceID surface, VAImage *image)
       }
    }
 
-   if (screen->resource_get_info) {
-      screen->resource_get_info(screen, buf_resources[0], &stride,
-                                &offset);
-      if (!stride)
-         offset = 0;
+   if (!surf->data_size) {
+      unsigned offset = 0;
+      struct pipe_transfer *transfer;
+
+      for (i = 0; i < img->num_planes; i++) {
+         struct pipe_box box = {
+            .width = buf_resources[i]->width0,
+            .height = buf_resources[i]->height0,
+            .depth = buf_resources[i]->depth0,
+         };
+
+         void *ptr = drv->pipe->texture_map(drv->pipe, buf_resources[i],
+                                            0, 0, &box, &transfer);
+         if (!ptr) {
+            status = VA_STATUS_ERROR_OPERATION_FAILED;
+            goto exit_on_error;
+         }
+
+         surf->strides[i] = transfer->stride;
+         surf->offsets[i] = offset;
+         offset += transfer->layer_stride;
+
+         drv->pipe->texture_unmap(drv->pipe, transfer);
+      }
+      surf->data_size = offset;
    }
 
-   img->num_planes = 1;
-   img->offsets[0] = offset;
-
-   switch (img->format.fourcc) {
-   case VA_FOURCC('U','Y','V','Y'):
-   case VA_FOURCC('Y','U','Y','V'):
-      img->pitches[0] = stride > 0 ? stride : w * 2;
-      assert(img->pitches[0] >= (w * 2));
-      img->data_size  = img->pitches[0] * h;
-      break;
-
-   case VA_FOURCC('B','G','R','A'):
-   case VA_FOURCC('R','G','B','A'):
-   case VA_FOURCC('B','G','R','X'):
-   case VA_FOURCC('R','G','B','X'):
-   case VA_FOURCC('A','R','3','0'):
-   case VA_FOURCC('A','B','3','0'):
-   case VA_FOURCC('X','R','3','0'):
-   case VA_FOURCC('X','B','3','0'):
-      img->pitches[0] = stride > 0 ? stride : w * 4;
-      assert(img->pitches[0] >= (w * 4));
-      img->data_size  = img->pitches[0] * h;
-      break;
-
-   case VA_FOURCC('N','V','1','2'):
-   case VA_FOURCC('P','0','1','0'):
-   case VA_FOURCC('P','0','1','2'):
-   case VA_FOURCC('P','0','1','6'):
-   {
-      /* In some gallium platforms, the stride and offset are different*/
-      /* for the Y and UV planes, query them independently.*/
-      if (screen->resource_get_info) {
-         /* resource_get_info is called above for buf_resources[0] and */
-         /* saved results in stride, offset, reuse those values to avoid a new call to: */
-         /* screen->resource_get_info(screen, buf_resources[0], &img->pitches[0],*/
-         /*                         &img->offsets[0]);*/
-         img->pitches[0] = stride;
-         img->offsets[0] = offset;
-
-         screen->resource_get_info(screen, buf_resources[1], &img->pitches[1],
-                                 &img->offsets[1]);
-         if (!img->pitches[1])
-               img->offsets[1] = 0;
-      }
-
-      img->num_planes = 2;
-      if(screen->resource_get_info) {
-         img->data_size  = (img->pitches[0] * h) + (img->pitches[1] * h / 2);
-      } else {
-         /* Use stride = w as default if screen->resource_get_info was not available */
-         img->pitches[0] = w;
-         img->pitches[1] = w;
-         img->offsets[1] = w * h;
-         img->data_size  = w * h * 3 / 2;
-      }
-   } break;
-   default:
-      /* VaDeriveImage only supports contiguous planes. But there is now a
-         more generic api vlVaExportSurfaceHandle. */
-      status = VA_STATUS_ERROR_OPERATION_FAILED;
-      goto exit_on_error;
+   for (i = 0; i < img->num_planes; i++) {
+      img->pitches[i] = surf->strides[i];
+      img->offsets[i] = surf->offsets[i];
    }
+   img->data_size = surf->data_size;
 
    img_buf = CALLOC(1, sizeof(vlVaBuffer));
    if (!img_buf) {

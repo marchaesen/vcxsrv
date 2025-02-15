@@ -23,6 +23,11 @@
  */
 
 #include "nir_builder.h"
+#include "glsl/list.h"
+#include "util/list.h"
+#include "util/ralloc.h"
+#include "nir.h"
+#include "nir_serialize.h"
 
 nir_builder MUST_CHECK PRINTFLIKE(3, 4)
    nir_builder_init_simple_shader(gl_shader_stage stage,
@@ -313,17 +318,6 @@ nir_build_tex_deref_instr(nir_builder *build, nir_texop op,
 }
 
 nir_def *
-nir_build_string(nir_builder *build, const char *value)
-{
-   nir_debug_info_instr *instr =
-      nir_debug_info_instr_create(build->shader, nir_debug_info_string, strlen(value));
-   memcpy(instr->string, value, instr->string_length);
-   nir_def_init(&instr->instr, &instr->def, 1, nir_get_ptr_bitsize(build->shader));
-   nir_builder_instr_insert(build, &instr->instr);
-   return &instr->def;
-}
-
-nir_def *
 nir_vec_scalars(nir_builder *build, nir_scalar *comp, unsigned num_components)
 {
    nir_op op = nir_op_vec(num_components);
@@ -384,6 +378,23 @@ void
 nir_builder_instr_insert(nir_builder *build, nir_instr *instr)
 {
    nir_instr_insert(build->cursor, instr);
+
+   if (unlikely(build->shader->has_debug_info &&
+                (build->cursor.option == nir_cursor_before_instr ||
+                 build->cursor.option == nir_cursor_after_instr))) {
+      nir_instr_debug_info *cursor_info = nir_instr_get_debug_info(build->cursor.instr);
+      nir_instr_debug_info *instr_info = nir_instr_get_debug_info(instr);
+
+      if (!instr_info->line)
+         instr_info->line = cursor_info->line;
+      if (!instr_info->column)
+         instr_info->column = cursor_info->column;
+      if (!instr_info->spirv_offset)
+         instr_info->spirv_offset = cursor_info->spirv_offset;
+      if (!instr_info->filename)
+         instr_info->filename = cursor_info->filename;
+   }
+
 
    /* Move the cursor forward. */
    build->cursor = nir_after_instr(instr);
@@ -648,4 +659,31 @@ nir_gen_rect_vertices(nir_builder *b, nir_def *z, nir_def *w)
    comp[3] = w;
 
    return nir_vec(b, comp, 4);
+}
+
+nir_def *
+nir_call_serialized(nir_builder *b, const uint32_t *serialized,
+                    size_t serialized_size_B, nir_def **args)
+{
+   /* Deserialize the NIR. */
+   void *memctx = ralloc_context(NULL);
+   struct blob_reader blob;
+   blob_reader_init(&blob, (const void *)serialized, serialized_size_B);
+   nir_function *func = nir_deserialize_function(memctx, b->shader->options,
+                                                 &blob);
+
+   /* Validate the arguments, since this won't happen anywhere else */
+   for (unsigned i = 0; i < func->num_params; ++i) {
+      assert(func->params[i].num_components == args[i]->num_components);
+      assert(func->params[i].bit_size == args[i]->bit_size);
+   }
+
+   /* Insert the function at the cursor position */
+   nir_def *ret = nir_inline_function_impl(b, func->impl, args, NULL);
+
+   /* Indices & metadata are completely messed up now */
+   nir_index_ssa_defs(b->impl);
+   nir_metadata_preserve(b->impl, nir_metadata_none);
+   ralloc_free(memctx);
+   return ret;
 }

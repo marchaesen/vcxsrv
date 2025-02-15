@@ -410,12 +410,8 @@ draw_need_pipeline(const struct draw_context *draw,
                    const struct pipe_rasterizer_state *rasterizer,
                    enum mesa_prim prim);
 
-int
-draw_get_shader_param(enum pipe_shader_type shader, enum pipe_shader_cap param);
-
-int
-draw_get_shader_param_no_llvm(enum pipe_shader_type shader,
-                              enum pipe_shader_cap param);
+void
+draw_init_shader_caps(struct pipe_shader_caps *caps);
 
 bool
 draw_get_option_use_llvm(void);

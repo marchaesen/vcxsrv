@@ -372,3 +372,12 @@ spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat3-dmat3
 spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat4x2-dmat4x2
 wayland-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_even_clear
 wayland-dEQP-EGL.functional.image.modify.tex_rgb5_a1_renderbuffer_clear_color
+
+# Random flakes, unkown when they started appearing
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-double-dmat3
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-mult-dmat4x3-dmat3x4
+spec@arb_gpu_shader_fp64@execution@fs-isnan-dvec
+spec@arb_gpu_shader_fp64@execution@gs-isnan-dvec
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat4-double
+spec@glsl-4.00@execution@built-in-functions@fs-op-mult-dmat4x2-dmat4
+spec@glsl-4.10@execution@conversion@frag-conversion-implicit-mat3x4-dmat3x4-zero-sign

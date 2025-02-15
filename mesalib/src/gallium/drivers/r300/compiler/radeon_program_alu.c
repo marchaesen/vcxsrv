@@ -53,26 +53,6 @@ emit2(struct radeon_compiler *c, struct rc_instruction *after, rc_opcode Opcode,
    return fpi;
 }
 
-static struct rc_instruction *
-emit3(struct radeon_compiler *c, struct rc_instruction *after, rc_opcode Opcode,
-      struct rc_sub_instruction *base, struct rc_dst_register DstReg,
-      struct rc_src_register SrcReg0, struct rc_src_register SrcReg1,
-      struct rc_src_register SrcReg2)
-{
-   struct rc_instruction *fpi = rc_insert_new_instruction(c, after);
-
-   if (base) {
-      memcpy(&fpi->U.I, base, sizeof(struct rc_sub_instruction));
-   }
-
-   fpi->U.I.Opcode = Opcode;
-   fpi->U.I.DstReg = DstReg;
-   fpi->U.I.SrcReg[0] = SrcReg0;
-   fpi->U.I.SrcReg[1] = SrcReg1;
-   fpi->U.I.SrcReg[2] = SrcReg2;
-   return fpi;
-}
-
 static struct rc_dst_register
 dstregtmpmask(int index, int mask)
 {
@@ -123,44 +103,6 @@ negate(struct rc_src_register reg)
    struct rc_src_register newreg = reg;
    newreg.Negate = newreg.Negate ^ RC_MASK_XYZW;
    return newreg;
-}
-
-static struct rc_src_register
-swizzle(struct rc_src_register reg, rc_swizzle x, rc_swizzle y, rc_swizzle z, rc_swizzle w)
-{
-   struct rc_src_register swizzled = reg;
-   swizzled.Swizzle = combine_swizzles4(reg.Swizzle, x, y, z, w);
-   return swizzled;
-}
-
-static struct rc_src_register
-swizzle_smear(struct rc_src_register reg, rc_swizzle x)
-{
-   return swizzle(reg, x, x, x, x);
-}
-
-static struct rc_src_register
-swizzle_xxxx(struct rc_src_register reg)
-{
-   return swizzle_smear(reg, RC_SWIZZLE_X);
-}
-
-static struct rc_src_register
-swizzle_yyyy(struct rc_src_register reg)
-{
-   return swizzle_smear(reg, RC_SWIZZLE_Y);
-}
-
-static struct rc_src_register
-swizzle_zzzz(struct rc_src_register reg)
-{
-   return swizzle_smear(reg, RC_SWIZZLE_Z);
-}
-
-static struct rc_src_register
-swizzle_wwww(struct rc_src_register reg)
-{
-   return swizzle_smear(reg, RC_SWIZZLE_W);
 }
 
 static struct rc_dst_register

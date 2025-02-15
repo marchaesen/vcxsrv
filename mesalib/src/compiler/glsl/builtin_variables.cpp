@@ -1130,7 +1130,7 @@ builtin_variable_generator::generate_special_vars()
       add_system_value(SYSTEM_VALUE_SUBGROUP_LE_MASK, uvec4_t, "gl_SubgroupLeMask");
       add_system_value(SYSTEM_VALUE_SUBGROUP_LT_MASK, uvec4_t, "gl_SubgroupLtMask");
    }
-   if (state->is_version(300, 300) && state->OVR_multiview_enable){
+   if (state->is_version(130, 300) && state->OVR_multiview_enable) {
       add_system_value(SYSTEM_VALUE_VIEW_INDEX, int_t, GLSL_PRECISION_MEDIUM,
                       "gl_ViewID_OVR");
    }

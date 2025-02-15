@@ -32,7 +32,7 @@ e6 00 00 00 00 c1 91 06    MOV.i32 r1, core_id.w0
 00 00 00 00 00 c0 00 78    NOP.end 
 40 c4 c0 9c 01 c1 f0 00    ICMP_OR.u32.gt.m1 r1, ^r0, 0x1000000.b3, 0x0
 42 00 00 18 02 40 61 50    STORE.i32.slot0.reconverge @r0, ^r2, offset:0
-00 c9 8f 12 30 c0 a0 00    CLPER.i32.f1 r0, r0, 0x7060504.b0
+00 c9 8f 12 30 c0 a0 00    CLPER.i32.f1 r0, r0, 0x7060504.b00
 00 00 00 30 00 c7 90 00    S8_TO_S32 r7, r0.b3
 00 00 00 20 00 c6 90 00    S8_TO_S32 r6, r0.b2
 00 00 00 00 00 c4 90 00    S8_TO_S32 r4, r0.b0

@@ -396,6 +396,18 @@ bi_optimizer_var_tex(bi_context *ctx, bi_instr *var, bi_instr *tex)
    return true;
 }
 
+static void
+bi_record_use(bi_instr **uses, BITSET_WORD *multiple, bi_instr *I, unsigned s)
+{
+   unsigned v = I->src[s].value;
+
+   assert(I->src[s].type == BI_INDEX_NORMAL);
+   if (uses[v] && uses[v] != I)
+      BITSET_SET(multiple, v);
+   else
+      uses[v] = I;
+}
+
 void
 bi_opt_mod_prop_backward(bi_context *ctx)
 {
@@ -403,45 +415,65 @@ bi_opt_mod_prop_backward(bi_context *ctx)
    bi_instr **uses = calloc(count, sizeof(*uses));
    BITSET_WORD *multiple = calloc(BITSET_WORDS(count), sizeof(*multiple));
 
-   bi_foreach_instr_global_rev(ctx, I) {
-      bi_foreach_ssa_src(I, s) {
-         unsigned v = I->src[s].value;
-
-         if (uses[v] && uses[v] != I)
-            BITSET_SET(multiple, v);
-         else
-            uses[v] = I;
+   bi_foreach_block_rev(ctx, block) {
+      /* Watch out for PHI instructions in loops!
+       * PHI sources are logically read at the end of the predecessor,
+       * so process our source in successor phis first
+       */
+      bi_foreach_successor(block, succ) {
+         unsigned s = bi_predecessor_index(succ, block);
+         bi_foreach_instr_in_block(succ, phi) {
+            /* the PHIs are all at the start of the block, so stop
+             * when we see a non-PHI
+             */
+            if (phi->op != BI_OPCODE_PHI)
+               break;
+            if (phi->src[s].type == BI_INDEX_NORMAL)
+               bi_record_use(uses, multiple, phi, s);
+         }
       }
-
-      if (!I->nr_dests)
-         continue;
-
-      bi_instr *use = uses[I->dest[0].value];
-
-      if (!use || BITSET_TEST(multiple, I->dest[0].value))
-         continue;
-
-      /* Destination has a single use, try to propagate */
-      bool propagated =
-         bi_optimizer_clamp(I, use) || bi_optimizer_result_type(I, use);
-
-      if (!propagated && I->op == BI_OPCODE_LD_VAR_IMM &&
-          use->op == BI_OPCODE_SPLIT_I32) {
-         /* Need to see through the split in a
-          * ld_var_imm/split/var_tex  sequence
-          */
-         bi_instr *tex = uses[use->dest[0].value];
-
-         if (!tex || BITSET_TEST(multiple, use->dest[0].value))
+      /* now go through the instructions backwards */
+      bi_foreach_instr_in_block_rev(block, I) {
+         /* skip PHIs, they are handled specially */
+         if (I->op == BI_OPCODE_PHI)
             continue;
 
-         use = tex;
-         propagated = bi_optimizer_var_tex(ctx, I, use);
-      }
+         /* record uses */
+         bi_foreach_ssa_src(I, s) {
+            bi_record_use(uses, multiple, I, s);
+         }
 
-      if (propagated) {
-         bi_remove_instruction(use);
-         continue;
+         /* check for definitions */
+         if (I->nr_dests != 1)
+            continue;
+
+         bi_instr *use = uses[I->dest[0].value];
+
+         if (!use || BITSET_TEST(multiple, I->dest[0].value))
+            continue;
+
+         /* Destination has a single use, try to propagate */
+         bool propagated =
+            bi_optimizer_clamp(I, use) || bi_optimizer_result_type(I, use);
+
+         if (!propagated && I->op == BI_OPCODE_LD_VAR_IMM &&
+             use->op == BI_OPCODE_SPLIT_I32) {
+            /* Need to see through the split in a
+             * ld_var_imm/split/var_tex  sequence
+             */
+            bi_instr *tex = uses[use->dest[0].value];
+
+            if (!tex || BITSET_TEST(multiple, use->dest[0].value))
+               continue;
+
+            use = tex;
+            propagated = bi_optimizer_var_tex(ctx, I, use);
+         }
+
+         if (propagated) {
+            bi_remove_instruction(use);
+            continue;
+         }
       }
    }
 

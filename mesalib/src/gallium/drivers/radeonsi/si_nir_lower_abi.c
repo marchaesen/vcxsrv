@@ -105,13 +105,14 @@ static nir_def *build_esgs_ring_desc(nir_builder *b, enum amd_gfx_level gfx_leve
    return nir_vec(b, vec, 4);
 }
 
-static void build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
+static bool build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
 {
    const struct si_shader_selector *sel = s->shader->selector;
    const union si_shader_key *key = &s->shader->key;
 
    if (s->shader->is_gs_copy_shader) {
       s->gsvs_ring[0] = si_nir_load_internal_binding(b, s->args, SI_RING_GSVS, 4);
+      return true;
    } else if (b->shader->info.stage == MESA_SHADER_GEOMETRY && !key->ge.as_ngg) {
       nir_def *base_addr = si_nir_load_internal_binding(b, s->args, SI_RING_GSVS, 2);
       base_addr = nir_pack_64_2x32(b, base_addr);
@@ -164,26 +165,34 @@ static void build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
          /* next stream's desc addr */
          base_addr = nir_iadd_imm(b, base_addr, stride * num_records);
       }
+
+      return true;
    }
+
+   return false;
 }
 
-static void preload_reusable_variables(nir_builder *b, struct lower_abi_state *s)
+static bool preload_reusable_variables(nir_builder *b, struct lower_abi_state *s)
 {
    const struct si_shader_selector *sel = s->shader->selector;
    const union si_shader_key *key = &s->shader->key;
+   bool progress = false;
 
    b->cursor = nir_before_impl(b->impl);
 
    if (sel->screen->info.gfx_level <= GFX8 && b->shader->info.stage <= MESA_SHADER_GEOMETRY &&
        (key->ge.as_es || b->shader->info.stage == MESA_SHADER_GEOMETRY)) {
       s->esgs_ring = build_esgs_ring_desc(b, sel->screen->info.gfx_level, s->args);
+      progress = true;
    }
 
    if (b->shader->info.stage == MESA_SHADER_TESS_CTRL ||
-       b->shader->info.stage == MESA_SHADER_TESS_EVAL)
+       b->shader->info.stage == MESA_SHADER_TESS_EVAL) {
       s->tess_offchip_ring = build_tess_ring_desc(b, sel->screen, s->args);
+      progress = true;
+   }
 
-   build_gsvs_ring_desc(b, s);
+   return build_gsvs_ring_desc(b, s) || progress;
 }
 
 static nir_def *get_num_vertices_per_prim(nir_builder *b, struct lower_abi_state *s)
@@ -631,9 +640,8 @@ bool si_nir_lower_abi(nir_shader *nir, struct si_shader *shader, struct si_shade
 
    nir_builder b = nir_builder_create(impl);
 
-   preload_reusable_variables(&b, &state);
+   bool progress = preload_reusable_variables(&b, &state);
 
-   bool progress = false;
    nir_foreach_block_safe(block, impl) {
       nir_foreach_instr_safe(instr, block) {
          if (instr->type == nir_instr_type_intrinsic)

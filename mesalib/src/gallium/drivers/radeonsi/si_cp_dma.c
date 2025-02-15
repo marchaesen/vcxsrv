@@ -107,7 +107,7 @@ static void si_cp_dma_prepare(struct si_context *sctx, struct pipe_resource *dst
                               struct pipe_resource *src, unsigned byte_count,
                               uint64_t remaining_size, bool *is_first, unsigned *packet_flags)
 {
-   si_need_gfx_cs_space(sctx, 0);
+   si_need_gfx_cs_space(sctx, 0, 0);
 
    /* This must be done after need_cs_space. */
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(dst),

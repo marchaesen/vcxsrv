@@ -32,7 +32,8 @@
  * List of supported modifiers, in descending order of preference. AFBC is
  * faster than u-interleaved tiling which is faster than linear. Within AFBC,
  * enabling the YUV-like transform is typically a win where possible.
- * AFRC is only used if explicitely asked for (only for RGB formats).
+ * AFRC is only used if explicitly asked for (only for RGB formats).
+ * Similarly MTK 16L32 is only used if explicitly asked for.
  */
 uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT] = {
    DRM_FORMAT_MOD_ARM_AFBC(AFBC_FORMAT_MOD_BLOCK_SIZE_32x8 |
@@ -73,6 +74,8 @@ uint64_t pan_best_modifiers[PAN_MODIFIER_COUNT] = {
    DRM_FORMAT_MOD_ARM_AFRC(
       AFRC_FORMAT_MOD_CU_SIZE_P0(AFRC_FORMAT_MOD_CU_SIZE_32) |
       AFRC_FORMAT_MOD_LAYOUT_SCAN),
+
+   DRM_FORMAT_MOD_MTK_16L_32S_TILE,
 };
 
 /* Table of AFBC superblock sizes */

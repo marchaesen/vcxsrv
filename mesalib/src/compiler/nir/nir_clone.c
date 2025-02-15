@@ -24,6 +24,7 @@
 #include "nir.h"
 #include "nir_control_flow.h"
 #include "nir_xfb_info.h"
+#include "util/u_printf.h"
 
 /* Secret Decoder Ring:
  *   clone_foo():
@@ -218,10 +219,50 @@ __clone_def(clone_state *state, nir_instr *ninstr,
       add_remap(state, ndef, def);
 }
 
+/* Returns a copy of the argument string that is owned by the new shader.
+ * Uses remap_table avoid allocating multiple copies of the same string.
+ */
+static char *
+clone_string(clone_state *state, const char *string)
+{
+   if (!string)
+      return NULL;
+
+   if (!state->remap_table)
+      return ralloc_strdup(state->ns, string);
+
+   struct hash_entry *entry = _mesa_hash_table_search(state->remap_table, string);
+   if (entry)
+      return entry->data;
+
+   char *cloned = ralloc_strdup(state->ns, string);
+   _mesa_hash_table_insert(state->remap_table, string, cloned);
+   return cloned;
+}
+
+static void
+clone_debug_info(clone_state *state, nir_instr *ninstr, const nir_instr *instr)
+{
+   if (likely(!state->ns->has_debug_info || !instr->has_debug_info))
+      return;
+
+   nir_instr_debug_info *ndebug_info = nir_instr_get_debug_info(ninstr);
+   const nir_instr_debug_info *debug_info = nir_instr_get_debug_info((void *)instr);
+
+   ndebug_info->filename = clone_string(state, debug_info->filename);
+   ndebug_info->variable_name = clone_string(state, debug_info->variable_name);
+
+   ndebug_info->line = debug_info->line;
+   ndebug_info->column = debug_info->column;
+   ndebug_info->spirv_offset = debug_info->spirv_offset;
+   ndebug_info->nir_line = debug_info->nir_line;
+}
+
 static nir_alu_instr *
 clone_alu(clone_state *state, const nir_alu_instr *alu)
 {
    nir_alu_instr *nalu = nir_alu_instr_create(state->ns, alu->op);
+   clone_debug_info(state, &nalu->instr, &alu->instr);
    nalu->exact = alu->exact;
    nalu->fp_fast_math = alu->fp_fast_math;
    nalu->no_signed_wrap = alu->no_signed_wrap;
@@ -253,6 +294,7 @@ clone_deref_instr(clone_state *state, const nir_deref_instr *deref)
 {
    nir_deref_instr *nderef =
       nir_deref_instr_create(state->ns, deref->deref_type);
+   clone_debug_info(state, &nderef->instr, &deref->instr);
 
    __clone_def(state, &nderef->instr, &nderef->def, &deref->def);
 
@@ -300,6 +342,7 @@ clone_intrinsic(clone_state *state, const nir_intrinsic_instr *itr)
 {
    nir_intrinsic_instr *nitr =
       nir_intrinsic_instr_create(state->ns, itr->intrinsic);
+   clone_debug_info(state, &nitr->instr, &itr->instr);
 
    unsigned num_srcs = nir_intrinsic_infos[itr->intrinsic].num_srcs;
 
@@ -322,6 +365,7 @@ clone_load_const(clone_state *state, const nir_load_const_instr *lc)
    nir_load_const_instr *nlc =
       nir_load_const_instr_create(state->ns, lc->def.num_components,
                                   lc->def.bit_size);
+   clone_debug_info(state, &nlc->instr, &lc->instr);
 
    memcpy(&nlc->value, &lc->value, sizeof(*nlc->value) * lc->def.num_components);
 
@@ -337,6 +381,7 @@ clone_ssa_undef(clone_state *state, const nir_undef_instr *sa)
    nir_undef_instr *nsa =
       nir_undef_instr_create(state->ns, sa->def.num_components,
                              sa->def.bit_size);
+   clone_debug_info(state, &nsa->instr, &sa->instr);
 
    if (likely(state->remap_table))
       add_remap(state, &nsa->def, &sa->def);
@@ -348,6 +393,7 @@ static nir_tex_instr *
 clone_tex(clone_state *state, const nir_tex_instr *tex)
 {
    nir_tex_instr *ntex = nir_tex_instr_create(state->ns, tex->num_srcs);
+   clone_debug_info(state, &ntex->instr, &tex->instr);
 
    ntex->sampler_dim = tex->sampler_dim;
    ntex->dest_type = tex->dest_type;
@@ -381,6 +427,7 @@ static nir_phi_instr *
 clone_phi(clone_state *state, const nir_phi_instr *phi, nir_block *nblk)
 {
    nir_phi_instr *nphi = nir_phi_instr_create(state->ns);
+   clone_debug_info(state, &nphi->instr, &phi->instr);
 
    __clone_def(state, &nphi->instr, &nphi->def, &phi->def);
 
@@ -417,6 +464,7 @@ clone_jump(clone_state *state, const nir_jump_instr *jmp)
    assert(jmp->type != nir_jump_goto && jmp->type != nir_jump_goto_if);
 
    nir_jump_instr *njmp = nir_jump_instr_create(state->ns, jmp->type);
+   clone_debug_info(state, &njmp->instr, &jmp->instr);
 
    return njmp;
 }
@@ -426,35 +474,12 @@ clone_call(clone_state *state, const nir_call_instr *call)
 {
    nir_function *ncallee = remap_global(state, call->callee);
    nir_call_instr *ncall = nir_call_instr_create(state->ns, ncallee);
+   clone_debug_info(state, &ncall->instr, &call->instr);
 
    for (unsigned i = 0; i < ncall->num_params; i++)
       __clone_src(state, ncall, &ncall->params[i], &call->params[i]);
 
    return ncall;
-}
-
-static nir_debug_info_instr *
-clone_debug_info(clone_state *state, nir_debug_info_instr *di)
-{
-   nir_debug_info_instr *instr =
-      nir_debug_info_instr_create(state->ns, di->type, di->string_length);
-
-   switch (di->type) {
-   case nir_debug_info_src_loc:
-      if (di->src_loc.line)
-         __clone_src(state, instr, &instr->src_loc.filename, &di->src_loc.filename);
-      instr->src_loc.line = di->src_loc.line;
-      instr->src_loc.column = di->src_loc.column;
-      instr->src_loc.spirv_offset = di->src_loc.spirv_offset;
-      instr->src_loc.source = di->src_loc.source;
-      return instr;
-   case nir_debug_info_string:
-      memcpy(instr->string, di->string, di->string_length);
-      __clone_def(state, &instr->instr, &instr->def, &di->def);
-      return instr;
-   }
-
-   unreachable("Unimplemented nir_debug_info_type");
 }
 
 static nir_instr *
@@ -479,8 +504,6 @@ clone_instr(clone_state *state, const nir_instr *instr)
       return &clone_jump(state, nir_instr_as_jump(instr))->instr;
    case nir_instr_type_call:
       return &clone_call(state, nir_instr_as_call(instr))->instr;
-   case nir_instr_type_debug_info:
-      return &clone_debug_info(state, nir_instr_as_debug_info(instr))->instr;
    case nir_instr_type_parallel_copy:
       unreachable("Cannot clone parallel copies");
    default:
@@ -782,6 +805,8 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
 
    nir_shader *ns = nir_shader_create(mem_ctx, s->info.stage, s->options, NULL);
    state.ns = ns;
+
+   ns->has_debug_info = s->has_debug_info;
 
    clone_var_list(&state, &ns->variables, &s->variables);
 

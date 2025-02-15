@@ -100,6 +100,9 @@
                                  VA_ENC_PACKED_HEADER_MISC | \
                                  VA_ENC_PACKED_HEADER_RAW_DATA)
 
+/* vaCreateContext flags */
+#define VL_VA_CREATE_CONTEXT_PROTECTED (1 << 16)
+
 static inline enum pipe_video_chroma_format
 ChromaToPipe(int format)
 {
@@ -278,6 +281,9 @@ PipeToProfile(enum pipe_video_profile profile)
    case PIPE_VIDEO_PROFILE_HEVC_MAIN_12:
    case PIPE_VIDEO_PROFILE_HEVC_MAIN_STILL:
    case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
+   case PIPE_VIDEO_PROFILE_HEVC_MAIN10_444:
+   case PIPE_VIDEO_PROFILE_HEVC_MAIN_422:
+   case PIPE_VIDEO_PROFILE_HEVC_MAIN10_422:
    case PIPE_VIDEO_PROFILE_UNKNOWN:
       return VAProfileNone;
    default:
@@ -340,6 +346,7 @@ ProfileToPipe(VAProfile profile)
 typedef struct {
    struct vl_screen *vscreen;
    struct pipe_context *pipe;
+   struct pipe_context *pipe2;
    struct handle_table *htab;
    struct vl_compositor compositor;
    struct vl_compositor_state cstate;
@@ -453,6 +460,9 @@ typedef struct vlVaSurface {
    struct pipe_fence_handle *pipe_fence; /* pipe_context fence */
    struct vlVaSurface *efc_surface; /* input surface for EFC */
    bool is_dpb;
+   unsigned int strides[3];
+   unsigned int offsets[3];
+   unsigned int data_size;
 } vlVaSurface;
 
 typedef struct {

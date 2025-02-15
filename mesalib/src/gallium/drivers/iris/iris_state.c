@@ -1409,6 +1409,13 @@ iris_init_render_context(struct iris_batch *batch)
    }
 #endif
 
+#if GFX_VER >= 30
+   iris_emit_cmd(batch, GENX(STATE_COMPUTE_MODE), cm) {
+      cm.EnableVariableRegisterSizeAllocationMask = 1;
+      cm.EnableVariableRegisterSizeAllocation = true;
+   }
+#endif
+
    upload_pixel_hashing_tables(batch);
 
    /* 3DSTATE_DRAWING_RECTANGLE is non-pipelined, so we want to avoid
@@ -1529,6 +1536,10 @@ iris_init_compute_context(struct iris_batch *batch)
                                    PIPE_CONTROL_FLUSH_HDC);
 
    iris_emit_cmd(batch, GENX(STATE_COMPUTE_MODE), cm) {
+#if GFX_VER >= 30
+      cm.EnableVariableRegisterSizeAllocationMask = 1;
+      cm.EnableVariableRegisterSizeAllocation = true;
+#endif
 #if GFX_VER >= 20
       cm.AsyncComputeThreadLimit = ACTL_Max8;
       cm.ZPassAsyncComputeThreadLimit = ZPACTL_Max60;
@@ -1762,6 +1773,9 @@ iris_create_blend_state(struct pipe_context *ctx,
          be.WriteDisableGreen = !(rt->colormask & PIPE_MASK_G);
          be.WriteDisableBlue  = !(rt->colormask & PIPE_MASK_B);
          be.WriteDisableAlpha = !(rt->colormask & PIPE_MASK_A);
+#if GFX_VER >= 30
+         be.SimpleFloatBlendEnable = true;
+#endif
       }
       blend_entry += GENX(BLEND_STATE_ENTRY_length);
    }
@@ -5136,6 +5150,9 @@ iris_store_vs_state(const struct intel_device_info *devinfo,
 #endif
       vs.UserClipDistanceCullTestEnableBitmask =
          vue_data->cull_distance_mask;
+#if GFX_VER >= 30
+      vs.RegistersPerThread = ptl_register_blocks(shader->brw_prog_data->grf_used);
+#endif
    }
 }
 
@@ -5181,6 +5198,10 @@ iris_store_tcs_state(const struct intel_device_info *devinfo,
 #endif
       hs.IncludePrimitiveID = tcs_data->include_primitive_id;
 #endif
+
+#if GFX_VER >= 30
+      hs.RegistersPerThread = ptl_register_blocks(shader->brw_prog_data->grf_used);
+#endif
    }
 }
 
@@ -5210,6 +5231,10 @@ iris_store_tes_state(const struct intel_device_info *devinfo,
 #endif
       ds.UserClipDistanceCullTestEnableBitmask =
          vue_data->cull_distance_mask;
+
+#if GFX_VER >= 30
+      ds.RegistersPerThread = ptl_register_blocks(shader->brw_prog_data->grf_used);
+#endif
    }
 
    iris_pack_command(GENX(3DSTATE_TE), te_state, te) {
@@ -5289,6 +5314,10 @@ iris_store_gs_state(const struct intel_device_info *devinfo,
 
       gs.VertexURBEntryOutputReadOffset = urb_entry_write_offset;
       gs.VertexURBEntryOutputLength = MAX2(urb_entry_output_length, 1);
+
+#if GFX_VER >= 30
+      gs.RegistersPerThread = ptl_register_blocks(shader->brw_prog_data->grf_used);
+#endif
    }
 }
 
@@ -5315,6 +5344,10 @@ iris_store_fs_state(const struct intel_device_info *devinfo,
 #if GFX_VER < 20
       ps.PushConstantEnable = devinfo->needs_null_push_constant_tbimr_workaround ||
                               shader->ubo_ranges[0].length > 0;
+#endif
+
+#if GFX_VER >= 30
+      ps.RegistersPerThread = ptl_register_blocks(shader->brw_prog_data->grf_used);
 #endif
 
       /* From the documentation for this packet:
@@ -5413,6 +5446,10 @@ iris_store_cs_state(const struct intel_device_info *devinfo,
       desc.ThreadPreemption = false;
 #elif GFX_VER >= 12
       desc.ThreadPreemptionDisable = true;
+#endif
+#if GFX_VER >= 30
+      desc.RegistersPerThread = ptl_register_blocks(
+         shader->brw_prog_data->grf_used);
 #endif
    }
 }
@@ -9085,6 +9122,9 @@ iris_upload_compute_walker(struct iris_context *ice,
    idd.BindingTableEntryCount = devinfo->verx10 == 125 ?
       0 : MIN2(shader->bt.size_bytes / 4, 31);
    idd.NumberOfBarriers = cs_data->uses_barrier;
+#if GFX_VER >= 30
+   idd.RegistersPerThread = ptl_register_blocks(shader->brw_prog_data->grf_used);
+#endif
 
    iris_measure_snapshot(ice, batch, INTEL_SNAPSHOT_COMPUTE, NULL, NULL, NULL);
 

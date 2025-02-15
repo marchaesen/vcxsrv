@@ -2293,14 +2293,42 @@ handle_block(struct ra_ctx *ctx, struct ir3_block *block)
       handle_live_in(ctx, reg);
    }
 
+   /* Handle phis in two groups: first those which already have a preferred reg
+    * set and then those without. The second group should be rare but by
+    * handling them last, they don't accidentally occupy a preferred reg of
+    * another phi, preventing excessive copying in some cases.
+    */
+   bool skipped_phi = false;
+
    foreach_instr (instr, &block->instr_list) {
-      if (instr->opc == OPC_META_PHI)
-         handle_phi(ctx, instr->dsts[0]);
-      else if (instr->opc == OPC_META_INPUT ||
-               instr->opc == OPC_META_TEX_PREFETCH)
+      if (instr->opc == OPC_META_PHI) {
+         struct ir3_register *dst = instr->dsts[0];
+
+         if (dst->merge_set && dst->merge_set->preferred_reg != (physreg_t)~0) {
+            handle_phi(ctx, dst);
+         } else {
+            skipped_phi = true;
+         }
+      } else if (instr->opc == OPC_META_INPUT ||
+                 instr->opc == OPC_META_TEX_PREFETCH) {
          handle_input(ctx, instr);
-      else
+      } else {
          break;
+      }
+   }
+
+   if (skipped_phi) {
+      foreach_instr (instr, &block->instr_list) {
+         if (instr->opc == OPC_META_PHI) {
+            struct ir3_register *dst = instr->dsts[0];
+
+            if (!ctx->intervals[dst->name].interval.inserted) {
+               handle_phi(ctx, dst);
+            }
+         } else {
+            break;
+         }
+      }
    }
 
    /* After this point, every live-in/phi/input has an interval assigned to

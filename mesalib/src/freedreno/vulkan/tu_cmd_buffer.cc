@@ -983,38 +983,56 @@ static bool
 use_sysmem_rendering(struct tu_cmd_buffer *cmd,
                      struct tu_renderpass_result **autotune_result)
 {
-   if (TU_DEBUG(SYSMEM))
+   if (TU_DEBUG(SYSMEM)) {
+      cmd->state.rp.gmem_disable_reason = "TU_DEBUG(SYSMEM)";
       return true;
+   }
 
    /* can't fit attachments into gmem */
-   if (!cmd->state.tiling->possible)
+   if (!cmd->state.tiling->possible) {
+      cmd->state.rp.gmem_disable_reason = "Can't fit attachments into gmem";
       return true;
+   }
 
-   if (cmd->state.framebuffer->layers > 1)
+   if (cmd->state.framebuffer->layers > 1) {
+      cmd->state.rp.gmem_disable_reason = "Framebuffer has more than 1 layer";
       return true;
+   }
 
    /* Use sysmem for empty render areas */
    if (cmd->state.render_area.extent.width == 0 ||
-       cmd->state.render_area.extent.height == 0)
+       cmd->state.render_area.extent.height == 0) {
+      cmd->state.rp.gmem_disable_reason = "Render area is empty";
       return true;
+   }
 
-   if (cmd->state.rp.has_tess)
+   if (cmd->state.rp.has_tess) {
+      cmd->state.rp.gmem_disable_reason = "Uses tessellation shaders";
       return true;
+   }
 
-   if (cmd->state.rp.disable_gmem)
+   if (cmd->state.rp.disable_gmem) {
+      /* gmem_disable_reason is set where disable_gmem is set. */
       return true;
+   }
 
    /* XFB is incompatible with non-hw binning GMEM rendering, see use_hw_binning */
-   if (cmd->state.rp.xfb_used && !cmd->state.tiling->binning_possible)
+   if (cmd->state.rp.xfb_used && !cmd->state.tiling->binning_possible) {
+      cmd->state.rp.gmem_disable_reason =
+         "XFB is incompatible with non-hw binning GMEM rendering";
       return true;
+   }
 
    /* QUERY_TYPE_PRIMITIVES_GENERATED is incompatible with non-hw binning
     * GMEM rendering, see use_hw_binning.
     */
    if ((cmd->state.rp.has_prim_generated_query_in_rp ||
         cmd->state.prim_generated_query_running_before_rp) &&
-       !cmd->state.tiling->binning_possible)
+       !cmd->state.tiling->binning_possible) {
+      cmd->state.rp.gmem_disable_reason =
+         "QUERY_TYPE_PRIMITIVES_GENERATED is incompatible with non-hw binning GMEM rendering";
       return true;
+   }
 
    if (TU_DEBUG(GMEM))
       return false;
@@ -1023,6 +1041,10 @@ use_sysmem_rendering(struct tu_cmd_buffer *cmd,
                                             cmd, autotune_result);
    if (*autotune_result) {
       list_addtail(&(*autotune_result)->node, &cmd->renderpass_autotune_results);
+   }
+
+   if (use_sysmem) {
+      cmd->state.rp.gmem_disable_reason = "Autotune selected sysmem";
    }
 
    return use_sysmem;
@@ -1048,12 +1070,20 @@ tu6_emit_cond_for_load_stores(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
    }
 }
 
+struct tu_tile_config {
+   VkOffset2D pos;
+   uint32_t pipe;
+   uint32_t slot_mask;
+   VkExtent2D extent;
+   VkExtent2D frag_areas[MAX_VIEWS];
+};
+
 template <chip CHIP>
 static void
 tu6_emit_tile_select(struct tu_cmd_buffer *cmd,
                      struct tu_cs *cs,
-                     uint32_t tx, uint32_t ty, uint32_t pipe, uint32_t slot,
-                     const struct tu_image_view *fdm)
+                     const struct tu_tile_config *tile,
+                     bool fdm)
 {
    struct tu_physical_device *phys_dev = cmd->device->physical_device;
    const struct tu_tiling_config *tiling = cmd->state.tiling;
@@ -1079,28 +1109,37 @@ tu6_emit_tile_select(struct tu_cmd_buffer *cmd,
    tu_cs_emit_regs(cs,
                    A6XX_VFD_MODE_CNTL(RENDERING_PASS));
 
-   const uint32_t x1 = tiling->tile0.width * tx;
-   const uint32_t y1 = tiling->tile0.height * ty;
+   const uint32_t x1 = tiling->tile0.width * tile->pos.x;
+   const uint32_t y1 = tiling->tile0.height * tile->pos.y;
    const uint32_t x2 = MIN2(x1 + tiling->tile0.width, MAX_VIEWPORT_SIZE);
    const uint32_t y2 = MIN2(y1 + tiling->tile0.height, MAX_VIEWPORT_SIZE);
    tu6_emit_window_scissor(cs, x1, y1, x2 - 1, y2 - 1);
    tu6_emit_window_offset<CHIP>(cs, x1, y1);
 
+   unsigned slot = ffs(tile->slot_mask) - 1;
+
    if (hw_binning) {
+      bool abs_mask =
+         cmd->device->physical_device->info->a7xx.has_abs_bin_mask;
       tu_cs_emit_pkt7(cs, CP_WAIT_FOR_ME, 0);
 
       tu_cs_emit_pkt7(cs, CP_SET_MODE, 1);
       tu_cs_emit(cs, 0x0);
 
-      tu_cs_emit_pkt7(cs, CP_SET_BIN_DATA5_OFFSET, 4);
-      tu_cs_emit(cs, tiling->pipe_sizes[pipe] |
-                     CP_SET_BIN_DATA5_0_VSC_N(slot));
-      tu_cs_emit(cs, pipe * cmd->vsc_draw_strm_pitch);
-      tu_cs_emit(cs, pipe * 4);
-      tu_cs_emit(cs, pipe * cmd->vsc_prim_strm_pitch);
+      tu_cs_emit_pkt7(cs, CP_SET_BIN_DATA5_OFFSET, abs_mask ? 5 : 4);
+      tu_cs_emit(cs, tiling->pipe_sizes[tile->pipe] |
+                     CP_SET_BIN_DATA5_0_VSC_N(slot) |
+                     CP_SET_BIN_DATA5_0_VSC_MASK(tile->slot_mask >> slot) |
+                     COND(abs_mask, CP_SET_BIN_DATA5_0_ABS_MASK(ABS_MASK)));
+      if (abs_mask)
+         tu_cs_emit(cs, tile->slot_mask);
+      tu_cs_emit(cs, tile->pipe * cmd->vsc_draw_strm_pitch);
+      tu_cs_emit(cs, tile->pipe * 4);
+      tu_cs_emit(cs, tile->pipe * cmd->vsc_prim_strm_pitch);
    }
 
-   tu6_emit_cond_for_load_stores(cmd, cs, pipe, slot, hw_binning);
+   if (util_is_power_of_two_nonzero(tile->slot_mask))
+      tu6_emit_cond_for_load_stores(cmd, cs, tile->pipe, slot, hw_binning);
 
    tu_cs_emit_pkt7(cs, CP_SET_VISIBILITY_OVERRIDE, 1);
    tu_cs_emit(cs, !hw_binning);
@@ -1108,76 +1147,18 @@ tu6_emit_tile_select(struct tu_cmd_buffer *cmd,
    tu_cs_emit_pkt7(cs, CP_SET_MODE, 1);
    tu_cs_emit(cs, 0x0);
 
-   if (fdm || (TU_DEBUG(FDM) && cmd->state.pass->has_fdm)) {
+   if (fdm) {
       unsigned views =
          cmd->state.pass->num_views ? cmd->state.pass->num_views : 1;
-      const struct tu_framebuffer *fb = cmd->state.framebuffer;
-      struct tu_frag_area raw_areas[views];
-      if (fdm) {
-         tu_fragment_density_map_sample(fdm,
-                                        (x1 + MIN2(x2, fb->width)) / 2,
-                                        (y1 + MIN2(y2, fb->height)) / 2,
-                                        fb->width, fb->height, views,
-                                        raw_areas);
-      } else {
-         for (unsigned i = 0; i < views; i++)
-            raw_areas[i].width = raw_areas[i].height = 1.0f;
-      }
-
-      VkExtent2D frag_areas[views];
-      for (unsigned i = 0; i < views; i++) {
-         float floor_x, floor_y;
-         float area = raw_areas[i].width * raw_areas[i].height;
-         float frac_x = modff(raw_areas[i].width, &floor_x);
-         float frac_y = modff(raw_areas[i].height, &floor_y);
-         /* The spec allows rounding up one of the axes as long as the total
-          * area is less than or equal to the original area. Take advantage of
-          * this to try rounding up the number with the largest fraction.
-          */
-         if ((frac_x > frac_y ? (floor_x + 1.f) * floor_y :
-                                 floor_x * (floor_y + 1.f)) <= area) {
-            if (frac_x > frac_y)
-               floor_x += 1.f;
-            else
-               floor_y += 1.f;
-         }
-         frag_areas[i].width = floor_x;
-         frag_areas[i].height = floor_y;
-
-         /* Make sure that the width/height divides the tile width/height so
-          * we don't have to do extra awkward clamping of the edges of each
-          * bin when resolving. Note that because the tile width is rounded to
-          * a multiple of 32 any power of two 32 or less will work.
-          *
-          * TODO: Try to take advantage of the total area allowance here, too.
-          */
-         while (tiling->tile0.width % frag_areas[i].width != 0)
-            frag_areas[i].width--;
-         while (tiling->tile0.height % frag_areas[i].height != 0)
-            frag_areas[i].height--;
-      }
-
-      /* If at any point we were forced to use the same scaling for all
-       * viewports, we need to make sure that any users *not* using shared
-       * scaling, including loads/stores, also consistently share the scaling. 
-       */
-      if (cmd->state.rp.shared_viewport) {
-         VkExtent2D frag_area = { UINT32_MAX, UINT32_MAX };
-         for (unsigned i = 0; i < views; i++) {
-            frag_area.width = MIN2(frag_area.width, frag_areas[i].width);
-            frag_area.height = MIN2(frag_area.height, frag_areas[i].height);
-         }
-
-         for (unsigned i = 0; i < views; i++)
-            frag_areas[i] = frag_area;
-      }
-
-      VkRect2D bin = { { x1, y1 }, { x2 - x1, y2 - y1 } };
+      VkRect2D bin = {
+         { x1, y1 },
+         { (x2 - x1) * tile->extent.width, (y2 - y1) * tile->extent.height }
+      };
       util_dynarray_foreach (&cmd->fdm_bin_patchpoints,
                              struct tu_fdm_bin_patchpoint, patch) {
          tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 2 + patch->size);
          tu_cs_emit_qw(cs, patch->iova);
-         patch->apply(cmd, cs, patch->data, bin, views, frag_areas);
+         patch->apply(cmd, cs, patch->data, bin, views, tile->frag_areas);
       }
 
       /* Make the CP wait until the CP_MEM_WRITE's to the command buffers
@@ -2060,6 +2041,7 @@ tu_trace_end_render_pass(struct tu_cmd_buffer *cmd, bool gmem)
    }
 
    trace_end_render_pass(&cmd->trace, &cmd->cs, gmem,
+                         cmd->state.rp.gmem_disable_reason,
                          cmd->state.rp.drawcall_count,
                          avg_per_sample_bandwidth, cmd->state.lrz.valid,
                          cmd->state.rp.lrz_disable_reason,
@@ -2261,10 +2243,10 @@ tu6_tile_render_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
 template <chip CHIP>
 static void
 tu6_render_tile(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
-                uint32_t tx, uint32_t ty, uint32_t pipe, uint32_t slot,
-                const struct tu_image_view *fdm)
+                const struct tu_tile_config *tile,
+                bool fdm)
 {
-   tu6_emit_tile_select<CHIP>(cmd, &cmd->cs, tx, ty, pipe, slot, fdm);
+   tu6_emit_tile_select<CHIP>(cmd, &cmd->cs, tile, fdm);
    tu_lrz_before_tile<CHIP>(cmd, &cmd->cs);
 
    trace_start_draw_ib_gmem(&cmd->trace, &cmd->cs);
@@ -2287,8 +2269,11 @@ tu6_render_tile(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
    }
 
    /* Predicate is changed in draw_cs so we have to re-emit it */
-   if (cmd->state.rp.draw_cs_writes_to_cond_pred)
-      tu6_emit_cond_for_load_stores(cmd, cs, pipe, slot, false);
+   if (cmd->state.rp.draw_cs_writes_to_cond_pred &&
+       util_is_power_of_two_nonzero(tile->slot_mask)) {
+      uint32_t slot = ffs(tile->slot_mask) - 1;
+      tu6_emit_cond_for_load_stores(cmd, cs, tile->pipe, slot, false);
+   }
 
    tu_cs_emit_pkt7(cs, CP_SKIP_IB2_ENABLE_GLOBAL, 1);
    tu_cs_emit(cs, 0x0);
@@ -2324,6 +2309,196 @@ tu6_tile_render_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
    tu_cs_sanity_check(cs);
 }
 
+static void
+tu_calc_frag_area(struct tu_cmd_buffer *cmd,
+                  struct tu_tile_config *tile,
+                  const struct tu_image_view *fdm)
+{
+   const struct tu_tiling_config *tiling = cmd->state.tiling;
+   const uint32_t x1 = tiling->tile0.width * tile->pos.x;
+   const uint32_t y1 = tiling->tile0.height * tile->pos.y;
+   const uint32_t x2 = MIN2(x1 + tiling->tile0.width, MAX_VIEWPORT_SIZE);
+   const uint32_t y2 = MIN2(y1 + tiling->tile0.height, MAX_VIEWPORT_SIZE);
+
+   unsigned views =
+      cmd->state.pass->num_views ? cmd->state.pass->num_views : 1;
+   const struct tu_framebuffer *fb = cmd->state.framebuffer;
+   struct tu_frag_area raw_areas[views];
+   if (fdm) {
+      tu_fragment_density_map_sample(fdm,
+                                     (x1 + MIN2(x2, fb->width)) / 2,
+                                     (y1 + MIN2(y2, fb->height)) / 2,
+                                     fb->width, fb->height, views,
+                                     raw_areas);
+   } else {
+      for (unsigned i = 0; i < views; i++)
+         raw_areas[i].width = raw_areas[i].height = 1.0f;
+   }
+
+   for (unsigned i = 0; i < views; i++) {
+      float floor_x, floor_y;
+      float area = raw_areas[i].width * raw_areas[i].height;
+      float frac_x = modff(raw_areas[i].width, &floor_x);
+      float frac_y = modff(raw_areas[i].height, &floor_y);
+      /* The spec allows rounding up one of the axes as long as the total
+       * area is less than or equal to the original area. Take advantage of
+       * this to try rounding up the number with the largest fraction.
+       */
+      if ((frac_x > frac_y ? (floor_x + 1.f) * floor_y :
+                              floor_x * (floor_y + 1.f)) <= area) {
+         if (frac_x > frac_y)
+            floor_x += 1.f;
+         else
+            floor_y += 1.f;
+      }
+      tile->frag_areas[i].width = floor_x;
+      tile->frag_areas[i].height = floor_y;
+
+      /* Make sure that the width/height divides the tile width/height so
+       * we don't have to do extra awkward clamping of the edges of each
+       * bin when resolving. Note that because the tile width is rounded to
+       * a multiple of 32 any power of two 32 or less will work.
+       *
+       * TODO: Try to take advantage of the total area allowance here, too.
+       */
+      while (tiling->tile0.width % tile->frag_areas[i].width != 0)
+         tile->frag_areas[i].width--;
+      while (tiling->tile0.height % tile->frag_areas[i].height != 0)
+         tile->frag_areas[i].height--;
+   }
+
+   /* If at any point we were forced to use the same scaling for all
+    * viewports, we need to make sure that any users *not* using shared
+    * scaling, including loads/stores, also consistently share the scaling. 
+    */
+   if (cmd->state.rp.shared_viewport) {
+      VkExtent2D frag_area = { UINT32_MAX, UINT32_MAX };
+      for (unsigned i = 0; i < views; i++) {
+         frag_area.width = MIN2(frag_area.width, tile->frag_areas[i].width);
+         frag_area.height = MIN2(frag_area.height, tile->frag_areas[i].height);
+      }
+
+      for (unsigned i = 0; i < views; i++)
+         tile->frag_areas[i] = frag_area;
+   }
+}
+
+static bool
+try_merge_tiles(struct tu_tile_config *dst, const struct tu_tile_config *src,
+                unsigned views, bool has_abs_bin_mask)
+{
+   uint32_t slot_mask = dst->slot_mask | src->slot_mask;
+
+   /* The fragment areas must be the same. */
+   for (unsigned i = 0; i < views; i++) {
+      if (dst->frag_areas[i].width != src->frag_areas[i].width ||
+          dst->frag_areas[i].height != src->frag_areas[i].height)
+         return false;
+   }
+
+   if (!has_abs_bin_mask) {
+      /* The mask of the combined tile has to fit in 16 bits */
+      uint32_t hw_mask = slot_mask >> (ffs(slot_mask) - 1);
+      if ((hw_mask & 0xffff) != hw_mask)
+         return false;
+   }
+
+   /* Note, this assumes that dst is below or to the right of src, which is
+    * how we call this function below.
+    */
+   VkExtent2D extent = {
+      dst->extent.width + (dst->pos.x - src->pos.x),
+      dst->extent.height + (dst->pos.y - src->pos.y),
+   };
+
+   assert(dst->extent.height > 0);
+
+   /* The common fragment areas must not be smaller than the combined bin
+    * extent, so that the combined bin is not larger than the original
+    * unscaled bin.
+    */
+   for (unsigned i = 0; i < views; i++) {
+      if (dst->frag_areas[i].width < extent.width ||
+          dst->frag_areas[i].height < extent.height)
+         return false;
+   }
+
+   /* Ok, let's combine them. dst is below or to the right of src, so it takes
+    * src's position.
+    */
+   dst->extent = extent;
+   dst->pos = src->pos;
+   dst->slot_mask = slot_mask;
+   return true;
+}
+
+template <chip CHIP>
+void
+tu_render_pipe_fdm(struct tu_cmd_buffer *cmd, uint32_t pipe,
+                   uint32_t tx1, uint32_t ty1, uint32_t tx2, uint32_t ty2,
+                   const struct tu_image_view *fdm)
+{
+   uint32_t width = tx2 - tx1;
+   uint32_t height = ty2 - ty1;
+   unsigned views =
+      cmd->state.pass->num_views ? cmd->state.pass->num_views : 1;
+   bool has_abs_mask =
+      cmd->device->physical_device->info->a7xx.has_abs_bin_mask;
+
+   struct tu_tile_config tiles[width * height];
+
+   /* Initialize tiles and sample fragment density map */
+   for (uint32_t y = 0; y < height; y++) {
+      for (uint32_t x = 0; x < width; x++) {
+         struct tu_tile_config *tile = &tiles[width * y + x];
+         tile->pos = { x + tx1, y + ty1 };
+         tile->extent = { 1, 1 };
+         tile->pipe = pipe;
+         tile->slot_mask = 1u << (width * y + x);
+         tu_calc_frag_area(cmd, tile, fdm);
+      }
+   }
+
+   uint32_t merged_tiles = 0;
+
+   /* Merge tiles */
+   for (uint32_t y = 0; y < height; y++) {
+      for (uint32_t x = 0; x < width; x++) {
+         struct tu_tile_config *tile = &tiles[width * y + x];
+         if (x > 0) {
+            struct tu_tile_config *prev_x_tile = &tiles[width * y + x - 1];
+            if (try_merge_tiles(tile, prev_x_tile, views, has_abs_mask)) {
+               merged_tiles |= prev_x_tile->slot_mask;
+            }
+         }
+         if (y > 0) {
+            struct tu_tile_config *prev_y_tile = &tiles[width * (y - 1) + x];
+            if (!(merged_tiles & prev_y_tile->slot_mask) &&
+                try_merge_tiles(tile, prev_y_tile, views, has_abs_mask)) {
+               merged_tiles |= prev_y_tile->slot_mask;
+            }
+         }
+      }
+   }
+
+   /* Finally, iterate over tiles and draw them */
+   for (uint32_t y = 0; y < height; y++) {
+      for (uint32_t x = 0; x < width; x++) {
+         uint32_t tx;
+         if (y & 1)
+            tx = width - 1 - x;
+         else
+            tx = x;
+
+         unsigned tile_idx = y * width + tx;
+         if (merged_tiles & (1u << tile_idx))
+            continue;
+
+         tu6_render_tile<CHIP>(cmd, &cmd->cs, &tiles[tile_idx], true);
+      }
+   }
+}
+
 template <chip CHIP>
 static void
 tu_cmd_render_tiles(struct tu_cmd_buffer *cmd,
@@ -2335,6 +2510,10 @@ tu_cmd_render_tiles(struct tu_cmd_buffer *cmd,
    if (cmd->state.pass->fragment_density_map.attachment != VK_ATTACHMENT_UNUSED) {
       fdm = cmd->state.attachments[cmd->state.pass->fragment_density_map.attachment];
    }
+
+   bool has_fdm = fdm || (TU_DEBUG(FDM) && cmd->state.pass->has_fdm);
+   bool merge_tiles = has_fdm && !TU_DEBUG(NO_BIN_MERGING) &&
+      cmd->device->physical_device->info->a6xx.has_bin_mask;
 
    /* Create gmem stores now (at EndRenderPass time)) because they needed to
     * know whether to allow their conditional execution, which was tied to a
@@ -2365,6 +2544,12 @@ tu_cmd_render_tiles(struct tu_cmd_buffer *cmd,
          uint32_t ty1 = py * tiling->pipe0.height;
          uint32_t tx2 = MIN2(tx1 + tiling->pipe0.width, tiling->tile_count.width);
          uint32_t ty2 = MIN2(ty1 + tiling->pipe0.height, tiling->tile_count.height);
+
+         if (merge_tiles) {
+            tu_render_pipe_fdm<CHIP>(cmd, pipe, tx1, ty1, tx2, ty2, fdm);
+            continue;
+         }
+
          uint32_t tile_row_stride = tx2 - tx1;
          uint32_t slot_row = 0;
          for (uint32_t ty = ty1; ty < ty2; ty++) {
@@ -2374,8 +2559,17 @@ tu_cmd_render_tiles(struct tu_cmd_buffer *cmd,
                   tx = tile_row_stride - 1 - tile_row_i;
                else
                   tx = tile_row_i;
-               uint32_t slot = slot_row + tx;
-               tu6_render_tile<CHIP>(cmd, &cmd->cs, tx1 + tx, ty, pipe, slot, fdm);
+
+               struct tu_tile_config tile = {
+                  .pos = { tx1 + tx, ty },
+                  .pipe = pipe,
+                  .slot_mask = 1u << (slot_row + tx),
+                  .extent = { 1, 1 },
+               };
+               if (has_fdm)
+                  tu_calc_frag_area(cmd, &tile, fdm);
+
+               tu6_render_tile<CHIP>(cmd, &cmd->cs, &tile, has_fdm);
             }
             slot_row += tile_row_stride;
          }
@@ -2655,7 +2849,11 @@ tu_BeginCommandBuffer(VkCommandBuffer commandBuffer,
 
    /* setup initial configuration into command buffer */
    if (cmd_buffer->vk.level == VK_COMMAND_BUFFER_LEVEL_PRIMARY) {
-      trace_start_cmd_buffer(&cmd_buffer->trace, &cmd_buffer->cs, cmd_buffer);
+      if (u_trace_enabled(&cmd_buffer->device->trace_context)) {
+         trace_start_cmd_buffer(&cmd_buffer->trace, &cmd_buffer->cs,
+                                cmd_buffer, tu_env_debug_as_string(),
+                                ir3_shader_debug_as_string());
+      }
 
       switch (cmd_buffer->queue_family_index) {
       case TU_QUEUE_GENERAL:
@@ -2668,8 +2866,13 @@ tu_BeginCommandBuffer(VkCommandBuffer commandBuffer,
       const bool pass_continue =
          pBeginInfo->flags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 
-      trace_start_cmd_buffer(&cmd_buffer->trace,
-            pass_continue ? &cmd_buffer->draw_cs : &cmd_buffer->cs, cmd_buffer);
+      if (u_trace_enabled(&cmd_buffer->device->trace_context)) {
+         trace_start_cmd_buffer(
+            &cmd_buffer->trace,
+            pass_continue ? &cmd_buffer->draw_cs : &cmd_buffer->cs,
+            cmd_buffer, tu_env_debug_as_string(),
+            ir3_shader_debug_as_string());
+      }
 
       assert(pBeginInfo->pInheritanceInfo);
 
@@ -3645,6 +3848,8 @@ tu_pipeline_update_rp_state(struct tu_cmd_state *cmd_state)
          cmd->device,
          "Disabling gmem due to VK_EXT_attachment_feedback_loop_layout");
       cmd_state->rp.disable_gmem = true;
+      cmd_state->rp.gmem_disable_reason =
+         "VK_EXT_attachment_feedback_loop_layout may involve textures";
    }
 
    if (cmd_state->pipeline_sysmem_single_prim_mode &&
@@ -4270,6 +4475,9 @@ tu_render_pass_state_merge(struct tu_render_pass_state *dst,
       dst->lrz_disable_reason = src->lrz_disable_reason;
       dst->lrz_disabled_at_draw =
          dst->drawcall_count + src->lrz_disabled_at_draw;
+   }
+   if (!dst->gmem_disable_reason && src->gmem_disable_reason) {
+      dst->gmem_disable_reason = src->gmem_disable_reason;
    }
 }
 
@@ -5615,7 +5823,7 @@ fdm_apply_fs_params(struct tu_cmd_buffer *cmd,
                     void *data,
                     VkRect2D bin,
                     unsigned views,
-                    VkExtent2D *frag_areas)
+                    const VkExtent2D *frag_areas)
 {
    const struct apply_fs_params_state *state =
       (const struct apply_fs_params_state *)data;
@@ -5931,6 +6139,8 @@ tu6_draw_common(struct tu_cmd_buffer *cmd,
             cmd->device,
             "Disabling gmem due to VK_EXT_attachment_feedback_loop_layout");
          cmd->state.rp.disable_gmem = true;
+         cmd->state.rp.gmem_disable_reason =
+            "MESA_VK_DYNAMIC_ATTACHMENT_FEEDBACK_LOOP_ENABLE";
       }
    }
 
@@ -6120,13 +6330,30 @@ vs_params_offset(struct tu_cmd_buffer *cmd)
    return param_offset;
 }
 
+template <chip CHIP>
 static void
 tu6_emit_empty_vs_params(struct tu_cmd_buffer *cmd)
 {
-   if (cmd->state.vs_params.iova) {
+   if (cmd->state.last_vs_params.empty)
+      return;
+
+   if (cmd->device->physical_device->info->a7xx.load_shader_consts_via_preamble) {
+      struct tu_cs cs;
+      cmd->state.vs_params = tu_cs_draw_state(&cmd->sub_cs, &cs, 2);
+
+      /* CP_LOAD_STATE6_GEOM from previous draws can override consts loaded for
+       * indirect draws, causing problems like incorrect vertex index computation.
+       * VS state invalidation avoids that.
+       */
+      tu_cs_emit_regs(&cs, HLSQ_INVALIDATE_CMD(CHIP,
+         .vs_state = true));
+      assert(cs.cur == cs.end);
+   } else {
       cmd->state.vs_params = (struct tu_draw_state) {};
-      cmd->state.dirty |= TU_CMD_DIRTY_VS_PARAMS;
    }
+   cmd->state.dirty |= TU_CMD_DIRTY_VS_PARAMS;
+
+   cmd->state.last_vs_params.empty = true;
 }
 
 static void
@@ -6143,7 +6370,7 @@ tu6_emit_vs_params(struct tu_cmd_buffer *cmd,
     */
    if (!(cmd->state.dirty & (TU_CMD_DIRTY_DRAW_STATE | TU_CMD_DIRTY_VS_PARAMS |
                              TU_CMD_DIRTY_PROGRAM)) &&
-       cmd->state.vs_params.iova &&
+       !cmd->state.last_vs_params.empty &&
        (offset == 0 || draw_id == cmd->state.last_vs_params.draw_id) &&
        vertex_offset == cmd->state.last_vs_params.vertex_offset &&
        first_instance == cmd->state.last_vs_params.first_instance) {
@@ -6195,6 +6422,7 @@ tu6_emit_vs_params(struct tu_cmd_buffer *cmd,
    cmd->state.last_vs_params.vertex_offset = vertex_offset;
    cmd->state.last_vs_params.first_instance = first_instance;
    cmd->state.last_vs_params.draw_id = draw_id;
+   cmd->state.last_vs_params.empty = false;
 
    struct tu_cs_entry entry = tu_cs_end_sub_stream(&cmd->sub_cs, &cs);
    cmd->state.vs_params = (struct tu_draw_state) {entry.bo->iova + entry.offset, entry.size / 4};
@@ -6373,7 +6601,7 @@ tu_CmdDrawIndirect(VkCommandBuffer commandBuffer,
    VK_FROM_HANDLE(tu_buffer, buf, _buffer);
    struct tu_cs *cs = &cmd->draw_cs;
 
-   tu6_emit_empty_vs_params(cmd);
+   tu6_emit_empty_vs_params<CHIP>(cmd);
 
    if (cmd->device->physical_device->info->a6xx.indirect_draw_wfm_quirk)
       draw_wfm(cmd);
@@ -6402,7 +6630,7 @@ tu_CmdDrawIndexedIndirect(VkCommandBuffer commandBuffer,
    VK_FROM_HANDLE(tu_buffer, buf, _buffer);
    struct tu_cs *cs = &cmd->draw_cs;
 
-   tu6_emit_empty_vs_params(cmd);
+   tu6_emit_empty_vs_params<CHIP>(cmd);
 
    if (cmd->device->physical_device->info->a6xx.indirect_draw_wfm_quirk)
       draw_wfm(cmd);
@@ -6436,7 +6664,7 @@ tu_CmdDrawIndirectCount(VkCommandBuffer commandBuffer,
    VK_FROM_HANDLE(tu_buffer, count_buf, countBuffer);
    struct tu_cs *cs = &cmd->draw_cs;
 
-   tu6_emit_empty_vs_params(cmd);
+   tu6_emit_empty_vs_params<CHIP>(cmd);
 
    /* It turns out that the firmware we have for a650 only partially fixed the
     * problem with CP_DRAW_INDIRECT_MULTI not waiting for WFI's to complete
@@ -6473,7 +6701,7 @@ tu_CmdDrawIndexedIndirectCount(VkCommandBuffer commandBuffer,
    VK_FROM_HANDLE(tu_buffer, count_buf, countBuffer);
    struct tu_cs *cs = &cmd->draw_cs;
 
-   tu6_emit_empty_vs_params(cmd);
+   tu6_emit_empty_vs_params<CHIP>(cmd);
 
    draw_wfm(cmd);
 
@@ -7295,6 +7523,7 @@ tu_barrier(struct tu_cmd_buffer *cmd,
       if ((srcStage & ~framebuffer_space_stages) ||
           (dstStage & ~framebuffer_space_stages)) {
          cmd->state.rp.disable_gmem = true;
+         cmd->state.rp.gmem_disable_reason = "Non-framebuffer-space barrier";
       }
    }
 

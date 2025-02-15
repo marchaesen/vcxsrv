@@ -122,7 +122,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       .is_draw_shader = true
    };
    vp = (struct gl_vertex_program *)ctx->VertexProgram._Current;
-   vp_variant = st_get_common_variant(st, &vp->Base, &key);
+   vp_variant = st_get_common_variant(st, &vp->Base, &key, false, NULL);
 
    /*
     * Set up the draw module's state.

@@ -23,6 +23,7 @@
 struct pipe_video_buffer *si_video_buffer_create(struct pipe_context *pipe,
                                                  const struct pipe_video_buffer *tmpl)
 {
+   struct si_context *ctx = (struct si_context *)pipe;
    struct pipe_video_buffer vidbuf = *tmpl;
    uint64_t *modifiers = NULL;
    int modifiers_count = 0;
@@ -30,6 +31,14 @@ struct pipe_video_buffer *si_video_buffer_create(struct pipe_context *pipe,
 
    if (tmpl->bind & (PIPE_BIND_VIDEO_DECODE_DPB | PIPE_BIND_VIDEO_ENCODE_DPB))
       return vl_video_buffer_create_as_resource(pipe, &vidbuf, NULL, 0);
+
+   /* Ensure resource_get_handle doesn't need to reallocate the texture
+    * which would fail with compute-only context.
+    * This is only needed with AMD_DEBUG=tmz because in this case the frontend
+    * is not aware of the buffer being created as protected.
+    */
+   if (ctx->screen->debug_flags & DBG(TMZ) && !(vidbuf.bind & PIPE_BIND_PROTECTED))
+      vidbuf.bind |= PIPE_BIND_SHARED;
 
    /* To get tiled buffers, users need to explicitly provide a list of
     * modifiers. */

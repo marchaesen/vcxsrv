@@ -92,6 +92,8 @@ struct pipe_screen {
    void *winsys_priv;
 
    const struct pipe_caps caps;
+   const struct pipe_shader_caps shader_caps[PIPE_SHADER_MESH_TYPES];
+   const struct pipe_compute_caps compute_caps;
 
    /**
     * Get the fd associated with the screen
@@ -134,13 +136,6 @@ struct pipe_screen {
    const char *(*get_cl_cts_version)(struct pipe_screen *);
 
    /**
-    * Query a per-shader-stage integer-valued capability/parameter/limit
-    * \param param  one of pipe_caps.x
-    */
-   int (*get_shader_param)(struct pipe_screen *, enum pipe_shader_type shader,
-                           enum pipe_shader_cap param);
-
-   /**
     * Query an integer-valued capability/parameter/limit for a codec/profile
     * \param param  one of PIPE_VIDEO_CAP_x
     */
@@ -148,21 +143,6 @@ struct pipe_screen {
                           enum pipe_video_profile profile,
                           enum pipe_video_entrypoint entrypoint,
                           enum pipe_video_cap param);
-
-   /**
-    * Query a compute-specific capability/parameter/limit.
-    * \param ir_type shader IR type for which the param applies, or don't care
-    *                if the param is not shader related
-    * \param param   one of PIPE_COMPUTE_CAP_x
-    * \param ret     pointer to a preallocated buffer that will be
-    *                initialized to the parameter value, or NULL.
-    * \return        size in bytes of the parameter value that would be
-    *                returned.
-    */
-   int (*get_compute_param)(struct pipe_screen *,
-                            enum pipe_shader_ir ir_type,
-                            enum pipe_compute_cap param,
-                            void *ret);
 
    /**
     * Get the sample pixel grid's size. This function requires

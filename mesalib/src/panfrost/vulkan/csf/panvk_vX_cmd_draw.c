@@ -197,31 +197,11 @@ emit_varying_descs(const struct panvk_cmd_buffer *cmdbuf,
       if (var->location < VARYING_SLOT_VAR0)
          continue;
 
-      /* We currently always write out F32 in the vertex shaders, so the format
-       * needs to reflect this. */
-      enum pipe_format f = var->format;
-      switch (f) {
-      case PIPE_FORMAT_R16_FLOAT:
-         f = PIPE_FORMAT_R32_FLOAT;
-         break;
-      case PIPE_FORMAT_R16G16_FLOAT:
-         f = PIPE_FORMAT_R32G32_FLOAT;
-         break;
-      case PIPE_FORMAT_R16G16B16_FLOAT:
-         f = PIPE_FORMAT_R32G32B32_FLOAT;
-         break;
-      case PIPE_FORMAT_R16G16B16A16_FLOAT:
-         f = PIPE_FORMAT_R32G32B32A32_FLOAT;
-         break;
-      default:
-         break;
-      }
-
       uint32_t loc = var->location - VARYING_SLOT_VAR0;
       pan_pack(&descs[i], ATTRIBUTE, cfg) {
          cfg.attribute_type = MALI_ATTRIBUTE_TYPE_VERTEX_PACKET;
          cfg.offset_enable = false;
-         cfg.format = GENX(panfrost_format_from_pipe_format)(f)->hw;
+         cfg.format = GENX(panfrost_format_from_pipe_format)(var->format)->hw;
          cfg.table = 61;
          cfg.frequency = MALI_ATTRIBUTE_FREQUENCY_VERTEX;
          cfg.offset = 1024 + (loc * 16);
@@ -1526,7 +1506,12 @@ prepare_dcd(struct panvk_cmd_buffer *cmdbuf)
 
             cfg.pixel_kill_operation = earlyzs.kill;
             cfg.zs_update_operation = earlyzs.update;
-            cfg.evaluate_per_sample = fs->info.fs.sample_shading;
+            cfg.evaluate_per_sample = fs->info.fs.sample_shading &&
+                                      (dyns->ms.rasterization_samples > 1);
+
+            cfg.shader_modifies_coverage = fs->info.fs.writes_coverage ||
+                                           fs->info.fs.can_discard ||
+                                           alpha_to_coverage;
          } else {
             cfg.allow_forward_pixel_to_kill = true;
             cfg.allow_forward_pixel_to_be_killed = true;
@@ -2076,6 +2061,7 @@ panvk_per_arch(cmd_inherit_render_state)(
       to_panvk_physical_device(dev->vk.physical);
    struct pan_fb_info *fbinfo = &cmdbuf->state.gfx.render.fb.info;
 
+   cmdbuf->state.gfx.render.suspended = false;
    cmdbuf->state.gfx.render.flags = inheritance_info->flags;
 
    gfx_state_set_dirty(cmdbuf, RENDER_STATE);
@@ -2609,6 +2595,7 @@ panvk_per_arch(CmdEndRendering)(VkCommandBuffer commandBuffer)
     * so any barrier encountered after EndRendering() doesn't try to flush
     * draws. */
    cmdbuf->state.gfx.render.flags = 0;
+   cmdbuf->state.gfx.render.suspended = suspending;
 
    /* If we're not suspending, we need to resolve attachments. */
    if (!suspending)

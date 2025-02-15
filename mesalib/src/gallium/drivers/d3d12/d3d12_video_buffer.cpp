@@ -495,7 +495,7 @@ d3d12_video_create_dpb_buffer(struct pipe_video_codec *codec,
          tmpl.bind |= PIPE_BIND_VIDEO_ENCODE_DPB;
 
       bTextureArray = (pD3D12Enc->m_currentEncodeCapabilities.m_SupportFlags &
-         D3D12_VIDEO_ENCODER_SUPPORT_FLAG_RECONSTRUCTED_FRAMES_REQUIRE_TEXTURE_ARRAYS);
+         D3D12_VIDEO_ENCODER_SUPPORT_FLAG_RECONSTRUCTED_FRAMES_REQUIRE_TEXTURE_ARRAYS) != 0;
    }
 
    if (bTextureArray)
@@ -527,7 +527,7 @@ d3d12_video_create_dpb_buffer_texarray(struct pipe_video_codec *codec,
    if (!pD3D12Enc->m_pVideoTexArrayDPBPool)
    {
       pipe_resource resource_creation_info = {};
-      resource_creation_info.array_size = static_cast<uint16_t>(d3d12_video_encoder_get_current_max_dpb_capacity(pD3D12Enc));
+      resource_creation_info.array_size = static_cast<uint16_t>(d3d12_video_encoder_get_current_max_dpb_capacity(pD3D12Enc) + D3D12_VIDEO_ENC_ASYNC_DEPTH + 1u);
       assert(resource_creation_info.array_size <= 32); // uint32_t used as a usage bitmap into m_pVideoTexArrayDPBPool
       buf = (d3d12_video_buffer*) d3d12_video_buffer_create_impl(codec->context, templat, &resource_creation_info, d3d12_video_buffer_creation_mode::create_resource, NULL, 0);
       pD3D12Enc->m_pVideoTexArrayDPBPool = &buf->texture->base.b;

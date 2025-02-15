@@ -23,7 +23,7 @@ set +x
 
 # Pass through relevant env vars from the gitlab job to the baremetal init script
 echo "Variables passed through:"
-"$CI_COMMON"/generate-env.sh | tee $rootfs_dst/set-job-env-vars.sh
+"$CI_COMMON"/export-gitlab-job-env-for-dut.sh | tee $rootfs_dst/set-job-env-vars.sh
 
 set -x
 

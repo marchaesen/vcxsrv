@@ -74,10 +74,12 @@ Equipment Corporation.
 #include <dix-config.h>
 
 #include <X11/X.h>
+#include <X11/Xmd.h>
 #include <X11/Xproto.h>
 #include <X11/Xprotostr.h>
 
 #include "dix/dix_priv.h"
+#include "mi/mi_priv.h"
 
 #include "misc.h"
 #include "regionstr.h"
@@ -86,17 +88,13 @@ Equipment Corporation.
 #include "windowstr.h"
 #include "pixmap.h"
 #include "input.h"
-
 #include "dixstruct.h"
-#include "mi.h"
-#include <X11/Xmd.h>
-
 #include "globals.h"
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
-#endif
+#endif /* XINERAMA */
 
 /*
     machine-independent graphics exposure code.  any device that uses
@@ -323,7 +321,7 @@ miSendExposures(WindowPtr pWin, RegionPtr pRgn, int dx, int dy)
         pe->u.expose.count = i;
     }
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
     if (!noPanoramiXExtension) {
         int scrnum = pWin->drawable.pScreen->myNum;
         int x = 0, y = 0;
@@ -354,7 +352,7 @@ miSendExposures(WindowPtr pWin, RegionPtr pRgn, int dx, int dy)
                 pEvent[i].u.expose.y += y;
             }
     }
-#endif
+#endif /* XINERAMA */
 
     DeliverEvents(pWin, pEvent, numRects, NullWindow);
 
@@ -405,9 +403,6 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
     BoxPtr pbox;
     xRectangle *prect;
     int numRects, regionnumrects;
-#ifdef COMPOSITE
-    WindowPtr orig_pWin = pWin;
-#endif
 
     /*
      * Distance from screen to destination drawable, use this
@@ -494,6 +489,7 @@ miPaintWindow(WindowPtr pWin, RegionPtr prgn, int what)
 #ifdef COMPOSITE
         /* Make sure alpha will sample as 1.0 for opaque windows */
         if (drawable->depth == 32) {
+            WindowPtr orig_pWin = pWin;
             int effective_depth = orig_pWin->drawable.depth;
 
             if (effective_depth == 32) {

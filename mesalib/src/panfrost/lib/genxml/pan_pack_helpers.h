@@ -6,10 +6,19 @@
 #ifndef PAN_PACK_HELPERS_H
 #define PAN_PACK_HELPERS_H
 
+#include "compiler/libcl/libcl.h"
+#include "util/bitpack_helpers.h"
+
+#ifndef __OPENCL_VERSION__
 #include <inttypes.h>
 #include <stdio.h>
+#endif
 
-#include "util/bitpack_helpers.h"
+#ifdef __OPENCL_VERSION__
+#define fprintf(...)                                                           \
+   do {                                                                        \
+   } while (0)
+#endif
 
 static inline uint32_t
 __gen_padded(uint32_t v, uint32_t start, uint32_t end)
@@ -97,18 +106,9 @@ __gen_padded(uint32_t v, uint32_t start, uint32_t end)
            _loop_terminate = NULL;                                             \
         }))
 
-#define pan_cast_and_pack(dst, T, name)                                        \
-   pan_pack((PREFIX2(T, PACKED_T) *)dst, T, name)
-
-#define pan_cast_and_pack_nodefaults(dst, T, name)                             \
-   pan_pack_nodefaults((PREFIX2(T, PACKED_T) *)dst, T, name)
-
 #define pan_unpack(src, T, name)                                               \
    UNUSED struct PREFIX1(T) name;                                              \
    PREFIX2(T, unpack)((src), &name)
-
-#define pan_cast_and_unpack(src, T, name)                                      \
-   pan_unpack((const PREFIX2(T, PACKED_T) *)(src), T, name)
 
 #define pan_print(fp, T, var, indent) PREFIX2(T, print)(fp, &(var), indent)
 
@@ -116,6 +116,18 @@ __gen_padded(uint32_t v, uint32_t start, uint32_t end)
 #define pan_alignment(T) PREFIX2(T, ALIGN)
 
 #define pan_section_offset(A, S) PREFIX4(A, SECTION, S, OFFSET)
+
+/* Those APIs aren't safe in OpenCL C because we lose information on the
+ * pointer address space */
+#ifndef __OPENCL_VERSION__
+#define pan_cast_and_pack(dst, T, name)                                        \
+   pan_pack((PREFIX2(T, PACKED_T) *)dst, T, name)
+
+#define pan_cast_and_pack_nodefaults(dst, T, name)                             \
+   pan_pack_nodefaults((PREFIX2(T, PACKED_T) *)dst, T, name)
+
+#define pan_cast_and_unpack(src, T, name)                                      \
+   pan_unpack((const PREFIX2(T, PACKED_T) *)(src), T, name)
 
 #define pan_section_ptr(base, A, S)                                            \
    ((PREFIX4(A, SECTION, S, PACKED_TYPE) *)((uint8_t *)(base) +                \
@@ -133,6 +145,7 @@ __gen_padded(uint32_t v, uint32_t start, uint32_t end)
 #define pan_section_unpack(src, A, S, name)                                    \
    UNUSED PREFIX4(A, SECTION, S, TYPE) name;                                   \
    PREFIX4(A, SECTION, S, unpack)(pan_section_ptr(src, A, S), &name)
+#endif
 
 #define pan_section_print(fp, A, S, var, indent)                               \
    PREFIX4(A, SECTION, S, print)(fp, &(var), indent)
@@ -149,6 +162,7 @@ pan_merge_helper(uint32_t *dst, const uint32_t *src, size_t bytes)
 #define pan_merge(packed1, packed2, type)                                      \
    pan_merge_helper((packed1).opaque, (packed2).opaque, pan_size(type))
 
+#ifndef __OPENCL_VERSION__
 static inline const char *
 mali_component_swizzle(unsigned val)
 {
@@ -161,6 +175,7 @@ mali_component_swizzle(unsigned val)
    *outp = 0;
    return out_str;
 }
+#endif
 
 /* From presentations, 16x16 tiles externally. Use shift for fast computation
  * of tile numbers. */

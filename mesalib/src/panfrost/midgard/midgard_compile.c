@@ -368,10 +368,30 @@ lower_vec816_alu(const nir_instr *instr, const void *cb_data)
   return 4;
 }
 
+static bool
+lower_halt_to_return(nir_builder *b, nir_instr *instr, UNUSED void *_data)
+{
+   if (instr->type != nir_instr_type_jump)
+      return false;
+
+   nir_jump_instr *jump = nir_instr_as_jump(instr);
+   if (jump->type != nir_jump_halt)
+      return false;
+
+   assert(b->impl == nir_shader_get_entrypoint(b->shader));
+   jump->type = nir_jump_return;
+   return true;
+}
+
 void
 midgard_preprocess_nir(nir_shader *nir, unsigned gpu_id)
 {
    unsigned quirks = midgard_get_quirks(gpu_id);
+
+   /* Ensure that halt are translated to returns and get ride of them */
+   NIR_PASS(_, nir, nir_shader_instructions_pass, lower_halt_to_return,
+            nir_metadata_all, NULL);
+   NIR_PASS(_, nir, nir_lower_returns);
 
    /* Lower gl_Position pre-optimisation, but after lowering vars to ssa
     * (so we don't accidentally duplicate the epilogue since mesa/st has
@@ -2984,7 +3004,7 @@ midgard_compile_shader_nir(nir_shader *nir,
 
    /* Collect varyings after lowering I/O */
    info->quirk_no_auto32 = (ctx->quirks & MIDGARD_NO_AUTO32);
-   pan_nir_collect_varyings(nir, info);
+   pan_nir_collect_varyings(nir, info, PAN_MEDIUMP_VARY_SMOOTH_16BIT);
 
    /* Optimisation passes */
    optimise_nir(nir, ctx->quirks, inputs->is_blend);

@@ -33,15 +33,15 @@ libagx_spv = custom_target(
   depfile : 'libagx_shaders.h.d',
 )
 
-libagx_h = custom_target(
-  'libagx.h',
+libagx = custom_target(
+  'libagx',
   input : libagx_spv,
-  output : 'libagx.h',
-  command : [prog_vtn_bindgen, libagx_spv, '@OUTPUT@'],
-  depends : [prog_vtn_bindgen],
+  output : ['libagx.cpp', 'libagx.h'],
+  command : [prog_vtn_bindgen2, libagx_spv, '@OUTPUT0@', '@OUTPUT1@'],
+  depends : [prog_vtn_bindgen2],
 )
 
 idep_libagx = declare_dependency(
-  sources : [libagx_h],
+  sources : [libagx],
   include_directories : include_directories('.'),
 )

@@ -40,6 +40,15 @@
     - !reference [.venus-rules, rules]
     - !reference [.zink-common-rules, rules]
 
+.zink-venus-lvp-manual-rules:
+  stage: layered-backends-postmerge
+  extends: .no-auto-retry
+  rules:
+    - !reference [.test, rules]
+    - !reference [.lavapipe-manual-rules, rules]
+    - !reference [.venus-manual-rules, rules]
+    - !reference [.zink-common-manual-rules, rules]
+
 .zink-anv-rules:
   stage: layered-backends
   rules:
@@ -205,7 +214,7 @@
 
 .zink-nvk-test-valve:
   extends:
-    - .b2c-x86_64-test-gl
+    - .b2c-x86_64-test-gl-manual
     - .nvk-vkcts
     - .zink-test
   variables:

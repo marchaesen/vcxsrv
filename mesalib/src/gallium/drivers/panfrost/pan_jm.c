@@ -593,7 +593,8 @@ jm_emit_tiler_draw(struct mali_draw_packed *out, struct panfrost_batch *batch,
 
          /* Also use per-sample shading if required by the shader
           */
-         cfg.evaluate_per_sample |= fs->info.fs.sample_shading;
+         cfg.evaluate_per_sample |=
+            (fs->info.fs.sample_shading && rast->multisample);
 
          /* Unlike Bifrost, alpha-to-coverage must be included in
           * this identically-named flag. Confusing, isn't it?

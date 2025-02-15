@@ -219,29 +219,24 @@ void st_init_limits(struct pipe_screen *screen,
       }
 
       pc->MaxTextureImageUnits =
-         _min(screen->get_shader_param(screen, sh,
-                                       PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS),
+         _min(screen->shader_caps[sh].max_texture_samplers,
               MAX_TEXTURE_IMAGE_UNITS);
 
       pc->MaxInstructions =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INSTRUCTIONS);
+         screen->shader_caps[sh].max_instructions;
       pc->MaxAluInstructions =
-         screen->get_shader_param(screen, sh,
-                                  PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS);
+         screen->shader_caps[sh].max_alu_instructions;
       pc->MaxTexInstructions =
-         screen->get_shader_param(screen, sh,
-                                  PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS);
+         screen->shader_caps[sh].max_tex_instructions;
       pc->MaxTexIndirections =
-         screen->get_shader_param(screen, sh,
-                                  PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS);
+         screen->shader_caps[sh].max_tex_indirections;
       pc->MaxAttribs =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS);
+         screen->shader_caps[sh].max_inputs;
       pc->MaxTemps =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_TEMPS);
+         screen->shader_caps[sh].max_temps;
 
       pc->MaxUniformComponents =
-         screen->get_shader_param(screen, sh,
-                                  PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE) / 4;
+         screen->shader_caps[sh].max_const_buffer0_size / 4;
 
       /* reserve space in the default-uniform for lowered state */
       if (sh == PIPE_SHADER_VERTEX ||
@@ -269,14 +264,13 @@ void st_init_limits(struct pipe_screen *screen,
        */
       pc->MaxParameters = MIN2(pc->MaxUniformComponents / 4, 2048);
       pc->MaxInputComponents =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS) * 4;
+         screen->shader_caps[sh].max_inputs * 4;
       pc->MaxOutputComponents =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_OUTPUTS) * 4;
+         screen->shader_caps[sh].max_outputs * 4;
 
 
       pc->MaxUniformBlocks =
-         screen->get_shader_param(screen, sh,
-                                  PIPE_SHADER_CAP_MAX_CONST_BUFFERS);
+         screen->shader_caps[sh].max_const_buffers;
       if (pc->MaxUniformBlocks)
          pc->MaxUniformBlocks -= 1; /* The first one is for ordinary uniforms. */
       pc->MaxUniformBlocks = _min(pc->MaxUniformBlocks, MAX_UNIFORM_BUFFERS);
@@ -286,17 +280,16 @@ void st_init_limits(struct pipe_screen *screen,
          (uint64_t)c->MaxUniformBlockSize / 4 * pc->MaxUniformBlocks;
 
       pc->MaxShaderStorageBlocks =
-         screen->get_shader_param(screen, sh,
-                                  PIPE_SHADER_CAP_MAX_SHADER_BUFFERS);
+         screen->shader_caps[sh].max_shader_buffers;
 
-      temp = screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS);
+      temp = screen->shader_caps[sh].max_hw_atomic_counters;
       if (temp) {
          /*
           * for separate atomic counters get the actual hw limits
           * per stage on atomic counters and buffers
           */
          pc->MaxAtomicCounters = temp;
-         pc->MaxAtomicBuffers = screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS);
+         pc->MaxAtomicBuffers = screen->shader_caps[sh].max_hw_atomic_counter_buffers;
       } else if (pc->MaxShaderStorageBlocks) {
          pc->MaxAtomicCounters = MAX_ATOMIC_COUNTERS;
          /*
@@ -307,8 +300,7 @@ void st_init_limits(struct pipe_screen *screen,
          pc->MaxShaderStorageBlocks -= pc->MaxAtomicBuffers;
       }
       pc->MaxImageUniforms =
-         _min(screen->get_shader_param(screen, sh,
-                                       PIPE_SHADER_CAP_MAX_SHADER_IMAGES),
+         _min(screen->shader_caps[sh].max_shader_images,
               MAX_IMAGE_UNIFORMS);
 
       /* Gallium doesn't really care about local vs. env parameters so use the
@@ -317,20 +309,20 @@ void st_init_limits(struct pipe_screen *screen,
       pc->MaxLocalParams = MIN2(pc->MaxParameters, MAX_PROGRAM_LOCAL_PARAMS);
       pc->MaxEnvParams = MIN2(pc->MaxParameters, MAX_PROGRAM_ENV_PARAMS);
 
-      if (screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_INTEGERS)) {
+      if (screen->shader_caps[sh].integers) {
          pc->LowInt.RangeMin = 31;
          pc->LowInt.RangeMax = 30;
          pc->LowInt.Precision = 0;
          pc->MediumInt = pc->HighInt = pc->LowInt;
 
-         if (screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_INT16)) {
+         if (screen->shader_caps[sh].int16) {
             pc->LowInt.RangeMin = 15;
             pc->LowInt.RangeMax = 14;
             pc->MediumInt = pc->LowInt;
          }
       }
 
-      if (screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_FP16)) {
+      if (screen->shader_caps[sh].fp16) {
          pc->LowFloat.RangeMin = 15;
          pc->LowFloat.RangeMax = 15;
          pc->LowFloat.Precision = 10;
@@ -339,22 +331,18 @@ void st_init_limits(struct pipe_screen *screen,
 
       /* TODO: make these more fine-grained if anyone needs it */
       options->MaxIfDepth =
-         screen->get_shader_param(screen, sh,
-                                  PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH);
+         screen->shader_caps[sh].max_control_flow_depth;
 
       options->EmitNoMainReturn =
-         !screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_SUBROUTINES);
+         !screen->shader_caps[sh].subroutines;
 
       options->EmitNoCont =
-         !screen->get_shader_param(screen, sh,
-                                   PIPE_SHADER_CAP_CONT_SUPPORTED);
+         !screen->shader_caps[sh].cont_supported;
 
       options->EmitNoIndirectTemp =
-         !screen->get_shader_param(screen, sh,
-                                   PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR);
+         !screen->shader_caps[sh].indirect_temp_addr;
       options->EmitNoIndirectUniform =
-         !screen->get_shader_param(screen, sh,
-                                   PIPE_SHADER_CAP_INDIRECT_CONST_ADDR);
+         !screen->shader_caps[sh].indirect_const_addr;
 
       if (pc->MaxInstructions &&
           (options->EmitNoIndirectUniform || pc->MaxUniformBlocks < 12)) {
@@ -369,15 +357,15 @@ void st_init_limits(struct pipe_screen *screen,
       }
 
       options->LowerPrecisionFloat16 =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_FP16);
+         screen->shader_caps[sh].fp16;
       options->LowerPrecisionDerivatives =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_FP16_DERIVATIVES);
+         screen->shader_caps[sh].fp16_derivatives;
       options->LowerPrecisionInt16 =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_INT16);
+         screen->shader_caps[sh].int16;
       options->LowerPrecisionConstants =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_GLSL_16BIT_CONSTS);
+         screen->shader_caps[sh].glsl_16bit_consts;
       options->LowerPrecisionFloat16Uniforms =
-         screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_FP16_CONST_BUFFERS);
+         screen->shader_caps[sh].fp16_const_buffers;
    }
 
    c->MaxUserAssignableUniformLocations =
@@ -1285,10 +1273,8 @@ void st_init_extensions(struct pipe_screen *screen,
       }
    } else {
       /* Optional integer support for GLSL 1.2. */
-      if (screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
-                                   PIPE_SHADER_CAP_INTEGERS) &&
-          screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                                   PIPE_SHADER_CAP_INTEGERS)) {
+      if (screen->shader_caps[PIPE_SHADER_VERTEX].integers &&
+          screen->shader_caps[PIPE_SHADER_FRAGMENT].integers) {
          consts->NativeIntegers = GL_TRUE;
 
          extensions->EXT_shader_integer_mix = GL_TRUE;
@@ -1315,16 +1301,14 @@ void st_init_extensions(struct pipe_screen *screen,
    /* Below are the cases which cannot be moved into tables easily. */
 
    /* The compatibility profile also requires GLSLVersionCompat >= 400. */
-   if (screen->get_shader_param(screen, PIPE_SHADER_TESS_CTRL,
-                                PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0 &&
+   if (screen->shader_caps[PIPE_SHADER_TESS_CTRL].max_instructions > 0 &&
        (api != API_OPENGL_COMPAT || consts->GLSLVersionCompat >= 400)) {
       extensions->ARB_tessellation_shader = GL_TRUE;
    }
 
    /* OES_geometry_shader requires instancing */
    if ((GLSLVersion >= 400 || ESSLVersion >= 310) &&
-       screen->get_shader_param(screen, PIPE_SHADER_GEOMETRY,
-                                PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0 &&
+       screen->shader_caps[PIPE_SHADER_GEOMETRY].max_instructions > 0 &&
        consts->MaxGeometryShaderInvocations >= 32) {
       extensions->OES_geometry_shader = GL_TRUE;
    }
@@ -1556,8 +1540,7 @@ void st_init_extensions(struct pipe_screen *screen,
     * prefer to disable varying packing rather than run the risk of varying
     * packing preventing a shader from running.
     */
-   if (screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                                PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS) <= 8) {
+   if (screen->shader_caps[PIPE_SHADER_FRAGMENT].max_tex_indirections <= 8) {
       /* We can't disable varying packing if transform feedback is available,
        * because transform feedback code assumes a packed varying layout.
        */
@@ -1622,8 +1605,7 @@ void st_init_extensions(struct pipe_screen *screen,
        extensions->ARB_uniform_buffer_object &&
        (extensions->NV_primitive_restart ||
         consts->PrimitiveRestartFixedIndex) &&
-       screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
-                                PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS) >= 16 &&
+       screen->shader_caps[PIPE_SHADER_VERTEX].max_texture_samplers >= 16 &&
        /* Requirements for ETC2 emulation. */
        screen->is_format_supported(screen, PIPE_FORMAT_R8G8B8A8_UNORM,
                                    PIPE_TEXTURE_2D, 0, 0,
@@ -1665,40 +1647,23 @@ void st_init_extensions(struct pipe_screen *screen,
       extensions->GREMEDY_string_marker = GL_TRUE;
 
    if (screen->caps.compute) {
-      uint64_t grid_size[3], block_size[3];
-      uint64_t max_local_size, max_threads_per_block;
-
-      screen->get_compute_param(screen, PIPE_SHADER_IR_NIR,
-                                 PIPE_COMPUTE_CAP_MAX_GRID_SIZE, grid_size);
-      screen->get_compute_param(screen, PIPE_SHADER_IR_NIR,
-                                 PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE, block_size);
-      screen->get_compute_param(screen, PIPE_SHADER_IR_NIR,
-                                 PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK,
-                                 &max_threads_per_block);
-      screen->get_compute_param(screen, PIPE_SHADER_IR_NIR,
-                                 PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE,
-                                 &max_local_size);
-
-      consts->MaxComputeWorkGroupInvocations = max_threads_per_block;
-      consts->MaxComputeSharedMemorySize = max_local_size;
+      consts->MaxComputeWorkGroupInvocations = screen->compute_caps.max_threads_per_block;
+      consts->MaxComputeSharedMemorySize = screen->compute_caps.max_local_size;
 
       for (i = 0; i < 3; i++) {
          /* There are tests that fail if we report more that INT_MAX - 1. */
-         consts->MaxComputeWorkGroupCount[i] = MIN2(grid_size[i], INT_MAX - 1);
-         consts->MaxComputeWorkGroupSize[i] = block_size[i];
+         consts->MaxComputeWorkGroupCount[i] = MIN2(screen->compute_caps.max_grid_size[i], INT_MAX - 1);
+         consts->MaxComputeWorkGroupSize[i] = screen->compute_caps.max_block_size[i];
       }
 
       extensions->ARB_compute_shader =
-         max_threads_per_block >= 1024 &&
+         screen->compute_caps.max_threads_per_block >= 1024 &&
          extensions->ARB_shader_image_load_store &&
          extensions->ARB_shader_atomic_counters;
 
       if (extensions->ARB_compute_shader) {
-         uint64_t max_variable_threads_per_block = 0;
-
-         screen->get_compute_param(screen, PIPE_SHADER_IR_NIR,
-                                    PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK,
-                                    &max_variable_threads_per_block);
+         unsigned max_variable_threads_per_block =
+            screen->compute_caps.max_variable_threads_per_block;
 
          for (i = 0; i < 3; i++) {
             /* Clamp the values to avoid having a local work group size
@@ -1851,9 +1816,11 @@ void st_init_extensions(struct pipe_screen *screen,
    const struct nir_shader_compiler_options *nir_options =
       consts->ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions;
 
-   if (screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_INTEGERS) &&
+   if (screen->shader_caps[PIPE_SHADER_FRAGMENT].integers &&
        extensions->ARB_stencil_texturing &&
        screen->caps.doubles &&
        !(nir_options->lower_doubles_options & nir_lower_fp64_full_software))
       extensions->NV_copy_depth_to_color = true;
+   if (screen->caps.device_protected_surface || screen->caps.device_protected_context)
+      extensions->EXT_protected_textures = true;
 }

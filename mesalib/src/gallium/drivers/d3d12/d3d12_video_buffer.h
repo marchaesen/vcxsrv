@@ -92,15 +92,15 @@ d3d12_video_buffer_destroy_associated_data(void *associated_data);
 struct d3d12_video_buffer
 {
    pipe_video_buffer                       base;
-   struct d3d12_resource *                 texture;
-   uint                                    num_planes;
+   struct d3d12_resource *                 texture = nullptr;
+   uint                                    num_planes = 0;
    std::vector<pipe_surface *>      surfaces;
    std::vector<pipe_sampler_view *> sampler_view_planes;
    std::vector<pipe_sampler_view *> sampler_view_components;
 
    // Indicates the subresource index into the texture.array_size
    // that corresponds to this video buffer object
-   uint                             idx_texarray_slots;
+   uint                             idx_texarray_slots = 0;
 
    // Used by d3d12_video_buffer_destroy() when using texture array mode
    // in the function d3d12_video_enc::d3d12_video_create_dpb_buffer()

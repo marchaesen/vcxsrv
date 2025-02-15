@@ -6,6 +6,7 @@ use crate::core::platform::*;
 use crate::impl_cl_type_trait;
 
 use mesa_rust::pipe::context::PipeContext;
+use mesa_rust_gen::*;
 use mesa_rust_util::properties::*;
 use rusticl_opencl_gen::*;
 
@@ -93,11 +94,20 @@ pub struct Queue {
 
 impl_cl_type_trait!(cl_command_queue, Queue, CL_INVALID_COMMAND_QUEUE);
 
-fn flush_events(evs: &mut Vec<Arc<Event>>, pipe: &PipeContext) {
+fn flush_events(evs: &mut Vec<Arc<Event>>, pipe: &PipeContext) -> cl_int {
     if !evs.is_empty() {
         pipe.flush().wait();
-        evs.drain(..).for_each(|e| e.signal());
+        if pipe.device_reset_status() != pipe_reset_status::PIPE_NO_RESET {
+            // if the context reset while executing, simply put all events into error state.
+            evs.drain(..)
+                .for_each(|e| e.set_user_status(CL_OUT_OF_RESOURCES));
+            return CL_OUT_OF_RESOURCES;
+        } else {
+            evs.drain(..).for_each(|e| e.signal());
+        }
     }
+
+    CL_SUCCESS as cl_int
 }
 
 impl Queue {
@@ -152,7 +162,8 @@ impl Queue {
                             // If we hit any deps from another queue, flush so we don't risk a dead
                             // lock.
                             if e.deps.iter().any(|ev| ev.queue != e.queue) {
-                                flush_events(&mut flushed, &ctx);
+                                let dep_err = flush_events(&mut flushed, &ctx);
+                                last_err = cmp::min(last_err, dep_err);
                             }
 
                             // check if any dependency has an error
@@ -184,20 +195,23 @@ impl Queue {
                             if e.is_user() {
                                 // On each user event we flush our events as application might
                                 // wait on them before signaling user events.
-                                flush_events(&mut flushed, &ctx);
+                                last_err = flush_events(&mut flushed, &ctx);
 
-                                // Wait on user events as they are synchronization points in the
-                                // application's control.
-                                e.wait();
+                                if last_err >= 0 {
+                                    // Wait on user events as they are synchronization points in the
+                                    // application's control.
+                                    e.wait();
+                                }
                             } else if Platform::dbg().sync_every_event {
                                 flushed.push(e);
-                                flush_events(&mut flushed, &ctx);
+                                last_err = flush_events(&mut flushed, &ctx);
                             } else {
                                 flushed.push(e);
                             }
                         }
 
-                        flush_events(&mut flushed, &ctx);
+                        let flush_err = flush_events(&mut flushed, &ctx);
+                        last_err = cmp::min(last_err, flush_err);
                     }
                 })
                 .unwrap(),
@@ -245,7 +259,10 @@ impl Queue {
             // Waiting on the last event is good enough here as the queue will process it in order
             // It's not a problem if the weak ref is invalid as that means the work is already done
             // and waiting isn't necessary anymore.
-            last.upgrade().map(|e| e.wait());
+            let err = last.upgrade().map(|e| e.wait()).unwrap_or_default();
+            if err < 0 {
+                return Err(err);
+            }
         }
         Ok(())
     }

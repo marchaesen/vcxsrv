@@ -428,6 +428,10 @@ ir3_shader_debug_hash_key()
         IR3_DBG_SHADER_INTERNAL | IR3_DBG_SCHEDMSGS | IR3_DBG_RAMSGS));
 }
 
+/* Returns a pointer to internal static tmp buffer. */
+const char *
+ir3_shader_debug_as_string(void);
+
 ENDC;
 
 #endif /* IR3_COMPILER_H_ */

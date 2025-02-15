@@ -914,6 +914,10 @@ panfrost_resource_destroy(struct pipe_screen *screen, struct pipe_resource *pt)
    if (rsrc->scanout)
       renderonly_scanout_destroy(rsrc->scanout, dev->ro);
 
+   if (rsrc->shadow_image)
+         pipe_resource_reference(
+            (struct pipe_resource **)&rsrc->shadow_image, NULL);
+
    if (rsrc->bo)
       panfrost_bo_unreference(rsrc->bo);
 
@@ -1324,7 +1328,7 @@ panfrost_ptr_map(struct pipe_context *pctx, struct pipe_resource *resource,
    /* Shadowing with separate stencil may require additional accounting.
     * Bail in these exotic cases.
     */
-   if (rsrc->separate_stencil) {
+   if (rsrc->separate_stencil || rsrc->shadow_image) {
       create_new_bo = false;
       copy_resource = false;
    }
@@ -1401,8 +1405,9 @@ panfrost_ptr_map(struct pipe_context *pctx, struct pipe_resource *resource,
    struct pipe_box box_blocks;
    u_box_pixels_to_blocks(&box_blocks, box, format);
 
-   if (rsrc->image.layout.modifier ==
-       DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED) {
+   switch(rsrc->image.layout.modifier) {
+   case DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED:
+   case DRM_FORMAT_MOD_MTK_16L_32S_TILE:
       transfer->base.stride = box_blocks.width * bytes_per_block;
       transfer->base.layer_stride = transfer->base.stride * box_blocks.height;
       transfer->map =
@@ -1412,7 +1417,7 @@ panfrost_ptr_map(struct pipe_context *pctx, struct pipe_resource *resource,
          panfrost_load_tiled_images(transfer, rsrc);
 
       return transfer->map;
-   } else {
+   default:
       assert(rsrc->image.layout.modifier == DRM_FORMAT_MOD_LINEAR);
 
       /* Direct, persistent writes create holes in time for
@@ -1449,12 +1454,54 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
                               struct panfrost_resource *rsrc, uint64_t modifier,
                               bool copy_resource, const char *reason)
 {
-   assert(!rsrc->modifier_constant);
+   bool need_shadow = rsrc->modifier_constant;
 
-   struct pipe_resource *tmp_prsrc = panfrost_resource_create_with_modifier(
-      ctx->base.screen, &rsrc->base, modifier);
+   assert(!rsrc->modifier_constant || copy_resource);
+
+   struct pipe_resource template = rsrc->base;
+   struct pipe_resource *tmp_prsrc;
+   struct pipe_resource *next_tmp_prsrc = NULL;
+   struct panfrost_resource *next_tmp_rsrc = NULL;
+   if (template.next) {
+      struct pipe_resource second_template = *template.next;
+      bool fix_stride;
+      assert(drm_is_mtk_tiled(rsrc->base.format, rsrc->image.layout.modifier));
+      /* fix up the stride */
+      switch (rsrc->base.format) {
+      case PIPE_FORMAT_R8_G8B8_420_UNORM:
+      case PIPE_FORMAT_R8_G8B8_422_UNORM:
+      case PIPE_FORMAT_R10_G10B10_420_UNORM:
+      case PIPE_FORMAT_R10_G10B10_422_UNORM:
+         fix_stride = true;
+         break;
+      default:
+         fix_stride = false;
+         break;
+      }
+      template.next = NULL;
+      if (fix_stride) {
+         second_template.width0 *= 2; /* temporarily adjust size for subsampling */
+      }
+      next_tmp_prsrc = panfrost_resource_create_with_modifier(
+         ctx->base.screen, &second_template, modifier);
+      next_tmp_rsrc = pan_resource(next_tmp_prsrc);
+      if (fix_stride) {
+         next_tmp_rsrc->base.width0 /= 2;
+         next_tmp_rsrc->image.layout.width /= 2;
+      }
+   }
+   tmp_prsrc = panfrost_resource_create_with_modifier(
+      ctx->base.screen, &template, modifier);
    struct panfrost_resource *tmp_rsrc = pan_resource(tmp_prsrc);
+   if (next_tmp_prsrc) {
+      tmp_prsrc->next = next_tmp_prsrc;
+   }
 
+   if (need_shadow && rsrc->shadow_image) {
+      /* free the old shadow image */
+      pipe_resource_reference(
+         (struct pipe_resource **)&rsrc->shadow_image, NULL);
+   }
    if (copy_resource) {
       struct pipe_blit_info blit = {
          .dst.resource = &tmp_rsrc->base,
@@ -1465,6 +1512,7 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
          .filter = PIPE_TEX_FILTER_NEAREST,
       };
 
+      struct panfrost_screen *screen = pan_screen(ctx->base.screen);
       /* data_valid is not valid until flushed */
       panfrost_flush_writer(ctx, rsrc, "AFBC/AFRC decompressing blit");
 
@@ -1477,7 +1525,11 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
                      util_num_layers(&rsrc->base, i), &blit.dst.box);
             blit.src.box = blit.dst.box;
 
-            panfrost_blit_no_afbc_legalization(&ctx->base, &blit);
+            if (drm_is_mtk_tiled(rsrc->base.format,
+                                 rsrc->image.layout.modifier))
+               screen->vtbl.mtk_detile(ctx, &blit);
+            else
+               panfrost_blit_no_afbc_legalization(&ctx->base, &blit);
          }
       }
 
@@ -1487,20 +1539,26 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
       panfrost_flush_writer(ctx, tmp_rsrc, "AFBC/AFRC decompressing blit");
    }
 
-   panfrost_bo_unreference(rsrc->bo);
+   if (need_shadow) {
+      panfrost_resource_setup(ctx->base.screen, tmp_rsrc,
+                              modifier, tmp_rsrc->base.format);
+      rsrc->shadow_image = tmp_rsrc;
+   } else {
+      panfrost_bo_unreference(rsrc->bo);
 
-   rsrc->bo = tmp_rsrc->bo;
-   rsrc->image.data.base = rsrc->bo->ptr.gpu;
-   panfrost_bo_reference(rsrc->bo);
+      rsrc->bo = tmp_rsrc->bo;
+      rsrc->image.data.base = rsrc->bo->ptr.gpu;
+      panfrost_bo_reference(rsrc->bo);
 
-   panfrost_resource_setup(ctx->base.screen, rsrc, modifier,
-                           tmp_rsrc->base.format);
-   /* panfrost_resource_setup will force the modifier to stay constant when
-    * called with a specific modifier. We don't want that here, we want to
-    * be able to convert back to another modifier if needed */
-   rsrc->modifier_constant = false;
-   pipe_resource_reference(&tmp_prsrc, NULL);
-   perf_debug(ctx, "resource_modifier_convert required due to: %s", reason);
+      panfrost_resource_setup(ctx->base.screen, rsrc, modifier,
+                              tmp_rsrc->base.format);
+      /* panfrost_resource_setup will force the modifier to stay constant when
+       * called with a specific modifier. We don't want that here, we want to
+       * be able to convert back to another modifier if needed */
+      rsrc->modifier_constant = false;
+      pipe_resource_reference(&tmp_prsrc, NULL);
+      perf_debug(ctx, "resource_modifier_convert required due to: %s", reason);
+   }
 }
 
 /* Validate that an AFBC/AFRC resource may be used as a particular format. If it
@@ -1516,9 +1574,11 @@ pan_legalize_format(struct panfrost_context *ctx,
    enum pipe_format old_format = rsrc->base.format;
    enum pipe_format new_format = format;
    bool compatible = true;
+   uint64_t dest_modifier = DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
 
    if (!drm_is_afbc(rsrc->image.layout.modifier) &&
-       !drm_is_afrc(rsrc->image.layout.modifier))
+       !drm_is_afrc(rsrc->image.layout.modifier) &&
+       !drm_is_mtk_tiled(old_format, rsrc->image.layout.modifier))
       return;
 
    if (drm_is_afbc(rsrc->image.layout.modifier)) {
@@ -1530,14 +1590,17 @@ pan_legalize_format(struct panfrost_context *ctx,
       struct pan_afrc_format_info new_info =
          panfrost_afrc_get_format_info(new_format);
       compatible = !memcmp(&old_info, &new_info, sizeof(old_info));
+   } else if (drm_is_mtk_tiled(old_format, rsrc->image.layout.modifier)) {
+      compatible = false;
+      dest_modifier = DRM_FORMAT_MOD_LINEAR;
    }
 
    if (!compatible) {
       pan_resource_modifier_convert(
-         ctx, rsrc, DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED, !discard,
+         ctx, rsrc, dest_modifier, !discard,
          drm_is_afbc(rsrc->image.layout.modifier)
             ? "Reinterpreting AFBC surface as incompatible format"
-            : "Reinterpreting AFRC surface as incompatible format");
+            : "Reinterpreting tiled surface as incompatible format");
       return;
    }
 

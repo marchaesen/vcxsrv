@@ -6,7 +6,7 @@ a306-gl:
     - .baremetal-deqp-test
     - .a306-test
   variables:
-    DEQP_SUITE: freedreno-a307
+    DEQP_SUITE: freedreno-a306
     FDO_CI_CONCURRENT: 6
   parallel: 5
 
@@ -105,7 +105,7 @@ a618-vk-full:
     DEQP_SUITE: freedreno-a618-vk-full
     DEQP_FRACTION: 1
 
-a618-gl:
+.a618-gl:
   extends:
     - .lava-test-deqp:arm64
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
@@ -117,7 +117,7 @@ a618-gl:
 
 a618-gl-full:
   extends:
-    - a618-gl
+    - .a618-gl
     - .collabora-freedreno-manual-rules
   timeout: 65m
   variables:
@@ -125,7 +125,7 @@ a618-gl-full:
 
 # Run dEQP EGL window system tests separately with the window systems available.
 # X11 takes over the screen, wayland is run headless.
-a618-egl:
+.a618-egl:
   extends:
     - .lava-test-deqp:arm64
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
@@ -148,7 +148,7 @@ a618-skqp:
     HWCI_START_XORG: 1
     DEQP_SUITE: freedreno-a618-skqp
 
-a618-piglit:
+.a618-piglit:
   extends:
     - .lava-test-deqp:arm64
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
@@ -163,7 +163,7 @@ a618-piglit:
 a618-piglit-full:
   extends:
     - .lava-test-deqp:arm64
-    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    - .lava-sc7180-trogdor-kingoftown:arm64
     # Note that piglit has GL+VK integration testing.
     - .collabora-freedreno-turnip-manual-rules
   timeout: 60m
@@ -236,9 +236,18 @@ a660-gl:
     - .lava-test-deqp:arm64
     - .collabora-freedreno-rules
     - .lava-sm8350-hdk:arm64
-  parallel: 4
+  parallel: 2
   variables:
     DEQP_SUITE: freedreno-a660
+    DEQP_FRACTION: 2
+
+a660-gl-full:
+  extends:
+    - a660-gl
+    - .collabora-freedreno-manual-rules
+  parallel: null
+  variables:
+    DEQP_FRACTION: 1
 
 a660-vk:
   extends:
@@ -248,7 +257,7 @@ a660-vk:
   parallel: 5
   variables:
     DEQP_SUITE: freedreno-a660-vk
-    DEQP_FRACTION: 5
+    DEQP_FRACTION: 6
 
 a660-vk-full:
   extends:
@@ -265,7 +274,7 @@ a630-gl:
   extends:
     - .baremetal-deqp-test
     - .a630-test
-  parallel: 4
+  parallel: 3
   variables:
     DEQP_SUITE: freedreno-a630
     HWCI_START_XORG: 1
@@ -293,7 +302,7 @@ a630-gles-asan-full:
     DEQP_SUITE: freedreno-a630-gles-asan-full
     TEST_PHASE_TIMEOUT_MINUTES: 55
 
-a630-vk:
+.a630-vk:
   extends:
     - .a630-test
     - .baremetal-deqp-test
@@ -308,7 +317,7 @@ a630-vk-full:
   # blocking up normal merges, so going more parallel doesn't make any sense.
   timeout: 2h
   extends:
-    - a630-vk
+    - .a630-vk
     - .a630-full
     - .google-turnip-manual-rules
   parallel: 2
@@ -348,7 +357,7 @@ a630-piglit-full:
     DEQP_SUITE: freedreno-a630-piglit-full
     TEST_PHASE_TIMEOUT_MINUTES: 55
 
-a630-traces:
+.a630-traces:
   extends:
     - .google-freedreno-test-traces
     - .a630-test
@@ -363,7 +372,7 @@ a630-traces:
 
 a630-traces-restricted:
   extends:
-    - a630-traces
+    - .a630-traces
     - .google-freedreno-rules-restricted
   variables:
     PIGLIT_TRACES_FILE: restricted-traces-freedreno.yml
@@ -372,7 +381,7 @@ a630-traces-restricted:
 
 a630-traces-performance:
   extends:
-    - a630-traces
+    - .a630-traces
     - .google-freedreno-rules-performance
   variables:
     PIGLIT_REPLAY_SUBCOMMAND: "profile"

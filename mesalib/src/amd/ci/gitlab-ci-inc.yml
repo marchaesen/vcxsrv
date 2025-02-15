@@ -81,12 +81,20 @@
     - !reference [.collabora-farm-rules, rules]
     - !reference [.radv-rules, rules]
 
-.radv-collabora-rules-restricted:
+.radv-collabora-restricted-rules:
   stage: amd
   rules:
     - !reference [.test, rules]
     - !reference [.restricted-rules, rules]
     - !reference [.radv-collabora-rules, rules]
+
+.radv-collabora-manual-rules:
+  stage: amd-postmerge
+  extends: .no-auto-retry
+  rules:
+    - !reference [.test, rules]
+    - !reference [.collabora-farm-manual-rules, rules]
+    - !reference [.radv-manual-rules, rules]
 
 .radv-valve-rules:
   stage: amd
@@ -191,6 +199,9 @@
     HWCI_KERNEL_MODULES: amdgpu
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-asus-CM1400CXA-dalboz
+    # Force fixed 6.6 kernel, amdgpu doesn't revcover from GPU resets on 6.13
+    # https://gitlab.freedesktop.org/drm/amd/-/issues/3861
+    EXTERNAL_KERNEL_TAG: "v6.6.21-mesa-f8ea"
 
 # Status: https://lava.collabora.dev/scheduler/device_type/lenovo-TPad-C13-Yoga-zork
 .lava-lenovo-TPad-C13-Yoga-zork:x86_64:
@@ -204,6 +215,9 @@
     HWCI_KERNEL_MODULES: amdgpu
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-lenovo-TPad-C13-Yoga-zork
+    # Force fixed 6.6 kernel, amdgpu doesn't revcover from GPU resets on 6.13
+    # https://gitlab.freedesktop.org/drm/amd/-/issues/3861
+    EXTERNAL_KERNEL_TAG: "v6.6.21-mesa-f8ea"
 
 # Status: https://lava.collabora.dev/scheduler/device_type/hp-x360-14a-cb0001xx-zork
 .lava-hp-x360-14a-cb0001xx-zork:x86_64:
@@ -217,6 +231,9 @@
     HWCI_KERNEL_MODULES: amdgpu
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-hp-x360-14a-cb0001xx-zork
+    # Force fixed 6.6 kernel, amdgpu doesn't revcover from GPU resets on 6.13
+    # https://gitlab.freedesktop.org/drm/amd/-/issues/3861
+    EXTERNAL_KERNEL_TAG: "v6.6.21-mesa-f8ea"
 
 
 ############### LAVA
@@ -297,9 +314,9 @@
 
 .tahiti-test-valve:
   variables:
-    FDO_CI_CONCURRENT: 8
+    FDO_CI_CONCURRENT: 24
     RUNNER_FARM_LOCATION: mupuf
-    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=8g'
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
     - amdgpu:codename:TAHITI
@@ -398,6 +415,15 @@
     - farm:$RUNNER_FARM_LOCATION
     - amdgpu:codename:VANGOGH
     - $VALVE_INFRA_VANGOGH_JOB_PRIORITY
+
+.raphael-test-valve:
+  variables:
+    RUNNER_FARM_LOCATION: keywords
+    FDO_CI_CONCURRENT: 32
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
+  tags:
+    - farm:$RUNNER_FARM_LOCATION
+    - amdgpu:codename:RAPHAEL
 
 .navi31-test-valve:
   variables:

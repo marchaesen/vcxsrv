@@ -229,103 +229,110 @@ fail:
  * pipe_screen
  */
 
-static int r600_get_shader_param(struct pipe_screen* pscreen,
-				 enum pipe_shader_type shader,
-				 enum pipe_shader_cap param)
+static void r600_init_shader_caps(struct r600_screen *rscreen)
 {
-	struct r600_screen *rscreen = (struct r600_screen *)pscreen;
+	for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+		struct pipe_shader_caps *caps =
+			(struct pipe_shader_caps *)&rscreen->b.b.shader_caps[i];
 
-	switch(shader)
-	{
-	case PIPE_SHADER_FRAGMENT:
-	case PIPE_SHADER_VERTEX:
-		break;
-	case PIPE_SHADER_GEOMETRY:
-		break;
-	case PIPE_SHADER_TESS_CTRL:
-	case PIPE_SHADER_TESS_EVAL:
-	case PIPE_SHADER_COMPUTE:
-		if (rscreen->b.family >= CHIP_CEDAR)
+		switch (i) {
+		case PIPE_SHADER_TESS_CTRL:
+		case PIPE_SHADER_TESS_EVAL:
+		case PIPE_SHADER_COMPUTE:
+			if (rscreen->b.family < CHIP_CEDAR)
+				continue;
 			break;
-		FALLTHROUGH;
-	default:
-		return 0;
-	}
-
-	switch (param) {
-	case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-	case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-	case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-	case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-		return 16384;
-	case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-		return 32;
-	case PIPE_SHADER_CAP_MAX_INPUTS:
-		return shader == PIPE_SHADER_VERTEX ? 16 : 32;
-	case PIPE_SHADER_CAP_MAX_OUTPUTS:
-		return shader == PIPE_SHADER_FRAGMENT ? 8 : 32;
-	case PIPE_SHADER_CAP_MAX_TEMPS:
-		return 256; /* Max native temporaries. */
-	case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-		if (shader == PIPE_SHADER_COMPUTE) {
-			uint64_t max_const_buffer_size;
-			pscreen->get_compute_param(pscreen, PIPE_SHADER_IR_NIR,
-						   PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE,
-						   &max_const_buffer_size);
-			return MIN2(max_const_buffer_size, INT_MAX);
-
-		} else {
-			return R600_MAX_CONST_BUFFER_SIZE;
+		default:
+			break;
 		}
-	case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-		return R600_MAX_USER_CONST_BUFFERS;
-	case PIPE_SHADER_CAP_CONT_SUPPORTED:
-		return 1;
-	case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-		return 1;
-	case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-	case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-		return 1;
-	case PIPE_SHADER_CAP_SUBROUTINES:
-	case PIPE_SHADER_CAP_INT64_ATOMICS:
-	case PIPE_SHADER_CAP_FP16:
-        case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-	case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-        case PIPE_SHADER_CAP_INT16:
-        case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-		return 0;
-	case PIPE_SHADER_CAP_INTEGERS:
-	case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-		return 1;
-	case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-	case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-		return 16;
-	case PIPE_SHADER_CAP_SUPPORTED_IRS: {
-		int ir = 0;
-		if (shader == PIPE_SHADER_COMPUTE)
-			ir = 1 << PIPE_SHADER_IR_NATIVE;
-		ir |= 1 << PIPE_SHADER_IR_NIR;
-		return ir;
-	}
-	case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-	case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-		if (rscreen->b.family >= CHIP_CEDAR &&
-		    (shader == PIPE_SHADER_FRAGMENT || shader == PIPE_SHADER_COMPUTE))
-		    return 8;
-		return 0;
-	case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-		if (rscreen->b.family >= CHIP_CEDAR && rscreen->has_atomics)
-			return 8;
-		return 0;
-	case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
+
+		caps->max_instructions =
+		caps->max_alu_instructions =
+		caps->max_tex_instructions =
+		caps->max_tex_indirections = 16384;
+		caps->max_control_flow_depth = 32;
+		caps->max_inputs = i == PIPE_SHADER_VERTEX ? 16 : 32;
+		caps->max_outputs = i == PIPE_SHADER_FRAGMENT ? 8 : 32;
+		caps->max_temps = 256; /* Max native temporaries. */
+
+		caps->max_const_buffer0_size = i == PIPE_SHADER_COMPUTE ?
+			MIN2(rscreen->b.b.compute_caps.max_mem_alloc_size, INT_MAX) :
+			R600_MAX_CONST_BUFFER_SIZE;
+
+		caps->max_const_buffers = R600_MAX_USER_CONST_BUFFERS;
+		caps->cont_supported = true;
+		caps->tgsi_sqrt_supported = true;
+		caps->indirect_temp_addr = true;
+		caps->indirect_const_addr = true;
+		caps->integers = true;
+		caps->tgsi_any_inout_decl_range = true;
+		caps->max_texture_samplers =
+		caps->max_sampler_views = 16;
+
+		caps->supported_irs = 1 << PIPE_SHADER_IR_NIR;
+		if (i == PIPE_SHADER_COMPUTE)
+			caps->supported_irs |= 1 << PIPE_SHADER_IR_NATIVE;
+
+		caps->max_shader_buffers =
+		caps->max_shader_images =
+			rscreen->b.family >= CHIP_CEDAR &&
+			(i == PIPE_SHADER_FRAGMENT || i == PIPE_SHADER_COMPUTE) ? 8 : 0;
+
+		caps->max_hw_atomic_counters =
+			rscreen->b.family >= CHIP_CEDAR && rscreen->has_atomics ? 8 : 0;
+
 		/* having to allocate the atomics out amongst shaders stages is messy,
 		   so give compute 8 buffers and all the others one */
-		if (rscreen->b.family >= CHIP_CEDAR && rscreen->has_atomics) {
-			return EG_MAX_ATOMIC_BUFFERS;
-		}
-		return 0;
+		caps->max_hw_atomic_counter_buffers =
+			rscreen->b.family >= CHIP_CEDAR && rscreen->has_atomics ?
+			EG_MAX_ATOMIC_BUFFERS : 0;
 	}
-	return 0;
+}
+
+static void r600_init_compute_caps(struct r600_screen *screen)
+{
+	struct r600_common_screen *rscreen = &screen->b;
+
+	struct pipe_compute_caps *caps =
+		(struct pipe_compute_caps *)&rscreen->b.compute_caps;
+
+	snprintf(caps->ir_target, sizeof(caps->ir_target), "%s-r600--",
+		 r600_get_llvm_processor_name(rscreen->family));
+
+	caps->grid_dimension = 3;
+
+	caps->max_grid_size[0] =
+	caps->max_grid_size[1] =
+	caps->max_grid_size[2] = 65535;
+
+	caps->max_block_size[0] =
+	caps->max_block_size[1] =
+	caps->max_block_size[2] = rscreen->gfx_level >= EVERGREEN ? 1024 : 256;
+
+	caps->max_block_size_clover[0] =
+	caps->max_block_size_clover[1] =
+	caps->max_block_size_clover[2] = 256;
+
+	caps->max_threads_per_block = rscreen->gfx_level >= EVERGREEN ? 1024 : 256;
+	caps->max_threads_per_block_clover = 256;
+	caps->address_bits = 32;
+	caps->max_mem_alloc_size = (rscreen->info.max_heap_size_kb / 4) * 1024ull;
+
+	/* In OpenCL, the MAX_MEM_ALLOC_SIZE must be at least
+	 * 1/4 of the MAX_GLOBAL_SIZE.  Since the
+	 * MAX_MEM_ALLOC_SIZE is fixed for older kernels,
+	 * make sure we never report more than
+	 * 4 * MAX_MEM_ALLOC_SIZE.
+	 */
+	caps->max_global_size = MIN2(4 * caps->max_mem_alloc_size,
+				     rscreen->info.max_heap_size_kb * 1024ull);
+
+	/* Value reported by the closed source driver. */
+	caps->max_local_size = 32768;
+	caps->max_input_size = 1024;
+	caps->max_clock_frequency = rscreen->info.max_gpu_freq_mhz;
+	caps->max_compute_units = rscreen->info.num_cu;
+	caps->subgroup_sizes = r600_wavefront_size(rscreen->family);
 }
 
 static void r600_init_screen_caps(struct r600_screen *rscreen)
@@ -591,7 +598,6 @@ struct pipe_screen *r600_screen_create(struct radeon_winsys *ws,
 	/* Set functions first. */
 	rscreen->b.b.context_create = r600_create_context;
 	rscreen->b.b.destroy = r600_destroy_screen;
-	rscreen->b.b.get_shader_param = r600_get_shader_param;
 	rscreen->b.b.resource_create = r600_resource_create;
 
 	if (!r600_common_screen_init(&rscreen->b, ws)) {
@@ -625,8 +631,6 @@ struct pipe_screen *r600_screen_create(struct radeon_winsys *ws,
 
 	rscreen->has_msaa = true;
 
-	r600_init_screen_caps(rscreen);
-
 	/* MSAA support. */
 	switch (rscreen->b.gfx_level) {
 	case R600:
@@ -653,10 +657,15 @@ struct pipe_screen *r600_screen_create(struct radeon_winsys *ws,
 
 	rscreen->global_pool = compute_memory_pool_new(rscreen);
 
+	rscreen->has_atomics = true;
+
+	r600_init_compute_caps(rscreen);
+	r600_init_shader_caps(rscreen);
+	r600_init_screen_caps(rscreen);
+
 	/* Create the auxiliary context. This must be done last. */
 	rscreen->b.aux_context = rscreen->b.b.context_create(&rscreen->b.b, NULL, 0);
 
-	rscreen->has_atomics = true;
 #if 0 /* This is for testing whether aux_context and buffer clearing work correctly. */
 	struct pipe_resource templ = {};
 

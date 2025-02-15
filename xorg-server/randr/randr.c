@@ -36,6 +36,8 @@
 #define SubPixelUnknown 0
 #endif
 
+Bool noRRExtension = FALSE;
+
 #define RR_VALIDATE
 static int RRNScreens;
 
@@ -444,9 +446,9 @@ RRExtensionInit(void)
     RRCrtcInitErrorValue();
     RROutputInitErrorValue();
     RRProviderInitErrorValue();
-#ifdef PANORAMIX
+#ifdef XINERAMA
     RRXineramaExtensionInit();
-#endif
+#endif /* XINERAMA */
 }
 
 void

@@ -36,16 +36,18 @@
 #include "misc.h"
 
 #include "dix/colormap_priv.h"
+#include "mi/mi_priv.h"
+
+#include "misc.h"
 #include "colormapst.h"
 #include "scrnintstr.h"
-
 #include "resource.h"
 
 #include "xf86.h"
 #include "xf86_OSproc.h"
 #include "xf86str.h"
 #include "micmap.h"
-#include "xf86RandR12.h"
+#include "xf86RandR12_priv.h"
 #include "xf86Crtc.h"
 
 #ifdef XFreeXDGA

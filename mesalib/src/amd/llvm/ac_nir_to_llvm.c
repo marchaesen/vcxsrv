@@ -846,20 +846,11 @@ static bool visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
    case nir_op_ldexp:
       src[0] = ac_to_float(&ctx->ac, src[0]);
       if (ac_get_elem_bits(&ctx->ac, def_type) == 32)
-         result = ac_build_intrinsic(&ctx->ac,
-                                     LLVM_VERSION_MAJOR >= 18 ? "llvm.ldexp.f32.i32"
-                                                              : "llvm.amdgcn.ldexp.f32",
-                                     ctx->ac.f32, src, 2, 0);
+         result = ac_build_intrinsic(&ctx->ac, "llvm.ldexp.f32.i32", ctx->ac.f32, src, 2, 0);
       else if (ac_get_elem_bits(&ctx->ac, def_type) == 16)
-         result = ac_build_intrinsic(&ctx->ac,
-                                     LLVM_VERSION_MAJOR >= 18 ? "llvm.ldexp.f16.i32"
-                                                              : "llvm.amdgcn.ldexp.f16",
-                                     ctx->ac.f16, src, 2, 0);
+         result = ac_build_intrinsic(&ctx->ac, "llvm.ldexp.f16.i32", ctx->ac.f16, src, 2, 0);
       else
-         result = ac_build_intrinsic(&ctx->ac,
-                                     LLVM_VERSION_MAJOR >= 18 ? "llvm.ldexp.f64.i32"
-                                                              : "llvm.amdgcn.ldexp.f64",
-                                     ctx->ac.f64, src, 2, 0);
+         result = ac_build_intrinsic(&ctx->ac, "llvm.ldexp.f64.i32", ctx->ac.f64, src, 2, 0);
       break;
    case nir_op_bfm:
       result = emit_bfm(&ctx->ac, src[0], src[1]);

@@ -24,7 +24,8 @@
 #ifndef NIR_INSTR_SET_H
 #define NIR_INSTR_SET_H
 
-#include "nir.h"
+#include "nir_defines.h"
+#include "util/set.h"
 
 /**
  * This file defines functions for creating, destroying, and manipulating an

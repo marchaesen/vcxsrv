@@ -32,3 +32,6 @@ dEQP-VK.memory.pipeline_barrier.host_write_uniform_texel_buffer.1048576
 
 # Sometime timeout
 dEQP-VK.memory.pipeline_barrier.host_write_storage_buffer.1048576
+
+# No clue what's happening to these on CI lately
+dEQP-VK.wsi.*.swapchain.simulate_oom.*

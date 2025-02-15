@@ -1127,7 +1127,7 @@ get_color_fp_variant(struct st_context *st)
                      ctx->Color._ClampFragmentColor;
    key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
-   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key);
+   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key, false, NULL);
 
    return fpv;
 }
@@ -1157,7 +1157,7 @@ get_color_index_fp_variant(struct st_context *st)
                      ctx->Color._ClampFragmentColor;
    key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
-   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key);
+   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key, false, NULL);
 
    return fpv;
 }

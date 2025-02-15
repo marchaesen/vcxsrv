@@ -1896,16 +1896,10 @@ radv_queue_submit(struct vk_queue *vqueue, struct vk_queue_submit *submission)
 {
    struct radv_queue *queue = (struct radv_queue *)vqueue;
    struct radv_device *device = radv_queue_device(queue);
-   const struct radv_physical_device *pdev = radv_device_physical(device);
-   VkResult result;
 
-   if (!radv_sparse_queue_enabled(pdev)) {
-      result = radv_queue_submit_bind_sparse_memory(device, submission);
-      if (result != VK_SUCCESS)
-         goto fail;
-   } else {
-      assert(!submission->buffer_bind_count && !submission->image_bind_count && !submission->image_opaque_bind_count);
-   }
+   VkResult result = radv_queue_submit_bind_sparse_memory(device, submission);
+   if (result != VK_SUCCESS)
+      goto fail;
 
    if (!submission->command_buffer_count && !submission->wait_count && !submission->signal_count)
       return VK_SUCCESS;

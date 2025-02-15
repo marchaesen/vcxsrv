@@ -3530,16 +3530,10 @@ tu_resolve_sysmem(struct tu_cmd_buffer *cmd,
 }
 TU_GENX(tu_resolve_sysmem);
 
-enum tu_resolve_group_buffer_type {
-   TU_RESOLVE_GROUP_COLOR_BUFFER,
-   TU_RESOLVE_GROUP_DEPTH_BUFFER,
-   TU_RESOLVE_GROUP_STENCIL_BUFFER,
-};
-
 template <chip CHIP>
 static uint32_t
 tu_resolve_group_include_buffer(struct tu_resolve_group *resolve_group,
-                                enum tu_resolve_group_buffer_type buffer_type)
+                                VkFormat format)
 {
    /* Resolve groups are not usable on a6xx, so no pending resolve is
     * established. The default value of 0 is returned as the buffer ID.
@@ -3549,30 +3543,18 @@ tu_resolve_group_include_buffer(struct tu_resolve_group *resolve_group,
 
    resolve_group->pending_resolves = true;
 
-   if (buffer_type == TU_RESOLVE_GROUP_DEPTH_BUFFER)
+   assert(format != VK_FORMAT_D32_SFLOAT_S8_UINT);
+   /* D24_UNORM_S8_UINT should be assigned the depth buffer type, regardless of
+    * whether depth, stencil or both are being resolved.
+    */
+   if (vk_format_has_depth(format))
       return 0x8;
-   if (buffer_type == TU_RESOLVE_GROUP_STENCIL_BUFFER)
+   if (vk_format_has_stencil(format))
       return 0x9;
 
    const uint32_t max_color_buffers = 8;
    uint32_t buffer_id = resolve_group->color_buffer_id++;
    return buffer_id % max_color_buffers;
-}
-
-template <chip CHIP>
-static uint32_t
-tu_resolve_group_include_buffer_for_format(struct tu_resolve_group *resolve_group,
-                                           VkFormat format)
-{
-   enum tu_resolve_group_buffer_type buffer_type = TU_RESOLVE_GROUP_COLOR_BUFFER;
-
-   /* D24_UNORM_S8_UINT should be assigned the depth buffer type, regardless of
-    * whether depth, stencil or both are being resolved.
-    */
-   if (format == VK_FORMAT_D24_UNORM_S8_UINT)
-      buffer_type = TU_RESOLVE_GROUP_DEPTH_BUFFER;
-
-   return tu_resolve_group_include_buffer<CHIP>(resolve_group, buffer_type);
 }
 
 template <chip CHIP>
@@ -3811,7 +3793,7 @@ tu_CmdClearColorImage(VkCommandBuffer commandBuffer,
    struct tu_resolve_group resolve_group = {};
 
    for (unsigned i = 0; i < rangeCount; i++) {
-      uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(&resolve_group, TU_RESOLVE_GROUP_COLOR_BUFFER);
+      uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(&resolve_group, image->vk.format);
       clear_image<CHIP>(cmd, image, buffer_id, (const VkClearValue*) pColor, pRanges + i, VK_IMAGE_ASPECT_COLOR_BIT);
    }
 
@@ -3857,16 +3839,16 @@ tu_CmdClearDepthStencilImage(VkCommandBuffer commandBuffer,
          u_foreach_bit(b, range->aspectMask) {
             uint32_t buffer_id = 0;
             if (BIT(b) == VK_IMAGE_ASPECT_DEPTH_BIT)
-               buffer_id = tu_resolve_group_include_buffer<CHIP>(&resolve_group, TU_RESOLVE_GROUP_DEPTH_BUFFER);
+               buffer_id = tu_resolve_group_include_buffer<CHIP>(&resolve_group, VK_FORMAT_D32_SFLOAT);
             if (BIT(b) == VK_IMAGE_ASPECT_STENCIL_BIT)
-               buffer_id = tu_resolve_group_include_buffer<CHIP>(&resolve_group, TU_RESOLVE_GROUP_STENCIL_BUFFER);
+               buffer_id = tu_resolve_group_include_buffer<CHIP>(&resolve_group, VK_FORMAT_S8_UINT);
 
             clear_image<CHIP>(cmd, image, buffer_id, (const VkClearValue*) pDepthStencil, range, BIT(b));
          }
          continue;
       }
 
-      uint32_t buffer_id = tu_resolve_group_include_buffer_for_format<CHIP>(&resolve_group, image->vk.format);
+      uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(&resolve_group, image->vk.format);
       clear_image<CHIP>(cmd, image, buffer_id, (const VkClearValue*) pDepthStencil, range, range->aspectMask);
    }
 
@@ -4141,17 +4123,17 @@ tu_emit_clear_gmem_attachment(struct tu_cmd_buffer *cmd,
       uint32_t layer = i + base_layer;
       if (att->format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
          if (mask & VK_IMAGE_ASPECT_DEPTH_BIT) {
-            uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(resolve_group, TU_RESOLVE_GROUP_DEPTH_BUFFER);
+            uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(resolve_group, VK_FORMAT_D32_SFLOAT);
             clear_gmem_attachment<CHIP>(cmd, cs, buffer_id, PIPE_FORMAT_Z32_FLOAT, 0xf,
                                   tu_attachment_gmem_offset(cmd, att, layer), value);
          }
          if (mask & VK_IMAGE_ASPECT_STENCIL_BIT) {
-            uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(resolve_group, TU_RESOLVE_GROUP_STENCIL_BUFFER);
+            uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(resolve_group, VK_FORMAT_S8_UINT);
             clear_gmem_attachment<CHIP>(cmd, cs, buffer_id, PIPE_FORMAT_S8_UINT, 0xf,
                                   tu_attachment_gmem_offset_stencil(cmd, att, layer), value);
          }
       } else {
-         uint32_t buffer_id = tu_resolve_group_include_buffer_for_format<CHIP>(resolve_group, att->format);
+         uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(resolve_group, att->format);
          clear_gmem_attachment<CHIP>(cmd, cs, buffer_id, format, aspect_write_mask(format, mask),
                                tu_attachment_gmem_offset(cmd, att, layer), value);
       }
@@ -4302,17 +4284,17 @@ tu7_clear_attachment_generic_single_rect(
 
       if (att->format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
          if (clear_att->aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT) {
-            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, TU_RESOLVE_GROUP_DEPTH_BUFFER);
+            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, VK_FORMAT_D32_SFLOAT);
             tu7_generic_layer_clear(cmd, cs, buffer_id, PIPE_FORMAT_Z32_FLOAT, mask,
                                     false, layer, value, a);
          }
          if (clear_att->aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT) {
-            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, TU_RESOLVE_GROUP_STENCIL_BUFFER);
+            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, VK_FORMAT_S8_UINT);
             tu7_generic_layer_clear(cmd, cs, buffer_id, PIPE_FORMAT_S8_UINT, mask, true,
                                     layer, value, a);
          }
       } else {
-         uint32_t buffer_id = tu_resolve_group_include_buffer_for_format<A7XX>(resolve_group, att->format);
+         uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, att->format);
          tu7_generic_layer_clear(cmd, cs, buffer_id, format, mask, false, layer, value, a);
       }
    }
@@ -4541,17 +4523,17 @@ tu7_generic_clear_attachment(struct tu_cmd_buffer *cmd,
          aspect_write_mask_generic_clear(format, att->clear_mask);
       if (att->format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
          if (att->clear_mask & VK_IMAGE_ASPECT_DEPTH_BIT) {
-            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, TU_RESOLVE_GROUP_DEPTH_BUFFER);
+            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, VK_FORMAT_D32_SFLOAT);
             tu7_generic_layer_clear(cmd, cs, buffer_id, PIPE_FORMAT_Z32_FLOAT, mask,
                                     false, layer, value, a);
          }
          if (att->clear_mask & VK_IMAGE_ASPECT_STENCIL_BIT) {
-            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, TU_RESOLVE_GROUP_STENCIL_BUFFER);
+            uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, VK_FORMAT_S8_UINT);
             tu7_generic_layer_clear(cmd, cs, buffer_id, PIPE_FORMAT_S8_UINT, mask, true,
                                     layer, value, a);
          }
       } else {
-         uint32_t buffer_id = tu_resolve_group_include_buffer_for_format<A7XX>(resolve_group, att->format);
+         uint32_t buffer_id = tu_resolve_group_include_buffer<A7XX>(resolve_group, att->format);
          tu7_generic_layer_clear(cmd, cs, buffer_id, format, mask, false, layer, value, a);
       }
    }
@@ -4608,17 +4590,12 @@ tu_emit_blit(struct tu_cmd_buffer *cmd,
       tu_cs_emit_array(cs, clear_vals, 4);
    }
 
-   enum tu_resolve_group_buffer_type buffer_type = TU_RESOLVE_GROUP_COLOR_BUFFER;
-   if (attachment->format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
-      if (!separate_stencil)
-         buffer_type = TU_RESOLVE_GROUP_DEPTH_BUFFER;
-      else
-         buffer_type = TU_RESOLVE_GROUP_STENCIL_BUFFER;
-   } else if (attachment->format == VK_FORMAT_D24_UNORM_S8_UINT) {
-      buffer_type = TU_RESOLVE_GROUP_DEPTH_BUFFER;
+   VkFormat format = attachment->format;
+   if (format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
+      format = separate_stencil ? VK_FORMAT_S8_UINT : VK_FORMAT_D32_SFLOAT;
    }
 
-   uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(resolve_group, buffer_type);
+   uint32_t buffer_id = tu_resolve_group_include_buffer<CHIP>(resolve_group, format);
    event_blit_setup(cs, buffer_id, attachment, blit_event_type, clear_mask);
 
    for_each_layer(i, attachment->clear_views, cmd->state.framebuffer->layers) {
@@ -4675,7 +4652,7 @@ fdm_apply_load_coords(struct tu_cmd_buffer *cmd,
                       void *data,
                       VkRect2D bin,
                       unsigned views,
-                      VkExtent2D *frag_areas)
+                      const VkExtent2D *frag_areas)
 {
    const struct apply_load_coords_state *state =
       (const struct apply_load_coords_state *)data;
@@ -5140,7 +5117,7 @@ fdm_apply_store_coords(struct tu_cmd_buffer *cmd,
                        void *data,
                        VkRect2D bin,
                        unsigned views,
-                       VkExtent2D *frag_areas)
+                       const VkExtent2D *frag_areas)
 {
    const struct apply_store_coords_state *state =
       (const struct apply_store_coords_state *)data;

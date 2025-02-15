@@ -5006,6 +5006,7 @@ static void gfx6_init_gfx_preamble_state(struct si_context *sctx)
    }
 
    if (sctx->gfx_level <= GFX7 || !has_clear_state) {
+      ac_pm4_set_reg(&pm4->base, R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET, 0);
       ac_pm4_set_reg(&pm4->base, R_028034_PA_SC_SCREEN_SCISSOR_BR,
                      S_028034_BR_X(16384) | S_028034_BR_Y(16384));
    }
@@ -5153,6 +5154,8 @@ static void gfx12_init_gfx_preamble_state(struct si_context *sctx)
                   S_028648_IDX0_EXPORT_FORMAT(V_028648_SPI_SHADER_1COMP));
    ac_pm4_set_reg(&pm4->base, R_028658_SPI_BARYC_CNTL, 0);
 
+   ac_pm4_set_reg(&pm4->base, R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET, 0);
+
    /* The rate combiners have no effect if they are disabled like this:
     *   VERTEX_RATE:    BYPASS_VTX_RATE_COMBINER = 1
     *   PRIMITIVE_RATE: BYPASS_PRIM_RATE_COMBINER = 1
@@ -5168,6 +5171,8 @@ static void gfx12_init_gfx_preamble_state(struct si_context *sctx)
 
    ac_pm4_set_reg(&pm4->base, R_028C54_PA_SC_CONSERVATIVE_RASTERIZATION_CNTL,
                   S_028C54_NULL_SQUAD_AA_MASK_ENABLE(1));
+
+   ac_pm4_set_reg(&pm4->base, R_00B2B8_SPI_SHADER_GS_MESHLET_CTRL, 0);
 
 done:
    sctx->cs_preamble_state = pm4;

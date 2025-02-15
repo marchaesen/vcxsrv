@@ -13,6 +13,7 @@
 #include "util/u_memory.h"
 #include "util/u_upload_mgr.h"
 #include "si_tracepoints.h"
+#include "nir.h"
 
 #define COMPUTE_DBG(sscreen, fmt, args...)                                                         \
    do {                                                                                            \
@@ -1224,7 +1225,7 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
       }
    }
 
-   si_need_gfx_cs_space(sctx, 0);
+   si_need_gfx_cs_space(sctx, 0, 0);
 
    /* If we're using a secure context, determine if cs must be secure or not */
    if (unlikely(radeon_uses_secure_bos(sctx->ws))) {

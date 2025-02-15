@@ -22,6 +22,7 @@
  */
 
 #include "nir.h"
+#include "util/u_printf.h"
 
 /**
  * \file nir_sweep.c

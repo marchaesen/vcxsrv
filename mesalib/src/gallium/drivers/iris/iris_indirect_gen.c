@@ -44,25 +44,18 @@
 #include "libintel_shaders.h"
 
 #if GFX_VERx10 == 80
-# include "intel_gfx80_shaders_spv.h"
 # include "intel_gfx80_shaders_binding.h"
 #elif GFX_VERx10 == 90
-# include "intel_gfx90_shaders_spv.h"
 # include "intel_gfx90_shaders_binding.h"
 #elif GFX_VERx10 == 110
-# include "intel_gfx110_shaders_spv.h"
 # include "intel_gfx110_shaders_binding.h"
 #elif GFX_VERx10 == 120
-# include "intel_gfx120_shaders_spv.h"
 # include "intel_gfx120_shaders_binding.h"
 #elif GFX_VERx10 == 125
-# include "intel_gfx125_shaders_spv.h"
 # include "intel_gfx125_shaders_binding.h"
 #elif GFX_VERx10 == 200
-# include "intel_gfx200_shaders_spv.h"
 # include "intel_gfx200_shaders_binding.h"
 #elif GFX_VERx10 == 300
-# include "intel_gfx300_shaders_spv.h"
 # include "intel_gfx300_shaders_binding.h"
 #else
 # error "Unsupported generation"
@@ -80,13 +73,6 @@ load_fragment_index(nir_builder *b)
    return nir_iadd(b,
                    nir_imul_imm(b, nir_channel(b, pos_in, 1), 8192),
                    nir_channel(b, pos_in, 0));
-}
-
-static const uint32_t *
-load_shader_lib_spv(uint32_t *out_size)
-{
-   *out_size = sizeof(genX(shaders_spv));
-   return genX(shaders_spv);
 }
 
 static unsigned
@@ -112,7 +98,6 @@ iris_call_generation_shader(struct iris_screen *screen, nir_builder *b)
 void
 genX(init_screen_gen_state)(struct iris_screen *screen)
 {
-   screen->vtbl.load_shader_lib_spv = load_shader_lib_spv;
    screen->vtbl.call_generation_shader = iris_call_generation_shader;
 }
 
@@ -328,6 +313,11 @@ emit_indirect_generate_draw(struct iris_batch *batch,
       ps.KernelStartPointer2 = KSP(ice->draw.generation.shader) +
          brw_wm_prog_data_prog_offset(wm_prog_data, ps, 2);
 #endif
+
+#if GFX_VER >= 30
+      ps.RegistersPerThread = ptl_register_blocks(wm_prog_data->base.grf_used);
+#endif
+
 #else
       ps.DispatchGRFStartRegisterForConstantSetupData0 =
          elk_wm_prog_data_dispatch_grf_start_reg(wm_prog_data, ps, 0);

@@ -1791,7 +1791,7 @@ VkResult ResourceTracker::on_vkEnumerateDeviceExtensionProperties(
         "VK_KHR_external_fence_fd",
         "VK_EXT_device_memory_report",
 #endif
-#if DETECT_OS_LINUX && !defined(VK_USE_PLATFORM_ANDROID_KHR)
+#ifdef LINUX_GUEST_BUILD
         "VK_KHR_imageless_framebuffer",
 #endif
         // Vulkan 1.3
@@ -1894,7 +1894,7 @@ VkResult ResourceTracker::on_vkEnumerateDeviceExtensionProperties(
         filteredExts.push_back(VkExtensionProperties{"VK_FUCHSIA_external_memory", 1});
         filteredExts.push_back(VkExtensionProperties{"VK_FUCHSIA_buffer_collection", 1});
 #endif
-#if !defined(VK_USE_PLATFORM_ANDROID_KHR) && DETECT_OS_LINUX
+#ifdef LINUX_GUEST_BUILD
         filteredExts.push_back(VkExtensionProperties{"VK_KHR_external_memory_fd", 1});
         filteredExts.push_back(VkExtensionProperties{"VK_EXT_external_memory_dma_buf", 1});
         // In case the host doesn't support format modifiers, they are emulated
@@ -2066,7 +2066,7 @@ VkResult ResourceTracker::on_vkEnumeratePhysicalDevices(void* context, VkResult,
 
 void ResourceTracker::on_vkGetPhysicalDeviceProperties(void*, VkPhysicalDevice,
                                                        VkPhysicalDeviceProperties* pProperties) {
-#if DETECT_OS_LINUX && !defined(VK_USE_PLATFORM_ANDROID_KHR)
+#ifdef LINUX_GUEST_BUILD
     if (pProperties) {
         if (VK_PHYSICAL_DEVICE_TYPE_CPU == pProperties->deviceType) {
             /* For Linux guest: Even if host driver reports DEVICE_TYPE_CPU,
@@ -2101,6 +2101,42 @@ void ResourceTracker::on_vkGetPhysicalDeviceProperties2(void* context,
                                                         VkPhysicalDeviceProperties2* pProperties) {
     if (pProperties) {
         on_vkGetPhysicalDeviceProperties(context, physicalDevice, &pProperties->properties);
+
+        VkPhysicalDeviceDrmPropertiesEXT* drmProps =
+            vk_find_struct(pProperties, PHYSICAL_DEVICE_DRM_PROPERTIES_EXT);
+        if (drmProps) {
+            VirtGpuDrmInfo drmInfo;
+            if (VirtGpuDevice::getInstance()->getDrmInfo(&drmInfo)) {
+                drmProps->hasPrimary = drmInfo.hasPrimary;
+                drmProps->hasRender = drmInfo.hasRender;
+                drmProps->primaryMajor = drmInfo.primaryMajor;
+                drmProps->primaryMinor = drmInfo.primaryMinor;
+                drmProps->renderMajor = drmInfo.renderMajor;
+                drmProps->renderMinor = drmInfo.renderMinor;
+            } else {
+                mesa_logd(
+                    "%s: encountered VkPhysicalDeviceDrmPropertiesEXT in pProperties::pNext chain, "
+                    "but failed to query DrmInfo from the VirtGpuDevice",
+                    __func__);
+            }
+        }
+
+        VkPhysicalDevicePCIBusInfoPropertiesEXT* pciBusInfoProps =
+            vk_find_struct(pProperties, PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT);
+        if (pciBusInfoProps) {
+            VirtGpuPciBusInfo pciBusInfo;
+            if (VirtGpuDevice::getInstance()->getPciBusInfo(&pciBusInfo)) {
+                pciBusInfoProps->pciDomain = pciBusInfo.domain;
+                pciBusInfoProps->pciBus = pciBusInfo.bus;
+                pciBusInfoProps->pciDevice = pciBusInfo.device;
+                pciBusInfoProps->pciFunction = pciBusInfo.function;
+            } else {
+                mesa_logd(
+                    "%s: encountered VkPhysicalDevicePCIBusInfoPropertiesEXT in pProperties::pNext "
+                    "chain, but failed to query PciBusInfo from the VirtGpuDevice",
+                    __func__);
+            }
+        }
     }
 }
 
@@ -3297,7 +3333,7 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
     void* ahw = nullptr;
 #endif
 
-#if DETECT_OS_LINUX && !defined(VK_USE_PLATFORM_ANDROID_KHR)
+#ifdef LINUX_GUEST_BUILD
     const VkImportMemoryFdInfoKHR* importFdInfoPtr =
         vk_find_struct_const(pAllocateInfo, IMPORT_MEMORY_FD_INFO_KHR);
 #else
@@ -5830,7 +5866,7 @@ VkResult ResourceTracker::on_vkImportSemaphoreFdKHR(
 VkResult ResourceTracker::on_vkGetMemoryFdPropertiesKHR(
     void* context, VkResult, VkDevice device, VkExternalMemoryHandleTypeFlagBits handleType, int fd,
     VkMemoryFdPropertiesKHR* pMemoryFdProperties) {
-#if DETECT_OS_LINUX && !defined(VK_USE_PLATFORM_ANDROID_KHR)
+#ifdef LINUX_GUEST_BUILD
     if (!(handleType & VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT)) {
         mesa_loge("%s: VK_KHR_external_memory_fd behavior not defined for handleType: 0x%x\n",
                   __func__, handleType);
@@ -5865,7 +5901,7 @@ VkResult ResourceTracker::on_vkGetMemoryFdPropertiesKHR(
 
 VkResult ResourceTracker::on_vkGetMemoryFdKHR(void* context, VkResult, VkDevice device,
                                               const VkMemoryGetFdInfoKHR* pGetFdInfo, int* pFd) {
-#if DETECT_OS_LINUX && !defined(VK_USE_PLATFORM_ANDROID_KHR)
+#ifdef LINUX_GUEST_BUILD
     if (!pGetFdInfo) return VK_ERROR_OUT_OF_HOST_MEMORY;
     if (!pGetFdInfo->memory) return VK_ERROR_OUT_OF_HOST_MEMORY;
 

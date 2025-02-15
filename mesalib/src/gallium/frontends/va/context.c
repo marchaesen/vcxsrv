@@ -344,6 +344,9 @@ vlVaCreateContext(VADriverContextP ctx, VAConfigID config_id, int picture_width,
       context->templat.height = picture_height;
       context->templat.expect_chunked_decode = true;
 
+      if (config->entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM)
+         context->desc.base.protected_playback = flag & VL_VA_CREATE_CONTEXT_PROTECTED;
+
       switch (u_reduce_video_profile(context->templat.profile)) {
       case PIPE_VIDEO_FORMAT_MPEG12:
       case PIPE_VIDEO_FORMAT_VC1:
@@ -581,6 +584,8 @@ vlVaTerminate(VADriverContextP ctx)
    drv = ctx->pDriverData;
    vl_compositor_cleanup_state(&drv->cstate);
    vl_compositor_cleanup(&drv->compositor);
+   if (drv->pipe2)
+      drv->pipe2->destroy(drv->pipe2);
    drv->pipe->destroy(drv->pipe);
    drv->vscreen->destroy(drv->vscreen);
    handle_table_destroy(drv->htab);

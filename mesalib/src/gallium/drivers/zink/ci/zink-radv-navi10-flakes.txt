@@ -44,3 +44,5 @@ KHR-GL46.sparse_buffer_tests.BufferStorageTest
 dEQP-GLES3.functional.fbo.multiview.samples_4
 spec@glsl-1.50@execution@redeclare-pervertex-out-subset-gs
 dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.ssbo_atomic_counter_mixed_dispatch_100_calls_128_invocations
+
+spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-cumulative

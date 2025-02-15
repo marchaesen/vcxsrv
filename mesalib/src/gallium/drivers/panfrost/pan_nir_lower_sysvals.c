@@ -116,6 +116,9 @@ sysval_for_intrinsic(unsigned arch, nir_intrinsic_instr *intr, unsigned *offset)
    case nir_intrinsic_load_workgroup_size:
       return PAN_SYSVAL_LOCAL_GROUP_SIZE;
 
+   case nir_intrinsic_load_printf_buffer_address:
+      return PAN_SYSVAL_PRINTF_BUFFER;
+
    case nir_intrinsic_load_rt_conversion_pan: {
       unsigned size = nir_alu_type_get_type_size(nir_intrinsic_src_type(intr));
       unsigned rt = nir_intrinsic_base(intr);

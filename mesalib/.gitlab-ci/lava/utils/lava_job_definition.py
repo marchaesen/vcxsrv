@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, Any
 
 from ruamel.yaml import YAML
 
+from os import environ, getenv
+
 from lava.utils.lava_farm import LavaFarm, get_lava_farm
 from lava.utils.ssh_job_definition import (
     generate_docker_test,
@@ -38,6 +40,9 @@ class LAVAJobDefinition:
         self.lava_nfs_args: str = "root=/dev/nfs rw nfsroot=$NFS_SERVER_IP:$NFS_ROOTFS,tcp,hard,v3 ip=dhcp"
         # extra_nfsroot_args appends to cmdline
         self.extra_nfsroot_args: str = " init=/init rootwait usbcore.quirks=0bda:8153:k"
+        # Append LAVA_CMDLINE to extra_nfsroot_args
+        if lava_cmdline := getenv('LAVA_CMDLINE'):
+            self.extra_nfsroot_args += f" {lava_cmdline}"
 
     def has_ssh_support(self) -> bool:
         if FORCE_UART:

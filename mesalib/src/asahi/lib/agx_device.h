@@ -96,9 +96,6 @@ typedef struct {
 struct agx_device {
    uint32_t debug;
 
-   /* NIR library of AGX helpers/shaders. Immutable once created. */
-   const struct nir_shader *libagx;
-
    /* Precompiled libagx binary table */
    const uint32_t **libagx_programs;
 

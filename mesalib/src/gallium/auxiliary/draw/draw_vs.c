@@ -70,8 +70,7 @@ draw_create_vertex_shader(struct draw_context *draw,
    if (draw->pt.middle.llvm) {
       struct pipe_screen *screen = draw->pipe->screen;
       if (shader->type == PIPE_SHADER_IR_NIR &&
-          !screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
-                                    PIPE_SHADER_CAP_INTEGERS)) {
+          !screen->shader_caps[PIPE_SHADER_VERTEX].integers) {
         state.type = PIPE_SHADER_IR_TGSI;
         state.tokens = nir_to_tgsi(shader->ir.nir, screen);
         is_allocated = true;

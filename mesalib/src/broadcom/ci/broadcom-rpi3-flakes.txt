@@ -65,3 +65,5 @@ dEQP-EGL.functional.sharing.gles2.multithread.random_egl_sync.programs.link.19
 
 # With linux kernel 6.13-rc4 uprev. broadcom job uses 6.6.47 kernel, so likely this is caused with recent mesa
 dEQP-GLES2.functional.texture.mipmap.cube.generate.la88_fastest
+
+spec@ext_framebuffer_multisample@accuracy all_samples stencil_draw small depthstencil

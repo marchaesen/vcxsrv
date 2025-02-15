@@ -9,6 +9,8 @@
 #ifndef TU_UTIL_H
 #define TU_UTIL_H
 
+#include <atomic>
+
 #include "tu_common.h"
 
 #include "util/macros.h"
@@ -19,7 +21,20 @@
 
 #include "vk_util.h"
 
-#define TU_DEBUG(name) unlikely(tu_env.debug & TU_DEBUG_##name)
+/*
+ * Returns if the specified TU_DEBUG flag is set. The value returned by this macro
+ * can change at runtime if TU_DEBUG_FILE is used. Therefore, the value should
+ * be cached in a local scope if it needs to be coherent across multiple usages.
+ */
+#define TU_DEBUG(name) unlikely(tu_env.debug.load(std::memory_order_acquire) & TU_DEBUG_##name)
+
+/*
+ * Same as TU_DEBUG, but only uses the environment variable's value rather
+ * than TU_DEBUG_FILE. This is useful for flags that should not be changed
+ * at runtime or when a flag has different behavior depending on whether it
+ * is set in TU_DEBUG or TU_DEBUG_FILE.
+ */
+#define TU_DEBUG_ENV(name) unlikely(tu_env.env_debug & TU_DEBUG_##name)
 
 enum tu_debug_flags
 {
@@ -52,16 +67,25 @@ enum tu_debug_flags
    TU_DEBUG_NO_CONCURRENT_RESOLVES = 1 << 27,
    TU_DEBUG_NO_CONCURRENT_UNRESOLVES = 1 << 28,
    TU_DEBUG_DUMPAS = 1 << 29,
+   TU_DEBUG_NO_BIN_MERGING = 1 << 30,
 };
 
 struct tu_env {
-    uint32_t debug;
+    std::atomic<uint32_t> debug;
+    uint32_t env_debug;
 };
 
 extern struct tu_env tu_env;
 
+/*
+ * Note: tu_env_init() must be called before using the TU_DEBUG* macro.
+ */
 void
 tu_env_init(void);
+
+/* Returns a pointer to the internal static tmp buffer, do not free. */
+const char *
+tu_env_debug_as_string(void);
 
 /* Whenever we generate an error, pass it through this function. Useful for
  * debugging, where we can break on it. Only call at error site, not when

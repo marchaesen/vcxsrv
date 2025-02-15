@@ -3,9 +3,6 @@
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.first.line_strip_with_adjacency,Fail
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.per_pipeline.triangle_strip_with_adjacency,Fail
 
-# The test has a loop that exceeds LP_MAX_TGSI_LOOP_ITERATIONS
-dEQP-VK.sparse_resources.buffer.ssbo.sparse_residency.buffer_size_2_24,Fail
-
 dEQP-VK.api.maintenance7.total_dynamic_buffers_properties,Fail
 
 dEQP-VK.dynamic_rendering.complete_secondary_cmd_buff.suballocation.unused_attachment.loadopclear.storeopdontcare.stencilloadopdontcare.stencilstoreopdontcare,Fail

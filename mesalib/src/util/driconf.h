@@ -749,9 +749,9 @@
    DRI_CONF_OPT_B(radv_rt_wave64, def, \
                   "Force wave64 in RT shaders")
 
-#define DRI_CONF_RADV_LEGACY_SPARSE_BINDING(def) \
-   DRI_CONF_OPT_B(radv_legacy_sparse_binding, def, \
-                  "Enable legacy sparse binding (with implicit synchronization) on the graphics and compute queue")
+#define DRI_CONF_RADV_DISABLE_DEDICATED_SPARSE_QUEUE(def) \
+   DRI_CONF_OPT_B(radv_disable_dedicated_sparse_queue, def, \
+                  "Disables the dedicated sparse queue. This replaces radv_legacy_sparse_binding as a compatible drirc workaround for games that might not expect a separate SPARSE queue")
 
 #define DRI_CONF_RADV_FORCE_PSTATE_PEAK_GFX11_DGPU(def) \
    DRI_CONF_OPT_B(radv_force_pstate_peak_gfx11_dgpu, def, \
@@ -856,6 +856,10 @@
 #define DRI_CONF_ANV_UPPER_BOUND_DESCRIPTOR_POOL_SAMPLER(def) \
    DRI_CONF_OPT_B(anv_upper_bound_descriptor_pool_sampler, def, \
                   "Overallocate samplers in descriptor pools to workaround app bug")
+
+#define DRI_CONF_ANV_VF_COMPONENT_PACKING(def) \
+   DRI_CONF_OPT_B(anv_vf_component_packing, def, \
+                  "Vertex fetching component packing")
 
 /**
  * \brief HASVK specific configuration options

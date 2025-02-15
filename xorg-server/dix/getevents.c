@@ -42,6 +42,8 @@
 
 #include "dix/input_priv.h"
 
+#include "mi/mi_priv.h"
+
 #include "misc.h"
 #include "resource.h"
 #include "inputstr.h"
@@ -54,15 +56,14 @@
 #include "eventstr.h"
 #include "eventconvert.h"
 #include "inpututils.h"
-#include "mi.h"
 #include "windowstr.h"
 
 #include "xkbsrv.h"
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
-#endif
+#endif /* XINERAMA */
 
 #include "exglobals.h"
 #include "exevents.h"
@@ -1964,8 +1965,8 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
 
     ti = TouchFindByDDXID(dev, ddx_touchid, (type == XI_TouchBegin));
     if (!ti) {
-        ErrorFSigSafe("[dix] %s: unable to %s touch point %u\n", dev->name,
-                      type == XI_TouchBegin ? "begin" : "find", ddx_touchid);
+        ErrorF("[dix] %s: unable to %s touch point %u\n", dev->name,
+               type == XI_TouchBegin ? "begin" : "find", ddx_touchid);
         return 0;
     }
     client_id = ti->client_id;
@@ -1998,16 +1999,14 @@ GetTouchEvents(InternalEvent *events, DeviceIntPtr dev, uint32_t ddx_touchid,
         if (!mask_in ||
             !valuator_mask_isset(mask_in, 0) ||
             !valuator_mask_isset(mask_in, 1)) {
-            ErrorFSigSafe("%s: Attempted to start touch without x/y "
-                          "(driver bug)\n", dev->name);
+            ErrorF("%s: Attempted to start touch without x/y (driver bug)\n", dev->name);
             return 0;
         }
         break;
     case XI_TouchUpdate:
         event->type = ET_TouchUpdate;
         if (!mask_in || valuator_mask_num_valuators(mask_in) <= 0) {
-            ErrorFSigSafe("%s: TouchUpdate with no valuators? Driver bug\n",
-                          dev->name);
+            ErrorF("%s: TouchUpdate with no valuators? Driver bug\n", dev->name);
         }
         break;
     case XI_TouchEnd:
@@ -2139,7 +2138,7 @@ PostSyntheticMotion(DeviceIntPtr pDev,
 {
     DeviceEvent ev;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
     /* Translate back to the sprite screen since processInputProc
        will translate from sprite screen to screen 0 upon reentry
        to the DIX layer. */
@@ -2147,7 +2146,7 @@ PostSyntheticMotion(DeviceIntPtr pDev,
         x += screenInfo.screens[0]->x - screenInfo.screens[screen]->x;
         y += screenInfo.screens[0]->y - screenInfo.screens[screen]->y;
     }
-#endif
+#endif /* XINERAMA */
 
     memset(&ev, 0, sizeof(DeviceEvent));
     init_device_event(&ev, pDev, time, EVENT_SOURCE_NORMAL);

@@ -77,6 +77,9 @@ struct panvk_rendering_state {
     * inherited context, and the primary command buffer needs to know. */
    bool invalidate_inherited_ctx;
 
+   /* True if the last render pass was suspended. */
+   bool suspended;
+
    struct {
       /* != 0 if the render pass contains one or more occlusion queries to
        * signal. */

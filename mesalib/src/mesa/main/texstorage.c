@@ -421,6 +421,12 @@ tex_storage_error_check(struct gl_context *ctx,
       return GL_TRUE;
    }
 
+   if (texObj->IsSparse && texObj->IsProtected) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sStorage%uD(protected)",
+                  suffix, dims);
+      return GL_TRUE;
+   }
+
    /* additional checks for depth textures */
    if (!_mesa_legal_texture_base_format_for_target(ctx, target, internalformat)) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "glTex%sStorage%uD(bad target for texture)",
@@ -559,8 +565,7 @@ texture_storage(struct gl_context *ctx, GLuint dims,
          /* clear all image fields for [levels] */
          clear_texture_fields(ctx, texObj);
       }
-   }
-   else {
+   } else {
       if (!no_error) {
          if (!dimensionsOK) {
             _mesa_error(ctx, GL_INVALID_VALUE,

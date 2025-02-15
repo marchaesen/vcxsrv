@@ -41,12 +41,16 @@ values['ci_runner_description'] = environ['CI_RUNNER_DESCRIPTION']
 values['job_volume_exclusions'] = [excl for excl in values['job_volume_exclusions'].split(",") if excl]
 values['working_dir'] = environ['CI_PROJECT_DIR']
 
-# Use the gateway's pull-through registry caches to reduce load on fd.o.
-values['local_container'] = environ['IMAGE_UNDER_TEST']
-values['local_container'] = values['local_container'].replace(
-    'registry.freedesktop.org',
-    '{{ fdo_proxy_registry }}'
-)
+values['image_under_test'] = environ['IMAGE_UNDER_TEST']
+values['machine_registration_image'] = environ.get('MACHINE_REGISTRATION_IMAGE', "registry.freedesktop.org/gfx-ci/ci-tron/machine-registration:latest")
+values['telegraf_image'] = environ.get('TELEGRAF_IMAGE', "registry.freedesktop.org/gfx-ci/ci-tron/telegraf:latest")
+
+# Pull all our images through our proxy registry
+for image in ['image_under_test', 'machine_registration_image', 'telegraf_image']:
+    values[image] = values[image].replace(
+        'registry.freedesktop.org',
+        '{{ fdo_proxy_registry }}'
+    )
 
 if 'kernel_cmdline_extras' not in values:
     values['kernel_cmdline_extras'] = ''

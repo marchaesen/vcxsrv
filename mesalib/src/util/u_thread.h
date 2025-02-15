@@ -109,7 +109,7 @@ util_current_thread_get_time_nano(void)
 
 static inline bool u_thread_is_self(thrd_t thread)
 {
-   return thrd_equal(thrd_current(), thread);
+   return thrd_equal(thrd_current(), thread) != 0;
 }
 
 /*

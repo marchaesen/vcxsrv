@@ -28,8 +28,6 @@ radv_aco_convert_shader_info(struct aco_shader_info *aco_info, const struct radv
                              const enum amd_gfx_level gfx_level)
 {
    ASSIGN_FIELD(wave_size);
-   ASSIGN_FIELD(has_ngg_culling);
-   ASSIGN_FIELD(has_ngg_early_prim_export);
    ASSIGN_FIELD(workgroup_size);
    ASSIGN_FIELD(ps.has_epilog);
    ASSIGN_FIELD(merged_shader_compiled_separately);
@@ -48,6 +46,7 @@ radv_aco_convert_shader_info(struct aco_shader_info *aco_info, const struct radv
    aco_info->hw_stage = radv_select_hw_stage(radv, gfx_level);
    aco_info->tcs.tcs_offchip_layout = radv_args->tcs_offchip_layout;
    aco_info->next_stage_pc = radv_args->next_stage_pc;
+   aco_info->schedule_ngg_pos_exports = gfx_level < GFX11 && radv->has_ngg_culling && radv->has_ngg_early_prim_export;
 }
 
 static inline void

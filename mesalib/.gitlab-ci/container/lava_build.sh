@@ -161,6 +161,7 @@ CONTAINER_EPHEMERAL=(
     libxcb-dri2-0-dev
     libxkbcommon-dev
     libwayland-dev
+    "lld-${LLVM_VERSION}"
     ninja-build
     openssh-server
     patch
@@ -304,7 +305,8 @@ mv /apitrace/build $ROOTFS/apitrace
 rm -rf /apitrace
 
 ############### Build ANGLE
-if [[ "$DEBIAN_ARCH" = "amd64" ]]; then
+if [ "$DEBIAN_ARCH" != "armhf" ]; then
+  ANGLE_TARGET=linux \
   . .gitlab-ci/container/build-angle.sh
   mv /angle $ROOTFS/.
   rm -rf /angle
@@ -335,9 +337,11 @@ if [ "$BUILD_VK" == "ON" ]; then
   DEQP_TARGET=default \
   . .gitlab-ci/container/build-deqp.sh
 
-  DEQP_API=VK-main \
-  DEQP_TARGET=default \
-  . .gitlab-ci/container/build-deqp.sh
+  if [ "$DEBIAN_ARCH" == "amd64" ]; then
+    DEQP_API=VK-main \
+    DEQP_TARGET=default \
+    . .gitlab-ci/container/build-deqp.sh
+  fi
 fi
 
 rm -rf /VK-GL-CTS

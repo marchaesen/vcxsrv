@@ -148,8 +148,20 @@ extern _X_EXPORT void UpdateCurrentTime(void);
 
 extern _X_EXPORT void UpdateCurrentTimeIf(void);
 
-extern _X_EXPORT int dixDestroyPixmap(void *value,
-                                      XID pid);
+/*
+ * @brief dereference a pixmap and destroy it when not used anymore
+ *
+ * Despite the name, this function unref's the pixmap, and only destroys it when
+ * the pixmap isn't used anymore. (perhaps it should be renamed to dixUnrefPixmap())
+ *
+ * Note: it's also used as resource destructor callback, hence that strange args.
+ * (not actually finest art, but for now a good compromise, since it's already
+ *  existing and exported, thus can easily be used by drivers, w/o breaking compat)
+ *
+ * @param pPixmap pointer to pixmap (PixmapPtr) that should be unref'ed
+ * @param unused ignored, only for matching the resource destructor prototype
+ */
+_X_EXPORT int dixDestroyPixmap(void *pPixmap, XID unused);
 
 extern _X_EXPORT ClientPtr NextAvailableClient(void *ospriv);
 
@@ -406,5 +418,16 @@ extern _X_EXPORT Bool
 IsFloating(DeviceIntPtr dev);
 
 extern _X_EXPORT void *lastGLContext;
+
+/**
+ * @brief get display string for given screen
+ *
+ * Entry point for drivers/modules that really need to know what
+ * display ID we're running on (eg. xrdp).
+ *
+ * @param pScreen pointer to ScreenRec to query.
+ * @return pointer to string, valid as long as the pScreen is, owned by DIX.
+ */
+_X_EXPORT const char *dixGetDisplayName(ScreenPtr *pScreen);
 
 #endif                          /* DIX_H */

@@ -487,6 +487,7 @@ ac_nir_lower_tex(nir_shader *nir, const ac_nir_lower_tex_options *options)
    bool progress = false;
    if (options->fix_derivs_in_divergent_cf) {
       nir_function_impl *impl = nir_shader_get_entrypoint(nir);
+      nir_metadata_require(impl, nir_metadata_divergence);
 
       struct move_tex_coords_state state;
       state.toplevel_b = nir_builder_create(impl);

@@ -5316,9 +5316,9 @@ nir_opt_varyings(nir_shader *producer, nir_shader *consumer, bool spirv,
       producer->info.cull_distance_array_size = 0;
    }
 
-   if (progress & nir_progress_producer)
+   if ((progress & nir_progress_producer) || NIR_DEBUG(EXTENDED_VALIDATION))
       nir_validate_shader(producer, "nir_opt_varyings");
-   if (progress & nir_progress_consumer)
+   if ((progress & nir_progress_consumer) || NIR_DEBUG(EXTENDED_VALIDATION))
       nir_validate_shader(consumer, "nir_opt_varyings");
 
    return progress;

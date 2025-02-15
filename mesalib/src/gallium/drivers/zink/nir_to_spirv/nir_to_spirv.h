@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <vulkan/vulkan_core.h>
 
-#include "compiler/nir/nir.h"
+#include "compiler/glsl_types.h"
 #include "compiler/shader_enums.h"
 #include "pipe/p_state.h"
 
@@ -99,8 +99,6 @@ zink_image_type(const struct glsl_type *type)
    }
    return 0;
 }
-
-struct nir_shader;
 
 bool
 zink_nir_lower_b2b(struct nir_shader *shader);

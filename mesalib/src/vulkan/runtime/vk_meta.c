@@ -30,6 +30,8 @@
 #include "vk_pipeline.h"
 #include "vk_util.h"
 
+#include "nir.h"
+
 #include "util/hash_table.h"
 
 #include <string.h>

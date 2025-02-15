@@ -443,15 +443,19 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
 
       // tile_info()
       {
-         unsigned maxTileWidthSb = pPicHdr->tile_info.tile_support_caps.MaxTileWidth;
-         unsigned maxTileAreaSb = pPicHdr->tile_info.tile_support_caps.MaxTileArea;
+         unsigned sbSize = (pSeqHdr->use_128x128_superblock ? 5 : 4) /* sbShift */ + 2;
+         unsigned maxTileWidthSb = 4096 /* MAX_TILE_WIDTH */ >> sbSize;
+         unsigned maxTileAreaSb = 4096 * 2304  /* MAX_TILE_AREA */ >> (2 * sbSize);
 
-         unsigned minLog2TileCols = tile_log2(maxTileWidthSb, pPicHdr->tile_info.tile_support_caps.MinTileCols);
-         unsigned maxLog2TileCols = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MaxTileCols);
+         unsigned minLog2TileCols = tile_log2(maxTileWidthSb, pPicHdr->frame_width_sb);
+         unsigned maxLog2TileCols = tile_log2(1, std::min(pPicHdr->frame_width_sb, uint32_t(64) /* MAX_TILE_COLS */));
          unsigned log2TileCols = tile_log2(1, static_cast<unsigned>(pPicHdr->tile_info.tile_partition.ColCount));
 
-         unsigned minLog2TileRows = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MinTileRows);
-         unsigned maxLog2TileRows = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MaxTileRows);
+         unsigned maxLog2TileRows = tile_log2(1, std::min(pPicHdr->frame_height_sb, uint32_t(64) /* MAX_TILE_ROWS */));
+         unsigned minLog2Tiles = std::max(minLog2TileCols,
+                                          tile_log2(maxTileAreaSb,
+                                                    pPicHdr->frame_width_sb * pPicHdr->frame_height_sb));
+         unsigned minLog2TileRows = minLog2Tiles < log2TileCols ? 0 : minLog2Tiles - log2TileCols;
          unsigned log2TileRows = tile_log2(1, static_cast<unsigned>(pPicHdr->tile_info.tile_partition.RowCount));
 
          pBit->put_bits(1, pPicHdr->tile_info.uniform_tile_spacing_flag);   // uniform_tile_spacing_flag

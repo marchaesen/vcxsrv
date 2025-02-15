@@ -30,6 +30,7 @@
 #include "util/u_debug.h"
 #include "util/u_string.h"
 #include "util/u_math.h"
+#include "c11/threads.h"
 #include <inttypes.h>
 
 #include <stdio.h>
@@ -378,8 +379,8 @@ debug_dump_enum(const struct debug_named_value *names,
 const char *
 debug_dump_flags(const struct debug_named_value *names, uint64_t value)
 {
-   static char output[4096];
-   static char rest[256];
+   static thread_local char output[4096];
+   static thread_local char rest[256];
    int first = 1;
 
    output[0] = '\0';
@@ -426,7 +427,7 @@ parse_debug_string(const char *debug,
          const char *s = debug;
          unsigned n;
 
-         for (; n = strcspn(s, ", "), *s; s += MAX2(1, n)) {
+         for (; n = strcspn(s, ", \n"), *s; s += MAX2(1, n)) {
             if (!n)
                continue;
 
@@ -453,7 +454,7 @@ parse_enable_string(const char *debug,
       const char *s = debug;
       unsigned n;
 
-      for (; n = strcspn(s, ", "), *s; s += MAX2(1, n)) {
+      for (; n = strcspn(s, ", \n"), *s; s += MAX2(1, n)) {
          bool enable;
          if (s[0] == '+') {
             enable = true;
@@ -499,4 +500,40 @@ comma_separated_list_contains(const char *list, const char *s)
    }
 
    return false;
+}
+
+void
+dump_debug_control_string(char *output,
+                          size_t max_size,
+                          const struct debug_control *control,
+                          uint64_t flags)
+{
+   size_t pos = 0;
+   int ret;
+   bool first = true;
+
+   for (const struct debug_control *c = control; c->string != NULL; c++) {
+      if (!(flags & c->flag))
+         continue;
+      ret = snprintf(output + pos, max_size - pos,
+                     first ? "%s" : "|%s", c->string);
+      if (ret < 0 || ret >= max_size - pos) {
+         output[max_size-3] = output[max_size-2] = '.';
+         output[max_size-1] = '\0';
+         return;
+      }
+
+      pos += ret;
+      first = false;
+      flags &= ~(c->flag);
+   }
+
+   if (flags) {
+      ret = snprintf(output + pos, max_size - pos,
+                     first ? "0x%" PRIx64 : "|0x%" PRIx64, flags);
+      if (ret < 0 || ret >= max_size - pos) {
+         output[max_size-3] = output[max_size-2] = '.';
+         output[max_size-1] = '\0';
+      }
+   }
 }

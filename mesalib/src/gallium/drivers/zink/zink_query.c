@@ -429,7 +429,7 @@ destroy_query(struct zink_context *ctx, struct zink_query *query)
          pipe_resource_reference(&qbo->buffers[i], NULL);
       FREE(qbo);
    }
-   pipe_resource_reference((struct pipe_resource**)&query->predicate, NULL);
+   zink_resource_reference(&query->predicate, NULL);
    FREE(query);
 }
 

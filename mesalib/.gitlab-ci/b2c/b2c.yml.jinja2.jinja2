@@ -70,7 +70,35 @@ deployment:
   # Initial boot
   start:
     storage:
+{% if imagestore_platform %}
+        imagestore:
+          public:
+            # List of images that should be pulled into the image store ahead of execution
+            images:
+              mars:
+                name: "{{ machine_registration_image }}"
+                platform: "{{ imagestore_platform }}"
+                tls_verify: false
+                {% set machine_registration_image="{% raw %}{{ job.imagestore.public.mars.image_id }}{% endraw %}" %}
+              telegraf:
+                name: "{{ telegraf_image }}"
+                platform: "{{ imagestore_platform }}"
+                tls_verify: false
+                {% set telegraf_image="{% raw %}{{ job.imagestore.public.telegraf.image_id }}{% endraw %}" %}
+              image_under_test:
+                name: "{{ image_under_test }}"
+                platform: "{{ imagestore_platform }}"
+                tls_verify: false
+                {% set image_under_test="{% raw %}{{ job.imagestore.public.image_under_test.image_id }}{% endraw %}" %}
+        nbd:
+          storage:
+            max_connections: 5
+            size: 10G
+{% endif %}
+
         http:
+          - path: "/install.tar.zst"
+            url: "{{ install_tarball_url }}"
           - path: "/b2c-extra-args"
             data: >
               b2c.pipefail b2c.poweroff_delay={{ poweroff_delay }}
@@ -79,9 +107,9 @@ deployment:
               {% for volume in volumes %}
               b2c.volume={{ volume }}
               {% endfor %}
-              b2c.run_service="--privileged --tls-verify=false --pid=host docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/telegraf:latest" b2c.hostname=dut-{{ '{{' }} machine.full_name }}
-              b2c.run="-ti --tls-verify=false docker://{{ '{{' }} fdo_proxy_registry }}/gfx-ci/ci-tron/machine-registration:latest check"
-              b2c.run="-v {{ '{{' }} job_bucket }}-results:{{ working_dir }} -w {{ working_dir }} {% for mount_volume in mount_volumes %} -v {{ mount_volume }}{% endfor %} --tls-verify=false docker://{{ local_container }} {{ container_cmd | replace('"', '\\\"') }}"
+              b2c.run_service="--privileged --tls-verify=false --pid=host {{ telegraf_image }}" b2c.hostname=dut-{{ '{{' }} machine.full_name }}
+              b2c.run="-ti --tls-verify=false {{ machine_registration_image }} check"
+              b2c.run="-v {{ '{{' }} job_bucket }}-results:{{ working_dir }} -w {{ working_dir }} {% for mount_volume in mount_volumes %} -v {{ mount_volume }}{% endfor %} --tls-verify=false --entrypoint bash {{image_under_test}} -euc 'curl -q {{ '{{' }} job.http.url }}/install.tar.zst | tar --zstd -x; {{ container_cmd }}'"
     kernel:
 {% if kernel_url %}
       url: '{{ kernel_url }}'
@@ -92,8 +120,16 @@ deployment:
       cmdline: >
         SALAD.machine_id={{ '{{' }} machine_id }}
         console={{ '{{' }} local_tty_device }},115200
-        b2c.cache_device=auto b2c.ntp_peer=10.42.0.1
+        b2c.ntp_peer=10.42.0.1
         b2c.extra_args_url={{ '{{' }} job.http.url }}/b2c-extra-args
+        {% if imagestore_platform is defined %}
+        {{ '{{' }} imagestore.mount("public").nfs.to_b2c_filesystem("publicimgstore") }}
+        b2c.storage="additionalimagestores=publicimgstore"
+        b2c.nbd=/dev/nbd0,host=ci-gateway,port={% raw %}{{ '{{' }} job.nbd.storage.tcp_port }}{% endraw %},connections=5
+        b2c.cache_device=/dev/nbd0
+        {% else %}
+        b2c.cache_device=auto
+        {% endif %}
         {% if kernel_cmdline_extras is defined %}
         {{ kernel_cmdline_extras }}
         {% endif %}

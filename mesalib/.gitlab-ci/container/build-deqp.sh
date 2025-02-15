@@ -8,12 +8,14 @@
 # DEBIAN_TEST_VK_TAG
 # KERNEL_ROOTFS_TAG
 
-set -uex -o pipefail
+set -ue -o pipefail
 
 # shellcheck disable=SC2153
 deqp_api=${DEQP_API,,}
 
 uncollapsed_section_start deqp-$deqp_api "Building dEQP $DEQP_API"
+
+set -x
 
 # See `deqp_build_targets` below for which release is used to produce which
 # binary. Unless this comment has bitrotten:
@@ -62,14 +64,8 @@ gl_cts_commits_to_backport=(
 
 # shellcheck disable=SC2034
 gl_cts_patch_files=(
+  build-deqp-gl_Build-Don-t-build-Vulkan-utilities-for-GL-builds.patch
 )
-
-if [ "${DEQP_TARGET}" = 'android' ]; then
-  gl_cts_patch_files+=(
-    build-deqp-gl_Allow-running-on-Android-from-the-command-line.patch
-    build-deqp-gl_Android-prints-to-stdout-instead-of-logcat.patch
-  )
-fi
 
 # shellcheck disable=SC2034
 # GLES builds also EGL
@@ -83,6 +79,7 @@ gles_cts_commits_to_backport=(
 
 # shellcheck disable=SC2034
 gles_cts_patch_files=(
+  build-deqp-gl_Build-Don-t-build-Vulkan-utilities-for-GL-builds.patch
 )
 
 if [ "${DEQP_TARGET}" = 'android' ]; then
@@ -120,8 +117,8 @@ git checkout FETCH_HEAD
 DEQP_COMMIT=$(git rev-parse FETCH_HEAD)
 
 if [ "$DEQP_VERSION" = "$DEQP_MAIN_COMMIT" ]; then
-  git fetch origin main
-  if ! git merge-base --is-ancestor "$DEQP_MAIN_COMMIT" origin/main; then
+  merge_base="$(curl -s https://api.github.com/repos/KhronosGroup/VK-GL-CTS/compare/main...$DEQP_MAIN_COMMIT | jq -r .merge_base_commit.sha)"
+  if [[ "$merge_base" != "$DEQP_MAIN_COMMIT" ]]; then
     echo "VK-GL-CTS commit $DEQP_MAIN_COMMIT is not a commit from the main branch."
     exit 1
   fi
@@ -176,47 +173,6 @@ fi
 
 popd
 
-pushd /deqp-$deqp_api
-
-if [ "${DEQP_API}" = 'GLES' ]; then
-  if [ "${DEQP_TARGET}" = 'android' ]; then
-    cmake -S /VK-GL-CTS -B . -G Ninja \
-        -DDEQP_TARGET=android \
-        -DCMAKE_BUILD_TYPE=Release \
-        ${EXTRA_CMAKE_ARGS:-}
-    ninja modules/egl/deqp-egl
-    mv modules/egl/deqp-egl{,-android}
-  else
-    # When including EGL/X11 testing, do that build first and save off its
-    # deqp-egl binary.
-    cmake -S /VK-GL-CTS -B . -G Ninja \
-        -DDEQP_TARGET=x11_egl_glx \
-        -DCMAKE_BUILD_TYPE=Release \
-        ${EXTRA_CMAKE_ARGS:-}
-    ninja modules/egl/deqp-egl
-    mv modules/egl/deqp-egl{,-x11}
-
-    cmake -S /VK-GL-CTS -B . -G Ninja \
-        -DDEQP_TARGET=wayland \
-        -DCMAKE_BUILD_TYPE=Release \
-        ${EXTRA_CMAKE_ARGS:-}
-    ninja modules/egl/deqp-egl
-    mv modules/egl/deqp-egl{,-wayland}
-  fi
-fi
-
-cmake -S /VK-GL-CTS -B . -G Ninja \
-      -DDEQP_TARGET=${DEQP_TARGET} \
-      -DCMAKE_BUILD_TYPE=Release \
-      ${EXTRA_CMAKE_ARGS:-}
-
-# Make sure `default` doesn't silently stop detecting one of the platforms we care about
-if [ "${DEQP_TARGET}" = 'default' ]; then
-  grep -q DEQP_SUPPORT_WAYLAND=1 build.ninja
-  grep -q DEQP_SUPPORT_X11=1 build.ninja
-  grep -q DEQP_SUPPORT_XCB=1 build.ninja
-fi
-
 deqp_build_targets=()
 case "${DEQP_API}" in
   VK|VK-main)
@@ -228,7 +184,7 @@ case "${DEQP_API}" in
   GLES)
     deqp_build_targets+=(deqp-gles{2,3,31})
     deqp_build_targets+=(glcts)  # needed for gles*-khr tests
-    # deqp-egl also comes from this build, but it is handled separately above.
+    # deqp-egl also comes from this build, but it is handled separately below.
     ;;
   tools)
     deqp_build_targets+=(testlog-to-xml)
@@ -236,6 +192,56 @@ case "${DEQP_API}" in
     deqp_build_targets+=(testlog-to-junit)
     ;;
 esac
+
+OLD_IFS="$IFS"
+IFS=";"
+CMAKE_SBT="${deqp_build_targets[*]}"
+IFS="$OLD_IFS"
+
+pushd /deqp-$deqp_api
+
+if [ "${DEQP_API}" = 'GLES' ]; then
+  if [ "${DEQP_TARGET}" = 'android' ]; then
+    cmake -S /VK-GL-CTS -B . -G Ninja \
+        -DDEQP_TARGET=android \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DSELECTED_BUILD_TARGETS="deqp-egl" \
+        ${EXTRA_CMAKE_ARGS:-}
+    ninja modules/egl/deqp-egl
+    mv modules/egl/deqp-egl{,-android}
+  else
+    # When including EGL/X11 testing, do that build first and save off its
+    # deqp-egl binary.
+    cmake -S /VK-GL-CTS -B . -G Ninja \
+        -DDEQP_TARGET=x11_egl_glx \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DSELECTED_BUILD_TARGETS="deqp-egl" \
+        ${EXTRA_CMAKE_ARGS:-}
+    ninja modules/egl/deqp-egl
+    mv modules/egl/deqp-egl{,-x11}
+
+    cmake -S /VK-GL-CTS -B . -G Ninja \
+        -DDEQP_TARGET=wayland \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DSELECTED_BUILD_TARGETS="deqp-egl" \
+        ${EXTRA_CMAKE_ARGS:-}
+    ninja modules/egl/deqp-egl
+    mv modules/egl/deqp-egl{,-wayland}
+  fi
+fi
+
+cmake -S /VK-GL-CTS -B . -G Ninja \
+      -DDEQP_TARGET=${DEQP_TARGET} \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DSELECTED_BUILD_TARGETS="${CMAKE_SBT}" \
+      ${EXTRA_CMAKE_ARGS:-}
+
+# Make sure `default` doesn't silently stop detecting one of the platforms we care about
+if [ "${DEQP_TARGET}" = 'default' ]; then
+  grep -q DEQP_SUPPORT_WAYLAND=1 build.ninja
+  grep -q DEQP_SUPPORT_X11=1 build.ninja
+  grep -q DEQP_SUPPORT_XCB=1 build.ninja
+fi
 
 ninja "${deqp_build_targets[@]}"
 

@@ -48,3 +48,8 @@ spec@arb_texture_buffer_object@formats.*arb.*
 
 # Timeout
 KHR-Single-GL46.arrays_of_arrays_gl.SizedDeclarationsPrimitive
+
+# Slow tests, these take about two minutes
+KHR-Single-GL46.arrays_of_arrays_gl.ConstructorsAndUnsizedDeclConstructors1
+KHR-Single-GL46.arrays_of_arrays_gl.ConstructorsAndUnsizedDeclConstructorSizing1
+KHR-Single-GL46.subgroups.arithmetic.compute.subgroupinclusiveadd_ivec3

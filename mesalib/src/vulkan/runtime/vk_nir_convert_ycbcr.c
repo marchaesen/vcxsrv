@@ -25,6 +25,7 @@
 
 #include "vk_format.h"
 #include "vk_ycbcr_conversion.h"
+#include "nir_builder.h"
 
 #include <math.h>
 

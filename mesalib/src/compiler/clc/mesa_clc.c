@@ -13,9 +13,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-/* Shader functions */
-#define SPIR_V_MAGIC_NUMBER 0x07230203
-
 static void
 msg_callback(void *priv, const char *msg)
 {
@@ -34,22 +31,6 @@ print_usage(char *exec_name, FILE *f)
       "  -o, --out <filename>    Specify the output filename.\n"
       "  -v, --verbose           Print more information during compilation.\n",
       exec_name);
-}
-
-static uint32_t
-get_module_spirv_version(const uint32_t *spirv, size_t size)
-{
-   assert(size >= 8);
-   assert(spirv[0] == SPIR_V_MAGIC_NUMBER);
-   return spirv[1];
-}
-
-static void
-set_module_spirv_version(uint32_t *spirv, size_t size, uint32_t version)
-{
-   assert(size >= 8);
-   assert(spirv[0] == SPIR_V_MAGIC_NUMBER);
-   spirv[1] = version;
 }
 
 int
@@ -178,30 +159,6 @@ main(int argc, char **argv)
 
    util_dynarray_foreach(&spirv_objs, struct clc_binary, p) {
       util_dynarray_append(&spirv_ptr_objs, struct clc_binary *, p);
-   }
-
-   /* The SPIRV-Tools linker started checking that all modules have the same
-    * version. But SPIRV-LLVM-Translator picks the lower required version for
-    * each module it compiles. So we have to iterate over all of them and set
-    * the max found to make SPIRV-Tools link our modules.
-    *
-    * TODO: This is not the correct thing to do. We need SPIRV-LLVM-Translator
-    *       to pick a given SPIRV version given to it and have all the modules
-    *       at that version. We should remove this hack when this issue is
-    *       fixed :
-    *       https://github.com/KhronosGroup/SPIRV-LLVM-Translator/issues/1445
-    */
-   uint32_t max_spirv_version = 0;
-   util_dynarray_foreach(&spirv_ptr_objs, struct clc_binary *, module) {
-      max_spirv_version =
-         MAX2(max_spirv_version,
-              get_module_spirv_version((*module)->data, (*module)->size));
-   }
-
-   assert(max_spirv_version > 0);
-   util_dynarray_foreach(&spirv_ptr_objs, struct clc_binary *, module) {
-      set_module_spirv_version((*module)->data, (*module)->size,
-                               max_spirv_version);
    }
 
    struct clc_linker_args link_args = {

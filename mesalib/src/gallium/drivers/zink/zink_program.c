@@ -39,6 +39,7 @@
 #include "util/u_memory.h"
 #include "util/u_prim.h"
 #include "nir_serialize.h"
+#include "nir.h"
 #include "nir/nir_draw_helpers.h"
 
 /* for pipeline cache */
@@ -1303,7 +1304,7 @@ create_gfx_program_separable(struct zink_context *ctx, struct zink_shader **stag
          refs++;
       }
    }
-   /* We can do this add after the _mesa_set_adds above because we know the prog->shaders[] are 
+   /* We can do this add after the _mesa_set_adds above because we know the prog->shaders[] are
    * referenced by the draw state and zink_gfx_shader_free() can't be called on them while we're in here.
    */
    p_atomic_add(&prog->base.reference.count, refs - 1);
@@ -1366,7 +1367,7 @@ print_pipeline_stats(struct zink_screen *screen, VkPipeline pipeline, struct uti
    VkPipelineInfoKHR pinfo = {
      VK_STRUCTURE_TYPE_PIPELINE_INFO_KHR,
      NULL,
-     pipeline 
+     pipeline
    };
    unsigned exe_count = 0;
    VkPipelineExecutablePropertiesKHR props[10] = {0};
@@ -1403,7 +1404,7 @@ print_pipeline_stats(struct zink_screen *screen, VkPipeline pipeline, struct uti
          mesa_loge("ZINK: failed to allocate stats!");
          return;
       }
-         
+
       for (unsigned i = 0; i < count; i++)
          stats[i].sType = VK_STRUCTURE_TYPE_PIPELINE_EXECUTABLE_STATISTIC_KHR;
       VKSCR(GetPipelineExecutableStatisticsKHR)(screen->dev, &info, &count, stats);
@@ -2145,7 +2146,7 @@ zink_create_pipeline_lib(struct zink_screen *screen, struct zink_gfx_program *pr
       mesa_loge("ZINK: failed to allocate gkey!");
       return NULL;
    }
-      
+
    gkey->optimal_key = state->optimal_key;
    assert(gkey->optimal_key);
    for (unsigned i = 0; i < ZINK_GFX_SHADER_COUNT; i++)

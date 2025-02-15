@@ -182,7 +182,7 @@ rs_histogram_zero()
   {
     const uint32_t smem_offset = gl_SubgroupInvocationID;
 
-    [[unroll]] for (RS_SUBGROUP_UNIFORM uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_SUBGROUP_SIZE)
+    for (RS_SUBGROUP_UNIFORM uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_SUBGROUP_SIZE)
     {
       smem.histogram[smem_offset + ii] = 0;
     }
@@ -191,7 +191,7 @@ rs_histogram_zero()
   {
     const uint32_t smem_offset = gl_LocalInvocationID.x;
 
-    [[unroll]] for (uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_WORKGROUP_SIZE)
+    for (uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_WORKGROUP_SIZE)
     {
       smem.histogram[smem_offset + ii] = 0;
     }
@@ -225,7 +225,7 @@ rs_histogram_global_store(restrict buffer_rs_histograms rs_histograms)
   {
     const uint32_t smem_offset = gl_SubgroupInvocationID;
 
-    [[unroll]] for (RS_SUBGROUP_UNIFORM uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_SUBGROUP_SIZE)
+    for (RS_SUBGROUP_UNIFORM uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_SUBGROUP_SIZE)
     {
       const uint32_t count = smem.histogram[smem_offset + ii];
 
@@ -236,7 +236,7 @@ rs_histogram_global_store(restrict buffer_rs_histograms rs_histograms)
   {
     const uint32_t smem_offset = gl_LocalInvocationID.x;
 
-    [[unroll]] for (uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_WORKGROUP_SIZE)
+    for (uint32_t ii = 0; ii < RS_RADIX_SIZE; ii += RS_WORKGROUP_SIZE)
     {
       const uint32_t count = smem.histogram[smem_offset + ii];
 
@@ -323,7 +323,7 @@ main()
   //
   // Load keyvals
   //
-  [[unroll]] for (RS_SUBGROUP_UNIFORM uint32_t ii = 0; ii < RS_HISTOGRAM_BLOCK_ROWS; ii++)
+  for (RS_SUBGROUP_UNIFORM uint32_t ii = 0; ii < RS_HISTOGRAM_BLOCK_ROWS; ii++)
   {
     kv[ii] = rs_kv_in.extent[ii * RS_WORKGROUP_SIZE];
   }
@@ -348,7 +348,7 @@ main()
                                                                                                    \
   rs_histogram_atomic_after_write();                                                               \
                                                                                                    \
-  [[unroll]] for (RS_SUBGROUP_UNIFORM uint32_t jj = 0; jj < RS_HISTOGRAM_BLOCK_ROWS; jj++)         \
+  for (RS_SUBGROUP_UNIFORM uint32_t jj = 0; jj < RS_HISTOGRAM_BLOCK_ROWS; jj++)         \
   {                                                                                                \
     const uint32_t digit = RS_KV_EXTRACT_DIGIT(kv[jj], pass_);                                     \
                                                                                                    \
@@ -382,7 +382,7 @@ main()
                                       push.devaddr_histograms,                                     \
                                       rs_histogram_base);                                          \
                                                                                                    \
-    [[unroll]] for (RS_SUBGROUP_UNIFORM uint32_t jj = 0; jj < RS_HISTOGRAM_BLOCK_ROWS; jj++)       \
+    for (RS_SUBGROUP_UNIFORM uint32_t jj = 0; jj < RS_HISTOGRAM_BLOCK_ROWS; jj++)       \
     {                                                                                              \
       const uint32_t digit = RS_KV_EXTRACT_DIGIT(kv[jj], pass_);                                   \
                                                                                                    \

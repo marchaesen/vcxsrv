@@ -220,9 +220,11 @@ destroy_color_clear_pipeline(VkDevice _device,
 
 static void
 destroy_depth_clear_pipeline(VkDevice _device,
-                             struct v3dv_meta_depth_clear_pipeline *p,
+                             uint64_t pipeline,
                              VkAllocationCallbacks *alloc)
 {
+   struct v3dv_meta_depth_clear_pipeline *p =
+     (struct v3dv_meta_depth_clear_pipeline *)(uintptr_t)pipeline;
    v3dv_DestroyPipeline(_device, p->pipeline, alloc);
    vk_free(alloc, p);
 }
@@ -306,7 +308,7 @@ v3dv_meta_clear_finish(struct v3dv_device *device)
 
       hash_table_foreach(device->meta.depth_clear.cache, entry) {
          struct v3dv_meta_depth_clear_pipeline *item = entry->data;
-         destroy_depth_clear_pipeline(_device, item, &device->vk.alloc);
+         destroy_depth_clear_pipeline(_device, (uintptr_t)item, &device->vk.alloc);
       }
       _mesa_hash_table_destroy(device->meta.depth_clear.cache, NULL);
    }

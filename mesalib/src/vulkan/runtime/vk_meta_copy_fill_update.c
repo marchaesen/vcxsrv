@@ -54,6 +54,9 @@ struct vk_meta_copy_image_view {
          VkFormat format;
       } color;
       struct {
+         VkFormat format;
+      } plane;
+      struct {
          struct {
             VkFormat format;
             nir_component_mask_t component_mask;
@@ -64,8 +67,6 @@ struct vk_meta_copy_image_view {
 
 struct vk_meta_copy_buffer_image_key {
    enum vk_meta_object_key_type key_type;
-
-   VkPipelineBindPoint bind_point;
 
    struct {
       struct vk_meta_copy_image_view view;
@@ -78,8 +79,6 @@ struct vk_meta_copy_buffer_image_key {
 
 struct vk_meta_copy_image_key {
    enum vk_meta_object_key_type key_type;
-
-   VkPipelineBindPoint bind_point;
 
    /* One source per-aspect being copied. */
    struct {
@@ -240,7 +239,7 @@ layer_count_as_extent(VkImageViewType view_type, VkExtent3D extent,
 
 static VkResult
 get_copy_pipeline_layout(struct vk_device *device, struct vk_meta_device *meta,
-                         const char *key, VkShaderStageFlagBits shader_stage,
+                         enum vk_meta_object_key_type key, VkShaderStageFlagBits shader_stage,
                          size_t push_const_size,
                          const struct VkDescriptorSetLayoutBinding *bindings,
                          uint32_t binding_count, VkPipelineLayout *layout_out)
@@ -259,7 +258,7 @@ get_copy_pipeline_layout(struct vk_device *device, struct vk_meta_device *meta,
    };
 
    return vk_meta_get_pipeline_layout(device, meta, &set_layout, &push_range,
-                                      key, strlen(key) + 1, layout_out);
+                                      &key, sizeof(key), layout_out);
 }
 
 #define COPY_PUSH_SET_IMG_DESC(__binding, __type, __iview, __layout)           \
@@ -281,6 +280,11 @@ copy_img_view_format_for_aspect(const struct vk_meta_copy_image_view *info,
    switch (aspect) {
    case VK_IMAGE_ASPECT_COLOR_BIT:
       return info->color.format;
+
+   case VK_IMAGE_ASPECT_PLANE_0_BIT:
+   case VK_IMAGE_ASPECT_PLANE_1_BIT:
+   case VK_IMAGE_ASPECT_PLANE_2_BIT:
+      return info->plane.format;
 
    case VK_IMAGE_ASPECT_DEPTH_BIT:
       return info->depth.format;
@@ -349,7 +353,13 @@ get_gfx_copy_pipeline(
       .layout = layout,
    };
 
-   if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
+   /* Since copies happen one plane at a time, multiplanar copies can be
+    * handled like color copies.
+    */
+   if (aspects &
+       (VK_IMAGE_ASPECT_COLOR_BIT |
+        VK_IMAGE_ASPECT_PLANE_0_BIT | VK_IMAGE_ASPECT_PLANE_1_BIT |
+        VK_IMAGE_ASPECT_PLANE_2_BIT)) {
       VkFormat fmt =
          copy_img_view_format_for_aspect(view, aspects);
 
@@ -445,6 +455,13 @@ copy_create_src_image_view(struct vk_command_buffer *cmd,
 
    VkFormat format = copy_img_view_format_for_aspect(view_info, aspect);
 
+   /* For multiplane, we only want the aspect for the plane rather than the
+    * set of aspects for the full image.
+    */
+   VkImageAspectFlags view_aspects =
+      aspect & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT) ?
+      vk_format_aspects(format) : aspect;
+
    VkImageViewCreateInfo info = {
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext = &usage,
@@ -453,7 +470,7 @@ copy_create_src_image_view(struct vk_command_buffer *cmd,
       .viewType = view_info->type,
       .format = format,
       .subresourceRange = {
-         .aspectMask = vk_format_aspects(format),
+         .aspectMask = view_aspects,
          .baseMipLevel = subres->mipLevel,
          .levelCount = 1,
          .baseArrayLayer = 0,
@@ -492,7 +509,13 @@ copy_create_dst_image_view(struct vk_command_buffer *cmd,
 {
    uint32_t layer_count, base_layer;
    VkFormat format = copy_img_view_format_for_aspect(view_info, aspect);
-   VkImageAspectFlags fmt_aspects = vk_format_aspects(format);
+
+   /* For multiplane, we only want the aspect for the plane rather than the
+    * set of aspects for the full image.
+    */
+   VkImageAspectFlags view_aspects =
+      aspect & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT) ?
+      vk_format_aspects(format) : aspect;
    const VkImageViewUsageCreateInfo usage = {
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO,
       .usage = bind_point == VK_PIPELINE_BIND_POINT_COMPUTE
@@ -521,7 +544,7 @@ copy_create_dst_image_view(struct vk_command_buffer *cmd,
                      : vk_image_storage_view_type(img),
       .format = format,
       .subresourceRange = {
-         .aspectMask = fmt_aspects,
+         .aspectMask = view_aspects,
          .baseMipLevel = subres->mipLevel,
          .levelCount = 1,
          .baseArrayLayer = base_layer,
@@ -693,6 +716,9 @@ tex_deref(nir_builder *b, const struct vk_meta_copy_image_view *view,
    const char *tex_name;
    switch (aspect) {
    case VK_IMAGE_ASPECT_COLOR_BIT:
+   case VK_IMAGE_ASPECT_PLANE_0_BIT:
+   case VK_IMAGE_ASPECT_PLANE_1_BIT:
+   case VK_IMAGE_ASPECT_PLANE_2_BIT:
       tex_name = "color_tex";
       break;
    case VK_IMAGE_ASPECT_DEPTH_BIT:
@@ -735,6 +761,9 @@ img_deref(nir_builder *b, const struct vk_meta_copy_image_view *view,
    const char *img_name;
    switch (aspect) {
    case VK_IMAGE_ASPECT_COLOR_BIT:
+   case VK_IMAGE_ASPECT_PLANE_0_BIT:
+   case VK_IMAGE_ASPECT_PLANE_1_BIT:
+   case VK_IMAGE_ASPECT_PLANE_2_BIT:
       img_name = "color_img";
       break;
    case VK_IMAGE_ASPECT_DEPTH_BIT:
@@ -898,8 +927,6 @@ build_image_to_buffer_shader(const struct vk_meta_device *meta,
 {
    const struct vk_meta_copy_buffer_image_key *key = key_data;
 
-   assert(key->bind_point == VK_PIPELINE_BIND_POINT_COMPUTE);
-
    nir_builder builder = nir_builder_init_simple_shader(
       MESA_SHADER_COMPUTE, NULL, "vk-meta-copy-image-to-buffer");
    nir_builder *b = &builder;
@@ -986,7 +1013,7 @@ get_copy_image_to_buffer_pipeline(
    };
 
    VkResult result = get_copy_pipeline_layout(
-      device, meta, "vk-meta-copy-image-to-buffer-pipeline-layout",
+      device, meta, VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER,
       VK_SHADER_STAGE_COMPUTE_BIT,
       sizeof(struct vk_meta_copy_buffer_image_info), bindings,
       ARRAY_SIZE(bindings), layout_out);
@@ -1004,8 +1031,6 @@ build_buffer_to_image_fs(const struct vk_meta_device *meta,
                          const void *key_data)
 {
    const struct vk_meta_copy_buffer_image_key *key = key_data;
-
-   assert(key->bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS);
 
    nir_builder builder = nir_builder_init_simple_shader(
       MESA_SHADER_FRAGMENT, NULL, "vk-meta-copy-buffer-to-image-frag");
@@ -1062,7 +1087,7 @@ get_copy_buffer_to_image_gfx_pipeline(
    VkPipelineLayout *layout_out, VkPipeline *pipeline_out)
 {
    VkResult result = get_copy_pipeline_layout(
-      device, meta, "vk-meta-copy-buffer-to-image-gfx-pipeline-layout",
+      device, meta, VK_META_OBJECT_KEY_COPY_BUFFER_TO_IMAGE_GFX,
       VK_SHADER_STAGE_FRAGMENT_BIT,
       sizeof(struct vk_meta_copy_buffer_image_info), NULL, 0, layout_out);
 
@@ -1080,8 +1105,6 @@ build_buffer_to_image_cs(const struct vk_meta_device *meta,
                          const void *key_data)
 {
    const struct vk_meta_copy_buffer_image_key *key = key_data;
-
-   assert(key->bind_point == VK_PIPELINE_BIND_POINT_COMPUTE);
 
    nir_builder builder = nir_builder_init_simple_shader(
       MESA_SHADER_COMPUTE, NULL, "vk-meta-copy-buffer-to-image-compute");
@@ -1170,7 +1193,7 @@ get_copy_buffer_to_image_compute_pipeline(
    };
 
    VkResult result = get_copy_pipeline_layout(
-      device, meta, "vk-meta-copy-buffer-to-image-compute-pipeline-layout",
+      device, meta, VK_META_OBJECT_KEY_COPY_BUFFER_TO_IMAGE_CS,
       VK_SHADER_STAGE_COMPUTE_BIT,
       sizeof(struct vk_meta_copy_buffer_image_info), bindings,
       ARRAY_SIZE(bindings), layout_out);
@@ -1287,9 +1310,10 @@ img_copy_view_info(VkImageViewType view_type, VkImageAspectFlags aspects,
       .type = view_type,
    };
 
-   /* We only support color/depth/stencil aspects. */
-   assert(aspects & (VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT |
-                     VK_IMAGE_ASPECT_STENCIL_BIT));
+   assert(aspects &
+          (VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_DEPTH_BIT |
+           VK_IMAGE_ASPECT_STENCIL_BIT | VK_IMAGE_ASPECT_PLANE_0_BIT |
+           VK_IMAGE_ASPECT_PLANE_1_BIT | VK_IMAGE_ASPECT_PLANE_2_BIT));
 
    if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
       /* Color aspect can't be combined with other aspects. */
@@ -1299,6 +1323,26 @@ img_copy_view_info(VkImageViewType view_type, VkImageAspectFlags aspects,
       return view;
    }
 
+   if (aspects &
+       (VK_IMAGE_ASPECT_PLANE_0_BIT | VK_IMAGE_ASPECT_PLANE_1_BIT |
+        VK_IMAGE_ASPECT_PLANE_2_BIT)) {
+      switch (aspects) {
+      case VK_IMAGE_ASPECT_PLANE_0_BIT:
+         view.plane.format = img_props->plane[0].view_format;
+         break;
+      case VK_IMAGE_ASPECT_PLANE_1_BIT:
+         view.plane.format = img_props->plane[1].view_format;
+         break;
+      case VK_IMAGE_ASPECT_PLANE_2_BIT:
+         view.plane.format = img_props->plane[2].view_format;
+         break;
+      default:
+         unreachable("invalid ycbcr aspect");
+      }
+
+      assert(format_is_supported(view.color.format));
+      return view;
+   }
 
    view.depth.format = img_props->depth.view_format;
    view.depth.component_mask = img_props->depth.component_mask;
@@ -1323,8 +1367,7 @@ copy_image_to_buffer_region(
    struct vk_device *dev = cmd->base.device;
    const struct vk_device_dispatch_table *disp = &dev->dispatch_table;
    struct vk_meta_copy_buffer_image_key key = {
-      .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER_PIPELINE,
-      .bind_point = VK_PIPELINE_BIND_POINT_COMPUTE,
+      .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER,
       .img = {
          .view = img_copy_view_info(vk_image_sampled_view_type(img),
                                     region->imageSubresource.aspectMask, img,
@@ -1503,8 +1546,7 @@ copy_buffer_to_image_region_gfx(
          : (VkImageViewType)-1;
 
    struct vk_meta_copy_buffer_image_key key = {
-      .key_type = VK_META_OBJECT_KEY_COPY_BUFFER_TO_IMAGE_PIPELINE,
-      .bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS,
+      .key_type = VK_META_OBJECT_KEY_COPY_BUFFER_TO_IMAGE_GFX,
       .img = {
          .view = img_copy_view_info(view_type,
                                     region->imageSubresource.aspectMask, img,
@@ -1548,8 +1590,7 @@ copy_buffer_to_image_region_compute(
    const struct vk_device_dispatch_table *disp = &dev->dispatch_table;
    VkImageViewType view_type = vk_image_storage_view_type(img);
    struct vk_meta_copy_buffer_image_key key = {
-      .key_type = VK_META_OBJECT_KEY_COPY_BUFFER_TO_IMAGE_PIPELINE,
-      .bind_point = VK_PIPELINE_BIND_POINT_COMPUTE,
+      .key_type = VK_META_OBJECT_KEY_COPY_BUFFER_TO_IMAGE_CS,
       .img = {
          .view = img_copy_view_info(view_type,
                                     region->imageSubresource.aspectMask, img,
@@ -1643,8 +1684,6 @@ build_copy_image_fs(const struct vk_meta_device *meta, const void *key_data)
 {
    const struct vk_meta_copy_image_key *key = key_data;
 
-   assert(key->bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS);
-
    nir_builder builder = nir_builder_init_simple_shader(
       MESA_SHADER_FRAGMENT, NULL, "vk-meta-copy-image-frag");
    nir_builder *b = &builder;
@@ -1712,7 +1751,7 @@ get_copy_image_gfx_pipeline(struct vk_device *device,
    };
 
    VkResult result = get_copy_pipeline_layout(
-      device, meta, "vk-meta-copy-image-gfx-pipeline-layout",
+      device, meta, VK_META_OBJECT_KEY_COPY_IMAGE_GFX,
       VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(struct vk_meta_copy_image_fs_info),
       bindings, ARRAY_SIZE(bindings), layout_out);
    if (unlikely(result != VK_SUCCESS))
@@ -1727,8 +1766,6 @@ static nir_shader *
 build_copy_image_cs(const struct vk_meta_device *meta, const void *key_data)
 {
    const struct vk_meta_copy_image_key *key = key_data;
-
-   assert(key->bind_point == VK_PIPELINE_BIND_POINT_COMPUTE);
 
    nir_builder builder = nir_builder_init_simple_shader(
       MESA_SHADER_COMPUTE, NULL, "vk-meta-copy-image-compute");
@@ -1815,7 +1852,7 @@ get_copy_image_compute_pipeline(struct vk_device *device,
    };
 
    VkResult result = get_copy_pipeline_layout(
-      device, meta, "vk-meta-copy-image-compute-pipeline-layout",
+      device, meta, VK_META_OBJECT_KEY_COPY_IMAGE_CS,
       VK_SHADER_STAGE_COMPUTE_BIT, sizeof(struct vk_meta_copy_image_cs_info),
       bindings, ARRAY_SIZE(bindings), layout_out);
 
@@ -1894,6 +1931,10 @@ copy_image_prepare_compute_desc_set(
          &iviews[desc_count++]);
       if (unlikely(result != VK_SUCCESS))
          return result;
+
+      if (region->srcSubresource.aspectMask !=
+          region->dstSubresource.aspectMask)
+         aspect = region->dstSubresource.aspectMask;
 
       result = copy_create_dst_image_view(
          cmd, meta, dst_img, &key->dst.view, aspect, &region->dstOffset,
@@ -2012,6 +2053,83 @@ copy_image_prepare_gfx_push_const(struct vk_command_buffer *cmd,
    return VK_SUCCESS;
 }
 
+static bool
+valid_multiplane_aspect_mask(VkImageAspectFlags aspect)
+{
+   switch (aspect) {
+   case VK_IMAGE_ASPECT_PLANE_0_BIT:
+   case VK_IMAGE_ASPECT_PLANE_1_BIT:
+   case VK_IMAGE_ASPECT_PLANE_2_BIT:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static bool
+aspect_masks_valid(struct vk_image *src_img, struct vk_image *dst_img,
+                   const VkImageCopy2 *region)
+{
+   const struct vk_format_ycbcr_info *src_ycbcr_info =
+      vk_format_get_ycbcr_info(src_img->format);
+   const struct vk_format_ycbcr_info *dst_ycbcr_info =
+      vk_format_get_ycbcr_info(dst_img->format);
+
+   /* From the Vulkan 1.4.303 spec, vkCmdCopyImage:
+    *
+    *    VUID-vkCmdCopyImage-srcImage-01551
+    *
+    *    "If neither srcImage nor dstImage has a multi-planar image format
+    *    then for each element of pRegions, srcSubresource.aspectMask and
+    *    dstSubresource.aspectMask must match"
+    */
+   if (!src_ycbcr_info && !dst_ycbcr_info)
+      return region->srcSubresource.aspectMask ==
+         region->dstSubresource.aspectMask;
+
+   /*    VUID-vkCmdCopyImage-srcImage-08713
+    *
+    *    "If srcImage has a multi-planar image format, then for each element
+    *    of pRegions, srcSubresource.aspectMask must be a single valid
+    *    multi-planar aspect mask bit"
+    */
+   if (src_ycbcr_info &&
+       !valid_multiplane_aspect_mask(region->srcSubresource.aspectMask))
+      return false;
+
+   /*    VUID-vkCmdCopyImage-dstImage-08714
+    *
+    *    "If dstImage has a multi-planar image format, then for each element
+    *    of pRegions, dstSubresource.aspectMask must be a single valid
+    *    multi-planar aspect mask bit"
+    */
+   if (dst_ycbcr_info &&
+       !valid_multiplane_aspect_mask(region->dstSubresource.aspectMask))
+      return false;
+
+   /*    VUID-vkCmdCopyImage-srcImage-01556
+    *
+    *    "If srcImage has a multi-planar image format and the dstImage does
+    *    not have a multi-planar image format, then for each element of
+    *    pRegions, dstSubresource.aspectMask must be VK_IMAGE_ASPECT_COLOR_BIT"
+    */
+   if (src_ycbcr_info && !dst_ycbcr_info &&
+       region->dstSubresource.aspectMask != VK_IMAGE_ASPECT_COLOR_BIT)
+      return false;
+
+   /*    VUID-vkCmdCopyImage-dstImage-01557
+    *
+    *    "If dstImage has a multi-planar image format and the srcImage does
+    *    not have a multi-planar image format, then for each element of
+    *    pRegions, srcSubresource.aspectMask must be VK_IMAGE_ASPECT_COLOR_BIT"
+    */
+   if (!src_ycbcr_info && dst_ycbcr_info &&
+       region->srcSubresource.aspectMask != VK_IMAGE_ASPECT_COLOR_BIT)
+      return false;
+
+   return true;
+}
+
 static void
 copy_image_region_gfx(struct vk_command_buffer *cmd,
                       struct vk_meta_device *meta, struct vk_image *src_img,
@@ -2033,12 +2151,10 @@ copy_image_region_gfx(struct vk_command_buffer *cmd,
          ? VK_IMAGE_VIEW_TYPE_1D_ARRAY
          : (VkImageViewType)-1;
 
-   assert(region->srcSubresource.aspectMask ==
-          region->dstSubresource.aspectMask);
+   assert(aspect_masks_valid(src_img, dst_img, region));
 
    struct vk_meta_copy_image_key key = {
-      .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_PIPELINE,
-      .bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS,
+      .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_GFX,
       .samples = src_img->samples,
       .aspects = region->srcSubresource.aspectMask,
       .src.view = img_copy_view_info(vk_image_sampled_view_type(src_img),
@@ -2094,12 +2210,10 @@ copy_image_region_compute(struct vk_command_buffer *cmd,
    const struct vk_device_dispatch_table *disp = &dev->dispatch_table;
    VkImageViewType dst_view_type = vk_image_storage_view_type(dst_img);
 
-   assert(region->srcSubresource.aspectMask ==
-          region->dstSubresource.aspectMask);
+   assert(aspect_masks_valid(src_img, dst_img, region));
 
    struct vk_meta_copy_image_key key = {
-      .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_PIPELINE,
-      .bind_point = VK_PIPELINE_BIND_POINT_COMPUTE,
+      .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_CS,
       .samples = src_img->samples,
       .aspects = region->srcSubresource.aspectMask,
       .src.view = img_copy_view_info(vk_image_sampled_view_type(src_img),
@@ -2250,7 +2364,7 @@ get_copy_buffer_pipeline(struct vk_device *device, struct vk_meta_device *meta,
                          VkPipelineLayout *layout_out, VkPipeline *pipeline_out)
 {
    VkResult result = get_copy_pipeline_layout(
-      device, meta, "vk-meta-copy-buffer-pipeline-layout",
+      device, meta, VK_META_OBJECT_KEY_COPY_BUFFER,
       VK_SHADER_STAGE_COMPUTE_BIT, sizeof(struct vk_meta_copy_buffer_info),
       NULL, 0, layout_out);
 
@@ -2272,7 +2386,7 @@ copy_buffer_region(struct vk_command_buffer *cmd, struct vk_meta_device *meta,
    VkResult result;
 
    struct vk_meta_copy_buffer_key key = {
-      .key_type = VK_META_OBJECT_KEY_COPY_BUFFER_PIPELINE,
+      .key_type = VK_META_OBJECT_KEY_COPY_BUFFER,
    };
 
    VkDeviceSize size = region->size;
@@ -2429,7 +2543,7 @@ get_fill_buffer_pipeline(struct vk_device *device, struct vk_meta_device *meta,
                          VkPipelineLayout *layout_out, VkPipeline *pipeline_out)
 {
    VkResult result = get_copy_pipeline_layout(
-      device, meta, "vk-meta-fill-buffer-pipeline-layout",
+      device, meta, VK_META_OBJECT_KEY_FILL_BUFFER,
       VK_SHADER_STAGE_COMPUTE_BIT, sizeof(struct vk_meta_fill_buffer_info), NULL, 0,
       layout_out);
    if (unlikely(result != VK_SUCCESS))
@@ -2452,7 +2566,7 @@ vk_meta_fill_buffer(struct vk_command_buffer *cmd, struct vk_meta_device *meta,
    VkResult result;
 
    struct vk_meta_fill_buffer_key key = {
-      .key_type = VK_META_OBJECT_KEY_FILL_BUFFER_PIPELINE,
+      .key_type = VK_META_OBJECT_KEY_FILL_BUFFER,
    };
 
    VkPipelineLayout pipeline_layout;

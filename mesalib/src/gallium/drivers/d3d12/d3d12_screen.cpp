@@ -123,146 +123,98 @@ d3d12_get_video_mem(struct pipe_screen *pscreen)
    return static_cast<int>(screen->memory_device_size_megabytes + screen->memory_system_size_megabytes);
 }
 
-static int
-d3d12_get_shader_param(struct pipe_screen *pscreen,
-                       enum pipe_shader_type shader,
-                       enum pipe_shader_cap param)
+static void
+d3d12_init_shader_caps(struct d3d12_screen *screen)
 {
-   struct d3d12_screen *screen = d3d12_screen(pscreen);
+   for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+      struct pipe_shader_caps *caps =
+         (struct pipe_shader_caps *)&screen->base.shader_caps[i];
 
-   if (shader == PIPE_SHADER_TASK ||
-       shader == PIPE_SHADER_MESH)
-      return 0;
+      caps->max_instructions =
+      caps->max_alu_instructions =
+      caps->max_tex_instructions =
+      caps->max_tex_indirections =
+      caps->max_control_flow_depth = INT_MAX;
 
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-         return INT_MAX;
-      return 0;
-
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      switch (shader) {
-      case PIPE_SHADER_VERTEX: return D3D12_VS_INPUT_REGISTER_COUNT;
-      case PIPE_SHADER_FRAGMENT: return D3D12_PS_INPUT_REGISTER_COUNT;
-      case PIPE_SHADER_GEOMETRY: return D3D12_GS_INPUT_REGISTER_COUNT;
-      case PIPE_SHADER_TESS_CTRL: return D3D12_HS_CONTROL_POINT_PHASE_INPUT_REGISTER_COUNT;
-      case PIPE_SHADER_TESS_EVAL: return D3D12_DS_INPUT_CONTROL_POINT_REGISTER_COUNT;
-      case PIPE_SHADER_COMPUTE: return 0;
-      default: unreachable("Unexpected shader");
+      switch (i) {
+      case PIPE_SHADER_VERTEX:
+         caps->max_inputs = D3D12_VS_INPUT_REGISTER_COUNT;
+         caps->max_outputs = D3D12_VS_OUTPUT_REGISTER_COUNT;
+         break;
+      case PIPE_SHADER_FRAGMENT:
+         caps->max_inputs = D3D12_PS_INPUT_REGISTER_COUNT;
+         caps->max_outputs = D3D12_PS_OUTPUT_REGISTER_COUNT;
+         break;
+      case PIPE_SHADER_GEOMETRY:
+         caps->max_inputs = D3D12_GS_INPUT_REGISTER_COUNT;
+         caps->max_outputs = D3D12_GS_OUTPUT_REGISTER_COUNT;
+         break;
+      case PIPE_SHADER_TESS_CTRL:
+         caps->max_inputs = D3D12_HS_CONTROL_POINT_PHASE_INPUT_REGISTER_COUNT;
+         caps->max_outputs = D3D12_HS_CONTROL_POINT_PHASE_OUTPUT_REGISTER_COUNT;
+         break;
+      case PIPE_SHADER_TESS_EVAL:
+         caps->max_inputs = D3D12_DS_INPUT_CONTROL_POINT_REGISTER_COUNT;
+         caps->max_outputs = D3D12_DS_OUTPUT_REGISTER_COUNT;
+         break;
+      default:
+         break;
       }
-      break;
 
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
-      switch (shader) {
-      case PIPE_SHADER_VERTEX: return D3D12_VS_OUTPUT_REGISTER_COUNT;
-      case PIPE_SHADER_FRAGMENT: return D3D12_PS_OUTPUT_REGISTER_COUNT;
-      case PIPE_SHADER_GEOMETRY: return D3D12_GS_OUTPUT_REGISTER_COUNT;
-      case PIPE_SHADER_TESS_CTRL: return D3D12_HS_CONTROL_POINT_PHASE_OUTPUT_REGISTER_COUNT;
-      case PIPE_SHADER_TESS_EVAL: return D3D12_DS_OUTPUT_REGISTER_COUNT;
-      case PIPE_SHADER_COMPUTE: return 0;
-      default: unreachable("Unexpected shader");
-      }
-      break;
+      caps->max_texture_samplers =
+         screen->opts.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1 ?
+         16 : PIPE_MAX_SAMPLERS;
 
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-      if (screen->opts.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_1)
-         return 16;
-      return PIPE_MAX_SAMPLERS;
+      caps->max_const_buffer0_size = 65536;
 
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      return 65536;
+      caps->max_const_buffers =
+         screen->opts.ResourceBindingTier < D3D12_RESOURCE_BINDING_TIER_3 ?
+         13 /* 15 - 2 for lowered uniforms and state vars*/ : 15;
 
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      if (screen->opts.ResourceBindingTier < D3D12_RESOURCE_BINDING_TIER_3)
-         return 13; /* 15 - 2 for lowered uniforms and state vars*/
-      return 15;
+      caps->max_temps = INT_MAX;
 
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return INT_MAX;
+      caps->indirect_const_addr = true;
+      caps->integers = true;
 
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_SUBROUTINES:
-      return 0; /* not implemented */
-
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-   case PIPE_SHADER_CAP_INTEGERS:
-      return 1;
-
-   case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_FP16:
-      return 0; /* not implemented */
-
-   case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-      return 0; /* not implemented */
-
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
       /* Note: This is wrong, but this is the max value that
        * TC can support to avoid overflowing an array.
        */
-      return PIPE_MAX_SAMPLERS;
+      caps->max_sampler_views = PIPE_MAX_SAMPLERS;
 
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-      return 0; /* no idea */
-
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-      return
+      caps->max_shader_buffers =
          (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_1 ||
           screen->opts.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3) ?
          PIPE_MAX_SHADER_BUFFERS : D3D12_PS_CS_UAV_REGISTER_COUNT;
 
-   case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      return 1 << PIPE_SHADER_IR_NIR;
+      caps->supported_irs = 1 << PIPE_SHADER_IR_NIR;
 
-   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-      if (!screen->support_shader_images)
-         return 0;
-      return
-         (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_1 ||
-          screen->opts.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3) ?
-         PIPE_MAX_SHADER_IMAGES : D3D12_PS_CS_UAV_REGISTER_COUNT;
-
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-   case PIPE_SHADER_CAP_CONT_SUPPORTED:
-      return 0; /* not implemented */
-
-   /* should only get here on unhandled cases */
-   default: return 0;
+      if (screen->support_shader_images) {
+         caps->max_shader_images =
+            (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_1 ||
+             screen->opts.ResourceBindingTier >= D3D12_RESOURCE_BINDING_TIER_3) ?
+            PIPE_MAX_SHADER_IMAGES : D3D12_PS_CS_UAV_REGISTER_COUNT;
+      }
    }
 }
 
-static int
-d3d12_get_compute_param(struct pipe_screen *pscreen,
-                        enum pipe_shader_ir ir,
-                        enum pipe_compute_cap cap,
-                        void *ret)
+static void
+d3d12_init_compute_caps(struct d3d12_screen *screen)
 {
-   switch (cap) {
-   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE: {
-      uint64_t *grid = (uint64_t *)ret;
-      grid[0] = grid[1] = grid[2] = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
-      return sizeof(uint64_t) * 3;
-   }
-   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE: {
-      uint64_t *block = (uint64_t *)ret;
-      block[0] = D3D12_CS_THREAD_GROUP_MAX_X;
-      block[1] = D3D12_CS_THREAD_GROUP_MAX_Y;
-      block[2] = D3D12_CS_THREAD_GROUP_MAX_Z;
-      return sizeof(uint64_t) * 3;
-   }
-   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-      *(uint64_t *)ret = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-      *(uint64_t *)ret = D3D12_CS_TGSM_REGISTER_COUNT /*DWORDs*/ * 4;
-      return sizeof(uint64_t);
-   default:
-      return 0;
-   }
+   struct pipe_compute_caps *caps =
+      (struct pipe_compute_caps *)&screen->base.compute_caps;
+
+   caps->max_grid_size[0] =
+   caps->max_grid_size[1] =
+   caps->max_grid_size[2] = D3D12_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION;
+
+   caps->max_block_size[0] = D3D12_CS_THREAD_GROUP_MAX_X;
+   caps->max_block_size[1] = D3D12_CS_THREAD_GROUP_MAX_Y;
+   caps->max_block_size[2] = D3D12_CS_THREAD_GROUP_MAX_Z;
+
+   caps->max_variable_threads_per_block =
+   caps->max_threads_per_block = D3D12_CS_THREAD_GROUP_MAX_THREADS_PER_GROUP;
+
+   caps->max_local_size = D3D12_CS_TGSM_REGISTER_COUNT /*DWORDs*/ * 4;
 }
 
 static void
@@ -470,7 +422,7 @@ d3d12_init_screen_caps(struct d3d12_screen *screen)
    caps->min_point_size_aa = 1;
 
    caps->point_size_granularity =
-   caps->line_width_granularity = 0.1;
+   caps->line_width_granularity = 0.1f;
 
    caps->max_line_width =
    caps->max_line_width_aa = 1.0f; /* no clue */
@@ -1320,8 +1272,6 @@ d3d12_init_screen_base(struct d3d12_screen *screen, struct sw_winsys *winsys, LU
    screen->base.get_vendor = d3d12_get_vendor;
    screen->base.get_device_vendor = d3d12_get_device_vendor;
    screen->base.get_screen_fd = d3d12_screen_get_fd;
-   screen->base.get_shader_param = d3d12_get_shader_param;
-   screen->base.get_compute_param = d3d12_get_compute_param;
    screen->base.is_format_supported = d3d12_is_format_supported;
 
    screen->base.context_create = d3d12_context_create;
@@ -1663,8 +1613,6 @@ d3d12_init_screen(struct d3d12_screen *screen, IUnknown *adapter)
    d3d12_screen_video_init(&screen->base);
 #endif
 
-   d3d12_init_screen_caps(screen);
-
    struct pb_desc desc;
    desc.alignment = D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
    desc.usage = (pb_usage_flags)(PB_USAGE_CPU_WRITE | PB_USAGE_GPU_READ);
@@ -1762,6 +1710,10 @@ d3d12_init_screen(struct d3d12_screen *screen, IUnknown *adapter)
    _mesa_sha1_update(&sha1_ctx, &screen->revision, sizeof(screen->revision));
    _mesa_sha1_final(&sha1_ctx, sha1);
    memcpy(screen->device_uuid, sha1, PIPE_UUID_SIZE);
+
+   d3d12_init_shader_caps(screen);
+   d3d12_init_compute_caps(screen);
+   d3d12_init_screen_caps(screen);
 
    return true;
 }

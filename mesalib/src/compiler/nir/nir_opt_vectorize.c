@@ -37,6 +37,9 @@
 #include "nir_builder.h"
 #include "nir_vla.h"
 
+#define XXH_INLINE_ALL
+#include "util/xxhash.h"
+
 #define HASH(hash, data) XXH32(&data, sizeof(data), hash)
 
 static uint32_t

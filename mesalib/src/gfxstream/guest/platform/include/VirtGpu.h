@@ -130,6 +130,23 @@ struct VirtGpuCaps {
     struct composerCapset composerCapset;
 };
 
+struct VirtGpuDrmInfo {
+    bool hasPrimary;
+    bool hasRender;
+    int64_t primaryMajor;
+    int64_t primaryMinor;
+    int64_t renderMajor;
+    int64_t renderMinor;
+};
+
+// Note: Fields match equivalent structure for Magma
+struct VirtGpuPciBusInfo {
+    uint16_t domain;
+    uint8_t bus;
+    uint8_t device;
+    uint8_t function;
+};
+
 #define INVALID_DESCRIPTOR -1
 
 class VirtGpuResourceMapping;
@@ -195,6 +212,9 @@ class VirtGpuDevice {
    virtual VirtGpuResourcePtr importBlob(const struct VirtGpuExternalHandle& handle) = 0;
 
    virtual int execBuffer(struct VirtGpuExecBuffer& execbuffer, const VirtGpuResource* blob) = 0;
+
+   virtual bool getDrmInfo(VirtGpuDrmInfo* drmInfo) { return false; }
+   virtual bool getPciBusInfo(VirtGpuPciBusInfo* pciBusInfo) { return false; }
 
   private:
    enum VirtGpuCapset mCapset;

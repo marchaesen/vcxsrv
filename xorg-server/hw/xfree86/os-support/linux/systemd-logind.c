@@ -33,12 +33,13 @@
 #include <unistd.h>
 
 #include "config/dbus-core.h"
+#include "config/hotplug_priv.h"
 
 #include "os.h"
 #include "linux.h"
 #include "xf86.h"
 #include "xf86platformBus.h"
-#include "xf86Xinput.h"
+#include "xf86Xinput_priv.h"
 #include "xf86Priv.h"
 #include "globals.h"
 
@@ -397,6 +398,11 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
             dbus_error_free(&error);
             return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
         }
+
+        /*
+         * fd will be received via DBus if and only if pause == 0, so it
+         * only needs to be closed in that code path
+         */
     } else
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
@@ -431,6 +437,7 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
         info->active = TRUE;
 
         if (pdev) {
+            close(fd);
             pdev->flags &= ~XF86_PDEV_PAUSED;
         } else
             systemd_logind_set_input_fd_for_all_devs(major, minor, fd,

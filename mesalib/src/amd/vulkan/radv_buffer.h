@@ -23,8 +23,7 @@ struct radv_buffer {
 
    /* Set when bound */
    struct radeon_winsys_bo *bo;
-   VkDeviceSize offset;
-   uint64_t bo_va;
+   uint64_t addr;
    uint64_t range;
 };
 

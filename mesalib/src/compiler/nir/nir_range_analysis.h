@@ -23,7 +23,8 @@
 #ifndef _NIR_RANGE_ANALYSIS_H_
 #define _NIR_RANGE_ANALYSIS_H_
 
-#include "nir.h"
+#include "nir_defines.h"
+#include "util/u_hash_table.h"
 
 enum ENUM_PACKED ssa_ranges {
    unknown = 0,

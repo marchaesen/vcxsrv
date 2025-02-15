@@ -1231,6 +1231,7 @@ layout_qualifier_id:
       if (!$$.flags.i &&
           (state->AMD_conservative_depth_enable ||
            state->ARB_conservative_depth_enable ||
+           state->EXT_conservative_depth_enable ||
            state->is_version(420, 0))) {
          if (match_layout_qualifier($1, "depth_any", state) == 0) {
             $$.flags.q.depth_type = 1;
@@ -1255,6 +1256,11 @@ layout_qualifier_id:
          if ($$.flags.i && state->ARB_conservative_depth_warn) {
             _mesa_glsl_warning(& @1, state,
                                "GL_ARB_conservative_depth "
+                               "layout qualifier `%s' is used", $1);
+         }
+         if ($$.flags.i && state->EXT_conservative_depth_warn) {
+            _mesa_glsl_warning(& @1, state,
+                               "GL_EXT_conservative_depth "
                                "layout qualifier `%s' is used", $1);
          }
       }

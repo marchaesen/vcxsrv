@@ -343,12 +343,14 @@ st_set_prog_affected_state_flags(struct gl_program *prog);
 extern struct st_fp_variant *
 st_get_fp_variant(struct st_context *st,
                   struct gl_program *stfp,
-                  const struct st_fp_variant_key *key);
+                  const struct st_fp_variant_key *key,
+                  bool report_compile_error, char **error);
 
 extern struct st_common_variant *
 st_get_common_variant(struct st_context *st,
                       struct gl_program *p,
-                      const struct st_common_variant_key *key);
+                      const struct st_common_variant_key *key,
+                      bool report_compile_error, char **error);
 
 extern void
 st_release_variants(struct st_context *st, struct gl_program *p);
@@ -370,8 +372,9 @@ st_serialize_nir(struct gl_program *stp);
 void
 st_serialize_base_nir(struct gl_program *prog, struct nir_shader *nir);
 
-extern void
-st_finalize_program(struct st_context *st, struct gl_program *prog);
+extern char *
+st_finalize_program(struct st_context *st, struct gl_program *prog,
+                    bool report_compile_error);
 
 void *
 st_create_nir_shader(struct st_context *st, struct pipe_shader_state *state);

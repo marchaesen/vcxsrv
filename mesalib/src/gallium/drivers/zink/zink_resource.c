@@ -1201,15 +1201,8 @@ create_buffer(struct zink_screen *screen, struct zink_resource_object *obj,
      }
    }
 
-   if (modifiers_count) {
-      assert(modifiers_count == 3);
-      /* this is the DGC path because there's no other way to pass mem bits and I don't wanna copy/paste everything around */
-      reqs.size = modifiers[0];
-      reqs.alignment = modifiers[1];
-      reqs.memoryTypeBits = modifiers[2];
-   } else {
-      VKSCR(GetBufferMemoryRequirements)(screen->dev, obj->buffer, &reqs);
-   }
+   assert(!modifiers_count);
+   VKSCR(GetBufferMemoryRequirements)(screen->dev, obj->buffer, &reqs);
 
    if (templ->usage == PIPE_USAGE_STAGING)
       alloc_info->flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;

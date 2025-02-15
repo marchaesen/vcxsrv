@@ -183,7 +183,7 @@ st_update_fp( struct st_context *st )
       update_gl_clamp(st, st->ctx->FragmentProgram._Current, key.gl_clamp);
 
       simple_mtx_lock(&st->ctx->Shared->Mutex);
-      shader = st_get_fp_variant(st, fp, &key)->base.driver_shader;
+      shader = st_get_fp_variant(st, fp, &key, false, NULL)->base.driver_shader;
       simple_mtx_unlock(&st->ctx->Shared->Mutex);
    }
 
@@ -248,7 +248,7 @@ st_update_vp( struct st_context *st )
       update_gl_clamp(st, st->ctx->VertexProgram._Current, key.gl_clamp);
 
       simple_mtx_lock(&st->ctx->Shared->Mutex);
-      st->vp_variant = st_get_common_variant(st, vp, &key);
+      st->vp_variant = st_get_common_variant(st, vp, &key, false, NULL);
       simple_mtx_unlock(&st->ctx->Shared->Mutex);
    }
 
@@ -302,7 +302,7 @@ st_update_common_program(struct st_context *st, struct gl_program *prog,
    update_gl_clamp(st, prog, key.gl_clamp);
 
    simple_mtx_lock(&st->ctx->Shared->Mutex);
-   void *result = st_get_common_variant(st, prog, &key)->base.driver_shader;
+   void *result = st_get_common_variant(st, prog, &key, false, NULL)->base.driver_shader;
    simple_mtx_unlock(&st->ctx->Shared->Mutex);
 
    return result;

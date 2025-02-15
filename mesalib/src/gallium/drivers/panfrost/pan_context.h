@@ -28,7 +28,7 @@
 #define _LARGEFILE64_SOURCE 1
 #include <assert.h>
 #include <sys/mman.h>
-#include "pan_afbc_cso.h"
+#include "pan_mod_conv_cso.h"
 #include "pan_blend_cso.h"
 #include "pan_earlyzs.h"
 #include "pan_encoder.h"
@@ -46,6 +46,7 @@
 #include "util/hash_table.h"
 #include "util/simple_mtx.h"
 #include "util/u_blitter.h"
+#include "util/u_printf.h"
 
 #include "compiler/shader_enums.h"
 #include "midgard/midgard_compile.h"
@@ -209,7 +210,7 @@ struct panfrost_context {
 
    struct blitter_context *blitter;
 
-   struct pan_afbc_shaders afbc_shaders;
+   struct pan_mod_convert_shaders mod_convert_shaders;
 
    struct panfrost_blend_state *blend;
 
@@ -242,6 +243,11 @@ struct panfrost_context {
    union {
       struct panfrost_csf_context csf;
    };
+
+   struct {
+      struct u_printf_ctx ctx;
+      struct panfrost_bo *bo;
+   } printf;
 };
 
 /* Corresponds to the CSO */
@@ -296,6 +302,7 @@ enum {
    PAN_SYSVAL_BLEND_CONSTANTS = 16,
    PAN_SYSVAL_XFB = 17,
    PAN_SYSVAL_NUM_VERTICES = 18,
+   PAN_SYSVAL_PRINTF_BUFFER = 19,
 };
 
 #define PAN_TXS_SYSVAL_ID(texidx, dim, is_array)                               \

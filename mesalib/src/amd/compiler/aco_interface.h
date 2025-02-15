@@ -10,7 +10,7 @@
 #include "aco_shader_info.h"
 #include "ac_shader_debug_info.h"
 
-#include "nir.h"
+#include "nir_defines.h"
 
 #include "amd_family.h"
 #ifdef __cplusplus

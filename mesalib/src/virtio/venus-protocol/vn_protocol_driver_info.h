@@ -19,10 +19,11 @@ struct vn_info_extension {
 };
 
 /* sorted by extension names for bsearch */
-static const uint32_t _vn_info_extension_count = 118;
-static const struct vn_info_extension _vn_info_extensions[118] = {
+static const uint32_t _vn_info_extension_count = 120;
+static const struct vn_info_extension _vn_info_extensions[120] = {
    { "VK_EXT_4444_formats", 341, 1 },
    { "VK_EXT_attachment_feedback_loop_layout", 340, 2 },
+   { "VK_EXT_blend_operation_advanced", 149, 2 },
    { "VK_EXT_border_color_swizzle", 412, 1 },
    { "VK_EXT_calibrated_timestamps", 185, 2 },
    { "VK_EXT_color_write_enable", 382, 1 },
@@ -64,6 +65,7 @@ static const struct vn_info_extension _vn_info_extensions[118] = {
    { "VK_EXT_queue_family_foreign", 127, 1 },
    { "VK_EXT_rasterization_order_attachment_access", 464, 1 },
    { "VK_EXT_robustness2", 287, 1 },
+   { "VK_EXT_sample_locations", 144, 1 },
    { "VK_EXT_sampler_filter_minmax", 131, 2 },
    { "VK_EXT_scalar_block_layout", 222, 1 },
    { "VK_EXT_separate_stencil_usage", 247, 1 },

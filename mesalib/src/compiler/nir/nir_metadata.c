@@ -40,6 +40,9 @@ nir_metadata_require(nir_function_impl *impl, nir_metadata required, ...)
       nir_calc_dominance_impl(impl);
    if (NEEDS_UPDATE(nir_metadata_live_defs))
       nir_live_defs_impl(impl);
+   if (NEEDS_UPDATE(nir_metadata_divergence))
+      nir_divergence_analysis_impl(impl,
+                                   impl->function->shader->options->divergence_analysis_options);
    if (required & nir_metadata_loop_analysis) {
       va_list ap;
       va_start(ap, required);
@@ -90,6 +93,51 @@ nir_shader_preserve_all_metadata(nir_shader *shader)
    }
 }
 
+void
+nir_metadata_invalidate(nir_shader *shader)
+{
+   nir_foreach_function_impl(impl, shader) {
+      unsigned instr_idx = UINT32_MAX;
+      unsigned block_idx = UINT32_MAX;
+
+      nir_foreach_block_unstructured(block, impl) {
+         /* This creates an index that is non-unique, backwards and very large. */
+         block->index = (block_idx-- & 0xf) + 0xfffffff0;
+
+         if (impl->valid_metadata & nir_metadata_live_defs) {
+            ralloc_free(block->live_in);
+            ralloc_free(block->live_out);
+         }
+         block->live_in = block->live_out = NULL;
+
+         if (impl->valid_metadata & nir_metadata_dominance)
+            ralloc_free(block->dom_children);
+         block->dom_children = NULL;
+         block->num_dom_children = 1;
+         block->dom_pre_index = block->dom_post_index = 0;
+         _mesa_set_clear(block->dom_frontier, NULL);
+
+         if (block->cf_node.parent->type == nir_cf_node_loop &&
+             nir_cf_node_is_first(&block->cf_node)) {
+            nir_loop *loop = nir_cf_node_as_loop(block->cf_node.parent);
+            if (impl->valid_metadata & nir_metadata_loop_analysis)
+               ralloc_free(loop->info);
+            loop->info = NULL;
+         }
+
+         block->start_ip = (instr_idx-- & 0xf) + 0xfffffff0;
+         nir_foreach_instr(instr, block)
+            instr->index = (instr_idx-- & 0xf) + 0xfffffff0;
+         block->end_ip = (instr_idx-- & 0xf) + 0xfffffff0;
+      }
+
+      impl->num_blocks = 0;
+      impl->end_block->index = 0xf;
+
+      impl->valid_metadata = 0;
+   }
+}
+
 #ifndef NDEBUG
 /**
  * Make sure passes properly invalidate metadata (part 1).
@@ -117,6 +165,16 @@ nir_metadata_check_validation_flag(nir_shader *shader)
 {
    nir_foreach_function_impl(impl, shader) {
       assert(!(impl->valid_metadata & nir_metadata_not_properly_reset));
+   }
+}
+
+void nir_metadata_require_all(nir_shader *shader)
+{
+   bool force_unroll_sampler_indirect = shader->options->force_indirect_unrolling_sampler;
+   nir_variable_mode indirect_mask = shader->options->force_indirect_unrolling;
+   nir_foreach_function_impl(impl, shader) {
+      nir_metadata_require(impl, nir_metadata_all, indirect_mask,
+                           (int)force_unroll_sampler_indirect);
    }
 }
 #endif

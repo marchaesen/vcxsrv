@@ -19,6 +19,7 @@
 #include "tgsi/tgsi_ureg.h"
 #include "tgsi/tgsi_dump.h"
 #include "nir/tgsi_to_nir.h"
+#include "nir.h"
 
 #define DBG_CHANNEL DBG_SHADER
 
@@ -3591,8 +3592,7 @@ sm1_parse_instruction(struct shader_translator *tx)
 }
 
 #define GET_CAP(n) screen->caps.n
-#define GET_SHADER_CAP(n) screen->get_shader_param( \
-      screen, info->type, PIPE_SHADER_CAP_##n)
+#define GET_SHADER_CAP(n) screen->shader_caps[info->type].n
 
 static HRESULT
 tx_ctor(struct shader_translator *tx, struct pipe_screen *screen, struct nine_shader_info *info)
@@ -3660,8 +3660,8 @@ tx_ctor(struct shader_translator *tx, struct pipe_screen *screen, struct nine_sh
         return E_OUTOFMEMORY;
     }
 
-    tx->native_integers = GET_SHADER_CAP(INTEGERS);
-    tx->inline_subroutines = !GET_SHADER_CAP(SUBROUTINES);
+    tx->native_integers = GET_SHADER_CAP(integers);
+    tx->inline_subroutines = !GET_SHADER_CAP(subroutines);
     tx->want_texcoord = GET_CAP(tgsi_texcoord);
     tx->shift_wpos = !GET_CAP(fs_coord_pixel_center_integer);
     tx->texcoord_sn = tx->want_texcoord ?

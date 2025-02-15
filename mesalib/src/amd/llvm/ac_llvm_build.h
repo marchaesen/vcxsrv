@@ -11,7 +11,7 @@
 #include "ac_shader_args.h"
 #include "ac_shader_util.h"
 #include "amd_family.h"
-#include "compiler/nir/nir.h"
+#include "nir_opcodes.h"
 #include <llvm-c/Core.h>
 
 #include <stdbool.h>
@@ -435,7 +435,7 @@ LLVMValueRef ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LL
 LLVMValueRef ac_build_writelane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef value,
                                 LLVMValueRef lane);
 
-LLVMValueRef ac_build_mbcnt_add(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef add_src);
+LLVMValueRef ac_build_mbcnt_add(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef add);
 LLVMValueRef ac_build_mbcnt(struct ac_llvm_context *ctx, LLVMValueRef mask);
 
 LLVMValueRef ac_build_wqm(struct ac_llvm_context *ctx, LLVMValueRef src);

@@ -39,6 +39,7 @@ from The Open Group.
 #include "dix/colormap_priv.h"
 #include "dix/dix_priv.h"
 #include "dix/screenint_priv.h"
+#include "mi/mipointer_priv.h"
 #include "os/cmdline.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
@@ -80,7 +81,16 @@ from The Open Group.
 #define VFB_DEFAULT_WHITEPIXEL    1
 #define VFB_DEFAULT_BLACKPIXEL    0
 #define VFB_DEFAULT_LINEBIAS      0
+#define VFB_DEFAULT_NUM_CRTCS     1
 #define XWD_WINDOW_NAME_LEN      60
+
+typedef struct {
+    int width;
+    int height;
+    int x;
+    int y;
+    int numOutputs;
+} vfbCrtcInfo, *vfbCrtcInfoPtr;
 
 typedef struct {
     int width;
@@ -91,6 +101,8 @@ typedef struct {
     int bitsPerPixel;
     int sizeInBytes;
     int ncolors;
+    int numCrtcs;
+    vfbCrtcInfoPtr crtcs;
     char *pfbMemory;
     XWDColor *pXWDCmap;
     XWDFileHeader *pXWDHeader;
@@ -138,6 +150,43 @@ static Bool Render = TRUE;
 #define swapcopy32(_dst, _src) \
     if (needswap) { CARD32 _s = _src; cpswapl(_s, _dst); } \
     else _dst = _src;
+
+static void
+vfbAddCrtcInfo(vfbScreenInfoPtr screen, int numCrtcs)
+{
+    int i;
+    int count = numCrtcs - screen->numCrtcs;
+
+    if (count > 0) {
+        vfbCrtcInfoPtr crtcs =
+            reallocarray(screen->crtcs, numCrtcs, sizeof(*crtcs));
+        if (!crtcs)
+            FatalError("Not enough memory for %d CRTCs", numCrtcs);
+
+        memset(crtcs + screen->numCrtcs, 0, count * sizeof(*crtcs));
+
+        for (i = screen->numCrtcs; i < numCrtcs; ++i) {
+            crtcs[i].width = screen->width;
+            crtcs[i].height = screen->height;
+        }
+
+        screen->crtcs = crtcs;
+        screen->numCrtcs = numCrtcs;
+    }
+}
+
+static vfbScreenInfoPtr
+vfbInitializeScreenInfo(vfbScreenInfoPtr screen)
+{
+    *screen = defaultScreenInfo;
+    vfbAddCrtcInfo(screen, VFB_DEFAULT_NUM_CRTCS);
+
+    /* First CRTC initializes with one output */
+    if (screen->numCrtcs > 0)
+        screen->crtcs[0].numOutputs = 1;
+
+    return screen;
+}
 
 static void
 vfbInitializePixmapDepths(void)
@@ -195,6 +244,8 @@ freeScreenInfo(vfbScreenInfoPtr pvfb)
         free(pvfb->pXWDHeader);
         break;
     }
+
+    free(pvfb->crtcs);
 }
 
 void
@@ -261,6 +312,9 @@ ddxUseMsg(void)
 #ifdef MITSHM
     ErrorF("-shmem                 put framebuffers in shared memory\n");
 #endif
+
+    ErrorF("-crtcs n               number of CRTCs per screen (default: %d)\n",
+           VFB_DEFAULT_NUM_CRTCS);
 }
 
 int
@@ -276,7 +330,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
 
     if (lastScreen == -1)
-        currentScreen = &defaultScreenInfo;
+        currentScreen = vfbInitializeScreenInfo(&defaultScreenInfo);
     else
         currentScreen = &vfbScreens[lastScreen];
 
@@ -300,7 +354,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
             if (!vfbScreens)
                 FatalError("Not enough memory for screen %d\n", screenNum);
             for (; vfbNumScreens <= screenNum; ++vfbNumScreens)
-                vfbScreens[vfbNumScreens] = defaultScreenInfo;
+                vfbInitializeScreenInfo(&vfbScreens[vfbNumScreens]);
         }
 
         if (3 != sscanf(argv[i + 2], "%dx%dx%d",
@@ -380,6 +434,24 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
 #endif
+
+    if (strcmp(argv[i], "-crtcs") == 0) {       /* -crtcs n */
+        int numCrtcs;
+
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        numCrtcs = atoi(argv[i + 1]);
+
+        if (numCrtcs < 1) {
+            ErrorF("Invalid number of CRTCs %d\n", numCrtcs);
+            UseMsg();
+            FatalError("Invalid number of CRTCs (%d) passed to -crtcs\n",
+                       numCrtcs);
+
+        }
+
+        vfbAddCrtcInfo(currentScreen, numCrtcs);
+        return 2;
+    }
 
     return 0;
 }
@@ -729,8 +801,7 @@ vfbCloseScreen(ScreenPtr pScreen)
     /*
      * fb overwrites miCloseScreen, so do this here
      */
-    if (pScreen->devPrivate)
-        (*pScreen->DestroyPixmap) (pScreen->devPrivate);
+    dixDestroyPixmap(pScreen->devPrivate, 0);
     pScreen->devPrivate = NULL;
 
     return pScreen->CloseScreen(pScreen);
@@ -785,10 +856,22 @@ vfbRRCrtcSet(ScreenPtr pScreen,
              int       x,
              int       y,
              Rotation  rotation,
-             int       numOutput,
+             int       numOutputs,
              RROutputPtr *outputs)
 {
-  return RRCrtcNotify(crtc, mode, x, y, rotation, NULL, numOutput, outputs);
+    vfbCrtcInfoPtr pvci = crtc->devPrivate;
+
+    if (pvci) {
+        if (mode) {
+            pvci->width = mode->mode.width;
+            pvci->height = mode->mode.height;
+        }
+
+        pvci->x = x;
+        pvci->y = y;
+        pvci->numOutputs = numOutputs;
+    }
+    return RRCrtcNotify(crtc, mode, x, y, rotation, NULL, numOutputs, outputs);
 }
 
 static Bool
@@ -804,17 +887,20 @@ static Bool
 vfbRandRInit(ScreenPtr pScreen)
 {
     rrScrPrivPtr pScrPriv;
+
 #if RANDR_12_INTERFACE
-    RRModePtr  mode;
-    RRCrtcPtr  crtc;
-    RROutputPtr        output;
+    RRModePtr mode;
+    RRCrtcPtr crtc;
+    RROutputPtr output;
     xRRModeInfo modeInfo;
-    char       name[64];
+    char name[64];
+    int i;
+    vfbScreenInfoPtr pvfb = &vfbScreens[pScreen->myNum];
 #endif
     int mmWidth, mmHeight;
 
-    if (!RRScreenInit (pScreen))
-       return FALSE;
+    if (!RRScreenInit(pScreen))
+        return FALSE;
     pScrPriv = rrGetScrPriv(pScreen);
     pScrPriv->rrGetInfo = vfbRRGetInfo;
 #if RANDR_12_INTERFACE
@@ -827,44 +913,53 @@ vfbRandRInit(ScreenPtr pScreen)
     pScrPriv->rrOutputValidateMode = vfbRROutputValidateMode;
     pScrPriv->rrModeDestroy = NULL;
 
-    mmWidth = pScreen->width * 25.4 / monitorResolution;
-    mmHeight = pScreen->height * 25.4 / monitorResolution;
+    RRScreenSetSizeRange(pScreen, 1, 1, pScreen->width, pScreen->height);
 
-    RRScreenSetSizeRange (pScreen,
-                         1, 1,
-                         pScreen->width, pScreen->height);
+    for (i = 0; i < pvfb->numCrtcs; i++) {
+        vfbCrtcInfoPtr pvci = &pvfb->crtcs[i];
 
-    sprintf (name, "%dx%d", pScreen->width, pScreen->height);
-    memset (&modeInfo, '\0', sizeof (modeInfo));
-    modeInfo.width = pScreen->width;
-    modeInfo.height = pScreen->height;
-    modeInfo.nameLength = strlen (name);
+        mmWidth = pvci->width * 25.4 / monitorResolution;
+        mmHeight = pvci->height * 25.4 / monitorResolution;
 
-    mode = RRModeGet (&modeInfo, name);
-    if (!mode)
-       return FALSE;
+        crtc = RRCrtcCreate(pScreen, pvci);
+        if (!crtc)
+            return FALSE;
 
-    crtc = RRCrtcCreate (pScreen, NULL);
-    if (!crtc)
-       return FALSE;
+        /* Set gamma to avoid xrandr complaints */
+        RRCrtcGammaSetSize(crtc, 256);
 
-    /* This is to avoid xrandr to complain about the gamma missing */
-    RRCrtcGammaSetSize (crtc, 256);
+        /* Setup an Output for each CRTC: 'screen' for the first, then 'screen_N' */
+        snprintf(name, sizeof(name), i == 0 ? "screen" : "screen_%d", i);
+        output = RROutputCreate(pScreen, name, strlen(name), NULL);
+        if (!output)
+            return FALSE;
+        if (!RROutputSetClones(output, NULL, 0))
+            return FALSE;
+        if (!RROutputSetCrtcs(output, &crtc, 1))
+            return FALSE;
+        if (!RROutputSetConnection(output, RR_Connected))
+            return FALSE;
+        if (!RROutputSetPhysicalSize(output, mmWidth, mmHeight))
+            return FALSE;
 
-    output = RROutputCreate (pScreen, "screen", 6, NULL);
-    if (!output)
-       return FALSE;
-    if (!RROutputSetClones (output, NULL, 0))
-       return FALSE;
-    if (!RROutputSetModes (output, &mode, 1, 0))
-       return FALSE;
-    if (!RROutputSetCrtcs (output, &crtc, 1))
-       return FALSE;
-    if (!RROutputSetConnection (output, RR_Connected))
-       return FALSE;
-    if (!RROutputSetPhysicalSize (output, mmWidth, mmHeight))
-       return FALSE;
-    RRCrtcNotify (crtc, mode, 0, 0, RR_Rotate_0, NULL, 1, &output);
+        /* Setup a Mode and notify only for CRTCs with Outputs */
+        if (pvci->numOutputs > 0) {
+            snprintf(name, sizeof(name), "%dx%d", pvci->width, pvci->height);
+            memset(&modeInfo, '\0', sizeof(modeInfo));
+            modeInfo.width = pvci->width;
+            modeInfo.height = pvci->height;
+            modeInfo.nameLength = strlen(name);
+
+            mode = RRModeGet(&modeInfo, name);
+            if (!mode)
+                return FALSE;
+            if (!RROutputSetModes(output, &mode, 1, 0))
+                return FALSE;
+            if (!RRCrtcNotify(crtc, mode, pvci->x, pvci->y, RR_Rotate_0, NULL,
+                              1, &output))
+                return FALSE;
+        }
+    }
 #endif
     return TRUE;
 }

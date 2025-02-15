@@ -38,6 +38,12 @@ sh .gitlab-ci/container/create-android-cross-file.sh /$ndk i686-linux-android x8
 sh .gitlab-ci/container/create-android-cross-file.sh /$ndk aarch64-linux-android aarch64 armv8 $ANDROID_SDK_VERSION
 sh .gitlab-ci/container/create-android-cross-file.sh /$ndk arm-linux-androideabi arm armv7hl $ANDROID_SDK_VERSION armv7a-linux-androideabi
 
+# Build libdrm for the host (Debian) environment, so it's available for
+# binaries we'll run as part of the build process
+. .gitlab-ci/container/build-libdrm.sh
+
+# Build libdrm for the NDK environment, so it's available when building for
+# the Android target
 for arch in \
         x86_64-linux-android \
         i686-linux-android \

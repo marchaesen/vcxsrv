@@ -1938,8 +1938,11 @@ builtin_builder::create_intrinsics()
                 FIUBD_AVAIL(_vote_intrinsic, vote_or_v460_desktop, ir_intrinsic_vote_eq),
                 NULL);
 
-   add_function("__intrinsic_ballot",
+   add_function("__intrinsic_ballot_uint64",
                 _ballot_intrinsic(&glsl_type_builtin_uint64_t),
+                NULL);
+
+   add_function("__intrinsic_ballot_uvec4",
                 _ballot_intrinsic(&glsl_type_builtin_uvec4),
                 NULL);
 
@@ -9012,8 +9015,14 @@ builtin_builder::_ballot(const glsl_type *type, builtin_available_predicate avai
    MAKE_SIG(type, avail, 1, value);
    ir_variable *retval = body.make_temp(type, "retval");
 
-   body.emit(call(symbols->get_function("__intrinsic_ballot"),
-                  retval, sig->parameters));
+   if (type == &glsl_type_builtin_uint64_t) {
+      body.emit(call(symbols->get_function("__intrinsic_ballot_uint64"),
+                     retval, sig->parameters));
+   } else {
+      assert(type == &glsl_type_builtin_uvec4);
+      body.emit(call(symbols->get_function("__intrinsic_ballot_uvec4"),
+                     retval, sig->parameters));
+   }
    body.emit(ret(retval));
    return sig;
 }

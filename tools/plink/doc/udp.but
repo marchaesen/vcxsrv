@@ -51,7 +51,7 @@ The exceptions to that rule are due to the need for Visual Studio
 compatibility:
 
 \b Don't use variable-length arrays. Visual Studio doesn't support
-them even now that it's adopted the rest of C99. We use \cw{-Wvla}
+them even now that it's adopted the rest of C99. We use \cw{\-Wvla}
 when building with gcc and clang, to make it easier to avoid
 accidentally breaking that rule.
 

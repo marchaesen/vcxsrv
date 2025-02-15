@@ -267,6 +267,7 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                             bool after_cross_stage_opts)
 {
    nir_foreach_function_impl(impl, shader) {
+      bool progress = false;
       nir_builder b = nir_builder_create(impl);
 
       nir_foreach_block(block, impl) {
@@ -339,13 +340,21 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
             case nir_intrinsic_load_deref:
             case nir_intrinsic_store_deref:
                if ((mask & nir_var_shader_in && mode == nir_var_shader_in) ||
-                   (mask & nir_var_shader_out && mode == nir_var_shader_out))
+                   (mask & nir_var_shader_out && mode == nir_var_shader_out)) {
                   lower_array(&b, intr, var, varyings);
+                  progress = true;
+               }
                break;
             default:
                break;
             }
          }
+      }
+
+      if (progress) {
+         nir_metadata_preserve(impl, nir_metadata_control_flow);
+      } else {
+         nir_metadata_preserve(impl, nir_metadata_all);
       }
    }
 }

@@ -26,6 +26,7 @@
 #include "program/symbol_table.h"
 #include "util/hash_table.h"
 #include "main/shader_types.h"
+#include "nir.h"
 
 struct function_sig {
    nir_function *func;

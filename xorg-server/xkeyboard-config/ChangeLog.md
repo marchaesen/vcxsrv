@@ -1,3 +1,66 @@
+xkeyboard-config [2.44] - 2025-02-05
+====================================
+
+[2.44]: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/tree/xkeyboard-config-2.44
+
+## Models
+
+### Fixes
+
+- Fixed rules for vendor-specific layouts, in particular for Sun and Apple
+  Aluminium keyboards.
+  ([#112](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/issues/112))
+- Apple: swap `<TLDE>` and `<LSGT>` keysyms for Russian layout.
+
+
+## Layouts
+
+### Breaking changes
+
+- Breton: Fixed capitalization of “c’h” and “ch”
+  [multigraphs](https://en.wikipedia.org/wiki/Multigraph_%28orthography%29) using
+  CapsLock, as well as Greek letters. A few Greeks letters were moved to more
+  intuitive places.
+  ([#480.breton](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/issues/480.breton))
+
+### New
+
+- Added Noted layout `de(noted)` for German.
+
+  Contributed by Benjamin Drung
+  ([!681](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/merge_requests/681))
+
+
+## Options
+
+### Breaking changes
+
+- Disabled "Alt and Meta are on Alt" by default. The old behavior can be restored
+  by enabling the `altwin:meta_alt` option.
+  ([#488](https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/-/issues/488))
+
+
+## Miscellaneous
+
+### New
+
+- inet: Added `XF86Assistant` as default mapping to the Super + Shift + F23
+  keyboard combo, aka the "Copilot Key".
+- inet: Added mapping to the following new keysyms:
+  - `XF86RefreshRateToggle`
+  - `XF86Accessibility`
+  - `XF86DoNotDisturb`
+
+  Relevant upstream merge request: [xorgproto-91].
+
+  [xorgproto-91]: https://gitlab.freedesktop.org/xorg/proto/xorgproto/-/merge_requests/91
+
+### Fixes
+
+- Fixed missing virtual modifiers declarations, in order to allow all sections to
+  be used in isolation.
+
+
 xkeyboard-config [2.43] - 2024-10-01
 ====================================
 

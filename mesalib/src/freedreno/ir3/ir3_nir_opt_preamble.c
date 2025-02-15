@@ -752,6 +752,8 @@ ir3_nir_opt_prefetch_descriptors(nir_shader *nir, struct ir3_shader_variant *v)
                                                   preamble_defs);
          }
 
+         /* ir3_rematerialize_def_for_preamble may have moved the cursor. */
+         b.cursor = nir_after_impl(preamble);
          progress |= emit_descriptor_prefetch(&b, instr, preamble_descs, &state);
 
          if (state.sampler.num_prefetches == MAX_PREFETCHES &&

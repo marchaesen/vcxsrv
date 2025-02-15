@@ -1275,7 +1275,16 @@ SPDX-License-Identifier: MIT
 	<pattern pos="80">0</pattern> <!-- OPCODE_BIT6 -->
 </bitset>
 
-<!-- swizzle -->
+<bitset name="swizzle" extends="#instruction-alu-src0-src1-src2">
+	<doc>
+		Based on observations of the generated assembly, this instruction appears to:
+		 - Swizzle the 8/16 component vector in src0 according to the pattern defined in src1.
+		 - Apply a enable mask from src2 to selectively modify elements.
+	</doc>
+
+	<pattern low="0" high="5">101011</pattern> <!-- OPC -->
+	<pattern pos="80">0</pattern> <!-- OPCODE_BIT6 -->
+</bitset>
 
 <bitset name="i2i" extends="#instruction-alu-src0-src1">
 	<pattern low="0" high="5">101100</pattern> <!-- OPC -->

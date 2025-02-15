@@ -992,7 +992,7 @@
   </aggregate>
 
   <struct name="Primitive Size">
-    <field name="Constant" size="32" start="0:0" type="float"/>
+    <field name="Fixed Sized" size="32" start="0:0" type="float"/>
     <field name="Size Array" size="64" start="0:0" type="uint"/>
   </struct>
 

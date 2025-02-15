@@ -42,6 +42,8 @@
 
 #include "dix/dix_priv.h"
 
+Bool noGlxExtension = FALSE;
+
 ExtensionEntry *GlxExtensionEntry;
 int GlxErrorBase = 0;
 static CallbackListRec vndInitCallbackList;
@@ -196,7 +198,7 @@ GLXClientCallback(CallbackListPtr *list, void *closure, void *data)
 static void
 GLXReset(ExtensionEntry *extEntry)
 {
-    // xf86Msg(X_INFO, "GLX: GLXReset\n");
+    // LogMessageVerb(X_INFO, 1, "GLX: GLXReset\n");
 
     GlxVendorExtensionReset(extEntry);
     GlxDispatchReset();

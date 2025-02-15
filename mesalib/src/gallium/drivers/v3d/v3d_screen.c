@@ -116,194 +116,121 @@ v3d_has_feature(struct v3d_screen *screen, enum drm_v3d_param feature)
         return p.value;
 }
 
-static int
-v3d_screen_get_shader_param(struct pipe_screen *pscreen, enum pipe_shader_type shader,
-                           enum pipe_shader_cap param)
+static void
+v3d_init_shader_caps(struct v3d_screen *screen)
 {
-        struct v3d_screen *screen = v3d_screen(pscreen);
+        for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+                struct pipe_shader_caps *caps =
+                        (struct pipe_shader_caps *)&screen->base.shader_caps[i];
 
-        switch (shader) {
-        case PIPE_SHADER_VERTEX:
-        case PIPE_SHADER_FRAGMENT:
-        case PIPE_SHADER_GEOMETRY:
-                break;
-        case PIPE_SHADER_COMPUTE:
-                if (!screen->has_csd)
-                        return 0;
-                break;
-        default:
-                return 0;
-        }
-
-        /* this is probably not totally correct.. but it's a start: */
-        switch (param) {
-        case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-                return 16384;
-
-        case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-                return UINT_MAX;
-
-        case PIPE_SHADER_CAP_MAX_INPUTS:
-                switch (shader) {
+                switch (i) {
                 case PIPE_SHADER_VERTEX:
-                        return V3D_MAX_VS_INPUTS / 4;
-                case PIPE_SHADER_GEOMETRY:
-                        return V3D_MAX_GS_INPUTS / 4;
                 case PIPE_SHADER_FRAGMENT:
-                        return V3D_MAX_FS_INPUTS / 4;
+                case PIPE_SHADER_GEOMETRY:
+                        break;
+                case PIPE_SHADER_COMPUTE:
+                        if (!screen->has_csd)
+                                continue;
+                        break;
                 default:
-                        return 0;
-                };
-        case PIPE_SHADER_CAP_MAX_OUTPUTS:
-                if (shader == PIPE_SHADER_FRAGMENT)
-                        return 4;
-                else
-                        return V3D_MAX_FS_INPUTS / 4;
-        case PIPE_SHADER_CAP_MAX_TEMPS:
-                return 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
+                        continue;
+                }
+
+                caps->max_instructions =
+                caps->max_alu_instructions =
+                caps->max_tex_instructions =
+                caps->max_tex_indirections = 16384;
+                caps->max_control_flow_depth = UINT_MAX;
+
+                switch (i) {
+                case PIPE_SHADER_VERTEX:
+                        caps->max_inputs = V3D_MAX_VS_INPUTS / 4;
+                        break;
+                case PIPE_SHADER_GEOMETRY:
+                        caps->max_inputs = V3D_MAX_GS_INPUTS / 4;
+                        break;
+                case PIPE_SHADER_FRAGMENT:
+                        caps->max_inputs = V3D_MAX_FS_INPUTS / 4;
+                        break;
+                default:
+                        break;
+                }
+
+                caps->max_outputs =
+                        i == PIPE_SHADER_FRAGMENT ? 4 : V3D_MAX_FS_INPUTS / 4;
+
+                caps->max_temps = 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
                 /* Note: Limited by the offset size in
                  * v3d_unit_data_create().
                  */
-                return 16 * 1024 * sizeof(float);
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-                return 16;
-        case PIPE_SHADER_CAP_CONT_SUPPORTED:
-                return 0;
-        case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-                return 1;
-        case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-                return 1;
-        case PIPE_SHADER_CAP_SUBROUTINES:
-                return 0;
-        case PIPE_SHADER_CAP_INTEGERS:
-                return 1;
-        case PIPE_SHADER_CAP_FP16:
-        case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-        case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-        case PIPE_SHADER_CAP_INT16:
-        case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-        case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-        case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-                return 0;
-        case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-        case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-                return V3D_MAX_TEXTURE_SAMPLERS;
+                caps->max_const_buffer0_size = 16 * 1024 * sizeof(float);
+                caps->max_const_buffers = 16;
+                caps->indirect_temp_addr = true;
+                caps->indirect_const_addr = true;
+                caps->integers = true;
+                caps->max_texture_samplers =
+                caps->max_sampler_views = V3D_MAX_TEXTURE_SAMPLERS;
 
-        case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-                if (screen->has_cache_flush) {
-                        if (shader == PIPE_SHADER_VERTEX ||
-                            shader == PIPE_SHADER_GEOMETRY) {
-                                return 0;
-                        }
-                        return PIPE_MAX_SHADER_BUFFERS;
-                 } else {
-                        return 0;
-                 }
+                caps->max_shader_buffers =
+                        screen->has_cache_flush &&
+                        (i != PIPE_SHADER_VERTEX && i != PIPE_SHADER_GEOMETRY) ?
+                        PIPE_MAX_SHADER_BUFFERS : 0;
 
-        case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-                return screen->has_cache_flush ? PIPE_MAX_SHADER_IMAGES : 0;
+                caps->max_shader_images =
+                        screen->has_cache_flush ? PIPE_MAX_SHADER_IMAGES : 0;
 
-        case PIPE_SHADER_CAP_SUPPORTED_IRS:
-                return 1 << PIPE_SHADER_IR_NIR;
-        default:
-                fprintf(stderr, "unknown shader param %d\n", param);
-                return 0;
+                caps->supported_irs = 1 << PIPE_SHADER_IR_NIR;
         }
-        return 0;
 }
 
-static int
-v3d_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
-                      enum pipe_compute_cap param, void *ret)
+static void
+v3d_init_compute_caps(struct v3d_screen *screen)
 {
-        struct v3d_screen *screen = v3d_screen(pscreen);
-        const char *const ir = "v3d";
+        struct pipe_compute_caps *caps =
+                (struct pipe_compute_caps *)&screen->base.compute_caps;
 
         if (!screen->has_csd)
-                return 0;
+                return;
 
-#define RET(x) do {                                     \
-                if (ret)                                \
-                        memcpy(ret, x, sizeof(x));      \
-                return sizeof(x);                       \
-        } while (0)
+        caps->address_bits = 32;
 
-        switch (param) {
-        case PIPE_COMPUTE_CAP_ADDRESS_BITS:
-                RET((uint32_t []) { 32 });
-                break;
+        snprintf(caps->ir_target, sizeof(caps->ir_target), "v3d");
 
-        case PIPE_COMPUTE_CAP_IR_TARGET:
-                if (ret)
-                        sprintf(ret, "%s", ir);
-                return strlen(ir) * sizeof(char);
+        caps->grid_dimension = 3;
 
-        case PIPE_COMPUTE_CAP_GRID_DIMENSION:
-                RET((uint64_t []) { 3 });
+        /* GL_MAX_COMPUTE_SHADER_WORK_GROUP_COUNT: The CSD has a
+         * 16-bit field for the number of workgroups in each
+         * dimension.
+         */
+        caps->max_grid_size[0] =
+        caps->max_grid_size[1] =
+        caps->max_grid_size[2] = 65535;
 
-        case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
-                /* GL_MAX_COMPUTE_SHADER_WORK_GROUP_COUNT: The CSD has a
-                 * 16-bit field for the number of workgroups in each
-                 * dimension.
-                 */
-                RET(((uint64_t []) { 65535, 65535, 65535 }));
+        /* GL_MAX_COMPUTE_WORK_GROUP_SIZE */
+        caps->max_block_size[0] =
+        caps->max_block_size[1] =
+        caps->max_block_size[2] = 256;
 
-        case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
-                /* GL_MAX_COMPUTE_WORK_GROUP_SIZE */
-                RET(((uint64_t []) { 256, 256, 256 }));
+        /* GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS: This is
+         * limited by WG_SIZE in the CSD.
+         */
+        caps->max_threads_per_block =
+        caps->max_variable_threads_per_block = 256;
 
-        case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-        case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-                /* GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS: This is
-                 * limited by WG_SIZE in the CSD.
-                 */
-                RET((uint64_t []) { 256 });
+        /* GL_MAX_COMPUTE_SHARED_MEMORY_SIZE */
+        caps->max_local_size = 32768;
 
-        case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-                /* GL_MAX_COMPUTE_SHARED_MEMORY_SIZE */
-                RET((uint64_t []) { 32768 });
+        caps->max_private_size =
+        caps->max_input_size = 4096;
 
-        case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
-        case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
-                RET((uint64_t []) { 4096 });
+        struct sysinfo si;
+        sysinfo(&si);
+        caps->max_global_size = si.totalram;
+        caps->max_mem_alloc_size = MIN2(V3D_MAX_BUFFER_RANGE, si.totalram);
 
-        case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE: {
-                struct sysinfo si;
-                sysinfo(&si);
-                RET((uint64_t []) { si.totalram });
-        }
-
-        case PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE: {
-                struct sysinfo si;
-                sysinfo(&si);
-                RET((uint64_t []) { MIN2(V3D_MAX_BUFFER_RANGE, si.totalram) });
-        }
-
-        case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-                /* OpenCL only */
-                RET((uint32_t []) { 0 });
-
-        case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
-                RET((uint32_t []) { 1 });
-
-        case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-                RET((uint32_t []) { 1 });
-
-        case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
-                RET((uint32_t []) { 16 });
-
-        case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
-                RET((uint32_t []) { 0 });
-
-        }
-
-        return 0;
+        caps->max_compute_units = 1;
+        caps->images_supported = true;
+        caps->subgroup_sizes = 16;
 }
 
 static void
@@ -856,8 +783,6 @@ v3d_screen_create(int fd, const struct pipe_screen_config *config,
 
         pscreen->destroy = v3d_screen_destroy;
         pscreen->get_screen_fd = v3d_screen_get_fd;
-        pscreen->get_shader_param = v3d_screen_get_shader_param;
-        pscreen->get_compute_param = v3d_get_compute_param;
         pscreen->context_create = v3d_context_create;
         pscreen->is_format_supported = v3d_screen_is_format_supported;
         pscreen->get_canonical_format = v3d_screen_get_compatible_tlb_format;
@@ -939,6 +864,8 @@ v3d_screen_create(int fd, const struct pipe_screen_config *config,
                              BITFIELD_BIT(MESA_PRIM_TRIANGLES_ADJACENCY) |
                              BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP_ADJACENCY);
 
+        v3d_init_shader_caps(screen);
+        v3d_init_compute_caps(screen);
         v3d_init_screen_caps(screen);
 
         return pscreen;

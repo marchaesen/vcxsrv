@@ -18,21 +18,6 @@
 #include "vk_log.h"
 
 void
-radv_device_memory_init(struct radv_device_memory *mem, struct radv_device *device, struct radeon_winsys_bo *bo)
-{
-   memset(mem, 0, sizeof(*mem));
-   vk_object_base_init(&device->vk, &mem->base, VK_OBJECT_TYPE_DEVICE_MEMORY);
-
-   mem->bo = bo;
-}
-
-void
-radv_device_memory_finish(struct radv_device_memory *mem)
-{
-   vk_object_base_finish(&mem->base);
-}
-
-void
 radv_free_memory(struct radv_device *device, const VkAllocationCallbacks *pAllocator, struct radv_device_memory *mem)
 {
    if (mem == NULL)
@@ -57,7 +42,7 @@ radv_free_memory(struct radv_device *device, const VkAllocationCallbacks *pAlloc
    }
 
    radv_rmv_log_resource_destroy(device, (uint64_t)radv_device_memory_to_handle(mem));
-   radv_device_memory_finish(mem);
+   vk_object_base_finish(&mem->base);
    vk_free2(&device->vk.alloc, pAllocator, mem);
 }
 
@@ -95,11 +80,11 @@ radv_alloc_memory(struct radv_device *device, const VkMemoryAllocateInfo *pAlloc
       return VK_SUCCESS;
    }
 
-   mem = vk_alloc2(&device->vk.alloc, pAllocator, sizeof(*mem), 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   mem = vk_zalloc2(&device->vk.alloc, pAllocator, sizeof(*mem), 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (mem == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   radv_device_memory_init(mem, device, NULL);
+   vk_object_base_init(&device->vk, &mem->base, VK_OBJECT_TYPE_DEVICE_MEMORY);
 
    if (dedicate_info) {
       mem->image = radv_image_from_handle(dedicate_info->image);

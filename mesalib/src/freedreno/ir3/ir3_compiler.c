@@ -362,3 +362,9 @@ ir3_get_compiler_options(struct ir3_compiler *compiler)
 {
    return &compiler->nir_options;
 }
+
+const char *
+ir3_shader_debug_as_string()
+{
+   return debug_dump_flags(shader_debug_options, ir3_shader_debug);
+}

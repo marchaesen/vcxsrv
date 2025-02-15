@@ -108,8 +108,7 @@ struct aco_ps_prolog_info {
 struct aco_shader_info {
    enum ac_hw_stage hw_stage;
    uint8_t wave_size;
-   bool has_ngg_culling;
-   bool has_ngg_early_prim_export;
+   bool schedule_ngg_pos_exports; /* Whether we should schedule position exports up or not. */
    bool image_2d_view_of_3d;
    unsigned workgroup_size;
    bool merged_shader_compiled_separately; /* GFX9+ */

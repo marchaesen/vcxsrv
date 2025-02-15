@@ -309,7 +309,7 @@ tu_lrz_begin_renderpass(struct tu_cmd_buffer *cmd)
     /* Track LRZ valid state */
    tu_lrz_begin_resumed_renderpass<CHIP>(cmd);
 
-   if (!cmd->state.lrz.valid) {
+   if (!cmd->state.lrz.valid || TU_DEBUG(NOLRZ)) {
       tu6_write_lrz_cntl<CHIP>(cmd, &cmd->cs, {});
       tu6_emit_lrz_buffer<CHIP>(&cmd->cs, NULL);
    }

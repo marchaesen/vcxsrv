@@ -2006,7 +2006,7 @@ and non-SSH proxying.
 
 \b \q{SSH to proxy and use port forwarding} causes PuTTY to use the
 secondary SSH connection to open a port-forwarding channel to the
-final destination host (similar to OpenSSH's \cw{-J} option).
+final destination host (similar to OpenSSH's \cw{\-J} option).
 
 \b \q{SSH to proxy and execute a command} causes PuTTY to run an
 arbitrary remote command on the proxy SSH server and use that
@@ -2247,7 +2247,7 @@ ability to run a shell.
 This feature is only available in \i{SSH protocol version 2} (since the
 version 1 protocol assumes you will always want to run a shell).
 
-This feature can also be enabled using the \c{-N} command-line
+This feature can also be enabled using the \c{\-N} command-line
 option; see \k{using-cmdline-noshell}.
 
 If you use this feature in Plink, you will not be able to terminate
@@ -2639,7 +2639,7 @@ key not in that list.
 Another reason is if PuTTY's automated host key management is
 completely unavailable, e.g. because PuTTY (or Plink or PSFTP, etc) is
 running in a Windows environment without access to the Registry. In
-that situation, you will probably want to use the \cw{-hostkey}
+that situation, you will probably want to use the \cw{\-hostkey}
 command-line option to configure the expected host key(s); see
 \k{using-cmdline-hostkey}.
 
@@ -2970,7 +2970,7 @@ by default. In rare cases you might need to turn it off in order to
 force authentication by some non-public-key method such as
 passwords.
 
-This option can also be controlled using the \c{-noagent}
+This option can also be controlled using the \c{\-noagent}
 command-line option. See \k{using-cmdline-agentauth}.
 
 See \k{pageant} for more information about Pageant in general.

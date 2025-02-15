@@ -24,6 +24,7 @@
 #include "nir_serialize.h"
 #include "util/u_dynarray.h"
 #include "util/u_math.h"
+#include "util/u_printf.h"
 #include "nir_control_flow.h"
 #include "nir_xfb_info.h"
 
@@ -64,6 +65,7 @@ typedef struct {
 
    /* Don't write optional data such as variable names. */
    bool strip;
+   bool debug_info;
 } write_ctx;
 
 typedef struct {
@@ -87,6 +89,8 @@ typedef struct {
    const struct glsl_type *last_type;
    const struct glsl_type *last_interface_type;
    struct nir_variable_data last_var_data;
+
+   struct hash_table *strings;
 } read_ctx;
 
 static void
@@ -479,10 +483,9 @@ read_src(read_ctx *ctx, nir_src *src)
 union packed_def {
    uint8_t u8;
    struct {
+      uint8_t _pad : 2;
       uint8_t num_components : 3;
       uint8_t bit_size : 3;
-      uint8_t divergent : 1;
-      uint8_t loop_invariant : 1;
    };
 };
 
@@ -607,15 +610,13 @@ write_def(write_ctx *ctx, const nir_def *def, union packed_instr header,
    pdef.num_components =
       encode_num_components_in_3bits(def->num_components);
    pdef.bit_size = encode_bit_size_3bits(def->bit_size);
-   pdef.divergent = def->divergent;
-   pdef.loop_invariant = def->loop_invariant;
    header.any.def = pdef.u8;
 
    /* Check if the current ALU instruction has the same header as the previous
     * instruction that is also ALU. If it is, we don't have to write
     * the current header. This is a typical occurence after scalarization.
     */
-   if (instr_type == nir_instr_type_alu) {
+   if (instr_type == nir_instr_type_alu && likely(!ctx->debug_info)) {
       bool equal_header = false;
 
       if (ctx->last_instr_type == nir_instr_type_alu) {
@@ -670,8 +671,6 @@ read_def(read_ctx *ctx, nir_def *def, nir_instr *instr,
    else
       num_components = decode_num_components_in_3bits(pdef.num_components);
    nir_def_init(instr, def, num_components, bit_size);
-   def->divergent = pdef.divergent;
-   def->loop_invariant = pdef.loop_invariant;
    read_add_object(ctx, def);
 }
 
@@ -1255,8 +1254,6 @@ read_load_const(read_ctx *ctx, union packed_instr header)
    nir_load_const_instr *lc =
       nir_load_const_instr_create(ctx->nir, header.load_const.last_component + 1,
                                   decode_bit_size_3bits(header.load_const.bit_size));
-   lc->def.divergent = false;
-   lc->def.loop_invariant = true;
 
    switch (header.load_const.packing) {
    case load_const_scalar_hi_19bits:
@@ -1349,9 +1346,6 @@ read_ssa_undef(read_ctx *ctx, union packed_instr header)
    nir_undef_instr *undef =
       nir_undef_instr_create(ctx->nir, header.undef.last_component + 1,
                              decode_bit_size_3bits(header.undef.bit_size));
-
-   undef->def.divergent = false;
-   undef->def.loop_invariant = true;
 
    read_add_object(ctx, &undef->def);
    return undef;
@@ -1602,61 +1596,71 @@ read_call(read_ctx *ctx)
    return call;
 }
 
+enum nir_serialize_debug_info_flags {
+   NIR_SERIALIZE_FILENAME = 1 << 0,
+   NIR_SERIALIZE_VARIABLE_NAME = 1 << 1,
+};
+
 static void
-write_debug_info(write_ctx *ctx, const nir_debug_info_instr *di)
+write_debug_info(write_ctx *ctx, const nir_instr *instr)
 {
-   union packed_instr header;
-   header.u32 = 0;
+   nir_instr_debug_info *debug_info = nir_instr_get_debug_info((void *)instr);
 
-   header.debug_info.instr_type = nir_instr_type_debug_info;
-   header.debug_info.type = di->type;
-   header.debug_info.string_length = di->string_length;
+   blob_write_uint32(ctx->blob, debug_info->line);
+   blob_write_uint32(ctx->blob, debug_info->column);
+   blob_write_uint32(ctx->blob, debug_info->spirv_offset);
 
-   switch (di->type) {
-   case nir_debug_info_src_loc:
-      blob_write_uint32(ctx->blob, header.u32);
-      blob_write_uint32(ctx->blob, di->src_loc.line);
-      blob_write_uint32(ctx->blob, di->src_loc.column);
-      blob_write_uint32(ctx->blob, di->src_loc.spirv_offset);
-      blob_write_uint8(ctx->blob, di->src_loc.source);
-      if (di->src_loc.line)
-         write_src(ctx, &di->src_loc.filename);
-      return;
-   case nir_debug_info_string:
-      write_def(ctx, &di->def, header, di->instr.type);
-      blob_write_bytes(ctx->blob, di->string, di->string_length);
-      return;
-   }
+   blob_write_uint32(ctx->blob, debug_info->nir_line);
 
-   unreachable("Unimplemented nir_debug_info_type");
+   enum nir_serialize_debug_info_flags flags = 0;
+   if (debug_info->filename)
+      flags |= NIR_SERIALIZE_FILENAME;
+   if (debug_info->variable_name)
+      flags |= NIR_SERIALIZE_VARIABLE_NAME;
+   blob_write_uint8(ctx->blob, flags);
+
+   if (debug_info->filename)
+      blob_write_string(ctx->blob, debug_info->filename);
+   if (debug_info->variable_name)
+      blob_write_string(ctx->blob, debug_info->variable_name);
 }
 
-static nir_debug_info_instr *
-read_debug_info(read_ctx *ctx, union packed_instr header)
+static void
+read_debug_info(read_ctx *ctx, nir_instr_debug_info *debug_info)
 {
-   nir_debug_info_type type = header.debug_info.type;
+   memset(debug_info, 0, sizeof(*debug_info));
 
-   switch (type) {
-   case nir_debug_info_src_loc: {
-      nir_debug_info_instr *di = nir_debug_info_instr_create(ctx->nir, type, 0);
-      di->src_loc.line = blob_read_uint32(ctx->blob);
-      di->src_loc.column = blob_read_uint32(ctx->blob);
-      di->src_loc.spirv_offset = blob_read_uint32(ctx->blob);
-      di->src_loc.source = blob_read_uint8(ctx->blob);
-      if (di->src_loc.line)
-         read_src(ctx, &di->src_loc.filename);
-      return di;
-   }
-   case nir_debug_info_string: {
-      nir_debug_info_instr *di =
-         nir_debug_info_instr_create(ctx->nir, type, header.debug_info.string_length);
-      read_def(ctx, &di->def, &di->instr, header);
-      memcpy(di->string, blob_read_bytes(ctx->blob, di->string_length), di->string_length);
-      return di;
-   }
+   debug_info->line = blob_read_uint32(ctx->blob);
+   debug_info->column = blob_read_uint32(ctx->blob);
+   debug_info->spirv_offset = blob_read_uint32(ctx->blob);
+
+   debug_info->nir_line = blob_read_uint32(ctx->blob);
+
+   enum nir_serialize_debug_info_flags flags = blob_read_uint8(ctx->blob);
+
+   if (flags & NIR_SERIALIZE_FILENAME) {
+      const char *filename = blob_read_string(ctx->blob);
+
+      struct hash_entry *entry = _mesa_hash_table_search(ctx->strings, filename);
+      if (entry) {
+         debug_info->filename = entry->data;
+      } else {
+         debug_info->filename = ralloc_strdup(ctx->nir, filename);
+         _mesa_hash_table_insert(ctx->strings, filename, debug_info->filename);
+      }
    }
 
-   unreachable("Unimplemented nir_debug_info_type");
+   if (flags & NIR_SERIALIZE_VARIABLE_NAME) {
+      const char *variable_name = blob_read_string(ctx->blob);
+
+      struct hash_entry *entry = _mesa_hash_table_search(ctx->strings, variable_name);
+      if (entry) {
+         debug_info->variable_name = entry->data;
+      } else {
+         debug_info->variable_name = ralloc_strdup(ctx->nir, variable_name);
+         _mesa_hash_table_insert(ctx->strings, variable_name, debug_info->variable_name);
+      }
+   }
 }
 
 static void
@@ -1664,6 +1668,9 @@ write_instr(write_ctx *ctx, const nir_instr *instr)
 {
    /* We have only 4 bits for the instruction type. */
    assert(instr->type < 16);
+
+   if (unlikely(ctx->debug_info))
+      write_debug_info(ctx, instr);
 
    switch (instr->type) {
    case nir_instr_type_alu:
@@ -1694,9 +1701,6 @@ write_instr(write_ctx *ctx, const nir_instr *instr)
       blob_write_uint32(ctx->blob, instr->type);
       write_call(ctx, nir_instr_as_call(instr));
       break;
-   case nir_instr_type_debug_info:
-      write_debug_info(ctx, nir_instr_as_debug_info(instr));
-      break;
    case nir_instr_type_parallel_copy:
       unreachable("Cannot write parallel copies");
    default:
@@ -1708,6 +1712,10 @@ write_instr(write_ctx *ctx, const nir_instr *instr)
 static unsigned
 read_instr(read_ctx *ctx, nir_block *block)
 {
+   nir_instr_debug_info debug_info;
+   if (unlikely(ctx->nir->has_debug_info))
+      read_debug_info(ctx, &debug_info);
+
    STATIC_ASSERT(sizeof(union packed_instr) == 4);
    union packed_instr header;
    header.u32 = blob_read_uint32(ctx->blob);
@@ -1747,13 +1755,15 @@ read_instr(read_ctx *ctx, nir_block *block)
    case nir_instr_type_call:
       instr = &read_call(ctx)->instr;
       break;
-   case nir_instr_type_debug_info:
-      instr = &read_debug_info(ctx, header)->instr;
-      break;
    case nir_instr_type_parallel_copy:
       unreachable("Cannot read parallel copies");
    default:
       unreachable("bad instr type");
+   }
+
+   if (unlikely(ctx->nir->has_debug_info)) {
+      nir_instr_debug_info *dst = nir_instr_get_debug_info(instr);
+      memcpy(dst, &debug_info, offsetof(nir_instr_debug_info, instr));
    }
 
    nir_instr_insert_after_block(block, instr);
@@ -1764,7 +1774,6 @@ static void
 write_block(write_ctx *ctx, const nir_block *block)
 {
    write_add_object(ctx, block);
-   blob_write_uint8(ctx->blob, block->divergent);
    blob_write_uint32(ctx->blob, exec_list_length(&block->instr_list));
 
    ctx->last_instr_type = ~0;
@@ -1787,7 +1796,6 @@ read_block(read_ctx *ctx, struct exec_list *cf_list)
       exec_node_data(nir_block, exec_list_get_tail(cf_list), cf_node.node);
 
    read_add_object(ctx, block);
-   block->divergent = blob_read_uint8(ctx->blob);
    unsigned num_instrs = blob_read_uint32(ctx->blob);
    for (unsigned i = 0; i < num_instrs;) {
       i += read_instr(ctx, block);
@@ -1828,8 +1836,6 @@ static void
 write_loop(write_ctx *ctx, nir_loop *loop)
 {
    blob_write_uint8(ctx->blob, loop->control);
-   blob_write_uint8(ctx->blob, loop->divergent_continue);
-   blob_write_uint8(ctx->blob, loop->divergent_break);
    bool has_continue_construct = nir_loop_has_continue_construct(loop);
    blob_write_uint8(ctx->blob, has_continue_construct);
 
@@ -1847,8 +1853,6 @@ read_loop(read_ctx *ctx, struct exec_list *cf_list)
    nir_cf_node_insert_end(cf_list, &loop->cf_node);
 
    loop->control = blob_read_uint8(ctx->blob);
-   loop->divergent_continue = blob_read_uint8(ctx->blob);
-   loop->divergent_break = blob_read_uint8(ctx->blob);
    bool has_continue_construct = blob_read_uint8(ctx->blob);
 
    read_cf_list(ctx, &loop->body);
@@ -2023,7 +2027,7 @@ write_function(write_ctx *ctx, const nir_function *fxn)
     */
 }
 
-static void
+static nir_function *
 read_function(read_ctx *ctx)
 {
    uint32_t flags = blob_read_uint32(ctx->blob);
@@ -2073,6 +2077,7 @@ read_function(read_ctx *ctx)
    fxn->dont_inline = flags & 0x20;
    fxn->is_subroutine = flags & 0x40;
    fxn->is_tmp_globals_wrapper = flags & 0x80;
+   return fxn;
 }
 
 static void
@@ -2101,6 +2106,33 @@ read_xfb_info(read_ctx *ctx)
    return xfb;
 }
 
+enum nir_serialize_shader_flags {
+   NIR_SERIALIZE_SHADER_NAME = 1 << 0,
+   NIR_SERIALIZE_SHADER_LABEL = 1 << 1,
+   NIR_SERIALIZE_DEBUG_INFO = 1 << 2,
+};
+
+void
+nir_serialize_function(struct blob *blob, const nir_function *fxn)
+{
+   write_ctx ctx = { 0 };
+   ctx.remap_table = _mesa_pointer_hash_table_create(NULL);
+   ctx.blob = blob;
+   ctx.nir = fxn->shader;
+   ctx.strip = true;
+   util_dynarray_init(&ctx.phi_fixups, NULL);
+
+   size_t idx_size_offset = blob_reserve_uint32(blob);
+
+   write_function(&ctx, fxn);
+   write_function_impl(&ctx, fxn->impl);
+
+   blob_overwrite_uint32(blob, idx_size_offset, ctx.next_idx);
+
+   _mesa_hash_table_destroy(ctx.remap_table, NULL);
+   util_dynarray_fini(&ctx.phi_fixups);
+}
+
 /**
  * Serialize NIR into a binary blob.
  *
@@ -2116,17 +2148,22 @@ nir_serialize(struct blob *blob, const nir_shader *nir, bool strip)
    ctx.blob = blob;
    ctx.nir = nir;
    ctx.strip = strip;
+   ctx.debug_info = nir->has_debug_info && !strip;
    util_dynarray_init(&ctx.phi_fixups, NULL);
 
    size_t idx_size_offset = blob_reserve_uint32(blob);
 
    struct shader_info info = nir->info;
-   uint32_t strings = 0;
+
+   enum nir_serialize_shader_flags flags = 0;
    if (!strip && info.name)
-      strings |= 0x1;
+      flags |= NIR_SERIALIZE_SHADER_NAME;
    if (!strip && info.label)
-      strings |= 0x2;
-   blob_write_uint32(blob, strings);
+      flags |= NIR_SERIALIZE_SHADER_LABEL;
+   if (ctx.debug_info)
+      flags |= NIR_SERIALIZE_DEBUG_INFO;
+   blob_write_uint32(blob, flags);
+
    if (!strip && info.name)
       blob_write_string(blob, info.name);
    if (!strip && info.label)
@@ -2176,14 +2213,18 @@ nir_deserialize(void *mem_ctx,
    ctx.idx_table_len = blob_read_uint32(blob);
    ctx.idx_table = calloc(ctx.idx_table_len, sizeof(uintptr_t));
 
-   uint32_t strings = blob_read_uint32(blob);
-   char *name = (strings & 0x1) ? blob_read_string(blob) : NULL;
-   char *label = (strings & 0x2) ? blob_read_string(blob) : NULL;
+   enum nir_serialize_shader_flags flags = blob_read_uint32(blob);
+   char *name = (flags & NIR_SERIALIZE_SHADER_NAME) ? blob_read_string(blob) : NULL;
+   char *label = (flags & NIR_SERIALIZE_SHADER_LABEL) ? blob_read_string(blob) : NULL;
 
    struct shader_info info;
    blob_copy_bytes(blob, (uint8_t *)&info, sizeof(info));
 
    ctx.nir = nir_shader_create(mem_ctx, info.stage, options, NULL);
+
+   ctx.nir->has_debug_info = !!(flags & NIR_SERIALIZE_DEBUG_INFO);
+   if (ctx.nir->has_debug_info)
+      ctx.strings = _mesa_hash_table_create(NULL, _mesa_hash_string, _mesa_key_string_equal);
 
    info.name = name ? ralloc_strdup(ctx.nir, name) : NULL;
    info.label = label ? ralloc_strdup(ctx.nir, label) : NULL;
@@ -2223,10 +2264,32 @@ nir_deserialize(void *mem_ctx,
    }
 
    free(ctx.idx_table);
+   _mesa_hash_table_destroy(ctx.strings, NULL);
 
    nir_validate_shader(ctx.nir, "after deserialize");
 
    return ctx.nir;
+}
+
+nir_function *
+nir_deserialize_function(void *mem_ctx,
+                         const struct nir_shader_compiler_options *options,
+                         struct blob_reader *blob)
+{
+   read_ctx ctx = { 0 };
+   ctx.blob = blob;
+   list_inithead(&ctx.phi_srcs);
+   ctx.idx_table_len = blob_read_uint32(blob);
+   ctx.idx_table = calloc(ctx.idx_table_len, sizeof(uintptr_t));
+
+   ctx.nir = nir_shader_create(mem_ctx, 0 /* stage */, options, NULL);
+
+   nir_function *fxn = read_function(&ctx);
+   nir_function_set_impl(fxn, read_function_impl(&ctx));
+
+   free(ctx.idx_table);
+   nir_validate_shader(ctx.nir, "after deserialize");
+   return fxn;
 }
 
 void

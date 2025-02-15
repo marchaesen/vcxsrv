@@ -266,6 +266,7 @@ struct tu_vs_params {
    uint32_t vertex_offset;
    uint32_t first_instance;
    uint32_t draw_id;
+   bool empty;
 };
 
 struct tu_tess_params {
@@ -320,6 +321,8 @@ struct tu_render_pass_state
 
    const char *lrz_disable_reason;
    uint32_t lrz_disabled_at_draw;
+
+   const char *gmem_disable_reason;
 };
 
 /* These are the states of the suspend/resume state machine. In addition to
@@ -744,7 +747,7 @@ typedef void (*tu_fdm_bin_apply_t)(struct tu_cmd_buffer *cmd,
                                    void *data,
                                    VkRect2D bin,
                                    unsigned views,
-                                   VkExtent2D *frag_areas);
+                                   const VkExtent2D *frag_areas);
 
 struct tu_fdm_bin_patchpoint {
    uint64_t iova;

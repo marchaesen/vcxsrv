@@ -306,6 +306,14 @@ struct pipe_shader_state
       struct nir_shader *nir;
    } ir;
    struct pipe_stream_output_info stream_output;
+
+   /* If the caller sets report_compile_error=true, the driver can fail
+    * compilation and should allocate a string with the error message and
+    * store it in the pointer below. The caller is responsible for reading
+    * and freeing the error message.
+    */
+   bool report_compile_error;
+   char *error_message;
 };
 
 static inline void
@@ -478,6 +486,12 @@ struct pipe_surface
    union pipe_surface_desc u;
 };
 
+struct pipe_tex2d_from_buf {
+   unsigned offset;  /**< offset in pixels */
+   uint16_t row_stride; /**< size of the image row_stride in pixels */
+   uint16_t width;      /**< width of image provided by application */
+   uint16_t height;     /**< height of image provided by application */
+};
 
 /**
  * A view into a texture that can be bound to a shader stage.
@@ -508,12 +522,7 @@ struct pipe_sampler_view
          unsigned offset;   /**< offset in bytes */
          unsigned size;     /**< size of the readable sub-range in bytes */
       } buf;
-      struct {
-         unsigned offset;  /**< offset in pixels */
-         uint16_t row_stride; /**< size of the image row_stride in pixels */
-         uint16_t width;      /**< width of image provided by application */
-         uint16_t height;     /**< height of image provided by application */
-      } tex2d_from_buf;      /**< used in cl extension cl_khr_image2d_from_buffer */
+      struct pipe_tex2d_from_buf tex2d_from_buf; /**< used in cl extension cl_khr_image2d_from_buffer */
    } u;
 };
 
@@ -544,12 +553,7 @@ struct pipe_image_view
          unsigned offset;   /**< offset in bytes */
          unsigned size;     /**< size of the accessible sub-range in bytes */
       } buf;
-      struct {
-         unsigned offset;   /**< offset in pixels */
-         uint16_t row_stride;     /**< size of the image row_stride in pixels */
-         uint16_t width;     /**< width of image provided by application */
-         uint16_t height;     /**< height of image provided by application */
-      } tex2d_from_buf;      /**< used in cl extension cl_khr_image2d_from_buffer */
+      struct pipe_tex2d_from_buf tex2d_from_buf; /**< used in cl extension cl_khr_image2d_from_buffer */
    } u;
 };
 

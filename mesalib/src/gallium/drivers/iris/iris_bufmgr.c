@@ -2574,6 +2574,14 @@ iris_bufmgr_get_for_fd(int fd, bool bo_reuse)
    if (devinfo.ver < 8 || devinfo.platform == INTEL_PLATFORM_CHV)
       return NULL;
 
+#ifndef INTEL_USE_ELK
+   if (devinfo.ver < 9) {
+      WARN_ONCE(devinfo.ver == 8,
+                "ERROR: Iris was compiled without support for Gfx version 8.\n");
+      return NULL;
+   }
+#endif
+
    bufmgr = iris_bufmgr_create(&devinfo, fd, bo_reuse);
    if (bufmgr)
       list_addtail(&bufmgr->link, &global_bufmgr_list);

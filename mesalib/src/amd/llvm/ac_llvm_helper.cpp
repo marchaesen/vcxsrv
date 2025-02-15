@@ -270,12 +270,7 @@ struct ac_midend_optimizer
       /* The following set of passes run on an individual function/loop first
        * before proceeding to the next.
        */
-#if LLVM_VERSION_MAJOR >= 16
       function_pm.addPass(SROAPass(SROAOptions::ModifyCFG));
-#else
-      // Old version of the code
-      function_pm.addPass(SROAPass());
-#endif
 
       loop_pm.addPass(LICMPass(LICMOptions()));
       function_pm.addPass(createFunctionToLoopPassAdaptor(std::move(loop_pm), true));
@@ -318,11 +313,7 @@ struct ac_backend_optimizer
    {
       /* add backend passes */
       if (arg_target_machine->addPassesToEmitFile(backend_pass_manager, ostream, nullptr,
-#if LLVM_VERSION_MAJOR >= 18
                                              CodeGenFileType::ObjectFile)) {
-#else
-                                             CGFT_ObjectFile)) {
-#endif
          fprintf(stderr, "amd: TargetMachine can't emit a file of this type!\n");
       }
    }

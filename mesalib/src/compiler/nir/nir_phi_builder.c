@@ -22,7 +22,8 @@
  */
 
 #include "nir_phi_builder.h"
-#include "nir/nir_vla.h"
+#include "nir_vla.h"
+#include "nir.h"
 
 struct nir_phi_builder {
    nir_shader *shader;

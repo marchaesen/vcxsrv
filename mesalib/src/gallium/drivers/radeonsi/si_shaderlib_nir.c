@@ -5,8 +5,8 @@
  */
 
 #include "gallium/auxiliary/nir/pipe_nir.h"
-#define AC_SURFACE_INCLUDE_NIR
 #include "ac_surface.h"
+#include "ac_nir_surface.h"
 #include "si_pipe.h"
 #include "si_query.h"
 #include "aco_interface.h"
@@ -132,7 +132,7 @@ void *si_create_clear_buffer_rmw_cs(struct si_context *sctx)
 
    /* address = address * 16; (byte offset, loading one vec4 per thread) */
    address = nir_ishl_imm(&b, address, 4);
-   
+
    nir_def *zero = nir_imm_int(&b, 0);
    nir_def *data = nir_load_ssbo(&b, 4, 32, zero, address, .align_mul = 4);
 

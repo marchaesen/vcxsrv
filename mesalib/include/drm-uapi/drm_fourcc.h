@@ -421,6 +421,7 @@ extern "C" {
 #define DRM_FORMAT_MOD_VENDOR_ARM     0x08
 #define DRM_FORMAT_MOD_VENDOR_ALLWINNER 0x09
 #define DRM_FORMAT_MOD_VENDOR_AMLOGIC 0x0a
+#define DRM_FORMAT_MOD_VENDOR_MTK     0x0b
 
 /* add more to the end as needed */
 
@@ -703,6 +704,31 @@ extern "C" {
 #define I915_FORMAT_MOD_4_TILED_MTL_RC_CCS_CC fourcc_mod_code(INTEL, 15)
 
 /*
+ * Intel Color Control Surfaces (CCS) for graphics ver. 20 unified compression
+ * on integrated graphics
+ *
+ * The main surface is Tile 4 and at plane index 0. For semi-planar formats
+ * like NV12, the Y and UV planes are Tile 4 and are located at plane indices
+ * 0 and 1, respectively. The CCS for all planes are stored outside of the
+ * GEM object in a reserved memory area dedicated for the storage of the
+ * CCS data for all compressible GEM objects.
+ */
+#define I915_FORMAT_MOD_4_TILED_LNL_CCS fourcc_mod_code(INTEL, 16)
+
+/*
+ * Intel Color Control Surfaces (CCS) for graphics ver. 20 unified compression
+ * on discrete graphics
+ *
+ * The main surface is Tile 4 and at plane index 0. For semi-planar formats
+ * like NV12, the Y and UV planes are Tile 4 and are located at plane indices
+ * 0 and 1, respectively. The CCS for all planes are stored outside of the
+ * GEM object in a reserved memory area dedicated for the storage of the
+ * CCS data for all compressible GEM objects. The GEM object must be stored in
+ * contiguous memory with a size aligned to 64KB
+ */
+#define I915_FORMAT_MOD_4_TILED_BMG_CCS fourcc_mod_code(INTEL, 17)
+
+/*
  * Tiled, NV12MT, grouped in 64 (pixels) x 32 (lines) -sized macroblocks
  *
  * Macroblocks are laid in a Z-shape, and each pixel data is following the
@@ -936,7 +962,7 @@ extern "C" {
  * which corresponds to the "generic" kind used for simple single-sample
  * uncompressed color formats on Fermi - Volta GPUs.
  */
-static __inline__ __u64
+static inline __u64
 drm_fourcc_canonicalize_nvidia_format_mod(__u64 modifier)
 {
 	if (!(modifier & 0x10) || (modifier & (0xff << 12)))
@@ -1428,6 +1454,46 @@ drm_fourcc_canonicalize_nvidia_format_mod(__u64 modifier)
  */
 #define AMLOGIC_FBC_OPTION_MEM_SAVING		(1ULL << 0)
 
+/* MediaTek modifiers
+ * Bits  Parameter                Notes
+ * ----- ------------------------ ---------------------------------------------
+ *   7: 0 TILE LAYOUT              Values are MTK_FMT_MOD_TILE_*
+ *  15: 8 COMPRESSION              Values are MTK_FMT_MOD_COMPRESS_*
+ *  23:16 10 BIT LAYOUT            Values are MTK_FMT_MOD_10BIT_LAYOUT_*
+ *
+ */
+
+#define DRM_FORMAT_MOD_MTK(__flags)		fourcc_mod_code(MTK, __flags)
+
+/*
+ * MediaTek Tiled Modifier
+ * The lowest 8 bits of the modifier is used to specify the tiling
+ * layout. Only the 16L_32S tiling is used for now, but we define an
+ * "untiled" version and leave room for future expansion.
+ */
+#define MTK_FMT_MOD_TILE_MASK     0xf
+#define MTK_FMT_MOD_TILE_NONE     0x0
+#define MTK_FMT_MOD_TILE_16L32S   0x1
+
+/*
+ * Bits 8-15 specify compression options
+ */
+#define MTK_FMT_MOD_COMPRESS_MASK (0xf << 8)
+#define MTK_FMT_MOD_COMPRESS_NONE (0x0 << 8)
+#define MTK_FMT_MOD_COMPRESS_V1   (0x1 << 8)
+
+/*
+ * Bits 16-23 specify how the bits of 10 bit formats are
+ * stored out in memory
+ */
+#define MTK_FMT_MOD_10BIT_LAYOUT_MASK      (0xf << 16)
+#define MTK_FMT_MOD_10BIT_LAYOUT_PACKED    (0x0 << 16)
+#define MTK_FMT_MOD_10BIT_LAYOUT_LSBTILED  (0x1 << 16)
+#define MTK_FMT_MOD_10BIT_LAYOUT_LSBRASTER (0x2 << 16)
+
+/* alias for the most common tiling format */
+#define DRM_FORMAT_MOD_MTK_16L_32S_TILE  DRM_FORMAT_MOD_MTK(MTK_FMT_MOD_TILE_16L32S)
+
 /*
  * AMD modifiers
  *
@@ -1491,6 +1557,7 @@ drm_fourcc_canonicalize_nvidia_format_mod(__u64 modifier)
  * 64K_D_2D on GFX12 is identical to 64K_D on GFX11.
  */
 #define AMD_FMT_MOD_TILE_GFX9_64K_D 10
+#define AMD_FMT_MOD_TILE_GFX9_4K_D_X 22
 #define AMD_FMT_MOD_TILE_GFX9_64K_S_X 25
 #define AMD_FMT_MOD_TILE_GFX9_64K_D_X 26
 #define AMD_FMT_MOD_TILE_GFX9_64K_R_X 27

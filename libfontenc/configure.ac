@@ -50,11 +50,16 @@ m4_ifndef([XORG_FONT_MACROS_VERSION],
 XORG_FONT_MACROS_VERSION(1.1)
 XORG_FONTSUBDIR([ENCODINGSDIR], [encodingsdir], [encodings])
 
-# zlib
-AC_CHECK_HEADER([zlib.h], [],
-                AC_MSG_FAILURE([zlib.h is required to compile libfontenc]))
-AC_CHECK_LIB(z, gzclose, [],
-             AC_MSG_FAILURE([zlib is required to compile libfontenc]))
+# zlib - try pkg-config first, then fallback to old method for
+# systems like darwin without a zlib.pc file
+PKG_CHECK_MODULES(ZLIB, [zlib], [Z_REQUIRES=zlib], [Z_REQUIRES=""])
+if test "x$Z_REQUIRES" = "x"; then
+	AC_CHECK_HEADER([zlib.h], [],
+		AC_MSG_FAILURE([zlib.h is required to compile libfontenc]))
+	AC_CHECK_LIB(z, gzclose, [ZLIB_LIBS=-lz],
+		AC_MSG_ERROR([zlib is required to compile libfontenc]))
+fi
+AC_SUBST(Z_REQUIRES)
 
 # Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES(FONTENC, xproto)

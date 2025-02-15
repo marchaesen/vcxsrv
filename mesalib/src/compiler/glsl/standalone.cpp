@@ -41,6 +41,7 @@
 #include "linker_util.h"
 #include "main/mtypes.h"
 #include "program/program.h"
+#include "nir_shader_compiler_options.h"
 
 static const struct standalone_options *options;
 

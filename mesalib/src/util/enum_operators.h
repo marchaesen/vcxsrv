@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#ifdef __cplusplus
+#if defined(__cplusplus) && !defined(__OPENCL_VERSION__)
 
 #include "macros.h"
 #include <type_traits>

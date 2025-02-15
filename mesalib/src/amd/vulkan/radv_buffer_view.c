@@ -62,13 +62,13 @@ radv_buffer_view_init(struct radv_buffer_view *view, struct radv_device *device,
                       const VkBufferViewCreateInfo *pCreateInfo)
 {
    VK_FROM_HANDLE(radv_buffer, buffer, pCreateInfo->buffer);
-   uint64_t va = radv_buffer_get_va(buffer->bo) + buffer->offset;
 
    vk_buffer_view_init(&device->vk, &view->vk, pCreateInfo);
 
    view->bo = buffer->bo;
 
-   radv_make_texel_buffer_descriptor(device, va, view->vk.format, view->vk.offset, view->vk.range, view->state);
+   radv_make_texel_buffer_descriptor(device, buffer->addr, view->vk.format, view->vk.offset, view->vk.range,
+                                     view->state);
 }
 
 void

@@ -471,10 +471,6 @@ spec@arb_sample_shading@samplemask 8@noms partition,Fail
 spec@arb_sample_shading@samplemask 8@sample mask_in_one,Fail
 spec@arb_shader_image_load_store@early-z,Fail
 spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
-spec@arb_shader_storage_buffer_object@max-ssbo-size@fs,Crash
-spec@arb_shader_storage_buffer_object@max-ssbo-size@fsexceed,Crash
-spec@arb_shader_storage_buffer_object@max-ssbo-size@vs,Crash
-spec@arb_shader_storage_buffer_object@max-ssbo-size@vsexceed,Crash
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 spec@arb_texture_buffer_object@formats (fs- arb),Crash
 spec@arb_texture_buffer_object@formats (fs- arb)@GL_ALPHA16,Fail
@@ -690,3 +686,6 @@ dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min,Fail
 spec@!opengl 1.1@depthstencil-default_fb-blit samples=2,Fail
 spec@arb_sample_shading@samplemask 6,Fail
 spec@ext_framebuffer_multisample@interpolation 2 centroid-deriv-disabled,Fail
+
+# New crash with Xe KMD
+spec@!opengl 1.1@streaming-texture-leak,Crash

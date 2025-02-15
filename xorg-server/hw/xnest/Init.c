@@ -11,8 +11,7 @@ the suitability of this software for any purpose.  It is provided "as
 is" without express or implied warranty.
 
 */
-
-#include <xnest-config.h>
+#include <dix-config.h>
 
 #include <stddef.h>
 #include <X11/X.h>
@@ -22,6 +21,7 @@ is" without express or implied warranty.
 #include <X11/fonts/libxfont2.h>
 
 #include "dix/screenint_priv.h"
+#include "mi/mi_priv.h"
 #include "os/ddx_priv.h"
 #include "os/osdep.h"
 
@@ -31,7 +31,6 @@ is" without express or implied warranty.
 #include "scrnintstr.h"
 #include "windowstr.h"
 #include "servermd.h"
-#include "mi.h"
 #include "dixfontstr.h"
 #include "extinit_priv.h"
 #include "Xnest.h"
@@ -53,11 +52,15 @@ is" without express or implied warranty.
 
 Bool xnestDoFullGeneration = TRUE;
 
+/* Xnest doesn't support GLX yet, so we don't link it, but still have
+   satisfy DIX's symbol requirements */
 #ifdef GLXEXT
 void
 GlxExtensionInit(void)
 {
 }
+
+Bool noGlxExtension = FALSE;
 #endif
 
 void

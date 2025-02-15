@@ -16,6 +16,7 @@
 #include "panvk_cmd_desc_state.h"
 #include "panvk_device.h"
 #include "panvk_entrypoints.h"
+#include "panvk_macros.h"
 #include "panvk_meta.h"
 #include "panvk_physical_device.h"
 
@@ -25,6 +26,36 @@
 #include "pan_props.h"
 
 #include <vulkan/vulkan_core.h>
+
+uint64_t
+panvk_per_arch(cmd_dispatch_prepare_tls)(struct panvk_cmd_buffer *cmdbuf,
+                                         const struct panvk_shader *shader,
+                                         const struct pan_compute_dim *dim,
+                                         bool indirect)
+{
+   struct panvk_batch *batch = cmdbuf->cur_batch;
+
+   assert(batch);
+   assert(!indirect && "Indirect not supported yet!");
+
+   struct panvk_physical_device *phys_dev =
+      to_panvk_physical_device(cmdbuf->vk.base.device->physical);
+
+   panvk_per_arch(cmd_alloc_tls_desc)(cmdbuf, false);
+
+   batch->tlsinfo.tls.size = shader->info.tls_size;
+   batch->tlsinfo.wls.size = shader->info.wls_size;
+   if (batch->tlsinfo.wls.size) {
+      unsigned core_id_range;
+
+      panfrost_query_core_count(&phys_dev->kmod.props, &core_id_range);
+      batch->tlsinfo.wls.instances = pan_wls_instances(dim);
+      batch->wls_total_size = pan_wls_adjust_size(batch->tlsinfo.wls.size) *
+                              batch->tlsinfo.wls.instances * core_id_range;
+   }
+
+   return batch->tls.gpu;
+}
 
 VKAPI_ATTR void VKAPI_CALL
 panvk_per_arch(CmdDispatchBase)(VkCommandBuffer commandBuffer,
@@ -47,9 +78,6 @@ panvk_per_arch(CmdDispatchBase)(VkCommandBuffer commandBuffer,
       .wg_base = {baseGroupX, baseGroupY, baseGroupZ},
       .direct.wg_count = {groupCountX, groupCountY, groupCountZ},
    };
-   struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
-   struct panvk_physical_device *phys_dev =
-      to_panvk_physical_device(dev->vk.physical);
    struct pan_compute_dim wg_count = {groupCountX, groupCountY, groupCountZ};
 
    panvk_per_arch(cmd_close_batch)(cmdbuf);
@@ -60,8 +88,8 @@ panvk_per_arch(CmdDispatchBase)(VkCommandBuffer commandBuffer,
    struct panvk_shader_desc_state *cs_desc_state =
       &cmdbuf->state.compute.cs.desc;
 
-   panvk_per_arch(cmd_alloc_tls_desc)(cmdbuf, false);
-   uint64_t tsd = batch->tls.gpu;
+   uint64_t tsd = panvk_per_arch(cmd_dispatch_prepare_tls)(
+      cmdbuf, shader, &wg_count, false);
 
    result = panvk_per_arch(cmd_prepare_push_descs)(
       cmdbuf, desc_state, shader->desc_info.used_set_mask);
@@ -137,17 +165,6 @@ panvk_per_arch(CmdDispatchBase)(VkCommandBuffer commandBuffer,
 
    pan_jc_add_job(&batch->vtc_jc, MALI_JOB_TYPE_COMPUTE, false, false, 0,
                   copy_desc_dep, &job, false);
-
-   batch->tlsinfo.tls.size = shader->info.tls_size;
-   batch->tlsinfo.wls.size = shader->info.wls_size;
-   if (batch->tlsinfo.wls.size) {
-      unsigned core_id_range;
-
-      panfrost_query_core_count(&phys_dev->kmod.props, &core_id_range);
-      batch->tlsinfo.wls.instances = pan_wls_instances(&wg_count);
-      batch->wls_total_size = pan_wls_adjust_size(batch->tlsinfo.wls.size) *
-                              batch->tlsinfo.wls.instances * core_id_range;
-   }
 
    panvk_per_arch(cmd_close_batch)(cmdbuf);
    clear_dirty_after_dispatch(cmdbuf);

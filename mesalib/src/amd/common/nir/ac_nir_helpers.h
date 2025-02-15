@@ -11,7 +11,7 @@
 #include "ac_hw_stage.h"
 #include "ac_shader_args.h"
 #include "ac_shader_util.h"
-#include "nir.h"
+#include "nir_defines.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,6 +73,11 @@ typedef struct
    ac_nir_prerast_per_output_info infos_16bit_hi[16];
 } ac_nir_prerast_out;
 
+typedef struct {
+   nir_def *num_repacked_invocations;
+   nir_def *repacked_invocation_index;
+} ac_nir_wg_repack_result;
+
 /* Maps I/O semantics to the actual location used by the lowering pass. */
 typedef unsigned (*ac_nir_map_io_driver_location)(unsigned semantic);
 
@@ -125,7 +130,7 @@ ac_nir_store_parameters_to_attr_ring(nir_builder *b,
                                      const uint64_t outputs_written,
                                      const uint16_t outputs_written_16bit,
                                      ac_nir_prerast_out *out,
-                                     nir_def *export_tid, nir_def *num_export_threads);
+                                     nir_def *num_export_threads_in_wave);
 
 nir_def *
 ac_nir_calc_io_off(nir_builder *b,
@@ -181,6 +186,45 @@ ac_nir_pack_ngg_prim_exp_arg(nir_builder *b, unsigned num_vertices_per_primitive
 
 void
 ac_nir_clamp_vertex_color_outputs(nir_builder *b, ac_nir_prerast_out *out);
+
+void
+ac_nir_ngg_alloc_vertices_and_primitives(nir_builder *b,
+                                         nir_def *num_vtx,
+                                         nir_def *num_prim,
+                                         bool fully_culled_workaround);
+
+void
+ac_nir_create_output_phis(nir_builder *b,
+                          const uint64_t outputs_written,
+                          const uint64_t outputs_written_16bit,
+                          ac_nir_prerast_out *out);
+
+void
+ac_nir_ngg_build_streamout_buffer_info(nir_builder *b,
+                                       nir_xfb_info *info,
+                                       enum amd_gfx_level gfx_level,
+                                       bool has_xfb_prim_query,
+                                       bool use_gfx12_xfb_intrinsic,
+                                       nir_def *scratch_base,
+                                       nir_def *tid_in_tg,
+                                       nir_def *gen_prim[4],
+                                       nir_def *so_buffer_ret[4],
+                                       nir_def *buffer_offsets_ret[4],
+                                       nir_def *emit_prim_ret[4]);
+
+void
+ac_nir_ngg_build_streamout_vertex(nir_builder *b, nir_xfb_info *info,
+                                  unsigned stream, nir_def *so_buffer[4],
+                                  nir_def *buffer_offsets[4],
+                                  unsigned vertex_index, nir_def *vtx_lds_addr,
+                                  ac_nir_prerast_out *pr_out,
+                                  bool skip_primitive_id);
+
+void
+ac_nir_repack_invocations_in_workgroup(nir_builder *b, nir_def **input_bool,
+                                       ac_nir_wg_repack_result *results, const unsigned num_repacks,
+                                       nir_def *lds_addr_base, unsigned max_num_waves,
+                                       unsigned wave_size);
 
 #ifdef __cplusplus
 }

@@ -5,13 +5,13 @@
 
 // Note : the special/multimedia keys (Calc, WWW, Desktop…) have a keycode
 // <I[XX]>, found in definition file /usr/share/X11/xkb/keycodes/evdev.
-// Fn           = <I120>;
+// Fn           = <I120>; (not mappable)
 // Calc         = <I148>;
-// WWW          = <I158>;
-// CycleWindows = <I162>;
+// HomePage     = <I180>;
+// CycleWindows = <I162>; (not mappable; actually LALT + TAB)
 // Mail         = <I163>;
 // PlayPause    = <I172>;
-// Desktop      = <I243>;
+// Desktop      = <I243>; (not mappable; actually LWIN + AC03)
 
 
 xkb_geometry "tm2020" {
@@ -193,8 +193,8 @@ xkb_geometry "tm2030_shape" {
     // Key shapes: base key = 20 mm each side
     shape "NORM" { cornerRadius=1, { [18,   18] }, { [1.5, 1.5], [16.5, 14] } };
     shape "FUNC" { cornerRadius=1, { [18,   12] }, { [2.5,   0], [15.5, 10] } };
-    shape "LFSH" { cornerRadius=1, { [18, 36.5] }, { [2.5,   0], [15.5, 30] } };
-    shape "ALT1" { cornerRadius=1, { [27.5, 18] }, { [2.5,   0], [23.5, 14] } };
+    shape "LFSH" { cornerRadius=1, { [18, 36.5] }, { [2.5, 1.5], [15.5, 30] } };
+    shape "ALT1" { cornerRadius=1, { [27.5, 18] }, { [2.5, 1.5], [23.5, 14] } };
     shape "BKSP" { cornerRadius=1, { [18, 30.5] }, { [1.5, 1.5], [16.5, 29] } };
     shape "SPCE" { cornerRadius=1, { [92,   25] }, { [1.5, 1.5], [90.5, 22] } };
     shape "LED"  { cornerRadius=2, { [4,     4] } };
@@ -323,7 +323,7 @@ xkb_geometry "tm2030USB_alpha" {
         row {
             top  = 55.5;
             left = 259;
-            keys { <I158> };
+            keys { <I180> };
         };
         row {
             top  = 74;
@@ -332,7 +332,6 @@ xkb_geometry "tm2030USB_alpha" {
         };
     };
 }; // geometry tm2030USB_alpha
-
 
 xkb_geometry "tm2030USB_ctrl" {
     section "Control" {
@@ -371,8 +370,12 @@ xkb_geometry "tm2030USB_ctrl" {
             keys { <DELE>, { <BKSP>, "BKSP" }, { <RTRN>, "LFSH" } };
         };
     };
+    include "typematrix(tm2030USB_Fn)"
 }; // geometry tm2030USB_ctrl
 
+xkb_geometry "tm2030USB_Fn" {
+     text "Fn" { left = 34; top = 111.3; color = "black";  text="Fn"; };
+};
 
 xkb_geometry "tm2030PS2" {
     include "typematrix(tm2030_shape)"
@@ -614,6 +617,7 @@ xkb_geometry "tm2030USB-102" {
             keys { <DELE>, { <BKSP>, "BKSP" }, { <RTRN>, "LFSH" } };
         };
     };
+    include "typematrix(tm2030USB_Fn)"
 }; // geometry tm2030USB-102
 
 
@@ -702,7 +706,7 @@ xkb_geometry "tm2030USB-106" {
         key.shape = "NORM";
         row {
             top  = 88;
-            keys { <LCTL>, <I172>, <MENU>, <I162> };
+            keys { <LCTL>, <I172>, <MENU>, <MUHE> };
         };
         row {
             top = 106.5;
@@ -711,7 +715,7 @@ xkb_geometry "tm2030USB-106" {
         row {
             top  = 88;
             left = 166.5;
-            keys { <I243>, <HOME>, <UP>, <END>, { <RCTL>, "LFSH"}, <PGUP> };
+            keys { <HENK>, <HOME>, <UP>, <END>, { <RCTL>, "LFSH"}, <PGUP> };
         };
         row {
             top = 106.5;
@@ -730,4 +734,5 @@ xkb_geometry "tm2030USB-106" {
             keys { <DELE>, { <BKSP>, "BKSP" }, { <RTRN>, "LFSH" } };
         };
     };
+    include "typematrix(tm2030USB_Fn)"
 }; // geometry tm2030USB-106

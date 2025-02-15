@@ -11,7 +11,7 @@
 #include "ac_hw_stage.h"
 #include "ac_shader_args.h"
 #include "ac_shader_util.h"
-#include "nir.h"
+#include "nir_defines.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -142,8 +142,7 @@ ac_nir_lower_indirect_derefs(nir_shader *shader,
                              enum amd_gfx_level gfx_level);
 
 typedef struct {
-   enum radeon_family family;
-   enum amd_gfx_level gfx_level;
+   const struct radeon_info *hw_info;
 
    unsigned max_workgroup_size;
    unsigned wave_size;
@@ -184,16 +183,16 @@ ac_nir_lower_ngg_gs(nir_shader *shader, const ac_nir_lower_ngg_options *options)
 
 void
 ac_nir_lower_ngg_mesh(nir_shader *shader,
-                    enum amd_gfx_level gfx_level,
-                    uint32_t clipdist_enable_mask,
-                    const uint8_t *vs_output_param_offset,
-                    bool has_param_exports,
-                    bool *out_needs_scratch_ring,
-                    unsigned wave_size,
-                    unsigned workgroup_size,
-                    bool multiview,
-                    bool has_query,
-                    bool fast_launch_2);
+                      const struct radeon_info *hw_info,
+                      uint32_t clipdist_enable_mask,
+                      const uint8_t *vs_output_param_offset,
+                      bool has_param_exports,
+                      bool *out_needs_scratch_ring,
+                      unsigned wave_size,
+                      unsigned workgroup_size,
+                      bool multiview,
+                      bool has_query,
+                      bool fast_launch_2);
 
 void
 ac_nir_lower_task_outputs_to_mem(nir_shader *shader,
@@ -396,6 +395,9 @@ ac_nir_optimize_uniform_atomics(nir_shader *nir);
 
 unsigned
 ac_nir_lower_bit_size_callback(const nir_instr *instr, void *data);
+
+bool
+ac_nir_might_lower_bit_size(const nir_shader *shader);
 
 bool
 ac_nir_mem_vectorize_callback(unsigned align_mul, unsigned align_offset, unsigned bit_size,

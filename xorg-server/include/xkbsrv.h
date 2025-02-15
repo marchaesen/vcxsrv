@@ -818,7 +818,7 @@ extern _X_EXPORT Bool XkbDeviceApplyKeymap(DeviceIntPtr /* dst */ ,
 extern _X_EXPORT void XkbCopyControls(XkbDescPtr /* dst */ ,
                                       XkbDescPtr /* src */ );
 
-#include "xkbfile.h"
+#include "xkbstr.h"
 #include "xkbrules.h"
 
 extern _X_EXPORT unsigned int XkbDDXLoadKeymapByNames(DeviceIntPtr /* keybd */ ,

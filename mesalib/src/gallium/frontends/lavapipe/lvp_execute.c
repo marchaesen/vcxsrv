@@ -205,6 +205,11 @@ struct rendering_state {
    struct util_dynarray internal_buffers;
 
    struct lvp_pipeline *exec_graph;
+
+   struct {
+      struct lvp_shader *compute_shader;
+      uint8_t push_constants[128 * 4];
+   } saved;
 };
 
 static struct pipe_resource *
@@ -4613,15 +4618,6 @@ handle_copy_acceleration_structure_to_memory(struct vk_cmd_queue_entry *cmd, str
 }
 
 static void
-handle_build_acceleration_structures(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
-{
-   struct vk_cmd_build_acceleration_structures_khr *build = &cmd->u.build_acceleration_structures_khr;
-
-   for (uint32_t i = 0; i < build->info_count; i++)
-      lvp_build_acceleration_structure(&build->infos[i], build->pp_build_range_infos[i]);
-}
-
-static void
 handle_write_acceleration_structures_properties(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
 {
    struct vk_cmd_write_acceleration_structures_properties_khr *write = &cmd->u.write_acceleration_structures_properties_khr;
@@ -4785,6 +4781,84 @@ handle_trace_rays_indirect2(struct vk_cmd_queue_entry *cmd, struct rendering_sta
    state->pctx->launch_grid(state->pctx, &state->trace_rays_info);
 }
 
+static void
+handle_write_buffer_cp(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
+{
+   struct lvp_cmd_write_buffer_cp *write = cmd->driver_data;
+
+   finish_fence(state);
+
+   memcpy((void *)(uintptr_t)write->addr, write->data, write->size);
+}
+
+static void
+handle_dispatch_unaligned(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
+{
+   assert(cmd->u.dispatch.group_count_y == 1);
+   assert(cmd->u.dispatch.group_count_z == 1);
+
+   uint32_t last_block_size = state->dispatch_info.block[0];
+
+   state->dispatch_info.grid[0] = cmd->u.dispatch.group_count_x / last_block_size;
+   state->dispatch_info.grid[1] = 1;
+   state->dispatch_info.grid[2] = 1;
+   state->dispatch_info.grid_base[0] = 0;
+   state->dispatch_info.grid_base[1] = 0;
+   state->dispatch_info.grid_base[2] = 0;
+   state->dispatch_info.indirect = NULL;
+   state->pctx->launch_grid(state->pctx, &state->dispatch_info);
+
+   if (cmd->u.dispatch.group_count_x % last_block_size) {
+      state->dispatch_info.block[0] = cmd->u.dispatch.group_count_x % last_block_size;
+      state->dispatch_info.grid[0] = 1;
+      state->dispatch_info.grid_base[0] = cmd->u.dispatch.group_count_x / last_block_size;
+      state->pctx->launch_grid(state->pctx, &state->dispatch_info);
+      state->dispatch_info.block[0] = last_block_size;
+   }
+}
+
+static void
+handle_fill_buffer_addr(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
+{
+   struct lvp_cmd_fill_buffer_addr *fill = cmd->driver_data;
+
+   finish_fence(state);
+
+   uint32_t *dst = (void *)(uintptr_t)fill->addr;
+   for (uint32_t i = 0; i < fill->size / 4; i++) {
+      dst[i] = fill->data;
+   }
+}
+
+static void
+handle_encode_as(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
+{
+   struct lvp_cmd_encode_as *encode = cmd->driver_data;
+
+   finish_fence(state);
+
+   lvp_encode_as(encode->dst, encode->intermediate_as_addr,
+                 encode->intermediate_header_addr, encode->leaf_count,
+                 encode->geometry_type);
+}
+
+static void
+handle_save_state(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
+{
+   state->saved.compute_shader = state->shaders[MESA_SHADER_COMPUTE];
+   memcpy(state->saved.push_constants, state->push_constants, sizeof(state->push_constants));
+}
+
+static void
+handle_restore_state(struct vk_cmd_queue_entry *cmd, struct rendering_state *state)
+{
+   if (state->saved.compute_shader)
+      handle_compute_shader(state, state->saved.compute_shader);
+
+   memcpy(state->push_constants, state->saved.push_constants, sizeof(state->push_constants));
+   state->pcbuf_dirty[MESA_SHADER_COMPUTE] = true;
+}
+
 void lvp_add_enqueue_cmd_entrypoints(struct vk_device_dispatch_table *disp)
 {
    struct vk_device_dispatch_table cmd_enqueue_dispatch;
@@ -4933,7 +5007,6 @@ void lvp_add_enqueue_cmd_entrypoints(struct vk_device_dispatch_table *disp)
    ENQUEUE_CMD(CmdCopyAccelerationStructureKHR)
    ENQUEUE_CMD(CmdCopyMemoryToAccelerationStructureKHR)
    ENQUEUE_CMD(CmdCopyAccelerationStructureToMemoryKHR)
-   ENQUEUE_CMD(CmdBuildAccelerationStructuresKHR)
    ENQUEUE_CMD(CmdBuildAccelerationStructuresIndirectKHR)
    ENQUEUE_CMD(CmdWriteAccelerationStructuresPropertiesKHR)
 
@@ -4952,6 +5025,25 @@ static void lvp_execute_cmd_buffer(struct list_head *cmds,
    bool did_flush = false;
 
    LIST_FOR_EACH_ENTRY(cmd, cmds, cmd_link) {
+      if (cmd->type >= VK_CMD_TYPE_COUNT) {
+         uint32_t type = cmd->type;
+         if (type == LVP_CMD_WRITE_BUFFER_CP) {
+            handle_write_buffer_cp(cmd, state);
+         } else if (type == LVP_CMD_DISPATCH_UNALIGNED) {
+            emit_compute_state(state);
+            handle_dispatch_unaligned(cmd, state);
+         } else if (type == LVP_CMD_FILL_BUFFER_ADDR) {
+            handle_fill_buffer_addr(cmd, state);
+         } else if (type == LVP_CMD_ENCODE_AS) {
+            handle_encode_as(cmd, state);
+         } else if (type == LVP_CMD_SAVE_STATE) {
+            handle_save_state(cmd, state);
+         } else if (type == LVP_CMD_RESTORE_STATE) {
+            handle_restore_state(cmd, state);
+         }
+         continue;
+      }
+
       if (print_cmds)
          fprintf(stderr, "%s\n", vk_cmd_queue_type_names[cmd->type]);
       switch ((unsigned)cmd->type) {
@@ -5313,9 +5405,6 @@ static void lvp_execute_cmd_buffer(struct list_head *cmds,
          break;
       case VK_CMD_COPY_ACCELERATION_STRUCTURE_TO_MEMORY_KHR:
          handle_copy_acceleration_structure_to_memory(cmd, state);
-         break;
-      case VK_CMD_BUILD_ACCELERATION_STRUCTURES_KHR:
-         handle_build_acceleration_structures(cmd, state);
          break;
       case VK_CMD_BUILD_ACCELERATION_STRUCTURES_INDIRECT_KHR:
          break;

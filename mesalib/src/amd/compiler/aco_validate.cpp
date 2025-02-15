@@ -1468,6 +1468,13 @@ validate_ra(Program* program)
             assignments[def.tempId()].reg = def.physReg();
             assignments[def.tempId()].valid = true;
          }
+
+         int op_fixed_to_def = get_op_fixed_to_def(instr.get());
+         if (op_fixed_to_def != -1 &&
+             instr->definitions[0].physReg() != instr->operands[op_fixed_to_def].physReg()) {
+            err |= ra_fail(program, loc, Location(),
+                           "Operand %d must have the same register as definition", op_fixed_to_def);
+         }
       }
    }
 

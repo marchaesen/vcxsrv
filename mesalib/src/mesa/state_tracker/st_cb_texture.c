@@ -3285,6 +3285,9 @@ st_finalize_texture(struct gl_context *ctx,
    if (!tObj->pt && !tObj->NullTexture) {
       GLuint bindings = default_bindings(st, firstImageFormat);
 
+      if (tObj->IsProtected) 
+         bindings |= PIPE_BIND_PROTECTED;
+
       tObj->pt = st_texture_create(st,
                                     gl_target_to_pipe(tObj->Target),
                                     firstImageFormat,
@@ -3449,6 +3452,9 @@ st_texture_storage(struct gl_context *ctx,
       memObj->TextureTiling = texObj->TextureTiling;
       bindings |= PIPE_BIND_SHARED;
    }
+
+   if (texObj->IsProtected)
+      bindings |= PIPE_BIND_PROTECTED;
 
    if (num_samples > 0) {
       /* Find msaa sample count which is actually supported.  For example,

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "nir_tcs_info.h"
 #include "nir.h"
 #include <math.h>
 

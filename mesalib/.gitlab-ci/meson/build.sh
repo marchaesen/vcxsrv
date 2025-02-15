@@ -120,7 +120,7 @@ case $CI_PIPELINE_SOURCE in
 	      # /tmp/ccWlDCPV.s:15250880: Error: operand out of range (0xfffffffffdd4e688 is not between 0xfffffffffe000000 and 0x1fffffc)
 	      LTO=false
       # enable one by one for now
-      elif [ "$CI_JOB_NAME" == "fedora-release" ] || [ "$CI_JOB_NAME" == "debian-build-testing" ]; then
+      elif [ "$CI_JOB_NAME" == "fedora-release" ]; then
 	      LTO=true
       else
 	      LTO=false

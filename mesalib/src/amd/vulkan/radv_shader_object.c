@@ -13,6 +13,7 @@
 #include "radv_pipeline_compute.h"
 #include "radv_pipeline_graphics.h"
 #include "radv_shader_object.h"
+#include "util/blob.h"
 
 static void
 radv_shader_object_destroy_variant(struct radv_device *device, VkShaderCodeTypeEXT code_type,

@@ -220,13 +220,11 @@ driver libraries into the source tree of Android and patch the binary names.
    mkdir prebuilts/mesa/x86_64
    mkdir prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_64}/lib/libEGL.so prebuilts/mesa/x86_64/
-   cp ${INSTALL_PREFIX_64}/lib/libglapi.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libgallium_dri.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libGLESv1_CM.so  prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libGLESv2.so  prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libvulkan_lvp.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_32}/lib/libEGL.so prebuilts/mesa/x86
-   cp ${INSTALL_PREFIX_32}/lib/libglapi.so prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_32}/lib/libgallium_dri.so prebuilts/mesa/x86/
    cp ${INSTALL_PREFIX_32}/lib/libGLESv1_CM.so  prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_32}/lib/libGLESv2.so  prebuilts/mesa/x86
@@ -245,24 +243,6 @@ We then need to create an ``prebuilts/mesa/Android.bp`` build file to include
 the libraries in the build.
 
 .. code-block::
-
-   cc_prebuilt_library_shared {
-       name: "libglapi",
-       arch: {
-           x86_64: {
-               srcs: ["x86_64/libglapi.so"],
-           },
-           x86: {
-               srcs: ["x86/libglapi.so"],
-           },
-       },
-       strip: {
-           none: true,
-       },
-       relative_install_path: "egl",
-       shared_libs: ["libc", "libdl", "liblog", "libm"],
-       vendor: true
-   }
 
    cc_prebuilt_library_shared {
        name: "libgallium_dri",

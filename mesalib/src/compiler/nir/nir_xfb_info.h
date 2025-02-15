@@ -24,7 +24,9 @@
 #ifndef NIR_XFB_INFO_H
 #define NIR_XFB_INFO_H
 
-#include "nir.h"
+#include "nir_defines.h"
+#include <stddef.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {

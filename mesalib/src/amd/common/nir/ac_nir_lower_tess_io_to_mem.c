@@ -8,6 +8,7 @@
 #include "ac_nir.h"
 #include "ac_nir_helpers.h"
 #include "nir_builder.h"
+#include "nir_tcs_info.h"
 #include "util/u_math.h"
 
 /*
@@ -1133,7 +1134,8 @@ lower_tes_input_load(nir_builder *b,
    nir_def *load = NULL;
 
    AC_NIR_LOAD_IO(load, b, intrin->def.num_components, intrin->def.bit_size, io_sem.high_16bits,
-                  nir_load_buffer_amd, offchip_ring, off, offchip_offset, zero, .access = ACCESS_COHERENT);
+                  nir_load_buffer_amd, offchip_ring, off, offchip_offset, zero, .access = ACCESS_COHERENT,
+                  .memory_modes = nir_var_shader_in);
 
    return load;
 }

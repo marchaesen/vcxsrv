@@ -1462,8 +1462,9 @@ int
 dixDestroyPixmap(void *value, XID pid)
 {
     PixmapPtr pPixmap = (PixmapPtr) value;
-
-    return (*pPixmap->drawable.pScreen->DestroyPixmap) (pPixmap);
+    if (pPixmap && pPixmap->drawable.pScreen && pPixmap->drawable.pScreen->DestroyPixmap)
+        return pPixmap->drawable.pScreen->DestroyPixmap(pPixmap);
+    return TRUE;
 }
 
 int
@@ -1523,7 +1524,7 @@ ProcCreatePixmap(ClientPtr client)
         rc = XaceHookResourceAccess(client, stuff->pid, X11_RESTYPE_PIXMAP,
                       pMap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
         if (rc != Success) {
-            (*pDraw->pScreen->DestroyPixmap) (pMap);
+            dixDestroyPixmap(pMap, 0);
             return rc;
         }
         if (AddResource(stuff->pid, X11_RESTYPE_PIXMAP, (void *) pMap))
@@ -2631,9 +2632,9 @@ ProcAllocColor(ClientPtr client)
         if ((rc = AllocColor(pmap, &acr.red, &acr.green, &acr.blue,
                              &acr.pixel, client->index)))
             return rc;
-#ifdef PANORAMIX
+#ifdef XINERAMA
         if (noPanoramiXExtension || !pmap->pScreen->myNum)
-#endif
+#endif /* XINERAMA */
             WriteReplyToClient(client, sizeof(xAllocColorReply), &acr);
         return Success;
 
@@ -2672,9 +2673,9 @@ ProcAllocNamedColor(ClientPtr client)
                                  &ancr.screenRed, &ancr.screenGreen,
                                  &ancr.screenBlue, &ancr.pixel, client->index)))
                 return rc;
-#ifdef PANORAMIX
+#ifdef XINERAMA
             if (noPanoramiXExtension || !pcmp->pScreen->myNum)
-#endif
+#endif /* XINERAMA */
                 WriteReplyToClient(client, sizeof(xAllocNamedColorReply),
                                    &ancr);
             return Success;
@@ -2726,9 +2727,9 @@ ProcAllocColorCells(ClientPtr client)
             free(ppixels);
             return rc;
         }
-#ifdef PANORAMIX
+#ifdef XINERAMA
         if (noPanoramiXExtension || !pcmp->pScreen->myNum)
-#endif
+#endif /* XINERAMA */
         {
             xAllocColorCellsReply accr = {
                 .type = X_Reply,
@@ -2795,9 +2796,9 @@ ProcAllocColorPlanes(ClientPtr client)
             return rc;
         }
         acpr.length = bytes_to_int32(length);
-#ifdef PANORAMIX
+#ifdef XINERAMA
         if (noPanoramiXExtension || !pcmp->pScreen->myNum)
-#endif
+#endif /* XINERAMA */
         {
             WriteReplyToClient(client, sizeof(xAllocColorPlanesReply), &acpr);
             client->pSwapReplyFunc = (ReplySwapPtr) Swap32Write;
@@ -3737,12 +3738,12 @@ SendConnSetup(ClientPtr client, const char *reason)
 #endif
     /* fill in the "currentInputMask" */
     root = (xWindowRoot *) (lConnectionInfo + connBlockScreenStart);
-#ifdef PANORAMIX
+#ifdef XINERAMA
     if (noPanoramiXExtension)
         numScreens = screenInfo.numScreens;
     else
         numScreens = ((xConnSetup *) ConnectionInfo)->numRoots;
-#endif
+#endif /* XINERAMA */
 
     for (i = 0; i < numScreens; i++) {
         unsigned int j;

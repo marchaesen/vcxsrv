@@ -812,6 +812,9 @@ wsi_GetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physicalDevice,
                                     const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
                                     VkDisplayPlaneCapabilities2KHR *pCapabilities)
 {
+   VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
+   struct wsi_device *wsi_device = pdevice->wsi_device;
+
    assert(pCapabilities->sType ==
           VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR);
 
@@ -825,7 +828,8 @@ wsi_GetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physicalDevice,
       switch (ext->sType) {
       case VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR: {
          VkSurfaceProtectedCapabilitiesKHR *protected = (void *)ext;
-         protected->supportsProtected = VK_FALSE;
+         protected->supportsProtected =
+            wsi_device->supports_protected[VK_ICD_WSI_PLATFORM_DISPLAY];
          break;
       }
 

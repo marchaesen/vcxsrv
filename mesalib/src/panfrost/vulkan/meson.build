@@ -70,6 +70,8 @@ jm_files = [
   'jm/panvk_vX_cmd_draw.c',
   'jm/panvk_vX_cmd_event.c',
   'jm/panvk_vX_cmd_query.c',
+  'jm/panvk_vX_cmd_precomp.c',
+  'jm/panvk_vX_device.c',
   'jm/panvk_vX_event.c',
   'jm/panvk_vX_queue.c',
 ]
@@ -82,6 +84,7 @@ csf_files = [
   'csf/panvk_vX_cmd_draw.c',
   'csf/panvk_vX_cmd_event.c',
   'csf/panvk_vX_cmd_query.c',
+  'csf/panvk_vX_cmd_precomp.c',
   'csf/panvk_vX_device.c',
   'csf/panvk_vX_event.c',
   'csf/panvk_vX_exception_handler.c',
@@ -103,6 +106,7 @@ common_per_arch_files = [
   'panvk_vX_descriptor_set.c',
   'panvk_vX_descriptor_set_layout.c',
   'panvk_vX_device.c',
+  'panvk_vX_precomp_cache.c',
   'panvk_vX_query_pool.c',
   'panvk_vX_image_view.c',
   'panvk_vX_nir_lower_descriptors.c',
@@ -148,6 +152,7 @@ foreach arch : [6, 7, 10]
       idep_mesautil,
       dep_libdrm,
       dep_valgrind,
+      idep_libpan_per_arch[arch.to_string()],
     ],
     c_args : [no_override_init_args, panvk_flags, '-DPAN_ARCH=@0@'.format(arch)],
   )

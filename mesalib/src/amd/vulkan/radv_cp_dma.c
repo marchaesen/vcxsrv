@@ -218,7 +218,7 @@ radv_cp_dma_realign_engine(struct radv_cmd_buffer *cmd_buffer, unsigned size)
 }
 
 void
-radv_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t dest_va, uint64_t size)
+radv_cp_dma_copy_memory(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t dest_va, uint64_t size)
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    const struct radv_physical_device *pdev = radv_device_physical(device);
@@ -296,7 +296,7 @@ radv_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uin
 }
 
 void
-radv_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t size, unsigned value)
+radv_cp_dma_fill_memory(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t size, unsigned value)
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    const struct radv_physical_device *pdev = radv_device_physical(device);

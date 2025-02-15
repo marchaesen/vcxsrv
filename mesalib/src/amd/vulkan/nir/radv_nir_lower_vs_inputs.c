@@ -305,16 +305,24 @@ lower_load_vs_input(nir_builder *b, nir_intrinsic_instr *intrin, lower_vs_inputs
 
       assert(f->is_array || channels == fetch_num_channels);
 
+      unsigned align_mul = MAX2(1, s->gfx_state->vi.vertex_binding_align[attrib_binding]);
+      unsigned align_offset = const_off % align_mul;
+
+      /* The alignment might be lower than the minimum if it's unknown. */
+      const unsigned min_channel_align = vtx_info->chan_byte_size ? vtx_info->chan_byte_size : vtx_info->element_size;
+      if (nir_combined_align(align_mul, align_offset) < min_channel_align) {
+         align_mul = min_channel_align;
+         align_offset = 0;
+      }
+
       /* Prefer using untyped buffer loads if possible, to avoid potential alignment issues.
        * Typed loads can cause GPU hangs when used with improper alignment.
        */
       if (can_use_untyped_load(f, bit_size)) {
          loads[num_loads++] = nir_load_buffer_amd(b, channels, bit_size, descriptor, zero, zero, index,
-                                                  .base = const_off, .memory_modes = nir_var_shader_in);
+                                                  .base = const_off, .memory_modes = nir_var_shader_in,
+                                                  .align_mul = align_mul, .align_offset = align_offset);
       } else {
-         const unsigned align_mul = MAX2(1, s->gfx_state->vi.vertex_binding_align[attrib_binding]);
-         const unsigned align_offset = const_off % align_mul;
-
          loads[num_loads++] = nir_load_typed_buffer_amd(
             b, channels, bit_size, descriptor, zero, zero, index, .base = const_off, .format = fetch_format,
             .align_mul = align_mul, .align_offset = align_offset, .memory_modes = nir_var_shader_in);

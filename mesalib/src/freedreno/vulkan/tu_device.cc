@@ -61,7 +61,7 @@ tu_device_get_cache_uuid(struct tu_physical_device *device, void *uuid)
     * shader hash instead, since the compiler is only created with the logical
     * device.
     */
-   uint64_t driver_flags = tu_env.debug & TU_DEBUG_NOMULTIPOS;
+   uint64_t driver_flags = TU_DEBUG(NOMULTIPOS);
    uint16_t family = fd_dev_gpu_id(&device->dev_id);
 
    memset(uuid, 0, VK_UUID_SIZE);
@@ -2742,7 +2742,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       physical_device->info->a6xx.has_z24uint_s8uint &&
       (!border_color_without_format ||
        physical_device->instance->disable_d24s8_border_color_workaround);
-   device->use_lrz = !TU_DEBUG(NOLRZ);
+   device->use_lrz = !TU_DEBUG_ENV(NOLRZ);
 
    tu_gpu_tracepoint_config_variable();
 

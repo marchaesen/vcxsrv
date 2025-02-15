@@ -514,32 +514,12 @@ static struct ruvd_h264 get_h264_msg(struct ruvd_decoder *dec, struct pipe_h264_
    result.sps_info_flags |= pic->pps->sps->frame_mbs_only_flag << 2;
    result.sps_info_flags |= pic->pps->sps->delta_pic_order_always_zero_flag << 3;
 
+   result.chroma_format = pic->pps->sps->chroma_format_idc;
    result.bit_depth_luma_minus8 = pic->pps->sps->bit_depth_luma_minus8;
    result.bit_depth_chroma_minus8 = pic->pps->sps->bit_depth_chroma_minus8;
    result.log2_max_frame_num_minus4 = pic->pps->sps->log2_max_frame_num_minus4;
    result.pic_order_cnt_type = pic->pps->sps->pic_order_cnt_type;
    result.log2_max_pic_order_cnt_lsb_minus4 = pic->pps->sps->log2_max_pic_order_cnt_lsb_minus4;
-
-   switch (dec->base.chroma_format) {
-   case PIPE_VIDEO_CHROMA_FORMAT_NONE:
-      /* TODO: assert? */
-      break;
-   case PIPE_VIDEO_CHROMA_FORMAT_400:
-      result.chroma_format = 0;
-      break;
-   case PIPE_VIDEO_CHROMA_FORMAT_420:
-      result.chroma_format = 1;
-      break;
-   case PIPE_VIDEO_CHROMA_FORMAT_422:
-      result.chroma_format = 2;
-      break;
-   case PIPE_VIDEO_CHROMA_FORMAT_444:
-      result.chroma_format = 3;
-      break;
-   case PIPE_VIDEO_CHROMA_FORMAT_440:
-      result.chroma_format = 4;
-      break;
-   }
 
    result.pps_info_flags = 0;
    result.pps_info_flags |= pic->pps->transform_8x8_mode_flag << 0;

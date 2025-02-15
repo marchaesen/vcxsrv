@@ -1300,7 +1300,29 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->has_taskmesh_indirect0_bug = info->gfx_level == GFX10_3 &&
                                       info->mec_fw_version < 100;
 
+   /* Some GFX10 chips can hang when NGG exports zero vertices and primitives.
+    * The workaround is to always export a single degenerate triangle.
+    */
+   info->has_ngg_fully_culled_bug = info->gfx_level == GFX10;
+
+   /* On newer chips, it is not necessary for NGG shaders to request
+    * the allocation of GS space in passthrough mode, when they set
+    * PRIMGEN_PASSTHRU_NO_MSG.
+    */
+   info->has_ngg_passthru_no_msg = info->family >= CHIP_NAVI23;
+
    info->has_export_conflict_bug = info->gfx_level == GFX11;
+
+   /* The hw starts culling after all exports are finished,
+    * not when all waves in an NGG workgroup are finished,
+    * and if all primitives are culled, the hw deallocates the attribute ring
+    * for the NGG workgroup and reuses it for next one while the previous NGG
+    * workgroup might still be issuing attribute stores.
+    * When there are 2 NGG workgroups in the system with the same attribute ring address,
+    * attributes may be corrupted.
+    * The workaround is to issue and wait for attribute stores before the last export.
+    */
+   info->has_attr_ring_wait_bug = info->gfx_level == GFX11 || info->gfx_level == GFX11_5;
 
    /* When LLVM is fixed to handle multiparts shaders, this value will depend
     * on the known good versions of LLVM. Until then, enable the equivalent WA
@@ -1659,6 +1681,8 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->conformant_trunc_coord =
          info->drm_minor >= 52 &&
          device_info.ids_flags & AMDGPU_IDS_FLAGS_CONFORMANT_TRUNC_COORD;
+
+      info->has_attr_ring = info->attribute_ring_size_per_se > 0;
    }
 
    if (info->gfx_level >= GFX11 && debug_get_bool_option("AMD_USERQ", false)) {

@@ -42,6 +42,19 @@ typedef enum VkQueryResultFlagBits {
     VK_QUERY_RESULT_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 } VkQueryResultFlagBits;
 
+static inline void
+vk_write_query(uintptr_t dst_addr, int32_t idx, VkQueryResultFlagBits flags,
+               uint64_t result)
+{
+   if (flags & VK_QUERY_RESULT_64_BIT) {
+      global uint64_t *out = (global uint64_t *)dst_addr;
+      out[idx] = result;
+   } else {
+      global uint32_t *out = (global uint32_t *)dst_addr;
+      out[idx] = result;
+   }
+}
+
 typedef enum VkIndexType {
     VK_INDEX_TYPE_UINT16 = 0,
     VK_INDEX_TYPE_UINT32 = 1,

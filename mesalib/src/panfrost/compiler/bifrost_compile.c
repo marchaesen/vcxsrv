@@ -480,9 +480,27 @@ bi_emit_load_attr(bi_builder *b, nir_intrinsic_instr *instr)
     * s32) source, so use .auto32 to disregard.
     */
    nir_alu_type T = nir_intrinsic_dest_type(instr);
-   assert(T == nir_type_uint32 || T == nir_type_int32 || T == nir_type_float32);
-   enum bi_register_format regfmt =
-      T == nir_type_float32 ? BI_REGISTER_FORMAT_F32 : BI_REGISTER_FORMAT_AUTO;
+   enum bi_register_format regfmt = BI_REGISTER_FORMAT_AUTO;
+   switch (T) {
+      case nir_type_uint32:
+      case nir_type_int32:
+         regfmt = BI_REGISTER_FORMAT_AUTO;
+         break;
+      case nir_type_float32:
+         regfmt = BI_REGISTER_FORMAT_F32;
+         break;
+      case nir_type_uint16:
+         regfmt = BI_REGISTER_FORMAT_U16;
+         break;
+      case nir_type_int16:
+         regfmt = BI_REGISTER_FORMAT_S16;
+         break;
+      case nir_type_float16:
+         regfmt = BI_REGISTER_FORMAT_F16;
+         break;
+      default:
+         assert("unsupported attribute type" && false);
+   }
 
    nir_src *offset = nir_get_io_offset_src(instr);
    unsigned component = nir_intrinsic_component(instr);
@@ -556,6 +574,7 @@ bi_emit_load_vary(bi_builder *b, nir_intrinsic_instr *instr)
    enum bi_sample sample = BI_SAMPLE_CENTER;
    enum bi_update update = BI_UPDATE_STORE;
    enum bi_register_format regfmt = BI_REGISTER_FORMAT_AUTO;
+   enum bi_source_format source_format;
    bool smooth = instr->intrinsic == nir_intrinsic_load_interpolated_input;
    bi_index src0 = bi_null();
 
@@ -564,7 +583,13 @@ bi_emit_load_vary(bi_builder *b, nir_intrinsic_instr *instr)
    bi_index dest =
       (component == 0) ? bi_def_index(&instr->def) : bi_temp(b->shader);
 
+   nir_io_semantics sem = nir_intrinsic_io_semantics(instr);
+
    unsigned sz = instr->def.bit_size;
+   assert(sz == 16 || sz == 32);
+   /* mediump varyings are always written as 32-bits in the VS, but may be read
+    * to 16 in the FS. */
+   unsigned src_sz = sem.medium_precision ? 32 : sz;
 
    if (smooth) {
       nir_intrinsic_instr *parent = nir_src_as_intrinsic(instr->src[0]);
@@ -573,11 +598,17 @@ bi_emit_load_vary(bi_builder *b, nir_intrinsic_instr *instr)
       sample = bi_interp_for_intrinsic(parent->intrinsic);
       src0 = bi_varying_src0_for_barycentric(b, parent);
 
-      assert(sz == 16 || sz == 32);
       regfmt = (sz == 16) ? BI_REGISTER_FORMAT_F16 : BI_REGISTER_FORMAT_F32;
+      source_format =
+         (src_sz == 16) ? BI_SOURCE_FORMAT_F16 : BI_SOURCE_FORMAT_F32;
    } else {
-      assert(sz == 32);
-      regfmt = BI_REGISTER_FORMAT_U32;
+      /* u16 regfmt is not supported by LD_VAR_BUF, but using f16 for integers
+       * is okay because we use a f16 attribute descriptor for all 16-bit
+       * varyings regardless of whether they are floats or ints. The
+       * conversion is a no-op. */
+      regfmt = (sz == 16) ? BI_REGISTER_FORMAT_F16 : BI_REGISTER_FORMAT_AUTO;
+      source_format = (src_sz == 16) ?
+         BI_SOURCE_FORMAT_FLAT16 : BI_SOURCE_FORMAT_FLAT32;
 
       /* Valhall can't have bi_null() here, although the source is
        * logically unused for flat varyings
@@ -601,9 +632,6 @@ bi_emit_load_vary(bi_builder *b, nir_intrinsic_instr *instr)
       b->shader->malloc_idvs && b->shader->inputs->valhall.use_ld_var_buf;
 
    if (use_ld_var_buf) {
-      enum bi_source_format source_format =
-         smooth ? BI_SOURCE_FORMAT_F32 : BI_SOURCE_FORMAT_FLAT32;
-
       if (immediate) {
          /* Immediate index given in bytes. */
          bi_ld_var_buf_imm_to(b, sz, dest, src0, regfmt, sample, source_format,
@@ -877,12 +905,16 @@ bi_emit_blend_op(bi_builder *b, bi_index rgba, nir_alu_type T, bi_index rgba2,
 }
 
 /* Blend shaders do not need to run ATEST since they are dependent on a
- * fragment shader that runs it. */
+ * fragment shader that runs it. Blit shaders may not need to run ATEST, since
+ * ATEST is not needed if early-z is forced, alpha-to-coverage is disabled, and
+ * there are no writes to the coverage mask. The latter two are satisfied for
+ * all blit shaders, so we just care about early-z, which blit shaders force
+ * iff they do not write depth or stencil */
 
 static bool
-bi_skip_atest(bi_context *ctx)
+bi_skip_atest(bi_context *ctx, bool emit_zs)
 {
-   return ctx->inputs->is_blend;
+   return (ctx->inputs->is_blit && !emit_zs) || ctx->inputs->is_blend;
 }
 
 static void
@@ -946,7 +978,7 @@ bi_emit_fragment_out(bi_builder *b, nir_intrinsic_instr *instr)
     * alpha value is only used for alpha-to-coverage, a stage which is
     * skipped for pure integer framebuffers, so the issue is moot. */
 
-   if (!b->shader->emitted_atest && !bi_skip_atest(b->shader)) {
+   if (!b->shader->emitted_atest && !bi_skip_atest(b->shader, emit_zs)) {
       nir_alu_type T = nir_intrinsic_src_type(instr);
 
       bi_index rgba = bi_src_index(&instr->src[0]);
@@ -1076,14 +1108,19 @@ static void
 bi_emit_store_vary(bi_builder *b, nir_intrinsic_instr *instr)
 {
    /* In principle we can do better for 16-bit. At the moment we require
-    * 32-bit to permit the use of .auto, in order to force .u32 for flat
-    * varyings, to handle internal TGSI shaders that set flat in the VS
-    * but smooth in the FS */
+    * mediump varyings to be 32-bit to permit the use of .auto, in order to
+    * force .u32 for flat varyings, to handle internal TGSI shaders that set
+    * flat in the VS but smooth in the FS.
+    *
+    * Explicit 16-bit types are unaffected, and written as 16-bit. */
 
    ASSERTED nir_alu_type T = nir_intrinsic_src_type(instr);
    ASSERTED unsigned T_size = nir_alu_type_get_type_size(T);
-   assert(T_size == 32 || (b->shader->arch >= 9 && T_size == 16));
-   enum bi_register_format regfmt = BI_REGISTER_FORMAT_AUTO;
+   assert(T_size == 32 || T_size == 16);
+   /* 16-bit varyings are always written and loaded as F16, regardless of
+    * whether they are float or int */
+   enum bi_register_format regfmt =
+      T_size == 16 ? BI_REGISTER_FORMAT_F16 : BI_REGISTER_FORMAT_AUTO;
 
    unsigned imm_index = 0;
    bool immediate = bi_is_intr_immediate(instr, &imm_index, 16);
@@ -1106,15 +1143,16 @@ bi_emit_store_vary(bi_builder *b, nir_intrinsic_instr *instr)
     * introduce a TRIM.i32 pseudoinstruction?
     */
    if (nr < nir_intrinsic_src_components(instr, 0)) {
-      assert(T_size == 32 && "todo: 16-bit trim");
-
       bi_index chans[4] = {bi_null(), bi_null(), bi_null(), bi_null()};
-      unsigned src_comps = nir_intrinsic_src_components(instr, 0);
+      unsigned comps_per_reg = instr->def.bit_size == 16 ? 2 : 1;
+      unsigned src_comps =
+         DIV_ROUND_UP(nir_intrinsic_src_components(instr, 0), comps_per_reg);
+      unsigned dst_comps = DIV_ROUND_UP(nr, comps_per_reg);
 
       bi_emit_split_i32(b, chans, data, src_comps);
 
       bi_index tmp = bi_temp(b->shader);
-      bi_instr *collect = bi_collect_i32_to(b, tmp, nr);
+      bi_instr *collect = bi_collect_i32_to(b, tmp, dst_comps);
 
       bi_foreach_src(collect, w)
          collect->src[w] = chans[w];
@@ -1178,7 +1216,13 @@ bi_emit_store_vary(bi_builder *b, nir_intrinsic_instr *instr)
 
       if (index_offset != 0)
          index = bi_iadd_imm_i32(b, index, index_offset);
-      bi_index address = bi_lea_buf_imm(b, index);
+
+      /* On Valhall, with IDVS varying are stored in a hardware-controlled
+       * buffer through table 61 at index 0 */
+      bi_index address = bi_temp(b->shader);
+      bi_instr *I = bi_lea_buf_imm_to(b, address, index);
+      I->table = va_res_fold_table_idx(61);
+      I->index = 0;
       bi_emit_split_i32(b, a, address, 2);
 
       bi_store(b, nr * src_bit_sz, data, a[0], a[1],
@@ -1735,7 +1779,7 @@ bi_emit_derivative(bi_builder *b, bi_index dst, nir_intrinsic_instr *instr,
     */
    if (nir_def_all_uses_ignore_sign_bit(&instr->def) && !coarse) {
       left = s0;
-      right = bi_clper(b, s0, bi_imm_u32(axis), BI_LANE_OP_XOR);
+      right = bi_clper(b, s0, bi_imm_u8(axis), BI_LANE_OP_XOR);
    } else {
       bi_index lane1, lane2;
       if (coarse) {
@@ -1748,8 +1792,8 @@ bi_emit_derivative(bi_builder *b, bi_index dst, nir_intrinsic_instr *instr,
          lane2 = bi_iadd_u32(b, lane1, bi_imm_u32(axis), false);
       }
 
-      left = bi_clper(b, s0, lane1, BI_LANE_OP_NONE);
-      right = bi_clper(b, s0, lane2, BI_LANE_OP_NONE);
+      left = bi_clper(b, s0, bi_byte(lane1, 0), BI_LANE_OP_NONE);
+      right = bi_clper(b, s0, bi_byte(lane2, 0), BI_LANE_OP_NONE);
    }
 
    bi_fadd_to(b, sz, dst, right, bi_neg(left));
@@ -2042,7 +2086,7 @@ bi_emit_intrinsic(bi_builder *b, nir_intrinsic_instr *instr)
          bi_subgroup_from_cluster_size(pan_subgroup_size(b->shader->arch));
       bi_clper_i32_to(b, dst,
                       bi_src_index(&instr->src[0]),
-                      bi_src_index(&instr->src[1]),
+                      bi_byte(bi_src_index(&instr->src[1]), 0),
                       inactive_result, lane_op, subgroup);
       break;
    }
@@ -4118,10 +4162,16 @@ bi_emit_tex_valhall(bi_builder *b, nir_tex_instr *instr)
                        !narrow_indices, mask, sr_count);
       break;
    case nir_texop_txf:
-   case nir_texop_txf_ms:
+   case nir_texop_txf_ms: {
+      /* On Valhall, TEX_FETCH doesn't have CUBE support. This is not a problem
+       * as a cube is just a 2D array in any cases. */
+      if (dim == BI_DIMENSION_CUBE)
+         dim = BI_DIMENSION_2D;
+
       bi_tex_fetch_to(b, dest, idx, src0, src1, instr->is_array, dim, regfmt,
                       explicit_offset, !narrow_indices, mask, sr_count);
       break;
+   }
    case nir_texop_tg4:
       bi_tex_gather_to(b, dest, idx, src0, src1, instr->is_array, dim,
                        instr->component, false, regfmt, instr->is_shadow,
@@ -5296,9 +5346,29 @@ bifrost_nir_lower_load_output(nir_shader *nir)
       nir_metadata_control_flow, NULL);
 }
 
+static bool
+bi_lower_halt_to_return(nir_builder *b, nir_instr *instr, UNUSED void *_data)
+{
+   if (instr->type != nir_instr_type_jump)
+      return false;
+
+   nir_jump_instr *jump = nir_instr_as_jump(instr);
+   if (jump->type != nir_jump_halt)
+      return false;
+
+   assert(b->impl == nir_shader_get_entrypoint(b->shader));
+   jump->type = nir_jump_return;
+   return true;
+}
+
 void
 bifrost_preprocess_nir(nir_shader *nir, unsigned gpu_id)
 {
+   /* Ensure that halt are translated to returns and get ride of them */
+   NIR_PASS(_, nir, nir_shader_instructions_pass, bi_lower_halt_to_return,
+            nir_metadata_all, NULL);
+   NIR_PASS(_, nir, nir_lower_returns);
+
    /* Lower gl_Position pre-optimisation, but after lowering vars to ssa
     * (so we don't accidentally duplicate the epilogue since mesa/st has
     * messed with our I/O quite a bit already) */
@@ -5331,6 +5401,7 @@ bifrost_preprocess_nir(nir_shader *nir, unsigned gpu_id)
       (gpu_id >= 0x9000) ? glsl_get_vec4_size_align_bytes
                          : glsl_get_natural_size_align_bytes;
    /* Lower large arrays to scratch and small arrays to bcsel */
+   NIR_PASS(_, nir, nir_lower_scratch_to_var);
    NIR_PASS(_, nir, nir_lower_vars_to_scratch, nir_var_function_temp, 256,
             vars_to_scratch_size_align_func, vars_to_scratch_size_align_func);
    NIR_PASS(_, nir, nir_lower_indirect_derefs, nir_var_function_temp, ~0);
@@ -5538,7 +5609,7 @@ bi_compile_variant_nir(nir_shader *nir,
    /* If the shader doesn't write any colour or depth outputs, it may
     * still need an ATEST at the very end! */
    bool need_dummy_atest = (ctx->stage == MESA_SHADER_FRAGMENT) &&
-                           !ctx->emitted_atest && !bi_skip_atest(ctx);
+                           !ctx->emitted_atest && !bi_skip_atest(ctx, false);
 
    if (need_dummy_atest) {
       bi_block *end = list_last_entry(&ctx->blocks, bi_block, link);
@@ -5852,7 +5923,7 @@ bifrost_compile_shader_nir(nir_shader *nir,
    info->tls_size = nir->scratch_size;
    info->vs.idvs = bi_should_idvs(nir, inputs);
 
-   pan_nir_collect_varyings(nir, info);
+   pan_nir_collect_varyings(nir, info, PAN_MEDIUMP_VARY_32BIT);
 
    if (info->vs.idvs) {
       bi_compile_variant(nir, inputs, binary, info, BI_IDVS_POSITION);

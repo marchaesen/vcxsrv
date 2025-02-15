@@ -190,7 +190,7 @@ xkb_symbols "mac" {
 
     name[Group1]= "Norwegian (Macintosh)";
 
-    key <TLDE>	{ [       bar,    section     ]	};
+    key <TLDE>	{ [apostrophe,    section     ]	};
     key <AE03>	{ [         3, numbersign,     sterling,     sterling ]	};
     key <AE04>	{ [         4,   currency,       dollar,       dollar ]	};
     key <AE06>	{ [         6,  ampersand, threequarters, fiveeighths ]	};

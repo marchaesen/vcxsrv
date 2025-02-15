@@ -346,7 +346,7 @@ d3d12_bind_blend_state(struct pipe_context *pctx, void *blend_state)
    if (new_state == NULL)
       ctx->missing_dual_src_outputs = false;
    else if (new_state != NULL && (old_state == NULL || old_state->is_dual_src != new_state->is_dual_src))
-      ctx->missing_dual_src_outputs = missing_dual_src_outputs(ctx);
+      ctx->missing_dual_src_outputs = missing_dual_src_outputs(ctx) != 0;
 }
 
 static void
@@ -1114,7 +1114,7 @@ d3d12_bind_fs_state(struct pipe_context *pctx,
    bind_stage(ctx, PIPE_SHADER_FRAGMENT,
               (struct d3d12_shader_selector *) fss);
    ctx->has_flat_varyings = has_flat_varyings(ctx);
-   ctx->missing_dual_src_outputs = missing_dual_src_outputs(ctx);
+   ctx->missing_dual_src_outputs = missing_dual_src_outputs(ctx) != 0;
    ctx->manual_depth_range = manual_depth_range(ctx);
 }
 

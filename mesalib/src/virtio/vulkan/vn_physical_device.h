@@ -83,6 +83,10 @@ struct vn_physical_device {
    VkQueueFamilyProperties2 *queue_family_properties;
    uint32_t queue_family_count;
    bool sparse_binding_disabled;
+   /* Track the queue family index to emulate a second queue. -1 means no
+    * emulation is needed.
+    */
+   int emulate_second_queue;
 
    VkPhysicalDeviceMemoryProperties memory_properties;
 

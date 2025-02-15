@@ -642,7 +642,7 @@ st_init_pbo_helpers(struct st_context *st)
    st->pbo.upload_enabled =
       screen->caps.texture_buffer_objects &&
       screen->caps.texture_buffer_offset_alignment >= 1 &&
-      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_INTEGERS);
+      screen->shader_caps[PIPE_SHADER_FRAGMENT].integers;
    if (!st->pbo.upload_enabled)
       return;
 
@@ -650,8 +650,7 @@ st_init_pbo_helpers(struct st_context *st)
       st->pbo.upload_enabled &&
       screen->caps.sampler_view_target &&
       screen->caps.framebuffer_no_attachment &&
-      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                                       PIPE_SHADER_CAP_MAX_SHADER_IMAGES) >= 1;
+      screen->shader_caps[PIPE_SHADER_FRAGMENT].max_shader_images >= 1;
 
    st->pbo.rgba_only =
       screen->caps.buffer_sampler_view_rgba_only;

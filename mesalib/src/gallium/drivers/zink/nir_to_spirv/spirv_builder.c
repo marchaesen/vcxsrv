@@ -596,6 +596,23 @@ spirv_builder_emit_binop(struct spirv_builder *b, SpvOp op, SpvId result_type,
 }
 
 SpvId
+spirv_builder_emit_binop_subgroup(struct spirv_builder *b, SpvOp op, SpvId result_type,
+                                  SpvId operand0, SpvId operand1)
+{
+   struct spirv_buffer *buf = op == SpvOpSpecConstantOp ? &b->types_const_defs : &b->instructions;
+
+   SpvId result = spirv_builder_new_id(b);
+   spirv_buffer_prepare(buf, b->mem_ctx, 6);
+   spirv_buffer_emit_word(buf, op | (6 << 16));
+   spirv_buffer_emit_word(buf, result_type);
+   spirv_buffer_emit_word(buf, result);
+   spirv_buffer_emit_word(buf, spirv_builder_const_uint(b, 32, SpvScopeSubgroup));
+   spirv_buffer_emit_word(buf, operand0);
+   spirv_buffer_emit_word(buf, operand1);
+   return result;
+}
+
+SpvId
 spirv_builder_emit_triop(struct spirv_builder *b, SpvOp op, SpvId result_type,
                          SpvId operand0, SpvId operand1, SpvId operand2)
 {
@@ -606,6 +623,24 @@ spirv_builder_emit_triop(struct spirv_builder *b, SpvOp op, SpvId result_type,
    spirv_buffer_emit_word(buf, op | (6 << 16));
    spirv_buffer_emit_word(buf, result_type);
    spirv_buffer_emit_word(buf, result);
+   spirv_buffer_emit_word(buf, operand0);
+   spirv_buffer_emit_word(buf, operand1);
+   spirv_buffer_emit_word(buf, operand2);
+   return result;
+}
+
+SpvId
+spirv_builder_emit_triop_subgroup(struct spirv_builder *b, SpvOp op, SpvId result_type,
+                         SpvId operand0, SpvId operand1, SpvId operand2)
+{
+   struct spirv_buffer *buf = op == SpvOpSpecConstantOp ? &b->types_const_defs : &b->instructions;
+
+   SpvId result = spirv_builder_new_id(b);
+   spirv_buffer_prepare(buf, b->mem_ctx, 7);
+   spirv_buffer_emit_word(buf, op | (7 << 16));
+   spirv_buffer_emit_word(buf, result_type);
+   spirv_buffer_emit_word(buf, result);
+   spirv_buffer_emit_word(buf, spirv_builder_const_uint(b, 32, SpvScopeSubgroup));
    spirv_buffer_emit_word(buf, operand0);
    spirv_buffer_emit_word(buf, operand1);
    spirv_buffer_emit_word(buf, operand2);

@@ -26,6 +26,7 @@
 #include "si_pipe.h"
 #include "ac_hw_stage.h"
 #include "aco_interface.h"
+#include "nir.h"
 
 static void
 si_aco_compiler_debug(void *private_data, enum aco_compiler_debug_level level,
@@ -76,8 +77,9 @@ si_fill_aco_shader_info(struct si_shader *shader, struct aco_shader_info *info,
    info->hw_stage = si_select_hw_stage(stage, key, gfx_level);
 
    if (stage <= MESA_SHADER_GEOMETRY && key->ge.as_ngg && !key->ge.as_es) {
-      info->has_ngg_culling = si_shader_culling_enabled(shader);
-      info->has_ngg_early_prim_export = gfx10_ngg_export_prim_early(shader);
+      info->schedule_ngg_pos_exports = sel->screen->info.gfx_level < GFX11 &&
+                                       si_shader_culling_enabled(shader) &&
+                                       gfx10_ngg_export_prim_early(shader);
    }
 
    switch (stage) {

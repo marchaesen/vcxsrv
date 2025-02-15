@@ -748,6 +748,7 @@ struct ThreadSaveData {
     VkFence fence;
     uint32_t const width;
     uint32_t const height;
+    uint32_t const numChannels;
 };
 
 /* Write the copied image to a PNG file */
@@ -765,8 +766,10 @@ void *writePNG(void *data) {
    uint64_t rowPitch = threadData->srLayout.rowPitch;
    uint64_t start_time, end_time;
    const int RGB_NUM_CHANNELS = 3;
+   const int RGBA_NUM_CHANNELS = 4;
    int localHeight = threadData->height;
    int localWidth = threadData->width;
+   int numChannels = threadData->numChannels;
    int matrixSize = localHeight * rowPitch;
    bool checks_failed = true;
    memcpy(filename, threadData->filename, length);
@@ -797,6 +800,12 @@ void *writePNG(void *data) {
    start_time = get_time();
    row_pointer = (png_byte *)malloc(sizeof(png_byte) * matrixSize);
    memcpy(row_pointer, threadData->pFramebuffer, matrixSize);
+   /* Ensure alpha bits are set to 'opaque' if image is of RGBA format */
+   if (numChannels == RGBA_NUM_CHANNELS) {
+      for (int i = 3; i < matrixSize; i += RGBA_NUM_CHANNELS) {
+         row_pointer[i] = 0xFF;
+      }
+   }
    end_time = get_time();
    print_time_difference(start_time, end_time);
    // We've created all local copies of data,
@@ -809,7 +818,7 @@ void *writePNG(void *data) {
       localWidth, // Image width
       localHeight, // Image height
       8,      // Color depth
-      PNG_COLOR_TYPE_RGB,
+      numChannels == RGB_NUM_CHANNELS ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGBA,
       PNG_INTERLACE_NONE,
       PNG_COMPRESSION_TYPE_DEFAULT,
       PNG_FILTER_TYPE_DEFAULT
@@ -888,30 +897,59 @@ static bool write_image(
    VkQueue queue = queue_data->queue;
 
    VkResult err;
-
-   /* Force destination format to be RGB to make writing to file much faster */
-   VkFormat destination_format = VK_FORMAT_R8G8B8_UNORM;
-
-   VkFormatProperties device_format_properties;
-   instance_data->pd_vtable.GetPhysicalDeviceFormatProperties(physical_device,
-                                                              destination_format,
-                                                              &device_format_properties);
+   /* Attempt to set destination format to RGB to make writing to file much faster.
+      If not available, try to fall back to RGBA. If both fail, abort the screenshot */
+   VkFormat supported_formats[] = {VK_FORMAT_R8G8B8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_UNDEFINED};
+   uint32_t supported_formats_count = sizeof(supported_formats) / sizeof(VkFormat);
+   VkFormat destination_format;
+   uint32_t numChannels = 0;
    /* If origin and destination formats are the same, no need to convert */
    bool copyOnly = false;
    bool needs_2_steps = false;
-   if (destination_format == format && not instance_data->region_enabled) {
-      copyOnly = true;
-      LOG(DEBUG, "Only copying since the src/dest formats are the same\n");
-   } else {
-      bool const blt_linear = device_format_properties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT ? true : false;
-      bool const blt_optimal = device_format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT ? true : false;
-      if (!blt_linear && !blt_optimal) {
+   bool blt_linear, blt_optimal;
+   VkFormatProperties device_format_properties;
+
+   for (uint32_t i = 0; i < supported_formats_count; i++) {
+      destination_format = supported_formats[i];
+      instance_data->pd_vtable.GetPhysicalDeviceFormatProperties(physical_device,
+                                                                 destination_format,
+                                                                 &device_format_properties);
+      if(destination_format == VK_FORMAT_UNDEFINED) {
+         LOG(ERROR, "Could not use the supported surface formats!\n");
          return false;
-      } else if (!blt_linear && blt_optimal) {
-         // Can't blit to linear target, but can blit to optimal
-         needs_2_steps = true;
-         LOG(DEBUG, "Needs 2 steps\n");
       }
+      if (destination_format == format && not instance_data->region_enabled) {
+         copyOnly = true;
+         LOG(DEBUG, "Only copying since the src/dest surface formats are the same.\n");
+         break;
+      } else {
+         blt_linear = device_format_properties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT ? true : false;
+         blt_optimal = device_format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT ? true : false;
+         if (!blt_linear && !blt_optimal) {
+            LOG(DEBUG, "Can't blit to linear nor optimal with surface format '%s'\n", vk_Format_to_str(supported_formats[i]));
+         } else if (blt_linear) {
+            break;
+         } else if (blt_optimal) {
+            // Can't blit to linear target, but can blit to optimal
+            needs_2_steps = true;
+            LOG(DEBUG, "Needs 2 steps\n");
+            break;
+         }
+      }
+   }
+   LOG(DEBUG, "Using surface format '%s' for copy.\n", vk_Format_to_str(destination_format));
+
+   switch (destination_format)
+   {
+   case VK_FORMAT_R8G8B8_UNORM:
+      numChannels = 3;
+      break;
+   case VK_FORMAT_R8G8B8A8_UNORM:
+      numChannels = 4;
+      break;
+   default:
+      LOG(ERROR, "Unsupported format, aborting screenshot!\n");
+      break;
    }
 
    WriteFileCleanupData data = {};
@@ -1153,7 +1191,7 @@ static bool write_image(
    // Thread off I/O operations
    pthread_t ioThread;
    pthread_mutex_lock(&ptLock); // Grab lock, we need to wait until thread has copied values of pointers
-   struct ThreadSaveData threadData = {device_data, filename, pFramebuffer, srLayout, copyDone, newWidth, newHeight};
+   struct ThreadSaveData threadData = {device_data, filename, pFramebuffer, srLayout, copyDone, newWidth, newHeight, numChannels};
 
    // Write the data to a PNG file.
    pthread_create(&ioThread, NULL, writePNG, (void *)&threadData);

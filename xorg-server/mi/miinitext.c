@@ -78,10 +78,17 @@ SOFTWARE.
 #include "xf86Extensions.h"
 #endif
 
-#ifdef HAVE_XNEST_CONFIG_H
-#include <xnest-config.h>
+/* some DDXes must explicitly prohibit some extensions */
+#ifdef DISABLE_EXT_COMPOSITE
 #undef COMPOSITE
+#endif
+
+#ifdef DISABLE_EXT_DPMS
 #undef DPMSExtension
+#endif
+
+#ifdef DISABLE_EXT_MITSHM
+#undef MITSHM
 #endif
 
 #include "misc.h"
@@ -111,9 +118,9 @@ static const ExtensionModule staticExtensions[] = {
 #ifdef XCSECURITY
     {SecurityExtensionInit, "SECURITY", &noSecurityExtension},
 #endif
-#ifdef PANORAMIX
+#ifdef XINERAMA
     {PanoramiXExtensionInit, "XINERAMA", &noPanoramiXExtension},
-#endif
+#endif /* XINERAMA */
     /* must be before Render to layer DisplayCursor correctly */
     {XFixesExtensionInit, "XFIXES", &noXFixesExtension},
 #ifdef XF86BIGFONT

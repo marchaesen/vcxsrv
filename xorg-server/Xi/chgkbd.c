@@ -69,23 +69,6 @@ SOFTWARE.
  * This procedure changes the keyboard device.
  *
  */
-
-int _X_COLD
-SProcXChangeKeyboardDevice(ClientPtr client)
-{
-    REQUEST(xChangeKeyboardDeviceReq);
-    swaps(&stuff->length);
-    REQUEST_SIZE_MATCH(xChangeKeyboardDeviceReq);
-    return (ProcXChangeKeyboardDevice(client));
-}
-
-/***********************************************************************
- *
- * This procedure is invoked to swap the request bytes if the server and
- * client have a different byte order.
- *
- */
-
 int
 ProcXChangeKeyboardDevice(ClientPtr client)
 {

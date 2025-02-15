@@ -1051,6 +1051,14 @@ v3d_nir_lower_vs_early(struct v3d_compile *c)
         NIR_PASS(_, c->s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
                  type_size_vec4,
                  (nir_lower_io_options)0);
+
+        /* For geometry stages using the same segment for inputs and outputs
+         * we need to read all inputs before writing any output. If we switch
+         * to separate segments in the future this may not longer be strictly
+         * required.
+         */
+        NIR_PASS(_, c->s, nir_move_output_stores_to_end);
+
         /* clean up nir_lower_io's deref_var remains and do a constant folding pass
          * on the code it generated.
          */
@@ -1316,9 +1324,6 @@ v3d_instr_delay_cb(nir_instr *instr, void *data)
 
    case nir_instr_type_tex:
       return 5;
-
-   case nir_instr_type_debug_info:
-      return 0;
    }
 
    return 0;

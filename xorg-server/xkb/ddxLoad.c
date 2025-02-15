@@ -40,6 +40,8 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "dix/dix_priv.h"
 #include "os/osdep.h"
+#include "xkb/xkbfile_priv.h"
+#include "xkb/xkbfmisc_priv.h"
 
 #include "inputstr.h"
 #include "scrnintstr.h"
@@ -182,7 +184,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 #ifndef WIN32
         if (Pclose(out) == 0)
 #else
-        if (fclose(out) == 0 && System(buf) >= 0)
+        if (fclose(out) == 0 && system(buf) >= 0)
 #endif
         {
             if (xkbDebugFlags)

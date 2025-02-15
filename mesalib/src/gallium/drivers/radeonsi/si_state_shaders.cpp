@@ -4,13 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#if AMD_LLVM_AVAILABLE
-#include "ac_llvm_util.h"
-#endif
-
 #include "ac_nir.h"
 #include "ac_shader_util.h"
 #include "compiler/nir/nir_serialize.h"
+#include "compiler/nir/nir.h"
 #include "nir/tgsi_to_nir.h"
 #include "si_build_pm4.h"
 #include "sid.h"

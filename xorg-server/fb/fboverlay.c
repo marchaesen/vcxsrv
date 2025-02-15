@@ -26,6 +26,8 @@
 
 #include <stdlib.h>
 
+#include "mi/mi_priv.h"
+
 #include "fb.h"
 #include "fboverlay.h"
 #include "shmint.h"
@@ -81,7 +83,7 @@ fbOverlayCloseScreen(ScreenPtr pScreen)
     int i;
 
     for (i = 0; i < pScrPriv->nlayers; i++) {
-        (*pScreen->DestroyPixmap) (pScrPriv->layer[i].u.run.pixmap);
+        dixDestroyPixmap(pScrPriv->layer[i].u.run.pixmap, 0);
         RegionUninit(&pScrPriv->layer[i].u.run.region);
     }
     return TRUE;

@@ -353,7 +353,7 @@ panfrost-g52-vk-full:arm64:
 panfrost-g52-piglit-gles2:arm64:
   extends:
     - .lava-test-deqp:arm64
-    - .panfrost-bifrost-gl-rules
+    - .panfrost-bifrost-gl-manual-rules
     - .panfrost-test
     - .lava-meson-g12b-a311d-khadas-vim3:arm64
   variables:

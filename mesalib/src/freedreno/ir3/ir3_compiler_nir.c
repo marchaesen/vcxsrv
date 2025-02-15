@@ -4286,7 +4286,6 @@ emit_instr(struct ir3_context *ctx, nir_instr *instr)
       break;
    case nir_instr_type_call:
    case nir_instr_type_parallel_copy:
-   case nir_instr_type_debug_info:
       ir3_context_error(ctx, "Unhandled NIR instruction type: %d\n",
                         instr->type);
       break;
@@ -4463,7 +4462,6 @@ instr_can_be_predicated(nir_instr *instr)
       return true;
    case nir_instr_type_call:
    case nir_instr_type_jump:
-   case nir_instr_type_debug_info:
       return false;
    case nir_instr_type_intrinsic: {
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);

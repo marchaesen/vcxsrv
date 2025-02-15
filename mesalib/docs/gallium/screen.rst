@@ -484,7 +484,7 @@ Capability about the features and limits of the driver/GPU.
   those bits set, pipe_context::set_constant_buffer(.., 0, ..) is ignored
   by the driver, and the driver can throw assertion failures.
 * ``pipe_caps.packed_uniforms``: True if the driver supports packed uniforms
-  as opposed to padding to vec4s.  Requires ``PIPE_SHADER_CAP_INTEGERS`` if
+  as opposed to padding to vec4s.  Requires ``pipe_shader_caps.integers`` if
   ``lower_uniforms_to_ubo`` is set.
 * ``pipe_caps.conservative_raster_post_snap_triangles``: Whether the
   ``PIPE_CONSERVATIVE_RASTER_POST_SNAP`` mode is supported for triangles.
@@ -514,12 +514,12 @@ Capability about the features and limits of the driver/GPU.
   with set_shader_buffers. This is unsigned integer with the maximum of 4GB - 1.
 * ``pipe_caps.max_combined_shader_buffers``: Maximum total number of shader
   buffers. A value of 0 means the sum of all per-shader stage maximums (see
-  ``PIPE_SHADER_CAP_MAX_SHADER_BUFFERS``).
+  ``pipe_shader_caps.max_shader_buffers``).
 * ``pipe_caps.max_combined_hw_atomic_counters``: Maximum total number of atomic
   counters. A value of 0 means the default value (MAX_ATOMIC_COUNTERS = 4096).
 * ``pipe_caps.max_combined_hw_atomic_counter_buffers``: Maximum total number of
   atomic counter buffers. A value of 0 means the sum of all per-shader stage
-  maximums (see ``PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS``).
+  maximums (see ``pipe_shader_caps.max_hw_atomic_counter_buffers``).
 * ``pipe_caps.max_texture_upload_memory_budget``: Maximum recommend memory size
   for all active texture uploads combined. This is a performance hint.
   0 means no limit.
@@ -536,7 +536,7 @@ Capability about the features and limits of the driver/GPU.
   used as destination in draw and blit calls.
 * ``pipe_caps.max_varyings``: The maximum number of fragment shader
   varyings. This will generally correspond to
-  ``PIPE_SHADER_CAP_MAX_INPUTS`` for the fragment shader, but in some
+  ``pipe_shader_caps.max_inputs`` for the fragment shader, but in some
   cases may be a smaller number.
 * ``pipe_caps.compute_grid_info_last_block``: Whether pipe_grid_info::last_block
   is implemented by the driver. See struct pipe_grid_info for more details.
@@ -630,7 +630,7 @@ Capability about the features and limits of the driver/GPU.
 * ``pipe_caps.query_sparse_texture_residency``: TRUE if shader sparse texture sample instruction could also return the residency information.
 * ``pipe_caps.clamp_sparse_texture_lod``: TRUE if shader sparse texture sample instruction support clamp the minimal lod to prevent read from uncommitted pages.
 * ``pipe_caps.allow_draw_out_of_order``: TRUE if the driver allows the "draw out of order" optimization to be enabled. See _mesa_update_allow_draw_out_of_order for more details.
-* ``pipe_caps.max_constant_buffer_size``: Maximum bound constant buffer size in bytes. This is unsigned integer with the maximum of 4GB - 1. This applies to all constant buffers used by UBOs, unlike ``PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE``, which is specifically for GLSL uniforms.
+* ``pipe_caps.max_constant_buffer_size``: Maximum bound constant buffer size in bytes. This is unsigned integer with the maximum of 4GB - 1. This applies to all constant buffers used by UBOs, unlike ``pipe_shader_caps.max_const_buffer0_size``, which is specifically for GLSL uniforms.
 * ``pipe_caps.hardware_gl_select``: Enable hardware accelerated GL_SELECT for this driver.
 * ``pipe_caps.device_protected_context``: Whether the device supports protected / encrypted context which can manipulate protected / encrypted content (some devices might need protected contexts to access protected content, whereas ``pipe_caps.device_protected_surface`` does not require any particular context to do so).
 * ``pipe_caps.allow_glthread_buffer_subdata_opt``: Whether to allow glthread to convert glBufferSubData to glCopyBufferSubData. This may improve or worsen performance depending on your driver.
@@ -669,24 +669,24 @@ Capability about the features and limits of the driver/GPU.
   dilation granularity for values relative to the minimum dilation.
 
 
-.. _pipe_shader_cap:
+.. _pipe_shader_caps:
 
-PIPE_SHADER_CAP_*
+pipe_shader_caps
 ^^^^^^^^^^^^^^^^^
 
 These are per-shader-stage capabitity queries. Different shader stages may
 support different features.
 
-* ``PIPE_SHADER_CAP_MAX_INSTRUCTIONS``: The maximum number of instructions.
-* ``PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS``: The maximum number of arithmetic instructions.
-* ``PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS``: The maximum number of texture instructions.
-* ``PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS``: The maximum number of texture indirections.
-* ``PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH``: The maximum nested control flow depth.
-* ``PIPE_SHADER_CAP_MAX_INPUTS``: The maximum number of input registers.
-* ``PIPE_SHADER_CAP_MAX_OUTPUTS``: The maximum number of output registers.
+* ``pipe_shader_caps.max_instructions``: The maximum number of instructions.
+* ``pipe_shader_caps.max_alu_instructions``: The maximum number of arithmetic instructions.
+* ``pipe_shader_caps.max_tex_instructions``: The maximum number of texture instructions.
+* ``pipe_shader_caps.max_tex_indirections``: The maximum number of texture indirections.
+* ``pipe_shader_caps.max_control_flow_depth``: The maximum nested control flow depth.
+* ``pipe_shader_caps.max_inputs``: The maximum number of input registers.
+* ``pipe_shader_caps.max_outputs``: The maximum number of output registers.
   This is valid for all shaders except the fragment shader.
-* ``PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE``: The maximum size of constant buffer 0 in bytes.
-* ``PIPE_SHADER_CAP_MAX_CONST_BUFFERS``: Maximum number of constant buffers that can be bound
+* ``pipe_shader_caps.max_const_buffer0_size``: The maximum size of constant buffer 0 in bytes.
+* ``pipe_shader_caps.max_const_buffers``: Maximum number of constant buffers that can be bound
   to any shader stage using ``set_constant_buffer``. If 0 or 1, the pipe will
   only permit binding one constant buffer per shader.
 
@@ -700,100 +700,102 @@ support different features.
     DCL CONST[3][0]          # declare first vector of constbuf 3
     MOV OUT[0], CONST[0][3]  # copy vector 3 of constbuf 0
 
-* ``PIPE_SHADER_CAP_MAX_TEMPS``: The maximum number of temporary registers.
-* ``PIPE_SHADER_CAP_CONT_SUPPORTED``: Whether continue is supported.
-* ``PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR``: Whether indirect addressing
+* ``pipe_shader_caps.max_temps``: The maximum number of temporary registers.
+* ``pipe_shader_caps.cont_supported``: Whether continue is supported.
+* ``pipe_shader_caps.indirect_temp_addr``: Whether indirect addressing
   of the temporary file is supported.
-* ``PIPE_SHADER_CAP_INDIRECT_CONST_ADDR``: Whether indirect addressing
+* ``pipe_shader_caps.indirect_const_addr``: Whether indirect addressing
   of the constant file is supported.
-* ``PIPE_SHADER_CAP_SUBROUTINES``: Whether subroutines are supported, i.e.
+* ``pipe_shader_caps.subroutines``: Whether subroutines are supported, i.e.
   BGNSUB, ENDSUB, CAL, and RET, including RET in the main block.
-* ``PIPE_SHADER_CAP_INTEGERS``: Whether integer opcodes are supported.
+* ``pipe_shader_caps.integers``: Whether integer opcodes are supported.
   If unsupported, only float opcodes are supported.
-* ``PIPE_SHADER_CAP_INT64_ATOMICS``: Whether int64 atomic opcodes are supported. The device needs to support add, sub, swap, cmpswap, and, or, xor, min, and max.
-* ``PIPE_SHADER_CAP_FP16``: Whether half precision floating-point opcodes are supported.
+* ``pipe_shader_caps.int64_atomics``: Whether int64 atomic opcodes are supported. The device needs to support add, sub, swap, cmpswap, and, or, xor, min, and max.
+* ``pipe_shader_caps.fp16``: Whether half precision floating-point opcodes are supported.
    If unsupported, half precision ops need to be lowered to full precision.
-* ``PIPE_SHADER_CAP_FP16_DERIVATIVES``: Whether half precision floating-point
+* ``pipe_shader_caps.fp16_derivatives``: Whether half precision floating-point
   DDX and DDY opcodes are supported.
-* ``PIPE_SHADER_CAP_FP16_CONST_BUFFERS``: Whether half precision floating-point
+* ``pipe_shader_caps.fp16_const_buffers``: Whether half precision floating-point
   constant buffer loads are supported. Drivers are recommended to report 0
   if x86 F16C is not supported by the CPU (or an equivalent instruction set
   on other CPU architectures), otherwise they could be impacted by emulated
   FP16 conversions in glUniform.
-* ``PIPE_SHADER_CAP_INT16``: Whether 16-bit signed and unsigned integer types
+* ``pipe_shader_caps.int16``: Whether 16-bit signed and unsigned integer types
   are supported.
-* ``PIPE_SHADER_CAP_GLSL_16BIT_CONSTS``: Lower mediump constants to 16-bit.
+* ``pipe_shader_caps.glsl_16bit_consts``: Lower mediump constants to 16-bit.
   Note that 16-bit constants are not lowered to uniforms in GLSL.
-* ``PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS``: The maximum number of texture
+* ``pipe_shader_caps.max_texture_samplers``: The maximum number of texture
   samplers.
-* ``PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS``: The maximum number of texture
-  sampler views. Must not be lower than PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS.
-* ``PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE``: Whether the driver doesn't
+* ``pipe_shader_caps.max_sampler_views``: The maximum number of texture
+  sampler views. Must not be lower than pipe_shader_caps.max_texture_samplers.
+* ``pipe_shader_caps.tgsi_any_inout_decl_range``: Whether the driver doesn't
   ignore tgsi_declaration_range::Last for shader inputs and outputs.
-* ``PIPE_SHADER_CAP_MAX_SHADER_BUFFERS``: Maximum number of memory buffers
+* ``pipe_shader_caps.max_shader_buffers``: Maximum number of memory buffers
   (also used to implement atomic counters). Having this be non-0 also
   implies support for the ``LOAD``, ``STORE``, and ``ATOM*`` TGSI
   opcodes.
-* ``PIPE_SHADER_CAP_SUPPORTED_IRS``: Supported representations of the
+* ``pipe_shader_caps.supported_irs``: Supported representations of the
   program.  It should be a mask of ``pipe_shader_ir`` bits.
-* ``PIPE_SHADER_CAP_MAX_SHADER_IMAGES``: Maximum number of image units.
-* ``PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS``: If atomic counters are separate,
+* ``pipe_shader_caps.max_shader_images``: Maximum number of image units.
+* ``pipe_shader_caps.max_hw_atomic_counters``: If atomic counters are separate,
   how many HW counters are available for this stage. (0 uses SSBO atomics).
-* ``PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS``: If atomic counters are
+* ``pipe_shader_caps.max_hw_atomic_counter_buffers``: If atomic counters are
   separate, how many atomic counter buffers are available for this stage.
 
-.. _pipe_compute_cap:
+.. _pipe_compute_caps:
 
-PIPE_COMPUTE_CAP_*
+pipe_compute_caps
 ^^^^^^^^^^^^^^^^^^
 
 Compute-specific capabilities. They can be queried using
 pipe_screen::get_compute_param.
 
-* ``PIPE_COMPUTE_CAP_IR_TARGET``: A description of the target of the form
+* ``pipe_compute_caps.ir_target``: A description of the target of the form
   ``processor-arch-manufacturer-os`` that will be passed on to the compiler.
   This CAP is only relevant for drivers that specify PIPE_SHADER_IR_NATIVE for
   their preferred IR.
-  Value type: null-terminated string. Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_GRID_DIMENSION``: Number of supported dimensions
-  for grid and block coordinates.  Value type: ``uint64_t``. Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_MAX_GRID_SIZE``: Maximum grid size in block
-  units.  Value type: ``uint64_t []``.  Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE``: Maximum block size in thread
-  units.  Value type: ``uint64_t []``. Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK``: Maximum number of threads that
-  a single block can contain.  Value type: ``uint64_t``. Shader IR type dependent.
+* ``pipe_compute_caps.grid_dimension``: Number of supported dimensions
+  for grid and block coordinates.
+* ``pipe_compute_caps.max_grid_size``: Maximum grid size in block
+  units.
+* ``pipe_compute_caps.max_block_size``: Maximum block size in thread
+  units.
+* ``pipe_compute_caps.max_block_size_clover``: Same as ``pipe_compute_caps.max_block_size``
+  but used by clover only.
+* ``pipe_compute_caps.max_threads_per_block``: Maximum number of threads that
+  a single block can contain.
   This may be less than the product of the components of MAX_BLOCK_SIZE and is
   usually limited by the number of threads that can be resident simultaneously
   on a compute unit.
-* ``PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE``: Maximum size of the GLOBAL
-  resource.  Value type: ``uint64_t``. Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE``: Maximum size of the LOCAL
-  resource.  Value type: ``uint64_t``. Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE``: Maximum size of the PRIVATE
-  resource.  Value type: ``uint64_t``. Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_MAX_INPUT_SIZE``: Maximum size of the INPUT
-  resource.  Value type: ``uint64_t``. Shader IR type dependent.
-* ``PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE``: Maximum size of a memory object
-  allocation in bytes.  Value type: ``uint64_t``.
-* ``PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY``: Maximum frequency of the GPU
-  clock in MHz. Value type: ``uint32_t``
-* ``PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS``: Maximum number of compute units
-  Value type: ``uint32_t``
-* ``PIPE_COMPUTE_CAP_MAX_SUBGROUPS``: The max amount of subgroups there can be
+* ``pipe_compute_caps.max_threads_per_block_clover``: Same as
+  ``pipe_compute_caps.max_threads_per_block`` but used by clover only.
+* ``pipe_compute_caps.max_global_size``: Maximum size of the GLOBAL
+  resource.
+* ``pipe_compute_caps.max_local_size``: Maximum size of the LOCAL
+  resource.
+* ``pipe_compute_caps.max_private_size``: Maximum size of the PRIVATE
+  resource.
+* ``pipe_compute_caps.max_input_size``: Maximum size of the INPUT
+  resource.
+* ``pipe_compute_caps.max_mem_alloc_size``: Maximum size of a memory object
+  allocation in bytes.
+* ``pipe_compute_caps.max_clock_frequency``: Maximum frequency of the GPU
+  clock in MHz
+* ``pipe_compute_caps.max_compute_units``: Maximum number of compute units
+* ``pipe_compute_caps.max_subgroups``: The max amount of subgroups there can be
   inside a block. Non 0 indicates support for OpenCL subgroups including
   implementing ``get_compute_state_subgroup_size`` if multiple subgroup sizes
   are supported.
-* ``PIPE_COMPUTE_CAP_IMAGES_SUPPORTED``: Whether images are supported
-  non-zero means yes, zero means no. Value type: ``uint32_t``
-* ``PIPE_COMPUTE_CAP_SUBGROUP_SIZES``: Ored power of two sizes of a basic execution
+* ``pipe_compute_caps.images_supported``: Whether images are supported
+  non-zero means yes, zero means no
+* ``pipe_compute_caps.subgroup_sizes``: Ored power of two sizes of a basic execution
   unit in threads. Also known as wavefront size, warp size or SIMD width.
   E.g. ``64 | 32``.
-* ``PIPE_COMPUTE_CAP_ADDRESS_BITS``: The default compute device address space
+* ``pipe_compute_caps.address_bits``: The default compute device address space
   size specified as an unsigned integer value in bits.
-* ``PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK``: Maximum variable number
+* ``pipe_compute_caps.max_variable_threads_per_block``: Maximum variable number
   of threads that a single block can contain. This is similar to
-  PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK, except that the variable size is not
+  pipe_compute_caps.max_threads_per_block, except that the variable size is not
   known a compile-time but at dispatch-time.
 
 .. _pipe_bind:
