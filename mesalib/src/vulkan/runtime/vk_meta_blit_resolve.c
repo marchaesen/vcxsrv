@@ -336,7 +336,7 @@ get_blit_pipeline_layout(struct vk_device *device,
                          struct vk_meta_device *meta,
                          VkPipelineLayout *layout_out)
 {
-   const char key[] = "vk-meta-blit-pipeline-layout";
+   enum vk_meta_object_key_type key = VK_META_OBJECT_KEY_BLIT;
 
    const VkDescriptorSetLayoutBinding bindings[] = {{
       .binding = BLIT_DESC_BINDING_SAMPLER,
@@ -374,7 +374,7 @@ get_blit_pipeline_layout(struct vk_device *device,
    };
 
    return vk_meta_get_pipeline_layout(device, meta, &desc_info, &push_range,
-                                      key, sizeof(key), layout_out);
+                                      &key, sizeof(key), layout_out);
 }
 
 static VkResult
@@ -470,7 +470,7 @@ get_blit_sampler(struct vk_device *device,
    } key;
 
    memset(&key, 0, sizeof(key));
-   key.key_type = VK_META_OBJECT_KEY_BLIT_SAMPLER;
+   key.key_type = VK_META_OBJECT_KEY_BLIT;
    key.filter = filter;
 
    VkSampler from_cache = vk_meta_lookup_sampler(meta, &key, sizeof(key));
@@ -734,7 +734,7 @@ vk_meta_blit_image(struct vk_command_buffer *cmd,
 
    struct vk_meta_blit_key key;
    memset(&key, 0, sizeof(key));
-   key.key_type = VK_META_OBJECT_KEY_BLIT_PIPELINE;
+   key.key_type = VK_META_OBJECT_KEY_BLIT;
    key.src_samples = src_image->samples;
    key.dim = vk_image_sampler_dim(src_image);
    key.dst_format = dst_format;
@@ -825,7 +825,7 @@ vk_meta_resolve_image(struct vk_command_buffer *cmd,
 {
    struct vk_meta_blit_key key;
    memset(&key, 0, sizeof(key));
-   key.key_type = VK_META_OBJECT_KEY_BLIT_PIPELINE;
+   key.key_type = VK_META_OBJECT_KEY_BLIT;
    key.dim = vk_image_sampler_dim(src_image);
    key.src_samples = src_image->samples;
    key.resolve_mode = resolve_mode;

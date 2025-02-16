@@ -1059,8 +1059,11 @@ ResetHosts(const char *display)
             else
 #if defined(TCPCONN)
             {
+#if defined(HAVE_GETADDRINFO)
+                if ((family == FamilyInternet) ||
 #if defined(IPv6)
-                if ((family == FamilyInternet) || (family == FamilyInternet6) ||
+                    (family == FamilyInternet6) ||
+#endif
                     (family == FamilyWild)) {
                     struct addrinfo *addresses;
                     struct addrinfo *a;
@@ -1085,7 +1088,7 @@ ResetHosts(const char *display)
                         freeaddrinfo(addresses);
                     }
                 }
-#else
+#else                           /* HAVE_GETADDRINFO */
 #ifdef XTHREADS_NEEDS_BYNAMEPARAMS
                 _Xgethostbynameparams hparams;
 #endif
@@ -1112,7 +1115,7 @@ ResetHosts(const char *display)
 #endif
                     }
                 }
-#endif                          /* IPv6 */
+#endif                          /* HAVE_GETADDRINFO */
             }
 #endif                          /* TCPCONN */
             family = FamilyWild;
@@ -1867,8 +1870,12 @@ siHostnameAddrMatch(int family, void *addr, int len,
  * support for other address families, such as DECnet, could be added if
  * desired.
  */
+#if defined(HAVE_GETADDRINFO)
+    if ((family == FamilyInternet)
 #if defined(IPv6)
-    if ((family == FamilyInternet) || (family == FamilyInternet6)) {
+        || (family == FamilyInternet6)
+#endif
+        ) {
         char hostname[SI_HOSTNAME_MAXLEN];
         struct addrinfo *addresses;
         struct addrinfo *a;
@@ -1899,7 +1906,7 @@ siHostnameAddrMatch(int family, void *addr, int len,
             freeaddrinfo(addresses);
         }
     }
-#else                           /* IPv6 not supported, use gethostbyname instead for IPv4 */
+#else /* getaddrinfo not supported, use gethostbyname instead for IPv4 */
     if (family == FamilyInternet) {
         register struct hostent *hp;
 

@@ -140,12 +140,14 @@ egl_create_glx_drawable(ClientPtr client, __GLXscreen *screen,
  * - drawable type masks is suspicious
  */
 static struct egl_config *
-translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
+translate_eglconfig(ScreenPtr pScreen, struct egl_screen *screen, EGLConfig hc,
                     struct egl_config *chain, Bool direct_color,
                     Bool double_buffer, Bool duplicate_for_composite,
                     Bool srgb_only)
 {
     EGLint value;
+    bool valid_depth;
+    int i;
     struct egl_config *c = calloc(1, sizeof *c);
 
     if (!c)
@@ -217,6 +219,19 @@ translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
         GET(EGL_MAX_PBUFFER_PIXELS, maxPbufferPixels);
     }
 #undef GET
+
+    /* Only expose this config if rgbBits matches a supported
+     * depth value.
+     */
+    valid_depth = false;
+    for (i = 0; i < pScreen->numDepths && !valid_depth; i++) {
+        if (pScreen->allowedDepths[i].depth == c->base.rgbBits)
+            valid_depth = true;
+    }
+    if (!valid_depth) {
+        free(c);
+        return chain;
+    }
 
     /* derived state: config caveats */
     eglGetConfigAttrib(screen->display, hc, EGL_CONFIG_CAVEAT, &value);
@@ -340,13 +355,13 @@ egl_mirror_configs(ScreenPtr pScreen, struct egl_screen *screen)
         for (j = 0; j < 3; j++) /* direct_color */
             for (k = 0; k < 2; k++) /* double_buffer */ {
                 if (can_srgb)
-                    c = translate_eglconfig(screen, host_configs[i], c,
+                    c = translate_eglconfig(pScreen, screen, host_configs[i], c,
                                             /* direct_color */ j == 1,
                                             /* double_buffer */ k > 0,
                                             /* duplicate_for_composite */ j == 0,
                                             /* srgb_only */ true);
 
-                c = translate_eglconfig(screen, host_configs[i], c,
+                c = translate_eglconfig(pScreen, screen, host_configs[i], c,
                                         /* direct_color */ j == 1,
                                         /* double_buffer */ k > 0,
                                         /* duplicate_for_composite */ j == 0,

@@ -13,6 +13,7 @@
 #include "tu_common.h"
 
 #include "vk_device_memory.h"
+#include "vk_meta.h"
 
 #include "tu_autotune.h"
 #include "tu_cs.h"
@@ -20,6 +21,8 @@
 #include "tu_perfetto.h"
 #include "tu_suballoc.h"
 #include "tu_util.h"
+
+#include "radix_sort/radix_sort_vk.h"
 
 #include "common/freedreno_rd_output.h"
 #include "util/vma.h"
@@ -117,6 +120,7 @@ struct tu_physical_device
    int32_t reserved_set_idx;
 
    bool has_set_iova;
+   bool has_raytracing;
    uint64_t va_start;
    uint64_t va_size;
 
@@ -286,6 +290,13 @@ struct tu_device
    /* Backup in-memory cache to be used if the app doesn't provide one */
    struct vk_pipeline_cache *mem_cache;
 
+   struct vk_meta_device meta;
+
+   radix_sort_vk_t *radix_sort;
+   mtx_t radix_sort_mutex;
+
+   struct util_sparse_array accel_struct_ranges;
+
 #define MIN_SCRATCH_BO_SIZE_LOG2 12 /* A page */
 
    /* Currently the kernel driver uses a 32-bit GPU address space, but it
@@ -301,6 +312,8 @@ struct tu_device
 
    struct tu_bo *global_bo;
    struct tu6_global *global_bo_map;
+
+   struct tu_bo *null_accel_struct_bo;
 
    uint32_t implicit_sync_bo_count;
 

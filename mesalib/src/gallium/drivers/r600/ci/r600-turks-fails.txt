@@ -25,7 +25,7 @@ KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreCS,Fail
 KHR-GLES31.core.shader_storage_buffer_object.advanced-readWrite-case1-cs,Fail
 
 # r600_shader.c:10547: fc_pushlevel: Assertion `ctx->bc->fc_sp < ARRAY_SIZE(ctx->bc->fc_stack)' failed.
-# Yeah, that's some deep flow control there.  Previously PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH would
+# Yeah, that's some deep flow control there.  Previously pipe_shader_caps.max_control_flow_depth would
 # do GLSL lower_if_to_cond_assign (which is incorrect for instructions with side effects) after 32
 # ifs deep, but we don't have the equivalent for NIR.
 KHR-GLES31.core.tessellation_shader.single.max_patch_vertices,Crash

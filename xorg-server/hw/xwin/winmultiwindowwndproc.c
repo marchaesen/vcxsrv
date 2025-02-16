@@ -43,6 +43,7 @@
 #include "win.h"
 
 #include "dix/dix_priv.h"
+#include "mi/mipointer_priv.h"
 
 #include "dixevents.h"
 #include "winmultiwindowclass.h"

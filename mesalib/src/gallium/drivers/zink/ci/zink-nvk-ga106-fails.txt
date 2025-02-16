@@ -454,7 +454,6 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
-spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_texture_array@texsubimage array,Fail
 spec@ext_transform_feedback@immediate-reuse-uniform-buffer,Fail
 spec@ext_transform_feedback@tessellation quad_strip wireframe,Fail

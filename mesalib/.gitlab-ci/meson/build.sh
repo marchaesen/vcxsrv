@@ -15,15 +15,20 @@ comma_separated() {
   echo "$*"
 }
 
+no_werror() {
+  # shellcheck disable=SC2048
+  for i in $*; do
+    echo "-D${i}:werror=false "
+  done
+}
+
 CROSS_FILE=/cross_file-"$CROSS".txt
 
 export PATH=$PATH:$PWD/.gitlab-ci/build
 
 touch native.file
 printf > native.file "%s\n" \
-  "[binaries]" \
-  "c = 'compiler-wrapper-${CC:-gcc}.sh'" \
-  "cpp = 'compiler-wrapper-${CXX:-g++}.sh'"
+  "[binaries]"
 
 # We need to control the version of llvm-config we're using, so we'll
 # tweak the cross file or generate a native file to do so.
@@ -115,7 +120,7 @@ case $CI_PIPELINE_SOURCE in
 	      # /tmp/ccWlDCPV.s:15250880: Error: operand out of range (0xfffffffffdd4e688 is not between 0xfffffffffe000000 and 0x1fffffc)
 	      LTO=false
       # enable one by one for now
-      elif [ "$CI_JOB_NAME" == "fedora-release" ] || [ "$CI_JOB_NAME" == "debian-build-testing" ]; then
+      elif [ "$CI_JOB_NAME" == "fedora-release" ]; then
 	      LTO=true
       else
 	      LTO=false
@@ -132,9 +137,12 @@ else
     MAX_LD=${FDO_CI_CONCURRENT:-4}
 fi
 
+# these are built as Meson subprojects; we want to use Meson's
+# --force-fallback-for to ensure that we build the subprojects from their wrap
+# files, and we also want to disable Werror on those, since we do not control
+# these projects and making them warning-free is not our goal.
 # shellcheck disable=2206
-force_fallback_for=(
-  # FIXME: explain what these are needed for
+meson_subprojects=(
   perfetto
   syn
   paste
@@ -150,19 +158,21 @@ force_fallback_for=(
 section_switch meson-configure "meson: configure"
 
 rm -rf _build
+# shellcheck disable=SC2046
 meson setup _build \
       --native-file=native.file \
       --wrap-mode=nofallback \
-      --force-fallback-for "$(comma_separated "${force_fallback_for[@]}")" \
+      --force-fallback-for "$(comma_separated "${meson_subprojects[@]}")" \
+      $(no_werror "${meson_subprojects[@]}") \
       ${CROSS+--cross "$CROSS_FILE"} \
       -D prefix=$PWD/install \
       -D libdir=lib \
       -D buildtype=${BUILDTYPE:?} \
-      -D build-tests=true \
+      -D build-tests=${RUN_MESON_TESTS} \
       -D c_args="$(echo -n $C_ARGS)" \
-      -D c_link_args="$(echo -n $C_LINK_ARGS)" \
+      -D c_link_args="$(echo -n $C_LINK_ARGS) -Wl,--fatal-warnings" \
       -D cpp_args="$(echo -n $CPP_ARGS)" \
-      -D cpp_link_args="$(echo -n $CPP_LINK_ARGS)" \
+      -D cpp_link_args="$(echo -n $CPP_LINK_ARGS) -Wl,--fatal-warnings" \
       -D enable-glcpp-tests=false \
       -D libunwind=${UNWIND} \
       ${DRI_LOADERS} \
@@ -182,9 +192,11 @@ uncollapsed_section_switch meson-build "meson: build"
 
 ninja
 
+if [ "${RUN_MESON_TESTS}" = "true" ]; then
+    uncollapsed_section_switch meson-test "meson: test"
+    LC_ALL=C.UTF-8 meson test --num-processes "${FDO_CI_CONCURRENT:-4}" --print-errorlogs ${MESON_TEST_ARGS}
+fi
 
-uncollapsed_section_switch meson-test "meson: test"
-LC_ALL=C.UTF-8 meson test --num-processes "${FDO_CI_CONCURRENT:-4}" --print-errorlogs ${MESON_TEST_ARGS}
 section_switch meson-install "meson: install"
 ninja install
 cd ..

@@ -160,20 +160,6 @@ can_move_intrinsic_after_discard(nir_intrinsic_instr *intrin)
       return can_move_after_demote | can_move_after_terminate;
 
    switch (intrin->intrinsic) {
-   case nir_intrinsic_quad_broadcast:
-   case nir_intrinsic_quad_swap_horizontal:
-   case nir_intrinsic_quad_swap_vertical:
-   case nir_intrinsic_quad_swap_diagonal:
-   case nir_intrinsic_quad_vote_all:
-   case nir_intrinsic_quad_vote_any:
-   case nir_intrinsic_quad_swizzle_amd:
-   case nir_intrinsic_ddx:
-   case nir_intrinsic_ddx_fine:
-   case nir_intrinsic_ddx_coarse:
-   case nir_intrinsic_ddy:
-   case nir_intrinsic_ddy_fine:
-   case nir_intrinsic_ddy_coarse:
-      return can_move_after_demote;
    case nir_intrinsic_is_helper_invocation:
    case nir_intrinsic_load_helper_invocation:
       return can_move_after_terminate;
@@ -223,6 +209,9 @@ can_move_intrinsic_after_discard(nir_intrinsic_instr *intrin)
       break;
    }
 
+   if (nir_intrinsic_has_semantic(intrin, NIR_INTRINSIC_QUADGROUP))
+      return can_move_after_demote;
+
    return 0;
 }
 
@@ -248,7 +237,6 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
          case nir_instr_type_load_const:
          case nir_instr_type_undef:
          case nir_instr_type_phi:
-         case nir_instr_type_debug_info:
             /* These are all safe */
             continue;
 

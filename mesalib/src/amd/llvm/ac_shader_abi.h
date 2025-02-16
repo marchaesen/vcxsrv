@@ -10,7 +10,7 @@
 #include "ac_shader_args.h"
 #include "ac_shader_util.h"
 #include "compiler/shader_enums.h"
-#include "nir.h"
+#include "nir_defines.h"
 #include <llvm-c/Core.h>
 
 #include <assert.h>

@@ -13,7 +13,6 @@ KHR-GL46.texture_cube_map_array.color_depth_attachments,Fail
 #
 
 
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats,Fail
@@ -136,9 +135,6 @@ spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
 spec@ext_transform_feedback@tessellation triangle_strip flat_first,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 1x129x9-98x129x9,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9,Fail
-
-spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array-2,Crash
-spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array,Crash
 
 spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
@@ -315,3 +311,94 @@ program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float16,
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float2,Fail
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float4,Fail
 program@execute@builtin@builtin-float-nextafter-1.0.generated@nextafter float8,Fail
+
+# (file=input,line=0,column=0,index=0): Unresolved external reference to "_Z21convert_char4_sat_rteDv4_i".
+program@execute@vector-conversion,Fail
+
+# piles of new fails since updating skqp; to be re-evaluated with new upstream
+gl_all_bitmap_configs,Fail
+gl_androidblendmodes,Fail
+gl_annotated_text,Fail
+gl_arithmode,Fail
+gl_bitmapcopy,Fail
+gl_blob_rsxform,Fail
+gl_blurSmallRadii,Fail
+gl_coloremoji_blendmodes,Fail
+gl_colorwheelnative,Fail
+gl_combinemaskfilter,Fail
+gl_dashtextcaps,Fail
+gl_degenerate_gradients,Fail
+gl_draw-atlas-colors,Fail
+gl_encode,Fail
+gl_gammagradienttext,Fail
+gl_gammatext,Fail
+gl_gpusamplerstress,Fail
+gl_gradtext,Fail
+gl_highcontrastfilter,Fail
+gl_image-surface,Fail
+gl_imageblur2,Fail
+gl_imageblur_large,Fail
+gl_imageblurtiled,Fail
+gl_lcdblendmodes,Fail
+gl_lcdtextsize,Fail
+gl_scaled_tilemode_bitmap,Fail
+gl_scaled_tilemode_gradient,Fail
+gl_scaled_tilemodes,Fail
+gl_simpleaaclip_aaclip,Fail
+gl_skbug_5321,Fail
+gl_srcmode,Fail
+gl_surfaceprops,Fail
+gl_textblob_intercepts,Fail
+gl_textblobblockreordering,Fail
+gl_textblobcolortrans,Fail
+gl_textfilter_color,Fail
+gl_textfilter_image,Fail
+gl_tilemode_bitmap,Fail
+gl_typefacestyles,Fail
+gl_wacky_yuv_formats,Fail
+gl_wacky_yuv_formats_cs,Fail
+gl_xfermodes2,Fail
+gl_xfermodes3,Fail
+vk_all_bitmap_configs,Fail
+vk_androidblendmodes,Fail
+vk_annotated_text,Fail
+vk_arithmode,Fail
+vk_bitmapcopy,Fail
+vk_blob_rsxform,Fail
+vk_blurSmallRadii,Fail
+vk_coloremoji_blendmodes,Fail
+vk_colorwheelnative,Fail
+vk_combinemaskfilter,Fail
+vk_dashtextcaps,Fail
+vk_degenerate_gradients,Fail
+vk_draw-atlas-colors,Fail
+vk_encode,Fail
+vk_gammagradienttext,Fail
+vk_gammatext,Fail
+vk_gpusamplerstress,Fail
+vk_gradtext,Fail
+vk_highcontrastfilter,Fail
+vk_image-surface,Fail
+vk_imageblur2,Fail
+vk_imageblur_large,Fail
+vk_imageblurtiled,Fail
+vk_lcdblendmodes,Fail
+vk_lcdtextsize,Fail
+vk_scaled_tilemode_bitmap,Fail
+vk_scaled_tilemode_gradient,Fail
+vk_scaled_tilemodes,Fail
+vk_simpleaaclip_aaclip,Fail
+vk_skbug_5321,Fail
+vk_srcmode,Fail
+vk_surfaceprops,Fail
+vk_textblob_intercepts,Fail
+vk_textblobblockreordering,Fail
+vk_textblobcolortrans,Fail
+vk_textfilter_color,Fail
+vk_textfilter_image,Fail
+vk_tilemode_bitmap,Fail
+vk_typefacestyles,Fail
+vk_wacky_yuv_formats,Fail
+vk_wacky_yuv_formats_cs,Fail
+vk_xfermodes2,Fail
+vk_xfermodes3,Fail

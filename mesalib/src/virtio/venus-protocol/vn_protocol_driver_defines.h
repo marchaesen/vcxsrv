@@ -335,6 +335,8 @@ typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkCmdEndConditionalRenderingEXT_EXT = 241,
     VK_COMMAND_TYPE_vkImportFenceFdKHR_EXT = 238,
     VK_COMMAND_TYPE_vkGetFenceFdKHR_EXT = 239,
+    VK_COMMAND_TYPE_vkCmdSetSampleLocationsEXT_EXT = 283,
+    VK_COMMAND_TYPE_vkGetPhysicalDeviceMultisamplePropertiesEXT_EXT = 284,
     VK_COMMAND_TYPE_vkGetImageDrmFormatModifierPropertiesEXT_EXT = 187,
     VK_COMMAND_TYPE_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT_EXT = 235,
     VK_COMMAND_TYPE_vkGetCalibratedTimestampsEXT_EXT = 236,

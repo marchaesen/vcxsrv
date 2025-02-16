@@ -202,7 +202,7 @@ impl PipeResource {
             access: PIPE_IMAGE_ACCESS_TEX2D_FROM_BUFFER as u16 | host_access,
             shader_access: shader_access,
             u: pipe_image_view__bindgen_ty_1 {
-                tex2d_from_buf: pipe_image_view__bindgen_ty_1__bindgen_ty_3 {
+                tex2d_from_buf: pipe_tex2d_from_buf {
                     offset: 0,
                     row_stride: app_img_info.row_stride as u16,
                     width: app_img_info.width as u16,
@@ -259,7 +259,7 @@ impl PipeResource {
 
         // write the entire union field because u_sampler_view_default_template might have left it
         // in an undefined state.
-        res.u.tex2d_from_buf = pipe_sampler_view__bindgen_ty_2__bindgen_ty_3 {
+        res.u.tex2d_from_buf = pipe_tex2d_from_buf {
             offset: 0,
             row_stride: app_img_info.row_stride as u16,
             width: app_img_info.width as u16,

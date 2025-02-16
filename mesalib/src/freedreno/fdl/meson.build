@@ -10,6 +10,7 @@ libfreedreno_layout = static_library(
     'fd6_tiled_memcpy.cc',
     'fd6_view.c',
     'freedreno_layout.c',
+    'freedreno_lrz_layout.c',
     freedreno_xml_header_files,
   ],
   include_directories : [inc_freedreno, inc_include, inc_src],

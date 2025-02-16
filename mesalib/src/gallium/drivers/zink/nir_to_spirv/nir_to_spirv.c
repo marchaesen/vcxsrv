@@ -109,7 +109,8 @@ struct ntv_context {
          subgroup_invocation_var,
          subgroup_le_mask_var,
          subgroup_lt_mask_var,
-         subgroup_size_var;
+         subgroup_size_var,
+         num_subgroups_var;
 
    SpvId discard_func;
    SpvId float_array_type[2];
@@ -3165,6 +3166,7 @@ emit_is_helper_invocation(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 {
    spirv_builder_emit_extension(&ctx->builder,
                                 "SPV_EXT_demote_to_helper_invocation");
+   spirv_builder_emit_cap(&ctx->builder, SpvCapabilityDemoteToHelperInvocation);
    SpvId result = spirv_is_helper_invocation(&ctx->builder);
    store_def(ctx, intr->def.index, result, nir_type_bool);
 }
@@ -3247,6 +3249,169 @@ emit_derivative(struct ntv_context *ctx, nir_intrinsic_instr *intr)
 
    SpvId result = emit_unop(ctx, op, type, value);
    store_def(ctx, intr->def.index, result, nir_type_float);
+}
+
+static void
+emit_subgroup(struct ntv_context *ctx, nir_intrinsic_instr *intr)
+{
+   SpvOp op;
+
+   switch (nir_intrinsic_reduction_op(intr)) {
+#define SUBGROUP_CASE(nir, spirv) \
+   case nir_op_##nir: \
+      op = SpvOpGroupNonUniform##spirv; \
+      break
+   SUBGROUP_CASE(iadd, IAdd);
+   SUBGROUP_CASE(fadd, FAdd);
+   SUBGROUP_CASE(imul, IMul);
+   SUBGROUP_CASE(fmul, FMul);
+   SUBGROUP_CASE(imin, SMin);
+   SUBGROUP_CASE(umin, UMin);
+   SUBGROUP_CASE(fmin, FMin);
+   SUBGROUP_CASE(imax, SMax);
+   SUBGROUP_CASE(umax, UMax);
+   SUBGROUP_CASE(fmax, FMax);
+#undef SUBGROUP_CASE
+
+#define SUBGROUP_CASE_LOGICAL(nir, spirv) \
+   case nir_op_##nir: \
+      op = intr->src[0].ssa->bit_size != 1 ? SpvOpGroupNonUniformBitwise##spirv : SpvOpGroupNonUniformLogical##spirv; \
+      break
+   SUBGROUP_CASE_LOGICAL(iand, And);
+   SUBGROUP_CASE_LOGICAL(ior, Or);
+   SUBGROUP_CASE_LOGICAL(ixor, Xor);
+#undef SUBGROUP_CASE_LOGICAL
+   default:
+      fprintf(stderr, "emit_subgroup: reduction op not implemented (%s)\n",
+              nir_intrinsic_infos[nir_intrinsic_reduction_op(intr)].name);
+      unreachable("unhandled intrinsic");
+   }
+
+   SpvGroupOperation groupop;
+   unsigned cluster_size = 0;
+   switch (intr->intrinsic) {
+   case nir_intrinsic_reduce:
+      cluster_size = nir_intrinsic_cluster_size(intr);
+      groupop = cluster_size ? SpvGroupOperationClusteredReduce : SpvGroupOperationReduce;
+      break;
+   case nir_intrinsic_inclusive_scan:
+      groupop = SpvGroupOperationInclusiveScan;
+      break;
+   case nir_intrinsic_exclusive_scan:
+      groupop = SpvGroupOperationExclusiveScan;
+      break;
+   default:
+      fprintf(stderr, "emit_subgroup: not implemented (%s)\n",
+              nir_intrinsic_infos[intr->intrinsic].name);
+      unreachable("unhandled intrinsic");
+   }
+   spirv_builder_emit_cap(&ctx->builder, cluster_size ? SpvCapabilityGroupNonUniformClustered : SpvCapabilityGroupNonUniformArithmetic);
+
+   nir_alu_type atype;
+   SpvId src0 = get_src(ctx, &intr->src[0], &atype);
+   switch (op) {
+   case SpvOpGroupNonUniformFAdd:
+   case SpvOpGroupNonUniformFMul:
+   case SpvOpGroupNonUniformFMin:
+   case SpvOpGroupNonUniformFMax:
+      atype = nir_type_float;
+      src0 = emit_bitcast(ctx, get_def_type(ctx, intr->src[0].ssa, atype), src0);
+      break;
+   default: break;
+   }
+   SpvId type = get_def_type(ctx, intr->src[0].ssa, atype);
+   SpvId result = 0;
+   if (cluster_size)
+      result = spirv_builder_emit_triop_subgroup(&ctx->builder, op, type, groupop, src0, spirv_builder_const_uint(&ctx->builder, 32, cluster_size));
+   else
+      result = spirv_builder_emit_binop_subgroup(&ctx->builder, op, type, groupop, src0);
+   store_def(ctx, intr->def.index, result, atype);
+}
+
+static void
+emit_subgroup_quad(struct ntv_context *ctx, nir_intrinsic_instr *intr)
+{
+   SpvOp op;
+   nir_alu_type atype, itype;
+   SpvId src0 = get_src(ctx, &intr->src[0], &atype);
+   SpvId src1 = 0;
+   enum {
+      QUAD_SWAP_HORIZONTAL,
+      QUAD_SWAP_VERTICAL,
+      QUAD_SWAP_DIAGONAL,
+   };
+
+   switch (intr->intrinsic) {
+   case nir_intrinsic_quad_broadcast:
+      op = SpvOpGroupNonUniformQuadBroadcast;
+      src1 = get_src(ctx, &intr->src[1], &itype);
+      if (itype != nir_type_uint)
+         src1 = emit_bitcast(ctx, get_def_type(ctx, intr->src[1].ssa, nir_type_uint), src1);
+      break;
+   case nir_intrinsic_quad_swap_horizontal:
+      op = SpvOpGroupNonUniformQuadSwap;
+      src1 = spirv_builder_const_uint(&ctx->builder, 32, QUAD_SWAP_HORIZONTAL);
+      break;
+   case nir_intrinsic_quad_swap_vertical:
+      op = SpvOpGroupNonUniformQuadSwap;
+      src1 = spirv_builder_const_uint(&ctx->builder, 32, QUAD_SWAP_VERTICAL);
+      break;
+   case nir_intrinsic_quad_swap_diagonal:
+      op = SpvOpGroupNonUniformQuadSwap;
+      src1 = spirv_builder_const_uint(&ctx->builder, 32, QUAD_SWAP_DIAGONAL);
+      break;
+   default:
+      fprintf(stderr, "emit_subgroup_quad: not implemented (%s)\n",
+              nir_intrinsic_infos[intr->intrinsic].name);
+      unreachable("unhandled intrinsic");
+   }
+   spirv_builder_emit_cap(&ctx->builder, SpvCapabilityGroupNonUniformQuad);
+
+   SpvId result = spirv_builder_emit_binop_subgroup(&ctx->builder, op, get_def_type(ctx, intr->src[0].ssa, atype), src0, src1);
+   store_def(ctx, intr->def.index, result, atype);
+}
+
+static void
+emit_shuffle(struct ntv_context *ctx, nir_intrinsic_instr *intr)
+{
+   SpvOp op;
+
+   switch (intr->intrinsic) {
+   case nir_intrinsic_shuffle:
+      op = SpvOpGroupNonUniformShuffle;
+      spirv_builder_emit_cap(&ctx->builder, SpvCapabilityGroupNonUniformShuffle);
+      break;
+   case nir_intrinsic_shuffle_xor:
+      op = SpvOpGroupNonUniformShuffleXor;
+      spirv_builder_emit_cap(&ctx->builder, SpvCapabilityGroupNonUniformShuffle);
+      break;
+   case nir_intrinsic_shuffle_up:
+      op = SpvOpGroupNonUniformShuffleUp;
+      spirv_builder_emit_cap(&ctx->builder, SpvCapabilityGroupNonUniformShuffleRelative);
+      break;
+   case nir_intrinsic_shuffle_down:
+      op = SpvOpGroupNonUniformShuffleDown;
+      spirv_builder_emit_cap(&ctx->builder, SpvCapabilityGroupNonUniformShuffleRelative);
+      break;
+   default:
+      fprintf(stderr, "emit_shuffle: not implemented (%s)\n",
+              nir_intrinsic_infos[intr->intrinsic].name);
+      unreachable("unhandled intrinsic");
+   }
+   nir_alu_type atype, unused;
+   SpvId src0 = get_src(ctx, &intr->src[0], &atype);
+   SpvId src1 = get_src(ctx, &intr->src[1], &unused);
+
+   SpvId result = spirv_builder_emit_binop_subgroup(&ctx->builder, op, get_def_type(ctx, intr->src[0].ssa, atype), src0, src1);
+   store_def(ctx, intr->def.index, result, atype);
+}
+
+static void
+emit_elect(struct ntv_context *ctx, nir_intrinsic_instr *intr)
+{
+   spirv_builder_emit_cap(&ctx->builder, SpvCapabilityGroupNonUniform);
+   SpvId result = spirv_builder_emit_unop_const(&ctx->builder, SpvOpGroupNonUniformElect, spirv_builder_type_bool(&ctx->builder), SpvScopeSubgroup);
+   store_def(ctx, intr->def.index, result, nir_type_bool);
 }
 
 static void
@@ -3462,6 +3627,7 @@ emit_intrinsic(struct ntv_context *ctx, nir_intrinsic_instr *intr)
    LOAD_SHADER_BALLOT(subgroup_le_mask, SubgroupLeMask);
    LOAD_SHADER_BALLOT(subgroup_lt_mask, SubgroupLtMask);
    LOAD_SHADER_BALLOT(subgroup_size, SubgroupSize);
+   LOAD_SHADER_BALLOT(num_subgroups, NumSubgroups);
 
    case nir_intrinsic_ballot:
       emit_ballot(ctx, intr);
@@ -3522,6 +3688,30 @@ emit_intrinsic(struct ntv_context *ctx, nir_intrinsic_instr *intr)
    case nir_intrinsic_ddx_coarse:
    case nir_intrinsic_ddy_coarse:
       emit_derivative(ctx, intr);
+      break;
+
+   case nir_intrinsic_reduce:
+   case nir_intrinsic_inclusive_scan:
+   case nir_intrinsic_exclusive_scan:
+      emit_subgroup(ctx, intr);
+      break;
+
+   case nir_intrinsic_quad_broadcast:
+   case nir_intrinsic_quad_swap_horizontal:
+   case nir_intrinsic_quad_swap_vertical:
+   case nir_intrinsic_quad_swap_diagonal:
+      emit_subgroup_quad(ctx, intr);
+      break;
+
+   case nir_intrinsic_shuffle:
+   case nir_intrinsic_shuffle_xor:
+   case nir_intrinsic_shuffle_up:
+   case nir_intrinsic_shuffle_down:
+      emit_shuffle(ctx, intr);
+      break;
+
+   case nir_intrinsic_elect:
+      emit_elect(ctx, intr);
       break;
 
    default:
@@ -4172,9 +4362,6 @@ emit_block(struct ntv_context *ctx, struct nir_block *block)
          break;
       case nir_instr_type_deref:
          emit_deref(ctx, nir_instr_as_deref(instr));
-         break;
-      case nir_instr_type_debug_info:
-         unreachable("nir_instr_type_debug_info not supported");
          break;
       }
    }
@@ -4888,6 +5075,9 @@ nir_to_spirv(struct nir_shader *s, const struct zink_shader_info *sinfo, const s
    spirv_builder_emit_entry_point(&ctx.builder, exec_model, entry_point,
                                   "main", ctx.entry_ifaces,
                                   ctx.num_entry_ifaces);
+
+   if (ctx.num_subgroups_var)
+      spirv_builder_emit_cap(&ctx.builder, SpvCapabilityGroupNonUniform);
 
    size_t num_words = spirv_builder_get_num_words(&ctx.builder);
 

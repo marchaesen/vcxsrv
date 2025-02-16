@@ -12,6 +12,7 @@
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
 #include "nir_serialize.h"
+#include "nir.h"
 #include "radv_debug.h"
 #include "radv_descriptor_set.h"
 #include "radv_pipeline.h"

@@ -149,95 +149,59 @@ etna_screen_get_device_vendor(struct pipe_screen *pscreen)
    return "Vivante";
 }
 
-static int
-etna_screen_get_shader_param(struct pipe_screen *pscreen,
-                             enum pipe_shader_type shader,
-                             enum pipe_shader_cap param)
+static void
+etna_init_single_shader_caps(struct etna_screen *screen, enum pipe_shader_type shader)
 {
-   struct etna_screen *screen = etna_screen(pscreen);
-   bool ubo_enable = screen->info->halti >= 2;
+   struct pipe_shader_caps *caps =
+      (struct pipe_shader_caps *)&screen->base.shader_caps[shader];
 
+   bool ubo_enable = screen->info->halti >= 2;
    if (DBG_ENABLED(ETNA_DBG_DEQP))
       ubo_enable = true;
 
-   switch (shader) {
-   case PIPE_SHADER_FRAGMENT:
-   case PIPE_SHADER_VERTEX:
-      break;
-   case PIPE_SHADER_COMPUTE:
-   case PIPE_SHADER_GEOMETRY:
-   case PIPE_SHADER_TESS_CTRL:
-   case PIPE_SHADER_TESS_EVAL:
-      return 0;
-   default:
-      DBG("unknown shader type %d", shader);
-      return 0;
-   }
+   caps->max_instructions =
+   caps->max_alu_instructions =
+   caps->max_tex_instructions =
+   caps->max_tex_indirections = ETNA_MAX_TOKENS;
 
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-      return ETNA_MAX_TOKENS;
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return ETNA_MAX_DEPTH; /* XXX */
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      /* Maximum number of inputs for the vertex shader is the number
-       * of vertex elements - each element defines one vertex shader
-       * input register.  For the fragment shader, this is the number
-       * of varyings. */
-      return shader == PIPE_SHADER_FRAGMENT ? screen->specs.max_varyings
-                                            : screen->specs.vertex_max_elements;
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
-      return screen->specs.max_vs_outputs;
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 64; /* Max native temporaries. */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return ubo_enable ? ETNA_MAX_CONST_BUF : 1;
-   case PIPE_SHADER_CAP_CONT_SUPPORTED:
-      return 1;
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-      return 1;
-   case PIPE_SHADER_CAP_SUBROUTINES:
-      return 0;
-   case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-      return VIV_FEATURE(screen, ETNA_FEATURE_HAS_SQRT_TRIG);
-   case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_FP16:
-   case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-   case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-   case PIPE_SHADER_CAP_INT16:
-   case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-      return 0;
-   case PIPE_SHADER_CAP_INTEGERS:
-      return screen->info->halti >= 2;
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-      return shader == PIPE_SHADER_FRAGMENT
-                ? screen->specs.fragment_sampler_count
-                : screen->specs.vertex_sampler_count;
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      if (ubo_enable)
-         return 16384; /* 16384 so state tracker enables UBOs */
-      return shader == PIPE_SHADER_FRAGMENT
-                ? screen->specs.max_ps_uniforms * sizeof(float[4])
-                : screen->specs.max_vs_uniforms * sizeof(float[4]);
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-      return false;
-   case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      return (1 << PIPE_SHADER_IR_TGSI) |
-             (1 << PIPE_SHADER_IR_NIR);
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-      return 0;
-   }
+   caps->max_control_flow_depth = ETNA_MAX_DEPTH; /* XXX */
 
-   debug_printf("unknown shader param %d", param);
-   return 0;
+   /* Maximum number of inputs for the vertex shader is the number
+    * of vertex elements - each element defines one vertex shader
+    * input register.  For the fragment shader, this is the number
+    * of varyings. */
+   caps->max_inputs = shader == PIPE_SHADER_FRAGMENT ?
+      screen->specs.max_varyings : screen->specs.vertex_max_elements;
+   caps->max_outputs = screen->specs.max_vs_outputs;
+   caps->max_temps = 64; /* Max native temporaries. */
+   caps->max_const_buffers = ubo_enable ? ETNA_MAX_CONST_BUF : 1;
+   caps->cont_supported = true;
+   caps->indirect_temp_addr = true;
+   caps->indirect_const_addr = true;
+   caps->tgsi_sqrt_supported = VIV_FEATURE(screen, ETNA_FEATURE_HAS_SQRT_TRIG);
+   caps->integers = screen->info->halti >= 2;
+
+   caps->max_texture_samplers =
+   caps->max_sampler_views = shader == PIPE_SHADER_FRAGMENT
+      ? screen->specs.fragment_sampler_count
+      : screen->specs.vertex_sampler_count;
+
+   caps->max_const_buffer0_size =
+      ubo_enable ? 16384 /* 16384 so state tracker enables UBOs */ :
+      (shader == PIPE_SHADER_FRAGMENT
+       ? screen->specs.max_ps_uniforms * sizeof(float[4])
+       : screen->specs.max_vs_uniforms * sizeof(float[4]));
+
+   caps->supported_irs =
+      (1 << PIPE_SHADER_IR_TGSI) |
+      (1 << PIPE_SHADER_IR_NIR);
+}
+
+static void
+etna_init_shader_caps(struct etna_screen *screen)
+{
+   etna_init_single_shader_caps(screen, PIPE_SHADER_VERTEX);
+   etna_init_single_shader_caps(screen, PIPE_SHADER_FRAGMENT);
 }
 
 static void
@@ -761,8 +725,13 @@ etna_determine_uniform_limits(struct etna_screen *screen)
     * gcmCONFIGUREUNIFORMS in the Vivante kernel driver file
     * drivers/mxc/gpu-viv/hal/kernel/inc/gc_hal_base.h.
     */
-   if (screen->info->model == chipModel_GC2000 &&
-       (screen->info->revision == 0x5118 || screen->info->revision == 0x5140)) {
+   if (screen->info->halti >= 1) {
+      /* with halti1 we use unified constant mode */
+      screen->specs.max_vs_uniforms = screen->specs.max_ps_uniforms =
+            MIN2(512, screen->info->gpu.num_constants - 64);
+   } else if (screen->info->model == chipModel_GC2000 &&
+              (screen->info->revision == 0x5118 ||
+               screen->info->revision == 0x5140)) {
       screen->specs.max_vs_uniforms = 256;
       screen->specs.max_ps_uniforms = 64;
    } else if (screen->info->gpu.num_constants == 320) {
@@ -845,8 +814,7 @@ etna_get_specs(struct etna_screen *screen)
 
    screen->specs.vs_need_z_div =
       screen->info->model < 0x1000 && screen->info->model != 0x880;
-   screen->specs.has_shader_range_registers =
-      screen->info->model >= 0x1000 || screen->info->model == 0x880;
+   screen->specs.has_unified_instmem = instruction_count > 256;
    screen->specs.has_new_transcendentals =
       VIV_FEATURE(screen, ETNA_FEATURE_HAS_FAST_TRANSCENDENTALS);
    screen->specs.has_no_oneconst_limit =
@@ -864,30 +832,29 @@ etna_get_specs(struct etna_screen *screen)
       screen->specs.max_instructions = 0; /* Do not program shaders manually */
       screen->specs.has_icache = true;
    } else if (VIV_FEATURE(screen, ETNA_FEATURE_INSTRUCTION_CACHE)) {
-      /* GC3000 - this core is capable of loading shaders from
-       * memory. It can also run shaders from registers, as a fallback, but
-       * "max_instructions" does not have the correct value. It has place for
-       * 2*256 instructions just like GC2000, but the offsets are slightly
-       * different.
+      /* GC3000 - this core is capable of loading shaders from memory. It can
+       * also run shaders from unified instruction states as a fallback, but the
+       * offsets are slightly different.
        */
       screen->specs.vs_offset = 0xC000;
       /* State 08000-0C000 mirrors 0C000-0E000, and the Vivante driver uses
        * this mirror for writing PS instructions, probably safest to do the
        * same.
        */
-      screen->specs.ps_offset = 0x8000 + 0x1000;
-      screen->specs.max_instructions = 256; /* maximum number instructions for non-icache use */
+      screen->specs.ps_offset = 0x8000;
+      /* maximum number instructions for non-icache use */
+      screen->specs.max_instructions = instruction_count;
       screen->specs.has_icache = true;
    } else {
-      if (instruction_count > 256) { /* unified instruction memory? */
+      if (instruction_count > 256) {
+         /* unified instruction states */
          screen->specs.vs_offset = 0xC000;
-         screen->specs.ps_offset = 0xD000; /* like vivante driver */
-         screen->specs.max_instructions = 256;
+         screen->specs.ps_offset = 0xC000;
       } else {
          screen->specs.vs_offset = 0x4000;
          screen->specs.ps_offset = 0x6000;
-         screen->specs.max_instructions = instruction_count;
       }
+      screen->specs.max_instructions = instruction_count;
       screen->specs.has_icache = false;
    }
 
@@ -907,17 +874,13 @@ etna_get_specs(struct etna_screen *screen)
    if (screen->info->halti >= 5) {
       screen->specs.has_unified_uniforms = true;
       screen->specs.vs_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS_MIRROR(0);
-      screen->specs.ps_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS(screen->specs.max_vs_uniforms*4);
+      screen->specs.ps_uniforms_offset = VIVS_SH_HALTI5_UNIFORMS(0);
    } else if (screen->info->halti >= 1) {
       /* unified uniform memory on GC3000 - HALTI1 feature bit is just a guess
       */
       screen->specs.has_unified_uniforms = true;
       screen->specs.vs_uniforms_offset = VIVS_SH_UNIFORMS(0);
-      /* hardcode PS uniforms to start after end of VS uniforms -
-       * for more flexibility this offset could be variable based on the
-       * shader.
-       */
-      screen->specs.ps_uniforms_offset = VIVS_SH_UNIFORMS(screen->specs.max_vs_uniforms*4);
+      screen->specs.ps_uniforms_offset = VIVS_SH_UNIFORMS(0);
    } else {
       screen->specs.has_unified_uniforms = false;
       screen->specs.vs_uniforms_offset = VIVS_VS_UNIFORMS(0);
@@ -1064,7 +1027,6 @@ etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu,
 
    pscreen->destroy = etna_screen_destroy;
    pscreen->get_screen_fd = etna_screen_get_fd;
-   pscreen->get_shader_param = etna_screen_get_shader_param;
    pscreen->get_compiler_options = etna_get_compiler_options;
    pscreen->get_disk_shader_cache = etna_get_disk_shader_cache;
 
@@ -1085,6 +1047,7 @@ etna_screen_create(struct etna_device *dev, struct etna_gpu *gpu,
    etna_query_screen_init(pscreen);
    etna_resource_screen_init(pscreen);
 
+   etna_init_shader_caps(screen);
    etna_init_screen_caps(screen);
 
    util_dynarray_init(&screen->supported_pm_queries, NULL);

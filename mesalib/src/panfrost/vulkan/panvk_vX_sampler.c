@@ -14,6 +14,7 @@
 
 #include "vk_format.h"
 #include "vk_log.h"
+#include "vk_ycbcr_conversion.h"
 
 static enum mali_mipmap_mode
 panvk_translate_sampler_mipmap_mode(VkSamplerMipmapMode mode)
@@ -56,6 +57,23 @@ panvk_translate_sampler_compare_func(const VkSamplerCreateInfo *pCreateInfo)
    return panfrost_flip_compare_func((enum mali_func)pCreateInfo->compareOp);
 }
 
+#if PAN_ARCH >= 10
+static enum mali_reduction_mode
+panvk_translate_reduction_mode(VkSamplerReductionMode reduction_mode)
+{
+   switch (reduction_mode) {
+   case VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE:
+      return MALI_REDUCTION_MODE_AVERAGE;
+   case VK_SAMPLER_REDUCTION_MODE_MIN:
+      return MALI_REDUCTION_MODE_MINIMUM;
+   case VK_SAMPLER_REDUCTION_MODE_MAX:
+      return MALI_REDUCTION_MODE_MAXIMUM;
+   default:
+      unreachable("Invalid reduction mode");
+   }
+}
+#endif
+
 #if PAN_ARCH == 7
 static void
 panvk_afbc_reswizzle_border_color(VkClearColorValue *border_color, VkFormat fmt)
@@ -79,38 +97,19 @@ panvk_afbc_reswizzle_border_color(VkClearColorValue *border_color, VkFormat fmt)
 }
 #endif
 
-VKAPI_ATTR VkResult VKAPI_CALL
-panvk_per_arch(CreateSampler)(VkDevice _device,
-                              const VkSamplerCreateInfo *pCreateInfo,
-                              const VkAllocationCallbacks *pAllocator,
-                              VkSampler *pSampler)
+static void
+panvk_sampler_fill_desc(const struct VkSamplerCreateInfo *info,
+                        struct mali_sampler_packed *desc,
+                        VkClearColorValue border_color,
+                        VkFilter min_filter, VkFilter mag_filter,
+                        VkSamplerReductionMode reduction_mode)
 {
-   VK_FROM_HANDLE(panvk_device, device, _device);
-   struct panvk_sampler *sampler;
-
-   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
-
-   sampler =
-      vk_sampler_create(&device->vk, pCreateInfo, pAllocator, sizeof(*sampler));
-   if (!sampler)
-      return panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
-
-   STATIC_ASSERT(sizeof(sampler->desc) >= pan_size(SAMPLER));
-
-   VkFormat fmt;
-   VkClearColorValue border_color =
-      vk_sampler_border_color_value(pCreateInfo, &fmt);
-
-#if PAN_ARCH == 7
-   panvk_afbc_reswizzle_border_color(&border_color, fmt);
-#endif
-
-   pan_pack(&sampler->desc, SAMPLER, cfg) {
-      cfg.magnify_nearest = pCreateInfo->magFilter == VK_FILTER_NEAREST;
-      cfg.minify_nearest = pCreateInfo->minFilter == VK_FILTER_NEAREST;
+   pan_pack(desc, SAMPLER, cfg) {
+      cfg.magnify_nearest = mag_filter == VK_FILTER_NEAREST;
+      cfg.minify_nearest = min_filter == VK_FILTER_NEAREST;
       cfg.mipmap_mode =
-         panvk_translate_sampler_mipmap_mode(pCreateInfo->mipmapMode);
-      cfg.normalized_coordinates = !pCreateInfo->unnormalizedCoordinates;
+         panvk_translate_sampler_mipmap_mode(info->mipmapMode);
+      cfg.normalized_coordinates = !info->unnormalizedCoordinates;
       cfg.clamp_integer_array_indices = false;
 
       /* Normalized float texture coordinates are rounded to fixed-point
@@ -127,17 +126,17 @@ panvk_per_arch(CreateSampler)(VkDevice _device,
        *
        * [1]: https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/5547
        */
-      if (pCreateInfo->minFilter == VK_FILTER_NEAREST &&
-          pCreateInfo->magFilter == VK_FILTER_NEAREST)
+      if (min_filter == VK_FILTER_NEAREST &&
+          mag_filter == VK_FILTER_NEAREST)
          cfg.round_to_nearest_even = false;
 
-      cfg.lod_bias = pCreateInfo->mipLodBias;
-      cfg.minimum_lod = pCreateInfo->minLod;
-      cfg.maximum_lod = pCreateInfo->maxLod;
+      cfg.lod_bias = info->mipLodBias;
+      cfg.minimum_lod = info->minLod;
+      cfg.maximum_lod = info->maxLod;
       cfg.wrap_mode_s =
-         panvk_translate_sampler_address_mode(pCreateInfo->addressModeU);
+         panvk_translate_sampler_address_mode(info->addressModeU);
       cfg.wrap_mode_t =
-         panvk_translate_sampler_address_mode(pCreateInfo->addressModeV);
+         panvk_translate_sampler_address_mode(info->addressModeV);
 
       /* "
        * When unnormalizedCoordinates is VK_TRUE, images the sampler is used
@@ -151,35 +150,71 @@ panvk_per_arch(CreateSampler)(VkDevice _device,
        * that works for normalized_coordinates=false.
        */
       cfg.wrap_mode_r =
-         pCreateInfo->unnormalizedCoordinates
+         info->unnormalizedCoordinates
             ? MALI_WRAP_MODE_CLAMP_TO_EDGE
-            : panvk_translate_sampler_address_mode(pCreateInfo->addressModeW);
-      cfg.compare_function = panvk_translate_sampler_compare_func(pCreateInfo);
+            : panvk_translate_sampler_address_mode(info->addressModeW);
+      cfg.compare_function = panvk_translate_sampler_compare_func(info);
       cfg.border_color_r = border_color.uint32[0];
       cfg.border_color_g = border_color.uint32[1];
       cfg.border_color_b = border_color.uint32[2];
       cfg.border_color_a = border_color.uint32[3];
 
-      if (pCreateInfo->anisotropyEnable && pCreateInfo->maxAnisotropy > 1) {
-         cfg.maximum_anisotropy = pCreateInfo->maxAnisotropy;
+      if (info->anisotropyEnable && info->maxAnisotropy > 1) {
+         cfg.maximum_anisotropy = info->maxAnisotropy;
          cfg.lod_algorithm = MALI_LOD_ALGORITHM_ANISOTROPIC;
       }
 
 #if PAN_ARCH >= 10
-      switch (sampler->vk.reduction_mode) {
-      case VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE:
-         cfg.reduction_mode = MALI_REDUCTION_MODE_AVERAGE;
-         break;
-      case VK_SAMPLER_REDUCTION_MODE_MIN:
-         cfg.reduction_mode = MALI_REDUCTION_MODE_MINIMUM;
-         break;
-      case VK_SAMPLER_REDUCTION_MODE_MAX:
-         cfg.reduction_mode = MALI_REDUCTION_MODE_MAXIMUM;
-         break;
-      default:
-         unreachable("Invalid reduction mode");
-      }
+   cfg.reduction_mode = panvk_translate_reduction_mode(reduction_mode);
 #endif
+   }
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+panvk_per_arch(CreateSampler)(VkDevice _device,
+                              const VkSamplerCreateInfo *pCreateInfo,
+                              const VkAllocationCallbacks *pAllocator,
+                              VkSampler *pSampler)
+{
+   VK_FROM_HANDLE(panvk_device, device, _device);
+   struct panvk_sampler *sampler;
+
+   assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+
+   sampler =
+      vk_sampler_create(&device->vk, pCreateInfo, pAllocator, sizeof(*sampler));
+   if (!sampler)
+      return panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
+
+   STATIC_ASSERT(sizeof(sampler->descs[0]) >= pan_size(SAMPLER));
+
+   VkFormat fmt;
+   VkClearColorValue border_color =
+      vk_sampler_border_color_value(pCreateInfo, &fmt);
+
+#if PAN_ARCH == 7
+   panvk_afbc_reswizzle_border_color(&border_color, fmt);
+#endif
+
+   sampler->desc_count = 1;
+   panvk_sampler_fill_desc(pCreateInfo, &sampler->descs[0], border_color,
+                           pCreateInfo->minFilter, pCreateInfo->magFilter,
+                           sampler->vk.reduction_mode);
+
+   /* In order to support CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT,
+    * we need multiple sampler planes: at minimum we will need one for
+    * luminance (the default), and one for chroma.
+    */
+   if (sampler->vk.ycbcr_conversion) {
+      const VkFilter chroma_filter =
+         sampler->vk.ycbcr_conversion->state.chroma_filter;
+      if (pCreateInfo->magFilter != chroma_filter ||
+          pCreateInfo->minFilter != chroma_filter) {
+         sampler->desc_count = 2;
+         panvk_sampler_fill_desc(pCreateInfo, &sampler->descs[1],
+                                 border_color, chroma_filter, chroma_filter,
+                                 sampler->vk.reduction_mode);
+      }
    }
 
    *pSampler = panvk_sampler_to_handle(sampler);

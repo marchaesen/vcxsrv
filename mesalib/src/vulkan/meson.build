@@ -95,3 +95,6 @@ endif
 if with_vulkan_screenshot_layer
   subdir('screenshot-layer')
 endif
+if with_vulkan_vram_report_limit_layer
+  subdir('vram-report-limit-layer')
+endif

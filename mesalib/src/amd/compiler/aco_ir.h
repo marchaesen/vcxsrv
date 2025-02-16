@@ -2258,7 +2258,6 @@ void lower_to_cssa(Program* program);
 void register_allocation(Program* program, ra_test_policy = {});
 void reindex_ssa(Program* program);
 void ssa_elimination(Program* program);
-void jump_threading(Program* program);
 void lower_to_hw_instr(Program* program);
 void schedule_program(Program* program);
 void schedule_ilp(Program* program);

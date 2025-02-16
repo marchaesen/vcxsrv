@@ -8,7 +8,7 @@
 #define AC_NIR_META_H
 
 #include "ac_gpu_info.h"
-#include "nir.h"
+#include "nir_defines.h"
 #include "util/box.h"
 
 union ac_ps_resolve_key {

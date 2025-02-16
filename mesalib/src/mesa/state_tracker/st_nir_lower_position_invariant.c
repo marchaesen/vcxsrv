@@ -20,6 +20,7 @@ bool
 st_nir_lower_position_invariant(struct nir_shader *s, bool aos,
                                 struct gl_program_parameter_list *paramList)
 {
+   assert(s->info.io_lowered);
    nir_function_impl *impl = nir_shader_get_entrypoint(s);
    nir_builder b = nir_builder_at(nir_before_impl(impl));
 
@@ -33,17 +34,8 @@ st_nir_lower_position_invariant(struct nir_shader *s, bool aos,
    }
 
    nir_def *result;
-   nir_def *in_pos;
-
-   if (s->info.io_lowered) {
-      in_pos = nir_load_input(&b, 4, 32, nir_imm_int(&b, 0),
-                              .io_semantics.location = VERT_ATTRIB_POS);
-   } else {
-      in_pos = nir_load_var(&b, nir_get_variable_with_location(s, nir_var_shader_in,
-                                                               VERT_ATTRIB_POS,
-                                                               glsl_vec4_type()));
-      s->info.inputs_read |= VERT_BIT_POS;
-   }
+   nir_def *in_pos = nir_load_input(&b, 4, 32, nir_imm_int(&b, 0),
+                                    .io_semantics.location = VERT_ATTRIB_POS);
 
    if (aos) {
       nir_def *chans[4];
@@ -56,16 +48,8 @@ st_nir_lower_position_invariant(struct nir_shader *s, bool aos,
          result = nir_fmad(&b, mvp[i], nir_channel(&b, in_pos, i), result);
    }
 
-   if (s->info.io_lowered) {
-      nir_store_output(&b, result, nir_imm_int(&b, 0),
-                       .io_semantics.location = VARYING_SLOT_POS);
-   } else {
-      nir_store_var(&b, nir_get_variable_with_location(s, nir_var_shader_out,
-                                                       VARYING_SLOT_POS,
-                                                       glsl_vec4_type()), result, 0xf);
-      s->info.outputs_written |= VARYING_BIT_POS;
-   }
-
+   nir_store_output(&b, result, nir_imm_int(&b, 0),
+                    .io_semantics.location = VARYING_SLOT_POS);
    nir_metadata_preserve(b.impl, nir_metadata_control_flow);
 
    return true;

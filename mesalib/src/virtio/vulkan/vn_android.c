@@ -581,8 +581,15 @@ vn_android_image_from_anb_internal(struct vn_device *dev,
       goto fail;
    }
 
+   const bool prefer_dedicated =
+      img->requirements[0].dedicated.prefersDedicatedAllocation == VK_TRUE;
+   const VkMemoryDedicatedAllocateInfo dedicated_info = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO,
+      .image = vn_image_to_handle(img),
+   };
    const VkImportMemoryFdInfoKHR import_fd_info = {
       .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
+      .pNext = prefer_dedicated ? &dedicated_info : NULL,
       .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
       .fd = dup_fd,
    };

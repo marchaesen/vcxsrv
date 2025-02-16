@@ -13,9 +13,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-/* Shader functions */
-#define SPIR_V_MAGIC_NUMBER 0x07230203
-
 static void
 msg_callback(void *priv, const char *msg)
 {
@@ -28,29 +25,12 @@ print_usage(char *exec_name, FILE *f)
 {
    fprintf(
       f,
-      "Usage: %s [options] -- [clang args]\n"
+      "Usage: %s [options] [input files] -- [clang args]\n"
       "Options:\n"
       "  -h  --help              Print this help.\n"
       "  -o, --out <filename>    Specify the output filename.\n"
-      "  -i, --in <filename>     Specify one input filename. Accepted multiple times.\n"
       "  -v, --verbose           Print more information during compilation.\n",
       exec_name);
-}
-
-static uint32_t
-get_module_spirv_version(const uint32_t *spirv, size_t size)
-{
-   assert(size >= 8);
-   assert(spirv[0] == SPIR_V_MAGIC_NUMBER);
-   return spirv[1];
-}
-
-static void
-set_module_spirv_version(uint32_t *spirv, size_t size, uint32_t version)
-{
-   assert(size >= 8);
-   assert(spirv[0] == SPIR_V_MAGIC_NUMBER);
-   spirv[1] = version;
 }
 
 int
@@ -94,9 +74,6 @@ main(int argc, char **argv)
       case 'd':
          depfile = optarg;
          break;
-      case 'i':
-         util_dynarray_append(&input_files, char *, optarg);
-         break;
       default:
          fprintf(stderr, "Unrecognized option \"%s\".\n", optarg);
          print_usage(argv[0], stderr);
@@ -105,8 +82,17 @@ main(int argc, char **argv)
    }
 
    for (int i = optind; i < argc; i++) {
-      util_dynarray_append(&clang_args, char *, argv[i]);
+      char *arg = argv[i];
+      bool option = arg[0] == '-';
+
+      util_dynarray_append(option ? &clang_args : &input_files, char *, arg);
    }
+
+   /* Set the OpenCL standard to CL 2.0, this enables everything at a frontend
+    * level. See comment below about driver support.
+    */
+   util_dynarray_append(&clang_args, char *, "-cl-std=cl2.0");
+   util_dynarray_append(&clang_args, char *, "-D__OPENCL_VERSION__=200");
 
    if (util_dynarray_num_elements(&input_files, char *) == 0) {
       fprintf(stderr, "No input file(s).\n");
@@ -173,30 +159,6 @@ main(int argc, char **argv)
 
    util_dynarray_foreach(&spirv_objs, struct clc_binary, p) {
       util_dynarray_append(&spirv_ptr_objs, struct clc_binary *, p);
-   }
-
-   /* The SPIRV-Tools linker started checking that all modules have the same
-    * version. But SPIRV-LLVM-Translator picks the lower required version for
-    * each module it compiles. So we have to iterate over all of them and set
-    * the max found to make SPIRV-Tools link our modules.
-    *
-    * TODO: This is not the correct thing to do. We need SPIRV-LLVM-Translator
-    *       to pick a given SPIRV version given to it and have all the modules
-    *       at that version. We should remove this hack when this issue is
-    *       fixed :
-    *       https://github.com/KhronosGroup/SPIRV-LLVM-Translator/issues/1445
-    */
-   uint32_t max_spirv_version = 0;
-   util_dynarray_foreach(&spirv_ptr_objs, struct clc_binary *, module) {
-      max_spirv_version =
-         MAX2(max_spirv_version,
-              get_module_spirv_version((*module)->data, (*module)->size));
-   }
-
-   assert(max_spirv_version > 0);
-   util_dynarray_foreach(&spirv_ptr_objs, struct clc_binary *, module) {
-      set_module_spirv_version((*module)->data, (*module)->size,
-                               max_spirv_version);
    }
 
    struct clc_linker_args link_args = {

@@ -32,6 +32,9 @@ vn_buffer_get_cache_index(const VkBufferCreateInfo *create_info,
     *
     * Btw, we assume VkBufferCreateFlagBits won't exhaust all 32bits, at least
     * no earlier than VkBufferUsageFlagBits.
+    *
+    * TODO: extend cache to cover VkBufferUsageFlags2CreateInfo (introduced in
+    * VK_KHR_maintenance5 and promoted to 1.4).
     */
    assert(!(create_info->flags & 0x80000000));
 

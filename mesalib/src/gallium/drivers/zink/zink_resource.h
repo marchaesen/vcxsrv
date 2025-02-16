@@ -193,6 +193,15 @@ zink_batch_resource_usage_set(struct zink_batch_state *bs, struct zink_resource 
 void
 zink_debug_mem_print_stats(struct zink_screen *screen);
 
+static inline void
+zink_resource_reference(struct zink_resource **d, struct zink_resource *s)
+{
+   struct pipe_resource *dst = &(*d)->base.b;
+   struct pipe_resource *src = &s->base.b;
+   pipe_resource_reference(&dst, src);
+   *d = zink_resource(dst);
+}
+
 #ifdef __cplusplus
 }
 #endif

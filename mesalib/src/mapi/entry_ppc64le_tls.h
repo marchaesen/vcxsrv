@@ -55,9 +55,9 @@ __asm__(".text\n"
    "  .localentry  " func ", .-" func "\n\t"
 
 #define STUB_ASM_CODE(slot)                                     \
-   "  addis  11, 2, _glapi_tls_Dispatch@got@tprel@ha\n\t"   \
-   "  ld     11, _glapi_tls_Dispatch@got@tprel@l(11)\n\t"   \
-   "  add    11, 11,_glapi_tls_Dispatch@tls\n\t"            \
+   "  addis  11, 2, _mesa_glapi_tls_Dispatch@got@tprel@ha\n\t"   \
+   "  ld     11, _mesa_glapi_tls_Dispatch@got@tprel@l(11)\n\t"   \
+   "  add    11, 11,_mesa_glapi_tls_Dispatch@tls\n\t"            \
    "  ld     11, 0(11)\n\t"                                     \
    "  ld     12, " slot "*8(11)\n\t"                            \
    "  mtctr  12\n\t"                                            \

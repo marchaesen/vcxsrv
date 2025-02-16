@@ -20,7 +20,8 @@
 #include "ac_vcn_enc.h"
 #include "wsi_common.h"
 
-#include "nir.h"
+#include "nir_shader_compiler_options.h"
+#include "compiler/shader_enums.h"
 
 #include "vk_physical_device.h"
 
@@ -79,6 +80,8 @@ struct radv_physical_device {
    uint8_t driver_uuid[VK_UUID_SIZE];
    uint8_t device_uuid[VK_UUID_SIZE];
    uint8_t cache_uuid[VK_UUID_SIZE];
+
+   struct disk_cache *disk_cache_meta;
 
    struct ac_addrlib *addrlib;
 
@@ -193,13 +196,13 @@ radv_physical_device_instance(const struct radv_physical_device *pdev)
 }
 
 static inline bool
-radv_sparse_queue_enabled(const struct radv_physical_device *pdev)
+radv_dedicated_sparse_queue_enabled(const struct radv_physical_device *pdev)
 {
    const struct radv_instance *instance = radv_physical_device_instance(pdev);
 
    /* Dedicated sparse queue requires VK_QUEUE_SUBMIT_MODE_THREADED, which is incompatible with
     * VK_DEVICE_TIMELINE_MODE_EMULATED. */
-   return pdev->info.has_timeline_syncobj && !instance->drirc.legacy_sparse_binding;
+   return pdev->info.has_timeline_syncobj && !instance->drirc.disable_dedicated_sparse_queue;
 }
 
 static inline bool

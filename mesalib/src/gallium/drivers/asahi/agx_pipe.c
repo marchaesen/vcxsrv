@@ -1964,190 +1964,114 @@ agx_query_memory_info(struct pipe_screen *pscreen,
    };
 }
 
-static int
-agx_get_shader_param(struct pipe_screen *pscreen, enum pipe_shader_type shader,
-                     enum pipe_shader_cap param)
+static void
+agx_init_shader_caps(struct pipe_screen *pscreen)
 {
    bool is_no16 = agx_device(pscreen)->debug & AGX_DBG_NO16;
 
-   switch (shader) {
-   case PIPE_SHADER_VERTEX:
-   case PIPE_SHADER_FRAGMENT:
-   case PIPE_SHADER_COMPUTE:
-   case PIPE_SHADER_GEOMETRY:
-   case PIPE_SHADER_TESS_CTRL:
-   case PIPE_SHADER_TESS_EVAL:
-      break;
-   default:
-      return false;
-   }
+   for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+      struct pipe_shader_caps *caps =
+         (struct pipe_shader_caps *)&pscreen->shader_caps[i];
 
-   /* this is probably not totally correct.. but it's a start: */
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-      return 16384;
+      caps->max_instructions =
+      caps->max_alu_instructions =
+      caps->max_tex_instructions =
+      caps->max_tex_indirections = 16384;
 
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return 1024;
+      caps->max_control_flow_depth = 1024;
 
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      return shader == PIPE_SHADER_VERTEX ? 16 : 32;
+      caps->max_inputs = i == PIPE_SHADER_VERTEX ? 16 : 32;
 
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
       /* For vertex, the spec min/max is 16. We need more to handle dmat3
        * correctly, though. The full 32 is undesirable since it would require
        * shenanigans to handle.
        */
-      return shader == PIPE_SHADER_FRAGMENT ? 8
-             : shader == PIPE_SHADER_VERTEX ? 24
-                                            : 32;
+      caps->max_outputs = i == PIPE_SHADER_FRAGMENT ? 8
+         : i == PIPE_SHADER_VERTEX ? 24 : 32;
 
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
+      caps->max_temps = 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
 
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      return 16 * 1024 * sizeof(float);
+      caps->max_const_buffer0_size = 16 * 1024 * sizeof(float);
 
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return 16;
+      caps->max_const_buffers = 16;
 
-   case PIPE_SHADER_CAP_CONT_SUPPORTED:
-      return 1;
+      caps->cont_supported = true;
 
-   case PIPE_SHADER_CAP_SUBROUTINES:
-   case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-      return 0;
+      caps->indirect_temp_addr = true;
+      caps->indirect_const_addr = true;
+      caps->integers = true;
 
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-   case PIPE_SHADER_CAP_INTEGERS:
-      return true;
-
-   case PIPE_SHADER_CAP_FP16:
-   case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-   case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-      return !is_no16;
-   case PIPE_SHADER_CAP_INT16:
+      caps->fp16 =
+      caps->glsl_16bit_consts =
+      caps->fp16_derivatives = !is_no16;
       /* GLSL compiler is broken. Flip this on when Panfrost does. */
-      return false;
-   case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
+      caps->int16 = false;
       /* This cap is broken, see 9a38dab2d18 ("zink: disable
-       * PIPE_SHADER_CAP_FP16_CONST_BUFFERS") */
-      return false;
+       * pipe_shader_caps.fp16_const_buffers") */
+      caps->fp16_const_buffers = false;
 
-   case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-      return 0;
-
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
       /* TODO: Enable when fully baked */
       if (strcmp(util_get_process_name(), "blender") == 0)
-         return PIPE_MAX_SAMPLERS;
+         caps->max_texture_samplers = PIPE_MAX_SAMPLERS;
       else if (strcmp(util_get_process_name(), "run") == 0)
-         return PIPE_MAX_SAMPLERS;
+         caps->max_texture_samplers = PIPE_MAX_SAMPLERS;
       else if (strcasestr(util_get_process_name(), "ryujinx") != NULL)
-         return PIPE_MAX_SAMPLERS;
+         caps->max_texture_samplers = PIPE_MAX_SAMPLERS;
       else
-         return 16;
+         caps->max_texture_samplers = 16;
 
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-      return PIPE_MAX_SHADER_SAMPLER_VIEWS;
+      caps->max_sampler_views = PIPE_MAX_SHADER_SAMPLER_VIEWS;
 
-   case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      return (1 << PIPE_SHADER_IR_NIR);
+      caps->supported_irs = (1 << PIPE_SHADER_IR_NIR);
 
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-      return PIPE_MAX_SHADER_BUFFERS;
+      caps->max_shader_buffers = PIPE_MAX_SHADER_BUFFERS;
 
-   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-      return PIPE_MAX_SHADER_IMAGES;
-
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-      return 0;
-
-   default:
-      /* Other params are unknown */
-      return 0;
+      caps->max_shader_images = PIPE_MAX_SHADER_IMAGES;
    }
-
-   return 0;
 }
 
-static int
-agx_get_compute_param(struct pipe_screen *pscreen, enum pipe_shader_ir ir_type,
-                      enum pipe_compute_cap param, void *ret)
+static void
+agx_init_compute_caps(struct pipe_screen *pscreen)
 {
+   struct pipe_compute_caps *caps = (struct pipe_compute_caps *)&pscreen->compute_caps;
    struct agx_device *dev = agx_device(pscreen);
 
-#define RET(x)                                                                 \
-   do {                                                                        \
-      if (ret)                                                                 \
-         memcpy(ret, x, sizeof(x));                                            \
-      return sizeof(x);                                                        \
-   } while (0)
+   caps->address_bits = 64;
 
-   switch (param) {
-   case PIPE_COMPUTE_CAP_ADDRESS_BITS:
-      RET((uint32_t[]){64});
+   snprintf(caps->ir_target, sizeof(caps->ir_target), "agx");
 
-   case PIPE_COMPUTE_CAP_IR_TARGET:
-      if (ret)
-         sprintf(ret, "agx");
-      return strlen("agx") * sizeof(char);
+   caps->grid_dimension = 3;
 
-   case PIPE_COMPUTE_CAP_GRID_DIMENSION:
-      RET((uint64_t[]){3});
+   caps->max_grid_size[0] =
+   caps->max_grid_size[1] =
+   caps->max_grid_size[2] = 65535;
 
-   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
-      RET(((uint64_t[]){65535, 65535, 65535}));
+   caps->max_block_size[0] =
+   caps->max_block_size[1] =
+   caps->max_block_size[2] = 1024;
 
-   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
-      RET(((uint64_t[]){1024, 1024, 1024}));
+   caps->max_threads_per_block = 1024;
 
-   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-      RET((uint64_t[]){1024});
-
-   case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE: {
-      uint64_t system_memory;
-
-      if (!os_get_total_physical_memory(&system_memory))
-         return 0;
-
-      RET((uint64_t[]){system_memory});
+   uint64_t system_memory;
+   if (os_get_total_physical_memory(&system_memory)) {
+      caps->max_global_size =
+      caps->max_mem_alloc_size = system_memory;
    }
 
-   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-      RET((uint64_t[]){32768});
+   caps->max_local_size = 32768;
 
-   case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
-      RET((uint64_t[]){4096});
+   caps->max_private_size =
+   caps->max_input_size = 4096;
 
-   case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-      RET((uint32_t[]){dev->params.max_frequency_khz / 1000});
+   caps->max_clock_frequency = dev->params.max_frequency_khz / 1000;
 
-   case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
-      RET((uint32_t[]){agx_get_num_cores(dev)});
+   caps->max_compute_units = agx_get_num_cores(dev);
 
-   case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-      RET((uint32_t[]){1});
+   caps->images_supported = true;
 
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
-      RET((uint32_t[]){32});
+   caps->subgroup_sizes = 32;
 
-   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
-      RET((uint32_t[]){0 /* TODO */});
-
-   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-      RET((uint64_t[]){1024}); // TODO
-   }
-
-   return 0;
+   caps->max_variable_threads_per_block = 1024; // TODO
 }
 
 static void
@@ -2627,8 +2551,6 @@ agx_screen_create(int fd, struct renderonly *ro,
    screen->get_name = agx_get_name;
    screen->get_vendor = agx_get_vendor;
    screen->get_device_vendor = agx_get_device_vendor;
-   screen->get_shader_param = agx_get_shader_param;
-   screen->get_compute_param = agx_get_compute_param;
    screen->get_device_uuid = agx_screen_get_device_uuid;
    screen->get_driver_uuid = agx_screen_get_driver_uuid;
    screen->is_format_supported = agx_is_format_supported;
@@ -2655,6 +2577,8 @@ agx_screen_create(int fd, struct renderonly *ro,
       U_TRANSFER_HELPER_SEPARATE_Z32S8 | U_TRANSFER_HELPER_SEPARATE_STENCIL |
          U_TRANSFER_HELPER_MSAA_MAP | U_TRANSFER_HELPER_Z24_IN_Z32F);
 
+   agx_init_shader_caps(screen);
+   agx_init_compute_caps(screen);
    agx_init_screen_caps(screen);
 
    agx_disk_cache_init(agx_screen);

@@ -1000,6 +1000,11 @@ test_attachment_completeness(const struct gl_context *ctx, GLenum format,
             att->Complete = GL_FALSE;
             return;
          }
+         if (att->Zoffset + att->NumViews > texImage->Depth) {
+            att_incomplete("bad 2D-array view range");
+            att->Complete = GL_FALSE;
+            return;
+         }
          break;
       case GL_TEXTURE_CUBE_MAP_ARRAY:
          if (att->Zoffset >= texImage->Depth) {
@@ -4218,7 +4223,8 @@ static ALWAYS_INLINE void
 frame_buffer_texture(GLuint framebuffer, GLenum target,
                      GLenum attachment, GLuint texture,
                      GLint level, GLsizei samples, GLint layer, const char *func,
-                     bool dsa, bool no_error, bool check_layered, GLsizei numviews)
+                     bool dsa, bool no_error, bool check_layered, bool multiview,
+                     GLsizei numviews)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLboolean layered = GL_FALSE;
@@ -4279,7 +4285,7 @@ frame_buffer_texture(GLuint framebuffer, GLenum target,
             return;
       }
 
-      if (numviews > 1) {
+      if (multiview) {
          /* We do this regardless of no_error because this sets multiviews */
          if (!check_multiview_texture_target(ctx, texture, texObj->Target, level, layer, numviews, func))
          {
@@ -4339,7 +4345,7 @@ _mesa_FramebufferTextureLayer_no_error(GLenum target, GLenum attachment,
                                        GLint layer)
 {
    frame_buffer_texture(0, target, attachment, texture, level, 0, layer,
-                        "glFramebufferTextureLayer", false, true, false, 0);
+                        "glFramebufferTextureLayer", false, true, false, false, 0);
 }
 
 
@@ -4348,7 +4354,7 @@ _mesa_FramebufferTextureLayer(GLenum target, GLenum attachment,
                               GLuint texture, GLint level, GLint layer)
 {
    frame_buffer_texture(0, target, attachment, texture, level, 0, layer,
-                        "glFramebufferTextureLayer", false, false, false, 0);
+                        "glFramebufferTextureLayer", false, false, false, false, 0);
 }
 
 
@@ -4359,7 +4365,7 @@ _mesa_NamedFramebufferTextureLayer_no_error(GLuint framebuffer,
                                             GLint layer)
 {
    frame_buffer_texture(framebuffer, 0, attachment, texture, level, 0, layer,
-                        "glNamedFramebufferTextureLayer", true, true, false, 0);
+                        "glNamedFramebufferTextureLayer", true, true, false, false, 0);
 }
 
 
@@ -4368,7 +4374,7 @@ _mesa_NamedFramebufferTextureLayer(GLuint framebuffer, GLenum attachment,
                                    GLuint texture, GLint level, GLint layer)
 {
    frame_buffer_texture(framebuffer, 0, attachment, texture, level, 0, layer,
-                        "glNamedFramebufferTextureLayer", true, false, false, 0);
+                        "glNamedFramebufferTextureLayer", true, false, false, false, 0);
 }
 
 
@@ -4378,7 +4384,7 @@ _mesa_FramebufferTextureMultiviewOVR_no_error(GLenum target, GLenum attachment,
                                               GLint baseViewIndex, GLsizei numViews)
 {
    frame_buffer_texture(0, target, attachment, texture, level, 0, baseViewIndex,
-                        "glFramebufferTexture", false, true, false, numViews);
+                        "glFramebufferTexture", false, true, false, true, numViews);
 }
 
 
@@ -4388,7 +4394,7 @@ _mesa_FramebufferTextureMultiviewOVR(GLenum target, GLenum attachment,
                                      GLint baseViewIndex, GLsizei numViews)
 {
    frame_buffer_texture(0, target, attachment, texture, level, 0, baseViewIndex,
-                        "glFramebufferTexture", false, false, false, numViews);
+                        "glFramebufferTexture", false, false, false, true, numViews);
 }
 
 
@@ -4398,7 +4404,7 @@ _mesa_FramebufferTextureMultisampleMultiviewOVR_no_error(GLenum target, GLenum a
                                                          GLint baseViewIndex, GLsizei numViews)
 {
    frame_buffer_texture(0, target, attachment, texture, level, samples, baseViewIndex,
-                        "FramebufferTextureMultisampleMultiviewOVR", false, true, false, numViews);
+                        "FramebufferTextureMultisampleMultiviewOVR", false, true, false, true, numViews);
 }
 
 
@@ -4408,7 +4414,7 @@ _mesa_FramebufferTextureMultisampleMultiviewOVR(GLenum target, GLenum attachment
                                                 GLint baseViewIndex, GLsizei numViews)
 {
    frame_buffer_texture(0, target, attachment, texture, level, samples, baseViewIndex,
-                        "FramebufferTextureMultisampleMultiviewOVR", false, false, false, numViews);
+                        "FramebufferTextureMultisampleMultiviewOVR", false, false, false, true, numViews);
 }
 
 
@@ -4418,7 +4424,7 @@ _mesa_NamedFramebufferTextureMultiviewOVR_no_error(GLuint framebuffer, GLenum at
                                                    GLint baseViewIndex, GLsizei numViews)
 {
    frame_buffer_texture(framebuffer, 0, attachment, texture, level, 0, baseViewIndex,
-                        "glFramebufferTexture", true, true, false, numViews);
+                        "glFramebufferTexture", true, true, false, true, numViews);
 }
 
 
@@ -4428,7 +4434,7 @@ _mesa_NamedFramebufferTextureMultiviewOVR(GLuint framebuffer, GLenum attachment,
                                           GLint baseViewIndex, GLsizei numViews)
 {
    frame_buffer_texture(framebuffer, 0, attachment, texture, level, 0, baseViewIndex,
-                        "glFramebufferTexture", true, false, false, numViews);
+                        "glFramebufferTexture", true, false, false, true, numViews);
 }
 
 
@@ -4437,7 +4443,7 @@ _mesa_FramebufferTexture_no_error(GLenum target, GLenum attachment,
                                   GLuint texture, GLint level)
 {
    frame_buffer_texture(0, target, attachment, texture, level, 0, 0,
-                        "glFramebufferTexture", false, true, true, 0);
+                        "glFramebufferTexture", false, true, true, false, 0);
 }
 
 
@@ -4446,7 +4452,7 @@ _mesa_FramebufferTexture(GLenum target, GLenum attachment,
                          GLuint texture, GLint level)
 {
    frame_buffer_texture(0, target, attachment, texture, level, 0, 0,
-                        "glFramebufferTexture", false, false, true, 0);
+                        "glFramebufferTexture", false, false, true, false, 0);
 }
 
 void GLAPIENTRY
@@ -4454,7 +4460,7 @@ _mesa_NamedFramebufferTexture_no_error(GLuint framebuffer, GLenum attachment,
                                        GLuint texture, GLint level)
 {
    frame_buffer_texture(framebuffer, 0, attachment, texture, level, 0, 0,
-                        "glNamedFramebufferTexture", true, true, true, 0);
+                        "glNamedFramebufferTexture", true, true, true, false, 0);
 }
 
 
@@ -4463,7 +4469,7 @@ _mesa_NamedFramebufferTexture(GLuint framebuffer, GLenum attachment,
                               GLuint texture, GLint level)
 {
    frame_buffer_texture(framebuffer, 0, attachment, texture, level, 0, 0,
-                        "glNamedFramebufferTexture", true, false, true, 0);
+                        "glNamedFramebufferTexture", true, false, true, false, 0);
 }
 
 

@@ -108,7 +108,7 @@ DrvGetProcAddress(
             return entry->proc;
 
    if (lpszProc[0] == 'g' && lpszProc[1] == 'l') {
-      p = (PROC) _glapi_get_proc_address(lpszProc);
+      p = (PROC) _mesa_glapi_get_proc_address(lpszProc);
       if (p)
          return p;
    }

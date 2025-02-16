@@ -28,18 +28,16 @@ nir_def *agx_nir_load_vertex_id(struct nir_builder *b, nir_def *id,
 
 bool agx_nir_lower_sw_vs(struct nir_shader *s, unsigned index_size_B);
 
-bool agx_nir_lower_vs_before_gs(struct nir_shader *vs,
-                                const struct nir_shader *libagx);
+bool agx_nir_lower_vs_before_gs(struct nir_shader *vs);
 
-bool agx_nir_lower_gs(struct nir_shader *gs, const struct nir_shader *libagx,
-                      bool rasterizer_discard, struct nir_shader **gs_count,
-                      struct nir_shader **gs_copy, struct nir_shader **pre_gs,
-                      enum mesa_prim *out_mode, unsigned *out_count_words);
+bool agx_nir_lower_gs(struct nir_shader *gs, bool rasterizer_discard,
+                      struct nir_shader **gs_count, struct nir_shader **gs_copy,
+                      struct nir_shader **pre_gs, enum mesa_prim *out_mode,
+                      unsigned *out_count_words);
 
-bool agx_nir_lower_tcs(struct nir_shader *tcs, const struct nir_shader *libagx);
+bool agx_nir_lower_tcs(struct nir_shader *tcs);
 
-bool agx_nir_lower_tes(struct nir_shader *tes, const struct nir_shader *libagx,
-                       bool to_hw_vs);
+bool agx_nir_lower_tes(struct nir_shader *tes, bool to_hw_vs);
 
 uint64_t agx_tcs_per_vertex_outputs(const struct nir_shader *nir);
 

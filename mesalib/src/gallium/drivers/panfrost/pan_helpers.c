@@ -62,6 +62,7 @@ panfrost_analyze_sysvals(struct panfrost_compiled_shader *ss)
       case PAN_SYSVAL_WORK_DIM:
       case PAN_SYSVAL_VERTEX_INSTANCE_OFFSETS:
       case PAN_SYSVAL_NUM_VERTICES:
+      case PAN_SYSVAL_PRINTF_BUFFER:
          dirty |= PAN_DIRTY_PARAMS;
          break;
 

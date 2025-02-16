@@ -122,6 +122,9 @@ struct wsi_device {
     * If false, WSI will always use either modifiers or the prime blit path.
     */
    bool supports_scanout;
+
+   bool supports_protected[VK_ICD_WSI_PLATFORM_MAX];
+
    bool supports_modifiers;
    uint32_t maxImageDimension2D;
    uint32_t optimalBufferCopyRowPitchAlignment;

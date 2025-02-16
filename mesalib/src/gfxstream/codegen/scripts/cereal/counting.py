@@ -78,6 +78,7 @@ class VulkanCountingCodegen(VulkanTypeIterator):
                 makeVulkanTypeSimple(False, "uint64_t", 1, paramName=handle64Var)
         else:
             self.cgen.stmt("uint64_t %s" % handle64Var)
+            self.cgen.stmt("(void)%s" % handle64Var)
             handle64VarAccess = "&%s" % handle64Var
             handle64VarType = \
                 makeVulkanTypeSimple(False, "uint64_t", 0, paramName=handle64Var)
@@ -372,7 +373,6 @@ class VulkanCountingCodegen(VulkanTypeIterator):
         if lenAccessGuard is not None:
             self.cgen.beginIf(lenAccessGuard)
         self.cgen.beginFor("uint32_t i = 0", "i < %s" % lenAccess, "++i")
-        self.cgen.stmt("size_t l = %s[i] ? strlen(%s[i]) : 0" % (access, access))
         self.genCount("sizeof(uint32_t) + (%s[i] ? strlen(%s[i]) : 0)" % (access, access))
         self.cgen.endFor()
         if lenAccessGuard is not None:
@@ -568,10 +568,10 @@ class VulkanCounting(VulkanWrapperGenerator):
             def structCountingDef(cgen):
                 self.countingCodegen.cgen = cgen
                 self.countingCodegen.currentStructInfo = structInfo
-                cgen.stmt("(void)%s" % self.featureBitsVar);
-                cgen.stmt("(void)%s" % self.rootTypeVar);
-                cgen.stmt("(void)%s" % self.countVars[0]);
-                cgen.stmt("(void)%s" % self.countVars[1]);
+                cgen.stmt("(void)%s" % self.featureBitsVar)
+                cgen.stmt("(void)%s" % self.rootTypeVar)
+                cgen.stmt("(void)%s" % self.countVars[0])
+                cgen.stmt("(void)%s" % self.countVars[1])
 
                 if category == "struct":
                     # marshal 'let' parameters first
@@ -587,10 +587,10 @@ class VulkanCounting(VulkanWrapperGenerator):
                 self.countingCodegen.cgen = cgen
                 self.countingCodegen.currentStructInfo = structInfo
                 self.countingCodegen.doFiltering = False
-                cgen.stmt("(void)%s" % self.featureBitsVar);
-                cgen.stmt("(void)%s" % self.rootTypeVar);
-                cgen.stmt("(void)%s" % self.countVars[0]);
-                cgen.stmt("(void)%s" % self.countVars[1]);
+                cgen.stmt("(void)%s" % self.featureBitsVar)
+                cgen.stmt("(void)%s" % self.rootTypeVar)
+                cgen.stmt("(void)%s" % self.countVars[0])
+                cgen.stmt("(void)%s" % self.countVars[1])
 
                 if category == "struct":
                     # marshal 'let' parameters first

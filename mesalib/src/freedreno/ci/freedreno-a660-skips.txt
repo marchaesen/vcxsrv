@@ -13,3 +13,6 @@ dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_geom
 dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tessc
 dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_tesse
 dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids_vert
+
+# 60s timeout (flake)
+dEQP-VK.subgroups.clustered.graphics.subgroupclusteredmul_i64vec4

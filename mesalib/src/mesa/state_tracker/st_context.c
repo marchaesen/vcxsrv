@@ -629,8 +629,7 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
       screen->caps.call_finalize_nir_in_linker;
 
    st->has_hw_atomics =
-      screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                               PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS)
+      screen->shader_caps[PIPE_SHADER_FRAGMENT].max_hw_atomic_counters
       ? true : false;
 
    st->validate_all_dirty_states =

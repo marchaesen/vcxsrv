@@ -171,12 +171,12 @@ static bool si_sdma_v4_v5_copy_texture(struct si_context *sctx, struct si_textur
          uint64_t md_address = tiled_address + tiled->surface.meta_offset;
 
          if (is_v7) {
-            radeon_emit(data_format |
-                        number_type << 9) |
-                        (2 << 16) | /* 0: bypass DCC, 2: decompress reads if PTE.D */
-                        (1 << 18) | /* 0: bypass DCC, 1: write compressed if PTE.D, 2: write uncompressed if PTE.D */
-                        (tiled->surface.u.gfx9.color.dcc.max_compressed_block_size << 24) |
-                        (1 << 26); /* max uncompressed block size: 256B */
+            radeon_emit(SDMA_DCC_DATA_FORMAT(data_format) |
+                        SDMA_DCC_NUM_TYPE(number_type) |
+                        SDMA_DCC_READ_CM(2) |
+                        SDMA_DCC_WRITE_CM(1) |
+                        SDMA_DCC_MAX_COM(tiled->surface.u.gfx9.color.dcc.max_compressed_block_size) |
+                        SDMA_DCC_MAX_UCOM(1));
          } else {
             /* Add metadata */
             radeon_emit((uint32_t)md_address);

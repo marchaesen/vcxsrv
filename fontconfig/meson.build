@@ -181,6 +181,7 @@ conf.set_quoted('PACKAGE_VERSION', meson.project_version())
 conf.set_quoted('PACKAGE_STRING', '@0@ @1@'.format(meson.project_name(), meson.project_version()))
 conf.set_quoted('PACKAGE_BUGREPORT', 'https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new')
 conf.set_quoted('PACKAGE_URL', '')
+conf.set('WORDS_BIGENDIAN', (host_machine.endian() == 'big').to_int())
 
 if host_machine.system() == 'windows'
   conf.set('EXEEXT', '.exe')
@@ -383,8 +384,10 @@ endif
 
 if host_machine.system() != 'windows'
   thread_dep = dependency('threads')
-  conf.set('HAVE_PTHREAD', 1)
-  deps += [thread_dep]
+  if thread_dep.found() and cc.has_header('pthread.h')
+    conf.set('HAVE_PTHREAD', 1)
+    deps += [thread_dep]
+  endif
 endif
 
 fc_templatedir = get_option('template-dir')
@@ -524,7 +527,8 @@ if not get_option('doc').disabled()
   subdir('doc')
 endif
 
-configure_file(output: 'config.h', configuration: conf)
+configure_file(output: 'meson-config.h', configuration: conf)
+configure_file(input: 'meson-config.h.in', output: 'config.h', copy: true)
 
 configure_file(output: 'fonts.conf',
                input: 'fonts.conf.in',
@@ -548,6 +552,11 @@ install_headers(fc_headers, subdir: meson.project_name())
 if not meson.is_subproject()
   meson.add_dist_script('build-aux/meson-dist-docs.py')
   meson.add_dist_script('build-aux/meson-dist-autotools.py')
+endif
+
+if host_machine.system() != 'windows'
+  install_emptydir(fc_cachedir,
+                   install_tag: 'runtime')
 endif
 
 # Summary

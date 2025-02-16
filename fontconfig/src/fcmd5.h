@@ -27,7 +27,7 @@ static void MD5Update(struct MD5Context *ctx, const unsigned char *buf, unsigned
 static void MD5Final(unsigned char digest[16], struct MD5Context *ctx);
 static void MD5Transform(FcChar32 buf[4], FcChar32 in[16]);
 
-#ifndef WORDS_BIGENDIAN
+#if !defined(WORDS_BIGENDIAN) || !WORDS_BIGENDIAN
 #define byteReverse(buf, len)	/* Nothing */
 #else
 /*

@@ -82,12 +82,11 @@ SProcXSendExtensionEvent(ClientPtr client)
     EventSwapPtr proc;
 
     REQUEST(xSendExtensionEventReq);
-    swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xSendExtensionEventReq);
     swapl(&stuff->destination);
     swaps(&stuff->count);
 
-    if (stuff->length !=
+    if (client->req_len !=
         bytes_to_int32(sizeof(xSendExtensionEventReq)) + stuff->count +
         bytes_to_int32(stuff->num_events * sizeof(xEvent)))
         return BadLength;
@@ -133,7 +132,7 @@ ProcXSendExtensionEvent(ClientPtr client)
     REQUEST(xSendExtensionEventReq);
     REQUEST_AT_LEAST_SIZE(xSendExtensionEventReq);
 
-    if (stuff->length !=
+    if (client->req_len !=
         bytes_to_int32(sizeof(xSendExtensionEventReq)) + stuff->count +
         (stuff->num_events * bytes_to_int32(sizeof(xEvent))))
         return BadLength;

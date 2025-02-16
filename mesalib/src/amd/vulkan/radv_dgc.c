@@ -6,6 +6,7 @@
 
 #include "radv_dgc.h"
 #include "meta/radv_meta.h"
+#include "nir/radv_meta_nir.h"
 #include "radv_entrypoints.h"
 #include "radv_pipeline_rt.h"
 
@@ -621,6 +622,8 @@ struct radv_dgc_params {
    uint8_t queue_family;
    uint8_t use_preamble;
 
+   uint64_t params_addr;
+
    /* draw info */
    uint16_t vtx_base_sgpr;
    uint32_t max_index_count;
@@ -744,16 +747,15 @@ dgc_load_shader_metadata(struct dgc_cmdbuf *cs, uint32_t bitsize, uint32_t field
 {
    const struct radv_indirect_command_layout *layout = cs->layout;
    nir_builder *b = cs->b;
+   nir_def *va;
 
    if (layout->vk.dgc_info & BITFIELD_BIT(MESA_VK_DGC_IES)) {
-      return nir_load_global(b, nir_iadd_imm(b, cs->ies_va, field_offset), 4, 1, bitsize);
+      va = cs->ies_va;
    } else {
-      nir_def *params_buf = radv_meta_load_descriptor(b, 0, 0);
-
-      return nir_load_ssbo(b, 1, bitsize, params_buf, nir_imm_int(b, field_offset));
+      va = load_param64(b, params_addr);
    }
 
-   return NULL;
+   return nir_load_global(b, nir_iadd_imm(b, va, field_offset), 4, 1, bitsize);
 }
 
 #define load_shader_metadata32(cs, field)                                                                              \
@@ -766,11 +768,10 @@ dgc_load_vbo_metadata(struct dgc_cmdbuf *cs, uint32_t bitsize, nir_def *idx, uin
 {
    nir_builder *b = cs->b;
 
-   nir_def *param_buf = radv_meta_load_descriptor(b, 0, 0);
+   nir_def *va = load_param64(b, params_addr);
+   nir_def *offset = nir_iadd_imm(b, nir_imul_imm(b, idx, DGC_VBO_INFO_SIZE), field_offset);
 
-   nir_def *offset = nir_imul_imm(b, idx, DGC_VBO_INFO_SIZE);
-
-   return nir_load_ssbo(b, 1, bitsize, param_buf, nir_iadd_imm(b, offset, field_offset));
+   return nir_load_global(b, nir_iadd(b, va, nir_u2u64(b, offset)), 4, 1, bitsize);
 }
 
 #define load_vbo_metadata32(cs, idx, field) dgc_load_vbo_metadata(cs, 32, idx, offsetof(struct radv_vbo_info, field))
@@ -928,7 +929,7 @@ build_dgc_buffer_tail(nir_builder *b, nir_def *cmd_buf_offset, nir_def *cmd_buf_
    const struct radv_physical_device *pdev = radv_device_physical(device);
    nir_def *is_compute_queue = nir_ior_imm(b, nir_ieq_imm(b, load_param8(b, queue_family), RADV_QUEUE_COMPUTE), is_ace);
 
-   nir_def *global_id = get_global_ids(b, 1);
+   nir_def *global_id = radv_meta_nir_get_global_ids(b, 1);
 
    nir_push_if(b, nir_ieq_imm(b, global_id, 0));
    {
@@ -1017,7 +1018,7 @@ build_dgc_buffer_trailer(nir_builder *b, nir_def *cmd_buf_offset, unsigned trail
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
 
-   nir_def *global_id = get_global_ids(b, 1);
+   nir_def *global_id = radv_meta_nir_get_global_ids(b, 1);
 
    nir_push_if(b, nir_ieq_imm(b, global_id, 0));
    {
@@ -1070,7 +1071,7 @@ build_dgc_buffer_preamble(nir_builder *b, nir_def *cmd_buf_preamble_offset, nir_
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
 
-   nir_def *global_id = get_global_ids(b, 1);
+   nir_def *global_id = radv_meta_nir_get_global_ids(b, 1);
    nir_def *use_preamble = nir_ine_imm(b, load_param8(b, use_preamble), 0);
 
    nir_push_if(b, nir_iand(b, nir_ieq_imm(b, global_id, 0), use_preamble));
@@ -1467,7 +1468,7 @@ dgc_get_push_constant_stages(struct dgc_cmdbuf *cs)
 }
 
 static nir_def *
-dgc_get_upload_sgpr(struct dgc_cmdbuf *cs, nir_def *param_buf, nir_def *param_offset, gl_shader_stage stage)
+dgc_get_upload_sgpr(struct dgc_cmdbuf *cs, nir_def *param_offset, gl_shader_stage stage)
 {
    const struct radv_indirect_command_layout *layout = cs->layout;
    nir_builder *b = cs->b;
@@ -1476,14 +1477,15 @@ dgc_get_upload_sgpr(struct dgc_cmdbuf *cs, nir_def *param_buf, nir_def *param_of
    if (layout->vk.dgc_info & BITFIELD_BIT(MESA_VK_DGC_DISPATCH)) {
       res = load_shader_metadata32(cs, push_const_sgpr);
    } else {
-      res = nir_load_ssbo(b, 1, 32, param_buf, nir_iadd_imm(b, param_offset, stage * 12));
+      nir_def *va = load_param64(b, params_addr);
+      res = nir_build_load_global(b, 1, 32, nir_iadd(b, va, nir_u2u64(b, nir_iadd_imm(b, param_offset, stage * 12))));
    }
 
    return nir_ubfe_imm(b, res, 0, 16);
 }
 
 static nir_def *
-dgc_get_inline_sgpr(struct dgc_cmdbuf *cs, nir_def *param_buf, nir_def *param_offset, gl_shader_stage stage)
+dgc_get_inline_sgpr(struct dgc_cmdbuf *cs, nir_def *param_offset, gl_shader_stage stage)
 {
    const struct radv_indirect_command_layout *layout = cs->layout;
    nir_builder *b = cs->b;
@@ -1492,14 +1494,15 @@ dgc_get_inline_sgpr(struct dgc_cmdbuf *cs, nir_def *param_buf, nir_def *param_of
    if (layout->vk.dgc_info & BITFIELD_BIT(MESA_VK_DGC_DISPATCH)) {
       res = load_shader_metadata32(cs, push_const_sgpr);
    } else {
-      res = nir_load_ssbo(b, 1, 32, param_buf, nir_iadd_imm(b, param_offset, stage * 12));
+      nir_def *va = load_param64(b, params_addr);
+      res = nir_build_load_global(b, 1, 32, nir_iadd(b, va, nir_u2u64(b, nir_iadd_imm(b, param_offset, stage * 12))));
    }
 
    return nir_ubfe_imm(b, res, 16, 16);
 }
 
 static nir_def *
-dgc_get_inline_mask(struct dgc_cmdbuf *cs, nir_def *param_buf, nir_def *param_offset, gl_shader_stage stage)
+dgc_get_inline_mask(struct dgc_cmdbuf *cs, nir_def *param_offset, gl_shader_stage stage)
 {
    const struct radv_indirect_command_layout *layout = cs->layout;
    nir_builder *b = cs->b;
@@ -1507,7 +1510,9 @@ dgc_get_inline_mask(struct dgc_cmdbuf *cs, nir_def *param_buf, nir_def *param_of
    if (layout->vk.dgc_info & BITFIELD_BIT(MESA_VK_DGC_DISPATCH)) {
       return load_shader_metadata64(cs, inline_push_const_mask);
    } else {
-      nir_def *reg_info = nir_load_ssbo(b, 2, 32, param_buf, nir_iadd_imm(b, param_offset, stage * 12 + 4));
+      nir_def *va = load_param64(b, params_addr);
+      nir_def *reg_info =
+         nir_build_load_global(b, 2, 32, nir_iadd(b, va, nir_u2u64(b, nir_iadd_imm(b, param_offset, stage * 12 + 4))));
       return nir_pack_64_2x32(b, nir_channels(b, reg_info, 0x3));
    }
 }
@@ -1526,7 +1531,6 @@ dgc_push_constant_needs_copy(struct dgc_cmdbuf *cs)
 }
 
 struct dgc_pc_params {
-   nir_def *buf;
    nir_def *offset;
    nir_def *const_offset;
 };
@@ -1537,8 +1541,6 @@ dgc_get_pc_params(struct dgc_cmdbuf *cs)
    const struct radv_indirect_command_layout *layout = cs->layout;
    struct dgc_pc_params params = {0};
    nir_builder *b = cs->b;
-
-   params.buf = radv_meta_load_descriptor(b, 0, 0);
 
    uint32_t offset = 0;
    if (layout->vk.dgc_info & BITFIELD_BIT(MESA_VK_DGC_DISPATCH)) {
@@ -1572,7 +1574,9 @@ dgc_alloc_push_constant(struct dgc_cmdbuf *cs, nir_def *stream_addr, nir_def *se
          data = nir_build_load_global(b, 1, 32, nir_iadd_imm(b, stream_addr, layout->push_constant_offsets[i]),
                                       .access = ACCESS_NON_WRITEABLE);
       } else {
-         data = nir_load_ssbo(b, 1, 32, params->buf, nir_iadd_imm(b, params->const_offset, i * 4));
+         nir_def *va = load_param64(b, params_addr);
+         data = nir_build_load_global(b, 1, 32,
+                                      nir_iadd(b, va, nir_u2u64(b, nir_iadd_imm(b, params->const_offset, i * 4))));
       }
 
       dgc_upload(cs, data);
@@ -1587,9 +1591,9 @@ dgc_emit_push_constant_for_stage(struct dgc_cmdbuf *cs, nir_def *stream_addr, ni
    VK_FROM_HANDLE(radv_pipeline_layout, pipeline_layout, layout->vk.layout);
    nir_builder *b = cs->b;
 
-   nir_def *upload_sgpr = dgc_get_upload_sgpr(cs, params->buf, params->offset, stage);
-   nir_def *inline_sgpr = dgc_get_inline_sgpr(cs, params->buf, params->offset, stage);
-   nir_def *inline_mask = dgc_get_inline_mask(cs, params->buf, params->offset, stage);
+   nir_def *upload_sgpr = dgc_get_upload_sgpr(cs, params->offset, stage);
+   nir_def *inline_sgpr = dgc_get_inline_sgpr(cs, params->offset, stage);
+   nir_def *inline_mask = dgc_get_inline_mask(cs, params->offset, stage);
 
    nir_push_if(b, nir_ine_imm(b, upload_sgpr, 0));
    {
@@ -1621,7 +1625,9 @@ dgc_emit_push_constant_for_stage(struct dgc_cmdbuf *cs, nir_def *stream_addr, ni
                 * the DGC execute is called because there is no bound pipeline and they have to be
                 * emitted from the DGC prepare shader.
                 */
-               data = nir_load_ssbo(b, 1, 32, params->buf, nir_iadd_imm(b, params->const_offset, i * 4));
+               nir_def *va = load_param64(b, params_addr);
+               data = nir_build_load_global(
+                  b, 1, 32, nir_iadd(b, va, nir_u2u64(b, nir_iadd_imm(b, params->const_offset, i * 4))));
             }
 
             if (data) {
@@ -2465,10 +2471,10 @@ static nir_shader *
 build_dgc_prepare_shader(struct radv_device *dev, struct radv_indirect_command_layout *layout)
 {
    const struct radv_physical_device *pdev = radv_device_physical(dev);
-   nir_builder b = radv_meta_init_shader(dev, MESA_SHADER_COMPUTE, "meta_dgc_prepare");
+   nir_builder b = radv_meta_nir_init_shader(dev, MESA_SHADER_COMPUTE, "meta_dgc_prepare");
    b.shader->info.workgroup_size[0] = 64;
 
-   nir_def *global_id = get_global_ids(&b, 1);
+   nir_def *global_id = radv_meta_nir_get_global_ids(&b, 1);
 
    nir_def *sequence_id = global_id;
 
@@ -2670,30 +2676,16 @@ build_dgc_prepare_shader(struct radv_device *dev, struct radv_indirect_command_l
 static VkResult
 radv_create_dgc_pipeline(struct radv_device *device, struct radv_indirect_command_layout *layout)
 {
-   const char *key_data = "radv-dgc-layout";
+   enum radv_meta_object_key_type key = RADV_META_OBJECT_KEY_DGC;
    VkResult result;
-
-   const VkDescriptorSetLayoutBinding binding = {
-      .binding = 0,
-      .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-      .descriptorCount = 1,
-      .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-   };
-
-   const VkDescriptorSetLayoutCreateInfo desc_info = {
-      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-      .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT,
-      .bindingCount = 1,
-      .pBindings = &binding,
-   };
 
    const VkPushConstantRange pc_range = {
       .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
       .size = sizeof(struct radv_dgc_params),
    };
 
-   result = vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, &pc_range, key_data,
-                                        strlen(key_data), &layout->pipeline_layout);
+   result = vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, NULL, &pc_range, &key, sizeof(key),
+                                        &layout->pipeline_layout);
    if (result != VK_SUCCESS)
       return result;
 
@@ -2952,7 +2944,6 @@ radv_prepare_dgc(struct radv_cmd_buffer *cmd_buffer, const VkGeneratedCommandsIn
    const struct radv_physical_device *pdev = radv_device_physical(device);
    struct radv_meta_saved_state saved_state;
    unsigned upload_offset, upload_size = 0;
-   struct radv_buffer token_buffer;
    void *upload_data;
 
    const VkGeneratedCommandsPipelineInfoEXT *pipeline_info =
@@ -3009,6 +3000,8 @@ radv_prepare_dgc(struct radv_cmd_buffer *cmd_buffer, const VkGeneratedCommandsIn
       radv_prepare_dgc_graphics(cmd_buffer, pGeneratedCommandsInfo, state_cmd_buffer, &upload_size, &upload_offset,
                                 &upload_data, &params);
    }
+
+   params.params_addr = radv_buffer_get_va(cmd_buffer->upload.upload_bo) + upload_offset;
 
    if (layout->push_constant_mask) {
       VkShaderStageFlags pc_stages = 0;
@@ -3078,31 +3071,16 @@ radv_prepare_dgc(struct radv_cmd_buffer *cmd_buffer, const VkGeneratedCommandsIn
       upload_data = (char *)upload_data + pipeline_layout->push_constant_size;
    }
 
-   radv_buffer_init(&token_buffer, device, cmd_buffer->upload.upload_bo, upload_size, upload_offset);
-
-   radv_meta_save(&saved_state, cmd_buffer,
-                  RADV_META_SAVE_COMPUTE_PIPELINE | RADV_META_SAVE_DESCRIPTORS | RADV_META_SAVE_CONSTANTS);
+   radv_meta_save(&saved_state, cmd_buffer, RADV_META_SAVE_COMPUTE_PIPELINE | RADV_META_SAVE_CONSTANTS);
 
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE, layout->pipeline);
 
    vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), layout->pipeline_layout,
                               VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(params), &params);
 
-   radv_meta_push_descriptor_set(
-      cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, layout->pipeline_layout, 0, 1,
-      (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                .dstBinding = 0,
-                                .dstArrayElement = 0,
-                                .descriptorCount = 1,
-                                .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                .pBufferInfo = &(VkDescriptorBufferInfo){.buffer = radv_buffer_to_handle(&token_buffer),
-                                                                         .offset = 0,
-                                                                         .range = upload_size}}});
-
    unsigned block_count = MAX2(1, DIV_ROUND_UP(pGeneratedCommandsInfo->maxSequenceCount, 64));
    vk_common_CmdDispatch(radv_cmd_buffer_to_handle(cmd_buffer), block_count, 1, 1);
 
-   radv_buffer_finish(&token_buffer);
    radv_meta_restore(&saved_state, cmd_buffer);
 }
 

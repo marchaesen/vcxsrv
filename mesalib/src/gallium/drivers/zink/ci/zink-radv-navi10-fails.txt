@@ -32,8 +32,6 @@ spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
 
-spec@ext_packed_float@query-rgba-signed-components,Fail
-
 spec@glsl-1.10@execution@glsl-fs-inline-explosion,Crash
 spec@glsl-1.10@execution@glsl-vs-inline-explosion,Crash
 spec@glsl-1.10@execution@loops@glsl-fs-unroll-explosion,Crash
@@ -165,3 +163,11 @@ spec@ext_framebuffer_multisample@interpolation 8 non-centroid-disabled,Fail
 
 # Regression noticed in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/891104
 spec@arb_viewport_array@display-list,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/12495
+spec@arb_framebuffer_object@execution@msaa-alpha-to-coverage_alpha-to-one,Fail
+spec@arb_framebuffer_object@execution@msaa-alpha-to-coverage_alpha-to-one_write-z,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/12496
+# ../src/amd/vulkan/radv_shader_info.c:1559: gfx10_get_ngg_info: Assertion `max_esverts >= max_verts_per_prim && max_gsprims >= 1' failed.
+spec@glsl-1.50@gs-max-output,Crash

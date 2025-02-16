@@ -70,7 +70,7 @@ struct etna_specs {
    /* needs z=(z+w)/2, for older GCxxx */
    unsigned vs_need_z_div : 1;
    /* can use VS_RANGE, PS_RANGE registers*/
-   unsigned has_shader_range_registers : 1;
+   unsigned has_unified_instmem : 1;
    /* has the new sin/cos/log functions */
    unsigned has_new_transcendentals : 1;
    /* has no limit on the number of constant sources per instruction */

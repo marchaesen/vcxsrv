@@ -16,6 +16,9 @@
 #include "tu_device.h"
 #include "tu_image.h"
 
+#define XXH_INLINE_ALL
+#include "util/xxhash.h"
+
 static void
 tu_render_pass_add_subpass_dep(struct tu_render_pass *pass,
                                const VkSubpassDependency2 *dep)

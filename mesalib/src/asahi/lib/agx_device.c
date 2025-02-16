@@ -662,9 +662,6 @@ agx_open_device(void *memctx, struct agx_device *dev)
    agx_get_global_ids(dev);
 
    glsl_type_singleton_init_or_ref();
-   struct blob_reader blob;
-   blob_reader_init(&blob, (void *)libagx_0_nir, sizeof(libagx_0_nir));
-   dev->libagx = nir_deserialize(memctx, &agx_nir_options, &blob);
 
    if (agx_gather_device_key(dev).needs_g13x_coherency == U_TRISTATE_YES) {
       dev->libagx_programs = libagx_g13x;
@@ -695,9 +692,6 @@ agx_open_device(void *memctx, struct agx_device *dev)
    }
 
    u_printf_init(&dev->printf, bo, agx_bo_map(bo));
-   u_printf_singleton_init_or_ref();
-   u_printf_singleton_add(dev->libagx->printf_info,
-                          dev->libagx->printf_info_count);
    return true;
 }
 
@@ -706,7 +700,6 @@ agx_close_device(struct agx_device *dev)
 {
    agx_bo_unreference(dev, dev->printf.bo);
    u_printf_destroy(&dev->printf);
-   ralloc_free((void *)dev->libagx);
    agx_bo_cache_evict_all(dev);
    util_sparse_array_finish(&dev->bo_map);
    agxdecode_destroy_context(dev->agxdecode);
@@ -714,7 +707,6 @@ agx_close_device(struct agx_device *dev)
    util_vma_heap_finish(&dev->main_heap);
    util_vma_heap_finish(&dev->usc_heap);
    glsl_type_singleton_decref();
-   u_printf_singleton_decref();
 
    close(dev->fd);
 }

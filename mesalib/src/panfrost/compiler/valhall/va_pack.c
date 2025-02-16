@@ -349,8 +349,6 @@ static enum va_lanes_8_bit
 va_pack_shift_lanes(const bi_instr *I, enum bi_swizzle swz)
 {
    switch (swz) {
-   case BI_SWIZZLE_H01:
-      return VA_LANES_8_BIT_B02;
    case BI_SWIZZLE_B0000:
       return VA_LANES_8_BIT_B00;
    case BI_SWIZZLE_B1111:
@@ -472,8 +470,8 @@ va_pack_alu(const bi_instr *I)
       break;
 
    case BI_OPCODE_LEA_BUF_IMM:
-      /* Buffer table index */
-      hex |= 0xD << 8;
+      hex |= ((uint64_t)I->table) << 8;
+      hex |= ((uint64_t)I->index) << 12;
       break;
 
    case BI_OPCODE_LEA_ATTR_IMM:
@@ -529,6 +527,10 @@ va_pack_alu(const bi_instr *I)
    case BI_OPCODE_LEA_TEX_IMM:
       hex |= ((uint64_t)I->table) << 16;
       hex |= ((uint64_t)I->texture_index) << 20;
+      break;
+
+   case BI_OPCODE_WMASK:
+      hex |= ((uint64_t)I->subgroup) << 36;
       break;
 
    case BI_OPCODE_ZS_EMIT:

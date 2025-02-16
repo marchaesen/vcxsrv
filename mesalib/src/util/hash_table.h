@@ -221,6 +221,11 @@ void
 _mesa_hash_table_u64_remove(struct hash_table_u64 *ht, uint64_t key);
 
 void
+_mesa_hash_table_u64_replace(struct hash_table_u64 *ht,
+                             const struct hash_entry_u64 *he,
+                             void *new_data);
+
+void
 _mesa_hash_table_u64_clear(struct hash_table_u64 *ht);
 
 struct hash_entry_u64

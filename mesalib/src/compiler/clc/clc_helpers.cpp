@@ -55,6 +55,7 @@
 #include <clang/Frontend/Utils.h>
 #include <clang/Basic/TargetInfo.h>
 
+#include <spirv-tools/libspirv.h>
 #include <spirv-tools/libspirv.hpp>
 #include <spirv-tools/linker.hpp>
 #include <spirv-tools/optimizer.hpp>
@@ -82,7 +83,7 @@
 namespace fs = std::filesystem;
 
 /* Use the highest version of SPIRV supported by SPIRV-Tools. */
-constexpr spv_target_env spirv_target = SPV_ENV_UNIVERSAL_1_5;
+constexpr spv_target_env spirv_target = SPV_ENV_UNIVERSAL_1_6;
 
 constexpr SPIRV::VersionNumber invalid_spirv_trans_version = static_cast<SPIRV::VersionNumber>(0);
 
@@ -1266,6 +1267,10 @@ private:
    const struct clc_logger *logger;
 };
 
+const char* clc_spirv_tools_version() {
+   return spvSoftwareVersionString();
+}
+
 int
 clc_link_spirv_binaries(const struct clc_linker_args *args,
                         const struct clc_logger *logger,
@@ -1284,6 +1289,7 @@ clc_link_spirv_binaries(const struct clc_linker_args *args,
    context.SetMessageConsumer(msgconsumer);
    spvtools::LinkerOptions options;
    options.SetAllowPartialLinkage(args->create_library);
+   options.SetUseHighestVersion(true);
    #if defined(HAS_SPIRV_LINK_LLVM_WORKAROUND) && LLVM_VERSION_MAJOR >= 17
       options.SetAllowPtrTypeMismatch(true);
    #endif

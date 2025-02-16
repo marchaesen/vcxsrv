@@ -381,3 +381,24 @@ SALU writing then SALU or VALU reading a SGPR that was previously used as a lane
 Mitigated by:
 A VALU instruction reading a non-exec SGPR before the SALU write, or a sa_sdst=0 wait after the
 SALU write: `s_waitcnt_depctr 0xfffe`
+
+## RDNA4 / GFX12 hazards
+
+### VcmpxPermlaneHazard
+
+Same as GFX10
+
+### LdsDirectVALUHazard
+### LdsDirectVMEMHazard
+
+Same as GFX11
+
+### VALUReadSGPRHazard
+
+Triggered by:
+VALU reads an SGPR, then written by SALU cannot safely be read by SALU or VALU, or
+VALU reads an SGPR, then written by VALU cannot safely be read by VALU.
+
+Mitigated by:
+After the SALU write a sa_sdst=0 wait. After the VALU write a va_sdst=0 / va_vcc=0 wait.
+It does not reset the first step.

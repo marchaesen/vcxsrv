@@ -19,8 +19,6 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvyu,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88,Fail
 
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
-glx@glx_arb_create_context_no_error@no error,Fail
 
 glx@glx-swap-pixmap-bad,Fail
 
@@ -549,8 +547,6 @@ spec@ext_framebuffer_multisample@interpolation 8 centroid-deriv-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 centroid-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 non-centroid-deriv-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 non-centroid-disabled,Fail
-
-spec@ext_packed_float@query-rgba-signed-components,Fail
 
 spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
 spec@ext_transform_feedback@tessellation quad_strip wireframe,Fail

@@ -407,6 +407,8 @@ vk_ahb_format_to_image_format(uint32_t ahb_format)
    case AHARDWAREBUFFER_FORMAT_R8_UNORM:
       return VK_FORMAT_R8_UNORM;
 #endif
+   case AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM:
+      return VK_FORMAT_B8G8R8A8_UNORM;
    default:
       return VK_FORMAT_UNDEFINED;
    }
@@ -448,6 +450,8 @@ vk_image_format_to_ahb_format(VkFormat vk_format)
    case VK_FORMAT_R8_UNORM:
       return AHARDWAREBUFFER_FORMAT_R8_UNORM;
 #endif
+   case VK_FORMAT_B8G8R8A8_UNORM:
+      return AHARDWAREBUFFER_FORMAT_B8G8R8A8_UNORM;
    default:
       return 0;
    }

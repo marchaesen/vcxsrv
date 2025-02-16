@@ -1,6 +1,9 @@
 KHR-GL46.shader_atomic_counters.basic-usage-tes
 KHR-GL46.shader_bitfield_operation.bitfieldInsert.ivec3_2
 KHR-GL46.shader_bitfield_operation.findMSB.uint_0
+KHR-GL46.shader_group_vote.all_invocations_equal
+KHR-GL46.shader_group_vote.invocations_with_variables
+KHR-GL46.shader_image_load_store.early-fragment-tests
 KHR-GL46.shader_image_size.advanced-nonMS-tes-uint
 KHR-GL46.shader_image_size.basic-nonMS-tes-float
 KHR-GL46.shader_storage_buffer_object.advanced-usage-sync-cs
@@ -10,20 +13,26 @@ KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_
 KHR-GL46.transform_feedback.draw_xfb_feedbackk_test
 
 KHR-GLES31.core.shader_storage_buffer_object.advanced-usage-sync-cs
+KHR-GLES31.core.texture_cube_map_array.color_depth_attachments
 dEQP-GLES3.functional.polygon_offset.fixed16_enable
 dEQP-GLES3.functional.polygon_offset.fixed16_render_with_units
 dEQP-GLES3.functional.polygon_offset.fixed24_enable
 dEQP-GLES31.functional.compute.shared_var.basic_type.mat3_mediump
 dEQP-GLES31.functional.copy_image.non_compressed.viewclass_64_bits.rg32ui_rgba16f.texture2d_array_to_texture2d_array
 dEQP-GLES31.functional.fbo.no_attachments.interaction.127x127ms0_default_129x129ms0
+dEQP-GLES31.functional.image_load_store.cube.load_store.r32f_single_layer
 dEQP-GLES31.functional.image_load_store.cube.load_store.rgba16f
+dEQP-GLES31.functional.image_load_store.2d_array.load_store.rgba32f_single_layer
 dEQP-GLES31.functional.shaders.builtin_var.compute.local_invocation_id
+dEQP-GLES31.functional.ssbo.layout.3_level_unsized_array.packed.mat2x4
 dEQP-GLES31.functional.ssbo.layout.3_level_unsized_array.packed.mat4
 dEQP-GLES31.functional.ssbo.layout.basic_unsized_array.std140.row_major_mat3
 dEQP-GLES31.functional.ssbo.layout.instance_array_basic_type.std140.column_major_mat2x3
 dEQP-GLES31.functional.ssbo.layout.random.arrays_of_arrays.4
+dEQP-GLES31.functional.ssbo.layout.random.nested_structs_arrays.14
 dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.row_major_mediump_mat4
 dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.highp_mat3
+dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.column_major_mediump_mat3x2
 dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.highp_int
 dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.lowp_ivec3
 dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.row_major_highp_mat4
@@ -129,6 +138,7 @@ dEQP-VK.glsl.texture_gather.basic.cube.rgba8i.size_npot.repeat_mirrored_repeat
 dEQP-VK.glsl.texture_gather.offset.min_required_offset.2d_array.rgba8ui.size_npot.repeat_mirrored_repeat
 
 dEQP-VK.image.format_reinterpret.cube.r8g8b8a8_uint_a2b10g10r10_unorm_pack32
+dEQP-VK.image.host_image_copy.identical_memory_layout.linear.d32_sfloat
 dEQP-VK.image.mutable.2d.r16g16_sint_r32_sfloat_draw_texture
 dEQP-VK.image.texel_view_compatible.compute.basic.3d_image.image_store.astc_10x10_srgb_block.r32g32b32a32_sint
 dEQP-VK.image.texel_view_compatible.compute.extended.2d_image.texture.etc2_r8g8b8a1_srgb_block.r16g16b16a16_snorm

@@ -5,7 +5,6 @@
  */
 
 #include "meta/radv_meta.h"
-#include "nir_builder.h"
 #include "radv_cs.h"
 #include "radv_entrypoints.h"
 
@@ -146,32 +145,6 @@ radv_GetAccelerationStructureBuildSizesKHR(VkDevice _device, VkAccelerationStruc
 
    vk_get_as_build_sizes(_device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo,
                          &device->meta_state.accel_struct_build.build_args);
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-radv_WriteAccelerationStructuresPropertiesKHR(VkDevice _device, uint32_t accelerationStructureCount,
-                                              const VkAccelerationStructureKHR *pAccelerationStructures,
-                                              VkQueryType queryType, size_t dataSize, void *pData, size_t stride)
-{
-   unreachable("Unimplemented");
-   return VK_ERROR_FEATURE_NOT_PRESENT;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-radv_BuildAccelerationStructuresKHR(VkDevice _device, VkDeferredOperationKHR deferredOperation, uint32_t infoCount,
-                                    const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
-                                    const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos)
-{
-   unreachable("Unimplemented");
-   return VK_ERROR_FEATURE_NOT_PRESENT;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-radv_CopyAccelerationStructureKHR(VkDevice _device, VkDeferredOperationKHR deferredOperation,
-                                  const VkCopyAccelerationStructureInfoKHR *pInfo)
-{
-   unreachable("Unimplemented");
-   return VK_ERROR_FEATURE_NOT_PRESENT;
 }
 
 void
@@ -469,9 +442,9 @@ radv_init_header_bind_pipeline(VkCommandBuffer commandBuffer, uint32_t key)
    /* Wait for encoding to finish. */
    cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
                                    radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                                         VK_ACCESS_2_SHADER_WRITE_BIT, NULL, NULL) |
+                                                         VK_ACCESS_2_SHADER_WRITE_BIT, 0, NULL, NULL) |
                                    radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                                         VK_ACCESS_2_SHADER_READ_BIT, NULL, NULL);
+                                                         VK_ACCESS_2_SHADER_READ_BIT, 0, NULL, NULL);
 
    device->vk.dispatch_table.CmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
                                              device->meta_state.accel_struct_build.header_pipeline);
@@ -580,9 +553,9 @@ radv_update_bind_pipeline(VkCommandBuffer commandBuffer)
    /* Wait for update scratch initialization to finish.. */
    cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
                                    radv_src_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                                         VK_ACCESS_2_SHADER_WRITE_BIT, NULL, NULL) |
+                                                         VK_ACCESS_2_SHADER_WRITE_BIT, 0, NULL, NULL) |
                                    radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
-                                                         VK_ACCESS_2_SHADER_READ_BIT, NULL, NULL);
+                                                         VK_ACCESS_2_SHADER_READ_BIT, 0, NULL, NULL);
 
    device->vk.dispatch_table.CmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
                                              device->meta_state.accel_struct_build.update_pipeline);
@@ -614,8 +587,10 @@ radv_update_as(VkCommandBuffer commandBuffer, const VkAccelerationStructureBuild
       radv_get_acceleration_structure_layout(device, leaf_count, build_info, &layout);
 
       /* Copy header/metadata */
-      radv_copy_buffer(cmd_buffer, src_as_buffer->bo, dst_as_buffer->bo, src_as_buffer->offset + src->offset,
-                       dst_as_buffer->offset + dst->offset, layout.bvh_offset);
+      const uint64_t src_va = src_as_buffer->addr + src->offset;
+      const uint64_t dst_va = dst_as_buffer->addr + dst->offset;
+
+      radv_copy_buffer(cmd_buffer, src_as_buffer->bo, dst_as_buffer->bo, src_va, dst_va, layout.bvh_offset);
    }
 
    struct scratch_layout layout;
@@ -828,7 +803,7 @@ radv_CmdCopyAccelerationStructureKHR(VkCommandBuffer commandBuffer, const VkCopy
                               sizeof(consts), &consts);
 
    cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-                                                         VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, NULL, NULL);
+                                                         VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, 0, NULL, NULL);
 
    radv_indirect_dispatch(
       cmd_buffer, src_buffer->bo,
@@ -847,22 +822,6 @@ radv_GetDeviceAccelerationStructureCompatibilityKHR(VkDevice _device,
                  memcmp(pVersionInfo->pVersionData + VK_UUID_SIZE, pdev->cache_uuid, VK_UUID_SIZE) == 0;
    *pCompatibility = compat ? VK_ACCELERATION_STRUCTURE_COMPATIBILITY_COMPATIBLE_KHR
                             : VK_ACCELERATION_STRUCTURE_COMPATIBILITY_INCOMPATIBLE_KHR;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-radv_CopyMemoryToAccelerationStructureKHR(VkDevice _device, VkDeferredOperationKHR deferredOperation,
-                                          const VkCopyMemoryToAccelerationStructureInfoKHR *pInfo)
-{
-   unreachable("Unimplemented");
-   return VK_ERROR_FEATURE_NOT_PRESENT;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-radv_CopyAccelerationStructureToMemoryKHR(VkDevice _device, VkDeferredOperationKHR deferredOperation,
-                                          const VkCopyAccelerationStructureToMemoryInfoKHR *pInfo)
-{
-   unreachable("Unimplemented");
-   return VK_ERROR_FEATURE_NOT_PRESENT;
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -934,7 +893,7 @@ radv_CmdCopyAccelerationStructureToMemoryKHR(VkCommandBuffer commandBuffer,
                               sizeof(consts), &consts);
 
    cmd_buffer->state.flush_bits |= radv_dst_access_flush(cmd_buffer, VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
-                                                         VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, NULL, NULL);
+                                                         VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT, 0, NULL, NULL);
 
    radv_indirect_dispatch(
       cmd_buffer, src_buffer->bo,
@@ -947,14 +906,4 @@ radv_CmdCopyAccelerationStructureToMemoryKHR(VkCommandBuffer commandBuffer,
    memcpy(header_data + VK_UUID_SIZE, pdev->cache_uuid, VK_UUID_SIZE);
 
    radv_update_buffer_cp(cmd_buffer, pInfo->dst.deviceAddress, header_data, sizeof(header_data));
-}
-
-VKAPI_ATTR void VKAPI_CALL
-radv_CmdBuildAccelerationStructuresIndirectKHR(VkCommandBuffer commandBuffer, uint32_t infoCount,
-                                               const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
-                                               const VkDeviceAddress *pIndirectDeviceAddresses,
-                                               const uint32_t *pIndirectStrides,
-                                               const uint32_t *const *ppMaxPrimitiveCounts)
-{
-   unreachable("Unimplemented");
 }

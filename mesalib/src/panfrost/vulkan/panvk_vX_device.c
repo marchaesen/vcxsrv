@@ -21,6 +21,7 @@
 #include "panvk_instance.h"
 #include "panvk_macros.h"
 #include "panvk_physical_device.h"
+#include "panvk_precomp_cache.h"
 #include "panvk_priv_bo.h"
 #include "panvk_queue.h"
 #include "panvk_utrace.h"
@@ -29,7 +30,9 @@
 #include "genxml/decode.h"
 #include "genxml/gen_macros.h"
 
+#include "clc/panfrost_compile.h"
 #include "kmod/pan_kmod.h"
+#include "util/u_printf.h"
 #include "pan_props.h"
 #include "pan_samples.h"
 
@@ -154,6 +157,23 @@ panvk_meta_cleanup(struct panvk_device *device)
    vk_meta_device_finish(&device->vk, &device->meta);
 }
 
+static VkResult
+panvk_precomp_init(struct panvk_device *device)
+{
+   device->precomp_cache = panvk_per_arch(precomp_cache_init)(device);
+
+   if (device->precomp_cache == NULL)
+      return VK_ERROR_OUT_OF_HOST_MEMORY;
+
+   return VK_SUCCESS;
+}
+
+static void
+panvk_precomp_cleanup(struct panvk_device *device)
+{
+   panvk_per_arch(precomp_cache_cleanup)(device->precomp_cache);
+}
+
 /* Always reserve the lower 32MB. */
 #define PANVK_VA_RESERVE_BOTTOM 0x2000000ull
 
@@ -254,9 +274,7 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
    device->vk.command_dispatch_table = &device->cmd_dispatch;
    device->vk.command_buffer_ops = &panvk_per_arch(cmd_buffer_ops);
    device->vk.shader_ops = &panvk_per_arch(device_shader_ops);
-#if PAN_ARCH >= 10
    device->vk.check_status = panvk_per_arch(device_check_status);
-#endif
 
    device->kmod.allocator = (struct pan_kmod_allocator){
       .zalloc = panvk_kmod_zalloc,
@@ -286,10 +304,6 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
       panfrost_clamp_to_usable_va_range(device->kmod.dev, 1ull << 32);
    uint32_t vm_flags = PAN_ARCH <= 7 ? PAN_KMOD_VM_FLAG_AUTO_VA : 0;
 
-   simple_mtx_init(&device->as.lock, mtx_plain);
-   util_vma_heap_init(&device->as.heap, user_va_start,
-                      user_va_end - user_va_start);
-
    device->kmod.vm =
       pan_kmod_vm_create(device->kmod.dev, vm_flags,
                          user_va_start, user_va_end - user_va_start);
@@ -298,6 +312,10 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
       result = panvk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto err_destroy_kdev;
    }
+
+   simple_mtx_init(&device->as.lock, mtx_plain);
+   util_vma_heap_init(&device->as.heap, user_va_start,
+                      user_va_end - user_va_start);
 
    panvk_device_init_mempools(device);
 
@@ -324,11 +342,25 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
       goto err_free_priv_bos;
 #endif
 
+   result = panvk_priv_bo_create(device, LIBPAN_PRINTF_BUFFER_SIZE, 0,
+                                 VK_SYSTEM_ALLOCATION_SCOPE_DEVICE,
+                                 &device->printf.bo);
+   if (result != VK_SUCCESS)
+      goto err_free_priv_bos;
+
+   u_printf_init(&device->printf.ctx, device->printf.bo,
+                 device->printf.bo->addr.host);
+
    vk_device_set_drm_fd(&device->vk, device->kmod.dev->fd);
+
+
+   result = panvk_precomp_init(device);
+   if (result != VK_SUCCESS)
+      goto err_free_priv_bos;
 
    result = panvk_meta_init(device);
    if (result != VK_SUCCESS)
-      goto err_free_priv_bos;
+      goto err_free_precomp;
 
    for (unsigned i = 0; i < pCreateInfo->queueCreateInfoCount; i++) {
       const VkDeviceQueueCreateInfo *queue_create =
@@ -378,7 +410,12 @@ err_finish_queues:
 
    panvk_meta_cleanup(device);
 
+err_free_precomp:
+   panvk_precomp_cleanup(device);
 err_free_priv_bos:
+   if (device->printf.bo)
+      u_printf_destroy(&device->printf.ctx);
+   panvk_priv_bo_unref(device->printf.bo);
    panvk_priv_bo_unref(device->tiler_oom.handlers_bo);
    panvk_priv_bo_unref(device->sample_positions);
    panvk_priv_bo_unref(device->tiler_heap);
@@ -414,7 +451,10 @@ panvk_per_arch(destroy_device)(struct panvk_device *device,
          vk_free(&device->vk.alloc, device->queues[i]);
    }
 
+   panvk_precomp_cleanup(device);
    panvk_meta_cleanup(device);
+   u_printf_destroy(&device->printf.ctx);
+   panvk_priv_bo_unref(device->printf.bo);
    panvk_priv_bo_unref(device->tiler_oom.handlers_bo);
    panvk_priv_bo_unref(device->tiler_heap);
    panvk_priv_bo_unref(device->sample_positions);

@@ -113,13 +113,13 @@ radv_recompute_fs_input_bases_callback(UNUSED nir_builder *b, nir_intrinsic_inst
 bool
 radv_recompute_fs_input_bases(nir_shader *nir)
 {
-   const uint64_t always_per_vertex =
-      nir->info.inputs_read & ~nir->info.per_primitive_inputs & ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT);
+   const uint64_t always_per_vertex = nir->info.inputs_read & ~nir->info.per_primitive_inputs &
+                                      ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT | VARYING_BIT_LAYER);
 
    const uint64_t potentially_per_primitive = nir->info.inputs_read & (VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT);
 
-   const uint64_t always_per_primitive =
-      nir->info.inputs_read & nir->info.per_primitive_inputs & ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT);
+   const uint64_t always_per_primitive = nir->info.inputs_read & nir->info.per_primitive_inputs &
+                                         ~(VARYING_BIT_PRIMITIVE_ID | VARYING_BIT_VIEWPORT | VARYING_BIT_LAYER);
 
    radv_recompute_fs_input_bases_state s = {
       .always_per_vertex = always_per_vertex,
@@ -136,6 +136,17 @@ void
 radv_nir_lower_io(struct radv_device *device, nir_shader *nir)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
+
+   /* The nir_lower_io pass currently cannot handle array deref of vectors.
+    * Call this here to make sure there are no such derefs left in the shader.
+    */
+   NIR_PASS(_, nir, nir_lower_array_deref_of_vec, nir_var_shader_in | nir_var_shader_out, NULL,
+            nir_lower_direct_array_deref_of_vec_load | nir_lower_indirect_array_deref_of_vec_load |
+            nir_lower_direct_array_deref_of_vec_store | nir_lower_indirect_array_deref_of_vec_store);
+
+   if (nir->info.stage == MESA_SHADER_TESS_CTRL) {
+      NIR_PASS(_, nir, nir_vectorize_tess_levels);
+   }
 
    if (nir->info.stage == MESA_SHADER_VERTEX) {
       NIR_PASS(_, nir, nir_lower_io, nir_var_shader_in, type_size_vec4, 0);

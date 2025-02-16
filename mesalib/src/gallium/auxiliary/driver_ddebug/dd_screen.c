@@ -74,27 +74,6 @@ dd_screen_get_disk_shader_cache(struct pipe_screen *_screen)
    return screen->get_disk_shader_cache(screen);
 }
 
-static int
-dd_screen_get_compute_param(struct pipe_screen *_screen,
-                            enum pipe_shader_ir ir_type,
-                            enum pipe_compute_cap param,
-                            void *ret)
-{
-   struct pipe_screen *screen = dd_screen(_screen)->screen;
-
-   return screen->get_compute_param(screen, ir_type, param, ret);
-}
-
-static int
-dd_screen_get_shader_param(struct pipe_screen *_screen,
-                           enum pipe_shader_type shader,
-                           enum pipe_shader_cap param)
-{
-   struct pipe_screen *screen = dd_screen(_screen)->screen;
-
-   return screen->get_shader_param(screen, shader, param);
-}
-
 static uint64_t
 dd_screen_get_timestamp(struct pipe_screen *_screen)
 {
@@ -260,7 +239,6 @@ dd_screen_query_dmabuf_modifiers(struct pipe_screen *_screen,
                                   external_only, count);
 }
 
-
 static struct pipe_resource *
 dd_screen_resource_from_user_memory(struct pipe_screen *_screen,
                                     const struct pipe_resource *templ,
@@ -375,6 +353,25 @@ dd_screen_get_sparse_texture_virtual_page_size(struct pipe_screen *_screen,
 
    return screen->get_sparse_texture_virtual_page_size(
       _screen, target, multi_sample, format, offset, size, x, y, z);
+}
+
+static bool
+dd_screen_is_dmabuf_modifier_supported(struct pipe_screen *_screen,
+                                       uint64_t modifier,
+                                       enum pipe_format format,
+                                       bool *external_only)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+   return screen->is_dmabuf_modifier_supported(screen, modifier, format, external_only);
+}
+
+static unsigned int
+dd_screen_get_dmabuf_modifier_planes(struct pipe_screen *_screen,
+                                     uint64_t modifier,
+                                     enum pipe_format format)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+   return screen->get_dmabuf_modifier_planes(screen, modifier, format);
 }
 
 /********************************************************************
@@ -640,8 +637,6 @@ ddebug_screen_create(struct pipe_screen *screen)
    dscreen->base.get_vendor = dd_screen_get_vendor;
    dscreen->base.get_device_vendor = dd_screen_get_device_vendor;
    SCR_INIT(get_disk_shader_cache);
-   dscreen->base.get_compute_param = dd_screen_get_compute_param;
-   dscreen->base.get_shader_param = dd_screen_get_shader_param;
    dscreen->base.query_memory_info = dd_screen_query_memory_info;
    /* get_video_param */
    /* get_compute_param */
@@ -678,6 +673,13 @@ ddebug_screen_create(struct pipe_screen *screen)
    SCR_INIT(create_vertex_state);
    SCR_INIT(vertex_state_destroy);
    dscreen->base.get_driver_pipe_screen = dd_get_driver_pipe_screen;
+   SCR_INIT(is_dmabuf_modifier_supported);
+   SCR_INIT(get_dmabuf_modifier_planes);
+
+   /* copy all caps */
+   *(struct pipe_caps *)&dscreen->base.caps = screen->caps;
+   *(struct pipe_compute_caps *)&dscreen->base.compute_caps = screen->compute_caps;
+   memcpy((void *)dscreen->base.shader_caps, screen->shader_caps, sizeof(screen->shader_caps));
 
 #undef SCR_INIT
 

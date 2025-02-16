@@ -112,6 +112,7 @@ enum vn_debug {
    VN_DEBUG_CACHE = 1ull << 6,
    VN_DEBUG_NO_SPARSE = 1ull << 7,
    VN_DEBUG_NO_GPL = 1ull << 8,
+   VN_DEBUG_SECOND_QUEUE = 1ull << 9,
 };
 
 enum vn_perf {

@@ -29,9 +29,10 @@
 #include <ctype.h>
 #include <unistd.h>
 
+#include "config/hotplug_priv.h"
+
 #include "input.h"
 #include "inputstr.h"
-#include "hotplug.h"
 #include "config-backends.h"
 #include "os.h"
 #include "globals.h"
@@ -550,6 +551,9 @@ config_udev_odev_setup_attribs(struct udev_device *udev_device, const char *path
 
         attribs->busid = XNFstrdup(value);
         attribs->busid[3] = ':';
+    } else if (value && (str = strrstr(value, "platform-"))) {
+        value = str + 9;
+        attribs->busid = XNFstrdup(value);
     }
 
     if (!value)

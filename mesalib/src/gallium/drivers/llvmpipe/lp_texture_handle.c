@@ -440,9 +440,6 @@ compile_sample_function(struct llvmpipe_context *ctx, struct lp_static_texture_s
          supported = false;
 
       if (sampler->aniso) {
-         if (texture_dims(texture->target) != 2)
-            supported = false;
-
          if (util_format_is_pure_integer(texture->format))
             supported = false;
       }

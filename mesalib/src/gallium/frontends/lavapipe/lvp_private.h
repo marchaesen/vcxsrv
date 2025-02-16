@@ -88,6 +88,7 @@ typedef uint32_t xcb_window_t;
 #include "vk_sync.h"
 #include "vk_sync_timeline.h"
 #include "vk_ycbcr_conversion.h"
+#include "vk_meta.h"
 #include "lp_jit.h"
 
 #include "wsi_common.h"
@@ -223,6 +224,11 @@ struct lvp_device {
    struct util_dynarray bda_image_handles;
 
    uint32_t group_handle_alloc;
+
+   struct vk_meta_device meta;
+   radix_sort_vk_t *radix_sort;
+   simple_mtx_t radix_sort_lock;
+   struct vk_acceleration_structure_build_args accel_struct_args;
 };
 
 void lvp_device_get_cache_uuid(void *uuid);
@@ -381,8 +387,6 @@ struct lvp_descriptor_pool {
 
    struct list_head sets;
 };
-
-uint32_t lvp_descriptor_update_template_entry_size(VkDescriptorType type);
 
 VkResult
 lvp_descriptor_set_create(struct lvp_device *device,
@@ -837,6 +841,41 @@ enum vk_cmd_type
 lvp_ext_dgc_token_to_cmd_type(const struct lvp_indirect_command_layout_ext *elayout, const VkIndirectCommandsLayoutTokenEXT *token);
 size_t
 lvp_ext_dgc_token_size(const struct lvp_indirect_command_layout_ext *elayout, const VkIndirectCommandsLayoutTokenEXT *token);
+
+struct lvp_cmd_write_buffer_cp {
+   VkDeviceAddress addr;
+   void *data;
+   uint32_t size;
+};
+
+struct lvp_cmd_fill_buffer_addr {
+   VkDeviceAddress addr;
+   VkDeviceSize size;
+   uint32_t data;
+};
+
+void
+lvp_encode_as(struct vk_acceleration_structure *dst, VkDeviceAddress intermediate_as_addr,
+              VkDeviceAddress intermediate_header_addr, uint32_t leaf_count,
+              VkGeometryTypeKHR geometry_type);
+
+struct lvp_cmd_encode_as {
+   struct vk_acceleration_structure *dst;
+   VkDeviceAddress intermediate_as_addr;
+   VkDeviceAddress intermediate_header_addr;
+   uint32_t leaf_count;
+   VkGeometryTypeKHR geometry_type;
+};
+
+enum lvp_cmd_type {
+   LVP_CMD_WRITE_BUFFER_CP = VK_CMD_TYPE_COUNT,
+   LVP_CMD_DISPATCH_UNALIGNED,
+   LVP_CMD_FILL_BUFFER_ADDR,
+   LVP_CMD_ENCODE_AS,
+   LVP_CMD_SAVE_STATE,
+   LVP_CMD_RESTORE_STATE,
+};
+
 #ifdef __cplusplus
 }
 #endif

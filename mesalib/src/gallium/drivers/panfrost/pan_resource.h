@@ -53,6 +53,10 @@ struct panfrost_resource {
 
    struct panfrost_resource *separate_stencil;
 
+   /* image created when detiling a resource whose
+      constant modifier we cannot change */
+   struct panfrost_resource *shadow_image;
+
    struct util_range valid_buffer_range;
 
    /* Description of the resource layout */
@@ -178,10 +182,6 @@ struct pipe_resource *
 panfrost_resource_create_with_modifier(struct pipe_screen *screen,
                                        const struct pipe_resource *template,
                                        uint64_t modifier);
-
-struct panfrost_bo *panfrost_get_afbc_superblock_sizes(
-   struct panfrost_context *ctx, struct panfrost_resource *rsrc,
-   unsigned first_level, unsigned last_level, unsigned *out_offsets);
 
 bool panfrost_should_pack_afbc(struct panfrost_device *dev,
                                const struct panfrost_resource *rsrc);

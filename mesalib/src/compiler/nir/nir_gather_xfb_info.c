@@ -22,6 +22,7 @@
  */
 
 #include "nir_xfb_info.h"
+#include "nir.h"
 
 #include "util/u_dynarray.h"
 #include <util/u_math.h>

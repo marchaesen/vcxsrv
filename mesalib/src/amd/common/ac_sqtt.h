@@ -57,8 +57,6 @@ struct ac_sqtt {
    struct hash_table_u64 *pipeline_bos;
 };
 
-#define SQTT_BUFFER_ALIGN_SHIFT 12
-
 struct ac_sqtt_data_info {
    uint32_t cur_offset;
    uint32_t trace_status;
@@ -544,6 +542,8 @@ bool ac_check_profile_state(const struct radeon_info *info);
 
 union rgp_sqtt_marker_cb_id ac_sqtt_get_next_cmdbuf_id(struct ac_sqtt *sqtt,
                                                        enum amd_ip_type ip_type);
+
+uint32_t ac_sqtt_get_buffer_align_shift(const struct radeon_info *info);
 
 bool ac_sqtt_get_trace(struct ac_sqtt *sqtt, const struct radeon_info *info,
                        struct ac_sqtt_trace *sqtt_trace);

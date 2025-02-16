@@ -100,8 +100,6 @@ mesalib/src/mapi/glapi/glapi.h                      xorg-server/glx/glapi.h
 mesalib/src/util/macros.h                           xorg-server/glx/util/macros.h
 mesalib/src/util/detect_os.h                        xorg-server/glx/util/detect_os.h
 mesalib/src/mapi/glapi/glapitable.h                 xorg-server/glx/glapitable.h
-mesalib/src/mapi/glapi/gen/remap_helper.h           xorg-server/glx/remap_helper.h
-mesalib/src/mesa/main/remap_helper.h                xorg-server/glx/remap_helper.h
 mesalib/src/mapi/glapi/gen/glprocs.h                xorg-server/glx/glprocs.h
 mesalib/src/mapi/glapi/gen/dispatch.h               xorg-server/glx/dispatch.h
 mesalib/src/mapi/glapi/gen/dispatch.h               mesalib/src/mesa/main/dispatch.h
@@ -114,7 +112,6 @@ mesalib/src/mapi/glapi/gen/indirect_size.h          xorg-server/glx/indirect_siz
 mesalib/src/mapi/glapi/gen/indirect_size_get.c      xorg-server/glx/indirect_size_get.c
 mesalib/src/mapi/glapi/gen/indirect_size_get.h      xorg-server/glx/indirect_size_get.h
 mesalib/src/mapi/glapi/gen/indirect_table.c         xorg-server/glx/indirect_table.c
-mesalib/src/mapi/glapi/gen/glfunctions.h            xorg-server/glx/glfunctions.h
 
 libXaw/include/X11/Xaw/AllWidgets.h               X11/Xaw/AllWidgets.h
 libXaw/include/X11/Xaw/AsciiSink.h                X11/Xaw/AsciiSink.h

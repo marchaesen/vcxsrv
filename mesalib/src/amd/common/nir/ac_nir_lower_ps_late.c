@@ -18,13 +18,8 @@
 typedef struct {
    const ac_nir_lower_ps_late_options *options;
 
-   nir_variable *persp_center;
    nir_variable *persp_centroid;
-   nir_variable *persp_sample;
-   nir_variable *linear_center;
    nir_variable *linear_centroid;
-   nir_variable *linear_sample;
-   bool lower_load_barycentric;
 
    nir_def *color[MAX_DRAW_BUFFERS][4];
    nir_def *depth;
@@ -44,20 +39,30 @@ typedef struct {
    unsigned spi_shader_col_format;
 } lower_ps_state;
 
-static void
-create_interp_param(nir_builder *b, lower_ps_state *s)
+static nir_variable *
+get_baryc_var_common(nir_builder *b, bool will_replace, nir_variable **var, const char *var_name)
 {
-   if (s->options->bc_optimize_for_persp) {
-      s->persp_centroid =
-         nir_local_variable_create(b->impl, glsl_vec_type(2), "persp_centroid");
+   if (will_replace) {
+      if (!*var) {
+         *var = nir_local_variable_create(b->impl, glsl_vec_type(2), var_name);
+      }
+      return *var;
+   }
+   return NULL;
+}
+
+static nir_variable *
+get_centroid_var(nir_builder *b, enum glsl_interp_mode mode, lower_ps_state *s)
+{
+   if (mode == INTERP_MODE_NOPERSPECTIVE) {
+      return get_baryc_var_common(b, s->options->bc_optimize_for_linear, &s->linear_centroid,
+                                  "linear_centroid");
+   } else {
+      return get_baryc_var_common(b, s->options->bc_optimize_for_persp, &s->persp_centroid,
+                                  "persp_centroid");
    }
 
-   if (s->options->bc_optimize_for_linear) {
-      s->linear_centroid =
-         nir_local_variable_create(b->impl, glsl_vec_type(2), "linear_centroid");
-   }
-
-   s->lower_load_barycentric = s->persp_centroid || s->linear_centroid;
+   return NULL;
 }
 
 static void
@@ -95,56 +100,15 @@ init_interp_param(nir_builder *b, lower_ps_state *s)
 }
 
 static bool
-lower_ps_load_barycentric(nir_builder *b, nir_intrinsic_instr *intrin, lower_ps_state *s)
+lower_ps_load_barycentric_centroid(nir_builder *b, nir_intrinsic_instr *intrin, lower_ps_state *s)
 {
-   enum glsl_interp_mode mode = nir_intrinsic_interp_mode(intrin);
-   nir_variable *var = NULL;
-
-   switch (mode) {
-   case INTERP_MODE_NONE:
-   case INTERP_MODE_SMOOTH:
-      switch (intrin->intrinsic) {
-      case nir_intrinsic_load_barycentric_pixel:
-         var = s->persp_center;
-         break;
-      case nir_intrinsic_load_barycentric_centroid:
-         var = s->persp_centroid;
-         break;
-      case nir_intrinsic_load_barycentric_sample:
-         var = s->persp_sample;
-         break;
-      default:
-         break;
-      }
-      break;
-
-   case INTERP_MODE_NOPERSPECTIVE:
-      switch (intrin->intrinsic) {
-      case nir_intrinsic_load_barycentric_pixel:
-         var = s->linear_center;
-         break;
-      case nir_intrinsic_load_barycentric_centroid:
-         var = s->linear_centroid;
-         break;
-      case nir_intrinsic_load_barycentric_sample:
-         var = s->linear_sample;
-         break;
-      default:
-         break;
-      }
-      break;
-
-   default:
-      break;
-   }
-
+   nir_variable *var = get_centroid_var(b, nir_intrinsic_interp_mode(intrin), s);
    if (!var)
       return false;
 
    b->cursor = nir_before_instr(&intrin->instr);
 
-   nir_def *replacement = nir_load_var(b, var);
-   nir_def_replace(&intrin->def, replacement);
+   nir_def_replace(&intrin->def, nir_load_var(b, var));
    return true;
 }
 
@@ -212,24 +176,15 @@ gather_ps_store_output(nir_builder *b, nir_intrinsic_instr *intrin, lower_ps_sta
 }
 
 static bool
-lower_ps_intrinsic(nir_builder *b, nir_instr *instr, void *state)
+lower_ps_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
 {
    lower_ps_state *s = (lower_ps_state *)state;
-
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
    switch (intrin->intrinsic) {
    case nir_intrinsic_store_output:
       return gather_ps_store_output(b, intrin, s);
-   case nir_intrinsic_load_barycentric_pixel:
    case nir_intrinsic_load_barycentric_centroid:
-   case nir_intrinsic_load_barycentric_sample:
-      if (s->lower_load_barycentric)
-         return lower_ps_load_barycentric(b, intrin, s);
-      break;
+      return lower_ps_load_barycentric_centroid(b, intrin, s);
    default:
       break;
    }
@@ -237,12 +192,12 @@ lower_ps_intrinsic(nir_builder *b, nir_instr *instr, void *state)
    return false;
 }
 
-static void
+static bool
 emit_ps_mrtz_export(nir_builder *b, lower_ps_state *s, nir_def *mrtz_alpha)
 {
    /* skip mrtz export if no one has written to any of them */
    if (!s->depth && !s->stencil && !s->sample_mask && !mrtz_alpha)
-      return;
+      return false;
 
    unsigned format =
       ac_get_spi_shader_z_format(s->depth, s->stencil, s->sample_mask,
@@ -313,6 +268,7 @@ emit_ps_mrtz_export(nir_builder *b, lower_ps_state *s, nir_def *mrtz_alpha)
                                          .base = V_008DFC_SQ_EXP_MRTZ,
                                          .write_mask = write_mask,
                                          .flags = flags);
+   return true;
 }
 
 static unsigned
@@ -632,30 +588,30 @@ emit_ps_null_export(nir_builder *b, lower_ps_state *s)
    nir_intrinsic_set_write_mask(intrin, 0);
 }
 
-static void
+static bool
 export_ps_outputs(nir_builder *b, lower_ps_state *s)
 {
-   nir_def *mrtz_alpha = NULL;
-
    b->cursor = nir_after_impl(b->impl);
 
    /* Alpha-to-coverage should be before alpha-to-one. */
+   nir_def *mrtz_alpha = NULL;
    if (!s->options->no_depth_export && s->options->alpha_to_coverage_via_mrtz)
       mrtz_alpha = s->color[0][3];
 
-   u_foreach_bit (slot, s->colors_written) {
-      if (s->options->alpha_to_one)
-         s->color[slot][3] = nir_imm_floatN_t(b, 1, nir_alu_type_get_type_size(s->color_type[slot]));
-   }
-
+   bool progress = false;
    if (!s->options->no_depth_export)
-      emit_ps_mrtz_export(b, s, mrtz_alpha);
+      progress |= emit_ps_mrtz_export(b, s, mrtz_alpha);
 
    /* When non-monolithic shader, RADV export mrtz in main part (except on
     * RDNA3 for alpha to coverage) and export color in epilog.
     */
    if (s->options->no_color_export)
-      return;
+      return progress;
+
+   u_foreach_bit (slot, s->colors_written) {
+      if (s->options->alpha_to_one)
+         s->color[slot][3] = nir_imm_floatN_t(b, 1, nir_alu_type_get_type_size(s->color_type[slot]));
+   }
 
    unsigned first_color_export = s->exp_num;
 
@@ -694,13 +650,17 @@ export_ps_outputs(nir_builder *b, lower_ps_state *s)
    }
 
    if (s->exp_num) {
+      /* Move exports to the end to avoid mixing alu and exports. */
+      for (unsigned i = 0; i < s->exp_num; i++)
+         nir_instr_move(nir_after_impl(b->impl), &s->exp[i]->instr);
+
       if (s->options->dual_src_blend_swizzle) {
          emit_ps_dual_src_blend_swizzle(b, s, first_color_export);
          /* Skip last export flag setting because they have been replaced by
           * a pseudo instruction.
           */
          if (s->options->use_aco)
-            return;
+            return true;
       }
 
       /* Specify that this is the last export */
@@ -726,9 +686,11 @@ export_ps_outputs(nir_builder *b, lower_ps_state *s)
    } else {
       emit_ps_null_export(b, s);
    }
+
+   return true;
 }
 
-void
+bool
 ac_nir_lower_ps_late(nir_shader *nir, const ac_nir_lower_ps_late_options *options)
 {
    assert(nir->info.stage == MESA_SHADER_FRAGMENT);
@@ -743,18 +705,19 @@ ac_nir_lower_ps_late(nir_shader *nir, const ac_nir_lower_ps_late_options *option
       .spi_shader_col_format = options->spi_shader_col_format,
    };
 
-   create_interp_param(b, &state);
+   bool progress = nir_shader_intrinsics_pass(nir, lower_ps_intrinsic,
+                                              nir_metadata_control_flow, &state);
+   progress |= export_ps_outputs(b, &state);
 
-   nir_shader_instructions_pass(nir, lower_ps_intrinsic,
-                                nir_metadata_control_flow,
-                                &state);
+   if (state.persp_centroid || state.linear_centroid) {
+      assert(progress);
 
-   /* Must be after lower_ps_intrinsic() to prevent it lower added intrinsic here. */
-   init_interp_param(b, &state);
+      /* Must be after lower_ps_intrinsic() to prevent it lower added intrinsic here. */
+      init_interp_param(b, &state);
 
-   export_ps_outputs(b, &state);
+      /* Cleanup local variables, as RADV won't do this. */
+      NIR_PASS(_, nir, nir_lower_vars_to_ssa);
+   }
 
-   /* Cleanup nir variable, as RADV won't do this. */
-   if (state.lower_load_barycentric)
-      nir_lower_vars_to_ssa(nir);
+   return progress;
 }

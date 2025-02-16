@@ -1029,7 +1029,7 @@ static void* r300_create_fs_state(struct pipe_context* pipe,
     fs->state = *shader;
 
     if (fs->state.type == PIPE_SHADER_IR_NIR) {
-       fs->state.tokens = nir_to_rc(shader->ir.nir, pipe->screen);
+       //fs->state.tokens = nir_to_rc(shader->ir.nir, pipe->screen);
     } else {
        assert(fs->state.type == PIPE_SHADER_IR_TGSI);
        /* we need to keep a local copy of the tokens */
@@ -1042,14 +1042,23 @@ static void* r300_create_fs_state(struct pipe_context* pipe,
     struct r300_fragment_program_external_state precompile_state;
     memset(&precompile_state, 0, sizeof(precompile_state));
 
-    struct tgsi_shader_info info;
-    tgsi_scan_shader(fs->state.tokens, &info);
-    for (int i = 0; i < PIPE_MAX_SHADER_SAMPLER_VIEWS; i++) {
-        if (info.sampler_targets[i] == TGSI_TEXTURE_SHADOW1D ||
-            info.sampler_targets[i] == TGSI_TEXTURE_SHADOW2D ||
-            info.sampler_targets[i] == TGSI_TEXTURE_SHADOWRECT) {
-            precompile_state.unit[i].compare_mode_enabled = true;
-            precompile_state.unit[i].texture_compare_func = PIPE_FUNC_LESS;
+    if (fs->state.type == PIPE_SHADER_IR_NIR) {
+        /* Pick something for the shadow samplers so that we have somewhat reliable shader stats later. */
+        nir_foreach_function_impl(impl, shader->ir.nir) {
+            nir_foreach_block_safe(block, impl) {
+                nir_foreach_instr_safe(instr, block) {
+                    if (instr->type != nir_instr_type_tex)
+                        continue;
+                    nir_tex_instr *tex = nir_instr_as_tex(instr);
+
+                    if (tex->is_shadow) {
+                        precompile_state.unit[tex->sampler_index].compare_mode_enabled = true;
+                        precompile_state.unit[tex->sampler_index].texture_compare_func = PIPE_FUNC_LESS;
+                    }
+                    precompile_state.sampler_state_count = MAX2(tex->sampler_index + 1,
+                                                                precompile_state.sampler_state_count);
+                }
+            }
         }
     }
     r300_pick_fragment_shader(r300, fs, &precompile_state);
@@ -1110,7 +1119,11 @@ static void r300_delete_fs_state(struct pipe_context* pipe, void* shader)
         FREE(tmp->cb_code);
         FREE(tmp);
     }
-    FREE((void*)fs->state.tokens);
+    if (fs->state.type == PIPE_SHADER_IR_NIR) {
+        ralloc_free(fs->state.ir.nir);
+    } else {
+        FREE((void*)fs->state.tokens);
+    }
     FREE(shader);
 }
 
@@ -1921,7 +1934,8 @@ static void* r300_create_vs_state(struct pipe_context* pipe,
     vs->state = *shader;
 
     if (vs->state.type == PIPE_SHADER_IR_NIR) {
-       vs->state.tokens = nir_to_rc(shader->ir.nir, pipe->screen);
+       struct r300_fragment_program_external_state state = {};
+       vs->state.tokens = nir_to_rc(shader->ir.nir, pipe->screen, state);
     } else {
        assert(vs->state.type == PIPE_SHADER_IR_TGSI);
        /* we need to keep a local copy of the tokens */

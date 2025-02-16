@@ -1328,12 +1328,86 @@ vn_encode_VkPipelineRasterizationStateCreateInfo(struct vn_cs_encoder *enc, cons
     vn_encode_VkPipelineRasterizationStateCreateInfo_self(enc, val);
 }
 
+/* struct VkPipelineSampleLocationsStateCreateInfoEXT chain */
+
+static inline size_t
+vn_sizeof_VkPipelineSampleLocationsStateCreateInfoEXT_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkPipelineSampleLocationsStateCreateInfoEXT_self(const VkPipelineSampleLocationsStateCreateInfoEXT *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkBool32(&val->sampleLocationsEnable);
+    size += vn_sizeof_VkSampleLocationsInfoEXT(&val->sampleLocationsInfo);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkPipelineSampleLocationsStateCreateInfoEXT(const VkPipelineSampleLocationsStateCreateInfoEXT *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkPipelineSampleLocationsStateCreateInfoEXT_pnext(val->pNext);
+    size += vn_sizeof_VkPipelineSampleLocationsStateCreateInfoEXT_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkPipelineSampleLocationsStateCreateInfoEXT_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkPipelineSampleLocationsStateCreateInfoEXT_self(struct vn_cs_encoder *enc, const VkPipelineSampleLocationsStateCreateInfoEXT *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkBool32(enc, &val->sampleLocationsEnable);
+    vn_encode_VkSampleLocationsInfoEXT(enc, &val->sampleLocationsInfo);
+}
+
+static inline void
+vn_encode_VkPipelineSampleLocationsStateCreateInfoEXT(struct vn_cs_encoder *enc, const VkPipelineSampleLocationsStateCreateInfoEXT *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT });
+    vn_encode_VkPipelineSampleLocationsStateCreateInfoEXT_pnext(enc, val->pNext);
+    vn_encode_VkPipelineSampleLocationsStateCreateInfoEXT_self(enc, val);
+}
+
 /* struct VkPipelineMultisampleStateCreateInfo chain */
 
 static inline size_t
 vn_sizeof_VkPipelineMultisampleStateCreateInfo_pnext(const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(144 /* VK_EXT_sample_locations */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkPipelineMultisampleStateCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkPipelineSampleLocationsStateCreateInfoEXT_self((const VkPipelineSampleLocationsStateCreateInfoEXT *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     return vn_sizeof_simple_pointer(NULL);
 }
 
@@ -1372,7 +1446,25 @@ vn_sizeof_VkPipelineMultisampleStateCreateInfo(const VkPipelineMultisampleStateC
 static inline void
 vn_encode_VkPipelineMultisampleStateCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val)
 {
-    /* no known/supported struct */
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(144 /* VK_EXT_sample_locations */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkPipelineMultisampleStateCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkPipelineSampleLocationsStateCreateInfoEXT_self(enc, (const VkPipelineSampleLocationsStateCreateInfoEXT *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
     vn_encode_simple_pointer(enc, NULL);
 }
 
@@ -1532,6 +1624,63 @@ vn_encode_VkPipelineColorBlendAttachmentState(struct vn_cs_encoder *enc, const V
     vn_encode_VkFlags(enc, &val->colorWriteMask);
 }
 
+/* struct VkPipelineColorBlendAdvancedStateCreateInfoEXT chain */
+
+static inline size_t
+vn_sizeof_VkPipelineColorBlendAdvancedStateCreateInfoEXT_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkPipelineColorBlendAdvancedStateCreateInfoEXT_self(const VkPipelineColorBlendAdvancedStateCreateInfoEXT *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkBool32(&val->srcPremultiplied);
+    size += vn_sizeof_VkBool32(&val->dstPremultiplied);
+    size += vn_sizeof_VkBlendOverlapEXT(&val->blendOverlap);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkPipelineColorBlendAdvancedStateCreateInfoEXT(const VkPipelineColorBlendAdvancedStateCreateInfoEXT *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkPipelineColorBlendAdvancedStateCreateInfoEXT_pnext(val->pNext);
+    size += vn_sizeof_VkPipelineColorBlendAdvancedStateCreateInfoEXT_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkPipelineColorBlendAdvancedStateCreateInfoEXT_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkPipelineColorBlendAdvancedStateCreateInfoEXT_self(struct vn_cs_encoder *enc, const VkPipelineColorBlendAdvancedStateCreateInfoEXT *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkBool32(enc, &val->srcPremultiplied);
+    vn_encode_VkBool32(enc, &val->dstPremultiplied);
+    vn_encode_VkBlendOverlapEXT(enc, &val->blendOverlap);
+}
+
+static inline void
+vn_encode_VkPipelineColorBlendAdvancedStateCreateInfoEXT(struct vn_cs_encoder *enc, const VkPipelineColorBlendAdvancedStateCreateInfoEXT *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT });
+    vn_encode_VkPipelineColorBlendAdvancedStateCreateInfoEXT_pnext(enc, val->pNext);
+    vn_encode_VkPipelineColorBlendAdvancedStateCreateInfoEXT_self(enc, val);
+}
+
 /* struct VkPipelineColorWriteCreateInfoEXT chain */
 
 static inline size_t
@@ -1607,6 +1756,14 @@ vn_sizeof_VkPipelineColorBlendStateCreateInfo_pnext(const void *val)
 
     while (pnext) {
         switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(149 /* VK_EXT_blend_operation_advanced */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkPipelineColorBlendStateCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkPipelineColorBlendAdvancedStateCreateInfoEXT_self((const VkPipelineColorBlendAdvancedStateCreateInfoEXT *)pnext);
+            return size;
         case VK_STRUCTURE_TYPE_PIPELINE_COLOR_WRITE_CREATE_INFO_EXT:
             if (!vn_cs_renderer_protocol_has_extension(382 /* VK_EXT_color_write_enable */))
                 break;
@@ -1665,6 +1822,14 @@ vn_encode_VkPipelineColorBlendStateCreateInfo_pnext(struct vn_cs_encoder *enc, c
 
     while (pnext) {
         switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_ADVANCED_STATE_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(149 /* VK_EXT_blend_operation_advanced */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkPipelineColorBlendStateCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkPipelineColorBlendAdvancedStateCreateInfoEXT_self(enc, (const VkPipelineColorBlendAdvancedStateCreateInfoEXT *)pnext);
+            return;
         case VK_STRUCTURE_TYPE_PIPELINE_COLOR_WRITE_CREATE_INFO_EXT:
             if (!vn_cs_renderer_protocol_has_extension(382 /* VK_EXT_color_write_enable */))
                 break;

@@ -249,7 +249,6 @@ gfx6_init_graphics_preamble_state(const struct ac_preamble_state *state,
       /* CLEAR_STATE doesn't clear these correctly on certain generations.
        * I don't know why. Deduced by trial and error.
        */
-      ac_pm4_set_reg(pm4, R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET, 0);
       ac_pm4_set_reg(pm4, R_028204_PA_SC_WINDOW_SCISSOR_TL, S_028204_WINDOW_OFFSET_DISABLE(1));
       ac_pm4_set_reg(pm4, R_028030_PA_SC_SCREEN_SCISSOR_TL, 0);
    }
@@ -677,7 +676,6 @@ gfx12_init_graphics_preamble_state(const struct ac_preamble_state *state,
    ac_pm4_set_reg(pm4, R_028AA0_VGT_DRAW_PAYLOAD_CNTL, 0);
    ac_pm4_set_reg(pm4, R_028ABC_DB_HTILE_SURFACE, 0);
 
-   ac_pm4_set_reg(pm4, R_028B28_VGT_STRMOUT_DRAW_OPAQUE_OFFSET, 0);
    ac_pm4_set_reg(pm4, R_028B50_VGT_TESS_DISTRIBUTION,
                   S_028B50_ACCUM_ISOLINE(128) |
                   S_028B50_ACCUM_TRI(128) |

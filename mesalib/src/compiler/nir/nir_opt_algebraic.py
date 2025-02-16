@@ -242,6 +242,7 @@ optimizations = [
    (('~fadd', ('fneg', a), ('fadd', a, b)), b),
    (('~fadd', a, ('fadd', ('fneg', a), b)), b),
    (('fadd', ('fsat', a), ('fsat', ('fneg', a))), ('fsat', ('fabs', a))),
+   (('fadd', a, a), ('fmul', a, 2.0)),
    (('~fmul', a, 0.0), 0.0),
    # The only effect a*0.0 should have is when 'a' is infinity, -0.0 or NaN
    (('fmul(nsz,nnan)', 'a', 0.0), 0.0),
@@ -640,6 +641,8 @@ optimizations.extend([
    # 'a<<c' to be CSE'd.  It also helps architectures that have an ISHLADD
    # instruction or a constant offset field for in load / store instructions.
    (('ishl', ('iadd', a, '#b'), '#c'), ('iadd', ('ishl', a, c), ('ishl', b, c))),
+   (('ishl', ('iadd(is_used_once)', ('iadd', a, '#b'), c), '#d'),
+    ('iadd', ('ishl', ('iadd', a, c), d), ('ishl', b, d))),
 
    # (a + #b) * #c => (a * #c) + (#b * #c)
    (('imul', ('iadd(is_used_once)', a, '#b'), '#c'), ('iadd', ('imul', a, c), ('imul', b, c))),

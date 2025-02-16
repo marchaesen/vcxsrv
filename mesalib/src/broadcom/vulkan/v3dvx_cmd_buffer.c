@@ -2277,10 +2277,8 @@ v3dX(cmd_buffer_execute_inside_pass)(struct v3dv_cmd_buffer *primary,
       pending_barrier = secondary->state.barrier;
    }
 
-   if (pending_barrier.dst_mask) {
-      v3dv_cmd_buffer_merge_barrier_state(&primary->state.barrier,
-                                          &pending_barrier);
-   }
+   if (pending_barrier.dst_mask)
+      v3dv_merge_barrier_state(&primary->state.barrier, &pending_barrier);
 }
 
 static void

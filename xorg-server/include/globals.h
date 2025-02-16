@@ -25,12 +25,11 @@ extern _X_EXPORT int monitorResolution;
 extern _X_EXPORT int defaultColorVisualClass;
 
 extern _X_EXPORT int GrabInProgress;
-extern _X_EXPORT Bool noTestExtensions;
 extern _X_EXPORT char *SeatId;
 extern _X_EXPORT char *ConnectionInfo;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 extern _X_EXPORT Bool PanoramiXExtensionDisabledHack;
-#endif
+#endif /* XINERAMA */
 
 #endif                          /* !_XSERV_GLOBAL_H_ */

@@ -128,7 +128,7 @@ __glXDRIcontextDestroy(__GLXcontext * baseContext)
     __GLXDRIcontext *context = (__GLXDRIcontext *) baseContext;
     __GLXDRIscreen *screen = (__GLXDRIscreen *) context->base.pGlxScreen;
 
-    (*screen->core->destroyContext) (context->driContext);
+    if (*screen->core->destroyContext) screen->core->destroyContext(context->driContext);
     __glXContextDestroy(&context->base);
     free(context);
 }

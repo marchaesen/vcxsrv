@@ -196,6 +196,7 @@ _mesa_tex_param_enum_to_count(GLenum pname)
    case GL_TEXTURE_SPARSE_ARB:
    case GL_VIRTUAL_PAGE_SIZE_INDEX_ARB:
    case GL_NUM_SPARSE_LEVELS_ARB:
+   case GL_TEXTURE_PROTECTED_EXT:
       return 1;
    case GL_TEXTURE_CROP_RECT_OES:
    case GL_TEXTURE_SWIZZLE_RGBA:

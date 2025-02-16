@@ -377,7 +377,8 @@ aggressive_coalesce_collect(struct ir3_liveness *live,
 {
    for (unsigned i = 0, offset = 0; i < collect->srcs_count;
         offset += reg_elem_size(collect->srcs[i]), i++) {
-      if (!(collect->srcs[i]->flags & IR3_REG_SSA))
+      if (!(collect->srcs[i]->flags & IR3_REG_SSA) ||
+          !collect->srcs[i]->def)
          continue;
       try_merge_defs(live, collect->dsts[0], collect->srcs[i]->def, offset);
    }

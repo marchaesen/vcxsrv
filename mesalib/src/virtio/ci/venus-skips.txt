@@ -27,3 +27,11 @@ dEQP-VK.binding_model.mutable_descriptor.multiple_arrays_mixed.*
 
 # Trying to allocate all the memory we can is not a great idea on shared runners.
 dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail.*
+
+# New timeouts in 1.4.1.1
+dEQP-VK.synchronization.internally_synchronized_objects.pipeline_cache_compute
+dEQP-VK.texture.explicit_lod.2d.sizes.128x128_nearest_linear_mipmap_nearest_clamp
+
+# 60s timeout (flake), unknown when it appeard
+dEQP-VK.ubo.random.16bit.all_per_block_buffers.8
+dEQP-VK.spirv_assembly.instruction.graphics.8bit_storage.struct_mixed_types.storage_buffer_frag

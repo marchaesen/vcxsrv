@@ -355,7 +355,7 @@ radv_describe_begin_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
    if (cmd_buffer->qf == RADV_QUEUE_GENERAL)
       marker.queue_flags |= VK_QUEUE_GRAPHICS_BIT;
 
-   if (!radv_sparse_queue_enabled(pdev))
+   if (!radv_dedicated_sparse_queue_enabled(pdev))
       marker.queue_flags |= VK_QUEUE_SPARSE_BINDING_BIT;
 
    radv_emit_sqtt_userdata(cmd_buffer, &marker, sizeof(marker) / 4);
@@ -398,7 +398,7 @@ radv_describe_dispatch(struct radv_cmd_buffer *cmd_buffer, const struct radv_dis
    if (likely(!device->sqtt.bo))
       return;
 
-   if (info->indirect) {
+   if (info->indirect_va) {
       radv_write_event_marker(cmd_buffer, cmd_buffer->state.current_event_type, UINT_MAX, UINT_MAX, UINT_MAX);
    } else {
       radv_write_event_with_dims_marker(cmd_buffer, cmd_buffer->state.current_event_type, info->blocks[0],

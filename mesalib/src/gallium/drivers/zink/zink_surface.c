@@ -396,7 +396,7 @@ zink_create_surface(struct pipe_context *pctx,
 
       ivci.image = transient->obj->image;
       struct zink_surface *tsurf = create_surface(pctx, &transient->base.b, templ, &ivci, true);
-      pipe_resource_reference((struct pipe_resource**)&transient, NULL);
+      zink_resource_reference(&transient, NULL);
       if (unlikely(!tsurf)) {
          mesa_loge("ZINK: failed to create transient surface!");
          goto fail;

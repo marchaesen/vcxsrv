@@ -19,17 +19,17 @@ extern "C" {
 /* An offset into doorbell page. Any number will work. */
 #define AMDGPU_USERQ_DOORBELL_INDEX 4
 
-#define amdgpu_pkt_begin() uint32_t __num_dw_written = 0; \
-   uint32_t __ring_start = *userq->wptr_bo_map & AMDGPU_USERQ_RING_SIZE_DW_MASK;
+#define amdgpu_pkt_begin() uint32_t *__ring_ptr = userq->ring_ptr; \
+   uint64_t __next_wptr = userq->next_wptr;
 
 #define amdgpu_pkt_add_dw(value) do { \
-   *(userq->ring_ptr + ((__ring_start + __num_dw_written) & AMDGPU_USERQ_RING_SIZE_DW_MASK)) \
-      = value; \
-   __num_dw_written++; \
+   *(__ring_ptr + (__next_wptr & AMDGPU_USERQ_RING_SIZE_DW_MASK)) = value; \
+   __next_wptr++; \
 } while (0)
 
 #define amdgpu_pkt_end() do { \
-   *userq->wptr_bo_map += __num_dw_written; \
+   assert(__next_wptr - *userq->user_fence_ptr <= AMDGPU_USERQ_RING_SIZE_DW); \
+   userq->next_wptr = __next_wptr; \
 } while (0)
 
 struct amdgpu_winsys;
@@ -62,6 +62,11 @@ struct amdgpu_userq {
 
    struct pb_buffer_lean *wptr_bo;
    uint64_t *wptr_bo_map;
+   /* Holds the wptr value for the in-progress submission. When we're ready
+    * to submit it, this value will be written to the door bell.
+    * (this avoids writing multiple times to the door bell for the same
+    * submission) */
+   uint64_t next_wptr;
    struct pb_buffer_lean *rptr_bo;
 
    struct pb_buffer_lean *doorbell_bo;

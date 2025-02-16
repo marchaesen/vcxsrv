@@ -134,11 +134,6 @@ nir_live_defs_impl(nir_function_impl *impl)
    };
    state.tmp_live = rzalloc_array(impl, BITSET_WORD, state.bitset_words),
 
-   /* Number the instructions so we can do cheap interference tests using the
-    * instruction index.
-    */
-      nir_metadata_require(impl, nir_metadata_instr_index);
-
    nir_block_worklist_init(&state.worklist, impl->num_blocks, NULL);
 
    /* Allocate live_in and live_out sets and add all of the blocks to the

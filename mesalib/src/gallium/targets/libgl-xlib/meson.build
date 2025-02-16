@@ -37,3 +37,5 @@ libgl = shared_library(
   version : '1.5.0',
   darwin_versions: '4.0.0',
 )
+
+shared_glapi_lib = libgl

@@ -46,7 +46,6 @@ libaco_files = files(
   'aco_insert_exec_mask.cpp',
   'aco_insert_NOPs.cpp',
   'aco_insert_waitcnt.cpp',
-  'aco_jump_threading.cpp',
   'aco_reduce_assign.cpp',
   'aco_register_allocation.cpp',
   'aco_live_var_analysis.cpp',

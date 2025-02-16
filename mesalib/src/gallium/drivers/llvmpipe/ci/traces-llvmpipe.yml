@@ -6,7 +6,7 @@ traces-db:
 traces:
   0ad/0ad-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: 296d9d77d7f412b73f2114670dced22b
+      checksum: 2e34a2503078cedc246e6cafe2cd00fe
   bgfx/01-cubes.rdc:
     gl-vmware-llvmpipe:
       checksum: a453a832e0e07132bb2c92c3fed7df18
@@ -108,13 +108,13 @@ traces:
       checksum: f8eba0fec6e3e0af9cb09844bc73bdc8
   gputest/furmark-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: 214c2ebbe5e3b6a52bb9e6cb4575cc96
+      checksum: c5474253bc3cdb7a84e97c69ab0c46be
   gputest/triangle-v2.trace:
     gl-vmware-llvmpipe:
       checksum: 7812de00011a3a059892e36cea19c696
   humus/Portals-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: 68355026d723f9f7afa3a0f70b3b3c8f
+      checksum: d08302b6d2a573af6c4621357d45060d
   jvgs/jvgs-d27fb67-v2.trace:
     gl-vmware-llvmpipe:
       checksum: 43b89627364b4cabbab84931aef4ce5e
@@ -158,4 +158,4 @@ traces:
       label: [unsupported]
   warzone2100/warzone2100-default.trace:
     gl-vmware-llvmpipe:
-      checksum: 8acdc244844d1e46ca04b73c3ff3f834
+      checksum: b46a96aca3f20e40f47651d54e03c7f5

@@ -1,8 +1,6 @@
 # Copyright ©
 # SPDX-License-Identifier: MIT
 
-fs = import('fs')
-
 libmesa_rust_util_files = files(
   'util/lib.rs',
   'util/assert.rs',

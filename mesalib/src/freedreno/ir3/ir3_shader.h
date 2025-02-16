@@ -606,6 +606,20 @@ struct ir3_shader_options {
    struct ir3_const_allocations const_allocs;
 
    struct ir3_shader_nir_options nir_options;
+
+   /* Whether FRAG_RESULT_DATAi slots may be dynamically remapped by the driver.
+    * If true, ir3 will assume it cannot statically use the value of such slots
+    * anywhere (e.g., as the target of alias.rt).
+    */
+   bool fragdata_dynamic_remap;
+};
+
+struct ir3_shader_output {
+   uint8_t slot;
+   uint8_t regid;
+   uint8_t view;
+   uint8_t aliased_components : 4;
+   bool half : 1;
 };
 
 /**
@@ -731,12 +745,7 @@ struct ir3_shader_variant {
 
    /* varyings/outputs: */
    unsigned outputs_count;
-   struct {
-      uint8_t slot;
-      uint8_t regid;
-      uint8_t view;
-      bool half : 1;
-   } outputs[32 + 2]; /* +POSITION +PSIZE */
+   struct ir3_shader_output outputs[32 + 2]; /* +POSITION +PSIZE */
    bool writes_pos, writes_smask, writes_psize, writes_viewport, writes_stencilref;
    bool writes_shading_rate;
 
@@ -1318,16 +1327,21 @@ ir3_link_shaders(struct ir3_shader_linkage *l,
 }
 
 static inline uint32_t
+ir3_get_output_regid(const struct ir3_shader_output *output)
+{
+   return output->regid | (output->half ? HALF_REG_ID : 0);
+}
+
+static inline uint32_t
 ir3_find_output_regid(const struct ir3_shader_variant *so, unsigned slot)
 {
-   for (unsigned j = 0; j < so->outputs_count; j++)
-      if (so->outputs[j].slot == slot) {
-         uint32_t regid = so->outputs[j].regid;
-         if (so->outputs[j].half)
-            regid |= HALF_REG_ID;
-         return regid;
-      }
-   return regid(63, 0);
+   int output_idx = ir3_find_output(so, (gl_varying_slot)slot);
+
+   if (output_idx < 0) {
+      return INVALID_REG;
+   }
+
+   return ir3_get_output_regid(&so->outputs[output_idx]);
 }
 
 void print_raw(FILE *out, const BITSET_WORD *data, size_t size);

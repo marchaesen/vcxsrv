@@ -93,6 +93,7 @@ struct drawpix_cache_entry
 {
    GLsizei width, height;
    GLenum format, type;
+   struct gl_pixelmaps pixelmaps;
    const void *user_pointer;  /**< Last user 'pixels' pointer */
    void *image;               /**< Copy of the glDrawPixels image data */
    struct pipe_resource *texture;

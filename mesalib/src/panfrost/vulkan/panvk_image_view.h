@@ -17,6 +17,7 @@
 #include "pan_texture.h"
 
 #include "genxml/gen_macros.h"
+#include "panvk_image.h"
 
 struct panvk_priv_bo;
 
@@ -28,8 +29,13 @@ struct panvk_image_view {
    struct panvk_priv_mem mem;
 
    struct {
-      struct mali_texture_packed tex;
-      struct mali_texture_packed other_aspect_tex;
+      union {
+         struct mali_texture_packed tex[PANVK_MAX_PLANES];
+         struct {
+            struct mali_texture_packed tex;
+            struct mali_texture_packed other_aspect_tex;
+         } zs;
+      };
 
 #if PAN_ARCH <= 7
       /* Valhall passes a texture descriptor to the LEA_TEX instruction. */
@@ -40,5 +46,9 @@ struct panvk_image_view {
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_image_view, vk.base, VkImageView,
                                VK_OBJECT_TYPE_IMAGE_VIEW);
+
+static_assert(offsetof(struct panvk_image_view, descs.zs.tex) ==
+                       offsetof(struct panvk_image_view, descs.tex),
+              "ZS texture descriptor must alias with color texture descriptor");
 
 #endif

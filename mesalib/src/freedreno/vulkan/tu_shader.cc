@@ -110,6 +110,14 @@ tu_spirv_to_nir(struct tu_device *dev,
    NIR_PASS_V(nir, nir_opt_copy_prop_vars);
    NIR_PASS_V(nir, nir_opt_dce);
 
+   nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
+
+   if (nir->info.ray_queries > 0) {
+      NIR_PASS(_, nir, nir_opt_ray_queries);
+      NIR_PASS(_, nir, nir_opt_ray_query_ranges);
+      NIR_PASS(_, nir, tu_nir_lower_ray_queries);
+   }
+
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
 
@@ -495,6 +503,7 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
 
    case nir_intrinsic_load_ubo:
    case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_uav_ir3:
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_ssbo_atomic:
    case nir_intrinsic_ssbo_atomic_swap:
@@ -1551,11 +1560,6 @@ tu6_emit_cs_config(struct tu_cs *cs,
                            WORKITEMRASTORDER_LINEAR :
                            WORKITEMRASTORDER_TILED, ));
 
-      tu_cs_emit_regs(
-         cs, A7XX_HLSQ_CS_LOCAL_SIZE(.localsizex = v->local_size[0] - 1,
-                                     .localsizey = v->local_size[1] - 1,
-                                     .localsizez = v->local_size[2] - 1, ));
-
       tu_cs_emit_regs(cs, A7XX_SP_CS_UNKNOWN_A9BE(0)); // Sometimes is 0x08000000
    }
 }
@@ -1804,6 +1808,7 @@ tu6_emit_fs_inputs(struct tu_cs *cs, const struct ir3_shader_variant *fs)
                   A6XX_VPC_CNTL_0_VIEWIDLOC(viewid_loc));
 }
 
+template <chip CHIP>
 static void
 tu6_emit_fs_outputs(struct tu_cs *cs,
                     const struct ir3_shader_variant *fs)
@@ -1816,12 +1821,30 @@ tu6_emit_fs_outputs(struct tu_cs *cs,
 
    int output_reg_count = 0;
    uint32_t fragdata_regid[8];
+   uint32_t fragdata_aliased_components = 0;
 
    assert(!fs->color0_mrt);
    for (uint32_t i = 0; i < ARRAY_SIZE(fragdata_regid); i++) {
-      fragdata_regid[i] = ir3_find_output_regid(fs, FRAG_RESULT_DATA0 + i);
-      if (VALIDREG(fragdata_regid[i]))
+      int output_idx =
+         ir3_find_output(fs, (gl_varying_slot) (FRAG_RESULT_DATA0 + i));
+
+      if (output_idx < 0) {
+         fragdata_regid[i] = INVALID_REG;
+         continue;
+      }
+
+      const struct ir3_shader_output *fragdata = &fs->outputs[output_idx];
+      fragdata_regid[i] = ir3_get_output_regid(fragdata);
+
+      if (VALIDREG(fragdata_regid[i]) || fragdata->aliased_components) {
+         /* An invalid reg is only allowed if all components are aliased. */
+         assert(VALIDREG(fragdata_regid[i] ||
+                         fragdata->aliased_components == 0xf));
+
          output_reg_count = i + 1;
+         fragdata_aliased_components |= fragdata->aliased_components
+                                        << (i * 4);
+      }
    }
 
    tu_cs_emit_pkt4(cs, REG_A6XX_SP_FS_OUTPUT_CNTL0, 1);
@@ -1842,13 +1865,24 @@ tu6_emit_fs_outputs(struct tu_cs *cs,
                      (COND(fragdata_regid[i] & HALF_REG_ID,
                            A6XX_SP_FS_OUTPUT_REG_HALF_PRECISION)));
 
-      if (VALIDREG(fragdata_regid[i])) {
+      if (VALIDREG(fragdata_regid[i]) ||
+                   (fragdata_aliased_components & (0xf << (i * 4)))) {
          fs_render_components |= 0xf << (i * 4);
       }
    }
 
    tu_cs_emit_regs(cs,
                    A6XX_SP_FS_RENDER_COMPONENTS(.dword = fs_render_components));
+
+   if (CHIP >= A7XX) {
+      tu_cs_emit_regs(
+         cs,
+         A7XX_SP_PS_ALIASED_COMPONENTS_CONTROL(
+               .enabled = fragdata_aliased_components != 0),
+         A7XX_SP_PS_ALIASED_COMPONENTS(.dword = fragdata_aliased_components));
+   } else {
+      assert(fragdata_aliased_components == 0);
+   }
 
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_FS_OUTPUT_CNTL0, 1);
    tu_cs_emit(cs, COND(fs->writes_pos, A6XX_RB_FS_OUTPUT_CNTL0_FRAG_WRITES_Z) |
@@ -2044,12 +2078,12 @@ tu6_emit_fs(struct tu_cs *cs,
 
    if (fs) {
       tu6_emit_fs_inputs<CHIP>(cs, fs);
-      tu6_emit_fs_outputs(cs, fs);
+      tu6_emit_fs_outputs<CHIP>(cs, fs);
    } else {
       /* TODO: check if these can be skipped if fs is disabled */
       struct ir3_shader_variant dummy_variant = {};
       tu6_emit_fs_inputs<CHIP>(cs, &dummy_variant);
-      tu6_emit_fs_outputs(cs, &dummy_variant);
+      tu6_emit_fs_outputs<CHIP>(cs, &dummy_variant);
    }
 }
 TU_GENX(tu6_emit_fs);

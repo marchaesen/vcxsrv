@@ -65,6 +65,11 @@ int ac_drm_device_initialize(int fd, bool is_virtio,
    return r;
 }
 
+uintptr_t ac_drm_device_get_cookie(ac_drm_device *dev)
+{
+   return (uintptr_t) dev->adev;
+}
+
 void ac_drm_device_deinitialize(ac_drm_device *dev)
 {
 #ifdef HAVE_AMDGPU_VIRTIO

@@ -1081,11 +1081,20 @@ enable_line_smooth(struct v3dv_pipeline *pipeline,
    if (!ls_info)
       return false;
 
-   /* Although topology is dynamic now, the topology class can't change
-    * because we don't support dynamicPrimitiveTopologyUnrestricted, so we can
-    * use the static topology from the pipeline for this.
-    */
-   switch(pipeline->topology) {
+   enum mesa_prim output_topology;
+   if (pipeline->has_gs) {
+      struct v3dv_pipeline_stage *p_stage_gs = pipeline->stages[BROADCOM_SHADER_GEOMETRY];
+      assert(p_stage_gs);
+      output_topology = p_stage_gs->nir->info.gs.output_primitive;
+   } else {
+      /* Although topology is dynamic now, the topology class can't change
+       * because we don't support dynamicPrimitiveTopologyUnrestricted, so we
+       * can use the static topology from the pipeline for this.
+       */
+      output_topology = pipeline->topology;
+   }
+
+   switch(output_topology) {
    case MESA_PRIM_LINES:
    case MESA_PRIM_LINE_LOOP:
    case MESA_PRIM_LINE_STRIP:

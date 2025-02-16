@@ -2231,7 +2231,7 @@ static void gfx12_push_global_shader_pointers(struct si_context *sctx, struct si
                          descs->gpu_address);
 }
 
-void si_emit_graphics_shader_pointers(struct si_context *sctx, unsigned index)
+static void si_emit_graphics_shader_pointers(struct si_context *sctx, unsigned index)
 {
    uint32_t *sh_base = sctx->shader_pointers.sh_base;
    unsigned all_gfx_desc_mask = BITFIELD_RANGE(0, SI_DESCS_FIRST_COMPUTE);

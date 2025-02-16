@@ -35,7 +35,8 @@ typedef struct
 } opt_offsets_state;
 
 static nir_scalar
-try_extract_const_addition(nir_builder *b, nir_scalar val, opt_offsets_state *state, unsigned *out_const, uint32_t max)
+try_extract_const_addition(nir_builder *b, nir_scalar val, opt_offsets_state *state, unsigned *out_const,
+                           uint32_t max, bool need_nuw)
 {
    val = nir_scalar_chase_movs(val);
 
@@ -56,7 +57,8 @@ try_extract_const_addition(nir_builder *b, nir_scalar val, opt_offsets_state *st
     * Ignored for ints-as-floats (lower_bitops is a proxy for that), where
     * unsigned wrapping doesn't make sense.
     */
-   if (!state->options->allow_offset_wrap && !alu->no_unsigned_wrap && !b->shader->options->lower_bitops) {
+   if (!state->options->allow_offset_wrap && need_nuw && !alu->no_unsigned_wrap &&
+       !b->shader->options->lower_bitops) {
       if (!state->range_ht) {
          /* Cache for nir_unsigned_upper_bound */
          state->range_ht = _mesa_pointer_hash_table_create(NULL);
@@ -79,14 +81,14 @@ try_extract_const_addition(nir_builder *b, nir_scalar val, opt_offsets_state *st
          uint32_t offset = nir_scalar_as_uint(src[i]);
          if (offset + *out_const <= max) {
             *out_const += offset;
-            return try_extract_const_addition(b, src[1 - i], state, out_const, max);
+            return try_extract_const_addition(b, src[1 - i], state, out_const, max, need_nuw);
          }
       }
    }
 
    uint32_t orig_offset = *out_const;
-   src[0] = try_extract_const_addition(b, src[0], state, out_const, max);
-   src[1] = try_extract_const_addition(b, src[1], state, out_const, max);
+   src[0] = try_extract_const_addition(b, src[0], state, out_const, max, need_nuw);
+   src[1] = try_extract_const_addition(b, src[1], state, out_const, max, need_nuw);
    if (*out_const == orig_offset)
       return val;
 
@@ -102,7 +104,8 @@ try_fold_load_store(nir_builder *b,
                     nir_intrinsic_instr *intrin,
                     opt_offsets_state *state,
                     unsigned offset_src_idx,
-                    uint32_t max)
+                    uint32_t max,
+                    bool need_nuw)
 {
    /* Assume that BASE is the constant offset of a load/store.
     * Try to constant-fold additions to the offset source
@@ -122,7 +125,7 @@ try_fold_load_store(nir_builder *b,
    if (!nir_src_is_const(*off_src)) {
       uint32_t add_offset = 0;
       nir_scalar val = { .def = off_src->ssa, .comp = 0 };
-      val = try_extract_const_addition(b, val, state, &add_offset, max - off_const);
+      val = try_extract_const_addition(b, val, state, &add_offset, max - off_const, need_nuw);
       if (add_offset == 0)
          return false;
       off_const += add_offset;
@@ -198,29 +201,32 @@ process_instr(nir_builder *b, nir_instr *instr, void *s)
    switch (intrin->intrinsic) {
    case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_const_ir3:
-      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->uniform_max));
+      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->uniform_max), true);
    case nir_intrinsic_load_ubo_vec4:
-      return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->ubo_vec4_max));
+      return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->ubo_vec4_max), true);
    case nir_intrinsic_shared_atomic:
    case nir_intrinsic_shared_atomic_swap:
-      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->shared_atomic_max));
+      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->shared_atomic_max), true);
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_shared_ir3:
-      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->shared_max));
+      return try_fold_load_store(b, intrin, state, 0, get_max(state, intrin, state->options->shared_max), true);
    case nir_intrinsic_store_shared:
    case nir_intrinsic_store_shared_ir3:
-      return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->shared_max));
+      return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->shared_max), true);
    case nir_intrinsic_load_shared2_amd:
       return try_fold_shared2(b, intrin, state, 0);
    case nir_intrinsic_store_shared2_amd:
       return try_fold_shared2(b, intrin, state, 1);
    case nir_intrinsic_load_buffer_amd:
-      return try_fold_load_store(b, intrin, state, 1, state->options->buffer_max);
+      return try_fold_load_store(b, intrin, state, 1, get_max(state, intrin, state->options->buffer_max),
+                                 nir_intrinsic_access(intrin) & ACCESS_IS_SWIZZLED_AMD);
    case nir_intrinsic_store_buffer_amd:
+      return try_fold_load_store(b, intrin, state, 2, get_max(state, intrin, state->options->buffer_max),
+                                 nir_intrinsic_access(intrin) & ACCESS_IS_SWIZZLED_AMD);
    case nir_intrinsic_load_ssbo_ir3:
-      return try_fold_load_store(b, intrin, state, 2, get_max(state, intrin, state->options->buffer_max));
+      return try_fold_load_store(b, intrin, state, 2, get_max(state, intrin, state->options->buffer_max), true);
    case nir_intrinsic_store_ssbo_ir3:
-      return try_fold_load_store(b, intrin, state, 3, get_max(state, intrin, state->options->buffer_max));
+      return try_fold_load_store(b, intrin, state, 3, get_max(state, intrin, state->options->buffer_max), true);
    default:
       return false;
    }

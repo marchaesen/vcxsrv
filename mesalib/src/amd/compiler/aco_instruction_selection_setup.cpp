@@ -367,7 +367,6 @@ init_context(isel_context* ctx, nir_shader* shader)
    uint32_t options =
       shader->options->divergence_analysis_options | nir_divergence_ignore_undef_if_phi_srcs;
    nir_divergence_analysis_impl(impl, (nir_divergence_options)options);
-   shader->info.divergence_analysis_run = true;
 
    apply_nuw_to_offsets(ctx, impl);
    ac_nir_flag_smem_for_loads(shader, ctx->program->gfx_level, false, true);
@@ -397,7 +396,7 @@ init_context(isel_context* ctx, nir_shader* shader)
             switch (instr->type) {
             case nir_instr_type_alu: {
                nir_alu_instr* alu_instr = nir_instr_as_alu(instr);
-               RegType type = alu_instr->def.divergent ? RegType::vgpr : RegType::sgpr;
+               RegType type = RegType::sgpr;
 
                /* packed 16bit instructions have to be VGPR */
                if (alu_instr->def.num_components == 2 &&
@@ -409,13 +408,11 @@ init_context(isel_context* ctx, nir_shader* shader)
                case nir_op_f2u16:
                case nir_op_f2i32:
                case nir_op_f2u32:
-               case nir_op_b2i8:
-               case nir_op_b2i16:
-               case nir_op_b2i32:
-               case nir_op_b2b32:
-               case nir_op_b2f16:
-               case nir_op_b2f32:
-               case nir_op_mov: break;
+               case nir_op_mov:
+                  if (alu_instr->def.divergent &&
+                      regclasses[alu_instr->src[0].src.ssa->index].type() == RegType::vgpr)
+                     type = RegType::vgpr;
+                  break;
                case nir_op_fmulz:
                case nir_op_ffmaz:
                case nir_op_f2f64:
@@ -486,7 +483,9 @@ init_context(isel_context* ctx, nir_shader* shader)
                }
                default:
                   for (unsigned i = 0; i < nir_op_infos[alu_instr->op].num_inputs; i++) {
-                     if (regclasses[alu_instr->src[i].src.ssa->index].type() == RegType::vgpr)
+                     if (alu_instr->src[i].src.ssa->bit_size == 1
+                            ? nir_src_is_divergent(&alu_instr->src[i].src)
+                            : regclasses[alu_instr->src[i].src.ssa->index].type() == RegType::vgpr)
                         type = RegType::vgpr;
                   }
                   break;

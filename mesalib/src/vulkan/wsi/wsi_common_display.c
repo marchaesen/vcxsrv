@@ -812,6 +812,9 @@ wsi_GetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physicalDevice,
                                     const VkDisplayPlaneInfo2KHR *pDisplayPlaneInfo,
                                     VkDisplayPlaneCapabilities2KHR *pCapabilities)
 {
+   VK_FROM_HANDLE(vk_physical_device, pdevice, physicalDevice);
+   struct wsi_device *wsi_device = pdevice->wsi_device;
+
    assert(pCapabilities->sType ==
           VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR);
 
@@ -825,7 +828,8 @@ wsi_GetDisplayPlaneCapabilities2KHR(VkPhysicalDevice physicalDevice,
       switch (ext->sType) {
       case VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR: {
          VkSurfaceProtectedCapabilitiesKHR *protected = (void *)ext;
-         protected->supportsProtected = VK_FALSE;
+         protected->supportsProtected =
+            wsi_device->supports_protected[VK_ICD_WSI_PLATFORM_DISPLAY];
          break;
       }
 
@@ -1962,6 +1966,27 @@ _wsi_display_queue_next(struct wsi_swapchain *drv_chain)
             if (ret != 0) {
                wsi_display_debug("failed to hide cursor err %d %s\n", ret, strerror(-ret));
             }
+
+            /* unset some properties another drm master might've set
+             * which can mess up the image
+             */
+            drmModeObjectPropertiesPtr properties =
+               drmModeObjectGetProperties(wsi->fd,
+                                          connector->crtc_id,
+                                          DRM_MODE_OBJECT_CRTC);
+            for (uint32_t i = 0; i < properties->count_props; i++) {
+               drmModePropertyPtr prop =
+                  drmModeGetProperty(wsi->fd, properties->props[i]);
+               if (strcmp(prop->name, "GAMMA_LUT") == 0 ||
+                   strcmp(prop->name, "CTM") == 0 ||
+                   strcmp(prop->name, "DEGAMMA_LUT") == 0) {
+                  drmModeObjectSetProperty(wsi->fd, connector->crtc_id,
+                                           DRM_MODE_OBJECT_CRTC,
+                                           properties->props[i], 0);
+               }
+               drmModeFreeProperty(prop);
+            }
+            drmModeFreeObjectProperties(properties);
 
             /* Assume that the mode set is synchronous and that any
              * previous image is now idle.

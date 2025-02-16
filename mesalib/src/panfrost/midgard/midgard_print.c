@@ -79,7 +79,7 @@ mir_print_mask(unsigned mask)
  * don't matter.
  */
 static void
-mir_print_swizzle(unsigned mask, unsigned *swizzle)
+mir_print_swizzle(unsigned mask, const unsigned *swizzle)
 {
    printf(".");
 
@@ -115,7 +115,7 @@ mir_get_unit(unsigned unit)
 }
 
 static void
-mir_print_embedded_constant(midgard_instruction *ins, unsigned src_idx)
+mir_print_embedded_constant(const midgard_instruction *ins, unsigned src_idx)
 {
    assert(src_idx <= 1);
 
@@ -123,7 +123,7 @@ mir_print_embedded_constant(midgard_instruction *ins, unsigned src_idx)
    unsigned sz = nir_alu_type_get_type_size(ins->src_types[src_idx]);
    bool half = (sz == (base_size >> 1));
    unsigned mod = mir_pack_mod(ins, src_idx, false);
-   unsigned *swizzle = ins->swizzle[src_idx];
+   const unsigned *swizzle = ins->swizzle[src_idx];
    midgard_reg_mode reg_mode = reg_mode_for_bitsize(max_bitsize_for_alu(ins));
    unsigned comp_mask = effective_writemask(ins->op, ins->mask);
    unsigned num_comp = util_bitcount(comp_mask);
@@ -153,7 +153,7 @@ mir_print_embedded_constant(midgard_instruction *ins, unsigned src_idx)
 }
 
 static void
-mir_print_src(midgard_instruction *ins, unsigned c)
+mir_print_src(const midgard_instruction *ins, unsigned c)
 {
    mir_print_index(ins->src[c]);
 
@@ -164,7 +164,7 @@ mir_print_src(midgard_instruction *ins, unsigned c)
 }
 
 void
-mir_print_instruction(midgard_instruction *ins)
+mir_print_instruction(const midgard_instruction *ins)
 {
    printf("\t");
 
@@ -326,7 +326,7 @@ mir_print_instruction(midgard_instruction *ins)
 /* Dumps MIR for a block or entire shader respective */
 
 void
-mir_print_block(midgard_block *block)
+mir_print_block(const midgard_block *block)
 {
    printf("block%u: {\n", block->base.name);
 
@@ -360,9 +360,9 @@ mir_print_block(midgard_block *block)
 }
 
 void
-mir_print_shader(compiler_context *ctx)
+mir_print_shader(const compiler_context *ctx)
 {
    mir_foreach_block(ctx, block) {
-      mir_print_block((midgard_block *)block);
+      mir_print_block((const midgard_block *)block);
    }
 }

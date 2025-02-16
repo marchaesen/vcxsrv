@@ -77,24 +77,8 @@ extern _X_EXPORT Bool miDCInitialize(ScreenPtr /*pScreen */ ,
                                      miPointerScreenFuncPtr     /*screenFuncs */
     );
 
-extern _X_EXPORT Bool miPointerInitialize(ScreenPtr /*pScreen */ ,
-                                          miPointerSpriteFuncPtr
-                                          /*spriteFuncs */ ,
-                                          miPointerScreenFuncPtr
-                                          /*screenFuncs */ ,
-                                          Bool  /*waitForUpdate */
-    );
-
-extern _X_EXPORT void miPointerWarpCursor(DeviceIntPtr /*pDev */ ,
-                                          ScreenPtr /*pScreen */ ,
-                                          int /*x */ ,
-                                          int   /*y */
-    );
-
 extern _X_EXPORT ScreenPtr
 miPointerGetScreen(DeviceIntPtr pDev);
-extern _X_EXPORT void
-miPointerSetScreen(DeviceIntPtr pDev, int screen_num, int x, int y);
 
 /* Returns the current cursor position. */
 extern _X_EXPORT void
@@ -106,25 +90,40 @@ extern _X_EXPORT ScreenPtr
 miPointerSetPosition(DeviceIntPtr pDev, int mode, double *x, double *y,
                      int *nevents, InternalEvent *events);
 
-extern _X_EXPORT void
-miPointerUpdateSprite(DeviceIntPtr pDev);
-
-/* Invalidate current sprite, forcing reload on next
- * sprite setting (window crossing, grab action, etc)
- */
-extern _X_EXPORT void
-miPointerInvalidateSprite(DeviceIntPtr pDev);
-
-/* Sets whether the sprite should be updated immediately on pointer moves */
-extern _X_EXPORT Bool
-miPointerSetWaitForUpdate(ScreenPtr pScreen, Bool wait);
-
-extern _X_EXPORT DevPrivateKeyRec miPointerPrivKeyRec;
-
-#define miPointerPrivKey (&miPointerPrivKeyRec)
-
 extern _X_EXPORT DevPrivateKeyRec miPointerScreenKeyRec;
 
 #define miPointerScreenKey (&miPointerScreenKeyRec)
+
+/**
+ * @brief initialize pointer cursor with custom handling
+ *
+ * For DDX'es that need their own handling of pointer cursors,
+ * and can't use the generic "soft cursor" that's created via
+ * miDCInitialize().
+ *
+ * That can be the case on certain video HW with it's own sprite support,
+ * or on remote display protocols like RDP, where the client get the cursor
+ * pixmaps sent over the wire and is responsible for painting it on his side.
+ *
+ * Overwrites ScreenPtr vectors:
+ *
+ *     ConstrainCursor, CursorLimits, DisplayCursor, RealizeCursor,
+ *     UnrealizeCursor, SetCursorPosition, RecolorCursor, DeviceCursorCleanup
+ *     DeviceCursorInitialize
+ *
+ * Hooks to ScreenPtr vectors: CloseScreen
+ *
+ * @param pScreen       pointer to ScreenRec the pointer handling applies to
+ * @param spireFuncs    pointer to miPointerSpriteFuncPtr call vectors
+ * @param screenFuncs   pointer to miPointerScreenFuncPtr call vectors
+ * @param waitForUpdate TRUE if MI shouldn't redraw the pointer immediately,
+                        but wait for somebody else triggering it explicitly
+ * @return TRUE on success, FALSE usually indicates allocation failure
+ */
+_X_EXPORT Bool
+miPointerInitialize(ScreenPtr pScreen,
+                    miPointerSpriteFuncPtr spriteFuncs,
+                    miPointerScreenFuncPtr screenFuncs,
+                    Bool waitForUpdate);
 
 #endif                          /* MIPOINTER_H */

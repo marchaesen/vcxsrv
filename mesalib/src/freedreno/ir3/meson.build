@@ -69,6 +69,7 @@ libfreedreno_ir3_files = files(
   'ir3.c',
   'ir3_a4xx.c',
   'ir3_a6xx.c',
+  'ir3_alias.c',
   'ir3_array_to_ssa.c',
   'ir3_assembler.c',
   'ir3_assembler.h',

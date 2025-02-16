@@ -43,8 +43,8 @@
 
 #include "dix/dix_priv.h"
 #include "dix/input_priv.h"
+#include "mi/mi_priv.h"
 
-#include "mi.h"
 #include "os.h"
 #include "servermd.h"
 #include "pixmapstr.h"
@@ -57,10 +57,11 @@
 #include "xf86_OSlib.h"
 #include "micmap.h"
 #include "xf86DDC.h"
-#include "xf86Xinput.h"
+#include "xf86Xinput_priv.h"
 #include "xf86InPriv.h"
 #include "xf86Config.h"
 #include "mivalidate.h"
+#include "xf86Module_priv.h"
 
 /* For xf86GetClocks */
 #if defined(CSRG_BASED) || defined(__GNU__)
@@ -637,7 +638,7 @@ void
 xf86PrintDepthBpp(ScrnInfoPtr scrp)
 {
     xf86DrvMsg(scrp->scrnIndex, scrp->depthFrom, "Depth %d, ", scrp->depth);
-    xf86Msg(scrp->bitsPerPixelFrom, "framebuffer bpp %d\n", scrp->bitsPerPixel);
+    LogMessageVerb(scrp->bitsPerPixelFrom, 1, "framebuffer bpp %d\n", scrp->bitsPerPixel);
 }
 
 /*
@@ -1243,7 +1244,7 @@ xf86PrintChipsets(const char *drvname, const char *drvmsg, SymTabPtr chips)
     int len, i;
 
     len = 6 + strlen(drvname) + 2 + strlen(drvmsg) + 2;
-    xf86Msg(X_INFO, "%s: %s:", drvname, drvmsg);
+    LogMessageVerb(X_INFO, 1, "%s: %s:", drvname, drvmsg);
     for (i = 0; chips[i].name != NULL; i++) {
         if (i != 0) {
             xf86ErrorF(",");
@@ -1696,7 +1697,7 @@ xf86IsUnblank(int mode)
     case SCREEN_SAVER_CYCLE:
         return FALSE;
     default:
-        xf86MsgVerb(X_WARNING, 0, "Unexpected save screen mode: %d\n", mode);
+        LogMessageVerb(X_WARNING, 0, "Unexpected save screen mode: %d\n", mode);
         return TRUE;
     }
 }

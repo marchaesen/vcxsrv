@@ -159,7 +159,7 @@ If you're having a specific problem with host key checking - perhaps
 you want an automated batch job to make use of PSCP or Plink, and the
 interactive host key prompt is hanging the batch process - then the
 right way to fix it is to add the correct host key to the Registry in
-advance, or if the Registry is not available, to use the \cw{-hostkey}
+advance, or if the Registry is not available, to use the \cw{\-hostkey}
 command-line option. That way, you retain the \e{important} feature of
 host key checking: the right key will be accepted and the wrong ones
 will not. Adding an option to turn host key checking off completely is
@@ -556,7 +556,7 @@ deprecated and may be removed at some point.)
 \S{faq-startssh}{Question} How can I start an SSH session straight
 from the command line?
 
-Use the command line \c{putty -ssh host.name}. Alternatively, create
+Use the command line \c{putty \-ssh host.name}. Alternatively, create
 a saved session that specifies the SSH protocol, and start the saved
 session as shown in \k{faq-startsess}.
 
@@ -628,7 +628,7 @@ have to use backslashes and two sets of quotes:
 
 Worse still, in a remote-to-local copy you have to specify the local
 file name explicitly, otherwise PSCP will complain that they don't
-match (unless you specified the \c{-unsafe} option). The following
+match (unless you specified the \c{\-unsafe} option). The following
 command will give an error message:
 
 \c c:\>pscp user@host:"\"oo er\"" .
@@ -1129,7 +1129,7 @@ feature.
 
 If you are using PuTTY on a public PC, or somebody else's PC, you
 might want to clean this information up when you leave. You can do
-that automatically, by running the command \c{putty -cleanup}. See
+that automatically, by running the command \c{putty \-cleanup}. See
 \k{using-cleanup} in the documentation for more detail. (Note that
 this only removes settings for the currently logged-in user on
 \i{multi-user systems}.)
@@ -1137,7 +1137,7 @@ this only removes settings for the currently logged-in user on
 If PuTTY was installed from the installer package, it will also
 appear in \q{Add/Remove Programs}. Current versions of the installer
 do not offer to remove the above-mentioned items, so if you want them
-removed you should run \c{putty -cleanup} before uninstalling.
+removed you should run \c{putty \-cleanup} before uninstalling.
 
 \S{faq-dsa}{Question} How come PuTTY now supports \i{DSA}, when the
 website used to say how insecure it was?

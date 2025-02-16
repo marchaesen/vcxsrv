@@ -16,6 +16,9 @@
 struct vn_queue {
    struct vn_queue_base base;
 
+   /* emulated queue shares base queue id and ring_idx with another queue */
+   bool emulated;
+
    /* only used if renderer supports multiple timelines */
    uint32_t ring_idx;
 

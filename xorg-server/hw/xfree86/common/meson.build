@@ -42,7 +42,6 @@ xorg_sdk_headers = [
     'xf86VGAarbiter.h',
     'xf86Optionstr.h',
     'xf86platformBus.h',
-    'xf86MatchDrivers.h',
     'xaarop.h',
 ]
 

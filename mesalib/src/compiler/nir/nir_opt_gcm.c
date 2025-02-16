@@ -857,8 +857,12 @@ opt_gcm_impl(nir_shader *shader, nir_function_impl *impl, bool value_number)
    ralloc_free(state.blocks);
    ralloc_free(state.instr_infos);
 
-   nir_metadata_preserve(impl, nir_metadata_control_flow |
-                                  nir_metadata_loop_analysis);
+   if (state.progress) {
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_control_flow |
+                                     nir_metadata_loop_analysis);
+   }
 
    return state.progress;
 }

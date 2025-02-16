@@ -95,6 +95,11 @@ class Intrinsic(object):
 
 CAN_ELIMINATE = "NIR_INTRINSIC_CAN_ELIMINATE"
 CAN_REORDER   = "NIR_INTRINSIC_CAN_REORDER"
+SUBGROUP      = "NIR_INTRINSIC_SUBGROUP"
+QUADGROUP     = "NIR_INTRINSIC_QUADGROUP | " + SUBGROUP
+
+SUBGROUP_FLAGS = [CAN_ELIMINATE, SUBGROUP]
+QUADGROUP_FLAGS = [CAN_ELIMINATE, QUADGROUP]
 
 INTR_INDICES = []
 INTR_OPCODES = {}
@@ -340,6 +345,10 @@ intrinsic("convert_alu_types", dest_comp=0, src_comp=[0],
 
 intrinsic("load_param", dest_comp=0, indices=[PARAM_IDX], flags=[CAN_ELIMINATE])
 
+# Store a scalar value to be used as a return value. Usually store_deref is used
+# for this, but vtn_bindgen needs to lower derefs.
+intrinsic("bindgen_return", src_comp=[0])
+
 intrinsic("load_deref", dest_comp=0, src_comp=[-1],
           indices=[ACCESS], flags=[CAN_ELIMINATE])
 intrinsic("store_deref", src_comp=[-1, 0], indices=[WRITE_MASK, ACCESS])
@@ -428,7 +437,7 @@ intrinsic("is_sparse_resident_zink", dest_comp=1, src_comp=[0], bit_sizes=[1],
 for suffix in ["", "_fine", "_coarse"]:
     for axis in ["x", "y"]:
         intrinsic(f"dd{axis}{suffix}", dest_comp=0, src_comp=[0],
-                  bit_sizes=[16, 32], flags=[CAN_ELIMINATE])
+                  bit_sizes=[16, 32], flags=[CAN_ELIMINATE, QUADGROUP])
 
 # a barrier is an intrinsic with no inputs/outputs but which can't be moved
 # around/optimized in general
@@ -472,12 +481,12 @@ intrinsic("shader_clock", dest_comp=2, bit_sizes=[32], flags=[CAN_ELIMINATE],
 #    readFirstInvocationARB()
 #
 # GLSL functions from ARB_shader_ballot.
-intrinsic("ballot", src_comp=[1], dest_comp=0, flags=[CAN_ELIMINATE])
-intrinsic("read_invocation", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
-intrinsic("read_first_invocation", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
+intrinsic("ballot", src_comp=[1], dest_comp=0, flags=SUBGROUP_FLAGS)
+intrinsic("read_invocation", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=SUBGROUP_FLAGS)
+intrinsic("read_first_invocation", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=SUBGROUP_FLAGS)
 
 # Same as ballot, but inactive invocations contribute undefined bits.
-intrinsic("ballot_relaxed", src_comp=[1], dest_comp=0, flags=[CAN_ELIMINATE])
+intrinsic("ballot_relaxed", src_comp=[1], dest_comp=0, flags=SUBGROUP_FLAGS)
 
 # Allows the backend compiler to move this value to an uniform register.
 # Result is undefined if src is not uniform.
@@ -486,12 +495,12 @@ intrinsic("as_uniform", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=[CAN_EL
 
 # Returns the value of the first source for the lane where the second source is
 # true. The second source must be true for exactly one lane.
-intrinsic("read_invocation_cond_ir3", src_comp=[0, 1], dest_comp=0, flags=[CAN_ELIMINATE])
+intrinsic("read_invocation_cond_ir3", src_comp=[0, 1], dest_comp=0, flags=SUBGROUP_FLAGS)
 
 # Like read_first_invocation but using the getlast instruction instead of
 # getone. More specifically, this will read the value from the last active
 # invocation of the first cluster of 8 invocations with an active invocation.
-intrinsic("read_getlast_ir3", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
+intrinsic("read_getlast_ir3", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=SUBGROUP_FLAGS)
 
 # Additional SPIR-V ballot intrinsics
 #
@@ -500,9 +509,9 @@ intrinsic("read_getlast_ir3", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=[
 #    OpGroupNonUniformElect
 #    OpSubgroupFirstInvocationKHR
 #    OpGroupNonUniformInverseBallot
-intrinsic("elect", dest_comp=1, flags=[CAN_ELIMINATE])
-intrinsic("first_invocation", dest_comp=1, bit_sizes=[32], flags=[CAN_ELIMINATE])
-intrinsic("last_invocation", dest_comp=1, bit_sizes=[32], flags=[CAN_ELIMINATE])
+intrinsic("elect", dest_comp=1, flags=SUBGROUP_FLAGS)
+intrinsic("first_invocation", dest_comp=1, bit_sizes=[32], flags=SUBGROUP_FLAGS)
+intrinsic("last_invocation", dest_comp=1, bit_sizes=[32], flags=SUBGROUP_FLAGS)
 intrinsic("inverse_ballot", src_comp=[0], dest_comp=1, flags=[CAN_ELIMINATE])
 
 barrier("begin_invocation_interlock")
@@ -513,10 +522,10 @@ intrinsic("demote_if", src_comp=[1])
 intrinsic("terminate_if", src_comp=[1])
 
 # ARB_shader_group_vote intrinsics
-intrinsic("vote_any", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE])
-intrinsic("vote_all", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE])
-intrinsic("vote_feq", src_comp=[0], dest_comp=1, flags=[CAN_ELIMINATE])
-intrinsic("vote_ieq", src_comp=[0], dest_comp=1, flags=[CAN_ELIMINATE])
+intrinsic("vote_any", src_comp=[1], dest_comp=1, flags=SUBGROUP_FLAGS)
+intrinsic("vote_all", src_comp=[1], dest_comp=1, flags=SUBGROUP_FLAGS)
+intrinsic("vote_feq", src_comp=[0], dest_comp=1, flags=SUBGROUP_FLAGS)
+intrinsic("vote_ieq", src_comp=[0], dest_comp=1, flags=SUBGROUP_FLAGS)
 
 # Ballot ALU operations from SPIR-V.
 #
@@ -531,39 +540,41 @@ intrinsic("ballot_find_lsb", src_comp=[4], dest_comp=1, flags=[CAN_REORDER, CAN_
 intrinsic("ballot_find_msb", src_comp=[4], dest_comp=1, flags=[CAN_REORDER, CAN_ELIMINATE])
 
 # Shuffle operations from SPIR-V.
-intrinsic("shuffle", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
-intrinsic("shuffle_xor", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
-intrinsic("shuffle_up", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
-intrinsic("shuffle_down", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
+intrinsic("shuffle", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=SUBGROUP_FLAGS)
+intrinsic("shuffle_xor", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=SUBGROUP_FLAGS)
+intrinsic("shuffle_up", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=SUBGROUP_FLAGS)
+intrinsic("shuffle_down", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=SUBGROUP_FLAGS)
 
 # Quad operations from SPIR-V.
-intrinsic("quad_broadcast", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
-intrinsic("quad_swap_horizontal", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
-intrinsic("quad_swap_vertical", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
-intrinsic("quad_swap_diagonal", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=[CAN_ELIMINATE])
+intrinsic("quad_broadcast", src_comp=[0, 1], dest_comp=0, bit_sizes=src0, flags=QUADGROUP_FLAGS)
+intrinsic("quad_swap_horizontal", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=QUADGROUP_FLAGS)
+intrinsic("quad_swap_vertical", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=QUADGROUP_FLAGS)
+intrinsic("quad_swap_diagonal", src_comp=[0], dest_comp=0, bit_sizes=src0, flags=QUADGROUP_FLAGS)
 
 # Similar to vote_any and vote_all, but per-quad instead of per-wavefront.
 # Equivalent to subgroupOr(val, 4) and subgroupAnd(val, 4) assuming val is
 # boolean.
-intrinsic("quad_vote_any", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE])
-intrinsic("quad_vote_all", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE])
+intrinsic("quad_vote_any", src_comp=[1], dest_comp=1, flags=QUADGROUP_FLAGS)
+intrinsic("quad_vote_all", src_comp=[1], dest_comp=1, flags=QUADGROUP_FLAGS)
 
 # Rotate operation from SPIR-V: SpvOpGroupNonUniformRotateKHR.
 intrinsic("rotate", src_comp=[0, 1], dest_comp=0, bit_sizes=src0,
-          indices=[CLUSTER_SIZE], flags=[CAN_ELIMINATE]);
+          indices=[CLUSTER_SIZE], flags=SUBGROUP_FLAGS);
 
 intrinsic("reduce", src_comp=[0], dest_comp=0, bit_sizes=src0,
-          indices=[REDUCTION_OP, CLUSTER_SIZE], flags=[CAN_ELIMINATE])
+          indices=[REDUCTION_OP, CLUSTER_SIZE], flags=SUBGROUP_FLAGS)
 intrinsic("inclusive_scan", src_comp=[0], dest_comp=0, bit_sizes=src0,
-          indices=[REDUCTION_OP], flags=[CAN_ELIMINATE])
+          indices=[REDUCTION_OP], flags=SUBGROUP_FLAGS)
 intrinsic("exclusive_scan", src_comp=[0], dest_comp=0, bit_sizes=src0,
-          indices=[REDUCTION_OP], flags=[CAN_ELIMINATE])
+          indices=[REDUCTION_OP], flags=SUBGROUP_FLAGS)
 
 # AMD shader ballot operations
 intrinsic("quad_swizzle_amd", src_comp=[0], dest_comp=0, bit_sizes=src0,
-          indices=[SWIZZLE_MASK, FETCH_INACTIVE], flags=[CAN_ELIMINATE])
+          indices=[SWIZZLE_MASK, FETCH_INACTIVE],
+          flags=QUADGROUP_FLAGS)
 intrinsic("masked_swizzle_amd", src_comp=[0], dest_comp=0, bit_sizes=src0,
-          indices=[SWIZZLE_MASK, FETCH_INACTIVE], flags=[CAN_ELIMINATE])
+          indices=[SWIZZLE_MASK, FETCH_INACTIVE],
+          flags=SUBGROUP_FLAGS)
 intrinsic("write_invocation_amd", src_comp=[0, 0, 1], dest_comp=0, bit_sizes=src0,
           flags=[CAN_ELIMINATE])
 # src = [ mask, addition ]
@@ -1281,10 +1292,6 @@ intrinsic("printf", src_comp=[1, 1], dest_comp=1, bit_sizes=[32])
 # the driver to at least provide a base location and size
 system_value("printf_buffer_address", 1, bit_sizes=[32,64])
 system_value("printf_buffer_size", 1, bit_sizes=[32])
-# If driver wants to have all printfs from various shaders merged into a
-# single output buffer, it needs each shader to have its own base identifier
-# from which each printf is indexed.
-system_value("printf_base_identifier", 1, bit_sizes=[32])
 # Abort the program, triggering device fault. The invoking thread halts
 # immediately. Other threads eventually terminate.
 #
@@ -1354,6 +1361,20 @@ intrinsic("ssbo_atomic_ir3",       src_comp=[1, 1, 1, 1],    dest_comp=1,
           indices=[ACCESS, ATOMIC_OP])
 intrinsic("ssbo_atomic_swap_ir3",  src_comp=[1, 1, 1, 1, 1], dest_comp=1,
           indices=[ACCESS, ATOMIC_OP])
+
+# IR3-specific intrinsic for UAVs, which are like SSBOs but with a source
+# for which "record" to access as well as the offset within the record, instead
+# of just an offset. The record stride is part of the descriptor.
+# Currently this is just used for the ray-tracing TLAS descriptor, where a
+# normal SSBO wouldn't have enough range.
+load("uav_ir3", [1, 2],
+     indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE])
+
+# IR3 intrinsic for "ray_intersection" instruction.
+# The input and output arguments are the same as the instruction.
+# See https://gitlab.freedesktop.org/freedreno/freedreno/-/wikis/a7xx-ray-tracing
+intrinsic("ray_intersection_ir3", src_comp=[2, 1, 8, 1], dest_comp=5,
+          flags=[CAN_REORDER, CAN_ELIMINATE])
 
 # System values for freedreno geometry shaders.
 system_value("vs_primitive_stride_ir3", 1)
@@ -1577,9 +1598,9 @@ intrinsic("unit_test_divergent_amd", dest_comp=0, indices=[BASE])
 # src[] = { descriptor, vector byte offset, scalar byte offset, index offset }
 # The index offset is multiplied by the stride in the descriptor.
 # The vector/scalar offsets are in bytes, BASE is a constant byte offset.
-intrinsic("load_buffer_amd", src_comp=[4, 1, 1, 1], dest_comp=0, indices=[BASE, MEMORY_MODES, ACCESS], flags=[CAN_ELIMINATE])
+intrinsic("load_buffer_amd", src_comp=[4, 1, 1, 1], dest_comp=0, indices=[BASE, MEMORY_MODES, ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE])
 # src[] = { store value, descriptor, vector byte offset, scalar byte offset, index offset }
-intrinsic("store_buffer_amd", src_comp=[0, 4, 1, 1, 1], indices=[BASE, WRITE_MASK, MEMORY_MODES, ACCESS])
+intrinsic("store_buffer_amd", src_comp=[0, 4, 1, 1, 1], indices=[BASE, WRITE_MASK, MEMORY_MODES, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
 
 # Typed buffer load of arbitrary length, using a specified format.
 # src[] = { descriptor, vector byte offset, scalar byte offset, index offset }
@@ -1768,7 +1789,7 @@ intrinsic("load_scalar_arg_amd", dest_comp=0, bit_sizes=[32],
           indices=[BASE, ARG_UPPER_BOUND_U32_AMD],
           flags=[CAN_ELIMINATE, CAN_REORDER])
 intrinsic("load_vector_arg_amd", dest_comp=0, bit_sizes=[32],
-          indices=[BASE, ARG_UPPER_BOUND_U32_AMD, FLAGS],
+          indices=[BASE, ARG_UPPER_BOUND_U32_AMD],
           flags=[CAN_ELIMINATE, CAN_REORDER])
 store("scalar_arg_amd", [], [BASE])
 store("vector_arg_amd", [], [BASE])
@@ -1806,6 +1827,9 @@ system_value("num_vertices_per_primitive_amd", 1)
 # Load streamout buffer desc
 # BASE = buffer index
 intrinsic("load_streamout_buffer_amd", dest_comp=4, indices=[BASE], bit_sizes=[32], flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# Polygon stipple buffer descriptor
+system_value("polygon_stipple_buffer_amd", 4)
 
 # An ID for each workgroup ordered by primitve sequence
 system_value("ordered_id_amd", 1)
@@ -1887,7 +1911,7 @@ system_value("barycentric_optimize_amd", dest_comp=1, bit_sizes=[1])
 intrinsic("strict_wqm_coord_amd", src_comp=[0], dest_comp=0, bit_sizes=[32], indices=[BASE],
           flags=[CAN_ELIMINATE])
 
-intrinsic("cmat_muladd_amd", src_comp=[16, 16, 0], dest_comp=0, bit_sizes=src2,
+intrinsic("cmat_muladd_amd", src_comp=[-1, -1, 0], dest_comp=0, bit_sizes=src2,
           indices=[SATURATE, CMAT_SIGNED_MASK], flags=[CAN_ELIMINATE])
 
 # Get the debug log buffer descriptor.
@@ -1900,6 +1924,11 @@ intrinsic("sleep_amd", indices=[BASE])
 
 # s_nop BASE (sleep for BASE+1 cycles, BASE must be in [0, 15]).
 intrinsic("nop_amd", indices=[BASE])
+
+# Return the FMASK descriptor of color buffer 0.
+system_value("fbfetch_image_fmask_desc_amd", 8)
+# Return the image descriptor of color buffer 0.
+system_value("fbfetch_image_desc_amd", 8)
 
 system_value("ray_tracing_stack_base_lvp", 1)
 

@@ -41,7 +41,7 @@
  *   2000/02/23  - original version for Mesa 3.3 and XFree86 4.0
  *   2001/01/16  - added dispatch override feature for Mesa 3.5
  *   2002/06/28  - added _glapi_set_warning_func(), Mesa 4.1.
- *   2002/10/01  - _glapi_get_proc_address() will now generate new entrypoints
+ *   2002/10/01  - _mesa_glapi_get_proc_address() will now generate new entrypoints
  *                 itself (using offset ~0).  _glapi_add_entrypoint() can be
  *                 called afterward and it'll fill in the correct dispatch
  *                 offset.  This allows DRI libGL to avoid probing for DRI
@@ -73,26 +73,26 @@ extern void (*__glapi_noop_table[])(void);
  * Depending on whether or not multithreading is support, and the type of
  * support available, several variables are used to store the current context
  * pointer and the current dispatch table pointer. In the non-threaded case,
- * the variables \c _glapi_Dispatch and \c _glapi_Context are used for this
+ * the variables \c _mesa_glapi_Dispatch and \c _glapi_Context are used for this
  * purpose.
  *
- * In multi threaded case, The TLS variables \c _glapi_tls_Dispatch and
- * \c _glapi_tls_Context are used. Having \c _glapi_Dispatch and \c _glapi_Context
+ * In multi threaded case, The TLS variables \c _mesa_glapi_tls_Dispatch and
+ * \c _mesa_glapi_tls_Context are used. Having \c _mesa_glapi_Dispatch and \c _glapi_Context
  * be hardcoded to \c NULL maintains binary compatability between TLS enabled
- * loaders and non-TLS DRI drivers. When \c _glapi_Dispatch and \c _glapi_Context
+ * loaders and non-TLS DRI drivers. When \c _mesa_glapi_Dispatch and \c _glapi_Context
  * are \c NULL, the thread state data \c ContextTSD are used. Drivers and the
- * static dispatch functions access these variables via \c _glapi_get_dispatch
- * and \c _glapi_get_context.
+ * static dispatch functions access these variables via \c _mesa_glapi_get_dispatch
+ * and \c _mesa_glapi_get_context.
  */
 /*@{*/
 
-__THREAD_INITIAL_EXEC struct _glapi_table *_glapi_tls_Dispatch
+__THREAD_INITIAL_EXEC struct _glapi_table *_mesa_glapi_tls_Dispatch
    = (struct _glapi_table *) table_noop_array;
 
-__THREAD_INITIAL_EXEC void *_glapi_tls_Context;
+__THREAD_INITIAL_EXEC void *_mesa_glapi_tls_Context;
 
 /* not used, but defined for compatibility */
-const struct _glapi_table *_glapi_Dispatch;
+const struct _glapi_table *_mesa_glapi_Dispatch;
 const void *_glapi_Context;
 
 /*@}*/
@@ -115,9 +115,9 @@ _glapi_check_multithread(void)
  * void from the real context pointer type.
  */
 void
-_glapi_set_context(void *ptr)
+_mesa_glapi_set_context(void *ptr)
 {
-   _glapi_tls_Context = ptr;
+   _mesa_glapi_tls_Context = ptr;
 }
 
 /**
@@ -126,9 +126,9 @@ _glapi_set_context(void *ptr)
  * void to the real context pointer type.
  */
 void *
-_glapi_get_context(void)
+_mesa_glapi_get_context(void)
 {
-   return _glapi_tls_Context;
+   return _mesa_glapi_tls_Context;
 }
 
 /**
@@ -137,21 +137,21 @@ _glapi_get_context(void)
  * table (__glapi_noop_table).
  */
 void
-_glapi_set_dispatch(struct _glapi_table *tbl)
+_mesa_glapi_set_dispatch(struct _glapi_table *tbl)
 {
    stub_init_once();
 
    if (!tbl)
       tbl = (struct _glapi_table *) table_noop_array;
 
-   _glapi_tls_Dispatch = tbl;
+   _mesa_glapi_tls_Dispatch = tbl;
 }
 
 /**
  * Return pointer to current dispatch table for calling thread.
  */
 struct _glapi_table *
-_glapi_get_dispatch(void)
+_mesa_glapi_get_dispatch(void)
 {
-   return _glapi_tls_Dispatch;
+   return _mesa_glapi_tls_Dispatch;
 }

@@ -161,8 +161,7 @@ create_frag_shader(struct vl_bicubic_filter *filter, unsigned video_width,
    struct ureg_dst t;
    unsigned i;
 
-   if (screen->get_shader_param(
-      screen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_MAX_TEMPS) < 23) {
+   if (screen->shader_caps[PIPE_SHADER_FRAGMENT].max_temps < 23) {
 
       return NULL;
    }

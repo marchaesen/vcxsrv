@@ -1538,7 +1538,7 @@ get_reset_occlusion_query_cs(const nir_shader_compiler_options *options)
 static void
 write_query_buffer(nir_builder *b,
                    nir_def *buf,
-                   nir_def **offset,
+                   nir_def *offset,
                    nir_def *value,
                    bool flag_64bit)
 {
@@ -1547,11 +1547,9 @@ write_query_buffer(nir_builder *b,
        * so we can write a 64-bit value in a single store.
        */
       nir_def *value64 = nir_vec2(b, value, nir_imm_int(b, 0));
-      nir_store_ssbo(b, value64, buf, *offset, .write_mask = 0x3, .align_mul = 8);
-      *offset = nir_iadd_imm(b, *offset, 8);
+      nir_store_ssbo(b, value64, buf, offset, .write_mask = 0x3, .align_mul = 8);
    } else {
-      nir_store_ssbo(b, value, buf, *offset, .write_mask = 0x1, .align_mul = 4);
-      *offset = nir_iadd_imm(b, *offset, 4);
+      nir_store_ssbo(b, value, buf, offset, .write_mask = 0x1, .align_mul = 4);
    }
 }
 
@@ -1610,18 +1608,20 @@ get_copy_query_results_cs(const nir_shader_compiler_options *options,
    /* ...if partial is requested, we always write */
    if(flag_partial) {
       nir_def *query_res = nir_read_occlusion_counter(&b, buf, query_idx);
-      write_query_buffer(&b, buf_out, &offset, query_res, flag_64bit);
+      write_query_buffer(&b, buf_out, offset, query_res, flag_64bit);
    } else {
       /*...otherwise, we only write if the query is available */
       nir_if *if_stmt = nir_push_if(&b, nir_ine_imm(&b, avail, 0));
          nir_def *query_res = nir_read_occlusion_counter(&b, buf, query_idx);
-         write_query_buffer(&b, buf_out, &offset, query_res, flag_64bit);
+         write_query_buffer(&b, buf_out, offset, query_res, flag_64bit);
       nir_pop_if(&b, if_stmt);
    }
 
    /* Write query availability */
-   if (flag_avail)
-      write_query_buffer(&b, buf_out, &offset, avail, flag_64bit);
+   if (flag_avail) {
+      offset = nir_iadd_imm(&b, offset, flag_64bit ? 8 : 4);
+      write_query_buffer(&b, buf_out, offset, avail, flag_64bit);
+   }
 
    return b.shader;
 }

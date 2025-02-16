@@ -148,6 +148,11 @@ struct ac_buffer_state {
    uint32_t index_stride : 2;
    uint32_t add_tid : 1;
    uint32_t gfx10_oob_select : 2;
+
+   struct {
+      uint32_t compression_en : 1;
+      uint32_t write_compress_enable : 1;
+   } gfx12;
 };
 
 void

@@ -797,7 +797,7 @@ hk_meta_copy_image_to_buffer2(struct vk_command_buffer *cmd,
          bool is_3d = region->imageExtent.depth > 1;
 
          struct vk_meta_image_copy_key key = {
-            .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER_PIPELINE,
+            .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER,
             .type = IMG2BUF,
             .block_size = blocksize_B,
             .nr_samples = image->samples,
@@ -982,7 +982,7 @@ hk_meta_copy_buffer_to_image2(struct vk_command_buffer *cmd,
          bool is_3d = region->imageExtent.depth > 1;
 
          struct vk_meta_image_copy_key key = {
-            .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER_PIPELINE,
+            .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER,
             .type = BUF2IMG,
             .block_size = blocksize_B,
             .nr_samples = image->samples,
@@ -1141,7 +1141,7 @@ hk_meta_copy_image2(struct vk_command_buffer *cmd, struct vk_meta_device *meta,
                   : (1 << aspect);
 
             struct vk_meta_image_copy_key key = {
-               .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER_PIPELINE,
+               .key_type = VK_META_OBJECT_KEY_COPY_IMAGE_TO_BUFFER,
                .type = IMG2IMG,
                .block_size = blocksize_B,
                .nr_samples = dst_image->samples,

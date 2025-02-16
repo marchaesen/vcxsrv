@@ -807,8 +807,8 @@ fd6_clear_lrz(struct fd_batch *batch, struct fd_resource *zsbuf,
 
    OUT_PKT4(ring, REG_A6XX_GRAS_2D_DST_TL, 2);
    OUT_RING(ring, A6XX_GRAS_2D_DST_TL_X(0) | A6XX_GRAS_2D_DST_TL_Y(0));
-   OUT_RING(ring, A6XX_GRAS_2D_DST_BR_X(zsbuf->lrz_width - 1) |
-                     A6XX_GRAS_2D_DST_BR_Y(zsbuf->lrz_height - 1));
+   OUT_RING(ring, A6XX_GRAS_2D_DST_BR_X(zsbuf->lrz_layout.lrz_pitch - 1) |
+                     A6XX_GRAS_2D_DST_BR_Y(zsbuf->lrz_layout.lrz_height - 1));
 
    union pipe_color_union clear_color = { .f = {depth} };
 
@@ -824,7 +824,7 @@ fd6_clear_lrz(struct fd_batch *batch, struct fd_resource *zsbuf,
            A6XX_RB_2D_DST(
                  .bo = lrz,
            ),
-           A6XX_RB_2D_DST_PITCH(zsbuf->lrz_pitch * 2),
+           A6XX_RB_2D_DST_PITCH(zsbuf->lrz_layout.lrz_pitch * 2),
    );
 
    /*

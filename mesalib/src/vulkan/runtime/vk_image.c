@@ -379,6 +379,34 @@ vk_image_to_memory_copy_layout(const struct vk_image *image,
    return vk_image_buffer_copy_layout(image, &bic);
 }
 
+bool
+vk_image_can_be_aliased_to_yuv_plane(const struct vk_image *image)
+{
+   if (!(image->create_flags & VK_IMAGE_CREATE_ALIAS_BIT))
+      return false;
+
+   VkFormat format = image->format;
+
+   /* Only the 8-bit, 16-bit, and 32-bit classes listed in
+    * https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#formats-compatibility-classes
+    * are compatible with yuv planes. We must exclude other classes with the
+    * same block size as these.
+    */
+   if (vk_format_is_depth_or_stencil(format) ||
+       vk_format_is_alpha(format) ||
+       vk_format_get_blockwidth(format) != 1 ||
+       vk_format_get_blockheight(format) != 1)
+      return false;
+
+   unsigned block_size = vk_format_get_blocksize(format);
+
+   /* The planes of all the multiplane formats have a block size of 1, 2, or 4.
+    * See:
+    * https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#formats-compatible-planes
+    */
+   return block_size == 1 || block_size == 2 || block_size == 4;
+}
+
 static VkComponentSwizzle
 remap_swizzle(VkComponentSwizzle swizzle, VkComponentSwizzle component)
 {
@@ -521,7 +549,6 @@ vk_image_view_init(struct vk_device *device,
    image_view->base_mip_level = range->baseMipLevel;
    image_view->level_count = vk_image_subresource_level_count(image, range);
    image_view->base_array_layer = range->baseArrayLayer;
-   image_view->layer_count = vk_image_subresource_layer_count(image, range);
 
    const VkImageViewMinLodCreateInfoEXT *min_lod_info =
       vk_find_struct_const(pCreateInfo, IMAGE_VIEW_MIN_LOD_CREATE_INFO_EXT);
@@ -539,6 +566,29 @@ vk_image_view_init(struct vk_device *device,
 
    image_view->extent =
       vk_image_mip_level_extent(image, image_view->base_mip_level);
+
+   /* From the Vulkan 1.4.304 spec:
+    *
+    *     VUID-VkImageViewCreateInfo-image-02724
+    *
+    *     "If image is a 3D image created with
+    *     VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT set, and viewType is
+    *     VK_IMAGE_VIEW_TYPE_2D or VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+    *     subresourceRange.baseArrayLayer must be less than the depth computed
+    *     from baseMipLevel and extent.depth specified in VkImageCreateInfo
+    *     when image was created, according to the formula defined in Image
+    *     Mip Level Sizing"
+    */
+   if (image->image_type == VK_IMAGE_TYPE_3D &&
+       (image_view->view_type == VK_IMAGE_VIEW_TYPE_2D ||
+        image_view->view_type == VK_IMAGE_VIEW_TYPE_2D_ARRAY)) {
+      image_view->layer_count =
+         range->layerCount == VK_REMAINING_ARRAY_LAYERS ?
+         image_view->extent.depth - range->baseArrayLayer :
+         range->layerCount;
+   } else {
+      image_view->layer_count = vk_image_subresource_layer_count(image, range);
+   }
 
    if (vk_format_is_compressed(image->format) &&
        !vk_format_is_compressed(image_view->format)) {

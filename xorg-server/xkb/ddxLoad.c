@@ -40,6 +40,8 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "dix/dix_priv.h"
 #include "os/osdep.h"
+#include "xkb/xkbfile_priv.h"
+#include "xkb/xkbfmisc_priv.h"
 
 #include "inputstr.h"
 #include "scrnintstr.h"
@@ -151,8 +153,8 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
     }
 
     if (asprintf(&buf,
-                 "\"%s%sxkbcomp\" -w %d %s -xkm \"%s\" "
-                 "-em1 %s -emp %s -eml %s \"%s%s.xkm\"",
+                 "\"\"%s%sxkbcomp\" -w %d %s -xkm \"%s\" "
+                 "-em1 %s -emp %s -eml %s \"%s%s.xkm\"\"",
                  xkbbindir, xkbbindirsep,
                  ((xkbDebugFlags < 2) ? 1 :
                   ((xkbDebugFlags > 10) ? 10 : (int) xkbDebugFlags)),
@@ -182,7 +184,7 @@ RunXkbComp(xkbcomp_buffer_callback callback, void *userdata)
 #ifndef WIN32
         if (Pclose(out) == 0)
 #else
-        if (fclose(out) == 0 && System(buf) >= 0)
+        if (fclose(out) == 0 && system(buf) >= 0)
 #endif
         {
             if (xkbDebugFlags)

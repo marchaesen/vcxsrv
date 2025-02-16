@@ -11,13 +11,13 @@ the suitability of this software for any purpose.  It is provided "as
 is" without express or implied warranty.
 
 */
-
-#include <xnest-config.h>
+#include <dix-config.h>
 
 #include <X11/X.h>
 #include <X11/Xdefs.h>
 #include <X11/Xproto.h>
 
+#include "include/extinit_priv.h"
 #include "os/ddx_priv.h"
 
 #include "screenint.h"
@@ -25,6 +25,7 @@ is" without express or implied warranty.
 #include "misc.h"
 #include "scrnintstr.h"
 #include "servermd.h"
+#include "extinit.h"
 
 #include "Xnest.h"
 
@@ -54,6 +55,19 @@ Window xnestParentWindow = 0;
 int
 ddxProcessArgument(int argc, char *argv[], int i)
 {
+    /* disable some extensions we currently don't support yet */
+#ifdef MITSHM
+    noMITShmExtension = TRUE;
+#endif
+
+#ifdef COMPOSITE
+    noCompositeExtension = TRUE;
+#endif
+
+#ifdef DPMSExtension
+    noDPMSExtension = TRUE;
+#endif
+
     if (!strcmp(argv[i], "-display")) {
         if (++i < argc) {
             xnestDisplayName = argv[i];

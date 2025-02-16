@@ -2244,8 +2244,7 @@ ureg_create_with_screen(enum pipe_shader_type processor,
    ureg->processor = processor;
    ureg->supports_any_inout_decl_range =
       screen &&
-      screen->get_shader_param(screen, processor,
-                               PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE) != 0;
+      screen->shader_caps[processor].tgsi_any_inout_decl_range;
    ureg->next_shader_processor = -1;
 
    for (i = 0; i < ARRAY_SIZE(ureg->properties); i++)

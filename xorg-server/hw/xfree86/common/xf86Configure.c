@@ -38,7 +38,7 @@
 #include "xf86Priv.h"
 #define IN_XSERVER
 #include "Configint.h"
-#include "xf86DDC.h"
+#include "xf86DDC_priv.h"
 #include "xf86pciBus.h"
 #if (defined(__sparc__) || defined(__sparc)) && !defined(__OpenBSD__)
 #include "xf86Bus.h"
@@ -46,6 +46,7 @@
 #endif
 #include "misc.h"
 #include "loaderProcs.h"
+#include "xf86Parser_priv.h"
 
 typedef struct _DevToConfig {
     GDevRec GDev;
@@ -695,8 +696,8 @@ DoConfigure(void)
              home, addslash);
 
     if (xf86writeConfigFile(filename, xf86config) == 0) {
-        xf86Msg(X_ERROR, "Unable to write config file: \"%s\": %s\n",
-                filename, strerror(errno));
+        LogMessageVerb(X_ERROR, 1, "Unable to write config file: \"%s\": %s\n",
+                       filename, strerror(errno));
         goto bail;
     }
 
@@ -801,8 +802,8 @@ DoConfigure(void)
     }
 
     if (xf86writeConfigFile(filename, xf86config) == 0) {
-        xf86Msg(X_ERROR, "Unable to write config file: \"%s\": %s\n",
-                filename, strerror(errno));
+        LogMessageVerb(X_ERROR, 1, "Unable to write config file: \"%s\": %s\n",
+                       filename, strerror(errno));
         goto bail;
     }
 

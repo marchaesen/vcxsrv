@@ -5,9 +5,14 @@
 
 #include "nir_to_rc.h"
 #include "compiler/nir/nir.h"
+#include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_deref.h"
 #include "compiler/nir/nir_legacy.h"
 #include "compiler/nir/nir_worklist.h"
+#include "compiler/radeon_code.h"
+#include "compiler/radeon_program_constants.h"
+#include "r300_nir.h"
+#include "r300_screen.h"
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h"
 #include "tgsi/tgsi_dump.h"
@@ -80,7 +85,6 @@ struct ntr_compile {
    bool precise;
 
    unsigned num_temps;
-   unsigned first_non_array_temp;
 
    /* Mappings from driver_location to TGSI input/output number.
     *
@@ -223,266 +227,9 @@ struct ntr_live_reg_state {
 };
 
 static void
-ntr_live_reg_mark_use(struct ntr_compile *c, struct ntr_live_reg_block_state *bs, int ip,
-                      unsigned index, unsigned used_mask)
-{
-   bs->use[index] |= used_mask & ~bs->def[index];
-
-   c->liveness[index].start = MIN2(c->liveness[index].start, ip);
-   c->liveness[index].end = MAX2(c->liveness[index].end, ip);
-}
-static void
-ntr_live_reg_setup_def_use(struct ntr_compile *c, nir_function_impl *impl,
-                           struct ntr_live_reg_state *state)
-{
-   for (int i = 0; i < impl->num_blocks; i++) {
-      state->blocks[i].def = rzalloc_array(state->blocks, uint8_t, c->num_temps);
-      state->blocks[i].defin = rzalloc_array(state->blocks, uint8_t, c->num_temps);
-      state->blocks[i].defout = rzalloc_array(state->blocks, uint8_t, c->num_temps);
-      state->blocks[i].use = rzalloc_array(state->blocks, uint8_t, c->num_temps);
-      state->blocks[i].livein = rzalloc_array(state->blocks, uint8_t, c->num_temps);
-      state->blocks[i].liveout = rzalloc_array(state->blocks, uint8_t, c->num_temps);
-   }
-
-   int ip = 0;
-   nir_foreach_block (block, impl) {
-      struct ntr_live_reg_block_state *bs = &state->blocks[block->index];
-      struct ntr_block *ntr_block = ntr_block_from_nir(c, block);
-
-      ntr_block->start_ip = ip;
-
-      util_dynarray_foreach (&ntr_block->insns, struct ntr_insn, insn) {
-         const struct tgsi_opcode_info *opcode_info = tgsi_get_opcode_info(insn->opcode);
-
-         /* Set up use[] for the srcs.
-          *
-          * Uses are the channels of the reg read in the block that don't have a
-          * preceding def to screen them off.  Note that we don't do per-element
-          * tracking of array regs, so they're never screened off.
-          */
-         for (int i = 0; i < opcode_info->num_src; i++) {
-            if (insn->src[i].File != TGSI_FILE_TEMPORARY)
-               continue;
-            int index = insn->src[i].Index;
-
-            uint32_t used_mask = tgsi_util_get_src_usage_mask(
-               insn->opcode, i, insn->dst->WriteMask, insn->src[i].SwizzleX, insn->src[i].SwizzleY,
-               insn->src[i].SwizzleZ, insn->src[i].SwizzleW, insn->tex_target, insn->tex_target);
-
-            assert(!insn->src[i].Indirect || index < c->first_non_array_temp);
-            ntr_live_reg_mark_use(c, bs, ip, index, used_mask);
-         }
-
-         if (insn->is_tex) {
-            for (int i = 0; i < ARRAY_SIZE(insn->tex_offset); i++) {
-               if (insn->tex_offset[i].File == TGSI_FILE_TEMPORARY)
-                  ntr_live_reg_mark_use(c, bs, ip, insn->tex_offset[i].Index, 0xf);
-            }
-         }
-
-         /* Set up def[] for the srcs.
-          *
-          * Defs are the unconditionally-written (not R/M/W) channels of the reg in
-          * the block that don't have a preceding use.
-          */
-         for (int i = 0; i < opcode_info->num_dst; i++) {
-            if (insn->dst[i].File != TGSI_FILE_TEMPORARY)
-               continue;
-            int index = insn->dst[i].Index;
-            uint32_t writemask = insn->dst[i].WriteMask;
-
-            bs->def[index] |= writemask & ~bs->use[index];
-            bs->defout[index] |= writemask;
-
-            assert(!insn->dst[i].Indirect || index < c->first_non_array_temp);
-            c->liveness[index].start = MIN2(c->liveness[index].start, ip);
-            c->liveness[index].end = MAX2(c->liveness[index].end, ip);
-         }
-         ip++;
-      }
-
-      ntr_block->end_ip = ip;
-   }
-}
-
-static void
-ntr_live_regs(struct ntr_compile *c, nir_function_impl *impl)
-{
-   nir_metadata_require(impl, nir_metadata_block_index);
-
-   c->liveness = rzalloc_array(c, struct ntr_reg_interval, c->num_temps);
-
-   struct ntr_live_reg_state state = {
-      .blocks = rzalloc_array(impl, struct ntr_live_reg_block_state, impl->num_blocks),
-   };
-
-   /* The intervals start out with start > end (indicating unused) */
-   for (int i = 0; i < c->num_temps; i++)
-      c->liveness[i].start = ~0;
-
-   ntr_live_reg_setup_def_use(c, impl, &state);
-
-   /* Make a forward-order worklist of all the blocks. */
-   nir_block_worklist_init(&state.worklist, impl->num_blocks, NULL);
-   nir_foreach_block (block, impl) {
-      nir_block_worklist_push_tail(&state.worklist, block);
-   }
-
-   /* Propagate defin/defout down the CFG to calculate the live variables
-    * potentially defined along any possible control flow path.  We'll use this
-    * to keep things like conditional defs of the reg (or array regs where we
-    * don't track defs!) from making the reg's live range extend back to the
-    * start of the program.
-    */
-   while (!nir_block_worklist_is_empty(&state.worklist)) {
-      nir_block *block = nir_block_worklist_pop_head(&state.worklist);
-      for (int j = 0; j < ARRAY_SIZE(block->successors); j++) {
-         nir_block *succ = block->successors[j];
-         if (!succ || succ->index == impl->num_blocks)
-            continue;
-
-         for (int i = 0; i < c->num_temps; i++) {
-            uint8_t new_def =
-               state.blocks[block->index].defout[i] & ~state.blocks[succ->index].defin[i];
-
-            if (new_def) {
-               state.blocks[succ->index].defin[i] |= new_def;
-               state.blocks[succ->index].defout[i] |= new_def;
-               nir_block_worklist_push_tail(&state.worklist, succ);
-            }
-         }
-      }
-   }
-
-   /* Make a reverse-order worklist of all the blocks. */
-   nir_foreach_block (block, impl) {
-      nir_block_worklist_push_head(&state.worklist, block);
-   }
-
-   /* We're now ready to work through the worklist and update the liveness sets
-    * of each of the blocks.  As long as we keep the worklist up-to-date as we
-    * go, everything will get covered.
-    */
-   while (!nir_block_worklist_is_empty(&state.worklist)) {
-      /* We pop them off in the reverse order we pushed them on.  This way
-       * the first walk of the instructions is backwards so we only walk
-       * once in the case of no control flow.
-       */
-      nir_block *block = nir_block_worklist_pop_head(&state.worklist);
-      struct ntr_block *ntr_block = ntr_block_from_nir(c, block);
-      struct ntr_live_reg_block_state *bs = &state.blocks[block->index];
-
-      for (int i = 0; i < c->num_temps; i++) {
-         /* Collect livein from our successors to include in our liveout. */
-         for (int j = 0; j < ARRAY_SIZE(block->successors); j++) {
-            nir_block *succ = block->successors[j];
-            if (!succ || succ->index == impl->num_blocks)
-               continue;
-            struct ntr_live_reg_block_state *sbs = &state.blocks[succ->index];
-
-            uint8_t new_liveout = sbs->livein[i] & ~bs->liveout[i];
-            if (new_liveout) {
-               if (state.blocks[block->index].defout[i])
-                  c->liveness[i].end = MAX2(c->liveness[i].end, ntr_block->end_ip);
-               bs->liveout[i] |= sbs->livein[i];
-            }
-         }
-
-         /* Propagate use requests from either our block's uses or our
-          * non-screened-off liveout up to our predecessors.
-          */
-         uint8_t new_livein = ((bs->use[i] | (bs->liveout[i] & ~bs->def[i])) & ~bs->livein[i]);
-         if (new_livein) {
-            bs->livein[i] |= new_livein;
-            set_foreach (block->predecessors, entry) {
-               nir_block *pred = (void *)entry->key;
-               nir_block_worklist_push_tail(&state.worklist, pred);
-            }
-
-            if (new_livein & state.blocks[block->index].defin[i])
-               c->liveness[i].start = MIN2(c->liveness[i].start, ntr_block->start_ip);
-         }
-      }
-   }
-
-   ralloc_free(state.blocks);
-   nir_block_worklist_fini(&state.worklist);
-}
-
-static void
-ntr_ra_check(struct ntr_compile *c, unsigned *ra_map, BITSET_WORD *released, int ip, unsigned index)
-{
-   if (index < c->first_non_array_temp)
-      return;
-
-   if (c->liveness[index].start == ip && ra_map[index] == ~0)
-      ra_map[index] = ureg_DECL_temporary(c->ureg).Index;
-
-   if (c->liveness[index].end == ip && !BITSET_TEST(released, index)) {
-      ureg_release_temporary(c->ureg, ureg_dst_register(TGSI_FILE_TEMPORARY, ra_map[index]));
-      BITSET_SET(released, index);
-   }
-}
-
-static void
-ntr_allocate_regs(struct ntr_compile *c, nir_function_impl *impl)
-{
-   ntr_live_regs(c, impl);
-
-   unsigned *ra_map = ralloc_array(c, unsigned, c->num_temps);
-   unsigned *released = rzalloc_array(c, BITSET_WORD, BITSET_WORDS(c->num_temps));
-
-   /* No RA on NIR array regs */
-   for (int i = 0; i < c->first_non_array_temp; i++)
-      ra_map[i] = i;
-
-   for (int i = c->first_non_array_temp; i < c->num_temps; i++)
-      ra_map[i] = ~0;
-
-   int ip = 0;
-   nir_foreach_block (block, impl) {
-      struct ntr_block *ntr_block = ntr_block_from_nir(c, block);
-
-      for (int i = 0; i < c->num_temps; i++)
-         ntr_ra_check(c, ra_map, released, ip, i);
-
-      util_dynarray_foreach (&ntr_block->insns, struct ntr_insn, insn) {
-         const struct tgsi_opcode_info *opcode_info = tgsi_get_opcode_info(insn->opcode);
-
-         for (int i = 0; i < opcode_info->num_src; i++) {
-            if (insn->src[i].File == TGSI_FILE_TEMPORARY) {
-               ntr_ra_check(c, ra_map, released, ip, insn->src[i].Index);
-               insn->src[i].Index = ra_map[insn->src[i].Index];
-            }
-         }
-
-         if (insn->is_tex) {
-            for (int i = 0; i < ARRAY_SIZE(insn->tex_offset); i++) {
-               if (insn->tex_offset[i].File == TGSI_FILE_TEMPORARY) {
-                  ntr_ra_check(c, ra_map, released, ip, insn->tex_offset[i].Index);
-                  insn->tex_offset[i].Index = ra_map[insn->tex_offset[i].Index];
-               }
-            }
-         }
-
-         for (int i = 0; i < opcode_info->num_dst; i++) {
-            if (insn->dst[i].File == TGSI_FILE_TEMPORARY) {
-               ntr_ra_check(c, ra_map, released, ip, insn->dst[i].Index);
-               insn->dst[i].Index = ra_map[insn->dst[i].Index];
-            }
-         }
-         ip++;
-      }
-
-      for (int i = 0; i < c->num_temps; i++)
-         ntr_ra_check(c, ra_map, released, ip, i);
-   }
-}
-
-static void
 ntr_allocate_regs_unoptimized(struct ntr_compile *c, nir_function_impl *impl)
 {
-   for (int i = c->first_non_array_temp; i < c->num_temps; i++)
+   for (int i = 0; i < c->num_temps; i++)
       ureg_DECL_temporary(c->ureg);
 }
 
@@ -739,32 +486,20 @@ ntr_setup_outputs(struct ntr_compile *c)
 }
 
 static enum tgsi_texture_type
-tgsi_texture_type_from_sampler_dim(enum glsl_sampler_dim dim, bool is_array, bool is_shadow)
+tgsi_texture_type_from_sampler_dim(enum glsl_sampler_dim dim, bool is_array)
 {
    switch (dim) {
    case GLSL_SAMPLER_DIM_1D:
-      if (is_shadow)
-         return is_array ? TGSI_TEXTURE_SHADOW1D_ARRAY : TGSI_TEXTURE_SHADOW1D;
-      else
-         return is_array ? TGSI_TEXTURE_1D_ARRAY : TGSI_TEXTURE_1D;
+      return is_array ? TGSI_TEXTURE_1D_ARRAY : TGSI_TEXTURE_1D;
    case GLSL_SAMPLER_DIM_2D:
    case GLSL_SAMPLER_DIM_EXTERNAL:
-      if (is_shadow)
-         return is_array ? TGSI_TEXTURE_SHADOW2D_ARRAY : TGSI_TEXTURE_SHADOW2D;
-      else
-         return is_array ? TGSI_TEXTURE_2D_ARRAY : TGSI_TEXTURE_2D;
+      return is_array ? TGSI_TEXTURE_2D_ARRAY : TGSI_TEXTURE_2D;
    case GLSL_SAMPLER_DIM_3D:
       return TGSI_TEXTURE_3D;
    case GLSL_SAMPLER_DIM_CUBE:
-      if (is_shadow)
-         return is_array ? TGSI_TEXTURE_SHADOWCUBE_ARRAY : TGSI_TEXTURE_SHADOWCUBE;
-      else
-         return is_array ? TGSI_TEXTURE_CUBE_ARRAY : TGSI_TEXTURE_CUBE;
+      return is_array ? TGSI_TEXTURE_CUBE_ARRAY : TGSI_TEXTURE_CUBE;
    case GLSL_SAMPLER_DIM_RECT:
-      if (is_shadow)
-         return TGSI_TEXTURE_SHADOWRECT;
-      else
-         return TGSI_TEXTURE_RECT;
+      return TGSI_TEXTURE_RECT;
    case GLSL_SAMPLER_DIM_MS:
       return is_array ? TGSI_TEXTURE_2D_ARRAY_MSAA : TGSI_TEXTURE_2D_MSAA;
    case GLSL_SAMPLER_DIM_BUF:
@@ -803,8 +538,7 @@ ntr_setup_uniforms(struct ntr_compile *c)
 
          const struct glsl_type *stype = glsl_without_array(var->type);
          enum tgsi_texture_type target = tgsi_texture_type_from_sampler_dim(
-            glsl_get_sampler_dim(stype), glsl_sampler_type_is_array(stype),
-            glsl_sampler_type_is_shadow(stype));
+            glsl_get_sampler_dim(stype), glsl_sampler_type_is_array(stype));
          enum tgsi_return_type ret_type =
             tgsi_return_type_from_base_type(glsl_get_sampler_result_type(stype));
          for (int i = 0; i < size; i++) {
@@ -845,38 +579,21 @@ ntr_setup_registers(struct ntr_compile *c)
 {
    assert(c->num_temps == 0);
 
-   nir_foreach_reg_decl_safe (nir_reg, nir_shader_get_entrypoint(c->s)) {
-      /* Permanently allocate all the array regs at the start. */
-      unsigned num_array_elems = nir_intrinsic_num_array_elems(nir_reg);
-      unsigned index = nir_reg->def.index;
-
-      if (num_array_elems != 0) {
-         struct ureg_dst decl = ureg_DECL_array_temporary(c->ureg, num_array_elems, true);
-         c->reg_temp[index] = decl;
-         assert(c->num_temps == decl.Index);
-         c->num_temps += num_array_elems;
-      }
-   }
-   c->first_non_array_temp = c->num_temps;
-
    /* After that, allocate non-array regs in our virtual space that we'll
     * register-allocate before ureg emit.
     */
    nir_foreach_reg_decl_safe (nir_reg, nir_shader_get_entrypoint(c->s)) {
-      unsigned num_array_elems = nir_intrinsic_num_array_elems(nir_reg);
+      assert(nir_intrinsic_num_array_elems(nir_reg) == 0);
       unsigned num_components = nir_intrinsic_num_components(nir_reg);
       unsigned index = nir_reg->def.index;
 
-      /* We already handled arrays */
-      if (num_array_elems == 0) {
-         struct ureg_dst decl;
-         uint32_t write_mask = BITFIELD_MASK(num_components);
+      struct ureg_dst decl;
+      uint32_t write_mask = BITFIELD_MASK(num_components);
 
-         if (!ntr_try_store_reg_in_tgsi_output(c, &decl, nir_reg)) {
-            decl = ureg_writemask(ntr_temp(c), write_mask);
-         }
-         c->reg_temp[index] = decl;
+      if (!ntr_try_store_reg_in_tgsi_output(c, &decl, nir_reg)) {
+         decl = ureg_writemask(ntr_temp(c), write_mask);
       }
+      c->reg_temp[index] = decl;
    }
 }
 
@@ -1614,8 +1331,9 @@ static void
 ntr_emit_texture(struct ntr_compile *c, nir_tex_instr *instr)
 {
    struct ureg_dst dst = ntr_get_dest(c, &instr->def);
+   assert(!instr->is_shadow);
    enum tgsi_texture_type target =
-      tgsi_texture_type_from_sampler_dim(instr->sampler_dim, instr->is_array, instr->is_shadow);
+      tgsi_texture_type_from_sampler_dim(instr->sampler_dim, instr->is_array);
    unsigned tex_opcode;
 
    int tex_handle_src = nir_tex_instr_src_index(instr, nir_tex_src_texture_handle);
@@ -2043,10 +1761,7 @@ ntr_emit_impl(struct ntr_compile *c, nir_function_impl *impl)
    /* Emit the ntr insns */
    ntr_emit_cf_list(c, &impl->body);
 
-   if (c->s->info.stage == MESA_SHADER_FRAGMENT)
-      ntr_allocate_regs(c, impl);
-   else
-      ntr_allocate_regs_unoptimized(c, impl);
+   ntr_allocate_regs_unoptimized(c, impl);
 
    /* Turn the ntr insns into actual TGSI tokens */
    ntr_emit_cf_list_ureg(c, &impl->body);
@@ -2101,7 +1816,7 @@ ntr_no_indirects_mask(nir_shader *s, struct pipe_screen *screen)
    unsigned pipe_stage = pipe_shader_type_from_mesa(s->info.stage);
    unsigned indirect_mask = nir_var_shader_in | nir_var_shader_out;
 
-   if (!screen->get_shader_param(screen, pipe_stage, PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR)) {
+   if (!screen->shader_caps[pipe_stage].indirect_temp_addr) {
       indirect_mask |= nir_var_function_temp;
    }
 
@@ -2240,7 +1955,8 @@ nir_to_rc_lower_txp(nir_shader *s)
  * TGSI tokens instead.  If you need to keep the NIR, then pass us a clone.
  */
 const void *
-nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
+nir_to_rc(struct nir_shader *s, struct pipe_screen *screen,
+          struct r300_fragment_program_external_state state)
 {
    struct ntr_compile *c;
    const void *tgsi_tokens;
@@ -2273,7 +1989,7 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
     * ureg->supports_any_inout_decl_range, the TGSI input decls will be split to
     * elements by ureg, and so dynamically indexing them would be invalid.
     * Ideally we would set that ureg flag based on
-    * PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE, but can't due to mesa/st
+    * pipe_shader_caps.tgsi_any_inout_decl_range, but can't due to mesa/st
     * splitting NIR VS outputs to elements even if the FS doesn't get the
     * corresponding splitting, and virgl depends on TGSI across link boundaries
     * having matching declarations.
@@ -2286,8 +2002,27 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
    NIR_PASS_V(s, nir_lower_io, nir_var_shader_in | nir_var_shader_out, type_size,
               nir_lower_io_use_interpolated_input_intrinsics);
 
-   nir_to_rc_lower_txp(s);
-   NIR_PASS_V(s, nir_to_rc_lower_tex);
+   if (s->info.stage == MESA_SHADER_FRAGMENT) {
+      /* Shadow lowering. */
+      int num_texture_states = state.sampler_state_count;
+      if (num_texture_states > 0) {
+         nir_lower_tex_shadow_swizzle tex_swizzle[PIPE_MAX_SHADER_SAMPLER_VIEWS];
+         enum compare_func tex_compare_func[PIPE_MAX_SHADER_SAMPLER_VIEWS];
+
+         for (unsigned i = 0; i < num_texture_states; i++) {
+            tex_compare_func[i] = state.unit[i].texture_compare_func;
+            tex_swizzle[i].swizzle_r = GET_SWZ(state.unit[i].texture_swizzle, 0);
+            tex_swizzle[i].swizzle_g = GET_SWZ(state.unit[i].texture_swizzle, 1);
+            tex_swizzle[i].swizzle_b = GET_SWZ(state.unit[i].texture_swizzle, 2);
+            tex_swizzle[i].swizzle_a = GET_SWZ(state.unit[i].texture_swizzle, 3);
+         }
+         NIR_PASS_V(s, nir_lower_tex_shadow, num_texture_states, tex_compare_func,
+                    tex_swizzle, true);
+      }
+
+      nir_to_rc_lower_txp(s);
+      NIR_PASS_V(s, nir_to_rc_lower_tex);
+   }
 
    bool progress;
    do {
@@ -2333,6 +2068,8 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
    }
    NIR_PASS_V(s, r300_nir_opt_algebraic_late);
    NIR_PASS_V(s, nir_opt_dce);
+   NIR_PASS_V(s, nir_opt_shrink_vectors, false);
+   NIR_PASS_V(s, nir_opt_dce);
 
    nir_move_options move_all = nir_move_const_undef | nir_move_load_ubo | nir_move_load_input |
                                nir_move_comparisons | nir_move_copies | nir_move_load_ssbo;
@@ -2345,7 +2082,7 @@ nir_to_rc(struct nir_shader *s, struct pipe_screen *screen)
    if (s->info.stage == MESA_SHADER_VERTEX)
       NIR_PASS_V(s, nir_opt_vectorize, ntr_should_vectorize_instr, NULL);
 
-   NIR_PASS_V(s, nir_convert_from_ssa, true);
+   NIR_PASS_V(s, nir_convert_from_ssa, true, false);
    NIR_PASS_V(s, nir_lower_vec_to_regs, NULL, NULL);
 
    /* locals_to_reg_intrinsics will leave dead derefs that are good to clean up.

@@ -8,7 +8,7 @@ set -e
 set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
-export LLVM_VERSION="${LLVM_VERSION:=15}"
+: "${LLVM_VERSION:?llvm version not set!}"
 
 # Ephemeral packages (installed for this script and removed again at the end)
 EPHEMERAL=(

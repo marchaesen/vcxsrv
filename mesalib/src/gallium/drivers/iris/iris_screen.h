@@ -159,7 +159,6 @@ struct iris_vtable {
    void (*lost_genx_state)(struct iris_context *ice, struct iris_batch *batch);
    void (*disable_rhwo_optimization)(struct iris_batch *batch, bool disable);
 
-   nir_shader *(*load_shader_lib)(struct iris_screen *screen, void *mem_ctx);
    unsigned (*call_generation_shader)(struct iris_screen *screen, nir_builder *b);
 };
 
@@ -226,7 +225,9 @@ struct iris_screen {
    struct isl_device isl_dev;
    struct iris_bufmgr *bufmgr;
    struct brw_compiler *brw;
+#ifdef INTEL_USE_ELK
    struct elk_compiler *elk;
+#endif
    struct intel_perf_config *perf_cfg;
 
    const struct intel_l3_config *l3_config_3d;

@@ -60,72 +60,6 @@ static nir_def *build_attr_ring_desc(nir_builder *b, struct si_shader *shader,
    return nir_vec(b, comp, 4);
 }
 
-static nir_def *
-fetch_framebuffer(nir_builder *b, struct si_shader_args *args,
-                  struct si_shader_selector *sel, union si_shader_key *key)
-{
-   /* Load the image descriptor. */
-   STATIC_ASSERT(SI_PS_IMAGE_COLORBUF0 % 2 == 0);
-   STATIC_ASSERT(SI_PS_IMAGE_COLORBUF0_FMASK % 2 == 0);
-
-   nir_def *zero = nir_imm_zero(b, 1, 32);
-   nir_def *undef = nir_undef(b, 1, 32);
-
-   unsigned chan = 0;
-   nir_def *vec[4] = {undef, undef, undef, undef};
-
-   vec[chan++] = ac_nir_unpack_arg(b, &args->ac, args->ac.pos_fixed_pt, 0, 16);
-
-   if (!key->ps.mono.fbfetch_is_1D)
-      vec[chan++] = ac_nir_unpack_arg(b, &args->ac, args->ac.pos_fixed_pt, 16, 16);
-
-   /* Get the current render target layer index. */
-   if (key->ps.mono.fbfetch_layered)
-      vec[chan++] = ac_nir_unpack_arg(b, &args->ac, args->ac.ancillary, 16, 11);
-
-   nir_def *coords = nir_vec(b, vec, 4);
-
-   enum glsl_sampler_dim dim;
-   if (key->ps.mono.fbfetch_msaa)
-      dim = GLSL_SAMPLER_DIM_MS;
-   else if (key->ps.mono.fbfetch_is_1D)
-      dim = GLSL_SAMPLER_DIM_1D;
-   else
-      dim = GLSL_SAMPLER_DIM_2D;
-
-   nir_def *sample_id;
-   if (key->ps.mono.fbfetch_msaa) {
-      sample_id = ac_nir_unpack_arg(b, &args->ac, args->ac.ancillary, 8, 4);
-
-      if (sel->screen->info.gfx_level < GFX11 &&
-          !(sel->screen->debug_flags & DBG(NO_FMASK))) {
-         nir_def *desc =
-            si_nir_load_internal_binding(b, args, SI_PS_IMAGE_COLORBUF0_FMASK, 8);
-
-         nir_def *fmask =
-            nir_bindless_image_fragment_mask_load_amd(
-               b, desc, coords,
-               .image_dim = dim,
-               .image_array = key->ps.mono.fbfetch_layered,
-               .access = ACCESS_CAN_REORDER);
-
-         nir_def *offset = nir_ishl_imm(b, sample_id, 2);
-         /* 3 for EQAA handling, see lower_image_to_fragment_mask_load() */
-         nir_def *width = nir_imm_int(b, 3);
-         sample_id = nir_ubfe(b, fmask, offset, width);
-      }
-   } else {
-      sample_id = zero;
-   }
-
-   nir_def *desc = si_nir_load_internal_binding(b, args, SI_PS_IMAGE_COLORBUF0, 8);
-
-   return nir_bindless_image_load(b, 4, 32, desc, coords, sample_id, zero,
-                                  .image_dim = dim,
-                                  .image_array = key->ps.mono.fbfetch_layered,
-                                  .access = ACCESS_CAN_REORDER);
-}
-
 static nir_def *build_tess_ring_desc(nir_builder *b, struct si_screen *screen,
                                          struct si_shader_args *args)
 {
@@ -171,13 +105,14 @@ static nir_def *build_esgs_ring_desc(nir_builder *b, enum amd_gfx_level gfx_leve
    return nir_vec(b, vec, 4);
 }
 
-static void build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
+static bool build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
 {
    const struct si_shader_selector *sel = s->shader->selector;
    const union si_shader_key *key = &s->shader->key;
 
    if (s->shader->is_gs_copy_shader) {
       s->gsvs_ring[0] = si_nir_load_internal_binding(b, s->args, SI_RING_GSVS, 4);
+      return true;
    } else if (b->shader->info.stage == MESA_SHADER_GEOMETRY && !key->ge.as_ngg) {
       nir_def *base_addr = si_nir_load_internal_binding(b, s->args, SI_RING_GSVS, 2);
       base_addr = nir_pack_64_2x32(b, base_addr);
@@ -230,26 +165,34 @@ static void build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
          /* next stream's desc addr */
          base_addr = nir_iadd_imm(b, base_addr, stride * num_records);
       }
+
+      return true;
    }
+
+   return false;
 }
 
-static void preload_reusable_variables(nir_builder *b, struct lower_abi_state *s)
+static bool preload_reusable_variables(nir_builder *b, struct lower_abi_state *s)
 {
    const struct si_shader_selector *sel = s->shader->selector;
    const union si_shader_key *key = &s->shader->key;
+   bool progress = false;
 
    b->cursor = nir_before_impl(b->impl);
 
    if (sel->screen->info.gfx_level <= GFX8 && b->shader->info.stage <= MESA_SHADER_GEOMETRY &&
        (key->ge.as_es || b->shader->info.stage == MESA_SHADER_GEOMETRY)) {
       s->esgs_ring = build_esgs_ring_desc(b, sel->screen->info.gfx_level, s->args);
+      progress = true;
    }
 
    if (b->shader->info.stage == MESA_SHADER_TESS_CTRL ||
-       b->shader->info.stage == MESA_SHADER_TESS_EVAL)
+       b->shader->info.stage == MESA_SHADER_TESS_EVAL) {
       s->tess_offchip_ring = build_tess_ring_desc(b, sel->screen, s->args);
+      progress = true;
+   }
 
-   build_gsvs_ring_desc(b, s);
+   return build_gsvs_ring_desc(b, s) || progress;
 }
 
 static nir_def *get_num_vertices_per_prim(nir_builder *b, struct lower_abi_state *s)
@@ -531,35 +474,17 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
          replacement = nir_imm_int(b, (1 << 2) | (1 << 4));
       }
       break;
-   case nir_intrinsic_load_barycentric_at_sample: {
-      unsigned mode = nir_intrinsic_interp_mode(intrin);
-
-      if (key->ps.mono.interpolate_at_sample_force_center) {
-         replacement = nir_load_barycentric_pixel(b, 32, .interp_mode = mode);
-      } else {
-         nir_def *sample_id = intrin->src[0].ssa;
-         /* offset = sample_id * 8  (8 = 2 floats containing samplepos.xy) */
-         nir_def *offset = nir_ishl_imm(b, sample_id, 3);
-
-         nir_def *buf = si_nir_load_internal_binding(b, args, SI_PS_CONST_SAMPLE_POSITIONS, 4);
-         nir_def *sample_pos = nir_load_ubo(b, 2, 32, buf, offset, .range = ~0);
-
-         sample_pos = nir_fadd_imm(b, sample_pos, -0.5);
-
-         replacement = nir_load_barycentric_at_offset(b, 32, sample_pos, .interp_mode = mode);
-      }
-      break;
-   }
-   case nir_intrinsic_load_output: {
-      nir_io_semantics sem = nir_intrinsic_io_semantics(intrin);
-
-      /* not fbfetch */
-      if (!(stage == MESA_SHADER_FRAGMENT && sem.fb_fetch_output))
-         return false;
-
-      /* Ignore src0, because KHR_blend_func_extended disallows multiple render targets. */
-
-      replacement = fetch_framebuffer(b, args, sel, key);
+   case nir_intrinsic_load_sample_positions_amd: {
+      /* Sample locations are packed in 2 user SGPRs, 4 bits per component. */
+      nir_def *sample_id = intrin->src[0].ssa;
+      nir_def *sample_locs =
+         nir_pack_64_2x32_split(b, ac_nir_load_arg(b, &s->args->ac, s->args->sample_locs[0]),
+                                ac_nir_load_arg(b, &s->args->ac, s->args->sample_locs[1]));
+      sample_locs = nir_ushr(b, sample_locs, nir_imul_imm(b, sample_id, 8));
+      sample_locs = nir_u2u32(b, sample_locs);
+      nir_def *sample_pos = nir_vec2(b, nir_iand_imm(b, sample_locs, 0xf),
+                                     nir_ubfe_imm(b, sample_locs, 4, 4));
+      replacement = nir_fmul_imm(b, nir_u2f32(b, sample_pos), 1.0 / 16);
       break;
    }
    case nir_intrinsic_load_ring_tess_factors_amd: {
@@ -571,15 +496,6 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
    }
    case nir_intrinsic_load_alpha_reference_amd:
       replacement = ac_nir_load_arg(b, &args->ac, args->alpha_reference);
-      break;
-   case nir_intrinsic_load_front_face:
-   case nir_intrinsic_load_front_face_fsign:
-      if (!key->ps.opt.force_front_face_input)
-         return false;
-      if (intrin->intrinsic == nir_intrinsic_load_front_face)
-         replacement = nir_imm_bool(b, key->ps.opt.force_front_face_input == 1);
-      else
-         replacement = nir_imm_float(b, key->ps.opt.force_front_face_input == 1 ? 1.0 : -1.0);
       break;
    case nir_intrinsic_load_color0:
    case nir_intrinsic_load_color1: {
@@ -596,29 +512,21 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
 
       nir_def *color[4];
       for (int i = 0; i < 4; i++) {
-         if (colors_read & BITFIELD_BIT(start + i)) {
+         if (colors_read & BITFIELD_BIT(start + i))
             color[i] = ac_nir_load_arg_at_offset(b, &args->ac, args->color_start, offset++);
-
-            nir_intrinsic_set_flags(nir_instr_as_intrinsic(color[i]->parent_instr),
-                                    AC_VECTOR_ARG_FLAG(AC_VECTOR_ARG_IS_COLOR, start + i));
-         } else {
+         else
             color[i] = nir_undef(b, 1, 32);
-         }
       }
 
       replacement = nir_vec(b, color, 4);
       break;
    }
    case nir_intrinsic_load_point_coord_maybe_flipped: {
-      nir_def *interp_param =
-         nir_load_barycentric_pixel(b, 32, .interp_mode = INTERP_MODE_NONE);
-
       /* Load point coordinates (x, y) which are written by the hw after the interpolated inputs */
-      replacement = nir_load_interpolated_input(b, 2, 32, interp_param, nir_imm_int(b, 0),
+      nir_def *baryc = intrin->src[0].ssa;
+      replacement = nir_load_interpolated_input(b, 2, 32, baryc, nir_imm_int(b, 0),
                                                 .base = si_get_ps_num_interp(shader),
-                                                .component = 2,
-                                                /* This tells si_nir_scan_shader that it's PARAM_GEN */
-                                                .io_semantics.no_varying = 1);
+                                                .component = 2);
       break;
    }
    case nir_intrinsic_load_poly_line_smooth_enabled:
@@ -697,6 +605,17 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
       }
       break;
    }
+   case nir_intrinsic_load_fbfetch_image_fmask_desc_amd:
+      STATIC_ASSERT(SI_PS_IMAGE_COLORBUF0_FMASK % 2 == 0);
+      replacement = si_nir_load_internal_binding(b, args, SI_PS_IMAGE_COLORBUF0_FMASK, 8);
+      break;
+   case nir_intrinsic_load_fbfetch_image_desc_amd:
+      STATIC_ASSERT(SI_PS_IMAGE_COLORBUF0 % 2 == 0);
+      replacement = si_nir_load_internal_binding(b, args, SI_PS_IMAGE_COLORBUF0, 8);
+      break;
+   case nir_intrinsic_load_polygon_stipple_buffer_amd:
+      replacement = si_nir_load_internal_binding(b, args, SI_PS_CONST_POLY_STIPPLE, 4);
+      break;
    default:
       return false;
    }
@@ -721,9 +640,8 @@ bool si_nir_lower_abi(nir_shader *nir, struct si_shader *shader, struct si_shade
 
    nir_builder b = nir_builder_create(impl);
 
-   preload_reusable_variables(&b, &state);
+   bool progress = preload_reusable_variables(&b, &state);
 
-   bool progress = false;
    nir_foreach_block_safe(block, impl) {
       nir_foreach_instr_safe(instr, block) {
          if (instr->type == nir_instr_type_intrinsic)

@@ -136,6 +136,7 @@
 
 .google-freedreno-turnip-manual-rules:
   stage: freedreno-postmerge
+  extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
     - !reference [.google-freedreno-manual-rules, rules]
@@ -150,6 +151,7 @@
 
 .collabora-freedreno-turnip-manual-rules:
   stage: freedreno-postmerge
+  extends: .no-auto-retry
   rules:
     - !reference [.test, rules]
     - !reference [.collabora-freedreno-manual-rules, rules]
@@ -301,7 +303,7 @@
     BM_KERNEL: Image.gz
     BM_DTB: apq8016-sbc-usb-host
     DEVICE_TYPE: apq8016-sbc-usb-host
-    GPU_VERSION: freedreno-a307
+    GPU_VERSION: freedreno-a306
   timeout: 20m
   tags:
     - google-freedreno-db410c
@@ -351,14 +353,17 @@
   variables:
     FDO_CI_CONCURRENT: 8
     RUNNER_FARM_LOCATION: mupuf
-    B2C_KERNEL_URL: 'https://fs.mupuf.org/hdk8650/linux-6.8-hdk8650.gz'
-    B2C_DTB_URL: 'https://fs.mupuf.org/hdk8650/sm8650-hdk.dtb'
+    B2C_KERNEL_URL: 'https://fs.mupuf.org/hdk8650/2025-01-23-msm-gpu-fault-fixes-msm-next-6dbabc6/linux-arm64'
+    B2C_FIRMWARE_URL: 'https://fs.mupuf.org/hdk8650/sm8650-hdk-firmware.cpio.xz'
+    B2C_DTB_URL: 'https://fs.mupuf.org/hdk8650/2025-01-23-msm-gpu-fault-fixes-msm-next-6dbabc6/linux-arm64.dtbs.cpio.xz'
+    B2C_DTB_MATCH: 'boot/dtbs/qcom/sm8650-hdk.dtb'
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
-    # FIXME: drop the hangcheck part when we move to linux 6.11+ as hang
-    # recovery should be more stable
-    B2C_SESSION_REBOOT_REGEX: 'Sahara Open\r?$|hangcheck detected'
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_SECONDS: 30
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_RETRIES: 3
+    B2C_TIMEOUT_BOOT_WD_SECONDS: 20
+    B2C_TIMEOUT_BOOT_WD_RETRIES: 5
+    B2C_BOOT_WD_START_REGEX: 'VB: RWDeviceState: Succeed using devinfo!'  # A line repeated during firmware boot
+    B2C_BOOT_WD_STOP_REGEX: 'CPU features: detected:'                     # A line repeated during Linux boot
     GPU_VERSION: freedreno-a750
   tags:
     - farm:$RUNNER_FARM_LOCATION

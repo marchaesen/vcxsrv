@@ -255,6 +255,8 @@ struct vk_image_buffer_layout
 vk_image_to_memory_copy_layout(const struct vk_image *image,
                                const VkImageToMemoryCopyEXT* region);
 
+bool vk_image_can_be_aliased_to_yuv_plane(const struct vk_image *image);
+
 struct vk_image_view {
    struct vk_object_base base;
 

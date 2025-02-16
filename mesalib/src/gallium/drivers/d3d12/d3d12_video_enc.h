@@ -450,7 +450,7 @@ struct d3d12_video_encoder
    //    and the pointer is stored on each d3d12_video_buffer
    // 2. On d3d12_video_buffer::destroy(), when all the slots
    //    of the allocation pool are unused, the memory is released.
-   pipe_resource *m_pVideoTexArrayDPBPool;
+   pipe_resource *m_pVideoTexArrayDPBPool = NULL;
    std::shared_ptr<uint32_t> m_spVideoTexArrayDPBPoolInUse;
 };
 

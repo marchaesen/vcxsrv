@@ -35,7 +35,7 @@
 #include "program/prog_parameter.h"
 #include "util/bitset.h"
 
-#include "nir.h"
+#include "nir_defines.h"
 
 struct gl_shader_program;
 struct gl_shader_stage;

@@ -28,7 +28,8 @@
 #ifndef NIR_CONSTANT_EXPRESSIONS_H
 #define NIR_CONSTANT_EXPRESSIONS_H
 
-#include "nir.h"
+#include "nir_defines.h"
+#include "nir_opcodes.h"
 
 void nir_eval_const_opcode(nir_op op, nir_const_value *dest,
                            unsigned num_components, unsigned bit_size,

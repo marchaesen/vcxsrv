@@ -200,10 +200,11 @@ Core Mesa environment variables
 .. envvar:: MESA_SHADER_CACHE_DIR
 
    if set, determines the directory to be used for the on-disk cache of
-   compiled shader programs. If this variable is not set, then the cache
-   will be stored in ``$XDG_CACHE_HOME/mesa_shader_cache_db`` (if that
-   variable is set), or else within ``.cache/mesa_shader_cache_db`` within
-   the user's home directory.
+   compiled shader programs. If set then the cache will be stored in
+   ``$MESA_SHADER_CACHE_DIR/mesa_shader_cache_db``. If this variable is not
+   set, then the cache will be stored in
+   ``$XDG_CACHE_HOME/mesa_shader_cache_db`` (if that variable is set), or else
+   within ``.cache/mesa_shader_cache_db`` within the user's home directory.
 
 .. envvar:: MESA_SHADER_CACHE_SHOW_STATS
 
@@ -218,9 +219,10 @@ Core Mesa environment variables
    cache DBs via :envvar:`MESA_DISK_CACHE_READ_ONLY_FOZ_DBS` or
    :envvar:`MESA_DISK_CACHE_READ_ONLY_FOZ_DBS_DYNAMIC_LIST`. This
    implementation does not support cache size limits via
-   :envvar:`MESA_SHADER_CACHE_MAX_SIZE`. If
-   :envvar:`MESA_SHADER_CACHE_DIR` is not set, the cache will be stored
-   in ``$XDG_CACHE_HOME/mesa_shader_cache_sf`` (if that variable is set)
+   :envvar:`MESA_SHADER_CACHE_MAX_SIZE`. If :envvar:`MESA_SHADER_CACHE_DIR`
+   is set, the cache will be stored in
+   ``$MESA_SHADER_CACHE_DIR/mesa_shader_cache_sf``, or else within
+   ``$XDG_CACHE_HOME/mesa_shader_cache_sf`` (if that variable is set)
    or else within ``.cache/mesa_shader_cache_sf`` within the user's home
    directory.
 
@@ -229,8 +231,9 @@ Core Mesa environment variables
    if set to 1, enables the multi file on-disk shader cache implementation
    instead of the default Mesa-DB cache implementation.
    This implementation increases the overall disk usage.
-   If :envvar:`MESA_SHADER_CACHE_DIR` is not set, the cache will be stored
-   in ``$XDG_CACHE_HOME/mesa_shader_cache`` (if that variable is set)
+   If :envvar:`MESA_SHADER_CACHE_DIR` is set, the cache will be stored in
+   ``$MESA_SHADER_CACHE_DIR/mesa_shader_cache``, or else within
+   ``$XDG_CACHE_HOME/mesa_shader_cache`` (if that variable is set)
    or else within ``.cache/mesa_shader_cache`` within the user's home
    directory.
 

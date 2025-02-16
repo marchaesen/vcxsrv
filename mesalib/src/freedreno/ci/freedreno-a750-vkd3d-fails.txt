@@ -5,8 +5,6 @@ test_sampler_rounding,Fail
 test_shader_instructions,Fail
 test_shader_sm66_quad_op_semantics,Fail
 test_suballocate_small_textures_size,Fail
-test_vertex_id_dxbc,Fail
-test_vertex_id_dxil,Fail
 
 # msm_dpu ae01000.display-controller: [drm:hangcheck_handler] *ERROR* 67.5.20.1: hangcheck detected gpu lockup rb 0!
 test_fence_wait_robustness,Crash

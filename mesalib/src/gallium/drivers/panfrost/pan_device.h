@@ -63,11 +63,9 @@ extern "C" {
 /* Driver limits */
 #define PAN_MAX_CONST_BUFFERS 16
 
-/* Mali hardware can texture up to 65536 x 65536 x 65536 and render up to 16384
- * x 16384, but 8192 x 8192 should be enough for anyone.  The OpenGL game
- * "Cathedral" requires a texture of width 8192 to start.
- */
-#define PAN_MAX_MIP_LEVELS 14
+/* TODO: Mali hardware can texture up to 64k textures, but the
+ * Gallium interface limits us to 32k at the moment */
+#define PAN_MAX_MIP_LEVELS 16
 
 #define PAN_MAX_TEXEL_BUFFER_ELEMENTS 65536
 
@@ -80,6 +78,8 @@ extern "C" {
 
 /* Fencepost problem, hence the off-by-one */
 #define NR_BO_CACHE_BUCKETS (MAX_BO_CACHE_BUCKET - MIN_BO_CACHE_BUCKET + 1)
+
+struct panfrost_precomp_cache;
 
 struct panfrost_device {
    /* For ralloc */
@@ -177,6 +177,8 @@ struct panfrost_device {
     * unconditionally on Bifrost, and useful for sharing with Midgard */
 
    struct panfrost_bo *sample_positions;
+
+   struct panfrost_precomp_cache *precomp_cache;
 };
 
 static inline int
@@ -231,6 +233,7 @@ pan_is_bifrost(const struct panfrost_device *dev)
 static inline uint64_t
 pan_gpu_time_to_ns(struct panfrost_device *dev, uint64_t gpu_time)
 {
+   assert(dev->kmod.props.timestamp_frequency > 0);
    return (gpu_time * NSEC_PER_SEC) / dev->kmod.props.timestamp_frequency;
 }
 

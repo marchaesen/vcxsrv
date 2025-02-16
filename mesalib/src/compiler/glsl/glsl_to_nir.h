@@ -28,7 +28,8 @@
 #ifndef GLSL_TO_NIR_H
 #define GLSL_TO_NIR_H
 
-#include "compiler/nir/nir.h"
+#include "compiler/nir/nir_defines.h"
+#include "compiler/nir/nir_shader_compiler_options.h"
 
 #ifdef __cplusplus
 extern "C" {

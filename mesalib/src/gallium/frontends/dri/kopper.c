@@ -523,6 +523,34 @@ kopper_init_drawable(struct dri_drawable *drawable, bool isPixmap, int alphaBits
       screen->kopper_loader->SetSurfaceCreateInfo(drawable->loaderPrivate,
                                                   &drawable->info);
    drawable->is_window = !isPixmap && drawable->info.bos.sType != 0;
+
+#ifdef VK_USE_PLATFORM_XCB_KHR
+   if (drawable->info.bos.sType == VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR) {
+      VkXcbSurfaceCreateInfoKHR *xcb = (VkXcbSurfaceCreateInfoKHR *)&drawable->info.bos;
+      xcb_connection_t *conn = xcb->connection;
+
+      int32_t eid = xcb_generate_id(conn);
+      if (drawable->is_window) {
+         xcb_present_select_input(conn, eid, xcb->window,
+                                  XCB_PRESENT_EVENT_MASK_COMPLETE_NOTIFY);
+      }
+
+      drawable->special_event =
+         xcb_register_for_special_xge(conn, &xcb_present_id, eid, NULL);
+   }
+#endif
+}
+
+void
+kopper_destroy_drawable(struct dri_drawable *drawable)
+{
+#ifdef VK_USE_PLATFORM_XCB_KHR
+   if (drawable->info.bos.sType == VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR) {
+      VkXcbSurfaceCreateInfoKHR *xcb = (VkXcbSurfaceCreateInfoKHR *)&drawable->info.bos;
+      xcb_connection_t *conn = xcb->connection;
+      xcb_unregister_for_special_event(conn, drawable->special_event);
+   }
+#endif
 }
 
 int64_t
@@ -639,5 +667,55 @@ kopperQueryBufferAge(struct dri_drawable *drawable)
    return zink_kopper_query_buffer_age(ctx->st->pipe, ptex);
 }
 
+int
+kopperGetSyncValues(struct dri_drawable *drawable, int64_t target_msc, int64_t divisor,
+                    int64_t remainder, int64_t *ust, int64_t *msc, int64_t *sbc)
+{
+#ifdef VK_USE_PLATFORM_XCB_KHR
+   struct kopper_loader_info *info = &drawable->info;
+
+   assert(info->bos.sType == VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR);
+
+   VkXcbSurfaceCreateInfoKHR *xcb = (VkXcbSurfaceCreateInfoKHR *)&info->bos;
+   xcb_connection_t *conn = xcb->connection;
+
+   xcb_void_cookie_t cookie =
+      xcb_present_notify_msc(conn, xcb->window, 0, target_msc, divisor, remainder);
+
+   xcb_generic_event_t *event;
+   int ret = 0;
+
+   xcb_flush(conn);
+
+   while ((event = xcb_wait_for_special_event(conn, drawable->special_event)) != NULL) {
+      xcb_present_generic_event_t *ev = (xcb_present_generic_event_t *)event;
+      if (ev->evtype == XCB_PRESENT_COMPLETE_NOTIFY) {
+         xcb_present_complete_notify_event_t *ce =
+            (xcb_present_complete_notify_event_t *) event;
+
+         if (ce->kind == XCB_PRESENT_COMPLETE_KIND_NOTIFY_MSC) {
+            *ust = ce->ust;
+            *msc = ce->msc;
+            *sbc = ce->serial;
+
+            if (event->full_sequence != cookie.sequence) {
+               free(event);
+               continue;
+            }
+
+            ret = 1;
+            free(event);
+            break;
+         }
+      }
+
+      free(event);
+   }
+
+   return ret;
+#else
+   return 0;
+#endif
+}
 
 /* vim: set sw=3 ts=8 sts=3 expandtab: */

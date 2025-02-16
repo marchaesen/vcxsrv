@@ -88,12 +88,15 @@ from The Open Group.
 #define TRANS_LOCAL_PIPE_INDEX		15
 #define TRANS_HYPERV_INDEX		16
 
+#if defined(IPv6) && !defined(AF_INET6)
+#error "Cannot build IPv6 support without AF_INET6"
+#endif
 
 static
 Xtransport_table Xtransports[] = {
 #if defined(TCPCONN)
     { &TRANS(SocketTCPFuncs), TRANS_SOCKET_TCP_INDEX },
-#if defined(IPv6) && defined(AF_INET6)
+#if defined(IPv6)
     { &TRANS(SocketINET6Funcs),	TRANS_SOCKET_INET6_INDEX },
 #endif /* IPv6 */
     { &TRANS(SocketINETFuncs),	TRANS_SOCKET_INET_INDEX },
@@ -323,7 +326,7 @@ TRANS(ParseAddress) (const char *address,
 	TRANS(GetHostname) (hostnamebuf, sizeof (hostnamebuf));
 	_host = hostnamebuf;
     }
-#if defined(IPv6) && defined(AF_INET6)
+#ifdef IPv6
     /* hostname in IPv6 [numeric_addr]:0 form? */
     else if ( (_host_len > 3) &&
       ((strcmp(_protocol, "tcp") == 0) || (strcmp(_protocol, "inet6") == 0))
@@ -1114,7 +1117,7 @@ receive_listening_fds(const char* port, XtransConnInfo* temp_ciptrs,
             ti = TRANS_SOCKET_INET_INDEX;
             tn = "inet";
             break;
-#if defined(IPv6) && defined(AF_INET6)
+#ifdef IPv6
         case AF_INET6:
             ti = TRANS_SOCKET_INET6_INDEX;
             tn = "inet6";
@@ -1156,7 +1159,7 @@ TRANS(MakeAllCOTSServerListeners) (const char *port, int *partial,
     XtransConnInfo	ciptr, temp_ciptrs[NUMTRANS] = { NULL };
     int			status, j;
 
-#if defined(IPv6) && defined(AF_INET6)
+#ifdef IPv6
     int		ipv6_succ = 0;
 #endif
     prmsg (2,"MakeAllCOTSServerListeners(%s,%p)\n",
@@ -1203,7 +1206,7 @@ TRANS(MakeAllCOTSServerListeners) (const char *port, int *partial,
 		  trans->TransName);
 	    continue;
 	}
-#if defined(IPv6) && defined(AF_INET6)
+#ifdef IPv6
 		if ((Xtransports[i].transport_id == TRANS_SOCKET_INET_INDEX
 		     && ipv6_succ))
 		    flags |= ADDR_IN_USE_ALLOWED;
@@ -1244,7 +1247,7 @@ TRANS(MakeAllCOTSServerListeners) (const char *port, int *partial,
 	    }
 	}
 
-#if defined(IPv6) && defined(AF_INET6)
+#ifdef IPv6
 	if (Xtransports[i].transport_id == TRANS_SOCKET_INET6_INDEX)
 	    ipv6_succ = 1;
 #endif

@@ -36,7 +36,6 @@ dEQP-GLES3.functional.shaders.matrix.inverse.dynamic.mediump_mat4_float_vertex,F
 
 glx@glx-multi-window-single-context,Fail
 glx@glx-multithread-texture,Fail
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 spec@arb_texture_rectangle@fbo-blit rect,Fail
@@ -451,7 +450,6 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
-spec@ext_packed_float@query-rgba-signed-components,Fail
 spec@ext_transform_feedback@structs struct-array-elem run,Fail
 spec@ext_transform_feedback@structs struct-array-elem run interface,Fail
 spec@ext_transform_feedback@tessellation quad_strip wireframe,Fail

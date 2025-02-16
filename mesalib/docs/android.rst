@@ -26,8 +26,8 @@ Then, create your Meson cross file to use it, something like this
 
     [binaries]
     ar = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-ar'
-    c = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang']
-    cpp = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android29-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '--start-no-unused-arguments', '-static-libstdc++', '--end-no-unused-arguments']
+    c = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang']
+    cpp = ['ccache', 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android34-clang++', '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '--start-no-unused-arguments', '-static-libstdc++', '--end-no-unused-arguments']
     c_ld = 'lld'
     cpp_ld = 'lld'
     strip = 'NDKDIR/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android-strip'
@@ -50,7 +50,7 @@ one cross-compiling the turnip driver for a stock Pixel phone)
     meson setup build-android-aarch64 \
         --cross-file android-aarch64 \
 	-Dplatforms=android \
-	-Dplatform-sdk-version=26 \
+	-Dplatform-sdk-version=34 \
 	-Dandroid-stub=true \
 	-Dgallium-drivers= \
 	-Dvulkan-drivers=freedreno \
@@ -220,13 +220,11 @@ driver libraries into the source tree of Android and patch the binary names.
    mkdir prebuilts/mesa/x86_64
    mkdir prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_64}/lib/libEGL.so prebuilts/mesa/x86_64/
-   cp ${INSTALL_PREFIX_64}/lib/libglapi.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libgallium_dri.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libGLESv1_CM.so  prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libGLESv2.so  prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_64}/lib/libvulkan_lvp.so prebuilts/mesa/x86_64/
    cp ${INSTALL_PREFIX_32}/lib/libEGL.so prebuilts/mesa/x86
-   cp ${INSTALL_PREFIX_32}/lib/libglapi.so prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_32}/lib/libgallium_dri.so prebuilts/mesa/x86/
    cp ${INSTALL_PREFIX_32}/lib/libGLESv1_CM.so  prebuilts/mesa/x86
    cp ${INSTALL_PREFIX_32}/lib/libGLESv2.so  prebuilts/mesa/x86
@@ -245,24 +243,6 @@ We then need to create an ``prebuilts/mesa/Android.bp`` build file to include
 the libraries in the build.
 
 .. code-block::
-
-   cc_prebuilt_library_shared {
-       name: "libglapi",
-       arch: {
-           x86_64: {
-               srcs: ["x86_64/libglapi.so"],
-           },
-           x86: {
-               srcs: ["x86/libglapi.so"],
-           },
-       },
-       strip: {
-           none: true,
-       },
-       relative_install_path: "egl",
-       shared_libs: ["libc", "libdl", "liblog", "libm"],
-       vendor: true
-   }
 
    cc_prebuilt_library_shared {
        name: "libgallium_dri",

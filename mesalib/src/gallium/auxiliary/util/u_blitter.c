@@ -194,12 +194,10 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    ctx->base.saved_num_so_targets = ~0;
 
    ctx->has_geometry_shader =
-      pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_GEOMETRY,
-                                     PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0;
+      pipe->screen->shader_caps[PIPE_SHADER_GEOMETRY].max_instructions > 0;
 
    ctx->has_tessellation =
-      pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_TESS_CTRL,
-                                     PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0;
+      pipe->screen->shader_caps[PIPE_SHADER_TESS_CTRL].max_instructions > 0;
 
    ctx->has_stream_out = pipe->screen->caps.max_stream_output_buffers != 0;
 

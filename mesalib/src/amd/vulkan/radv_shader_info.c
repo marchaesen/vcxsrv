@@ -1270,6 +1270,7 @@ radv_nir_shader_info_pass(struct radv_device *device, const struct nir_shader *n
                                         BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_SUBGROUP_ID) |
                                         BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_NUM_SUBGROUPS) |
                                         radv_shader_should_clear_lds(device, nir);
+   info->cs.derivative_group = nir->info.derivative_group;
 
    if (nir->info.stage == MESA_SHADER_COMPUTE || nir->info.stage == MESA_SHADER_TASK ||
        nir->info.stage == MESA_SHADER_MESH) {
@@ -1724,7 +1725,7 @@ radv_determine_ngg_settings(struct radv_device *device, struct radv_shader_stage
       radv_consider_culling(pdev, es_stage->nir, ps_inputs_read, num_vertices_per_prim, &es_stage->info);
 
    nir_function_impl *impl = nir_shader_get_entrypoint(es_stage->nir);
-   es_stage->info.has_ngg_early_prim_export = exec_list_is_singular(&impl->body);
+   es_stage->info.has_ngg_early_prim_export = pdev->info.gfx_level < GFX11 && exec_list_is_singular(&impl->body);
 
    /* NGG passthrough mode should be disabled when culling and when the vertex shader
     * exports the primitive ID.

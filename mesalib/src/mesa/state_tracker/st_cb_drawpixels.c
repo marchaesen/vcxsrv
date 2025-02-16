@@ -485,6 +485,10 @@ search_drawpixels_cache(struct st_context *st,
           entry->image) {
          assert(entry->texture);
 
+         if (memcmp(&entry->pixelmaps, &st->ctx->PixelMaps,
+             sizeof(struct gl_pixelmaps)) != 0)
+            continue;
+
          /* check if the pixel data is the same */
          if (memcmp(pixels, entry->image, width * height * bpp) == 0) {
             /* Success - found a cache match */
@@ -555,6 +559,8 @@ cache_drawpixels_image(struct st_context *st,
       entry->height = height;
       entry->format = format;
       entry->type = type;
+      memcpy(&entry->pixelmaps, &st->ctx->PixelMaps,
+             sizeof(struct gl_pixelmaps));
       entry->user_pointer = pixels;
       free(entry->image);
       entry->image = malloc(width * height * bpp);
@@ -1121,7 +1127,7 @@ get_color_fp_variant(struct st_context *st)
                      ctx->Color._ClampFragmentColor;
    key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
-   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key);
+   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key, false, NULL);
 
    return fpv;
 }
@@ -1151,7 +1157,7 @@ get_color_index_fp_variant(struct st_context *st)
                      ctx->Color._ClampFragmentColor;
    key.lower_alpha_func = COMPARE_FUNC_ALWAYS;
 
-   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key);
+   fpv = st_get_fp_variant(st, ctx->FragmentProgram._Current, &key, false, NULL);
 
    return fpv;
 }

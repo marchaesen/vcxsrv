@@ -111,7 +111,7 @@ static int dispatch_GLXQueryVersion(ClientPtr client)
     reply.majorVersion = GlxCheckSwap(client, SERVER_GLX_MAJOR_VERSION);
     reply.minorVersion = GlxCheckSwap(client, SERVER_GLX_MINOR_VERSION);
 
-    WriteToClient(client, sz_xGLXQueryVersionReply, &reply);
+    WriteToClient(client, sizeof(xGLXQueryVersionReply), &reply);
     return Success;
 }
 
@@ -273,7 +273,7 @@ static int CommonMakeCurrent(ClientPtr client,
     }
 
     reply.contextTag = GlxCheckSwap(client, reply.contextTag);
-    WriteToClient(client, sz_xGLXMakeCurrentReply, &reply);
+    WriteToClient(client, sizeof(xGLXMakeCurrentReply), &reply);
     return Success;
 }
 

@@ -38,7 +38,7 @@ agx_compile_bg_eot_shader(struct agx_bg_eot_cache *cache, nir_shader *shader,
                           struct agx_tilebuffer_layout *tib)
 {
    agx_nir_lower_texture(shader);
-   agx_preprocess_nir(shader, cache->dev->libagx);
+   agx_preprocess_nir(shader);
    if (tib) {
       unsigned bindless_base = 0;
       agx_nir_lower_tilebuffer(shader, tib, NULL, &bindless_base, NULL, NULL);
@@ -49,8 +49,6 @@ agx_compile_bg_eot_shader(struct agx_bg_eot_cache *cache, nir_shader *shader,
       nir_shader_intrinsics_pass(shader, lower_tex_handle_to_u0,
                                  nir_metadata_control_flow, NULL);
    }
-
-   key->libagx = cache->dev->libagx;
 
    struct agx_bg_eot_shader *res = rzalloc(cache->ht, struct agx_bg_eot_shader);
    struct agx_shader_part bin;

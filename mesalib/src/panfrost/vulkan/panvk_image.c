@@ -102,6 +102,15 @@ panvk_image_can_use_mod(struct panvk_image *image, uint64_t mod)
    }
 
    if (mod == DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED) {
+      /* Multiplanar YUV with U-interleaving isn't supported by the HW. We
+       * also need to make sure images that can be aliased to planes of
+       * multi-planar images remain compatible with the aliased images, so
+       * don't allow U-interleaving for those either.
+       */
+      if (vk_format_get_plane_count(image->vk.format) > 1 ||
+          vk_image_can_be_aliased_to_yuv_plane(&image->vk))
+         return false;
+
       /* If we're dealing with a compressed format that requires non-compressed
        * views we can't use U_INTERLEAVED tiling because the tiling is different
        * between compressed and non-compressed formats. If we wanted to support
@@ -218,10 +227,12 @@ panvk_image_init_layouts(struct panvk_image *image,
       image->plane_count = 2;
 
    for (uint8_t plane = 0; plane < image->plane_count; plane++) {
-      VkFormat format =
-         (image->vk.format == VK_FORMAT_D32_SFLOAT_S8_UINT) ?
-         ((plane == 0) ? VK_FORMAT_D32_SFLOAT : VK_FORMAT_S8_UINT) :
-         image->vk.format;
+      VkFormat format;
+
+      if (image->vk.format == VK_FORMAT_D32_SFLOAT_S8_UINT)
+         format = plane == 0 ? VK_FORMAT_D32_SFLOAT : VK_FORMAT_S8_UINT;
+      else
+         format = vk_format_get_plane_format(image->vk.format, plane);
 
       struct pan_image_explicit_layout plane_layout;
       if (explicit_info)
@@ -233,8 +244,10 @@ panvk_image_init_layouts(struct panvk_image *image,
       image->planes[plane].layout = (struct pan_image_layout){
          .format = vk_format_to_pipe_format(format),
          .dim = panvk_image_type_to_mali_tex_dim(image->vk.image_type),
-         .width = image->vk.extent.width,
-         .height = image->vk.extent.height,
+         .width = vk_format_get_plane_width(image->vk.format, plane,
+                                            image->vk.extent.width),
+         .height = vk_format_get_plane_height(image->vk.format, plane,
+                                              image->vk.extent.height),
          .depth = image->vk.extent.depth,
          .array_size = image->vk.array_layers,
          .nr_samples = image->vk.samples,
@@ -251,46 +264,47 @@ static void
 panvk_image_pre_mod_select_meta_adjustments(struct panvk_image *image)
 {
    const VkImageAspectFlags aspects = vk_format_aspects(image->vk.format);
+   const VkImageUsageFlags all_usage =
+      image->vk.usage | image->vk.stencil_usage;
 
    /* We do image blit/resolve with vk_meta, so when an image is flagged as
     * being a potential transfer source, we also need to add the sampled usage.
     */
-   if (image->vk.usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT) {
+   if (image->vk.usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
       image->vk.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-      if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
-         image->vk.stencil_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-   }
+   if (image->vk.stencil_usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+      image->vk.stencil_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
+   /* Similarly, image that can be a transfer destination can be attached
+    * as a color or depth-stencil attachment by vk_meta. */
    if (image->vk.usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
-      /* Similarly, image that can be a transfer destination can be attached
-       * as a color or depth-stencil attachment by vk_meta. */
       if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
          image->vk.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-      if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
-         image->vk.stencil_usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
       if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
          image->vk.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
          image->vk.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
       }
-
-      /* vk_meta creates 2D array views of 3D images. */
-      if (image->vk.image_type == VK_IMAGE_TYPE_3D)
-         image->vk.create_flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
    }
+
+   if (image->vk.stencil_usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT)
+      image->vk.stencil_usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+   /* vk_meta creates 2D array views of 3D images. */
+   if (all_usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT &&
+       image->vk.image_type == VK_IMAGE_TYPE_3D)
+      image->vk.create_flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
 
    /* Needed for resolve operations. */
    if (image->vk.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
       image->vk.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
-   if (image->vk.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-      if (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
-         image->vk.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
+   if (image->vk.usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT &&
+       aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
+      image->vk.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
-      if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
-         image->vk.stencil_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
-   }
+   if (image->vk.stencil_usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+      image->vk.stencil_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 
    if ((image->vk.usage &
         (VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)) &&
@@ -316,6 +330,7 @@ is_disjoint(struct panvk_image *image)
 {
    assert((image->plane_count > 1 &&
            image->vk.format != VK_FORMAT_D32_SFLOAT_S8_UINT) ||
+          (image->vk.create_flags & VK_IMAGE_CREATE_ALIAS_BIT) ||
           !(image->vk.create_flags & VK_IMAGE_CREATE_DISJOINT_BIT));
    return image->vk.create_flags & VK_IMAGE_CREATE_DISJOINT_BIT;
 }

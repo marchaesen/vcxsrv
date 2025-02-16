@@ -469,7 +469,7 @@ ac_nir_store_parameters_to_attr_ring(nir_builder *b,
                                      const uint64_t outputs_written,
                                      const uint16_t outputs_written_16bit,
                                      ac_nir_prerast_out *out,
-                                     nir_def *export_tid, nir_def *num_export_threads)
+                                     nir_def *num_export_threads_in_wave)
 {
    nir_def *attr_rsrc = nir_load_ring_attr_amd(b);
 
@@ -477,12 +477,9 @@ ac_nir_store_parameters_to_attr_ring(nir_builder *b,
     * some of them are garbage or have unused components, so align the number of export threads
     * to 8.
     */
-   num_export_threads = nir_iand_imm(b, nir_iadd_imm(b, num_export_threads, 7), ~7);
+   nir_def *num_attr_ring_store_threads = nir_iand_imm(b, nir_iadd_imm(b, num_export_threads_in_wave, 7), ~7);
 
-   if (!export_tid)
-      nir_push_if(b, nir_is_subgroup_invocation_lt_amd(b, num_export_threads));
-   else
-      nir_push_if(b, nir_ult(b, export_tid, num_export_threads));
+   nir_if *if_attr_ring_store = nir_push_if(b, nir_is_subgroup_invocation_lt_amd(b, num_attr_ring_store_threads));
 
    nir_def *attr_offset = nir_load_ring_attr_offset_amd(b);
    nir_def *vindex = nir_load_local_invocation_index(b);
@@ -544,7 +541,7 @@ ac_nir_store_parameters_to_attr_ring(nir_builder *b,
       exported_params |= BITFIELD_BIT(offset);
    }
 
-   nir_pop_if(b, NULL);
+   nir_pop_if(b, if_attr_ring_store);
 }
 
 static int
@@ -823,4 +820,578 @@ ac_nir_pack_ngg_prim_exp_arg(nir_builder *b, unsigned num_vertices_per_primitive
    }
 
    return arg;
+}
+
+void
+ac_nir_clamp_vertex_color_outputs(nir_builder *b, ac_nir_prerast_out *out)
+{
+   /* Clamp color outputs. */
+   if (!(b->shader->info.outputs_written & (VARYING_BIT_COL0 | VARYING_BIT_COL1 |
+                                            VARYING_BIT_BFC0 | VARYING_BIT_BFC1)))
+      return;
+
+   nir_def *color_channels[16] = {0};
+
+   nir_if *if_clamp = nir_push_if(b, nir_load_clamp_vertex_color_amd(b));
+   {
+      for (unsigned i = 0; i < 16; i++) {
+         const unsigned slot = (i / 8 ? VARYING_SLOT_BFC0 : VARYING_SLOT_COL0) + (i % 8) / 4;
+         if (out->outputs[slot][i % 4])
+            color_channels[i] = nir_fsat(b, out->outputs[slot][i % 4]);
+      }
+   }
+   nir_pop_if(b, if_clamp);
+   for (unsigned i = 0; i < 16; i++) {
+      if (color_channels[i]) {
+         const unsigned slot = (i / 8 ? VARYING_SLOT_BFC0 : VARYING_SLOT_COL0) + (i % 8) / 4;
+         out->outputs[slot][i % 4] = nir_if_phi(b, color_channels[i], out->outputs[slot][i % 4]);
+      }
+   }
+}
+
+static void
+ac_nir_ngg_alloc_vertices_fully_culled_workaround(nir_builder *b,
+                                                  nir_def *num_vtx,
+                                                  nir_def *num_prim)
+{
+   /* HW workaround for a GPU hang with 100% culling on GFX10.
+    * We always have to export at least 1 primitive.
+    * Export a degenerate triangle using vertex 0 for all 3 vertices.
+    *
+    * NOTE: We rely on the caller to set the vertex count also to 0 when the primitive count is 0.
+    */
+   nir_def *is_prim_cnt_0 = nir_ieq_imm(b, num_prim, 0);
+   nir_if *if_prim_cnt_0 = nir_push_if(b, is_prim_cnt_0);
+   {
+      nir_def *one = nir_imm_int(b, 1);
+      nir_sendmsg_amd(b, nir_ior(b, nir_ishl_imm(b, one, 12), one), .base = AC_SENDMSG_GS_ALLOC_REQ);
+
+      nir_def *tid = nir_load_subgroup_invocation(b);
+      nir_def *is_thread_0 = nir_ieq_imm(b, tid, 0);
+      nir_if *if_thread_0 = nir_push_if(b, is_thread_0);
+      {
+         /* The vertex indices are 0, 0, 0. */
+         nir_export_amd(b, nir_imm_zero(b, 4, 32),
+                        .base = V_008DFC_SQ_EXP_PRIM,
+                        .flags = AC_EXP_FLAG_DONE,
+                        .write_mask = 1);
+
+         /* The HW culls primitives with NaN. -1 is also NaN and can save
+          * a dword in binary code by inlining constant.
+          */
+         nir_export_amd(b, nir_imm_ivec4(b, -1, -1, -1, -1),
+                        .base = V_008DFC_SQ_EXP_POS,
+                        .flags = AC_EXP_FLAG_DONE,
+                        .write_mask = 0xf);
+      }
+      nir_pop_if(b, if_thread_0);
+   }
+   nir_push_else(b, if_prim_cnt_0);
+   {
+      nir_sendmsg_amd(b, nir_ior(b, nir_ishl_imm(b, num_prim, 12), num_vtx), .base = AC_SENDMSG_GS_ALLOC_REQ);
+   }
+   nir_pop_if(b, if_prim_cnt_0);
+}
+
+/**
+ * Emits code for allocating space for vertices and primitives for NGG shaders.
+ * The caller should only call this conditionally on wave 0.
+ * When either the vertex or primitive count is 0, both should be set to 0.
+ */
+void
+ac_nir_ngg_alloc_vertices_and_primitives(nir_builder *b,
+                                         nir_def *num_vtx,
+                                         nir_def *num_prim,
+                                         bool fully_culled_workaround)
+{
+   if (fully_culled_workaround) {
+      ac_nir_ngg_alloc_vertices_fully_culled_workaround(b, num_vtx, num_prim);
+      return;
+   }
+
+   /* Send GS Alloc Request message from the first wave of the group to SPI.
+    * Message payload (in the m0 register) is:
+    * - bits 0..10: number of vertices in group
+    * - bits 12..22: number of primitives in group
+    */
+   nir_sendmsg_amd(b, nir_ior(b, nir_ishl_imm(b, num_prim, 12), num_vtx), .base = AC_SENDMSG_GS_ALLOC_REQ);
+}
+
+void
+ac_nir_create_output_phis(nir_builder *b,
+                          const uint64_t outputs_written,
+                          const uint64_t outputs_written_16bit,
+                          ac_nir_prerast_out *out)
+{
+   nir_def *undef = nir_undef(b, 1, 32); /* inserted at the start of the shader */
+
+   u_foreach_bit64(slot, outputs_written) {
+      for (unsigned j = 0; j < 4; j++) {
+         if (out->outputs[slot][j])
+            out->outputs[slot][j] = nir_if_phi(b, out->outputs[slot][j], undef);
+      }
+   }
+
+   u_foreach_bit64(i, outputs_written_16bit) {
+      for (unsigned j = 0; j < 4; j++) {
+         if (out->outputs_16bit_hi[i][j])
+            out->outputs_16bit_hi[i][j] = nir_if_phi(b, out->outputs_16bit_hi[i][j], undef);
+
+         if (out->outputs_16bit_lo[i][j])
+            out->outputs_16bit_lo[i][j] = nir_if_phi(b, out->outputs_16bit_lo[i][j], undef);
+      }
+   }
+}
+
+static nir_def *
+write_values_to_lanes(nir_builder *b, nir_def **values, unsigned lane_mask)
+{
+   nir_def *lanes = nir_imm_int(b, 0);
+
+   u_foreach_bit(i, lane_mask) {
+      lanes = nir_write_invocation_amd(b, lanes, values[i], nir_imm_int(b, i));
+   }
+   return lanes;
+}
+
+static nir_def *
+read_values_from_4_lanes(nir_builder *b, nir_def *values, unsigned lane_mask)
+{
+   nir_def *undef = nir_undef(b, 1, 32);
+   nir_def *per_lane[4] = {undef, undef, undef, undef};
+
+   u_foreach_bit(i, lane_mask) {
+      per_lane[i] = nir_read_invocation(b, values, nir_imm_int(b, i));
+   }
+   return nir_vec(b, per_lane, 4);
+}
+
+void
+ac_nir_ngg_build_streamout_buffer_info(nir_builder *b,
+                                       nir_xfb_info *info,
+                                       enum amd_gfx_level gfx_level,
+                                       bool has_xfb_prim_query,
+                                       bool use_gfx12_xfb_intrinsic,
+                                       nir_def *scratch_base,
+                                       nir_def *tid_in_tg,
+                                       nir_def *gen_prim[4],
+                                       nir_def *so_buffer_ret[4],
+                                       nir_def *buffer_offsets_ret[4],
+                                       nir_def *emit_prim_ret[4])
+{
+   nir_def *prim_stride[4] = {0};
+   nir_def *undef = nir_undef(b, 1, 32);
+
+   /* For radeonsi which pass this value by arg when VS. Streamout need accurate
+    * num-vert-per-prim for writing correct amount of data to buffer.
+    */
+   nir_def *num_vert_per_prim = nir_load_num_vertices_per_primitive_amd(b);
+   for (unsigned buffer = 0; buffer < 4; buffer++) {
+      if (!(info->buffers_written & BITFIELD_BIT(buffer)))
+         continue;
+
+      assert(info->buffers[buffer].stride);
+
+      prim_stride[buffer] =
+         nir_imul_imm(b, num_vert_per_prim, info->buffers[buffer].stride);
+      so_buffer_ret[buffer] = nir_load_streamout_buffer_amd(b, .base = buffer);
+   }
+
+   nir_if *if_invocation_0 = nir_push_if(b, nir_ieq_imm(b, tid_in_tg, 0));
+   {
+      nir_def *any_buffer_valid = nir_imm_false(b);
+      nir_def *workgroup_buffer_sizes[4];
+
+      for (unsigned buffer = 0; buffer < 4; buffer++) {
+         if (info->buffers_written & BITFIELD_BIT(buffer)) {
+            nir_def *buffer_size = nir_channel(b, so_buffer_ret[buffer], 2);
+            /* In radeonsi, we may not know if a feedback buffer has been bound when
+             * compile time, so have to check buffer size in runtime to disable the
+             * GDS update for unbind buffer to prevent the case that previous draw
+             * compiled with streamout but does not bind feedback buffer miss update
+             * GDS which will affect current draw's streamout.
+             */
+            nir_def *buffer_valid = nir_ine_imm(b, buffer_size, 0);
+            nir_def *inc_buffer_size =
+               nir_imul(b, gen_prim[info->buffer_to_stream[buffer]], prim_stride[buffer]);
+            workgroup_buffer_sizes[buffer] =
+               nir_bcsel(b, buffer_valid, inc_buffer_size, nir_imm_int(b, 0));
+            any_buffer_valid = nir_ior(b, any_buffer_valid, buffer_valid);
+         } else
+            workgroup_buffer_sizes[buffer] = undef;
+      }
+
+      nir_def *buffer_offsets = NULL, *xfb_state_address = NULL, *xfb_voffset = NULL;
+
+      /* Get current global offset of buffer and increase by amount of
+       * workgroup buffer size. This is an ordered operation sorted by
+       * ordered_id; Each buffer info is in a channel of a vec4.
+       */
+      if (gfx_level >= GFX12) {
+         nir_pop_if(b, if_invocation_0);
+
+         for (unsigned buffer = 0; buffer < 4; buffer++)
+            workgroup_buffer_sizes[buffer] = nir_if_phi(b, workgroup_buffer_sizes[buffer], undef);
+         any_buffer_valid = nir_if_phi(b, any_buffer_valid, nir_undef(b, 1, 1));
+
+         /* These must be set after nir_pop_if and phis. */
+         xfb_state_address = nir_load_xfb_state_address_gfx12_amd(b);
+         xfb_voffset = nir_imul_imm(b, tid_in_tg, 8);
+
+         nir_if *if_4lanes = nir_push_if(b, nir_iand(b, any_buffer_valid, nir_ult_imm(b, tid_in_tg, 4)));
+         {
+            /* Move workgroup buffer sizes from SGPRs to the first 4 lanes. */
+            nir_def *workgroup_buffer_size_per_lane =
+               write_values_to_lanes(b, workgroup_buffer_sizes, info->buffers_written);
+            nir_def *ordered_id = nir_load_ordered_id_amd(b);
+
+            /* The atomic value for the 4 lanes is:
+             *    lane 0: uvec2(ordered_id, workgroup_buffer_size0)
+             *    lane 1: uvec2(ordered_id, workgroup_buffer_size1)
+             *    lane 2: uvec2(ordered_id, workgroup_buffer_size2)
+             *    lane 3: uvec2(ordered_id, workgroup_buffer_size3)
+             */
+            nir_def *atomic_src = nir_pack_64_2x32_split(b, ordered_id,
+                                                         workgroup_buffer_size_per_lane);
+
+            /* The memory layout of the xfb state is:
+             *    struct {
+             *       unsigned ordered_id;
+             *       unsigned dwords_written0;
+             *       unsigned ordered_id;
+             *       unsigned dwords_written1;
+             *       unsigned ordered_id;
+             *       unsigned dwords_written2;
+             *       unsigned ordered_id;
+             *       unsigned dwords_written3;
+             *    };
+             *
+             * Notes:
+             * - global_atomic_ordered_add_b64 is semantically a 64-bit atomic, requiring 8-byte
+             *   address alignment, even though it operates on a pair of 32-bit values.
+             * - The whole structure is updated at once by issuing the atomic from 4 lanes
+             *   with 8-byte address increments.
+             * - The whole structure should be entirely within one 64B block of memory
+             *   for performance. (the address bits above 64B should not differ between lanes)
+             */
+            nir_def *buffer_offset_per_lane;
+
+            /* The gfx12 intrinsic inserts hand-written assembly producing better code than current
+             * LLVM.
+             */
+            if (use_gfx12_xfb_intrinsic) {
+               buffer_offset_per_lane =
+                  nir_ordered_add_loop_gfx12_amd(b, xfb_state_address, xfb_voffset, ordered_id,
+                                                 atomic_src);
+
+               /* Move the buffer offsets from the 4 lanes to lane 0. */
+               buffer_offsets = read_values_from_4_lanes(b, buffer_offset_per_lane, info->buffers_written);
+            } else {
+               /* The NIR version of the above using nir_atomic_op_ordered_add_gfx12_amd. */
+               enum { NUM_ATOMICS_IN_FLIGHT = 6 };
+
+               nir_variable *result_ring[NUM_ATOMICS_IN_FLIGHT] = {0};
+               for (unsigned i = 0; i < NUM_ATOMICS_IN_FLIGHT; i++)
+                  result_ring[i] = nir_local_variable_create(b->impl, glsl_uint64_t_type(), "result");
+
+               /* Issue the first N-1 atomics. The shader must not wait because we want them to be
+                * pipelined. It will only wait for the oldest atomic in the NIR loop.
+                */
+               for (unsigned i = 0; i < NUM_ATOMICS_IN_FLIGHT - 1; i++) {
+                  nir_store_var(b, result_ring[i],
+                                nir_global_atomic_amd(b, 64, xfb_state_address, atomic_src, xfb_voffset,
+                                                      .atomic_op = nir_atomic_op_ordered_add_gfx12_amd), 0x1);
+                  ac_nir_sleep(b, 24);
+               }
+
+               nir_variable *buffer_offsets_var =
+                  nir_local_variable_create(b->impl, glsl_vec4_type(), "buffer_offset_per_lane");
+
+               nir_loop *loop = nir_push_loop(b);
+               {
+                  for (unsigned i = 0; i < NUM_ATOMICS_IN_FLIGHT; i++) {
+                     int issue_index = (NUM_ATOMICS_IN_FLIGHT - 1 + i) % NUM_ATOMICS_IN_FLIGHT;
+                     int read_index = i;
+
+                     /* Issue (or repeat) the atomic. */
+                     nir_store_var(b, result_ring[issue_index],
+                                   nir_global_atomic_amd(b, 64, xfb_state_address, atomic_src, xfb_voffset,
+                                                         .atomic_op = nir_atomic_op_ordered_add_gfx12_amd), 0x1);
+
+                     /* Break if the oldest atomic succeeded in incrementing the offsets. */
+                     nir_def *oldest_result = nir_load_var(b, result_ring[read_index]);
+                     nir_def *loaded_ordered_id = nir_unpack_64_2x32_split_x(b, oldest_result);
+
+                     /* Debug: Write the vec4 into a shader log ring buffer. */
+#if 0
+                     nir_def *loaded_dwords_written = nir_unpack_64_2x32_split_y(b, oldest_result);
+                     ac_nir_store_debug_log_amd(b, nir_vec4(b, nir_u2u32(b, xfb_state_address),
+                                                            ordered_id, loaded_ordered_id,
+                                                            loaded_dwords_written));
+#endif
+
+                     nir_def *continue_if = nir_ieq(b, loaded_ordered_id, ordered_id);
+                     continue_if = nir_inot(b, nir_vote_any(b, 1, continue_if));
+                     nir_push_if(b, continue_if);
+                  }
+                  nir_jump(b, nir_jump_continue);
+
+                  for (unsigned i = 0; i < NUM_ATOMICS_IN_FLIGHT; i++) {
+                     int read_index = NUM_ATOMICS_IN_FLIGHT - 1 - i;
+                     nir_push_else(b, NULL);
+                     {
+                        nir_def *result = nir_load_var(b, result_ring[read_index]);
+                        buffer_offset_per_lane = nir_unpack_64_2x32_split_y(b, result);
+                        buffer_offsets = read_values_from_4_lanes(b, buffer_offset_per_lane, info->buffers_written);
+                        nir_store_var(b, buffer_offsets_var, buffer_offsets, info->buffers_written);
+                     }
+                     nir_pop_if(b, NULL);
+                  }
+                  nir_jump(b, nir_jump_break);
+               }
+               nir_pop_loop(b, loop);
+               buffer_offsets = nir_load_var(b, buffer_offsets_var);
+            }
+         }
+         nir_pop_if(b, if_4lanes);
+         buffer_offsets = nir_if_phi(b, buffer_offsets, nir_undef(b, 4, 32));
+
+         if_invocation_0 = nir_push_if(b, nir_ieq_imm(b, tid_in_tg, 0));
+      } else {
+         nir_def *ordered_id = nir_load_ordered_id_amd(b);
+         buffer_offsets =
+            nir_ordered_xfb_counter_add_gfx11_amd(b, ordered_id,
+                                                  nir_vec(b, workgroup_buffer_sizes, 4),
+                                                  /* mask of buffers to update */
+                                                  .write_mask = info->buffers_written);
+      }
+
+      nir_def *emit_prim[4];
+      memcpy(emit_prim, gen_prim, 4 * sizeof(nir_def *));
+
+      nir_def *any_overflow = nir_imm_false(b);
+      nir_def *overflow_amount[4] = {undef, undef, undef, undef};
+
+      for (unsigned buffer = 0; buffer < 4; buffer++) {
+         if (!(info->buffers_written & BITFIELD_BIT(buffer)))
+            continue;
+
+         nir_def *buffer_size = nir_channel(b, so_buffer_ret[buffer], 2);
+
+         /* Only consider overflow for valid feedback buffers because
+          * otherwise the ordered operation above (GDS atomic return) might
+          * return non-zero offsets for invalid buffers.
+          */
+         nir_def *buffer_valid = nir_ine_imm(b, buffer_size, 0);
+         nir_def *buffer_offset = nir_channel(b, buffer_offsets, buffer);
+         buffer_offset = nir_bcsel(b, buffer_valid, buffer_offset, nir_imm_int(b, 0));
+
+         nir_def *remain_size = nir_isub(b, buffer_size, buffer_offset);
+         nir_def *remain_prim = nir_idiv(b, remain_size, prim_stride[buffer]);
+         nir_def *overflow = nir_ilt(b, buffer_size, buffer_offset);
+
+         any_overflow = nir_ior(b, any_overflow, overflow);
+         overflow_amount[buffer] = nir_imax(b, nir_imm_int(b, 0),
+                                            nir_isub(b, buffer_offset, buffer_size));
+
+         unsigned stream = info->buffer_to_stream[buffer];
+         /* when previous workgroup overflow, we can't emit any primitive */
+         emit_prim[stream] = nir_bcsel(
+            b, overflow, nir_imm_int(b, 0),
+            /* we can emit part primitives, limited by smallest buffer */
+            nir_imin(b, emit_prim[stream], remain_prim));
+
+         /* Save to LDS for being accessed by other waves in this workgroup. */
+         nir_store_shared(b, buffer_offset, scratch_base, .base = buffer * 4);
+      }
+
+      /* We have to fix up the streamout offsets if we overflowed because they determine
+       * the vertex count for DrawTransformFeedback.
+       */
+      if (gfx_level >= GFX12) {
+         nir_pop_if(b, if_invocation_0);
+
+         any_overflow = nir_if_phi(b, any_overflow, nir_undef(b, 1, 1));
+         for (unsigned buffer = 0; buffer < 4; buffer++)
+            overflow_amount[buffer] = nir_if_phi(b, overflow_amount[buffer], undef);
+         for (unsigned stream = 0; stream < 4; stream++) {
+            if (emit_prim[stream])
+               emit_prim[stream] = nir_if_phi(b, emit_prim[stream], undef);
+         }
+
+         nir_if *if_any_overflow_4_lanes =
+            nir_push_if(b, nir_iand(b, any_overflow, nir_ult_imm(b, tid_in_tg, 4)));
+         {
+            /* Move overflow amounts from SGPRs to the first 4 lanes. */
+            nir_def *overflow_amount_per_lane =
+               write_values_to_lanes(b, overflow_amount, info->buffers_written);
+
+            nir_global_atomic_amd(b, 32, xfb_state_address, nir_ineg(b, overflow_amount_per_lane),
+                                  xfb_voffset, .base = 4, .atomic_op = nir_atomic_op_iadd);
+         }
+         nir_pop_if(b, if_any_overflow_4_lanes);
+
+         if_invocation_0 = nir_push_if(b, nir_ieq_imm(b, tid_in_tg, 0));
+      } else {
+         nir_if *if_any_overflow = nir_push_if(b, any_overflow);
+         nir_xfb_counter_sub_gfx11_amd(b, nir_vec(b, overflow_amount, 4),
+                                       /* mask of buffers to update */
+                                       .write_mask = info->buffers_written);
+         nir_pop_if(b, if_any_overflow);
+      }
+
+      /* Save to LDS for being accessed by other waves in this workgroup. */
+      for (unsigned stream = 0; stream < 4; stream++) {
+         if (!(info->streams_written & BITFIELD_BIT(stream)))
+            continue;
+
+         nir_store_shared(b, emit_prim[stream], scratch_base, .base = 16 + stream * 4);
+      }
+
+      /* Update shader query. */
+      if (has_xfb_prim_query) {
+         nir_if *if_shader_query = nir_push_if(b, nir_load_prim_xfb_query_enabled_amd(b));
+         {
+            for (unsigned stream = 0; stream < 4; stream++) {
+               if (info->streams_written & BITFIELD_BIT(stream))
+                  nir_atomic_add_xfb_prim_count_amd(b, emit_prim[stream], .stream_id = stream);
+            }
+         }
+         nir_pop_if(b, if_shader_query);
+      }
+   }
+   nir_pop_if(b, if_invocation_0);
+
+   nir_barrier(b, .execution_scope = SCOPE_WORKGROUP,
+                      .memory_scope = SCOPE_WORKGROUP,
+                      .memory_semantics = NIR_MEMORY_ACQ_REL,
+                      .memory_modes = nir_var_mem_shared);
+
+   /* Fetch the per-buffer offsets in all waves. */
+   for (unsigned buffer = 0; buffer < 4; buffer++) {
+      if (!(info->buffers_written & BITFIELD_BIT(buffer)))
+         continue;
+
+      buffer_offsets_ret[buffer] =
+         nir_load_shared(b, 1, 32, scratch_base, .base = buffer * 4);
+   }
+
+   /* Fetch the per-stream emit prim in all waves. */
+   for (unsigned stream = 0; stream < 4; stream++) {
+      if (!(info->streams_written & BITFIELD_BIT(stream)))
+            continue;
+
+      emit_prim_ret[stream] =
+         nir_load_shared(b, 1, 32, scratch_base, .base = 16 + stream * 4);
+   }
+}
+
+void
+ac_nir_ngg_build_streamout_vertex(nir_builder *b, nir_xfb_info *info,
+                                  unsigned stream, nir_def *so_buffer[4],
+                                  nir_def *buffer_offsets[4],
+                                  unsigned vertex_index, nir_def *vtx_lds_addr,
+                                  ac_nir_prerast_out *pr_out,
+                                  bool skip_primitive_id)
+{
+   unsigned vertex_offset[NIR_MAX_XFB_BUFFERS] = {0};
+
+   u_foreach_bit(buffer, info->buffers_written) {
+      /* We use imm_offset for the vertex offset within a primitive, and GFX11 only supports
+       * 12-bit unsigned imm_offset. (GFX12 supports 24-bit signed imm_offset)
+       */
+      assert(info->buffers[buffer].stride * 3 < 4096);
+      vertex_offset[buffer] = vertex_index * info->buffers[buffer].stride;
+   }
+
+   nir_def *zero = nir_imm_int(b, 0);
+   unsigned num_values = 0, store_offset = 0, store_buffer_index = 0;
+   nir_def *values[4];
+
+   for (unsigned i = 0; i < info->output_count; i++) {
+      nir_xfb_output_info *out = info->outputs + i;
+      if (!out->component_mask || info->buffer_to_stream[out->buffer] != stream)
+         continue;
+
+      unsigned base;
+      if (out->location >= VARYING_SLOT_VAR0_16BIT) {
+         base =
+            util_bitcount64(b->shader->info.outputs_written) +
+            util_bitcount(b->shader->info.outputs_written_16bit &
+                          BITFIELD_MASK(out->location - VARYING_SLOT_VAR0_16BIT));
+      } else {
+         uint64_t outputs_written = b->shader->info.outputs_written;
+         if (skip_primitive_id)
+            outputs_written &= ~VARYING_BIT_PRIMITIVE_ID;
+
+         base =
+            util_bitcount64(outputs_written &
+                            BITFIELD64_MASK(out->location));
+      }
+
+      unsigned offset = (base * 4 + out->component_offset) * 4;
+      unsigned count = util_bitcount(out->component_mask);
+
+      assert(u_bit_consecutive(out->component_offset, count) == out->component_mask);
+
+      nir_def *out_data =
+         nir_load_shared(b, count, 32, vtx_lds_addr, .base = offset);
+
+      for (unsigned comp = 0; comp < count; comp++) {
+         nir_def *data = nir_channel(b, out_data, comp);
+
+         /* Convert 16-bit outputs to 32-bit.
+          *
+          * OpenGL ES will put 16-bit medium precision varyings to VARYING_SLOT_VAR0_16BIT.
+          * We need to convert them to 32-bit for streamout.
+          *
+          * Vulkan does not allow 8/16bit varyings for streamout.
+          */
+         if (out->location >= VARYING_SLOT_VAR0_16BIT) {
+            unsigned index = out->location - VARYING_SLOT_VAR0_16BIT;
+            unsigned c = out->component_offset + comp;
+            nir_def *v;
+            nir_alu_type t;
+
+            if (out->high_16bits) {
+               v = nir_unpack_32_2x16_split_y(b, data);
+               t = pr_out->types_16bit_hi[index][c];
+            } else {
+               v = nir_unpack_32_2x16_split_x(b, data);
+               t = pr_out->types_16bit_lo[index][c];
+            }
+
+            t = nir_alu_type_get_base_type(t);
+            data = nir_convert_to_bit_size(b, v, t, 32);
+         }
+
+         const unsigned store_comp_offset = out->offset + comp * 4;
+         const bool has_hole = store_offset + num_values * 4 != store_comp_offset;
+
+         /* Flush the gathered components to memory as a vec4 store or less if there is a hole. */
+         if (num_values && (num_values == 4 || store_buffer_index != out->buffer || has_hole)) {
+            nir_store_buffer_amd(b, nir_vec(b, values, num_values), so_buffer[store_buffer_index],
+                                 buffer_offsets[store_buffer_index], zero, zero,
+                                 .base = vertex_offset[store_buffer_index] + store_offset,
+                                 .access = ACCESS_NON_TEMPORAL);
+            num_values = 0;
+         }
+
+         /* Initialize the buffer index and offset if we are beginning a new vec4 store. */
+         if (num_values == 0) {
+            store_buffer_index = out->buffer;
+            store_offset = store_comp_offset;
+         }
+
+         values[num_values++] = data;
+      }
+   }
+
+   if (num_values) {
+      /* Flush the remaining components to memory (as an up to vec4 store) */
+      nir_store_buffer_amd(b, nir_vec(b, values, num_values), so_buffer[store_buffer_index],
+                           buffer_offsets[store_buffer_index], zero, zero,
+                           .base = vertex_offset[store_buffer_index] + store_offset,
+                           .access = ACCESS_NON_TEMPORAL);
+   }
 }

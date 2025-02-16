@@ -55,6 +55,7 @@ glsl_type_add_to_function_params(const struct glsl_type *type,
       func->params[(*param_idx)++] = (nir_parameter) {
          .num_components = glsl_get_vector_elements(type),
          .bit_size = glsl_get_bit_size(type),
+         .type = type,
       };
    } else if (glsl_type_is_array_or_matrix(type)) {
       unsigned elems = glsl_get_length(type);
@@ -331,6 +332,8 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
          func->params[idx++] = (nir_parameter) {
             .num_components = nir_address_format_num_components(addr_format),
             .bit_size = nir_address_format_bit_size(addr_format),
+            .is_return = true,
+            .type = func_type->return_type->type,
          };
       }
 

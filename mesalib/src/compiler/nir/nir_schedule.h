@@ -24,7 +24,7 @@
 #ifndef NIR_SCHEDULE_H
 #define NIR_SCHEDULE_H
 
-#include "nir.h"
+#include "nir_defines.h"
 
 #ifdef __cplusplus
 extern "C" {

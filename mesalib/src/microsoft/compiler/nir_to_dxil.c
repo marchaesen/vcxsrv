@@ -111,7 +111,6 @@ nir_options = {
    .lower_extract_byte = true,
    .lower_insert_word = true,
    .lower_insert_byte = true,
-   .lower_all_io_to_elements = true,
    .lower_hadd = true,
    .lower_uadd_sat = true,
    .lower_usub_sat = true,

@@ -96,10 +96,10 @@ SOFTWARE.
 #include "opaque.h"
 #include "input.h"
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
-#endif
+#endif /* XINERAMA */
 #include "xvdisp.h"
 
 #define SCREEN_PROLOGUE(pScreen, field) ((pScreen)->field = ((XvScreenPtr) \
@@ -174,9 +174,9 @@ XvExtensionInit(void)
             ErrorF("XvExtensionInit: Unable to allocate resource types\n");
             return;
         }
-#ifdef PANORAMIX
+#ifdef XINERAMA
         XineramaRegisterConnectionBlockCallback(XineramifyXv);
-#endif
+#endif /* XINERAMA */
         XvScreenGeneration = serverGeneration;
     }
 
@@ -267,9 +267,9 @@ XvScreenInit(ScreenPtr pScreen)
             ErrorF("XvScreenInit: Unable to allocate resource types\n");
             return BadAlloc;
         }
-#ifdef PANORAMIX
+#ifdef XINERAMA
         XineramaRegisterConnectionBlockCallback(XineramifyXv);
-#endif
+#endif /* XINERAMA */
         XvScreenGeneration = serverGeneration;
     }
 
@@ -371,13 +371,14 @@ static Bool
 XvDestroyPixmap(PixmapPtr pPix)
 {
     ScreenPtr pScreen = pPix->drawable.pScreen;
-    Bool status;
+    Bool status = TRUE;
 
     if (pPix->refcnt == 1)
         XvStopAdaptors(&pPix->drawable);
 
     SCREEN_PROLOGUE(pScreen, DestroyPixmap);
-    status = (*pScreen->DestroyPixmap) (pPix);
+    if (pScreen->DestroyPixmap)
+        status = pScreen->DestroyPixmap(pPix);
     SCREEN_EPILOGUE(pScreen, DestroyPixmap, XvDestroyPixmap);
 
     return status;

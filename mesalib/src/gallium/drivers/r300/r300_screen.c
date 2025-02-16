@@ -105,169 +105,6 @@ static struct disk_cache* r300_get_disk_shader_cache(struct pipe_screen* pscreen
 	return r300screen->disk_shader_cache;
 }
 
-static int r300_get_shader_param(struct pipe_screen *pscreen,
-                                 enum pipe_shader_type shader,
-                                 enum pipe_shader_cap param)
-{
-   struct r300_screen* r300screen = r300_screen(pscreen);
-   bool is_r400 = r300screen->caps.is_r400;
-   bool is_r500 = r300screen->caps.is_r500;
-
-   switch (param) {
-    case PIPE_SHADER_CAP_SUPPORTED_IRS:
-        return (1 << PIPE_SHADER_IR_NIR) | (1 << PIPE_SHADER_IR_TGSI);
-    default:
-        break;
-    }
-
-   switch (shader) {
-    case PIPE_SHADER_FRAGMENT:
-        switch (param)
-        {
-        case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-            return is_r500 || is_r400 ? 512 : 96;
-        case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-            return is_r500 || is_r400 ? 512 : 64;
-        case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-            return is_r500 || is_r400 ? 512 : 32;
-        case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-            return is_r500 ? 511 : 4;
-        case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-            return is_r500 ? 64 : 0; /* Actually unlimited on r500. */
-            /* Fragment shader limits. */
-        case PIPE_SHADER_CAP_MAX_INPUTS:
-            /* 2 colors + 8 texcoords are always supported
-             * (minus fog and wpos).
-             *
-             * R500 has the ability to turn 3rd and 4th color into
-             * additional texcoords but there is no two-sided color
-             * selection then. However the facing bit can be used instead. */
-            return 10;
-        case PIPE_SHADER_CAP_MAX_OUTPUTS:
-            return 4;
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-            return (is_r500 ? 256 : 32) * sizeof(float[4]);
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-        case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-            return 1;
-        case PIPE_SHADER_CAP_MAX_TEMPS:
-            return is_r500 ? 128 : is_r400 ? 64 : 32;
-        case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-        case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-           return r300screen->caps.num_tex_units;
-        case PIPE_SHADER_CAP_CONT_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-        case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-        case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-        case PIPE_SHADER_CAP_SUBROUTINES:
-        case PIPE_SHADER_CAP_INTEGERS:
-        case PIPE_SHADER_CAP_INT64_ATOMICS:
-        case PIPE_SHADER_CAP_FP16:
-        case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-        case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-        case PIPE_SHADER_CAP_INT16:
-        case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-        case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-        case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-            return 0;
-        default:
-            break;
-        }
-        break;
-    case PIPE_SHADER_VERTEX:
-        switch (param)
-        {
-        case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-        case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-        case PIPE_SHADER_CAP_SUBROUTINES:
-            return 0;
-        default:;
-        }
-
-        if (!r300screen->caps.has_tcl) {
-            switch (param) {
-            case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-            case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-                return 0;
-
-            /* mesa/st requires that this cap is the same across stages, and the FS
-             * can't do ints.
-             */
-            case PIPE_SHADER_CAP_INTEGERS:
-                return 0;
-
-            /* Even if gallivm NIR can do this, we call nir_to_tgsi manually and
-             * TGSI can't.
-             */
-            case PIPE_SHADER_CAP_INT16:
-            case PIPE_SHADER_CAP_FP16:
-            case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-            case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-                return 0;
-
-            /* While draw could normally handle this for the VS, the NIR lowering
-             * to regs can't handle our non-native-integers, so we have to lower to
-             * if ladders.
-             */
-            case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-                return 0;
-            default:
-                return draw_get_shader_param(shader, param);
-            }
-        }
-
-        switch (param)
-        {
-        case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-            return is_r500 ? 1024 : 256;
-        case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-            return is_r500 ? 4 : 0; /* For loops; not sure about conditionals. */
-        case PIPE_SHADER_CAP_MAX_INPUTS:
-            return 16;
-        case PIPE_SHADER_CAP_MAX_OUTPUTS:
-            return 10;
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-            return 256 * sizeof(float[4]);
-        case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-            return 1;
-        case PIPE_SHADER_CAP_MAX_TEMPS:
-            return 32;
-        case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-        case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-            return 1;
-        case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-        case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-        case PIPE_SHADER_CAP_CONT_SUPPORTED:
-        case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-        case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-        case PIPE_SHADER_CAP_SUBROUTINES:
-        case PIPE_SHADER_CAP_INTEGERS:
-        case PIPE_SHADER_CAP_FP16:
-        case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-        case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-        case PIPE_SHADER_CAP_INT16:
-        case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-        case PIPE_SHADER_CAP_INT64_ATOMICS:
-        case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-        case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-        case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-        case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-        case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-            return 0;
-        default:
-            break;
-        }
-        break;
-    default:
-        ; /* nothing */
-    }
-    return 0;
-}
-
 static int r300_get_video_param(struct pipe_screen *screen,
 				enum pipe_video_profile profile,
 				enum pipe_video_entrypoint entrypoint,
@@ -608,6 +445,77 @@ static bool r300_is_format_supported(struct pipe_screen* screen,
     return retval == usage;
 }
 
+static void r300_init_shader_caps(struct r300_screen* r300screen)
+{
+   bool is_r400 = r300screen->caps.is_r400;
+   bool is_r500 = r300screen->caps.is_r500;
+
+   struct pipe_shader_caps *caps =
+      (struct pipe_shader_caps *)&r300screen->screen.shader_caps[PIPE_SHADER_VERTEX];
+
+   if (r300screen->caps.has_tcl) {
+      caps->max_instructions =
+      caps->max_alu_instructions = is_r500 ? 1024 : 256;
+      /* For loops; not sure about conditionals. */
+      caps->max_control_flow_depth = is_r500 ? 4 : 0;
+      caps->max_inputs = 16;
+      caps->max_outputs = 10;
+      caps->max_const_buffer0_size = 256 * sizeof(float[4]);
+      caps->max_const_buffers = 1;
+      caps->max_temps = 32;
+      caps->indirect_const_addr = true;
+      caps->tgsi_any_inout_decl_range = true;
+   } else {
+      draw_init_shader_caps(caps);
+
+      caps->max_texture_samplers = 0;
+      caps->max_sampler_views = 0;
+      caps->subroutines = false;
+      caps->max_shader_buffers = 0;
+      caps->max_shader_images = 0;
+      /* mesa/st requires that this cap is the same across stages, and the FS
+       * can't do ints.
+       */
+      caps->integers = false;
+      /* Even if gallivm NIR can do this, we call nir_to_tgsi manually and
+       * TGSI can't.
+       */
+      caps->int16 = false;
+      caps->fp16 = false;
+      caps->fp16_derivatives = false;
+      caps->fp16_const_buffers = false;
+      /* While draw could normally handle this for the VS, the NIR lowering
+       * to regs can't handle our non-native-integers, so we have to lower to
+       * if ladders.
+       */
+      caps->indirect_temp_addr = false;
+   }
+   caps->supported_irs = (1 << PIPE_SHADER_IR_NIR) | (1 << PIPE_SHADER_IR_TGSI);
+
+   caps = (struct pipe_shader_caps *)&r300screen->screen.shader_caps[PIPE_SHADER_FRAGMENT];
+
+   caps->max_instructions = is_r500 || is_r400 ? 512 : 96;
+   caps->max_alu_instructions = is_r500 || is_r400 ? 512 : 64;
+   caps->max_tex_instructions = is_r500 || is_r400 ? 512 : 32;
+   caps->max_tex_indirections = is_r500 ? 511 : 4;
+   caps->max_control_flow_depth = is_r500 ? 64 : 0; /* Actually unlimited on r500. */
+   /* 2 colors + 8 texcoords are always supported
+    * (minus fog and wpos).
+    *
+    * R500 has the ability to turn 3rd and 4th color into
+    * additional texcoords but there is no two-sided color
+    * selection then. However the facing bit can be used instead. */
+   caps->max_inputs = 10;
+   caps->max_outputs = 4;
+   caps->max_const_buffer0_size = (is_r500 ? 256 : 32) * sizeof(float[4]);
+   caps->max_const_buffers = 1;
+   caps->tgsi_any_inout_decl_range = true;
+   caps->max_temps = is_r500 ? 128 : is_r400 ? 64 : 32;
+   caps->max_texture_samplers =
+   caps->max_sampler_views = r300screen->caps.num_tex_units;
+   caps->supported_irs = (1 << PIPE_SHADER_IR_NIR) | (1 << PIPE_SHADER_IR_TGSI);
+}
+
 static void r300_init_screen_caps(struct r300_screen* r300screen)
 {
    struct pipe_caps *caps = (struct pipe_caps *)&r300screen->screen.caps;
@@ -808,7 +716,6 @@ struct pipe_screen* r300_screen_create(struct radeon_winsys *rws,
     r300screen->screen.get_device_vendor = r300_get_device_vendor;
     r300screen->screen.get_disk_shader_cache = r300_get_disk_shader_cache;
     r300screen->screen.get_screen_fd = r300_screen_get_fd;
-    r300screen->screen.get_shader_param = r300_get_shader_param;
     r300screen->screen.get_video_param = r300_get_video_param;
     r300screen->screen.is_format_supported = r300_is_format_supported;
     r300screen->screen.is_video_format_supported = vl_video_buffer_is_format_supported;
@@ -818,6 +725,7 @@ struct pipe_screen* r300_screen_create(struct radeon_winsys *rws,
 
     r300_init_screen_resource_functions(r300screen);
 
+    r300_init_shader_caps(r300screen);
     r300_init_screen_caps(r300screen);
 
     r300_disk_cache_create(r300screen);

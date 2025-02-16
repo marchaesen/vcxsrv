@@ -254,7 +254,7 @@ fill_textures(struct panvk_cmd_buffer *cmdbuf, struct pan_fb_info *fbinfo,
             cmdbuf->state.gfx.render.color_attachments.iviews[i];
 
          if (iview)
-            textures[i] = iview->descs.tex;
+            textures[i] = iview->descs.tex[0];
          else
             textures[i] = (struct mali_texture_packed){0};
       }
@@ -268,8 +268,8 @@ fill_textures(struct panvk_cmd_buffer *cmdbuf, struct pan_fb_info *fbinfo,
             ?: cmdbuf->state.gfx.render.s_attachment.iview;
 
       textures[idx++] = vk_format_has_depth(iview->vk.view_format)
-                           ? iview->descs.tex
-                           : iview->descs.other_aspect_tex;
+                           ? iview->descs.zs.tex
+                           : iview->descs.zs.other_aspect_tex;
    }
 
    if (key->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
@@ -278,8 +278,8 @@ fill_textures(struct panvk_cmd_buffer *cmdbuf, struct pan_fb_info *fbinfo,
             ?: cmdbuf->state.gfx.render.z_attachment.iview;
 
       textures[idx++] = vk_format_has_depth(iview->vk.view_format)
-                           ? iview->descs.other_aspect_tex
-                           : iview->descs.tex;
+                           ? iview->descs.zs.other_aspect_tex
+                           : iview->descs.zs.tex;
    }
 }
 
@@ -376,7 +376,7 @@ cmd_emit_dcd(struct panvk_cmd_buffer *cmdbuf, struct pan_fb_info *fbinfo,
 
       if (key->aspects == VK_IMAGE_ASPECT_COLOR_BIT) {
          /* Skipping ATEST requires forcing Z/S */
-         cfg.properties.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+         cfg.properties.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
          cfg.properties.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
       } else {
          /* Writing Z/S requires late updates */
@@ -620,7 +620,7 @@ cmd_emit_dcd(struct panvk_cmd_buffer *cmdbuf, struct pan_fb_info *fbinfo,
    pan_pack(&dcds[dcd_idx], DRAW, cfg) {
       if (key->aspects == VK_IMAGE_ASPECT_COLOR_BIT) {
          /* Skipping ATEST requires forcing Z/S */
-         cfg.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+         cfg.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
          cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
 
          cfg.blend = bds.gpu;

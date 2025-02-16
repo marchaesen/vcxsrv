@@ -865,7 +865,7 @@ r600_lower_and_optimize_nir(nir_shader *sh,
    NIR_PASS_V(sh, nir_lower_bool_to_int32);
 
    NIR_PASS_V(sh, nir_lower_locals_to_regs, 32);
-   NIR_PASS_V(sh, nir_convert_from_ssa, true);
+   NIR_PASS_V(sh, nir_convert_from_ssa, true, false);
    NIR_PASS_V(sh, nir_opt_dce);
 }
 

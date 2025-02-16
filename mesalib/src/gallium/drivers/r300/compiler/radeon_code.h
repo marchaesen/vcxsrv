@@ -160,6 +160,8 @@ struct r300_fragment_program_external_state {
    } unit[16];
 
    unsigned alpha_to_one : 1;
+
+   int sampler_state_count;
 };
 
 struct r300_fragment_program_node {

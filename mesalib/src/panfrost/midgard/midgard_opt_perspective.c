@@ -153,7 +153,7 @@ midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
             },
       };
 
-      mir_insert_instruction_before(ctx, ins, accel);
+      mir_insert_instruction_before(ctx, ins, &accel);
       mir_remove_instruction(ins);
 
       progress |= true;

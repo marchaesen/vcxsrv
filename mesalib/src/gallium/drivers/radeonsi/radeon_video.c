@@ -21,15 +21,12 @@
 unsigned si_vid_alloc_stream_handle()
 {
    static unsigned counter = 0;
-   unsigned stream_handle = 0;
-   unsigned pid = getpid();
-   int i;
+   static unsigned handle_base = 0;
 
-   for (i = 0; i < 32; ++i)
-      stream_handle |= ((pid >> i) & 1) << (31 - i);
+   if (!handle_base)
+      handle_base = util_bitreverse(getpid() ^ os_time_get());
 
-   stream_handle ^= ++counter;
-   return stream_handle;
+   return handle_base ^ ++counter;
 }
 
 /* create a buffer in the winsys */

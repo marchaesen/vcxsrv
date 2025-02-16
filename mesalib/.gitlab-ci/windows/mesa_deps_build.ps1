@@ -57,7 +57,7 @@ if (!$buildstatus) {
 
 Get-Date
 Write-Host "Cloning LLVM release/15.x"
-git clone -b release/15.x --depth=1 https://github.com/llvm/llvm-project deps/llvm-project
+git clone -b llvmorg-19.1.6 --depth=1 https://github.com/llvm/llvm-project deps/llvm-project
 if (!$?) {
   Write-Host "Failed to clone LLVM repository"
   Exit 1
@@ -65,7 +65,7 @@ if (!$?) {
 
 Get-Date
 Write-Host "Cloning SPIRV-LLVM-Translator"
-git clone -b llvm_release_150 https://github.com/KhronosGroup/SPIRV-LLVM-Translator deps/llvm-project/llvm/projects/SPIRV-LLVM-Translator
+git clone -b v19.1.3 https://github.com/KhronosGroup/SPIRV-LLVM-Translator deps/llvm-project/llvm/projects/SPIRV-LLVM-Translator
 if (!$?) {
   Write-Host "Failed to clone SPIRV-LLVM-Translator repository"
   Exit 1
@@ -79,7 +79,7 @@ Write-Host "Compiling LLVM and Clang"
 cmake ../llvm `
 -GNinja `
 -DCMAKE_BUILD_TYPE=Release `
--DLLVM_USE_CRT_RELEASE=MT `
+-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded `
 -DCMAKE_PREFIX_PATH="$depsInstallPath" `
 -DCMAKE_INSTALL_PREFIX="$depsInstallPath" `
 -DLLVM_ENABLE_PROJECTS="clang" `

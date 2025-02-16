@@ -104,6 +104,7 @@ Equipment Corporation.
 #include "dix/exevents_priv.h"
 #include "dix/input_priv.h"
 #include "dix/property_priv.h"
+#include "mi/mi_priv.h"         /* miPaintWindow */
 #include "os/auth.h"
 #include "os/client_priv.h"
 #include "os/screensaver.h"
@@ -123,13 +124,12 @@ Equipment Corporation.
 #include "gcstruct.h"
 #include "servermd.h"
 #include "mivalidate.h"
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
-#endif
+#endif /* XINERAMA */
 #include "dixevents.h"
 #include "globals.h"
-#include "mi.h"                 /* miPaintWindow */
 #ifdef COMPOSITE
 #include "compint.h"
 #endif
@@ -1014,9 +1014,9 @@ FreeWindowResources(WindowPtr pWin)
     if (wInputShape(pWin))
         RegionDestroy(wInputShape(pWin));
     if (pWin->borderIsPixel == FALSE)
-        (*pScreen->DestroyPixmap) (pWin->border.pixmap);
+        dixDestroyPixmap(pWin->border.pixmap, 0);
     if (pWin->backgroundState == BackgroundPixmap)
-        (*pScreen->DestroyPixmap) (pWin->background.pixmap);
+        dixDestroyPixmap(pWin->background.pixmap, 0);
 
     DeleteAllWindowProperties(pWin);
     /* We SHOULD check for an error value here XXX */
@@ -1199,7 +1199,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                 borderRelative = TRUE;
             if (pixID == None) {
                 if (pWin->backgroundState == BackgroundPixmap)
-                    (*pScreen->DestroyPixmap) (pWin->background.pixmap);
+                    dixDestroyPixmap(pWin->background.pixmap, 0);
                 if (!pWin->parent)
                     SetRootWindowBackground(pWin, pScreen, &index2);
                 else {
@@ -1214,7 +1214,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                     goto PatchUp;
                 }
                 if (pWin->backgroundState == BackgroundPixmap)
-                    (*pScreen->DestroyPixmap) (pWin->background.pixmap);
+                    dixDestroyPixmap(pWin->background.pixmap, 0);
                 if (!pWin->parent)
                     SetRootWindowBackground(pWin, pScreen, &index2);
                 else
@@ -1233,7 +1233,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                         goto PatchUp;
                     }
                     if (pWin->backgroundState == BackgroundPixmap)
-                        (*pScreen->DestroyPixmap) (pWin->background.pixmap);
+                        dixDestroyPixmap(pWin->background.pixmap, 0);
                     pWin->backgroundState = BackgroundPixmap;
                     pWin->background.pixmap = pPixmap;
                     pPixmap->refcnt++;
@@ -1249,7 +1249,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
             if (pWin->backgroundState == ParentRelative)
                 borderRelative = TRUE;
             if (pWin->backgroundState == BackgroundPixmap)
-                (*pScreen->DestroyPixmap) (pWin->background.pixmap);
+                dixDestroyPixmap(pWin->background.pixmap, 0);
             pWin->backgroundState = BackgroundPixel;
             pWin->background.pixel = (CARD32) *pVlist;
             /* background pixel overrides background pixmap,
@@ -1268,7 +1268,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                 }
                 if (pWin->parent->borderIsPixel == TRUE) {
                     if (pWin->borderIsPixel == FALSE)
-                        (*pScreen->DestroyPixmap) (pWin->border.pixmap);
+                        dixDestroyPixmap(pWin->border.pixmap, 0);
                     pWin->border = pWin->parent->border;
                     pWin->borderIsPixel = TRUE;
                     index2 = CWBorderPixel;
@@ -1287,7 +1287,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
                     goto PatchUp;
                 }
                 if (pWin->borderIsPixel == FALSE)
-                    (*pScreen->DestroyPixmap) (pWin->border.pixmap);
+                    dixDestroyPixmap(pWin->border.pixmap, 0);
                 pWin->borderIsPixel = FALSE;
                 pWin->border.pixmap = pPixmap;
                 pPixmap->refcnt++;
@@ -1300,7 +1300,7 @@ ChangeWindowAttributes(WindowPtr pWin, Mask vmask, XID *vlist, ClientPtr client)
             break;
         case CWBorderPixel:
             if (pWin->borderIsPixel == FALSE)
-                (*pScreen->DestroyPixmap) (pWin->border.pixmap);
+                dixDestroyPixmap(pWin->border.pixmap, 0);
             pWin->borderIsPixel = TRUE;
             pWin->border.pixel = (CARD32) *pVlist;
             /* border pixel overrides border pixmap,
@@ -2307,12 +2307,12 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
 
         event.u.u.type = ConfigureRequest;
         event.u.u.detail = (mask & CWStackMode) ? smode : Above;
-#ifdef PANORAMIX
+#ifdef XINERAMA
         if (!noPanoramiXExtension && (!pParent || !pParent->parent)) {
             event.u.configureRequest.x += screenInfo.screens[0]->x;
             event.u.configureRequest.y += screenInfo.screens[0]->y;
         }
-#endif
+#endif /* XINERAMA */
         if (MaybeDeliverEventsToClient(pParent, &event, 1,
                                        SubstructureRedirectMask, client) == 1)
             return Success;
@@ -2390,12 +2390,12 @@ ConfigureWindow(WindowPtr pWin, Mask mask, XID *vlist, ClientPtr client)
         event.u.configureNotify.override = pWin->overrideRedirect;
         
         event.u.u.type = ConfigureNotify;
-#ifdef PANORAMIX
+#ifdef XINERAMA
         if (!noPanoramiXExtension && (!pParent || !pParent->parent)) {
             event.u.configureNotify.x += screenInfo.screens[0]->x;
             event.u.configureNotify.y += screenInfo.screens[0]->y;
         }
-#endif
+#endif /* XINERAMA */
         DeliverEvents(pWin, &event, 1, NullWindow);
     }
     if (mask & CWBorderWidth) {
@@ -2534,12 +2534,12 @@ ReparentWindow(WindowPtr pWin, WindowPtr pParent,
     event.u.reparent.override = pWin->overrideRedirect;
     
     event.u.u.type = ReparentNotify;
-#ifdef PANORAMIX
+#ifdef XINERAMA
     if (!noPanoramiXExtension && !pParent->parent) {
         event.u.reparent.x += screenInfo.screens[0]->x;
         event.u.reparent.y += screenInfo.screens[0]->y;
     }
-#endif
+#endif /* XINERAMA */
     DeliverEvents(pWin, &event, 1, pParent);
 
     /* take out of sibling chain */
@@ -2798,7 +2798,7 @@ UnrealizeTree(WindowPtr pWin, Bool fromConfigure)
         if (pChild->realized) {
             pChild->realized = FALSE;
             pChild->visibility = VisibilityNotViewable;
-#ifdef PANORAMIX
+#ifdef XINERAMA
             if (!noPanoramiXExtension && !pChild->drawable.pScreen->myNum) {
                 PanoramiXRes *win;
                 int rc = dixLookupResourceByType((void **) &win,
@@ -2809,7 +2809,7 @@ UnrealizeTree(WindowPtr pWin, Bool fromConfigure)
                 if (rc == Success)
                     win->u.win.visibility = VisibilityNotViewable;
             }
-#endif
+#endif /* XINERAMA */
             (*Unrealize) (pChild);
             DeleteWindowFromAnyEvents(pChild, FALSE);
             if (pChild->viewable) {
@@ -3026,7 +3026,7 @@ SendVisibilityNotify(WindowPtr pWin)
     xEvent event;
     unsigned int visibility = pWin->visibility;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
     /* This is not quite correct yet, but it's close */
     if (!noPanoramiXExtension) {
         PanoramiXRes *win;
@@ -3087,7 +3087,7 @@ SendVisibilityNotify(WindowPtr pWin)
 
         win->u.win.visibility = visibility;
     }
-#endif
+#endif /* XINERAMA */
 
     memset(&event, 0, sizeof(xEvent));
     event.u.visibility.window = pWin->drawable.id;

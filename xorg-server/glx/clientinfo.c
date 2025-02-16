@@ -22,9 +22,9 @@
  */
 #include <dix-config.h>
 
+#include "misc.h"
 #include "glxserver.h"
 #include "indirect_dispatch.h"
-#include "glxbyteorder.h"
 #include "unpack.h"
 
 static int
@@ -41,7 +41,7 @@ set_client_info(__GLXclientState * cl, xGLXSetClientInfoARBReq * req,
     /* Verify that the size of the packet matches the size inferred from the
      * sizes specified for the various fields.
      */
-    size = sz_xGLXSetClientInfoARBReq;
+    size = sizeof(xGLXSetClientInfoARBReq);
     size = safe_add(size, safe_mul(req->numVersions, bytes_per_version));
     size = safe_add(size, safe_pad(req->numGLExtensionBytes));
     size = safe_add(size, safe_pad(req->numGLXExtensionBytes));

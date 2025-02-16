@@ -94,103 +94,43 @@ lima_screen_get_device_vendor(struct pipe_screen *pscreen)
    return "ARM";
 }
 
-static int
-get_vertex_shader_param(struct lima_screen *screen,
-                        enum pipe_shader_cap param)
+static void
+lima_init_shader_caps(struct pipe_screen *screen)
 {
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-      return 16384; /* need investigate */
+   struct pipe_shader_caps *caps =
+      (struct pipe_shader_caps *)&screen->shader_caps[PIPE_SHADER_VERTEX];
 
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return 1024;
-
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      return 16; /* attributes */
-
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
-      return LIMA_MAX_VARYING_NUM; /* varying */
-
+   caps->max_instructions =
+   caps->max_alu_instructions =
+   caps->max_tex_instructions =
+   caps->max_tex_indirections = 16384; /* need investigate */
+   caps->max_control_flow_depth = 1024;
+   caps->max_inputs = 16; /* attributes */
+   caps->max_outputs = LIMA_MAX_VARYING_NUM; /* varying */
    /* Mali-400 GP provides space for 304 vec4 uniforms, globals and
     * temporary variables. */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      return 304 * 4 * sizeof(float);
+   caps->max_const_buffer0_size = 304 * 4 * sizeof(float);
+   caps->max_const_buffers = 1;
+   caps->max_temps = 256; /* need investigate */
 
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return 1;
+   caps = (struct pipe_shader_caps *)&screen->shader_caps[PIPE_SHADER_FRAGMENT];
 
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 256; /* need investigate */
-
-   default:
-      return 0;
-   }
-}
-
-static int
-get_fragment_shader_param(struct lima_screen *screen,
-                          enum pipe_shader_cap param)
-{
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-      return 16384; /* need investigate */
-
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      return LIMA_MAX_VARYING_NUM - 1; /* varying, minus gl_Position */
-
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return 1024;
-
+   caps->max_instructions =
+   caps->max_alu_instructions =
+   caps->max_tex_instructions =
+   caps->max_tex_indirections = 16384; /* need investigate */
+   caps->max_inputs = LIMA_MAX_VARYING_NUM - 1; /* varying, minus gl_Position */
+   caps->max_control_flow_depth = 1024;
    /* The Mali-PP supports a uniform table up to size 32768 total.
     * However, indirect access to an uniform only supports indices up
     * to 8192 (a 2048 vec4 array). To prevent indices bigger than that,
     * limit max const buffer size to 8192 for now. */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      return 2048 * 4 * sizeof(float);
-
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return 1;
-
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-      return 16; /* need investigate */
-
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 256; /* need investigate */
-
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-      return 1;
-
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-      return 0;
-
-   default:
-      return 0;
-   }
-}
-
-static int
-lima_screen_get_shader_param(struct pipe_screen *pscreen,
-                             enum pipe_shader_type shader,
-                             enum pipe_shader_cap param)
-{
-   struct lima_screen *screen = lima_screen(pscreen);
-
-   switch (shader) {
-   case PIPE_SHADER_FRAGMENT:
-      return get_fragment_shader_param(screen, param);
-   case PIPE_SHADER_VERTEX:
-      return get_vertex_shader_param(screen, param);
-
-   default:
-      return 0;
-   }
+   caps->max_const_buffer0_size = 2048 * 4 * sizeof(float);
+   caps->max_const_buffers = 1;
+   caps->max_sampler_views =
+   caps->max_texture_samplers = 16; /* need investigate */
+   caps->max_temps = 256; /* need investigate */
+   caps->indirect_const_addr = true;
 }
 
 static void
@@ -707,7 +647,6 @@ lima_screen_create(int fd, const struct pipe_screen_config *config,
    screen->base.get_name = lima_screen_get_name;
    screen->base.get_vendor = lima_screen_get_vendor;
    screen->base.get_device_vendor = lima_screen_get_device_vendor;
-   screen->base.get_shader_param = lima_screen_get_shader_param;
    screen->base.context_create = lima_context_create;
    screen->base.is_format_supported = lima_screen_is_format_supported;
    screen->base.get_compiler_options = lima_screen_get_compiler_options;
@@ -719,6 +658,7 @@ lima_screen_create(int fd, const struct pipe_screen_config *config,
    lima_fence_screen_init(screen);
    lima_disk_cache_init(screen);
 
+   lima_init_shader_caps(&screen->base);
    lima_init_screen_caps(&screen->base);
 
    slab_create_parent(&screen->transfer_pool, sizeof(struct lima_transfer), 16);

@@ -16,13 +16,16 @@ use std::ffi::CStr;
 use std::mem::size_of;
 use std::ptr;
 
-const SPIRV_SUPPORT_STRING: &CStr = c"SPIR-V_1.0 SPIR-V_1.1 SPIR-V_1.2 SPIR-V_1.3 SPIR-V_1.4";
-const SPIRV_SUPPORT: [cl_name_version; 5] = [
+const SPIRV_SUPPORT_STRING: &CStr =
+    c"SPIR-V_1.0 SPIR-V_1.1 SPIR-V_1.2 SPIR-V_1.3 SPIR-V_1.4 SPIR-V_1.5 SPIR-V_1.6";
+const SPIRV_SUPPORT: [cl_name_version; 7] = [
     mk_cl_version_ext(1, 0, 0, "SPIR-V"),
     mk_cl_version_ext(1, 1, 0, "SPIR-V"),
     mk_cl_version_ext(1, 2, 0, "SPIR-V"),
     mk_cl_version_ext(1, 3, 0, "SPIR-V"),
     mk_cl_version_ext(1, 4, 0, "SPIR-V"),
+    mk_cl_version_ext(1, 5, 0, "SPIR-V"),
+    mk_cl_version_ext(1, 6, 0, "SPIR-V"),
 ];
 type ClDevIdpAccelProps = cl_device_integer_dot_product_acceleration_properties_khr;
 

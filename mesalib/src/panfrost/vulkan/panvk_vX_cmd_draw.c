@@ -548,11 +548,14 @@ void
 panvk_per_arch(cmd_prepare_draw_sysvals)(struct panvk_cmd_buffer *cmdbuf,
                                          const struct panvk_draw_info *info)
 {
+   const struct panvk_device *dev = to_panvk_device(cmdbuf->vk.base.device);
    struct vk_color_blend_state *cb = &cmdbuf->vk.dynamic_graphics_state.cb;
    const struct panvk_shader *fs = get_fs(cmdbuf);
    uint32_t noperspective_varyings = fs ? fs->info.varyings.noperspective : 0;
    BITSET_DECLARE(dirty_sysvals, MAX_SYSVAL_FAUS) = {0};
 
+   set_gfx_sysval(cmdbuf, dirty_sysvals, printf_buffer_address,
+                  dev->printf.bo->addr.dev);
    set_gfx_sysval(cmdbuf, dirty_sysvals, vs.noperspective_varyings,
                   noperspective_varyings);
    set_gfx_sysval(cmdbuf, dirty_sysvals, vs.first_vertex, info->vertex.base);

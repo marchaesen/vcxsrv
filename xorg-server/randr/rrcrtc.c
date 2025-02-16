@@ -382,11 +382,11 @@ rrDestroySharedPixmap(RRCrtcPtr crtc, PixmapPtr pPixmap) {
          */
         PixmapUnshareSecondaryPixmap(pPixmap);
 
-        primary->DestroyPixmap(pPixmap->primary_pixmap);
-        primary->DestroyPixmap(pPixmap->primary_pixmap);
+        dixDestroyPixmap(pPixmap->primary_pixmap, 0);
+        dixDestroyPixmap(pPixmap->primary_pixmap, 0);
     }
 
-    crtc->pScreen->DestroyPixmap(pPixmap);
+    dixDestroyPixmap(pPixmap, 0);
 }
 
 void
@@ -440,7 +440,7 @@ rrCreateSharedPixmap(RRCrtcPtr crtc, ScreenPtr primary,
 
     spix = PixmapShareToSecondary(mpix, crtc->pScreen);
     if (spix == NULL) {
-        primary->DestroyPixmap(mpix);
+        dixDestroyPixmap(mpix, 0);
         return NULL;
     }
 
@@ -1305,7 +1305,7 @@ ProcRRSetCrtcConfig(ClientPtr client)
     CARD8 status;
 
     REQUEST_AT_LEAST_SIZE(xRRSetCrtcConfigReq);
-    numOutputs = (stuff->length - bytes_to_int32(SIZEOF(xRRSetCrtcConfigReq)));
+    numOutputs = (client->req_len - bytes_to_int32(sizeof(xRRSetCrtcConfigReq)));
 
     VERIFY_RR_CRTC(stuff->crtc, crtc, DixSetAttrAccess);
 

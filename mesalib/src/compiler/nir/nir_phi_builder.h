@@ -24,7 +24,8 @@
 #ifndef NIR_PHI_BUILDER_H
 #define NIR_PHI_BUILDER_H
 
-#include "nir.h"
+#include "nir_defines.h"
+#include "util/bitset.h"
 
 /** A helper for placing phi nodes in a NIR shader
  *

@@ -187,7 +187,7 @@ SOFTWARE.
 <bitset name="#alias-immed-src" size="32">
 	<override>
 		<expr>
-			{SRC_TYPE} == 0 /* b16 */
+			{TYPE} == 0 &amp;&amp; {TYPE_SIZE} == 0 /* f16 */
 		</expr>
 		<display>
 			h({IMMED})
@@ -196,19 +196,28 @@ SOFTWARE.
 	</override>
 	<override>
 		<expr>
-			{SRC_TYPE} == 1 /* b32 */
+			{TYPE} == 0 &amp;&amp; {TYPE_SIZE} == 1 /* f32 */
 		</expr>
 		<display>
 			({IMMED})
 		</display>
 		<field name="IMMED" low="0" high="31" type="float"/>
 	</override>
+	<override>
+		<expr>
+			{TYPE_SIZE} == 0 /* b16 */
+		</expr>
+		<display>
+			h(0x{IMMED})
+		</display>
+		<field name="IMMED" low="0" high="15" type="hex"/>
+	</override>
 
 	<display>
-		{IMMED}
+		(0x{IMMED})
 	</display>
 
-	<field name="IMMED" low="0" high="31" type="uint"/>
+	<field name="IMMED" low="0" high="31" type="hex"/>
 	<encode type="struct ir3_register *">
 		<map name="IMMED">extract_reg_uim(src)</map>
 	</encode>
@@ -221,7 +230,7 @@ SOFTWARE.
 	<field name="CONST" low="0" high="10" type="#reg-const"/>
 	<derived name="HALF" type="bool" display="h">
 		<expr>
-			({SRC_TYPE} == 0) /* b16 */
+			({TYPE_SIZE} == 0) /* b16 */
 		</expr>
 	</derived>
 	<encode type="struct ir3_register *">
@@ -236,7 +245,7 @@ SOFTWARE.
 	<field name="SRC" low="0" high="7" type="#reg-gpr"/>
 	<derived name="HALF" type="bool" display="h">
 		<expr>
-			({SRC_TYPE} == 0) /* b16 */
+			({TYPE_SIZE} == 0) /* b16 */
 		</expr>
 	</derived>
 	<encode type="struct ir3_register *">
@@ -245,24 +254,28 @@ SOFTWARE.
 </bitset>
 
 <enum name="#alias-scope">
-	<doc>
-		TODO: Yes, something is wrong here, needs to be tested.
-	</doc>
 	<value val="0" display="tex"/>
-	<value val="2" display="tex"/>
-	<value val="3" display="rt"/>
-	<value val="4" display="mem"/>
+	<value val="1" display="rt"/>
+	<value val="2" display="mem"/>
+	<value val="3" display="mem"/>
 </enum>
 
-<enum name="#alias-src-type">
+<enum name="#alias-type-size">
+	<value val="0" display="16"/>
+	<value val="1" display="32"/>
+</enum>
+
+<enum name="#alias-type">
 	<doc>
-		These types are clearly used by the blob.
-		However, it seems that there may be f32/f16/i32/i16
-		types but they are interwind with the _scope_ bitfield.
-		TODO: Check if it does matter.
+		The type (float or int) of sources. This seems to have no
+		functional effect and only changes how immediates are displayed.
+		Note that the blob uses i16/i32 when the scope is rt or the 2nd
+		mem, but this is not implemented here. Also note that the blob
+		uses b16/b32 for alias.tex when the type is 0, even though it
+		still prints immediates as floats in that case.
 	</doc>
-	<value val="0" display="b16"/>
-	<value val="1" display="b32"/>
+	<value val="0" display="f"/>
+	<value val="1" display="b"/>
 </enum>
 
 <enum name="#alias-src-reg-type">
@@ -271,8 +284,22 @@ SOFTWARE.
 	<value val="2" display="IMMED"/>
 </enum>
 
+<bitset name="#dst-rt" size="5">
+	<display>
+		rt{RT}.{SWIZ}
+	</display>
+	<field name="SWIZ" low="0" high="1" type="#swiz"/>
+	<field name="RT" low="2"  high="4" type="uint"/>
+	<encode type="struct ir3_register *">
+		<map name="RT">src->num >> 2</map>
+		<map name="SWIZ">src->num &amp; 0x3</map>
+	</encode>
+</bitset>
+
 <bitset name="alias" extends="#instruction">
 	<doc>
+		For alias.tex (and possibly alias.mem):
+
 		Add an entry to the scope-specific "alias table", when instruction
 		from that scope tries to access a source register it would search
 		its alias table first.
@@ -293,48 +320,84 @@ SOFTWARE.
 
 		Notice the lack of nops between alias and the instruction
 		that uses it.
+
+		In this case, the size of the table is bounded (max 16 entries)
+		and the number of entries in the table is indicated by
+		the first alias instruction in the TABLE_SIZE_MINUS_ONE field.
+
+		For alias.rt: create an entry into the alias table for a render
+		target. For example, this would map the 4th component of render
+		target 0 (FRAG_RESULT_DATA0) to the constant 0x0:
+			alias.rt.b32.0 rt0.w, (0x0)
+
+		alias.rt has to be executed in the preamble and can only map
+		const registers and immediates. Additionally, the register
+		SP_PS_ALIASED_COMPONENTS has to be set to a mask of render
+		target components that will be aliased.
+
+		In this case, the size of the table is only bounded by the
+		number of render targets/components and the TABLE_SIZE_MINUS_ONE
+		field is not used.
 	</doc>
 	<gen min="700"/>
 	<display>
-		{SY}{SS}{JP}{NAME}.{SCOPE}.{SRC_TYPE}.{UNK} {DST}, {SRC}
+		{SY}{SS}{JP}{NAME}.{SCOPE}.{TYPE}{TYPE_SIZE}.{TABLE_SIZE_MINUS_ONE} {DST_HALF}{DST}, {SRC}
 	</display>
 
 	<override>
 		<expr>{SRC_REG_TYPE} == 0</expr>
 		<field name="SRC" low="0" high="7" type="#alias-gpr-src">
-			<param name="SRC_TYPE"/>
+			<param name="TYPE_SIZE"/>
 		</field>
 		<pattern low="8" high="31">000000000000000000000000</pattern>
 	</override>
 	<override>
 		<expr>{SRC_REG_TYPE} == 1</expr>
 		<field name="SRC" low="0" high="10" type="#alias-const-src">
-			<param name="SRC_TYPE"/>
+			<param name="TYPE_SIZE"/>
 		</field>
 		<pattern low="11" high="31">000000000000000000000</pattern>
 	</override>
 
 	<field name="SRC" low="0" high="31" type="#alias-immed-src">
-		<param name="SRC_TYPE"/>
+		<param name="TYPE_SIZE"/>
+		<param name="TYPE"/>
 	</field>
+
+	<override>
+		<expr>{SCOPE} == 1</expr>
+		<field low="32" high="36" name="DST" type="#dst-rt"/>
+		<pattern low="37" high="39">000</pattern>
+		<derived name="DST_HALF" expr="#false" type="bool" display=""/>
+	</override>
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
-	<field   low="40" high="43" name="UNK" type="uint"/>
+	<field   low="40" high="43" name="TABLE_SIZE_MINUS_ONE" type="uint"/>
 	<field   pos="44"           name="SS" type="bool" display="(ss)"/>
 	<pattern low="45" high="46">xx</pattern>
-	<field   low="47" high="49" name="SCOPE" type="#alias-scope"/>
-	<field   low="50" high="50" name="SRC_TYPE" type="#alias-src-type"/>
+	<field   pos="47"           name="SCOPE_LO" type="uint"/>
+	<field   pos="48"           name="TYPE" type="#alias-type"/>
+	<field   pos="49"           name="SCOPE_HI" type="uint"/>
+	<field   pos="50"           name="TYPE_SIZE" type="#alias-type-size"/>
 	<field   low="51" high="52" name="SRC_REG_TYPE" type="#alias-src-reg-type"/>
 	<pattern low="53" high="54">1x</pattern>
 	<pattern low="55" high="58">1000</pattern> <!-- OPC -->
 	<field   pos="59"           name="JP" type="bool" display="(jp)"/>
 	<field   pos="60"           name="SY" type="bool" display="(sy)"/>
 	<pattern low="61" high="63">111</pattern>  <!-- cat7 -->
+	<derived name="SCOPE" type="#alias-scope">
+		<expr>({SCOPE_HI} &lt;&lt; 1) | {SCOPE_LO}</expr>
+	</derived>
+	<derived name="DST_HALF" type="bool" display="h">
+		<expr>{TYPE_SIZE} == 0</expr>
+	</derived>
 	<encode>
 		<map name="SRC">src->srcs[0]</map>
 		<map name="SRC_REG_TYPE">(src->srcs[0]->flags &amp; IR3_REG_CONST) ? 1 : ((src->srcs[0]->flags &amp; IR3_REG_IMMED) ? 2 : 0)</map>
-		<map name="SRC_TYPE">1</map> <!-- TODO -->
-		<map name="UNK">extract_reg_uim(src->srcs[1])</map>
-		<map name="SCOPE">src->cat7.alias_scope</map>
+		<map name="TABLE_SIZE_MINUS_ONE">src->cat7.alias_table_size_minus_one</map>
+		<map name="TYPE_SIZE">(src->srcs[0]->flags &amp; IR3_REG_HALF) ? 0 : 1</map>
+		<map name="SCOPE_LO">src->cat7.alias_scope &amp; 0x1</map>
+		<map name="SCOPE_HI">src->cat7.alias_scope &gt;&gt; 1</map>
+		<map name="TYPE">!src->cat7.alias_type_float</map>
 	</encode>
 </bitset>
 

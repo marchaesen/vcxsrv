@@ -68,7 +68,7 @@ oom:
    memset(saved, 0, sizeof(*saved));
 }
 
-void si_clear_saved_cs(struct radeon_saved_cs *saved)
+static void si_clear_saved_cs(struct radeon_saved_cs *saved)
 {
    FREE(saved->ib);
    FREE(saved->bo_list);

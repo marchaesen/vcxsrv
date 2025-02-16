@@ -15,6 +15,13 @@
 
 #include "sid.h"
 
+uint32_t
+ac_sqtt_get_buffer_align_shift(const struct radeon_info *info)
+{
+   /* SQTT buffer VA is 36-bits on GFX8-11.5. */
+   return info->gfx_level >= GFX12 ? 0 : 12;
+}
+
 uint64_t
 ac_sqtt_get_info_offset(unsigned se)
 {
@@ -24,10 +31,11 @@ ac_sqtt_get_info_offset(unsigned se)
 uint64_t
 ac_sqtt_get_data_offset(const struct radeon_info *rad_info, const struct ac_sqtt *data, unsigned se)
 {
+   const uint32_t align_shift = ac_sqtt_get_buffer_align_shift(rad_info);
    unsigned max_se = rad_info->max_se;
    uint64_t data_offset;
 
-   data_offset = align64(sizeof(struct ac_sqtt_data_info) * max_se, 1 << SQTT_BUFFER_ALIGN_SHIFT);
+   data_offset = align64(sizeof(struct ac_sqtt_data_info) * max_se, 1ull << align_shift);
    data_offset += data->buffer_size * se;
 
    return data_offset;
@@ -294,10 +302,15 @@ ac_sqtt_get_ctrl(const struct radeon_info *info, bool enable)
    uint32_t ctrl;
 
    if (info->gfx_level >= GFX11) {
-      ctrl = S_0367B0_MODE(enable) | S_0367B0_HIWATER(5) |
-             S_0367B0_UTIL_TIMER_GFX11(1) | S_0367B0_RT_FREQ(2) | /* 4096 clk */
-             S_0367B0_DRAW_EVENT_EN(1) | S_0367B0_SPI_STALL_EN(1) |
-             S_0367B0_SQ_STALL_EN(1) | S_0367B0_REG_AT_HWM(2);
+      if (info->gfx_level >= GFX12) {
+         ctrl = S_0367B0_UTIL_TIMER_GFX12(1);
+      } else {
+         ctrl = S_0367B0_UTIL_TIMER_GFX11(1) | S_0367B0_RT_FREQ(2); /* 4096 clk */
+      }
+
+      ctrl |= S_0367B0_MODE(enable) | S_0367B0_HIWATER(5) |
+              S_0367B0_DRAW_EVENT_EN(1) | S_0367B0_SPI_STALL_EN(1) |
+              S_0367B0_SQ_STALL_EN(1) | S_0367B0_REG_AT_HWM(2);
    } else {
       assert(info->gfx_level >= GFX10);
 
@@ -333,13 +346,14 @@ void
 ac_sqtt_emit_start(const struct radeon_info *info, struct ac_pm4_state *pm4,
                    const struct ac_sqtt *sqtt, bool is_compute_queue)
 {
-   const uint32_t shifted_size = sqtt->buffer_size >> SQTT_BUFFER_ALIGN_SHIFT;
+   const uint32_t align_shift = ac_sqtt_get_buffer_align_shift(info);
+   const uint32_t shifted_size = sqtt->buffer_size >> align_shift;
    const unsigned shader_mask = ac_sqtt_get_shader_mask(info);
    const unsigned max_se = info->max_se;
 
    for (unsigned se = 0; se < max_se; se++) {
       uint64_t data_va = ac_sqtt_get_data_va(info, sqtt, se);
-      uint64_t shifted_va = data_va >> SQTT_BUFFER_ALIGN_SHIFT;
+      uint64_t shifted_va = data_va >> align_shift;
       int active_cu = ac_sqtt_get_active_cu(info, se);
 
       if (ac_sqtt_se_is_disabled(info, se))
@@ -351,10 +365,18 @@ ac_sqtt_emit_start(const struct radeon_info *info, struct ac_pm4_state *pm4,
 
       if (info->gfx_level >= GFX11) {
          /* Order seems important for the following 2 registers. */
-         ac_pm4_set_reg(pm4, R_0367A4_SQ_THREAD_TRACE_BUF0_SIZE,
-                        S_0367A4_SIZE(shifted_size) | S_0367A4_BASE_HI(shifted_va >> 32));
+         if (info->gfx_level >= GFX12) {
+            ac_pm4_set_reg(pm4, R_036798_SQ_THREAD_TRACE_BUF0_SIZE,
+                           S_036798_SIZE(shifted_size));
 
-         ac_pm4_set_reg(pm4, R_0367A0_SQ_THREAD_TRACE_BUF0_BASE, shifted_va);
+            ac_pm4_set_reg(pm4, R_03679C_SQ_THREAD_TRACE_BUF0_BASE_LO, shifted_va);
+            ac_pm4_set_reg(pm4, R_0367A0_SQ_THREAD_TRACE_BUF0_BASE_HI, S_0367A0_BASE_HI(shifted_va >> 32));
+         } else {
+            ac_pm4_set_reg(pm4, R_0367A4_SQ_THREAD_TRACE_BUF0_SIZE,
+                           S_0367A4_SIZE(shifted_size) | S_0367A4_BASE_HI(shifted_va >> 32));
+
+            ac_pm4_set_reg(pm4, R_0367A0_SQ_THREAD_TRACE_BUF0_BASE, shifted_va);
+         }
 
          ac_pm4_set_reg(pm4, R_0367B4_SQ_THREAD_TRACE_MASK,
                         S_0367B4_WTYPE_INCLUDE(shader_mask) | S_0367B4_SA_SEL(0) |
@@ -373,7 +395,12 @@ ac_sqtt_emit_start(const struct radeon_info *info, struct ac_pm4_state *pm4,
                              V_0367B8_TOKEN_EXCLUDE_VALUINST | V_0367B8_TOKEN_EXCLUDE_IMMEDIATE |
                              V_0367B8_TOKEN_EXCLUDE_INST;
          }
-         sqtt_token_mask |= S_0367B8_TOKEN_EXCLUDE_GFX11(token_exclude) | S_0367B8_BOP_EVENTS_TOKEN_INCLUDE_GFX11(1);
+
+         if (info->gfx_level >= GFX12) {
+            sqtt_token_mask |= S_0367B8_TOKEN_EXCLUDE_GFX12(token_exclude) | S_0367B8_BOP_EVENTS_TOKEN_INCLUDE_GFX12(1);
+         } else {
+            sqtt_token_mask |= S_0367B8_TOKEN_EXCLUDE_GFX11(token_exclude) | S_0367B8_BOP_EVENTS_TOKEN_INCLUDE_GFX11(1);
+         }
 
          ac_pm4_set_reg(pm4, R_0367B8_SQ_THREAD_TRACE_TOKEN_MASK, sqtt_token_mask);
 

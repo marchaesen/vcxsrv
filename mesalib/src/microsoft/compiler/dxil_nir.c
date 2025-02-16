@@ -1174,8 +1174,7 @@ dxil_nir_lower_double_math(nir_shader *shader)
 {
    return nir_shader_instructions_pass(shader,
                                        dxil_nir_lower_double_math_instr,
-                                       nir_metadata_control_flow |
-                                       nir_metadata_loop_analysis,
+                                       nir_metadata_control_flow,
                                        NULL);
 }
 

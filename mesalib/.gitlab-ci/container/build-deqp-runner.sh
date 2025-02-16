@@ -11,7 +11,7 @@ set -uex
 
 uncollapsed_section_start deqp-runner "Building deqp-runner"
 
-DEQP_RUNNER_VERSION=0.20.2
+DEQP_RUNNER_VERSION=0.20.3
 
 commits_to_backport=(
 )

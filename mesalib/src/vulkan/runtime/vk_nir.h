@@ -24,7 +24,8 @@
 #ifndef VK_NIR_H
 #define VK_NIR_H
 
-#include "nir.h"
+#include "nir_defines.h"
+#include "compiler/shader_enums.h"
 #include "vulkan/vulkan_core.h"
 
 struct spirv_to_nir_options;

@@ -368,12 +368,6 @@ _X_ATTRIBUTE_PRINTF(3, 4);
 extern _X_EXPORT void
 LogMessage(MessageType type, const char *format, ...)
 _X_ATTRIBUTE_PRINTF(2, 3);
-extern _X_EXPORT void
-LogMessageVerbSigSafe(MessageType type, int verb, const char *format, ...)
-_X_ATTRIBUTE_PRINTF(3, 4);
-extern _X_EXPORT void
-LogVMessageVerbSigSafe(MessageType type, int verb, const char *format, va_list args)
-_X_ATTRIBUTE_PRINTF(3, 0);
 
 extern _X_EXPORT void
 LogVHdrMessageVerb(MessageType type, int verb,
@@ -387,11 +381,6 @@ LogHdrMessageVerb(MessageType type, int verb,
                   const char *hdr_format, ...)
 _X_ATTRIBUTE_PRINTF(3, 0)
 _X_ATTRIBUTE_PRINTF(5, 6);
-extern _X_EXPORT void
-LogHdrMessage(MessageType type, const char *msg_format,
-              va_list msg_args, const char *hdr_format, ...)
-_X_ATTRIBUTE_PRINTF(2, 0)
-_X_ATTRIBUTE_PRINTF(4, 5);
 
 extern _X_EXPORT void
 FatalError(const char *f, ...)
@@ -414,17 +403,8 @@ _X_ATTRIBUTE_PRINTF(1, 2)
 #define SERVEXTERN _X_EXPORT
 #endif
 
-extern _X_EXPORT void
-VErrorF(const char *f, va_list args)
-_X_ATTRIBUTE_PRINTF(1, 0);
 extern SERVEXTERN void
 ErrorF(const char *f, ...)
-_X_ATTRIBUTE_PRINTF(1, 2);
-extern _X_EXPORT void
-VErrorFSigSafe(const char *f, va_list args)
-_X_ATTRIBUTE_PRINTF(1, 0);
-extern _X_EXPORT void
-ErrorFSigSafe(const char *f, ...)
 _X_ATTRIBUTE_PRINTF(1, 2);
 extern _X_EXPORT void
 LogPrintMarkers(void);
@@ -439,5 +419,23 @@ xorg_backtrace(void);
 #if defined(WIN32) && !defined(__CYGWIN__) && !defined(_MSC_VER)
 typedef _sigset_t sigset_t;
 #endif
+
+/* should not be used anymore, just for backwards compat with drivers */
+#define LogVMessageVerbSigSafe(...) LogVMessageVerb(__VA_ARGS__)
+#define LogMessageVerbSigSafe(...) LogMessageVerb(__VA_ARGS__)
+#define ErrorFSigSafe(...) ErrorF(__VA_ARGS__)
+#define VErrorFSigSafe(...) VErrorF(__VA_ARGS__)
+#define VErrorF(...) LogVMessageVerb(X_NONE, -1, __VA_ARGS__)
+
+/* only for backwards compat with drivers that haven't kept up yet
+   (xf86-video-intel)
+
+   @todo revise after next stable release
+*/
+_X_DEPRECATED
+static inline int System(const char* cmdline)
+{
+    return system(cmdline);
+}
 
 #endif                          /* OS_H */

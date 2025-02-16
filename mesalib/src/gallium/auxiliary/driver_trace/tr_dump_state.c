@@ -638,7 +638,16 @@ void trace_dump_sampler_view_template(const struct pipe_sampler_view *state)
 
    trace_dump_member_begin("u");
    trace_dump_struct_begin(""); /* anonymous */
-   if (state->target == PIPE_BUFFER) {
+   if (state->is_tex2d_from_buf) {
+      trace_dump_member_begin("tex2d_from_buf");
+      trace_dump_struct_begin(""); /* anonymous */
+      trace_dump_member(uint, &state->u.tex2d_from_buf, offset);
+      trace_dump_member(uint, &state->u.tex2d_from_buf, row_stride);
+      trace_dump_member(uint, &state->u.tex2d_from_buf, width);
+      trace_dump_member(uint, &state->u.tex2d_from_buf, height);
+      trace_dump_struct_end(); /* anonymous */
+      trace_dump_member_end(); /* buf */
+   } else if (state->target == PIPE_BUFFER) {
       trace_dump_member_begin("buf");
       trace_dump_struct_begin(""); /* anonymous */
       trace_dump_member(uint, &state->u.buf, offset);
@@ -849,7 +858,16 @@ void trace_dump_image_view(const struct pipe_image_view *state)
 
    trace_dump_member_begin("u");
    trace_dump_struct_begin(""); /* anonymous */
-   if (state->resource->target == PIPE_BUFFER) {
+   if (state->access & PIPE_IMAGE_ACCESS_TEX2D_FROM_BUFFER) {
+      trace_dump_member_begin("tex2d_from_buf");
+      trace_dump_struct_begin(""); /* anonymous */
+      trace_dump_member(uint, &state->u.tex2d_from_buf, offset);
+      trace_dump_member(uint, &state->u.tex2d_from_buf, row_stride);
+      trace_dump_member(uint, &state->u.tex2d_from_buf, width);
+      trace_dump_member(uint, &state->u.tex2d_from_buf, height);
+      trace_dump_struct_end(); /* anonymous */
+      trace_dump_member_end(); /* buf */
+   } else if (state->resource->target == PIPE_BUFFER) {
       trace_dump_member_begin("buf");
       trace_dump_struct_begin(""); /* anonymous */
       trace_dump_member(uint, &state->u.buf, offset);
@@ -1163,6 +1181,26 @@ void trace_dump_grid_info(const struct pipe_grid_info *state)
 
    trace_dump_member(ptr, state, indirect);
    trace_dump_member(uint, state, indirect_offset);
+
+   trace_dump_struct_end();
+}
+
+void trace_dump_compute_state_object_info(const struct pipe_compute_state_object_info *state)
+{
+   if (!trace_dumping_enabled_locked())
+      return;
+
+   if (!state) {
+      trace_dump_null();
+      return;
+   }
+
+   trace_dump_struct_begin("pipe_compute_state_object_info");
+
+   trace_dump_member(uint, state, max_threads);
+   trace_dump_member(uint, state, preferred_simd_size);
+   trace_dump_member(uint, state, simd_sizes);
+   trace_dump_member(uint, state, private_memory);
 
    trace_dump_struct_end();
 }

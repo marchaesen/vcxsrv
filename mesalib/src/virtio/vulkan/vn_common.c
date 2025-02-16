@@ -32,6 +32,7 @@ static const struct debug_control vn_debug_options[] = {
    { "cache", VN_DEBUG_CACHE },
    { "no_sparse", VN_DEBUG_NO_SPARSE },
    { "no_gpl", VN_DEBUG_NO_GPL },
+   { "second_queue", VN_DEBUG_SECOND_QUEUE },
    { NULL, 0 },
    /* clang-format on */
 };

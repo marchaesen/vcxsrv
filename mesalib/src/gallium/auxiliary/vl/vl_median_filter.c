@@ -92,8 +92,7 @@ create_frag_shader(struct vl_median_filter *filter,
       return NULL;
    }
 
-   if (num_offsets > screen->get_shader_param(
-      screen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_MAX_TEMPS)) {
+   if (num_offsets > screen->shader_caps[PIPE_SHADER_FRAGMENT].max_temps) {
 
       FREE(t_array);
       return NULL;

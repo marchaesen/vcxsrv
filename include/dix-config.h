@@ -6,6 +6,7 @@
 #define _X_UNUSED
 
 #define GLYPHPADBYTES 4
+#define HAVE_GETADDRINFO 1
 
 /* Use XCB for low-level protocol implementation */
 #define USE_XCB 1

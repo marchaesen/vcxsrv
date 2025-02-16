@@ -433,6 +433,7 @@
 
 #define RDECODE_AV1_VER_0  0
 #define RDECODE_AV1_VER_1  1
+#define RDECODE_AV1_VER_2  2
 
 typedef struct rvcn_decode_buffer_s {
    unsigned int valid_buf_flag;
@@ -1216,6 +1217,6 @@ struct jpeg_params {
 
 unsigned ac_vcn_dec_calc_ctx_size_av1(unsigned av1_version);
 void ac_vcn_av1_init_probs(unsigned av1_version, uint8_t *prob);
-void ac_vcn_av1_init_film_grain_buffer(rvcn_dec_film_grain_params_t *fg_params, rvcn_dec_av1_fg_init_buf_t *fg_buf);
+void ac_vcn_av1_init_film_grain_buffer(unsigned av1_version, rvcn_dec_film_grain_params_t *fg_params, rvcn_dec_av1_fg_init_buf_t *fg_buf);
 
 #endif

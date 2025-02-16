@@ -2215,7 +2215,7 @@ ttn_read_pipe_caps(struct ttn_compile *c,
    c->cap_face_is_sysval = screen->caps.fs_face_is_integer_sysval;
    c->cap_position_is_sysval = screen->caps.fs_position_is_sysval;
    c->cap_point_is_sysval = screen->caps.fs_point_is_sysval;
-   c->cap_integers = screen->get_shader_param(screen, c->scan->processor, PIPE_SHADER_CAP_INTEGERS);
+   c->cap_integers = screen->shader_caps[c->scan->processor].integers;
    c->cap_tg4_component_in_swizzle =
        screen->caps.tgsi_tg4_component_in_swizzle;
 }

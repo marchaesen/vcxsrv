@@ -140,7 +140,7 @@ merge_requests:
         '^include/drm-uapi/i915_drm.h': ['intel']
         '^include/drm-uapi/xe_drm.h': ['intel']
         '^include/vulkan/': ['vulkan']
-        '^meson_options.txt': ['meson']
+        '^meson.options': ['meson']
         '^README.rst': ['docs']
         '^src/amd/addrlib/': ['AMD common']
         '^src/amd/common/': ['AMD common']

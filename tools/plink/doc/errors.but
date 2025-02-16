@@ -100,7 +100,7 @@ protocol.
 
 If the server genuinely only supports SSH-1, then you need to either
 change the \q{SSH protocol version} setting (see \k{config-ssh-prot}),
-or use the \c{-1} command-line option; in any case, you should not
+or use the \c{\-1} command-line option; in any case, you should not
 treat the resulting connection as secure.
 
 You might start seeing this message with new versions of PuTTY (from

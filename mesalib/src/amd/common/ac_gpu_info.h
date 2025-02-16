@@ -115,7 +115,10 @@ struct radeon_info {
    bool has_sqtt_auto_flush_mode_bug;
    bool never_send_perfcounter_stop;
    bool discardable_allows_big_page;
+   bool has_ngg_fully_culled_bug;
+   bool has_ngg_passthru_no_msg;
    bool has_export_conflict_bug;
+   bool has_attr_ring_wait_bug;
    bool has_vrs_ds_export_bug;
    bool has_taskmesh_indirect0_bug;
    bool sdma_supports_sparse;      /* Whether SDMA can safely access sparse resources. */
@@ -157,6 +160,7 @@ struct radeon_info {
    bool use_display_dcc_unaligned;
    /* Allocate both aligned and unaligned DCC and use the retile blit. */
    bool use_display_dcc_with_retile_blit;
+   bool gfx12_supports_display_dcc;
 
    /* Memory info. */
    uint32_t pte_fragment_size;
@@ -283,6 +287,7 @@ struct radeon_info {
    uint32_t pos_ring_offset;              /* GFX12+ */
    uint32_t prim_ring_offset;             /* GFX12+ */
    uint32_t total_attribute_pos_prim_ring_size; /* GFX11+ */
+   bool has_attr_ring;
 
    /* Render backends (color + depth blocks). */
    uint32_t r300_num_gb_pipes;
@@ -315,6 +320,11 @@ struct radeon_info {
       uint32_t csa_alignment;
    } fw_based_mcbp;
    bool has_fw_based_shadowing;
+
+   /* Device supports hardware-accelerated raytracing using
+    * image_bvh*_intersect_ray instructions
+    */
+   bool has_image_bvh_intersect_ray;
 };
 
 bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,

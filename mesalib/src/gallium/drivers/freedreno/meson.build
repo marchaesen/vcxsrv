@@ -230,38 +230,28 @@ freedreno_includes = [
 
 freedreno_c_args = [no_override_init_args]
 freedreno_c_args += cc.get_supported_arguments([
-  '-Wno-packed-bitfield-compat',
   '-Wno-array-bounds',
+  '-Wno-packed-bitfield-compat',
 ])
 
 freedreno_cpp_args = []
 freedreno_cpp_args += cpp.get_supported_arguments([
   '-fno-exceptions',
   '-fno-rtti',
-  '-Wno-packed-bitfield-compat',
-  '-Wno-c99-designator',
-  '-Wno-reorder-init-list',
-  '-Wno-address-of-temporary',
-  '-Wno-c++11-narrowing',
-  '-Wno-narrowing',
-  '-Wno-sign-compare',
-  '-Wno-missing-field-initializers',
-  '-Wno-reorder',
-  '-Wno-array-bounds',
-  '-Wno-overflow',
-  '-Wno-c++11-narrowing',
-  '-Wno-vla-cxx-extension',
   '-Wno-address-of-packed-member',
+  '-Wno-address-of-temporary',
+  '-Wno-array-bounds',
+  '-Wno-c++11-narrowing',
+  '-Wno-c99-designator',
+  '-Wno-missing-field-initializers',
+  '-Wno-narrowing',
+  '-Wno-overflow',
+  '-Wno-packed-bitfield-compat',
+  '-Wno-reorder',
+  '-Wno-reorder-init-list',
+  '-Wno-sign-compare',
+  '-Wno-vla-cxx-extension',
 ])
-
-# HACK compiler.get_supported_arguments()/has_argument() do not seem
-# to be reliable for cross builds (!?!) so just jam in some args we
-# need and hope for the best
-if meson.is_cross_build()
-  freedreno_cpp_args += '-Wno-array-bounds'
-  freedreno_cpp_args += '-Wno-c++11-narrowing'
-  freedreno_cpp_args += '-Wno-c99-designator'
-endif
 
 libfreedreno_dependencies = [
   dep_libdrm,

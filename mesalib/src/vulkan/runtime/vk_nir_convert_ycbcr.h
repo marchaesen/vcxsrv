@@ -24,8 +24,7 @@
 #ifndef VK_NIR_CONVERT_YCBCR_H
 #define VK_NIR_CONVERT_YCBCR_H
 
-#include "nir.h"
-#include "nir_builder.h"
+#include "nir_defines.h"
 #include "vulkan/vulkan_core.h"
 
 #ifdef __cplusplus

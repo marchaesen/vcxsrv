@@ -34,6 +34,8 @@
 
 #include "util/mesa-sha1.h"
 
+#include "nir.h"
+
 void *
 vk_shader_zalloc(struct vk_device *device,
                  const struct vk_shader_ops *ops,

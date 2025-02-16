@@ -123,6 +123,57 @@ static void ppir_node_add_src(ppir_compiler *comp, ppir_node *node,
    ppir_node_target_assign(ps, child);
 }
 
+static bool ppir_emit_ffma(ppir_block *block, nir_instr *ni)
+{
+   nir_alu_instr *instr = nir_instr_as_alu(ni);
+   nir_def *def = &instr->def;
+   unsigned mask = nir_component_mask(def->num_components);
+   uint8_t identity[4] = { PIPE_SWIZZLE_X, PIPE_SWIZZLE_Y,
+                           PIPE_SWIZZLE_Z, PIPE_SWIZZLE_W };
+
+   ppir_alu_node *add = ppir_node_create_dest(block, ppir_op_add, def, mask);
+   if (!add)
+      return false;
+   ppir_alu_node *mul = ppir_node_create(block, ppir_op_mul, -1, mask);
+   if (!mul)
+      return false;
+
+   ppir_dest *mul_dest = &mul->dest;
+   ppir_dest *add_dest = &add->dest;
+
+   mul_dest->type = ppir_target_pipeline;
+   if (util_bitcount(add_dest->write_mask) == 1) {
+      mul_dest->write_mask = 1;
+      mul_dest->pipeline = ppir_pipeline_reg_fmul;
+   } else {
+      mul_dest->write_mask = u_bit_consecutive(0, 4);
+      mul_dest->pipeline = ppir_pipeline_reg_vmul;
+   }
+
+   add->num_src = 2;
+   mul->num_src = 2;
+
+   for (int i = 0; i < 2; i++) {
+      nir_alu_src *alu_src = instr->src + i;
+      ppir_src *ps = mul->src + i;
+      memcpy(ps->swizzle, alu_src->swizzle, sizeof(ps->swizzle));
+      ppir_node_add_src(block->comp, &mul->node, ps, &alu_src->src, mask);
+   }
+
+   nir_alu_src *alu_src = instr->src + 2;
+   ppir_src *ps = add->src;
+   memcpy(ps[1].swizzle, alu_src->swizzle, sizeof(ps[1].swizzle));
+   ppir_node_add_src(block->comp, &add->node, ps + 1, &alu_src->src, mask);
+
+   memcpy(ps[0].swizzle, identity, sizeof(ps[0].swizzle));
+   ppir_node_target_assign(&ps[0], &mul->node);
+   ppir_node_add_dep(&add->node, &mul->node, ppir_dep_src);
+
+   list_addtail(&add->node.list, &block->node_list);
+   list_addtail(&mul->node.list, &block->node_list);
+   return true;
+}
+
 static int nir_to_ppir_opcodes[nir_num_opcodes] = {
    [nir_op_mov] = ppir_op_mov,
    [nir_op_fmul] = ppir_op_mul,
@@ -152,6 +203,7 @@ static int nir_to_ppir_opcodes[nir_num_opcodes] = {
    [nir_op_ftrunc] = ppir_op_trunc,
    [nir_op_fsat] = ppir_op_sat,
    [nir_op_fclamp_pos] = ppir_op_clamp_pos,
+   [nir_op_ffma] = ppir_op_ffma,
 };
 
 static bool ppir_emit_alu(ppir_block *block, nir_instr *ni)
@@ -164,6 +216,11 @@ static bool ppir_emit_alu(ppir_block *block, nir_instr *ni)
       ppir_error("unsupported nir_op: %s\n", nir_op_infos[instr->op].name);
       return false;
    }
+
+   if (op == ppir_op_ffma) {
+      return ppir_emit_ffma(block, ni);
+   }
+
    unsigned mask = nir_component_mask(def->num_components);
    ppir_alu_node *node = ppir_node_create_dest(block, op, def, mask);
    if (!node)

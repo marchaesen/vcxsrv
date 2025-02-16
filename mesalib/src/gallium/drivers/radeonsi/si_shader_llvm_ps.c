@@ -309,14 +309,15 @@ static void si_llvm_build_clamp_alpha_test(struct si_shader_context *ctx,
 
 static void si_export_mrt_color(struct si_shader_context *ctx, LLVMValueRef *color, unsigned index,
                                 unsigned first_color_export, unsigned color_type,
-                                struct si_ps_exports *exp)
+                                bool writes_all_cbufs, struct si_ps_exports *exp)
 {
-   /* If last_cbuf > 0, FS_COLOR0_WRITES_ALL_CBUFS is true. */
-   if (ctx->shader->key.ps.part.epilog.last_cbuf > 0) {
+   if (writes_all_cbufs) {
       assert(exp->num == first_color_export);
 
-      /* Get the export arguments, also find out what the last one is. */
-      for (int c = 0; c <= ctx->shader->key.ps.part.epilog.last_cbuf; c++) {
+      /* This will do nothing for color buffers with SPI_SHADER_COL_FORMAT=ZERO, so always
+       * iterate over all 8.
+       */
+      for (int c = 0; c < 8; c++) {
          if (si_llvm_init_ps_export_args(ctx, color, c, exp->num - first_color_export,
                                          color_type, &exp->args[exp->num])) {
             assert(exp->args[exp->num].enabled_channels);
@@ -631,20 +632,58 @@ void si_llvm_build_ps_prolog(struct si_shader_context *ctx, union si_shader_part
     * entire pixel/fragment, so mask bits out based on the sample ID.
     */
    if (key->ps_prolog.states.samplemask_log_ps_iter) {
-      uint32_t ps_iter_mask =
-         ac_get_ps_iter_mask(1 << key->ps_prolog.states.samplemask_log_ps_iter);
-      LLVMValueRef sampleid = si_unpack_param(ctx, args->ac.ancillary, 8, 4);
-      LLVMValueRef samplemask = ac_get_arg(&ctx->ac, args->ac.sample_coverage);
+      LLVMValueRef sample_id = si_unpack_param(ctx, args->ac.ancillary, 8, 4);
+      LLVMValueRef sample_mask_in;
 
-      samplemask = ac_to_integer(&ctx->ac, samplemask);
-      samplemask =
-         LLVMBuildAnd(ctx->ac.builder, samplemask,
-                      LLVMBuildShl(ctx->ac.builder, LLVMConstInt(ctx->ac.i32, ps_iter_mask, false),
-                                   sampleid, ""),
-                      "");
-      samplemask = ac_to_float(&ctx->ac, samplemask);
+      /* Set samplemask_log_ps_iter=3 if full sample shading is enabled even for 2x and 4x MSAA
+       * to get this fast path that fully replaces sample_mask_in with sample_id.
+       */
+      if (key->ps_prolog.states.samplemask_log_ps_iter == 3) {
+         sample_mask_in =
+            LLVMBuildSelect(ctx->ac.builder, ac_build_load_helper_invocation(&ctx->ac),
+                            ctx->ac.i32_0,
+                            LLVMBuildShl(ctx->ac.builder, ctx->ac.i32_1, sample_id, ""), "");
+      } else {
+         uint32_t ps_iter_mask =
+            ac_get_ps_iter_mask(1 << key->ps_prolog.states.samplemask_log_ps_iter);
+         sample_mask_in =
+            LLVMBuildAnd(ctx->ac.builder,
+                         ac_to_integer(&ctx->ac, ac_get_arg(&ctx->ac, args->ac.sample_coverage)),
+                         LLVMBuildShl(ctx->ac.builder, LLVMConstInt(ctx->ac.i32, ps_iter_mask, false),
+                                      sample_id, ""), "");
+      }
 
-      ret = insert_ret_of_arg(ctx, ret, samplemask, args->ac.sample_coverage.arg_index);
+      sample_mask_in = ac_to_float(&ctx->ac, sample_mask_in);
+      ret = insert_ret_of_arg(ctx, ret, sample_mask_in, args->ac.sample_coverage.arg_index);
+   } else if (key->ps_prolog.states.force_samplemask_to_helper_invocation) {
+      LLVMValueRef sample_mask_in =
+         LLVMBuildZExt(ctx->ac.builder,
+                       LLVMBuildNot(ctx->ac.builder, ac_build_load_helper_invocation(&ctx->ac), ""),
+                       ctx->ac.i32, "");
+      ret = insert_ret_of_arg(ctx, ret, ac_to_float(&ctx->ac, sample_mask_in),
+                              args->ac.sample_coverage.arg_index);
+   }
+
+   if (key->ps_prolog.states.get_frag_coord_from_pixel_coord) {
+      LLVMValueRef pixel_coord = ac_get_arg(&ctx->ac, args->ac.pos_fixed_pt);
+      pixel_coord = LLVMBuildBitCast(ctx->ac.builder, pixel_coord, ctx->ac.v2i16, "");
+      pixel_coord = LLVMBuildUIToFP(ctx->ac.builder, pixel_coord, ctx->ac.v2f32, "");
+
+      if (!key->ps_prolog.pixel_center_integer) {
+         LLVMValueRef vec2_half = LLVMConstVector((LLVMValueRef[]){LLVMConstReal(ctx->ac.f32, 0.5),
+                                                                   LLVMConstReal(ctx->ac.f32, 0.5)}, 2);
+         pixel_coord = LLVMBuildFAdd(ctx->ac.builder, pixel_coord, vec2_half, "");
+      }
+
+      for (unsigned i = 0; i < 2; i++) {
+         if (!args->ac.frag_pos[i].used)
+            continue;
+
+         ret = insert_ret_of_arg(ctx, ret,
+                                 LLVMBuildExtractElement(ctx->ac.builder, pixel_coord,
+                                                         LLVMConstInt(ctx->ac.i32, i, 0), ""),
+                                 args->ac.frag_pos[i].arg_index);
+      }
    }
 
    /* Tell LLVM to insert WQM instruction sequence when needed. */
@@ -722,7 +761,8 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
       int write_i = u_bit_scan(&colors_written);
       unsigned color_type = (key->ps_epilog.color_types >> (write_i * 2)) & 0x3;
 
-      si_export_mrt_color(ctx, color[write_i], write_i, first_color_export, color_type, &exp);
+      si_export_mrt_color(ctx, color[write_i], write_i, first_color_export, color_type,
+                          key->ps_epilog.writes_all_cbufs, &exp);
    }
 
    if (exp.num) {
@@ -745,4 +785,3 @@ void si_llvm_build_ps_epilog(struct si_shader_context *ctx, union si_shader_part
    /* Compile. */
    LLVMBuildRetVoid(ctx->ac.builder);
 }
-

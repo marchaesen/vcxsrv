@@ -198,6 +198,7 @@ nir_format_bitcast_uvec_unmasked(nir_builder *b, nir_def *src,
 static nir_def *
 _nir_format_norm_factor(nir_builder *b, const unsigned *bits,
                         unsigned num_components,
+                        unsigned bit_size,
                         bool is_signed)
 {
    nir_const_value factor[NIR_MAX_VEC_COMPONENTS];
@@ -214,25 +215,38 @@ _nir_format_norm_factor(nir_builder *b, const unsigned *bits,
        * helper is used for the vertex format conversion on Asahi, so we can't
        * assert(bits[i] <= 16). But if it's not, you get to pick up the pieces.
        */
-      factor[i].f32 = (1ull << (bits[i] - is_signed)) - 1;
+      switch (bit_size) {
+      case 32: factor[i].f32 = (1ull << (bits[i] - is_signed)) - 1; break;
+      case 64: factor[i].f64 = (1ull << (bits[i] - is_signed)) - 1; break;
+      default: unreachable("invalid bit size"); break;
+      }
    }
-   return nir_build_imm(b, num_components, 32, factor);
+   return nir_build_imm(b, num_components, bit_size, factor);
 }
 
 nir_def *
 nir_format_unorm_to_float(nir_builder *b, nir_def *u, const unsigned *bits)
 {
    nir_def *factor =
-      _nir_format_norm_factor(b, bits, u->num_components, false);
+      _nir_format_norm_factor(b, bits, u->num_components, 32, false);
 
    return nir_fdiv(b, nir_u2f32(b, u), factor);
+}
+
+nir_def *
+nir_format_unorm_to_float_precise(nir_builder *b, nir_def *u, const unsigned *bits)
+{
+   nir_def *factor =
+      _nir_format_norm_factor(b, bits, u->num_components, 64, false);
+
+   return nir_f2f32(b, nir_fdiv(b, nir_u2f64(b, u), factor));
 }
 
 nir_def *
 nir_format_snorm_to_float(nir_builder *b, nir_def *s, const unsigned *bits)
 {
    nir_def *factor =
-      _nir_format_norm_factor(b, bits, s->num_components, true);
+      _nir_format_norm_factor(b, bits, s->num_components, 32, true);
 
    return nir_fmax(b, nir_fdiv(b, nir_i2f32(b, s), factor),
                    nir_imm_float(b, -1.0f));
@@ -242,7 +256,7 @@ nir_def *
 nir_format_float_to_unorm(nir_builder *b, nir_def *f, const unsigned *bits)
 {
    nir_def *factor =
-      _nir_format_norm_factor(b, bits, f->num_components, false);
+      _nir_format_norm_factor(b, bits, f->num_components, 32, false);
 
    /* Clamp to the range [0, 1] */
    f = nir_fsat(b, f);
@@ -254,7 +268,7 @@ nir_def *
 nir_format_float_to_snorm(nir_builder *b, nir_def *f, const unsigned *bits)
 {
    nir_def *factor =
-      _nir_format_norm_factor(b, bits, f->num_components, true);
+      _nir_format_norm_factor(b, bits, f->num_components, 32, true);
 
    /* Clamp to the range [-1, 1] */
    f = nir_fmin(b, nir_fmax(b, f, nir_imm_float(b, -1)), nir_imm_float(b, 1));

@@ -1028,6 +1028,12 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
             GLint i_bits =
                _mesa_get_format_bits(rb->Format, GL_TEXTURE_INTENSITY_SIZE);
 
+            /* Fix the case where some drivers may implement signed luminance
+             * as signed RGBA, which leads to reporting signed alpha.
+             */
+            if (rb->_BaseFormat == GL_LUMINANCE)
+               a_bits = 0;
+
             v->value_int_4[0] = r_bits + l_bits + i_bits > 0;
             v->value_int_4[1] = g_bits + l_bits + i_bits > 0;
             v->value_int_4[2] = b_bits + l_bits + i_bits > 0;

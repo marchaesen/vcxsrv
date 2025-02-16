@@ -52,17 +52,9 @@ is_color_output(nir_shader *shader, int location)
 static bool
 lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intr, nir_shader *shader)
 {
-   nir_variable *out = NULL;
-   nir_def *s;
    int loc = -1;
 
    switch (intr->intrinsic) {
-   case nir_intrinsic_store_deref:
-      out = nir_intrinsic_get_var(intr, 0);
-      if (out->data.mode != nir_var_shader_out)
-         return false;
-      loc = out->data.location;
-      break;
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_per_view_output:
       loc = nir_intrinsic_io_semantics(intr).location;
@@ -73,13 +65,13 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intr, nir_shader *shader)
 
    if (is_color_output(shader, loc)) {
       b->cursor = nir_before_instr(&intr->instr);
-      int src = intr->intrinsic == nir_intrinsic_store_deref ? 1 : 0;
-      s = intr->src[src].ssa;
+      nir_def *s = intr->src[0].ssa;
       s = nir_fsat(b, s);
-      nir_src_rewrite(&intr->src[src], s);
+      nir_src_rewrite(&intr->src[0], s);
+      return true;
    }
 
-   return true;
+   return false;
 }
 
 static bool
@@ -93,6 +85,7 @@ lower_instr(nir_builder *b, nir_instr *instr, void *cb_data)
 bool
 nir_lower_clamp_color_outputs(nir_shader *shader)
 {
+   assert(shader->info.io_lowered);
    return nir_shader_instructions_pass(shader, lower_instr,
                                        nir_metadata_control_flow,
                                        shader);

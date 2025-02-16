@@ -97,8 +97,8 @@ struct zink_instance_info {
 %endfor
 };
 
-bool
-zink_create_instance(struct zink_screen *screen);
+VkInstance
+zink_create_instance(struct zink_screen *screen, struct zink_instance_info *instance_info);
 
 void
 zink_verify_instance_extensions(struct zink_screen *screen);
@@ -128,11 +128,9 @@ impl_code = """
 #include "zink_instance.h"
 #include "zink_screen.h"
 
-bool
-zink_create_instance(struct zink_screen *screen)
+VkInstance
+zink_create_instance(struct zink_screen *screen, struct zink_instance_info *instance_info)
 {
-   struct zink_instance_info *instance_info = &screen->instance_info;
-
    /* reserve one slot for MoltenVK */
    const char *layers[${len(layers) + 1}] = {0};
    uint32_t num_layers = 0;
@@ -266,14 +264,14 @@ zink_create_instance(struct zink_screen *screen)
    GET_PROC_ADDR_INSTANCE_LOCAL(screen, NULL, CreateInstance);
    assert(vk_CreateInstance);
 
-   VkResult err = vk_CreateInstance(&ici, NULL, &screen->instance);
+   VkInstance instance;
+   VkResult err = vk_CreateInstance(&ici, NULL, &instance);
    if (err != VK_SUCCESS) {
       if (!screen->driver_name_is_inferred)
           mesa_loge("ZINK: vkCreateInstance failed (%s)", vk_Result_to_str(err));
-      return false;
    }
 
-   return true;
+   return instance;
 }
 
 void
@@ -284,7 +282,7 @@ zink_verify_instance_extensions(struct zink_screen *screen)
 %if ext.platform_guard:
 #ifdef ${ext.platform_guard}
 %endif
-   if (screen->instance_info.have_${ext.name_with_vendor()}) {
+   if (screen->instance_info->have_${ext.name_with_vendor()}) {
 %for cmd in registry.get_registry_entry(ext.name).instance_commands:
       if (!screen->vk.${cmd.lstrip("vk")}) {
 #ifndef NDEBUG

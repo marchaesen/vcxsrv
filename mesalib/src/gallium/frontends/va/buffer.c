@@ -321,12 +321,8 @@ vlVaDestroyBuffer(VADriverContextP ctx, VABufferID buf_id)
       return VA_STATUS_ERROR_INVALID_BUFFER;
    }
 
-   if (buf->derived_surface.resource) {
+   if (buf->derived_surface.resource)
       pipe_resource_reference(&buf->derived_surface.resource, NULL);
-
-      if (buf->derived_image_buffer)
-         buf->derived_image_buffer->destroy(buf->derived_image_buffer);
-   }
 
    if (buf->type == VAEncCodedBufferType) {
       VACodedBufferSegment* node = buf->data;
@@ -455,7 +451,6 @@ vlVaAcquireBufferHandle(VADriverContextP ctx, VABufferID buf_id,
          struct winsys_handle whandle;
 
          mtx_lock(&drv->mutex);
-         drv->pipe->flush(drv->pipe, NULL, 0);
 
          memset(&whandle, 0, sizeof(whandle));
          whandle.type = WINSYS_HANDLE_TYPE_FD;
@@ -560,31 +555,27 @@ vlVaSyncBuffer(VADriverContextP ctx, VABufferID buf_id, uint64_t timeout_ns)
 
    mtx_lock(&drv->mutex);
    buf = handle_table_get(drv->htab, buf_id);
-
    if (!buf) {
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_INVALID_BUFFER;
    }
 
+   /* No outstanding operation: nothing to do. */
    if (!buf->fence) {
-      /* No outstanding operation: nothing to do. */
       mtx_unlock(&drv->mutex);
       return VA_STATUS_SUCCESS;
    }
 
    context = buf->ctx;
-   if (!context) {
+   if (!context || !context->decoder) {
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_INVALID_CONTEXT;
    }
 
-   if (!context->decoder) {
-      mtx_unlock(&drv->mutex);
-      return VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT;
-   }
-
-   int ret = context->decoder->fence_wait(context->decoder, buf->fence, timeout_ns);
+   mtx_lock(&context->mutex);
    mtx_unlock(&drv->mutex);
+   int ret = context->decoder->fence_wait(context->decoder, buf->fence, timeout_ns);
+   mtx_unlock(&context->mutex);
    return ret ? VA_STATUS_SUCCESS : VA_STATUS_ERROR_TIMEDOUT;
 }
 #endif

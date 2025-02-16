@@ -11,8 +11,7 @@ the suitability of this software for any purpose.  It is provided "as
 is" without express or implied warranty.
 
 */
-
-#include <xnest-config.h>
+#include <dix-config.h>
 
 #include <X11/X.h>
 #include <X11/Xdefs.h>
@@ -225,7 +224,7 @@ xnestChangeClip(GCPtr pGC, int type, void *pValue, int nRects)
          * current pixmap contents.
          */
         pGC->clientClip = (*pGC->pScreen->BitmapToRegion) ((PixmapPtr) pValue);
-        (*pGC->pScreen->DestroyPixmap) ((PixmapPtr) pValue);
+        dixDestroyPixmap((PixmapPtr) pValue, 0);
         pValue = pGC->clientClip;
         break;
 

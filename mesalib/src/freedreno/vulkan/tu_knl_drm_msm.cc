@@ -77,6 +77,17 @@ tu_drm_get_gmem_base(const struct tu_physical_device *dev, uint64_t *base)
    return tu_drm_get_param(dev->local_fd, MSM_PARAM_GMEM_BASE, base);
 }
 
+static bool
+tu_drm_get_raytracing(const struct tu_physical_device *dev)
+{
+   uint64_t value;
+   int ret = tu_drm_get_param(dev->local_fd, MSM_PARAM_RAYTRACING, &value);
+   if (ret)
+      return false;
+
+   return value;
+}
+
 static int
 tu_drm_get_va_prop(const struct tu_physical_device *dev,
                    uint64_t *va_start, uint64_t *va_size)
@@ -1039,6 +1050,7 @@ tu_knl_drm_msm_load(struct tu_instance *instance,
 
    device->has_set_iova = !tu_drm_get_va_prop(device, &device->va_start,
                                               &device->va_size);
+   device->has_raytracing = tu_drm_get_raytracing(device);
 
    device->has_preemption = tu_drm_has_preemption(device);
 

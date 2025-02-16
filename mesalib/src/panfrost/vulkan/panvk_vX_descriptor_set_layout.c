@@ -16,6 +16,7 @@
 #include "vk_format.h"
 #include "vk_log.h"
 #include "vk_util.h"
+#include "vk_ycbcr_conversion.h"
 
 #include "util/bitset.h"
 
@@ -30,16 +31,53 @@
 #define PANVK_MAX_DESCS_PER_SET (1 << 24)
 
 static bool
-binding_has_immutable_samplers(const VkDescriptorSetLayoutBinding *binding)
+is_texture(VkDescriptorType type)
 {
-   switch (binding->descriptorType) {
-   case VK_DESCRIPTOR_TYPE_SAMPLER:
+   switch (type) {
+   case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+   case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+   case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      return binding->pImmutableSamplers != NULL;
+      return true;
 
    default:
       return false;
    }
+}
+
+static bool
+is_sampler(VkDescriptorType type)
+{
+   switch (type) {
+   case VK_DESCRIPTOR_TYPE_SAMPLER:
+   case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+      return true;
+
+   default:
+      return false;
+   }
+}
+
+static bool
+binding_has_immutable_samplers(const VkDescriptorSetLayoutBinding *binding)
+{
+   return is_sampler(binding->descriptorType) &&
+      binding->pImmutableSamplers != NULL;
+}
+
+static void
+set_immutable_sampler(struct panvk_descriptor_set_binding_layout *binding_layout,
+                      uint32_t index, struct panvk_sampler *sampler)
+{
+   binding_layout->immutable_samplers[index] = sampler;
+   if (!sampler->vk.ycbcr_conversion)
+      return;
+
+   binding_layout->textures_per_desc =
+      MAX2(vk_format_get_plane_count(sampler->vk.ycbcr_conversion->state.format),
+           binding_layout->textures_per_desc);
+   binding_layout->samplers_per_desc =
+      MAX2(sampler->desc_count, binding_layout->samplers_per_desc);
 }
 
 VkResult
@@ -85,7 +123,7 @@ panvk_per_arch(CreateDescriptorSetLayout)(
    VK_MULTIALLOC_DECL(&ma, struct panvk_descriptor_set_layout, layout, 1);
    VK_MULTIALLOC_DECL(&ma, struct panvk_descriptor_set_binding_layout,
                       binding_layouts, num_bindings);
-   VK_MULTIALLOC_DECL(&ma, struct mali_sampler_packed, samplers,
+   VK_MULTIALLOC_DECL(&ma, struct panvk_sampler *, samplers,
                       immutable_sampler_count);
 
    if (!vk_descriptor_set_layout_multizalloc(&device->vk, &ma)) {
@@ -119,6 +157,11 @@ panvk_per_arch(CreateDescriptorSetLayout)(
       }
 
       binding_layout->desc_count = binding->descriptorCount;
+      if (is_texture(binding_layout->type))
+         binding_layout->textures_per_desc = 1;
+
+      if (is_sampler(binding_layout->type))
+         binding_layout->samplers_per_desc = 1;
 
       if (binding_has_immutable_samplers(binding)) {
          binding_layout->immutable_samplers = samplers;
@@ -126,7 +169,7 @@ panvk_per_arch(CreateDescriptorSetLayout)(
          for (uint32_t j = 0; j < binding->descriptorCount; j++) {
             VK_FROM_HANDLE(panvk_sampler, sampler,
                            binding->pImmutableSamplers[j]);
-            binding_layout->immutable_samplers[j] = sampler->desc;
+            set_immutable_sampler(binding_layout, j, sampler);
          }
       }
 
@@ -135,7 +178,7 @@ panvk_per_arch(CreateDescriptorSetLayout)(
          dyn_buf_idx += binding_layout->desc_count;
       } else {
          binding_layout->desc_idx = desc_idx;
-         desc_idx += panvk_get_desc_stride(binding_layout->type) *
+         desc_idx += panvk_get_desc_stride(binding_layout) *
                      binding_layout->desc_count;
       }
    }
@@ -160,7 +203,23 @@ panvk_per_arch(CreateDescriptorSetLayout)(
                           sizeof(layout->bindings[b].flags));
       _mesa_blake3_update(&hash_ctx, &layout->bindings[b].desc_count,
                           sizeof(layout->bindings[b].desc_count));
-      /* Immutable samplers are ignored for now */
+      _mesa_blake3_update(&hash_ctx, &layout->bindings[b].textures_per_desc,
+                          sizeof(layout->bindings[b].textures_per_desc));
+      _mesa_blake3_update(&hash_ctx, &layout->bindings[b].samplers_per_desc,
+                          sizeof(layout->bindings[b].samplers_per_desc));
+
+      if (layout->bindings[b].immutable_samplers != NULL) {
+         for (uint32_t i = 0; i < layout->bindings[b].desc_count; i++) {
+            const struct panvk_sampler *sampler =
+               layout->bindings[b].immutable_samplers[i];
+
+            /* We zalloc the object, so it's safe to hash the whole thing */
+            if (sampler != NULL && sampler->vk.ycbcr_conversion != NULL)
+               _mesa_blake3_update(&hash_ctx,
+                                   &sampler->vk.ycbcr_conversion->state,
+                                   sizeof(sampler->vk.ycbcr_conversion->state));
+         }
+      }
    }
 
    _mesa_blake3_final(&hash_ctx, layout->vk.blake3);
@@ -183,10 +242,36 @@ panvk_per_arch(GetDescriptorSetLayoutSupport)(
       const VkDescriptorSetLayoutBinding *binding = &pCreateInfo->pBindings[i];
       VkDescriptorType type = binding->descriptorType;
 
-      if (vk_descriptor_type_is_dynamic(type))
+      if (vk_descriptor_type_is_dynamic(type)) {
          dyn_buf_count += binding->descriptorCount;
-      else
-         desc_count += panvk_get_desc_stride(type) * binding->descriptorCount;
+         continue;
+      }
+
+      unsigned textures_per_desc = is_texture(type) ? 1 : 0;
+      unsigned samplers_per_desc = is_sampler(type) ? 1 : 0;
+      if (binding_has_immutable_samplers(binding)) {
+         for (uint32_t j = 0; j < binding->descriptorCount; j++) {
+            VK_FROM_HANDLE(panvk_sampler, sampler,
+                           binding->pImmutableSamplers[j]);
+            if (!sampler->vk.ycbcr_conversion)
+               continue;
+
+            textures_per_desc =
+               MAX2(vk_format_get_plane_count(
+                       sampler->vk.ycbcr_conversion->state.format),
+                    textures_per_desc);
+            samplers_per_desc =
+               MAX2(sampler->desc_count, samplers_per_desc);
+         }
+      }
+
+      const struct panvk_descriptor_set_binding_layout layout = {
+         .type = type,
+         .textures_per_desc = textures_per_desc,
+         .samplers_per_desc = samplers_per_desc,
+      };
+
+      desc_count += panvk_get_desc_stride(&layout) * binding->descriptorCount;
    }
 
    if (desc_count > PANVK_MAX_DESCS_PER_SET ||

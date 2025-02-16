@@ -34,6 +34,11 @@ extra_cflags_cc = [
         "-Wno-unused-but-set-variable",
         "-Wno-sizeof-array-div",
         "-Wno-string-concatenation",
+        "-Wno-unsafe-buffer-usage",
+        "-Wno-switch-default",
+        "-Wno-cast-function-type-strict",
+        "-Wno-format",
+        "-Wno-enum-constexpr-conversion",
     ]
 
 cc_wrapper = "ccache"

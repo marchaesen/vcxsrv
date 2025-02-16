@@ -68,6 +68,8 @@ libgallium_dri = shared_library(
   name_suffix : libname_suffix,
 )
 
+shared_glapi_lib = libgallium_dri
+
 if with_gallium_va or with_gallium_vdpau
   va_drivers = []
   vdpau_drivers = []

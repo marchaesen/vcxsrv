@@ -245,10 +245,12 @@ exaDestroyPixmap_mixed(PixmapPtr pPixmap)
     ScreenPtr pScreen = pPixmap->drawable.pScreen;
 
     ExaScreenPriv(pScreen);
-    Bool ret;
+    Bool ret = TRUE;
 
     if (pPixmap->refcnt == 1) {
         ExaPixmapPriv(pPixmap);
+        if (!pExaPixmap)
+            goto out; // we're called on an error path
 
         exaDestroyPixmap(pPixmap);
 
@@ -266,8 +268,10 @@ exaDestroyPixmap_mixed(PixmapPtr pPixmap)
         }
     }
 
+out:
+    // restore original (screen driver's) DestroyPixmap() handler and call it
     swap(pExaScr, pScreen, DestroyPixmap);
-    ret = pScreen->DestroyPixmap(pPixmap);
+    dixDestroyPixmap(pPixmap, 0);
     swap(pExaScr, pScreen, DestroyPixmap);
 
     return ret;

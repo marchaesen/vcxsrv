@@ -312,26 +312,21 @@ cso_create_context(struct pipe_context *pipe, unsigned flags)
    /* Enable for testing: */
    if (0) cso_set_maximum_cache_size(&ctx->cache, 4);
 
-   if (pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_GEOMETRY,
-                                PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0) {
+   if (pipe->screen->shader_caps[PIPE_SHADER_GEOMETRY].max_instructions > 0) {
       ctx->has_geometry_shader = true;
    }
-   if (pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_TESS_CTRL,
-                                PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0) {
+   if (pipe->screen->shader_caps[PIPE_SHADER_TESS_CTRL].max_instructions > 0) {
       ctx->has_tessellation = true;
    }
-   if (pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_COMPUTE,
-                                      PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0) {
+   if (pipe->screen->shader_caps[PIPE_SHADER_COMPUTE].max_instructions > 0) {
       int supported_irs =
-         pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_COMPUTE,
-                                        PIPE_SHADER_CAP_SUPPORTED_IRS);
+         pipe->screen->shader_caps[PIPE_SHADER_COMPUTE].supported_irs;
       if (supported_irs & ((1 << PIPE_SHADER_IR_TGSI) |
                            (1 << PIPE_SHADER_IR_NIR))) {
          ctx->has_compute_shader = true;
       }
    }
-   if (pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_MESH,
-                                PIPE_SHADER_CAP_MAX_INSTRUCTIONS) > 0) {
+   if (pipe->screen->shader_caps[PIPE_SHADER_MESH].max_instructions > 0) {
       ctx->has_task_mesh_shader = true;
    }
    if (pipe->screen->caps.max_stream_output_buffers != 0) {
@@ -343,8 +338,7 @@ cso_create_context(struct pipe_context *pipe, unsigned flags)
       ctx->sampler_format = true;
 
    ctx->max_fs_samplerviews =
-      pipe->screen->get_shader_param(pipe->screen, PIPE_SHADER_FRAGMENT,
-                                     PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS);
+      pipe->screen->shader_caps[PIPE_SHADER_FRAGMENT].max_texture_samplers;
 
    ctx->max_sampler_seen = -1;
    return &ctx->base;
@@ -394,16 +388,11 @@ cso_unbind_context(struct cso_context *cso)
                break;
             }
 
-            int maxsam = scr->get_shader_param(scr, sh,
-                                               PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS);
-            int maxview = scr->get_shader_param(scr, sh,
-                                                PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS);
-            int maxssbo = scr->get_shader_param(scr, sh,
-                                                PIPE_SHADER_CAP_MAX_SHADER_BUFFERS);
-            int maxcb = scr->get_shader_param(scr, sh,
-                                              PIPE_SHADER_CAP_MAX_CONST_BUFFERS);
-            int maximg = scr->get_shader_param(scr, sh,
-                                              PIPE_SHADER_CAP_MAX_SHADER_IMAGES);
+            int maxsam = scr->shader_caps[sh].max_texture_samplers;
+            int maxview = scr->shader_caps[sh].max_sampler_views;
+            int maxssbo = scr->shader_caps[sh].max_shader_buffers;
+            int maxcb = scr->shader_caps[sh].max_const_buffers;
+            int maximg = scr->shader_caps[sh].max_shader_images;
             assert(maxsam <= PIPE_MAX_SAMPLERS);
             assert(maxview <= PIPE_MAX_SHADER_SAMPLER_VIEWS);
             assert(maxssbo <= PIPE_MAX_SHADER_BUFFERS);

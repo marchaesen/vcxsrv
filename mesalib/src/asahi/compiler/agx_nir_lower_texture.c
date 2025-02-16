@@ -213,11 +213,16 @@ lower_regular_texture(nir_builder *b, nir_instr *instr, UNUSED void *data)
    /* Apply txf workaround, see libagx_lower_txf_robustness */
    bool is_txf = ((tex->op == nir_texop_txf) || (tex->op == nir_texop_txf_ms));
 
-   if (is_txf && (has_nonzero_lod(tex) || tex->is_array) &&
+   if (is_txf &&
+       (has_nonzero_lod(tex) || tex->is_array ||
+        nir_tex_instr_src_index(tex, nir_tex_src_min_lod) >= 0) &&
        !(tex->backend_flags & AGX_TEXTURE_FLAG_NO_CLAMP)) {
+
       int lod_idx = nir_tex_instr_src_index(tex, nir_tex_src_lod);
       nir_def *lod =
          lod_idx >= 0 ? tex->src[lod_idx].src.ssa : nir_undef(b, 1, 16);
+
+      nir_def *min_lod = nir_steal_tex_src(tex, nir_tex_src_min_lod);
 
       unsigned lidx = coord->num_components - 1;
       nir_def *layer = nir_channel(b, coord, lidx);
@@ -225,6 +230,7 @@ lower_regular_texture(nir_builder *b, nir_instr *instr, UNUSED void *data)
       nir_def *replaced = libagx_lower_txf_robustness(
          b, texture_descriptor_ptr(b, tex),
          nir_imm_bool(b, has_nonzero_lod(tex)), lod,
+         nir_imm_bool(b, min_lod != NULL), min_lod ?: nir_undef(b, 1, 16),
          nir_imm_bool(b, tex->is_array), layer, nir_channel(b, coord, 0));
 
       coord = nir_vector_insert_imm(b, coord, replaced, 0);
@@ -313,6 +319,15 @@ lower_regular_texture(nir_builder *b, nir_instr *instr, UNUSED void *data)
       }
 
       nir_tex_instr_add_src(tex, nir_tex_src_backend2, packed);
+   }
+
+   if (nir_tex_instr_src_index(tex, nir_tex_src_bias) >= 0 &&
+       nir_tex_instr_src_index(tex, nir_tex_src_min_lod) >= 0) {
+
+      nir_def *bias = nir_steal_tex_src(tex, nir_tex_src_bias);
+      nir_def *min_lod = nir_steal_tex_src(tex, nir_tex_src_min_lod);
+      nir_def *packed = nir_pack_32_2x16_split(b, bias, min_lod);
+      nir_tex_instr_add_src(tex, nir_tex_src_lod_bias_min_agx, packed);
    }
 
    /* We reserve bound sampler #0, so we offset bound samplers by 1 and
@@ -581,6 +596,7 @@ lower_image_load_robustness(nir_builder *b, nir_intrinsic_instr *intr)
    nir_def *replaced = libagx_lower_txf_robustness(
       b, nir_load_from_texture_handle_agx(b, intr->src[0].ssa),
       nir_imm_bool(b, false /* lower LOD */), lod,
+      nir_imm_bool(b, false /* lower min LOD */), lod,
       nir_imm_bool(b, true /* lower layer */), layer, nir_channel(b, coord, 0));
 
    nir_src_rewrite(&intr->src[1], nir_vector_insert_imm(b, coord, replaced, 0));

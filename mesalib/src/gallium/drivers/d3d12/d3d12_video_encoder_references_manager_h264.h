@@ -46,7 +46,7 @@ class d3d12_video_encoder_references_manager_h264 : public d3d12_video_encoder_r
    }
    void end_frame()
    { }
-   d3d12_video_encoder_references_manager_h264()
+   d3d12_video_encoder_references_manager_h264(bool fArrayOfTextures) : m_fArrayOfTextures(fArrayOfTextures)
    { }
    ~d3d12_video_encoder_references_manager_h264()
    { }
@@ -78,6 +78,7 @@ class d3d12_video_encoder_references_manager_h264 : public d3d12_video_encoder_r
 
    bool m_isCurrentFrameUsedAsReference = false;
    D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_H264 m_curFrameState = {};
+   bool m_fArrayOfTextures = false;
 };
 
 #endif

@@ -336,7 +336,7 @@ midgard_promote_uniforms(compiler_context *ctx)
 
          uint16_t rounded = mir_round_bytemask_up(mir_bytemask(ins), type_size);
          mir_set_bytemask(&mov, rounded);
-         mir_insert_instruction_before(ctx, ins, mov);
+         mir_insert_instruction_before(ctx, ins, &mov);
       } else {
          mir_rewrite_index_src(ctx, ins->dest, promoted);
       }

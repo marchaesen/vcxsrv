@@ -25,6 +25,7 @@
 #include "vk_nir.h"
 
 #include "compiler/nir/nir_xfb_info.h"
+#include "compiler/nir/nir.h"
 #include "compiler/spirv/nir_spirv.h"
 #include "vk_device.h"
 #include "vk_log.h"
@@ -152,7 +153,6 @@ vk_spirv_to_nir(struct vk_device *device,
 
    assert(nir->info.stage == stage);
    nir_validate_shader(nir, "after spirv_to_nir");
-   nir_validate_ssa_dominance(nir, "after spirv_to_nir");
    if (mem_ctx != NULL)
       ralloc_steal(mem_ctx, nir);
 

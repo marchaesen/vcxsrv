@@ -89,19 +89,19 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 #define MAX_EXTENSION_FUNCS 300
 
 #if DETECT_OS_WINDOWS
-extern __THREAD_INITIAL_EXEC struct _glapi_table * _glapi_tls_Dispatch;
-extern __THREAD_INITIAL_EXEC void * _glapi_tls_Context;
+extern __THREAD_INITIAL_EXEC struct _glapi_table * _mesa_glapi_tls_Dispatch;
+extern __THREAD_INITIAL_EXEC void * _mesa_glapi_tls_Context;
 #else
-_GLAPI_EXPORT extern __THREAD_INITIAL_EXEC struct _glapi_table * _glapi_tls_Dispatch;
-_GLAPI_EXPORT extern __THREAD_INITIAL_EXEC void * _glapi_tls_Context;
+_GLAPI_EXPORT extern __THREAD_INITIAL_EXEC struct _glapi_table * _mesa_glapi_tls_Dispatch;
+_GLAPI_EXPORT extern __THREAD_INITIAL_EXEC void * _mesa_glapi_tls_Context;
 #endif
 
 #if DETECT_OS_WINDOWS && !defined(MAPI_MODE_UTIL) && !defined(MAPI_MODE_GLAPI)
-# define GET_DISPATCH() _glapi_get_dispatch()
-# define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_get_context()
+# define GET_DISPATCH() _mesa_glapi_get_dispatch()
+# define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _mesa_glapi_get_context()
 #else
-# define GET_DISPATCH() _glapi_tls_Dispatch
-# define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _glapi_tls_Context
+# define GET_DISPATCH() _mesa_glapi_tls_Dispatch
+# define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) _mesa_glapi_tls_Context
 #endif
 
 #ifdef INSERVER
@@ -110,7 +110,7 @@ _GLAPI_EXPORT extern __THREAD_INITIAL_EXEC void * _glapi_tls_Context;
 #define SERVEXTERN _declspec(dllexport)
 #endif
 
-SERVEXTERN struct _glapi_table *_glapi_Dispatch;
+SERVEXTERN struct _glapi_table *_mesa_glapi_Dispatch;
 SERVEXTERN void *_glapi_Context;
 SERVEXTERN void
 _glapi_destroy_multithread(void);
@@ -121,31 +121,28 @@ _glapi_check_multithread(void);
 
 
 SERVEXTERN void
-_glapi_set_context(void *context);
+_mesa_glapi_set_context(void *context);
 
 
 SERVEXTERN void *
-_glapi_get_context(void);
+_mesa_glapi_get_context(void);
 
 
 SERVEXTERN void
-_glapi_set_dispatch(struct _glapi_table *dispatch);
+_mesa_glapi_set_dispatch(struct _glapi_table *dispatch);
 
 
 SERVEXTERN struct _glapi_table *
-_glapi_get_dispatch(void);
+_mesa_glapi_get_dispatch(void);
 
 SERVEXTERN int
-_glapi_begin_dispatch_override(struct _glapi_table *override);
-
-SERVEXTERN void
-_glapi_end_dispatch_override(int layer);
+_mesa_glapi_begin_dispatch_override(struct _glapi_table *override);
 
 struct _glapi_table *
-_glapi_get_override_dispatch(int layer);
+_measa_glapi_get_override_dispatch(int layer);
 
-SERVEXTERN GLuint
-_glapi_get_dispatch_table_size(void);
+SERVEXTERN unsigned int
+_mesa_glapi_get_dispatch_table_size(void);
 
 
 SERVEXTERN int
@@ -153,7 +150,7 @@ _glapi_add_dispatch(const char *const *function_names,
                     const char *parameter_signature);
 
 _GLAPI_EXPORT _glapi_proc
-_glapi_get_proc_address(const char *funcName);
+_mesa_glapi_get_proc_address(const char *funcName);
 
 _GLAPI_EXPORT const char *
 _glapi_get_proc_name(unsigned int offset);

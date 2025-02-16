@@ -15,13 +15,15 @@ uncollapsed_section_start debian_setup "Base Debian system setup"
 
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get install -y ca-certificates gnupg2 software-properties-common
+apt-get install -y curl ca-certificates gnupg2 software-properties-common
 
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list.d/*
 
 echo "deb [trusted=yes] https://gitlab.freedesktop.org/gfx-ci/ci-deb-repo/-/raw/${PKG_REPO_REV}/ ${FDO_DISTRIBUTION_VERSION%-*} main" | tee /etc/apt/sources.list.d/gfx-ci_.list
 
-export LLVM_VERSION="${LLVM_VERSION:=15}"
+: "${LLVM_VERSION:?llvm version not set!}"
+
+. .gitlab-ci/container/debian/maybe-add-llvm-repo.sh
 
 # Ephemeral packages (installed for this script and removed again at the end)
 EPHEMERAL=(
@@ -40,17 +42,32 @@ EPHEMERAL=(
     libasound2-dev
     libcap-dev
     "libclang-cpp${LLVM_VERSION}-dev"
+    "libclang-rt-${LLVM_VERSION}-dev"
     libdrm-dev
     libegl-dev
     libelf-dev
     libepoxy-dev
+    libexpat1-dev
     libgbm-dev
+    libgles2-mesa-dev
+    liblz4-dev
     libpciaccess-dev
     libssl-dev
     libvulkan-dev
+    libudev-dev
+    libwaffle-dev
     libwayland-dev
     libx11-xcb-dev
+    libxcb-dri2-0-dev
+    libxcb-dri3-dev
+    libxcb-present-dev
+    libxfixes-dev
+    libxcb-ewmh-dev
     libxext-dev
+    libxkbcommon-dev
+    libxrandr-dev
+    libxrender-dev
+    libzstd-dev
     "llvm-${LLVM_VERSION}-dev"
     make
     meson
@@ -62,22 +79,29 @@ EPHEMERAL=(
     python3-pip
     python3-setuptools
     python3-wheel
-    spirv-tools
     wayland-protocols
     xz-utils
 )
 
 DEPS=(
     apt-utils
+    clinfo
     curl
     git
     git-lfs
     inetutils-syslogd
     iptables
     jq
+    kmod
     libasan8
+    libcap2
     libdrm2
+    libegl1
+    libepoxy0
     libexpat1
+    libfdt1
+    "libclang-common-${LLVM_VERSION}-dev"
+    "libclang-cpp${LLVM_VERSION}"
     "libllvm${LLVM_VERSION}"
     liblz4-1
     libpng16-16
@@ -88,20 +112,33 @@ DEPS=(
     libwayland-server0
     libxcb-ewmh2
     libxcb-randr0
+    libxcb-shm0
     libxcb-xfixes0
     libxkbcommon0
     libxrandr2
     libxrender1
+    ocl-icd-libopencl1
+    pciutils
+    python3-lxml
     python3-mako
     python3-numpy
     python3-packaging
     python3-pil
+    python3-renderdoc
     python3-requests
+    python3-simplejson
     python3-six
     python3-yaml
     socat
+    spirv-tools
+    sysvinit-core
     vulkan-tools
     waffle-utils
+    weston
+    xwayland
+    xinit
+    xserver-xorg-video-amdgpu
+    xserver-xorg-video-ati
     xauth
     xvfb
     zlib1g
@@ -132,10 +169,11 @@ section_end debian_setup
 ############### Download prebuilt kernel
 
 if [ "$DEBIAN_ARCH" = amd64 ]; then
-  uncollapsed_section_switch kernel "Downloading kernel"
+  uncollapsed_section_start kernel "Downloading kernel"
   export KERNEL_IMAGE_NAME=bzImage
   mkdir -p /lava-files/
   . .gitlab-ci/container/download-prebuilt-kernel.sh
+  section_end kernel
 fi
 
 ############### Build mold
@@ -160,11 +198,21 @@ fi
 
 ############### Build Crosvm
 
-. .gitlab-ci/container/build-crosvm.sh
+# crosvm build fails on ARMv7 due to Xlib type-size issues
+if [ "$DEBIAN_ARCH" != "armhf" ]; then
+  uncollapsed_section_switch crosvm "Building crosvm"
+  . .gitlab-ci/container/build-crosvm.sh
+fi
 
 ############### Build dEQP runner
 
 . .gitlab-ci/container/build-deqp-runner.sh
+
+############### Build apitrace
+
+uncollapsed_section_switch apitrace "Building apitrace"
+
+. .gitlab-ci/container/build-apitrace.sh
 
 ############### Uninstall the build software
 

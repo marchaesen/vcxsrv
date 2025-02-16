@@ -677,6 +677,11 @@ static void si_memory_barrier(struct pipe_context *ctx, unsigned flags)
                 PIPE_BARRIER_IMAGE | PIPE_BARRIER_STREAMOUT_BUFFER | PIPE_BARRIER_GLOBAL_BUFFER))
       sctx->barrier_flags |= SI_BARRIER_INV_VMEM;
 
+   /* Unlike LLVM, ACO may use SMEM for SSBOs and global access. */
+   if (sctx->screen->use_aco &&
+       (flags & (PIPE_BARRIER_SHADER_BUFFER | PIPE_BARRIER_GLOBAL_BUFFER)))
+      sctx->barrier_flags |= SI_BARRIER_INV_SMEM;
+
    if (flags & (PIPE_BARRIER_INDEX_BUFFER | PIPE_BARRIER_INDIRECT_BUFFER))
       sctx->barrier_flags |= SI_BARRIER_PFP_SYNC_ME;
 

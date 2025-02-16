@@ -146,11 +146,13 @@ conf_data.set('HAVE_GETUID', cc.has_function('getuid') ? '1' : false)
 conf_data.set('HAVE_GETEUID', cc.has_function('geteuid') ? '1' : false)
 conf_data.set('HAVE_ISASTREAM', cc.has_function('isastream') ? '1' : false)
 conf_data.set('HAVE_ISSETUGID', cc.has_function('issetugid') ? '1' : false)
+conf_data.set('HAVE_GETADDRINFO', cc.has_function('getaddrinfo') ? '1' : false)
 conf_data.set('HAVE_GETIFADDRS', cc.has_function('getifaddrs') ? '1' : false)
 conf_data.set('HAVE_GETPEEREID', cc.has_function('getpeereid') ? '1' : false)
 conf_data.set('HAVE_GETPEERUCRED', cc.has_function('getpeerucred') ? '1' : false)
 conf_data.set('HAVE_GETPROGNAME', cc.has_function('getprogname') ? '1' : false)
 conf_data.set('HAVE_GETZONEID', cc.has_function('getzoneid') ? '1' : false)
+conf_data.set('HAVE_INET_NTOP', cc.has_function('inet_ntop') ? '1' : false)
 conf_data.set('HAVE_MEMFD_CREATE', cc.has_function('memfd_create') ? '1' : false)
 conf_data.set('HAVE_MKOSTEMP', cc.has_function('mkostemp') ? '1' : false)
 conf_data.set('HAVE_MMAP', cc.has_function('mmap') ? '1' : false)
@@ -202,7 +204,6 @@ conf_data.set('TCPCONN', '1')
 conf_data.set('UNIXCONN', host_machine.system() != 'windows' ? '1' : false)
 conf_data.set('IPv6', build_ipv6 ? '1' : false)
 
-conf_data.set('BIGREQS', '1')
 conf_data.set('COMPOSITE', '1')
 conf_data.set('DAMAGE', '1')
 conf_data.set('DBE', '1')
@@ -214,7 +215,11 @@ if build_glx
     conf_data.set_quoted('DRI_DRIVER_PATH', dri_dep.get_variable(pkgconfig : 'dridriverdir'))
 endif
 conf_data.set('MITSHM', build_mitshm ? '1' : false)
+
+# for backwards compat with drivers, still setting the old PANORAMIX symbol
 conf_data.set('PANORAMIX', build_xinerama ? '1' : false)
+conf_data.set('XINERAMA', build_xinerama ? '1' : false)
+
 conf_data.set('PRESENT', '1')
 conf_data.set('RANDR', '1')
 conf_data.set('RES', build_res ? '1' : false)
@@ -297,7 +302,6 @@ if host_machine.system() == 'kfreebsd'
 endif
 
 if host_machine.system() == 'netbsd'
-  supports_pccons = true
   supports_pcvt = true
   supports_wscons = true
   csrg_based = true
@@ -493,7 +497,6 @@ if build_xorg
             'displaymode.h',
             'window.h',
             'windowstr.h',
-            'xkbfile.h',
             'xkbsrv.h',
             'xkbstr.h',
             'xkbrules.h',

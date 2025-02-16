@@ -297,6 +297,8 @@ struct fdl6_view {
    bool need_y2_align;
 
    bool ubwc_enabled;
+   bool is_mutable;
+   uint8_t color_swap;
 
    enum pipe_format format;
 

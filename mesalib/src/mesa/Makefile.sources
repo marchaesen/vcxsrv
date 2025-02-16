@@ -183,8 +183,6 @@ MAIN_FILES = \
 	main/rastpos.h \
 	main/readpix.c \
 	main/readpix.h \
-	main/remap.c \
-	main/remap.h \
 	main/renderbuffer.c \
 	main/renderbuffer.h \
 	main/robustness.c \

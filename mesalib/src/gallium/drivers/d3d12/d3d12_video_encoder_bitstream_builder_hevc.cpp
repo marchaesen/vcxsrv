@@ -37,7 +37,9 @@ convert_profile12_to_stdprofile(D3D12_VIDEO_ENCODER_PROFILE_HEVC profile)
       {
          return 2;
       } break;
+      case D3D12_VIDEO_ENCODER_PROFILE_HEVC_MAIN10_422:
       case D3D12_VIDEO_ENCODER_PROFILE_HEVC_MAIN_444:
+      case D3D12_VIDEO_ENCODER_PROFILE_HEVC_MAIN10_444:
       {
          return 4;
       } break;
@@ -48,11 +50,30 @@ convert_profile12_to_stdprofile(D3D12_VIDEO_ENCODER_PROFILE_HEVC profile)
    }
 }
 
+static int
+dxgi_format_to_pix_bits(DXGI_FORMAT fmt)
+{
+   switch (fmt) {
+      default:
+         unreachable("Unsupported DXGI_FORMAT");
+      case DXGI_FORMAT_AYUV:
+      case DXGI_FORMAT_NV12:
+      case DXGI_FORMAT_YUY2:
+         return 8;
+
+      case DXGI_FORMAT_P010:
+      case DXGI_FORMAT_Y210:
+      case DXGI_FORMAT_Y410:
+         return 10;
+   }
+}
+
 void
 d3d12_video_bitstream_builder_hevc::init_profile_tier_level(HEVCProfileTierLevel *ptl,
                         uint8_t HEVCProfileIdc,
                         uint32_t HEVCLevelIdc,
-                        bool isHighTier)
+                        bool isHighTier,
+                        uint32_t pix_bits)
 {
    memset(ptl, 0, sizeof(HEVCProfileTierLevel));
 
@@ -72,9 +93,9 @@ d3d12_video_bitstream_builder_hevc::init_profile_tier_level(HEVCProfileTierLevel
    if (ptl->general_profile_idc == 4 /*MAIN444*/)
    {
       ptl->general_intra_constraint_flag = 1;
-      ptl->general_max_12bit_constraint_flag = 1;
-      ptl->general_max_10bit_constraint_flag = 1;
-      ptl->general_max_8bit_constraint_flag = 1;
+      ptl->general_max_12bit_constraint_flag = pix_bits <= 12;
+      ptl->general_max_10bit_constraint_flag = pix_bits <= 10;
+      ptl->general_max_8bit_constraint_flag = pix_bits <= 8;
    }
 }
 
@@ -356,7 +377,7 @@ d3d12_video_bitstream_builder_hevc::build_vps(const struct pipe_h265_enc_vid_par
    m_latest_vps.vps_max_sub_layers_minus1 = 0u;
    m_latest_vps.vps_temporal_id_nesting_flag = 1u;
    m_latest_vps.vps_reserved_0xffff_16bits = 0xFFFF;
-   init_profile_tier_level(&m_latest_vps.ptl, HEVCProfileIdc, HEVCLevelIdc, isHighTier);
+   init_profile_tier_level(&m_latest_vps.ptl, HEVCProfileIdc, HEVCLevelIdc, isHighTier, dxgi_format_to_pix_bits(inputFmt));
    m_latest_vps.vps_sub_layer_ordering_info_present_flag = 0u;
    for (int i = (m_latest_vps.vps_sub_layer_ordering_info_present_flag ? 0 : m_latest_vps.vps_max_sub_layers_minus1); i <= m_latest_vps.vps_max_sub_layers_minus1; i++) {
       m_latest_vps.vps_max_dec_pic_buffering_minus1[i] = vidData.vps_max_dec_pic_buffering_minus1[i];
@@ -412,6 +433,27 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
       SubWidthC = 1u;
       SubHeightC = 1u;
       m_latest_sps.chroma_format_idc = 3u;
+   } else if (inputFmt == DXGI_FORMAT_Y410) {
+      // 444 10 bits
+      m_latest_sps.bit_depth_luma_minus8 = 2u;
+      m_latest_sps.bit_depth_chroma_minus8 = 2u;
+      SubWidthC = 1u;
+      SubHeightC = 1u;
+      m_latest_sps.chroma_format_idc = 3u;
+   } else if (inputFmt == DXGI_FORMAT_YUY2) {
+      // 422 8 bits
+      m_latest_sps.bit_depth_luma_minus8 = 0u;
+      m_latest_sps.bit_depth_chroma_minus8 = 0u;
+      SubWidthC = 2u;
+      SubHeightC = 1u;
+      m_latest_sps.chroma_format_idc = 2u;
+   } else if (inputFmt == DXGI_FORMAT_Y210) {
+      // 422 10 bits
+      m_latest_sps.bit_depth_luma_minus8 = 2u;
+      m_latest_sps.bit_depth_chroma_minus8 = 2u;
+      SubWidthC = 2u;
+      SubHeightC = 1u;
+      m_latest_sps.chroma_format_idc = 2u;
    }
 
    uint8_t minCuSize = d3d12_video_encoder_convert_12cusize_to_pixel_size_hevc(codecConfig.MinLumaCodingUnitSize);

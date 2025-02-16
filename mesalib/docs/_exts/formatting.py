@@ -24,7 +24,7 @@ def ext_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
 
     parts = ext.split('_', 2)
     if parts[0] == 'VK':
-        full_url = f'https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/{ext}.html'
+        full_url = f'https://registry.khronos.org/vulkan/specs/latest/man/html/{ext}.html'
     elif parts[0] == 'GL':
         full_url = f'https://registry.khronos.org/OpenGL/extensions/{parts[1]}/{parts[1]}_{parts[2]}.txt'
     else:
@@ -37,7 +37,7 @@ def vkfeat_role(name, rawtext, text, lineno, inliner, options={}, content=[]):
     text = utils.unescape(text)
     has_explicit_title, title, ext = split_explicit_title(text)
 
-    full_url = f'https://registry.khronos.org/vulkan/specs/1.3-extensions/html/vkspec.html#features-{ext}'
+    full_url = f'https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#features-{ext}'
 
     pnode = nodes.reference(title, title, internal=False, refuri=full_url)
     return [pnode], []

@@ -1,7 +1,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.70])
-AC_INIT([libX11], [1.8.10],
+AC_INIT([libX11], [1.8.11],
         [https://gitlab.freedesktop.org/xorg/lib/libx11/-/issues], [libX11])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([src/config.h include/X11/XlibConf.h])
@@ -240,7 +240,7 @@ if test "x$USE_THREAD_SAFETY_CONSTRUCTOR" = "xyes"; then
 else
     # This should be kept in sync with libxcb
     case $host_os in
-    linux*|darwin*|solaris*) ;;
+    linux*|darwin*|solaris*|dragonfly*|freebsd*|netbsd*) ;;
          *) X11_REQUIRES="$X11_REQUIRES pthread-stubs" ;;
     esac
 fi

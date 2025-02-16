@@ -101,6 +101,8 @@ nir_def *nir_format_bitcast_uvec_unmasked(nir_builder *b, nir_def *src,
                                           unsigned src_bits,
                                           unsigned dst_bits);
 
+nir_def *nir_format_unorm_to_float_precise(nir_builder *b, nir_def *u,
+                                           const unsigned *bits);
 nir_def *nir_format_unorm_to_float(nir_builder *b, nir_def *u,
                                    const unsigned *bits);
 nir_def *nir_format_snorm_to_float(nir_builder *b, nir_def *s,

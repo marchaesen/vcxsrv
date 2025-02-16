@@ -168,7 +168,7 @@ panfrost_emit_primitive_size(struct panfrost_context *ctx, bool points,
       if (panfrost_writes_point_size(ctx)) {
          cfg.size_array = size_array;
       } else {
-         cfg.constant = points ? rast->base.point_size : rast->base.line_width;
+         cfg.fixed_sized = points ? rast->base.point_size : rast->base.line_width;
       }
    }
 }

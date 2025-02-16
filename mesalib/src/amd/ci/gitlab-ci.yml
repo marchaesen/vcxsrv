@@ -25,10 +25,11 @@ radv-stoney-angle:
 radv-stoney-angle-full:
   extends:
     - radv-stoney-angle
-    - .radv-valve-manual-rules
+    - .radv-collabora-manual-rules
   parallel: 2
   variables:
     DEQP_SUITE: radv-stoney-angle-full
+    DEQP_FRACTION: 1
 
 radeonsi-stoney-gl:
   extends:
@@ -70,10 +71,11 @@ amd-raven-skqp:
   extends:
     - .lava-test-deqp:x86_64
     - .amd-raven-test:x86_64
-    - .lava-lenovo-TPad-C13-Yoga-zork:x86_64
+    - .lava-hp-x360-14a-cb0001xx-zork:x86_64
   variables:
     HWCI_START_WESTON: 1
     DEQP_SUITE: amd-raven-skqp
+  parallel: 2
 
 # Disabled as it was using an older version of Wine, with most of the traces
 # being disabled due to being flaky.
@@ -93,7 +95,7 @@ radv-raven-traces-restricted:
     - .lava-piglit-traces:x86_64
     - .radv-raven-test:x86_64
     - .lava-lenovo-TPad-C13-Yoga-zork:x86_64
-    - .radv-collabora-rules-restricted
+    - .radv-collabora-restricted-rules
   variables:
     HWCI_START_WESTON: 1
     PIGLIT_REPLAY_ANGLE_TAG: "2023-02-10-1"
@@ -101,6 +103,7 @@ radv-raven-traces-restricted:
     PIGLIT_REPLAY_DEVICE_NAME: "vk-${GPU_VERSION}"
     PIGLIT_REPLAY_EXTRA_ARGS: --keep-image --minio_bucket=${S3_TRACIE_PRIVATE_BUCKET} --jwt-file=${S3_JWT_FILE}
     FDO_CI_CONCURRENT: 10
+  allow_failure: true
 
 radeonsi-raven-piglit:
   extends:
@@ -127,7 +130,7 @@ radeonsi-raven-va:
     - .lava-test-deqp:x86_64
     - .radeonsi-raven-test:x86_64
     - .radeonsi-vaapi-rules
-    - .lava-asus-CM1400CXA-dalboz:x86_64
+    - .lava-hp-x360-14a-cb0001xx-zork:x86_64
   variables:
     HWCI_TEST_SCRIPT: "/install/gtest-runner.sh"
     # While the tests don't need Xorg, it's an easy way to keep DRM open so we don't
@@ -138,17 +141,18 @@ radeonsi-raven-va:
     # allocated if we run at the normal 4 threads.
     # https://github.com/intel/libva-utils/issues/248
     FDO_CI_CONCURRENT: 1
-    # A whole run would be about 25 minutes currently.  Fixing
-    # https://github.com/intel/libva-utils/issues/247 and
-    # https://github.com/google/googletest/issues/3614 would probably help.
-    GTEST_FRACTION: 2
 
-radeonsi-raven-va-full:
+radeonsi-raven-vaapi-fluster:
   extends:
     - radeonsi-raven-va
-    - .radeonsi-vaapi-manual-rules
+    - .radeonsi-raven-vaapi-fluster
+  timeout: 30m
+  parallel: 6
   variables:
-    GTEST_FRACTION: null
+    FLUSTER_CODECS: VP9 H.264 H.265
+    # FIXME: Downloading the vectors can take about 4-5 minutes
+    DEVICE_HANGING_TIMEOUT_SEC: 1200
+
 
 ############### VKCTS tests ###############
 
@@ -233,6 +237,7 @@ vkcts-renoir-valve:
     B2C_TIMEOUT_BOOT_MINUTES: 130
     B2C_TIMEOUT_OVERALL_MINUTES: 130
     RADV_PERFTEST: transfer_queue
+    FDO_CI_CONCURRENT: 12  # HACK: Reduce the memory pressure
 
 vkcts-navi10-valve:
   parallel: 2
@@ -301,7 +306,20 @@ glcts-vangogh-full-valve:
     - .radeonsi-valve-manual-rules
   timeout: 90m
 
+vkcts-raphael-valve:
+  extends:
+    - .vkcts-test-valve
+    - .raphael-test-valve
+    - .radv-valve-manual-rules
+  timeout: 45m
+  variables:
+    GPU_VERSION: radv-raphael-aco
+    B2C_TIMEOUT_BOOT_MINUTES: 35
+    B2C_TIMEOUT_OVERALL_MINUTES: 40
+    RADV_PERFTEST: transfer_queue
+
 vkcts-navi31-valve:
+  timeout: 25m
   parallel: 2
   extends:
     - .vkcts-test-valve
@@ -311,6 +329,8 @@ vkcts-navi31-valve:
     GPU_VERSION: radv-navi31-aco
     RADV_DEBUG: nomeshshader # Disable mesh shaders until task shaders stop hanging
     RADV_PERFTEST: transfer_queue
+    B2C_TIMEOUT_BOOT_MINUTES: 20
+    B2C_TIMEOUT_OVERALL_MINUTES: 20
 
 ############### Fossilize
 radv-fossils:
@@ -422,6 +442,17 @@ vkd3d-vangogh-valve:
     - .radv-valve-manual-rules
   variables:
     GPU_VERSION: radv-vangogh
+    # Random tests fail/crash when trying to run them in parallel
+    FDO_CI_CONCURRENT: 1
+
+vkd3d-raphael-valve:
+  extends:
+    - .b2c-test-radv-vk
+    - .b2c-vkd3d-proton-test
+    - .raphael-test-valve
+    - .radv-valve-manual-rules
+  variables:
+    GPU_VERSION: radv-raphael
     # Random tests fail/crash when trying to run them in parallel
     FDO_CI_CONCURRENT: 1
 

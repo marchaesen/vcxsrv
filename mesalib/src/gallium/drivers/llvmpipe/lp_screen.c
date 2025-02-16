@@ -120,166 +120,74 @@ llvmpipe_get_name(struct pipe_screen *screen)
 }
 
 
-static int
-llvmpipe_get_shader_param(struct pipe_screen *screen,
-                          enum pipe_shader_type shader,
-                          enum pipe_shader_cap param)
+static void
+llvmpipe_init_shader_caps(struct pipe_screen *screen)
 {
-   struct llvmpipe_screen *lscreen = llvmpipe_screen(screen);
-   switch (shader) {
-   case PIPE_SHADER_COMPUTE:
-      if ((lscreen->allow_cl) && param == PIPE_SHADER_CAP_SUPPORTED_IRS)
-         return ((1 << PIPE_SHADER_IR_TGSI) |
-                 (1 << PIPE_SHADER_IR_NIR));
-      FALLTHROUGH;
-   case PIPE_SHADER_MESH:
-   case PIPE_SHADER_TASK:
-   case PIPE_SHADER_FRAGMENT:
-      return gallivm_get_shader_param(param);
-   case PIPE_SHADER_TESS_CTRL:
-   case PIPE_SHADER_TESS_EVAL:
-      /* Tessellation shader needs llvm coroutines support */
-      if (!GALLIVM_COROUTINES)
-         return 0;
-      FALLTHROUGH;
-   case PIPE_SHADER_VERTEX:
-   case PIPE_SHADER_GEOMETRY:
-      switch (param) {
-      case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-         /* At this time, the draw module and llvmpipe driver only
-          * support vertex shader texture lookups when LLVM is enabled in
-          * the draw module.
-          */
-         if (debug_get_bool_option("DRAW_USE_LLVM", true))
-            return PIPE_MAX_SAMPLERS;
-         else
-            return 0;
-      case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-         if (debug_get_bool_option("DRAW_USE_LLVM", true))
-            return PIPE_MAX_SHADER_SAMPLER_VIEWS;
-         else
-            return 0;
-      case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-         if (debug_get_bool_option("DRAW_USE_LLVM", false))
-            return LP_MAX_TGSI_CONST_BUFFERS;
-         else
-            return draw_get_shader_param(shader, param);
+   for (unsigned i = 0; i < ARRAY_SIZE(screen->shader_caps); i++) {
+      struct pipe_shader_caps *caps = (struct pipe_shader_caps *)&screen->shader_caps[i];
+
+      switch (i) {
+      case PIPE_SHADER_FRAGMENT:
+      case PIPE_SHADER_COMPUTE:
+      case PIPE_SHADER_MESH:
+      case PIPE_SHADER_TASK:
+         gallivm_init_shader_caps(caps);
+         break;
+      case PIPE_SHADER_TESS_CTRL:
+      case PIPE_SHADER_TESS_EVAL:
+         /* Tessellation shader needs llvm coroutines support */
+         if (!GALLIVM_COROUTINES)
+            continue;
+         FALLTHROUGH;
+      case PIPE_SHADER_VERTEX:
+      case PIPE_SHADER_GEOMETRY:
+         draw_init_shader_caps(caps);
+
+         if (debug_get_bool_option("DRAW_USE_LLVM", true)) {
+            caps->max_const_buffers = LP_MAX_TGSI_CONST_BUFFERS;
+         } else {
+            /* At this time, the draw module and llvmpipe driver only
+             * support vertex shader texture lookups when LLVM is enabled in
+             * the draw module.
+             */
+            caps->max_texture_samplers = 0;
+            caps->max_sampler_views = 0;
+         }
+         break;
       default:
-         return draw_get_shader_param(shader, param);
+         break;
       }
-   default:
-      return 0;
    }
 }
 
 
-static int
-llvmpipe_get_compute_param(struct pipe_screen *_screen,
-                           enum pipe_shader_ir ir_type,
-                           enum pipe_compute_cap param,
-                           void *ret)
+static void
+llvmpipe_init_compute_caps(struct pipe_screen *screen)
 {
-   switch (param) {
-   case PIPE_COMPUTE_CAP_IR_TARGET:
-      return 0;
-   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
-      if (ret) {
-         uint64_t *grid_size = ret;
-         grid_size[0] = 65535;
-         grid_size[1] = 65535;
-         grid_size[2] = 65535;
-      }
-      return 3 * sizeof(uint64_t) ;
-   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
-      if (ret) {
-         uint64_t *block_size = ret;
-         block_size[0] = 1024;
-         block_size[1] = 1024;
-         block_size[2] = 1024;
-      }
-      return 3 * sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-      if (ret) {
-         uint64_t *max_threads_per_block = ret;
-         *max_threads_per_block = 1024;
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-      if (ret) {
-         uint64_t *max_local_size = ret;
-         *max_local_size = 32768;
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_GRID_DIMENSION:
-      if (ret) {
-         uint64_t *grid_dim = ret;
-         *grid_dim = 3;
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE:
-      if (ret) {
-         uint64_t *max_global_size = ret;
-         *max_global_size = (1ULL << 31);
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE:
-      if (ret) {
-         uint64_t *max_mem_alloc_size = ret;
-         *max_mem_alloc_size = (1ULL << 31);
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
-      if (ret) {
-         uint64_t *max_private = ret;
-         *max_private = (1UL << 31);
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
-      if (ret) {
-         uint64_t *max_input = ret;
-         *max_input = 1576;
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-      if (ret) {
-         uint32_t *images = ret;
-         *images = LP_MAX_TGSI_SHADER_IMAGES;
-      }
-      return sizeof(uint32_t);
-   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-      return 0;
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
-      if (ret) {
-         uint32_t *subgroup_size = ret;
-         *subgroup_size = lp_native_vector_width / 32;
-      }
-      return sizeof(uint32_t);
-   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
-      if (ret) {
-         uint32_t *subgroup_size = ret;
-         *subgroup_size = 1024 / (lp_native_vector_width / 32);
-      }
-      return sizeof(uint32_t);
-   case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
-      if (ret) {
-         uint32_t *max_compute_units = ret;
-         *max_compute_units = 8;
-      }
-      return sizeof(uint32_t);
-   case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-      if (ret) {
-         uint32_t *max_clock_freq = ret;
-         *max_clock_freq = 300;
-      }
-      return sizeof(uint32_t);
-   case PIPE_COMPUTE_CAP_ADDRESS_BITS:
-      if (ret) {
-         uint32_t *address_bits = ret;
-         *address_bits = sizeof(void*) * 8;
-      }
-      return sizeof(uint32_t);
-   }
-   return 0;
+   struct pipe_compute_caps *caps = (struct pipe_compute_caps *)&screen->compute_caps;
+
+   caps->max_grid_size[0] =
+   caps->max_grid_size[1] =
+   caps->max_grid_size[2] = 65535;
+
+   caps->max_block_size[0] =
+   caps->max_block_size[1] =
+   caps->max_block_size[2] = 1024;
+
+   caps->max_threads_per_block = 1024;
+
+   caps->max_local_size = 32768;
+   caps->grid_dimension = 3;
+   caps->max_global_size = 1 << 31;
+   caps->max_mem_alloc_size = 1 << 31;
+   caps->max_private_size = 1 << 31;
+   caps->max_input_size = 1576;
+   caps->images_supported = !!LP_MAX_TGSI_SHADER_IMAGES;
+   caps->subgroup_sizes = lp_native_vector_width / 32;
+   caps->max_subgroups = 1024 / (lp_native_vector_width / 32);
+   caps->max_compute_units = 8;
+   caps->max_clock_frequency = 300;
+   caps->address_bits = sizeof(void*) * 8;
 }
 
 
@@ -1024,7 +932,6 @@ out:
 
 /**
  * Create a new pipe_screen object
- * Note: we're not presently subclassing pipe_screen (no llvmpipe_screen).
  */
 struct pipe_screen *
 llvmpipe_create_screen(struct sw_winsys *winsys)
@@ -1049,8 +956,6 @@ llvmpipe_create_screen(struct sw_winsys *winsys)
    screen->base.get_vendor = llvmpipe_get_vendor;
    screen->base.get_device_vendor = llvmpipe_get_vendor; // TODO should be the CPU vendor
    screen->base.get_screen_fd = llvmpipe_screen_get_fd;
-   screen->base.get_shader_param = llvmpipe_get_shader_param;
-   screen->base.get_compute_param = llvmpipe_get_compute_param;
    screen->base.get_compiler_options = llvmpipe_get_compiler_options;
    screen->base.is_format_supported = llvmpipe_is_format_supported;
 
@@ -1095,8 +1000,6 @@ llvmpipe_create_screen(struct sw_winsys *winsys)
    screen->fd_mem_alloc = os_create_anonymous_file(0, "allocation fd");
 #endif
 
-   llvmpipe_init_screen_caps(&screen->base);
-
    snprintf(screen->renderer_string, sizeof(screen->renderer_string),
             "llvmpipe (LLVM " MESA_LLVM_VERSION_STRING ", %u bits)",
             lp_build_init_native_width() );
@@ -1107,6 +1010,10 @@ llvmpipe_create_screen(struct sw_winsys *winsys)
    (void) mtx_init(&screen->rast_mutex, mtx_plain);
 
    (void) mtx_init(&screen->late_mutex, mtx_plain);
+
+   llvmpipe_init_shader_caps(&screen->base);
+   llvmpipe_init_compute_caps(&screen->base);
+   llvmpipe_init_screen_caps(&screen->base);
 
    return &screen->base;
 }

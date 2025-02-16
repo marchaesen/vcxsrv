@@ -9,8 +9,7 @@ indirect_sources =					\
 	indirect_reqsize.c			\
 	indirect_size_get.c			\
 	indirect_table.c			\
-	glapi.c					\
-	remap.c
+	glapi.c
 
 
 CSRCS = \

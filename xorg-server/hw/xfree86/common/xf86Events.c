@@ -59,17 +59,17 @@
 #include <X11/Xatom.h>
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
-
-#include "dix/input_priv.h"
+#include <X11/keysym.h>
 
 #include "dix/dix_priv.h"
+#include "dix/input_priv.h"
+#include "mi/mi_priv.h"
 
 #include "misc.h"
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86_os_support.h"
 #include "xf86_OSlib.h"
-#include <X11/keysym.h>
 
 #ifdef XFreeXDGA
 #include "dgaproc.h"
@@ -77,10 +77,8 @@
 #endif
 
 #include "inputstr.h"
-#include "xf86Xinput.h"
-#include "mi.h"
+#include "xf86Xinput_priv.h"
 #include "mipointer.h"
-
 #include "xkbsrv.h"
 #include "xkbstr.h"
 
@@ -165,7 +163,7 @@ xf86ProcessActionEvent(ActionEvent action, void *arg)
     switch (action) {
     case ACTION_TERMINATE:
         if (!xf86Info.dontZap) {
-            xf86Msg(X_INFO, "Server zapped. Shutting down.\n");
+            LogMessageVerb(X_INFO, 1, "Server zapped. Shutting down.\n");
             GiveUp(0);
         }
         break;

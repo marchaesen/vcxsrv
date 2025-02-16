@@ -55,7 +55,7 @@ cs_program_emit_local_size(struct fd_context *ctx, struct fd_ringbuffer *ring,
       );
 
       OUT_REG(ring,
-         A7XX_HLSQ_CS_LOCAL_SIZE(
+         A7XX_HLSQ_CS_LAST_LOCAL_SIZE(
             .localsizex = local_size[0] - 1,
             .localsizey = local_size[1] - 1,
             .localsizez = local_size[2] - 1,

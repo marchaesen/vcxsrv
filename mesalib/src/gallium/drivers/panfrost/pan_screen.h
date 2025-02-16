@@ -110,6 +110,9 @@ struct panfrost_vtable {
 
    /* Select the tile size and calculate the color buffer allocation size */
    void (*select_tile_size)(struct pan_fb_info *fb);
+
+   /* Run a compute shader to detile an MTK 16L32 image */
+   void (*mtk_detile)(struct panfrost_context *ctx, struct pipe_blit_info *info);
 };
 
 struct panfrost_screen {

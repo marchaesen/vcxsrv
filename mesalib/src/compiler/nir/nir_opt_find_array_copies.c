@@ -653,7 +653,7 @@ opt_find_array_copies_impl(nir_function_impl *impl)
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_control_flow);
    } else {
-      nir_metadata_preserve(impl, nir_metadata_all);
+      nir_metadata_preserve(impl, nir_metadata_all & ~nir_metadata_instr_index);
    }
 
    return progress;

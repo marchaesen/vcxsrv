@@ -33,6 +33,7 @@ struct tu_lrz_state
    VkClearValue depth_clear_value;
    /* If LRZ is in invalid state we cannot use it until depth is cleared */
    bool valid : 1;
+   bool disable_for_rp : 1;
    /* Allows to temporary disable LRZ */
    bool enabled : 1;
    bool fast_clear : 1;
@@ -96,6 +97,12 @@ tu_lrz_sysmem_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs);
 
 template <chip CHIP>
 void
-tu_lrz_disable_during_renderpass(struct tu_cmd_buffer *cmd);
+tu_lrz_disable_during_renderpass(struct tu_cmd_buffer *cmd,
+                                 const char *reason);
+
+template <chip CHIP>
+void
+tu_lrz_flush_valid_during_renderpass(struct tu_cmd_buffer *cmd,
+                                     struct tu_cs *cs);
 
 #endif /* TU_LRZ_H */

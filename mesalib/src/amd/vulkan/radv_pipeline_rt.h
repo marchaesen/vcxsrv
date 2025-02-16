@@ -13,6 +13,7 @@
 
 #include "radv_pipeline_compute.h"
 #include "radv_shader.h"
+#include "util/bitset.h"
 
 struct radv_ray_tracing_pipeline {
    struct radv_compute_pipeline base;

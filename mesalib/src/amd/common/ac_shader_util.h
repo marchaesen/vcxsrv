@@ -269,8 +269,7 @@ enum ac_image_dim ac_get_sampler_dim(enum amd_gfx_level gfx_level, enum glsl_sam
 enum ac_image_dim ac_get_image_dim(enum amd_gfx_level gfx_level, enum glsl_sampler_dim sdim,
                                    bool is_array);
 
-unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
-                                  uint8_t *num_fragcoord_components);
+unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config);
 
 uint16_t ac_get_ps_iter_mask(unsigned ps_iter_samples);
 

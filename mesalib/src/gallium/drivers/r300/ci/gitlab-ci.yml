@@ -3,7 +3,7 @@ include:
 
 .ondracka-generic:
   extends:
-    - .b2c-x86_64-test-gl
+    - .b2c-x86_64-test-gl-manual # use debian-build-testing rather than debian-testing
     - .r300-manual-rules
   variables:
     FDO_CI_CONCURRENT: 2

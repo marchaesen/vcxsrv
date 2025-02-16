@@ -4,13 +4,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#if AMD_LLVM_AVAILABLE
-#include "ac_llvm_util.h"
-#endif
-
 #include "ac_nir.h"
 #include "ac_shader_util.h"
 #include "compiler/nir/nir_serialize.h"
+#include "compiler/nir/nir.h"
 #include "nir/tgsi_to_nir.h"
 #include "si_build_pm4.h"
 #include "sid.h"
@@ -758,12 +755,14 @@ static void si_shader_hs(struct si_screen *sscreen, struct si_shader *shader)
    shader->config.rsrc2 = S_00B42C_SCRATCH_EN(shader->config.scratch_bytes_per_wave > 0) |
                           S_00B42C_USER_SGPR(num_user_sgprs);
 
-   if (sscreen->info.gfx_level >= GFX10)
-      shader->config.rsrc2 |= S_00B42C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5);
-   else if (sscreen->info.gfx_level >= GFX9)
+   if (sscreen->info.gfx_level >= GFX10) {
+      shader->config.rsrc2 |= S_00B42C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5) |
+                              S_00B42C_SHARED_VGPR_CNT(shader->config.num_shared_vgprs / 8);
+   } else if (sscreen->info.gfx_level >= GFX9) {
       shader->config.rsrc2 |= S_00B42C_USER_SGPR_MSB_GFX9(num_user_sgprs >> 5);
-   else
+   } else {
       shader->config.rsrc2 |= S_00B42C_OC_LDS_EN(1);
+   }
 
    if (sscreen->info.gfx_level <= GFX8)
       ac_pm4_set_reg(&pm4->base, R_00B42C_SPI_SHADER_PGM_RSRC2_HS, shader->config.rsrc2);
@@ -1125,7 +1124,8 @@ static void si_shader_gs(struct si_screen *sscreen, struct si_shader *shader)
                        S_00B22C_SCRATCH_EN(shader->config.scratch_bytes_per_wave > 0);
 
       if (sscreen->info.gfx_level >= GFX10) {
-         rsrc2 |= S_00B22C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5);
+         rsrc2 |= S_00B22C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5) |
+                  S_00B22C_SHARED_VGPR_CNT(shader->config.num_shared_vgprs / 8);
       } else {
          rsrc2 |= S_00B22C_USER_SGPR_MSB_GFX9(num_user_sgprs >> 5);
       }
@@ -1588,9 +1588,10 @@ static void gfx10_shader_ngg(struct si_screen *sscreen, struct si_shader *shader
                   S_00B22C_SCRATCH_EN(shader->config.scratch_bytes_per_wave > 0) |
                   S_00B22C_USER_SGPR(num_user_sgprs) |
                   S_00B22C_ES_VGPR_COMP_CNT(es_vgpr_comp_cnt) |
-                  S_00B22C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5) |
                   S_00B22C_OC_LDS_EN(es_stage == MESA_SHADER_TESS_EVAL) |
-                  S_00B22C_LDS_SIZE(shader->config.lds_size));
+                  S_00B22C_LDS_SIZE(shader->config.lds_size) |
+                  S_00B22C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5) |
+                  S_00B22C_SHARED_VGPR_CNT(shader->config.num_shared_vgprs / 8));
 
    /* Set register values emitted conditionally in gfx10_emit_shader_ngg_*. */
    shader->ngg.spi_shader_pos_format =
@@ -1950,7 +1951,8 @@ static void si_shader_vs(struct si_screen *sscreen, struct si_shader *shader,
                     S_00B12C_SCRATCH_EN(shader->config.scratch_bytes_per_wave > 0);
 
    if (sscreen->info.gfx_level >= GFX10)
-      rsrc2 |= S_00B12C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5);
+      rsrc2 |= S_00B12C_USER_SGPR_MSB_GFX10(num_user_sgprs >> 5) |
+               S_00B12C_SHARED_VGPR_CNT(shader->config.num_shared_vgprs / 8);
    else if (sscreen->info.gfx_level == GFX9)
       rsrc2 |= S_00B12C_USER_SGPR_MSB_GFX9(num_user_sgprs >> 5);
 
@@ -2007,8 +2009,6 @@ static void gfx6_emit_shader_ps(struct si_context *sctx, unsigned index)
    radeon_opt_set_context_reg2(R_0286CC_SPI_PS_INPUT_ENA, SI_TRACKED_SPI_PS_INPUT_ENA,
                                shader->ps.spi_ps_input_ena,
                                shader->ps.spi_ps_input_addr);
-   radeon_opt_set_context_reg(R_0286E0_SPI_BARYC_CNTL, SI_TRACKED_SPI_BARYC_CNTL,
-                              shader->ps.spi_baryc_cntl);
    radeon_opt_set_context_reg(R_0286D8_SPI_PS_IN_CONTROL, SI_TRACKED_SPI_PS_IN_CONTROL,
                               shader->ps.spi_ps_in_control);
    radeon_opt_set_context_reg2(R_028710_SPI_SHADER_Z_FORMAT, SI_TRACKED_SPI_SHADER_Z_FORMAT,
@@ -2029,8 +2029,6 @@ static void gfx11_dgpu_emit_shader_ps(struct si_context *sctx, unsigned index)
                              shader->ps.spi_ps_input_ena);
    gfx11_opt_set_context_reg(R_0286D0_SPI_PS_INPUT_ADDR, SI_TRACKED_SPI_PS_INPUT_ADDR,
                              shader->ps.spi_ps_input_addr);
-   gfx11_opt_set_context_reg(R_0286E0_SPI_BARYC_CNTL, SI_TRACKED_SPI_BARYC_CNTL,
-                             shader->ps.spi_baryc_cntl);
    gfx11_opt_set_context_reg(R_0286D8_SPI_PS_IN_CONTROL, SI_TRACKED_SPI_PS_IN_CONTROL,
                              shader->ps.spi_ps_in_control);
    gfx11_opt_set_context_reg(R_028710_SPI_SHADER_Z_FORMAT, SI_TRACKED_SPI_SHADER_Z_FORMAT,
@@ -2055,8 +2053,6 @@ static void gfx12_emit_shader_ps(struct si_context *sctx, unsigned index)
                              shader->ps.spi_shader_z_format);
    gfx12_opt_set_context_reg(R_028654_SPI_SHADER_COL_FORMAT, SI_TRACKED_SPI_SHADER_COL_FORMAT,
                              shader->ps.spi_shader_col_format);
-   gfx12_opt_set_context_reg(R_028658_SPI_BARYC_CNTL, SI_TRACKED_SPI_BARYC_CNTL,
-                             shader->ps.spi_baryc_cntl);
    gfx12_opt_set_context_reg(R_02865C_SPI_PS_INPUT_ENA, SI_TRACKED_SPI_PS_INPUT_ENA,
                              shader->ps.spi_ps_input_ena);
    gfx12_opt_set_context_reg(R_028660_SPI_PS_INPUT_ADDR, SI_TRACKED_SPI_PS_INPUT_ADDR,
@@ -2185,27 +2181,6 @@ static void si_shader_ps(struct si_screen *sscreen, struct si_shader *shader)
    if (sscreen->info.has_rbplus && !sscreen->info.rbplus_allowed)
       shader->ps.db_shader_control |= S_02880C_DUAL_QUAD_DISABLE(1);
 
-   /* SPI_BARYC_CNTL.POS_FLOAT_LOCATION
-    * Possible values:
-    * 0 -> Position = pixel center
-    * 1 -> Position = pixel centroid
-    * 2 -> Position = at sample position
-    *
-    * From GLSL 4.5 specification, section 7.1:
-    *   "The variable gl_FragCoord is available as an input variable from
-    *    within fragment shaders and it holds the window relative coordinates
-    *    (x, y, z, 1/w) values for the fragment. If multi-sampling, this
-    *    value can be for any location within the pixel, or one of the
-    *    fragment samples. The use of centroid does not further restrict
-    *    this value to be inside the current primitive."
-    *
-    * Meaning that centroid has no effect and we can return anything within
-    * the pixel. Thus, return the value at sample position, because that's
-    * the most accurate one shaders can get.
-    */
-   shader->ps.spi_baryc_cntl = S_0286E0_POS_FLOAT_LOCATION(2) |
-                               S_0286E0_POS_FLOAT_ULC(info->base.fs.pixel_center_integer) |
-                               S_0286E0_FRONT_FACE_ALL_BITS(0);
    shader->ps.spi_shader_col_format = si_get_spi_shader_col_format(shader);
    shader->ps.cb_shader_mask = ac_get_cb_shader_mask(shader->key.ps.part.epilog.spi_shader_col_format);
    shader->ps.spi_ps_input_ena = shader->config.spi_ps_input_ena;
@@ -2312,7 +2287,8 @@ static void si_shader_ps(struct si_screen *sscreen, struct si_shader *shader)
    ac_pm4_set_reg(&pm4->base, R_00B02C_SPI_SHADER_PGM_RSRC2_PS,
                   S_00B02C_EXTRA_LDS_SIZE(shader->config.lds_size) |
                   S_00B02C_USER_SGPR(SI_PS_NUM_USER_SGPR) |
-                  S_00B32C_SCRATCH_EN(shader->config.scratch_bytes_per_wave > 0));
+                  S_00B02C_SCRATCH_EN(shader->config.scratch_bytes_per_wave > 0) |
+                  S_00B02C_SHARED_VGPR_CNT(shader->config.num_shared_vgprs / 8));
    ac_pm4_finalize(&pm4->base);
 }
 
@@ -2602,12 +2578,6 @@ void si_ps_key_update_framebuffer(struct si_context *sctx)
    if (!sel)
       return;
 
-   if (sel->info.color0_writes_all_cbufs &&
-       sel->info.colors_written == 0x1)
-      key->ps.part.epilog.last_cbuf = MAX2(sctx->framebuffer.state.nr_cbufs, 1) - 1;
-   else
-      key->ps.part.epilog.last_cbuf = 0;
-
    /* ps_uses_fbfetch is true only if the color buffer is bound. */
    if (sctx->ps_uses_fbfetch) {
       struct pipe_surface *cb0 = sctx->framebuffer.state.cbufs[0];
@@ -2728,7 +2698,7 @@ void si_ps_key_update_framebuffer_blend_dsa_rasterizer(struct si_context *sctx)
    }
 
    /* Disable unwritten outputs (if WRITE_ALL_CBUFS isn't enabled). */
-   if (!key->ps.part.epilog.last_cbuf) {
+   if (!sel->info.color0_writes_all_cbufs) {
       key->ps.part.epilog.spi_shader_col_format &= sel->info.colors_written_4bit;
       key->ps.part.epilog.color_is_int8 &= sel->info.colors_written;
       key->ps.part.epilog.color_is_int10 &= sel->info.colors_written;
@@ -2811,15 +2781,24 @@ void si_ps_key_update_dsa(struct si_context *sctx)
 void si_ps_key_update_sample_shading(struct si_context *sctx)
 {
    struct si_shader_selector *sel = sctx->shader.ps.cso;
-   union si_shader_key *key = &sctx->shader.ps.key;
-
    if (!sel)
       return;
 
-   if (sctx->ps_iter_samples > 1 && sel->info.reads_samplemask)
-      key->ps.part.prolog.samplemask_log_ps_iter = util_logbase2(sctx->ps_iter_samples);
-   else
+   union si_shader_key *key = &sctx->shader.ps.key;
+   unsigned ps_iter_samples = si_get_ps_iter_samples(sctx);
+   assert(ps_iter_samples <= MAX2(1, sctx->framebuffer.nr_color_samples));
+
+   if (ps_iter_samples > 1 && sel->info.reads_samplemask) {
+      /* Set samplemask_log_ps_iter=3 if full sample shading is enabled even for 2x and 4x MSAA
+       * to get the fast path that fully replaces sample_mask_in with sample_id.
+       */
+      if (ps_iter_samples == sctx->framebuffer.nr_color_samples)
+         key->ps.part.prolog.samplemask_log_ps_iter = 3;
+      else
+         key->ps.part.prolog.samplemask_log_ps_iter = util_logbase2(ps_iter_samples);
+   } else {
       key->ps.part.prolog.samplemask_log_ps_iter = 0;
+   }
 }
 
 void si_ps_key_update_framebuffer_rasterizer_sample_shading(struct si_context *sctx)
@@ -2843,7 +2822,7 @@ void si_ps_key_update_framebuffer_rasterizer_sample_shading(struct si_context *s
    bool uses_persp_sample = sel->info.uses_persp_sample ||
                             (!rs->flatshade && sel->info.uses_persp_sample_color);
 
-   if (rs->force_persample_interp && rs->multisample_enable &&
+   if (!sel->info.base.fs.uses_sample_shading && rs->multisample_enable &&
        sctx->framebuffer.nr_samples > 1 && sctx->ps_iter_samples > 1) {
       key->ps.part.prolog.force_persp_sample_interp =
          uses_persp_center || uses_persp_centroid;
@@ -2855,8 +2834,17 @@ void si_ps_key_update_framebuffer_rasterizer_sample_shading(struct si_context *s
       key->ps.part.prolog.force_linear_center_interp = 0;
       key->ps.part.prolog.bc_optimize_for_persp = 0;
       key->ps.part.prolog.bc_optimize_for_linear = 0;
+      key->ps.part.prolog.force_samplemask_to_helper_invocation = 0;
+      /* Note that interpolateAt* requires center barycentrics while the PS prolog forces
+       * per-sample barycentrics in center VGPRs, so it breaks it. The workaround is to
+       * force monolithic compilation, which does the right thing.
+       */
+      key->ps.mono.force_mono = sel->info.uses_interp_at_offset || sel->info.uses_interp_at_sample;
       key->ps.mono.interpolate_at_sample_force_center = 0;
    } else if (rs->multisample_enable && sctx->framebuffer.nr_samples > 1) {
+      /* Note that sample shading is possible here. If it's enabled, all barycentrics are
+       * already set to "sample" except at_offset/at_sample.
+       */
       key->ps.part.prolog.force_persp_sample_interp = 0;
       key->ps.part.prolog.force_linear_sample_interp = 0;
       key->ps.part.prolog.force_persp_center_interp = 0;
@@ -2865,6 +2853,10 @@ void si_ps_key_update_framebuffer_rasterizer_sample_shading(struct si_context *s
          uses_persp_center && uses_persp_centroid;
       key->ps.part.prolog.bc_optimize_for_linear =
          sel->info.uses_linear_center && sel->info.uses_linear_centroid;
+      key->ps.part.prolog.get_frag_coord_from_pixel_coord =
+         !sel->info.base.fs.uses_sample_shading && sel->info.reads_frag_coord_mask & 0x3;
+      key->ps.part.prolog.force_samplemask_to_helper_invocation = 0;
+      key->ps.mono.force_mono = 0;
       key->ps.mono.interpolate_at_sample_force_center = 0;
    } else {
       key->ps.part.prolog.force_persp_sample_interp = 0;
@@ -2881,6 +2873,10 @@ void si_ps_key_update_framebuffer_rasterizer_sample_shading(struct si_context *s
                                                        sel->info.uses_linear_sample > 1;
       key->ps.part.prolog.bc_optimize_for_persp = 0;
       key->ps.part.prolog.bc_optimize_for_linear = 0;
+      key->ps.part.prolog.get_frag_coord_from_pixel_coord =
+         !!(sel->info.reads_frag_coord_mask & 0x3);
+      key->ps.part.prolog.force_samplemask_to_helper_invocation = sel->info.reads_samplemask;
+      key->ps.mono.force_mono = 0;
       key->ps.mono.interpolate_at_sample_force_center = sel->info.uses_interp_at_sample;
    }
 
@@ -3607,7 +3603,7 @@ static void *si_create_shader_selector(struct pipe_context *ctx,
       sel->nir = (nir_shader*)state->ir.nir;
    }
 
-   si_nir_scan_shader(sscreen, sel->nir, &sel->info);
+   si_nir_scan_shader(sscreen, sel->nir, &sel->info, false);
 
    sel->stage = sel->nir->info.stage;
    sel->const_and_shader_buf_descriptors_index =
@@ -4948,12 +4944,13 @@ static void gfx6_emit_tess_io_layout_state(struct si_context *sctx, unsigned ind
       gfx11_opt_push_gfx_sh_reg(tes_sh_base + SI_SGPR_TES_OFFCHIP_ADDR * 4,
                                 SI_TRACKED_SPI_SHADER_USER_DATA_ES__DRAWID,
                                 sctx->tes_offchip_ring_va_sgpr);
-   } else {
-      bool has_gs = sctx->ngg || sctx->shader.gs.cso;
-
+   } else if (sctx->ngg || sctx->shader.gs.cso) {
       radeon_opt_set_sh_reg2(tes_sh_base + SI_SGPR_TES_OFFCHIP_LAYOUT * 4,
-                             has_gs ? SI_TRACKED_SPI_SHADER_USER_DATA_ES__BASE_VERTEX
-                                    : SI_TRACKED_SPI_SHADER_USER_DATA_VS__BASE_VERTEX,
+                             SI_TRACKED_SPI_SHADER_USER_DATA_ES__BASE_VERTEX,
+                             sctx->tcs_offchip_layout, sctx->tes_offchip_ring_va_sgpr);
+   } else {
+      radeon_opt_set_sh_reg2(tes_sh_base + SI_SGPR_TES_OFFCHIP_LAYOUT * 4,
+                             SI_TRACKED_SPI_SHADER_USER_DATA_VS__BASE_VERTEX,
                              sctx->tcs_offchip_layout, sctx->tes_offchip_ring_va_sgpr);
    }
    radeon_end();
@@ -5036,7 +5033,7 @@ static void si_emit_spi_map(struct si_context *sctx, unsigned index)
    struct si_state_rasterizer *rs = sctx->queued.named.rasterizer;
 
    for (unsigned i = 0; i < NUM_INTERP; i++) {
-      union si_input_info input = ps->info.ps_inputs[i];
+      union si_ps_input_info input = ps->info.ps_inputs[i];
       unsigned ps_input_cntl = vs->info.vs_output_ps_input_cntl[input.semantic];
       bool non_default_val = G_028644_OFFSET(ps_input_cntl) != 0x20;
 

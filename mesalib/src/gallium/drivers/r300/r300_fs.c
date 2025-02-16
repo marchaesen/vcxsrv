@@ -22,6 +22,8 @@
 #include "r300_tgsi_to_rc.h"
 
 #include "compiler/radeon_compiler.h"
+#include "compiler/nir_to_rc.h"
+#include "nir.h"
 
 /* Convert info about FS input semantics to r300_shader_semantics. */
 void r300_shader_read_fs_inputs(struct tgsi_shader_info* info,
@@ -151,6 +153,7 @@ void r300_fragment_program_get_external_state(
     unsigned i;
 
     state->alpha_to_one = r300->alpha_to_one && r300->msaa_enable;
+    state->sampler_state_count = texstate->sampler_state_count;
 
     for (i = 0; i < texstate->sampler_state_count; i++) {
         struct r300_sampler_state *s = texstate->sampler_states[i];
@@ -207,7 +210,7 @@ void r300_fragment_program_get_external_state(
 static void r300_translate_fragment_shader(
     struct r300_context* r300,
     struct r300_fragment_shader_code* shader,
-    const struct tgsi_token *tokens);
+    struct pipe_shader_state state);
 
 static void r300_dummy_fragment_shader(
     struct r300_context* r300,
@@ -229,7 +232,7 @@ static void r300_dummy_fragment_shader(
     state.tokens = ureg_finalize(ureg);
 
     shader->dummy = true;
-    r300_translate_fragment_shader(r300, shader, state.tokens);
+    r300_translate_fragment_shader(r300, shader, state);
 
     ureg_destroy(ureg);
 }
@@ -416,14 +419,19 @@ static void r300_emit_fs_code_to_buffer(
 static void r300_translate_fragment_shader(
     struct r300_context* r300,
     struct r300_fragment_shader_code* shader,
-    const struct tgsi_token *tokens)
+    struct pipe_shader_state state)
 {
     struct r300_fragment_program_compiler compiler;
     struct tgsi_to_rc ttr;
     int wpos, face;
     unsigned i;
 
-    tgsi_scan_shader(tokens, &shader->info);
+    if (state.type == PIPE_SHADER_IR_NIR) {
+        nir_shader *clone = nir_shader_clone(NULL, state.ir.nir);
+        state.tokens = nir_to_rc(clone, (struct pipe_screen *)r300->screen, shader->compare_state);
+    }
+
+    tgsi_scan_shader(state.tokens, &shader->info);
     r300_shader_read_fs_inputs(&shader->info, &shader->inputs);
 
     wpos = shader->inputs.wpos;
@@ -461,14 +469,18 @@ static void r300_translate_fragment_shader(
 
     if (compiler.Base.Debug & RC_DBG_LOG) {
         DBG(r300, DBG_FP, "r300: Initial fragment program\n");
-        tgsi_dump(tokens, 0);
+        tgsi_dump(state.tokens, 0);
     }
 
     /* Translate TGSI to our internal representation */
     ttr.compiler = &compiler.Base;
     ttr.info = &shader->info;
 
-    r300_tgsi_to_rc(&ttr, tokens);
+    r300_tgsi_to_rc(&ttr, state.tokens);
+
+    if (state.type == PIPE_SHADER_IR_NIR) {
+        FREE((void*)state.tokens);
+    }
 
     if (ttr.error) {
         fprintf(stderr, "r300 FP: Cannot translate a shader. "
@@ -576,7 +588,7 @@ bool r300_pick_fragment_shader(struct r300_context *r300,
         fs->first = fs->shader = CALLOC_STRUCT(r300_fragment_shader_code);
 
         memcpy(&fs->shader->compare_state, state, sizeof(*state));
-        r300_translate_fragment_shader(r300, fs->shader, fs->state.tokens);
+        r300_translate_fragment_shader(r300, fs->shader, fs->state);
         return true;
 
     } else {
@@ -603,7 +615,7 @@ bool r300_pick_fragment_shader(struct r300_context *r300,
             fs->first = fs->shader = ptr;
 
             memcpy(&ptr->compare_state, state, sizeof(*state));
-            r300_translate_fragment_shader(r300, ptr, fs->state.tokens);
+            r300_translate_fragment_shader(r300, ptr, fs->state);
             return true;
         }
     }

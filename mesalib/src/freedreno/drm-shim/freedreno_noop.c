@@ -123,6 +123,9 @@ msm_ioctl_get_param(int fd, unsigned long request, void *arg)
    case MSM_PARAM_VA_SIZE:
       gp->value = 0x100000000ULL;
       return 0;
+   case MSM_PARAM_RAYTRACING:
+      gp->value = 1;
+      return 0;
    default:
       fprintf(stderr, "Unknown DRM_IOCTL_MSM_GET_PARAM %d\n", gp->param);
       return -1;

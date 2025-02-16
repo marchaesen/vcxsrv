@@ -534,8 +534,9 @@ struct si_screen {
    bool use_aco;
 
    /* Force a single shader to use ACO, debug usage. */
-   bool force_shader_use_aco;
-   blake3_hash use_aco_shader_blake;
+   blake3_hash *use_aco_shader_blakes;
+   unsigned num_use_aco_shader_blakes;
+   enum pipe_shader_type use_aco_shader_type;
 
    struct {
 #define OPT_BOOL(name, dflt, description) bool name : 1;
@@ -1140,7 +1141,8 @@ struct si_context {
    struct si_resource *last_const_upload_buffer;
 
    /* MSAA config state. */
-   int ps_iter_samples;
+   uint8_t ps_iter_samples;
+   uint8_t last_ps_iter_samples;
    bool ps_uses_fbfetch;
    bool smoothing_enabled;
 
@@ -1268,18 +1270,6 @@ struct si_context {
    /* Bindless state */
    bool uses_bindless_samplers;
    bool uses_bindless_images;
-
-   /* MSAA sample locations.
-    * The first index is the sample index.
-    * The second index is the coordinate: X, Y. */
-   struct {
-      float x1[1][2];
-      float x2[2][2];
-      float x4[4][2];
-      float x8[8][2];
-      float x16[16][2];
-   } sample_positions;
-   struct pipe_resource *sample_pos_buffer;
 
    /* Misc stats. */
    unsigned num_draw_calls;
@@ -1575,7 +1565,6 @@ void si_cp_pfp_sync_me(struct radeon_cmdbuf *cs);
 void si_gather_context_rolls(struct si_context *sctx);
 void si_save_cs(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, struct radeon_saved_cs *saved,
                 bool get_buffer_list);
-void si_clear_saved_cs(struct radeon_saved_cs *saved);
 void si_destroy_saved_cs(struct si_saved_cs *scs);
 void si_auto_log_cs(void *data, struct u_log_context *log);
 void si_log_hw_flush(struct si_context *sctx);
@@ -1601,6 +1590,8 @@ struct pipe_fence_handle *si_create_fence(struct pipe_context *ctx,
 
 /* si_get.c */
 void si_init_screen_get_functions(struct si_screen *sscreen);
+void si_init_shader_caps(struct si_screen *sscreen);
+void si_init_compute_caps(struct si_screen *sscreen);
 void si_init_screen_caps(struct si_screen *sscreen);
 
 bool si_sdma_copy_image(struct si_context *ctx, struct si_texture *dst, struct si_texture *src);
@@ -1608,7 +1599,6 @@ bool si_sdma_copy_image(struct si_context *ctx, struct si_texture *dst, struct s
 /* si_gfx_cs.c */
 void si_reset_debug_log_buffer(struct si_context *sctx);
 void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_handle **fence);
-void si_allocate_gds(struct si_context *ctx);
 void si_set_tracked_regs_to_clear_state(struct si_context *ctx);
 void si_begin_new_gfx_cs(struct si_context *ctx, bool first_cs);
 void si_trace_emit(struct si_context *sctx);
@@ -1625,7 +1615,6 @@ uint64_t si_begin_counter(struct si_screen *sscreen, unsigned type);
 unsigned si_end_counter(struct si_screen *sscreen, unsigned type, uint64_t begin);
 
 /* si_compute.c */
-void si_emit_initial_compute_regs(struct si_context *sctx, struct radeon_cmdbuf *cs);
 void si_init_compute_functions(struct si_context *sctx);
 
 /* si_pipe.c */
@@ -1633,7 +1622,6 @@ struct ac_llvm_compiler *si_create_llvm_compiler(struct si_screen *sscreen);
 void si_init_aux_async_compute_ctx(struct si_screen *sscreen);
 struct si_context *si_get_aux_context(struct si_aux_context *ctx);
 void si_put_aux_context_flush(struct si_aux_context *ctx);
-void si_put_aux_shader_upload_context_flush(struct si_screen *sscreen);
 void si_destroy_screen(struct pipe_screen *pscreen);
 
 /* si_perfcounters.c */
@@ -1806,17 +1794,6 @@ static inline bool vi_dcc_enabled(struct si_texture *tex, unsigned level)
     * I think DCC doesn't have to be disabled if a color buffer is simultaneously bound as a sampler.
     */
    return !tex->is_depth && tex->surface.meta_offset && level < tex->surface.num_meta_levels;
-}
-
-static inline unsigned si_get_minimum_num_gfx_cs_dwords(struct si_context *sctx,
-                                                        unsigned num_draws)
-{
-   /* Don't count the needed CS space exactly and just use an upper bound.
-    *
-    * Also reserve space for stopping queries at the end of IB, because
-    * the number of active queries is unlimited in theory.
-    */
-   return 2048 + sctx->num_cs_dw_queries_suspend + num_draws * 10;
 }
 
 static inline uint64_t si_get_atom_bit(struct si_context *sctx, struct si_atom *atom)
@@ -2031,11 +2008,19 @@ static inline bool util_rast_prim_is_triangles(unsigned prim)
    return ((1 << prim) & UTIL_ALL_PRIM_TRIANGLE_MODES) != 0;
 }
 
-static inline void si_need_gfx_cs_space(struct si_context *ctx, unsigned num_draws)
+static inline void si_need_gfx_cs_space(struct si_context *ctx, unsigned num_draws,
+                                        unsigned extra_dw_per_draw)
 {
    struct radeon_cmdbuf *cs = &ctx->gfx_cs;
+   /* Don't count the needed CS space exactly and just use an upper bound.
+    *
+    * Also reserve space for stopping queries at the end of IB, because
+    * the number of active queries is unlimited in theory.
+    */
+   unsigned reserve_dw = 2048 + ctx->num_cs_dw_queries_suspend +
+      num_draws * (10 + extra_dw_per_draw);
 
-   if (!ctx->ws->cs_check_space(cs, si_get_minimum_num_gfx_cs_dwords(ctx, num_draws)))
+   if (!ctx->ws->cs_check_space(cs, reserve_dw))
       si_flush_gfx_cs(ctx, RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW, NULL);
 }
 
@@ -2101,11 +2086,6 @@ si_num_vbos_in_user_sgprs_inline(enum amd_gfx_level gfx_level)
     * have to allocate and count references for the upload buffer.
     */
    return gfx_level >= GFX9 ? 5 : 1;
-}
-
-static inline unsigned si_num_vbos_in_user_sgprs(struct si_screen *sscreen)
-{
-   return si_num_vbos_in_user_sgprs_inline(sscreen->info.gfx_level);
 }
 
 static inline

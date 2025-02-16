@@ -148,12 +148,12 @@ long ring_buffer_advance_read(struct ring_buffer* r, uint32_t step_size, uint32_
 
 uint32_t ring_buffer_calc_shift(uint32_t size) {
     uint32_t shift = 0;
-    while ((1 << shift) < size) {
+    while ((1u << shift) < size) {
         ++shift;
     }
 
     // if size is not a power of 2,
-    if ((1 << shift) > size) {
+    if ((1u << shift) > size) {
         --shift;
     }
     return shift;
@@ -166,16 +166,16 @@ void ring_buffer_view_init(struct ring_buffer* r, struct ring_buffer_view* v, ui
     ring_buffer_init(r);
 
     v->buf = buf;
-    v->size = (1 << shift);
-    v->mask = (1 << shift) - 1;
+    v->size = (1u << shift);
+    v->mask = (1u << shift) - 1;
 }
 
 void ring_buffer_init_view_only(struct ring_buffer_view* v, uint8_t* buf, uint32_t size) {
     uint32_t shift = ring_buffer_calc_shift(size);
 
     v->buf = buf;
-    v->size = (1 << shift);
-    v->mask = (1 << shift) - 1;
+    v->size = (1u << shift);
+    v->mask = (1u << shift) - 1;
 }
 
 uint32_t ring_buffer_view_get_ring_pos(const struct ring_buffer_view* v, uint32_t index) {

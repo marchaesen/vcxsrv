@@ -542,6 +542,24 @@ is_used_by_non_fsat(const nir_alu_instr *instr)
 }
 
 static inline bool
+is_used_by_non_ldc_nv(const nir_alu_instr *instr)
+{
+   nir_foreach_use(src, &instr->def) {
+      const nir_instr *const user_instr = nir_src_parent_instr(src);
+
+      if (user_instr->type != nir_instr_type_intrinsic)
+         return true;
+
+      const nir_intrinsic_instr *const user_intrin = nir_instr_as_intrinsic(user_instr);
+
+      if (user_intrin->intrinsic != nir_intrinsic_ldc_nv)
+         return true;
+   }
+
+   return false;
+}
+
+static inline bool
 is_only_used_as_float_impl(const nir_alu_instr *instr, unsigned depth)
 {
    nir_foreach_use(src, &instr->def) {

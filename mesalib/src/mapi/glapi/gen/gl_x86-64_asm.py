@@ -137,7 +137,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         print('\t.text')
         print('')
         print('_x86_64_get_dispatch:')
-        print('\tmovq\t_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax')
+        print('\tmovq\t_mesa_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax')
         print('\tmovq\t%fs:(%rax), %rax')
         print('\tret')
         print('\t.size\t_x86_64_get_dispatch, .-_x86_64_get_dispatch')

@@ -1094,13 +1094,8 @@ v3d_update_job_tlb_load_store(struct v3d_job *job) {
                 if (job->store & bit || !job->cbufs[i])
                         continue;
                 struct v3d_resource *rsc = v3d_resource(job->cbufs[i]->texture);
+                job->load |= bit & ~no_load_mask;
 
-                if (rsc->invalidated) {
-                        job->invalidated_load |= bit;
-                        rsc->invalidated = false;
-                } else {
-                        job->load |= bit & ~no_load_mask;
-                }
                 if (v3d->blend->base.rt[blend_rt].colormask)
                         job->store |= bit;
                 v3d_job_add_bo(job, rsc->bo);
@@ -1399,20 +1394,6 @@ v3d_draw_vbo(struct pipe_context *pctx, const struct pipe_draw_info *info,
                 for (int i = 0; i < v3d->streamout.num_targets; i++)
                         v3d_stream_output_target(v3d->streamout.targets[i])->offset +=
                                 u_stream_outputs_for_vertices(info->mode, draws[0].count);
-        }
-
-        if (v3d->zsa && job->zsbuf) {
-                struct v3d_resource *rsc = v3d_resource(job->zsbuf->texture);
-                if (rsc->invalidated) {
-                        /* Currently gallium only applies invalidates if it
-                         * affects both depth and stencil together.
-                         */
-                        job->invalidated_load |=
-                                PIPE_CLEAR_DEPTH | PIPE_CLEAR_STENCIL;
-                        rsc->invalidated = false;
-                        if (rsc->separate_stencil)
-                                rsc->separate_stencil->invalidated = false;
-                }
         }
 
         v3d_update_job_tlb_load_store(job);

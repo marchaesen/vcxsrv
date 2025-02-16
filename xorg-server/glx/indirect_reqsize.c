@@ -26,16 +26,9 @@
  */
 
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#else
-
-#include "util/glheader.h"
-
-#endif
 
 #include "glxserver.h"
-#include "glxbyteorder.h"
 #include "indirect_size.h"
 #include "indirect_reqsize.h"
 

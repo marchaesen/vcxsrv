@@ -12,26 +12,10 @@ static void
 setup_lrz(struct fd_resource *rsc)
 {
    struct fd_screen *screen = fd_screen(rsc->b.b.screen);
-   unsigned lrz_pitch = align(DIV_ROUND_UP(rsc->b.b.width0, 8), 64);
-   unsigned lrz_height = DIV_ROUND_UP(rsc->b.b.height0, 8);
-
-   /* LRZ buffer is super-sampled: */
-   switch (rsc->b.b.nr_samples) {
-   case 4:
-      lrz_pitch *= 2;
-      FALLTHROUGH;
-   case 2:
-      lrz_height *= 2;
-   }
-
-   unsigned size = lrz_pitch * lrz_height * 2;
-
-   size += 0x1000; /* for GRAS_LRZ_FAST_CLEAR_BUFFER */
-
-   rsc->lrz_height = lrz_height;
-   rsc->lrz_width = lrz_pitch;
-   rsc->lrz_pitch = lrz_pitch;
-   rsc->lrz = fd_bo_new(screen->dev, size, FD_BO_NOMAP, "lrz");
+   fdl5_lrz_layout_init(&rsc->lrz_layout, rsc->b.b.width0, rsc->b.b.height0,
+                        rsc->b.b.nr_samples);
+   rsc->lrz = fd_bo_new(screen->dev, rsc->lrz_layout.lrz_total_size,
+                        FD_BO_NOMAP, "lrz");
 }
 
 uint32_t

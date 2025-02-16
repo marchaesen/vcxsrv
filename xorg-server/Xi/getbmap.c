@@ -65,20 +65,6 @@ SOFTWARE.
  *
  */
 
-int _X_COLD
-SProcXGetDeviceButtonMapping(ClientPtr client)
-{
-    REQUEST(xGetDeviceButtonMappingReq);
-    swaps(&stuff->length);
-    return (ProcXGetDeviceButtonMapping(client));
-}
-
-/***********************************************************************
- *
- * This procedure gets the button mapping for the specified device.
- *
- */
-
 int
 ProcXGetDeviceButtonMapping(ClientPtr client)
 {

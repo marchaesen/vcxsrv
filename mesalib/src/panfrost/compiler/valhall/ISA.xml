@@ -181,7 +181,8 @@
 
   <enum name="Swizzles (8-bit)">
     <value default="true">b0123</value>
-    <value>b3210</value>
+    <!-- b3210 until v11 -->
+    <reserved/>
     <value>b0101</value>
     <value>b2323</value>
     <value>b0000</value>
@@ -200,7 +201,7 @@
 
   <enum name="Lanes (8-bit)">
     <desc>Used to select the 2 bytes for shifts of 16-bit vectors</desc>
-    <value>b02</value>
+    <reserved/>
     <reserved/>
     <reserved/>
     <reserved/>
@@ -210,8 +211,8 @@
     <value>b33</value>
     <reserved/>
     <reserved/>
-    <value>b01</value>
-    <value>b23</value>
+    <reserved/>
+    <reserved/>
     <reserved/>
     <reserved/>
     <reserved/>
@@ -1977,7 +1978,7 @@
       derivatives in fragment shaders.
     </desc>
     <src>A</src>
-    <src widen="true">B</src>
+    <src lanes="true" size="8">B</src>
     <subgroup/>
     <lane_op/>
     <inactive_result/>

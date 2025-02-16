@@ -120,66 +120,8 @@ __stdcall unsigned long GetTickCount(void);
 #include "miinitext.h"
 #include "present.h"
 #include "dixstruct_priv.h"
-
-Bool noTestExtensions;
-
-#ifdef COMPOSITE
-Bool noCompositeExtension = FALSE;
-#endif
-
-#ifdef DAMAGE
-Bool noDamageExtension = FALSE;
-#endif
-#ifdef DBE
-Bool noDbeExtension = FALSE;
-#endif
-#ifdef DPMSExtension
 #include "dpmsproc.h"
-Bool noDPMSExtension = FALSE;
-#endif
-#ifdef GLXEXT
-Bool noGlxExtension = FALSE;
-#endif
-#ifdef SCREENSAVER
-Bool noScreenSaverExtension = FALSE;
-#endif
-#ifdef MITSHM
-Bool noMITShmExtension = FALSE;
-#endif
-#ifdef RANDR
-Bool noRRExtension = FALSE;
-#endif
-Bool noRenderExtension = FALSE;
-Bool noShapeExtension = FALSE;
-
-#ifdef XCSECURITY
-Bool noSecurityExtension = FALSE;
-#endif
-#ifdef RES
-Bool noResExtension = FALSE;
-#endif
-#ifdef XF86BIGFONT
-Bool noXFree86BigfontExtension = FALSE;
-#endif
-#ifdef XFreeXDGA
-Bool noXFree86DGAExtension = FALSE;
-#endif
-#ifdef XF86DRI
-Bool noXFree86DRIExtension = FALSE;
-#endif
-#ifdef XF86VIDMODE
-Bool noXFree86VidModeExtension = FALSE;
-#endif
-Bool noXFixesExtension = FALSE;
-#ifdef PANORAMIX
-/* Xinerama is disabled by default unless enabled via +xinerama */
-Bool noPanoramiXExtension = TRUE;
-#endif
-#ifdef DRI2
-Bool noDRI2Extension = FALSE;
-#endif
-
-Bool noGEExtension = FALSE;
+#include "extinit_priv.h"
 
 #define X_INCLUDE_NETDB_H
 #include <X11/Xos_r.h>
@@ -192,9 +134,9 @@ Bool enableIndirectGLX = TRUE;
 
 Bool AllowByteSwappedClients = FALSE;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 Bool PanoramiXExtensionDisabledHack = FALSE;
-#endif
+#endif /* XINERAMA */
 
 char *SeatId = NULL;
 
@@ -398,10 +340,10 @@ UseMsg(void)
     ErrorF("-terminate [delay]     terminate at server reset (optional delay in sec)\n");
     ErrorF("-tst                   disable testing extensions\n");
     ErrorF("-wr                    create root window with white background\n");
-#ifdef PANORAMIX
+#ifdef XINERAMA
     ErrorF("+xinerama              Enable XINERAMA extension\n");
     ErrorF("-xinerama              Disable XINERAMA extension\n");
-#endif
+#endif /* XINERAMA */
     ErrorF("-dumbSched             Disable smart scheduling and threaded input, enable old behavior\n");
     ErrorF("-schedInterval int     Set scheduler interval in msec\n");
     ErrorF("+extension name        Enable extension\n");
@@ -804,7 +746,7 @@ ProcessCommandLine(int argc, char *argv[])
                 UseMsg();
             }
         }
-#ifdef PANORAMIX
+#ifdef XINERAMA
         else if (strcmp(argv[i], "+xinerama") == 0) {
             noPanoramiXExtension = FALSE;
         }
@@ -814,7 +756,7 @@ ProcessCommandLine(int argc, char *argv[])
         else if (strcmp(argv[i], "-disablexineramaextension") == 0) {
             PanoramiXExtensionDisabledHack = TRUE;
         }
-#endif
+#endif /* XINERAMA */
         else if (strcmp(argv[i], "-I") == 0) {
             /* ignore all remaining arguments */
             break;
@@ -915,7 +857,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
         char hname[1024], *hnameptr;
         unsigned int len;
 
-#if defined(IPv6)
+#if defined(HAVE_GETADDRINFO)
         struct addrinfo hints, *ai = NULL;
 #else
         struct hostent *host;
@@ -926,7 +868,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
 #endif
 
         gethostname(hname, 1024);
-#if defined(IPv6)
+#if defined(HAVE_GETADDRINFO)
         memset(&hints, 0, sizeof(hints));
         hints.ai_flags = AI_CANONNAME;
         if (getaddrinfo(hname, NULL, &hints, &ai) == 0) {
@@ -956,7 +898,7 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
         p += sizeof(AUTHORIZATION_NAME);
         memcpy(p, hnameptr, len);
         p += len;
-#if defined(IPv6)
+#if defined(HAVE_GETADDRINFO)
         if (ai) {
             freeaddrinfo(ai);
         }
@@ -1394,49 +1336,6 @@ Win32TempDir(void)
     else
         return "/tmp";
 }
-
-int
-System(const char *cmdline)
-{
-    STARTUPINFO si = (STARTUPINFO) {
-        .cb = sizeof(si),
-    };
-    PROCESS_INFORMATION pi = (PROCESS_INFORMATION){0};
-    DWORD dwExitCode;
-    char *cmd = strdup(cmdline);
-
-    if (!CreateProcess(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-        LPVOID buffer;
-
-        if (!FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-                           FORMAT_MESSAGE_FROM_SYSTEM |
-                           FORMAT_MESSAGE_IGNORE_INSERTS,
-                           NULL,
-                           GetLastError(),
-                           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                           (LPTSTR) &buffer, 0, NULL)) {
-            ErrorF("[xkb] Starting '%s' failed!\n", cmdline);
-        }
-        else {
-            ErrorF("[xkb] Starting '%s' failed: %s", cmdline, (char *) buffer);
-            LocalFree(buffer);
-        }
-
-        free(cmd);
-        return -1;
-    }
-    /* Wait until child process exits. */
-    WaitForSingleObject(pi.hProcess, INFINITE);
-
-    GetExitCodeProcess(pi.hProcess, &dwExitCode);
-
-    /* Close process and thread handles. */
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-    free(cmd);
-
-    return dwExitCode;
-}
 #endif
 
 Bool
@@ -1695,3 +1594,19 @@ os_move_fd(int fd)
     return newfd;
 }
 #endif
+
+void
+AbortServer(void)
+{
+#ifdef XF86BIGFONT
+    XF86BigfontCleanup();
+#endif
+    CloseWellKnownConnections();
+    OsCleanup(TRUE);
+    AbortDevices();
+    ddxGiveUp(EXIT_ERR_ABORT);
+    fflush(stderr);
+    if (CoreDump)
+        OsAbort();
+    exit(1);
+}

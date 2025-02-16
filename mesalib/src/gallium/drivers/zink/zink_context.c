@@ -3766,7 +3766,7 @@ zink_set_framebuffer_state(struct pipe_context *pctx,
          ctx->rp_changed |= !!zink_transient_surface(psurf) != !!zink_transient_surface(state->cbufs[i]);
       unbind_fb_surface(ctx, psurf, i, i >= state->nr_cbufs || psurf != state->cbufs[i]);
       if (psurf && ctx->needs_present == zink_resource(psurf->texture))
-         ctx->needs_present = NULL;
+         zink_resource_reference(&ctx->needs_present, NULL);
    }
    if (ctx->fb_state.zsbuf) {
       struct pipe_surface *psurf = ctx->fb_state.zsbuf;
@@ -4008,7 +4008,7 @@ zink_flush(struct pipe_context *pctx,
          zink_kopper_readback_update(ctx, ctx->needs_present);
          screen->image_barrier(ctx, ctx->needs_present, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
       }
-      ctx->needs_present = NULL;
+      zink_resource_reference(&ctx->needs_present, NULL);
    }
 
    if (flags & PIPE_FLUSH_FENCE_FD) {
@@ -4296,7 +4296,7 @@ zink_flush_resource(struct pipe_context *pctx,
          zink_screen(ctx->base.screen)->image_barrier(ctx, res, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, 0, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
          zink_batch_reference_resource_rw(ctx, res, true);
       } else {
-         ctx->needs_present = res;
+         zink_resource_reference(&ctx->needs_present, res);
       }
       ctx->swapchain = res;
    } else if (res->dmabuf)
@@ -4839,7 +4839,7 @@ zink_copy_image_buffer(struct zink_context *ctx, struct zink_resource *dst, stru
       zink_kopper_present_readback(ctx, img);
    }
 
-   if (ctx->oom_flush && !ctx->in_rp && !ctx->unordered_blitting)
+   if (ctx->oom_flush && !ctx->in_rp && !ctx->unordered_blitting && !unsync)
       flush_batch(ctx, false);
 }
 
@@ -5596,7 +5596,7 @@ zink_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
                                                         .is_resource_busy = zink_context_is_resource_busy,
                                                         .driver_calls_flush_notify = !screen->driver_workarounds.track_renderpasses,
                                                         .unsynchronized_get_device_reset_status = true,
-                                                        .unsynchronized_texture_subdata = true,
+                                                        .unsynchronized_texture_subdata = screen->info.have_EXT_host_image_copy,
                                                         .parse_renderpass_info = screen->driver_workarounds.track_renderpasses,
                                                         .dsa_parse = zink_tc_parse_dsa,
                                                         .fs_parse = zink_tc_parse_fs,
@@ -5658,11 +5658,16 @@ add_implicit_feedback_loop(struct zink_context *ctx, struct zink_resource *res)
       VkPipelineStageFlags vkstagebit = BITFIELD_BIT(vkstage);
       if (vkstagebit < VK_PIPELINE_STAGE_VERTEX_SHADER_BIT || vkstagebit > VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT)
          continue;
+
       /* in-range VkPipelineStageFlagBits can be converted to VkShaderStageFlags with a bitshift */
       gl_shader_stage stage = vk_to_mesa_shader_stage((VkShaderStageFlagBits)(vkstagebit >> 3));
+      /* check against bound stages */
+      if (!ctx->gfx_stages[stage])
+         continue;
+
       /* check shader texture usage against resource's sampler binds */
       uint32_t texuse = res->sampler_binds[stage] & ctx->gfx_stages[stage]->info.textures_used[0];
-      if (!ctx->gfx_stages[stage] || !texuse)
+      if (!texuse)
          continue;
 
       /* check miplevel/layer: a feedback loop only exists if these overlap between fb and sampler */

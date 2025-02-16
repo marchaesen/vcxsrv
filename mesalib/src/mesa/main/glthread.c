@@ -121,7 +121,7 @@ glthread_unmarshal_batch(void *job, void *gdata, int thread_index)
       glthread_update_global_locking(ctx);
 
    /* Execute the GL calls. */
-   _glapi_set_dispatch(ctx->Dispatch.Current);
+   _mesa_glapi_set_dispatch(ctx->Dispatch.Current);
 
    /* Here we lock the mutexes once globally if possible. If not, we just
     * fallback to the individual API calls doing it.
@@ -190,7 +190,7 @@ glthread_thread_initialization(void *job, void *gdata, int thread_index)
    struct gl_context *ctx = (struct gl_context*)job;
 
    st_set_background_context(ctx, &ctx->GLThread.stats);
-   _glapi_set_context(ctx);
+   _mesa_glapi_set_context(ctx);
 }
 
 static void
@@ -302,8 +302,8 @@ void _mesa_glthread_enable(struct gl_context *ctx)
    ctx->st->pin_thread_counter = ST_THREAD_SCHEDULER_DISABLED;
 
    /* Update the dispatch only if the dispatch is current. */
-   if (_glapi_get_dispatch() == ctx->Dispatch.Current) {
-       _glapi_set_dispatch(ctx->GLApi);
+   if (_mesa_glapi_get_dispatch() == ctx->Dispatch.Current) {
+       _mesa_glapi_set_dispatch(ctx->GLApi);
    }
 }
 
@@ -322,8 +322,8 @@ void _mesa_glthread_disable(struct gl_context *ctx)
       ctx->st->pin_thread_counter = 0;
 
    /* Update the dispatch only if the dispatch is current. */
-   if (_glapi_get_dispatch() == ctx->MarshalExec) {
-       _glapi_set_dispatch(ctx->GLApi);
+   if (_mesa_glapi_get_dispatch() == ctx->MarshalExec) {
+       _mesa_glapi_set_dispatch(ctx->GLApi);
    }
 
    /* Unbind VBOs in all VAOs that glthread bound for non-VBO vertex uploads
@@ -418,9 +418,9 @@ _mesa_glthread_finish(struct gl_context *ctx)
       /* Since glthread_unmarshal_batch changes the dispatch to direct,
        * restore it after it's done.
        */
-      struct _glapi_table *dispatch = _glapi_get_dispatch();
+      struct _glapi_table *dispatch = _mesa_glapi_get_dispatch();
       glthread_unmarshal_batch(next, NULL, 0);
-      _glapi_set_dispatch(dispatch);
+      _mesa_glapi_set_dispatch(dispatch);
 
       /* It's not a sync because we don't enqueue partial batches, but
        * it would be a sync if we did. So count it anyway.

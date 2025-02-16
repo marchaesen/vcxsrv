@@ -676,7 +676,17 @@ set_tex_parameteri(struct gl_context *ctx,
          return GL_TRUE;
       }
       goto invalid_pname;
-
+   case GL_TEXTURE_PROTECTED_EXT:
+      if (_mesa_has_EXT_protected_textures(ctx)) {
+         if (params[0] != GL_TRUE && params[0] != GL_FALSE) {
+            _mesa_error(ctx, GL_INVALID_VALUE, "glTex%sParameter(param)",
+                        suffix);
+            return GL_FALSE;
+         }
+         texObj->IsProtected = params[0];
+         return GL_TRUE;
+      }
+      goto invalid_pname;
    case GL_TEXTURE_SPARSE_ARB:
    case GL_VIRTUAL_PAGE_SIZE_INDEX_ARB:
       if (!_mesa_has_ARB_sparse_texture(ctx))
@@ -901,7 +911,17 @@ set_tex_parameterf(struct gl_context *ctx,
          return GL_TRUE;
       }
       goto invalid_pname;
-
+   case GL_TEXTURE_PROTECTED_EXT:
+      if (_mesa_has_EXT_protected_textures(ctx)) {
+         if (params[0] != GL_TRUE && params[0] != GL_FALSE) {
+            _mesa_error(ctx, GL_INVALID_VALUE, "glTex%sParameter(param)",
+                        suffix);
+            return GL_FALSE;
+         }
+         texObj->IsProtected = params[0];
+         return GL_TRUE;
+      }
+      goto invalid_pname;
    default:
       goto invalid_pname;
    }
@@ -2547,6 +2567,12 @@ get_tex_parameterfv(struct gl_context *ctx,
          *params = (GLfloat) obj->NumSparseLevels;
          break;
 
+      case GL_TEXTURE_PROTECTED_EXT:
+         if (!_mesa_has_EXT_protected_textures(ctx))
+            goto invalid_pname;
+         *params = (GLfloat) obj->IsProtected;
+         break;
+
       default:
          goto invalid_pname;
    }
@@ -2842,6 +2868,12 @@ get_tex_parameteriv(struct gl_context *ctx,
          if (!_mesa_has_EXT_texture_compression_astc_decode_mode(ctx))
             goto invalid_pname;
          *params = obj->AstcDecodePrecision;
+         break;
+      
+      case GL_TEXTURE_PROTECTED_EXT:
+         if (!_mesa_has_EXT_protected_textures(ctx))
+            goto invalid_pname;
+         *params = obj->IsProtected;
          break;
 
       default:

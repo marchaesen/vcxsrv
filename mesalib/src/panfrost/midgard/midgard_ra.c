@@ -296,7 +296,7 @@ mir_lower_special_reads(compiler_context *ctx)
 
                   midgard_instruction *use = mir_next_op(pre_use);
                   assert(use);
-                  mir_insert_instruction_before(ctx, use, m);
+                  mir_insert_instruction_before(ctx, use, &m);
                   mir_rewrite_index_dst_single(pre_use, i, idx);
                } else {
                   if (!mir_has_arg(pre_use, i))
@@ -310,7 +310,7 @@ mir_lower_special_reads(compiler_context *ctx)
                   if (mov == NULL || !mir_is_ssa(i)) {
                      midgard_instruction m = v_mov(i, spill_idx++);
                      m.mask = mask;
-                     mov = mir_insert_instruction_before(ctx, pre_use, m);
+                     mov = mir_insert_instruction_before(ctx, pre_use, &m);
                   } else {
                      mov->mask |= mask;
                   }
@@ -445,7 +445,7 @@ mir_compute_interference(compiler_context *ctx, struct lcra_state *l)
 }
 
 static bool
-mir_is_64(midgard_instruction *ins)
+mir_is_64(const midgard_instruction *ins)
 {
    if (nir_alu_type_get_type_size(ins->dest_type) == 64)
       return true;
@@ -463,7 +463,7 @@ mir_is_64(midgard_instruction *ins)
  * allocation. TODO: Optimize if barriers and local memory are unused.
  */
 static bool
-needs_contiguous_workgroup(compiler_context *ctx)
+needs_contiguous_workgroup(const compiler_context *ctx)
 {
    return gl_shader_stage_uses_workgroup(ctx->stage);
 }
@@ -475,7 +475,7 @@ needs_contiguous_workgroup(compiler_context *ctx)
  * workgroups.
  */
 static unsigned
-max_threads_per_workgroup(compiler_context *ctx)
+max_threads_per_workgroup(const compiler_context *ctx)
 {
    if (ctx->nir->info.workgroup_size_variable) {
       return 128;
@@ -502,7 +502,7 @@ max_threads_per_workgroup(compiler_context *ctx)
  *    work properly).
  */
 static unsigned
-max_work_registers(compiler_context *ctx)
+max_work_registers(const compiler_context *ctx)
 {
    if (ctx->inputs->is_blend)
       return 8;
@@ -1024,7 +1024,7 @@ mir_spill_register(compiler_context *ctx, unsigned spill_node,
                /* Hint: don't rewrite this node */
                st.hint = true;
 
-               mir_insert_instruction_after_scheduled(ctx, block, ins, st);
+               mir_insert_instruction_after_scheduled(ctx, block, ins, &st);
             } else {
                unsigned bundle = ins->bundle_id;
                unsigned dest =
@@ -1039,7 +1039,7 @@ mir_spill_register(compiler_context *ctx, unsigned spill_node,
                   midgard_instruction read =
                      v_load_store_scratch(dest, spill_slot, false, 0xF);
                   mir_insert_instruction_before_scheduled(ctx, block, ins,
-                                                          read);
+                                                          &read);
                   write_mask = 0xF;
                   last_fill = bundle;
                }
@@ -1078,14 +1078,14 @@ mir_spill_register(compiler_context *ctx, unsigned spill_node,
                   midgard_instruction st =
                      v_load_store_scratch(dest, spill_slot, true, write_mask);
                   last_spill = mir_insert_instruction_after_scheduled(
-                     ctx, block, ins, st);
+                     ctx, block, ins, &st);
                }
 
                if (move) {
                   midgard_instruction mv = v_mov(ins->dest, dest);
                   mv.no_spill |= (1 << spill_class);
 
-                  mir_insert_instruction_after_scheduled(ctx, block, ins, mv);
+                  mir_insert_instruction_after_scheduled(ctx, block, ins, &mv);
                }
 
                last_id = bundle;
@@ -1142,7 +1142,7 @@ mir_spill_register(compiler_context *ctx, unsigned spill_node,
             st.mask =
                mir_from_bytemask(mir_round_bytemask_up(read_bytemask, 32), 32);
 
-            mir_insert_instruction_before_scheduled(ctx, block, before, st);
+            mir_insert_instruction_before_scheduled(ctx, block, before, &st);
          } else {
             /* Special writes already have their move spilled in */
             index = spill_slot;
@@ -1206,7 +1206,7 @@ mir_demote_uniforms(compiler_context *ctx, unsigned new_cutoff)
             midgard_pack_ubo_index_imm(&ld.load_store,
                                        ctx->info->push.words[idx].ubo);
 
-            mir_insert_instruction_before_scheduled(ctx, block, before, ld);
+            mir_insert_instruction_before_scheduled(ctx, block, before, &ld);
 
             mir_rewrite_index_src_single(ins, ins->src[i], temp);
          }

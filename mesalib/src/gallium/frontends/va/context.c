@@ -344,6 +344,9 @@ vlVaCreateContext(VADriverContextP ctx, VAConfigID config_id, int picture_width,
       context->templat.height = picture_height;
       context->templat.expect_chunked_decode = true;
 
+      if (config->entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM)
+         context->desc.base.protected_playback = flag & VL_VA_CREATE_CONTEXT_PROTECTED;
+
       switch (u_reduce_video_profile(context->templat.profile)) {
       case PIPE_VIDEO_FORMAT_MPEG12:
       case PIPE_VIDEO_FORMAT_VC1:
@@ -451,6 +454,7 @@ vlVaCreateContext(VADriverContextP ctx, VAConfigID config_id, int picture_width,
          return VA_STATUS_ERROR_ALLOCATION_FAILED;
    }
 
+   mtx_init(&context->mutex, mtx_plain);
    context->surfaces = _mesa_set_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
    context->buffers = _mesa_set_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
 
@@ -480,6 +484,8 @@ vlVaDestroyContext(VADriverContextP ctx, VAContextID context_id)
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_INVALID_CONTEXT;
    }
+
+   mtx_lock(&context->mutex);
 
    set_foreach(context->surfaces, entry) {
       vlVaSurface *surf = (vlVaSurface *)entry->key;
@@ -551,12 +557,12 @@ vlVaDestroyContext(VADriverContextP ctx, VAContextID context_id)
       }
       context->decoder->destroy(context->decoder);
    }
-   if (context->blit_cs)
-      drv->pipe->delete_compute_state(drv->pipe, context->blit_cs);
    if (context->deint) {
       vl_deint_filter_cleanup(context->deint);
       FREE(context->deint);
    }
+   mtx_unlock(&context->mutex);
+   mtx_destroy(&context->mutex);
    FREE(context->desc.base.decrypt_key);
    FREE(context->bs.buffers);
    FREE(context->bs.sizes);
@@ -578,8 +584,8 @@ vlVaTerminate(VADriverContextP ctx)
    drv = ctx->pDriverData;
    vl_compositor_cleanup_state(&drv->cstate);
    vl_compositor_cleanup(&drv->compositor);
-   if (drv->pipe_gfx)
-      drv->pipe_gfx->destroy(drv->pipe_gfx);
+   if (drv->pipe2)
+      drv->pipe2->destroy(drv->pipe2);
    drv->pipe->destroy(drv->pipe);
    drv->vscreen->destroy(drv->vscreen);
    handle_table_destroy(drv->htab);

@@ -154,6 +154,37 @@ create_shift(nir_builder *b, nir_def *offset, int shift)
    return nir_ushr_imm(b, offset, shift);
 }
 
+/* isam doesn't have an "untyped" field, so it can only load 1 component at a
+ * time because our storage buffer descriptors use a 1-component format.
+ * Therefore we need to scalarize any loads that would use isam.
+ */
+static void
+scalarize_load(nir_intrinsic_instr *intrinsic, nir_builder *b)
+{
+   struct nir_def *results[NIR_MAX_VEC_COMPONENTS];
+
+   nir_def *descriptor = intrinsic->src[0].ssa;
+   nir_def *offset = intrinsic->src[1].ssa;
+   nir_def *record = nir_channel(b, offset, 0);
+   nir_def *record_offset = nir_channel(b, offset, 1);
+
+   for (unsigned i = 0; i < intrinsic->def.num_components; i++) {
+      results[i] =
+         nir_load_uav_ir3(b, 1, intrinsic->def.bit_size, descriptor,
+                          nir_vec2(b, record, 
+                                   nir_iadd_imm(b, record_offset, i)),
+                          .access = nir_intrinsic_access(intrinsic),
+                          .align_mul = nir_intrinsic_align_mul(intrinsic),
+                          .align_offset = nir_intrinsic_align_offset(intrinsic));
+   }
+
+   nir_def *result = nir_vec(b, results, intrinsic->def.num_components);
+
+   nir_def_rewrite_uses(&intrinsic->def, result);
+
+   nir_instr_remove(&intrinsic->instr);
+}
+
 static bool
 lower_offset_for_ssbo(nir_intrinsic_instr *intrinsic, nir_builder *b,
                       unsigned ir3_ssbo_opcode, uint8_t offset_src_idx)
@@ -270,6 +301,14 @@ lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx)
       if (ir3_intrinsic != -1) {
          progress |= lower_offset_for_ssbo(intr, b, (unsigned)ir3_intrinsic,
                                            offset_src_idx);
+      }
+
+      if (intr->intrinsic == nir_intrinsic_load_uav_ir3 &&
+          (nir_intrinsic_access(intr) & ACCESS_CAN_REORDER) &&
+          ir3_bindless_resource(intr->src[0]) &&
+          intr->num_components > 1) {
+         b->cursor = nir_before_instr(instr);
+         scalarize_load(intr, b);
       }
    }
 

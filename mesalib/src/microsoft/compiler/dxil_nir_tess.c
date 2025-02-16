@@ -279,6 +279,11 @@ dxil_nir_split_tess_ctrl(nir_shader *nir, nir_function **patch_const_func)
    }
    state.end_cursor = nir_after_block_before_jump(nir_impl_last_block(patch_const_func_impl));
    end_tcs_loop(&b, &state);
+
+   //TODO: this isn't correct if the def isn't loop invariant
+   /* If we have more than one loop, SSA needs to be repaired for one loop to use defs from another. */
+   if (loop_var)
+      nir_repair_ssa_impl(patch_const_func_impl);
 }
 
 struct remove_tess_level_accesses_data {

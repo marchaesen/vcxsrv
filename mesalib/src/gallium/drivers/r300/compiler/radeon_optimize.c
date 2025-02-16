@@ -374,7 +374,9 @@ presub_replace_add(struct rc_instruction *inst_add, struct rc_instruction *inst_
       negates++;
    if (inst_add->U.I.SrcReg[1].Negate)
       negates++;
-   assert(negates != 2 || inst_add->U.I.SrcReg[1].Negate == inst_add->U.I.SrcReg[0].Negate);
+   assert(negates != 2 ||
+          ((inst_add->U.I.SrcReg[1].Negate & inst_add->U.I.DstReg.WriteMask) ==
+           (inst_add->U.I.SrcReg[0].Negate & inst_add->U.I.DstReg.WriteMask)));
 
    if (negates == 1)
       presub_opcode = RC_PRESUB_SUB;
@@ -1320,6 +1322,77 @@ merge_A0_loads(struct radeon_compiler *c, struct rc_instruction *inst, bool is_A
 }
 
 /**
+ * Search for instructions where we could copy propagate the constant swizzle
+ * to the reader, for example the following sequence
+ *
+ * SIN temp[1].x, temp[0].x___;
+ * MOV temp[1].y, none._1__;
+ * ADD temp[2].xyz, temp[1].xy__, const[0].ww__;
+ *
+ * could be transformed into
+ *
+ * SIN temp[1].x, temp[0].x___;
+ * ADD temp[0].xyz, temp[1].x1__, const[0].ww__;
+ */
+static void
+copy_propagate_constant_swizzle(struct radeon_compiler *c, struct rc_instruction *inst)
+{
+   unsigned int orig_dst_reg = inst->U.I.DstReg.Index;
+   unsigned int orig_dst_wmask = inst->U.I.DstReg.WriteMask;
+
+   struct rc_instruction *cur = inst;
+   while (cur != &c->Program.Instructions) {
+      cur = cur->Next;
+      const struct rc_opcode_info *opcode = rc_get_opcode_info(cur->U.I.Opcode);
+
+      /* Keep it simple for now and stop when encountering any control flow. */
+      if (opcode->IsFlowControl)
+         break;
+
+      /* We should not see the original destination overwritten (within a control flow block).
+       * If that happens, we don't have SSA-like anymore and several later assumptions would
+       * be broken. */
+      assert(orig_dst_reg != cur->U.I.DstReg.Index || RC_FILE_TEMPORARY != cur->U.I.DstReg.File ||
+             (orig_dst_wmask & cur->U.I.DstReg.WriteMask) == 0);
+
+      for (unsigned int src = 0; src < opcode->NumSrcRegs; src++) {
+         if (cur->U.I.SrcReg[src].File == RC_FILE_TEMPORARY &&
+             cur->U.I.SrcReg[src].Index == orig_dst_reg &&
+             rc_swizzle_to_writemask(cur->U.I.SrcReg[src].Swizzle) & orig_dst_wmask) {
+
+            /* Construct the new swizzle. */
+            unsigned new_swizzle = cur->U.I.SrcReg[src].Swizzle;
+            unsigned negate = 0;
+            for (unsigned chan = 0; chan < 4; chan++) {
+               unsigned swz = GET_SWZ(new_swizzle, chan);
+               unsigned swz_to_propagate = GET_SWZ(inst->U.I.SrcReg[0].Swizzle, swz);
+               if (swz_to_propagate > RC_SWIZZLE_W && swz_to_propagate < RC_SWIZZLE_UNUSED) {
+                  SET_SWZ(new_swizzle, chan, swz_to_propagate);
+                  negate |= inst->U.I.SrcReg[0].Negate & (1 << swz);
+               }
+            }
+            struct rc_src_register new_src = cur->U.I.SrcReg[src];
+            new_src.Swizzle = new_swizzle;
+            new_src.Negate ^= negate;
+            if (!c->SwizzleCaps->IsNative(cur->U.I.Opcode, new_src))
+               continue;
+
+            cur->U.I.SrcReg[src] = new_src;
+         }
+      }
+   }
+
+   /* Now check if we can delete the original MOV. Specifically if we still have some
+    * readers left.
+    */
+   struct rc_reader_data readers;
+   readers.ExitOnAbort = 0;
+   rc_get_readers(c, inst, &readers, NULL, NULL, NULL);
+   if (readers.ReaderCount == 0)
+      rc_remove_instruction(inst);
+}
+
+/**
  * According to the GLSL spec, round is only 1.30 and up
  * so the only reason why we should ever see round is if it actually
  * is lowered ARR (from nine->ttn). In that case we want to reconstruct
@@ -1329,6 +1402,7 @@ static void
 transform_vertex_ROUND(struct radeon_compiler *c, struct rc_instruction *inst)
 {
    struct rc_reader_data readers;
+   readers.ExitOnAbort = 0;
    rc_get_readers(c, inst, &readers, NULL, NULL, NULL);
 
    assert(readers.ReaderCount > 0);
@@ -1414,6 +1488,17 @@ rc_optimize(struct radeon_compiler *c, void *user)
       inst = inst->Next;
       if (cur->U.I.Opcode == RC_OPCODE_MOV) {
          copy_propagate(c, cur);
+      }
+   }
+
+   /* Copy propagate constant swizzles */
+   inst = c->Program.Instructions.Next;
+   while (inst != &c->Program.Instructions) {
+      struct rc_instruction *cur = inst;
+      inst = inst->Next;
+      if (cur->U.I.Opcode == RC_OPCODE_MOV && cur->U.I.SrcReg[0].File == RC_FILE_NONE &&
+          cur->U.I.DstReg.File == RC_FILE_TEMPORARY) {
+         copy_propagate_constant_swizzle(c, cur);
       }
    }
 

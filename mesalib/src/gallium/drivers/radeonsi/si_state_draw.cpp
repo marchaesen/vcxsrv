@@ -1367,14 +1367,10 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
    unsigned sh_base_reg = si_get_user_data_base(GFX_VERSION, HAS_TESS, HAS_GS, NGG,
                                                 PIPE_SHADER_VERTEX);
    bool render_cond_bit = sctx->render_cond_enabled;
-   unsigned tracked_base_vertex_reg;
-
-   if (HAS_TESS)
-      tracked_base_vertex_reg = SI_TRACKED_SPI_SHADER_USER_DATA_LS__BASE_VERTEX;
-   else if (HAS_GS || NGG)
-      tracked_base_vertex_reg = SI_TRACKED_SPI_SHADER_USER_DATA_ES__BASE_VERTEX;
-   else
-      tracked_base_vertex_reg = SI_TRACKED_SPI_SHADER_USER_DATA_VS__BASE_VERTEX;
+   const unsigned tracked_base_vertex_reg =
+      HAS_TESS ? SI_TRACKED_SPI_SHADER_USER_DATA_LS__BASE_VERTEX :
+      HAS_GS || NGG ? SI_TRACKED_SPI_SHADER_USER_DATA_ES__BASE_VERTEX :
+      SI_TRACKED_SPI_SHADER_USER_DATA_VS__BASE_VERTEX;
 
    if (!IS_DRAW_VERTEX_STATE && indirect) {
       assert(num_draws == 1);
@@ -2075,7 +2071,7 @@ static void si_draw(struct pipe_context *ctx,
    else if (GFX_VERSION < GFX12)
       gfx11_decompress_textures(sctx, u_bit_consecutive(0, SI_NUM_GRAPHICS_SHADERS));
 
-   si_need_gfx_cs_space(sctx, num_draws);
+   si_need_gfx_cs_space(sctx, num_draws, ALT_HIZ_LOGIC ? 8 : 0);
 
    if (u_trace_perfetto_active(&sctx->ds.trace_context))
       trace_si_begin_draw(&sctx->trace);

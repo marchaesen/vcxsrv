@@ -23,7 +23,7 @@
 #include "shader_enums.h"
 #include "vk_pipeline_cache.h"
 
-#include "nir.h"
+#include "nir_defines.h"
 
 #include "vk_shader.h"
 

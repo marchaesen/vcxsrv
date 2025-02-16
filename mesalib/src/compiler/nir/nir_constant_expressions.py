@@ -65,6 +65,7 @@ template = """\
 #include "util/format_r11g11b10f.h"
 #include "util/u_math.h"
 #include "nir_constant_expressions.h"
+#include "nir.h"
 
 /**
  * \brief Checks if the provided value is a denorm and flushes it to zero.

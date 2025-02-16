@@ -68,7 +68,7 @@ void
 _mesa_set_context_lost_dispatch(struct gl_context *ctx)
 {
    if (ctx->Dispatch.ContextLost == NULL) {
-      int numEntries = MAX2(_glapi_get_dispatch_table_size(), _gloffset_COUNT);
+      int numEntries = MAX2(_mesa_glapi_get_dispatch_table_size(), _gloffset_COUNT);
 
       ctx->Dispatch.ContextLost = malloc(numEntries * sizeof(_glapi_proc));
       if (!ctx->Dispatch.ContextLost)
@@ -104,7 +104,7 @@ _mesa_set_context_lost_dispatch(struct gl_context *ctx)
    }
 
    ctx->Dispatch.Current = ctx->Dispatch.ContextLost;
-   _glapi_set_dispatch(ctx->Dispatch.Current);
+   _mesa_glapi_set_dispatch(ctx->Dispatch.Current);
 }
 
 /**

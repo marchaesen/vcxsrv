@@ -616,3 +616,6 @@ program@execute@vstore@vstorea_half-float-private@vector storea_half private off
 program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float4,Fail
 program@execute@vstore@vstorea_half-float-private@vector storea_half private offset float8,Fail
 program@run kernel with max work item sizes,Fail
+
+# (file=input,line=0,column=0,index=0): Unresolved external reference to "_Z21convert_char4_sat_rteDv4_i".
+program@execute@vector-conversion,Fail

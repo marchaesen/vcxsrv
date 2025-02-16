@@ -29,6 +29,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <ctype.h>
 #include <stdio.h>
 #include <math.h>
+#include <ctype.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
@@ -37,13 +38,14 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "dix/dix_priv.h"
 #include "dix/dixgrabs_priv.h"
 #include "dix/input_priv.h"
+#include "mi/mi_priv.h"
+#include "mi/mipointer_priv.h"
 #include "xkb/xkbsrv_priv.h"
 
 #include "misc.h"
 #include "inputstr.h"
 #include "exevents.h"
 #include "eventstr.h"
-#include "mi.h"
 #include "mipointer.h"
 #include "inpututils.h"
 
@@ -1372,9 +1374,12 @@ XkbHandleActions(DeviceIntPtr dev, DeviceIntPtr kbd, DeviceEvent *event)
                   (event->type == ET_ButtonPress));
 
     if (pressEvent) {
-        if (keyEvent)
-            act = XkbGetKeyAction(xkbi, &xkbi->state, key);
-        else {
+        if (keyEvent) {
+            if (kbd->ignoreXkbActionsBehaviors)
+                act.type = XkbSA_NoAction;
+            else
+                act = XkbGetKeyAction(xkbi, &xkbi->state, key);
+        } else {
             act = XkbGetButtonAction(kbd, dev, key);
             key |= BTN_ACT_FLAG;
         }

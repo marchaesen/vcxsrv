@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 
+#include "vk_debug_utils.h"
 #include "vk_device.h"
 #include "vk_meta.h"
 
@@ -23,9 +24,12 @@
 #include "util/pan_ir.h"
 #include "util/perf/u_trace.h"
 
+#include "util/u_printf.h"
 #include "util/vma.h"
 
 #define PANVK_MAX_QUEUE_FAMILIES 1
+
+struct panvk_precomp_cache;
 
 struct panvk_device {
    struct vk_device vk;
@@ -63,6 +67,8 @@ struct panvk_device {
    struct panvk_queue *queues[PANVK_MAX_QUEUE_FAMILIES];
    int queue_count[PANVK_MAX_QUEUE_FAMILIES];
 
+   struct panvk_precomp_cache *precomp_cache;
+
    struct {
       struct u_trace_context utctx;
 #ifdef HAVE_PERFETTO
@@ -73,6 +79,11 @@ struct panvk_device {
    struct {
       struct pandecode_context *decode_ctx;
    } debug;
+
+   struct {
+      struct u_printf_ctx ctx;
+      struct panvk_priv_bo *bo;
+   } printf;
 };
 
 VK_DEFINE_HANDLE_CASTS(panvk_device, vk.base, VkDevice, VK_OBJECT_TYPE_DEVICE)
@@ -106,9 +117,15 @@ panvk_per_arch(create_device)(struct panvk_physical_device *physical_device,
 void panvk_per_arch(destroy_device)(struct panvk_device *device,
                                     const VkAllocationCallbacks *pAllocator);
 
-#if PAN_ARCH >= 10
+static inline VkResult
+panvk_common_check_status(struct panvk_device *dev)
+{
+   return vk_check_printf_status(&dev->vk, &dev->printf.ctx);
+}
+
 VkResult panvk_per_arch(device_check_status)(struct vk_device *vk_dev);
 
+#if PAN_ARCH >= 10
 VkResult panvk_per_arch(init_tiler_oom)(struct panvk_device *device);
 #endif
 #endif

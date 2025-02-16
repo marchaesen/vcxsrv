@@ -22,6 +22,7 @@
  */
 
 #include "nir_worklist.h"
+#include "nir.h"
 
 void
 nir_block_worklist_add_all(nir_block_worklist *w, nir_function_impl *impl)

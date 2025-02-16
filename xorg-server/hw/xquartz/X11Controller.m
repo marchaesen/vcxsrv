@@ -52,6 +52,8 @@
 #include <asl.h>
 #include <stdlib.h>
 
+#include "dix_priv.h"
+
 extern aslclient aslc;
 extern char *bundle_id_prefix;
 

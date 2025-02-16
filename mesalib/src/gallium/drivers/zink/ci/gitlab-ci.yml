@@ -24,9 +24,10 @@ zink-venus-lvp:
     - .test-gl
     - .deqp-test
     - .zink-venus-lvp-test
-  timeout: 15min  # base run time = 5min, but it's on the shared runners so it can go up
+  timeout: 15min  # base run time = 8min, but it's on the shared runners so it can go up
   variables:
     DEQP_SUITE: zink-venus-lvp
+    DEQP_FRACTION: 2
     PIGLIT_NO_WINDOW: 1
     # Enable validation (except for on piglit, see deqp-zink-venus-lvp.toml), logging
     # to stdout and aborting on unknown failures.
@@ -39,6 +40,14 @@ zink-venus-lvp:
     export LIBGL_DRIVERS_PATH="$CI_PROJECT_DIR/install/lib/dri"
     xvfb-run --server-args='-noreset' bash -c "./install/crosvm-runner.sh ./install/deqp-runner.sh"
 
+zink-venus-lvp-full:
+  extends:
+    - zink-venus-lvp
+    - .zink-venus-lvp-manual-rules
+  timeout: 30m
+  variables:
+    DEQP_FRACTION: 1
+
 zink-anv-adl:
   extends:
     - .zink-anv-adl-test
@@ -49,6 +58,7 @@ zink-anv-adl:
     # We use gbm because its a copy of tgl job
     PIGLIT_PLATFORM: gbm
   timeout: 30m
+  parallel: 2
 
 # Manual full run when you want to double-check the full status.
 zink-anv-adl-full:
@@ -59,7 +69,6 @@ zink-anv-adl-full:
     DEQP_SUITE: zink-anv-adl-full
     HWCI_START_WESTON: 1
   timeout: 2h
-  parallel: 2
 
 zink-anv-tgl:
   extends:
@@ -108,11 +117,12 @@ zink-tu-a618:
     - .zink-test
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
   variables:
-    DEQP_FRACTION: 3
-    DEQP_SUITE: zink-freedreno-a618
+    DEQP_FRACTION: 2
+    DEQP_SUITE: zink-tu-a618
     FLAKES_CHANNEL: "#freedreno-ci"
     HWCI_START_WESTON: 1
-    GPU_VERSION: zink-freedreno-a618
+    GPU_VERSION: zink-tu-a618
+  parallel: 2
 
 zink-tu-a618-full:
   extends:
@@ -120,6 +130,8 @@ zink-tu-a618-full:
     - .zink-turnip-collabora-manual-rules
   variables:
     DEQP_FRACTION: 1
+  parallel: null
+  timeout: 1h
 
 zink-tu-a618-traces:
   extends:

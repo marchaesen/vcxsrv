@@ -37,10 +37,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "config/hotplug_priv.h"
 #include "dix/screenint_priv.h"
 
 #include "os.h"
-#include "hotplug.h"
 #include "systemd-logind.h"
 
 #include "loaderProcs.h"
@@ -233,9 +233,9 @@ xf86OutputClassDriverList(int index, XF86MatchedDrivers *md)
         if (OutputClassMatches(cl, &xf86_platform_devices[index])) {
             char *path = xf86_platform_odev_attributes(index)->path;
 
-            xf86Msg(X_INFO, "Applying OutputClass \"%s\" to %s\n",
-                    cl->identifier, path);
-            xf86Msg(X_NONE, "\tloading driver: %s\n", cl->driver);
+            LogMessageVerb(X_INFO, 1, "Applying OutputClass \"%s\" to %s\n",
+                           cl->identifier, path);
+            LogMessageVerb(X_NONE, 1, "\tloading driver: %s\n", cl->driver);
 
             xf86AddMatchedDriver(md, cl->driver);
         }
@@ -283,7 +283,7 @@ void xf86PlatformScanPciDev(void)
     if (!xf86scanpci())
         return;
 
-    xf86Msg(X_CONFIG, "Scanning the platform PCI devices\n");
+    LogMessageVerb(X_CONFIG, 1, "Scanning the platform PCI devices\n");
     for (i = 0; i < xf86_num_platform_devices; i++) {
         char *busid = xf86_platform_odev_attributes(i)->busid;
 
@@ -327,8 +327,8 @@ xf86platformProbe(void)
                 XNFasprintf(&path, "%s,%s", cl->modulepath,
                             path ? path : xf86ModulePath);
                 free(old_path);
-                xf86Msg(X_CONFIG, "OutputClass \"%s\" ModulePath extended to \"%s\"\n",
-                        cl->identifier, path);
+                LogMessageVerb(X_CONFIG, 1, "OutputClass \"%s\" ModulePath extended to \"%s\"\n",
+                               cl->identifier, path);
                 LoaderSetPath(path);
             }
         }
@@ -344,8 +344,8 @@ xf86platformProbe(void)
                 continue;
 
             if (xf86CheckBoolOption(cl->option_lst, "PrimaryGPU", FALSE)) {
-                xf86Msg(X_CONFIG, "OutputClass \"%s\" setting %s as PrimaryGPU\n",
-                        cl->identifier, dev->attribs->path);
+                LogMessageVerb(X_CONFIG, 1, "OutputClass \"%s\" setting %s as PrimaryGPU\n",
+                               cl->identifier, dev->attribs->path);
                 primaryBus.type = BUS_PLATFORM;
                 primaryBus.id.plat = dev;
                 return 0;
@@ -395,8 +395,8 @@ xf86MergeOutputClassOptions(int entityIndex, void **options)
         }
         break;
     default:
-        xf86Msg(X_DEBUG, "xf86MergeOutputClassOptions unsupported bus type %d\n",
-                entity->bus.type);
+        LogMessageVerb(X_DEBUG, 1, "xf86MergeOutputClassOptions unsupported bus type %d\n",
+                       entity->bus.type);
     }
 
     if (!dev)
@@ -406,8 +406,8 @@ xf86MergeOutputClassOptions(int entityIndex, void **options)
         if (!OutputClassMatches(cl, dev) || !cl->option_lst)
             continue;
 
-        xf86Msg(X_INFO, "Applying OutputClass \"%s\" options to %s\n",
-                cl->identifier, dev->attribs->path);
+        LogMessageVerb(X_INFO, 1, "Applying OutputClass \"%s\" options to %s\n",
+                       cl->identifier, dev->attribs->path);
 
         classopts = xf86optionListDup(cl->option_lst);
         *options = xf86optionListMerge(*options, classopts);
@@ -653,8 +653,8 @@ xf86PlatformFindHotplugDriver(int dev_index)
     }
 
     /* Return the first driver from the match list */
-    xf86Msg(X_INFO, "matching hotplug-driver is %s\n",
-            hp_driver ? hp_driver : "none");
+    LogMessageVerb(X_INFO, 1, "matching hotplug-driver is %s\n",
+                   hp_driver ? hp_driver : "none");
     return hp_driver;
 }
 
@@ -811,14 +811,49 @@ void xf86platformPrimary(void)
 {
     /* use the first platform device as a fallback */
     if (primaryBus.type == BUS_NONE) {
-        xf86Msg(X_INFO, "no primary bus or device found\n");
+        LogMessageVerb(X_INFO, 1, "no primary bus or device found\n");
 
         if (xf86_num_platform_devices > 0) {
             primaryBus.id.plat = &xf86_platform_devices[0];
             primaryBus.type = BUS_PLATFORM;
 
-            xf86Msg(X_NONE, "\tfalling back to %s\n", primaryBus.id.plat->attribs->syspath);
+            LogMessageVerb(X_NONE, 1, "\tfalling back to %s\n", primaryBus.id.plat->attribs->syspath);
         }
     }
 }
-#endif
+
+char *
+_xf86_get_platform_device_attrib(struct xf86_platform_device *device, int attrib, int (*fake)[0])
+{
+    switch (attrib) {
+    case ODEV_ATTRIB_PATH:
+        return xf86_platform_device_odev_attributes(device)->path;
+    case ODEV_ATTRIB_SYSPATH:
+        return xf86_platform_device_odev_attributes(device)->syspath;
+    case ODEV_ATTRIB_BUSID:
+        return xf86_platform_device_odev_attributes(device)->busid;
+    case ODEV_ATTRIB_DRIVER:
+        return xf86_platform_device_odev_attributes(device)->driver;
+    default:
+        assert(FALSE);
+        return NULL;
+    }
+}
+
+int
+_xf86_get_platform_device_int_attrib(struct xf86_platform_device *device, int attrib, int (*fake)[0])
+{
+    switch (attrib) {
+    case ODEV_ATTRIB_FD:
+        return xf86_platform_device_odev_attributes(device)->fd;
+    case ODEV_ATTRIB_MAJOR:
+        return xf86_platform_device_odev_attributes(device)->major;
+    case ODEV_ATTRIB_MINOR:
+        return xf86_platform_device_odev_attributes(device)->minor;
+    default:
+        assert(FALSE);
+        return 0;
+    }
+}
+
+#endif /* XSERVER_PLATFORM_BUS */

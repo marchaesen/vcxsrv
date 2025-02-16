@@ -520,12 +520,15 @@ ir3_lower_copies(struct ir3_shader_variant *v)
             unsigned flags = dst->flags & (IR3_REG_HALF | IR3_REG_SHARED);
             for (unsigned i = 0; i < instr->srcs_count; i++) {
                struct ir3_register *src = instr->srcs[i];
-               array_insert(NULL, copies,
-                            (struct copy_entry){
-                               .dst = ra_num_to_physreg(dst->num + i, flags),
-                               .src = get_copy_src(src, 0),
-                               .flags = flags,
-                            });
+               if ((src->flags & (IR3_REG_CONST | IR3_REG_IMMED)) ||
+                   src->num != INVALID_REG) {
+                  array_insert(NULL, copies,
+                               (struct copy_entry){
+                                  .dst = ra_num_to_physreg(dst->num + i, flags),
+                                  .src = get_copy_src(src, 0),
+                                  .flags = flags,
+                               });
+               }
             }
             handle_copies(v, instr, copies, copies_count);
             list_del(&instr->node);

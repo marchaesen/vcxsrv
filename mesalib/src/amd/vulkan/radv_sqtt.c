@@ -20,8 +20,6 @@
 #include "vk_command_pool.h"
 #include "vk_common_entrypoints.h"
 
-#define SQTT_BUFFER_ALIGN_SHIFT 12
-
 bool
 radv_is_instruction_timing_enabled(void)
 {
@@ -318,6 +316,7 @@ static bool
 radv_sqtt_init_bo(struct radv_device *device)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
+   const uint32_t align_shift = ac_sqtt_get_buffer_align_shift(&pdev->info);
    unsigned max_se = pdev->info.max_se;
    struct radeon_winsys *ws = device->ws;
    VkResult result;
@@ -326,10 +325,10 @@ radv_sqtt_init_bo(struct radv_device *device)
    /* The buffer size and address need to be aligned in HW regs. Align the
     * size as early as possible so that we do all the allocation & addressing
     * correctly. */
-   device->sqtt.buffer_size = align64(device->sqtt.buffer_size, 1u << SQTT_BUFFER_ALIGN_SHIFT);
+   device->sqtt.buffer_size = align64(device->sqtt.buffer_size, 1ull << align_shift);
 
    /* Compute total size of the thread trace BO for all SEs. */
-   size = align64(sizeof(struct ac_sqtt_data_info) * max_se, 1 << SQTT_BUFFER_ALIGN_SHIFT);
+   size = align64(sizeof(struct ac_sqtt_data_info) * max_se, 1ull << align_shift);
    size += device->sqtt.buffer_size * (uint64_t)max_se;
 
    struct radeon_winsys_bo *bo = NULL;

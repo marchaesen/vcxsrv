@@ -14,9 +14,15 @@
 
 #include "vk_sampler.h"
 
+/* We use 2 sampler planes for YCbCr conversion with different filters for
+ * the Y and CbCr components.
+ */
+#define PANVK_MAX_DESCS_PER_SAMPLER 2
+
 struct panvk_sampler {
    struct vk_sampler vk;
-   struct mali_sampler_packed desc;
+   struct mali_sampler_packed descs[PANVK_MAX_DESCS_PER_SAMPLER];
+   uint8_t desc_count;
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(panvk_sampler, vk.base, VkSampler,

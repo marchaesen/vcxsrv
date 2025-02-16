@@ -36,39 +36,51 @@ struct shader_io_state {
 };
 
 struct exec_info {
-   /* Set to false when loop_nest_depth==0 && parent_if.is_divergent==false */
+   /* Set to false when in_divergent_cf==false */
    bool potentially_empty_discard = false;
-   uint16_t potentially_empty_break_depth = UINT16_MAX;
-   /* Set to false when loop_nest_depth==exec_potentially_empty_break_depth,
-    * parent_if.is_divergent==false and parent_loop.has_divergent_continue==false. Also set to
-    * false if loop_nest_depth<exec_potentially_empty_break_depth. */
+
+   /* Set to false when leaving the loop, or if parent_if.is_divergent==false and
+    * parent_loop.has_divergent_continue==false. */
    bool potentially_empty_break = false;
-   uint16_t potentially_empty_continue_depth = UINT16_MAX;
-   /* Set to false when loop_nest_depth==exec_potentially_empty_break_depth
-    * and parent_if.is_divergent==false. */
+
+   /* Set to false when leaving the loop, or if parent_if.is_divergent==false. */
    bool potentially_empty_continue = false;
 
    void combine(struct exec_info& other)
    {
       potentially_empty_discard |= other.potentially_empty_discard;
-      potentially_empty_break_depth =
-         std::min(potentially_empty_break_depth, other.potentially_empty_break_depth);
       potentially_empty_break |= other.potentially_empty_break;
-      potentially_empty_continue_depth =
-         std::min(potentially_empty_continue_depth, other.potentially_empty_continue_depth);
       potentially_empty_continue |= other.potentially_empty_continue;
    }
+
+   bool empty() const noexcept
+   {
+      return potentially_empty_discard || potentially_empty_break || potentially_empty_continue;
+   }
+};
+
+struct cf_context {
+   struct {
+      unsigned header_idx;
+      Block* exit;
+      bool has_divergent_continue = false;
+      bool has_divergent_break = false;
+   } parent_loop;
+   struct {
+      bool is_divergent = false;
+   } parent_if;
+
+   bool has_branch;
+   bool has_divergent_branch = false;
+   bool had_divergent_discard = false;
+   bool in_divergent_cf = false;
+   struct exec_info exec;
 };
 
 struct if_context {
    Temp cond;
 
-   bool divergent_old;
-   bool had_divergent_discard_old;
-   bool had_divergent_discard_then;
-   bool has_divergent_continue_old;
-   bool has_divergent_continue_then;
-   struct exec_info exec_old;
+   cf_context cf_info_old;
 
    unsigned BB_if_idx;
    unsigned invert_idx;
@@ -87,24 +99,10 @@ struct isel_context {
    std::unordered_map<unsigned, std::array<Temp, NIR_MAX_VEC_COMPONENTS>> allocated_vec;
    std::vector<Temp> unended_linear_vgprs;
    Stage stage;
-   struct {
-      bool has_branch;
-      struct {
-         unsigned header_idx;
-         Block* exit;
-         bool has_divergent_continue = false;
-         bool has_divergent_branch = false;
-      } parent_loop;
-      struct {
-         bool is_divergent = false;
-      } parent_if;
-      bool had_divergent_discard = false;
 
-      struct exec_info exec;
-
-      bool skipping_empty_exec = false;
-      if_context empty_exec_skip;
-   } cf_info;
+   cf_context cf_info;
+   bool skipping_empty_exec = false;
+   if_context empty_exec_skip;
 
    /* NIR range analysis. */
    struct hash_table* range_ht;

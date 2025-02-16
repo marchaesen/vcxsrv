@@ -80,7 +80,6 @@ init_render_desc_ringbuf(struct panvk_queue *queue)
    uint32_t flags = panvk_device_adjust_bo_flags(dev, PAN_KMOD_BO_FLAG_NO_MMAP);
    struct panvk_desc_ringbuf *ringbuf = &queue->render_desc_ringbuf;
    uint64_t dev_addr = 0;
-   VkResult result;
    int ret;
 
    if (tracing_enabled) {
@@ -103,11 +102,9 @@ init_render_desc_ringbuf(struct panvk_queue *queue)
       ringbuf->addr.host =
          pan_kmod_bo_mmap(ringbuf->bo, 0, ringbuf->size, PROT_READ | PROT_WRITE,
                           MAP_SHARED, NULL);
-      if (ringbuf->addr.host == MAP_FAILED) {
-         result = panvk_errorf(dev, VK_ERROR_OUT_OF_HOST_MEMORY,
-                               "Failed to CPU map ringbuf BO");
-         goto err_finish_ringbuf;
-      }
+      if (ringbuf->addr.host == MAP_FAILED)
+         return panvk_errorf(dev, VK_ERROR_OUT_OF_HOST_MEMORY,
+                             "Failed to CPU map ringbuf BO");
    }
 
    /* We choose the alignment to guarantee that we won't ever cross a 4G
@@ -118,12 +115,9 @@ init_render_desc_ringbuf(struct panvk_queue *queue)
       util_vma_heap_alloc(&dev->as.heap, ringbuf->size * 2, ringbuf->size * 2);
    simple_mtx_unlock(&dev->as.lock);
 
-   if (!dev_addr) {
-      result =
-         panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
-                      "Failed to allocate virtual address for ringbuf BO");
-      goto err_finish_ringbuf;
-   }
+   if (!dev_addr)
+      return panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
+                          "Failed to allocate virtual address for ringbuf BO");
 
    struct pan_kmod_vm_op vm_ops[] = {
       {
@@ -155,9 +149,11 @@ init_render_desc_ringbuf(struct panvk_queue *queue)
    ret = pan_kmod_vm_bind(dev->kmod.vm, PAN_KMOD_VM_OP_MODE_IMMEDIATE, vm_ops,
                           tracing_enabled ? 1 : ARRAY_SIZE(vm_ops));
    if (ret) {
-      result = panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
-                            "Failed to GPU map ringbuf BO");
-      goto err_finish_ringbuf;
+      simple_mtx_lock(&dev->as.lock);
+      util_vma_heap_free(&dev->as.heap, dev_addr, ringbuf->size * 2);
+      simple_mtx_unlock(&dev->as.lock);
+      return panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
+                          "Failed to GPU map ringbuf BO");
    }
 
    ringbuf->addr.dev = dev_addr;
@@ -180,27 +176,15 @@ init_render_desc_ringbuf(struct panvk_queue *queue)
 
    struct panvk_cs_sync32 *syncobj = panvk_priv_mem_host_addr(ringbuf->syncobj);
 
-   if (!syncobj) {
-      result = panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
-                            "Failed to create the render desc ringbuf context");
-      goto err_finish_ringbuf;
-   }
+   if (!syncobj)
+      return panvk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
+                          "Failed to create the render desc ringbuf context");
 
    *syncobj = (struct panvk_cs_sync32){
       .seqno = RENDER_DESC_RINGBUF_SIZE,
    };
 
    return VK_SUCCESS;
-
-err_finish_ringbuf:
-   if (dev_addr && !ringbuf->addr.dev) {
-      simple_mtx_lock(&dev->as.lock);
-      util_vma_heap_free(&dev->as.heap, dev_addr, ringbuf->size * 2);
-      simple_mtx_unlock(&dev->as.lock);
-   }
-
-   finish_render_desc_ringbuf(queue);
-   return result;
 }
 
 static void

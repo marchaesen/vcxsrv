@@ -200,7 +200,7 @@ validate_view_qualifier(YYLTYPE *loc, struct _mesa_glsl_parse_state *state,
    }
    else if (view <= 0) {
       _mesa_glsl_error(loc, state,
-                       "invalid view specified %d is less than 0", view);
+                       "invalid view specified %d is less than 1", view);
       return false;
    }
 
@@ -524,10 +524,10 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
       unsigned num_views;
       if (process_qualifier_constant(state, loc, "num_views",
                                      this->num_views, &num_views)){
-        if (!validate_view_qualifier(loc, state, num_views)){
-            _mesa_glsl_error(loc, state,
-                  "Invalid num_views specified");
-        }
+         if (!validate_view_qualifier(loc, state, num_views)){
+            _mesa_glsl_error(loc, state, "Invalid num_views specified");
+         }
+         state->view_mask = BITFIELD_MASK(num_views);
       }
    }
 

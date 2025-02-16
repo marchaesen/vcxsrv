@@ -211,3 +211,18 @@ panfrost_afbc_can_pack(enum pipe_format format)
 
    return desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB;
 }
+
+/* check for whether a format can be used with MTK_16L32S format */
+
+bool panfrost_format_supports_mtk_tiled(enum pipe_format format)
+{
+   switch (format) {
+   case PIPE_FORMAT_NV12:
+   case PIPE_FORMAT_R8_G8B8_420_UNORM:
+   case PIPE_FORMAT_R8_UNORM:
+   case PIPE_FORMAT_R8G8_UNORM:
+      return true;
+   default:
+      return false;
+   }
+}

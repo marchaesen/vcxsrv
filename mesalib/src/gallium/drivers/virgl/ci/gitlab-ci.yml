@@ -28,11 +28,11 @@ virgl-on-gles:
     VIRGL_HOST_API: GLES
     DEQP_SUITE: virgl-gles
     GPU_VERSION: virgl-gles
-    CROSVM_GPU_ARGS: "gles=true,backend=virglrenderer,egl=true,surfaceless=true,width=1024,height=768"
+    CROSVM_GPU_ARGS: "gles=true,backend=virglrenderer,egl=true,surfaceless=true"
   extends:
     - virgl-on-gl
 
-.virgl-traces:
+virgl-traces:
   extends:
     - .virgl-test
     - .piglit-traces-test

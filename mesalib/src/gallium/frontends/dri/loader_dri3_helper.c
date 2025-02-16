@@ -37,6 +37,7 @@
 #include "loader_dri_helper.h"
 #include "loader_dri3_helper.h"
 #include "pipe/p_screen.h"
+#include "util/log.h"
 #include "util/macros.h"
 #include "util/simple_mtx.h"
 #include "drm-uapi/drm_fourcc.h"
@@ -77,6 +78,26 @@ get_screen_for_root(xcb_connection_t *conn, xcb_window_t root)
 
    return NULL;
 }
+
+/* Error checking helpers for xcb_ functions. Use it to avoid late
+ * error handling
+ */
+__attribute__((format(printf, 3, 4)))
+static bool _check_xcb_error(xcb_connection_t *conn, xcb_void_cookie_t cookie, const char *fmt, ...) {
+   xcb_generic_error_t *error;
+
+   if ((error = xcb_request_check(conn, cookie))) {
+      va_list args;
+      va_start(args, fmt);
+      mesa_loge_v(fmt, args);
+      mesa_loge("X error: %d\n", error->error_code);
+      va_end(args);
+      free(error);
+      return false;
+   }
+   return true;
+}
+#define check_xcb_error(cookie, name) _check_xcb_error(draw->conn, cookie, "%s:%d %s failed", __func__, __LINE__, name)
 
 static xcb_visualtype_t *
 get_xcb_visualtype_for_depth(struct loader_dri3_drawable *draw, int depth)
@@ -1262,6 +1283,7 @@ dri3_cpp_for_fourcc(uint32_t format) {
    switch (format) {
    case DRM_FORMAT_R8:
       return 1;
+   case DRM_FORMAT_ARGB1555:
    case DRM_FORMAT_RGB565:
    case DRM_FORMAT_GR88:
       return 2;
@@ -1575,38 +1597,44 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int fourcc,
    }
 
    pixmap = xcb_generate_id(draw->conn);
+
+   xcb_void_cookie_t cookie_pix, cookie_fence;
 #ifdef HAVE_X11_DRM
    if (draw->multiplanes_available &&
        buffer->modifier != DRM_FORMAT_MOD_INVALID) {
-      xcb_dri3_pixmap_from_buffers(draw->conn,
-                                   pixmap,
-                                   draw->window,
-                                   num_planes,
-                                   width, height,
-                                   buffer->strides[0], buffer->offsets[0],
-                                   buffer->strides[1], buffer->offsets[1],
-                                   buffer->strides[2], buffer->offsets[2],
-                                   buffer->strides[3], buffer->offsets[3],
-                                   depth, buffer->cpp * 8,
-                                   buffer->modifier,
-                                   buffer_fds);
+      cookie_pix = xcb_dri3_pixmap_from_buffers_checked(draw->conn,
+                                                        pixmap,
+                                                        draw->window,
+                                                        num_planes,
+                                                        width, height,
+                                                        buffer->strides[0], buffer->offsets[0],
+                                                        buffer->strides[1], buffer->offsets[1],
+                                                        buffer->strides[2], buffer->offsets[2],
+                                                        buffer->strides[3], buffer->offsets[3],
+                                                        depth, buffer->cpp * 8,
+                                                        buffer->modifier,
+                                                        buffer_fds);
    } else
 #endif
    {
-      xcb_dri3_pixmap_from_buffer(draw->conn,
-                                  pixmap,
-                                  draw->drawable,
-                                  buffer->size,
-                                  width, height, buffer->strides[0],
-                                  depth, buffer->cpp * 8,
-                                  buffer_fds[0]);
+      cookie_pix = xcb_dri3_pixmap_from_buffer_checked(draw->conn,
+                                                       pixmap,
+                                                       draw->drawable,
+                                                       buffer->size,
+                                                       width, height, buffer->strides[0],
+                                                       depth, buffer->cpp * 8,
+                                                       buffer_fds[0]);
    }
-
-   xcb_dri3_fence_from_fd(draw->conn,
-                          pixmap,
-                          (sync_fence = xcb_generate_id(draw->conn)),
-                          false,
-                          fence_fd);
+   cookie_fence = xcb_dri3_fence_from_fd_checked(draw->conn,
+                                                 pixmap,
+                                                 (sync_fence = xcb_generate_id(draw->conn)),
+                                                 false,
+                                                 fence_fd);
+   /* Group error checking to limit round-trips. */
+   if (!check_xcb_error(cookie_pix, "xcb_dri3_pixmap_from_buffer[s]"))
+      goto no_buffer_attrib;
+   if (!check_xcb_error(cookie_fence, "xcb_dri3_fence_from_fd"))
+      goto no_buffer_attrib;
 
    buffer->pixmap = pixmap;
    buffer->own_pixmap = true;
@@ -1904,6 +1932,7 @@ dri3_get_pixmap_buffer(struct dri_drawable *driDrawable, unsigned int fourcc,
    int                                  buf_id = loader_dri3_pixmap_buf_id(buffer_type);
    struct loader_dri3_buffer            *buffer = draw->buffers[buf_id];
    xcb_drawable_t                       pixmap;
+   xcb_void_cookie_t                    cookie;
    xcb_sync_fence_t                     sync_fence;
    struct xshmfence                     *shm_fence;
    int                                  width;
@@ -1938,11 +1967,14 @@ dri3_get_pixmap_buffer(struct dri_drawable *driDrawable, unsigned int fourcc,
        cur_screen = draw->dri_screen_render_gpu;
    }
 
-   xcb_dri3_fence_from_fd(draw->conn,
-                          pixmap,
-                          (sync_fence = xcb_generate_id(draw->conn)),
-                          false,
-                          fence_fd);
+   cookie = xcb_dri3_fence_from_fd_checked(draw->conn,
+                                           pixmap,
+                                           (sync_fence = xcb_generate_id(draw->conn)),
+                                           false,
+                                           fence_fd);
+   if (!check_xcb_error(cookie, "xcb_dri3_fence_from_fd"))
+      goto no_image;
+
    buffer->image = loader_dri3_get_pixmap_buffer(draw->conn, pixmap, cur_screen, fourcc,
                                                  draw->multiplanes_available, &width, &height, buffer);
 

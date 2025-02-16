@@ -23,11 +23,10 @@
 #ifndef LOADER_WAYLAND_HELPER_HEADER_H
 #define LOADER_WAYLAND_HELPER_HEADER_H
 
+#include <util/timespec.h>
 #include <wayland-client.h>
 
 #ifndef HAVE_WL_DISPATCH_QUEUE_TIMEOUT
-
-#include <util/timespec.h>
 int
 wl_display_dispatch_queue_timeout(struct wl_display *display,
                                   struct wl_event_queue *queue,

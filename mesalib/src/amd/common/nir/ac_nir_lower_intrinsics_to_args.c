@@ -75,13 +75,9 @@ load_subgroup_id_lowered(lower_intrinsics_to_args_state *s, nir_builder *b)
 }
 
 static bool
-lower_intrinsic_to_arg(nir_builder *b, nir_instr *instr, void *state)
+lower_intrinsic_to_arg(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
 {
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
    lower_intrinsics_to_args_state *s = (lower_intrinsics_to_args_state *)state;
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
    nir_def *replacement = NULL;
    b->cursor = nir_after_instr(&intrin->instr);
 
@@ -303,27 +299,18 @@ lower_intrinsic_to_arg(nir_builder *b, nir_instr *instr, void *state)
          replacement = ac_nir_load_arg(b, s->args, s->args->linear_center);
       else
          replacement = ac_nir_load_arg(b, s->args, s->args->persp_center);
-      nir_intrinsic_set_flags(nir_instr_as_intrinsic(replacement->parent_instr),
-                              AC_VECTOR_ARG_FLAG(AC_VECTOR_ARG_INTERP_MODE,
-                                                 nir_intrinsic_interp_mode(intrin)));
       break;
    case nir_intrinsic_load_barycentric_centroid:
       if (nir_intrinsic_interp_mode(intrin) == INTERP_MODE_NOPERSPECTIVE)
          replacement = ac_nir_load_arg(b, s->args, s->args->linear_centroid);
       else
          replacement = ac_nir_load_arg(b, s->args, s->args->persp_centroid);
-      nir_intrinsic_set_flags(nir_instr_as_intrinsic(replacement->parent_instr),
-                              AC_VECTOR_ARG_FLAG(AC_VECTOR_ARG_INTERP_MODE,
-                                                 nir_intrinsic_interp_mode(intrin)));
       break;
    case nir_intrinsic_load_barycentric_sample:
       if (nir_intrinsic_interp_mode(intrin) == INTERP_MODE_NOPERSPECTIVE)
          replacement = ac_nir_load_arg(b, s->args, s->args->linear_sample);
       else
          replacement = ac_nir_load_arg(b, s->args, s->args->persp_sample);
-      nir_intrinsic_set_flags(nir_instr_as_intrinsic(replacement->parent_instr),
-                              AC_VECTOR_ARG_FLAG(AC_VECTOR_ARG_INTERP_MODE,
-                                                 nir_intrinsic_interp_mode(intrin)));
       break;
    case nir_intrinsic_load_barycentric_model:
       replacement = ac_nir_load_arg(b, s->args, s->args->pull_model);
@@ -358,14 +345,14 @@ lower_intrinsic_to_arg(nir_builder *b, nir_instr *instr, void *state)
    case nir_intrinsic_overwrite_vs_arguments_amd:
       s->vertex_id = intrin->src[0].ssa;
       s->instance_id = intrin->src[1].ssa;
-      nir_instr_remove(instr);
+      nir_instr_remove(&intrin->instr);
       return true;
    case nir_intrinsic_overwrite_tes_arguments_amd:
       s->tes_u = intrin->src[0].ssa;
       s->tes_v = intrin->src[1].ssa;
       s->tes_patch_id = intrin->src[2].ssa;
       s->tes_rel_patch_id = intrin->src[3].ssa;
-      nir_instr_remove(instr);
+      nir_instr_remove(&intrin->instr);
       return true;
    case nir_intrinsic_load_vertex_id_zero_base:
       if (!s->vertex_id)
@@ -486,6 +473,6 @@ ac_nir_lower_intrinsics_to_args(nir_shader *shader, const enum amd_gfx_level gfx
       .args = ac_args,
    };
 
-   return nir_shader_instructions_pass(shader, lower_intrinsic_to_arg,
-                                       nir_metadata_control_flow, &state);
+   return nir_shader_intrinsics_pass(shader, lower_intrinsic_to_arg,
+                                     nir_metadata_control_flow, &state);
 }

@@ -40,7 +40,7 @@
 
 #include "genxml/gen_macros.h"
 
-#include "pan_afbc_cso.h"
+#include "pan_mod_conv_cso.h"
 #include "pan_blend.h"
 #include "pan_bo.h"
 #include "pan_cmdstream.h"
@@ -52,6 +52,7 @@
 #include "pan_jm.h"
 #include "pan_job.h"
 #include "pan_pool.h"
+#include "pan_precomp.h"
 #include "pan_resource.h"
 #include "pan_samples.h"
 #include "pan_shader.h"
@@ -339,14 +340,14 @@ panfrost_emit_blend(struct panfrost_batch *batch, void *rts,
          cfg.alpha_to_one = ctx->blend->base.alpha_to_one;
 #if PAN_ARCH >= 6
          if (!blend_shaders[i])
-            cfg.constant = pack_blend_constant(format, cons);
+            cfg.blend_constant = pack_blend_constant(format, cons);
 #else
          cfg.blend_shader = (blend_shaders[i] != 0);
 
          if (blend_shaders[i])
             cfg.shader_pc = blend_shaders[i];
          else
-            cfg.constant = cons;
+            cfg.blend_constant = cons;
 #endif
       }
 
@@ -465,7 +466,7 @@ pan_merge_empty_fs(struct mali_renderer_state_packed *rsd)
       cfg.properties.shader_modifies_coverage = true;
       cfg.properties.allow_forward_pixel_to_kill = true;
       cfg.properties.allow_forward_pixel_to_be_killed = true;
-      cfg.properties.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+      cfg.properties.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
 
       /* Alpha isn't written so these are vacuous */
       cfg.multisample_misc.overdraw_alpha0 = true;
@@ -1312,6 +1313,9 @@ panfrost_upload_sysvals(struct panfrost_batch *batch, void *ptr_cpu,
       case PAN_SYSVAL_DRAWID:
          uniforms[i].u[0] = batch->ctx->drawid;
          break;
+      case PAN_SYSVAL_PRINTF_BUFFER:
+         uniforms[i].du[0] = batch->ctx->printf.bo->ptr.gpu;
+         break;
       default:
          assert(0);
       }
@@ -1561,6 +1565,10 @@ panfrost_emit_shared_memory(struct panfrost_batch *batch,
    if (ss->info.tls_size) {
       struct panfrost_bo *bo = panfrost_batch_get_scratchpad(
          batch, ss->info.tls_size, dev->thread_tls_alloc, dev->core_id_range);
+
+      if (!bo)
+         return 0;
+
       info.tls.ptr = bo->ptr.gpu;
    }
 
@@ -1569,6 +1577,9 @@ panfrost_emit_shared_memory(struct panfrost_batch *batch,
                       dev->core_id_range;
 
       struct panfrost_bo *bo = panfrost_batch_get_shared_memory(batch, size, 1);
+
+      if (!bo)
+         return 0;
 
       info.wls.ptr = bo->ptr.gpu;
    }
@@ -1606,6 +1617,7 @@ panfrost_create_sampler_view_bo(struct panfrost_sampler_view *so,
    enum pipe_format format = so->base.format;
    assert(prsrc->bo);
 
+   bool is_shadow = false;
    /* Format to access the stencil/depth portion of a Z32_S8 texture */
    if (format == PIPE_FORMAT_X32_S8X24_UINT) {
       assert(prsrc->separate_stencil);
@@ -1614,6 +1626,11 @@ panfrost_create_sampler_view_bo(struct panfrost_sampler_view *so,
       format = texture->format;
    } else if (format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT) {
       format = PIPE_FORMAT_Z32_FLOAT;
+   } else if (prsrc->shadow_image) {
+      prsrc = prsrc->shadow_image;
+      texture = &prsrc->base;
+      format = texture ->format;
+      is_shadow = true;
    }
 
    so->texture_bo = prsrc->image.data.base;
@@ -1702,9 +1719,10 @@ panfrost_create_sampler_view_bo(struct panfrost_sampler_view *so,
    const struct util_format_description *desc =
       util_format_description(format);
 
-   if ((device->debug & PAN_DBG_YUV) && panfrost_format_is_yuv(format)) {
-
+   if ((device->debug & PAN_DBG_YUV) && panfrost_format_is_yuv(format) &&
+       !(is_shadow && panfrost_format_supports_mtk_tiled(format)) ) {
       if (desc->layout == UTIL_FORMAT_LAYOUT_SUBSAMPLED) {
+         iview.swizzle[1] = PIPE_SWIZZLE_0;
          iview.swizzle[2] = PIPE_SWIZZLE_1;
       } else if (desc->layout == UTIL_FORMAT_LAYOUT_PLANAR2) {
          iview.swizzle[1] = PIPE_SWIZZLE_0;
@@ -2635,6 +2653,28 @@ panfrost_emit_varying_descriptor(struct panfrost_batch *batch,
 }
 #endif
 
+static struct pan_tls_info
+get_tls_info(struct panfrost_device *dev, struct panfrost_batch *batch)
+{
+   struct panfrost_bo *tls_bo = NULL;
+   if (batch->stack_size) {
+      tls_bo = panfrost_batch_get_scratchpad(batch, batch->stack_size,
+                                             dev->thread_tls_alloc,
+                                             dev->core_id_range);
+      if (!tls_bo)
+         mesa_loge("failed to allocate scratch-pad memory for stack");
+   }
+
+   return (struct pan_tls_info) {
+      .tls =
+         {
+            .ptr = tls_bo ? tls_bo->ptr.gpu : 0,
+            .size = batch->stack_size,
+         },
+   };
+}
+
+
 static void
 emit_tls(struct panfrost_batch *batch)
 {
@@ -2644,18 +2684,7 @@ emit_tls(struct panfrost_batch *batch)
    if (PAN_ARCH <= 5 && batch->framebuffer.gpu)
       return;
 
-   struct panfrost_bo *tls_bo =
-      batch->stack_size ? panfrost_batch_get_scratchpad(
-                             batch, batch->stack_size, dev->thread_tls_alloc,
-                             dev->core_id_range)
-                        : NULL;
-   struct pan_tls_info tls = {
-      .tls =
-         {
-            .ptr = tls_bo ? tls_bo->ptr.gpu : 0,
-            .size = batch->stack_size,
-         },
-   };
+   struct pan_tls_info tls = get_tls_info(dev, batch);
 
    assert(batch->tls.cpu);
    GENX(pan_emit_tls)(&tls, batch->tls.cpu);
@@ -2665,18 +2694,8 @@ static void
 emit_fbd(struct panfrost_batch *batch, struct pan_fb_info *fb)
 {
    struct panfrost_device *dev = pan_device(batch->ctx->base.screen);
-   struct panfrost_bo *tls_bo =
-      batch->stack_size ? panfrost_batch_get_scratchpad(
-                             batch, batch->stack_size, dev->thread_tls_alloc,
-                             dev->core_id_range)
-                        : NULL;
-   struct pan_tls_info tls = {
-      .tls =
-         {
-            .ptr = tls_bo ? tls_bo->ptr.gpu : 0,
-            .size = batch->stack_size,
-         },
-   };
+
+   struct pan_tls_info tls = get_tls_info(dev, batch);
 
 #if PAN_ARCH >= 6
    fb->sample_positions =
@@ -2698,6 +2717,8 @@ panfrost_initialize_surface(struct panfrost_batch *batch,
       BITSET_SET(rsrc->valid.data, surf->u.tex.level);
       if (rsrc->separate_stencil)
          BITSET_SET(rsrc->separate_stencil->valid.data, surf->u.tex.level);
+      if (rsrc->shadow_image)
+         BITSET_SET(rsrc->shadow_image->valid.data, surf->u.tex.level);
    }
 }
 
@@ -3365,7 +3386,7 @@ panfrost_launch_grid(struct pipe_context *pipe,
 #define AFBC_BLOCK_ALIGN 16
 
 static void
-panfrost_launch_afbc_shader(struct panfrost_batch *batch, void *cso,
+panfrost_launch_convert_shader(struct panfrost_batch *batch, void *cso,
                             struct pipe_constant_buffer *cbuf,
                             unsigned nr_blocks)
 {
@@ -3395,13 +3416,13 @@ panfrost_launch_afbc_shader(struct panfrost_batch *batch, void *cso,
    pctx->set_constant_buffer(pctx, PIPE_SHADER_COMPUTE, 0, true, &saved_const);
 }
 
-#define LAUNCH_AFBC_SHADER(name, batch, rsrc, consts, nr_blocks)               \
-   struct pan_afbc_shader_data *shaders =                                      \
-      panfrost_afbc_get_shaders(batch->ctx, rsrc, AFBC_BLOCK_ALIGN);           \
+#define LAUNCH_CONVERT_SHADER(name, batch, rsrc, consts, nr_blocks)               \
+   struct pan_mod_convert_shader_data *shaders =                                      \
+      panfrost_get_mod_convert_shaders(batch->ctx, rsrc, AFBC_BLOCK_ALIGN);           \
    struct pipe_constant_buffer constant_buffer = {                             \
       .buffer_size = sizeof(consts),                                           \
       .user_buffer = &consts};                                                 \
-   panfrost_launch_afbc_shader(batch, shaders->name##_cso, &constant_buffer,   \
+   panfrost_launch_convert_shader(batch, shaders->name##_cso, &constant_buffer,   \
                                nr_blocks);
 
 static void
@@ -3419,7 +3440,7 @@ panfrost_afbc_size(struct panfrost_batch *batch, struct panfrost_resource *src,
    panfrost_batch_read_rsrc(batch, src, PIPE_SHADER_COMPUTE);
    panfrost_batch_write_bo(batch, metadata, PIPE_SHADER_COMPUTE);
 
-   LAUNCH_AFBC_SHADER(size, batch, src, consts, slice->afbc.nr_blocks);
+   LAUNCH_CONVERT_SHADER(afbc_size, batch, src, consts, slice->afbc.nr_blocks);
 }
 
 static void
@@ -3444,7 +3465,111 @@ panfrost_afbc_pack(struct panfrost_batch *batch, struct panfrost_resource *src,
    panfrost_batch_write_bo(batch, dst, PIPE_SHADER_COMPUTE);
    panfrost_batch_add_bo(batch, metadata, PIPE_SHADER_COMPUTE);
 
-   LAUNCH_AFBC_SHADER(pack, batch, src, consts, dst_slice->afbc.nr_blocks);
+   LAUNCH_CONVERT_SHADER(afbc_pack, batch, src, consts, dst_slice->afbc.nr_blocks);
+}
+
+static void
+panfrost_mtk_detile_compute(struct panfrost_context *ctx, struct pipe_blit_info *info)
+{
+   struct pipe_context *pipe = &ctx->base;
+   struct pipe_resource *y_src = info->src.resource;
+   struct pipe_resource *uv_src = y_src->next;
+   struct pipe_resource *y_dst = info->dst.resource;
+   struct pipe_resource *uv_dst = y_dst->next;
+
+   unsigned width = info->src.box.width;
+   unsigned height = info->src.box.height;
+   unsigned src_stride = pan_resource(y_src)->image.layout.slices[0].row_stride;
+   unsigned dst_stride = pan_resource(y_dst)->image.layout.slices[0].row_stride;
+
+   /* 4 images: y_src, uv_src, y_dst, uv_dst */
+   struct pipe_image_view image[4] = { 0 };
+
+   if (!uv_src) {
+      /* single plane conversion; this must be R8 or R8G8 */
+      assert(!uv_dst);
+      if (y_src->format == PIPE_FORMAT_R8G8_UNORM) {
+         /* R8G8 would be the single chroma plane of an image */
+         /* adjust for dimensions of original luma plane */
+         width *= 2;
+         height *= 2;
+         uv_src = y_src;
+         uv_dst = y_dst;
+         y_src = y_dst = NULL;
+      }
+   }
+   image[0].resource = y_src;
+   image[0].format = PIPE_FORMAT_R8G8B8A8_UINT;
+   image[0].shader_access = image[0].access = PIPE_IMAGE_ACCESS_READ;
+   image[0].u.tex.level = info->src.level;
+   image[0].u.tex.first_layer = 0;
+   image[0].u.tex.last_layer = y_src ? (unsigned)(y_src->array_size - 1) : 0;
+
+   image[1].resource = uv_src;
+   image[1].format = PIPE_FORMAT_R8G8B8A8_UINT;
+   image[1].shader_access = image[1].access = PIPE_IMAGE_ACCESS_READ;
+   image[1].u.tex.level = info->src.level;
+   image[1].u.tex.first_layer = 0;
+   image[1].u.tex.last_layer = uv_src ? (unsigned)(uv_src->array_size - 1) : 0;
+
+   image[2].resource = y_dst;
+   image[2].format = PIPE_FORMAT_R8G8B8A8_UINT;
+   image[2].shader_access = image[2].access = PIPE_IMAGE_ACCESS_WRITE;
+   image[2].u.tex.level = info->dst.level;
+   image[2].u.tex.first_layer = 0;
+   image[2].u.tex.last_layer = y_dst ? (unsigned)(y_dst->array_size - 1) : 0;
+
+   image[3].resource = uv_dst;
+   image[3].format = PIPE_FORMAT_R8G8B8A8_UINT;
+   image[3].shader_access = image[3].access = PIPE_IMAGE_ACCESS_WRITE;
+   image[3].u.tex.level = info->dst.level;
+   image[3].u.tex.first_layer = 0;
+   image[3].u.tex.last_layer = uv_dst ? (unsigned)(uv_dst->array_size - 1) : 0;
+
+   struct panfrost_mtk_detile_info consts = {
+      .tiles_per_stride = src_stride >> 4,
+      .src_width = width,
+      .src_height = height,
+      .dst_stride = dst_stride,
+   };
+   panfrost_flush_all_batches(ctx, "mtk_detile pre-barrier");
+
+   struct panfrost_batch *batch = panfrost_get_batch_for_fbo(ctx);
+   pipe->set_shader_images(pipe, PIPE_SHADER_COMPUTE, 0, 4, 0, image);
+
+   /* launch the compute shader */
+   struct pan_mod_convert_shader_data *shaders =
+      panfrost_get_mod_convert_shaders(ctx, pan_resource(y_dst ? y_dst : uv_dst), AFBC_BLOCK_ALIGN);
+   struct pipe_constant_buffer cbuf = {
+      .buffer_size = sizeof(consts),
+      .user_buffer = &consts};
+
+   struct pipe_grid_info grid_info = {
+      .block[0] = 4,
+      .last_block[0] = (width/4) % 4,
+      .block[1] = 16,
+      .last_block[1] = height % 16,
+      .block[2] = 1,
+      .last_block[2] = 0,
+      .grid[0] = DIV_ROUND_UP(width/4, 4),
+      .grid[1] = DIV_ROUND_UP(height, 16),
+      .grid[2] = 1,
+   };
+
+   struct pipe_constant_buffer saved_const = {};
+   struct panfrost_constant_buffer *pbuf =
+      &batch->ctx->constant_buffer[PIPE_SHADER_COMPUTE];
+   void *saved_cso = batch->ctx->uncompiled[PIPE_SHADER_COMPUTE];
+   void *cso = shaders->mtk_detile_cso;
+   util_copy_constant_buffer(&pbuf->cb[0], &saved_const, true);
+
+   pipe->bind_compute_state(pipe, cso);
+   pipe->set_constant_buffer(pipe, PIPE_SHADER_COMPUTE, 0, false, &cbuf);
+
+   panfrost_launch_grid_on_batch(pipe, batch, &grid_info);
+
+   pipe->bind_compute_state(pipe, saved_cso);
+   pipe->set_constant_buffer(pipe, PIPE_SHADER_COMPUTE, 0, true, &saved_const);
 }
 
 static void *
@@ -3699,10 +3824,10 @@ panfrost_create_sampler_view(struct pipe_context *pctx,
    struct panfrost_context *ctx = pan_context(pctx);
    struct panfrost_sampler_view *so =
       rzalloc(pctx, struct panfrost_sampler_view);
+   struct panfrost_resource *ptexture = pan_resource(texture);
 
-   pan_legalize_format(ctx, pan_resource(texture), template->format, false,
+   pan_legalize_format(ctx, ptexture, template->format, false,
                        false);
-
    pipe_reference(NULL, &texture->reference);
 
    so->base = *template;
@@ -3996,6 +4121,12 @@ batch_get_polygon_list(struct panfrost_batch *batch)
       batch->polygon_list_bo = panfrost_batch_create_bo(
          batch, size, init_polygon_list ? 0 : PAN_BO_INVISIBLE,
          PIPE_SHADER_VERTEX, "Polygon list");
+
+      if (!batch->polygon_list_bo) {
+         mesa_loge("failed to allocate memory for polygon-list");
+         return 0;
+      }
+
       batch->tiler_ctx.midgard.polygon_list = batch->polygon_list_bo->ptr.gpu;
       panfrost_batch_add_bo(batch, batch->polygon_list_bo,
                             PIPE_SHADER_FRAGMENT);
@@ -4030,8 +4161,9 @@ init_polygon_list(struct panfrost_batch *batch)
 {
 #if PAN_ARCH <= 5
    uint64_t polygon_list = batch_get_polygon_list(batch);
-   pan_jc_initialize_tiler(&batch->pool.base, &batch->jm.jobs.vtc_jc,
-                           polygon_list);
+   if (polygon_list)
+      pan_jc_initialize_tiler(&batch->pool.base, &batch->jm.jobs.vtc_jc,
+                              polygon_list);
 #endif
 }
 
@@ -4083,12 +4215,15 @@ GENX(panfrost_cmdstream_screen_init)(struct panfrost_screen *screen)
    screen->vtbl.compile_shader = GENX(pan_shader_compile);
    screen->vtbl.afbc_size = panfrost_afbc_size;
    screen->vtbl.afbc_pack = panfrost_afbc_pack;
+   screen->vtbl.mtk_detile = panfrost_mtk_detile_compute;
    screen->vtbl.emit_write_timestamp = emit_write_timestamp;
    screen->vtbl.select_tile_size = GENX(pan_select_tile_size);
 
    GENX(pan_fb_preload_cache_init)
    (&dev->fb_preload_cache, panfrost_device_gpu_id(dev), &dev->blend_shaders,
     &screen->mempools.bin.base, &screen->mempools.desc.base);
+
+   dev->precomp_cache = GENX(panfrost_precomp_cache_init)(screen);
 
 #if PAN_GPU_SUPPORTS_DISPATCH_INDIRECT
    pan_indirect_dispatch_meta_init(

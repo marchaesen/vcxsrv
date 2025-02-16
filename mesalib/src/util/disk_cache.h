@@ -165,6 +165,11 @@ struct disk_cache *
 disk_cache_create(const char *gpu_name, const char *timestamp,
                   uint64_t driver_flags);
 
+struct disk_cache *
+disk_cache_create_custom(const char *gpu_name, const char *driver_id,
+                         uint64_t driver_flags, const char *cache_dir_name,
+                         uint32_t max_size);
+
 /**
  * Destroy a cache object, (freeing all associated resources).
  */
@@ -270,6 +275,14 @@ disk_cache_set_callbacks(struct disk_cache *cache, disk_cache_put_cb put,
 static inline struct disk_cache *
 disk_cache_create(const char *gpu_name, const char *timestamp,
                   uint64_t driver_flags)
+{
+   return NULL;
+}
+
+static inline struct disk_cache *
+disk_cache_create_custom(const char *gpu_name, const char *driver_id,
+                         uint64_t driver_flags, const char *cache_dir_name,
+                         uint32_t max_size)
 {
    return NULL;
 }

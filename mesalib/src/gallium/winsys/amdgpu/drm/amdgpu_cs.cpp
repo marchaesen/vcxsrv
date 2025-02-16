@@ -1065,7 +1065,8 @@ static bool amdgpu_cs_check_space(struct radeon_cmdbuf *rcs, unsigned dw)
    struct amdgpu_cs *cs = amdgpu_cs(rcs);
    struct amdgpu_ib *main_ib = &cs->main_ib;
 
-   assert(rcs->current.cdw <= rcs->current.max_dw);
+   if (rcs->current.cdw > rcs->current.max_dw)
+      return false;
 
    unsigned projected_size_dw = rcs->prev_dw + rcs->current.cdw + dw;
 
@@ -1428,7 +1429,7 @@ static void amdgpu_cs_add_userq_packets(struct amdgpu_userq *userq,
        * Calculcating userq_fence_seq_num this way to match with kernel fence that is
        * returned in userq_wait iotl.
        */
-      userq->user_fence_seq_num = *userq->wptr_bo_map + __num_dw_written + 8 + 2;
+      userq->user_fence_seq_num = __next_wptr + 8 + 2;
 
       /* add release mem for user fence */
       amdgpu_pkt_add_dw(PKT3(PKT3_RELEASE_MEM, 6, 0));
@@ -1548,9 +1549,23 @@ static int amdgpu_cs_submit_ib_userq(struct amdgpu_userq *userq,
       .num_bo_write_handles = num_shared_buf_write,
    };
 
+#if DETECT_CC_GCC && (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
+   asm volatile ("mfence" : : : "memory");
+#endif
+   /* Writing to *userq->wptr_bo_map is writing into mqd data. Before writing wptr into mqd
+    * data, need to ensure that new packets added to user queue ring buffer are updated to.
+    * memory. To ensure memory is updated, mfence is used.
+    */
+   *userq->wptr_bo_map = userq->next_wptr;
+   /* Ringing the doorbell will have gpu execute new packets that were added in user queue
+    * ring buffer. Before ringing the doorbell needed to ensure that mqd data is updated to
+    * memory. To ensure memory is updated, mfence is used.
+    */
+#if DETECT_CC_GCC && (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
+   asm volatile ("mfence" : : : "memory");
+#endif
+   userq->doorbell_bo_map[AMDGPU_USERQ_DOORBELL_INDEX] = userq->next_wptr;
    r = ac_drm_userq_signal(aws->dev, &userq_signal_data);
-   if (!r)
-      userq->doorbell_bo_map[AMDGPU_USERQ_DOORBELL_INDEX] = *userq->wptr_bo_map;
 
    *seq_no = userq->user_fence_seq_num;
    simple_mtx_unlock(&userq->lock);
@@ -2098,7 +2113,11 @@ static int amdgpu_cs_flush(struct radeon_cmdbuf *rcs,
    }
 
    if (rcs->current.cdw > rcs->current.max_dw) {
-      fprintf(stderr, "amdgpu: command stream overflowed\n");
+      amdgpu_ctx_set_sw_reset_status(
+         (struct radeon_winsys_ctx*)cs->ctx, PIPE_UNKNOWN_CONTEXT_RESET,
+         "amdgpu: command stream overflowed (current: %d, max: %d)\n",
+         rcs->current.cdw, rcs->current.max_dw);
+      return -1;
    }
 
    /* If the CS is not empty or overflowed.... */

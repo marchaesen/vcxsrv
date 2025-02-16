@@ -163,8 +163,7 @@ u_init_pipe_screen_caps(struct pipe_screen *pscreen, int accel)
    caps->allow_dynamic_vao_fastpath = true;
 
    caps->max_constant_buffer_size =
-      pscreen->get_shader_param(pscreen, PIPE_SHADER_FRAGMENT,
-                                PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE);
+      pscreen->shader_caps[PIPE_SHADER_FRAGMENT].max_const_buffer0_size;
 
    /* accel=0: on CPU, always disabled
     * accel>0: on GPU, enable by default, user can disable it manually
@@ -173,11 +172,9 @@ u_init_pipe_screen_caps(struct pipe_screen *pscreen, int accel)
    caps->hardware_gl_select =
       !!accel && debug_get_bool_option("MESA_HW_ACCEL_SELECT", accel > 0) &&
       /* internal geometry shader need indirect array access */
-      pscreen->get_shader_param(pscreen, PIPE_SHADER_GEOMETRY,
-                                PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR) &&
+      pscreen->shader_caps[PIPE_SHADER_GEOMETRY].indirect_temp_addr &&
       /* internal geometry shader need SSBO support */
-      pscreen->get_shader_param(pscreen, PIPE_SHADER_GEOMETRY,
-                                PIPE_SHADER_CAP_MAX_SHADER_BUFFERS);
+      pscreen->shader_caps[PIPE_SHADER_GEOMETRY].max_shader_buffers;
 
    caps->query_timestamp_bits = 64;
 

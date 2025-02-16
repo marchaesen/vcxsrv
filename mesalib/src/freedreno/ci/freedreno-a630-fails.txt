@@ -16,7 +16,6 @@ dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 #
 
 
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
@@ -140,8 +139,6 @@ spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
 spec@ext_transform_feedback@tessellation triangle_strip flat_first,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 1x129x9-98x129x9,Fail
 spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9,Fail
-
-spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array-2,Crash
 
 spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail

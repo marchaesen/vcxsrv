@@ -12,13 +12,7 @@ libagx_shader_files = files(
   'helper.cl',
 )
 
-prepended_input_args = []
-foreach input_arg : libagx_shader_files
-  prepended_input_args += ['--in', input_arg]
-endforeach
-
 # We need to set -fmacro-prefix-map properly for reproducability.
-fs = import('fs')
 relative_dir = fs.relative_to(meson.global_source_root(), meson.global_build_root()) + '/'
 
 libagx_spv = custom_target(
@@ -26,9 +20,8 @@ libagx_spv = custom_target(
   input : libagx_shader_files,
   output : 'libagx.spv',
   command : [
-    prog_mesa_clc,
-    prepended_input_args, '-o', '@OUTPUT@', '--depfile', '@DEPFILE@', '--',
-    '-cl-std=cl2.0', '-D__OPENCL_VERSION__=200',
+    prog_mesa_clc, '-o', '@OUTPUT@', '--depfile', '@DEPFILE@',
+    libagx_shader_files, '--',
     '-I' + join_paths(meson.current_source_dir(), '.'),
     '-I' + join_paths(meson.current_source_dir(), '../../'),
     '-I' + join_paths(meson.current_source_dir(), 'shaders'),
@@ -40,15 +33,15 @@ libagx_spv = custom_target(
   depfile : 'libagx_shaders.h.d',
 )
 
-libagx_h = custom_target(
-  'libagx.h',
+libagx = custom_target(
+  'libagx',
   input : libagx_spv,
-  output : 'libagx.h',
-  command : [prog_vtn_bindgen, libagx_spv, '@OUTPUT@'],
-  depends : [prog_vtn_bindgen],
+  output : ['libagx.cpp', 'libagx.h'],
+  command : [prog_vtn_bindgen2, libagx_spv, '@OUTPUT0@', '@OUTPUT1@'],
+  depends : [prog_vtn_bindgen2],
 )
 
 idep_libagx = declare_dependency(
-  sources : [libagx_h],
+  sources : [libagx],
   include_directories : include_directories('.'),
 )

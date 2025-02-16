@@ -32,7 +32,6 @@ from functools import reduce
 global_prefix = "mali"
 
 v6_format_printer = """
-
 #define mali_pixel_format_print(fp, format) \\
     fprintf(fp, "%*sFormat (v6): %s%s%s %s%s%s%s\\n", indent, "", \\
         mali_format_as_str((enum mali_format)((format >> 12) & 0xFF)), \\
@@ -42,18 +41,15 @@ v6_format_printer = """
         mali_channel_as_str((enum mali_channel)((format >> 3) & 0x7)), \\
         mali_channel_as_str((enum mali_channel)((format >> 6) & 0x7)), \\
         mali_channel_as_str((enum mali_channel)((format >> 9) & 0x7)));
-
 """
 
 v7_format_printer = """
-
 #define mali_pixel_format_print(fp, format) \\
     fprintf(fp, "%*sFormat (v7): %s%s %s%s\\n", indent, "", \\
         mali_format_as_str((enum mali_format)((format >> 12) & 0xFF)), \\
         (format & (1 << 20)) ? " sRGB" : "", \\
         mali_rgb_component_order_as_str((enum mali_rgb_component_order)(format & ((1 << 12) - 1))), \\
         (format & (1 << 21)) ? " XXX BAD BIT" : "");
-
 """
 
 def to_alphanum(name):
@@ -670,12 +666,14 @@ class Parser(object):
         print("} while (0);\n")
 
     def emit_print_function(self, name, group):
+        print("#ifndef __OPENCL_VERSION__")
         print("static inline void")
         print("{}_print(FILE *fp, const struct {} * values, unsigned indent)\n{{".format(name.upper(), name))
 
         group.emit_print_function()
 
         print("}\n")
+        print("#endif")
 
     def emit_struct(self):
         name = self.struct
@@ -702,6 +700,7 @@ class Parser(object):
             print('        % -36s = %6d,' % (name, value.value))
         print('};\n')
 
+        print("#ifndef __OPENCL_VERSION__")
         print("static inline const char *")
         print("{}_as_str(enum {} imm)\n{{".format(e_name.lower(), e_name))
         print("    switch (imm) {")
@@ -712,6 +711,7 @@ class Parser(object):
         print('    default: return "XXX: INVALID";')
         print("    }")
         print("}\n")
+        print("#endif\n")
 
     def parse(self, filename):
         file = open(filename, "rb")

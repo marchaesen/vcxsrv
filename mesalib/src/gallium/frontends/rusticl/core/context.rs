@@ -10,6 +10,7 @@ use crate::impl_cl_type_trait;
 use mesa_rust::pipe::resource::*;
 use mesa_rust::pipe::screen::ResourceType;
 use mesa_rust_gen::*;
+use mesa_rust_util::conversion::*;
 use mesa_rust_util::properties::Properties;
 use mesa_rust_util::ptr::TrackedPointers;
 use rusticl_opencl_gen::*;
@@ -56,7 +57,7 @@ impl Context {
         copy: bool,
         res_type: ResourceType,
     ) -> CLResult<HashMap<&'static Device, Arc<PipeResource>>> {
-        let adj_size: u32 = size.try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
+        let adj_size: u32 = size.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?;
         let mut res = HashMap::new();
         for &dev in &self.devs {
             let mut resource = None;
@@ -102,22 +103,12 @@ impl Context {
     ) -> CLResult<HashMap<&'static Device, Arc<PipeResource>>> {
         let pipe_format = format.to_pipe_format().unwrap();
 
-        let width = desc
-            .image_width
-            .try_into()
-            .map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-        let height = desc
-            .image_height
-            .try_into()
-            .map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-        let depth = desc
-            .image_depth
-            .try_into()
-            .map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
+        let width = desc.image_width.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?;
+        let height = desc.image_height.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?;
+        let depth = desc.image_depth.try_into_with_err(CL_OUT_OF_HOST_MEMORY)?;
         let array_size = desc
             .image_array_size
-            .try_into()
-            .map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
+            .try_into_with_err(CL_OUT_OF_HOST_MEMORY)?;
         let target = cl_mem_type_to_texture_target(desc.image_type);
 
         let mut res = HashMap::new();
@@ -209,25 +200,37 @@ impl Context {
         modifier: u64,
         image_type: cl_mem_object_type,
         gl_target: cl_GLenum,
-        format: pipe_format,
+        format: cl_image_format,
         gl_props: GLMemProps,
     ) -> CLResult<HashMap<&'static Device, Arc<PipeResource>>> {
         let mut res = HashMap::new();
         let target = cl_mem_type_to_texture_target_gl(image_type, gl_target);
+        let pipe_format = if image_type == CL_MEM_OBJECT_BUFFER {
+            pipe_format::PIPE_FORMAT_NONE
+        } else {
+            format.to_pipe_format().unwrap()
+        };
 
         for dev in &self.devs {
+            let enable_bind_as_image = if target != pipe_texture_target::PIPE_BUFFER {
+                dev.formats[&format][&image_type] as u32 & CL_MEM_WRITE_ONLY != 0
+            } else {
+                false
+            };
+
             let resource = dev
                 .screen()
                 .resource_import_dmabuf(
                     handle,
                     modifier,
                     target,
-                    format,
+                    pipe_format,
                     gl_props.stride,
                     gl_props.width,
                     gl_props.height,
                     gl_props.depth,
                     gl_props.array_size,
+                    enable_bind_as_image,
                 )
                 .ok_or(CL_OUT_OF_RESOURCES)?;
 

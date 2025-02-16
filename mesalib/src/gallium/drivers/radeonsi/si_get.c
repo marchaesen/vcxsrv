@@ -56,80 +56,6 @@ si_is_compute_copy_faster(struct pipe_screen *pscreen,
    return false;
 }
 
-static int si_get_shader_param(struct pipe_screen *pscreen, enum pipe_shader_type shader,
-                               enum pipe_shader_cap param)
-{
-   struct si_screen *sscreen = (struct si_screen *)pscreen;
-
-   if (shader == PIPE_SHADER_MESH ||
-       shader == PIPE_SHADER_TASK)
-      return 0;
-
-   switch (param) {
-   /* Shader limits. */
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return 16384;
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      return shader == PIPE_SHADER_VERTEX ? SI_MAX_ATTRIBS : 32;
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
-      return shader == PIPE_SHADER_FRAGMENT ? 8 : 32;
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 256; /* Max native temporaries. */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      return 1 << 26; /* 64 MB */
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return SI_NUM_CONST_BUFFERS;
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-      return SI_NUM_SAMPLERS;
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-      return SI_NUM_SHADER_BUFFERS;
-   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-      return SI_NUM_IMAGES;
-
-   case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      if (shader == PIPE_SHADER_COMPUTE) {
-         return (1 << PIPE_SHADER_IR_NATIVE) |
-                (1 << PIPE_SHADER_IR_NIR) |
-                (1 << PIPE_SHADER_IR_TGSI);
-      }
-      return (1 << PIPE_SHADER_IR_TGSI) |
-             (1 << PIPE_SHADER_IR_NIR);
-
-   /* Supported boolean features. */
-   case PIPE_SHADER_CAP_CONT_SUPPORTED:
-   case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-   case PIPE_SHADER_CAP_INTEGERS:
-   case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-      return 1;
-
-   case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-      /* We need f16c for fast FP16 conversions in glUniform. */
-      if (!util_get_cpu_caps()->has_f16c)
-         return 0;
-      FALLTHROUGH;
-   case PIPE_SHADER_CAP_FP16:
-   case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-   case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-   case PIPE_SHADER_CAP_INT16:
-      return sscreen->nir_options->lower_mediump_io != NULL;
-
-   /* Unsupported boolean features. */
-   case PIPE_SHADER_CAP_SUBROUTINES:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-      return 0;
-   }
-   return 0;
-}
-
 static const void *si_get_compiler_options(struct pipe_screen *screen, enum pipe_shader_ir ir,
                                            enum pipe_shader_type shader)
 {
@@ -470,18 +396,27 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
          }
          else
             return 0;
-      case PIPE_VIDEO_CAP_ENC_SURFACE_ALIGNMENT:
-           if (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN ||
-               profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10) {
-            union pipe_enc_cap_surface_alignment attrib;
-            attrib.value = 0;
 
-            attrib.bits.log2_width_alignment = RADEON_ENC_HEVC_SURFACE_LOG2_WIDTH_ALIGNMENT;
-            attrib.bits.log2_height_alignment = RADEON_ENC_HEVC_SURFACE_LOG2_HEIGHT_ALIGNMENT;
-            return attrib.value;
+      case PIPE_VIDEO_CAP_ENC_SURFACE_ALIGNMENT: {
+         union pipe_enc_cap_surface_alignment attrib = {0};
+         if (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN ||
+             profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10) {
+            /* 64 x 16 */
+            attrib.bits.log2_width_alignment = 6;
+            attrib.bits.log2_height_alignment = 4;
+         } else if (profile == PIPE_VIDEO_PROFILE_AV1_MAIN) {
+            if (sscreen->info.vcn_ip_version < VCN_5_0_0) {
+               /* 64 x 16 */
+               attrib.bits.log2_width_alignment = 6;
+               attrib.bits.log2_height_alignment = 4;
+            } else {
+               /* 8 x 2 */
+               attrib.bits.log2_width_alignment = 3;
+               attrib.bits.log2_height_alignment = 1;
+            }
          }
-         else
-            return 0;
+         return attrib.value;
+      }
 
       case PIPE_VIDEO_CAP_ENC_RATE_CONTROL_QVBR:
          if (sscreen->info.vcn_ip_version >= VCN_3_0_0 &&
@@ -556,6 +491,8 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
       case PIPE_VIDEO_FORMAT_VP9:
          return sscreen->info.vcn_ip_version >= VCN_1_0_0;
       case PIPE_VIDEO_FORMAT_AV1:
+         if (profile == PIPE_VIDEO_PROFILE_AV1_PROFILE2)
+            return sscreen->info.vcn_ip_version >= VCN_5_0_0 || sscreen->info.vcn_ip_version == VCN_4_0_0;
          return sscreen->info.vcn_ip_version >= VCN_3_0_0 && sscreen->info.vcn_ip_version != VCN_3_0_33;
       default:
          return false;
@@ -699,12 +636,9 @@ static bool si_vid_is_format_supported(struct pipe_screen *screen, enum pipe_for
       return (format == PIPE_FORMAT_P010) || (format == PIPE_FORMAT_P016) ||
              (format == PIPE_FORMAT_NV12);
 
-   if (profile == PIPE_VIDEO_PROFILE_AV1_PROFILE2 && entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
-      if (sscreen->info.vcn_ip_version < VCN_5_0_0 && sscreen->info.vcn_ip_version != VCN_4_0_0)
-         return false;
+   if (profile == PIPE_VIDEO_PROFILE_AV1_PROFILE2 && entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM)
       return (format == PIPE_FORMAT_P010) || (format == PIPE_FORMAT_P016) ||
              (format == PIPE_FORMAT_P012) || (format == PIPE_FORMAT_NV12);
-   }
 
    /* JPEG supports YUV400 and YUV444 */
    if (profile == PIPE_VIDEO_PROFILE_JPEG_BASELINE) {
@@ -802,185 +736,6 @@ static bool si_vid_is_target_buffer_supported(struct pipe_screen *screen,
    }
 
    return si_vid_is_format_supported(screen, format, profile, entrypoint);
-}
-
-static unsigned get_max_threads_per_block(struct si_screen *screen, enum pipe_shader_ir ir_type)
-{
-   if (ir_type == PIPE_SHADER_IR_NATIVE)
-      return 256;
-
-   /* LLVM only supports 1024 threads per block. */
-   return 1024;
-}
-
-static int si_get_compute_param(struct pipe_screen *screen, enum pipe_shader_ir ir_type,
-                                enum pipe_compute_cap param, void *ret)
-{
-   struct si_screen *sscreen = (struct si_screen *)screen;
-
-   // TODO: select these params by asic
-   switch (param) {
-   case PIPE_COMPUTE_CAP_IR_TARGET: {
-      const char *gpu, *triple;
-
-      triple = "amdgcn-mesa-mesa3d";
-      gpu = ac_get_llvm_processor_name(sscreen->info.family);
-      if (ret) {
-         sprintf(ret, "%s-%s", gpu, triple);
-      }
-      /* +2 for dash and terminating NIL byte */
-      return (strlen(triple) + strlen(gpu) + 2) * sizeof(char);
-   }
-   case PIPE_COMPUTE_CAP_GRID_DIMENSION:
-      if (ret) {
-         uint64_t *grid_dimension = ret;
-         grid_dimension[0] = 3;
-      }
-      return 1 * sizeof(uint64_t);
-
-   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
-      if (ret) {
-         uint64_t *grid_size = ret;
-         /* Use this size, so that internal counters don't overflow 64 bits. */
-         grid_size[0] = UINT32_MAX;
-         grid_size[1] = UINT16_MAX;
-         grid_size[2] = UINT16_MAX;
-      }
-      return 3 * sizeof(uint64_t);
-
-   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
-      if (ret) {
-         uint64_t *block_size = ret;
-         unsigned threads_per_block = get_max_threads_per_block(sscreen, ir_type);
-         block_size[0] = threads_per_block;
-         block_size[1] = threads_per_block;
-         block_size[2] = threads_per_block;
-      }
-      return 3 * sizeof(uint64_t);
-
-   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-      if (ret) {
-         uint64_t *max_threads_per_block = ret;
-         *max_threads_per_block = get_max_threads_per_block(sscreen, ir_type);
-      }
-      return sizeof(uint64_t);
-   case PIPE_COMPUTE_CAP_ADDRESS_BITS:
-      if (ret) {
-         uint32_t *address_bits = ret;
-         address_bits[0] = 64;
-      }
-      return 1 * sizeof(uint32_t);
-
-   case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE:
-      if (ret) {
-         uint64_t *max_global_size = ret;
-         uint64_t max_mem_alloc_size;
-
-         si_get_compute_param(screen, ir_type, PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE,
-                              &max_mem_alloc_size);
-
-         /* In OpenCL, the MAX_MEM_ALLOC_SIZE must be at least
-          * 1/4 of the MAX_GLOBAL_SIZE.  Since the
-          * MAX_MEM_ALLOC_SIZE is fixed for older kernels,
-          * make sure we never report more than
-          * 4 * MAX_MEM_ALLOC_SIZE.
-          */
-         *max_global_size =
-            MIN2(4 * max_mem_alloc_size, sscreen->info.max_heap_size_kb * 1024ull);
-      }
-      return sizeof(uint64_t);
-
-   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-      if (ret) {
-         uint64_t *max_local_size = ret;
-         /* Value reported by the closed source driver. */
-         if (sscreen->info.gfx_level == GFX6)
-            *max_local_size = 32 * 1024;
-         else
-            *max_local_size = 64 * 1024;
-      }
-      return sizeof(uint64_t);
-
-   case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
-      if (ret) {
-         uint64_t *max_input_size = ret;
-         /* Value reported by the closed source driver. */
-         *max_input_size = 1024;
-      }
-      return sizeof(uint64_t);
-
-   case PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE:
-      if (ret) {
-         uint64_t *max_mem_alloc_size = ret;
-
-         /* Return 1/4 of the heap size as the maximum because the max size is not practically
-          * allocatable.
-          */
-         *max_mem_alloc_size = (sscreen->info.max_heap_size_kb / 4) * 1024ull;
-      }
-      return sizeof(uint64_t);
-
-   case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-      if (ret) {
-         uint32_t *max_clock_frequency = ret;
-         *max_clock_frequency = sscreen->info.max_gpu_freq_mhz;
-      }
-      return sizeof(uint32_t);
-
-   case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS:
-      if (ret) {
-         uint32_t *max_compute_units = ret;
-         *max_compute_units = sscreen->info.num_cu;
-      }
-      return sizeof(uint32_t);
-
-   case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-      if (ret) {
-         uint32_t *images_supported = ret;
-         *images_supported = 0;
-      }
-      return sizeof(uint32_t);
-   case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
-      break; /* unused */
-   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS: {
-      if (ret) {
-         uint32_t *max_subgroups = ret;
-         unsigned threads = get_max_threads_per_block(sscreen, ir_type);
-         unsigned subgroup_size;
-
-         if (sscreen->debug_flags & DBG(W64_CS) || sscreen->info.gfx_level < GFX10)
-            subgroup_size = 64;
-         else
-            subgroup_size = 32;
-
-         *max_subgroups = threads / subgroup_size;
-      }
-      return sizeof(uint32_t);
-   }
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
-      if (ret) {
-         uint32_t *subgroup_size = ret;
-         if (sscreen->debug_flags & DBG(W32_CS))
-            *subgroup_size = 32;
-         else if (sscreen->debug_flags & DBG(W64_CS))
-            *subgroup_size = 64;
-         else
-            *subgroup_size = sscreen->info.gfx_level < GFX10 ? 64 : 64 | 32;
-      }
-      return sizeof(uint32_t);
-   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-      if (ret) {
-         uint64_t *max_variable_threads_per_block = ret;
-         if (ir_type == PIPE_SHADER_IR_NATIVE)
-            *max_variable_threads_per_block = 0;
-         else
-            *max_variable_threads_per_block = SI_MAX_VARIABLE_THREADS_PER_BLOCK;
-      }
-      return sizeof(uint64_t);
-   }
-
-   fprintf(stderr, "unknown PIPE_COMPUTE_CAP %d\n", param);
-   return 0;
 }
 
 static uint64_t si_get_timestamp(struct pipe_screen *screen)
@@ -1101,9 +856,7 @@ void si_init_screen_get_functions(struct si_screen *sscreen)
    sscreen->b.get_screen_fd = si_get_screen_fd;
    sscreen->b.is_compute_copy_faster = si_is_compute_copy_faster;
    sscreen->b.driver_thread_add_job = si_driver_thread_add_job;
-   sscreen->b.get_compute_param = si_get_compute_param;
    sscreen->b.get_timestamp = si_get_timestamp;
-   sscreen->b.get_shader_param = si_get_shader_param;
    sscreen->b.get_compiler_options = si_get_compiler_options;
    sscreen->b.get_device_uuid = si_get_device_uuid;
    sscreen->b.get_driver_uuid = si_get_driver_uuid;
@@ -1191,6 +944,115 @@ void si_init_screen_get_functions(struct si_screen *sscreen)
                                       BITFIELD_BIT(MESA_SHADER_TESS_EVAL);
    options->support_indirect_outputs = BITFIELD_BIT(MESA_SHADER_TESS_CTRL);
    options->varying_expression_max_cost = si_varying_expression_max_cost;
+}
+
+void si_init_shader_caps(struct si_screen *sscreen)
+{
+   for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+      struct pipe_shader_caps *caps =
+         (struct pipe_shader_caps *)&sscreen->b.shader_caps[i];
+
+      /* Shader limits. */
+      caps->max_instructions =
+      caps->max_alu_instructions =
+      caps->max_tex_instructions =
+      caps->max_tex_indirections =
+      caps->max_control_flow_depth = 16384;
+      caps->max_inputs = i == PIPE_SHADER_VERTEX ? SI_MAX_ATTRIBS : 32;
+      caps->max_outputs = i == PIPE_SHADER_FRAGMENT ? 8 : 32;
+      caps->max_temps = 256; /* Max native temporaries. */
+      caps->max_const_buffer0_size = 1 << 26; /* 64 MB */
+      caps->max_const_buffers = SI_NUM_CONST_BUFFERS;
+      caps->max_texture_samplers =
+      caps->max_sampler_views = SI_NUM_SAMPLERS;
+      caps->max_shader_buffers = SI_NUM_SHADER_BUFFERS;
+      caps->max_shader_images = SI_NUM_IMAGES;
+
+      caps->supported_irs = (1 << PIPE_SHADER_IR_TGSI) | (1 << PIPE_SHADER_IR_NIR);
+      if (i == PIPE_SHADER_COMPUTE)
+         caps->supported_irs |= 1 << PIPE_SHADER_IR_NATIVE;
+
+      /* Supported boolean features. */
+      caps->cont_supported = true;
+      caps->tgsi_sqrt_supported = true;
+      caps->indirect_temp_addr = true;
+      caps->indirect_const_addr = true;
+      caps->integers = true;
+      caps->int64_atomics = true;
+      caps->tgsi_any_inout_decl_range = true;
+
+      /* We need f16c for fast FP16 conversions in glUniform. */
+      caps->fp16_const_buffers =
+         util_get_cpu_caps()->has_f16c && sscreen->nir_options->lower_mediump_io;
+
+      caps->fp16 =
+      caps->fp16_derivatives =
+      caps->glsl_16bit_consts =
+      caps->int16 = sscreen->nir_options->lower_mediump_io != NULL;
+   }
+}
+
+void si_init_compute_caps(struct si_screen *sscreen)
+{
+   struct pipe_compute_caps *caps =
+      (struct pipe_compute_caps *)&sscreen->b.compute_caps;
+
+   snprintf(caps->ir_target, sizeof(caps->ir_target), "%s-amdgcn-mesa-mesa3d",
+            ac_get_llvm_processor_name(sscreen->info.family));
+
+   caps->grid_dimension = 3;
+
+   /* Use this size, so that internal counters don't overflow 64 bits. */
+   caps->max_grid_size[0] = UINT32_MAX;
+   caps->max_grid_size[1] = UINT16_MAX;
+   caps->max_grid_size[2] = UINT16_MAX;
+
+   caps->max_block_size[0] =
+   caps->max_block_size[1] =
+   caps->max_block_size[2] = 1024;
+
+   caps->max_block_size_clover[0] =
+   caps->max_block_size_clover[1] =
+   caps->max_block_size_clover[2] = 256;
+
+   caps->max_threads_per_block = 1024;
+   caps->max_threads_per_block_clover = 256;
+   caps->address_bits = 64;
+
+   /* Return 1/4 of the heap size as the maximum because the max size is not practically
+    * allocatable.
+    */
+   caps->max_mem_alloc_size = (sscreen->info.max_heap_size_kb / 4) * 1024ull;
+
+   /* In OpenCL, the MAX_MEM_ALLOC_SIZE must be at least
+    * 1/4 of the MAX_GLOBAL_SIZE.  Since the
+    * MAX_MEM_ALLOC_SIZE is fixed for older kernels,
+    * make sure we never report more than
+    * 4 * MAX_MEM_ALLOC_SIZE.
+    */
+   caps->max_global_size = MIN2(4 * caps->max_mem_alloc_size,
+                                sscreen->info.max_heap_size_kb * 1024ull);
+
+   /* Value reported by the closed source driver. */
+   caps->max_local_size = sscreen->info.gfx_level == GFX6 ? 32 * 1024 : 64 * 1024;
+   caps->max_input_size = 1024;
+
+   caps->max_clock_frequency = sscreen->info.max_gpu_freq_mhz;
+   caps->max_compute_units = sscreen->info.num_cu;
+
+   unsigned threads = 1024;
+   unsigned subgroup_size =
+      sscreen->debug_flags & DBG(W64_CS) || sscreen->info.gfx_level < GFX10 ? 64 : 32;
+   caps->max_subgroups = threads / subgroup_size;
+
+   if (sscreen->debug_flags & DBG(W32_CS))
+      caps->subgroup_sizes = 32;
+   else if (sscreen->debug_flags & DBG(W64_CS))
+      caps->subgroup_sizes = 64;
+   else
+      caps->subgroup_sizes = sscreen->info.gfx_level < GFX10 ? 64 : 64 | 32;
+
+   caps->max_variable_threads_per_block = SI_MAX_VARIABLE_THREADS_PER_BLOCK;
 }
 
 void si_init_screen_caps(struct si_screen *sscreen)

@@ -32,7 +32,7 @@ extern "C" {
 #define GLAPI extern
 #endif
 
-#define GL_GLEXT_VERSION 20231129
+#define GL_GLEXT_VERSION 20250129
 
 #include <KHR/khrplatform.h>
 
@@ -11978,8 +11978,10 @@ GLAPI void APIENTRY glViewportSwizzleNV (GLuint index, GLenum swizzlex, GLenum s
 #define GL_MAX_VIEWS_OVR                  0x9631
 #define GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR 0x9633
 typedef void (APIENTRYP PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC) (GLenum target, GLenum attachment, GLuint texture, GLint level, GLint baseViewIndex, GLsizei numViews);
+typedef void (APIENTRYP PFNGLNAMEDFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC) (GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint baseViewIndex, GLsizei numViews);
 #ifdef GL_GLEXT_PROTOTYPES
 GLAPI void APIENTRY glFramebufferTextureMultiviewOVR (GLenum target, GLenum attachment, GLuint texture, GLint level, GLint baseViewIndex, GLsizei numViews);
+GLAPI void APIENTRY glNamedFramebufferTextureMultiviewOVR (GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint baseViewIndex, GLsizei numViews);
 #endif
 #endif /* GL_OVR_multiview */
 
@@ -12904,11 +12906,6 @@ GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN (co
 #define GL_WIN_specular_fog 1
 #define GL_FOG_SPECULAR_TEXTURE_WIN       0x80EC
 #endif /* GL_WIN_specular_fog */
-
-#ifndef GL_MESA_texture_const_bandwidth
-#define GL_MESA_texture_const_bandwidth 1
-#define GL_CONST_BW_TILING_MESA           0x8BBE
-#endif
 
 #ifdef __cplusplus
 }

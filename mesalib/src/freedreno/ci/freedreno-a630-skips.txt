@@ -19,3 +19,10 @@ spec@egl_khr_gl_colorspace@linear
 # The ones that weren't being skipped were causing leaks
 asan-dEQP-VK.image.swapchain_mutable.*
 asan-dEQP-VK.wsi.*
+
+# Timeout
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat3-dmat3
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-double-dmat3
+
+# Leaky in VKCTS 1.4.1.1
+asan-dEQP-VK.video.*

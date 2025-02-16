@@ -573,51 +573,14 @@ tu_image_update_layout(struct tu_device *device, struct tu_image *image,
 
    const struct util_format_description *desc = util_format_description(image->layout[0].format);
    if (util_format_has_depth(desc) && device->use_lrz) {
-      /* Depth plane is the first one */
-      struct fdl_layout *layout = &image->layout[0];
-      unsigned width = layout->width0;
-      unsigned height = layout->height0;
+      fdl6_lrz_layout_init<CHIP>(&image->lrz_layout, &image->layout[0],
+                                 device->physical_device->info,
+                                 image->total_size, image->vk.array_layers);
 
-      /* LRZ buffer is super-sampled */
-      switch (layout->nr_samples) {
-      case 4:
-         width *= 2;
-         FALLTHROUGH;
-      case 2:
-         height *= 2;
-         break;
-      default:
-         break;
-      }
-
-      unsigned lrz_pitch  = align(DIV_ROUND_UP(width, 8), 32);
-      unsigned lrz_height = align(DIV_ROUND_UP(height, 8), 32);
-
-      image->lrz_height = lrz_height;
-      image->lrz_pitch = lrz_pitch;
-      image->lrz_offset = image->total_size;
-      unsigned lrz_size = lrz_pitch * lrz_height * sizeof(uint16_t);
-
-      unsigned nblocksx = DIV_ROUND_UP(DIV_ROUND_UP(width, 8), 16);
-      unsigned nblocksy = DIV_ROUND_UP(DIV_ROUND_UP(height, 8), 4);
-
-      /* Fast-clear buffer is 1bit/block */
-      unsigned lrz_fc_size = DIV_ROUND_UP(nblocksx * nblocksy, 8);
-
-      /* Fast-clear buffer cannot be larger than 512 bytes on A6XX and 1024 bytes on A7XX (HW limitation) */
-      image->has_lrz_fc =
-         device->physical_device->info->a6xx.enable_lrz_fast_clear &&
-         lrz_fc_size <= fd_lrzfc_layout<CHIP>::FC_SIZE &&
-         !TU_DEBUG(NOLRZFC);
-
-      if (image->has_lrz_fc || device->physical_device->info->a6xx.has_lrz_dir_tracking) {
-         image->lrz_fc_offset = image->total_size + lrz_size;
-         lrz_size += sizeof(fd_lrzfc_layout<CHIP>);
-      }
-
-      image->total_size += lrz_size;
+      image->total_size += image->lrz_layout.lrz_total_size;
    } else {
-      image->lrz_height = 0;
+      image->lrz_layout.lrz_height = 0;
+      image->lrz_layout.lrz_total_size = 0;
    }
 
    return VK_SUCCESS;

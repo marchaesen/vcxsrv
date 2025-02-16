@@ -40,8 +40,10 @@
 #include "compiler/nir/nir_builder.h"
 #include "intel/compiler/brw_compiler.h"
 #include "intel/compiler/brw_nir.h"
+#ifdef INTEL_USE_ELK
 #include "intel/compiler/elk/elk_compiler.h"
 #include "intel/compiler/elk/elk_nir.h"
+#endif
 #include "iris_context.h"
 #include "iris_resource.h"
 
@@ -187,6 +189,7 @@ iris_upload_shader(struct iris_screen *screen,
                               shader->brw_prog_data, reloc_values,
                               ARRAY_SIZE(reloc_values));
    } else {
+#ifdef INTEL_USE_ELK
       struct elk_shader_reloc_value reloc_values[] = {
          {
             .id = BRW_SHADER_RELOC_CONST_DATA_ADDR_LOW,
@@ -200,6 +203,9 @@ iris_upload_shader(struct iris_screen *screen,
       elk_write_shader_relocs(&screen->elk->isa, shader->map,
                               shader->elk_prog_data, reloc_values,
                               ARRAY_SIZE(reloc_values));
+#else
+      unreachable("no elk support");
+#endif
    }
 
    /* Store the 3DSTATE shader packets and other derived state. */
@@ -221,7 +227,6 @@ iris_blorp_lookup_shader(struct blorp_batch *blorp_batch,
    struct blorp_context *blorp = blorp_batch->blorp;
    struct iris_context *ice = blorp->driver_ctx;
    struct iris_batch *batch = blorp_batch->driver_batch;
-   struct iris_screen *screen = batch->screen;
    struct iris_compiled_shader *shader =
       iris_find_cached_shader(ice, IRIS_CACHE_BLORP, key_size, key);
 
@@ -231,8 +236,11 @@ iris_blorp_lookup_shader(struct blorp_batch *blorp_batch,
    struct iris_bo *bo = iris_resource_bo(shader->assembly.res);
    *kernel_out =
       iris_bo_offset_from_base_address(bo) + shader->assembly.offset;
-   *((void **) prog_data_out) = screen->brw ? (void *)shader->brw_prog_data
-                                            : (void *)shader->elk_prog_data;
+   *((void **) prog_data_out) =
+#ifdef INTEL_USE_ELK
+      batch->screen->elk ? (void *)shader->elk_prog_data :
+#endif
+      (void *)shader->brw_prog_data;
 
    iris_use_pinned_bo(batch, bo, false, IRIS_DOMAIN_NONE);
 
@@ -265,8 +273,12 @@ iris_blorp_upload_shader(struct blorp_batch *blorp_batch, uint32_t stage,
    if (screen->brw) {
       iris_apply_brw_prog_data(shader, prog_data);
    } else {
+#ifdef INTEL_USE_ELK
       assert(screen->elk);
       iris_apply_elk_prog_data(shader, prog_data);
+#else
+      unreachable("no elk support");
+#endif
    }
 
    iris_finalize_program(shader, NULL, NULL, 0, 0, 0, &bt);
@@ -278,8 +290,11 @@ iris_blorp_upload_shader(struct blorp_batch *blorp_batch, uint32_t stage,
    struct iris_bo *bo = iris_resource_bo(shader->assembly.res);
    *kernel_out =
       iris_bo_offset_from_base_address(bo) + shader->assembly.offset;
-   *((void **) prog_data_out) = screen->brw ? (void *)shader->brw_prog_data
-                                            : (void *)shader->elk_prog_data;
+   *((void **) prog_data_out) =
+#ifdef INTEL_USE_ELK
+      screen->elk ? (void *)shader->elk_prog_data :
+#endif
+      (void*)shader->brw_prog_data;
 
    iris_use_pinned_bo(batch, bo, false, IRIS_DOMAIN_NONE);
 
@@ -323,22 +338,6 @@ iris_destroy_program_cache(struct iris_context *ice)
    ralloc_free(ice->shaders.cache);
 }
 
-static void
-link_libintel_shaders(nir_shader *nir, const nir_shader *libintel)
-{
-   nir_link_shader_functions(nir, libintel);
-   NIR_PASS_V(nir, nir_inline_functions);
-   NIR_PASS_V(nir, nir_remove_non_entrypoints);
-   NIR_PASS_V(nir, nir_lower_vars_to_explicit_types, nir_var_function_temp,
-              glsl_get_cl_type_size_align);
-   NIR_PASS_V(nir, nir_opt_deref);
-   NIR_PASS_V(nir, nir_lower_vars_to_ssa);
-   NIR_PASS_V(nir, nir_lower_explicit_io,
-              nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
-                 nir_var_mem_global,
-              nir_address_format_62bit_generic);
-}
-
 void
 iris_ensure_indirect_generation_shader(struct iris_batch *batch)
 {
@@ -358,8 +357,10 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
       return;
 
    const nir_shader_compiler_options *nir_options =
-      screen->brw ? screen->brw->nir_options[MESA_SHADER_COMPUTE]
-                  : screen->elk->nir_options[MESA_SHADER_COMPUTE];
+#ifdef INTEL_USE_ELK
+      screen->elk ? screen->elk->nir_options[MESA_SHADER_COMPUTE] :
+#endif
+      screen->brw->nir_options[MESA_SHADER_COMPUTE];
 
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_FRAGMENT,
                                                   nir_options,
@@ -369,8 +370,6 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
       screen->vtbl.call_generation_shader(screen, &b);
 
    nir_shader *nir = b.shader;
-
-   link_libintel_shaders(nir, screen->vtbl.load_shader_lib(screen, nir));
 
    NIR_PASS_V(nir, nir_lower_vars_to_ssa);
    NIR_PASS_V(nir, nir_opt_cse);
@@ -386,9 +385,13 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
       struct brw_nir_compiler_opts opts = {};
       brw_preprocess_nir(screen->brw, nir, &opts);
    } else {
+#ifdef INTEL_USE_ELK
       assert(screen->elk);
       struct elk_nir_compiler_opts opts = {};
       elk_preprocess_nir(screen->elk, nir, &opts);
+#else
+      unreachable("no elk support");
+#endif
    }
 
    NIR_PASS_V(nir, nir_propagate_invariant, false);
@@ -454,6 +457,7 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
       assert(program);
       iris_apply_brw_prog_data(shader, &prog_data->base);
    } else {
+#ifdef INTEL_USE_ELK
       union elk_any_prog_key prog_key;
       memset(&prog_key, 0, sizeof(prog_key));
 
@@ -478,6 +482,9 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
       program = elk_compile_fs(screen->elk, &params);
       assert(program);
       iris_apply_elk_prog_data(shader, &prog_data->base);
+#else
+      unreachable("no elk support");
+#endif
    }
 
    struct iris_binding_table bt;

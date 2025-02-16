@@ -13,8 +13,6 @@
 
 #include "util/mesa-blake3.h"
 
-#include "nir.h"
-
 #include "vk_pipeline_cache.h"
 
 struct radv_device;
@@ -30,6 +28,8 @@ struct radv_shader_binary;
 struct radv_shader_stage;
 struct radv_spirv_to_nir_options;
 struct util_dynarray;
+struct nir_shader;
+typedef struct nir_shader nir_shader;
 
 void radv_hash_graphics_spirv_to_nir(blake3_hash hash, const struct radv_shader_stage *stage,
                                      const struct radv_spirv_to_nir_options *options);

@@ -105,6 +105,7 @@ enum vk_cmd_type {
 #endif // ${c.guard}
 % endif
 % endfor
+   VK_CMD_TYPE_COUNT,
 };
 
 extern const char *vk_cmd_queue_type_names[];
@@ -264,10 +265,6 @@ vk_free_${to_underscore(c.name)}(struct vk_cmd_queue *queue,
 ${' ' * len('vk_free_' + to_underscore(c.name) + '(')}\\
 struct vk_cmd_queue_entry *cmd)
 {
-   if (cmd->driver_free_cb)
-      cmd->driver_free_cb(queue, cmd);
-   else
-      vk_free(queue->alloc, cmd->driver_data);
 % for p in c.params[1:]:
 % if p.len:
    vk_free(queue->alloc, (${remove_suffix(p.decl.replace("const", ""), p.name)})cmd->u.${to_struct_field_name(c.name)}.${to_field_name(p.name)});
@@ -275,7 +272,6 @@ struct vk_cmd_queue_entry *cmd)
    ${get_struct_free(c, p, types)}
 % endif
 % endfor
-   vk_free(queue->alloc, cmd);
 }
 
 % if c.name not in manual_commands and c.name not in no_enqueue_commands:
@@ -333,6 +329,10 @@ vk_free_queue(struct vk_cmd_queue *queue)
 {
    struct vk_cmd_queue_entry *tmp, *cmd;
    LIST_FOR_EACH_ENTRY_SAFE(cmd, tmp, &queue->cmds, cmd_link) {
+      if (cmd->driver_free_cb)
+         cmd->driver_free_cb(queue, cmd);
+      else
+         vk_free(queue->alloc, cmd->driver_data);
       switch(cmd->type) {
 % for c in commands:
 % if c.guard is not None:
@@ -345,7 +345,10 @@ vk_free_queue(struct vk_cmd_queue *queue)
 #endif // ${c.guard}
 % endif
 % endfor
+      case VK_CMD_TYPE_COUNT:
+         break;
       }
+      vk_free(queue->alloc, cmd);
    }
 }
 

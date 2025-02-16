@@ -37,8 +37,13 @@ in this Software without prior written authorization from The Open Group.
 #include   <X11/X.h>
 #include   <X11/Xmd.h>
 #include   <X11/Xproto.h>
+#include   <X11/extensions/XI.h>
+#include   <X11/extensions/XIproto.h>
+#include   <X11/extensions/geproto.h>
 
 #include   "dix/cursor_priv.h"
+#include   "mi/mi_priv.h"
+#include   "mi/mipointer_priv.h"
 #include   "os/screensaver.h"
 
 #include   "misc.h"
@@ -46,12 +51,8 @@ in this Software without prior written authorization from The Open Group.
 #include   "pixmapstr.h"
 #include   "inputstr.h"
 #include   "inpututils.h"
-#include   "mi.h"
 #include   "mipointer.h"
 #include   "scrnintstr.h"
-#include   <X11/extensions/XI.h>
-#include   <X11/extensions/XIproto.h>
-#include   <X11/extensions/geproto.h>
 #include   "extinit.h"
 #include   "exglobals.h"
 #include   "eventstr.h"
@@ -226,22 +227,22 @@ mieqEnqueue(DeviceIntPtr pDev, InternalEvent *e)
              */
             miEventQueue.dropped++;
             if (miEventQueue.dropped == 1) {
-                ErrorFSigSafe("[mi] EQ overflowing.  Additional events will be "
-                              "discarded until existing events are processed.\n");
+                ErrorF("[mi] EQ overflowing.  Additional events will be "
+                       "discarded until existing events are processed.\n");
                 xorg_backtrace();
-                ErrorFSigSafe("[mi] These backtraces from mieqEnqueue may point to "
-                              "a culprit higher up the stack.\n");
-                ErrorFSigSafe("[mi] mieq is *NOT* the cause.  It is a victim.\n");
+                ErrorF("[mi] These backtraces from mieqEnqueue may point to "
+                       "a culprit higher up the stack.\n");
+                ErrorF("[mi] mieq is *NOT* the cause.  It is a victim.\n");
             }
             else if (miEventQueue.dropped % QUEUE_DROP_BACKTRACE_FREQUENCY == 0 &&
                      miEventQueue.dropped / QUEUE_DROP_BACKTRACE_FREQUENCY <=
                      QUEUE_DROP_BACKTRACE_MAX) {
-                ErrorFSigSafe("[mi] EQ overflow continuing.  %zu events have been "
-                              "dropped.\n", miEventQueue.dropped);
+                ErrorF("[mi] EQ overflow continuing.  %zu events have been "
+                       "dropped.\n", miEventQueue.dropped);
                 if (miEventQueue.dropped / QUEUE_DROP_BACKTRACE_FREQUENCY ==
                     QUEUE_DROP_BACKTRACE_MAX) {
-                    ErrorFSigSafe("[mi] No further overflow reports will be "
-                                  "reported until the clog is cleared.\n");
+                    ErrorF("[mi] No further overflow reports will be "
+                           "reported until the clog is cleared.\n");
                 }
                 xorg_backtrace();
             }
@@ -384,7 +385,7 @@ FixUpEventForMaster(DeviceIntPtr mdev, DeviceIntPtr sdev,
  * @param copy The event after being copied
  * @return The master device or NULL if the device is a floating slave.
  */
-DeviceIntPtr
+static DeviceIntPtr
 CopyGetMasterEvent(DeviceIntPtr sdev,
                    InternalEvent *original, InternalEvent *copy)
 {

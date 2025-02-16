@@ -30,7 +30,7 @@ pub enum PerfDebugLevel {
 pub struct PlatformDebug {
     pub allow_invalid_spirv: bool,
     pub clc: bool,
-    pub max_grid_size: u64,
+    pub max_grid_size: u32,
     pub nir: bool,
     pub no_variants: bool,
     pub perf: PerfDebugLevel,
@@ -119,7 +119,7 @@ fn load_env() {
     debug.max_grid_size = env::var("RUSTICL_MAX_WORK_GROUPS")
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(u64::MAX);
+        .unwrap_or(u32::MAX);
 
     // SAFETY: no other references exist at this point
     let features = unsafe { &mut *addr_of_mut!(PLATFORM_FEATURES) };

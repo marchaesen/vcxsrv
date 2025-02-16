@@ -866,6 +866,7 @@ a7xx_base = A6XXProps(
         prede_nop_quirk = True,
         predtf_nop_quirk = True,
         has_sad = True,
+        has_bin_mask = True,
     )
 
 a7xx_gen1 = A7XXProps(
@@ -887,6 +888,7 @@ a7xx_gen2 = A7XXProps(
         has_64b_ssbo_atomics = True,
         has_primitive_shading_rate = True,
         reading_shading_rate_requires_smask_quirk = True,
+        has_ray_intersection = True,
     )
 
 a7xx_gen3 = A7XXProps(
@@ -908,6 +910,11 @@ a7xx_gen3 = A7XXProps(
         has_persistent_counter = True,
         has_64b_ssbo_atomics = True,
         has_primitive_shading_rate = True,
+        has_ray_intersection = True,
+        has_sw_fuse = True,
+        has_rt_workaround = True,
+        has_alias_rt = True,
+        has_abs_bin_mask = True,
     )
 
 a730_magic_regs = dict(

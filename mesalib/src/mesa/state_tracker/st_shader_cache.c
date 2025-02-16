@@ -197,7 +197,7 @@ st_deserialise_nir_program(struct gl_context *ctx,
       }
    }
 
-   st_finalize_program(st, prog);
+   st_finalize_program(st, prog, false);
 }
 
 bool

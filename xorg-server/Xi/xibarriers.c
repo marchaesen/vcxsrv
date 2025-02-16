@@ -46,6 +46,7 @@
 #include "dix/cursor_priv.h"
 #include "dix/dix_priv.h"
 #include "dix/input_priv.h"
+#include "mi/mi_priv.h"
 
 #include "xibarriers.h"
 #include "scrnintstr.h"
@@ -59,7 +60,6 @@
 #include "list.h"
 #include "exglobals.h"
 #include "eventstr.h"
-#include "mi.h"
 
 RESTYPE PointerBarrierType;
 
@@ -841,7 +841,6 @@ SProcXIBarrierReleasePointer(ClientPtr client)
     REQUEST(xXIBarrierReleasePointerReq);
     int i;
 
-    swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xXIBarrierReleasePointerReq);
 
     swapl(&stuff->num_barriers);

@@ -34,6 +34,7 @@
 #include <X11/extensions/XIproto.h>
 
 #include "dix/input_priv.h"
+#include "mi/mipointer_priv.h"
 
 #include "cursor.h"
 #include "mipointer.h"
@@ -587,9 +588,9 @@ xf86InitOrigins(void)
             if (screen->refscreen != NULL &&
                 screen->refscreen->screennum >= xf86NumScreens) {
                 screensLeft &= ~(1 << i);
-                xf86Msg(X_WARNING,
-                        "Not including screen \"%s\" in origins calculation.\n",
-                        screen->screen->id);
+                LogMessageVerb(X_WARNING, 1,
+                               "Not including screen \"%s\" in origins calculation.\n",
+                               screen->screen->id);
                 continue;
             }
 

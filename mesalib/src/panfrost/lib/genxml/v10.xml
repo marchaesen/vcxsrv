@@ -356,7 +356,6 @@
 
   <enum name="Pixel Kill">
     <value name="Force Early" value="0"/>
-    <value name="Strong Early" value="1"/>
     <value name="Weak Early" value="2"/>
     <value name="Force Late" value="3"/>
   </enum>
@@ -644,7 +643,7 @@
 
   <struct name="CS UMIN32" size="2">
     <field name="Source 1" size="8" start="32" type="uint"/>
-    <field name="Source 2" size="8" start="40" type="uint"/>
+    <field name="Source 0" size="8" start="40" type="uint"/>
     <field name="Destination" size="8" start="48" type="uint"/>
     <field name="Opcode" size="8" start="56" type="CS Opcode" default="UMIN32"/>
   </struct>
@@ -772,7 +771,7 @@
   </struct>
 
   <struct name="CS PROGRESS_LOAD" size="2">
-    <field name="Destination" size="8" start="40" type="uint"/>
+    <field name="Destination" size="8" start="48" type="uint"/>
     <field name="Opcode" size="8" start="56" type="CS Opcode" default="PROGRESS_LOAD"/>
   </struct>
 
@@ -855,8 +854,8 @@
     <field name="Stride" size="32" start="4:0" type="uint"/>
 
     <!-- Vertex packet buffer only -->
-    <field name="Packet stride" size="16" start="4:0" type="uint" modifier="shr(6)"/>
-    <field name="Attribute stride" size="16" start="4:16" type="uint"/>
+    <field name="Attribute stride" size="16" start="4:0" type="uint"/>
+    <field name="Packet stride" size="16" start="4:16" type="uint"/>
 
     <field name="Divisor D" size="32" start="5:0" type="uint"/>
   </struct>
@@ -961,7 +960,7 @@
     <field name="Enable" size="1" start="0:9" type="bool" default="true"/>
     <field name="sRGB" size="1" start="0:10" type="bool" default="false"/>
     <field name="Round to FB precision" size="1" start="0:11" type="bool" default="false"/>
-    <field name="Constant" size="16" start="0:16" type="uint"/>
+    <field name="Blend Constant" size="16" start="0:16" type="uint"/>
     <field name="Equation" size="32" start="1:0" type="Blend Equation"/>
     <field name="Internal" size="64" start="2:0" type="Internal Blend"/>
   </struct>
@@ -1860,7 +1859,7 @@
   </struct>
 
   <struct name="Primitive Size" size="2">
-    <field name="Constant" size="32" start="0:0" type="float"/>
+    <field name="Fixed Sized" size="32" start="0:0" type="float"/>
     <field name="Size Array" size="64" start="0:0" type="uint"/>
   </struct>
 

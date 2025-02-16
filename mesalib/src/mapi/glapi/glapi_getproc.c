@@ -104,7 +104,7 @@ _glapi_add_dispatch(const char *funcName)
  * Return offset of entrypoint for named function within dispatch table.
  */
 GLint _GLAPI_EXPORT
-_glapi_get_proc_offset(const char *funcName)
+_mesa_glapi_get_proc_offset(const char *funcName)
 {
    /* search static functions */
    return get_static_proc_offset(funcName);
@@ -117,7 +117,7 @@ _glapi_get_proc_offset(const char *funcName)
  * Return NULL if function not found.
  */
 _glapi_proc _GLAPI_EXPORT
-_glapi_get_proc_address(const char *funcName)
+_mesa_glapi_get_proc_address(const char *funcName)
 {
    init_glapi_relocs_once();
 
@@ -170,7 +170,7 @@ _glapi_get_proc_name(GLuint offset)
  * slots).
  */
 GLuint _GLAPI_EXPORT
-_glapi_get_dispatch_table_size(void)
+_mesa_glapi_get_dispatch_table_size(void)
 {
    return sizeof(struct _glapi_table) / sizeof(void *);
 }

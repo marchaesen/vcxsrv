@@ -6,10 +6,10 @@ glx@glx_arb_sync_control@timing -divisor 2,Fail
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
 glx@glx-swap-event_interval,Fail
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
-glx@glx-visuals-depth -pixmap,Crash
+glx@glx-visuals-depth -pixmap,Fail
+glx@glx-visuals-stencil -pixmap,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.1@line-smooth-stipple,Fail
 spec@arb_pipeline_statistics_query@arb_pipeline_statistics_query-frag,Fail
@@ -29,8 +29,7 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
 
 # glcts failures
-GTF-GL46.gtf30.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_multisample,Fail
-GTF-GL46.gtf32.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_32_multisample,Fail
+KHR-GL46.shaders.uniform_block.random.nested_structs_instance_arrays.0,Fail
 ## Fail because GFX10+ removed MS texture support (see si_get_sparse_texture_virtual_page_size)
 KHR-GL46.sparse_texture2_tests.SparseTexture2Allocation_texture_2d_multisample_array_r11f_g11f_b10f,Fail
 KHR-GL46.sparse_texture2_tests.SparseTexture2Allocation_texture_2d_multisample_array_r16,Fail
@@ -688,5 +687,11 @@ KHR-GL46.transform_feedback_overflow_query_ARB.advanced-single-stream-separate-a
 KHR-GL46.transform_feedback_overflow_query_ARB.multiple-streams-multiple-buffers-per-stream,Fail
 KHR-GL46.transform_feedback_overflow_query_ARB.multiple-streams-one-buffer-per-stream,Fail
 
-# escts failures (incorrect glMemoryBarrier usage in the test)
+# escts failures (pass with ACO)
+KHR-GLES3.shaders.uniform_block.random.nested_structs_instance_arrays.0,Fail
 KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs,Fail
+
+# deqp failures (pass with ACO)
+dEQP-GLES3.functional.ubo.random.all_per_block_buffers.29,Fail
+dEQP-GLES3.functional.ubo.random.basic_instance_arrays.22,Fail
+dEQP-GLES3.functional.ubo.random.nested_structs.4,Fail

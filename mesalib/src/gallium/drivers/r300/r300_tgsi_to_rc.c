@@ -141,8 +141,7 @@ static void transform_srcreg(
     dst->Negate = src->Register.Negate ? RC_MASK_XYZW : 0;
 }
 
-static void transform_texture(struct rc_instruction * dst, struct tgsi_instruction_texture src,
-                              uint32_t *shadowSamplers)
+static void transform_texture(struct rc_instruction * dst, struct tgsi_instruction_texture src)
 {
     switch(src.Texture) {
         case TGSI_TEXTURE_1D:
@@ -160,41 +159,14 @@ static void transform_texture(struct rc_instruction * dst, struct tgsi_instructi
         case TGSI_TEXTURE_RECT:
             dst->U.I.TexSrcTarget = RC_TEXTURE_RECT;
             break;
-        case TGSI_TEXTURE_SHADOW1D:
-            dst->U.I.TexSrcTarget = RC_TEXTURE_1D;
-            dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
-            break;
-        case TGSI_TEXTURE_SHADOW2D:
-            dst->U.I.TexSrcTarget = RC_TEXTURE_2D;
-            dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
-            break;
-        case TGSI_TEXTURE_SHADOWRECT:
-            dst->U.I.TexSrcTarget = RC_TEXTURE_RECT;
-            dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
-            break;
         case TGSI_TEXTURE_1D_ARRAY:
             dst->U.I.TexSrcTarget = RC_TEXTURE_1D_ARRAY;
             break;
         case TGSI_TEXTURE_2D_ARRAY:
             dst->U.I.TexSrcTarget = RC_TEXTURE_2D_ARRAY;
             break;
-        case TGSI_TEXTURE_SHADOW1D_ARRAY:
-            dst->U.I.TexSrcTarget = RC_TEXTURE_1D_ARRAY;
-            dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
-            break;
-        case TGSI_TEXTURE_SHADOW2D_ARRAY:
-            dst->U.I.TexSrcTarget = RC_TEXTURE_2D_ARRAY;
-            dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
-            break;
-        case TGSI_TEXTURE_SHADOWCUBE:
-            dst->U.I.TexSrcTarget = RC_TEXTURE_CUBE;
-            dst->U.I.TexShadow = 1;
-            *shadowSamplers |= 1U << dst->U.I.TexSrcUnit;
+        default:
+            unreachable();
             break;
     }
     dst->U.I.TexSwizzle = RC_SWIZZLE_XYZW;
@@ -230,8 +202,7 @@ static void transform_instruction(struct tgsi_to_rc * ttr, struct tgsi_full_inst
 
     /* Texturing. */
     if (src->Instruction.Texture)
-        transform_texture(dst, src->Texture,
-                          &ttr->compiler->Program.ShadowSamplers);
+        transform_texture(dst, src->Texture);
 }
 
 static void handle_immediate(struct tgsi_to_rc * ttr,

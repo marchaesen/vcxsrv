@@ -1,0 +1,13 @@
+dEQP-EGL.functional.color_clears.multi_context.gles1.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_context.gles1_gles2.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_context.gles1_gles2_gles3.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_context.gles2.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_context.gles3.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_thread.gles1.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_thread.gles1_gles2.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_thread.gles1_gles2_gles3.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_thread.gles2.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.multi_thread.gles3.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.single_context.gles1.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.single_context.gles2.rgb888_pbuffer,Fail
+dEQP-EGL.functional.color_clears.single_context.gles3.rgb888_pbuffer,Fail

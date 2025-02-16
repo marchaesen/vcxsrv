@@ -20,18 +20,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-
-"""The maximum entries of actual static data required by indirect GLX."""
-
-
-MAX_OFFSETS = 407
-
 """Table of functions that have ABI-mandated offsets in the dispatch table.
 
-The first MAX_OFFSETS entries are required by indirect GLX. The rest are
-required to preserve the glapi <> GL/GLES ABI. This is to be addressed shortly.
+The first 407 entries are required by indirect GLX. The rest can use any
+numbers and don't need this table at all, but that removal is TODO.
 
-This list will never change."""
+The first 407 entries will never change."""
 offsets = {
     "NewList": 0,
     "EndList": 1,

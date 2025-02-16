@@ -94,6 +94,14 @@ Making a release candidate build
  - Make the release tag, pointing at the version-update commit we just
    generated.
 
+ - If the release tag is on a branch (which I expect it generally will
+   be), prepare a merge to main, and make sure it builds sensibly.
+   Even if the branch consists of nothing but cherry-picks _from_
+   main, this will mean that the 'update version number' change
+   appears on main and the snapshots start announcing themselves as
+   post-X.YZ. But also, if there's anything new on the branch, this is
+   how it gets on to main as well.
+
  - Make a release-candidate build from the release tag, and put the
    build.out and build.log files somewhere safe. Normally I store
    these inside the ~/src/putty/X.YZ directory, alongside the git
@@ -146,23 +154,9 @@ Making a release candidate build
     * do some testing on a system with a completely clean slate (no
       prior saved session data)
 
-Preparing to make the release
------------------------------
-
  - Write a release announcement (basically a summary of the changes
    since the last release). Check the draft version into the putty-aux
    repository, so the whole team can help wordsmith it if they want to.
-
- - Update the website, in a local checkout:
-    * Write a release file in components/releases which identifies the
-      new version, a section for the Changes page, and a news
-      announcement for the front page.
-       + The one thing this can't yet contain is the release date;
-         that has to be put in at the last minute, when the release
-         goes live. Fill in 'FIXME', for the moment.
-    * Disable the pre-release sections of the website (if previously
-      enabled), by editing prerel_version() in components/Base.mc to
-      return undef.
 
  - Prepare some 'what's new in this release' blurb for the Windows
    Store. This should be very brief - even briefer than the website
@@ -184,7 +178,20 @@ Preparing to make the release
       fixing a #vulnerability. That's how people will find the toot.
     * Again, commit to putty-aux for team review.
 
- - Update the wishlist, in a local checkout:
+ - Prepare a website update:
+    * Write a release file in components/releases which identifies the
+      new version, a section for the Changes page, and a news
+      announcement for the front page.
+       + The one thing this can't yet contain is the release date;
+         that has to be put in at the last minute, when the release
+         goes live. Fill in 'FIXME', for the moment.
+    * Disable the pre-release sections of the website (if previously
+      enabled), by editing prerel_version() in components/Base.mc to
+      return undef.
+    * Push to the private clone of the website repo for the team to
+      check over.
+
+ - Prepare a wishlist update:
     * If there are any last-minute wishlist entries (e.g. security
       vulnerabilities fixed in the new release), write entries for
       them.
@@ -192,6 +199,22 @@ Preparing to make the release
       branch (so that the wishlist mechanism can't automatically mark
       them as fixed in the new release), add appropriate Fixed-in
       headers for those.
+    * Push to the private clone of the wishlist repo for the team to
+      check over.
+
+The actual release procedure
+----------------------------
+
+Once all the above preparation is done and we've decided we have a
+good release candidate and a good set of announcements, wishlist
+entries etc, this is the procedure for putting it all up on the web.
+
+ - Log in to the MS Partner Center and make sure everything is in
+   order. If the UI has completely changed, make sure you can find
+   your way around the new one; if it wants you to read an enormous
+   document of revised T&Cs, get that out of the way in advance, so it
+   doesn't suddenly become a delay in the middle of the actual
+   release.
 
  - Sign the release in full. In the `build-X.YZ-rcN.out' directory,
    re-verify that the preliminary signed checksums file has a correct
@@ -209,29 +232,10 @@ Preparing to make the release
      sh sign.sh -r putty     # and enter the release key passphrase
      chmod -R a-w putty
 
- - If the release is on a branch (which I expect it generally will
-   be), prepare a merge of that branch to main. Even if the branch
-   consists of nothing but cherry-picks _from_ main, this will mean
-   that the 'update version number' change appears on main and the
-   snapshots start announcing themselves as post-X.YZ. But also, if
-   there's anything new on the branch, this is how it gets on to main
-   as well.
-
- - Log in to the MS Partner Center and make sure everything is in
-   order. If the UI has completely changed, make sure you can find
-   your way around the new one; if it wants you to read an enormous
-   document of revised T&Cs, get that out of the way in advance, so it
-   doesn't suddenly become a delay in the middle of the actual
-   release.
-
-The actual release procedure
-----------------------------
-
-Once all the above preparation is done and the release has been built
-locally, this is the procedure for putting it up on the web.
-
- - Make a final adjustment to your local website changes, filling in
-   the release date in components/releases/X.YZ.mi.
+ - Make final adjustments to the local website and wishlist changes,
+   filling in the release date in components/releases/X.YZ.mi, and any
+   missing (e.g. not previously finalised) commit hashes in wishlist
+   entries. Check that both look sensible locally.
 
  - Upload the release itself and its link maps to everywhere it needs
    to be, by running this in the build-X.YZ-rcN.out directory:

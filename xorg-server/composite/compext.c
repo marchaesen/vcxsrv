@@ -375,8 +375,6 @@ static int _X_COLD
 SProcCompositeQueryVersion(ClientPtr client)
 {
     REQUEST(xCompositeQueryVersionReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeQueryVersionReq);
     swapl(&stuff->majorVersion);
     swapl(&stuff->minorVersion);
@@ -387,8 +385,6 @@ static int _X_COLD
 SProcCompositeRedirectWindow(ClientPtr client)
 {
     REQUEST(xCompositeRedirectWindowReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeRedirectWindowReq);
     swapl(&stuff->window);
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
@@ -398,8 +394,6 @@ static int _X_COLD
 SProcCompositeRedirectSubwindows(ClientPtr client)
 {
     REQUEST(xCompositeRedirectSubwindowsReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeRedirectSubwindowsReq);
     swapl(&stuff->window);
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
@@ -409,8 +403,6 @@ static int _X_COLD
 SProcCompositeUnredirectWindow(ClientPtr client)
 {
     REQUEST(xCompositeUnredirectWindowReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeUnredirectWindowReq);
     swapl(&stuff->window);
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
@@ -420,8 +412,6 @@ static int _X_COLD
 SProcCompositeUnredirectSubwindows(ClientPtr client)
 {
     REQUEST(xCompositeUnredirectSubwindowsReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeUnredirectSubwindowsReq);
     swapl(&stuff->window);
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
@@ -431,8 +421,6 @@ static int _X_COLD
 SProcCompositeCreateRegionFromBorderClip(ClientPtr client)
 {
     REQUEST(xCompositeCreateRegionFromBorderClipReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeCreateRegionFromBorderClipReq);
     swapl(&stuff->region);
     swapl(&stuff->window);
@@ -443,8 +431,6 @@ static int _X_COLD
 SProcCompositeNameWindowPixmap(ClientPtr client)
 {
     REQUEST(xCompositeNameWindowPixmapReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeNameWindowPixmapReq);
     swapl(&stuff->window);
     swapl(&stuff->pixmap);
@@ -455,8 +441,6 @@ static int _X_COLD
 SProcCompositeGetOverlayWindow(ClientPtr client)
 {
     REQUEST(xCompositeGetOverlayWindowReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeGetOverlayWindowReq);
     swapl(&stuff->window);
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
@@ -466,8 +450,6 @@ static int _X_COLD
 SProcCompositeReleaseOverlayWindow(ClientPtr client)
 {
     REQUEST(xCompositeReleaseOverlayWindowReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xCompositeReleaseOverlayWindowReq);
     swapl(&stuff->window);
     return (*ProcCompositeVector[stuff->compositeReqType]) (client);
@@ -584,7 +566,7 @@ CompositeExtensionInit(void)
     noCompositeExtension = FALSE;
 }
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiXsrv.h"
 
 int (*PanoramiXSaveCompositeVector[CompositeNumberRequests]) (ClientPtr);
@@ -935,4 +917,4 @@ PanoramiXCompositeReset(void)
         ProcCompositeVector[i] = PanoramiXSaveCompositeVector[i];
 }
 
-#endif
+#endif /* XINERAMA */

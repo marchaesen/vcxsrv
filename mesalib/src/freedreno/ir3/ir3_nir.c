@@ -328,6 +328,7 @@ ir3_optimize_loop(struct ir3_compiler *compiler,
       progress |= OPT(s, nir_opt_find_array_copies);
       progress |= OPT(s, nir_opt_copy_prop_vars);
       progress |= OPT(s, nir_opt_dead_write_vars);
+      progress |= OPT(s, nir_split_struct_vars, nir_var_function_temp);
 
       static int gcm = -1;
       if (gcm == -1)
@@ -1540,5 +1541,6 @@ ir3_const_state_get_free_space(const struct ir3_shader_variant *v,
       align(const_state->allocs.max_const_offset_vec4, align_vec4);
    uint32_t free_space_vec4 = ir3_max_const(v) - aligned_offset_vec4 -
                               const_state->allocs.reserved_vec4;
+   free_space_vec4 = ROUND_DOWN_TO(free_space_vec4, align_vec4);
    return free_space_vec4;
 }

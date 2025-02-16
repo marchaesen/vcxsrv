@@ -555,6 +555,8 @@ d3d12_video_nalu_writer_h264::write_sei_nalu(H264_SEI_MESSAGE               sei_
       assert(false);
    }
 
+   sei_payload_bitstream.set_start_code_prevention(true);
+
    switch (sei_message.payload_type)
    {
       case H264_SEI_SCALABILITY_INFO:
@@ -617,8 +619,6 @@ d3d12_video_nalu_writer_h264::write_sei_nalu(H264_SEI_MESSAGE               sei_
       debug_printf("nalu.create_bitstream(2 * sizeof(H264_SEI_MESSAGE)) failed.\n");
       assert(false);
    }
-
-   rbsp.set_start_code_prevention(true);
 
    //
    // Write payload_type to bitstream
@@ -692,14 +692,15 @@ d3d12_video_nalu_writer_h264::write_slice_svc_prefix(const H264_SLICE_PREFIX_SVC
    {
       rbsp.put_bits(1, nal_svc_prefix.store_ref_base_pic_flag);
       rbsp.put_bits(1, 0 /* additional_prefix_nal_unit_extension_flag */);
+
+      rbsp_trailing(&rbsp);
+      rbsp.flush();
    }
    else
    {
       // No more_rbsp_data( ) so we don't need to code anything else
    }
 
-   rbsp_trailing(&rbsp);
-   rbsp.flush();
    if (wrap_rbsp_into_nalu(&nalu, &rbsp, nal_svc_prefix.nal_ref_idc, NAL_TYPE_PREFIX, &nal_svc_prefix) <= 0u) {
 
       debug_printf(

@@ -277,44 +277,42 @@ get_aoa_deref_offset(nir_builder *b,
    return nir_umin(b, offset, nir_imm_int(b, array_size - elem_size));
 }
 
+static bool
+crocus_lower_storage_image_derefs_instr(nir_builder *b,
+                                        nir_intrinsic_instr *intrin,
+                                        UNUSED void *_)
+{
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_image_deref_load:
+   case nir_intrinsic_image_deref_store:
+   case nir_intrinsic_image_deref_atomic:
+   case nir_intrinsic_image_deref_atomic_swap:
+   case nir_intrinsic_image_deref_size:
+   case nir_intrinsic_image_deref_samples:
+   case nir_intrinsic_image_deref_load_raw_intel:
+   case nir_intrinsic_image_deref_store_raw_intel: {
+      nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+      nir_variable *var = nir_deref_instr_get_variable(deref);
+
+      b->cursor = nir_before_instr(&intrin->instr);
+      nir_def *index =
+         nir_iadd_imm(b, get_aoa_deref_offset(b, deref, 1),
+                      var->data.driver_location);
+      nir_rewrite_image_intrinsic(intrin, index, false);
+      return true;
+   }
+
+   default:
+      return false;
+   }
+}
+
 static void
 crocus_lower_storage_image_derefs(nir_shader *nir)
 {
-   nir_function_impl *impl = nir_shader_get_entrypoint(nir);
-
-   nir_builder b = nir_builder_create(impl);
-
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
-
-         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-         switch (intrin->intrinsic) {
-         case nir_intrinsic_image_deref_load:
-         case nir_intrinsic_image_deref_store:
-         case nir_intrinsic_image_deref_atomic:
-         case nir_intrinsic_image_deref_atomic_swap:
-         case nir_intrinsic_image_deref_size:
-         case nir_intrinsic_image_deref_samples:
-         case nir_intrinsic_image_deref_load_raw_intel:
-         case nir_intrinsic_image_deref_store_raw_intel: {
-            nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            nir_variable *var = nir_deref_instr_get_variable(deref);
-
-            b.cursor = nir_before_instr(&intrin->instr);
-            nir_def *index =
-               nir_iadd_imm(&b, get_aoa_deref_offset(&b, deref, 1),
-                            var->data.driver_location);
-            nir_rewrite_image_intrinsic(intrin, index, false);
-            break;
-         }
-
-         default:
-            break;
-         }
-      }
-   }
+   nir_shader_intrinsics_pass(nir, crocus_lower_storage_image_derefs_instr,
+                              nir_metadata_control_flow,
+                              NULL);
 }
 
 // XXX: need unify_interfaces() at link time...

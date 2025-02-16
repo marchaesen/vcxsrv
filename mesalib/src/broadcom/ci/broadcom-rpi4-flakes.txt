@@ -90,3 +90,8 @@ dEQP-VK.glsl.derivate.fwidthfine.static_if.float_mediump
 dEQP-VK.glsl.texture_functions.query.texturequerylevels.sampler1darray_fixed_fragment
 dEQP-VK.renderpass.suballocation.multisample_resolve.layers_6.r32g32b32a32_sfloat.samples_4_resolve_level_4
 dEQP-VK.ssbo.layout.random.all_per_block_buffers.0
+
+# New flakes in 1.4.1.0
+dEQP-VK.draw.renderpass.multi_draw.mosaic.normal.max_draws.stride_extra_12.10_instances.vert_only.multiview.no_offset_no_draw_id
+dEQP-VK.glsl.texture_functions.query.texturequerylevels.usampler1darray_fragment
+dEQP-VK.synchronization.cross_instance.dedicated.write_ssbo_vertex_read_vertex_input.buffer_262144_binary_semaphore_fd

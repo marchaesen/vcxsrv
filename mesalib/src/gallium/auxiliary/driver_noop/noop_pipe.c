@@ -496,25 +496,6 @@ static const char *noop_get_name(struct pipe_screen* pscreen)
    return "NOOP";
 }
 
-static int noop_get_shader_param(struct pipe_screen* pscreen,
-                                 enum pipe_shader_type shader,
-                                 enum pipe_shader_cap param)
-{
-   struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
-
-   return screen->get_shader_param(screen, shader, param);
-}
-
-static int noop_get_compute_param(struct pipe_screen *pscreen,
-                                  enum pipe_shader_ir ir_type,
-                                  enum pipe_compute_cap param,
-                                  void *ret)
-{
-   struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
-
-   return screen->get_compute_param(screen, ir_type, param, ret);
-}
-
 static bool noop_is_format_supported(struct pipe_screen* pscreen,
                                      enum pipe_format format,
                                      enum pipe_texture_target target,
@@ -790,8 +771,6 @@ struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
    screen->get_name = noop_get_name;
    screen->get_vendor = noop_get_vendor;
    screen->get_device_vendor = noop_get_device_vendor;
-   screen->get_shader_param = noop_get_shader_param;
-   screen->get_compute_param = noop_get_compute_param;
    screen->is_format_supported = noop_is_format_supported;
    screen->context_create = noop_create_context;
    screen->resource_create = noop_resource_create;
@@ -830,6 +809,11 @@ struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
    screen->query_compression_rates = noop_query_compression_rates;
    screen->query_compression_modifiers = noop_query_compression_modifiers;
    screen->get_driver_pipe_screen = noop_get_driver_pipe_screen;
+
+   /* copy all caps */
+   *(struct pipe_caps *)&screen->caps = oscreen->caps;
+   *(struct pipe_compute_caps *)&screen->compute_caps = oscreen->compute_caps;
+   memcpy((void *)screen->shader_caps, oscreen->shader_caps, sizeof(screen->shader_caps));
 
    slab_create_parent(&noop_screen->pool_transfers,
                       sizeof(struct pipe_transfer), 64);

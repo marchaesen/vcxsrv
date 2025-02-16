@@ -67,7 +67,12 @@ dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail.basic
 
 # Times out
 dEQP-VK.ray_query.builtin.instanceid.tese.aabbs
+dEQP-VK.ray_query.builtin.instanceid.tesc.aabbs
+dEQP-VK.ray_query.builtin.instanceid.tese.triangles
+dEQP-VK.synchronization2.timeline_semaphore.device_host.write_blit_image_read_image_vertex.image_64x64x8_r32_sfloat
 dEQP-VK.synchronization2.timeline_semaphore.device_host.write_blit_image_read_copy_image_to_buffer.image_128_r32_uint
+dEQP-VK.synchronization2.timeline_semaphore.device_host.write_copy_buffer_to_image_read_blit_image.image_128_r32_uint
 dEQP-VK.synchronization2.timeline_semaphore.device_host.write_image_fragment_read_copy_image_to_buffer.image_128x128_r16_uint
 dEQP-VK.tessellation.invariance.outer_edge_symmetry.triangles_fractional_odd_spacing_ccw
+dEQP-VK.tessellation.misc_draw.fill_overlap_quads_equal_spacing_draw_indirect
 nir-stress=dEQP-VK.ray_query.builtin.instanceid.tese.triangles

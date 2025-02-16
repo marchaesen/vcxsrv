@@ -341,6 +341,11 @@ parse_enable_string(const char *debug,
                     uint64_t default_value,
                     const struct debug_control *control);
 
+void
+dump_debug_control_string(char *output,
+                          size_t max_size,
+                          const struct debug_control *control,
+                          uint64_t flags);
 
 bool
 comma_separated_list_contains(const char *list, const char *s);

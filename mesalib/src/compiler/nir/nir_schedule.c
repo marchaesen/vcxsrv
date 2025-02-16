@@ -22,6 +22,7 @@
  */
 
 #include "nir_schedule.h"
+#include "nir.h"
 #include "util/dag.h"
 #include "util/u_dynarray.h"
 
@@ -462,7 +463,6 @@ nir_schedule_calculate_deps(nir_deps_state *state, nir_schedule_node *n)
    case nir_instr_type_load_const:
    case nir_instr_type_alu:
    case nir_instr_type_deref:
-   case nir_instr_type_debug_info:
       break;
 
    case nir_instr_type_tex:
@@ -1096,7 +1096,6 @@ nir_schedule_get_delay(nir_schedule_scoreboard *scoreboard, nir_instr *instr)
    case nir_instr_type_parallel_copy:
    case nir_instr_type_call:
    case nir_instr_type_phi:
-   case nir_instr_type_debug_info:
       return 1;
 
    case nir_instr_type_intrinsic:

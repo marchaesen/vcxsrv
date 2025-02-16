@@ -373,11 +373,12 @@ d3d12_emit_points(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key)
       nir_deref_instr *in_value = nir_build_deref_array(b, nir_build_deref_var(b, emit_ctx.in[i]), index);
       if (emit_ctx.in[i]->data.location == VARYING_SLOT_POS && emit_ctx.edgeflag_cmp) {
          nir_if *edge_check = nir_push_if(b, emit_ctx.edgeflag_cmp);
-         copy_vars(b, nir_build_deref_var(b, emit_ctx.out[i]), in_value);
+         nir_def *pos_then = nir_load_deref(b, in_value);
          nir_if *edge_else = nir_push_else(b, edge_check);
-         nir_store_deref(b, nir_build_deref_var(b, emit_ctx.out[i]),
-                         nir_imm_vec4(b, -2.0, -2.0, 0.0, 1.0), 0xf);
+         nir_def *pos_else = nir_imm_vec4(b, -2.0, -2.0, 0.0, 1.0);
          nir_pop_if(b, edge_else);
+         nir_def *pos = nir_if_phi(b, pos_then, pos_else);
+         nir_store_deref(b, nir_build_deref_var(b, emit_ctx.out[i]), pos, 0xf);
       } else {
          copy_vars(b, nir_build_deref_var(b, emit_ctx.out[i]), in_value);
       }

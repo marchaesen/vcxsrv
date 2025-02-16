@@ -348,6 +348,9 @@ typedef enum {
     */
    OPC_PUSH_CONSTS_LOAD_MACRO = _OPC(6, 84),
 
+   OPC_RAY_INTERSECTION = _OPC(6, 90),
+   OPC_RESBASE          = _OPC(6, 91),
+
    /* category 7: */
    OPC_BAR             = _OPC(7, 0),
    OPC_FENCE           = _OPC(7, 1),

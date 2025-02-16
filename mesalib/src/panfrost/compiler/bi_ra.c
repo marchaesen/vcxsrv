@@ -1083,7 +1083,7 @@ bi_register_allocate(bi_context *ctx)
    struct lcra_state *l = NULL;
    bool success = false;
 
-   unsigned iter_count = 1000; /* max iterations */
+   unsigned iter_count = 2000; /* max iterations */
 
    /* Number of bytes of memory we've spilled into */
    unsigned spill_count = ctx->info.tls_size;

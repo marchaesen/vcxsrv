@@ -95,3 +95,12 @@ KHR-GLES31.core.texture_buffer.texture_buffer_max_size,Fail
 KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreCS,Fail
 dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra_depth_component16,Fail
 dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra,Fail
+
+# New failures after fixing the fraction
+dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.resize.rbo_bgra_depth_component16,Fail
+dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra_depth_component16,Fail
+
+# New failure with ANGLE 2025-02-12
+KHR-GLES3.framebuffer_blit.framebuffer_blit_functionality_multisampled_to_singlesampled_blit,Crash

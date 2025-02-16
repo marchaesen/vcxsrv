@@ -38,6 +38,8 @@
 #include "dix/input_priv.h"
 #include "dix/dix_priv.h"
 #include "dix/exevents_priv.h"
+#include "mi/mi_priv.h"
+#include "mi/mipointer_priv.h"
 #include "os/osdep.h"
 
 #include "misc.h"
@@ -49,7 +51,6 @@
 #include "scrnintstr.h"
 #include "dixevents.h"
 #include "sleepuntil.h"
-#include "mi.h"
 #include "xkbsrv.h"
 #include "xkbstr.h"
 #include "exglobals.h"
@@ -58,6 +59,8 @@
 #include "eventstr.h"
 #include "inpututils.h"
 #include "extinit_priv.h"
+
+Bool noTestExtensions = FALSE;
 
 /* XTest events are sent during request processing and may be interrupted by
  * a SIGIO. We need a separate event list to avoid events overwriting each
@@ -77,10 +80,10 @@ static InternalEvent *xtest_evlist;
  */
 DeviceIntPtr xtestpointer, xtestkeyboard;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
-#endif
+#endif /* XINERAMA */
 
 static int XTestSwapFakeInput(ClientPtr /* client */ ,
                               xReq *    /* req */
@@ -196,7 +199,7 @@ ProcXTestFakeInput(ClientPtr client)
     int flags = 0;
     int need_ptr_update = 1;
 
-    nev = (stuff->length << 2) - sizeof(xReq);
+    nev = (client->req_len << 2) - sizeof(xReq);
     if ((nev % sizeof(xEvent)) || !nev)
         return BadLength;
     nev /= sizeof(xEvent);
@@ -372,7 +375,6 @@ ProcXTestFakeInput(ClientPtr client)
         /* swap the request back so we can simply re-execute it */
         if (client->swapped) {
             (void) XTestSwapFakeInput(client, (xReq *) stuff);
-            swaps(&stuff->length);
         }
         ResetCurrentRequest(client);
         client->sequence--;
@@ -486,8 +488,6 @@ static int _X_COLD
 SProcXTestGetVersion(ClientPtr client)
 {
     REQUEST(xXTestGetVersionReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xXTestGetVersionReq);
     swaps(&stuff->minorVersion);
     return ProcXTestGetVersion(client);
@@ -497,8 +497,6 @@ static int _X_COLD
 SProcXTestCompareCursor(ClientPtr client)
 {
     REQUEST(xXTestCompareCursorReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xXTestCompareCursorReq);
     swapl(&stuff->window);
     swapl(&stuff->cursor);
@@ -513,7 +511,7 @@ XTestSwapFakeInput(ClientPtr client, xReq * req)
     xEvent sev;
     EventSwapPtr proc;
 
-    nev = ((req->length << 2) - sizeof(xReq)) / sizeof(xEvent);
+    nev = ((client->req_len << 2) - sizeof(xReq)) / sizeof(xEvent);
     for (ev = (xEvent *) &req[1]; --nev >= 0; ev++) {
         int evtype = ev->u.u.type & 0177;
         /* Swap event */
@@ -536,21 +534,10 @@ SProcXTestFakeInput(ClientPtr client)
 
     REQUEST(xReq);
 
-    swaps(&stuff->length);
     n = XTestSwapFakeInput(client, stuff);
     if (n != Success)
         return n;
     return ProcXTestFakeInput(client);
-}
-
-static int _X_COLD
-SProcXTestGrabControl(ClientPtr client)
-{
-    REQUEST(xXTestGrabControlReq);
-
-    swaps(&stuff->length);
-    REQUEST_SIZE_MATCH(xXTestGrabControlReq);
-    return ProcXTestGrabControl(client);
 }
 
 static int _X_COLD
@@ -565,7 +552,7 @@ SProcXTestDispatch(ClientPtr client)
     case X_XTestFakeInput:
         return SProcXTestFakeInput(client);
     case X_XTestGrabControl:
-        return SProcXTestGrabControl(client);
+        return ProcXTestGrabControl(client);
     default:
         return BadRequest;
     }

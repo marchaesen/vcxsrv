@@ -29,8 +29,11 @@ from The Open Group.
 #include <dix-config.h>
 
 #include <X11/X.h>
+#include <X11/extensions/render.h>
+
+#include "mi/mi_priv.h"
+
 #include "scrnintstr.h"
-#include "mi.h"
 #include "misc.h"
 #include "os.h"
 #include "windowstr.h"
@@ -38,7 +41,6 @@ from The Open Group.
 #include "dixstruct.h"
 #include "gcstruct.h"
 #include "servermd.h"
-#include "X11/extensions/render.h"
 #include "picturestr.h"
 #include "randrstr.h"
 /*
@@ -61,7 +63,7 @@ GetScratchPixmapHeader(ScreenPtr pScreen, int width, int height, int depth,
         if ((*pScreen->ModifyPixmapHeader) (pPixmap, width, height, depth,
                                             bitsPerPixel, devKind, pPixData))
             return pPixmap;
-        (*pScreen->DestroyPixmap) (pPixmap);
+        dixDestroyPixmap(pPixmap, 0);
     }
     return NullPixmap;
 }
@@ -71,9 +73,8 @@ void
 FreeScratchPixmapHeader(PixmapPtr pPixmap)
 {
     if (pPixmap) {
-        ScreenPtr pScreen = pPixmap->drawable.pScreen;
         pPixmap->devPrivate.ptr = NULL; /* help catch/avoid heap-use-after-free */
-        (*pScreen->DestroyPixmap)(pPixmap);
+        dixDestroyPixmap(pPixmap, 0);
     }
 }
 
@@ -149,7 +150,7 @@ PixmapPtr PixmapShareToSecondary(PixmapPtr pixmap, ScreenPtr secondary)
 
     ret = secondary->SetSharedPixmapBacking(spix, handle);
     if (ret == FALSE) {
-        secondary->DestroyPixmap(spix);
+        dixDestroyPixmap(spix, 0);
         return NULL;
     }
 

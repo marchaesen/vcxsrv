@@ -87,6 +87,11 @@
       unreachable("Unknown hardware generation"); \
    }
 
+#ifndef INTEL_USE_ELK
+static inline void gfx8_init_screen_state(struct iris_screen *screen) { unreachable("no elk support"); }
+static inline void gfx8_init_screen_gen_state(struct iris_screen *screen) { unreachable("no elk support"); }
+#endif
+
 static const char *
 iris_get_vendor(struct pipe_screen *pscreen)
 {
@@ -193,162 +198,97 @@ iris_get_video_memory(struct iris_screen *screen)
    }
 }
 
-static int
-iris_get_shader_param(struct pipe_screen *pscreen,
-                      enum pipe_shader_type p_stage,
-                      enum pipe_shader_cap param)
+static void
+iris_init_shader_caps(struct iris_screen *screen)
 {
-   gl_shader_stage stage = stage_from_pipe(p_stage);
+   for (unsigned i = 0; i <= PIPE_SHADER_COMPUTE; i++) {
+      struct pipe_shader_caps *caps =
+         (struct pipe_shader_caps *)&screen->base.shader_caps[i];
 
-   if (p_stage == PIPE_SHADER_MESH ||
-       p_stage == PIPE_SHADER_TASK)
-      return 0;
+      caps->max_instructions = i == PIPE_SHADER_FRAGMENT ? 1024 : 16384;
+      caps->max_alu_instructions =
+      caps->max_tex_instructions =
+      caps->max_tex_indirections = i == PIPE_SHADER_FRAGMENT ? 1024 : 0;
 
-   /* this is probably not totally correct.. but it's a start: */
-   switch (param) {
-   case PIPE_SHADER_CAP_MAX_INSTRUCTIONS:
-      return stage == MESA_SHADER_FRAGMENT ? 1024 : 16384;
-   case PIPE_SHADER_CAP_MAX_ALU_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INSTRUCTIONS:
-   case PIPE_SHADER_CAP_MAX_TEX_INDIRECTIONS:
-      return stage == MESA_SHADER_FRAGMENT ? 1024 : 0;
+      caps->max_control_flow_depth = UINT_MAX;
 
-   case PIPE_SHADER_CAP_MAX_CONTROL_FLOW_DEPTH:
-      return UINT_MAX;
+      caps->max_inputs = i == PIPE_SHADER_VERTEX ? 16 : 32;
+      caps->max_outputs = 32;
+      caps->max_const_buffer0_size = 16 * 1024 * sizeof(float);
+      caps->max_const_buffers = 16;
+      caps->max_temps = 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
 
-   case PIPE_SHADER_CAP_MAX_INPUTS:
-      return stage == MESA_SHADER_VERTEX ? 16 : 32;
-   case PIPE_SHADER_CAP_MAX_OUTPUTS:
-      return 32;
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE:
-      return 16 * 1024 * sizeof(float);
-   case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
-      return 16;
-   case PIPE_SHADER_CAP_MAX_TEMPS:
-      return 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
-   case PIPE_SHADER_CAP_CONT_SUPPORTED:
-      return 0;
-   case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
-   case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
       /* Lie about these to avoid st/mesa's GLSL IR lowering of indirects,
        * which we don't want.  Our compiler backend will check brw_compiler's
        * options and call nir_lower_indirect_derefs appropriately anyway.
        */
-      return true;
-   case PIPE_SHADER_CAP_SUBROUTINES:
-      return 0;
-   case PIPE_SHADER_CAP_INTEGERS:
-      return 1;
-   case PIPE_SHADER_CAP_INT64_ATOMICS:
-   case PIPE_SHADER_CAP_FP16:
-   case PIPE_SHADER_CAP_FP16_DERIVATIVES:
-   case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
-   case PIPE_SHADER_CAP_INT16:
-   case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-      return 0;
-   case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
-      return IRIS_MAX_SAMPLERS;
-   case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
-      return IRIS_MAX_TEXTURES;
-   case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
-      return IRIS_MAX_IMAGES;
-   case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
-      return IRIS_MAX_ABOS + IRIS_MAX_SSBOS;
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTERS:
-   case PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS:
-      return 0;
-   case PIPE_SHADER_CAP_SUPPORTED_IRS:
-      return 1 << PIPE_SHADER_IR_NIR;
-   case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
-   case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
-      return 0;
-   default:
-      unreachable("unknown shader param");
+      caps->indirect_temp_addr = true;
+      caps->indirect_const_addr = true;
+
+      caps->integers = true;
+      caps->max_texture_samplers = IRIS_MAX_SAMPLERS;
+      caps->max_sampler_views = IRIS_MAX_TEXTURES;
+      caps->max_shader_images = IRIS_MAX_IMAGES;
+      caps->max_shader_buffers = IRIS_MAX_ABOS + IRIS_MAX_SSBOS;
+      caps->supported_irs = 1 << PIPE_SHADER_IR_NIR;
    }
 }
 
-static int
-iris_get_compute_param(struct pipe_screen *pscreen,
-                       enum pipe_shader_ir ir_type,
-                       enum pipe_compute_cap param,
-                       void *ret)
+static void
+iris_init_compute_caps(struct iris_screen *screen)
 {
-   struct iris_screen *screen = (struct iris_screen *)pscreen;
+   struct pipe_compute_caps *caps =
+      (struct pipe_compute_caps *)&screen->base.compute_caps;
+
    const struct intel_device_info *devinfo = screen->devinfo;
 
    const uint32_t max_invocations =
       MIN2(1024, 32 * devinfo->max_cs_workgroup_threads);
 
-#define RET(x) do {                  \
-   if (ret)                          \
-      memcpy(ret, x, sizeof(x));     \
-   return sizeof(x);                 \
-} while (0)
+   /* This gets queried on OpenCL device init and is never queried by the
+    * OpenGL state tracker.
+    */
+   caps->address_bits = 64;
 
-   switch (param) {
-   case PIPE_COMPUTE_CAP_ADDRESS_BITS:
-      /* This gets queried on OpenCL device init and is never queried by the
-       * OpenGL state tracker.
-       */
-      iris_warn_cl();
-      RET((uint32_t []){ 64 });
+   snprintf(caps->ir_target, sizeof(caps->ir_target), "gen");
 
-   case PIPE_COMPUTE_CAP_IR_TARGET:
-      if (ret)
-         strcpy(ret, "gen");
-      return 4;
+   caps->grid_dimension = 3;
 
-   case PIPE_COMPUTE_CAP_GRID_DIMENSION:
-      RET((uint64_t []) { 3 });
+   caps->max_grid_size[0] =
+   caps->max_grid_size[1] =
+   caps->max_grid_size[2] = UINT32_MAX;
 
-   case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
-      RET(((uint64_t []) { UINT32_MAX, UINT32_MAX, UINT32_MAX }));
+   /* MaxComputeWorkGroupSize[0..2] */
+   caps->max_block_size[0] =
+   caps->max_block_size[1] =
+   caps->max_block_size[2] = max_invocations;
 
-   case PIPE_COMPUTE_CAP_MAX_BLOCK_SIZE:
-      /* MaxComputeWorkGroupSize[0..2] */
-      RET(((uint64_t []) {max_invocations, max_invocations, max_invocations}));
+   /* MaxComputeWorkGroupInvocations */
+   caps->max_threads_per_block =
+   /* MaxComputeVariableGroupInvocations */
+   caps->max_variable_threads_per_block = max_invocations;
 
-   case PIPE_COMPUTE_CAP_MAX_THREADS_PER_BLOCK:
-      /* MaxComputeWorkGroupInvocations */
-   case PIPE_COMPUTE_CAP_MAX_VARIABLE_THREADS_PER_BLOCK:
-      /* MaxComputeVariableGroupInvocations */
-      RET((uint64_t []) { max_invocations });
+   /* MaxComputeSharedMemorySize */
+   caps->max_local_size = 64 * 1024;
 
-   case PIPE_COMPUTE_CAP_MAX_LOCAL_SIZE:
-      /* MaxComputeSharedMemorySize */
-      RET((uint64_t []) { 64 * 1024 });
+   caps->images_supported = true;
 
-   case PIPE_COMPUTE_CAP_IMAGES_SUPPORTED:
-      RET((uint32_t []) { 1 });
+   caps->subgroup_sizes = 32 | 16 | 8;
 
-   case PIPE_COMPUTE_CAP_SUBGROUP_SIZES:
-      RET((uint32_t []) { 32 | 16 | 8 });
+   caps->max_subgroups = devinfo->max_cs_workgroup_threads;
 
-   case PIPE_COMPUTE_CAP_MAX_SUBGROUPS:
-      RET((uint32_t []) { devinfo->max_cs_workgroup_threads });
+   caps->max_mem_alloc_size =
+   caps->max_global_size = 1 << 30; /* TODO */
 
-   case PIPE_COMPUTE_CAP_MAX_MEM_ALLOC_SIZE:
-   case PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE:
-      RET((uint64_t []) { 1 << 30 }); /* TODO */
+   caps->max_clock_frequency = 400; /* TODO */
 
-   case PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY:
-      RET((uint32_t []) { 400 }); /* TODO */
+   caps->max_compute_units = intel_device_info_subslice_total(devinfo);
 
-   case PIPE_COMPUTE_CAP_MAX_COMPUTE_UNITS: {
-      RET((uint32_t []) { intel_device_info_subslice_total(devinfo) });
-   }
+   /* MaxComputeSharedMemorySize */
+   caps->max_private_size = 64 * 1024;
 
-   case PIPE_COMPUTE_CAP_MAX_PRIVATE_SIZE:
-      /* MaxComputeSharedMemorySize */
-      RET((uint64_t []) { 64 * 1024 });
-
-   case PIPE_COMPUTE_CAP_MAX_INPUT_SIZE:
-      /* We could probably allow more; this is the OpenCL minimum */
-      RET((uint64_t []) { 1024 });
-
-   default:
-      unreachable("unknown compute param");
-   }
+   /* We could probably allow more; this is the OpenCL minimum */
+   caps->max_input_size = 1024;
 }
 
 static void
@@ -830,8 +770,6 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    pscreen->get_device_vendor = iris_get_device_vendor;
    pscreen->get_cl_cts_version = iris_get_cl_cts_version;
    pscreen->get_screen_fd = iris_screen_get_fd;
-   pscreen->get_shader_param = iris_get_shader_param;
-   pscreen->get_compute_param = iris_get_compute_param;
    pscreen->get_compiler_options = iris_get_compiler_options;
    pscreen->get_device_uuid = iris_get_device_uuid;
    pscreen->get_driver_uuid = iris_get_driver_uuid;
@@ -845,6 +783,8 @@ iris_screen_create(int fd, const struct pipe_screen_config *config)
    pscreen->set_damage_region = iris_set_damage_region;
    iris_init_screen_program_functions(pscreen);
 
+   iris_init_shader_caps(screen);
+   iris_init_compute_caps(screen);
    iris_init_screen_caps(screen);
 
    genX_call(screen->devinfo, init_screen_state, screen);

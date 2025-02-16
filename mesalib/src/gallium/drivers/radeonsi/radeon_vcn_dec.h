@@ -26,7 +26,7 @@
 struct rvcn_dec_dynamic_dpb_t2 {
    struct list_head list;
    uint8_t index;
-   struct pipe_video_buffer *vbuf;
+   struct pipe_resource *buf;
 };
 
 struct jpeg_registers {

@@ -412,7 +412,7 @@ radv_vcn_av1_film_grain_init_scaling(uint8_t scaling_points[][2], uint8_t num, s
 }
 
 void
-ac_vcn_av1_init_film_grain_buffer(rvcn_dec_film_grain_params_t *fg_params, rvcn_dec_av1_fg_init_buf_t *fg_buf)
+ac_vcn_av1_init_film_grain_buffer(unsigned av1_version, rvcn_dec_film_grain_params_t *fg_params, rvcn_dec_av1_fg_init_buf_t *fg_buf)
 {
    const int32_t luma_block_size_y = LUMA_BLOCK_SIZE_Y;
    const int32_t luma_block_size_x = LUMA_BLOCK_SIZE_X;
@@ -542,24 +542,38 @@ ac_vcn_av1_init_film_grain_buffer(rvcn_dec_film_grain_params_t *fg_params, rvcn_
       }
 
    align_ptr = &fg_buf->luma_grain_block[0][0];
-   for (i = 0; i < 64; i++) {
-      for (j = 0; j < 80; j++)
-         *align_ptr++ = luma_grain_block_tmp[i][j];
-
-      if (((i + 1) % 4) == 0)
-         align_ptr += 64;
-   }
-
    align_ptr0 = &fg_buf->cb_grain_block[0][0];
    align_ptr1 = &fg_buf->cr_grain_block[0][0];
-   for (i = 0; i < 32; i++) {
-      for (j = 0; j < 40; j++) {
-         *align_ptr0++ = cb_grain_block_tmp[i][j];
-         *align_ptr1++ = cr_grain_block_tmp[i][j];
+
+   if (av1_version == RDECODE_AV1_VER_2) {
+      for (i = 0; i < 64; i++)
+         for (j = 0; j < 64; j++)
+            *align_ptr++ = luma_grain_block_tmp[i][j];
+
+      for (i = 0; i < 32; i++) {
+         for (j = 0; j < 32; j++) {
+            *align_ptr0++ = cb_grain_block_tmp[i][j];
+            *align_ptr1++ = cr_grain_block_tmp[i][j];
+         }
       }
-      if (((i + 1) % 8) == 0) {
-         align_ptr0 += 64;
-         align_ptr1 += 64;
+   } else {
+      for (i = 0; i < 64; i++) {
+         for (j = 0; j < 80; j++)
+            *align_ptr++ = luma_grain_block_tmp[i][j];
+
+         if (((i + 1) % 4) == 0)
+            align_ptr += 64;
+      }
+
+      for (i = 0; i < 32; i++) {
+         for (j = 0; j < 40; j++) {
+            *align_ptr0++ = cb_grain_block_tmp[i][j];
+            *align_ptr1++ = cr_grain_block_tmp[i][j];
+         }
+         if (((i + 1) % 8) == 0) {
+            align_ptr0 += 64;
+            align_ptr1 += 64;
+         }
       }
    }
 

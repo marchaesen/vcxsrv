@@ -82,9 +82,10 @@ DEPS=(
     python3-pycparser
     python3-yaml
     rust-packaging
-    vulkan-headers
     spirv-tools-devel
     spirv-llvm-translator-devel
+    vulkan-headers
+    which
 )
 
 dnf install -y --setopt=install_weak_deps=False "${DEPS[@]}" "${EPHEMERAL[@]}"

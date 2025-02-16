@@ -50,6 +50,9 @@ struct vl_deint_filter
    bool interleaved;
 
    struct pipe_video_buffer *video_buffer;
+
+   void *cs_deint_top;
+   void *cs_deint_bottom;
 };
 
 bool

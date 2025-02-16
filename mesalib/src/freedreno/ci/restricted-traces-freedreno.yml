@@ -42,7 +42,9 @@ traces:
       checksum: c9fdace50bcf6ca9b739d5bb7b4720ac
   PenumbraOverture/penumbra-ov-s0-2-864-f1500-v2.trace:
     freedreno-a630:
+      label: [skip, broken]
       checksum: a3cc3e461c15d0469d258c5c6dcd6cbb
+      text: https://gitlab.freedesktop.org/mesa/mesa/-/issues/12465#note_2745831
   hollow-knight/HollowKnight-trim--f2020-v20201203-v2.trace:
     freedreno-a630:
       checksum: 6020da5ac6e5b7d410984dee52e5d36c

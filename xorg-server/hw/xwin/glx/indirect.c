@@ -1590,7 +1590,7 @@ glxWinContextMakeCurrent(__GLXcontext * base)
     if (gc->ctx == NULL) {
         glxWinDeferredCreateContext(gc, drawPriv);
     }
-    _glapi_set_dispatch(gc->Dispatch);
+    _mesa_glapi_set_dispatch(gc->Dispatch);
 
     if (gc->ctx == NULL) {
         ErrorF("glxWinContextMakeCurrent: Native context is NULL\n");
@@ -1678,7 +1678,7 @@ glxWinContextLoseCurrent(__GLXcontext * base)
     }
 
     base->currentClient=NULL;  /* It looks like glx is not doing this */
-    _glapi_set_dispatch(NULL);
+    _mesa_glapi_set_dispatch(NULL);
 
     return ret;
 }
@@ -1735,7 +1735,7 @@ glxWinContextDestroy(__GLXcontext * base)
 
         free(gc->Dispatch);
         free(gc);
-        _glapi_set_dispatch(NULL);
+        _mesa_glapi_set_dispatch(NULL);
     }
 }
 
@@ -1766,7 +1766,7 @@ glxWinCreateContext(__GLXscreen * screen,
     context->shareContext = shareContext;
 
     context->Dispatch=calloc(sizeof(void*), (sizeof(struct _glapi_table) / sizeof(void *) + MAX_EXTENSION_FUNCS));
-    _glapi_set_dispatch(context->Dispatch);
+    _mesa_glapi_set_dispatch(context->Dispatch);
 
     glWinSetupDispatchTable();
 
@@ -2454,7 +2454,7 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * 
                 ATTR_VALUE(WGL_NUMBER_OVERLAYS_ARB,
                            0) + ATTR_VALUE(WGL_NUMBER_UNDERLAYS_ARB, 0);
 
-            if (layers > 0) {
+            if (layers > 1) {
                 ErrorF
                     ("pixelFormat %d: has %d overlay, %d underlays which aren't currently handled\n",
                      i, ATTR_VALUE(WGL_NUMBER_OVERLAYS_ARB, 0),

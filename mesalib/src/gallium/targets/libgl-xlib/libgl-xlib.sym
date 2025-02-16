@@ -1,5 +1,9 @@
 {
 	global:
+                _mesa_glapi_Dispatch;
+                _mesa_glapi_tls_Dispatch;
+                _mesa_glapi_get_dispatch_table_size; # only for tests
+                _mesa_glapi_get_proc_offset; # only for tests
 		gl*;
 	local:
 		*;

@@ -1201,15 +1201,8 @@ create_buffer(struct zink_screen *screen, struct zink_resource_object *obj,
      }
    }
 
-   if (modifiers_count) {
-      assert(modifiers_count == 3);
-      /* this is the DGC path because there's no other way to pass mem bits and I don't wanna copy/paste everything around */
-      reqs.size = modifiers[0];
-      reqs.alignment = modifiers[1];
-      reqs.memoryTypeBits = modifiers[2];
-   } else {
-      VKSCR(GetBufferMemoryRequirements)(screen->dev, obj->buffer, &reqs);
-   }
+   assert(!modifiers_count);
+   VKSCR(GetBufferMemoryRequirements)(screen->dev, obj->buffer, &reqs);
 
    if (templ->usage == PIPE_USAGE_STAGING)
       alloc_info->flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
@@ -2440,7 +2433,7 @@ overwrite:
       // This is a known limitation of MoltenVK.
       // See https://github.com/KhronosGroup/MoltenVK/blob/master/Docs/MoltenVK_Runtime_UserGuide.md#known-moltenvk-limitations
 
-       || screen->instance_info.have_MVK_moltenvk
+       || screen->instance_info->have_MVK_moltenvk
 #endif
       ) {
       VkDeviceSize size = box->width;
@@ -3230,7 +3223,7 @@ zink_screen_resource_init(struct pipe_screen *pscreen)
    if (screen->info.have_EXT_external_memory_host) {
       pscreen->resource_from_user_memory = zink_resource_from_user_memory;
    }
-   if (screen->instance_info.have_KHR_external_memory_capabilities) {
+   if (screen->instance_info->have_KHR_external_memory_capabilities) {
       pscreen->memobj_create_from_handle = zink_memobj_create_from_handle;
       pscreen->memobj_destroy = zink_memobj_destroy;
       pscreen->resource_from_memobj = zink_resource_from_memobj;

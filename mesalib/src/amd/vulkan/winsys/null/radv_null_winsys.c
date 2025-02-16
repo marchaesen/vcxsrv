@@ -117,6 +117,10 @@ radv_null_winsys_query_info(struct radeon_winsys *rws, struct radeon_info *gpu_i
 
    gpu_info->has_3d_cube_border_color_mipmap = true;
    gpu_info->has_image_opcodes = true;
+   gpu_info->has_attr_ring = gpu_info->gfx_level >= GFX11;
+   gpu_info->has_attr_ring_wait_bug = gpu_info->gfx_level == GFX11 || gpu_info->gfx_level == GFX11_5;
+   gpu_info->has_ngg_fully_culled_bug = gpu_info->gfx_level == GFX10;
+   gpu_info->has_ngg_passthru_no_msg = gpu_info->family >= CHIP_NAVI23;
 
    if (gpu_info->family == CHIP_NAVI31 || gpu_info->family == CHIP_NAVI32)
       gpu_info->num_physical_wave64_vgprs_per_simd = 768;
@@ -139,6 +143,8 @@ radv_null_winsys_query_info(struct radeon_winsys *rws, struct radeon_info *gpu_i
 
    gpu_info->has_accelerated_dot_product =
       gpu_info->family == CHIP_VEGA20 || (gpu_info->family >= CHIP_MI100 && gpu_info->family != CHIP_NAVI10);
+
+   gpu_info->has_image_bvh_intersect_ray = gpu_info->gfx_level >= GFX10_3;
 
    gpu_info->address32_hi = gpu_info->gfx_level >= GFX9 ? 0xffff8000u : 0x0;
 

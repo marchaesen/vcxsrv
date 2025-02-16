@@ -11,8 +11,6 @@
 #include "radv_pipeline.h"
 #include "meta/radv_meta.h"
 #include "nir/nir.h"
-#include "nir/nir_builder.h"
-#include "nir/nir_serialize.h"
 #include "nir/radv_nir.h"
 #include "spirv/nir_spirv.h"
 #include "util/disk_cache.h"
@@ -37,9 +35,6 @@
 #include "vk_format.h"
 #include "vk_nir_convert_ycbcr.h"
 #include "vk_ycbcr_conversion.h"
-#if AMD_LLVM_AVAILABLE
-#include "ac_llvm_util.h"
-#endif
 
 bool
 radv_shader_need_indirect_descriptor_sets(const struct radv_shader *shader)
@@ -306,17 +301,13 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
 
    /* LLVM could support more of these in theory. */
    bool use_llvm = radv_use_llvm_for_stage(pdev, stage->stage);
-   bool has_inverse_ballot = true;
-#if AMD_LLVM_AVAILABLE
-   has_inverse_ballot = !use_llvm || LLVM_VERSION_MAJOR >= 17;
-#endif
    radv_nir_opt_tid_function_options tid_options = {
       .use_masked_swizzle_amd = true,
       .use_dpp16_shift_amd = !use_llvm && gfx_level >= GFX8,
       .use_clustered_rotate = !use_llvm,
       .hw_subgroup_size = stage->info.wave_size,
-      .hw_ballot_bit_size = has_inverse_ballot ? stage->info.wave_size : 0,
-      .hw_ballot_num_comp = has_inverse_ballot ? 1 : 0,
+      .hw_ballot_bit_size = stage->info.wave_size,
+      .hw_ballot_num_comp = 1,
    };
    NIR_PASS(_, stage->nir, radv_nir_opt_tid_function, &tid_options);
 
@@ -352,9 +343,6 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
          NIR_PASS(_, stage->nir, nir_opt_shrink_stores, !instance->drirc.disable_shrink_image_store);
 
          constant_fold_for_push_const = true;
-
-         /* Gather info again, to update whether 8/16-bit are used. */
-         nir_shader_gather_info(stage->nir, nir_shader_get_entrypoint(stage->nir));
       }
    }
 
@@ -393,16 +381,12 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
    if (progress)
       nir_shader_gather_info(stage->nir, nir_shader_get_entrypoint(stage->nir));
 
-   bool fix_derivs_in_divergent_cf =
-      stage->stage == MESA_SHADER_FRAGMENT && !radv_use_llvm_for_stage(pdev, stage->stage);
-   if (fix_derivs_in_divergent_cf)
-      nir_divergence_analysis(stage->nir);
-
    NIR_PASS(_, stage->nir, ac_nir_lower_tex,
             &(ac_nir_lower_tex_options){
                .gfx_level = gfx_level,
                .lower_array_layer_round_even = !pdev->info.conformant_trunc_coord || device->disable_trunc_coord,
-               .fix_derivs_in_divergent_cf = fix_derivs_in_divergent_cf,
+               .fix_derivs_in_divergent_cf =
+                  stage->stage == MESA_SHADER_FRAGMENT && !radv_use_llvm_for_stage(pdev, stage->stage),
                .max_wqm_vgprs = 64, // TODO: improve spiller and RA support for linear VGPRs
             });
 
@@ -415,10 +399,6 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
 
    /* TODO: vectorize loads after this to vectorize loading adjacent descriptors */
    NIR_PASS_V(stage->nir, radv_nir_apply_pipeline_layout, device, stage);
-
-   if (!stage->key.optimisations_disabled) {
-      NIR_PASS(_, stage->nir, nir_opt_shrink_vectors, true);
-   }
 
    NIR_PASS(_, stage->nir, nir_lower_alu_width, opt_vectorize_callback, device);
 
@@ -462,11 +442,6 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
          NIR_PASS_V(stage->nir, ac_nir_lower_legacy_gs, false, false, &gs_out_info);
       }
    } else if (stage->stage == MESA_SHADER_FRAGMENT) {
-      ac_nir_lower_ps_early_options early_options = {
-         .alpha_func = COMPARE_FUNC_ALWAYS,
-         .spi_shader_col_format_hint = ~0,
-      };
-
       ac_nir_lower_ps_late_options late_options = {
          .gfx_level = gfx_level,
          .family = pdev->info.family,
@@ -488,7 +463,7 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
          late_options.enable_mrt_output_nan_fixup =
             gfx_state->ps.epilog.enable_mrt_output_nan_fixup && !stage->nir->info.internal;
          /* Need to filter out unwritten color slots. */
-         early_options.spi_shader_col_format_hint = late_options.spi_shader_col_format =
+         late_options.spi_shader_col_format =
             gfx_state->ps.epilog.spi_shader_col_format & stage->info.ps.colors_written;
          late_options.alpha_to_one = gfx_state->ps.epilog.alpha_to_one;
       }
@@ -499,11 +474,10 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
           * ac_nir_lower_ps() require this field to reflect whether alpha via mrtz is really
           * present.
           */
-         early_options.keep_alpha_for_mrtz = late_options.alpha_to_coverage_via_mrtz = stage->info.ps.writes_mrt0_alpha;
+         late_options.alpha_to_coverage_via_mrtz = stage->info.ps.writes_mrt0_alpha;
       }
 
-      NIR_PASS_V(stage->nir, ac_nir_lower_ps_early, &early_options);
-      NIR_PASS_V(stage->nir, ac_nir_lower_ps_late, &late_options);
+      NIR_PASS(_, stage->nir, ac_nir_lower_ps_late, &late_options);
    }
 
    if (radv_shader_should_clear_lds(device, stage->nir)) {
@@ -533,13 +507,40 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_graphics_stat
               radv_select_hw_stage(&stage->info, gfx_level), stage->info.wave_size, stage->info.workgroup_size,
               &stage->args.ac);
    NIR_PASS_V(stage->nir, radv_nir_lower_abi, gfx_level, stage, gfx_state, pdev->info.address32_hi);
+
+   if (!stage->key.optimisations_disabled) {
+      NIR_PASS(_, stage->nir, nir_opt_dce);
+      NIR_PASS(_, stage->nir, nir_opt_shrink_vectors, true);
+
+      NIR_PASS(_, stage->nir, nir_copy_prop);
+      NIR_PASS(_, stage->nir, nir_opt_constant_folding);
+      NIR_PASS(_, stage->nir, nir_opt_cse);
+
+      nir_load_store_vectorize_options late_vectorize_opts = {
+         .modes =
+            nir_var_mem_global | nir_var_mem_shared | nir_var_shader_out | nir_var_mem_task_payload | nir_var_shader_in,
+         .callback = ac_nir_mem_vectorize_callback,
+         .cb_data = &(struct ac_nir_config){gfx_level, !use_llvm},
+         .robust_modes = 0,
+         /* On GFX6, read2/write2 is out-of-bounds if the offset register is negative, even if
+          * the final offset is not.
+          */
+         .has_shared2_amd = gfx_level >= GFX7,
+      };
+
+      progress = false;
+      NIR_PASS(progress, stage->nir, nir_opt_load_store_vectorize, &late_vectorize_opts);
+      if (progress)
+         NIR_PASS(_, stage->nir, ac_nir_lower_mem_access_bit_sizes, gfx_level, use_llvm);
+   }
+
    radv_optimize_nir_algebraic(
       stage->nir, io_to_mem || lowered_ngg || stage->stage == MESA_SHADER_COMPUTE || stage->stage == MESA_SHADER_TASK,
       gfx_level >= GFX8);
 
    NIR_PASS(_, stage->nir, nir_lower_fp16_casts, nir_lower_fp16_split_fp64);
 
-   if (stage->nir->info.bit_sizes_int & (8 | 16)) {
+   if (ac_nir_might_lower_bit_size(stage->nir)) {
       if (gfx_level >= GFX8)
          nir_divergence_analysis(stage->nir);
 

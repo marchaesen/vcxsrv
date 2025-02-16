@@ -57,7 +57,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <X11/dri/xf86driproto.h>
 #include "swaprep.h"
 #include "xf86str.h"
-#include "dri.h"
+#include "dri_priv.h"
 #include "sarea.h"
 #include "dristruct.h"
 #include "xf86drm.h"
@@ -560,19 +560,10 @@ ProcXF86DRIDispatch(register ClientPtr client)
 }
 
 static int _X_COLD
-SProcXF86DRIQueryVersion(register ClientPtr client)
-{
-    REQUEST(xXF86DRIQueryVersionReq);
-    swaps(&stuff->length);
-    return ProcXF86DRIQueryVersion(client);
-}
-
-static int _X_COLD
 SProcXF86DRIQueryDirectRenderingCapable(register ClientPtr client)
 {
     REQUEST(xXF86DRIQueryDirectRenderingCapableReq);
     REQUEST_SIZE_MATCH(xXF86DRIQueryDirectRenderingCapableReq);
-    swaps(&stuff->length);
     swapl(&stuff->screen);
     return ProcXF86DRIQueryDirectRenderingCapable(client);
 }
@@ -588,7 +579,7 @@ SProcXF86DRIDispatch(register ClientPtr client)
      */
     switch (stuff->data) {
     case X_XF86DRIQueryVersion:
-        return SProcXF86DRIQueryVersion(client);
+        return ProcXF86DRIQueryVersion(client);
     case X_XF86DRIQueryDirectRenderingCapable:
         return SProcXF86DRIQueryDirectRenderingCapable(client);
     default:

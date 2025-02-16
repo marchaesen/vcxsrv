@@ -11,6 +11,9 @@
 #include "tu_image.h"
 #include "tu_pass.h"
 
+#define XXH_INLINE_ALL
+#include "util/xxhash.h"
+
 /* How does it work?
  *
  * - For each renderpass we calculate the number of samples passed

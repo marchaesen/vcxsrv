@@ -1258,7 +1258,7 @@ cs_umin32(struct cs_builder *b, struct cs_index dest, struct cs_index src1,
    cs_emit(b, UMIN32, I) {
       I.destination = cs_dst32(b, dest);
       I.source_1 = cs_src32(b, src1);
-      I.source_2 = cs_src32(b, src2);
+      I.source_0 = cs_src32(b, src2);
    }
 }
 

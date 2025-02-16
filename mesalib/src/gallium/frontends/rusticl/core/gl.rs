@@ -477,7 +477,7 @@ pub fn copy_cube_to_slice(ctx: &QueueContext, mem_objects: &[Mem]) -> CLResult<(
         let cl_res = image.get_res_for_access(ctx, RWFlags::WR)?;
         let gl_res = gl_obj.shadow_map.as_ref().unwrap().get(cl_res).unwrap();
 
-        ctx.resource_copy_region(gl_res.as_ref(), cl_res.as_ref(), &dst_offset, &src_bx);
+        ctx.resource_copy_texture(gl_res.as_ref(), cl_res.as_ref(), &dst_offset, &src_bx);
     }
 
     Ok(())
@@ -505,7 +505,7 @@ pub fn copy_slice_to_cube(ctx: &QueueContext, mem_objects: &[Mem]) -> CLResult<(
         let cl_res = image.get_res_for_access(ctx, RWFlags::WR)?;
         let gl_res = gl_obj.shadow_map.as_ref().unwrap().get(cl_res).unwrap();
 
-        ctx.resource_copy_region(cl_res.as_ref(), gl_res.as_ref(), &dst_offset, &src_bx);
+        ctx.resource_copy_texture(cl_res.as_ref(), gl_res.as_ref(), &dst_offset, &src_bx);
     }
 
     Ok(())

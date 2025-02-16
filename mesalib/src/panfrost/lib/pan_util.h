@@ -79,4 +79,25 @@ panfrost_last_nonnull(uint64_t *ptrs, unsigned count)
    return 0;
 }
 
+static inline uint32_t
+pan_select_tiler_hierarchy_mask(unsigned width, unsigned height,
+                                unsigned max_levels)
+{
+   uint32_t max_fb_wh = MAX2(width, height);
+   uint32_t last_hierarchy_bit = util_last_bit(DIV_ROUND_UP(max_fb_wh, 16));
+   uint32_t hierarchy_mask = BITFIELD_MASK(max_levels);
+
+   /* Always enable the level covering the whole FB, and disable the finest
+    * levels if we don't have enough to cover everything.
+    * This is suboptimal for small primitives, since it might force
+    * primitives to be walked multiple times even if they don't cover the
+    * the tile being processed. On the other hand, it's hard to guess
+    * the draw pattern, so it's probably good enough for now.
+    */
+   if (last_hierarchy_bit > max_levels)
+      hierarchy_mask <<= last_hierarchy_bit - max_levels;
+
+   return hierarchy_mask;
+}
+
 #endif /* PAN_UTIL_H */

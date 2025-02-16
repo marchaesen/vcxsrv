@@ -71,8 +71,18 @@ nir_opt_move_block(nir_block *block, nir_move_options options)
       instr->index = index++;
 
       /* Check if this instruction can be moved downwards */
-      if (!nir_can_move_instr(instr, options))
+      if (!nir_can_move_instr(instr, options)) {
+         if (instr->type == nir_instr_type_intrinsic) {
+            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+            if (intrin->intrinsic == nir_intrinsic_export_amd ||
+                intrin->intrinsic == nir_intrinsic_export_row_amd ||
+                intrin->intrinsic == nir_intrinsic_begin_invocation_interlock) {
+               /* Moving past these increases a critical section. */
+               last_instr = instr;
+            }
+         }
          continue;
+      }
 
       /* Check all users in this block which is the first */
       const nir_def *def = nir_instr_def(instr);
@@ -139,7 +149,7 @@ nir_opt_move(nir_shader *shader, nir_move_options options)
                                         nir_metadata_live_defs);
          progress = true;
       } else {
-         nir_metadata_preserve(impl, nir_metadata_all);
+         nir_metadata_preserve(impl, nir_metadata_all & ~nir_metadata_instr_index);
       }
    }
 

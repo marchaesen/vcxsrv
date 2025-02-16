@@ -35,10 +35,12 @@ traces:
       text: "requires allow_glsl_extension_directive_midshader"
   Osmos/Osmos-f2660-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 17daf7dc20dd74186d04eb54497a1690
+      checksum: 825c5c78096ec8095976c8c3d5b943b3
   PenumbraOverture/penumbra-ov-s0-2-864-f1500-v2.trace:
     gl-zink-anv-tgl:
+      label: [skip, broken]
       checksum: fff50b2eb306641d90b4249542d437d1
+      text: https://gitlab.freedesktop.org/mesa/mesa/-/issues/12465#note_2745831
   ShadowWarrior/ShadowWarrior-f3952-v2.trace:
     gl-zink-anv-tgl:
       label: [skip, flakes]

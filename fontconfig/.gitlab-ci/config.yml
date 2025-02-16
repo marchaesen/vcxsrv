@@ -1,4 +1,4 @@
-.default_tag: &default_tag "2025-01-17.1"
+.default_tag: &default_tag "2025-02-04.1"
 
 distributions:
   - name: fedora
@@ -57,7 +57,7 @@ distributions:
           FC_BUILD_TYPE: static
           FC_XML_BACKEND: libxml2
       - name: "mingw autotools static libxml2"
-        build_only: "40"
+        build_only: "rawhide"
         variables:
           FC_BUILDSYS: autotools
           FC_BUILD_TYPE: static

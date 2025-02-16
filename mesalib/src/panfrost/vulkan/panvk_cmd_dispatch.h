@@ -10,6 +10,8 @@
 #error "PAN_ARCH must be defined"
 #endif
 
+#include "pan_desc.h"
+
 enum panvk_cmd_compute_dirty_state {
    PANVK_CMD_COMPUTE_DIRTY_CS,
    PANVK_CMD_COMPUTE_DIRTY_DESC_STATE,
@@ -73,5 +75,9 @@ struct panvk_dispatch_info {
 
 void panvk_per_arch(cmd_prepare_dispatch_sysvals)(
    struct panvk_cmd_buffer *cmdbuf, const struct panvk_dispatch_info *info);
+
+uint64_t panvk_per_arch(cmd_dispatch_prepare_tls)(
+   struct panvk_cmd_buffer *cmdbuf, const struct panvk_shader *shader,
+   const struct pan_compute_dim *dim, bool indirect);
 
 #endif

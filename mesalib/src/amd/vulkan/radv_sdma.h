@@ -74,9 +74,9 @@ bool radv_sdma_use_t2t_scanline_copy(const struct radv_device *device, const str
 void radv_sdma_copy_image_t2t_scanline(const struct radv_device *device, struct radeon_cmdbuf *cs,
                                        const struct radv_sdma_surf *src, const struct radv_sdma_surf *dst,
                                        const VkExtent3D extent, struct radeon_winsys_bo *temp_bo);
-void radv_sdma_copy_buffer(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t src_va, uint64_t dst_va,
+void radv_sdma_copy_memory(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t src_va, uint64_t dst_va,
                            uint64_t size);
-void radv_sdma_fill_buffer(const struct radv_device *device, struct radeon_cmdbuf *cs, const uint64_t va,
+void radv_sdma_fill_memory(const struct radv_device *device, struct radeon_cmdbuf *cs, const uint64_t va,
                            const uint64_t size, const uint32_t value);
 
 #ifdef __cplusplus

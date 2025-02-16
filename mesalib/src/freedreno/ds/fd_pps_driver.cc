@@ -1467,7 +1467,7 @@ FreedrenoDriver::init_perfcnt()
    uint64_t val;
 
    if (dev)
-      return true;
+      fd_device_del(dev);
 
    dev = fd_device_new(drm_device.fd);
    pipe = fd_pipe_new2(dev, FD_PIPE_3D, 0);

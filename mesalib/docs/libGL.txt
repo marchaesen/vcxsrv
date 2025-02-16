@@ -150,15 +150,15 @@ Dispatch Management
 When a GL context is made current, the driver must install its dispatch
 table as the current dispatch table.  This is done by calling
 
-	void _glapi_set_dispatch(struct _glapi_table *dispatch);
+	void _mesa_glapi_set_dispatch(struct _glapi_table *dispatch);
 
 This will install the named dispatch table for the calling thread.
 The current dispatch table for a thread can be obtained by calling
 
-	struct _glapi_table *_glapi_get_dispatch(void);
+	struct _glapi_table *_mesa_glapi_get_dispatch(void);
 
 For higher performance in the common single-thread case, the global
-variable _glapi_Dispatch will point to the current dispatch table.
+variable _mesa_glapi_Dispatch will point to the current dispatch table.
 This variable will be NULL when in multi-thread mode.
 
 

@@ -37,6 +37,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <X11/X.h>
+
+#include "config/hotplug_priv.h"
+
 #include "os.h"
 #include "xf86.h"
 #include "xf86Priv.h"
@@ -47,7 +50,7 @@
 
 #include "xf86_OSproc.h"
 #ifdef XSERVER_LIBPCIACCESS
-#include "xf86VGAarbiter.h"
+#include "xf86VGAarbiter_priv.h"
 #endif
 /* Entity data */
 EntityPtr *xf86Entities = NULL; /* Bus slots claimed by drivers */
@@ -96,7 +99,7 @@ xf86CallDriverProbe(DriverPtr drv, Bool detect_only)
     }
 #endif
     if (!foundScreen && (drv->Probe != NULL)) {
-        xf86Msg(X_WARNING, "Falling back to old probe method for %s\n",
+        LogMessageVerb(X_WARNING, 1, "Falling back to old probe method for %s\n",
                 drv->driverName);
         foundScreen = (*drv->Probe) (drv, (detect_only) ? PROBE_DETECT
                                      : PROBE_DEFAULT);
@@ -181,7 +184,7 @@ xf86BusConfig(void)
 
     /* If nothing was detected, return now */
     if (xf86NumScreens == 0) {
-        xf86Msg(X_ERROR, "No devices detected.\n");
+        LogMessageVerb(X_ERROR, 1, "No devices detected.\n");
         return FALSE;
     }
 
@@ -205,9 +208,9 @@ xf86BusConfig(void)
             xf86Screens[i]->confScreen = layout->screen;
         else {
             /* No match found */
-            xf86Msg(X_ERROR,
-                    "Screen %d deleted because of no matching config section.\n",
-                    i);
+            LogMessageVerb(X_ERROR, 1,
+                           "Screen %d deleted because of no matching config section.\n",
+                           i);
             xf86DeleteScreen(xf86Screens[i--]);
         }
     }
@@ -221,8 +224,8 @@ xf86BusConfig(void)
 
     /* If no screens left, return now.  */
     if (xf86NumScreens == 0) {
-        xf86Msg(X_ERROR,
-                "Device(s) detected, but none match those in the config file.\n");
+        LogMessageVerb(X_ERROR, 1,
+                       "Device(s) detected, but none match those in the config file.\n");
         return FALSE;
     }
 

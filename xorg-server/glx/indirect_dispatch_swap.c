@@ -25,10 +25,7 @@
  * SOFTWARE.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
-#endif
-#include "glheader.h"
 
 #include <X11/Xmd.h>
 #include <GL/gl.h>
@@ -38,7 +35,6 @@
 #include "indirect_size.h"
 #include "indirect_size_get.h"
 #include "indirect_dispatch.h"
-#include "glxbyteorder.h"
 #include "indirect_util.h"
 #include "singlesize.h"
 #include "glapi.h"

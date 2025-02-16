@@ -468,7 +468,7 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
       /* DCC_DECOMPRESS and ELIMINATE_FAST_CLEAR require MSAA_NUM_SAMPLES=0. */
       if (sctx->gfx_level >= GFX11) {
          sctx->gfx11_force_msaa_num_samples_zero = true;
-         si_mark_atom_dirty(sctx, &sctx->atoms.s.msaa_config);
+         si_update_ps_iter_samples(sctx);
       }
 
       assert(vi_dcc_enabled(tex, first_level));
@@ -555,7 +555,7 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
    /* Restore gfx11_force_msaa_num_samples_zero. */
    if (sctx->gfx11_force_msaa_num_samples_zero) {
       sctx->gfx11_force_msaa_num_samples_zero = false;
-      si_mark_atom_dirty(sctx, &sctx->atoms.s.msaa_config);
+      si_update_ps_iter_samples(sctx);
    }
 
 expand_fmask:

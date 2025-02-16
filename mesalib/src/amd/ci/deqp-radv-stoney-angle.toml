@@ -8,7 +8,7 @@ deqp_args = [
     "--deqp-gl-config-name=rgba8888d24s8ms0",
 ]
 fraction = 4
-version_check = "GL ES 3.1"
+version_check = "GL ES 3.2"
 renderer_check = "ANGLE.*RADV"
 
 [[deqp]]

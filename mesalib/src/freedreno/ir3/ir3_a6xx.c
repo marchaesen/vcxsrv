@@ -33,24 +33,22 @@ lower_ssbo_offset(struct ir3_context *ctx, nir_intrinsic_instr *intr,
    }
 }
 
-/* src[] = { buffer_index, offset }. No const_index */
 static void
-emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
-                         struct ir3_instruction **dst)
+emit_load_uav(struct ir3_context *ctx, nir_intrinsic_instr *intr,
+              struct ir3_instruction *offset,
+              unsigned imm_offset_val,
+              struct ir3_instruction **dst)
 {
    struct ir3_builder *b = &ctx->build;
-   struct ir3_instruction *offset;
    struct ir3_instruction *ldib;
-   unsigned imm_offset_val;
 
-   lower_ssbo_offset(ctx, intr, &intr->src[2], &offset, &imm_offset_val);
    struct ir3_instruction *imm_offset = create_immed(b, imm_offset_val);
 
    ldib = ir3_LDIB(b, ir3_ssbo_to_ibo(ctx, intr->src[0]), 0, offset, 0,
                    imm_offset, 0);
    ldib->dsts[0]->wrmask = MASK(intr->num_components);
    ldib->cat6.iim_val = intr->num_components;
-   ldib->cat6.d = 1;
+   ldib->cat6.d = reg_elems(offset->dsts[0]);
    switch (intr->def.bit_size) {
    case 8:
       /* This encodes the 8-bit SSBO load and matches blob's encoding of
@@ -81,6 +79,30 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
    ir3_handle_nonuniform(ldib, intr);
 
    ir3_split_dest(b, dst, ldib, 0, intr->num_components);
+}
+
+/* src[] = { buffer_index, offset }. No const_index */
+static void
+emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
+                         struct ir3_instruction **dst)
+{
+   struct ir3_instruction *offset;
+   unsigned imm_offset_val;
+
+   lower_ssbo_offset(ctx, intr, &intr->src[2], &offset, &imm_offset_val);
+   emit_load_uav(ctx, intr, offset, imm_offset_val, dst);
+}
+
+static void
+emit_intrinsic_load_uav(struct ir3_context *ctx, nir_intrinsic_instr *intr,
+                        struct ir3_instruction **dst)
+{
+   struct ir3_builder *b = &ctx->build;
+   struct ir3_instruction *offset;
+
+   offset = ir3_create_collect(b, ir3_get_src(ctx, &intr->src[1]), 2);
+
+   emit_load_uav(ctx, intr, offset, 0, dst);
 }
 
 /* src[] = { value, block_index, offset }. const_index[] = { write_mask } */
@@ -576,6 +598,7 @@ emit_intrinsic_atomic_global(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
 const struct ir3_context_funcs ir3_a6xx_funcs = {
    .emit_intrinsic_load_ssbo = emit_intrinsic_load_ssbo,
+   .emit_intrinsic_load_uav = emit_intrinsic_load_uav,
    .emit_intrinsic_store_ssbo = emit_intrinsic_store_ssbo,
    .emit_intrinsic_atomic_ssbo = emit_intrinsic_atomic_ssbo,
    .emit_intrinsic_load_image = emit_intrinsic_load_image,

@@ -75,6 +75,9 @@ clc_link_spirv_binaries(const struct clc_linker_args *args,
                         const struct clc_logger *logger,
                         struct clc_binary *out_spirv);
 
+const char *
+clc_spirv_tools_version();
+
 bool
 clc_validate_spirv(const struct clc_binary *spirv,
                    const struct clc_logger *logger,

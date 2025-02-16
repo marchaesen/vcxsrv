@@ -78,7 +78,7 @@ midgard_unpack_varying_params(midgard_load_store_word word)
 }
 
 unsigned
-mir_pack_mod(midgard_instruction *ins, unsigned i, bool scalar)
+mir_pack_mod(const midgard_instruction *ins, unsigned i, bool scalar)
 {
    bool integer = midgard_is_integer_op(ins->op);
    unsigned base_size = max_bitsize_for_alu(ins);

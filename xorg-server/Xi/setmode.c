@@ -64,20 +64,6 @@ SOFTWARE.
 
 /***********************************************************************
  *
- * Handle a request from a client with a different byte order.
- *
- */
-
-int _X_COLD
-SProcXSetDeviceMode(ClientPtr client)
-{
-    REQUEST(xSetDeviceModeReq);
-    swaps(&stuff->length);
-    return (ProcXSetDeviceMode(client));
-}
-
-/***********************************************************************
- *
  * This procedure sets the mode of a device.
  *
  */

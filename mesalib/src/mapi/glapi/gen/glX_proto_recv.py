@@ -79,10 +79,7 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
 
 
     def printRealHeader(self):
-        print('#ifdef HAVE_DIX_CONFIG_H')
         print('#include <dix-config.h>')
-        print('#endif')
-        print('#include "glheader.h"')
         print('')
         print('#include <X11/Xmd.h>')
         print('#include <GL/gl.h>')
@@ -93,7 +90,6 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
         print('#include "indirect_size.h"')
         print('#include "indirect_size_get.h"')
         print('#include "indirect_dispatch.h"')
-        print('#include "glxbyteorder.h"')
         print('#include "indirect_util.h"')
         print('#include "singlesize.h"')
         print('#include "glapi.h"')
@@ -147,9 +143,6 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
             print('int %s_%s(__GLXclientState *cl, GLbyte *pc)' % (base, name))
 
         print('{')
-
-#        if not f.is_abi():
-#            print('    %s %s = __glGetProcAddress("gl%s");' % (self.fptrType(name), name, name))
 
         if f.glx_rop or f.vectorequiv:
             self.printRenderFunction(f)
@@ -235,7 +228,6 @@ class PrintGlxDispatchFunctions(glX_proto_common.glx_print_proto):
 
     def emit_function_call(self, f, retval_assign, indent):
         list = []
-        prefix = "gl" if f.is_abi() else ""
 
         for param in f.parameterIterator():
             if param.is_padding:

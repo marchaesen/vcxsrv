@@ -27,7 +27,7 @@
 #include "util/set.h"
 #include "util/u_vector.h"
 #include "util/u_worklist.h"
-#include "nir.h"
+#include "nir_defines.h"
 
 #ifdef __cplusplus
 extern "C" {

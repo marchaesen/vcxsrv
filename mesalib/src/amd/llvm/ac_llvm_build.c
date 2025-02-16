@@ -758,7 +758,7 @@ LLVMValueRef ac_build_fs_interp_mov(struct ac_llvm_context *ctx, unsigned parame
       p = ac_build_intrinsic(ctx, "llvm.amdgcn.lds.param.load",
                              ctx->f32, args, 3, 0);
       p = ac_build_intrinsic(ctx, "llvm.amdgcn.wqm.f32", ctx->f32, &p, 1, 0);
-      p = ac_build_quad_swizzle(ctx, p, parameter, parameter, parameter, parameter, true);
+      p = ac_build_quad_swizzle(ctx, p, parameter, parameter, parameter, parameter, false);
       return ac_build_intrinsic(ctx, "llvm.amdgcn.wqm.f32", ctx->f32, &p, 1, 0);
    } else {
       args[0] = LLVMConstInt(ctx->i32, (parameter + 2) % 3, 0);
@@ -2605,9 +2605,8 @@ LLVMValueRef ac_build_writelane(struct ac_llvm_context *ctx, LLVMValueRef src, L
                              (LLVMValueRef[]){value, lane, src}, 3, 0);
 }
 
-LLVMValueRef ac_build_mbcnt_add(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef add_src)
+LLVMValueRef ac_build_mbcnt_add(struct ac_llvm_context *ctx, LLVMValueRef mask, LLVMValueRef add)
 {
-   LLVMValueRef add = LLVM_VERSION_MAJOR >= 16 ? add_src : ctx->i32_0;
    LLVMValueRef val;
 
    if (ctx->wave_size == 32) {
@@ -2628,14 +2627,6 @@ LLVMValueRef ac_build_mbcnt_add(struct ac_llvm_context *ctx, LLVMValueRef mask, 
 
    if (add == ctx->i32_0)
       ac_set_range_metadata(ctx, val, 0, ctx->wave_size);
-
-   if (LLVM_VERSION_MAJOR < 16) {
-      /* Bug workaround. LLVM always believes the upper bound of mbcnt to be the wave size,
-       * regardless of ac_set_range_metadata. Use an extra add instruction to work around it.
-       */
-      ac_set_range_metadata(ctx, val, 0, ctx->wave_size);
-      val = LLVMBuildAdd(ctx->builder, val, add_src, "");
-   }
 
    return val;
 }

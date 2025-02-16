@@ -165,6 +165,53 @@ prepare_vs_driver_set(struct panvk_cmd_buffer *cmdbuf)
    return VK_SUCCESS;
 }
 
+static uint32_t
+get_varying_slots(const struct panvk_cmd_buffer *cmdbuf)
+{
+   const struct panvk_shader *vs = cmdbuf->state.gfx.vs.shader;
+   const struct panvk_shader *fs = get_fs(cmdbuf);
+   uint32_t varying_slots = 0;
+
+   if (fs) {
+      unsigned vs_vars = vs->info.varyings.output_count;
+      unsigned fs_vars = fs->info.varyings.input_count;
+      varying_slots = MAX2(vs_vars, fs_vars);
+   }
+
+   return varying_slots;
+}
+
+static void
+emit_varying_descs(const struct panvk_cmd_buffer *cmdbuf,
+                   struct mali_attribute_packed *descs)
+{
+   uint32_t varying_slots = get_varying_slots(cmdbuf);
+   /* Assumes 16 byte slots. We could do better. */
+   uint32_t varying_size = varying_slots * 16;
+
+   const struct panvk_shader *fs = get_fs(cmdbuf);
+
+   for (uint32_t i = 0; i < varying_slots; i++) {
+      const struct pan_shader_varying *var = &fs->info.varyings.input[i];
+      /* Skip special varyings. */
+      if (var->location < VARYING_SLOT_VAR0)
+         continue;
+
+      uint32_t loc = var->location - VARYING_SLOT_VAR0;
+      pan_pack(&descs[i], ATTRIBUTE, cfg) {
+         cfg.attribute_type = MALI_ATTRIBUTE_TYPE_VERTEX_PACKET;
+         cfg.offset_enable = false;
+         cfg.format = GENX(panfrost_format_from_pipe_format)(var->format)->hw;
+         cfg.table = 61;
+         cfg.frequency = MALI_ATTRIBUTE_FREQUENCY_VERTEX;
+         cfg.offset = 1024 + (loc * 16);
+         cfg.buffer_index = 0;
+         cfg.attribute_stride = varying_size;
+         cfg.packet_stride = varying_size + 16;
+      }
+   }
+}
+
 static VkResult
 prepare_fs_driver_set(struct panvk_cmd_buffer *cmdbuf)
 {
@@ -172,7 +219,12 @@ prepare_fs_driver_set(struct panvk_cmd_buffer *cmdbuf)
    const struct panvk_shader *fs = cmdbuf->state.gfx.fs.shader;
    const struct panvk_descriptor_state *desc_state =
       &cmdbuf->state.gfx.desc_state;
-   uint32_t desc_count = fs->desc_info.dyn_bufs.count + 1;
+   /* If the shader is using LD_VAR_BUF[_IMM], we do not have to set up
+    * Attribute Descriptors for varying loads. */
+   uint32_t num_varying_attr_descs =
+      panvk_use_ld_var_buf(fs) ? 0 : fs->desc_info.max_varying_loads;
+   uint32_t desc_count =
+      fs->desc_info.dyn_bufs.count + num_varying_attr_descs + 1;
    struct panfrost_ptr driver_set = panvk_cmd_alloc_dev_mem(
       cmdbuf, desc, desc_count * PANVK_DESCRIPTOR_SIZE, PANVK_DESCRIPTOR_SIZE);
    struct panvk_opaque_desc *descs = driver_set.cpu;
@@ -180,13 +232,17 @@ prepare_fs_driver_set(struct panvk_cmd_buffer *cmdbuf)
    if (desc_count && !driver_set.gpu)
       return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
-   /* Dummy sampler always comes first. */
-   pan_cast_and_pack(&descs[0], SAMPLER, cfg) {
+   if (num_varying_attr_descs > 0)
+      emit_varying_descs(cmdbuf, (struct mali_attribute_packed *)(&descs[0]));
+
+   /* Dummy sampler always comes right after the varyings. */
+   pan_cast_and_pack(&descs[num_varying_attr_descs], SAMPLER, cfg) {
       cfg.clamp_integer_array_indices = false;
    }
 
-   panvk_per_arch(cmd_fill_dyn_bufs)(desc_state, fs,
-                                     (struct mali_buffer_packed *)(&descs[1]));
+   panvk_per_arch(cmd_fill_dyn_bufs)(
+      desc_state, fs,
+      (struct mali_buffer_packed *)(&descs[num_varying_attr_descs + 1]));
 
    fs_desc_state->driver_set.dev_addr = driver_set.gpu;
    fs_desc_state->driver_set.size = desc_count * PANVK_DESCRIPTOR_SIZE;
@@ -612,15 +668,6 @@ cs_render_desc_ringbuf_move_ptr(struct cs_builder *b, uint32_t size,
       BITFIELD_MASK(3),
       offsetof(struct panvk_cs_subqueue_context, render.desc_ringbuf.ptr));
    cs_wait_slot(b, SB_ID(LS), false);
-}
-
-static bool
-inherits_render_ctx(struct panvk_cmd_buffer *cmdbuf)
-{
-   return (cmdbuf->vk.level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
-           (cmdbuf->flags &
-            VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT)) ||
-          (cmdbuf->state.gfx.render.flags & VK_RENDERING_RESUMING_BIT);
 }
 
 static VkResult
@@ -1111,7 +1158,7 @@ set_provoking_vertex_mode(struct panvk_cmd_buffer *cmdbuf)
    /* If this is not the first draw, first_provoking_vertex should match
     * the one from the previous draws. Unfortunately, we can't check it
     * when the render pass is inherited. */
-   assert(!cmdbuf->state.gfx.render.fbds.gpu ||
+   assert(!cmdbuf->state.gfx.render.fbds.gpu || inherits_render_ctx(cmdbuf) ||
           fbinfo->first_provoking_vertex == first_provoking_vertex);
 
    fbinfo->first_provoking_vertex = first_provoking_vertex;
@@ -1459,12 +1506,17 @@ prepare_dcd(struct panvk_cmd_buffer *cmdbuf)
 
             cfg.pixel_kill_operation = earlyzs.kill;
             cfg.zs_update_operation = earlyzs.update;
-            cfg.evaluate_per_sample = fs->info.fs.sample_shading;
+            cfg.evaluate_per_sample = fs->info.fs.sample_shading &&
+                                      (dyns->ms.rasterization_samples > 1);
+
+            cfg.shader_modifies_coverage = fs->info.fs.writes_coverage ||
+                                           fs->info.fs.can_discard ||
+                                           alpha_to_coverage;
          } else {
             cfg.allow_forward_pixel_to_kill = true;
             cfg.allow_forward_pixel_to_be_killed = true;
             cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
-            cfg.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+            cfg.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
             cfg.overdraw_alpha0 = true;
             cfg.overdraw_alpha1 = true;
          }
@@ -1650,16 +1702,8 @@ prepare_draw(struct panvk_cmd_buffer *cmdbuf, struct panvk_draw_info *draw)
    if (result != VK_SUCCESS)
       return result;
 
-   uint32_t varying_size = 0;
-
-   if (fs) {
-      unsigned vs_vars = vs->info.varyings.output_count;
-      unsigned fs_vars = fs->info.varyings.input_count;
-      unsigned var_slots = MAX2(vs_vars, fs_vars);
-
-      /* Assumes 16 byte slots. We could do better. */
-      varying_size = var_slots * 16;
-   }
+   /* Assumes 16 byte slots. We could do better. */
+   uint32_t varying_size = get_varying_slots(cmdbuf) * 16;
 
    cs_update_vt_ctx(b) {
       /* We don't use the resource dep system yet. */
@@ -2017,6 +2061,7 @@ panvk_per_arch(cmd_inherit_render_state)(
       to_panvk_physical_device(dev->vk.physical);
    struct pan_fb_info *fbinfo = &cmdbuf->state.gfx.render.fb.info;
 
+   cmdbuf->state.gfx.render.suspended = false;
    cmdbuf->state.gfx.render.flags = inheritance_info->flags;
 
    gfx_state_set_dirty(cmdbuf, RENDER_STATE);
@@ -2545,6 +2590,12 @@ panvk_per_arch(CmdEndRendering)(VkCommandBuffer commandBuffer)
           sizeof(cmdbuf->state.gfx.render.fbds));
    memset(&cmdbuf->state.gfx.render.oq, 0, sizeof(cmdbuf->state.gfx.render.oq));
    cmdbuf->state.gfx.render.tiler = 0;
+
+   /* If we're finished with this render pass, make sure we reset the flags
+    * so any barrier encountered after EndRendering() doesn't try to flush
+    * draws. */
+   cmdbuf->state.gfx.render.flags = 0;
+   cmdbuf->state.gfx.render.suspended = suspending;
 
    /* If we're not suspending, we need to resolve attachments. */
    if (!suspending)

@@ -290,8 +290,45 @@ static bool
 get_reg_specified(struct ra_ctx *ctx, struct ir3_register *reg, physreg_t physreg)
 {
    for (unsigned i = 0; i < reg_size(reg); i++) {
-      if (!BITSET_TEST(ctx->available, physreg + i))
-         return false;
+      physreg_t cur_physreg = physreg + i;
+
+      if (!BITSET_TEST(ctx->available, cur_physreg)) {
+         /* If physreg is unavailable, we might still be able to use it if the
+          * value it holds is in the same merge set at the same offset as the
+          * value in reg.
+          */
+         if (!reg->merge_set) {
+            return false;
+         }
+
+         /* Find the interval for the current element of physreg. */
+         struct ra_interval *interval = ra_ctx_search_right(ctx, cur_physreg);
+
+         /* It must exist since the physreg is unavailable. */
+         assert(interval->physreg_start <= cur_physreg);
+
+         struct ir3_register *live_reg = interval->interval.reg;
+
+         if (reg->merge_set != live_reg->merge_set) {
+            return false;
+         }
+
+         /* We want to check if the currently live value at physreg+i (live_reg)
+          * is at the same offset as the new value (reg+i) in their shared merge
+          * set. However, we cannot simply compare their merge set offsets as
+          * live_reg may be larger than reg+i (e.g., a collect) and reg+i may
+          * not be at the start of live_reg's interval. To account for this, we
+          * want to know the merge set offset delta between live_reg's value at
+          * physreg+i and the start of its interval. This always equals the
+          * delta between the physregs within intervals.
+          */
+         unsigned cur_merge_set_offset = reg->merge_set_offset + i;
+         unsigned interval_offset = cur_physreg - interval->physreg_start;
+         if (cur_merge_set_offset !=
+             live_reg->merge_set_offset + interval_offset) {
+            return false;
+         }
+      }
    }
 
    return true;
@@ -826,24 +863,6 @@ assign_src(struct ra_ctx *ctx, struct ir3_register *src)
    interval->src = false;
 }
 
-static bool
-is_nontrivial_collect(struct ir3_instruction *collect)
-{
-   if (collect->opc != OPC_META_COLLECT) {
-      return false;
-   }
-
-   struct ir3_register *dst = collect->dsts[0];
-
-   foreach_src_n (src, src_n, collect) {
-      if (src->num != dst->num + src_n) {
-         return true;
-      }
-   }
-
-   return false;
-}
-
 static void
 handle_dst(struct ra_ctx *ctx, struct ir3_instruction *instr,
            struct ir3_register *dst)
@@ -886,11 +905,15 @@ handle_dst(struct ra_ctx *ctx, struct ir3_instruction *instr,
     * sources don't line-up with the destination) may cause source intervals to
     * get implicitly moved when they are inserted as children of the destination
     * interval. Since we don't support moving intervals in shared RA, this may
-    * cause illegal register allocations. Prevent this by creating a new
-    * top-level interval for the destination so that the source intervals will
-    * be left alone.
+    * cause illegal register allocations. Prevent this by making sure
+    * non-trivial collects will not share a merge set with (and will not be a
+    * parent interval of) their components. Detect this by checking if a dst got
+    * a register assignment that does not correspond with the existing preferred
+    * reg of its merge set, as this might cause a future collect covering its
+    * interval to become non-trivial.
     */
-   if (is_nontrivial_collect(instr)) {
+   if (dst->merge_set && dst->merge_set->preferred_reg != (physreg_t)~0 &&
+       physreg != dst->merge_set->preferred_reg + dst->merge_set_offset) {
       dst->merge_set = NULL;
       dst->interval_start = ctx->live->interval_offset;
       dst->interval_end = dst->interval_start + reg_size(dst);

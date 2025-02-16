@@ -183,7 +183,7 @@ VkResult getAndroidHardwareBufferPropertiesANDROID(
                 //  * V (CR) comes from the R-channel (after swizzle)
                 //
                 // See
-                // https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#textures-sampler-YCbCr-conversion
+                // https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#textures-sampler-YCbCr-conversion
                 //
                 // To match the above, the guest needs to swizzle such that:
                 //

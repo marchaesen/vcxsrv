@@ -3,89 +3,15 @@
  *
  * SPDX-License-Identifier: MIT
  */
-#include "nir/nir_builder.h"
+
+#include "nir/radv_meta_nir.h"
 #include "radv_formats.h"
 #include "radv_meta.h"
-
-static nir_shader *
-build_fmask_copy_compute_shader(struct radv_device *dev, int samples)
-{
-   const struct glsl_type *sampler_type = glsl_sampler_type(GLSL_SAMPLER_DIM_MS, false, false, GLSL_TYPE_FLOAT);
-   const struct glsl_type *img_type = glsl_image_type(GLSL_SAMPLER_DIM_MS, false, GLSL_TYPE_FLOAT);
-
-   nir_builder b = radv_meta_init_shader(dev, MESA_SHADER_COMPUTE, "meta_fmask_copy_cs_-%d", samples);
-
-   b.shader->info.workgroup_size[0] = 8;
-   b.shader->info.workgroup_size[1] = 8;
-
-   nir_variable *input_img = nir_variable_create(b.shader, nir_var_uniform, sampler_type, "s_tex");
-   input_img->data.descriptor_set = 0;
-   input_img->data.binding = 0;
-
-   nir_variable *output_img = nir_variable_create(b.shader, nir_var_uniform, img_type, "out_img");
-   output_img->data.descriptor_set = 0;
-   output_img->data.binding = 1;
-
-   nir_def *invoc_id = nir_load_local_invocation_id(&b);
-   nir_def *wg_id = nir_load_workgroup_id(&b);
-   nir_def *block_size = nir_imm_ivec3(&b, b.shader->info.workgroup_size[0], b.shader->info.workgroup_size[1],
-                                       b.shader->info.workgroup_size[2]);
-
-   nir_def *global_id = nir_iadd(&b, nir_imul(&b, wg_id, block_size), invoc_id);
-
-   /* Get coordinates. */
-   nir_def *src_coord = nir_trim_vector(&b, global_id, 2);
-   nir_def *dst_coord = nir_vec4(&b, nir_channel(&b, src_coord, 0), nir_channel(&b, src_coord, 1), nir_undef(&b, 1, 32),
-                                 nir_undef(&b, 1, 32));
-
-   nir_tex_src frag_mask_srcs[] = {{
-      .src_type = nir_tex_src_coord,
-      .src = nir_src_for_ssa(src_coord),
-   }};
-   nir_def *frag_mask =
-      nir_build_tex_deref_instr(&b, nir_texop_fragment_mask_fetch_amd, nir_build_deref_var(&b, input_img), NULL,
-                                ARRAY_SIZE(frag_mask_srcs), frag_mask_srcs);
-
-   /* Get the maximum sample used in this fragment. */
-   nir_def *max_sample_index = nir_imm_int(&b, 0);
-   for (uint32_t s = 0; s < samples; s++) {
-      /* max_sample_index = MAX2(max_sample_index, (frag_mask >> (s * 4)) & 0xf) */
-      max_sample_index = nir_umax(&b, max_sample_index,
-                                  nir_ubitfield_extract(&b, frag_mask, nir_imm_int(&b, 4 * s), nir_imm_int(&b, 4)));
-   }
-
-   nir_variable *counter = nir_local_variable_create(b.impl, glsl_int_type(), "counter");
-   nir_store_var(&b, counter, nir_imm_int(&b, 0), 0x1);
-
-   nir_loop *loop = nir_push_loop(&b);
-   {
-      nir_def *sample_id = nir_load_var(&b, counter);
-
-      nir_tex_src frag_fetch_srcs[] = {{
-                                          .src_type = nir_tex_src_coord,
-                                          .src = nir_src_for_ssa(src_coord),
-                                       },
-                                       {
-                                          .src_type = nir_tex_src_ms_index,
-                                          .src = nir_src_for_ssa(sample_id),
-                                       }};
-      nir_def *outval = nir_build_tex_deref_instr(&b, nir_texop_fragment_fetch_amd, nir_build_deref_var(&b, input_img),
-                                                  NULL, ARRAY_SIZE(frag_fetch_srcs), frag_fetch_srcs);
-
-      nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->def, dst_coord, sample_id, outval,
-                            nir_imm_int(&b, 0), .image_dim = GLSL_SAMPLER_DIM_MS);
-
-      radv_break_on_count(&b, counter, max_sample_index);
-   }
-   nir_pop_loop(&b, loop);
-
-   return b.shader;
-}
 
 static VkResult
 get_pipeline_layout(struct radv_device *device, VkPipelineLayout *layout_out)
 {
-   const char *key_data = "radv-fmask-copy";
+   enum radv_meta_object_key_type key = RADV_META_OBJECT_KEY_FMASK_COPY;
 
    const VkDescriptorSetLayoutBinding bindings[] = {
       {
@@ -109,30 +35,37 @@ get_pipeline_layout(struct radv_device *device, VkPipelineLayout *layout_out)
       .pBindings = bindings,
    };
 
-   return vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, NULL, key_data,
-                                      strlen(key_data), layout_out);
+   return vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, NULL, &key, sizeof(key),
+                                      layout_out);
 }
+
+struct radv_fmask_copy_key {
+   enum radv_meta_object_key_type type;
+   uint32_t samples;
+};
 
 static VkResult
 get_pipeline(struct radv_device *device, uint32_t samples_log2, VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
    const uint32_t samples = 1 << samples_log2;
-   char key_data[64];
+   struct radv_fmask_copy_key key;
    VkResult result;
 
    result = get_pipeline_layout(device, layout_out);
    if (result != VK_SUCCESS)
       return result;
 
-   snprintf(key_data, sizeof(key_data), "radv-fmask-copy-%d", samples);
+   memset(&key, 0, sizeof(key));
+   key.type = RADV_META_OBJECT_KEY_FMASK_COPY;
+   key.samples = samples;
 
-   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, key_data, strlen(key_data));
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, &key, sizeof(key));
    if (pipeline_from_cache != VK_NULL_HANDLE) {
       *pipeline_out = pipeline_from_cache;
       return VK_SUCCESS;
    }
 
-   nir_shader *cs = build_fmask_copy_compute_shader(device, samples);
+   nir_shader *cs = radv_meta_nir_build_fmask_copy_compute_shader(device, samples);
 
    const VkPipelineShaderStageCreateInfo stage_info = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -149,8 +82,8 @@ get_pipeline(struct radv_device *device, uint32_t samples_log2, VkPipeline *pipe
       .layout = *layout_out,
    };
 
-   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, key_data,
-                                            strlen(key_data), pipeline_out);
+   result = vk_meta_create_compute_pipeline(&device->vk, &device->meta_state.device, &pipeline_info, &key, sizeof(key),
+                                            pipeline_out);
 
    ralloc_free(cs);
    return result;
@@ -160,7 +93,7 @@ static void
 radv_fixup_copy_dst_metadata(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *src_image,
                              const struct radv_image *dst_image)
 {
-   uint64_t src_offset, dst_offset, size;
+   uint64_t src_va, dst_va, size;
 
    assert(src_image->planes[0].surface.cmask_size == dst_image->planes[0].surface.cmask_size &&
           src_image->planes[0].surface.fmask_size == dst_image->planes[0].surface.fmask_size);
@@ -171,10 +104,12 @@ radv_fixup_copy_dst_metadata(struct radv_cmd_buffer *cmd_buffer, const struct ra
 
    /* Copy CMASK+FMASK. */
    size = src_image->planes[0].surface.cmask_size + src_image->planes[0].surface.fmask_size;
-   src_offset = src_image->bindings[0].offset + src_image->planes[0].surface.fmask_offset;
-   dst_offset = dst_image->bindings[0].offset + dst_image->planes[0].surface.fmask_offset;
+   src_va = radv_buffer_get_va(src_image->bindings[0].bo) + src_image->bindings[0].offset +
+            src_image->planes[0].surface.fmask_offset;
+   dst_va = radv_buffer_get_va(dst_image->bindings[0].bo) + dst_image->bindings[0].offset +
+            dst_image->planes[0].surface.fmask_offset;
 
-   radv_copy_buffer(cmd_buffer, src_image->bindings[0].bo, dst_image->bindings[0].bo, src_offset, dst_offset, size);
+   radv_copy_buffer(cmd_buffer, src_image->bindings[0].bo, dst_image->bindings[0].bo, src_va, dst_va, size);
 }
 
 bool

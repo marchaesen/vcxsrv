@@ -223,11 +223,9 @@ NineDevice9_ctor( struct NineDevice9 *This,
     /* TODO: check if swvp is reset by device Resets */
 
     if (This->may_swvp &&
-        (This->screen->get_shader_param(This->screen, PIPE_SHADER_VERTEX,
-                                        PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE)
+        (This->screen->shader_caps[PIPE_SHADER_VERTEX].max_const_buffer0_size
                                      < (NINE_MAX_CONST_F_SWVP/2) * sizeof(float[4]) ||
-         This->screen->get_shader_param(This->screen, PIPE_SHADER_VERTEX,
-                                        PIPE_SHADER_CAP_MAX_CONST_BUFFERS) < 5)) {
+         This->screen->shader_caps[PIPE_SHADER_VERTEX].max_const_buffers < 5)) {
         /* Note: We just go on, some apps never use the abilities of
          * swvp, and just set more constants than allowed at init.
          * Only cards we support that are affected are the r500 */
@@ -447,8 +445,7 @@ NineDevice9_ctor( struct NineDevice9 *This,
 
         /* vs 3.0: >= 256 float constants, but for cards with exactly 256 slots,
          * we have to take in some more slots for int and bool*/
-        max_const_vs = _min(pScreen->get_shader_param(pScreen, PIPE_SHADER_VERTEX,
-                                PIPE_SHADER_CAP_MAX_CONST_BUFFER0_SIZE) /
+        max_const_vs = _min(pScreen->shader_caps[PIPE_SHADER_VERTEX].max_const_buffer0_size /
                                 sizeof(float[4]),
                             NINE_MAX_CONST_ALL_VS);
         /* ps 3.0: 224 float constants. All cards supported support at least
@@ -559,8 +556,8 @@ NineDevice9_ctor( struct NineDevice9 *This,
     This->vertex_uploader = This->csmt_active ? This->pipe_secondary->stream_uploader : This->context.pipe->stream_uploader;
     This->driver_caps.window_space_position_support = GET_PCAP(vs_window_space_position);
     This->driver_caps.disabling_depth_clipping_support = GET_PCAP(depth_clip_disable);
-    This->driver_caps.vs_integer = pScreen->get_shader_param(pScreen, PIPE_SHADER_VERTEX, PIPE_SHADER_CAP_INTEGERS);
-    This->driver_caps.ps_integer = pScreen->get_shader_param(pScreen, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_INTEGERS);
+    This->driver_caps.vs_integer = pScreen->shader_caps[PIPE_SHADER_VERTEX].integers;
+    This->driver_caps.ps_integer = pScreen->shader_caps[PIPE_SHADER_FRAGMENT].integers;
     This->driver_caps.offset_units_unscaled = GET_PCAP(polygon_offset_units_unscaled);
     This->driver_caps.alpha_test_emulation = !GET_PCAP(alpha_test);
     /* Always write pointsize output when the driver doesn't support point_size_per_vertex = 0.

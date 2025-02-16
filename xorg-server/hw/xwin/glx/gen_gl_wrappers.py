@@ -391,7 +391,7 @@ def genHeaders():
     if dispatchheader :
         outFile.write( 'void glWinSetupDispatchTable(void)\n')
         outFile.write( '{\n')
-        outFile.write( '  struct _glapi_table *disp = _glapi_get_dispatch();\n')
+        outFile.write( '  struct _glapi_table *disp = _mesa_glapi_get_dispatch();\n')
 
         for d in sorted(dispatch.keys()) :
                 if d in gen.wrappers :

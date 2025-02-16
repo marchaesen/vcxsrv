@@ -43,7 +43,6 @@ spec@!opengl 3.2@gl-3.2-adj-prims pv-last,Fail
 spec@arb_draw_indirect@arb_draw_indirect-api-errors,Crash
 spec@arb_framebuffer_object@fbo-blit-scaled-linear,Fail
 spec@arb_get_program_binary@restore-sso-program,Fail
-spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2' on GL_PROGRAM_INPUT,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail

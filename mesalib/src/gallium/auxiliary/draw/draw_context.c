@@ -1162,49 +1162,21 @@ draw_set_mapped_image(struct draw_context *draw,
 #endif
 }
 
-
 /**
- * XXX: Results for PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS because there are two
- * different ways of setting textures, and drivers typically only support one.
- */
-int
-draw_get_shader_param_no_llvm(enum pipe_shader_type shader,
-                              enum pipe_shader_cap param)
-{
-   switch(shader) {
-   case PIPE_SHADER_VERTEX:
-   case PIPE_SHADER_GEOMETRY:
-      return tgsi_exec_get_shader_param(param);
-   default:
-      return 0;
-   }
-}
-
-
-/**
- * XXX: Results for PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS because there are two
+ * XXX: Results for pipe_shader_caps.max_texture_samplers because there are two
  * different ways of setting textures, and drivers typically only support one.
  * Drivers requesting a draw context explicitly without llvm must call
- * draw_get_shader_param_no_llvm instead.
+ * tgsi_exec_init_shader_caps instead.
  */
-int
-draw_get_shader_param(enum pipe_shader_type shader, enum pipe_shader_cap param)
+void
+draw_init_shader_caps(struct pipe_shader_caps *caps)
 {
 #if DRAW_LLVM_AVAILABLE
-   if (draw_get_option_use_llvm()) {
-      switch(shader) {
-      case PIPE_SHADER_VERTEX:
-      case PIPE_SHADER_GEOMETRY:
-      case PIPE_SHADER_TESS_CTRL:
-      case PIPE_SHADER_TESS_EVAL:
-         return gallivm_get_shader_param(param);
-      default:
-         return 0;
-      }
-   }
+   if (draw_get_option_use_llvm())
+      gallivm_init_shader_caps(caps);
+   else
 #endif
-
-   return draw_get_shader_param_no_llvm(shader, param);
+      tgsi_exec_init_shader_caps(caps);
 }
 
 

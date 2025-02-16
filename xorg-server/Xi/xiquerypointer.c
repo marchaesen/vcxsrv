@@ -48,9 +48,9 @@
 #include "scrnintstr.h"
 #include "xkbsrv.h"
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "panoramiXsrv.h"
-#endif
+#endif /* XINERAMA */
 
 #include "inpututils.h"
 #include "xiquerypointer.h"
@@ -67,7 +67,6 @@ SProcXIQueryPointer(ClientPtr client)
     REQUEST(xXIQueryPointerReq);
     REQUEST_SIZE_MATCH(xXIQueryPointerReq);
 
-    swaps(&stuff->length);
     swaps(&stuff->deviceid);
     swapl(&stuff->win);
     return (ProcXIQueryPointer(client));
@@ -183,7 +182,7 @@ ProcXIQueryPointer(ClientPtr client)
         rep.win_y = 0;
     }
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
     if (!noPanoramiXExtension) {
         rep.root_x += double_to_fp1616(screenInfo.screens[0]->x);
         rep.root_y += double_to_fp1616(screenInfo.screens[0]->y);
@@ -192,7 +191,7 @@ ProcXIQueryPointer(ClientPtr client)
             rep.win_y += double_to_fp1616(screenInfo.screens[0]->y);
         }
     }
-#endif
+#endif /* XINERAMA */
 
     WriteReplyToClient(client, sizeof(xXIQueryPointerReply), &rep);
     if (buttons)

@@ -142,6 +142,17 @@ static void si_get_sample_position(struct pipe_context *ctx, unsigned sample_cou
    out_value[1] = (GET_SY(sample_locs, sample_index) + 8) / 16.0f;
 }
 
+static uint32_t convert_locs_to_unsigned(uint32_t locs)
+{
+   uint32_t result = 0;
+
+   /* GET_SFIELD extracts int from 4 bits. Add 8 to convert it from -8..7 to 0..15. */
+   for (unsigned i = 0; i < 8; i++)
+      result |= (uint32_t)((GET_SFIELD(locs, i) + 8) & 0xf) << (i * 4);
+
+   return result;
+}
+
 static void si_emit_max_4_sample_locs(struct si_context *sctx, uint64_t centroid_priority,
                                       uint32_t sample_locs, uint32_t max_sample_dist)
 {
@@ -180,6 +191,19 @@ static void si_emit_max_4_sample_locs(struct si_context *sctx, uint64_t centroid
       radeon_set_context_reg(R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, sample_locs);
       radeon_end();
    }
+
+   if (sctx->gfx_level >= GFX12) {
+      gfx12_push_gfx_sh_reg(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS0 * 4,
+                            convert_locs_to_unsigned(sample_locs));
+   } else if (sctx->screen->info.has_set_sh_pairs_packed) {
+      gfx11_push_gfx_sh_reg(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS0 * 4,
+                            convert_locs_to_unsigned(sample_locs));
+   } else {
+      radeon_begin(&sctx->gfx_cs);
+      radeon_set_sh_reg(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS0 * 4,
+                        convert_locs_to_unsigned(sample_locs));
+      radeon_end();
+   }
 }
 
 static void si_emit_max_16_sample_locs(struct si_context *sctx, uint64_t centroid_priority,
@@ -207,6 +231,22 @@ static void si_emit_max_16_sample_locs(struct si_context *sctx, uint64_t centroi
    radeon_emit_array(sample_locs, 4);
    radeon_emit_array(sample_locs, 4);
    radeon_emit_array(sample_locs, num_samples == 8 ? 2 : 4);
+
+   if (sctx->gfx_level >= GFX12) {
+      gfx12_push_gfx_sh_reg(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS0 * 4,
+                            convert_locs_to_unsigned(sample_locs[0]));
+      gfx12_push_gfx_sh_reg(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS1 * 4,
+                            convert_locs_to_unsigned(sample_locs[1]));
+   } else if (sctx->screen->info.has_set_sh_pairs_packed) {
+      gfx11_push_gfx_sh_reg(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS0 * 4,
+                            convert_locs_to_unsigned(sample_locs[0]));
+      gfx11_push_gfx_sh_reg(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS1 * 4,
+                            convert_locs_to_unsigned(sample_locs[1]));
+   } else {
+      radeon_set_sh_reg_seq(R_00B030_SPI_SHADER_USER_DATA_PS_0 + SI_SGPR_SAMPLE_LOCS0 * 4, 2);
+      radeon_emit(convert_locs_to_unsigned(sample_locs[0]));
+      radeon_emit(convert_locs_to_unsigned(sample_locs[1]));
+   }
    radeon_end();
 }
 
@@ -280,19 +320,6 @@ static void si_emit_sample_locations(struct si_context *sctx, unsigned index)
 
 void si_init_msaa_functions(struct si_context *sctx)
 {
-   int i;
-
    sctx->atoms.s.sample_locations.emit = si_emit_sample_locations;
    sctx->b.get_sample_position = si_get_sample_position;
-
-   si_get_sample_position(&sctx->b, 1, 0, sctx->sample_positions.x1[0]);
-
-   for (i = 0; i < 2; i++)
-      si_get_sample_position(&sctx->b, 2, i, sctx->sample_positions.x2[i]);
-   for (i = 0; i < 4; i++)
-      si_get_sample_position(&sctx->b, 4, i, sctx->sample_positions.x4[i]);
-   for (i = 0; i < 8; i++)
-      si_get_sample_position(&sctx->b, 8, i, sctx->sample_positions.x8[i]);
-   for (i = 0; i < 16; i++)
-      si_get_sample_position(&sctx->b, 16, i, sctx->sample_positions.x16[i]);
 }

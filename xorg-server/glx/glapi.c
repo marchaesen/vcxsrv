@@ -75,7 +75,7 @@ static void init_glapi_relocs(void);
  * and \c _glapi_Context just like the case without any threading support.
  * When \c _glapi_Dispatch and \c _glapi_Context are \c NULL, the thread state
  * data \c _gl_DispatchTSD and \c ContextTSD are used.  Drivers and the
- * static dispatch functions access these variables via \c _glapi_get_dispatch
+ * static dispatch functions access these variables via \c _mesa_glapi_get_dispatch
  * and \c _glapi_get_context.
  *
  * In the TLS case, the variables \c _glapi_Dispatch and \c _glapi_Context are
@@ -133,7 +133,7 @@ _glapi_check_multithread(void)
  * void from the real context pointer type.
  */
 void
-_glapi_set_context(void *context)
+_mesa_glapi_set_context(void *context)
 {
 #if defined(GLX_USE_TLS)
     _glapi_tls_Context = context;
@@ -151,7 +151,7 @@ _glapi_set_context(void *context)
  * void to the real context pointer type.
  */
 void *
-_glapi_get_context(void)
+_mesa_glapi_get_context(void)
 {
 #if defined(GLX_USE_TLS)
     return _glapi_tls_Context;
@@ -164,7 +164,7 @@ _glapi_get_context(void)
  * Set the global or per-thread dispatch table pointer.
  */
 void
-_glapi_set_dispatch(struct _glapi_table *dispatch)
+_mesa_glapi_set_dispatch(struct _glapi_table *dispatch)
 {
 #if defined(PTHREADS) || defined(GLX_USE_TLS)
     static pthread_once_t once_control = PTHREAD_ONCE_INIT;
@@ -180,14 +180,13 @@ _glapi_set_dispatch(struct _glapi_table *dispatch)
 #else /*THREADS*/
         _glapi_Dispatch = dispatch;
 #endif /*THREADS*/
-   _mesa_init_remap_table();
 }
 
 /**
  * Return pointer to current dispatch table for calling thread.
  */
 struct _glapi_table *
-_glapi_get_dispatch(void)
+_mesa_glapi_get_dispatch(void)
 {
     struct _glapi_table *api;
 
@@ -469,7 +468,7 @@ _glapi_add_dispatch(const char *const *function_names,
  * this themselves, and neither does the server.  warn if it happens though.
  */
 _GLAPI_EXPORT _glapi_proc
-_glapi_get_proc_address(const char *funcName)
+_mesa_glapi_get_proc_address(const char *funcName)
 {
     ErrorF("_glapi_get_proc_address called!\n");
     return NULL;
@@ -480,7 +479,7 @@ _glapi_get_proc_address(const char *funcName)
  * slots).
  */
 GLuint
-_glapi_get_dispatch_table_size(void)
+_mesa_glapi_get_dispatch_table_size(void)
 {
     return DISPATCH_TABLE_SIZE;
 }

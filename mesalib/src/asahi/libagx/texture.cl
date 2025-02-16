@@ -99,8 +99,9 @@ libagx_texture_levels(constant struct agx_texture_packed *ptr)
  */
 uint
 libagx_lower_txf_robustness(constant struct agx_texture_packed *ptr,
-                            bool check_lod, ushort lod, bool check_layer,
-                            uint layer, uint x)
+                            bool check_lod, ushort lod, bool check_min_lod,
+                            ushort min_lod, bool check_layer, uint layer,
+                            uint x)
 {
    agx_unpack(NULL, ptr, TEXTURE, d);
 
@@ -108,6 +109,9 @@ libagx_lower_txf_robustness(constant struct agx_texture_packed *ptr,
 
    if (check_lod)
       valid &= lod <= (d.last_level - d.first_level);
+
+   if (check_min_lod)
+      valid &= lod >= min_lod;
 
    if (check_layer) {
       bool linear = (d.layout == AGX_LAYOUT_LINEAR);

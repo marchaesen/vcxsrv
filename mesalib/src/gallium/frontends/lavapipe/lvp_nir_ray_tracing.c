@@ -91,7 +91,7 @@ lvp_build_intersect_ray_box(nir_builder *b, nir_def *node_addr, nir_def *ray_tma
 
       /* If x of the aabb min is NaN, then this is an inactive aabb.
        * We don't need to care about any other components being NaN as that is UB.
-       * https://www.khronos.org/registry/vulkan/specs/1.2-extensions/html/chap36.html#VkAabbPositionsKHR
+       * https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#acceleration-structure-inactive-prims
        */
       nir_def *min_x = nir_channel(b, node_coords[0], 0);
       nir_def *min_x_is_not_nan =

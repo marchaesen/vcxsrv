@@ -32,6 +32,7 @@
 #include "nir/nir_constant_expressions.h"
 #include "nir/nir_deref.h"
 #include "spirv_info.h"
+#include "NonSemanticShaderDebugInfo100.h"
 
 #include "util/format/u_format.h"
 #include "util/u_math.h"
@@ -817,6 +818,30 @@ vtn_handle_non_semantic_debug_break_instruction(struct vtn_builder *b, SpvOp ext
    return true;
 }
 
+static bool
+vtn_handle_non_semantic_debug_info(struct vtn_builder *b, SpvOp ext_opcode,
+                                   const uint32_t *w, unsigned count)
+{
+   enum NonSemanticShaderDebugInfo100Instructions instr = w[4];
+
+   if (instr == NonSemanticShaderDebugInfo100DebugLine) {
+      uint32_t source_id = w[5];
+      uint32_t line = vtn_constant_uint(b, w[6]);
+      uint32_t column = vtn_constant_uint(b, w[8]);
+
+      b->file = vtn_value(b, source_id, vtn_value_type_string)->str;
+      b->line = line;
+      b->col = column;
+   } else if (instr == NonSemanticShaderDebugInfo100DebugSource) {
+      uint32_t result_id = w[2];
+      uint32_t file_id = w[5];
+      vtn_push_value(b, result_id, vtn_value_type_string)->str =
+         vtn_value(b, file_id, vtn_value_type_string)->str;
+   }
+
+   return true;
+}
+
 static void
 vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
                      const uint32_t *w, unsigned count)
@@ -844,6 +869,9 @@ vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
       } else if ((strcmp(ext, "NonSemantic.DebugBreak") == 0)
                 && (b->options && b->options->emit_debug_break)) {
          val->ext_handler = vtn_handle_non_semantic_debug_break_instruction;
+      } else if ((strcmp(ext, "NonSemantic.Shader.DebugInfo.100") == 0)
+                && (b->options && b->options->debug_info)) {
+         val->ext_handler = vtn_handle_non_semantic_debug_info;
       } else if (strstr(ext, "NonSemantic.") == ext) {
          val->ext_handler = vtn_handle_non_semantic_instruction;
       } else {
@@ -3294,6 +3322,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       vtn_fail("unexpected nir_texop_*descriptor_amd");
       break;
    case nir_texop_lod_bias_agx:
+   case nir_texop_image_min_lod_agx:
    case nir_texop_custom_border_color_agx:
    case nir_texop_has_custom_border_color_agx:
       vtn_fail("unexpected nir_texop_*_agx");
@@ -5041,6 +5070,9 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          /* NonSemantic extended instructions are acceptable in preamble. */
          vtn_handle_non_semantic_instruction(b, w[4], w, count);
          return true;
+      } else if (val->ext_handler == vtn_handle_non_semantic_debug_info) {
+         vtn_handle_non_semantic_debug_info(b, w[4], w, count);
+         return true;
       } else {
          return false; /* End of preamble. */
       }
@@ -5657,6 +5689,10 @@ vtn_handle_variable_or_type_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpExtInst:
    case SpvOpExtInstWithForwardRefsKHR: {
       struct vtn_value *val = vtn_value(b, w[3], vtn_value_type_extension);
+
+      if (val->ext_handler == vtn_handle_non_semantic_debug_info)
+         return vtn_handle_non_semantic_debug_info(b, opcode, w, count);
+
       /* NonSemantic extended instructions are acceptable in preamble, others
        * will indicate the end of preamble.
        */
@@ -6119,31 +6155,27 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
                             const uint32_t *w, unsigned count)
 {
    if (b->options->debug_info) {
-      nir_debug_info_instr *instr =
-         nir_debug_info_instr_create(b->shader, nir_debug_info_src_loc, 0);
-      instr->src_loc.spirv_offset = b->spirv_offset;
-      instr->src_loc.source = nir_debug_info_spirv;
+      /* Insert a nop to attach debug info to the cursor of the builder.
+       * This should not affect compilation since the nop will be eliminated
+       * in spirv_to_nir.
+       */
+      nir_intrinsic_instr *nop = nir_nop(&b->nb);
+
+      nir_instr_debug_info *info = nir_instr_get_debug_info(&nop->instr);
+      info->spirv_offset = b->spirv_offset;
 
       if (b->file) {
-         nir_def *filename;
          struct hash_entry *he = _mesa_hash_table_search(b->strings, b->file);
          if (he) {
-            filename = he->data;
+            info->filename = he->data;
          } else {
-            nir_builder _b = nir_builder_at(nir_before_cf_list(&b->nb.impl->body));
-            filename = nir_build_string(&_b, b->file);
-            _mesa_hash_table_insert(b->strings, b->file, filename);
+            info->filename = ralloc_strdup(b->shader, b->file);
+            _mesa_hash_table_insert(b->strings, b->file, info->filename);
          }
 
-         instr->src_loc.filename = nir_src_for_ssa(filename);
-         /* Make sure line is at least 1 since 0 is reserved for spirv_offset-only
-          * source locations.
-          */
-         instr->src_loc.line = MAX2(b->line, 1);
-         instr->src_loc.column = b->col;
+         info->line = b->line;
+         info->column = b->col;
       }
-
-      nir_builder_instr_insert(&b->nb, &instr->instr);
    }
 
    switch (opcode) {
@@ -6929,6 +6961,7 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    b->shader->info.subgroup_size = options->subgroup_size;
    b->shader->info.float_controls_execution_mode = options->float_controls_execution_mode;
    b->shader->info.cs.shader_index = options->shader_index;
+   b->shader->has_debug_info = options->debug_info;
    _mesa_blake3_compute(words, word_count * sizeof(uint32_t), b->shader->info.source_blake3);
 
    /* Skip the SPIR-V header, handled at vtn_create_builder */
@@ -7168,201 +7201,6 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    ralloc_free(b);
 
    return shader;
-}
-
-static void
-print_func_param(FILE *fp, nir_function *func, unsigned p)
-{
-   if (func->params[p].name) {
-      fputs(func->params[p].name, fp);
-   } else {
-      fprintf(fp, "arg%u\n", p);
-   }
-}
-
-static bool
-func_to_nir_builder(FILE *fp, struct vtn_function *func)
-{
-   nir_function *nir_func = func->nir_func;
-   struct vtn_type *return_type = func->type->return_type;
-   bool returns = return_type->base_type != vtn_base_type_void;
-
-   if (returns && return_type->base_type != vtn_base_type_scalar &&
-                  return_type->base_type != vtn_base_type_vector) {
-      fprintf(stderr, "Unsupported return type for %s", nir_func->name);
-      return false;
-   }
-
-   /* If there is a return type, the first NIR parameter is the return deref,
-    * so offset by that for logical parameter iteration.
-    */
-   unsigned first_param = returns ? 1 : 0;
-
-   /* Generate function signature */
-   fprintf(fp, "static inline %s\n", returns ? "nir_def *": "void");
-   fprintf(fp, "%s(nir_builder *b", nir_func->name);
-
-   for (unsigned i = first_param; i < nir_func->num_params; ++i) {
-      fprintf(fp, ", nir_def *");
-      print_func_param(fp, nir_func, i);
-   }
-
-   fprintf(fp, ")\n{\n");
-
-   /* Validate inputs. nir_validate will do this too, but the
-    * errors/backtraces from these asserts should be nicer.
-    */
-   for (unsigned i = first_param; i < nir_func->num_params; ++i) {
-      nir_parameter *param = &nir_func->params[i];
-
-      fprintf(fp, "   assert(");
-      print_func_param(fp, nir_func, i);
-      fprintf(fp, "->bit_size == %u);\n", param->bit_size);
-
-      fprintf(fp, "   assert(");
-      print_func_param(fp, nir_func, i);
-      fprintf(fp, "->num_components == %u);\n", param->num_components);
-   }
-
-   fprintf(fp, "\n");
-
-   /* Find the function to call. If not found, create a prototype */
-   fprintf(fp, "   nir_function *func = nir_shader_get_function_for_name(b->shader, \"%s\");\n",
-           nir_func->name);
-   fprintf(fp, "\n");
-   fprintf(fp, "   if (!func) {\n");
-   fprintf(fp, "      func = nir_function_create(b->shader, \"%s\");\n",
-           nir_func->name);
-   fprintf(fp, "      func->num_params = %u;\n", nir_func->num_params);
-   fprintf(fp, "      func->params = rzalloc_array(b->shader, nir_parameter, func->num_params);\n");
-
-   for (unsigned i = 0; i < nir_func->num_params; ++i) {
-      nir_parameter param = nir_func->params[i];
-
-      fprintf(fp, "\n");
-      fprintf(fp, "      func->params[%u].bit_size = %u;\n", i, param.bit_size);
-      fprintf(fp, "      func->params[%u].num_components = %u;\n", i,
-              param.num_components);
-
-      if (returns && i == 0) {
-         fprintf(fp, "      func->params[%u].is_return = true;\n", i);
-      }
-
-      if (param.name) {
-         fprintf(fp, "      func->params[%u].name = \"%s\";\n", i, param.name);
-      }
-   }
-
-   fprintf(fp, "   }\n\n");
-
-
-   if (returns) {
-      /* We assume that vec3 variables are lowered to vec4. Mirror that here so
-       * we don't need to lower vec3 to vec4 again at link-time.
-       */
-      assert(glsl_type_is_vector_or_scalar(return_type->type));
-      unsigned elements = return_type->type->vector_elements;
-      if (elements == 3)
-         elements = 4;
-
-      /* Reconstruct the return type. */
-      fprintf(fp, "   const struct glsl_type *ret_type = glsl_vector_type(%u, %u);\n",
-              return_type->type->base_type, elements);
-
-      /* With the type, we can make a variable and get a deref to pass in */
-      fprintf(fp, "   nir_variable *ret = nir_local_variable_create(b->impl, ret_type, \"return\");\n");
-      fprintf(fp, "   nir_deref_instr *deref = nir_build_deref_var(b, ret);\n");
-
-      /* XXX: This is a hack due to ptr size differing between KERNEL and other
-       * shader stages. This needs to be fixed in core NIR.
-       */
-      fprintf(fp, "   deref->def.bit_size = %u;\n", nir_func->params[0].bit_size);
-      fprintf(fp, "\n");
-   }
-
-   /* Call the function */
-   fprintf(fp, "   nir_call(b, func");
-
-   if (returns)
-      fprintf(fp, ", &deref->def");
-
-   for (unsigned i = first_param; i < nir_func->num_params; ++i) {
-      fprintf(fp, ", ");
-      print_func_param(fp, nir_func, i);
-   }
-
-   fprintf(fp, ");\n");
-
-   /* Load the return value if any, undoing the vec3->vec4 lowering. */
-   if (returns) {
-      fprintf(fp, "\n");
-
-      if (return_type->type->vector_elements == 3)
-         fprintf(fp, "   return nir_trim_vector(b, nir_load_deref(b, deref), 3);\n");
-      else
-         fprintf(fp, "   return nir_load_deref(b, deref);\n");
-   }
-
-   fprintf(fp, "}\n\n");
-   return true;
-}
-
-bool
-spirv_library_to_nir_builder(FILE *fp, const uint32_t *words, size_t word_count,
-                             const struct spirv_to_nir_options *options)
-{
-#ifndef NDEBUG
-   mesa_spirv_debug_init();
-#endif
-
-   const uint32_t *word_end = words + word_count;
-
-   struct vtn_builder *b = vtn_create_builder(words, word_count,
-                                              MESA_SHADER_KERNEL, "placeholder name",
-                                              options);
-
-   if (b == NULL)
-      return false;
-
-   /* See also _vtn_fail() */
-   if (vtn_setjmp(b->fail_jump)) {
-      ralloc_free(b);
-      return false;
-   }
-
-   b->shader = nir_shader_create(b, MESA_SHADER_KERNEL,
-                                 &(const nir_shader_compiler_options){0}, NULL);
-
-   /* Skip the SPIR-V header, handled at vtn_create_builder */
-   words+= 5;
-
-   /* Handle all the preamble instructions */
-   words = vtn_foreach_instruction(b, words, word_end,
-                                   vtn_handle_preamble_instruction);
-
-   /* Handle all variable, type, and constant instructions */
-   words = vtn_foreach_instruction(b, words, word_end,
-                                   vtn_handle_variable_or_type_instruction);
-
-   /* Set types on all vtn_values */
-   vtn_foreach_instruction(b, words, word_end, vtn_set_instruction_result_type);
-
-   vtn_build_cfg(b, words, word_end);
-
-   fprintf(fp, "#include \"compiler/nir/nir_builder.h\"\n\n");
-
-   nir_fixup_is_exported(b->shader);
-
-   vtn_foreach_function(func, &b->functions) {
-      if (!func->nir_func->is_exported || func->nir_func->is_entrypoint)
-         continue;
-
-      if (!func_to_nir_builder(fp, func))
-         return false;
-   }
-
-   ralloc_free(b);
-   return true;
 }
 
 static unsigned

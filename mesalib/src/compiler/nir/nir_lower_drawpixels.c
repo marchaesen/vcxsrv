@@ -27,31 +27,21 @@
 /* Lower glDrawPixels().
  *
  * This is based on the logic in st_get_drawpix_shader() in TGSI compiler.
- *
- * Run before nir_lower_io.
  */
 
 typedef struct {
    const nir_lower_drawpixels_options *options;
    nir_shader *shader;
-   nir_variable *texcoord, *texcoord_const, *scale, *bias, *tex, *pixelmap;
+   nir_variable *texcoord_const, *scale, *bias, *tex, *pixelmap;
 } lower_drawpixels_state;
 
 static nir_def *
 get_texcoord(nir_builder *b, lower_drawpixels_state *state)
 {
-   if (b->shader->info.io_lowered) {
-      nir_def *baryc =
-         nir_load_barycentric_pixel(b, 32, .interp_mode = INTERP_MODE_SMOOTH);
-      return nir_load_interpolated_input(b, 4, 32, baryc, nir_imm_int(b, 0),
-                                         .io_semantics.location = VARYING_SLOT_TEX0);
-   }
-
-   if (state->texcoord == NULL) {
-      state->texcoord = nir_get_variable_with_location(state->shader, nir_var_shader_in,
-                                                       VARYING_SLOT_TEX0, glsl_vec4_type());
-   }
-   return nir_load_var(b, state->texcoord);
+   nir_def *baryc =
+      nir_load_barycentric_pixel(b, 32, .interp_mode = INTERP_MODE_SMOOTH);
+   return nir_load_interpolated_input(b, 4, 32, baryc, nir_imm_int(b, 0),
+                                      .io_semantics.location = VARYING_SLOT_TEX0);
 }
 
 static nir_def *
@@ -215,22 +205,6 @@ lower_drawpixels_instr(nir_builder *b, nir_instr *instr, void *cb_data)
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
    switch (intr->intrinsic) {
-   case nir_intrinsic_load_deref: {
-      nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
-      nir_variable *var = nir_deref_instr_get_variable(deref);
-
-      if (var->data.location == VARYING_SLOT_COL0) {
-         /* gl_Color should not have array/struct derefs: */
-         assert(deref->deref_type == nir_deref_type_var);
-         return lower_color(b, state, intr);
-      } else if (var->data.location == VARYING_SLOT_TEX0) {
-         /* gl_TexCoord should not have array/struct derefs: */
-         assert(deref->deref_type == nir_deref_type_var);
-         return lower_texcoord(b, state, intr);
-      }
-      break;
-   }
-
    case nir_intrinsic_load_color0:
       return lower_color(b, state, intr);
 
@@ -253,6 +227,8 @@ bool
 nir_lower_drawpixels(nir_shader *shader,
                      const nir_lower_drawpixels_options *options)
 {
+   assert(shader->info.io_lowered);
+
    lower_drawpixels_state state = {
       .options = options,
       .shader = shader,

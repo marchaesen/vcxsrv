@@ -95,13 +95,13 @@ disk_cache_init_queue(struct disk_cache *cache)
 static struct disk_cache *
 disk_cache_type_create(const char *gpu_name,
                        const char *driver_id,
+                       const char *cache_dir_name,
                        uint64_t driver_flags,
-                       enum disk_cache_type cache_type)
+                       enum disk_cache_type cache_type,
+                       uint64_t max_size)
 {
    void *local;
    struct disk_cache *cache = NULL;
-   char *max_size_str;
-   uint64_t max_size;
 
    uint8_t cache_version = CACHE_VERSION;
    size_t cv_size = sizeof(cache_version);
@@ -123,7 +123,7 @@ disk_cache_type_create(const char *gpu_name,
       goto path_fail;
 
    char *path = disk_cache_generate_cache_dir(local, gpu_name, driver_id,
-                                              cache_type);
+                                              cache_dir_name, cache_type);
    if (!path)
       goto path_fail;
 
@@ -156,54 +156,6 @@ disk_cache_type_create(const char *gpu_name,
 
    if (!disk_cache_mmap_cache_index(local, cache, path))
       goto path_fail;
-
-   max_size = 0;
-
-   max_size_str = getenv("MESA_SHADER_CACHE_MAX_SIZE");
-
-   if (!max_size_str) {
-      max_size_str = getenv("MESA_GLSL_CACHE_MAX_SIZE");
-      if (max_size_str)
-         fprintf(stderr,
-                 "*** MESA_GLSL_CACHE_MAX_SIZE is deprecated; "
-                 "use MESA_SHADER_CACHE_MAX_SIZE instead ***\n");
-   }
-
-   #ifdef MESA_SHADER_CACHE_MAX_SIZE
-   if( !max_size_str ) {
-      max_size_str = MESA_SHADER_CACHE_MAX_SIZE;
-   }
-   #endif
-
-   if (max_size_str) {
-      char *end;
-      max_size = strtoul(max_size_str, &end, 10);
-      if (end == max_size_str) {
-         max_size = 0;
-      } else {
-         switch (*end) {
-         case 'K':
-         case 'k':
-            max_size *= 1024;
-            break;
-         case 'M':
-         case 'm':
-            max_size *= 1024*1024;
-            break;
-         case '\0':
-         case 'G':
-         case 'g':
-         default:
-            max_size *= 1024*1024*1024;
-            break;
-         }
-      }
-   }
-
-   /* Default to 1GB for maximum cache size. */
-   if (max_size == 0) {
-      max_size = 1024*1024*1024;
-   }
 
    cache->max_size = max_size;
 
@@ -268,6 +220,8 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
 {
    enum disk_cache_type cache_type;
    struct disk_cache *cache;
+   uint64_t max_size = 0;
+   char *max_size_str;
 
    if (debug_get_bool_option("MESA_DISK_CACHE_SINGLE_FILE", false))
       cache_type = DISK_CACHE_SINGLE_FILE;
@@ -278,13 +232,59 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
       /* Since switching the default cache to <mesa_shader_cache_db>, remove the
        * old cache folder if it hasn't been modified for more than 7 days.
        */
-      if (!getenv("MESA_SHADER_CACHE_DIR") && !getenv("MESA_GLSL_CACHE_DIR"))
+      if (!getenv("MESA_SHADER_CACHE_DIR") && !getenv("MESA_GLSL_CACHE_DIR") && disk_cache_enabled())
          disk_cache_delete_old_cache();
    }
 
+   max_size_str = getenv("MESA_SHADER_CACHE_MAX_SIZE");
+
+   if (!max_size_str) {
+      max_size_str = getenv("MESA_GLSL_CACHE_MAX_SIZE");
+      if (max_size_str)
+         fprintf(stderr,
+                 "*** MESA_GLSL_CACHE_MAX_SIZE is deprecated; "
+                 "use MESA_SHADER_CACHE_MAX_SIZE instead ***\n");
+   }
+
+#ifdef MESA_SHADER_CACHE_MAX_SIZE
+   if (!max_size_str) {
+      max_size_str = MESA_SHADER_CACHE_MAX_SIZE;
+   }
+#endif
+
+   if (max_size_str) {
+      char *end;
+      max_size = strtoul(max_size_str, &end, 10);
+      if (end == max_size_str) {
+         max_size = 0;
+      } else {
+         switch (*end) {
+         case 'K':
+         case 'k':
+            max_size *= 1024;
+            break;
+         case 'M':
+         case 'm':
+            max_size *= 1024*1024;
+            break;
+         case '\0':
+         case 'G':
+         case 'g':
+         default:
+            max_size *= 1024*1024*1024;
+            break;
+         }
+      }
+   }
+
+   /* Default to 1GB for maximum cache size. */
+   if (max_size == 0) {
+      max_size = 1024*1024*1024;
+   }
+
    /* Create main writable cache. */
-   cache = disk_cache_type_create(gpu_name, driver_id, driver_flags,
-                                  cache_type);
+   cache = disk_cache_type_create(gpu_name, driver_id, NULL, driver_flags,
+                                  cache_type, max_size);
    if (!cache)
       return NULL;
 
@@ -300,12 +300,22 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
        * If cache entry will be found in this cache, then the main cache
        * will be bypassed.
        */
-      cache->foz_ro_cache = disk_cache_type_create(gpu_name, driver_id,
+      cache->foz_ro_cache = disk_cache_type_create(gpu_name, driver_id, NULL,
                                                    driver_flags,
-                                                   DISK_CACHE_SINGLE_FILE);
+                                                   DISK_CACHE_SINGLE_FILE,
+                                                   max_size);
    }
 
    return cache;
+}
+
+struct disk_cache *
+disk_cache_create_custom(const char *gpu_name, const char *driver_id,
+                         uint64_t driver_flags, const char *cache_dir_name,
+                         uint32_t max_size)
+{
+   return disk_cache_type_create(gpu_name, driver_id, cache_dir_name, 0,
+                                 DISK_CACHE_DATABASE, max_size);
 }
 
 void

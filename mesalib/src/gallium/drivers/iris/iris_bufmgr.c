@@ -882,6 +882,9 @@ flags_to_heap(struct iris_bufmgr *bufmgr, unsigned flags)
       if (flags & BO_ALLOC_COMPRESSED)
          return IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED;
 
+      if (flags & (BO_ALLOC_SCANOUT | BO_ALLOC_SHARED))
+            return IRIS_HEAP_SYSTEM_MEMORY_UNCACHED;
+
       if (flags & BO_ALLOC_CACHED_COHERENT)
          return IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
 
@@ -1157,6 +1160,7 @@ alloc_fresh_bo(struct iris_bufmgr *bufmgr, uint64_t bo_size, unsigned flags)
    bo->idle = true;
    bo->zeroed = true;
    bo->real.capture = (flags & BO_ALLOC_CAPTURE) != 0;
+   bo->real.scanout = (flags & BO_ALLOC_SCANOUT) != 0;
 
    return bo;
 }
@@ -2570,6 +2574,14 @@ iris_bufmgr_get_for_fd(int fd, bool bo_reuse)
    if (devinfo.ver < 8 || devinfo.platform == INTEL_PLATFORM_CHV)
       return NULL;
 
+#ifndef INTEL_USE_ELK
+   if (devinfo.ver < 9) {
+      WARN_ONCE(devinfo.ver == 8,
+                "ERROR: Iris was compiled without support for Gfx version 8.\n");
+      return NULL;
+   }
+#endif
+
    bufmgr = iris_bufmgr_create(&devinfo, fd, bo_reuse);
    if (bufmgr)
       list_addtail(&bufmgr->link, &global_bufmgr_list);
@@ -2651,8 +2663,16 @@ iris_bufmgr_compute_engine_supported(struct iris_bufmgr *bufmgr)
  */
 const struct intel_device_info_pat_entry *
 iris_heap_to_pat_entry(const struct intel_device_info *devinfo,
-                       enum iris_heap heap)
+                       enum iris_heap heap, bool scanout)
 {
+   if (scanout) {
+      if (iris_heap_is_compressed(heap) == false)
+         return &devinfo->pat.scanout;
+
+      WARN_ONCE(iris_heap_is_compressed(heap),
+                "update heap_to_pat_entry when compressed scanout pat entries are added");
+   }
+
    switch (heap) {
    case IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT:
       return &devinfo->pat.cached_coherent;

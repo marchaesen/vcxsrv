@@ -10,6 +10,7 @@ libmain_la_SOURCES =    \
 	stubmain.c
 
 libdix_la_SOURCES = 	\
+	display.c		\
 	atom.c		\
 	colormap.c	\
 	color.c	\

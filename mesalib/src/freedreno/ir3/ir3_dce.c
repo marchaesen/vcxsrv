@@ -44,6 +44,25 @@ instr_dce(struct ir3_instruction *instr, bool falsedep)
       mark_array_use(instr, reg); /* src */
 
    foreach_ssa_src_n (src, i, instr) {
+      if (!__is_false_dep(instr, i)) {
+         if (instr->opc == OPC_META_COLLECT &&
+             !(instr->dsts[0]->wrmask & (1 << i))) {
+            /* Ignore sources of collects for which the corresponding dst is not
+             * written since they are unused.
+             */
+            continue;
+         }
+
+         /* Propagate the wrmask of sources to their defs. */
+         struct ir3_register *src_reg = instr->srcs[i];
+         src_reg->def->wrmask |= src_reg->wrmask;
+
+         if (!src_reg->wrmask) {
+            /* If no components are read, the def is unused. */
+            continue;
+         }
+      }
+
       instr_dce(src, __is_false_dep(instr, i));
    }
 }
@@ -76,6 +95,41 @@ remove_unused_by_block(struct ir3_block *block)
 
          ir3_instr_remove(instr);
          progress = true;
+      } else if (instr->opc == OPC_META_COLLECT) {
+         struct ir3_register *dst = instr->dsts[0];
+
+         /* Trim unused trailing components. While it's tempting to just remove
+          * all unused components, this doesn't work for a few reasons. Note
+          * that currently, collects with unused components are only created
+          * when certain FS output components are aliased using alias.rt. The
+          * important part here is that the collect will be used for an output.
+          * Even if only certain components of an output are written to GPRs, we
+          * still need to allocate the correct consecutive registers. For
+          * example, if we only write out.xz, we have to make sure there is
+          * still a register in between the registers allocated for the x and z
+          * components. In other words, we have to be able to allocate a base
+          * register for the output such that all components written to GPRs
+          * have the correct offset from the base register. So we cannot remove
+          * any unused holes in the collect. We also cannot remove the leading
+          * unused components because then RA might decide put the first used
+          * component in, say, r0.x, leaving no space to allocate a base
+          * register. Therefore, we only trim trailing components.
+          *
+          * TODO: we could probably trim leading components by having a way to
+          * request a minimum register number from RA.
+          */
+         instr->srcs_count = util_last_bit(dst->wrmask);
+
+         /* Mark sources for which the corresponding dst is not written as
+          * undef.
+          */
+         foreach_src_n (src, src_n, instr) {
+            if (!(dst->wrmask & (1 << src_n))) {
+               src->def = NULL;
+               src->num = INVALID_REG;
+               src->flags &= ~(IR3_REG_CONST | IR3_REG_IMMED);
+            }
+         }
       }
    }
    return progress;
@@ -105,6 +159,13 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
          }
 
          instr->flags |= IR3_INSTR_UNUSED;
+
+         /* To eliminate unused components in collect, we zero the wrmask and
+          * update it using the wrmask of its users.
+          */
+         if (instr->opc == OPC_META_COLLECT) {
+            instr->dsts[0]->wrmask = 0;
+         }
       }
    }
 

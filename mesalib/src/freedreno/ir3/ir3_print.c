@@ -18,6 +18,7 @@
 #define RESET   "\x1b[0m"
 #define RED     "\x1b[0;31m"
 #define GREEN   "\x1b[0;32m"
+#define YELLOW  "\x1b[0;33m"
 #define BLUE    "\x1b[0;34m"
 #define MAGENTA "\x1b[0;35m"
 
@@ -27,6 +28,7 @@
 #define SYN_REG(x)   RED x RESET
 #define SYN_IMMED(x) GREEN x RESET
 #define SYN_CONST(x) GREEN x RESET
+#define SYN_RT(x)    YELLOW x RESET
 #define SYN_SSA(x)   BLUE x RESET
 #define SYN_ARRAY(x) MAGENTA x RESET
 
@@ -243,6 +245,34 @@ print_instr_name(struct log_stream *stream, struct ir3_instruction *instr,
 
          mesa_log_stream_printf(stream, ".%s", type_name(instr->cat6.type));
          break;
+      case OPC_ALIAS:
+         switch (instr->cat7.alias_scope) {
+         case ALIAS_TEX:
+            mesa_log_stream_printf(stream, ".tex");
+            break;
+         case ALIAS_RT:
+            mesa_log_stream_printf(stream, ".rt");
+            break;
+         case ALIAS_MEM:
+            mesa_log_stream_printf(stream, ".mem");
+            break;
+         }
+
+         if (instr->cat7.alias_type_float) {
+            mesa_log_stream_printf(stream, ".f");
+         } else {
+            mesa_log_stream_printf(stream, ".b");
+         }
+
+         if (instr->srcs[0]->flags & IR3_REG_HALF) {
+            mesa_log_stream_printf(stream, "16");
+         } else {
+            mesa_log_stream_printf(stream, "32");
+         }
+
+         mesa_log_stream_printf(stream, ".%u",
+                                instr->cat7.alias_table_size_minus_one);
+         break;
       default:
          break;
       }
@@ -358,12 +388,15 @@ print_reg_name(struct log_stream *stream, struct ir3_instruction *instr,
       else if (reg->flags & IR3_REG_PREDICATE)
          mesa_log_stream_printf(stream, SYN_REG("p0.%c"),
                                 "xyzw"[reg_comp(reg)]);
+      else if (reg->flags & IR3_REG_RT)
+         mesa_log_stream_printf(stream, SYN_RT("rt%u.%c"), reg_num(reg),
+                                "xyzw"[reg_comp(reg)]);
       else
          mesa_log_stream_printf(stream, SYN_REG("r%u.%c"), reg_num(reg),
                                 "xyzw"[reg_comp(reg)]);
    }
 
-   if (reg->wrmask > 0x1)
+   if (reg->wrmask != 0x1)
       mesa_log_stream_printf(stream, " (wrmask=0x%x)", reg->wrmask);
 }
 
@@ -418,13 +451,22 @@ print_instr(struct log_stream *stream, struct ir3_instruction *instr, int lvl)
          continue;
       if (!first)
          mesa_log_stream_printf(stream, ", ");
+      if (reg->flags & IR3_REG_ALIAS)
+         mesa_log_stream_printf(stream, "@");
       print_reg_name(stream, instr, reg, true);
       first = false;
    }
    foreach_src_n (reg, n, instr) {
       if (!first)
          mesa_log_stream_printf(stream, ", ");
+      if (reg->flags & IR3_REG_FIRST_ALIAS)
+         mesa_log_stream_printf(stream, "@{");
       print_reg_name(stream, instr, reg, false);
+      if ((reg->flags & IR3_REG_ALIAS) &&
+          (n == instr->srcs_count - 1 ||
+           ir3_src_is_first_in_group(instr->srcs[n + 1]))) {
+         mesa_log_stream_printf(stream, "}");
+      }
       if (instr->opc == OPC_END || instr->opc == OPC_CHMASK)
          mesa_log_stream_printf(stream, " (%u)", instr->end.outidxs[n]);
       first = false;

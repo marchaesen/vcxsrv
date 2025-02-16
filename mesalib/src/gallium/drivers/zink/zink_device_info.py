@@ -585,7 +585,7 @@ zink_get_physical_device_info(struct zink_screen *screen)
 %endif
 %endfor
 
-      if (screen->vk_version < VK_MAKE_VERSION(1,2,0) && screen->instance_info.have_KHR_external_memory_capabilities) {
+      if (screen->vk_version < VK_MAKE_VERSION(1,2,0) && screen->instance_info->have_KHR_external_memory_capabilities) {
          info->deviceid_props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
          info->deviceid_props.pNext = props.pNext;
          props.pNext = &info->deviceid_props;

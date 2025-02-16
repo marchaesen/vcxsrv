@@ -51,15 +51,17 @@ SOFTWARE.
 #include <math.h>
 #include <X11/X.h>
 #include <X11/Xprotostr.h>
+#include <X11/Xfuncproto.h>
+
+#include "mi/mi_priv.h"
+
 #include "misc.h"
 #include "gcstruct.h"
 #include "scrnintstr.h"
 #include "pixmapstr.h"
 #include "windowstr.h"
 #include "mifpoly.h"
-#include "mi.h"
 #include "mifillarc.h"
-#include <X11/Xfuncproto.h>
 
 #ifdef _MSC_VER
 #define hypot _hypot
@@ -1115,7 +1117,7 @@ miWideArc(DrawablePtr pDraw, GCPtr pGC, int narcs, xArc * parcs)
 
 out:
     if (fTricky) {
-        (*pGCTo->pScreen->DestroyPixmap) ((PixmapPtr) pDrawTo);
+        dixDestroyPixmap((PixmapPtr) pDrawTo, 0);
         FreeScratchGC(pGCTo);
     }
 }

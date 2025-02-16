@@ -110,6 +110,7 @@
 #define MAX_BIND_POINTS 2 /* compute + graphics */
 /* match the latest Qualcomm driver which is also a hw limit on later gens */
 #define MAX_STORAGE_BUFFER_RANGE (1u << 27)
+#define MAX_TEXEL_ELEMENTS (1u << 27)
 /* We use ldc for uniform buffer loads, just like the Qualcomm driver, so
  * expose the same maximum range.
  * TODO: The SIZE bitfield is 15 bits, and in 4-dword units, so the actual

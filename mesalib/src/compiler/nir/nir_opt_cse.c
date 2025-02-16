@@ -22,6 +22,7 @@
  */
 
 #include "nir_instr_set.h"
+#include "nir.h"
 
 /*
  * Implements common subexpression elimination

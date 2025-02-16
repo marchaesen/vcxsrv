@@ -67,7 +67,7 @@ XkbProcessKeyboardEvent(DeviceEvent *event, DeviceIntPtr keybd)
     /* do anything to implement the behavior, but it *does* report that */
     /* key is hardwired */
 
-    if (!(behavior.type & XkbKB_Permanent)) {
+    if (!keybd->ignoreXkbActionsBehaviors && !(behavior.type & XkbKB_Permanent)) {
         switch (behavior.type) {
         case XkbKB_Default:
             /* Neither of these should happen in practice, but ignore them

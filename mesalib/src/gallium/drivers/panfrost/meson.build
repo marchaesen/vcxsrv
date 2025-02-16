@@ -4,7 +4,7 @@
 
 files_panfrost = files(
   'driinfo_panfrost.h',
-  'pan_afbc_cso.c',
+  'pan_mod_conv_cso.c',
   'pan_bo.c',
   'pan_device.c',
   'pan_disk_cache.c',
@@ -48,6 +48,7 @@ foreach ver : panfrost_versions
   files_panfrost_vx = [
     'pan_cmdstream.c',
     'pan_fb_preload.c',
+    'pan_precomp.c',
     pan_packers,
   ]
   if ver in ['4', '5', '6', '7', '9']
@@ -60,7 +61,7 @@ foreach ver : panfrost_versions
     include_directories : panfrost_includes,
     c_args : ['-DPAN_ARCH=' + ver],
     gnu_symbol_visibility : 'hidden',
-    dependencies : [idep_pan_packers, idep_nir, dep_libdrm, idep_mesautil],
+    dependencies : [idep_pan_packers, idep_nir, dep_libdrm, idep_mesautil, idep_libpan_per_arch[ver]],
 )
 endforeach
 

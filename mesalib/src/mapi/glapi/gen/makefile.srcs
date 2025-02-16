@@ -252,10 +252,10 @@ $(MESA_DIR)/main/marshal_generated.h: gl_marshal_h.py marshal_XML.py $(COMMON)
 	$(PYTHON_GEN) $(srcdir)/gl_marshal_h.py $(srcdir)/gl_and_es_API.xml 8 > $@
 
 $(MESA_DIR)/main/dispatch.h: gl_table.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_table.py -f $(srcdir)/gl_and_es_API.xml -m remap_table > $@
+	$(PYTHON_GEN) $(srcdir)/gl_table.py -f $(srcdir)/gl_and_es_API.xml -m dispatch > $@
 
 $(MESA_GLX_DIR)/dispatch.h: gl_table.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_table.py -f $(srcdir)/gl_and_es_API.xml -m remap_table > $@
+	$(PYTHON_GEN) $(srcdir)/gl_table.py -f $(srcdir)/gl_and_es_API.xml -m dispatch > $@
 
 $(MESA_DIR)/main/remap_helper.h: remap_helper.py $(COMMON)
 	$(PYTHON_GEN) $(srcdir)/remap_helper.py -f $(srcdir)/gl_and_es_API.xml > $@

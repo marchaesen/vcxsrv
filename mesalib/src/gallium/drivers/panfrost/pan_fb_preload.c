@@ -259,7 +259,7 @@ pan_preload_emit_rsd(const struct pan_preload_shader_data *preload_shader,
          cfg.properties.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_LATE;
       } else {
          /* Skipping ATEST requires forcing Z/S */
-         cfg.properties.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+         cfg.properties.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
          cfg.properties.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
       }
 
@@ -1190,7 +1190,7 @@ pan_preload_emit_dcd(struct pan_fb_preload_cache *cache, struct pan_pool *pool,
          cfg.blend_count = 0;
       } else {
          /* Skipping ATEST requires forcing Z/S */
-         cfg.zs_update_operation = MALI_PIXEL_KILL_STRONG_EARLY;
+         cfg.zs_update_operation = MALI_PIXEL_KILL_FORCE_EARLY;
          cfg.pixel_kill_operation = MALI_PIXEL_KILL_FORCE_EARLY;
 
          cfg.blend = blend.gpu;
@@ -1315,7 +1315,7 @@ pan_preload_emit_tiler_job(struct pan_fb_preload_cache *cache, struct pan_pool *
    }
 
    pan_section_pack(job.cpu, TILER_JOB, PRIMITIVE_SIZE, cfg) {
-      cfg.constant = 1.0f;
+      cfg.fixed_sized = 1.0f;
    }
 
    void *invoc = pan_section_ptr(job.cpu, TILER_JOB, INVOCATION);

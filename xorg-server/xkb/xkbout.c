@@ -35,6 +35,8 @@
 #include <X11/Xproto.h>
 #include <X11/extensions/XKMformat.h>
 
+#include "xkb/xkbfmisc_priv.h"
+#include "xkb/xkbout_priv.h"
 #include "xkb/xkbtext_priv.h"
 
 #include "misc.h"
@@ -44,7 +46,6 @@
 #include <xkbsrv.h>
 
 #include "xkbgeom.h"
-#include "xkbfile.h"
 
 #define	VMOD_HIDE_VALUE	0
 #define	VMOD_SHOW_VALUE	1

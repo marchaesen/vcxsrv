@@ -137,7 +137,7 @@ simple_mtx_unlock(simple_mtx_t *mtx)
 }
 
 static inline void
-simple_mtx_assert_locked(simple_mtx_t *mtx)
+simple_mtx_assert_locked(ASSERTED simple_mtx_t *mtx)
 {
    assert(mtx->val);
 }

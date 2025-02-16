@@ -2539,3 +2539,12 @@ vn_CmdSetFragmentShadingRateKHR(
    VN_CMD_ENQUEUE(vkCmdSetFragmentShadingRateKHR, commandBuffer,
                   pFragmentSize, combinerOps);
 }
+
+void
+vn_CmdSetSampleLocationsEXT(
+   VkCommandBuffer commandBuffer,
+   const VkSampleLocationsInfoEXT *pSampleLocationsInfo)
+{
+   VN_CMD_ENQUEUE(vkCmdSetSampleLocationsEXT, commandBuffer,
+                  pSampleLocationsInfo);
+}

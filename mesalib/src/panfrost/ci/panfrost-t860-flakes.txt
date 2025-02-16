@@ -6,3 +6,5 @@ x11-dEQP-EGL.functional.sharing.gles2.multithread.simple_egl_server_sync.texture
 x11-dEQP-EGL.functional.sharing.gles2.multithread.simple_egl_sync.textures.copyteximage2d_texsubimage2d_render
 x11-dEQP-EGL.functional.sharing.gles2.multithread.random_egl_server_sync.images.copyteximage2d.17
 x11-dEQP-EGL.functional.sharing.gles2.multithread.simple_egl_sync.images.texture_source.copyteximage2d_render
+x11-dEQP-EGL.functional.sharing.gles2.multithread.simple.textures.copyteximage2d_texsubimage2d_render
+x11-dEQP-EGL.functional.sharing.gles2.multithread.simple.textures.teximage2d_copytexsubimage2d_render

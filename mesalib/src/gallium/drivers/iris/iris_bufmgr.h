@@ -215,6 +215,13 @@ iris_heap_is_device_local(enum iris_heap heap)
           heap == IRIS_HEAP_DEVICE_LOCAL_COMPRESSED;
 }
 
+static inline bool
+iris_heap_is_compressed(enum iris_heap heap)
+{
+   return heap == IRIS_HEAP_SYSTEM_MEMORY_UNCACHED_COMPRESSED ||
+          heap == IRIS_HEAP_DEVICE_LOCAL_COMPRESSED;
+}
+
 #define IRIS_BATCH_COUNT 3
 
 struct iris_bo_screen_deps {
@@ -349,6 +356,9 @@ struct iris_bo {
           * this set before batch_submit().
           */
          bool capture;
+
+         /** Boolean of whether this buffer can be scanout to display */
+         bool scanout;
       } real;
       struct {
          struct pb_slab_entry entry;
@@ -620,7 +630,7 @@ iris_bo_bump_seqno(struct iris_bo *bo, uint64_t seqno,
  */
 const struct intel_device_info_pat_entry *
 iris_heap_to_pat_entry(const struct intel_device_info *devinfo,
-                       enum iris_heap heap);
+                       enum iris_heap heap, bool scanout);
 
 enum iris_memory_zone iris_memzone_for_address(uint64_t address);
 

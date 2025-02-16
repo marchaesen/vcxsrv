@@ -158,7 +158,7 @@ genDateCommentString = [
     ''
 ]
 
-# GL_GLEXT_VERSION is defined only in glext.h
+# GL_GLEXT_VERSION is defined only in glext.h and gl2ext.h
 glextVersionStrings = [
     format('#define GL_GLEXT_VERSION %s' % time.strftime('%Y%m%d')),
     ''
@@ -296,7 +296,7 @@ buildList = [
         defaultExtensions = 'gles2',                # Default extensions for GLES 2
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + apiEntryPrefixStrings + genDateCommentString,
+        prefixText        = prefixStrings + apiEntryPrefixStrings + glextVersionStrings,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,

@@ -639,6 +639,12 @@ fn compile_nir_to_args(
     nir_pass!(nir, nir_scale_fdiv);
     nir.set_workgroup_size_variable_if_zero();
     nir.structurize();
+    nir_pass!(
+        nir,
+        nir_lower_variable_initializers,
+        nir_variable_mode::nir_var_function_temp
+    );
+
     while {
         let mut progress = false;
         nir_pass!(nir, nir_split_var_copies);
@@ -663,7 +669,6 @@ fn compile_nir_to_args(
 
     let printf_opts = nir_lower_printf_options {
         ptr_bit_size: 0,
-        use_printf_base_identifier: false,
         hash_format_strings: false,
         max_buffer_size: dev.printf_buffer_size() as u32,
     };
@@ -1197,7 +1202,7 @@ impl Kernel {
         let builds = prog_build
             .builds
             .iter()
-            .filter_map(|(&dev, b)| b.kernels.get(&name).map(|k| (dev, k.clone())))
+            .filter_map(|(&dev, b)| b.kernels.get(&name).map(|k| (dev, Arc::clone(k))))
             .collect();
 
         let values = vec![None; kernel_info.args.len()];
@@ -1318,14 +1323,7 @@ impl Kernel {
         self.optimize_local_size(q.device, &mut grid, &mut block);
 
         Ok(Box::new(move |q, ctx| {
-            let hw_max_grid: Vec<usize> = q
-                .device
-                .max_grid_size()
-                .into_iter()
-                .map(|val| val.try_into().unwrap_or(usize::MAX))
-                // clamped as pipe_launch_grid::grid is only u32
-                .map(|val| cmp::min(val, u32::MAX as usize))
-                .collect();
+            let hw_max_grid: Vec<usize> = q.device.max_grid_size();
 
             let variant = if offsets == [0; 3]
                 && grid[0] <= hw_max_grid[0]
@@ -1598,7 +1596,6 @@ impl Kernel {
             }
 
             ctx.clear_global_binding(globals.len() as u32);
-            ctx.clear_shader_images(iviews.len() as u32);
             ctx.clear_sampler_views(sviews_len as u32);
             ctx.clear_sampler_states(samplers.len() as u32);
 
@@ -1801,11 +1798,11 @@ impl Clone for Kernel {
     fn clone(&self) -> Self {
         Self {
             base: CLObjectBase::new(RusticlTypes::Kernel),
-            prog: self.prog.clone(),
+            prog: Arc::clone(&self.prog),
             name: self.name.clone(),
             values: Mutex::new(self.arg_values().clone()),
             builds: self.builds.clone(),
-            kernel_info: self.kernel_info.clone(),
+            kernel_info: Arc::clone(&self.kernel_info),
         }
     }
 }

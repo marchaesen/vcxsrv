@@ -11,18 +11,17 @@ the suitability of this software for any purpose.  It is provided "as
 is" without express or implied warranty.
 
 */
-
-#include <xnest-config.h>
+#include <dix-config.h>
 
 #include <X11/X.h>
 #include <X11/Xdefs.h>
 #include <X11/Xproto.h>
 
 #include "mi/mi_priv.h"
+#include "mi/mipointer_priv.h"
 
 #include "scrnintstr.h"
 #include "dix.h"
-#include "mi.h"
 #include "micmap.h"
 #include "colormapst.h"
 #include "resource.h"

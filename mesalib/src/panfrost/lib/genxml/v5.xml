@@ -493,7 +493,7 @@
     <field name="Round to FB precision" size="1" start="0:11" type="bool" default="false"/>
     <field name="Shader PC" size="64" start="2:0" type="address"/>
     <field name="Equation" size="32" start="2:0" type="Blend Equation"/>
-    <field name="Constant" size="32" start="3:0" type="float"/>
+    <field name="Blend Constant" size="32" start="3:0" type="float"/>
   </struct>
 
   <struct name="Invocation">
@@ -1126,7 +1126,7 @@
   </aggregate>
 
   <struct name="Primitive Size">
-    <field name="Constant" size="32" start="0:0" type="float"/>
+    <field name="Fixed Sized" size="32" start="0:0" type="float"/>
     <field name="Size Array" size="64" start="0:0" type="uint"/>
   </struct>
 

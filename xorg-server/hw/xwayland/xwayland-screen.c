@@ -42,6 +42,7 @@
 #include "os/osdep.h"
 #include "os/xserver_poll.h"
 
+#include "extinit_priv.h"
 #include <micmap.h>
 #include <misyncshm.h>
 #include <os.h>
@@ -89,7 +90,7 @@ xwl_give_up(const char *f, ...)
     va_list args;
 
     va_start(args, f);
-    VErrorFSigSafe(f, args);
+    LogVMessageVerb(X_NONE, -1, f, args);
     va_end(args);
 
     CloseWellKnownConnections();

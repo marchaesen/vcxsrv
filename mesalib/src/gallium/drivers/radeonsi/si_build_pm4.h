@@ -80,6 +80,8 @@
 
 /* Set consecutive registers if any value is different. */
 #define radeon_opt_set_reg2(reg, reg_enum, v1, v2, prefix_name, packet) do { \
+   static_assert(BITSET_BITWORD(reg_enum) == BITSET_BITWORD(reg_enum + 1), \
+                 "bit range crosses dword boundary"); \
    unsigned __v1 = (v1), __v2 = (v2); \
    if (!BITSET_TEST_RANGE_INSIDE_WORD(sctx->tracked_regs.reg_saved_mask, \
                                       (reg_enum), (reg_enum) + 1, 0x3) || \
@@ -96,6 +98,8 @@
 } while (0)
 
 #define radeon_opt_set_reg3(reg, reg_enum, v1, v2, v3, prefix_name, packet) do { \
+   static_assert(BITSET_BITWORD(reg_enum) == BITSET_BITWORD(reg_enum + 2), \
+                 "bit range crosses dword boundary"); \
    unsigned __v1 = (v1), __v2 = (v2), __v3 = (v3); \
    if (!BITSET_TEST_RANGE_INSIDE_WORD(sctx->tracked_regs.reg_saved_mask, \
                                       (reg_enum), (reg_enum) + 2, 0x7) || \
@@ -115,6 +119,8 @@
 } while (0)
 
 #define radeon_opt_set_reg4(reg, reg_enum, v1, v2, v3, v4, prefix_name, packet) do { \
+   static_assert(BITSET_BITWORD((reg_enum)) == BITSET_BITWORD((reg_enum) + 3), \
+                 "bit range crosses dword boundary"); \
    unsigned __v1 = (v1), __v2 = (v2), __v3 = (v3), __v4 = (v4); \
    if (!BITSET_TEST_RANGE_INSIDE_WORD(sctx->tracked_regs.reg_saved_mask, \
                                       (reg_enum), (reg_enum) + 3, 0xf) || \
@@ -137,6 +143,8 @@
 } while (0)
 
 #define radeon_opt_set_reg5(reg, reg_enum, v1, v2, v3, v4, v5, prefix_name, packet) do { \
+   static_assert(BITSET_BITWORD((reg_enum)) == BITSET_BITWORD((reg_enum) + 4), \
+                 "bit range crosses dword boundary"); \
    unsigned __v1 = (v1), __v2 = (v2), __v3 = (v3), __v4 = (v4), __v5 = (v5); \
    if (!BITSET_TEST_RANGE_INSIDE_WORD(sctx->tracked_regs.reg_saved_mask, \
                                       (reg_enum), (reg_enum) + 4, 0x1f) || \
@@ -162,6 +170,8 @@
 } while (0)
 
 #define radeon_opt_set_reg6(reg, reg_enum, v1, v2, v3, v4, v5, v6, prefix_name, packet) do { \
+   static_assert(BITSET_BITWORD((reg_enum)) == BITSET_BITWORD((reg_enum) + 5), \
+                 "bit range crosses dword boundary"); \
    unsigned __v1 = (v1), __v2 = (v2), __v3 = (v3), __v4 = (v4), __v5 = (v5), __v6 = (v6); \
    if (!BITSET_TEST_RANGE_INSIDE_WORD(sctx->tracked_regs.reg_saved_mask, \
                                       (reg_enum), (reg_enum) + 5, 0x3f) || \
@@ -319,6 +329,8 @@
 } while (0)
 
 #define gfx11_opt_push_reg4(reg, reg_enum, v1, v2, v3, v4, prefix_name, buffer, reg_count) do { \
+   static_assert(BITSET_BITWORD((reg_enum)) == BITSET_BITWORD((reg_enum) + 3), \
+                 "bit range crosses dword boundary"); \
    unsigned __v1 = (v1); \
    unsigned __v2 = (v2); \
    unsigned __v3 = (v3); \
@@ -415,6 +427,8 @@
 } while (0)
 
 #define gfx12_opt_set_reg4(reg, reg_enum, v1, v2, v3, v4, base_offset) do { \
+   static_assert(BITSET_BITWORD((reg_enum)) == BITSET_BITWORD((reg_enum) + 3), \
+                 "bit range crosses dword boundary"); \
    unsigned __v1 = (v1), __v2 = (v2), __v3 = (v3), __v4 = (v4); \
    if (!BITSET_TEST_RANGE_INSIDE_WORD(sctx->tracked_regs.reg_saved_mask, \
                                       (reg_enum), (reg_enum) + 3, 0xf) || \

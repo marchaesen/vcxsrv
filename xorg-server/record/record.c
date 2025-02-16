@@ -49,12 +49,12 @@ and Jim Haggerty of Metheus.
 #include <stdio.h>
 #include <assert.h>
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
 #include "globals.h"
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
 #include "cursor.h"
-#endif
+#endif /* XINERAMA */
 
 #include "protocol-versions.h"
 
@@ -713,7 +713,7 @@ RecordSendProtocolEvents(RecordClientsAndProtocolPtr pRCAP,
             xEvent swappedEvent;
             xEvent *pEvToRecord = pev;
 
-#ifdef PANORAMIX
+#ifdef XINERAMA
             xEvent shiftedEvent;
 
             if (!noPanoramiXExtension &&
@@ -730,7 +730,7 @@ RecordSendProtocolEvents(RecordClientsAndProtocolPtr pRCAP,
                     screenInfo.screens[scr]->y - screenInfo.screens[0]->y;
                 pEvToRecord = &shiftedEvent;
             }
-#endif                          /* PANORAMIX */
+#endif /* XINERAMA */
 
             if (pContext->pRecordingClient->swapped) {
                 (*EventSwapVector[pEvToRecord->u.u.type & 0177])
@@ -2486,8 +2486,6 @@ static int _X_COLD
 SProcRecordQueryVersion(ClientPtr client)
 {
     REQUEST(xRecordQueryVersionReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xRecordQueryVersionReq);
     swaps(&stuff->majorVersion);
     swaps(&stuff->minorVersion);
@@ -2524,7 +2522,6 @@ SProcRecordCreateContext(ClientPtr client)
     REQUEST(xRecordCreateContextReq);
     int status;
 
-    swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xRecordCreateContextReq);
     if ((status = SwapCreateRegister(client, (void *) stuff)) != Success)
         return status;
@@ -2537,7 +2534,6 @@ SProcRecordRegisterClients(ClientPtr client)
     REQUEST(xRecordRegisterClientsReq);
     int status;
 
-    swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xRecordRegisterClientsReq);
     if ((status = SwapCreateRegister(client, (void *) stuff)) != Success)
         return status;
@@ -2548,8 +2544,6 @@ static int _X_COLD
 SProcRecordUnregisterClients(ClientPtr client)
 {
     REQUEST(xRecordUnregisterClientsReq);
-
-    swaps(&stuff->length);
     REQUEST_AT_LEAST_SIZE(xRecordUnregisterClientsReq);
     swapl(&stuff->context);
     swapl(&stuff->nClients);
@@ -2561,8 +2555,6 @@ static int _X_COLD
 SProcRecordGetContext(ClientPtr client)
 {
     REQUEST(xRecordGetContextReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xRecordGetContextReq);
     swapl(&stuff->context);
     return ProcRecordGetContext(client);
@@ -2572,8 +2564,6 @@ static int _X_COLD
 SProcRecordEnableContext(ClientPtr client)
 {
     REQUEST(xRecordEnableContextReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xRecordEnableContextReq);
     swapl(&stuff->context);
     return ProcRecordEnableContext(client);
@@ -2583,8 +2573,6 @@ static int _X_COLD
 SProcRecordDisableContext(ClientPtr client)
 {
     REQUEST(xRecordDisableContextReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xRecordDisableContextReq);
     swapl(&stuff->context);
     return ProcRecordDisableContext(client);
@@ -2594,8 +2582,6 @@ static int _X_COLD
 SProcRecordFreeContext(ClientPtr client)
 {
     REQUEST(xRecordFreeContextReq);
-
-    swaps(&stuff->length);
     REQUEST_SIZE_MATCH(xRecordFreeContextReq);
     swapl(&stuff->context);
     return ProcRecordFreeContext(client);

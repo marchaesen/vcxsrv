@@ -770,6 +770,11 @@ ac_set_buf_desc_word3(const enum amd_gfx_level gfx_level, const struct ac_buffer
                                            S_008F0C_FORMAT_GFX10(fmt->img_format)) |
                      S_008F0C_OOB_SELECT(state->gfx10_oob_select) |
                      S_008F0C_RESOURCE_LEVEL(gfx_level < GFX11);
+
+      if (gfx_level >= GFX12) {
+         *rsrc_word3 |= S_008F0C_COMPRESSION_EN(state->gfx12.compression_en) |
+                        S_008F0C_WRITE_COMPRESS_ENABLE(state->gfx12.write_compress_enable);
+      }
    } else {
       const struct util_format_description * desc =  util_format_description(state->format);
       const int first_non_void = util_format_get_first_non_void_channel(state->format);

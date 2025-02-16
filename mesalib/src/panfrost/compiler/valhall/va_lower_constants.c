@@ -238,7 +238,7 @@ va_lower_constants(bi_context *ctx, bi_instr *I)
           * applying the lane select puts the desired constant (at least) in the
           * bottom byte, so we can always select the bottom byte.
           */
-         if (info.lane && I->src[s].swizzle == BI_SWIZZLE_H01) {
+         if ((info.lane || info.lanes) && I->src[s].swizzle == BI_SWIZZLE_H01) {
             assert(info.size == VA_SIZE_8);
             I->src[s] = bi_byte(I->src[s], 0);
          }

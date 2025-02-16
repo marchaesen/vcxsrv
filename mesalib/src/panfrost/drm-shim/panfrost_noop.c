@@ -216,7 +216,7 @@ panthor_ioctl_dev_query(int fd, unsigned long request, void *arg)
 
       /* Default values */
       priorities_info->allowed_mask =
-         PANTHOR_GROUP_PRIORITY_LOW | PANTHOR_GROUP_PRIORITY_MEDIUM;
+         BITFIELD_BIT(PANTHOR_GROUP_PRIORITY_LOW) | BITFIELD_BIT(PANTHOR_GROUP_PRIORITY_MEDIUM);
 
       return 0;
    }

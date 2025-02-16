@@ -16,7 +16,6 @@
 #include "radeon_program_alu.h"
 #include "radeon_program_tex.h"
 #include "radeon_remove_constants.h"
-#include "radeon_rename_regs.h"
 #include "radeon_variable.h"
 
 static void
@@ -91,6 +90,50 @@ rc_convert_rgb_alpha(struct radeon_compiler *c, void *user)
          unsigned index = rc_find_free_temporary(c);
          rc_variable_change_dst(var, index, RC_MASK_W);
       }
+
+      /* Here we attempt to convert some code specific for the shadow lowering to use the W
+       * channel. Most notably this prevents some unfavorable presubtract later.
+       *
+       * TODO: This should not be needed once we can properly vectorize the reference value
+       * comparisons.
+       */
+      if (var->Inst->U.I.Opcode == RC_OPCODE_ADD &&
+          var->Inst->U.I.SrcReg[0].File == RC_FILE_TEMPORARY &&
+          var->Inst->U.I.SrcReg[1].File == RC_FILE_TEMPORARY &&
+          var->Inst->U.I.DstReg.File == RC_FILE_TEMPORARY &&
+          var->Inst->U.I.DstReg.WriteMask == RC_MASK_X) {
+         unsigned have_tex = false;
+         struct rc_variable *fsat = NULL;
+         for (unsigned int src = 0; src < 2; src++) {
+            struct rc_list *writer_list;
+            writer_list = rc_variable_list_get_writers(variables, RC_INSTRUCTION_NORMAL,
+                                                       &var->Inst->U.I.SrcReg[src]);
+            if (!writer_list || !writer_list->Item)
+               continue;
+
+            struct rc_variable *src_variable = (struct rc_variable *)writer_list->Item;
+            struct rc_instruction *inst = src_variable->Inst;
+            const struct rc_opcode_info *info = rc_get_opcode_info(inst->U.I.Opcode);
+
+            /* Here we check that the two sources are the depth texture and saturated MOV/MUL */
+            if (info->HasTexture && inst->U.I.DstReg.WriteMask == RC_MASK_X && !have_tex && !src_variable->Friend) {
+               have_tex = true;
+            }
+            if ((inst->U.I.Opcode == RC_OPCODE_MOV || inst->U.I.Opcode == RC_OPCODE_ADD) && !fsat &&
+                inst->U.I.SaturateMode != RC_SATURATE_NONE && inst->U.I.DstReg.WriteMask == RC_MASK_X &&
+                !src_variable->Friend) {
+               fsat = src_variable;
+            }
+         }
+
+         /* Move the calculations to W. */
+         if (fsat && have_tex) {
+            unsigned index = rc_find_free_temporary(c);
+            rc_variable_change_dst(var, index, RC_MASK_W);
+            index = rc_find_free_temporary(c);
+            rc_variable_change_dst(fsat, index, RC_MASK_W);
+         }
+      }
    }
 }
 
@@ -131,7 +174,6 @@ r3xx_compile_fragment_program(struct r300_fragment_program_compiler *c)
       {"native rewrite",          1,   !is_r500,        rc_local_transform,             native_rewrite_r300},
       {"deadcode",                1,   opt,             rc_dataflow_deadcode,           NULL},
       {"convert rgb<->alpha",     1,   opt,             rc_convert_rgb_alpha,           NULL},
-      {"register rename",         1,   !is_r500 || opt, rc_rename_regs,                 NULL},
       {"dataflow optimize",       1,   opt,             rc_optimize,                    NULL},
       {"inline literals",         1,   is_r500 && opt,  rc_inline_literals,             NULL},
       {"dataflow swizzles",       1,   1,               rc_dataflow_swizzles,           NULL},

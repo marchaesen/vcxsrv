@@ -50,8 +50,6 @@ LIBGLSL_FILES = \
 	glsl/glsl_to_nir.cpp \
 	glsl/glsl_to_nir.h \
 	glsl/hir_field_selection.cpp \
-	glsl/ir_array_refcount.cpp \
-	glsl/ir_array_refcount.h \
 	glsl/ir_basic_block.cpp \
 	glsl/ir_basic_block.h \
 	glsl/ir_builder.cpp \
@@ -60,7 +58,6 @@ LIBGLSL_FILES = \
 	glsl/ir_constant_expression.cpp \
 	glsl/ir.cpp \
 	glsl/ir.h \
-	glsl/ir_equals.cpp \
 	glsl/ir_expression_flattening.cpp \
 	glsl/ir_expression_flattening.h \
 	glsl/ir_function_detect_recursion.cpp \
@@ -72,8 +69,6 @@ LIBGLSL_FILES = \
 	glsl/ir_optimization.h \
 	glsl/ir_print_visitor.cpp \
 	glsl/ir_print_visitor.h \
-	glsl/ir_reader.cpp \
-	glsl/ir_reader.h \
 	glsl/ir_rvalue_visitor.cpp \
 	glsl/ir_rvalue_visitor.h \
 	glsl/ir_uniform.h \
@@ -98,7 +93,6 @@ LIBGLSL_FILES = \
 	glsl/opt_algebraic.cpp \
 	glsl/opt_dead_builtin_variables.cpp \
 	glsl/opt_dead_code.cpp \
-	glsl/opt_dead_code_local.cpp \
 	glsl/opt_flatten_nested_if_blocks.cpp \
 	glsl/opt_flip_matrices.cpp \
 	glsl/opt_function_inlining.cpp \
@@ -108,8 +102,6 @@ LIBGLSL_FILES = \
 	glsl/opt_tree_grafting.cpp \
 	glsl/program.h \
 	glsl/propagate_invariance.cpp \
-	glsl/s_expression.cpp \
-	glsl/s_expression.h \
         flsl/string_to_uint_map.cpp \
         flsl/string_to_uint_map.h \
 	glsl/serialize.cpp \

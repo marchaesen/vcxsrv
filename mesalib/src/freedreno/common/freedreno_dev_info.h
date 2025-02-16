@@ -234,6 +234,8 @@ struct fd_dev_info {
 
       float line_width_min;
       float line_width_max;
+
+      bool has_bin_mask;
    } a6xx;
 
    struct {
@@ -330,6 +332,23 @@ struct fd_dev_info {
        * This workaround was seen in the prop driver v512.762.12.
        */
       bool reading_shading_rate_requires_smask_quirk;
+
+      /* Whether the ray_intersection instruction is present. */
+      bool has_ray_intersection;
+
+      /* Whether features may be fused off by the SW_FUSE. So far, this is
+       * just raytracing.
+       */
+      bool has_sw_fuse;
+
+      /* a750-specific HW bug workaround for ray tracing */
+      bool has_rt_workaround;
+
+      /* Whether alias.rt is supported. */
+      bool has_alias_rt;
+
+      /* Whether CP_SET_BIN_DATA5::ABS_MASK exists */
+      bool has_abs_bin_mask;
    } a7xx;
 };
 

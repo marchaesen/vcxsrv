@@ -10,11 +10,6 @@
 #include "amd_family.h"
 #include "util/format/u_format.h"
 
-/* NIR is optional. Some components don't want to include NIR with ac_surface.h. */
-#ifdef AC_SURFACE_INCLUDE_NIR
-#include "compiler/nir/nir_builder.h"
-#endif
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -79,12 +74,6 @@ enum radeon_micro_mode
 #define RADEON_SURF_PREFER_4K_ALIGNMENT   (1ull << 36)
 #define RADEON_SURF_PREFER_64K_ALIGNMENT  (1ull << 37)
 #define RADEON_SURF_VIDEO_REFERENCE       (1ull << 38)
-
-enum radeon_enc_hevc_surface_alignment
-{
-   RADEON_ENC_HEVC_SURFACE_LOG2_WIDTH_ALIGNMENT = 6,
-   RADEON_ENC_HEVC_SURFACE_LOG2_HEIGHT_ALIGNMENT = 4,
-};
 
 struct legacy_surf_level {
    uint32_t offset_256B;   /* divided by 256, the hw can only do 40-bit addresses */
@@ -281,6 +270,7 @@ struct gfx9_surf_layout {
           */
          uint8_t dcc_number_type; /* CB_COLOR0_INFO.NUMBER_TYPE */
          uint8_t dcc_data_format; /* [0:4]:CB_COLOR0_INFO.FORMAT, [5]:MM */
+         bool dcc_write_compress_disable;
 
          /* Displayable DCC. This is always rb_aligned=0 and pipe_aligned=0.
           * The 3D engine doesn't support that layout except for chips with 1 RB.
@@ -519,30 +509,6 @@ void ac_surface_print_info(FILE *out, const struct radeon_info *info,
 
 bool ac_surface_supports_dcc_image_stores(enum amd_gfx_level gfx_level,
                                           const struct radeon_surf *surf);
-
-#ifdef AC_SURFACE_INCLUDE_NIR
-nir_def *ac_nir_dcc_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                    unsigned bpe, const struct gfx9_meta_equation *equation,
-                                    nir_def *dcc_pitch, nir_def *dcc_height,
-                                    nir_def *dcc_slice_size,
-                                    nir_def *x, nir_def *y, nir_def *z,
-                                    nir_def *sample, nir_def *pipe_xor);
-
-nir_def *ac_nir_cmask_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                      const struct gfx9_meta_equation *equation,
-                                      nir_def *cmask_pitch, nir_def *cmask_height,
-                                      nir_def *cmask_slice_size,
-                                      nir_def *x, nir_def *y, nir_def *z,
-                                      nir_def *pipe_xor,
-                                      nir_def **bit_position);
-
-nir_def *ac_nir_htile_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                      const struct gfx9_meta_equation *equation,
-                                      nir_def *htile_pitch,
-                                      nir_def *htile_slice_size,
-                                      nir_def *x, nir_def *y, nir_def *z,
-                                      nir_def *pipe_xor);
-#endif
 
 #ifdef __cplusplus
 }

@@ -711,6 +711,10 @@ radv_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs, bool is_
       ac_pm4_set_reg(pm4, R_00B844_COMPUTE_TMA_HI, tma_va >> 40);
    }
 
+   if (pdev->info.gfx_level >= GFX12)
+      ac_pm4_set_reg(pm4, R_00B8BC_COMPUTE_DISPATCH_INTERLEAVE,
+                     S_00B8BC_INTERLEAVE_1D(preamble_state.gfx11.compute_dispatch_interleave));
+
    ac_pm4_finalize(pm4);
 
    radeon_emit_array(cs, pm4->pm4, pm4->ndw);
@@ -1892,16 +1896,10 @@ radv_queue_submit(struct vk_queue *vqueue, struct vk_queue_submit *submission)
 {
    struct radv_queue *queue = (struct radv_queue *)vqueue;
    struct radv_device *device = radv_queue_device(queue);
-   const struct radv_physical_device *pdev = radv_device_physical(device);
-   VkResult result;
 
-   if (!radv_sparse_queue_enabled(pdev)) {
-      result = radv_queue_submit_bind_sparse_memory(device, submission);
-      if (result != VK_SUCCESS)
-         goto fail;
-   } else {
-      assert(!submission->buffer_bind_count && !submission->image_bind_count && !submission->image_opaque_bind_count);
-   }
+   VkResult result = radv_queue_submit_bind_sparse_memory(device, submission);
+   if (result != VK_SUCCESS)
+      goto fail;
 
    if (!submission->command_buffer_count && !submission->wait_count && !submission->signal_count)
       return VK_SUCCESS;

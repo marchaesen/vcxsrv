@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "nir/nir_builder.h"
+#include "nir/radv_meta_nir.h"
 #include "radv_entrypoints.h"
 #include "radv_meta.h"
 #include "vk_common_entrypoints.h"
@@ -162,6 +162,14 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
       else if (src_img)
          src_aspect_mask = src_img->aspect_mask;
 
+      /* Adjust the aspect for color to depth/stencil image copies. */
+      if (src_img) {
+         if (vk_format_is_color(src_img->image->vk.format) && vk_format_is_depth_or_stencil(dst->image->vk.format)) {
+            assert(src_img->aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT);
+            src_aspect_mask = src_img->aspect_mask;
+         }
+      }
+
       struct radv_image_view dst_iview;
       create_iview(cmd_buffer, dst, &dst_iview, depth_format, aspect_mask);
 
@@ -233,8 +241,9 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
                                  vertex_push_constants);
 
       struct blit2d_src_temps src_temps;
-      blit2d_bind_src(cmd_buffer, layout, src_img, src_buf, &src_temps, src_type, depth_format, src_aspect_mask,
-                      log2_samples);
+      blit2d_bind_src(cmd_buffer, layout, src_img, src_buf, &src_temps, src_type,
+                      (src_aspect_mask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)) ? depth_format : 0,
+                      src_aspect_mask, log2_samples);
 
       radv_CmdBeginRendering(radv_cmd_buffer_to_handle(cmd_buffer), &rendering_info);
 
@@ -266,185 +275,22 @@ radv_meta_blit2d(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_sur
                                src_img ? util_logbase2(src_img->image->vk.samples) : 0);
 }
 
-static nir_shader *
-build_nir_vertex_shader(struct radv_device *device)
-{
-   const struct glsl_type *vec4 = glsl_vec4_type();
-   const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = radv_meta_init_shader(device, MESA_SHADER_VERTEX, "meta_blit2d_vs");
-
-   nir_variable *pos_out = nir_variable_create(b.shader, nir_var_shader_out, vec4, "gl_Position");
-   pos_out->data.location = VARYING_SLOT_POS;
-
-   nir_variable *tex_pos_out = nir_variable_create(b.shader, nir_var_shader_out, vec2, "v_tex_pos");
-   tex_pos_out->data.location = VARYING_SLOT_VAR0;
-   tex_pos_out->data.interpolation = INTERP_MODE_SMOOTH;
-
-   nir_def *outvec = nir_gen_rect_vertices(&b, NULL, NULL);
-   nir_store_var(&b, pos_out, outvec, 0xf);
-
-   nir_def *src_box = nir_load_push_constant(&b, 4, 32, nir_imm_int(&b, 0), .range = 16);
-   nir_def *vertex_id = nir_load_vertex_id_zero_base(&b);
-
-   /* vertex 0 - src_x, src_y */
-   /* vertex 1 - src_x, src_y+h */
-   /* vertex 2 - src_x+w, src_y */
-   /* so channel 0 is vertex_id != 2 ? src_x : src_x + w
-      channel 1 is vertex id != 1 ? src_y : src_y + w */
-
-   nir_def *c0cmp = nir_ine_imm(&b, vertex_id, 2);
-   nir_def *c1cmp = nir_ine_imm(&b, vertex_id, 1);
-
-   nir_def *comp[2];
-   comp[0] = nir_bcsel(&b, c0cmp, nir_channel(&b, src_box, 0), nir_channel(&b, src_box, 2));
-
-   comp[1] = nir_bcsel(&b, c1cmp, nir_channel(&b, src_box, 1), nir_channel(&b, src_box, 3));
-   nir_def *out_tex_vec = nir_vec(&b, comp, 2);
-   nir_store_var(&b, tex_pos_out, out_tex_vec, 0x3);
-   return b.shader;
-}
-
-typedef nir_def *(*texel_fetch_build_func)(struct nir_builder *, struct radv_device *, nir_def *, bool, bool);
-
-static nir_def *
-build_nir_texel_fetch(struct nir_builder *b, struct radv_device *device, nir_def *tex_pos, bool is_3d,
-                      bool is_multisampled)
-{
-   enum glsl_sampler_dim dim = is_3d             ? GLSL_SAMPLER_DIM_3D
-                               : is_multisampled ? GLSL_SAMPLER_DIM_MS
-                                                 : GLSL_SAMPLER_DIM_2D;
-   const struct glsl_type *sampler_type = glsl_sampler_type(dim, false, false, GLSL_TYPE_UINT);
-   nir_variable *sampler = nir_variable_create(b->shader, nir_var_uniform, sampler_type, "s_tex");
-   sampler->data.descriptor_set = 0;
-   sampler->data.binding = 0;
-
-   nir_def *tex_pos_3d = NULL;
-   nir_def *sample_idx = NULL;
-   if (is_3d) {
-      nir_def *layer = nir_load_push_constant(b, 1, 32, nir_imm_int(b, 0), .base = 16, .range = 4);
-
-      nir_def *chans[3];
-      chans[0] = nir_channel(b, tex_pos, 0);
-      chans[1] = nir_channel(b, tex_pos, 1);
-      chans[2] = layer;
-      tex_pos_3d = nir_vec(b, chans, 3);
-   }
-   if (is_multisampled) {
-      sample_idx = nir_load_sample_id(b);
-   }
-
-   nir_deref_instr *tex_deref = nir_build_deref_var(b, sampler);
-
-   if (is_multisampled) {
-      return nir_txf_ms_deref(b, tex_deref, tex_pos, sample_idx);
-   } else {
-      return nir_txf_deref(b, tex_deref, is_3d ? tex_pos_3d : tex_pos, NULL);
-   }
-}
-
-static nir_def *
-build_nir_buffer_fetch(struct nir_builder *b, struct radv_device *device, nir_def *tex_pos, bool is_3d,
-                       bool is_multisampled)
-{
-   const struct glsl_type *sampler_type = glsl_sampler_type(GLSL_SAMPLER_DIM_BUF, false, false, GLSL_TYPE_UINT);
-   nir_variable *sampler = nir_variable_create(b->shader, nir_var_uniform, sampler_type, "s_tex");
-   sampler->data.descriptor_set = 0;
-   sampler->data.binding = 0;
-
-   nir_def *width = nir_load_push_constant(b, 1, 32, nir_imm_int(b, 0), .base = 16, .range = 4);
-
-   nir_def *pos_x = nir_channel(b, tex_pos, 0);
-   nir_def *pos_y = nir_channel(b, tex_pos, 1);
-   pos_y = nir_imul(b, pos_y, width);
-   pos_x = nir_iadd(b, pos_x, pos_y);
-
-   nir_deref_instr *tex_deref = nir_build_deref_var(b, sampler);
-   return nir_txf_deref(b, tex_deref, pos_x, NULL);
-}
-
-static nir_shader *
-build_nir_copy_fragment_shader(struct radv_device *device, texel_fetch_build_func txf_func, const char *name,
-                               bool is_3d, bool is_multisampled)
-{
-   const struct glsl_type *vec4 = glsl_vec4_type();
-   const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = radv_meta_init_shader(device, MESA_SHADER_FRAGMENT, "%s", name);
-
-   nir_variable *tex_pos_in = nir_variable_create(b.shader, nir_var_shader_in, vec2, "v_tex_pos");
-   tex_pos_in->data.location = VARYING_SLOT_VAR0;
-
-   nir_variable *color_out = nir_variable_create(b.shader, nir_var_shader_out, vec4, "f_color");
-   color_out->data.location = FRAG_RESULT_DATA0;
-
-   nir_def *pos_int = nir_f2i32(&b, nir_load_var(&b, tex_pos_in));
-   nir_def *tex_pos = nir_trim_vector(&b, pos_int, 2);
-
-   nir_def *color = txf_func(&b, device, tex_pos, is_3d, is_multisampled);
-   nir_store_var(&b, color_out, color, 0xf);
-
-   b.shader->info.fs.uses_sample_shading = is_multisampled;
-
-   return b.shader;
-}
-
-static nir_shader *
-build_nir_copy_fragment_shader_depth(struct radv_device *device, texel_fetch_build_func txf_func, const char *name,
-                                     bool is_3d, bool is_multisampled)
-{
-   const struct glsl_type *vec4 = glsl_vec4_type();
-   const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = radv_meta_init_shader(device, MESA_SHADER_FRAGMENT, "%s", name);
-
-   nir_variable *tex_pos_in = nir_variable_create(b.shader, nir_var_shader_in, vec2, "v_tex_pos");
-   tex_pos_in->data.location = VARYING_SLOT_VAR0;
-
-   nir_variable *color_out = nir_variable_create(b.shader, nir_var_shader_out, vec4, "f_color");
-   color_out->data.location = FRAG_RESULT_DEPTH;
-
-   nir_def *pos_int = nir_f2i32(&b, nir_load_var(&b, tex_pos_in));
-   nir_def *tex_pos = nir_trim_vector(&b, pos_int, 2);
-
-   nir_def *color = txf_func(&b, device, tex_pos, is_3d, is_multisampled);
-   nir_store_var(&b, color_out, color, 0x1);
-
-   b.shader->info.fs.uses_sample_shading = is_multisampled;
-
-   return b.shader;
-}
-
-static nir_shader *
-build_nir_copy_fragment_shader_stencil(struct radv_device *device, texel_fetch_build_func txf_func, const char *name,
-                                       bool is_3d, bool is_multisampled)
-{
-   const struct glsl_type *vec4 = glsl_vec4_type();
-   const struct glsl_type *vec2 = glsl_vector_type(GLSL_TYPE_FLOAT, 2);
-   nir_builder b = radv_meta_init_shader(device, MESA_SHADER_FRAGMENT, "%s", name);
-
-   nir_variable *tex_pos_in = nir_variable_create(b.shader, nir_var_shader_in, vec2, "v_tex_pos");
-   tex_pos_in->data.location = VARYING_SLOT_VAR0;
-
-   nir_variable *color_out = nir_variable_create(b.shader, nir_var_shader_out, vec4, "f_color");
-   color_out->data.location = FRAG_RESULT_STENCIL;
-
-   nir_def *pos_int = nir_f2i32(&b, nir_load_var(&b, tex_pos_in));
-   nir_def *tex_pos = nir_trim_vector(&b, pos_int, 2);
-
-   nir_def *color = txf_func(&b, device, tex_pos, is_3d, is_multisampled);
-   nir_store_var(&b, color_out, color, 0x1);
-
-   b.shader->info.fs.uses_sample_shading = is_multisampled;
-
-   return b.shader;
-}
+struct radv_blit2d_key {
+   enum radv_meta_object_key_type type;
+   uint32_t index;
+};
 
 static VkResult
 create_layout(struct radv_device *device, int idx, VkPipelineLayout *layout_out)
 {
    const VkDescriptorType desc_type =
       (idx == BLIT2D_SRC_TYPE_BUFFER) ? VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER : VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-   char key_data[64];
 
-   snprintf(key_data, sizeof(key_data), "radv-blit2d-%d", idx);
+   struct radv_blit2d_key key;
+
+   memset(&key, 0, sizeof(key));
+   key.type = RADV_META_OBJECT_KEY_BLIT2D;
+   key.index = idx;
 
    const VkDescriptorSetLayoutBinding binding = {
       .binding = 0,
@@ -465,16 +311,22 @@ create_layout(struct radv_device *device, int idx, VkPipelineLayout *layout_out)
       .size = 20,
    };
 
-   return vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, &pc_range, key_data,
-                                      strlen(key_data), layout_out);
+   return vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, &desc_info, &pc_range, &key, sizeof(key),
+                                      layout_out);
 }
+
+struct radv_blit2d_color_key {
+   enum radv_meta_object_key_type type;
+   enum blit2d_src_type src_type;
+   uint32_t log2_samples;
+   uint32_t fs_key;
+};
 
 static VkResult
 get_color_pipeline(struct radv_device *device, enum blit2d_src_type src_type, VkFormat format, uint32_t log2_samples,
                    VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
-   const unsigned fs_key = radv_format_meta_fs_key(device, format);
-   char key_data[64];
+   struct radv_blit2d_color_key key;
    const char *name;
    VkResult result;
 
@@ -482,20 +334,30 @@ get_color_pipeline(struct radv_device *device, enum blit2d_src_type src_type, Vk
    if (result != VK_SUCCESS)
       return result;
 
-   snprintf(key_data, sizeof(key_data), "radv-blit2d-color-%d-%d-%d", src_type, log2_samples, fs_key);
+   memset(&key, 0, sizeof(key));
+   key.type = RADV_META_OBJECT_KEY_BLIT2D_COLOR;
+   key.src_type = src_type;
+   key.log2_samples = log2_samples;
+   key.fs_key = radv_format_meta_fs_key(device, format);
 
-   texel_fetch_build_func src_func;
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, &key, sizeof(key));
+   if (pipeline_from_cache != VK_NULL_HANDLE) {
+      *pipeline_out = pipeline_from_cache;
+      return VK_SUCCESS;
+   }
+
+   radv_meta_nir_texel_fetch_build_func src_func = NULL;
    switch (src_type) {
    case BLIT2D_SRC_TYPE_IMAGE:
-      src_func = build_nir_texel_fetch;
+      src_func = radv_meta_nir_build_blit2d_texel_fetch;
       name = "meta_blit2d_image_fs";
       break;
    case BLIT2D_SRC_TYPE_IMAGE_3D:
-      src_func = build_nir_texel_fetch;
+      src_func = radv_meta_nir_build_blit2d_texel_fetch;
       name = "meta_blit3d_image_fs";
       break;
    case BLIT2D_SRC_TYPE_BUFFER:
-      src_func = build_nir_buffer_fetch;
+      src_func = radv_meta_nir_build_blit2d_buffer_fetch;
       name = "meta_blit2d_buffer_fs";
       break;
    default:
@@ -503,9 +365,9 @@ get_color_pipeline(struct radv_device *device, enum blit2d_src_type src_type, Vk
       break;
    }
 
-   nir_shader *vs_module = build_nir_vertex_shader(device);
-   nir_shader *fs_module =
-      build_nir_copy_fragment_shader(device, src_func, name, src_type == BLIT2D_SRC_TYPE_IMAGE_3D, log2_samples > 0);
+   nir_shader *vs_module = radv_meta_nir_build_blit2d_vertex_shader(device);
+   nir_shader *fs_module = radv_meta_nir_build_blit2d_copy_fragment_shader(
+      device, src_func, name, src_type == BLIT2D_SRC_TYPE_IMAGE_3D, log2_samples > 0);
 
    const VkGraphicsPipelineCreateInfo pipeline_create_info = {
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -588,18 +450,24 @@ get_color_pipeline(struct radv_device *device, enum blit2d_src_type src_type, Vk
    };
 
    result = vk_meta_create_graphics_pipeline(&device->vk, &device->meta_state.device, &pipeline_create_info, &render,
-                                             key_data, strlen(key_data), pipeline_out);
+                                             &key, sizeof(key), pipeline_out);
 
    ralloc_free(vs_module);
    ralloc_free(fs_module);
    return result;
 }
 
+struct radv_blit2d_ds_key {
+   enum radv_meta_object_key_type type;
+   enum blit2d_src_type src_type;
+   uint32_t log2_samples;
+};
+
 static VkResult
 get_depth_only_pipeline(struct radv_device *device, enum blit2d_src_type src_type, uint32_t log2_samples,
                         VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
-   char key_data[64];
+   struct radv_blit2d_ds_key key;
    const char *name;
    VkResult result;
 
@@ -607,20 +475,29 @@ get_depth_only_pipeline(struct radv_device *device, enum blit2d_src_type src_typ
    if (result != VK_SUCCESS)
       return result;
 
-   snprintf(key_data, sizeof(key_data), "radv-blit2d-depth-%d-%d", src_type, log2_samples);
+   memset(&key, 0, sizeof(key));
+   key.type = RADV_META_OBJECT_KEY_BLIT2D_DEPTH;
+   key.src_type = src_type;
+   key.log2_samples = log2_samples;
 
-   texel_fetch_build_func src_func;
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, &key, sizeof(key));
+   if (pipeline_from_cache != VK_NULL_HANDLE) {
+      *pipeline_out = pipeline_from_cache;
+      return VK_SUCCESS;
+   }
+
+   radv_meta_nir_texel_fetch_build_func src_func;
    switch (src_type) {
    case BLIT2D_SRC_TYPE_IMAGE:
-      src_func = build_nir_texel_fetch;
+      src_func = radv_meta_nir_build_blit2d_texel_fetch;
       name = "meta_blit2d_depth_image_fs";
       break;
    case BLIT2D_SRC_TYPE_IMAGE_3D:
-      src_func = build_nir_texel_fetch;
+      src_func = radv_meta_nir_build_blit2d_texel_fetch;
       name = "meta_blit3d_depth_image_fs";
       break;
    case BLIT2D_SRC_TYPE_BUFFER:
-      src_func = build_nir_buffer_fetch;
+      src_func = radv_meta_nir_build_blit2d_buffer_fetch;
       name = "meta_blit2d_depth_buffer_fs";
       break;
    default:
@@ -628,9 +505,9 @@ get_depth_only_pipeline(struct radv_device *device, enum blit2d_src_type src_typ
       break;
    }
 
-   nir_shader *vs_module = build_nir_vertex_shader(device);
-   nir_shader *fs_module = build_nir_copy_fragment_shader_depth(device, src_func, name,
-                                                                src_type == BLIT2D_SRC_TYPE_IMAGE_3D, log2_samples > 0);
+   nir_shader *vs_module = radv_meta_nir_build_blit2d_vertex_shader(device);
+   nir_shader *fs_module = radv_meta_nir_build_blit2d_copy_fragment_shader_depth(
+      device, src_func, name, src_type == BLIT2D_SRC_TYPE_IMAGE_3D, log2_samples > 0);
 
    const VkGraphicsPipelineCreateInfo pipeline_create_info = {
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -737,7 +614,7 @@ get_depth_only_pipeline(struct radv_device *device, enum blit2d_src_type src_typ
    };
 
    result = vk_meta_create_graphics_pipeline(&device->vk, &device->meta_state.device, &pipeline_create_info, &render,
-                                             key_data, strlen(key_data), pipeline_out);
+                                             &key, sizeof(key), pipeline_out);
 
    ralloc_free(vs_module);
    ralloc_free(fs_module);
@@ -748,7 +625,7 @@ static VkResult
 get_stencil_only_pipeline(struct radv_device *device, enum blit2d_src_type src_type, uint32_t log2_samples,
                           VkPipeline *pipeline_out, VkPipelineLayout *layout_out)
 {
-   char key_data[64];
+   struct radv_blit2d_ds_key key;
    const char *name;
    VkResult result;
 
@@ -756,20 +633,29 @@ get_stencil_only_pipeline(struct radv_device *device, enum blit2d_src_type src_t
    if (result != VK_SUCCESS)
       return result;
 
-   snprintf(key_data, sizeof(key_data), "radv-blit2d-stencil-%d-%d", src_type, log2_samples);
+   memset(&key, 0, sizeof(key));
+   key.type = RADV_META_OBJECT_KEY_BLIT2D_STENCIL;
+   key.src_type = src_type;
+   key.log2_samples = log2_samples;
 
-   texel_fetch_build_func src_func;
+   VkPipeline pipeline_from_cache = vk_meta_lookup_pipeline(&device->meta_state.device, &key, sizeof(key));
+   if (pipeline_from_cache != VK_NULL_HANDLE) {
+      *pipeline_out = pipeline_from_cache;
+      return VK_SUCCESS;
+   }
+
+   radv_meta_nir_texel_fetch_build_func src_func;
    switch (src_type) {
    case BLIT2D_SRC_TYPE_IMAGE:
-      src_func = build_nir_texel_fetch;
+      src_func = radv_meta_nir_build_blit2d_texel_fetch;
       name = "meta_blit2d_stencil_image_fs";
       break;
    case BLIT2D_SRC_TYPE_IMAGE_3D:
-      src_func = build_nir_texel_fetch;
+      src_func = radv_meta_nir_build_blit2d_texel_fetch;
       name = "meta_blit3d_stencil_image_fs";
       break;
    case BLIT2D_SRC_TYPE_BUFFER:
-      src_func = build_nir_buffer_fetch;
+      src_func = radv_meta_nir_build_blit2d_buffer_fetch;
       name = "meta_blit2d_stencil_buffer_fs";
       break;
    default:
@@ -777,8 +663,8 @@ get_stencil_only_pipeline(struct radv_device *device, enum blit2d_src_type src_t
       break;
    }
 
-   nir_shader *vs_module = build_nir_vertex_shader(device);
-   nir_shader *fs_module = build_nir_copy_fragment_shader_stencil(
+   nir_shader *vs_module = radv_meta_nir_build_blit2d_vertex_shader(device);
+   nir_shader *fs_module = radv_meta_nir_build_blit2d_copy_fragment_shader_stencil(
       device, src_func, name, src_type == BLIT2D_SRC_TYPE_IMAGE_3D, log2_samples > 0);
 
    const VkGraphicsPipelineCreateInfo pipeline_create_info = {
@@ -881,7 +767,7 @@ get_stencil_only_pipeline(struct radv_device *device, enum blit2d_src_type src_t
    };
 
    result = vk_meta_create_graphics_pipeline(&device->vk, &device->meta_state.device, &pipeline_create_info, &render,
-                                             key_data, strlen(key_data), pipeline_out);
+                                             &key, sizeof(key), pipeline_out);
 
    ralloc_free(vs_module);
    ralloc_free(fs_module);

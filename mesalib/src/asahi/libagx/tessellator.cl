@@ -728,7 +728,7 @@ libagx_tess_isoline(constant struct libagx_tess_args *p,
                     enum libagx_tess_mode mode__2)
 {
    enum libagx_tess_mode mode = mode__2;
-   uint patch = get_global_id(0);
+   uint patch = cl_global_id.x;
    enum libagx_tess_partitioning partitioning = p->partitioning;
 
    bool lineDensityOdd;
@@ -830,7 +830,7 @@ libagx_tess_tri(constant struct libagx_tess_args *p,
                 enum libagx_tess_mode mode__2)
 {
    enum libagx_tess_mode mode = mode__2;
-   uint patch = get_global_id(0);
+   uint patch = cl_global_id.x;
    enum libagx_tess_partitioning partitioning = p->partitioning;
 
    global float *factors = tess_factors(p, patch);
@@ -1158,7 +1158,7 @@ libagx_tess_quad(constant struct libagx_tess_args *p,
                  enum libagx_tess_mode mode__2)
 {
    enum libagx_tess_mode mode = mode__2;
-   uint patch = get_global_id(0);
+   uint patch = cl_global_id.x;
    enum libagx_tess_partitioning partitioning = p->partitioning;
    global float *factors = tess_factors(p, patch);
 

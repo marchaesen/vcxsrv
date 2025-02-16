@@ -114,14 +114,14 @@ Optimizations which depend on register assignment (like branching on VCCZ) are p
 
 The next step is a pass out of SSA by inserting parallelcopies at the end of blocks to match the phi nodes' semantics.
 
-#### Jump Threading
-
-This pass aims to eliminate empty or unnecessary basic blocks. As this introduces critical edges, it can only be performed after SSA elimination.
-
 #### Lower to HW instructions
 
 Most pseudo instructions are lowered to actual machine instructions.
 These are mostly parallel copy instructions created by instruction selection or register allocation and spill/reload code.
+
+#### Lower Branches
+
+Pseudo-Branch instructions are either lowered to machine instructions or removed. This pass also removes useless exec writes, performs jump-threading and eliminates empty or unnecessary basic blocks.
 
 #### VOPD Scheduling
 

@@ -1,11 +1,10 @@
 # piglit failures
 glx@glx-multithread-texture,Fail
-glx@glx-visuals-depth -pixmap,Crash
-glx@glx-visuals-stencil -pixmap,Crash
+glx@glx-visuals-depth -pixmap,Fail
+glx@glx-visuals-stencil -pixmap,Fail
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
 glx@glx-swap-event_interval,Fail
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
@@ -30,8 +29,6 @@ spec@oes_shader_io_blocks@compiler@layout-location-aliasing.vert,Fail
 spec@arb_bindless_texture@compiler@samplers@arith-bound-sampler-texture2d.frag,Crash
 
 # glcts failures
-GTF-GL46.gtf30.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_multisample,Fail
-GTF-GL46.gtf32.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_32_multisample,Fail
 KHR-GL46.shader_image_load_store.basic-allTargets-atomic,Fail
 ## Fail because GFX10+ removed MS texture support (see si_get_sparse_texture_virtual_page_size)
 KHR-GL46.sparse_texture2_tests.SparseTexture2Allocation,Fail

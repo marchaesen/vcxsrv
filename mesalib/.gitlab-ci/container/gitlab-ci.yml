@@ -72,6 +72,7 @@ debian/x86_64_build-base:
     - .debian-container
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
+    LLVM_VERSION: &debian-x86_64-llvm 19
 
 .use-debian/x86_64_build-base:
   extends:
@@ -82,6 +83,7 @@ debian/x86_64_build-base:
     MESA_BASE_IMAGE: ${DEBIAN_X86_64_BUILD_BASE_IMAGE}
     MESA_BASE_TAG: *debian-x86_64_build-base
     MESA_ARTIFACTS_BASE_TAG: *debian-x86_64_build-base
+    LLVM_VERSION: *debian-x86_64-llvm
   needs:
     - debian/x86_64_build-base
 
@@ -91,6 +93,7 @@ debian/x86_64_build:
     - .use-debian/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build ${DEBIAN_BUILD_TAG}
+    LLVM_VERSION: *debian-x86_64-llvm
 
 .use-debian/x86_64_build:
   extends:
@@ -99,6 +102,7 @@ debian/x86_64_build:
     MESA_BASE_TAG: *debian-x86_64_build-base
     MESA_IMAGE_PATH: ${DEBIAN_X86_64_BUILD_IMAGE_PATH}
     MESA_IMAGE_TAG: *debian-x86_64_build
+    LLVM_VERSION: *debian-x86_64-llvm
   needs:
     - debian/x86_64_build
 
@@ -116,6 +120,7 @@ debian/x86_32_build:
     MESA_BASE_TAG: *debian-x86_64_build-base
     MESA_IMAGE_PATH: "debian/x86_32_build"
     MESA_IMAGE_TAG: *debian-x86_32_build
+    LLVM_VERSION: *debian-x86_64-llvm
   needs:
     - debian/x86_32_build
 
@@ -125,6 +130,7 @@ debian/ppc64el_build:
     - .use-debian/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &debian-ppc64el_build ${DEBIAN_BUILD_TAG}
+    LLVM_VERSION: &debian-ppc64el-llvm 15 # no LLVM packages for PPC
 
 .use-debian/ppc64el_build:
   extends:
@@ -133,6 +139,7 @@ debian/ppc64el_build:
     MESA_BASE_TAG: *debian-x86_64_build-base
     MESA_IMAGE_PATH: "debian/ppc64el_build"
     MESA_IMAGE_TAG: *debian-ppc64el_build
+    LLVM_VERSION: *debian-ppc64el-llvm
   needs:
     - debian/ppc64el_build
 
@@ -142,6 +149,7 @@ debian/s390x_build:
     - .use-debian/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &debian-s390x_build ${DEBIAN_BUILD_TAG}
+    LLVM_VERSION: &debian-s390x-llvm 19
 
 .use-debian/s390x_build:
   extends:
@@ -150,16 +158,21 @@ debian/s390x_build:
     MESA_BASE_TAG: *debian-x86_64_build-base
     MESA_IMAGE_PATH: "debian/s390x_build"
     MESA_IMAGE_TAG: *debian-s390x_build
+    LLVM_VERSION: *debian-s390x-llvm
   needs:
     - debian/s390x_build
 
 # Android NDK cross-build image
 .android-variables:
   variables:
-    ANDROID_SDK_VERSION: 33
-    ANDROID_NDK: android-ndk-r25b
+    ANDROID_NDK_VERSION: "r27c"
+    ANDROID_SDK_VERSION: 34
     ANDROID_LLVM_VERSION: llvmorg-18.1.8
-    ANDROID_LLVM_ARTIFACT_NAME: android-x86_64-llvm-20241219
+    ANDROID_LLVM_ARTIFACT_NAME: android-x86_64-llvm-20250103
+    # This can be confusing: LLVM_VERSION refers to the host LLVM toolchain
+    # used (LLVM 19 in our Debian system), but ANDROID_LLVM_VERSION refers to
+    # the cross-compiling LLVM toolchain used to build for the Android system.
+    LLVM_VERSION: &debian-android-llvm 19
 
 debian/android_build:
   extends:
@@ -179,154 +192,6 @@ debian/android_build:
   needs:
     - debian/android_build
 
-# Debian based x86_64 test image base
-debian/x86_64_test-base:
-  extends:
-    - .debian-container
-  variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}--${KERNEL_TAG}"
-
-.use-debian/x86_64_test-base:
-  extends:
-    - .fdo.container-build@debian
-    - .debian-container-version
-    - .use-base-image
-  variables:
-    MESA_BASE_IMAGE: ${DEBIAN_X86_64_TEST_BASE_IMAGE}
-    MESA_BASE_TAG: *debian-x86_64_test-base
-  needs:
-    - debian/x86_64_test-base
-
-# Debian based aarch64 test image base
-debian/arm64_test-base:
-  tags:
-    - aarch64
-  extends:
-    - .debian-container
-  variables:
-    MESA_IMAGE_TAG: &debian-arm64_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
-
-.use-debian/arm64_test-base:
-  tags:
-    - aarch64
-  extends:
-    - .fdo.container-build@debian
-    - .debian-container-version
-    - .use-base-image
-  variables:
-    MESA_BASE_IMAGE: ${DEBIAN_ARM64_TEST_BASE_IMAGE}
-    MESA_BASE_TAG: *debian-arm64_test-base
-  needs:
-    - debian/arm64_test-base
-
-# Debian based x86_64 test image for GL
-debian/x86_64_test-gl:
-  extends: .use-debian/x86_64_test-base
-  variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-gl ${DEBIAN_TEST_GL_TAG}
-
-.use-debian/x86_64_test-gl:
-  extends:
-    - .set-image-base-tag
-  variables:
-    MESA_BASE_TAG: *debian-x86_64_test-base
-    MESA_IMAGE_PATH: ${DEBIAN_X86_64_TEST_IMAGE_GL_PATH}
-    MESA_IMAGE_TAG: *debian-x86_64_test-gl
-  needs:
-    - debian/x86_64_test-gl
-
-# Debian based x86_64 test image for VK
-debian/x86_64_test-vk:
-  extends: .use-debian/x86_64_test-base
-  variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-vk ${DEBIAN_TEST_VK_TAG}
-
-.use-debian/x86_64_test-vk:
-  extends:
-    - .set-image-base-tag
-  variables:
-    MESA_BASE_TAG: *debian-x86_64_test-base
-    MESA_IMAGE_PATH: ${DEBIAN_X86_64_TEST_IMAGE_VK_PATH}
-    MESA_IMAGE_TAG: *debian-x86_64_test-vk
-  needs:
-    - debian/x86_64_test-vk
-
-# Debian based x86_64 test image for Android
-.debian/x86_64_test-android:
-  extends:
-    - .android-variables
-    - .use-debian/x86_64_test-base
-  variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-android ${DEBIAN_TEST_ANDROID_TAG}
-
-.use-debian/x86_64_test-android:
-  extends:
-    - .set-image-base-tag
-  variables:
-    MESA_BASE_TAG: *debian-x86_64_test-base
-    MESA_IMAGE_PATH: ${DEBIAN_X86_64_TEST_ANDROID_IMAGE_PATH}
-    MESA_IMAGE_TAG: *debian-x86_64_test-android
-  needs:
-    - debian/x86_64_test-android
-
-# Debian-based x86_64 image to run Python utilities
-debian/x86_64_pyutils:
-  extends:
-    - .debian-container
-  variables:
-    MESA_IMAGE_TAG: &debian-x86_64_pyutils "${DEBIAN_PYUTILS_TAG}"
-
-.use-debian/x86_64_pyutils:
-  extends:
-    - .fdo.container-build@debian
-    - .debian-container-version
-    - .set-image
-  variables:
-    MESA_IMAGE_PATH: ${DEBIAN_PYUTILS_IMAGE}
-    MESA_IMAGE_TAG: *debian-x86_64_pyutils
-  needs:
-    - debian/x86_64_pyutils
-
-# Debian based aarch64 test image for GL
-debian/arm64_test-gl:
-  tags:
-    - aarch64
-  extends: .use-debian/arm64_test-base
-  variables:
-    MESA_IMAGE_TAG: &debian-arm64_test-gl ${DEBIAN_TEST_GL_TAG}
-
-.use-debian/arm64_test-gl:
-  tags:
-    - aarch64
-  extends:
-    - .set-image-base-tag
-  variables:
-    MESA_BASE_TAG: *debian-arm64_test-base
-    MESA_IMAGE_PATH: ${DEBIAN_ARM64_TEST_IMAGE_GL_PATH}
-    MESA_IMAGE_TAG: *debian-arm64_test-gl
-  needs:
-    - debian/arm64_test-gl
-
-# Debian based aarch64 test image for VK
-debian/arm64_test-vk:
-  tags:
-    - aarch64
-  extends: .use-debian/arm64_test-base
-  variables:
-    MESA_IMAGE_TAG: &debian-arm64_test-vk ${DEBIAN_TEST_VK_TAG}
-
-.use-debian/arm64_test-vk:
-  tags:
-    - aarch64
-  extends:
-    - .set-image-base-tag
-  variables:
-    MESA_BASE_TAG: *debian-arm64_test-base
-    MESA_IMAGE_PATH: ${DEBIAN_ARM64_TEST_IMAGE_VK_PATH}
-    MESA_IMAGE_TAG: *debian-arm64_test-vk
-  needs:
-    - debian/arm64_test-vk
-
 # Debian based ARM build image
 debian/arm64_build:
   extends:
@@ -337,6 +202,7 @@ debian/arm64_build:
     - aarch64
   variables:
     MESA_IMAGE_TAG: &debian-arm64_build "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
+    LLVM_VERSION: &debian-arm64-llvm 19
 
 .use-debian/arm64_build:
   extends:
@@ -345,9 +211,9 @@ debian/arm64_build:
     MESA_IMAGE_PATH: "debian/arm64_build"
     MESA_IMAGE_TAG: *debian-arm64_build
     MESA_ARTIFACTS_TAG: *debian-arm64_build
+    LLVM_VERSION: *debian-arm64-llvm
   needs:
     - debian/arm64_build
-
 
 # Alpine based x86_64 build image
 .alpine/x86_64_build-base:
@@ -399,6 +265,7 @@ fedora/x86_64_build:
   variables:
     FDO_DISTRIBUTION_VERSION: 41
     MESA_IMAGE_TAG: &fedora-x86_64_build ${FEDORA_X86_64_BUILD_TAG}
+    LLVM_VERSION: &fedora-x86_64-llvm 19
 
 .use-fedora/x86_64_build:
   extends:
@@ -406,8 +273,228 @@ fedora/x86_64_build:
   variables:
     MESA_IMAGE_PATH: "fedora/x86_64_build"
     MESA_IMAGE_TAG: *fedora-x86_64_build
+    LLVM_VERSION: *fedora-x86_64-llvm
   needs:
     - fedora/x86_64_build
+
+# Debian based x86_64 test image base
+debian/x86_64_test-base:
+  extends:
+    - .debian-container
+  variables:
+    MESA_IMAGE_TAG: &debian-x86_64_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}--${KERNEL_TAG}"
+    LLVM_VERSION: *debian-x86_64-llvm
+
+.use-debian/x86_64_test-base:
+  extends:
+    - .fdo.container-build@debian
+    - .debian-container-version
+    - .use-base-image
+  variables:
+    MESA_BASE_IMAGE: ${DEBIAN_X86_64_TEST_BASE_IMAGE}
+    MESA_BASE_TAG: *debian-x86_64_test-base
+    LLVM_VERSION: *debian-x86_64-llvm
+  needs:
+    - debian/x86_64_test-base
+
+# Debian based ARMv7/armhf test image base
+debian/arm32_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .debian-container
+    - .firmware_arm32
+  variables:
+    MESA_IMAGE_TAG: &debian-arm32_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
+    LLVM_VERSION: *debian-arm64-llvm
+    FDO_DISTRIBUTION_PLATFORM: "linux/arm/v7"
+
+.use-debian/arm32_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .fdo.container-build@debian
+    - .debian-container-version
+    - .use-base-image
+  variables:
+    MESA_BASE_IMAGE: ${DEBIAN_ARM32_TEST_BASE_IMAGE}
+    MESA_BASE_TAG: *debian-arm32_test-base
+    LLVM_VERSION: *debian-arm64-llvm
+    FDO_DISTRIBUTION_PLATFORM: "linux/arm/v7"
+  needs:
+    - debian/arm32_test-base
+
+# Debian based aarch64 test image base
+debian/arm64_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .debian-container
+  variables:
+    MESA_IMAGE_TAG: &debian-arm64_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
+    LLVM_VERSION: *debian-arm64-llvm
+
+.use-debian/arm64_test-base:
+  tags:
+    - aarch64
+  extends:
+    - .fdo.container-build@debian
+    - .debian-container-version
+    - .use-base-image
+  variables:
+    MESA_BASE_IMAGE: ${DEBIAN_ARM64_TEST_BASE_IMAGE}
+    MESA_BASE_TAG: *debian-arm64_test-base
+    LLVM_VERSION: *debian-arm64-llvm
+  needs:
+    - debian/arm64_test-base
+
+# Debian based x86_64 test image for GL
+debian/x86_64_test-gl:
+  extends: .use-debian/x86_64_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-x86_64_test-gl ${DEBIAN_TEST_GL_TAG}
+
+.use-debian/x86_64_test-gl:
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-x86_64_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_X86_64_TEST_IMAGE_GL_PATH}
+    MESA_IMAGE_TAG: *debian-x86_64_test-gl
+  needs:
+    - debian/x86_64_test-gl
+
+# Debian based x86_64 test image for VK
+debian/x86_64_test-vk:
+  extends: .use-debian/x86_64_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-x86_64_test-vk ${DEBIAN_TEST_VK_TAG}
+
+.use-debian/x86_64_test-vk:
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-x86_64_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_X86_64_TEST_IMAGE_VK_PATH}
+    MESA_IMAGE_TAG: *debian-x86_64_test-vk
+  needs:
+    - debian/x86_64_test-vk
+
+# Debian based x86_64 test image for Android
+debian/x86_64_test-android:
+  extends:
+    - .android-variables
+    - .use-debian/x86_64_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-x86_64_test-android ${DEBIAN_TEST_ANDROID_TAG}
+
+.use-debian/x86_64_test-android:
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-x86_64_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_X86_64_TEST_ANDROID_IMAGE_PATH}
+    MESA_IMAGE_TAG: *debian-x86_64_test-android
+  needs:
+    - debian/x86_64_test-android
+
+# Debian-based x86_64 image to run Python utilities
+debian/x86_64_pyutils:
+  extends:
+    - .debian-container
+  variables:
+    MESA_IMAGE_TAG: &debian-x86_64_pyutils "${DEBIAN_PYUTILS_TAG}"
+
+.use-debian/x86_64_pyutils:
+  extends:
+    - .fdo.container-build@debian
+    - .debian-container-version
+    - .set-image
+  variables:
+    MESA_IMAGE_PATH: ${DEBIAN_PYUTILS_IMAGE}
+    MESA_IMAGE_TAG: *debian-x86_64_pyutils
+  needs:
+    - debian/x86_64_pyutils
+
+# Debian based ARMv7/armhf test image for GL
+debian/arm32_test-gl:
+  tags:
+    - aarch64
+  extends: .use-debian/arm32_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm32_test-gl ${DEBIAN_TEST_GL_TAG}
+
+.use-debian/arm32_test-gl:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm32_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM32_TEST_IMAGE_GL_PATH}
+    MESA_IMAGE_TAG: *debian-arm32_test-gl
+  needs:
+    - debian/arm32_test-gl
+
+# Debian based ARMv7/armhf test image for VK
+debian/arm32_test-vk:
+  tags:
+    - aarch64
+  extends: .use-debian/arm32_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm32_test-vk ${DEBIAN_TEST_VK_TAG}
+
+.use-debian/arm32_test-vk:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm32_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM32_TEST_IMAGE_VK_PATH}
+    MESA_IMAGE_TAG: *debian-arm32_test-vk
+  needs:
+    - debian/arm32_test-vk
+
+# Debian based aarch64 test image for GL
+debian/arm64_test-gl:
+  tags:
+    - aarch64
+  extends: .use-debian/arm64_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm64_test-gl ${DEBIAN_TEST_GL_TAG}
+
+.use-debian/arm64_test-gl:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm64_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM64_TEST_IMAGE_GL_PATH}
+    MESA_IMAGE_TAG: *debian-arm64_test-gl
+  needs:
+    - debian/arm64_test-gl
+
+# Debian based aarch64 test image for VK
+debian/arm64_test-vk:
+  tags:
+    - aarch64
+  extends: .use-debian/arm64_test-base
+  variables:
+    MESA_IMAGE_TAG: &debian-arm64_test-vk ${DEBIAN_TEST_VK_TAG}
+
+.use-debian/arm64_test-vk:
+  tags:
+    - aarch64
+  extends:
+    - .set-image-base-tag
+  variables:
+    MESA_BASE_TAG: *debian-arm64_test-base
+    MESA_IMAGE_PATH: ${DEBIAN_ARM64_TEST_IMAGE_VK_PATH}
+    MESA_IMAGE_TAG: *debian-arm64_test-vk
+  needs:
+    - debian/arm64_test-vk
 
 # Get firmware directly rather than using package versions.
 # Change KERNEL_ROOTFS_TAG to add firmware changes.
@@ -415,6 +502,7 @@ fedora/x86_64_build:
 .firmware_x86_64:
   variables:
     FIRMWARE_FILES: |
+      .gitlab-ci/firmware/i915/adlp-fw.json
       .gitlab-ci/firmware/i915/mtl-fw.json
 
 .firmware_arm64:
@@ -431,7 +519,7 @@ fedora/x86_64_build:
     - .container+build-rules
     - .debian-container-version
   stage: container
-  timeout: 90m
+  timeout: 120m
   variables:
     GIT_STRATEGY: fetch
     MESA_ROOTFS_TAG: &kernel-rootfs ${KERNEL_ROOTFS_TAG}
@@ -448,6 +536,7 @@ kernel+rootfs_x86_64:
   variables:
     DEBIAN_ARCH: "amd64"
     DISTRIBUTION_TAG: &distribution-tag-x86_64 "${MESA_ROOTFS_TAG}--${KERNEL_TAG}--${MESA_ARTIFACTS_BASE_TAG}--${MESA_TEMPLATES_COMMIT}"
+    LLVM_VERSION: *debian-x86_64-llvm
 
 kernel+rootfs_arm64:
   extends:
@@ -458,6 +547,7 @@ kernel+rootfs_arm64:
     - aarch64
   variables:
     DEBIAN_ARCH: "arm64"
+    LLVM_VERSION: *debian-arm64-llvm
 
 kernel+rootfs_arm32:
   extends:
@@ -465,6 +555,7 @@ kernel+rootfs_arm32:
     - .firmware_arm32
   variables:
     DEBIAN_ARCH: "armhf"
+    LLVM_VERSION: &debian-arm32-llvm 15 # no armhf builds for LLVM
 
 # Cannot use anchors defined here from included files, so use extends: instead
 .use-kernel+rootfs-arm:

@@ -10,7 +10,7 @@ VkResult
 panvk_per_arch(device_check_status)(struct vk_device *vk_dev)
 {
    struct panvk_device *dev = to_panvk_device(vk_dev);
-   VkResult result = VK_SUCCESS;
+   VkResult result = panvk_common_check_status(dev);
 
    for (uint32_t qfi = 0; qfi < PANVK_MAX_QUEUE_FAMILIES; qfi++) {
       for (uint32_t q = 0; q < dev->queue_count[qfi]; q++) {

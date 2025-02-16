@@ -4,7 +4,6 @@ glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth,Fail
 glx@glx-visuals-depth -pixmap,Fail
 glx@glx-visuals-stencil -pixmap,Fail
-glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_sync_control@waitformsc,Fail
 shaders@glsl-max-varyings >max_varying_components,Fail
