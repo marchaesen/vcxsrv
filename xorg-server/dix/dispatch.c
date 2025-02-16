@@ -514,7 +514,7 @@ void DispatchQueuedEvents(Bool wait)
         else
         {
             int maxwaittime=5-(GetTimeInMillis()-startTime);
-            if (!isThereSomething(clients_are_ready(), maxwaittime))
+            if (maxwaittime<0 || !isThereSomething(clients_are_ready(), maxwaittime))
             {
                 reentrantcheck=0;
                 return;
