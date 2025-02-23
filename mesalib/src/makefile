@@ -11,6 +11,8 @@ $(OBJDIR)/git_sha1.h:
 	@echo "updating $@"
 	@$(PYTHON3) $(top_srcdir)/bin/git_sha1_gen.py --output $@
 
+HAVE_OPENGL=1
+
 ifdef HAVE_OPENGL
 gldir = $(includedir)/GL
 gl_HEADERS = \

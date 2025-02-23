@@ -396,7 +396,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_draw_hw_select.c \
 	state_tracker/st_nir_lower_fog.c \
 	state_tracker/st_nir_builtins.c \
-	state_tracker/st_nir_unlower_io_to_vars.c
+	state_tracker/st_nir_unlower_io_to_vars.c \
+	state_tracker/st_interop.c
 
 PROGRAM_FILES = \
 	program/arbprogparse.c \

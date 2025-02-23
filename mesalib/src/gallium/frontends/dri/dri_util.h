@@ -65,6 +65,12 @@ enum dri_screen_type {
 };
 
 /**
+ * Extensions.
+ */
+extern const __DRIcoreExtension driCoreExtension;
+extern const __DRIswrastExtension driSWRastExtension;
+
+/**
  * Description of the attributes used to create a config.
  *
  * This is passed as the context_config parameter to CreateContext. The idea
@@ -112,6 +118,11 @@ driCreateNewScreen3(int scrn, int fd,
                     enum dri_screen_type type,
                     const struct dri_config ***driver_configs, bool driver_name_is_inferred,
                     bool has_multibuffer, void *data);
+PUBLIC struct dri_screen *
+driCreateNewScreen2(int scrn, int fd,
+                    const __DRIextension **loader_extensions,
+                    const __DRIextension **driver_extensions,
+                    const struct dri_config ***driver_configs, void *data);
 PUBLIC struct dri_context *
 driCreateContextAttribs(struct dri_screen *psp, int api,
                         const struct dri_config *config,

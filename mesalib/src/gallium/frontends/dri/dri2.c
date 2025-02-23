@@ -1658,7 +1658,7 @@ dri2_query_compression_rates(struct dri_screen *screen, const struct dri_config 
    struct pipe_screen *pscreen = screen->base.screen;
    struct gl_config *gl_config = (struct gl_config *) config;
    enum pipe_format format = gl_config->color_format;
-   uint32_t pipe_rates[max];
+   uint32_t *pipe_rates=alloca(max*sizeof(uint32_t));
 
    if (!pscreen->is_format_supported(pscreen, format, screen->target, 0, 0,
                                      PIPE_BIND_RENDER_TARGET))

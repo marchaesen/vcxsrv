@@ -16,7 +16,7 @@ tr_util.c ../../auxiliary/tr_util.h: ../../include/pipe/p_defines.h ../../includ
 	$(PYTHON3) ../../auxiliary/driver_trace/enums2names.py $^ -C tr_util.c -H ../../auxiliary/tr_util.h -I tr_util.h
 
 
-CSRCS := dril_target.c drisw.c dri_context.c dri_screen.c dri_drawable.c dri_helpers.c dri_query_renderer.c dri_util.c \
+CSRCS := dri_target.c drisw.c dri2.c dri_context.c dri_screen.c dri_drawable.c dri_helpers.c dri_query_renderer.c dri_util.c \
   pp_colors.c pp_mlaa.c pp_init.c pp_run.c pp_program.c pp_celshade.c \
   cso_context.c cso_cache.c cso_hash.c \
   u_vbuf.c u_upload_mgr.c u_simple_shaders.c u_bitmask.c u_gen_mipmap.c u_draw.c u_helpers.c u_framebuffer.c u_tile.c u_surface.c u_draw_quad.c u_sampler.c u_screen.c u_pstipple.c u_blitter.c u_texture.c u_transfer.c \

@@ -140,7 +140,7 @@ driCreateNewScreen3(int scrn, int fd,
       pscreen = dri2_init_screen(screen, driver_name_is_inferred);
       break;
    case DRI_SCREEN_KOPPER:
-      pscreen = kopper_init_screen(screen, driver_name_is_inferred);
+//      pscreen = kopper_init_screen(screen, driver_name_is_inferred);
       break;
    case DRI_SCREEN_SWRAST:
       pscreen = drisw_init_screen(screen, driver_name_is_inferred);
@@ -191,6 +191,45 @@ driCreateNewScreen3(int scrn, int fd,
     return screen;
 }
 
+struct dri_screen *
+driCreateNewScreen2(int scrn, int fd,
+                    const __DRIextension **loader_extensions,
+                    const __DRIextension **driver_extensions,
+                    const struct dri_config ***driver_configs, void *data)
+{
+   return driCreateNewScreen3(scrn, fd, loader_extensions,
+                              DRI_SCREEN_SWRAST,
+                              driver_configs, false, false, data);
+}
+
+/** swrast driver createNewScreen entrypoint. */
+static struct dri_screen *
+driSWRastCreateNewScreen(int scrn, const __DRIextension **extensions,
+                         const struct dri_config ***driver_configs, void *data)
+{
+   return driCreateNewScreen3(scrn, -1, extensions,
+                              DRI_SCREEN_SWRAST,
+                              driver_configs, false, false, data);
+}
+
+static struct dri_screen *
+driSWRastCreateNewScreen2(int scrn, const __DRIextension **extensions,
+                          const __DRIextension **driver_extensions,
+                          const struct dri_config ***driver_configs, void *data)
+{
+   return driCreateNewScreen3(scrn, -1, extensions, DRI_SCREEN_SWRAST,
+                               driver_configs, false, false, data);
+}
+
+static struct dri_screen *
+driSWRastCreateNewScreen3(int scrn, const __DRIextension **extensions,
+                          const __DRIextension **driver_extensions,
+                          const struct dri_config ***driver_configs, bool driver_name_is_inferred, void *data)
+{
+   return driCreateNewScreen3(scrn, -1, extensions, DRI_SCREEN_SWRAST,
+                               driver_configs, driver_name_is_inferred, false, data);
+}
+
 /**
  * Destroy the per-screen private information.
  *
@@ -208,6 +247,11 @@ void driDestroyScreen(struct dri_screen *psp)
 
         dri_destroy_screen(psp);
     }
+}
+
+static const __DRIextension **driGetExtensions(struct dri_screen *psp)
+{
+    return psp->screen_extensions;
 }
 
 /*@}*/
@@ -713,6 +757,14 @@ int driUnbindContext(struct dri_context *ctx)
 
 /*@}*/
 
+static struct dri_drawable *
+driCreateNewDrawable(struct dri_screen *screen,
+                     const struct dri_config *config,
+                     void *data)
+{
+  return dri_create_drawable(screen, config, GL_FALSE, data);
+}
+
 void
 driDestroyDrawable(struct dri_drawable *drawable)
 {
@@ -823,6 +875,28 @@ dri2GalliumConfigQuerys(struct dri_screen *screen, const char *var, char **val)
     return 0;
 }
 
+#define __DRI_CORE "DRI_Core"
+#define __DRI_CORE_VERSION 3
+/** Core interface */
+const __DRIcoreExtension driCoreExtension = {
+    .base = { __DRI_CORE, __DRI_CORE_VERSION },
+
+    .createNewScreen            = NULL,
+    .destroyScreen              = driDestroyScreen,
+    .getExtensions              = driGetExtensions,
+    .getConfigAttrib            = driGetConfigAttrib,
+    .indexConfigAttrib          = driIndexConfigAttrib,
+    .createNewDrawable          = NULL,
+    .destroyDrawable            = driDestroyDrawable,
+    .swapBuffers                = driSwapBuffers, /* swrast */
+    .swapBuffersWithDamage      = driSwapBuffersWithDamage, /* swrast */
+    .createNewContext           = driCreateNewContext, /* swrast */
+    .copyContext                = driCopyContext,
+    .destroyContext             = driDestroyContext,
+    .bindContext                = driBindContext,
+    .unbindContext              = driUnbindContext
+};
+
 /**
  * \brief the DRI2ConfigQueryExtension struct.
  *
@@ -871,6 +945,18 @@ driSWRastQueryBufferAge(struct dri_drawable *drawable)
 {
    return drawable->buffer_age;
 }
+
+const __DRIswrastExtension driSWRastExtension = {
+    .base = { __DRI_SWRAST, __DRI_SWRAST_VERSION },
+
+    .createNewScreen            = driSWRastCreateNewScreen,
+    .createNewDrawable          = driCreateNewDrawable,
+    .createNewContextForAPI     = driCreateNewContextForAPI,
+    .createContextAttribs       = driCreateContextAttribs,
+    .createNewScreen2           = driSWRastCreateNewScreen2,
+    .queryBufferAge             = driSWRastQueryBufferAge,
+    .createNewScreen3           = driSWRastCreateNewScreen3,
+};
 
 /*
  * Note: the first match is returned, which is important for formats like

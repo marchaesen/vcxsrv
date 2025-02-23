@@ -27,7 +27,7 @@
 #include "state_tracker/st_texture.h"
 #include "state_tracker/st_context.h"
 #include "main/texobj.h"
-//#include "util/libsync.h"
+#include "util/libsync.h"
 
 #include "dri_helpers.h"
 #include "loader_dri_helper.h"

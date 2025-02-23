@@ -28,175 +28,8 @@
 #ifndef _LIBSYNC_H
 #define _LIBSYNC_H
 
-#include <assert.h>
-#include <errno.h>
-#include <poll.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include <io.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <time.h>
-
-#include "util/detect_os.h"
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-#if DETECT_OS_ANDROID
-/* On Android, rely on the system's libsync instead of rolling our own
- * sync_wait() and sync_merge().  This gives us compatibility with pre-4.7
- * Android kernels.
- */
-#include <android/sync.h>
-
-/**
- * Check if the fd represents a valid fence-fd.
- *
- * The android variant of this debug helper is implemented on top of the
- * system's libsync for compatibility with pre-4.7 android kernels.
- */
-static inline bool
-sync_valid_fd(int fd)
-{
-	/* sync_file_info() only available in SDK 26. */
-#if ANDROID_API_LEVEL >= 26
-	struct sync_file_info *info = sync_file_info(fd);
-	if (!info)
-		return false;
-	sync_file_info_free(info);
-#endif
-	return true;
-}
-#else
-
-#ifndef SYNC_IOC_MERGE
-/* duplicated from linux/sync_file.h to avoid build-time dependency
- * on new (v4.7) kernel headers.  Once distro's are mostly using
- * something newer than v4.7 drop this and #include <linux/sync_file.h>
- * instead.
- */
-struct sync_merge_data {
-	char	name[32];
-	int32_t	fd2;
-	int32_t	fence;
-	uint32_t	flags;
-	uint32_t	pad;
-};
-
-struct sync_fence_info {
-	char obj_name[32];
-	char driver_name[32];
-	int32_t status;
-	uint32_t flags;
-	uint64_t timestamp_ns;
-};
-
-struct sync_file_info {
-	char	name[32];
-	int32_t	status;
-	uint32_t	flags;
-	uint32_t	num_fences;
-	uint32_t	pad;
-
-	uint64_t	sync_fence_info;
-};
-
-#define SYNC_IOC_MAGIC		'>'
-#define SYNC_IOC_MERGE		_IOWR(SYNC_IOC_MAGIC, 3, struct sync_merge_data)
-#define SYNC_IOC_FILE_INFO	_IOWR(SYNC_IOC_MAGIC, 4, struct sync_file_info)
-#endif
-
-
-static inline int sync_wait(int fd, int timeout)
-{
-	struct pollfd fds = {0};
-	int ret;
-	struct timespec poll_start, poll_end;
-
-	fds.fd = fd;
-	fds.events = POLLIN;
-
-	do {
-		clock_gettime(CLOCK_MONOTONIC, &poll_start);
-		ret = poll(&fds, 1, timeout);
-		clock_gettime(CLOCK_MONOTONIC, &poll_end);
-		if (ret > 0) {
-			if (fds.revents & (POLLERR | POLLNVAL)) {
-				errno = EINVAL;
-				return -1;
-			}
-			return 0;
-		} else if (ret == 0) {
-			errno = ETIME;
-			return -1;
-		}
-		timeout -= (poll_end.tv_sec - poll_start.tv_sec) * 1000 +
-			(poll_end.tv_nsec - poll_end.tv_nsec) / 1000000;
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-
-	return ret;
-}
-
-static inline int sync_merge(const char *name, int fd1, int fd2)
-{
-	struct sync_merge_data data = {{0}};
-	int ret;
-
-	data.fd2 = fd2;
-	strncpy(data.name, name, sizeof(data.name));
-
-	do {
-		ret = ioctl(fd1, SYNC_IOC_MERGE, &data);
-	} while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-
-	if (ret < 0)
-		return ret;
-
-	return data.fence;
-}
-
-/**
- * Check if the fd represents a valid fence-fd.
- */
-static inline bool
-sync_valid_fd(int fd)
-{
-	struct sync_file_info info = {{0}};
-	return ioctl(fd, SYNC_IOC_FILE_INFO, &info) >= 0;
-}
-
-static inline struct sync_file_info* sync_file_info(int32_t fd)
-{
-    struct sync_file_info local_info;
-    struct sync_file_info *info;
-    int err;
-
-    memset(&local_info, 0, sizeof(local_info));
-    err = ioctl(fd, SYNC_IOC_FILE_INFO, &local_info);
-    if (err < 0)
-        return NULL;
-
-    info = (struct sync_file_info *)calloc(1, sizeof(struct sync_file_info) +
-                  local_info.num_fences * sizeof(struct sync_fence_info));
-    if (!info)
-        return NULL;
-
-    info->num_fences = local_info.num_fences;
-    info->sync_fence_info = (uint64_t)(uintptr_t)(info + 1);
-
-    err = ioctl(fd, SYNC_IOC_FILE_INFO, info);
-    if (err < 0) {
-        free(info);
-        return NULL;
-    }
-
-    return info;
-}
-
-#endif /* DETECT_OS_ANDROID */
 
 /* accumulate fd2 into fd1.  If *fd1 is not a valid fd then dup fd2,
  * otherwise sync_merge() and close the old *fd1.  This can be used
@@ -226,14 +59,8 @@ static inline int sync_accumulate(const char *name, int *fd1, int fd2)
 		return 0;
 	}
 
-	ret = sync_merge(name, *fd1, fd2);
-	if (ret < 0) {
-		/* leave *fd1 as it is */
-		return ret;
-	}
-
 	close(*fd1);
-	*fd1 = ret;
+	*fd1 = dup(fd2);
 
 	return 0;
 }
@@ -249,10 +76,6 @@ static inline int sync_accumulate(const char *name, int *fd1, int fd2)
    } while (0)
 #else
 #  define validate_fence_fd(fd) do {} while (0)
-#endif
-
-#if defined(__cplusplus)
-}
 #endif
 
 #endif

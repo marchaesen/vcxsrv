@@ -558,12 +558,11 @@ typedef struct dri_screen *
                              const struct dri_config ***driver_configs,
                              void *loaderPrivate);
 typedef struct dri_screen *
-(*__DRIcreateNewScreen3Func)(int screen, int fd,
-                             const __DRIextension **extensions,
-                             const __DRIextension **driver_extensions,
-                             const struct dri_config ***driver_configs,
-                             bool implicit,
-                             void *loaderPrivate);
+(*__DRIcreateNewScreen3Func)(int scrn, int fd,
+                    const __DRIextension **loader_extensions,
+                    enum dri_screen_type type,
+                    const struct dri_config ***driver_configs, bool driver_name_is_inferred,
+                    bool has_multibuffer, void *data);
 
 typedef struct dri_drawable *
 (*__DRIcreateNewDrawableFunc)(struct dri_screen *screen,
@@ -1562,7 +1561,7 @@ typedef struct {
    __DRIcreateContextAttribsFunc createContext;
 
    /* driver function for finishing initialization inside createNewScreen(). */
-   const struct dri_config **(*initScreen)(struct dri_screen *screen, bool driver_name_is_inferred);
+   struct pipe_screen *(*initScreen)(struct dri_screen *screen, bool driver_name_is_inferred);
 
    int (*queryCompatibleRenderOnlyDeviceFd)(int kms_only_fd);
 
@@ -1575,5 +1574,78 @@ typedef struct {
    /* version 2 */
    __DRIcreateNewScreen3Func createNewScreen3;
 } __DRImesaCoreExtension;
+
+/**
+ * This extension provides alternative screen, drawable and context constructors
+ * for swrast DRI functionality.  This is used in conjunction with the core
+ * extension.  Version 1 is required by the X server, and version 3 is used.
+ */
+#define __DRI_SWRAST "DRI_SWRast"
+#define __DRI_SWRAST_VERSION 6
+
+typedef struct __DRIswrastExtensionRec		__DRIswrastExtension;
+struct __DRIswrastExtensionRec {
+    __DRIextension base;
+
+    struct dri_screen *(*createNewScreen)(int screen,
+				    const __DRIextension **extensions,
+				    const struct dri_config ***driver_configs,
+				    void *loaderPrivate);
+
+    struct dri_drawable *(*createNewDrawable)(struct dri_screen *screen,
+					const struct dri_config *config,
+					void *loaderPrivate);
+
+   /* Since version 2 */
+   struct dri_context *(*createNewContextForAPI)(struct dri_screen *screen,
+                                           int api,
+                                           const struct dri_config *config,
+                                           struct dri_context *shared,
+                                           void *data);
+
+   /**
+    * Create a context for a particular API with a set of attributes
+    *
+    * \since version 3
+    *
+    * \sa __DRIdri2ExtensionRec::createContextAttribs
+    */
+   struct dri_context *(*createContextAttribs)(struct dri_screen *screen,
+					 int api,
+					 const struct dri_config *config,
+					 struct dri_context *shared,
+					 unsigned num_attribs,
+					 const uint32_t *attribs,
+					 unsigned *error,
+					 void *loaderPrivate);
+
+   /**
+    * createNewScreen() with the driver extensions passed in.
+    *
+    * \since version 4
+    */
+   struct dri_screen *(*createNewScreen2)(int screen,
+                                    const __DRIextension **loader_extensions,
+                                    const __DRIextension **driver_extensions,
+                                    const struct dri_config ***driver_configs,
+                                    void *loaderPrivate);
+   /**
+    * \since version 5
+   */
+   int (*queryBufferAge)(struct dri_drawable *drawable);
+
+   /**
+    * createNewScreen() with the driver extensions passed in and driver_name_is_inferred load flag.
+    *
+    * \since version 6
+    */
+   struct dri_screen *(*createNewScreen3)(int screen,
+                                    const __DRIextension **loader_extensions,
+                                    const __DRIextension **driver_extensions,
+                                    const struct dri_config ***driver_configs,
+                                    bool driver_name_is_inferred,
+                                    void *loaderPrivate);
+
+};
 
 #endif /* MESA_INTERFACE_H */

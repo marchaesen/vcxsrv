@@ -43,7 +43,7 @@
 #include "dri_helpers.h"
 #include "dri_query_renderer.h"
 
-//#include "util/libsync.h"
+#include "util/libsync.h"
 
 #ifdef HAVE_LIBDRM
 #include <xf86drm.h>
@@ -647,5 +647,39 @@ driswCopySubBuffer(struct dri_drawable *drawable, int x, int y, int w, int h)
 
    drisw_copy_sub_buffer(drawable, x, y, w, h);
 }
+
+/* for swrast only */
+#define __DRI_COPY_SUB_BUFFER "DRI_CopySubBuffer"
+#define __DRI_COPY_SUB_BUFFER_VERSION 1
+typedef struct __DRIcopySubBufferExtensionRec	__DRIcopySubBufferExtension;
+struct __DRIcopySubBufferExtensionRec {
+    __DRIextension base;
+    void (*copySubBuffer)(struct dri_drawable *drawable, int x, int y, int w, int h);
+};
+
+const __DRIcopySubBufferExtension driSWCopySubBufferExtension = {
+   .base = { __DRI_COPY_SUB_BUFFER, 1 },
+
+   .copySubBuffer               = driswCopySubBuffer,
+};
+
+static const __DRImesaCoreExtension mesaCoreExtension = {
+   .base = { __DRI_MESA, 2 },
+   .version_string = MESA_INTERFACE_VERSION_STRING,
+//   .createNewScreen = driCreateNewScreen2,
+   .createContext = driCreateContextAttribs,
+   .initScreen = drisw_init_screen,
+   .createNewScreen3 = driCreateNewScreen3,
+};
+
+/* This is the table of extensions that the loader will dlsym() for. */
+const __DRIextension *galliumsw_driver_extensions[] = {
+    &driCoreExtension.base,
+    &mesaCoreExtension.base,
+    &driSWRastExtension.base,
+    &driSWCopySubBufferExtension.base,
+    &gallium_config_options.base,
+    NULL
+};
 
 /* vim: set sw=3 ts=8 sts=3 expandtab: */
