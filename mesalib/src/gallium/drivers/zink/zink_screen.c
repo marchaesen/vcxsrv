@@ -1113,6 +1113,8 @@ zink_init_screen_caps(struct zink_screen *screen)
 
    caps->post_depth_coverage = screen->info.have_EXT_post_depth_coverage;
 
+   caps->cl_gl_sharing = caps->dmabuf && screen->info.have_KHR_external_semaphore_fd;
+
    caps->string_marker = screen->instance_info->have_EXT_debug_utils;
 
    caps->min_line_width =

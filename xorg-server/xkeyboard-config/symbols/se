@@ -96,6 +96,34 @@ xkb_symbols "dvorak" {
     key <AB10> {[         z,          Z, guillemotleft,        less ]};
 };
 
+partial alphanumeric_keys
+xkb_symbols "colemak" {
+    include "se(basic)"
+    name[Group1]="Swedish (Colemak)";
+
+    key <AD03> {[          f,          F,              dstroke,          ordfeminine ]};
+    key <AD04> {[          p,          P,             Greek_pi,             Greek_PI ]};
+    key <AD05> {[          g,          G,                  eng,                  ENG ]};
+    key <AD06> {[          j,          J,            dead_hook,            dead_horn ]};
+    key <AD07> {[          l,          L,              lstroke,              Lstroke ]};
+    key <AD08> {[          u,          U,                 none,                 none ]};
+    key <AD09> {[          y,          Y,                 none,                  yen ]};
+    key <AD10> {[ odiaeresis, Odiaeresis,               oslash,               Oslash ]};
+    key <AD11> {[      aring,      Aring,       dead_diaeresis,       dead_abovering ]};
+
+    key <AC02> {[          r,          R,           registered,            trademark ]};
+    key <AC03> {[          s,          S,               ssharp,              section ]};
+    key <AC04> {[          t,          T,                thorn,                THORN ]};
+    key <AC05> {[          d,          D,                  eth,                  ETH ]};
+    key <AC07> {[          n,          N,                 none,                 none ]};
+    key <AC08> {[          e,          E,             EuroSign,                 cent ]};
+    key <AC09> {[          i,          I,                 none,                 none ]};
+    key <AC10> {[          o,          O,                   oe,                   OE ]};
+    key <AC11> {[ adiaeresis, Adiaeresis,                   ae,                   AE ]};
+
+    key <AB06> {[          k,          K, rightdoublequotemark, rightsinglequotemark ]};
+};
+
 // A phonetic layout for typing Russian on a Swedish keyboard.
 // Originally by Ivan Popov <pin@konvalo.org>, 2005.
 partial alphanumeric_keys

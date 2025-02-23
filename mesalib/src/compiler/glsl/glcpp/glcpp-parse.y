@@ -1559,7 +1559,7 @@ typedef enum function_status
  * balanced set of parentheses.
  *
  * When called, 'node' should be the opening-parenthesis token, (or
- * perhaps preceeding SPACE tokens). Upon successful return *last will
+ * perhaps preceding SPACE tokens). Upon successful return *last will
  * be the last consumed node, (corresponding to the closing right
  * parenthesis).
  *

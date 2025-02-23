@@ -355,6 +355,11 @@ vn_device_fix_create_info(const struct vn_device *dev,
          VK_EXT_EXTERNAL_MEMORY_ACQUIRE_UNMODIFIED_EXTENSION_NAME;
    }
 
+   if (app_exts->KHR_map_memory2) {
+      /* see vn_physical_device_get_native_extensions */
+      block_exts[block_count++] = VK_KHR_MAP_MEMORY_2_EXTENSION_NAME;
+   }
+
    if (app_exts->EXT_device_memory_report) {
       /* see vn_physical_device_get_native_extensions */
       block_exts[block_count++] = VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME;
@@ -676,10 +681,10 @@ vn_GetDeviceGroupPeerMemoryFeatures(
 }
 
 VkResult
-vn_GetCalibratedTimestampsEXT(
+vn_GetCalibratedTimestampsKHR(
    VkDevice device,
    uint32_t timestampCount,
-   const VkCalibratedTimestampInfoEXT *pTimestampInfos,
+   const VkCalibratedTimestampInfoKHR *pTimestampInfos,
    uint64_t *pTimestamps,
    uint64_t *pMaxDeviation)
 {
@@ -696,10 +701,10 @@ vn_GetCalibratedTimestampsEXT(
 
    for (domain = 0; domain < timestampCount; domain++) {
       switch (pTimestampInfos[domain].timeDomain) {
-      case VK_TIME_DOMAIN_DEVICE_EXT: {
+      case VK_TIME_DOMAIN_DEVICE_KHR: {
          uint64_t device_max_deviation = 0;
 
-         ret = vn_call_vkGetCalibratedTimestampsEXT(
+         ret = vn_call_vkGetCalibratedTimestampsKHR(
             dev->primary_ring, device, 1, &pTimestampInfos[domain],
             &pTimestamps[domain], &device_max_deviation);
 
@@ -709,12 +714,12 @@ vn_GetCalibratedTimestampsEXT(
          max_clock_period = MAX2(max_clock_period, device_max_deviation);
          break;
       }
-      case VK_TIME_DOMAIN_CLOCK_MONOTONIC_EXT:
+      case VK_TIME_DOMAIN_CLOCK_MONOTONIC_KHR:
          pTimestamps[domain] = vk_clock_gettime(CLOCK_MONOTONIC);
          max_clock_period = MAX2(max_clock_period, 1);
          break;
 #ifdef CLOCK_MONOTONIC_RAW
-      case VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_EXT:
+      case VK_TIME_DOMAIN_CLOCK_MONOTONIC_RAW_KHR:
          pTimestamps[domain] = begin;
          break;
 #endif

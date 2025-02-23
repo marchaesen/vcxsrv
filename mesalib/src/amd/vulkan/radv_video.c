@@ -2069,9 +2069,8 @@ rvcn_dec_message_decode(struct radv_cmd_buffer *cmd_buffer, struct radv_video_se
    if (vid->dpb_type != DPB_DYNAMIC_TIER_2)
       return true;
 
-   uint64_t addr;
+   uint64_t addr = dpb->bindings[0].addr;
    radv_cs_add_buffer(device->ws, cmd_buffer->cs, dpb->bindings[0].bo);
-   addr = radv_buffer_get_va(dpb->bindings[0].bo) + dpb->bindings[0].offset;
 
    addr += dpb_array_idx * (dpb->planes[0].surface.u.gfx9.surf_slice_size + dpb->planes[1].surface.u.gfx9.surf_slice_size);
    dynamic_dpb_t2->dpbCurrLo = addr;
@@ -2099,7 +2098,7 @@ rvcn_dec_message_decode(struct radv_cmd_buffer *cmd_buffer, struct radv_video_se
       int f_dpb_array_idx = frame_info->pReferenceSlots[i].pPictureResource->baseArrayLayer + f_dpb_iv->vk.base_array_layer;
 
       radv_cs_add_buffer(device->ws, cmd_buffer->cs, dpb_img->bindings[0].bo);
-      addr = radv_buffer_get_va(dpb_img->bindings[0].bo) + dpb_img->bindings[0].offset;
+      addr = dpb_img->bindings[0].addr;
       addr += f_dpb_array_idx * (dpb_img->planes[0].surface.u.gfx9.surf_slice_size + dpb_img->planes[1].surface.u.gfx9.surf_slice_size);
       dynamic_dpb_t2->dpbAddrLo[i] = addr;
       dynamic_dpb_t2->dpbAddrHi[i] = addr >> 32;
@@ -2108,7 +2107,7 @@ rvcn_dec_message_decode(struct radv_cmd_buffer *cmd_buffer, struct radv_video_se
    }
 
    radv_cs_add_buffer(device->ws, cmd_buffer->cs, dpb->bindings[0].bo);
-   addr = radv_buffer_get_va(dpb->bindings[0].bo) + dpb->bindings[0].offset;
+   addr = dpb->bindings[0].addr;
    addr += dpb_array_idx * (dpb->planes[0].surface.u.gfx9.surf_slice_size + dpb->planes[1].surface.u.gfx9.surf_slice_size);
    dynamic_dpb_t2->dpbCurrLo = addr;
    dynamic_dpb_t2->dpbCurrHi = addr >> 32;
@@ -2541,9 +2540,6 @@ radv_CmdBeginVideoCodingKHR(VkCommandBuffer commandBuffer, const VkVideoBeginCod
 
    cmd_buffer->video.vid = vid;
    cmd_buffer->video.params = params;
-
-   if (vid->encode)
-      radv_video_enc_begin_coding(cmd_buffer);
 }
 
 static void
@@ -2629,12 +2625,6 @@ radv_CmdControlVideoCodingKHR(VkCommandBuffer commandBuffer, const VkVideoCoding
 VKAPI_ATTR void VKAPI_CALL
 radv_CmdEndVideoCodingKHR(VkCommandBuffer commandBuffer, const VkVideoEndCodingInfoKHR *pEndCodingInfo)
 {
-   VK_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
-
-   if (cmd_buffer->video.vid->encode) {
-      radv_video_enc_end_coding(cmd_buffer);
-      return;
-   }
 }
 
 static void
@@ -2673,8 +2663,7 @@ radv_uvd_decode_video(struct radv_cmd_buffer *cmd_buffer, const VkVideoDecodeInf
       struct radv_image_view *dpb_iv =
          radv_image_view_from_handle(frame_info->pSetupReferenceSlot->pPictureResource->imageViewBinding);
       struct radv_image *dpb = dpb_iv->image;
-      send_cmd(cmd_buffer, RDECODE_CMD_DPB_BUFFER, dpb->bindings[0].bo,
-               radv_buffer_get_va(dpb->bindings[0].bo) + dpb->bindings[0].offset);
+      send_cmd(cmd_buffer, RDECODE_CMD_DPB_BUFFER, dpb->bindings[0].bo, dpb->bindings[0].addr);
    }
 
    if (vid->ctx.mem)
@@ -2686,8 +2675,7 @@ radv_uvd_decode_video(struct radv_cmd_buffer *cmd_buffer, const VkVideoDecodeInf
 
    struct radv_image_view *dst_iv = radv_image_view_from_handle(frame_info->dstPictureResource.imageViewBinding);
    struct radv_image *img = dst_iv->image;
-   send_cmd(cmd_buffer, RDECODE_CMD_DECODING_TARGET_BUFFER, img->bindings[0].bo,
-            radv_buffer_get_va(img->bindings[0].bo) + img->bindings[0].offset);
+   send_cmd(cmd_buffer, RDECODE_CMD_DECODING_TARGET_BUFFER, img->bindings[0].bo, img->bindings[0].addr);
    send_cmd(cmd_buffer, RDECODE_CMD_FEEDBACK_BUFFER, fb_bo, radv_buffer_get_va(fb_bo) + fb_offset);
    if (have_it(vid))
       send_cmd(cmd_buffer, RDECODE_CMD_IT_SCALING_TABLE_BUFFER, it_probs_bo,
@@ -2758,8 +2746,7 @@ radv_vcn_decode_video(struct radv_cmd_buffer *cmd_buffer, const VkVideoDecodeInf
       struct radv_image_view *dpb_iv =
          radv_image_view_from_handle(frame_info->pSetupReferenceSlot->pPictureResource->imageViewBinding);
       struct radv_image *dpb = dpb_iv->image;
-      send_cmd(cmd_buffer, RDECODE_CMD_DPB_BUFFER, dpb->bindings[0].bo,
-               radv_buffer_get_va(dpb->bindings[0].bo) + dpb->bindings[0].offset);
+      send_cmd(cmd_buffer, RDECODE_CMD_DPB_BUFFER, dpb->bindings[0].bo, dpb->bindings[0].addr);
    }
 
    if (vid->ctx.mem)
@@ -2771,8 +2758,7 @@ radv_vcn_decode_video(struct radv_cmd_buffer *cmd_buffer, const VkVideoDecodeInf
 
    struct radv_image_view *dst_iv = radv_image_view_from_handle(frame_info->dstPictureResource.imageViewBinding);
    struct radv_image *img = dst_iv->image;
-   send_cmd(cmd_buffer, RDECODE_CMD_DECODING_TARGET_BUFFER, img->bindings[0].bo,
-            radv_buffer_get_va(img->bindings[0].bo) + img->bindings[0].offset);
+   send_cmd(cmd_buffer, RDECODE_CMD_DECODING_TARGET_BUFFER, img->bindings[0].bo, img->bindings[0].addr);
    send_cmd(cmd_buffer, RDECODE_CMD_FEEDBACK_BUFFER, fb_bo, radv_buffer_get_va(fb_bo) + fb_offset);
    if (have_it(vid))
       send_cmd(cmd_buffer, RDECODE_CMD_IT_SCALING_TABLE_BUFFER, it_probs_bo,

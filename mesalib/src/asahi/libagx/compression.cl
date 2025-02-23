@@ -107,12 +107,12 @@ libagx_decompress(constant struct libagx_decompress_images *images,
       if (samples == 1) {
          texels[i] = nir_bindless_image_load(
             HANDLE(compressed), c_sa, 0, 0, GLSL_SAMPLER_DIM_2D, true, 0,
-            ACCESS_IN_BOUNDS_AGX, nir_type_uint32);
+            ACCESS_IN_BOUNDS, nir_type_uint32);
       } else {
          int4 dec_px = decompose_px(c_sa, samples);
          texels[i] = nir_bindless_image_load(
             HANDLE(compressed), dec_px, sample_id(c_sa, samples), 0,
-            GLSL_SAMPLER_DIM_MS, true, 0, ACCESS_IN_BOUNDS_AGX,
+            GLSL_SAMPLER_DIM_MS, true, 0, ACCESS_IN_BOUNDS,
             nir_type_uint32);
       }
    }

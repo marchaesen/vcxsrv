@@ -300,6 +300,7 @@ avoid_instr(const nir_instr *instr, const void *data)
 
             switch (intr->intrinsic) {
             case nir_intrinsic_bindless_image_load:
+            case nir_intrinsic_bindless_image_sparse_load:
             case nir_intrinsic_bindless_image_store:
             case nir_intrinsic_bindless_image_store_block_agx:
                if (intr->src[0].ssa == def)

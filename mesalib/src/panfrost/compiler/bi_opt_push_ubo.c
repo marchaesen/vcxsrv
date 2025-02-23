@@ -32,7 +32,7 @@
 static bool
 bi_is_ubo(bi_instr *ins)
 {
-   return (bi_opcode_props[ins->op].message == BIFROST_MESSAGE_LOAD) &&
+   return (bi_get_opcode_props(ins)->message == BIFROST_MESSAGE_LOAD) &&
           (ins->seg == BI_SEG_UBO);
 }
 
@@ -74,7 +74,7 @@ bi_analyze_ranges(bi_context *ctx)
 
       unsigned ubo = pan_res_handle_get_index(ins->src[1].value);
       unsigned word = ins->src[0].value / 4;
-      unsigned channels = bi_opcode_props[ins->op].sr_count;
+      unsigned channels = bi_get_opcode_props(ins)->sr_count;
 
       assert(ubo < res.nr_blocks);
       assert(channels > 0 && channels <= 4);
@@ -163,7 +163,7 @@ bi_opt_push_ubo(bi_context *ctx)
       /* Replace the UBO load with moves from FAU */
       bi_builder b = bi_init_builder(ctx, bi_after_instr(ins));
 
-      unsigned nr = bi_opcode_props[ins->op].sr_count;
+      unsigned nr = bi_get_opcode_props(ins)->sr_count;
       bi_instr *vec = bi_collect_i32_to(&b, ins->dest[0], nr);
 
       bi_foreach_src(vec, w) {

@@ -32,7 +32,7 @@ gather_outputs(nir_builder *b, nir_function_impl *impl, ac_nir_prerast_out *out)
    }
 }
 
-void
+bool
 ac_nir_lower_legacy_vs(nir_shader *nir,
                        enum amd_gfx_level gfx_level,
                        uint32_t clip_cull_mask,
@@ -90,4 +90,6 @@ ac_nir_lower_legacy_vs(nir_shader *nir,
    }
 
    nir_metadata_preserve(impl, nir_metadata_none);
+
+   return true;
 }

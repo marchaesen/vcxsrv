@@ -22,6 +22,7 @@ struct hk_instance {
 
    bool workaround_rgba4;
    bool no_border;
+   bool fake_minmax;
 };
 
 VK_DEFINE_HANDLE_CASTS(hk_instance, vk.base, VkInstance,

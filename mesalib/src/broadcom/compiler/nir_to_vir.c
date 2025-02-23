@@ -2163,8 +2163,18 @@ v3d_optimize_nir(struct v3d_compile *c, struct nir_shader *s)
                 NIR_PASS(progress, s, nir_opt_cse);
                 /* before peephole_select as it can generate 64 bit bcsels */
                 NIR_PASS(progress, s, nir_lower_64bit_phis);
-                NIR_PASS(progress, s, nir_opt_peephole_select, 0, false, false);
-                NIR_PASS(progress, s, nir_opt_peephole_select, 24, true, true);
+
+                nir_opt_peephole_select_options peephole_select_options = {
+                        .limit = 0,
+                };
+                NIR_PASS(progress, s, nir_opt_peephole_select, &peephole_select_options);
+
+                peephole_select_options = (nir_opt_peephole_select_options){
+                        .limit = 24,
+                        .indirect_load_ok = true,
+                        .expensive_alu_ok = true,
+                };
+                NIR_PASS(progress, s, nir_opt_peephole_select, &peephole_select_options);
                 NIR_PASS(progress, s, nir_opt_algebraic);
                 NIR_PASS(progress, s, nir_opt_constant_folding);
 
@@ -2178,7 +2188,11 @@ v3d_optimize_nir(struct v3d_compile *c, struct nir_shader *s)
                    NIR_PASS(progress, s, nir_opt_dce);
                 }
 
-                NIR_PASS(progress, s, nir_opt_conditional_discard);
+                peephole_select_options = (nir_opt_peephole_select_options){
+                        .limit = 0,
+                        .discard_ok = true,
+                };
+                NIR_PASS(progress, s, nir_opt_peephole_select, &peephole_select_options);
 
                 NIR_PASS(progress, s, nir_opt_remove_phis);
                 NIR_PASS(progress, s, nir_opt_if, false);

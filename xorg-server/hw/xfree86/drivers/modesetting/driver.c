@@ -157,21 +157,23 @@ int ms_entity_index = -1;
 static MODULESETUPPROTO(Setup);
 
 static XF86ModuleVersionInfo VersRec = {
-    "modesetting",
-    MODULEVENDORSTRING,
-    MODINFOSTRING1,
-    MODINFOSTRING2,
-    XORG_VERSION_CURRENT,
-    XORG_VERSION_MAJOR,
-    XORG_VERSION_MINOR,
-    XORG_VERSION_PATCH,
-    ABI_CLASS_VIDEODRV,
-    ABI_VIDEODRV_VERSION,
-    MOD_CLASS_VIDEODRV,
-    {0, 0, 0, 0}
+    .modname      = "modesetting",
+    .vendor       = MODULEVENDORSTRING,
+    ._modinfo1_   = MODINFOSTRING1,
+    ._modinfo1_   = MODINFOSTRING2,
+    .xf86version  = XORG_VERSION_CURRENT,
+    .majorversion = XORG_VERSION_MAJOR,
+    .minorversion = XORG_VERSION_MINOR,
+    .patchlevel   = XORG_VERSION_PATCH,
+    .abiclass     = ABI_CLASS_VIDEODRV,
+    .abiversion   = ABI_VIDEODRV_VERSION,
+    .moduleclass  = MOD_CLASS_VIDEODRV,
 };
 
-_X_EXPORT XF86ModuleData modesettingModuleData = { &VersRec, Setup, NULL };
+_X_EXPORT XF86ModuleData modesettingModuleData = {
+    .vers = &VersRec,
+    .setup = Setup
+};
 
 static void *
 Setup(void *module, void *opts, int *errmaj, int *errmin)

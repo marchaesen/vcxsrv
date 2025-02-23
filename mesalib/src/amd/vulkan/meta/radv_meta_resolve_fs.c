@@ -333,22 +333,19 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivi
       return;
    }
 
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1,
-                                 (VkWriteDescriptorSet[]){
-                                    {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                     .dstBinding = 0,
-                                     .dstArrayElement = 0,
-                                     .descriptorCount = 1,
-                                     .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                     .pImageInfo =
-                                        (VkDescriptorImageInfo[]){
-                                           {
-                                              .sampler = VK_NULL_HANDLE,
-                                              .imageView = radv_image_view_to_handle(src_iview),
-                                              .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-                                           },
-                                        }},
-                                 });
+   radv_meta_bind_descriptors(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1,
+                              (VkDescriptorGetInfoEXT[]){
+                                 {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                  .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                  .data.pSampledImage =
+                                     (VkDescriptorImageInfo[]){
+                                        {
+                                           .sampler = VK_NULL_HANDLE,
+                                           .imageView = radv_image_view_to_handle(src_iview),
+                                           .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+                                        },
+                                     }},
+                              });
 
    const VkImageSubresourceRange src_range = vk_image_view_subresource_range(&src_iview->vk);
    const VkImageSubresourceRange dst_range = vk_image_view_subresource_range(&dst_iview->vk);
@@ -392,22 +389,19 @@ emit_depth_stencil_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image
       return;
    }
 
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1,
-                                 (VkWriteDescriptorSet[]){
-                                    {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                     .dstBinding = 0,
-                                     .dstArrayElement = 0,
-                                     .descriptorCount = 1,
-                                     .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                     .pImageInfo =
-                                        (VkDescriptorImageInfo[]){
-                                           {
-                                              .sampler = VK_NULL_HANDLE,
-                                              .imageView = radv_image_view_to_handle(src_iview),
-                                              .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-                                           },
-                                        }},
-                                 });
+   radv_meta_bind_descriptors(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1,
+                              (VkDescriptorGetInfoEXT[]){
+                                 {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                  .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                  .data.pSampledImage =
+                                     (VkDescriptorImageInfo[]){
+                                        {
+                                           .sampler = VK_NULL_HANDLE,
+                                           .imageView = radv_image_view_to_handle(src_iview),
+                                           .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+                                        },
+                                     }},
+                              });
 
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 

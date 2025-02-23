@@ -21,9 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "nir.h"
-#include "nir_builder.h"
-#include "lvp_lower_vulkan_resource.h"
+#include "lvp_nir.h"
 
 static nir_def *
 load_frag_coord(nir_builder *b)

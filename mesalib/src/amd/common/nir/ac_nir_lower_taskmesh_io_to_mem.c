@@ -275,18 +275,19 @@ lower_task_intrinsics(nir_builder *b,
    }
 }
 
-void
+bool
 ac_nir_lower_task_outputs_to_mem(nir_shader *shader,
                                  unsigned task_payload_entry_bytes,
                                  unsigned task_num_entries,
                                  bool has_query)
 {
    assert(util_is_power_of_two_nonzero(task_num_entries));
+   bool progress = false;
 
    nir_lower_task_shader_options lower_ts_opt = {
       .payload_to_shared_for_atomics = true,
    };
-   nir_lower_task_shader(shader, lower_ts_opt);
+   progress |= nir_lower_task_shader(shader, lower_ts_opt);
 
    lower_tsms_io_state state = {
       .draw_entry_bytes = 16,
@@ -295,15 +296,20 @@ ac_nir_lower_task_outputs_to_mem(nir_shader *shader,
       .has_query = has_query,
    };
 
-   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+   progress |= nir_shader_lower_instructions(shader,
+                                             filter_task_intrinsics,
+                                             lower_task_intrinsics,
+                                             &state);
 
-   nir_shader_lower_instructions(shader,
-                                 filter_task_intrinsics,
-                                 lower_task_intrinsics,
-                                 &state);
+   if (progress) {
+      /* The nir_shader_lower_instructions pass can't detect the CF changes
+       * that are made by lower_task_launch_mesh_workgroups.
+       */
+      nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+      nir_metadata_preserve(impl, nir_metadata_none);
+   }
 
-   nir_metadata_preserve(impl, nir_metadata_none);
-   nir_validate_shader(shader, "after lowering task shader outputs to memory stores");
+   return progress;
 }
 
 static bool
@@ -332,7 +338,7 @@ lower_mesh_intrinsics(nir_builder *b,
       unreachable("unsupported mesh shader intrinsic");
 }
 
-void
+bool
 ac_nir_lower_mesh_inputs_to_mem(nir_shader *shader,
                                 unsigned task_payload_entry_bytes,
                                 unsigned task_num_entries)
@@ -345,8 +351,8 @@ ac_nir_lower_mesh_inputs_to_mem(nir_shader *shader,
       .num_entries = task_num_entries,
    };
 
-   nir_shader_lower_instructions(shader,
-                                 filter_mesh_input_load,
-                                 lower_mesh_intrinsics,
-                                 &state);
+   return nir_shader_lower_instructions(shader,
+                                        filter_mesh_input_load,
+                                        lower_mesh_intrinsics,
+                                        &state);
 }

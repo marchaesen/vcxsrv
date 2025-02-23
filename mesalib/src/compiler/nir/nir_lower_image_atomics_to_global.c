@@ -6,6 +6,11 @@
 #include "util/format/u_format.h"
 #include "nir_builder.h"
 
+struct lower_state {
+   nir_intrin_filter_cb filter;
+   const void *data;
+};
+
 /*
  * If shader images are uncompressed, dedicated image atomics are unnecessary.
  * Instead, there may be a "load texel address" instruction that does all the
@@ -15,8 +20,9 @@
  */
 
 static bool
-lower(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *_)
+lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
+   const struct lower_state *state = data;
    nir_intrinsic_op address_op;
    bool swap;
 
@@ -40,6 +46,9 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *_)
    nir_atomic_op atomic_op = nir_intrinsic_atomic_op(intr);
    enum pipe_format format = nir_intrinsic_format(intr);
    unsigned bit_size = intr->def.bit_size;
+
+   if (state->filter && !state->filter(intr, state->data))
+      return false;
 
    /* Even for "formatless" access, we know the size of the texel accessed,
     * since it's the size of the atomic. We can use that to synthesize a
@@ -86,6 +95,8 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *_)
                                  .atomic_op = atomic_op);
    }
 
+   b->shader->info.use_lowered_image_to_global = true;
+
    /* Replace the image atomic with the global atomic. Remove the image
     * explicitly because it has side effects so is not DCE'd.
     */
@@ -95,9 +106,14 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *_)
 }
 
 bool
-nir_lower_image_atomics_to_global(nir_shader *shader)
+nir_lower_image_atomics_to_global(nir_shader *shader,
+                                  nir_intrin_filter_cb filter,
+                                  const void *data)
 {
+   struct lower_state state = {
+      .filter = filter, .data = data,
+   };
    return nir_shader_intrinsics_pass(shader, lower,
                                      nir_metadata_control_flow,
-                                     NULL);
+                                     (void *) &state);
 }

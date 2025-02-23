@@ -280,7 +280,7 @@ vl_deint_filter_init(struct vl_deint_filter *filter, struct pipe_context *pipe,
       pipe->screen,
       PIPE_VIDEO_PROFILE_UNKNOWN,
       PIPE_VIDEO_ENTRYPOINT_PROCESSING,
-      PIPE_VIDEO_CAP_PREFERED_FORMAT
+      PIPE_VIDEO_CAP_PREFERRED_FORMAT
    );
    templ.width = video_width;
    templ.height = video_height;

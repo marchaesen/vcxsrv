@@ -76,7 +76,6 @@ KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_r
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment_texture_2d_multisample_rgb10_a2,Fail
 
 glx@glx-multi-window-single-context,Fail
-glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 0,Fail
 glx@glx_arb_sync_control@swapbuffersmsc-return swap_interval 1,Fail
@@ -112,8 +111,6 @@ spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
 spec@arb_framebuffer_object@fbo-blit-scaled-linear,Fail
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-tf-separate,Fail
 spec@arb_gpu_shader_fp64@execution@fs-function-inout-array,Crash
-spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
-spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
 spec@arb_sample_locations@test,Fail
 spec@arb_sample_locations@test@MSAA: 1- X: 0- Y: 0- Grid: false,Fail
 spec@arb_sample_locations@test@MSAA: 1- X: 0- Y: 0- Grid: true,Fail
@@ -675,7 +672,6 @@ dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_out_of_bounds_min_revers
 spec@ext_framebuffer_multisample@interpolation 6 non-centroid-deriv-disabled,Fail
 
 glx@glx-tfp,Fail
-glx@glx-visuals-depth -pixmap,Fail
 spec@arb_sample_shading@samplemask 4,Fail
 spec@ext_framebuffer_multisample@interpolation 6 centroid-deriv-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 8 non-centroid-deriv-disabled,Fail
@@ -689,3 +685,6 @@ spec@ext_framebuffer_multisample@interpolation 2 centroid-deriv-disabled,Fail
 
 # New crash with Xe KMD
 spec@!opengl 1.1@streaming-texture-leak,Crash
+
+# ANV doesn't support 3D dmabufs
+spec@egl 1.4@egl-ext_egl_image_storage,Crash

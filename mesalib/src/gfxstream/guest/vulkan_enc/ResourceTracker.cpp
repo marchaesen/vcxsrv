@@ -1348,7 +1348,8 @@ void ResourceTracker::setDeviceInfo(VkDevice device, VkPhysicalDevice physdev,
 void ResourceTracker::setDeviceMemoryInfo(VkDevice device, VkDeviceMemory memory,
                                           VkDeviceSize allocationSize, uint8_t* ptr,
                                           uint32_t memoryTypeIndex, void* ahw, bool imported,
-                                          zx_handle_t vmoHandle, VirtGpuResourcePtr blobPtr) {
+                                          zx_handle_t vmoHandle, VirtGpuResourcePtr blobPtr,
+                                          int importedFd) {
     std::lock_guard<std::recursive_mutex> lock(mLock);
     auto& info = info_VkDeviceMemory[memory];
 
@@ -1362,6 +1363,7 @@ void ResourceTracker::setDeviceMemoryInfo(VkDevice device, VkDeviceMemory memory
     info.imported = imported;
     info.vmoHandle = vmoHandle;
     info.blobPtr = blobPtr;
+    info.importedFd = importedFd;
 }
 
 void ResourceTracker::setImageInfo(VkImage image, VkDevice device,
@@ -3333,13 +3335,6 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
     void* ahw = nullptr;
 #endif
 
-#ifdef LINUX_GUEST_BUILD
-    const VkImportMemoryFdInfoKHR* importFdInfoPtr =
-        vk_find_struct_const(pAllocateInfo, IMPORT_MEMORY_FD_INFO_KHR);
-#else
-    const VkImportMemoryFdInfoKHR* importFdInfoPtr = nullptr;
-#endif
-
 #ifdef VK_USE_PLATFORM_FUCHSIA
     const VkImportMemoryBufferCollectionFUCHSIA* importBufferCollectionInfoPtr =
         vk_find_struct_const(pAllocateInfo, IMPORT_MEMORY_BUFFER_COLLECTION_FUCHSIA);
@@ -3413,6 +3408,8 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
         importVmo = true;
     }
 
+    const VkImportMemoryFdInfoKHR* importFdInfoPtr =
+        vk_find_struct_const(pAllocateInfo, IMPORT_MEMORY_FD_INFO_KHR);
     if (importFdInfoPtr) {
         importDmabuf =
             (importFdInfoPtr->handleType & (VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT |
@@ -3788,8 +3785,27 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
 #endif
 
     VirtGpuResourcePtr bufferBlob = nullptr;
+    int importedFd = -1;
 #if defined(LINUX_GUEST_BUILD)
-    if (exportDmabuf) {
+    // Check for import first; this takes precedence over exportDmabuf in creating the
+    // VirtGpuResource
+    if (importDmabuf) {
+        VirtGpuExternalHandle importHandle = {};
+        // importBlob impl may close the receivedFd after it creates an GEM handle from it. dup()
+        // the FD here for input to that impl, then manage the original FD at the Vulkan level
+        importHandle.osHandle = dup(importFdInfoPtr->fd);
+        importHandle.type = kMemHandleDmabuf;
+
+        auto instance = VirtGpuDevice::getInstance();
+        bufferBlob = instance->importBlob(importHandle);
+        if (!bufferBlob) {
+            mesa_loge("%s: Failed to import colorBuffer resource\n", __func__);
+            return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+        }
+        // As per the Vulkan spec, the ownership of this FD has been transferred
+        // to the implementation
+        importedFd = importFdInfoPtr->fd;
+    } else if (exportDmabuf) {
         VirtGpuDevice* instance = VirtGpuDevice::getInstance();
         hasDedicatedImage =
             dedicatedAllocInfoPtr && (dedicatedAllocInfoPtr->image != VK_NULL_HANDLE);
@@ -3959,19 +3975,6 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
         }
     }
 
-    if (importDmabuf) {
-        VirtGpuExternalHandle importHandle = {};
-        importHandle.osHandle = importFdInfoPtr->fd;
-        importHandle.type = kMemHandleDmabuf;
-
-        auto instance = VirtGpuDevice::getInstance();
-        bufferBlob = instance->importBlob(importHandle);
-        if (!bufferBlob) {
-            mesa_loge("%s: Failed to import colorBuffer resource\n", __func__);
-            return VK_ERROR_OUT_OF_DEVICE_MEMORY;
-        }
-    }
-
     if (bufferBlob) {
         if (hasDedicatedBuffer) {
             importBufferInfo.buffer = bufferBlob->getResourceHandle();
@@ -3990,7 +3993,7 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
         if (input_result != VK_SUCCESS) _RETURN_FAILURE_WITH_DEVICE_MEMORY_REPORT(input_result);
 
         setDeviceMemoryInfo(device, *pMemory, 0, nullptr, finalAllocInfo.memoryTypeIndex, ahw,
-                            isImport, vmo_handle, bufferBlob);
+                            isImport, vmo_handle, bufferBlob, importedFd);
 
         uint64_t memoryObjectId = (uint64_t)(void*)*pMemory;
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
@@ -4037,7 +4040,8 @@ VkResult ResourceTracker::on_vkAllocateMemory(void* context, VkResult input_resu
 
         setDeviceMemoryInfo(device, *pMemory, finalAllocInfo.allocationSize,
                             reinterpret_cast<uint8_t*>(addr), finalAllocInfo.memoryTypeIndex,
-                            /*ahw=*/nullptr, isImport, vmo_handle, /*blobPtr=*/nullptr);
+                            /*ahw=*/nullptr, isImport, vmo_handle, /*blobPtr=*/nullptr,
+                            /*importedFd=*/-1);
         return VK_SUCCESS;
     }
 #endif
@@ -4076,6 +4080,10 @@ void ResourceTracker::on_vkFreeMemory(void* context, VkDevice device, VkDeviceMe
         memoryObjectId = getAHardwareBufferId(info.ahw);
     }
 #endif
+    if (info.importedFd >= 0) {
+        close(info.importedFd);
+        info.importedFd = -1;
+    }
 
     emitDeviceMemoryReport(info_VkDevice[device],
                            info.imported ? VK_DEVICE_MEMORY_REPORT_EVENT_TYPE_UNIMPORT_EXT

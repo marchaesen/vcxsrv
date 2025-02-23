@@ -34,32 +34,20 @@
 #include "indirect_util.h"
 #include "indirect_size.h"
 
-#  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
-#    define PURE __attribute__((pure))
-#  else
-#    define PURE
-#  endif
-
-#  if defined(__i386__) && defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
-#    define FASTCALL __attribute__((fastcall))
-#  else
-#    define FASTCALL
-#  endif
-
 
 #ifdef HAVE_FUNC_ATTRIBUTE_ALIAS
 #  define ALIAS2(from,to) \
-    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
+    GLint __gl ## from ## _size( GLenum e ) \
         __attribute__ ((alias( # to )));
 #  define ALIAS(from,to) ALIAS2( from, __gl ## to ## _size )
 #else
 #  define ALIAS(from,to) \
-    _X_INTERNAL PURE FASTCALL GLint __gl ## from ## _size( GLenum e ) \
+    GLint __gl ## from ## _size( GLenum e ) \
     { return __gl ## to ## _size( e ); }
 #endif
 
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glCallLists_size( GLenum e )
 {
     switch( e ) {
@@ -82,7 +70,7 @@ __glCallLists_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glFogfv_size( GLenum e )
 {
     switch( e ) {
@@ -100,7 +88,7 @@ __glFogfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glLightfv_size( GLenum e )
 {
     switch( e ) {
@@ -121,7 +109,7 @@ __glLightfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glLightModelfv_size( GLenum e )
 {
     switch( e ) {
@@ -136,7 +124,7 @@ __glLightModelfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glMaterialfv_size( GLenum e )
 {
     switch( e ) {
@@ -154,7 +142,7 @@ __glMaterialfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glTexParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -209,7 +197,7 @@ __glTexParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glTexEnvfv_size( GLenum e )
 {
     switch( e ) {
@@ -245,7 +233,7 @@ __glTexEnvfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glTexGendv_size( GLenum e )
 {
     switch( e ) {
@@ -258,7 +246,7 @@ __glTexGendv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glMap1d_size( GLenum e )
 {
     switch( e ) {
@@ -279,7 +267,7 @@ __glMap1d_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glMap2d_size( GLenum e )
 {
     switch( e ) {
@@ -300,7 +288,7 @@ __glMap2d_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetBooleanv_size( GLenum e )
 {
     switch( e ) {
@@ -848,7 +836,7 @@ __glGetBooleanv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetTexParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -902,7 +890,7 @@ __glGetTexParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetTexLevelParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -935,7 +923,7 @@ __glGetTexLevelParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetPointerv_size( GLenum e )
 {
     switch( e ) {
@@ -948,7 +936,7 @@ __glGetPointerv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glColorTableParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -959,7 +947,7 @@ __glColorTableParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetColorTableParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -979,7 +967,7 @@ __glGetColorTableParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glConvolutionParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -994,7 +982,7 @@ __glConvolutionParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetConvolutionParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -1014,7 +1002,7 @@ __glGetConvolutionParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetHistogramParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -1031,7 +1019,7 @@ __glGetHistogramParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetMinmaxParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -1042,7 +1030,7 @@ __glGetMinmaxParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glPointParameterfv_size( GLenum e )
 {
     switch( e ) {
@@ -1066,7 +1054,7 @@ __glPointParameterfv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetQueryObjectiv_size( GLenum e )
 {
     switch( e ) {
@@ -1077,7 +1065,7 @@ __glGetQueryObjectiv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetQueryiv_size( GLenum e )
 {
     switch( e ) {
@@ -1089,7 +1077,7 @@ __glGetQueryiv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetVertexAttribdv_size( GLenum e )
 {
     switch( e ) {
@@ -1105,7 +1093,7 @@ __glGetVertexAttribdv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetProgramivARB_size( GLenum e )
 {
     switch( e ) {
@@ -1157,7 +1145,7 @@ __glGetProgramivARB_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetFramebufferAttachmentParameteriv_size( GLenum e )
 {
     switch( e ) {
@@ -1184,7 +1172,7 @@ __glGetFramebufferAttachmentParameteriv_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetProgramivNV_size( GLenum e )
 {
     switch( e ) {
@@ -1196,7 +1184,7 @@ __glGetProgramivNV_size( GLenum e )
     }
 }
 
-_X_INTERNAL PURE FASTCALL GLint
+GLint
 __glGetVertexAttribdvNV_size( GLenum e )
 {
     switch( e ) {
@@ -1245,6 +1233,3 @@ ALIAS( GetVertexAttribfv, GetVertexAttribdv )
 ALIAS( GetVertexAttribiv, GetVertexAttribdv )
 ALIAS( GetVertexAttribfvNV, GetVertexAttribdvNV )
 ALIAS( GetVertexAttribivNV, GetVertexAttribdvNV )
-
-#  undef PURE
-#  undef FASTCALL

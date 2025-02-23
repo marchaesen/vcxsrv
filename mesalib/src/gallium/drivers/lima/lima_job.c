@@ -464,7 +464,7 @@ lima_get_pp_stream_size(int num_pp, int tiled_w, int tiled_h, uint32_t *off)
    /* carefully calculate each stream start address:
     * 1. overflow: each stream size may be different due to
     *    fb->tiled_w * fb->tiled_h can't be divided by num_pp,
-    *    extra size should be added to the preceeding stream
+    *    extra size should be added to the preceding stream
     * 2. alignment: each stream address should be 0x20 aligned
     */
    int delta = tiled_w * tiled_h / num_pp * 16 + 16;

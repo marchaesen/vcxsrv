@@ -1,6 +1,6 @@
 # This file contains the GitLab handle of the maintainers/reviewers for
 # a given file:
-# https://docs.gitlab.com/ce/user/project/code_owners.html
+# https://docs.gitlab.com/user/project/codeowners/
 #
 # Consider these as the list of people who want to be involved in MRs
 # touching these files/folders, and whom you can ask your questions and

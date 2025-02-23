@@ -27,6 +27,7 @@
 #include "vk_device.h"
 #include "vk_format.h"
 #include "vk_image.h"
+#include "vk_buffer_view.h"
 #include "vk_physical_device.h"
 
 /* type_indexes_mask bits are set/clear for support memory type index as per
@@ -580,6 +581,94 @@ vk_texcompress_astc_fill_write_descriptor_sets(struct vk_texcompress_astc_state 
                                            &astc->partition_tbl_buf_view[t_i]);
    desc_i++;
    assert(desc_i == ARRAY_SIZE(set->descriptor_set));
+}
+
+
+static inline void
+fill_descriptor_get_info_image(VkDescriptorGetInfoEXT *info,
+                               VkDescriptorType desc_type,
+                               VkDescriptorImageInfo *image_info)
+{
+   assert(desc_type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+          desc_type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+
+   info->sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
+   info->pNext = NULL;
+   info->type = desc_type;
+
+   if (desc_type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) {
+      info->data.pSampledImage = image_info;
+   } else {
+      info->data.pStorageImage = image_info;
+   }
+}
+
+static inline void
+fill_desc_addr_info_struct(struct vk_device *device,
+                           VkDescriptorAddressInfoEXT *info,
+                           VkBufferView _buf_view)
+{
+   VK_FROM_HANDLE(vk_buffer_view, buf_view, _buf_view);
+   VkDevice _device = vk_device_to_handle(device);
+   const struct vk_device_dispatch_table *disp = &device->dispatch_table;
+
+   const VkBufferDeviceAddressInfo bda_info = {
+      .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+      .buffer = vk_buffer_to_handle(buf_view->buffer),
+   };
+
+   info->sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT;
+   info->pNext = NULL;
+   info->address = disp->GetBufferDeviceAddress(_device, &bda_info) + buf_view->offset;
+   info->range = buf_view->range;
+   info->format = buf_view->format;
+}
+
+static inline void
+fill_descriptor_get_info_uniform_texel(VkDescriptorGetInfoEXT *info,
+                                       VkDescriptorAddressInfoEXT *addr_info)
+{
+   info->sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT;
+   info->pNext = NULL;
+   info->type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+   info->data.pUniformTexelBuffer = addr_info;
+}
+
+void
+vk_texcompress_astc_fill_write_descriptor_buffer(struct vk_device *device, struct vk_texcompress_astc_state *astc,
+                                                struct vk_texcompress_astc_write_descriptor_buffer *buffer,
+                                                VkImageView src_img_view, VkImageLayout src_img_layout,
+                                                VkImageView dst_img_view,
+                                                VkFormat format)
+{
+   unsigned desc_i;
+
+   desc_i = 0;
+   fill_desc_image_info_struct(&buffer->dst_desc_image_info, dst_img_view, VK_IMAGE_LAYOUT_GENERAL);
+   fill_descriptor_get_info_image(&buffer->descriptors[desc_i],
+                                  VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                  &buffer->dst_desc_image_info);
+   desc_i++;
+   fill_desc_image_info_struct(&buffer->src_desc_image_info, src_img_view, src_img_layout);
+   fill_descriptor_get_info_image(&buffer->descriptors[desc_i],
+                                  VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                  &buffer->src_desc_image_info);
+   /* fill luts descriptor */
+   desc_i++;
+   for (unsigned i = 0; i < VK_TEXCOMPRESS_ASTC_NUM_LUTS; i++) {
+      fill_desc_addr_info_struct(device, &buffer->luts_desc_addr_info[i],
+                                 astc->luts_buf_view[i]);
+      fill_descriptor_get_info_uniform_texel(&buffer->descriptors[desc_i + i],
+                                             &buffer->luts_desc_addr_info[i]);
+   }
+   desc_i += VK_TEXCOMPRESS_ASTC_NUM_LUTS;
+   uint8_t t_i = get_partition_table_index(format);
+   fill_desc_addr_info_struct(device, &buffer->partition_tbl_desc_addr_info,
+                              astc->partition_tbl_buf_view[t_i]);
+   fill_descriptor_get_info_uniform_texel(&buffer->descriptors[desc_i],
+                                          &buffer->partition_tbl_desc_addr_info);
+   desc_i++;
+   assert(desc_i == ARRAY_SIZE(buffer->descriptors));
 }
 
 VkResult

@@ -4622,6 +4622,10 @@ should_print_nir(UNUSED nir_shader *shader)
    }                                                                                        \
 })
 
+/**
+ * Deprecated. Please do not use in newly written code.
+ * See https://gitlab.freedesktop.org/mesa/mesa/-/issues/10409
+ */
 #define NIR_PASS_V(nir, pass, ...) _PASS(pass, nir, {        \
    if (should_print_nir(nir))                                \
       printf("%s\n", #pass);                                 \
@@ -4814,8 +4818,8 @@ bool nir_lower_var_copies(nir_shader *shader);
 bool nir_opt_memcpy(nir_shader *shader);
 bool nir_lower_memcpy(nir_shader *shader);
 
-void nir_fixup_deref_modes(nir_shader *shader);
-void nir_fixup_deref_types(nir_shader *shader);
+bool nir_fixup_deref_modes(nir_shader *shader);
+bool nir_fixup_deref_types(nir_shader *shader);
 
 bool nir_lower_global_vars_to_local(nir_shader *shader);
 void nir_lower_constant_to_temp(nir_shader *shader);
@@ -4851,7 +4855,7 @@ bool nir_lower_vars_to_scratch(nir_shader *shader,
 
 bool nir_lower_scratch_to_var(nir_shader *nir);
 
-void nir_lower_clip_halfz(nir_shader *shader);
+bool nir_lower_clip_halfz(nir_shader *shader);
 
 void nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint);
 
@@ -5606,7 +5610,9 @@ bool nir_lower_image(nir_shader *nir,
                      const nir_lower_image_options *options);
 
 bool
-nir_lower_image_atomics_to_global(nir_shader *s);
+nir_lower_image_atomics_to_global(nir_shader *s,
+                                  nir_intrin_filter_cb filter,
+                                  const void *data);
 
 bool nir_lower_readonly_images_to_tex(nir_shader *shader, bool per_variable);
 
@@ -5800,7 +5806,7 @@ bool nir_legalize_16bit_sampler_srcs(nir_shader *nir,
 
 bool nir_lower_point_size(nir_shader *shader, float min, float max);
 
-void nir_lower_texcoord_replace(nir_shader *s, unsigned coord_replace,
+bool nir_lower_texcoord_replace(nir_shader *s, unsigned coord_replace,
                                 bool point_coord_is_sysval, bool yinvert);
 
 bool nir_lower_texcoord_replace_late(nir_shader *s, unsigned coord_replace,
@@ -6056,8 +6062,15 @@ typedef struct nir_opt_offsets_options {
 
 bool nir_opt_offsets(nir_shader *shader, const nir_opt_offsets_options *options);
 
-bool nir_opt_peephole_select(nir_shader *shader, unsigned limit,
-                             bool indirect_load_ok, bool expensive_alu_ok);
+typedef struct nir_opt_peephole_select_options {
+   unsigned limit; /* Set to max to flatten all control flow. */
+   bool indirect_load_ok;
+   bool expensive_alu_ok;
+   bool discard_ok;
+} nir_opt_peephole_select_options;
+
+bool nir_opt_peephole_select(nir_shader *shader,
+                             const nir_opt_peephole_select_options *options);
 
 bool nir_opt_reassociate_bfi(nir_shader *shader);
 
@@ -6085,7 +6098,6 @@ bool nir_opt_vectorize(nir_shader *shader, nir_vectorize_cb filter,
                        void *data);
 bool nir_opt_vectorize_io(nir_shader *shader, nir_variable_mode modes);
 
-bool nir_opt_conditional_discard(nir_shader *shader);
 bool nir_opt_move_discards_to_top(nir_shader *shader);
 
 bool nir_opt_ray_queries(nir_shader *shader);
@@ -6218,7 +6230,7 @@ bool nir_mod_analysis(nir_scalar val, nir_alu_type val_type, unsigned div, unsig
 bool
 nir_remove_tex_shadow(nir_shader *shader, unsigned textures_bitmask);
 
-void
+bool
 nir_trivialize_registers(nir_shader *s);
 
 unsigned

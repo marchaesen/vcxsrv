@@ -191,6 +191,28 @@ typedef enum {
    ppir_output_invalid = -1,
 } ppir_output_type;
 
+static inline const char *ppir_pipeline_reg_to_str(ppir_pipeline pipeline)
+{
+   switch (pipeline) {
+   case ppir_pipeline_reg_const0:
+      return "^const0";
+   case ppir_pipeline_reg_const1:
+      return "^const1";
+   case ppir_pipeline_reg_sampler:
+      return "^texture";
+   case ppir_pipeline_reg_uniform:
+      return "^uniform";
+   case ppir_pipeline_reg_vmul:
+      return "^vmul";
+   case ppir_pipeline_reg_fmul:
+      return "^fmul";
+   case ppir_pipeline_reg_discard:
+      return "^discard";
+   default:
+      return "INVALID";
+   }
+}
+
 static inline const char *ppir_output_type_to_str(ppir_output_type type)
 {
    switch (type) {

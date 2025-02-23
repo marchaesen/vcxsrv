@@ -81,6 +81,7 @@ struct vn_physical_device {
    VkDriverId renderer_driver_id;
 
    VkQueueFamilyProperties2 *queue_family_properties;
+   VkQueueFamilyGlobalPriorityProperties *global_priority_properties;
    uint32_t queue_family_count;
    bool sparse_binding_disabled;
    /* Track the queue family index to emulate a second queue. -1 means no

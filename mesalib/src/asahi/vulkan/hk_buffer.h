@@ -47,3 +47,6 @@ hk_buffer_addr_range(const struct hk_buffer *buffer, uint64_t offset,
       .range = vk_buffer_range(&buffer->vk, offset, range),
    };
 }
+
+VkResult hk_bind_scratch(struct hk_device *dev, struct agx_va *va,
+                         unsigned offs_B, size_t size_B);

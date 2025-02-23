@@ -1,14 +1,18 @@
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
+  rev: v5.0.0
   hooks:
   - id: end-of-file-fixer
   - id: trailing-whitespace
+
 - repo: https://github.com/charliermarsh/ruff-pre-commit
-  rev: v0.1.8
+  rev: v0.9.7
   hooks:
   - id: ruff
-    args: ['--ignore=E741,E501', '.',]
+    # --select I: Sort inputs
+    # Ignore E402: Needed for relative import in scripts/registry.py
+    args: ['--select', 'I', '--fix', '--ignore=E402']
+
   - id: ruff-format
     # 88 is the black default
-    args: ['--line-length=88', '.',]
+    args: ['--line-length=88']

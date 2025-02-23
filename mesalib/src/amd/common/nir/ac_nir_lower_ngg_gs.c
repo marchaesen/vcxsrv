@@ -873,7 +873,7 @@ ngg_gs_finale(nir_builder *b, lower_ngg_gs_state *s)
    ngg_gs_emit_output(b, workgroup_num_vertices, max_prmcnt, tid_in_tg, out_vtx_lds_addr, exporter_tid_in_tg, out_vtx_primflag_0, s);
 }
 
-void
+bool
 ac_nir_lower_ngg_gs(nir_shader *shader, const ac_nir_lower_ngg_options *options)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
@@ -955,10 +955,15 @@ ac_nir_lower_ngg_gs(nir_shader *shader, const ac_nir_lower_ngg_options *options)
 
    /* Emit the finale sequence */
    ngg_gs_finale(b, &state);
+
+   /* Take care of metadata and validation before calling other passes */
+   nir_metadata_preserve(impl, nir_metadata_none);
    nir_validate_shader(shader, "after emitting NGG GS");
 
    /* Cleanup */
    nir_lower_vars_to_ssa(shader);
    nir_remove_dead_variables(shader, nir_var_function_temp, NULL);
    nir_metadata_preserve(impl, nir_metadata_none);
+
+   return true;
 }

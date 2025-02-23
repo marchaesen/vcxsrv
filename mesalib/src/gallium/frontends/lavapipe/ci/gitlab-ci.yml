@@ -32,6 +32,19 @@ lavapipe-vk-asan:
     - debian/x86_64_test-vk
     - debian-testing-asan
 
+lavapipe-vkd3d:
+  stage: software-renderer-postmerge
+  extends:
+    - .lavapipe-test
+    - .lavapipe-manual-rules
+  timeout: 15m  # base runtime = 8m
+  variables:
+    GPU_VERSION: lvp
+    MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
+    # Random tests fail/crash when trying to run them in parallel
+    FDO_CI_CONCURRENT: 1
+  script: install/vkd3d-runner.sh
+
 # Disabled due to only running a single trace which was using old Wine.
 .lavapipe-traces:
   variables:

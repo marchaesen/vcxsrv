@@ -28,16 +28,12 @@ glx@glx-visuals-stencil -pixmap,Crash
 
 glx@glx_arb_create_context@invalid flag,Fail
 
-glx@glx_arb_create_context_no_error@no error,Fail
-
 shaders@glsl-routing,Fail
 
 spec@!opengl 1.0@gl-1.0-swapbuffers-behavior,Fail
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back back2,Fail
-spec@!opengl 2.0@vertex-program-two-side enabled back back2@vs and fs,Fail
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
 spec@arb_post_depth_coverage@arb_post_depth_coverage-multisampling,Fail
 
@@ -75,6 +71,7 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode full precision,Fail
 
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_textureSize,Fail
+spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
 
 spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
@@ -101,3 +98,8 @@ spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on left edge
 spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on right edge,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on top edge,Fail
 spec@!opengl 3.2@layered-rendering@clear-color-mismatched-layer-count,Fail
+
+# Seen in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/1364513
+dEQP-GLES31.functional.shaders.framebuffer_fetch.basic.last_frag_data,Fail
+spec@arb_framebuffer_object@execution@msaa-alpha-to-coverage_alpha-to-one_write-z,Fail
+spec@ovr_multiview@compiler@multiple-num-views-in-single-declaration-mismatch.vert,Fail

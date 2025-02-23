@@ -1,11 +1,12 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
-libdir=@libdir@
 includedir=@includedir@
+libdir=@libdir@
 
 Name: fontenc
 Description: The fontenc Library
+URL: https://gitlab.freedesktop.org/xorg/lib/libfontenc/
 Version: @PACKAGE_VERSION@
-Cflags: -I${includedir}
-Libs: -L${libdir} -lfontenc
 Requires.private: @Z_REQUIRES@
+Libs: -L${libdir} -lfontenc
+Cflags: -I${includedir}

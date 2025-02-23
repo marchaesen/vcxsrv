@@ -804,10 +804,12 @@ static bool si_texture_get_handle(struct pipe_screen *screen, struct pipe_contex
       }
 
       const bool debug_disable_dcc = sscreen->debug_flags & DBG(NO_EXPORTED_DCC);
-      /* Since shader image stores don't support DCC on GFX9 and older,
-       * disable it for external clients that want write access.
+      /* Disable DCC for external clients that might use shader image stores.
+       * They don't support DCC on GFX9 and older. GFX10/10.3 is also problematic
+       * if the view formats between clients are incompatible or if DCC clear is
+       * used.
        */
-      const bool shader_write = sscreen->info.gfx_level <= GFX9 &&
+      const bool shader_write = sscreen->info.gfx_level < GFX11 &&
                                 usage & PIPE_HANDLE_USAGE_SHADER_WRITE &&
                                 !tex->is_depth &&
                                 tex->surface.meta_offset;
@@ -1302,10 +1304,12 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
 
    /* Execute the clears. */
    if (num_clears) {
-      struct si_context *sctx = si_get_aux_context(&sscreen->aux_context.compute_resource_init);
+      struct si_aux_context *auxctx = tex->buffer.flags & RADEON_FLAG_ENCRYPTED ?
+         &sscreen->aux_context.general : &sscreen->aux_context.compute_resource_init;
+      struct si_context *sctx = si_get_aux_context(auxctx);
 
       si_execute_clears(sctx, clears, num_clears, false);
-      si_put_aux_context_flush(&sscreen->aux_context.compute_resource_init);
+      si_put_aux_context_flush(auxctx);
    }
 
    /* Initialize the CMASK base register value. */

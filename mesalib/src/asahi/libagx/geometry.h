@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "asahi/lib/agx_abi.h"
 #include "compiler/libcl/libcl.h"
 #include "compiler/shader_enums.h"
 
@@ -56,12 +57,12 @@ static_assert(sizeof(struct agx_ia_state) == 4 * 4);
 
 static inline uint64_t
 libagx_index_buffer(uint64_t index_buffer, uint size_el, uint offset_el,
-                    uint elsize_B, uint64_t zero_sink)
+                    uint elsize_B)
 {
    if (offset_el < size_el)
       return index_buffer + (offset_el * elsize_B);
    else
-      return zero_sink;
+      return AGX_ZERO_PAGE_ADDRESS;
 }
 
 static inline uint

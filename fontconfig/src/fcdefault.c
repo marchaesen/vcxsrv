@@ -23,26 +23,27 @@
  */
 
 #include "fcint.h"
+
 #include <limits.h>
 #include <string.h>
 
 /* MT-safe */
 
 static const struct {
-    FcObject	field;
-    FcBool	value;
+    FcObject field;
+    FcBool   value;
 } FcBoolDefaults[] = {
-    { FC_HINTING_OBJECT,	   FcTrue	},  /* !FT_LOAD_NO_HINTING */
-    { FC_VERTICAL_LAYOUT_OBJECT,   FcFalse	},  /* FC_LOAD_VERTICAL_LAYOUT */
-    { FC_AUTOHINT_OBJECT,	   FcFalse	},  /* FC_LOAD_FORCE_AUTOHINT */
-    { FC_GLOBAL_ADVANCE_OBJECT,    FcTrue	},  /* !FC_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH */
-    { FC_EMBEDDED_BITMAP_OBJECT,   FcTrue 	},  /* !FC_LOAD_NO_BITMAP */
-    { FC_DECORATIVE_OBJECT,	   FcFalse	},
-    { FC_SYMBOL_OBJECT,		   FcFalse	},
-    { FC_VARIABLE_OBJECT,	   FcFalse	},
+    { FC_HINTING_OBJECT,         FcTrue  }, /* !FT_LOAD_NO_HINTING */
+    { FC_VERTICAL_LAYOUT_OBJECT, FcFalse }, /* FC_LOAD_VERTICAL_LAYOUT */
+    { FC_AUTOHINT_OBJECT,        FcFalse }, /* FC_LOAD_FORCE_AUTOHINT */
+    { FC_GLOBAL_ADVANCE_OBJECT,  FcTrue  }, /* !FC_LOAD_IGNORE_GLOBAL_ADVANCE_WIDTH */
+    { FC_EMBEDDED_BITMAP_OBJECT, FcTrue  }, /* !FC_LOAD_NO_BITMAP */
+    { FC_DECORATIVE_OBJECT,      FcFalse },
+    { FC_SYMBOL_OBJECT,          FcFalse },
+    { FC_VARIABLE_OBJECT,        FcFalse },
 };
 
-#define NUM_FC_BOOL_DEFAULTS	(int) (sizeof FcBoolDefaults / sizeof FcBoolDefaults[0])
+#define NUM_FC_BOOL_DEFAULTS (int)(sizeof FcBoolDefaults / sizeof FcBoolDefaults[0])
 
 FcStrSet *default_langs;
 
@@ -51,37 +52,32 @@ FcGetDefaultLangs (void)
 {
     FcStrSet *result;
 retry:
-    result = (FcStrSet *) fc_atomic_ptr_get (&default_langs);
-    if (!result)
-    {
+    result = (FcStrSet *)fc_atomic_ptr_get (&default_langs);
+    if (!result) {
 	char *langs;
 
-	result = FcStrSetCreate ();
+	result = FcStrSetCreate();
 
 	langs = getenv ("FC_LANG");
 	if (!langs || !langs[0])
 	    langs = getenv ("LC_ALL");
-	if (!langs || !langs[0])
-        {
-            langs = getenv ("LC_CTYPE");
-            // On some macOS systems, LC_CTYPE is set to "UTF-8", which doesn't
-            // give any languge information. In this case, ignore LC_CTYPE and
-            // continue the search with LANG.
-            if (langs && (FcStrCmpIgnoreCase((const FcChar8 *) langs,
-                                             (const FcChar8 *)"UTF-8") == 0))
-            {
-                langs = NULL;
-            }
-        }
+	if (!langs || !langs[0]) {
+	    langs = getenv ("LC_CTYPE");
+	    // On some macOS systems, LC_CTYPE is set to "UTF-8", which doesn't
+	    // give any languge information. In this case, ignore LC_CTYPE and
+	    // continue the search with LANG.
+	    if (langs && (FcStrCmpIgnoreCase ((const FcChar8 *)langs,
+	                                      (const FcChar8 *)"UTF-8") == 0)) {
+		langs = NULL;
+	    }
+	}
 	if (!langs || !langs[0])
 	    langs = getenv ("LANG");
-	if (langs && langs[0])
-	{
+	if (langs && langs[0]) {
 	    if (!FcStrSetAddLangs (result, langs))
-		FcStrSetAdd (result, (const FcChar8 *) "en");
-	}
-	else
-	    FcStrSetAdd (result, (const FcChar8 *) "en");
+		FcStrSetAdd (result, (const FcChar8 *)"en");
+	} else
+	    FcStrSetAdd (result, (const FcChar8 *)"en");
 
 	FcRefSetConst (&result->ref);
 	if (!fc_atomic_ptr_cmpexch (&default_langs, NULL, result)) {
@@ -102,9 +98,8 @@ FcGetDefaultLang (void)
     FcChar8 *lang;
 retry:
     lang = fc_atomic_ptr_get (&default_lang);
-    if (!lang)
-    {
-	FcStrSet *langs = FcGetDefaultLangs ();
+    if (!lang) {
+	FcStrSet *langs = FcGetDefaultLangs();
 	lang = FcStrdup (langs->strs[0]);
 
 	if (!fc_atomic_ptr_cmpexch (&default_lang, NULL, lang)) {
@@ -124,15 +119,13 @@ FcGetPrgname (void)
     FcChar8 *prgname;
 retry:
     prgname = fc_atomic_ptr_get (&default_prgname);
-    if (!prgname)
-    {
+    if (!prgname) {
 #ifdef _WIN32
-	char buf[MAX_PATH+1];
+	char buf[MAX_PATH + 1];
 
 	/* TODO This is ASCII-only; fix it. */
-	if (GetModuleFileNameA (GetModuleHandle (NULL), buf, sizeof (buf) / sizeof (buf[0])) > 0)
-	{
-	    char *p;
+	if (GetModuleFileNameA (GetModuleHandle (NULL), buf, sizeof (buf) / sizeof (buf[0])) > 0) {
+	    char        *p;
 	    unsigned int len;
 
 	    p = strrchr (buf, '\\');
@@ -143,43 +136,39 @@ retry:
 
 	    len = strlen (p);
 
-	    if (len > 4 && 0 == strcmp (p + len - 4, ".exe"))
-	    {
+	    if (len > 4 && 0 == strcmp (p + len - 4, ".exe")) {
 		len -= 4;
 		buf[len] = '\0';
 	    }
 
 	    prgname = FcStrdup (p);
 	}
-#elif defined (HAVE_GETPROGNAME)
-	const char *q = getprogname ();
+#elif defined(HAVE_GETPROGNAME)
+	const char *q = getprogname();
 	if (q)
 	    prgname = FcStrdup (q);
 	else
 	    prgname = FcStrdup ("");
 #else
-# if defined (HAVE_GETEXECNAME)
-	char *p = FcStrdup(getexecname ());
-# elif defined (HAVE_READLINK)
+#  if defined(HAVE_GETEXECNAME)
+	char *p = FcStrdup (getexecname());
+#  elif defined(HAVE_READLINK)
 	size_t size = FC_PATH_MAX;
-	char *p = NULL;
+	char  *p = NULL;
 
-	while (1)
-	{
-	    char *buf = malloc (size);
+	while (1) {
+	    char   *buf = malloc (size);
 	    ssize_t len;
 
 	    if (!buf)
 		break;
 
 	    len = readlink ("/proc/self/exe", buf, size - 1);
-	    if (len < 0)
-	    {
+	    if (len < 0) {
 		free (buf);
 		break;
 	    }
-	    if (len < size - 1)
-	    {
+	    if (len < size - 1) {
 		buf[len] = 0;
 		p = buf;
 		break;
@@ -188,11 +177,10 @@ retry:
 	    free (buf);
 	    size *= 2;
 	}
-# else
+#  else
 	char *p = NULL;
-# endif
-	if (p)
-	{
+#  endif
+	if (p) {
 	    char *r = strrchr (p, '/');
 	    if (r)
 		r++;
@@ -229,23 +217,20 @@ FcGetDesktopName (void)
     FcChar8 *desktop_name;
 retry:
     desktop_name = fc_atomic_ptr_get (&default_desktop_name);
-    if (!desktop_name)
-    {
+    if (!desktop_name) {
 	char *s = getenv ("XDG_CURRENT_DESKTOP");
 
 	if (!s)
 	    desktop_name = FcStrdup ("");
 	else
 	    desktop_name = FcStrdup (s);
-	if (!desktop_name)
-	{
+	if (!desktop_name) {
 	    fprintf (stderr, "Fontconfig error: out of memory in %s\n",
-		     __FUNCTION__);
+	             __FUNCTION__);
 	    return NULL;
 	}
 
-	if (!fc_atomic_ptr_cmpexch(&default_desktop_name, NULL, desktop_name))
-	{
+	if (!fc_atomic_ptr_cmpexch (&default_desktop_name, NULL, desktop_name)) {
 	    free (desktop_name);
 	    goto retry;
 	}
@@ -265,27 +250,23 @@ FcDefaultFini (void)
     FcChar8  *desktop;
 
     lang = fc_atomic_ptr_get (&default_lang);
-    if (lang && fc_atomic_ptr_cmpexch (&default_lang, lang, NULL))
-    {
+    if (lang && fc_atomic_ptr_cmpexch (&default_lang, lang, NULL)) {
 	free (lang);
     }
 
     langs = fc_atomic_ptr_get (&default_langs);
-    if (langs && fc_atomic_ptr_cmpexch (&default_langs, langs, NULL))
-    {
+    if (langs && fc_atomic_ptr_cmpexch (&default_langs, langs, NULL)) {
 	FcRefInit (&langs->ref, 1);
 	FcStrSetDestroy (langs);
     }
 
     prgname = fc_atomic_ptr_get (&default_prgname);
-    if (prgname && fc_atomic_ptr_cmpexch (&default_prgname, prgname, NULL))
-    {
+    if (prgname && fc_atomic_ptr_cmpexch (&default_prgname, prgname, NULL)) {
 	free (prgname);
     }
 
     desktop = fc_atomic_ptr_get (&default_desktop_name);
-    if (desktop && fc_atomic_ptr_cmpexch(&default_desktop_name, desktop, NULL))
-    {
+    if (desktop && fc_atomic_ptr_cmpexch (&default_desktop_name, desktop, NULL)) {
 	free (desktop);
     }
 }
@@ -294,9 +275,9 @@ void
 FcDefaultSubstitute (FcPattern *pattern)
 {
     FcPatternIter iter;
-    FcValue v, namelang, v2;
-    int	    i;
-    double	dpi, size, scale, pixelsize;
+    FcValue       v, namelang, v2;
+    int           i;
+    double        dpi, size, scale, pixelsize;
 
     if (!FcPatternFindObjectIter (pattern, &iter, FC_WEIGHT_OBJECT))
 	FcPatternObjectAddInteger (pattern, FC_WEIGHT_OBJECT, FC_WEIGHT_NORMAL);
@@ -311,10 +292,9 @@ FcDefaultSubstitute (FcPattern *pattern)
 	if (!FcPatternFindObjectIter (pattern, &iter, FcBoolDefaults[i].field))
 	    FcPatternObjectAddBool (pattern, FcBoolDefaults[i].field, FcBoolDefaults[i].value);
 
-    if (FcPatternObjectGetDouble (pattern, FC_SIZE_OBJECT, 0, &size) != FcResultMatch)
-    {
+    if (FcPatternObjectGetDouble (pattern, FC_SIZE_OBJECT, 0, &size) != FcResultMatch) {
 	FcRange *r;
-	double b, e;
+	double   b, e;
 	if (FcPatternObjectGetRange (pattern, FC_SIZE_OBJECT, 0, &r) == FcResultMatch && FcRangeGetDouble (r, &b, &e))
 	    size = (b + e) * .5;
 	else
@@ -325,26 +305,23 @@ FcDefaultSubstitute (FcPattern *pattern)
     if (FcPatternObjectGetDouble (pattern, FC_DPI_OBJECT, 0, &dpi) != FcResultMatch)
 	dpi = 75.0;
 
-    if (!FcPatternFindObjectIter (pattern, &iter, FC_PIXEL_SIZE_OBJECT))
-    {
-	(void) FcPatternObjectDel (pattern, FC_SCALE_OBJECT);
+    if (!FcPatternFindObjectIter (pattern, &iter, FC_PIXEL_SIZE_OBJECT)) {
+	(void)FcPatternObjectDel (pattern, FC_SCALE_OBJECT);
 	FcPatternObjectAddDouble (pattern, FC_SCALE_OBJECT, scale);
 	pixelsize = size * scale;
-	(void) FcPatternObjectDel (pattern, FC_DPI_OBJECT);
+	(void)FcPatternObjectDel (pattern, FC_DPI_OBJECT);
 	FcPatternObjectAddDouble (pattern, FC_DPI_OBJECT, dpi);
 	pixelsize *= dpi / 72.0;
 	FcPatternObjectAddDouble (pattern, FC_PIXEL_SIZE_OBJECT, pixelsize);
-    }
-    else
-    {
-	FcPatternIterGetValue(pattern, &iter, 0, &v, NULL);
+    } else {
+	FcPatternIterGetValue (pattern, &iter, 0, &v, NULL);
 	if (v.type == FcTypeInteger)
 	    size = (double)v.u.i;
 	else
 	    size = v.u.d;
 	size = size / dpi * 72.0 / scale;
     }
-    (void) FcPatternObjectDel (pattern, FC_SIZE_OBJECT);
+    (void)FcPatternObjectDel (pattern, FC_SIZE_OBJECT);
     FcPatternObjectAddDouble (pattern, FC_SIZE_OBJECT, size);
 
     if (!FcPatternFindObjectIter (pattern, &iter, FC_FONTVERSION_OBJECT))
@@ -354,7 +331,7 @@ FcDefaultSubstitute (FcPattern *pattern)
 	FcPatternObjectAddInteger (pattern, FC_HINT_STYLE_OBJECT, FC_HINT_FULL);
 
     if (!FcPatternFindObjectIter (pattern, &iter, FC_NAMELANG_OBJECT))
-	FcPatternObjectAddString (pattern, FC_NAMELANG_OBJECT, FcGetDefaultLang ());
+	FcPatternObjectAddString (pattern, FC_NAMELANG_OBJECT, FcGetDefaultLang());
 
     /* shouldn't be failed. */
     FcPatternObjectGet (pattern, FC_NAMELANG_OBJECT, 0, &namelang);
@@ -370,33 +347,28 @@ FcDefaultSubstitute (FcPattern *pattern)
      * exact matched "en" has higher score than ll-cc.
      */
     v2.type = FcTypeString;
-    v2.u.s = (FcChar8 *) "en-us";
-    if (!FcPatternFindObjectIter (pattern, &iter, FC_FAMILYLANG_OBJECT))
-    {
+    v2.u.s = (FcChar8 *)"en-us";
+    if (!FcPatternFindObjectIter (pattern, &iter, FC_FAMILYLANG_OBJECT)) {
 	FcPatternObjectAdd (pattern, FC_FAMILYLANG_OBJECT, namelang, FcTrue);
 	FcPatternObjectAddWithBinding (pattern, FC_FAMILYLANG_OBJECT, v2, FcValueBindingWeak, FcTrue);
     }
-    if (!FcPatternFindObjectIter (pattern, &iter, FC_STYLELANG_OBJECT))
-    {
+    if (!FcPatternFindObjectIter (pattern, &iter, FC_STYLELANG_OBJECT)) {
 	FcPatternObjectAdd (pattern, FC_STYLELANG_OBJECT, namelang, FcTrue);
 	FcPatternObjectAddWithBinding (pattern, FC_STYLELANG_OBJECT, v2, FcValueBindingWeak, FcTrue);
     }
-    if (!FcPatternFindObjectIter (pattern, &iter, FC_FULLNAMELANG_OBJECT))
-    {
+    if (!FcPatternFindObjectIter (pattern, &iter, FC_FULLNAMELANG_OBJECT)) {
 	FcPatternObjectAdd (pattern, FC_FULLNAMELANG_OBJECT, namelang, FcTrue);
 	FcPatternObjectAddWithBinding (pattern, FC_FULLNAMELANG_OBJECT, v2, FcValueBindingWeak, FcTrue);
     }
 
-    if (FcPatternObjectGet (pattern, FC_PRGNAME_OBJECT, 0, &v) == FcResultNoMatch)
-    {
-	FcChar8 *prgname = FcGetPrgname ();
+    if (FcPatternObjectGet (pattern, FC_PRGNAME_OBJECT, 0, &v) == FcResultNoMatch) {
+	FcChar8 *prgname = FcGetPrgname();
 	if (prgname)
 	    FcPatternObjectAddString (pattern, FC_PRGNAME_OBJECT, prgname);
     }
 
-    if (FcPatternObjectGet (pattern, FC_DESKTOP_NAME_OBJECT, 0, &v) == FcResultNoMatch)
-    {
-	FcChar8 *desktop = FcGetDesktopName ();
+    if (FcPatternObjectGet (pattern, FC_DESKTOP_NAME_OBJECT, 0, &v) == FcResultNoMatch) {
+	FcChar8 *desktop = FcGetDesktopName();
 	if (desktop)
 	    FcPatternObjectAddString (pattern, FC_DESKTOP_NAME_OBJECT, desktop);
     }

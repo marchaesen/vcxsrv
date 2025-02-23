@@ -19,9 +19,6 @@
 #include "util/u_hexdump.h"
 #include "decode.h"
 #include "unstable_asahi_drm.h"
-#ifdef __APPLE__
-#include "agx_iokit.h"
-#endif
 
 struct libagxdecode_config lib_config;
 
@@ -71,7 +68,7 @@ agxdecode_find_mapped_gpu_mem_containing(struct agxdecode_ctx *ctx,
 }
 
 static struct agx_bo *
-agxdecode_find_handle(struct agxdecode_ctx *ctx, unsigned handle, unsigned type)
+agxdecode_find_handle(struct agxdecode_ctx *ctx, unsigned handle)
 {
    util_dynarray_foreach(&ctx->mmap_array, struct agx_bo, it) {
       if (it->handle == handle)
@@ -742,64 +739,6 @@ agxdecode_vdm(struct agxdecode_ctx *ctx, const uint8_t *map, uint64_t *link,
    }
 }
 
-#if __APPLE__
-static void
-agxdecode_cs(struct agxdecode_ctx *ctx, uint32_t *cmdbuf, uint64_t encoder,
-             bool verbose, decoder_params *params)
-{
-   agx_unpack(agxdecode_dump_stream, cmdbuf + 16, IOGPU_COMPUTE, cs);
-   DUMP_UNPACKED(IOGPU_COMPUTE, cs, "Compute\n");
-
-   agxdecode_stateful(ctx, encoder, "Encoder", agxdecode_cdm, verbose, params,
-                      NULL);
-
-   fprintf(agxdecode_dump_stream, "Context switch program:\n");
-   uint8_t buf[1024];
-   agx_disassemble(buf,
-                   agxdecode_fetch_gpu_array(
-                      ctx, decode_usc(ctx, cs.context_switch_program), buf),
-                   agxdecode_dump_stream);
-}
-
-static void
-agxdecode_gfx(struct agxdecode_ctx *ctx, uint32_t *cmdbuf, uint64_t encoder,
-              bool verbose, decoder_params *params)
-{
-   agx_unpack(agxdecode_dump_stream, cmdbuf + 16, IOGPU_GRAPHICS, gfx);
-   DUMP_UNPACKED(IOGPU_GRAPHICS, gfx, "Graphics\n");
-
-   agxdecode_stateful(ctx, encoder, "Encoder", agxdecode_vdm, verbose, params,
-                      NULL);
-
-   if (gfx.clear_pipeline_unk) {
-      fprintf(agxdecode_dump_stream, "Unk: %X\n", gfx.clear_pipeline_unk);
-      agxdecode_stateful(ctx, decode_usc(ctx, gfx.clear_pipeline),
-                         "Clear pipeline", agxdecode_usc, verbose, params,
-                         NULL);
-   }
-
-   if (gfx.store_pipeline_unk) {
-      assert(gfx.store_pipeline_unk == 0x4);
-      agxdecode_stateful(ctx, decode_usc(ctx, gfx.store_pipeline),
-                         "Store pipeline", agxdecode_usc, verbose, params,
-                         NULL);
-   }
-
-   assert((gfx.partial_reload_pipeline_unk & 0xF) == 0x4);
-   if (gfx.partial_reload_pipeline) {
-      agxdecode_stateful(ctx, decode_usc(ctx, gfx.partial_reload_pipeline),
-                         "Partial reload pipeline", agxdecode_usc, verbose,
-                         params, NULL);
-   }
-
-   if (gfx.partial_store_pipeline) {
-      agxdecode_stateful(ctx, decode_usc(ctx, gfx.partial_store_pipeline),
-                         "Partial store pipeline", agxdecode_usc, verbose,
-                         params, NULL);
-   }
-}
-#endif
-
 static void
 agxdecode_sampler_heap(struct agxdecode_ctx *ctx, uint64_t heap, unsigned count)
 {
@@ -1004,47 +943,30 @@ chip_id_to_params(decoder_params *params, uint32_t chip_id)
    }
 }
 
-#ifdef __APPLE__
-
 void
 agxdecode_cmdstream(struct agxdecode_ctx *ctx, unsigned cmdbuf_handle,
                     unsigned map_handle, bool verbose)
 {
    agxdecode_dump_file_open();
 
-   struct agx_bo *cmdbuf =
-      agxdecode_find_handle(cmdbuf_handle, AGX_ALLOC_CMDBUF);
-   struct agx_bo *map = agxdecode_find_handle(map_handle, AGX_ALLOC_MEMMAP);
+   struct agx_bo *cmdbuf = agxdecode_find_handle(ctx, cmdbuf_handle);
    assert(cmdbuf != NULL && "nonexistent command buffer");
-   assert(map != NULL && "nonexistent mapping");
-
-   /* Print the IOGPU stuff */
-   agx_unpack(agxdecode_dump_stream, cmdbuf->map, IOGPU_HEADER, cmd);
-   DUMP_UNPACKED(IOGPU_HEADER, cmd, "IOGPU Header\n");
-
-   DUMP_CL(IOGPU_ATTACHMENT_COUNT,
-           ((uint8_t *)cmdbuf->map + cmd.attachment_offset),
-           "Attachment count");
-
-   uint32_t *attachments =
-      (uint32_t *)((uint8_t *)cmdbuf->map + cmd.attachment_offset);
-   unsigned attachment_count = attachments[3];
-   for (unsigned i = 0; i < attachment_count; ++i) {
-      uint32_t *ptr = attachments + 4 + (i * AGX_IOGPU_ATTACHMENT_LENGTH / 4);
-      DUMP_CL(IOGPU_ATTACHMENT, ptr, "Attachment");
-   }
 
    struct drm_asahi_params_global params;
 
    chip_id_to_params(&params, 0x8103);
 
-   if (cmd.unk_5 == 3)
-      agxdecode_cs((uint32_t *)cmdbuf->map, cmd.encoder, verbose, &params);
-   else
-      agxdecode_gfx((uint32_t *)cmdbuf->map, cmd.encoder, verbose, &params);
-}
+   uint32_t *map = cmdbuf->_map;
+   uint64_t encoder = (uint64_t)map[14] | ((uint64_t)(map[15]) << 32);
 
-#endif
+   if (map[13] == 3) {
+      agxdecode_stateful(ctx, encoder, "Encoder", agxdecode_cdm, verbose,
+                         &params, NULL);
+   } else {
+      agxdecode_stateful(ctx, encoder, "Encoder", agxdecode_vdm, verbose,
+                         &params, NULL);
+   }
+}
 
 void
 agxdecode_track_alloc(struct agxdecode_ctx *ctx, struct agx_bo *alloc)

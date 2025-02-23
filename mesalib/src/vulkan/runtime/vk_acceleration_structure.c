@@ -64,7 +64,7 @@ static const uint32_t ploc_spv[] = {
 };
 
 VkDeviceAddress
-vk_acceleration_structure_get_va(struct vk_acceleration_structure *accel_struct)
+vk_acceleration_structure_get_va(const struct vk_acceleration_structure *accel_struct)
 {
    VkBufferDeviceAddressInfo info = {
       .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -506,12 +506,27 @@ build_leaves(VkCommandBuffer commandBuffer,
     */
     VkResult result;
    if (updateable) {
-      result = get_pipeline_spv(device, meta, VK_META_OBJECT_KEY_LEAF_ALWAYS_ACTIVE,
-                                leaf_always_active_spv,
-                                sizeof(leaf_always_active_spv),
-                                sizeof(struct leaf_args), args, &pipeline, &layout);
+      const uint32_t *spirv = leaf_always_active_spv;
+      size_t spirv_size = sizeof(leaf_always_active_spv);
+
+      if (device->as_build_ops->leaf_always_active_spirv_override) {
+         spirv = device->as_build_ops->leaf_always_active_spirv_override;
+         spirv_size = device->as_build_ops->leaf_always_active_spirv_override_size;
+      }
+
+      result = get_pipeline_spv(device, meta, VK_META_OBJECT_KEY_LEAF_ALWAYS_ACTIVE, spirv,
+                                spirv_size, sizeof(struct leaf_args), args,
+                                &pipeline, &layout);
    } else {
-      result = get_pipeline_spv(device, meta, VK_META_OBJECT_KEY_LEAF, leaf_spv, sizeof(leaf_spv),
+      const uint32_t *spirv = leaf_spv;
+      size_t spirv_size = sizeof(leaf_spv);
+
+      if (device->as_build_ops->leaf_spirv_override) {
+         spirv = device->as_build_ops->leaf_spirv_override;
+         spirv_size = device->as_build_ops->leaf_spirv_override_size;
+      }
+
+      result = get_pipeline_spv(device, meta, VK_META_OBJECT_KEY_LEAF, spirv, spirv_size,
                                 sizeof(struct leaf_args), args, &pipeline, &layout);
    }
 

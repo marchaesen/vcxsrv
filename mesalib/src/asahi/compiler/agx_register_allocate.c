@@ -1614,7 +1614,7 @@ agx_ra(agx_context *ctx)
          assert(ins->src[0].type == AGX_INDEX_REGISTER ||
                 ins->src[0].type == AGX_INDEX_UNIFORM);
 
-         struct agx_copy copies[4];
+         struct agx_copy copies[8];
          assert(ins->nr_dests <= ARRAY_SIZE(copies));
 
          unsigned n = 0;

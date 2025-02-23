@@ -374,7 +374,11 @@ iris_ensure_indirect_generation_shader(struct iris_batch *batch)
    NIR_PASS_V(nir, nir_lower_vars_to_ssa);
    NIR_PASS_V(nir, nir_opt_cse);
    NIR_PASS_V(nir, nir_opt_gcm, true);
-   NIR_PASS_V(nir, nir_opt_peephole_select, 1, false, false);
+
+   nir_opt_peephole_select_options peephole_select_options = {
+      .limit = 1,
+   };
+   NIR_PASS_V(nir, nir_opt_peephole_select, &peephole_select_options);
 
    NIR_PASS_V(nir, nir_lower_variable_initializers, ~0);
 

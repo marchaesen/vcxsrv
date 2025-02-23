@@ -253,4 +253,7 @@ extern Bool explicit_display;
 extern Bool disableBackingStore;
 extern Bool enableBackingStore;
 
+/* in generated BuiltInAtoms.c */
+void MakePredeclaredAtoms(void);
+
 #endif /* _XSERVER_DIX_PRIV_H */

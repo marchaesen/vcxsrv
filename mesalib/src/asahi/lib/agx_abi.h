@@ -19,3 +19,9 @@
 #define AGX_ABI_FOUT_S             (6)
 #define AGX_ABI_FOUT_WRITE_SAMPLES (7)
 #define AGX_ABI_FOUT_COLOUR(rt)    (2 * (4 + (4 * rt)))
+
+/* This address is in our reservation, and can be
+ * addressed with only small integers in the low/high. That lets us do some
+ * robustness optimization even without soft fault.
+ */
+#define AGX_ZERO_PAGE_ADDRESS (1ull << 32)

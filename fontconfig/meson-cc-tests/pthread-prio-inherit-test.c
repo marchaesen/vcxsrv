@@ -1,7 +1,7 @@
 #include <pthread.h>
 
 int
-main(void)
+main (void)
 {
     int i = PTHREAD_PRIO_INHERIT;
 

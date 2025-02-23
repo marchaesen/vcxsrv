@@ -495,7 +495,7 @@ trivialize_stores(nir_function_impl *impl, nir_block *block)
    _mesa_hash_table_destroy(possibly_trivial_stores, NULL);
 }
 
-void
+bool
 nir_trivialize_registers(nir_shader *s)
 {
    nir_foreach_function_impl(impl, s) {
@@ -506,5 +506,9 @@ nir_trivialize_registers(nir_shader *s)
          trivialize_loads(impl, block);
          trivialize_stores(impl, block);
       }
+
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    }
+
+   return true;
 }

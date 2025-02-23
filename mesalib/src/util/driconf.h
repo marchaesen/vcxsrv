@@ -641,6 +641,10 @@
    DRI_CONF_OPT_B(hk_disable_rgba4_border_color_workaround, def, \
                   "Use hardware opaque_black, breaking certain RGBA4 formats")
 
+#define DRI_CONF_HK_FAKE_MINMAX(def) \
+   DRI_CONF_OPT_B(hk_fake_minmax, def, \
+                  "Fake support for min/max filtering")
+
 /**
  * \brief venus specific configuration options
  */

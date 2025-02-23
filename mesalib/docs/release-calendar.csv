@@ -1,3 +1,13 @@
 24.3,2025-02-05,24.3.5,Dylan Baker,
 ,2025-02-19,24.3.6,Dylan Baker,This is the last planned release of the 24.3.x series.
-25.0,2025-02-19,25.0.0-rc4,Eric Engestrom,or 25.0.0 final
+25.0,2025-03-05,25.0.1,Eric Engestrom,
+,2025-03-19,25.0.2,Eric Engestrom,
+,2025-04-02,25.0.3,Eric Engestrom,
+,2025-04-16,25.0.4,Eric Engestrom,
+,2025-04-30,25.0.5,Eric Engestrom,
+,2025-05-14,25.0.6,Eric Engestrom,
+,2025-05-28,25.0.7,Eric Engestrom,Last planned 25.0.x release.
+25.1,2025-04-16,25.1.0-rc1,Eric Engestrom,25.1 branchpoint
+,2025-04-23,25.1.0-rc2,Eric Engestrom,
+,2025-04-30,25.1.0-rc3,Eric Engestrom,
+,2025-05-07,25.1.0-rc4,Eric Engestrom,or 25.1.0 final

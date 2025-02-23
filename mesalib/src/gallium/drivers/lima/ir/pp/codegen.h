@@ -308,7 +308,7 @@ typedef enum {
 typedef union __attribute__((__packed__)) {
    struct __attribute__((__packed__)) {
       bool                           dest_vec      : 1;
-      bool                           arg1_en       : 1;
+      bool                           src_vec       : 1;
       ppir_codegen_combine_scalar_op op            : 4;
       bool                           arg1_absolute : 1;
       bool                           arg1_negate   : 1;
@@ -321,7 +321,7 @@ typedef union __attribute__((__packed__)) {
    } scalar;
    struct __attribute__((__packed__)) {
       bool     dest_vec     : 1;
-      bool     arg1_en      : 1;
+      bool     src_vec      : 1;
       unsigned arg1_swizzle : 8;
       unsigned arg1_source  : 4;
       unsigned padding_0    : 8;

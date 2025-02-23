@@ -52,10 +52,6 @@
 #include "loader_dri3_helper.h"
 #endif
 
-static struct dri_drawable *
-kopper_create_drawable(struct dri_screen *screen, const struct gl_config *visual,
-                       bool isPixmap, void *loaderPrivate);
-
 struct pipe_screen *
 kopper_init_screen(struct dri_screen *screen, bool driver_name_is_inferred)
 {
@@ -158,7 +154,7 @@ kopper_get_pixmap_buffer(struct dri_drawable *drawable,
 
 #ifndef GLX_USE_APPLE
    drawable->image = loader_dri3_get_pixmap_buffer(conn, pixmap, screen,
-                                                   fourcc, drawable->screen->dmabuf_import, &width, &height, drawable);
+                                                   fourcc, drawable->screen->has_multibuffer, &width, &height, drawable);
 #else
    drawable->image = NULL;
 #endif

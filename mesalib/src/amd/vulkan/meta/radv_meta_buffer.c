@@ -248,7 +248,7 @@ radv_CmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSi
    cmd_buffer->state.predicating = old_predicating;
 }
 
-static void
+void
 radv_copy_memory(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t dst_va, uint64_t size)
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
@@ -263,24 +263,13 @@ radv_copy_memory(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t d
    }
 }
 
-void
-radv_copy_buffer(struct radv_cmd_buffer *cmd_buffer, struct radeon_winsys_bo *src_bo, struct radeon_winsys_bo *dst_bo,
-                 uint64_t src_va, uint64_t dst_va, uint64_t size)
-{
-   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-
-   radv_cs_add_buffer(device->ws, cmd_buffer->cs, src_bo);
-   radv_cs_add_buffer(device->ws, cmd_buffer->cs, dst_bo);
-
-   radv_copy_memory(cmd_buffer, src_va, dst_va, size);
-}
-
 VKAPI_ATTR void VKAPI_CALL
 radv_CmdCopyBuffer2(VkCommandBuffer commandBuffer, const VkCopyBufferInfo2 *pCopyBufferInfo)
 {
    VK_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
    VK_FROM_HANDLE(radv_buffer, src_buffer, pCopyBufferInfo->srcBuffer);
    VK_FROM_HANDLE(radv_buffer, dst_buffer, pCopyBufferInfo->dstBuffer);
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    bool old_predicating;
 
    /* VK_EXT_conditional_rendering says that copy commands should not be
@@ -289,12 +278,15 @@ radv_CmdCopyBuffer2(VkCommandBuffer commandBuffer, const VkCopyBufferInfo2 *pCop
    old_predicating = cmd_buffer->state.predicating;
    cmd_buffer->state.predicating = false;
 
+   radv_cs_add_buffer(device->ws, cmd_buffer->cs, src_buffer->bo);
+   radv_cs_add_buffer(device->ws, cmd_buffer->cs, dst_buffer->bo);
+
    for (unsigned r = 0; r < pCopyBufferInfo->regionCount; r++) {
       const VkBufferCopy2 *region = &pCopyBufferInfo->pRegions[r];
       const uint64_t src_va = src_buffer->addr + region->srcOffset;
       const uint64_t dst_va = dst_buffer->addr + region->dstOffset;
 
-      radv_copy_buffer(cmd_buffer, src_buffer->bo, dst_buffer->bo, src_va, dst_va, region->size);
+      radv_copy_memory(cmd_buffer, src_va, dst_va, region->size);
    }
 
    /* Restore conditional rendering. */

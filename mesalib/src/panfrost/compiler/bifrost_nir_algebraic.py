@@ -75,7 +75,47 @@ algebraic_late = [
     # XXX: Duplicate of nir_lower_pack
     (('unpack_64_2x32', a), ('vec2', ('unpack_64_2x32_split_x', a),
                                      ('unpack_64_2x32_split_y', a))),
+
+    # On v11+, all non integer variant to convert to F32 are gone except for S32_TO_F32.
+    (('i2f32', 'a@8'), ('i2f32', ('i2i32', a)), 'gpu_arch >= 11'),
+    (('i2f32', 'a@16'), ('i2f32', ('i2i32', a)), 'gpu_arch >= 11'),
+    (('u2f32', 'a@8'), ('u2f32', ('u2u32', a)), 'gpu_arch >= 11'),
+    (('u2f32', 'a@16'), ('u2f32', ('u2u32', a)), 'gpu_arch >= 11'),
+
+    # On v11+, all non integer variant to convert to F16 are gone except for S32_TO_F32.
+    (('i2f16', 'a'), ('f2f16', ('i2f32', ('i2i32', a))), 'gpu_arch >= 11'),
+    (('u2f16', 'a'), ('f2f16', ('u2f32', ('u2u32', a))), 'gpu_arch >= 11'),
+
+    # On v11+, V2F16_TO_V2S16 / V2F16_TO_V2U16 are gone
+    (('f2i16', 'a@16'), ('f2i16', ('f2f32', a)), 'gpu_arch >= 11'),
+    (('f2u16', 'a@16'), ('f2u16', ('f2f32', a)), 'gpu_arch >= 11'),
+
+    # On v11+, F16_TO_S32/F16_TO_U32 is gone but we still have F32_TO_S32/F32_TO_U32
+    (('f2i32', 'a@16'), ('f2i32', ('f2f32', a)), 'gpu_arch >= 11'),
+    (('f2u32', 'a@16'), ('f2u32', ('f2f32', a)), 'gpu_arch >= 11'),
+
+    # On v11+, IABS.v4s8 is gone
+    (('iabs', 'a@8'), ('i2i8', ('iabs', ('i2i16', a))), 'gpu_arch >= 11'),
+
+    # On v11+, ISUB.v4s8 is gone
+    (('ineg', 'a@8'), ('i2i8', ('ineg', ('i2i16', a))), 'gpu_arch >= 11'),
+    (('isub', 'a@8', 'b@8'), ('i2i8', ('isub', ('i2i16', a), ('i2i16', b))), 'gpu_arch >= 11'),
+    (('isub_sat', 'a@8', 'b@8'), ('i2i8', ('isub_sat', ('i2i16', a), ('i2i16', b))), 'gpu_arch >= 11'),
+    (('usub_sat', 'a@8', 'b@8'), ('u2u8', ('usub_sat', ('u2u16', a), ('u2u16', b))), 'gpu_arch >= 11'),
 ]
+
+# On v11+, ICMP_OR.v4u8 was removed
+for cond in ['ilt', 'ige', 'ieq', 'ine', 'ult', 'uge']:
+    convert_8bit = 'u2u8'
+    convert_16bit = 'u2u16'
+
+    if cond[0] == 'i':
+        convert_8bit = 'i2i8'
+        convert_16bit = 'i2i16'
+
+    algebraic_late += [
+        ((f'{cond}8', a, b), (convert_8bit, (f'{cond}16', (convert_16bit, a), (convert_16bit, b))), 'gpu_arch >= 11'),
+    ]
 
 # Handling all combinations of boolean and float sizes for b2f is nontrivial.
 # bcsel has the same problem in more generality; lower b2f to bcsel in NIR to
@@ -108,8 +148,10 @@ def run():
     print(nir_algebraic.AlgebraicPass("bifrost_nir_opt_boolean_bitwise",
                                       opt_bool_bitwise).render())
     print(nir_algebraic.AlgebraicPass("bifrost_nir_lower_algebraic_late",
-                                      algebraic_late).render())
-
+                                      algebraic_late,
+                                      [
+                                          ("unsigned ", "gpu_arch")
+                                      ]).render())
 
 if __name__ == '__main__':
     main()

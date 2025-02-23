@@ -40,8 +40,41 @@ rustfmt:
     - .lint-rustfmt-rules
   before_script:
     - shopt -s globstar
+    - source "$HOME/.cargo/env"
     - rustfmt --version
     - rustfmt --verbose src/**/lib.rs
+
+shader-db:
+  stage: code-validation
+  extends:
+    - .use-debian/x86_64_build
+  rules:
+    - !reference [.never-post-merge-rules, rules]
+    - !reference [.core-rules, rules]
+    # Keep this list in sync with the drivers tested in run-shader-db.sh
+    - !reference [.freedreno-common-rules, rules]
+    - !reference [.intel-common-rules, rules]
+    - !reference [.lima-rules, rules]
+    - !reference [.v3d-rules, rules]
+    - !reference [.vc4-rules, rules]
+    - !reference [.nouveau-rules, rules]
+    - !reference [.r300-rules, rules]
+    # Also run if this job's own config or script changes
+    - changes:
+        - .gitlab-ci/build/gitlab-ci.yml
+        - .gitlab-ci/run-shader-db.sh
+  needs:
+    - debian-build-testing
+  variables:
+    S3_ARTIFACT_NAME: debian-build-testing
+  before_script:
+    - !reference [.download_s3, before_script]
+  script: |
+    .gitlab-ci/run-shader-db.sh
+  artifacts:
+    paths:
+      - shader-db
+  timeout: 15m
 
 yaml-toml-shell-py-test:
   extends:

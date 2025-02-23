@@ -1361,6 +1361,9 @@ static int amdgpu_cs_submit_ib_kernelq(struct amdgpu_cs *acs,
    num_chunks++;
 
    if (cs->secure) {
+      /* Secure submissions not supported for compute. */
+      assert(acs->ip_type != AMD_IP_COMPUTE);
+
       cs->chunk_ib[IB_PREAMBLE].flags |= AMDGPU_IB_FLAGS_SECURE;
       cs->chunk_ib[IB_MAIN].flags |= AMDGPU_IB_FLAGS_SECURE;
    } else {

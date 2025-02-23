@@ -100,6 +100,7 @@ SOFTWARE.
 #include "dix/dix_priv.h"
 #include "os/audit.h"
 #include "os/auth.h"
+#include "os/client_priv.h"
 #include "os/osdep.h"
 
 #include "misc.h"               /* for typedef of pointer */
@@ -133,8 +134,6 @@ Bool NoListenAll;               /* Don't establish any listening sockets */
 #if !defined(_MSC_VER)
 static Pid_t ParentProcess;
 #endif
-Bool RunFromSigStopParent;      /* send SIGSTOP to our own process; Upstart (or
-                                   equivalent) will send SIGCONT back. */
 static char dynamic_display[7]; /* display name */
 static int dynamic_display_id;
 Bool PartialNetwork;            /* continue even if unable to bind all addrs */
@@ -235,8 +234,6 @@ NotifyParentProcess(void)
             kill(ParentProcess, SIGUSR1);
         }
     }
-    if (RunFromSigStopParent)
-        raise(SIGSTOP);
 #ifdef HAVE_SYSTEMD_DAEMON
     /* If we have been started as a systemd service, tell systemd that
        we are ready. Otherwise sd_notify() won't do anything. */

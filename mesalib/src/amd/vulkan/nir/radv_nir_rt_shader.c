@@ -723,7 +723,7 @@ radv_lower_rt_instruction(nir_builder *b, nir_instr *instr, void *_data)
 
 /* This lowers all the RT instructions that we do not want to pass on to the combined shader and
  * that we can implement using the variables from the shader we are going to inline into. */
-static void
+static bool
 lower_rt_instructions(nir_shader *shader, struct rt_variables *vars, bool late_lowering,
                       struct radv_rt_shader_info *out_info)
 {
@@ -732,18 +732,21 @@ lower_rt_instructions(nir_shader *shader, struct rt_variables *vars, bool late_l
       .late_lowering = late_lowering,
       .out_info = out_info,
    };
-   nir_shader_instructions_pass(shader, radv_lower_rt_instruction, nir_metadata_none, &data);
+   return nir_shader_instructions_pass(shader, radv_lower_rt_instruction, nir_metadata_none, &data);
 }
 
 /* Lowers hit attributes to registers or shared memory. If hit_attribs is NULL, attributes are
  * lowered to shared memory. */
-static void
+static bool
 lower_hit_attribs(nir_shader *shader, nir_variable **hit_attribs, uint32_t workgroup_size)
 {
+   bool progress = false;
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 
-   nir_foreach_variable_with_modes (attrib, shader, nir_var_ray_hit_attrib)
+   nir_foreach_variable_with_modes (attrib, shader, nir_var_ray_hit_attrib) {
       attrib->data.mode = nir_var_shader_temp;
+      progress = true;
+   }
 
    nir_builder b = nir_builder_create(impl);
 
@@ -757,6 +760,7 @@ lower_hit_attribs(nir_shader *shader, nir_variable **hit_attribs, uint32_t workg
              intrin->intrinsic != nir_intrinsic_store_hit_attrib_amd)
             continue;
 
+         progress = true;
          b.cursor = nir_after_instr(instr);
 
          nir_def *offset;
@@ -784,6 +788,11 @@ lower_hit_attribs(nir_shader *shader, nir_variable **hit_attribs, uint32_t workg
 
    if (!hit_attribs)
       shader->info.shared_size = MAX2(shader->info.shared_size, workgroup_size * RADV_MAX_HIT_ATTRIB_SIZE);
+
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
+
+   return progress;
 }
 
 static void
@@ -830,7 +839,7 @@ insert_rt_case(nir_builder *b, nir_shader *shader, struct rt_variables *vars, ni
    struct rt_variables src_vars = create_rt_variables(shader, vars->device, vars->flags, vars->monolithic);
    map_rt_variables(var_remap, &src_vars, vars);
 
-   NIR_PASS_V(shader, lower_rt_instructions, &src_vars, false, NULL);
+   NIR_PASS(_, shader, lower_rt_instructions, &src_vars, false, NULL);
 
    NIR_PASS(_, shader, nir_lower_returns);
    NIR_PASS(_, shader, nir_opt_dce);
@@ -1742,8 +1751,8 @@ radv_build_traversal_shader(struct radv_device *device, struct radv_ray_tracing_
    nir_metadata_preserve(nir_shader_get_entrypoint(b.shader), nir_metadata_none);
 
    /* Lower and cleanup variables */
-   NIR_PASS_V(b.shader, nir_lower_global_vars_to_local);
-   NIR_PASS_V(b.shader, nir_lower_vars_to_ssa);
+   NIR_PASS(_, b.shader, nir_lower_global_vars_to_local);
+   NIR_PASS(_, b.shader, nir_lower_vars_to_ssa);
 
    return b.shader;
 }
@@ -2070,10 +2079,10 @@ radv_nir_lower_rt_abi(nir_shader *shader, const VkRayTracingPipelineCreateInfoKH
    nir_metadata_preserve(impl, nir_metadata_none);
 
    /* cleanup passes */
-   NIR_PASS_V(shader, nir_lower_global_vars_to_local);
-   NIR_PASS_V(shader, nir_lower_vars_to_ssa);
+   NIR_PASS(_, shader, nir_lower_global_vars_to_local);
+   NIR_PASS(_, shader, nir_lower_vars_to_ssa);
    if (shader->info.stage == MESA_SHADER_CLOSEST_HIT || shader->info.stage == MESA_SHADER_INTERSECTION)
-      NIR_PASS_V(shader, lower_hit_attribs, NULL, info->wave_size);
+      NIR_PASS(_, shader, lower_hit_attribs, NULL, info->wave_size);
 }
 
 static bool

@@ -1969,10 +1969,18 @@ emit_readonly_load_uav(struct ir3_context *ctx,
    struct ir3_builder *b = &ctx->build;
    struct tex_src_info info = get_image_ssbo_samp_tex_src(ctx, index, false);
 
+   struct ir3_instruction *src1;
+   if (ctx->compiler->has_isam_v && !uav_load) {
+      src1 = create_immed(b, imm_offset);
+   } else {
+      assert(imm_offset == 0);
+      src1 = NULL;
+   }
+
    unsigned num_components = intr->def.num_components;
    struct ir3_instruction *sam =
       emit_sam(ctx, OPC_ISAM, info, utype_for_size(intr->def.bit_size),
-               MASK(num_components), coords, create_immed(b, imm_offset));
+               MASK(num_components), coords, src1);
 
    ir3_handle_nonuniform(sam, intr);
 

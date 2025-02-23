@@ -898,6 +898,11 @@ st_destroy_context(struct st_context *st)
    if (save_ctx) {
       save_drawbuffer = save_ctx->WinSysDrawBuffer;
       save_readbuffer = save_ctx->WinSysReadBuffer;
+      /* Calling _mesa_glthread_finish is required to avoid having an
+       * unmarshalling thread execute calls while the current thread
+       * flushes the context.
+       */
+      _mesa_glthread_finish(save_ctx);
    } else {
       save_drawbuffer = save_readbuffer = NULL;
    }

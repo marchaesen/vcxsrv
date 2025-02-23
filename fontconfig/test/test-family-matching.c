@@ -21,9 +21,10 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
+#include <fontconfig/fontconfig.h>
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <fontconfig/fontconfig.h>
 
 #define FC_TEST_RESULT "testresult"
 
@@ -42,78 +43,75 @@ typedef enum _TestResult {
 static TestMatchResult
 TestMatchPattern (const char *test, FcPattern *p)
 {
-    const FcChar8 *xml_pre = (const FcChar8 *) ""
-        "<fontconfig>\n"
-        "  <match>\n"
-        "";
+    const FcChar8 *xml_pre = (const FcChar8 *)
+	""
+	"<fontconfig>\n"
+	"  <match>\n"
+	"";
 
-    const FcChar8 *xml_post = (const FcChar8 *) ""
-        "    <edit name=\""FC_TEST_RESULT"\">\n"
-        "      <bool>true</bool>\n"
-        "    </edit>\n"
-        "  </match>\n"
-        "</fontconfig>\n"
-        "";
+    const FcChar8 *xml_post = (const FcChar8 *)
+	""
+	"    <edit name=\"" FC_TEST_RESULT
+	"\">\n"
+	"      <bool>true</bool>\n"
+	"    </edit>\n"
+	"  </match>\n"
+	"</fontconfig>\n"
+	"";
 
-    FcPattern *pat = NULL;
-    FcChar8 *concat = NULL;
-    FcChar8 *xml = NULL;
-    FcConfig *cfg = NULL;
-    FcResult result;
-    FcBool dummy;
+    FcPattern      *pat = NULL;
+    FcChar8        *concat = NULL;
+    FcChar8        *xml = NULL;
+    FcConfig       *cfg = NULL;
+    FcResult        result;
+    FcBool          dummy;
     TestMatchResult ret = TestMatchError;
 
     pat = FcPatternDuplicate (p);
-    if (!pat)
-    {
-        fprintf (stderr, "Unable to duplicate pattern.\n");
-        goto bail;
+    if (!pat) {
+	fprintf (stderr, "Unable to duplicate pattern.\n");
+	goto bail;
     }
 
-    concat = FcStrPlus (xml_pre, (const FcChar8 *) test);
-    if (!concat)
-    {
-        fprintf (stderr, "Concatenation failed.\n");
-        goto bail;
+    concat = FcStrPlus (xml_pre, (const FcChar8 *)test);
+    if (!concat) {
+	fprintf (stderr, "Concatenation failed.\n");
+	goto bail;
     }
 
     xml = FcStrPlus (concat, xml_post);
-    if (!xml)
-    {
-        fprintf (stderr, "Concatenation failed.\n");
-        goto bail;
+    if (!xml) {
+	fprintf (stderr, "Concatenation failed.\n");
+	goto bail;
     }
 
-    cfg = FcConfigCreate ();
-    if (!cfg)
-    {
-        fprintf (stderr, "Unable to create a new empty config.\n");
-        goto bail;
+    cfg = FcConfigCreate();
+    if (!cfg) {
+	fprintf (stderr, "Unable to create a new empty config.\n");
+	goto bail;
     }
 
-    if (!FcConfigParseAndLoadFromMemory (cfg, xml, FcTrue))
-    {
-        fprintf (stderr, "Unable to load a config from memory.\n");
-        goto bail;
+    if (!FcConfigParseAndLoadFromMemory (cfg, xml, FcTrue)) {
+	fprintf (stderr, "Unable to load a config from memory.\n");
+	goto bail;
     }
 
-    if (!FcConfigSubstitute (cfg, pat, FcMatchPattern))
-    {
-        fprintf (stderr, "Unable to substitute config.\n");
-        goto bail;
+    if (!FcConfigSubstitute (cfg, pat, FcMatchPattern)) {
+	fprintf (stderr, "Unable to substitute config.\n");
+	goto bail;
     }
 
     result = FcPatternGetBool (pat, FC_TEST_RESULT, 0, &dummy);
     switch (result) {
     case FcResultMatch:
-        ret = TestMatch;
-        break;
+	ret = TestMatch;
+	break;
     case FcResultNoMatch:
-        ret = TestNoMatch;
-        break;
+	ret = TestNoMatch;
+	break;
     default:
-        fprintf (stderr, "Unable to check pattern.\n");
-        break;
+	fprintf (stderr, "Unable to check pattern.\n");
+	break;
     }
 
 bail:
@@ -129,48 +127,44 @@ bail:
 }
 
 static TestResult
-TestShouldMatchPattern(const char* test, FcPattern *pat, int negate)
+TestShouldMatchPattern (const char *test, FcPattern *pat, int negate)
 {
     switch (TestMatchPattern (test, pat)) {
     case TestMatch:
-        if (!negate) {
-            return TestPassed;
-        }
-        else
-        {
-            printf ("Following test unexpectedly matched:\n%s", test);
-            printf ("on\n");
-            FcPatternPrint (pat);
-            return TestFailed;
-        }
-        break;
+	if (!negate) {
+	    return TestPassed;
+	} else {
+	    printf ("Following test unexpectedly matched:\n%s", test);
+	    printf ("on\n");
+	    FcPatternPrint (pat);
+	    return TestFailed;
+	}
+	break;
     case TestNoMatch:
-        if (!negate) {
-            printf ("Following test should have matched:\n%s", test);
-            printf ("on\n");
-            FcPatternPrint (pat);
-            return TestFailed;
-        }
-        else
-        {
-            return TestPassed;
-        }
-        break;
+	if (!negate) {
+	    printf ("Following test should have matched:\n%s", test);
+	    printf ("on\n");
+	    FcPatternPrint (pat);
+	    return TestFailed;
+	} else {
+	    return TestPassed;
+	}
+	break;
     case TestMatchError:
-        return TestError;
-        break;
+	return TestError;
+	break;
     default:
-        fprintf (stderr, "This shouldn't have been reached.\n");
-        return TestError;
+	fprintf (stderr, "This shouldn't have been reached.\n");
+	return TestError;
     }
 }
 
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 static TestResult
-UpdateResult (TestResult* res, TestResult resNew)
+UpdateResult (TestResult *res, TestResult resNew)
 {
-    *res = MAX(*res, resNew);
+    *res = MAX (*res, resNew);
     return *res;
 }
 
@@ -178,51 +172,54 @@ static TestResult
 TestFamily (void)
 {
     const char *test;
-    TestResult res = TestPassed;
+    TestResult  res = TestPassed;
 
     FcPattern *pat = FcPatternBuild (NULL,
-        FC_FAMILY, FcTypeString, "family1",
-        FC_FAMILY, FcTypeString, "family2",
-        FC_FAMILY, FcTypeString, "family3",
-        NULL);
+                                     FC_FAMILY, FcTypeString, "family1",
+                                     FC_FAMILY, FcTypeString, "family2",
+                                     FC_FAMILY, FcTypeString, "family3",
+                                     NULL);
 
-    if (!pat)
-    {
-        fprintf (stderr, "Unable to build pattern.\n");
-        return TestError;
+    if (!pat) {
+	fprintf (stderr, "Unable to build pattern.\n");
+	return TestError;
     }
 
-    #define SHOULD_MATCH(p,t) \
-        UpdateResult (&res, TestShouldMatchPattern (t, p, 0))
-    #define SHOULD_NOT_MATCH(p,t) \
-        UpdateResult (&res, TestShouldMatchPattern (t, p, 1))
+#define SHOULD_MATCH(p, t) \
+    UpdateResult (&res, TestShouldMatchPattern (t, p, 0))
+#define SHOULD_NOT_MATCH(p, t) \
+    UpdateResult (&res, TestShouldMatchPattern (t, p, 1))
 
-    test = "<test qual=\"all\" name=\"family\" compare=\"not_eq\">\n"
-           "    <string>foo</string>\n"
-           "</test>\n"
-           "";
-    SHOULD_MATCH(pat, test);
+    test =
+	"<test qual=\"all\" name=\"family\" compare=\"not_eq\">\n"
+	"    <string>foo</string>\n"
+	"</test>\n"
+	"";
+    SHOULD_MATCH (pat, test);
 
-    test = ""
-           "<test qual=\"all\" name=\"family\" compare=\"not_eq\">\n"
-           "    <string>family2</string>\n"
-           "</test>\n"
-           "";
-    SHOULD_NOT_MATCH(pat, test);
+    test =
+	""
+	"<test qual=\"all\" name=\"family\" compare=\"not_eq\">\n"
+	"    <string>family2</string>\n"
+	"</test>\n"
+	"";
+    SHOULD_NOT_MATCH (pat, test);
 
-    test = ""
-           "<test qual=\"any\" name=\"family\" compare=\"eq\">\n"
-           "    <string>family3</string>\n"
-           "</test>\n"
-           "";
-    SHOULD_MATCH(pat, test);
+    test =
+	""
+	"<test qual=\"any\" name=\"family\" compare=\"eq\">\n"
+	"    <string>family3</string>\n"
+	"</test>\n"
+	"";
+    SHOULD_MATCH (pat, test);
 
-    test = ""
-           "<test qual=\"any\" name=\"family\" compare=\"eq\">\n"
-           "    <string>foo</string>\n"
-           "</test>\n"
-           "";
-    SHOULD_NOT_MATCH(pat, test);
+    test =
+	""
+	"<test qual=\"any\" name=\"family\" compare=\"eq\">\n"
+	"    <string>foo</string>\n"
+	"</test>\n"
+	"";
+    SHOULD_NOT_MATCH (pat, test);
 
     FcPatternDestroy (pat);
     return res;
@@ -231,5 +228,5 @@ TestFamily (void)
 int
 main (void)
 {
-    return (TestFamily ());
+    return (TestFamily());
 }

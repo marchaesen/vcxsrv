@@ -21,27 +21,6 @@
 #include "vk_debug_utils.h"
 #include "vk_log.h"
 
-void
-radv_buffer_init(struct radv_buffer *buffer, struct radv_device *device, struct radeon_winsys_bo *bo, uint64_t size,
-                 uint64_t offset)
-{
-   VkBufferCreateInfo createInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .size = size,
-   };
-
-   vk_buffer_init(&device->vk, &buffer->vk, &createInfo);
-
-   buffer->bo = bo;
-   buffer->addr = radv_buffer_get_va(bo) + offset;
-}
-
-void
-radv_buffer_finish(struct radv_buffer *buffer)
-{
-   vk_buffer_finish(&buffer->vk);
-}
-
 static void
 radv_destroy_buffer(struct radv_device *device, const VkAllocationCallbacks *pAllocator, struct radv_buffer *buffer)
 {
@@ -56,7 +35,7 @@ radv_destroy_buffer(struct radv_device *device, const VkAllocationCallbacks *pAl
                                 VK_DEVICE_ADDRESS_BINDING_TYPE_UNBIND_EXT);
 
    radv_rmv_log_resource_destroy(device, (uint64_t)radv_buffer_to_handle(buffer));
-   radv_buffer_finish(buffer);
+   vk_buffer_finish(&buffer->vk);
    vk_free2(&device->vk.alloc, pAllocator, buffer);
 }
 

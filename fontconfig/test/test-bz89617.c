@@ -22,16 +22,17 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
-#include <stdio.h>
 #include <fontconfig/fontconfig.h>
+
+#include <stdio.h>
 
 int
 main (void)
 {
-    FcConfig *config = FcConfigCreate ();
+    FcConfig *config = FcConfigCreate();
 
     if (!FcConfigAppFontAddFile (config, (const FcChar8 *)SRCDIR "/4x6.pcf") ||
-	FcConfigAppFontAddFile (config, (const FcChar8 *)"/dev/null"))
+        FcConfigAppFontAddFile (config, (const FcChar8 *)"/dev/null"))
 	return 1;
 
     FcConfigDestroy (config);

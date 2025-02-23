@@ -497,7 +497,6 @@ class Parser(object):
         self.parser = xml.parsers.expat.ParserCreate()
         self.parser.StartElementHandler = self.start_element
         self.parser.EndElementHandler = self.end_element
-        self.os = platform.system().lower()
 
         self.struct = None
         self.structs = {}
@@ -508,9 +507,6 @@ class Parser(object):
         return f'{global_prefix.upper()}_{name}'
 
     def start_element(self, name, attrs):
-        if "os" in attrs and attrs["os"] != self.os:
-            return
-
         if name == "genxml":
             print(pack_header)
         elif name == "struct":

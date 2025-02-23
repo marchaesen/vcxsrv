@@ -794,10 +794,7 @@ xkb_symbols "mac" {
 // 2006-01-01 Shai Coleman, http://colemak.com/
 
 partial alphanumeric_keys
-xkb_symbols "colemak" {
-
-    name[Group1]= "English (Colemak)";
-
+xkb_symbols "colemak_base" {
     key <TLDE> { [        grave,   asciitilde,      dead_tilde,       asciitilde ] };
     key <AE01> { [            1,       exclam,      exclamdown,      onesuperior ] };
     key <AE02> { [            2,           at,       masculine,      twosuperior ] };
@@ -849,11 +846,20 @@ xkb_symbols "colemak" {
     key <AB09> { [       period,      greater,   dead_abovedot,       asciitilde ] };
     key <AB10> { [        slash,     question,    questiondown,       asciitilde ] };
 
-    key <CAPS> { [    BackSpace,    BackSpace,       BackSpace,        BackSpace ] };
     key <LSGT> { [        minus,   underscore,          endash,           emdash ] };
     key <SPCE> { [        space,        space,           space,     nobreakspace ] };
 
     include "level3(ralt_switch)"
+};
+
+partial alphanumeric_keys
+xkb_symbols "colemak" {
+
+    include "us(colemak_base)"
+
+    name[Group1]= "English (Colemak)";
+
+    key <CAPS> { [ BackSpace ] };
 };
 
 // Colemak-DH (ANSI) symbols for xkb on X.Org Server 7.x
@@ -861,7 +867,7 @@ xkb_symbols "colemak" {
 
 xkb_symbols "colemak_dh" {
 
-    include "us(colemak)"
+    include "us(colemak_base)"
 
     name[Group1]= "English (Colemak-DH)";
 
@@ -876,8 +882,6 @@ xkb_symbols "colemak_dh" {
     key <AB03> { [            d,            D,  dead_diaeresis,       asciitilde ] };
     key <AB05> { [            z,            Z,              ae,               AE ] }; //Z appears here too because <LSGT> key is not present on ANSI keyboards
     key <AB07> { [            h,            H,      dead_caron,       asciitilde ] };
-
-    key <CAPS> { [    Caps_Lock,    Caps_Lock,       Caps_Lock,        Caps_Lock ] };
 };
 
 // Colemak-DH (Wide) symbols for xkb on X.Org Server 7.x

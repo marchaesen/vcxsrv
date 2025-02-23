@@ -606,8 +606,8 @@ radv_rmv_log_image_bind(struct radv_device *device, uint32_t bind_idx, VkImage _
    struct radeon_winsys_bo *bo = image->bindings[bind_idx].bo;
 
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
-   log_resource_bind_locked(device, (uint64_t)_image, bo->initial_domain,
-                            radv_buffer_get_va(bo) + image->bindings[bind_idx].offset, image->bindings[bind_idx].range);
+   log_resource_bind_locked(device, (uint64_t)_image, bo->initial_domain, image->bindings[bind_idx].addr,
+                            image->bindings[bind_idx].range);
    simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
 }
 

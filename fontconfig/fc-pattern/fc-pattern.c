@@ -23,56 +23,57 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#  include <config.h>
 #else
-#ifdef linux
-#define HAVE_GETOPT_LONG 1
-#endif
-#define HAVE_GETOPT 1
+#  ifdef linux
+#    define HAVE_GETOPT_LONG 1
+#  endif
+#  define HAVE_GETOPT 1
 #endif
 
 #include <fontconfig/fontconfig.h>
+
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h>
 
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+#  include <unistd.h>
 #endif
 
 #ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(x)		(dgettext(GETTEXT_PACKAGE, x))
+#  include <libintl.h>
+#  define _(x) (dgettext (GETTEXT_PACKAGE, x))
 #else
-#define dgettext(d, s)	(s)
-#define _(x)		(x)
+#  define dgettext(d, s) (s)
+#  define _(x)           (x)
 #endif
 
 #ifndef HAVE_GETOPT
-#define HAVE_GETOPT 0
+#  define HAVE_GETOPT 0
 #endif
 #ifndef HAVE_GETOPT_LONG
-#define HAVE_GETOPT_LONG 0
+#  define HAVE_GETOPT_LONG 0
 #endif
 
 #if HAVE_GETOPT_LONG
-#undef  _GNU_SOURCE
-#define _GNU_SOURCE
-#include <getopt.h>
+#  undef _GNU_SOURCE
+#  define _GNU_SOURCE
+#  include <getopt.h>
 static const struct option longopts[] = {
-    {"config", 0, 0, 'c'},
-    {"default", 0, 0, 'd'},
-    {"format", 1, 0, 'f'},
-    {"version", 0, 0, 'V'},
-    {"help", 0, 0, 'h'},
-    {NULL,0,0,0},
+    { "config",  0, 0, 'c' },
+    { "default", 0, 0, 'd' },
+    { "format",  1, 0, 'f' },
+    { "version", 0, 0, 'V' },
+    { "help",    0, 0, 'h' },
+    { NULL,      0, 0, 0   },
 };
 #else
-#if HAVE_GETOPT
+#  if HAVE_GETOPT
 extern char *optarg;
-extern int optind, opterr, optopt;
-#endif
+extern int   optind, opterr, optopt;
+#  endif
 #endif
 
 static void
@@ -81,10 +82,10 @@ usage (char *program, int error)
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
     fprintf (file, _("usage: %s [-cdVh] [-f FORMAT] [--config] [--default] [--verbose] [--format=FORMAT] [--version] [--help] [pattern] {element...}\n"),
-	     program);
+                     program);
 #else
     fprintf (file, _("usage: %s [-cdVh] [-f FORMAT] [pattern] {element...}\n"),
-	     program);
+                     program);
 #endif
     fprintf (file, _("List best font matching [pattern]\n"));
     fprintf (file, "\n");
@@ -107,20 +108,20 @@ usage (char *program, int error)
 int
 main (int argc, char **argv)
 {
-    int		do_config = 0, do_default = 0;
+    int          do_config = 0, do_default = 0;
     FcChar8     *format = NULL;
-    int		i;
+    int          i;
     FcObjectSet *os = 0;
     FcPattern   *pat;
 #if HAVE_GETOPT_LONG || HAVE_GETOPT
-    int		c;
+    int c;
 
     setlocale (LC_ALL, "");
-#if HAVE_GETOPT_LONG
+#  if HAVE_GETOPT_LONG
     while ((c = getopt_long (argc, argv, "cdf:Vh", longopts, NULL)) != -1)
-#else
+#  else
     while ((c = getopt (argc, argv, "cdf:Vh")) != -1)
-#endif
+#  endif
     {
 	switch (c) {
 	case 'c':
@@ -130,11 +131,11 @@ main (int argc, char **argv)
 	    do_default = 1;
 	    break;
 	case 'f':
-	    format = (FcChar8 *) strdup (optarg);
+	    format = (FcChar8 *)strdup (optarg);
 	    break;
 	case 'V':
-	    fprintf (stderr, "fontconfig version %d.%d.%d\n", 
-		     FC_MAJOR, FC_MINOR, FC_REVISION);
+	    fprintf (stderr, "fontconfig version %d.%d.%d\n",
+	             FC_MAJOR, FC_MINOR, FC_REVISION);
 	    exit (0);
 	case 'h':
 	    usage (argv[0], 0);
@@ -147,53 +148,44 @@ main (int argc, char **argv)
     i = 1;
 #endif
 
-    if (argv[i])
-    {
-	pat = FcNameParse ((FcChar8 *) argv[i]);
-	if (!pat)
-	{
+    if (argv[i]) {
+	pat = FcNameParse ((FcChar8 *)argv[i]);
+	if (!pat) {
 	    fprintf (stderr, _("Unable to parse the pattern\n"));
 	    return 1;
 	}
-	while (argv[++i])
-	{
+	while (argv[++i]) {
 	    if (!os)
-		os = FcObjectSetCreate ();
+		os = FcObjectSetCreate();
 	    FcObjectSetAdd (os, argv[i]);
 	}
-    }
-    else
-	pat = FcPatternCreate ();
+    } else
+	pat = FcPatternCreate();
 
     if (!pat)
 	return 1;
 
     if (do_config)
-      FcConfigSubstitute (0, pat, FcMatchPattern);
+	FcConfigSubstitute (0, pat, FcMatchPattern);
     if (do_default)
-      FcDefaultSubstitute (pat);
+	FcDefaultSubstitute (pat);
 
-    if (os)
-    {
-      FcPattern *new;
-      new = FcPatternFilter (pat, os);
-      FcPatternDestroy (pat);
-      pat = new;
+    if (os) {
+	FcPattern *new;
+	new = FcPatternFilter (pat, os);
+	FcPatternDestroy (pat);
+	pat = new;
     }
 
-    if (format)
-    {
+    if (format) {
 	FcChar8 *s;
 
 	s = FcPatternFormat (pat, format);
-	if (s)
-	{
+	if (s) {
 	    printf ("%s", s);
 	    FcStrFree (s);
 	}
-    }
-    else
-    {
+    } else {
 	FcPatternPrint (pat);
     }
 
@@ -202,7 +194,7 @@ main (int argc, char **argv)
     if (os)
 	FcObjectSetDestroy (os);
 
-    FcFini ();
+    FcFini();
 
     return 0;
 }

@@ -2,6 +2,7 @@
  * Copyright 2024 Valve Corporation
  * SPDX-License-Identifier: MIT
  */
+#include "asahi/lib/agx_abi.h"
 #include "compiler/libcl/libcl_vk.h"
 #include "agx_pack.h"
 #include "geometry.h"
@@ -49,7 +50,7 @@ libagx_draw_without_adj(global VkDrawIndirectCommand *out,
       uint offs = in->firstVertex;
 
       ia->index_buffer = libagx_index_buffer(
-         index_buffer, index_buffer_range_el, offs, index_size_B, 0);
+         index_buffer, index_buffer_range_el, offs, index_size_B);
 
       ia->index_buffer_range_el =
          libagx_index_buffer_range_el(index_buffer_range_el, offs);
@@ -128,7 +129,7 @@ libagx_draw_robust_index(global uint32_t *vdm,
                          ushort restart, enum agx_primitive topology,
                          enum agx_index_size index_size__3)
 {
-   uint tid = get_sub_group_id();
+   uint tid = get_sub_group_local_id();
    bool first = tid == 0;
    enum agx_index_size index_size = index_size__3;
 
@@ -136,7 +137,15 @@ libagx_draw_robust_index(global uint32_t *vdm,
       cmd->indexCount, cmd->instanceCount, cmd->firstIndex, cmd->vertexOffset,
       cmd->firstInstance, in_buf_ptr, in_buf_range_B, index_size, restart);
 
-   if (agx_direct_draw_overreads_indices(draw)) {
+   if (agx_indices_to_B(cmd->firstIndex, index_size) >= in_buf_range_B) {
+      /* If the entire draw is out-of-bounds, skip it. We handle this specially
+       * for both performance and to avoid integer wrapping issues in the main
+       * code path (where cmd->firstIndex could get treated as a negative).
+       */
+      draw.index_buffer = AGX_ZERO_PAGE_ADDRESS;
+      draw.index_buffer_range_B = 4;
+      draw.start = 0;
+   } else if (agx_direct_draw_overreads_indices(draw)) {
       constant void *in_buf = (constant void *)agx_draw_index_buffer(draw);
       uint in_size_el = agx_draw_index_range_el(draw);
       uint in_size_B = agx_indices_to_B(in_size_el, index_size);

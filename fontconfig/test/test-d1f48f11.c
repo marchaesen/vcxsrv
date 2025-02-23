@@ -23,53 +23,55 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#  include "config.h"
 #endif
+#include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <errno.h>
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+#  include <unistd.h>
 #endif
 #ifndef HAVE_STRUCT_DIRENT_D_TYPE
-#include <sys/types.h>
-#include <sys/stat.h>
+#  include <sys/stat.h>
+#  include <sys/types.h>
 #endif
 #include <fontconfig/fontconfig.h>
 
 #ifdef _WIN32
-#  define FC_DIR_SEPARATOR         '\\'
-#  define FC_DIR_SEPARATOR_S       "\\"
+#  define FC_DIR_SEPARATOR   '\\'
+#  define FC_DIR_SEPARATOR_S "\\"
 #else
-#  define FC_DIR_SEPARATOR         '/'
-#  define FC_DIR_SEPARATOR_S       "/"
+#  define FC_DIR_SEPARATOR   '/'
+#  define FC_DIR_SEPARATOR_S "/"
 #endif
 
 #ifdef _WIN32
-#include <direct.h>
-#define mkdir(path,mode) _mkdir(path)
+#  include <direct.h>
+#  define mkdir(path, mode) _mkdir (path)
 
 int
-setenv(const char *name, const char *value, int o)
+setenv (const char *name, const char *value, int o)
 {
-    size_t len = strlen(name) + strlen(value) + 1;
-    char *s = malloc(len+1);
-    int ret;
+    size_t len = strlen (name) + strlen (value) + 1;
+    char  *s = malloc (len + 1);
+    int    ret;
 
-    snprintf(s, len, "%s=%s", name, value);
-    ret = _putenv(s);
-    free(s);
+    snprintf (s, len, "%s=%s", name, value);
+    ret = _putenv (s);
+    free (s);
     return ret;
 }
 #endif
 
-extern FcChar8 *FcConfigRealFilename (FcConfig *, FcChar8 *);
-extern FcChar8 *FcStrCanonFilename (const FcChar8 *);
+extern FcChar8 *
+FcConfigRealFilename (FcConfig *, FcChar8 *);
+extern FcChar8 *
+FcStrCanonFilename (const FcChar8 *);
 
 #ifdef HAVE_MKDTEMP
-#define fc_mkdtemp	mkdtemp
+#  define fc_mkdtemp mkdtemp
 #else
 char *
 fc_mkdtemp (char *template)
@@ -84,12 +86,12 @@ fc_mkdtemp (char *template)
 FcBool
 mkdir_p (const char *dir)
 {
-    char *parent;
+    char  *parent;
     FcBool ret;
 
     if (strlen (dir) == 0)
 	return FcFalse;
-    parent = (char *) FcStrDirname ((const FcChar8 *) dir);
+    parent = (char *)FcStrDirname ((const FcChar8 *)dir);
     if (!parent)
 	return FcFalse;
     if (access (parent, F_OK) == 0)
@@ -106,19 +108,18 @@ mkdir_p (const char *dir)
 FcBool
 unlink_dirs (const char *dir)
 {
-    DIR *d = opendir (dir);
+    DIR           *d = opendir (dir);
     struct dirent *e;
-    size_t len = strlen (dir);
-    char *n = NULL;
-    FcBool ret = FcTrue;
+    size_t         len = strlen (dir);
+    char          *n = NULL;
+    FcBool         ret = FcTrue;
 #ifndef HAVE_STRUCT_DIRENT_D_TYPE
     struct stat statb;
 #endif
 
     if (!d)
 	return FcFalse;
-    while ((e = readdir (d)) != NULL)
-    {
+    while ((e = readdir (d)) != NULL) {
 	size_t l;
 
 	if (strcmp (e->d_name, ".") == 0 ||
@@ -128,8 +129,7 @@ unlink_dirs (const char *dir)
 	if (n)
 	    free (n);
 	n = malloc (l + len + 1);
-	if (!n)
-	{
+	if (!n) {
 	    ret = FcFalse;
 	    break;
 	}
@@ -139,8 +139,7 @@ unlink_dirs (const char *dir)
 #ifdef HAVE_STRUCT_DIRENT_D_TYPE
 	if (e->d_type == DT_DIR)
 #else
-	if (stat (n, &statb) == -1)
-	{
+	if (stat (n, &statb) == -1) {
 	    fprintf (stderr, "E: %s\n", n);
 	    ret = FcFalse;
 	    break;
@@ -148,17 +147,13 @@ unlink_dirs (const char *dir)
 	if (S_ISDIR (statb.st_mode))
 #endif
 	{
-	    if (!unlink_dirs (n))
-	    {
+	    if (!unlink_dirs (n)) {
 		fprintf (stderr, "E: %s\n", n);
 		ret = FcFalse;
 		break;
 	    }
-	}
-	else
-	{
-	    if (unlink (n) == -1)
-	    {
+	} else {
+	    if (unlink (n) == -1) {
 		fprintf (stderr, "E: %s\n", n);
 		ret = FcFalse;
 		break;
@@ -169,8 +164,7 @@ unlink_dirs (const char *dir)
 	free (n);
     closedir (d);
 
-    if (rmdir (dir) == -1)
-    {
+    if (rmdir (dir) == -1) {
 	fprintf (stderr, "E: %s\n", dir);
 	return FcFalse;
     }
@@ -179,15 +173,15 @@ unlink_dirs (const char *dir)
 }
 
 char template[512] = "/tmp/fc-d1f48f11-XXXXXX";
-char systempl[512] = "/tmp/fc-d1f48f11-XXXXXX";
+char  systempl[512] = "/tmp/fc-d1f48f11-XXXXXX";
 char *rootdir, *sysroot;
 
 int
 setup (char *dir)
 {
     FcChar8 *confdir = NULL, *availdir = NULL, *real = NULL, *link = NULL;
-    FILE *fp;
-    int ret = 1;
+    FILE    *fp;
+    int      ret = 1;
 
     confdir = FcStrBuildFilename (dir, "conf.d", NULL);
     availdir = FcStrBuildFilename (dir, "conf.avail", NULL);
@@ -195,20 +189,17 @@ setup (char *dir)
     mkdir_p (availdir);
     real = FcStrBuildFilename (availdir, "00-foo.conf", NULL);
     link = FcStrBuildFilename (confdir, "00-foo.conf", NULL);
-    if (!real || !link)
-    {
+    if (!real || !link) {
 	fprintf (stderr, "E: unable to allocate memory\n");
 	goto bail;
     }
-    if ((fp = fopen (real, "wb")) == NULL)
-    {
+    if ((fp = fopen (real, "wb")) == NULL) {
 	fprintf (stderr, "E: unable to open a file\n");
 	goto bail;
     }
     fprintf (fp, "%s", real);
     fclose (fp);
-    if (symlink ("../conf.avail/00-foo.conf", link) != 0)
-    {
+    if (symlink ("../conf.avail/00-foo.conf", link) != 0) {
 	fprintf (stderr, "%s: %s\n", link, strerror (errno));
 	goto bail;
     }
@@ -236,24 +227,22 @@ int
 main (void)
 {
     FcConfig *cfg = NULL;
-    FcChar8 *dc = NULL, *da = NULL, *d = NULL;
-    FcChar8 *ds = NULL, *dsa = NULL, *dsac = NULL;
-    int ret = 1;
+    FcChar8  *dc = NULL, *da = NULL, *d = NULL;
+    FcChar8  *ds = NULL, *dsa = NULL, *dsac = NULL;
+    int       ret = 1;
 
     rootdir = fc_mkdtemp (template);
-    if (!rootdir)
-    {
+    if (!rootdir) {
 	fprintf (stderr, "%s: %s\n", template, strerror (errno));
 	return 1;
     }
     sysroot = fc_mkdtemp (systempl);
-    if (!sysroot)
-    {
+    if (!sysroot) {
 	fprintf (stderr, "%s: %s\n", systempl, strerror (errno));
 	return 1;
     }
     ds = FcStrBuildFilename (sysroot, rootdir, NULL);
-    
+
     if (setup (rootdir) != 0)
 	goto bail;
     if (setup (ds) != 0)
@@ -261,10 +250,9 @@ main (void)
 
     dc = FcStrBuildFilename (rootdir, "conf.d", "00-foo.conf", NULL);
     da = FcStrBuildFilename (rootdir, "conf.avail", "00-foo.conf", NULL);
-    cfg = FcConfigCreate ();
+    cfg = FcConfigCreate();
     d = FcConfigRealFilename (cfg, dc);
-    if (strcmp ((const char *)d, (const char *)da) != 0)
-    {
+    if (strcmp ((const char *)d, (const char *)da) != 0) {
 	fprintf (stderr, "E: failed to compare for non-sysroot: %s, %s\n", d, da);
 	goto bail;
     }
@@ -272,12 +260,11 @@ main (void)
     free (d);
     FcConfigDestroy (cfg);
     setenv ("FONTCONFIG_SYSROOT", sysroot, 1);
-    cfg = FcConfigCreate ();
+    cfg = FcConfigCreate();
     dsa = FcStrBuildFilename (sysroot, da, NULL);
     dsac = FcStrCanonFilename (dsa);
     d = FcConfigRealFilename (cfg, dc);
-    if (strcmp ((const char *)d, (const char *)dsac) != 0)
-    {
+    if (strcmp ((const char *)d, (const char *)dsac) != 0) {
 	fprintf (stderr, "E: failed to compare for sysroot: %s, %s\n", d, dsac);
 	goto bail;
     }

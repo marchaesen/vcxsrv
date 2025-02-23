@@ -252,9 +252,11 @@ nir_can_find_libclc(unsigned ptr_bit_size)
  * every function that works on global memory and make it also work on generic
  * memory.
  */
-static void
+static bool
 libclc_add_generic_variants(nir_shader *shader)
 {
+   bool progress = false;
+
    nir_foreach_function(func, shader) {
       /* These don't need generic variants */
       if (strstr(func->name, "async_work_group_strided_copy"))
@@ -299,8 +301,20 @@ libclc_add_generic_variants(nir_shader *shader)
          }
       }
 
-      nir_metadata_preserve(gfunc->impl, nir_metadata_none);
+      progress = true;
+      nir_metadata_preserve(func->impl, nir_metadata_none);
    }
+
+   if (progress) {
+      nir_foreach_function_impl(impl, shader) {
+         if (impl->valid_metadata & nir_metadata_not_properly_reset) {
+            /* Preserve all metadata for functions that we didn't modify. */
+            nir_metadata_preserve(impl, nir_metadata_all);
+         }
+      }
+   }
+
+   return progress;
 }
 
 nir_shader *
@@ -355,16 +369,16 @@ nir_load_libclc_shader(unsigned ptr_bit_size,
     * initializers and lower any early returns.
     */
    nir->info.internal = true;
-   NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
-   NIR_PASS_V(nir, nir_lower_returns);
+   NIR_PASS(_, nir, nir_lower_variable_initializers, nir_var_function_temp);
+   NIR_PASS(_, nir, nir_lower_returns);
 
-   NIR_PASS_V(nir, libclc_add_generic_variants);
+   NIR_PASS(_, nir, libclc_add_generic_variants);
 
    /* Run some optimization passes. Those used here should be considered safe
     * for all use cases and drivers.
     */
    if (optimize) {
-      NIR_PASS_V(nir, nir_split_var_copies);
+      NIR_PASS(_, nir, nir_split_var_copies);
 
       bool progress;
       do {
@@ -381,7 +395,10 @@ nir_load_libclc_shader(unsigned ptr_bit_size,
          /* drivers run this pass, so don't be too aggressive. More aggressive
           * values only increase effectiveness by <5%
           */
-         NIR_PASS(progress, nir, nir_opt_peephole_select, 0, false, false);
+         nir_opt_peephole_select_options peephole_select_options = {
+            .limit = 0,
+         };
+         NIR_PASS(progress, nir, nir_opt_peephole_select, &peephole_select_options);
          NIR_PASS(progress, nir, nir_opt_algebraic);
          NIR_PASS(progress, nir, nir_opt_constant_folding);
          NIR_PASS(progress, nir, nir_opt_undef);

@@ -18,4 +18,4 @@ struct libagx_imm_write {
    uint32_t value;
 };
 
-#define LIBAGX_QUERY_UNAVAILABLE (uint64_t)((int64_t)-1)
+#define LIBAGX_QUERY_UNAVAILABLE (uint64_t)((int64_t) - 1)

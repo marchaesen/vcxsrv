@@ -161,45 +161,6 @@ class gl_print_base(object):
         return
 
 
-    def printPure(self):
-        """Conditionally define `PURE' function attribute.
-
-        Conditionally defines a preprocessor macro `PURE' that wraps
-        GCC's `pure' function attribute.  The conditional code can be
-        easilly adapted to other compilers that support a similar
-        feature.
-
-        The name is also added to the file's undef_list.
-        """
-        self.undef_list.append("PURE")
-        print("""#  if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
-#    define PURE __attribute__((pure))
-#  else
-#    define PURE
-#  endif""")
-        return
-
-
-    def printFastcall(self):
-        """Conditionally define `FASTCALL' function attribute.
-
-        Conditionally defines a preprocessor macro `FASTCALL' that
-        wraps GCC's `fastcall' function attribute.  The conditional
-        code can be easilly adapted to other compilers that support a
-        similar feature.
-
-        The name is also added to the file's undef_list.
-        """
-
-        self.undef_list.append("FASTCALL")
-        print("""#  if defined(__i386__) && defined(__GNUC__) && !defined(__CYGWIN__) && !defined(__MINGW32__)
-#    define FASTCALL __attribute__((fastcall))
-#  else
-#    define FASTCALL
-#  endif""")
-        return
-
-
     def printVisibility(self, S, s):
         """Conditionally define visibility function attribute.
 
@@ -364,7 +325,7 @@ class gl_enum( gl_item ):
         """Calculate a 'priority' for this enum name.
 
         When an enum is looked up by number, there may be many
-        possible names, but only one is the 'prefered' name.  The
+        possible names, but only one is the 'preferred' name.  The
         priority is used to select which name is the 'best'.
 
         Highest precedence is given to core GL name.  ARB extension

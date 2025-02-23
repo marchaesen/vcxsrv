@@ -4,6 +4,7 @@
  * Copyright 2022-2023 Collabora Ltd. and Red Hat Inc.
  * SPDX-License-Identifier: MIT
  */
+#include "asahi/compiler/agx_nir_texture.h"
 #include "util/format/u_format.h"
 #include "util/format/u_formats.h"
 #include "util/u_math.h"
@@ -17,6 +18,8 @@
 #include "hk_physical_device.h"
 
 #include "layout.h"
+#include "libagx_dgc.h"
+#include "libagx_shaders.h"
 #include "nir_builder.h"
 #include "nir_builder_opcodes.h"
 #include "nir_format_convert.h"
@@ -558,6 +561,9 @@ build_image_copy_shader(const struct vk_meta_image_copy_key *key)
             } else {
                value1 = nir_txf_deref(b, deref, src_coord, NULL);
             }
+
+            nir_instr_as_tex(value1->parent_instr)->backend_flags =
+               AGX_TEXTURE_FLAG_NO_CLAMP;
 
             /* Munge according to the implicit conversions so we get a bit copy */
             if (key->src_format != key->dst_format) {
@@ -1338,7 +1344,7 @@ hk_CmdBlitImage2(VkCommandBuffer commandBuffer,
 {
    VK_FROM_HANDLE(hk_cmd_buffer, cmd, commandBuffer);
    struct hk_device *dev = hk_cmd_buffer_device(cmd);
-   perf_debug(dev, "Blit image");
+   perf_debug(cmd, "Blit image");
 
    struct hk_meta_save save;
    hk_meta_begin(cmd, &save, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -1352,7 +1358,7 @@ hk_CmdResolveImage2(VkCommandBuffer commandBuffer,
 {
    VK_FROM_HANDLE(hk_cmd_buffer, cmd, commandBuffer);
    struct hk_device *dev = hk_cmd_buffer_device(cmd);
-   perf_debug(dev, "Resolve");
+   perf_debug(cmd, "Resolve");
 
    struct hk_meta_save save;
    hk_meta_begin(cmd, &save, VK_PIPELINE_BIND_POINT_GRAPHICS);
@@ -1372,17 +1378,33 @@ hk_meta_resolve_rendering(struct hk_cmd_buffer *cmd,
    hk_meta_end(cmd, &save, VK_PIPELINE_BIND_POINT_GRAPHICS);
 }
 
+static void
+hk_cmd_copy(struct hk_cmd_buffer *cmd, uint64_t dst, uint64_t src, size_t size)
+{
+   if (size / 16) {
+      libagx_copy_uint4(cmd, agx_1d(size / 16), AGX_BARRIER_ALL, dst, src);
+   }
+
+   if (size % 16) {
+      libagx_copy_uchar(cmd, agx_1d(size % 16), AGX_BARRIER_ALL,
+                        dst + (size & ~15), src + (size & ~15));
+   }
+}
+
 VKAPI_ATTR void VKAPI_CALL
-hk_CmdCopyBuffer2(VkCommandBuffer commandBuffer,
-                  const VkCopyBufferInfo2 *pCopyBufferInfo)
+hk_CmdCopyBuffer2(VkCommandBuffer commandBuffer, const VkCopyBufferInfo2 *info)
 {
    VK_FROM_HANDLE(hk_cmd_buffer, cmd, commandBuffer);
    struct hk_device *dev = hk_cmd_buffer_device(cmd);
 
-   struct hk_meta_save save;
-   hk_meta_begin(cmd, &save, VK_PIPELINE_BIND_POINT_COMPUTE);
-   vk_meta_copy_buffer(&cmd->vk, &dev->meta, pCopyBufferInfo);
-   hk_meta_end(cmd, &save, VK_PIPELINE_BIND_POINT_COMPUTE);
+   for (unsigned i = 0; i < info->regionCount; i++) {
+      const VkBufferCopy2 *region = &info->pRegions[i];
+      uint64_t src = vk_meta_buffer_address(&dev->vk, info->srcBuffer,
+                                            region->srcOffset, region->size);
+      uint64_t dst = vk_meta_buffer_address(&dev->vk, info->dstBuffer,
+                                            region->dstOffset, region->size);
+      hk_cmd_copy(cmd, dst, src, region->size);
+   }
 }
 
 static bool
@@ -1473,13 +1495,14 @@ hk_CmdFillBuffer(VkCommandBuffer commandBuffer, VkBuffer dstBuffer,
                  VkDeviceSize dstOffset, VkDeviceSize dstRange, uint32_t data)
 {
    VK_FROM_HANDLE(hk_cmd_buffer, cmd, commandBuffer);
+   VK_FROM_HANDLE(hk_buffer, buffer, dstBuffer);
    struct hk_device *dev = hk_cmd_buffer_device(cmd);
 
-   struct hk_meta_save save;
-   hk_meta_begin(cmd, &save, VK_PIPELINE_BIND_POINT_COMPUTE);
-   vk_meta_fill_buffer(&cmd->vk, &dev->meta, dstBuffer, dstOffset, dstRange,
-                       data);
-   hk_meta_end(cmd, &save, VK_PIPELINE_BIND_POINT_COMPUTE);
+   size_t range = vk_buffer_range(&buffer->vk, dstOffset, dstRange);
+   uint64_t addr =
+      vk_meta_buffer_address(&dev->vk, dstBuffer, dstOffset, dstRange);
+
+   libagx_fill(cmd, agx_1d(range / 4), AGX_BARRIER_ALL, addr, data);
 }
 
 VKAPI_ATTR void VKAPI_CALL
@@ -1488,13 +1511,13 @@ hk_CmdUpdateBuffer(VkCommandBuffer commandBuffer, VkBuffer dstBuffer,
                    const void *pData)
 {
    VK_FROM_HANDLE(hk_cmd_buffer, cmd, commandBuffer);
+   VK_FROM_HANDLE(hk_buffer, buffer, dstBuffer);
    struct hk_device *dev = hk_cmd_buffer_device(cmd);
+   size_t range = vk_buffer_range(&buffer->vk, dstOffset, dstRange);
 
-   struct hk_meta_save save;
-   hk_meta_begin(cmd, &save, VK_PIPELINE_BIND_POINT_COMPUTE);
-   vk_meta_update_buffer(&cmd->vk, &dev->meta, dstBuffer, dstOffset, dstRange,
-                         pData);
-   hk_meta_end(cmd, &save, VK_PIPELINE_BIND_POINT_COMPUTE);
+   hk_cmd_copy(cmd,
+               vk_meta_buffer_address(&dev->vk, dstBuffer, dstOffset, dstRange),
+               hk_pool_upload(cmd, pData, range, 4), range);
 }
 
 VKAPI_ATTR void VKAPI_CALL

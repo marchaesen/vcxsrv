@@ -5,9 +5,15 @@
  * Copyright 2024 Valve Corporation
  * Copyright 2024 Alyssa Rosenzweig
  * Copyright 2022-2023 Collabora Ltd. and Red Hat Inc.
+ * Copyright © 2016 Red Hat.
+ * Copyright © 2016 Bas Nieuwenhuizen
+ *
+ * based in part on anv driver which is:
+ * Copyright © 2015 Intel Corporation
  * SPDX-License-Identifier: MIT
  */
 #include "hk_queue.h"
+#include "hk_buffer.h"
 
 #include "agx_bg_eot.h"
 #include "agx_bo.h"
@@ -16,13 +22,17 @@
 #include "decode.h"
 #include "hk_cmd_buffer.h"
 #include "hk_device.h"
+#include "hk_image.h"
 #include "hk_physical_device.h"
 
 #include <xf86drm.h>
 #include "asahi/lib/unstable_asahi_drm.h"
 #include "util/list.h"
+#include "util/macros.h"
 #include "vulkan/vulkan_core.h"
 
+#include "hk_private.h"
+#include "layout.h"
 #include "vk_drm_syncobj.h"
 #include "vk_sync.h"
 
@@ -426,10 +436,330 @@ queue_submit_looped(struct hk_device *dev, struct drm_asahi_submit *submit)
    return VK_SUCCESS;
 }
 
+struct hk_bind_builder {
+   /* Initialized */
+   struct hk_device *dev;
+   struct vk_object_base *obj_base;
+   struct agx_va *va;
+   struct hk_image *image;
+
+   /* State */
+   struct hk_device_memory *mem;
+   VkDeviceSize resourceOffset;
+   VkDeviceSize size;
+   VkDeviceSize memoryOffset;
+   VkResult result;
+};
+
+static inline struct hk_bind_builder
+hk_bind_builder(struct hk_device *dev, struct vk_object_base *obj_base,
+                struct agx_va *va, struct hk_image *image)
+{
+   return (struct hk_bind_builder){
+      .dev = dev,
+      .obj_base = obj_base,
+      .va = va,
+      .image = image,
+   };
+}
+
+static VkResult
+hk_flush_bind(struct hk_bind_builder *b)
+{
+   if (b->result != VK_SUCCESS || b->size == 0) {
+      return b->result;
+   }
+
+   perf_debug(b->dev, "Sparse bind");
+
+   uint64_t va_addr = b->va->addr + b->resourceOffset;
+
+   /* If we have an image with sparse residency, we have a userspace-managed
+    * sparse page table map, which we need to keep in sync with the real
+    * kernel-managed page table.  This ensures textures get strict residency
+    * semantics, using the hardware sparse support.
+    */
+   if (b->image && b->image->planes[0].sparse_map != NULL) {
+      assert(b->image->plane_count == 1 && "multiplane sparse not supported");
+
+      uint32_t *map = agx_bo_map(b->image->planes[0].sparse_map);
+      uint64_t size_page = ail_bytes_to_pages(b->size);
+
+      struct ail_layout *layout = &b->image->planes[0].layout;
+      uint64_t layer_stride_page = ail_bytes_to_pages(layout->layer_stride_B);
+
+      for (unsigned offs_page = 0; offs_page < size_page; offs_page++) {
+         /* Determine the target page to bind */
+         uint64_t target_page =
+            ail_bytes_to_pages(b->resourceOffset) + offs_page;
+
+         /* The page table is per-layer. Fortunately, layers are page-aligned,
+          * so we can divide to find the layer & the page relative to the start
+          * of the layer, which give us the index into the sparse map.
+          *
+          * Note that we can end up out-of-bounds since the hardware page size
+          * (16k) is smaller than the Vulkan standard sparse block size (65k).
+          * Just clamp out-of-bounds maps - there is sufficient VA space for
+          * them but not sufficient sparse map space for them.
+          */
+         uint64_t z = target_page / layer_stride_page;
+         if (z >= layout->depth_px)
+            break;
+
+         uint64_t page_in_layer = target_page % layer_stride_page;
+         unsigned idx = ail_page_to_sparse_index_el(layout, z, page_in_layer);
+
+         agx_pack(map + idx, SPARSE_BLOCK, cfg) {
+            cfg.enabled = b->mem != NULL;
+            cfg.unknown = cfg.enabled;
+
+            if (cfg.enabled) {
+               cfg.address = va_addr + (offs_page * AIL_PAGESIZE);
+            }
+         }
+      }
+   }
+
+   /* When the app wants to unbind, replace the bound pages with scratch pages
+    * so we don't leave a gap.
+    */
+   if (!b->mem) {
+      return hk_bind_scratch(b->dev, b->va, b->resourceOffset, b->size);
+   } else {
+      return b->dev->dev.ops.bo_bind(&b->dev->dev, b->mem->bo, va_addr, b->size,
+                                     b->memoryOffset,
+                                     ASAHI_BIND_READ | ASAHI_BIND_WRITE, false);
+   }
+}
+
+static void
+hk_add_bind(struct hk_bind_builder *b, struct hk_device_memory *mem,
+            VkDeviceSize resourceOffset, VkDeviceSize size,
+            VkDeviceSize memoryOffset)
+{
+   /* Discard trivial binds to simplify the below logic. */
+   if (size == 0)
+      return;
+
+   /* Try to merge with the previous bind */
+   if (b->size && b->mem == mem &&
+       resourceOffset == b->resourceOffset + b->size &&
+       (!mem || memoryOffset == b->memoryOffset + b->size)) {
+
+      b->size += size;
+      return;
+   }
+
+   /* Otherwise, flush the previous bind and replace with the new one */
+   hk_flush_bind(b);
+   b->mem = mem;
+   b->resourceOffset = resourceOffset;
+   b->size = size;
+   b->memoryOffset = memoryOffset;
+}
+
+static VkResult
+hk_sparse_buffer_bind_memory(struct hk_device *device,
+                             const VkSparseBufferMemoryBindInfo *bind)
+{
+   VK_FROM_HANDLE(hk_buffer, buffer, bind->buffer);
+
+   struct hk_bind_builder b =
+      hk_bind_builder(device, &buffer->vk.base, buffer->va, NULL);
+
+   for (uint32_t i = 0; i < bind->bindCount; ++i) {
+      struct hk_device_memory *cur_mem = NULL;
+
+      if (bind->pBinds[i].memory != VK_NULL_HANDLE)
+         cur_mem = hk_device_memory_from_handle(bind->pBinds[i].memory);
+
+      hk_add_bind(&b, cur_mem, bind->pBinds[i].resourceOffset,
+                  bind->pBinds[i].size, bind->pBinds[i].memoryOffset);
+   }
+
+   return hk_flush_bind(&b);
+}
+
+static VkResult
+hk_sparse_image_opaque_bind_memory(
+   struct hk_device *device, const VkSparseImageOpaqueMemoryBindInfo *bind)
+{
+   VK_FROM_HANDLE(hk_image, image, bind->image);
+
+   struct hk_bind_builder b =
+      hk_bind_builder(device, &image->vk.base, image->planes[0].va, image);
+
+   for (uint32_t i = 0; i < bind->bindCount; ++i) {
+      struct hk_device_memory *mem = NULL;
+      if (bind->pBinds[i].memory != VK_NULL_HANDLE)
+         mem = hk_device_memory_from_handle(bind->pBinds[i].memory);
+
+      VkDeviceSize resourceOffset = bind->pBinds[i].resourceOffset;
+
+      /* Conceptually, the miptail is a single region at the end of the image,
+       * possibly layered. However, due to alignment requirements we need to
+       * use a non-layered miptail and internally fan out to each of the layers.
+       * This is facilitated by the HK_MIP_TAIL_START_OFFSET magic offset, see
+       * the comment where that is defined for more detail.
+       */
+      if (resourceOffset >= HK_MIP_TAIL_START_OFFSET) {
+         assert(resourceOffset == HK_MIP_TAIL_START_OFFSET &&
+                "must bind whole miptail... maybe...");
+
+         const struct ail_layout *layout = &image->planes[0].layout;
+         unsigned tail_offset_B =
+            layout->level_offsets_B[layout->mip_tail_first_lod];
+
+         for (unsigned z = 0; z < layout->depth_px; ++z) {
+            uint64_t image_offs = tail_offset_B + (z * layout->layer_stride_B);
+            uint64_t mem_offs =
+               bind->pBinds[i].memoryOffset + (z * layout->mip_tail_stride);
+
+            hk_add_bind(&b, mem, image_offs, layout->mip_tail_stride, mem_offs);
+         }
+      } else {
+         hk_add_bind(&b, mem, bind->pBinds[i].resourceOffset,
+                     bind->pBinds[i].size, bind->pBinds[i].memoryOffset);
+      }
+   }
+
+   return hk_flush_bind(&b);
+}
+
+static void
+bind_hw_tile(struct hk_bind_builder *b, struct hk_device_memory *mem,
+             struct ail_layout *layout, unsigned layer, unsigned level,
+             VkOffset3D offset, VkExtent3D extent, struct ail_tile std_size_el,
+             unsigned mem_offset, unsigned x, unsigned y, unsigned z)
+{
+   uint64_t bo_offset_B = ail_get_twiddled_block_B(
+      layout, level, offset.x + x, offset.y + y, layer + offset.z + z);
+
+   /* Consider the standard tiles in the bound memory to be in raster order, and
+    * address accordingly in standard tiles.
+    */
+   unsigned mem_x_stl = x / std_size_el.width_el;
+   unsigned mem_y_stl = y / std_size_el.height_el;
+   unsigned extent_w_stl = DIV_ROUND_UP(extent.width, std_size_el.width_el);
+   unsigned extent_y_stl = DIV_ROUND_UP(extent.height, std_size_el.height_el);
+   unsigned mem_offs_stl = (extent_y_stl * extent_w_stl * z) +
+                           (extent_w_stl * mem_y_stl) + mem_x_stl;
+
+   /* There are 4 hardware tiles per standard tile, so offset
+    * accordingly for each hardware tile.
+    */
+   unsigned mem_offset_B = mem_offset + (mem_offs_stl * 4 * AIL_PAGESIZE);
+
+   if (x % std_size_el.width_el)
+      mem_offset_B += AIL_PAGESIZE;
+
+   if (y % std_size_el.height_el)
+      mem_offset_B += (2 * AIL_PAGESIZE);
+
+   hk_add_bind(b, mem, bo_offset_B, AIL_PAGESIZE, mem_offset_B);
+}
+
+static VkResult
+hk_sparse_image_bind_memory(struct hk_device *device,
+                            const VkSparseImageMemoryBindInfo *bind)
+{
+   VK_FROM_HANDLE(hk_image, image, bind->image);
+   struct ail_layout *layout = &image->planes[0].layout;
+
+   struct hk_bind_builder b =
+      hk_bind_builder(device, &image->vk.base, image->planes[0].va, image);
+
+   for (uint32_t i = 0; i < bind->bindCount; ++i) {
+      struct hk_device_memory *mem = NULL;
+      if (bind->pBinds[i].memory != VK_NULL_HANDLE)
+         mem = hk_device_memory_from_handle(bind->pBinds[i].memory);
+
+      uint64_t mem_offset = bind->pBinds[i].memoryOffset;
+      const uint32_t layer = bind->pBinds[i].subresource.arrayLayer;
+      const uint32_t level = bind->pBinds[i].subresource.mipLevel;
+
+      VkExtent3D bind_extent = bind->pBinds[i].extent;
+      bind_extent.width = DIV_ROUND_UP(
+         bind_extent.width, vk_format_get_blockwidth(image->vk.format));
+      bind_extent.height = DIV_ROUND_UP(
+         bind_extent.height, vk_format_get_blockheight(image->vk.format));
+
+      VkOffset3D bind_offset = bind->pBinds[i].offset;
+      bind_offset.x /= vk_format_get_blockwidth(image->vk.format);
+      bind_offset.y /= vk_format_get_blockheight(image->vk.format);
+
+      /* Hardware tiles are exactly one page (16K) */
+      struct ail_tile tilesize_el = layout->tilesize_el[level];
+      unsigned size_B = tilesize_el.width_el * tilesize_el.height_el *
+                        ail_get_blocksize_B(layout);
+
+      assert(size_B == AIL_PAGESIZE && "fundamental to AGX");
+
+      /* Standard tiles are exactly 4 pages (65K), consisting of a 2x2 grid of
+       * hardware tiles.
+       */
+      struct ail_tile std_size_el = tilesize_el;
+      std_size_el.width_el *= 2;
+      std_size_el.height_el *= 2;
+
+      for (unsigned z = 0; z < bind_extent.depth; z += 1) {
+         for (unsigned y = 0; y < bind_extent.height;
+              y += tilesize_el.height_el) {
+            for (unsigned x = 0; x < bind_extent.width;
+                 x += tilesize_el.width_el) {
+               bind_hw_tile(&b, mem, layout, layer, level, bind_offset,
+                            bind_extent, std_size_el, mem_offset, x, y, z);
+            }
+         }
+      }
+   }
+
+   return hk_flush_bind(&b);
+}
+
+static VkResult
+hk_queue_submit_bind_sparse_memory(struct hk_device *device,
+                                   struct vk_queue_submit *submission)
+{
+   assert(submission->command_buffer_count == 0);
+
+   for (uint32_t i = 0; i < submission->buffer_bind_count; ++i) {
+      VkResult result =
+         hk_sparse_buffer_bind_memory(device, submission->buffer_binds + i);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   for (uint32_t i = 0; i < submission->image_opaque_bind_count; ++i) {
+      VkResult result = hk_sparse_image_opaque_bind_memory(
+         device, submission->image_opaque_binds + i);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   for (uint32_t i = 0; i < submission->image_bind_count; ++i) {
+      VkResult result =
+         hk_sparse_image_bind_memory(device, submission->image_binds + i);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   return VK_SUCCESS;
+}
+
 static VkResult
 queue_submit(struct hk_device *dev, struct hk_queue *queue,
              struct vk_queue_submit *submit)
 {
+   /* TODO: Support asynchronous sparse queue? */
+   if (submit->buffer_bind_count || submit->image_bind_count ||
+       submit->image_opaque_bind_count) {
+
+      VkResult result = hk_queue_submit_bind_sparse_memory(dev, submit);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
    unsigned command_count = 0;
 
    /* Gather the number of individual commands to submit up front */
@@ -440,8 +770,9 @@ queue_submit(struct hk_device *dev, struct hk_queue *queue,
       command_count += list_length(&cmdbuf->control_streams);
    }
 
-   perf_debug(dev, "Submitting %u control streams (%u command buffers)",
-              command_count, submit->command_buffer_count);
+   perf_debug_dev(&dev->dev,
+                  "Submitting %u control streams (%u command buffers)",
+                  command_count, submit->command_buffer_count);
 
    if (command_count == 0)
       return queue_submit_empty(dev, queue, submit);
@@ -494,11 +825,17 @@ queue_submit(struct hk_device *dev, struct hk_queue *queue,
    };
 
    /* Now setup the command structs */
-   struct drm_asahi_command *cmds = alloca(sizeof(*cmds) * command_count);
+   struct drm_asahi_command *cmds = malloc(sizeof(*cmds) * command_count);
    union drm_asahi_cmd *cmds_inner =
-      alloca(sizeof(*cmds_inner) * command_count);
+      malloc(sizeof(*cmds_inner) * command_count);
    union drm_asahi_user_timestamps *ts_inner =
-      alloca(sizeof(*ts_inner) * command_count);
+      malloc(sizeof(*ts_inner) * command_count);
+   if (cmds == NULL || cmds_inner == NULL || ts_inner == NULL) {
+      free(ts_inner);
+      free(cmds_inner);
+      free(cmds);
+      return vk_error(dev, VK_ERROR_OUT_OF_HOST_MEMORY);
+   }
 
    unsigned cmd_it = 0;
    unsigned nr_vdm = 0, nr_cdm = 0;
@@ -520,7 +857,7 @@ queue_submit(struct hk_device *dev, struct hk_queue *queue,
 
          if (cs->type == HK_CS_CDM) {
             perf_debug(
-               dev,
+               cmdbuf,
                "%u: Submitting CDM with %u API calls, %u dispatches, %u flushes",
                i, cs->stats.calls, cs->stats.cmds, cs->stats.flushes);
 
@@ -540,8 +877,8 @@ queue_submit(struct hk_device *dev, struct hk_queue *queue,
                cmd.cmd_buffer_size -= 8;
          } else {
             assert(cs->type == HK_CS_VDM);
-            perf_debug(dev, "%u: Submitting VDM with %u API draws, %u draws", i,
-                       cs->stats.calls, cs->stats.cmds);
+            perf_debug(cmdbuf, "%u: Submitting VDM with %u API draws, %u draws",
+                       i, cs->stats.calls, cs->stats.cmds);
             assert(cs->stats.cmds > 0 || cs->cr.process_empty_tiles ||
                    cs->timestamp.end.handle);
 
@@ -589,10 +926,17 @@ queue_submit(struct hk_device *dev, struct hk_queue *queue,
       .commands = (uint64_t)(uintptr_t)(cmds),
    };
 
+   VkResult result;
    if (command_count <= max_commands_per_submit(dev))
-      return queue_submit_single(dev, &submit_ioctl);
+      result = queue_submit_single(dev, &submit_ioctl);
    else
-      return queue_submit_looped(dev, &submit_ioctl);
+      result = queue_submit_looped(dev, &submit_ioctl);
+
+   free(ts_inner);
+   free(cmds_inner);
+   free(cmds);
+
+   return result;
 }
 
 static VkResult

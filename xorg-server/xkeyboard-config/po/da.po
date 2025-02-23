@@ -21,9 +21,9 @@
 #  compose-tast og det virker!
 #
 # delete key = slettetast
-# digraph = digraf (En digraf er to bogstaver, der repræsenterer én lyd. 
-# En digraf er ikke det samme som en ligatur.) Eksempler: "hj" og "hv" 
-# i "hjælp", "hvis" og "hvordan", eller "ph" i engelsk "phone". Kilde 
+# digraph = digraf (En digraf er to bogstaver, der repræsenterer én lyd.
+# En digraf er ikke det samme som en ligatur.) Eksempler: "hj" og "hv"
+# i "hjælp", "hvis" og "hvordan", eller "ph" i engelsk "phone". Kilde
 # dansk wikipedia
 # Dvorak -> Dvorak personnavn (så med stort)
 # keypad = numerisk tastatur
@@ -1943,7 +1943,7 @@ msgstr "Hausa (Ghana)"
 msgid "avn"
 msgstr "avn"
 
-# The Avatime are an Akan people who live in Volta region of Ghana. History has it 
+# The Avatime are an Akan people who live in Volta region of Ghana. History has it
 # that they are Ahanta people who migrated to the Volta region.
 #: ../rules/base.xml.in.h:513
 msgid "Avatime"
@@ -2800,8 +2800,8 @@ msgstr "Serbisk (kyrillisk med anførelsestegnene »«)"
 msgid "Serbian (Latin with guillemets)"
 msgstr "Serbisk (latin med anførelsestegnene »«)"
 
-# Pannonian Rusyn or simply Rusyn (Ruthenian) is a Slavic language or dialect spoken 
-# in north-western Serbia and eastern Croatia 
+# Pannonian Rusyn or simply Rusyn (Ruthenian) is a Slavic language or dialect spoken
+# in north-western Serbia and eastern Croatia
 #: ../rules/base.xml.in.h:742
 msgid "Pannonian Rusyn"
 msgstr "Pannonisk rusyn"
@@ -2872,9 +2872,9 @@ msgstr "Spansk (Dvorak)"
 msgid "ast"
 msgstr "ast"
 
-# Asturian (Asturian: Asturianu or Bable) is a Romance 
-# language of the West Iberian group, Astur-Leonese 
-# Subgroup, spoken in the Spanish province of Asturias 
+# Asturian (Asturian: Asturianu or Bable) is a Romance
+# language of the West Iberian group, Astur-Leonese
+# Subgroup, spoken in the Spanish province of Asturias
 # by the Asturian people.
 #: ../rules/base.xml.in.h:761
 msgid "Asturian (Spain, with bottom-dot H and bottom-dot L)"
@@ -3166,8 +3166,8 @@ msgstr "Ukrainsk (standard RSTU)"
 msgid "Russian (Ukraine, standard RSTU)"
 msgstr "Russisk (Ukraine, standard RSTU)"
 
-# Pannonian Rusyn or simply Rusyn (Ruthenian) is a Slavic language or dialect spoken 
-# in north-western Serbia and eastern Croatia 
+# Pannonian Rusyn or simply Rusyn (Ruthenian) is a Slavic language or dialect spoken
+# in north-western Serbia and eastern Croatia
 #: ../rules/base.xml.in.h:841
 msgid "Ukrainian (homophonic)"
 msgstr "Ukrainsk (homofonisk)"
@@ -4183,11 +4183,11 @@ msgid "Non-breaking space at the 4th level, thin non-breaking space at the 6th l
 msgstr "Ubrydeligt mellemrum på fjerde niveau, tyndt ubrydeligt mellemrum på sjette niveau (via Ctrl+Skift)"
 
 # The zero-width non-joiner (ZWNJ) is a non-printing character used in the computerized
-# typesetting of some cursive scripts, or other scripts which make use of ligatures, 
-# such as Devanagari. When placed between two characters that would otherwise be 
-# connected, a ZWNJ causes them to be printed in their final and initial forms, 
-# respectively. This is also an effect of a space character, but a ZWNJ is used when it 
-# is desirable to keep the words closer together. The ZWNJ is represented in Unicode 
+# typesetting of some cursive scripts, or other scripts which make use of ligatures,
+# such as Devanagari. When placed between two characters that would otherwise be
+# connected, a ZWNJ causes them to be printed in their final and initial forms,
+# respectively. This is also an effect of a space character, but a ZWNJ is used when it
+# is desirable to keep the words closer together. The ZWNJ is represented in Unicode
 # is U+200C, and can be represented in HTML as &#x200C;, &#8204; or &zwnj;. Kilde eng.
 # wikipedia 12. maj 2010
 #: ../rules/base.xml.in.h:1107

@@ -204,3 +204,8 @@ KHR-GL46.constant_expressions.basic_sin_vec3_tess_eval
 KHR-GL46.texture_swizzle.functional_format_idx_63_target_idx_3
 KHR-GL46.texture_swizzle.functional_format_idx_66_target_idx_1
 spec@arb_texture_view@rendering-levels
+
+KHR-GL46.texture_swizzle.functional_format_idx_1_target_idx_1
+KHR-GL46.texture_swizzle.smoke_access_idx_11_channel_idx_2
+spec@ext_texture_compression_s3tc@texwrap formats
+spec@ext_texture_compression_s3tc@texwrap formats@GL_COMPRESSED_RGBA_S3TC_DXT1_EXT

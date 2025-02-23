@@ -166,8 +166,11 @@ agx_write_registers(const agx_instr *I, unsigned d)
    case AGX_OPCODE_IMAGE_LOAD:
    case AGX_OPCODE_TEXTURE_LOAD:
    case AGX_OPCODE_TEXTURE_SAMPLE:
-      /* Even when masked out, these clobber 4 registers */
-      return 4 * size;
+      /* Even when masked out, these clobber 4 registers.
+       *
+       * TODO: Figure out the sparse interaction.
+       */
+      return (I->sparse ? 8 : 4) * size;
 
    case AGX_OPCODE_DEVICE_LOAD:
    case AGX_OPCODE_LOCAL_LOAD:

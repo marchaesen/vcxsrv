@@ -358,8 +358,6 @@ radv_destroy_cmd_buffer(struct vk_command_buffer *vk_cmd_buffer)
             vk_descriptor_set_layout_unref(&device->vk, &set->layout->vk);
          vk_object_base_finish(&set->base);
       }
-
-      vk_object_base_finish(&cmd_buffer->meta_push_descriptors.base);
    }
 
    vk_command_buffer_finish(&cmd_buffer->vk);
@@ -402,8 +400,6 @@ radv_create_cmd_buffer(struct vk_command_pool *pool, VkCommandBufferLevel level,
          radv_destroy_cmd_buffer(&cmd_buffer->vk);
          return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
       }
-
-      vk_object_base_init(&device->vk, &cmd_buffer->meta_push_descriptors.base, VK_OBJECT_TYPE_DESCRIPTOR_SET);
 
       for (unsigned i = 0; i < MAX_BIND_POINTS; i++)
          vk_object_base_init(&device->vk, &cmd_buffer->descriptors[i].push_set.set.base, VK_OBJECT_TYPE_DESCRIPTOR_SET);
@@ -483,9 +479,6 @@ radv_reset_cmd_buffer(struct vk_command_buffer *vk_cmd_buffer, UNUSED VkCommandB
    if (cmd_buffer->upload.upload_bo)
       radv_cs_add_buffer(device->ws, cmd_buffer->cs, cmd_buffer->upload.upload_bo);
    cmd_buffer->upload.offset = 0;
-
-   memset(cmd_buffer->vertex_binding_buffers, 0, sizeof(struct radv_buffer *) * cmd_buffer->used_vertex_bindings);
-   cmd_buffer->used_vertex_bindings = 0;
 
    for (unsigned i = 0; i < MAX_BIND_POINTS; i++) {
       cmd_buffer->descriptors[i].dirty = 0;
@@ -4624,7 +4617,9 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
          const struct radv_image_view *vrs_iview = render->vrs_att.iview;
          struct radv_image *vrs_image = vrs_iview->image;
 
-         va = radv_image_get_va(vrs_image, 0);
+         radv_cs_add_buffer(device->ws, cmd_buffer->cs, vrs_image->bindings[0].bo);
+
+         va = vrs_image->bindings[0].addr;
          va |= vrs_image->planes[0].surface.tile_swizzle << 8;
 
          xmax = vrs_iview->vk.extent.width - 1;
@@ -4892,14 +4887,14 @@ lookup_vs_prolog(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *v
 
          uint8_t format_req = vi_state->format_align_req_minus_1[index];
          uint8_t component_req = vi_state->component_align_req_minus_1[index];
-         uint64_t vb_offset = cmd_buffer->vertex_bindings[binding].offset;
+         uint64_t vb_addr = cmd_buffer->vertex_bindings[binding].addr;
          uint64_t vb_stride = cmd_buffer->vertex_bindings[binding].stride;
 
-         VkDeviceSize offset = vb_offset + vi_state->offsets[index];
+         VkDeviceSize addr = vb_addr + vi_state->offsets[index];
 
-         if (misalignment_possible && ((offset | vb_stride) & format_req))
+         if (misalignment_possible && ((addr | vb_stride) & format_req))
             misaligned_mask |= BITFIELD_BIT(index);
-         if ((offset | vb_stride) & component_req)
+         if ((addr | vb_stride) & component_req)
             unaligned_mask |= BITFIELD_BIT(index);
       }
       cmd_buffer->state.vbo_misaligned_mask = misaligned_mask;
@@ -5807,6 +5802,8 @@ radv_get_vbo_info(const struct radv_cmd_buffer *cmd_buffer, uint32_t idx, struct
    memset(vbo_info, 0, sizeof(*vbo_info));
 
    vbo_info->binding = binding;
+   vbo_info->va = cmd_buffer->vertex_bindings[binding].addr;
+   vbo_info->size = cmd_buffer->vertex_bindings[binding].size;
    vbo_info->stride = cmd_buffer->vertex_bindings[binding].stride;
 
    vbo_info->attrib_offset = vi_state->offsets[idx];
@@ -5826,16 +5823,6 @@ radv_get_vbo_info(const struct radv_cmd_buffer *cmd_buffer, uint32_t idx, struct
             vtx_info->dst_sel | S_008F0C_NUM_FORMAT((hw_format >> 4) & 0x7) | S_008F0C_DATA_FORMAT(hw_format & 0xf);
       }
    }
-
-   const struct radv_buffer *buffer = cmd_buffer->vertex_binding_buffers[binding];
-
-   if (!buffer)
-      return;
-
-   const uint32_t offset = cmd_buffer->vertex_bindings[binding].offset;
-
-   vbo_info->va = buffer->addr + offset;
-   vbo_info->size = cmd_buffer->vertex_bindings[binding].size;
 }
 
 static void
@@ -6980,9 +6967,6 @@ radv_CmdBindVertexBuffers2(VkCommandBuffer commandBuffer, uint32_t firstBinding,
 
    assert(firstBinding + bindingCount <= MAX_VBS);
 
-   if (firstBinding + bindingCount > cmd_buffer->used_vertex_bindings)
-      cmd_buffer->used_vertex_bindings = firstBinding + bindingCount;
-
    uint32_t misaligned_mask_invalid = 0;
 
    for (uint32_t i = 0; i < bindingCount; i++) {
@@ -6991,20 +6975,20 @@ radv_CmdBindVertexBuffers2(VkCommandBuffer commandBuffer, uint32_t firstBinding,
       VkDeviceSize size = pSizes ? pSizes[i] : VK_WHOLE_SIZE;
       /* if pStrides=NULL, it shouldn't overwrite the strides specified by CmdSetVertexInputEXT */
       VkDeviceSize stride = pStrides ? pStrides[i] : vb[idx].stride;
+      uint64_t addr = buffer ? buffer->addr + pOffsets[i] : 0;
 
-      if (!!cmd_buffer->vertex_binding_buffers[idx] != !!buffer ||
-          (buffer && ((vb[idx].offset & 0x3) != (pOffsets[i] & 0x3) || (vb[idx].stride & 0x3) != (stride & 0x3)))) {
+      if (!!vb[idx].addr != !!addr ||
+          (addr && (((vb[idx].addr & 0x3) != (addr & 0x3) || (vb[idx].stride & 0x3) != (stride & 0x3))))) {
          misaligned_mask_invalid |= vi_state->bindings_match_attrib ? BITFIELD_BIT(idx) : 0xffffffff;
       }
 
-      cmd_buffer->vertex_binding_buffers[idx] = buffer;
-      vb[idx].offset = pOffsets[i];
+      vb[idx].addr = addr;
       vb[idx].size = buffer ? vk_buffer_range(&buffer->vk, pOffsets[i], size) : 0;
       vb[idx].stride = stride;
 
       uint32_t bit = BITFIELD_BIT(idx);
       if (buffer) {
-         radv_cs_add_buffer(device->ws, cmd_buffer->cs, cmd_buffer->vertex_binding_buffers[idx]->bo);
+         radv_cs_add_buffer(device->ws, cmd_buffer->cs, buffer->bo);
          cmd_buffer->state.vbo_bound_mask |= bit;
       } else {
          cmd_buffer->state.vbo_bound_mask &= ~bit;
@@ -7203,35 +7187,6 @@ radv_init_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer, struct radv_de
    }
 
    return true;
-}
-
-void
-radv_meta_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer, VkPipelineBindPoint pipelineBindPoint,
-                              VkPipelineLayout _layout, uint32_t set, uint32_t descriptorWriteCount,
-                              const VkWriteDescriptorSet *pDescriptorWrites)
-{
-   VK_FROM_HANDLE(radv_pipeline_layout, layout, _layout);
-   struct radv_descriptor_set *push_set = (struct radv_descriptor_set *)&cmd_buffer->meta_push_descriptors;
-   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-   unsigned bo_offset;
-
-   assert(set == 0);
-   assert(layout->set[set].layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT);
-
-   push_set->header.size = layout->set[set].layout->size;
-   push_set->header.layout = layout->set[set].layout;
-
-   if (!radv_cmd_buffer_upload_alloc(cmd_buffer, push_set->header.size, &bo_offset,
-                                     (void **)&push_set->header.mapped_ptr))
-      return;
-
-   push_set->header.va = radv_buffer_get_va(cmd_buffer->upload.upload_bo);
-   push_set->header.va += bo_offset;
-
-   radv_cmd_update_descriptor_sets(device, cmd_buffer, radv_descriptor_set_to_handle(push_set), descriptorWriteCount,
-                                   pDescriptorWrites, 0, NULL);
-
-   radv_set_descriptor_set(cmd_buffer, pipelineBindPoint, push_set, set);
 }
 
 static void
@@ -8455,10 +8410,10 @@ radv_CmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingD
 
       if (state->vbo_bound_mask & BITFIELD_BIT(attrib->binding)) {
          uint32_t stride = binding->stride;
-         uint64_t offset = cmd_buffer->vertex_bindings[attrib->binding].offset + vi_state->offsets[loc];
-         if ((chip == GFX6 || chip >= GFX10) && ((stride | offset) & format_align_req_minus_1))
+         uint64_t addr = cmd_buffer->vertex_bindings[attrib->binding].addr + vi_state->offsets[loc];
+         if ((chip == GFX6 || chip >= GFX10) && ((stride | addr) & format_align_req_minus_1))
             state->vbo_misaligned_mask |= BITFIELD_BIT(loc);
-         if ((stride | offset) & component_align_req_minus_1)
+         if ((stride | addr) & component_align_req_minus_1)
             state->vbo_unaligned_mask |= BITFIELD_BIT(loc);
       }
    }
@@ -9320,9 +9275,9 @@ radv_CmdBeginRendering(VkCommandBuffer commandBuffer, const VkRenderingInfo *pRe
          uint32_t level = ds_iview->vk.base_mip_level;
 
          /* HTILE buffer */
-         uint64_t htile_offset = ds_image->bindings[0].offset + ds_image->planes[0].surface.meta_offset +
-                                 ds_image->planes[0].surface.u.gfx9.meta_levels[level].offset;
-         const uint64_t htile_va = radv_buffer_get_va(ds_image->bindings[0].bo) + htile_offset;
+         uint64_t htile_offset =
+            ds_image->planes[0].surface.meta_offset + ds_image->planes[0].surface.u.gfx9.meta_levels[level].offset;
+         const uint64_t htile_va = ds_image->bindings[0].addr + htile_offset;
 
          assert(render->area.offset.x + render->area.extent.width <= ds_image->vk.extent.width &&
                 render->area.offset.x + render->area.extent.height <= ds_image->vk.extent.height);
@@ -12129,9 +12084,12 @@ radv_CmdDispatchIndirect(VkCommandBuffer commandBuffer, VkBuffer _buffer, VkDevi
 {
    VK_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
    VK_FROM_HANDLE(radv_buffer, buffer, _buffer);
-   const uint64_t va = buffer->addr + offset;
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   struct radv_dispatch_info info = {.indirect_va = buffer->addr + offset};
 
-   radv_indirect_dispatch(cmd_buffer, buffer->bo, va);
+   radv_cs_add_buffer(device->ws, cmd_buffer->cs, buffer->bo);
+
+   radv_compute_dispatch(cmd_buffer, &info);
 }
 
 void
@@ -12143,17 +12101,6 @@ radv_unaligned_dispatch(struct radv_cmd_buffer *cmd_buffer, uint32_t x, uint32_t
    info.blocks[1] = y;
    info.blocks[2] = z;
    info.unaligned = 1;
-
-   radv_compute_dispatch(cmd_buffer, &info);
-}
-
-void
-radv_indirect_dispatch(struct radv_cmd_buffer *cmd_buffer, struct radeon_winsys_bo *bo, uint64_t va)
-{
-   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-   struct radv_dispatch_info info = {.indirect_va = va};
-
-   radv_cs_add_buffer(device->ws, cmd_buffer->cs, bo);
 
    radv_compute_dispatch(cmd_buffer, &info);
 }
@@ -12546,7 +12493,7 @@ radv_init_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image, cons
       /* Initialize the mipmap levels without DCC. */
       if (size != image->planes[0].surface.meta_size) {
          flush_bits |= radv_fill_buffer(cmd_buffer, image, image->bindings[0].bo,
-                                        radv_image_get_va(image, 0) + image->planes[0].surface.meta_offset + size,
+                                        image->bindings[0].addr + image->planes[0].surface.meta_offset + size,
                                         image->planes[0].surface.meta_size - size, 0xffffffff);
       }
    }

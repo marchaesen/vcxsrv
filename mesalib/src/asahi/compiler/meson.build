@@ -45,7 +45,6 @@ libasahi_agx_files = files(
 )
 
 agx_nir_algebraic_c = custom_target(
-  'agx_nir_algebraic.c',
   input : 'agx_nir_algebraic.py',
   output : 'agx_nir_algebraic.c',
   command : [
@@ -56,7 +55,6 @@ agx_nir_algebraic_c = custom_target(
 )
 
 agx_opcodes_h = custom_target(
-  'agx_opcodes.h',
   input : ['agx_opcodes.h.py'],
   output : 'agx_opcodes.h',
   command : [prog_python, '@INPUT@'],
@@ -70,7 +68,6 @@ idep_agx_opcodes_h = declare_dependency(
 )
 
 agx_opcodes_c = custom_target(
-  'agx_opcodes.c',
   input : ['agx_opcodes.c.py'],
   output : 'agx_opcodes.c',
   command : [prog_python, '@INPUT@'],
@@ -79,7 +76,6 @@ agx_opcodes_c = custom_target(
 )
 
 agx_builder_h = custom_target(
-  'agx_builder.h',
   input : ['agx_builder.h.py'],
   output : 'agx_builder.h',
   command : [prog_python, '@INPUT@'],

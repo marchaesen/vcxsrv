@@ -153,14 +153,20 @@ etna_optimize_loop(nir_shader *s)
    do {
       progress = false;
 
-      NIR_PASS_V(s, nir_lower_vars_to_ssa);
+      NIR_PASS(_, s, nir_lower_vars_to_ssa);
       progress |= OPT(s, nir_opt_copy_prop_vars);
       progress |= OPT(s, nir_opt_shrink_stores, true);
       progress |= OPT(s, nir_opt_shrink_vectors, false);
       progress |= OPT(s, nir_copy_prop);
       progress |= OPT(s, nir_opt_dce);
       progress |= OPT(s, nir_opt_cse);
-      progress |= OPT(s, nir_opt_peephole_select, 16, true, true);
+
+      nir_opt_peephole_select_options peephole_select_options = {
+         .limit = 16,
+         .indirect_load_ok = true,
+         .expensive_alu_ok = true,
+      };
+      progress |= OPT(s, nir_opt_peephole_select, &peephole_select_options);
       progress |= OPT(s, nir_opt_intrinsics);
       progress |= OPT(s, nir_opt_algebraic);
       progress |= OPT(s, nir_opt_constant_folding);
@@ -1189,21 +1195,21 @@ etna_compile_shader(struct etna_shader_variant *v)
    v->ps_depth_out_reg = -1;
 
    if (s->info.stage == MESA_SHADER_FRAGMENT)
-      NIR_PASS_V(s, nir_lower_fragcolor, specs->num_rts);
+      NIR_PASS(_, s, nir_lower_fragcolor, specs->num_rts);
 
    /*
     * Lower glTexCoord, fixes e.g. neverball point sprite (exit cylinder stars)
     * and gl4es pointsprite.trace apitrace
     */
    if (s->info.stage == MESA_SHADER_FRAGMENT && v->key.sprite_coord_enable) {
-      NIR_PASS_V(s, nir_lower_texcoord_replace, v->key.sprite_coord_enable,
+      NIR_PASS(_, s, nir_lower_texcoord_replace, v->key.sprite_coord_enable,
                  false, v->key.sprite_coord_yinvert);
    }
 
    /*
     * Remove any dead in variables before we iterate over them
     */
-   NIR_PASS_V(s, nir_remove_dead_variables, nir_var_shader_in, NULL);
+   NIR_PASS(_, s, nir_remove_dead_variables, nir_var_shader_in, NULL);
 
    /* setup input linking */
    struct etna_shader_io_file *sf = &v->infile;
@@ -1235,21 +1241,21 @@ etna_compile_shader(struct etna_shader_variant *v)
       assert(sf->num_reg == count);
    }
 
-   NIR_PASS_V(s, nir_lower_io, nir_var_shader_in | nir_var_uniform, etna_glsl_type_size,
+   NIR_PASS(_, s, nir_lower_io, nir_var_shader_in | nir_var_uniform, etna_glsl_type_size,
             (nir_lower_io_options)0);
 
-   NIR_PASS_V(s, nir_lower_vars_to_ssa);
-   NIR_PASS_V(s, nir_lower_indirect_derefs, nir_var_all, UINT32_MAX);
-   NIR_PASS_V(s, etna_nir_lower_texture, &v->key);
+   NIR_PASS(_, s, nir_lower_vars_to_ssa);
+   NIR_PASS(_, s, nir_lower_indirect_derefs, nir_var_all, UINT32_MAX);
+   NIR_PASS(_, s, etna_nir_lower_texture, &v->key);
 
-   NIR_PASS_V(s, nir_lower_alu_to_scalar, etna_alu_to_scalar_filter_cb, c->info);
+   NIR_PASS(_, s, nir_lower_alu_to_scalar, etna_alu_to_scalar_filter_cb, c->info);
    if (c->info->halti >= 2) {
       nir_lower_idiv_options idiv_options = {
          .allow_fp16 = true,
       };
-      NIR_PASS_V(s, nir_lower_idiv, &idiv_options);
+      NIR_PASS(_, s, nir_lower_idiv, &idiv_options);
    }
-   NIR_PASS_V(s, nir_lower_alu);
+   NIR_PASS(_, s, nir_lower_alu);
 
    etna_optimize_loop(s);
 
@@ -1257,45 +1263,45 @@ etna_compile_shader(struct etna_shader_variant *v)
    if (OPT(s, etna_nir_lower_ubo_to_uniform))
       etna_optimize_loop(s);
 
-   NIR_PASS_V(s, etna_lower_io, v);
-   NIR_PASS_V(s, nir_lower_pack);
+   NIR_PASS(_, s, etna_lower_io, v);
+   NIR_PASS(_, s, nir_lower_pack);
    etna_optimize_loop(s);
 
    if (v->shader->specs->vs_need_z_div)
-      NIR_PASS_V(s, nir_lower_clip_halfz);
+      NIR_PASS(_, s, nir_lower_clip_halfz);
 
    /* lower pre-halti2 to float (halti0 has integers, but only scalar..) */
    if (c->info->halti < 2) {
       /* use opt_algebraic between int_to_float and boot_to_float because
        * int_to_float emits ftrunc, and ftrunc lowering generates bool ops
        */
-      NIR_PASS_V(s, nir_lower_int_to_float);
-      NIR_PASS_V(s, nir_opt_algebraic);
-      NIR_PASS_V(s, nir_lower_bool_to_float, true);
+      NIR_PASS(_, s, nir_lower_int_to_float);
+      NIR_PASS(_, s, nir_opt_algebraic);
+      NIR_PASS(_, s, nir_lower_bool_to_float, true);
    } else {
-      NIR_PASS_V(s, nir_lower_bool_to_int32);
+      NIR_PASS(_, s, nir_lower_bool_to_int32);
    }
 
    while( OPT(s, nir_opt_vectorize, NULL, NULL) );
-   NIR_PASS_V(s, nir_lower_alu_to_scalar, etna_alu_to_scalar_filter_cb, c->info);
+   NIR_PASS(_, s, nir_lower_alu_to_scalar, etna_alu_to_scalar_filter_cb, c->info);
 
-   NIR_PASS_V(s, nir_remove_dead_variables, nir_var_function_temp, NULL);
-   NIR_PASS_V(s, nir_opt_algebraic_late);
+   NIR_PASS(_, s, nir_remove_dead_variables, nir_var_function_temp, NULL);
+   NIR_PASS(_, s, nir_opt_algebraic_late);
 
-   NIR_PASS_V(s, nir_move_vec_src_uses_to_dest, false);
-   NIR_PASS_V(s, nir_copy_prop);
+   NIR_PASS(_, s, nir_move_vec_src_uses_to_dest, false);
+   NIR_PASS(_, s, nir_copy_prop);
    /* need copy prop after uses_to_dest, and before src mods: see
     * dEQP-GLES2.functional.shaders.random.all_features.fragment.95
     */
 
-   NIR_PASS_V(s, nir_opt_dce);
-   NIR_PASS_V(s, nir_opt_cse);
+   NIR_PASS(_, s, nir_opt_dce);
+   NIR_PASS(_, s, nir_opt_cse);
 
-   NIR_PASS_V(s, nir_lower_bool_to_bitsize);
-   NIR_PASS_V(s, etna_lower_alu, c->specs->has_new_transcendentals);
+   NIR_PASS(_, s, nir_lower_bool_to_bitsize);
+   NIR_PASS(_, s, etna_lower_alu, c->specs->has_new_transcendentals);
 
    /* needs to be the last pass that touches pass_flags! */
-   NIR_PASS_V(s, etna_nir_lower_to_source_mods);
+   NIR_PASS(_, s, etna_nir_lower_to_source_mods);
 
    if (DBG_ENABLED(ETNA_DBG_DUMP_SHADERS))
       nir_print_shader(s, stdout);

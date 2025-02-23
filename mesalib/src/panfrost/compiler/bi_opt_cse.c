@@ -136,7 +136,7 @@ instr_can_cse(const bi_instr *I)
    /* Be conservative about which message-passing instructions we CSE,
     * since most are not pure even within a thread.
     */
-   if (bi_opcode_props[I->op].message && I->op != BI_OPCODE_LEA_BUF_IMM)
+   if (bi_get_opcode_props(I)->message && I->op != BI_OPCODE_LEA_BUF_IMM)
       return false;
 
    if (I->branch_target)

@@ -1,0 +1,17 @@
+# src/gallium/auxiliary/util/u_surface.c:285: util_resource_copy_region: Assertion `dst_box.x + dst_box.width <= (int)u_minify(dst->width0, dst_level)' failed.
+test_copy_texture_bc_rgba,Crash
+
+# src/gallium/frontends/lavapipe/lvp_private.h:773: lvp_image_aspects_to_plane: Assertion `!(aspectMask & ~image->vk.aspects)' failed.
+test_get_resource_tiling,Crash
+
+# src/gallium/auxiliary/gallivm/lp_bld_arit.c:413: lp_build_add: Assertion `lp_check_value(type, a)' failed.
+test_shader_waveop_maximal_convergence,Crash
+
+test_planar_video_formats,Fail
+test_rayquery,Fail
+test_raytracing,Fail
+test_raytracing_mismatch_global_rs_link,Fail
+test_sample_instructions,Fail
+test_sampler_rounding,Fail
+test_update_tile_mappings,Fail
+test_view_min_lod,Fail

@@ -15,13 +15,7 @@ Build the Libraries
    enable the Gallium driver for your hardware.
 #. Build and install Mesa as usual.
 
-Alternatively, if XCB-DRI2 is installed on the system, one can use
-``egl_dri2`` EGL driver with OpenGL|ES-enabled DRI drivers
-
-#. Run ``meson configure`` with ``-D gles1=enabled -D gles2=enabled``.
-#. Build and install Mesa as usual.
-
-Both methods will install libGLESv1_CM, libGLESv2, libEGL, and one or
+This will install libGLESv1_CM, libGLESv2, libEGL, and one or
 more EGL drivers for your hardware.
 
 Run the Demos

@@ -5,9 +5,7 @@
  */
 
 #include "lvp_private.h"
-
-#include "nir.h"
-#include "nir_builder.h"
+#include "lvp_nir.h"
 
 #define lvp_load_internal_field(b, bit_size, field)                                                \
    nir_load_ssbo(b, 1, bit_size, nir_imm_int(b, 0),                                                \

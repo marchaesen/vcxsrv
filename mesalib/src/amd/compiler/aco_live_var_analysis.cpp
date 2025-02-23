@@ -428,23 +428,19 @@ round_down(unsigned a, unsigned b)
    return a - (a % b);
 }
 
-uint16_t
-get_addr_sgpr_from_waves(Program* program, uint16_t waves)
+RegisterDemand
+get_addr_regs_from_waves(Program* program, uint16_t waves)
 {
    /* it's not possible to allocate more than 128 SGPRs */
    uint16_t sgprs = std::min(program->dev.physical_sgprs / waves, 128);
-   sgprs = round_down(sgprs, program->dev.sgpr_alloc_granule);
-   sgprs -= get_extra_sgprs(program);
-   return std::min(sgprs, program->dev.sgpr_limit);
-}
+   sgprs = round_down(sgprs, program->dev.sgpr_alloc_granule) - get_extra_sgprs(program);
+   sgprs = std::min(sgprs, program->dev.sgpr_limit);
 
-uint16_t
-get_addr_vgpr_from_waves(Program* program, uint16_t waves)
-{
    uint16_t vgprs = program->dev.physical_vgprs / waves;
    vgprs = vgprs / program->dev.vgpr_alloc_granule * program->dev.vgpr_alloc_granule;
    vgprs -= program->config->num_shared_vgprs / 2;
-   return std::min(vgprs, program->dev.vgpr_limit);
+   vgprs = std::min(vgprs, program->dev.vgpr_limit);
+   return RegisterDemand(vgprs, sgprs);
 }
 
 void
@@ -496,11 +492,10 @@ void
 update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
 {
    assert(program->min_waves >= 1);
-   uint16_t sgpr_limit = get_addr_sgpr_from_waves(program, program->min_waves);
-   uint16_t vgpr_limit = get_addr_vgpr_from_waves(program, program->min_waves);
+   RegisterDemand limit = get_addr_regs_from_waves(program, program->min_waves);
 
    /* this won't compile, register pressure reduction necessary */
-   if (new_demand.vgpr > vgpr_limit || new_demand.sgpr > sgpr_limit) {
+   if (new_demand.exceeds(limit)) {
       program->num_waves = 0;
       program->max_reg_demand = new_demand;
    } else {
@@ -513,8 +508,7 @@ update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
 
       /* Adjust for LDS and workgroup multiples and calculate max_reg_demand */
       program->num_waves = max_suitable_waves(program, program->num_waves);
-      program->max_reg_demand.vgpr = get_addr_vgpr_from_waves(program, program->num_waves);
-      program->max_reg_demand.sgpr = get_addr_sgpr_from_waves(program, program->num_waves);
+      program->max_reg_demand = get_addr_regs_from_waves(program, program->num_waves);
    }
 }
 

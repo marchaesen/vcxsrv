@@ -7721,7 +7721,7 @@ static const OptionInfoRec ZZZOptions[] = {
 	<programlisting>
 static MODULESETUPPROTO(zzzSetup);
 
-XF86ModuleData zzzModuleData = { &amp;zzzVersRec, zzzSetup, NULL };
+XF86ModuleData zzzModuleData = { .vers = &amp;zzzVersRec, .setup = zzzSetup, .teardown = NULL };
 
 static pointer
 zzzSetup(pointer module, pointer opts, int *errmaj, int *errmin)

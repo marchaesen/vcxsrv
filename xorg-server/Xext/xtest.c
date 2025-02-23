@@ -40,6 +40,7 @@
 #include "dix/exevents_priv.h"
 #include "mi/mi_priv.h"
 #include "mi/mipointer_priv.h"
+#include "os/client_priv.h"
 #include "os/osdep.h"
 
 #include "misc.h"

@@ -3,6 +3,8 @@ LIBRARY = libshadow
 #INCLUDES = -I$(top_srcdir)/hw/xfree86/os-support
 DEFINES += PIXMAN_API=
 
+INCLUDES += ../..
+
 CSRCS =	shadow.c		\
 	shadow.c		\
 	sh3224.c		\

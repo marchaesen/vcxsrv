@@ -13,15 +13,12 @@ KHR-GL46.texture_cube_map_array.color_depth_attachments,Fail
 #
 
 
-glx@glx_arb_create_context_no_error@no error,Fail
-
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F NPOT,Fail
 
 spec@arb_point_sprite@arb_point_sprite-interactions 1.0,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
-spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2' on GL_PROGRAM_INPUT,Fail
 spec@arb_sample_shading@samplemask 2@0.500000 mask_in_one,Fail
 spec@arb_sample_shading@samplemask 2@1.000000 mask_in_one,Fail
@@ -111,7 +108,6 @@ spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 color,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor-ff,Fail
-spec@ext_packed_float@query-rgba-signed-components,Fail
 
 # These failures go away with FD_MESA_DEBUG=noblit, but don't seem to be related
 # to the actual mipmap generation blits (which we do fall back on)
@@ -215,25 +211,17 @@ spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams-without-invocations spirv,Fail
 spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams@arb_gpu_shader5-xfb-streams,Fail
 spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams@arb_gpu_shader5-xfb-streams-blocks,Fail
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-vs-getuniformdv,Crash
-spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat4-dmat4,Fail
-spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-double-dmat4,Fail
 spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-inverse-dmat4,Fail
 spec@arb_gpu_shader_fp64@uniform_buffers@fs-ubo-load.indirect.3,Fail
 spec@glsl-4.00@execution@built-in-functions@fs-op-div-double-dmat4,Fail
 
-spec@glsl-4.00@execution@built-in-functions@fs-inverse-dmat4,Fail
 spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat4-dmat4,Fail
-
-# uprev Piglit in Mesa
-spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int16,Fail
-spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int8,Fail
-
-# Updated by ci-collate
-spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-gs-getuniformdv,Crash
 
 # uprev Piglit in Mesa
 glx@glx-swap-pixmap-bad,Fail
 spec@arb_occlusion_query@occlusion_query_order,Fail
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int16,Fail
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int8,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp@sRGB decode full precision,Fail
 
@@ -298,7 +286,7 @@ api@clgetextensionfunctionaddressforplatform,Fail
 #
 ## Not our problem:
 #
-# CL_DEVICE_MAX_READ_IMAGE_ARGS: failed, expected at least 128, got 16 
+# CL_DEVICE_MAX_READ_IMAGE_ARGS: failed, expected at least 128, got 16
 api@clgetdeviceinfo,Fail
 
 # CL_QUEUE_SIZE Unexpected CL error: CL_INVALID_COMMAND_QUEUE -36
@@ -359,6 +347,50 @@ gl_wacky_yuv_formats,Fail
 gl_wacky_yuv_formats_cs,Fail
 gl_xfermodes2,Fail
 gl_xfermodes3,Fail
+# GLES failures started when EXT_mdi was properly exposed
+gles_all_bitmap_configs,Fail
+gles_androidblendmodes,Fail
+gles_annotated_text,Fail
+gles_arithmode,Fail
+gles_bitmapcopy,Fail
+gles_blob_rsxform,Fail
+gles_blurSmallRadii,Fail
+gles_coloremoji_blendmodes,Fail
+gles_colorwheelnative,Fail
+gles_combinemaskfilter,Fail
+gles_dashtextcaps,Fail
+gles_degenerate_gradients,Fail
+gles_draw-atlas-colors,Fail
+gles_encode,Fail
+gles_gammagradienttext,Fail
+gles_gammatext,Fail
+gles_gpusamplerstress,Fail
+gles_gradtext,Fail
+gles_highcontrastfilter,Fail
+gles_image-surface,Fail
+gles_imageblur2,Fail
+gles_imageblur_large,Fail
+gles_imageblurtiled,Fail
+gles_lcdblendmodes,Fail
+gles_lcdtextsize,Fail
+gles_scaled_tilemode_bitmap,Fail
+gles_scaled_tilemode_gradient,Fail
+gles_scaled_tilemodes,Fail
+gles_simpleaaclip_aaclip,Fail
+gles_skbug_5321,Fail
+gles_srcmode,Fail
+gles_surfaceprops,Fail
+gles_textblob_intercepts,Fail
+gles_textblobblockreordering,Fail
+gles_textblobcolortrans,Fail
+gles_textfilter_color,Fail
+gles_textfilter_image,Fail
+gles_tilemode_bitmap,Fail
+gles_typefacestyles,Fail
+gles_wacky_yuv_formats,Fail
+gles_wacky_yuv_formats_cs,Fail
+gles_xfermodes2,Fail
+gles_xfermodes3,Fail
 vk_all_bitmap_configs,Fail
 vk_androidblendmodes,Fail
 vk_annotated_text,Fail
@@ -402,3 +434,127 @@ vk_wacky_yuv_formats,Fail
 vk_wacky_yuv_formats_cs,Fail
 vk_xfermodes2,Fail
 vk_xfermodes3,Fail
+
+# Initial ANGLE failures
+angle-KHR-GLES3.clip_distance.coverage,Fail
+angle-KHR-GLES3.cull_distance.functional,Fail
+angle-KHR-GLES3.texture_lod_basic.lod_selection,Fail
+angle-dEQP-GLES2.functional.fbo.completeness.renderable.renderbuffer.color0.bgra,Fail
+angle-dEQP-GLES2.functional.fbo.completeness.renderable.renderbuffer.depth.bgra,Fail
+angle-dEQP-GLES2.functional.fbo.completeness.renderable.renderbuffer.stencil.bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.color.blend_npot_rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.color.blend_npot_rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.color.blend_rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.color.blend_rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.color_clear.rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.depth.npot_rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.depth.rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.no_rebind_rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_colorbuffer.rebind_rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.no_rebind_rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.no_rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_depthbuffer.rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.no_rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.no_rebind_rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.recreate_stencilbuffer.rebind_rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.resize.rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.resize.rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.resize.rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.resize.rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.shared_colorbuffer.rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.shared_colorbuffer_clear.rbo_bgra,Fail
+angle-dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_bgra_depth_component16,Fail
+angle-dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.stencil.npot_rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.stencil.npot_rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.stencil.rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.stencil.rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.stencil_clear.rbo_bgra_depth_component16_stencil_index8,Fail
+angle-dEQP-GLES2.functional.fbo.render.stencil_clear.rbo_bgra_stencil_index8,Fail
+angle-dEQP-GLES2.functional.shaders.algorithm.rgb_to_hsl_vertex,Fail
+angle-dEQP-GLES2.functional.texture.mipmap.cube.projected.nearest_linear,Fail
+angle-dEQP-GLES3.functional.fbo.completeness.renderable.renderbuffer.color0.bgra,Fail
+angle-dEQP-GLES3.functional.fbo.completeness.renderable.renderbuffer.depth.bgra,Fail
+angle-dEQP-GLES3.functional.fbo.completeness.renderable.renderbuffer.stencil.bgra,Fail
+angle-dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
+
+# GPU hangs with ANGLE 2025-02-12, were passing with ANGLE 2024-10-17
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.mediump_vec4,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.row_major_highp_mat3,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.row_major_lowp_mat3x2,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.column_major_highp_mat3x4,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.column_major_mediump_mat4,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.highp_vec3,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.highp_vec4,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.lowp_uvec2,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.mediump_ivec3,Crash
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.mediump_mat3,Crash
+angle-dEQP-GLES31.functional.tessellation.invariance.inner_triangle_set.quads_fractional_odd_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.inner_triangle_set.triangles_fractional_even_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.isolines_equal_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.isolines_equal_spacing_ccw_point_mode,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.isolines_equal_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.isolines_fractional_odd_spacing_cw_point_mode,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.quads_fractional_even_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.quads_fractional_odd_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.quads_fractional_odd_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.quads_fractional_odd_spacing_cw_point_mode,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.triangles_equal_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.triangles_fractional_odd_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.quads_equal_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.quads_equal_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.quads_fractional_even_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.triangles_equal_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.triangles_fractional_even_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.triangles_fractional_even_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.triangles_fractional_odd_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.isolines_equal_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.isolines_equal_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.isolines_fractional_odd_spacing_cw_point_mode,Crash
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.quads_fractional_even_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.quads_fractional_even_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.quads_fractional_odd_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.triangles_equal_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.triangles_fractional_even_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.triangles_fractional_odd_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_symmetry.triangles_fractional_odd_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_triangle_set.quads_equal_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_triangle_set.triangles_equal_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_triangle_set.triangles_fractional_even_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_triangle_set.triangles_fractional_odd_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.primitive_set.isolines_equal_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.primitive_set.quads_equal_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.primitive_set.quads_equal_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.isolines_equal_spacing_ccw_point_mode,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.isolines_fractional_odd_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.quads_fractional_even_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.quads_fractional_odd_spacing_ccw_point_mode,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.triangles_equal_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.triangles_fractional_even_spacing_ccw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.triangles_fractional_odd_spacing_cw,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.triangle_set.quads_fractional_odd_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.invariance.triangle_set.triangles_equal_spacing,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.negative.es31.per_vertex_incorrect_control_explicit_output_array_size_3,Crash
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch.vertex_io_array_size_implicit.isolines,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch.vertex_io_array_size_query.quads,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch.vertex_io_array_size_shader_builtin.isolines,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch.vertex_io_array_size_shader_builtin.quads,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch_array.vertex_io_array_size_implicit.quads,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch_block_array.vertex_io_array_size_query.quads,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_vertex_block.vertex_io_array_size_implicit.quads_explicit_tcs_out_size,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch_block.vertex_io_array_size_implicit.isolines,Fail
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_vertex.vertex_io_array_size_shader_builtin.triangles_explicit_tcs_out_size,Fail

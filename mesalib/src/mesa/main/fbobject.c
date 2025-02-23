@@ -1286,6 +1286,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    GLenum layer_tex_target = 0;
    bool has_depth_attachment = false;
    bool has_stencil_attachment = false;
+   GLsizei num_views = 0;
 
    assert(_mesa_is_user_fbo(fb));
 
@@ -1553,6 +1554,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
       }
       if (!layer_info_valid) {
          is_layered = att->Layered;
+         num_views = att->NumViews;
          max_layer_count = att_layer_count;
          layer_info_valid = true;
       } else if (max_layer_count > 0 && layer_tex_target &&
@@ -1564,6 +1566,12 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
          fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS;
          fbo_incomplete(ctx,
                         "framebuffer attachment layer mode is inconsistent",
+                        i);
+         return;
+      } else if (num_views != att->NumViews) {
+         fb->_Status = GL_FRAMEBUFFER_INCOMPLETE_VIEW_TARGETS_OVR;
+         fbo_incomplete(ctx,
+                        "framebuffer attachment view count is inconsistent",
                         i);
          return;
       } else if (att_layer_count > max_layer_count) {
@@ -3631,6 +3639,7 @@ reuse_framebuffer_texture_attachment(struct gl_framebuffer *fb,
    dst_att->CubeMapFace = src_att->CubeMapFace;
    dst_att->Zoffset = src_att->Zoffset;
    dst_att->Layered = src_att->Layered;
+   dst_att->NumViews = src_att->NumViews;
 }
 
 
@@ -3762,6 +3771,12 @@ check_multiview_texture_target(struct gl_context *ctx, GLuint texture, GLenum ta
    {
       _mesa_error(ctx, GL_INVALID_VALUE,
          "%s baseViewIndex is less than 0)", caller);
+      ret = false;
+   }
+   else if (baseViewIndex + numViews > ctx->Const.MaxArrayTextureLayers)
+   {
+      _mesa_error(ctx, GL_INVALID_VALUE,
+         "%s baseViewIndex + numViews > GL_MAX_ARRAY_TEXTURE_LAYERS", caller);
       ret = false;
    }
 
@@ -4023,7 +4038,8 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
           _mesa_tex_target_to_face(textarget) ==
           fb->Attachment[BUFFER_STENCIL].CubeMapFace &&
           samples == fb->Attachment[BUFFER_STENCIL].NumSamples &&
-          layer == fb->Attachment[BUFFER_STENCIL].Zoffset) {
+          layer == fb->Attachment[BUFFER_STENCIL].Zoffset &&
+          numviews == fb->Attachment[BUFFER_STENCIL].NumViews) {
          /* The texture object is already attached to the stencil attachment
           * point. Don't create a new renderbuffer; just reuse the stencil
           * attachment's. This is required to prevent a GL error in
@@ -4037,7 +4053,8 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
                  _mesa_tex_target_to_face(textarget) ==
                  fb->Attachment[BUFFER_DEPTH].CubeMapFace &&
                  samples == fb->Attachment[BUFFER_DEPTH].NumSamples &&
-                 layer == fb->Attachment[BUFFER_DEPTH].Zoffset) {
+                 layer == fb->Attachment[BUFFER_DEPTH].Zoffset &&
+                 numviews == fb->Attachment[BUFFER_DEPTH].NumViews) {
          /* As above, but with depth and stencil transposed. */
          reuse_framebuffer_texture_attachment(fb, BUFFER_STENCIL,
                                               BUFFER_DEPTH);
@@ -5033,6 +5050,30 @@ get_framebuffer_attachment_parameter(struct gl_context *ctx,
          goto invalid_pname_enum;
       } else if (att->Type == GL_TEXTURE) {
          *params = att->NumSamples;
+      } else if (att->Type == GL_NONE) {
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_enum_to_string(pname));
+      } else {
+         goto invalid_pname_enum;
+      }
+      return;
+   case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_NUM_VIEWS_OVR:
+      if (!ctx->Extensions.OVR_multiview) {
+         goto invalid_pname_enum;
+      } else if (att->Type == GL_TEXTURE) {
+         *params = att->NumViews;
+      } else if (att->Type == GL_NONE) {
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_enum_to_string(pname));
+      } else {
+         goto invalid_pname_enum;
+      }
+      return;
+   case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_BASE_VIEW_INDEX_OVR:
+      if (!ctx->Extensions.OVR_multiview) {
+         goto invalid_pname_enum;
+      } else if (att->Type == GL_TEXTURE) {
+         *params = att->NumViews > 0 ? att->Zoffset : 0;
       } else if (att->Type == GL_NONE) {
          _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
                      _mesa_enum_to_string(pname));

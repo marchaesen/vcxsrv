@@ -456,7 +456,7 @@ static void si_build_wrapper_function(struct si_shader_context *ctx,
        * block.
        */
 
-      /* Second part params are same as the preceeding params of the first part. */
+      /* Second part params are same as the preceding params of the first part. */
       num_params = LLVMCountParams(parts[1].value);
    }
 

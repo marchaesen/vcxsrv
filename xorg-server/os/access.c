@@ -179,9 +179,9 @@ SOFTWARE.
 
 #include "os/auth.h"
 #include "os/client_priv.h"
+#include "os/osdep.h"
 
 #include "dixstruct.h"
-#include "osdep.h"
 
 #include "xace.h"
 #include "xdmcp.h"

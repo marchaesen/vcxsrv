@@ -2857,7 +2857,10 @@ glsl_float64_funcs_to_nir(struct gl_context *ctx,
    NIR_PASS(_, nir, nir_opt_dce);
    NIR_PASS(_, nir, nir_opt_cse);
    NIR_PASS(_, nir, nir_opt_gcm, true);
-   NIR_PASS(_, nir, nir_opt_peephole_select, 1, false, false);
+
+   nir_opt_peephole_select_options peephole_select_options = {};
+   peephole_select_options.limit = 1;
+   NIR_PASS(_, nir, nir_opt_peephole_select, &peephole_select_options);
    NIR_PASS(_, nir, nir_opt_dce);
 
    return nir;

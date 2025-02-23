@@ -244,7 +244,7 @@ struct agx_device_key agx_gather_device_key(struct agx_device *dev);
 struct agx_va *agx_va_alloc(struct agx_device *dev, uint64_t size_B,
                             uint64_t align_B, enum agx_va_flags flags,
                             uint64_t fixed_va);
-void agx_va_free(struct agx_device *dev, struct agx_va *va);
+void agx_va_free(struct agx_device *dev, struct agx_va *va, bool unbind);
 
 static inline bool
 agx_supports_timestamps(const struct agx_device *dev)

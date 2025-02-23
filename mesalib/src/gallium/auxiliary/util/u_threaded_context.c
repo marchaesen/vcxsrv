@@ -470,6 +470,12 @@ tc_add_call_end(struct tc_batch *next)
       (struct tc_call_base*)&next->slots[next->num_total_slots];
    call->call_id = TC_END_BATCH;
    call->num_slots = 1;
+#if !defined(NDEBUG) && TC_DEBUG >= 1
+   call->sentinel = TC_SENTINEL;
+#endif
+#if !defined(NDEBUG)
+   next->closed = true;
+#endif
 }
 
 static void
@@ -534,6 +540,9 @@ tc_add_sized_call(struct threaded_context *tc, enum tc_call_id id,
    }
 
    tc_assert(util_queue_fence_is_signalled(&next->fence));
+#if !defined(NDEBUG)
+   assert(!next->closed);
+#endif
 
    struct tc_call_base *call = (struct tc_call_base*)&next->slots[next->num_total_slots];
    next->num_total_slots += num_slots;
@@ -5142,6 +5151,9 @@ tc_batch_execute(void *job, UNUSED void *gdata, int thread_index)
    batch->first_set_fb = false;
    batch->max_renderpass_info_idx = 0;
    batch->tc->last_completed = batch->batch_idx;
+#if !defined(NDEBUG)
+   batch->closed = false;
+#endif
 }
 
 /********************************************************************

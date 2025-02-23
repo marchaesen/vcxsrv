@@ -781,6 +781,7 @@ st_create_common_variant(struct st_context *st,
    bool finalize = false;
 
    state.type = PIPE_SHADER_IR_NIR;
+   state.report_compile_error = report_compile_error;
    state.ir.nir = get_nir_shader(st, prog, key->is_draw_shader);
    const nir_shader_compiler_options *options = ((nir_shader *)state.ir.nir)->options;
 

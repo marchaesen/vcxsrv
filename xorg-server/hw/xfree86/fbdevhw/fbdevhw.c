@@ -23,22 +23,20 @@
 #define PAGE_MASK               (~(getpagesize() - 1))
 
 static XF86ModuleVersionInfo fbdevHWVersRec = {
-    "fbdevhw",
-    MODULEVENDORSTRING,
-    MODINFOSTRING1,
-    MODINFOSTRING2,
-    XORG_VERSION_CURRENT,
-    0, 0, 2,
-    ABI_CLASS_VIDEODRV,
-    ABI_VIDEODRV_VERSION,
-    MOD_CLASS_NONE,
-    {0, 0, 0, 0}
+    .modname      = "fbdevhw",
+    .vendor       = MODULEVENDORSTRING,
+    ._modinfo1_   = MODINFOSTRING1,
+    ._modinfo2_   = MODINFOSTRING2,
+    .xf86version  = XORG_VERSION_CURRENT,
+    .majorversion = 0,
+    .minorversion = 0,
+    .patchlevel   = 2,
+    .abiclass     = ABI_CLASS_VIDEODRV,
+    .abiversion   = ABI_VIDEODRV_VERSION,
 };
 
 _X_EXPORT XF86ModuleData fbdevhwModuleData = {
-    &fbdevHWVersRec,
-    NULL,
-    NULL
+    .vers = &fbdevHWVersRec
 };
 
 #include <fcntl.h>

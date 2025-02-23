@@ -213,6 +213,11 @@ nir_shader_create(void *mem_ctx,
       shader->info = *si;
    } else {
       shader->info.stage = stage;
+
+      /* Assume there is no known next stage, this is the case for
+       * nir_builder_init_simple_shaders for example.
+       */
+      shader->info.next_stage = MESA_SHADER_NONE;
    }
 
    exec_list_make_empty(&shader->functions);

@@ -254,6 +254,14 @@ typedef struct shader_info {
    bool use_aco_amd:1;
 
    /**
+    * Whether image intrinsics have been lowered to global intrinsics
+    *
+    * This is potentially useful on some implementation that need to know that
+    * an image barrier needs to include global barriers due to the lowering.
+    */
+   bool use_lowered_image_to_global:1;
+
+   /**
      * Set if this shader uses legacy (DX9 or ARB assembly) math rules.
      *
      * From the ARB_fragment_program specification:

@@ -37,6 +37,7 @@
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_SECONDS: 30
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_RETRIES: 3
     B2C_IMAGESTORE_PLATFORM: linux/arm/v7
+    B2C_MARS_SETUP_TAGS: vivante:model:2000
     GPU_VERSION: "etnaviv-gc2000"
 
 # 1 device (2025-01-30)
@@ -48,7 +49,7 @@
   tags:
     - farm:$RUNNER_FARM_LOCATION
     - cpu:cores:2
-    - vivante:model:2000
+    - $B2C_MARS_SETUP_TAGS
 
 # 4 devices (2025-01-30)
 .austriancoder-imx6q-cubox-i-4cores:arm32:
@@ -59,7 +60,7 @@
   tags:
     - farm:$RUNNER_FARM_LOCATION
     - cpu:cores:4
-    - vivante:model:2000
+    - $B2C_MARS_SETUP_TAGS
 
 
 # 0 devices (2025-01-30)
@@ -70,10 +71,11 @@
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_SECONDS: 30
     B2C_TIMEOUT_FIRST_CONSOLE_ACTIVITY_RETRIES: 3
     B2C_IMAGESTORE_PLATFORM: linux/arm64/v8
+    B2C_MARS_SETUP_TAGS: vivante:model:7000
     GPU_VERSION: "etnaviv-gc7000"
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - vivante:model:7000
+    - $B2C_MARS_SETUP_TAGS
 
 gc2000-gles2:
   extends:

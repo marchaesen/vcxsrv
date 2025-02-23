@@ -8,6 +8,7 @@
 #include "util/format/u_format.h"
 #include "util/half_float.h"
 #include "util/macros.h"
+#include "agx_abi.h"
 #include "agx_device.h"
 #include "agx_state.h"
 #include "pool.h"
@@ -30,7 +31,6 @@ agx_upload_vbos(struct agx_batch *batch)
 {
    struct agx_context *ctx = batch->ctx;
    struct agx_vertex_elements *attribs = ctx->attributes;
-   struct agx_device *dev = agx_device(ctx->base.screen);
    uint64_t buffers[PIPE_MAX_ATTRIBS] = {0};
    size_t buf_sizes[PIPE_MAX_ATTRIBS] = {0};
 
@@ -47,22 +47,12 @@ agx_upload_vbos(struct agx_batch *batch)
       }
    }
 
-   /* NULL vertex buffers read zeroes from NULL. This depends on soft fault.
-    * Without soft fault, we just upload zeroes to read from.
-    */
-   uint64_t sink = 0;
-
-   if (!agx_has_soft_fault(dev)) {
-      uint32_t zeroes[4] = {0};
-      sink = agx_pool_upload_aligned(&batch->pool, &zeroes, 16, 16);
-   }
-
    for (unsigned i = 0; i < PIPE_MAX_ATTRIBS; ++i) {
       unsigned buf = attribs->buffers[i];
       uint64_t addr;
 
       batch->uniforms.attrib_clamp[i] = agx_calculate_vbo_clamp(
-         buffers[buf], sink, attribs->key[i].format, buf_sizes[buf],
+         buffers[buf], attribs->key[i].format, buf_sizes[buf],
          attribs->key[i].stride, attribs->src_offsets[i], &addr);
 
       batch->uniforms.attrib_base[i] = addr;

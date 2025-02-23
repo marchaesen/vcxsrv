@@ -165,7 +165,7 @@
     - !reference [.valve-farm-manual-rules, rules]
     - !reference [.freedreno-manual-rules, rules]
 
-.valve-freedreno-turnip-manual-rules:
+.valve-turnip-manual-rules:
   stage: freedreno-postmerge
   extends: .no-auto-retry
   rules:
@@ -343,16 +343,11 @@
 
 # CI-tron
 
-.b2c-freedreno-vk-test:
-  extends:
-    - .b2c-arm64-test-vk
-  variables:
-    VK_DRIVER: freedreno
-
 .a750-mupuf:
   variables:
     FDO_CI_CONCURRENT: 8
     RUNNER_FARM_LOCATION: mupuf
+    B2C_MARS_SETUP_TAGS: dt_gpu:codename:a750
     B2C_KERNEL_URL: 'https://fs.mupuf.org/hdk8650/2025-01-23-msm-gpu-fault-fixes-msm-next-6dbabc6/linux-arm64'
     B2C_FIRMWARE_URL: 'https://fs.mupuf.org/hdk8650/sm8650-hdk-firmware.cpio.xz'
     B2C_DTB_URL: 'https://fs.mupuf.org/hdk8650/2025-01-23-msm-gpu-fault-fixes-msm-next-6dbabc6/linux-arm64.dtbs.cpio.xz'
@@ -365,6 +360,7 @@
     B2C_BOOT_WD_START_REGEX: 'VB: RWDeviceState: Succeed using devinfo!'  # A line repeated during firmware boot
     B2C_BOOT_WD_STOP_REGEX: 'CPU features: detected:'                     # A line repeated during Linux boot
     GPU_VERSION: freedreno-a750
+    VK_DRIVER: freedreno
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - dt_gpu:codename:a750
+    - $B2C_MARS_SETUP_TAGS

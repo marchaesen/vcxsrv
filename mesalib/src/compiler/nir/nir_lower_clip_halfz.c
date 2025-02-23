@@ -51,15 +51,15 @@ lower_pos_write(nir_builder *b, nir_intrinsic_instr *intr,
    return true;
 }
 
-void
+bool
 nir_lower_clip_halfz(nir_shader *shader)
 {
    if (shader->info.stage != MESA_SHADER_VERTEX &&
        shader->info.stage != MESA_SHADER_GEOMETRY &&
        shader->info.stage != MESA_SHADER_TESS_EVAL)
-      return;
+      return false;
 
-   nir_shader_intrinsics_pass(shader, lower_pos_write,
-                                nir_metadata_control_flow,
-                                NULL);
+   return nir_shader_intrinsics_pass(shader, lower_pos_write,
+                                     nir_metadata_control_flow,
+                                     NULL);
 }

@@ -77,6 +77,23 @@ hk_get_bda_replay_addr(const VkBufferCreateInfo *pCreateInfo)
    return addr;
 }
 
+VkResult
+hk_bind_scratch(struct hk_device *dev, struct agx_va *va, unsigned offset_B,
+                size_t size_B)
+{
+   VkResult result = VK_SUCCESS;
+
+   for (unsigned i = 0; i < size_B; i += AIL_PAGESIZE) {
+      result = dev->dev.ops.bo_bind(&dev->dev, dev->sparse.write,
+                                    va->addr + offset_B + i, AIL_PAGESIZE, 0,
+                                    ASAHI_BIND_READ | ASAHI_BIND_WRITE, false);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   return result;
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 hk_CreateBuffer(VkDevice device, const VkBufferCreateInfo *pCreateInfo,
                 const VkAllocationCallbacks *pAllocator, VkBuffer *pBuffer)
@@ -141,9 +158,7 @@ hk_DestroyBuffer(VkDevice device, VkBuffer _buffer,
       return;
 
    if (buffer->va) {
-      // TODO
-      // agx_bo_unbind_vma(dev->ws_dev, buffer->addr, buffer->vma_size_B);
-      agx_va_free(&dev->dev, buffer->va);
+      agx_va_free(&dev->dev, buffer->va, true);
    }
 
    vk_buffer_destroy(&dev->vk, pAllocator, &buffer->vk);
@@ -237,9 +252,13 @@ hk_BindBufferMemory2(VkDevice device, uint32_t bindInfoCount,
 
       if (buffer->va) {
          VK_FROM_HANDLE(hk_device, dev, device);
-         dev->dev.ops.bo_bind(&dev->dev, mem->bo, buffer->addr,
-                              buffer->va->size_B, pBindInfos[i].memoryOffset,
-                              ASAHI_BIND_READ | ASAHI_BIND_WRITE, false);
+         size_t size = MIN2(mem->bo->size, buffer->va->size_B);
+         int ret = dev->dev.ops.bo_bind(
+            &dev->dev, mem->bo, buffer->addr, size, pBindInfos[i].memoryOffset,
+            ASAHI_BIND_READ | ASAHI_BIND_WRITE, false);
+
+         if (ret)
+            return VK_ERROR_UNKNOWN;
       } else {
          buffer->addr = mem->bo->va->addr + pBindInfos[i].memoryOffset;
       }

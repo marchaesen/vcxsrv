@@ -198,7 +198,8 @@ pack_texture(struct hk_image_view *view, unsigned view_plane,
 {
    struct hk_image *image = container_of(view->vk.image, struct hk_image, vk);
    const uint8_t image_plane = view->planes[view_plane].image_plane;
-   struct ail_layout *layout = &image->planes[image_plane].layout;
+   struct hk_image_plane *plane = &image->planes[image_plane];
+   struct ail_layout *layout = &plane->layout;
    uint64_t base_addr = hk_image_base_address(image, image_plane);
 
    bool cubes_to_2d = usage != HK_DESC_USAGE_SAMPLED;
@@ -280,6 +281,42 @@ pack_texture(struct hk_image_view *view, unsigned view_plane,
          cfg.height = layout->height_px;
          cfg.first_level = level;
          cfg.last_level = level + view->vk.level_count - 1;
+      }
+
+      /* To implement sparse resident textures, the hardware texture descriptor
+       * can instead point to a secondary page table controlled in userspace.
+       * This allows remapping pages and - crucially - disabling unmapped pages
+       * to read zero and report non-resident with shader residency queries.
+       * When we have a sparse map, we need to point to it here.
+       *
+       * However, there's a wrinkle: when handling uncompressed views of
+       * compressed images in the above code, we need to offset the image
+       * address to point to the specific mip level rather than use the hardware
+       * "first level" field. This ensures the layouts are consistent despite us
+       * munging the image dimensions. In that case, we need to also offset the
+       * sparse page table accordingly. Of course, the sparse page table is in
+       * terms of pages, so this trick only works when the mip level is
+       * page-aligned.
+       *
+       * However, if the mip level is NOT page-aligned, it is in the mip tail by
+       * definition. As the mip tail is always resident, there is no need for a
+       * sparse page table. So either:
+       *
+       * 1. We are in the mip tail and don't need a sparse map, or
+       * 2. We are not but the level is page-aligned in the sparse map.
+       *
+       * Either way we're okay.
+       */
+      if (plane->sparse_map && level < layout->mip_tail_first_lod) {
+         unsigned page = 0;
+         if (denom.x > 1) {
+            page = ail_bytes_to_pages(layout->level_offsets_B[level]);
+         }
+
+         cfg.mode = AGX_IMAGE_MODE_SPARSE;
+         cfg.address = plane->sparse_map->va->addr +
+                       ail_page_to_sparse_index_el(layout, layer, page) *
+                          AIL_SPARSE_ELSIZE_B;
       }
 
       cfg.srgb = (desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB);

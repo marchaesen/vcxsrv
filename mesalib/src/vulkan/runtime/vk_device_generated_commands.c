@@ -29,6 +29,18 @@
 
 #include "util/compiler.h"
 
+static int
+compare_pc_layout(const void *_pc1, const void *_pc2)
+{
+   const struct vk_indirect_command_push_constant_layout *pc1 = _pc1;
+   const struct vk_indirect_command_push_constant_layout *pc2 = _pc2;
+
+   assert(pc1->dst_offset_B <= INT_MAX);
+   assert(pc2->dst_offset_B <= INT_MAX);
+
+   return (int)pc1->dst_offset_B - (int)pc2->dst_offset_B;
+}
+
 void *
 vk_indirect_command_layout_create(struct vk_device *device,
                                   const VkIndirectCommandsLayoutCreateInfoEXT* pCreateInfo,
@@ -154,6 +166,10 @@ vk_indirect_command_layout_create(struct vk_device *device,
          elayout->delete_layout = true;
       }
    }
+
+   qsort(elayout->pc_layouts, elayout->n_pc_layouts,
+         sizeof(elayout->pc_layouts[0]), compare_pc_layout);
+
    elayout->stages = pCreateInfo->shaderStages;
    elayout->usage = pCreateInfo->flags;
    elayout->stride = pCreateInfo->indirectStride;

@@ -47,7 +47,7 @@ variables:
   FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2024-11-19.1'
+  FDO_DISTRIBUTION_TAG: '2025-02-18.1'
 
   BUILDDIR: '_build'
   # installation directory must be inside $CI_PROJECT_DIR to allow for artifact caching
@@ -84,7 +84,7 @@ container-prep:
     # minimal set of packages required to build xkeyboard-config.
     BASE_PACKAGES: 'xorg-util-macros gettext pkg-config gcc grep m4 python meson ninja git diffutils'
     # extra packages we need for various tests
-    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml python-pycountry python-jinja yq libxkbcommon libxslt ruff'
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml python-pycountry python-jinja yq libxkbcommon libxslt pre-commit'
     FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
 
 
@@ -148,14 +148,15 @@ check-commit:
       junit: results.xml
 
 #
-# Format Python code with python-black
+# Run pre-commit hook to format Python code
 #
-ruff-format:
+pre-commit:
   extends:
     - .default_setup
   stage: test
   script:
-    - ruff format --line-length=88 --check --diff .
+    - pre-commit install
+    - pre-commit run --all
   needs: ['container-prep']
 
 meson_install:

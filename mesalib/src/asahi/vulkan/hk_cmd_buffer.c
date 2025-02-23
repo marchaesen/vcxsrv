@@ -248,11 +248,9 @@ hk_BeginCommandBuffer(VkCommandBuffer commandBuffer,
                       const VkCommandBufferBeginInfo *pBeginInfo)
 {
    VK_FROM_HANDLE(hk_cmd_buffer, cmd, commandBuffer);
-   struct hk_device *dev = hk_cmd_buffer_device(cmd);
-
    hk_reset_cmd_buffer(&cmd->vk, 0);
 
-   perf_debug(dev, "Begin command buffer");
+   perf_debug(cmd, "Begin command buffer");
    hk_cmd_buffer_begin_compute(cmd, pBeginInfo);
    hk_cmd_buffer_begin_graphics(cmd, pBeginInfo);
 
@@ -263,12 +261,11 @@ VKAPI_ATTR VkResult VKAPI_CALL
 hk_EndCommandBuffer(VkCommandBuffer commandBuffer)
 {
    VK_FROM_HANDLE(hk_cmd_buffer, cmd, commandBuffer);
-   struct hk_device *dev = hk_cmd_buffer_device(cmd);
 
    assert(cmd->current_cs.gfx == NULL && cmd->current_cs.pre_gfx == NULL &&
           "must end rendering before ending the command buffer");
 
-   perf_debug(dev, "End command buffer");
+   perf_debug(cmd, "End command buffer");
    hk_cmd_buffer_end_compute(cmd);
    hk_cmd_buffer_end_compute_internal(cmd, &cmd->current_cs.post_gfx);
 
@@ -298,7 +295,7 @@ hk_CmdPipelineBarrier2(VkCommandBuffer commandBuffer,
    if (HK_PERF(dev, NOBARRIER))
       return;
 
-   perf_debug(dev, "Pipeline barrier");
+   perf_debug(cmd, "Pipeline barrier");
 
    /* The big hammer. We end both compute and graphics batches. Ending compute
     * here is necessary to properly handle graphics->compute dependencies.
@@ -610,7 +607,7 @@ hk_reserve_scratch(struct hk_cmd_buffer *cmd, struct hk_cs *cs,
 
    /* Note: this uses the hardware stage, not the software stage */
    hk_device_alloc_scratch(dev, s->b.info.stage, max_scratch_size);
-   perf_debug(dev, "Reserving %u (%u) bytes of scratch for stage %s",
+   perf_debug(cmd, "Reserving %u (%u) bytes of scratch for stage %s",
               s->b.info.scratch_size, s->b.info.preamble_scratch_size,
               _mesa_shader_stage_to_abbrev(s->b.info.stage));
 
@@ -708,15 +705,23 @@ hk_upload_usc_words(struct hk_cmd_buffer *cmd, struct hk_shader *s,
 }
 
 void
-hk_dispatch_precomp(struct hk_cs *cs, struct agx_grid grid,
+hk_dispatch_precomp(struct hk_cmd_buffer *cmd, struct agx_grid grid,
                     enum agx_barrier barrier, enum libagx_program idx,
                     void *data, size_t data_size)
 {
-   struct hk_device *dev = hk_cmd_buffer_device(cs->cmd);
+   struct hk_device *dev = hk_cmd_buffer_device(cmd);
    struct agx_precompiled_shader *prog = agx_get_precompiled(&dev->bg_eot, idx);
 
-   struct agx_ptr t = hk_pool_usc_alloc(cs->cmd, agx_usc_size(15), 64);
-   uint64_t uploaded_data = hk_pool_upload(cs->cmd, data, data_size, 4);
+   struct hk_cs **target = (barrier & AGX_POSTGFX)  ? &cmd->current_cs.post_gfx
+                           : (barrier & AGX_PREGFX) ? &cmd->current_cs.pre_gfx
+                                                    : &cmd->current_cs.cs;
+
+   struct hk_cs *cs = hk_cmd_buffer_get_cs_general(cmd, target, true);
+   if (!cs)
+      return;
+
+   struct agx_ptr t = hk_pool_usc_alloc(cmd, agx_usc_size(15), 64);
+   uint64_t uploaded_data = hk_pool_upload(cmd, data, data_size, 4);
 
    agx_usc_words_precomp(t.cpu, &prog->b, uploaded_data, data_size);
 

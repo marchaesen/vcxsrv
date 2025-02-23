@@ -31,6 +31,9 @@
 #include <dix-config.h>
 
 #include <string.h>
+
+#include "os/client_priv.h"
+
 #include "glxserver.h"
 #include <windowstr.h>
 #include <propertyst.h>

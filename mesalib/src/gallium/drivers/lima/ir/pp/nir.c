@@ -667,6 +667,7 @@ static bool ppir_emit_tex(ppir_block *block, nir_instr *ni)
    load->sampler_dim = instr->sampler_dim;
    node->src[0].type = load->dest.type = ppir_target_pipeline;
    node->src[0].pipeline = load->dest.pipeline = ppir_pipeline_reg_discard;
+   node->src[0].node = &load->node;
 
    return true;
 }

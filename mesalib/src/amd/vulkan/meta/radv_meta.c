@@ -134,8 +134,9 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
 
    if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
       state->old_descriptor_set0 = descriptors_state->sets[0];
-      if (!(descriptors_state->valid & 1))
-         state->flags &= ~RADV_META_SAVE_DESCRIPTORS;
+      state->old_descriptor_set0_valid = !!(descriptors_state->valid & 0x1);
+      state->old_descriptor_buffer_addr0 = cmd_buffer->descriptor_buffers[0];
+      state->old_descriptor_buffer0 = descriptors_state->descriptor_buffers[0];
    }
 
    if (state->flags & RADV_META_SAVE_CONSTANTS) {
@@ -160,6 +161,7 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
 {
    VkPipelineBindPoint bind_point = state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE ? VK_PIPELINE_BIND_POINT_GRAPHICS
                                                                                     : VK_PIPELINE_BIND_POINT_COMPUTE;
+   struct radv_descriptor_state *descriptors_state = radv_get_descriptors_state(cmd_buffer, bind_point);
 
    if (state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE) {
       if (state->old_graphics_pipeline) {
@@ -199,7 +201,10 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
    }
 
    if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
-      radv_set_descriptor_set(cmd_buffer, bind_point, state->old_descriptor_set0, 0);
+      if (state->old_descriptor_set0_valid)
+         radv_set_descriptor_set(cmd_buffer, bind_point, state->old_descriptor_set0, 0);
+      cmd_buffer->descriptor_buffers[0] = state->old_descriptor_buffer_addr0;
+      descriptors_state->descriptor_buffers[0] = state->old_descriptor_buffer0;
    }
 
    if (state->flags & RADV_META_SAVE_CONSTANTS) {
@@ -383,4 +388,65 @@ radv_meta_get_noop_pipeline_layout(struct radv_device *device, VkPipelineLayout 
 
    return vk_meta_get_pipeline_layout(&device->vk, &device->meta_state.device, NULL, NULL, &key, sizeof(key),
                                       layout_out);
+}
+
+void
+radv_meta_bind_descriptors(struct radv_cmd_buffer *cmd_buffer, VkPipelineBindPoint bind_point, VkPipelineLayout _layout,
+                           uint32_t num_descriptors, const VkDescriptorGetInfoEXT *descriptors)
+{
+   VK_FROM_HANDLE(radv_pipeline_layout, layout, _layout);
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   struct radv_descriptor_set_layout *set_layout = layout->set[0].layout;
+   uint32_t upload_offset;
+   uint8_t *ptr;
+
+   assert(layout->num_sets == 1);
+
+   if (!radv_cmd_buffer_upload_alloc(cmd_buffer, set_layout->size, &upload_offset, (void *)&ptr))
+      return;
+
+   for (uint32_t i = 0; i < num_descriptors; i++) {
+      const VkDescriptorGetInfoEXT *descriptor = &descriptors[i];
+      const uint32_t binding_offset = set_layout->binding[i].offset;
+
+      radv_GetDescriptorEXT(radv_device_to_handle(device), descriptor, 0, ptr + binding_offset);
+
+      VkImageView image_view = VK_NULL_HANDLE;
+      if (descriptor->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+         image_view = descriptor->data.pCombinedImageSampler->imageView;
+      } else if (descriptor->type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE) {
+         image_view = descriptor->data.pSampledImage->imageView;
+      } else if (descriptor->type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
+         image_view = descriptor->data.pStorageImage->imageView;
+      }
+
+      /* Buffer descriptors use BDA and they should be added to the list before. */
+      if (image_view) {
+         VK_FROM_HANDLE(radv_image_view, iview, image_view);
+         for (uint32_t b = 0; b < ARRAY_SIZE(iview->image->bindings); b++) {
+            if (iview->image->bindings[b].bo)
+               radv_cs_add_buffer(device->ws, cmd_buffer->cs, iview->image->bindings[b].bo);
+         }
+      }
+   }
+
+   const VkDescriptorBufferBindingInfoEXT descriptor_buffer_binding = {
+      .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT,
+      .address = radv_buffer_get_va(cmd_buffer->upload.upload_bo) + upload_offset,
+      .usage = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT,
+   };
+
+   radv_CmdBindDescriptorBuffersEXT(radv_cmd_buffer_to_handle(cmd_buffer), 1, &descriptor_buffer_binding);
+
+   const VkSetDescriptorBufferOffsetsInfoEXT descriptor_buffer_offsets = {
+      .sType = VK_STRUCTURE_TYPE_SET_DESCRIPTOR_BUFFER_OFFSETS_INFO_EXT,
+      .stageFlags = vk_shader_stages_from_bind_point(bind_point),
+      .layout = radv_pipeline_layout_to_handle(layout),
+      .firstSet = 0,
+      .setCount = 1,
+      .pBufferIndices = (uint32_t[]){0},
+      .pOffsets = (uint64_t[]){0},
+   };
+
+   radv_CmdSetDescriptorBufferOffsets2EXT(radv_cmd_buffer_to_handle(cmd_buffer), &descriptor_buffer_offsets);
 }

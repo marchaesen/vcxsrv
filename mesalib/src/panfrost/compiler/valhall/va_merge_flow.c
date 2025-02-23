@@ -149,7 +149,7 @@ merge_waits(bi_block *block)
        * we're waiting for. If we wanted to optimize this case, we could check
        * the signaled slots.
        */
-      if (bi_opcode_props[I->op].message)
+      if (bi_get_opcode_props(I)->message)
          last_free = NULL;
 
       /* We can only merge with instructions whose flow control is a wait.

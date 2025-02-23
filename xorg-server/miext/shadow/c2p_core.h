@@ -27,6 +27,7 @@
  *  DEALINGS IN THE SOFTWARE.
  */
 
+#include "os/bug_priv.h"
 
     /*
      *  Basic transpose step

@@ -403,7 +403,7 @@ PATH			["][]^./ _A-Za-z0-9+*%[(){}|&~=!:;,?-]*["]
 	 * for the lexer. Within <DEFINE> we are looking for the first
 	 * identifier and specifically checking whether the identifier
 	 * is followed by a '(' or not, (to lex either a
-	 * FUNC_IDENTIFIER or an OBJ_IDENITIFIER token).
+	 * FUNC_IDENTIFIER or an OBJ_IDENTIFIER token).
 	 *
 	 * While in the <DEFINE> state we also need to explicitly
 	 * handle a few other things that may appear before the

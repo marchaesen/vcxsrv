@@ -31,6 +31,7 @@ xorg_build_root = join_paths(meson.project_build_root(), 'hw', 'xfree86')
 symbol_test_args = []
 symbol_test_args += join_paths(xorg_build_root, 'libxorgserver.so')
 symbol_test_args += join_paths(xorg_build_root, 'dixmods', 'libshadow.so')
+symbol_test_args += join_paths(xorg_build_root, 'dixmods', 'libglx.so')
 if gbm_dep.found()
     symbol_test_args += join_paths(xorg_build_root, 'glamor_egl', 'libglamoregl.so')
 endif

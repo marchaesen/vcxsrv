@@ -31,14 +31,14 @@
 
 #include <dix-config.h>
 
-#include "inputstr.h"
-
 #include <X11/Xmd.h>
 #include <X11/X.h>
 #include <X11/extensions/XI2proto.h>
 
 #include "dix/exevents_priv.h"
+#include "os/fmt.h"
 
+#include "inputstr.h"
 #include "exglobals.h"
 #include "xiqueryversion.h"
 #include "misc.h"

@@ -111,7 +111,6 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
 {
    struct radv_meta_saved_state saved_state;
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-   struct radv_buffer buffer;
    VkPipelineLayout layout;
    VkPipeline pipeline;
    VkResult result;
@@ -135,48 +134,35 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
 
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 
-   radv_buffer_init(&buffer, device, image->bindings[0].bo, image->size, image->bindings[0].offset);
+   const uint64_t va = image->bindings[0].addr;
 
-   struct radv_buffer_view views[2];
-   VkBufferView view_handles[2];
-   radv_buffer_view_init(views, device,
-                         &(VkBufferViewCreateInfo){
-                            .sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
-                            .buffer = radv_buffer_to_handle(&buffer),
-                            .offset = image->planes[0].surface.meta_offset,
-                            .range = image->planes[0].surface.meta_size,
-                            .format = VK_FORMAT_R8_UINT,
-                         });
-   radv_buffer_view_init(views + 1, device,
-                         &(VkBufferViewCreateInfo){
-                            .sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
-                            .buffer = radv_buffer_to_handle(&buffer),
-                            .offset = image->planes[0].surface.display_dcc_offset,
-                            .range = image->planes[0].surface.u.gfx9.color.display_dcc_size,
-                            .format = VK_FORMAT_R8_UINT,
-                         });
-   for (unsigned i = 0; i < 2; ++i)
-      view_handles[i] = radv_buffer_view_to_handle(&views[i]);
+   radv_cs_add_buffer(device->ws, cmd_buffer->cs, image->bindings[0].bo);
 
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 2,
-                                 (VkWriteDescriptorSet[]){
-                                    {
-                                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                       .dstBinding = 0,
-                                       .dstArrayElement = 0,
-                                       .descriptorCount = 1,
-                                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-                                       .pTexelBufferView = &view_handles[0],
-                                    },
-                                    {
-                                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                       .dstBinding = 1,
-                                       .dstArrayElement = 0,
-                                       .descriptorCount = 1,
-                                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
-                                       .pTexelBufferView = &view_handles[1],
-                                    },
-                                 });
+   radv_meta_bind_descriptors(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 2,
+                              (VkDescriptorGetInfoEXT[]){
+                                 {
+                                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                    .type = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                    .data.pStorageTexelBuffer =
+                                       &(VkDescriptorAddressInfoEXT){
+                                          .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
+                                          .address = va + image->planes[0].surface.meta_offset,
+                                          .range = image->planes[0].surface.meta_size,
+                                          .format = VK_FORMAT_R8_UINT,
+                                       },
+                                 },
+                                 {
+                                    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                    .type = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,
+                                    .data.pStorageTexelBuffer =
+                                       &(VkDescriptorAddressInfoEXT){
+                                          .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
+                                          .address = va + image->planes[0].surface.display_dcc_offset,
+                                          .range = image->planes[0].surface.u.gfx9.color.display_dcc_size,
+                                          .format = VK_FORMAT_R8_UINT,
+                                       },
+                                 },
+                              });
 
    unsigned width = DIV_ROUND_UP(image->vk.extent.width, vk_format_get_blockwidth(image->vk.format));
    unsigned height = DIV_ROUND_UP(image->vk.extent.height, vk_format_get_blockheight(image->vk.format));
@@ -194,10 +180,6 @@ radv_retile_dcc(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image)
                               constants);
 
    radv_unaligned_dispatch(cmd_buffer, dcc_width, dcc_height, 1);
-
-   radv_buffer_view_finish(views);
-   radv_buffer_view_finish(views + 1);
-   radv_buffer_finish(&buffer);
 
    radv_meta_restore(&saved_state, cmd_buffer);
 

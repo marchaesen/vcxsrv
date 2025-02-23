@@ -474,12 +474,6 @@ VK_DEFINE_HANDLE_CASTS(hk_cmd_buffer, vk.base, VkCommandBuffer,
 
 extern const struct vk_command_buffer_ops hk_cmd_buffer_ops;
 
-static inline struct hk_device *
-hk_cmd_buffer_device(struct hk_cmd_buffer *cmd)
-{
-   return (struct hk_device *)cmd->vk.base.device;
-}
-
 static inline struct hk_cmd_pool *
 hk_cmd_buffer_pool(struct hk_cmd_buffer *cmd)
 {
@@ -697,6 +691,8 @@ hk_cmd_buffer_end_graphics(struct hk_cmd_buffer *cmd)
    hk_cmd_buffer_end_compute_internal(cmd, &cmd->current_cs.post_gfx);
 
    assert(cmd->current_cs.gfx == NULL);
+   assert(cmd->current_cs.pre_gfx == NULL);
+   assert(cmd->current_cs.post_gfx == NULL);
 
    /* We just flushed out the heap use. If we want to use it again, we'll need
     * to queue a free for it again.
@@ -803,7 +799,7 @@ hk_dispatch_with_local_size(struct hk_cmd_buffer *cmd, struct hk_cs *cs,
    hk_dispatch_with_usc(dev, cs, &s->b.info, usc, grid, local_size);
 }
 
-void hk_dispatch_precomp(struct hk_cs *cs, struct agx_grid grid,
+void hk_dispatch_precomp(struct hk_cmd_buffer *cmd, struct agx_grid grid,
                          enum agx_barrier barrier, enum libagx_program idx,
                          void *data, size_t data_size);
 

@@ -521,6 +521,9 @@ struct tc_batch {
    struct tc_unflushed_batch_token *token;
    uint64_t slots[TC_SLOTS_PER_BATCH];
    struct util_dynarray renderpass_infos;
+#if !defined(NDEBUG)
+   bool closed;
+#endif
 };
 
 struct tc_buffer_list {

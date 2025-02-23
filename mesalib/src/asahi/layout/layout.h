@@ -118,6 +118,20 @@ struct ail_layout {
     */
    uint32_t stride_el[AIL_MAX_MIP_LEVELS];
 
+   /**
+    * If the image is bound sparsely, the first LOD/level of the miptail.
+    * This corresponds to Vulkan imageMipTailFirstLod.
+    */
+   uint32_t mip_tail_first_lod;
+
+   /**
+    * If the image is bound sparsely, the layer stride of the miptail.
+    * Conceptually, this corresponds to Vulkan imageMipTailStride. However, it
+    * is not actually used for imageMipTailStride due to complications with
+    * standard sparse block sizes.
+    */
+   uint32_t mip_tail_stride;
+
    /* Offset of the start of the compression metadata buffer */
    uint32_t metadata_offset_B;
 
@@ -126,6 +140,22 @@ struct ail_layout {
 
    /* Size of entire texture */
    uint64_t size_B;
+
+   /* Size of the sparse page table required to address this image. This is
+    * calculated for all images (whether sparse is used or not), since the
+    * hardware has few requirements imposed on sparse.
+    *
+    * This size does not contribute to size_B. In a sparse image, size_B is the
+    * logical size of the image (if it were completely resident), whereas
+    * sparse_table_size_B is the physical size of the page table required to
+    * address that logical image.
+    */
+   uint64_t sparse_table_size_B;
+
+   /* Number of sparse folios required to cover a single layer of an image. This
+    * is proportional to sparse_table_size_B but split out for convenience.
+    */
+   uint32_t sparse_folios_per_layer;
 
    /* Must the layout support writeable images? If false, the layout MUST NOT be
     * used as a writeable image (either PBE or image atomics).
@@ -216,6 +246,53 @@ ail_get_linear_pixel_B(const struct ail_layout *layout, ASSERTED unsigned level,
           (x_px * util_format_get_blocksize(layout->format));
 }
 
+static inline uint32_t
+ail_space_bits(unsigned x)
+{
+   assert(x < 128 && "offset must be inside the tile");
+
+   return ((x & 1) << 0) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) |
+          ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6);
+}
+
+#define MOD_POT(x, y) (x) & ((y) - 1)
+
+static inline uint32_t
+ail_get_blocksize_B(const struct ail_layout *layout)
+{
+   return util_format_get_blocksize(layout->format);
+}
+
+static inline uint32_t
+ail_get_twiddled_block_B(const struct ail_layout *layout, unsigned level,
+                         uint32_t x_px, uint32_t y_px, uint32_t z_px)
+{
+   assert(layout->tiling == AIL_TILING_TWIDDLED ||
+          layout->tiling == AIL_TILING_TWIDDLED_COMPRESSED);
+
+   assert(level < layout->levels);
+
+   unsigned x_el = util_format_get_nblocksx(layout->format, x_px);
+   unsigned y_el = util_format_get_nblocksy(layout->format, y_px);
+
+   struct ail_tile tile_size = layout->tilesize_el[level];
+   assert((x_el % tile_size.width_el) == 0 && "must be aligned");
+   assert((y_el % tile_size.height_el) == 0 && "must be aligned");
+
+   unsigned stride_el = layout->stride_el[level];
+   unsigned tile_area_el = tile_size.width_el * tile_size.height_el;
+   unsigned tiles_per_row = DIV_ROUND_UP(stride_el, tile_size.width_el);
+
+   unsigned y_rowtile = y_el / tile_size.height_el;
+   unsigned y_tile = y_rowtile * tiles_per_row;
+
+   unsigned tile_idx = y_tile + (x_el / tile_size.width_el);
+   unsigned tile_offset_el = tile_idx * tile_area_el;
+   unsigned tile_offset_B = tile_offset_el * ail_get_blocksize_B(layout);
+
+   return ail_get_layer_level_B(layout, z_px, level) + tile_offset_B;
+}
+
 static inline unsigned
 ail_effective_width_sa(unsigned width_px, unsigned sample_count_sa)
 {
@@ -281,6 +358,8 @@ ail_is_level_twiddled_uncompressed(const struct ail_layout *layout,
       return false;
    }
 }
+
+struct ail_tile ail_get_max_tile_size(unsigned blocksize_B);
 
 void ail_make_miptree(struct ail_layout *layout);
 
@@ -460,6 +539,39 @@ ail_drm_modifier_to_tiling(uint64_t modifier)
    default:
       unreachable("Unsupported modifier");
    }
+}
+
+/*
+ * Constants for sparse page tables. See docs/drivers/asahi.rst.
+ */
+#define AIL_SPARSE_ELSIZE_B        4
+#define AIL_PAGES_PER_FOLIO        256
+#define AIL_IMAGE_SIZE_PER_FOLIO_B (AIL_PAGESIZE * AIL_PAGES_PER_FOLIO)
+#define AIL_FOLIO_SIZE_EL          (AIL_PAGES_PER_FOLIO * 2)
+#define AIL_FOLIO_SIZE_B           (AIL_FOLIO_SIZE_EL * AIL_SPARSE_ELSIZE_B)
+
+static inline unsigned
+ail_bytes_to_pages(unsigned x_B)
+{
+   assert((x_B % AIL_PAGESIZE) == 0);
+   return x_B / AIL_PAGESIZE;
+}
+
+/*
+ * Map a logical page of the image (i.e. page = logical address / page_size) to
+ * a word-index into the sparse table.
+ */
+static inline unsigned
+ail_page_to_sparse_index_el(const struct ail_layout *layout, unsigned z,
+                            unsigned page)
+{
+   unsigned z_base = z * layout->sparse_folios_per_layer;
+   unsigned folio = page / AIL_PAGES_PER_FOLIO;
+   unsigned index_in_folio = page % AIL_PAGES_PER_FOLIO;
+   unsigned idx = ((z_base + folio) * AIL_FOLIO_SIZE_EL) + index_in_folio;
+
+   assert((idx * AIL_SPARSE_ELSIZE_B) < layout->sparse_table_size_B);
+   return idx;
 }
 
 #ifdef __cplusplus

@@ -44,6 +44,7 @@ EPHEMERAL=(
     libxrandr-dev
     libxrender-dev
     "llvm-${LLVM_VERSION}-dev"
+    "lld-${LLVM_VERSION}"
     make
     meson
     ocl-icd-opencl-dev
@@ -65,6 +66,13 @@ apt-get install -y --no-remove "${DEPS[@]}" "${EPHEMERAL[@]}" \
 . .gitlab-ci/container/container_pre_build.sh
 
 section_end debian_setup
+
+############### Build ANGLE
+
+if [ "$DEBIAN_ARCH" == "arm64" ]; then
+  ANGLE_TARGET=linux \
+  . .gitlab-ci/container/build-angle.sh
+fi
 
 ############### Build piglit
 

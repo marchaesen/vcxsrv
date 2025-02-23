@@ -1450,6 +1450,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
     */
    info->gfx12_supports_display_dcc = info->gfx_level >= GFX12 && info->drm_minor >= 58;
 
+   /* AMDGPU always enables DCC compressed writes when a BO is moved back to
+    * VRAM until .60.
+    */
+   info->gfx12_supports_dcc_write_compress_disable = info->gfx_level >= GFX12 && info->drm_minor >= 60;
+
    info->has_stable_pstate = info->drm_minor >= 45;
 
    if (info->gfx_level >= GFX12) {

@@ -1084,7 +1084,8 @@ agx_clear(struct pipe_context *pctx, unsigned buffers,
    unsigned fastclear = buffers & ~(batch->draw | batch->load);
    unsigned slowclear = buffers & ~fastclear;
 
-   assert(scissor_state == NULL && "we don't support pipe_caps.clear_scissored");
+   assert(scissor_state == NULL &&
+          "we don't support pipe_caps.clear_scissored");
 
    /* Fast clears configure the batch */
    for (unsigned rt = 0; rt < PIPE_MAX_COLOR_BUFS; ++rt) {
@@ -1973,10 +1974,8 @@ agx_init_shader_caps(struct pipe_screen *pscreen)
       struct pipe_shader_caps *caps =
          (struct pipe_shader_caps *)&pscreen->shader_caps[i];
 
-      caps->max_instructions =
-      caps->max_alu_instructions =
-      caps->max_tex_instructions =
-      caps->max_tex_indirections = 16384;
+      caps->max_instructions = caps->max_alu_instructions =
+         caps->max_tex_instructions = caps->max_tex_indirections = 16384;
 
       caps->max_control_flow_depth = 1024;
 
@@ -1987,7 +1986,8 @@ agx_init_shader_caps(struct pipe_screen *pscreen)
        * shenanigans to handle.
        */
       caps->max_outputs = i == PIPE_SHADER_FRAGMENT ? 8
-         : i == PIPE_SHADER_VERTEX ? 24 : 32;
+                          : i == PIPE_SHADER_VERTEX ? 24
+                                                    : 32;
 
       caps->max_temps = 256; /* GL_MAX_PROGRAM_TEMPORARIES_ARB */
 
@@ -2001,9 +2001,7 @@ agx_init_shader_caps(struct pipe_screen *pscreen)
       caps->indirect_const_addr = true;
       caps->integers = true;
 
-      caps->fp16 =
-      caps->glsl_16bit_consts =
-      caps->fp16_derivatives = !is_no16;
+      caps->fp16 = caps->glsl_16bit_consts = caps->fp16_derivatives = !is_no16;
       /* GLSL compiler is broken. Flip this on when Panfrost does. */
       caps->int16 = false;
       /* This cap is broken, see 9a38dab2d18 ("zink: disable
@@ -2033,7 +2031,8 @@ agx_init_shader_caps(struct pipe_screen *pscreen)
 static void
 agx_init_compute_caps(struct pipe_screen *pscreen)
 {
-   struct pipe_compute_caps *caps = (struct pipe_compute_caps *)&pscreen->compute_caps;
+   struct pipe_compute_caps *caps =
+      (struct pipe_compute_caps *)&pscreen->compute_caps;
    struct agx_device *dev = agx_device(pscreen);
 
    caps->address_bits = 64;
@@ -2042,26 +2041,22 @@ agx_init_compute_caps(struct pipe_screen *pscreen)
 
    caps->grid_dimension = 3;
 
-   caps->max_grid_size[0] =
-   caps->max_grid_size[1] =
-   caps->max_grid_size[2] = 65535;
+   caps->max_grid_size[0] = caps->max_grid_size[1] = caps->max_grid_size[2] =
+      65535;
 
-   caps->max_block_size[0] =
-   caps->max_block_size[1] =
-   caps->max_block_size[2] = 1024;
+   caps->max_block_size[0] = caps->max_block_size[1] = caps->max_block_size[2] =
+      1024;
 
    caps->max_threads_per_block = 1024;
 
    uint64_t system_memory;
    if (os_get_total_physical_memory(&system_memory)) {
-      caps->max_global_size =
-      caps->max_mem_alloc_size = system_memory;
+      caps->max_global_size = caps->max_mem_alloc_size = system_memory;
    }
 
    caps->max_local_size = 32768;
 
-   caps->max_private_size =
-   caps->max_input_size = 4096;
+   caps->max_private_size = caps->max_input_size = 4096;
 
    caps->max_clock_frequency = dev->params.max_frequency_khz / 1000;
 
@@ -2096,8 +2091,7 @@ agx_init_screen_caps(struct pipe_screen *pscreen)
    caps->glsl_tess_levels_as_inputs = true;
    caps->doubles = true;
 
-   caps->max_render_targets =
-   caps->fbfetch = 8;
+   caps->max_render_targets = caps->fbfetch = 8;
    caps->fbfetch_coherent = true;
 
    caps->max_dual_source_render_targets = 1;
@@ -2161,15 +2155,14 @@ agx_init_screen_caps(struct pipe_screen *pscreen)
    caps->max_stream_output_buffers = PIPE_MAX_SO_BUFFERS;
 
    caps->max_stream_output_separate_components =
-   caps->max_stream_output_interleaved_components = PIPE_MAX_SO_OUTPUTS;
+      caps->max_stream_output_interleaved_components = PIPE_MAX_SO_OUTPUTS;
 
    caps->stream_output_pause_resume = true;
    caps->stream_output_interleave_buffers = true;
 
    caps->max_texture_array_layers = 2048;
 
-   caps->glsl_feature_level =
-   caps->glsl_feature_level_compatibility = 460;
+   caps->glsl_feature_level = caps->glsl_feature_level_compatibility = 460;
    caps->essl_feature_level = 320;
 
    /* Settings from iris, may need tuning */
@@ -2189,7 +2182,7 @@ agx_init_screen_caps(struct pipe_screen *pscreen)
 
    caps->max_texture_2d_size = 16384;
    caps->max_texture_cube_levels = 15; /* Max 16384x16384 */
-   caps->max_texture_3d_levels = 12; /* Max 2048x2048x2048 */
+   caps->max_texture_3d_levels = 12;   /* Max 2048x2048x2048 */
 
    caps->fs_coord_origin_upper_left = true;
    caps->fs_coord_pixel_center_integer = true;
@@ -2221,8 +2214,8 @@ agx_init_screen_caps(struct pipe_screen *pscreen)
    caps->max_viewports = AGX_MAX_VIEWPORTS;
 
    uint64_t system_memory;
-   caps->video_memory = os_get_total_physical_memory(&system_memory) ?
-      (system_memory >> 20) : 0;
+   caps->video_memory =
+      os_get_total_physical_memory(&system_memory) ? (system_memory >> 20) : 0;
 
    caps->device_reset_status_query = true;
    caps->robust_buffer_access_behavior = true;
@@ -2241,13 +2234,12 @@ agx_init_screen_caps(struct pipe_screen *pscreen)
 
    caps->query_buffer_object = true;
 
-   caps->texture_border_color_quirk = PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
+   caps->texture_border_color_quirk =
+      PIPE_QUIRK_TEXTURE_BORDER_COLOR_SWIZZLE_FREEDRENO;
 
-   caps->supported_prim_modes =
-   caps->supported_prim_modes_with_restart =
+   caps->supported_prim_modes = caps->supported_prim_modes_with_restart =
       BITFIELD_BIT(MESA_PRIM_POINTS) | BITFIELD_BIT(MESA_PRIM_LINES) |
-      BITFIELD_BIT(MESA_PRIM_LINE_STRIP) |
-      BITFIELD_BIT(MESA_PRIM_LINE_LOOP) |
+      BITFIELD_BIT(MESA_PRIM_LINE_STRIP) | BITFIELD_BIT(MESA_PRIM_LINE_LOOP) |
       BITFIELD_BIT(MESA_PRIM_TRIANGLES) |
       BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP) |
       BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN) |
@@ -2266,19 +2258,15 @@ agx_init_screen_caps(struct pipe_screen *pscreen)
       PIPE_CONTEXT_PRIORITY_LOW | PIPE_CONTEXT_PRIORITY_MEDIUM |
       PIPE_CONTEXT_PRIORITY_HIGH | PIPE_CONTEXT_PRIORITY_REALTIME;
 
-   caps->min_line_width =
-   caps->min_line_width_aa =
-   caps->min_point_size =
-   caps->min_point_size_aa = 1;
+   caps->min_line_width = caps->min_line_width_aa = caps->min_point_size =
+      caps->min_point_size_aa = 1;
 
-   caps->point_size_granularity =
-   caps->line_width_granularity = 0.1;
+   caps->point_size_granularity = caps->line_width_granularity = 0.1;
 
-   caps->max_line_width =
-   caps->max_line_width_aa = 16.0; /* Off-by-one fixed point 4:4 encoding */
+   caps->max_line_width = caps->max_line_width_aa =
+      16.0; /* Off-by-one fixed point 4:4 encoding */
 
-   caps->max_point_size =
-   caps->max_point_size_aa = 511.95f;
+   caps->max_point_size = caps->max_point_size_aa = 511.95f;
 
    caps->max_texture_anisotropy = 16.0;
 

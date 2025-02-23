@@ -172,7 +172,7 @@ bi_opt_dce_post_ra(bi_context *ctx)
             unsigned reg = ins->dest[d].value;
             uint64_t mask = (BITFIELD64_MASK(nr) << reg);
             bool cullable = (ins->op != BI_OPCODE_BLEND);
-            cullable &= !bi_opcode_props[ins->op].sr_write;
+            cullable &= !bi_get_opcode_props(ins)->sr_write;
 
             if (!(live & mask) && cullable)
                ins->dest[d] = bi_null();

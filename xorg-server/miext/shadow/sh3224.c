@@ -53,7 +53,7 @@ sh24_32BltLine(CARD8 *srcLine,
     dst = dstLine;
     w = width;
 
-    while (((long)dst & 3) && w) {
+    while (((intptr_t)dst & 3) && w) {
 	w--;
 	pixel = READ(src++);
 	Put24(dst, pixel);

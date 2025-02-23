@@ -58,6 +58,7 @@ const ppir_op_info ppir_op_infos[] = {
    [ppir_op_mul] = {
       .name = "mul",
       .slots = (int []) {
+         PPIR_INSTR_SLOT_ALU_COMBINE,
          PPIR_INSTR_SLOT_ALU_SCL_MUL, PPIR_INSTR_SLOT_ALU_VEC_MUL,
          PPIR_INSTR_SLOT_END
       },
@@ -517,40 +518,147 @@ void ppir_node_delete(ppir_node *node)
    ralloc_free(node);
 }
 
-static void ppir_node_print_dest(ppir_dest *dest)
+static void ppir_node_print_const(ppir_node *node)
 {
+   ppir_const_node *cst = ppir_node_to_const(node);
+
+   printf("(");
+
+   for (int i = 0; i < cst->constant.num; i++) {
+      if (i != 0)
+         printf(", ");
+      printf("%f", cst->constant.value[i].f);
+   }
+
+   printf(")");
+}
+
+static void ppir_node_print_dest(ppir_node *node)
+{
+   ppir_dest *dest = ppir_node_get_dest(node);
+
+   if (!dest)
+      return;
+
    switch (dest->type) {
    case ppir_target_ssa:
-      printf("ssa%d", dest->ssa.index);
+      printf(" $%.4d", node->index);
       break;
    case ppir_target_pipeline:
-      printf("pipeline %d", dest->pipeline);
+      printf("($%.4d) %s", node->index, ppir_pipeline_reg_to_str(dest->pipeline));
       break;
    case ppir_target_register:
-      printf("reg %d", dest->reg->index);
+      printf("($%.4d) reg_%d", node->index, dest->reg->index);
       break;
    }
+
+   if (dest->type != ppir_target_pipeline && dest->write_mask != 0xf) {
+      const char xyzw[] = "xyzw";
+      printf(".");
+      for (int i = 0; i < 4; i++) {
+         if (dest->write_mask & (1 << i)) {
+            printf("%c", xyzw[i]);
+         }
+      }
+   }
+
+   printf(" = ");
+
+   switch (dest->modifier) {
+   case ppir_outmod_none:
+      break;
+   case ppir_outmod_clamp_fraction:
+      printf("clamp_frac ");
+      break;
+   case ppir_outmod_clamp_positive:
+      printf("clamp_pos ");
+      break;
+   case ppir_outmod_round:
+      printf("round ");
+      break;
+   default:
+      break;
+   }
+
 }
 
 static void ppir_node_print_src(ppir_src *src)
 {
+   if (src->negate)
+      printf("-");
+   if (src->absolute)
+      printf("abs(");
    switch (src->type) {
    case ppir_target_ssa: {
       if (src->node)
-         printf("ssa node %d", src->node->index);
+         printf("$%.4d", src->node->index);
       else
-         printf("ssa idx %d", src->ssa ? src->ssa->index : -1);
+         printf("ssa_%d", src->ssa ? src->ssa->index : -1);
       break;
    }
    case ppir_target_pipeline:
       if (src->node)
-         printf("pipeline %d node %d", src->pipeline, src->node->index);
+         printf("%s ($%.4d)", ppir_pipeline_reg_to_str(src->pipeline), src->node->index);
       else
-         printf("pipeline %d", src->pipeline);
+         printf("%s", ppir_pipeline_reg_to_str(src->pipeline));
       break;
    case ppir_target_register:
-      printf("reg %d", src->reg->index);
+      printf("reg_%d", src->reg->index);
       break;
+   }
+
+   uint8_t identity[] = {0, 1, 2, 3};
+   if (memcmp(src->swizzle, identity, sizeof(identity)) != 0)
+   {
+      printf(".");
+      for (int i = 0; i < 4; i++) {
+         printf("%c", "xyzw"[src->swizzle[i]]);
+      }
+   }
+   if (src->absolute)
+      printf(")");
+}
+
+static void ppir_node_print_branch_src(ppir_branch_node *branch)
+{
+   if (!branch->num_src)
+      return;
+
+   assert(branch->num_src <= 2);
+
+   switch (branch->num_src) {
+   /* Unconditional branch */
+   case 0:
+      return;
+   case 1:
+      printf("if (");
+      if (branch->negate)
+         printf("!");
+      ppir_node_print_src(ppir_node_get_src(&branch->node, 0));
+      printf(")");
+      return;
+   case 2:
+      printf("if (");
+      ppir_node_print_src(ppir_node_get_src(&branch->node, 0));
+      if (branch->cond_eq && !branch->cond_gt && !branch->cond_lt) {
+         printf(" == ");
+      } else if (!branch->cond_eq && branch->cond_gt && branch->cond_lt) {
+         printf(" != ");
+      } else {
+         printf(" ");
+         if (branch->cond_gt)
+            printf(">");
+         if (branch->cond_lt)
+            printf("<");
+         if (branch->cond_eq)
+            printf("=");
+         printf(" ");
+      }
+      ppir_node_print_src(ppir_node_get_src(&branch->node, 1));
+      printf(")");
+      return;
+   default:
+      return;
    }
 }
 
@@ -559,24 +667,38 @@ static void ppir_node_print_node(ppir_node *node, int space)
    for (int i = 0; i < space; i++)
       printf(" ");
 
-   printf("%s%d: %s %s: ", node->printed && !ppir_node_is_leaf(node) ? "+" : "",
-          node->index, ppir_op_infos[node->op].name, node->name);
-
-   ppir_dest *dest = ppir_node_get_dest(node);
-   if (dest) {
-      printf("dest: ");
-      ppir_node_print_dest(dest);
+   /* Print "+" if node is not a leaf and it is already printed */
+   if (node->printed && !ppir_node_is_leaf(node)) {
+      printf("+");
    }
 
-   if (ppir_node_get_src_num(node) > 0) {
-      printf(" src: ");
+   ppir_node_print_dest(node);
+
+   printf("%s ", ppir_op_infos[node->op].name);
+
+   if (node->op == ppir_op_load_uniform || node->op == ppir_op_load_varying) {
+      ppir_load_node *load = ppir_node_to_load(node);
+      printf("%d", load->index);
+      if (ppir_node_get_src_num(node) != 0)
+         printf(" + ");
    }
-   for (int i = 0; i < ppir_node_get_src_num(node); i++) {
-      ppir_node_print_src(ppir_node_get_src(node, i));
-      if (i != (ppir_node_get_src_num(node) - 1))
-         printf(", ");
+
+   if (node->op != ppir_op_branch) {
+      for (int i = 0; i < ppir_node_get_src_num(node); i++) {
+         if (i != 0)
+            printf(", ");
+         ppir_node_print_src(ppir_node_get_src(node, i));
+      }
+   } else {
+      ppir_branch_node *branch = ppir_node_to_branch(node);
+      ppir_node_print_branch_src(branch);
+      printf(" block_%d", branch->target->index);
    }
-   printf("\n");
+
+   if (node->op == ppir_op_const)
+      ppir_node_print_const(node);
+
+   printf(" // NIR: %s\n", node->name);
 
    if (!node->printed) {
       ppir_node_foreach_pred(node, dep) {

@@ -9,16 +9,18 @@
 #include "xf86Module.h"
 
 static XF86ModuleVersionInfo VersRec = {
-    "vgahw",
-    MODULEVENDORSTRING,
-    MODINFOSTRING1,
-    MODINFOSTRING2,
-    XORG_VERSION_CURRENT,
-    0, 1, 0,
-    ABI_CLASS_VIDEODRV,
-    ABI_VIDEODRV_VERSION,
-    MOD_CLASS_NONE,
-    {0, 0, 0, 0}
+    .modname      = "vgahw",
+    .vendor       = MODULEVENDORSTRING,
+    ._modinfo1_   = MODINFOSTRING1,
+    ._modinfo2_   = MODINFOSTRING2,
+    .xf86version  = XORG_VERSION_CURRENT,
+    .majorversion = 0,
+    .minorversion = 1,
+    .patchlevel   = 0,
+    .abiclass     = ABI_CLASS_VIDEODRV,
+    .abiversion   = ABI_VIDEODRV_VERSION,
 };
 
-_X_EXPORT XF86ModuleData vgahwModuleData = { &VersRec, NULL, NULL };
+_X_EXPORT XF86ModuleData vgahwModuleData = {
+    .vers = &VersRec
+};

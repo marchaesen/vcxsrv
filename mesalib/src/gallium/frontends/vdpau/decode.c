@@ -1112,9 +1112,9 @@ vlVdpDecoderRender(VdpDecoder decoder,
       if (vlsurf->video_buffer)
          vlsurf->video_buffer->destroy(vlsurf->video_buffer);
 
-      /* set the buffer format to the prefered one */
+      /* set the buffer format to the preferred one */
       vlsurf->templat.buffer_format = screen->get_video_param(screen, dec->profile, PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
-                                                              PIPE_VIDEO_CAP_PREFERED_FORMAT);
+                                                              PIPE_VIDEO_CAP_PREFERRED_FORMAT);
 
       /* also set interlacing to decoders preferences */
       vlsurf->templat.interlaced = screen->get_video_param(screen, dec->profile, PIPE_VIDEO_ENTRYPOINT_BITSTREAM,

@@ -592,6 +592,7 @@ EXTRA_EXT(ARB_spirv_extensions);
 EXTRA_EXT(NV_viewport_swizzle);
 EXTRA_EXT(ARB_sparse_texture);
 EXTRA_EXT(KHR_shader_subgroup);
+EXTRA_EXT(OVR_multiview);
 
 static const int extra_ARB_gl_spirv_or_es2_compat[] = {
    EXT(ARB_gl_spirv),

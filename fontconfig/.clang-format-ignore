@@ -1,0 +1,3 @@
+# To prevent reformatting @@@ to @ @ @
+*/*.tmpl.h
+src/fcobjshash.gperf.h

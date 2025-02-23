@@ -55,50 +55,28 @@
     paths:
       - subprojects/packagecache
 
-.meson-build:
+.meson-build-for-tests:
   extends:
     - .build-linux
-    - .use-debian/x86_64_build
+  stage: build-for-tests
+  script:
+    - &meson-build timeout --verbose ${BUILD_JOB_TIMEOUT_OVERRIDE:-$BUILD_JOB_TIMEOUT} bash --login .gitlab-ci/meson/build.sh
+    - .gitlab-ci/prepare-artifacts.sh
+
+.meson-build-only:
+  extends:
+    - .meson-build-for-tests
+    - .build-only-delayed-rules
   stage: build-only
   script:
-    - &meson-build timeout --verbose ${BUILD_JOB_TIMEOUT_OVERRIDE:-$BUILD_JOB_TIMEOUT} .gitlab-ci/meson/build.sh
-
-
-# Make sure this list stays the same as all the jobs with
-# `stage: build-for-tests`, except for the windows job as
-# explained below.
-.build-for-tests-jobs:
-  - job: debian-testing
-    optional: true
-  - job: debian-testing-asan
-    optional: true
-  - job: debian-testing-ubsan
-    optional: true
-  - job: debian-build-testing
-    optional: true
-  - job: debian-arm32
-    optional: true
-  - job: debian-arm32-asan
-    optional: true
-  - job: debian-arm64
-    optional: true
-  - job: debian-arm64-asan
-    optional: true
-  - job: debian-android
-    optional: true
-  # Windows runners don't have more than one build right now, so there is
-  # no need to wait on the "first one" to be done.
-  # - job: windows-msvc
-  #   optional: true
-  - job: python-artifacts
-    optional: true
+    - *meson-build
 
 
 debian-testing:
   extends:
-    - .meson-build
+    - .meson-build-for-tests
+    - .use-debian/x86_64_build
     - .ci-deqp-artifacts
-  stage: build-for-tests
   variables:
     BUILD_JOB_TIMEOUT: 30m
     UNWIND: "enabled"
@@ -122,9 +100,6 @@ debian-testing:
       -D valgrind=disabled
     S3_ARTIFACT_NAME: mesa-x86_64-default-${BUILDTYPE}
     RUN_MESON_TESTS: "false" # debian-build-testing already runs these
-  script:
-    - *meson-build
-    - .gitlab-ci/prepare-artifacts.sh
   artifacts:
     reports:
       junit: artifacts/ci_scripts_report.xml
@@ -132,7 +107,7 @@ debian-testing:
 debian-testing-asan:
   extends:
     - debian-testing
-  stage: build-for-tests
+    - .meson-build-for-tests
   variables:
     BUILD_JOB_TIMEOUT: 30m
     VULKAN_DRIVERS: "swrast"
@@ -171,7 +146,7 @@ debian-testing-msan:
   # msan cannot fully work until it's used together with msan libc
   extends:
     - debian-clang
-  # `needs:` inherited from debian-clang
+    - .meson-build-only
   variables:
     BUILD_JOB_TIMEOUT: 30m
     # l_undef is incompatible with msan
@@ -208,7 +183,7 @@ debian-testing-msan:
 debian-testing-ubsan:
   extends:
     - debian-testing
-  stage: build-for-tests
+    - .meson-build-for-tests
   timeout: 40m
   variables:
     BUILD_JOB_TIMEOUT: 30m
@@ -242,8 +217,9 @@ debian-testing-ubsan:
       -D install-mesa-clc=true
 
 debian-build-testing:
-  extends: .meson-build
-  stage: build-for-tests
+  extends:
+    - .meson-build-for-tests
+    - .use-debian/x86_64_build
   variables:
     UNWIND: "enabled"
     DRI_LOADERS: >
@@ -268,48 +244,12 @@ debian-build-testing:
       -D tools=drm-shim,etnaviv,freedreno,glsl,intel,intel-ui,nir,nouveau,lima,panfrost,asahi
       -D perfetto=true
     S3_ARTIFACT_NAME: debian-build-testing
-  script:
-    - *meson-build
-    - .gitlab-ci/prepare-artifacts.sh
-
-shader-db:
-  stage: code-validation
-  extends:
-    - .use-debian/x86_64_build
-  rules:
-    - !reference [.never-post-merge-rules, rules]
-    - !reference [.core-rules, rules]
-    # Keep this list in sync with the drivers tested in run-shader-db.sh
-    - !reference [.freedreno-common-rules, rules]
-    - !reference [.intel-common-rules, rules]
-    - !reference [.lima-rules, rules]
-    - !reference [.v3d-rules, rules]
-    - !reference [.vc4-rules, rules]
-    - !reference [.nouveau-rules, rules]
-    - !reference [.r300-rules, rules]
-    # Also run if this job's own config or script changes
-    - changes:
-        - .gitlab-ci/build/gitlab-ci.yml
-        - .gitlab-ci/run-shader-db.sh
-  needs:
-    - debian-build-testing
-  variables:
-    S3_ARTIFACT_NAME: debian-build-testing
-  before_script:
-    - !reference [.download_s3, before_script]
-  script: |
-    .gitlab-ci/run-shader-db.sh
-  artifacts:
-    paths:
-      - shader-db
-  timeout: 15m
 
 # Test a release build with -Werror so new warnings don't sneak in.
 debian-release:
-  extends: .meson-build
-  needs:
-    - !reference [.meson-build, needs]
-    - !reference [.build-for-tests-jobs]
+  extends:
+    - .meson-build-only
+    - .use-debian/x86_64_build
   variables:
     UNWIND: "enabled"
     C_ARGS: >
@@ -346,11 +286,8 @@ debian-release:
 
 alpine-build-testing:
   extends:
-    - .meson-build
+    - .meson-build-only
     - .use-alpine/x86_64_build
-  needs:
-    - !reference [.use-alpine/x86_64_build, needs]
-    - !reference [.build-for-tests-jobs]
   variables:
     BUILD_JOB_TIMEOUT: 30m
     BUILDTYPE: "release"
@@ -384,11 +321,8 @@ alpine-build-testing:
 
 fedora-release:
   extends:
-    - .meson-build
+    - .meson-build-only
     - .use-fedora/x86_64_build
-  needs:
-    - !reference [.use-fedora/x86_64_build, needs]
-    - !reference [.build-for-tests-jobs]
   variables:
     BUILDTYPE: "release"
     # array-bounds are pure non-LTO gcc buggy warning
@@ -437,9 +371,7 @@ debian-android:
     - .meson-cross
     - .use-debian/android_build
     - .ci-deqp-artifacts
-  stage: build-for-tests
-  needs:
-    - !reference [.use-debian/android_build, needs]
+    - .meson-build-for-tests
   variables:
     BUILDTYPE: debug
     UNWIND: "disabled"
@@ -508,7 +440,8 @@ debian-android:
 
 .meson-cross:
   extends:
-    - .meson-build
+    - .meson-build-only
+    - .use-debian/x86_64_build
   variables:
     UNWIND: "disabled"
     DRI_LOADERS: >
@@ -527,8 +460,6 @@ debian-android:
   extends:
     - .meson-cross
     - .use-debian/arm64_build
-  needs:
-    - debian/arm64_build
   variables:
     VULKAN_DRIVERS: "asahi,broadcom,freedreno"
     GALLIUM_DRIVERS: "etnaviv,freedreno,lima,nouveau,panfrost,llvmpipe,softpipe,tegra,v3d,vc4,zink"
@@ -540,7 +471,7 @@ debian-arm32:
   extends:
     - .meson-arm
     - .ci-deqp-artifacts
-  stage: build-for-tests
+    - .meson-build-for-tests
   variables:
     CROSS: armhf
     DRI_LOADERS:
@@ -571,14 +502,11 @@ debian-arm32:
     # The strip command segfaults, failing to strip the binary and leaving
     # tempfiles in our artifacts.
     ARTIFACTS_DEBUG_SYMBOLS: 1
-  script:
-    - *meson-build
-    - .gitlab-ci/prepare-artifacts.sh
 
 debian-arm32-asan:
   extends:
     - debian-arm32
-  stage: build-for-tests
+    - .meson-build-for-tests
   variables:
     BUILD_JOB_TIMEOUT: 30m
     GALLIUM_DRIVERS: "etnaviv"
@@ -599,7 +527,7 @@ debian-arm64:
   extends:
     - .meson-arm
     - .ci-deqp-artifacts
-  stage: build-for-tests
+    - .meson-build-for-tests
   variables:
     C_ARGS: >
       -Wno-error=array-bounds
@@ -617,14 +545,11 @@ debian-arm64:
       -D gallium-rusticl=true
     RUN_MESON_TESTS: "false" # run by debian-arm64-build-testing
     S3_ARTIFACT_NAME: mesa-arm64-default-${BUILDTYPE}
-  script:
-    - *meson-build
-    - .gitlab-ci/prepare-artifacts.sh
 
 debian-arm64-asan:
   extends:
     - debian-arm64
-  stage: build-for-tests
+    - .meson-build-for-tests
   variables:
     BUILD_JOB_TIMEOUT: 30m
     VULKAN_DRIVERS: "broadcom,freedreno"
@@ -643,7 +568,7 @@ debian-arm64-asan:
 debian-arm64-ubsan:
   extends:
     - debian-arm64
-  stage: build-for-tests
+    - .meson-build-for-tests
   variables:
     BUILD_JOB_TIMEOUT: 30m
     VULKAN_DRIVERS: "broadcom"
@@ -668,9 +593,7 @@ debian-arm64-build-test:
   extends:
     - .meson-arm
     - .ci-deqp-artifacts
-  needs:
-    - !reference [.meson-arm, needs]
-    - !reference [.build-for-tests-jobs]
+    - .meson-build-only
   variables:
     VULKAN_DRIVERS: "amd,asahi,imagination-experimental,nouveau"
     DRI_LOADERS:
@@ -682,10 +605,7 @@ debian-arm64-build-test:
 debian-arm64-release:
   extends:
     - debian-arm64
-  stage: build-only
-  needs:
-    - !reference [debian-arm64, needs]
-    - !reference [.build-for-tests-jobs]
+    - .meson-build-only
   variables:
     BUILDTYPE: release
     S3_ARTIFACT_NAME: mesa-arm64-default-${BUILDTYPE}
@@ -700,10 +620,7 @@ debian-arm64-release:
 debian-no-libdrm:
   extends:
     - .meson-arm
-  stage: build-only
-  needs:
-    - !reference [.meson-arm, needs]
-    - !reference [.build-for-tests-jobs]
+    - .meson-build-only
   variables:
     VULKAN_DRIVERS: freedreno
     GALLIUM_DRIVERS: "zink,llvmpipe"
@@ -719,10 +636,9 @@ debian-no-libdrm:
       -D egl=disabled
 
 debian-clang:
-  extends: .meson-build
-  needs:
-    - !reference [.meson-build, needs]
-    - !reference [.build-for-tests-jobs]
+  extends:
+    - .meson-build-only
+    - .use-debian/x86_64_build
   variables:
     BUILDTYPE: debug
     UNWIND: "enabled"
@@ -774,8 +690,9 @@ debian-clang:
     CXX: clang++-${LLVM_VERSION}
 
 debian-clang-release:
-  extends: debian-clang
-  # `needs:` inherited from debian-clang
+  extends:
+    - debian-clang
+    - .meson-build-only
   variables:
     BUILD_JOB_TIMEOUT: 30m
     BUILDTYPE: "release"
@@ -809,10 +726,9 @@ windows-msvc:
       - _install/
 
 debian-vulkan:
-  extends: .meson-build
-  needs:
-    - !reference [.meson-build, needs]
-    - !reference [.build-for-tests-jobs]
+  extends:
+    - .meson-build-only
+    - .use-debian/x86_64_build
   variables:
     BUILD_JOB_TIMEOUT: 30m
     BUILDTYPE: debug
@@ -848,9 +764,7 @@ debian-x86_32:
   extends:
     - .meson-cross
     - .use-debian/x86_32_build
-  needs:
-    - !reference [.use-debian/x86_32_build, needs]
-    - !reference [.build-for-tests-jobs]
+    - .meson-build-only
   variables:
     BUILDTYPE: debug
     CROSS: i386
@@ -884,9 +798,7 @@ debian-s390x:
   extends:
     - .meson-cross
     - .use-debian/s390x_build
-  needs:
-    - !reference [.use-debian/s390x_build, needs]
-    - !reference [.build-for-tests-jobs]
+    - .meson-build-only
   tags:
     - kvm
   variables:
@@ -901,9 +813,7 @@ debian-ppc64el:
   extends:
     - .meson-cross
     - .use-debian/ppc64el_build
-  needs:
-    - !reference [.use-debian/ppc64el_build, needs]
-    - !reference [.build-for-tests-jobs]
+    - .meson-build-only
   variables:
     BUILDTYPE: debug
     CROSS: ppc64el
@@ -919,6 +829,7 @@ python-artifacts:
   extends:
     - .use-debian/x86_64_pyutils
     - .build-common
+    - .meson-build-for-tests
   variables:
     GIT_STRATEGY: fetch
     S3_ARTIFACT_NAME: mesa-python-ci-artifacts

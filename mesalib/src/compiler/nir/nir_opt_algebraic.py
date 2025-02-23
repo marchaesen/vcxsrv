@@ -784,12 +784,8 @@ optimizations.extend([
    (('ieq', ('iadd', a, b), a), ('ieq', b, 0)),
    (('ine', ('iadd', a, b), a), ('ine', b, 0)),
 
-   (('feq', ('b2f', 'a@1'), 0.0), ('inot', a)),
    (('fge', 0.0, ('b2f', 'a@1')), ('inot', a)),
-   (('fneu', ('b2f', 'a@1'), 0.0), a),
    (('flt',  0.0, ('b2f', 'a@1')), a),
-   (('ieq', ('b2i', 'a@1'), 0),   ('inot', a)),
-   (('ine', ('b2i', 'a@1'), 0),   a),
    (('ieq', 'a@1', False), ('inot', a)),
    (('ieq', 'a@1', True), a),
    (('ine', 'a@1', False), a),
@@ -1275,6 +1271,13 @@ optimizations.extend([
    (('ior', ('ieq', a, 0), ('ieq', a, 1)), ('uge', 1, a)),
    (('ior', ('uge', 1, a), ('ieq', a, 2)), ('uge', 2, a)),
    (('ior', ('uge', 2, a), ('ieq', a, 3)), ('uge', 3, a)),
+
+   # Similar to the previous patterns, but the association of the comparisons
+   # is differnet.
+   (('ior', ('ieq', a, 0), ('ior', ('ieq', a, 1), b)), ('ior', ('uge', 1, a), b)),
+   (('ior', ('uge', 1, a), ('ior', ('ieq', a, 2), b)), ('ior', ('uge', 2, a), b)),
+   (('ior', ('uge', 2, a), ('ior', ('ieq', a, 3), b)), ('ior', ('uge', 3, a), b)),
+
    (('ior', a, ('ieq', a, False)), True),
 
    (('uge', a, 1), ('ine', a, 0)),
@@ -1361,6 +1364,14 @@ optimizations.extend([
    (('uge', '#a', ('umax', '#b', c)), ('iand', ('uge', a, b), ('uge', a, c))),
    (('uge', ('umin', '#a', b), '#c'), ('iand', ('uge', a, c), ('uge', b, c))),
 
+   # These follow from the preceeding uge and ult patterns if various patterns
+   # like uge(0, a) or ult(a, 1) are replaced with ieq or ine comparisons with
+   # zero.
+   (('ieq', ('umin', '#a', b), 0), ('ior', ('ieq', a, 0), ('ieq', b, 0))),
+   (('ine', ('umax', '#a', b), 0), ('ior', ('ine', a, 0), ('ine', b, 0))),
+   (('ieq', ('umax', '#a', b), 0), ('iand', ('ieq', a, 0), ('ieq', b, 0))),
+   (('ine', ('umin', '#a', b), 0), ('iand', ('ine', a, 0), ('ine', b, 0))),
+
    # Thanks to sign extension, the ishr(a, b) is negative if and only if a is
    # negative.
    (('bcsel', ('ilt', a, 0), ('ineg', ('ishr', a, b)), ('ishr', a, b)),
@@ -1440,10 +1451,6 @@ for s in [8, 16, 32, 64]:
    ])
 
 optimizations.extend([
-   (('iand', ('ineg', ('b2i', 'a@1')), ('ineg', ('b2i', 'b@1'))),
-    ('ineg', ('b2i', ('iand', a, b)))),
-   (('ior', ('ineg', ('b2i','a@1')), ('ineg', ('b2i', 'b@1'))),
-    ('ineg', ('b2i', ('ior', a, b)))),
    (('ieq', ('ineg', ('b2i', 'a@1')), -1), a),
    (('ine', ('ineg', ('b2i', 'a@1')), -1), ('inot', a)),
    (('ige', ('ineg', ('b2i', 'a@1')), 0), ('inot', a)),
@@ -1451,6 +1458,22 @@ optimizations.extend([
    (('ult', 0, ('ineg', ('b2i', 'a@1'))), a),
    (('iand', ('ineg', ('b2i', a)), 1.0), ('b2f', a)),
    (('iand', ('ineg', ('b2i', a)), 1),   ('b2i', a)),
+])
+
+for op in ('ior', 'iand', 'ixor'):
+    optimizations.extend([
+        ((op,          ('b2i', 'a@1') ,          ('b2i', 'b@1') ),          ('b2i', (op, a, b)) ),
+        ((op, ('ineg', ('b2i', 'a@1')), ('ineg', ('b2i', 'b@1'))), ('ineg', ('b2i', (op, a, b)))),
+
+        # This pattern can result when D3D-style Booleans are combined with some
+        # algebraic optimizations of masking.
+        (('iand', (op, ('b2i', 'a@1'), ('ineg', ('b2i', 'b@1'))), 1),       ('b2i', (op, a, b)) ),
+    ])
+
+# One extra rule for iand.  Since one of the sources is missing ineg, the
+# final result can only be 0 or 1.  Omit the final ineg.
+optimizations.extend([
+    (('iand', ('ineg', ('b2i', 'a@1')), ('b2i', 'b@1')), ('b2i', ('iand', a, b)))
 ])
 
 optimizations.extend([
@@ -1782,6 +1805,7 @@ optimizations.extend([
 
    # fract(x) = x - floor(x), so fract(NaN) = NaN
    (('~ffract', 'a(is_integral)'), 0.0),
+   (('ffract', ('ffract', a)), ('ffract', a)),
    (('fabs', 'a(is_not_negative)'), a),
    (('iabs', 'a(is_not_negative)'), a),
    (('fsat', 'a(is_not_positive)'), 0.0),
@@ -3213,6 +3237,15 @@ for i in range(2, 4 + 1):
           optimizations  += [
              ((to_mp, vec_inst + suffix_in), vec_inst + out_mp, '!options->vectorize_vec2_16bit')
           ]
+
+for b2t, xne, xeq, zero, one in (('b2i', 'ine', 'ieq', 0, 1),
+                                 ('b2f', 'fneu', 'feq', 0.0, 1.0)):
+    optimizations += [
+        ((xeq, (b2t, 'a@1'), zero), ('inot', a)),
+        ((xeq, (b2t, 'a@1'), one),  a),
+        ((xne, (b2t, 'a@1'), zero), a),
+        ((xne, (b2t, 'a@1'), one),  ('inot', a)),
+    ]
 
 # This section contains "late" optimizations that should be run before
 # creating ffmas and calling regular optimizations for the final time.

@@ -330,7 +330,8 @@ ms_store_arrayed_output(nir_builder *b,
                            .base = const_off + param_offset * 16,
                            .write_mask = write_mask,
                            .memory_modes = nir_var_shader_out,
-                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD);
+                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD,
+                           .align_mul = 16, .align_offset = const_off % 16u);
    } else if (out_mode == ms_out_mode_var) {
       unsigned write_mask_32 = write_mask;
       if (store_val->bit_size > 32) {
@@ -754,7 +755,8 @@ ms_emit_attribute_ring_output_stores(nir_builder *b, const uint64_t outputs_mask
       store_val = nir_trim_vector(b, store_val, store_val_components);
       nir_store_buffer_amd(b, store_val, ring, zero, soffset, idx,
                            .memory_modes = nir_var_shader_out,
-                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD);
+                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD,
+                           .align_mul = 16, .align_offset = 0);
    }
 }
 
@@ -1338,7 +1340,7 @@ ms_calculate_output_layout(const struct radeon_info *hw_info, unsigned api_share
    return l;
 }
 
-void
+bool
 ac_nir_lower_ngg_mesh(nir_shader *shader,
                       const struct radeon_info *hw_info,
                       uint32_t clipdist_enable_mask,
@@ -1421,12 +1423,14 @@ ac_nir_lower_ngg_mesh(nir_shader *shader,
    if (!fast_launch_2)
       ms_emit_legacy_workgroup_index(b, &state);
    ms_create_same_invocation_vars(b, &state);
-   nir_metadata_preserve(impl, nir_metadata_none);
 
    lower_ms_intrinsics(shader, &state);
 
    emit_ms_finale(b, &state);
+
+   /* Take care of metadata and validation before calling other passes */
    nir_metadata_preserve(impl, nir_metadata_none);
+   nir_validate_shader(shader, "after emitting NGG MS");
 
    /* Cleanup */
    nir_lower_vars_to_ssa(shader);
@@ -1447,5 +1451,6 @@ ac_nir_lower_ngg_mesh(nir_shader *shader,
       nir_lower_compute_system_values(shader, &csv_options);
    }
 
-   nir_validate_shader(shader, "after emitting NGG MS");
+
+   return true;
 }

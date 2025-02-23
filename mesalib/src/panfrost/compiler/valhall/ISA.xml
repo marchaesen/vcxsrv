@@ -1523,10 +1523,12 @@
       is specified where it makes sense.
     </desc>
 
+    <!-- Removed on v11 -->
     <ins name="V2S16_TO_V2F16" opcode2="0x7"/>
 
     <ins name="S32_TO_F32" opcode2="0x9"/>
 
+    <!-- Removed on v11 -->
     <ins name="V2U16_TO_V2F16" opcode2="0x17"/>
 
     <ins name="U32_TO_F32" opcode2="0x19"/>
@@ -1541,8 +1543,12 @@
     </desc>
 
     <ins name="S16_TO_S32" opcode2="0x4"/>
+    <!-- Removed on v11 -->
     <ins name="S16_TO_F32" opcode2="0x5"/>
+
     <ins name="U16_TO_U32" opcode2="0x14"/>
+
+    <!-- Removed on v11 -->
     <ins name="U16_TO_F32" opcode2="0x15"/>
 
     <src swizzle="true" size="16">Value to convert</src>
@@ -1558,9 +1564,13 @@
 
   <group name="CONVERT" title="Float-to-int data conversions" dests="1" opcode="0x90" unused="true" unit="CVT">
     <desc>Performs the given data conversion.</desc>
+    <!-- Removed on v11 -->
     <ins name="V2F16_TO_V2S16" opcode2="0xE"/>
+    <!-- Removed on v11 -->
     <ins name="V2F16_TO_V2U16" opcode2="0x1E"/>
+    <!-- Removed on v11 -->
     <ins name="F16_TO_S32" opcode2="0xA"/>
+    <!-- Removed on v11 -->
     <ins name="F16_TO_U32" opcode2="0x1A"/>
     <roundmode/>
     <src swizzle="true" absneg="true" size="16">Value to convert</src>
@@ -1578,9 +1588,13 @@
     </desc>
 
     <ins name="S8_TO_S32" opcode2="0x0"/>
+
+    <!-- Removed on v11 -->
     <ins name="S8_TO_F32" opcode2="0x1"/>
 
     <ins name="U8_TO_U32" opcode2="0x10"/>
+
+    <!-- Removed on v11 -->
     <ins name="U8_TO_F32" opcode2="0x11"/>
 
     <src lane="28" size="8">Value to convert</src>
@@ -1592,9 +1606,12 @@
     </desc>
 
     <ins name="V2S8_TO_V2S16" opcode2="0x2"/>
+    <!-- Removed on v11 -->
     <ins name="V2S8_TO_V2F16" opcode2="0x3"/>
 
     <ins name="V2U8_TO_V2U16" opcode2="0x12"/>
+
+    <!-- Removed on v11 -->
     <ins name="V2U8_TO_V2F16" opcode2="0x13"/>
 
     <src halfswizzle="true" size="8">Value to convert</src>
@@ -1606,6 +1623,8 @@
     </desc>
 
     <ins name="FROUND.f32" opcode2="0xD"/>
+
+    <!-- Removed on v11 -->
     <ins name="FROUND.v2f16" opcode2="0xF"/>
 
     <roundmode/>
@@ -1651,6 +1670,7 @@
     <src widen="true"/>
   </ins>
 
+  <!-- Removed on v11 -->
   <ins name="IABS.v4s8" title="Absolute value" dests="1" opcode="0x91" opcode2="0xa" unused="true" unit="CVT">
     <src/>
   </ins>
@@ -1773,6 +1793,7 @@
     <ins name="FADD.f32" opcode="0xA4"/>
     <ins name="FADD.v2f16" opcode="0xA5"/>
     <desc>$A + B$</desc>
+    <roundmode/>
     <clamp/>
     <src absneg="true" swizzle="true">A</src>
     <src absneg="true" swizzle="true">B</src>
@@ -1796,6 +1817,7 @@
     <src absneg="true" swizzle="true">B</src>
   </group>
 
+  <!-- Removed on v11 -->
   <group name="V2F32_TO_V2F16" title="Vectorized floating-point conversion" dests="1" opcode2="4" unused="true" unit="CVT">
     <ins name="V2F32_TO_V2F16" opcode="0xA5"/>
     <desc>
@@ -1863,9 +1885,11 @@
     </desc>
     <ins name="IADD.u32" opcode="0xA0"/>
     <ins name="IADD.v2u16" opcode="0xA1"/>
+    <!-- Removed on v11 -->
     <ins name="IADD.v4u8" opcode="0xA2"/>
     <ins name="IADD.s32" opcode="0xA8"/>
     <ins name="IADD.v2s16" opcode="0xA9"/>
+    <!-- Removed on v11 -->
     <ins name="IADD.v4s8" opcode="0xAA"/>
     <ins name="IADD.u64" opcode="0x1A3"/>
     <ins name="IADD.s64" opcode="0x1AB"/>
@@ -1887,6 +1911,7 @@
     <ins name="ISUB.v4u8" opcode="0xA2"/>
     <ins name="ISUB.s32" opcode="0xA8"/>
     <ins name="ISUB.v2s16" opcode="0xA9"/>
+    <!-- Removed on v11 -->
     <ins name="ISUB.v4s8" opcode="0xAA"/>
     <ins name="ISUB.u64" opcode="0x1A3"/>
     <ins name="ISUB.s64" opcode="0x1AB"/>
@@ -1945,6 +1970,7 @@
     <saturate/>
   </group>
 
+  <!-- Removed on v11 -->
   <group name="HADD" title="Integer half-add" dests="1" opcode2="0x0B" unused="true" unit="CVT">
     <ins name="HADD.u32" opcode="0xA0"/>
     <ins name="HADD.v2u16" opcode="0xA1"/>
@@ -2215,6 +2241,7 @@
     </desc>
     <ins name="ICMP_OR.u32" opcode="0xF0"/>
     <ins name="ICMP_OR.v2u16" opcode="0xF1"/>
+    <!-- Removed on v11 -->
     <ins name="ICMP_OR.v4u8" opcode="0xF2"/>
     <cmp int_only="true"/>
     <result_type/>

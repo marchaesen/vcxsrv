@@ -33,6 +33,7 @@
 #include "util/half_float.h"
 #include "util/memstream.h"
 #include "util/mesa-blake3.h"
+#include "util/ralloc.h"
 #include "vulkan/vulkan_core.h"
 #include "nir.h"
 #include "nir_builder.h"
@@ -52,6 +53,9 @@ typedef struct {
 
    /** map from nir_variable -> printable name */
    struct hash_table *ht;
+
+   /** sorted list of block's predecessors  */
+   nir_block **preds;
 
    /** set of names used so far for nir_variables */
    struct set *syms;
@@ -818,7 +822,7 @@ print_access(enum gl_access_qualifier access, print_state *state, const char *se
       { ACCESS_FMASK_LOWERED_AMD, "fmask-lowered-amd" },
       { ACCESS_CAN_SPECULATE, "speculatable" },
       { ACCESS_CP_GE_COHERENT_AMD, "cp-ge-coherent-amd" },
-      { ACCESS_IN_BOUNDS_AGX, "in-bounds-agx" },
+      { ACCESS_IN_BOUNDS, "in-bounds" },
       { ACCESS_KEEP_SCALAR, "keep-scalar" },
       { ACCESS_SMEM_AMD, "smem-amd" },
    };
@@ -1994,13 +1998,20 @@ print_phi_instr(nir_phi_instr *instr, print_state *state)
    FILE *fp = state->fp;
    print_def(&instr->def, state);
    fprintf(fp, " = phi ");
-   nir_foreach_phi_src(src, instr) {
-      if (&src->node != exec_list_get_head(&instr->srcs))
+   nir_block **preds =
+      state->preds ? state->preds : nir_block_get_predecessors_sorted(instr->instr.block, NULL);
+
+   for (unsigned i = 0; i < instr->instr.block->predecessors->entries; i++) {
+      nir_phi_src *src = nir_phi_get_src_from_block(instr, preds[i]);
+      if (i != 0)
          fprintf(fp, ", ");
 
-      fprintf(fp, "b%u: ", src->pred->index);
+      fprintf(fp, "b%u: ", preds[i]->index);
       print_src(&src->src, state, nir_type_invalid);
    }
+
+   if (!state->preds)
+      ralloc_free(preds);
 }
 
 static void
@@ -2151,11 +2162,9 @@ static void
 print_block_preds(nir_block *block, print_state *state)
 {
    FILE *fp = state->fp;
-   nir_block **preds = nir_block_get_predecessors_sorted(block, NULL);
    for (unsigned i = 0; i < block->predecessors->entries; i++) {
-      fprintf(fp, " b%u", preds[i]->index);
+      fprintf(fp, " b%u", state->preds[i]->index);
    }
-   ralloc_free(preds);
 }
 
 static void
@@ -2185,12 +2194,14 @@ print_block(nir_block *block, print_state *state, unsigned tabs)
            block->index);
 
    const bool empty_block = exec_list_is_empty(&block->instr_list);
+   state->preds = nir_block_get_predecessors_sorted(block, NULL);
    if (empty_block) {
       fprintf(fp, "  // preds:");
       print_block_preds(block, state);
       fprintf(fp, ", succs:");
       print_block_succs(block, state);
       fprintf(fp, "\n");
+      ralloc_free(state->preds);
       return;
    }
 
@@ -2211,6 +2222,7 @@ print_block(nir_block *block, print_state *state, unsigned tabs)
    fprintf(fp, "%*s// succs:", state->padding_for_no_dest, "");
    print_block_succs(block, state);
    fprintf(fp, "\n");
+   ralloc_free(state->preds);
 }
 
 static void

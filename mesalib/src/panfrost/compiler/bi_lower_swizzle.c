@@ -23,6 +23,7 @@
 
 #include "bi_builder.h"
 #include "compiler.h"
+#include "valhall.h"
 
 /* Not all 8-bit and 16-bit instructions support all swizzles on all sources.
  * These passes, intended to run after NIR->BIR but before scheduling/RA, lower
@@ -173,8 +174,8 @@ lower_swizzle(bi_context *ctx, bi_instr *ins, unsigned src)
    /* Lower it away */
    bi_builder b = bi_init_builder(ctx, bi_before_instr(ins));
 
-   bool is_8 = (bi_opcode_props[ins->op].size == BI_SIZE_8) ||
-               (bi_opcode_props[ins->op].size == BI_SIZE_32 &&
+   bool is_8 = (bi_get_opcode_props(ins)->size == BI_SIZE_8) ||
+               (bi_get_opcode_props(ins)->size == BI_SIZE_32 &&
                 ins->src[src].swizzle >= BI_SWIZZLE_B0000);
 
    bi_index orig = ins->src[src];
@@ -240,13 +241,13 @@ bi_instr_replicates(bi_instr *I, BITSET_WORD *replicates_16)
    }
 
    /* Replication analysis only makes sense for ALU instructions */
-   if (bi_opcode_props[I->op].message != BIFROST_MESSAGE_NONE)
+   if (bi_get_opcode_props(I)->message != BIFROST_MESSAGE_NONE)
       return false;
 
    /* We only analyze 16-bit instructions for 16-bit replication. We could
     * maybe do better.
     */
-   if (bi_opcode_props[I->op].size != BI_SIZE_16)
+   if (bi_get_opcode_props(I)->size != BI_SIZE_16)
       return false;
 
    bi_foreach_src(I, s) {
@@ -295,9 +296,14 @@ bi_lower_swizzle(bi_context *ctx)
 
       if (ins->op == BI_OPCODE_SWZ_V2I16 && bi_is_ssa(ins->src[0]) &&
           BITSET_TEST(replicates_16, ins->src[0].value)) {
-         ins->op = BI_OPCODE_MOV_I32;
+         bi_set_opcode(ins, BI_OPCODE_MOV_I32);
          ins->src[0].swizzle = BI_SWIZZLE_H01;
       }
+
+      /* On Valhall, if the instruction does some conversion depending on
+       * swizzle, we should not touch it. */
+      if (ctx->arch >= 9 && va_op_dest_modifier_does_convert(ins->op))
+         continue;
 
       /* The above passes rely on replicating destinations.  For
        * Valhall, we will want to optimize this. For now, default

@@ -226,6 +226,9 @@ static void ppir_codegen_encode_vec_mul(ppir_node *node, void *code)
    ppir_alu_node *alu = ppir_node_to_alu(node);
 
    ppir_dest *dest = &alu->dest;
+
+   assert(!(dest->type == ppir_target_pipeline && dest->pipeline == ppir_pipeline_reg_fmul));
+
    int dest_shift = 0;
    if (dest->type != ppir_target_pipeline) {
       int index = ppir_target_get_dest_reg_index(dest);
@@ -299,6 +302,9 @@ static void ppir_codegen_encode_scl_mul(ppir_node *node, void *code)
    ppir_alu_node *alu = ppir_node_to_alu(node);
 
    ppir_dest *dest = &alu->dest;
+
+   assert(!(dest->type == ppir_target_pipeline && dest->pipeline == ppir_pipeline_reg_vmul));
+
    int dest_component = ffs(dest->write_mask) - 1;
    assert(dest_component >= 0);
 
@@ -368,6 +374,7 @@ static void ppir_codegen_encode_vec_add(ppir_node *node, void *code)
    ppir_alu_node *alu = ppir_node_to_alu(node);
 
    ppir_dest *dest = &alu->dest;
+
    int index = ppir_target_get_dest_reg_index(dest);
    int dest_shift = index & 0x3;
    f->dest = index >> 2;
@@ -540,9 +547,10 @@ static void ppir_codegen_encode_combine(ppir_node *node, void *code)
    case ppir_op_sqrt:
    case ppir_op_sin:
    case ppir_op_cos:
+   case ppir_op_mov:
    {
       f->scalar.dest_vec = false;
-      f->scalar.arg1_en = false;
+      f->scalar.src_vec = false;
 
       ppir_dest *dest = &alu->dest;
       int dest_component = ffs(dest->write_mask) - 1;
@@ -577,9 +585,35 @@ static void ppir_codegen_encode_combine(ppir_node *node, void *code)
       case ppir_op_cos:
          f->scalar.op = ppir_codegen_combine_scalar_op_cos;
          break;
+      case ppir_op_mov:
+         f->scalar.op = ppir_codegen_combine_scalar_op_mov;
+         break;
       default:
          break;
       }
+      break;
+   }
+   case ppir_op_mul:
+   {
+      f->scalar.dest_vec = true;
+      f->scalar.src_vec = true;
+
+      ppir_dest *dest = &alu->dest;
+      int index = ppir_target_get_dest_reg_index(dest);
+      int dest_shift = index & 0x3;
+
+      f->vector.dest = index >> 2;
+      f->vector.mask = dest->write_mask << dest_shift;
+
+      ppir_src *src = alu->src;
+      f->scalar.arg0_src = get_scl_reg_index(src, 0);
+      f->scalar.arg0_absolute = src->absolute;
+      f->scalar.arg0_negate = src->negate;
+
+      src = alu->src + 1;
+      index = ppir_target_get_src_reg_index(src);
+      f->vector.arg1_source = index >> 2;
+      f->vector.arg1_swizzle = encode_swizzle(src->swizzle, index & 0x3, dest_shift);
       break;
    }
    default:

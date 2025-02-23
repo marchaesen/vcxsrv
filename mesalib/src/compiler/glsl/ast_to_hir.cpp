@@ -391,7 +391,7 @@ arithmetic_result_type(ir_rvalue * &value_a, ir_rvalue * &value_b,
    /*    "If the operands are integer types, they must both be signed or
     *    both be unsigned."
     *
-    * From this rule and the preceeding conversion it can be inferred that
+    * From this rule and the preceding conversion it can be inferred that
     * both types must be GLSL_TYPE_FLOAT, or GLSL_TYPE_UINT, or GLSL_TYPE_INT.
     * The is_numeric check above already filtered out the case where either
     * type is not one of these, so now the base types need only be tested for

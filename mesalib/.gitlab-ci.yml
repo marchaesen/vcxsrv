@@ -210,6 +210,8 @@ include:
       when: never
 
 
+# Note: make sure the branches in this list are the same as in
+# `.build-only-delayed-rules` below.
 .container+build-rules:
   rules:
     - !reference [.common-rules, rules]
@@ -262,6 +264,49 @@ include:
     # Build everything in scheduled pipelines
     - if: *is-scheduled-pipeline
       when: on_success
+    # Allow building everything in fork pipelines, but build nothing unless
+    # manually triggered
+    - when: manual
+
+# Repeat of the above but with `when: on_success` replaced with
+# `when: delayed` + `start_in:`, for build-only jobs.
+# Note: make sure the branches in this list are the same as in
+# `.container+build-rules` above.
+.build-only-delayed-rules:
+  rules:
+    - !reference [.common-rules, rules]
+    # Run when re-enabling a disabled farm, but not when disabling it
+    - !reference [.disable-farm-mr-rules, rules]
+    # Never run immediately after merging, as we just ran everything
+    - !reference [.never-post-merge-rules, rules]
+    # Build everything in merge pipelines, if any files affecting the pipeline
+    # were changed
+    - if: *is-merge-attempt
+      changes: *all_paths
+      when: delayed
+      start_in: &build-delay 5 minutes
+    # Same as above, but for pre-merge pipelines
+    - if: *is-pre-merge
+      changes: *all_paths
+      when: manual
+    # Skip everything for pre-merge and merge pipelines which don't change
+    # anything in the build
+    - if: *is-merge-attempt
+      when: never
+    - if: *is-pre-merge
+      when: never
+    # Build everything after someone bypassed the CI
+    - if: *is-direct-push
+      when: delayed
+      start_in: *build-delay
+    # Build everything when pushing to staging branches
+    - if: *is-staging-push
+      when: delayed
+      start_in: *build-delay
+    # Build everything in scheduled pipelines
+    - if: *is-scheduled-pipeline
+      when: delayed
+      start_in: *build-delay
     # Allow building everything in fork pipelines, but build nothing unless
     # manually triggered
     - when: manual

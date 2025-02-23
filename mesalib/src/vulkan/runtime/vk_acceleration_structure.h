@@ -52,7 +52,7 @@ struct vk_acceleration_structure {
    uint64_t size;
 };
 
-VkDeviceAddress vk_acceleration_structure_get_va(struct vk_acceleration_structure *accel_struct);
+VkDeviceAddress vk_acceleration_structure_get_va(const struct vk_acceleration_structure *accel_struct);
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(vk_acceleration_structure, base, VkAccelerationStructureKHR,
                                VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR)
@@ -93,6 +93,11 @@ struct vk_acceleration_structure_build_ops {
                                         uint32_t leaf_count,
                                         struct vk_acceleration_structure *src,
                                         struct vk_acceleration_structure *dst);
+
+   const uint32_t *leaf_spirv_override;
+   size_t leaf_spirv_override_size;
+   const uint32_t *leaf_always_active_spirv_override;
+   size_t leaf_always_active_spirv_override_size;
 };
 
 struct vk_acceleration_structure_build_args {

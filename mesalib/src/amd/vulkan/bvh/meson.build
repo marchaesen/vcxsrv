@@ -28,6 +28,16 @@ bvh_shaders = [
     'update',
     [],
   ],
+  [
+    'leaf.comp',
+    'radv_leaf',
+    ['ALWAYS_ACTIVE=0'],
+  ],
+  [
+    'leaf.comp',
+    'radv_leaf_always_active',
+    ['ALWAYS_ACTIVE=1'],
+  ],
 ]
 
 bvh_include_dir = dir_source_root + '/src/amd/vulkan/bvh'

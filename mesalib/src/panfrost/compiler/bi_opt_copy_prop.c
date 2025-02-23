@@ -50,13 +50,13 @@ bi_opt_copy_prop(bi_context *ctx)
       if (I->op == BI_OPCODE_COLLECT_I32) {
          /* Rewrite trivial collects while we're at it */
          if (I->nr_srcs == 1)
-            I->op = BI_OPCODE_MOV_I32;
+            bi_set_opcode(I, BI_OPCODE_MOV_I32);
 
          collects[I->dest[0].value] = I;
       } else if (I->op == BI_OPCODE_SPLIT_I32) {
          /* Rewrite trivial splits while we're at it */
          if (I->nr_dests == 1)
-            I->op = BI_OPCODE_MOV_I32;
+            bi_set_opcode(I, BI_OPCODE_MOV_I32);
 
          bi_instr *collect = collects[I->src[0].value];
          if (!collect)

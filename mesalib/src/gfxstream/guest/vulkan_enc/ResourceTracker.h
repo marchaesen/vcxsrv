@@ -640,7 +640,7 @@ class ResourceTracker {
 
     void setDeviceMemoryInfo(VkDevice device, VkDeviceMemory memory, VkDeviceSize allocationSize,
                              uint8_t* ptr, uint32_t memoryTypeIndex, void* ahw, bool imported,
-                             zx_handle_t vmoHandle, VirtGpuResourcePtr blobPtr);
+                             zx_handle_t vmoHandle, VirtGpuResourcePtr blobPtr, int importedFd);
 
     void setImageInfo(VkImage image, VkDevice device, const VkImageCreateInfo* pCreateInfo);
 
@@ -774,6 +774,7 @@ class ResourceTracker {
 #endif  // DETECT_OS_ANDROID
         CoherentMemoryPtr coherentMemory = nullptr;
         VirtGpuResourcePtr blobPtr = nullptr;
+        int importedFd = -1;
     };
 
     struct VkCommandBuffer_Info {

@@ -44,7 +44,7 @@ void va_assign_slots(bi_context *ctx);
 void va_insert_flow_control_nops(bi_context *ctx);
 void va_merge_flow(bi_context *ctx);
 void va_mark_last(bi_context *ctx);
-uint64_t va_pack_instr(const bi_instr *I);
+uint64_t va_pack_instr(const bi_instr *I, unsigned arch);
 
 static inline unsigned
 va_fau_page(enum bir_fau value)

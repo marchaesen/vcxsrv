@@ -6,13 +6,10 @@ indirect_dispatch.c
 indirect_dispatch.h
 indirect_dispatch_swap.c
 indirect_init.c
-indirect_reqsize.c
-indirect_reqsize.h
 indirect_size.c
 indirect_size.h
 indirect_size_get.c
 indirect_size_get.h
-indirect_table.c
 mapi_abi.py
 remap_helper.h
 glfunctions.h

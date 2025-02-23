@@ -202,6 +202,15 @@ TYPE(uvec4, 16);
 
 TYPE(VOID_REF, 8);
 
+/* A GLSL-adapted copy of VkAccelerationStructureInstanceKHR. */
+struct AccelerationStructureInstance {
+   mat3x4 transform;
+   uint32_t custom_instance_and_mask;
+   uint32_t sbt_offset_and_flags;
+   uint64_t accelerationStructureReference;
+};
+TYPE(AccelerationStructureInstance, 8);
+
 /* copied from u_math.h */
 uint32_t
 align(uint32_t value, uint32_t alignment)

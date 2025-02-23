@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "lvp_private.h"
+#include "lvp_nir.h"
 
 #include "nir.h"
 #include "nir_builder.h"

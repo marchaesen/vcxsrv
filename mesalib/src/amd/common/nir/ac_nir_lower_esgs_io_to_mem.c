@@ -325,7 +325,7 @@ filter_load_per_vertex_input(const nir_instr *instr, UNUSED const void *state)
    return instr->type == nir_instr_type_intrinsic && nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_per_vertex_input;
 }
 
-void
+bool
 ac_nir_lower_es_outputs_to_mem(nir_shader *shader,
                                ac_nir_map_io_driver_location map,
                                enum amd_gfx_level gfx_level,
@@ -339,12 +339,12 @@ ac_nir_lower_es_outputs_to_mem(nir_shader *shader,
       .gs_inputs_read = gs_inputs_read,
    };
 
-   nir_shader_intrinsics_pass(shader, lower_es_output_store,
-                                nir_metadata_control_flow,
-                                &state);
+   return nir_shader_intrinsics_pass(shader, lower_es_output_store,
+                                     nir_metadata_control_flow,
+                                     &state);
 }
 
-void
+bool
 ac_nir_lower_gs_inputs_to_mem(nir_shader *shader,
                               ac_nir_map_io_driver_location map,
                               enum amd_gfx_level gfx_level,
@@ -357,8 +357,8 @@ ac_nir_lower_gs_inputs_to_mem(nir_shader *shader,
       .gs_inputs_read = shader->info.inputs_read,
    };
 
-   nir_shader_lower_instructions(shader,
-                                 filter_load_per_vertex_input,
-                                 lower_gs_per_vertex_input_load,
-                                 &state);
+   return nir_shader_lower_instructions(shader,
+                                        filter_load_per_vertex_input,
+                                        lower_gs_per_vertex_input_load,
+                                        &state);
 }

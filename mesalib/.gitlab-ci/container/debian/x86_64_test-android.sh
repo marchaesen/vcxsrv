@@ -59,8 +59,8 @@ export RUST_TARGET=x86_64-linux-android
 . .gitlab-ci/container/build-rust.sh
 . .gitlab-ci/container/build-deqp-runner.sh
 
-rm -rf /root/.cargo
-rm -rf /root/.rustup
+# Properly uninstall rustup including cargo and init scripts on shells
+rustup self uninstall -y
 
 ############### Build dEQP
 

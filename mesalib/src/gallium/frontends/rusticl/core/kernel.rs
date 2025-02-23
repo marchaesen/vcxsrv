@@ -588,7 +588,13 @@ fn opt_nir(nir: &mut NirShader, dev: &Device, has_explicit_types: bool) {
         progress |= nir_pass!(nir, nir_opt_dead_cf);
         progress |= nir_pass!(nir, nir_opt_remove_phis);
         // we don't want to be too aggressive here, but it kills a bit of CFG
-        progress |= nir_pass!(nir, nir_opt_peephole_select, 8, true, true);
+        let peephole_select_options = nir_opt_peephole_select_options {
+            limit: 8,
+            indirect_load_ok: true,
+            expensive_alu_ok: true,
+            discard_ok: false,
+        };
+        progress |= nir_pass!(nir, nir_opt_peephole_select, &peephole_select_options);
         progress |= nir_pass!(
             nir,
             nir_lower_vec3_to_vec4,

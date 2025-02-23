@@ -508,7 +508,8 @@ ac_nir_store_parameters_to_attr_ring(nir_builder *b,
       nir_store_buffer_amd(b, nir_vec(b, comp, 4), attr_rsrc, voffset, attr_offset, vindex,
                            .base = offset * 16,
                            .memory_modes = nir_var_shader_out,
-                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD);
+                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD,
+                           .align_mul = 16, .align_offset = 0);
 
       exported_params |= BITFIELD_BIT(offset);
    }
@@ -536,7 +537,8 @@ ac_nir_store_parameters_to_attr_ring(nir_builder *b,
       nir_store_buffer_amd(b, nir_vec(b, comp, 4), attr_rsrc, voffset, attr_offset, vindex,
                            .base = offset * 16,
                            .memory_modes = nir_var_shader_out,
-                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD);
+                           .access = ACCESS_COHERENT | ACCESS_IS_SWIZZLED_AMD,
+                           .align_mul = 16, .align_offset = 0);
 
       exported_params |= BITFIELD_BIT(offset);
    }

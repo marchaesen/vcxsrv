@@ -96,7 +96,7 @@ static int si_get_video_param_no_video_hw(struct pipe_screen *screen, enum pipe_
    case PIPE_VIDEO_CAP_MAX_WIDTH:
    case PIPE_VIDEO_CAP_MAX_HEIGHT:
       return vl_video_buffer_max_size(screen);
-   case PIPE_VIDEO_CAP_PREFERED_FORMAT:
+   case PIPE_VIDEO_CAP_PREFERRED_FORMAT:
       return PIPE_FORMAT_NV12;
    case PIPE_VIDEO_CAP_PREFERS_INTERLACED:
       return false;
@@ -161,7 +161,7 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
           * Have to determine the version and features of VPE in future.
           */
          return PIPE_VIDEO_VPP_BLEND_MODE_NONE;
-      case PIPE_VIDEO_CAP_PREFERED_FORMAT:
+      case PIPE_VIDEO_CAP_PREFERRED_FORMAT:
          return PIPE_FORMAT_NV12;
       case PIPE_VIDEO_CAP_PREFERS_INTERLACED:
          return false;
@@ -227,7 +227,7 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
             return KERNEL_ENC_CAP(codec, max_height);
          else
             return (sscreen->info.family < CHIP_TONGA) ? 1152 : 2304;
-      case PIPE_VIDEO_CAP_PREFERED_FORMAT:
+      case PIPE_VIDEO_CAP_PREFERRED_FORMAT:
          if (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10)
             return PIPE_FORMAT_P010;
          else
@@ -530,7 +530,7 @@ static int si_get_video_param(struct pipe_screen *screen, enum pipe_video_profil
             return (sscreen->info.family < CHIP_TONGA) ? 1152 : 4096;
          }
       }
-   case PIPE_VIDEO_CAP_PREFERED_FORMAT:
+   case PIPE_VIDEO_CAP_PREFERRED_FORMAT:
       if (profile == PIPE_VIDEO_PROFILE_HEVC_MAIN_10)
          return PIPE_FORMAT_P010;
       else if (profile == PIPE_VIDEO_PROFILE_VP9_PROFILE2)

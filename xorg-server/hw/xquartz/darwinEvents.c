@@ -47,6 +47,7 @@
 #include <X11/Xproto.h>
 
 #include "mi/mi_priv.h"
+#include "os/client_priv.h"
 
 #include "misc.h"
 #include "windowstr.h"

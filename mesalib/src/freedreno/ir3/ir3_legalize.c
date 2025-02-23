@@ -47,6 +47,7 @@ struct ir3_legalize_state {
    regmask_t needs_ss_scalar_full; /* half scalar ALU producer -> full scalar ALU consumer */
    regmask_t needs_ss_scalar_half; /* full scalar ALU producer -> half scalar ALU consumer */
    regmask_t needs_ss_war; /* write after read */
+   regmask_t needs_sy_war; /* WAR that can only be resolved using (sy) */
    regmask_t needs_ss_or_sy_war;  /* WAR for sy-producer sources */
    regmask_t needs_ss_scalar_war; /* scalar ALU write -> ALU write */
    regmask_t needs_ss_or_sy_scalar_war;
@@ -101,6 +102,12 @@ needs_ss_war(struct ir3_legalize_state *state, struct ir3_register *dst,
    return false;
 }
 
+static inline bool
+needs_sy_war(struct ir3_legalize_state *state, struct ir3_register *dst)
+{
+   return regmask_get(&state->needs_sy_war, dst);
+}
+
 static inline void
 apply_ss(struct ir3_instruction *instr,
          struct ir3_legalize_state *state,
@@ -124,6 +131,7 @@ apply_sy(struct ir3_instruction *instr,
 {
    instr->flags |= IR3_INSTR_SY;
    regmask_init(&state->needs_sy, mergedregs);
+   regmask_init(&state->needs_sy_war, mergedregs);
    regmask_init(&state->needs_ss_or_sy_war, mergedregs);
    regmask_init(&state->needs_ss_or_sy_scalar_war, mergedregs);
    state->needs_sy_for_const = false;
@@ -349,6 +357,8 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
       regmask_or(&state->needs_ss, &state->needs_ss, &pstate->needs_ss);
       regmask_or(&state->needs_ss_war, &state->needs_ss_war,
                  &pstate->needs_ss_war);
+      regmask_or(&state->needs_sy_war, &state->needs_sy_war,
+                 &pstate->needs_sy_war);
       regmask_or(&state->needs_ss_or_sy_war, &state->needs_ss_or_sy_war,
                  &pstate->needs_ss_or_sy_war);
       regmask_or(&state->needs_sy, &state->needs_sy, &pstate->needs_sy);
@@ -526,6 +536,9 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
       foreach_dst (reg, n) {
          if (reg->flags & IR3_REG_RT)
             continue;
+         if (needs_sy_war(state, reg)) {
+            apply_sy(n, state, mergedregs);
+         }
          if (needs_ss_war(state, reg, n_is_scalar_alu)) {
             apply_ss(n, state, mergedregs);
             last_input_needs_ss = false;
@@ -670,6 +683,11 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
           */
          bool needs_ss = is_ss_producer(n) || is_store(n) || n->opc == OPC_STC;
 
+         /* It seems like ray_intersection WAR hazards cannot be resolved using
+          * (ss) and need a (sy) sync instead.
+          */
+         bool needs_sy = n->opc == OPC_RAY_INTERSECTION;
+
          if (n_is_scalar_alu) {
             /* Scalar ALU also does not immediately read its source because it
              * is not executed right away, but scalar ALU instructions are
@@ -685,8 +703,9 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
                }
             }
          } else {
-            regmask_t *mask =
-               needs_ss ? &state->needs_ss_war : &state->needs_ss_or_sy_war;
+            regmask_t *mask = needs_sy   ? &state->needs_sy_war
+                              : needs_ss ? &state->needs_ss_war
+                                         : &state->needs_ss_or_sy_war;
 
             foreach_src (reg, n) {
                if (!(reg->flags & (IR3_REG_IMMED | IR3_REG_CONST))) {
@@ -1706,6 +1725,7 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
          rzalloc(ctx, struct ir3_legalize_block_data);
 
       regmask_init(&bd->state.needs_ss_war, mergedregs);
+      regmask_init(&bd->state.needs_sy_war, mergedregs);
       regmask_init(&bd->state.needs_ss_or_sy_war, mergedregs);
       regmask_init(&bd->state.needs_ss_scalar_war, mergedregs);
       regmask_init(&bd->state.needs_ss_or_sy_scalar_war, mergedregs);
@@ -1714,6 +1734,7 @@ ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
       regmask_init(&bd->state.needs_ss, mergedregs);
       regmask_init(&bd->state.needs_sy, mergedregs);
       regmask_init(&bd->begin_state.needs_ss_war, mergedregs);
+      regmask_init(&bd->begin_state.needs_sy_war, mergedregs);
       regmask_init(&bd->begin_state.needs_ss_or_sy_war, mergedregs);
       regmask_init(&bd->begin_state.needs_ss_scalar_war, mergedregs);
       regmask_init(&bd->begin_state.needs_ss_or_sy_scalar_war, mergedregs);

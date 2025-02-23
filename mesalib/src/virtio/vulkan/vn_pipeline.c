@@ -209,14 +209,6 @@ struct vn_graphics_pipeline_state {
     * Valid if and only if gpl.pre_raster_shaders is set.
     */
    bool rasterizer_discard_enable;
-
-   /** VkPipelineMultisampleStateCreateInfo::pNext
-    *  - VkPipelineSampleLocationsStateCreateInfoEXT::sampleLocationsEnable
-    *
-    * Valid if and only if multisample_state is valid along with a valid
-    * sample location state chained in its pNext.
-    */
-   bool sample_locations_enable;
 };
 
 struct vn_graphics_pipeline {
@@ -237,8 +229,7 @@ struct vn_graphics_pipeline_fix_tmp {
 
    /* Fixing the pNext chain
     *
-    * TODO: extend when below or more extensions are supported:
-    * - VK_EXT_pipeline_robustness
+    * Extend when more extensions are supported.
     */
    VkGraphicsPipelineLibraryCreateInfoEXT *gpl_infos;
    VkPipelineCreateFlags2CreateInfo *flags2_infos;
@@ -246,6 +237,9 @@ struct vn_graphics_pipeline_fix_tmp {
    VkPipelineFragmentShadingRateStateCreateInfoKHR *fsr_infos;
    VkPipelineLibraryCreateInfoKHR *library_infos;
    VkPipelineRenderingCreateInfo *rendering_infos;
+   VkPipelineRobustnessCreateInfo *robustness_infos;
+   VkRenderingAttachmentLocationInfo *ral_infos;
+   VkRenderingInputAttachmentIndexInfo *riai_infos;
 };
 
 /* shader module commands */
@@ -643,8 +637,8 @@ vn_destroy_failed_pipeline_handles(struct vn_device *dev,
 }
 
 #define VN_PIPELINE_CREATE_SYNC_MASK                                         \
-   (VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT |               \
-    VK_PIPELINE_CREATE_EARLY_RETURN_ON_FAILURE_BIT)
+   (VK_PIPELINE_CREATE_2_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT |             \
+    VK_PIPELINE_CREATE_2_EARLY_RETURN_ON_FAILURE_BIT)
 
 static struct vn_graphics_pipeline_fix_tmp *
 vn_graphics_pipeline_fix_tmp_alloc(const VkAllocationCallbacks *alloc,
@@ -664,6 +658,9 @@ vn_graphics_pipeline_fix_tmp_alloc(const VkAllocationCallbacks *alloc,
    VkPipelineFragmentShadingRateStateCreateInfoKHR *fsr_infos;
    VkPipelineLibraryCreateInfoKHR *library_infos;
    VkPipelineRenderingCreateInfo *rendering_infos;
+   VkPipelineRobustnessCreateInfo *robustness_infos;
+   VkRenderingAttachmentLocationInfo *ral_infos;
+   VkRenderingInputAttachmentIndexInfo *riai_infos;
 
    VK_MULTIALLOC(ma);
    vk_multialloc_add(&ma, &tmp, __typeof__(*tmp), 1);
@@ -685,6 +682,11 @@ vn_graphics_pipeline_fix_tmp_alloc(const VkAllocationCallbacks *alloc,
                         info_count);
       vk_multialloc_add(&ma, &rendering_infos, __typeof__(*rendering_infos),
                         info_count);
+      vk_multialloc_add(&ma, &robustness_infos, __typeof__(*robustness_infos),
+                        info_count);
+      vk_multialloc_add(&ma, &ral_infos, __typeof__(*ral_infos), info_count);
+      vk_multialloc_add(&ma, &riai_infos, __typeof__(*riai_infos),
+                        info_count);
    }
 
    if (!vk_multialloc_zalloc(&ma, alloc, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND))
@@ -702,6 +704,9 @@ vn_graphics_pipeline_fix_tmp_alloc(const VkAllocationCallbacks *alloc,
       tmp->fsr_infos = fsr_infos;
       tmp->library_infos = library_infos;
       tmp->rendering_infos = rendering_infos;
+      tmp->robustness_infos = robustness_infos;
+      tmp->ral_infos = ral_infos;
+      tmp->riai_infos = riai_infos;
    }
 
    return tmp;
@@ -726,6 +731,7 @@ vn_graphics_pipeline_fix_tmp_alloc(const VkAllocationCallbacks *alloc,
 static void
 vn_graphics_pipeline_library_state_update(
    const VkGraphicsPipelineCreateInfo *info,
+   VkPipelineCreateFlags2 flags2,
    struct vn_graphics_pipeline_library_state *restrict gpl)
 {
    const VkGraphicsPipelineLibraryCreateInfoEXT *gpl_info =
@@ -737,7 +743,7 @@ vn_graphics_pipeline_library_state_update(
 
    if (gpl_info) {
       gpl->mask |= gpl_info->flags;
-   } else if ((info->flags & VK_PIPELINE_CREATE_LIBRARY_BIT_KHR) ||
+   } else if ((flags2 & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR) ||
               lib_count > 0) {
       gpl->mask |= 0;
    } else {
@@ -1053,6 +1059,7 @@ vn_graphics_pipeline_state_merge(
 static void
 vn_graphics_pipeline_state_fill(
    const VkGraphicsPipelineCreateInfo *info,
+   VkPipelineCreateFlags2 flags2,
    struct vn_graphics_pipeline_state *restrict state,
    struct vn_graphics_pipeline_fix_desc *out_fix_desc)
 {
@@ -1069,11 +1076,6 @@ vn_graphics_pipeline_state_fill(
    const uint32_t lib_count = lib_info ? lib_info->libraryCount : 0;
 
    const VkPipelineSampleLocationsStateCreateInfoEXT *sl_info = NULL;
-   if (info->pMultisampleState) {
-      sl_info = vk_find_struct_const(
-         info->pMultisampleState->pNext,
-         PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
-   }
 
    /* This tracks which fields have valid values in the
     * VkGraphicsPipelineCreateInfo pNext chain.
@@ -1107,7 +1109,7 @@ vn_graphics_pipeline_state_fill(
     * directly (without linking).
     */
    struct vn_graphics_pipeline_library_state direct_gpl = { 0 };
-   vn_graphics_pipeline_library_state_update(info, &direct_gpl);
+   vn_graphics_pipeline_library_state_update(info, flags2, &direct_gpl);
 
    /* From the Vulkan 1.3.251 spec:
     *    VUID-VkGraphicsPipelineCreateInfo-pLibraries-06611
@@ -1242,6 +1244,11 @@ vn_graphics_pipeline_state_fill(
           * VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_ENABLE_EXT dynamic state is used
           * or the static sampleLocationsEnable is true.
           */
+         if (info->pMultisampleState) {
+            sl_info = vk_find_struct_const(
+               info->pMultisampleState->pNext,
+               PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
+         }
          if (!state->dynamic.sample_locations) {
             if (state->dynamic.sample_locations_enable)
                valid.self.multisample_state_sample_locations = true;
@@ -1260,7 +1267,7 @@ vn_graphics_pipeline_state_fill(
       if (!is_raster_statically_disabled) {
          if (state->render_pass.attachment_aspects ==
                 VK_IMAGE_ASPECT_METADATA_BIT &&
-             (info->flags & VK_PIPELINE_CREATE_LIBRARY_BIT_KHR)) {
+             (flags2 & VK_PIPELINE_CREATE_2_LIBRARY_BIT_KHR)) {
             /* The app has not yet provided render pass info, neither directly
              * in this VkGraphicsPipelineCreateInfo nor in any linked pipeline
              * libraries. Therefore we do not know if the final complete
@@ -1313,7 +1320,7 @@ vn_graphics_pipeline_state_fill(
     *    basePipelineIndex is -1, basePipelineHandle must be a valid graphics
     *    VkPipeline handle
     */
-   if ((info->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT) &&
+   if ((flags2 & VK_PIPELINE_CREATE_2_DERIVATIVE_BIT) &&
        info->basePipelineIndex == -1)
       valid.self.base_pipeline_handle = true;
 
@@ -1503,6 +1510,10 @@ vn_graphics_pipeline_create_info_pnext_init(
    VkPipelineLibraryCreateInfoKHR *library = &fix_tmp->library_infos[index];
    VkPipelineRenderingCreateInfo *rendering =
       &fix_tmp->rendering_infos[index];
+   VkPipelineRobustnessCreateInfo *robustness =
+      &fix_tmp->robustness_infos[index];
+   VkRenderingAttachmentLocationInfo *ral = &fix_tmp->ral_infos[index];
+   VkRenderingInputAttachmentIndexInfo *riai = &fix_tmp->riai_infos[index];
 
    VkBaseOutStructure *cur = (void *)&fix_tmp->infos[index];
 
@@ -1532,6 +1543,18 @@ vn_graphics_pipeline_create_info_pnext_init(
       case VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO:
          memcpy(rendering, src, sizeof(*rendering));
          next = rendering;
+         break;
+      case VK_STRUCTURE_TYPE_PIPELINE_ROBUSTNESS_CREATE_INFO:
+         memcpy(robustness, src, sizeof(*robustness));
+         next = robustness;
+         break;
+      case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO:
+         memcpy(ral, src, sizeof(*ral));
+         next = ral;
+         break;
+      case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO:
+         memcpy(riai, src, sizeof(*riai));
+         next = riai;
          break;
       default:
          break;
@@ -1635,6 +1658,14 @@ vn_invalidate_pipeline_creation_feedback(const VkBaseInStructure *chain)
       feedback_info->pPipelineStageCreationFeedbacks[i].flags = 0;
 }
 
+static inline VkPipelineCreateFlags2
+vn_pipeline_create_flags2(const void *pnext, VkPipelineCreateFlags flags)
+{
+   const VkPipelineCreateFlags2CreateInfo *flags2 =
+      vk_find_struct_const(pnext, PIPELINE_CREATE_FLAGS_2_CREATE_INFO);
+   return flags2 ? flags2->flags : flags;
+}
+
 VkResult
 vn_CreateGraphicsPipelines(VkDevice device,
                            VkPipelineCache pipelineCache,
@@ -1665,8 +1696,14 @@ vn_CreateGraphicsPipelines(VkDevice device,
    for (uint32_t i = 0; i < createInfoCount; i++) {
       struct vn_graphics_pipeline *pipeline =
          vn_graphics_pipeline_from_handle(pPipelines[i]);
-      vn_graphics_pipeline_state_fill(&pCreateInfos[i], &pipeline->state,
-                                      &fix_descs[i]);
+
+      const VkPipelineCreateFlags2 flags2 = vn_pipeline_create_flags2(
+         pCreateInfos[i].pNext, pCreateInfos[i].flags);
+      if (flags2 & VN_PIPELINE_CREATE_SYNC_MASK)
+         want_sync = true;
+
+      vn_graphics_pipeline_state_fill(&pCreateInfos[i], flags2,
+                                      &pipeline->state, &fix_descs[i]);
    }
 
    struct vn_graphics_pipeline_fix_tmp *fix_tmp = NULL;
@@ -1686,9 +1723,6 @@ vn_CreateGraphicsPipelines(VkDevice device,
                      layout->has_push_constant_ranges)) {
          pipeline->layout = vn_pipeline_layout_ref(dev, layout);
       }
-
-      if ((pCreateInfos[i].flags & VN_PIPELINE_CREATE_SYNC_MASK))
-         want_sync = true;
 
       vn_invalidate_pipeline_creation_feedback(
          (const VkBaseInStructure *)pCreateInfos[i].pNext);
@@ -1753,7 +1787,10 @@ vn_CreateComputePipelines(VkDevice device,
           layout->has_push_constant_ranges) {
          pipeline->layout = vn_pipeline_layout_ref(dev, layout);
       }
-      if ((pCreateInfos[i].flags & VN_PIPELINE_CREATE_SYNC_MASK))
+
+      if (vn_pipeline_create_flags2(pCreateInfos[i].pNext,
+                                    pCreateInfos[i].flags) &
+          VN_PIPELINE_CREATE_SYNC_MASK)
          want_sync = true;
 
       vn_invalidate_pipeline_creation_feedback(

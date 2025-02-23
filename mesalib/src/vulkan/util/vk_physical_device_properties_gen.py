@@ -225,7 +225,7 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
 % endif
 % endfor
 
-      /* Specialized propery handling defined in vk_physical_device_properties_gen.py */
+      /* Specialized property handling defined in vk_physical_device_properties_gen.py */
 
       default:
          break;

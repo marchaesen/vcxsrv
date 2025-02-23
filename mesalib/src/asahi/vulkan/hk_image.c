@@ -14,6 +14,8 @@
 #include "util/u_math.h"
 #include "vulkan/vulkan_core.h"
 
+#include "agx_bo.h"
+#include "hk_buffer.h"
 #include "hk_device.h"
 #include "hk_device_memory.h"
 #include "hk_entrypoints.h"
@@ -26,6 +28,11 @@
  * requires 128-byte alignment, but we could relax that one if we wanted.
  */
 #define HK_PLANE_ALIGN_B 128
+
+/* However, exposing the standard sparse block sizes requires using the standard
+ * alignment 65k.
+ */
+#define HK_SPARSE_ALIGN_B 65536
 
 static VkFormatFeatureFlags2
 hk_get_image_plane_format_features(struct hk_physical_device *pdev,
@@ -241,6 +248,16 @@ hk_can_compress(const struct agx_device *dev, VkFormat format, unsigned plane,
    if (dev->debug & AGX_DBG_NOCOMPRESS)
       return false;
 
+   /* TODO: Handle compression with sparse. This should be doable but it's a bit
+    * subtle. Correctness first.
+    */
+   if (flags & (VK_IMAGE_CREATE_SPARSE_ALIASED_BIT |
+                VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) {
+      perf_debug_dev(dev, "No compression: sparse");
+      return false;
+   }
+
    /* Image compression is not (yet?) supported with host image copies,
     * although the vendor driver does support something similar if I recall.
     * Compression is not supported in hardware for storage images or mutable
@@ -345,10 +362,38 @@ hk_GetPhysicalDeviceImageFormatProperties2(
             pdev, plane_format, pImageFormatInfo->tiling);
       }
    }
+
+   /* Sparse + host-image-copy doesn't make sense. Forbid it. */
+   if (pImageFormatInfo->flags & (VK_IMAGE_CREATE_SPARSE_ALIASED_BIT |
+                                  VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                  VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) {
+      features &= ~VK_FORMAT_FEATURE_2_HOST_IMAGE_TRANSFER_BIT_EXT;
+
+      /* We also do not support sparse RGB32 uniform texel buffers, as we do not
+       * have residency query support for this interaction and there are no
+       * known use cases.
+       */
+      if (!util_is_power_of_two_nonzero(
+             vk_format_get_blocksize(pImageFormatInfo->format))) {
+
+         return VK_ERROR_FORMAT_NOT_SUPPORTED;
+      }
+   }
+
+   if (pImageFormatInfo->flags & (VK_IMAGE_CREATE_SPARSE_ALIASED_BIT |
+                                  VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                  VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT) &&
+       (pImageFormatInfo->usage & VK_IMAGE_USAGE_HOST_TRANSFER_BIT))
+      return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
    if (features == 0)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
    if (pImageFormatInfo->tiling == VK_IMAGE_TILING_LINEAR &&
+       pImageFormatInfo->type != VK_IMAGE_TYPE_2D)
+      return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+   if (pImageFormatInfo->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT &&
        pImageFormatInfo->type != VK_IMAGE_TYPE_2D)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
@@ -387,11 +432,19 @@ hk_GetPhysicalDeviceImageFormatProperties2(
                                    VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)))
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
 
-   /* We don't yet support sparse, but it shouldn't be too hard */
-   if (pImageFormatInfo->flags & (VK_IMAGE_CREATE_SPARSE_ALIASED_BIT |
-                                  VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
-                                  VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT))
+   /* Multiplane formats are not supported with sparse residency. This has no
+    * known use cases and is forbidden in other APIs.
+    *
+    * Neither is depth/stencil: this is a hardware limitation on G13. Hardware
+    * support is added with G14, but that's not implemented yet. We could
+    * emulate on G13 but it'd be fiddly. Fortunately, vkd3d-proton doesn't need
+    * sparse depth, as RADV has the same limitation!
+    */
+   if ((ycbcr_info ||
+        vk_format_is_depth_or_stencil(pImageFormatInfo->format)) &&
+       (pImageFormatInfo->flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT)) {
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
+   }
 
    const uint32_t max_dim = 16384;
    VkExtent3D maxExtent;
@@ -593,18 +646,28 @@ hk_GetPhysicalDeviceImageFormatProperties2(
 }
 
 static VkSparseImageFormatProperties
-hk_fill_sparse_image_fmt_props(VkImageAspectFlags aspects)
+hk_fill_sparse_image_fmt_props(enum pipe_format format, unsigned samples,
+                               VkImageAspectFlags aspects)
 {
-   /* TODO */
+   /* Apple tile sizes are exactly 16KiB. The Vulkan standard block sizes are
+    * sized to be exactly 64KiB. Fortunately, they correspond directly to the
+    * Apple sizes (except for MSAA 2x), just doubled in each dimensions. Our
+    * sparse binding code gangs together 4 hardware tiles into an API tile. We
+    * just need to derive the correct size here.
+    */
+   unsigned blocksize_B = util_format_get_blocksize(format) * samples;
+   struct ail_tile ail_size = ail_get_max_tile_size(blocksize_B);
+
+   VkExtent3D granularity = {
+      ail_size.width_el * 2 * util_format_get_blockwidth(format),
+      ail_size.height_el * 2 * util_format_get_blockheight(format),
+      1,
+   };
+
    return (VkSparseImageFormatProperties){
       .aspectMask = aspects,
       .flags = VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT,
-      .imageGranularity =
-         {
-            .width = 1,
-            .height = 1,
-            .depth = 1,
-         },
+      .imageGranularity = granularity,
    };
 }
 
@@ -655,7 +718,9 @@ hk_GetPhysicalDeviceSparseImageFormatProperties2(
 
    vk_outarray_append_typed(VkSparseImageFormatProperties2, &out, props)
    {
-      props->properties = hk_fill_sparse_image_fmt_props(aspects);
+      props->properties = hk_fill_sparse_image_fmt_props(
+         vk_format_to_pipe_format(pFormatInfo->format), pFormatInfo->samples,
+         aspects);
    }
 }
 
@@ -824,10 +889,17 @@ hk_image_init(struct hk_device *dev, struct hk_image *image,
       enum ail_tiling tiling =
          hk_map_tiling(dev, pCreateInfo, plane, image->vk.drm_format_mod);
 
+      uint32_t linear_stride_B = 0;
+      if (mod_explicit_info &&
+          image->vk.drm_format_mod == DRM_FORMAT_MOD_LINEAR)
+         linear_stride_B = mod_explicit_info->pPlaneLayouts[plane].rowPitch;
+
       image->planes[plane].layout = (struct ail_layout){
          .tiling = tiling,
          .mipmapped_z = pCreateInfo->imageType == VK_IMAGE_TYPE_3D,
          .format = hk_format_to_pipe_format(format),
+
+         .linear_stride_B = linear_stride_B,
 
          .width_px = pCreateInfo->extent.width / width_scale,
          .height_px = pCreateInfo->extent.height / height_scale,
@@ -857,16 +929,35 @@ hk_image_plane_alloc_vma(struct hk_device *dev, struct hk_image_plane *plane,
    assert(sparse_bound || !sparse_resident);
 
    if (sparse_bound) {
-      plane->vma_size_B = plane->layout.size_B;
-#if 0
-      plane->addr = nouveau_ws_alloc_vma(dev->ws_dev, 0, plane->vma_size_B,
-                                         plane->layout.align_B,
-                                         false, sparse_resident);
-#endif
+      plane->va =
+         agx_va_alloc(&dev->dev, align(plane->layout.size_B, HK_SPARSE_ALIGN_B),
+                      AIL_PAGESIZE, 0, 0);
+      plane->addr = plane->va->addr;
       if (plane->addr == 0) {
          return vk_errorf(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY,
                           "Sparse VMA allocation failed");
       }
+
+      /* Bind scratch pages to discard writes, including from lowered software
+       * texture atomics. Reads will use the hardware texture unit sparse
+       * handling to properly handle residency queries.
+       *
+       * In the future we could optimize this out using the PBE sparse support
+       * but that needs more reverse-engineering.
+       */
+      hk_bind_scratch(dev, plane->va, 0, plane->layout.size_B);
+   }
+
+   if (sparse_resident) {
+      plane->sparse_map =
+         agx_bo_create(&dev->dev, plane->layout.sparse_table_size_B,
+                       AIL_PAGESIZE, 0, "Sparse map");
+
+      /* Zero-initialize the sparse map. This ensures all tiles are disabled,
+       * which provides correct behaviour for unmapped tiles.
+       */
+      memset(agx_bo_map(plane->sparse_map), 0,
+             plane->layout.sparse_table_size_B);
    }
 
    return VK_SUCCESS;
@@ -877,16 +968,11 @@ hk_image_plane_finish(struct hk_device *dev, struct hk_image_plane *plane,
                       VkImageCreateFlags create_flags,
                       const VkAllocationCallbacks *pAllocator)
 {
-   if (plane->vma_size_B) {
-#if 0
-      const bool sparse_resident =
-         create_flags & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT;
-
-      agx_bo_unbind_vma(dev->ws_dev, plane->addr, plane->vma_size_B);
-      nouveau_ws_free_vma(dev->ws_dev, plane->addr, plane->vma_size_B,
-                          false, sparse_resident);
-#endif
+   if (plane->va) {
+      agx_va_free(&dev->dev, plane->va, true);
    }
+
+   agx_bo_unreference(&dev->dev, plane->sparse_map);
 }
 
 static void
@@ -964,14 +1050,15 @@ hk_DestroyImage(VkDevice device, VkImage _image,
 }
 
 static void
-hk_image_plane_add_req(struct hk_image_plane *plane, uint64_t *size_B,
-                       uint32_t *align_B)
+hk_image_plane_add_req(struct hk_image_plane *plane, bool sparse,
+                       uint64_t *size_B, uint32_t *align_B)
 {
+   unsigned plane_align_B = sparse ? HK_SPARSE_ALIGN_B : HK_PLANE_ALIGN_B;
    assert(util_is_power_of_two_or_zero64(*align_B));
-   assert(util_is_power_of_two_or_zero64(HK_PLANE_ALIGN_B));
+   assert(util_is_power_of_two_or_zero64(plane_align_B));
 
-   *align_B = MAX2(*align_B, HK_PLANE_ALIGN_B);
-   *size_B = align64(*size_B, HK_PLANE_ALIGN_B);
+   *align_B = MAX2(*align_B, plane_align_B);
+   *size_B = align64(*size_B, plane_align_B);
    *size_B += plane->layout.size_B;
 }
 
@@ -982,17 +1069,26 @@ hk_get_image_memory_requirements(struct hk_device *dev, struct hk_image *image,
 {
    struct hk_physical_device *pdev = hk_device_physical(dev);
    uint32_t memory_types = (1 << pdev->mem_type_count) - 1;
-
-   // TODO hope for the best?
+   bool sparse =
+      image->vk.create_flags & (VK_IMAGE_CREATE_SPARSE_BINDING_BIT |
+                                VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT);
 
    uint64_t size_B = 0;
    uint32_t align_B = 0;
    if (image->disjoint) {
       uint8_t plane = hk_image_aspects_to_plane(image, aspects);
-      hk_image_plane_add_req(&image->planes[plane], &size_B, &align_B);
+      hk_image_plane_add_req(&image->planes[plane], sparse, &size_B, &align_B);
    } else {
       for (unsigned plane = 0; plane < image->plane_count; plane++)
-         hk_image_plane_add_req(&image->planes[plane], &size_B, &align_B);
+         hk_image_plane_add_req(&image->planes[plane], sparse, &size_B,
+                                &align_B);
+   }
+
+   /* For sparse binding, we need to pad to the standard alignment so we don't
+    * clobber over things when we bind memory.
+    */
+   if (sparse) {
+      size_B = align64(size_B, align_B);
    }
 
    pMemoryRequirements->memoryRequirements.memoryTypeBits = memory_types;
@@ -1055,17 +1151,38 @@ hk_fill_sparse_image_memory_reqs(const struct ail_layout *layout,
                                  VkImageAspectFlags aspects)
 {
    VkSparseImageFormatProperties sparse_format_props =
-      hk_fill_sparse_image_fmt_props(aspects);
+      hk_fill_sparse_image_fmt_props(layout->format, layout->sample_count_sa,
+                                     aspects);
 
-   // assert(layout->mip_tail_first_lod <= layout->num_levels);
+   unsigned tail_level = layout->mip_tail_first_lod;
+   assert(tail_level <= layout->levels);
    VkSparseImageMemoryRequirements sparse_memory_reqs = {
       .formatProperties = sparse_format_props,
-      .imageMipTailFirstLod = 0, // layout->mip_tail_first_lod,
+      .imageMipTailFirstLod = layout->mip_tail_first_lod,
       .imageMipTailStride = 0,
    };
 
-   sparse_memory_reqs.imageMipTailSize = layout->size_B;
-   sparse_memory_reqs.imageMipTailOffset = 0;
+   /* imageMipTailSize must be aligned to the sparse block size (65k). This
+    * requires us to manage the miptail manually, because 16k is the actual
+    * hardware alignment here so we need to give the illusion of extra
+    * padding. Annoying!
+    */
+   if (tail_level == 0) {
+      sparse_memory_reqs.imageMipTailSize =
+         align(layout->size_B, HK_SPARSE_ALIGN_B);
+
+      sparse_memory_reqs.imageMipTailOffset = 0;
+   } else if (tail_level < layout->levels) {
+      sparse_memory_reqs.imageMipTailSize =
+         align(layout->mip_tail_stride * layout->depth_px, HK_SPARSE_ALIGN_B);
+
+      /* TODO: sparse metadata */
+      sparse_memory_reqs.imageMipTailOffset = HK_MIP_TAIL_START_OFFSET;
+   } else {
+      sparse_memory_reqs.imageMipTailSize = 0;
+      sparse_memory_reqs.imageMipTailOffset = HK_MIP_TAIL_START_OFFSET;
+   }
+
    return sparse_memory_reqs;
 }
 
@@ -1152,8 +1269,10 @@ hk_get_image_subresource_layout(UNUSED struct hk_device *dev,
    uint64_t offset_B = 0;
    if (!image->disjoint) {
       uint32_t align_B = 0;
+      /* TODO: sparse? */
       for (unsigned plane = 0; plane < p; plane++)
-         hk_image_plane_add_req(&image->planes[plane], &offset_B, &align_B);
+         hk_image_plane_add_req(&image->planes[plane], false, &offset_B,
+                                &align_B);
    }
    offset_B +=
       ail_get_layer_level_B(&plane->layout, isr->arrayLayer, isr->mipLevel);
@@ -1221,12 +1340,12 @@ hk_image_plane_bind(struct hk_device *dev, struct hk_image_plane *plane,
 {
    *offset_B = align64(*offset_B, HK_PLANE_ALIGN_B);
 
-   if (plane->vma_size_B) {
+   if (plane->va) {
 #if 0
       agx_bo_bind_vma(dev->ws_dev,
                              mem->bo,
                              plane->addr,
-                             plane->vma_size_B,
+                             plane->va,
                              *offset_B,
                              plane->nil.pte_kind);
 #endif
@@ -1346,8 +1465,7 @@ hk_copy_memory_to_image(struct hk_device *device, struct hk_image *dst_image,
    bool tiled = ail_is_level_twiddled_uncompressed(
       layout, info->imageSubresource.mipLevel);
 
-   const char *src =
-      (const char *)info->pHostPointer + start_layer * dst_layer_stride;
+   const char *src = (const char *)info->pHostPointer;
    char *dst = (char *)dst_image->planes[plane].map + image_offset;
    for (unsigned layer = 0; layer < layers;
         layer++, src += src_layer_stride, dst += dst_layer_stride) {
@@ -1421,7 +1539,7 @@ hk_copy_image_to_memory(struct hk_device *device, struct hk_image *src_image,
       layout, info->imageSubresource.mipLevel);
 
    const char *src = (const char *)src_image->planes[plane].map + image_offset;
-   char *dst = (char *)info->pHostPointer + start_layer * dst_layer_stride;
+   char *dst = (char *)info->pHostPointer;
    for (unsigned layer = 0; layer < layers;
         layer++, src += src_layer_stride, dst += dst_layer_stride) {
 

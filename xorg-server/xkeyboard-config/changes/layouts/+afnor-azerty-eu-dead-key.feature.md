@@ -1,0 +1,1 @@
+French (AZERTY, AFNOR): Implement the “European character” dead key on `AltGr+H`, as documented at the [offical web page](https://norme-azerty.fr/img/EU_level.png). Also fix the missing upper Theta Θ on `Q`.
