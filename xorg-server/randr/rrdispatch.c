@@ -23,6 +23,7 @@
 
 #include "dix/dix_priv.h"
 #include "randr/randrstr_priv.h"
+#include "os/fmt.h"
 
 #include "protocol-versions.h"
 

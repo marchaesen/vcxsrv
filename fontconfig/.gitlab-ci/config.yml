@@ -1,4 +1,4 @@
-.default_tag: &default_tag "2025-02-04.1"
+.default_tag: &default_tag "2025-02-17.3"
 
 distributions:
   - name: fedora
@@ -122,6 +122,7 @@ packages:
         "autoconf",
         "automake",
         "clang-devel",
+        "clang-tools-extra",
         "libtool",
         "gettext",
         "gettext-devel",
@@ -131,6 +132,7 @@ packages:
         "freetype-devel",
         "json-c-devel",
         "git",
+        "git-clang-format",
         "docbook-utils",
         "docbook-utils-pdf",
         "bubblewrap",
@@ -142,7 +144,6 @@ packages:
         "mingw64-gettext",
         "mingw64-freetype",
         "mingw64-libxml2",
-        "wine",
         "rust",
         "cargo",
         "bindgen-cli"

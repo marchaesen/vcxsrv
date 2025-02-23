@@ -80,4 +80,3 @@ Then build the changelog:
   ```
   </dd>
 </dl>
-

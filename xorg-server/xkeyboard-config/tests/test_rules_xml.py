@@ -3,9 +3,10 @@
 # Call with pytest. Requires XKB_CONFIG_ROOT to be set
 
 import os
-import pytest
-from pathlib import Path
 import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import pytest
 
 
 def _xkb_config_root():
@@ -192,9 +193,9 @@ def test_duplicate_layouts(rules_xml):
         variants = {}
         for variant in layout.iter("variant"):
             vci = ConfigItem.from_elem(variant)
-            assert (
-                vci.name not in variants
-            ), f"{rules_xml}: duplicate variant {ci.name}({vci.name}):\n{prettyxml(variant)}"
+            assert vci.name not in variants, (
+                f"{rules_xml}: duplicate variant {ci.name}({vci.name}):\n{prettyxml(variant)}"
+            )
             variants[vci.name] = True
 
 
@@ -211,19 +212,19 @@ def test_duplicate_models(rules_xml):
 def test_exotic(config_item):
     """All items in extras should be marked exotic"""
     if config_item.rulesfile.stem.endswith("extras"):
-        assert (
-            config_item.popularity == "exotic"
-        ), f"{config_item.rulesfile}: item {config_item.name} does not have popularity exotic"
+        assert config_item.popularity == "exotic", (
+            f"{config_item.rulesfile}: item {config_item.name} does not have popularity exotic"
+        )
     else:
-        assert (
-            config_item.popularity != "exotic"
-        ), f"{config_item.rulesfile}: item {config_item.name} has popularity exotic"
+        assert config_item.popularity != "exotic", (
+            f"{config_item.rulesfile}: item {config_item.name} has popularity exotic"
+        )
 
 
 def test_short_description(layout):
-    assert (
-        layout.shortDescription
-    ), f"{layout.rulesfile}: layout {layout.name} missing shortDescription"
+    assert layout.shortDescription, (
+        f"{layout.rulesfile}: layout {layout.name} missing shortDescription"
+    )
 
 
 def test_iso3166(layout):
@@ -241,13 +242,13 @@ def test_iso3166(layout):
     ]
 
     for code in layout.iso3166:
-        assert (
-            code in country_codes
-        ), f'{layout.rulesfile}: unknown country code "{code}" in {layout.name}'
+        assert code in country_codes, (
+            f'{layout.rulesfile}: unknown country code "{code}" in {layout.name}'
+        )
 
-    assert (
-        layout.iso3166 or layout.layout.name in expected_without_country
-    ), f"{layout.rulesfile}: layout {layout.name} has no countries associated"
+    assert layout.iso3166 or layout.layout.name in expected_without_country, (
+        f"{layout.rulesfile}: layout {layout.name} has no countries associated"
+    )
 
 
 def test_iso639(layout):
@@ -267,9 +268,9 @@ def test_iso639(layout):
 
     for code in layout.iso639:
         try:
-            assert (
-                code in language_codes
-            ), f'{layout.rulesfile}: unknown language code "{code}" in {layout.name}'
+            assert code in language_codes, (
+                f'{layout.rulesfile}: unknown language code "{code}" in {layout.name}'
+            )
         except AssertionError as e:
             # needs pycountry 23.12.7, this code can be removed when our CI has pycountry new enough
             if code in ["pzh", "szy", "uon"]:
@@ -277,6 +278,6 @@ def test_iso639(layout):
             else:
                 raise e
 
-    assert (
-        layout.iso639 or layout.layout.name in expected_without_language
-    ), f"{layout.rulesfile}: layout {layout.name} has no languages associated"
+    assert layout.iso639 or layout.layout.name in expected_without_language, (
+        f"{layout.rulesfile}: layout {layout.name} has no languages associated"
+    )

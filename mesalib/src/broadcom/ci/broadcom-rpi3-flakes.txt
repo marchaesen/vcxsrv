@@ -67,3 +67,6 @@ dEQP-EGL.functional.sharing.gles2.multithread.random_egl_sync.programs.link.19
 dEQP-GLES2.functional.texture.mipmap.cube.generate.la88_fastest
 
 spec@ext_framebuffer_multisample@accuracy all_samples stencil_draw small depthstencil
+
+dEQP-GLES2.functional.fragment_ops.depth_stencil.stencil_ops.keep_invert_decr
+dEQP-GLES2.functional.texture.mipmap.cube.generate.rgba8888_fastest

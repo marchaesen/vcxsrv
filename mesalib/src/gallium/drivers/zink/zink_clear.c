@@ -745,17 +745,24 @@ zink_fb_clear_reset(struct zink_context *ctx, unsigned i)
       ctx->rp_loadop_changed = true;
 }
 
+static bool
+fb_depth_intersects(const struct pipe_surface *psurf, int z, int depth)
+{
+   return (z >= psurf->u.tex.first_layer && z + depth - 1 <= psurf->u.tex.last_layer) ||
+          (psurf->u.tex.first_layer >= z && psurf->u.tex.last_layer <= z + depth - 1);
+}
+
 void
-zink_fb_clears_apply(struct zink_context *ctx, struct pipe_resource *pres)
+zink_fb_clears_apply(struct zink_context *ctx, struct pipe_resource *pres, int z, int depth)
 {
    if (zink_resource(pres)->aspect == VK_IMAGE_ASPECT_COLOR_BIT) {
       for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
-         if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres) {
+         if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres && fb_depth_intersects(ctx->fb_state.cbufs[i], z, depth)) {
             fb_clears_apply_internal(ctx, pres, i);
          }
       }
    } else {
-      if (ctx->fb_state.zsbuf && ctx->fb_state.zsbuf->texture == pres) {
+      if (ctx->fb_state.zsbuf && ctx->fb_state.zsbuf->texture == pres && fb_depth_intersects(ctx->fb_state.zsbuf, z, depth)) {
          fb_clears_apply_internal(ctx, pres, PIPE_MAX_COLOR_BUFS);
       }
    }
@@ -806,11 +813,11 @@ zink_clear_apply_conditionals(struct zink_context *ctx)
 }
 
 static void
-fb_clears_apply_or_discard_internal(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region, bool discard_only, bool invert, int i)
+fb_clears_apply_or_discard_internal(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region, bool discard_only, bool invert, bool depth_fills, int i)
 {
    struct zink_framebuffer_clear *fb_clear = &ctx->fb_clears[i];
    if (zink_fb_clear_enabled(ctx, i)) {
-      if (zink_blit_region_fills(region, pres->width0, pres->height0)) {
+      if (zink_blit_region_fills(region, pres->width0, pres->height0) && depth_fills) {
          if (invert)
             fb_clears_apply_internal(ctx, pres, i);
          else
@@ -822,7 +829,7 @@ fb_clears_apply_or_discard_internal(struct zink_context *ctx, struct pipe_resour
          struct zink_framebuffer_clear_data *clear = zink_fb_clear_element(fb_clear, j);
          struct u_rect scissor = {clear->scissor.minx, clear->scissor.maxx,
                                   clear->scissor.miny, clear->scissor.maxy};
-         if (!clear->has_scissor || zink_blit_region_covers(region, scissor)) {
+         if (!clear->has_scissor || zink_blit_region_covers(region, scissor) || !depth_fills) {
             /* this is a clear that isn't fully covered by our pending write */
             if (!discard_only)
                fb_clears_apply_internal(ctx, pres, i);
@@ -835,34 +842,42 @@ fb_clears_apply_or_discard_internal(struct zink_context *ctx, struct pipe_resour
    }
 }
 
+static bool
+fb_depth_fills(const struct pipe_surface *psurf, int z, int depth)
+{
+   return z == psurf->u.tex.first_layer && z + depth - 1 >= psurf->u.tex.last_layer;
+}
+
 void
-zink_fb_clears_apply_or_discard(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region, bool discard_only)
+zink_fb_clears_apply_or_discard(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region, int z, int depth, bool discard_only)
 {
    if (zink_resource(pres)->aspect == VK_IMAGE_ASPECT_COLOR_BIT) {
       for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
-         if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres) {
-            fb_clears_apply_or_discard_internal(ctx, pres, region, discard_only, false, i);
+         if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres &&
+             fb_depth_intersects(ctx->fb_state.cbufs[i], z, depth)) {
+            fb_clears_apply_or_discard_internal(ctx, pres, region, discard_only, false, fb_depth_fills(ctx->fb_state.cbufs[i], z, depth), i);
          }
       }
    }  else {
-      if (zink_fb_clear_enabled(ctx, PIPE_MAX_COLOR_BUFS) && ctx->fb_state.zsbuf && ctx->fb_state.zsbuf->texture == pres) {
-         fb_clears_apply_or_discard_internal(ctx, pres, region, discard_only, false, PIPE_MAX_COLOR_BUFS);
+      if (zink_fb_clear_enabled(ctx, PIPE_MAX_COLOR_BUFS) && ctx->fb_state.zsbuf && ctx->fb_state.zsbuf->texture == pres &&
+          fb_depth_intersects(ctx->fb_state.zsbuf, z, depth)) {
+         fb_clears_apply_or_discard_internal(ctx, pres, region, discard_only, false, fb_depth_fills(ctx->fb_state.zsbuf, z, depth), PIPE_MAX_COLOR_BUFS);
       }
    }
 }
 
 void
-zink_fb_clears_apply_region(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region)
+zink_fb_clears_apply_region(struct zink_context *ctx, struct pipe_resource *pres, struct u_rect region, int z, int depth)
 {
    if (zink_resource(pres)->aspect == VK_IMAGE_ASPECT_COLOR_BIT) {
       for (int i = 0; i < ctx->fb_state.nr_cbufs; i++) {
-         if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres) {
-            fb_clears_apply_or_discard_internal(ctx, pres, region, false, true, i);
+         if (ctx->fb_state.cbufs[i] && ctx->fb_state.cbufs[i]->texture == pres && fb_depth_intersects(ctx->fb_state.cbufs[i], z, depth)) {
+            fb_clears_apply_or_discard_internal(ctx, pres, region, false, true, fb_depth_fills(ctx->fb_state.cbufs[i], z, depth), i);
          }
       }
    }  else {
-      if (ctx->fb_state.zsbuf && ctx->fb_state.zsbuf->texture == pres) {
-         fb_clears_apply_or_discard_internal(ctx, pres, region, false, true, PIPE_MAX_COLOR_BUFS);
+      if (ctx->fb_state.zsbuf && ctx->fb_state.zsbuf->texture == pres && fb_depth_intersects(ctx->fb_state.zsbuf, z, depth)) {
+         fb_clears_apply_or_discard_internal(ctx, pres, region, false, true, fb_depth_fills(ctx->fb_state.zsbuf, z, depth), PIPE_MAX_COLOR_BUFS);
       }
    }
 }

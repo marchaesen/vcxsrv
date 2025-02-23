@@ -23,6 +23,7 @@
  */
 
 #include "fcint.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -47,14 +48,13 @@ _FcValuePrintFile (FILE *f, const FcValue v)
 	break;
     case FcTypeBool:
 	fprintf (f,
-		 v.u.b == FcTrue  ? "True" :
-		 v.u.b == FcFalse ? "False" :
-				    "DontCare");
+	         v.u.b == FcTrue ? "True" : v.u.b == FcFalse ? "False"
+	                                                     : "DontCare");
 	break;
     case FcTypeMatrix:
 	fprintf (f, "[%g %g; %g %g]", v.u.m->xx, v.u.m->xy, v.u.m->yx, v.u.m->yy);
 	break;
-    case FcTypeCharSet:	/* XXX */
+    case FcTypeCharSet: /* XXX */
 	if (f == stdout)
 	    FcCharSetPrint (v.u.c);
 	break;
@@ -117,8 +117,7 @@ FcValueBindingPrint (const FcValueListPtr l)
 void
 FcValueListPrintWithPosition (FcValueListPtr l, const FcValueListPtr pos)
 {
-    for (; l != NULL; l = FcValueListNext(l))
-    {
+    for (; l != NULL; l = FcValueListNext (l)) {
 	FcValuePrintWithPosition (FcValueCanonicalize (&l->value), pos != NULL && l == pos);
 	FcValueBindingPrint (l);
     }
@@ -129,8 +128,7 @@ FcValueListPrintWithPosition (FcValueListPtr l, const FcValueListPtr pos)
 void
 FcValueListPrint (FcValueListPtr l)
 {
-    for (; l != NULL; l = FcValueListNext(l))
-    {
+    for (; l != NULL; l = FcValueListNext (l)) {
 	FcValuePrint (FcValueCanonicalize (&l->value));
 	FcValueBindingPrint (l);
     }
@@ -139,23 +137,23 @@ FcValueListPrint (FcValueListPtr l)
 void
 FcLangSetPrint (const FcLangSet *ls)
 {
-    FcStrBuf	buf;
-    FcChar8	init_buf[1024];
+    FcStrBuf buf;
+    FcChar8  init_buf[1024];
 
     FcStrBufInit (&buf, init_buf, sizeof (init_buf));
-    if (FcNameUnparseLangSet (&buf, ls) && FcStrBufChar (&buf,'\0'))
-       printf ("%s", buf.buf);
+    if (FcNameUnparseLangSet (&buf, ls) && FcStrBufChar (&buf, '\0'))
+	printf ("%s", buf.buf);
     else
-       printf ("langset (alloc error)");
+	printf ("langset (alloc error)");
     FcStrBufDestroy (&buf);
 }
 
 void
 FcCharSetPrint (const FcCharSet *c)
 {
-    int	i, j;
-    intptr_t	*leaves = FcCharSetLeaves (c);
-    FcChar16	*numbers = FcCharSetNumbers (c);
+    int       i, j;
+    intptr_t *leaves = FcCharSetLeaves (c);
+    FcChar16 *numbers = FcCharSetNumbers (c);
 
 #if 0
     printf ("CharSet  0x%x\n", (intptr_t) c);
@@ -169,16 +167,15 @@ FcCharSetPrint (const FcCharSet *c)
 		(intptr_t) FcOffsetToPtr (leaves, leaves[i], FcCharLeaf));
     }
 #endif
-		
+
     printf ("\n");
-    for (i = 0; i < c->num; i++)
-    {
-	intptr_t	leaf_offset = leaves[i];
-	FcCharLeaf	*leaf = FcOffsetToPtr (leaves, leaf_offset, FcCharLeaf);
-	
+    for (i = 0; i < c->num; i++) {
+	intptr_t    leaf_offset = leaves[i];
+	FcCharLeaf *leaf = FcOffsetToPtr (leaves, leaf_offset, FcCharLeaf);
+
 	printf ("\t");
 	printf ("%04x:", numbers[i]);
-	for (j = 0; j < 256/32; j++)
+	for (j = 0; j < 256 / 32; j++)
 	    printf (" %08x", leaf->map[j]);
 	printf ("\n");
     }
@@ -189,15 +186,13 @@ FcPatternPrint (const FcPattern *p)
 {
     FcPatternIter iter;
 
-    if (!p)
-    {
+    if (!p) {
 	printf ("Null pattern\n");
 	return;
     }
     printf ("Pattern has %d elts (size %d)\n", FcPatternObjectCount (p), p->size);
     FcPatternIterStart (p, &iter);
-    do
-    {
+    do {
 	printf ("\t%s:", FcPatternIterGetObject (p, &iter));
 	FcValueListPrint (FcPatternIterGetValues (p, &iter));
 	printf ("\n");
@@ -205,79 +200,65 @@ FcPatternPrint (const FcPattern *p)
     printf ("\n");
 }
 
-#define FcOpFlagsPrint(_o_)		\
-    {					\
-	int f = FC_OP_GET_FLAGS (_o_);	\
-	if (f & FcOpFlagIgnoreBlanks)	\
-	    printf ("(ignore blanks)");	\
+#define FcOpFlagsPrint(_o_)             \
+    {                                   \
+	int f = FC_OP_GET_FLAGS (_o_);  \
+	if (f & FcOpFlagIgnoreBlanks)   \
+	    printf ("(ignore blanks)"); \
     }
 
 void
 FcPatternPrint2 (FcPattern         *pp1,
-		 FcPattern         *pp2,
-		 const FcObjectSet *os)
+                 FcPattern         *pp2,
+                 const FcObjectSet *os)
 {
-    int i, j, k, pos;
+    int           i, j, k, pos;
     FcPatternElt *e1, *e2;
-    FcPattern *p1, *p2;
+    FcPattern    *p1, *p2;
 
-    if (os)
-    {
+    if (os) {
 	p1 = FcPatternFilter (pp1, os);
 	p2 = FcPatternFilter (pp2, os);
-    }
-    else
-    {
+    } else {
 	p1 = pp1;
 	p2 = pp2;
     }
     printf ("Pattern has %d elts (size %d), %d elts (size %d)\n",
-	    p1->num, p1->size, p2->num, p2->size);
-    for (i = 0, j = 0; i < p1->num; i++)
-    {
-	e1 = &FcPatternElts(p1)[i];
-	e2 = &FcPatternElts(p2)[j];
-	if (!e2 || e1->object != e2->object)
-	{
+            p1->num, p1->size, p2->num, p2->size);
+    for (i = 0, j = 0; i < p1->num; i++) {
+	e1 = &FcPatternElts (p1)[i];
+	e2 = &FcPatternElts (p2)[j];
+	if (!e2 || e1->object != e2->object) {
 	    pos = FcPatternPosition (p2, FcObjectName (e1->object));
-	    if (pos >= 0)
-	    {
-		for (k = j; k < pos; k++)
-		{
-		    e2 = &FcPatternElts(p2)[k];
+	    if (pos >= 0) {
+		for (k = j; k < pos; k++) {
+		    e2 = &FcPatternElts (p2)[k];
 		    printf ("\t%s: (None) -> ", FcObjectName (e2->object));
 		    FcValueListPrint (FcPatternEltValues (e2));
 		    printf ("\n");
 		}
 		j = pos;
 		goto cont;
-	    }
-	    else
-	    {
+	    } else {
 		printf ("\t%s:", FcObjectName (e1->object));
 		FcValueListPrint (FcPatternEltValues (e1));
 		printf (" -> (None)\n");
 	    }
-	}
-	else
-	{
+	} else {
 	cont:
 	    printf ("\t%s:", FcObjectName (e1->object));
 	    FcValueListPrint (FcPatternEltValues (e1));
 	    printf (" -> ");
-	    e2 = &FcPatternElts(p2)[j];
+	    e2 = &FcPatternElts (p2)[j];
 	    FcValueListPrint (FcPatternEltValues (e2));
 	    printf ("\n");
 	    j++;
 	}
     }
-    if (j < p2->num)
-    {
-	for (k = j; k < p2->num; k++)
-	{
-	    e2 = &FcPatternElts(p2)[k];
-	    if (FcObjectName (e2->object))
-	    {
+    if (j < p2->num) {
+	for (k = j; k < p2->num; k++) {
+	    e2 = &FcPatternElts (p2)[k];
+	    if (FcObjectName (e2->object)) {
 		printf ("\t%s: (None) -> ", FcObjectName (e2->object));
 		FcValueListPrint (FcPatternEltValues (e2));
 		printf ("\n");
@@ -317,8 +298,14 @@ FcOpPrint (FcOp op_)
     case FcOpQuest: printf ("Quest"); break;
     case FcOpOr: printf ("Or"); break;
     case FcOpAnd: printf ("And"); break;
-    case FcOpEqual: printf ("Equal"); FcOpFlagsPrint (op_); break;
-    case FcOpNotEqual: printf ("NotEqual"); FcOpFlagsPrint (op_); break;
+    case FcOpEqual:
+	printf ("Equal");
+	FcOpFlagsPrint (op_);
+	break;
+    case FcOpNotEqual:
+	printf ("NotEqual");
+	FcOpFlagsPrint (op_);
+	break;
     case FcOpLess: printf ("Less"); break;
     case FcOpLessEqual: printf ("LessEqual"); break;
     case FcOpMore: printf ("More"); break;
@@ -336,7 +323,10 @@ FcOpPrint (FcOp op_)
     case FcOpCeil: printf ("Ceil"); break;
     case FcOpRound: printf ("Round"); break;
     case FcOpTrunc: printf ("Trunc"); break;
-    case FcOpListing: printf ("Listing"); FcOpFlagsPrint (op_); break;
+    case FcOpListing:
+	printf ("Listing");
+	FcOpFlagsPrint (op_);
+	break;
     case FcOpInvalid: printf ("Invalid"); break;
     }
 }
@@ -344,125 +334,137 @@ FcOpPrint (FcOp op_)
 void
 FcExprPrint (const FcExpr *expr)
 {
-    if (!expr) printf ("none");
-    else switch (FC_OP_GET_OP (expr->op)) {
-    case FcOpInteger: printf ("%d", expr->u.ival); break;
-    case FcOpDouble: printf ("%g", expr->u.dval); break;
-    case FcOpString: printf ("\"%s\"", expr->u.sval); break;
-    case FcOpMatrix:
-	printf ("[");
-	FcExprPrint (expr->u.mexpr->xx);
-	printf (" ");
-	FcExprPrint (expr->u.mexpr->xy);
-	printf ("; ");
-	FcExprPrint (expr->u.mexpr->yx);
-	printf (" ");
-	FcExprPrint (expr->u.mexpr->yy);
-	printf ("]");
-	break;
-    case FcOpRange:
-	printf ("(%g, %g)", expr->u.rval->begin, expr->u.rval->end);
-	break;
-    case FcOpBool: printf ("%s", expr->u.bval ? "true" : "false"); break;
-    case FcOpCharSet: printf ("charset\n"); break;
-    case FcOpLangSet:
-	printf ("langset:");
-	FcLangSetPrint(expr->u.lval);
-	printf ("\n");
-	break;
-    case FcOpNil: printf ("nil\n"); break;
-    case FcOpField: printf ("%s ", FcObjectName(expr->u.name.object));
-      switch ((int) expr->u.name.kind) {
-      case FcMatchPattern:
-	  printf ("(pattern) ");
-	  break;
-      case FcMatchFont:
-	  printf ("(font) ");
-	  break;
-      }
-      break;
-    case FcOpConst: printf ("%s", expr->u.constant); break;
-    case FcOpQuest:
-	FcExprPrint (expr->u.tree.left);
-	printf (" quest ");
-	FcExprPrint (expr->u.tree.right->u.tree.left);
-	printf (" colon ");
-	FcExprPrint (expr->u.tree.right->u.tree.right);
-	break;
-    case FcOpAssign:
-    case FcOpAssignReplace:
-    case FcOpPrependFirst:
-    case FcOpPrepend:
-    case FcOpAppend:
-    case FcOpAppendLast:
-    case FcOpOr:
-    case FcOpAnd:
-    case FcOpEqual:
-    case FcOpNotEqual:
-    case FcOpLess:
-    case FcOpLessEqual:
-    case FcOpMore:
-    case FcOpMoreEqual:
-    case FcOpContains:
-    case FcOpListing:
-    case FcOpNotContains:
-    case FcOpPlus:
-    case FcOpMinus:
-    case FcOpTimes:
-    case FcOpDivide:
-    case FcOpComma:
-	FcExprPrint (expr->u.tree.left);
-	printf (" ");
+    if (!expr)
+	printf ("none");
+    else
 	switch (FC_OP_GET_OP (expr->op)) {
-	case FcOpAssign: printf ("Assign"); break;
-	case FcOpAssignReplace: printf ("AssignReplace"); break;
-	case FcOpPrependFirst: printf ("PrependFirst"); break;
-	case FcOpPrepend: printf ("Prepend"); break;
-	case FcOpAppend: printf ("Append"); break;
-	case FcOpAppendLast: printf ("AppendLast"); break;
-	case FcOpOr: printf ("Or"); break;
-	case FcOpAnd: printf ("And"); break;
-	case FcOpEqual: printf ("Equal"); FcOpFlagsPrint (expr->op); break;
-	case FcOpNotEqual: printf ("NotEqual"); FcOpFlagsPrint (expr->op); break;
-	case FcOpLess: printf ("Less"); break;
-	case FcOpLessEqual: printf ("LessEqual"); break;
-	case FcOpMore: printf ("More"); break;
-	case FcOpMoreEqual: printf ("MoreEqual"); break;
-	case FcOpContains: printf ("Contains"); break;
-	case FcOpListing: printf ("Listing"); FcOpFlagsPrint (expr->op); break;
-	case FcOpNotContains: printf ("NotContains"); break;
-	case FcOpPlus: printf ("Plus"); break;
-	case FcOpMinus: printf ("Minus"); break;
-	case FcOpTimes: printf ("Times"); break;
-	case FcOpDivide: printf ("Divide"); break;
-	case FcOpComma: printf ("Comma"); break;
-	default: break;
+	case FcOpInteger: printf ("%d", expr->u.ival); break;
+	case FcOpDouble: printf ("%g", expr->u.dval); break;
+	case FcOpString: printf ("\"%s\"", expr->u.sval); break;
+	case FcOpMatrix:
+	    printf ("[");
+	    FcExprPrint (expr->u.mexpr->xx);
+	    printf (" ");
+	    FcExprPrint (expr->u.mexpr->xy);
+	    printf ("; ");
+	    FcExprPrint (expr->u.mexpr->yx);
+	    printf (" ");
+	    FcExprPrint (expr->u.mexpr->yy);
+	    printf ("]");
+	    break;
+	case FcOpRange:
+	    printf ("(%g, %g)", expr->u.rval->begin, expr->u.rval->end);
+	    break;
+	case FcOpBool: printf ("%s", expr->u.bval ? "true" : "false"); break;
+	case FcOpCharSet: printf ("charset\n"); break;
+	case FcOpLangSet:
+	    printf ("langset:");
+	    FcLangSetPrint (expr->u.lval);
+	    printf ("\n");
+	    break;
+	case FcOpNil: printf ("nil\n"); break;
+	case FcOpField:
+	    printf ("%s ", FcObjectName (expr->u.name.object));
+	    switch ((int)expr->u.name.kind) {
+	    case FcMatchPattern:
+		printf ("(pattern) ");
+		break;
+	    case FcMatchFont:
+		printf ("(font) ");
+		break;
+	    }
+	    break;
+	case FcOpConst: printf ("%s", expr->u.constant); break;
+	case FcOpQuest:
+	    FcExprPrint (expr->u.tree.left);
+	    printf (" quest ");
+	    FcExprPrint (expr->u.tree.right->u.tree.left);
+	    printf (" colon ");
+	    FcExprPrint (expr->u.tree.right->u.tree.right);
+	    break;
+	case FcOpAssign:
+	case FcOpAssignReplace:
+	case FcOpPrependFirst:
+	case FcOpPrepend:
+	case FcOpAppend:
+	case FcOpAppendLast:
+	case FcOpOr:
+	case FcOpAnd:
+	case FcOpEqual:
+	case FcOpNotEqual:
+	case FcOpLess:
+	case FcOpLessEqual:
+	case FcOpMore:
+	case FcOpMoreEqual:
+	case FcOpContains:
+	case FcOpListing:
+	case FcOpNotContains:
+	case FcOpPlus:
+	case FcOpMinus:
+	case FcOpTimes:
+	case FcOpDivide:
+	case FcOpComma:
+	    FcExprPrint (expr->u.tree.left);
+	    printf (" ");
+	    switch (FC_OP_GET_OP (expr->op)) {
+	    case FcOpAssign: printf ("Assign"); break;
+	    case FcOpAssignReplace: printf ("AssignReplace"); break;
+	    case FcOpPrependFirst: printf ("PrependFirst"); break;
+	    case FcOpPrepend: printf ("Prepend"); break;
+	    case FcOpAppend: printf ("Append"); break;
+	    case FcOpAppendLast: printf ("AppendLast"); break;
+	    case FcOpOr: printf ("Or"); break;
+	    case FcOpAnd: printf ("And"); break;
+	    case FcOpEqual:
+		printf ("Equal");
+		FcOpFlagsPrint (expr->op);
+		break;
+	    case FcOpNotEqual:
+		printf ("NotEqual");
+		FcOpFlagsPrint (expr->op);
+		break;
+	    case FcOpLess: printf ("Less"); break;
+	    case FcOpLessEqual: printf ("LessEqual"); break;
+	    case FcOpMore: printf ("More"); break;
+	    case FcOpMoreEqual: printf ("MoreEqual"); break;
+	    case FcOpContains: printf ("Contains"); break;
+	    case FcOpListing:
+		printf ("Listing");
+		FcOpFlagsPrint (expr->op);
+		break;
+	    case FcOpNotContains: printf ("NotContains"); break;
+	    case FcOpPlus: printf ("Plus"); break;
+	    case FcOpMinus: printf ("Minus"); break;
+	    case FcOpTimes: printf ("Times"); break;
+	    case FcOpDivide: printf ("Divide"); break;
+	    case FcOpComma: printf ("Comma"); break;
+	    default: break;
+	    }
+	    printf (" ");
+	    FcExprPrint (expr->u.tree.right);
+	    break;
+	case FcOpNot:
+	    printf ("Not ");
+	    FcExprPrint (expr->u.tree.left);
+	    break;
+	case FcOpFloor:
+	    printf ("Floor ");
+	    FcExprPrint (expr->u.tree.left);
+	    break;
+	case FcOpCeil:
+	    printf ("Ceil ");
+	    FcExprPrint (expr->u.tree.left);
+	    break;
+	case FcOpRound:
+	    printf ("Round ");
+	    FcExprPrint (expr->u.tree.left);
+	    break;
+	case FcOpTrunc:
+	    printf ("Trunc ");
+	    FcExprPrint (expr->u.tree.left);
+	    break;
+	case FcOpInvalid: printf ("Invalid"); break;
 	}
-	printf (" ");
-	FcExprPrint (expr->u.tree.right);
-	break;
-    case FcOpNot:
-	printf ("Not ");
-	FcExprPrint (expr->u.tree.left);
-	break;
-    case FcOpFloor:
-	printf ("Floor ");
-	FcExprPrint (expr->u.tree.left);
-	break;
-    case FcOpCeil:
-	printf ("Ceil ");
-	FcExprPrint (expr->u.tree.left);
-	break;
-    case FcOpRound:
-	printf ("Round ");
-	FcExprPrint (expr->u.tree.left);
-	break;
-    case FcOpTrunc:
-	printf ("Trunc ");
-	FcExprPrint (expr->u.tree.left);
-	break;
-    case FcOpInvalid: printf ("Invalid"); break;
-    }
 }
 
 void
@@ -515,13 +517,11 @@ FcEditPrint (const FcEdit *edit)
 void
 FcRulePrint (const FcRule *rule)
 {
-    FcRuleType last_type = FcRuleUnknown;
+    FcRuleType    last_type = FcRuleUnknown;
     const FcRule *r;
 
-    for (r = rule; r; r = r->next)
-    {
-	if (last_type != r->type)
-	{
+    for (r = rule; r; r = r->next) {
+	if (last_type != r->type) {
 	    switch (r->type) {
 	    case FcRuleTest:
 		printf ("[test]\n");
@@ -553,11 +553,10 @@ FcRulePrint (const FcRule *rule)
 void
 FcFontSetPrint (const FcFontSet *s)
 {
-    int	    i;
+    int i;
 
     printf ("FontSet %d of %d\n", s->nfont, s->sfont);
-    for (i = 0; i < s->nfont; i++)
-    {
+    for (i = 0; i < s->nfont; i++) {
 	printf ("Font %d ", i);
 	FcPatternPrint (s->fonts[i]);
     }
@@ -569,11 +568,10 @@ void
 FcInitDebug (void)
 {
     if (!FcDebugVal) {
-	char    *e;
+	char *e;
 
 	e = getenv ("FC_DEBUG");
-	if (e)
-	{
+	if (e) {
 	    printf ("FC_DEBUG=%s\n", e);
 	    FcDebugVal = atoi (e);
 	    if (FcDebugVal < 0)

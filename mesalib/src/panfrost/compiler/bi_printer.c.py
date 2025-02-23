@@ -169,7 +169,7 @@ bi_print_instr(const bi_instr *I, FILE *fp)
     if (I->nr_dests > 0)
         fputs(" = ", fp);
 
-    fprintf(fp, "%s", bi_opcode_props[I->op].name);
+    fprintf(fp, "%s", bi_get_opcode_props(I)->name);
 
     if (I->table)
         fprintf(fp, ".table%u", I->table);

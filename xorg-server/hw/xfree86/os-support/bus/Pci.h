@@ -106,6 +106,8 @@
 #ifndef _PCI_H
 #define _PCI_H 1
 
+#include <X11/Xdefs.h>
+
 #include "xf86Pci.h"
 
 /*
@@ -134,5 +136,7 @@
 #define PCI_DOM_FROM_BUS(bus)  (((bus) >> 8) & (PCI_DOM_MASK))
 #define PCI_BUS_NO_DOMAIN(bus) ((bus) & 0xffu)
 #define PCI_TAG_NO_DOMAIN(tag) ((tag) & 0x00ffff00u)
+
+Bool xf86scanpci(void);
 
 #endif                          /* _PCI_H */

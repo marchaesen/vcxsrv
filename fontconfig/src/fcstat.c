@@ -21,39 +21,40 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 #include "fcint.h"
+
 #include "fcarch.h"
 #ifdef HAVE_DIRENT_H
-#include <dirent.h>
+#  include <dirent.h>
 #endif
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
+#include <limits.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #ifdef HAVE_SYS_VFS_H
-#include <sys/vfs.h>
+#  include <sys/vfs.h>
 #endif
 #ifdef HAVE_SYS_STATVFS_H
-#include <sys/statvfs.h>
+#  include <sys/statvfs.h>
 #endif
 #ifdef HAVE_SYS_STATFS_H
-#include <sys/statfs.h>
+#  include <sys/statfs.h>
 #endif
 #ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
+#  include <sys/param.h>
 #endif
 #ifdef HAVE_SYS_MOUNT_H
-#include <sys/mount.h>
+#  include <sys/mount.h>
 #endif
 #include <errno.h>
 
 #ifdef _WIN32
-#ifdef __GNUC__
+#  ifdef __GNUC__
 typedef long long INT64;
-#define EPOCH_OFFSET 11644473600ll
-#else
-#define EPOCH_OFFSET 11644473600i64
+#    define EPOCH_OFFSET 11644473600ll
+#  else
+#    define EPOCH_OFFSET 11644473600i64
 typedef __int64 INT64;
-#endif
+#  endif
 
 /* Workaround for problems in the stat() in the Microsoft C library:
  *
@@ -78,11 +79,11 @@ int
 FcStat (const FcChar8 *file, struct stat *statb)
 {
     WIN32_FILE_ATTRIBUTE_DATA wfad;
-    char full_path_name[MAX_PATH];
-    char *basename;
-    DWORD rc;
+    char                      full_path_name[MAX_PATH];
+    char                     *basename;
+    DWORD                     rc;
 
-    if (!GetFileAttributesEx ((LPCSTR) file, GetFileExInfoStandard, &wfad))
+    if (!GetFileAttributesEx ((LPCSTR)file, GetFileExInfoStandard, &wfad))
 	return -1;
 
     statb->st_dev = 0;
@@ -91,12 +92,12 @@ FcStat (const FcChar8 *file, struct stat *statb)
      * Call GetLongPathName() to get the spelling of the path name as it
      * is on disk.
      */
-    rc = GetFullPathName ((LPCSTR) file, sizeof (full_path_name), full_path_name, &basename);
+    rc = GetFullPathName ((LPCSTR)file, sizeof (full_path_name), full_path_name, &basename);
     if (rc == 0 || rc > sizeof (full_path_name))
 	return -1;
 
     rc = GetLongPathName (full_path_name, full_path_name, sizeof (full_path_name));
-    statb->st_ino = FcStringHash ((const FcChar8 *) full_path_name);
+    statb->st_ino = FcStringHash ((const FcChar8 *)full_path_name);
 
     statb->st_mode = _S_IREAD | _S_IWRITE;
     statb->st_mode |= (statb->st_mode >> 3) | (statb->st_mode >> 6);
@@ -114,8 +115,8 @@ FcStat (const FcChar8 *file, struct stat *statb)
 	return -1;
     statb->st_size = wfad.nFileSizeLow;
 
-    statb->st_atime = (*(INT64 *)&wfad.ftLastAccessTime)/10000000 - EPOCH_OFFSET;
-    statb->st_mtime = (*(INT64 *)&wfad.ftLastWriteTime)/10000000 - EPOCH_OFFSET;
+    statb->st_atime = (*(INT64 *)&wfad.ftLastAccessTime) / 10000000 - EPOCH_OFFSET;
+    statb->st_mtime = (*(INT64 *)&wfad.ftLastWriteTime) / 10000000 - EPOCH_OFFSET;
     statb->st_ctime = statb->st_mtime;
 
     return 0;
@@ -126,7 +127,7 @@ FcStat (const FcChar8 *file, struct stat *statb)
 int
 FcStat (const FcChar8 *file, struct stat *statb)
 {
-  return stat ((char *) file, statb);
+    return stat ((char *)file, statb);
 }
 
 /* Adler-32 checksum implementation */
@@ -145,8 +146,7 @@ Adler32Init (struct Adler32 *ctx)
 static void
 Adler32Update (struct Adler32 *ctx, const char *data, int data_len)
 {
-    while (data_len--)
-    {
+    while (data_len--) {
 	ctx->a = (ctx->a + *data++) % 65521;
 	ctx->b = (ctx->b + ctx->a) % 65521;
     }
@@ -158,19 +158,19 @@ Adler32Finish (struct Adler32 *ctx)
     return ctx->a + (ctx->b << 16);
 }
 
-#ifdef HAVE_STRUCT_DIRENT_D_TYPE
+#  ifdef HAVE_STRUCT_DIRENT_D_TYPE
 /* dirent.d_type can be relied upon on FAT filesystem */
 static FcBool
-FcDirChecksumScandirFilter(const struct dirent *entry)
+FcDirChecksumScandirFilter (const struct dirent *entry)
 {
     return entry->d_type != DT_DIR;
 }
-#endif
+#  endif
 
 static int
-FcDirChecksumScandirSorter(const struct dirent **lhs, const struct dirent **rhs)
+FcDirChecksumScandirSorter (const struct dirent **lhs, const struct dirent **rhs)
 {
-    return strcmp((*lhs)->d_name, (*rhs)->d_name);
+    return strcmp ((*lhs)->d_name, (*rhs)->d_name);
 }
 
 static void
@@ -185,43 +185,39 @@ free_dirent (struct dirent **p)
 }
 
 int
-FcScandir (const char		*dirp,
-	   struct dirent	***namelist,
-	   int (*filter) (const struct dirent *),
-	   int (*compar) (const struct dirent **, const struct dirent **));
+FcScandir (const char      *dirp,
+           struct dirent ***namelist,
+           int (*filter) (const struct dirent *),
+           int (*compar) (const struct dirent **, const struct dirent **));
 
 int
-FcScandir (const char		*dirp,
-	   struct dirent	***namelist,
-	   int (*filter) (const struct dirent *),
-	   int (*compar) (const struct dirent **, const struct dirent **))
+FcScandir (const char      *dirp,
+           struct dirent ***namelist,
+           int (*filter) (const struct dirent *),
+           int (*compar) (const struct dirent **, const struct dirent **))
 {
-    DIR *d;
+    DIR           *d;
     struct dirent *dent, *p, **dlist, **dlp;
-    size_t lsize = 128, n = 0;
+    size_t         lsize = 128, n = 0;
 
     d = opendir (dirp);
     if (!d)
 	return -1;
 
-    dlist = (struct dirent **) malloc (sizeof (struct dirent *) * lsize);
-    if (!dlist)
-    {
+    dlist = (struct dirent **)malloc (sizeof (struct dirent *) * lsize);
+    if (!dlist) {
 	closedir (d);
 	errno = ENOMEM;
 
 	return -1;
     }
     *dlist = NULL;
-    while ((dent = readdir (d)))
-    {
-	if (!filter || (filter) (dent))
-	{
+    while ((dent = readdir (d))) {
+	if (!filter || (filter)(dent)) {
 	    size_t dentlen = FcPtrToOffset (dent, dent->d_name) + strlen (dent->d_name) + 1;
 	    dentlen = ((dentlen + ALIGNOF_VOID_P - 1) & ~(ALIGNOF_VOID_P - 1));
-	    p = (struct dirent *) malloc (dentlen);
-	    if (!p)
-	    {
+	    p = (struct dirent *)malloc (dentlen);
+	    if (!p) {
 		free_dirent (dlist);
 		closedir (d);
 		errno = ENOMEM;
@@ -229,12 +225,10 @@ FcScandir (const char		*dirp,
 		return -1;
 	    }
 	    memcpy (p, dent, dentlen);
-	    if ((n + 1) >= lsize)
-	    {
+	    if ((n + 1) >= lsize) {
 		lsize += 128;
-		dlp = (struct dirent **) realloc (dlist, sizeof (struct dirent *) * lsize);
-		if (!dlp)
-		{
+		dlp = (struct dirent **)realloc (dlist, sizeof (struct dirent *) * lsize);
+		if (!dlp) {
 		    free (p);
 		    free_dirent (dlist);
 		    closedir (d);
@@ -260,67 +254,62 @@ FcScandir (const char		*dirp,
 static int
 FcDirChecksum (const FcChar8 *dir, time_t *checksum)
 {
-    struct Adler32 ctx;
+    struct Adler32  ctx;
     struct dirent **files;
-    int n;
-    int ret = 0;
-    size_t len = strlen ((const char *)dir);
+    int             n;
+    int             ret = 0;
+    size_t          len = strlen ((const char *)dir);
 
     Adler32Init (&ctx);
 
     n = FcScandir ((const char *)dir, &files,
-#ifdef HAVE_STRUCT_DIRENT_D_TYPE
-		 &FcDirChecksumScandirFilter,
-#else
-		 NULL,
-#endif
-		 &FcDirChecksumScandirSorter);
+#  ifdef HAVE_STRUCT_DIRENT_D_TYPE
+                   &FcDirChecksumScandirFilter,
+#  else
+                   NULL,
+#  endif
+                   &FcDirChecksumScandirSorter);
     if (n == -1)
 	return -1;
 
-    while (n--)
-    {
+    while (n--) {
 	size_t dlen = strlen (files[n]->d_name);
-	int dtype;
+	int    dtype;
 
-#ifdef HAVE_STRUCT_DIRENT_D_TYPE
+#  ifdef HAVE_STRUCT_DIRENT_D_TYPE
 	dtype = files[n]->d_type;
-	if (dtype == DT_UNKNOWN)
-	{
-#endif
-	struct stat statb;
-	char *f = malloc (len + 1 + dlen + 1);
+	if (dtype == DT_UNKNOWN) {
+#  endif
+	    struct stat statb;
+	    char       *f = malloc (len + 1 + dlen + 1);
 
-	if (!f)
-	{
-	    ret = -1;
-	    goto bail;
-	}
-	memcpy (f, dir, len);
-	f[len] = FC_DIR_SEPARATOR;
-	memcpy (&f[len + 1], files[n]->d_name, dlen);
-	f[len + 1 + dlen] = 0;
-	if (lstat (f, &statb) < 0)
-	{
-	    ret = -1;
-	    free (f);
-	    goto bail;
-	}
-	if (S_ISDIR (statb.st_mode))
-	{
-	    free (f);
-	    goto bail;
-	}
+	    if (!f) {
+		ret = -1;
+		goto bail;
+	    }
+	    memcpy (f, dir, len);
+	    f[len] = FC_DIR_SEPARATOR;
+	    memcpy (&f[len + 1], files[n]->d_name, dlen);
+	    f[len + 1 + dlen] = 0;
+	    if (lstat (f, &statb) < 0) {
+		ret = -1;
+		free (f);
+		goto bail;
+	    }
+	    if (S_ISDIR (statb.st_mode)) {
+		free (f);
+		goto bail;
+	    }
 
-	free (f);
-	dtype = statb.st_mode;
-#ifdef HAVE_STRUCT_DIRENT_D_TYPE
+	    free (f);
+	    dtype = statb.st_mode;
+#  ifdef HAVE_STRUCT_DIRENT_D_TYPE
 	}
-#endif
+#  endif
 	Adler32Update (&ctx, files[n]->d_name, dlen + 1);
 	Adler32Update (&ctx, (char *)&dtype, sizeof (int));
 
-      bail:
+    bail:
 	free (files[n]);
     }
     free (files);
@@ -337,16 +326,15 @@ int
 FcStatChecksum (const FcChar8 *file, struct stat *statb)
 {
     if (FcStat (file, statb) == -1)
-        return -1;
+	return -1;
 
 #ifndef _WIN32
     /* We have a workaround of the broken stat() in FcStat() for Win32.
      * No need to do something further more.
      */
-    if (FcIsFsMtimeBroken (file))
-    {
-        if (FcDirChecksum (file, &statb->st_mtime) == -1)
-            return -1;
+    if (FcIsFsMtimeBroken (file)) {
+	if (FcDirChecksum (file, &statb->st_mtime) == -1)
+	    return -1;
     }
 #endif
 
@@ -357,16 +345,15 @@ static int
 FcFStatFs (int fd, FcStatFS *statb)
 {
     const char *p = NULL;
-    int ret = -1;
-    FcBool flag = FcFalse;
+    int         ret = -1;
+    FcBool      flag = FcFalse;
 
 #if defined(HAVE_FSTATVFS) && (defined(HAVE_STRUCT_STATVFS_F_BASETYPE) || defined(HAVE_STRUCT_STATVFS_F_FSTYPENAME))
     struct statvfs buf;
 
     memset (statb, 0, sizeof (FcStatFS));
 
-    if ((ret = fstatvfs (fd, &buf)) == 0)
-    {
+    if ((ret = fstatvfs (fd, &buf)) == 0) {
 #  if defined(HAVE_STRUCT_STATVFS_F_BASETYPE)
 	p = buf.f_basetype;
 #  elif defined(HAVE_STRUCT_STATVFS_F_FSTYPENAME)
@@ -378,17 +365,15 @@ FcFStatFs (int fd, FcStatFS *statb)
 
     memset (statb, 0, sizeof (FcStatFS));
 
-    if ((ret = fstatfs (fd, &buf)) == 0)
-    {
+    if ((ret = fstatfs (fd, &buf)) == 0) {
 #  if defined(HAVE_STRUCT_STATFS_F_FLAGS) && defined(MNT_LOCAL)
 	statb->is_remote_fs = !(buf.f_flags & MNT_LOCAL);
 	flag = FcTrue;
 #  endif
 #  if defined(HAVE_STRUCT_STATFS_F_FSTYPENAME)
 	p = buf.f_fstypename;
-#  elif defined(__linux__) || defined (__EMSCRIPTEN__)
-	switch (buf.f_type)
-	{
+#  elif defined(__linux__) || defined(__EMSCRIPTEN__)
+	switch (buf.f_type) {
 	case 0x6969: /* nfs */
 	    statb->is_remote_fs = FcTrue;
 	    break;
@@ -405,8 +390,7 @@ FcFStatFs (int fd, FcStatFS *statb)
 #  endif
     }
 #endif
-    if (p)
-    {
+    if (p) {
 	if (!flag && strcmp (p, "nfs") == 0)
 	    statb->is_remote_fs = FcTrue;
 	if (strcmp (p, "msdosfs") == 0 ||
@@ -431,12 +415,11 @@ FcIsFsMmapSafe (int fd)
 FcBool
 FcIsFsMtimeBroken (const FcChar8 *dir)
 {
-    int fd = FcOpen ((const char *) dir, O_RDONLY);
+    int fd = FcOpen ((const char *)dir, O_RDONLY);
 
-    if (fd != -1)
-    {
+    if (fd != -1) {
 	FcStatFS statb;
-	int ret = FcFStatFs (fd, &statb);
+	int      ret = FcFStatFs (fd, &statb);
 
 	close (fd);
 	if (ret < 0)

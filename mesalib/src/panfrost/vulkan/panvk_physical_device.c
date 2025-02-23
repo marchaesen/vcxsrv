@@ -229,6 +229,7 @@ get_device_extensions(const struct panvk_physical_device *device,
       .KHR_vertex_attribute_divisor = true,
       .KHR_zero_initialize_workgroup_memory = true,
       .EXT_4444_formats = true,
+      .EXT_border_color_swizzle = true,
       .EXT_buffer_device_address = true,
       .EXT_custom_border_color = true,
       .EXT_depth_clip_enable = true,
@@ -400,6 +401,10 @@ get_features(const struct panvk_physical_device *device,
 
       /* VK_EXT_custom_border_color */
       .customBorderColors = true,
+
+      /* VK_EXT_border_color_swizzle */
+      .borderColorSwizzle = true,
+      .borderColorSwizzleFromImage = true,
 
       /* VK_EXT_provoking_vertex */
       .provokingVertexLast = true,

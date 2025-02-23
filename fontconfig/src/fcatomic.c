@@ -48,54 +48,55 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#  include <config.h>
 #endif
 
 #include "fcint.h"
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
 
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+#  include <unistd.h>
 #endif
 
 #ifdef _WIN32
-#include <direct.h>
-#define mkdir(path,mode) _mkdir(path)
+#  include <direct.h>
+#  define mkdir(path, mode) _mkdir (path)
 #endif
 
-#define NEW_NAME	".NEW"
-#define LCK_NAME	".LCK"
-#define TMP_NAME	".TMP-XXXXXX"
+#define NEW_NAME ".NEW"
+#define LCK_NAME ".LCK"
+#define TMP_NAME ".TMP-XXXXXX"
 
 FcAtomic *
-FcAtomicCreate (const FcChar8   *file)
+FcAtomicCreate (const FcChar8 *file)
 {
-    int	    file_len = strlen ((char *) file);
-    int	    new_len = file_len + sizeof (NEW_NAME);
-    int	    lck_len = file_len + sizeof (LCK_NAME);
-    int	    tmp_len = file_len + sizeof (TMP_NAME);
-    int	    total_len = (sizeof (FcAtomic) +
-			 file_len + 1 +
-			 new_len + 1 +
-			 lck_len + 1 +
-			 tmp_len + 1);
-    FcAtomic	*atomic = malloc (total_len);
+    int       file_len = strlen ((char *)file);
+    int       new_len = file_len + sizeof (NEW_NAME);
+    int       lck_len = file_len + sizeof (LCK_NAME);
+    int       tmp_len = file_len + sizeof (TMP_NAME);
+    int       total_len = (sizeof (FcAtomic) +
+                     file_len + 1 +
+                     new_len + 1 +
+                     lck_len + 1 +
+                     tmp_len + 1);
+    FcAtomic *atomic = malloc (total_len);
     if (!atomic)
 	return 0;
 
-    atomic->file = (FcChar8 *) (atomic + 1);
-    strcpy ((char *) atomic->file, (char *) file);
+    atomic->file = (FcChar8 *)(atomic + 1);
+    strcpy ((char *)atomic->file, (char *)file);
 
     atomic->new = atomic->file + file_len + 1;
-    strcpy ((char *) atomic->new, (char *) file);
-    strcat ((char *) atomic->new, NEW_NAME);
+    strcpy ((char *)atomic->new, (char *)file);
+    strcat ((char *)atomic->new, NEW_NAME);
 
     atomic->lck = atomic->new + new_len + 1;
-    strcpy ((char *) atomic->lck, (char *) file);
-    strcat ((char *) atomic->lck, LCK_NAME);
+    strcpy ((char *)atomic->lck, (char *)file);
+    strcat ((char *)atomic->lck, LCK_NAME);
 
     atomic->tmp = atomic->lck + lck_len + 1;
 
@@ -105,84 +106,74 @@ FcAtomicCreate (const FcChar8   *file)
 FcBool
 FcAtomicLock (FcAtomic *atomic)
 {
-    int		ret;
-    struct stat	lck_stat;
+    int         ret;
+    struct stat lck_stat;
 
 #ifdef HAVE_LINK
-    int		fd = -1;
-    FILE	*f = 0;
-    FcBool	no_link = FcFalse;
+    int    fd = -1;
+    FILE  *f = 0;
+    FcBool no_link = FcFalse;
 
-    strcpy ((char *) atomic->tmp, (char *) atomic->file);
-    strcat ((char *) atomic->tmp, TMP_NAME);
-    fd = FcMakeTempfile ((char *) atomic->tmp);
+    strcpy ((char *)atomic->tmp, (char *)atomic->file);
+    strcat ((char *)atomic->tmp, TMP_NAME);
+    fd = FcMakeTempfile ((char *)atomic->tmp);
     if (fd < 0)
 	return FcFalse;
     f = fdopen (fd, "w");
-    if (!f)
-    {
-    	close (fd);
-	unlink ((char *) atomic->tmp);
+    if (!f) {
+	close (fd);
+	unlink ((char *)atomic->tmp);
 	return FcFalse;
     }
     ret = fprintf (f, "%ld\n", (long)getpid());
-    if (ret <= 0)
-    {
+    if (ret <= 0) {
 	fclose (f);
-	unlink ((char *) atomic->tmp);
+	unlink ((char *)atomic->tmp);
 	return FcFalse;
     }
-    if (fclose (f) == EOF)
-    {
-	unlink ((char *) atomic->tmp);
+    if (fclose (f) == EOF) {
+	unlink ((char *)atomic->tmp);
 	return FcFalse;
     }
-    ret = link ((char *) atomic->tmp, (char *) atomic->lck);
-    if (ret < 0 && (errno == EPERM || errno == ENOTSUP || errno == EACCES))
-    {
+    ret = link ((char *)atomic->tmp, (char *)atomic->lck);
+    if (ret < 0 && (errno == EPERM || errno == ENOTSUP || errno == EACCES)) {
 	/* the filesystem where atomic->lck points to may not supports
 	 * the hard link. so better try to fallback
 	 */
-	ret = mkdir ((char *) atomic->lck, 0600);
+	ret = mkdir ((char *)atomic->lck, 0600);
 	no_link = FcTrue;
     }
-    (void) unlink ((char *) atomic->tmp);
+    (void)unlink ((char *)atomic->tmp);
 #else
-    ret = mkdir ((char *) atomic->lck, 0600);
+    ret = mkdir ((char *)atomic->lck, 0600);
 #endif
-    if (ret < 0)
-    {
+    if (ret < 0) {
 	/*
 	 * If the file is around and old (> 10 minutes),
 	 * assume the lock is stale.  This assumes that any
 	 * machines sharing the same filesystem will have clocks
 	 * reasonably close to each other.
 	 */
-	if (FcStat (atomic->lck, &lck_stat) >= 0)
-	{
-	    time_t  now = time (0);
-	    if ((long int) (now - lck_stat.st_mtime) > 10 * 60)
-	    {
+	if (FcStat (atomic->lck, &lck_stat) >= 0) {
+	    time_t now = time (0);
+	    if ((long int)(now - lck_stat.st_mtime) > 10 * 60) {
 #ifdef HAVE_LINK
-		if (no_link)
-		{
-		    if (rmdir ((char *) atomic->lck) == 0)
+		if (no_link) {
+		    if (rmdir ((char *)atomic->lck) == 0)
 			return FcAtomicLock (atomic);
-		}
-		else
-		{
-		    if (unlink ((char *) atomic->lck) == 0)
+		} else {
+		    if (unlink ((char *)atomic->lck) == 0)
 			return FcAtomicLock (atomic);
 		}
 #else
-		if (rmdir ((char *) atomic->lck) == 0)
+		if (rmdir ((char *)atomic->lck) == 0)
 		    return FcAtomicLock (atomic);
 #endif
 	    }
 	}
 	return FcFalse;
     }
-    (void) unlink ((char *) atomic->new);
+    (void)unlink ((char *)atomic->new);
     return FcTrue;
 }
 
@@ -202,9 +193,9 @@ FcBool
 FcAtomicReplaceOrig (FcAtomic *atomic)
 {
 #ifdef _WIN32
-    unlink ((const char *) atomic->file);
+    unlink ((const char *)atomic->file);
 #endif
-    if (rename ((char *) atomic->new, (char *) atomic->file) < 0)
+    if (rename ((char *)atomic->new, (char *)atomic->file) < 0)
 	return FcFalse;
     return FcTrue;
 }
@@ -212,17 +203,17 @@ FcAtomicReplaceOrig (FcAtomic *atomic)
 void
 FcAtomicDeleteNew (FcAtomic *atomic)
 {
-    unlink ((char *) atomic->new);
+    unlink ((char *)atomic->new);
 }
 
 void
 FcAtomicUnlock (FcAtomic *atomic)
 {
 #ifdef HAVE_LINK
-    if (unlink ((char *) atomic->lck) == -1)
-	rmdir ((char *) atomic->lck);
+    if (unlink ((char *)atomic->lck) == -1)
+	rmdir ((char *)atomic->lck);
 #else
-    rmdir ((char *) atomic->lck);
+    rmdir ((char *)atomic->lck);
 #endif
 }
 

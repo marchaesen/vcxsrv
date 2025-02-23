@@ -9,15 +9,88 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <IOKit/IODataQueueClient.h>
 #include <IOKit/IOKitLib.h>
 #include <mach/mach.h>
 
 #include "util/compiler.h"
 #include "util/u_hexdump.h"
-#include "agx_iokit.h"
 #include "decode.h"
 #include "dyld_interpose.h"
 #include "util.h"
+
+#define HANDLE(x) (x ^ (1 << 29))
+
+/*
+ * This section contains the minimal set of definitions to trace the macOS
+ * (IOKit) interface to the AGX accelerator.
+ * They are not used under Linux.
+ *
+ * Information is this file was originally determined independently. More
+ * recently, names have been augmented via the oob_timestamp code sample from
+ * Project Zero [1]
+ *
+ * [1] https://bugs.chromium.org/p/project-zero/issues/detail?id=1986
+ */
+
+#define AGX_SERVICE_TYPE 0x100005
+
+enum agx_selector {
+   AGX_SELECTOR_GET_GLOBAL_IDS = 0x6,
+   AGX_SELECTOR_SET_API = 0x7,
+   AGX_SELECTOR_CREATE_COMMAND_QUEUE = 0x8,
+   AGX_SELECTOR_FREE_COMMAND_QUEUE = 0x9,
+   AGX_SELECTOR_ALLOCATE_MEM = 0xA,
+   AGX_SELECTOR_FREE_MEM = 0xB,
+   AGX_SELECTOR_CREATE_SHMEM = 0xF,
+   AGX_SELECTOR_FREE_SHMEM = 0x10,
+   AGX_SELECTOR_CREATE_NOTIFICATION_QUEUE = 0x11,
+   AGX_SELECTOR_FREE_NOTIFICATION_QUEUE = 0x12,
+   AGX_SELECTOR_SUBMIT_COMMAND_BUFFERS = 0x1E,
+   AGX_SELECTOR_GET_VERSION = 0x2A,
+   AGX_NUM_SELECTORS = 0x33
+};
+
+struct IOAccelCommandQueueSubmitArgs_Command {
+   uint32_t command_buffer_shmem_id;
+   uint32_t segment_list_shmem_id;
+   uint64_t unk1B; // 0, new in 12.x
+   uint64_t notify_1;
+   uint64_t notify_2;
+   uint32_t unk2;
+   uint32_t unk3;
+} __attribute__((packed));
+
+struct agx_allocate_resource_resp {
+   /* Returned GPU virtual address */
+   uint64_t gpu_va;
+
+   /* Returned CPU virtual address */
+   uint64_t cpu;
+
+   uint32_t unk4[3];
+
+   /* Handle used to identify the resource in the segment list */
+   uint32_t handle;
+
+   /* Size of the root resource from which we are allocated. If this is not a
+    * suballocation, this is equal to the size.
+    */
+   uint64_t root_size;
+
+   /* Globally unique identifier for the resource, shown in Instruments */
+   uint32_t guid;
+
+   uint32_t unk11[7];
+
+   /* Maximum size of the suballocation. For a suballocation, this equals:
+    *
+    *    sub_size = root_size - (sub_cpu - root_cpu)
+    *
+    * For root allocations, this equals the size.
+    */
+   uint64_t sub_size;
+} __attribute__((packed));
 
 /*
  * Wrap IOKit entrypoints to intercept communication between the AGX kernel
@@ -27,12 +100,18 @@
 
 mach_port_t metal_connection = 0;
 
+struct agxdecode_ctx *decode_ctx = NULL;
+
 kern_return_t
 wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
             uint32_t inputCnt, const void *inputStruct, size_t inputStructCnt,
             uint64_t *output, uint32_t *outputCnt, void *outputStruct,
             size_t *outputStructCntP)
 {
+   if (!decode_ctx) {
+      decode_ctx = agxdecode_new_context(0);
+   }
+
    /* Heuristic guess which connection is Metal, skip over I/O from everything
     * else. This is technically wrong but it works in practice, and reduces the
     * surface area we need to wrap.
@@ -63,77 +142,30 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
       printf("%X: SET_API(%s)\n", connection, (const char *)inputStruct);
       break;
 
-   case AGX_SELECTOR_ALLOCATE_MEM: {
-      const struct agx_allocate_resource_req *req = inputStruct;
-      struct agx_allocate_resource_req *req2 = (void *)inputStruct;
-      req2->mode = (req->mode & 0x800) | 0x430;
-
-      bool suballocated = req->mode & 0x800;
-
-      printf("Resource allocation:\n");
-      printf("  Mode: 0x%X%s\n", req->mode & ~0x800,
-             suballocated ? " (suballocated) " : "");
-      printf("  CPU fixed: 0x%" PRIx64 "\n", req->cpu_fixed);
-      printf("  CPU fixed (parent): 0x%" PRIx64 "\n", req->cpu_fixed_parent);
-      printf("  Size: 0x%X\n", req->size);
-      printf("  Flags: 0x%X\n", req->flags);
-
-      if (suballocated) {
-         printf("  Parent: %u\n", req->parent);
-      } else {
-         assert(req->parent == 0);
-      }
-
-      for (unsigned i = 0; i < ARRAY_SIZE(req->unk0); ++i) {
-         if (req->unk0[i])
-            printf("  UNK%u: 0x%X\n", 0 + i, req->unk0[i]);
-      }
-
-      for (unsigned i = 0; i < ARRAY_SIZE(req->unk6); ++i) {
-         if (req->unk6[i])
-            printf("  UNK%u: 0x%X\n", 6 + i, req->unk6[i]);
-      }
-
-      if (req->unk17)
-         printf("  UNK17: 0x%X\n", req->unk17);
-
-      if (req->unk19)
-         printf("  UNK19: 0x%X\n", req->unk19);
-
-      for (unsigned i = 0; i < ARRAY_SIZE(req->unk21); ++i) {
-         if (req->unk21[i])
-            printf("  UNK%u: 0x%X\n", 21 + i, req->unk21[i]);
-      }
-
-      break;
-   }
-
-   case AGX_SELECTOR_SUBMIT_COMMAND_BUFFERS:
+   case AGX_SELECTOR_SUBMIT_COMMAND_BUFFERS: {
       assert(output == NULL && outputStruct == NULL);
-      assert(inputCnt == 1);
+      // assert(inputCnt == 1);
 
       printf("%X: SUBMIT_COMMAND_BUFFERS command queue id:%llx %p\n",
              connection, input[0], inputStruct);
 
-      const struct IOAccelCommandQueueSubmitArgs_Header *hdr = inputStruct;
+      u_hexdump(stdout, inputStruct, inputStructCnt, true);
       const struct IOAccelCommandQueueSubmitArgs_Command *cmds =
-         (void *)(hdr + 1);
+         (void *)(inputStruct + 0);
 
-      for (unsigned i = 0; i < hdr->count; ++i) {
-         const struct IOAccelCommandQueueSubmitArgs_Command *req = &cmds[i];
-         agxdecode_cmdstream(req->command_buffer_shmem_id,
-                             req->segment_list_shmem_id, true);
-         if (getenv("ASAHI_DUMP"))
-            agxdecode_dump_mappings(req->segment_list_shmem_id);
-      }
+      //  for (unsigned i = 0; i < hdr->count; ++i) {
+      const struct IOAccelCommandQueueSubmitArgs_Command *req = &cmds[0];
+      agxdecode_cmdstream(decode_ctx, HANDLE(req->command_buffer_shmem_id),
+                          HANDLE(req->segment_list_shmem_id), true);
+      // }
 
       agxdecode_next_frame();
       FALLTHROUGH;
+   }
 
    default:
-      printf("%X: call %s (out %p, %zu)", connection,
-             wrap_selector_name(selector), outputStructCntP,
-             outputStructCntP ? *outputStructCntP : 0);
+      printf("%X: call %X (out %p, %zu)", connection, selector,
+             outputStructCntP, outputStructCntP ? *outputStructCntP : 0);
 
       for (uint64_t u = 0; u < inputCnt; ++u)
          printf(" %llx", input[u]);
@@ -171,14 +203,13 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
 
       uint64_t *ptr = (uint64_t *)outputStruct;
       uint32_t *words = (uint32_t *)(ptr + 1);
-      bool mmap = inp[1];
 
       /* Construct a synthetic GEM handle for the shmem */
-      agxdecode_track_alloc(&(struct agx_bo){
-         .handle = words[1] ^ (mmap ? (1u << 30) : (1u << 29)),
-         .ptr.cpu = (void *)*ptr,
-         .size = words[0],
-      });
+      agxdecode_track_alloc(decode_ctx, &(struct agx_bo){
+                                           .handle = HANDLE(words[1]),
+                                           ._map = (void *)*ptr,
+                                           .size = words[0],
+                                        });
 
       break;
    }
@@ -187,35 +218,17 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
       assert((*outputStructCntP) == 0x50);
       const struct agx_allocate_resource_req *req = inputStruct;
       struct agx_allocate_resource_resp *resp = outputStruct;
-      if (resp->cpu && req->cpu_fixed)
-         assert(resp->cpu == req->cpu_fixed);
-      printf("Response:\n");
-      printf("  GPU VA: 0x%" PRIx64 "\n", resp->gpu_va);
-      printf("  CPU VA: 0x%" PRIx64 "\n", resp->cpu);
-      printf("  Handle: %u\n", resp->handle);
-      printf("  Root size: 0x%" PRIx64 "\n", resp->root_size);
-      printf("  Suballocation size: 0x%" PRIx64 "\n", resp->sub_size);
-      printf("  GUID: 0x%X\n", resp->guid);
-      for (unsigned i = 0; i < ARRAY_SIZE(resp->unk4); ++i) {
-         if (resp->unk4[i])
-            printf("  UNK%u: 0x%X\n", 4 + i, resp->unk4[i]);
-      }
-      for (unsigned i = 0; i < ARRAY_SIZE(resp->unk11); ++i) {
-         if (resp->unk11[i])
-            printf("  UNK%u: 0x%X\n", 11 + i, resp->unk11[i]);
-      }
 
-      if (req->parent)
-         assert(resp->sub_size <= resp->root_size);
-      else
-         assert(resp->sub_size == resp->root_size);
+      struct agx_va *va = malloc(sizeof(struct agx_va));
+      va->addr = resp->gpu_va;
+      va->size_B = resp->sub_size;
 
-      agxdecode_track_alloc(&(struct agx_bo){
-         .size = resp->sub_size,
-         .handle = resp->handle,
-         .ptr.gpu = resp->gpu_va,
-         .ptr.cpu = (void *)resp->cpu,
-      });
+      agxdecode_track_alloc(decode_ctx, &(struct agx_bo){
+                                           .size = resp->sub_size,
+                                           .handle = resp->handle,
+                                           .va = va,
+                                           ._map = (void *)resp->cpu,
+                                        });
 
       break;
    }
@@ -226,7 +239,7 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
       assert(output == NULL);
       assert(outputStruct == NULL);
 
-      agxdecode_track_free(&(struct agx_bo){.handle = input[0]});
+      agxdecode_track_free(decode_ctx, &(struct agx_bo){.handle = input[0]});
 
       break;
    }
@@ -237,7 +250,8 @@ wrap_Method(mach_port_t connection, uint32_t selector, const uint64_t *input,
       assert(output == NULL);
       assert(outputStruct == NULL);
 
-      agxdecode_track_free(&(struct agx_bo){.handle = input[0] ^ (1u << 29)});
+      agxdecode_track_free(decode_ctx,
+                           &(struct agx_bo){.handle = HANDLE(input[0])});
 
       break;
    }

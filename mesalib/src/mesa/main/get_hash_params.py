@@ -498,6 +498,9 @@ descriptor=[
 # GL_ARB_cull_distance, GL_EXT_clip_cull_distance
   [ "MAX_CULL_DISTANCES", "CONTEXT_INT(Const.MaxClipPlanes), extra_ARB_cull_distance" ],
   [ "MAX_COMBINED_CLIP_AND_CULL_DISTANCES", "CONTEXT_INT(Const.MaxClipPlanes), extra_ARB_cull_distance" ],
+
+# OVR_multiview
+  [ "MAX_VIEWS_OVR", "CONST(MAX_VIEWS_OVR), extra_OVR_multiview" ],
 ]},
 
 { "apis": ["GLES", "GLES2"], "params": [

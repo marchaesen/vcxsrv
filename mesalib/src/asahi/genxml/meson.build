@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MIT
 
 agx_pack = custom_target(
-  'agx_pack.h',
   input : ['gen_pack.py', 'cmdbuf.xml', 'agx_pack_header.h'],
   output : 'agx_pack.h',
   command : [prog_python, '@INPUT@'],

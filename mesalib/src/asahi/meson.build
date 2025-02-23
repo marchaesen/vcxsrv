@@ -13,6 +13,10 @@ if with_gallium_asahi or with_asahi_vk
    subdir('compiler')
    subdir('clc')
    subdir('lib')
+elif dep_iokit.found()
+   # Just build enough for libwrap.dylib
+   subdir('genxml')
+   subdir('lib')
 endif
 
 if with_asahi_vk

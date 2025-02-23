@@ -41,11 +41,14 @@ color_index_for_location(unsigned location)
 /* io related lowering
  * run after lower_int_to_float because it adds i2f/f2i ops
  */
-void
+bool
 etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
 {
+   bool progress = false;
+
    nir_foreach_function_impl(impl, shader) {
       nir_builder b = nir_builder_create(impl);
+      bool func_progress = false;
 
       nir_foreach_block(block, impl) {
          nir_foreach_instr_safe(instr, block) {
@@ -68,6 +71,8 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
                   nir_def_rewrite_uses_after(&intr->def,
                                                  ssa,
                                                  ssa->parent_instr);
+
+                  func_progress = true;
                } break;
                case nir_intrinsic_store_deref: {
                   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
@@ -90,6 +95,8 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
                   alu->src[0].swizzle[0] = 2;
                   alu->src[0].swizzle[2] = 0;
                   nir_src_rewrite(&intr->src[1], ssa);
+
+                  func_progress = true;
                } break;
                case nir_intrinsic_load_vertex_id:
                case nir_intrinsic_load_instance_id:
@@ -154,15 +161,25 @@ etna_lower_io(nir_shader *shader, struct etna_shader_variant *v)
             tex->coord_components = 4;
 
             nir_instr_insert_before(&tex->instr, &vec->instr);
+
+            func_progress = true;
          }
       }
+
+      if (func_progress)
+         nir_metadata_preserve(impl, nir_metadata_none);
+
+      progress |= func_progress;
    }
+
+   return progress;
 }
 
-static void
+static bool
 etna_lower_alu_impl(nir_function_impl *impl, bool has_new_transcendentals)
 {
    nir_shader *shader = impl->function->shader;
+   bool progress = false;
 
    nir_builder b = nir_builder_create(impl);
 
@@ -185,6 +202,8 @@ etna_lower_alu_impl(nir_function_impl *impl, bool has_new_transcendentals)
 
             nir_src_rewrite(&alu->src[0].src,
                             nir_fmul(&b, alu->src[0].src.ssa, imm));
+
+            progress = true;
          }
 
          /* change transcendental ops to vec2 and insert vec1 mul for the result
@@ -210,15 +229,26 @@ etna_lower_alu_impl(nir_function_impl *impl, bool has_new_transcendentals)
 
             nir_def_rewrite_uses_after(ssa, &mul->def,
                                            &mul->instr);
+
+            progress = true;
          }
       }
    }
+
+   if (progress)
+      nir_metadata_preserve(impl, nir_metadata_none);
+
+   return progress;
 }
 
-void
+bool
 etna_lower_alu(nir_shader *shader, bool has_new_transcendentals)
 {
+   bool progress = false;
+
    nir_foreach_function_impl(impl, shader) {
-      etna_lower_alu_impl(impl, has_new_transcendentals);
+      progress |= etna_lower_alu_impl(impl, has_new_transcendentals);
    }
+
+   return progress;
 }

@@ -39,6 +39,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/Xatom.h>
 #include <X11/extensions/XKMformat.h>
 
+#include "os/bug_priv.h"
 #include "os/cmdline.h"
 #include "xkb/xkbsrv_priv.h"
 

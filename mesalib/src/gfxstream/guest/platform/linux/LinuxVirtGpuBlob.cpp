@@ -10,31 +10,66 @@
 
 #include <cerrno>
 #include <cstring>
+#include <mutex>
+#include <unordered_map>
 
 #include "LinuxVirtGpu.h"
 #include "drm-uapi/virtgpu_drm.h"
 #include "util/log.h"
+
+// As per the warning in xf86drm.h, callers of drmPrimeFDToHandle are expected to perform
+// reference counting on the underlying GEM handle that is returned. With Vulkan, for example,
+// it is entirely possible that an FD, which points to the same underlying GEM handle, is both
+// exported then imported across Vulkan objects. As the VirtGpuResource is stored as a
+// shared_ptr with it's own ref-countng, the ref-counting for the underyling GEM has to be
+// internal to this implementation. Otherwise, a GEM handle which is active in another Vulkan object
+// in the same process, may be erroneously closed in the desctructor of one of the shared ptrs.
+static std::mutex sDrmObjectRefMutex;
+static std::unordered_map<uint32_t, int> sDrmObjectRefMap;
 
 LinuxVirtGpuResource::LinuxVirtGpuResource(int64_t deviceHandle, uint32_t blobHandle,
                                            uint32_t resourceHandle, uint64_t size)
     : mDeviceHandle(deviceHandle),
       mBlobHandle(blobHandle),
       mResourceHandle(resourceHandle),
-      mSize(size) {}
+      mSize(size) {
+    const std::lock_guard<std::mutex> lock(sDrmObjectRefMutex);
+    auto refMapIt = sDrmObjectRefMap.find(blobHandle);
+    if (refMapIt == sDrmObjectRefMap.end()) {
+        sDrmObjectRefMap[blobHandle] = 1;
+    } else {
+        refMapIt->second++;
+    }
+}
 
 LinuxVirtGpuResource::~LinuxVirtGpuResource() {
     if (mBlobHandle == INVALID_DESCRIPTOR) {
         return;
     }
 
-    struct drm_gem_close gem_close {
-        .handle = mBlobHandle, .pad = 0,
-    };
+    const std::lock_guard<std::mutex> lock(sDrmObjectRefMutex);
+    auto refMapIt = sDrmObjectRefMap.find(mBlobHandle);
+    if (refMapIt == sDrmObjectRefMap.end()) {
+        mesa_logw(
+            "LinuxVirtGpuResource::~LinuxVirtGpuResource() could not find the blobHandle: %d in "
+            "internal map",
+            mBlobHandle);
+        return;
+    }
 
-    int ret = drmIoctl(mDeviceHandle, DRM_IOCTL_GEM_CLOSE, &gem_close);
-    if (ret) {
-        mesa_loge("DRM_IOCTL_GEM_CLOSE failed with : [%s, blobHandle %u, resourceHandle: %u]",
-                  strerror(errno), mBlobHandle, mResourceHandle);
+    refMapIt->second--;
+    if (refMapIt->second <= 0) {
+        sDrmObjectRefMap.erase(refMapIt);
+
+        struct drm_gem_close gem_close {
+            .handle = mBlobHandle, .pad = 0,
+        };
+
+        int ret = drmIoctl(mDeviceHandle, DRM_IOCTL_GEM_CLOSE, &gem_close);
+        if (ret) {
+            mesa_loge("DRM_IOCTL_GEM_CLOSE failed with : [%s, blobHandle %u, resourceHandle: %u]",
+                      strerror(errno), mBlobHandle, mResourceHandle);
+        }
     }
 }
 

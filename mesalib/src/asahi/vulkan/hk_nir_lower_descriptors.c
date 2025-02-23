@@ -337,6 +337,7 @@ lower_image_intrin(nir_builder *b, nir_intrinsic_instr *intr,
    /* Reads and queries use the texture descriptor; writes and atomics PBE. */
    unsigned offs;
    if (intr->intrinsic != nir_intrinsic_image_deref_load &&
+       intr->intrinsic != nir_intrinsic_image_deref_sparse_load &&
        intr->intrinsic != nir_intrinsic_image_deref_size &&
        intr->intrinsic != nir_intrinsic_image_deref_samples) {
 

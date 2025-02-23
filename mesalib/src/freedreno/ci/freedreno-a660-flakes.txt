@@ -71,3 +71,26 @@ dEQP-VK.subgroups.shuffle.framebuffer.subgroupshuffle_bool_tess_control
 bypass-dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_1_2_multiviewport
 bypass-dEQP-VK.renderpass2.fragment_density_map.2_views.render.divisible_density_size.2_samples.static_subsampled_2_1_multiviewport
 gmem-dEQP-VK.spirv_assembly.instruction.graphics.image_sampler.imagefetch.sampled_image.optypeimage_mismatch.rgba32f.depth_property.unknown.shader_tessc
+
+# New flakes with ANGLE 2025-02-12, were passing with ANGLE 2024-10-17
+angle-dEQP-GLES3.functional.texture.specification.texsubimage2d_pbo.rg8_snorm_2d
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.highp_mat4x2
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.highp_vec4
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.lowp_uvec2
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.mediump_mat4x2
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.row_major_highp_mat3
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.shared.column_major_highp_mat3x4
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.packed.highp_mat4x2
+angle-dEQP-GLES31.functional.ssbo.layout.single_basic_type.std140.row_major_mediump_mat3x2
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.isolines_equal_spacing_ccw
+angle-dEQP-GLES31.functional.tessellation.invariance.one_minus_tess_coord_component.isolines_equal_spacing_cw
+angle-dEQP-GLES31.functional.tessellation.invariance.primitive_set.isolines_equal_spacing_ccw
+angle-dEQP-GLES31.functional.tessellation.invariance.outer_edge_index_independence.quads_fractional_odd_spacing_cw_point_mode
+angle-dEQP-GLES31.functional.tessellation.invariance.primitive_set.isolines_fractional_odd_spacing_cw_point_mode
+angle-dEQP-GLES31.functional.tessellation.invariance.tess_coord_component_range.triangles_equal_spacing_ccw_point_mode
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch_block_array.vertex_io_array_size_implicit.isolines
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch_block_array.vertex_io_array_size_query.quads
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch.vertex_io_array_size_query.quads
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch.vertex_io_array_size_implicit.isolines
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_patch.vertex_io_array_size_shader_builtin.isolines
+angle-dEQP-GLES31.functional.tessellation.user_defined_io.per_vertex.vertex_io_array_size_shader_builtin.triangles_explicit_tcs_out_size

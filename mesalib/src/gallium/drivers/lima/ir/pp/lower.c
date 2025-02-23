@@ -244,6 +244,7 @@ static bool ppir_lower_select(ppir_block *block, ppir_node *node)
    move_src->type = src0->type;
    move_src->ssa = src0->ssa;
    move_src->swizzle[0] = src0->swizzle[0];
+   move_src->node = src0->node;
    move_alu->num_src = 1;
 
    ppir_dest *move_dest = &move_alu->dest;

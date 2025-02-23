@@ -25,7 +25,7 @@
 intptr_t
 FcAlignSize (intptr_t size)
 {
-    intptr_t	rem = size % sizeof (FcAlign);
+    intptr_t rem = size % sizeof (FcAlign);
     if (rem)
 	size += sizeof (FcAlign) - rem;
     return size;
@@ -39,7 +39,7 @@ FcAlignSize (intptr_t size)
 FcSerialize *
 FcSerializeCreate (void)
 {
-    FcSerialize	*serialize;
+    FcSerialize *serialize;
 
     serialize = malloc (sizeof (FcSerialize));
     if (!serialize)
@@ -92,7 +92,6 @@ FcSerializeHashPtr (const void *object)
     return x ? x : 1; /* 0 reserved to mark empty, x starts out 0 */
 }
 
-
 #elif ((SIZEOF_VOID_P) * (CHAR_BIT)) == 64
 
 /*
@@ -114,14 +113,14 @@ FcSerializeHashPtr (const void *object)
 
 #endif
 
-static FcSerializeBucket*
+static FcSerializeBucket *
 FcSerializeFind (const FcSerialize *serialize, const void *object)
 {
     uintptr_t hash = FcSerializeHashPtr (object);
-    size_t buckets_count = serialize->buckets_count;
-    size_t index = hash & (buckets_count-1);
+    size_t    buckets_count = serialize->buckets_count;
+    size_t    index = hash & (buckets_count - 1);
     for (size_t n = 0; n < buckets_count; ++n) {
-	FcSerializeBucket* bucket = &serialize->buckets[index];
+	FcSerializeBucket *bucket = &serialize->buckets[index];
 	if (bucket->hash == 0) {
 	    return NULL;
 	}
@@ -133,13 +132,14 @@ FcSerializeFind (const FcSerialize *serialize, const void *object)
     return NULL;
 }
 
-static FcSerializeBucket*
-FcSerializeUncheckedSet (FcSerialize *serialize, FcSerializeBucket* insert) {
+static FcSerializeBucket *
+FcSerializeUncheckedSet (FcSerialize *serialize, FcSerializeBucket *insert)
+{
     const void *object = insert->object;
-    size_t buckets_count = serialize->buckets_count;
-    size_t index = insert->hash & (buckets_count-1);
+    size_t      buckets_count = serialize->buckets_count;
+    size_t      index = insert->hash & (buckets_count - 1);
     for (size_t n = 0; n < buckets_count; ++n) {
-	FcSerializeBucket* bucket = &serialize->buckets[index];
+	FcSerializeBucket *bucket = &serialize->buckets[index];
 	if (bucket->hash == 0) {
 	    *bucket = *insert;
 	    ++serialize->buckets_used;
@@ -160,8 +160,8 @@ FcSerializeUncheckedSet (FcSerialize *serialize, FcSerializeBucket* insert) {
 static FcBool
 FcSerializeResize (FcSerialize *serialize, size_t new_count)
 {
-    size_t old_used = serialize->buckets_used;
-    size_t old_count = serialize->buckets_count;
+    size_t             old_used = serialize->buckets_used;
+    size_t             old_count = serialize->buckets_count;
     FcSerializeBucket *old_buckets = serialize->buckets;
     FcSerializeBucket *old_buckets_end = old_buckets ? old_buckets + old_count : NULL;
 
@@ -176,8 +176,7 @@ FcSerializeResize (FcSerialize *serialize, size_t new_count)
     serialize->buckets_count = new_count;
     serialize->buckets_used = 0;
     for (FcSerializeBucket *b = old_buckets; b < old_buckets_end; ++b)
-	if (b->hash != 0 && !FcSerializeUncheckedSet (serialize, b))
-	{
+	if (b->hash != 0 && !FcSerializeUncheckedSet (serialize, b)) {
 	    serialize->buckets = old_buckets;
 	    serialize->buckets_count = old_count;
 	    serialize->buckets_used = old_used;
@@ -188,11 +187,10 @@ FcSerializeResize (FcSerialize *serialize, size_t new_count)
     return FcTrue;
 }
 
-static FcSerializeBucket*
+static FcSerializeBucket *
 FcSerializeSet (FcSerialize *serialize, const void *object, intptr_t offset)
 {
-    if (serialize->buckets_used >= serialize->buckets_used_max)
-    {
+    if (serialize->buckets_used >= serialize->buckets_used_max) {
 	size_t capacity = serialize->buckets_count;
 	if (capacity == 0)
 	    capacity = 4;
@@ -238,7 +236,7 @@ FcSerializeAlloc (FcSerialize *serialize, const void *object, int size)
 intptr_t
 FcSerializeReserve (FcSerialize *serialize, int size)
 {
-    intptr_t	offset = serialize->size;
+    intptr_t offset = serialize->size;
     serialize->size += FcAlignSize (size);
     return offset;
 }
@@ -261,17 +259,17 @@ FcSerializeOffset (FcSerialize *serialize, const void *object)
 void *
 FcSerializePtr (FcSerialize *serialize, const void *object)
 {
-    intptr_t	offset = FcSerializeOffset (serialize, object);
+    intptr_t offset = FcSerializeOffset (serialize, object);
 
     if (!offset)
 	return NULL;
-    return (void *) ((char *) serialize->linear + offset);
+    return (void *)((char *)serialize->linear + offset);
 }
 
 FcBool
 FcStrSerializeAlloc (FcSerialize *serialize, const FcChar8 *str)
 {
-    return FcSerializeAlloc (serialize, str, strlen ((const char *) str) + 1);
+    return FcSerializeAlloc (serialize, str, strlen ((const char *)str) + 1);
 }
 
 FcChar8 *
@@ -280,7 +278,7 @@ FcStrSerialize (FcSerialize *serialize, const FcChar8 *str)
     FcChar8 *str_serialize = FcSerializePtr (serialize, str);
     if (!str_serialize)
 	return NULL;
-    strcpy ((char *) str_serialize, (const char *) str);
+    strcpy ((char *)str_serialize, (const char *)str);
     return str_serialize;
 }
 #include "fcaliastail.h"

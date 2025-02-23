@@ -946,7 +946,7 @@ struct pipe_blit_info
 struct pipe_grid_info
 {
    /**
-    * For drivers that use PIPE_SHADER_IR_NATIVE as their prefered IR, this
+    * For drivers that use PIPE_SHADER_IR_NATIVE as their preferred IR, this
     * value will be the index of the kernel in the opencl.kernels metadata
     * list.
     */

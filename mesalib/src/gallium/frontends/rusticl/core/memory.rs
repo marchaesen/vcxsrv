@@ -1015,8 +1015,8 @@ impl MemBase {
                     image_array_size: gl_mem_props.array_size as usize,
                     image_row_pitch: 0,
                     image_slice_pitch: 0,
-                    num_mip_levels: 1,
-                    num_samples: 1,
+                    num_mip_levels: 0,
+                    num_samples: 0,
                     ..Default::default()
                 },
                 image_elem_size: gl_mem_props.pixel_size,

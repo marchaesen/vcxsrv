@@ -176,17 +176,6 @@ typedef struct _xReq *xReqPtr;
 
 #endif
 
-#ifndef PATH_MAX
-#include <sys/param.h>
-#ifndef PATH_MAX
-#ifdef MAXPATHLEN
-#define PATH_MAX MAXPATHLEN
-#else
-#define PATH_MAX 1024
-#endif
-#endif
-#endif
-
 /**
  * Calculate the number of bytes needed to hold bits.
  * @param bits The minimum number of bits needed.
@@ -234,35 +223,9 @@ padding_for_int32(const int bytes)
     return ((-bytes) & 3);
 }
 
-
 extern _X_EXPORT char **xstrtokenize(const char *str, const char *separators);
 
-/**
- * Compare the two version numbers comprising of major.minor.
- *
- * @return A value less than 0 if a is less than b, 0 if a is equal to b,
- * or a value greater than 0
- */
-static inline int
-version_compare(uint32_t a_major, uint32_t a_minor,
-                uint32_t b_major, uint32_t b_minor)
-{
-    if (a_major > b_major)
-        return 1;
-    if (a_major < b_major)
-        return -1;
-    if (a_minor > b_minor)
-        return 1;
-    if (a_minor < b_minor)
-        return -1;
-
-    return 0;
-}
-
 /* some macros to help swap requests, replies, and events */
-
-#define LengthRestB(stuff) \
-    ((client->req_len << 2) - sizeof(*stuff))
 
 #define LengthRestS(stuff) \
     ((client->req_len << 1) - (sizeof(*stuff) >> 1))
@@ -388,8 +351,6 @@ extern _X_EXPORT void SwapLongs(CARD32 *list, unsigned long count);
 
 extern _X_EXPORT void SwapShorts(short *list, unsigned long count);
 
-extern _X_EXPORT void MakePredeclaredAtoms(void);
-
 typedef struct _xPoint *DDXPointPtr;
 typedef struct pixman_box16 *BoxPtr;
 typedef struct _xEvent *xEventPtr;
@@ -409,32 +370,5 @@ typedef struct _CharInfo *CharInfoPtr;  /* also in fonts/include/font.h */
 
 extern _X_EXPORT unsigned long globalSerialNumber;
 extern _X_EXPORT unsigned long serverGeneration;
-
-/* Don't use this directly, use BUG_WARN or BUG_WARN_MSG instead */
-#define __BUG_WARN_MSG(cond, with_msg, ...)                                \
-          do { if (cond) {                                                \
-              ErrorF("BUG: triggered 'if (" #cond ")'\n");          \
-              ErrorF("BUG: %s:%u in %s()\n",                        \
-                     __FILE__, __LINE__, __func__);                 \
-              if (with_msg) ErrorF(__VA_ARGS__);                    \
-              xorg_backtrace();                                           \
-          } } while(0)
-
-#define BUG_WARN_MSG(cond, ...)                                           \
-          __BUG_WARN_MSG(cond, 1, __VA_ARGS__)
-
-#define BUG_WARN(cond)  __BUG_WARN_MSG(cond, 0, NULL)
-
-#define BUG_RETURN(cond) \
-        do { if (cond) { __BUG_WARN_MSG(cond, 0, NULL); return; } } while(0)
-
-#define BUG_RETURN_MSG(cond, ...) \
-        do { if (cond) { __BUG_WARN_MSG(cond, 1, __VA_ARGS__); return; } } while(0)
-
-#define BUG_RETURN_VAL(cond, val) \
-        do { if (cond) { __BUG_WARN_MSG(cond, 0, NULL); return (val); } } while(0)
-
-#define BUG_RETURN_VAL_MSG(cond, val, ...) \
-        do { if (cond) { __BUG_WARN_MSG(cond, 1, __VA_ARGS__); return (val); } } while(0)
 
 #endif                          /* MISC_H */

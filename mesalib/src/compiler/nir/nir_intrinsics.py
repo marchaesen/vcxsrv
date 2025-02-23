@@ -1934,6 +1934,8 @@ system_value("ray_tracing_stack_base_lvp", 1)
 
 system_value("shader_call_data_offset_lvp", 1)
 
+intrinsic("load_const_buf_base_addr_lvp", src_comp=[1], bit_sizes=[64], dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
+
 # Broadcom-specific instrinc for tile buffer color reads.
 #
 # The hardware requires that we read the samples and components of a pixel

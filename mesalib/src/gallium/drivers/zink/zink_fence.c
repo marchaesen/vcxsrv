@@ -212,6 +212,7 @@ fence_get_fd(struct pipe_screen *pscreen, struct pipe_fence_handle *pfence)
       return -1;
 
    struct zink_tc_fence *mfence = (struct zink_tc_fence *)pfence;
+   util_queue_fence_wait(&mfence->ready);
    if (!mfence->sem)
       return -1;
 
@@ -262,9 +263,6 @@ zink_fence_server_sync(struct pipe_context *pctx, struct pipe_fence_handle *pfen
    util_dynarray_append(&ctx->bs->wait_semaphore_stages, VkPipelineStageFlags, flag);
    pipe_reference(NULL, &mfence->reference);
    util_dynarray_append(&ctx->bs->fences, struct zink_tc_fence*, mfence);
-
-   /* transfer the external wait sempahore ownership to the next submit */
-   mfence->sem = VK_NULL_HANDLE;
 }
 
 void
@@ -292,17 +290,23 @@ zink_create_fence_fd(struct pipe_context *pctx, struct pipe_fence_handle **pfenc
    if (dup_fd < 0)
       goto fail_fd_dup;
 
-   static const VkExternalSemaphoreHandleTypeFlagBits flags[] = {
+   static const VkExternalSemaphoreHandleTypeFlagBits handle_type[] = {
       [PIPE_FD_TYPE_NATIVE_SYNC] = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT,
       [PIPE_FD_TYPE_SYNCOBJ] = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT,
+   };
+   assert(type < ARRAY_SIZE(handle_type));
+
+   static const VkSemaphoreImportFlagBits flags[] = {
+      [PIPE_FD_TYPE_NATIVE_SYNC] = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT,
+      [PIPE_FD_TYPE_SYNCOBJ] = 0,
    };
    assert(type < ARRAY_SIZE(flags));
 
    const VkImportSemaphoreFdInfoKHR sdi = {
       .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR,
       .semaphore = mfence->sem,
-      .flags = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT,
-      .handleType = flags[type],
+      .flags = flags[type],
+      .handleType = handle_type[type],
       .fd = dup_fd,
    };
    result = VKSCR(ImportSemaphoreFdKHR)(screen->dev, &sdi);

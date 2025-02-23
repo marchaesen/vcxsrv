@@ -580,7 +580,7 @@ xkb_symbols "oldhun_lig" {
 partial alphanumeric_keys
 xkb_symbols "oldhun_sk_sh" {
     name[Group1] = "Old Hungarian (Carpathian Highlands, S as Sh)";
-    key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";  
+    key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
     include "hu(ohu_sk_fullcaps_req)"
     key.type[Group1] = "FOUR_LEVEL";
     include "hu(ohu_sk_nocaps_req)"
@@ -588,7 +588,7 @@ xkb_symbols "oldhun_sk_sh" {
     include "hu(ohu_sk_semicaps_req)"
     include "hu(oldhun_magic_numpad)"
     key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
-    include "hu(SK_Sh)"  
+    include "hu(SK_Sh)"
     include "level3(ralt_switch)"
 
 };
@@ -596,7 +596,7 @@ xkb_symbols "oldhun_sk_sh" {
 partial alphanumeric_keys
 xkb_symbols "oldhun_sk_sz" {
     name[Group1] = "Old Hungarian (Carpathian Highlands, S as Sz)";
-    key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";  
+    key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
     include "hu(ohu_sk_fullcaps_req)"
     key.type[Group1] = "FOUR_LEVEL";
     include "hu(ohu_sk_nocaps_req)"
@@ -604,7 +604,7 @@ xkb_symbols "oldhun_sk_sz" {
     include "hu(ohu_sk_semicaps_req)"
     include "hu(oldhun_magic_numpad)"
     key.type[Group1] = "FOUR_LEVEL_ALPHABETIC";
-    include "hu(SK_Sz)"  
+    include "hu(SK_Sz)"
     include "level3(ralt_switch)"
 };
 
@@ -612,14 +612,14 @@ hidden partial alphanumeric_keys
 xkb_symbols "SK_Sh"{
  key <AC02> { [     U10CE4,     U10CA4,     U10CE1,     U10CA1 ] };
     // Old Hungarian small and capital S, Emp
-   
+
 };
 
 hidden partial alphanumeric_keys
 xkb_symbols "SK_Sz"{
  key <AC02> { [     U10CE5,     U10CA5,     U10CE1,     U10CA1 ] };
     // Old Hungarian small and capital Sz, Emp
-      
+
 };
 
 
@@ -676,7 +676,7 @@ xkb_symbols "ohu_sk_fullcaps_req"{
     //Old Hungarian small and capital letter C, NC
     key <AC08> { [         U10CD3,          U10C93,  U10CD4, U10C94] };
     //Old Hungarian small and capital letter eK,aK
-    
+
 };
 
 hidden partial alphanumeric_keys
@@ -694,7 +694,7 @@ xkb_symbols "ohu_sk_nocaps_req"{
 };
 
 hidden partial alphanumeric_keys
-xkb_symbols "ohu_sk_semicaps_req"{    
+xkb_symbols "ohu_sk_semicaps_req"{
     key <AC11> { [   U10CDF,U10C9F,   apostrophe,       quotedbl ] };
     //Old Hungarian small and capital letter OEE
     key <BKSL> { [    U10CDA, U10C9A,    backslash,          parenright ] };
@@ -723,7 +723,7 @@ xkb_symbols "ohu_sk_semicaps_req"{
     //Old Hungarian small and capital letter N
     key <AB07> { [         U10CD8,          U10C98,  asciicircum,     NoSymbol ] };
     //Old Hungarian small and capital letter M
-    
+
 };
 
 

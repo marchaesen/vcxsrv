@@ -57,12 +57,27 @@ struct vk_texcompress_astc_write_descriptor_set {
    VkDescriptorImageInfo src_desc_image_info;
 };
 
+struct vk_texcompress_astc_write_descriptor_buffer {
+   VkDescriptorGetInfoEXT descriptors[VK_TEXCOMPRESS_ASTC_WRITE_DESC_SET_COUNT];
+   VkDescriptorAddressInfoEXT luts_desc_addr_info[VK_TEXCOMPRESS_ASTC_NUM_LUTS];
+   VkDescriptorAddressInfoEXT partition_tbl_desc_addr_info;
+   VkDescriptorImageInfo dst_desc_image_info;
+   VkDescriptorImageInfo src_desc_image_info;
+};
+
 void
 vk_texcompress_astc_fill_write_descriptor_sets(struct vk_texcompress_astc_state *astc,
                                                struct vk_texcompress_astc_write_descriptor_set *set,
                                                VkImageView src_img_view, VkImageLayout src_img_layout,
                                                VkImageView dst_img_view,
                                                VkFormat format);
+void
+vk_texcompress_astc_fill_write_descriptor_buffer(struct vk_device *device,
+                                                 struct vk_texcompress_astc_state *astc,
+                                                 struct vk_texcompress_astc_write_descriptor_buffer *buffer,
+                                                 VkImageView src_img_view, VkImageLayout src_img_layout,
+                                                 VkImageView dst_img_view,
+                                                 VkFormat format);
 VkPipeline vk_texcompress_astc_get_decode_pipeline(struct vk_device *device,
                                                    VkAllocationCallbacks *allocator,
                                                    struct vk_texcompress_astc_state *astc,

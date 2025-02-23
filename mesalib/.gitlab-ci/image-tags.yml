@@ -13,7 +13,7 @@
 
 variables:
    DEBIAN_X86_64_BUILD_BASE_IMAGE: "debian/x86_64_build-base"
-   DEBIAN_BASE_TAG: "20250204-arm32"
+   DEBIAN_BASE_TAG: "20250220-kernel"
 
    DEBIAN_X86_64_BUILD_IMAGE_PATH: "debian/x86_64_build"
    DEBIAN_BUILD_TAG: "20250210-android-drm"
@@ -31,18 +31,18 @@ variables:
    DEBIAN_X86_64_TEST_ANDROID_IMAGE_PATH: "debian/x86_64_test-android"
 
    DEBIAN_TEST_ANDROID_TAG: "20250212-up-angle"
-   DEBIAN_TEST_GL_TAG: "20250204-fix-deqp"
-   DEBIAN_TEST_VK_TAG: "20250204-fix-deqp"
-   KERNEL_ROOTFS_TAG: "20250212-up-angle"
+   DEBIAN_TEST_GL_TAG: "20250221-piglit-04"
+   DEBIAN_TEST_VK_TAG: "20250221-piglit-04"
+   KERNEL_ROOTFS_TAG: "20250221-mtk-kernel"
 
    DEBIAN_PYUTILS_IMAGE: "debian/x86_64_pyutils"
    DEBIAN_PYUTILS_TAG: "20250129-lavacli"
 
-   ALPINE_X86_64_BUILD_TAG: "20250128-llversionm"
+   ALPINE_X86_64_BUILD_TAG: "20250221-wlproto"
    ALPINE_X86_64_LAVA_SSH_TAG: "20250124-spirv-tools"
    FEDORA_X86_64_BUILD_TAG: "20250128-llversionm"
 
-   KERNEL_TAG: "v6.13-rc4-mesa-6587"
+   KERNEL_TAG: "v6.13-rc4-mesa-50ca"
    KERNEL_REPO: "gfx-ci/linux"
    PKG_REPO_REV: "95bf62c"
 

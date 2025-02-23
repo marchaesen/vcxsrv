@@ -58,31 +58,8 @@ create_iview(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf *s
                         &(struct radv_image_view_extra_create_info){.disable_dcc_mrt = surf->disable_compression});
 }
 
-static void
-create_bview(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_buffer *src, struct radv_buffer_view *bview,
-             VkFormat depth_format)
-{
-   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-   VkFormat format;
-
-   if (depth_format)
-      format = depth_format;
-   else
-      format = src->format;
-   radv_buffer_view_init(bview, device,
-                         &(VkBufferViewCreateInfo){
-                            .sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
-                            .flags = 0,
-                            .buffer = radv_buffer_to_handle(src->buffer),
-                            .format = format,
-                            .offset = src->offset,
-                            .range = VK_WHOLE_SIZE,
-                         });
-}
-
 struct blit2d_src_temps {
    struct radv_image_view iview;
-   struct radv_buffer_view bview;
 };
 
 static void
@@ -91,16 +68,18 @@ blit2d_bind_src(struct radv_cmd_buffer *cmd_buffer, VkPipelineLayout layout, str
                 VkFormat depth_format, VkImageAspectFlagBits aspects, uint32_t log2_samples)
 {
    if (src_type == BLIT2D_SRC_TYPE_BUFFER) {
-      create_bview(cmd_buffer, src_buf, &tmp->bview, depth_format);
-
-      radv_meta_push_descriptor_set(
-         cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1,
-         (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                   .dstBinding = 0,
-                                   .dstArrayElement = 0,
-                                   .descriptorCount = 1,
-                                   .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
-                                   .pTexelBufferView = (VkBufferView[]){radv_buffer_view_to_handle(&tmp->bview)}}});
+      radv_meta_bind_descriptors(
+         cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1,
+         (VkDescriptorGetInfoEXT[]){{
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
+            .data.pUniformTexelBuffer =
+               &(VkDescriptorAddressInfoEXT){
+                  .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_ADDRESS_INFO_EXT,
+                  .address = src_buf->addr + src_buf->offset,
+                  .range = src_buf->size - src_buf->offset,
+                  .format = depth_format ? depth_format : src_buf->format},
+         }});
 
       vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, 4,
                                  &src_buf->pitch);
@@ -111,19 +90,16 @@ blit2d_bind_src(struct radv_cmd_buffer *cmd_buffer, VkPipelineLayout layout, str
          vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), layout, VK_SHADER_STAGE_FRAGMENT_BIT, 16, 4,
                                     &src_img->layer);
 
-      radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1,
-                                    (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                                              .dstBinding = 0,
-                                                              .dstArrayElement = 0,
-                                                              .descriptorCount = 1,
-                                                              .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-                                                              .pImageInfo = (VkDescriptorImageInfo[]){
-                                                                 {
-                                                                    .sampler = VK_NULL_HANDLE,
-                                                                    .imageView = radv_image_view_to_handle(&tmp->iview),
-                                                                    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-                                                                 },
-                                                              }}});
+      radv_meta_bind_descriptors(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 1,
+                                 (VkDescriptorGetInfoEXT[]){{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                                             .type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                                             .data.pSampledImage = (VkDescriptorImageInfo[]){
+                                                                {
+                                                                   .sampler = VK_NULL_HANDLE,
+                                                                   .imageView = radv_image_view_to_handle(&tmp->iview),
+                                                                   .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+                                                                },
+                                                             }}});
    }
 }
 
@@ -253,9 +229,7 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
 
    fail_pipeline:
 
-      if (src_type == BLIT2D_SRC_TYPE_BUFFER)
-         radv_buffer_view_finish(&src_temps.bview);
-      else
+      if (src_type != BLIT2D_SRC_TYPE_BUFFER)
          radv_image_view_finish(&src_temps.iview);
 
       radv_image_view_finish(&dst_iview);

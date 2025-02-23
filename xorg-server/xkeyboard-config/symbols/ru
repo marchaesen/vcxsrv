@@ -1393,7 +1393,7 @@ xkb_symbols "ruintl_ru" {
     key <AE10> { [ NoSymbol, parenright, guillemotright, trademark ] };
     key <AE11> { [ NoSymbol, underscore,            yen, U20B4 ] };
     key <AE12> { [ NoSymbol,       plus,       multiply, division ] };
-    
+
     key <AD02> { [ NoSymbol,   NoSymbol,  Cyrillic_dzhe, Cyrillic_DZHE ] };
     key <AD04> { [ NoSymbol,   NoSymbol,      paragraph, registered ] };
     key <AD05> { [ NoSymbol,   NoSymbol,   Ukrainian_ie, Ukrainian_IE ] };
@@ -1404,7 +1404,7 @@ xkb_symbols "ruintl_ru" {
     key <AD11> { [ NoSymbol,   NoSymbol,      braceleft, leftdoublequotemark ] };
     key <AD12> { [ NoSymbol,   NoSymbol,     braceright, rightdoublequotemark ] };
     key <BKSL> { [    slash,  backslash,            bar, notsign ] };
-    
+
     key <AC02> { [ NoSymbol,   NoSymbol,        section, section ] };
     key <AC04> { [ NoSymbol,   NoSymbol,     VoidSymbol, ordfeminine ] };
     key <AC05> { [ NoSymbol,   NoSymbol,    Greek_OMEGA, VoidSymbol ] };
@@ -1413,7 +1413,7 @@ xkb_symbols "ruintl_ru" {
     key <AC09> { [ NoSymbol,   NoSymbol,    Serbian_dje, Serbian_DJE ] };
     key <AC10> { [ NoSymbol,   NoSymbol,    bracketleft, leftsinglequotemark ] };
     key <AC11> { [ NoSymbol,   NoSymbol,   bracketright, rightsinglequotemark ] };
-    
+
     key <LSGT> { [    slash,  backslash,            bar, notsign ] };
     key <AB01> { [ NoSymbol,   NoSymbol,              s, S ] };
     key <AB02> { [ NoSymbol,   NoSymbol,   Serbian_tshe, Serbian_TSHE ] };
@@ -1424,7 +1424,7 @@ xkb_symbols "ruintl_ru" {
     key <AB08> { [ NoSymbol,   NoSymbol,           less, leftarrow ] };
     key <AB09> { [ NoSymbol,   NoSymbol,        greater, rightarrow ] };
     key <AB10> { [   period,      comma,     apostrophe, degree ] };
-    
+
     key <SPCE> { [    space,      space,   nobreakspace, nobreakspace ] };
 };
 
@@ -1453,7 +1453,7 @@ xkb_symbols "ruintl_en" {
     key <AE10> { [ NoSymbol, parenright, guillemotright, trademark ] };
     key <AE11> { [ NoSymbol, underscore,            yen, dead_abovering ] };
     key <AE12> { [ NoSymbol,       plus,       multiply, division ] };
-    
+
     key <AD01> { [ NoSymbol,   NoSymbol,     adiaeresis, Adiaeresis ] };
     key <AD02> { [ NoSymbol,   NoSymbol,          aring, Aring ] };
     key <AD03> { [ NoSymbol,   NoSymbol,         eacute, Eacute ] };
@@ -1467,7 +1467,7 @@ xkb_symbols "ruintl_en" {
     key <AD11> { [ dead_circumflex, dead_diaeresis, braceleft, leftdoublequotemark ] };
     key <AD12> { [ dead_tilde, dead_macron, braceright, rightdoublequotemark ] };
     key <BKSL> { [    slash,  backslash,            bar, notsign ] };
-    
+
     key <AC01> { [ NoSymbol,   NoSymbol,         aacute, Aacute ] };
     key <AC02> { [ NoSymbol,   NoSymbol,         ssharp, section ] };
     key <AC03> { [ NoSymbol,   NoSymbol,            eth, ETH ] };
@@ -1479,7 +1479,7 @@ xkb_symbols "ruintl_en" {
     key <AC09> { [ NoSymbol,   NoSymbol,        lstroke, Lstroke ] };
     key <AC10> { [ dead_cedilla, dead_ogonek, bracketleft, leftsinglequotemark ] };
     key <AC11> { [ dead_doubleacute, dead_breve, bracketright, rightsinglequotemark ] };
-    
+
     key <LSGT> { [    slash,  backslash,            bar, notsign ] };
     key <AB01> { [ NoSymbol,   NoSymbol,             ae, AE ] };
     key <AB03> { [ NoSymbol,   NoSymbol,           cent, copyright ] };
@@ -1490,6 +1490,6 @@ xkb_symbols "ruintl_en" {
     key <AB08> { [ ccedilla,   Ccedilla,           less, leftarrow ] };
     key <AB09> { [ dead_abovedot, dead_caron, greater, rightarrow ] };
     key <AB10> { [   period,      comma,     apostrophe, degree ] };
-    
+
     key <SPCE> { [    space,      space,   nobreakspace, nobreakspace ] };
 };

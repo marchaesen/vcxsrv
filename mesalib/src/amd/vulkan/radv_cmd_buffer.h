@@ -144,7 +144,7 @@ enum radv_cmd_flush_bits {
 };
 
 struct radv_vertex_binding {
-   VkDeviceSize offset;
+   uint64_t addr;
    VkDeviceSize size;
    VkDeviceSize stride;
 };
@@ -520,15 +520,12 @@ struct radv_cmd_buffer {
    VkCommandBufferUsageFlags usage_flags;
    struct radeon_cmdbuf *cs;
    struct radv_cmd_state state;
-   struct radv_buffer *vertex_binding_buffers[MAX_VBS];
    struct radv_vertex_binding vertex_bindings[MAX_VBS];
-   uint32_t used_vertex_bindings;
    struct radv_streamout_binding streamout_bindings[MAX_SO_BUFFERS];
    enum radv_queue_family qf;
 
    uint8_t push_constants[MAX_PUSH_CONSTANTS_SIZE];
    VkShaderStageFlags push_constant_stages;
-   struct radv_descriptor_set_header meta_push_descriptors;
 
    struct radv_descriptor_state descriptors[MAX_BIND_POINTS];
 
@@ -758,10 +755,6 @@ struct radv_resolve_barrier {
 
 void radv_emit_resolve_barrier(struct radv_cmd_buffer *cmd_buffer, const struct radv_resolve_barrier *barrier);
 
-void radv_meta_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer, VkPipelineBindPoint pipelineBindPoint,
-                                   VkPipelineLayout _layout, uint32_t set, uint32_t descriptorWriteCount,
-                                   const VkWriteDescriptorSet *pDescriptorWrites);
-
 struct radv_dispatch_info {
    /**
     * Determine the layout of the grid (in block units) to be used.
@@ -799,8 +792,6 @@ void radv_compute_dispatch(struct radv_cmd_buffer *cmd_buffer, const struct radv
  *              the compute pipeline.
  */
 void radv_unaligned_dispatch(struct radv_cmd_buffer *cmd_buffer, uint32_t x, uint32_t y, uint32_t z);
-
-void radv_indirect_dispatch(struct radv_cmd_buffer *cmd_buffer, struct radeon_winsys_bo *bo, uint64_t va);
 
 uint32_t radv_init_fmask(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
                          const VkImageSubresourceRange *range);

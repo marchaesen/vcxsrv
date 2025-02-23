@@ -131,9 +131,6 @@ spec@glsl-1.30@execution@interpolation@interpolation-noperspective-other-smooth-
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
-glx@glx-visuals-depth -pixmap,Fail
-glx@glx-visuals-stencil -pixmap,Fail
-glx@glx_arb_create_context_no_error@no error,Fail
 shaders@point-vertex-id divisor,Crash
 shaders@point-vertex-id gl_instanceid,Crash
 shaders@point-vertex-id gl_instanceid divisor,Crash
@@ -320,8 +317,6 @@ spec@arb_texture_buffer_object@minmax,Fail
 spec@arb_texture_rectangle@1-1-linear-texture,Fail
 spec@arb_texture_rg@fbo-alphatest-formats,Fail
 spec@arb_texture_rg@fbo-alphatest-formats@GL_R8,Fail
-spec@arb_texture_rg@fbo-blending-formats,Fail
-spec@arb_texture_rg@fbo-blending-formats@GL_R8,Fail
 spec@arb_texture_storage@texture-storage@cube array texture,Fail
 spec@arb_transform_feedback2@change objects while paused,Fail
 spec@arb_transform_feedback2@change objects while paused (gles3),Fail
@@ -806,6 +801,8 @@ spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_si
 spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_sampler,Fail
 
 # uprev Piglit in Mesa
+spec@arb_texture_rg@fbo-blending-formats,Fail
+spec@arb_texture_rg@fbo-blending-formats@GL_R8,Fail
 spec@glsl-1.40@uniform_buffer@two-stages,Fail
 
 # new failures since 2023/02/08 (CTS uprevs, regressions etc.)

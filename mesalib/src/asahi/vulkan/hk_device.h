@@ -84,9 +84,17 @@ struct hk_device {
    struct {
       struct agx_bo *bo;
       struct agx_usc_uniform_packed image_heap;
-      uint64_t null_sink, zero_sink;
+      uint64_t null_sink;
       uint64_t geometry_state;
    } rodata;
+
+   /* Pages for backing sparse resources */
+   struct {
+      /* Undefined content, should not be read (except for atomics where the
+       * result is already undefined).
+       */
+      struct agx_bo *write;
+   } sparse;
 
    struct hk_internal_shaders prolog_epilog;
    struct hk_internal_shaders kernels;

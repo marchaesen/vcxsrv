@@ -6,12 +6,9 @@
 
 #include "lvp_private.h"
 #include "lvp_acceleration_structure.h"
-#include "lvp_nir_ray_tracing.h"
+#include "nir/lvp_nir.h"
 
 #include "vk_pipeline.h"
-
-#include "nir.h"
-#include "nir_builder.h"
 
 #include "spirv/spirv.h"
 
@@ -169,7 +166,7 @@ lvp_compile_ray_tracing_stages(struct lvp_pipeline *pipeline,
    uint32_t i = 0;
    for (; i < create_info->stageCount; i++) {
       nir_shader *nir;
-      result = lvp_spirv_to_nir(pipeline, create_info->pStages + i, &nir);
+      result = lvp_spirv_to_nir(pipeline, create_info->pNext, create_info->pStages + i, &nir);
       if (result != VK_SUCCESS)
          return result;
 
@@ -727,17 +724,9 @@ lvp_trace_ray(nir_builder *b, struct lvp_ray_tracing_pipeline_compiler *compiler
 
    nir_store_var(b, state->shader_call_data_offset, nir_iadd_imm(b, payload, -stack_size), 0x1);
 
-   nir_def *bvh_base = accel_struct;
-   if (bvh_base->bit_size != 64) {
-      assert(bvh_base->num_components >= 2);
-      bvh_base = nir_load_ubo(
-         b, 1, 64, nir_channel(b, accel_struct, 0),
-         nir_imul_imm(b, nir_channel(b, accel_struct, 1), sizeof(struct lp_descriptor)), .range = ~0);
-   }
-
    lvp_ray_traversal_state_init(b->impl, &state->traversal);
 
-   nir_store_var(b, state->bvh_base, bvh_base, 0x1);
+   nir_store_var(b, state->bvh_base, accel_struct, 0x1);
    nir_store_var(b, state->flags, flags, 0x1);
    nir_store_var(b, state->cull_mask, cull_mask, 0x1);
    nir_store_var(b, state->sbt_offset, sbt_offset, 0x1);
@@ -748,7 +737,7 @@ lvp_trace_ray(nir_builder *b, struct lvp_ray_tracing_pipeline_compiler *compiler
    nir_store_var(b, state->dir, dir, 0x7);
    nir_store_var(b, state->tmax, tmax, 0x1);
 
-   nir_store_var(b, state->traversal.bvh_base, bvh_base, 0x1);
+   nir_store_var(b, state->traversal.bvh_base, accel_struct, 0x1);
    nir_store_var(b, state->traversal.origin, origin, 0x7);
    nir_store_var(b, state->traversal.dir, dir, 0x7);
    nir_store_var(b, state->traversal.inv_dir, nir_frcp(b, dir), 0x7);
@@ -773,7 +762,7 @@ lvp_trace_ray(nir_builder *b, struct lvp_ray_tracing_pipeline_compiler *compiler
    };
 
    struct lvp_ray_traversal_args args = {
-      .root_bvh_base = bvh_base,
+      .root_bvh_base = accel_struct,
       .flags = flags,
       .cull_mask = nir_ishl_imm(b, cull_mask, 24),
       .origin = origin,
@@ -787,7 +776,7 @@ lvp_trace_ray(nir_builder *b, struct lvp_ray_tracing_pipeline_compiler *compiler
       .data = compiler,
    };
 
-   nir_push_if(b, nir_ine_imm(b, bvh_base, 0));
+   nir_push_if(b, nir_ine_imm(b, accel_struct, 0));
    lvp_build_ray_traversal(b, &args);
    nir_pop_if(b, NULL);
 

@@ -439,12 +439,6 @@ lvp_pipeline_nir_ref(struct lvp_pipeline_nir **dst, struct lvp_pipeline_nir *src
    *dst = src;
 }
 
-struct lvp_inline_variant {
-   uint32_t mask;
-   uint32_t vals[PIPE_MAX_CONSTANT_BUFFERS][MAX_INLINABLE_UNIFORMS];
-   void *cso;
-};
-
 struct lvp_shader {
    struct vk_object_base base;
    struct lvp_pipeline_layout *layout;
@@ -452,13 +446,6 @@ struct lvp_shader {
    struct lvp_pipeline_nir *tess_ccw;
    void *shader_cso;
    void *tess_ccw_cso;
-   struct {
-      uint32_t uniform_offsets[PIPE_MAX_CONSTANT_BUFFERS][MAX_INLINABLE_UNIFORMS];
-      uint8_t count[PIPE_MAX_CONSTANT_BUFFERS];
-      bool must_inline;
-      uint32_t can_inline; //bitmask
-      struct set variants;
-   } inlines;
    struct pipe_stream_output_info stream_output;
    struct blob blob; //preserved for GetShaderBinaryDataEXT
    uint32_t push_constant_size;
@@ -576,9 +563,6 @@ struct lvp_exec_graph_internal_data {
    /* outputs */
    struct lvp_exec_graph_shader_output outputs[LVP_MAX_EXEC_GRAPH_PAYLOADS];
 };
-
-bool
-lvp_lower_exec_graph(struct lvp_pipeline *pipeline, nir_shader *nir);
 
 void
 lvp_pipeline_shaders_compile(struct lvp_pipeline *pipeline, bool locked);
@@ -807,24 +791,18 @@ void
 queue_thread_noop(void *data, void *gdata, int thread_index);
 
 VkResult
-lvp_spirv_to_nir(struct lvp_pipeline *pipeline, const VkPipelineShaderStageCreateInfo *sinfo,
-                 nir_shader **out_nir);
+lvp_spirv_to_nir(struct lvp_pipeline *pipeline, const void *pipeline_pNext,
+                 const VkPipelineShaderStageCreateInfo *sinfo, nir_shader **out_nir);
 
 void
 lvp_shader_init(struct lvp_shader *shader, nir_shader *nir);
 
 void
 lvp_shader_optimize(nir_shader *nir);
-bool
-lvp_find_inlinable_uniforms(struct lvp_shader *shader, nir_shader *nir);
-void
-lvp_inline_uniforms(nir_shader *nir, const struct lvp_shader *shader, const uint32_t *uniform_values, uint32_t ubo);
+
 void *
 lvp_shader_compile(struct lvp_device *device, struct lvp_shader *shader, nir_shader *nir, bool locked);
-bool
-lvp_nir_lower_ray_queries(struct nir_shader *shader);
-bool
-lvp_nir_lower_sparse_residency(struct nir_shader *shader);
+
 enum vk_cmd_type
 lvp_nv_dgc_token_to_cmd_type(const VkIndirectCommandsLayoutTokenNV *token);
 

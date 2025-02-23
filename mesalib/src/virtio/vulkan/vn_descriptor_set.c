@@ -129,7 +129,7 @@ vn_descriptor_set_layout_init(
 
    layout->is_push_descriptor =
       create_info->flags &
-      VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+      VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT;
 
    layout->refcount = VN_REFCOUNT_INIT(1);
    layout->last_binding = last_binding;
@@ -912,7 +912,7 @@ vn_CreateDescriptorUpdateTemplate(
                        VK_OBJECT_TYPE_DESCRIPTOR_UPDATE_TEMPLATE, &dev->base);
 
    if (pCreateInfo->templateType ==
-       VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR) {
+       VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS) {
       struct vn_pipeline_layout *pipeline_layout =
          vn_pipeline_layout_from_handle(pCreateInfo->pipelineLayout);
       templ->push.pipeline_bind_point = pCreateInfo->pipelineBindPoint;

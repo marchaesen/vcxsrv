@@ -26,22 +26,6 @@ struct ctx {
    nir_def *write_samples;
 };
 
-static bool
-tib_filter(const nir_instr *instr, UNUSED const void *_)
-{
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-   if (intr->intrinsic != nir_intrinsic_store_output &&
-       intr->intrinsic != nir_intrinsic_load_output)
-      return false;
-
-   nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
-   assert(sem.dual_source_blend_index == 0 && "dual source blending lowered");
-   return (sem.location >= FRAG_RESULT_DATA0);
-}
-
 static void
 store_tilebuffer(nir_builder *b, struct agx_tilebuffer_layout *tib,
                  enum pipe_format format, enum pipe_format logical_format,
@@ -257,19 +241,27 @@ load_memory(nir_builder *b, unsigned bindless_base, unsigned nr_samples,
    /* Ensure pixels below this one have written out their results */
    nir_begin_invocation_interlock(b);
 
-   return nir_bindless_image_load(
-      b, comps, bit_size, image, coords, sample, lod, .image_dim = dim,
-      .image_array = true, .format = format, .access = ACCESS_IN_BOUNDS_AGX);
+   return nir_bindless_image_load(b, comps, bit_size, image, coords, sample,
+                                  lod, .image_dim = dim, .image_array = true,
+                                  .format = format, .access = ACCESS_IN_BOUNDS);
 }
 
-static nir_def *
-tib_impl(nir_builder *b, nir_instr *instr, void *data)
+static bool
+pass(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
-   struct ctx *ctx = data;
-   struct agx_tilebuffer_layout *tib = ctx->tib;
-   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_store_output &&
+       intr->intrinsic != nir_intrinsic_load_output)
+      return false;
 
    nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
+   assert(sem.dual_source_blend_index == 0 && "dual source blending lowered");
+   if (sem.location < FRAG_RESULT_DATA0)
+      return false;
+
+   b->cursor = nir_instr_remove(&intr->instr);
+
+   struct ctx *ctx = data;
+   struct agx_tilebuffer_layout *tib = ctx->tib;
    unsigned rt = sem.location - FRAG_RESULT_DATA0;
    assert(rt < ARRAY_SIZE(tib->logical_format));
 
@@ -315,7 +307,7 @@ tib_impl(nir_builder *b, nir_instr *instr, void *data)
 
       /* Delete stores that are entirely masked out */
       if (!write_mask)
-         return NIR_LOWER_INSTR_PROGRESS_REPLACE;
+         return true;
 
       nir_def *value = intr->src[0].ssa;
 
@@ -330,26 +322,29 @@ tib_impl(nir_builder *b, nir_instr *instr, void *data)
          store_tilebuffer(b, tib, format, logical_format, rt, value,
                           ctx->write_samples, write_mask);
       }
-
-      return NIR_LOWER_INSTR_PROGRESS_REPLACE;
    } else {
       uint8_t bit_size = intr->def.bit_size;
+      nir_def *def;
 
       /* Loads from non-existent render targets are undefined in NIR but not
        * possible to encode in the hardware, delete them.
        */
       if (logical_format == PIPE_FORMAT_NONE) {
-         return nir_undef(b, intr->num_components, bit_size);
+         def = nir_undef(b, intr->num_components, bit_size);
       } else if (tib->spilled[rt]) {
          *(ctx->translucent) = true;
 
-         return load_memory(b, ctx->bindless_base, tib->nr_samples,
-                            intr->num_components, bit_size, rt, logical_format);
+         def = load_memory(b, ctx->bindless_base, tib->nr_samples,
+                           intr->num_components, bit_size, rt, logical_format);
       } else {
-         return load_tilebuffer(b, tib, intr->num_components, bit_size, rt,
-                                format, logical_format);
+         def = load_tilebuffer(b, tib, intr->num_components, bit_size, rt,
+                               format, logical_format);
       }
+
+      nir_def_rewrite_uses(&intr->def, def);
    }
+
+   return true;
 }
 
 bool
@@ -374,7 +369,7 @@ agx_nir_lower_tilebuffer(nir_shader *shader, struct agx_tilebuffer_layout *tib,
    }
 
    bool progress =
-      nir_shader_lower_instructions(shader, tib_filter, tib_impl, &ctx);
+      nir_shader_intrinsics_pass(shader, pass, nir_metadata_none, &ctx);
 
    /* Flush at end */
    if (ctx.any_memory_stores) {

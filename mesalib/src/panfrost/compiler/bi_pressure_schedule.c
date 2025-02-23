@@ -69,7 +69,7 @@ create_dag(bi_context *ctx, bi_block *block, void *memctx)
 
    bi_foreach_instr_in_block(block, I) {
       /* Leave branches at the end */
-      if (I->op == BI_OPCODE_JUMP || bi_opcode_props[I->op].branch)
+      if (I->op == BI_OPCODE_JUMP || bi_get_opcode_props(I)->branch)
          break;
 
       assert(I->branch_target == NULL);
@@ -87,7 +87,7 @@ create_dag(bi_context *ctx, bi_block *block, void *memctx)
 
       add_dep(node, preload);
 
-      switch (bi_opcode_props[I->op].message) {
+      switch (bi_get_opcode_props(I)->message) {
       case BIFROST_MESSAGE_LOAD:
          /* Regular memory loads needs to be serialized against
           * other memory access. However, UBO memory is read-only

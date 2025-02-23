@@ -1107,18 +1107,17 @@ InputDriverRec driver = {
 };
 
 static XF86ModuleVersionInfo version_info = {
-    "inputtest",
-    MODULEVENDORSTRING,
-    MODINFOSTRING1,
-    MODINFOSTRING2,
-    XORG_VERSION_CURRENT,
-    XORG_VERSION_MAJOR,
-    XORG_VERSION_MINOR,
-    XORG_VERSION_PATCH,
-    ABI_CLASS_XINPUT,
-    ABI_XINPUT_VERSION,
-    MOD_CLASS_XINPUT,
-    {0, 0, 0, 0}
+    .modname      = "inputtest",
+    .vendor       = MODULEVENDORSTRING,
+    ._modinfo1_   = MODINFOSTRING1,
+    ._modinfo2_   = MODINFOSTRING2,
+    .xf86version  = XORG_VERSION_CURRENT,
+    .majorversion = XORG_VERSION_MAJOR,
+    .minorversion = XORG_VERSION_MINOR,
+    .patchlevel   = XORG_VERSION_PATCH,
+    .abiclass     = ABI_CLASS_XINPUT,
+    .abiversion   = ABI_XINPUT_VERSION,
+    .moduleclass  = MOD_CLASS_XINPUT,
 };
 
 static void*
@@ -1131,5 +1130,4 @@ setup_proc(void *module, void *options, int *errmaj, int *errmin)
 _X_EXPORT XF86ModuleData inputtestModuleData = {
     .vers = &version_info,
     .setup = &setup_proc,
-    .teardown = NULL
 };

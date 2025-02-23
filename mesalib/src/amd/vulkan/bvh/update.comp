@@ -56,10 +56,10 @@ void main() {
     vk_aabb bounds;
     bool is_active;
     if (args.geom_data.geometry_type == VK_GEOMETRY_TYPE_TRIANGLES_KHR) {
-        is_active = build_triangle(bounds, dst_ptr, args.geom_data, gl_GlobalInvocationID.x);
+        is_active = radv_build_triangle(bounds, dst_ptr, args.geom_data, gl_GlobalInvocationID.x);
     } else {
         VOID_REF src_ptr = OFFSET(args.geom_data.data, src_offset);
-        is_active = build_aabb(bounds, src_ptr, dst_ptr, args.geom_data.geometry_id, gl_GlobalInvocationID.x);
+        is_active = radv_build_aabb(bounds, src_ptr, dst_ptr, args.geom_data.geometry_id, gl_GlobalInvocationID.x);
     }
 
     if (!is_active)

@@ -344,8 +344,8 @@ break_all:
    return progress;
 }
 
-/* This optimization only operates on discard_if/demoe_if so
- * nir_opt_conditional_discard and nir_lower_discard_or_demote
+/* This optimization only operates on terminate_if/demote_if so
+ * nir_opt_peephole_select and nir_lower_discard_or_demote
  * should have been called before.
  */
 bool

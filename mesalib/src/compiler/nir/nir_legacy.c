@@ -331,9 +331,9 @@ nir_legacy_trivialize(nir_shader *s, bool fuse_fabs)
                                     nir_metadata_control_flow,
                                     &fuse_fabs)) {
       /* If we made progress, we likely left dead loads. Clean them up. */
-      NIR_PASS_V(s, nir_opt_dce);
+      NIR_PASS(_, s, nir_opt_dce);
    }
 
    /* Now that modifiers are dealt with, we can trivialize the regular way. */
-   NIR_PASS_V(s, nir_trivialize_registers);
+   NIR_PASS(_, s, nir_trivialize_registers);
 }

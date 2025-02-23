@@ -21,6 +21,8 @@
         <param name="baseviewindex" type="GLint"/>
         <param name="numviews" type="GLsizei"/>
     </function>
+
+    <enum name="MAX_VIEWS_OVR" count="1" value="0x9631"/>
 </category>
 
 </OpenGLAPI>

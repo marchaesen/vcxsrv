@@ -23,14 +23,15 @@
  */
 
 #include "fcint.h"
+
 #include <stdlib.h>
 
 FcObjectSet *
 FcObjectSetCreate (void)
 {
-    FcObjectSet    *os;
+    FcObjectSet *os;
 
-    os = (FcObjectSet *) malloc (sizeof (FcObjectSet));
+    os = (FcObjectSet *)malloc (sizeof (FcObjectSet));
     if (!os)
 	return 0;
     os->nobject = 0;
@@ -42,18 +43,17 @@ FcObjectSetCreate (void)
 FcBool
 FcObjectSetAdd (FcObjectSet *os, const char *object)
 {
-    int		s;
-    const char	**objects;
-    int		high, low, mid, c;
+    int          s;
+    const char **objects;
+    int          high, low, mid, c;
 
-    if (os->nobject == os->sobject)
-    {
+    if (os->nobject == os->sobject) {
 	s = os->sobject + 4;
 	if (os->objects)
-	    objects = (const char **) realloc ((void *) os->objects,
-					       s * sizeof (const char *));
+	    objects = (const char **)realloc ((void *)os->objects,
+	                                      s * sizeof (const char *));
 	else
-	    objects = (const char **) malloc (s * sizeof (const char *));
+	    objects = (const char **)malloc (s * sizeof (const char *));
 	if (!objects)
 	    return FcFalse;
 	os->objects = objects;
@@ -64,12 +64,10 @@ FcObjectSetAdd (FcObjectSet *os, const char *object)
     mid = 0;
     c = 1;
     object = strdup (object);
-    while (low <= high)
-    {
+    while (low <= high) {
 	mid = (low + high) >> 1;
 	c = os->objects[mid] - object;
-	if (c == 0)
-	{
+	if (c == 0) {
 	    FcFree (object);
 	    return FcTrue;
 	}
@@ -81,7 +79,7 @@ FcObjectSetAdd (FcObjectSet *os, const char *object)
     if (c < 0)
 	mid++;
     memmove (os->objects + mid + 1, os->objects + mid,
-	     (os->nobject - mid) * sizeof (const char *));
+             (os->nobject - mid) * sizeof (const char *));
     os->objects[mid] = object;
     os->nobject++;
     return FcTrue;
@@ -92,14 +90,12 @@ FcObjectSetDestroy (FcObjectSet *os)
 {
     int i;
 
-    if (os)
-    {
-	if (os->objects)
-	{
+    if (os) {
+	if (os->objects) {
 	    for (i = 0; i < os->nobject; i++)
 		FcFree (os->objects[i]);
 
-	    free ((void *) os->objects);
+	    free ((void *)os->objects);
 	}
 	free (os);
     }
@@ -108,7 +104,7 @@ FcObjectSetDestroy (FcObjectSet *os)
 FcObjectSet *
 FcObjectSetVaBuild (const char *first, va_list va)
 {
-    FcObjectSet    *ret;
+    FcObjectSet *ret;
 
     FcObjectSetVapBuild (ret, first, va);
     return ret;
@@ -117,8 +113,8 @@ FcObjectSetVaBuild (const char *first, va_list va)
 FcObjectSet *
 FcObjectSetBuild (const char *first, ...)
 {
-    va_list	    va;
-    FcObjectSet    *os;
+    va_list      va;
+    FcObjectSet *os;
 
     va_start (va, first);
     FcObjectSetVapBuild (os, first, va);
@@ -130,23 +126,21 @@ FcObjectSetBuild (const char *first, ...)
  * Font must have a containing value for every value in the pattern
  */
 static FcBool
-FcListValueListMatchAny (FcValueListPtr patOrig,	    /* pattern */
-			 FcValueListPtr fntOrig)	    /* font */
+FcListValueListMatchAny (FcValueListPtr patOrig, /* pattern */
+                         FcValueListPtr fntOrig) /* font */
 {
-    FcValueListPtr	 pat, fnt;
+    FcValueListPtr pat, fnt;
 
-    for (pat = patOrig; pat != NULL; pat = FcValueListNext(pat))
-    {
-	for (fnt = fntOrig; fnt != NULL; fnt = FcValueListNext(fnt))
-	{
+    for (pat = patOrig; pat != NULL; pat = FcValueListNext (pat)) {
+	for (fnt = fntOrig; fnt != NULL; fnt = FcValueListNext (fnt)) {
 	    /*
 	     * make sure the font 'contains' the pattern.
 	     * (OpListing is OpContains except for strings
 	     *  where it requires an exact match)
 	     */
 	    if (FcConfigCompareValue (&fnt->value,
-				      FC_OP (FcOpListing, FcOpFlagIgnoreBlanks),
-				      &pat->value))
+	                              FC_OP (FcOpListing, FcOpFlagIgnoreBlanks),
+	                              &pat->value))
 		break;
 	}
 	if (fnt == NULL)
@@ -157,24 +151,22 @@ FcListValueListMatchAny (FcValueListPtr patOrig,	    /* pattern */
 
 static FcBool
 FcListValueListEqual (FcValueListPtr v1orig,
-		      FcValueListPtr v2orig)
+                      FcValueListPtr v2orig)
 {
-    FcValueListPtr	    v1, v2;
+    FcValueListPtr v1, v2;
 
-    for (v1 = v1orig; v1 != NULL; v1 = FcValueListNext(v1))
-    {
-	for (v2 = v2orig; v2 != NULL; v2 = FcValueListNext(v2))
-	    if (FcValueEqual (FcValueCanonicalize(&(v1)->value),
-			      FcValueCanonicalize(&(v2)->value)))
+    for (v1 = v1orig; v1 != NULL; v1 = FcValueListNext (v1)) {
+	for (v2 = v2orig; v2 != NULL; v2 = FcValueListNext (v2))
+	    if (FcValueEqual (FcValueCanonicalize (&(v1)->value),
+	                      FcValueCanonicalize (&(v2)->value)))
 		break;
 	if (v2 == NULL)
 	    return FcFalse;
     }
-    for (v2 = v2orig; v2 != NULL; v2 = FcValueListNext(v2))
-    {
-	for (v1 = v1orig; v1 != NULL; v1 = FcValueListNext(v1))
-	    if (FcValueEqual (FcValueCanonicalize(&v1->value),
-			      FcValueCanonicalize(&v2->value)))
+    for (v2 = v2orig; v2 != NULL; v2 = FcValueListNext (v2)) {
+	for (v1 = v1orig; v1 != NULL; v1 = FcValueListNext (v1))
+	    if (FcValueEqual (FcValueCanonicalize (&v1->value),
+	                      FcValueCanonicalize (&v2->value)))
 		break;
 	if (v1 == NULL)
 	    return FcFalse;
@@ -183,23 +175,22 @@ FcListValueListEqual (FcValueListPtr v1orig,
 }
 
 static FcBool
-FcListPatternEqual (FcPattern	*p1,
-		    FcPattern	*p2,
-		    FcObjectSet	*os)
+FcListPatternEqual (FcPattern   *p1,
+                    FcPattern   *p2,
+                    FcObjectSet *os)
 {
-    int		    i;
-    FcPatternElt    *e1, *e2;
+    int           i;
+    FcPatternElt *e1, *e2;
 
-    for (i = 0; i < os->nobject; i++)
-    {
+    for (i = 0; i < os->nobject; i++) {
 	e1 = FcPatternObjectFindElt (p1, FcObjectFromName (os->objects[i]));
 	e2 = FcPatternObjectFindElt (p2, FcObjectFromName (os->objects[i]));
 	if (!e1 && !e2)
 	    continue;
 	if (!e1 || !e2)
 	    return FcFalse;
-	if (!FcListValueListEqual (FcPatternEltValues(e1),
-				   FcPatternEltValues(e2)))
+	if (!FcListValueListEqual (FcPatternEltValues (e1),
+	                           FcPatternEltValues (e2)))
 	    return FcFalse;
     }
     return FcTrue;
@@ -211,19 +202,17 @@ FcListPatternEqual (FcPattern	*p1,
 
 FcBool
 FcListPatternMatchAny (const FcPattern *p,
-		       const FcPattern *font)
+                       const FcPattern *font)
 {
-    int		    i;
+    int i;
 
     if (!p)
 	return FcFalse;
-    for (i = 0; i < p->num; i++)
-    {
-	FcPatternElt	*pe = &FcPatternElts(p)[i];
-	FcPatternElt	*fe;
+    for (i = 0; i < p->num; i++) {
+	FcPatternElt *pe = &FcPatternElts (p)[i];
+	FcPatternElt *fe;
 
-	if (pe->object == FC_NAMELANG_OBJECT)
-	{
+	if (pe->object == FC_NAMELANG_OBJECT) {
 	    /* "namelang" object is the alias object to change "familylang",
 	     * "stylelang" and "fullnamelang" object all together. it won't be
 	     * available on the font pattern. so checking its availability
@@ -234,8 +223,8 @@ FcListPatternMatchAny (const FcPattern *p,
 	fe = FcPatternObjectFindElt (font, pe->object);
 	if (!fe)
 	    return FcFalse;
-	if (!FcListValueListMatchAny (FcPatternEltValues(pe),    /* pat elts */
-				      FcPatternEltValues(fe)))   /* font elts */
+	if (!FcListValueListMatchAny (FcPatternEltValues (pe),  /* pat elts */
+	                              FcPatternEltValues (fe))) /* font elts */
 	    return FcFalse;
     }
     return FcTrue;
@@ -244,36 +233,36 @@ FcListPatternMatchAny (const FcPattern *p,
 static FcChar32
 FcListMatrixHash (const FcMatrix *m)
 {
-    int	    xx = (int) (m->xx * 100),
-	    xy = (int) (m->xy * 100),
-	    yx = (int) (m->yx * 100),
-	    yy = (int) (m->yy * 100);
+    int xx = (int)(m->xx * 100),
+	xy = (int)(m->xy * 100),
+	yx = (int)(m->yx * 100),
+	yy = (int)(m->yy * 100);
 
-    return ((FcChar32) xx) ^ ((FcChar32) xy) ^ ((FcChar32) yx) ^ ((FcChar32) yy);
+    return ((FcChar32)xx) ^ ((FcChar32)xy) ^ ((FcChar32)yx) ^ ((FcChar32)yy);
 }
 
 static FcChar32
-FcListValueHash (FcValue    *value)
+FcListValueHash (FcValue *value)
 {
-    FcValue v = FcValueCanonicalize(value);
+    FcValue v = FcValueCanonicalize (value);
     switch (v.type) {
     case FcTypeUnknown:
     case FcTypeVoid:
 	return 0;
     case FcTypeInteger:
-	return (FcChar32) v.u.i;
+	return (FcChar32)v.u.i;
     case FcTypeDouble:
-	return (FcChar32) (int) v.u.d;
+	return (FcChar32)(int)v.u.d;
     case FcTypeString:
 	return FcStrHashIgnoreCase (v.u.s);
     case FcTypeBool:
-	return (FcChar32) v.u.b;
+	return (FcChar32)v.u.b;
     case FcTypeMatrix:
 	return FcListMatrixHash (v.u.m);
     case FcTypeCharSet:
 	return FcCharSetCount (v.u.c);
     case FcTypeFTFace:
-	return (intptr_t) v.u.f;
+	return (intptr_t)v.u.f;
     case FcTypeLangSet:
 	return FcLangSetHash (v.u.l);
     case FcTypeRange:
@@ -285,44 +274,42 @@ FcListValueHash (FcValue    *value)
 static FcChar32
 FcListValueListHash (FcValueListPtr list)
 {
-    FcChar32	h = 0;
+    FcChar32 h = 0;
 
-    while (list != NULL)
-    {
+    while (list != NULL) {
 	h = h ^ FcListValueHash (&list->value);
-	list = FcValueListNext(list);
+	list = FcValueListNext (list);
     }
     return h;
 }
 
 static FcChar32
-FcListPatternHash (FcPattern	*font,
-		   FcObjectSet	*os)
+FcListPatternHash (FcPattern   *font,
+                   FcObjectSet *os)
 {
-    int		    n;
-    FcPatternElt    *e;
-    FcChar32	    h = 0;
+    int           n;
+    FcPatternElt *e;
+    FcChar32      h = 0;
 
-    for (n = 0; n < os->nobject; n++)
-    {
+    for (n = 0; n < os->nobject; n++) {
 	e = FcPatternObjectFindElt (font, FcObjectFromName (os->objects[n]));
 	if (e)
-	    h = h ^ FcListValueListHash (FcPatternEltValues(e));
+	    h = h ^ FcListValueListHash (FcPatternEltValues (e));
     }
     return h;
 }
 
 typedef struct _FcListBucket {
-    struct _FcListBucket    *next;
-    FcChar32		    hash;
-    FcPattern		    *pattern;
+    struct _FcListBucket *next;
+    FcChar32              hash;
+    FcPattern            *pattern;
 } FcListBucket;
 
-#define FC_LIST_HASH_SIZE   4099
+#define FC_LIST_HASH_SIZE 4099
 
 typedef struct _FcListHashTable {
-    int		    entries;
-    FcListBucket    *buckets[FC_LIST_HASH_SIZE];
+    int           entries;
+    FcListBucket *buckets[FC_LIST_HASH_SIZE];
 } FcListHashTable;
 
 static void
@@ -335,13 +322,11 @@ FcListHashTableInit (FcListHashTable *table)
 static void
 FcListHashTableCleanup (FcListHashTable *table)
 {
-    int	i;
-    FcListBucket    *bucket, *next;
+    int           i;
+    FcListBucket *bucket, *next;
 
-    for (i = 0; i < FC_LIST_HASH_SIZE; i++)
-    {
-	for (bucket = table->buckets[i]; bucket; bucket = next)
-	{
+    for (i = 0; i < FC_LIST_HASH_SIZE; i++) {
+	for (bucket = table->buckets[i]; bucket; bucket = next) {
 	    next = bucket->next;
 	    FcPatternDestroy (bucket->pattern);
 	    free (bucket);
@@ -354,29 +339,25 @@ FcListHashTableCleanup (FcListHashTable *table)
 static int
 FcGetDefaultObjectLangIndex (FcPattern *font, FcObject object, const FcChar8 *lang)
 {
-    FcPatternElt   *e = FcPatternObjectFindElt (font, object);
-    FcValueListPtr  v;
-    FcValue         value;
-    int             idx = -1;
-    int             defidx = -1;
-    int             i;
+    FcPatternElt  *e = FcPatternObjectFindElt (font, object);
+    FcValueListPtr v;
+    FcValue        value;
+    int            idx = -1;
+    int            defidx = -1;
+    int            i;
 
-    if (e)
-    {
-	for (v = FcPatternEltValues(e), i = 0; v; v = FcValueListNext(v), ++i)
-	{
+    if (e) {
+	for (v = FcPatternEltValues (e), i = 0; v; v = FcValueListNext (v), ++i) {
 	    value = FcValueCanonicalize (&v->value);
 
-	    if (value.type == FcTypeString)
-	    {
+	    if (value.type == FcTypeString) {
 		FcLangResult res = FcLangCompare (value.u.s, lang);
 		if (res == FcLangEqual)
 		    return i;
 
 		if (res == FcLangDifferentCountry && idx < 0)
 		    idx = i;
-		if (defidx < 0)
-		{
+		if (defidx < 0) {
 		    /* workaround for fonts that has non-English value
 		     * at the head of values.
 		     */
@@ -388,75 +369,66 @@ FcGetDefaultObjectLangIndex (FcPattern *font, FcObject object, const FcChar8 *la
 	}
     }
 
-    return (idx > 0) ? idx : (defidx > 0) ? defidx : 0;
+    return (idx > 0) ? idx : (defidx > 0) ? defidx
+                                          : 0;
 }
 
 static FcBool
-FcListAppend (FcListHashTable	*table,
-	      FcPattern		*font,
-	      FcObjectSet	*os,
-	      const FcChar8	*lang)
+FcListAppend (FcListHashTable *table,
+              FcPattern       *font,
+              FcObjectSet     *os,
+              const FcChar8   *lang)
 {
-    int		    o;
-    FcPatternElt    *e;
-    FcValueListPtr  v;
-    FcChar32	    hash;
-    FcListBucket    **prev, *bucket;
-    int             familyidx = -1;
-    int             fullnameidx = -1;
-    int             styleidx = -1;
-    int             defidx = 0;
-    int             idx;
+    int            o;
+    FcPatternElt  *e;
+    FcValueListPtr v;
+    FcChar32       hash;
+    FcListBucket **prev, *bucket;
+    int            familyidx = -1;
+    int            fullnameidx = -1;
+    int            styleidx = -1;
+    int            defidx = 0;
+    int            idx;
 
     hash = FcListPatternHash (font, os);
     for (prev = &table->buckets[hash % FC_LIST_HASH_SIZE];
-	 (bucket = *prev); prev = &(bucket->next))
-    {
+         (bucket = *prev); prev = &(bucket->next)) {
 	if (bucket->hash == hash &&
 	    FcListPatternEqual (bucket->pattern, font, os))
 	    return FcTrue;
     }
-    bucket = (FcListBucket *) malloc (sizeof (FcListBucket));
+    bucket = (FcListBucket *)malloc (sizeof (FcListBucket));
     if (!bucket)
 	goto bail0;
     bucket->next = 0;
     bucket->hash = hash;
-    bucket->pattern = FcPatternCreate ();
+    bucket->pattern = FcPatternCreate();
     if (!bucket->pattern)
 	goto bail1;
 
-    for (o = 0; o < os->nobject; o++)
-    {
-	if (!strcmp (os->objects[o], FC_FAMILY) || !strcmp (os->objects[o], FC_FAMILYLANG))
-	{
+    for (o = 0; o < os->nobject; o++) {
+	if (!strcmp (os->objects[o], FC_FAMILY) || !strcmp (os->objects[o], FC_FAMILYLANG)) {
 	    if (familyidx < 0)
 		familyidx = FcGetDefaultObjectLangIndex (font, FC_FAMILYLANG_OBJECT, lang);
 	    defidx = familyidx;
-	}
-	else if (!strcmp (os->objects[o], FC_FULLNAME) || !strcmp (os->objects[o], FC_FULLNAMELANG))
-	{
+	} else if (!strcmp (os->objects[o], FC_FULLNAME) || !strcmp (os->objects[o], FC_FULLNAMELANG)) {
 	    if (fullnameidx < 0)
 		fullnameidx = FcGetDefaultObjectLangIndex (font, FC_FULLNAMELANG_OBJECT, lang);
 	    defidx = fullnameidx;
-	}
-	else if (!strcmp (os->objects[o], FC_STYLE) || !strcmp (os->objects[o], FC_STYLELANG))
-	{
+	} else if (!strcmp (os->objects[o], FC_STYLE) || !strcmp (os->objects[o], FC_STYLELANG)) {
 	    if (styleidx < 0)
 		styleidx = FcGetDefaultObjectLangIndex (font, FC_STYLELANG_OBJECT, lang);
 	    defidx = styleidx;
-	}
-	else
+	} else
 	    defidx = 0;
 
 	e = FcPatternObjectFindElt (font, FcObjectFromName (os->objects[o]));
-	if (e)
-	{
-	    for (v = FcPatternEltValues(e), idx = 0; v;
-		 v = FcValueListNext(v), ++idx)
-	    {
+	if (e) {
+	    for (v = FcPatternEltValues (e), idx = 0; v;
+	         v = FcValueListNext (v), ++idx) {
 		if (!FcPatternAdd (bucket->pattern,
-				   os->objects[o],
-				   FcValueCanonicalize(&v->value), defidx != idx))
+		                   os->objects[o],
+		                   FcValueCanonicalize (&v->value), defidx != idx))
 		    goto bail2;
 	    }
 	}
@@ -475,24 +447,23 @@ bail0:
 }
 
 FcFontSet *
-FcFontSetList (FcConfig	    *config,
-	       FcFontSet    **sets,
-	       int	    nsets,
-	       FcPattern    *p,
-	       FcObjectSet  *os)
+FcFontSetList (FcConfig    *config,
+               FcFontSet  **sets,
+               int          nsets,
+               FcPattern   *p,
+               FcObjectSet *os)
 {
-    FcFontSet	    *ret;
-    FcFontSet	    *s;
-    int		    f;
-    int		    set;
+    FcFontSet      *ret;
+    FcFontSet      *s;
+    int             f;
+    int             set;
     FcListHashTable table;
-    int		    i;
-    FcListBucket    *bucket;
+    int             i;
+    FcListBucket   *bucket;
     int             destroy_os = 0;
 
-    if (!config)
-    {
-	if (!FcInitBringUptoDate ())
+    if (!config) {
+	if (!FcInitBringUptoDate())
 	    goto bail0;
     }
     config = FcConfigReference (config);
@@ -500,9 +471,8 @@ FcFontSetList (FcConfig	    *config,
 	goto bail0;
     FcListHashTableInit (&table);
 
-    if (!os)
-    {
-	os = FcObjectGetSet ();
+    if (!os) {
+	os = FcObjectGetSet();
 	destroy_os = 1;
     }
 
@@ -510,20 +480,18 @@ FcFontSetList (FcConfig	    *config,
      * Walk all available fonts adding those that
      * match to the hash table
      */
-    for (set = 0; set < nsets; set++)
-    {
+    for (set = 0; set < nsets; set++) {
 	s = sets[set];
 	if (!s)
 	    continue;
 	for (f = 0; f < s->nfont; f++)
-	    if (FcListPatternMatchAny (p,		/* pattern */
-				       s->fonts[f]))	/* font */
+	    if (FcListPatternMatchAny (p,            /* pattern */
+	                               s->fonts[f])) /* font */
 	    {
 		FcChar8 *lang;
 
-		if (FcPatternObjectGetString (p, FC_NAMELANG_OBJECT, 0, &lang) != FcResultMatch)
-		{
-			lang = FcGetDefaultLang ();
+		if (FcPatternObjectGetString (p, FC_NAMELANG_OBJECT, 0, &lang) != FcResultMatch) {
+		    lang = FcGetDefaultLang();
 		}
 		if (!FcListAppend (&table, s->fonts[f], os, lang))
 		    goto bail1;
@@ -558,12 +526,11 @@ FcFontSetList (FcConfig	    *config,
      * Walk the hash table and build
      * a font set
      */
-    ret = FcFontSetCreate ();
+    ret = FcFontSetCreate();
     if (!ret)
 	goto bail1;
     for (i = 0; i < FC_LIST_HASH_SIZE; i++)
-	while ((bucket = table.buckets[i]))
-	{
+	while ((bucket = table.buckets[i])) {
 	    if (!FcFontSetAdd (ret, bucket->pattern))
 		goto bail2;
 	    table.buckets[i] = bucket->next;
@@ -571,7 +538,7 @@ FcFontSetList (FcConfig	    *config,
 	}
 
     if (destroy_os)
-        FcObjectSetDestroy (os);
+	FcObjectSetDestroy (os);
     FcConfigDestroy (config);
 
     return ret;
@@ -588,16 +555,15 @@ bail0:
 }
 
 FcFontSet *
-FcFontList (FcConfig	*config,
-	    FcPattern	*p,
-	    FcObjectSet *os)
+FcFontList (FcConfig    *config,
+            FcPattern   *p,
+            FcObjectSet *os)
 {
-    FcFontSet	*sets[2], *ret;
-    int		nsets;
+    FcFontSet *sets[2], *ret;
+    int        nsets;
 
-    if (!config)
-    {
-	if (!FcInitBringUptoDate ())
+    if (!config) {
+	if (!FcInitBringUptoDate())
 	    return 0;
     }
     config = FcConfigReference (config);

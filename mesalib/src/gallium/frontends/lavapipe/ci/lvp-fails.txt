@@ -863,5 +863,7 @@ dEQP-VK.sparse_resources.buffer.ssbo.sparse_residency.buffer_size_2_20,Fail
 dEQP-VK.pipeline.fast_linked_library.multisample.sample_rate_a2c.static_a2c,Fail
 dEQP-VK.pipeline.shader_object_linked_binary.multisample.sample_rate_a2c.static_a2c,Fail
 dEQP-VK.pipeline.shader_object_unlinked_spirv.multisample.sample_rate_a2c.static_a2c,Fail
-dEQP-VK.ray_query.builtin.objectrayorigin.frag.aabbs,Crash
-nir-stress=dEQP-VK.ray_query.builtin.instanceid.frag.aabbs,Crash
+
+# Seen in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/1364513
+dEQP-VK.sparse_resources.image_sparse_binding.multiple_sparse_image_opaque_memory_bind_info.2d.r12x4_unorm_pack16.1024_128_1,Crash
+dEQP-VK.synchronization.implicit.timeline_semaphore.write_ssbo_vertex_read_ssbo_vertex.buffer_16384.3033,Crash

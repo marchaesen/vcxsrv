@@ -82,7 +82,7 @@ struct lvp_render_attachment {
 
 struct rendering_state {
    struct pipe_context *pctx;
-   struct lvp_device *device; //for uniform inlining only
+   struct lvp_device *device;
    struct u_upload_mgr *uploader;
    struct cso_context *cso;
 
@@ -98,7 +98,6 @@ struct rendering_state {
    bool constbuf_dirty[LVP_SHADER_STAGES];
    bool pcbuf_dirty[LVP_SHADER_STAGES];
    bool has_pcbuf[LVP_SHADER_STAGES];
-   bool inlines_dirty[LVP_SHADER_STAGES];
    bool vp_dirty;
    bool scissor_dirty;
    bool ib_dirty;
@@ -301,93 +300,8 @@ update_pcbuf(struct rendering_state *state, enum pipe_shader_type pstage,
    state->pcbuf_dirty[api_stage] = false;
 }
 
-static void
-update_inline_shader_state(struct rendering_state *state, enum pipe_shader_type sh, bool pcbuf_dirty)
-{
-   unsigned stage = tgsi_processor_to_shader_stage(sh);
-   state->inlines_dirty[sh] = false;
-   struct lvp_shader *shader = state->shaders[stage];
-   if (!shader || !shader->inlines.can_inline)
-      return;
-   struct lvp_inline_variant v;
-   v.mask = shader->inlines.can_inline;
-   /* these buffers have already been flushed in llvmpipe, so they're safe to read */
-   nir_shader *base_nir = shader->pipeline_nir->nir;
-   if (stage == MESA_SHADER_TESS_EVAL && state->tess_ccw)
-      base_nir = shader->tess_ccw->nir;
-   nir_function_impl *impl = nir_shader_get_entrypoint(base_nir);
-   unsigned ssa_alloc = impl->ssa_alloc;
-   unsigned count = shader->inlines.count[0];
-   if (count && pcbuf_dirty) {
-      unsigned push_size = get_pcbuf_size(state, sh);
-      for (unsigned i = 0; i < count; i++) {
-         unsigned offset = shader->inlines.uniform_offsets[0][i];
-         if (offset < push_size) {
-            memcpy(&v.vals[0][i], &state->push_constants[offset], sizeof(uint32_t));
-         }
-      }
-      for (unsigned i = count; i < MAX_INLINABLE_UNIFORMS; i++)
-         v.vals[0][i] = 0;
-   }
-   bool found = false;
-   struct set_entry *entry = _mesa_set_search_or_add_pre_hashed(&shader->inlines.variants, v.mask, &v, &found);
-   void *shader_state;
-   if (found) {
-      const struct lvp_inline_variant *variant = entry->key;
-      shader_state = variant->cso;
-   } else {
-      nir_shader *nir = nir_shader_clone(NULL, base_nir);
-      NIR_PASS_V(nir, lvp_inline_uniforms, shader, v.vals[0], 0);
-      lvp_shader_optimize(nir);
-      impl = nir_shader_get_entrypoint(nir);
-      if (ssa_alloc - impl->ssa_alloc < ssa_alloc / 2 &&
-         !shader->inlines.must_inline) {
-         /* not enough change; don't inline further */
-         shader->inlines.can_inline = 0;
-         ralloc_free(nir);
-         shader->shader_cso = lvp_shader_compile(state->device, shader, nir_shader_clone(NULL, shader->pipeline_nir->nir), true);
-         _mesa_set_remove(&shader->inlines.variants, entry);
-         shader_state = shader->shader_cso;
-      } else {
-         shader_state = lvp_shader_compile(state->device, shader, nir, true);
-         struct lvp_inline_variant *variant = mem_dup(&v, sizeof(v));
-         variant->cso = shader_state;
-         entry->key = variant;
-      }
-   }
-   switch (sh) {
-   case MESA_SHADER_VERTEX:
-      state->pctx->bind_vs_state(state->pctx, shader_state);
-      break;
-   case MESA_SHADER_TESS_CTRL:
-      state->pctx->bind_tcs_state(state->pctx, shader_state);
-      break;
-   case MESA_SHADER_TESS_EVAL:
-      state->pctx->bind_tes_state(state->pctx, shader_state);
-      break;
-   case MESA_SHADER_GEOMETRY:
-      state->pctx->bind_gs_state(state->pctx, shader_state);
-      break;
-   case MESA_SHADER_TASK:
-      state->pctx->bind_ts_state(state->pctx, shader_state);
-      break;
-   case MESA_SHADER_MESH:
-      state->pctx->bind_ms_state(state->pctx, shader_state);
-      break;
-   case MESA_SHADER_FRAGMENT:
-      state->pctx->bind_fs_state(state->pctx, shader_state);
-      state->noop_fs_bound = false;
-      break;
-   case MESA_SHADER_COMPUTE:
-      state->pctx->bind_compute_state(state->pctx, shader_state);
-      break;
-   default: break;
-   }
-}
-
 static void emit_compute_state(struct rendering_state *state)
 {
-   bool pcbuf_dirty = state->pcbuf_dirty[MESA_SHADER_COMPUTE];
    if (state->pcbuf_dirty[MESA_SHADER_COMPUTE])
       update_pcbuf(state, MESA_SHADER_COMPUTE, MESA_SHADER_COMPUTE);
 
@@ -398,12 +312,8 @@ static void emit_compute_state(struct rendering_state *state)
       state->constbuf_dirty[MESA_SHADER_COMPUTE] = false;
    }
 
-   if (state->inlines_dirty[MESA_SHADER_COMPUTE] &&
-       state->shaders[MESA_SHADER_COMPUTE]->inlines.can_inline) {
-      update_inline_shader_state(state, MESA_SHADER_COMPUTE, pcbuf_dirty);
-   } else if (state->compute_shader_dirty) {
+   if (state->compute_shader_dirty)
       state->pctx->bind_compute_state(state->pctx, state->shaders[MESA_SHADER_COMPUTE]->shader_cso);
-   }
 
    state->compute_shader_dirty = false;
 
@@ -569,8 +479,6 @@ static void emit_state(struct rendering_state *state)
       state->vb_dirty = false;
    }
 
-   bool pcbuf_dirty[LVP_SHADER_STAGES] = {false};
-
    lvp_forall_gfx_stage(sh) {
       if (state->constbuf_dirty[sh]) {
          for (unsigned idx = 0; idx < state->num_const_bufs[sh]; idx++)
@@ -581,14 +489,8 @@ static void emit_state(struct rendering_state *state)
    }
 
    lvp_forall_gfx_stage(sh) {
-      pcbuf_dirty[sh] = state->pcbuf_dirty[sh];
       if (state->pcbuf_dirty[sh])
          update_pcbuf(state, sh, sh);
-   }
-
-   lvp_forall_gfx_stage(sh) {
-      if (state->inlines_dirty[sh])
-         update_inline_shader_state(state, sh, pcbuf_dirty[sh]);
    }
 
    if (state->vp_dirty) {
@@ -615,9 +517,7 @@ handle_compute_shader(struct rendering_state *state, struct lvp_shader *shader)
    state->dispatch_info.block[0] = shader->pipeline_nir->nir->info.workgroup_size[0];
    state->dispatch_info.block[1] = shader->pipeline_nir->nir->info.workgroup_size[1];
    state->dispatch_info.block[2] = shader->pipeline_nir->nir->info.workgroup_size[2];
-   state->inlines_dirty[MESA_SHADER_COMPUTE] = shader->inlines.can_inline;
-   if (!shader->inlines.can_inline)
-      state->compute_shader_dirty = true;
+   state->compute_shader_dirty = true;
 }
 
 static void handle_compute_pipeline(struct vk_cmd_queue_entry *cmd,
@@ -700,53 +600,37 @@ handle_graphics_stages(struct rendering_state *state, VkShaderStageFlagBits shad
 
       switch (vk_stage) {
       case VK_SHADER_STAGE_FRAGMENT_BIT:
-         state->inlines_dirty[MESA_SHADER_FRAGMENT] = state->shaders[MESA_SHADER_FRAGMENT]->inlines.can_inline;
-         if (!state->shaders[MESA_SHADER_FRAGMENT]->inlines.can_inline) {
-            state->pctx->bind_fs_state(state->pctx, state->shaders[MESA_SHADER_FRAGMENT]->shader_cso);
-            state->noop_fs_bound = false;
-         }
+         state->pctx->bind_fs_state(state->pctx, state->shaders[MESA_SHADER_FRAGMENT]->shader_cso);
+         state->noop_fs_bound = false;
          break;
       case VK_SHADER_STAGE_VERTEX_BIT:
-         state->inlines_dirty[MESA_SHADER_VERTEX] = state->shaders[MESA_SHADER_VERTEX]->inlines.can_inline;
-         if (!state->shaders[MESA_SHADER_VERTEX]->inlines.can_inline)
-            state->pctx->bind_vs_state(state->pctx, state->shaders[MESA_SHADER_VERTEX]->shader_cso);
+         state->pctx->bind_vs_state(state->pctx, state->shaders[MESA_SHADER_VERTEX]->shader_cso);
          break;
       case VK_SHADER_STAGE_GEOMETRY_BIT:
-         state->inlines_dirty[MESA_SHADER_GEOMETRY] = state->shaders[MESA_SHADER_GEOMETRY]->inlines.can_inline;
-         if (!state->shaders[MESA_SHADER_GEOMETRY]->inlines.can_inline)
-            state->pctx->bind_gs_state(state->pctx, state->shaders[MESA_SHADER_GEOMETRY]->shader_cso);
+         state->pctx->bind_gs_state(state->pctx, state->shaders[MESA_SHADER_GEOMETRY]->shader_cso);
          state->gs_output_lines = state->shaders[MESA_SHADER_GEOMETRY]->pipeline_nir->nir->info.gs.output_primitive == MESA_PRIM_LINES ? GS_OUTPUT_LINES : GS_OUTPUT_NOT_LINES;
          break;
       case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
-         state->inlines_dirty[MESA_SHADER_TESS_CTRL] = state->shaders[MESA_SHADER_TESS_CTRL]->inlines.can_inline;
-         if (!state->shaders[MESA_SHADER_TESS_CTRL]->inlines.can_inline)
-            state->pctx->bind_tcs_state(state->pctx, state->shaders[MESA_SHADER_TESS_CTRL]->shader_cso);
+         state->pctx->bind_tcs_state(state->pctx, state->shaders[MESA_SHADER_TESS_CTRL]->shader_cso);
          break;
       case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
-         state->inlines_dirty[MESA_SHADER_TESS_EVAL] = state->shaders[MESA_SHADER_TESS_EVAL]->inlines.can_inline;
          state->tess_states[0] = NULL;
          state->tess_states[1] = NULL;
-         if (!state->shaders[MESA_SHADER_TESS_EVAL]->inlines.can_inline) {
-            if (dynamic_tess_origin) {
-               state->tess_states[0] = state->shaders[MESA_SHADER_TESS_EVAL]->shader_cso;
-               state->tess_states[1] = state->shaders[MESA_SHADER_TESS_EVAL]->tess_ccw_cso;
-               state->pctx->bind_tes_state(state->pctx, state->tess_states[state->tess_ccw]);
-            } else {
-               state->pctx->bind_tes_state(state->pctx, state->shaders[MESA_SHADER_TESS_EVAL]->shader_cso);
-            }
+         if (dynamic_tess_origin) {
+            state->tess_states[0] = state->shaders[MESA_SHADER_TESS_EVAL]->shader_cso;
+            state->tess_states[1] = state->shaders[MESA_SHADER_TESS_EVAL]->tess_ccw_cso;
+            state->pctx->bind_tes_state(state->pctx, state->tess_states[state->tess_ccw]);
+         } else {
+            state->pctx->bind_tes_state(state->pctx, state->shaders[MESA_SHADER_TESS_EVAL]->shader_cso);
          }
          if (!dynamic_tess_origin)
             state->tess_ccw = false;
          break;
       case VK_SHADER_STAGE_TASK_BIT_EXT:
-         state->inlines_dirty[MESA_SHADER_TASK] = state->shaders[MESA_SHADER_TASK]->inlines.can_inline;
-         if (!state->shaders[MESA_SHADER_TASK]->inlines.can_inline)
-            state->pctx->bind_ts_state(state->pctx, state->shaders[MESA_SHADER_TASK]->shader_cso);
+         state->pctx->bind_ts_state(state->pctx, state->shaders[MESA_SHADER_TASK]->shader_cso);
          break;
       case VK_SHADER_STAGE_MESH_BIT_EXT:
-         state->inlines_dirty[MESA_SHADER_MESH] = state->shaders[MESA_SHADER_MESH]->inlines.can_inline;
-         if (!state->shaders[MESA_SHADER_MESH]->inlines.can_inline)
-            state->pctx->bind_ms_state(state->pctx, state->shaders[MESA_SHADER_MESH]->shader_cso);
+         state->pctx->bind_ms_state(state->pctx, state->shaders[MESA_SHADER_MESH]->shader_cso);
          break;
       default:
          assert(0);
@@ -2894,14 +2778,6 @@ static void handle_push_constants(struct vk_cmd_queue_entry *cmd,
    state->pcbuf_dirty[MESA_SHADER_TASK] |= (stage_flags & VK_SHADER_STAGE_TASK_BIT_EXT) > 0;
    state->pcbuf_dirty[MESA_SHADER_MESH] |= (stage_flags & VK_SHADER_STAGE_MESH_BIT_EXT) > 0;
    state->pcbuf_dirty[MESA_SHADER_RAYGEN] |= (stage_flags & LVP_RAY_TRACING_STAGES) > 0;
-   state->inlines_dirty[MESA_SHADER_VERTEX] |= (stage_flags & VK_SHADER_STAGE_VERTEX_BIT) > 0;
-   state->inlines_dirty[MESA_SHADER_FRAGMENT] |= (stage_flags & VK_SHADER_STAGE_FRAGMENT_BIT) > 0;
-   state->inlines_dirty[MESA_SHADER_GEOMETRY] |= (stage_flags & VK_SHADER_STAGE_GEOMETRY_BIT) > 0;
-   state->inlines_dirty[MESA_SHADER_TESS_CTRL] |= (stage_flags & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) > 0;
-   state->inlines_dirty[MESA_SHADER_TESS_EVAL] |= (stage_flags & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT) > 0;
-   state->inlines_dirty[MESA_SHADER_COMPUTE] |= (stage_flags & VK_SHADER_STAGE_COMPUTE_BIT) > 0;
-   state->inlines_dirty[MESA_SHADER_TASK] |= (stage_flags & VK_SHADER_STAGE_TASK_BIT_EXT) > 0;
-   state->inlines_dirty[MESA_SHADER_MESH] |= (stage_flags & VK_SHADER_STAGE_MESH_BIT_EXT) > 0;
 }
 
 static void lvp_execute_cmd_buffer(struct list_head *cmds,

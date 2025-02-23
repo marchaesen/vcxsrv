@@ -16,7 +16,6 @@ dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 #
 
 
-glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx-make-current,Fail
 glx@glx-multi-window-single-context,Fail
 
@@ -115,7 +114,6 @@ spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 color,Fail
 spec@ext_framebuffer_multisample@sample-alpha-to-coverage 4 depth,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor,Fail
 spec@ext_framebuffer_object@fbo-alphatest-nocolor-ff,Fail
-spec@ext_packed_float@query-rgba-signed-components,Fail
 
 # These failures go away with FD_MESA_DEBUG=noblit, but don't seem to be related
 # to the actual mipmap generation blits (which we do fall back on)

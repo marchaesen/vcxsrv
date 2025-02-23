@@ -609,10 +609,46 @@ static const asm_op combine_ops[] = {
    CASE(sin, 1),
    CASE(cos, 1),
    CASE(atan, 1),
-   CASE(atan2, 1),
+   CASE(atan2, 2),
 };
 
 #undef CASE
+
+static void
+print_combine_mul(void *code, unsigned offset, FILE *fp)
+{
+   (void) offset;
+   ppir_codegen_field_combine *combine = code;
+
+   fprintf(fp, "mul.s2 ");
+   fprintf(fp, "$%u", combine->vector.dest);
+   print_mask(combine->vector.mask, fp);
+   fprintf(fp, " ");
+
+   print_source_scalar(combine->scalar.arg0_src, NULL,
+                       combine->scalar.arg0_absolute,
+                       combine->scalar.arg0_negate, fp);
+   fprintf(fp, " ");
+
+   print_vector_source(combine->vector.arg1_source, NULL,
+                       combine->vector.arg1_swizzle,
+                       false, false, fp);
+}
+
+static void
+print_combine_atan_pt2(void *code, unsigned offset, FILE *fp)
+{
+   (void) offset;
+   ppir_codegen_field_combine *combine = code;
+
+   fprintf(fp, "atan_pt2.s2 ");
+   print_outmod(combine->scalar.dest_modifier, fp);
+   print_dest_scalar(combine->scalar.dest, fp);
+
+   print_vector_source(combine->vector.arg1_source, NULL,
+                        combine->vector.arg1_swizzle,
+                        false, false, fp);
+}
 
 static void
 print_combine(void *code, unsigned offset, FILE *fp)
@@ -621,47 +657,56 @@ print_combine(void *code, unsigned offset, FILE *fp)
    ppir_codegen_field_combine *combine = code;
 
    if (combine->scalar.dest_vec &&
-       combine->scalar.arg1_en) {
+       combine->scalar.src_vec) {
       /* This particular combination can only be valid for scalar * vector
-       * multiplies, and the opcode field is reused for something else.
+       * multiplies, and the opcode field is reused for a vector argument
+       * and swizzle, destination is vector.
        */
-      fprintf(fp, "mul");
-   } else {
-      asm_op op = combine_ops[combine->scalar.op];
-
-      if (op.name)
-         fprintf(fp, "%s", op.name);
-      else
-         fprintf(fp, "op%u", combine->scalar.op);
+      return print_combine_mul(code, offset, fp);
+   } else if (!combine->scalar.dest_vec &&
+              combine->scalar.src_vec) {
+      /* This particular combination can only be valid for atan_pt2.
+       * The opcode field is reused for a vector argument and swizzle,
+       * and the destination is scalar.
+       */
+      return print_combine_atan_pt2(code, offset, fp);
    }
 
-   if (!combine->scalar.dest_vec)
+   /* Vector source is only possible for scalar * vec multiplication and
+    * atan_pt2. It re-uses the same bits as opcode, so if we got there
+    * something went wrong
+    */
+   assert(!combine->scalar.src_vec);
+
+   asm_op op = combine_ops[combine->scalar.op];
+
+   if (op.name) {
+      fprintf(fp, "%s", op.name);
+   } else {
+      fprintf(fp, "op%u", combine->scalar.op);
+   }
+
+   if (!combine->scalar.dest_vec) {
       print_outmod(combine->scalar.dest_modifier, fp);
+   }
    fprintf(fp, ".s2 ");
 
    if (combine->scalar.dest_vec) {
       fprintf(fp, "$%u", combine->vector.dest);
       print_mask(combine->vector.mask, fp);
+      fprintf(fp, " ");
    } else {
       print_dest_scalar(combine->scalar.dest, fp);
    }
-   fprintf(fp, " ");
 
    print_source_scalar(combine->scalar.arg0_src, NULL,
                        combine->scalar.arg0_absolute,
                        combine->scalar.arg0_negate, fp);
-   fprintf(fp, " ");
-
-   if (combine->scalar.arg1_en) {
-      if (combine->scalar.dest_vec) {
-         print_vector_source(combine->vector.arg1_source, NULL,
-                             combine->vector.arg1_swizzle,
-                             false, false, fp);
-      } else {
-         print_source_scalar(combine->scalar.arg1_src, NULL,
-                             combine->scalar.arg1_absolute,
-                             combine->scalar.arg1_negate, fp);
-      }
+   if (op.srcs > 1) {
+      fprintf(fp, " ");
+      print_source_scalar(combine->scalar.arg1_src, NULL,
+                        combine->scalar.arg1_absolute,
+                        combine->scalar.arg1_negate, fp);
    }
 }
 

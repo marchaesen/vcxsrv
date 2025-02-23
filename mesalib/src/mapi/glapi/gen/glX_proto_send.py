@@ -176,7 +176,6 @@ class PrintGlxProtoStubs(glX_proto_common.glx_print_proto):
         print('#include <limits.h>')
 
         print('')
-        self.printFastcall()
         self.printNoinline()
         print('')
 
@@ -283,7 +282,7 @@ __glXReadPixelReply( Display *dpy, struct glx_context * gc, unsigned max_dim,
 
 #define X_GLXSingle 0
 
-NOINLINE FASTCALL GLubyte *
+NOINLINE GLubyte *
 __glXSetupSingleRequest( struct glx_context * gc, GLint sop, GLint cmdlen )
 {
     xGLXSingleReq * req;
@@ -298,7 +297,7 @@ __glXSetupSingleRequest( struct glx_context * gc, GLint sop, GLint cmdlen )
     return (GLubyte *)(req) + sz_xGLXSingleReq;
 }
 
-NOINLINE FASTCALL GLubyte *
+NOINLINE GLubyte *
 __glXSetupVendorRequest( struct glx_context * gc, GLint code, GLint vop, GLint cmdlen )
 {
     xGLXVendorPrivateReq * req;
@@ -425,7 +424,7 @@ const GLuint __glXDefaultPixelStore[9] = { 0, 0, 0, 0, 0, 0, 0, 0, 1 };
 
     def print_generic_function(self, n):
         size = (n + 3) & ~3
-        print("""static FASTCALL NOINLINE void
+        print("""static NOINLINE void
 generic_%u_byte( GLint rop, const void * ptr )
 {
     struct glx_context * const gc = __glXGetCurrentContext();
@@ -1011,25 +1010,24 @@ class PrintGlxProtoInit_h(gl_XML.gl_print_base):
  * \\author Ian Romanick <idr@us.ibm.com>
  */
 """)
-        self.printFastcall()
         self.printNoinline()
 
         print("""
 #include <X11/Xfuncproto.h>
 #include "glxclient.h"
 
-extern _X_HIDDEN NOINLINE CARD32 __glXReadReply( Display *dpy, size_t size,
+extern NOINLINE CARD32 __glXReadReply( Display *dpy, size_t size,
     void * dest, GLboolean reply_is_always_array );
 
-extern _X_HIDDEN NOINLINE void __glXReadPixelReply( Display *dpy,
+extern NOINLINE void __glXReadPixelReply( Display *dpy,
     struct glx_context * gc, unsigned max_dim, GLint width, GLint height,
     GLint depth, GLenum format, GLenum type, void * dest,
     GLboolean dimensions_in_reply );
 
-extern _X_HIDDEN NOINLINE FASTCALL GLubyte * __glXSetupSingleRequest(
+extern NOINLINE GLubyte * __glXSetupSingleRequest(
     struct glx_context * gc, GLint sop, GLint cmdlen );
 
-extern _X_HIDDEN NOINLINE FASTCALL GLubyte * __glXSetupVendorRequest(
+extern NOINLINE GLubyte * __glXSetupVendorRequest(
     struct glx_context * gc, GLint code, GLint vop, GLint cmdlen );
 """)
 
@@ -1038,13 +1036,13 @@ extern _X_HIDDEN NOINLINE FASTCALL GLubyte * __glXSetupVendorRequest(
         for func in api.functionIterateGlx():
             params = func.get_parameter_string()
 
-            print('extern _X_HIDDEN %s __indirect_gl%s(%s);' % (func.return_type, func.name, params))
+            print('extern %s __indirect_gl%s(%s);' % (func.return_type, func.name, params))
 
             for n in func.entry_points:
                 if func.has_different_protocol(n):
                     asdf = func.static_glx_name(n)
                     if asdf not in func.static_entry_points:
-                        print('extern _X_HIDDEN %s gl%s(%s);' % (func.return_type, asdf, params))
+                        print('extern %s gl%s(%s);' % (func.return_type, asdf, params))
                         # give it a easy-to-remember name
                         if func.client_handcode:
                             print('#define gl_dispatch_stub_%s gl%s' % (n, asdf))
@@ -1055,7 +1053,7 @@ extern _X_HIDDEN NOINLINE FASTCALL GLubyte * __glXSetupVendorRequest(
 
         print('')
         print('#ifdef GLX_INDIRECT_RENDERING')
-        print('extern _X_HIDDEN void (*__indirect_get_proc_address(const char *name))(void);')
+        print('extern void (*__indirect_get_proc_address(const char *name))(void);')
         print('#endif')
 
 

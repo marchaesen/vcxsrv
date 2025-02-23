@@ -13,7 +13,7 @@ foreach man : ['Xau', 'XauDisposeAuth', 'XauFileName', 'XauGetAuthByAddr',
     command : [
       prog_sed,
       '-e', 's/__xorgversion__/"libXau @0@" "X Version 11"/'.format(meson.project_version()),
-      '-e', 's/__libmansuffix__/3/',
+      '-e', 's/__libmansuffix__/3/g',
       '@INPUT@',
     ],
     capture : true,

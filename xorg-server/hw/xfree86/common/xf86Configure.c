@@ -848,7 +848,7 @@ DoShowOptions(void)
     int i = 0;
     const char **vlist = NULL;
     char *pSymbol = 0;
-    XF86ModuleData *initData = 0;
+    XF86ModuleData *initData = NULL;
 
     if (!(vlist = GenerateDriverList())) {
         ErrorF("Missing output drivers\n");

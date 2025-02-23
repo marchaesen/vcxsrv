@@ -79,6 +79,15 @@ a530-piglit:
     DEQP_SUITE: freedreno-a530-piglit
     HWCI_START_WESTON: 1
 
+a618-angle:
+  extends:
+    - .lava-test-deqp:arm64
+    - .lava-sc7180-trogdor-kingoftown:arm64
+    - .collabora-turnip-manual-rules
+  variables:
+    DEQP_SUITE: tu-angle
+    USE_ANGLE: 1
+
 a618-vk:
   extends:
     - .lava-test-deqp:arm64
@@ -217,6 +226,15 @@ a618-traces-performance:
   needs:
     - !reference [a618-traces, needs]
     - !reference [.piglit-performance:arm64, needs]
+
+a660-angle:
+  extends:
+    - .lava-test-deqp:arm64
+    - .lava-sm8350-hdk:arm64
+    - .collabora-turnip-manual-rules
+  variables:
+    DEQP_SUITE: tu-angle
+    USE_ANGLE: 1
 
 a660-piglit-cl:
   extends:
@@ -397,6 +415,19 @@ a630-traces-performance:
     GIT_STRATEGY: none
     HWCI_FREQ_MAX: "true"
 
+a750-angle:
+  extends:
+    - .b2c-arm64-test-gl
+    - .a750-mupuf
+    - .valve-turnip-manual-rules
+  timeout: 25m  # base runtime 10min total, 7min of testing
+  variables:
+    USE_ANGLE: 1
+    B2C_TIMEOUT_BOOT_MINUTES: 17
+    B2C_TIMEOUT_OVERALL_MINUTES: 20
+    DEQP_SUITE: tu-angle
+    HWCI_TEST_SCRIPT: ./install/deqp-runner.sh
+
 a750-gl:
   extends:
     - .b2c-arm64-test-gl
@@ -426,9 +457,9 @@ a750-piglit-cl:
 
 a750-vk:
   extends:
-    - .b2c-freedreno-vk-test
+    - .b2c-arm64-test-vk
     - .a750-mupuf
-    - .valve-freedreno-turnip-manual-rules
+    - .valve-turnip-manual-rules
   timeout: 75m  # base runtime 54min total, 51min of testing
   variables:
     B2C_TIMEOUT_BOOT_MINUTES: 65
@@ -438,9 +469,9 @@ a750-vk:
 
 a750-vkd3d:
   extends:
-    - .b2c-freedreno-vk-test
+    - .b2c-arm64-test-vk
     - .a750-mupuf
-    - .valve-freedreno-turnip-manual-rules
+    - .valve-turnip-manual-rules
   timeout: 15m  # base runtime 3min
   variables:
     B2C_TIMEOUT_OVERALL_MINUTES: 12

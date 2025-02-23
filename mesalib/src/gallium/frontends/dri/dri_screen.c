@@ -646,16 +646,14 @@ dri_init_screen(struct dri_screen *screen,
    if (pscreen->caps.device_protected_context)
       screen->has_protected_context = true;
    screen->has_reset_status_query = pscreen->caps.device_reset_status_query;
-
+   screen->has_multibuffer = has_multibuffer;
 
 #ifdef HAVE_LIBDRM
-   if (has_multibuffer) {
-      int dmabuf_caps = pscreen->caps.dmabuf;
-      if (dmabuf_caps & DRM_PRIME_CAP_IMPORT)
-         screen->dmabuf_import = true;
-      if (screen->dmabuf_import && dmabuf_caps & DRM_PRIME_CAP_EXPORT)
-         screen->has_dmabuf = true;
-   }
+   unsigned dmabuf_caps = pscreen->caps.dmabuf;
+   if (dmabuf_caps & DRM_PRIME_CAP_IMPORT)
+      screen->dmabuf_import = true;
+   if (screen->dmabuf_import && dmabuf_caps & DRM_PRIME_CAP_EXPORT)
+      screen->has_dmabuf = true;
 #endif
 
    return dri_fill_in_modes(screen);

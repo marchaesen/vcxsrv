@@ -231,7 +231,7 @@ radv_emit_set_predication_state_from_image(struct radv_cmd_buffer *cmd_buffer, s
    uint64_t va = 0;
 
    if (value)
-      va = radv_image_get_va(image, 0) + pred_offset;
+      va = image->bindings[0].addr + pred_offset;
 
    radv_emit_set_predication_state(cmd_buffer, true, PREDICATION_OP_BOOL64, va);
 }
@@ -522,33 +522,27 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer, struct radv_imag
                               },
                               &(struct radv_image_view_extra_create_info){.disable_compression = true});
 
-         radv_meta_push_descriptor_set(
-            cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 0, 2,
-            (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                      .dstBinding = 0,
-                                      .dstArrayElement = 0,
-                                      .descriptorCount = 1,
-                                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                      .pImageInfo =
-                                         (VkDescriptorImageInfo[]){
-                                            {
-                                               .sampler = VK_NULL_HANDLE,
-                                               .imageView = radv_image_view_to_handle(&load_iview),
-                                               .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-                                            },
-                                         }},
-                                     {.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                      .dstBinding = 1,
-                                      .dstArrayElement = 0,
-                                      .descriptorCount = 1,
-                                      .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                                      .pImageInfo = (VkDescriptorImageInfo[]){
-                                         {
-                                            .sampler = VK_NULL_HANDLE,
-                                            .imageView = radv_image_view_to_handle(&store_iview),
-                                            .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-                                         },
-                                      }}});
+         radv_meta_bind_descriptors(
+            cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, layout, 2,
+            (VkDescriptorGetInfoEXT[]){{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                        .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        .data.pStorageImage =
+                                           (VkDescriptorImageInfo[]){
+                                              {
+                                                 .sampler = VK_NULL_HANDLE,
+                                                 .imageView = radv_image_view_to_handle(&load_iview),
+                                                 .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+                                              },
+                                           }},
+                                       {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT,
+                                        .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+                                        .data.pStorageImage = (VkDescriptorImageInfo[]){
+                                           {
+                                              .sampler = VK_NULL_HANDLE,
+                                              .imageView = radv_image_view_to_handle(&store_iview),
+                                              .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+                                           },
+                                        }}});
 
          radv_unaligned_dispatch(cmd_buffer, width, height, 1);
 

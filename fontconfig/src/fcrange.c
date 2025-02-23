@@ -24,14 +24,12 @@
 
 #include "fcint.h"
 
-
 FcRange *
 FcRangeCreateDouble (double begin, double end)
 {
     FcRange *ret = malloc (sizeof (FcRange));
 
-    if (ret)
-    {
+    if (ret) {
 	ret->begin = begin;
 	ret->end = end;
     }
@@ -44,8 +42,7 @@ FcRangeCreateInteger (FcChar32 begin, FcChar32 end)
 {
     FcRange *ret = malloc (sizeof (FcRange));
 
-    if (ret)
-    {
+    if (ret) {
 	ret->begin = begin;
 	ret->end = end;
     }
@@ -67,7 +64,7 @@ FcRangeCopy (const FcRange *range)
 }
 
 FcBool
-FcRangeGetDouble(const FcRange *range, double *begin, double *end)
+FcRangeGetDouble (const FcRange *range, double *begin, double *end)
 {
     if (!range)
 	return FcFalse;
@@ -83,9 +80,9 @@ FcRange *
 FcRangePromote (double v, FcValuePromotionBuffer *vbuf)
 {
     typedef struct {
-	FcRange	r;
+	FcRange r;
     } FcRangePromotionBuffer;
-    FcRangePromotionBuffer *buf = (FcRangePromotionBuffer *) vbuf;
+    FcRangePromotionBuffer *buf = (FcRangePromotionBuffer *)vbuf;
 
     FC_ASSERT_STATIC (sizeof (FcRangePromotionBuffer) <= sizeof (FcValuePromotionBuffer));
     buf->r.begin = v;
@@ -103,7 +100,7 @@ FcRangeIsInRange (const FcRange *a, const FcRange *b)
 FcBool
 FcRangeCompare (FcOp op, const FcRange *a, const FcRange *b)
 {
-    switch ((int) op) {
+    switch ((int)op) {
     case FcOpEqual:
 	return a->begin == b->begin && a->end == b->end;
     case FcOpContains:
@@ -130,8 +127,8 @@ FcRangeCompare (FcOp op, const FcRange *a, const FcRange *b)
 FcChar32
 FcRangeHash (const FcRange *r)
 {
-    int b = (int) (r->begin * 100);
-    int e = (int) (r->end * 100);
+    int b = (int)(r->begin * 100);
+    int e = (int)(r->end * 100);
 
     return b ^ (b << 1) ^ (e << 9);
 }

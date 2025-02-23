@@ -600,7 +600,7 @@ are: REQUEST, REQUEST_SIZE_MATCH, REQUEST_AT_LEAST_SIZE,
 REQUEST_FIXED_SIZE, LEGAL_NEW_RESOURCE, and
 VALIDATE_DRAWABLE_AND_GC. Useful byte swapping macros can be found
 in Xserver/include/dix.h: WriteReplyToClient and WriteSwappedDataToClient; and
-in Xserver/include/misc.h: bswap_64, bswap_32, bswap_16, LengthRestB, LengthRestS,
+in Xserver/include/misc.h: bswap_64, bswap_32, bswap_16, LengthRestS,
 LengthRestL, SwapRestS, SwapRestL, swapl, swaps, cpswapl, and cpswaps.</para>
 </section>
 </section>
@@ -3285,9 +3285,8 @@ need to be done when these happen, such as allocating or deallocating
 structures that are only needed for visible windows.  RealizeWindow
 does NOT draw the window border, background or contents;
 UnrealizeWindow does NOT erase the window or generate exposure events
-for underlying windows; this is taken care of by DIX.  DIX does,
-however, call PaintWindowBackground() and PaintWindowBorder() to
-perform some of these.</para>
+for underlying windows; this is taken care of by DIX.
+</para>
 <para>
 <blockquote><programlisting>
 
@@ -3391,7 +3390,7 @@ and all of its child windows.</para>
 If generateExposures is false, the client is trying to simply erase part
 of the window to the background fill style.
 ClearToBackground should write the background color or tile to the
-rectangle in question (probably using PaintWindowBackground).
+rectangle in question.
 If w or h is zero, it clears all the way to the right or lower edge of the window.</para>
 <para>
 The sample server implementation is in Xserver/mi/miwindow.c.</para>
@@ -4052,7 +4051,7 @@ returned instead).  Furthermore, the invalid bits of the source are
 not copied to the destination and (when the destination is a window)
 are filled with the background tile.  The sample routine
 miHandleExposures generates the appropriate return value and fills the
-invalid area using pScreen->PaintWindowBackground.</para>
+invalid area.</para>
 <para>
 For instance, imagine a window that is partially obscured by other
 windows in front of it.  As text is scrolled on your window, the pixels
@@ -4994,8 +4993,6 @@ mi and fb implementations.</para>
 <row><entry><function>ModifyPixmapHeader</function></entry><entry><literal>mi</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>NextAvailableClient</function></entry><entry><literal>dix</literal></entry><entry><para></para></entry></row>
 <row><entry><function>OsInit</function></entry><entry><literal>os</literal></entry><entry><para></para></entry></row>
-<row><entry><function>PaintWindowBackground</function></entry><entry><literal>mi</literal></entry><entry><para>Window</para></entry></row>
-<row><entry><function>PaintWindowBorder</function></entry><entry><literal>mi</literal></entry><entry><para>Window</para></entry></row>
 <row><entry><function>PointerNonInterestBox</function></entry><entry><literal>hd</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>PointInRegion</function></entry><entry><literal>mi</literal></entry><entry><para>Screen</para></entry></row>
 <row><entry><function>PolyArc</function></entry><entry><literal>mi</literal></entry><entry><para>GC op</para></entry></row>

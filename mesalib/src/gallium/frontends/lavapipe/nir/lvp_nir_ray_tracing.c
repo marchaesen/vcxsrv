@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "lvp_nir_ray_tracing.h"
+#include "lvp_nir.h"
 #include "lvp_acceleration_structure.h"
 #include "lvp_private.h"
 

@@ -18,7 +18,6 @@ radv-stoney-angle:
   variables:
     DEQP_SUITE: radv-stoney-angle
     USE_ANGLE: 1
-    HWCI_START_XORG: 1
     GPU_VERSION: angle-radv-stoney-aco
     DEQP_FRACTION: 3
 

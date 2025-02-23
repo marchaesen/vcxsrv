@@ -82,8 +82,10 @@ pass(struct nir_builder *b, nir_intrinsic_instr *intr, void *data)
             uint32_t shift = MIN2(__builtin_ctz(raw_scalar), max_shift);
             int64_t k = raw_scalar >> shift;
 
-            /* See if the reduced scalar is from a sign extension. */
-            if (k > INT32_MAX || k < INT32_MIN)
+            /* See if the reduced scalar is from a sign extension. We must have
+             * at least the format shift to avoid underflowing.
+             */
+            if (k > INT32_MAX || k < INT32_MIN || shift < format_shift)
                break;
 
             /* Match the constant */

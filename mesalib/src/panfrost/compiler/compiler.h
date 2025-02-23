@@ -559,10 +559,30 @@ typedef struct {
    };
 } bi_instr;
 
+/*
+ * Helpers to set opcode and to get properties related to
+ * the opcode. In principle this would allow different
+ * properties to be used based on the architecture. In practice
+ * we've unified the valhall/bifrost descriptions so this
+ * isn't necessary now. We may want it for a future architecture
+ * though.
+ */
+static inline void
+bi_set_opcode(bi_instr *I, enum bi_opcode opc)
+{
+   I->op = opc;
+}
+
+static inline struct bi_op_props *
+bi_get_opcode_props(const bi_instr *I)
+{
+   return &bi_opcode_props[I->op];
+}
+
 static inline bool
 bi_is_staging_src(const bi_instr *I, unsigned s)
 {
-   return (s == 0 || s == 4) && bi_opcode_props[I->op].sr_read;
+   return (s == 0 || s == 4) && bi_get_opcode_props(I)->sr_read;
 }
 
 /*

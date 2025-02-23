@@ -13,14 +13,18 @@ include:
 .ondracka-rv530:
   extends:
     - .ondracka-generic
+  variables:
+    B2C_MARS_SETUP_TAGS: radeon:codename:RV530
   tags:
-    - radeon:codename:RV530
+    - $B2C_MARS_SETUP_TAGS
 
 .ondracka-rv380:
   extends:
     - .ondracka-generic
+  variables:
+    B2C_MARS_SETUP_TAGS: radeon:codename:RV380
   tags:
-    - radeon:codename:RV380
+    - $B2C_MARS_SETUP_TAGS
 
 r300-rv530-deqp-gles2:
   extends:
@@ -57,12 +61,13 @@ r300-rv410-deqp-piglit:
   extends:
     - .ondracka-generic
     - .b2c-deqp-test
-  tags:
-    - radeon:codename:RV410
   variables:
     DEQP_SUITE: r300-rv410
     GPU_VERSION: r300-rv410
     PIGLIT_PLATFORM: gbm
+    B2C_MARS_SETUP_TAGS: radeon:codename:RV410
+  tags:
+    - $B2C_MARS_SETUP_TAGS
 
 r300-rv530-piglit:
   extends:

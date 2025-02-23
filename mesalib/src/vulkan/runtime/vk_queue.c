@@ -1371,6 +1371,8 @@ vk_queue_finish(struct vk_queue *queue)
    cnd_destroy(&queue->submit.push);
    mtx_destroy(&queue->submit.mutex);
 
+   util_dynarray_foreach (&queue->labels, VkDebugUtilsLabelEXT, label)
+      vk_free(&queue->base.device->alloc, (void *)label->pLabelName);
    util_dynarray_fini(&queue->labels);
    list_del(&queue->link);
    vk_object_base_finish(&queue->base);

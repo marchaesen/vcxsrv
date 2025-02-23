@@ -997,18 +997,19 @@ _nir_mul_imm(nir_builder *build, nir_def *x, uint64_t y, bool amul)
    assert(x->bit_size <= 64);
    y &= BITFIELD64_MASK(x->bit_size);
 
+   if (amul && build->shader->options)
+      amul &= build->shader->options->has_amul;
+
    if (y == 0) {
       return nir_imm_intN_t(build, 0, x->bit_size);
    } else if (y == 1) {
       return x;
-   } else if ((!build->shader->options ||
-               !build->shader->options->lower_bitops) &&
-              !(amul && (!build->shader->options ||
-                         build->shader->options->has_amul)) &&
-              util_is_power_of_two_or_zero64(y)) {
-      return nir_ishl(build, x, nir_imm_int(build, ffsll(y) - 1));
    } else if (amul) {
       return nir_amul(build, x, nir_imm_intN_t(build, y, x->bit_size));
+   } else if ((!build->shader->options ||
+               !build->shader->options->lower_bitops) &&
+              util_is_power_of_two_or_zero64(y)) {
+      return nir_ishl(build, x, nir_imm_int(build, ffsll(y) - 1));
    } else {
       return nir_imul(build, x, nir_imm_intN_t(build, y, x->bit_size));
    }

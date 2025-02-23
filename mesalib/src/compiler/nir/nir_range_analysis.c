@@ -594,12 +594,15 @@ process_fp_query(struct analysis_state *state, struct analysis_query *aq, uint32
       case nir_op_fabs:
       case nir_op_fexp2:
       case nir_op_frcp:
+      case nir_op_fsqrt:
+      case nir_op_frsq:
       case nir_op_fneg:
       case nir_op_fsat:
       case nir_op_fsign:
       case nir_op_ffloor:
       case nir_op_fceil:
       case nir_op_ftrunc:
+      case nir_op_ffract:
       case nir_op_fdot2:
       case nir_op_fdot3:
       case nir_op_fdot4:
@@ -1048,14 +1051,25 @@ process_fp_query(struct analysis_state *state, struct analysis_query *aq, uint32
       break;
    }
 
-   case nir_op_frcp:
-      r = (struct ssa_result_range){
-         unpack_data(src_res[0]).range,
-         false,
-         false, /* Various cases can result in NaN, so assume the worst. */
-         false  /*    "      "    "     "    "  "    "    "    "    "    */
-      };
+   case nir_op_frcp: {
+      const struct ssa_result_range left = unpack_data(src_res[0]);
+
+      /* Only rcp(NaN) is NaN. */
+      r.is_a_number = left.is_a_number;
+
+      /* rcp can be zero for large values if denorms are flushed, or for Inf.
+       * Also, rcp(-0) is -Inf and rcp(+0) is Inf.
+       */
+      if (left.range == gt_zero)
+         r.range = ge_zero;
+      else if (left.range == lt_zero)
+         r.range = le_zero;
+
+      if (left.range == gt_zero || left.range == lt_zero || left.range == ne_zero)
+         r.is_finite = left.is_a_number;
+
       break;
+   }
 
    case nir_op_mov:
       r = unpack_data(src_res[0]);
@@ -1109,10 +1123,42 @@ process_fp_query(struct analysis_state *state, struct analysis_query *aq, uint32
       };
       break;
 
-   case nir_op_fsqrt:
-   case nir_op_frsq:
-      r = (struct ssa_result_range){ ge_zero, false, false, false };
+   case nir_op_fsqrt: {
+      const struct ssa_result_range left = unpack_data(src_res[0]);
+
+      /* sqrt(NaN) and sqrt(< 0) is NaN. */
+      if (left.range == eq_zero || left.range == ge_zero || left.range == gt_zero) {
+         r.is_a_number = left.is_a_number;
+         /* Only sqrt(Inf) is Inf. */
+         r.is_finite = left.is_finite;
+      }
+
+      if (left.range == gt_zero || left.range == ne_zero)
+         r.range = gt_zero;
+      else
+         r.range = ge_zero;
+
       break;
+   }
+
+   case nir_op_frsq: {
+      const struct ssa_result_range left = unpack_data(src_res[0]);
+
+      /* rsq(NaN) and rsq(< 0) is NaN. */
+      if (left.range == eq_zero || left.range == ge_zero || left.range == gt_zero)
+         r.is_a_number = left.is_a_number;
+
+      /* rsq(-0) is -Inf and rsq(+0) is +Inf */
+      if (left.range == gt_zero || left.range == ne_zero) {
+         if (left.is_finite)
+            r.range = gt_zero;
+         else
+            r.range = ge_zero;
+         r.is_finite = r.is_a_number;
+      }
+
+      break;
+   }
 
    case nir_op_ffloor: {
       const struct ssa_result_range left = unpack_data(src_res[0]);
@@ -1175,6 +1221,22 @@ process_fp_query(struct analysis_state *state, struct analysis_query *aq, uint32
          r.range = le_zero;
       else if (left.range == ne_zero)
          r.range = unknown;
+
+      break;
+   }
+
+   case nir_op_ffract: {
+      const struct ssa_result_range left = unpack_data(src_res[0]);
+
+      /* fract(±Inf) is NaN */
+      r.is_a_number = left.is_a_number && left.is_finite;
+      r.is_integral = left.is_integral;
+      r.is_finite = r.is_a_number;
+
+      if (left.is_integral || left.range == eq_zero)
+         r.range = eq_zero;
+      else
+         r.range = ge_zero;
 
       break;
    }

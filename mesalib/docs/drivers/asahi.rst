@@ -35,13 +35,13 @@ Vertex shader
 A vertex shader (running on the :term:`Unified Shader Cores`) outputs varyings with the
 ``st_var`` instruction. ``st_var`` takes a *vertex output index* and a 32-bit
 value. The maximum number of *vertex outputs* is specified as the "output count"
-of the shader in the "Bind Vertex Pipeline" packet. The value may be interpreted
+of the shader in the "VDM State Vertex Outputs" structure. The value may be interpreted
 consist of a single 32-bit value or an aligned 16-bit register pair, depending
 on whether interpolation should happen at 32-bit or 16-bit. Vertex outputs are
 indexed starting from 0, with the *vertex position* always coming first, the
 32-bit user varyings coming next with perspective, flat, and linear interpolated
 varyings grouped in that order, then 16-bit user varyings with the same groupings,
-and finally *point size* and *clip distances* at the end if present. Note that
+and finally *point size*, *layer/viewport*, and *clip distances* at the end if present. Note that
 *clip distances* are not accessible from the fragment shader; if the fragment
 shader needs to read the interpolated clip distance, the vertex shader must
 *also* write the clip distance values to a user varying for the fragment shader
@@ -95,11 +95,13 @@ lowered for APIs that require this (OpenGL but not Vulkan).
    * - 1
      - Point size
    * - 1
+     - Layer/viewport
+   * - 1
      - Clip distance for plane 0
    * -
      - ...
    * - 1
-     - Clip distance for plane 15
+     - Clip distance for plane 16
 
 Remapping
 `````````
@@ -145,7 +147,7 @@ from varying slots. This preloading appears to occur in fixed function hardware,
 a simplification from PowerVR which requires a specialized program for the
 programmable data sequencer to do the preload.
 
-The "Bind fragment pipeline" packet points to coefficient register bindings,
+The "Fragment Shader" structure points to coefficient register bindings,
 preceded by a header. The header contains the number of 32-bit varying slots. As
 the *W* slot is always present, this field is always nonzero. Slots whose index
 is below this count are treated as 32-bit. The remaining slots are treated as
@@ -165,6 +167,12 @@ bindings should be generated outside of the compiler. For simple APIs where the
 bindings are fixed and known at compile-time, the bindings could be generated
 within the compiler.
 
+Mathematically, the value of the coefficient register is a vector in
+:math:`\mathbb{R}^3`. The X and Y components are the screen-space partial
+derivatives of the varying with respect to X and Y. The Z component is the
+interpolated value of the varying at the upper-left pixel in the 32x32 tile that
+the pixel belongs to.
+
 Fragment shader
 ```````````````
 
@@ -178,6 +186,10 @@ interpolation also requires the W component of the fragment coordinate, the
 coefficient register for W is passed as a second argument. As an example, if
 there's a single varying to interpolate, an instruction like ``iter r0, cf1, cf0``
 is used.
+
+It is occassionally useful to manipulate the raw coefficient registers, for
+example to implement interpolation modes not natively supported by the hardware.
+``ldcf`` is used for this purpose.
 
 Iterator
 ````````
@@ -196,6 +208,9 @@ Image layouts
 
 AGX supports several image layouts, described here. To work with image layouts
 in the drivers, use the ail library, located in ``src/asahi/layout``.
+
+Strided linear
+``````````````
 
 The simplest layout is **strided linear**. Pixels are stored in raster-order in
 memory with a software-controlled stride. Strided linear images are useful for
@@ -217,6 +232,9 @@ With these limitations, addressing into a strided linear image is as simple as
    \text{address} = (y \cdot \text{stride}) + (x \cdot \text{bytes per pixel})
 
 In practice, this suffices for window system integration and little else.
+
+Twiddled
+````````
 
 The most common uncompressed layout is **twiddled**. The image is divided into
 power-of-two sized tiles. The tiles themselves are stored in raster-order.
@@ -292,6 +310,31 @@ logically. These extra levels pad out layers of 3D images to the size of the
 first layer, simplifying layout calculations for both software and hardware.
 Although the padding is logically unnecessary, it wastes little space compared
 to the sizes of large mipmapped 3D textures.
+
+Sparse page tables
+``````````````````
+
+The hardware has native support for sparse images. If an texture/PBE descriptor
+is configured in sparse mode, the specified address does not point to the image
+itself. Rather, it points to a **sparse page table**. The extra indirection
+enables on-device sparse binding (e.g. by updating the page table from a compute
+kernel).
+
+At the top level, the sparse page table is an array of **folios**. Each folio
+describes 256 pages. The folio itself has two halves. The first half is the page
+table itself, containing 4-byte "Sparse Block" data structures mapping image
+pages to GPU virtual addresses. The second half is probably sparse texture
+counters, again 4-bytes per page. Each folio therefore consumes :math:`256 \cdot
+4 \cdot 2 = 2 \mathrm{KiB}` in order to describe :math:`256 \cdot 16384 =
+4 \mathrm{MiB}`.
+
+In a layered (array or 3D) image, a given folio only describes a single layer.
+That implies extra padding between layers.
+
+Within a layer, the table works purely at an address level. It maps pages to
+pages, rather than tiles to tiles. It is not a spatial data structure in itself.
+Rather, it inherits the tiling of the image by virtue of the addresses mapped.
+This presumably simplifies the hardware implementation.
 
 drm-shim (Linux only)
 ---------------------

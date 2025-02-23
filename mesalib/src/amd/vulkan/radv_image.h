@@ -33,8 +33,7 @@ struct radv_image_plane {
 struct radv_image_binding {
    /* Set when bound */
    struct radeon_winsys_bo *bo;
-   VkDeviceSize offset;
-   uint64_t bo_va;
+   uint64_t addr;
    uint64_t range;
 };
 
@@ -74,12 +73,6 @@ struct radv_image {
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(radv_image, vk.base, VkImage, VK_OBJECT_TYPE_IMAGE)
-
-static inline uint64_t
-radv_image_get_va(const struct radv_image *image, uint32_t bind_idx)
-{
-   return radv_buffer_get_va(image->bindings[bind_idx].bo) + image->bindings[bind_idx].offset;
-}
 
 static inline bool
 radv_image_extent_compare(const struct radv_image *image, const VkExtent3D *extent)
@@ -215,7 +208,7 @@ radv_image_get_fast_clear_va(const struct radv_image *image, uint32_t base_level
 {
    assert(radv_image_has_clear_value(image));
 
-   uint64_t va = radv_image_get_va(image, 0);
+   uint64_t va = image->bindings[0].addr;
    va += image->clear_value_offset + base_level * 8;
    return va;
 }
@@ -225,7 +218,7 @@ radv_image_get_fce_pred_va(const struct radv_image *image, uint32_t base_level)
 {
    assert(image->fce_pred_offset != 0);
 
-   uint64_t va = radv_image_get_va(image, 0);
+   uint64_t va = image->bindings[0].addr;
    va += image->fce_pred_offset + base_level * 8;
    return va;
 }
@@ -235,7 +228,7 @@ radv_image_get_dcc_pred_va(const struct radv_image *image, uint32_t base_level)
 {
    assert(image->dcc_pred_offset != 0);
 
-   uint64_t va = radv_image_get_va(image, 0);
+   uint64_t va = image->bindings[0].addr;
    va += image->dcc_pred_offset + base_level * 8;
    return va;
 }
@@ -245,7 +238,7 @@ radv_get_tc_compat_zrange_va(const struct radv_image *image, uint32_t base_level
 {
    assert(image->tc_compat_zrange_offset != 0);
 
-   uint64_t va = radv_image_get_va(image, 0);
+   uint64_t va = image->bindings[0].addr;
    va += image->tc_compat_zrange_offset + base_level * 4;
    return va;
 }
@@ -255,7 +248,7 @@ radv_get_ds_clear_value_va(const struct radv_image *image, uint32_t base_level)
 {
    assert(radv_image_has_clear_value(image));
 
-   uint64_t va = radv_image_get_va(image, 0);
+   uint64_t va = image->bindings[0].addr;
    va += image->clear_value_offset + base_level * 8;
    return va;
 }

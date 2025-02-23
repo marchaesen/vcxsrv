@@ -204,7 +204,6 @@ void CloseDownConnection(ClientPtr client);
 
 extern int LimitClients;
 extern Bool PartialNetwork;
-extern Bool RunFromSigStopParent;
 
 extern int limitDataSpace;
 extern int limitStackSpace;

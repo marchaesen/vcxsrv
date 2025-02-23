@@ -13,9 +13,10 @@ import dataclasses
 import logging
 import subprocess
 import sys
+from collections.abc import Generator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Generator, Sequence
+from typing import Any
 
 import yaml
 

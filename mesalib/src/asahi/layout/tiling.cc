@@ -37,21 +37,10 @@
  * applying the two's complement identity, we are left with (X - mask) & mask
  */
 
-#define MOD_POT(x, y) (x) & ((y)-1)
-
 typedef struct {
    uint64_t lo;
    uint64_t hi;
 } __attribute__((packed)) ail_uint128_t;
-
-static uint32_t
-ail_space_bits(unsigned x)
-{
-   assert(x < 128 && "offset must be inside the tile");
-
-   return ((x & 1) << 0) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) |
-          ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6);
-}
 
 /*
  * Given a power-of-two block width/height, construct the mask of "X" bits. This
@@ -174,7 +163,7 @@ ail_tile(void *_tiled, void *_linear, const struct ail_layout *tiled_layout,
 {
    unsigned width_px = u_minify(tiled_layout->width_px, level);
    unsigned height_px = u_minify(tiled_layout->height_px, level);
-   unsigned blocksize_B = util_format_get_blocksize(tiled_layout->format);
+   unsigned blocksize_B = ail_get_blocksize_B(tiled_layout);
 
    assert(level < tiled_layout->levels && "Mip level out of bounds");
    assert(ail_is_level_twiddled_uncompressed(tiled_layout, level) &&

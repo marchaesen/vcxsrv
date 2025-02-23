@@ -76,7 +76,7 @@ bi_should_serialize(bi_instr *I)
    if (I->op == BI_OPCODE_LD_ATTR_TEX)
       return true;
 
-   switch (bi_opcode_props[I->op].message) {
+   switch (bi_get_opcode_props(I)->message) {
    case BIFROST_MESSAGE_VARYING:
    case BIFROST_MESSAGE_LOAD:
    case BIFROST_MESSAGE_STORE:
@@ -113,7 +113,7 @@ bi_read_mask(bi_instr *I, bool staging_only)
 {
    uint64_t mask = 0;
 
-   if (staging_only && !bi_opcode_props[I->op].sr_read)
+   if (staging_only && !bi_get_opcode_props(I)->sr_read)
       return mask;
 
    bi_foreach_src(I, s) {
@@ -154,7 +154,7 @@ bi_write_mask(bi_instr *I)
     * Obscurely, ATOM_CX is sr_write but can ignore the staging register in
     * certain circumstances; this does not require consideration.
     */
-   if (bi_opcode_props[I->op].sr_write && I->nr_dests && I->nr_srcs &&
+   if (bi_get_opcode_props(I)->sr_write && I->nr_dests && I->nr_srcs &&
        bi_is_null(I->dest[0]) && !bi_is_null(I->src[0])) {
 
       unsigned reg = I->src[0].value;
@@ -179,7 +179,7 @@ bi_push_clause(struct bi_scoreboard_state *st, bi_clause *clause)
 
    st->read[slot] |= bi_read_mask(I, true);
 
-   if (bi_opcode_props[I->op].sr_write)
+   if (bi_get_opcode_props(I)->sr_write)
       st->write[slot] |= bi_write_mask(I);
 }
 

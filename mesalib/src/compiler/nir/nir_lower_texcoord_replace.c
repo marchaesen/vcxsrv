@@ -127,7 +127,7 @@ nir_lower_texcoord_replace_impl(nir_function_impl *impl,
    nir_metadata_preserve(impl, nir_metadata_control_flow);
 }
 
-void
+bool
 nir_lower_texcoord_replace(nir_shader *s, unsigned coord_replace,
                            bool point_coord_is_sysval, bool yinvert)
 {
@@ -138,4 +138,6 @@ nir_lower_texcoord_replace(nir_shader *s, unsigned coord_replace,
       nir_lower_texcoord_replace_impl(impl, coord_replace,
                                       point_coord_is_sysval, yinvert);
    }
+
+   return true;
 }

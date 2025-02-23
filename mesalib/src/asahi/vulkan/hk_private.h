@@ -38,15 +38,17 @@ struct hk_addr_range {
    uint64_t range;
 };
 
+#define hk_cmd_buffer_device(cmd) ((struct hk_device *)(cmd)->vk.base.device)
+
 #define perf_debug_dev(dev, fmt, ...)                                          \
    do {                                                                        \
-      if (dev->debug & AGX_DBG_PERF)                                           \
+      if ((dev)->debug & AGX_DBG_PERF)                                         \
          mesa_log(MESA_LOG_WARN, (MESA_LOG_TAG), (fmt), ##__VA_ARGS__);        \
    } while (0)
 
-#define perf_debug(dev, fmt, ...)                                              \
+#define perf_debug(cmd, fmt, ...)                                              \
    do {                                                                        \
-      if (dev->dev.debug & AGX_DBG_PERF)                                       \
+      if (hk_cmd_buffer_device(cmd)->dev.debug & AGX_DBG_PERF)                 \
          mesa_log(MESA_LOG_WARN, (MESA_LOG_TAG), (fmt), ##__VA_ARGS__);        \
    } while (0)
 

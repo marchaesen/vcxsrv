@@ -893,10 +893,11 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       }
 
       uint32_t extend = ((U & BITFIELD_MASK(5)) << 0) | (kill << 5) |
-                        ((I->dim >> 3) << 7) | ((R >> 6) << 8) |
-                        ((C >> 6) << 10) | ((D >> 6) << 12) | ((T >> 6) << 14) |
-                        ((O & BITFIELD_MASK(6)) << 16) | (I->gather << 23) |
-                        (I->offset << 27) | ((S >> 6) << 28) | ((O >> 6) << 30);
+                        (I->sparse ? (1 << 6) : 0) | ((I->dim >> 3) << 7) |
+                        ((R >> 6) << 8) | ((C >> 6) << 10) | ((D >> 6) << 12) |
+                        ((T >> 6) << 14) | ((O & BITFIELD_MASK(6)) << 16) |
+                        (I->gather << 23) | (I->offset << 27) |
+                        ((S >> 6) << 28) | ((O >> 6) << 30);
 
       bool L = (extend != 0);
 

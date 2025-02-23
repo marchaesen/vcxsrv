@@ -60,7 +60,7 @@ bi_takes_fabs(unsigned arch, bi_instr *I, bi_index repl, unsigned s)
       /* TODO: Need to check mode */
       return false;
    default:
-      return bi_opcode_props[I->op].abs & BITFIELD_BIT(s);
+      return bi_get_opcode_props(I)->abs & BITFIELD_BIT(s);
    }
 }
 
@@ -79,7 +79,7 @@ bi_takes_fneg(unsigned arch, bi_instr *I, unsigned s)
       /* TODO: Need to check mode */
       return false;
    default:
-      return bi_opcode_props[I->op].neg & BITFIELD_BIT(s);
+      return bi_get_opcode_props(I)->neg & BITFIELD_BIT(s);
    }
 }
 
@@ -188,7 +188,7 @@ bi_fuse_small_int_to_f32(bi_instr *I, bi_instr *mod)
       assert(I->src[0].swizzle == BI_SWIZZLE_H01);
       I->src[0] = mod->src[0];
       I->round = BI_ROUND_NONE;
-      I->op = bi_small_int_patterns[i].replacement;
+      bi_set_opcode(I, bi_small_int_patterns[i].replacement);
    }
 }
 
@@ -221,9 +221,11 @@ bi_opt_mod_prop_forward(bi_context *ctx)
          if (!mod)
             continue;
 
-         unsigned size = bi_opcode_props[I->op].size;
+         unsigned size = bi_get_opcode_props(I)->size;
 
-         bi_fuse_small_int_to_f32(I, mod);
+         /* All small int instructions we were relying on here are gone on v11 */
+         if (ctx->arch < 11)
+            bi_fuse_small_int_to_f32(I, mod);
 
          if (bi_is_fabsneg(mod->op, size)) {
             if (mod->src[0].abs && !bi_takes_fabs(ctx->arch, I, mod->src[0], s))
@@ -256,7 +258,7 @@ bi_takes_clamp(bi_instr *I)
       return !(I->src[0].abs && I->src[1].abs &&
                bi_is_word_equiv(I->src[0], I->src[1]));
    default:
-      return bi_opcode_props[I->op].clamp;
+      return bi_get_opcode_props(I)->clamp;
    }
 }
 
@@ -270,7 +272,7 @@ bi_is_fclamp(enum bi_opcode op, enum bi_size size)
 static bool
 bi_optimizer_clamp(bi_instr *I, bi_instr *use)
 {
-   if (!bi_is_fclamp(use->op, bi_opcode_props[I->op].size))
+   if (!bi_is_fclamp(use->op, bi_get_opcode_props(I)->size))
       return false;
    if (!bi_takes_clamp(I))
       return false;
@@ -335,7 +337,7 @@ bi_takes_float_result_type(enum bi_opcode op)
 static bool
 bi_optimizer_result_type(bi_instr *I, bi_instr *mux)
 {
-   if (bi_opcode_props[I->op].size != bi_opcode_props[mux->op].size)
+   if (bi_get_opcode_props(I)->size != bi_get_opcode_props(mux)->size)
       return false;
 
    if (bi_is_fixed_mux(mux, 32, bi_imm_f32(1.0)) ||
@@ -390,7 +392,7 @@ bi_optimizer_var_tex(bi_context *ctx, bi_instr *var, bi_instr *tex)
    I->skip = tex->skip;
 
    if (tex->op == BI_OPCODE_TEXS_2D_F16)
-      I->op = BI_OPCODE_VAR_TEX_F16;
+      bi_set_opcode(I, BI_OPCODE_VAR_TEX_F16);
 
    /* Dead code elimination will clean up for us */
    return true;

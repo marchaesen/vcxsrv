@@ -400,6 +400,7 @@ typedef struct {
    bool offset            : 1;
    bool shadow            : 1;
    bool query_lod         : 1;
+   bool sparse            : 1;
    enum agx_gather gather : 3;
 
    /* TODO: Handle tilebuffer ops more efficient */

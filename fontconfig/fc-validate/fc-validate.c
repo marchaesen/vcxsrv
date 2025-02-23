@@ -25,57 +25,58 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#  include <config.h>
 #else
-#ifdef linux
-#define HAVE_GETOPT_LONG 1
-#endif
-#define HAVE_GETOPT 1
+#  ifdef linux
+#    define HAVE_GETOPT_LONG 1
+#  endif
+#  define HAVE_GETOPT 1
 #endif
 
 #include <fontconfig/fontconfig.h>
 #include <fontconfig/fcfreetype.h>
+
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <locale.h>
 
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+#  include <unistd.h>
 #endif
 
 #ifdef ENABLE_NLS
-#include <libintl.h>
-#define _(x)		(dgettext(GETTEXT_PACKAGE, x))
+#  include <libintl.h>
+#  define _(x) (dgettext (GETTEXT_PACKAGE, x))
 #else
-#define dgettext(d, s)	(s)
-#define _(x)		(x)
+#  define dgettext(d, s) (s)
+#  define _(x)           (x)
 #endif
 
 #ifndef HAVE_GETOPT
-#define HAVE_GETOPT 0
+#  define HAVE_GETOPT 0
 #endif
 #ifndef HAVE_GETOPT_LONG
-#define HAVE_GETOPT_LONG 0
+#  define HAVE_GETOPT_LONG 0
 #endif
 
 #if HAVE_GETOPT_LONG
-#undef  _GNU_SOURCE
-#define _GNU_SOURCE
-#include <getopt.h>
+#  undef _GNU_SOURCE
+#  define _GNU_SOURCE
+#  include <getopt.h>
 static const struct option longopts[] = {
-    {"index", 1, 0, 'i'},
-    {"lang", 1, 0, 'l'},
-    {"verbose", 0, 0, 'v'},
-    {"version", 0, 0, 'V'},
-    {"help", 0, 0, 'h'},
-    {NULL,0,0,0},
+    { "index",   1, 0, 'i' },
+    { "lang",    1, 0, 'l' },
+    { "verbose", 0, 0, 'v' },
+    { "version", 0, 0, 'V' },
+    { "help",    0, 0, 'h' },
+    { NULL,      0, 0, 0   },
 };
 #else
-#if HAVE_GETOPT
+#  if HAVE_GETOPT
 extern char *optarg;
-extern int optind, opterr, optopt;
-#endif
+extern int   optind, opterr, optopt;
+#  endif
 #endif
 
 static void
@@ -84,10 +85,10 @@ usage (char *program, int error)
     FILE *file = error ? stderr : stdout;
 #if HAVE_GETOPT_LONG
     fprintf (file, _("usage: %s [-Vhv] [-i index] [-l LANG] [--index index] [--lang LANG] [--verbose] [--version] [--help] font-file...\n"),
-	     program);
+                     program);
 #else
     fprintf (file, _("usage: %s [-Vhv] [-i index] [-l LANG] font-file...\n"),
-	     program);
+                     program);
 #endif
     fprintf (file, _("Validate font files and print result\n"));
     fprintf (file, "\n");
@@ -110,24 +111,24 @@ usage (char *program, int error)
 int
 main (int argc, char **argv)
 {
-    int		index_set = 0;
-    int		set_index = 0;
-    FcChar8     *lang = NULL;
+    int              index_set = 0;
+    int              set_index = 0;
+    FcChar8         *lang = NULL;
     const FcCharSet *fcs_lang = NULL;
-    int		err = 0;
-    int		i;
-    FT_Library  ftlib;
-    FcBool      verbose = FcFalse;
+    int              err = 0;
+    int              i;
+    FT_Library       ftlib;
+    FcBool           verbose = FcFalse;
 #if HAVE_GETOPT_LONG || HAVE_GETOPT
-    int		c;
+    int c;
 
     setlocale (LC_ALL, "");
 
-#if HAVE_GETOPT_LONG
+#  if HAVE_GETOPT_LONG
     while ((c = getopt_long (argc, argv, "i:l:mVhv", longopts, NULL)) != -1)
-#else
+#  else
     while ((c = getopt (argc, argv, "i:l:mVhv")) != -1)
-#endif
+#  endif
     {
 	switch (c) {
 	case 'i':
@@ -135,14 +136,14 @@ main (int argc, char **argv)
 	    set_index = atoi (optarg);
 	    break;
 	case 'l':
-	    lang = (FcChar8 *) FcLangNormalize ((const FcChar8 *) optarg);
+	    lang = (FcChar8 *)FcLangNormalize ((const FcChar8 *)optarg);
 	    break;
 	case 'v':
 	    verbose = FcTrue;
 	    break;
 	case 'V':
 	    fprintf (stderr, "fontconfig version %d.%d.%d\n",
-		     FC_MAJOR, FC_MINOR, FC_REVISION);
+	             FC_MAJOR, FC_MINOR, FC_REVISION);
 	    exit (0);
 	case 'h':
 	    usage (argv[0], 0);
@@ -160,66 +161,56 @@ main (int argc, char **argv)
 	usage (argv[0], 1);
 
     if (!lang)
-	lang = FcLangNormalize ((const FcChar8 *) setlocale (LC_CTYPE, NULL));
+	lang = FcLangNormalize ((const FcChar8 *)setlocale (LC_CTYPE, NULL));
 
     if (lang)
 	fcs_lang = FcLangGetCharSet (lang);
 
-    if (FT_Init_FreeType (&ftlib))
-    {
+    if (FT_Init_FreeType (&ftlib)) {
 	fprintf (stderr, _("Can't initialize FreeType library\n"));
 	return 1;
     }
 
-    for (; i < argc; i++)
-    {
+    for (; i < argc; i++) {
 	int index;
 
 	index = set_index;
 
 	do {
-	    FT_Face face;
+	    FT_Face    face;
 	    FcCharSet *fcs, *fcs_sub;
 
-	    if (FT_New_Face (ftlib, argv[i], index, &face))
-	    {
+	    if (FT_New_Face (ftlib, argv[i], index, &face)) {
 		if (!index_set && index > 0)
 		    break;
 		fprintf (stderr, _("Unable to open %s\n"), argv[i]);
 		err = 1;
-	    }
-	    else
-	    {
+	    } else {
 		FcChar32 count;
 
 		fcs = FcFreeTypeCharSet (face, NULL);
 		fcs_sub = FcCharSetSubtract (fcs_lang, fcs);
 
 		count = FcCharSetCount (fcs_sub);
-		if (count > 0)
-		{
+		if (count > 0) {
 		    FcChar32 ucs4, pos, map[FC_CHARSET_MAP_SIZE];
 
 		    err = 1;
 		    printf (_("%s:%d Missing %d glyph(s) to satisfy the coverage for %s language\n"),
-			    argv[i], index, count, lang);
+		              argv[i], index, count, lang);
 
-		    if (verbose)
-		    {
+		    if (verbose) {
 			for (ucs4 = FcCharSetFirstPage (fcs_sub, map, &pos);
 			     ucs4 != FC_CHARSET_DONE;
-			     ucs4 = FcCharSetNextPage (fcs_sub, map, &pos))
-			{
+			     ucs4 = FcCharSetNextPage (fcs_sub, map, &pos)) {
 			    int j;
 
-			    for (j = 0; j < FC_CHARSET_MAP_SIZE; j++)
-			    {
+			    for (j = 0; j < FC_CHARSET_MAP_SIZE; j++) {
 				FcChar32 bits = map[j];
 				FcChar32 base = ucs4 + j * 32;
-				int b = 0;
+				int      b = 0;
 
-				while (bits)
-				{
+				while (bits) {
 				    if (bits & 1)
 					printf ("  0x%04x\n", base + b);
 				    bits >>= 1;
@@ -228,9 +219,7 @@ main (int argc, char **argv)
 			    }
 			}
 		    }
-		}
-		else
-		{
+		} else {
 		    printf (_("%s:%d Satisfy the coverage for %s language\n"), argv[i], index, lang);
 		}
 
@@ -249,6 +238,6 @@ main (int argc, char **argv)
     if (lang)
 	FcStrFree (lang);
 
-    FcFini ();
+    FcFini();
     return err;
 }

@@ -26,6 +26,8 @@
 
 #include <xwayland-config.h>
 
+#include "os/client_priv.h"
+
 #ifdef WITH_LIBDRM
 #include <xf86drm.h>
 #include <xf86drmMode.h>

@@ -19,9 +19,9 @@ apply_dst_clears(struct zink_context *ctx, const struct pipe_blit_info *info, bo
    if (info->scissor_enable) {
       struct u_rect rect = { info->scissor.minx, info->scissor.maxx,
                              info->scissor.miny, info->scissor.maxy };
-      zink_fb_clears_apply_or_discard(ctx, info->dst.resource, rect, discard_only);
+      zink_fb_clears_apply_or_discard(ctx, info->dst.resource, rect, info->dst.box.z, info->dst.box.depth, discard_only);
    } else
-      zink_fb_clears_apply_or_discard(ctx, info->dst.resource, zink_rect_from_box(&info->dst.box), discard_only);
+      zink_fb_clears_apply_or_discard(ctx, info->dst.resource, zink_rect_from_box(&info->dst.box), info->dst.box.z, info->dst.box.depth, discard_only);
 }
 
 static bool
@@ -66,7 +66,7 @@ blit_resolve(struct zink_context *ctx, const struct pipe_blit_info *info, bool *
 
 
    apply_dst_clears(ctx, info, false);
-   zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box));
+   zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box), info->src.box.z, info->src.box.depth);
 
    if (src->obj->dt)
       *needs_present_readback = zink_kopper_acquire_readback(ctx, src, &use_src);
@@ -271,7 +271,7 @@ blit_native(struct zink_context *ctx, const struct pipe_blit_info *info, bool *n
    assert(region.dstOffsets[0].z != region.dstOffsets[1].z);
 
    apply_dst_clears(ctx, info, false);
-   zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box));
+   zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box), info->src.box.z, info->src.box.depth);
 
    if (src->obj->dt)
       *needs_present_readback = zink_kopper_acquire_readback(ctx, src, &use_src);
@@ -382,7 +382,7 @@ zink_blit(struct pipe_context *pctx,
    }
 
    if (src->obj->dt) {
-      zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box));
+      zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box), info->src.box.z, info->src.box.depth);
       needs_present_readback = zink_kopper_acquire_readback(ctx, src, &use_src);
    }
 
@@ -390,7 +390,7 @@ zink_blit(struct pipe_context *pctx,
     * flush all pending clears anyway
     */
    apply_dst_clears(ctx, info, true);
-   zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box));
+   zink_fb_clears_apply_region(ctx, info->src.resource, zink_rect_from_box(&info->src.box), info->src.box.z, info->src.box.depth);
    unsigned rp_clears_enabled = ctx->rp_clears_enabled;
    unsigned clears_enabled = ctx->clears_enabled;
    if (!dst->fb_bind_count) {

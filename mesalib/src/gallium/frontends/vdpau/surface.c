@@ -331,7 +331,7 @@ vlVdpVideoSurfacePutBitsYCbCr(VdpVideoSurface surface,
          nformat = screen->get_video_param(screen,
                                            PIPE_VIDEO_PROFILE_UNKNOWN,
                                            PIPE_VIDEO_ENTRYPOINT_BITSTREAM,
-                                           PIPE_VIDEO_CAP_PREFERED_FORMAT);
+                                           PIPE_VIDEO_CAP_PREFERRED_FORMAT);
          if (nformat == PIPE_FORMAT_NONE) {
             mtx_unlock(&p_surf->device->mutex);
             return VDP_STATUS_NO_IMPLEMENTATION;

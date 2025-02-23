@@ -135,7 +135,11 @@ tu_spirv_to_nir(struct tu_device *dev,
    init_ir3_nir_options(&options, key);
    ir3_optimize_loop(dev->compiler, &options, nir);
 
-   NIR_PASS_V(nir, nir_opt_conditional_discard);
+   nir_opt_peephole_select_options peephole_select_options = {
+      .limit = 0,
+      .discard_ok = true,
+   };
+   NIR_PASS_V(nir, nir_opt_peephole_select, &peephole_select_options);
 
    return nir;
 }

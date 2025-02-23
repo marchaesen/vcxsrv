@@ -23,19 +23,20 @@
  */
 
 #include "fcint.h"
+
+#include <ctype.h>
 #include <math.h>
 #include <stdlib.h>
-#include <ctype.h>
 
-const FcMatrix    FcIdentityMatrix = { 1, 0, 0, 1 };
+const FcMatrix FcIdentityMatrix = { 1, 0, 0, 1 };
 
 FcMatrix *
 FcMatrixCopy (const FcMatrix *mat)
 {
     FcMatrix *r;
-    if(!mat)
+    if (!mat)
 	return 0;
-    r = (FcMatrix *) malloc (sizeof (*r) );
+    r = (FcMatrix *)malloc (sizeof (*r));
     if (!r)
 	return 0;
     *r = *mat;
@@ -52,18 +53,20 @@ FcMatrixFree (FcMatrix *mat)
 FcBool
 FcMatrixEqual (const FcMatrix *mat1, const FcMatrix *mat2)
 {
-    if(mat1 == mat2) return FcTrue;
-    if(mat1 == 0 || mat2 == 0) return FcFalse;
+    if (mat1 == mat2)
+	return FcTrue;
+    if (mat1 == 0 || mat2 == 0)
+	return FcFalse;
     return mat1->xx == mat2->xx &&
-	   mat1->xy == mat2->xy &&
-	   mat1->yx == mat2->yx &&
-	   mat1->yy == mat2->yy;
+           mat1->xy == mat2->xy &&
+           mat1->yx == mat2->yx &&
+           mat1->yy == mat2->yy;
 }
 
 void
 FcMatrixMultiply (FcMatrix *result, const FcMatrix *a, const FcMatrix *b)
 {
-    FcMatrix	r;
+    FcMatrix r;
 
     r.xx = a->xx * b->xx + a->xy * b->yx;
     r.xy = a->xx * b->xy + a->xy * b->yy;
@@ -75,7 +78,7 @@ FcMatrixMultiply (FcMatrix *result, const FcMatrix *a, const FcMatrix *b)
 void
 FcMatrixRotate (FcMatrix *m, double c, double s)
 {
-    FcMatrix	r;
+    FcMatrix r;
 
     /*
      * X Coordinate system is upside down, swap to make
@@ -91,7 +94,7 @@ FcMatrixRotate (FcMatrix *m, double c, double s)
 void
 FcMatrixScale (FcMatrix *m, double sx, double sy)
 {
-    FcMatrix	r;
+    FcMatrix r;
 
     r.xx = sx;
     r.xy = 0;
@@ -103,7 +106,7 @@ FcMatrixScale (FcMatrix *m, double sx, double sy)
 void
 FcMatrixShear (FcMatrix *m, double sh, double sv)
 {
-    FcMatrix	r;
+    FcMatrix r;
 
     r.xx = 1;
     r.xy = sh;

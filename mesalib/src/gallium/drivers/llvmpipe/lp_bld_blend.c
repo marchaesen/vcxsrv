@@ -321,6 +321,7 @@ lp_build_alpha_to_coverage(struct gallivm_state *gallivm,
                            struct lp_type type,
                            struct lp_build_mask_context *mask,
                            LLVMValueRef alpha,
+                           bool dither,
                            bool do_branch)
 {
    struct lp_build_context bld;
@@ -329,7 +330,7 @@ lp_build_alpha_to_coverage(struct gallivm_state *gallivm,
 
    lp_build_context_init(&bld, gallivm, type);
 
-   alpha_ref_value = lp_build_const_vec(gallivm, type, 0);
+   alpha_ref_value = lp_build_const_vec(gallivm, type, dither ? 0 : 0.5);
 
    test = lp_build_cmp(&bld, PIPE_FUNC_GREATER, alpha, alpha_ref_value);
 

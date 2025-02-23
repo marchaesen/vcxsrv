@@ -168,7 +168,6 @@ vl_kopper_screen_create_x11(Display *display, int screen)
    xcb_get_geometry_cookie_t geom_cookie;
    xcb_get_geometry_reply_t *geom_reply;
    struct vl_kopper_screen *scrn = CALLOC_STRUCT(vl_kopper_screen);
-   bool err = false;
    if (!scrn)
       goto error;
 
@@ -177,9 +176,8 @@ vl_kopper_screen_create_x11(Display *display, int screen)
       goto error;
 
    int fd = x11_dri3_open(scrn->conn, RootWindow(display, screen), 0);
-   bool explicit_modifiers = false;
-   x11_dri3_check_multibuffer(scrn->conn, &err, &explicit_modifiers);
-   if (fd < 0 || !explicit_modifiers) {
+   bool has_multibuffer = x11_dri3_has_multibuffer(scrn->conn);
+   if (fd < 0 || !has_multibuffer) {
       goto error;
    }
 

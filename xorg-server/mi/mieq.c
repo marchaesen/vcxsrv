@@ -44,6 +44,7 @@ in this Software without prior written authorization from The Open Group.
 #include   "dix/cursor_priv.h"
 #include   "mi/mi_priv.h"
 #include   "mi/mipointer_priv.h"
+#include   "os/bug_priv.h"
 #include   "os/screensaver.h"
 
 #include   "misc.h"

@@ -191,10 +191,8 @@ cd ..
 
 git clone https://gitlab.freedesktop.org/xorg/test/xts
 cd xts
-git checkout dbbfa96c036e596346147081cbceda136e7c86c1
-# Using -fcommon until we get a proper fix into xtst.
-# See discussion at https://gitlab.freedesktop.org/xorg/xserver/-/merge_requests/913
-CFLAGS=-fcommon ./autogen.sh
+git checkout 12a887c2c72c4258962b56ced7b0aec782f1ffed
+./autogen.sh
 xvfb-run make -j${FDO_CI_CONCURRENT:-4}
 cd ..
 

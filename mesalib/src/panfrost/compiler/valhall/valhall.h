@@ -181,6 +181,20 @@ va_res_fold_table_idx(uint32_t table)
    }
 }
 
+static inline bool
+va_op_dest_modifier_does_convert(enum bi_opcode op)
+{
+   switch (op) {
+   case BI_OPCODE_FADD_F32:
+   case BI_OPCODE_FADD_LSCALE_F32:
+   case BI_OPCODE_FABSNEG_F32:
+   case BI_OPCODE_FMA_F32:
+      return true;
+   default:
+      return false;
+   }
+}
+
 #ifdef __cplusplus
 } /* extern C */
 #endif

@@ -78,8 +78,6 @@ void radv_vcn_write_event(struct radv_cmd_buffer *cmd_buffer, struct radv_event 
 void radv_init_physical_device_encoder(struct radv_physical_device *pdevice);
 void radv_probe_video_decode(struct radv_physical_device *pdev);
 void radv_probe_video_encode(struct radv_physical_device *pdev);
-void radv_video_enc_begin_coding(struct radv_cmd_buffer *cmd_buffer);
-void radv_video_enc_end_coding(struct radv_cmd_buffer *cmd_buffer);
 void radv_video_enc_control_video_coding(struct radv_cmd_buffer *cmd_buffer,
                                          const VkVideoCodingControlInfoKHR *pCodingControlInfo);
 VkResult radv_video_get_encode_session_memory_requirements(struct radv_device *device, struct radv_video_session *vid,

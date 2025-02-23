@@ -6,9 +6,10 @@ import functools
 import itertools
 import os
 import re
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import ClassVar, Generator, Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 if TYPE_CHECKING:
     import builtins
@@ -47,9 +48,9 @@ class Layout:
 
     def __str__(self):
         if self.variant:
-            return "{}({})".format(self.layout, self.variant)
+            return f"{self.layout}({self.variant})"
         else:
-            return "{}".format(self.layout)
+            return f"{self.layout}"
 
     def __lt__(self, other):
         """
@@ -118,7 +119,7 @@ def xkb_base():
 def compile_keymap(
     xkb_base: Path,
     rules: str,
-    ls: tuple[Union[Layout, "builtins.ellipsis"], ...],
+    ls: tuple[Union[Layout, builtins.ellipsis], ...],
     layout: Layout,
 ) -> tuple[str, str, str]:
     lsʹ: tuple[Layout, ...] = tuple(layout if x is Ellipsis else x for x in ls)

@@ -30,8 +30,15 @@ variables:
   # The tag should be updated each time the list of packages is updated.
   # Changing a tag forces the associated image to be rebuilt.
   # Note: the tag has no meaning, we use a date format purely for readability
-  FDO_DISTRIBUTION_TAG:  '2023-09-16'
-  FDO_DISTRIBUTION_PACKAGES:  'git gcc clang pkgconf autoconf automake libtool make xorg-util-macros xorgproto meson ninja jq'
+  FDO_DISTRIBUTION_TAG:  '2025-02-09'
+  # minimal set of packages required to build and install either way
+  BASE_PACKAGES: 'git gcc clang pkgconf xorgproto'
+  # packages needed to build and install with each set of tools
+  AUTOTOOLS_PACKAGES: 'autoconf automake libtool make xorg-util-macros'
+  MESON_PACKAGES: 'meson ninja'
+  # extra packages we need for comparing autotools & meson builds
+  EXTRA_PACKAGES: 'diffoscope diffutils findutils jq'
+  FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $AUTOTOOLS_PACKAGES $MESON_PACKAGES $EXTRA_PACKAGES
 
 
 #
@@ -110,9 +117,9 @@ autotools:
     - .fdo.distribution-image@arch
   script:
     - CC="${CC}" meson setup _builddir --prefix="$PWD/_install"
-    - meson configure _builddir
-    - ninja -C _builddir test
-    - ninja -C _builddir install
+    - meson compile -C _builddir
+    - meson test -C _builddir
+    - meson install -C _builddir
 
 # Run meson build with different compilers
 meson:
@@ -132,8 +139,8 @@ meson from tarball:
     - tar xf libXau-*.tar.gz -C _tarball_build
     - cd _tarball_build/libXau-*
     - meson setup _builddir
-    - meson configure _builddir
-    - ninja -C _builddir test
+    - meson compile -C _builddir
+    - meson test -C _builddir
   needs:
     - autotools
 
@@ -142,23 +149,26 @@ compare meson and autotools:
     - .fdo.distribution-image@arch
   stage: test
   script:
-    - mkdir -p $PWD/_meson_inst
-    - mkdir -p $PWD/_autotools_inst
-    # the prefix ends up in the pkgconfig files, so we use a symlink
-    # to use the same --prefix for meson and autotools
-    - ln -sf $PWD/_meson_inst $PWD/_inst
-    - meson setup builddir
-    - meson configure builddir --prefix=$PWD/_inst
-    - ninja -C builddir install
-    - ls -R _inst > _meson_inst.ls
-    - rm $PWD/_inst
-    - ln -sf $PWD/_autotools_inst $PWD/_inst
-    - autoreconf -ivf
-    - ./configure --prefix=$PWD/_inst --enable-shared --disable-static
-    - make && make install
-    - rm -f $PWD/_inst/lib/lib*.la
-    - ls -R _inst > _autotools_inst.ls
-    - diff -u $PWD/_meson_inst.ls $PWD/_autotools_inst.ls
+    - mkdir -p $PWD/_meson_inst $PWD/_autotools_inst
+    - CFLAGS="-O2"
+      meson setup builddir --prefix=/usr --buildtype=plain
+       -Ddefault_library=shared
+    - meson compile -C builddir -v
+    - DESTDIR=$PWD/_meson_inst meson install -C builddir
+    - ./autogen.sh --prefix=/usr --enable-shared --disable-static
+      CFLAGS="-O2 -D_FILE_OFFSET_BITS=64"
+    - make V=1 && make install DESTDIR=$PWD/_autotools_inst
+    # get rid of expected differences between the two
+    - rm -f $PWD/_autotools_inst/usr/lib/lib*.la
+    - rm -f $PWD/_autotools_inst/usr/lib/libXau.so
+    - ln -s libXau.so.6 $PWD/_autotools_inst/usr/lib/libXau.so
+    - sed -i -e 's/{exec_prefix}/{prefix}/' -e '/exec_prefix/d'
+        -e '/libdir=/{h;d}' -e '/includedir=/G'
+        -e '/Cflags:/{h;d}' -e '/Libs:/G'
+        _autotools_inst/usr/lib/pkgconfig/xau.pc
+    - find $PWD/_meson_inst $PWD/_autotools_inst
+      -exec touch -h -r $PWD/_meson_inst/ {} \+
+    - diffoscope --text-color=always _autotools_inst _meson_inst
 
 check versions are in sync:
   extends:
@@ -168,4 +178,5 @@ check versions are in sync:
     - autoreconf -ivf
     - ./configure --version | head -n 1 | sed -e 's/libXau configure //' > autotools.version
     - meson introspect meson.build --projectinfo | jq -r '.version' > meson.version
-    - diff -u autotools.version meson.version || (echo "ERROR - autotools and meson versions not in sync" && false)
+    - diff -u autotools.version meson.version ||
+      (echo "ERROR - autotools and meson versions not in sync" && false)

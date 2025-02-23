@@ -14,7 +14,8 @@
 /*
  * These structs/unions/commands are not included
  *
- *   vkCmdPushDescriptorSetWithTemplateKHR
+ *   vkCmdPushDescriptorSetWithTemplate
+ *   vkCmdPushDescriptorSetWithTemplate2
  */
 
 /* struct VkCommandBufferAllocateInfo chain */
@@ -228,6 +229,22 @@ vn_sizeof_VkCommandBufferInheritanceInfo_pnext(const void *val)
             size += vn_sizeof_VkCommandBufferInheritanceInfo_pnext(pnext->pNext);
             size += vn_sizeof_VkCommandBufferInheritanceRenderingInfo_self((const VkCommandBufferInheritanceRenderingInfo *)pnext);
             return size;
+        case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO:
+            if (!vn_cs_renderer_protocol_has_extension(233 /* VK_KHR_dynamic_rendering_local_read */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkCommandBufferInheritanceInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkRenderingAttachmentLocationInfo_self((const VkRenderingAttachmentLocationInfo *)pnext);
+            return size;
+        case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO:
+            if (!vn_cs_renderer_protocol_has_extension(233 /* VK_KHR_dynamic_rendering_local_read */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkCommandBufferInheritanceInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkRenderingInputAttachmentIndexInfo_self((const VkRenderingInputAttachmentIndexInfo *)pnext);
+            return size;
         default:
             /* ignore unknown/unsupported struct */
             break;
@@ -286,6 +303,22 @@ vn_encode_VkCommandBufferInheritanceInfo_pnext(struct vn_cs_encoder *enc, const 
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkCommandBufferInheritanceInfo_pnext(enc, pnext->pNext);
             vn_encode_VkCommandBufferInheritanceRenderingInfo_self(enc, (const VkCommandBufferInheritanceRenderingInfo *)pnext);
+            return;
+        case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO:
+            if (!vn_cs_renderer_protocol_has_extension(233 /* VK_KHR_dynamic_rendering_local_read */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkCommandBufferInheritanceInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkRenderingAttachmentLocationInfo_self(enc, (const VkRenderingAttachmentLocationInfo *)pnext);
+            return;
+        case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO:
+            if (!vn_cs_renderer_protocol_has_extension(233 /* VK_KHR_dynamic_rendering_local_read */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkCommandBufferInheritanceInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkRenderingInputAttachmentIndexInfo_self(enc, (const VkRenderingInputAttachmentIndexInfo *)pnext);
             return;
         default:
             /* ignore unknown/unsupported struct */
@@ -518,28 +551,6 @@ vn_encode_VkBufferCopy(struct vn_cs_encoder *enc, const VkBufferCopy *val)
     vn_encode_VkDeviceSize(enc, &val->srcOffset);
     vn_encode_VkDeviceSize(enc, &val->dstOffset);
     vn_encode_VkDeviceSize(enc, &val->size);
-}
-
-/* struct VkImageSubresourceLayers */
-
-static inline size_t
-vn_sizeof_VkImageSubresourceLayers(const VkImageSubresourceLayers *val)
-{
-    size_t size = 0;
-    size += vn_sizeof_VkFlags(&val->aspectMask);
-    size += vn_sizeof_uint32_t(&val->mipLevel);
-    size += vn_sizeof_uint32_t(&val->baseArrayLayer);
-    size += vn_sizeof_uint32_t(&val->layerCount);
-    return size;
-}
-
-static inline void
-vn_encode_VkImageSubresourceLayers(struct vn_cs_encoder *enc, const VkImageSubresourceLayers *val)
-{
-    vn_encode_VkFlags(enc, &val->aspectMask);
-    vn_encode_uint32_t(enc, &val->mipLevel);
-    vn_encode_uint32_t(enc, &val->baseArrayLayer);
-    vn_encode_uint32_t(enc, &val->layerCount);
 }
 
 /* struct VkImageCopy */
@@ -1811,67 +1822,6 @@ vn_encode_VkCopyBufferInfo2(struct vn_cs_encoder *enc, const VkCopyBufferInfo2 *
     vn_encode_VkCopyBufferInfo2_self(enc, val);
 }
 
-/* struct VkImageCopy2 chain */
-
-static inline size_t
-vn_sizeof_VkImageCopy2_pnext(const void *val)
-{
-    /* no known/supported struct */
-    return vn_sizeof_simple_pointer(NULL);
-}
-
-static inline size_t
-vn_sizeof_VkImageCopy2_self(const VkImageCopy2 *val)
-{
-    size_t size = 0;
-    /* skip val->{sType,pNext} */
-    size += vn_sizeof_VkImageSubresourceLayers(&val->srcSubresource);
-    size += vn_sizeof_VkOffset3D(&val->srcOffset);
-    size += vn_sizeof_VkImageSubresourceLayers(&val->dstSubresource);
-    size += vn_sizeof_VkOffset3D(&val->dstOffset);
-    size += vn_sizeof_VkExtent3D(&val->extent);
-    return size;
-}
-
-static inline size_t
-vn_sizeof_VkImageCopy2(const VkImageCopy2 *val)
-{
-    size_t size = 0;
-
-    size += vn_sizeof_VkStructureType(&val->sType);
-    size += vn_sizeof_VkImageCopy2_pnext(val->pNext);
-    size += vn_sizeof_VkImageCopy2_self(val);
-
-    return size;
-}
-
-static inline void
-vn_encode_VkImageCopy2_pnext(struct vn_cs_encoder *enc, const void *val)
-{
-    /* no known/supported struct */
-    vn_encode_simple_pointer(enc, NULL);
-}
-
-static inline void
-vn_encode_VkImageCopy2_self(struct vn_cs_encoder *enc, const VkImageCopy2 *val)
-{
-    /* skip val->{sType,pNext} */
-    vn_encode_VkImageSubresourceLayers(enc, &val->srcSubresource);
-    vn_encode_VkOffset3D(enc, &val->srcOffset);
-    vn_encode_VkImageSubresourceLayers(enc, &val->dstSubresource);
-    vn_encode_VkOffset3D(enc, &val->dstOffset);
-    vn_encode_VkExtent3D(enc, &val->extent);
-}
-
-static inline void
-vn_encode_VkImageCopy2(struct vn_cs_encoder *enc, const VkImageCopy2 *val)
-{
-    assert(val->sType == VK_STRUCTURE_TYPE_IMAGE_COPY_2);
-    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_IMAGE_COPY_2 });
-    vn_encode_VkImageCopy2_pnext(enc, val->pNext);
-    vn_encode_VkImageCopy2_self(enc, val);
-}
-
 /* struct VkCopyImageInfo2 chain */
 
 static inline size_t
@@ -3026,7 +2976,7 @@ vn_sizeof_VkRenderingInfo_pnext(const void *val)
             size += vn_sizeof_VkDeviceGroupRenderPassBeginInfo_self((const VkDeviceGroupRenderPassBeginInfo *)pnext);
             return size;
         case VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR:
-            if (!(vn_cs_renderer_protocol_has_extension(45 /* VK_KHR_dynamic_rendering */) && vn_cs_renderer_protocol_has_extension(227 /* VK_KHR_fragment_shading_rate */)))
+            if (!(vn_cs_renderer_protocol_has_extension(227 /* VK_KHR_fragment_shading_rate */) && vn_cs_renderer_protocol_has_extension(45 /* VK_KHR_dynamic_rendering */)))
                 break;
             size += vn_sizeof_simple_pointer(pnext);
             size += vn_sizeof_VkStructureType(&pnext->sType);
@@ -3095,7 +3045,7 @@ vn_encode_VkRenderingInfo_pnext(struct vn_cs_encoder *enc, const void *val)
             vn_encode_VkDeviceGroupRenderPassBeginInfo_self(enc, (const VkDeviceGroupRenderPassBeginInfo *)pnext);
             return;
         case VK_STRUCTURE_TYPE_RENDERING_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR:
-            if (!(vn_cs_renderer_protocol_has_extension(45 /* VK_KHR_dynamic_rendering */) && vn_cs_renderer_protocol_has_extension(227 /* VK_KHR_fragment_shading_rate */)))
+            if (!(vn_cs_renderer_protocol_has_extension(227 /* VK_KHR_fragment_shading_rate */) && vn_cs_renderer_protocol_has_extension(45 /* VK_KHR_dynamic_rendering */)))
                 break;
             vn_encode_simple_pointer(enc, pnext);
             vn_encode_VkStructureType(enc, &pnext->sType);
@@ -3141,6 +3091,336 @@ vn_encode_VkRenderingInfo(struct vn_cs_encoder *enc, const VkRenderingInfo *val)
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_RENDERING_INFO });
     vn_encode_VkRenderingInfo_pnext(enc, val->pNext);
     vn_encode_VkRenderingInfo_self(enc, val);
+}
+
+/* struct VkBindDescriptorSetsInfo chain */
+
+static inline size_t
+vn_sizeof_VkBindDescriptorSetsInfo_pnext(const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkBindDescriptorSetsInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkPipelineLayoutCreateInfo_self((const VkPipelineLayoutCreateInfo *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkBindDescriptorSetsInfo_self(const VkBindDescriptorSetsInfo *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkFlags(&val->stageFlags);
+    size += vn_sizeof_VkPipelineLayout(&val->layout);
+    size += vn_sizeof_uint32_t(&val->firstSet);
+    size += vn_sizeof_uint32_t(&val->descriptorSetCount);
+    if (val->pDescriptorSets) {
+        size += vn_sizeof_array_size(val->descriptorSetCount);
+        for (uint32_t i = 0; i < val->descriptorSetCount; i++)
+            size += vn_sizeof_VkDescriptorSet(&val->pDescriptorSets[i]);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    size += vn_sizeof_uint32_t(&val->dynamicOffsetCount);
+    if (val->pDynamicOffsets) {
+        size += vn_sizeof_array_size(val->dynamicOffsetCount);
+        size += vn_sizeof_uint32_t_array(val->pDynamicOffsets, val->dynamicOffsetCount);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkBindDescriptorSetsInfo(const VkBindDescriptorSetsInfo *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkBindDescriptorSetsInfo_pnext(val->pNext);
+    size += vn_sizeof_VkBindDescriptorSetsInfo_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkBindDescriptorSetsInfo_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkBindDescriptorSetsInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkPipelineLayoutCreateInfo_self(enc, (const VkPipelineLayoutCreateInfo *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkBindDescriptorSetsInfo_self(struct vn_cs_encoder *enc, const VkBindDescriptorSetsInfo *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkFlags(enc, &val->stageFlags);
+    vn_encode_VkPipelineLayout(enc, &val->layout);
+    vn_encode_uint32_t(enc, &val->firstSet);
+    vn_encode_uint32_t(enc, &val->descriptorSetCount);
+    if (val->pDescriptorSets) {
+        vn_encode_array_size(enc, val->descriptorSetCount);
+        for (uint32_t i = 0; i < val->descriptorSetCount; i++)
+            vn_encode_VkDescriptorSet(enc, &val->pDescriptorSets[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+    vn_encode_uint32_t(enc, &val->dynamicOffsetCount);
+    if (val->pDynamicOffsets) {
+        vn_encode_array_size(enc, val->dynamicOffsetCount);
+        vn_encode_uint32_t_array(enc, val->pDynamicOffsets, val->dynamicOffsetCount);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline void
+vn_encode_VkBindDescriptorSetsInfo(struct vn_cs_encoder *enc, const VkBindDescriptorSetsInfo *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO });
+    vn_encode_VkBindDescriptorSetsInfo_pnext(enc, val->pNext);
+    vn_encode_VkBindDescriptorSetsInfo_self(enc, val);
+}
+
+/* struct VkPushConstantsInfo chain */
+
+static inline size_t
+vn_sizeof_VkPushConstantsInfo_pnext(const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkPushConstantsInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkPipelineLayoutCreateInfo_self((const VkPipelineLayoutCreateInfo *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkPushConstantsInfo_self(const VkPushConstantsInfo *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkPipelineLayout(&val->layout);
+    size += vn_sizeof_VkFlags(&val->stageFlags);
+    size += vn_sizeof_uint32_t(&val->offset);
+    size += vn_sizeof_uint32_t(&val->size);
+    if (val->pValues) {
+        size += vn_sizeof_array_size(val->size);
+        size += vn_sizeof_blob_array(val->pValues, val->size);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkPushConstantsInfo(const VkPushConstantsInfo *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkPushConstantsInfo_pnext(val->pNext);
+    size += vn_sizeof_VkPushConstantsInfo_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkPushConstantsInfo_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkPushConstantsInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkPipelineLayoutCreateInfo_self(enc, (const VkPipelineLayoutCreateInfo *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkPushConstantsInfo_self(struct vn_cs_encoder *enc, const VkPushConstantsInfo *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkPipelineLayout(enc, &val->layout);
+    vn_encode_VkFlags(enc, &val->stageFlags);
+    vn_encode_uint32_t(enc, &val->offset);
+    vn_encode_uint32_t(enc, &val->size);
+    if (val->pValues) {
+        vn_encode_array_size(enc, val->size);
+        vn_encode_blob_array(enc, val->pValues, val->size);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline void
+vn_encode_VkPushConstantsInfo(struct vn_cs_encoder *enc, const VkPushConstantsInfo *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO });
+    vn_encode_VkPushConstantsInfo_pnext(enc, val->pNext);
+    vn_encode_VkPushConstantsInfo_self(enc, val);
+}
+
+/* struct VkPushDescriptorSetInfo chain */
+
+static inline size_t
+vn_sizeof_VkPushDescriptorSetInfo_pnext(const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkPushDescriptorSetInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkPipelineLayoutCreateInfo_self((const VkPipelineLayoutCreateInfo *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkPushDescriptorSetInfo_self(const VkPushDescriptorSetInfo *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkFlags(&val->stageFlags);
+    size += vn_sizeof_VkPipelineLayout(&val->layout);
+    size += vn_sizeof_uint32_t(&val->set);
+    size += vn_sizeof_uint32_t(&val->descriptorWriteCount);
+    if (val->pDescriptorWrites) {
+        size += vn_sizeof_array_size(val->descriptorWriteCount);
+        for (uint32_t i = 0; i < val->descriptorWriteCount; i++)
+            size += vn_sizeof_VkWriteDescriptorSet(&val->pDescriptorWrites[i]);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkPushDescriptorSetInfo(const VkPushDescriptorSetInfo *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkPushDescriptorSetInfo_pnext(val->pNext);
+    size += vn_sizeof_VkPushDescriptorSetInfo_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkPushDescriptorSetInfo_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkPushDescriptorSetInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkPipelineLayoutCreateInfo_self(enc, (const VkPipelineLayoutCreateInfo *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkPushDescriptorSetInfo_self(struct vn_cs_encoder *enc, const VkPushDescriptorSetInfo *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkFlags(enc, &val->stageFlags);
+    vn_encode_VkPipelineLayout(enc, &val->layout);
+    vn_encode_uint32_t(enc, &val->set);
+    vn_encode_uint32_t(enc, &val->descriptorWriteCount);
+    if (val->pDescriptorWrites) {
+        vn_encode_array_size(enc, val->descriptorWriteCount);
+        for (uint32_t i = 0; i < val->descriptorWriteCount; i++)
+            vn_encode_VkWriteDescriptorSet(enc, &val->pDescriptorWrites[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline void
+vn_encode_VkPushDescriptorSetInfo(struct vn_cs_encoder *enc, const VkPushDescriptorSetInfo *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_PUSH_DESCRIPTOR_SET_INFO);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_PUSH_DESCRIPTOR_SET_INFO });
+    vn_encode_VkPushDescriptorSetInfo_pnext(enc, val->pNext);
+    vn_encode_VkPushDescriptorSetInfo_self(enc, val);
 }
 
 static inline size_t vn_sizeof_vkAllocateCommandBuffers(VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers)
@@ -6405,9 +6685,9 @@ static inline void vn_decode_vkCmdExecuteCommands_reply(struct vn_cs_decoder *de
     /* skip pCommandBuffers */
 }
 
-static inline size_t vn_sizeof_vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+static inline size_t vn_sizeof_vkCmdPushDescriptorSet(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSet_EXT;
     const VkFlags cmd_flags = 0;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
 
@@ -6427,9 +6707,9 @@ static inline size_t vn_sizeof_vkCmdPushDescriptorSetKHR(VkCommandBuffer command
     return cmd_size;
 }
 
-static inline void vn_encode_vkCmdPushDescriptorSetKHR(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+static inline void vn_encode_vkCmdPushDescriptorSet(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSet_EXT;
 
     vn_encode_VkCommandTypeEXT(enc, &cmd_type);
     vn_encode_VkFlags(enc, &cmd_flags);
@@ -6448,9 +6728,9 @@ static inline void vn_encode_vkCmdPushDescriptorSetKHR(struct vn_cs_encoder *enc
     }
 }
 
-static inline size_t vn_sizeof_vkCmdPushDescriptorSetKHR_reply(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+static inline size_t vn_sizeof_vkCmdPushDescriptorSet_reply(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSet_EXT;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
 
     /* skip commandBuffer */
@@ -6463,11 +6743,11 @@ static inline size_t vn_sizeof_vkCmdPushDescriptorSetKHR_reply(VkCommandBuffer c
     return cmd_size;
 }
 
-static inline void vn_decode_vkCmdPushDescriptorSetKHR_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+static inline void vn_decode_vkCmdPushDescriptorSet_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 {
     VkCommandTypeEXT command_type;
     vn_decode_VkCommandTypeEXT(dec, &command_type);
-    assert(command_type == VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdPushDescriptorSet_EXT);
 
     /* skip commandBuffer */
     /* skip pipelineBindPoint */
@@ -7335,9 +7615,9 @@ static inline void vn_decode_vkCmdDrawIndirectByteCountEXT_reply(struct vn_cs_de
     /* skip vertexStride */
 }
 
-static inline size_t vn_sizeof_vkCmdSetLineStippleEXT(VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline size_t vn_sizeof_vkCmdSetLineStipple(VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStippleEXT_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStipple_EXT;
     const VkFlags cmd_flags = 0;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
 
@@ -7348,9 +7628,9 @@ static inline size_t vn_sizeof_vkCmdSetLineStippleEXT(VkCommandBuffer commandBuf
     return cmd_size;
 }
 
-static inline void vn_encode_vkCmdSetLineStippleEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline void vn_encode_vkCmdSetLineStipple(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStippleEXT_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStipple_EXT;
 
     vn_encode_VkCommandTypeEXT(enc, &cmd_type);
     vn_encode_VkFlags(enc, &cmd_flags);
@@ -7360,9 +7640,9 @@ static inline void vn_encode_vkCmdSetLineStippleEXT(struct vn_cs_encoder *enc, V
     vn_encode_uint16_t(enc, &lineStipplePattern);
 }
 
-static inline size_t vn_sizeof_vkCmdSetLineStippleEXT_reply(VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline size_t vn_sizeof_vkCmdSetLineStipple_reply(VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStippleEXT_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStipple_EXT;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
 
     /* skip commandBuffer */
@@ -7372,11 +7652,11 @@ static inline size_t vn_sizeof_vkCmdSetLineStippleEXT_reply(VkCommandBuffer comm
     return cmd_size;
 }
 
-static inline void vn_decode_vkCmdSetLineStippleEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline void vn_decode_vkCmdSetLineStipple_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
     VkCommandTypeEXT command_type;
     vn_decode_VkCommandTypeEXT(dec, &command_type);
-    assert(command_type == VK_COMMAND_TYPE_vkCmdSetLineStippleEXT_EXT);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetLineStipple_EXT);
 
     /* skip commandBuffer */
     /* skip lineStippleFactor */
@@ -7635,9 +7915,9 @@ static inline void vn_decode_vkCmdSetScissorWithCount_reply(struct vn_cs_decoder
     /* skip pScissors */
 }
 
-static inline size_t vn_sizeof_vkCmdBindIndexBuffer2KHR(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
+static inline size_t vn_sizeof_vkCmdBindIndexBuffer2(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindIndexBuffer2KHR_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindIndexBuffer2_EXT;
     const VkFlags cmd_flags = 0;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
 
@@ -7650,9 +7930,9 @@ static inline size_t vn_sizeof_vkCmdBindIndexBuffer2KHR(VkCommandBuffer commandB
     return cmd_size;
 }
 
-static inline void vn_encode_vkCmdBindIndexBuffer2KHR(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
+static inline void vn_encode_vkCmdBindIndexBuffer2(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindIndexBuffer2KHR_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindIndexBuffer2_EXT;
 
     vn_encode_VkCommandTypeEXT(enc, &cmd_type);
     vn_encode_VkFlags(enc, &cmd_flags);
@@ -7664,9 +7944,9 @@ static inline void vn_encode_vkCmdBindIndexBuffer2KHR(struct vn_cs_encoder *enc,
     vn_encode_VkIndexType(enc, &indexType);
 }
 
-static inline size_t vn_sizeof_vkCmdBindIndexBuffer2KHR_reply(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
+static inline size_t vn_sizeof_vkCmdBindIndexBuffer2_reply(VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindIndexBuffer2KHR_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindIndexBuffer2_EXT;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
 
     /* skip commandBuffer */
@@ -7678,11 +7958,11 @@ static inline size_t vn_sizeof_vkCmdBindIndexBuffer2KHR_reply(VkCommandBuffer co
     return cmd_size;
 }
 
-static inline void vn_decode_vkCmdBindIndexBuffer2KHR_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
+static inline void vn_decode_vkCmdBindIndexBuffer2_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
 {
     VkCommandTypeEXT command_type;
     vn_decode_VkCommandTypeEXT(dec, &command_type);
-    assert(command_type == VK_COMMAND_TYPE_vkCmdBindIndexBuffer2KHR_EXT);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdBindIndexBuffer2_EXT);
 
     /* skip commandBuffer */
     /* skip buffer */
@@ -9181,19 +9461,19 @@ static inline void vn_decode_vkCmdSetProvokingVertexModeEXT_reply(struct vn_cs_d
     /* skip provokingVertexMode */
 }
 
-static inline size_t vn_sizeof_vkCmdSetLineRasterizationModeEXT(VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+static inline size_t vn_sizeof_vkCmdSetLineRasterizationModeEXT(VkCommandBuffer commandBuffer, VkLineRasterizationMode lineRasterizationMode)
 {
     const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT;
     const VkFlags cmd_flags = 0;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
 
     cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
-    cmd_size += vn_sizeof_VkLineRasterizationModeEXT(&lineRasterizationMode);
+    cmd_size += vn_sizeof_VkLineRasterizationMode(&lineRasterizationMode);
 
     return cmd_size;
 }
 
-static inline void vn_encode_vkCmdSetLineRasterizationModeEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+static inline void vn_encode_vkCmdSetLineRasterizationModeEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLineRasterizationMode lineRasterizationMode)
 {
     const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT;
 
@@ -9201,10 +9481,10 @@ static inline void vn_encode_vkCmdSetLineRasterizationModeEXT(struct vn_cs_encod
     vn_encode_VkFlags(enc, &cmd_flags);
 
     vn_encode_VkCommandBuffer(enc, &commandBuffer);
-    vn_encode_VkLineRasterizationModeEXT(enc, &lineRasterizationMode);
+    vn_encode_VkLineRasterizationMode(enc, &lineRasterizationMode);
 }
 
-static inline size_t vn_sizeof_vkCmdSetLineRasterizationModeEXT_reply(VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+static inline size_t vn_sizeof_vkCmdSetLineRasterizationModeEXT_reply(VkCommandBuffer commandBuffer, VkLineRasterizationMode lineRasterizationMode)
 {
     const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
@@ -9215,7 +9495,7 @@ static inline size_t vn_sizeof_vkCmdSetLineRasterizationModeEXT_reply(VkCommandB
     return cmd_size;
 }
 
-static inline void vn_decode_vkCmdSetLineRasterizationModeEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+static inline void vn_decode_vkCmdSetLineRasterizationModeEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkLineRasterizationMode lineRasterizationMode)
 {
     VkCommandTypeEXT command_type;
     vn_decode_VkCommandTypeEXT(dec, &command_type);
@@ -10145,6 +10425,241 @@ static inline void vn_decode_vkCmdEndRendering_reply(struct vn_cs_decoder *dec, 
     assert(command_type == VK_COMMAND_TYPE_vkCmdEndRendering_EXT);
 
     /* skip commandBuffer */
+}
+
+static inline size_t vn_sizeof_vkCmdBindDescriptorSets2(VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindDescriptorSets2_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_simple_pointer(pBindDescriptorSetsInfo);
+    if (pBindDescriptorSetsInfo)
+        cmd_size += vn_sizeof_VkBindDescriptorSetsInfo(pBindDescriptorSetsInfo);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdBindDescriptorSets2(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindDescriptorSets2_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    if (vn_encode_simple_pointer(enc, pBindDescriptorSetsInfo))
+        vn_encode_VkBindDescriptorSetsInfo(enc, pBindDescriptorSetsInfo);
+}
+
+static inline size_t vn_sizeof_vkCmdBindDescriptorSets2_reply(VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdBindDescriptorSets2_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip pBindDescriptorSetsInfo */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdBindDescriptorSets2_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdBindDescriptorSets2_EXT);
+
+    /* skip commandBuffer */
+    /* skip pBindDescriptorSetsInfo */
+}
+
+static inline size_t vn_sizeof_vkCmdPushConstants2(VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushConstants2_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_simple_pointer(pPushConstantsInfo);
+    if (pPushConstantsInfo)
+        cmd_size += vn_sizeof_VkPushConstantsInfo(pPushConstantsInfo);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdPushConstants2(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushConstants2_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    if (vn_encode_simple_pointer(enc, pPushConstantsInfo))
+        vn_encode_VkPushConstantsInfo(enc, pPushConstantsInfo);
+}
+
+static inline size_t vn_sizeof_vkCmdPushConstants2_reply(VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushConstants2_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip pPushConstantsInfo */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdPushConstants2_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdPushConstants2_EXT);
+
+    /* skip commandBuffer */
+    /* skip pPushConstantsInfo */
+}
+
+static inline size_t vn_sizeof_vkCmdPushDescriptorSet2(VkCommandBuffer commandBuffer, const VkPushDescriptorSetInfo* pPushDescriptorSetInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSet2_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_simple_pointer(pPushDescriptorSetInfo);
+    if (pPushDescriptorSetInfo)
+        cmd_size += vn_sizeof_VkPushDescriptorSetInfo(pPushDescriptorSetInfo);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdPushDescriptorSet2(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkPushDescriptorSetInfo* pPushDescriptorSetInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSet2_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    if (vn_encode_simple_pointer(enc, pPushDescriptorSetInfo))
+        vn_encode_VkPushDescriptorSetInfo(enc, pPushDescriptorSetInfo);
+}
+
+static inline size_t vn_sizeof_vkCmdPushDescriptorSet2_reply(VkCommandBuffer commandBuffer, const VkPushDescriptorSetInfo* pPushDescriptorSetInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSet2_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip pPushDescriptorSetInfo */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdPushDescriptorSet2_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, const VkPushDescriptorSetInfo* pPushDescriptorSetInfo)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdPushDescriptorSet2_EXT);
+
+    /* skip commandBuffer */
+    /* skip pPushDescriptorSetInfo */
+}
+
+static inline size_t vn_sizeof_vkCmdSetRenderingAttachmentLocations(VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfo* pLocationInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRenderingAttachmentLocations_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_simple_pointer(pLocationInfo);
+    if (pLocationInfo)
+        cmd_size += vn_sizeof_VkRenderingAttachmentLocationInfo(pLocationInfo);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetRenderingAttachmentLocations(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfo* pLocationInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRenderingAttachmentLocations_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    if (vn_encode_simple_pointer(enc, pLocationInfo))
+        vn_encode_VkRenderingAttachmentLocationInfo(enc, pLocationInfo);
+}
+
+static inline size_t vn_sizeof_vkCmdSetRenderingAttachmentLocations_reply(VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfo* pLocationInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRenderingAttachmentLocations_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip pLocationInfo */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetRenderingAttachmentLocations_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfo* pLocationInfo)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetRenderingAttachmentLocations_EXT);
+
+    /* skip commandBuffer */
+    /* skip pLocationInfo */
+}
+
+static inline size_t vn_sizeof_vkCmdSetRenderingInputAttachmentIndices(VkCommandBuffer commandBuffer, const VkRenderingInputAttachmentIndexInfo* pInputAttachmentIndexInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRenderingInputAttachmentIndices_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_simple_pointer(pInputAttachmentIndexInfo);
+    if (pInputAttachmentIndexInfo)
+        cmd_size += vn_sizeof_VkRenderingInputAttachmentIndexInfo(pInputAttachmentIndexInfo);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetRenderingInputAttachmentIndices(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderingInputAttachmentIndexInfo* pInputAttachmentIndexInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRenderingInputAttachmentIndices_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    if (vn_encode_simple_pointer(enc, pInputAttachmentIndexInfo))
+        vn_encode_VkRenderingInputAttachmentIndexInfo(enc, pInputAttachmentIndexInfo);
+}
+
+static inline size_t vn_sizeof_vkCmdSetRenderingInputAttachmentIndices_reply(VkCommandBuffer commandBuffer, const VkRenderingInputAttachmentIndexInfo* pInputAttachmentIndexInfo)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRenderingInputAttachmentIndices_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip pInputAttachmentIndexInfo */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetRenderingInputAttachmentIndices_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, const VkRenderingInputAttachmentIndexInfo* pInputAttachmentIndexInfo)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetRenderingInputAttachmentIndices_EXT);
+
+    /* skip commandBuffer */
+    /* skip pInputAttachmentIndexInfo */
 }
 
 static inline void vn_submit_vkAllocateCommandBuffers(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers, struct vn_ring_submit_command *submit)
@@ -11260,21 +11775,21 @@ static inline void vn_submit_vkCmdExecuteCommands(struct vn_ring *vn_ring, VkCom
     }
 }
 
-static inline void vn_submit_vkCmdPushDescriptorSetKHR(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites, struct vn_ring_submit_command *submit)
+static inline void vn_submit_vkCmdPushDescriptorSet(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
-    size_t cmd_size = vn_sizeof_vkCmdPushDescriptorSetKHR(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
+    size_t cmd_size = vn_sizeof_vkCmdPushDescriptorSet(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
     if (cmd_size > sizeof(local_cmd_data)) {
         cmd_data = malloc(cmd_size);
         if (!cmd_data)
             cmd_size = 0;
     }
-    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPushDescriptorSetKHR_reply(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites) : 0;
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPushDescriptorSet_reply(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites) : 0;
 
     struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
-        vn_encode_vkCmdPushDescriptorSetKHR(enc, cmd_flags, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
+        vn_encode_vkCmdPushDescriptorSet(enc, cmd_flags, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
         vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
@@ -11575,21 +12090,21 @@ static inline void vn_submit_vkCmdDrawIndirectByteCountEXT(struct vn_ring *vn_ri
     }
 }
 
-static inline void vn_submit_vkCmdSetLineStippleEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern, struct vn_ring_submit_command *submit)
+static inline void vn_submit_vkCmdSetLineStipple(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
-    size_t cmd_size = vn_sizeof_vkCmdSetLineStippleEXT(commandBuffer, lineStippleFactor, lineStipplePattern);
+    size_t cmd_size = vn_sizeof_vkCmdSetLineStipple(commandBuffer, lineStippleFactor, lineStipplePattern);
     if (cmd_size > sizeof(local_cmd_data)) {
         cmd_data = malloc(cmd_size);
         if (!cmd_data)
             cmd_size = 0;
     }
-    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLineStippleEXT_reply(commandBuffer, lineStippleFactor, lineStipplePattern) : 0;
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLineStipple_reply(commandBuffer, lineStippleFactor, lineStipplePattern) : 0;
 
     struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
-        vn_encode_vkCmdSetLineStippleEXT(enc, cmd_flags, commandBuffer, lineStippleFactor, lineStipplePattern);
+        vn_encode_vkCmdSetLineStipple(enc, cmd_flags, commandBuffer, lineStippleFactor, lineStipplePattern);
         vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
@@ -11701,21 +12216,21 @@ static inline void vn_submit_vkCmdSetScissorWithCount(struct vn_ring *vn_ring, V
     }
 }
 
-static inline void vn_submit_vkCmdBindIndexBuffer2KHR(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType, struct vn_ring_submit_command *submit)
+static inline void vn_submit_vkCmdBindIndexBuffer2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
-    size_t cmd_size = vn_sizeof_vkCmdBindIndexBuffer2KHR(commandBuffer, buffer, offset, size, indexType);
+    size_t cmd_size = vn_sizeof_vkCmdBindIndexBuffer2(commandBuffer, buffer, offset, size, indexType);
     if (cmd_size > sizeof(local_cmd_data)) {
         cmd_data = malloc(cmd_size);
         if (!cmd_data)
             cmd_size = 0;
     }
-    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindIndexBuffer2KHR_reply(commandBuffer, buffer, offset, size, indexType) : 0;
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindIndexBuffer2_reply(commandBuffer, buffer, offset, size, indexType) : 0;
 
     struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
-        vn_encode_vkCmdBindIndexBuffer2KHR(enc, cmd_flags, commandBuffer, buffer, offset, size, indexType);
+        vn_encode_vkCmdBindIndexBuffer2(enc, cmd_flags, commandBuffer, buffer, offset, size, indexType);
         vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
@@ -12352,7 +12867,7 @@ static inline void vn_submit_vkCmdSetProvokingVertexModeEXT(struct vn_ring *vn_r
     }
 }
 
-static inline void vn_submit_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode, struct vn_ring_submit_command *submit)
+static inline void vn_submit_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLineRasterizationMode lineRasterizationMode, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -12745,6 +13260,111 @@ static inline void vn_submit_vkCmdEndRendering(struct vn_ring *vn_ring, VkComman
     struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndRendering(enc, cmd_flags, commandBuffer);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdBindDescriptorSets2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdBindDescriptorSets2(commandBuffer, pBindDescriptorSetsInfo);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindDescriptorSets2_reply(commandBuffer, pBindDescriptorSetsInfo) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdBindDescriptorSets2(enc, cmd_flags, commandBuffer, pBindDescriptorSetsInfo);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdPushConstants2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdPushConstants2(commandBuffer, pPushConstantsInfo);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPushConstants2_reply(commandBuffer, pPushConstantsInfo) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdPushConstants2(enc, cmd_flags, commandBuffer, pPushConstantsInfo);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdPushDescriptorSet2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkPushDescriptorSetInfo* pPushDescriptorSetInfo, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdPushDescriptorSet2(commandBuffer, pPushDescriptorSetInfo);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPushDescriptorSet2_reply(commandBuffer, pPushDescriptorSetInfo) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdPushDescriptorSet2(enc, cmd_flags, commandBuffer, pPushDescriptorSetInfo);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetRenderingAttachmentLocations(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfo* pLocationInfo, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetRenderingAttachmentLocations(commandBuffer, pLocationInfo);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetRenderingAttachmentLocations_reply(commandBuffer, pLocationInfo) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetRenderingAttachmentLocations(enc, cmd_flags, commandBuffer, pLocationInfo);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetRenderingInputAttachmentIndices(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderingInputAttachmentIndexInfo* pInputAttachmentIndexInfo, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetRenderingInputAttachmentIndices(commandBuffer, pInputAttachmentIndexInfo);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetRenderingInputAttachmentIndices_reply(commandBuffer, pInputAttachmentIndexInfo) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetRenderingInputAttachmentIndices(enc, cmd_flags, commandBuffer, pInputAttachmentIndexInfo);
         vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
@@ -13770,23 +14390,23 @@ static inline void vn_async_vkCmdExecuteCommands(struct vn_ring *vn_ring, VkComm
     vn_submit_vkCmdExecuteCommands(vn_ring, 0, commandBuffer, commandBufferCount, pCommandBuffers, &submit);
 }
 
-static inline void vn_call_vkCmdPushDescriptorSetKHR(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+static inline void vn_call_vkCmdPushDescriptorSet(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 {
     VN_TRACE_FUNC();
 
     struct vn_ring_submit_command submit;
-    vn_submit_vkCmdPushDescriptorSetKHR(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites, &submit);
+    vn_submit_vkCmdPushDescriptorSet(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites, &submit);
     struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
-        vn_decode_vkCmdPushDescriptorSetKHR_reply(dec, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
+        vn_decode_vkCmdPushDescriptorSet_reply(dec, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
         vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdPushDescriptorSetKHR(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+static inline void vn_async_vkCmdPushDescriptorSet(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 {
     struct vn_ring_submit_command submit;
-    vn_submit_vkCmdPushDescriptorSetKHR(vn_ring, 0, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites, &submit);
+    vn_submit_vkCmdPushDescriptorSet(vn_ring, 0, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites, &submit);
 }
 
 static inline void vn_call_vkCmdSetDeviceMask(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t deviceMask)
@@ -14055,23 +14675,23 @@ static inline void vn_async_vkCmdDrawIndirectByteCountEXT(struct vn_ring *vn_rin
     vn_submit_vkCmdDrawIndirectByteCountEXT(vn_ring, 0, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride, &submit);
 }
 
-static inline void vn_call_vkCmdSetLineStippleEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline void vn_call_vkCmdSetLineStipple(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
     VN_TRACE_FUNC();
 
     struct vn_ring_submit_command submit;
-    vn_submit_vkCmdSetLineStippleEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
+    vn_submit_vkCmdSetLineStipple(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
     struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
-        vn_decode_vkCmdSetLineStippleEXT_reply(dec, commandBuffer, lineStippleFactor, lineStipplePattern);
+        vn_decode_vkCmdSetLineStipple_reply(dec, commandBuffer, lineStippleFactor, lineStipplePattern);
         vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetLineStippleEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline void vn_async_vkCmdSetLineStipple(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
     struct vn_ring_submit_command submit;
-    vn_submit_vkCmdSetLineStippleEXT(vn_ring, 0, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
+    vn_submit_vkCmdSetLineStipple(vn_ring, 0, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
 }
 
 static inline void vn_call_vkCmdSetCullMode(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
@@ -14169,23 +14789,23 @@ static inline void vn_async_vkCmdSetScissorWithCount(struct vn_ring *vn_ring, Vk
     vn_submit_vkCmdSetScissorWithCount(vn_ring, 0, commandBuffer, scissorCount, pScissors, &submit);
 }
 
-static inline void vn_call_vkCmdBindIndexBuffer2KHR(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
+static inline void vn_call_vkCmdBindIndexBuffer2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
 {
     VN_TRACE_FUNC();
 
     struct vn_ring_submit_command submit;
-    vn_submit_vkCmdBindIndexBuffer2KHR(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, size, indexType, &submit);
+    vn_submit_vkCmdBindIndexBuffer2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, size, indexType, &submit);
     struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
-        vn_decode_vkCmdBindIndexBuffer2KHR_reply(dec, commandBuffer, buffer, offset, size, indexType);
+        vn_decode_vkCmdBindIndexBuffer2_reply(dec, commandBuffer, buffer, offset, size, indexType);
         vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBindIndexBuffer2KHR(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
+static inline void vn_async_vkCmdBindIndexBuffer2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize size, VkIndexType indexType)
 {
     struct vn_ring_submit_command submit;
-    vn_submit_vkCmdBindIndexBuffer2KHR(vn_ring, 0, commandBuffer, buffer, offset, size, indexType, &submit);
+    vn_submit_vkCmdBindIndexBuffer2(vn_ring, 0, commandBuffer, buffer, offset, size, indexType, &submit);
 }
 
 static inline void vn_call_vkCmdBindVertexBuffers2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, const VkDeviceSize* pStrides)
@@ -14758,7 +15378,7 @@ static inline void vn_async_vkCmdSetProvokingVertexModeEXT(struct vn_ring *vn_ri
     vn_submit_vkCmdSetProvokingVertexModeEXT(vn_ring, 0, commandBuffer, provokingVertexMode, &submit);
 }
 
-static inline void vn_call_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+static inline void vn_call_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLineRasterizationMode lineRasterizationMode)
 {
     VN_TRACE_FUNC();
 
@@ -14771,7 +15391,7 @@ static inline void vn_call_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_r
     }
 }
 
-static inline void vn_async_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+static inline void vn_async_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLineRasterizationMode lineRasterizationMode)
 {
     struct vn_ring_submit_command submit;
     vn_submit_vkCmdSetLineRasterizationModeEXT(vn_ring, 0, commandBuffer, lineRasterizationMode, &submit);
@@ -15117,6 +15737,101 @@ static inline void vn_async_vkCmdEndRendering(struct vn_ring *vn_ring, VkCommand
 {
     struct vn_ring_submit_command submit;
     vn_submit_vkCmdEndRendering(vn_ring, 0, commandBuffer, &submit);
+}
+
+static inline void vn_call_vkCmdBindDescriptorSets2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindDescriptorSets2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pBindDescriptorSetsInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdBindDescriptorSets2_reply(dec, commandBuffer, pBindDescriptorSetsInfo);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdBindDescriptorSets2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkBindDescriptorSetsInfo* pBindDescriptorSetsInfo)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindDescriptorSets2(vn_ring, 0, commandBuffer, pBindDescriptorSetsInfo, &submit);
+}
+
+static inline void vn_call_vkCmdPushConstants2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushConstants2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pPushConstantsInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdPushConstants2_reply(dec, commandBuffer, pPushConstantsInfo);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdPushConstants2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkPushConstantsInfo* pPushConstantsInfo)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushConstants2(vn_ring, 0, commandBuffer, pPushConstantsInfo, &submit);
+}
+
+static inline void vn_call_vkCmdPushDescriptorSet2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkPushDescriptorSetInfo* pPushDescriptorSetInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushDescriptorSet2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pPushDescriptorSetInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdPushDescriptorSet2_reply(dec, commandBuffer, pPushDescriptorSetInfo);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdPushDescriptorSet2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkPushDescriptorSetInfo* pPushDescriptorSetInfo)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushDescriptorSet2(vn_ring, 0, commandBuffer, pPushDescriptorSetInfo, &submit);
+}
+
+static inline void vn_call_vkCmdSetRenderingAttachmentLocations(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfo* pLocationInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRenderingAttachmentLocations(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pLocationInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetRenderingAttachmentLocations_reply(dec, commandBuffer, pLocationInfo);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetRenderingAttachmentLocations(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderingAttachmentLocationInfo* pLocationInfo)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRenderingAttachmentLocations(vn_ring, 0, commandBuffer, pLocationInfo, &submit);
+}
+
+static inline void vn_call_vkCmdSetRenderingInputAttachmentIndices(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderingInputAttachmentIndexInfo* pInputAttachmentIndexInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRenderingInputAttachmentIndices(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pInputAttachmentIndexInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetRenderingInputAttachmentIndices_reply(dec, commandBuffer, pInputAttachmentIndexInfo);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetRenderingInputAttachmentIndices(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderingInputAttachmentIndexInfo* pInputAttachmentIndexInfo)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRenderingInputAttachmentIndices(vn_ring, 0, commandBuffer, pInputAttachmentIndexInfo, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_COMMAND_BUFFER_H */

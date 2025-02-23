@@ -209,7 +209,7 @@ main()
                DEREF(dst_node).otw_matrix = mat3x4(transform);
 
                DEREF(dst_node).custom_instance_and_mask = src_node.custom_instance_and_mask;
-               DEREF(dst_node).sbt_offset_and_flags = encode_sbt_offset_and_flags(src_node.sbt_offset_and_flags);
+               DEREF(dst_node).sbt_offset_and_flags = radv_encode_sbt_offset_and_flags(src_node.sbt_offset_and_flags);
                DEREF(dst_node).instance_id = src_node.instance_id;
             }
          }

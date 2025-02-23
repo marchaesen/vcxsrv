@@ -179,3 +179,10 @@ dEQP-VK.sparse_resources.image_sparse_residency.cube_array.r16ui.256_256_6
 dEQP-VK.synchronization.implicit.timeline_semaphore.write_ssbo_vertex_read_ssbo_vertex.buffer_16384.3100
 dEQP-VK.synchronization2.timeline_semaphore.device_host.write_copy_image_read_image_compute_indirect.image_128x128_r32g32b32a32_sfloat
 dEQP-VK.tessellation.primitive_discard.isolines_fractional_odd_spacing_cw
+
+# Seen in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/1364513
+dEQP-VK.sparse_resources.image_sparse_binding.multiple_sparse_memory_bind.1d.rg8i.1024_1_1
+dEQP-VK.sparse_resources.image_sparse_binding.multiple_sparse_memory_bind.1d.rgba16ui.512_1_1
+dEQP-VK.sparse_resources.shader_intrinsics.2d_array_sparse_gather.rgba8_snorm.512_256_6
+dEQP-VK.synchronization.implicit.timeline_semaphore.write_copy_buffer_read_copy_buffer.buffer_16384.0300
+dEQP-VK.synchronization.implicit.timeline_semaphore.write_copy_buffer_read_ssbo_vertex.buffer_16384.1120

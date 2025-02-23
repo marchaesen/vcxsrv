@@ -95,3 +95,6 @@ dEQP-VK.ssbo.layout.random.all_per_block_buffers.0
 dEQP-VK.draw.renderpass.multi_draw.mosaic.normal.max_draws.stride_extra_12.10_instances.vert_only.multiview.no_offset_no_draw_id
 dEQP-VK.glsl.texture_functions.query.texturequerylevels.usampler1darray_fragment
 dEQP-VK.synchronization.cross_instance.dedicated.write_ssbo_vertex_read_vertex_input.buffer_262144_binary_semaphore_fd
+dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.65536
+dEQP-VK.rasterization.primitives_multisample_4_bit.no_stipple.lines
+dEQP-VK.glsl.builtin.function.pack_unpack.unpackunorm4x8_geometry

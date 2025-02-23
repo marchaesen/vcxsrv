@@ -102,6 +102,7 @@ GATHER = enum("gather", {
 
 OFFSET = immediate("offset", "bool")
 SHADOW = immediate("shadow", "bool")
+SPARSE = immediate("sparse", "bool")
 QUERY_LOD = immediate("query_lod", "bool")
 COHERENT = immediate("coherent", "bool")
 SCOREBOARD = immediate("scoreboard")
@@ -314,11 +315,11 @@ op("fcmp", _, srcs = 2, imms = [FCOND, INVERT_COND])
 op("texture_sample",
       encoding = (0x31, 0x7F, 8, 10), # XXX WRONG SIZE
       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET, SHADOW,
-                        QUERY_LOD, GATHER])
+                        QUERY_LOD, GATHER, SPARSE])
 for memory, can_reorder in [("texture", True), ("image", False)]:
     coherency = [COHERENT] if not can_reorder else []
     op(f"{memory}_load", encoding = (0x71, 0x7F, 8, 10), # XXX WRONG SIZE
-       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET] + coherency,
+       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET, SPARSE] + coherency,
        can_reorder = can_reorder,
        schedule_class = "none" if can_reorder else "load")
 

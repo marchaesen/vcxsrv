@@ -147,9 +147,11 @@ void bifrost_compile_shader_nir(nir_shader *nir,
       .force_indirect_unrolling_sampler = true,                                \
       .scalarize_ddx = true,                                                   \
       .support_indirect_inputs = (uint8_t)BITFIELD_MASK(PIPE_SHADER_TYPES),    \
+      .lower_hadd = arch >= 11,                                                \
    };
 
 DEFINE_OPTIONS(6);
 DEFINE_OPTIONS(9);
+DEFINE_OPTIONS(11);
 
 #endif

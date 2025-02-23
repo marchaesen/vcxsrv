@@ -5,10 +5,11 @@
 # This file is formatted with Python Black
 
 import argparse
-import yaml
-import sys
 import pathlib
+import sys
 from xml.dom import minidom
+
+import yaml
 
 parser = argparse.ArgumentParser(description="Converts YAML to JUnit XML")
 parser.add_argument(

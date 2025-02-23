@@ -332,9 +332,10 @@ should_move_rt_instruction(nir_intrinsic_instr *instr)
    }
 }
 
-static void
+static bool
 move_rt_instructions(nir_shader *shader)
 {
+   bool progress = false;
    nir_cursor target = nir_before_impl(nir_shader_get_entrypoint(shader));
 
    nir_foreach_block (block, nir_shader_get_entrypoint(shader)) {
@@ -347,11 +348,15 @@ move_rt_instructions(nir_shader *shader)
          if (!should_move_rt_instruction(intrinsic))
             continue;
 
+         progress = true;
          nir_instr_move(target, instr);
       }
    }
 
-   nir_metadata_preserve(nir_shader_get_entrypoint(shader), nir_metadata_control_flow);
+   if (progress)
+      nir_metadata_preserve(nir_shader_get_entrypoint(shader), nir_metadata_control_flow);
+
+   return progress;
 }
 
 static VkResult
@@ -387,7 +392,7 @@ radv_rt_nir_to_asm(struct radv_device *device, struct vk_pipeline_cache *cache,
    /* Move ray tracing system values to the top that are set by rt_trace_ray
     * to prevent them from being overwritten by other rt_trace_ray calls.
     */
-   NIR_PASS_V(stage->nir, move_rt_instructions);
+   NIR_PASS(_, stage->nir, move_rt_instructions);
 
    uint32_t num_resume_shaders = 0;
    nir_shader **resume_shaders = NULL;

@@ -38,16 +38,18 @@
 #include "shadow.h"
 
 static XF86ModuleVersionInfo VersRec = {
-    "shadow",
-    MODULEVENDORSTRING,
-    MODINFOSTRING1,
-    MODINFOSTRING2,
-    XORG_VERSION_CURRENT,
-    1, 1, 0,
-    ABI_CLASS_ANSIC,            /* Only need the ansic layer */
-    ABI_ANSIC_VERSION,
-    MOD_CLASS_NONE,
-    {0, 0, 0, 0}                /* signature, to be patched into the file by a tool */
+    .modname      = "shadow",
+    .vendor       = MODULEVENDORSTRING,
+    ._modinfo1_   = MODINFOSTRING1,
+    ._modinfo2_   = MODINFOSTRING2,
+    .xf86version  = XORG_VERSION_CURRENT,
+    .majorversion = 1,
+    .minorversion = 1,
+    .patchlevel   = 0,
+    .abiclass     = ABI_CLASS_ANSIC,
+    .abiversion   = ABI_ANSIC_VERSION,
 };
 
-_X_EXPORT XF86ModuleData shadowModuleData = { &VersRec, NULL, NULL };
+_X_EXPORT XF86ModuleData shadowModuleData = {
+    .vers = &VersRec
+};

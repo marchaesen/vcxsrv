@@ -933,6 +933,7 @@ struct vn_command_buffer_begin_info {
    VkCommandBufferBeginInfo begin;
    VkCommandBufferInheritanceInfo inheritance;
    VkCommandBufferInheritanceConditionalRenderingInfoEXT conditional_rendering;
+   VkRenderingInputAttachmentIndexInfo riai;
 
    bool has_inherited_pass;
    bool in_render_pass;
@@ -988,7 +989,8 @@ vn_fix_command_buffer_begin_info(struct vn_command_buffer *cmd,
       local->has_inherited_pass = true;
    }
 
-   /* Per spec, about VkCommandBufferInheritanceRenderingInfo:
+   /* Per spec, about VkCommandBufferInheritanceRenderingInfo and
+    * VkRenderingAttachmentLocationInfo:
     *
     * If VkCommandBufferInheritanceInfo::renderPass is not VK_NULL_HANDLE, or
     * VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT is not specified in
@@ -1006,7 +1008,13 @@ vn_fix_command_buffer_begin_info(struct vn_command_buffer *cmd,
             sizeof(VkCommandBufferInheritanceConditionalRenderingInfoEXT));
          pnext = &local->conditional_rendering;
          break;
+      case VK_STRUCTURE_TYPE_RENDERING_INPUT_ATTACHMENT_INDEX_INFO:
+         memcpy(&local->riai, src,
+                sizeof(VkRenderingInputAttachmentIndexInfo));
+         pnext = &local->riai;
+         break;
       case VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_RENDERING_INFO:
+      case VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_LOCATION_INFO:
       default:
          break;
       }
@@ -1242,6 +1250,15 @@ vn_CmdBindDescriptorSets(VkCommandBuffer commandBuffer,
 }
 
 void
+vn_CmdBindDescriptorSets2(
+   VkCommandBuffer commandBuffer,
+   const VkBindDescriptorSetsInfo *pBindDescriptorSetsInfo)
+{
+   VN_CMD_ENQUEUE(vkCmdBindDescriptorSets2, commandBuffer,
+                  pBindDescriptorSetsInfo);
+}
+
+void
 vn_CmdBindIndexBuffer(VkCommandBuffer commandBuffer,
                       VkBuffer buffer,
                       VkDeviceSize offset,
@@ -1252,14 +1269,14 @@ vn_CmdBindIndexBuffer(VkCommandBuffer commandBuffer,
 }
 
 void
-vn_CmdBindIndexBuffer2KHR(VkCommandBuffer commandBuffer,
-                          VkBuffer buffer,
-                          VkDeviceSize offset,
-                          VkDeviceSize size,
-                          VkIndexType indexType)
+vn_CmdBindIndexBuffer2(VkCommandBuffer commandBuffer,
+                       VkBuffer buffer,
+                       VkDeviceSize offset,
+                       VkDeviceSize size,
+                       VkIndexType indexType)
 {
-   VN_CMD_ENQUEUE(vkCmdBindIndexBuffer2KHR, commandBuffer, buffer, offset,
-                  size, indexType);
+   VN_CMD_ENQUEUE(vkCmdBindIndexBuffer2, commandBuffer, buffer, offset, size,
+                  indexType);
 }
 
 void
@@ -1899,6 +1916,13 @@ vn_CmdPushConstants(VkCommandBuffer commandBuffer,
 }
 
 void
+vn_CmdPushConstants2(VkCommandBuffer commandBuffer,
+                     const VkPushConstantsInfo *pPushConstantsInfo)
+{
+   VN_CMD_ENQUEUE(vkCmdPushConstants2, commandBuffer, pPushConstantsInfo);
+}
+
+void
 vn_CmdBeginRenderPass(VkCommandBuffer commandBuffer,
                       const VkRenderPassBeginInfo *pRenderPassBegin,
                       VkSubpassContents contents)
@@ -2005,11 +2029,11 @@ vn_CmdDispatchBase(VkCommandBuffer commandBuffer,
 }
 
 void
-vn_CmdSetLineStippleEXT(VkCommandBuffer commandBuffer,
-                        uint32_t lineStippleFactor,
-                        uint16_t lineStipplePattern)
+vn_CmdSetLineStipple(VkCommandBuffer commandBuffer,
+                     uint32_t lineStippleFactor,
+                     uint16_t lineStipplePattern)
 {
-   VN_CMD_ENQUEUE(vkCmdSetLineStippleEXT, commandBuffer, lineStippleFactor,
+   VN_CMD_ENQUEUE(vkCmdSetLineStipple, commandBuffer, lineStippleFactor,
                   lineStipplePattern);
 }
 
@@ -2275,12 +2299,12 @@ vn_CmdDrawMultiIndexedEXT(VkCommandBuffer commandBuffer,
 }
 
 void
-vn_CmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
-                           VkPipelineBindPoint pipelineBindPoint,
-                           VkPipelineLayout layout,
-                           uint32_t set,
-                           uint32_t descriptorWriteCount,
-                           const VkWriteDescriptorSet *pDescriptorWrites)
+vn_CmdPushDescriptorSet(VkCommandBuffer commandBuffer,
+                        VkPipelineBindPoint pipelineBindPoint,
+                        VkPipelineLayout layout,
+                        uint32_t set,
+                        uint32_t descriptorWriteCount,
+                        const VkWriteDescriptorSet *pDescriptorWrites)
 {
    const uint32_t img_info_count = vn_descriptor_set_count_write_images(
       descriptorWriteCount, pDescriptorWrites);
@@ -2294,7 +2318,7 @@ vn_CmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
    pDescriptorWrites = vn_descriptor_set_get_writes(
       descriptorWriteCount, pDescriptorWrites, layout, &local);
 
-   VN_CMD_ENQUEUE(vkCmdPushDescriptorSetKHR, commandBuffer, pipelineBindPoint,
+   VN_CMD_ENQUEUE(vkCmdPushDescriptorSet, commandBuffer, pipelineBindPoint,
                   layout, set, descriptorWriteCount, pDescriptorWrites);
 
    STACK_ARRAY_FINISH(writes);
@@ -2302,7 +2326,34 @@ vn_CmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer,
 }
 
 void
-vn_CmdPushDescriptorSetWithTemplateKHR(
+vn_CmdPushDescriptorSet2(VkCommandBuffer commandBuffer,
+                         const VkPushDescriptorSetInfo *pPushDescriptorSetInfo)
+{
+   const uint32_t write_count = pPushDescriptorSetInfo->descriptorWriteCount;
+   const VkWriteDescriptorSet *desc_writes =
+      pPushDescriptorSetInfo->pDescriptorWrites;
+   const uint32_t img_info_count =
+      vn_descriptor_set_count_write_images(write_count, desc_writes);
+
+   STACK_ARRAY(VkWriteDescriptorSet, writes, write_count);
+   STACK_ARRAY(VkDescriptorImageInfo, img_infos, img_info_count);
+   struct vn_descriptor_set_writes local = {
+      .writes = writes,
+      .img_infos = img_infos,
+   };
+   desc_writes = vn_descriptor_set_get_writes(
+      write_count, desc_writes, pPushDescriptorSetInfo->layout, &local);
+
+   VkPushDescriptorSetInfo info = *pPushDescriptorSetInfo;
+   info.pDescriptorWrites = desc_writes;
+   VN_CMD_ENQUEUE(vkCmdPushDescriptorSet2, commandBuffer, &info);
+
+   STACK_ARRAY_FINISH(writes);
+   STACK_ARRAY_FINISH(img_infos);
+}
+
+void
+vn_CmdPushDescriptorSetWithTemplate(
    VkCommandBuffer commandBuffer,
    VkDescriptorUpdateTemplate descriptorUpdateTemplate,
    VkPipelineLayout layout,
@@ -2328,9 +2379,56 @@ vn_CmdPushDescriptorSetWithTemplateKHR(
    vn_descriptor_set_fill_update_with_template(templ, VK_NULL_HANDLE, pData,
                                                &update);
 
-   VN_CMD_ENQUEUE(vkCmdPushDescriptorSetKHR, commandBuffer,
+   VN_CMD_ENQUEUE(vkCmdPushDescriptorSet, commandBuffer,
                   templ->push.pipeline_bind_point, layout, set,
                   update.write_count, update.writes);
+
+   STACK_ARRAY_FINISH(writes);
+   STACK_ARRAY_FINISH(img_infos);
+   STACK_ARRAY_FINISH(buf_infos);
+   STACK_ARRAY_FINISH(bview_handles);
+   STACK_ARRAY_FINISH(iubs);
+}
+
+void
+vn_CmdPushDescriptorSetWithTemplate2(VkCommandBuffer commandBuffer,
+                                     const VkPushDescriptorSetWithTemplateInfo
+                                        *pPushDescriptorSetWithTemplateInfo)
+{
+   struct vn_descriptor_update_template *templ =
+      vn_descriptor_update_template_from_handle(
+         pPushDescriptorSetWithTemplateInfo->descriptorUpdateTemplate);
+
+   STACK_ARRAY(VkWriteDescriptorSet, writes, templ->entry_count);
+   STACK_ARRAY(VkDescriptorImageInfo, img_infos, templ->img_info_count);
+   STACK_ARRAY(VkDescriptorBufferInfo, buf_infos, templ->buf_info_count);
+   STACK_ARRAY(VkBufferView, bview_handles, templ->bview_count);
+   STACK_ARRAY(VkWriteDescriptorSetInlineUniformBlock, iubs,
+               templ->iub_count);
+   struct vn_descriptor_set_update update = {
+      .writes = writes,
+      .img_infos = img_infos,
+      .buf_infos = buf_infos,
+      .bview_handles = bview_handles,
+      .iubs = iubs,
+   };
+   vn_descriptor_set_fill_update_with_template(
+      templ, VK_NULL_HANDLE, pPushDescriptorSetWithTemplateInfo->pData,
+      &update);
+
+   const VkPushDescriptorSetInfo info = {
+      .sType = VK_STRUCTURE_TYPE_PUSH_DESCRIPTOR_SET_INFO,
+      .pNext = pPushDescriptorSetWithTemplateInfo->pNext,
+      .stageFlags =
+         templ->push.pipeline_bind_point == VK_PIPELINE_BIND_POINT_GRAPHICS
+            ? VK_SHADER_STAGE_ALL_GRAPHICS
+            : VK_SHADER_STAGE_COMPUTE_BIT,
+      .layout = pPushDescriptorSetWithTemplateInfo->layout,
+      .set = pPushDescriptorSetWithTemplateInfo->set,
+      .descriptorWriteCount = update.write_count,
+      .pDescriptorWrites = update.writes,
+   };
+   VN_CMD_ENQUEUE(vkCmdPushDescriptorSet2, commandBuffer, &info);
 
    STACK_ARRAY_FINISH(writes);
    STACK_ARRAY_FINISH(img_infos);
@@ -2454,7 +2552,7 @@ vn_CmdSetExtraPrimitiveOverestimationSizeEXT(
 void
 vn_CmdSetLineRasterizationModeEXT(
    VkCommandBuffer commandBuffer,
-   VkLineRasterizationModeEXT lineRasterizationMode)
+   VkLineRasterizationMode lineRasterizationMode)
 {
    VN_CMD_ENQUEUE(vkCmdSetLineRasterizationModeEXT, commandBuffer,
                   lineRasterizationMode);
@@ -2547,4 +2645,22 @@ vn_CmdSetSampleLocationsEXT(
 {
    VN_CMD_ENQUEUE(vkCmdSetSampleLocationsEXT, commandBuffer,
                   pSampleLocationsInfo);
+}
+
+void
+vn_CmdSetRenderingAttachmentLocations(
+   VkCommandBuffer commandBuffer,
+   const VkRenderingAttachmentLocationInfo *pLocationInfo)
+{
+   VN_CMD_ENQUEUE(vkCmdSetRenderingAttachmentLocations, commandBuffer,
+                  pLocationInfo);
+}
+
+void
+vn_CmdSetRenderingInputAttachmentIndices(
+   VkCommandBuffer commandBuffer,
+   const VkRenderingInputAttachmentIndexInfo *pInputAttachmentIndexInfo)
+{
+   VN_CMD_ENQUEUE(vkCmdSetRenderingInputAttachmentIndices, commandBuffer,
+                  pInputAttachmentIndexInfo);
 }

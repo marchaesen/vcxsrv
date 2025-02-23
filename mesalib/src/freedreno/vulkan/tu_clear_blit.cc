@@ -4893,7 +4893,8 @@ store_cp_blit(struct tu_cmd_buffer *cmd,
                       .samples_average = !util_format_is_pure_integer(dst_format) &&
                                          !util_format_is_depth_or_stencil(dst_format),
                       .unk20 = 1,
-                      .unk22 = 1),
+                      .unk22 = 1,
+                      .mutableen = src_iview->view.is_mutable),
                    SP_PS_2D_SRC_SIZE(CHIP,
                       .width = dst_iview->vk.extent.width,
                       .height = dst_iview->vk.extent.height),
@@ -5037,18 +5038,10 @@ tu_attachment_store_unaligned(struct tu_cmd_buffer *cmd, uint32_t a)
            (y2 % phys_dev->info->gmem_align_h && need_y2_align));
 }
 
-/* The fast path cannot handle the corner case where GMEM and sysmem
- * attachments have different swap if the GMEM attachment is mutable, which
- * can happen when a mutable color attachment is being resolved into a
- * non-mutable resolve attachment. In such a case, if the format is a swapped
- * format like BGRA8, the color attachment will be stored in GMEM swapped but
- * the resolve attachment in sysmem will not be swapped and there's no way to
- * express that in the hardware because it computes the GMEM swap from the
- * sysmem swap.
- */
+/* The fast path cannot handle mismatched mutability. */
 static bool
-tu_attachment_store_mismatched_swap(struct tu_cmd_buffer *cmd, uint32_t a,
-                                    uint32_t gmem_a)
+tu_attachment_store_mismatched_mutability(struct tu_cmd_buffer *cmd, uint32_t a,
+                                          uint32_t gmem_a)
 {
    if (a == gmem_a)
       return false;
@@ -5056,8 +5049,7 @@ tu_attachment_store_mismatched_swap(struct tu_cmd_buffer *cmd, uint32_t a,
    const struct tu_image_view *dst_iview = cmd->state.attachments[a];
    const struct tu_image_view *src_iview = cmd->state.attachments[gmem_a];
 
-   return src_iview->view.is_mutable &&
-      dst_iview->view.color_swap != src_iview->view.color_swap;
+   return dst_iview->view.is_mutable != src_iview->view.is_mutable;
 }
 
 /* Choose the GMEM layout (use the CCU space or not) based on whether the
@@ -5099,7 +5091,7 @@ tu_choose_gmem_layout(struct tu_cmd_buffer *cmd)
             j == subpass->color_count ?
                subpass->depth_stencil_attachment.attachment :
                subpass->color_attachments[j].attachment;
-         if (tu_attachment_store_mismatched_swap(cmd, a, gmem_a))
+         if (tu_attachment_store_mismatched_mutability(cmd, a, gmem_a))
             cmd->state.gmem_layout = TU_GMEM_LAYOUT_AVOID_CCU;
       }
    }
@@ -5161,7 +5153,7 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
    struct tu_render_pass_attachment *dst = &cmd->state.pass->attachments[a];
    const struct tu_image_view *dst_iview = cmd->state.attachments[a];
    struct tu_render_pass_attachment *src = &cmd->state.pass->attachments[gmem_a];
-   const struct tu_image_view *src_iview = cmd->state.attachments[a];
+   const struct tu_image_view *src_iview = cmd->state.attachments[gmem_a];
    const VkClearValue *clear_value = &cmd->state.clear_values[gmem_a];
    bool resolve = a != gmem_a;
    if (resolve)
@@ -5171,7 +5163,8 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
       return;
 
    bool unaligned = tu_attachment_store_unaligned(cmd, a);
-   bool mismatched_swap = tu_attachment_store_mismatched_swap(cmd, a, gmem_a);
+   bool mismatched_mutability =
+      tu_attachment_store_mismatched_mutability(cmd, a, gmem_a);
 
    /* D32_SFLOAT_S8_UINT is quite special format: it has two planes,
     * one for depth and other for stencil. When resolving a MSAA
@@ -5191,7 +5184,8 @@ tu_store_gmem_attachment(struct tu_cmd_buffer *cmd,
    bool store_common = dst->store && !resolve_d32s8_s8;
    bool store_separate_stencil = dst->store_stencil || resolve_d32s8_s8;
 
-   bool use_fast_path = !unaligned && !mismatched_swap && !resolve_d24s8_s8 &&
+   bool use_fast_path = !unaligned && !mismatched_mutability &&
+                        !resolve_d24s8_s8 &&
                         (a == gmem_a || blit_can_resolve(dst->format));
 
    trace_start_gmem_store(&cmd->trace, cs, dst->format, use_fast_path, unaligned);

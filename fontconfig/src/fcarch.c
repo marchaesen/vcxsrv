@@ -22,7 +22,9 @@
  */
 
 #include "fcint.h"
+
 #include "fcarch.h"
+
 #include <stdio.h>
 
 FC_ASSERT_STATIC (1 == sizeof (char));
@@ -44,12 +46,11 @@ FC_ASSERT_STATIC (SIZEOF_VOID_P == sizeof (FcStrSet *));
 FC_ASSERT_STATIC (SIZEOF_VOID_P == sizeof (FcCharLeaf **));
 FC_ASSERT_STATIC (SIZEOF_VOID_P == sizeof (FcChar16 *));
 
-FC_ASSERT_STATIC (0x08 + 1*FC_MAX(SIZEOF_VOID_P,ALIGNOF_DOUBLE) == sizeof (FcValue));
-FC_ASSERT_STATIC (0x00 + 2*SIZEOF_VOID_P == sizeof (FcPatternElt));
-FC_ASSERT_STATIC (0x08 + 2*SIZEOF_VOID_P == sizeof (FcPattern));
-FC_ASSERT_STATIC (0x08 + 2*SIZEOF_VOID_P == sizeof (FcCharSet));
-FC_ASSERT_STATIC (0x10 + 6*SIZEOF_VOID_P == sizeof (FcCache));
-
+FC_ASSERT_STATIC (0x08 + 1 * FC_MAX (SIZEOF_VOID_P, ALIGNOF_DOUBLE) == sizeof (FcValue));
+FC_ASSERT_STATIC (0x00 + 2 * SIZEOF_VOID_P == sizeof (FcPatternElt));
+FC_ASSERT_STATIC (0x08 + 2 * SIZEOF_VOID_P == sizeof (FcPattern));
+FC_ASSERT_STATIC (0x08 + 2 * SIZEOF_VOID_P == sizeof (FcCharSet));
+FC_ASSERT_STATIC (0x10 + 6 * SIZEOF_VOID_P == sizeof (FcCache));
 
 int
 main (int argc FC_UNUSED, char **argv FC_UNUSED)

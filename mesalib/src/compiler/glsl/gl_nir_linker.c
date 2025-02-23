@@ -88,7 +88,13 @@ gl_nir_opts(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_if, 0);
       NIR_PASS(progress, nir, nir_opt_dead_cf);
       NIR_PASS(progress, nir, nir_opt_cse);
-      NIR_PASS(progress, nir, nir_opt_peephole_select, 8, true, true);
+
+      nir_opt_peephole_select_options peephole_select_options = {
+         .limit = 8,
+         .indirect_load_ok = true,
+         .expensive_alu_ok = true,
+      };
+      NIR_PASS(progress, nir, nir_opt_peephole_select, &peephole_select_options);
 
       NIR_PASS(progress, nir, nir_opt_phi_precision);
       NIR_PASS(progress, nir, nir_opt_algebraic);
@@ -122,7 +128,12 @@ gl_nir_opts(nir_shader *nir)
       }
 
       NIR_PASS(progress, nir, nir_opt_undef);
-      NIR_PASS(progress, nir, nir_opt_conditional_discard);
+
+      peephole_select_options = (nir_opt_peephole_select_options){
+         .limit = 0,
+         .discard_ok = true,
+      };
+      NIR_PASS(progress, nir, nir_opt_peephole_select, &peephole_select_options);
       if (nir->options->max_unroll_iterations ||
             (nir->options->max_unroll_iterations_fp64 &&
                (nir->options->lower_doubles_options & nir_lower_fp64_full_software))) {
@@ -1560,7 +1571,7 @@ gl_nir_lower_optimize_varyings(const struct gl_constants *consts,
        * optimizations and compaction. Do that for all inputs and outputs,
        * including VS inputs because those could have been removed too.
        */
-      NIR_PASS_V(nir, nir_recompute_io_bases,
+      NIR_PASS(_, nir, nir_recompute_io_bases,
                  nir_var_shader_in | nir_var_shader_out);
 
       /* Regenerate transform feedback info because compaction in

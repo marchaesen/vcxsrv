@@ -52,13 +52,16 @@ hk_get_image_format_features(struct hk_physical_device *pdevice,
 struct hk_image_plane {
    struct ail_layout layout;
    uint64_t addr;
-
-   /** Size of the reserved VMA range for sparse images, zero otherwise. */
-   uint64_t vma_size_B;
+   struct agx_va *va;
 
    /* For host image copy */
    void *map;
    uint32_t rem;
+
+   /* If the image has sparse residency, its residency is tracked in this
+    * secondary page table. Otherwise, this map is NULL.
+    */
+   struct agx_bo *sparse_map;
 };
 
 struct hk_image {

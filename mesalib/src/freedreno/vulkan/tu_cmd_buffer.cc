@@ -1093,6 +1093,10 @@ tu6_emit_tile_select(struct tu_cmd_buffer *cmd,
    tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_MODE(RM6_BIN_RENDER_START) |
                   A6XX_CP_SET_MARKER_0_USES_GMEM);
 
+   if (CHIP == A6XX && cmd->device->physical_device->has_preemption) {
+      tu_emit_vsc<CHIP>(cmd, &cmd->cs);
+   }
+
    tu6_emit_bin_size<CHIP>(
       cs, tiling->tile0.width, tiling->tile0.height,
       {
@@ -2183,7 +2187,8 @@ tu6_tile_render_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
        * these registers, because CP_SET_BIN_DATA5_OFFSET will use the
        * register instead of the pseudo register and its value won't survive
        * across preemptions. The blob seems to take the second approach and
-       * emits the preamble lazily.
+       * emits the preamble lazily. We chose the per-bin approach but blob's
+       * should be a better one.
        */
       tu_emit_vsc<CHIP>(cmd, cs);
 
@@ -2396,6 +2401,19 @@ try_merge_tiles(struct tu_tile_config *dst, const struct tu_tile_config *src,
          return false;
    }
 
+   /* The tiles must be vertically or horizontally adjacent and have the
+    * compatible width/height.
+    */
+   if (dst->pos.x == src->pos.x) {
+      if (dst->extent.height != src->extent.height)
+         return false;
+   } else if (dst->pos.y == src->pos.y) {
+      if (dst->extent.width != src->extent.width)
+         return false;
+   } else {
+      return false;
+   }
+
    if (!has_abs_bin_mask) {
       /* The mask of the combined tile has to fit in 16 bits */
       uint32_t hw_mask = slot_mask >> (ffs(slot_mask) - 1);
@@ -2472,8 +2490,13 @@ tu_render_pipe_fdm(struct tu_cmd_buffer *cmd, uint32_t pipe,
             }
          }
          if (y > 0) {
-            struct tu_tile_config *prev_y_tile = &tiles[width * (y - 1) + x];
-            if (!(merged_tiles & prev_y_tile->slot_mask) &&
+            unsigned prev_y_idx = width * (y - 1) + x;
+            struct tu_tile_config *prev_y_tile = &tiles[prev_y_idx];
+
+            /* We can't merge prev_y_tile into tile if it's already been
+             * merged horizontally into its neighbor in the previous row.
+             */
+            if (!(merged_tiles & (1u << prev_y_idx)) &&
                 try_merge_tiles(tile, prev_y_tile, views, has_abs_mask)) {
                merged_tiles |= prev_y_tile->slot_mask;
             }

@@ -67,17 +67,8 @@ ir_type_to_bvh_type(uint32_t type)
    return RADV_BVH_INVALID_NODE;
 }
 
-/* A GLSL-adapted copy of VkAccelerationStructureInstanceKHR. */
-struct AccelerationStructureInstance {
-   mat3x4 transform;
-   uint32_t custom_instance_and_mask;
-   uint32_t sbt_offset_and_flags;
-   uint64_t accelerationStructureReference;
-};
-TYPE(AccelerationStructureInstance, 8);
-
 bool
-build_triangle(inout vk_aabb bounds, VOID_REF dst_ptr, vk_bvh_geometry_data geom_data, uint32_t global_id)
+radv_build_triangle(inout vk_aabb bounds, VOID_REF dst_ptr, vk_bvh_geometry_data geom_data, uint32_t global_id)
 {
    bool is_valid = true;
    triangle_indices indices = load_indices(geom_data.indices, geom_data.index_format, global_id);
@@ -126,7 +117,7 @@ build_triangle(inout vk_aabb bounds, VOID_REF dst_ptr, vk_bvh_geometry_data geom
 }
 
 bool
-build_aabb(inout vk_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t geometry_id, uint32_t global_id)
+radv_build_aabb(inout vk_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t geometry_id, uint32_t global_id)
 {
    bool is_valid = true;
    REF(radv_bvh_aabb_node) node = REF(radv_bvh_aabb_node)(dst_ptr);
@@ -157,25 +148,8 @@ build_aabb(inout vk_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t ge
    return is_valid;
 }
 
-vk_aabb
-calculate_instance_node_bounds(radv_accel_struct_header header, mat3x4 otw_matrix)
-{
-   vk_aabb aabb;
-   for (uint32_t comp = 0; comp < 3; ++comp) {
-      aabb.min[comp] = otw_matrix[comp][3];
-      aabb.max[comp] = otw_matrix[comp][3];
-      for (uint32_t col = 0; col < 3; ++col) {
-         aabb.min[comp] +=
-            min(otw_matrix[comp][col] * header.aabb.min[col], otw_matrix[comp][col] * header.aabb.max[col]);
-         aabb.max[comp] +=
-            max(otw_matrix[comp][col] * header.aabb.min[col], otw_matrix[comp][col] * header.aabb.max[col]);
-      }
-   }
-   return aabb;
-}
-
 uint32_t
-encode_sbt_offset_and_flags(uint32_t src)
+radv_encode_sbt_offset_and_flags(uint32_t src)
 {
    uint32_t flags = src >> 24;
    uint32_t ret = src & 0xffffffu;
@@ -188,39 +162,6 @@ encode_sbt_offset_and_flags(uint32_t src)
    if ((flags & VK_GEOMETRY_INSTANCE_TRIANGLE_FLIP_FACING_BIT_KHR) != 0)
       ret |= RADV_INSTANCE_TRIANGLE_FLIP_FACING;
    return ret;
-}
-
-bool
-build_instance(inout vk_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t global_id)
-{
-   REF(radv_bvh_instance_node) node = REF(radv_bvh_instance_node)(dst_ptr);
-
-   AccelerationStructureInstance instance = DEREF(REF(AccelerationStructureInstance)(src_ptr));
-
-   /* An inactive instance is one whose acceleration structure handle is VK_NULL_HANDLE. Since the active terminology is
-    * only relevant for BVH updates, which we do not implement, we can also skip instances with mask == 0.
-    */
-   if (instance.accelerationStructureReference == 0 || instance.custom_instance_and_mask < (1u << 24u))
-      return false;
-
-   radv_accel_struct_header instance_header =
-      DEREF(REF(radv_accel_struct_header)(instance.accelerationStructureReference));
-
-   DEREF(node).bvh_ptr = addr_to_node(instance.accelerationStructureReference + instance_header.bvh_offset);
-   DEREF(node).bvh_offset = instance_header.bvh_offset;
-
-   mat4 transform = mat4(instance.transform);
-   mat4 inv_transform = transpose(inverse(transpose(transform)));
-   DEREF(node).wto_matrix = mat3x4(inv_transform);
-   DEREF(node).otw_matrix = mat3x4(transform);
-
-   bounds = calculate_instance_node_bounds(instance_header, mat3x4(transform));
-
-   DEREF(node).custom_instance_and_mask = instance.custom_instance_and_mask;
-   DEREF(node).sbt_offset_and_flags = encode_sbt_offset_and_flags(instance.sbt_offset_and_flags);
-   DEREF(node).instance_id = global_id;
-
-   return true;
 }
 
 /** Compute ceiling of integer quotient of A divided by B.

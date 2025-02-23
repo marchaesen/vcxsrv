@@ -434,16 +434,16 @@ vn_GetDeviceMemoryOpaqueCaptureAddress(
 }
 
 VkResult
-vn_MapMemory(VkDevice device,
-             VkDeviceMemory memory,
-             VkDeviceSize offset,
-             VkDeviceSize size,
-             VkMemoryMapFlags flags,
-             void **ppData)
+vn_MapMemory2(VkDevice device,
+              const VkMemoryMapInfo *pMemoryMapInfo,
+              void **ppData)
 {
    VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
-   struct vn_device_memory *mem = vn_device_memory_from_handle(memory);
+   struct vn_device_memory *mem =
+      vn_device_memory_from_handle(pMemoryMapInfo->memory);
+   const VkDeviceSize offset = pMemoryMapInfo->offset;
+   const VkDeviceSize size = pMemoryMapInfo->size;
    const struct vk_device_memory *mem_vk = &mem->base.base;
    const bool need_bo = !mem->base_bo;
    void *ptr = NULL;
@@ -489,9 +489,10 @@ vn_MapMemory(VkDevice device,
    return VK_SUCCESS;
 }
 
-void
-vn_UnmapMemory(VkDevice device, VkDeviceMemory memory)
+VkResult
+vn_UnmapMemory2(VkDevice device, const VkMemoryUnmapInfo *pMemoryUnmapInfo)
 {
+   return VK_SUCCESS;
 }
 
 VkResult

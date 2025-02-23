@@ -1755,10 +1755,10 @@ update_binds_for_samplerviews(struct zink_context *ctx, struct zink_resource *re
 }
 
 static void
-flush_pending_clears(struct zink_context *ctx, struct zink_resource *res)
+flush_pending_clears(struct zink_context *ctx, struct zink_resource *res, int z, int depth)
 {
    if (res->fb_bind_count && ctx->clears_enabled)
-      zink_fb_clears_apply(ctx, &res->base.b);
+      zink_fb_clears_apply(ctx, &res->base.b, z, depth);
 }
 
 static inline void
@@ -1865,6 +1865,7 @@ create_image_surface(struct zink_context *ctx, const struct pipe_image_view *vie
    tmpl.u.tex.first_layer = view->u.tex.first_layer;
    tmpl.u.tex.last_layer = view->u.tex.last_layer;
    unsigned depth = 1 + tmpl.u.tex.last_layer - tmpl.u.tex.first_layer;
+   unsigned z = tmpl.u.tex.first_layer;
    switch (target) {
    case PIPE_TEXTURE_3D:
       if (depth < u_minify(res->base.b.depth0, view->u.tex.level)) {
@@ -1895,7 +1896,7 @@ create_image_surface(struct zink_context *ctx, const struct pipe_image_view *vie
    if (!surface)
       return NULL;
    if (is_compute)
-      flush_pending_clears(ctx, res);
+      flush_pending_clears(ctx, res, z, depth);
    return surface;
 }
 
@@ -2175,8 +2176,8 @@ zink_set_sampler_views(struct pipe_context *pctx,
                   update |= iv != b->image_view->image_view;
                } else  if (a != b)
                   update = true;
-               if (shader_type == MESA_SHADER_COMPUTE)
-                  flush_pending_clears(ctx, res);
+               if (shader_type == MESA_SHADER_COMPUTE && res->fb_bind_count)
+                  flush_pending_clears(ctx, res, b->base.u.tex.first_layer, b->base.u.tex.last_layer - b->base.u.tex.first_layer + 1);
                if (b->cube_array) {
                   ctx->di.cubes[shader_type] |= BITFIELD_BIT(start_slot + i);
                }
@@ -2418,7 +2419,7 @@ zink_make_texture_handle_resident(struct pipe_context *pctx, uint64_t handle, bo
          ii->sampler = bd->sampler->sampler;
          ii->imageView = ds->surface->image_view;
          ii->imageLayout = zink_descriptor_util_image_layout_eval(ctx, res, false);
-         flush_pending_clears(ctx, res);
+         flush_pending_clears(ctx, res, ds->surface->base.u.tex.first_layer, ds->surface->base.u.tex.last_layer - ds->surface->base.u.tex.first_layer + 1);
          if (!check_for_layout_update(ctx, res, false)) {
             res->obj->unordered_read = false;
             // TODO: figure out a way to link up layouts between unordered and main cmdbuf
@@ -4943,8 +4944,8 @@ zink_resource_copy_region(struct pipe_context *pctx,
           !memcmp(&region.dstSubresource, &region.srcSubresource, sizeof(region.srcSubresource)))
          return;
 
-      zink_fb_clears_apply_or_discard(ctx, pdst, (struct u_rect){dstx, dstx + src_box->width, dsty, dsty + src_box->height}, false);
-      zink_fb_clears_apply_region(ctx, psrc, zink_rect_from_box(src_box));
+      zink_fb_clears_apply_or_discard(ctx, pdst, (struct u_rect){dstx, dstx + src_box->width, dsty, dsty + src_box->height}, dstz, src_box->depth, false);
+      zink_fb_clears_apply_region(ctx, psrc, zink_rect_from_box(src_box), src_box->z, src_box->depth);
 
       zink_resource_setup_transfer_layouts(ctx, src, dst);
       VkCommandBuffer cmdbuf = zink_get_cmdbuf(ctx, src, dst);

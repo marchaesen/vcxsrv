@@ -23,37 +23,37 @@
  * PERFORMANCE OF THIS SOFTWARE.
  */
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#  include "config.h"
 #endif
+#include <dirent.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <errno.h>
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+#  include <unistd.h>
 #endif
 #ifndef HAVE_STRUCT_DIRENT_D_TYPE
-#include <sys/types.h>
-#include <sys/stat.h>
+#  include <sys/stat.h>
+#  include <sys/types.h>
 #endif
 #include <fontconfig/fontconfig.h>
 
 #ifdef _WIN32
-#  define FC_DIR_SEPARATOR         '\\'
-#  define FC_DIR_SEPARATOR_S       "\\"
+#  define FC_DIR_SEPARATOR   '\\'
+#  define FC_DIR_SEPARATOR_S "\\"
 #else
-#  define FC_DIR_SEPARATOR         '/'
-#  define FC_DIR_SEPARATOR_S       "/"
+#  define FC_DIR_SEPARATOR   '/'
+#  define FC_DIR_SEPARATOR_S "/"
 #endif
 
 #ifdef _WIN32
-#include <direct.h>
-#define mkdir(path,mode) _mkdir(path)
+#  include <direct.h>
+#  define mkdir(path, mode) _mkdir (path)
 #endif
 
 #ifdef HAVE_MKDTEMP
-#define fc_mkdtemp	mkdtemp
+#  define fc_mkdtemp mkdtemp
 #else
 char *
 fc_mkdtemp (char *template)
@@ -68,12 +68,12 @@ fc_mkdtemp (char *template)
 FcBool
 mkdir_p (const char *dir)
 {
-    char *parent;
+    char  *parent;
     FcBool ret;
 
     if (strlen (dir) == 0)
 	return FcFalse;
-    parent = (char *) FcStrDirname ((const FcChar8 *) dir);
+    parent = (char *)FcStrDirname ((const FcChar8 *)dir);
     if (!parent)
 	return FcFalse;
     if (access (parent, F_OK) == 0)
@@ -90,19 +90,18 @@ mkdir_p (const char *dir)
 FcBool
 unlink_dirs (const char *dir)
 {
-    DIR *d = opendir (dir);
+    DIR           *d = opendir (dir);
     struct dirent *e;
-    size_t len = strlen (dir);
-    char *n = NULL;
-    FcBool ret = FcTrue;
+    size_t         len = strlen (dir);
+    char          *n = NULL;
+    FcBool         ret = FcTrue;
 #ifndef HAVE_STRUCT_DIRENT_D_TYPE
     struct stat statb;
 #endif
 
     if (!d)
 	return FcFalse;
-    while ((e = readdir (d)) != NULL)
-    {
+    while ((e = readdir (d)) != NULL) {
 	size_t l;
 
 	if (strcmp (e->d_name, ".") == 0 ||
@@ -112,8 +111,7 @@ unlink_dirs (const char *dir)
 	if (n)
 	    free (n);
 	n = malloc (l + len + 1);
-	if (!n)
-	{
+	if (!n) {
 	    ret = FcFalse;
 	    break;
 	}
@@ -123,8 +121,7 @@ unlink_dirs (const char *dir)
 #ifdef HAVE_STRUCT_DIRENT_D_TYPE
 	if (e->d_type == DT_DIR)
 #else
-	if (stat (n, &statb) == -1)
-	{
+	if (stat (n, &statb) == -1) {
 	    fprintf (stderr, "E: %s\n", n);
 	    ret = FcFalse;
 	    break;
@@ -132,17 +129,13 @@ unlink_dirs (const char *dir)
 	if (S_ISDIR (statb.st_mode))
 #endif
 	{
-	    if (!unlink_dirs (n))
-	    {
+	    if (!unlink_dirs (n)) {
 		fprintf (stderr, "E: %s\n", n);
 		ret = FcFalse;
 		break;
 	    }
-	}
-	else
-	{
-	    if (unlink (n) == -1)
-	    {
+	} else {
+	    if (unlink (n) == -1) {
 		fprintf (stderr, "E: %s\n", n);
 		ret = FcFalse;
 		break;
@@ -153,8 +146,7 @@ unlink_dirs (const char *dir)
 	free (n);
     closedir (d);
 
-    if (rmdir (dir) == -1)
-    {
+    if (rmdir (dir) == -1) {
 	fprintf (stderr, "E: %s\n", dir);
 	return FcFalse;
     }
@@ -165,58 +157,55 @@ unlink_dirs (const char *dir)
 int
 main (void)
 {
-    FcChar8 *fontdir = NULL, *cachedir = NULL;
-    char *basedir, template[512] = "/tmp/bz106632-XXXXXX";
-    char cmd[512];
-    FcConfig *config;
-    const FcChar8 *tconf = (const FcChar8 *) "<fontconfig>\n"
+    FcChar8       *fontdir = NULL, *cachedir = NULL;
+    char          *basedir, template[512] = "/tmp/bz106632-XXXXXX";
+    char           cmd[512];
+    FcConfig      *config;
+    const FcChar8 *tconf = (const FcChar8 *)
+	"<fontconfig>\n"
 	"  <dir>%s</dir>\n"
 	"  <cachedir>%s</cachedir>\n"
 	"</fontconfig>\n";
-    char conf[1024];
-    int ret = 0;
+    char       conf[1024];
+    int        ret = 0;
     FcFontSet *fs;
     FcPattern *pat;
 
     fprintf (stderr, "D: Creating tmp dir\n");
     basedir = fc_mkdtemp (template);
-    if (!basedir)
-    {
+    if (!basedir) {
 	fprintf (stderr, "%s: %s\n", template, strerror (errno));
 	goto bail;
     }
-    fontdir = FcStrBuildFilename ((const FcChar8 *) basedir, (const FcChar8 *) "fonts", NULL);
-    cachedir = FcStrBuildFilename ((const FcChar8 *) basedir, (const FcChar8 *) "cache", NULL);
+    fontdir = FcStrBuildFilename ((const FcChar8 *)basedir, (const FcChar8 *)"fonts", NULL);
+    cachedir = FcStrBuildFilename ((const FcChar8 *)basedir, (const FcChar8 *)"cache", NULL);
     fprintf (stderr, "D: Creating %s\n", fontdir);
-    mkdir_p ((const char *) fontdir);
+    mkdir_p ((const char *)fontdir);
     fprintf (stderr, "D: Creating %s\n", cachedir);
-    mkdir_p ((const char *) cachedir);
+    mkdir_p ((const char *)cachedir);
 
     fprintf (stderr, "D: Copying %s to %s\n", FONTFILE, fontdir);
     snprintf (cmd, 512, "sleep 1; cp -a %s %s; sleep 1", FONTFILE, fontdir);
-    (void) system (cmd);
+    (void)system (cmd);
 
     fprintf (stderr, "D: Loading a config\n");
-    snprintf (conf, 1024, (const char *) tconf, fontdir, cachedir);
-    config = FcConfigCreate ();
-    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
-    {
+    snprintf (conf, 1024, (const char *)tconf, fontdir, cachedir);
+    config = FcConfigCreate();
+    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *)conf, FcTrue)) {
 	printf ("E: Unable to load config\n");
 	ret = 1;
 	goto bail;
     }
-    if (!FcConfigBuildFonts (config))
-    {
+    if (!FcConfigBuildFonts (config)) {
 	printf ("E: unable to build fonts\n");
 	ret = 1;
 	goto bail;
     }
     fprintf (stderr, "D: Obtaining fonts information\n");
-    pat = FcPatternCreate ();
+    pat = FcPatternCreate();
     fs = FcFontList (config, pat, NULL);
     FcPatternDestroy (pat);
-    if (!fs || fs->nfont != 1)
-    {
+    if (!fs || fs->nfont != 1) {
 	printf ("E: Unexpected the number of fonts: %d\n", !fs ? -1 : fs->nfont);
 	ret = 1;
 	goto bail;
@@ -224,47 +213,41 @@ main (void)
     FcFontSetDestroy (fs);
     fprintf (stderr, "D: Removing %s\n", fontdir);
     snprintf (cmd, 512, "sleep 1; rm -f %s%s*; sleep 1", fontdir, FC_DIR_SEPARATOR_S);
-    (void) system (cmd);
+    (void)system (cmd);
     fprintf (stderr, "D: Reinitializing\n");
-    if (FcConfigUptoDate(config))
-    {
+    if (FcConfigUptoDate (config)) {
 	fprintf (stderr, "E: Config reports up-to-date\n");
 	ret = 2;
 	goto bail;
     }
-    if (!FcInitReinitialize ())
-    {
+    if (!FcInitReinitialize()) {
 	fprintf (stderr, "E: Unable to reinitialize\n");
 	ret = 3;
 	goto bail;
     }
-    if (FcConfigGetCurrent () == config)
-    {
+    if (FcConfigGetCurrent() == config) {
 	fprintf (stderr, "E: config wasn't reloaded\n");
 	ret = 3;
 	goto bail;
     }
     FcConfigDestroy (config);
 
-    config = FcConfigCreate ();
-    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
-    {
+    config = FcConfigCreate();
+    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *)conf, FcTrue)) {
 	printf ("E: Unable to load config again\n");
 	ret = 4;
 	goto bail;
     }
-    if (!FcConfigBuildFonts (config))
-    {
+    if (!FcConfigBuildFonts (config)) {
 	printf ("E: unable to build fonts again\n");
 	ret = 5;
 	goto bail;
     }
     fprintf (stderr, "D: Obtaining fonts information again\n");
-    pat = FcPatternCreate ();
+    pat = FcPatternCreate();
     fs = FcFontList (config, pat, NULL);
     FcPatternDestroy (pat);
-    if (!fs || fs->nfont != 0)
-    {
+    if (!fs || fs->nfont != 0) {
 	printf ("E: Unexpected the number of fonts: %d\n", !fs ? -1 : fs->nfont);
 	ret = 1;
 	goto bail;
@@ -272,47 +255,41 @@ main (void)
     FcFontSetDestroy (fs);
     fprintf (stderr, "D: Copying %s to %s\n", FONTFILE, fontdir);
     snprintf (cmd, 512, "sleep 1; cp -a %s %s; sleep 1", FONTFILE, fontdir);
-    (void) system (cmd);
+    (void)system (cmd);
     fprintf (stderr, "D: Reinitializing\n");
-    if (FcConfigUptoDate(config))
-    {
+    if (FcConfigUptoDate (config)) {
 	fprintf (stderr, "E: Config up-to-date after addition\n");
 	ret = 3;
 	goto bail;
     }
-    if (!FcInitReinitialize ())
-    {
+    if (!FcInitReinitialize()) {
 	fprintf (stderr, "E: Unable to reinitialize\n");
 	ret = 2;
 	goto bail;
     }
-    if (FcConfigGetCurrent () == config)
-    {
+    if (FcConfigGetCurrent() == config) {
 	fprintf (stderr, "E: config wasn't reloaded\n");
 	ret = 3;
 	goto bail;
     }
     FcConfigDestroy (config);
 
-    config = FcConfigCreate ();
-    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
-    {
+    config = FcConfigCreate();
+    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *)conf, FcTrue)) {
 	printf ("E: Unable to load config again\n");
 	ret = 4;
 	goto bail;
     }
-    if (!FcConfigBuildFonts (config))
-    {
+    if (!FcConfigBuildFonts (config)) {
 	printf ("E: unable to build fonts again\n");
 	ret = 5;
 	goto bail;
     }
     fprintf (stderr, "D: Obtaining fonts information\n");
-    pat = FcPatternCreate ();
+    pat = FcPatternCreate();
     fs = FcFontList (config, pat, NULL);
     FcPatternDestroy (pat);
-    if (!fs || fs->nfont != 1)
-    {
+    if (!fs || fs->nfont != 1) {
 	printf ("E: Unexpected the number of fonts: %d\n", !fs ? -1 : fs->nfont);
 	ret = 1;
 	goto bail;

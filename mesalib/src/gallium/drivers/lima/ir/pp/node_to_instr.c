@@ -111,7 +111,14 @@ static bool ppir_do_one_node_to_instr(ppir_block *block, ppir_node *node)
                   alu->dest.ssa.num_components == 1) {
             node->instr_pos = PPIR_INSTR_SLOT_ALU_SCL_MUL;
             ppir_instr_insert_mul_node(succ, node);
+         } else if (succ->instr_pos == PPIR_INSTR_SLOT_ALU_COMBINE ||
+                    succ->instr_pos == PPIR_INSTR_SLOT_BRANCH) {
+            /* Successor is combiner, we can try scheduling ALU node
+             * into fmul/smul/fadd/sadd slots */
+            if (succ->instr)
+               ppir_instr_insert_node(succ->instr, node);
          }
+
       }
 
       /* can't inserted to any existing instr, create one */
@@ -285,8 +292,10 @@ static bool ppir_do_node_to_instr(ppir_block *block, ppir_node *root)
 
       /* first try pipeline sched, if that didn't succeed try normal sched */
       if (!ppir_do_node_to_instr_try_insert(block, node))
-         if (!ppir_do_one_node_to_instr(block, node))
+         if (!ppir_do_one_node_to_instr(block, node)) {
+            ppir_debug("%s failed on node %d\n", __func__, node->index);
             return false;
+         }
 
       /* The node writes output register. We can't stop at this exact
        * instruction because there may be another node that writes another

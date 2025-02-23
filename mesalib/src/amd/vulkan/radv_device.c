@@ -1524,7 +1524,7 @@ radv_initialise_color_surface(struct radv_device *device, struct radv_color_buff
    ac_init_cb_surface(&pdev->info, &cb_state, &cb->ac);
 
    uint32_t plane_id = iview->image->disjoint ? iview->plane_id : 0;
-   va = radv_image_get_va(iview->image, plane_id);
+   va = iview->image->bindings[plane_id].addr;
 
    const struct ac_mutable_cb_state mutable_cb_state = {
       .surf = surf,
@@ -1586,7 +1586,7 @@ radv_initialise_ds_surface(const struct radv_device *device, struct radv_ds_buff
 
    const struct ac_ds_state ds_state = {
       .surf = &iview->image->planes[0].surface,
-      .va = radv_image_get_va(iview->image, 0),
+      .va = iview->image->bindings[0].addr,
       .format = radv_format_to_pipe_format(iview->image->vk.format),
       .width = iview->image->vk.extent.width,
       .height = iview->image->vk.extent.height,
@@ -1663,7 +1663,6 @@ radv_GetMemoryFdKHR(VkDevice _device, const VkMemoryGetFdInfoKHR *pGetFdInfo, in
    if (memory->image) {
       struct radv_image *image = memory->image;
 
-      assert(memory->image->bindings[0].offset == 0);
       radv_image_bo_set_metadata(device, image, memory->bo);
    }
 

@@ -70,7 +70,6 @@ ProcSELinuxQueryVersion(ClientPtr client)
     SELinuxQueryVersionReply rep = {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
-        .length = 0,
         .server_major = SELINUX_MAJOR_VERSION,
         .server_minor = SELINUX_MINOR_VERSION
     };
@@ -87,7 +86,6 @@ ProcSELinuxQueryVersion(ClientPtr client)
 static int
 SELinuxSendContextReply(ClientPtr client, security_id_t sid)
 {
-    SELinuxGetContextReply rep;
     char *ctx = NULL;
     int len = 0;
 
@@ -97,7 +95,7 @@ SELinuxSendContextReply(ClientPtr client, security_id_t sid)
         len = strlen(ctx) + 1;
     }
 
-    rep = (SELinuxGetContextReply) {
+    SELinuxGetContextReply rep = {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
         .length = bytes_to_int32(len),
@@ -344,13 +342,9 @@ static int
 SELinuxSendItemsToClient(ClientPtr client, SELinuxListItemRec * items,
                          int size, int count)
 {
-    int rc, k, pos = 0;
-    SELinuxListItemsReply rep;
-    CARD32 *buf;
-
-    buf = calloc(size, sizeof(CARD32));
+    int rc = BadAlloc, k, pos = 0;
+    CARD32 *buf = calloc(size, sizeof(CARD32));
     if (size && !buf) {
-        rc = BadAlloc;
         goto out;
     }
 
@@ -378,7 +372,7 @@ SELinuxSendItemsToClient(ClientPtr client, SELinuxListItemRec * items,
     }
 
     /* Send reply to client */
-    rep = (SELinuxListItemsReply) {
+    SELinuxListItemsReply rep = {
         .type = X_Reply,
         .sequenceNumber = client->sequence,
         .length = size,

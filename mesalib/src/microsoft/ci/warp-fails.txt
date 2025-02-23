@@ -7,3 +7,7 @@ dEQP-VK.api.driver_properties.conformance_version,Fail
 dEQP-VK.info.device_extensions,Fail
 dEQP-VK.wsi.win32.swapchain.create.composite_alpha,Fail
 dEQP-VK.wsi.win32.swapchain.simulate_oom.composite_alpha,Fail
+
+# Seen in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/1364513
+dEQP-VK.api.device_init.create_instance_name_version.basic,Crash
+dEQP-VK.api.info.extension_core_versions.extension_core_versions,Fail

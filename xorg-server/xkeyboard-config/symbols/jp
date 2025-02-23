@@ -89,23 +89,6 @@ xkb_symbols "common" {
     key <PRSC>	{[ Print, Execute ], type[group1]="PC_ALT_LEVEL2" };
 };
 
-// 86 keys with kana map
-partial alphanumeric_keys
-xkb_symbols "kana86" {
-
-    include "jp(kana)"
-    include "jp(OADG109A)"
-
-    name[Group1]= "Japanese (Kana 86)";
-
-    // For compatibility with other keyboards connected at the same time:
-    key <RWIN>	{[ Super_R	]};
-    key <RCTL>	{[ Control_R	]};
-
-    include "keypad(numoperdecsep)"
-    include "altwin(menu)"
-};
-
 partial alphanumeric_keys
 xkb_symbols "kana" {
 

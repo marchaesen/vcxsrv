@@ -9,10 +9,11 @@ import itertools
 import re
 import sys
 from collections import defaultdict
+from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
-from typing import ClassVar, Generator
+from typing import ClassVar
 
 ROOT = Path(__file__).parent.parent.parent
 RULES = ROOT / "rules"
@@ -47,9 +48,9 @@ class Layout:
 
     def __str__(self):
         if self.variant:
-            return "{}({})".format(self.layout, self.variant)
+            return f"{self.layout}({self.variant})"
         else:
-            return "{}".format(self.layout)
+            return f"{self.layout}"
 
     def __lt__(self, other):
         """
@@ -129,7 +130,7 @@ def write_rules(
     #   pc+layout(variant)
     # This part is only executed for the variantMappings.lst
 
-    suffix = "" if number <= 1 else ":{}".format(number)
+    suffix = "" if number <= 1 else f":{number}"
 
     for l1, l2 in mappings:
         if expect_variant ^ bool(l1.variant):

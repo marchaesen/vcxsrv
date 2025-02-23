@@ -92,6 +92,7 @@ struct dri_screen
 
    bool throttle;
    bool dmabuf_import;
+   bool has_multibuffer;
 
    struct st_config_options options;
 

@@ -227,7 +227,6 @@ files_libnir = files(
   'nir_opt_clip_cull_const.c',
   'nir_opt_combine_stores.c',
   'nir_opt_comparison_pre.c',
-  'nir_opt_conditional_discard.c',
   'nir_opt_constant_folding.c',
   'nir_opt_copy_prop_vars.c',
   'nir_opt_copy_propagate.c',

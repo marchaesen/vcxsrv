@@ -22,30 +22,29 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
+#include <fontconfig/fontconfig.h>
+
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <fontconfig/fontconfig.h>
 
-struct thr_arg_s
-{
+struct thr_arg_s {
     int thr_num;
 };
 
 static void
 run_query (void)
 {
-    FcPattern *pat = FcPatternCreate (), *match;
-    FcResult result;
+    FcPattern *pat = FcPatternCreate(), *match;
+    FcResult   result;
 
-    FcPatternAddString (pat, FC_FAMILY, (const FcChar8 *) "sans-serif");
+    FcPatternAddString (pat, FC_FAMILY, (const FcChar8 *)"sans-serif");
     FcPatternAddBool (pat, FC_SCALABLE, FcTrue);
     FcConfigSubstitute (NULL, pat, FcMatchPattern);
     FcDefaultSubstitute (pat);
     match = FcFontMatch (NULL, pat, &result);
-    if (result != FcResultMatch || !match)
-    {
+    if (result != FcResultMatch || !match) {
 	fprintf (stderr, "ERROR: No matches found\n");
     }
     if (match)
@@ -56,8 +55,7 @@ run_query (void)
 static void
 run_reinit (void)
 {
-    if (!FcInitReinitialize ())
-    {
+    if (!FcInitReinitialize()) {
 	fprintf (stderr, "ERROR: Reinitializing failed\n");
     }
 }
@@ -67,17 +65,14 @@ run_reinit (void)
 static void *
 run_test_in_thread (void *arg)
 {
-    struct thr_arg_s *thr_arg = (struct thr_arg_s *) arg;
-    int thread_num = thr_arg->thr_num;
+    struct thr_arg_s *thr_arg = (struct thr_arg_s *)arg;
+    int               thread_num = thr_arg->thr_num;
 
     fprintf (stderr, "Worker %d: started (round %d)\n", thread_num % 2, thread_num / 2);
-    if ((thread_num % 2) == 0)
-    {
-	run_query ();
-    }
-    else
-    {
-	run_reinit ();
+    if ((thread_num % 2) == 0) {
+	run_query();
+    } else {
+	run_reinit();
     }
     fprintf (stderr, "Worker %d: done (round %d)\n", thread_num % 2, thread_num / 2);
 
@@ -87,30 +82,27 @@ run_test_in_thread (void *arg)
 int
 main (int argc, char **argv)
 {
-    pthread_t threads[NTEST];
+    pthread_t        threads[NTEST];
     struct thr_arg_s thr_arg[NTEST];
-    int i, j;
+    int              i, j;
 
-    for (i = 0; i < NTEST; i++)
-    {
+    for (i = 0; i < NTEST; i++) {
 	int result;
 
 	fprintf (stderr, "Thread %d (worker %d round %d): creating\n", i, i % 2, i / 2);
 	thr_arg[i].thr_num = i;
 	result = pthread_create (&threads[i], NULL, run_test_in_thread,
-				 (void *) &thr_arg[i]);
-	if (result != 0)
-	{
+	                         (void *)&thr_arg[i]);
+	if (result != 0) {
 	    fprintf (stderr, "Cannot create thread %d\n", i);
 	    break;
 	}
     }
-    for (j = 0; j < i; j++)
-    {
-	pthread_join(threads[j], NULL);
+    for (j = 0; j < i; j++) {
+	pthread_join (threads[j], NULL);
 	fprintf (stderr, "Joined thread %d\n", j);
     }
-    FcFini ();
+    FcFini();
 
     return 0;
 }

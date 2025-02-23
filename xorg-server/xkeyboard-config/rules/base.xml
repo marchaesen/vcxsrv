@@ -4958,12 +4958,6 @@
         </variant>
         <variant>
           <configItem>
-            <name>kana86</name>
-            <description>Japanese (Kana 86)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>OADG109A</name>
             <description>Japanese (OADG 109A)</description>
           </configItem>
@@ -6430,6 +6424,12 @@
           <configItem>
             <name>svdvorak</name>
             <description>Swedish (Svdvorak)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>colemak</name>
+            <description>Swedish (Colemak)</description>
           </configItem>
         </variant>
         <variant>

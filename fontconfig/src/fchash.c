@@ -24,25 +24,24 @@
 #define FC_HASH_SIZE 227
 
 typedef struct _FcHashBucket {
-    struct _FcHashBucket  *next;
-    void                  *key;
-    void                  *value;
+    struct _FcHashBucket *next;
+    void                 *key;
+    void                 *value;
 } FcHashBucket;
 
 struct _FcHashTable {
-    FcHashBucket  *buckets[FC_HASH_SIZE];
-    FcHashFunc     hash_func;
-    FcCompareFunc  compare_func;
-    FcCopyFunc     key_copy_func;
-    FcCopyFunc     value_copy_func;
-    FcDestroyFunc  key_destroy_func;
-    FcDestroyFunc  value_destroy_func;
+    FcHashBucket *buckets[FC_HASH_SIZE];
+    FcHashFunc    hash_func;
+    FcCompareFunc compare_func;
+    FcCopyFunc    key_copy_func;
+    FcCopyFunc    value_copy_func;
+    FcDestroyFunc key_destroy_func;
+    FcDestroyFunc value_destroy_func;
 };
 
-
 FcBool
-FcHashStrCopy (const void  *src,
-	       void       **dest)
+FcHashStrCopy (const void *src,
+               void      **dest)
 {
     *dest = FcStrdup (src);
 
@@ -51,16 +50,15 @@ FcHashStrCopy (const void  *src,
 
 FcHashTable *
 FcHashTableCreate (FcHashFunc    hash_func,
-		   FcCompareFunc compare_func,
-		   FcCopyFunc    key_copy_func,
-		   FcCopyFunc    value_copy_func,
-		   FcDestroyFunc key_destroy_func,
-		   FcDestroyFunc value_destroy_func)
+                   FcCompareFunc compare_func,
+                   FcCopyFunc    key_copy_func,
+                   FcCopyFunc    value_copy_func,
+                   FcDestroyFunc key_destroy_func,
+                   FcDestroyFunc value_destroy_func)
 {
     FcHashTable *ret = malloc (sizeof (FcHashTable));
 
-    if (ret)
-    {
+    if (ret) {
 	memset (ret->buckets, 0, sizeof (FcHashBucket *) * FC_HASH_SIZE);
 	ret->hash_func = hash_func;
 	ret->compare_func = compare_func;
@@ -77,12 +75,10 @@ FcHashTableDestroy (FcHashTable *table)
 {
     int i;
 
-    for (i = 0; i < FC_HASH_SIZE; i++)
-    {
+    for (i = 0; i < FC_HASH_SIZE; i++) {
 	FcHashBucket *bucket = table->buckets[i], *prev;
 
-	while (bucket)
-	{
+	while (bucket) {
 	    if (table->key_destroy_func)
 		table->key_destroy_func (bucket->key);
 	    if (table->value_destroy_func)
@@ -97,23 +93,19 @@ FcHashTableDestroy (FcHashTable *table)
 }
 
 FcBool
-FcHashTableFind (FcHashTable  *table,
-		 const void   *key,
-		 void        **value)
+FcHashTableFind (FcHashTable *table,
+                 const void  *key,
+                 void       **value)
 {
     FcHashBucket *bucket;
-    FcChar32 hash = table->hash_func (key);
+    FcChar32      hash = table->hash_func (key);
 
-    for (bucket = table->buckets[hash % FC_HASH_SIZE]; bucket; bucket = bucket->next)
-    {
-	if (!table->compare_func(bucket->key, key))
-	{
-	    if (table->value_copy_func)
-	    {
+    for (bucket = table->buckets[hash % FC_HASH_SIZE]; bucket; bucket = bucket->next) {
+	if (!table->compare_func (bucket->key, key)) {
+	    if (table->value_copy_func) {
 		if (!table->value_copy_func (bucket->value, value))
 		    return FcFalse;
-	    }
-	    else
+	    } else
 		*value = bucket->value;
 	    return FcTrue;
 	}
@@ -123,15 +115,15 @@ FcHashTableFind (FcHashTable  *table,
 
 static FcBool
 FcHashTableAddInternal (FcHashTable *table,
-			void        *key,
-			void        *value,
-			FcBool       replace)
+                        void        *key,
+                        void        *value,
+                        FcBool       replace)
 {
     FcHashBucket **prev, *bucket, *b;
-    FcChar32 hash = table->hash_func (key);
-    FcBool ret = FcFalse;
+    FcChar32       hash = table->hash_func (key);
+    FcBool         ret = FcFalse;
 
-    bucket = (FcHashBucket *) malloc (sizeof (FcHashBucket));
+    bucket = (FcHashBucket *)malloc (sizeof (FcHashBucket));
     if (!bucket)
 	return FcFalse;
     memset (bucket, 0, sizeof (FcHashBucket));
@@ -143,8 +135,7 @@ FcHashTableAddInternal (FcHashTable *table,
 	ret |= !table->value_copy_func (value, &bucket->value);
     else
 	bucket->value = value;
-    if (ret)
-    {
+    if (ret) {
     destroy:
 	if (bucket->key && table->key_destroy_func)
 	    table->key_destroy_func (bucket->key);
@@ -154,20 +145,16 @@ FcHashTableAddInternal (FcHashTable *table,
 
 	return !ret;
     }
-  retry:
+retry:
     for (prev = &table->buckets[hash % FC_HASH_SIZE];
-	 (b = fc_atomic_ptr_get (prev)); prev = &(b->next))
-    {
-	if (!table->compare_func (b->key, key))
-	{
-	    if (replace)
-	    {
+         (b = fc_atomic_ptr_get (prev)); prev = &(b->next)) {
+	if (!table->compare_func (b->key, key)) {
+	    if (replace) {
 		bucket->next = b->next;
 		if (!fc_atomic_ptr_cmpexch (prev, b, bucket))
 		    goto retry;
 		bucket = b;
-	    }
-	    else
+	    } else
 		ret = FcTrue;
 	    goto destroy;
 	}
@@ -181,34 +168,32 @@ FcHashTableAddInternal (FcHashTable *table,
 
 FcBool
 FcHashTableAdd (FcHashTable *table,
-		void        *key,
-		void        *value)
+                void        *key,
+                void        *value)
 {
     return FcHashTableAddInternal (table, key, value, FcFalse);
 }
 
 FcBool
 FcHashTableReplace (FcHashTable *table,
-		    void        *key,
-		    void        *value)
+                    void        *key,
+                    void        *value)
 {
     return FcHashTableAddInternal (table, key, value, FcTrue);
 }
 
 FcBool
 FcHashTableRemove (FcHashTable *table,
-		   void        *key)
+                   void        *key)
 {
     FcHashBucket **prev, *bucket;
-    FcChar32 hash = table->hash_func (key);
-    FcBool ret = FcFalse;
+    FcChar32       hash = table->hash_func (key);
+    FcBool         ret = FcFalse;
 
 retry:
     for (prev = &table->buckets[hash % FC_HASH_SIZE];
-	 (bucket = fc_atomic_ptr_get (prev)); prev = &(bucket->next))
-    {
-	if (!table->compare_func (bucket->key, key))
-	{
+         (bucket = fc_atomic_ptr_get (prev)); prev = &(bucket->next)) {
+	if (!table->compare_func (bucket->key, key)) {
 	    if (!fc_atomic_ptr_cmpexch (prev, bucket, bucket->next))
 		goto retry;
 	    if (table->key_destroy_func)

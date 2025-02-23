@@ -20,6 +20,9 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <dix-config.h>
 
 #include <stdarg.h>
+
+#include "os/client_priv.h"
+
 #include "scrnintstr.h"
 #include "extnsionst.h"
 #include "pixmapstr.h"

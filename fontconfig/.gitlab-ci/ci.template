@@ -12,7 +12,7 @@
 # and run ci-fairy generate-template. For details, see
 # https://freedesktop.pages.freedesktop.org/ci-templates/ci-fairy.html#templating-gitlab-ci-yml
 
-.templates_sha: &template_sha e195d80f35b45cc73668be3767b923fd76c70ed5
+.templates_sha: &template_sha ef5e4669b7500834a17ffe9277e15fbb6d977fff
 
 include:
   {% for distro in distributions|sort(attribute="name") %}
@@ -29,6 +29,7 @@ include:
 stages:
   - sanity check
   - prep
+  - style check
   - test
   - deploy
   - container_clean
@@ -163,6 +164,29 @@ check-ci-script:
 
 {% endfor %}
 {% endfor %}
+
+#######################################
+#                                     #
+#             style check             #
+#                                     #
+#######################################
+
+clang-format:
+  stage: style check
+  extends:
+    - .fdo.distribution-image@fedora
+  variables:
+    FDO_DISTRIBUTION_VERSION: 'rawhide'
+    FDO_DISTRIBUTION_TAG: $FEDORA_TAG
+  needs:
+    - 'fedora:rawhide@container-prep'
+  script:
+    - |
+      commit="${CI_MERGE_REQUEST_TARGET_BRANCH_SHA:-${CI_MERGE_REQUEST_DIFF_BASE_SHA:?}}" || exit
+      echo sh .gitlab-ci/check-style.sh "$commit"
+      sh .gitlab-ci/check-style.sh "$commit"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
 
 #######################################
 #                                     #

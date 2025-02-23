@@ -59,7 +59,7 @@ hk_dispatch_with_usc_launch(struct hk_device *dev, struct hk_cs *cs,
                             uint32_t usc, struct agx_grid grid,
                             struct agx_workgroup wg)
 {
-   assert(cs->current + 0x2000 < cs->end && "should have ensured space");
+   hk_ensure_cs_has_space(cs->cmd, cs, 0x2000 /* TODO */);
    cs->stats.cmds++;
 
    cs->current =
@@ -86,7 +86,6 @@ hk_dispatch_with_usc(struct hk_device *dev, struct hk_cs *cs,
 static void
 dispatch(struct hk_cmd_buffer *cmd, struct agx_grid grid)
 {
-   struct hk_device *dev = hk_cmd_buffer_device(cmd);
    struct hk_shader *s = hk_only_variant(cmd->state.cs.shader);
    struct hk_cs *cs = hk_cmd_buffer_get_cs(cmd, true /* compute */);
    if (!cs)
@@ -100,14 +99,12 @@ dispatch(struct hk_cmd_buffer *cmd, struct agx_grid grid)
       cmd, VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT);
 
    if (stat) {
-      perf_debug(dev, "CS invocation statistic");
+      perf_debug(cmd, "CS invocation statistic");
       uint64_t grid = cmd->state.cs.descriptors.root.cs.group_count_addr;
 
-      libagx_increment_cs_invocations(cs, agx_1d(1), grid, AGX_BARRIER_ALL,
+      libagx_increment_cs_invocations(cmd, agx_1d(1), AGX_BARRIER_ALL, grid,
                                       stat, agx_workgroup_threads(local_size));
    }
-
-   hk_ensure_cs_has_space(cmd, cs, 0x2000 /* TODO */);
 
    if (!agx_is_indirect(grid)) {
       grid.count[0] *= local_size.x;

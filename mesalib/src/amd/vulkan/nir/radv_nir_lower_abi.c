@@ -493,10 +493,12 @@ load_gsvs_ring(nir_builder *b, lower_abi_state *s, unsigned stream_id)
    return nir_vector_insert_imm(b, ring, nir_imm_int(b, s->info->wave_size), 2);
 }
 
-void
+bool
 radv_nir_lower_abi(nir_shader *shader, enum amd_gfx_level gfx_level, const struct radv_shader_stage *stage,
                    const struct radv_graphics_state_key *gfx_state, uint32_t address32_hi)
 {
+   bool progress = false;
+
    lower_abi_state state = {
       .gfx_level = gfx_level,
       .info = &stage->info,
@@ -512,7 +514,11 @@ radv_nir_lower_abi(nir_shader *shader, enum amd_gfx_level gfx_level, const struc
 
       u_foreach_bit (i, shader->info.gs.active_stream_mask)
          state.gsvs_ring[i] = load_gsvs_ring(&b, &state, i);
+
+      progress = true;
+      nir_metadata_preserve(impl, nir_metadata_control_flow);
    }
 
-   nir_shader_intrinsics_pass(shader, lower_abi_instr, nir_metadata_control_flow, &state);
+   progress |= nir_shader_intrinsics_pass(shader, lower_abi_instr, nir_metadata_control_flow, &state);
+   return progress;
 }

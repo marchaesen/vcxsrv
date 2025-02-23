@@ -2535,8 +2535,9 @@ get_copy_texel_buffer_pipeline(
       goto fail;
 
    if (device->instance->meta_cache_enabled) {
+      memcpy((*pipeline)->key, key, sizeof((*pipeline)->key));
       _mesa_hash_table_insert(device->meta.texel_buffer_copy.cache[image_type],
-                              key, *pipeline);
+                              &(*pipeline)->key, *pipeline);
       mtx_unlock(&device->meta.mtx);
    } else {
       v3dv_cmd_buffer_add_private_obj(

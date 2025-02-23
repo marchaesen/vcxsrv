@@ -32,7 +32,7 @@ the release schedule is planned, and the date and other details for
 individual releases.
 
 Feature releases
-----------------
+~~~~~~~~~~~~~~~~
 
 -  Available approximately every three months.
 -  Feature releases are branched on or around the second Wednesday of
@@ -44,7 +44,7 @@ Feature releases
    regressions, though.
 
 Stable releases
----------------
+~~~~~~~~~~~~~~~
 
 -  Normally available once every two weeks.
 -  Only the latest branch has releases. See note below.

@@ -23,34 +23,37 @@
  */
 
 #include "fcint.h"
+
 #include <stdlib.h>
 
 #if defined(FC_ATOMIC_INT_NIL)
-#pragma message("Could not find any system to define atomic_int macros, library may NOT be thread-safe.")
+#  pragma message("Could not find any system to define atomic_int macros, library may NOT be thread-safe.")
 #endif
 #if defined(FC_MUTEX_IMPL_NIL)
-#pragma message("Could not find any system to define mutex macros, library may NOT be thread-safe.")
+#  pragma message("Could not find any system to define mutex macros, library may NOT be thread-safe.")
 #endif
 #if defined(FC_ATOMIC_INT_NIL) || defined(FC_MUTEX_IMPL_NIL)
-#pragma message("To suppress these warnings, define FC_NO_MT.")
+#  pragma message("To suppress these warnings, define FC_NO_MT.")
 #endif
 
 static FcConfig *
 FcInitFallbackConfig (const FcChar8 *sysroot)
 {
-    FcConfig	*config;
-    const FcChar8 *fallback = (const FcChar8 *) ""	\
-	"<fontconfig>" \
-	FC_DEFAULT_FONTS \
-	"  <dir prefix=\"xdg\">fonts</dir>" \
-	"  <cachedir>" FC_CACHEDIR "</cachedir>" \
-	"  <cachedir prefix=\"xdg\">fontconfig</cachedir>" \
-	"  <include ignore_missing=\"yes\">" CONFIGDIR "</include>" \
-	"  <include ignore_missing=\"yes\" prefix=\"xdg\">fontconfig/conf.d</include>" \
-	"  <include ignore_missing=\"yes\" prefix=\"xdg\">fontconfig/fonts.conf</include>" \
+    FcConfig      *config;
+    const FcChar8 *fallback = (const FcChar8 *)
+	""
+	"<fontconfig>" FC_DEFAULT_FONTS
+	"  <dir prefix=\"xdg\">fonts</dir>"
+	"  <cachedir>" FC_CACHEDIR
+	"</cachedir>"
+	"  <cachedir prefix=\"xdg\">fontconfig</cachedir>"
+	"  <include ignore_missing=\"yes\">" CONFIGDIR
+	"</include>"
+	"  <include ignore_missing=\"yes\" prefix=\"xdg\">fontconfig/conf.d</include>"
+	"  <include ignore_missing=\"yes\" prefix=\"xdg\">fontconfig/fonts.conf</include>"
 	"</fontconfig>";
 
-    config = FcConfigCreate ();
+    config = FcConfigCreate();
     if (!config)
 	goto bail0;
     FcConfigSetSysRoot (config, sysroot);
@@ -97,30 +100,27 @@ FcGetVersion (void)
 FcConfig *
 FcInitLoadOwnConfig (FcConfig *config)
 {
-    if (!config)
-    {
-	config = FcConfigCreate ();
+    if (!config) {
+	config = FcConfigCreate();
 	if (!config)
 	    return NULL;
     }
 
-    FcInitDebug ();
+    FcInitDebug();
 
-    if (!FcConfigParseAndLoad (config, 0, FcTrue))
-    {
+    if (!FcConfigParseAndLoad (config, 0, FcTrue)) {
 	const FcChar8 *sysroot = FcConfigGetSysRoot (config);
-	FcConfig *fallback = FcInitFallbackConfigWithFilter (config, sysroot);
+	FcConfig      *fallback = FcInitFallbackConfigWithFilter (config, sysroot);
 
 	return fallback;
     }
-    (void) FcConfigParseOnly (config, (const FcChar8 *)FC_TEMPLATEDIR, FcFalse);
+    (void)FcConfigParseOnly (config, (const FcChar8 *)FC_TEMPLATEDIR, FcFalse);
 
-    if (config->cacheDirs && config->cacheDirs->num == 0)
-    {
+    if (config->cacheDirs && config->cacheDirs->num == 0) {
 	FcChar8 *prefix, *p;
-	size_t plen;
-	FcBool have_own = FcFalse;
-	char *env_file, *env_path;
+	size_t   plen;
+	FcBool   have_own = FcFalse;
+	char    *env_file, *env_path;
 
 	env_file = getenv ("FONTCONFIG_FILE");
 	env_path = getenv ("FONTCONFIG_PATH");
@@ -128,15 +128,14 @@ FcInitLoadOwnConfig (FcConfig *config)
 	    (env_path != NULL && env_path[0] != 0))
 	    have_own = FcTrue;
 
-	if (!have_own)
-	{
+	if (!have_own) {
 	    fprintf (stderr,
-		     "Fontconfig warning: no <cachedir> elements found. Check configuration.\n");
+	             "Fontconfig warning: no <cachedir> elements found. Check configuration.\n");
 	    fprintf (stderr,
-		     "Fontconfig warning: adding <cachedir>%s</cachedir>\n",
-		     FC_CACHEDIR);
+	             "Fontconfig warning: adding <cachedir>%s</cachedir>\n",
+	             FC_CACHEDIR);
 	}
-	prefix = FcConfigXdgCacheHome ();
+	prefix = FcConfigXdgCacheHome();
 	if (!prefix)
 	    goto bail;
 	plen = strlen ((const char *)prefix);
@@ -148,18 +147,17 @@ FcInitLoadOwnConfig (FcConfig *config)
 	prefix[plen + 11] = 0;
 	if (!have_own)
 	    fprintf (stderr,
-		     "Fontconfig warning: adding <cachedir prefix=\"xdg\">fontconfig</cachedir>\n");
+	             "Fontconfig warning: adding <cachedir prefix=\"xdg\">fontconfig</cachedir>\n");
 
-	if (!FcConfigAddCacheDir (config, (FcChar8 *) FC_CACHEDIR) ||
-	    !FcConfigAddCacheDir (config, (FcChar8 *) prefix))
-	{
-	    FcConfig *fallback;
+	if (!FcConfigAddCacheDir (config, (FcChar8 *)FC_CACHEDIR) ||
+	    !FcConfigAddCacheDir (config, (FcChar8 *)prefix)) {
+	    FcConfig      *fallback;
 	    const FcChar8 *sysroot;
 
-	  bail:
+	bail:
 	    sysroot = FcConfigGetSysRoot (config);
 	    fprintf (stderr,
-		     "Fontconfig error: out of memory");
+	             "Fontconfig error: out of memory");
 	    if (prefix)
 		FcStrFree (prefix);
 	    fallback = FcInitFallbackConfigWithFilter (config, sysroot);
@@ -187,8 +185,7 @@ FcInitLoadOwnConfigAndFonts (FcConfig *config)
     config = FcInitLoadOwnConfig (config);
     if (!config)
 	return 0;
-    if (!FcConfigBuildFonts (config))
-    {
+    if (!FcConfigBuildFonts (config)) {
 	FcConfigDestroy (config);
 	return 0;
     }
@@ -207,7 +204,7 @@ FcInitLoadConfigAndFonts (void)
 FcBool
 FcInit (void)
 {
-    return FcConfigInit ();
+    return FcConfigInit();
 }
 
 /*
@@ -216,11 +213,11 @@ FcInit (void)
 void
 FcFini (void)
 {
-    FcConfigFini ();
-    FcConfigPathFini ();
-    FcDefaultFini ();
-    FcObjectFini ();
-    FcCacheFini ();
+    FcConfigFini();
+    FcConfigPathFini();
+    FcDefaultFini();
+    FcObjectFini();
+    FcCacheFini();
 }
 
 /*
@@ -229,10 +226,10 @@ FcFini (void)
 FcBool
 FcInitReinitialize (void)
 {
-    FcConfig	*config;
-    FcBool	ret;
+    FcConfig *config;
+    FcBool    ret;
 
-    config = FcInitLoadConfigAndFonts ();
+    config = FcInitLoadConfigAndFonts();
     if (!config)
 	return FcFalse;
     ret = FcConfigSetCurrent (config);
@@ -247,9 +244,9 @@ FcInitReinitialize (void)
 FcBool
 FcInitBringUptoDate (void)
 {
-    FcConfig	*config = FcConfigReference (NULL);
-    FcBool	ret = FcTrue;
-    time_t	now;
+    FcConfig *config = FcConfigReference (NULL);
+    FcBool    ret = FcTrue;
+    time_t    now;
 
     if (!config)
 	return FcFalse;
@@ -269,7 +266,7 @@ FcInitBringUptoDate (void)
      */
     if (FcConfigUptoDate (0))
 	goto bail;
-    ret = FcInitReinitialize ();
+    ret = FcInitReinitialize();
 bail:
     FcConfigDestroy (config);
 

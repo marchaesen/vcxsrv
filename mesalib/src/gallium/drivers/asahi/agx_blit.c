@@ -145,7 +145,7 @@ asahi_blit_compute_shader(struct pipe_context *ctx, struct asahi_blit_key *key)
       colour1 = nir_image_load(
          b, 4, 32, nir_imm_int(b, 0), nir_pad_vec4(b, image_pos_nd), zero, zero,
          .image_array = key->array, .image_dim = GLSL_SAMPLER_DIM_2D,
-         .access = ACCESS_IN_BOUNDS_AGX, .dest_type = nir_type_uint32);
+         .access = ACCESS_IN_BOUNDS, .dest_type = nir_type_uint32);
    }
    nir_pop_if(b, NULL);
    nir_def *color = nir_if_phi(b, colour0, colour1);

@@ -22,80 +22,81 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
+#include <fontconfig/fontconfig.h>
+
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <pthread.h>
-#include <fontconfig/fontconfig.h>
 
-#define NTHR 100
+#define NTHR  100
 #define NTEST 100
 
-struct thr_arg_s
-{
-	int thr_num;
+struct thr_arg_s {
+    int thr_num;
 };
 
-static void test_match(int thr_num,int test_num)
+static void
+test_match (int thr_num, int test_num)
 {
-	FcPattern *pat;
-	FcPattern *match;
-	FcResult  result;
+    FcPattern *pat;
+    FcPattern *match;
+    FcResult   result;
 
-	FcInit();
+    FcInit();
 
-	pat = FcNameParse((const FcChar8 *)"New Century Schoolbook");
-		
-	FcConfigSubstitute(0,pat,FcMatchPattern);
-	FcDefaultSubstitute(pat);
-	
-	match = FcFontMatch(0,pat,&result);
-		
-	FcPatternDestroy(pat);
-	FcPatternDestroy(match);
+    pat = FcNameParse ((const FcChar8 *)"New Century Schoolbook");
+
+    FcConfigSubstitute (0, pat, FcMatchPattern);
+    FcDefaultSubstitute (pat);
+
+    match = FcFontMatch (0, pat, &result);
+
+    FcPatternDestroy (pat);
+    FcPatternDestroy (match);
 }
 
-static void *run_test_in_thread(void *arg)
+static void *
+run_test_in_thread (void *arg)
 {
-	struct thr_arg_s *thr_arg=(struct thr_arg_s *)arg;
-	int thread_num = thr_arg->thr_num;
-	int i=0;
+    struct thr_arg_s *thr_arg = (struct thr_arg_s *)arg;
+    int               thread_num = thr_arg->thr_num;
+    int               i = 0;
 
-	for(;i<NTEST;i++) test_match(thread_num,i);
+    for (; i < NTEST; i++)
+	test_match (thread_num, i);
 
-	printf("Thread %d: done\n",thread_num);
+    printf ("Thread %d: done\n", thread_num);
 
-	return NULL;
+    return NULL;
 }
 
-int main(int argc,char **argv)
+int
+main (int argc, char **argv)
 {
-	pthread_t threads[NTHR];
-	struct thr_arg_s thr_args[NTHR];
-	int i, j;
+    pthread_t        threads[NTHR];
+    struct thr_arg_s thr_args[NTHR];
+    int              i, j;
 
-	printf("Creating %d threads\n",NTHR);
+    printf ("Creating %d threads\n", NTHR);
 
-	for(i = 0;i<NTHR;i++)
-	{
-		int result;
-		thr_args[i].thr_num=i;
-		result = pthread_create(&threads[i],NULL,run_test_in_thread,
-					(void *)&thr_args[i]);
-		if(result!=0)
-		{
-			fprintf(stderr,"Cannot create thread %d\n",i);
-			break;
-		}
+    for (i = 0; i < NTHR; i++) {
+	int result;
+	thr_args[i].thr_num = i;
+	result = pthread_create (&threads[i], NULL, run_test_in_thread,
+	                         (void *)&thr_args[i]);
+	if (result != 0) {
+	    fprintf (stderr, "Cannot create thread %d\n", i);
+	    break;
 	}
+    }
 
-	for(j=0;j<i;j++)
-	{
-		pthread_join(threads[j],NULL);
-		printf("Joined thread %d\n",j);
-	}
+    for (j = 0; j < i; j++) {
+	pthread_join (threads[j], NULL);
+	printf ("Joined thread %d\n", j);
+    }
 
-	FcFini();
+    FcFini();
 
-	return 0;
+    return 0;
 }

@@ -23,13 +23,14 @@
  */
 
 #include "fcint.h"
+
 #include "fcftint.h"
 
 /* Objects MT-safe for readonly access. */
 
 typedef struct {
-    const FcChar8    	lang[16];
-    const FcCharSet	charset;
+    const FcChar8   lang[16];
+    const FcCharSet charset;
 } FcLangCharSet;
 
 typedef struct {
@@ -45,134 +46,126 @@ typedef struct {
  */
 
 static const struct {
-    char    	    bit;
-    const FcChar8   lang[6];
+    char          bit;
+    const FcChar8 lang[6];
 } FcCodePageRange[] = {
-    { 17,	"ja" },
-    { 18,	"zh-cn" },
-    { 19,	"ko" },
-    { 20,	"zh-tw" },
+    { 17, "ja"    },
+    { 18, "zh-cn" },
+    { 19, "ko"    },
+    { 20, "zh-tw" },
 };
 
-#define NUM_CODE_PAGE_RANGE (int) (sizeof FcCodePageRange / sizeof FcCodePageRange[0])
+#define NUM_CODE_PAGE_RANGE (int)(sizeof FcCodePageRange / sizeof FcCodePageRange[0])
 
 struct _FcLangSet {
-    FcStrSet	*extra;
-    FcChar32    map_size;
-    FcChar32	map[NUM_LANG_SET_MAP];
+    FcStrSet *extra;
+    FcChar32  map_size;
+    FcChar32  map[NUM_LANG_SET_MAP];
 };
 
-static int FcLangSetIndex (const FcChar8 *lang);
-
+static int
+FcLangSetIndex (const FcChar8 *lang);
 
 static void
-FcLangSetBitSet (FcLangSet    *ls,
-		 unsigned int  id)
+FcLangSetBitSet (FcLangSet   *ls,
+                 unsigned int id)
 {
-  unsigned int bucket;
+    unsigned int bucket;
 
-  id = fcLangCharSetIndices[id];
-  bucket = id >> 5;
-  if (bucket >= ls->map_size)
-    return; /* shouldn't happen really */
+    id = fcLangCharSetIndices[id];
+    bucket = id >> 5;
+    if (bucket >= ls->map_size)
+	return; /* shouldn't happen really */
 
-  ls->map[bucket] |= ((FcChar32) 1U << (id & 0x1f));
+    ls->map[bucket] |= ((FcChar32)1U << (id & 0x1f));
 }
 
 static FcBool
 FcLangSetBitGet (const FcLangSet *ls,
-		 unsigned int     id)
+                 unsigned int     id)
 {
-  unsigned int bucket;
+    unsigned int bucket;
 
-  id = fcLangCharSetIndices[id];
-  bucket = id >> 5;
-  if (bucket >= ls->map_size)
-    return FcFalse;
+    id = fcLangCharSetIndices[id];
+    bucket = id >> 5;
+    if (bucket >= ls->map_size)
+	return FcFalse;
 
-  return ((ls->map[bucket] >> (id & 0x1f)) & 1) ? FcTrue : FcFalse;
+    return ((ls->map[bucket] >> (id & 0x1f)) & 1) ? FcTrue : FcFalse;
 }
 
 static void
-FcLangSetBitReset (FcLangSet    *ls,
-		   unsigned int  id)
+FcLangSetBitReset (FcLangSet   *ls,
+                   unsigned int id)
 {
-  unsigned int bucket;
+    unsigned int bucket;
 
-  id = fcLangCharSetIndices[id];
-  bucket = id >> 5;
-  if (bucket >= ls->map_size)
-    return; /* shouldn't happen really */
+    id = fcLangCharSetIndices[id];
+    bucket = id >> 5;
+    if (bucket >= ls->map_size)
+	return; /* shouldn't happen really */
 
-  ls->map[bucket] &= ~((FcChar32) 1U << (id & 0x1f));
+    ls->map[bucket] &= ~((FcChar32)1U << (id & 0x1f));
 }
 
 FcLangSet *
-FcFreeTypeLangSet (const FcCharSet  *charset,
-		   const FcChar8    *exclusiveLang)
+FcFreeTypeLangSet (const FcCharSet *charset,
+                   const FcChar8   *exclusiveLang)
 {
-    int		    i, j;
-    FcChar32	    missing;
+    int              i, j;
+    FcChar32         missing;
     const FcCharSet *exclusiveCharset = 0;
-    FcLangSet	    *ls;
+    FcLangSet       *ls;
 
     if (exclusiveLang)
 	exclusiveCharset = FcLangGetCharSet (exclusiveLang);
-    ls = FcLangSetCreate ();
+    ls = FcLangSetCreate();
     if (!ls)
 	return 0;
-    if (FcDebug() & FC_DBG_LANGSET)
-    {
+    if (FcDebug() & FC_DBG_LANGSET) {
 	printf ("font charset");
 	FcCharSetPrint (charset);
 	printf ("\n");
     }
-    for (i = 0; i < NUM_LANG_CHAR_SET; i++)
-    {
-	if (FcDebug() & FC_DBG_LANGSET)
-	{
+    for (i = 0; i < NUM_LANG_CHAR_SET; i++) {
+	if (FcDebug() & FC_DBG_LANGSET) {
 	    printf ("%s charset", fcLangCharSets[i].lang);
 	    FcCharSetPrint (&fcLangCharSets[i].charset);
 	    printf ("\n");
 	}
-	
+
 	/*
 	 * Check for Han charsets to make fonts
 	 * which advertise support for a single language
 	 * not support other Han languages
 	 */
 	if (exclusiveCharset &&
-	    FcLangIsExclusive (fcLangCharSets[i].lang))
-	{
+	    FcLangIsExclusive (fcLangCharSets[i].lang)) {
 	    if (fcLangCharSets[i].charset.num != exclusiveCharset->num)
 		continue;
 
 	    for (j = 0; j < fcLangCharSets[i].charset.num; j++)
-		if (FcCharSetLeaf(&fcLangCharSets[i].charset, j) !=
-		    FcCharSetLeaf(exclusiveCharset, j))
+		if (FcCharSetLeaf (&fcLangCharSets[i].charset, j) !=
+		    FcCharSetLeaf (exclusiveCharset, j))
 		    continue;
 	}
 	missing = FcCharSetSubtractCount (&fcLangCharSets[i].charset, charset);
-        if (FcDebug() & FC_DBG_SCANV)
-	{
-	    if (missing && missing < 10)
-	    {
-		FcCharSet   *missed = FcCharSetSubtract (&fcLangCharSets[i].charset,
-							 charset);
-		FcChar32    ucs4;
-		FcChar32    map[FC_CHARSET_MAP_SIZE];
-		FcChar32    next;
+	if (FcDebug() & FC_DBG_SCANV) {
+	    if (missing && missing < 10) {
+		FcCharSet *missed = FcCharSetSubtract (&fcLangCharSets[i].charset,
+		                                       charset);
+		FcChar32   ucs4;
+		FcChar32   map[FC_CHARSET_MAP_SIZE];
+		FcChar32   next;
 
 		printf ("\n%s(%u) ", fcLangCharSets[i].lang, missing);
 		printf ("{");
 		for (ucs4 = FcCharSetFirstPage (missed, map, &next);
 		     ucs4 != FC_CHARSET_DONE;
-		     ucs4 = FcCharSetNextPage (missed, map, &next))
-		{
-		    int	    i, j;
+		     ucs4 = FcCharSetNextPage (missed, map, &next)) {
+		    int i, j;
 		    for (i = 0; i < FC_CHARSET_MAP_SIZE; i++)
-			if (map[i])
-			{
+			if (map[i]) {
 			    for (j = 0; j < 32; j++)
 				if (map[i] & (1U << j))
 				    printf (" %04x", ucs4 + i * 32 + j);
@@ -180,8 +173,7 @@ FcFreeTypeLangSet (const FcCharSet  *charset,
 		}
 		printf (" }\n\t");
 		FcCharSetDestroy (missed);
-	    }
-	    else
+	    } else
 		printf ("%s(%u) ", fcLangCharSets[i].lang, missing);
 	}
 	if (!missing)
@@ -191,7 +183,6 @@ FcFreeTypeLangSet (const FcCharSet  *charset,
     if (FcDebug() & FC_DBG_SCANV)
 	printf ("\n");
 
-
     return ls;
 }
 
@@ -199,20 +190,19 @@ FcChar8 *
 FcLangNormalize (const FcChar8 *lang)
 {
     FcChar8 *result = NULL, *s, *orig;
-    char *territory, *encoding, *modifier;
-    size_t llen, tlen = 0, mlen = 0;
+    char    *territory, *encoding, *modifier;
+    size_t   llen, tlen = 0, mlen = 0;
 
     if (!lang || !*lang)
 	return NULL;
 
     /* might be called without initialization */
-    FcInitDebug ();
+    FcInitDebug();
 
     if (FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C") == 0 ||
-	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.UTF-8") == 0 ||
-	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.utf8") == 0 ||
-	FcStrCmpIgnoreCase (lang, (const FcChar8 *)"POSIX") == 0)
-    {
+        FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.UTF-8") == 0 ||
+        FcStrCmpIgnoreCase (lang, (const FcChar8 *)"C.utf8") == 0 ||
+        FcStrCmpIgnoreCase (lang, (const FcChar8 *)"POSIX") == 0) {
 	result = FcStrCopy ((const FcChar8 *)"en");
 	goto bail;
     }
@@ -245,45 +235,39 @@ FcLangNormalize (const FcChar8 *lang)
      *
      * then. and maybe no need to try language_territory here.
      */
-    modifier = strchr ((const char *) s, '@');
-    if (modifier)
-    {
+    modifier = strchr ((const char *)s, '@');
+    if (modifier) {
 	*modifier = 0;
 	modifier++;
 	mlen = strlen (modifier);
     }
-    encoding = strchr ((const char *) s, '.');
-    if (encoding)
-    {
+    encoding = strchr ((const char *)s, '.');
+    if (encoding) {
 	*encoding = 0;
 	encoding++;
-	if (modifier)
-	{
+	if (modifier) {
 	    memmove (encoding, modifier, mlen + 1);
 	    modifier = encoding;
 	}
     }
-    territory = strchr ((const char *) s, '_');
+    territory = strchr ((const char *)s, '_');
     if (!territory)
-	territory = strchr ((const char *) s, '-');
-    if (territory)
-    {
+	territory = strchr ((const char *)s, '-');
+    if (territory) {
 	*territory = 0;
 	territory++;
 	tlen = strlen (territory);
     }
-    llen = strlen ((const char *) s);
-    if (llen < 2 || llen > 3)
-    {
+    llen = strlen ((const char *)s);
+    if (llen < 2 || llen > 3) {
 	fprintf (stderr, "Fontconfig warning: ignoring %s: not a valid language tag\n",
-		 lang);
+	         lang);
 	goto bail0;
     }
     if (territory && (tlen < 2 || tlen > 3) &&
-	!(territory[0] == 'z' && tlen < 5))
-    {
+        !(territory[0] == 'z' && tlen < 5)) {
 	fprintf (stderr, "Fontconfig warning: ignoring %s: not a valid region tag\n",
-		 lang);
+	         lang);
 	goto bail0;
     }
     if (territory)
@@ -293,18 +277,14 @@ FcLangNormalize (const FcChar8 *lang)
     orig = FcStrDowncase (s);
     if (!orig)
 	goto bail0;
-    if (territory)
-    {
-	if (FcDebug () & FC_DBG_LANGSET)
-	    printf("Checking the existence of %s.orth\n", s);
-	if (FcLangSetIndex (s) < 0)
-	{
+    if (territory) {
+	if (FcDebug() & FC_DBG_LANGSET)
+	    printf ("Checking the existence of %s.orth\n", s);
+	if (FcLangSetIndex (s) < 0) {
 	    memmove (territory - 1, territory + tlen, (mlen > 0 ? mlen + 1 : 0) + 1);
 	    if (modifier)
 		modifier = territory;
-	}
-	else
-	{
+	} else {
 	    result = s;
 	    /* we'll miss the opportunity to reduce the correct size
 	     * of the allocated memory for the string after that.
@@ -313,14 +293,12 @@ FcLangNormalize (const FcChar8 *lang)
 	    goto bail1;
 	}
     }
-    if (modifier)
-    {
-	if (FcDebug () & FC_DBG_LANGSET)
-	    printf("Checking the existence of %s.orth\n", s);
+    if (modifier) {
+	if (FcDebug() & FC_DBG_LANGSET)
+	    printf ("Checking the existence of %s.orth\n", s);
 	if (FcLangSetIndex (s) < 0)
 	    modifier[-1] = 0;
-	else
-	{
+	else {
 	    result = s;
 	    /* we'll miss the opportunity to reduce the correct size
 	     * of the allocated memory for the string after that.
@@ -329,33 +307,29 @@ FcLangNormalize (const FcChar8 *lang)
 	    goto bail1;
 	}
     }
-    if (FcDebug () & FC_DBG_LANGSET)
-	printf("Checking the existence of %s.orth\n", s);
-    if (FcLangSetIndex (s) < 0)
-    {
+    if (FcDebug() & FC_DBG_LANGSET)
+	printf ("Checking the existence of %s.orth\n", s);
+    if (FcLangSetIndex (s) < 0) {
 	/* there seems no languages matched in orth.
 	 * add the language as is for fallback.
 	 */
 	result = orig;
 	orig = NULL;
-    }
-    else
-    {
+    } else {
 	result = s;
 	/* we'll miss the opportunity to reduce the correct size
 	 * of the allocated memory for the string after that.
 	 */
 	s = NULL;
     }
-  bail1:
+bail1:
     if (orig)
 	FcStrFree (orig);
-  bail0:
+bail0:
     if (s)
 	free (s);
-  bail:
-    if (FcDebug () & FC_DBG_LANGSET)
-    {
+bail:
+    if (FcDebug() & FC_DBG_LANGSET) {
 	if (result)
 	    printf ("normalized: %s -> %s\n", lang, result);
 	else
@@ -365,40 +339,34 @@ FcLangNormalize (const FcChar8 *lang)
     return result;
 }
 
-#define FcLangEnd(c)	((c) == '-' || (c) == '\0')
+#define FcLangEnd(c) ((c) == '-' || (c) == '\0')
 
 FcLangResult
 FcLangCompare (const FcChar8 *s1, const FcChar8 *s2)
 {
-    FcChar8	    c1, c2;
-    FcLangResult    result = FcLangDifferentLang;
-    const FcChar8  *s1_orig = s1;
-    FcBool	    is_und;
+    FcChar8        c1, c2;
+    FcLangResult   result = FcLangDifferentLang;
+    const FcChar8 *s1_orig = s1;
+    FcBool         is_und;
 
     is_und = FcToLower (s1[0]) == 'u' &&
-	     FcToLower (s1[1]) == 'n' &&
-	     FcToLower (s1[2]) == 'd' &&
-	     FcLangEnd (s1[3]);
+             FcToLower (s1[1]) == 'n' &&
+             FcToLower (s1[2]) == 'd' &&
+             FcLangEnd (s1[3]);
 
-    for (;;)
-    {
+    for (;;) {
 	c1 = *s1++;
 	c2 = *s2++;
-	
+
 	c1 = FcToLower (c1);
 	c2 = FcToLower (c2);
-	if (c1 != c2)
-	{
+	if (c1 != c2) {
 	    if (!is_und && FcLangEnd (c1) && FcLangEnd (c2))
 		result = FcLangDifferentTerritory;
 	    return result;
-	}
-	else if (!c1)
-	{
+	} else if (!c1) {
 	    return is_und ? result : FcLangEqual;
-	}
-	else if (c1 == '-')
-	{
+	} else if (c1 == '-') {
 	    if (!is_und)
 		result = FcLangDifferentTerritory;
 	}
@@ -421,17 +389,15 @@ FcLangCompare (const FcChar8 *s1, const FcChar8 *s2)
 static FcBool
 FcLangContains (const FcChar8 *super, const FcChar8 *sub)
 {
-    FcChar8	    c1, c2;
+    FcChar8 c1, c2;
 
-    for (;;)
-    {
+    for (;;) {
 	c1 = *super++;
 	c2 = *sub++;
-	
+
 	c1 = FcToLower (c1);
 	c2 = FcToLower (c2);
-	if (c1 != c2)
-	{
+	if (c1 != c2) {
 	    /* see if super has a country while sub is missing one */
 	    if (c1 == '-' && c2 == '\0')
 		return FcTrue;
@@ -439,8 +405,7 @@ FcLangContains (const FcChar8 *super, const FcChar8 *sub)
 	    if (c1 == '\0' && c2 == '-')
 		return FcTrue;
 	    return FcFalse;
-	}
-	else if (!c1)
+	} else if (!c1)
 	    return FcTrue;
     }
 }
@@ -448,11 +413,10 @@ FcLangContains (const FcChar8 *super, const FcChar8 *sub)
 const FcCharSet *
 FcLangGetCharSet (const FcChar8 *lang)
 {
-    int		i;
-    int		country = -1;
+    int i;
+    int country = -1;
 
-    for (i = 0; i < NUM_LANG_CHAR_SET; i++)
-    {
+    for (i = 0; i < NUM_LANG_CHAR_SET; i++) {
 	switch (FcLangCompare (lang, fcLangCharSets[i].lang)) {
 	case FcLangEqual:
 	    return &fcLangCharSets[i].charset;
@@ -473,7 +437,7 @@ FcStrSet *
 FcGetLangs (void)
 {
     FcStrSet *langs;
-    int	i;
+    int       i;
 
     langs = FcStrSetCreate();
     if (!langs)
@@ -488,7 +452,7 @@ FcGetLangs (void)
 FcLangSet *
 FcLangSetCreate (void)
 {
-    FcLangSet	*ls;
+    FcLangSet *ls;
 
     ls = malloc (sizeof (FcLangSet));
     if (!ls)
@@ -513,40 +477,38 @@ FcLangSetDestroy (FcLangSet *ls)
 FcLangSet *
 FcLangSetCopy (const FcLangSet *ls)
 {
-    FcLangSet	*new;
+    FcLangSet *newp;
 
     if (!ls)
 	return NULL;
 
-    new = FcLangSetCreate ();
-    if (!new)
+    newp = FcLangSetCreate();
+    if (!newp)
 	goto bail0;
-    memset (new->map, '\0', sizeof (new->map));
-    memcpy (new->map, ls->map, FC_MIN (sizeof (new->map), ls->map_size * sizeof (ls->map[0])));
-    if (ls->extra)
-    {
-	FcStrList	*list;
-	FcChar8		*extra;
-	
-	new->extra = FcStrSetCreate ();
-	if (!new->extra)
+    memset (newp->map, '\0', sizeof (newp->map));
+    memcpy (newp->map, ls->map, FC_MIN (sizeof (newp->map), ls->map_size * sizeof (ls->map[0])));
+    if (ls->extra) {
+	FcStrList *list;
+	FcChar8   *extra;
+
+	newp->extra = FcStrSetCreate();
+	if (!newp->extra)
 	    goto bail1;
 
-	list = FcStrListCreate (ls->extra);	
+	list = FcStrListCreate (ls->extra);
 	if (!list)
 	    goto bail1;
-	
+
 	while ((extra = FcStrListNext (list)))
-	    if (!FcStrSetAdd (new->extra, extra))
-	    {
+	    if (!FcStrSetAdd (newp->extra, extra)) {
 		FcStrListDone (list);
 		goto bail1;
 	    }
 	FcStrListDone (list);
     }
-    return new;
+    return newp;
 bail1:
-    FcLangSetDestroy (new);
+    FcLangSetDestroy (newp);
 bail0:
     return 0;
 }
@@ -563,45 +525,37 @@ bail0:
 static int
 FcLangSetIndex (const FcChar8 *lang)
 {
-    int	    low, high, mid = 0;
-    int	    cmp = 0;
-    FcChar8 firstChar = FcToLower(lang[0]);
-    FcChar8 secondChar = firstChar ? FcToLower(lang[1]) : '\0';
+    int     low, high, mid = 0;
+    int     cmp = 0;
+    FcChar8 firstChar = FcToLower (lang[0]);
+    FcChar8 secondChar = firstChar ? FcToLower (lang[1]) : '\0';
 
-    if (firstChar < 'a')
-    {
+    if (firstChar < 'a') {
 	low = 0;
 	high = fcLangCharSetRanges[0].begin;
-    }
-    else if(firstChar > 'z')
-    {
+    } else if (firstChar > 'z') {
 	low = fcLangCharSetRanges[25].begin;
 	high = NUM_LANG_CHAR_SET - 1;
-    }
-    else
-    {
+    } else {
 	low = fcLangCharSetRanges[firstChar - 'a'].begin;
 	high = fcLangCharSetRanges[firstChar - 'a'].end;
 	/* no matches */
 	if (low > high)
-	    return -(low+1); /* one past next entry after where it would be */
+	    return -(low + 1); /* one past next entry after where it would be */
     }
 
-    while (low <= high)
-    {
+    while (low <= high) {
 	mid = (high + low) >> 1;
-	if(fcLangCharSets[mid].lang[0] != firstChar)
-	    cmp = FcStrCmpIgnoreCase(fcLangCharSets[mid].lang, lang);
-	else
-	{   /* fast path for resolving 2-letter languages (by far the most common) after
-	     * finding the first char (probably already true because of the hash table) */
+	if (fcLangCharSets[mid].lang[0] != firstChar)
+	    cmp = FcStrCmpIgnoreCase (fcLangCharSets[mid].lang, lang);
+	else { /* fast path for resolving 2-letter languages (by far the most common) after
+	        * finding the first char (probably already true because of the hash table) */
 	    cmp = fcLangCharSets[mid].lang[1] - secondChar;
 	    if (cmp == 0 &&
-		(fcLangCharSets[mid].lang[2] != '\0' ||
-		 lang[2] != '\0'))
-	    {
-		cmp = FcStrCmpIgnoreCase(fcLangCharSets[mid].lang+2,
-					 lang+2);
+	        (fcLangCharSets[mid].lang[2] != '\0' ||
+	         lang[2] != '\0')) {
+		cmp = FcStrCmpIgnoreCase (fcLangCharSets[mid].lang + 2,
+		                          lang + 2);
 	    }
 	}
 	if (cmp == 0)
@@ -619,17 +573,15 @@ FcLangSetIndex (const FcChar8 *lang)
 FcBool
 FcLangSetAdd (FcLangSet *ls, const FcChar8 *lang)
 {
-    int	    id;
+    int id;
 
     id = FcLangSetIndex (lang);
-    if (id >= 0)
-    {
+    if (id >= 0) {
 	FcLangSetBitSet (ls, id);
 	return FcTrue;
     }
-    if (!ls->extra)
-    {
-	ls->extra = FcStrSetCreate ();
+    if (!ls->extra) {
+	ls->extra = FcStrSetCreate();
 	if (!ls->extra)
 	    return FcFalse;
     }
@@ -639,15 +591,12 @@ FcLangSetAdd (FcLangSet *ls, const FcChar8 *lang)
 FcBool
 FcLangSetDel (FcLangSet *ls, const FcChar8 *lang)
 {
-    int	id;
+    int id;
 
     id = FcLangSetIndex (lang);
-    if (id >= 0)
-    {
+    if (id >= 0) {
 	FcLangSetBitReset (ls, id);
-    }
-    else if (ls->extra)
-    {
+    } else if (ls->extra) {
 	FcStrSetDel (ls->extra, lang);
     }
     return FcTrue;
@@ -656,9 +605,9 @@ FcLangSetDel (FcLangSet *ls, const FcChar8 *lang)
 FcLangResult
 FcLangSetHasLang (const FcLangSet *ls, const FcChar8 *lang)
 {
-    int		    id;
-    FcLangResult    best, r;
-    int		    i;
+    int          id;
+    FcLangResult best, r;
+    int          i;
 
     id = FcLangSetIndex (lang);
     if (id < 0)
@@ -666,31 +615,26 @@ FcLangSetHasLang (const FcLangSet *ls, const FcChar8 *lang)
     else if (FcLangSetBitGet (ls, id))
 	return FcLangEqual;
     best = FcLangDifferentLang;
-    for (i = id - 1; i >= 0; i--)
-    {
+    for (i = id - 1; i >= 0; i--) {
 	r = FcLangCompare (lang, fcLangCharSets[i].lang);
 	if (r == FcLangDifferentLang)
 	    break;
 	if (FcLangSetBitGet (ls, i) && r < best)
 	    best = r;
     }
-    for (i = id; i < NUM_LANG_CHAR_SET; i++)
-    {
+    for (i = id; i < NUM_LANG_CHAR_SET; i++) {
 	r = FcLangCompare (lang, fcLangCharSets[i].lang);
 	if (r == FcLangDifferentLang)
 	    break;
 	if (FcLangSetBitGet (ls, i) && r < best)
 	    best = r;
     }
-    if (ls->extra)
-    {
-	FcStrList	*list = FcStrListCreate (ls->extra);
-	FcChar8		*extra;
-	
-	if (list)
-	{
-	    while (best > FcLangEqual && (extra = FcStrListNext (list)))
-	    {
+    if (ls->extra) {
+	FcStrList *list = FcStrListCreate (ls->extra);
+	FcChar8   *extra;
+
+	if (list) {
+	    while (best > FcLangEqual && (extra = FcStrListNext (list))) {
 		r = FcLangCompare (lang, extra);
 		if (r < best)
 		    best = r;
@@ -704,14 +648,12 @@ FcLangSetHasLang (const FcLangSet *ls, const FcChar8 *lang)
 static FcLangResult
 FcLangSetCompareStrSet (const FcLangSet *ls, FcStrSet *set)
 {
-    FcStrList	    *list = FcStrListCreate (set);
-    FcLangResult    r, best = FcLangDifferentLang;
-    FcChar8	    *extra;
+    FcStrList   *list = FcStrListCreate (set);
+    FcLangResult r, best = FcLangDifferentLang;
+    FcChar8     *extra;
 
-    if (list)
-    {
-	while (best > FcLangEqual && (extra = FcStrListNext (list)))
-	{
+    if (list) {
+	while (best > FcLangEqual && (extra = FcStrListNext (list))) {
 	    r = FcLangSetHasLang (ls, extra);
 	    if (r < best)
 		best = r;
@@ -724,9 +666,9 @@ FcLangSetCompareStrSet (const FcLangSet *ls, FcStrSet *set)
 FcLangResult
 FcLangSetCompare (const FcLangSet *lsa, const FcLangSet *lsb)
 {
-    int		    i, j, count;
-    FcLangResult    best, r;
-    FcChar32 aInCountrySet, bInCountrySet;
+    int          i, j, count;
+    FcLangResult best, r;
+    FcChar32     aInCountrySet, bInCountrySet;
 
     count = FC_MIN (lsa->map_size, lsb->map_size);
     count = FC_MIN (NUM_LANG_SET_MAP, count);
@@ -734,31 +676,26 @@ FcLangSetCompare (const FcLangSet *lsa, const FcLangSet *lsb)
 	if (lsa->map[i] & lsb->map[i])
 	    return FcLangEqual;
     best = FcLangDifferentLang;
-    for (j = 0; j < NUM_COUNTRY_SET; j++)
-    {
+    for (j = 0; j < NUM_COUNTRY_SET; j++) {
 	aInCountrySet = 0;
 	bInCountrySet = 0;
 
-	for (i = 0; i < count; i++)
-	{
+	for (i = 0; i < count; i++) {
 	    aInCountrySet |= lsa->map[i] & fcLangCountrySets[j][i];
 	    bInCountrySet |= lsb->map[i] & fcLangCountrySets[j][i];
 
-	    if (aInCountrySet && bInCountrySet)
-	    {
+	    if (aInCountrySet && bInCountrySet) {
 		best = FcLangDifferentTerritory;
 		break;
 	    }
 	}
     }
-    if (lsa->extra)
-    {
+    if (lsa->extra) {
 	r = FcLangSetCompareStrSet (lsb, lsa->extra);
 	if (r < best)
 	    best = r;
     }
-    if (best > FcLangEqual && lsb->extra)
-    {
+    if (best > FcLangEqual && lsb->extra) {
 	r = FcLangSetCompareStrSet (lsa, lsb->extra);
 	if (r < best)
 	    best = r;
@@ -772,34 +709,30 @@ FcLangSetCompare (const FcLangSet *lsa, const FcLangSet *lsb)
 FcLangSet *
 FcLangSetPromote (const FcChar8 *lang, FcValuePromotionBuffer *vbuf)
 {
-    int		id;
+    int id;
     typedef struct {
-	FcLangSet  ls;
-	FcStrSet   strs;
-	FcChar8   *str;
+	FcLangSet ls;
+	FcStrSet  strs;
+	FcChar8  *str;
     } FcLangSetPromotionBuffer;
-    FcLangSetPromotionBuffer *buf = (FcLangSetPromotionBuffer *) vbuf;
+    FcLangSetPromotionBuffer *buf = (FcLangSetPromotionBuffer *)vbuf;
 
     FC_ASSERT_STATIC (sizeof (FcLangSetPromotionBuffer) <= sizeof (FcValuePromotionBuffer));
 
     memset (buf->ls.map, '\0', sizeof (buf->ls.map));
     buf->ls.map_size = NUM_LANG_SET_MAP;
     buf->ls.extra = 0;
-    if (lang)
-    {
+    if (lang) {
 	id = FcLangSetIndex (lang);
-	if (id >= 0)
-	{
+	if (id >= 0) {
 	    FcLangSetBitSet (&buf->ls, id);
-	}
-	else
-	{
+	} else {
 	    buf->ls.extra = &buf->strs;
 	    buf->strs.num = 1;
 	    buf->strs.size = 1;
 	    buf->strs.strs = &buf->str;
 	    FcRefInit (&buf->strs.ref, 1);
-	    buf->str = (FcChar8 *) lang;
+	    buf->str = (FcChar8 *)lang;
 	}
     }
     return &buf->ls;
@@ -808,8 +741,8 @@ FcLangSetPromote (const FcChar8 *lang, FcValuePromotionBuffer *vbuf)
 FcChar32
 FcLangSetHash (const FcLangSet *ls)
 {
-    FcChar32	h = 0;
-    int		i, count;
+    FcChar32 h = 0;
+    int      i, count;
 
     count = FC_MIN (ls->map_size, NUM_LANG_SET_MAP);
     for (i = 0; i < count; i++)
@@ -822,27 +755,25 @@ FcLangSetHash (const FcLangSet *ls)
 FcLangSet *
 FcNameParseLangSet (const FcChar8 *string)
 {
-    FcChar8	    lang[32], c = 0;
-    int i;
-    FcLangSet	    *ls;
+    FcChar8    lang[32], c = 0;
+    int        i;
+    FcLangSet *ls;
 
-    ls = FcLangSetCreate ();
+    ls = FcLangSetCreate();
     if (!ls)
 	goto bail0;
 
-    for(;;)
-    {
-	for(i = 0; i < 31;i++)
-	{
+    for (;;) {
+	for (i = 0; i < 31; i++) {
 	    c = *string++;
-	    if(c == '\0' || c == '|')
+	    if (c == '\0' || c == '|')
 		break; /* end of this code */
 	    lang[i] = c;
 	}
 	lang[i] = '\0';
 	if (!FcLangSetAdd (ls, lang))
 	    goto bail1;
-	if(c == '\0')
+	if (c == '\0')
 	    break;
     }
     return ls;
@@ -855,18 +786,15 @@ bail0:
 FcBool
 FcNameUnparseLangSet (FcStrBuf *buf, const FcLangSet *ls)
 {
-    int		i, bit, count;
-    FcChar32	bits;
-    FcBool	first = FcTrue;
+    int      i, bit, count;
+    FcChar32 bits;
+    FcBool   first = FcTrue;
 
     count = FC_MIN (ls->map_size, NUM_LANG_SET_MAP);
-    for (i = 0; i < count; i++)
-    {
-	if ((bits = ls->map[i]))
-	{
+    for (i = 0; i < count; i++) {
+	if ((bits = ls->map[i])) {
 	    for (bit = 0; bit <= 31; bit++)
-		if (bits & (1U << bit))
-		{
+		if (bits & (1U << bit)) {
 		    int id = (i << 5) | bit;
 		    if (!first)
 			if (!FcStrBufChar (buf, '|'))
@@ -877,29 +805,25 @@ FcNameUnparseLangSet (FcStrBuf *buf, const FcLangSet *ls)
 		}
 	}
     }
-    if (ls->extra)
-    {
-	FcStrList   *list = FcStrListCreate (ls->extra);
-	FcChar8	    *extra;
+    if (ls->extra) {
+	FcStrList *list = FcStrListCreate (ls->extra);
+	FcChar8   *extra;
 
 	if (!list)
 	    return FcFalse;
-	while ((extra = FcStrListNext (list)))
-	{
+	while ((extra = FcStrListNext (list))) {
 	    if (!first)
-		if (!FcStrBufChar (buf, '|'))
-                {
-                    FcStrListDone (list);
+		if (!FcStrBufChar (buf, '|')) {
+		    FcStrListDone (list);
 		    return FcFalse;
-                }
-	    if (!FcStrBufString (buf, extra))
-                {
-                    FcStrListDone (list);
-                    return FcFalse;
-                }
+		}
+	    if (!FcStrBufString (buf, extra)) {
+		FcStrListDone (list);
+		return FcFalse;
+	    }
 	    first = FcFalse;
 	}
-        FcStrListDone (list);
+	FcStrListDone (list);
     }
     return FcTrue;
 }
@@ -907,12 +831,11 @@ FcNameUnparseLangSet (FcStrBuf *buf, const FcLangSet *ls)
 FcBool
 FcLangSetEqual (const FcLangSet *lsa, const FcLangSet *lsb)
 {
-    int	    i, count;
+    int i, count;
 
     count = FC_MIN (lsa->map_size, lsb->map_size);
     count = FC_MIN (NUM_LANG_SET_MAP, count);
-    for (i = 0; i < count; i++)
-    {
+    for (i = 0; i < count; i++) {
 	if (lsa->map[i] != lsb->map[i])
 	    return FcFalse;
     }
@@ -926,8 +849,8 @@ FcLangSetEqual (const FcLangSet *lsa, const FcLangSet *lsb)
 static FcBool
 FcLangSetContainsLang (const FcLangSet *ls, const FcChar8 *lang)
 {
-    int		    id;
-    int		    i;
+    int id;
+    int i;
 
     id = FcLangSetIndex (lang);
     if (id < 0)
@@ -937,36 +860,31 @@ FcLangSetContainsLang (const FcLangSet *ls, const FcChar8 *lang)
     /*
      * search up and down among equal languages for a match
      */
-    for (i = id - 1; i >= 0; i--)
-    {
+    for (i = id - 1; i >= 0; i--) {
 	if (FcLangCompare (fcLangCharSets[i].lang, lang) == FcLangDifferentLang)
 	    break;
 	if (FcLangSetBitGet (ls, i) &&
 	    FcLangContains (fcLangCharSets[i].lang, lang))
 	    return FcTrue;
     }
-    for (i = id; i < NUM_LANG_CHAR_SET; i++)
-    {
+    for (i = id; i < NUM_LANG_CHAR_SET; i++) {
 	if (FcLangCompare (fcLangCharSets[i].lang, lang) == FcLangDifferentLang)
 	    break;
 	if (FcLangSetBitGet (ls, i) &&
 	    FcLangContains (fcLangCharSets[i].lang, lang))
 	    return FcTrue;
     }
-    if (ls->extra)
-    {
-	FcStrList	*list = FcStrListCreate (ls->extra);
-	FcChar8		*extra;
-	
-	if (list)
-	{
-	    while ((extra = FcStrListNext (list)))
-	    {
+    if (ls->extra) {
+	FcStrList *list = FcStrListCreate (ls->extra);
+	FcChar8   *extra;
+
+	if (list) {
+	    while ((extra = FcStrListNext (list))) {
 		if (FcLangContains (extra, lang))
 		    break;
 	    }
 	    FcStrListDone (list);
-    	    if (extra)
+	    if (extra)
 		return FcTrue;
 	}
     }
@@ -979,13 +897,14 @@ FcLangSetContainsLang (const FcLangSet *ls, const FcChar8 *lang)
 FcBool
 FcLangSetContains (const FcLangSet *lsa, const FcLangSet *lsb)
 {
-    int		    i, j, count;
-    FcChar32	    missing;
+    int      i, j, count;
+    FcChar32 missing;
 
-    if (FcDebug() & FC_DBG_MATCHV)
-    {
-	printf ("FcLangSet "); FcLangSetPrint (lsa);
-	printf (" contains "); FcLangSetPrint (lsb);
+    if (FcDebug() & FC_DBG_MATCHV) {
+	printf ("FcLangSet ");
+	FcLangSetPrint (lsa);
+	printf (" contains ");
+	FcLangSetPrint (lsb);
 	printf ("\n");
     }
     /*
@@ -993,35 +912,27 @@ FcLangSetContains (const FcLangSet *lsa, const FcLangSet *lsb)
      */
     count = FC_MIN (lsa->map_size, lsb->map_size);
     count = FC_MIN (NUM_LANG_SET_MAP, count);
-    for (i = 0; i < count; i++)
-    {
+    for (i = 0; i < count; i++) {
 	missing = lsb->map[i] & ~lsa->map[i];
-	if (missing)
-	{
+	if (missing) {
 	    for (j = 0; j < 32; j++)
-		if (missing & (1U << j))
-		{
+		if (missing & (1U << j)) {
 		    if (!FcLangSetContainsLang (lsa,
-						fcLangCharSets[fcLangCharSetIndicesInv[i*32 + j]].lang))
-		    {
+		                                fcLangCharSets[fcLangCharSetIndicesInv[i * 32 + j]].lang)) {
 			if (FcDebug() & FC_DBG_MATCHV)
-			    printf ("\tMissing bitmap %s\n", fcLangCharSets[fcLangCharSetIndicesInv[i*32+j]].lang);
+			    printf ("\tMissing bitmap %s\n", fcLangCharSets[fcLangCharSetIndicesInv[i * 32 + j]].lang);
 			return FcFalse;
 		    }
 		}
 	}
     }
-    if (lsb->extra)
-    {
-	FcStrList   *list = FcStrListCreate (lsb->extra);
-	FcChar8	    *extra;
+    if (lsb->extra) {
+	FcStrList *list = FcStrListCreate (lsb->extra);
+	FcChar8   *extra;
 
-	if (list)
-	{
-	    while ((extra = FcStrListNext (list)))
-	    {
-		if (!FcLangSetContainsLang (lsa, extra))
-		{
+	if (list) {
+	    while ((extra = FcStrListNext (list))) {
+		if (!FcLangSetContainsLang (lsa, extra)) {
 		    if (FcDebug() & FC_DBG_MATCHV)
 			printf ("\tMissing string %s\n", extra);
 		    break;
@@ -1044,9 +955,9 @@ FcLangSetSerializeAlloc (FcSerialize *serialize, const FcLangSet *l)
 }
 
 FcLangSet *
-FcLangSetSerialize(FcSerialize *serialize, const FcLangSet *l)
+FcLangSetSerialize (FcSerialize *serialize, const FcLangSet *l)
 {
-    FcLangSet	*l_serialize = FcSerializePtr (serialize, l);
+    FcLangSet *l_serialize = FcSerializePtr (serialize, l);
 
     if (!l_serialize)
 	return NULL;
@@ -1061,7 +972,7 @@ FcStrSet *
 FcLangSetGetLangs (const FcLangSet *ls)
 {
     FcStrSet *langs;
-    int	      i;
+    int       i;
 
     langs = FcStrSetCreate();
     if (!langs)
@@ -1071,13 +982,11 @@ FcLangSetGetLangs (const FcLangSet *ls)
 	if (FcLangSetBitGet (ls, i))
 	    FcStrSetAdd (langs, fcLangCharSets[i].lang);
 
-    if (ls->extra)
-    {
-	FcStrList	*list = FcStrListCreate (ls->extra);
-	FcChar8		*extra;
+    if (ls->extra) {
+	FcStrList *list = FcStrListCreate (ls->extra);
+	FcChar8   *extra;
 
-	if (list)
-	{
+	if (list) {
 	    while ((extra = FcStrListNext (list)))
 		FcStrSetAdd (langs, extra);
 
@@ -1089,19 +998,18 @@ FcLangSetGetLangs (const FcLangSet *ls)
 }
 
 static FcLangSet *
-FcLangSetOperate(const FcLangSet	*a,
-		 const FcLangSet	*b,
-		 FcBool			(*func) (FcLangSet 	*ls,
-						 const FcChar8	*s))
+FcLangSetOperate (const FcLangSet *a,
+                  const FcLangSet *b,
+                  FcBool (*func) (FcLangSet     *ls,
+                                  const FcChar8 *s))
 {
-    FcLangSet	*langset = FcLangSetCopy (a);
-    FcStrSet	*set = FcLangSetGetLangs (b);
-    FcStrList	*sl = FcStrListCreate (set);
-    FcChar8	*str;
+    FcLangSet *langset = FcLangSetCopy (a);
+    FcStrSet  *set = FcLangSetGetLangs (b);
+    FcStrList *sl = FcStrListCreate (set);
+    FcChar8   *str;
 
     FcStrSetDestroy (set);
-    while ((str = FcStrListNext (sl)))
-    {
+    while ((str = FcStrListNext (sl))) {
 	func (langset, str);
     }
     FcStrListDone (sl);
@@ -1112,22 +1020,21 @@ FcLangSetOperate(const FcLangSet	*a,
 FcLangSet *
 FcLangSetUnion (const FcLangSet *a, const FcLangSet *b)
 {
-    return FcLangSetOperate(a, b, FcLangSetAdd);
+    return FcLangSetOperate (a, b, FcLangSetAdd);
 }
 
 FcLangSet *
 FcLangSetSubtract (const FcLangSet *a, const FcLangSet *b)
 {
-    return FcLangSetOperate(a, b, FcLangSetDel);
+    return FcLangSetOperate (a, b, FcLangSetDel);
 }
 
 FcBool
-FcLangIsExclusive (const FcChar8  *lang)
+FcLangIsExclusive (const FcChar8 *lang)
 {
-    int	    i;
+    int i;
 
-    for (i = 0; i < NUM_CODE_PAGE_RANGE; i++)
-    {
+    for (i = 0; i < NUM_CODE_PAGE_RANGE; i++) {
 	if (FcLangCompare (lang, FcCodePageRange[i].lang) == FcLangEqual)
 	    return FcTrue;
     }
@@ -1135,43 +1042,36 @@ FcLangIsExclusive (const FcChar8  *lang)
 }
 
 const FcChar8 *
-FcLangIsExclusiveFromOs2(unsigned long os2ulUnicodeRange1, unsigned long os2ulUnicodeRange2)
+FcLangIsExclusiveFromOs2 (unsigned long os2ulUnicodeRange1, unsigned long os2ulUnicodeRange2)
 {
-    unsigned int i;
-    const FcChar8* exclusiveLang = 0;
+    unsigned int   i;
+    const FcChar8 *exclusiveLang = 0;
 
-    for (i = 0; i < NUM_CODE_PAGE_RANGE; i++)
-    {
-        unsigned long bits;
-        int bit;
-        if (FcCodePageRange[i].bit < 32)
-        {
-            bits = os2ulUnicodeRange1;
-            bit = FcCodePageRange[i].bit;
-        }
-        else
-        {
-            bits = os2ulUnicodeRange2;
-            bit = FcCodePageRange[i].bit - 32;
-        }
-        if (bits & (1U << bit))
-        {
-            /*
-             * If the font advertises support for multiple
-             * "exclusive" languages, then include support
-             * for any language found to have coverage
-             */
-            if (exclusiveLang)
-            {
-                exclusiveLang = 0;
-                break;
-            }
-            exclusiveLang = FcCodePageRange[i].lang;
-        }
+    for (i = 0; i < NUM_CODE_PAGE_RANGE; i++) {
+	unsigned long bits;
+	int           bit;
+	if (FcCodePageRange[i].bit < 32) {
+	    bits = os2ulUnicodeRange1;
+	    bit = FcCodePageRange[i].bit;
+	} else {
+	    bits = os2ulUnicodeRange2;
+	    bit = FcCodePageRange[i].bit - 32;
+	}
+	if (bits & (1U << bit)) {
+	    /*
+	     * If the font advertises support for multiple
+	     * "exclusive" languages, then include support
+	     * for any language found to have coverage
+	     */
+	    if (exclusiveLang) {
+		exclusiveLang = 0;
+		break;
+	    }
+	    exclusiveLang = FcCodePageRange[i].lang;
+	}
     }
     return exclusiveLang;
 }
-
 
 #define __fclang__
 #include "fcaliastail.h"

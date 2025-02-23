@@ -36,6 +36,7 @@
 
 #include "dix/exevents_priv.h"
 #include "dix/input_priv.h"
+#include "os/fmt.h"
 
 #include "inputstr.h"
 #include "xkbstr.h"

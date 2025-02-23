@@ -316,29 +316,32 @@
   variables:
     FDO_CI_CONCURRENT: 24
     RUNNER_FARM_LOCATION: mupuf
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:TAHITI
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:TAHITI
+    - $B2C_MARS_SETUP_TAGS
 
 .kabini-test-valve:
   variables:
     RUNNER_FARM_LOCATION: mupuf
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:KABINI
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=8g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:KABINI
+    - $B2C_MARS_SETUP_TAGS
 
 .polaris10-test-valve:
   variables:
     FDO_CI_CONCURRENT: 16
     B2C_TIMEOUT_BOOT_RETRIES: 4
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:POLARIS10
     # (2022-01) tsc=unstable was added in response to this message in kmsg,
     #    TSC found unstable after boot, most likely due to broken BIOS. Use 'tsc=unstable'.
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g tsc=unstable'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:POLARIS10
+    - $B2C_MARS_SETUP_TAGS
 
 .polaris10-test-valve-mupuf:
   extends: .polaris10-test-valve
@@ -353,22 +356,24 @@
 .vega10-test-valve:
   variables:
     RUNNER_FARM_LOCATION: keywords
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:VEGA10
     FDO_CI_CONCURRENT: 16
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:VEGA10
+    - $B2C_MARS_SETUP_TAGS
 
 .renoir-test-valve:
   variables:
     RUNNER_FARM_LOCATION: mupuf
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:RENOIR
     FDO_CI_CONCURRENT: 16
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
     B2C_TIMEOUT_BOOT_MINUTES: 60
     B2C_TIMEOUT_OVERALL_MINUTES: 120
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:RENOIR
+    - $B2C_MARS_SETUP_TAGS
 
 .navi10-test-valve:
   variables:
@@ -377,9 +382,10 @@
     # IRQs. This tends to confuse the interrupt controller and breaks
     # MSI IRQs leading to GPU hangs on amdgpu.
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g noapic'
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:NAVI10
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:NAVI10
+    - $B2C_MARS_SETUP_TAGS
 
 .navi10-test-valve-mupuf:
   extends:
@@ -398,41 +404,45 @@
 .navi21-test-valve:
   variables:
     RUNNER_FARM_LOCATION: keywords
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:NAVI21
     FDO_CI_CONCURRENT: 32
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:NAVI21
+    - $B2C_MARS_SETUP_TAGS
 
 .vangogh-test-valve:
   variables:
     RUNNER_FARM_LOCATION: mupuf
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:VANGOGH
     FDO_CI_CONCURRENT: 8
     B2C_TIMEOUT_BOOT_MINUTES: 85
     B2C_TIMEOUT_OVERALL_MINUTES: 120
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:VANGOGH
+    - $B2C_MARS_SETUP_TAGS
     - $VALVE_INFRA_VANGOGH_JOB_PRIORITY
 
 .raphael-test-valve:
   variables:
     RUNNER_FARM_LOCATION: keywords
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:RAPHAEL
     FDO_CI_CONCURRENT: 32
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:RAPHAEL
+    - $B2C_MARS_SETUP_TAGS
 
 .navi31-test-valve:
   variables:
     RUNNER_FARM_LOCATION: keywords
+    B2C_MARS_SETUP_TAGS: amdgpu:codename:NAVI31
     FDO_CI_CONCURRENT: 32
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
   tags:
     - farm:$RUNNER_FARM_LOCATION
-    - amdgpu:codename:NAVI31
+    - $B2C_MARS_SETUP_TAGS
 
 ############### VKCTS tests ###############
 

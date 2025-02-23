@@ -21,50 +21,49 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  * PERFORMANCE OF THIS SOFTWARE.
  */
+#include <fontconfig/fontconfig.h>
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <fontconfig/fontconfig.h>
 
 int
 main (void)
 {
-    const FcChar8 *doc = (const FcChar8 *) ""
+    const FcChar8 *doc = (const FcChar8 *)
+	""
 	"<fontconfig>\n"
 	"  <cachedir></cachedir>\n"
 	"</fontconfig>\n"
 	"";
-    const FcChar8 *doc2 = (const FcChar8 *) ""
+    const FcChar8 *doc2 = (const FcChar8 *)
+	""
 	"<fontconfig>\n"
 	"  <cachedir prefix=\"xdg\"></cachedir>\n"
 	"</fontconfig>\n"
 	"";
-    FcConfig *cfg = FcConfigCreate ();
+    FcConfig  *cfg = FcConfigCreate();
     FcStrList *l;
-    FcChar8 *p;
+    FcChar8   *p;
 
-    if (!FcConfigParseAndLoadFromMemory (cfg, doc, FcTrue))
-    {
+    if (!FcConfigParseAndLoadFromMemory (cfg, doc, FcTrue)) {
 	fprintf (stderr, "Unable to load a config from memory.\n");
 	return 1;
     }
     l = FcConfigGetCacheDirs (cfg);
-    if ((p = FcStrListNext (l)) != NULL)
-    {
+    if ((p = FcStrListNext (l)) != NULL) {
 	fprintf (stderr, "There was one or more cachedirs\n");
 	return 1;
     }
     FcStrListDone (l);
     FcConfigDestroy (cfg);
 
-    cfg = FcConfigCreate ();
-    if (!FcConfigParseAndLoadFromMemory (cfg, doc2, FcTrue))
-    {
+    cfg = FcConfigCreate();
+    if (!FcConfigParseAndLoadFromMemory (cfg, doc2, FcTrue)) {
 	fprintf (stderr, "Unable to load a config from memory (with prefix).\n");
 	return 1;
     }
     l = FcConfigGetCacheDirs (cfg);
-    if ((p = FcStrListNext (l)) != NULL)
-    {
+    if ((p = FcStrListNext (l)) != NULL) {
 	fprintf (stderr, "There was one or more cachedirs (with prefix)\n");
 	return 1;
     }

@@ -154,11 +154,6 @@ xkb_symbols "evdev" {
     key <I186>   {      [ XF86ScrollDown        ]       };
     key <I187>   {      [ parenleft             ]       };
     key <I188>   {      [ parenright            ]       };
-    key <I192>   {      [ XF86LaunchA           ]       };
-    key <I193>   {      [ XF86LaunchC           ]       };
-    key <I194>   {      [ XF86LaunchD           ]       };
-    key <I195>   {      [ XF86LaunchE           ]       };
-    key <I196>   {      [ XF86LaunchF           ]       };
     key <I208>   {      [ XF86AudioPlay         ]       };
     key <I209>   {      [ XF86AudioPause        ]       };
     key <I210>   {      [ XF86Launch3           ]       };

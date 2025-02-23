@@ -106,6 +106,12 @@ enum agx_barrier {
     * have....
     */
    AGX_BARRIER_ALL = (1 << 0),
+
+   /* Specifies ordering requirements for the compute job to happen before/after
+    * the concurrent enqueued graphics on a graphical command buffer.
+    */
+   AGX_PREGFX = (1 << 1),
+   AGX_POSTGFX = (1 << 2),
 };
 
 struct agx_draw {

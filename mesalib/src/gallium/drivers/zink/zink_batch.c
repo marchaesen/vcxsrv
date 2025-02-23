@@ -147,15 +147,14 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
    bs->signal_semaphore = VK_NULL_HANDLE;
    bs->sparse_semaphore = VK_NULL_HANDLE;
    util_dynarray_clear(&bs->wait_semaphore_stages);
+   util_dynarray_clear(&bs->wait_semaphores);
 
    bs->present = VK_NULL_HANDLE;
    /* check the arrays first to avoid locking unnecessarily */
-   if (util_dynarray_contains(&bs->acquires, VkSemaphore) || util_dynarray_contains(&bs->wait_semaphores, VkSemaphore) || util_dynarray_contains(&bs->tracked_semaphores, VkSemaphore)) {
+   if (util_dynarray_contains(&bs->acquires, VkSemaphore) || util_dynarray_contains(&bs->tracked_semaphores, VkSemaphore)) {
       simple_mtx_lock(&screen->semaphores_lock);
       util_dynarray_append_dynarray(&screen->semaphores, &bs->acquires);
       util_dynarray_clear(&bs->acquires);
-      util_dynarray_append_dynarray(&screen->semaphores, &bs->wait_semaphores);
-      util_dynarray_clear(&bs->wait_semaphores);
       util_dynarray_append_dynarray(&screen->semaphores, &bs->tracked_semaphores);
       util_dynarray_clear(&bs->tracked_semaphores);
       simple_mtx_unlock(&screen->semaphores_lock);
@@ -619,6 +618,8 @@ typedef enum {
    ZINK_SUBMIT_MAX
 } zink_submit;
 
+#define ZINK_MAX_SIGNALS 3
+
 static void
 submit_queue(void *data, void *gdata, int thread_index)
 {
@@ -685,12 +686,12 @@ submit_queue(void *data, void *gdata, int thread_index)
    si[ZINK_SUBMIT_CMDBUF].pSignalSemaphores = bs->signal_semaphores.data;
 
    /* then the signal submit with the timeline (fence) semaphore */
-   VkSemaphore signals[3];
+   VkSemaphore signals[ZINK_MAX_SIGNALS];
    si[ZINK_SUBMIT_SIGNAL].signalSemaphoreCount = !!bs->signal_semaphore;
    signals[0] = bs->signal_semaphore;
    si[ZINK_SUBMIT_SIGNAL].pSignalSemaphores = signals;
    VkTimelineSemaphoreSubmitInfo tsi = {0};
-   uint64_t signal_values[2] = {0};
+   uint64_t signal_values[ZINK_MAX_SIGNALS] = {0};
    tsi.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO;
    si[ZINK_SUBMIT_SIGNAL].pNext = &tsi;
    tsi.pSignalSemaphoreValues = signal_values;
@@ -702,6 +703,8 @@ submit_queue(void *data, void *gdata, int thread_index)
       signals[si[ZINK_SUBMIT_SIGNAL].signalSemaphoreCount++] = bs->present;
    tsi.signalSemaphoreValueCount = si[ZINK_SUBMIT_SIGNAL].signalSemaphoreCount;
 
+   assert(si[ZINK_SUBMIT_SIGNAL].signalSemaphoreCount <= ZINK_MAX_SIGNALS);
+   assert(tsi.signalSemaphoreValueCount <= ZINK_MAX_SIGNALS);
 
    VkResult result;
    if (bs->has_work) {
@@ -888,6 +891,9 @@ zink_end_batch(struct zink_context *ctx)
       }
       bs->has_work = true;
    }
+
+   util_dynarray_foreach(&bs->fences, struct zink_tc_fence*, mfence)
+      (*mfence)->deferred_ctx = NULL;
 
    if (screen->threaded_submit) {
       util_queue_add_job(&screen->flush_queue, bs, &bs->flush_completed,

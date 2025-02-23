@@ -99,8 +99,12 @@ vn_feedback_buffer_create(struct vn_device *dev,
    if (result != VK_SUCCESS)
       goto out_free_memory;
 
-   result = vn_MapMemory(dev_handle, fb_buf->mem_handle, 0, VK_WHOLE_SIZE, 0,
-                         &fb_buf->data);
+   const VkMemoryMapInfo map_info = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_MAP_INFO,
+      .memory = fb_buf->mem_handle,
+      .size = VK_WHOLE_SIZE,
+   };
+   result = vn_MapMemory2(dev_handle, &map_info, &fb_buf->data);
    if (result != VK_SUCCESS)
       goto out_free_memory;
 
@@ -127,7 +131,11 @@ vn_feedback_buffer_destroy(struct vn_device *dev,
 {
    VkDevice dev_handle = vn_device_to_handle(dev);
 
-   vn_UnmapMemory(dev_handle, fb_buf->mem_handle);
+   const VkMemoryUnmapInfo unmap_info = {
+      .sType = VK_STRUCTURE_TYPE_MEMORY_UNMAP_INFO,
+      .memory = fb_buf->mem_handle,
+   };
+   vn_UnmapMemory2(dev_handle, &unmap_info);
    vn_FreeMemory(dev_handle, fb_buf->mem_handle, alloc);
    vn_DestroyBuffer(dev_handle, fb_buf->buf_handle, alloc);
    vk_free(alloc, fb_buf);

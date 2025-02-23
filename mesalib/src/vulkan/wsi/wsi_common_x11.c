@@ -1810,8 +1810,9 @@ x11_queue_present(struct wsi_swapchain *anv_chain,
    if (status < 0)
       return status;
 
-   if (damage && damage->pRectangles && damage->rectangleCount > 0 &&
-      damage->rectangleCount <= MAX_DAMAGE_RECTS) {
+   if (chain->images[image_index].update_region != None &&
+       damage && damage->pRectangles && damage->rectangleCount > 0 &&
+       damage->rectangleCount <= MAX_DAMAGE_RECTS) {
       xcb_rectangle_t *rects = chain->images[image_index].rects;
 
       update_area = chain->images[image_index].update_region;
@@ -2073,6 +2074,7 @@ x11_image_init(VkDevice device_h, struct x11_swapchain *chain,
    if (result != VK_SUCCESS)
       return result;
 
+   image->update_region = None;
    if (chain->base.wsi->sw && !chain->has_mit_shm)
       return VK_SUCCESS;
 

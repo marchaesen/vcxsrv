@@ -44,7 +44,7 @@ clear_image(struct hk_cmd_buffer *cmd, struct hk_image *image,
 
    /* TODO: Use fast clear */
    bool compressed = ail_is_compressed(&image->planes[0].layout);
-   perf_debug(dev, "Image clear (%scompressed)", compressed ? "" : "un");
+   perf_debug(cmd, "Image clear (%scompressed)", compressed ? "" : "un");
 
    for (uint32_t r = 0; r < range_count; r++) {
       const uint32_t level_count =

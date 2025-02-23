@@ -28,7 +28,7 @@
 #include FT_FREETYPE_H
 
 #ifndef FcPublic
-#define FcPublic
+#  define FcPublic
 #endif
 
 _FCFUNCPROTOBEGIN
@@ -38,7 +38,7 @@ FcFreeTypeCharIndex (FT_Face face, FcChar32 ucs4);
 
 FcPublic FcCharSet *
 FcFreeTypeCharSetAndSpacing (FT_Face face, FcBlanks *blanks, int *spacing);
-    
+
 FcPublic FcCharSet *
 FcFreeTypeCharSet (FT_Face face, FcBlanks *blanks);
 
@@ -50,9 +50,9 @@ FcPatternAddFTFace (FcPattern *p, const char *object, const FT_Face f);
 
 FcPublic FcPattern *
 FcFreeTypeQueryFace (const FT_Face  face,
-		     const FcChar8  *file,
-		     unsigned int   id,
-		     FcBlanks	    *blanks);
+                     const FcChar8 *file,
+                     unsigned int   id,
+                     FcBlanks      *blanks);
 
 _FCFUNCPROTOEND
 

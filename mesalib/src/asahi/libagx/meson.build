@@ -3,6 +3,7 @@
 
 libagx_shader_files = files(
   'compression.cl',
+  'copy.cl',
   'draws.cl',
   'geometry.cl',
   'query.cl',
@@ -16,7 +17,6 @@ libagx_shader_files = files(
 relative_dir = fs.relative_to(meson.global_source_root(), meson.global_build_root()) + '/'
 
 libagx_spv = custom_target(
-  'libagx.spv',
   input : libagx_shader_files,
   output : 'libagx.spv',
   command : [
@@ -28,17 +28,14 @@ libagx_spv = custom_target(
     '-I' + join_paths(meson.current_build_dir(), '../genxml'),
     '-fmacro-prefix-map=@0@='.format(relative_dir),
     ],
-  env: ['MESA_SHADER_CACHE_DISABLE=true'],
-  depends : [prog_mesa_clc, agx_pack],
+  depends : [agx_pack],
   depfile : 'libagx_shaders.h.d',
 )
 
 libagx = custom_target(
-  'libagx',
   input : libagx_spv,
   output : ['libagx.cpp', 'libagx.h'],
   command : [prog_vtn_bindgen2, libagx_spv, '@OUTPUT0@', '@OUTPUT1@'],
-  depends : [prog_vtn_bindgen2],
 )
 
 idep_libagx = declare_dependency(

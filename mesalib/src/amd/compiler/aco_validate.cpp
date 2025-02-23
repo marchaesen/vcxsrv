@@ -1391,7 +1391,7 @@ validate_ra(Program* program)
    bool err = false;
    aco::live_var_analysis(program);
    std::vector<std::vector<Temp>> phi_sgpr_ops(program->blocks.size());
-   uint16_t sgpr_limit = get_addr_sgpr_from_waves(program, program->num_waves);
+   uint16_t sgpr_limit = get_addr_regs_from_waves(program, program->num_waves).sgpr;
 
    std::vector<Assignment> assignments(program->peekAllocationId());
    for (Block& block : program->blocks) {

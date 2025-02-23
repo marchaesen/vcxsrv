@@ -221,7 +221,7 @@ debian/arm64_build:
     - .fdo.container-build@alpine
     - .container
   variables:
-    FDO_DISTRIBUTION_VERSION: "edge"  # switch to 3.20 when gets released
+    FDO_DISTRIBUTION_VERSION: "3.21"
     FDO_BASE_IMAGE: alpine:$FDO_DISTRIBUTION_VERSION  # since cbuild ignores it
 
 # Alpine based x86_64 build image
@@ -502,7 +502,7 @@ debian/arm64_test-vk:
 .firmware_x86_64:
   variables:
     FIRMWARE_FILES: |
-      .gitlab-ci/firmware/i915/adlp-fw.json
+      .gitlab-ci/firmware/i915/adl-fw.json
       .gitlab-ci/firmware/i915/mtl-fw.json
 
 .firmware_arm64:

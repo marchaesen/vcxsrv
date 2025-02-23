@@ -211,7 +211,7 @@ int rvid_get_video_param(struct pipe_screen *screen,
 			return 2048;
 		case PIPE_VIDEO_CAP_MAX_HEIGHT:
 			return 1152;
-		case PIPE_VIDEO_CAP_PREFERED_FORMAT:
+		case PIPE_VIDEO_CAP_PREFERRED_FORMAT:
 			return PIPE_FORMAT_NV12;
 		case PIPE_VIDEO_CAP_PREFERS_INTERLACED:
 			return false;
@@ -251,7 +251,7 @@ int rvid_get_video_param(struct pipe_screen *screen,
 		return 2048;
 	case PIPE_VIDEO_CAP_MAX_HEIGHT:
 		return 1152;
-	case PIPE_VIDEO_CAP_PREFERED_FORMAT:
+	case PIPE_VIDEO_CAP_PREFERRED_FORMAT:
 		return PIPE_FORMAT_NV12;
 
 	case PIPE_VIDEO_CAP_PREFERS_INTERLACED:

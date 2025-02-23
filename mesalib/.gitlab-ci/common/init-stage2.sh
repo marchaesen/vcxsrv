@@ -92,9 +92,9 @@ if [ "$HWCI_KVM" = "true" ]; then
     } || \
         modprobe ${KVM_KERNEL_MODULE}
 
-    mkdir -p /lava-files
+    mkdir -p /kernel
     curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
-	-o "/lava-files/${KERNEL_IMAGE_NAME}" \
+	-o "/kernel/${KERNEL_IMAGE_NAME}" \
         "${KERNEL_IMAGE_BASE}/amd64/${KERNEL_IMAGE_NAME}"
 fi
 

@@ -3,10 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "nir/nir.h"
-#include "nir/nir_builder.h"
-
-#include "lvp_nir_ray_tracing.h"
+#include "lvp_nir.h"
 #include "lvp_acceleration_structure.h"
 #include "lvp_private.h"
 
@@ -328,22 +325,15 @@ lower_rq_initialize(nir_builder *b, nir_def *index, nir_intrinsic_instr *instr,
                 0x1);
 
    nir_def *accel_struct = instr->src[1].ssa;
-   nir_def *bvh_base = accel_struct;
-   if (bvh_base->bit_size != 64) {
-      assert(bvh_base->num_components >= 2);
-      bvh_base = nir_load_ubo(
-         b, 1, 64, nir_channel(b, accel_struct, 0),
-         nir_imul_imm(b, nir_channel(b, accel_struct, 1), sizeof(struct lp_descriptor)), .range = ~0);
-   }
 
-   rq_store_var(b, index, vars->root_bvh_base, bvh_base, 0x1);
-   rq_store_var(b, index, vars->trav.bvh_base, bvh_base, 1);
+   rq_store_var(b, index, vars->root_bvh_base, accel_struct, 0x1);
+   rq_store_var(b, index, vars->trav.bvh_base, accel_struct, 1);
 
    rq_store_var(b, index, vars->trav.current_node, nir_imm_int(b, LVP_BVH_ROOT_NODE), 0x1);
    rq_store_var(b, index, vars->trav.stack_ptr, nir_imm_int(b, 0), 0x1);
    rq_store_var(b, index, vars->trav.stack_base, nir_imm_int(b, -1), 0x1);
 
-   rq_store_var(b, index, vars->incomplete, nir_ine_imm(b, bvh_base, 0), 0x1);
+   rq_store_var(b, index, vars->incomplete, nir_ine_imm(b, accel_struct, 0), 0x1);
 }
 
 static nir_def *

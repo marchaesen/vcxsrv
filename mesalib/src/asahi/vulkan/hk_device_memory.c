@@ -349,8 +349,10 @@ hk_UnmapMemory2KHR(VkDevice device,
       }
 #endif
    } else {
-      /* TODO */
-      //// agx_bo_unmap(mem->bo, mem->map);
+      if (mem->bo->_map) {
+         munmap(mem->bo->_map, mem->bo->size);
+         mem->bo->_map = NULL;
+      }
    }
 
    mem->map = NULL;

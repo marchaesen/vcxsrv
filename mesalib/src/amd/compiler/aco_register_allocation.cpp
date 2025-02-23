@@ -112,8 +112,7 @@ struct ra_ctx {
    aco_ptr<Instruction> phi_dummy;
    uint16_t max_used_sgpr = 0;
    uint16_t max_used_vgpr = 0;
-   uint16_t sgpr_limit;
-   uint16_t vgpr_limit;
+   RegisterDemand limit;
    std::bitset<512> war_hint;
    PhysRegIterator rr_sgpr_it;
    PhysRegIterator rr_vgpr_it;
@@ -131,8 +130,7 @@ struct ra_ctx {
    {
       pseudo_dummy.reset(create_instruction(aco_opcode::p_parallelcopy, Format::PSEUDO, 0, 0));
       phi_dummy.reset(create_instruction(aco_opcode::p_linear_phi, Format::PSEUDO, 0, 0));
-      sgpr_limit = get_addr_sgpr_from_waves(program, program->min_waves);
-      vgpr_limit = get_addr_vgpr_from_waves(program, program->min_waves);
+      limit = get_addr_regs_from_waves(program, program->min_waves);
 
       sgpr_bounds = program->max_reg_demand.sgpr;
       vgpr_bounds = program->max_reg_demand.vgpr;
@@ -797,7 +795,7 @@ add_subdword_definition(Program* program, aco_ptr<Instruction>& instr, PhysReg r
 void
 adjust_max_used_regs(ra_ctx& ctx, RegClass rc, unsigned reg)
 {
-   uint16_t max_addressible_sgpr = ctx.sgpr_limit;
+   uint16_t max_addressible_sgpr = ctx.limit.sgpr;
    unsigned size = rc.size();
    if (rc.type() == RegType::vgpr) {
       assert(reg >= 256);
@@ -1421,13 +1419,13 @@ bool
 increase_register_file(ra_ctx& ctx, RegClass rc)
 {
    if (rc.type() == RegType::vgpr && ctx.num_linear_vgprs == 0 &&
-       ctx.vgpr_bounds < ctx.vgpr_limit) {
+       ctx.vgpr_bounds < ctx.limit.vgpr) {
       /* If vgpr_bounds is less than max_reg_demand.vgpr, this should be a no-op. */
       update_vgpr_sgpr_demand(
          ctx.program, RegisterDemand(ctx.vgpr_bounds + 1, ctx.program->max_reg_demand.sgpr));
 
       ctx.vgpr_bounds = ctx.program->max_reg_demand.vgpr;
-   } else if (rc.type() == RegType::sgpr && ctx.program->max_reg_demand.sgpr < ctx.sgpr_limit) {
+   } else if (rc.type() == RegType::sgpr && ctx.program->max_reg_demand.sgpr < ctx.limit.sgpr) {
       update_vgpr_sgpr_demand(
          ctx.program, RegisterDemand(ctx.program->max_reg_demand.vgpr, ctx.sgpr_bounds + 1));
 

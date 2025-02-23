@@ -6,9 +6,11 @@ dEQP-GLES3.functional.default_vertex_attrib.int.vertex_attribi_4i
 dEQP-GLES3.functional.fbo.multiview.samples_1
 dEQP-GLES3.functional.fbo.multiview.samples_2
 dEQP-GLES3.functional.transform_feedback.array_element.interleaved.points.lowp_mat2x3
+dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.rgba32i_srgb8_alpha8_astc_8x5_khr.texture2d_array_to_texture3d
 dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.srgb8_alpha8_astc_10x5_khr_rgba32i.texture2d_array_to_texture2d_array
 dEQP-GLES31.functional.copy_image.mixed.viewclass_128_bits_mixed.srgb8_alpha8_astc_12x10_khr_rgba32ui.texture2d_array_to_texture3d
 dEQP-GLES31.functional.copy_image.non_compressed.viewclass_32_bits.rg16ui_rgb10_a2.texture3d_to_texture2d_array
+dEQP-GLES31.functional.draw_base_vertex.draw_elements_base_vertex.points.multiple_attributes
 dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_nearest_repeat_repeat
 spec@!opengl 1.0@rasterpos
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked

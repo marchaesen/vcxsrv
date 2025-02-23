@@ -10,11 +10,10 @@
 # generate this list.
 #
 
-import contextlib
 import argparse
+import contextlib
 import re
 import sys
-
 
 # The marker to search for in the template file, replaced with our generated
 # codes.

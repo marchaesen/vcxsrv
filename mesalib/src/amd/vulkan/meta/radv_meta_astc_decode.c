@@ -17,16 +17,20 @@ decode_astc(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivie
 {
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_meta_state *state = &device->meta_state;
-   struct vk_texcompress_astc_write_descriptor_set write_desc_set;
+   struct vk_texcompress_astc_write_descriptor_buffer desc_buffer;
    VkFormat format = src_iview->image->vk.format;
    int blk_w = vk_format_get_blockwidth(format);
    int blk_h = vk_format_get_blockheight(format);
 
-   vk_texcompress_astc_fill_write_descriptor_sets(state->astc_decode, &write_desc_set,
-                                                  radv_image_view_to_handle(src_iview), layout,
-                                                  radv_image_view_to_handle(dst_iview), format);
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, state->astc_decode->p_layout, 0,
-                                 VK_TEXCOMPRESS_ASTC_WRITE_DESC_SET_COUNT, write_desc_set.descriptor_set);
+   vk_texcompress_astc_fill_write_descriptor_buffer(&device->vk, state->astc_decode, &desc_buffer,
+                                                    radv_image_view_to_handle(src_iview), layout,
+                                                    radv_image_view_to_handle(dst_iview), format);
+
+   VK_FROM_HANDLE(radv_buffer, luts_buf, state->astc_decode->luts_buf);
+   radv_cs_add_buffer(device->ws, cmd_buffer->cs, luts_buf->bo);
+
+   radv_meta_bind_descriptors(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, state->astc_decode->p_layout,
+                              VK_TEXCOMPRESS_ASTC_WRITE_DESC_SET_COUNT, desc_buffer.descriptors);
 
    VkPipeline pipeline =
       vk_texcompress_astc_get_decode_pipeline(&device->vk, &state->alloc, state->astc_decode, state->cache, format);
