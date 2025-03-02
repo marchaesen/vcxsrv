@@ -6,50 +6,59 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="API Reference Documentation for FreeType-2.13.2">
-      
+        <meta name="description" content="API Reference Documentation for FreeType-2.13.3">
       
       
         <meta name="author" content="FreeType Contributors">
       
       
+        <link rel="canonical" href="http://freetype.org/freetype2/docs/reference/ft2-glyph_retrieval.html">
+      
+      
+        <link rel="prev" href="ft2-sizing_and_scaling.html">
+      
+      
+        <link rel="next" href="ft2-character_mapping.html">
+      
+      
       <link rel="icon" href="images/favico.ico">
-      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-7.1.9">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.31">
     
     
       
-        <title>Glyph Retrieval - FreeType-2.13.2 API Reference</title>
+        <title>Glyph Retrieval - FreeType-2.13.3 API Reference</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ca7ac06f.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.3cba04c6.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.f1a3b89f.min.css">
-        
-          
-          
-          <meta name="theme-color" content="#4cae4f">
-        
+        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
       
     
     
-    
       
+        
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>:root{--md-text-font-family:"Noto Serif";--md-code-font-family:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif";--md-code-font:"Roboto Mono"}</style>
       
-    
     
     
       <link rel="stylesheet" href="stylesheets/extra.css">
     
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
-
+    
     
     
   </head>
@@ -60,10 +69,8 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="green" data-md-color-accent="green">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green">
   
-    
-    <script>function __prefix(e){return new URL(".",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -80,21 +87,27 @@
       
     </div>
     
-      <header class="md-header" data-md-component="header">
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="index.html" title="FreeType-2.13.2 API Reference" class="md-header__button md-logo" aria-label="FreeType-2.13.2 API Reference" data-md-component="logo">
+    <a href="index.html" title="FreeType-2.13.3 API Reference" class="md-header__button md-logo" aria-label="FreeType-2.13.3 API Reference" data-md-component="logo">
       
   <img src="images/favico.ico" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FreeType-2.13.2 API Reference
+            FreeType-2.13.3 API Reference
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -107,32 +120,42 @@
       </div>
     </div>
     
+      
+    
+    
     
     
       <label class="md-header__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
       </label>
-      
-<div class="md-search" data-md-component="search" role="dialog">
+      <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
       </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
     </form>
     <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
             Initializing search
           </div>
-          <ol class="md-search-result__list"></ol>
+          <ol class="md-search-result__list" role="presentation"></ol>
         </div>
       </div>
     </div>
@@ -141,11 +164,14 @@
     
     
   </nav>
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
       
+        
+          
         
       
       <main class="md-main" data-md-component="main">
@@ -159,28 +185,34 @@
                     
 
 
+
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="index.html" title="FreeType-2.13.2 API Reference" class="md-nav__button md-logo" aria-label="FreeType-2.13.2 API Reference" data-md-component="logo">
+    <a href="index.html" title="FreeType-2.13.3 API Reference" class="md-nav__button md-logo" aria-label="FreeType-2.13.3 API Reference" data-md-component="logo">
       
   <img src="images/favico.ico" alt="logo">
 
     </a>
-    FreeType-2.13.2 API Reference
+    FreeType-2.13.3 API Reference
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="index.html" class="md-nav__link">
-        TOC
+        
+  
+  <span class="md-ellipsis">
+    TOC
+  </span>
+  
+
       </a>
     </li>
   
@@ -188,14 +220,19 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-index.html" class="md-nav__link">
-        Index
+        
+  
+  <span class="md-ellipsis">
+    Index
+  </span>
+  
+
       </a>
     </li>
   
@@ -203,180 +240,290 @@
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
-      
-      <label class="md-nav__link" for="__nav_3">
-        General Remarks
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="General Remarks" data-md-level="1">
-        <label class="md-nav__title" for="__nav_3">
-          <span class="md-nav__icon md-icon"></span>
-          General Remarks
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
           
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    General Remarks
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            General Remarks
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-preamble.html" class="md-nav__link">
-        Preamble
+        
+  
+  <span class="md-ellipsis">
+    Preamble
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-header_inclusion.html" class="md-nav__link">
-        FreeType's header inclusion scheme
+        
+  
+  <span class="md-ellipsis">
+    FreeType's header inclusion scheme
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-user_allocation.html" class="md-nav__link">
-        User allocation
+        
+  
+  <span class="md-ellipsis">
+    User allocation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
   
   
     
   
   
+  
+    
+    
+    
     
     <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" checked>
-      
-      <label class="md-nav__link" for="__nav_4">
-        Core API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Core API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_4">
-          <span class="md-nav__icon md-icon"></span>
-          Core API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
           
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Core API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Core API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-basic_types.html" class="md-nav__link">
-        Basic Data Types
+        
+  
+  <span class="md-ellipsis">
+    Basic Data Types
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-library_setup.html" class="md-nav__link">
-        Library Setup
+        
+  
+  <span class="md-ellipsis">
+    Library Setup
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-face_creation.html" class="md-nav__link">
-        Face Creation
+        
+  
+  <span class="md-ellipsis">
+    Face Creation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-font_testing_macros.html" class="md-nav__link">
-        Font Testing Macros
+        
+  
+  <span class="md-ellipsis">
+    Font Testing Macros
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-sizing_and_scaling.html" class="md-nav__link">
-        Sizing and Scaling
+        
+  
+  <span class="md-ellipsis">
+    Sizing and Scaling
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
   
   
     
   
   
+  
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
         
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Glyph Retrieval
+          
+  
+  <span class="md-ellipsis">
+    Glyph Retrieval
+  </span>
+  
+
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="ft2-glyph_retrieval.html" class="md-nav__link md-nav__link--active">
-        Glyph Retrieval
+        
+  
+  <span class="md-ellipsis">
+    Glyph Retrieval
+  </span>
+  
+
       </a>
       
         
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
@@ -392,91 +539,117 @@
       
         <li class="md-nav__item">
   <a href="#synopsis" class="md-nav__link">
-    Synopsis
+    <span class="md-ellipsis">
+      Synopsis
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_glyphslot" class="md-nav__link">
-    FT_GlyphSlot
+    <span class="md-ellipsis">
+      FT_GlyphSlot
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_glyphslotrec" class="md-nav__link">
-    FT_GlyphSlotRec
+    <span class="md-ellipsis">
+      FT_GlyphSlotRec
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_glyph_metrics" class="md-nav__link">
-    FT_Glyph_Metrics
+    <span class="md-ellipsis">
+      FT_Glyph_Metrics
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_glyph" class="md-nav__link">
-    FT_Load_Glyph
+    <span class="md-ellipsis">
+      FT_Load_Glyph
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_xxx" class="md-nav__link">
-    FT_LOAD_XXX
+    <span class="md-ellipsis">
+      FT_LOAD_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_target_mode" class="md-nav__link">
-    FT_LOAD_TARGET_MODE
+    <span class="md-ellipsis">
+      FT_LOAD_TARGET_MODE
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_target_xxx" class="md-nav__link">
-    FT_LOAD_TARGET_XXX
+    <span class="md-ellipsis">
+      FT_LOAD_TARGET_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_render_glyph" class="md-nav__link">
-    FT_Render_Glyph
+    <span class="md-ellipsis">
+      FT_Render_Glyph
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_render_mode" class="md-nav__link">
-    FT_Render_Mode
+    <span class="md-ellipsis">
+      FT_Render_Mode
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_get_kerning" class="md-nav__link">
-    FT_Get_Kerning
+    <span class="md-ellipsis">
+      FT_Get_Kerning
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_kerning_mode" class="md-nav__link">
-    FT_Kerning_Mode
+    <span class="md-ellipsis">
+      FT_Kerning_Mode
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_get_track_kerning" class="md-nav__link">
-    FT_Get_Track_Kerning
+    <span class="md-ellipsis">
+      FT_Get_Track_Kerning
+    </span>
   </a>
   
 </li>
@@ -488,819 +661,1355 @@
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-character_mapping.html" class="md-nav__link">
-        Character Mapping
+        
+  
+  <span class="md-ellipsis">
+    Character Mapping
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-information_retrieval.html" class="md-nav__link">
-        Information Retrieval
+        
+  
+  <span class="md-ellipsis">
+    Information Retrieval
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-other_api_data.html" class="md-nav__link">
-        Other API Data
+        
+  
+  <span class="md-ellipsis">
+    Other API Data
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
-      
-      <label class="md-nav__link" for="__nav_5">
-        Extended API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Extended API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_5">
-          <span class="md-nav__icon md-icon"></span>
-          Extended API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
           
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Extended API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Extended API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-glyph_variants.html" class="md-nav__link">
-        Unicode Variation Sequences
+        
+  
+  <span class="md-ellipsis">
+    Unicode Variation Sequences
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-color_management.html" class="md-nav__link">
-        Glyph Color Management
+        
+  
+  <span class="md-ellipsis">
+    Glyph Color Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-layer_management.html" class="md-nav__link">
-        Glyph Layer Management
+        
+  
+  <span class="md-ellipsis">
+    Glyph Layer Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-glyph_management.html" class="md-nav__link">
-        Glyph Management
+        
+  
+  <span class="md-ellipsis">
+    Glyph Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-mac_specific.html" class="md-nav__link">
-        Mac Specific Interface
+        
+  
+  <span class="md-ellipsis">
+    Mac Specific Interface
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-sizes_management.html" class="md-nav__link">
-        Size Management
+        
+  
+  <span class="md-ellipsis">
+    Size Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-header_file_macros.html" class="md-nav__link">
-        Header File Macros
+        
+  
+  <span class="md-ellipsis">
+    Header File Macros
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" type="checkbox" id="__nav_6" >
-      
-      <label class="md-nav__link" for="__nav_6">
-        Format-Specific API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Format-Specific API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_6">
-          <span class="md-nav__icon md-icon"></span>
-          Format-Specific API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
           
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Format-Specific API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Format-Specific API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-multiple_masters.html" class="md-nav__link">
-        Multiple Masters
+        
+  
+  <span class="md-ellipsis">
+    Multiple Masters
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-truetype_tables.html" class="md-nav__link">
-        TrueType Tables
+        
+  
+  <span class="md-ellipsis">
+    TrueType Tables
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-type1_tables.html" class="md-nav__link">
-        Type 1 Tables
+        
+  
+  <span class="md-ellipsis">
+    Type 1 Tables
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-sfnt_names.html" class="md-nav__link">
-        SFNT Names
+        
+  
+  <span class="md-ellipsis">
+    SFNT Names
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-bdf_fonts.html" class="md-nav__link">
-        BDF and PCF Files
+        
+  
+  <span class="md-ellipsis">
+    BDF and PCF Files
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-cid_fonts.html" class="md-nav__link">
-        CID Fonts
+        
+  
+  <span class="md-ellipsis">
+    CID Fonts
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-pfr_fonts.html" class="md-nav__link">
-        PFR Fonts
+        
+  
+  <span class="md-ellipsis">
+    PFR Fonts
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-winfnt_fonts.html" class="md-nav__link">
-        Window FNT Files
+        
+  
+  <span class="md-ellipsis">
+    Window FNT Files
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-svg_fonts.html" class="md-nav__link">
-        OpenType SVG Fonts
+        
+  
+  <span class="md-ellipsis">
+    OpenType SVG Fonts
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-font_formats.html" class="md-nav__link">
-        Font Formats
+        
+  
+  <span class="md-ellipsis">
+    Font Formats
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-gasp_table.html" class="md-nav__link">
-        Gasp Table
+        
+  
+  <span class="md-ellipsis">
+    Gasp Table
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" >
-      
-      <label class="md-nav__link" for="__nav_7">
-        Controlling FreeType Modules
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Controlling FreeType Modules" data-md-level="1">
-        <label class="md-nav__title" for="__nav_7">
-          <span class="md-nav__icon md-icon"></span>
-          Controlling FreeType Modules
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
           
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Controlling FreeType Modules
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Controlling FreeType Modules
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-auto_hinter.html" class="md-nav__link">
-        The auto-hinter
+        
+  
+  <span class="md-ellipsis">
+    The auto-hinter
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-cff_driver.html" class="md-nav__link">
-        The CFF driver
+        
+  
+  <span class="md-ellipsis">
+    The CFF driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-t1_cid_driver.html" class="md-nav__link">
-        The Type 1 and CID drivers
+        
+  
+  <span class="md-ellipsis">
+    The Type 1 and CID drivers
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-tt_driver.html" class="md-nav__link">
-        The TrueType driver
+        
+  
+  <span class="md-ellipsis">
+    The TrueType driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-pcf_driver.html" class="md-nav__link">
-        The PCF driver
+        
+  
+  <span class="md-ellipsis">
+    The PCF driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-ot_svg_driver.html" class="md-nav__link">
-        The SVG driver
+        
+  
+  <span class="md-ellipsis">
+    The SVG driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-properties.html" class="md-nav__link">
-        Driver properties
+        
+  
+  <span class="md-ellipsis">
+    Driver properties
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-parameter_tags.html" class="md-nav__link">
-        Parameter Tags
+        
+  
+  <span class="md-ellipsis">
+    Parameter Tags
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-lcd_rendering.html" class="md-nav__link">
-        Subpixel Rendering
+        
+  
+  <span class="md-ellipsis">
+    Subpixel Rendering
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_8" type="checkbox" id="__nav_8" >
-      
-      <label class="md-nav__link" for="__nav_8">
-        Cache Sub-System
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Cache Sub-System" data-md-level="1">
-        <label class="md-nav__title" for="__nav_8">
-          <span class="md-nav__icon md-icon"></span>
-          Cache Sub-System
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
           
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Cache Sub-System
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            Cache Sub-System
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-cache_subsystem.html" class="md-nav__link">
-        Cache Sub-System
+        
+  
+  <span class="md-ellipsis">
+    Cache Sub-System
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_9" type="checkbox" id="__nav_9" >
-      
-      <label class="md-nav__link" for="__nav_9">
-        Support API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Support API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_9">
-          <span class="md-nav__icon md-icon"></span>
-          Support API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
           
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Support API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            Support API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-computations.html" class="md-nav__link">
-        Computations
+        
+  
+  <span class="md-ellipsis">
+    Computations
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-list_processing.html" class="md-nav__link">
-        List Processing
+        
+  
+  <span class="md-ellipsis">
+    List Processing
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-outline_processing.html" class="md-nav__link">
-        Outline Processing
+        
+  
+  <span class="md-ellipsis">
+    Outline Processing
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-quick_advance.html" class="md-nav__link">
-        Quick retrieval of advance values
+        
+  
+  <span class="md-ellipsis">
+    Quick retrieval of advance values
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-bitmap_handling.html" class="md-nav__link">
-        Bitmap Handling
+        
+  
+  <span class="md-ellipsis">
+    Bitmap Handling
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-raster.html" class="md-nav__link">
-        Scanline Converter
+        
+  
+  <span class="md-ellipsis">
+    Scanline Converter
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-glyph_stroker.html" class="md-nav__link">
-        Glyph Stroker
+        
+  
+  <span class="md-ellipsis">
+    Glyph Stroker
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-system_interface.html" class="md-nav__link">
-        System Interface
+        
+  
+  <span class="md-ellipsis">
+    System Interface
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-module_management.html" class="md-nav__link">
-        Module Management
+        
+  
+  <span class="md-ellipsis">
+    Module Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-gzip.html" class="md-nav__link">
-        GZIP Streams
+        
+  
+  <span class="md-ellipsis">
+    GZIP Streams
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-lzw.html" class="md-nav__link">
-        LZW Streams
+        
+  
+  <span class="md-ellipsis">
+    LZW Streams
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-bzip2.html" class="md-nav__link">
-        BZIP2 Streams
+        
+  
+  <span class="md-ellipsis">
+    BZIP2 Streams
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-debugging_apis.html" class="md-nav__link">
-        External Debugging APIs
+        
+  
+  <span class="md-ellipsis">
+    External Debugging APIs
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_10" type="checkbox" id="__nav_10" >
-      
-      <label class="md-nav__link" for="__nav_10">
-        Error Codes
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Error Codes" data-md-level="1">
-        <label class="md-nav__title" for="__nav_10">
-          <span class="md-nav__icon md-icon"></span>
-          Error Codes
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
           
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Error Codes
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            Error Codes
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-error_enumerations.html" class="md-nav__link">
-        Error Enumerations
+        
+  
+  <span class="md-ellipsis">
+    Error Enumerations
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-error_code_values.html" class="md-nav__link">
-        Error Code Values
+        
+  
+  <span class="md-ellipsis">
+    Error Code Values
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_11" type="checkbox" id="__nav_11" >
-      
-      <label class="md-nav__link" for="__nav_11">
-        Miscellaneous
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Miscellaneous" data-md-level="1">
-        <label class="md-nav__title" for="__nav_11">
-          <span class="md-nav__icon md-icon"></span>
-          Miscellaneous
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
           
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Miscellaneous
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            Miscellaneous
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-gx_validation.html" class="md-nav__link">
-        TrueTypeGX/AAT Validation
+        
+  
+  <span class="md-ellipsis">
+    TrueTypeGX/AAT Validation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-incremental.html" class="md-nav__link">
-        Incremental Loading
+        
+  
+  <span class="md-ellipsis">
+    Incremental Loading
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-truetype_engine.html" class="md-nav__link">
-        The TrueType Engine
+        
+  
+  <span class="md-ellipsis">
+    The TrueType Engine
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-ot_validation.html" class="md-nav__link">
-        OpenType Validation
+        
+  
+  <span class="md-ellipsis">
+    OpenType Validation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1317,6 +2026,7 @@
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
@@ -1332,91 +2042,117 @@
       
         <li class="md-nav__item">
   <a href="#synopsis" class="md-nav__link">
-    Synopsis
+    <span class="md-ellipsis">
+      Synopsis
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_glyphslot" class="md-nav__link">
-    FT_GlyphSlot
+    <span class="md-ellipsis">
+      FT_GlyphSlot
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_glyphslotrec" class="md-nav__link">
-    FT_GlyphSlotRec
+    <span class="md-ellipsis">
+      FT_GlyphSlotRec
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_glyph_metrics" class="md-nav__link">
-    FT_Glyph_Metrics
+    <span class="md-ellipsis">
+      FT_Glyph_Metrics
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_glyph" class="md-nav__link">
-    FT_Load_Glyph
+    <span class="md-ellipsis">
+      FT_Load_Glyph
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_xxx" class="md-nav__link">
-    FT_LOAD_XXX
+    <span class="md-ellipsis">
+      FT_LOAD_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_target_mode" class="md-nav__link">
-    FT_LOAD_TARGET_MODE
+    <span class="md-ellipsis">
+      FT_LOAD_TARGET_MODE
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_load_target_xxx" class="md-nav__link">
-    FT_LOAD_TARGET_XXX
+    <span class="md-ellipsis">
+      FT_LOAD_TARGET_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_render_glyph" class="md-nav__link">
-    FT_Render_Glyph
+    <span class="md-ellipsis">
+      FT_Render_Glyph
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_render_mode" class="md-nav__link">
-    FT_Render_Mode
+    <span class="md-ellipsis">
+      FT_Render_Mode
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_get_kerning" class="md-nav__link">
-    FT_Get_Kerning
+    <span class="md-ellipsis">
+      FT_Get_Kerning
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_kerning_mode" class="md-nav__link">
-    FT_Kerning_Mode
+    <span class="md-ellipsis">
+      FT_Kerning_Mode
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_get_track_kerning" class="md-nav__link">
-    FT_Get_Track_Kerning
+    <span class="md-ellipsis">
+      FT_Get_Track_Kerning
+    </span>
   </a>
   
 </li>
@@ -1429,12 +2165,14 @@
               </div>
             
           
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
                 
-                
-                <p><a href="https://www.freetype.org">FreeType</a> &raquo; <a href="../">Docs</a> &raquo; <a href="index.html#core-api">Core API</a> &raquo; Glyph Retrieval</p>
+                  
+
+
+<p><a href="https://www.freetype.org">FreeType</a> &raquo; <a href="../">Docs</a> &raquo; <a href="index.html#core-api">Core API</a> &raquo; Glyph Retrieval</p>
 <hr />
 <h1 id="glyph-retrieval">Glyph Retrieval<a class="headerlink" href="#glyph-retrieval" title="Permanent link">&para;</a></h1>
 <h2 id="synopsis">Synopsis<a class="headerlink" href="#synopsis" title="Permanent link">&para;</a></h2>
@@ -1531,7 +2269,7 @@
 <p>The bitmap's left bearing expressed in integer pixels.</p>
 </td></tr>
 <tr><td class="val" id="bitmap_top">bitmap_top</td><td class="desc">
-<p>The bitmap's top bearing expressed in integer pixels. This is the distance from the baseline to the top-most glyph scanline, upwards y&nbsp;coordinates being <strong>positive</strong>.</p>
+<p>The bitmap's top bearing expressed in integer pixels. This is the distance from the baseline to the top-most glyph scanline, upwards y coordinates being <strong>positive</strong>.</p>
 </td></tr>
 <tr><td class="val" id="outline">outline</td><td class="desc">
 <p>The outline descriptor for the current glyph image if its format is <code><a href="ft2-basic_types.html#ft_glyph_format">FT_GLYPH_FORMAT_OUTLINE</a></code>. Once a glyph is loaded, <code>outline</code> can be transformed, distorted, emboldened, etc. However, it must not be freed.</p>
@@ -1544,7 +2282,7 @@
 <p>An array of subglyph descriptors for composite glyphs. There are <code>num_subglyphs</code> elements in there. Currently internal to FreeType.</p>
 </td></tr>
 <tr><td class="val" id="control_data">control_data</td><td class="desc">
-<p>Certain font drivers can also return the control data for a given glyph image (e.g. TrueType bytecode, Type&nbsp;1 charstrings, etc.). This field is a pointer to such data; it is currently internal to FreeType.</p>
+<p>Certain font drivers can also return the control data for a given glyph image (e.g. TrueType bytecode, Type 1 charstrings, etc.). This field is a pointer to such data; it is currently internal to FreeType.</p>
 </td></tr>
 <tr><td class="val" id="control_len">control_len</td><td class="desc">
 <p>This is the length in bytes of the control data. Currently internal to FreeType.</p>
@@ -1731,11 +2469,11 @@
 <h4>values</h4>
 <table class="fields long">
 <tr><td class="val" id="ft_load_default">FT_LOAD_DEFAULT</td><td class="desc">
-<p>Corresponding to&nbsp;0, this value is used as the default glyph load operation. In this case, the following happens:</p>
+<p>Corresponding to 0, this value is used as the default glyph load operation. In this case, the following happens:</p>
 <ol>
 <li><p>FreeType looks for a bitmap for the glyph corresponding to the face's current size. If one is found, the function returns. The bitmap data can be accessed from the glyph slot (see note below).</p>
 </li>
-<li><p>If no embedded bitmap is searched for or found, FreeType looks for a scalable outline. If one is found, it is loaded from the font file, scaled to device pixels, then &lsquo;hinted&rsquo; to the pixel grid in order to optimize it. The outline data can be accessed from the glyph slot (see note below).</p>
+<li><p>If no embedded bitmap is searched for or found, FreeType looks for a scalable outline. If one is found, it is loaded from the font file, scaled to device pixels, then ‘hinted’ to the pixel grid in order to optimize it. The outline data can be accessed from the glyph slot (see note below).</p>
 </li>
 </ol>
 <p>Note that by default the glyph loader doesn't render outlines into bitmaps. The following flags are used to modify this default behaviour to more specific and useful cases.</p>
@@ -1743,10 +2481,10 @@
 <tr><td class="val" id="ft_load_no_scale">FT_LOAD_NO_SCALE</td><td class="desc">
 <p>Don't scale the loaded outline glyph but keep it in font units. This flag is also assumed if <code><a href="ft2-sizing_and_scaling.html#ft_size">FT_Size</a></code> owned by the face was not properly initialized.</p>
 <p>This flag implies <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_NO_HINTING</a></code> and <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_NO_BITMAP</a></code>, and unsets <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_RENDER</a></code>.</p>
-<p>If the font is &lsquo;tricky&rsquo; (see <code><a href="ft2-face_creation.html#ft_face_flag_xxx">FT_FACE_FLAG_TRICKY</a></code> for more), using <code>FT_LOAD_NO_SCALE</code> usually yields meaningless outlines because the subglyphs must be scaled and positioned with hinting instructions. This can be solved by loading the font without <code>FT_LOAD_NO_SCALE</code> and setting the character size to <code>font-&gt;units_per_EM</code>.</p>
+<p>If the font is ‘tricky’ (see <code><a href="ft2-face_creation.html#ft_face_flag_xxx">FT_FACE_FLAG_TRICKY</a></code> for more), using <code>FT_LOAD_NO_SCALE</code> usually yields meaningless outlines because the subglyphs must be scaled and positioned with hinting instructions. This can be solved by loading the font without <code>FT_LOAD_NO_SCALE</code> and setting the character size to <code>font-&gt;units_per_EM</code>.</p>
 </td></tr>
 <tr><td class="val" id="ft_load_no_hinting">FT_LOAD_NO_HINTING</td><td class="desc">
-<p>Disable hinting. This generally generates &lsquo;blurrier&rsquo; bitmap glyphs when the glyphs are rendered in any of the anti-aliased modes. See also the note below.</p>
+<p>Disable hinting. This generally generates ‘blurrier’ bitmap glyphs when the glyphs are rendered in any of the anti-aliased modes. See also the note below.</p>
 <p>This flag is implied by <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_NO_SCALE</a></code>.</p>
 </td></tr>
 <tr><td class="val" id="ft_load_render">FT_LOAD_RENDER</td><td class="desc">
@@ -1781,7 +2519,7 @@
 <p>Ignore the transform matrix set by <code><a href="ft2-sizing_and_scaling.html#ft_set_transform">FT_Set_Transform</a></code>.</p>
 </td></tr>
 <tr><td class="val" id="ft_load_monochrome">FT_LOAD_MONOCHROME</td><td class="desc">
-<p>This flag is used with <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_RENDER</a></code> to indicate that you want to render an outline glyph to a 1-bit monochrome bitmap glyph, with 8&nbsp;pixels packed into each byte of the bitmap data.</p>
+<p>This flag is used with <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_RENDER</a></code> to indicate that you want to render an outline glyph to a 1-bit monochrome bitmap glyph, with 8 pixels packed into each byte of the bitmap data.</p>
 <p>Note that this has no effect on the hinting algorithm used. You should rather use <code><a href="ft2-glyph_retrieval.html#ft_load_target_xxx">FT_LOAD_TARGET_MONO</a></code> so that the monochrome-optimized hinting algorithm is used.</p>
 </td></tr>
 <tr><td class="val" id="ft_load_linear_design">FT_LOAD_LINEAR_DESIGN</td><td class="desc">
@@ -1793,14 +2531,14 @@
 <tr><td class="val" id="ft_load_color">FT_LOAD_COLOR</td><td class="desc">
 <p>Load colored glyphs. FreeType searches in the following order; there are slight differences depending on the font format.</p>
 <p>[Since 2.5] Load embedded color bitmap images (provided <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_NO_BITMAP</a></code> is not set). The resulting color bitmaps, if available, have the <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_BGRA</a></code> format, with pre-multiplied color channels. If the flag is not set and color bitmaps are found, they are converted to 256-level gray bitmaps, using the <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_GRAY</a></code> format.</p>
-<p>[Since 2.12] If the glyph index maps to an entry in the face's &lsquo;SVG&nbsp;&rsquo; table, load the associated SVG document from this table and set the <code>format</code> field of <code><a href="ft2-glyph_retrieval.html#ft_glyphslotrec">FT_GlyphSlotRec</a></code> to <code><a href="ft2-basic_types.html#ft_glyph_format">FT_GLYPH_FORMAT_SVG</a></code> ([since 2.13.1] provided <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_NO_SVG</a></code> is not set). Note that FreeType itself can't render SVG documents; however, the library provides hooks to seamlessly integrate an external renderer. See sections &lsquo;<a href="ft2-ot_svg_driver.html#ot_svg_driver">The SVG driver</a>&rsquo; and &lsquo;<a href="ft2-svg_fonts.html#svg_fonts">OpenType SVG Fonts</a>&rsquo; for more.</p>
-<p>[Since 2.10, experimental] If the glyph index maps to an entry in the face's &lsquo;COLR&rsquo; table with a &lsquo;CPAL&rsquo; palette table (as defined in the OpenType specification), make <code><a href="ft2-glyph_retrieval.html#ft_render_glyph">FT_Render_Glyph</a></code> provide a default blending of the color glyph layers associated with the glyph index, using the same bitmap format as embedded color bitmap images. This is mainly for convenience and works only for glyphs in &lsquo;COLR&rsquo; v0 tables (or glyphs in &lsquo;COLR&rsquo; v1 tables that exclusively use v0 features). For full control of color layers use <code><a href="ft2-layer_management.html#ft_get_color_glyph_layer">FT_Get_Color_Glyph_Layer</a></code> and FreeType's color functions like <code><a href="ft2-color_management.html#ft_palette_select">FT_Palette_Select</a></code> instead of setting <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_COLOR</a></code> for rendering so that the client application can handle blending by itself.</p>
+<p>[Since 2.12] If the glyph index maps to an entry in the face's ‘SVG ’ table, load the associated SVG document from this table and set the <code>format</code> field of <code><a href="ft2-glyph_retrieval.html#ft_glyphslotrec">FT_GlyphSlotRec</a></code> to <code><a href="ft2-basic_types.html#ft_glyph_format">FT_GLYPH_FORMAT_SVG</a></code> ([since 2.13.1] provided <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_NO_SVG</a></code> is not set). Note that FreeType itself can't render SVG documents; however, the library provides hooks to seamlessly integrate an external renderer. See sections ‘<a href="ft2-ot_svg_driver.html#ot_svg_driver">The SVG driver</a>’ and ‘<a href="ft2-svg_fonts.html#svg_fonts">OpenType SVG Fonts</a>’ for more.</p>
+<p>[Since 2.10, experimental] If the glyph index maps to an entry in the face's ‘COLR’ table with a ‘CPAL’ palette table (as defined in the OpenType specification), make <code><a href="ft2-glyph_retrieval.html#ft_render_glyph">FT_Render_Glyph</a></code> provide a default blending of the color glyph layers associated with the glyph index, using the same bitmap format as embedded color bitmap images. This is mainly for convenience and works only for glyphs in ‘COLR’ v0 tables (or glyphs in ‘COLR’ v1 tables that exclusively use v0 features). For full control of color layers use <code><a href="ft2-layer_management.html#ft_get_color_glyph_layer">FT_Get_Color_Glyph_Layer</a></code> and FreeType's color functions like <code><a href="ft2-color_management.html#ft_palette_select">FT_Palette_Select</a></code> instead of setting <code><a href="ft2-glyph_retrieval.html#ft_load_xxx">FT_LOAD_COLOR</a></code> for rendering so that the client application can handle blending by itself.</p>
 </td></tr>
 <tr><td class="val" id="ft_load_no_svg">FT_LOAD_NO_SVG</td><td class="desc">
 <p>[Since 2.13.1] Ignore SVG glyph data when loading.</p>
 </td></tr>
 <tr><td class="val" id="ft_load_compute_metrics">FT_LOAD_COMPUTE_METRICS</td><td class="desc">
-<p>[Since 2.6.1] Compute glyph metrics from the glyph data, without the use of bundled metrics tables (for example, the &lsquo;hdmx&rsquo; table in TrueType fonts). This flag is mainly used by font validating or font editing applications, which need to ignore, verify, or edit those tables.</p>
+<p>[Since 2.6.1] Compute glyph metrics from the glyph data, without the use of bundled metrics tables (for example, the ‘hdmx’ table in TrueType fonts). This flag is mainly used by font validating or font editing applications, which need to ignore, verify, or edit those tables.</p>
 <p>Currently, this flag is only implemented for TrueType fonts.</p>
 </td></tr>
 <tr><td class="val" id="ft_load_bitmap_metrics_only">FT_LOAD_BITMAP_METRICS_ONLY</td><td class="desc">
@@ -1967,70 +2705,22 @@
 <p>This is equivalent to <code><a href="ft2-glyph_retrieval.html#ft_render_mode">FT_RENDER_MODE_NORMAL</a></code>. It is only defined as a separate value because render modes are also used indirectly to define hinting algorithm selectors. See <code><a href="ft2-glyph_retrieval.html#ft_load_target_xxx">FT_LOAD_TARGET_XXX</a></code> for details.</p>
 </td></tr>
 <tr><td class="val" id="ft_render_mode_mono">FT_RENDER_MODE_MONO</td><td class="desc">
-<p>This mode corresponds to 1-bit bitmaps (with 2&nbsp;levels of opacity).</p>
+<p>This mode corresponds to 1-bit bitmaps (with 2 levels of opacity).</p>
 </td></tr>
 <tr><td class="val" id="ft_render_mode_lcd">FT_RENDER_MODE_LCD</td><td class="desc">
-<p>This mode corresponds to horizontal RGB and BGR subpixel displays like LCD screens. It produces 8-bit bitmaps that are 3&nbsp;times the width of the original glyph outline in pixels, and which use the <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_LCD</a></code> mode.</p>
+<p>This mode corresponds to horizontal RGB and BGR subpixel displays like LCD screens. It produces 8-bit bitmaps that are 3 times the width of the original glyph outline in pixels, and which use the <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_LCD</a></code> mode.</p>
 </td></tr>
 <tr><td class="val" id="ft_render_mode_lcd_v">FT_RENDER_MODE_LCD_V</td><td class="desc">
-<p>This mode corresponds to vertical RGB and BGR subpixel displays (like PDA screens, rotated LCD displays, etc.). It produces 8-bit bitmaps that are 3&nbsp;times the height of the original glyph outline in pixels and use the <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_LCD_V</a></code> mode.</p>
+<p>This mode corresponds to vertical RGB and BGR subpixel displays (like PDA screens, rotated LCD displays, etc.). It produces 8-bit bitmaps that are 3 times the height of the original glyph outline in pixels and use the <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_LCD_V</a></code> mode.</p>
 </td></tr>
 <tr><td class="val" id="ft_render_mode_sdf">FT_RENDER_MODE_SDF</td><td class="desc">
-<p>This mode corresponds to 8-bit, single-channel signed distance field (SDF) bitmaps. Each pixel in the SDF grid is the value from the pixel's position to the nearest glyph's outline. The distances are calculated from the center of the pixel and are positive if they are filled by the outline (i.e., inside the outline) and negative otherwise. Check the note below on how to convert the output values to usable data.</p>
+<p>The positive (unsigned) 8-bit bitmap values can be converted to the single-channel signed distance field (SDF) by subtracting 128, with the positive and negative results corresponding to the inside and the outside of a glyph contour, respectively. The distance units are arbitrarily determined by an adjustable <code><a href="ft2-properties.html#spread">spread</a></code> property.</p>
 </td></tr>
 </table>
 
 <h4>note</h4>
 
-<p>The selected render mode only affects vector glyphs of a font. Embedded bitmaps often have a different pixel mode like <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_MONO</a></code>. You can use <code><a href="ft2-bitmap_handling.html#ft_bitmap_convert">FT_Bitmap_Convert</a></code> to transform them into 8-bit pixmaps.</p>
-<p>For <code><a href="ft2-glyph_retrieval.html#ft_render_mode">FT_RENDER_MODE_SDF</a></code> the output bitmap buffer contains normalized distances that are packed into unsigned 8-bit values. To get pixel values in floating point representation use the following pseudo-C code for the conversion.
-<div class="highlight"><pre><span></span><code>// Load glyph and render using FT_RENDER_MODE_SDF,
-// then use the output buffer as follows.
-
-...
-FT_Byte  buffer = glyph-&gt;bitmap-&gt;buffer;
-
-
-for pixel in buffer
-{
-  // `sd` is the signed distance and `spread` is the current spread;
-  // the default spread is 2 and can be changed.
-
-  float  sd = (float)pixel - 128.0f;
-
-
-  // Convert to pixel values.
-  sd = ( sd / 128.0f ) * spread;
-
-  // Store `sd` in a buffer or use as required.
-}
-</code></pre></div></p>
-<p>FreeType has two rasterizers for generating SDF, namely:</p>
-<ol>
-<li>
-<p><code>sdf</code> for generating SDF directly from glyph's outline, and</p>
-</li>
-<li>
-<p><code>bsdf</code> for generating SDF from rasterized bitmaps.</p>
-</li>
-</ol>
-<p>Depending on the glyph type (i.e., outline or bitmap), one of the two rasterizers is chosen at runtime and used for generating SDFs. To force the use of <code>bsdf</code> you should render the glyph with any of the FreeType's other rendering modes (e.g., <code>FT_RENDER_MODE_NORMAL</code>) and then re-render with <code>FT_RENDER_MODE_SDF</code>.</p>
-<p>There are some issues with stability and possible failures of the SDF renderers (specifically <code>sdf</code>).</p>
-<ol>
-<li>
-<p>The <code>sdf</code> rasterizer is sensitive to really small features (e.g., sharp turns that are less than 1&nbsp;pixel) and imperfections in the glyph's outline, causing artifacts in the final output.</p>
-</li>
-<li>
-<p>The <code>sdf</code> rasterizer has limited support for handling intersecting contours and <em>cannot</em> handle self-intersecting contours whatsoever. Self-intersection happens when a single connected contour intersects itself at some point; having these in your font definitely poses a problem to the rasterizer and cause artifacts, too.</p>
-</li>
-<li>
-<p>Generating SDF for really small glyphs may result in undesirable output; the pixel grid (which stores distance information) becomes too coarse.</p>
-</li>
-<li>
-<p>Since the output buffer is normalized, precision at smaller spreads is greater than precision at larger spread values because the output range of [0..255] gets mapped to a smaller SDF range. A spread of&nbsp;2 should be sufficient in most cases.</p>
-</li>
-</ol>
-<p>Points (1) and (2) can be avoided by using the <code>bsdf</code> rasterizer, which is more stable than the <code>sdf</code> rasterizer in general.</p>
+<p>The selected render mode only affects scalable vector glyphs of a font. Embedded bitmaps often have a different pixel mode like <code><a href="ft2-basic_types.html#ft_pixel_mode">FT_PIXEL_MODE_MONO</a></code>. You can use <code><a href="ft2-bitmap_handling.html#ft_bitmap_convert">FT_Bitmap_Convert</a></code> to transform them into 8-bit pixmaps.</p>
 <hr>
 
 <h2 id="ft_get_kerning">FT_Get_Kerning<a class="headerlink" href="#ft_get_kerning" title="Permanent link">&para;</a></h2>
@@ -2073,7 +2763,9 @@ for pixel in buffer
 <h4>note</h4>
 
 <p>Only horizontal layouts (left-to-right &amp; right-to-left) are supported by this method. Other layouts, or more sophisticated kernings, are out of the scope of this API function &ndash; they can be implemented through format-specific interfaces.</p>
-<p>Kerning for OpenType fonts implemented in a &lsquo;GPOS&rsquo; table is not supported; use <code><a href="ft2-font_testing_macros.html#ft_has_kerning">FT_HAS_KERNING</a></code> to find out whether a font has data that can be extracted with <code>FT_Get_Kerning</code>.</p>
+<p>Note that, for TrueType fonts only, this can extract data from both the &lsquo;kern&rsquo; table and the basic, pair-wise kerning feature from the GPOS table (with <code>TT_CONFIG_OPTION_GPOS_KERNING</code> enabled), though FreeType does not support the more advanced GPOS layout features; use a library like HarfBuzz for those instead. If a font has both a &lsquo;kern&rsquo; table and kern features of a GPOS table, the &lsquo;kern&rsquo; table will be used.</p>
+<p>Also note for right-to-left scripts, the functionality may differ for fonts with GPOS tables vs. &lsquo;kern&rsquo; tables. For GPOS, right-to-left fonts typically use both a placement offset and an advance for pair positioning, which this API does not support, so it would output kerning values of zero; though if the right-to-left font used only advances in GPOS pair positioning, then this API could output kerning values for it, but it would use <code>left_glyph</code> to mean the first glyph for that case. Whereas &lsquo;kern&rsquo; tables are always advance-only and always store the left glyph first.</p>
+<p>Use <code><a href="ft2-font_testing_macros.html#ft_has_kerning">FT_HAS_KERNING</a></code> to find out whether a font has data that can be extracted with <code>FT_Get_Kerning</code>.</p>
 <hr>
 
 <h2 id="ft_kerning_mode">FT_Kerning_Mode<a class="headerlink" href="#ft_kerning_mode" title="Permanent link">&para;</a></h2>
@@ -2152,71 +2844,45 @@ for pixel in buffer
 <p>Currently, only the Type&nbsp;1 font driver supports track kerning, using data from AFM files (if attached with <code><a href="ft2-face_creation.html#ft_attach_file">FT_Attach_File</a></code> or <code><a href="ft2-face_creation.html#ft_attach_stream">FT_Attach_Stream</a></code>).</p>
 <p>Only very few AFM files come with track kerning data; please refer to Adobe's AFM specification for more details.</p>
 <hr>
-                
-              
-              
-                
 
 
-              
-            </article>
-          </div>
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
       </main>
       
-        
-<footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-        
-        <a href="ft2-sizing_and_scaling.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: Sizing and Scaling" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              Sizing and Scaling
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="ft2-character_mapping.html" class="md-footer__link md-footer__link--next" aria-label="Next: Character Mapping" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Character Mapping
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
+        <footer class="md-footer">
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
-      <div class="md-footer-copyright">
-        
-          <div class="md-footer-copyright__highlight">
-            Copyright 2023 <a href = "https://www.freetype.org/license.html">The FreeType Project</a>.
-          </div>
-        
-        Made with
-        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
-          Material for MkDocs
-        </a>
-        
-      </div>
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright 2024 <a href = "https://www.freetype.org/license.html">The FreeType Project</a>.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
       
     </div>
   </div>
@@ -2226,10 +2892,12 @@ for pixel in buffer
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.477d984a.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.82b56eb2.min.js"></script>
+    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="assets/javascripts/bundle.fe8b6f2b.min.js"></script>
       
         <script src="javascripts/extra.js"></script>
       

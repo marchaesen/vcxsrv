@@ -5,7 +5,7 @@ How to prepare a new release
   `FREETYPE_MINOR`, and `FREETYPE_PATCH`.
 
 . Update version numbers in all files where necessary (for example, do
-  a grep for both '2.10.4' and '2104' for release 2.10.4).
+  a grep for both '2.13.2' and '2132' for release 2.13.2).
 
 . builds/unix/configure.raw: Update `version_info`.
 
@@ -91,13 +91,14 @@ How to prepare a new release
   zip!
 
 . Run the following script (with updated `$VERSION`, `$SAVANNAH_USER`,
-  and `$SOURCEFORGE_USER` variables) to sign and upload the bundles to
-  both Savannah and SourceForge.  The signing code has been taken from
-  the `gnupload` script (part of the 'automake' bundle).
+  `$SOURCEFORGE_USER`, and `GPG_KEY_ID` variables) to sign and upload
+  the bundles to both Savannah and SourceForge.  The signing code has
+  been taken from the `gnupload` script (part of the 'automake'
+  bundle).
 
     #!/bin/sh
 
-    VERSION=2.12.0
+    VERSION=2.13.2
     SAVANNAH_USER=wl
     SOURCEFORGE_USER=wlemb
     GPG_KEY_ID=BE6C3AAC63AD8E3F
@@ -183,7 +184,7 @@ How to prepare a new release
 
     #!/bin/sh
 
-    VERSION=2.10.4
+    VERSION=2.13.2
     SOURCEFORGE_USER=wlemb
 
     #####################################################################
@@ -210,7 +211,7 @@ How to prepare a new release
 
 ----------------------------------------------------------------------
 
-Copyright (C) 2003-2023 by
+Copyright (C) 2003-2024 by
 David Turner, Robert Wilhelm, and Werner Lemberg.
 
 This  file is  part of  the FreeType  project, and  may only  be used,

@@ -6,50 +6,59 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="API Reference Documentation for FreeType-2.13.2">
-      
+        <meta name="description" content="API Reference Documentation for FreeType-2.13.3">
       
       
         <meta name="author" content="FreeType Contributors">
       
       
+        <link rel="canonical" href="http://freetype.org/freetype2/docs/reference/ft2-properties.html">
+      
+      
+        <link rel="prev" href="ft2-ot_svg_driver.html">
+      
+      
+        <link rel="next" href="ft2-parameter_tags.html">
+      
+      
       <link rel="icon" href="images/favico.ico">
-      <meta name="generator" content="mkdocs-1.4.3, mkdocs-material-7.1.9">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.31">
     
     
       
-        <title>Driver properties - FreeType-2.13.2 API Reference</title>
+        <title>Driver properties - FreeType-2.13.3 API Reference</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.ca7ac06f.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.3cba04c6.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.f1a3b89f.min.css">
-        
-          
-          
-          <meta name="theme-color" content="#4cae4f">
-        
+        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
       
     
     
-    
       
+        
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif:300,400,400i,700%7CRoboto+Mono&display=fallback">
-        <style>:root{--md-text-font-family:"Noto Serif";--md-code-font-family:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Serif:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Noto Serif";--md-code-font:"Roboto Mono"}</style>
       
-    
     
     
       <link rel="stylesheet" href="stylesheets/extra.css">
     
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
-
+    
     
     
   </head>
@@ -60,10 +69,8 @@
     
     
     
-    <body dir="ltr" data-md-color-scheme="" data-md-color-primary="green" data-md-color-accent="green">
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="green" data-md-color-accent="green">
   
-    
-    <script>function __prefix(e){return new URL(".",location).pathname+"."+e}function __get(e,t=localStorage){return JSON.parse(t.getItem(__prefix(e)))}</script>
     
     <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
@@ -80,21 +87,27 @@
       
     </div>
     
-      <header class="md-header" data-md-component="header">
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="index.html" title="FreeType-2.13.2 API Reference" class="md-header__button md-logo" aria-label="FreeType-2.13.2 API Reference" data-md-component="logo">
+    <a href="index.html" title="FreeType-2.13.3 API Reference" class="md-header__button md-logo" aria-label="FreeType-2.13.3 API Reference" data-md-component="logo">
       
   <img src="images/favico.ico" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2z"/></svg>
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
     </label>
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FreeType-2.13.2 API Reference
+            FreeType-2.13.3 API Reference
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -107,32 +120,42 @@
       </div>
     </div>
     
+      
+    
+    
     
     
       <label class="md-header__button md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
       </label>
-      
-<div class="md-search" data-md-component="search" role="dialog">
+      <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
-      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" data-md-state="active" required>
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
       <label class="md-search__icon md-icon" for="__search">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5z"/></svg>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
       </label>
-      <button type="reset" class="md-search__icon md-icon" aria-label="Clear" tabindex="-1">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
-      </button>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
     </form>
     <div class="md-search__output">
-      <div class="md-search__scrollwrap" data-md-scrollfix>
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
         <div class="md-search-result" data-md-component="search-result">
           <div class="md-search-result__meta">
             Initializing search
           </div>
-          <ol class="md-search-result__list"></ol>
+          <ol class="md-search-result__list" role="presentation"></ol>
         </div>
       </div>
     </div>
@@ -141,11 +164,14 @@
     
     
   </nav>
+  
 </header>
     
     <div class="md-container" data-md-component="container">
       
       
+        
+          
         
       
       <main class="md-main" data-md-component="main">
@@ -159,28 +185,34 @@
                     
 
 
+
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="index.html" title="FreeType-2.13.2 API Reference" class="md-nav__button md-logo" aria-label="FreeType-2.13.2 API Reference" data-md-component="logo">
+    <a href="index.html" title="FreeType-2.13.3 API Reference" class="md-nav__button md-logo" aria-label="FreeType-2.13.3 API Reference" data-md-component="logo">
       
   <img src="images/favico.ico" alt="logo">
 
     </a>
-    FreeType-2.13.2 API Reference
+    FreeType-2.13.3 API Reference
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="index.html" class="md-nav__link">
-        TOC
+        
+  
+  <span class="md-ellipsis">
+    TOC
+  </span>
+  
+
       </a>
     </li>
   
@@ -188,14 +220,19 @@
     
       
       
-      
-
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-index.html" class="md-nav__link">
-        Index
+        
+  
+  <span class="md-ellipsis">
+    Index
+  </span>
+  
+
       </a>
     </li>
   
@@ -203,606 +240,1004 @@
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_3" type="checkbox" id="__nav_3" >
-      
-      <label class="md-nav__link" for="__nav_3">
-        General Remarks
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="General Remarks" data-md-level="1">
-        <label class="md-nav__title" for="__nav_3">
-          <span class="md-nav__icon md-icon"></span>
-          General Remarks
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
           
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    General Remarks
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            General Remarks
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-preamble.html" class="md-nav__link">
-        Preamble
+        
+  
+  <span class="md-ellipsis">
+    Preamble
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-header_inclusion.html" class="md-nav__link">
-        FreeType's header inclusion scheme
+        
+  
+  <span class="md-ellipsis">
+    FreeType's header inclusion scheme
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-user_allocation.html" class="md-nav__link">
-        User allocation
+        
+  
+  <span class="md-ellipsis">
+    User allocation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_4" type="checkbox" id="__nav_4" >
-      
-      <label class="md-nav__link" for="__nav_4">
-        Core API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Core API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_4">
-          <span class="md-nav__icon md-icon"></span>
-          Core API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
           
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Core API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Core API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-basic_types.html" class="md-nav__link">
-        Basic Data Types
+        
+  
+  <span class="md-ellipsis">
+    Basic Data Types
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-library_setup.html" class="md-nav__link">
-        Library Setup
+        
+  
+  <span class="md-ellipsis">
+    Library Setup
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-face_creation.html" class="md-nav__link">
-        Face Creation
+        
+  
+  <span class="md-ellipsis">
+    Face Creation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-font_testing_macros.html" class="md-nav__link">
-        Font Testing Macros
+        
+  
+  <span class="md-ellipsis">
+    Font Testing Macros
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-sizing_and_scaling.html" class="md-nav__link">
-        Sizing and Scaling
+        
+  
+  <span class="md-ellipsis">
+    Sizing and Scaling
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-glyph_retrieval.html" class="md-nav__link">
-        Glyph Retrieval
+        
+  
+  <span class="md-ellipsis">
+    Glyph Retrieval
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-character_mapping.html" class="md-nav__link">
-        Character Mapping
+        
+  
+  <span class="md-ellipsis">
+    Character Mapping
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-information_retrieval.html" class="md-nav__link">
-        Information Retrieval
+        
+  
+  <span class="md-ellipsis">
+    Information Retrieval
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-other_api_data.html" class="md-nav__link">
-        Other API Data
+        
+  
+  <span class="md-ellipsis">
+    Other API Data
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5" type="checkbox" id="__nav_5" >
-      
-      <label class="md-nav__link" for="__nav_5">
-        Extended API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Extended API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_5">
-          <span class="md-nav__icon md-icon"></span>
-          Extended API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
           
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Extended API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Extended API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-glyph_variants.html" class="md-nav__link">
-        Unicode Variation Sequences
+        
+  
+  <span class="md-ellipsis">
+    Unicode Variation Sequences
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-color_management.html" class="md-nav__link">
-        Glyph Color Management
+        
+  
+  <span class="md-ellipsis">
+    Glyph Color Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-layer_management.html" class="md-nav__link">
-        Glyph Layer Management
+        
+  
+  <span class="md-ellipsis">
+    Glyph Layer Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-glyph_management.html" class="md-nav__link">
-        Glyph Management
+        
+  
+  <span class="md-ellipsis">
+    Glyph Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-mac_specific.html" class="md-nav__link">
-        Mac Specific Interface
+        
+  
+  <span class="md-ellipsis">
+    Mac Specific Interface
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-sizes_management.html" class="md-nav__link">
-        Size Management
+        
+  
+  <span class="md-ellipsis">
+    Size Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-header_file_macros.html" class="md-nav__link">
-        Header File Macros
+        
+  
+  <span class="md-ellipsis">
+    Header File Macros
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_6" type="checkbox" id="__nav_6" >
-      
-      <label class="md-nav__link" for="__nav_6">
-        Format-Specific API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Format-Specific API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_6">
-          <span class="md-nav__icon md-icon"></span>
-          Format-Specific API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
           
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Format-Specific API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Format-Specific API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-multiple_masters.html" class="md-nav__link">
-        Multiple Masters
+        
+  
+  <span class="md-ellipsis">
+    Multiple Masters
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-truetype_tables.html" class="md-nav__link">
-        TrueType Tables
+        
+  
+  <span class="md-ellipsis">
+    TrueType Tables
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-type1_tables.html" class="md-nav__link">
-        Type 1 Tables
+        
+  
+  <span class="md-ellipsis">
+    Type 1 Tables
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-sfnt_names.html" class="md-nav__link">
-        SFNT Names
+        
+  
+  <span class="md-ellipsis">
+    SFNT Names
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-bdf_fonts.html" class="md-nav__link">
-        BDF and PCF Files
+        
+  
+  <span class="md-ellipsis">
+    BDF and PCF Files
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-cid_fonts.html" class="md-nav__link">
-        CID Fonts
+        
+  
+  <span class="md-ellipsis">
+    CID Fonts
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-pfr_fonts.html" class="md-nav__link">
-        PFR Fonts
+        
+  
+  <span class="md-ellipsis">
+    PFR Fonts
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-winfnt_fonts.html" class="md-nav__link">
-        Window FNT Files
+        
+  
+  <span class="md-ellipsis">
+    Window FNT Files
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-svg_fonts.html" class="md-nav__link">
-        OpenType SVG Fonts
+        
+  
+  <span class="md-ellipsis">
+    OpenType SVG Fonts
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-font_formats.html" class="md-nav__link">
-        Font Formats
+        
+  
+  <span class="md-ellipsis">
+    Font Formats
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-gasp_table.html" class="md-nav__link">
-        Gasp Table
+        
+  
+  <span class="md-ellipsis">
+    Gasp Table
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
   
   
     
   
   
+  
+    
+    
+    
     
     <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_7" type="checkbox" id="__nav_7" checked>
-      
-      <label class="md-nav__link" for="__nav_7">
-        Controlling FreeType Modules
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Controlling FreeType Modules" data-md-level="1">
-        <label class="md-nav__title" for="__nav_7">
-          <span class="md-nav__icon md-icon"></span>
-          Controlling FreeType Modules
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
           
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Controlling FreeType Modules
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Controlling FreeType Modules
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-auto_hinter.html" class="md-nav__link">
-        The auto-hinter
+        
+  
+  <span class="md-ellipsis">
+    The auto-hinter
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-cff_driver.html" class="md-nav__link">
-        The CFF driver
+        
+  
+  <span class="md-ellipsis">
+    The CFF driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-t1_cid_driver.html" class="md-nav__link">
-        The Type 1 and CID drivers
+        
+  
+  <span class="md-ellipsis">
+    The Type 1 and CID drivers
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-tt_driver.html" class="md-nav__link">
-        The TrueType driver
+        
+  
+  <span class="md-ellipsis">
+    The TrueType driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-pcf_driver.html" class="md-nav__link">
-        The PCF driver
+        
+  
+  <span class="md-ellipsis">
+    The PCF driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-ot_svg_driver.html" class="md-nav__link">
-        The SVG driver
+        
+  
+  <span class="md-ellipsis">
+    The SVG driver
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
   
   
     
   
   
+  
     <li class="md-nav__item md-nav__item--active">
       
-      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
         
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
-          Driver properties
+          
+  
+  <span class="md-ellipsis">
+    Driver properties
+  </span>
+  
+
           <span class="md-nav__icon md-icon"></span>
         </label>
       
       <a href="ft2-properties.html" class="md-nav__link md-nav__link--active">
-        Driver properties
+        
+  
+  <span class="md-ellipsis">
+    Driver properties
+  </span>
+  
+
       </a>
       
         
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
@@ -818,126 +1253,171 @@
       
         <li class="md-nav__item">
   <a href="#synopsis" class="md-nav__link">
-    Synopsis
+    <span class="md-ellipsis">
+      Synopsis
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_hinting_xxx" class="md-nav__link">
-    FT_HINTING_XXX
+    <span class="md-ellipsis">
+      FT_HINTING_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#hinting-engine" class="md-nav__link">
-    hinting-engine
+    <span class="md-ellipsis">
+      hinting-engine
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#no-stem-darkening" class="md-nav__link">
-    no-stem-darkening
+    <span class="md-ellipsis">
+      no-stem-darkening
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#darkening-parameters" class="md-nav__link">
-    darkening-parameters
+    <span class="md-ellipsis">
+      darkening-parameters
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#random-seed" class="md-nav__link">
-    random-seed
+    <span class="md-ellipsis">
+      random-seed
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#no-long-family-names" class="md-nav__link">
-    no-long-family-names
+    <span class="md-ellipsis">
+      no-long-family-names
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#tt_interpreter_version_xxx" class="md-nav__link">
-    TT_INTERPRETER_VERSION_XXX
+    <span class="md-ellipsis">
+      TT_INTERPRETER_VERSION_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#interpreter-version" class="md-nav__link">
-    interpreter-version
+    <span class="md-ellipsis">
+      interpreter-version
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spread" class="md-nav__link">
+    <span class="md-ellipsis">
+      spread
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#svg-hooks" class="md-nav__link">
-    svg-hooks
+    <span class="md-ellipsis">
+      svg-hooks
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#glyph-to-script-map" class="md-nav__link">
-    glyph-to-script-map
+    <span class="md-ellipsis">
+      glyph-to-script-map
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_autohinter_script_xxx" class="md-nav__link">
-    FT_AUTOHINTER_SCRIPT_XXX
+    <span class="md-ellipsis">
+      FT_AUTOHINTER_SCRIPT_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_prop_glyphtoscriptmap" class="md-nav__link">
-    FT_Prop_GlyphToScriptMap
+    <span class="md-ellipsis">
+      FT_Prop_GlyphToScriptMap
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#fallback-script" class="md-nav__link">
-    fallback-script
+    <span class="md-ellipsis">
+      fallback-script
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#default-script" class="md-nav__link">
-    default-script
+    <span class="md-ellipsis">
+      default-script
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#increase-x-height" class="md-nav__link">
-    increase-x-height
+    <span class="md-ellipsis">
+      increase-x-height
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_prop_increasexheight" class="md-nav__link">
-    FT_Prop_IncreaseXHeight
+    <span class="md-ellipsis">
+      FT_Prop_IncreaseXHeight
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#warping" class="md-nav__link">
-    warping
+    <span class="md-ellipsis">
+      warping
+    </span>
   </a>
   
 </li>
@@ -949,393 +1429,641 @@
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-parameter_tags.html" class="md-nav__link">
-        Parameter Tags
+        
+  
+  <span class="md-ellipsis">
+    Parameter Tags
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-lcd_rendering.html" class="md-nav__link">
-        Subpixel Rendering
+        
+  
+  <span class="md-ellipsis">
+    Subpixel Rendering
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_8" type="checkbox" id="__nav_8" >
-      
-      <label class="md-nav__link" for="__nav_8">
-        Cache Sub-System
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Cache Sub-System" data-md-level="1">
-        <label class="md-nav__title" for="__nav_8">
-          <span class="md-nav__icon md-icon"></span>
-          Cache Sub-System
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
           
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Cache Sub-System
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            Cache Sub-System
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-cache_subsystem.html" class="md-nav__link">
-        Cache Sub-System
+        
+  
+  <span class="md-ellipsis">
+    Cache Sub-System
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_9" type="checkbox" id="__nav_9" >
-      
-      <label class="md-nav__link" for="__nav_9">
-        Support API
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Support API" data-md-level="1">
-        <label class="md-nav__title" for="__nav_9">
-          <span class="md-nav__icon md-icon"></span>
-          Support API
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
           
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Support API
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            Support API
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-computations.html" class="md-nav__link">
-        Computations
+        
+  
+  <span class="md-ellipsis">
+    Computations
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-list_processing.html" class="md-nav__link">
-        List Processing
+        
+  
+  <span class="md-ellipsis">
+    List Processing
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-outline_processing.html" class="md-nav__link">
-        Outline Processing
+        
+  
+  <span class="md-ellipsis">
+    Outline Processing
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-quick_advance.html" class="md-nav__link">
-        Quick retrieval of advance values
+        
+  
+  <span class="md-ellipsis">
+    Quick retrieval of advance values
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-bitmap_handling.html" class="md-nav__link">
-        Bitmap Handling
+        
+  
+  <span class="md-ellipsis">
+    Bitmap Handling
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-raster.html" class="md-nav__link">
-        Scanline Converter
+        
+  
+  <span class="md-ellipsis">
+    Scanline Converter
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-glyph_stroker.html" class="md-nav__link">
-        Glyph Stroker
+        
+  
+  <span class="md-ellipsis">
+    Glyph Stroker
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-system_interface.html" class="md-nav__link">
-        System Interface
+        
+  
+  <span class="md-ellipsis">
+    System Interface
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-module_management.html" class="md-nav__link">
-        Module Management
+        
+  
+  <span class="md-ellipsis">
+    Module Management
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-gzip.html" class="md-nav__link">
-        GZIP Streams
+        
+  
+  <span class="md-ellipsis">
+    GZIP Streams
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-lzw.html" class="md-nav__link">
-        LZW Streams
+        
+  
+  <span class="md-ellipsis">
+    LZW Streams
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-bzip2.html" class="md-nav__link">
-        BZIP2 Streams
+        
+  
+  <span class="md-ellipsis">
+    BZIP2 Streams
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-debugging_apis.html" class="md-nav__link">
-        External Debugging APIs
+        
+  
+  <span class="md-ellipsis">
+    External Debugging APIs
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_10" type="checkbox" id="__nav_10" >
-      
-      <label class="md-nav__link" for="__nav_10">
-        Error Codes
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Error Codes" data-md-level="1">
-        <label class="md-nav__title" for="__nav_10">
-          <span class="md-nav__icon md-icon"></span>
-          Error Codes
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
           
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Error Codes
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            Error Codes
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-error_enumerations.html" class="md-nav__link">
-        Error Enumerations
+        
+  
+  <span class="md-ellipsis">
+    Error Enumerations
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-error_code_values.html" class="md-nav__link">
-        Error Code Values
+        
+  
+  <span class="md-ellipsis">
+    Error Code Values
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
     
       
       
-      
-
+  
   
   
   
     
+    
+    
+    
     <li class="md-nav__item md-nav__item--nested">
       
-      
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_11" type="checkbox" id="__nav_11" >
-      
-      <label class="md-nav__link" for="__nav_11">
-        Miscellaneous
-        <span class="md-nav__icon md-icon"></span>
-      </label>
-      <nav class="md-nav" aria-label="Miscellaneous" data-md-level="1">
-        <label class="md-nav__title" for="__nav_11">
-          <span class="md-nav__icon md-icon"></span>
-          Miscellaneous
-        </label>
-        <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
           
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
             
+  
+  <span class="md-ellipsis">
+    Miscellaneous
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            Miscellaneous
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-gx_validation.html" class="md-nav__link">
-        TrueTypeGX/AAT Validation
+        
+  
+  <span class="md-ellipsis">
+    TrueTypeGX/AAT Validation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-incremental.html" class="md-nav__link">
-        Incremental Loading
+        
+  
+  <span class="md-ellipsis">
+    Incremental Loading
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-truetype_engine.html" class="md-nav__link">
-        The TrueType Engine
+        
+  
+  <span class="md-ellipsis">
+    The TrueType Engine
+  </span>
+  
+
       </a>
     </li>
   
 
-          
+              
             
+              
+                
+  
   
   
   
     <li class="md-nav__item">
       <a href="ft2-ot_validation.html" class="md-nav__link">
-        OpenType Validation
+        
+  
+  <span class="md-ellipsis">
+    OpenType Validation
+  </span>
+  
+
       </a>
     </li>
   
 
-          
-        </ul>
-      </nav>
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -1352,6 +2080,7 @@
                 <div class="md-sidebar__scrollwrap">
                   <div class="md-sidebar__inner">
                     
+
 <nav class="md-nav md-nav--secondary" aria-label="Table of contents">
   
   
@@ -1367,126 +2096,171 @@
       
         <li class="md-nav__item">
   <a href="#synopsis" class="md-nav__link">
-    Synopsis
+    <span class="md-ellipsis">
+      Synopsis
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_hinting_xxx" class="md-nav__link">
-    FT_HINTING_XXX
+    <span class="md-ellipsis">
+      FT_HINTING_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#hinting-engine" class="md-nav__link">
-    hinting-engine
+    <span class="md-ellipsis">
+      hinting-engine
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#no-stem-darkening" class="md-nav__link">
-    no-stem-darkening
+    <span class="md-ellipsis">
+      no-stem-darkening
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#darkening-parameters" class="md-nav__link">
-    darkening-parameters
+    <span class="md-ellipsis">
+      darkening-parameters
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#random-seed" class="md-nav__link">
-    random-seed
+    <span class="md-ellipsis">
+      random-seed
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#no-long-family-names" class="md-nav__link">
-    no-long-family-names
+    <span class="md-ellipsis">
+      no-long-family-names
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#tt_interpreter_version_xxx" class="md-nav__link">
-    TT_INTERPRETER_VERSION_XXX
+    <span class="md-ellipsis">
+      TT_INTERPRETER_VERSION_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#interpreter-version" class="md-nav__link">
-    interpreter-version
+    <span class="md-ellipsis">
+      interpreter-version
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spread" class="md-nav__link">
+    <span class="md-ellipsis">
+      spread
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#svg-hooks" class="md-nav__link">
-    svg-hooks
+    <span class="md-ellipsis">
+      svg-hooks
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#glyph-to-script-map" class="md-nav__link">
-    glyph-to-script-map
+    <span class="md-ellipsis">
+      glyph-to-script-map
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_autohinter_script_xxx" class="md-nav__link">
-    FT_AUTOHINTER_SCRIPT_XXX
+    <span class="md-ellipsis">
+      FT_AUTOHINTER_SCRIPT_XXX
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_prop_glyphtoscriptmap" class="md-nav__link">
-    FT_Prop_GlyphToScriptMap
+    <span class="md-ellipsis">
+      FT_Prop_GlyphToScriptMap
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#fallback-script" class="md-nav__link">
-    fallback-script
+    <span class="md-ellipsis">
+      fallback-script
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#default-script" class="md-nav__link">
-    default-script
+    <span class="md-ellipsis">
+      default-script
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#increase-x-height" class="md-nav__link">
-    increase-x-height
+    <span class="md-ellipsis">
+      increase-x-height
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#ft_prop_increasexheight" class="md-nav__link">
-    FT_Prop_IncreaseXHeight
+    <span class="md-ellipsis">
+      FT_Prop_IncreaseXHeight
+    </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
   <a href="#warping" class="md-nav__link">
-    warping
+    <span class="md-ellipsis">
+      warping
+    </span>
   </a>
   
 </li>
@@ -1499,12 +2273,14 @@
               </div>
             
           
-          <div class="md-content" data-md-component="content">
-            <article class="md-content__inner md-typeset">
-              
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
                 
-                
-                <p><a href="https://www.freetype.org">FreeType</a> &raquo; <a href="../">Docs</a> &raquo; <a href="index.html#controlling-freetype-modules">Controlling FreeType Modules</a> &raquo; Driver properties</p>
+                  
+
+
+<p><a href="https://www.freetype.org">FreeType</a> &raquo; <a href="../">Docs</a> &raquo; <a href="index.html#controlling-freetype-modules">Controlling FreeType Modules</a> &raquo; Driver properties</p>
 <hr />
 <h1 id="driver-properties">Driver properties<a class="headerlink" href="#driver-properties" title="Permanent link">&para;</a></h1>
 <h2 id="synopsis">Synopsis<a class="headerlink" href="#synopsis" title="Permanent link">&para;</a></h2>
@@ -1673,13 +2449,13 @@
 <h4>values</h4>
 <table class="fields">
 <tr><td class="val" id="tt_interpreter_version_35">TT_INTERPRETER_VERSION_35</td><td class="desc">
-<p>Version&nbsp;35 corresponds to MS rasterizer v.1.7 as used e.g. in Windows&nbsp;98; only grayscale and B/W rasterizing is supported.</p>
+<p>Version 35 corresponds to MS rasterizer v.1.7 as used e.g. in Windows 98; only grayscale and B/W rasterizing is supported.</p>
 </td></tr>
 <tr><td class="val" id="tt_interpreter_version_38">TT_INTERPRETER_VERSION_38</td><td class="desc">
-<p>Version&nbsp;38 is the same Version&nbsp;40. The original &lsquo;Infinality&rsquo; code is no longer available.</p>
+<p>Version 38 is the same Version 40. The original ‘Infinality’ code is no longer available.</p>
 </td></tr>
 <tr><td class="val" id="tt_interpreter_version_40">TT_INTERPRETER_VERSION_40</td><td class="desc">
-<p>Version&nbsp;40 corresponds to MS rasterizer v.2.1; it is roughly equivalent to the hinting provided by DirectWrite ClearType (as can be found, for example, in Microsoft's Edge Browser on Windows&nbsp;10). It is used in FreeType to select the &lsquo;minimal&rsquo; subpixel hinting code, a stripped-down and higher performance version of the &lsquo;Infinality&rsquo; code.</p>
+<p>Version 40 corresponds to MS rasterizer v.2.1; it is roughly equivalent to the hinting provided by DirectWrite ClearType (as can be found, for example, in Microsoft's Edge Browser on Windows 10). It is used in FreeType to select the ‘minimal’ subpixel hinting code, a stripped-down and higher performance version of the ‘Infinality’ code.</p>
 </td></tr>
 </table>
 
@@ -1756,6 +2532,52 @@
 <p>2.5</p>
 <hr>
 
+<h2 id="spread">spread<a class="headerlink" href="#spread" title="Permanent link">&para;</a></h2>
+<p>This property of the &lsquo;sdf&rsquo; and &lsquo;bsdf&rsquo; renderers defines how the signed distance field (SDF) is represented in the output bitmap. The output values are calculated as follows, &lsquo;128 * ( SDF / spread + 1 )&rsquo;, with the result clamped to the 8-bit range [0..255]. Therefore, &lsquo;spread&rsquo; is also the maximum euclidean distance from the edge after which the values are clamped. The spread is specified in pixels with the default value of 8. For accurate SDF texture mapping (interpolation), the spread should be large enough to accommodate the target grid unit.</p>
+<h4>example</h4>
+
+<p>The following example code demonstrates how to set the SDF spread (omitting the error handling).
+<div class="highlight"><pre><span></span><code>  FT_Library  library;
+  FT_Int      spread = 2;
+
+
+  FT_Init_FreeType( &amp;library );
+
+  FT_Property_Set( library, &quot;sdf&quot;, &quot;spread&quot;, &amp;spread );
+</code></pre></div></p>
+<h4>note</h4>
+
+<p>FreeType has two rasterizers for generating SDF, namely:</p>
+<ol>
+<li>
+<p><code>sdf</code> for generating SDF directly from glyph's outline, and</p>
+</li>
+<li>
+<p><code>bsdf</code> for generating SDF from rasterized bitmaps.</p>
+</li>
+</ol>
+<p>Depending on the glyph type (i.e., outline or bitmap), one of the two rasterizers is chosen at runtime and used for generating SDFs. To force the use of <code>bsdf</code> you should render the glyph with any of the FreeType's other rendering modes (e.g., <code>FT_RENDER_MODE_NORMAL</code>) and then re-render with <code>FT_RENDER_MODE_SDF</code>.</p>
+<p>There are some issues with stability and possible failures of the SDF renderers (specifically <code>sdf</code>).</p>
+<ol>
+<li>
+<p>The <code>sdf</code> rasterizer is sensitive to really small features (e.g., sharp turns that are less than 1&nbsp;pixel) and imperfections in the glyph's outline, causing artifacts in the final output.</p>
+</li>
+<li>
+<p>The <code>sdf</code> rasterizer has limited support for handling intersecting contours and <em>cannot</em> handle self-intersecting contours whatsoever. Self-intersection happens when a single connected contour intersects itself at some point; having these in your font definitely poses a problem to the rasterizer and cause artifacts, too.</p>
+</li>
+<li>
+<p>Generating SDF for really small glyphs may result in undesirable output; the pixel grid (which stores distance information) becomes too coarse.</p>
+</li>
+<li>
+<p>Since the output buffer is normalized, precision at smaller spreads is greater than precision at larger spread values because the output range of [0..255] gets mapped to a smaller SDF range. A spread of&nbsp;2 should be sufficient in most cases.</p>
+</li>
+</ol>
+<p>Points (1) and (2) can be avoided by using the <code>bsdf</code> rasterizer, which is more stable than the <code>sdf</code> rasterizer in general.</p>
+<h4>since</h4>
+
+<p>2.11</p>
+<hr>
+
 <h2 id="svg-hooks">svg-hooks<a class="headerlink" href="#svg-hooks" title="Permanent link">&para;</a></h2>
 <p>Set up the interface between FreeType and an extern SVG rendering library like &lsquo;librsvg&rsquo;. All details on the function hooks can be found in section &lsquo;<a href="ft2-svg_fonts.html#svg_fonts">OpenType SVG Fonts</a>&rsquo;.</p>
 <h4>example</h4>
@@ -1825,7 +2647,7 @@
 <p>Don't auto-hint this glyph.</p>
 </td></tr>
 <tr><td class="val" id="ft_autohinter_script_latin">FT_AUTOHINTER_SCRIPT_LATIN</td><td class="desc">
-<p>Apply the latin auto-hinter. For the auto-hinter, &lsquo;latin&rsquo; is a very broad term, including Cyrillic and Greek also since characters from those scripts share the same design constraints.</p>
+<p>Apply the latin auto-hinter. For the auto-hinter, ‘latin’ is a very broad term, including Cyrillic and Greek also since characters from those scripts share the same design constraints.</p>
 <p>By default, characters from the following Unicode ranges are assigned to this submodule.</p>
 <pre><code>  U+0020 - U+007F  // Basic Latin (no control characters)
   U+00A0 - U+00FF  // Latin-1 Supplement (no control characters)
@@ -2024,71 +2846,45 @@
 
 <p>2.6</p>
 <hr>
-                
-              
-              
-                
 
 
-              
-            </article>
-          </div>
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
         </div>
         
       </main>
       
-        
-<footer class="md-footer">
-  
-    <nav class="md-footer__inner md-grid" aria-label="Footer">
-      
-        
-        <a href="ft2-ot_svg_driver.html" class="md-footer__link md-footer__link--prev" aria-label="Previous: The SVG driver" rel="prev">
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
-          </div>
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Previous
-              </span>
-              The SVG driver
-            </div>
-          </div>
-        </a>
-      
-      
-        
-        <a href="ft2-parameter_tags.html" class="md-footer__link md-footer__link--next" aria-label="Next: Parameter Tags" rel="next">
-          <div class="md-footer__title">
-            <div class="md-ellipsis">
-              <span class="md-footer__direction">
-                Next
-              </span>
-              Parameter Tags
-            </div>
-          </div>
-          <div class="md-footer__button md-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
-          </div>
-        </a>
-      
-    </nav>
+        <footer class="md-footer">
   
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
-      <div class="md-footer-copyright">
-        
-          <div class="md-footer-copyright__highlight">
-            Copyright 2023 <a href = "https://www.freetype.org/license.html">The FreeType Project</a>.
-          </div>
-        
-        Made with
-        <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
-          Material for MkDocs
-        </a>
-        
-      </div>
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright 2024 <a href = "https://www.freetype.org/license.html">The FreeType Project</a>.
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
       
     </div>
   </div>
@@ -2098,10 +2894,12 @@
     <div class="md-dialog" data-md-component="dialog">
       <div class="md-dialog__inner md-typeset"></div>
     </div>
-    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.477d984a.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.config.lang": "en", "search.config.pipeline": "trimmer, stopWordFilter", "search.config.separator": "[\\s\\-]+", "search.placeholder": "Search", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version.title": "Select version"}, "version": null}</script>
     
     
-      <script src="assets/javascripts/bundle.82b56eb2.min.js"></script>
+    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="assets/javascripts/bundle.fe8b6f2b.min.js"></script>
       
         <script src="javascripts/extra.js"></script>
       
