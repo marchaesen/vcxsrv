@@ -18,7 +18,7 @@
 ;--------------------------------
 !include "FileFunc.nsh"
 !define NAME "VcXsrv"
-!define VERSION "21.1.13.0"
+!define VERSION "21.1.16.0"
 !define UNINSTALL_PUBLISHER "${NAME}"
 !define UNINSTALL_URL "https://github.com/marchaesen/vcxsrv"
 
