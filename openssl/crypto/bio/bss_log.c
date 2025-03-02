@@ -1,5 +1,5 @@
 /*
- * Copyright 1999-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1999-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -281,7 +281,7 @@ static void xsyslog(BIO *bp, int priority, const char *string)
         break;
     }
 
-    sprintf(pidbuf, "[%lu] ", GetCurrentProcessId());
+    BIO_snprintf(pidbuf, sizeof(pidbuf), "[%lu] ", GetCurrentProcessId());
     lpszStrings[0] = pidbuf;
     lpszStrings[1] = string;
 

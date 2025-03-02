@@ -1,5 +1,5 @@
 /*
- * Copyright 2007-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2007-2024 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright Nokia 2007-2019
  * Copyright Siemens AG 2015-2019
  *
@@ -336,8 +336,9 @@ static int test_validate_msg_signature_sender_cert_extracert(void)
             || !add_trusted(fixture->cmp_ctx, instaca_cert)) {
         tear_down(fixture);
         fixture = NULL;
+    } else {
+        fixture->cert = sk_X509_value(fixture->msg->extraCerts, 1); /* Insta CA */
     }
-    fixture->cert = sk_X509_value(fixture->msg->extraCerts, 1); /* Insta CA */
     EXECUTE_TEST(execute_validate_msg_test, tear_down);
     return result;
 }

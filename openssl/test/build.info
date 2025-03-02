@@ -26,7 +26,7 @@ IF[{- !$disabled{tests} -}]
           testutil/format_output.c testutil/load.c testutil/fake_random.c \
           testutil/test_cleanup.c testutil/main.c testutil/testutil_init.c \
           testutil/options.c testutil/test_options.c testutil/provider.c \
-          testutil/apps_shims.c testutil/random.c $LIBAPPSSRC
+          testutil/apps_shims.c testutil/random.c testutil/helper.c $LIBAPPSSRC
   INCLUDE[libtestutil.a]=../include ../apps/include ..
   DEPEND[libtestutil.a]=../libcrypto
 
@@ -49,7 +49,7 @@ IF[{- !$disabled{tests} -}]
           ssl_test_ctx_test ssl_test x509aux cipherlist_test asynciotest \
           bio_callback_test bio_memleak_test bio_core_test bio_dgram_test param_build_test \
           bioprinttest sslapitest ssl_handshake_rtt_test dtlstest sslcorrupttest \
-          bio_enc_test pkey_meth_test pkey_meth_kdf_test evp_kdf_test uitest \
+          bio_base64_test bio_enc_test pkey_meth_test pkey_meth_kdf_test evp_kdf_test uitest \
           cipherbytes_test threadstest_fips threadpool_test \
           asn1_encode_test asn1_decode_test asn1_string_table_test asn1_stable_parse_test \
           x509_time_test x509_dup_cert_test x509_check_cert_pkey_test \
@@ -63,7 +63,8 @@ IF[{- !$disabled{tests} -}]
           provfetchtest prov_config_test rand_test \
           ca_internals_test bio_tfo_test membio_test bio_dgram_test list_test \
           fips_version_test x509_test hpke_test pairwise_fail_test \
-          nodefltctxtest evp_xof_test x509_load_cert_file_test bio_meth_test
+          nodefltctxtest evp_xof_test x509_load_cert_file_test bio_meth_test \
+          x509_acert_test x509_req_test strtoultest bio_pw_callback_test
 
   IF[{- !$disabled{'rpk'} -}]
     PROGRAMS{noinst}=rpktest
@@ -74,7 +75,7 @@ IF[{- !$disabled{tests} -}]
   ENDIF
 
   IF[{- !$disabled{quic} -}]
-    PROGRAMS{noinst}=priority_queue_test event_queue_test quicfaultstest quicapitest \
+    PROGRAMS{noinst}=priority_queue_test quicfaultstest quicapitest \
                      quic_newcid_test quic_srt_gen_test
   ENDIF
 
@@ -422,7 +423,7 @@ IF[{- !$disabled{tests} -}]
 
   SOURCE[lhash_test]=lhash_test.c
   INCLUDE[lhash_test]=../include ../apps/include
-  DEPEND[lhash_test]=../libcrypto libtestutil.a
+  DEPEND[lhash_test]=../libcrypto.a libtestutil.a
 
   SOURCE[dtlsv1listentest]=dtlsv1listentest.c
   INCLUDE[dtlsv1listentest]=../include ../apps/include
@@ -581,6 +582,10 @@ IF[{- !$disabled{tests} -}]
   INCLUDE[sslcorrupttest]=../include ../apps/include
   DEPEND[sslcorrupttest]=../libcrypto ../libssl libtestutil.a
 
+  SOURCE[bio_base64_test]=bio_base64_test.c
+  INCLUDE[bio_base64_test]=../include ../apps/include
+  DEPEND[bio_base64_test]=../libcrypto libtestutil.a
+
   SOURCE[bio_enc_test]=bio_enc_test.c
   INCLUDE[bio_enc_test]=../include ../apps/include
   DEPEND[bio_enc_test]=../libcrypto libtestutil.a
@@ -618,7 +623,8 @@ IF[{- !$disabled{tests} -}]
   DEPEND[recordlentest]=../libcrypto ../libssl libtestutil.a
 
   SOURCE[drbgtest]=drbgtest.c
-  INCLUDE[drbgtest]=../include ../apps/include ../providers/common/include
+  INCLUDE[drbgtest]=../include ../apps/include ../providers/common/include \
+                    ../providers/fips/include
   DEPEND[drbgtest]=../libcrypto.a libtestutil.a
 
   SOURCE[rand_status_test]=rand_status_test.c
@@ -876,10 +882,6 @@ IF[{- !$disabled{tests} -}]
       SOURCE[priority_queue_test]=priority_queue_test.c
       INCLUDE[priority_queue_test]=../include ../apps/include
       DEPEND[priority_queue_test]=../libcrypto ../libssl.a libtestutil.a
-
-      SOURCE[event_queue_test]=event_queue_test.c
-      INCLUDE[event_queue_test]=../include ../apps/include
-      DEPEND[event_queue_test]=../libcrypto ../libssl.a libtestutil.a
 
       SOURCE[quicfaultstest]=quicfaultstest.c helpers/ssltestlib.c $QUICTESTHELPERS
       INCLUDE[quicfaultstest]=../include ../apps/include ..
@@ -1209,6 +1211,22 @@ ENDIF
   SOURCE[cert_comp_test]=cert_comp_test.c helpers/ssltestlib.c
   INCLUDE[cert_comp_test]=../include ../apps/include ..
   DEPEND[cert_comp_test]=../libcrypto ../libssl libtestutil.a
+
+  SOURCE[x509_acert_test]=x509_acert_test.c
+  INCLUDE[x509_acert_test]=../include ../apps/include
+  DEPEND[x509_acert_test]=../libcrypto libtestutil.a
+
+  SOURCE[x509_req_test]=x509_req_test.c
+  INCLUDE[x509_req_test]=../include ../apps/include
+  DEPEND[x509_req_test]=../libcrypto libtestutil.a
+
+  SOURCE[strtoultest]=strtoultest.c
+  INCLUDE[strtoultest]=../include ../apps/include
+  DEPEND[strtoultest]=../libcrypto libtestutil.a
+
+  SOURCE[bio_pw_callback_test]=bio_pw_callback_test.c
+  INCLUDE[bio_pw_callback_test]=../include ../apps/include
+  DEPEND[bio_pw_callback_test]=../libcrypto libtestutil.a
 
 {-
    use File::Spec::Functions;

@@ -4,6 +4,7 @@
 #
 OPENSSL_ia32cap                         environment
 OPENSSL_s390xcap                        environment
+OPENSSL_riscvcap                        environment
 OPENSSL_MALLOC_FD                       environment
 OPENSSL_MALLOC_FAILURES                 environment
 OPENSSL_instrument_bus                  assembler
@@ -53,6 +54,7 @@ EVP_RAND                                datatype
 EVP_RAND_CTX                            datatype
 EVP_SIGNATURE                           datatype
 GEN_SESSION_CB                          datatype
+GENERAL_NAME                            datatype
 NAMING_AUTHORITY                        datatype
 OPENSSL_Applink                         external
 OSSL_ALGORITHM                          datatype
@@ -70,6 +72,7 @@ OSSL_ENCODER_CLEANUP                    datatype
 OSSL_ENCODER_INSTANCE                   datatype
 OSSL_HTTP_bio_cb_t                      datatype
 OSSL_HTTP_REQ_CTX                       datatype
+OSSL_IETF_ATTR_SYNTAX                   datatype
 OSSL_ITEM                               datatype
 OSSL_LIB_CTX                            datatype
 OSSL_PARAM                              datatype
@@ -417,6 +420,7 @@ OPENSSL_clear_free                      define
 OPENSSL_clear_realloc                   define
 OPENSSL_free                            define
 OPENSSL_malloc                          define
+OPENSSL_aligned_alloc                   define
 OPENSSL_malloc_init                     define
 OPENSSL_mem_debug_pop                   define deprecated 3.0.0
 OPENSSL_mem_debug_push                  define deprecated 3.0.0
@@ -457,6 +461,9 @@ OSSL_CMP_LOG_WARNING                    define
 OSSL_CMP_MSTR_HELPER                    define
 OSSL_CMP_MSTR                           define
 OSSL_CMP_P10CR                          define
+OSSL_CMP_ATAV                           define
+OSSL_CMP_ATAV_free                      define
+OSSL_CMP_ATAVS                          define
 OSSL_CMP_certConf_cb_t                  datatype
 OSSL_CMP_log_cb_t                       datatype
 OSSL_CMP_severity                       datatype
@@ -825,3 +832,5 @@ EVP_PKEY_size                           define
 EVP_PKEY_id                             define
 EVP_PKEY_base_id                        define
 SSL_set_retry_verify                    define
+TS_VERIFY_CTX                           define
+CMAC_CTX                                define

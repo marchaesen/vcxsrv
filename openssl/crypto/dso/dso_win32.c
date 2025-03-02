@@ -1,5 +1,5 @@
 /*
- * Copyright 2000-2022 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2000-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -444,24 +444,20 @@ static char *win32_name_converter(DSO *dso, const char *filename)
     char *translated;
     int len, transform;
 
-    len = strlen(filename);
     transform = ((strstr(filename, "/") == NULL) &&
                  (strstr(filename, "\\") == NULL) &&
                  (strstr(filename, ":") == NULL));
+    /* If transform != 0, then we convert to %s.dll, else just dupe filename */
+
+    len = strlen(filename) + 1;
     if (transform)
-        /* We will convert this to "%s.dll" */
-        translated = OPENSSL_malloc(len + 5);
-    else
-        /* We will simply duplicate filename */
-        translated = OPENSSL_malloc(len + 1);
+        len += strlen(".dll");
+    translated = OPENSSL_malloc(len);
     if (translated == NULL) {
         ERR_raise(ERR_LIB_DSO, DSO_R_NAME_TRANSLATION_FAILED);
         return NULL;
     }
-    if (transform)
-        sprintf(translated, "%s.dll", filename);
-    else
-        sprintf(translated, "%s", filename);
+    BIO_snprintf(translated, len, "%s%s", filename, transform ? ".dll" : "");
     return translated;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2016-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -186,7 +186,7 @@ static int test_check_overflow(void)
     char max[(sizeof(long) * 8) / 3 + 3];
     char *p;
 
-    p = max + sprintf(max, "0%ld", LONG_MAX) - 1;
+    p = max + BIO_snprintf(max, sizeof(max), "0%ld", LONG_MAX) - 1;
     setenv("FNORD", max, 1);
     if (!TEST_true(NCONF_get_number(NULL, "missing", "FNORD", &val))
             || !TEST_long_eq(val, LONG_MAX))

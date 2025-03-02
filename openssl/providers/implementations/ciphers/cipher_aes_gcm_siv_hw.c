@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2019-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -318,8 +318,7 @@ static int aes_gcm_siv_dup_ctx(void *vdst, void *vsrc)
     return 0;
 }
 
-static const PROV_CIPHER_HW_AES_GCM_SIV aes_gcm_siv_hw =
-{
+static const PROV_CIPHER_HW_AES_GCM_SIV aes_gcm_siv_hw = {
     aes_gcm_siv_initkey,
     aes_gcm_siv_cipher,
     aes_gcm_siv_dup_ctx,

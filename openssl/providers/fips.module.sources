@@ -232,6 +232,7 @@ crypto/ffc/ffc_key_validate.c
 crypto/ffc/ffc_params.c
 crypto/ffc/ffc_params_generate.c
 crypto/ffc/ffc_params_validate.c
+crypto/hashtable/hashtable.c
 crypto/hmac/hmac.c
 crypto/hmac/hmac_local.h
 crypto/ia64cpuid.S
@@ -389,6 +390,7 @@ include/crypto/asn1_dsa.h
 include/crypto/bn.h
 include/crypto/bn_conf.h.in
 include/crypto/bn_dh.h
+include/crypto/cmac.h
 include/crypto/context.h
 include/crypto/cryptlib.h
 include/crypto/ctype.h
@@ -422,6 +424,7 @@ include/internal/dsoerr.h
 include/internal/e_os.h
 include/internal/endian.h
 include/internal/ffc.h
+include/internal/hashtable.h
 include/internal/namemap.h
 include/internal/nelem.h
 include/internal/numbers.h
@@ -444,6 +447,7 @@ include/internal/thread_arch.h
 include/internal/thread_once.h
 include/internal/time.h
 include/internal/tlsgroups.h
+include/internal/to_hex.h
 include/internal/tsan_assist.h
 include/openssl/aes.h
 include/openssl/asn1.h.in
@@ -485,6 +489,8 @@ include/openssl/evperr.h
 include/openssl/fips_names.h
 include/openssl/fipskey.h.in
 include/openssl/hmac.h
+include/openssl/http.h
+include/openssl/indicator.h
 include/openssl/kdf.h
 include/openssl/lhash.h.in
 include/openssl/macros.h
@@ -496,6 +502,8 @@ include/openssl/opensslconf.h
 include/openssl/opensslv.h.in
 include/openssl/param_build.h
 include/openssl/params.h
+include/openssl/pkcs7.h.in
+include/openssl/pkcs7err.h
 include/openssl/prov_ssl.h
 include/openssl/proverr.h
 include/openssl/provider.h
@@ -511,6 +519,9 @@ include/openssl/symhacks.h
 include/openssl/thread.h
 include/openssl/trace.h
 include/openssl/types.h
+include/openssl/x509.h.in
+include/openssl/x509_vfy.h.in
+include/openssl/x509err.h
 providers/common/bio_prov.c
 providers/common/capabilities.c
 providers/common/der/der_digests_gen.c.in
@@ -534,7 +545,6 @@ providers/common/include/prov/der_ec.h.in
 providers/common/include/prov/der_ecx.h.in
 providers/common/include/prov/der_rsa.h.in
 providers/common/include/prov/der_wrap.h.in
-providers/common/include/prov/fipscommon.h
 providers/common/include/prov/proverr.h
 providers/common/include/prov/provider_ctx.h
 providers/common/include/prov/provider_util.h
@@ -547,7 +557,12 @@ providers/common/provider_util.c
 providers/common/securitycheck.c
 providers/common/securitycheck_fips.c
 providers/fips/fips_entry.c
+providers/fips/fipsindicator.c
 providers/fips/fipsprov.c
+providers/fips/include/fips/fipsindicator.h
+providers/fips/include/fips_indicator_params.inc
+providers/fips/include/fips_selftest_params.inc
+providers/fips/include/fipscommon.h
 providers/fips/self_test.c
 providers/fips/self_test.h
 providers/fips/self_test_data.inc
@@ -634,12 +649,12 @@ providers/implementations/macs/cmac_prov.c
 providers/implementations/macs/gmac_prov.c
 providers/implementations/macs/hmac_prov.c
 providers/implementations/macs/kmac_prov.c
-providers/implementations/rands/crngt.c
 providers/implementations/rands/drbg.c
 providers/implementations/rands/drbg_ctr.c
 providers/implementations/rands/drbg_hash.c
 providers/implementations/rands/drbg_hmac.c
 providers/implementations/rands/drbg_local.h
+providers/implementations/rands/fips_crng_test.c
 providers/implementations/rands/test_rng.c
 providers/implementations/signature/dsa_sig.c
 providers/implementations/signature/ecdsa_sig.c

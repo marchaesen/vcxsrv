@@ -44,6 +44,7 @@ extern "C" {
 /* Test event sub categories */
 # define OSSL_SELF_TEST_DESC_NONE           "None"
 # define OSSL_SELF_TEST_DESC_INTEGRITY_HMAC "HMAC"
+# define OSSL_SELF_TEST_DESC_PCT_RSA        "RSA"
 # define OSSL_SELF_TEST_DESC_PCT_RSA_PKCS1  "RSA"
 # define OSSL_SELF_TEST_DESC_PCT_ECDSA      "ECDSA"
 # define OSSL_SELF_TEST_DESC_PCT_EDDSA      "EDDSA"
@@ -59,6 +60,7 @@ extern "C" {
 # define OSSL_SELF_TEST_DESC_SIGN_DSA       "DSA"
 # define OSSL_SELF_TEST_DESC_SIGN_RSA       "RSA"
 # define OSSL_SELF_TEST_DESC_SIGN_ECDSA     "ECDSA"
+# define OSSL_SELF_TEST_DESC_SIGN_EDDSA     "EDDSA"
 # define OSSL_SELF_TEST_DESC_DRBG_CTR       "CTR"
 # define OSSL_SELF_TEST_DESC_DRBG_HASH      "HASH"
 # define OSSL_SELF_TEST_DESC_DRBG_HMAC      "HMAC"

@@ -12,6 +12,7 @@ appropriate release branch.
 OpenSSL Releases
 ----------------
 
+ - [OpenSSL 3.4](#openssl-34)
  - [OpenSSL 3.3](#openssl-33)
  - [OpenSSL 3.2](#openssl-32)
  - [OpenSSL 3.1](#openssl-31)
@@ -23,8 +24,233 @@ OpenSSL Releases
  - [OpenSSL 1.0.0](#openssl-100)
  - [OpenSSL 0.9.x](#openssl-09x)
 
+OpenSSL 3.4
+-----------
+
+### Changes between 3.4.0 and 3.4.1 [11 Feb 2025]
+
+ * Fixed RFC7250 handshakes with unauthenticated servers don't abort as expected.
+
+   Clients using RFC7250 Raw Public Keys (RPKs) to authenticate a
+   server may fail to notice that the server was not authenticated, because
+   handshakes don't abort as expected when the SSL_VERIFY_PEER verification mode
+   is set.
+
+   ([CVE-2024-12797])
+
+   *Viktor Dukhovni*
+
+ * Fixed timing side-channel in ECDSA signature computation.
+
+   There is a timing signal of around 300 nanoseconds when the top word of
+   the inverted ECDSA nonce value is zero. This can happen with significant
+   probability only for some of the supported elliptic curves. In particular
+   the NIST P-521 curve is affected. To be able to measure this leak, the
+   attacker process must either be located in the same physical computer or
+   must have a very fast network connection with low latency.
+
+   ([CVE-2024-13176])
+
+   *Tomáš Mráz*
+
+ * Reverted the behavior change of CMS_get1_certs() and CMS_get1_crls()
+   that happened in the 3.4.0 release. These functions now return NULL
+   again if there are no certs or crls in the CMS object.
+
+   *Tomáš Mráz*
+
+### Changes between 3.3 and 3.4.0 [22 Oct 2024]
+
+ * For the FIPS provider only, replaced the primary DRBG with a continuous
+   health check module.  This also removes the now forbidden DRBG chaining.
+
+   *Paul Dale*
+
+ * Improved base64 BIO correctness and error reporting.
+
+   *Viktor Dukhovni*
+
+ * Added support for directly fetched composite signature algorithms such as
+   RSA-SHA2-256 including new API functions in the EVP_PKEY_sign,
+   EVP_PKEY_verify and EVP_PKEY_verify_recover groups.
+
+   *Richard Levitte*
+
+ * XOF Digest API improvements
+
+   EVP_MD_CTX_get_size() and EVP_MD_CTX_size are macros that were aliased to
+   EVP_MD_get_size which returns a constant value. XOF Digests such as SHAKE
+   have an output size that is not fixed, so calling EVP_MD_get_size() is not
+   sufficent. The existing macros now point to the new function
+   EVP_MD_CTX_get_size_ex() which will retrieve the "size" for a XOF digest,
+   otherwise it falls back to calling EVP_MD_get_size(). Note that the SHAKE
+   implementation did not have a context getter previously, so the "size" will
+   only be able to be retrieved with new providers.
+
+   Also added a EVP_xof() helper.
+
+   *Shane Lontis*
+
+ * Added FIPS indicators to the FIPS provider.
+
+   FIPS 140-3 requires indicators to be used if the FIPS provider allows
+   non-approved algorithms. An algorithm is approved if it passes all
+   required checks such as minimum key size. By default an error will
+   occur if any check fails. For backwards compatibility individual
+   algorithms may override the checks by using either an option in the
+   FIPS configuration OR in code using an algorithm context setter.
+   Overriding the check means that the algorithm is not FIPS compliant.
+   OSSL_INDICATOR_set_callback() can be called to register a callback
+   to log unapproved algorithms. At the end of any algorithm operation
+   the approved status can be queried using an algorithm context getter.
+   FIPS provider configuration options are set using 'openssl fipsinstall'.
+
+   Note that new FIPS 140-3 restrictions have been enforced such as
+   RSA Encryption using PKCS1 padding is no longer approved.
+   Documentation related to the changes can be found on the [fips_module(7)]
+   manual page.
+
+   [fips_module(7)]: https://docs.openssl.org/master/man7/fips_module/#FIPS indicators
+
+   *Shane Lontis, Paul Dale, Po-Hsing Wu and Dimitri John Ledkov*
+
+ * Added support for hardware acceleration for HMAC on S390x architecture.
+
+   *Ingo Franzki*
+
+ * Added debuginfo Makefile target for unix platforms to produce
+   a separate DWARF info file from the corresponding shared libs.
+
+   *Neil Horman*
+
+ * Added support for encapsulation and decapsulation operations in the
+   pkeyutl command.
+
+   *Dmitry Belyavskiy*
+
+ * Added implementation of RFC 9579 (PBMAC1) in PKCS#12.
+
+   *Dmitry Belyavskiy*
+
+ * Add a new random seed source RNG `JITTER` using a statically linked
+   jitterentropy library.
+
+   *Dimitri John Ledkov*
+
+ * Added a feature to retrieve configured TLS signature algorithms,
+   e.g., via the openssl list command.
+
+   *Michael Baentsch*
+
+ * Deprecated TS_VERIFY_CTX_set_* functions and added replacement
+   TS_VERIFY_CTX_set0_* functions with improved semantics.
+
+   *Tobias Erbsland*
+
+ * Redesigned Windows use of OPENSSLDIR/ENGINESDIR/MODULESDIR such that
+   what were formerly build time locations can now be defined at run time
+   with registry keys. See NOTES-WINDOWS.md.
+
+   *Neil Horman*
+
+ * Added options `-not_before` and `-not_after` for explicit setting
+   start and end dates of certificates created with the `req` and `x509`
+   apps. Added the same options also to `ca` app as alias for
+   `-startdate` and `-enddate` options.
+
+   *Stephan Wurm*
+
+ * The X25519 and X448 key exchange implementation in the FIPS provider
+   is unapproved and has `fips=no` property.
+
+   *Tomáš Mráz*
+
+ * SHAKE-128 and SHAKE-256 implementations have no default digest length
+   anymore. That means these algorithms cannot be used with
+   EVP_DigestFinal/_ex() unless the `xoflen` param is set before.
+
+   This change was necessary because the preexisting default lengths were
+   half the size necessary for full collision resistance supported by these
+   algorithms.
+
+   *Tomáš Mráz*
+
+ * Setting `config_diagnostics=1` in the config file will cause errors to
+   be returned from SSL_CTX_new() and SSL_CTX_new_ex() if there is an error
+   in the ssl module configuration.
+
+   *Tomáš Mráz*
+
+ * An empty renegotiate extension will be used in TLS client hellos instead
+   of the empty renegotiation SCSV, for all connections with a minimum TLS
+   version > 1.0.
+
+   *Tim Perry*
+
+ * Added support for integrity-only cipher suites TLS_SHA256_SHA256 and
+   TLS_SHA384_SHA384 in TLS 1.3, as defined in RFC 9150.
+
+   This work was sponsored by Siemens AG.
+
+   *Rajeev Ranjan*
+
+ * Added support for requesting CRL in CMP.
+
+   This work was sponsored by Siemens AG.
+
+   *Rajeev Ranjan*
+
+ * Added support for issuedOnBehalfOf, auditIdentity, basicAttConstraints,
+   userNotice, acceptablePrivilegePolicies, acceptableCertPolicies,
+   subjectDirectoryAttributes, associatedInformation, delegatedNameConstraints,
+   holderNameConstraints and targetingInformation X.509v3 extensions.
+
+   *Jonathan M. Wilbur*
+
+ * Added Attribute Certificate (RFC 5755) support. Attribute
+   Certificates can be created, parsed, modified and printed via the
+   public API. There is no command-line tool support at this time.
+
+   *Damian Hobson-Garcia*
+
+ * Added support to build Position Independent Executables (PIE). Configuration
+   option `enable-pie` configures the cflag '-fPIE' and ldflag '-pie' to
+   support Address Space Layout Randomization (ASLR) in the openssl executable,
+   removes reliance on external toolchain configurations.
+
+   *Craig Lorentzen*
+
+ * SSL_SESSION_get_time()/SSL_SESSION_set_time()/SSL_CTX_flush_sessions() have
+   been deprecated in favour of their respective ..._ex() replacement functions
+   which are Y2038-safe.
+
+   *Alexander Kanavin*
+
+ * ECC groups may now customize their initialization to save CPU by using
+   precomputed values. This is used by the P-256 implementation.
+
+   *Watson Ladd*
+
 OpenSSL 3.3
 -----------
+
+### Changes between 3.3.2 and 3.3.3 [xx XXX xxxx]
+
+ * Fixed possible OOB memory access with invalid low-level GF(2^m) elliptic
+   curve parameters.
+
+   Use of the low-level GF(2^m) elliptic curve APIs with untrusted
+   explicit values for the field polynomial can lead to out-of-bounds memory
+   reads or writes.
+   Applications working with "exotic" explicit binary (GF(2^m)) curve
+   parameters, that make it possible to represent invalid field polynomials
+   with a zero constant term, via the above or similar APIs, may terminate
+   abruptly as a result of reading or writing outside of array bounds. Remote
+   code execution cannot easily be ruled out.
+
+   ([CVE-2024-9143])
+
+   *Viktor Dukhovni*
 
 ### Changes between 3.3.1 and 3.3.2 [3 Sep 2024]
 
@@ -265,7 +491,7 @@ OpenSSL 3.3
 
    *Fisher Yu*
 
- * Enable AES and SHA3 optimisations on Applie Silicon M3-based MacOS systems
+ * Enable AES and SHA3 optimisations on Apple Silicon M3-based MacOS systems
    similar to M1/M2.
 
    *Tom Cosgrove*
@@ -1049,7 +1275,7 @@ OpenSSL 3.1
 
  * Add FIPS provider configuration option to enforce the
    Extended Master Secret (EMS) check during the TLS1_PRF KDF.
-   The option '-ems-check' can optionally be supplied to
+   The option '-ems_check' can optionally be supplied to
    'openssl fipsinstall'.
 
    *Shane Lontis*
@@ -3039,7 +3265,7 @@ breaking changes, and mappings for the large list of deprecated functions.
    this switch breaks interoperability with correct implementations.
 
  * Fix a use after free bug in d2i_X509_PUBKEY when overwriting a
-   re-used X509_PUBKEY object if the second PUBKEY is malformed.
+   reused X509_PUBKEY object if the second PUBKEY is malformed.
 
    *Bernd Edlinger*
 
@@ -4373,7 +4599,7 @@ OpenSSL 1.1.0
    *Billy Bob Brumley, Nicola Tuveri*
 
  * Fix a use after free bug in d2i_X509_PUBKEY when overwriting a
-   re-used X509_PUBKEY object if the second PUBKEY is malformed.
+   reused X509_PUBKEY object if the second PUBKEY is malformed.
 
    *Bernd Edlinger*
 
@@ -16493,7 +16719,7 @@ s-cbc           3624.96k     5258.21k     5530.91k     5624.30k     5628.26k
    *Bodo Moeller*
 
  * Store verify_result within SSL_SESSION also for client side to
-   avoid potential security hole. (Re-used sessions on the client side
+   avoid potential security hole. (Reused sessions on the client side
    always resulted in verify_result==X509_V_OK, not using the original
    result of the server certificate verification.)
 
@@ -20685,6 +20911,8 @@ ndif
 
 <!-- Links -->
 
+[CVE-2024-13176]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-13176
+[CVE-2024-9143]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-9143
 [CVE-2024-6119]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-6119
 [CVE-2024-5535]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-5535
 [CVE-2024-4741]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-4741

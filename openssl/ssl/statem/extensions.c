@@ -59,6 +59,8 @@ static int final_key_share(SSL_CONNECTION *s, unsigned int context, int sent);
 static int init_srtp(SSL_CONNECTION *s, unsigned int context);
 #endif
 static int final_sig_algs(SSL_CONNECTION *s, unsigned int context, int sent);
+static int final_supported_versions(SSL_CONNECTION *s, unsigned int context,
+                                    int sent);
 static int final_early_data(SSL_CONNECTION *s, unsigned int context, int sent);
 static int final_maxfragmentlen(SSL_CONNECTION *s, unsigned int context,
                                 int sent);
@@ -344,7 +346,7 @@ static const EXTENSION_DEFINITION ext_defs[] = {
         /* Processed inline as part of version selection */
         NULL, tls_parse_stoc_supported_versions,
         tls_construct_stoc_supported_versions,
-        tls_construct_ctos_supported_versions, NULL
+        tls_construct_ctos_supported_versions, final_supported_versions
     },
     {
         TLSEXT_TYPE_psk_kex_modes,
@@ -691,7 +693,7 @@ int tls_collect_extensions(SSL_CONNECTION *s, PACKET *packet,
             thisex->type = type;
             thisex->received_order = i++;
             if (s->ext.debug_cb)
-                s->ext.debug_cb(SSL_CONNECTION_GET_SSL(s), !s->server,
+                s->ext.debug_cb(SSL_CONNECTION_GET_USER_SSL(s), !s->server,
                                 thisex->type, PACKET_data(&thisex->data),
                                 PACKET_remaining(&thisex->data),
                                 s->ext.debug_arg);
@@ -989,6 +991,7 @@ static int final_server_name(SSL_CONNECTION *s, unsigned int context, int sent)
     int ret = SSL_TLSEXT_ERR_NOACK;
     int altmp = SSL_AD_UNRECOGNIZED_NAME;
     SSL *ssl = SSL_CONNECTION_GET_SSL(s);
+    SSL *ussl = SSL_CONNECTION_GET_USER_SSL(s);
     SSL_CTX *sctx = SSL_CONNECTION_GET_CTX(s);
     int was_ticket = (SSL_get_options(ssl) & SSL_OP_NO_TICKET) == 0;
 
@@ -998,11 +1001,11 @@ static int final_server_name(SSL_CONNECTION *s, unsigned int context, int sent)
     }
 
     if (sctx->ext.servername_cb != NULL)
-        ret = sctx->ext.servername_cb(ssl, &altmp,
+        ret = sctx->ext.servername_cb(ussl, &altmp,
                                       sctx->ext.servername_arg);
     else if (s->session_ctx->ext.servername_cb != NULL)
-        ret = s->session_ctx->ext.servername_cb(ssl, &altmp,
-                                       s->session_ctx->ext.servername_arg);
+        ret = s->session_ctx->ext.servername_cb(ussl, &altmp,
+                                                s->session_ctx->ext.servername_arg);
 
     /*
      * For servers, propagate the SNI hostname from the temporary
@@ -1346,6 +1349,18 @@ static int final_sig_algs(SSL_CONNECTION *s, unsigned int context, int sent)
     return 1;
 }
 
+static int final_supported_versions(SSL_CONNECTION *s, unsigned int context,
+                                    int sent)
+{
+    if (!sent && context == SSL_EXT_TLS1_3_HELLO_RETRY_REQUEST) {
+        SSLfatal(s, TLS13_AD_MISSING_EXTENSION,
+                 SSL_R_MISSING_SUPPORTED_VERSIONS_EXTENSION);
+        return 0;
+    }
+
+    return 1;
+}
+
 static int final_key_share(SSL_CONNECTION *s, unsigned int context, int sent)
 {
 #if !defined(OPENSSL_NO_TLS1_3)
@@ -1368,12 +1383,15 @@ static int final_key_share(SSL_CONNECTION *s, unsigned int context, int sent)
      *     fail;
      */
     if (!s->server
-            && !sent
-            && (!s->hit
-                || (s->ext.psk_kex_mode & TLSEXT_KEX_MODE_FLAG_KE) == 0)) {
-        /* Nothing left we can do - just fail */
-        SSLfatal(s, SSL_AD_MISSING_EXTENSION, SSL_R_NO_SUITABLE_KEY_SHARE);
-        return 0;
+            && !sent) {
+        if ((s->ext.psk_kex_mode & TLSEXT_KEX_MODE_FLAG_KE) == 0) {
+            SSLfatal(s, SSL_AD_ILLEGAL_PARAMETER, SSL_R_NO_SUITABLE_KEY_SHARE);
+            return 0;
+        }
+        if (!s->hit) {
+            SSLfatal(s, SSL_AD_MISSING_EXTENSION, SSL_R_NO_SUITABLE_KEY_SHARE);
+            return 0;
+        }
     }
     /*
      * IF
@@ -1539,7 +1557,7 @@ int tls_psk_do_binder(SSL_CONNECTION *s, const EVP_MD *md,
     SSL_CTX *sctx = SSL_CONNECTION_GET_CTX(s);
 
     /* Ensure cast to size_t is safe */
-    if (!ossl_assert(hashsizei >= 0)) {
+    if (!ossl_assert(hashsizei > 0)) {
         SSLfatal(s, SSL_AD_INTERNAL_ERROR, ERR_R_INTERNAL_ERROR);
         goto err;
     }
@@ -1683,7 +1701,7 @@ int tls_psk_do_binder(SSL_CONNECTION *s, const EVP_MD *md,
         /* HMAC keys can't do EVP_DigestVerify* - use CRYPTO_memcmp instead */
         ret = (CRYPTO_memcmp(binderin, binderout, hashsize) == 0);
         if (!ret)
-            SSLfatal(s, SSL_AD_ILLEGAL_PARAMETER, SSL_R_BINDER_DOES_NOT_VERIFY);
+            SSLfatal(s, SSL_AD_DECRYPT_ERROR, SSL_R_BINDER_DOES_NOT_VERIFY);
     }
 
  err:
@@ -1722,8 +1740,8 @@ static int final_early_data(SSL_CONNECTION *s, unsigned int context, int sent)
             || !s->ext.early_data_ok
             || s->hello_retry_request != SSL_HRR_NONE
             || (s->allow_early_data_cb != NULL
-                && !s->allow_early_data_cb(SSL_CONNECTION_GET_SSL(s),
-                                         s->allow_early_data_cb_data))) {
+                && !s->allow_early_data_cb(SSL_CONNECTION_GET_USER_SSL(s),
+                                           s->allow_early_data_cb_data))) {
         s->ext.early_data = SSL_EARLY_DATA_REJECTED;
     } else {
         s->ext.early_data = SSL_EARLY_DATA_ACCEPTED;

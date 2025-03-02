@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2002-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -105,14 +105,18 @@ static int ui_read(UI *ui, UI_STRING *uis)
     switch (UI_get_string_type(uis)) {
     case UIT_PROMPT:
         {
-            char result[PEM_BUFSIZE + 1];
+            int len;
+            char result[PEM_BUFSIZE + 1]; /* reserve one byte at the end */
             const struct pem_password_cb_data *data =
                 UI_method_get_ex_data(UI_get_method(ui), ui_method_data_index);
             int maxsize = UI_get_result_maxsize(uis);
-            int len = data->cb(result,
-                               maxsize > PEM_BUFSIZE ? PEM_BUFSIZE : maxsize,
-                               data->rwflag, UI_get0_user_data(ui));
 
+            if (maxsize > PEM_BUFSIZE)
+                maxsize = PEM_BUFSIZE;
+            len = data->cb(result, maxsize, data->rwflag,
+                           UI_get0_user_data(ui));
+            if (len > maxsize)
+                return -1;
             if (len >= 0)
                 result[len] = '\0';
             if (len < 0)

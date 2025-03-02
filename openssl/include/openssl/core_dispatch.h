@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2019-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -13,6 +13,7 @@
 
 # include <stdarg.h>
 # include <openssl/core.h>
+# include <openssl/indicator.h>
 
 # ifdef __cplusplus
 extern "C" {
@@ -182,6 +183,9 @@ OSSL_CORE_MAKE_FUNC(int, BIO_ctrl, (OSSL_CORE_BIO *bio,
 #define OSSL_FUNC_GET_USER_ENTROPY            98
 #define OSSL_FUNC_GET_USER_NONCE              99
 
+#define OSSL_FUNC_INDICATOR_CB                95
+OSSL_CORE_MAKE_FUNC(void, indicator_cb, (OPENSSL_CORE_CTX *ctx,
+                                         OSSL_INDICATOR_CALLBACK **cb))
 #define OSSL_FUNC_SELF_TEST_CB               100
 OSSL_CORE_MAKE_FUNC(void, self_test_cb, (OPENSSL_CORE_CTX *ctx, OSSL_CALLBACK **cb,
                                          void **cbarg))
@@ -588,6 +592,9 @@ OSSL_CORE_MAKE_FUNC(void *, keymgmt_new, (void *provctx))
 # define OSSL_FUNC_KEYMGMT_GEN_SETTABLE_PARAMS         5
 # define OSSL_FUNC_KEYMGMT_GEN                         6
 # define OSSL_FUNC_KEYMGMT_GEN_CLEANUP                 7
+# define OSSL_FUNC_KEYMGMT_GEN_GET_PARAMS              15
+# define OSSL_FUNC_KEYMGMT_GEN_GETTABLE_PARAMS         16
+
 OSSL_CORE_MAKE_FUNC(void *, keymgmt_gen_init,
                     (void *provctx, int selection, const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(int, keymgmt_gen_set_template,
@@ -596,6 +603,10 @@ OSSL_CORE_MAKE_FUNC(int, keymgmt_gen_set_params,
                     (void *genctx, const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *,
                     keymgmt_gen_settable_params,
+                    (void *genctx, void *provctx))
+OSSL_CORE_MAKE_FUNC(int, keymgmt_gen_get_params,
+                    (void *genctx, OSSL_PARAM params[]))
+OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *, keymgmt_gen_gettable_params,
                     (void *genctx, void *provctx))
 OSSL_CORE_MAKE_FUNC(void *, keymgmt_gen,
                     (void *genctx, OSSL_CALLBACK *cb, void *cbarg))
@@ -730,22 +741,45 @@ OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *, keyexch_gettable_ctx_params,
 # define OSSL_FUNC_SIGNATURE_GETTABLE_CTX_MD_PARAMS 23
 # define OSSL_FUNC_SIGNATURE_SET_CTX_MD_PARAMS      24
 # define OSSL_FUNC_SIGNATURE_SETTABLE_CTX_MD_PARAMS 25
+# define OSSL_FUNC_SIGNATURE_QUERY_KEY_TYPES        26
+# define OSSL_FUNC_SIGNATURE_SIGN_MESSAGE_INIT      27
+# define OSSL_FUNC_SIGNATURE_SIGN_MESSAGE_UPDATE    28
+# define OSSL_FUNC_SIGNATURE_SIGN_MESSAGE_FINAL     29
+# define OSSL_FUNC_SIGNATURE_VERIFY_MESSAGE_INIT    30
+# define OSSL_FUNC_SIGNATURE_VERIFY_MESSAGE_UPDATE  31
+# define OSSL_FUNC_SIGNATURE_VERIFY_MESSAGE_FINAL   32
 
 OSSL_CORE_MAKE_FUNC(void *, signature_newctx, (void *provctx,
-                                                  const char *propq))
+                                               const char *propq))
 OSSL_CORE_MAKE_FUNC(int, signature_sign_init, (void *ctx, void *provkey,
                                                const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(int, signature_sign, (void *ctx,  unsigned char *sig,
-                                             size_t *siglen, size_t sigsize,
-                                             const unsigned char *tbs,
-                                             size_t tbslen))
+                                          size_t *siglen, size_t sigsize,
+                                          const unsigned char *tbs,
+                                          size_t tbslen))
+OSSL_CORE_MAKE_FUNC(int, signature_sign_message_init,
+                    (void *ctx, void *provkey, const OSSL_PARAM params[]))
+OSSL_CORE_MAKE_FUNC(int, signature_sign_message_update,
+                    (void *ctx, const unsigned char *in, size_t inlen))
+OSSL_CORE_MAKE_FUNC(int, signature_sign_message_final,
+                    (void *ctx, unsigned char *sig,
+                     size_t *siglen, size_t sigsize))
 OSSL_CORE_MAKE_FUNC(int, signature_verify_init, (void *ctx, void *provkey,
                                                  const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(int, signature_verify, (void *ctx,
-                                               const unsigned char *sig,
-                                               size_t siglen,
-                                               const unsigned char *tbs,
-                                               size_t tbslen))
+                                            const unsigned char *sig,
+                                            size_t siglen,
+                                            const unsigned char *tbs,
+                                            size_t tbslen))
+OSSL_CORE_MAKE_FUNC(int, signature_verify_message_init,
+                    (void *ctx, void *provkey, const OSSL_PARAM params[]))
+OSSL_CORE_MAKE_FUNC(int, signature_verify_message_update,
+                    (void *ctx, const unsigned char *in, size_t inlen))
+/*
+ * signature_verify_final requires that the signature to be verified against
+ * is specified via an OSSL_PARAM.
+ */
+OSSL_CORE_MAKE_FUNC(int, signature_verify_message_final, (void *ctx))
 OSSL_CORE_MAKE_FUNC(int, signature_verify_recover_init,
                     (void *ctx, void *provkey, const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(int, signature_verify_recover,
@@ -790,7 +824,7 @@ OSSL_CORE_MAKE_FUNC(int, signature_set_ctx_md_params,
                     (void *ctx, const OSSL_PARAM params[]))
 OSSL_CORE_MAKE_FUNC(const OSSL_PARAM *, signature_settable_ctx_md_params,
                     (void *ctx))
-
+OSSL_CORE_MAKE_FUNC(const char **, signature_query_key_types, (void))
 
 /* Asymmetric Ciphers */
 

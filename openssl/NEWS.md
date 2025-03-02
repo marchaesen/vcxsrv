@@ -7,6 +7,7 @@ release. For more details please read the CHANGES file.
 OpenSSL Releases
 ----------------
 
+ - [OpenSSL 3.4](#openssl-34)
  - [OpenSSL 3.3](#openssl-33)
  - [OpenSSL 3.2](#openssl-32)
  - [OpenSSL 3.1](#openssl-31)
@@ -18,8 +19,97 @@ OpenSSL Releases
  - [OpenSSL 1.0.0](#openssl-100)
  - [OpenSSL 0.9.x](#openssl-09x)
 
+OpenSSL 3.4
+-----------
+
+### Major changes between OpenSSL 3.4.0 and OpenSSL 3.4.1 [11 Feb 2025]
+
+OpenSSL 3.4.1 is a security patch release. The most severe CVE fixed in this
+release is High.
+
+This release incorporates the following bug fixes and mitigations:
+
+  * Fixed RFC7250 handshakes with unauthenticated servers don't abort as expected.
+    ([CVE-2024-12797])
+
+  * Fixed timing side-channel in ECDSA signature computation.
+    ([CVE-2024-13176])
+
+### Major changes between OpenSSL 3.3 and OpenSSL 3.4.0 [22 Oct 2024]
+
+OpenSSL 3.4.0 is a feature release adding significant new functionality to
+OpenSSL.
+
+This release incorporates the following potentially significant or incompatible
+changes:
+
+  * Deprecation of TS_VERIFY_CTX_set_* functions and addition of replacement
+    TS_VERIFY_CTX_set0_* functions with improved semantics
+
+  * Redesigned use of OPENSSLDIR/ENGINESDIR/MODULESDIR on Windows such that
+    what were formerly build time locations can now be defined at run time
+    with registry keys
+
+  * The X25519 and X448 key exchange implementation in the FIPS provider
+    is unapproved and has `fips=no` property.
+
+  * SHAKE-128 and SHAKE-256 implementations have no default digest length
+    anymore. That means these algorithms cannot be used with
+    EVP_DigestFinal/_ex() unless the `xoflen` param is set before.
+
+  * Setting `config_diagnostics=1` in the config file will cause errors to
+    be returned from SSL_CTX_new() and SSL_CTX_new_ex() if there is an error
+    in the ssl module configuration.
+
+  * An empty renegotiate extension will be used in TLS client hellos instead
+    of the empty renegotiation SCSV, for all connections with a minimum TLS
+    version > 1.0.
+
+  * Deprecation of SSL_SESSION_get_time(), SSL_SESSION_set_time() and
+    SSL_CTX_flush_sessions() functions in favor of their respective `_ex`
+    functions which are Y2038-safe on platforms with Y2038-safe `time_t`
+
+This release adds the following new features:
+
+  * Support for directly fetched composite signature algorithms such as
+    RSA-SHA2-256 including new API functions
+
+  * FIPS indicators support in the FIPS provider and various updates of the FIPS
+    provider required for future FIPS 140-3 validations
+
+  * Implementation of RFC 9579 (PBMAC1) in PKCS#12
+
+  * An optional additional random seed source RNG `JITTER` using a statically
+    linked jitterentropy library
+
+  * New options `-not_before` and `-not_after` for explicit setting start and
+    end dates of certificates created with the `req` and `x509` apps
+
+  * Support for integrity-only cipher suites TLS_SHA256_SHA256 and
+    TLS_SHA384_SHA384 in TLS 1.3, as defined in RFC 9150
+
+  * Support for requesting CRL in CMP
+
+  * Support for additional X.509v3 extensions related to Attribute Certificates
+
+  * Initial Attribute Certificate (RFC 5755) support
+
+  * Possibility to customize ECC groups initialization to use precomputed values
+    to save CPU time and use of this feature by the P-256 implementation
+
 OpenSSL 3.3
 -----------
+
+### Major changes between OpenSSL 3.3.2 and OpenSSL 3.3.3 [under development]
+
+OpenSSL 3.3.3 is a security patch release. The most severe CVE fixed in this
+release is Low.
+
+This release incorporates the following bug fixes and mitigations:
+
+  * Fixed possible OOB memory access with invalid low-level GF(2^m) elliptic
+    curve parameters.
+    ([CVE-2024-9143])
 
 ### Major changes between OpenSSL 3.3.1 and OpenSSL 3.3.2 [3 Sep 2024]
 
@@ -117,7 +207,7 @@ changes:
 
   * Optimized AES-CTR for ARM Neoverse V1 and V2
 
-  * Enable AES and SHA3 optimisations on Applie Silicon M3-based MacOS systems
+  * Enable AES and SHA3 optimisations on Apple Silicon M3-based MacOS systems
     similar to M1/M2.
 
   * Various optimizations for cryptographic routines using RISC-V vector crypto
@@ -1742,6 +1832,8 @@ OpenSSL 0.9.x
 
 <!-- Links -->
 
+[CVE-2024-13176]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-13176
+[CVE-2024-9143]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-9143
 [CVE-2024-6119]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-6119
 [CVE-2024-5535]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-5535
 [CVE-2024-4741]: https://www.openssl.org/news/vulnerabilities.html#CVE-2024-4741

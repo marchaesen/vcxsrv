@@ -3,7 +3,7 @@
 
 =head1 NAME
 
-openssl-pkeyutl - public key algorithm command
+openssl-pkeyutl - asymmetric key command
 
 =head1 SYNOPSIS
 
@@ -13,12 +13,11 @@ B<openssl> B<pkeyutl>
 [B<-rawin>]
 [B<-digest> I<algorithm>]
 [B<-out> I<file>]
+[B<-secret> I<file>]
 [B<-sigfile> I<file>]
 [B<-inkey> I<filename>|I<uri>]
 [B<-keyform> B<DER>|B<PEM>|B<P12>|B<ENGINE>]
 [B<-passin> I<arg>]
-[B<-peerkey> I<file>]
-[B<-peerform> B<DER>|B<PEM>|B<P12>|B<ENGINE>]
 [B<-pubin>]
 [B<-certin>]
 [B<-rev>]
@@ -28,8 +27,13 @@ B<openssl> B<pkeyutl>
 [B<-encrypt>]
 [B<-decrypt>]
 [B<-derive>]
+[B<-peerkey> I<file>]
+[B<-peerform> B<DER>|B<PEM>|B<P12>|B<ENGINE>]
+[B<-encap>]
+[B<-decap>]
 [B<-kdf> I<algorithm>]
 [B<-kdflen> I<length>]
+[B<-kemop> I<operation>]
 [B<-pkeyopt> I<opt>:I<value>]
 [B<-pkeyopt_passin> I<opt>[:I<passarg>]]
 [B<-hexdump>]
@@ -41,8 +45,10 @@ B<openssl> B<pkeyutl>
 
 =head1 DESCRIPTION
 
-This command can be used to perform low-level public key
-operations using any supported algorithm.
+This command can be used to perform low-level operations
+on asymmetric (public or private) keys using any supported algorithm.
+
+By default the signing operation (see B<-sign> option) is assumed.
 
 =head1 OPTIONS
 
@@ -59,29 +65,41 @@ if this option is not specified.
 
 =item B<-rawin>
 
-This indicates that the input data is raw data, which is not hashed by any
-message digest algorithm. The user can specify a digest algorithm by using
-the B<-digest> option. This option can only be used with B<-sign> and
-B<-verify> and must be used with the Ed25519 and Ed448 algorithms.
+This indicates that the signature or verification input data is raw data,
+which is not hashed by any message digest algorithm.
+Except with EdDSA,
+the user can specify a digest algorithm by using the B<-digest> option.
+For signature algorithms like RSA, DSA and ECDSA,
+the default digest algorithm is SHA256. For SM2, it is SM3.
+
+This option can only be used with B<-sign> and B<-verify>.
+For EdDSA (the Ed25519 and Ed448 algorithms) this option is required.
 
 =item B<-digest> I<algorithm>
 
-This specifies the digest algorithm which is used to hash the input data before
-signing or verifying it with the input key. This option could be omitted if the
-signature algorithm does not require one (for instance, EdDSA). If this option
-is omitted but the signature algorithm requires one, a default value will be
-used. For signature algorithms like RSA, DSA and ECDSA, SHA-256 will be the
-default digest algorithm. For SM2, it will be SM3. If this option is present,
-then the B<-rawin> option must be also specified.
+This option can only be used with B<-sign> and B<-verify>.
+It specifies the digest algorithm that is used to hash the input data
+before signing or verifying it with the input key. This option could be omitted
+if the signature algorithm does not require preprocessing the input through
+a pluggable hash function before signing (for instance, EdDSA). If this option
+is omitted but the signature algorithm requires one and the B<-rawin> option
+is given, a default value will be used (see B<-rawin> for details).
+If this option is present, then the B<-rawin> option is required.
+
+At this time, HashEdDSA (the ph or "prehash" variant of EdDSA) is not supported,
+so the B<-digest> option cannot be used with EdDSA.
 
 =item B<-out> I<filename>
 
-Specifies the output filename to write to or standard output by
-default.
+Specifies the output filename to write to or standard output by default.
+
+=item B<-secret> I<filename>
+
+Specifies the output filename to write the secret to on I<-encap>.
 
 =item B<-sigfile> I<file>
 
-Signature file, required for B<-verify> operations only
+Signature file, required and allowed for B<-verify> operations only.
 
 =item B<-inkey> I<filename>|I<uri>
 
@@ -97,15 +115,6 @@ See L<openssl-format-options(1)> for details.
 The input key password source. For more information about the format of I<arg>
 see L<openssl-passphrase-options(1)>.
 
-=item B<-peerkey> I<file>
-
-The peer key file, used by key derivation (agreement) operations.
-
-=item B<-peerform> B<DER>|B<PEM>|B<P12>|B<ENGINE>
-
-The peer key format; unspecified by default.
-See L<openssl-format-options(1)> for details.
-
 =item B<-pubin>
 
 By default a private key is read from the key input.
@@ -119,21 +128,42 @@ The input is a certificate containing a public key.
 =item B<-rev>
 
 Reverse the order of the input buffer. This is useful for some libraries
-(such as CryptoAPI) which represent the buffer in little endian format.
+(such as CryptoAPI) which represent the buffer in little-endian format.
+This cannot be used in conjunction with B<-rawin>.
 
 =item B<-sign>
 
-Sign the input data (which must be a hash) and output the signed result. This
-requires a private key.
+Sign the input data and output the signed result. This requires a private key.
+Using a message digest operation along with this is recommended,
+when applicable, see the B<-rawin> and B<-digest> options for details.
+Otherwise, the input data given with the B<-in> option is assumed to already
+be a digest, but this may then require an additional B<-pkeyopt> C<digest:>I<md>
+in some cases (e.g., RSA with the default PKCS#1 padding mode).
+Even for other algorithms like ECDSA, where the additional B<-pkeyopt> option
+does not affect signature output, it is recommended, as it enables
+checking that the input length is consistent with the intended digest.
 
 =item B<-verify>
 
-Verify the input data (which must be a hash) against the signature file and
-indicate if the verification succeeded or failed.
+Verify the input data against the signature given with the B<-sigfile> option
+and indicate if the verification succeeded or failed.
+The input data given with the B<-in> option is assumed to be a hash value
+unless the B<-rawin> option is specified or implied.
+With raw data, when a digest algorithm is applicable, though it may be inferred
+from the signature or take a default value, it should also be specified.
 
 =item B<-verifyrecover>
 
-Verify the input data (which must be a hash) and output the recovered data.
+Verify the given signature and output the recovered data (signature payload).
+For example, in case of RSA PKCS#1 the recovered data is the B<EMSA-PKCS-v1_5>
+DER encoding of the digest algorithm OID and value as specified in
+L<RFC8017 Section 9.2|https://datatracker.ietf.org/doc/html/rfc8017#section-9.2>.
+
+Note that here the input given with the B<-in> option is not a signature input
+(as with the B<-sign> and B<-verify> options) but a signature output value,
+typically produced using the B<-sign> option.
+
+This option is available only for use with RSA keys.
 
 =item B<-encrypt>
 
@@ -145,7 +175,43 @@ Decrypt the input data using a private key.
 
 =item B<-derive>
 
-Derive a shared secret using the peer key.
+Derive a shared secret using own private (EC)DH key and peer key.
+
+=item B<-peerkey> I<file>
+
+File containing the peer public or private (EC)DH key
+to use with the key derivation (agreement) operation.
+Its type must match the type of the own private key given with B<-inkey>.
+
+=item B<-peerform> B<DER>|B<PEM>|B<P12>|B<ENGINE>
+
+The peer key format; unspecified by default.
+See L<openssl-format-options(1)> for details.
+
+=item B<-encap>
+
+Encapsulate a generated secret using a private key.
+The encapsulated result (binary data) is written to standard output by default,
+or else to the file specified with I<-out>.
+The I<-secret> option must also be provided to specify the output file for the
+secret value generated in the encapsulation process.
+
+=item B<-decap>
+
+Decapsulate the secret using a private key.
+The result (binary data) is written to standard output by default, or else to
+the file specified with I<-out>.
+
+=item B<-kemop> I<operation>
+
+This option is used for I<-encap>/I<-decap> commands and specifies the KEM
+operation specific for the key algorithm when there is no default KEM
+operation.
+If the algorithm has the default KEM operation, this option can be omitted.
+
+See L<EVP_PKEY_CTX_set_kem_op(3)> and algorithm-specific KEM documentation e.g.
+L<EVP_KEM-RSA(7)>, L<EVP_KEM-EC(7)>, L<EVP_KEM-X25519(7)>, and
+L<EVP_KEM-X448(7)>.
 
 =item B<-kdf> I<algorithm>
 
@@ -177,8 +243,10 @@ hex dump the output data.
 
 =item B<-asn1parse>
 
-Parse the ASN.1 output data, this is useful when combined with the
-B<-verifyrecover> option when an ASN1 structure is signed.
+Parse the ASN.1 output data to check its DER encoding and print any errors.
+When combined with the B<-verifyrecover> option, this may be useful in case
+an ASN.1 DER-encoded structure had been signed directly (without hashing it)
+and when checking a signature in PKCS#1 v1.5 format, which has a DER encoding.
 
 {- $OpenSSL::safe::opt_engine_item -}
 
@@ -202,25 +270,28 @@ engine I<id> for crypto operations.
 The operations and options supported vary according to the key algorithm
 and its implementation. The OpenSSL operations and options are indicated below.
 
-Unless otherwise mentioned all algorithms support the B<digest:>I<alg> option
-which specifies the digest in use for sign, verify and verifyrecover operations.
+Unless otherwise mentioned, the B<-pkeyopt> option supports
+for all public-key types the C<digest:>I<alg> argument,
+which specifies the digest in use for the signing and verification operations.
 The value I<alg> should represent a digest name as used in the
-EVP_get_digestbyname() function for example B<sha1>. This value is not used to
+EVP_get_digestbyname() function for example B<sha256>. This value is not used to
 hash the input data. It is used (by some algorithms) for sanity-checking the
 lengths of data passed in and for creating the structures that make up the
-signature (e.g. B<DigestInfo> in RSASSA PKCS#1 v1.5 signatures).
+signature (e.g., B<DigestInfo> in RSASSA PKCS#1 v1.5 signatures).
 
-This command does not hash the input data (except where -rawin is used) but
-rather it will use the data directly as input to the signature algorithm.
+For instance,
+if the value of the B<-pkeyopt> option C<digest> argument is B<sha256>,
+the signature or verification input should be the 32 bytes long binary value
+of the SHA256 hash function output.
+
+Unless B<-rawin> is used or implied, this command does not hash the input data
+but rather it will use the data directly as input to the signature algorithm.
 Depending on the key type, signature type, and mode of padding, the maximum
-acceptable lengths of input data differ. The signed data can't be longer than
-the key modulus with RSA. In case of ECDSA and DSA the data shouldn't be longer
+sensible lengths of input data differ. With RSA the signed data cannot be longer
+than the key modulus. In case of ECDSA and DSA the data should not be longer
 than the field size, otherwise it will be silently truncated to the field size.
 In any event the input size must not be larger than the largest supported digest
-size.
-
-In other words, if the value of digest is B<sha1> the input should be the 20
-bytes long binary encoding of the SHA-1 hash function output.
+output size B<EVP_MAX_MD_SIZE>, which currently is 64 bytes.
 
 =head1 RSA ALGORITHM
 
@@ -272,7 +343,7 @@ explicitly set in PSS mode then the signing digest is used.
 =item B<rsa_oaep_md:>I<digest>
 
 Sets the digest used for the OAEP hash function. If not explicitly set then
-SHA1 is used.
+SHA256 is used.
 
 =item B<rsa_pkcs1_implicit_rejection:>I<flag>
 
@@ -311,7 +382,7 @@ value less than the minimum restriction.
 =head1 DSA ALGORITHM
 
 The DSA algorithm supports signing and verification operations only. Currently
-there are no additional B<-pkeyopt> options other than B<digest>. The SHA1
+there are no additional B<-pkeyopt> options other than B<digest>. The SHA256
 digest is assumed by default.
 
 =head1 DH ALGORITHM
@@ -322,8 +393,8 @@ B<-pkeyopt> options.
 =head1 EC ALGORITHM
 
 The EC algorithm supports sign, verify and derive operations. The sign and
-verify operations use ECDSA and derive uses ECDH. SHA1 is assumed by default for
-the B<-pkeyopt> B<digest> option.
+verify operations use ECDSA and derive uses ECDH. SHA256 is assumed by default
+for the B<-pkeyopt> B<digest> option.
 
 =head1 X25519 AND X448 ALGORITHMS
 
@@ -334,8 +405,7 @@ no additional options.
 
 These algorithms only support signing and verifying. OpenSSL only implements the
 "pure" variants of these algorithms so raw data can be passed directly to them
-without hashing them first. The option B<-rawin> must be used with these
-algorithms with no B<-digest> specified. Additionally OpenSSL only supports
+without hashing them first. OpenSSL only supports
 "oneshot" operation with these algorithms. This means that the entire file to
 be signed/verified must be read into memory before processing it. Signing or
 Verifying very large files should be avoided. Additionally the size of the file
@@ -437,7 +507,7 @@ The B<-engine> option was deprecated in OpenSSL 3.0.
 
 =head1 COPYRIGHT
 
-Copyright 2006-2023 The OpenSSL Project Authors. All Rights Reserved.
+Copyright 2006-2025 The OpenSSL Project Authors. All Rights Reserved.
 
 Licensed under the Apache License 2.0 (the "License").  You may not use
 this file except in compliance with the License.  You can obtain a copy

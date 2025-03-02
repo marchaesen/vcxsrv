@@ -19,6 +19,8 @@ Generic message options:
 [B<-infotype> I<name>]
 [B<-profile> I<name>]
 [B<-geninfo> I<values>]
+[B<-template> I<filename>]
+[B<-keyspec> I<filename>]
 
 Certificate enrollment options:
 
@@ -74,6 +76,9 @@ Server authentication options:
 [B<-newwithnew> I<filename>]
 [B<-newwithold> I<filename>]
 [B<-oldwithnew> I<filename>]
+[B<-crlcert> I<filename>]
+[B<-oldcrl> I<filename>]
+[B<-crlout> I<filename>]
 
 Client authentication and protection options:
 
@@ -91,6 +96,7 @@ Client authentication and protection options:
 Credentials format options:
 
 [B<-certform> I<PEM|DER>]
+[B<-crlform> I<PEM|DER>]
 [B<-keyform> I<PEM|DER|P12|ENGINE>]
 [B<-otherpass> I<arg>]
 {- $OpenSSL::safe::opt_engine_synopsis -}{- $OpenSSL::safe::opt_provider_synopsis -}
@@ -134,6 +140,7 @@ Mock server options:
 [B<-srv_untrusted> I<filenames>|I<uris>]
 [B<-ref_cert> I<filename>|I<uri>]
 [B<-rsp_cert> I<filename>|I<uri>]
+[B<-rsp_crl> I<filename>|I<uri>]
 [B<-rsp_extracerts> I<filenames>|I<uris>]
 [B<-rsp_capubs> I<filenames>|I<uris>]
 [B<-rsp_newwithnew> I<filename>|I<uri>]
@@ -247,7 +254,8 @@ ITAV B<infoType>s is printed to stdout.
 
 Set InfoType name to use for requesting specific info in B<genm>,
 e.g., C<signKeyPairTypes>.
-So far, there is specific support for C<caCerts> and C<rootCaCert>.
+There is specific support for C<caCerts>, C<rootCaCert>,  
+C<certReqTemplate>, and C<crlStatusList> (CRL update retrieval).
 
 =item B<-profile> I<name>
 
@@ -261,6 +269,18 @@ the generalInfo field of the PKIHeader of requests messages.
 Each InfoTypeAndValue gives an OID and an integer or string value
 of the form I<OID>:int:I<number> or I<OID>:str:I<text>,
 e.g., C<'1.2.3.4:int:56789, id-kp:str:name'>.
+
+=item B<-template> I<filename>
+
+The file to save any CRMF certTemplate in DER format
+received in a genp message with id-it-certReqTemplate.
+
+=item B<-keyspec> I<filename>
+
+It is optional and used to specify the file to save any keySpec if
+present in a genp message with id-it-keyGenParameters.
+
+Note: any keySpec field contents received are logged as INFO.
 
 =back
 
@@ -493,6 +513,7 @@ Reason numbers defined in RFC 5280 are:
 The I<host> domain name or IP address and optionally I<port>
 of the CMP server to connect to using HTTP(S).
 IP address may be for v4 or v6, such as C<127.0.0.1> or C<[::1]> for localhost.
+If the host string is an IPv6 address, it must be enclosed in C<[> and C<]>.
 
 This option excludes I<-port> and I<-use_mock_srv>.
 It is ignored if I<-rspin> is given with enough filename arguments.
@@ -507,6 +528,7 @@ If a path is included it provides the default value for the B<-path> option.
 
 The HTTP(S) proxy server to use for reaching the CMP server unless B<-no_proxy>
 applies, see below.
+If the host string is an IPv6 address, it must be enclosed in C<[> and C<]>.
 The proxy port defaults to 80 or 443 if the scheme is C<https>; apart from that
 the optional C<http://> or C<https://> prefix is ignored (note that using TLS
 may be required by B<-tls_used> or B<-server> with the prefix C<https>),
@@ -739,6 +761,24 @@ The file to save any oldWithNew certificate
 received in a genp message of infoType C<rootCaKeyUpdate>.
 If on success no such cert was received, this is indicated by deleting the file.
 
+=item B<-crlcert> I<filename>
+
+Certificate used for specifying a CRL issuer when requesting a CRL 
+in a genm message with infoType C<crlStatusList>.
+Any available distribution point name is preferred over issuer names.
+
+=item B<-oldcrl> I<filename>
+
+CRL used for specifying a CRL issuer when requesting a CRL 
+in a genm message with infoType C<crlStatusList>.
+Any available distribution point name is preferred over issuer names.
+If also B<-crlcrt> is given, its data is preferred over data from B<-oldcrl>.
+
+=item B<-crlout> I<filename>
+
+The file to save CRL received in a genp message of infoType C<crls>.
+If on success no such CRL was received, this is indicated by deleting the file.
+
 =back
 
 =head2 Client authentication options
@@ -864,6 +904,13 @@ Send request messages without CMP-level protection.
 File format to use when saving a certificate to a file.
 Default value is PEM.
 
+=item B<-crlform> I<PEM|DER>
+
+File format to use when saving a CRL to a file.
+Default value is DER.
+DER format is preferred because it enables more efficient storage
+of large CRLs.
+
 =item B<-keyform> I<PEM|DER|P12|ENGINE>
 
 The format of the key input; unspecified by default.
@@ -872,7 +919,7 @@ See L<openssl(1)/Format Options> for details.
 =item B<-otherpass> I<arg>
 
 Pass phrase source for certificate given with the B<-trusted>, B<-untrusted>,
-B<-own_trusted>, B<-srvcert>, B<-out_trusted>, B<-extracerts>,
+B<-own_trusted>, B<-srvcert>, B<-crlcert>, B<-out_trusted>, B<-extracerts>,
 B<-srv_trusted>, B<-srv_untrusted>, B<-ref_cert>, B<-rsp_cert>,
 B<-rsp_extracerts>, B<-rsp_capubs>,
 B<-rsp_newwithnew>, B<-rsp_newwithold>, B<-rsp_oldwithnew>,
@@ -1146,6 +1193,10 @@ Certificate to be expected for RR messages and any oldCertID in KUR messages.
 =item B<-rsp_cert> I<filename>|I<uri>
 
 Certificate to be returned as mock enrollment result.
+
+=item B<-rsp_crl> I<filename>|I<uri>
+
+CRL to be returned in genp of type C<crls>.
 
 =item B<-rsp_extracerts> I<filenames>|I<uris>
 
@@ -1445,6 +1496,9 @@ The B<cmp> application was added in OpenSSL 3.0.
 The B<-engine> option was deprecated in OpenSSL 3.0.
 
 The B<-profile> option was added in OpenSSL 3.3.
+
+B<-crlcert>, B<-oldcrl>, B<-crlout>, B<-crlform>
+and B<-rsp_crl> options were added in OpenSSL 3.4.
 
 =head1 COPYRIGHT
 

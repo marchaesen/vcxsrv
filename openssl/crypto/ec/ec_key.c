@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2002-2024 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
@@ -76,7 +76,7 @@ void EC_KEY_free(EC_KEY *r)
         return;
 
     CRYPTO_DOWN_REF(&r->references, &i);
-    REF_PRINT_COUNT("EC_KEY", r);
+    REF_PRINT_COUNT("EC_KEY", i, r);
     if (i > 0)
         return;
     REF_ASSERT_ISNT(i < 0);
@@ -197,7 +197,7 @@ int EC_KEY_up_ref(EC_KEY *r)
     if (CRYPTO_UP_REF(&r->references, &i) <= 0)
         return 0;
 
-    REF_PRINT_COUNT("EC_KEY", r);
+    REF_PRINT_COUNT("EC_KEY", i, r);
     REF_ASSERT_ISNT(i < 2);
     return ((i > 1) ? 1 : 0);
 }
@@ -563,9 +563,15 @@ int ossl_ec_key_public_check(const EC_KEY *eckey, BN_CTX *ctx)
     int ret = 0;
     EC_POINT *point = NULL;
     const BIGNUM *order = NULL;
+    const BIGNUM *cofactor = EC_GROUP_get0_cofactor(eckey->group);
 
     if (!ossl_ec_key_public_check_quick(eckey, ctx))
         return 0;
+
+    if (cofactor != NULL && BN_is_one(cofactor)) {
+        /* Skip the unnecessary expensive computation for curves with cofactor of 1. */
+        return 1;
+    }
 
     point = EC_POINT_new(eckey->group);
     if (point == NULL)

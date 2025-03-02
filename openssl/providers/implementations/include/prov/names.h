@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2021-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -235,7 +235,7 @@
 #define PROV_NAMES_SHAKE_256 "SHAKE-256:SHAKE256:2.16.840.1.101.3.4.2.12"
 
 /*
- * KECCAK-KMAC-128 and KECCAK-KMAC-256 as hashes are mostly useful for 
+ * KECCAK-KMAC-128 and KECCAK-KMAC-256 as hashes are mostly useful for
  * KMAC128 and KMAC256.
  */
 #define PROV_NAMES_KECCAK_KMAC_128 "KECCAK-KMAC-128:KECCAK-KMAC128"
@@ -306,11 +306,13 @@
  * RANDs
  * -----
  */
+#define PROV_NAMES_CRNG_TEST "CRNG-TEST"
 #define PROV_NAMES_CTR_DRBG "CTR-DRBG"
 #define PROV_NAMES_HASH_DRBG "HASH-DRBG"
 #define PROV_NAMES_HMAC_DRBG "HMAC-DRBG"
 #define PROV_NAMES_TEST_RAND "TEST-RAND"
 #define PROV_NAMES_SEED_SRC "SEED-SRC"
+#define PROV_NAMES_JITTER "JITTER"
 
 /*-
  * Asymmetric algos
@@ -321,6 +323,15 @@
 #define PROV_NAMES_ECDH "ECDH"
 #define PROV_DESCS_ECDH "OpenSSL ECDH implementation"
 #define PROV_NAMES_ECDSA "ECDSA"
+#define PROV_NAMES_ECDSA_SHA1 "ECDSA-SHA1:ECDSA-SHA-1:ecdsa-with-SHA1:1.2.840.10045.4.1"
+#define PROV_NAMES_ECDSA_SHA224 "ECDSA-SHA2-224:ECDSA-SHA224:ecdsa-with-SHA224:1.2.840.10045.4.3.1"
+#define PROV_NAMES_ECDSA_SHA256 "ECDSA-SHA2-256:ECDSA-SHA256:ecdsa-with-SHA256:1.2.840.10045.4.3.2"
+#define PROV_NAMES_ECDSA_SHA384 "ECDSA-SHA2-384:ECDSA-SHA384:ecdsa-with-SHA384:1.2.840.10045.4.3.3"
+#define PROV_NAMES_ECDSA_SHA512 "ECDSA-SHA2-512:ECDSA-SHA512:ecdsa-with-SHA512:1.2.840.10045.4.3.4"
+#define PROV_NAMES_ECDSA_SHA3_224 "ECDSA-SHA3-224:ecdsa_with_SHA3-224:id-ecdsa-with-sha3-224:2.16.840.1.101.3.4.3.9"
+#define PROV_NAMES_ECDSA_SHA3_256 "ECDSA-SHA3-256:ecdsa_with_SHA3-256:id-ecdsa-with-sha3-256:2.16.840.1.101.3.4.3.10"
+#define PROV_NAMES_ECDSA_SHA3_384 "ECDSA-SHA3-384:ecdsa_with_SHA3-384:id-ecdsa-with-sha3-384:2.16.840.1.101.3.4.3.11"
+#define PROV_NAMES_ECDSA_SHA3_512 "ECDSA-SHA3-512:ecdsa_with_SHA3-512:id-ecdsa-with-sha3-512:2.16.840.1.101.3.4.3.12"
 #define PROV_DESCS_ECDSA "OpenSSL ECDSA implementation"
 #define PROV_NAMES_X25519 "X25519:1.3.101.110"
 #define PROV_DESCS_X25519 "OpenSSL X25519 implementation"
@@ -328,15 +339,46 @@
 #define PROV_DESCS_X448 "OpenSSL X448 implementation"
 #define PROV_NAMES_ED25519 "ED25519:1.3.101.112"
 #define PROV_DESCS_ED25519 "OpenSSL ED25519 implementation"
+#define PROV_NAMES_ED25519ph "ED25519ph"
+#define PROV_DESCS_ED25519ph "OpenSSL ED25519ph implementation"
+#define PROV_NAMES_ED25519ctx "ED25519ctx"
+#define PROV_DESCS_ED25519ctx "OpenSSL ED25519ctx implementation"
 #define PROV_NAMES_ED448 "ED448:1.3.101.113"
 #define PROV_DESCS_ED448 "OpenSSL ED448 implementation"
+#define PROV_NAMES_ED448ph "ED448ph"
+#define PROV_DESCS_ED448ph "OpenSSL ED448ph implementation"
 #define PROV_NAMES_DH "DH:dhKeyAgreement:1.2.840.113549.1.3.1"
 #define PROV_DESCS_DH "OpenSSL PKCS#3 DH implementation"
 #define PROV_NAMES_DHX "DHX:X9.42 DH:dhpublicnumber:1.2.840.10046.2.1"
 #define PROV_DESCS_DHX "OpenSSL X9.42 DH implementation"
 #define PROV_NAMES_DSA "DSA:dsaEncryption:1.2.840.10040.4.1"
+#define PROV_NAMES_DSA_SHA1 "DSA-SHA1:DSA-SHA-1:dsaWithSHA1:1.2.840.10040.4.3"
+#define PROV_NAMES_DSA_SHA224 "DSA-SHA2-224:DSA-SHA224:dsa_with_SHA224:2.16.840.1.101.3.4.3.1"
+#define PROV_NAMES_DSA_SHA256 "DSA-SHA2-256:DSA-SHA256:dsa_with_SHA256:2.16.840.1.101.3.4.3.2"
+#define PROV_NAMES_DSA_SHA384 "DSA-SHA2-384:DSA-SHA384:dsa_with_SHA384:id-dsa-with-sha384:1.2.840.1.101.3.4.3.3"
+#define PROV_NAMES_DSA_SHA512 "DSA-SHA2-512:DSA-SHA512:dsa_with_SHA512:id-dsa-with-sha512:1.2.840.1.101.3.4.3.4"
+#define PROV_NAMES_DSA_SHA3_224 "DSA-SHA3-224:dsa_with_SHA3-224:id-dsa-with-sha3-224:2.16.840.1.101.3.4.3.5"
+#define PROV_NAMES_DSA_SHA3_256 "DSA-SHA3-256:dsa_with_SHA3-256:id-dsa-with-sha3-256:2.16.840.1.101.3.4.3.6"
+#define PROV_NAMES_DSA_SHA3_384 "DSA-SHA3-384:dsa_with_SHA3-384:id-dsa-with-sha3-384:2.16.840.1.101.3.4.3.7"
+#define PROV_NAMES_DSA_SHA3_512 "DSA-SHA3-512:dsa_with_SHA3-512:id-dsa-with-sha3-512:2.16.840.1.101.3.4.3.8"
 #define PROV_DESCS_DSA "OpenSSL DSA implementation"
 #define PROV_NAMES_RSA "RSA:rsaEncryption:1.2.840.113549.1.1.1"
+#define PROV_NAMES_RSA_MD2 "RSA-MD2:md2WithRSAEncryption:1.2.840.113549.1.1.2"
+#define PROV_NAMES_RSA_MD4 "RSA-MD4:md4WithEncryption:1.2.840.113549.1.1.3"
+#define PROV_NAMES_RSA_MD5 "RSA-MD5:md5WithRSAEncryption:1.2.840.113549.1.1.4"
+#define PROV_NAMES_RSA_RIPEMD160 "RSA-RIPEMD160:ripemd160WithRSA:1.3.36.3.3.1.2"
+#define PROV_NAMES_RSA_SHA1 "RSA-SHA1:RSA-SHA-1:sha1WithRSAEncryption:1.2.840.113549.1.1.5"
+#define PROV_NAMES_RSA_SHA256 "RSA-SHA2-256:RSA-SHA256:sha256WithRSAEncryption:1.2.840.113549.1.1.11"
+#define PROV_NAMES_RSA_SHA384 "RSA-SHA2-384:RSA-SHA384:sha384WithRSAEncryption:1.2.840.113549.1.1.12"
+#define PROV_NAMES_RSA_SHA512 "RSA-SHA2-512:RSA-SHA512:sha512WithRSAEncryption:1.2.840.113549.1.1.13"
+#define PROV_NAMES_RSA_SHA224 "RSA-SHA2-224:RSA-SHA224:sha224WithRSAEncryption:1.2.840.113549.1.1.14"
+#define PROV_NAMES_RSA_SHA512_224 "RSA-SHA2-512/224:RSA-SHA512-224:sha512-224WithRSAEncryption:1.2.840.113549.1.1.15"
+#define PROV_NAMES_RSA_SHA512_256 "RSA-SHA2-512/256:RSA-SHA512-256:sha512-256WithRSAEncryption:1.2.840.113549.1.1.16"
+#define PROV_NAMES_RSA_SM3 "RSA-SM3:sm3WithRSAEncryption:1.2.156.10197.1.504"
+#define PROV_NAMES_RSA_SHA3_224 "RSA-SHA3-224:id-rsassa-pkcs1-v1_5-with-sha3-224:2.16.840.1.101.3.4.3.13"
+#define PROV_NAMES_RSA_SHA3_256 "RSA-SHA3-256:id-rsassa-pkcs1-v1_5-with-sha3-256:2.16.840.1.101.3.4.3.14"
+#define PROV_NAMES_RSA_SHA3_384 "RSA-SHA3-384:id-rsassa-pkcs1-v1_5-with-sha3-384:2.16.840.1.101.3.4.3.15"
+#define PROV_NAMES_RSA_SHA3_512 "RSA-SHA3-512:id-rsassa-pkcs1-v1_5-with-sha3-512:2.16.840.1.101.3.4.3.16"
 #define PROV_DESCS_RSA "OpenSSL RSA implementation"
 #define PROV_NAMES_RSA_PSS "RSA-PSS:RSASSA-PSS:1.2.840.113549.1.1.10"
 #define PROV_DESCS_RSA_PSS "OpenSSL RSA-PSS implementation"

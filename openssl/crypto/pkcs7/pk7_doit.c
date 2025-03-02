@@ -920,7 +920,7 @@ int PKCS7_SIGNER_INFO_sign(PKCS7_SIGNER_INFO *si)
 
     alen = ASN1_item_i2d((ASN1_VALUE *)si->auth_attr, &abuf,
                          ASN1_ITEM_rptr(PKCS7_ATTR_SIGN));
-    if (!abuf)
+    if (alen < 0 || abuf == NULL)
         goto err;
     if (EVP_DigestSignUpdate(mctx, abuf, alen) <= 0)
         goto err;
@@ -1018,6 +1018,7 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
     STACK_OF(X509_ATTRIBUTE) *sk;
     BIO *btmp;
     EVP_PKEY *pkey;
+    unsigned char *abuf = NULL;
     const PKCS7_CTX *ctx = ossl_pkcs7_get0_ctx(p7);
     OSSL_LIB_CTX *libctx = ossl_pkcs7_ctx_get0_libctx(ctx);
     const char *propq = ossl_pkcs7_ctx_get0_propq(ctx);
@@ -1067,7 +1068,7 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
 
     sk = si->auth_attr;
     if ((sk != NULL) && (sk_X509_ATTRIBUTE_num(sk) != 0)) {
-        unsigned char md_dat[EVP_MAX_MD_SIZE], *abuf = NULL;
+        unsigned char md_dat[EVP_MAX_MD_SIZE];
         unsigned int md_len;
         int alen;
         ASN1_OCTET_STRING *message_digest;
@@ -1102,15 +1103,13 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
 
         alen = ASN1_item_i2d((ASN1_VALUE *)sk, &abuf,
                              ASN1_ITEM_rptr(PKCS7_ATTR_VERIFY));
-        if (alen <= 0) {
+        if (alen <= 0 || abuf == NULL) {
             ERR_raise(ERR_LIB_PKCS7, ERR_R_ASN1_LIB);
             ret = -1;
             goto err;
         }
         if (!EVP_VerifyUpdate(mdc_tmp, abuf, alen))
             goto err;
-
-        OPENSSL_free(abuf);
     }
 
     os = si->enc_digest;
@@ -1128,6 +1127,7 @@ int PKCS7_signatureVerify(BIO *bio, PKCS7 *p7, PKCS7_SIGNER_INFO *si,
     }
     ret = 1;
  err:
+    OPENSSL_free(abuf);
     EVP_MD_CTX_free(mdc_tmp);
     EVP_MD_free(fetched_md);
     return ret;

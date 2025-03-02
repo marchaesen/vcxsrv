@@ -16,10 +16,37 @@ EXT_RETURN tls_construct_ctos_renegotiate(SSL_CONNECTION *s, WPACKET *pkt,
                                           unsigned int context, X509 *x,
                                           size_t chainidx)
 {
-    /* Add RI if renegotiating */
-    if (!s->renegotiate)
-        return EXT_RETURN_NOT_SENT;
+    if (!s->renegotiate) {
+        /* If not renegotiating, send an empty RI extension to indicate support */
 
+#if DTLS_MAX_VERSION_INTERNAL != DTLS1_2_VERSION
+# error Internal DTLS version error
+#endif
+
+        if (!SSL_CONNECTION_IS_DTLS(s)
+            && (s->min_proto_version >= TLS1_3_VERSION
+                || (ssl_security(s, SSL_SECOP_VERSION, 0, TLS1_VERSION, NULL)
+                    && s->min_proto_version <= TLS1_VERSION))) {
+            /*
+             * For TLS <= 1.0 SCSV is used instead, and for TLS 1.3 this
+             * extension isn't used at all.
+             */
+            return EXT_RETURN_NOT_SENT;
+        }
+
+
+        if (!WPACKET_put_bytes_u16(pkt, TLSEXT_TYPE_renegotiate)
+            || !WPACKET_start_sub_packet_u16(pkt)
+            || !WPACKET_put_bytes_u8(pkt, 0)
+            || !WPACKET_close(pkt)) {
+            SSLfatal(s, SSL_AD_INTERNAL_ERROR, ERR_R_INTERNAL_ERROR);
+            return EXT_RETURN_FAIL;
+        }
+
+        return EXT_RETURN_SENT;
+    }
+
+    /* Add a complete RI extension if renegotiating */
     if (!WPACKET_put_bytes_u16(pkt, TLSEXT_TYPE_renegotiate)
             || !WPACKET_start_sub_packet_u16(pkt)
             || !WPACKET_sub_memcpy_u8(pkt, s->s3.previous_client_finished,
@@ -757,13 +784,13 @@ EXT_RETURN tls_construct_ctos_early_data(SSL_CONNECTION *s, WPACKET *pkt,
     SSL_SESSION *psksess = NULL;
     SSL_SESSION *edsess = NULL;
     const EVP_MD *handmd = NULL;
-    SSL *ssl = SSL_CONNECTION_GET_SSL(s);
+    SSL *ussl = SSL_CONNECTION_GET_USER_SSL(s);
 
     if (s->hello_retry_request == SSL_HRR_PENDING)
         handmd = ssl_handshake_md(s);
 
     if (s->psk_use_session_cb != NULL
-            && (!s->psk_use_session_cb(ssl, handmd, &id, &idlen, &psksess)
+            && (!s->psk_use_session_cb(ussl, handmd, &id, &idlen, &psksess)
                 || (psksess != NULL
                     && psksess->ssl_version != TLS1_3_VERSION))) {
         SSL_SESSION_free(psksess);
@@ -777,7 +804,7 @@ EXT_RETURN tls_construct_ctos_early_data(SSL_CONNECTION *s, WPACKET *pkt,
         size_t psklen = 0;
 
         memset(identity, 0, sizeof(identity));
-        psklen = s->psk_client_callback(ssl, NULL,
+        psklen = s->psk_client_callback(ussl, NULL,
                                         identity, sizeof(identity) - 1,
                                         psk, sizeof(psk));
 
@@ -799,7 +826,8 @@ EXT_RETURN tls_construct_ctos_early_data(SSL_CONNECTION *s, WPACKET *pkt,
              * We found a PSK using an old style callback. We don't know
              * the digest so we default to SHA256 as per the TLSv1.3 spec
              */
-            cipher = SSL_CIPHER_find(ssl, tls13_aes128gcmsha256_id);
+            cipher = SSL_CIPHER_find(SSL_CONNECTION_GET_SSL(s),
+                                     tls13_aes128gcmsha256_id);
             if (cipher == NULL) {
                 SSLfatal(s, SSL_AD_INTERNAL_ERROR, ERR_R_INTERNAL_ERROR);
                 return EXT_RETURN_FAIL;
@@ -952,8 +980,12 @@ EXT_RETURN tls_construct_ctos_padding(SSL_CONNECTION *s, WPACKET *pkt,
              * Add the fixed PSK overhead, the identity length and the binder
              * length.
              */
+            int md_size = EVP_MD_get_size(md);
+
+            if (md_size <= 0)
+                return EXT_RETURN_FAIL;
             hlen +=  PSK_PRE_BINDER_OVERHEAD + s->session->ext.ticklen
-                     + EVP_MD_get_size(md);
+                     + md_size;
         }
     }
 
@@ -992,7 +1024,8 @@ EXT_RETURN tls_construct_ctos_psk(SSL_CONNECTION *s, WPACKET *pkt,
 {
 #ifndef OPENSSL_NO_TLS1_3
     uint32_t agesec, agems = 0;
-    size_t reshashsize = 0, pskhashsize = 0, binderoffset, msglen;
+    size_t binderoffset, msglen;
+    int reshashsize = 0, pskhashsize = 0;
     unsigned char *resbinder = NULL, *pskbinder = NULL, *msgstart = NULL;
     const EVP_MD *handmd = NULL, *mdres = NULL, *mdpsk = NULL;
     int dores = 0;
@@ -1088,6 +1121,8 @@ EXT_RETURN tls_construct_ctos_psk(SSL_CONNECTION *s, WPACKET *pkt,
         agems += s->session->ext.tick_age_add;
 
         reshashsize = EVP_MD_get_size(mdres);
+        if (reshashsize <= 0)
+            goto dopsksess;
         s->ext.tick_identity++;
         dores = 1;
     }
@@ -1117,6 +1152,10 @@ EXT_RETURN tls_construct_ctos_psk(SSL_CONNECTION *s, WPACKET *pkt,
         }
 
         pskhashsize = EVP_MD_get_size(mdpsk);
+        if (pskhashsize <= 0) {
+            SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_R_BAD_PSK);
+            return EXT_RETURN_FAIL;
+        }
     }
 
     /* Create the extension, but skip over the binder for now */
@@ -1383,7 +1422,7 @@ int tls_parse_stoc_session_ticket(SSL_CONNECTION *s, PACKET *pkt,
                                   unsigned int context,
                                   X509 *x, size_t chainidx)
 {
-    SSL *ssl = SSL_CONNECTION_GET_SSL(s);
+    SSL *ssl = SSL_CONNECTION_GET_USER_SSL(s);
 
     if (s->ext.session_ticket_cb != NULL &&
         !s->ext.session_ticket_cb(ssl, PACKET_data(pkt),
@@ -1557,7 +1596,7 @@ int tls_parse_stoc_npn(SSL_CONNECTION *s, PACKET *pkt, unsigned int context,
         /* SSLfatal() already called */
         return 0;
     }
-    if (sctx->ext.npn_select_cb(SSL_CONNECTION_GET_SSL(s),
+    if (sctx->ext.npn_select_cb(SSL_CONNECTION_GET_USER_SSL(s),
                                 &selected, &selected_len,
                                 PACKET_data(pkt), PACKET_remaining(pkt),
                                 sctx->ext.npn_select_cb_arg) != SSL_TLSEXT_ERR_OK
