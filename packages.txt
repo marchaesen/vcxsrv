@@ -40,7 +40,7 @@ font-util-1.4.1
 font-winitzki-cyrillic-1.0.4
 font-xfree86-type1-1.0.5
 fontconfig git version
-freetype-2.13.2
+freetype-2.13.3
 libX11 git version
 libXau git version
 libXaw-1.0.15
