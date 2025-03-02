@@ -2310,6 +2310,8 @@ glxWinCreateConfigsExt(HDC hdc, glxWinScreen * screen, PixelFormatRejectStats * 
     ADD_ATTR(WGL_STENCIL_BITS_ARB);
     ADD_ATTR(WGL_AUX_BUFFERS_ARB);
     ADD_ATTR(WGL_SWAP_METHOD_ARB);
+    ADD_ATTR(WGL_TRANSPARENT_BLUE_VALUE_ARB);
+    ADD_ATTR(WGL_TRANSPARENT_INDEX_VALUE_ARB);
 
     if (screen->has_WGL_ARB_multisample) {
         // we may not query these attrs if WGL_ARB_multisample is not offered
