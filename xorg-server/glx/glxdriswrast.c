@@ -445,6 +445,13 @@ __glXDRIscreenDestroy(__GLXscreen * baseScreen)
     free(screen);
 }
 
+static int
+__glxDriwrastSwapInterval(__GLXdrawable * drawable, int interval)
+{
+    return true;
+}
+
+
 static __GLXscreen *
 __glXDRIscreenProbe(ScreenPtr pScreen)
 {
@@ -463,7 +470,7 @@ __glXDRIscreenProbe(ScreenPtr pScreen)
     screen->base.destroy = __glXDRIscreenDestroy;
     screen->base.createContext = __glXDRIscreenCreateContext;
     screen->base.createDrawable = __glXDRIscreenCreateDrawable;
-    screen->base.swapInterval = NULL;
+    screen->base.swapInterval = __glxDriwrastSwapInterval;
     screen->base.pScreen = pScreen;
 
     __glXInitExtensionEnableBits(screen->base.glx_enable_bits);
